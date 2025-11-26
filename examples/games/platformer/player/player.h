@@ -5,9 +5,10 @@ struct player_t {
   static inline constexpr f32_t task_tick = 1000.f / 60.f;
   static inline constexpr f32_t rotation_speed = fan::math::two_pi / 60.f * 2.f;
   static inline constexpr int attack_hitbox_frame = 4;
+  static inline constexpr f32_t sword_length = 100.f;
   static inline constexpr std::array<fan::vec2, 3> get_hitbox_points(f32_t direction) {
     return {{
-      {100.0f * direction, 0.0f},
+      {sword_length * direction, 0.0f},
       {0.0f, -10.0f},
       {0.0f, 10.0f}
     }};

@@ -451,6 +451,7 @@ export namespace fan {
           std::function<void()> on_attack_start;
           std::function<void()> on_attack_end;
 
+          bool can_attack(const fan::vec2& target_distance);
           bool try_attack(const fan::vec2& target_distance);
           void end_attack();
         };
