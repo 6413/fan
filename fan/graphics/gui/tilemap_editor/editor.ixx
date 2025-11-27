@@ -852,7 +852,7 @@ export struct fte_t {
         bool is_shift_pressed = fan::graphics::get_window().key_pressed(fan::key_left_shift);
 
         if (is_mouse_left_down && !is_ctrl_pressed && 
-          !is_shift_pressed && !fan::key_t && !fan::key_5) {
+          !is_shift_pressed && !fan::window::is_key_down(fan::key_t) && !fan::window::is_key_down(fan::key_5)) {
           handle_tile_action(position, [this](auto...args) {
             return handle_tile_push(args...);
           });
@@ -1334,6 +1334,12 @@ export struct fte_t {
     fan::graphics::gui::push_style_var(fan::graphics::gui::style_var_frame_padding, fan::vec2(0, 0));
     fan::graphics::gui::push_style_color(fan::graphics::gui::col_button, fan::color::rgb(31, 31, 31));
     fan::graphics::gui::push_style_color(fan::graphics::gui::col_window_bg, fan::color::rgb(31, 31, 31));
+
+    static bool init = true;
+    if (init) {
+      fan::graphics::gui::set_next_window_focus();
+      init = false;
+    }
 
     if (fan::graphics::gui::begin("tiles", nullptr, fan::graphics::gui::window_flags_no_scroll_with_mouse)) {
       if (fan::graphics::gui::is_window_hovered()) {

@@ -20,13 +20,13 @@ void load_map() {
   // Set player spawn
   pile->player.body.set_physics_position(pile->renderer.get_position(main_map_id, "player_spawn") + fan::vec2(300, -200));
   pile->entity.resize(2);
-  pile->entity[0].body.set_physics_position(pile->renderer.get_position(main_map_id, "enemy0"));
-  pile->entity[1].body.set_physics_position(pile->renderer.get_position(main_map_id, "enemy1"));
+  pile->entity[0].set_initial_position(pile->renderer.get_position(main_map_id, "enemy0"));
+  pile->entity[1].set_initial_position(pile->renderer.get_position(main_map_id, "enemy1"));
 
   std::vector<fte_loader_t::tile_t> tiles;
 
   pile->renderer.iterate_visual(main_map_id, [&](fte_loader_t::tile_t& tile) {
-    if (pile->engine.texture_pack[tile.texture_pack_unique_id].name == "tile1152") {
+    if (tile.id == "spikes") {
       auto points = get_spike_points();
       spike_sensors.emplace_back(pile->engine.physics_context.create_polygon(
         tile.position,
@@ -45,10 +45,13 @@ void open(void* sod) {
 }
 
 void close() {
-
 }
 
 void reload_map() {
+  for (auto& i : spike_sensors) {
+    i.destroy();
+  }
+  spike_sensors.clear();
   pile->renderer.erase(main_map_id);
   load_map();
 }
@@ -58,11 +61,9 @@ void update() {
     if (fan::physics::is_on_sensor(pile->player.body, spike)) {
       pile->player.body.set_physics_position(pile->renderer.get_position(main_map_id, "player_spawn"));
     }
-  }
-  for (auto& enemy : pile->entity) {
-    for (auto& spike : spike_sensors) {
+    for (auto& enemy : pile->entity) {
       if (fan::physics::is_on_sensor(enemy.body, spike)) {
-        enemy.body.set_physics_position(pile->renderer.get_position(main_map_id, "player_spawn"));
+        enemy.respawn();
       }
     }
   }

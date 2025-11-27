@@ -8,7 +8,7 @@
           "hframes": 10,
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "IDLE.png",
+          "image_path": "player/IDLE.png",
           "vframes": 1
         }
       ],
@@ -34,7 +34,7 @@
           "hframes": 16,
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "RUN.png",
+          "image_path": "player/RUN.png",
           "vframes": 1
         }
       ],
@@ -66,7 +66,7 @@
           "hframes": 7,
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "ATTACK 1.png",
+          "image_path": "player/ATTACK 1.png",
           "vframes": 1
         }
       ],
@@ -87,7 +87,9 @@
       "images": [
         {
           "hframes": 4,
-          "image_path": "HURT.png",
+					"image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "player/HURT.png",
           "vframes": 1
         }
       ],
@@ -110,7 +112,7 @@
       ],
       "images": [
         {
-          "image_path": "HURT.png"
+          "image_path": "player/HURT.png"
         }
       ],
       "position": [

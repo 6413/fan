@@ -1359,6 +1359,10 @@ namespace fan::graphics{
 		return sheet_data.current_frame == animation.selected_frames.size() - 1;
 	}
 
+  void shapes::shape_t::reset_current_sprite_sheet_animation_frame() {
+    auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
+    ri.sprite_sheet_data.current_frame = 0;
+  }
 	void shapes::shape_t::reset_current_sprite_sheet_animation() {
 		auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
 		ri.sprite_sheet_data.current_frame = 0;
