@@ -18,6 +18,8 @@ module;
 #include <cmath>
 #include <fstream>
 #include <sstream>
+#include <utility>
+#include <coroutine>
 
 #if defined(fan_std23)
   #include <stacktrace>
@@ -1374,7 +1376,6 @@ void loco_t::process_gui() {
   gui_draw_timer.start();
 #if defined(fan_gui)
   fan::graphics::gui::process_frame();
-
   // append
   gui::begin("##global_renderer");
   text_logger.render();
@@ -1581,6 +1582,14 @@ void loco_t::process_render() {
   }
 
   single_queue.clear();
+
+  std::vector<std::coroutine_handle<>> current_frame;
+  // swap with pending to 
+  std::swap(current_frame, next_frame_awaiter::pending);
+
+  for (const auto& h : current_frame) {
+    h.resume();
+  }
 
 #if defined(fan_gui)
   fan::graphics::gui::end();

@@ -27,6 +27,7 @@ module;
 #include <sstream>
 #include <set>
 #include <iostream>
+#include <coroutine>
 #if defined(fan_std23)
   #include <stacktrace>
 #endif
@@ -130,6 +131,15 @@ struct global_loco_t {
 
 export inline thread_local global_loco_t gloco;
 
+struct next_frame_awaiter {
+  bool await_ready() const noexcept { return false; }
+  void await_suspend(std::coroutine_handle<> handle) {
+    pending.push_back(handle);
+  }
+  void await_resume() const noexcept {}
+  static inline std::vector<std::coroutine_handle<>> pending;
+};
+
 export namespace fan::graphics {
 	struct engine_init_t {
 #define BLL_set_SafeNext 1
@@ -151,6 +161,10 @@ export namespace fan::graphics {
 	engine_init_t::init_callback_t engine_init_cbs;
 
 	std::uint32_t get_draw_mode(std::uint8_t internal_draw_mode);
+
+  next_frame_awaiter co_next_frame() {
+    return {};
+  }
 }
 
 export struct loco_t {
@@ -471,6 +485,8 @@ public:
 	fan::window::input_action_t input_action;
 	fan::graphics::update_callback_t m_update_callback;
 	std::vector<std::function<void()>> single_queue;
+
+
 
 	#include "engine_images.h"
 
