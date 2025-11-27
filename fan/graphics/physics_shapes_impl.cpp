@@ -986,16 +986,19 @@ namespace fan::graphics::physics {
     return is_on_ground(*this, std::to_array(feet), jumping);
   }
 
-  void character2d_t::perform_jump(bool jump_condition, fan::vec2* wall_jump_normal) {
+
+  void character2d_t::perform_jump(bool jump_condition, fan::vec2* wall_jump_normal){
     bool on_ground = is_on_ground();
-    if (on_ground) {
+    if(on_ground){
       last_ground_time = fan::time::now();
       on_air_after_jump = false;
       jump_consumed = false;
       jumping = false;
+      double_jump_consumed = false;
+      wall_jump.wall_jump_consumed = false;
     }
 
-    if (!jump_condition || !handle_jump) {
+    if(!jump_condition || !handle_jump){
       jumping = false;
       return;
     }
@@ -1007,28 +1010,39 @@ namespace fan::graphics::physics {
     bool touching_wall = (wall_normal.x != 0 || wall_normal.y != 0);
     bool allow_coyote = ((fan::time::now() - last_ground_time) / 1e+9 <= coyote_time);
 
-    if (touching_wall && !on_ground) {
+    if(touching_wall && !on_ground && jump_consumed && !wall_jump.wall_jump_consumed){
       fan::vec2 input = fan::window::get_input_vector();
-
       bool pushing_into_wall = fan::math::sgn(input.x) == fan::math::sgn(wall_normal.x);
-      if (pushing_into_wall) {
+      if(pushing_into_wall && !jumping){
         fan::physics::wall_jump(*this, wall_normal, wall_jump.push_away_force, jump_impulse);
         jumping = true;
-        jump_consumed = true;
         on_air_after_jump = true;
+        wall_jump.wall_jump_consumed = true;
+        double_jump_consumed = true;
         return;
       }
     }
-    if ((on_ground || allow_coyote) && !jump_consumed) {
+
+    if((on_ground || allow_coyote) && !jump_consumed){
       fan::vec2 vel = get_linear_velocity();
       set_linear_velocity(fan::vec2(vel.x, 0));
       apply_linear_impulse_center({0, -jump_impulse});
       jumping = true;
       jump_consumed = true;
       on_air_after_jump = true;
+      return;
+    }
+
+    if(allow_double_jump && !on_ground && !jumping && jump_consumed && !double_jump_consumed){
+      fan::vec2 vel = get_linear_velocity();
+      if(vel.y > 0){
+        set_linear_velocity(fan::vec2(vel.x, 0));
+      }
+      apply_linear_impulse_center({0, -jump_impulse});
+      jumping = true;
+      double_jump_consumed = true;
     }
   }
-
   void character2d_t::process_movement(uint8_t movement, f32_t friction) {
     fan::vec2 velocity = get_linear_velocity();
     fan::physics::shape_id_t colliding_wall_id;

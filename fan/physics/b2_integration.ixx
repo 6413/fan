@@ -217,11 +217,6 @@ export namespace fan {
 
     void apply_wall_slide(body_id_t body_id, const fan::vec2& wall_normal, f32_t slide_speed = 20.0f);
 
-    void wall_jump(body_id_t body_id, const fan::vec2& wall_normal,
-      f32_t push_x = 2.f,
-      f32_t jump_speed_up = 15.f,
-      f32_t max_up_speed = 60.f);
-
     struct sensor_events_t {
       struct sensor_contact_t {
         fan::physics::body_id_t sensor_id;
@@ -355,7 +350,7 @@ export namespace fan {
     void queue_one_time_command(std::function<void()> callback);
     fan::vec2 check_wall_contact(body_id_t body_id, shape_id_t* colliding_wall);
     void apply_wall_slide(body_id_t body_id, const fan::vec2& wall_normal, f32_t slide_speed);
-    void wall_jump(body_id_t body_id, const fan::vec2& wall_normal, f32_t push_x, f32_t jump_speed_up, f32_t max_up_speed);
+    void wall_jump(body_id_t body_id, const fan::vec2& wall_normal, f32_t push_x, f32_t max_up_speed);
     bool overlap_callback_fcn(b2ShapeId shape_id, void* context);
     bool is_colliding(const b2ShapeId& a, const b2ShapeId& b);
     

@@ -131,10 +131,14 @@ struct entity_t {
 
     return false;
   }
+
+  void destroy() {
+    remove_this = true;
+  }
   void on_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction) {
     body.take_hit(source, hit_direction);
     if (body.health <= 0) {
-      remove_this = true;
+      destroy();
       //set_initial_position(initial_position);
 //      body.health = body.max_health;
     }
@@ -153,6 +157,7 @@ struct entity_t {
   void respawn() {
     body.set_physics_position(initial_position);
     body.enable_ai_patrol({initial_position - fan::vec2(400, 0), initial_position + fan::vec2(400, 0)});
+    body.health = body.max_health;
   }
   void set_initial_position(const fan::vec2& position) {
     initial_position = position;

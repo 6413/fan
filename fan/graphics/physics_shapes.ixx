@@ -439,12 +439,6 @@ export namespace fan {
           };
         };
 
-        struct wall_jump_t {
-          fan::vec2 normal;
-          f32_t slide_speed = 200.f;
-          f32_t push_away_force = 1.f;
-        } wall_jump;
-
         struct attack_state_t {
           bool can_attack(const fan::vec2& target_distance);
           bool try_attack(const fan::vec2& target_distance);
@@ -588,6 +582,12 @@ export namespace fan {
 
         // memcpy start
         fan::vec2 previous_movement_sign = 0;
+        struct wall_jump_t {
+          fan::vec2 normal;
+          f32_t slide_speed = 200.f;
+          f32_t push_away_force = 1.f;
+          bool wall_jump_consumed = false;
+        } wall_jump;
         f32_t accelerate_force = 120.f;
         f32_t jump_impulse = 40.f;
         f32_t max_speed = 600.f;
@@ -599,6 +599,8 @@ export namespace fan {
         bool handle_jump = true;
         bool on_air_after_jump = false;
         bool jump_consumed = false;
+        bool allow_double_jump = false;
+        bool double_jump_consumed = false;
         bool movement_enabled = false;
         bool current_animation_requires_velocity_fps = false;
         bool auto_update_animations = false;

@@ -10,7 +10,7 @@ struct player_t {
       {sword_length * direction, 0.0f},
       {0.0f, -10.0f},
       {0.0f, 10.0f}
-      }};
+    }};
   }
   player_t() {
     body.stun = false; // set before loading
@@ -24,6 +24,7 @@ struct player_t {
     body.sync_visual_angle(false);
     body.attack_state.knockback_force = 20.f;
     body.attack_state.damage = 10.f;
+    body.allow_double_jump = true;
     body.attack_state.cooldown_duration = 0.1e9;
     body.attack_state.cooldown_timer = fan::time::timer(body.attack_state.cooldown_duration, true);
     body.attack_state.on_attack_start = [this]() {
@@ -73,12 +74,15 @@ struct player_t {
     }
     body.set_angle(0.f);
   }
+  void respawn() {
+    body.set_physics_position(pile->renderer.get_position(pile->get_level().main_map_id, "player_spawn"));
+    body.health = body.max_health;
+  }
   void step() {
     if (body.is_on_ground()) {
       jump_cancelled = true;
     }
-    if (fan::window::is_action_clicked("move_up")) {
-      //body.set_linear_velocity(fan::vec2(body.get_linear_velocity().x, -100.f));
+    if (fan::window::is_action_clicked("move_up") && body.get_angle().z == 0) {
       task_jump = jump();
     }
     if (body.attack_state.is_attacking && !hitbox_spawned) {
