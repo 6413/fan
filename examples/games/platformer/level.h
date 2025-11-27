@@ -65,13 +65,18 @@ void reload_map() {
 }
 
 void update() {
+  bool respawn_enemies = false;
   for (auto& spike : spike_sensors) {
     if (fan::physics::is_on_sensor(pile->player.body, spike)) {
-      pile->player.body.set_physics_position(pile->renderer.get_position(main_map_id, "player_spawn"));
+      pile->player.respawn();
+      respawn_enemies = true;
     }
     for (auto& enemy : pile->entity) {
-      if (fan::physics::is_on_sensor(enemy.body, spike)) {
+      if (respawn_enemies) {
         enemy.respawn();
+      }
+      else if (fan::physics::is_on_sensor(enemy.body, spike)) {
+        enemy.destroy();
       }
     }
   }

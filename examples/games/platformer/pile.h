@@ -45,7 +45,7 @@ struct pile_t {
     return stage_loader.get_stage_data<gui_t>(gui_stage);
   }
 
-  fan::graphics::engine_t engine;
+  fan::graphics::engine_t engine /*{{.window_open_mode = fan::window_t::mode::windowed_fullscreen}}*/;
   fte_renderer_t renderer;
 
   stage_loader_t stage_loader;
