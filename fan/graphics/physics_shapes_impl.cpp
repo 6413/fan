@@ -1051,7 +1051,7 @@ namespace fan::graphics::physics {
         colliding_wall_id.set_friction(fan::physics::shape_properties_t().friction);
       }
 
-      perform_jump(fan::window::is_action_clicked("move_up"), &wall_jump.normal);
+      perform_jump(fan::window::is_action_down("move_up"), &wall_jump.normal);
 
       jump_delay = 0;
       break;
@@ -1149,9 +1149,9 @@ namespace fan::graphics::physics {
         .trigger_type = animation_controller_t::animation_state_t::one_shot,
         .condition = config.attack_cb ? config.attack_cb : 
         [](character2d_t& c) -> bool {
-        if (!fan::window::is_mouse_clicked()) {
-          return false;
-        }
+          if (!fan::window::is_mouse_clicked()) {
+            return false;
+          }
           return c.attack_state.try_attack(fan::vec2(0));
         }
       });
@@ -1162,8 +1162,8 @@ namespace fan::graphics::physics {
         .animation_id = idle.id,
         .fps = idle.fps,
         .condition = [](character2d_t& c){ 
-        return std::abs(c.get_linear_velocity().x) < 10.f;
-      }
+          return std::abs(c.get_linear_velocity().x) < 10.f;
+        }
         });
       set_current_animation_id(idle.id);
     }

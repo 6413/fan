@@ -1085,10 +1085,7 @@ export namespace fan::graphics {
     fan::vec2 size;
     fan::vec2 tile_size;
 
-    struct vec2i_hash {
-      size_t operator()(const fan::vec2i& v) const noexcept;
-    };
-    std::unordered_set<fan::vec2i, vec2i_hash> wall_cells;
+    std::unordered_set<fan::vec2i> wall_cells;
   };
 
   struct terrain_palette_t {

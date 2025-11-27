@@ -1,8 +1,7 @@
 struct player_t {
   static inline constexpr fan::vec2 draw_offset{ 0.f, -38.f };
   static inline constexpr f32_t aabb_scale = 0.19f;
-  static inline constexpr f32_t task_tick = 1000.f / 60.f;
-  static inline constexpr f32_t rotation_speed = fan::math::two_pi / 60.f * 2.f;
+  static inline constexpr f32_t task_tick = 1000.f / 144.f;
   static inline constexpr int attack_hitbox_frame = 4;
   static inline constexpr f32_t sword_length = 100.f;
 
@@ -38,6 +37,9 @@ struct player_t {
       hitbox_spawned = false;
     };
     mouse_click_handle = pile->engine.on_mouse_click(fan::mouse_left, [this](const auto& bdata) {
+      if (fan::graphics::gui::get_io().WantCaptureMouse) {
+        return;
+      }
       body.cancel_animations();
       if (body.attack_state.try_attack(fan::vec2(0))) {
       }
@@ -61,19 +63,15 @@ struct player_t {
   fan::event::task_t jump() {
     jump_cancelled = false;
     body.set_rotation_point(-body.get_draw_offset());
-    f32_t start_time = fan::time::now();
-    f32_t duration = 1.0e9 / 2.0f;
-    while (!jump_cancelled) {
-      f32_t elapsed = fan::time::now() - start_time;
-      if (elapsed >= duration) {
-        break;
-      }
-      f32_t progress = elapsed / duration;
-      f32_t a = progress * fan::math::two_pi;
-      body.set_angle(fan::vec3(0, 0, a * body.get_image_sign().x));
-      co_await fan::co_sleep(task_tick);
+
+    fan::time::timer jump_timer{1.0e9f / 2.f, true};
+    while (!jump_cancelled && !jump_timer) {
+      f32_t progress = jump_timer.seconds() / jump_timer.duration_seconds();
+      f32_t angle = progress * fan::math::two_pi * body.get_image_sign().x;
+      body.set_angle(fan::vec3(0, 0, angle));
+      co_await fan::graphics::co_next_frame();
     }
-    body.set_angle(0.f); 
+    body.set_angle(0.f);
   }
   void step() {
     if (body.is_on_ground()) {

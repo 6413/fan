@@ -6,6 +6,9 @@
 #include <vector>
 #include <coroutine>
 #include <array>
+#include <unordered_set>
+#include <algorithm>
+#include <vector>
 
 import fan;
 import fan.graphics.gui.tilemap_editor.renderer;

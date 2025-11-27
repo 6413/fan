@@ -10,12 +10,12 @@ void close() {
 void update() {
   using namespace fan::graphics;
   fan::vec2 wnd_size = fan::window::get_size();
-  gui::set_next_window_pos(0);
-  gui::set_next_window_size(wnd_size);
-  gui::begin("##platformer_gui", nullptr,
-    gui::window_flags_no_background | gui::window_flags_no_nav |
-    gui::window_flags_no_title_bar
-  );
+  //gui::set_next_window_pos(0);
+  //gui::set_next_window_size(wnd_size);
+  //gui::begin("##platformer_gui", nullptr,
+  //  gui::window_flags_no_background | gui::window_flags_no_nav |
+  //  gui::window_flags_no_title_bar
+  //);
   int heart_count = pile->player.body.max_health / 10.f;
   for (int i = 0; i < heart_count; ++i) {
     gui::same_line();
@@ -27,7 +27,7 @@ void update() {
     }
     gui::image(hp_image, (wnd_size / 32.f).max());
   }
-  gui::end();
+ // gui::end();
 }
 
 fan::graphics::image_t health_empty;
