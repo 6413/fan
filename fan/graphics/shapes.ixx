@@ -531,6 +531,7 @@ export namespace fan::graphics {
       void add_existing_animation(animation_nr_t nr);
       bool is_animation_finished() const;
       bool is_animation_finished(animation_nr_t nr) const;
+      void reset_current_sprite_sheet_animation_frame();
       void reset_current_sprite_sheet_animation();
       // sprite sheet - sprite specific
       void set_sprite_sheet_next_frame(int advance = 1);

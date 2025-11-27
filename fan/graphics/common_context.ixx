@@ -414,8 +414,8 @@ export namespace fan::graphics {
 		image_t();
 		image_t(fan::graphics::image_nr_t image);
 		image_t(const fan::color& color);
-		image_t(const char* path, const std::source_location& callers_path);
-		image_t(const std::string& path, const std::source_location& callers_path);
+		image_t(const char* path, const std::source_location& callers_path = std::source_location::current());
+		image_t(const std::string& path, const std::source_location& callers_path = std::source_location::current());
 
 		fan::vec2 get_size() const;
 
@@ -440,7 +440,7 @@ export namespace fan::graphics {
 
 	fan::vec2 translate_position(const fan::vec2& p, viewport_t viewport, camera_t camera);
 	fan::vec2 transform_position(const fan::vec2& p, fan::graphics::viewport_t viewport, fan::graphics::camera_t camera);
-	fan::vec2 transform_position(const fan::vec2& p, const render_view_t& render_view);
+	fan::vec2 transform_position(const fan::vec2& p, const render_view_t& render_view = *fan::graphics::g_render_context_handle.orthographic_render_view);
 	fan::vec2 inverse_transform_position(const fan::vec2& p, fan::graphics::viewport_t viewport, fan::graphics::camera_t camera);
 	fan::vec2 inverse_transform_position(const fan::vec2& p, const render_view_t& render_view);
 	fan::vec2 get_mouse_position();

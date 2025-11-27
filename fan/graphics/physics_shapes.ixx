@@ -452,10 +452,12 @@ export namespace fan {
 
           fan::time::timer cooldown_timer;
           f32_t cooldown_duration = 0.5e9;
+          f32_t damage = 10.f;
           f32_t knockback_force = 50.f;
           fan::vec2 attack_range = {100, 50};
           bool is_attacking = false;
           character2d_t* target = nullptr;
+          std::vector<bool> attack_used {false};
           std::function<void()> on_attack_start;
           std::function<void()> on_attack_end;
         };
@@ -508,6 +510,7 @@ export namespace fan {
           f32_t prev_x = 0;
           bool was_jumping = false;
           bool is_stuck_state = false;
+          std::function<bool(const fan::vec2& position)> on_check_obstacle = [](const fan::vec2&) { return false; };
         };
 
         character2d_t() = default;
@@ -572,8 +575,6 @@ export namespace fan {
         void enable_ai_follow(character2d_t* target, const fan::vec2& trigger_distance, const fan::vec2& closeup_distance);
         void enable_ai_flee(character2d_t* target, const fan::vec2& trigger_distance, const fan::vec2& closeup_distance);
         void enable_ai_patrol(const std::vector<fan::vec2>& points);
-        void setup_attack(f32_t cooldown_seconds, const fan::vec2& range, 
-          std::function<bool(character2d_t&)> condition = nullptr);
         void setup_default_ai_update(fan::vec2 tile_size);
         void update_ai(fan::vec2 tile_size);
         void take_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction, f32_t knockback_multiplier = 1.0f);
@@ -601,8 +602,15 @@ export namespace fan {
         bool movement_enabled = false;
         bool current_animation_requires_velocity_fps = false;
         bool auto_update_animations = false;
+        f32_t max_health = 50;
+        f32_t health = max_health;
+        bool took_damage = false;
+        bool stun = true;
         uint8_t movement_type = movement_e::side_view; // memcpy end
+
+
         movement_callback_handle_t movement_cb;
+
       };
 
       struct bone_e {

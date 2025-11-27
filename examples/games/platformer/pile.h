@@ -14,6 +14,12 @@ struct pile_t {
     #include "level.h"
   };
 
+  lstd_defstruct(gui_t)
+    #include <fan/graphics/gui/stage_maker/preset.h>
+    static constexpr auto stage_name = "";
+    #include "gui.h"
+  };
+
   #include "player/player.h"
   #include "entity.h"
 
@@ -23,7 +29,9 @@ struct pile_t {
     engine.physics_context.step(engine.delta_time);
     player.step();
     for (auto& enemy : pile->entity) {
-      enemy.update();
+      if (enemy.update()) {
+        break;
+      }
     }
     
     engine.camera_set_target(engine.orthographic_render_view.camera, player.get_physics_pos(), 0);
@@ -31,14 +39,17 @@ struct pile_t {
   }
 
   level_t& get_level() {
-    return stage_loader.get_stage_data<level_t>(current_stage);
+    return stage_loader.get_stage_data<level_t>(level_stage);
+  }
+  gui_t& get_gui() {
+    return stage_loader.get_stage_data<gui_t>(gui_stage);
   }
 
-  fan::graphics::engine_t engine {{.window_open_mode=fan::window_t::mode::borderless}};
+  fan::graphics::engine_t engine;
   fte_renderer_t renderer;
 
   stage_loader_t stage_loader;
-  stage_loader_t::nr_t current_stage;
+  stage_loader_t::nr_t level_stage, gui_stage;
 
   fan::graphics::interactive_camera_t ic{
     engine.orthographic_render_view.camera,
@@ -48,7 +59,6 @@ struct pile_t {
   player_t player;
   std::vector<entity_t> entity;
 };
-
 
 
 pile_t::pile_t() {
@@ -65,7 +75,8 @@ pile_t::pile_t() {
   player.body.set_physics_position(player.body.get_position());
   engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position(), 0);
 
-  current_stage = pile->stage_loader.open_stage<level_t>();
+  level_stage = pile->stage_loader.open_stage<level_t>();
+  gui_stage = pile->stage_loader.open_stage<gui_t>();
   // init map after setting current_stage
   get_level().load_map();
 }

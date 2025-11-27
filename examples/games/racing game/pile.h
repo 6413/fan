@@ -47,7 +47,7 @@ struct pile_t {
   fte_renderer_t renderer;
 
   stage_loader_t stage_loader;
-  stage_loader_t::nr_t current_stage;
+  stage_loader_t::nr_t level_stage;
 
   fan::graphics::interactive_camera_t ic{
     engine.orthographic_render_view.camera,
@@ -98,7 +98,7 @@ pile_t::pile_t() {
   engine.lighting.ambient = 1;
 
 
-current_stage = stage_loader.open_stage<racing_track_t>();
+level_stage = stage_loader.open_stage<racing_track_t>();
 
   car.open();
   car_ai.open();
