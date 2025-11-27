@@ -5,6 +5,7 @@ module;
 #include <functional>
 #include <map>
 #include <unordered_map>
+#include <unordered_set>
 #include <string>
 #include <vector>
 #include <source_location>
@@ -1784,8 +1785,19 @@ export struct fte_t {
 
     fan::json tiles = fan::json::array();
 
+    std::unordered_set<fan::vec3> remove_duplicates;
+
     for (auto& i : map_tiles) {
       for (auto& j : i.second.layers) {
+        fan::vec3 key(j.tile.position.x, j.tile.position.y, j.tile.position.z);
+        if (remove_duplicates.find(key) == remove_duplicates.end()) {
+          remove_duplicates.insert(key);
+        }
+        else {
+          fan::graphics::gui::print_warning("warning duplicate tile positions:", key.to_string() + ", skipping...");
+          continue;
+        }
+          
         fan::json tile;
         if (j.shape.get_size() == 0 && !is_temp) {
           fan::graphics::gui::print_warning("warning exporting tile with size 0", j.tile.position);
@@ -1814,6 +1826,7 @@ export struct fte_t {
       }
     }
 
+    remove_duplicates.clear();
     for (auto& i : physics_shapes) {
       for (auto& j : i.second) {
         fan::json tile;
@@ -1821,12 +1834,21 @@ export struct fte_t {
           fan::graphics::gui::print_warning("warning exporting tile with size 0", j.visual.get_position());
         }
         fan::graphics::shape_serialize(j.visual, &tile);
+        if (remove_duplicates.find(j.visual.get_position()) == remove_duplicates.end()) {
+          remove_duplicates.insert(j.visual.get_position());
+        }
+        else {
+          fan::graphics::gui::print_warning("warning duplicate tile positions:", j.visual.get_position().to_string() + ", skipping...");
+          continue;
+        }
         tile["mesh_property"] = fte_t::mesh_property_t::physics_shape;
-        tile["id"] = j.id;
-        tile["action"] = tile_t().action;
-        tile["key"] = tile_t().key;
-        tile["key_state"] = tile_t().key_state;
-        tile["object_names"] = tile_t().object_names;
+        if (j.id.size()) {
+          tile["id"] = j.id;
+        }
+        //tile["action"] = tile_t().action;
+        //tile["key"] = tile_t().key;
+        //tile["key_state"] = tile_t().key_state;
+        //tile["object_names"] = tile_t().object_names;
 
         fan::json physics_shape_data;
 
@@ -1839,19 +1861,20 @@ export struct fte_t {
         if (j.draw != decltype(j.draw){}) {
           physics_shape_data["draw"] = j.draw;
         }
-        if (j.shape_properties.friction != decltype(j.shape_properties.friction){}) {
+        fan::physics::shape_properties_t sp_defaults;
+        if (j.shape_properties.friction != sp_defaults.friction) {
           physics_shape_data["friction"] = j.shape_properties.friction;
         }
-        if (j.shape_properties.density != decltype(j.shape_properties.density){}) {
+        if (j.shape_properties.density != sp_defaults.density) {
           physics_shape_data["density"] = j.shape_properties.density;
         }
-        if (j.shape_properties.fixed_rotation != decltype(j.shape_properties.fixed_rotation){}) {
+        if (j.shape_properties.fixed_rotation != sp_defaults.fixed_rotation) {
           physics_shape_data["fixed_rotation"] = j.shape_properties.fixed_rotation;
         }
-        if (j.shape_properties.presolve_events != decltype(j.shape_properties.presolve_events){}) {
+        if (j.shape_properties.presolve_events != sp_defaults.presolve_events) {
           physics_shape_data["presolve_events"] = j.shape_properties.presolve_events;
         }
-        if (j.shape_properties.is_sensor != decltype(j.shape_properties.is_sensor){}) {
+        if (j.shape_properties.is_sensor != sp_defaults.is_sensor) {
           physics_shape_data["is_sensor"] = j.shape_properties.is_sensor;
         }
 

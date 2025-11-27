@@ -33,57 +33,6 @@
     {
       "position": [
         8512.0,
-        15104.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.7578125,
-        0.6640625
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile394"
-    },
-    {
-      "position": [
-        5312.0,
-        16000.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.4765625,
-        0.8046875
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile778"
-    },
-    {
-      "position": [
-        1088.0,
-        15872.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.4765625,
-        0.7578125
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile777"
-    },
-    {
-      "position": [
-        8512.0,
         14592.0,
         32084.0
       ],
@@ -186,20 +135,54 @@
     },
     {
       "position": [
-        8512.0,
-        14272.0,
+        5312.0,
+        16000.0,
         32084.0
       ],
       "shape": "sprite",
       "tc_position": [
-        0.0078125,
-        0.0546875
+        0.4765625,
+        0.8046875
       ],
       "tc_size": [
         0.03125,
         0.03125
       ],
-      "texture_pack_name": "tile903"
+      "texture_pack_name": "tile778"
+    },
+    {
+      "position": [
+        1088.0,
+        15872.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.4765625,
+        0.7578125
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile777"
+    },
+    {
+      "position": [
+        8512.0,
+        15104.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.7578125,
+        0.6640625
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile394"
     },
     {
       "id": "spikes",
@@ -221,54 +204,20 @@
     },
     {
       "position": [
-        8320.0,
-        15104.0,
-        32083.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.6640625,
-        0.0078125
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile896"
-    },
-    {
-      "position": [
-        5952.0,
+        8512.0,
         14272.0,
         32084.0
       ],
       "shape": "sprite",
       "tc_position": [
-        0.6171875,
-        0.5234375
+        0.0078125,
+        0.0546875
       ],
       "tc_size": [
         0.03125,
         0.03125
       ],
-      "texture_pack_name": "tile784"
-    },
-    {
-      "position": [
-        1920.0,
-        15872.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.4765625,
-        0.7578125
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile777"
+      "texture_pack_name": "tile903"
     },
     {
       "id": "spikes",
@@ -290,6 +239,74 @@
     },
     {
       "position": [
+        1920.0,
+        15872.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.4765625,
+        0.7578125
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile777"
+    },
+    {
+      "position": [
+        5952.0,
+        14272.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.6171875,
+        0.5234375
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile784"
+    },
+    {
+      "position": [
+        8320.0,
+        15104.0,
+        32083.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.6640625,
+        0.0078125
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile896"
+    },
+    {
+      "position": [
+        2304.0,
+        15872.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.4765625,
+        0.7578125
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile777"
+    },
+    {
+      "position": [
         5824.0,
         14272.0,
         32084.0
@@ -307,7 +324,42 @@
     },
     {
       "position": [
-        2304.0,
+        7104.0,
+        15040.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.6640625,
+        0.0078125
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile896"
+    },
+    {
+      "id": "spikes",
+      "position": [
+        3904.0,
+        15936.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.3359375,
+        0.8984375
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile1152"
+    },
+    {
+      "position": [
+        1792.0,
         15872.0,
         32084.0
       ],
@@ -341,55 +393,20 @@
     },
     {
       "position": [
-        1792.0,
-        15872.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.4765625,
-        0.7578125
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile777"
-    },
-    {
-      "id": "spikes",
-      "position": [
-        3904.0,
-        15936.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.3359375,
-        0.8984375
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile1152"
-    },
-    {
-      "position": [
-        7104.0,
-        15040.0,
+        8512.0,
+        15360.0,
         32084.0
       ],
       "shape": "sprite",
       "tc_position": [
         0.6640625,
-        0.0078125
+        0.7109375
       ],
       "tc_size": [
         0.03125,
         0.03125
       ],
-      "texture_pack_name": "tile896"
+      "texture_pack_name": "tile840"
     },
     {
       "position": [
@@ -410,20 +427,20 @@
     },
     {
       "position": [
-        8512.0,
-        15360.0,
+        1856.0,
+        15872.0,
         32084.0
       ],
       "shape": "sprite",
       "tc_position": [
-        0.6640625,
-        0.7109375
+        0.4765625,
+        0.7578125
       ],
       "tc_size": [
         0.03125,
         0.03125
       ],
-      "texture_pack_name": "tile840"
+      "texture_pack_name": "tile777"
     },
     {
       "position": [
@@ -444,8 +461,59 @@
     },
     {
       "position": [
-        1856.0,
-        15872.0,
+        2688.0,
+        14720.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.3359375,
+        0.8046875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile268"
+    },
+    {
+      "position": [
+        5568.0,
+        14528.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.6640625,
+        0.3828125
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile719"
+    },
+    {
+      "position": [
+        3712.0,
+        15744.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0078125,
+        0.2890625
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile908"
+    },
+    {
+      "position": [
+        8448.0,
+        15360.0,
         32084.0
       ],
       "shape": "sprite",
@@ -479,106 +547,20 @@
     },
     {
       "position": [
-        8448.0,
-        15360.0,
+        4672.0,
+        16000.0,
         32084.0
       ],
       "shape": "sprite",
       "tc_position": [
         0.4765625,
-        0.7578125
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile777"
-    },
-    {
-      "position": [
-        3712.0,
-        15744.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.0078125,
-        0.2890625
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile908"
-    },
-    {
-      "position": [
-        5568.0,
-        14528.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.6640625,
-        0.3828125
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile719"
-    },
-    {
-      "position": [
-        2688.0,
-        14720.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.3359375,
         0.8046875
       ],
       "tc_size": [
         0.03125,
         0.03125
       ],
-      "texture_pack_name": "tile268"
-    },
-    {
-      "id": "spikes",
-      "position": [
-        1664.0,
-        15808.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.3359375,
-        0.8984375
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile1152"
-    },
-    {
-      "position": [
-        7488.0,
-        14720.0,
-        32083.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.6640625,
-        0.0078125
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile896"
+      "texture_pack_name": "tile778"
     },
     {
       "position": [
@@ -599,25 +581,25 @@
     },
     {
       "position": [
-        4672.0,
-        16000.0,
-        32084.0
+        7488.0,
+        14720.0,
+        32083.0
       ],
       "shape": "sprite",
       "tc_position": [
-        0.4765625,
-        0.8046875
+        0.6640625,
+        0.0078125
       ],
       "tc_size": [
         0.03125,
         0.03125
       ],
-      "texture_pack_name": "tile778"
+      "texture_pack_name": "tile896"
     },
     {
       "id": "spikes",
       "position": [
-        1984.0,
+        1664.0,
         15808.0,
         32084.0
       ],
@@ -635,7 +617,7 @@
     {
       "id": "spikes",
       "position": [
-        1792.0,
+        1984.0,
         15808.0,
         32084.0
       ],
@@ -670,6 +652,24 @@
     {
       "id": "spikes",
       "position": [
+        1792.0,
+        15808.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.3359375,
+        0.8984375
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile1152"
+    },
+    {
+      "id": "spikes",
+      "position": [
         1920.0,
         15808.0,
         32084.0
@@ -684,6 +684,40 @@
         0.03125
       ],
       "texture_pack_name": "tile1152"
+    },
+    {
+      "position": [
+        1280.0,
+        15872.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.4765625,
+        0.7578125
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile777"
+    },
+    {
+      "position": [
+        3200.0,
+        14720.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.3359375,
+        0.8046875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile268"
     },
     {
       "id": "spikes",
@@ -705,8 +739,8 @@
     },
     {
       "position": [
-        3200.0,
-        14720.0,
+        6848.0,
+        14208.0,
         32084.0
       ],
       "shape": "sprite",
@@ -722,7 +756,41 @@
     },
     {
       "position": [
-        1280.0,
+        5440.0,
+        15872.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0078125,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile903"
+    },
+    {
+      "position": [
+        5504.0,
+        14656.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.5703125,
+        0.5234375
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile783"
+    },
+    {
+      "position": [
+        1344.0,
         15872.0,
         32084.0
       ],
@@ -736,6 +804,23 @@
         0.03125
       ],
       "texture_pack_name": "tile777"
+    },
+    {
+      "position": [
+        3264.0,
+        14720.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.3359375,
+        0.8046875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile268"
     },
     {
       "id": "spikes",
@@ -757,140 +842,20 @@
     },
     {
       "position": [
-        3264.0,
-        14720.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.3359375,
-        0.8046875
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile268"
-    },
-    {
-      "position": [
-        1344.0,
-        15872.0,
+        5184.0,
+        16000.0,
         32084.0
       ],
       "shape": "sprite",
       "tc_position": [
         0.4765625,
-        0.7578125
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile777"
-    },
-    {
-      "position": [
-        5504.0,
-        14656.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.5703125,
-        0.5234375
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile783"
-    },
-    {
-      "position": [
-        5440.0,
-        15872.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.0078125,
-        0.0546875
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile903"
-    },
-    {
-      "position": [
-        6848.0,
-        14208.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.3359375,
         0.8046875
       ],
       "tc_size": [
         0.03125,
         0.03125
       ],
-      "texture_pack_name": "tile268"
-    },
-    {
-      "id": "spikes",
-      "position": [
-        2176.0,
-        15808.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.3359375,
-        0.8984375
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile1152"
-    },
-    {
-      "position": [
-        3904.0,
-        14720.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.3359375,
-        0.8046875
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile268"
-    },
-    {
-      "position": [
-        832.0,
-        15744.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.0078125,
-        0.2890625
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile908"
+      "texture_pack_name": "tile778"
     },
     {
       "position": [
@@ -911,25 +876,42 @@
     },
     {
       "position": [
-        5184.0,
-        16000.0,
+        832.0,
+        15744.0,
         32084.0
       ],
       "shape": "sprite",
       "tc_position": [
-        0.4765625,
+        0.0078125,
+        0.2890625
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile908"
+    },
+    {
+      "position": [
+        3904.0,
+        14720.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.3359375,
         0.8046875
       ],
       "tc_size": [
         0.03125,
         0.03125
       ],
-      "texture_pack_name": "tile778"
+      "texture_pack_name": "tile268"
     },
     {
       "id": "spikes",
       "position": [
-        2304.0,
+        2176.0,
         15808.0,
         32084.0
       ],
@@ -964,7 +946,7 @@
     {
       "id": "spikes",
       "position": [
-        2112.0,
+        2304.0,
         15808.0,
         32084.0
       ],
@@ -997,21 +979,22 @@
       "texture_pack_name": "tile268"
     },
     {
+      "id": "spikes",
       "position": [
-        2432.0,
+        2112.0,
         15808.0,
         32084.0
       ],
       "shape": "sprite",
       "tc_position": [
-        0.0078125,
-        0.0546875
+        0.3359375,
+        0.8984375
       ],
       "tc_size": [
         0.03125,
         0.03125
       ],
-      "texture_pack_name": "tile903"
+      "texture_pack_name": "tile1152"
     },
     {
       "position": [
@@ -1032,37 +1015,20 @@
     },
     {
       "position": [
-        4352.0,
-        15424.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.6171875,
-        0.6640625
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile385"
-    },
-    {
-      "position": [
-        3712.0,
+        2432.0,
         15808.0,
         32084.0
       ],
       "shape": "sprite",
       "tc_position": [
         0.0078125,
-        0.2890625
+        0.0546875
       ],
       "tc_size": [
         0.03125,
         0.03125
       ],
-      "texture_pack_name": "tile908"
+      "texture_pack_name": "tile903"
     },
     {
       "position": [
@@ -1083,6 +1049,40 @@
     },
     {
       "position": [
+        3712.0,
+        15808.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0078125,
+        0.2890625
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile908"
+    },
+    {
+      "position": [
+        4352.0,
+        15424.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.6171875,
+        0.6640625
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile385"
+    },
+    {
+      "position": [
         5440.0,
         15808.0,
         32084.0
@@ -1100,23 +1100,6 @@
     },
     {
       "position": [
-        4032.0,
-        15424.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.6171875,
-        0.6640625
-      ],
-      "tc_size": [
-        0.03125,
-        0.03125
-      ],
-      "texture_pack_name": "tile385"
-    },
-    {
-      "position": [
         2432.0,
         15872.0,
         32084.0
@@ -1131,6 +1114,23 @@
         0.03125
       ],
       "texture_pack_name": "tile840"
+    },
+    {
+      "position": [
+        4032.0,
+        15424.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.6171875,
+        0.6640625
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile385"
     },
     {
       "position": [
@@ -1915,6 +1915,23 @@
         0.03125
       ],
       "texture_pack_name": "tile720"
+    },
+    {
+      "position": [
+        5568.0,
+        14592.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.5703125,
+        0.5234375
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile783"
     },
     {
       "position": [
@@ -3758,6 +3775,23 @@
     },
     {
       "position": [
+        1152.0,
+        14720.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.3828125,
+        0.4765625
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile286"
+    },
+    {
+      "position": [
         5888.0,
         14336.0,
         32084.0
@@ -4064,6 +4098,23 @@
     },
     {
       "position": [
+        5696.0,
+        14464.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.5703125,
+        0.5234375
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile783"
+    },
+    {
+      "position": [
         6656.0,
         15360.0,
         32084.0
@@ -4214,6 +4265,23 @@
         0.03125
       ],
       "texture_pack_name": "tile720"
+    },
+    {
+      "position": [
+        5632.0,
+        14528.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.5703125,
+        0.5234375
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile783"
     },
     {
       "position": [
@@ -6037,6 +6105,23 @@
     },
     {
       "position": [
+        1024.0,
+        14848.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.7109375,
+        0.7109375
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile846"
+    },
+    {
+      "position": [
         1088.0,
         14848.0,
         32084.0
@@ -6122,6 +6207,23 @@
     },
     {
       "position": [
+        960.0,
+        14912.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.7109375,
+        0.7109375
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile846"
+    },
+    {
+      "position": [
         8512.0,
         14912.0,
         32084.0
@@ -6170,6 +6272,23 @@
         0.03125
       ],
       "texture_pack_name": "tile783"
+    },
+    {
+      "position": [
+        896.0,
+        14976.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.7109375,
+        0.7109375
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile846"
     },
     {
       "position": [

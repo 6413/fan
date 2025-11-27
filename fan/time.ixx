@@ -81,6 +81,9 @@ export namespace fan {
       constexpr uint64_t duration() const {
         return count();
       }
+      constexpr f64_t duration_seconds() const {
+        return duration() / 1e9;
+      }
 			void start() {
 				m_timer = fan::time::now();
 			}

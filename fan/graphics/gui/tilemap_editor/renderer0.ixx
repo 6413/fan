@@ -227,7 +227,8 @@ export struct fte_renderer_t : fte_loader_t {
         break;
       }
       default: {
-        fan::throw_error("unimplemented switch");
+        return;
+        //fan::throw_error("unimplemented switch");
       }
     }
     if (!j.id.empty()) {

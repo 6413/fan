@@ -275,11 +275,15 @@ export namespace fan {
 
 }
 
-
 export namespace fan {
+  namespace math {
+    template <typename T>
+    constexpr fan::vec2_wrap_t<T> angle_to_vector(const T& angle_radians) {
+      return fan::vec2_wrap_t<T>(std::cos(angle_radians), std::sin(angle_radians));
+    }
+  }
   template <typename>
   inline constexpr bool is_vector_type_v = false;
-
   template <template <typename> typename V, typename T>
   inline constexpr bool is_vector_type_v<V<T>> =
     std::is_same_v<V<T>, vec0_wrap_t<T>> ||
@@ -287,17 +291,246 @@ export namespace fan {
     std::is_same_v<V<T>, vec2_wrap_t<T>> ||
     std::is_same_v<V<T>, vec3_wrap_t<T>> ||
     std::is_same_v<V<T>, vec4_wrap_t<T>>;
-
   template <int N, typename T>
   inline constexpr bool is_vector_type_v<vec_wrap_t<N, T>> = true;
-
   template <typename T>
   concept is_vector = is_vector_type_v<std::remove_cvref_t<T>>;
+}
+/*
+template <typename T>
+struct hash<vector<T>>
+{
+  template<class T>
+  static auto call_if_possible(const T& t, int) -> decltype(t()) { return t(); }
+  template<class T>
+  static auto call_if_possible(const T& t, ...) -> decltype(t) { return t; }
 
-  namespace math {
-    template <typename T>
-    constexpr fan::vec2_wrap_t<T> angle_to_vector(const T& angle_radians) {
-      return fan::vec2_wrap_t<T>(std::cos(angle_radians), std::sin(angle_radians));
+  size_t operator()(const vector<T> &x) const
+  {
+    size_t res = 0;
+    for(const auto &v:x) {
+      boost::hash_combine(res,call_if_possible(v, 0));
     }
-  } // namespace math
-} // namespace fan
+    return res;
+  }
+};
+*/
+
+
+namespace std {
+  constexpr size_t hash_combine(size_t seed, size_t hash) {
+    return seed ^ (hash + 0x9e3779b9 + (seed << 6) + (seed >> 2));
+  }
+  template <>
+  struct hash<fan::vec0_wrap_t<bool>> {
+    constexpr size_t operator()(const fan::vec0_wrap_t<bool>&) const noexcept {
+      return 0;
+    }
+  };
+  template <>
+  struct hash<fan::vec0_wrap_t<int>> {
+    constexpr size_t operator()(const fan::vec0_wrap_t<int>&) const noexcept {
+      return 0;
+    }
+  };
+  template <>
+  struct hash<fan::vec0_wrap_t<uint32_t>> {
+    constexpr size_t operator()(const fan::vec0_wrap_t<uint32_t>&) const noexcept {
+      return 0;
+    }
+  };
+  template <>
+  struct hash<fan::vec0_wrap_t<f32_t>> {
+    constexpr size_t operator()(const fan::vec0_wrap_t<f32_t>&) const noexcept {
+      return 0;
+    }
+  };
+  template <>
+  struct hash<fan::vec0_wrap_t<f64_t>> {
+    constexpr size_t operator()(const fan::vec0_wrap_t<f64_t>&) const noexcept {
+      return 0;
+    }
+  };
+
+  template <>
+  struct hash<fan::vec1_wrap_t<bool>> {
+    constexpr size_t operator()(const fan::vec1_wrap_t<bool>& v) const noexcept {
+      return hash_combine(0, std::hash<bool>{}(v.x));
+    }
+  };
+  template <>
+  struct hash<fan::vec1_wrap_t<int>> {
+    constexpr size_t operator()(const fan::vec1_wrap_t<int>& v) const noexcept {
+      return hash_combine(0, std::hash<int>{}(v.x));
+    }
+  };
+  template <>
+  struct hash<fan::vec1_wrap_t<uint32_t>> {
+    constexpr size_t operator()(const fan::vec1_wrap_t<uint32_t>& v) const noexcept {
+      return hash_combine(0, std::hash<uint32_t>{}(v.x));
+    }
+  };
+  template <>
+  struct hash<fan::vec1_wrap_t<f32_t>> {
+    constexpr size_t operator()(const fan::vec1_wrap_t<f32_t>& v) const noexcept {
+      return hash_combine(0, std::hash<f32_t>{}(v.x));
+    }
+  };
+  template <>
+  struct hash<fan::vec1_wrap_t<f64_t>> {
+    constexpr size_t operator()(const fan::vec1_wrap_t<f64_t>& v) const noexcept {
+      return hash_combine(0, std::hash<f64_t>{}(v.x));
+    }
+  };
+  template <>
+  struct hash<fan::vec2_wrap_t<bool>> {
+    constexpr size_t operator()(const fan::vec2_wrap_t<bool>& v) const noexcept {
+      size_t seed = 0;
+      seed = hash_combine(seed, std::hash<bool>{}(v.x));
+      seed = hash_combine(seed, std::hash<bool>{}(v.y));
+      return seed;
+    }
+  };
+  template <>
+  struct hash<fan::vec2_wrap_t<int>> {
+    constexpr size_t operator()(const fan::vec2_wrap_t<int>& v) const noexcept {
+      size_t seed = 0;
+      seed = hash_combine(seed, std::hash<int>{}(v.x));
+      seed = hash_combine(seed, std::hash<int>{}(v.y));
+      return seed;
+    }
+  };
+  template <>
+  struct hash<fan::vec2_wrap_t<uint32_t>> {
+    constexpr size_t operator()(const fan::vec2_wrap_t<uint32_t>& v) const noexcept {
+      size_t seed = 0;
+      seed = hash_combine(seed, std::hash<uint32_t>{}(v.x));
+      seed = hash_combine(seed, std::hash<uint32_t>{}(v.y));
+      return seed;
+    }
+  };
+  template <>
+  struct hash<fan::vec2_wrap_t<f32_t>> {
+    constexpr size_t operator()(const fan::vec2_wrap_t<f32_t>& v) const noexcept {
+      size_t seed = 0;
+      seed = hash_combine(seed, std::hash<f32_t>{}(v.x));
+      seed = hash_combine(seed, std::hash<f32_t>{}(v.y));
+      return seed;
+    }
+  };
+  template <>
+  struct hash<fan::vec2_wrap_t<f64_t>> {
+    constexpr size_t operator()(const fan::vec2_wrap_t<f64_t>& v) const noexcept {
+      size_t seed = 0;
+      seed = hash_combine(seed, std::hash<f64_t>{}(v.x));
+      seed = hash_combine(seed, std::hash<f64_t>{}(v.y));
+      return seed;
+    }
+  };
+
+  template <>
+  struct hash<fan::vec3_wrap_t<bool>> {
+    constexpr size_t operator()(const fan::vec3_wrap_t<bool>& v) const noexcept {
+      size_t seed = 0;
+      seed = hash_combine(seed, std::hash<bool>{}(v.x));
+      seed = hash_combine(seed, std::hash<bool>{}(v.y));
+      seed = hash_combine(seed, std::hash<bool>{}(v.z));
+      return seed;
+    }
+  };
+  template <>
+  struct hash<fan::vec3_wrap_t<int>> {
+    constexpr size_t operator()(const fan::vec3_wrap_t<int>& v) const noexcept {
+      size_t seed = 0;
+      seed = hash_combine(seed, std::hash<int>{}(v.x));
+      seed = hash_combine(seed, std::hash<int>{}(v.y));
+      seed = hash_combine(seed, std::hash<int>{}(v.z));
+      return seed;
+    }
+  };
+  template <>
+  struct hash<fan::vec3_wrap_t<uint32_t>> {
+    constexpr size_t operator()(const fan::vec3_wrap_t<uint32_t>& v) const noexcept {
+      size_t seed = 0;
+      seed = hash_combine(seed, std::hash<uint32_t>{}(v.x));
+      seed = hash_combine(seed, std::hash<uint32_t>{}(v.y));
+      seed = hash_combine(seed, std::hash<uint32_t>{}(v.z));
+      return seed;
+    }
+  };
+  template <>
+  struct hash<fan::vec3_wrap_t<f32_t>> {
+    constexpr size_t operator()(const fan::vec3_wrap_t<f32_t>& v) const noexcept {
+      size_t seed = 0;
+      seed = hash_combine(seed, std::hash<f32_t>{}(v.x));
+      seed = hash_combine(seed, std::hash<f32_t>{}(v.y));
+      seed = hash_combine(seed, std::hash<f32_t>{}(v.z));
+      return seed;
+    }
+  };
+  template <>
+  struct hash<fan::vec3_wrap_t<f64_t>> {
+    constexpr size_t operator()(const fan::vec3_wrap_t<f64_t>& v) const noexcept {
+      size_t seed = 0;
+      seed = hash_combine(seed, std::hash<f64_t>{}(v.x));
+      seed = hash_combine(seed, std::hash<f64_t>{}(v.y));
+      seed = hash_combine(seed, std::hash<f64_t>{}(v.z));
+      return seed;
+    }
+  };
+  template <>
+  struct hash<fan::vec4_wrap_t<bool>> {
+    constexpr size_t operator()(const fan::vec4_wrap_t<bool>& v) const noexcept {
+      size_t seed = 0;
+      seed = hash_combine(seed, std::hash<bool>{}(v.x));
+      seed = hash_combine(seed, std::hash<bool>{}(v.y));
+      seed = hash_combine(seed, std::hash<bool>{}(v.z));
+      seed = hash_combine(seed, std::hash<bool>{}(v.w));
+      return seed;
+    }
+  };
+  template <>
+  struct hash<fan::vec4_wrap_t<int>> {
+    constexpr size_t operator()(const fan::vec4_wrap_t<int>& v) const noexcept {
+      size_t seed = 0;
+      seed = hash_combine(seed, std::hash<int>{}(v.x));
+      seed = hash_combine(seed, std::hash<int>{}(v.y));
+      seed = hash_combine(seed, std::hash<int>{}(v.z));
+      seed = hash_combine(seed, std::hash<int>{}(v.w));
+      return seed;
+    }
+  };
+  template <>
+  struct hash<fan::vec4_wrap_t<uint32_t>> {
+    constexpr size_t operator()(const fan::vec4_wrap_t<uint32_t>& v) const noexcept {
+      size_t seed = 0;
+      seed = hash_combine(seed, std::hash<uint32_t>{}(v.x));
+      seed = hash_combine(seed, std::hash<uint32_t>{}(v.y));
+      seed = hash_combine(seed, std::hash<uint32_t>{}(v.z));
+      seed = hash_combine(seed, std::hash<uint32_t>{}(v.w));
+      return seed;
+    }
+  };
+  template <>
+  struct hash<fan::vec4_wrap_t<f32_t>> {
+    constexpr size_t operator()(const fan::vec4_wrap_t<f32_t>& v) const noexcept {
+      size_t seed = 0;
+      seed = hash_combine(seed, std::hash<f32_t>{}(v.x));
+      seed = hash_combine(seed, std::hash<f32_t>{}(v.y));
+      seed = hash_combine(seed, std::hash<f32_t>{}(v.z));
+      seed = hash_combine(seed, std::hash<f32_t>{}(v.w));
+      return seed;
+    }
+  };
+  template <>
+  struct hash<fan::vec4_wrap_t<f64_t>> {
+    constexpr size_t operator()(const fan::vec4_wrap_t<f64_t>& v) const noexcept {
+      size_t seed = 0;
+      seed = hash_combine(seed, std::hash<f64_t>{}(v.x));
+      seed = hash_combine(seed, std::hash<f64_t>{}(v.y));
+      seed = hash_combine(seed, std::hash<f64_t>{}(v.z));
+      seed = hash_combine(seed, std::hash<f64_t>{}(v.w));
+      return seed;
+    }
+  };
+}

@@ -1124,11 +1124,6 @@ namespace fan::graphics {
     }
   }
 
-  size_t tilemap_t::vec2i_hash::operator()(const fan::vec2i& v) const noexcept {
-    return std::hash<int>()(v.x) ^ (std::hash<int>()(v.y) << 1);
-  }
-
-
   fan::color terrain_palette_t::get(int value) const {
     if (value <= stops.front().first) return stops.front().second;
     if (value >= stops.back().first) return stops.back().second;

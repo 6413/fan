@@ -2348,7 +2348,10 @@ namespace fan::graphics {
       }
       auto* ri = ((fan::graphics::shapes::sprite_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper));
       if (*fan::graphics::g_shapes->texture_pack) {
-        out["texture_pack_name"] = (*fan::graphics::g_shapes->texture_pack)[ri->texture_pack_unique_id].name;
+        const auto& t = (*fan::graphics::g_shapes->texture_pack)[ri->texture_pack_unique_id];
+        if (t.name.size()) {
+          out["texture_pack_name"] = t.name;
+        }
       }
       if (ri->shape_animations) {
         fan::json animation_array = fan::json::array();
@@ -2411,7 +2414,10 @@ namespace fan::graphics {
         out["tc_size"] = shape.get_tc_size();
       }
       if (*fan::graphics::g_shapes->texture_pack) {
-        out["texture_pack_name"] = (*fan::graphics::g_shapes->texture_pack)[((fan::graphics::shapes::unlit_sprite_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper))->texture_pack_unique_id].name;
+        auto t = (*fan::graphics::g_shapes->texture_pack)[((fan::graphics::shapes::unlit_sprite_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper))->texture_pack_unique_id];
+        if (t.name.size()) {
+          out["texture_pack_name"] = t.name;
+        }
       }
 
       fan::json images_array = fan::json::array();
