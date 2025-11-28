@@ -19,12 +19,12 @@ struct player_t {
       .aabb_scale = aabb_scale,
       .draw_offset_override = draw_offset
     });
-    body.jump_impulse = 75.f;
+    body.jump_state.impulse = 75.f;
     body.enable_default_movement();
     body.sync_visual_angle(false);
     body.attack_state.knockback_force = 20.f;
     body.attack_state.damage = 10.f;
-    body.allow_double_jump = true;
+    body.jump_state.allow_double_jump = true;
     body.attack_state.cooldown_duration = 0.1e9;
     body.attack_state.cooldown_timer = fan::time::timer(body.attack_state.cooldown_duration, true);
     body.attack_state.on_attack_start = [this]() {

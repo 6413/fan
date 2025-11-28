@@ -1358,7 +1358,10 @@ namespace fan::graphics{
 		fan::graphics::sprite_sheet_data_t& sheet_data = ri.sprite_sheet_data;
 		return sheet_data.current_frame == animation.selected_frames.size() - 1;
 	}
-
+  void shapes::shape_t::set_animation_loop(animation_nr_t nr, bool flag) {
+    auto& animation = fan::graphics::get_sprite_sheet_animation(nr);
+    animation.loop = flag;
+  }
   void shapes::shape_t::reset_current_sprite_sheet_animation_frame() {
     auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
     ri.sprite_sheet_data.current_frame = 0;
@@ -1380,9 +1383,14 @@ namespace fan::graphics{
 
 			auto& animation = found->second;
 			fan::graphics::sprite_sheet_data_t& sheet_data = ri.sprite_sheet_data;
-			if (sheet_data.current_frame >= animation.selected_frames.size()) {
-				sheet_data.current_frame = 0;
-			}
+      if (animation.loop) {
+			  if (sheet_data.current_frame >= animation.selected_frames.size()) {
+  				sheet_data.current_frame = 0;
+			  }
+      }
+      else {
+        sheet_data.current_frame = std::min(sheet_data.current_frame, (int)animation.selected_frames.size() - 1);
+      }
 			int actual_frame = animation.selected_frames[sheet_data.current_frame];
 
 			// Find which image this frame belongs to and the local frame within that image
@@ -1403,7 +1411,12 @@ namespace fan::graphics{
 			auto& current_image = animation.images[image_index];
 			set_image(current_image.image);
 			sheet_data.current_frame += advance;
-			sheet_data.current_frame %= animation.selected_frames.size();
+      if (animation.loop) {
+        sheet_data.current_frame %= animation.selected_frames.size();
+      }
+      else {
+        sheet_data.current_frame = std::min(sheet_data.current_frame, (int)animation.selected_frames.size() - 1);
+      }
 			sheet_data.update_timer.restart();
 
 			fan::vec2 tc_size = fan::vec2(1.0 / current_image.hframes, 1.0 / current_image.vframes);
