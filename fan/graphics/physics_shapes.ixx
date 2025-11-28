@@ -429,14 +429,50 @@ export namespace fan {
       );
       struct character2d_t : physics::base_shape_t {
         using physics::base_shape_t::base_shape_t;
-
         using movement_callback_handle_t = bll_nr_t<fan::physics::physics_step_callback_nr_t, character2d_t>;
 
         struct movement_e {
           enum {
-            side_view, // left, right, space to jump
-            top_view   // left, right, down, up wasd
+            side_view,
+            top_view
           };
+        };
+
+        struct wall_jump_t {
+          fan::vec2 normal;
+          f32_t slide_speed = 200.f;
+          f32_t push_away_force = 1.f;
+          bool consumed = false;
+        };
+
+        struct jump_state_t {
+          bool jumping = false;
+          bool consumed = false;
+          bool double_jump_consumed = false;
+          bool on_air_after_jump = false;
+          f32_t last_ground_time = 0.f;
+          f32_t coyote_time = 0.1f;
+          f32_t impulse = 40.f;
+          bool handle_jump = true;
+          bool allow_double_jump = false;
+
+          void reset(){
+            jumping = false;
+            consumed = false;
+            double_jump_consumed = false;
+            on_air_after_jump = false;
+          }
+          bool can_coyote_jump(f32_t current_time) const{
+            return (current_time - last_ground_time) / 1e+9 <= coyote_time;
+          }
+        };
+
+        struct movement_state_t {
+          fan::vec2 previous_sign = 0;
+          f32_t accelerate_force = 120.f;
+          f32_t max_speed = 600.f;
+          bool enabled = false;
+          uint8_t type = movement_e::side_view;
         };
 
         struct attack_state_t {
@@ -478,23 +514,8 @@ export namespace fan {
           size_t current_patrol_index = 0;
         };
 
-        //struct hit_response_t {
-        //  void apply_hit(character2d_t* character, const fan::vec2& hit_direction);
-        //  bool update();
-
-        //  bool is_stunned = false;
-        //  f32_t knockback_force = 50.f;
-        //  f32_t stun_duration = 500;
-        //  fan::time::timer stun_timer;
-        //  std::function<void(const fan::vec2&)> on_hit_callback;
-        //};
-
         struct navigation_helper_t {
-          bool detect_and_handle_obstacles(
-            character2d_t* character,
-            const fan::vec2& direction,
-            fan::vec2 tile_size
-          );
+          bool detect_and_handle_obstacles(character2d_t* character, const fan::vec2& direction, fan::vec2 tile_size);
 
           bool auto_jump_obstacles = true;
           f32_t jump_lookahead_tiles = 1.5f;
@@ -509,7 +530,6 @@ export namespace fan {
 
         character2d_t() = default;
         character2d_t(auto&& shape) : base_shape_t(std::move(shape)) {}
-
         character2d_t(const character2d_t& o);
         character2d_t(character2d_t&& o) noexcept;
         character2d_t& operator=(const character2d_t& o);
@@ -530,11 +550,11 @@ export namespace fan {
         struct character_config_t {
           std::string json_path;
           f32_t aabb_scale = 1.0f;
-          fan::vec2 draw_offset_override = { 0,0 };
+          fan::vec2 draw_offset_override = {0,0};
           bool auto_draw_offset = true;
           bool auto_animations = true;
           std::function<bool(character2d_t&)> attack_cb;
-          fan::physics::shape_properties_t physics_properties = { .fixed_rotation = true };
+          fan::physics::shape_properties_t physics_properties = {.fixed_rotation = true};
         };
 
         void setup_default_animations(const fan::graphics::physics::character2d_t::character_config_t& config);
@@ -542,9 +562,9 @@ export namespace fan {
         struct animation_controller_t {
           struct animation_state_t {
             enum trigger_type_e {
-              continuous,  // keeps checking condition every frame
-              one_shot,    // plays once when triggered, then resets
-              manual       // user manually controls start/end
+              continuous,
+              one_shot,
+              manual
             };
             std::string name;
             fan::graphics::animation_nr_t animation_id;
@@ -563,9 +583,7 @@ export namespace fan {
         } anim_controller;
 
         static character2d_t from_json(const character_config_t& config, const std::source_location& callers_path = std::source_location::current());
-
         movement_callback_handle_t add_movement_callback(std::function<void(character2d_t*)> fn);
-
         void enable_ai_follow(character2d_t* target, const fan::vec2& trigger_distance, const fan::vec2& closeup_distance);
         void enable_ai_flee(character2d_t* target, const fan::vec2& trigger_distance, const fan::vec2& closeup_distance);
         void enable_ai_patrol(const std::vector<fan::vec2>& points);
@@ -575,44 +593,21 @@ export namespace fan {
         fan::vec2 get_center() const;
         void cancel_animations();
 
-
         attack_state_t attack_state;
         ai_behavior_t ai_behavior;
         navigation_helper_t navigation;
+        wall_jump_t wall_jump;
+        jump_state_t jump_state;
+        movement_state_t movement_state;
+        movement_callback_handle_t movement_cb;
 
-        // memcpy start
-        fan::vec2 previous_movement_sign = 0;
-        struct wall_jump_t {
-          fan::vec2 normal;
-          f32_t slide_speed = 200.f;
-          f32_t push_away_force = 1.f;
-          bool wall_jump_consumed = false;
-        } wall_jump;
-        f32_t accelerate_force = 120.f;
-        f32_t jump_impulse = 40.f;
-        f32_t max_speed = 600.f;
-        f32_t jump_delay = 0.25f;
-        bool jumping = false;
         fan::physics::body_id_t feet[2];
-        f32_t coyote_time = 0.1f;
-        f32_t last_ground_time = 0.f;
-        bool handle_jump = true;
-        bool on_air_after_jump = false;
-        bool jump_consumed = false;
-        bool allow_double_jump = false;
-        bool double_jump_consumed = false;
-        bool movement_enabled = false;
         bool current_animation_requires_velocity_fps = false;
         bool auto_update_animations = false;
         f32_t max_health = 50;
         f32_t health = max_health;
         bool took_damage = false;
         bool stun = true;
-        uint8_t movement_type = movement_e::side_view; // memcpy end
-
-
-        movement_callback_handle_t movement_cb;
-
       };
 
       struct bone_e {

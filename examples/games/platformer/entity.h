@@ -7,22 +7,26 @@ struct entity_t {
   static inline constexpr int attack_hitbox_frames[] = {4, 8};
 
   entity_t(const fan::vec3& pos = 0) {
+    f32_t density = 4.f;
+
     body = fan::graphics::physics::character2d_t::from_json({
       .json_path = "skeleton.json",
       .aabb_scale = aabb_scale,
       .draw_offset_override = draw_offset,
-      .attack_cb = [this](auto& c) { return should_attack(c); }
+      .attack_cb = [this](auto& c) { return should_attack(c); },
+      .physics_properties={.density=density, .fixed_rotation=true, .linear_damping=2.0f}
     });
-    body.jump_impulse = 75.f;
-    body.accelerate_force = 120.f / 1.3f;
-    body.max_speed = 610.f;
+    body.stun = false;
+    body.jump_state.impulse = 75.f * density;
+    body.movement_state.accelerate_force = 120.f / 1.3f;
+    body.movement_state.max_speed = 610.f;
     body.set_size(body.get_size());
     //body.set_color(fan::color(1, 1 / 3.f, 1 / 3.f, 1));
     //body.enable_ai_follow(&pile->player.body, trigger_distance, closeup_distance);
     body.ai_behavior.target = &pile->player.body;
-    body.attack_state.cooldown_duration = 0.8e9;
+    body.attack_state.cooldown_duration = 0.1e9;
     body.attack_state.cooldown_timer = fan::time::timer(body.attack_state.cooldown_duration, true);
-    body.attack_state.knockback_force = 5.f;
+    body.attack_state.knockback_force = 10.f;
     body.attack_state.damage = 10.f;
     body.attack_state.attack_range.x = closeup_distance.x;
     body.attack_state.on_attack_start = [this]() {
@@ -113,6 +117,11 @@ struct entity_t {
       body.enable_ai_follow(&pile->player.body, trigger_distance, closeup_distance);
     }
 
+    render_health();
+    return false;
+  }
+
+  void render_health() {
     int heart_count = body.max_health / 10.f;
     for (int i = 0; i < heart_count; ++i) {
       fan::graphics::image_t hp_image = pile->get_gui().health_empty;
@@ -123,13 +132,11 @@ struct entity_t {
       }
       f32_t image_size = 8.f;
       fan::graphics::sprite({
-        .position = body.get_position() - fan::vec2(heart_count / 2.f * image_size - i * (image_size * 2.f) + image_size + image_size / 2.f, body.get_size().y / 1.5f),
+        .position = fan::vec3(fan::vec2(body.get_position() - fan::vec2(heart_count / 2.f * image_size - i * (image_size * 2.f) + image_size + image_size / 2.f, body.get_size().y / 1.5f)), 0xFF00), // force to be rendered on top
         .size = image_size, 
         .image = hp_image,
       });
     }
-
-    return false;
   }
 
   void destroy() {

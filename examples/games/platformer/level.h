@@ -45,6 +45,7 @@ void load_map() {
       ));
     }
   });
+
   //iterate_physics_entities
 }
 

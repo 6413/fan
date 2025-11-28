@@ -1,8 +1,8 @@
 module;
 
 #if defined(fan_physics)
-  #include <fan/utility.h>
-  #include <box2d/box2d.h>
+#include <fan/utility.h>
+#include <box2d/box2d.h>
 #endif
 
 #include <vector>
@@ -34,10 +34,10 @@ std::vector<fan::graphics::capsule_t> debug_draw_capsule;
 
 /// Draw a closed polygon provided in CCW order.
 void DrawPolygon(const fan::vec2* vertices, int vertexCount, b2HexColor color, void* context) {
-  if ( z_depth == 2 ) {
+  if (z_depth == 2) {
     z_depth = 0;
   }
-  for ( int i = 0; i < vertexCount; i++ ) {
+  for (int i = 0; i < vertexCount; i++) {
     int next_i = (i + 1) % vertexCount;
 
     //debug_draw_polygon.emplace_back(fan::graphics::line_t{ {
@@ -53,7 +53,7 @@ void DrawPolygon(const fan::vec2* vertices, int vertexCount, b2HexColor color, v
 /// Draw a solid closed polygon provided in CCW order.
 void DrawSolidPolygon(b2Transform transform, const b2Vec2* vertices, int vertexCount, f32_t radius, b2HexColor color, void* context) {
   std::vector<fan::graphics::vertex_t> vs(vertexCount);
-  for ( auto [i, v] : fan::enumerate(vs) ) {
+  for (auto [i, v] : fan::enumerate(vs)) {
     v.position = fan::physics::physics_to_render(vertices[i]);
     v.color = fan::color::from_rgb(color).set_alpha(0.5);
   }
@@ -199,7 +199,7 @@ namespace fan::graphics::physics {
 
   void init() {
     static bool init_ = true;
-    if ( !init_ ) {
+    if (!init_) {
       return;
     }
     if (fan::graphics::physics::debug_render_view.viewport.iic()) {
@@ -220,6 +220,21 @@ namespace fan::graphics::physics {
     }();
   }
 
+  void frame_init_lazy() {
+    static fan::graphics::update_callback_nr_t uc_nr;
+    if (uc_nr) {
+      return;
+    }
+    auto& uc = *fan::graphics::g_render_context_handle.update_callback;
+    uc_nr = uc.NewNodeLast();
+    // called every frame
+    uc[uc_nr] = [] (auto* loco) {
+      if (fan::window::is_input_action_active("debug_physics")) {
+        fan::graphics::physics::debug_draw(!fan::graphics::physics::get_debug_draw());
+      }
+    };
+  }
+
   void debug_draw(bool enabled) {
     init();
     fan::graphics::physics::box2d_debug_draw = initialize_debug(enabled);
@@ -229,11 +244,12 @@ namespace fan::graphics::physics {
   }
 
   void shape_physics_update(const fan::physics::physics_update_data_t& data) {
-    if ( !b2Body_IsValid(*(b2BodyId*)&data.body_id) ) {
+    frame_init_lazy();
+    if (!b2Body_IsValid(*(b2BodyId*)&data.body_id)) {
       //   fan::print("invalid body data (corruption)");
       return;
     }
-    if ( b2Body_GetType(*(b2BodyId*)&data.body_id) == b2_staticBody ) {
+    if (b2Body_GetType(*(b2BodyId*)&data.body_id) == b2_staticBody) {
       return;
     }
 
@@ -247,7 +263,7 @@ namespace fan::graphics::physics {
       shape.set_angle(fan::vec3(0, 0, radians));
     }
     b2ShapeId id[1];
-    if ( b2Body_GetShapes(*(b2BodyId*)&data.body_id, id, 1) ) {
+    if (b2Body_GetShapes(*(b2BodyId*)&data.body_id, id, 1)) {
       auto aabb = b2Shape_GetAABB(id[0]);
       fan::vec2 size = fan::vec2(aabb.upperBound - aabb.lowerBound) / 2;
       physics_update_cb(shape, shape.get_position(), size * fan::physics::length_units_per_meter / 2, radians);
@@ -301,7 +317,7 @@ namespace fan::graphics::physics {
     if (is_valid) {
     prev_pos = fan::graphics::shape_t::get_position();
     }*/
-    if ( physics_update_nr.iic() == false ) {
+    if (physics_update_nr.iic() == false) {
       fan::physics::remove_physics_update(physics_update_nr);
     }
     *dynamic_cast<fan::graphics::shape_t*>(this) = std::move(shape);
@@ -321,7 +337,7 @@ namespace fan::graphics::physics {
   base_shape_t::base_shape_t(fan::graphics::shape_t&& shape, fan::physics::entity_t&& entity, const mass_data_t& mass_data) :
     fan::graphics::shape_t(std::move(shape)),
     fan::physics::entity_t(std::move(entity)) {
-    if ( physics_update_nr.iic() == false ) {
+    if (physics_update_nr.iic() == false) {
       fan::physics::remove_physics_update(physics_update_nr);
     }
     uint64_t body_id_data = *reinterpret_cast<uint64_t*>(dynamic_cast<body_id_t*>(this));
@@ -333,13 +349,13 @@ namespace fan::graphics::physics {
       });
     b2MassData md = b2Body_GetMassData(*dynamic_cast<b2BodyId*>(this));
     mass_data_t md_copy = mass_data;
-    if ( mass_data.mass < 0.f ) {
+    if (mass_data.mass < 0.f) {
       md_copy.mass = md.mass;
     }
-    if ( mass_data.center_of_mass.x == 0 && mass_data.center_of_mass.y == 0 ) {
+    if (mass_data.center_of_mass.x == 0 && mass_data.center_of_mass.y == 0) {
       md_copy.center_of_mass = md.center;
     }
-    if ( mass_data.rotational_inertia < 0.f ) {
+    if (mass_data.rotational_inertia < 0.f) {
       md_copy.rotational_inertia = md.rotationalInertia;
     }
     b2Body_SetMassData(*dynamic_cast<b2BodyId*>(this), md_copy);
@@ -348,16 +364,16 @@ namespace fan::graphics::physics {
   base_shape_t::base_shape_t(const base_shape_t& r) : fan::graphics::shape_t(r), fan::physics::entity_t(r) {
     //if (this != )
     fan::physics::body_id_t new_body_id = fan::physics::deep_copy_body(fan::physics::gphysics->world_id, *dynamic_cast<const fan::physics::body_id_t*>(&r));
-    if ( !B2_ID_EQUALS(r, (*this)) ) {
+    if (!B2_ID_EQUALS(r, (*this))) {
       destroy();
     }
     set_body(new_body_id);
     b2Body_GetWorldPoint(*dynamic_cast<b2BodyId*>(this), fan::vec2(0));
-    if ( physics_update_nr.iic() == false ) {
+    if (physics_update_nr.iic() == false) {
       fan::physics::remove_physics_update(physics_update_nr);
       physics_update_nr.sic();
     }
-    if ( !fan::physics::entity_t::is_valid() ) {
+    if (!fan::physics::entity_t::is_valid()) {
       return;
     }
     uint64_t body_id_data = *reinterpret_cast<uint64_t*>(dynamic_cast<body_id_t*>(this));
@@ -370,7 +386,7 @@ namespace fan::graphics::physics {
   }
 
   base_shape_t::base_shape_t(base_shape_t&& r) : fan::graphics::shape_t(std::move(r)), fan::physics::entity_t(std::move(r)) {
-    if ( !B2_ID_EQUALS(r, (*this)) ) {
+    if (!B2_ID_EQUALS(r, (*this))) {
       destroy();
     }
     physics_update_nr = r.physics_update_nr;
@@ -384,19 +400,19 @@ namespace fan::graphics::physics {
   }
 
   base_shape_t& base_shape_t::operator=(const base_shape_t& r) {
-    if ( physics_update_nr.iic() == false ) {
+    if (physics_update_nr.iic() == false) {
       fan::physics::remove_physics_update(physics_update_nr);
       physics_update_nr.sic();
     }
-    if ( this != &r ) {
+    if (this != &r) {
       fan::graphics::shape_t::operator=(r);
 
       fan::physics::body_id_t new_body_id = fan::physics::deep_copy_body(fan::physics::gphysics->world_id, *dynamic_cast<const fan::physics::body_id_t*>(&r));
-      if ( !B2_ID_EQUALS(r, (*this)) ) {
+      if (!B2_ID_EQUALS(r, (*this))) {
         destroy();
       }
       set_body(new_body_id);
-      if ( !fan::physics::entity_t::is_valid() ) {
+      if (!fan::physics::entity_t::is_valid()) {
         return *this;
       }
       uint64_t body_id_data = *reinterpret_cast<uint64_t*>(dynamic_cast<body_id_t*>(this));
@@ -411,14 +427,14 @@ namespace fan::graphics::physics {
   }
 
   base_shape_t& base_shape_t::operator=(base_shape_t&& r) {
-    if ( !B2_ID_EQUALS(r, (*this)) ) {
+    if (!B2_ID_EQUALS(r, (*this))) {
       destroy();
     }
-    if ( physics_update_nr.iic() == false ) {
+    if (physics_update_nr.iic() == false) {
       fan::physics::remove_physics_update(physics_update_nr);
       physics_update_nr.sic();
     }
-    if ( this != &r ) {
+    if (this != &r) {
       fan::graphics::shape_t::operator=(std::move(r));
       fan::physics::entity_t::operator=(std::move(*dynamic_cast<fan::physics::entity_t*>(&r)));
       r.set_body(b2_nullBodyId);
@@ -431,7 +447,7 @@ namespace fan::graphics::physics {
   void base_shape_t::erase() {
     fan::graphics::shape_t::erase();
     fan::physics::entity_t::destroy();
-    if ( physics_update_nr.iic() == false ) {
+    if (physics_update_nr.iic() == false) {
       fan::physics::remove_physics_update(physics_update_nr);
     }
     physics_update_nr.sic();
@@ -484,11 +500,10 @@ namespace fan::graphics::physics {
     };
   }
   rectangle_t::rectangle_t(const rectangle_t::properties_t& p) : base_shape_t(
-    fan::graphics::shape_t(fan::graphics::rectangle_t{ p }),
+    fan::graphics::shape_t(fan::graphics::rectangle_t {p}),
     fan::physics::entity_t(fan::physics::gphysics->create_box(p.position, p.size, p.angle.z, p.body_type, p.shape_properties)),
     p.mass_data
-  ) {
-  }
+  ) {}
   rectangle_t::rectangle_t(const rectangle_t& r) : base_shape_t(r) {}
   rectangle_t& rectangle_t::operator=(const rectangle_t& r) {
     base_shape_t::operator=(r);
@@ -499,7 +514,7 @@ namespace fan::graphics::physics {
     return *this;
   }
   sprite_t::sprite_t(const properties_t& p) : base_shape_t(
-    fan::graphics::shape_t(fan::graphics::sprite_t{ p }),
+    fan::graphics::shape_t(fan::graphics::sprite_t {p}),
     fan::physics::entity_t(fan::physics::gphysics->create_box(p.position, p.size, p.angle.z, p.body_type, p.shape_properties)),
     p.mass_data
   ) {}
@@ -519,7 +534,7 @@ namespace fan::graphics::physics {
   }
 
   circle_t::circle_t(const properties_t& p) : base_shape_t(
-    fan::graphics::shape_t(fan::graphics::circle_t{ p }),
+    fan::graphics::shape_t(fan::graphics::circle_t {p}),
     fan::physics::entity_t(fan::physics::gphysics->create_circle(p.position, p.radius, p.angle.z, p.body_type, p.shape_properties)),
     p.mass_data
   ) {}
@@ -539,7 +554,7 @@ namespace fan::graphics::physics {
   }
 
   circle_sprite_t::circle_sprite_t(const properties_t& p) : base_shape_t(
-    fan::graphics::shape_t(fan::graphics::sprite_t{ p }),
+    fan::graphics::shape_t(fan::graphics::sprite_t {p}),
     fan::physics::entity_t(fan::physics::gphysics->create_circle(p.position, p.radius, p.angle.z, p.body_type, p.shape_properties)),
     p.mass_data
   ) {}
@@ -559,9 +574,9 @@ namespace fan::graphics::physics {
   }
 
   capsule_t::capsule_t(const properties_t& p) : base_shape_t(
-    fan::graphics::shape_t(fan::graphics::capsule_t{ p }),
-    fan::physics::entity_t(fan::physics::gphysics->create_capsule(p.position, p.angle.z, 
-      b2Capsule{ .center1 = p.center0, .center2 = p.center1, .radius = p.radius }, p.body_type, p.shape_properties)),
+    fan::graphics::shape_t(fan::graphics::capsule_t {p}),
+    fan::physics::entity_t(fan::physics::gphysics->create_capsule(p.position, p.angle.z,
+      b2Capsule {.center1 = p.center0, .center2 = p.center1, .radius = p.radius}, p.body_type, p.shape_properties)),
     p.mass_data
   ) {}
 
@@ -580,10 +595,10 @@ namespace fan::graphics::physics {
   }
 
   capsule_sprite_t::capsule_sprite_t(const properties_t& p) : base_shape_t(
-    fan::graphics::shape_t(fan::graphics::sprite_t{ p }),
-    fan::physics::entity_t(fan::physics::gphysics->create_capsule(p.position, p.angle.z, b2Capsule{ 
-      .center1 = p.center0 * p.aabb_scale, 
-      .center2 = p.center1 * p.aabb_scale, 
+    fan::graphics::shape_t(fan::graphics::sprite_t {p}),
+    fan::physics::entity_t(fan::physics::gphysics->create_capsule(p.position, p.angle.z, b2Capsule {
+      .center1 = p.center0 * p.aabb_scale,
+      .center2 = p.center1 * p.aabb_scale,
       .radius = p.size.max() / 2.f * p.aabb_scale.max()
       }, p.body_type, p.shape_properties)),
     p.mass_data
@@ -604,7 +619,7 @@ namespace fan::graphics::physics {
   }
 
   polygon_t::polygon_t(const properties_t& p) : base_shape_t(
-    fan::graphics::shape_t(fan::graphics::polygon_t{ p }),
+    fan::graphics::shape_t(fan::graphics::polygon_t {p}),
     fan::physics::entity_t(
       [&] {
     std::vector<fan::vec2> points(p.vertices.size());
@@ -635,7 +650,7 @@ namespace fan::graphics::physics {
   }
 
   polygon_strip_t::polygon_strip_t(const properties_t& p) : base_shape_t(
-    fan::graphics::shape_t(fan::graphics::polygon_t{ p }),
+    fan::graphics::shape_t(fan::graphics::polygon_t {p}),
     fan::physics::entity_t(
       [&] {
     std::vector<fan::vec2> points(p.vertices.size());
@@ -674,37 +689,37 @@ namespace fan::graphics::physics {
     std::array<fan::graphics::physics::rectangle_t, 4> walls;
     const fan::color wall_outline = wall_color * 2;
     // top
-    walls[0] = fan::graphics::physics::rectangle_t{ {
+    walls[0] = fan::graphics::physics::rectangle_t {{
         .position = fan::vec2(center_position.x, center_position.y - half_size.y),
         .size = fan::vec2(half_size.x * 2, thickness),
         .color = wall_color,
         .outline_color = wall_outline,
         .shape_properties = shape_properties[0]
-      } };
+      }};
     // bottom
-    walls[1] = fan::graphics::physics::rectangle_t{ {
+    walls[1] = fan::graphics::physics::rectangle_t {{
         .position = fan::vec2(center_position.x, center_position.y + half_size.y),
         .size = fan::vec2(half_size.x * 2, thickness),
         .color = wall_color,
         .outline_color = wall_color,
         .shape_properties = shape_properties[1]
-      } };
+      }};
     // left
-    walls[2] = fan::graphics::physics::rectangle_t{ {
+    walls[2] = fan::graphics::physics::rectangle_t {{
         .position = fan::vec2(center_position.x - half_size.x, center_position.y),
         .size = fan::vec2(thickness, half_size.y * 2),
         .color = wall_color,
         .outline_color = wall_outline,
         .shape_properties = shape_properties[2]
-      } };
+      }};
     // right
-    walls[3] = fan::graphics::physics::rectangle_t{ {
+    walls[3] = fan::graphics::physics::rectangle_t {{
         .position = fan::vec2(center_position.x + half_size.x, center_position.y),
         .size = fan::vec2(thickness, half_size.y * 2),
         .color = wall_color,
         .outline_color = wall_outline,
         .shape_properties = shape_properties[3]
-      } };
+      }};
     return walls;
   }
 
@@ -729,14 +744,26 @@ namespace fan::graphics::physics {
       std::abs(target_distance.y) <= attack_range.y;
   }
 
+  void update_ai_orientation(character2d_t& c, const fan::vec2& distance) {
+    if (c.ai_behavior.auto_flip_to_target) {
+      fan::vec2 tc = c.get_tc_size();
+      fan::vec2 new_tc {std::copysign(std::abs(tc.x), distance.x), tc.y};
+      if (new_tc != tc) {
+        c.set_tc_size(new_tc);
+        c.movement_state.previous_sign = new_tc.sign();
+      }
+    }
+  }
+
   bool character2d_t::attack_state_t::try_attack(const fan::vec2& target_distance) {
-    if (is_attacking){
+    update_ai_orientation(*OFFSETLESS(this, character2d_t, attack_state), target_distance);
+    if (is_attacking) {
       return true;
     }
-    if (can_attack(target_distance)){
+    if (can_attack(target_distance)) {
       cooldown_timer.restart();
       is_attacking = true;
-      if (on_attack_start){
+      if (on_attack_start) {
         on_attack_start();
       }
       return true;
@@ -745,14 +772,14 @@ namespace fan::graphics::physics {
   }
   void character2d_t::attack_state_t::end_attack() {
     std::fill(attack_used.begin(), attack_used.end(), false);
-    if (is_attacking && on_attack_end){
+    if (is_attacking && on_attack_end) {
       on_attack_end();
     }
     is_attacking = false;
   }
 
   fan::vec2 character2d_t::ai_behavior_t::get_target_distance() const {
-    if (!target){
+    if (!target) {
       return fan::vec2(0);
     }
     return target->get_physics_position() - OFFSETLESS(this, character2d_t, ai_behavior)->get_physics_position();
@@ -767,8 +794,8 @@ namespace fan::graphics::physics {
   }
 
   bool character2d_t::navigation_helper_t::detect_and_handle_obstacles(
-    character2d_t* character, 
-    const fan::vec2& distance, 
+    character2d_t* character,
+    const fan::vec2& distance,
     fan::vec2 tile_size
   ) {
     if (!auto_jump_obstacles) {
@@ -785,13 +812,13 @@ namespace fan::graphics::physics {
     bool velocity_blocked = std::abs(current_vel.x) < 10.f;
     bool is_hitting_obstacle = trying_to_move && velocity_blocked;
 
-    if (prev_x == distance.x && character->jumping) {
+    if (prev_x == distance.x && character->jump_state.jumping) {
       was_jumping = true;
     }
-    else if (!character->jumping) {
+    else if (!character->jump_state.jumping) {
       was_jumping = false;
     }
-    is_stuck_state = character->jumping && was_jumping;
+    is_stuck_state = character->jump_state.jumping && was_jumping;
 
     f32_t diff = std::abs(std::abs(prev_x) - std::abs(distance.x));
     if (diff >= 3.f) {
@@ -834,89 +861,107 @@ namespace fan::graphics::physics {
 
   character2d_t::character2d_t(const character2d_t& o)
     : base_shape_t(o),
+    attack_state(o.attack_state),
+    ai_behavior(o.ai_behavior),
+    navigation(o.navigation),
     wall_jump(o.wall_jump),
+    jump_state(o.jump_state),
+    movement_state(o.movement_state),
     movement_cb(o.movement_cb),
-    anim_controller(o.anim_controller) 
-  {
-    std::memcpy(&previous_movement_sign, &o.previous_movement_sign,
-      offsetof(character2d_t, movement_type) - offsetof(character2d_t, previous_movement_sign));
-
-    attack_state = o.attack_state;
-    ai_behavior = o.ai_behavior;
-    navigation = o.navigation;
-
+    anim_controller(o.anim_controller),
+    current_animation_requires_velocity_fps(o.current_animation_requires_velocity_fps),
+    auto_update_animations(o.auto_update_animations),
+    max_health(o.max_health),
+    health(o.health),
+    took_damage(o.took_damage),
+    stun(o.stun) {
+    feet[0] = o.feet[0];
+    feet[1] = o.feet[1];
     movement_cb.rebind(this);
   }
 
   character2d_t::character2d_t(character2d_t&& o) noexcept
     : base_shape_t(std::move(o)),
+    attack_state(std::move(o.attack_state)),
+    ai_behavior(std::move(o.ai_behavior)),
+    navigation(std::move(o.navigation)),
     wall_jump(std::move(o.wall_jump)),
+    jump_state(std::move(o.jump_state)),
+    movement_state(std::move(o.movement_state)),
     movement_cb(std::move(o.movement_cb)),
-    anim_controller(std::move(o.anim_controller)) 
-  {
-    std::memcpy(&previous_movement_sign, &o.previous_movement_sign,
-      offsetof(character2d_t, movement_type) - offsetof(character2d_t, previous_movement_sign));
-
-    attack_state = std::move(o.attack_state);
-    ai_behavior = std::move(o.ai_behavior);
-    navigation = std::move(o.navigation);
-
+    anim_controller(std::move(o.anim_controller)),
+    current_animation_requires_velocity_fps(o.current_animation_requires_velocity_fps),
+    auto_update_animations(o.auto_update_animations),
+    max_health(o.max_health),
+    health(o.health),
+    took_damage(o.took_damage),
+    stun(o.stun) {
+    feet[0] = o.feet[0];
+    feet[1] = o.feet[1];
     movement_cb.rebind(this);
   }
 
-  character2d_t& character2d_t::operator=(const character2d_t& o)
-  {
+  character2d_t& character2d_t::operator=(const character2d_t& o) {
     if (this != &o) {
       base_shape_t::operator=(o);
-      wall_jump = o.wall_jump;
-      movement_cb = o.movement_cb;
-      anim_controller = o.anim_controller;
-
-      std::memcpy(&previous_movement_sign, &o.previous_movement_sign,
-        offsetof(character2d_t, movement_type) - offsetof(character2d_t, previous_movement_sign));
-
       attack_state = o.attack_state;
       ai_behavior = o.ai_behavior;
       navigation = o.navigation;
-
+      wall_jump = o.wall_jump;
+      jump_state = o.jump_state;
+      movement_state = o.movement_state;
+      movement_cb = o.movement_cb;
+      anim_controller = o.anim_controller;
+      feet[0] = o.feet[0];
+      feet[1] = o.feet[1];
+      current_animation_requires_velocity_fps = o.current_animation_requires_velocity_fps;
+      auto_update_animations = o.auto_update_animations;
+      max_health = o.max_health;
+      health = o.health;
+      took_damage = o.took_damage;
+      stun = o.stun;
       movement_cb.rebind(this);
     }
     return *this;
   }
 
-  character2d_t& character2d_t::operator=(character2d_t&& o) noexcept
-  {
+  character2d_t& character2d_t::operator=(character2d_t&& o) noexcept {
     if (this != &o) {
       base_shape_t::operator=(std::move(o));
-      wall_jump = std::move(o.wall_jump);
-      movement_cb = std::move(o.movement_cb);
-      anim_controller = std::move(o.anim_controller);
-
-      std::memcpy(&previous_movement_sign, &o.previous_movement_sign,
-        offsetof(character2d_t, movement_type) - offsetof(character2d_t, previous_movement_sign));
-
       attack_state = std::move(o.attack_state);
       ai_behavior = std::move(o.ai_behavior);
       navigation = std::move(o.navigation);
-
+      wall_jump = std::move(o.wall_jump);
+      jump_state = std::move(o.jump_state);
+      movement_state = std::move(o.movement_state);
+      movement_cb = std::move(o.movement_cb);
+      anim_controller = std::move(o.anim_controller);
+      feet[0] = o.feet[0];
+      feet[1] = o.feet[1];
+      current_animation_requires_velocity_fps = o.current_animation_requires_velocity_fps;
+      auto_update_animations = o.auto_update_animations;
+      max_health = o.max_health;
+      health = o.health;
+      took_damage = o.took_damage;
+      stun = o.stun;
       movement_cb.rebind(this);
     }
     return *this;
   }
 
   void character2d_t::set_shape(fan::graphics::shape_t&& shape) {
-    bool movement_was_enabled = movement_enabled;
-    uint8_t saved_movement_type = movement_type;
+    bool movement_was_enabled = movement_state.enabled;
+    uint8_t saved_movement_type = movement_state.type;
 
     movement_cb.remove();
     physics::base_shape_t::set_shape(std::move(shape));
 
     if (movement_was_enabled) {
-      movement_enabled = true;
-      movement_type = saved_movement_type;
+      movement_state.enabled = true;
+      movement_state.type = saved_movement_type;
       movement_cb.rebind(this);
       movement_cb = add_movement_callback([](character2d_t* s) {
-        s->process_movement(s->movement_type);
+        s->process_movement(s->movement_state.type);
       });
     }
   }
@@ -938,17 +983,17 @@ namespace fan::graphics::physics {
   }
 
   void character2d_t::update_animation() {
-    f32_t animation_fps = (get_linear_velocity().x / max_speed) * 30.f;
+    f32_t animation_fps = (get_linear_velocity().x / movement_state.max_speed) * 30.f;
     if (current_animation_requires_velocity_fps) {
       if (has_animation()) {
         set_sprite_sheet_fps(std::abs(animation_fps));
       }
     }
 
-    if (previous_movement_sign.x) {
+    if (movement_state.previous_sign.x) {
       fan::vec2 uvp = get_tc_position();
       fan::vec2 uvs = get_tc_size();
-      set_tc_size(fan::vec2(std::abs(uvs.x) * previous_movement_sign.x, uvs.y));
+      set_tc_size(fan::vec2(std::abs(uvs.x) * movement_state.previous_sign.x, uvs.y));
     }
   }
 
@@ -983,66 +1028,63 @@ namespace fan::graphics::physics {
   }
 
   bool character2d_t::is_on_ground() const {
-    return is_on_ground(*this, std::to_array(feet), jumping);
+    return is_on_ground(*this, std::to_array(feet), jump_state.jumping);
   }
 
-
-  void character2d_t::perform_jump(bool jump_condition, fan::vec2* wall_jump_normal){
+  void character2d_t::perform_jump(bool jump_condition, fan::vec2* wall_jump_normal) {
     bool on_ground = is_on_ground();
-    if(on_ground){
-      last_ground_time = fan::time::now();
-      on_air_after_jump = false;
-      jump_consumed = false;
-      jumping = false;
-      double_jump_consumed = false;
-      wall_jump.wall_jump_consumed = false;
+    if (on_ground) {
+      jump_state.last_ground_time = fan::time::now();
+      jump_state.reset();
+      wall_jump.consumed = false;
     }
 
-    if(!jump_condition || !handle_jump){
-      jumping = false;
+    if (!jump_condition || !jump_state.handle_jump) {
+      jump_state.jumping = false;
       return;
     }
 
     fan::physics::shape_id_t colliding_wall_id;
-    fan::vec2 wall_normal = wall_jump_normal ? *wall_jump_normal 
+    fan::vec2 wall_normal = wall_jump_normal ? *wall_jump_normal
       : fan::physics::check_wall_contact(*this, &colliding_wall_id);
 
     bool touching_wall = (wall_normal.x != 0 || wall_normal.y != 0);
-    bool allow_coyote = ((fan::time::now() - last_ground_time) / 1e+9 <= coyote_time);
+    bool allow_coyote = jump_state.can_coyote_jump(fan::time::now());
 
-    if(touching_wall && !on_ground && jump_consumed && !wall_jump.wall_jump_consumed){
+    if (touching_wall && !on_ground && jump_state.consumed && !wall_jump.consumed) {
       fan::vec2 input = fan::window::get_input_vector();
       bool pushing_into_wall = fan::math::sgn(input.x) == fan::math::sgn(wall_normal.x);
-      if(pushing_into_wall && !jumping){
-        fan::physics::wall_jump(*this, wall_normal, wall_jump.push_away_force, jump_impulse);
-        jumping = true;
-        on_air_after_jump = true;
-        wall_jump.wall_jump_consumed = true;
-        double_jump_consumed = true;
+      if (pushing_into_wall && !jump_state.jumping) {
+        fan::physics::wall_jump(*this, wall_normal, wall_jump.push_away_force, jump_state.impulse);
+        jump_state.jumping = true;
+        jump_state.on_air_after_jump = true;
+        wall_jump.consumed = true;
+        jump_state.double_jump_consumed = true;
         return;
       }
     }
 
-    if((on_ground || allow_coyote) && !jump_consumed){
+    if ((on_ground || allow_coyote) && !jump_state.consumed) {
       fan::vec2 vel = get_linear_velocity();
       set_linear_velocity(fan::vec2(vel.x, 0));
-      apply_linear_impulse_center({0, -jump_impulse});
-      jumping = true;
-      jump_consumed = true;
-      on_air_after_jump = true;
+      apply_linear_impulse_center({0, -jump_state.impulse});
+      jump_state.jumping = true;
+      jump_state.consumed = true;
+      jump_state.on_air_after_jump = true;
       return;
     }
 
-    if(allow_double_jump && !on_ground && !jumping && jump_consumed && !double_jump_consumed){
+    if (jump_state.allow_double_jump && !on_ground && !jump_state.jumping && jump_state.consumed && !jump_state.double_jump_consumed) {
       fan::vec2 vel = get_linear_velocity();
-      if(vel.y > 0){
+      if (vel.y > 0) {
         set_linear_velocity(fan::vec2(vel.x, 0));
       }
-      apply_linear_impulse_center({0, -jump_impulse});
-      jumping = true;
-      double_jump_consumed = true;
+      apply_linear_impulse_center({0, -jump_state.impulse});
+      jump_state.jumping = true;
+      jump_state.double_jump_consumed = true;
     }
   }
+
   void character2d_t::process_movement(uint8_t movement, f32_t friction) {
     fan::vec2 velocity = get_linear_velocity();
     fan::physics::shape_id_t colliding_wall_id;
@@ -1050,14 +1092,15 @@ namespace fan::graphics::physics {
     fan::vec2 input_vector = fan::window::get_input_vector();
 
     switch (movement) {
-    case movement_e::side_view: {
+    case movement_e::side_view:
+    {
       bool on_ground = is_on_ground();
       f32_t air_control_multiplier = on_ground ? 1.0f : 0.8f;
       move_to_direction(fan::vec2(input_vector.x, 0) * air_control_multiplier);
 
       if (wall_jump.normal.x && input_vector.x) {
         colliding_wall_id.set_friction(0.f);
-        if (!jumping && velocity.y > 0) {
+        if (!jump_state.jumping && velocity.y > 0) {
           fan::physics::apply_wall_slide(*this, wall_jump.normal, wall_jump.slide_speed);
         }
       }
@@ -1066,11 +1109,10 @@ namespace fan::graphics::physics {
       }
 
       perform_jump(fan::window::is_action_down("move_up"), &wall_jump.normal);
-
-      jump_delay = 0;
       break;
     }
-    case movement_e::top_view: {
+    case movement_e::top_view:
+    {
       move_to_direction(input_vector);
       break;
     }
@@ -1080,20 +1122,19 @@ namespace fan::graphics::physics {
   void character2d_t::move_to_direction(const fan::vec2& direction) {
     fan::vec2 input_dir = direction.sign();
     fan::vec2 vel = get_linear_velocity();
-
     f32_t dt = fan::physics::default_physics_timestep;
 
     if (input_dir.x != 0) {
-      vel.x += input_dir.x * accelerate_force * dt * 100.f;
-      vel.x = fan::math::clamp(vel.x, -max_speed, max_speed);
+      vel.x += input_dir.x * movement_state.accelerate_force * dt * 100.f;
+      vel.x = fan::math::clamp(vel.x, -movement_state.max_speed, movement_state.max_speed);
     }
     else {
       f32_t deceleration_factor = 0.3f * dt * 100.f;
       vel.x = fan::math::lerp(vel.x, 0.f, deceleration_factor);
     }
 
-    set_linear_velocity({ vel.x, vel.y });
-    previous_movement_sign = input_dir;
+    set_linear_velocity({vel.x, vel.y});
+    movement_state.previous_sign = input_dir;
   }
 
   void character2d_t::set_physics_position(const fan::vec2& p) {
@@ -1102,14 +1143,11 @@ namespace fan::graphics::physics {
   }
 
   void character2d_t::enable_default_movement(uint8_t movement) {
-    movement_enabled = true;
-    movement_type = movement;
-
-    movement_cb = add_movement_callback(
-      [movement] (character2d_t* self) {
+    movement_state.enabled = true;
+    movement_state.type = movement;
+    movement_cb = add_movement_callback([movement](character2d_t* self) {
       self->process_movement(movement);
-    }
-    );
+    });
   }
 
   void character2d_t::update_animations() {
@@ -1123,21 +1161,21 @@ namespace fan::graphics::physics {
     auto anims = get_all_animations();
     struct anim_t {
       int fps = 0;
-      fan::graphics::animation_nr_t id{};
+      fan::graphics::animation_nr_t id {};
     } attack, idle, run, hurt;
     for (auto& [name, anim_id] : anims) {
       auto& a = fan::graphics::all_animations[anim_id];
       if (name == "attack0") {
-        attack = { a.fps, anim_id };
+        attack = {a.fps, anim_id};
       }
       else if (name == "idle") {
-        idle = { a.fps, anim_id };
+        idle = {a.fps, anim_id};
       }
       else if (name == "run") {
-        run = { a.fps, anim_id };
+        run = {a.fps, anim_id};
       }
       else if (name == "hurt") {
-        hurt = { a.fps, anim_id };
+        hurt = {a.fps, anim_id};
       }
     }
     if (hurt.fps) {
@@ -1151,31 +1189,32 @@ namespace fan::graphics::physics {
             c.took_damage = false;
             return true;
           }
-          return false; 
+          return false;
         }
-      });
+        });
     }
     if (attack.fps) {
+      set_animation_loop(attack.id, false);
       anim_controller.add_state({
         .name = "attack0",
         .animation_id = attack.id,
         .fps = attack.fps,
         .trigger_type = animation_controller_t::animation_state_t::one_shot,
-        .condition = config.attack_cb ? config.attack_cb : 
+        .condition = config.attack_cb ? config.attack_cb :
         [](character2d_t& c) -> bool {
           if (!fan::window::is_mouse_clicked()) {
             return false;
           }
           return c.attack_state.try_attack(fan::vec2(0));
         }
-      });
+        });
     }
     if (idle.fps) {
       anim_controller.add_state({
         .name = "idle",
         .animation_id = idle.id,
         .fps = idle.fps,
-        .condition = [](character2d_t& c){ 
+        .condition = [](character2d_t& c) {
           return std::abs(c.get_linear_velocity().x) < 10.f;
         }
         });
@@ -1186,7 +1225,7 @@ namespace fan::graphics::physics {
         .name = "run",
         .animation_id = run.id,
         .fps = run.fps,
-        .condition = [](character2d_t& c){
+        .condition = [](character2d_t& c) {
         return std::abs(c.get_linear_velocity().x) >= 10.f;
       }
         });
@@ -1248,8 +1287,8 @@ namespace fan::graphics::physics {
       }
     }
   }
-  void character2d_t::animation_controller_t::cancel_current(){
-    for (auto& state : states){
+  void character2d_t::animation_controller_t::cancel_current() {
+    for (auto& state : states) {
       state.is_playing = false;
     }
   }
@@ -1348,15 +1387,16 @@ namespace fan::graphics::physics {
     wall_jump.normal = fan::physics::check_wall_contact(*this, &colliding_wall_id);
     bool on_ground = is_on_ground();
     if (on_ground) {
-      last_ground_time = fan::time::now();
-      on_air_after_jump = false;
-      jump_consumed = false;
+      jump_state.last_ground_time = fan::time::now();
+      jump_state.on_air_after_jump = false;
+      jump_state.consumed = false;
     }
     else {
-      jumping = false;
+      jump_state.jumping = false;
     }
     switch (ai_behavior.type) {
-    case ai_behavior_t::follow_target: {
+    case ai_behavior_t::follow_target:
+    {
       if (!ai_behavior.target) {
         break;
       }
@@ -1368,7 +1408,7 @@ namespace fan::graphics::physics {
         if (wall_jump.normal.x && movement_direction.x) {
           colliding_wall_id.set_friction(0.f);
           fan::vec2 vel = get_linear_velocity();
-          if (!jumping && vel.y > 0) {
+          if (!jump_state.jumping && vel.y > 0) {
             fan::physics::apply_wall_slide(*this, wall_jump.normal, wall_jump.slide_speed);
           }
         }
@@ -1386,16 +1426,11 @@ namespace fan::graphics::physics {
           move_to_direction(movement_direction * air_control_multiplier);
         }
       }
-      if (ai_behavior.auto_flip_to_target) {
-        fan::vec2 tc = get_tc_size();
-        fan::vec2 new_tc {std::copysign(std::abs(tc.x), distance.x), tc.y};
-        if (new_tc != tc) {
-          set_tc_size(new_tc);
-        }
-      }
+      update_ai_orientation(*this, distance);
       break;
     }
-    case ai_behavior_t::flee_from_target: {
+    case ai_behavior_t::flee_from_target:
+    {
       if (!ai_behavior.target) {
         break;
       }
@@ -1405,7 +1440,7 @@ namespace fan::graphics::physics {
         if (wall_jump.normal.x && movement_direction.x) {
           colliding_wall_id.set_friction(0.f);
           fan::vec2 vel = get_linear_velocity();
-          if (!jumping && vel.y > 0) {
+          if (!jump_state.jumping && vel.y > 0) {
             fan::physics::apply_wall_slide(*this, wall_jump.normal, wall_jump.slide_speed);
           }
         }
@@ -1420,7 +1455,8 @@ namespace fan::graphics::physics {
       }
       break;
     }
-    case ai_behavior_t::patrol: {
+    case ai_behavior_t::patrol:
+    {
       if (ai_behavior.patrol_points.empty()) {
         break;
       }
@@ -1434,7 +1470,7 @@ namespace fan::graphics::physics {
         if (wall_jump.normal.x && movement_direction.x) {
           colliding_wall_id.set_friction(0.f);
           fan::vec2 vel = get_linear_velocity();
-          if (!jumping && vel.y > 0) {
+          if (!jump_state.jumping && vel.y > 0) {
             fan::physics::apply_wall_slide(*this, wall_jump.normal, wall_jump.slide_speed);
           }
         }
@@ -1467,7 +1503,7 @@ namespace fan::graphics::physics {
     took_damage = true;
     if (stun) {
       attack_state.end_attack();
-      anim_controller.cancel_current(); 
+      anim_controller.cancel_current();
     }
   }
 

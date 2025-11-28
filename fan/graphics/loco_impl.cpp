@@ -974,7 +974,6 @@ loco_t::loco_t(const loco_t::properties_t& p) {
   generate_commands(this);
 
   settings_menu.open();
-  input_action.add(fan::key_escape, "open_settings");
 #endif
 
   input_action.add(fan::key_a, "move_left");
@@ -1055,6 +1054,21 @@ void loco_t::close() {
 }
 
 void loco_t::setup_input_callbacks() {
+
+#if defined(fan_gui)
+  input_action.add(fan::key_escape, "open_settings");
+#endif
+
+  input_action.add(fan::key_a, "move_left");
+  input_action.add(fan::key_d, "move_right");
+  input_action.add(fan::key_w, "move_forward");
+  input_action.add(fan::key_s, "move_back");
+  input_action.add(fan::key_space, "move_up");
+
+#if defined(fan_physics)
+  input_action.add_keycombo({fan::key_left_control, fan::key_5}, "debug_physics");
+#endif
+
   // TODO callbacks leaking
   buttons_handle = window.add_buttons_callback([this](const fan::window_t::buttons_data_t& d) {
     fan::vec2 pos = fan::vec2(d.window->get_mouse_position());

@@ -258,6 +258,7 @@ export namespace fan::graphics {
     std::vector<sprite_sheet_animation_t::image_t> images;
     std::string name;
     int fps = 15;
+    bool loop = true;
   };
 
   struct animation_nr_t {
@@ -531,6 +532,7 @@ export namespace fan::graphics {
       void add_existing_animation(animation_nr_t nr);
       bool is_animation_finished() const;
       bool is_animation_finished(animation_nr_t nr) const;
+      void set_animation_loop(animation_nr_t nr, bool flag);
       void reset_current_sprite_sheet_animation_frame();
       void reset_current_sprite_sheet_animation();
       // sprite sheet - sprite specific
