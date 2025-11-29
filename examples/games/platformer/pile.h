@@ -75,8 +75,8 @@ pile_t::pile_t() {
   player.body.set_physics_position(player.body.get_position());
   engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position(), 0);
 
-  level_stage = pile->stage_loader.open_stage<level_t>();
-  gui_stage = pile->stage_loader.open_stage<gui_t>();
+  level_stage = stage_loader.open_stage<level_t>();
+  gui_stage = stage_loader.open_stage<gui_t>();
   // init map after setting current_stage
   get_level().load_map();
 }
