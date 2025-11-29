@@ -581,14 +581,14 @@ namespace fan::physics {
 
     for (int i = 0; i < sensor_events.beginCount; ++i) {
       b2SensorBeginTouchEvent ev = sensor_events.beginEvents[i];
-      if (b2Shape_IsValid(ev.visitorShapeId)) {
+      if (b2Shape_IsValid(ev.sensorShapeId) && b2Shape_IsValid(ev.visitorShapeId)) {
         begin_touch_event_cb(ev);
         update_contact(b2Shape_GetBody(ev.sensorShapeId), b2Shape_GetBody(ev.visitorShapeId), true);
       }
     }
     for (int i = 0; i < sensor_events.endCount; ++i) {
       b2SensorEndTouchEvent ev = sensor_events.endEvents[i];
-      if (b2Shape_IsValid(ev.visitorShapeId)) {
+      if (b2Shape_IsValid(ev.sensorShapeId) && b2Shape_IsValid(ev.visitorShapeId)) {
         end_touch_event_cb(ev);
         update_contact(b2Shape_GetBody(ev.sensorShapeId), b2Shape_GetBody(ev.visitorShapeId), false);
       }
