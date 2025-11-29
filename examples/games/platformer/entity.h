@@ -6,7 +6,7 @@ struct entity_t {
   //TODO use collision mask for player and entities
   static inline constexpr int attack_hitbox_frames[] = {4, 8};
 
-  fan::physics::physics_step_callback_nr_t nr;
+  fan::physics::physics_step_callback_nr_t physics_step_nr;
 
   entity_t(const fan::vec3& pos = 0) {
     f32_t density = 4.f;
@@ -54,7 +54,7 @@ struct entity_t {
     body.navigation.on_check_obstacle = [this](const fan::vec2& check_pos) {
       return is_spike_at(check_pos);
     };
-    nr = fan::physics::add_physics_step_callback(
+    physics_step_nr = fan::physics::add_physics_step_callback(
       [&]() { 
       fan::vec2 distance = body.ai_behavior.get_target_distance();
       if (!( (std::abs(distance.x) < trigger_distance.x &&
@@ -147,6 +147,7 @@ struct entity_t {
   }
 
   void destroy() {
+    fan::physics::remove_physics_step_callback(physics_step_nr);
     remove_this = true;
   }
   void on_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction) {
