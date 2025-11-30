@@ -10,39 +10,39 @@ struct player_t {
       {sword_length * direction, 0.0f},
       {0.0f, -10.0f},
       {0.0f, 10.0f}
-    }};
+      }};
   }
   player_t() {
-    body.stun = false; // set before loading
     body = fan::graphics::physics::character2d_t::from_json({
       .json_path = "player/player.json",
       .aabb_scale = aabb_scale,
       .draw_offset_override = draw_offset
     });
-    body.jump_state.impulse = 75.f;
     body.enable_default_movement();
+    body.set_jump_height(75.f);
+    body.enable_double_jump();
+
     body.sync_visual_angle(false);
-    body.attack_state.knockback_force = 20.f;
-    body.attack_state.damage = 10.f;
-    body.jump_state.allow_double_jump = true;
-    body.attack_state.cooldown_duration = 0.1e9;
-    body.attack_state.cooldown_timer = fan::time::timer(body.attack_state.cooldown_duration, true);
-    body.attack_state.on_attack_start = [this]() {
-      hit_enemies.clear();
-      hitbox_spawned = false;
-    };
-    body.attack_state.on_attack_end = [this]() {
-      if (attack_hitbox.is_valid()) {
-        attack_hitbox.destroy();
+
+    body.setup_attack_properties({
+      .damage = 10.f,
+      .knockback_force = 20.f,
+      .cooldown_duration = 0.1e9,
+      .on_attack_start = [this]() {
+        hit_enemies.clear();
+        hitbox_spawned = false;
+      },
+      .on_attack_end = [this]() {
+        if (attack_hitbox.is_valid()) {
+          attack_hitbox.destroy();
+        }
+        hitbox_spawned = false;
       }
-      hitbox_spawned = false;
-    };
+    });
+
     mouse_click_handle = pile->engine.on_mouse_click(fan::mouse_left, [this](const auto& bdata) {
-      if (fan::graphics::gui::get_io().WantCaptureMouse) {
-        return;
-      }
-      body.cancel_animations();
-      if (body.attack_state.try_attack(fan::vec2(0))) {
+      body.cancel_animation();
+      if (body.attack_state.try_attack(&body)) {
       }
     });
   }
@@ -76,7 +76,7 @@ struct player_t {
   }
   void respawn() {
     body.set_physics_position(pile->renderer.get_position(pile->get_level().main_map_id, "player_spawn"));
-    body.health = body.max_health;
+    body.set_health(body.get_max_health());
   }
   void step() {
     if (body.is_on_ground()) {
@@ -93,8 +93,8 @@ struct player_t {
     if (hitbox_spawned && attack_hitbox.is_valid()) {
       for (auto& enemy : pile->entity) {
         if (hit_enemies.find(&enemy) == hit_enemies.end()) {
-          if (attack_hitbox.test_overlap(enemy.body)) {
-            enemy.on_hit(&body, (enemy.body.get_position() - body.get_position()).normalized());
+          if (attack_hitbox.test_overlap(enemy->body)) {
+            enemy->on_hit(&body, (enemy->body.get_position() - body.get_position()).normalized());
             hit_enemies.insert(&enemy);
           }
         }
@@ -110,9 +110,9 @@ struct player_t {
   }
   void on_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction) {
     body.take_hit(source, hit_direction);
-    if (body.health <= 0) {
+    if (body.get_health() <= 0) {
       body.set_physics_position(pile->renderer.get_position(pile->get_level().main_map_id, "player_spawn"));
-      body.health = body.max_health;
+      body.reset_health();
     }
   }
 

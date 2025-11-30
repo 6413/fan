@@ -19,9 +19,13 @@ void load_map() {
   main_map_id = pile->renderer.add(&main_compiled_map, p);
   // Set player spawn
   pile->player.body.set_physics_position(pile->renderer.get_position(main_map_id, "player_spawn") + fan::vec2(300, -200));
+
+  // pointers can change
   pile->entity.resize(2);
-  pile->entity[0].set_initial_position(pile->renderer.get_position(main_map_id, "enemy0_spawn"));
-  pile->entity[1].set_initial_position(pile->renderer.get_position(main_map_id, "enemy1_spawn"));
+  pile->entity[0] = new entity_t;
+  pile->entity[0]->set_initial_position(pile->renderer.get_position(main_map_id, "enemy0_spawn"));
+  pile->entity[1] = new entity_t;
+  pile->entity[1]->set_initial_position(pile->renderer.get_position(main_map_id, "enemy1_spawn"));
 
   pile->renderer.iterate_visual(main_map_id, [&](fte_loader_t::tile_t& tile) {
     if (tile.id == "spikes") {
@@ -53,8 +57,7 @@ void open(void* sod) {
 
 }
 
-void close() {
-}
+void close() {}
 
 void reload_map() {
   for (auto& i : spike_sensors) {
@@ -74,10 +77,10 @@ void update() {
     }
     for (auto& enemy : pile->entity) {
       if (respawn_enemies) {
-        enemy.respawn();
+        enemy->respawn();
       }
-      else if (fan::physics::is_on_sensor(enemy.body, spike)) {
-        enemy.destroy();
+      else if (fan::physics::is_on_sensor(enemy->body, spike)) {
+        enemy->destroy();
       }
     }
   }
