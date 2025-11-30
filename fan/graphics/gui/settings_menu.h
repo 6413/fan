@@ -10,17 +10,35 @@ typedef void(*page_function_t)(settings_menu_t*, const fan::vec2& next_window_po
 struct settings_menu_t {
   // pages are divided into two vertically
 
-  static constexpr int wnd_flags = gui::window_flags_no_move | gui::window_flags_no_collapse |
-    gui::window_flags_no_resize | gui::window_flags_no_title_bar;
-
-  static void menu_graphics_left(settings_menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
+  static void begin_menu_left(
+    const char* name, 
+    const fan::vec2& next_window_position,
+    const fan::vec2& next_window_size) 
+  {
     gui::push_font(gui::get_font(24));
     gui::set_next_window_pos(next_window_position);
     gui::set_next_window_size(next_window_size);
     gui::set_next_window_bg_alpha(0.99);
-    gui::begin("##Menu Graphics Left", nullptr, wnd_flags);
+    gui::begin(name, nullptr, wnd_flags);
+  }
+  static void end_menu_left() {
+    gui::end();
+    gui::pop_font();
+  }
+
+  static constexpr int wnd_flags = gui::window_flags_no_move | gui::window_flags_no_collapse |
+    gui::window_flags_no_resize | gui::window_flags_no_title_bar;
+
+  static constexpr fan::color title_color = fan::color::from_rgba(0x948c80ff) * 1.5f;
+
+  static void menu_graphics_left(
+    settings_menu_t* menu, 
+    const fan::vec2& next_window_position,
+    const fan::vec2& next_window_size) 
+  {
+    begin_menu_left("##Menu Graphics Left", next_window_position, next_window_size);
     {
-      gui::text(fan::color::from_rgba(0x948c80ff) * 1.5, "DISPLAY");
+      gui::text(title_color, "DISPLAY");
       gui::begin_table("settings_left_table_display", 2,
         gui::table_flags_borders_inner_h |
         gui::table_flags_borders_outer_h
@@ -78,7 +96,7 @@ struct settings_menu_t {
     gui::new_line();
     gui::new_line();
     {
-      gui::text(fan::color::from_rgba(0x948c80ff) * 1.5, "POST PROCESSING");
+      gui::text(title_color, "POST PROCESSING");
       gui::begin_table("settings_left_table_post_processing", 2,
         gui::table_flags_borders_inner_h |
         gui::table_flags_borders_outer_h
@@ -101,7 +119,7 @@ struct settings_menu_t {
     gui::new_line();
     gui::new_line();
     {
-      gui::text(fan::color::from_rgba(0x948c80ff) * 1.5, "PERFORMANCE STATS");
+      gui::text(title_color, "PERFORMANCE STATS");
       gui::begin_table("settings_left_table_post_processing", 2,
         gui::table_flags_borders_inner_h |
         gui::table_flags_borders_outer_h
@@ -132,8 +150,7 @@ struct settings_menu_t {
 
       gui::end_table();
     }
-    gui::end();
-    gui::pop_font();
+    end_menu_left();
   }
 
   static void menu_graphics_right(settings_menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
@@ -145,7 +162,7 @@ struct settings_menu_t {
 
     gui::push_font(gui::get_font(32, true));
     gui::indent(menu->min_x);
-    gui::text(fan::color::from_rgba(0x948c80ff) * 1.5, "Setting Info");
+    gui::text(title_color, "Setting Info");
     gui::unindent(menu->min_x);
     gui::pop_font();
 
@@ -164,7 +181,27 @@ struct settings_menu_t {
   }
 
   static void menu_audio_left(settings_menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
-
+  #if defined(fan_audio)
+    begin_menu_left("##Menu Audio Left", next_window_position, next_window_size);
+    {
+      gui::begin_table("settings_left_table_display", 2,
+        gui::table_flags_borders_inner_h |
+        gui::table_flags_borders_outer_h
+      );
+      {
+        gui::table_next_row();
+        gui::table_next_column();
+        gui::text("Volume");
+        gui::table_next_column();
+        f32_t volume = fan::audio::get_volume();
+        if (gui::slider("##slider_volume", &volume, 0.f, 1.f, gui::slider_flags_always_clamp)) {
+          fan::audio::set_volume(volume);
+        }
+      }
+      gui::end_table();
+    }
+    end_menu_left();
+  #endif
   }
   static void menu_audio_right(settings_menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
     loco_t::settings_menu_t::menu_graphics_right(menu, next_window_position, next_window_size);

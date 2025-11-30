@@ -16,10 +16,17 @@ struct player_t {
     body = fan::graphics::physics::character2d_t::from_json({
       .json_path = "player/player.json",
       .aabb_scale = aabb_scale,
-      .draw_offset_override = draw_offset
+      .draw_offset_override = draw_offset,
+      .attack_cb =
+        [](fan::graphics::physics::character2d_t& c) -> bool {
+        if (!fan::window::is_mouse_clicked() || pile->engine.render_settings_menu) {
+          return false;
+        }
+        return c.attack_state.try_attack(&c);
+      },
     });
     body.enable_default_movement();
-    body.set_jump_height(75.f);
+    body.set_jump_height(65.f);
     body.enable_double_jump();
 
     body.sync_visual_angle(false);
@@ -61,8 +68,12 @@ struct player_t {
     );
     hitbox_spawned = true;
   }
-  fan::event::task_t jump() {
+  fan::event::task_t jump(bool is_double_jump) {
+    fan::audio::play(audio_jump);
     jump_cancelled = false;
+    if (!is_double_jump) {
+      co_return;
+    }
     body.set_rotation_point(-body.get_draw_offset());
 
     fan::time::timer jump_timer{1.0e9f / 2.f, true};
@@ -77,16 +88,24 @@ struct player_t {
   void respawn() {
     body.set_physics_position(pile->renderer.get_position(pile->get_level().main_map_id, "player_spawn"));
     body.set_health(body.get_max_health());
+    pile->get_level().load_enemies();
   }
   void step() {
     if (body.is_on_ground()) {
+      did_double_jump = false;
       jump_cancelled = true;
     }
-    if (fan::window::is_action_clicked("move_up") && body.get_angle().z == 0) {
-      task_jump = jump();
+
+    if (body.movement_state.jump_state.double_jump_consumed && !did_double_jump) {
+      did_double_jump = true;
+      jump_cancelled = true;
+    }
+    if (fan::window::is_action_clicked("move_up") && (body.get_angle().z == 0 || jump_cancelled)) {
+      task_jump = jump(body.movement_state.jump_state.double_jump_consumed);
     }
     if (body.attack_state.is_attacking && !hitbox_spawned) {
       if (body.animation_on("attack0", attack_hitbox_frame)) {
+        fan::audio::play(attack);
         spawn_hitbox();
       }
     }
@@ -94,7 +113,9 @@ struct player_t {
       for (auto& enemy : pile->entity) {
         if (hit_enemies.find(&enemy) == hit_enemies.end()) {
           if (attack_hitbox.test_overlap(enemy->body)) {
-            enemy->on_hit(&body, (enemy->body.get_position() - body.get_position()).normalized());
+            if (enemy->on_hit(&body, (enemy->body.get_position() - body.get_position()).normalized())) {
+              break;
+            }
             hit_enemies.insert(&enemy);
           }
         }
@@ -108,12 +129,15 @@ struct player_t {
   fan::vec2 get_physics_pos() {
     return body.get_physics_position();
   }
-  void on_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction) {
+  bool on_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction) {
+    fan::audio::play(enemy_hits_player);
     body.take_hit(source, hit_direction);
     if (body.get_health() <= 0) {
-      body.set_physics_position(pile->renderer.get_position(pile->get_level().main_map_id, "player_spawn"));
-      body.reset_health();
+      body.cancel_animation();
+      respawn();
+      return true;
     }
+    return false;
   }
 
   fan::graphics::physics::character2d_t body;
@@ -123,4 +147,6 @@ struct player_t {
   bool hitbox_spawned = false;
   fan::event::task_t task_jump;
   bool jump_cancelled = false;
+  bool did_double_jump = false;
+  fan::audio::piece_t audio_jump {"jump.sac"}, attack {"player_attack.sac"}, enemy_hits_player{"enemy_hits_player.sac"};
 };
