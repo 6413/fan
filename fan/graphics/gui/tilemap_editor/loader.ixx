@@ -291,15 +291,17 @@ public:
         physics_element.size = shape.get_size();
         fte_t::physics_shapes_t defaults;
         physics_element.physics_shapes.id = shape_json.value("id", defaults.id);
-        const fan::json& physics_shape_data = shape_json["physics_shape_data"];
-        physics_element.physics_shapes.type = physics_shape_data.value("type", defaults.type);
-        physics_element.physics_shapes.body_type = physics_shape_data.value("body_type", defaults.body_type);
-        physics_element.physics_shapes.draw = physics_shape_data.value("draw", defaults.draw);
-        physics_element.physics_shapes.shape_properties.friction = physics_shape_data.value("friction", defaults.shape_properties.friction);
-        physics_element.physics_shapes.shape_properties.density = physics_shape_data.value("density", defaults.shape_properties.density);
-        physics_element.physics_shapes.shape_properties.fixed_rotation = physics_shape_data.value("fixed_rotation", defaults.shape_properties.fixed_rotation);
-        physics_element.physics_shapes.shape_properties.presolve_events = physics_shape_data.value("presolve_events", defaults.shape_properties.presolve_events);
-        physics_element.physics_shapes.shape_properties.is_sensor = physics_shape_data.value("is_sensor", defaults.shape_properties.is_sensor);
+        if (shape_json.contains("physics_shape_data")) {
+          const fan::json& physics_shape_data = shape_json["physics_shape_data"];
+          physics_element.physics_shapes.type = physics_shape_data.value("type", defaults.type);
+          physics_element.physics_shapes.body_type = physics_shape_data.value("body_type", defaults.body_type);
+          physics_element.physics_shapes.draw = physics_shape_data.value("draw", defaults.draw);
+          physics_element.physics_shapes.shape_properties.friction = physics_shape_data.value("friction", defaults.shape_properties.friction);
+          physics_element.physics_shapes.shape_properties.density = physics_shape_data.value("density", defaults.shape_properties.density);
+          physics_element.physics_shapes.shape_properties.fixed_rotation = physics_shape_data.value("fixed_rotation", defaults.shape_properties.fixed_rotation);
+          physics_element.physics_shapes.shape_properties.presolve_events = physics_shape_data.value("presolve_events", defaults.shape_properties.presolve_events);
+          physics_element.physics_shapes.shape_properties.is_sensor = physics_shape_data.value("is_sensor", defaults.shape_properties.is_sensor);
+        }
       }
       fte_t::tile_t tile;
       fan::vec2i gp = shape.get_position();

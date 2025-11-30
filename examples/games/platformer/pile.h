@@ -25,9 +25,9 @@ struct pile_t {
 
   pile_t();
 
-  void step() {
+  void update() {
     engine.physics_context.step(engine.delta_time);
-    player.step();
+    player.update();
     for (auto& enemy : pile->entity) {
       if (enemy->update()) {
         break;
@@ -80,9 +80,10 @@ pile_t::pile_t() {
 
   level_stage = stage_loader.open_stage<level_t>();
   gui_stage = stage_loader.open_stage<gui_t>();
-  audio_background = fan::audio::piece_t("background.sac");
-  fan::audio::set_volume(0.5f);
+  audio_background = fan::audio::piece_t("audio/background.sac");
+  fan::audio::set_volume(0.1f);
   fan::audio::play(audio_background);
   // init map after setting current_stage
+  
   get_level().load_map();
 }

@@ -1339,8 +1339,8 @@ namespace fan::graphics::gui {
         for (int x = 0; x < hframes; ++x) {
           fan::vec2 tc_size = fan::vec2(1.0 / hframes, 1.0 / vframes);
           fan::vec2 uv_src = fan::vec2(
-            std::fmod(tc_size.x * x, 1.0),
-            y / tc_size.y
+            tc_size.x * x,
+            tc_size.y * y
           );
           fan::vec2 uv_dst = uv_src + fan::vec2(1.0 / hframes, 1.0 / vframes);
           gui::push_id(grid_index);

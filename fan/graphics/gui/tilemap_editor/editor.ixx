@@ -1697,6 +1697,7 @@ export struct fte_t {
             current_tile_images[0].push_back({
               .ti = layers[idx].shape.get_tp()
             });
+            brush.id = layers[idx].tile.id;
           }
         }
       }

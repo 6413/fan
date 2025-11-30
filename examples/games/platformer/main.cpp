@@ -1,6 +1,8 @@
 #include <fan/utility.h>
 #include <fan/types/dme.h>
 
+#include <cmath>
+#include <cstring>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -9,6 +11,7 @@
 #include <unordered_set>
 #include <algorithm>
 #include <vector>
+#include <fstream>
 
 import fan;
 import fan.graphics.gui.tilemap_editor.renderer;

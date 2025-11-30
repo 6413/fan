@@ -907,6 +907,7 @@ namespace fan::graphics{
 
 	fan::graphics::texture_pack::ti_t shapes::shape_t::get_tp() {
 		fan::graphics::texture_pack::ti_t ti;
+    ti.unique_id = get_tp_unique();
 		ti.image = get_image();
 		ti.position = get_tc_position() * ti.image.get_size();
 		ti.size = get_tc_size() * ti.image.get_size();
@@ -917,6 +918,10 @@ namespace fan::graphics{
 	bool shapes::shape_t::set_tp(fan::graphics::texture_pack::ti_t* ti) {
 		return load_tp(ti);
 	}
+
+  fan::graphics::texture_pack::unique_t shapes::shape_t::get_tp_unique() const {
+    return ((shapes::sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper))->texture_pack_unique_id;
+  }
 
 	fan::graphics::camera_t shapes::shape_t::get_camera() const {
 		return g_shapes->shape_functions[get_shape_type()].get_camera(this);
@@ -1383,6 +1388,8 @@ namespace fan::graphics{
 
 			auto& animation = found->second;
 			fan::graphics::sprite_sheet_data_t& sheet_data = ri.sprite_sheet_data;
+      sheet_data.current_frame += advance;
+
       if (animation.loop) {
 			  if (sheet_data.current_frame >= animation.selected_frames.size()) {
   				sheet_data.current_frame = 0;
@@ -1410,19 +1417,11 @@ namespace fan::graphics{
 
 			auto& current_image = animation.images[image_index];
 			set_image(current_image.image);
-			sheet_data.current_frame += advance;
-      if (animation.loop) {
-        sheet_data.current_frame %= animation.selected_frames.size();
-      }
-      else {
-        sheet_data.current_frame = std::min(sheet_data.current_frame, (int)animation.selected_frames.size() - 1);
-      }
 			sheet_data.update_timer.restart();
 
 			fan::vec2 tc_size = fan::vec2(1.0 / current_image.hframes, 1.0 / current_image.vframes);
 			int frame_x = local_frame % current_image.hframes;
 			int frame_y = local_frame / current_image.hframes;
-
       fan::vec2 pos(
         frame_x * tc_size.x,
         frame_y * tc_size.y

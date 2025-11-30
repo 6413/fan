@@ -492,6 +492,7 @@ export namespace fan::graphics {
       bool load_tp(fan::graphics::texture_pack::ti_t* ti);
       fan::graphics::texture_pack::ti_t get_tp();
       bool set_tp(fan::graphics::texture_pack::ti_t* ti);
+      fan::graphics::texture_pack::unique_t get_tp_unique() const;
       fan::graphics::camera_t get_camera() const;
       void set_camera(fan::graphics::camera_t camera);
       fan::graphics::viewport_t get_viewport() const;
