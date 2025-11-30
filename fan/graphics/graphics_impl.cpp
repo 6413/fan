@@ -19,6 +19,10 @@ module;
 
 module fan.graphics;
 
+#if defined(fan_json)
+  import fan.types.json;
+#endif
+
 namespace fan::window {
   void add_input_action(const int* keys, std::size_t count, const std::string& action_name) {
     fan::graphics::g_render_context_handle.input_action->add(keys, count, action_name);
@@ -574,6 +578,17 @@ namespace fan::graphics {
     fan::graphics::aabb(s.get_aabb(), depth, c);
   }
 #endif
+
+  fan::graphics::sprite_t fan::graphics::sprite_sheet_from_json(
+    const sprite_sheet_config_t config,
+    const std::source_location& callers_path) 
+  {
+    fan::json json_data = fan::graphics::read_json(config.path, callers_path);
+    fan::graphics::parse_animations(json_data, callers_path);
+    auto shape = fan::graphics::extract_single_shape(json_data, callers_path);
+    shape.set_animation_loop(shape.get_current_animation_id(), config.loop);
+    return shape;
+  }
 
   fan::graphics::shapes::polygon_t::properties_t create_hexagon(f32_t radius, const fan::color& color) {
     fan::graphics::shapes::polygon_t::properties_t pp;
