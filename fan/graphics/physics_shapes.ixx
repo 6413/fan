@@ -427,125 +427,161 @@ export namespace fan {
           {.friction = 0  }   // right
         } }
       );
+
+      struct character2d_t;
+
+      struct jump_state_t {
+        bool jumping = false;
+        bool consumed = false;
+        bool double_jump_consumed = false;
+        bool on_air_after_jump = false;
+        f32_t last_ground_time = 0.f;
+        f32_t coyote_time = 0.1f;
+        f32_t impulse = 40.f;
+        bool handle_jump = true;
+        bool allow_double_jump = false;
+
+        void reset(){
+          jumping = false;
+          consumed = false;
+          double_jump_consumed = false;
+          on_air_after_jump = false;
+        }
+        bool can_coyote_jump(f32_t current_time) const{
+          return (current_time - last_ground_time) / 1e+9 <= coyote_time;
+        }
+      };
+      struct wall_jump_t {
+        fan::vec2 normal;
+        f32_t slide_speed = 200.f;
+        f32_t push_away_force = 1.f;
+        bool consumed = false;
+      };
+      struct movement_e {
+        enum {
+          side_view,
+          top_view
+        };
+      };
+      struct movement_state_t {
+
+        void move_to_direction(fan::physics::body_id_t body, const fan::vec2& direction);
+        void perform_jump(fan::physics::body_id_t body_id, bool jump_condition, fan::vec2* wall_jump_normal = nullptr, wall_jump_t* wall_jump = nullptr);
+
+        fan::vec2 previous_sign = 0;
+        f32_t accelerate_force = 120.f;
+        f32_t max_speed = 600.f;
+        bool enabled = false;
+        uint8_t type = movement_e::side_view;
+        jump_state_t jump_state;
+      };
+
+      struct attack_state_t {
+        bool can_attack(const fan::vec2& target_distance);
+        bool try_attack(character2d_t* character);
+        // this is for ai
+        bool try_attack(character2d_t* character, const fan::vec2& target_distance);
+        void end_attack();
+
+        void take_hit(character2d_t* source, const fan::vec2& hit_direction, f32_t knockback_multiplier = 1.0f);
+
+        f32_t max_health = 50;
+        f32_t health = max_health;
+
+        f32_t damage = 10.f;
+        f32_t knockback_force = 50.f;
+        fan::vec2 attack_range = {100, 50};
+        bool is_attacking = false;
+
+        f32_t cooldown_duration = 0.5e9;
+        fan::time::timer cooldown_timer {cooldown_duration, true};
+
+        bool took_damage = false;
+        bool stun = true;
+        character2d_t* target = nullptr; // TODOOO REMOVE
+        std::vector<bool> attack_used {false};
+
+        std::function<void()> on_attack_start;
+        std::function<void()> on_attack_end;
+      };
+
+      struct ai_behavior_t;
+      struct navigation_helper_t {
+        bool detect_and_handle_obstacles(character2d_t* character, const ai_behavior_t& ai_behavior, const fan::vec2& direction, fan::vec2 tile_size);
+
+        bool auto_jump_obstacles = true;
+        f32_t jump_lookahead_tiles = 1.5f;
+        f32_t stuck_threshold = 0.5f;
+        fan::time::timer stuck_timer{0.1e9, true};
+        fan::time::timer wall_hit_timer {0.3e9, true};
+        f32_t prev_x = 0;
+        bool was_jumping = false;
+        bool is_stuck_state = false;
+        std::function<bool(const fan::vec2& position)> on_check_obstacle = [](const fan::vec2&) { return false; };
+      };
+      struct animation_controller_t {
+        struct animation_state_t {
+          enum trigger_type_e {
+            continuous,
+            one_shot,
+            manual
+          };
+          std::string name;
+          fan::graphics::animation_nr_t animation_id;
+          int fps = 15;
+          bool velocity_based_fps = false;
+          trigger_type_e trigger_type = continuous;
+          std::function<bool(character2d_t&)> condition;
+          bool is_playing = false;
+        };
+
+        void add_state(const animation_state_t& state);
+        void update(character2d_t* character);
+        void cancel_current();
+
+        void update_animation(character2d_t* character);
+
+        std::vector<animation_state_t> states;
+        fan::graphics::animation_nr_t prev_animation_id;
+        bool current_animation_requires_velocity_fps = false;
+        bool auto_update_animations = false;
+      };
+
+      struct ai_behavior_t {
+        using movement_callback_handle_t = bll_nr_t<fan::physics::physics_step_callback_nr_t, character2d_t>;
+        enum behavior_type_e {
+          none,
+          follow_target,
+          flee_from_target,
+          patrol
+        };
+
+        fan::vec2 get_target_distance(const fan::vec2& current_position) const;
+        bool should_move(const fan::vec2& distance) const;
+
+        void enable_ai_follow(character2d_t* target, const fan::vec2& trigger_distance, const fan::vec2& closeup_distance);
+        void enable_ai_flee(character2d_t* target, const fan::vec2& trigger_distance, const fan::vec2& closeup_distance);
+        void enable_ai_patrol(const std::vector<fan::vec2>& points);
+        void update_ai(character2d_t* character, navigation_helper_t& navigation, const fan::vec2& target_position, fan::vec2 tile_size);
+
+        behavior_type_e type = none;
+        character2d_t* target = nullptr;
+        fan::vec2 trigger_distance = {300, 50};
+        fan::vec2 closeup_distance = {100, 50};
+        bool auto_flip_to_target = true;
+        bool auto_jump_obstacles = true;
+        f32_t obstacle_lookahead = 1.5f;
+        std::vector<fan::vec2> patrol_points;
+        size_t current_patrol_index = 0;
+        wall_jump_t wall_jump;
+        fan::vec2 patrol_last_position;
+        fan::time::timer patrol_progress_timer;
+        static constexpr uint64_t max_patrol_time = 5e9;
+      };
+
       struct character2d_t : physics::base_shape_t {
         using physics::base_shape_t::base_shape_t;
         using movement_callback_handle_t = bll_nr_t<fan::physics::physics_step_callback_nr_t, character2d_t>;
-
-        struct movement_e {
-          enum {
-            side_view,
-            top_view
-          };
-        };
-
-        struct wall_jump_t {
-          fan::vec2 normal;
-          f32_t slide_speed = 200.f;
-          f32_t push_away_force = 1.f;
-          bool consumed = false;
-        };
-
-        struct jump_state_t {
-          bool jumping = false;
-          bool consumed = false;
-          bool double_jump_consumed = false;
-          bool on_air_after_jump = false;
-          f32_t last_ground_time = 0.f;
-          f32_t coyote_time = 0.1f;
-          f32_t impulse = 40.f;
-          bool handle_jump = true;
-          bool allow_double_jump = false;
-
-          void reset(){
-            jumping = false;
-            consumed = false;
-            double_jump_consumed = false;
-            on_air_after_jump = false;
-          }
-          bool can_coyote_jump(f32_t current_time) const{
-            return (current_time - last_ground_time) / 1e+9 <= coyote_time;
-          }
-        };
-
-        struct movement_state_t {
-          fan::vec2 previous_sign = 0;
-          f32_t accelerate_force = 120.f;
-          f32_t max_speed = 600.f;
-          bool enabled = false;
-          uint8_t type = movement_e::side_view;
-        };
-
-        struct attack_state_t {
-          bool can_attack(const fan::vec2& target_distance);
-          bool try_attack(const fan::vec2& target_distance);
-          void end_attack();
-
-          fan::time::timer cooldown_timer;
-          f32_t cooldown_duration = 0.5e9;
-          f32_t damage = 10.f;
-          f32_t knockback_force = 50.f;
-          fan::vec2 attack_range = {100, 50};
-          bool is_attacking = false;
-          character2d_t* target = nullptr;
-          std::vector<bool> attack_used {false};
-          std::function<void()> on_attack_start;
-          std::function<void()> on_attack_end;
-        };
-
-        struct ai_behavior_t {
-          enum behavior_type_e {
-            none,
-            follow_target,
-            flee_from_target,
-            patrol
-          };
-
-          fan::vec2 get_target_distance() const;
-          bool should_move(const fan::vec2& distance) const;
-
-          behavior_type_e type = none;
-          character2d_t* target = nullptr;
-          fan::vec2 trigger_distance = {300, 50};
-          fan::vec2 closeup_distance = {100, 50};
-          bool auto_flip_to_target = true;
-          bool auto_jump_obstacles = true;
-          f32_t obstacle_lookahead = 1.5f;
-          std::vector<fan::vec2> patrol_points;
-          size_t current_patrol_index = 0;
-        };
-
-        struct navigation_helper_t {
-          bool detect_and_handle_obstacles(character2d_t* character, const fan::vec2& direction, fan::vec2 tile_size);
-
-          bool auto_jump_obstacles = true;
-          f32_t jump_lookahead_tiles = 1.5f;
-          f32_t stuck_threshold = 0.5f;
-          fan::time::timer stuck_timer{0.1e9, true};
-          fan::time::timer wall_hit_timer {0.3e9, true};
-          f32_t prev_x = 0;
-          bool was_jumping = false;
-          bool is_stuck_state = false;
-          std::function<bool(const fan::vec2& position)> on_check_obstacle = [](const fan::vec2&) { return false; };
-        };
-
-        character2d_t() = default;
-        character2d_t(auto&& shape) : base_shape_t(std::move(shape)) {}
-        character2d_t(const character2d_t& o);
-        character2d_t(character2d_t&& o) noexcept;
-        character2d_t& operator=(const character2d_t& o);
-        character2d_t& operator=(character2d_t&& o) noexcept;
-
-        void set_shape(fan::graphics::shape_t&& shape);
-        void set_physics_body(fan::physics::entity_t&& entity);
-        void update_animation();
-        static bool is_on_ground(fan::physics::body_id_t main, std::array<fan::physics::body_id_t, 2> feet, bool jumping);
-        bool is_on_ground() const;
-        void process_movement(uint8_t movement = movement_e::side_view, f32_t friction = 12);
-        void perform_jump(bool jump_condition, fan::vec2* wall_jump_normal = nullptr);
-        void move_to_direction(const fan::vec2& direction);
-        void set_physics_position(const fan::vec2& p);
-        void enable_default_movement(uint8_t movement = movement_e::side_view);
-        void update_animations();
 
         struct character_config_t {
           std::string json_path;
@@ -556,58 +592,53 @@ export namespace fan {
           std::function<bool(character2d_t&)> attack_cb;
           fan::physics::shape_properties_t physics_properties = {.fixed_rotation = true};
         };
+        static character2d_t from_json(const character_config_t& config, const std::source_location& callers_path = std::source_location::current());
+
+        character2d_t() = default;
+        character2d_t(auto&& shape) : base_shape_t(std::move(shape)) {}
+        character2d_t(const character2d_t& o);
+        character2d_t(character2d_t&& o) noexcept;
+        character2d_t& operator=(const character2d_t& o);
+        character2d_t& operator=(character2d_t&& o) noexcept;
+        ~character2d_t();
+
+        fan::vec2 get_center() const;
+
+        void set_physics_position(const fan::vec2& p);
+        void set_shape(fan::graphics::shape_t&& shape);
+        void set_physics_body(fan::physics::entity_t&& entity);
+
+        movement_callback_handle_t add_movement_callback(std::function<void(character2d_t*)> fn);
+        void enable_default_movement(uint8_t movement = movement_e::side_view);
 
         void setup_default_animations(const fan::graphics::physics::character2d_t::character_config_t& config);
 
-        struct animation_controller_t {
-          struct animation_state_t {
-            enum trigger_type_e {
-              continuous,
-              one_shot,
-              manual
-            };
-            std::string name;
-            fan::graphics::animation_nr_t animation_id;
-            int fps = 15;
-            bool velocity_based_fps = false;
-            trigger_type_e trigger_type = continuous;
-            std::function<bool(character2d_t&)> condition;
-            bool is_playing = false;
-          };
+        void process_keyboard_movement(uint8_t movement = movement_e::side_view, f32_t friction = 12.f);
+        bool is_on_ground() const;
 
-          void add_state(const animation_state_t& state);
-          void update();
-          void cancel_current();
-          std::vector<animation_state_t> states;
-          fan::graphics::animation_nr_t prev_animation_id;
-        } anim_controller;
+        f32_t get_max_health() const;
+        f32_t get_health() const;
+        void set_max_health(f32_t v);
+        void set_health(f32_t v);
+        bool is_dead() const;
+        void reset_health();
 
-        static character2d_t from_json(const character_config_t& config, const std::source_location& callers_path = std::source_location::current());
-        movement_callback_handle_t add_movement_callback(std::function<void(character2d_t*)> fn);
-        void enable_ai_follow(character2d_t* target, const fan::vec2& trigger_distance, const fan::vec2& closeup_distance);
-        void enable_ai_flee(character2d_t* target, const fan::vec2& trigger_distance, const fan::vec2& closeup_distance);
-        void enable_ai_patrol(const std::vector<fan::vec2>& points);
-        void setup_default_ai_update(fan::vec2 tile_size);
-        void update_ai(fan::vec2 tile_size);
-        void take_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction, f32_t knockback_multiplier = 1.0f);
-        fan::vec2 get_center() const;
-        void cancel_animations();
+        void set_jump_height(f32_t v);
+        void enable_double_jump();
 
+        void setup_attack_properties(attack_state_t&& attack_state);
+        void take_hit(character2d_t* source, const fan::vec2& hit_direction, f32_t knockback_multiplier = 1.0f);
+
+        void update_animations();
+        void cancel_animation();
+
+        animation_controller_t anim_controller;
         attack_state_t attack_state;
-        ai_behavior_t ai_behavior;
-        navigation_helper_t navigation;
-        wall_jump_t wall_jump;
-        jump_state_t jump_state;
+        
         movement_state_t movement_state;
-        movement_callback_handle_t movement_cb;
-
+        wall_jump_t wall_jump;
+        movement_callback_handle_t movement_cb_handle;
         fan::physics::body_id_t feet[2];
-        bool current_animation_requires_velocity_fps = false;
-        bool auto_update_animations = false;
-        f32_t max_health = 50;
-        f32_t health = max_health;
-        bool took_damage = false;
-        bool stun = true;
       };
 
       struct bone_e {

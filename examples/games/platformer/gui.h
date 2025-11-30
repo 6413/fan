@@ -16,12 +16,12 @@ void update() {
   //  gui::window_flags_no_background | gui::window_flags_no_nav |
   //  gui::window_flags_no_title_bar
   //);
-  int heart_count = pile->player.body.max_health / 10.f;
+  int heart_count = pile->player.body.get_max_health() / 10.f;
   for (int i = 0; i < heart_count; ++i) {
     gui::same_line();
     fan::graphics::image_t hp_image = health_empty;
     //0-1
-    f32_t progress = pile->player.body.health / pile->player.body.max_health;
+    f32_t progress = pile->player.body.get_health() / pile->player.body.get_max_health();
     if (progress * heart_count > i) {
       hp_image = health_full;
     }

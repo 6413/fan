@@ -29,7 +29,7 @@ struct pile_t {
     engine.physics_context.step(engine.delta_time);
     player.step();
     for (auto& enemy : pile->entity) {
-      if (enemy.update()) {
+      if (enemy->update()) {
         break;
       }
     }
@@ -57,7 +57,8 @@ struct pile_t {
   };
 
   player_t player;
-  std::vector<entity_t> entity;
+
+  std::vector<entity_t*> entity;
 };
 
 
