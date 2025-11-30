@@ -19,7 +19,7 @@ struct entity_t {
       .physics_properties={.density=density, .fixed_rotation=true, .linear_damping=2.0f}
     });
     body.set_jump_height(75.f * density);
-    body.movement_state.accelerate_force = 120.f / 1.3f;
+    body.movement_state.accelerate_force = 120.f / 2.3f;
     body.movement_state.max_speed = 610.f;
     body.set_size(body.get_size());
     //body.set_color(fan::color(1, 1 / 3.f, 1 / 3.f, 1));
@@ -27,12 +27,11 @@ struct entity_t {
       .damage = 10.f,
       .knockback_force = 10.f,
       .attack_range = {closeup_distance.x, body.attack_state.attack_range.y},
-      .cooldown_duration = 0.1e9,
+      .cooldown_duration = 1.0e9,
       .cooldown_timer = fan::time::timer(body.attack_state.cooldown_duration, true),
       .stun = false,
       .on_attack_start = [this]() {
         std::fill(hitbox_spawned.begin(), hitbox_spawned.end(), false);
-          has_hit_player = false;
       },
       .on_attack_end = [this]() {
         for (auto& hitbox : attack_hitboxes) {
@@ -41,14 +40,12 @@ struct entity_t {
           }
         }
         std::fill(hitbox_spawned.begin(), hitbox_spawned.end(), false);
-        has_hit_player = false;
       }
     });
     ai_behavior.target = &pile->player.body;
 
     body.attack_state.on_attack_start = [this]() {
       std::fill(hitbox_spawned.begin(), hitbox_spawned.end(), false);
-      has_hit_player = false;
     };
     body.attack_state.on_attack_end = [this]() {
       for (auto& hitbox : attack_hitboxes) {
@@ -57,10 +54,11 @@ struct entity_t {
         }
       }
       std::fill(hitbox_spawned.begin(), hitbox_spawned.end(), false);
-      has_hit_player = false;
+      std::fill(hitbox_used.begin(), hitbox_used.end(), false);
     };
     attack_hitboxes.resize(std::size(attack_hitbox_frames));
     hitbox_spawned.resize(std::size(attack_hitbox_frames));
+    hitbox_used.resize(std::size(attack_hitbox_frames));
     auto& level = pile->get_level();
     
     navigation.auto_jump_obstacles = true;
@@ -109,6 +107,7 @@ struct entity_t {
         fan::throw_error("trying to remove non existing enemy");
       }
       delete *found;
+      *found = nullptr;
       pile->entity.erase(found);
       return true;
     }
@@ -119,14 +118,13 @@ struct entity_t {
         }
       }
     }
-    if (!has_hit_player) {
-      for (int i = 0; i < attack_hitboxes.size(); ++i) {
-        if (hitbox_spawned[i] && attack_hitboxes[i].is_valid()) {
-          if (attack_hitboxes[i].test_overlap(pile->player.body)) {
-            pile->player.on_hit(&body, (pile->player.body.get_position() - body.get_position()).normalized());
-            has_hit_player = true;
-            break;
+    for (int i = 0; i < attack_hitboxes.size(); ++i) {
+      if (hitbox_spawned[i] && attack_hitboxes[i].is_valid()) {
+        if (!hitbox_used[i] && attack_hitboxes[i].test_overlap(pile->player.body)) {
+          if (pile->player.on_hit(&body, (pile->player.body.get_position() - body.get_position()).normalized())) {
+            return true; // if player dies, enemies respawn
           }
+          hitbox_used[i] = true;
         }
       }
     }
@@ -148,7 +146,7 @@ struct entity_t {
       }
       f32_t image_size = 8.f;
       fan::graphics::sprite({
-        .position = fan::vec3(fan::vec2(body.get_position() - fan::vec2(heart_count / 2.f * image_size - i * (image_size * 2.f) + image_size + image_size / 2.f, body.get_size().y / 1.5f)), 0xFF00), // force to be rendered on top
+        .position = fan::vec3(fan::vec2(body.get_physics_position() - fan::vec2(heart_count / 2.f * image_size - i * (image_size * 2.f) + image_size + image_size / 2.f, body.get_size().y / 1.5f)), 0xFF00), // force to be rendered on top
         .size = image_size, 
         .image = hp_image,
       });
@@ -159,13 +157,16 @@ struct entity_t {
     fan::physics::remove_physics_step_callback(physics_step_nr);
     remove_this = true;
   }
-  void on_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction) {
+  bool on_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction) {
+    fan::audio::play(player_hits_enemy);
     body.take_hit(source, hit_direction);
     if (body.is_dead()) {
       destroy();
+      return true;
       //set_initial_position(initial_position);
 //      body.health = body.max_health;
     }
+    return false;
   }
   bool is_spike_at(const fan::vec2& pos) {
     for (auto& spike : pile->get_level().spike_sensors) {
@@ -194,6 +195,7 @@ struct entity_t {
   fan::graphics::physics::navigation_helper_t navigation;
   std::vector<fan::physics::entity_t> attack_hitboxes;
   std::vector<bool> hitbox_spawned;
-  bool has_hit_player = false;
+  std::vector<bool> hitbox_used;
   bool remove_this = false;
+  fan::audio::piece_t attack {"enemy_attack.sac"}, player_hits_enemy{"player_hits_enemy.sac"};
 };

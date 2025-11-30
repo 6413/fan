@@ -861,6 +861,7 @@ namespace fan::graphics::physics {
   }
   void attack_state_t::end_attack() {
     std::fill(attack_used.begin(), attack_used.end(), false);
+    cooldown_timer.restart();
     if (is_attacking && on_attack_end) {
       on_attack_end();
     }
@@ -1143,14 +1144,18 @@ namespace fan::graphics::physics {
         else if (colliding_wall_id) {
           colliding_wall_id.set_friction(fan::physics::shape_properties_t().friction);
         }
-        if (navigation.prev_x == distance.x && navigation.stuck_timer) {
+        fan::vec2 vel = character->get_linear_velocity();
+        if (std::abs(vel.x) < 5.f && navigation.stuck_timer) {
           current_patrol_index = (current_patrol_index + 1) % patrol_points.size();
           navigation.stuck_timer.restart();
         }
         bool is_stuck = navigation.detect_and_handle_obstacles(character, *this, distance, tile_size);
         if (!is_stuck) {
           f32_t air_control = on_ground ? 1.0f : 0.8f;
+          f32_t old_max = character->movement_state.max_speed;
+          character->movement_state.max_speed /= 2.f; // use half speed when patrolling
           character->movement_state.move_to_direction(*character, movement_direction * air_control);
+          character->movement_state.max_speed = old_max;
         }
       }
       break;
@@ -1488,6 +1493,7 @@ namespace fan::graphics::physics {
   }
   void character2d_t::cancel_animation() {
     anim_controller.cancel_current();
+    attack_state.took_damage = false;
   }
 
   //------------------------------------------------------------------------------------------------

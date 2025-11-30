@@ -56,6 +56,8 @@ struct pile_t {
     engine.orthographic_render_view.viewport
   };
 
+  fan::audio::piece_t audio_background;
+
   player_t player;
 
   std::vector<entity_t*> entity;
@@ -78,6 +80,9 @@ pile_t::pile_t() {
 
   level_stage = stage_loader.open_stage<level_t>();
   gui_stage = stage_loader.open_stage<gui_t>();
+  audio_background = fan::audio::piece_t("background.sac");
+  fan::audio::set_volume(0.5f);
+  fan::audio::play(audio_background);
   // init map after setting current_stage
   get_level().load_map();
 }

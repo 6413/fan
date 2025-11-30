@@ -574,9 +574,6 @@ export namespace fan {
         std::vector<fan::vec2> patrol_points;
         size_t current_patrol_index = 0;
         wall_jump_t wall_jump;
-        fan::vec2 patrol_last_position;
-        fan::time::timer patrol_progress_timer;
-        static constexpr uint64_t max_patrol_time = 5e9;
       };
 
       struct character2d_t : physics::base_shape_t {

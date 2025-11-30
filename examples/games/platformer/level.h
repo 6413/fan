@@ -9,6 +9,21 @@ static inline constexpr std::array<fan::vec2, 3> get_spike_points() {
   }};
 }
 
+void load_enemies() {
+  for (auto* e : pile->entity) {
+    e->destroy();
+    delete e;
+    e = nullptr;
+  }
+
+  // pointers can change
+  pile->entity.resize(2);
+  pile->entity[0] = new entity_t;
+  pile->entity[0]->set_initial_position(pile->renderer.get_position(main_map_id, "enemy0_spawn"));
+  pile->entity[1] = new entity_t;
+  pile->entity[1]->set_initial_position(pile->renderer.get_position(main_map_id, "enemy1_spawn"));
+}
+
 void load_map() {
   main_compiled_map = pile->renderer.compile("sample_level.fte");
   fan::vec2i render_size(16, 9);
@@ -17,15 +32,10 @@ void load_map() {
   p.size = render_size;
   p.position = pile->player.body.get_position();
   main_map_id = pile->renderer.add(&main_compiled_map, p);
-  // Set player spawn
+
   pile->player.body.set_physics_position(pile->renderer.get_position(main_map_id, "player_spawn") + fan::vec2(300, -200));
 
-  // pointers can change
-  pile->entity.resize(2);
-  pile->entity[0] = new entity_t;
-  pile->entity[0]->set_initial_position(pile->renderer.get_position(main_map_id, "enemy0_spawn"));
-  pile->entity[1] = new entity_t;
-  pile->entity[1]->set_initial_position(pile->renderer.get_position(main_map_id, "enemy1_spawn"));
+  load_enemies();
 
   pile->renderer.iterate_visual(main_map_id, [&](fte_loader_t::tile_t& tile) {
     if (tile.id == "spikes") {
@@ -69,28 +79,26 @@ void reload_map() {
 }
 
 void update() {
-  bool respawn_enemies = false;
   for (auto& spike : spike_sensors) {
     if (fan::physics::is_on_sensor(pile->player.body, spike)) {
       pile->player.respawn();
-      respawn_enemies = true;
+      load_enemies();
     }
     for (auto& enemy : pile->entity) {
-      if (respawn_enemies) {
-        enemy->respawn();
-      }
-      else if (fan::physics::is_on_sensor(enemy->body, spike)) {
+      if (fan::physics::is_on_sensor(enemy->body, spike)) {
         enemy->destroy();
       }
     }
   }
 
   static bool pause = false;
-  if (fan::window::is_key_pressed(fan::key_e)) {
-    pause = !pause;
-  }
-  if (fan::window::is_key_pressed(fan::key_r)) {
-    reload_map();
+  if (!pile->engine.render_console) {
+    if (fan::window::is_key_pressed(fan::key_e)) {
+      pause = !pause;
+    }
+    if (fan::window::is_key_pressed(fan::key_r)) {
+      reload_map();
+    }
   }
   pile->renderer.update(main_map_id, pile->player.body.get_position());
   if (pause) {
