@@ -769,6 +769,32 @@ namespace fan::physics {
 
     return {0, 0};
   }
+  bool is_on_ground(fan::physics::body_id_t main, bool jumping, fan::physics::body_id_t* feet) {
+    for (int i = 0; i < 2; ++i) {
+      fan::physics::body_id_t body_id = feet && feet[i].is_valid() ? feet[i] : main;
+      b2Vec2 velocity = b2Body_GetLinearVelocity(body_id);
+      if (jumping == false && velocity.y < 0.01f) {
+        int capacity = b2Body_GetContactCapacity(body_id);
+        capacity = b2MinInt(capacity, 4);
+        b2ContactData contactData[4];
+        int count = b2Body_GetContactData(body_id, contactData, capacity);
+        for (int i = 0; i < count; ++i) {
+          b2BodyId bodyIdA = b2Shape_GetBody(contactData[i].shapeIdA);
+          f32_t sign = 0.0f;
+          if (B2_ID_EQUALS(bodyIdA, body_id)) {
+            sign = -1.0f;
+          }
+          else {
+            sign = 1.0f;
+          }
+          if (sign * contactData[i].manifold.normal.y < -0.9f) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
   void apply_wall_slide(body_id_t body_id, const fan::vec2& wall_normal, f32_t slide_speed) {
     if (!wall_normal) {
       return;
