@@ -704,10 +704,18 @@ export namespace fan::graphics {
   void aabb(const fan::physics::aabb_t& b, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1));
   void aabb(const fan::graphics::shapes::shape_t& s, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1));
 #endif
+
+  struct sprite_sheet_config_t {
+    std::string path;
+    bool loop = true;
+  };
+
+  fan::graphics::sprite_t sprite_sheet_from_json(
+    const sprite_sheet_config_t flags,
+    const std::source_location& callers_path = std::source_location::current()
+  );
+
   fan::graphics::shapes::polygon_t::properties_t create_hexagon(f32_t radius, const fan::color& color = fan::colors::white);
-
-
-
   // for line
   fan::line3 get_highlight_positions(const fan::vec3& op_, const fan::vec2& os, int index);
 

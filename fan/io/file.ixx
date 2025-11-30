@@ -78,7 +78,7 @@ export namespace fan {
       std::vector<std::string> read_line(const std::string& path);
       bool try_write(std::string path, const std::string& data, fs_mode mode);
       std::string get_exe_path();
-      std::filesystem::path find_relative_path(const std::string& file_path, const std::source_location& location);
+      std::filesystem::path find_relative_path(const std::string& file_path, const std::source_location& location = std::source_location::current());
       bool read(const std::string& path, std::string* str);
       bool read(const std::string& path, std::string* str, std::size_t length);
 

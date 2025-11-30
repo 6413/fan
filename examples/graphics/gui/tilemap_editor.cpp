@@ -16,7 +16,11 @@ std::string add_temp_before_ext(const std::string& filename) {
 }
 
 struct player_t {
-  player_t(const fan::vec2& spawn_position, fan::graphics::render_view_t* view) : character(spawn_position, view) {}
+  player_t(const fan::vec2& spawn_position, fan::graphics::render_view_t* view) : 
+    character(spawn_position, view) 
+  {
+    character.player.enable_default_movement();
+  }
 
   void update_light() {
     character.light.set_position(
@@ -156,13 +160,6 @@ int main(int argc, char** argv) {
     scene.reload_scene(fte, &views.program);
   };
 
-
-  auto physics_step_id = fan::physics::add_physics_step_callback([&] {
-    if (scene.player) {
-      scene.player->character.player.process_movement();
-    }
-  });
-
   const f32_t z = 17;
 
   engine.loop([&] {
@@ -191,8 +188,6 @@ int main(int argc, char** argv) {
       fan::graphics::gui::end();
     }
   });
-
-  fan::physics::remove_physics_step_callback(physics_step_id);
 
   return 0;
 }

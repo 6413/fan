@@ -1,12 +1,21 @@
 static inline constexpr f32_t spike_height = 32.0f;
 static inline constexpr f32_t base_half_width = 32.0f;
 
-static inline constexpr std::array<fan::vec2, 3> get_spike_points() {
-  return {{
-    {0.0f, -spike_height},         // top
-    {-base_half_width, spike_height},     // left
-    { base_half_width, spike_height}      // right
-  }};
+static inline constexpr std::array<fan::vec2, 3> get_spike_points(std::string_view dir) {
+  static constexpr f32_t h = spike_height;
+  static constexpr f32_t w = base_half_width;
+
+  fan::vec2 a{0, -h}, b{-w, h}, c{w, h};
+  if (dir == "down") {
+    a.y = -a.y; b.y = -b.y; c.y = -c.y;
+  }
+  else if (dir == "left") {
+    a = { h, 0 }; b = {-h, -w}; c = {-h,  w};
+  }
+  else if (dir == "right") {
+    a = {-h, 0}; b = { h, -w}; c = { h,  w};
+  }
+  return {{a, b, c}};
 }
 
 void load_enemies() {
@@ -33,13 +42,21 @@ void load_map() {
   p.position = pile->player.body.get_position();
   main_map_id = pile->renderer.add(&main_compiled_map, p);
 
-  pile->player.body.set_physics_position(pile->renderer.get_position(main_map_id, "player_spawn") + fan::vec2(300, -200));
+  checkpoint_flag = fan::graphics::sprite_sheet_from_json({
+    .path = "flag.json",
+    .loop = true
+  });
 
-  load_enemies();
+  checkpoint_flag.set_size(checkpoint_flag.get_size() / fan::vec2(1.5f, 1.0f));
+  checkpoint_flag.set_position(pile->renderer.get_position(main_map_id, "checkpoint0") + fan::vec2(0, checkpoint_flag.get_size().y/2.0f));
+  checkpoint_flag.start_sprite_sheet_animation();
 
   pile->renderer.iterate_visual(main_map_id, [&](fte_loader_t::tile_t& tile) {
-    if (tile.id == "spikes") {
-      auto points = get_spike_points();
+    if (tile.id.contains("checkpoint")) {
+      player_checkpoints.emplace_back(fan::physics::create_sensor_rectangle(tile.position, tile.size));
+    }
+    else if (tile.id.contains("spikes")) {
+      auto points = get_spike_points(tile.id.substr(std::strlen("spikes_")));
       spike_sensors.emplace_back(pile->engine.physics_context.create_polygon(
         tile.position,
         0.0f,
@@ -60,7 +77,8 @@ void load_map() {
     }
   });
 
-  //iterate_physics_entities
+  pile->player.respawn();
+  pile->player.particles.set_color(0);
 }
 
 void open(void* sod) {
@@ -70,10 +88,19 @@ void open(void* sod) {
 void close() {}
 
 void reload_map() {
+  for (auto& i : player_checkpoints) {
+    i.destroy();
+  }
+  player_checkpoints.clear();
+  for (auto& i : tile_collisions) {
+    i.destroy();
+  }
+  tile_collisions.clear();
   for (auto& i : spike_sensors) {
     i.destroy();
   }
   spike_sensors.clear();
+
   pile->renderer.erase(main_map_id);
   load_map();
 }
@@ -104,7 +131,7 @@ void update() {
   if (pause) {
     return;
   }
-  pile->step();
+  pile->update();
 }
 
 fte_loader_t::id_t main_map_id;
@@ -112,3 +139,6 @@ fte_loader_t::compiled_map_t main_compiled_map;
 
 std::vector<fan::physics::entity_t> spike_sensors;
 std::vector<fan::physics::entity_t> tile_collisions;
+
+fan::graphics::sprite_t checkpoint_flag;
+std::vector<fan::physics::entity_t> player_checkpoints;

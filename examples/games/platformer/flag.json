@@ -1,0 +1,55 @@
+{
+  "animations": [
+    {
+      "fps": 15,
+      "id": 0,
+      "images": [
+        {
+          "hframes": 4,
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "flag.png",
+          "vframes": 3
+        }
+      ],
+      "name": "wave",
+      "selected_frames": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ]
+    }
+  ],
+  "shapes": [
+    {
+      "animations": [
+        0
+      ],
+      "images": [
+        {
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "flag.png"
+        }
+      ],
+      "position": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "shape": "sprite",
+      "size": [
+        64.0,
+        64.0
+      ]
+    }
+  ],
+  "version": 1
+}

@@ -158,7 +158,7 @@ struct entity_t {
     remove_this = true;
   }
   bool on_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction) {
-    fan::audio::play(player_hits_enemy);
+    fan::audio::play(audio_player_hits_enemy);
     body.take_hit(source, hit_direction);
     if (body.is_dead()) {
       destroy();
@@ -197,5 +197,5 @@ struct entity_t {
   std::vector<bool> hitbox_spawned;
   std::vector<bool> hitbox_used;
   bool remove_this = false;
-  fan::audio::piece_t attack {"enemy_attack.sac"}, player_hits_enemy{"player_hits_enemy.sac"};
+  fan::audio::piece_t audio_attack {"audio/enemy_attack.sac"}, audio_player_hits_enemy{"audio/player_hits_enemy.sac"};
 };
