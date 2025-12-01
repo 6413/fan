@@ -19,18 +19,16 @@ static inline constexpr std::array<fan::vec2, 3> get_spike_points(std::string_vi
 }
 
 void load_enemies() {
-  for (auto* e : pile->entity) {
+  for (auto* e : pile->enemy_skeleton) {
     e->destroy();
     delete e;
     e = nullptr;
   }
-
   // pointers can change
-  pile->entity.resize(2);
-  pile->entity[0] = new entity_t;
-  pile->entity[0]->set_initial_position(pile->renderer.get_position(main_map_id, "enemy0_spawn"));
-  pile->entity[1] = new entity_t;
-  pile->entity[1]->set_initial_position(pile->renderer.get_position(main_map_id, "enemy1_spawn"));
+  pile->enemy_skeleton.resize(3);
+  pile->enemy_skeleton[0] = new skeleton_t(pile->renderer.get_position(main_map_id, "enemy0_spawn"));
+  pile->enemy_skeleton[1] = new skeleton_t(pile->renderer.get_position(main_map_id, "enemy1_spawn"));
+  pile->enemy_skeleton[2] = new skeleton_t(pile->renderer.get_position(main_map_id, "enemy2_spawn"));
 }
 
 void load_map() {
@@ -72,7 +70,10 @@ void load_map() {
         tile.size,
         0.0f,
         fan::physics::body_type_e::static_body,
-        {.fixed_rotation = true}
+        {
+          .friction=0.f,
+          .fixed_rotation = true
+        }
       ));
     }
   });
@@ -111,7 +112,7 @@ void update() {
       pile->player.respawn();
       load_enemies();
     }
-    for (auto& enemy : pile->entity) {
+    for (auto& enemy : pile->enemy_skeleton) {
       if (fan::physics::is_on_sensor(enemy->body, spike)) {
         enemy->destroy();
       }
@@ -133,6 +134,8 @@ void update() {
   }
   pile->update();
 }
+
+
 
 fte_loader_t::id_t main_map_id;
 fte_loader_t::compiled_map_t main_compiled_map;

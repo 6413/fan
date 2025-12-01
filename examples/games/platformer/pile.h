@@ -21,14 +21,15 @@ struct pile_t {
   };
 
   #include "player/player.h"
-  #include "entity.h"
+  #include "enemy/enemy.h"
+  #include "enemy/skeleton/skeleton.h"
 
   pile_t();
 
   void update() {
     engine.physics_context.step(engine.delta_time);
     player.update();
-    for (auto& enemy : pile->entity) {
+    for (auto& enemy : pile->enemy_skeleton) {
       if (enemy->update()) {
         break;
       }
@@ -60,13 +61,14 @@ struct pile_t {
 
   player_t player;
 
-  std::vector<entity_t*> entity;
+  std::vector<skeleton_t*> enemy_skeleton;
 };
 
 
 pile_t::pile_t() {
   //fan::graphics::physics::debug_draw(true);
-  ic.zoom = 2.f;
+  ic.zoom = 2.2f;
+  ic.ignore_input = true;
   //engine.clear_color = fan::color::from_rgb(0x1A2A2E);
   engine.clear_color = 0;
 
@@ -80,9 +82,11 @@ pile_t::pile_t() {
 
   level_stage = stage_loader.open_stage<level_t>();
   gui_stage = stage_loader.open_stage<gui_t>();
+
   audio_background = fan::audio::piece_t("audio/background.sac");
+
   fan::audio::set_volume(0.1f);
-  fan::audio::play(audio_background);
+  fan::audio::play(audio_background, 0, true);
   // init map after setting current_stage
   
   get_level().load_map();

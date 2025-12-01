@@ -790,8 +790,15 @@ namespace fan::graphics::physics {
     if (touching_wall && !on_ground && jump_state.consumed && wall_jump && !wall_jump->consumed) {
       fan::vec2 input = fan::window::get_input_vector();
       bool pushing_into_wall = fan::math::sgn(input.x) == fan::math::sgn(wall_normal.x);
-      if (pushing_into_wall && !jump_state.jumping) {
-        fan::physics::wall_jump(body_id, wall_normal, wall_jump->push_away_force, jump_state.impulse);
+
+      if (!jump_state.jumping) {
+        fan::vec2 vel = body_id.get_linear_velocity();
+        body_id.set_linear_velocity(fan::vec2(vel.x, 0));
+
+        // allow wall jump even after double jump
+        if (1/*!jump_state.double_jump_consumed*/) {
+          fan::physics::wall_jump(body_id, wall_normal, wall_jump->push_away_force, jump_state.impulse);
+        }
         jump_state.jumping = true;
         jump_state.on_air_after_jump = true;
         wall_jump->consumed = true;
@@ -812,9 +819,7 @@ namespace fan::graphics::physics {
 
     if (jump_state.allow_double_jump && !on_ground && !jump_state.jumping && jump_state.consumed && !jump_state.double_jump_consumed) {
       fan::vec2 vel = body_id.get_linear_velocity();
-      if (vel.y > 0) {
-        body_id.set_linear_velocity(fan::vec2(vel.x, 0));
-      }
+      body_id.set_linear_velocity(fan::vec2(vel.x, 0));
       body_id.apply_linear_impulse_center({0, -jump_state.impulse});
       jump_state.jumping = true;
       jump_state.double_jump_consumed = true;
@@ -965,6 +970,9 @@ namespace fan::graphics::physics {
             }
             prev_animation_id = state.animation_id;
           }
+        }
+        if (character->attack_state.knockback_force == 10.f && state.is_playing && state.name == "attack0") {
+
         }
         if (state.is_playing && character->is_animation_finished(state.animation_id)) {
           state.is_playing = false;
@@ -1398,7 +1406,7 @@ namespace fan::graphics::physics {
         .animation_id = idle.id,
         .fps = idle.fps,
         .condition = [](character2d_t& c) {
-          return std::abs(c.get_linear_velocity().x) < 10.f;
+          return std::abs(c.get_linear_velocity().x) < 10.f && !c.movement_state.jump_state.on_air_after_jump;
         }
       });
       set_current_animation_id(idle.id);
@@ -1409,7 +1417,7 @@ namespace fan::graphics::physics {
         .animation_id = run.id,
         .fps = run.fps,
         .condition = [](character2d_t& c) {
-          return std::abs(c.get_linear_velocity().x) >= 10.f;
+          return std::abs(c.get_linear_velocity().x) >= 10.f || c.movement_state.jump_state.on_air_after_jump;
         }
       });
     }
@@ -1429,13 +1437,9 @@ namespace fan::graphics::physics {
       movement_state.move_to_direction(*this, fan::vec2(input_vector.x, 0) * air_control_multiplier);
 
       if (wall_jump.normal.x && input_vector.x) {
-        colliding_wall_id.set_friction(0.f);
         if (!movement_state.jump_state.jumping && velocity.y > 0) {
           fan::physics::apply_wall_slide(*this, wall_jump.normal, wall_jump.slide_speed);
         }
-      }
-      else if (colliding_wall_id) {
-        colliding_wall_id.set_friction(fan::physics::shape_properties_t().friction);
       }
 
       movement_state.perform_jump(*this, fan::window::is_action_down("move_up"), &wall_jump.normal, &wall_jump);
