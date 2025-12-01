@@ -13,6 +13,8 @@ module;
 
 module fan.physics.b2_integration;
 
+import fan;
+
 #if defined(fan_physics)
 namespace fan::physics {
   circle_t::circle_t(const b2Circle& circle) : b2Circle(circle) {}

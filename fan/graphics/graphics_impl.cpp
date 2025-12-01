@@ -636,7 +636,7 @@ namespace fan::graphics {
 
 
   void interactive_camera_t::reset() {
-    ignore = false;
+    ignore_input = false;
     zoom_on_window_resize = true;
     pan_with_middle_mouse = false;
     reset_view();
@@ -691,7 +691,7 @@ namespace fan::graphics {
     });
 
     button_cb_nr = window.add_buttons_callback([&](const auto& d) {
-      if (ignore) {
+      if (ignore_input) {
         return;
       }
 

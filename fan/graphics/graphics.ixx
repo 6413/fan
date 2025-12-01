@@ -978,7 +978,7 @@ export namespace fan::graphics {
     fan::vec2 get_viewport_size() const;
 
     f32_t zoom = 1;
-    bool ignore = false;
+    bool ignore_input = false;
     bool zoom_on_window_resize = true;
     bool pan_with_middle_mouse = false;
     bool clicked_inside_viewport = false;
