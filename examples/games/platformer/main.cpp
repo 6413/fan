@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <vector>
 #include <fstream>
+#include <source_location>
 
 import fan;
 import fan.graphics.gui.tilemap_editor.renderer;
