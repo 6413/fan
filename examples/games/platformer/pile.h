@@ -26,11 +26,18 @@ struct pile_t {
 
   pile_t();
 
+  void update_camera_zoom() {
+    fan::vec2 r = engine.window.get_current_monitor_resolution() / fan::vec2(2560, 1440);
+    ic.zoom = 2.2f * r.max();
+  }
+
   void update() {
+    //update_camera_zoom();
+
     engine.physics_context.step(engine.delta_time);
     player.update();
-    for (auto& enemy : pile->enemy_skeleton) {
-      if (enemy->update()) {
+    for (skeleton_t& enemy : pile->enemy_skeleton) {
+      if (enemy.update()) {
         break;
       }
     }
@@ -61,18 +68,29 @@ struct pile_t {
 
   player_t player;
 
-  std::vector<skeleton_t*> enemy_skeleton;
+  #define bcontainer_set_StoreFormat 1
+  #define BLL_set_Usage 1
+  #define BLL_set_SafeNext 1
+  #define BLL_set_prefix enemy_skeleton
+  #include <fan/fan_bll_preset.h>
+  #define BLL_set_Link 1
+  #define BLL_set_type_node uint16_t
+  #define BLL_set_NodeDataType skeleton_t
+  #define BLL_set_AreWeInsideStruct 1
+  #include <BLL/BLL.h>
+
+  enemy_skeleton_t enemy_skeleton;
 };
 
 
 pile_t::pile_t() {
+  update_camera_zoom();
   //fan::graphics::physics::debug_draw(true);
-  ic.zoom = 2.2f;
-  ic.ignore_input = true;
+ // ic.ignore_input = true;
   //engine.clear_color = fan::color::from_rgb(0x1A2A2E);
   engine.clear_color = 0;
 
-  engine.lighting.ambient = 1;
+  //engine.lighting.ambient = 1;
   engine.texture_pack.open_compiled("texture_pack.ftp", fan::graphics::image_presets::pixel_art());
 
   renderer.open();

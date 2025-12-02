@@ -16,7 +16,7 @@ struct player_t {
     //particles = fan::graphics::extract_single_shape("explosion.json");
 
     std::string data;
-    fan::io::file::read(fan::io::file::find_relative_path("explosion.json"), &data);
+    fan::io::file::read(fan::io::file::find_relative_path("effects/explosion.json"), &data);
     fan::json in = fan::json::parse(data);
     fan::graphics::shape_deserialize_t it;
     while (it.iterate(in, &particles)){}
@@ -24,7 +24,7 @@ struct player_t {
     particles.set_image(image_star);
 
     body = fan::graphics::physics::character2d_t::from_json({
-      .json_path = "player/player.json",
+      .json_path = "player/player.json",//
       .aabb_scale = aabb_scale,
       .draw_offset_override = draw_offset,
       .attack_cb = [](fan::graphics::physics::character2d_t& c) -> bool{
@@ -132,11 +132,11 @@ struct player_t {
       did_attack = true;
     }
 
-    for (auto& enemy : pile->enemy_skeleton){
-      if (!attack_hitbox.check_hit(&body, 0, &enemy->body)) {
+    for (enemy_t& enemy : pile->enemy_skeleton){
+      if (!attack_hitbox.check_hit(&body, 0, &enemy.body)) {
         continue;
       }
-      if (enemy->on_hit(&body, (enemy->body.get_position() - body.get_position()).normalized())){
+      if (enemy.on_hit(&body, (enemy.body.get_position() - body.get_position()).normalized())){
         break;
       }
     }

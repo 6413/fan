@@ -187,7 +187,7 @@ inline static fan::graphics::image_t get_image(shape_t* shape) {
 		return shaper_get_key_safe(image_t, texture_t, image);
 	}
 
-	fan::throw_error("unimplemented");
+  return {};
 }
 
 template<typename sti_t, typename key_pack_t>

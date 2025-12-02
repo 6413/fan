@@ -28,6 +28,7 @@ module;
 #include <set>
 #include <iostream>
 #include <coroutine>
+#include <map>
 #if defined(fan_std23)
   #include <stacktrace>
 #endif

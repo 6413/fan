@@ -14,6 +14,7 @@ module;
 
 export module fan.texture_pack.tp0;
 
+import fan.utility;
 import fan.graphics.common_context;
 import fan.graphics.webp;
 import fan.graphics.opengl.core;

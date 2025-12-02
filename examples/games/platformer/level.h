@@ -19,16 +19,14 @@ static inline constexpr std::array<fan::vec2, 3> get_spike_points(std::string_vi
 }
 
 void load_enemies() {
-  for (auto* e : pile->enemy_skeleton) {
-    e->destroy();
-    delete e;
-    e = nullptr;
-  }
-  // pointers can change
-  pile->enemy_skeleton.resize(3);
-  pile->enemy_skeleton[0] = new skeleton_t(pile->renderer.get_position(main_map_id, "enemy0_spawn"));
-  pile->enemy_skeleton[1] = new skeleton_t(pile->renderer.get_position(main_map_id, "enemy1_spawn"));
-  pile->enemy_skeleton[2] = new skeleton_t(pile->renderer.get_position(main_map_id, "enemy2_spawn"));
+  pile->enemy_skeleton.Clear();
+  // todo cache
+  pile->renderer.iterate_visual(main_map_id, [&](fte_loader_t::tile_t& tile) {
+    if (tile.id.contains("enemy_skeleton")) {
+      auto nr = pile->enemy_skeleton.NewNodeLast();
+      pile->enemy_skeleton[nr] =  skeleton_t(pile->enemy_skeleton, nr, tile.position);
+    }
+  });
 }
 
 void load_map() {
@@ -39,9 +37,10 @@ void load_map() {
   p.size = render_size;
   p.position = pile->player.body.get_position();
   main_map_id = pile->renderer.add(&main_compiled_map, p);
+  pile->engine.lighting.set_target(main_compiled_map.lighting.ambient, 0.01);
 
   checkpoint_flag = fan::graphics::sprite_sheet_from_json({
-    .path = "flag.json",
+    .path = "effects/flag.json",
     .loop = true
   });
 
@@ -113,8 +112,8 @@ void update() {
       load_enemies();
     }
     for (auto& enemy : pile->enemy_skeleton) {
-      if (fan::physics::is_on_sensor(enemy->body, spike)) {
-        enemy->destroy();
+      if (fan::physics::is_on_sensor(enemy.body, spike)) {
+        enemy.destroy();
       }
     }
   }
@@ -145,3 +144,8 @@ std::vector<fan::physics::entity_t> tile_collisions;
 
 fan::graphics::sprite_t checkpoint_flag;
 std::vector<fan::physics::entity_t> player_checkpoints;
+fan::graphics::sprite_t bg{{
+    .position = 10000, 
+    .size = 10000, 
+    .image = fan::graphics::image_create(fan::colors::black + 0.1)
+  }};

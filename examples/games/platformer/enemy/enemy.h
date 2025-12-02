@@ -6,14 +6,16 @@ struct enemy_t {
   //TODO use collision mask for player and entities
   static inline constexpr int attack_hitbox_frames[] = {4, 8};
 
-  enemy_t(const std::string& path, const std::source_location& caller_path = std::source_location::current()){
+  enemy_t() = default;
+  template <typename container_t>
+  enemy_t(container_t& bll, container_t::nr_t nr, const std::string& path, const std::source_location& caller_path = std::source_location::current()){
     f32_t density = 4.f;
 
     body = fan::graphics::physics::character2d_t::from_json({
       .json_path = path,
       .aabb_scale = aabb_scale,
       .draw_offset_override = draw_offset,
-      .attack_cb = [this](auto& c){ return should_attack(c); },
+      .attack_cb = [&bll, nr](auto& c){ return bll[nr].should_attack(c); },
       .physics_properties={.density=density, .fixed_rotation=true, .linear_damping=2.0f}
     }, caller_path);
     body.set_jump_height(75.f * density);
@@ -26,7 +28,7 @@ struct enemy_t {
     attack_hitbox.setup({
       .spawns = {{
         .frame = attack_hitbox_frames[0],
-        .create_hitbox = [this](const fan::vec2& center, f32_t direction){
+        .create_hitbox = [](const fan::vec2& center, f32_t direction){
           fan::vec2 offset = fan::vec2(50.f * direction, 0);
           return pile->engine.physics_context.create_box(
             center + offset, fan::vec2(60, 40), 0,
@@ -35,7 +37,7 @@ struct enemy_t {
         }},
         {
           .frame = attack_hitbox_frames[1],
-          .create_hitbox = [this](const fan::vec2& center, f32_t direction){
+          .create_hitbox = [](const fan::vec2& center, f32_t direction){
             fan::vec2 offset = fan::vec2(50.f * direction, 0);
             return pile->engine.physics_context.create_box(
               center + offset, fan::vec2(60, 40), 0,
@@ -62,20 +64,21 @@ struct enemy_t {
 
     navigation.auto_jump_obstacles = true;
     navigation.jump_lookahead_tiles = 1.5f;
-
-    navigation.on_check_obstacle = [this](const fan::vec2& check_pos){
-      return is_spike_at(check_pos);
+    navigation.on_check_obstacle = [&bll, nr](const fan::vec2& check_pos){
+      return bll[nr].is_spike_at(check_pos);
     };
-    physics_step_nr = fan::physics::add_physics_step_callback([&](){
+    physics_step_nr = fan::physics::add_physics_step_callback([&bll, nr](){
+      auto& level = pile->get_level();
       fan::vec2 tile_size = pile->renderer.get_tile_size(level.main_map_id) * 2.f;
       fan::vec2 target_pos = pile->player.get_physics_pos();
-      ai_behavior.update_ai(&body, navigation, target_pos, tile_size);
-      fan::vec2 distance = ai_behavior.get_target_distance(body.get_physics_position());
+      auto& node = bll[nr];
+      node.ai_behavior.update_ai(&node.body, node.navigation, target_pos, tile_size);
+      fan::vec2 distance = node.ai_behavior.get_target_distance(node.body.get_physics_position());
       if (!((std::abs(distance.x) < trigger_distance.x && std::abs(distance.y) < trigger_distance.y))){
-        ai_behavior.enable_ai_patrol({initial_position - fan::vec2(400, 0), initial_position + fan::vec2(400, 0)});
+        node.ai_behavior.enable_ai_patrol({node.initial_position - fan::vec2(400, 0), node.initial_position + fan::vec2(400, 0)});
       }
       else{
-        ai_behavior.enable_ai_follow(&pile->player.body, trigger_distance, closeup_distance);
+        node.ai_behavior.enable_ai_follow(&pile->player.body, trigger_distance, closeup_distance);
       }
     });
   }
@@ -83,18 +86,7 @@ struct enemy_t {
     fan::vec2 distance = ai_behavior.get_target_distance(c.get_physics_position());
     return c.attack_state.try_attack(&c, distance);
   }
-  bool update(){
-    if (remove_this){
-      auto found = std::find_if(pile->enemy_skeleton.begin(), pile->enemy_skeleton.end(), [&](enemy_t* e){ return e->body.NRI == body.NRI; });
-      if (found == pile->enemy_skeleton.end()){
-        fan::throw_error("trying to remove non existing enemy");
-      }
-      delete *found;
-      *found = nullptr;
-      pile->enemy_skeleton.erase(found);
-      return true;
-    }
-    
+  bool update(){    
     for (int i = 0; i < attack_hitbox.hitbox_count(); ++i){
       if (attack_hitbox.check_hit(&body, i, &pile->player.body)){
         if (pile->player.on_hit(&body, (pile->player.body.get_position() - body.get_position()).normalized())){
@@ -128,8 +120,12 @@ struct enemy_t {
     }
   }
   void destroy(){
+    for (auto [it, enemy] : fan::enumerate(pile->enemy_skeleton)) {
+      if (enemy.body.NRI == body.NRI) {
+        pile->enemy_skeleton.unlrec(it);
+      }
+    }
     fan::physics::remove_physics_step_callback(physics_step_nr);
-    remove_this = true;
   }
   bool on_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction){
     fan::audio::play(audio_player_hits_enemy);

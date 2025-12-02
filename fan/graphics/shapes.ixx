@@ -547,6 +547,7 @@ export namespace fan::graphics {
       // returns currently active sprite sheet animation
       sprite_sheet_animation_t& get_sprite_sheet_animation();
       void start_sprite_sheet_animation();
+      void stop_sprite_sheet_animation();
       // overwrites 'ri.current_animation' animation
       void set_sprite_sheet_animation(const sprite_sheet_animation_t& animation);
       void add_sprite_sheet_animation(const sprite_sheet_animation_t& animation);

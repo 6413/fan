@@ -710,10 +710,19 @@ export namespace fan::graphics {
     bool loop = true;
   };
 
+#if defined(fan_json)
+
+  void resolve_json_image_paths(
+    fan::json& out,
+    const std::string& json_path,
+    const std::source_location& callers_path = std::source_location::current()
+  );
+
   fan::graphics::sprite_t sprite_sheet_from_json(
     const sprite_sheet_config_t flags,
     const std::source_location& callers_path = std::source_location::current()
   );
+#endif
 
   fan::graphics::shapes::polygon_t::properties_t create_hexagon(f32_t radius, const fan::color& color = fan::colors::white);
   // for line
