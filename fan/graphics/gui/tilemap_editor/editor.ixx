@@ -1048,7 +1048,7 @@ export struct fte_t {
           open_file_dialog.load("fte,json", &fn);
         }
         if (fan::graphics::gui::menu_item("Save")) {
-          fout(previous_file_name);
+          fout(previous_filename);
         }
         if (fan::graphics::gui::menu_item("Save as")) {
           save_file_dialog.save("fte,json", &fn);
@@ -1239,7 +1239,7 @@ export struct fte_t {
     fan::graphics::gui::end();
 
     if (fan::window::is_key_pressed(fan::key_s) && fan::window::is_key_down(fan::key_left_control)) {
-      fout(previous_file_name);
+      fout(previous_filename);
     }
 
     if (fan::graphics::get_window().key_state(fan::key_shift) != -1) {
@@ -1770,7 +1770,7 @@ export struct fte_t {
     bool is_temp = filename.find("temp") != std::string::npos;
 
 #if defined(fan_json)
-    previous_file_name = filename;
+    previous_filename = filename;
 
     fan::json ostr;
     ostr["version"] = 1;
@@ -1899,7 +1899,7 @@ export struct fte_t {
     ostr["tiles"] = tiles;
     fan::io::file::write(filename, ostr.dump(2), std::ios_base::binary);
     if (!is_temp) {
-      fan::graphics::gui::print_success("File saved to " + std::filesystem::absolute(filename).string());
+      fan::graphics::gui::print_success("File saved to " + std::filesystem::absolute(filename).generic_string());
     }
 #else
     fan::throw_error("fan_json not enabled");
@@ -1926,7 +1926,7 @@ export struct fte_t {
       return;
     }
     invalidate_selection();
-    previous_file_name = filename;
+    previous_filename = filename;
 
     map_size = json["map_size"];
     tile_size = json["tile_size"];
@@ -2231,7 +2231,7 @@ export struct fte_t {
   std::vector<shapes_t::global_t> copy_buffer;
   fan::graphics::render_view_t* render_view = nullptr;
   std::function<void(int)> modify_cb = [](int) {};
-  std::string previous_file_name;
+  std::string previous_filename;
   fan::graphics::shape_t visual_line;
   fan::window_t::buttons_handle_t buttons_handle;
   fan::window_t::keys_handle_t keys_handle;

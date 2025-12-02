@@ -10,23 +10,23 @@ module fan.graphics.common_context;
 namespace fan::graphics {
   thread_local render_context_handle_t g_render_context_handle;
 
-  void lighting_t::set_target(const fan::vec3& t, float d) {
+  void lighting_t::set_target(const fan::vec3& t, f32_t d) {
     start = ambient;
     target = t;
     duration = d;
     elapsed = 0.0f;
   }
-  void lighting_t::update(float delta_time) {
+  void lighting_t::update(f32_t delta_time) {
     if (elapsed < duration) {
       elapsed += delta_time;
-      float t = std::min(elapsed / duration, 1.0f);
+      f32_t t = std::min(elapsed / duration, 1.0f);
       ambient = fan::math::lerp(start, target, t);
     }
   }
-  bool lighting_t::is_near(const fan::vec3& t, float eps) const {
+  bool lighting_t::is_near(const fan::vec3& t, f32_t eps) const {
     return ambient.distance(t) < eps;
   }
-  bool lighting_t::is_near_target(float eps) const {
+  bool lighting_t::is_near_target(f32_t eps) const {
     return is_near(target, eps);
   }
 
@@ -86,11 +86,20 @@ namespace fan::graphics {
   fan::vec2 image_t::get_size() const {
     return fan::graphics::image_get_data(*this).size;
   }
+  image_load_properties_t image_t::get_load_properties() const {
+    return fan::graphics::image_get_data(*this).image_settings;
+  }
+  std::string image_t::get_path() const {
+    return fan::graphics::image_get_data(*this).image_path;
+  }
   image_t::operator fan::graphics::image_nr_t& () {
     return static_cast<fan::graphics::image_nr_t&>(*this);
   }
   image_t::operator const fan::graphics::image_nr_t& () const {
     return static_cast<const fan::graphics::image_nr_t&>(*this);
+  }
+  bool image_t::valid() const {
+    return *this != fan::graphics::ctx().default_texture && iic() == false;
   }
 
   void render_view_t::create() {

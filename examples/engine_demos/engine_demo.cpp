@@ -1689,7 +1689,7 @@ struct library_usage_t {
       async_directory() {
         iterator.sort_alphabetically = true;
         iterator.callback = [&](const std::filesystem::directory_entry& entry) -> fan::event::task_t {
-          std::string path_str = entry.path().string();
+          std::string path_str = entry.path().generic_string();
           if (fan::image::valid(path_str)) {
             images.emplace_back(gloco->image_load(path_str));
             co_await fan::co_sleep(100);

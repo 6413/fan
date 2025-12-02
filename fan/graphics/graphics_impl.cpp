@@ -7,6 +7,7 @@ module;
 #include <cmath>
 #include <coroutine>
 #include <algorithm>
+#include <filesystem>
 
 #define loco_vfi
 #define loco_line
@@ -579,16 +580,30 @@ namespace fan::graphics {
   }
 #endif
 
+#if defined(fan_json)
+
+  void fan::graphics::resolve_json_image_paths(fan::json& out, const std::string& json_path, const std::source_location& callers_path) {
+    out.find_and_iterate("image_path", [&json_path, &callers_path](fan::json& value) {
+      std::filesystem::path base = std::filesystem::absolute(callers_path.file_name());
+      base = std::filesystem::is_directory(base) ? base : base.parent_path();
+      base /= std::filesystem::path(json_path);
+      base = std::filesystem::is_directory(base) ? base : base.parent_path();
+      value = (base / std::filesystem::path(value.get<std::string>())).generic_string();
+    });
+  }
+
   fan::graphics::sprite_t fan::graphics::sprite_sheet_from_json(
     const sprite_sheet_config_t config,
     const std::source_location& callers_path) 
   {
     fan::json json_data = fan::graphics::read_json(config.path, callers_path);
+    resolve_json_image_paths(json_data, config.path, callers_path);
     fan::graphics::parse_animations(json_data, callers_path);
     auto shape = fan::graphics::extract_single_shape(json_data, callers_path);
     shape.set_animation_loop(shape.get_current_animation_id(), config.loop);
     return shape;
   }
+#endif
 
   fan::graphics::shapes::polygon_t::properties_t create_hexagon(f32_t radius, const fan::color& color) {
     fan::graphics::shapes::polygon_t::properties_t pp;

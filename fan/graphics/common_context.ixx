@@ -418,9 +418,12 @@ export namespace fan::graphics {
 		image_t(const std::string& path, const std::source_location& callers_path = std::source_location::current());
 
 		fan::vec2 get_size() const;
+    image_load_properties_t get_load_properties() const;
+    std::string get_path() const;
 
 		operator fan::graphics::image_nr_t& ();
 		operator const fan::graphics::image_nr_t& () const;
+    bool valid() const;
 	};
 
 	fan::graphics::image_t get_default_texture();

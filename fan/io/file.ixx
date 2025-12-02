@@ -32,6 +32,8 @@ export namespace fan {
       bool exists(const std::string& name);
       bool rename(const std::string& from, const std::string& to);
 
+      std::filesystem::path relative_path(const std::filesystem::path& path, const std::filesystem::path& base);
+
       struct fstream {
         fstream() = default;
         fstream(const std::string& path);
@@ -78,9 +80,10 @@ export namespace fan {
       std::vector<std::string> read_line(const std::string& path);
       bool try_write(std::string path, const std::string& data, fs_mode mode);
       std::string get_exe_path();
-      std::filesystem::path find_relative_path(const std::string& file_path, const std::source_location& location = std::source_location::current());
+      std::filesystem::path find_relative_path(const std::string& filepath, const std::source_location& location = std::source_location::current());
       bool read(const std::string& path, std::string* str);
       bool read(const std::string& path, std::string* str, std::size_t length);
+      std::string read(const std::string& path, bool* success = nullptr);
 
       bool read(const path_t auto& path, std::string* str) {
         std::ifstream file(path, std::ifstream::ate | std::ifstream::binary);

@@ -9,6 +9,7 @@ module;
 #include <string>
 #include <cstring>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 
 #define shaper_get_key_safe(return_type, kps_type, variable) \
@@ -120,9 +121,15 @@ namespace fan::graphics {
 		}
 
 		std::string path = image_json["image_path"];
-		if (!fan::io::file::exists(fan::io::file::find_relative_path(path, callers_path).string())) {
+    std::string relative_path = fan::io::file::find_relative_path(
+      path, 
+      callers_path
+    ).generic_string();
+		if (!fan::io::file::exists(relative_path))
+    {
 			return fan::graphics::g_render_context_handle.default_texture;
 		}
+    path = std::filesystem::absolute(relative_path).generic_string();
 
 		fan::graphics::image_load_properties_t lp;
 
@@ -2209,6 +2216,17 @@ void fan::graphics::shapes::shape_t::start_sprite_sheet_animation() {
 		sprite_sheet_frame_update_cb(g_shapes->shaper, (fan::graphics::shapes::shape_t*)&nr);
 		};
 	//}
+}
+
+void fan::graphics::shapes::shape_t::stop_sprite_sheet_animation() {
+  auto& ri = shape_get_ri(sprite);
+  auto& current_anim = get_sprite_sheet_animation();
+  fan::graphics::sprite_sheet_data_t& sheet_data = ri.sprite_sheet_data;
+
+  if (sheet_data.frame_update_nr) {
+    fan::graphics::g_render_context_handle.update_callback->unlrec(sheet_data.frame_update_nr);
+    sheet_data.frame_update_nr.sic();
+  }
 }
 
 void fan::graphics::shapes::shape_t::set_sprite_sheet_animation(const fan::graphics::sprite_sheet_animation_t& animation) {

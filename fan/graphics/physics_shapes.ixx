@@ -641,6 +641,36 @@ export namespace fan {
         fan::physics::body_id_t feet[2];
       };
 
+
+      struct attack_hitbox_t {
+        struct hitbox_spawn_t {
+          int frame = 4;
+          std::function<fan::physics::entity_t(const fan::vec2& center, f32_t direction)> create_hitbox;
+        };
+        struct hitbox_config_t {
+          std::vector<hitbox_spawn_t> spawns = {{}};
+          std::string attack_animation = "attack0";
+          bool track_hit_targets = false;
+        };
+        struct hitbox_instance_t {
+          fan::physics::entity_t hitbox;
+          bool spawned = false;
+          bool used = false;
+        };
+        void setup(const hitbox_config_t& cfg);
+        void update(character2d_t* character);
+        void spawn_hitbox(character2d_t* character, int index);
+        bool spawned() const;
+        bool check_hit(character2d_t* character, int index, character2d_t* target);
+        void cleanup(character2d_t* character);
+        size_t hitbox_count() const;
+
+        hitbox_config_t config;
+        std::vector<hitbox_instance_t> instances;
+        std::vector<bool> hitbox_spawned;
+        std::unordered_set<uint64_t> hit_enemies;
+      };
+
       struct bone_e {
         enum {
           hip = 0,
@@ -664,12 +694,7 @@ export namespace fan {
         "Upper Left Arm", "Lower Left Arm",
         "Upper Right Arm", "Lower Right Arm"
       };
-      inline std::string bone_to_string(int bone) {
-        if (bone >= std::size(bone_names)) {
-          return "N/A";
-        }
-        return bone_names[bone];
-      }
+      std::string bone_to_string(int bone);
 
       struct bone_t {
         fan::graphics::physics::base_shape_t visual;
@@ -688,98 +713,6 @@ export namespace fan {
         fan::vec2 center0 = 0;
         fan::vec2 center1 = 0;
       };
-
-      struct attack_hitbox_t {
-        struct hitbox_spawn_t {
-          int frame = 4;
-          std::function<fan::physics::entity_t(const fan::vec2& center, f32_t direction)> create_hitbox;
-        };
-        struct hitbox_config_t {
-          std::vector<hitbox_spawn_t> spawns = {{}};
-          std::string attack_animation = "attack0";
-          bool track_hit_targets = false;
-        };
-        struct hitbox_instance_t {
-          fan::physics::entity_t hitbox;
-          bool spawned = false;
-          bool used = false;
-        };
-        void setup(const hitbox_config_t& cfg){
-          config = cfg;
-          instances.resize(cfg.spawns.size());
-          hitbox_spawned.resize(cfg.spawns.size(), false);
-        }
-        void update(character2d_t* character){
-          if (!character->attack_state.is_attacking){
-            cleanup(character);
-            return;
-          }
-          for (size_t i = 0; i < config.spawns.size(); ++i){
-            if (!hitbox_spawned[i] && character->animation_on(config.attack_animation, config.spawns[i].frame)){
-              spawn_hitbox(character, i);
-            }
-          }
-        }
-        void spawn_hitbox(character2d_t* character, int index){
-          if (instances[index].hitbox.is_valid()){
-            instances[index].hitbox.destroy();
-          }
-          f32_t direction = fan::math::sgn(character->get_tc_size().x);
-          instances[index].hitbox = config.spawns[index].create_hitbox(character->get_center(), direction);
-          hitbox_spawned[index] = true;
-          instances[index].used = false;
-        }
-        bool spawned() const {
-          return !hitbox_spawned.size();
-        }
-        bool check_hit(character2d_t* character, int index, character2d_t* target){
-          if (!character->attack_state.is_attacking) {
-            return false;
-          }
-          if (!hitbox_spawned[index] || !instances[index].hitbox.is_valid()){
-            return false;
-          }
-          if (!instances[index].hitbox.test_overlap(*target)){
-            return false;
-          }
-          if (config.track_hit_targets){
-            if (hit_enemies.find(target->NRI) != hit_enemies.end()){
-              return false;
-            }
-            hit_enemies.insert(target->NRI);
-          }
-          if (instances[index].used) {
-            return false;
-          }
-          instances[index].used = true;
-          return true;
-        }
-        void cleanup(character2d_t* character){
-          if (character->attack_state.is_attacking) {
-            return;
-          }
-          for (auto& instance : instances){
-            if (instance.hitbox.is_valid()){
-              instance.hitbox.destroy();
-            }
-            instance.spawned = false;
-            instance.used = false;
-          }
-          std::fill(hitbox_spawned.begin(), hitbox_spawned.end(), false);
-          if (config.track_hit_targets){
-            hit_enemies.clear();
-          }
-        }
-        size_t hitbox_count() const { 
-          return instances.size(); 
-        }
-
-        hitbox_config_t config;
-        std::vector<hitbox_instance_t> instances;
-        std::vector<bool> hitbox_spawned;
-        std::unordered_set<uint64_t> hit_enemies;
-      };
-
       void update_reference_angle(b2WorldId world, fan::physics::joint_id_t& joint_id, f32_t new_reference_angle);
 
       struct human_t {

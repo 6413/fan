@@ -40,6 +40,14 @@ bool fan::io::file::rename(const std::string& from, const std::string& to) {
   return std::rename(from.c_str(), to.c_str());
 }
 
+std::filesystem::path fan::io::file::relative_path(const std::filesystem::path& path, const std::filesystem::path& base) {
+  auto base_dir = std::filesystem::absolute(base);
+  if (!std::filesystem::is_directory(base_dir)) {
+    base_dir = base_dir.parent_path();
+  }
+  return std::filesystem::relative(path, base_dir);
+}
+
 fan::io::file::fstream::fstream(const std::string& path) {
   file_name = path;
   open(path);
@@ -179,7 +187,7 @@ std::string fan::io::file::get_exe_path() {
   if (len == 0 || len == MAX_PATH) {
     return {};  // failure
   }
-  return std::filesystem::path(buffer).parent_path().string();
+  return std::filesystem::path(buffer).parent_path().generic_string();
 
 #elif defined(fan_platform_unix)
   char buffer[PATH_MAX];
@@ -188,7 +196,7 @@ std::string fan::io::file::get_exe_path() {
     return {};  // failure
   }
   buffer[count] = '\0';
-  return std::filesystem::path(buffer).parent_path().string();
+  return std::filesystem::path(buffer).parent_path().generic_string();
 
 #else
   fan::throw_error("get_exe_path not implemented on this platform");
@@ -196,12 +204,15 @@ std::string fan::io::file::get_exe_path() {
 #endif
 }
 
-std::filesystem::path fan::io::file::find_relative_path(const std::string& file_path,
+std::filesystem::path fan::io::file::find_relative_path(const std::string& filename,
   const std::source_location& location) {
   namespace fs = std::filesystem;
 
-  if (file_path.empty()) {
+  if (filename.empty()) {
     return {};
+  }
+  if (fan::io::file::exists(filename)) {
+    return filename;
   }
 
   std::error_code ec;
@@ -218,7 +229,7 @@ std::filesystem::path fan::io::file::find_relative_path(const std::string& file_
     return fs::path {};
   };
 
-  if (auto r = try_candidate(file_path); !r.empty()) {
+  if (auto r = try_candidate(filename); !r.empty()) {
     return r;
   }
 
@@ -232,14 +243,14 @@ std::filesystem::path fan::io::file::find_relative_path(const std::string& file_
     return try_candidate(base / name);
   };
 
-  if (auto r = try_all(src_dir, file_path); !r.empty()) {
+  if (auto r = try_all(src_dir, filename); !r.empty()) {
     return r;
   }
-  if (auto r = try_all(current_dir, file_path); !r.empty()) {
+  if (auto r = try_all(current_dir, filename); !r.empty()) {
     return r;
   }
   if (!exe_dir.empty() && exe_dir != current_dir) {
-    if (auto r = try_all(exe_dir, file_path); !r.empty()) {
+    if (auto r = try_all(exe_dir, filename); !r.empty()) {
       return r;
     }
   }
@@ -252,7 +263,7 @@ std::filesystem::path fan::io::file::find_relative_path(const std::string& file_
         break;
       }
       p = next;
-      if (auto r = try_all(p, file_path); !r.empty()) {
+      if (auto r = try_all(p, filename); !r.empty()) {
         return r;
       }
       if (fs::equivalent(p, exe_dir, ec) && !ec) {
@@ -262,7 +273,7 @@ std::filesystem::path fan::io::file::find_relative_path(const std::string& file_
   }
 
   {
-    fs::path name_only = fs::path(file_path).filename();
+    fs::path name_only = fs::path(filename).filename();
     if (auto r = try_all(src_dir, name_only); !r.empty()) {
       return r;
     }
@@ -270,7 +281,7 @@ std::filesystem::path fan::io::file::find_relative_path(const std::string& file_
 
   {
     std::error_code ec2;
-    fs::path fp = fs::path(file_path);
+    fs::path fp = fs::path(filename);
 
     if (fs::is_regular_file(fp, ec2)) {
       return fs::relative(fp, current_dir, ec2);
@@ -290,7 +301,7 @@ std::filesystem::path fan::io::file::find_relative_path(const std::string& file_
   }
 
   {
-    fs::path name = fs::path(file_path);
+    fs::path name = fs::path(filename);
     fs::path p = src_dir;
     while (p.has_parent_path()) {
       if (auto r = try_all(p, name); !r.empty()) {
@@ -304,7 +315,7 @@ std::filesystem::path fan::io::file::find_relative_path(const std::string& file_
     }
   }
 
-  fan::print("failed to find path for:", file_path, ". called from", src_dir.string());
+  fan::print("failed to find path for:", filename, ". called from", src_dir.generic_string());
   return {};
 }
 
@@ -330,4 +341,10 @@ bool fan::io::file::read(const std::string& path, std::string* str, std::size_t 
   file.read(&(*str)[0], length);
   file.close();
   return 0;
+}
+std::string fan::io::file::read(const std::string& path, bool* success) {
+  std::string data;
+  bool ret = fan::io::file::read(path, &data);
+  if (success) *success = ret;
+  return data;
 }

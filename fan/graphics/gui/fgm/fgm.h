@@ -97,8 +97,10 @@ struct fgm_t {
       .size = 0,
       .image = transparent_texture,
     }};
-
-    open_texturepack(texturepack_name);
+    
+    if (texturepack_name.size()) {
+      open_texturepack(texturepack_name);
+    }
 
     key_handle = gloco->window.add_keys_callback([this](const auto& d) {
       if (d.state != fan::keyboard_state::press || gui::is_any_item_active()) {
@@ -111,6 +113,7 @@ struct fgm_t {
 
     gloco->input_action.add_keycombo({fan::input::key_left_control, fan::input::key_space}, "toggle_content_browser");
     gloco->input_action.add_keycombo({fan::input::key_left_control, fan::input::key_f}, "set_windowed_fullscreen");
+    gloco->input_action.add_keycombo({fan::input::key_left_control, fan::input::key_s}, "save_file");
 
     mouse_move_handle = gloco->window.add_mouse_move_callback([this](const auto& d) {
       if (viewport_settings.move) {
@@ -282,7 +285,7 @@ struct fgm_t {
 
       std::string& current = shape->children[0].get_image_data().image_path;
       str = current;
-      if (gui::input_text("image name", &str)) {
+      if (gui::input_text("image path", &str)) {
         if (gui::is_item_deactivated_after_edit()) {
           fan::graphics::texture_pack::ti_t ti;
           if (gloco->texture_pack.qti(str.c_str(), &ti)) {
@@ -318,7 +321,7 @@ struct fgm_t {
       if (current_image != gloco->default_texture) {
         gloco->image_unload(current_image);
       }
-      auto new_image = gloco->image_load((std::filesystem::path(content_browser.asset_path) / path).string());
+      auto new_image = gloco->image_load((std::filesystem::path(content_browser.asset_path) / path).generic_string());
       if (is_array) {
         auto images = shape->children[0].get_images();
         images[index - 1] = new_image;
@@ -554,6 +557,9 @@ struct fgm_t {
     if (gloco->input_action.is_active("toggle_content_browser")) {
       render_content_browser = !render_content_browser;
     }
+    if (gloco->input_action.is_active("save_file")) {
+      fout(previous_filename);
+    }
 
     if (render_content_browser) {
       content_browser.render();
@@ -634,13 +640,13 @@ struct fgm_t {
       gui::set_cursor_pos(gui::get_cursor_start_pos());
 
       content_browser.receive_drag_drop_target([&](const std::filesystem::path& fs) {
-        auto file = fs.string();
+        auto file = fs.generic_string();
         auto extension = fan::io::file::extension(file);
         if (extension == ".json") {
           fin(file);
         }
         else {
-          auto image = gloco->image_load((fs).string());
+          auto image = gloco->image_load((fs).generic_string());
           fan::vec2 initial_size = 128.f;
           fan::vec2 original_size = gloco->image_get_data(image).size;
           initial_size.x *= (original_size.x / original_size.y);
@@ -700,7 +706,7 @@ struct fgm_t {
           open_file_dialog.load("json;fmm", &fn);
         }
         if (fan::graphics::gui::menu_item("Save", "Ctrl+S")) {
-          fout(previous_file_name);
+          fout(previous_filename);
         }
         if (fan::graphics::gui::menu_item("Save as", "Ctrl+Shift+S")) {
           save_file_dialog.save("json;fmm", &fn);
@@ -793,17 +799,15 @@ struct fgm_t {
               }
 
               auto& current_shape_anim = shape.get_sprite_sheet_animation();
-              if (animations_application.play_animation && (animations_application.toggle_play_animation || animation_changed) &&
-                current_shape_anim.selected_frames.size()) {
+              if ((animations_application.toggle_play_animation || animation_changed) &&
+                   animations_application.play_animation && 
+                   current_shape_anim.selected_frames.size()) 
+              {
                 shape.start_sprite_sheet_animation();
               }
 
-              if (animations_application.play_animation && (animations_application.toggle_play_animation || animation_changed) &&
-                current_shape_anim.selected_frames.size()) {
-                shape.set_sprite_sheet_fps(anim.fps);
-              }
-              if (animations_application.play_animation && animations_application.toggle_play_animation && !animations_application.play_animation) {
-                shape.set_sprite_sheet_fps(0.0001);
+              if (animations_application.toggle_play_animation && !animations_application.play_animation) {
+                shape.stop_sprite_sheet_animation();
               }
             }
           }
@@ -902,10 +906,14 @@ struct fgm_t {
   }
 
   void fout(std::string filename) {
+    if (filename.empty()) {
+      fan::graphics::gui::print_error("filename is empty. save file from 'File/Save as'");
+      return;
+    }
     if (!filename.ends_with(".json")) {
       filename += ".json";
     }
-    previous_file_name = filename;
+    previous_filename = filename;
 
     fan::json ostr;
     ostr["version"] = current_version;
@@ -964,15 +972,23 @@ struct fgm_t {
       shapes.push_back(shape_json);
       it = it.Next(&shape_list);
     }
+
+
     ostr["shapes"] = shapes;
+
+    // set relative path from json to image
+    ostr.find_and_iterate("image_path", [&filename](fan::json& value) {
+      value = fan::io::file::relative_path(value.get<std::string>(), filename).generic_string();
+    });
+
     fan::io::file::write(filename, ostr.dump(2), std::ios_base::binary);
-    fan::graphics::gui::print_success("File saved to " + std::filesystem::absolute(filename).string());
+    fan::graphics::gui::print_success("File saved to " + std::filesystem::absolute(filename).generic_string());
   }
 
   void load_tp(fgm_t::shape_list_NodeData_t& node) {
     fan::graphics::texture_pack_t::ti_t ti;
     if (gloco->texture_pack.qti(node->children[0].get_image_data().image_path, &ti)) {
-      fan::print_no_space("non texturepack texture or failed to load texture:", node->children[0].get_image_data().image_path);
+      fan::graphics::gui::print_warning("texturepack: non texturepack texture or failed to load texture:", node->children[0].get_image_data().image_path);
     }
     else {
       auto& data = gloco->texture_pack.get_pixel_data(ti.unique_id);
@@ -982,10 +998,10 @@ struct fgm_t {
 
   void fin(const std::string& filename, const std::source_location& callers_path = std::source_location::current()) {
     using namespace fan::graphics;
-    previous_file_name = filename;
+    previous_filename = filename;
 
     std::string in;
-    fan::io::file::read(fan::io::file::find_relative_path(filename, callers_path), &in);
+    fan::io::file::read(filename, &in);
     fan::json json_in = fan::json::parse(in);
     if (json_in.contains("lighting.ambient")) {
       gloco->lighting.ambient = json_in["lighting.ambient"];
@@ -993,6 +1009,13 @@ struct fgm_t {
     if (json_in.contains("clear_color")) {
       gloco->clear_color = json_in["clear_color"];
     }
+
+    json_in.find_and_iterate("image_path", [&filename](fan::json& value) {
+      std::filesystem::path json_path(filename);
+      json_path = std::filesystem::absolute(json_path).parent_path();
+      value = (json_path / std::filesystem::path(value.get<std::string>())).generic_string();
+    });
+
     if (json_in.contains("animations")) {
       fan::graphics::parse_animations(json_in);
     }
@@ -1539,7 +1562,7 @@ struct shape_keyframe_animation_t {
   fan::vec2 editor_pos = 0;
   fan::graphics::sprite_t background;
   std::vector<fan::graphics::shape_t> copy_buffer;
-  std::string previous_file_name;
+  std::string previous_filename;
   fan::graphics::engine_t::keys_handle_t key_handle;
   fan::graphics::engine_t::mouse_move_handle_t mouse_move_handle;
   fan::graphics::engine_t::buttons_handle_t button_handle;

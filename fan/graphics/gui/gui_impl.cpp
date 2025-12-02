@@ -10,6 +10,7 @@ module;
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <array>
 
 module fan.graphics.gui;
 
@@ -460,13 +461,13 @@ namespace fan::graphics::gui {
           fan::print("exception came", e.what());
         }
 
-        file_info.filename = relative_path.filename().string();
+        file_info.filename = relative_path.filename().generic_string();
         file_info.item_path = relative_path.wstring();
         file_info.is_directory = entry.is_directory();
         file_info.is_selected = false;
         //fan::print(get_file_extension(path.path().string()));
-        if (fan::image::valid(entry.path().string())) {
-          file_info.preview_image = fan::graphics::image_load(entry.path().string());
+        if (!file_info.is_directory && fan::image::valid(entry.path().string())) {
+          file_info.preview_image = fan::graphics::image_load(entry.path().generic_string());
         }
         directory_cache.push_back(file_info);
         invalidate_cache();
@@ -569,7 +570,7 @@ namespace fan::graphics::gui {
           file_info.is_selected = false;
 
           if (fan::image::valid(entry.path().string())) {
-            file_info.preview_image = fan::graphics::image_load(entry.path().string());
+            file_info.preview_image = fan::graphics::image_load(entry.path().generic_string());
           }
 
           search_state.found_files.push_back(file_info);
@@ -1154,12 +1155,12 @@ namespace fan::graphics::gui {
         }
 
         for (const auto& path : file_paths) {
-          receive_func(path);
+          receive_func(std::filesystem::absolute(path));
         }
       }
       else if (const payload_t* payload = accept_drag_drop_payload("CONTENT_BROWSER_ITEMS")) {
         const wchar_t* path = (const wchar_t*)payload->Data;
-        receive_func(std::filesystem::path(asset_path) / path);
+        receive_func(std::filesystem::absolute(asset_path) / path);
       }
       end_drag_drop_target();
     }
