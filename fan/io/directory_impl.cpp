@@ -53,8 +53,7 @@ void fan::io::iterate_directory(
   }
   try {
     for (const auto& entry : std::filesystem::directory_iterator(path)) {
-      std::string str = entry.path().string();
-      std::replace(str.begin(), str.end(), '\\', '/');
+      std::string str = entry.path().generic_string();
       function(str, entry.is_directory());
     }
   }
