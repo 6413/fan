@@ -4,7 +4,7 @@ static void vi_move(uint16_t shape_type, void* vi) {
 
 static void ri_move(uint16_t sti, void* ri) {
 	if (sti == fan::graphics::shapes::shape_type_t::sprite) {
-		((fan::graphics::shapes::sprite_t::ri_t*)ri)->sprite_sheet_data.frame_update_nr.sic();
+		//((fan::graphics::shapes::sprite_t::ri_t*)ri)->sprite_sheet_data.frame_update_nr.sic();
 	}
 }
 
@@ -67,11 +67,28 @@ inline static void update_shape(shape_t* shape, modifier_t&& modifier_fn) {
 	vi_move(sti, _vi);
 	ri_move(sti, _ri);
 
+  bool add_sprite_sheet_update = false;
+  if (sti == fan::graphics::shapes::shape_type_t::sprite) {
+    auto& new_ri = *(fan::graphics::shapes::sprite_t::ri_t*)shape->GetData(g_shapes->shaper);
+    add_sprite_sheet_update = (bool)new_ri.sprite_sheet_data.frame_update_nr;
+  }
+
 	shape->remove();
 	*shape = g_shapes->shaper.add(sti, key_pack.get(), key_pack_size_t, vi.get(), ri.get());
 
+  if (sti == fan::graphics::shapes::shape_type_t::sprite) {
+    if (add_sprite_sheet_update) {
+      auto& new_ri = *(fan::graphics::shapes::sprite_t::ri_t*)shape->GetData(g_shapes->shaper);
+      new_ri.sprite_sheet_data.frame_update_nr = fan::graphics::g_render_context_handle.update_callback->NewNodeLast();
+      //fan::print("+", new_ri.sprite_sheet_data.frame_update_nr.NRI);
+      (*fan::graphics::g_render_context_handle.update_callback)[new_ri.sprite_sheet_data.frame_update_nr] = [nr = shape->NRI](void* ptr) {
+        fan::graphics::shapes::shape_t::sprite_sheet_frame_update_cb(g_shapes->shaper, (fan::graphics::shapes::shape_t*)&nr);
+      };
+    }
+  }
+
 #if defined(debug_shape_t)
-	fan::print("+", shape->nri);
+	fan::print("+", shape->NRI);
 #endif
 }
 

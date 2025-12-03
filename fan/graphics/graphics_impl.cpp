@@ -8,6 +8,7 @@ module;
 #include <coroutine>
 #include <algorithm>
 #include <filesystem>
+#include <cstring>
 
 #define loco_vfi
 #define loco_line
@@ -195,6 +196,85 @@ namespace fan::graphics {
 
   fan::graphics::image_nr_t image_create(const fan::color& color, const fan::graphics::image_load_properties_t& p) {
     return fan::graphics::ctx()->image_create_color_props(fan::graphics::ctx(), color, p);
+  }
+
+  std::vector<uint8_t> read_pixels(const fan::vec2& position, const fan::vec2& size) {
+    std::vector<uint8_t> pixels(size.multiply() * 4);
+    glReadPixels(position.x, position.y, size.x, size.y, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+    return pixels;
+  }
+
+  //std::vector<uint8_t> read_pixels_from_image(
+  //  fan::graphics::image_nr_t nr, 
+  //  const fan::vec2& uv_position, 
+  //  const fan::vec2& uv_size) 
+  //{
+  //  auto img_settings = image_get_settings(nr);
+  //  auto size = image_get_data(nr).size;
+  //  uint32_t channels = fan::graphics::get_channel_amount(img_settings.format);
+
+  //  int px = uv_position.x * size.x;
+  //  int py = uv_position.y * size.y;
+  //  int pw = uv_size.x * size.x;
+  //  int ph = uv_size.y * size.y;
+
+  //  px = std::max(0, std::min(px, (int)size.x - pw));
+  //  py = std::max(0, std::min(py, (int)size.y - ph));
+  //  pw = std::min(pw, (int)size.x - px);
+  //  ph = std::min(ph, (int)size.y - py);
+
+  //  std::vector<uint8_t> full(size.x * size.y * channels);
+  //  glBindTexture(GL_TEXTURE_2D, image_get_handle(nr));
+
+  //  glGetTexImage(GL_TEXTURE_2D, 0, 
+  //    fan::opengl::context_t::global_to_opengl_format(img_settings.format),
+  //    GL_UNSIGNED_BYTE, full.data());
+
+  //  std::vector<uint8_t> out(pw * ph * channels);
+  //  for (int row = 0; row < ph; ++row) {
+  //    std::memcpy(&out[row * pw * channels], 
+  //      &full[((py + row) * size.x + px) * channels], 
+  //      pw * channels);
+  //  }
+
+  //  return out;
+  //}
+
+  std::vector<uint8_t> read_pixels_from_image(
+    fan::graphics::image_nr_t nr, 
+    const fan::vec2& uv_pos, 
+    const fan::vec2& uv_size) 
+  {
+    auto size = image_get_data(nr).size;
+    auto img_settings = image_get_settings(nr);
+    uint32_t channels = fan::graphics::get_channel_amount(img_settings.format);
+
+    int px = std::round(uv_pos.x * size.x);
+    int py = std::round(uv_pos.y * size.y);
+    int pw = std::round(uv_size.x * size.x);
+    int ph = std::round(uv_size.y * size.y);
+
+    px = std::clamp(px, 0, (int)size.x - pw);
+    py = std::clamp(py, 0, (int)size.y - ph);
+    pw = std::min(pw, (int)size.x - px);
+    ph = std::min(ph, (int)size.y - py);
+
+    std::vector<uint8_t> full(size.x * size.y * channels);
+    glBindTexture(GL_TEXTURE_2D, image_get_handle(nr));
+
+    glFinish();
+    glGetTexImage(GL_TEXTURE_2D, 0, 
+      fan::opengl::context_t::global_to_opengl_format(img_settings.format),
+      GL_UNSIGNED_BYTE, full.data());
+
+    std::vector<uint8_t> out(pw * ph * channels);
+    for (int row = 0; row < ph; ++row) {
+      std::memcpy(&out[row * pw * channels], 
+        &full[((py + row) * size.x + px) * channels], 
+        pw * channels);
+    }
+
+    return out;
   }
 
   fan::graphics::shader_nr_t shader_create() {
@@ -601,6 +681,9 @@ namespace fan::graphics {
     fan::graphics::parse_animations(json_data, callers_path);
     auto shape = fan::graphics::extract_single_shape(json_data, callers_path);
     shape.set_animation_loop(shape.get_current_animation_id(), config.loop);
+    if (config.start) {
+      shape.start_sprite_sheet_animation();
+    }
     return shape;
   }
 #endif

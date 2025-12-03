@@ -239,6 +239,10 @@ namespace fan::physics {
   }
 
   context_t::context_t(const properties_t& properties) {
+    b2SetAllocator(
+      [](unsigned int size, int a) { return fan::heap_profiler_t::instance().allocate_memory(size); },
+      [](void* mem) { fan::heap_profiler_t::instance().deallocate_memory(mem); }
+    );
     gphysics = this;
     b2WorldDef world_def = b2DefaultWorldDef();
     world_def.gravity = properties.gravity;

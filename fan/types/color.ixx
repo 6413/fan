@@ -34,13 +34,21 @@ export namespace fan {
 		constexpr color_(const fan::vec4_wrap_t<T>& v) {
 			*(fan::vec4*)this = v;
 		}
-		constexpr color_(cf_t r, cf_t g, cf_t b, cf_t a = 1) : r(r), g(g), b(b), a(a) {
+		constexpr color_(type_t r, type_t g, type_t b, type_t a = 1) : r(r), g(g), b(b), a(a) {
 			this->r = r;
 			this->g = g;
 			this->b = b;
 			this->a = a;
 		}
-		constexpr color_(cf_t value) : r(0), g(0), b(0), a(0) {
+    constexpr color_(uint8_t* begin, uint8_t* end) {
+      uint8_t* ptr = begin;
+      int i = 0;
+      while (ptr != end) {
+        (*this)[i++] = *ptr / type_t(255);
+        ++ptr;
+      }
+    }
+		constexpr color_(type_t value) : r(0), g(0), b(0), a(0) {
 			this->r = value;
 			this->g = value;
 			this->b = value;
@@ -65,10 +73,10 @@ export namespace fan {
 		constexpr bool operator==(const color_& c) const {
 			return r == c.r && g == c.g && b == c.b && a == c.a;
 		}
-		constexpr cf_t& operator[](size_t x) {
+		constexpr type_t& operator[](size_t x) {
 			return !x ? this->r : x == 1 ? this->g : x == 2 ? this->b : x == 3 ? this->a : this->a;
 		}
-		constexpr cf_t operator[](size_t x) const {
+		constexpr type_t operator[](size_t x) const {
 			return !x ? this->r : x == 1 ? this->g : x == 2 ? this->b : x == 3 ? this->a : this->a;
 		}
 		constexpr color_ operator-=(const color_& c) {
@@ -96,7 +104,7 @@ export namespace fan {
 		constexpr color_ mult_no_alpha(T value) const {
 			return color_(r * value, g * value, b * value);
 		}
-		cf_t* data() {
+		type_t* data() {
 			return &r;
 		}
 
