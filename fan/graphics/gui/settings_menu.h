@@ -143,6 +143,15 @@ struct settings_menu_t {
       {
         gui::table_next_row();
         gui::table_next_column();
+        gui::text("Track Heap memory");
+        gui::table_next_column();
+        if (gui::checkbox("##track_heap", (bool*)&fan::heap_profiler_t::instance().enabled)) {
+          gloco->console.commands.call("debug_memory " + std::to_string((int)fan::heap_profiler_t::instance().enabled));
+        }
+      }
+      {
+        gui::table_next_row();
+        gui::table_next_column();
         gui::text("Track OpenGL calls");
         gui::table_next_column();
         gui::checkbox("##track_opengl_calls", (bool*)&fan_track_opengl_calls);

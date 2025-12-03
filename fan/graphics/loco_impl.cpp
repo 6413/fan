@@ -20,6 +20,7 @@ module;
 #include <sstream>
 #include <utility>
 #include <coroutine>
+#include <iostream>
 
 #if defined(fan_std23)
   #include <stacktrace>
@@ -724,8 +725,6 @@ void loco_t::generate_commands(loco_t* loco) {
       );
     }
   }).description = "Removes a shape by its id";
-
-
 #endif
 }
 
@@ -999,6 +998,8 @@ loco_t::loco_t(const loco_t::properties_t& p) {
 #endif
 
   fan::graphics::g_render_context_handle.default_texture = default_texture;
+
+  console.commands.call("debug_memory " + std::to_string((int)fan::heap_profiler_t::instance().enabled));
 }
 
 loco_t::~loco_t() {
@@ -1492,6 +1493,22 @@ void loco_t::process_gui() {
   );
 #endif
   gui_draw_time_s = gui_draw_timer.seconds();
+}
+
+void loco_t::get_vram_usage(int* total_mem_MB, int* used_MB) {
+  if (glewIsSupported("GL_NVX_gpu_memory_info")) {
+    glGetIntegerv(GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX, (GLint*)total_mem_MB);
+
+    GLint currently_available_kb = 0;
+    glGetIntegerv(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &currently_available_kb);
+
+    *used_MB = (*total_mem_MB - currently_available_kb) / 1024.0;
+    *total_mem_MB = *total_mem_MB / 1024.0;
+  }
+  else {
+    *total_mem_MB = -1;
+    *used_MB = -1;
+  }
 }
 
 void loco_t::time_monitor_t::update(f32_t value) {
@@ -2337,15 +2354,43 @@ namespace fan::graphics::gui {
     allocations.clear();
 
     f32_t max_y = 0;
-    for (const auto& entry : fan::heap_profiler_t::instance().memory_map) {
-      f32_t v = (f32_t)entry.second.n / (1024 * 1024);
+
+    auto& profiler = fan::heap_profiler_t::instance();
+
+    std::vector<std::pair<void*, fan::heap_profiler_t::memory_data_t>> sorted_allocs;
+    sorted_allocs.reserve(profiler.memory_map.size());
+
+    for (const auto& kv : profiler.memory_map) {
+      sorted_allocs.emplace_back(const_cast<void*>(kv.first), kv.second);
+    }
+
+    std::sort(sorted_allocs.begin(), sorted_allocs.end(),
+      [](const auto& a, const auto& b) {
+      return reinterpret_cast<std::uintptr_t>(a.first) <
+        reinterpret_cast<std::uintptr_t>(b.first);
+    });
+
+    for (const auto& [addr, data] : sorted_allocs) {
+      f32_t v = (f32_t)data.n / (1024 * 1024);
       allocation_sizes.push_back(v);
       max_y = std::max(max_y, v);
-      allocations.push_back(entry.second);
+      allocations.push_back(data);
+    }
+
+    gui::text("Active allocations:", profiler.memory_map.size());
+    gui::text("Allocation size:", profiler.current_allocation_size / 1e6, " (MB)");
+
+    int total_mem_MB, used_MB;
+    gloco->get_vram_usage(&total_mem_MB, &used_MB);
+    if (used_MB != -1) {
+      gui::text("VRAM used memory", used_MB, " (MB)");
+    }
+    if (total_mem_MB != -1) {
+      gui::text("VRAM total memory", total_mem_MB, " (MB)");
     }
 
     static std::stacktrace stack;
-    if (allocation_sizes.size() && gui::plot::begin_plot("Memory Allocations", get_window_size(), gui::plot::flags_no_frame | gui::plot::flags_no_legend)) {
+    if (allocation_sizes.size() && gui::plot::begin_plot("Memory Allocations", gui::get_window_size(), gui::plot::flags_no_frame | gui::plot::flags_no_legend)) {
       f32_t max_allocation = *std::max_element(allocation_sizes.begin(), allocation_sizes.end());
       gui::plot::setup_axis(gui::plot::axis_y1, "Memory (MB)");
       gui::plot::setup_axis_limits(gui::plot::axis_y1, 0, max_y);

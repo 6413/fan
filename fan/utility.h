@@ -589,6 +589,13 @@ enum class name { __VA_ARGS__ }
 			throw exception_t{ .reason = reason };
 #endif
 		}
+
+    using memory_profile_malloc_cb_t = void*(*)(std::size_t n);
+    using memory_profile_realloc_cb_t = void*(*)(void* ptr, std::size_t n);
+    using memory_profile_free_cb_t = void(*)(void* ptr);
+    inline memory_profile_malloc_cb_t memory_profile_malloc_cb = nullptr;
+    inline memory_profile_realloc_cb_t memory_profile_realloc_cb = nullptr;
+    inline memory_profile_free_cb_t memory_profile_free_cb = nullptr;
 	}
 	#define __throw_error_impl
 #endif
@@ -598,11 +605,11 @@ enum class name { __VA_ARGS__ }
 #endif
 
 #ifndef __generic_malloc
-	#define __generic_malloc(n) std::malloc(n)
+	#define __generic_malloc(n) fan::memory_profile_malloc_cb(n)
 #endif
 #ifndef __generic_realloc
-	#define __generic_realloc(ptr, n) std::realloc(ptr, n)
+	#define __generic_realloc(ptr, n) fan::memory_profile_realloc_cb(ptr, n)
 #endif
 #ifndef __generic_free
-	#define __generic_free(ptr) std::free(ptr)
+	#define __generic_free(ptr) fan::memory_profile_free_cb(ptr)
 #endif

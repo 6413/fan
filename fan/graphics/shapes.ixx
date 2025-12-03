@@ -53,18 +53,6 @@ export namespace fan::graphics {
   };
 }
 
-#ifndef __generic_malloc
-#define __generic_malloc(n) malloc(n)
-#endif
-
-#ifndef __generic_realloc
-#define __generic_realloc(ptr, n) realloc(ptr, n)
-#endif
-
-#ifndef __generic_free
-#define __generic_free(ptr) free(ptr)
-#endif
-
 std::uint8_t* A_resize(void* ptr, std::uintptr_t size);
 
 namespace fan {
@@ -433,6 +421,9 @@ export namespace fan::graphics {
       shape_t(const T& properties) : shape_t() {
         auto shape_type = T::type_t::shape_type;
         *this = fan::graphics::g_shapes->shape_functions[shape_type].push_back((void*)&properties);
+      #if defined(debug_shape_t)
+        fan::print("+", NRI);
+      #endif
       }
       shape_t(shaper_t::ShapeID_t&& s);
       shape_t(const shaper_t::ShapeID_t& s);
@@ -559,6 +550,7 @@ export namespace fan::graphics {
       sprite_sheet_animation_t& get_current_animation();
       int get_current_animation_frame() const;
       void set_current_animation_frame(int frame_id);
+      int get_current_animation_frame_count();
       // dont store the pointer
       sprite_sheet_animation_t* get_animation(const std::string& name);
       void set_light_position(const fan::vec3& new_pos);

@@ -46,7 +46,11 @@ void load_map() {
 
   checkpoint_flag.set_size(checkpoint_flag.get_size() / fan::vec2(1.5f, 1.0f));
   checkpoint_flag.set_position(pile->renderer.get_position(main_map_id, "checkpoint0") + fan::vec2(0, checkpoint_flag.get_size().y/2.0f));
-  checkpoint_flag.start_sprite_sheet_animation();
+
+  static auto lamp1 = fan::graphics::sprite_sheet_from_json({
+    .path = "lights/lamp1/lamp.json",
+    .loop = true
+  });
 
   pile->renderer.iterate_visual(main_map_id, [&](fte_loader_t::tile_t& tile) {
     if (tile.id.contains("checkpoint")) {
@@ -62,6 +66,11 @@ void load_map() {
         fan::physics::body_type_e::static_body,
         {.is_sensor = true}
       ));
+    }
+    else if (tile.id.contains("lamp1")) {
+      lamps.push_back(lamp1);
+      lamps.back().set_current_animation_frame(fan::random::value(0, lamps.back().get_current_animation_frame_count()));
+      lamps.back().set_position(fan::vec3(fan::vec2(tile.position) + fan::vec2(1.f, -2.f), 1));
     }
     else if (tile.mesh_property == fte_loader_t::fte_t::mesh_property_t::none) {
       tile_collisions.emplace_back(pile->engine.physics_context.create_rectangle(
@@ -82,12 +91,11 @@ void load_map() {
 }
 
 void open(void* sod) {
-
+  pile->level_stage = this->stage_common.stage_id;
+  load_map();
 }
 
-void close() {}
-
-void reload_map() {
+void close() {
   for (auto& i : player_checkpoints) {
     i.destroy();
   }
@@ -99,13 +107,32 @@ void reload_map() {
   for (auto& i : spike_sensors) {
     i.destroy();
   }
-  spike_sensors.clear();
-
   pile->renderer.erase(main_map_id);
-  load_map();
+}
+
+void reload_map() {
+  pile->stage_loader.erase_stage(this->stage_common.stage_id);
+  pile->stage_loader.open_stage<level_t>();
 }
 
 void update() {
+  lights.resize(lamps.size());
+  
+  for (auto [i, lamp] : fan::enumerate(lamps)) {
+    lights[i].set_position(fan::vec2(lamp.get_position()));
+    lights[i].set_size(512);
+    auto tc_center = lamp.get_tc_position() + lamp.get_tc_size() * 0.5f;
+    auto pixel_size = fan::vec2(1.0f) / image_get_data(lamp.get_image()).size;
+    auto pixels = read_pixels_from_image(lamp.get_image(), tc_center, pixel_size);
+  
+    uint32_t ch = fan::graphics::get_channel_amount(image_get_settings(lamp.get_image()).format);
+    fan::color current = lights[i].get_color() / 2.f;
+    f32_t lerp_speed = std::min(pile->engine.delta_time * 10.0f, 1.0);
+    fan::color new_color = current.lerp(fan::color(pixels.data(), pixels.data() + ch), lerp_speed);
+    lights[i].set_color(fan::color(pixels.data(), pixels.data() + ch));
+    pile->engine.lighting.set_target(fan::color(pixels.data(), pixels.data() + ch) / 5.f + 0.7, 0.1);
+  }
+  
   for (auto& spike : spike_sensors) {
     if (fan::physics::is_on_sensor(pile->player.body, spike)) {
       pile->player.respawn();
@@ -119,14 +146,16 @@ void update() {
   }
 
   static bool pause = false;
-  if (!pile->engine.render_console) {
+  //if (!pile->engine.render_console) {
     if (fan::window::is_key_pressed(fan::key_e)) {
       pause = !pause;
     }
+    reload_map();
+    return;
     if (fan::window::is_key_pressed(fan::key_r)) {
-      reload_map();
+      
     }
-  }
+ // }
   pile->renderer.update(main_map_id, pile->player.body.get_position());
   if (pause) {
     return;
@@ -145,7 +174,10 @@ std::vector<fan::physics::entity_t> tile_collisions;
 fan::graphics::sprite_t checkpoint_flag;
 std::vector<fan::physics::entity_t> player_checkpoints;
 fan::graphics::sprite_t bg{{
-    .position = 10000, 
-    .size = 10000, 
-    .image = fan::graphics::image_create(fan::colors::black + 0.1)
-  }};
+  .position = 10000, 
+  .size = 10000, 
+  .image = fan::graphics::image_create(fan::colors::black + 0.1)
+}};
+
+std::vector<fan::graphics::sprite_t> lamps;
+std::vector<fan::graphics::light_t> lights;

@@ -1,0 +1,91 @@
+{
+  "animations": [
+    {
+      "fps": 10,
+      "id": 0,
+      "images": [
+        {
+          "hframes": 7,
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "Lantern 1 - Red Roof and Orange.png",
+          "vframes": 6
+        }
+      ],
+      "name": "idle",
+      "selected_frames": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37
+      ]
+    }
+  ],
+  "shapes": [
+    {
+      "animations": [
+        0
+      ],
+      "images": [
+        {
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "Lantern 1 - Red Roof and Orange.png"
+        }
+      ],
+      "position": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "shape": "sprite",
+      "size": [
+        22.0,
+        30.0
+      ],
+      "tc_position": [
+        0.5714285969734192,
+        0.6666666865348816
+      ],
+      "tc_size": [
+        0.1428571492433548,
+        0.1666666716337204
+      ]
+    }
+  ],
+  "version": 1
+}

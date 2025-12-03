@@ -227,6 +227,26 @@ export namespace fan::opengl {
       uintptr_t           mag_filter = image_load_properties_defaults::mag_filter;
     };
 
+    struct image_cache_entry_t {
+      fan::graphics::image_nr_t nr;
+      uint32_t ref_count;
+    };
+
+    fan::graphics::image_nr_t image_load_internal(
+      const std::string& path,
+      const fan::opengl::context_t::image_load_properties_t& p = fan::opengl::context_t::image_load_properties_t(),
+      const std::source_location& callers_path = std::source_location::current()
+    );
+    void image_reload_internal(
+      fan::graphics::image_nr_t nr,
+      const std::string& path,
+      const fan::opengl::context_t::image_load_properties_t& p,
+      const std::source_location& callers_path
+    );
+    void image_clear_cache();
+
+    std::unordered_map<std::string, image_cache_entry_t> image_cache;
+
     GLenum get_format_from_channels(int channels);
 
     static constexpr fan::vec4_wrap_t<fan::vec2> default_texture_coordinates = fan::vec4_wrap_t<fan::vec2>(

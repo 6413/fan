@@ -26,6 +26,7 @@ module;
 #define shape_get_ri(shape) (*(fan::graphics::shapes::shape##_t::ri_t*)GetData(fan::graphics::g_shapes->shaper))
 
 module fan.graphics.shapes;
+import fan.utility;
 
 std::uint8_t* A_resize(void* ptr, std::uintptr_t size) {
 	if (ptr) {
@@ -269,7 +270,7 @@ namespace fan::graphics {
         fan::throw_error("Animation nr expired (bug)");
       }
       return found->second.name == old_name;
-      });
+    });
     if (found == previous_anims.end()) {
       fan::throw_error("Animation:" + old_name, ", not found");
     }
@@ -424,12 +425,6 @@ namespace fan::graphics{
     uint8_t* ri = new uint8_t[rlen];
     std::memcpy(ri, _ri, rlen);
 
-    if (sti == shape_type_t::sprite) {
-      if (((sprite_t::ri_t*)_ri)->sprite_sheet_data.frame_update_nr) {
-        ((sprite_t::ri_t*)ri)->sprite_sheet_data.frame_update_nr = fan::graphics::g_render_context_handle.update_callback->NewNodeLast(); // since hard copy, let it leak
-      }
-    }
-
     *dst = fan::graphics::g_shapes->shaper.add(
       sti,
       KeyPack,
@@ -439,7 +434,7 @@ namespace fan::graphics{
     );
 
   #if defined(debug_shape_t)
-    fan::print("+", NRI);
+    fan::print("+", dst->NRI);
   #endif
 
     delete[] KeyPack;
@@ -456,14 +451,14 @@ namespace fan::graphics{
 	shapes::shape_t::shape_t(shaper_t::ShapeID_t&& s) {
 		NRI = s.NRI;
 
-		if (get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {
-			auto& ri = *(sprite_t::ri_t*)s.GetData(g_shapes->shaper);
-			if (ri.sprite_sheet_data.frame_update_nr) {
-				(*fan::graphics::g_render_context_handle.update_callback)[ri.sprite_sheet_data.frame_update_nr] = [nr = NRI](void* ptr) -> void {
-					fan::graphics::shapes::shape_t::sprite_sheet_frame_update_cb(fan::graphics::g_shapes->shaper, (fan::graphics::shapes::shape_t*)&nr);
-				};
-			}
-		}
+		//if (get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {
+		//	auto& ri = *(sprite_t::ri_t*)s.GetData(g_shapes->shaper);
+		//	if (ri.sprite_sheet_data.frame_update_nr) {
+		//		(*fan::graphics::g_render_context_handle.update_callback)[ri.sprite_sheet_data.frame_update_nr] = [nr = NRI](void* ptr) -> void {
+		//			fan::graphics::shapes::shape_t::sprite_sheet_frame_update_cb(fan::graphics::g_shapes->shaper, (fan::graphics::shapes::shape_t*)&nr);
+		//		};
+		//	}
+		//}
 
 		s.sic();
 	}
@@ -543,6 +538,21 @@ namespace fan::graphics{
 				fan::throw_error_impl();
 			}
 		}
+    else	if (sti == shape_type_t::sprite) {
+      sprite_t::ri_t* ri = (sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
+      sprite_t::ri_t* _ri = (sprite_t::ri_t*)s.GetData(fan::graphics::g_shapes->shaper);
+      if (((sprite_t::ri_t*)_ri)->sprite_sheet_data.frame_update_nr) {
+        //fan::print(((sprite_t::ri_t*)_ri)->sprite_sheet_data.frame_update_nr.NRI);
+        fan::graphics::g_render_context_handle.update_callback->unlrec(((sprite_t::ri_t*)_ri)->sprite_sheet_data.frame_update_nr);
+        ((sprite_t::ri_t*)_ri)->sprite_sheet_data.frame_update_nr.sic();
+      }
+      if (ri->sprite_sheet_data.frame_update_nr) {
+        ri->sprite_sheet_data.frame_update_nr = fan::graphics::g_render_context_handle.update_callback->NewNodeLast(); // since hard copy, let it leak
+        (*fan::graphics::g_render_context_handle.update_callback)[ri->sprite_sheet_data.frame_update_nr] = [nr = NRI](void* ptr) {
+          fan::graphics::shapes::shape_t::sprite_sheet_frame_update_cb(g_shapes->shaper, (fan::graphics::shapes::shape_t*)&nr);
+        };
+      }
+    }
 	}
 
 	shapes::shape_t::shape_t(shape_t&& s) : shape_t(std::move(*dynamic_cast<shaper_t::ShapeID_t*>(&s))) {
@@ -628,11 +638,17 @@ namespace fan::graphics{
 				// handle sprite sheet specific updates
 				sprite_t::ri_t* ri = (sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
 				sprite_t::ri_t* _ri = (sprite_t::ri_t*)s.GetData(fan::graphics::g_shapes->shaper);
-				//if (((sprite_t::ri_t*)_ri)->sprite_sheet_data.frame_update_nr) {
-				ri->sprite_sheet_data.frame_update_nr = fan::graphics::g_render_context_handle.update_callback->NewNodeLast(); // since hard copy, let it leak
-				(*fan::graphics::g_render_context_handle.update_callback)[ri->sprite_sheet_data.frame_update_nr] = [nr = NRI](void* ptr) {
-					fan::graphics::shapes::shape_t::sprite_sheet_frame_update_cb(g_shapes->shaper, (fan::graphics::shapes::shape_t*)&nr);
-					};
+        if (((sprite_t::ri_t*)_ri)->sprite_sheet_data.frame_update_nr) {
+          //fan::print(((sprite_t::ri_t*)_ri)->sprite_sheet_data.frame_update_nr.NRI);
+          fan::graphics::g_render_context_handle.update_callback->unlrec(((sprite_t::ri_t*)_ri)->sprite_sheet_data.frame_update_nr);
+          ((sprite_t::ri_t*)_ri)->sprite_sheet_data.frame_update_nr.sic();
+        }
+        if (ri->sprite_sheet_data.frame_update_nr) {
+          ri->sprite_sheet_data.frame_update_nr = fan::graphics::g_render_context_handle.update_callback->NewNodeLast(); // since hard copy, let it leak
+          (*fan::graphics::g_render_context_handle.update_callback)[ri->sprite_sheet_data.frame_update_nr] = [nr = NRI](void* ptr) {
+            fan::graphics::shapes::shape_t::sprite_sheet_frame_update_cb(g_shapes->shaper, (fan::graphics::shapes::shape_t*)&nr);
+          };
+        }
 				// }
 			}
 			//fan::print("i dont know what to do");
@@ -659,14 +675,15 @@ namespace fan::graphics{
 			}
 			NRI = s.NRI;
 
-			if (get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {
-				auto& ri = *(sprite_t::ri_t*)s.GetData(fan::graphics::g_shapes->shaper);
-				if (ri.sprite_sheet_data.frame_update_nr) {
-					(*fan::graphics::g_render_context_handle.update_callback)[ri.sprite_sheet_data.frame_update_nr] = [nr = NRI](void* ptr) {
-						fan::graphics::shapes::shape_t::sprite_sheet_frame_update_cb(g_shapes->shaper, (fan::graphics::shapes::shape_t*)&nr);
-						};
-				}
-			}
+			//if (get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {
+			//	auto& ri = *(sprite_t::ri_t*)s.GetData(fan::graphics::g_shapes->shaper);
+			//	if (ri.sprite_sheet_data.frame_update_nr) {
+			//		(*fan::graphics::g_render_context_handle.update_callback)[ri.sprite_sheet_data.frame_update_nr] = [nr = NRI](void* ptr) {
+			//			fan::graphics::shapes::shape_t::sprite_sheet_frame_update_cb(g_shapes->shaper, (fan::graphics::shapes::shape_t*)&nr);
+			//	  };
+   //       ri.sprite_sheet_data.frame_update_nr.sic();
+			//	}
+			//}
 
 			s.sic();
 		}
@@ -1550,6 +1567,10 @@ namespace fan::graphics{
   void shapes::shape_t::set_current_animation_frame(int frame_id) {
     auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
     ri.sprite_sheet_data.current_frame = frame_id;
+  }
+  int shapes::shape_t::get_current_animation_frame_count() {
+    auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
+    return get_current_animation().selected_frames.size();
   }
 
 	// dont store the pointer
@@ -2708,6 +2729,7 @@ namespace fan::graphics {
       }
       if (in.contains("images") && in["images"].is_array()) {
         for (const auto [i, image_json] : fan::enumerate(in["images"])) {
+          // leaking (cache taking care of it)
           fan::graphics::image_t image = fan::graphics::json_to_image(image_json, callers_path);
           if (i == 0) {
             shape->set_image(image);

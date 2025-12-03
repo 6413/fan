@@ -400,6 +400,55 @@ namespace fan::opengl {
     fan_opengl_call(glUniformMatrix4fv(shader_get(nr).projection_view[1], 1, GL_FALSE, &camera.m_view[0][0]));
   }
 
+  fan::graphics::image_nr_t context_t::image_load_internal(
+    const std::string& path,
+    const fan::opengl::context_t::image_load_properties_t& p,
+    const std::source_location& callers_path
+  ){
+  #if fan_assert_if_same_path_loaded_multiple_times
+    static std::unordered_map<std::string, bool> existing_images;
+    if (existing_images.find(path) != existing_images.end()) {
+      fan::throw_error("image already existing " + path);
+    }
+    existing_images[path] = 0;
+  #endif
+
+    fan::image::info_t image_info;
+    if (fan::image::load(path, &image_info, callers_path)) {
+      return create_missing_texture();
+    }
+    fan::graphics::image_nr_t nr = image_load(image_info, p);
+    __fan_internal_image_list[nr].image_path = path;
+    fan::image::free(&image_info);
+    return nr;
+  }
+
+  void context_t::image_reload_internal(
+    fan::graphics::image_nr_t nr,
+    const std::string& path,
+    const fan::opengl::context_t::image_load_properties_t& p,
+    const std::source_location& callers_path
+  ){
+    fan::image::info_t image_info;
+    if (fan::image::load(path, &image_info, callers_path)) {
+      image_info.data = (void*)fan::image::missing_texture_pixels;
+      image_info.size = 2;
+      image_info.channels = 4;
+      image_info.type = -1;
+    }
+    image_reload(nr, image_info, p);
+    __fan_internal_image_list[nr].image_path = path;
+    fan::image::free(&image_info);
+  }
+  void context_t::image_clear_cache(){
+    for (auto& [path, entry] : image_cache) {
+      auto handle = image_get_handle(entry.nr);
+      fan_opengl_call(glDeleteTextures(1, (GLuint*)&handle));
+      delete static_cast<fan::opengl::context_t::image_t*>(__fan_internal_image_list[entry.nr].internal);
+      __fan_internal_image_list.Recycle(entry.nr);
+    }
+    image_cache.clear();
+  }
 
   fan::opengl::context_t::image_t& context_t::image_get(fan::graphics::image_nr_t nr) {
     return *(fan::opengl::context_t::image_t*)__fan_internal_image_list[nr].internal;
@@ -413,7 +462,17 @@ namespace fan::opengl {
     fan_opengl_call(glGenTextures(1, &image_get_handle(nr)));
     return nr;
   }
-  void context_t::image_erase(fan::graphics::image_nr_t nr) {
+  void context_t::image_erase(fan::graphics::image_nr_t nr){
+    auto& image_data = __fan_internal_image_list[nr];
+    if (!image_data.image_path.empty()) {
+      auto it = image_cache.find(image_data.image_path);
+      if (it != image_cache.end()) {
+        if (--it->second.ref_count > 0) {
+          return;
+        }
+        image_cache.erase(it);
+      }
+    }
     auto handle = image_get_handle(nr);
     fan_opengl_call(glDeleteTextures(1, (GLuint*)&handle));
     delete static_cast<fan::opengl::context_t::image_t*>(__fan_internal_image_list[nr].internal);
@@ -562,26 +621,13 @@ namespace fan::opengl {
     return nr;
   }
   fan::graphics::image_nr_t context_t::image_load(const std::string& path, const fan::opengl::context_t::image_load_properties_t& p, const std::source_location& callers_path) {
-
-  #if fan_assert_if_same_path_loaded_multiple_times
-
-    static std::unordered_map<std::string, bool> existing_images;
-
-    if (existing_images.find(path) != existing_images.end()) {
-      fan::throw_error("image already existing " + path);
+    auto it = image_cache.find(path);
+    if (it != image_cache.end()) {
+      it->second.ref_count++;
+      return it->second.nr;
     }
-
-    existing_images[path] = 0;
-
-  #endif
-
-    fan::image::info_t image_info;
-    if (fan::image::load(path, &image_info, callers_path)) {
-      return create_missing_texture();
-    }
-    fan::graphics::image_nr_t nr = image_load(image_info, p);
-    __fan_internal_image_list[nr].image_path = path;
-    fan::image::free(&image_info);
+    auto nr = image_load_internal(path, p, callers_path);
+    image_cache[path] = {nr, 1};
     return nr;
   }
   fan::graphics::image_nr_t context_t::image_load(const fan::image::info_t& image_info) {
@@ -661,16 +707,12 @@ namespace fan::opengl {
     image_reload(nr, image_info, fan::opengl::context_t::image_load_properties_t());
   }
   void context_t::image_reload(fan::graphics::image_nr_t nr, const std::string& path, const fan::opengl::context_t::image_load_properties_t& p, const std::source_location& callers_path) {
-    fan::image::info_t image_info;
-    if (fan::image::load(path, &image_info, callers_path)) {
-      image_info.data = (void*)fan::image::missing_texture_pixels;
-      image_info.size = 2;
-      image_info.channels = 4;
-      image_info.type = -1; // ignore free
+    auto& image_data = __fan_internal_image_list[nr];
+    auto it = image_cache.find(image_data.image_path);
+    if (it != image_cache.end() && it->second.ref_count > 1) {
+      return;
     }
-    image_reload(nr, image_info, p);
-    __fan_internal_image_list[nr].image_path = path;
-    fan::image::free(&image_info);
+    image_reload_internal(nr, path, p, callers_path);
   }
   void context_t::image_reload(fan::graphics::image_nr_t nr, const std::string& path) {
     image_reload(nr, path, fan::opengl::context_t::image_load_properties_t());

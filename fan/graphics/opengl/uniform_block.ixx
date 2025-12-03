@@ -7,6 +7,7 @@ module;
 
 export module fan.graphics.opengl.uniform_block;
 
+import fan.utility;
 import fan.graphics.opengl.core;
 
 namespace detail{
