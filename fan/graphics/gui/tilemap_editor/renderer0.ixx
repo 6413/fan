@@ -60,6 +60,22 @@ export struct fte_renderer_t : fte_loader_t {
   void initialize(node_t& node, const fan::vec2& position) {
     initialize_visual(node, position);
 
+    for (int y = 0; y < node.compiled_map->map_size.y; ++y) {
+      for (int x = 0; x < node.compiled_map->map_size.x; ++x) {
+        for (auto& j : node.compiled_map->compiled_shapes[y][x]) {
+          if (j.mesh_property != fte_t::mesh_property_t::light) {
+            continue;
+          }
+          node.lights.emplace_back(fan::graphics::light_t {{
+            .render_view = render_view,
+            .position = node.position + fan::vec3(fan::vec2(j.position) * node.size, y + node.compiled_map->tile_size.y / 2 + j.position.z),
+            .size = j.size * node.size,
+            .color = j.color
+          }});
+        }
+      }
+    }
+
     for (compiled_map_t::physics_data_t& pd : node.compiled_map->physics_shapes) {
       switch (pd.physics_shapes.type) {
       case fte_t::physics_shapes_t::type_e::box: {
@@ -217,15 +233,6 @@ export struct fte_renderer_t : fte_loader_t {
         }
         break;
       }
-      case fte_t::mesh_property_t::light: {
-        node.rendered_tiles[tile_key] = fan::graphics::light_t{ {
-          .render_view = render_view,
-          .position = node.position + fan::vec3(fan::vec2(j.position) * node.size, additional_depth + j.position.z),
-          .size = j.size * node.size,
-          .color = j.color
-        } };
-        break;
-      }
       default: {
         return;
         //fan::throw_error("unimplemented switch");
@@ -252,6 +259,7 @@ export struct fte_renderer_t : fte_loader_t {
   void clear(node_t& node) {
     clear_visual(node);
     node.physics_entities.clear();
+    node.lights.clear();
   }
 
   void erase(id_t& id) {

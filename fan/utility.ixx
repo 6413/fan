@@ -4,6 +4,11 @@ module;
 
 #include <type_traits>
 #include <coroutine>
+#include <iterator>
+#include <source_location>
+#include <set>
+#include <stacktrace>
+#include <map>
 
 export module fan.utility;
 
@@ -161,18 +166,30 @@ namespace fan {
     static auto get_index_type_impl(...) -> std::size_t;
 
     using iter_index_t = decltype(get_index_type_impl<T>(0));
-    using value_type = pair<iter_index_t, typename fan_detail::iterator_traits<T>::reference>;
-    using reference = value_type;
+    using iter_reference = typename fan_detail::iterator_traits<T>::reference;
+    using iter_value = std::remove_reference_t<iter_reference>;
+
+    struct reference_proxy {
+      iter_index_t index;
+      iter_reference value;
+      operator pair<iter_index_t, iter_value>() const {
+        return {index, value};
+      }
+    };
+
+    using value_type = pair<iter_index_t, iter_value>;
+    using reference = reference_proxy;
     using pointer = void;
+    using difference_type = std::ptrdiff_t;
+    using iterator_category = std::forward_iterator_tag;
 
     enumerate_iterator_t(T iter, iter_index_t index) : _iter(iter), _index(index) {}
-
     reference operator*() const {
       if constexpr (requires { _iter.get_index(); }) {
-        return { _iter.get_index(), *_iter };
+        return {_iter.get_index(), *_iter};
       }
       else {
-        return { _index, *_iter };
+        return {_index, *_iter};
       }
     }
     enumerate_iterator_t& operator++() {
@@ -185,7 +202,6 @@ namespace fan {
     bool operator!=(const enumerate_iterator_t& other) const {
       return _iter != other._iter;
     }
-
     T _iter;
     iter_index_t _index;
   };
@@ -337,22 +353,40 @@ namespace fan {
   }
 }
 
-export {
-  template<typename T>
-  concept has_bll_methods = requires(T& t) {
-    { t.GetNodeFirst() };
-    { t.dst };
+// include memory. after, it expands
+#include <fan/memory/memory.h>
+bool v = [] {
+  fan::memory_profile_malloc_cb = [] (std::size_t n) {
+    return fan::heap_profiler_t::instance().allocate_memory(n);
   };
-
-  template<typename T>
-    requires has_bll_methods<T>
-  auto begin(T& container) {
-    return fan::bll_iterator_t<T>{&container, container.GetNodeFirst()};
-  }
-
-  template<typename T>
-    requires has_bll_methods<T>
-  auto end(T& container) {
-    return fan::bll_iterator_t<T>{&container, container.dst};
-  }
+  fan::memory_profile_realloc_cb = [] (void* ptr, std::size_t n) {
+    return fan::heap_profiler_t::instance().reallocate_memory(ptr, n);
+  };
+  fan::memory_profile_free_cb = [] (void* ptr) {
+    fan::heap_profiler_t::instance().deallocate_memory(ptr);
+  };
+  return true;
+}();
+export {
+  fan_track_allocations();
 }
+
+//export {
+//  template<typename T>
+//  concept has_bll_methods = requires(T& t) {
+//    { t.GetNodeFirst() };
+//    { t.dst };
+//  };
+//
+//  template<typename T>
+//    requires has_bll_methods<T>
+//  auto begin(T& container) {
+//    return fan::bll_iterator_t<T>{&container, container.GetNodeFirst()};
+//  }
+//
+//  template<typename T>
+//    requires has_bll_methods<T>
+//  auto end(T& container) {
+//    return fan::bll_iterator_t<T>{&container, container.dst};
+//  }
+//}

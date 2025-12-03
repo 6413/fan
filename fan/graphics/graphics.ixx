@@ -35,6 +35,10 @@ export import fan.graphics.algorithm.pathfind;
 export import fan.event;
 export import fan.math;
 
+#if defined(fan_json)
+  import fan.types.json;
+#endif
+
 import fan.random;
 import fan.graphics.opengl.core;
 
@@ -172,6 +176,8 @@ export namespace fan::graphics {
   void image_reload(fan::graphics::image_nr_t nr, const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current());
   fan::graphics::image_nr_t image_create(const fan::color& color);
   fan::graphics::image_nr_t image_create(const fan::color& color, const fan::graphics::image_load_properties_t& p);
+  std::vector<uint8_t> read_pixels(fan::graphics::image_nr_t nr, const fan::vec2& position, const fan::vec2& size);
+  std::vector<uint8_t> read_pixels_from_image(fan::graphics::image_nr_t nr, const fan::vec2& uv_position = 0, const fan::vec2& uv_size = 1);
 
   fan::graphics::shader_nr_t shader_create();
   void shader_erase(fan::graphics::shader_nr_t nr);
@@ -708,6 +714,7 @@ export namespace fan::graphics {
   struct sprite_sheet_config_t {
     std::string path;
     bool loop = true;
+    bool start = true;
   };
 
 #if defined(fan_json)

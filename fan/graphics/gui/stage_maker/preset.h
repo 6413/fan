@@ -34,7 +34,7 @@ struct structor_t {
     if (!std::string(lstd_current_type::stage_name).empty()) {
       gstage->load_fgm(outside, op, lstd_current_type::stage_name);
     }
-    gstage->stage_list[outside->stage_common.stage_id].update_nr = gloco->m_update_callback.NewNodeLast();
+    gstage->stage_list[outside->stage_common.stage_id].update_nr = gloco->m_update_callback.NewNodeFirst();
     gloco->m_update_callback[gstage->stage_list[outside->stage_common.stage_id].update_nr] = [&, outside](void* ptr) {
       outside->update();
     };

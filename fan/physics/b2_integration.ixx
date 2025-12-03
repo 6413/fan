@@ -18,6 +18,7 @@ export import fan.physics.types;
 import fan.types.vector;
 import fan.print;
 import fan.physics.common_context;
+import fan.utility;
 
 #define BLL_set_SafeNext 1
 #define BLL_set_AreWeInsideStruct 0

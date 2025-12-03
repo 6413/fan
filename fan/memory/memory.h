@@ -12,6 +12,8 @@
 
 #if defined(fan_std23)
 
+#ifndef fan_memory_only_macros
+
 export namespace fan {
   struct heap_profiler_t {
     ~heap_profiler_t() {
@@ -164,6 +166,10 @@ export namespace fan {
 
     void* allocate_memory(std::size_t n) {
       bool was_enabled = enabled;
+      if (!was_enabled) {
+        return std::malloc(n);
+      }
+
       enabled = false;
 
       void* p = std::malloc(n);
@@ -172,32 +178,34 @@ export namespace fan {
         throw std::bad_alloc();
       }
 
-      if (was_enabled) {
-        memory_data_t md;
-        md.p = p;
-        md.n = n;
-
-        md.line_data = std::stacktrace::current(0, 20);
-
-        auto result_map = memory_map.insert(std::make_pair(p, md));
-        if (!result_map.second) {
-          printf("duplicate insertion in map for pointer: %p\n", p);
-        }
-
-        auto result_set = memory_set.insert(md);
-        if (!result_set.second) {
-          printf("duplicate insertion in set for pointer: %p\n", p);
-        }
-
-        current_allocation_size += n;
-        enabled = true;
+      auto check_existing = memory_map.find(p);
+      if (check_existing != memory_map.end()) {
+        current_allocation_size -= check_existing->second.n;
+        memory_set.erase(check_existing->second);
+        memory_map.erase(check_existing);
       }
 
+      memory_data_t md;
+      md.p = p;
+      md.n = n;
+      md.line_data = std::stacktrace::current(0, 20);
+
+      memory_map.insert(std::make_pair(p, md));
+      memory_set.insert(md);
+
+      current_allocation_size += n;
+
+      enabled = was_enabled;
       return p;
     }
 
     void* reallocate_memory(void* ptr, std::size_t n) {
       bool was_enabled = enabled;
+
+      if (!was_enabled) {
+        return std::realloc(ptr, n);
+      }
+
       enabled = false;
 
       auto found = memory_map.find(ptr);
@@ -206,57 +214,63 @@ export namespace fan {
         enabled = was_enabled;
         return result;
       }
-      else {
-        void* new_ptr = std::realloc(ptr, n);
-        if (!new_ptr) {
-          enabled = was_enabled;
-          return nullptr;
-        }
 
-        if (was_enabled) {
-          current_allocation_size -= found->second.n;
-          current_allocation_size += n;
-
-          memory_set.erase(found->second);
-          memory_map.erase(found);
-
-          memory_data_t md;
-          md.p = new_ptr;
-          md.n = n;
-          md.line_data = std::stacktrace::current(0, 20);
-
-          auto result_map = memory_map.insert(std::make_pair(new_ptr, md));
-          if (!result_map.second) {
-            printf("duplicate insertion in map for pointer: %p\n", new_ptr);
-          }
-
-          auto result_set = memory_set.insert(md);
-          if (!result_set.second) {
-            printf("duplicate insertion in set for pointer: %p\n", new_ptr);
-          }
-
-          enabled = true;
-        }
-
-        return new_ptr;
+      void* new_ptr = std::realloc(ptr, n);
+      if (!new_ptr) {
+        enabled = was_enabled;
+        return nullptr;
       }
+
+      current_allocation_size -= found->second.n;
+      memory_set.erase(found->second);
+      memory_map.erase(found);
+
+      if (new_ptr != ptr) {
+        auto check_existing = memory_map.find(new_ptr);
+        if (check_existing != memory_map.end()) {
+          current_allocation_size -= check_existing->second.n;
+          memory_set.erase(check_existing->second);
+          memory_map.erase(check_existing);
+        }
+      }
+
+      current_allocation_size += n;
+
+      memory_data_t md;
+      md.p = new_ptr;
+      md.n = n;
+      md.line_data = std::stacktrace::current(0, 20);
+
+      memory_map.insert(std::make_pair(new_ptr, md));
+      memory_set.insert(md);
+
+      enabled = was_enabled;
+      return new_ptr;
     }
 
     void deallocate_memory(void* p) {
-      if (enabled) {
-        if (p) {
-          auto found = memory_map.find(p);
-          if (found == memory_map.end()) {
-            printf("freeing non-mapped memory: %p\n", p);
-          }
-          else {
-            current_allocation_size -= found->second.n;
-            memory_set.erase(found->second);
-            memory_map.erase(found);
-          }
-        }
+      if (!p) {
+        return;
       }
+
+      bool was_enabled = enabled;
+
+      if (!was_enabled) {
+        std::free(p);
+        return;
+      }
+
+      enabled = false;
+
+      auto found = memory_map.find(p);
+      if (found != memory_map.end()) {
+        current_allocation_size -= found->second.n;
+        memory_set.erase(found->second);
+        memory_map.erase(found);
+      }
+
       std::free(p);
+      enabled = was_enabled;
     }
 
     heap_profiler_t() = default;
@@ -270,6 +284,7 @@ export namespace fan {
     bool print_leaks = true;
   };
 }
+#endif
 
 
 #ifndef __generic_malloc

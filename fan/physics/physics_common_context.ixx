@@ -10,6 +10,7 @@ export module fan.physics.common_context;
 
 #if defined(fan_physics)
 
+import fan.utility;
 import fan.types.vector;
 
 export namespace fan::physics {

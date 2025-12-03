@@ -66,8 +66,19 @@ export import fan.noise;
 #if defined(fan_json)
 	export import fan.types.json;
 #endif
-// include memory. after, it expands
-#include <fan/memory/memory.h>
+
+bool v = [] {
+  fan::memory_profile_malloc_cb = [] (std::size_t n) {
+    return fan::heap_profiler_t::instance().allocate_memory(n);
+  };
+  fan::memory_profile_realloc_cb = [] (void* ptr, std::size_t n) {
+    return fan::heap_profiler_t::instance().reallocate_memory(ptr, n);
+  };
+  fan::memory_profile_free_cb = [] (void* ptr) {
+    fan::heap_profiler_t::instance().deallocate_memory(ptr);
+  };
+  return true;
+}();
 
 #if defined(fan_json)
 export namespace fan {
@@ -418,7 +429,7 @@ public:
   void draw_shapes();
   void process_shapes();
   void process_gui();
-
+  void get_vram_usage(int* total_mem_MB, int* used_MB);
   struct time_monitor_t {
     static constexpr int buffer_size = 128;
 

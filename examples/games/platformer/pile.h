@@ -103,9 +103,6 @@ pile_t::pile_t() {
 
   audio_background = fan::audio::piece_t("audio/background.sac");
 
-  fan::audio::set_volume(0.1f);
+  fan::audio::set_volume(0.0f);
   fan::audio::play(audio_background, 0, true);
-  // init map after setting current_stage
-  
-  get_level().load_map();
 }

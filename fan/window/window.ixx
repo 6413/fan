@@ -26,6 +26,7 @@ module;
 export module fan.window;
 
 import fan.print;
+export import fan.utility;
 export import fan.graphics.image_load;
 export import fan.window.input_common;
 export import fan.window.input_action;
