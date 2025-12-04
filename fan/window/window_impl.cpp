@@ -2,8 +2,6 @@ module;
 
 #include <fan/utility.h>
 
-#include <fan/types/bll_raii.h>
-
 #if defined(fan_vulkan)
 #include <vulkan/vulkan.h>
 #endif
