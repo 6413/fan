@@ -1184,7 +1184,7 @@ namespace fan::graphics::physics {
 
     fan::json json_data = fan::graphics::read_json(config.json_path, callers_path);
     fan::graphics::resolve_json_image_paths(json_data, config.json_path, callers_path);
-    fan::graphics::parse_animations(json_data, callers_path);
+    fan::graphics::parse_animations(config.json_path, json_data, callers_path);
     auto shape = fan::graphics::extract_single_shape(json_data, callers_path);
     fan::graphics::physics::character2d_t character;
     character.set_shape(std::move(shape));
@@ -1224,9 +1224,8 @@ namespace fan::graphics::physics {
   {
     if (movement_state.enabled) {
       movement_cb_handle.remove();
-      movement_cb_handle.rebind(this);
-      movement_cb_handle = add_movement_callback([](character2d_t* s) {
-        s->process_keyboard_movement(s->movement_state.type);
+      movement_cb_handle = add_movement_callback([this]() {
+        process_keyboard_movement(movement_state.type);
       });
     }
   }
@@ -1254,9 +1253,8 @@ namespace fan::graphics::physics {
 
       if (movement_state.enabled) {
         movement_cb_handle.remove();
-        movement_cb_handle.rebind(this);
-        movement_cb_handle = add_movement_callback([](character2d_t* s) {
-          s->process_keyboard_movement(s->movement_state.type);
+        movement_cb_handle = add_movement_callback([this]() {
+          process_keyboard_movement(movement_state.type);
         });
       }
     }
@@ -1295,9 +1293,8 @@ namespace fan::graphics::physics {
 
     if (movement_state.enabled) {
       movement_cb_handle.remove();
-      movement_cb_handle.rebind(this);
-      movement_cb_handle = add_movement_callback([](character2d_t* s) {
-        s->process_keyboard_movement(s->movement_state.type);
+      movement_cb_handle = add_movement_callback([this]() {
+        process_keyboard_movement(movement_state.type);
       });
     }
   }
@@ -1316,36 +1313,14 @@ namespace fan::graphics::physics {
       .cb = (void*)shape_physics_update
       });
   }
-  character2d_t::movement_callback_handle_t character2d_t::add_movement_callback(std::function<void(character2d_t*)> fn) {
-    using handle_t = movement_callback_handle_t;
-    using fn_t = typename handle_t::fn_t;
-    using add_fn = typename handle_t::add_fn;
-    using rem_fn = typename handle_t::remove_fn;
-
-    add_fn add = [](character2d_t* self, fn_t cb) {
-      return fan::physics::add_physics_step_callback(
-        [cb, self]() { cb(self); }
-      );
-    };
-
-    rem_fn remove = [](character2d_t*, fan::physics::physics_step_callback_nr_t nr) {
-      fan::physics::remove_physics_step_callback(nr);
-    };
-
-    return handle_t(
-      this,
-      std::move(add),
-      std::move(remove),
-      [fn](character2d_t* self) {
-      fn(self);
-    }
-    );
+  character2d_t::movement_callback_handle_t character2d_t::add_movement_callback(std::function<void()> fn) {
+    return fan::physics::add_physics_step_callback(fn);
   }
   void character2d_t::enable_default_movement(uint8_t movement) {
     movement_state.enabled = true;
     movement_state.type = movement;
-    movement_cb_handle = add_movement_callback([movement](character2d_t* self) {
-      self->process_keyboard_movement(movement);
+    movement_cb_handle = add_movement_callback([this, movement]() {
+      process_keyboard_movement(movement);
     });
   }
   void character2d_t::setup_default_animations(const fan::graphics::physics::character2d_t::character_config_t& config) {

@@ -76,21 +76,21 @@ struct simple_engine_demo_t {
     // Update the camera view
     interactive_camera.update();
 
-    mouse_move_nr = engine.on_mouse_move([&](fan::vec2 pos, fan::vec2 delta) {
+    mouse_move_nr = engine.on_mouse_move([&](const auto& d) {
       // Since camera is transformable, we want the mouse position inside the world, not the window
-      mouse_position = fan::graphics::transform_position(pos, engine.orthographic_render_view);
+      mouse_position = fan::graphics::transform_position(d.position, engine.orthographic_render_view);
     });
 
-    mouse_click_nr = engine.on_mouse_click(fan::mouse_left, [&]() {
+    mouse_click_nr = engine.on_mouse_click(fan::mouse_left, [&](const auto& data) {
       circles.push_back(fan::graphics::circle_t{{
-        .position = get_mouse_position(),
+        .position = data.position,
         .radius = fan::random::value(16.f, 48.f),
         .color = fan::random::bright_color()
       }});
       circle_velocities.push_back(fan::random::vec2(-120.f, 120.f));
     });
 
-    key_click_nr = engine.on_key_click(fan::key_space, [&] {
+    key_click_nr = engine.on_key_click(fan::key_space, [&] (const auto& data) {
       fan::vec2 window_size = fan::window::get_size();
       rectangles.push_back(fan::graphics::rectangle_t{
         fan::vec3(fan::random::vec2(0, window_size), 0),
@@ -99,10 +99,8 @@ struct simple_engine_demo_t {
       });
     });
 
-    key_click_nr2 = engine.on_key_click(fan::key_r, [&] {
-      rectangles.clear();
+    key_click_nr2 = engine.on_key_click(fan::key_r, [&] (const auto&) {
       circles.clear();
-      sprites.clear();
       circle_velocities.clear();
     });
   }
@@ -150,10 +148,10 @@ struct simple_engine_demo_t {
   std::vector<fan::graphics::light_t> lights;
   std::vector<fan::vec2> circle_velocities;
   fan::vec2 mouse_position;
-  fan::graphics::engine_t::mouse_move_nr_t mouse_move_nr;
-  fan::graphics::engine_t::mouse_click_nr_t mouse_click_nr;
-  fan::graphics::engine_t::key_click_nr_t key_click_nr;
-  fan::graphics::engine_t::key_click_nr_t key_click_nr2;
+  fan::graphics::engine_t::mouse_move_handle_t mouse_move_nr;
+  fan::graphics::engine_t::buttons_handle_t mouse_click_nr;
+  fan::graphics::engine_t::key_handle_t key_click_nr;
+  fan::graphics::engine_t::key_handle_t key_click_nr2;
 
   // Enables interactive camera controls
   // - Hold the middle mouse button to pan the view.

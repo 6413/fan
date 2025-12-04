@@ -232,6 +232,8 @@ namespace fan::graphics {
     return h1 ^ (h2 << 1);
   }
 
+  // cache path + file unique animation id
+  std::unordered_map<std::pair<animation_nr_t, std::string>, animation_nr_t, animation_pair_hash_t> all_animations_cache;
   std::unordered_map<animation_nr_t, sprite_sheet_animation_t, animation_nr_hash_t> all_animations;
   animation_nr_t all_animations_counter = 0;
   std::unordered_map<std::pair<animation_shape_nr_t, std::string>, animation_nr_t, animation_pair_hash_t> shape_animation_lookup_table;
@@ -352,9 +354,8 @@ namespace fan::graphics {
     return result;
   }
 
-  void sprite_sheet_deserialize(fan::json& json, const std::source_location& callers_path) {
-    animation_nr_t counter_offset = all_animations_counter;
-
+  void parse_animations(const std::string& json_path, fan::json& json, const std::source_location& callers_path) {
+    auto current_global_id = all_animations_counter.id;
     if (json.contains("animations")) {
       for (const auto& item : json["animations"]) {
         sprite_sheet_animation_t anim;
@@ -378,20 +379,35 @@ namespace fan::graphics {
         anim.fps = item.value("fps", 0.0f);
 
         animation_nr_t original_id = item.value("id", uint32_t());
-        animation_nr_t new_id = original_id.id + counter_offset.id;
+        animation_nr_t new_id = original_id.id + current_global_id;
+        auto found = all_animations_cache.find({original_id, std::filesystem::absolute(json_path).generic_string()});
+        if (found == all_animations_cache.end()) {
+          all_animations_cache[{original_id, std::filesystem::absolute(json_path).generic_string()}] = new_id;
+          all_animations_counter = std::max(all_animations_counter.id, static_cast<uint32_t>(new_id.id + 1));
+        }
+        else {
+          new_id = found->second;
+        }
         all_animations[new_id] = anim;
-        all_animations_counter = std::max(all_animations_counter.id, static_cast<uint32_t>(new_id.id + 1));
       }
     }
 
     // update animation id table
     if (json.contains("shapes")) {
       for (auto& shape : json["shapes"]) {
-        // Update animation references in each shape
         if (shape.contains("animations")) {
           for (auto& anim_id : shape["animations"]) {
             animation_nr_t original_id = anim_id.get<uint32_t>();
-            anim_id = original_id.id + counter_offset.id;
+            animation_nr_t new_id = original_id.id + current_global_id;
+
+            auto found = all_animations_cache.find({original_id, std::filesystem::absolute(json_path).generic_string()});
+            if (found == all_animations_cache.end()) {
+              all_animations_cache[{original_id, std::filesystem::absolute(json_path).generic_string()}] = new_id;
+              all_animations_counter = std::max(all_animations_counter.id, static_cast<uint32_t>(new_id.id + 1));
+            } else {
+              new_id = found->second;
+            }
+            anim_id = new_id.id;
           }
         }
       }

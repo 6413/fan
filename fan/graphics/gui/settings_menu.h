@@ -1,4 +1,3 @@
-
 struct settings_menu_t;
 
 typedef void(*page_function_t)(settings_menu_t*, const fan::vec2& next_window_position, const fan::vec2& next_window_size);
@@ -140,6 +139,7 @@ struct settings_menu_t {
         gui::table_next_column();
         gui::checkbox("##show_fps", (bool*)&gloco->show_fps);
       }
+    #if defined(fan_std23)
       {
         gui::table_next_row();
         gui::table_next_column();
@@ -149,6 +149,7 @@ struct settings_menu_t {
           gloco->console.commands.call("debug_memory " + std::to_string((int)fan::heap_profiler_t::instance().enabled));
         }
       }
+    #endif
       {
         gui::table_next_row();
         gui::table_next_column();

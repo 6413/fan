@@ -105,7 +105,8 @@ export namespace fan {
       operator bool();
     };
 
-    using physics_step_callback_nr_t = physics_step_callbacks_NodeReference_t;
+    using physics_step_callback_nr_t = fan::raii_nr_t<
+      physics_step_callbacks_t::nr_t, fan::physics::context_t>;
 
     struct overlap_test_context_t {
       bool found_overlap = false;

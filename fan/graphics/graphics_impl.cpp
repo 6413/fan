@@ -678,7 +678,7 @@ namespace fan::graphics {
   {
     fan::json json_data = fan::graphics::read_json(config.path, callers_path);
     resolve_json_image_paths(json_data, config.path, callers_path);
-    fan::graphics::parse_animations(json_data, callers_path);
+    fan::graphics::parse_animations(config.path, json_data, callers_path);
     auto shape = fan::graphics::extract_single_shape(json_data, callers_path);
     shape.set_animation_loop(shape.get_current_animation_id(), config.loop);
     if (config.start) {

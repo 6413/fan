@@ -416,6 +416,7 @@ enum class name { __VA_ARGS__ }
 
 #if __cplusplus >= 202004L && defined(fan_compiler_msvc) && !defined(fan_compiler_clang) && __has_include("stacktrace") // wsl
 	#define fan_std23
+#undef fan_std23
 #endif
 
 #if __cplusplus >= 202302L && !defined(fan_compiler_msvc) && __has_include("stacktrace")
@@ -589,13 +590,6 @@ enum class name { __VA_ARGS__ }
 			throw exception_t{ .reason = reason };
 #endif
 		}
-
-    using memory_profile_malloc_cb_t = void*(*)(std::size_t n);
-    using memory_profile_realloc_cb_t = void*(*)(void* ptr, std::size_t n);
-    using memory_profile_free_cb_t = void(*)(void* ptr);
-    inline memory_profile_malloc_cb_t memory_profile_malloc_cb = nullptr;
-    inline memory_profile_realloc_cb_t memory_profile_realloc_cb = nullptr;
-    inline memory_profile_free_cb_t memory_profile_free_cb = nullptr;
 	}
 	#define __throw_error_impl
 #endif

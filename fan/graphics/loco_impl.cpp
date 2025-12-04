@@ -96,6 +96,9 @@ namespace fan {
 #endif
 
 namespace fan::graphics {
+
+  engine_init_t::init_callback_t engine_init_cbs;
+
   std::uint32_t get_draw_mode(std::uint8_t internal_draw_mode) {
     if (gloco->get_renderer() == fan::window_t::renderer_t::opengl) {
     #if defined(fan_opengl)
@@ -846,8 +849,7 @@ loco_t::loco_t(const loco_t::properties_t& p) {
   };
   fan::graphics::g_shapes = &shapes;
 
-#if defined(fan_gui) && defined(fan_std23)
-
+#if defined(fan_gui)
   fan::graphics::gui::profile_heap(
     [](size_t size, void* user_data) -> void* {
     return fan::heap_profiler_t::instance().allocate_memory(size); // malloc
@@ -999,7 +1001,9 @@ loco_t::loco_t(const loco_t::properties_t& p) {
 
   fan::graphics::g_render_context_handle.default_texture = default_texture;
 
+#if defined(fan_gui)
   console.commands.call("debug_memory " + std::to_string((int)fan::heap_profiler_t::instance().enabled));
+#endif
 }
 
 loco_t::~loco_t() {
@@ -2344,44 +2348,56 @@ namespace fan::graphics::gui {
   }
   // fan_track_allocations() must be called in global scope before calling this function
   void render_allocations_plot() {
-  #if defined(fan_std23)
     using namespace fan::graphics;
+
+    struct pause_state_t {
+      bool paused;
+    };
+
+    static pause_state_t pause_state = {
+      false
+    };
+
+    gui::checkbox("pause updates", &pause_state.paused);
 
     static std::vector<f32_t> allocation_sizes;
     static std::vector<fan::heap_profiler_t::memory_data_t> allocations;
+    static f32_t max_y = 0;
 
-    allocation_sizes.clear();
-    allocations.clear();
+    if (!pause_state.paused) {
+      allocation_sizes.clear();
+      allocations.clear();
+      max_y = 0;
 
-    f32_t max_y = 0;
+      auto &profiler = fan::heap_profiler_t::instance();
 
-    auto& profiler = fan::heap_profiler_t::instance();
+      std::vector<std::pair<void*, fan::heap_profiler_t::memory_data_t>> sorted_allocs;
+      sorted_allocs.reserve(profiler.memory_map.size());
 
-    std::vector<std::pair<void*, fan::heap_profiler_t::memory_data_t>> sorted_allocs;
-    sorted_allocs.reserve(profiler.memory_map.size());
+      for (auto const &kv : profiler.memory_map) {
+        sorted_allocs.emplace_back(const_cast<void*>(kv.first), kv.second);
+      }
 
-    for (const auto& kv : profiler.memory_map) {
-      sorted_allocs.emplace_back(const_cast<void*>(kv.first), kv.second);
+      std::sort(sorted_allocs.begin(), sorted_allocs.end(),
+        [](auto const &a, auto const &b) {
+        return (uintptr_t)a.first < (uintptr_t)b.first;
+      });
+
+      for (auto const &[addr, data] : sorted_allocs) {
+        f32_t v = (f32_t)data.n / (1024 * 1024);
+        allocation_sizes.push_back(v);
+        max_y = max_y < v ? v : max_y;
+        allocations.push_back(data);
+      }
     }
 
-    std::sort(sorted_allocs.begin(), sorted_allocs.end(),
-      [](const auto& a, const auto& b) {
-      return reinterpret_cast<std::uintptr_t>(a.first) <
-        reinterpret_cast<std::uintptr_t>(b.first);
-    });
-
-    for (const auto& [addr, data] : sorted_allocs) {
-      f32_t v = (f32_t)data.n / (1024 * 1024);
-      allocation_sizes.push_back(v);
-      max_y = std::max(max_y, v);
-      allocations.push_back(data);
-    }
-
+    auto &profiler = fan::heap_profiler_t::instance();
     gui::text("Active allocations:", profiler.memory_map.size());
     gui::text("Allocation size:", profiler.current_allocation_size / 1e6, " (MB)");
 
     int total_mem_MB, used_MB;
     gloco->get_vram_usage(&total_mem_MB, &used_MB);
+
     if (used_MB != -1) {
       gui::text("VRAM used memory", used_MB, " (MB)");
     }
@@ -2389,41 +2405,55 @@ namespace fan::graphics::gui {
       gui::text("VRAM total memory", total_mem_MB, " (MB)");
     }
 
+    fan::vec2 cursor_pos = gui::get_cursor_pos();
+    fan::vec2 window_size = gui::get_window_size();
+    fan::vec2 available_size = window_size - cursor_pos;
+
+  #if defined(fan_std23)
     static std::stacktrace stack;
-    if (allocation_sizes.size() && gui::plot::begin_plot("Memory Allocations", gui::get_window_size(), gui::plot::flags_no_frame | gui::plot::flags_no_legend)) {
-      f32_t max_allocation = *std::max_element(allocation_sizes.begin(), allocation_sizes.end());
+  #endif
+
+    if (allocation_sizes.size() && gui::plot::begin_plot("Memory Allocations", available_size, gui::plot::flags_no_frame | gui::plot::flags_no_legend)) {
       gui::plot::setup_axis(gui::plot::axis_y1, "Memory (MB)");
       gui::plot::setup_axis_limits(gui::plot::axis_y1, 0, max_y);
       gui::plot::setup_axis(gui::plot::axis_x1, "Allocations");
-      gui::plot::setup_axis_limits(gui::plot::axis_x1, 0, static_cast<double>(allocation_sizes.size()));
+      gui::plot::setup_axis_limits(gui::plot::axis_x1, 0, (double)allocation_sizes.size());
 
       gui::plot::push_style_var(gui::plot::style_var_fill_alpha, 0.25f);
       gui::plot::plot_bars("Allocations", allocation_sizes.data(), allocation_sizes.size());
       gui::plot::pop_style_var();
 
       bool hovered = false;
+
       if (gui::plot::is_plot_hovered()) {
-        gui::plot::point_t mouse = gui::plot::get_plot_mouse_pos();
-        f32_t half_width = 0.25;
+        auto mouse = gui::plot::get_plot_mouse_pos();
         mouse.x = (int)mouse.x;
+
+        f32_t half_width = 0.25;
         f32_t tool_l = gui::plot::plot_to_pixels(mouse.x - half_width * 1.5, mouse.y).x;
         f32_t tool_r = gui::plot::plot_to_pixels(mouse.x + half_width * 1.5, mouse.y).x;
         f32_t tool_t = gui::plot::get_plot_pos().y;
         f32_t tool_b = tool_t + gui::plot::get_plot_size().y;
+
         gui::plot::push_plot_clip_rect();
         auto draw_list = gui::get_window_draw_list();
-        draw_list->AddRectFilled(fan::vec2(tool_l, tool_t), fan::vec2(tool_r, tool_b), fan::color(128, 128, 128, 64).get_imgui_color());
+        draw_list->AddRectFilled(fan::vec2(tool_l, tool_t), fan::vec2(tool_r, tool_b),
+          fan::color(128, 128, 128, 64).get_imgui_color());
         gui::plot::pop_plot_clip_rect();
 
+      #if defined(fan_std23)
         if (mouse.x >= 0 && mouse.x < allocation_sizes.size()) {
           if (fan::window::is_mouse_clicked()) {
+            pause_state.paused = true;
             open_popup("view stack");
           }
           stack = allocations[(int)mouse.x].line_data;
           hovered = true;
         }
+      #endif
       }
 
+    #if defined(fan_std23)
       if (hovered) {
         begin_tooltip();
         std::ostringstream oss;
@@ -2431,25 +2461,23 @@ namespace fan::graphics::gui {
         std::string stack_str = oss.str();
         std::string final_str;
         std::size_t pos = 0;
-        while (true) {
+
+        for (;;) {
           auto end = stack_str.find(')', pos);
-          if (end != std::string::npos) {
-            end += 1;
-            auto begin = stack_str.rfind('\\', end);
-            if (begin != std::string::npos) {
-              begin += 1;
-              final_str += stack_str.substr(begin, end - begin);
-              final_str += "\n";
-              pos = end + 1;
-            }
-            else {
-              break;
-            }
-          }
-          else {
+          if (end == std::string::npos) {
             break;
           }
+          end += 1;
+          auto begin = stack_str.rfind('\\', end);
+          if (begin == std::string::npos) {
+            break;
+          }
+          begin += 1;
+          final_str += stack_str.substr(begin, end - begin);
+          final_str += "\n";
+          pos = end + 1;
         }
+
         text_unformatted(final_str.c_str());
         end_tooltip();
       }
@@ -2460,12 +2488,10 @@ namespace fan::graphics::gui {
         text_unformatted(oss.str().c_str());
         end_popup();
       }
+    #endif
 
       gui::plot::end_plot();
     }
-  #else
-    gui::text("std::stacktrace not supported");
-  #endif
   }
 } // namespace fan::graphics::gui
 #endif

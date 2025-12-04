@@ -577,7 +577,6 @@ void main() {
     std::array<physics::rectangle_t, 4> walls;
     fan::graphics::physics::character2d_t player;
     std::vector<physics::rectangle_t> placed_blocks;
-    fan::physics::physics_step_callback_nr_t physics_step_cb_nr;
   }*demo_physics_platformer_data = 0;
 
   static void demo_physics_init_platformer(engine_demo_t* engine_demo) {
@@ -609,10 +608,7 @@ void main() {
     }
     );
 
-    data.physics_step_cb_nr = fan::physics::add_physics_step_callback([engine_demo] {
-      // Process player movement
-      engine_demo->demo_physics_platformer_data->player.process_movement();
-    });
+    engine_demo->demo_physics_platformer_data->player.enable_default_movement();
   }
 
   static void demo_physics_update_platformer(engine_demo_t* engine_demo) {
@@ -678,7 +674,6 @@ void main() {
 
   static void demo_physics_cleanup_platformer(engine_demo_t* engine_demo) {
     auto& data = *engine_demo->demo_physics_platformer_data;
-    fan::physics::remove_physics_step_callback(data.physics_step_cb_nr);
     // Unload highlight image
     engine_demo->engine.image_unload(data.highlight_image);
     delete engine_demo->demo_physics_platformer_data;
@@ -1313,7 +1308,7 @@ void main() {
     gui::push_style_color(gui::col_window_bg, fan::colors::transparent);
 
     engine_demo.mouse_inside_demo_view = engine_demo.engine.is_mouse_inside(engine_demo.right_column_view);
-    engine_demo.interactive_camera.ignore = !engine_demo.mouse_inside_demo_view;
+    engine_demo.interactive_camera.ignore_input = !engine_demo.mouse_inside_demo_view;
 
     fan_graphics_gui_window("##Menu Engine Demo Right Content Bottom", 0, wnd_flags | gui::window_flags_no_inputs) {
       gui::set_viewport(engine_demo.right_column_view.viewport);
