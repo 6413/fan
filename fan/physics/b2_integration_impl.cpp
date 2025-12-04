@@ -13,7 +13,7 @@ module;
 
 module fan.physics.b2_integration;
 
-import fan;
+import fan.utility;
 
 #if defined(fan_physics)
 namespace fan::physics {
@@ -239,10 +239,12 @@ namespace fan::physics {
   }
 
   context_t::context_t(const properties_t& properties) {
+  #if defined(fan_std23)
     b2SetAllocator(
       [](unsigned int size, int a) { return fan::heap_profiler_t::instance().allocate_memory(size); },
       [](void* mem) { fan::heap_profiler_t::instance().deallocate_memory(mem); }
     );
+  #endif
     gphysics = this;
     b2WorldDef world_def = b2DefaultWorldDef();
     world_def.gravity = properties.gravity;
@@ -842,9 +844,9 @@ namespace fan::physics {
     return gphysics->create_sensor_rectangle(position, size);
   }
   physics_step_callback_nr_t add_physics_step_callback(std::function<void()> callback) {
-    auto nr = gphysics->physics_step_callbacks.NewNodeLast();
-    gphysics->physics_step_callbacks[nr] = std::move(callback);
-    return nr;
+    return fan::add_bll_raii_struct_cb<
+      fan::physics::context_t
+    >(gphysics, &fan::physics::context_t::physics_step_callbacks, std::move(callback));
   }
   void remove_physics_step_callback(physics_step_callback_nr_t nr) {
     gphysics->physics_step_callbacks.unlrec(nr);

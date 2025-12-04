@@ -2,8 +2,6 @@ module;
 
 #include <fan/utility.h>
 
-#include <fan/types/bll_raii.h>
-
 #if defined(fan_vulkan)
 #include <vulkan/vulkan.h>
 #endif
@@ -245,7 +243,7 @@ export namespace fan {
     #include <BLL/BLL.h>
 
     #define FAN_DEFINE_CB_RAII(NAME, STORAGE, NODE_REF, PARAM_TYPE)                         \
-      using NAME##_handle_t = bll_nr_t<NODE_REF, window_t, const PARAM_TYPE&>;              \
+      using NAME##_handle_t = raii_nr_t<NODE_REF, window_t, const PARAM_TYPE&>;              \
                                                                                             \
       NAME##_handle_t add_##NAME##_callback(                                                \
         std::function<void(const PARAM_TYPE&)> fn)                                          \
@@ -286,8 +284,8 @@ export namespace fan {
     FAN_DEFINE_CB_RAII(key_down, m_key_down_callbacks, key_down_callbacks_NodeReference_t, keys_data_t);
     FAN_DEFINE_CB_RAII(mouse_down, m_mouse_down_callbacks, mouse_down_callbacks_NodeReference_t, buttons_data_t);
 
-    using key_handle_t = bll_nr_t<key_callback_NodeReference_t, window_t, const key_data_t&>;
-    using text_callback_handle_t = bll_nr_t<text_callback_NodeReference_t, window_t, const text_data_t&>;
+    using key_handle_t = raii_nr_t<key_callback_NodeReference_t, window_t, const key_data_t&>;
+    using text_callback_handle_t = raii_nr_t<text_callback_NodeReference_t, window_t, const text_data_t&>;
 
     using button_data_t = buttons_data_t;
     using mouse_down_data_t = buttons_data_t;

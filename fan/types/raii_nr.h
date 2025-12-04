@@ -1,10 +1,13 @@
+//
+/*
 #pragma once
 
 #include <functional>
 #include <unordered_map>
 #include <utility>
+*/
 
-#define AUTO_BLL_FIELD(nr_t, name, owner_t, ...)                      \
+#define AUTO_RAII_FIELD(nr_t, name, owner_t, ...)                      \
   owner_t(const owner_t& o) : name(o.name) { name.rebind(this); }     \
   owner_t(owner_t&& o)      : name(std::move(o.name)) {               \
     name.rebind(this);                                               \
@@ -18,7 +21,7 @@
     return *this;                                                     \
   }
 
-#define AUTO_BLL_DEBUG_FIELD(nr_t, name, owner_t, ...)                \
+#define AUTO_RAII_DEBUG_FIELD(nr_t, name, owner_t, ...)                \
   owner_t(const owner_t& o) : name(o.name) { name.rebind(this); }     \
   owner_t(owner_t&& o)      : name(std::move(o.name)) {               \
     name.rebind(this);                                               \
@@ -38,7 +41,7 @@ template <
   typename user_t,
   typename... params
 >
-struct bll_nr_t : nr_t {
+struct raii_nr_t : nr_t {
 
   using fn_t      = std::function<void(user_t*, params...)>;
   using add_fn    = std::function<nr_t(user_t*, fn_t)>;
@@ -60,8 +63,8 @@ struct bll_nr_t : nr_t {
   operator const nr_t&() const { return *static_cast<const nr_t*>(this); }
   operator nr_t&()             { return *static_cast<nr_t*>(this); }
 
-  bll_nr_t() { nr_t::sic(); }
-  ~bll_nr_t() { remove(); }
+  raii_nr_t() { nr_t::sic(); }
+  ~raii_nr_t() { remove(); }
 
   fn_t make_wrapper() const {
     return [this](user_t*, params... ps) {
@@ -70,7 +73,7 @@ struct bll_nr_t : nr_t {
   }
 
   template <typename fn_raw_t>
-  bll_nr_t(user_t* p, add_fn add, remove_fn remove, fn_raw_t&& fn_raw) {
+  raii_nr_t(user_t* p, add_fn add, remove_fn remove, fn_raw_t&& fn_raw) {
     nr_t::sic();
     state.user_ptr = p;
     state.add_cb   = std::move(add);
@@ -81,20 +84,20 @@ struct bll_nr_t : nr_t {
     create_new();
   }
 
-  bll_nr_t(const bll_nr_t& o) {
+  raii_nr_t(const raii_nr_t& o) {
     nr_t::sic();
     state = o.state;
     create_new();
   }
 
-  bll_nr_t(bll_nr_t&& o) noexcept {
+  raii_nr_t(raii_nr_t&& o) noexcept {
     nr_t::sic();
     state = o.state;
     create_new();
     o.remove();
   }
 
-  bll_nr_t& operator=(const bll_nr_t& o) {
+  raii_nr_t& operator=(const raii_nr_t& o) {
     if (this != &o) {
       remove();
       nr_t::sic();
@@ -104,7 +107,7 @@ struct bll_nr_t : nr_t {
     return *this;
   }
 
-  bll_nr_t& operator=(bll_nr_t&& o) noexcept {
+  raii_nr_t& operator=(raii_nr_t&& o) noexcept {
     if (this != &o) {
       remove();
       nr_t::sic();
@@ -137,9 +140,9 @@ template <
   typename user_t,
   typename... params
 >
-struct bll_nr_debug_t : bll_nr_t<nr_t, user_t, params...> {
+struct raii_nr_debug_t : raii_nr_t<nr_t, user_t, params...> {
 
-  using base_t = bll_nr_t<nr_t, user_t, params...>;
+  using base_t = raii_nr_t<nr_t, user_t, params...>;
   using fn_t   = typename base_t::fn_t;
   using base_t::state;
 
@@ -148,7 +151,7 @@ struct bll_nr_debug_t : bll_nr_t<nr_t, user_t, params...> {
   void* key = nullptr;
   fn_t stored;
 
-  bll_nr_debug_t() { nr_t::sic(); }
+  raii_nr_debug_t() { nr_t::sic(); }
 
   void make_key() {
     key = new int(0);
@@ -175,7 +178,7 @@ struct bll_nr_debug_t : bll_nr_t<nr_t, user_t, params...> {
   }
 
   template <typename fn_raw_t>
-  bll_nr_debug_t(user_t* p,
+  raii_nr_debug_t(user_t* p,
       typename base_t::add_fn add,
       typename base_t::remove_fn remove,
       fn_raw_t&& fn_raw)
@@ -190,7 +193,7 @@ struct bll_nr_debug_t : bll_nr_t<nr_t, user_t, params...> {
     base_t::create_new();
   }
 
-  bll_nr_debug_t(const bll_nr_debug_t& o) {
+  raii_nr_debug_t(const raii_nr_debug_t& o) {
     nr_t::sic();
     state  = o.state;
     stored = o.stored;
@@ -199,7 +202,7 @@ struct bll_nr_debug_t : bll_nr_t<nr_t, user_t, params...> {
     base_t::create_new();
   }
 
-  bll_nr_debug_t(bll_nr_debug_t&& o) noexcept {
+  raii_nr_debug_t(raii_nr_debug_t&& o) noexcept {
     nr_t::sic();
     state  = o.state;
     stored = std::move(o.stored);
@@ -210,11 +213,11 @@ struct bll_nr_debug_t : bll_nr_t<nr_t, user_t, params...> {
     o.remove();
   }
 
-  ~bll_nr_debug_t() {
+  ~raii_nr_debug_t() {
     if (key) delete_key();
   }
 
-  bll_nr_debug_t& operator=(const bll_nr_debug_t& o) {
+  raii_nr_debug_t& operator=(const raii_nr_debug_t& o) {
     if (this != &o) {
       if (key) delete_key();
       base_t::remove();
@@ -228,7 +231,7 @@ struct bll_nr_debug_t : bll_nr_t<nr_t, user_t, params...> {
     return *this;
   }
 
-  bll_nr_debug_t& operator=(bll_nr_debug_t&& o) noexcept {
+  raii_nr_debug_t& operator=(raii_nr_debug_t&& o) noexcept {
     if (this != &o) {
       if (key) delete_key();
       base_t::remove();

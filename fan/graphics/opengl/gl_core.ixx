@@ -234,7 +234,7 @@ export namespace fan::opengl {
 
     fan::graphics::image_nr_t image_load_internal(
       const std::string& path,
-      const fan::opengl::context_t::image_load_properties_t& p = fan::opengl::context_t::image_load_properties_t(),
+      const fan::opengl::context_t::image_load_properties_t& p,
       const std::source_location& callers_path = std::source_location::current()
     );
     void image_reload_internal(

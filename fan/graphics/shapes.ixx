@@ -297,10 +297,7 @@ export namespace fan::graphics {
 
 #if defined(fan_json)
   fan::json sprite_sheet_serialize();
-  void sprite_sheet_deserialize(fan::json& json, const std::source_location& callers_path = std::source_location::current());
-  void parse_animations(fan::json& json_in, const std::source_location& callers_path = std::source_location::current()) {
-    sprite_sheet_deserialize(json_in, callers_path);
-  }
+  void parse_animations(const std::string& json_path, fan::json& json, const std::source_location& callers_path = std::source_location::current());
 #endif
   //-----------------------sprite sheet animations-----------------------
 

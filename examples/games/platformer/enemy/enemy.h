@@ -82,9 +82,6 @@ struct enemy_t {
       }
     });
   }
-  ~enemy_t() {
-    fan::physics::remove_physics_step_callback(physics_step_nr);
-  }
   bool should_attack(fan::graphics::physics::character2d_t& c){
     fan::vec2 distance = ai_behavior.get_target_distance(c.get_physics_position());
     return c.attack_state.try_attack(&c, distance);

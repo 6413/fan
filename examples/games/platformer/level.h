@@ -24,7 +24,7 @@ void load_enemies() {
   pile->renderer.iterate_visual(main_map_id, [&](fte_loader_t::tile_t& tile) {
     if (tile.id.contains("enemy_skeleton")) {
       auto nr = pile->enemy_skeleton.NewNodeLast();
-      pile->enemy_skeleton[nr] =  skeleton_t(pile->enemy_skeleton, nr, tile.position);
+      pile->enemy_skeleton[nr] = skeleton_t(pile->enemy_skeleton, nr, tile.position);
     }
   });
 }
@@ -146,16 +146,16 @@ void update() {
   }
 
   static bool pause = false;
-  //if (!pile->engine.render_console) {
+  if (!pile->engine.render_console) {
     if (fan::window::is_key_pressed(fan::key_e)) {
       pause = !pause;
     }
-    reload_map();
-    return;
+  
     if (fan::window::is_key_pressed(fan::key_r)) {
-      
+      reload_map();
+      return;
     }
- // }
+  }
   pile->renderer.update(main_map_id, pile->player.body.get_position());
   if (pause) {
     return;

@@ -8,7 +8,6 @@ module;
 #if defined(fan_vulkan)
   #include <vulkan/vulkan.h>
 #endif
-#include <fan/types/bll_raii.h>
 #include <fan/event/types.h>
 #include <uv.h>
 #undef min
@@ -29,9 +28,6 @@ module;
 #include <iostream>
 #include <coroutine>
 #include <map>
-#if defined(fan_std23)
-  #include <stacktrace>
-#endif
 
 export module fan.graphics.loco;
 
@@ -66,19 +62,6 @@ export import fan.noise;
 #if defined(fan_json)
 	export import fan.types.json;
 #endif
-
-bool v = [] {
-  fan::memory_profile_malloc_cb = [] (std::size_t n) {
-    return fan::heap_profiler_t::instance().allocate_memory(n);
-  };
-  fan::memory_profile_realloc_cb = [] (void* ptr, std::size_t n) {
-    return fan::heap_profiler_t::instance().reallocate_memory(ptr, n);
-  };
-  fan::memory_profile_free_cb = [] (void* ptr) {
-    fan::heap_profiler_t::instance().deallocate_memory(ptr);
-  };
-  return true;
-}();
 
 #if defined(fan_json)
 export namespace fan {
@@ -167,10 +150,7 @@ export namespace fan::graphics {
 		using init_callback_nr_t = init_callback_NodeReference_t;
 	};
 	// cbs called every time engine opens
-#if !defined(fan_compiler_msvc)
-  inline 
-#endif
-	engine_init_t::init_callback_t engine_init_cbs;
+	extern engine_init_t::init_callback_t engine_init_cbs;
 
 	std::uint32_t get_draw_mode(std::uint8_t internal_draw_mode);
 

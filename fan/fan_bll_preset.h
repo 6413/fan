@@ -31,5 +31,4 @@
 #ifndef bcontainer_set_alloc_close
 	#define bcontainer_set_alloc_close(ptr) fan::memory_profile_free_cb(ptr)
 #endif
-
 #define _BLL_INCLUDE(_path) <FAN_INCLUDE_PATH/fan/_path>

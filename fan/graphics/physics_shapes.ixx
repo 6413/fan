@@ -5,7 +5,6 @@ module;
 #if defined(fan_physics)
   #include <fan/utility.h>
   #include <box2d/box2d.h>
-  #include <fan/types/bll_raii.h>
 #endif
 
 #include <source_location>
@@ -13,6 +12,7 @@ module;
 #include <unordered_set>
 #include <vector>
 #include <algorithm>
+#include <functional>
 
 export module fan.graphics.physics_shapes;
 
@@ -551,7 +551,7 @@ export namespace fan {
       };
 
       struct ai_behavior_t {
-        using movement_callback_handle_t = bll_nr_t<fan::physics::physics_step_callback_nr_t, character2d_t>;
+        using movement_callback_handle_t = fan::physics::physics_step_callback_nr_t;
         enum behavior_type_e {
           none,
           follow_target,
@@ -581,7 +581,7 @@ export namespace fan {
 
       struct character2d_t : physics::base_shape_t {
         using physics::base_shape_t::base_shape_t;
-        using movement_callback_handle_t = bll_nr_t<fan::physics::physics_step_callback_nr_t, character2d_t>;
+        using movement_callback_handle_t = fan::physics::physics_step_callback_nr_t;
 
         struct character_config_t {
           std::string json_path;
@@ -608,7 +608,7 @@ export namespace fan {
         void set_shape(fan::graphics::shape_t&& shape);
         void set_physics_body(fan::physics::entity_t&& entity);
 
-        movement_callback_handle_t add_movement_callback(std::function<void(character2d_t*)> fn);
+        movement_callback_handle_t add_movement_callback(std::function<void()> fn);
         void enable_default_movement(uint8_t movement = movement_e::side_view);
 
         void setup_default_animations(const fan::graphics::physics::character2d_t::character_config_t& config);

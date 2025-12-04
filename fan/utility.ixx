@@ -9,6 +9,18 @@ module;
 #include <set>
 #include <stacktrace>
 #include <map>
+#include <functional> // raii_nr_t
+#include <cstring>
+
+namespace raii_build {
+  #include <fan/types/raii_nr.h>
+}
+
+namespace heap_profiler {
+  #include <fan/memory/memory.h>
+}
+
+fan_track_allocations();
 
 export module fan.utility;
 
@@ -353,22 +365,145 @@ namespace fan {
   }
 }
 
-// include memory. after, it expands
-#include <fan/memory/memory.h>
-bool v = [] {
-  fan::memory_profile_malloc_cb = [] (std::size_t n) {
-    return fan::heap_profiler_t::instance().allocate_memory(n);
+
+export namespace fan {
+  using heap_profiler_t = heap_profiler::heap_profiler_t;
+  void* memory_profile_malloc_cb(std::size_t n) {
+    return heap_profiler_t::instance().allocate_memory(n);
+  }
+  void* memory_profile_realloc_cb(void* ptr, std::size_t n) {
+    return heap_profiler_t::instance().reallocate_memory(ptr, n);
+  }
+  void memory_profile_free_cb(void* ptr) {
+    heap_profiler_t::instance().deallocate_memory(ptr);
+  }
+}
+
+export namespace fan{
+  template<typename T>
+  struct fn_traits : fn_traits<decltype(&T::operator())> {};
+  template<typename C, typename R, typename... Args>
+  struct fn_traits<R (C::*)(Args...) const> {
+    template<template<typename...> typename Z, typename... X>
+    static auto apply(X&&... x) {
+      return Z<X..., Args...>::call(std::forward<X>(x)...);
+    }
   };
-  fan::memory_profile_realloc_cb = [] (void* ptr, std::size_t n) {
-    return fan::heap_profiler_t::instance().reallocate_memory(ptr, n);
+  template<typename C, typename R, typename... Args>
+  struct fn_traits<R (C::*)(Args...)> : fn_traits<R (C::*)(Args...) const> {};
+  template<typename R, typename... Args>
+  struct fn_traits<R(Args...)> {
+    template<template<typename...> typename Z, typename... X>
+    static auto apply(X&&... x) {
+      return Z<X..., Args...>::call(std::forward<X>(x)...);
+    }
   };
-  fan::memory_profile_free_cb = [] (void* ptr) {
-    fan::heap_profiler_t::instance().deallocate_memory(ptr);
+  template<typename R, typename... Args>
+  struct fn_traits<R (*)(Args...)> : fn_traits<R(Args...)> {};
+  template<typename... Ts>
+  struct type_pack {};
+  template<typename T>
+  struct lambda_traits : lambda_traits<decltype(&T::operator())> {};
+  template<typename C, typename R, typename... Args>
+  struct lambda_traits<R (C::*)(Args...) const> {
+    using args = type_pack<Args...>;
   };
-  return true;
-}();
-export {
-  fan_track_allocations();
+  template<typename C, typename R, typename... Args>
+  struct lambda_traits<R (C::*)(Args...)> : lambda_traits<R (C::*)(Args...) const> {};
+  template<typename R, typename... Args>
+  struct lambda_traits<R(Args...)> {
+    using args = type_pack<Args...>;
+  };
+  template<typename R, typename... Args>
+  struct lambda_traits<R (*)(Args...)> : lambda_traits<R(Args...)> {};
+}
+
+export namespace fan{
+  template <
+    typename nr_t,
+    typename user_t,
+    typename... params
+  >
+  using raii_nr_t = raii_build::raii_nr_t<nr_t, user_t, params...>;
+
+  template<typename bll_t, typename user_fn_t, typename... param_t>
+  auto add_bll_raii_impl(bll_t& bll, user_fn_t&& user_fn, fan::type_pack<param_t...>){
+    using storage_t = std::remove_reference_t<bll_t>;
+    using node_ref_t = typename storage_t::nr_t;
+    using handle_t = raii_nr_t<node_ref_t, storage_t, param_t...>;
+    using fn_t = typename handle_t::fn_t;
+    using add_fn_t = typename handle_t::add_fn;
+    using remove_fn_t = typename handle_t::remove_fn;
+    struct callbacks_t{
+      static node_ref_t add_impl(storage_t* s, fn_t cb){
+        auto nr = s->NewNodeLast();
+        (*s)[nr] = [cb](param_t... d){
+          cb(nullptr, d...);
+        };
+        return nr;
+      }
+      static void remove_impl(storage_t* s, const node_ref_t& nr){
+        if (s->NodeList.Current) {
+          s->unlrec(nr);
+        }
+      }
+      storage_t* s;
+      fn_t cb;
+    };
+    return handle_t(
+      &bll,
+      add_fn_t(callbacks_t::add_impl),
+      remove_fn_t(callbacks_t::remove_impl),
+      [user_fn = std::forward<user_fn_t>(user_fn)](storage_t*, param_t... d){
+        user_fn(d...);
+      }
+    );
+  }
+  template<typename bll_t, typename user_fn_t>
+  auto add_bll_raii_cb(bll_t& bll, user_fn_t&& user_fn){
+    using traits = fan::lambda_traits<std::remove_reference_t<user_fn_t>>;
+    using args_pack = typename traits::args;
+    return add_bll_raii_impl(bll, std::forward<user_fn_t>(user_fn), args_pack{});
+  }
+
+  template<typename owner_t, typename storage_t, typename node_ref_t, typename user_fn_t, typename... param_t>
+  auto add_bll_raii_struct_impl(owner_t* owner, storage_t owner_t::*storage_member, user_fn_t&& user_fn, fan::type_pack<param_t...>){
+    using handle_t = raii_nr_t<node_ref_t, owner_t, param_t...>;
+    using fn_t = typename handle_t::fn_t;
+    auto add = [storage_member](owner_t* o, fn_t cb){
+      auto& s = o->*storage_member;
+      auto nr = s.NewNodeLast();
+      s[nr] = [cb](param_t... d){
+        cb(nullptr, d...);
+      };
+      return nr;
+    };
+    auto remove = [storage_member](owner_t* o, const node_ref_t& nr){
+      auto& s = o->*storage_member;
+      if (s.NodeList.Current) {
+        s.unlrec(nr);
+      }
+    };
+    return handle_t(
+      owner,
+      std::move(add),
+      std::move(remove),
+      [user_fn = std::forward<user_fn_t>(user_fn)](owner_t*, param_t... d){
+        user_fn(d...);
+      }
+    );
+  }
+  template<typename owner_t, typename storage_t, typename user_fn_t>
+  auto add_bll_raii_struct_cb(owner_t* owner, storage_t owner_t::*storage_member, user_fn_t&& user_fn){
+    using traits = fan::lambda_traits<std::remove_reference_t<user_fn_t>>;
+    using args_pack = typename traits::args;
+    return add_bll_raii_struct_impl<owner_t, storage_t, typename storage_t::nr_t>(
+      owner,
+      storage_member,
+      std::forward<user_fn_t>(user_fn),
+      args_pack{}
+    );
+  }
 }
 
 //export {

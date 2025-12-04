@@ -20,18 +20,17 @@
 #include <set>
 #include <stacktrace>
 #include <map>
-#include <box2d/box2d.h>
-
 
 import fan;
 import fan.graphics.gui.tilemap_editor.renderer;
 
 
-
 #include "pile.h"
 
 int main() {
+#if defined(fan_std23)
   fan::heap_profiler_t::instance().enabled = true;
+#endif
   pile = (pile_t*)std::malloc(sizeof(pile_t));
   std::construct_at(pile);
   pile->engine.loop();
