@@ -263,7 +263,6 @@ namespace fan::graphics {
     std::vector<uint8_t> full(size.x * size.y * channels);
     glBindTexture(GL_TEXTURE_2D, image_get_handle(nr));
 
-    glFinish();
     glGetTexImage(GL_TEXTURE_2D, 0, 
       fan::opengl::context_t::global_to_opengl_format(img_settings.format),
       GL_UNSIGNED_BYTE, full.data());

@@ -38,6 +38,9 @@ struct player_t {
     body.set_jump_height(60.f);
     body.enable_double_jump();
     body.sync_visual_angle(false);
+    body.movement_state.jump_state.on_jump = [&] (int jump_state) {
+      task_jump = jump(jump_state);
+    };
 
     attack_hitbox.setup({
       .spawns = {{
@@ -101,29 +104,6 @@ struct player_t {
     }
     particles.set_color(0);
   }
-
-  void handle_movement() {
-    if (body.is_on_ground()) {
-      did_double_jump = false;
-      jump_cancelled = true;
-      did_wall_jump = false;
-    }
-
-    if (body.movement_state.jump_state.double_jump_consumed && !did_double_jump) {
-      did_double_jump = true;
-      jump_cancelled = true;
-    }
-    if (fan::window::is_action_clicked("move_up") &&
-      (!body.movement_state.jump_state.consumed
-        || jump_cancelled
-        || (body.wall_jump.consumed && !did_wall_jump))) {
-      if (body.wall_jump.consumed) {
-        did_wall_jump = true;
-      }
-      task_jump = jump(body.movement_state.jump_state.double_jump_consumed);
-    }
-  }
-
   void handle_attack() {
     if (!did_attack && body.animation_on("attack0", attack_hitbox_frame)) {
       fan::audio::play(audio_attack);
@@ -143,7 +123,6 @@ struct player_t {
   }
 
   void update() {
-    handle_movement();
     handle_attack();
 
     body.update_animations();

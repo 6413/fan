@@ -21,11 +21,12 @@ static inline constexpr std::array<fan::vec2, 3> get_spike_points(std::string_vi
 void load_enemies() {
   pile->enemy_skeleton.Clear();
   // todo cache
-  pile->renderer.iterate_visual(main_map_id, [&](fte_loader_t::tile_t& tile) {
+  pile->renderer.iterate_visual(main_map_id, [&](fte_loader_t::tile_t& tile) ->bool {
     if (tile.id.contains("enemy_skeleton")) {
       auto nr = pile->enemy_skeleton.NewNodeLast();
       pile->enemy_skeleton[nr] = skeleton_t(pile->enemy_skeleton, nr, fan::vec3(fan::vec2(tile.position), 5));
     }
+    return false;
   });
 }
 
@@ -46,52 +47,68 @@ void load_map() {
 
   checkpoint_flag.set_size(checkpoint_flag.get_size() / fan::vec2(1.5f, 1.0f));
   checkpoint_flag.set_position(pile->renderer.get_position(main_map_id, "checkpoint0") + fan::vec2(0, checkpoint_flag.get_size().y/2.0f));
-  pile->renderer.iterate_visual(main_map_id, [&](fte_loader_t::tile_t& tile) {
-    if (tile.id.contains("checkpoint")) {
-      player_checkpoints.emplace_back(fan::physics::create_sensor_rectangle(tile.position, tile.size));
-    }
-    else if (tile.id.contains("trap_axe")) {
-      static auto axe = fan::graphics::sprite_sheet_from_json({
-        .path = "traps/axe/axe.json",
-        .loop = true,
-        .start = false
-      });
-      axes.emplace_back(axe);
-      axes.back().set_position(fan::vec3(fan::vec2(tile.position), 3));
-    }
-    else if (tile.id.contains("spikes")) {
-      auto points = get_spike_points(tile.id.substr(std::strlen("spikes_")));
-      spike_sensors.emplace_back(pile->engine.physics_context.create_polygon(
-        tile.position,
-        0.0f,
-        points.data(),
-        points.size(),
-        fan::physics::body_type_e::static_body,
-        {.is_sensor = true}
-      ));
-    }
-    else if (tile.id.contains("lamp1")) {
-      static auto lamp1 = fan::graphics::sprite_sheet_from_json({
-        .path = "lights/lamp1/lamp.json",
-        .loop = true
-      });
-      lamps.push_back(lamp1);
-      lamps.back().set_current_animation_frame(fan::random::value(0, lamps.back().get_current_animation_frame_count()));
-      lamps.back().set_position(fan::vec3(fan::vec2(tile.position) + fan::vec2(1.f, -2.f), 1));
+  static auto axe_anim = fan::graphics::sprite_sheet_from_json({
+    .path = "traps/axe/axe.json",
+    .loop = true,
+    .start = false
+    });
+
+  static auto lamp1_anim = fan::graphics::sprite_sheet_from_json({
+    .path = "lights/lamp1/lamp.json",
+    .loop = true
+    });
+
+  pile->renderer.iterate_visual(main_map_id, [&](fte_loader_t::tile_t& tile) -> bool {
+
+    const std::string& id = tile.id;
+
+    if (id.contains("checkpoint")) {
+      player_checkpoints.emplace_back(
+        fan::physics::create_sensor_rectangle(tile.position, tile.size)
+      );
     }
     else if (tile.id.contains("roof_chain")) {}
-    else if (tile.mesh_property == fte_loader_t::fte_t::mesh_property_t::none) {
-      tile_collisions.emplace_back(pile->engine.physics_context.create_rectangle(
-        tile.position,
-        tile.size,
-        0.0f,
-        fan::physics::body_type_e::static_body,
-        {
-          .friction=0.f,
-          .fixed_rotation = true
-        }
-      ));
+    else if (id.contains("trap_axe")) {
+      axes.emplace_back(axe_anim);
+      axes.back().set_position(fan::vec3(fan::vec2(tile.position), 3));
     }
+    else if (id.contains("sensor_health")) {
+      health_sensors.emplace_back(
+        fan::physics::create_sensor_rectangle(tile.position, tile.size / 1.2f)
+      );
+    }
+    else if (id.contains("spikes")) {
+      auto pts = get_spike_points(id.substr(std::strlen("spikes_")));
+      spike_sensors.emplace_back(
+        pile->engine.physics_context.create_polygon(
+          tile.position,
+          0.0f,
+          pts.data(),
+          pts.size(),
+          fan::physics::body_type_e::static_body,
+          {.is_sensor = true}
+        )
+      );
+    }
+    else if (id.contains("lamp1")) {
+      lamps.emplace_back(lamp1_anim);
+      auto& l = lamps.back();
+      l.set_current_animation_frame(fan::random::value(0, l.get_current_animation_frame_count()));
+      l.set_position(fan::vec3(fan::vec2(tile.position) + fan::vec2(1.f, -2.f), 1));
+    }
+    else if (tile.mesh_property == fte_loader_t::fte_t::mesh_property_t::none) {
+      tile_collisions.emplace_back(
+        pile->engine.physics_context.create_rectangle(
+          tile.position,
+          tile.size,
+          0.0f,
+          fan::physics::body_type_e::static_body,
+          {.friction = 0.f, .fixed_rotation = true}
+        )
+      );
+    }
+
+    return false;
   });
 
   pile->player.respawn();
@@ -104,6 +121,9 @@ void open(void* sod) {
 }
 
 void close() {
+  for (auto& i : health_sensors) {
+    i.destroy();
+  }
   for (auto& i : player_checkpoints) {
     i.destroy();
   }
@@ -154,13 +174,60 @@ void update() {
     lights[i].set_color(fan::color(pixels.data(), pixels.data() + ch) * yellow_tint);
     pile->engine.lighting.set_target(fan::color(pixels.data(), pixels.data() + ch) / 5.f + 0.7, 0.1);
   }
-  
+
+  for (auto it = health_sensors.begin(); it != health_sensors.end(); ++it) {
+    auto& sensor = *it;
+    if (pile->player.body.get_health() < pile->player.body.get_max_health()) {
+      if (fan::physics::is_on_sensor(pile->player.body, sensor)) {
+        static constexpr f32_t health_restore = 10.f;
+        pile->player.body.set_health(
+          pile->player.body.get_health() + health_restore
+        );
+        fan::vec2 pos = sensor.get_position();
+        it->destroy();
+        health_sensors.erase(it);
+        pile->renderer.remove_visual(
+          pile->get_level().main_map_id,
+          "sensor_health",
+          pos
+        );
+        break;
+      }
+    }
+    bool consumed = false;
+    for (auto& enemy : pile->enemy_skeleton) {
+      if (enemy.body.get_health() == enemy.body.get_max_health()) {
+        continue;
+      }
+      if (!fan::physics::is_on_sensor(enemy.body, sensor)) {
+        continue;
+      }
+      static constexpr f32_t health_restore = 10.f;
+      enemy.body.set_health(
+        enemy.body.get_health() + health_restore
+      );
+      fan::vec2 pos = sensor.get_position();
+      it->destroy();
+      health_sensors.erase(it);
+      pile->renderer.remove_visual(
+        pile->get_level().main_map_id,
+        "sensor_health",
+        pos
+      );
+      consumed = true;
+      break;
+    }
+    if (consumed) {
+      break;
+    }
+  }
+
   for (auto& spike : spike_sensors) {
     if (fan::physics::is_on_sensor(pile->player.body, spike)) {
       pile->player.respawn();
       load_enemies();
     }
-    for (auto& enemy : pile->enemy_skeleton) {
+    for (auto [nr, enemy] : fan::enumerate(pile->enemy_skeleton)) {
       if (fan::physics::is_on_sensor(enemy.body, spike)) {
         enemy.destroy();
       }
@@ -185,6 +252,7 @@ fte_loader_t::id_t main_map_id;
 fte_loader_t::compiled_map_t main_compiled_map;
 
 std::vector<fan::physics::entity_t> spike_sensors;
+std::vector<fan::physics::body_id_t> health_sensors;
 std::vector<fan::physics::entity_t> tile_collisions;
 
 std::vector<fan::graphics::sprite_t> axes;

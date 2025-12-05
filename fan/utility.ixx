@@ -87,12 +87,19 @@ namespace fan {
   export {
     template<typename container_t>
     struct bll_iterator_t {
-      using node_t = decltype(std::declval<container_t>().GetNodeFirst());
-      using value_type = decltype(std::declval<container_t>()[std::declval<node_t>()]);
-      using reference = value_type&;
-      using index_type = node_t;
+      using node_t      = decltype(std::declval<container_t>().GetNodeFirst());
+      using value_type  = decltype(std::declval<container_t>()[std::declval<node_t>()]);
+      using reference   = value_type&;
+      using index_type  = node_t;
+
+      bll_iterator_t(container_t* c, node_t n) 
+        : container(c), current(n) {}
 
       auto& operator*() const {
+        if constexpr (requires(container_t* c, node_t n) { c->StartSafeNext(n); }) {
+          container->StartSafeNext(current);
+          safe_next_active = true;
+        }
         return (*container)[current];
       }
       auto get_index() const {
@@ -100,20 +107,22 @@ namespace fan {
       }
       bll_iterator_t& operator++() {
         if constexpr (requires(container_t* c, node_t n) { c->StartSafeNext(n); }) {
-          container->StartSafeNext(current);
           current = container->EndSafeNext();
+          safe_next_active = false;
         }
         else if constexpr (requires(node_t n, container_t* c) { n.Next(c); }) {
           current = current.Next(container);
         }
         return *this;
       }
+
       bool operator!=(const bll_iterator_t& other) const {
         return current != other.current;
       }
 
       container_t* container;
-      node_t current;
+      node_t       current;
+      mutable bool safe_next_active = false;
     };
   }
   namespace fan_detail {

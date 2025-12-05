@@ -353,7 +353,7 @@ export namespace fan {
     fan::vec2 check_wall_contact(body_id_t body_id, shape_id_t* colliding_wall);
     bool is_on_ground(fan::physics::body_id_t main, bool jumping, fan::physics::body_id_t* feet = 0);
     void apply_wall_slide(body_id_t body_id, const fan::vec2& wall_normal, f32_t slide_speed);
-    void wall_jump(body_id_t body_id, const fan::vec2& wall_normal, f32_t push_x, f32_t max_up_speed);
+    bool wall_jump(body_id_t body_id, const fan::vec2& wall_normal, f32_t push_x, f32_t max_up_speed);
     bool overlap_callback_fcn(b2ShapeId shape_id, void* context);
     bool is_colliding(const b2ShapeId& a, const b2ShapeId& b);
     

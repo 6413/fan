@@ -369,50 +369,64 @@ namespace fan {
     glfwMakeContextCurrent(*this);
   }
 
-  void window_t::handle_key_states() {
-    // can be 1 or 2 aka press or repeat
-    if (key_state(fan::mouse_left) == 1 || key_state(fan::mouse_middle) == 1 || key_state(fan::mouse_right) == 1) {
-      drag_delta_start = get_mouse_position(); // requires manual reset = -1 because button callbacks are processed before this
-    }
-    else if (key_state(fan::mouse_left) == 0 || key_state(fan::mouse_middle) == 0 || key_state(fan::mouse_right) == 0) {
-      drag_delta_start = -1;
-    }
-    if (key_states[fan::mouse_scroll_up] == 1) {
-      key_states[fan::mouse_scroll_up] = 0;
-    }
-    if (key_states[fan::mouse_scroll_down] == 1) {
-      key_states[fan::mouse_scroll_down] = 0;
-    }
+  void window_t::handle_key_states(){
     std::memcpy(prev_key_states, key_states, sizeof(key_states));
-    for (std::size_t i = 0; i < std::size(key_states); ++i) {
-      if (key_states[i] == GLFW_PRESS && prev_key_states[i] == GLFW_PRESS) {
-        key_states[i] = GLFW_REPEAT;
-      }
-      if (key_states[i] == GLFW_RELEASE && prev_key_states[i] == GLFW_RELEASE) {
-        key_states[i] = -1;
-      }
+    if (key_states[fan::mouse_scroll_up] == GLFW_PRESS) {
+      key_states[fan::mouse_scroll_up] = GLFW_RELEASE;
     }
-    // gamepad
-    for (int i = fan::gamepad_a; i <= fan::gamepad_left; ++i) {
-      // fix hardcoded joystick
-      int present = glfwJoystickPresent(GLFW_JOYSTICK_1);
-      if (present) {
-        int button_count;
-        const unsigned char* buttons = glfwGetJoystickButtons(GLFW_JOYSTICK_1, &button_count);
-        //if (i - fan::gamepad_a >= button_count) {
-        //  fan::print("i bigger or equal than button_count");
-        //}
-        if (key_states[i] == GLFW_PRESS && prev_key_states[i] == GLFW_PRESS) {
+    if (key_states[fan::mouse_scroll_down] == GLFW_PRESS) {
+      key_states[fan::mouse_scroll_down] = GLFW_RELEASE;
+    }
+    for (std::size_t i = 0; i < std::size(key_states); ++i) {
+      int curr = key_states[i];
+      int prev = prev_key_states[i];
+      if (curr == GLFW_PRESS) {
+        if (prev == GLFW_PRESS || prev == GLFW_REPEAT) {
           key_states[i] = GLFW_REPEAT;
         }
-        else if (key_states[i] == -1 && buttons[i - fan::gamepad_a]) {
+        else {
           key_states[i] = GLFW_PRESS;
         }
-        else if (buttons[i - fan::gamepad_a] == GLFW_RELEASE && (prev_key_states[i] == GLFW_PRESS || prev_key_states[i] == GLFW_REPEAT)) {
+      }
+      else if (curr == GLFW_RELEASE) {
+        if (prev == GLFW_PRESS || prev == GLFW_REPEAT) {
           key_states[i] = GLFW_RELEASE;
         }
-        else if (buttons[i - fan::gamepad_a] == GLFW_RELEASE && (key_states[i] == GLFW_PRESS || key_states[i] == GLFW_REPEAT)) {
+        else {
           key_states[i] = -1;
+        }
+      }
+    }
+
+    int present = glfwJoystickPresent(GLFW_JOYSTICK_1);
+    if (present) {
+      int button_count;
+      const unsigned char* buttons = glfwGetJoystickButtons(GLFW_JOYSTICK_1, &button_count);
+
+      for (int i = fan::gamepad_a; i <= fan::gamepad_left; ++i) {
+        int index = i - fan::gamepad_a;
+        if (index >= button_count) {
+          continue;
+        }
+
+        int prev = prev_key_states[i];
+        int physical = buttons[index];
+
+        if (physical == GLFW_PRESS) {
+          if (prev == GLFW_PRESS || prev == GLFW_REPEAT) {
+            key_states[i] = GLFW_REPEAT;
+          }
+          else {
+            key_states[i] = GLFW_PRESS;
+          }
+        }
+        else {
+          if (prev == GLFW_PRESS || prev == GLFW_REPEAT) {
+            key_states[i] = GLFW_RELEASE;
+          }
+          else {
+            key_states[i] = -1;
+          }
         }
       }
     }
@@ -420,17 +434,19 @@ namespace fan {
       auto it = m_mouse_down_callbacks.GetNodeFirst();
       while (it != m_mouse_down_callbacks.dst) {
         m_mouse_down_callbacks.StartSafeNext(it);
+
         for (int b = 0; b < 3; ++b) {
-          int state = key_state(b);
-          if (state == fan::keyboard_state::press || state == fan::keyboard_state::repeat) {
+          int st = key_states[b];
+          if (st == fan::keyboard_state::press || st == fan::keyboard_state::repeat) {
             buttons_data_t cbd;
             cbd.window = this;
             cbd.position = get_mouse_position();
             cbd.button = b;
-            cbd.state = state;
+            cbd.state = st;
             m_mouse_down_callbacks[it](cbd);
           }
         }
+
         it = m_mouse_down_callbacks.EndSafeNext();
       }
     }
@@ -438,21 +454,24 @@ namespace fan {
       auto it = m_key_down_callbacks.GetNodeFirst();
       while (it != m_key_down_callbacks.dst) {
         m_key_down_callbacks.StartSafeNext(it);
+
         for (int k = fan::key_first; k <= fan::key_last; ++k) {
-          int ks = key_state(k);
-          if (ks == fan::keyboard_state::press || ks == fan::keyboard_state::repeat) {
+          int st = key_states[k];
+          if (st == fan::keyboard_state::press || st == fan::keyboard_state::repeat) {
             fan::window_t::keys_data_t cbd;
             cbd.window = this;
             cbd.scancode = fan::window::input::convert_fan_to_scancode(k);
             cbd.key = k;
-            cbd.state = (decltype(cbd.state))ks;
+            cbd.state = (decltype(cbd.state))st;
             m_key_down_callbacks[it](cbd);
           }
         }
+
         it = m_key_down_callbacks.EndSafeNext();
       }
     }
   }
+
 
   uint32_t window_t::handle_events() {
     f64_t current_frame_time = glfwGetTime();
