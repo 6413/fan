@@ -2,7 +2,6 @@ module;
 
 #if defined(fan_physics) && defined(fan_gui)
 
-
 #include <fan/utility.h>
 #include <unordered_map>
 #include <vector>
@@ -30,7 +29,7 @@ import fan.physics.b2_integration;
 export struct fte_loader_t {
 
   struct fte_t {
-    #include "common2.h"
+  #include "common2.h"
   };
 
   struct vec2i_hasher {
@@ -42,6 +41,7 @@ export struct fte_loader_t {
       return hash_value;
     }
   };
+
   struct vec3i_hasher {
     std::size_t operator()(const fan::vec3i& k) const {
       std::hash<int> hasher;
@@ -58,7 +58,7 @@ export struct fte_loader_t {
   struct compiled_map_t {
     fan::vec2i map_size = 0;
     fan::vec2i tile_size = 0;
-    #if tilemap_renderer == 0
+  #if tilemap_renderer == 0
     std::vector<std::vector<std::vector<fte_t::tile_t>>> compiled_shapes;
     struct physics_data_t {
       fan::vec3 position;
@@ -67,9 +67,10 @@ export struct fte_loader_t {
     };
     std::vector<physics_data_t> physics_shapes;
     fan::graphics::lighting_t lighting = fan::graphics::get_lighting();
-    #elif tilemap_renderer == 1
+    std::unordered_map<std::string, std::vector<fte_t::tile_t*>> id_lookup;
+  #elif tilemap_renderer == 1
     std::unordered_map<fan::vec2i, fan::mp_t<current_version_t::shapes_t>, vec2i_hasher> compiled_shapes;
-    #endif
+  #endif
   };
 
   struct tile_draw_data_t : fan::graphics::shape_t {
@@ -77,9 +78,9 @@ export struct fte_loader_t {
     std::string id;
   };
 
-  #include <fan/fan_bll_preset.h>
+#include <fan/fan_bll_preset.h>
 
-  struct map_list_data_t{
+  struct map_list_data_t {
     compiled_map_t* compiled_map;
     std::unordered_map<fan::vec3i, tile_draw_data_t, vec3i_hasher> rendered_tiles;
     std::vector<fan::graphics::shape_t> lights;
@@ -88,7 +89,7 @@ export struct fte_loader_t {
       std::variant<
         fan::graphics::physics::rectangle_t,
         fan::graphics::physics::circle_t
-      >visual;
+      > visual;
       std::string id;
     };
     std::vector<physics_entities_t> physics_entities;
@@ -97,40 +98,41 @@ export struct fte_loader_t {
     fan::vec2i prev_render = 10000000;
   };
 
-  #define BLL_set_prefix map_list
-  #define BLL_set_type_node uint16_t
-  #define bcontainer_set_StoreFormat 1
-  #define BLL_set_NodeDataType map_list_data_t
-  #define BLL_set_Link 1
-  #define BLL_set_AreWeInsideStruct 1
-  #include <fan/fan_bll_preset.h>
+#define BLL_set_prefix map_list
+#define BLL_set_type_node uint16_t
+#define bcontainer_set_StoreFormat 1
+#define BLL_set_NodeDataType map_list_data_t
+#define BLL_set_Link 1
+#define BLL_set_AreWeInsideStruct 1
+#include <fan/fan_bll_preset.h>
 protected:
-  #include <BLL/BLL.h>
+#include <BLL/BLL.h>
 public:
 
   using id_t = map_list_NodeReference_t;
   using node_t = map_list_NodeData_t;
 
-  map_list_t map_list;
-
   void iterate_physics_entities(id_t map_id, auto l) {
     auto& node = map_list[map_id];
     for (auto& i : node.physics_entities) {
-      bool stop = std::visit([&]<typename T>(T & entity) -> bool {
-        return l(i, entity);
+      bool stop = std::visit([&]<typename T>(T& entity_visual) -> bool {
+        return l(i, entity_visual);
       }, i.visual);
       if (stop) {
         break;
       }
     }
   }
-  void iterate_visual(id_t map_id, std::function<void(fte_t::tile_t&)> cb) {
+
+  void iterate_visual(id_t map_id, std::function<bool(fte_t::tile_t&)> cb) {
     auto& node = map_list[map_id];
     auto& shapes = node.compiled_map->compiled_shapes;
     for (auto& i : shapes) {
       for (auto& j : i) {
         for (auto& k : j) {
-          cb(k);
+          if (cb(k)) {
+            return;
+          }
         }
       }
     }
@@ -139,20 +141,20 @@ public:
   fan::physics::body_id_t get_physics_body(id_t map_id, const std::string& id) {
     fan::physics::body_id_t body;
     iterate_physics_entities(map_id,
-      [&]<typename T>(auto& entity, T & entity_visual) -> bool {
+      [&]<typename T>(auto& entity, T& entity_visual) -> bool {
       if (entity.id == id) {
         body = entity_visual;
-        return true; // quit iterating
+        return true;
       }
       return false;
     });
     return body;
   }
-  // finds all bodies that have this id. useful if there are shared ids like 'spikes'
+
   std::vector<fan::physics::body_id_t> get_physics_bodies(id_t map_id, const std::string& id) {
     std::vector<fan::physics::body_id_t> bodies;
     iterate_physics_entities(map_id,
-      [&]<typename T>(auto& entity, T & entity_visual) -> bool {
+      [&]<typename T>(auto& entity, T& entity_visual) -> bool {
       fan::print(entity.id);
       if (entity.id == id) {
         bodies.emplace_back(entity_visual);
@@ -175,20 +177,16 @@ public:
       }
     }
     {
-      auto& shapes = node.compiled_map->compiled_shapes;
-      for (auto& i : shapes) {
-        for (auto& j : i) {
-          for (auto& k : j) {
-            if (id == k.id) {
-              tile = k;
-              return true;
-            }
-          }
-        }
+      auto& compiled_map = *node.compiled_map;
+      auto it = compiled_map.id_lookup.find(id);
+      if (it != compiled_map.id_lookup.end() && !it->second.empty()) {
+        tile = *it->second[0];
+        return true;
       }
     }
     return false;
   }
+
   bool get_bodies(id_t map_id, const std::string& id, std::vector<fte_t::tile_t>& tiles) {
     auto& node = map_list[map_id];
     {
@@ -203,21 +201,17 @@ public:
       }
     }
     {
-      auto& shapes = node.compiled_map->compiled_shapes;
-      for (auto& i : shapes) {
-        for (auto& j : i) {
-          for (auto& k : j) {
-            if (id == k.id) {
-              fte_t::tile_t tile;
-              tile = k;
-              tiles.emplace_back(std::move(tile));
-            }
-          }
+      auto& compiled_map = *node.compiled_map;
+      auto it = compiled_map.id_lookup.find(id);
+      if (it != compiled_map.id_lookup.end()) {
+        for (auto* t : it->second) {
+          tiles.emplace_back(*t);
         }
       }
     }
     return tiles.size();
   }
+
   bool get_player_spawn_position(id_t map_id, fan::vec3* pos) {
     auto body = get_physics_body(map_id, "player_spawn");
     if (body) {
@@ -226,19 +220,14 @@ public:
     }
     return false;
   }
+
   bool get_visual_bodies(id_t map_id, const std::string& id, std::vector<fte_t::tile_t>* tiles) {
     auto& node = map_list[map_id];
-
-    auto& shapes = node.compiled_map->compiled_shapes;
-    for (auto& i : shapes) {
-      for (auto& j : i) {
-        for (auto& k : j) {
-          if (id == k.id) {
-            fte_t::tile_t tile;
-            tile = k;
-            tiles->emplace_back(std::move(tile));
-          }
-        }
+    auto& compiled_map = *node.compiled_map;
+    auto it = compiled_map.id_lookup.find(id);
+    if (it != compiled_map.id_lookup.end()) {
+      for (auto* t : it->second) {
+        tiles->emplace_back(*t);
       }
     }
     return tiles->size();
@@ -258,7 +247,7 @@ public:
   }
 
   compiled_map_t compile(const std::string& filename, const std::source_location& callers_path = std::source_location::current()) {
-#if defined (fan_json)
+  #if defined (fan_json)
     std::string out;
     fan::io::file::read(fan::io::file::find_relative_path(filename, callers_path), &out);
     fan::json json = fan::json::parse(out);
@@ -307,7 +296,6 @@ public:
       fte_t::tile_t tile;
       fan::vec2i gp = shape.get_position();
       gp /= compiled_map.tile_size * 2;
-      //gp += compiled_map.map_size / 2;
       tile.position = shape.get_position();
       tile.size = shape.get_size();
       tile.angle = shape.get_angle();
@@ -318,7 +306,6 @@ public:
       else if (shape.get_shape_type() == fan::graphics::shape_type_t::unlit_sprite) {
         tile.texture_pack_unique_id = ((fan::graphics::shapes::unlit_sprite_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper))->texture_pack_unique_id;
       }
-      // NOTE physics shapes are skipped, they are stored in compiled_map.physics_shapes
       tile.mesh_property = (fte_t::mesh_property_t)shape_json.value("mesh_property", fte_t::tile_t().mesh_property);
       tile.id = shape_json.value("id", fte_t::tile_t().id);
       tile.action = shape_json.value("action", fte_t::actions_e::none);
@@ -326,12 +313,15 @@ public:
       tile.key_state = shape_json.value("key_state", (int)fan::keyboard_state::press);
       tile.flags = shape.get_flags();
       compiled_map.compiled_shapes[gp.y][gp.x].push_back(tile);
-    }//
+      if (!tile.id.empty()) {
+        compiled_map.id_lookup[tile.id].push_back(&compiled_map.compiled_shapes[gp.y][gp.x].back());
+      }
+    }
     return compiled_map;
-#else
+  #else
     fan::throw_error("fan_json not enabled");
     __unreachable();
-#endif
+  #endif
   }
 
   fan::vec2 convert_to_grid(const fan::vec2& p, const node_t& node) {
@@ -342,7 +332,7 @@ public:
     const auto& node = map_list[id];
     return node.compiled_map->tile_size;
   }
-  // returns map's tile count
+
   fan::vec2 get_map_size(id_t id) {
     const auto& node = map_list[id];
     return node.compiled_map->map_size;
@@ -358,5 +348,7 @@ public:
 
   using physics_entities_t = map_list_data_t::physics_entities_t;
   using physics_data_t = compiled_map_t::physics_data_t;
+
+  map_list_t map_list;
 };
 #endif

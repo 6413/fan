@@ -443,6 +443,7 @@ export namespace fan {
         f32_t impulse = 40.f;
         bool handle_jump = true;
         bool allow_double_jump = false;
+        std::function<void(int jump_state)> on_jump = [](int) {};
 
         void reset(){
           jumping = false;

@@ -19,8 +19,8 @@ struct enemy_t {
       .physics_properties={.density=density, .fixed_rotation=true, .linear_damping=2.0f}
     }, caller_path);
     body.set_jump_height(75.f * density);
-    body.movement_state.accelerate_force = 120.f / 2.3f;
-    body.movement_state.max_speed = 610.f;
+    body.movement_state.accelerate_force = 120.f / 3.f;
+    body.movement_state.max_speed = 500.f;
     body.movement_state.check_gui = false;
 
     body.set_size(body.get_size());
@@ -55,7 +55,7 @@ struct enemy_t {
       .damage = 10.f,
       .knockback_force = 10.f,
       .attack_range = {closeup_distance.x, body.attack_state.attack_range.y},
-      .cooldown_duration = 1.0e9,
+      .cooldown_duration = 2.0e9,
       .cooldown_timer = fan::time::timer(body.attack_state.cooldown_duration, true),
       .stun = false
     });

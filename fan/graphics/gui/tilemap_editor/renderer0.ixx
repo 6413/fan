@@ -17,7 +17,6 @@ import fan.print;
 import fan.graphics;
 import fan.graphics.physics_shapes;
 import fan.physics.b2_integration;
-//import fan;
 
 export struct fte_renderer_t : fte_loader_t {
 
@@ -43,7 +42,7 @@ export struct fte_renderer_t : fte_loader_t {
     auto& node = map_list[it];
     clear(node);
     node.compiled_map = compiled_map;
-   
+
     view_size = p.size * 2;
     node.prev_render = convert_to_grid(p.position, node);
     node.size = p.scale;
@@ -54,9 +53,6 @@ export struct fte_renderer_t : fte_loader_t {
     return it;
   }
 
-  //void initialize(id_t& node_id, const fan::vec2& position) {
-  //  initialize(map_list[node_id], position);
-  //}
   void initialize(node_t& node, const fan::vec2& position) {
     initialize_visual(node, position);
 
@@ -66,12 +62,12 @@ export struct fte_renderer_t : fte_loader_t {
           if (j.mesh_property != fte_t::mesh_property_t::light) {
             continue;
           }
-          node.lights.emplace_back(fan::graphics::light_t {{
-            .render_view = render_view,
-            .position = node.position + fan::vec3(fan::vec2(j.position) * node.size, y + node.compiled_map->tile_size.y / 2 + j.position.z),
-            .size = j.size * node.size,
-            .color = j.color
-          }});
+          node.lights.emplace_back(fan::graphics::light_t{{
+              .render_view = render_view,
+              .position = node.position + fan::vec3(fan::vec2(j.position) * node.size, y + node.compiled_map->tile_size.y / 2 + j.position.z),
+              .size = j.size * node.size,
+              .color = j.color
+            }});
         }
       }
     }
@@ -90,9 +86,7 @@ export struct fte_renderer_t : fte_loader_t {
               .body_type = pd.physics_shapes.body_type,
               .shape_properties = pd.physics_shapes.shape_properties,
             }}
-        });
-        //pd.physics_shapes.
-        //std::get<fan::graphics::physics::rectangle_t>(node.physics_entities.back().visual).body_id
+          });
         break;
       }
       case fte_t::physics_shapes_t::type_e::circle: {
@@ -100,13 +94,13 @@ export struct fte_renderer_t : fte_loader_t {
           .visual = fan::graphics::physics::circle_t{{
               .render_view = render_view,
               .position = node.position + pd.position * node.size,
-              .radius = (pd.size.max() * node.size.x == node.compiled_map->tile_size.x ? pd.size.y * node.size.y : pd.size.x  *  node.size.x),
+              .radius = (pd.size.max() * node.size.x == node.compiled_map->tile_size.x ? pd.size.y * node.size.y : pd.size.x * node.size.x),
               .color = pd.physics_shapes.draw ? fan::color::from_rgba(0x6e8d6eff) : fan::colors::transparent,
               .blending = true,
               .body_type = pd.physics_shapes.body_type,
               .shape_properties = pd.physics_shapes.shape_properties
             }}
-        });
+          });
         break;
       }
       }
@@ -148,21 +142,44 @@ export struct fte_renderer_t : fte_loader_t {
 
   void erase_id(id_t map_id, const std::string& id) {
     auto& node = map_list[map_id];
-    auto& shapes = node.compiled_map->compiled_shapes;
-    for (auto& i : shapes) {
-      for (auto& j : i) {
-        for (int k = 0; k < j.size(); ++k) {
-          if (id == j[k].id) {
-            j.erase(j.begin() + k);
-            tile_t t;
-            auto f = get_body(map_id, id, t);
-            node.prev_render = 100000;
-            initialize(node, node.position);
-            return;
-          }
-        }
-      }
+    auto& compiled_map = *node.compiled_map;
+
+    auto lookup_it = compiled_map.id_lookup.find(id);
+    if (lookup_it == compiled_map.id_lookup.end() || lookup_it->second.empty()) {
+      return;
     }
+
+    fte_t::tile_t* tile_ptr = lookup_it->second[0];
+    fan::vec3 pos = tile_ptr->position;
+
+    fan::vec2i gp;
+    gp.x = pos.x / (compiled_map.tile_size.x * 2);
+    gp.y = pos.y / (compiled_map.tile_size.y * 2);
+
+    if (gp.x < 0 || gp.y < 0 ||
+      gp.y >= compiled_map.map_size.y ||
+      gp.x >= compiled_map.map_size.x) {
+      return;
+    }
+
+    auto& cell = compiled_map.compiled_shapes[gp.y][gp.x];
+
+    cell.erase(
+      std::remove_if(cell.begin(), cell.end(), [&](const fte_t::tile_t& t) {
+      return t.id == id;
+    }),
+      cell.end()
+    );
+
+    lookup_it->second.erase(
+      std::remove_if(lookup_it->second.begin(), lookup_it->second.end(), [&](fte_t::tile_t* t) {
+      return t->id == id;
+    }),
+      lookup_it->second.end()
+    );
+
+    node.prev_render = 100000;
+    initialize(node, node.position);
   }
 
   fan::physics::entity_t add_sensor_rectangle(id_t map_id, const std::string& id) {
@@ -176,6 +193,7 @@ export struct fte_renderer_t : fte_loader_t {
     }
     return sensor_id;
   }
+
   fan::physics::entity_t add_sensor_circle(id_t map_id, const std::string& id) {
     fan::physics::entity_t sensor_id;
     tile_t tile;
@@ -187,6 +205,7 @@ export struct fte_renderer_t : fte_loader_t {
     }
     return sensor_id;
   }
+
   f32_t get_depth_from_y(id_t map_id, const fan::vec2& position) {
     auto& node = map_list[map_id];
     return fan::graphics::get_depth_from_y(position, node.compiled_map->tile_size.y * 2.f);
@@ -198,8 +217,6 @@ export struct fte_renderer_t : fte_loader_t {
   };
 
   void add_tile(node_t& node, fte_t::tile_t& j, int x, int y, std::uint32_t depth) {
-
-    // temporary
     {
       if (fan::get_hash(j.id.c_str()) == fan::get_hash("##tile_world_dirt")) {
         fan::physics::gphysics->create_box(node.position + fan::vec2(j.position) * node.size, j.size * node.size);
@@ -207,10 +224,10 @@ export struct fte_renderer_t : fte_loader_t {
     }
 
     fan::vec3i tile_key(x, y, depth);
-    int additional_depth = y + node.compiled_map->tile_size.y / 2;
+    int additional_depth = 0/*y + node.compiled_map->tile_size.y / 2*/;
     switch (j.mesh_property) {
-      case fte_t::mesh_property_t::none: {
-        node.rendered_tiles[tile_key] = fan::graphics::sprite_t{ {
+    case fte_t::mesh_property_t::none: {
+      node.rendered_tiles[tile_key] = fan::graphics::sprite_t{{
           .render_view = render_view,
           .position = node.position + fan::vec3(fan::vec2(j.position) * node.size, additional_depth + j.position.z),
           .size = j.size * node.size,
@@ -220,23 +237,22 @@ export struct fte_renderer_t : fte_loader_t {
           .blending = true,
           .flags = j.flags,
           .texture_pack_unique_id = j.texture_pack_unique_id
-        } };
-        switch (fan::get_hash(j.id.c_str())) {
-        case fan::get_hash("##tile_world_background"): {
-          node.rendered_tiles[tile_key].set_image(fan::graphics::tile_world_images::background);
-          break;
-        }
-        case fan::get_hash("##tile_world_dirt"): {
-          node.rendered_tiles[tile_key].set_image(fan::graphics::tile_world_images::dirt);
-          break;
-        }
-        }
+        }};
+      switch (fan::get_hash(j.id.c_str())) {
+      case fan::get_hash("##tile_world_background"): {
+        node.rendered_tiles[tile_key].set_image(fan::graphics::tile_world_images::background);
         break;
       }
-      default: {
-        return;
-        //fan::throw_error("unimplemented switch");
+      case fan::get_hash("##tile_world_dirt"): {
+        node.rendered_tiles[tile_key].set_image(fan::graphics::tile_world_images::dirt);
+        break;
       }
+      }
+      break;
+    }
+    default: {
+      return;
+    }
     }
     if (!j.id.empty()) {
       node.rendered_tiles[tile_key].id = j.id;
@@ -253,9 +269,11 @@ export struct fte_renderer_t : fte_loader_t {
     node.rendered_tiles.clear();
     node.id_to_shape.clear();
   }
+
   void clear(id_t& id) {
     clear(map_list[id]);
   }
+
   void clear(node_t& node) {
     clear_visual(node);
     node.physics_entities.clear();
@@ -266,6 +284,50 @@ export struct fte_renderer_t : fte_loader_t {
     clear(id);
     map_list.unlrec(id);
     id.sic();
+  }
+
+  void remove_visual(id_t id, const std::string& str_id, const fan::vec2& position) {
+    auto& node = map_list[id];
+    auto& compiled_map = *node.compiled_map;
+
+    fan::vec2i gp;
+    gp.x = position.x / (compiled_map.tile_size.x * 2);
+    gp.y = position.y / (compiled_map.tile_size.y * 2);
+
+    if (gp.x < 0 || gp.y < 0 ||
+      gp.y >= compiled_map.map_size.y ||
+      gp.x >= compiled_map.map_size.x) {
+      return;
+    }
+
+    auto& cell = compiled_map.compiled_shapes[gp.y][gp.x];
+    std::string removed_id;
+
+    cell.erase(
+      std::remove_if(cell.begin(), cell.end(), [&](const fte_t::tile_t& t) {
+      if (t.position == position && str_id == t.id) {
+        removed_id = t.id;
+        return true;
+      }
+      return false;
+    }),
+      cell.end()
+    );
+
+    if (!removed_id.empty()) {
+      auto lookup_it = compiled_map.id_lookup.find(removed_id);
+      if (lookup_it != compiled_map.id_lookup.end()) {
+        lookup_it->second.erase(
+          std::remove_if(lookup_it->second.begin(), lookup_it->second.end(), [&](fte_t::tile_t* t) {
+          return t->position == position && t->id == str_id;
+        }),
+          lookup_it->second.end()
+        );
+      }
+    }
+
+    node.prev_render = 10000000;
+    initialize(node, node.position);
   }
 
   struct shape_depths_t {
@@ -295,7 +357,6 @@ export struct fte_renderer_t : fte_loader_t {
     fan::vec2i offset = new_grid_pos - node.prev_render;
     auto& map_tiles = node.compiled_map->compiled_shapes;
 
-    // reinitialize big movement like teleport or big delta
     if (std::abs(offset.x) >= view_size.x / 2 || std::abs(offset.y) >= view_size.y / 2) {
       initialize_visual(node, position_);
       node.prev_render = new_grid_pos;
@@ -336,7 +397,6 @@ export struct fte_renderer_t : fte_loader_t {
           continue;
         }
 
-        // Check bounds
         if (x < 0 || y < 0) {
           continue;
         }
@@ -355,16 +415,16 @@ export struct fte_renderer_t : fte_loader_t {
     }
   }
 
-  // dont hold the pointer
   tile_draw_data_t* get_shape_by_id(id_t map_id, const std::string& id) {
     auto& node = map_list[map_id];
     auto it = node.id_to_shape.find(id);
     return (it != node.id_to_shape.end()) ? it->second : nullptr;
   }
 
-private:
- // fte_loader_t::add;
+  std::unordered_map<std::string, std::function<void(tile_draw_data_t&, fte_t::tile_t&)>> id_callbacks_dummy;
+  std::unordered_map<std::string, std::function<void(map_list_data_t::physics_entities_t&, compiled_map_t::physics_data_t&)>> sensor_id_callbacks_dummy;
+  fan::vec2i view_size_dummy = 1;
+  fan::graphics::render_view_t* render_view_dummy = nullptr;
 };
-
 #undef tilemap_renderer
 #endif

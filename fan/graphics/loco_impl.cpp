@@ -1456,6 +1456,7 @@ void loco_t::process_gui() {
     gui::text("GUI Draw Avg: ", format_val(gui_stats.average * 1e3) + " ms");
 
     gui::text("Lowest FPS: ", format_val(frame_stats.lowest));
+    gui::text("Average FPS: ", format_val(1.0 / frame_stats.average));
     gui::text("Highest FPS: ", format_val(frame_stats.highest));
 
 
