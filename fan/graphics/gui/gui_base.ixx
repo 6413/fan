@@ -154,6 +154,13 @@ export namespace fan::graphics::gui {
 
   bool is_item_active();
 
+  bool want_io();
+  void set_want_io(bool flag = ImGui::GetIO().WantCaptureMouse | 
+    ImGui::GetIO().WantCaptureKeyboard | 
+    ImGui::GetIO().WantTextInput, 
+    bool op_or = false
+  );
+
   void set_keyboard_focus_here();
 
   fan::vec2 get_mouse_drag_delta(int button = 0, f32_t lock_threshold = -1.0f);

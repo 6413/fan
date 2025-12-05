@@ -640,13 +640,13 @@ void loco_t::generate_commands(loco_t* loco) {
     gloco->set_target_fps(std::stoi(args[0]));
   }).description = "sets target fps";
 
-  loco->console.commands.add("debug_memory", [loco, nr = fan::console_t::frame_cb_t::nr_t()](const fan::commands_t::arg_t& args) mutable {
+  loco->console.commands.add("debug_memory", [loco, nr = loco_t::update_callback_handle_t()](const fan::commands_t::arg_t& args) mutable {
     if (args.size() != 1) {
       loco->console.commands.print_invalid_arg_count();
       return;
     }
     if (nr.iic() && std::stoi(args[0])) {
-      nr = loco->console.push_frame_process([] {
+      nr = loco->add_update_callback([] (void* loco_ptr) {
         fan::graphics::gui::set_next_window_bg_alpha(0.99f);
         static int init = 0;
         fan::graphics::gui::window_flags_t window_flags = fan::graphics::gui::window_flags_no_title_bar | fan::graphics::gui::window_flags_no_focus_on_appearing;
@@ -660,7 +660,7 @@ void loco_t::generate_commands(loco_t* loco) {
       });
     }
     else if (!nr.iic() && !std::stoi(args[0])) {
-      loco->console.erase_frame_process(nr);
+      loco->remove_update_callback(nr);
     }
   }).description = "opens memory debug window";
 
@@ -728,6 +728,14 @@ void loco_t::generate_commands(loco_t* loco) {
       );
     }
   }).description = "Removes a shape by its id";
+
+  loco->console.commands.add("print", [](const fan::commands_t::arg_t& args) {
+    fan::commands_t::output_t out;
+    out.text = fan::append_args(args) + "\n";
+    out.highlight = fan::graphics::highlight_e::info;
+    gloco->text_logger.print(fan::graphics::highlight_color_table[out.highlight], out.text);
+  }).description = "prints something to bottom left of screen - usage print [args]";
+
 #endif
 }
 
@@ -1388,6 +1396,7 @@ void loco_t::process_gui() {
   gui_draw_timer.start();
 #if defined(fan_gui)
   fan::graphics::gui::process_frame();
+
   // append
   gui::begin("##global_renderer");
   text_logger.render();
@@ -1406,7 +1415,12 @@ void loco_t::process_gui() {
     console.render();
   }
   if (input_action.is_active("open_settings")) {
-    render_settings_menu = !render_settings_menu;
+    if (render_console) {
+      render_console = false;
+    }
+    else {
+      render_settings_menu = !render_settings_menu;
+    }
   }
   if (render_settings_menu) {
     settings_menu.render();
@@ -1422,7 +1436,6 @@ void loco_t::process_gui() {
     gui::set_next_window_bg_alpha(0.99f);
     gui::set_next_window_size(fan::vec2(831.0000, 693.0000), gui::cond_once);
     gui::begin("Performance window", nullptr, window_flags);
-
     frame_monitor.update(delta_time);
     shape_monitor.update(shape_draw_time_s);
     gui_monitor.update(gui_draw_time_s);
@@ -1496,6 +1509,7 @@ void loco_t::process_gui() {
   #endif
   );
 #endif
+  fan::graphics::gui::set_want_io();
   gui_draw_time_s = gui_draw_timer.seconds();
 }
 
@@ -1718,7 +1732,7 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
     gui::window_flags_no_focus_on_appearing | gui::window_flags_no_move |
     gui::window_flags_no_collapse | gui::window_flags_no_background |
     gui::window_flags_no_resize | gui::dock_node_flags_no_docking_split |
-    gui::window_flags_no_title_bar | gui::window_flags_no_bring_to_front_on_focus;
+    gui::window_flags_no_title_bar | gui::window_flags_no_bring_to_front_on_focus | gui::window_flags_no_inputs;
 
   if (!enable_overlay) {
     flags |= gui::window_flags_no_nav;
@@ -1917,6 +1931,16 @@ fan::graphics::render_view_t loco_t::render_view_create(
   render_view.create();
   render_view.set(ortho_x, ortho_y, viewport_position, viewport_size, window.get_size());
   return render_view;
+}
+
+loco_t::update_callback_handle_t loco_t::add_update_callback(std::function<void(void*)>&& cb) {
+  loco_t::update_callback_handle_t it = m_update_callback.NewNodeLast();
+  m_update_callback[it] = std::move(cb);
+  return it;
+}
+
+void loco_t::remove_update_callback(update_callback_handle_t handle) {
+  m_update_callback.unlrec(handle);
 }
 
 void loco_t::set_window_name(const std::string& name) {
