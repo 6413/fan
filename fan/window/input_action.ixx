@@ -64,49 +64,44 @@ export namespace fan::window {
 
     bool is_active(const std::string& action_name, int pstate = input_action_t::press) {
       auto found = input_actions.find(action_name);
-      if (found != input_actions.end()) {
-        action_data_t& action_data = found->second;
-
-        if (action_data.combo_count) {
-          int state = none;
-          for (int i = 0; i < action_data.combo_count; ++i) {
-            int s = is_active_func(action_data.key_combos[i]);
-            if (s == none) {
-              return none == input_action_t::press;
-            }
-            if (state == input_action_t::press && s == input_action_t::repeat) {
-              state = 1;
-            }
-            if (state == input_action_t::press_or_repeat) {
-              if (state == input_action_t::press && s == input_action_t::repeat) {
-              }
-            }
-            else {
-              state = s;
-            }
+      if (found == input_actions.end()) {
+        return pstate == input_action_t::none;
+      }
+      action_data_t& action_data = found->second;
+      int state = input_action_t::none;
+      if (action_data.combo_count > 0) {
+        for (int i = 0; i < action_data.combo_count; ++i) {
+          int s = is_active_func(action_data.key_combos[i]);
+          if (s == input_action_t::none) {
+            return false;
           }
-          if (pstate == input_action_t::press_or_repeat) {
-            return state == input_action_t::press ||
-              state == input_action_t::repeat;
+          if (s > state) {
+            state = s;
           }
-          return state == pstate;
-        }
-        else if (action_data.count) {
-          int state = none;
-          for (int i = 0; i < action_data.count; ++i) {
-            int s = is_active_func(action_data.keys[i]);
-            if (s != none) {
-              state = s;
-            }
-          }
-          if (pstate == input_action_t::press_or_repeat) {
-            return state == input_action_t::press ||
-              state == input_action_t::repeat;
-          }
-          return state == pstate;
         }
       }
-      return none == pstate;
+      else if (action_data.count > 0) {
+        for (int i = 0; i < action_data.count; ++i) {
+          int s = is_active_func(action_data.keys[i]);
+          if (s > state) {
+            state = s;
+          }
+        }
+      }
+      switch (pstate) {
+      case input_action_t::press:
+        return state == input_action_t::press;
+
+      case input_action_t::repeat:
+        return state == input_action_t::repeat;
+
+      case input_action_t::press_or_repeat:
+        return state == input_action_t::press ||
+          state == input_action_t::repeat;
+      case input_action_t::none:
+        return state == input_action_t::none;
+      }
+      return false;
     }
     std::function<int(int key)> is_active_func;
 

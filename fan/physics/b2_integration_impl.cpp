@@ -818,13 +818,14 @@ namespace fan::physics {
       body_id.apply_linear_impulse_center(impulse);
     }
   }
-  void wall_jump(body_id_t body_id, const fan::vec2& wall_normal, f32_t push_x, f32_t max_up_speed) {
-    if (!wall_normal) return;
+  bool wall_jump(body_id_t body_id, const fan::vec2& wall_normal, f32_t push_x, f32_t max_up_speed) {
+    if (!wall_normal) return false;
 
     f32_t desired_y_physics = -max_up_speed;
     fan::vec2 vel = body_id.get_linear_velocity();
     body_id.set_linear_velocity(fan::vec2(vel.x, vel.y >= 0 ? 0 : vel.y));
     body_id.apply_linear_impulse_center({push_x, desired_y_physics});
+    return true;
   }
   bool overlap_callback_fcn(b2ShapeId shape_id, void* context) {
     overlap_callback_context_t* ctx = static_cast<overlap_callback_context_t*>(context);

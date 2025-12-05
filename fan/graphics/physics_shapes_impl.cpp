@@ -46,8 +46,6 @@ void DrawPolygon(const fan::vec2* vertices, int vertexCount, b2HexColor color, v
     //  .color = fan::color::from_rgb(color)
     //} });
   }
-
-  ++z_depth;
 }
 
 /// Draw a solid closed polygon provided in CCW order.
@@ -64,7 +62,6 @@ void DrawSolidPolygon(b2Transform transform, const b2Vec2* vertices, int vertexC
       .draw_mode = fan::graphics::primitive_topology_t::triangle_fan,
       //.angle = std::acos(transform.q.c)
     }});
-  ++z_depth;
 }
 
 /// Draw a circle.
@@ -75,7 +72,6 @@ void DrawCircle(b2Vec2 center, f32_t radius, b2HexColor color, void* context) {
       .radius = (f32_t)fan::physics::physics_to_render(radius).x,
       .color = fan::color::from_rgb(color).set_alpha(0.5),
     }});
-  ++z_depth;
 }
 
 /// Draw a solid circle.
@@ -86,7 +82,6 @@ void DrawSolidCircle(b2Transform transform, f32_t radius, b2HexColor color, void
       .radius = (f32_t)fan::physics::physics_to_render(radius).x,
       .color = fan::color::from_rgb(color).set_alpha(0.5),
     }});
-  ++z_depth;
 }
 
 /// Draw a capsule.
@@ -104,7 +99,6 @@ void DrawSolidCapsule(b2Vec2 p1, b2Vec2 p2, f32_t radius, b2HexColor color, void
       .radius = (f32_t)fan::physics::physics_to_render(radius).x,
       .color = fan::color::from_rgb(color).set_alpha(0.5),
     }});
-  ++z_depth;
 }
 
 
@@ -116,7 +110,6 @@ void DrawSegment(b2Vec2 p1, b2Vec2 p2, b2HexColor color, void* context) {
       .dst = fan::vec3(fan::physics::physics_to_render(p2), draw_depth + z_depth),
       .color = fan::color::from_rgb(color)
     }});
-  ++z_depth;
 }
 
 /// Draw a transform. Choose your own length scale.
@@ -133,7 +126,6 @@ void DrawPoint(b2Vec2 p, f32_t size, b2HexColor color, void* context) {
       .radius = size / 2.f,
       .color = fan::color::from_rgb(color).set_alpha(0.5)
     }});
-  ++z_depth;
 }
 
 /// Draw a string.
@@ -797,7 +789,9 @@ namespace fan::graphics::physics {
 
         // allow wall jump even after double jump
         if (1/*!jump_state.double_jump_consumed*/) {
-          fan::physics::wall_jump(body_id, wall_normal, wall_jump->push_away_force, jump_state.impulse);
+          if (fan::physics::wall_jump(body_id, wall_normal, wall_jump->push_away_force, jump_state.impulse)) {
+            jump_state.on_jump(2);
+          }
         }
         jump_state.jumping = true;
         jump_state.on_air_after_jump = true;
@@ -811,6 +805,7 @@ namespace fan::graphics::physics {
       fan::vec2 vel = body_id.get_linear_velocity();
       body_id.set_linear_velocity(fan::vec2(vel.x, 0));
       body_id.apply_linear_impulse_center({0, -jump_state.impulse});
+      jump_state.on_jump(0);
       jump_state.jumping = true;
       jump_state.consumed = true;
       jump_state.on_air_after_jump = true;
@@ -821,6 +816,7 @@ namespace fan::graphics::physics {
       fan::vec2 vel = body_id.get_linear_velocity();
       body_id.set_linear_velocity(fan::vec2(vel.x, 0));
       body_id.apply_linear_impulse_center({0, -jump_state.impulse});
+      jump_state.on_jump(1);
       jump_state.jumping = true;
       jump_state.double_jump_consumed = true;
     }
@@ -1161,9 +1157,9 @@ namespace fan::graphics::physics {
         if (!is_stuck) {
           f32_t air_control = on_ground ? 1.0f : 0.8f;
           f32_t old_max = character->movement_state.max_speed;
-          character->movement_state.max_speed /= 2.f; // use half speed when patrolling
+          //character->movement_state.max_speed /= 2.f; // use half speed when patrolling
           character->movement_state.move_to_direction(*character, movement_direction * air_control);
-          character->movement_state.max_speed = old_max;
+          //character->movement_state.max_speed = old_max;
         }
       }
       break;
@@ -1266,6 +1262,7 @@ namespace fan::graphics::physics {
       base_shape_t::operator=(std::move(o));
       anim_controller = std::move(o.anim_controller);
       attack_state = std::move(o.attack_state);
+      movement_state = std::move(o.movement_state);
       wall_jump = std::move(o.wall_jump);
       movement_cb_handle = std::move(o.movement_cb_handle);
       feet[0] = std::move(o.feet[0]);
