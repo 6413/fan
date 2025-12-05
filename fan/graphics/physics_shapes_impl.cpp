@@ -739,7 +739,7 @@ namespace fan::graphics::physics {
   }
 
   void movement_state_t::move_to_direction(fan::physics::body_id_t body, const fan::vec2& direction) {
-    fan::vec2 input_dir = direction.sign();
+    fan::vec2 input_dir = direction.sign() * (check_gui ? !fan::graphics::gui::want_io() : 1);
     fan::vec2 vel = body.get_linear_velocity();
     f32_t dt = fan::physics::default_physics_timestep;
 
@@ -788,7 +788,7 @@ namespace fan::graphics::physics {
     bool allow_coyote = jump_state.can_coyote_jump(fan::time::now());
 
     if (touching_wall && !on_ground && jump_state.consumed && wall_jump && !wall_jump->consumed) {
-      fan::vec2 input = fan::window::get_input_vector();
+      fan::vec2 input = fan::window::get_input_vector() * (check_gui ? !fan::graphics::gui::want_io() : 1);
       bool pushing_into_wall = fan::math::sgn(input.x) == fan::math::sgn(wall_normal.x);
 
       if (!jump_state.jumping) {
@@ -807,7 +807,7 @@ namespace fan::graphics::physics {
       }
     }
 
-    if ((on_ground || allow_coyote) && !jump_state.consumed) {
+    if (((on_ground || allow_coyote) && !jump_state.consumed) * (check_gui ? !fan::graphics::gui::want_io() : 1)) {
       fan::vec2 vel = body_id.get_linear_velocity();
       body_id.set_linear_velocity(fan::vec2(vel.x, 0));
       body_id.apply_linear_impulse_center({0, -jump_state.impulse});
@@ -817,7 +817,7 @@ namespace fan::graphics::physics {
       return;
     }
 
-    if (jump_state.allow_double_jump && !on_ground && !jump_state.jumping && jump_state.consumed && !jump_state.double_jump_consumed) {
+    if ((jump_state.allow_double_jump && !on_ground && !jump_state.jumping && jump_state.consumed && !jump_state.double_jump_consumed) * (check_gui ? !fan::graphics::gui::want_io() : 1)) {
       fan::vec2 vel = body_id.get_linear_velocity();
       body_id.set_linear_velocity(fan::vec2(vel.x, 0));
       body_id.apply_linear_impulse_center({0, -jump_state.impulse});
@@ -1368,7 +1368,7 @@ namespace fan::graphics::physics {
         .trigger_type = animation_controller_t::animation_state_t::one_shot,
         .condition = config.attack_cb ? config.attack_cb :
         [](character2d_t& c) -> bool {
-          if (!fan::window::is_mouse_clicked()) {
+          if (!fan::window::is_mouse_clicked() || fan::graphics::gui::want_io()) {
             return false;
           }
           return c.attack_state.try_attack(&c);

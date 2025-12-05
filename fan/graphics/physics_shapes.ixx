@@ -477,6 +477,7 @@ export namespace fan {
         bool enabled = false;
         uint8_t type = movement_e::side_view;
         jump_state_t jump_state;
+        bool check_gui = true;
       };
 
       struct attack_state_t {

@@ -416,7 +416,6 @@ enum class name { __VA_ARGS__ }
 
 #if __cplusplus >= 202004L && defined(fan_compiler_msvc) && !defined(fan_compiler_clang) && __has_include("stacktrace") // wsl
 	#define fan_std23
-#undef fan_std23
 #endif
 
 #if __cplusplus >= 202302L && !defined(fan_compiler_msvc) && __has_include("stacktrace")

@@ -23,6 +23,7 @@ module fan.graphics;
 
 #if defined(fan_json)
   import fan.types.json;
+  import fan.graphics.gui.base;
 #endif
 
 namespace fan::window {
@@ -790,6 +791,10 @@ namespace fan::graphics {
 
     button_cb_nr = window.add_buttons_callback([&](const auto& d) {
       if (ignore_input) {
+        return;
+      }
+
+      if (fan::graphics::gui::want_io()) {
         return;
       }
 

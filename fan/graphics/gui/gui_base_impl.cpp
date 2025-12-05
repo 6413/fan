@@ -317,6 +317,37 @@ namespace fan::graphics::gui {
   bool is_item_active() {
     return ImGui::IsItemActive();
   }
+
+  // TODO need gui storage
+  bool g_want_io = false;
+  bool want_io() {
+    return g_want_io;
+  }
+  void set_want_io(bool flag, bool op_or) {
+    ImGuiContext* g = ImGui::GetCurrentContext();
+    if (g->NavWindow) {
+      std::string nav_window_name = g->NavWindow->Name;
+      if (nav_window_name.find("WindowOverViewport_") == 0) {
+        g_want_io = false;
+        return;
+      }
+    }
+    /*
+    printf("WantCapture: flag=%d keyboard=%d mouse=%d text=%d\n", 
+      flag, 
+      ImGui::GetIO().WantCaptureKeyboard, 
+      ImGui::GetIO().WantCaptureMouse, 
+      ImGui::GetIO().WantTextInput
+    );
+    if (g->HoveredWindow) {
+      printf("Hovered window: %s\n", g->HoveredWindow->Name);
+    }
+    if (g->NavWindow) {
+      printf("Nav window: %s\n", g->NavWindow->Name);
+    }
+    */
+    g_want_io = op_or ? g_want_io | flag : flag;
+  }
   void set_keyboard_focus_here() {
     ImGui::SetKeyboardFocusHere();
   }
