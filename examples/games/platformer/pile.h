@@ -26,6 +26,9 @@ struct pile_t {
 
   pile_t();
 
+
+  bool pause = false;
+
   void update_camera_zoom() {
     fan::vec2 r = engine.window.get_current_monitor_resolution() / fan::vec2(2560, 1440);
     ic.zoom = 2.2f * r.max();
@@ -34,13 +37,16 @@ struct pile_t {
   void update() {
     //update_camera_zoom();
 
-    engine.physics_context.step(engine.delta_time);
-    player.update();
-    for (skeleton_t& enemy : pile->enemy_skeleton) {
-      if (enemy.update()) {
-        break;
+    if (!pause) {
+      engine.physics_context.step(engine.delta_time);
+      player.update();
+      for (skeleton_t& enemy : pile->enemy_skeleton) {
+        if (enemy.update()) {
+          break;
+        }
       }
     }
+
     
     engine.camera_set_target(engine.orthographic_render_view.camera, player.get_physics_pos(), 0);
     fan::graphics::gui::set_viewport(engine.orthographic_render_view.viewport);

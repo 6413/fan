@@ -28,9 +28,7 @@ import fan.graphics.gui.tilemap_editor.renderer;
 #include "pile.h"
 
 int main() {
-#if defined(fan_std23)
-  fan::heap_profiler_t::instance().enabled = true;
-#endif
+  //fan::heap_profiler_t::instance().enabled = true;
   pile = (pile_t*)std::malloc(sizeof(pile_t));
   std::construct_at(pile);
   pile->engine.loop();

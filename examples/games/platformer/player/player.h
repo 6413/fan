@@ -28,7 +28,7 @@ struct player_t {
       .aabb_scale = aabb_scale,
       .draw_offset_override = draw_offset,
       .attack_cb = [](fan::graphics::physics::character2d_t& c) -> bool{
-        if (!fan::window::is_mouse_clicked() || pile->engine.render_settings_menu){
+        if (!fan::window::is_mouse_clicked() || fan::graphics::gui::want_io()){
           return false;
         }
         return c.attack_state.try_attack(&c);
@@ -58,11 +58,6 @@ struct player_t {
       .knockback_force = 20.f,
       .cooldown_duration = 0.1e9,
       .on_attack_end = [this]() { did_attack = false;  }
-    });
-
-    mouse_click_handle = pile->engine.on_mouse_click(fan::mouse_left, [this](const auto& bdata){
-      body.cancel_animation();
-      body.attack_state.try_attack(&body);
     });
   }
   fan::event::task_t jump(bool is_double_jump){
@@ -183,7 +178,6 @@ struct player_t {
 
   fan::graphics::physics::character2d_t body;
   fan::graphics::physics::attack_hitbox_t attack_hitbox;
-  fan::graphics::engine_t::buttons_handle_t mouse_click_handle;
   fan::event::task_t task_jump;
   bool jump_cancelled = false;
   bool did_double_jump = false, did_wall_jump = false, did_attack = false;

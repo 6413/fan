@@ -475,10 +475,12 @@ public:
   );
 
 	fan::window::input_action_t input_action;
+  using update_callback_handle_t = fan::graphics::update_callback_t::nr_t;
+  // function callback parameter gives loco_t*
+  update_callback_handle_t add_update_callback(std::function<void(void*)>&& cb);
+  void remove_update_callback(update_callback_handle_t handle);
 	fan::graphics::update_callback_t m_update_callback;
 	std::vector<std::function<void()>> single_queue;
-
-
 
 	#include "engine_images.h"
 
@@ -628,7 +630,7 @@ public:
 	bool show_fps = false;
 	bool render_settings_menu = 0;
 
-	bool allow_docking = true;
+	bool allow_docking = false;
 
 	bool gui_initialized = false;
 

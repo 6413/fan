@@ -95,6 +95,10 @@ export namespace fan {
 		constexpr color_ operator*(T value) const {
 			return color_(r * value, g * value, b * value, a * value);
 		}
+    template <typename T>
+    constexpr color_ operator*(const color_<T>& value) const {
+      return color_(r * value.r, g * value.g, b * value.b, a);
+    }
 		template <typename T>
 		constexpr color_ operator/(T value) const {
 			return color_(r / value, g / value, b / value);

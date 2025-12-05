@@ -356,7 +356,6 @@ struct settings_menu_t {
       gui::window_flags_no_move | gui::window_flags_no_collapse |
       gui::window_flags_no_resize | gui::window_flags_no_title_bar
     );
-
     gui::push_font(gui::get_font(48, true));
     gui::indent(min_x);
     gui::text("Settings");

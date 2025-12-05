@@ -21,6 +21,7 @@ struct enemy_t {
     body.set_jump_height(75.f * density);
     body.movement_state.accelerate_force = 120.f / 2.3f;
     body.movement_state.max_speed = 610.f;
+    body.movement_state.check_gui = false;
 
     body.set_size(body.get_size());
     //body.set_color(fan::color(1, 1 / 3.f, 1 / 3.f, 1));
@@ -113,10 +114,10 @@ struct enemy_t {
       }
       f32_t image_size = 8.f;
       fan::graphics::sprite({
-        .position = fan::vec3(fan::vec2(body.get_physics_position() - fan::vec2(heart_count / 2.f * image_size - i * (image_size * 2.f) + image_size + image_size / 2.f, body.get_size().y / 1.5f)), 0xFF00),
+        .position = fan::vec3(fan::vec2(body.get_physics_position() - fan::vec2(heart_count / 2.f * image_size - i * (image_size * 2.f) + image_size + image_size / 2.f, body.get_size().y / 1.5f)), body.get_position().z),
         .size = image_size, 
         .image = hp_image,
-        });
+      });
     }
   }
   void destroy(){
@@ -126,7 +127,6 @@ struct enemy_t {
         break;
       }
     }
-    fan::physics::remove_physics_step_callback(physics_step_nr);
   }
   bool on_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction){
     fan::audio::play(audio_player_hits_enemy);
@@ -148,7 +148,7 @@ struct enemy_t {
     return false;
   }
   void respawn(){
-    body.set_physics_position(initial_position);
+    body.set_physics_position(fan::vec3(initial_position, 5));
     ai_behavior.enable_ai_patrol({initial_position - fan::vec2(400, 0), initial_position + fan::vec2(400, 0)});
     body.reset_health();
   }
@@ -164,6 +164,5 @@ struct enemy_t {
 
   fan::physics::physics_step_callback_nr_t physics_step_nr;
   fan::vec2 initial_position = 0;
-  bool remove_this = false;
   fan::audio::piece_t audio_attack{"audio/enemy_attack.sac"}, audio_player_hits_enemy{"audio/player_hits_enemy.sac"};
 };

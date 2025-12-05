@@ -554,14 +554,9 @@ namespace fan::graphics{
 				fan::throw_error_impl();
 			}
 		}
-    else	if (sti == shape_type_t::sprite) {
+    else if (sti == shape_type_t::sprite) {
       sprite_t::ri_t* ri = (sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
       sprite_t::ri_t* _ri = (sprite_t::ri_t*)s.GetData(fan::graphics::g_shapes->shaper);
-      if (((sprite_t::ri_t*)_ri)->sprite_sheet_data.frame_update_nr) {
-        //fan::print(((sprite_t::ri_t*)_ri)->sprite_sheet_data.frame_update_nr.NRI);
-        fan::graphics::g_render_context_handle.update_callback->unlrec(((sprite_t::ri_t*)_ri)->sprite_sheet_data.frame_update_nr);
-        ((sprite_t::ri_t*)_ri)->sprite_sheet_data.frame_update_nr.sic();
-      }
       if (ri->sprite_sheet_data.frame_update_nr) {
         ri->sprite_sheet_data.frame_update_nr = fan::graphics::g_render_context_handle.update_callback->NewNodeLast(); // since hard copy, let it leak
         (*fan::graphics::g_render_context_handle.update_callback)[ri->sprite_sheet_data.frame_update_nr] = [nr = NRI](void* ptr) {

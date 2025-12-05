@@ -417,6 +417,10 @@ export namespace fan::graphics {
 		image_t(const char* path, const std::source_location& callers_path = std::source_location::current());
 		image_t(const std::string& path, const std::source_location& callers_path = std::source_location::current());
 
+    image_t(const char* path, const fan::graphics::image_load_properties_t lp, const std::source_location& callers_path = std::source_location::current());
+    image_t(const std::string& path, const fan::graphics::image_load_properties_t lp, const std::source_location& callers_path = std::source_location::current());
+
+
 		fan::vec2 get_size() const;
     image_load_properties_t get_load_properties() const;
     std::string get_path() const;
