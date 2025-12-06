@@ -537,6 +537,7 @@ export namespace fan::graphics {
       void start_sprite_sheet_animation();
       void stop_sprite_sheet_animation();
       // overwrites 'ri.current_animation' animation
+      void set_sprite_sheet_animation(const std::string& name);
       void set_sprite_sheet_animation(const sprite_sheet_animation_t& animation);
       void add_sprite_sheet_animation(const sprite_sheet_animation_t& animation);
       void set_sprite_sheet_frames(uint32_t image_index, int horizontal_frames, int vertical_frames);

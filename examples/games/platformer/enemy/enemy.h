@@ -1,30 +1,46 @@
-struct enemy_t {
+struct enemy_base_t {
+  virtual ~enemy_base_t() = default;
+  virtual bool update() = 0;
+  virtual void destroy() = 0;
+  virtual bool on_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction) = 0;
+  virtual void respawn() = 0;
+  virtual void set_initial_position(const fan::vec2& position) = 0;
+  virtual bool should_attack(fan::graphics::physics::character2d_t& c) = 0;
+  virtual bool is_spike_at(const fan::vec2& pos) = 0;
+  virtual void render_health() = 0;
+  virtual fan::graphics::physics::character2d_t& get_body() = 0;
+};
+
+template<typename derived_t>
+struct enemy_t : enemy_base_t {
   static inline constexpr fan::vec2 draw_offset{0, -18};
   static inline constexpr f32_t aabb_scale = 0.19f;
-  static constexpr fan::vec2 trigger_distance = {500, 500};
-  static constexpr fan::vec2 closeup_distance = {150, 100};
+  fan::vec2 trigger_distance = {500, 500};
+  fan::vec2 closeup_distance = {150, 100};
   //TODO use collision mask for player and entities
   static inline constexpr int attack_hitbox_frames[] = {4, 8};
 
   enemy_t() = default;
-  template <typename container_t>
-  enemy_t(container_t& bll, container_t::nr_t nr, const std::string& path, const std::source_location& caller_path = std::source_location::current()){
+  template<typename container_t>
+  enemy_t(container_t& bll, typename container_t::nr_t nr, const std::string& path, const std::source_location& caller_path = std::source_location::current()) {
     f32_t density = 4.f;
 
     body = fan::graphics::physics::character2d_t::from_json({
       .json_path = path,
       .aabb_scale = aabb_scale,
       .draw_offset_override = draw_offset,
-      .attack_cb = [&bll, nr](auto& c){ return bll[nr].should_attack(c); },
+      .attack_cb = [&bll, nr](auto& c){ 
+        return std::visit([&c](auto& e) { return e.should_attack(c); }, bll[nr]); 
+      },
       .physics_properties={.density=density, .fixed_rotation=true, .linear_damping=2.0f}
     }, caller_path);
     body.set_jump_height(75.f * density);
     body.movement_state.accelerate_force = 120.f / 3.f;
     body.movement_state.max_speed = 500.f;
     body.movement_state.check_gui = false;
-
     body.set_size(body.get_size());
-    //body.set_color(fan::color(1, 1 / 3.f, 1 / 3.f, 1));
+    ai_behavior.trigger_distance = trigger_distance;
+    ai_behavior.closeup_distance = closeup_distance;
 
     attack_hitbox.setup({
       .spawns = {{
@@ -66,50 +82,47 @@ struct enemy_t {
     navigation.auto_jump_obstacles = true;
     navigation.jump_lookahead_tiles = 1.5f;
     navigation.on_check_obstacle = [&bll, nr](const fan::vec2& check_pos){
-      return bll[nr].is_spike_at(check_pos);
+      return std::visit([&check_pos](auto& e) { return e.is_spike_at(check_pos); }, bll[nr]);
     };
     physics_step_nr = fan::physics::add_physics_step_callback([&bll, nr](){
       auto& level = pile->get_level();
       fan::vec2 tile_size = pile->renderer.get_tile_size(level.main_map_id) * 2.f;
       fan::vec2 target_pos = pile->player.get_physics_pos();
-      auto& node = bll[nr];
-      node.ai_behavior.update_ai(&node.body, node.navigation, target_pos, tile_size);
-      fan::vec2 distance = node.ai_behavior.get_target_distance(node.body.get_physics_position());
-      if (!((std::abs(distance.x) < trigger_distance.x && std::abs(distance.y) < trigger_distance.y))){
-        node.ai_behavior.enable_ai_patrol({node.initial_position - fan::vec2(400, 0), node.initial_position + fan::vec2(400, 0)});
-      }
-      else{
-        node.ai_behavior.enable_ai_follow(&pile->player.body, trigger_distance, closeup_distance);
-      }
+      std::visit([&](auto& node){
+        node.ai_behavior.update_ai(&node.body, node.navigation, target_pos, tile_size);
+        fan::vec2 distance = node.ai_behavior.get_target_distance(node.body.get_physics_position());
+        if (!((std::abs(distance.x) < node.trigger_distance.x && std::abs(distance.y) < node.trigger_distance.y))) {
+          node.ai_behavior.enable_ai_patrol({node.initial_position - fan::vec2(400, 0), node.initial_position + fan::vec2(400, 0)});
+        }
+        else {
+          node.ai_behavior.enable_ai_follow(&pile->player.body, node.trigger_distance, node.closeup_distance);
+        }
+      }, bll[nr]);
     });
   }
-  bool should_attack(fan::graphics::physics::character2d_t& c){
+  bool should_attack(fan::graphics::physics::character2d_t& c) override {
     fan::vec2 distance = ai_behavior.get_target_distance(c.get_physics_position());
     return c.attack_state.try_attack(&c, distance);
   }
-  bool update(){    
-    for (int i = 0; i < attack_hitbox.hitbox_count(); ++i){
-      if (attack_hitbox.check_hit(&body, i, &pile->player.body)){
-        if (pile->player.on_hit(&body, (pile->player.body.get_position() - body.get_position()).normalized())){
+  bool update() override {
+    for (int i = 0; i < attack_hitbox.hitbox_count(); ++i) {
+      if (attack_hitbox.check_hit(&body, i, &pile->player.body)) {
+        if (pile->player.on_hit(&body, (pile->player.body.get_position() - body.get_position()).normalized())) {
           return true;
         }
       }
     }
-
     attack_hitbox.update(&body);
-
     body.update_animations();
-
     render_health();
     return false;
   }
-  void render_health(){
+  void render_health() override {
     int heart_count = body.get_max_health() / 10.f;
-    for (int i = 0; i < heart_count; ++i){
+    for (int i = 0; i < heart_count; ++i) {
       fan::graphics::image_t hp_image = pile->get_gui().health_empty;
-      //0-1
       f32_t progress = body.get_health() / body.get_max_health();
-      if (progress * heart_count > i){
+      if (progress * heart_count > i) {
         hp_image = pile->get_gui().health_full;
       }
       f32_t image_size = 8.f;
@@ -120,48 +133,50 @@ struct enemy_t {
       });
     }
   }
-  void destroy(){
-    for (auto [it, enemy] : fan::enumerate(pile->enemy_skeleton)) {
-      if (enemy.body.NRI == body.NRI) {
-        pile->enemy_skeleton.unlrec(it);
+  void destroy() override {
+    for (auto [it, enemy] : fan::enumerate(pile->enemy_list)) {
+      if (std::visit([this](auto& e) { return e.body.NRI == body.NRI; }, enemy)) {
+        pile->enemy_list.unlrec(it);
         break;
       }
     }
   }
-  bool on_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction){
+  bool on_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction) override {
     fan::audio::play(audio_player_hits_enemy);
     body.take_hit(source, hit_direction);
-    if (body.is_dead()){
+    if (body.is_dead()) {
       destroy();
       return true;
     }
     return false;
   }
-  bool is_spike_at(const fan::vec2& pos){
-    for (auto& spike : pile->get_level().spike_sensors){
+  bool is_spike_at(const fan::vec2& pos) override {
+    for (auto& spike : pile->get_level().spike_sensors) {
       fan::vec2 spike_pos = spike.get_position();
       fan::vec2 spike_size = pile_t::level_t::spike_height * 2.f;
-      if (std::abs(pos.x - spike_pos.x) < spike_size.x / 2.f && std::abs(pos.y - spike_pos.y) < spike_size.y / 2.f){
+      if (std::abs(pos.x - spike_pos.x) < spike_size.x / 2.f && std::abs(pos.y - spike_pos.y) < spike_size.y / 2.f) {
         return true;
       }
     }
     return false;
   }
-  void respawn(){
+  void respawn() override {
     body.set_physics_position(fan::vec3(initial_position, 5));
     ai_behavior.enable_ai_patrol({initial_position - fan::vec2(400, 0), initial_position + fan::vec2(400, 0)});
     body.reset_health();
   }
-  void set_initial_position(const fan::vec2& position){
+  void set_initial_position(const fan::vec2& position) override {
     initial_position = position;
     respawn();
+  }
+  fan::graphics::physics::character2d_t& get_body() override {
+    return body;
   }
 
   fan::graphics::physics::character2d_t body;
   fan::graphics::physics::attack_hitbox_t attack_hitbox;
   fan::graphics::physics::ai_behavior_t ai_behavior;
   fan::graphics::physics::navigation_helper_t navigation;
-
   fan::physics::physics_step_callback_nr_t physics_step_nr;
   fan::vec2 initial_position = 0;
   fan::audio::piece_t audio_attack{"audio/enemy_attack.sac"}, audio_player_hits_enemy{"audio/player_hits_enemy.sac"};
