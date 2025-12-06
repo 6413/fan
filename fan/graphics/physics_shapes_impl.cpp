@@ -730,6 +730,32 @@ namespace fan::graphics::physics {
     );
   }
 
+  void movement_state_t::move_to_direction_raw(fan::physics::body_id_t body, const fan::vec2& direction) {
+    fan::vec2 input_dir = direction.sign() * (check_gui ? !fan::graphics::gui::want_io() : 1);
+    fan::vec2 vel = body.get_linear_velocity();
+    f32_t dt = fan::physics::default_physics_timestep;
+
+    if (input_dir.x != 0) {
+      vel.x += input_dir.x * accelerate_force * dt * 100.f;
+      vel.x = fan::math::clamp(vel.x, -max_speed, max_speed);
+    }
+    else {
+      f32_t deceleration_factor = 0.3f * dt * 100.f;
+      vel.x = fan::math::lerp(vel.x, 0.f, deceleration_factor);
+    }
+    if (input_dir.y != 0) {
+      vel.y += input_dir.y * accelerate_force * dt * 100.f;
+      vel.y = fan::math::clamp(vel.y, -max_speed, max_speed);
+    }
+    else {
+      f32_t deceleration_factor = 0.3f * dt * 100.f;
+      vel.y = fan::math::lerp(vel.y, 0.f, deceleration_factor);
+    }
+
+    body.set_linear_velocity({vel.x, vel.y});
+    previous_sign = input_dir;
+  }
+
   void movement_state_t::move_to_direction(fan::physics::body_id_t body, const fan::vec2& direction) {
     fan::vec2 input_dir = direction.sign() * (check_gui ? !fan::graphics::gui::want_io() : 1);
     fan::vec2 vel = body.get_linear_velocity();
@@ -999,6 +1025,16 @@ namespace fan::graphics::physics {
     for (auto& state : states) {
       state.is_playing = false;
     }
+  }
+
+  animation_controller_t::animation_state_t& animation_controller_t::get_state(const std::string& name) {
+    for (auto& state : states) {
+      if (name == state.name) {
+        return state;
+      }
+    }
+    fan::throw_error("state not found");
+    __unreachable();
   }
 
   void animation_controller_t::update_animation(character2d_t* character) {
@@ -1444,6 +1480,9 @@ namespace fan::graphics::physics {
   }
   void character2d_t::reset_health() {
     set_health(get_max_health());
+  }
+  f32_t character2d_t::get_jump_height() const {
+    return movement_state.jump_state.impulse;
   }
   void character2d_t::set_jump_height(f32_t v) {
     movement_state.jump_state.impulse = v;
