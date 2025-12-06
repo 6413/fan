@@ -2261,6 +2261,10 @@ void fan::graphics::shapes::shape_t::stop_sprite_sheet_animation() {
   }
 }
 
+void fan::graphics::shapes::shape_t::set_sprite_sheet_animation(const std::string& name) {
+  set_sprite_sheet_animation(*get_animation(name));
+}
+
 void fan::graphics::shapes::shape_t::set_sprite_sheet_animation(const fan::graphics::sprite_sheet_animation_t& animation) {
 	if (get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {
 		auto& ri = shape_get_ri(sprite);

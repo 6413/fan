@@ -469,6 +469,7 @@ export namespace fan {
       };
       struct movement_state_t {
 
+        void move_to_direction_raw(fan::physics::body_id_t body, const fan::vec2& direction);
         void move_to_direction(fan::physics::body_id_t body, const fan::vec2& direction);
         void perform_jump(fan::physics::body_id_t body_id, bool jump_condition, fan::vec2* wall_jump_normal = nullptr, wall_jump_t* wall_jump = nullptr);
 
@@ -543,6 +544,7 @@ export namespace fan {
         void add_state(const animation_state_t& state);
         void update(character2d_t* character);
         void cancel_current();
+        animation_state_t& get_state(const std::string& name);
 
         void update_animation(character2d_t* character);
 
@@ -625,6 +627,7 @@ export namespace fan {
         bool is_dead() const;
         void reset_health();
 
+        f32_t get_jump_height() const;
         void set_jump_height(f32_t v);
         void enable_double_jump();
 

@@ -13,6 +13,7 @@
 #include <vector>
 #include <fstream>
 #include <source_location>
+#include <variant>
 
 #include <fan/utility.h>
 

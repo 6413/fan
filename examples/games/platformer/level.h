@@ -19,12 +19,18 @@ static inline constexpr std::array<fan::vec2, 3> get_spike_points(std::string_vi
 }
 
 void load_enemies() {
-  pile->enemy_skeleton.Clear();
-  // todo cache
+  pile->enemy_list.Clear();
   pile->renderer.iterate_visual(main_map_id, [&](fte_loader_t::tile_t& tile) ->bool {
     if (tile.id.contains("enemy_skeleton")) {
-      auto nr = pile->enemy_skeleton.NewNodeLast();
-      pile->enemy_skeleton[nr] = skeleton_t(pile->enemy_skeleton, nr, fan::vec3(fan::vec2(tile.position), 5));
+      auto nr = pile->enemy_list.NewNodeLast();
+      pile->enemy_list[nr] = skeleton_t(pile->enemy_list, nr, fan::vec3(fan::vec2(tile.position), 5));
+    }
+    return false;
+  });
+  pile->renderer.iterate_visual(main_map_id, [&](fte_loader_t::tile_t& tile) ->bool {
+    if (tile.id.contains("enemy_fly")) {
+      auto nr = pile->enemy_list.NewNodeLast();
+      pile->enemy_list[nr] = fly_t(pile->enemy_list, nr, fan::vec3(fan::vec2(tile.position), 5));
     }
     return false;
   });
@@ -33,7 +39,6 @@ void load_enemies() {
 void load_map() {
   main_compiled_map = pile->renderer.compile("sample_level.fte");
   fan::vec2i render_size(16, 9);
-  //render_size /= 0.01;
   fte_loader_t::properties_t p;
   p.size = render_size;
   p.position = pile->player.body.get_position();
@@ -43,7 +48,7 @@ void load_map() {
   checkpoint_flag = fan::graphics::sprite_sheet_from_json({
     .path = "effects/flag.json",
     .loop = true
-  });
+    });
 
   checkpoint_flag.set_size(checkpoint_flag.get_size() / fan::vec2(1.5f, 1.0f));
   checkpoint_flag.set_position(pile->renderer.get_position(main_map_id, "checkpoint0") + fan::vec2(0, checkpoint_flag.get_size().y/2.0f));
@@ -63,9 +68,11 @@ void load_map() {
     const std::string& id = tile.id;
 
     if (id.contains("checkpoint")) {
-      player_checkpoints.emplace_back(
-        fan::physics::create_sensor_rectangle(tile.position, tile.size)
-      );
+      int checkpoint_idx = std::stoi(id.substr(std::strlen("checkpoint")));
+      if (player_checkpoints.size() < checkpoint_idx) {
+        player_checkpoints.resize(checkpoint_idx + 1);
+      }
+      player_checkpoints[checkpoint_idx] = fan::physics::create_sensor_rectangle(tile.position, tile.size);
     }
     else if (tile.id.contains("roof_chain")) {}
     else if (id.contains("trap_axe")) {
@@ -144,27 +151,15 @@ void reload_map() {
 }
 
 void update() {
-  static fan::color c;
-  static fan::vec2 p = background.get_position();
-  static fan::vec2 s = background.get_size();
-  fan::graphics::gui::begin("A");
-  fan::graphics::gui::color_edit4("test",&c);
-  fan::graphics::gui::drag("test2",&p);
-  fan::graphics::gui::drag("test3",&s);
-  fan::graphics::gui::end();
-  background.set_color(c);
-  background.set_position(p);
-  background.set_size(s);
-
   lights.resize(lamps.size());
-  
+
   for (auto [i, lamp] : fan::enumerate(lamps)) {
     lights[i].set_position(fan::vec2(lamp.get_position()));
     lights[i].set_size(512);
     auto tc_center = lamp.get_tc_position() + lamp.get_tc_size() * 0.5f;
     auto pixel_size = fan::vec2(1.0f) / image_get_data(lamp.get_image()).size;
     auto pixels = read_pixels_from_image(lamp.get_image(), tc_center, pixel_size);
-    
+
     uint32_t ch = fan::graphics::get_channel_amount(image_get_settings(lamp.get_image()).format);
     fan::color current = lights[i].get_color() / 2.f;
     f32_t lerp_speed = std::min(pile->engine.delta_time * 10.0f, 1.0);
@@ -195,16 +190,16 @@ void update() {
       }
     }
     bool consumed = false;
-    for (auto& enemy : pile->enemy_skeleton) {
-      if (enemy.body.get_health() == enemy.body.get_max_health()) {
+    for (auto enemy : pile->enemies()) {
+      if (enemy.get_body().get_health() == enemy.get_body().get_max_health()) {
         continue;
       }
-      if (!fan::physics::is_on_sensor(enemy.body, sensor)) {
+      if (!fan::physics::is_on_sensor(enemy.get_body(), sensor)) {
         continue;
       }
       static constexpr f32_t health_restore = 10.f;
-      enemy.body.set_health(
-        enemy.body.get_health() + health_restore
+      enemy.get_body().set_health(
+        enemy.get_body().get_health() + health_restore
       );
       fan::vec2 pos = sensor.get_position();
       it->destroy();
@@ -227,8 +222,8 @@ void update() {
       pile->player.respawn();
       load_enemies();
     }
-    for (auto [nr, enemy] : fan::enumerate(pile->enemy_skeleton)) {
-      if (fan::physics::is_on_sensor(enemy.body, spike)) {
+    for (auto enemy : pile->enemies()) {
+      if (fan::physics::is_on_sensor(enemy.get_body(), spike)) {
         enemy.destroy();
       }
     }
@@ -238,7 +233,7 @@ void update() {
     if (fan::window::is_key_pressed(fan::key_e)) {
       pile->pause = !pile->pause;
     }
-  
+
     if (fan::window::is_key_pressed(fan::key_r)) {
       reload_map();
       return;
@@ -260,19 +255,14 @@ std::vector<fan::physics::entity_t> axe_collisions;
 
 fan::graphics::sprite_t checkpoint_flag;
 std::vector<fan::physics::entity_t> player_checkpoints;
-//fan::graphics::sprite_t bg{{
-//  .position = fan::vec3(10000, 10000, 0),
-//  .size = 10000, 
-//  .image = fan::graphics::image_create(fan::colors::black + 0.1)
-//}};
 
 std::vector<fan::graphics::sprite_t> lamps;
 std::vector<fan::graphics::light_t> lights;
 
 fan::graphics::sprite_t background {{
-  .position = fan::vec3(10000, 6010, 0),
-  .size = fan::vec2(9192, 10000),
-  .color = fan::color(0.6, 0.576, 1),
-  .image = fan::graphics::image_t("images/background.png"),
-  .tc_size = 1 * 300.0,
-}};
+    .position = fan::vec3(10000, 6010, 0),
+    .size = fan::vec2(9192, 10000),
+    .color = fan::color(0.6, 0.576, 1),
+    .image = fan::graphics::image_t("images/background.png"),
+    .tc_size = 1 * 300.0,
+  }};

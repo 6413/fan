@@ -110,11 +110,11 @@ struct player_t {
       did_attack = true;
     }
 
-    for (enemy_t& enemy : pile->enemy_skeleton) {
-      if (!attack_hitbox.check_hit(&body, 0, &enemy.body)) {
+    for (auto enemy : pile->enemies()) {
+      if (!attack_hitbox.check_hit(&body, 0, &enemy.get_body())) {
         continue;
       }
-      if (enemy.on_hit(&body, (enemy.body.get_position() - body.get_position()).normalized())) {
+      if (enemy.on_hit(&body, (enemy.get_body().get_position() - body.get_position()).normalized())) {
         break;
       }
     }
@@ -164,7 +164,7 @@ struct player_t {
     audio_attack{"audio/player_attack.sac"}, 
     audio_enemy_hits_player{"audio/enemy_hits_player.sac"},
     audio_checkpoint{"audio/checkpoint.sac"};
-  int current_checkpoint = -1;
+  int current_checkpoint = 0;
   fan::graphics::shape_t particles;
   fan::event::task_t task_particles;
 };

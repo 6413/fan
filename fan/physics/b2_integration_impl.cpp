@@ -222,6 +222,13 @@ namespace fan::physics {
     physics::on_overlap(*this, other, std::move(callback));
   }
 
+  f32_t body_id_t::get_gravity_scale() const {
+    return b2Body_GetGravityScale(*this);
+  }
+  void body_id_t::set_gravity_scale(f32_t scale) {
+    b2Body_SetGravityScale(*this, scale);
+  }
+
   capsule_t::capsule_t(const b2Capsule& capsule) : b2Capsule(capsule) {}
 
   segment_t::segment_t(const b2Segment& segment) : b2Segment(segment) {}
