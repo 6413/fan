@@ -556,6 +556,13 @@ export namespace fan::graphics {
       // for line
       void set_thickness(f32_t new_thickness);
       void apply_floating_motion(f32_t time = 0.f/*start_time.seconds()*/, f32_t amplitude = 5.f, f32_t speed = 2.f, f32_t phase = 0.f);
+      void start_particles();
+      void stop_particles();
+
+      template <typename T>
+      T::ri_t& get_data() {
+        return *(typename T::ri_t*)GetData(g_shapes->shaper);
+      }
     };
 
     shaper_t shaper;
@@ -1154,13 +1161,17 @@ export namespace fan::graphics {
 
 			struct ri_t {
 
+        bool loop = true;
+        f32_t loop_enabled_time;
+        f32_t loop_disabled_time;
+
 				fan::vec3 position;
 				fan::vec2 size;
 				fan::color color;
 
 				uint64_t begin_time;
-				uint64_t alive_time;
-				uint64_t respawn_time;
+        f32_t alive_time;
+				f32_t respawn_time;
 				uint32_t count;
 				fan::vec2 position_velocity;
 				fan::vec3 angle_velocity;
@@ -1170,6 +1181,7 @@ export namespace fan::graphics {
 				fan::vec3 angle;
 
 				fan::vec2 gap_size;
+        f32_t expansion_power; // 1.0 = linear, 2.0 = quadratic, 0.5 = slow start, etc...
 				fan::vec2 max_spread_size;
 				fan::vec2 size_velocity;
 
@@ -1182,13 +1194,17 @@ export namespace fan::graphics {
 			struct properties_t {
 				using type_t = particles_t;
 
+        bool loop = true;
+        f32_t loop_enabled_time = 0.0f;
+        f32_t loop_disabled_time = 0.0f;
+
 				fan::vec3 position = 0;
 				fan::vec2 size = 100;
-				fan::color color = fan::colors::red;
+				fan::color color = fan::colors::white;
 
-				uint64_t begin_time;
-				uint64_t alive_time = (uint64_t)1e+9;
-				uint64_t respawn_time = 0;
+				uint64_t begin_time = 0;
+				f32_t alive_time = 1;
+				f32_t respawn_time = 0;
 				uint32_t count = 10;
 				fan::vec2 position_velocity = 130;
 				fan::vec3 angle_velocity = fan::vec3(0, 0, 0);
@@ -1199,6 +1215,7 @@ export namespace fan::graphics {
 
 				fan::vec2 gap_size = 1;
 				fan::vec2 max_spread_size = 100;
+        f32_t expansion_power = 1.0f; // 1.0 = linear, 2.0 = quadratic, 0.5 = slow start, etc...
 				fan::vec2 size_velocity = 1;
 
 				uint32_t shape = shapes_e::circle;

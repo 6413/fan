@@ -10,6 +10,7 @@ module;
 export module fan.graphics.gui.text_logger;
 
 #if defined(fan_gui)
+import fan.graphics.common_context;
 import fan.types.color;
 import fan.types.vector;
 import fan.fmt;
@@ -343,5 +344,81 @@ export namespace fan::graphics::gui {
       }
     }
   };
+
+  // Text that is added (stacked) to bottom left and fades away after specified time
+  //-------------------------------------Floating text-------------------------------------
+  template <typename ...Args>
+  void print(const Args&... args) {
+    ((text_logger_t*)fan::graphics::g_render_context_handle.text_logger)->print(args...);
+  }
+  template <typename ...Args>
+  void print(const fan::color& color, const Args&... args) {
+    ((text_logger_t*)fan::graphics::g_render_context_handle.text_logger)->print(color, args...);
+  }
+  template <typename... args_t>
+  void printf(std::string_view fmt, args_t&&... args) {
+    ((text_logger_t*)fan::graphics::g_render_context_handle.text_logger)->printf(fmt, std::forward<args_t>(args)...);
+  }
+  template <typename... args_t>
+  void printf(const fan::color& color, std::string_view fmt, args_t&&... args) {
+    ((text_logger_t*)fan::graphics::g_render_context_handle.text_logger)->printf(color, fmt, std::forward<args_t>(args)...);
+  }
+  template <typename... args_t>
+  void printft(std::streamsize tab_width, std::string_view fmt, args_t&&... args) {
+    ((text_logger_t*)fan::graphics::g_render_context_handle.text_logger)->printft(tab_width, fmt, std::forward<args_t>(args)...);
+  }
+  template <typename... args_t>
+  void printft(std::streamsize tab_width, const fan::color& color, std::string_view fmt, args_t&&... args) {
+    ((text_logger_t*)fan::graphics::g_render_context_handle.text_logger)->printft(tab_width, color, fmt, std::forward<args_t>(args)...);
+  }
+  template <typename ...args_t>
+  void print_error(args_t&&... args) {
+    ((text_logger_t*)fan::graphics::g_render_context_handle.text_logger)->print(fan::colors::red, std::forward<args_t>(args)...);
+  }
+  template <typename ...args_t>
+  void print_warning(args_t&&... args) {
+    ((text_logger_t*)((text_logger_t*)fan::graphics::g_render_context_handle.text_logger))->print(fan::colors::yellow, std::forward<args_t>(args)...);
+  }
+  template <typename ...args_t>
+  void print_success(args_t&&... args) {
+    ((text_logger_t*)fan::graphics::g_render_context_handle.text_logger)->print(fan::colors::green, std::forward<args_t>(args)...);
+  }
+  void set_text_fade_time(f32_t seconds);
+  //-------------------------------------Floating text-------------------------------------
+
+  // Text that is added (stacked) to bottom left and it never disappears
+  //-------------------------------------Static text-------------------------------------
+  template <typename ...Args>
+  void print_static(const Args&... args) {
+    ((text_logger_t*)fan::graphics::g_render_context_handle.text_logger)->print_static(args...);
+  }
+  template <typename ...Args>
+  void print_static(const fan::color& color, const Args&... args) {
+    ((text_logger_t*)fan::graphics::g_render_context_handle.text_logger)->print_static(color, args...);
+  }
+  template <typename... args_t>
+  void printf_static(std::string_view fmt, args_t&&... args) {
+    ((text_logger_t*)fan::graphics::g_render_context_handle.text_logger)->printf_static(fmt, std::forward<args_t>(args)...);
+  }
+  template <typename... args_t>
+  void printf_static(const fan::color& color, std::string_view fmt, args_t&&... args) {
+    ((text_logger_t*)fan::graphics::g_render_context_handle.text_logger)->printf_static(color, fmt, std::forward<args_t>(args)...);
+  }
+  template <typename... args_t>
+  void printft_static(std::streamsize tab_width, std::string_view fmt, args_t&&... args) {
+    ((text_logger_t*)fan::graphics::g_render_context_handle.text_logger)->printft_static(tab_width, fmt, std::forward<args_t>(args)...);
+  }
+  template <typename... args_t>
+  void printft_static(std::streamsize tab_width, const fan::color& color, std::string_view fmt, args_t&&... args) {
+    ((text_logger_t*)fan::graphics::g_render_context_handle.text_logger)->printft_static(tab_width, color, fmt, std::forward<args_t>(args)...);
+  }
+  void clear_static_text();
+  //-------------------------------------Static text-------------------------------------
+}
+
+export namespace fan {
+  void gprint(const auto& ...args) {
+    fan::graphics::gui::print(args...);
+  }
 }
 #endif

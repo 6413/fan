@@ -69,16 +69,25 @@ export namespace fan::window {
       }
       action_data_t& action_data = found->second;
       int state = input_action_t::none;
+
       if (action_data.combo_count > 0) {
+        int min_state = input_action_t::repeat;
+        bool all_held = true;
+
         for (int i = 0; i < action_data.combo_count; ++i) {
           int s = is_active_func(action_data.key_combos[i]);
-          if (s == input_action_t::none) {
-            return false;
+          if (s != input_action_t::press && s != input_action_t::repeat) {
+            all_held = false;
+            break;
           }
-          if (s > state) {
-            state = s;
+          if (s < min_state) {
+            min_state = s;
           }
         }
+        if (!all_held) {
+          return pstate == input_action_t::none;
+        }
+        state = min_state;
       }
       else if (action_data.count > 0) {
         for (int i = 0; i < action_data.count; ++i) {
@@ -88,16 +97,14 @@ export namespace fan::window {
           }
         }
       }
+
       switch (pstate) {
       case input_action_t::press:
         return state == input_action_t::press;
-
       case input_action_t::repeat:
         return state == input_action_t::repeat;
-
       case input_action_t::press_or_repeat:
-        return state == input_action_t::press ||
-          state == input_action_t::repeat;
+        return state == input_action_t::press || state == input_action_t::repeat;
       case input_action_t::none:
         return state == input_action_t::none;
       }

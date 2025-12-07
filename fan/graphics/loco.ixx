@@ -504,6 +504,8 @@ public:
 
 	std::function<void()> main_loop; // bad, but forced
 
+  f64_t current_time() const;
+
 	f64_t delta_time = window.m_delta_time;
   fan::time::timer shape_draw_timer;
   fan::time::timer gui_draw_timer;
@@ -630,7 +632,7 @@ public:
 	bool show_fps = false;
 	bool render_settings_menu = 0;
 
-	bool allow_docking = false;
+	bool allow_docking = true;
 
 	bool gui_initialized = false;
 

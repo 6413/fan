@@ -29,11 +29,38 @@ void load_enemies() {
   });
   pile->renderer.iterate_visual(main_map_id, [&](fte_loader_t::tile_t& tile) ->bool {
     if (tile.id.contains("enemy_fly")) {
-      auto nr = pile->enemy_list.NewNodeLast();
-      pile->enemy_list[nr] = fly_t(pile->enemy_list, nr, fan::vec3(fan::vec2(tile.position), 5));
+     // auto nr = pile->enemy_list.NewNodeLast();
+      //pile->enemy_list[nr] = fly_t(pile->enemy_list, nr, fan::vec3(fan::vec2(tile.position), 5));
     }
     return false;
   });
+}
+
+// returns whether the object was picked up
+template <typename T>
+bool handle_pickupable(const std::string& id, T& who) {
+  constexpr bool is_player = std::is_same_v<T, player_t>;
+  switch (fan::get_hash(id)) {
+  case fan::get_hash("pickupable_health"):
+  {
+    static constexpr f32_t health_restore = 10.f;
+    who.get_body().set_health(
+      who.get_body().get_health() + health_restore
+    );
+    break;
+  }
+  case fan::get_hash("pickupable_health_potion"):
+  {
+    if constexpr (!is_player) {
+      return false;
+    }
+    else {
+      ++who.potion_count;
+    }
+    break;
+  }
+  }
+  return true;
 }
 
 void load_map() {
@@ -74,14 +101,14 @@ void load_map() {
       }
       player_checkpoints[checkpoint_idx] = fan::physics::create_sensor_rectangle(tile.position, tile.size);
     }
-    else if (tile.id.contains("roof_chain")) {}
+    else if (id.contains("roof_chain")) {}
     else if (id.contains("trap_axe")) {
       axes.emplace_back(axe_anim);
       axes.back().set_position(fan::vec3(fan::vec2(tile.position), 3));
     }
-    else if (id.contains("sensor_health")) {
-      health_sensors.emplace_back(
-        fan::physics::create_sensor_rectangle(tile.position, tile.size / 1.2f)
+    else if (id.contains("pickupable_")) {
+      pickupables.push_back(
+        {id, fan::physics::create_sensor_rectangle(tile.position, tile.size / 1.2f)}
       );
     }
     else if (id.contains("spikes")) {
@@ -128,8 +155,8 @@ void open(void* sod) {
 }
 
 void close() {
-  for (auto& i : health_sensors) {
-    i.destroy();
+  for (auto& i : pickupables) {
+    i.second.destroy();
   }
   for (auto& i : player_checkpoints) {
     i.destroy();
@@ -170,22 +197,20 @@ void update() {
     pile->engine.lighting.set_target(fan::color(pixels.data(), pixels.data() + ch) / 5.f + 0.7, 0.1);
   }
 
-  for (auto it = health_sensors.begin(); it != health_sensors.end(); ++it) {
-    auto& sensor = *it;
+  for (auto it = pickupables.begin(); it != pickupables.end(); ++it) {
+    auto& sensor = it->second;
     if (pile->player.body.get_health() < pile->player.body.get_max_health()) {
       if (fan::physics::is_on_sensor(pile->player.body, sensor)) {
-        static constexpr f32_t health_restore = 10.f;
-        pile->player.body.set_health(
-          pile->player.body.get_health() + health_restore
-        );
-        fan::vec2 pos = sensor.get_position();
-        it->destroy();
-        health_sensors.erase(it);
-        pile->renderer.remove_visual(
-          pile->get_level().main_map_id,
-          "sensor_health",
-          pos
-        );
+        if (handle_pickupable(it->first, pile->player)) {
+          fan::vec2 pos = sensor.get_position();
+          pile->renderer.remove_visual(
+            pile->get_level().main_map_id,
+            it->first,
+            pos
+          );
+          sensor.destroy();
+          pickupables.erase(it);
+        }
         break;
       }
     }
@@ -197,19 +222,17 @@ void update() {
       if (!fan::physics::is_on_sensor(enemy.get_body(), sensor)) {
         continue;
       }
-      static constexpr f32_t health_restore = 10.f;
-      enemy.get_body().set_health(
-        enemy.get_body().get_health() + health_restore
-      );
-      fan::vec2 pos = sensor.get_position();
-      it->destroy();
-      health_sensors.erase(it);
-      pile->renderer.remove_visual(
-        pile->get_level().main_map_id,
-        "sensor_health",
-        pos
-      );
-      consumed = true;
+      if (handle_pickupable(it->first, enemy)) {
+        fan::vec2 pos = sensor.get_position();
+        it->second.destroy();
+        pickupables.erase(it);
+        pile->renderer.remove_visual(
+          pile->get_level().main_map_id,
+          it->first,
+          pos
+        );
+        consumed = true;
+      }
       break;
     }
     if (consumed) {
@@ -234,7 +257,7 @@ void update() {
       pile->pause = !pile->pause;
     }
 
-    if (fan::window::is_key_pressed(fan::key_r)) {
+    if (fan::window::is_key_pressed(fan::key_t)) {
       reload_map();
       return;
     }
@@ -247,7 +270,7 @@ fte_loader_t::id_t main_map_id;
 fte_loader_t::compiled_map_t main_compiled_map;
 
 std::vector<fan::physics::entity_t> spike_sensors;
-std::vector<fan::physics::body_id_t> health_sensors;
+std::vector<std::pair<std::string, fan::physics::body_id_t>> pickupables;
 std::vector<fan::physics::entity_t> tile_collisions;
 
 std::vector<fan::graphics::sprite_t> axes;

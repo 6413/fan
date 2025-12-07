@@ -1,6 +1,10 @@
+#define gui fan::graphics::gui
+
 void open(void* sod) {
   health_empty = fan::graphics::image_t("gui/hp_empty.png");
   health_full = fan::graphics::image_t("gui/hp_full.png");
+  health_potion = fan::graphics::image_t("gui/health_potion.png");
+  gui::load_fonts(font_pixel, "fonts/PixelatedEleganceRegular-ovyAA.ttf");
 }
 
 void close() {
@@ -10,6 +14,10 @@ void close() {
 void update() {
   using namespace fan::graphics;
   fan::vec2 wnd_size = fan::window::get_size();
+
+  f32_t heart_size = (wnd_size / 32.f).max();
+  f32_t potion_size = (wnd_size / 48.f).max();
+
   //gui::set_next_window_pos(0);
   //gui::set_next_window_size(wnd_size);
   //gui::begin("##platformer_gui", nullptr,
@@ -25,10 +33,26 @@ void update() {
     if (progress * heart_count > i) {
       hp_image = health_full;
     }
-    gui::image(hp_image, (wnd_size / 32.f).max());
+    gui::image(hp_image, heart_size);
   }
+  auto cp = gui::get_cursor_screen_pos().x;
+  auto& v = gui::get_style();
+  gui::set_cursor_pos_x(cp + v.ItemSpacing.x + heart_size / 2.f - potion_size / 2.f);
+  gui::image(health_potion, potion_size);
+  gui::same_line();
+  gui::push_font(gui::get_font(font_pixel, gui::get_font_size()));
+  std::string potion_text = "x " + std::to_string(pile->player.potion_count);
+  f32_t text_height = gui::get_text_size(potion_text).y;
+  gui::set_cursor_pos_y(gui::get_cursor_pos_y() + potion_size - text_height);
+  gui::text(potion_text);
+  gui::pop_font();
+  cp = gui::get_cursor_screen_pos().x;
  // gui::end();
 }
 
 fan::graphics::image_t health_empty;
 fan::graphics::image_t health_full;
+fan::graphics::image_t health_potion;
+
+gui::font_t* font_pixel[std::size(gui::font_sizes)]{};
+#undef gui

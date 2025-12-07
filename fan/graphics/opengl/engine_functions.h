@@ -962,11 +962,14 @@ void draw_shapes() {
           fan::graphics::shapes::particles_t::ri_t* pri = (fan::graphics::shapes::particles_t::ri_t*)BlockTraverse.GetData(fan::graphics::g_shapes->shaper);
           for (int i = 0; i < BlockTraverse.GetAmount(fan::graphics::g_shapes->shaper); ++i) {
             auto& ri = pri[i];
+            loco.shader_set_value(shader, "loop", ri.loop);
+            loco.shader_set_value(shader, "loop_enabled_time", ri.loop_enabled_time);
+            loco.shader_set_value(shader, "loop_disabled_time", ri.loop_disabled_time);
             loco.shader_set_value(shader, "time", (f32_t)((fan::time::now() - ri.begin_time) / 1e+9));
             loco.shader_set_value(shader, "vertex_count", 6);
             loco.shader_set_value(shader, "count", ri.count);
-            loco.shader_set_value(shader, "alive_time", (f32_t)(ri.alive_time / 1e+9));
-            loco.shader_set_value(shader, "respawn_time", (f32_t)(ri.respawn_time / 1e+9));
+            loco.shader_set_value(shader, "alive_time", (f32_t)(ri.alive_time));
+            loco.shader_set_value(shader, "respawn_time", (f32_t)(ri.respawn_time));
             loco.shader_set_value(shader, "position", *(fan::vec2*)&ri.position);
             loco.shader_set_value(shader, "size", ri.size);
             loco.shader_set_value(shader, "position_velocity", ri.position_velocity);
@@ -976,6 +979,7 @@ void draw_shapes() {
             loco.shader_set_value(shader, "angle", ri.angle);
             loco.shader_set_value(shader, "color", ri.color);
             loco.shader_set_value(shader, "gap_size", ri.gap_size);
+            loco.shader_set_value(shader, "expansion_power", ri.expansion_power);
             loco.shader_set_value(shader, "max_spread_size", ri.max_spread_size);
             loco.shader_set_value(shader, "size_velocity", ri.size_velocity);
 
@@ -985,7 +989,7 @@ void draw_shapes() {
             fan_opengl_call(glDrawArrays(
               GL_TRIANGLES,
               0,
-              ri.count
+              6 * ri.count
             ));
           }
 
