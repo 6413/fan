@@ -7,7 +7,7 @@ module;
   #include <fan/imgui/imgui_internal.h>
 
   #include <string>
-  #include <string>
+  #include <sstream>
   #include <functional>
   #include <cstdint>
 #endif
@@ -29,6 +29,7 @@ import fan.types.vector;
 import fan.types.color;
 import fan.utility;
 import fan.math;
+import fan.print;
 
 export namespace fan::graphics::gui {
   bool begin(const std::string& window_name, bool* p_open = 0, window_flags_t window_flags = 0);
@@ -123,6 +124,19 @@ export namespace fan::graphics::gui {
 
   void next_column();
 
+  // gvars
+  inline constexpr f32_t font_sizes[] = {
+    4, 5, 6, 7, 8, 9, 10, 11, 12, 14,
+    16, 18, 20, 22, 24, 28,
+    32, 36, 48, 60, 72
+  };
+  fan::graphics::gui::font_t* fonts[std::size(font_sizes)]{};
+  fan::graphics::gui::font_t* fonts_bold[std::size(font_sizes)]{};
+
+  void build_fonts();
+  void rebuild_fonts();
+  void load_fonts(font_t* (&fonts)[std::size(fan::graphics::gui::font_sizes)], const std::string& name, font_config_t* cfg = nullptr);
+
   void push_font(font_t* font);
   void pop_font();
   font_t* get_font();
@@ -133,6 +147,7 @@ export namespace fan::graphics::gui {
   void unindent(f32_t indent_w = 0.0f);
 
   fan::vec2 calc_text_size(const std::string& text, const char* text_end = NULL, bool hide_text_after_double_hash = false, f32_t wrap_width = -1.0f);
+  fan::vec2 get_text_size(const std::string& text, const char* text_end = NULL, bool hide_text_after_double_hash = false, f32_t wrap_width = -1.0f);
   fan::vec2 text_size(const std::string& text, const char* text_end = NULL, bool hide_text_after_double_hash = false, f32_t wrap_width = -1.0f);
   void set_cursor_pos_x(f32_t pos);
   void set_cursor_pos_y(f32_t pos);
@@ -146,6 +161,9 @@ export namespace fan::graphics::gui {
   bool is_window_hovered(hovered_flag_t hovered_flags = 0);
   bool is_window_focused();
   void set_next_window_focus();
+  void set_window_focus(const std::string& name);
+
+  int render_window_flags();
 
   fan::vec2 get_window_content_region_min();
   fan::vec2 get_window_content_region_max();
@@ -189,6 +207,12 @@ export namespace fan::graphics::gui {
     else static_assert(false, "Unsupported type for ImGui");
   }
 
+  void push_style_color(col_t index, const fan::color& col);
+  void pop_style_color(int n = 1);
+
+  void push_style_var(style_var_t index, f32_t val);
+  void push_style_var(style_var_t index, const fan::vec2& val);
+  void pop_style_var(int n = 1);
 
   bool button(const std::string& label, const fan::vec2& size = fan::vec2(0, 0));
   bool invisible_button(const std::string& label, const fan::vec2& size = fan::vec2(0, 0));
@@ -197,16 +221,23 @@ export namespace fan::graphics::gui {
   /// <summary>
   /// Draws the specified text, with its position influenced by other GUI elements.
   /// </summary>
-  /// <param name="text">The text to draw.</param>
-  /// <param name="color">The color of the text (defaults to white).</param>
-  void text(const char* text, const fan::color& color = fan::colors::white);
+  /// <param name="color">The color of the text.</param>
+  /// <param name="text">The text args to draw.</param>
+  template <typename ...Args>
+  void text(const fan::color& color, const Args&... args) {
+    gui::push_style_color(col_text, color);
+    ImGui::Text(fan::format_args(args...).c_str());
+    gui::pop_style_color();
+  }
 
   /// <summary>
-  /// Draws the specified text, with its position influenced by other GUI elements.
+  /// Draws text constructed from multiple arguments with default white color.
   /// </summary>
-  /// <param name="text">The text to draw.</param>
-  /// <param name="color">The color of the text (defaults to white).</param>
-  void text(const std::string& text, const fan::color& color = fan::colors::white);
+  /// <param name="args">Arguments to be concatenated with spaces.</param>
+  template <typename ...Args>
+  void text(const Args&... args) {
+    text(fan::colors::white, args...);
+  }
 
   /// <summary>
   /// Draws the specified text at a given position on the screen.
@@ -328,16 +359,6 @@ export namespace fan::graphics::gui {
 
   bool is_item_toggled_open();
 
-  void push_style_color(col_t index, const fan::color& col);
-
-  void pop_style_color(int n = 1);
-
-  void push_style_var(style_var_t index, f32_t val);
-
-  void push_style_var(style_var_t index, const fan::vec2& val);
-
-  void pop_style_var(int n = 1);
-
   void dummy(const fan::vec2& size);
 
   draw_list_t* get_window_draw_list();
@@ -371,17 +392,11 @@ export namespace fan::graphics::gui {
   bool drag_scalar_n(const char* label, data_type_t data_type, void* p_data, int components, f32_t v_speed = 1.0f, const void* p_min = NULL, const void* p_max = NULL, const char* format = NULL, slider_flags_t flags = 0); 
 
   font_t* get_font_impl(f32_t font_size, bool bold = false);
+  font_t* get_font(
+    font_t* (&fonts)[std::size(fan::graphics::gui::font_sizes)],
+    f32_t font_size
+  );
   font_t* get_font(f32_t font_size, bool bold = false);
-
-
-  // gvars
-  inline constexpr f32_t font_sizes[] = {
-    4, 5, 6, 7, 8, 9, 10, 11, 12, 14,
-    16, 18, 20, 22, 24, 28,
-    32, 36, 48, 60, 72
-  };
-  fan::graphics::gui::font_t* fonts[std::size(font_sizes)]{};
-  fan::graphics::gui::font_t* fonts_bold[std::size(font_sizes)]{};
 
   void image(texture_id_t texture, const fan::vec2& size, const fan::vec2& uv0 = fan::vec2(0, 0), const fan::vec2& uv1 = fan::vec2(1, 1), const fan::color& tint_col = fan::colors::white, const fan::color& border_col = fan::color(0, 0, 0, 0));
   bool image_button(const std::string& str_id, texture_id_t texture, const fan::vec2& size, const fan::vec2& uv0 = fan::vec2(0, 0), const fan::vec2& uv1 = fan::vec2(1, 1), const fan::color& bg_col = fan::color(0, 0, 0, 0), const fan::color& tint_col = fan::colors::white);
@@ -419,6 +434,7 @@ export namespace fan::graphics::gui {
   void seperator();
   void dock_space_over_viewport(id_t dockspace_id = 0, const gui::viewport_t* viewport = NULL, int flags = 0, const void* window_class = NULL);
 
+  context_t* get_context();
 
   inline bool g_gui_initialized = false;
   void init(
@@ -604,32 +620,6 @@ export namespace fan::graphics::gui {
 
 // templates
 export namespace fan::graphics::gui {
-  /// <summary>
-  /// Draws text constructed from multiple arguments, with optional color.
-  /// </summary>
-  /// <param name="color">The color of the text.</param>
-  /// <param name="args">Arguments to be concatenated with spaces.</param>
-  template <typename ...Args>
-  void text(const fan::color& color, const Args&... args) {
-    std::ostringstream oss;
-    int idx = 0;
-    ((oss << args << (++idx == sizeof...(args) ? "" : " ")), ...);
-
-    gui::push_style_color(gui::col_text, color);
-    gui::text(oss.str());
-    gui::pop_style_color();
-  }
-
-  /// <summary>
-  /// Draws text constructed from multiple arguments with default white color.
-  /// </summary>
-  /// <param name="args">Arguments to be concatenated with spaces.</param>
-  template <typename ...Args>
-  void text(const Args&... args) {
-    text(fan::colors::white, args...);
-  }
-
-
   template<typename T>
   constexpr const char* get_default_format() {
     if constexpr (std::is_integral_v<T>) {

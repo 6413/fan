@@ -606,7 +606,7 @@ export namespace fan {
         character2d_t& operator=(character2d_t&& o) noexcept;
         ~character2d_t();
 
-        fan::vec2 get_center() const;
+        fan::vec3 get_center() const;
 
         void set_physics_position(const fan::vec2& p);
         void set_shape(fan::graphics::shape_t&& shape);

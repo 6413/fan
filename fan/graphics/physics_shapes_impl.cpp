@@ -792,7 +792,6 @@ namespace fan::graphics::physics {
         wall_jump->consumed = false;
       }
     }
-
     if (!jump_condition || !jump_state.handle_jump) {
       jump_state.jumping = false;
       return;
@@ -801,20 +800,16 @@ namespace fan::graphics::physics {
     fan::physics::shape_id_t colliding_wall_id;
     fan::vec2 wall_normal = wall_jump_normal ? *wall_jump_normal
       : fan::physics::check_wall_contact(body_id, &colliding_wall_id);
-
     bool touching_wall = (wall_normal.x != 0 || wall_normal.y != 0);
     bool allow_coyote = jump_state.can_coyote_jump(fan::time::now());
 
     if (touching_wall && !on_ground && jump_state.consumed && wall_jump && !wall_jump->consumed) {
       fan::vec2 input = fan::window::get_input_vector() * (check_gui ? !fan::graphics::gui::want_io() : 1);
       bool pushing_into_wall = fan::math::sgn(input.x) == fan::math::sgn(wall_normal.x);
-
       if (!jump_state.jumping) {
         fan::vec2 vel = body_id.get_linear_velocity();
         body_id.set_linear_velocity(fan::vec2(vel.x, 0));
-
-        // allow wall jump even after double jump
-        if (1/*!jump_state.double_jump_consumed*/) {
+        if (1) {
           if (fan::physics::wall_jump(body_id, wall_normal, wall_jump->push_away_force, jump_state.impulse)) {
             jump_state.on_jump(2);
           }
@@ -827,7 +822,7 @@ namespace fan::graphics::physics {
       }
     }
 
-    if (((on_ground || allow_coyote) && !jump_state.consumed) * (check_gui ? !fan::graphics::gui::want_io() : 1)) {
+    if ((!jump_state.consumed && !jump_state.jumping) * (check_gui ? !fan::graphics::gui::want_io() : 1)) {
       fan::vec2 vel = body_id.get_linear_velocity();
       body_id.set_linear_velocity(fan::vec2(vel.x, 0));
       body_id.apply_linear_impulse_center({0, -jump_state.impulse});
@@ -838,7 +833,7 @@ namespace fan::graphics::physics {
       return;
     }
 
-    if ((jump_state.allow_double_jump && !on_ground && !jump_state.jumping && jump_state.consumed && !jump_state.double_jump_consumed) * (check_gui ? !fan::graphics::gui::want_io() : 1)) {
+    if ((jump_state.allow_double_jump && !jump_state.jumping && jump_state.consumed && !jump_state.double_jump_consumed) * (check_gui ? !fan::graphics::gui::want_io() : 1)) {
       fan::vec2 vel = body_id.get_linear_velocity();
       body_id.set_linear_velocity(fan::vec2(vel.x, 0));
       body_id.apply_linear_impulse_center({0, -jump_state.impulse});
@@ -1314,8 +1309,9 @@ namespace fan::graphics::physics {
     }
   }
 
-  fan::vec2 character2d_t::get_center() const {
-    return get_position() - get_draw_offset();
+  fan::vec3 character2d_t::get_center() const {
+    auto p = get_position();
+    return fan::vec3(fan::vec2(p - get_draw_offset()), p.z);
   }
   void character2d_t::set_physics_position(const fan::vec2& p) {
     fan::physics::entity_t::set_physics_position(p);
