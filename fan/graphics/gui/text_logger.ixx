@@ -288,11 +288,11 @@ export namespace fan::graphics::gui {
         f32_t total_height = lines.size() * line_height;
         fan::vec2 bg_min = position + fan::vec2(-5, -5);
         fan::vec2 bg_max = position + fan::vec2(max_width + 5, total_height + 5);
-        draw_list->AddRectFilled(bg_min, bg_max, fan::color(0, 0, 0, (int)(244 * color.a)).get_imgui_color(), 3.0f);
+        draw_list->AddRectFilled(bg_min, bg_max, fan::color(0, 0, 0, (int)(244 * color.a)).get_gui_color(), 3.0f);
         for (int i = 0; i < lines.size(); ++i) {
           if (!lines[i].empty()) {
             fan::vec2 line_pos = position + fan::vec2(0, i * line_height);
-            draw_list->AddText(line_pos, color.get_imgui_color(), lines[i].c_str());
+            draw_list->AddText(line_pos, color.get_gui_color(), lines[i].c_str());
           }
         }
       }

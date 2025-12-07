@@ -185,7 +185,7 @@ struct settings_menu_t {
     fan::vec2 line_end = line_start;
     line_end.y += gui::get_content_region_max().y;
 
-    draw_list->AddLine(line_start, line_end, fan::color(255, 255, 255, 255).get_imgui_color());
+    draw_list->AddLine(line_start, line_end, fan::color(255, 255, 255, 255).get_gui_color());
 
     gui::end();
   }

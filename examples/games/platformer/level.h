@@ -43,6 +43,9 @@ bool handle_pickupable(const std::string& id, T& who) {
   switch (fan::get_hash(id)) {
   case fan::get_hash("pickupable_health"):
   {
+    if (who.get_body().get_health() >= who.get_body().get_max_health()) {
+      return false;
+    }
     static constexpr f32_t health_restore = 10.f;
     who.get_body().set_health(
       who.get_body().get_health() + health_restore
@@ -199,26 +202,21 @@ void update() {
 
   for (auto it = pickupables.begin(); it != pickupables.end(); ++it) {
     auto& sensor = it->second;
-    if (pile->player.body.get_health() < pile->player.body.get_max_health()) {
-      if (fan::physics::is_on_sensor(pile->player.body, sensor)) {
-        if (handle_pickupable(it->first, pile->player)) {
-          fan::vec2 pos = sensor.get_position();
-          pile->renderer.remove_visual(
-            pile->get_level().main_map_id,
-            it->first,
-            pos
-          );
-          sensor.destroy();
-          pickupables.erase(it);
-        }
-        break;
+    if (fan::physics::is_on_sensor(pile->player.body, sensor)) {
+      if (handle_pickupable(it->first, pile->player)) {
+        fan::vec2 pos = sensor.get_position();
+        pile->renderer.remove_visual(
+          pile->get_level().main_map_id,
+          it->first,
+          pos
+        );
+        sensor.destroy();
+        pickupables.erase(it);
       }
+      break;
     }
     bool consumed = false;
     for (auto enemy : pile->enemies()) {
-      if (enemy.get_body().get_health() == enemy.get_body().get_max_health()) {
-        continue;
-      }
       if (!fan::physics::is_on_sensor(enemy.get_body(), sensor)) {
         continue;
       }

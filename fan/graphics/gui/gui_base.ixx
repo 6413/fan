@@ -125,6 +125,7 @@ export namespace fan::graphics::gui {
   void next_column();
 
   // gvars
+  inline constexpr std::size_t default_font_size_index = 9;
   inline constexpr f32_t font_sizes[] = {
     4, 5, 6, 7, 8, 9, 10, 11, 12, 14,
     16, 18, 20, 22, 24, 28,

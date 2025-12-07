@@ -110,7 +110,7 @@ namespace fan::graphics::gui {
     fan::vec2 text_size = calc_text_size(text.c_str());
     fan::vec2 min = get_item_rect_min();
     fan::vec2 pos = min + (get_item_rect_max() - min) / 2 - text_size / 2;
-    get_window_draw_list()->AddText(pos, color.get_imgui_color(), text.c_str());
+    get_window_draw_list()->AddText(pos, color.get_gui_color(), text.c_str());
     return ret;
   }
 
@@ -175,7 +175,7 @@ namespace fan::graphics::gui {
       return;
 
     if (border_col.a > 0.0f) {
-      window->DrawList->AddRect(*(fan::vec2*)&bb.Min, *(fan::vec2*)&bb.Max, border_col.get_imgui_color(), 0.0f);
+      window->DrawList->AddRect(*(fan::vec2*)&bb.Min, *(fan::vec2*)&bb.Max, border_col.get_gui_color(), 0.0f);
       fan::vec2 x0 = cursor_pos + fan::vec2(1, 1);
       fan::vec2 x2 = bb_max - fan::vec2(1, 1);
       fan::vec2 x1 = fan::vec2(x2.x, x0.y);
@@ -185,7 +185,7 @@ namespace fan::graphics::gui {
         (texture_id_t)fan::graphics::image_get_handle(image),
         *(fan::vec2*)&x0, *(fan::vec2*)&x1, *(fan::vec2*)&x2, *(fan::vec2*)&x3,
         *(fan::vec2*)&_uv0, *(fan::vec2*)&_uv1, *(fan::vec2*)&_uv2, *(fan::vec2*)&_uv3,
-        tint_col.get_imgui_color()
+        tint_col.get_gui_color()
       );
     }
     else {
@@ -198,7 +198,7 @@ namespace fan::graphics::gui {
         (texture_id_t)fan::graphics::image_get_handle(image),
         *(fan::vec2*)&x0, *(fan::vec2*)&x1, *(fan::vec2*)&x2, *(fan::vec2*)&x3,
         *(fan::vec2*)&_uv0, *(fan::vec2*)&_uv1, *(fan::vec2*)&_uv2, *(fan::vec2*)&_uv3,
-        tint_col.get_imgui_color()
+        tint_col.get_gui_color()
       );
     }
   }
@@ -433,8 +433,8 @@ namespace fan::graphics::gui {
         std::max(selection_state.selection_start.y, selection_state.selection_end.y)
       );
 
-      draw_list->AddRect(rect_min, rect_max, fan::color(100, 150, 255, 200).get_imgui_color(), 0.0f, 0, 2.0f);
-      draw_list->AddRectFilled(rect_min, rect_max, fan::color(100, 150, 255, 50).get_imgui_color());
+      draw_list->AddRect(rect_min, rect_max, fan::color(100, 150, 255, 200).get_gui_color(), 0.0f, 0, 2.0f);
+      draw_list->AddRectFilled(rect_min, rect_max, fan::color(100, 150, 255, 50).get_gui_color());
     }
   }
 
