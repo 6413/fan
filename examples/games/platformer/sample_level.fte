@@ -3947,7 +3947,7 @@
       "position": [
         6784.0,
         15296.0,
-        32094.0
+        32202.0
       ],
       "shape": "sprite",
       "tc_position": [
@@ -4509,7 +4509,7 @@
       "position": [
         4672.0,
         15360.0,
-        32094.0
+        32202.0
       ],
       "shape": "sprite",
       "tc_position": [
@@ -12046,7 +12046,7 @@
       "position": [
         3712.0,
         12672.0,
-        32084.0
+        32202.0
       ],
       "shape": "sprite",
       "tc_position": [

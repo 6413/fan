@@ -458,7 +458,7 @@ namespace fan::graphics::gui {
   /// <param name="color">The color of the text (defaults to white).</param>
   void text_at(const std::string& text, const fan::vec2& position, const fan::color& color) {
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
-    draw_list->AddText(position, color.get_imgui_color(), text.c_str());
+    draw_list->AddText(position, color.get_gui_color(), text.c_str());
   }
 
   void text_wrapped(const std::string& text, const fan::color& color) {
@@ -507,7 +507,7 @@ namespace fan::graphics::gui {
     draw_position.y -= text_size.y * 0.5f;
 
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
-    draw_list->AddText(draw_position, color.get_imgui_color(), text.c_str());
+    draw_list->AddText(draw_position, color.get_gui_color(), text.c_str());
   }
 
   /// <summary>
@@ -532,10 +532,10 @@ namespace fan::graphics::gui {
 
     // Draw outline
     for ( const auto& offset : outline_offsets ) {
-      draw_list->AddText(screen_pos + offset, outline_color.get_imgui_color(), text.c_str());
+      draw_list->AddText(screen_pos + offset, outline_color.get_gui_color(), text.c_str());
     }
 
-    draw_list->AddText(screen_pos, color.get_imgui_color(), text.c_str());
+    draw_list->AddText(screen_pos, color.get_gui_color(), text.c_str());
   }
 
   void text_outlined(const std::string& text, const fan::color& color, const fan::color& outline_color) {
@@ -1192,12 +1192,13 @@ namespace fan::graphics::gui {
 
     build_fonts();
 
-    io.FontDefault = fan::graphics::gui::fonts[9];
+    io.FontDefault = fan::graphics::gui::fonts[default_font_size_index];
   }
 
 
   void load_fonts(font_t* (&fonts)[std::size(fan::graphics::gui::font_sizes)], const std::string& name, font_config_t* cfg) {
     ImGuiIO& io = ImGui::GetIO();
+
     font_config_t internal_cfg;
     internal_cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
     if (cfg) {

@@ -65,8 +65,9 @@ struct player_t {
     { // keybinds handling
       int key_handle_index = 0;
       key_click_handles[key_handle_index++] = pile->engine.on_key_click(fan::key_r, [this](const auto&) {
+        if (!potion_count) return;
         if (!potion_consume_timer) return;
-        if (potion_count) --potion_count;
+        --potion_count;
         static constexpr f32_t potion_heal = 20.f;
         fan::audio::play(audio_drink_potion);
         body.set_health(std::min(body.get_health() + potion_heal, body.get_max_health()));
@@ -107,7 +108,7 @@ struct player_t {
       body.set_physics_position(pile->get_level().player_checkpoints[current_checkpoint].get_position());
     }
     body.set_health(body.get_max_health());
-    body.set_health(10.f);
+    //body.set_health(10.f);
 
     pile->get_level().load_enemies();
   }
@@ -198,9 +199,9 @@ struct player_t {
 
   fan::graphics::engine_t::key_handle_t key_click_handles[10];
 
-  int current_checkpoint = 1;
+  int current_checkpoint = -1;
   
-  uint16_t potion_count = 40;
+  uint16_t potion_count = 0;
   fan::time::timer potion_consume_timer {0.1e9, true};
   fan::graphics::shape_t particles_drink_potion[4];
 };

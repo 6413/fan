@@ -25,6 +25,7 @@ static constexpr auto stage_name = "";
     ic.zoom = 2.2f * r.max();
   }
   void update() {
+    update_camera_zoom();
     if (!pause) {
       engine.physics_context.step(engine.delta_time);
       player.update();
@@ -35,7 +36,7 @@ static constexpr auto stage_name = "";
       }
     }
 
-    engine.camera_set_target(engine.orthographic_render_view.camera, player.get_physics_pos(), 0);
+    engine.camera_set_target(engine.orthographic_render_view.camera, player.get_physics_pos()-fan::vec2(0, 50), 0);
     fan::graphics::gui::set_viewport(engine.orthographic_render_view.viewport);
   }
   level_t& get_level() {
@@ -110,6 +111,7 @@ static constexpr auto stage_name = "";
   }
 };
 pile_t::pile_t() {
+  ic.ignore_input = true;
   update_camera_zoom();
   engine.clear_color = 0;
   engine.texture_pack.open_compiled("texture_pack.ftp", fan::graphics::image_presets::pixel_art());
@@ -120,6 +122,6 @@ pile_t::pile_t() {
   level_stage = stage_loader.open_stage<level_t>();
   gui_stage = stage_loader.open_stage<gui_t>();
   audio_background = fan::audio::piece_t("audio/background.sac");
-  fan::audio::set_volume(0.0f);
+  fan::audio::set_volume(1.0f);
   fan::audio::play(audio_background, 0, true);
 }

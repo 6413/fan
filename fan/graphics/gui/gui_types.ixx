@@ -540,6 +540,9 @@ export namespace fan::graphics::gui {
   using storage_t = ImGuiStorage;
   using draw_data_t = ImDrawData;
 
+  using u32_t = ImU32;
+  using vec4_t = ImVec4;
+
   struct dir_t {
     constexpr dir_t(ImGuiDir dir) : d(dir) {}
     constexpr operator ImGuiDir&() { return d; }
