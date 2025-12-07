@@ -511,6 +511,9 @@ public:
   fan::time::timer gui_draw_timer;
   f64_t shape_draw_time_s = 0;
   f64_t gui_draw_time_s = 0;
+  fan::time::timer frame_timer {true};
+  f64_t target_frame_time = 0.0;
+  f64_t accumulated_time = 0.0;
 
 #if defined(fan_gui)
 	fan::graphics::gui_draw_cb_t gui_draw_cb;

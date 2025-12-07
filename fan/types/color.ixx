@@ -2,10 +2,6 @@ module;
 
 //#undef fan_gui
 
-#if defined(fan_gui)
-	#include <fan/imgui/imgui.h>
-#endif
-
 #include <string>
 #include <sstream>
 #include <cmath>
@@ -16,6 +12,7 @@ export module fan.types.color;
 import fan.types;
 import fan.types.vector;
 import fan.random;
+import fan.graphics.gui.types;
 
 #pragma pack(push, 1)
 
@@ -169,19 +166,19 @@ export namespace fan {
 		}
 
 	#if defined(fan_gui)
-		constexpr color_(const ImVec4& v) {
+		constexpr color_(const fan::graphics::gui::vec4_t& v) {
 			r = v.x;
 			g = v.y;
 			b = v.z;
 			a = v.w;
 		}
-		constexpr operator ImVec4() const {
-			return *(ImVec4*)this;
+		constexpr operator fan::graphics::gui::vec4_t() const {
+			return *(fan::graphics::gui::vec4_t*)this;
 		}
 		constexpr operator fan::vec3() const {
 			return fan::vec3{ r, g, b };
 		}
-		ImU32 get_imgui_color() const {
+    fan::graphics::gui::u32_t get_gui_color() const {
 			return get_abgr();
 		}
 	#endif

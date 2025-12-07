@@ -1740,6 +1740,44 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
   }
 
   gui::begin("##global_renderer", nullptr, flags);
+
+  {
+    static f32_t font_size = 15.f;
+    std::string fps_text = std::to_string(int(1.0 / delta_time));
+
+    gui::push_font(gui::get_font(font_size));
+
+    fan::vec2 box_size = fan::vec2(34, gui::get_font_size() * 1.4f);
+    fan::vec2 text_size = gui::calc_text_size(fps_text);
+
+    fan::vec2 fps_pos = fan::vec2(
+      window.get_size().x - box_size.x,
+      0
+    );
+
+    fan::vec2 bg_min = fps_pos;
+    fan::vec2 bg_max = fps_pos + box_size;
+
+    gui::get_window_draw_list()->AddRectFilled(
+      bg_min,
+      bg_max,
+      fan::color(0, 0, 0, 1.0f).get_gui_color(),
+      0.0f
+    );
+
+    fan::vec2 text_pos = fan::vec2(
+      fps_pos.x + box_size.x - text_size.x,
+      fps_pos.y + (box_size.y - text_size.y) * 0.5f
+    );
+
+    gui::get_window_draw_list()->AddText(
+      text_pos,
+      fan::color(0.0f, 1, 0.0f, 1.f).get_gui_color(),
+      fps_text.c_str()
+    );
+
+    gui::pop_font();
+  }
 #endif
 
   cb();
@@ -1842,20 +1880,31 @@ void loco_t::set_vsync(bool flag) {
   }
 }
 
-void loco_t::start_timer() {
+void loco_t::start_timer(){
   double delay;
-  if (target_fps <= 0) {
+  if (target_fps <= 0){
     delay = 0;
   }
-  else {
-    delay = std::round(1.0 / target_fps * 1000.0);
+  else{
+    delay = std::floor(1.0 / target_fps * 1000.0 * 0.9);
+    if (delay < 1) delay = 1;
   }
-  if (delay > 0) {
-    uv_timer_start(&timer_handle, [](uv_timer_t* handle) {
+
+  if (delay > 0){
+    uv_timer_start(&timer_handle, [](uv_timer_t* handle){
       loco_t* loco = static_cast<loco_t*>(handle->data);
-      if (loco->process_frame(loco->main_loop)) {
-        uv_timer_stop(handle);
-        uv_stop(fan::event::get_loop());
+
+      f64_t elapsed = loco->frame_timer.seconds();
+      loco->frame_timer.restart();
+      loco->accumulated_time += elapsed;
+
+      if (loco->accumulated_time >= loco->target_frame_time){
+        loco->accumulated_time -= loco->target_frame_time;
+
+        if (loco->process_frame(loco->main_loop)){
+          uv_timer_stop(handle);
+          uv_stop(fan::event::get_loop());
+        }
       }
     }, 0, delay);
   }
@@ -1876,40 +1925,44 @@ void loco_t::start_idle(bool start_idle) {
   uv_idle_start(&idle_handle, idle_cb);
 }
 
-void loco_t::update_timer_interval(bool idle) {
+void loco_t::update_timer_interval(bool idle){
   double delay;
-  if (target_fps <= 0) {
+  if (target_fps <= 0){
     delay = 0;
   }
-  else {
-    delay = std::round(1.0 / target_fps * 1000.0);
+  else{
+    delay = std::floor(1.0 / target_fps * 1000.0 * 0.9);
+    if (delay < 1) delay = 1;
+    target_frame_time = 1.0 / target_fps;
   }
 
-  if (delay > 0) {
-    if (idle_init) {
+  if (delay > 0){
+    if (idle_init){
       uv_idle_stop(&idle_handle);
     }
 
-    if (timer_enabled == false) {
+    if (!timer_enabled){
+      frame_timer.start();
+      accumulated_time = 0.0;
       start_timer();
       timer_enabled = true;
     }
     uv_timer_set_repeat(&timer_handle, delay);
     uv_timer_again(&timer_handle);
   }
-  else {
-    if (timer_init) {
+  else{
+    if (timer_init){
       uv_timer_stop(&timer_handle);
       timer_enabled = false;
     }
 
-    if (idle_init && idle) {
+    if (idle_init && idle){
       uv_idle_start(&idle_handle, idle_cb);
     }
   }
 }
 
-void loco_t::set_target_fps(int32_t new_target_fps, bool idle) {
+void loco_t::set_target_fps(int32_t new_target_fps, bool idle){
   target_fps = new_target_fps;
   update_timer_interval(idle);
 }
@@ -2467,7 +2520,7 @@ namespace fan::graphics::gui {
         gui::plot::push_plot_clip_rect();
         auto draw_list = gui::get_window_draw_list();
         draw_list->AddRectFilled(fan::vec2(tool_l, tool_t), fan::vec2(tool_r, tool_b),
-          fan::color(128, 128, 128, 64).get_imgui_color());
+          fan::color(128, 128, 128, 64).get_gui_color());
         gui::plot::pop_plot_clip_rect();
 
       #if defined(fan_std23)
