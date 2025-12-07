@@ -1961,6 +1961,10 @@ void loco_t::set_window_icon(const fan::graphics::image_t& image) {
   window.set_icon(info);
 }
 
+f64_t loco_t::current_time() const {
+  return delta_time;
+}
+
 #if defined(fan_physics)
 void loco_t::update_physics() {
   physics_context.step(delta_time);

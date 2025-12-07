@@ -19,7 +19,7 @@ uniform float camera_zoom;
 void main() {
   vec2 viewport_position = viewport.xy;
   vec2 viewport_size = viewport.zw;
-  vec2 grid_thickness = vec2(max(1.0, camera_zoom / 2.f)); // user input
+  vec2 grid_thickness = vec2(max(1.0, camera_zoom*2.f)); // user input
 
   // spacing per cell based on full size
   vec2 full_size = instance_size / matrix_size * viewport_size;

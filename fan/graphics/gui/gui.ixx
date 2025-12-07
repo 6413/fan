@@ -124,7 +124,7 @@ export namespace fan::graphics::gui {
 
   const char* item_getter1(const std::vector<std::string>& items, int index);
   void set_viewport(fan::graphics::viewport_t viewport);
-  void set_viewport(const fan::graphics::render_view_t& render_view);
+  void set_viewport(const fan::graphics::render_view_t& render_view = fan::graphics::get_orthographic_render_view());
 
   void image(fan::graphics::image_t img, const fan::vec2& size, const fan::vec2& uv0 = fan::vec2(0, 0), const fan::vec2& uv1 = fan::vec2(1, 1), const fan::color& tint_col = fan::color(1, 1, 1, 1), const fan::color& border_col = fan::color(0, 0, 0, 0));
   bool image_button(const std::string& str_id, fan::graphics::image_t img, const fan::vec2& size, const fan::vec2& uv0 = fan::vec2(0, 0), const fan::vec2& uv1 = fan::vec2(1, 1), int frame_padding = -1, const fan::color& bg_col = fan::color(0, 0, 0, 0), const fan::color& tint_col = fan::color(1, 1, 1, 1));
@@ -207,7 +207,7 @@ export namespace fan::graphics::gui {
     );
   };
 
-  void shape_properties(const fan::graphics::shape_t& shape);
+  void shape_properties(f64_t current_time, const fan::graphics::shape_t& shape);
 } // namespace fan::graphics::gui
 
 export namespace fan::graphics::gui {
@@ -357,6 +357,8 @@ export namespace fan::graphics::gui {
 
     void render();
 
+    void fout(const std::string& filename);
+
     fan::graphics::shapes::shape_t particle_shape = fan::graphics::shapes::particles_t::properties_t{
       .position = fan::vec3(32.108f, -1303.084f, 10.0f),
       .size = 28.638f,
@@ -480,83 +482,7 @@ export namespace fan::graphics::gui {
     const f32_t hide_delay = 0.5f
   );
 
-  // Text that is added (stacked) to bottom left and fades away after specified time
-  //-------------------------------------Floating text-------------------------------------
-  template <typename ...Args>
-  void print(const Args&... args) {
-    fan::graphics::g_render_context_handle.text_logger->print(args...);
-  }
-  template <typename ...Args>
-  void print(const fan::color& color, const Args&... args) {
-    fan::graphics::g_render_context_handle.text_logger->print(color, args...);
-  }
-  template <typename... args_t>
-  void printf(std::string_view fmt, args_t&&... args) {
-    fan::graphics::g_render_context_handle.text_logger->printf(fmt, std::forward<args_t>(args)...);
-  }
-  template <typename... args_t>
-  void printf(const fan::color& color, std::string_view fmt, args_t&&... args) {
-    fan::graphics::g_render_context_handle.text_logger->printf(color, fmt, std::forward<args_t>(args)...);
-  }
-  template <typename... args_t>
-  void printft(std::streamsize tab_width, std::string_view fmt, args_t&&... args) {
-    fan::graphics::g_render_context_handle.text_logger->printft(tab_width, fmt, std::forward<args_t>(args)...);
-  }
-  template <typename... args_t>
-  void printft(std::streamsize tab_width, const fan::color& color, std::string_view fmt, args_t&&... args) {
-    fan::graphics::g_render_context_handle.text_logger->printft(tab_width, color, fmt, std::forward<args_t>(args)...);
-  }
-  template <typename ...args_t>
-  void print_error(args_t&&... args) {
-    fan::graphics::g_render_context_handle.text_logger->print(fan::colors::red, std::forward<args_t>(args)...);
-  }
-  template <typename ...args_t>
-  void print_warning(args_t&&... args) {
-    fan::graphics::g_render_context_handle.text_logger->print(fan::colors::yellow, std::forward<args_t>(args)...);
-  }
-  template <typename ...args_t>
-  void print_success(args_t&&... args) {
-    fan::graphics::g_render_context_handle.text_logger->print(fan::colors::green, std::forward<args_t>(args)...);
-  }
-  void set_text_fade_time(f32_t seconds);
-  //-------------------------------------Floating text-------------------------------------
-
-  // Text that is added (stacked) to bottom left and it never disappears
-  //-------------------------------------Static text-------------------------------------
-  template <typename ...Args>
-  void print_static(const Args&... args) {
-    fan::graphics::g_render_context_handle.text_logger->print_static(args...);
-  }
-  template <typename ...Args>
-  void print_static(const fan::color& color, const Args&... args) {
-    fan::graphics::g_render_context_handle.text_logger->print_static(color, args...);
-  }
-  template <typename... args_t>
-  void printf_static(std::string_view fmt, args_t&&... args) {
-    fan::graphics::g_render_context_handle.text_logger->printf_static(fmt, std::forward<args_t>(args)...);
-  }
-  template <typename... args_t>
-  void printf_static(const fan::color& color, std::string_view fmt, args_t&&... args) {
-    fan::graphics::g_render_context_handle.text_logger->printf_static(color, fmt, std::forward<args_t>(args)...);
-  }
-  template <typename... args_t>
-  void printft_static(std::streamsize tab_width, std::string_view fmt, args_t&&... args) {
-    fan::graphics::g_render_context_handle.text_logger->printft_static(tab_width, fmt, std::forward<args_t>(args)...);
-  }
-  template <typename... args_t>
-  void printft_static(std::streamsize tab_width, const fan::color& color, std::string_view fmt, args_t&&... args) {
-    fan::graphics::g_render_context_handle.text_logger->printft_static(tab_width, color, fmt, std::forward<args_t>(args)...);
-  }
-  void clear_static_text();
-  //-------------------------------------Static text-------------------------------------
-
   void text_partial_render(const std::string& text, size_t render_pos, f32_t wrap_width, f32_t line_spacing = 0);
-}
-
-export namespace fan {
-  void gprint(const auto& ...args) {
-    fan::graphics::gui::print(args...);
-  }
 }
 /*
 template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(

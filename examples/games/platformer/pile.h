@@ -44,7 +44,7 @@ static constexpr auto stage_name = "";
   gui_t& get_gui() {
     return stage_loader.get_stage_data<gui_t>(gui_stage);
   }
-  fan::graphics::engine_t engine;
+  fan::graphics::engine_t engine {{.window_size = fan::vec2(1920, 1080)}};
   fte_renderer_t renderer;
   stage_loader_t stage_loader;
   stage_loader_t::nr_t level_stage, gui_stage;

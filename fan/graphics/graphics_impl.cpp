@@ -662,11 +662,16 @@ namespace fan::graphics {
 
 #if defined(fan_json)
 
+  fan::graphics::shape_t shape_from_json(const std::string& json_path, const std::source_location& callers_path) {
+    fan::json json_data = fan::graphics::read_json(json_path, callers_path);
+    resolve_json_image_paths(json_data, json_path, callers_path);
+    fan::graphics::parse_animations(json_path, json_data, callers_path);
+    return fan::graphics::extract_single_shape(json_data, callers_path);
+  }
+
   void fan::graphics::resolve_json_image_paths(fan::json& out, const std::string& json_path, const std::source_location& callers_path) {
     out.find_and_iterate("image_path", [&json_path, &callers_path](fan::json& value) {
-      std::filesystem::path base = std::filesystem::absolute(callers_path.file_name());
-      base = std::filesystem::is_directory(base) ? base : base.parent_path();
-      base /= std::filesystem::path(json_path);
+      std::filesystem::path base = fan::io::file::find_relative_path(json_path, callers_path);
       base = std::filesystem::is_directory(base) ? base : base.parent_path();
       value = (base / std::filesystem::path(value.get<std::string>())).generic_string();
     });
@@ -676,10 +681,7 @@ namespace fan::graphics {
     const sprite_sheet_config_t config,
     const std::source_location& callers_path) 
   {
-    fan::json json_data = fan::graphics::read_json(config.path, callers_path);
-    resolve_json_image_paths(json_data, config.path, callers_path);
-    fan::graphics::parse_animations(config.path, json_data, callers_path);
-    auto shape = fan::graphics::extract_single_shape(json_data, callers_path);
+    auto shape = shape_from_json(config.path, callers_path);
     shape.set_animation_loop(shape.get_current_animation_id(), config.loop);
     if (config.start) {
       shape.start_sprite_sheet_animation();
@@ -802,6 +804,13 @@ namespace fan::graphics {
         fan::window::get_mouse_position()
       );
       if (mouse_inside_viewport) {
+        auto* context = fan::graphics::gui::get_context();
+        auto* hovered_window = context->HoveredWindow;
+
+        if (hovered_window) {
+          fan::graphics::gui::set_window_focus(hovered_window->Name);
+        }
+
         if (d.button == fan::mouse_scroll_up) {
           zoom *= 1.2;
           update();
@@ -844,10 +853,13 @@ namespace fan::graphics {
     f32_t new_zoom
   ) {
     create(camera_nr, viewport_nr, new_zoom);
+    set_position(fan::graphics::viewport_get_size(viewport_nr) / 2.f);
   }
 
   interactive_camera_t::interactive_camera_t(const fan::graphics::render_view_t& render_view, f32_t new_zoom) :
-    interactive_camera_t(render_view.camera, render_view.viewport, new_zoom) {}
+    interactive_camera_t(render_view.camera, render_view.viewport, new_zoom) {
+    set_position(fan::graphics::viewport_get_size(render_view.viewport) / 2.f);
+  }
 
   interactive_camera_t::~interactive_camera_t() {
     if (uc_nr.iic() == false) {

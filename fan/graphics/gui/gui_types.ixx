@@ -75,7 +75,8 @@ export namespace fan::graphics::gui {
     window_flags_no_docking = ImGuiWindowFlags_NoDocking,  
     window_flags_no_nav = ImGuiWindowFlags_NoNav,  
     window_flags_no_decoration = ImGuiWindowFlags_NoDecoration,  
-    window_flags_no_inputs = ImGuiWindowFlags_NoInputs
+    window_flags_no_inputs = ImGuiWindowFlags_NoInputs,
+    window_flags_override_input = 1 << 31, // ignores this window from want_io()
   };
   enum child_flags_e {
     child_flags_none = ImGuiChildFlags_None,
@@ -501,6 +502,7 @@ export namespace fan::graphics::gui {
     item_flags_allow_duplicate_id = ImGuiItemFlags_AllowDuplicateId,   // false    // Allow submitting an item with the same identifier as an item already submitted this frame without triggering a warning tooltip if io.ConfigDebugHighlightIdConflicts is set.
   };
 
+  using context_t = ImGuiContext;
   using window_handle_t = ImGuiWindow;
   using io_t = ImGuiIO;
   using input_text_callback_t = ImGuiInputTextCallback;
@@ -516,6 +518,7 @@ export namespace fan::graphics::gui {
   using tree_node_flags_t = int;
   using style_t = ImGuiStyle;
   using font_t = ImFont;
+  using font_config_t = ImFontConfig;
   using dock_flag_t = int;
   using window_flags_t = int;
   using child_window_flags_t = int;

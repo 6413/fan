@@ -27,6 +27,7 @@ module;
 
 module fan.graphics.shapes;
 import fan.utility;
+import fan.graphics.gui.text_logger;
 
 std::uint8_t* A_resize(void* ptr, std::uintptr_t size) {
 	if (ptr) {
@@ -1660,6 +1661,17 @@ namespace fan::graphics{
 		set_y(y);
 	} // shape_t
 
+  void shapes::shape_t::start_particles(){
+    auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
+    ri.loop_enabled_time = (fan::time::now() - ri.begin_time) / 1e+9;
+    ri.loop_disabled_time = 0.0;
+  }
+  void shapes::shape_t::stop_particles(){
+    auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
+    ri.loop_enabled_time = 999999.0;
+    ri.loop_disabled_time = 0.0;
+  }
+
 
   //shapes
   shapes::shape_t shapes::light_t::push_back(const properties_t& properties) {
@@ -2000,6 +2012,9 @@ namespace fan::graphics{
     //KeyPack.ShapeType = shape_type;
     vi_t vi;
     ri_t ri;
+    ri.loop = properties.loop;
+    ri.loop_enabled_time = properties.loop_enabled_time;
+    ri.loop_disabled_time = properties.loop_disabled_time;
     ri.position = properties.position;
     ri.size = properties.size;
     ri.color = properties.color;
@@ -2015,6 +2030,7 @@ namespace fan::graphics{
     ri.angle = properties.angle;
     ri.gap_size = properties.gap_size;
     ri.max_spread_size = properties.max_spread_size;
+    ri.expansion_power = properties.expansion_power;
     ri.size_velocity = properties.size_velocity;
     ri.shape = properties.shape;
 
@@ -2559,6 +2575,9 @@ namespace fan::graphics {
       fan::graphics::shapes::particles_t::properties_t defaults;
       auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper);
       out["shape"] = "particles";
+      if (ri.loop != defaults.loop) {
+        out["loop"] = ri.loop;
+      }
       if (ri.position != defaults.position) {
         out["position"] = ri.position;
       }
@@ -2600,6 +2619,9 @@ namespace fan::graphics {
       }
       if (ri.max_spread_size != defaults.max_spread_size) {
         out["max_spread_size"] = ri.max_spread_size;
+      }
+      if (ri.expansion_power != defaults.expansion_power) {
+        out["expansion_power"] = ri.expansion_power;
       }
       if (ri.size_velocity != defaults.size_velocity) {
         out["size_velocity"] = ri.size_velocity;
@@ -2893,6 +2915,9 @@ namespace fan::graphics {
     }
     case fan::get_hash("particles"): {
       fan::graphics::shapes::particles_t::properties_t p;
+      if (in.contains("loop")) {
+        p.loop = in["loop"];
+      }
       if (in.contains("position")) {
         p.position = in["position"];
       }
@@ -2934,6 +2959,9 @@ namespace fan::graphics {
       }
       if (in.contains("max_spread_size")) {
         p.max_spread_size = in["max_spread_size"];
+      }
+      if (in.contains("expansion_power")) {
+        p.expansion_power = in["expansion_power"];
       }
       if (in.contains("size_velocity")) {
         p.size_velocity = in["size_velocity"];
@@ -3255,9 +3283,17 @@ namespace fan::graphics {
   }
 #if defined(fan_physics)
   fan::graphics::shapes::shape_t extract_single_shape(const fan::json& json_data, const std::source_location& callers_path) {
-    fan::graphics::shape_deserialize_t iterator;
     fan::graphics::shapes::shape_t shape;
-    iterator.iterate(json_data["shapes"], &shape, callers_path);
+    fan::graphics::shape_deserialize_t iterator;
+    if (json_data.contains("shapes")) {
+      iterator.iterate(json_data["shapes"], &shape, callers_path);
+    }
+    else if (json_data.contains("shape")) {
+      iterator.iterate(json_data, &shape, callers_path);
+    }
+    else {
+      fan::graphics::gui::print_warning("Failed to load shape - extract_single_shape");
+    }
     return shape;
   }
   fan::json read_json(const std::string& path, const std::source_location& callers_path) {

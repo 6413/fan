@@ -47,12 +47,16 @@ static int InputTextCallback(ImGuiInputTextCallbackData* data) {
 
 #if defined(fan_gui)
 namespace fan::graphics::gui {
+  std::unordered_map<std::string, bool> want_io_ignore_list;
   bool begin(const std::string& window_name, bool* p_open, window_flags_t window_flags) {
 
     if (window_flags & window_flags_no_title_bar) {
       ImGuiWindowClass window_class;
       window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoTabBar;
       ImGui::SetNextWindowClass(&window_class);
+    }
+    if (window_flags & window_flags_override_input) {
+      want_io_ignore_list[window_name] = true;
     }
 
     return ImGui::Begin(window_name.c_str(), p_open, window_flags);
@@ -265,6 +269,9 @@ namespace fan::graphics::gui {
   fan::vec2 calc_text_size(const std::string& text, const char* text_end, bool hide_text_after_double_hash, f32_t wrap_width) {
     return ImGui::CalcTextSize(text.c_str(), text_end, hide_text_after_double_hash, wrap_width);
   }
+  fan::vec2 get_text_size(const std::string& text, const char* text_end, bool hide_text_after_double_hash, f32_t wrap_width) {
+    return calc_text_size(text, text_end, hide_text_after_double_hash, wrap_width);
+  }
   fan::vec2 text_size(const std::string& text, const char* text_end, bool hide_text_after_double_hash, f32_t wrap_width) {
     return calc_text_size(text, text_end, hide_text_after_double_hash, wrap_width);
   }
@@ -302,6 +309,12 @@ namespace fan::graphics::gui {
   void set_next_window_focus() {
     return ImGui::SetNextWindowFocus();
   }
+  void set_window_focus(const std::string& name) {
+    ImGui::SetWindowFocus(name.c_str());
+  }
+  int render_window_flags() {
+    return gui::window_flags_no_title_bar | gui::window_flags_no_background | gui::window_flags_override_input;
+  }
   fan::vec2 get_window_content_region_min() {
     return ImGui::GetWindowContentRegionMin();
   }
@@ -331,6 +344,16 @@ namespace fan::graphics::gui {
         g_want_io = false;
         return;
       }
+    }
+    if (g->NavWindow && want_io_ignore_list.find(g->NavWindow->Name) != want_io_ignore_list.end()) {
+      g_want_io = false;
+      return;
+    }
+
+    if (g->HoveredWindow && want_io_ignore_list.find(g->HoveredWindow->Name) != want_io_ignore_list.end()
+      ) {
+      g_want_io = false;
+      return;
     }
     /*
     printf("WantCapture: flag=%d keyboard=%d mouse=%d text=%d\n", 
@@ -374,6 +397,21 @@ namespace fan::graphics::gui {
     return ImGui::GetScrollY();
   }
 
+  void push_style_color(col_t index, const fan::color& col) {
+    ImGui::PushStyleColor(index, col);
+  }
+  void pop_style_color(int n) {
+    ImGui::PopStyleColor(n);
+  }
+  void push_style_var(style_var_t index, f32_t val) {
+    ImGui::PushStyleVar(index, val);
+  }
+  void push_style_var(style_var_t index, const fan::vec2& val) {
+    ImGui::PushStyleVar(index, val);
+  }
+  void pop_style_var(int n) {
+    ImGui::PopStyleVar(n);
+  }
 
   bool button(const std::string& label, const fan::vec2& size) {
     return ImGui::Button(label.c_str(), size);
@@ -401,23 +439,6 @@ namespace fan::graphics::gui {
   /// <param name="text">The text to draw.</param>
   /// <param name="color">The color of the text (defaults to white).</param>
   void text_colored(const std::string& text, const fan::color& color) {
-    gui::text_colored(text.c_str(), color);
-  }
-
-  /// <summary>
-  /// Draws the specified text, with its position influenced by other GUI elements.
-  /// </summary>
-  /// <param name="text">The text to draw.</param>
-  /// <param name="color">The color of the text (defaults to white).</param>
-  void text(const char* text, const fan::color& color) {
-    gui::text_colored(text, color);
-  }
-  /// <summary>
-  /// Draws the specified text, with its position influenced by other GUI elements.
-  /// </summary>
-  /// <param name="text">The text to draw.</param>
-  /// <param name="color">The color of the text (defaults to white).</param>
-  void text(const std::string& text, const fan::color& color) {
     gui::text_colored(text.c_str(), color);
   }
 
@@ -746,6 +767,10 @@ namespace fan::graphics::gui {
     ImGui::DockSpaceOverViewport(dockspace_id, viewport, flags, static_cast<const ImGuiWindowClass*>(window_class));
   }
 
+  context_t* get_context() {
+    return ImGui::GetCurrentContext();
+  }
+
   void spacing() {
     ImGui::Spacing();
   }
@@ -767,26 +792,6 @@ namespace fan::graphics::gui {
 
   bool is_item_toggled_open() {
     return ImGui::IsItemToggledOpen();
-  }
-
-  void push_style_color(col_t index, const fan::color& col) {
-    ImGui::PushStyleColor(index, col);
-  }
-
-  void pop_style_color(int n) {
-    ImGui::PopStyleColor(n);
-  }
-
-  void push_style_var(style_var_t index, f32_t val) {
-    ImGui::PushStyleVar(index, val);
-  }
-
-  void push_style_var(style_var_t index, const fan::vec2& val) {
-    ImGui::PushStyleVar(index, val);
-  }
-
-  void pop_style_var(int n) {
-    ImGui::PopStyleVar(n);
   }
 
   void dummy(const fan::vec2& size) {
@@ -932,22 +937,29 @@ namespace fan::graphics::gui {
     return ImGui::DragScalarN(label, data_type, p_data, components, v_speed, p_min, p_max, format, flags);
   }
 
-  font_t* get_font_impl(f32_t font_size, bool bold) {
-    font_size /= 2;
-    int best_index = 0;
-    f32_t best_diff = std::abs(font_sizes[0] - font_size);
 
-    for ( std::size_t i = 1; i < std::size(font_sizes); ++i ) {
-      f32_t diff = std::abs(font_sizes[i] - font_size);
-      if ( diff < best_diff ) {
+  font_t* get_font_impl(f32_t font_size, bool bold) {
+    return get_font(bold ? fonts_bold : fonts, font_size);
+  }
+  font_t* get_font(
+    font_t* (&fonts)[std::size(fan::graphics::gui::font_sizes)],
+    f32_t font_size
+  ) {
+    font_size /= 2;
+
+    int best_index = 0;
+    f32_t best_diff = std::abs(fan::graphics::gui::font_sizes[0] - font_size);
+
+    for (std::size_t i = 1; i < std::size(fan::graphics::gui::font_sizes); ++i) {
+      f32_t diff = std::abs(fan::graphics::gui::font_sizes[i] - font_size);
+      if (diff < best_diff) {
         best_diff = diff;
         best_index = i;
       }
     }
 
-    return !bold ? fonts[best_index] : fonts_bold[best_index];
+    return fonts[best_index];
   }
-
   font_t* get_font(f32_t font_size, bool bold) {
     return get_font_impl(font_size, bold);
   }
@@ -1165,29 +1177,34 @@ namespace fan::graphics::gui {
     auto& io = get_io();
     io.Fonts->Build();
   }
+  void rebuild_fonts() {
+    auto& io = get_io();
+    io.Fonts->Clear();
+    build_fonts();
+  }
 
   void init_fonts() {
     ImGuiIO& io = ImGui::GetIO();
     io.Fonts->FontBuilderIO = ImGuiFreeType::GetBuilderForFreeType();
     io.Fonts->FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
 
-    for (std::size_t i = 0; i < std::size(fan::graphics::gui::fonts); ++i) {
-      float font_size = fan::graphics::gui::font_sizes[i] * 2;
-      ImFontConfig main_cfg;
-      main_cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
-      fan::graphics::gui::fonts[i] = io.Fonts->AddFontFromFileTTF(
-          "fonts/SourceCodePro-Regular.ttf", font_size, &main_cfg);
-    }
+    load_fonts(fan::graphics::gui::fonts, "fonts/SourceCodePro-Regular.ttf");
 
     build_fonts();
 
     io.FontDefault = fan::graphics::gui::fonts[9];
   }
 
-  void load_fonts(ImFont* (&fonts)[std::size(fan::graphics::gui::font_sizes)], const std::string& name, ImFontConfig* cfg) {
+
+  void load_fonts(font_t* (&fonts)[std::size(fan::graphics::gui::font_sizes)], const std::string& name, font_config_t* cfg) {
     ImGuiIO& io = ImGui::GetIO();
+    font_config_t internal_cfg;
+    internal_cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
+    if (cfg) {
+      internal_cfg = *cfg;
+    }
     for (std::size_t i = 0; i < std::size(fonts); ++i) {
-      fonts[i] = io.Fonts->AddFontFromFileTTF(name.c_str(), fan::graphics::gui::font_sizes[i] * 2, cfg);
+      fonts[i] = io.Fonts->AddFontFromFileTTF(name.c_str(), fan::graphics::gui::font_sizes[i] * 2, &internal_cfg);
 
       if (fonts[i] == nullptr) {
         fan::throw_error_impl((std::string("failed to load font:") + name).c_str());

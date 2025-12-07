@@ -26,7 +26,6 @@ import fan.utility;
 #if defined(fan_gui)
   import fan.graphics.gui.types;
 	import fan.console;
-	import fan.graphics.gui.text_logger;
 #endif
 
 export namespace fan {
@@ -390,7 +389,7 @@ export namespace fan::graphics {
 	#if defined(fan_gui)
 
 		gui_draw_cb_t* gui_draw_cbs = nullptr;
-		fan::graphics::gui::text_logger_t* text_logger = nullptr;
+		void* text_logger = nullptr;
 	#endif
 	};
 

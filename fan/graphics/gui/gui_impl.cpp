@@ -286,6 +286,17 @@ namespace fan::graphics::gui {
     case fan::graphics::shape_type_t::particles:
     {
       auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper);
+      static bool prev_loop_state = ri.loop;
+      if (checkbox("loop", &ri.loop)) {
+        if (prev_loop_state && !ri.loop) {
+          ri.loop_disabled_time = (fan::time::now() - ri.begin_time) / 1e+9;
+        }
+        if (!prev_loop_state && ri.loop) {
+          ri.loop_disabled_time = 0.0;
+          ri.loop_enabled_time = (fan::time::now() - ri.begin_time) / 1e+9;
+        }
+        prev_loop_state = ri.loop;
+      }
 
       const char* items[] = {"circle", "rectangle"};
       int current_shape = ri.shape;
@@ -295,33 +306,35 @@ namespace fan::graphics::gui {
       if (color_edit4("particle color", &ri.color)) {
 
       }
-      if (slider("position", &ri.position, -2000.0f, 2000.0f)) {
+      if (drag("position", &ri.position, 1)) {
       }
-      if (slider("size", &ri.size, 0.0f, 1000.0f)) {
+      if (drag("size", &ri.size, 1)) {
       }
-      if (slider("alive_time", &ri.alive_time, 0.0f, 10e+9f)) {
-      }
-      if (ri.shape == fan::graphics::shapes::particles_t::shapes_e::rectangle) {
-        if (slider("gap_size", &ri.gap_size, -1000.0f, 1000.0f)) {
-        }
+      if (drag("alive_time", &ri.alive_time, 0.01)) {
       }
       if (ri.shape == fan::graphics::shapes::particles_t::shapes_e::rectangle) {
-        if (slider("max_spread_size", &ri.max_spread_size, -10000.0f, 10000.0f)) {
+        if (drag("gap_size", &ri.gap_size, 1)) {
         }
       }
-      if (slider("position_velocity", &ri.position_velocity, -10000.0f, 10000.0f)) {
+      if (drag("expansion_power", &ri.expansion_power, 0.01)) {
       }
-      if (slider("size_velocity", &ri.size_velocity, -100.0f, 100.0f)) {
+      if (ri.shape == fan::graphics::shapes::particles_t::shapes_e::rectangle) {
+        if (drag("max_spread_size", &ri.max_spread_size, 1)) {
+        }
       }
-      if (slider("angle_velocity", &ri.angle_velocity, -fan::math::pi / 2, fan::math::pi / 2)) {
+      if (drag("position_velocity", &ri.position_velocity, 1)) {
       }
-      if (slider("count", &ri.count, 1.0f, 5000.0f)) {
+      if (drag("size_velocity", &ri.size_velocity, 1)) {
       }
-      if (slider("begin_angle", &ri.begin_angle, -fan::math::pi / 2, fan::math::pi / 2)) {
+      if (drag("angle_velocity", &ri.angle_velocity, 1)) {
       }
-      if (slider("end_angle", &ri.end_angle, -fan::math::pi / 2, fan::math::pi / 2)) {
+      if (drag("count", &ri.count, 1)) {
       }
-      if (slider("angle", &ri.angle, -fan::math::pi / 2, fan::math::pi / 2)) {
+      if (slider("begin_angle", &ri.begin_angle, -fan::math::pi * 2, fan::math::pi * 2)) {
+      }
+      if (slider("end_angle", &ri.end_angle, -fan::math::pi * 2, fan::math::pi * 2)) {
+      }
+      if (slider("angle", &ri.angle, -fan::math::pi * 2, fan::math::pi * 2)) {
       }
       break;
     }
@@ -1253,11 +1266,11 @@ namespace fan::graphics::gui {
   }
 
   void set_text_fade_time(f32_t seconds) {
-    fan::graphics::g_render_context_handle.text_logger->set_text_fade_time(seconds);
+    ((text_logger_t*)fan::graphics::g_render_context_handle.text_logger)->set_text_fade_time(seconds);
   }
 
   void clear_static_text() {
-    fan::graphics::g_render_context_handle.text_logger->clear_static_text();
+    ((text_logger_t*)fan::graphics::g_render_context_handle.text_logger)->clear_static_text();
   }
 
   bool sprite_animations_t::render_list_box(fan::graphics::animation_nr_t& shape_animation_id) {
@@ -1552,17 +1565,14 @@ namespace fan::graphics::gui {
   void particle_editor_t::handle_file_operations() {
     if (open_file_dialog.is_finished()) {
       if (filename.size() != 0) {
-        std::string data;
-        fan::io::file::read(filename, &data);
-        particle_shape = fan::json::parse(data);
+        particle_shape = shape_from_json(filename);
       }
       open_file_dialog.finished = false;
     }
 
     if (save_file_dialog.is_finished()) {
       if (filename.size() != 0) {
-        fan::json json_data = particle_shape;
-        fan::io::file::write(filename, json_data.dump(2), std::ios_base::binary);
+        fout(filename);
       }
       save_file_dialog.finished = false;
     }
@@ -1588,12 +1598,30 @@ namespace fan::graphics::gui {
     color_edit4("background color", &bg_color);
     shape_properties(particle_shape);
     end();
+
+    if (fan::window::is_key_pressed(fan::key_s) && fan::window::is_key_down(fan::key_left_control)) {
+      fout(filename);
+    }
   }
 
   void particle_editor_t::render() {
     render_menu();
     handle_file_operations();
     render_settings();
+  }
+
+  void particle_editor_t::fout(const std::string& f) {
+    filename = f;
+    fan::json json_data = particle_shape;
+    if (!filename.ends_with(".json")) {
+      filename += ".json";
+    }
+    // set relative path from json to image
+    json_data.find_and_iterate("image_path", [this](fan::json& value) {
+      value = fan::io::file::relative_path(value.get<std::string>(), filename).generic_string();
+    });
+    fan::graphics::gui::print_success("File saved to " + std::filesystem::absolute(filename).generic_string());
+    fan::io::file::write(filename, json_data.dump(2), std::ios_base::binary);
   }
 
   dialogue_box_t::render_type_t::~render_type_t() {}

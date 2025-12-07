@@ -34,6 +34,7 @@ export import fan.graphics.algorithm.raycast_grid;
 export import fan.graphics.algorithm.pathfind;
 export import fan.event;
 export import fan.math;
+export import fan.graphics.gui.text_logger;
 
 #if defined(fan_json)
   import fan.types.json;
@@ -719,12 +720,16 @@ export namespace fan::graphics {
 
 #if defined(fan_json)
 
+  fan::graphics::shape_t shape_from_json(
+    const std::string& json_path,
+    const std::source_location& callers_path = std::source_location::current()
+  );
+
   void resolve_json_image_paths(
     fan::json& out,
     const std::string& json_path,
     const std::source_location& callers_path = std::source_location::current()
   );
-
   fan::graphics::sprite_t sprite_sheet_from_json(
     const sprite_sheet_config_t flags,
     const std::source_location& callers_path = std::source_location::current()
@@ -996,7 +1001,7 @@ export namespace fan::graphics {
     f32_t zoom = 1;
     bool ignore_input = false;
     bool zoom_on_window_resize = true;
-    bool pan_with_middle_mouse = false;
+    bool pan_with_middle_mouse = true;
     bool clicked_inside_viewport = false;
     fan::vec2 old_window_size {};
     fan::vec2 camera_offset {};

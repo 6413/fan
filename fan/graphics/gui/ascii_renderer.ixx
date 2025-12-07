@@ -2,6 +2,7 @@ module;
 #if defined(fan_gui)
   #include <string>
   #include <algorithm>
+  #include <sstream>
 #endif
 
 export module fan.ascii_renderer;
@@ -90,7 +91,7 @@ export struct ascii_renderer_t {
 
         line_buffer[x] = brightness_to_ascii(brightness);
       }
-      gui::text(line_buffer, { 1, 1, 1, 1 });
+      gui::text(line_buffer);
     }
 
     gui::pop_font();

@@ -3,9 +3,9 @@
 	vec_t ret = 0; for (access_type_t i = 0; i < size(); ++i) { todo; } return ret
 #define make_for_all_test1_noret(todo) for (access_type_t i = 0; i < size() && i < test0.size(); ++i) { todo; }
 #define make_for_all_test1(todo) \
-	vec_t ret = 0; for (access_type_t i = 0; i < size() && i < test0.size(); ++i) { todo; } return ret
+	vec_t ret = *this; for (access_type_t i = 0; i < size() && i < test0.size(); ++i) { todo; } return ret
 #define make_for_all_test2(todo) \
-	vec_t ret = 0; for (access_type_t i = 0; i < size() && i < test0.size() && i < test1.size(); ++i) { todo; } return ret
+	vec_t ret = *this; for (access_type_t i = 0; i < size() && i < test0.size() && i < test1.size(); ++i) { todo; } return ret
 
 #define make_operator_const(arithmetic) \
 template <typename T> \

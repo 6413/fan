@@ -128,7 +128,7 @@ export namespace fan::opengl {
       switch (fan::get_hash(found->second)) {
       case fan::get_hash(std::string_view("bool")): {
         if constexpr (not_non_arithmethic_types<T>) {
-          fan_opengl_call(glUniform1i(location, *(int*)value));
+          fan_opengl_call(glUniform1i(location, *(bool*)value ? 1 : 0));
         }
         break;
       }
