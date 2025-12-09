@@ -1371,7 +1371,7 @@ namespace fan::graphics::physics {
     struct anim_t {
       int fps = 0;
       fan::graphics::animation_nr_t id {};
-    } attack, idle, run, hurt;
+    } attack, idle, move, hurt;
     for (auto& [name, anim_id] : anims) {
       auto& a = fan::graphics::all_animations[anim_id];
       if (name == "attack0") {
@@ -1380,8 +1380,8 @@ namespace fan::graphics::physics {
       else if (name == "idle") {
         idle = {a.fps, anim_id};
       }
-      else if (name == "run") {
-        run = {a.fps, anim_id};
+      else if (name == "move") {
+        move = {a.fps, anim_id};
       }
       else if (name == "hurt") {
         hurt = {a.fps, anim_id};
@@ -1429,11 +1429,11 @@ namespace fan::graphics::physics {
       });
       set_current_animation_id(idle.id);
     }
-    if (run.fps) {
+    if (move.fps) {
       anim_controller.add_state({
-        .name = "run",
-        .animation_id = run.id,
-        .fps = run.fps,
+        .name = "move",
+        .animation_id = move.id,
+        .fps = move.fps,
         .condition = [](character2d_t& c) {
           return std::abs(c.get_linear_velocity().x) >= 10.f || c.movement_state.jump_state.on_air_after_jump;
         }

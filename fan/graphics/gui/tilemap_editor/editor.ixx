@@ -1511,16 +1511,20 @@ export struct fte_t {
           max_rect = max_rect.max(fan::vec2(grid_index));
         }
 
-        if (is_mouse_hovered && is_left_mouse_button_clicked && !is_left_ctrl_key_pressed) {
-          is_selecting = true;
-          selection_start = fan::graphics::gui::get_mouse_pos();
+        if (is_mouse_hovered && is_left_mouse_drag) {
+          min_rect_draw = min_rect_draw.min(cursor_pos_global);
+          max_rect_draw = max_rect_draw.max(cursor_pos_global);
+          min_rect = min_rect.min(fan::vec2(grid_index));
+          max_rect = max_rect.max(fan::vec2(grid_index));
         }
-        else if ((is_left_mouse_button_clicked || is_left_mouse_drag) && is_mouse_hovered) {
+
+        if (is_mouse_hovered && is_left_mouse_button_clicked && !is_left_mouse_drag && !is_left_ctrl_key_pressed) {
           current_image_indices.clear();
-          if (current_image_indices.empty()) {
-            current_tile_images.clear();
-          }
+          current_tile_images.clear();
           current_image_indices[grid_index] = i;
+        }
+        else if (is_mouse_hovered && is_left_mouse_drag) {
+          is_selecting = true;
         }
         else if ((is_right_mouse_button_clicked || is_right_mouse_drag) && is_mouse_hovered) {
           auto found = current_image_indices.find(grid_index);
@@ -1531,7 +1535,6 @@ export struct fte_t {
             current_tile_images.clear();
           }
         }
-
         if ((i + 1) % images_per_row != 0) {
           fan::graphics::gui::same_line();
         }

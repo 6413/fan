@@ -19,12 +19,12 @@ struct enemy_t : enemy_base_t {
   fan::vec2 trigger_distance = {500, 150};
   fan::vec2 closeup_distance = {150, 100};
   //TODO use collision mask for player and entities
-  static inline constexpr int attack_hitbox_frames[] = {4, 8};
+  std::vector<int> attack_hitbox_frames;
+  f32_t density = 4.f;
 
   enemy_t() {}
   template<typename container_t>
-  enemy_t(container_t& bll, typename container_t::nr_t nr, const std::string& path, fan::vec2 draw_offset = {0, -18}, f32_t aabb_scale = 0.19f, const std::source_location& caller_path = std::source_location::current()) : draw_offset(draw_offset), aabb_scale(aabb_scale){
-    f32_t density = 4.f;
+  void open(container_t& bll, typename container_t::nr_t nr, const std::string& path, const std::source_location& caller_path = std::source_location::current()) {
 
     body = fan::graphics::physics::character2d_t::from_json({
       .json_path = path,
@@ -43,30 +43,32 @@ struct enemy_t : enemy_base_t {
     ai_behavior.trigger_distance = trigger_distance;
     ai_behavior.closeup_distance = closeup_distance;
 
-    attack_hitbox.setup({
-      .spawns = {{
-        .frame = attack_hitbox_frames[0],
-        .create_hitbox = [](const fan::vec2& center, f32_t direction){
-          fan::vec2 offset = fan::vec2(50.f * direction, 0);
-          return pile->engine.physics_context.create_box(
-            center + offset, fan::vec2(60, 40), 0,
-            fan::physics::body_type_e::static_body, {.is_sensor = true}
-          );
-        }},
-        {
-          .frame = attack_hitbox_frames[1],
+    if (attack_hitbox_frames.size()) {
+      attack_hitbox.setup({
+        .spawns = {{
+          .frame = attack_hitbox_frames[0],
           .create_hitbox = [](const fan::vec2& center, f32_t direction){
             fan::vec2 offset = fan::vec2(50.f * direction, 0);
             return pile->engine.physics_context.create_box(
               center + offset, fan::vec2(60, 40), 0,
               fan::physics::body_type_e::static_body, {.is_sensor = true}
             );
+          }},
+          {
+            .frame = attack_hitbox_frames[1],
+            .create_hitbox = [](const fan::vec2& center, f32_t direction){
+              fan::vec2 offset = fan::vec2(50.f * direction, 0);
+              return pile->engine.physics_context.create_box(
+                center + offset, fan::vec2(60, 40), 0,
+                fan::physics::body_type_e::static_body, {.is_sensor = true}
+              );
+            }
           }
-        }
-      },
-      .attack_animation = "attack0",
-      .track_hit_targets = false
-    });
+        },
+        .attack_animation = "attack0",
+        .track_hit_targets = false
+      });
+    }
 
     body.setup_attack_properties({
       .damage = 10.f,
