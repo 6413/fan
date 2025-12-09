@@ -122,6 +122,6 @@ pile_t::pile_t() {
   level_stage = stage_loader.open_stage<level_t>();
   gui_stage = stage_loader.open_stage<gui_t>();
   audio_background = fan::audio::piece_t("audio/background.sac");
-  fan::audio::set_volume(0.2f);
+  fan::audio::set_volume(0.0f);
   fan::audio::play(audio_background, 0, true);
 }

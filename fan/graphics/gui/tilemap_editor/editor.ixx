@@ -135,9 +135,14 @@ export struct fte_t {
     enum class type_e : uint8_t {
       texture,
       physics_shape = (uint8_t)fte_t::mesh_property_t::physics_shape,
-      light
+      light,
+      player_spawn,
+      enemy_spawn,
+      mark
     };
-    static constexpr const char* type_names[] = {"Texture", "Physics shape", "Light"};
+    static constexpr const char* type_names[] = {
+      "Texture", "Physics shape", "Light", "Player spawn", "Enemy spawn", "Mark"
+    };
     type_e type = type_e::texture;
 
     enum class dynamics_e : uint8_t {
@@ -504,6 +509,54 @@ export struct fte_t {
     convert_draw_to_grid(grid_position);
     brush.line_src = snap_to_tile_center(fan::graphics::get_mouse_position(render_view->camera, render_view->viewport));
     grid_position /= (tile_size * 2);
+
+    if (brush.type == brush_t::type_e::player_spawn || 
+      brush.type == brush_t::type_e::enemy_spawn || 
+      brush.type == brush_t::type_e::mark) {
+
+      auto& marks = spawn_marks[brush.depth];
+      fan::vec3 pos = fan::vec3(position, brush.depth);
+
+      for (auto& mark : marks) {
+        if (mark.position == pos) {
+          return false;
+        }
+      }
+
+      spawn_mark_t new_mark;
+      new_mark.position = pos;
+      new_mark.size = tile_size * brush.tile_size;
+      new_mark.id = brush.id;
+      new_mark.color = brush.color;
+
+      if (brush.type == brush_t::type_e::player_spawn) {
+        new_mark.type = mesh_property_t::player_spawn;
+      }
+      else if (brush.type == brush_t::type_e::enemy_spawn) {
+        new_mark.type = mesh_property_t::enemy_spawn;
+      }
+      else {
+        new_mark.type = mesh_property_t::mark;
+      }
+
+      marks.push_back(new_mark);
+
+      fan::graphics::image_t marker_image;
+      if (brush.type == brush_t::type_e::player_spawn) {
+        marker_image = fan::graphics::image_create(fan::color(0, 1, 0, 0.5)); // green
+      }
+      else if (brush.type == brush_t::type_e::enemy_spawn) {
+        marker_image = fan::graphics::image_create(fan::color(1, 0, 0, 0.5)); // red
+      }
+      else {
+        marker_image = fan::graphics::image_create(fan::color(1, 1, 0, 0.5)); // yellow
+      }
+
+      visual_shapes[pos].shape = make_sprite(pos, new_mark.size, fan::color(1), render_view, marker_image);
+      return false;
+    }
+
+
     auto& layers = map_tiles[grid_position].layers;
     visual_layers[brush.depth].positions[grid_position] = 1;
     uint32_t idx = find_layer_shape(layers);
@@ -693,6 +746,21 @@ export struct fte_t {
     convert_draw_to_grid(grid_position);
     grid_position /= tile_size * 2;
 
+    auto found_marks = spawn_marks.find(brush.depth);
+    if (found_marks != spawn_marks.end()) {
+      for (auto it = found_marks->second.begin(); it != found_marks->second.end(); ++it) {
+        if (fan_2d::collision::rectangle::point_inside_no_rotation(position, it->position, it->size)) {
+          auto visual_found = visual_shapes.find(it->position);
+          if (visual_found != visual_shapes.end()) {
+            visual_shapes.erase(visual_found);
+          }
+          found_marks->second.erase(it);
+          prev_grid_position = -999999;
+          return false;
+        }
+      }
+    }
+
     auto found = physics_shapes.find(brush.depth);
     if (found != physics_shapes.end()) {
       for (auto it = found->second.begin(); it != found->second.end(); ++it) {
@@ -740,6 +808,7 @@ export struct fte_t {
       }
     }
     invalidate_selection();
+    prev_grid_position = -999999;
     return false;
   }
 
@@ -1352,12 +1421,6 @@ export struct fte_t {
     fan::graphics::gui::push_style_color(fan::graphics::gui::col_button, fan::color::rgb(31, 31, 31));
     fan::graphics::gui::push_style_color(fan::graphics::gui::col_window_bg, fan::color::rgb(31, 31, 31));
 
-    static bool init = true;
-    if (init) {
-      fan::graphics::gui::set_next_window_focus();
-      init = false;
-    }
-
     if (fan::graphics::gui::begin("tiles", nullptr, fan::graphics::gui::window_flags_no_scroll_with_mouse)) {
       if (fan::graphics::gui::is_window_hovered()) {
         zoom += fan::graphics::gui::get_io().MouseWheel / 3.f;
@@ -1581,7 +1644,13 @@ export struct fte_t {
   }
 
   void handle_brush_settings_window() {
+    static bool set_default_focus = true;
+
+    if (set_default_focus) {
+      fan::graphics::gui::set_next_window_focus();
+    }
     if (fan::graphics::gui::begin("Brush settings", nullptr, fan::graphics::gui::window_flags_no_focus_on_appearing)) {
+      set_default_focus = false;
       int idx = (int)brush.depth - shape_depths_t::max_layer_depth / 2;
       if (fan::graphics::gui::drag("depth", (int*)&idx, 1, 0, shape_depths_t::max_layer_depth)) {
         brush.depth = idx + shape_depths_t::max_layer_depth / 2;
@@ -1613,12 +1682,12 @@ export struct fte_t {
         brush.dynamics_color = (brush_t::dynamics_e)default_value;
       }
 
-      if (fan::graphics::gui::slider("size", &brush.size, 1, 4096)) {
+      if (fan::graphics::gui::drag("size", &brush.size, 0.1)) {
         grid_visualize.highlight_hover.set_size(tile_size * brush.size);
       }
 
-      fan::graphics::gui::slider("tile size", &brush.tile_size, 0.1, 1);
-      fan::graphics::gui::drag("angle", &brush.angle);
+      fan::graphics::gui::drag("tile size", &brush.tile_size, 0.1);
+      fan::graphics::gui::drag("angle", &brush.angle, 0.1);
 
       std::string temp = brush.id;
       temp.resize(max_id_len);
@@ -1630,7 +1699,7 @@ export struct fte_t {
 
       switch (brush.type) {
         case brush_t::type_e::physics_shape: {
-          fan::graphics::gui::slider("offset", &brush.offset, -1, 1);
+          fan::graphics::gui::drag("offset", &brush.offset, 0.1);
 
           static int default_value = 0;
           if (fan::graphics::gui::combo("Physics shape type", &default_value, brush.physics_type_names, std::size(brush.physics_type_names))) {
@@ -1707,6 +1776,27 @@ export struct fte_t {
     convert_draw_to_grid(grid_position);
     grid_position /= tile_size * 2;
 
+    for (auto& depth_pair : spawn_marks) {
+      for (auto& mark : depth_pair.second) {
+        if (fan_2d::collision::rectangle::point_inside_no_rotation(position, mark.position, mark.size)) {
+          current_image_indices.clear();
+          current_tile_images.clear();
+          apply_brush_settings(mark.id, mark.position.z, mark.size, mark.color);
+
+          if (mark.type == mesh_property_t::player_spawn) {
+            brush.type = brush_t::type_e::player_spawn;
+          }
+          else if (mark.type == mesh_property_t::enemy_spawn) {
+            brush.type = brush_t::type_e::enemy_spawn;
+          }
+          else {
+            brush.type = brush_t::type_e::mark;
+          }
+          return;
+        }
+      }
+    }
+
     for (auto& depth_pair : physics_shapes) {
       for (auto& physics_shape : depth_pair.second) {
         if (fan_2d::collision::rectangle::point_inside_no_rotation(position, physics_shape.visual.get_position(), physics_shape.visual.get_size())) {
@@ -1782,6 +1872,112 @@ export struct fte_t {
     }
   }
 
+  static void draw_id_label(
+    const std::string& id,
+    const fan::vec3& world_pos,
+    f32_t base_font_size,
+    f32_t zoom,
+    fan::graphics::render_view_t* render_view,
+    fan::graphics::gui::draw_list_t* draw_list)
+  {
+    if (id.empty()) {
+      return;
+    }
+
+    fan::vec2 screen_pos = fan::graphics::world_to_screen(
+      fan::vec2(world_pos),
+      render_view->viewport,
+      render_view->camera
+    );
+
+    f32_t zoomed_font_size = base_font_size * zoom;
+    f32_t fs_first = fan::graphics::gui::font_sizes[0];
+    f32_t fs_last = fan::graphics::gui::font_sizes[std::size(fan::graphics::gui::font_sizes) - 1];
+
+    if (zoomed_font_size < fs_first) {
+      fan::graphics::gui::set_window_font_scale(zoomed_font_size / fs_first);
+    }
+
+    zoomed_font_size = std::clamp(zoomed_font_size, fs_first, fs_last);
+
+    fan::graphics::gui::push_font(
+      fan::graphics::gui::get_font(zoomed_font_size)
+    );
+
+    std::string display_id;
+    display_id.reserve(id.size() * 2);
+
+    screen_pos = screen_pos.floor();
+
+    for (char c : id) {
+      display_id.push_back(c);
+      if (c == '_') {
+        display_id.push_back('\n');
+      }
+    }
+
+    fan::vec2 text_size = fan::graphics::gui::text_size(display_id);
+
+    screen_pos.x -= text_size.x * 0.5f;
+    screen_pos.y -= text_size.y * 0.5f;
+    screen_pos = screen_pos.floor();
+
+    draw_list->AddText(
+      ImVec2(screen_pos.x, screen_pos.y),
+      fan::color(255, 255, 255, 200).get_gui_color(),
+      display_id.c_str()
+    );
+
+    fan::graphics::gui::pop_font();
+  }
+
+  void draw_id_labels() {
+    auto* draw_list = fan::graphics::gui::get_foreground_draw_list();
+
+    auto v = fan::graphics::g_render_context_handle->viewport_get(
+      fan::graphics::g_render_context_handle,
+      render_view->viewport
+    );
+
+    fan::vec2 clip_min(v.viewport_position.x, v.viewport_position.y);
+    fan::vec2 clip_max(
+      v.viewport_position.x + v.viewport_size.x,
+      v.viewport_position.y + v.viewport_size.y
+    );
+
+    draw_list->PushClipRect(clip_min, clip_max, true);
+
+    f32_t base_font_size = 14.0f;
+
+    for (auto& depth_pair : spawn_marks) {
+      for (auto& mark : depth_pair.second) {
+        draw_id_label(
+          mark.id,
+          mark.position,
+          base_font_size,
+          viewport_settings.zoom,
+          render_view,
+          draw_list
+        );
+      }
+    }
+
+    for (auto& depth_pair : physics_shapes) {
+      for (auto& shape : depth_pair.second) {
+        draw_id_label(
+          shape.id,
+          shape.visual.get_position(),
+          base_font_size,
+          viewport_settings.zoom,
+          render_view,
+          draw_list
+        );
+      }
+    }
+
+    draw_list->PopClipRect();
+  }
+
   void handle_gui() {
     fan::vec2 editor_size;
 
@@ -1813,6 +2009,7 @@ export struct fte_t {
     fan::graphics::gui::end();
 
     terrain_generator.render();
+    draw_id_labels();
   }
 
   void render() {
@@ -1831,6 +2028,7 @@ export struct fte_t {
     ostr["map_size"] = map_size;
     ostr["tile_size"] = tile_size;
     ostr["camera_position"] = fan::graphics::camera_get_position(render_view->camera);
+    ostr["camera_zoom"] = viewport_settings.zoom;
     ostr["lighting.ambient"] = fan::graphics::get_lighting().ambient;
     ostr["gravity"] = fan::physics::gphysics.get_gravity();
     fan::json jtps = fan::json::array();
@@ -1928,6 +2126,19 @@ export struct fte_t {
         tiles.push_back(tile);
       }
     }
+    for (auto& depth_pair : spawn_marks) {
+      for (auto& mark : depth_pair.second) {
+        fan::json tile;
+        tile["position"] = mark.position;
+        tile["size"] = mark.size;
+        tile["color"] = mark.color;
+        tile["mesh_property"] = mark.type;
+        if (mark.id.size()) {
+          tile["id"] = mark.id;
+        }
+        tiles.push_back(tile);
+      }
+    }
     fan::json j;
     for (auto& layer : visual_layers) {
       fan::json layer_json;
@@ -1972,6 +2183,9 @@ export struct fte_t {
     if (json.contains("camera_position")) {
       fan::graphics::camera_set_position(render_view->camera, json["camera_position"]);
     }
+    if (json.contains("camera_zoom")) {
+      viewport_settings.zoom = json["camera_zoom"];
+    }
     if (json.contains("gravity")) {
       fan::physics::gphysics.set_gravity(json["gravity"]);
     }
@@ -1980,33 +2194,64 @@ export struct fte_t {
     visual_layers.clear();
     visual_shapes.clear();
     physics_shapes.clear();
+    spawn_marks.clear();
     resize_map();
     fan::graphics::shape_deserialize_t it;
     fan::graphics::shape_t shape;
     while (it.iterate(json["tiles"], &shape)) {
       const auto& shape_json = *(it.data.it - 1);
-      if (shape_json.contains("mesh_property") && shape_json["mesh_property"] == fte_t::mesh_property_t::physics_shape) {
-        auto& physics_shape = physics_shapes[shape.get_position().z];
-        physics_shape.resize(physics_shape.size() + 1);
-        auto& physics_element = physics_shape.back();
-        shape.set_camera(render_view->camera);
-        shape.set_viewport(render_view->viewport);
-        shape.set_image(grid_visualize.collider_color);
-        if (shape_json.contains("physics_shape_data")) {
-          fte_t::physics_shapes_t defaults;
-          physics_element.id = shape_json.value("id", defaults.id);
-          const fan::json& physics_shape_data = shape_json["physics_shape_data"];
-          physics_element.type = physics_shape_data.value("type", defaults.type);
-          physics_element.body_type = physics_shape_data.value("body_type", defaults.body_type);
-          physics_element.draw = physics_shape_data.value("draw", defaults.draw);
-          physics_element.shape_properties.friction = physics_shape_data.value("friction", defaults.shape_properties.friction);
-          physics_element.shape_properties.density = physics_shape_data.value("density", defaults.shape_properties.density);
-          physics_element.shape_properties.fixed_rotation = physics_shape_data.value("fixed_rotation", defaults.shape_properties.fixed_rotation);
-          physics_element.shape_properties.presolve_events = physics_shape_data.value("presolve_events", defaults.shape_properties.presolve_events);
-          physics_element.shape_properties.is_sensor = physics_shape_data.value("is_sensor", defaults.shape_properties.is_sensor);
+      if (shape_json.contains("mesh_property")) {
+        auto& mesh_prop = shape_json["mesh_property"];
+        if (mesh_prop == fte_t::mesh_property_t::physics_shape) {
+          auto& physics_shape = physics_shapes[shape.get_position().z];
+          physics_shape.resize(physics_shape.size() + 1);
+          auto& physics_element = physics_shape.back();
+          shape.set_camera(render_view->camera);
+          shape.set_viewport(render_view->viewport);
+          shape.set_image(grid_visualize.collider_color);
+          if (shape_json.contains("physics_shape_data")) {
+            fte_t::physics_shapes_t defaults;
+            physics_element.id = shape_json.value("id", defaults.id);
+            const fan::json& physics_shape_data = shape_json["physics_shape_data"];
+            physics_element.type = physics_shape_data.value("type", defaults.type);
+            physics_element.body_type = physics_shape_data.value("body_type", defaults.body_type);
+            physics_element.draw = physics_shape_data.value("draw", defaults.draw);
+            physics_element.shape_properties.friction = physics_shape_data.value("friction", defaults.shape_properties.friction);
+            physics_element.shape_properties.density = physics_shape_data.value("density", defaults.shape_properties.density);
+            physics_element.shape_properties.fixed_rotation = physics_shape_data.value("fixed_rotation", defaults.shape_properties.fixed_rotation);
+            physics_element.shape_properties.presolve_events = physics_shape_data.value("presolve_events", defaults.shape_properties.presolve_events);
+            physics_element.shape_properties.is_sensor = physics_shape_data.value("is_sensor", defaults.shape_properties.is_sensor);
+          }
+          physics_element.visual = std::move(shape);
+          continue;
         }
-        physics_element.visual = std::move(shape);
-        continue;
+        else if (mesh_prop == mesh_property_t::player_spawn || 
+          mesh_prop == mesh_property_t::enemy_spawn || 
+          mesh_prop == mesh_property_t::mark) {
+
+          spawn_mark_t mark;
+          mark.position = shape_json["position"];
+          mark.size = shape_json["size"];
+          mark.color = shape_json["color"];
+          mark.type = mesh_prop;
+          mark.id = shape_json.value("id", "");
+
+          spawn_marks[mark.position.z].push_back(mark);
+
+          fan::graphics::image_t marker_image;
+          if (mesh_prop == mesh_property_t::player_spawn) {
+            marker_image = fan::graphics::image_create(fan::color(0, 1, 0, 0.5));
+          }
+          else if (mesh_prop == mesh_property_t::enemy_spawn) {
+            marker_image = fan::graphics::image_create(fan::color(1, 0, 0, 0.5));
+          }
+          else {
+            marker_image = fan::graphics::image_create(fan::color(1, 1, 0, 0.5));
+          }
+
+          visual_shapes[mark.position].shape = make_sprite(mark.position, mark.size, fan::color(1), render_view, marker_image);
+          continue;
+        }
       }
       fan::vec2i gp = shape.get_position();
       uint16_t depth = shape.get_position().z;
@@ -2255,6 +2500,14 @@ export struct fte_t {
   std::unordered_map<fan::vec2i, shapes_t::global_t, vec2i_hasher> map_tiles;
   std::unordered_map<f32_t, std::vector<fte_t::physics_shapes_t>> physics_shapes;
   std::unordered_map<fan::vec3, visualize_t, vec3_hasher> visual_shapes;
+  struct spawn_mark_t {
+    fan::vec3 position;
+    fan::vec2 size;
+    mesh_property_t type;
+    std::string id;
+    fan::color color;
+  };
+  std::unordered_map<f32_t, std::vector<spawn_mark_t>> spawn_marks;
   std::map<uint16_t, visual_layer_t> visual_layers;
   fan::vec2 texturepack_size{};
   fan::vec2 texturepack_single_image_size{};

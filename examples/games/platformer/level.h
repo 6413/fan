@@ -20,17 +20,15 @@ static inline constexpr std::array<fan::vec2, 3> get_spike_points(std::string_vi
 
 void load_enemies() {
   pile->enemy_list.Clear();
-  pile->renderer.iterate_visual(main_map_id, [&](fte_loader_t::tile_t& tile) ->bool {
-    if (tile.id.contains("enemy_skeleton")) {
+  pile->renderer.iterate_marks(main_map_id, [&](fte_loader_t::fte_t::spawn_mark_data_t &data) ->bool {
+    const auto& id = data.id;
+    if (id.contains("enemy_skeleton")) {
       auto nr = pile->enemy_list.NewNodeLast();
-      pile->enemy_list[nr] = skeleton_t(pile->enemy_list, nr, fan::vec3(fan::vec2(tile.position), 5));
+      pile->enemy_list[nr] = skeleton_t(pile->enemy_list, nr, fan::vec3(fan::vec2(data.position), 5));
     }
-    return false;
-  });
-  pile->renderer.iterate_visual(main_map_id, [&](fte_loader_t::tile_t& tile) ->bool {
-    if (tile.id.contains("enemy_fly")) {
+    else if (id.contains("enemy_fly")) {
       auto nr = pile->enemy_list.NewNodeLast();
-      pile->enemy_list[nr] = fly_t(pile->enemy_list, nr, fan::vec3(fan::vec2(tile.position), 5));
+      pile->enemy_list[nr] = fly_t(pile->enemy_list, nr, fan::vec3(fan::vec2(data.position), 5));
     }
     return false;
   });
@@ -101,10 +99,12 @@ void load_map() {
       if (player_checkpoints.size() < checkpoint_idx) {
         player_checkpoints.resize(checkpoint_idx + 1);
       }
-      player_checkpoints[checkpoint_idx].checkpoint_flag = checkpoint_flag;
-      player_checkpoints[checkpoint_idx].checkpoint_flag.set_position(fan::vec3(tile.position));
-      player_checkpoints[checkpoint_idx].checkpoint_flag.set_size(checkpoint_flag.get_size() / fan::vec2(1.5f, 1.0f));
-      player_checkpoints[checkpoint_idx].entity = fan::physics::create_sensor_rectangle(tile.position, tile.size);
+      auto& chkp = player_checkpoints[checkpoint_idx];
+      chkp.visual = checkpoint_flag;
+      chkp.visual.set_position(fan::vec3(tile.position));
+      chkp.visual.set_size(checkpoint_flag.get_size() / fan::vec2(1.5f, 1.0f));
+      chkp.visual.start_sprite_sheet_animation();
+      chkp.entity = fan::physics::create_sensor_rectangle(tile.position, tile.size);
     }
     else if (id.contains("roof_chain")) {}
     else if (id.contains("trap_axe")) {
@@ -277,7 +277,7 @@ std::vector<fan::graphics::sprite_t> axes;
 std::vector<fan::physics::entity_t> axe_collisions;
 
 struct checkpoint_t {
-  fan::graphics::sprite_t checkpoint_flag;
+  fan::graphics::sprite_t visual;
   fan::physics::entity_t entity;
 };
 

@@ -30,6 +30,14 @@ export struct fte_loader_t {
 
   struct fte_t {
   #include "common2.h"
+
+    struct spawn_mark_data_t {
+      fan::vec3 position;
+      fan::vec2 size;
+      fte_t::mesh_property_t type;
+      std::string id;
+      fan::color color;
+    };
   };
 
   struct vec2i_hasher {
@@ -68,6 +76,7 @@ export struct fte_loader_t {
     std::vector<physics_data_t> physics_shapes;
     fan::graphics::lighting_t lighting = fan::graphics::get_lighting();
     std::unordered_map<std::string, std::vector<fte_t::tile_t*>> id_lookup;
+    std::vector<fte_t::spawn_mark_data_t> spawn_marks;
   #elif tilemap_renderer == 1
     std::unordered_map<fan::vec2i, fan::mp_t<current_version_t::shapes_t>, vec2i_hasher> compiled_shapes;
   #endif
@@ -134,6 +143,14 @@ public:
             return;
           }
         }
+      }
+    }
+  }
+  void iterate_marks(id_t map_id, std::function<bool(fte_t::spawn_mark_data_t&)> cb) {
+    auto& node = map_list[map_id];
+    for (auto& mark : node.compiled_map->spawn_marks) {
+      if (cb(mark)) {
+        break;
       }
     }
   }
@@ -242,6 +259,34 @@ public:
     return {};
   }
 
+  fan::vec3 get_spawn_position(id_t map_id, const std::string& type_id) {
+    auto& node = map_list[map_id];
+    auto& marks = node.compiled_map->spawn_marks;
+
+    for (auto& mark : marks) {
+      if (mark.id == type_id) {
+        return mark.position;
+      }
+    }
+
+    fan::throw_error("spawn position not found: " + type_id);
+    return {};
+  }
+
+  std::vector<fan::vec3> get_all_spawn_positions(id_t map_id, fte_t::mesh_property_t type) {
+    std::vector<fan::vec3> positions;
+    auto& node = map_list[map_id];
+    auto& marks = node.compiled_map->spawn_marks;
+
+    for (auto& mark : marks) {
+      if (mark.type == type) {
+        positions.push_back(mark.position);
+      }
+    }
+
+    return positions;
+  }
+
   void open() {
 
   }
@@ -273,24 +318,41 @@ public:
     fan::graphics::shape_t shape;
     while (it.iterate(json["tiles"], &shape)) {
       auto& shape_json = *(it.data.it - 1);
-      if (shape_json.contains("mesh_property") && shape_json["mesh_property"] == fte_t::mesh_property_t::physics_shape) {
-        compiled_map.physics_shapes.resize(compiled_map.physics_shapes.size() + 1);
-        compiled_map_t::physics_data_t& physics_element = compiled_map.physics_shapes.back();
+      if (shape_json.contains("mesh_property")) {
+        auto mesh_prop = shape_json["mesh_property"];
+        if (mesh_prop == fte_t::mesh_property_t::physics_shape) {
+          compiled_map.physics_shapes.resize(compiled_map.physics_shapes.size() + 1);
+          compiled_map_t::physics_data_t& physics_element = compiled_map.physics_shapes.back();
 
-        physics_element.position = shape.get_position();
-        physics_element.size = shape.get_size();
-        fte_t::physics_shapes_t defaults;
-        physics_element.physics_shapes.id = shape_json.value("id", defaults.id);
-        if (shape_json.contains("physics_shape_data")) {
-          const fan::json& physics_shape_data = shape_json["physics_shape_data"];
-          physics_element.physics_shapes.type = physics_shape_data.value("type", defaults.type);
-          physics_element.physics_shapes.body_type = physics_shape_data.value("body_type", defaults.body_type);
-          physics_element.physics_shapes.draw = physics_shape_data.value("draw", defaults.draw);
-          physics_element.physics_shapes.shape_properties.friction = physics_shape_data.value("friction", defaults.shape_properties.friction);
-          physics_element.physics_shapes.shape_properties.density = physics_shape_data.value("density", defaults.shape_properties.density);
-          physics_element.physics_shapes.shape_properties.fixed_rotation = physics_shape_data.value("fixed_rotation", defaults.shape_properties.fixed_rotation);
-          physics_element.physics_shapes.shape_properties.presolve_events = physics_shape_data.value("presolve_events", defaults.shape_properties.presolve_events);
-          physics_element.physics_shapes.shape_properties.is_sensor = physics_shape_data.value("is_sensor", defaults.shape_properties.is_sensor);
+          physics_element.position = shape.get_position();
+          physics_element.size = shape.get_size();
+          fte_t::physics_shapes_t defaults;
+          physics_element.physics_shapes.id = shape_json.value("id", defaults.id);
+          if (shape_json.contains("physics_shape_data")) {
+            const fan::json& physics_shape_data = shape_json["physics_shape_data"];
+            physics_element.physics_shapes.type = physics_shape_data.value("type", defaults.type);
+            physics_element.physics_shapes.body_type = physics_shape_data.value("body_type", defaults.body_type);
+            physics_element.physics_shapes.draw = physics_shape_data.value("draw", defaults.draw);
+            physics_element.physics_shapes.shape_properties.friction = physics_shape_data.value("friction", defaults.shape_properties.friction);
+            physics_element.physics_shapes.shape_properties.density = physics_shape_data.value("density", defaults.shape_properties.density);
+            physics_element.physics_shapes.shape_properties.fixed_rotation = physics_shape_data.value("fixed_rotation", defaults.shape_properties.fixed_rotation);
+            physics_element.physics_shapes.shape_properties.presolve_events = physics_shape_data.value("presolve_events", defaults.shape_properties.presolve_events);
+            physics_element.physics_shapes.shape_properties.is_sensor = physics_shape_data.value("is_sensor", defaults.shape_properties.is_sensor);
+          }
+        }
+        else if (mesh_prop == fte_t::mesh_property_t::player_spawn ||
+          mesh_prop == fte_t::mesh_property_t::enemy_spawn ||
+          mesh_prop == fte_t::mesh_property_t::mark) {
+
+          compiled_map.spawn_marks.resize(compiled_map.spawn_marks.size() + 1);
+          auto& mark = compiled_map.spawn_marks.back();
+
+          mark.position = shape_json["position"];
+          mark.size = shape_json["size"];
+          mark.color = shape_json["color"];
+          mark.type = mesh_prop;
+          mark.id = shape_json.value("id", "");
+          continue;
         }
       }
       fte_t::tile_t tile;
