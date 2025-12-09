@@ -25,7 +25,7 @@ static constexpr auto stage_name = "";
     ic.zoom = 2.2f * r.max();
   }
   void update() {
-    update_camera_zoom();
+  //  update_camera_zoom();
     if (!pause) {
       engine.physics_context.step(engine.delta_time);
       player.update();
@@ -45,7 +45,7 @@ static constexpr auto stage_name = "";
   gui_t& get_gui() {
     return stage_loader.get_stage_data<gui_t>(gui_stage);
   }
-  fan::graphics::engine_t engine {{.window_size = fan::vec2(1920, 1080)}};
+  fan::graphics::engine_t engine {{.window_size = {1920,1080}}};
   fte_renderer_t renderer;
   stage_loader_t stage_loader;
   stage_loader_t::nr_t level_stage, gui_stage;
@@ -67,52 +67,52 @@ static constexpr auto stage_name = "";
 #include <BLL/BLL.h>
   enemies_t enemy_list;
 
-  auto enemies() {
-    struct enemy_range_t {
-      enemies_t* container;
-      struct iterator_t {
-        using bll_iter = fan::bll_iterator_t<enemies_t>;
-        bll_iter it;
-
-        auto operator*() {
-          struct wrapper_t {
-            std::variant<skeleton_t, fly_t>* variant_ref;
-            bool update() { 
-              return std::visit([](auto& e) { return e.update(); }, *variant_ref); 
-            }
-            void destroy() {
-              std::visit([](auto& e) { e.destroy(); }, *variant_ref);
-            }
-            bool on_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction) {
-              return std::visit([source, &hit_direction](auto& e) { return e.on_hit(source, hit_direction); }, *variant_ref);
-            }
-            auto& get_body() { 
-              return std::visit([](auto& e) -> auto& { return e.get_body(); }, *variant_ref); 
-            }
-          };
-          return wrapper_t{&(*it)};
+  struct enemy_range_t {
+    enemies_t* container;
+    struct iterator_t {
+      using bll_iter = fan::bll_iterator_t<enemies_t>;
+      bll_iter it;
+      struct wrapper_t {
+        std::variant<skeleton_t, fly_t>* variant_ref;
+        bool update() {
+          return std::visit([](auto& e) { return e.update(); }, *variant_ref); 
         }
-        iterator_t& operator++() { 
-          ++it;
-          return *this; 
+        void destroy() {
+          std::visit([](auto& e) { e.destroy(); }, *variant_ref);
         }
-        bool operator!=(const iterator_t& o) const { 
-          return it != o.it; 
+        bool on_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction) {
+          return std::visit([source, &hit_direction](auto& e) { return e.on_hit(source, hit_direction); }, *variant_ref);
+        }
+        fan::graphics::physics::character2d_t& get_body() { 
+          return std::visit([](auto& e) -> auto& { return e.get_body(); }, *variant_ref); 
         }
       };
-      iterator_t begin() { 
-        return {fan::bll_iterator_t<enemies_t>(container, container->GetNodeFirst())};
+      wrapper_t operator*() {
+        return wrapper_t{&(*it)};
       }
-      iterator_t end() { 
-        return {fan::bll_iterator_t<enemies_t>(container, container->dst)};
+      iterator_t& operator++() { 
+        ++it;
+        return *this; 
+      }
+      bool operator!=(const iterator_t& o) const { 
+        return it != o.it; 
       }
     };
+    iterator_t begin() { 
+      return {fan::bll_iterator_t<enemies_t>(container, container->GetNodeFirst())};
+    }
+    iterator_t end() { 
+      return {fan::bll_iterator_t<enemies_t>(container, container->dst)};
+    }
+  };
+  enemy_range_t enemies() {
     return enemy_range_t{&enemy_list};
   }
 };
 pile_t::pile_t() {
-  ic.ignore_input = true;
+  //ic.ignore_input = true;
   update_camera_zoom();
+  //engine.window.set_size(engine.window.get_current_monitor_resolution());
   engine.clear_color = 0;
   engine.texture_pack.open_compiled("texture_pack.ftp", fan::graphics::image_presets::pixel_art());
   renderer.open();
@@ -122,6 +122,6 @@ pile_t::pile_t() {
   level_stage = stage_loader.open_stage<level_t>();
   gui_stage = stage_loader.open_stage<gui_t>();
   audio_background = fan::audio::piece_t("audio/background.sac");
-  fan::audio::set_volume(1.0f);
+  fan::audio::set_volume(0.2f);
   fan::audio::play(audio_background, 0, true);
 }

@@ -1,4 +1,5 @@
 struct enemy_base_t {
+  enemy_base_t() = default;
   virtual ~enemy_base_t() = default;
   virtual bool update() = 0;
   virtual void destroy() = 0;
@@ -13,16 +14,16 @@ struct enemy_base_t {
 
 template<typename derived_t>
 struct enemy_t : enemy_base_t {
-  static inline constexpr fan::vec2 draw_offset{0, -18};
-  static inline constexpr f32_t aabb_scale = 0.19f;
-  fan::vec2 trigger_distance = {500, 500};
+  fan::vec2 draw_offset{0, -18};
+  f32_t aabb_scale = 0.19f;
+  fan::vec2 trigger_distance = {500, 150};
   fan::vec2 closeup_distance = {150, 100};
   //TODO use collision mask for player and entities
   static inline constexpr int attack_hitbox_frames[] = {4, 8};
 
-  enemy_t() = default;
+  enemy_t() {}
   template<typename container_t>
-  enemy_t(container_t& bll, typename container_t::nr_t nr, const std::string& path, const std::source_location& caller_path = std::source_location::current()) {
+  enemy_t(container_t& bll, typename container_t::nr_t nr, const std::string& path, fan::vec2 draw_offset = {0, -18}, f32_t aabb_scale = 0.19f, const std::source_location& caller_path = std::source_location::current()) : draw_offset(draw_offset), aabb_scale(aabb_scale){
     f32_t density = 4.f;
 
     body = fan::graphics::physics::character2d_t::from_json({
@@ -94,8 +95,11 @@ struct enemy_t : enemy_base_t {
         if (!((std::abs(distance.x) < node.trigger_distance.x && std::abs(distance.y) < node.trigger_distance.y))) {
           node.ai_behavior.enable_ai_patrol({node.initial_position - fan::vec2(400, 0), node.initial_position + fan::vec2(400, 0)});
         }
-        else {
+        else if (node.body.raycast(pile->player.body)){
           node.ai_behavior.enable_ai_follow(&pile->player.body, node.trigger_distance, node.closeup_distance);
+        }
+        else {
+          node.ai_behavior.enable_ai_patrol({node.initial_position - fan::vec2(400, 0), node.initial_position + fan::vec2(400, 0)});
         }
       }, bll[nr]);
     });

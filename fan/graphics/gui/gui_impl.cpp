@@ -1265,14 +1265,6 @@ namespace fan::graphics::gui {
     storage->SetBool(popup_visible_id, popup_visible);
   }
 
-  void set_text_fade_time(f32_t seconds) {
-    ((text_logger_t*)fan::graphics::g_render_context_handle.text_logger)->set_text_fade_time(seconds);
-  }
-
-  void clear_static_text() {
-    ((text_logger_t*)fan::graphics::g_render_context_handle.text_logger)->clear_static_text();
-  }
-
   bool sprite_animations_t::render_list_box(fan::graphics::animation_nr_t& shape_animation_id) {
     bool list_item_changed = false;
 

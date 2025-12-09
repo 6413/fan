@@ -921,15 +921,18 @@ namespace fan::graphics::physics {
     }
     is_stuck_state = character->movement_state.jump_state.jumping && was_jumping;
 
-    f32_t diff = std::abs(std::abs(prev_x) - std::abs(distance.x));
-    if (diff >= 3.f) {
-      is_stuck_state = false;
-      stuck_timer.restart();
-    }
-
     fan::physics::shape_id_t colliding_wall_id;
     fan::vec2 wall_normal = fan::physics::check_wall_contact(*character, &colliding_wall_id);
     bool touching_wall = (wall_normal.x != 0 || wall_normal.y != 0);
+
+    f32_t diff = std::abs(std::abs(prev_x) - std::abs(distance.x));
+    if (diff < 3.f && touching_wall) {
+      is_stuck_state = true;
+    }
+    else {
+      is_stuck_state = false;
+      stuck_timer.restart();
+    }
 
     if (touching_wall && !character->is_on_ground() && trying_to_move) {
       bool pushing_into_wall = fan::math::sgn(distance.x) == fan::math::sgn(wall_normal.x);
@@ -956,6 +959,7 @@ namespace fan::graphics::physics {
     }
 
     prev_x = distance.x;
+    
     return is_stuck_state;
   }
 
@@ -1083,7 +1087,16 @@ namespace fan::graphics::physics {
     this->patrol_points = points;
   }
 
+  bool is_character_above(const character2d_t& top_char, const character2d_t& bottom_char, f32_t tolerance = 20.f) {
+    fan::vec2 top_pos = top_char.get_physics_position();
+    fan::vec2 bottom_pos = bottom_char.get_physics_position();
+    bool is_above = top_pos.y < bottom_pos.y - tolerance;
+    bool is_aligned = std::abs(top_pos.x - bottom_pos.x) < bottom_char.get_size().x;
+    return is_above && is_aligned;
+  }
+
   void ai_behavior_t::update_ai(character2d_t* character, navigation_helper_t& navigation, const fan::vec2& target_position, fan::vec2 tile_size) {
+    character->raycast(*target);
     fan::vec2 movement_direction(0);
     fan::physics::shape_id_t colliding_wall_id;
     wall_jump.normal = fan::physics::check_wall_contact(*character, &colliding_wall_id);
@@ -1200,6 +1213,7 @@ namespace fan::graphics::physics {
       character->anim_controller.update(character);
     }
   }
+
 
   //------------------------------------------------------------------------------------------------
   //------------------------------------------------------------------------------------------------
@@ -1505,6 +1519,13 @@ namespace fan::graphics::physics {
   void character2d_t::cancel_animation() {
     anim_controller.cancel_current();
     attack_state.took_damage = false;
+  }
+
+  bool character2d_t::raycast(const character2d_t& target) {
+    fan::vec2 from_pos = get_center();
+    fan::vec2 to_pos = target.get_center();
+    fan::physics::ray_result_t result = fan::physics::raycast(from_pos, to_pos);
+    return result.hit && (result.shapeId == target.get_shape_id() || result.shapeId == get_shape_id());
   }
 
   //------------------------------------------------------------------------------------------------

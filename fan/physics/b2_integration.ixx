@@ -96,15 +96,6 @@ export namespace fan {
       segment_t(const b2Segment& segment);
     };
 
-    struct ray_result_t : b2RayResult {
-      b2ShapeId shapeId;
-      fan::vec2 point;
-      fan::vec2 normal;
-      f32_t fraction;
-      bool hit;
-      operator bool();
-    };
-
     using physics_step_callback_nr_t = fan::raii_nr_t<
       physics_step_callbacks_t::nr_t, fan::physics::context_t>;
 
@@ -137,9 +128,20 @@ export namespace fan {
       shape_id_t(const b2ShapeId& shape_id);
 
       void set_friction(f32_t friction);
+      bool operator==(const shape_id_t& shape) const;
+      bool operator!=(const shape_id_t& shape) const;
 
       bool is_valid() const;
       operator bool() const;
+    };
+
+    struct ray_result_t : b2RayResult {
+      shape_id_t shapeId;
+      fan::vec2 point;
+      fan::vec2 normal;
+      f32_t fraction;
+      bool hit;
+      operator bool();
     };
 
     struct body_id_t : b2BodyId {
@@ -180,7 +182,7 @@ export namespace fan {
       fan::vec2 get_physics_position() const;
       fan::vec2 get_position() const;
       void set_physics_position(const fan::vec2& p);
-      b2ShapeId get_shape_id() const;
+      shape_id_t get_shape_id() const;
       f32_t get_density() const;
       f32_t get_friction() const;
       f32_t get_mass() const;

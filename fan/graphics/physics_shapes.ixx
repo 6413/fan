@@ -637,6 +637,9 @@ export namespace fan {
         void update_animations();
         void cancel_animation();
 
+        bool raycast(
+          const character2d_t& target
+        );
         animation_controller_t anim_controller;
         attack_state_t attack_state;
         
