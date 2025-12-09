@@ -18,6 +18,7 @@ static constexpr auto stage_name = "";
 #include "enemy/enemy.h"
 #include "enemy/skeleton/skeleton.h"
 #include "enemy/fly/fly.h"
+#include "enemy/boss_skeleton/boss_skeleton.h"
   pile_t();
   bool pause = false;
   void update_camera_zoom() {
@@ -55,6 +56,9 @@ static constexpr auto stage_name = "";
   };
   fan::audio::piece_t audio_background;
   player_t player;
+
+  using enemy_list_t = std::variant<skeleton_t, fly_t, boss_skeleton_t>;
+
 #define bcontainer_set_StoreFormat 1
 #define BLL_set_Usage 1
 #define BLL_set_SafeNext 1
@@ -62,7 +66,7 @@ static constexpr auto stage_name = "";
 #include <fan/fan_bll_preset.h>
 #define BLL_set_Link 1
 #define BLL_set_type_node uint16_t
-#define BLL_set_NodeDataType std::variant<skeleton_t, fly_t>
+#define BLL_set_NodeDataType enemy_list_t
 #define BLL_set_AreWeInsideStruct 1
 #include <BLL/BLL.h>
   enemies_t enemy_list;
@@ -73,7 +77,7 @@ static constexpr auto stage_name = "";
       using bll_iter = fan::bll_iterator_t<enemies_t>;
       bll_iter it;
       struct wrapper_t {
-        std::variant<skeleton_t, fly_t>* variant_ref;
+        enemy_list_t* variant_ref;
         bool update() {
           return std::visit([](auto& e) { return e.update(); }, *variant_ref); 
         }

@@ -30,6 +30,10 @@ void load_enemies() {
       auto nr = pile->enemy_list.NewNodeLast();
       pile->enemy_list[nr] = fly_t(pile->enemy_list, nr, fan::vec3(fan::vec2(data.position), 5));
     }
+    else if (id.contains("boss_skeleton")) {
+      auto nr = pile->enemy_list.NewNodeLast();
+      pile->enemy_list[nr] = boss_skeleton_t(pile->enemy_list, nr, fan::vec3(fan::vec2(data.position), 5));
+    }
     return false;
   });
 }
@@ -38,30 +42,39 @@ void load_enemies() {
 template <typename T>
 bool handle_pickupable(const std::string& id, T& who) {
   constexpr bool is_player = std::is_same_v<T, player_t>;
-  switch (fan::get_hash(id)) {
-  case fan::get_hash("pickupable_health"):
-  {
-    if (who.get_body().get_health() >= who.get_body().get_max_health()) {
-      return false;
+  
+  auto pickup_item = [&] {
+    switch (fan::get_hash(id)) {
+    case fan::get_hash("pickupable_health"):
+    {
+      if (who.get_body().get_health() >= who.get_body().get_max_health()) {
+        return false;
+      }
+      static constexpr f32_t health_restore = 10.f;
+      who.get_body().set_health(
+        who.get_body().get_health() + health_restore
+      );
+      break;
     }
-    static constexpr f32_t health_restore = 10.f;
-    who.get_body().set_health(
-      who.get_body().get_health() + health_restore
-    );
-    break;
-  }
-  case fan::get_hash("pickupable_health_potion"):
-  {
-    if constexpr (!is_player) {
-      return false;
+    case fan::get_hash("pickupable_health_potion"):
+    {
+      if constexpr (!is_player) {
+        return false;
+      }
+      else {
+        ++who.potion_count;
+      }
+      break;
     }
-    else {
-      ++who.potion_count;
     }
-    break;
+    return true;
+  };
+
+  bool ret = pickup_item();
+  if (ret) {
+    fan::audio::play(audio_pickup_item);
   }
-  }
-  return true;
+  return ret;
 }
 
 void load_map() {
@@ -288,9 +301,12 @@ std::vector<fan::graphics::sprite_t> lamps;
 std::vector<fan::graphics::light_t> lights;
 
 fan::graphics::sprite_t background {{
-    .position = fan::vec3(10000, 6010, 0),
-    .size = fan::vec2(9192, 10000),
-    .color = fan::color(0.6, 0.576, 1),
-    .image = fan::graphics::image_t("images/background.png"),
-    .tc_size = 1 * 300.0,
-  }};
+  .position = fan::vec3(10000, 6010, 0),
+  .size = fan::vec2(9192, 10000),
+  .color = fan::color(0.6, 0.576, 1),
+  .image = fan::graphics::image_t("images/background.png"),
+  .tc_size = 1 * 300.0,
+}};
+
+fan::audio::piece_t
+  audio_pickup_item{"audio/pickup.sac"};

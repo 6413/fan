@@ -1,44 +1,18 @@
 {
   "animations": [
     {
-      "fps": 15,
+      "fps": 10,
       "id": 0,
       "images": [
         {
-          "hframes": 10,
+          "hframes": 5,
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "IDLE.png",
-          "vframes": 1
+          "image_path": "skeletonAttack-Sheet146x64.png",
+          "vframes": 5
         }
       ],
-      "name": "idle",
-      "selected_frames": [
-        0,
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9
-      ]
-    },
-    {
-      "fps": 30,
-      "id": 1,
-      "images": [
-        {
-          "hframes": 16,
-          "image_mag_filter": 0,
-          "image_min_filter": 0,
-          "image_path": "RUN.png",
-          "vframes": 1
-        }
-      ],
-      "name": "move",
+      "name": "attack0",
       "selected_frames": [
         0,
         1,
@@ -55,22 +29,29 @@
         12,
         13,
         14,
-        15
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22
       ]
     },
     {
-      "fps": 60,
-      "id": 2,
+      "fps": 10,
+      "id": 1,
       "images": [
         {
-          "hframes": 7,
+          "hframes": 5,
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "ATTACK 1.png",
-          "vframes": 1
+          "image_path": "skeletonDie-Sheet118x64_all.png",
+          "vframes": 5
         }
       ],
-      "name": "attack0",
+      "name": "die",
       "selected_frames": [
         0,
         1,
@@ -78,27 +59,74 @@
         3,
         4,
         5,
-        6
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
       ]
     },
     {
-      "fps": 15,
-      "id": 3,
+      "fps": 10,
+      "id": 2,
       "images": [
         {
-          "hframes": 4,
+          "hframes": 8,
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "HURT.png",
+          "image_path": "skeletonIdle-Sheet64x64.png",
           "vframes": 1
         }
       ],
-      "name": "hurt",
+      "name": "idle",
       "selected_frames": [
         0,
         1,
         2,
-        3
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "fps": 10,
+      "id": 3,
+      "images": [
+        {
+          "hframes": 10,
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "skeletonMove-Sheet64x64.png",
+          "vframes": 1
+        }
+      ],
+      "name": "move",
+      "selected_frames": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
       ]
     }
   ],
@@ -114,26 +142,26 @@
         {
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "ATTACK 1.png"
+          "image_path": "skeletonAttack-Sheet146x64.png"
         }
       ],
       "position": [
         0.0,
         0.0,
-        32202.0
+        1.0
       ],
       "shape": "sprite",
       "size": [
-        128.0,
-        128.0
+        192.0,
+        192.0
       ],
       "tc_position": [
-        0.5714285969734192,
-        0.0
+        0.0,
+        0.4000000059604645
       ],
       "tc_size": [
-        0.1428571492433548,
-        1.0
+        0.20000000298023224,
+        0.20000000298023224
       ]
     }
   ],

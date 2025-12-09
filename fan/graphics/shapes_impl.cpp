@@ -1453,6 +1453,20 @@ namespace fan::graphics{
 
 			auto& current_image = animation.images[image_index];
 			set_image(current_image.image);
+      {
+        fan::vec2 image_size = current_image.image.get_size();
+
+        fan::vec2 frame_pixel_size(
+          image_size.x / current_image.hframes,
+          image_size.y / current_image.vframes
+        );
+
+        f32_t aspect = frame_pixel_size.x / frame_pixel_size.y;
+
+        fan::vec2 size = get_size();
+        size.x = size.y * aspect;
+        set_size(size);
+      }
 			sheet_data.update_timer.restart();
 
 			fan::vec2 tc_size = fan::vec2(1.0 / current_image.hframes, 1.0 / current_image.vframes);

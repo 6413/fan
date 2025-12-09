@@ -1,8 +1,9 @@
 struct fly_t : enemy_t<fly_t> {
   fly_t() = default;
   template<typename container_t>
-  fly_t(container_t& bll, typename container_t::nr_t nr, const fan::vec3& position) 
-    : enemy_t<fly_t>(bll, nr, "fly.json") {
+  fly_t(container_t& bll, typename container_t::nr_t nr, const fan::vec3& position) {
+
+    open(bll, nr, "fly.json");
 
     set_initial_position(position);
     body.set_jump_height(body.get_jump_height() / 10.f);

@@ -32,7 +32,7 @@
           "vframes": 1
         }
       ],
-      "name": "run",
+      "name": "move",
       "selected_frames": [
         0,
         1,
