@@ -127,7 +127,6 @@ namespace fan::graphics {
     );
   }
 
-
   fan::vec2 translate_position(const fan::vec2& p, viewport_t viewport, camera_t camera) {
     auto v = g_render_context_handle->viewport_get(g_render_context_handle, viewport);
     auto c = g_render_context_handle->camera_get(g_render_context_handle, camera);
@@ -143,7 +142,7 @@ namespace fan::graphics {
     tp = fan::vec2(r * tp.x - l * tp.x + l, b * tp.y - t * tp.y + t);
     return tp;
   }
-  fan::vec2 transform_position(const fan::vec2& p, fan::graphics::viewport_t viewport, fan::graphics::camera_t camera) {
+  fan::vec2 screen_to_world(const fan::vec2& p, fan::graphics::viewport_t viewport, fan::graphics::camera_t camera) {
     auto v = g_render_context_handle->viewport_get(g_render_context_handle, viewport);
     auto c = g_render_context_handle->camera_get(g_render_context_handle, camera);
     fan::vec2 viewport_position = v.viewport_position;
@@ -159,10 +158,10 @@ namespace fan::graphics {
     tp += c.position;
     return tp;
   }
-  fan::vec2 transform_position(const fan::vec2& p, const render_view_t& render_view) {
-    return transform_position(p, render_view.viewport, render_view.camera);
+  fan::vec2 screen_to_world(const fan::vec2& p, const render_view_t& render_view) {
+    return screen_to_world(p, render_view.viewport, render_view.camera);
   }
-  fan::vec2 inverse_transform_position(const fan::vec2& p, fan::graphics::viewport_t viewport, fan::graphics::camera_t camera) {
+  fan::vec2 world_to_screen(const fan::vec2& p, fan::graphics::viewport_t viewport, fan::graphics::camera_t camera) {
     auto v = g_render_context_handle->viewport_get(g_render_context_handle, viewport);
     auto c = g_render_context_handle->camera_get(g_render_context_handle, camera);
     fan::vec2 viewport_position = v.viewport_position;
@@ -178,14 +177,14 @@ namespace fan::graphics {
     tp += viewport_position;
     return tp;
   }
-  fan::vec2 inverse_transform_position(const fan::vec2& p, const render_view_t& render_view) {
-    return inverse_transform_position(p, render_view.viewport, render_view.camera);
+  fan::vec2 world_to_screen(const fan::vec2& p, const render_view_t& render_view) {
+    return world_to_screen(p, render_view.viewport, render_view.camera);
   }
   fan::vec2 get_mouse_position() {
     return fan::graphics::g_render_context_handle.window->get_mouse_position();
   }
   fan::vec2 get_mouse_position(const camera_t& camera, const viewport_t& viewport) {
-    return fan::graphics::transform_position(get_mouse_position(), viewport, camera);
+    return fan::graphics::screen_to_world(get_mouse_position(), viewport, camera);
   }
   fan::vec2 get_mouse_position(const fan::graphics::render_view_t& render_view) {
     return get_mouse_position(render_view.camera, render_view.viewport);

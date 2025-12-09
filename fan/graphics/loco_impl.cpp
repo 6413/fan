@@ -2039,7 +2039,7 @@ void loco_t::remove_physics_update(fan::physics::physics_update_cbs_t::nr_t nr) 
 #endif
 
 fan::vec2 loco_t::get_mouse_position(const camera_t& camera, const viewport_t& viewport) const {
-  return fan::graphics::transform_position(get_mouse_position(), viewport, camera);
+  return fan::graphics::screen_to_world(get_mouse_position(), viewport, camera);
 }
 
 fan::vec2 loco_t::get_mouse_position(const fan::graphics::render_view_t& render_view) const {

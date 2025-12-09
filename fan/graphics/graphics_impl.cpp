@@ -418,7 +418,7 @@ namespace fan::graphics {
   }
 
   bool inside(const fan::graphics::render_view_t& render_view, const fan::vec2& position) {
-    fan::vec2 tp = fan::graphics::transform_position(position, render_view.viewport, render_view.camera);
+    fan::vec2 tp = fan::graphics::screen_to_world(position, render_view.viewport, render_view.camera);
     auto c = fan::graphics::camera_get(render_view.camera);
     f32_t l = c.coordinates.left;
     f32_t r = c.coordinates.right;

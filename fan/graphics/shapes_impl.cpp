@@ -2645,6 +2645,9 @@ namespace fan::graphics {
     return false;
   }
   bool json_to_shape(const fan::json& in, fan::graphics::shapes::shape_t* shape, const std::source_location& callers_path) {
+    if (!in.contains("shape")) {
+      return false;
+    }
     std::string shape_type = in["shape"];
     switch (fan::get_hash(shape_type.c_str())) {
     case fan::get_hash("rectangle"): {

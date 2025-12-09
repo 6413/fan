@@ -4,6 +4,9 @@ enum struct mesh_property_t : uint8_t {
   physics_shape,
   sensor,
   light,
+  player_spawn,
+  enemy_spawn,
+  mark,
   size
 };
 

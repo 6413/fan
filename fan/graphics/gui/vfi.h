@@ -357,7 +357,7 @@ struct vfi_t {
     ((ri_t*)focus.mouse.GetData(g_shapes->shaper))->shape_data->*member = value;
   }
 
-  static fan::vec2 transform_position(const fan::vec2& p, fan::graphics::viewport_t viewport, fan::graphics::camera_t camera) {
+  static fan::vec2 screen_to_world(const fan::vec2& p, fan::graphics::viewport_t viewport, fan::graphics::camera_t camera) {
 
 #if fan_debug >= fan_debug_high
     if (viewport.iic()) {
@@ -417,7 +417,7 @@ struct vfi_t {
     }
     case shape_t::rectangle: {
       fan::vec2 camera_position = fan::graphics::g_render_context_handle->camera_get(fan::graphics::g_render_context_handle, shape_data->shape.rectangle->camera).position;
-      auto p = transform_position(
+      auto p = screen_to_world(
         v,
         shape_data->shape.rectangle->viewport,
         shape_data->shape.rectangle->camera
