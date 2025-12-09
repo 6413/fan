@@ -3,13 +3,13 @@ struct player_t {
   static inline constexpr f32_t aabb_scale = 0.17f;
   static inline constexpr f32_t task_tick = 1000.f / 144.f;
   static inline constexpr int attack_hitbox_frame = 4;
-  static inline constexpr f32_t sword_length = 100.f;
+  static inline constexpr f32_t sword_length = 120.f;
 
   static inline constexpr std::array<fan::vec2, 3> get_hitbox_points(f32_t direction){
     return {{
       {sword_length * direction, 0.0f},
-      {0.0f, -10.0f},
-      {0.0f, 10.0f}
+      {0.0f, -20.0f},
+      {0.0f, 20.0f}
       }};
   }
   player_t(){
@@ -105,7 +105,8 @@ struct player_t {
       body.set_physics_position(pile->renderer.get_position(pile->get_level().main_map_id, "player_spawn"));
     }
     else{
-      body.set_physics_position(pile->get_level().player_checkpoints[current_checkpoint].get_position());
+      body.set_physics_position(pile->get_level().player_checkpoints[current_checkpoint].checkpoint_flag.get_position());
+      body.set_physics_position(pile->renderer.get_position(pile->get_level().main_map_id, "player_spawn"));
     }
     body.set_health(body.get_max_health());
     //body.set_health(10.f);
@@ -113,7 +114,7 @@ struct player_t {
     pile->get_level().load_enemies();
   }
   fan::event::task_t particles_explode(){
-    particles.set_position(fan::vec3(pile->get_level().player_checkpoints[current_checkpoint].get_position() + fan::vec2(-32, 80), 0));
+    particles.set_position(fan::vec3(pile->get_level().player_checkpoints[current_checkpoint].entity.get_position() + fan::vec2(-32, 80), 0));
     fan::time::timer jump_timer{4.0e9f / 2.f, true};
     while (!jump_timer){
       f32_t t = jump_timer.seconds() / jump_timer.duration_seconds();
@@ -150,7 +151,7 @@ struct player_t {
     body.update_animations();
 
     for (auto [i, checkpoint] : fan::enumerate(pile->get_level().player_checkpoints)) {
-      if (fan::physics::is_on_sensor(body, checkpoint) && current_checkpoint > i) {
+      if (fan::physics::is_on_sensor(body, checkpoint.entity) && current_checkpoint < (int)i) {
         current_checkpoint = i;
         fan::audio::play(audio_checkpoint);
         task_particles = particles_explode();
@@ -188,8 +189,8 @@ struct player_t {
   bool jump_cancelled = false, did_attack = false;
 
   fan::audio::piece_t 
-    audio_jump{"audio/jump.sac"}, 
-    audio_attack{"audio/player_attack.sac"}, 
+    audio_jump{"audio/jump.sac"},
+    audio_attack{"audio/player_attack.sac"},
     audio_enemy_hits_player{"audio/enemy_hits_player.sac"},
     audio_checkpoint{"audio/checkpoint.sac"},
     audio_drink_potion{"audio/drink_potion.sac"};

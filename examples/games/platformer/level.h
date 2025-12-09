@@ -29,8 +29,8 @@ void load_enemies() {
   });
   pile->renderer.iterate_visual(main_map_id, [&](fte_loader_t::tile_t& tile) ->bool {
     if (tile.id.contains("enemy_fly")) {
-     // auto nr = pile->enemy_list.NewNodeLast();
-      //pile->enemy_list[nr] = fly_t(pile->enemy_list, nr, fan::vec3(fan::vec2(tile.position), 5));
+      auto nr = pile->enemy_list.NewNodeLast();
+      pile->enemy_list[nr] = fly_t(pile->enemy_list, nr, fan::vec3(fan::vec2(tile.position), 5));
     }
     return false;
   });
@@ -75,13 +75,12 @@ void load_map() {
   main_map_id = pile->renderer.add(&main_compiled_map, p);
   pile->engine.lighting.set_target(main_compiled_map.lighting.ambient, 0.01);
 
-  checkpoint_flag = fan::graphics::sprite_sheet_from_json({
+  static bool init_once = false;
+  static auto checkpoint_flag = fan::graphics::sprite_sheet_from_json({
     .path = "effects/flag.json",
     .loop = true
-    });
+  });
 
-  checkpoint_flag.set_size(checkpoint_flag.get_size() / fan::vec2(1.5f, 1.0f));
-  checkpoint_flag.set_position(pile->renderer.get_position(main_map_id, "checkpoint0") + fan::vec2(0, checkpoint_flag.get_size().y/2.0f));
   static auto axe_anim = fan::graphics::sprite_sheet_from_json({
     .path = "traps/axe/axe.json",
     .loop = true,
@@ -102,7 +101,10 @@ void load_map() {
       if (player_checkpoints.size() < checkpoint_idx) {
         player_checkpoints.resize(checkpoint_idx + 1);
       }
-      player_checkpoints[checkpoint_idx] = fan::physics::create_sensor_rectangle(tile.position, tile.size);
+      player_checkpoints[checkpoint_idx].checkpoint_flag = checkpoint_flag;
+      player_checkpoints[checkpoint_idx].checkpoint_flag.set_position(fan::vec3(tile.position));
+      player_checkpoints[checkpoint_idx].checkpoint_flag.set_size(checkpoint_flag.get_size() / fan::vec2(1.5f, 1.0f));
+      player_checkpoints[checkpoint_idx].entity = fan::physics::create_sensor_rectangle(tile.position, tile.size);
     }
     else if (id.contains("roof_chain")) {}
     else if (id.contains("trap_axe")) {
@@ -162,7 +164,7 @@ void close() {
     i.second.destroy();
   }
   for (auto& i : player_checkpoints) {
-    i.destroy();
+    i.entity.destroy();
   }
   player_checkpoints.clear();
   for (auto& i : tile_collisions) {
@@ -274,8 +276,13 @@ std::vector<fan::physics::entity_t> tile_collisions;
 std::vector<fan::graphics::sprite_t> axes;
 std::vector<fan::physics::entity_t> axe_collisions;
 
-fan::graphics::sprite_t checkpoint_flag;
-std::vector<fan::physics::entity_t> player_checkpoints;
+struct checkpoint_t {
+  fan::graphics::sprite_t checkpoint_flag;
+  fan::physics::entity_t entity;
+};
+
+
+std::vector<checkpoint_t> player_checkpoints;
 
 std::vector<fan::graphics::sprite_t> lamps;
 std::vector<fan::graphics::light_t> lights;

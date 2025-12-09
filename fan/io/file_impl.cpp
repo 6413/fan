@@ -249,6 +249,7 @@ std::filesystem::path fan::io::file::find_relative_path(const std::string& filen
   if (auto r = try_all(current_dir, filename); !r.empty()) {
     return r;
   }
+
   if (!exe_dir.empty() && exe_dir != current_dir) {
     if (auto r = try_all(exe_dir, filename); !r.empty()) {
       return r;
@@ -315,6 +316,35 @@ std::filesystem::path fan::io::file::find_relative_path(const std::string& filen
     }
   }
 
+  {
+    fs::path name = fs::path(fs::absolute(filename).filename());
+    fs::path p = exe_dir;
+    while (p.has_parent_path()){
+      fs::path remaining = src_dir;
+      while (!remaining.empty()){
+        if (auto r = try_all(p / remaining, name); !r.empty()){
+          return r;
+        }
+        auto it = remaining.begin();
+        if (it != remaining.end()){
+          ++it;
+          fs::path new_remaining;
+          for (; it != remaining.end(); ++it){
+            new_remaining /= *it;
+          }
+          remaining = new_remaining;
+        }
+        else{
+          break;
+        }
+      }
+      fs::path next = p.parent_path();
+      if (next == p){
+        break;
+      }
+      p = next;
+    }
+  }
   fan::print("failed to find path for:", filename, ". called from", src_dir.generic_string());
   return {};
 }

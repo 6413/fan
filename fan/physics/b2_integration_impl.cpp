@@ -73,6 +73,14 @@ namespace fan::physics {
     });
   }
 
+  bool shape_id_t::operator==(const shape_id_t& shape) const {
+    return B2_ID_EQUALS(static_cast<b2ShapeId>(*this), shape);
+  }
+
+  bool shape_id_t::operator!=(const shape_id_t& shape) const {
+    return !operator==(shape);
+  }
+
   bool shape_id_t::is_valid() const {
     return b2Shape_IsValid(static_cast<const b2ShapeId&>(*this));
   }
@@ -172,7 +180,7 @@ namespace fan::physics {
     b2Body_SetTransform(*this, p / length_units_per_meter, rotation);
   }
 
-  b2ShapeId body_id_t::get_shape_id() const {
+  shape_id_t body_id_t::get_shape_id() const {
     b2ShapeId shape_id = b2_nullShapeId;
   #if fan_debug >= fan_debug_medium
     if (!b2Body_GetShapes(*this, &shape_id, 1)) {
