@@ -445,10 +445,10 @@ export namespace fan::graphics {
 	};
 
 	fan::vec2 translate_position(const fan::vec2& p, viewport_t viewport, camera_t camera);
-	fan::vec2 transform_position(const fan::vec2& p, fan::graphics::viewport_t viewport, fan::graphics::camera_t camera);
-	fan::vec2 transform_position(const fan::vec2& p, const render_view_t& render_view = *fan::graphics::g_render_context_handle.orthographic_render_view);
-	fan::vec2 inverse_transform_position(const fan::vec2& p, fan::graphics::viewport_t viewport, fan::graphics::camera_t camera);
-	fan::vec2 inverse_transform_position(const fan::vec2& p, const render_view_t& render_view);
+	fan::vec2 screen_to_world(const fan::vec2& p, fan::graphics::viewport_t viewport, fan::graphics::camera_t camera);
+	fan::vec2 screen_to_world(const fan::vec2& p, const render_view_t& render_view = *fan::graphics::g_render_context_handle.orthographic_render_view);
+	fan::vec2 world_to_screen(const fan::vec2& p, fan::graphics::viewport_t viewport, fan::graphics::camera_t camera);
+	fan::vec2 world_to_screen(const fan::vec2& p, const render_view_t& render_view);
 	fan::vec2 get_mouse_position();
 	fan::vec2 get_mouse_position(const camera_t& camera, const viewport_t& viewport);
 	fan::vec2 get_mouse_position(const fan::graphics::render_view_t& render_view);
