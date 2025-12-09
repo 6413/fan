@@ -288,22 +288,28 @@ namespace fan {
     GLFWmonitor* use_mon = nullptr;
 
     if (open_mode == mode::windowed) {
-      x = mx + mode->width / 8;
-      y = my + mode->height / 8;
+      x = mx + (mode->width - w) / 2;
+      y = my + (mode->height - h) / 2;
     }
     else if (open_mode == mode::full_screen) {
       x = 0;
       y = 0;
+      w = mode->width;
+      h = mode->height;
       use_mon = monitor;
     }
     else if (open_mode == mode::windowed_fullscreen) {
       int wx, wy, ww, wh;
       glfwGetMonitorWorkarea(monitor, &wx, &wy, &ww, &wh);
-      x = wx;
-      y = wy;
+      x = mx;
+      y = my;
+      w = mode->width;
+      h = mode->height;
     }
     else if (open_mode == mode::borderless) {
       glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+      w = mode->width;
+      h = mode->height;
       x = mx;
       y = my;
     }
