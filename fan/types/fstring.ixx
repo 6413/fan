@@ -233,20 +233,7 @@ export namespace fan {
     size_t last = str.find_last_not_of(' ');
     return str.substr(first, (last - first + 1));
   }
-
-  std::vector<std::string> split(const std::string& s) {
-    std::vector<std::string> tokens;
-    std::string token;
-    std::istringstream tokenStream(s);
-    while (std::getline(tokenStream, token, ',')) {
-      std::istringstream tokenStream2(token);
-      std::getline(tokenStream2, token, '=');
-      tokens.push_back(fan::trim(token));
-    }
-    return tokens;
-  }
-
-  std::vector<std::string> split(const std::string& str, std::string_view token) {
+  std::vector<std::string> split(const std::string& str, std::string_view token = "\n") {
     std::vector<std::string> result;
     std::size_t start = 0;
     std::size_t pos = 0;

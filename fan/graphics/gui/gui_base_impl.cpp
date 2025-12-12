@@ -251,6 +251,9 @@ namespace fan::graphics::gui {
   void pop_font() {
     ImGui::PopFont();
   }
+  void set_font(f32_t size) {
+    push_font(get_font(size, false));
+  }
   font_t* get_font() {
     return ImGui::GetFont();
   }

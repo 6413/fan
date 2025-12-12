@@ -69,6 +69,9 @@ constexpr vec_t(Args&&...args) {
   template <typename T>
   constexpr vec_t(const vec_t<vec_n, T>& test0) { for (int i = 0; i < size(); ++i) operator[](i) = test0[i]; } 
 #endif
+vec_t(const std::string& str) {
+  *this = from_string(str);
+}
 
 #define make_operators(arithmetic) \
   make_operator_const(arithmetic); \
@@ -79,8 +82,7 @@ constexpr vec_t operator+() const { make_for_all(ret[i] = +(*this)[i]); }
 make_operators(-);  //make_operator_comparison(==);
 make_operators(+);  //make_operator_comparison(!=);
 make_operators(*);
-make_operators(/);  
-make_operators(%);  
+make_operators(/);
 
 #define make_operator_scalar_left(arithmetic) \
   template <typename T> \
@@ -302,7 +304,7 @@ constexpr auto abs_max() const {
 constexpr auto dot(const auto& test0) const { return fan::math::dot(*this, test0); }
 template <typename... Ts>
 constexpr auto cross(Ts... args) const { return fan::math::cross(*this, args...); }
-constexpr auto length() const { return sqrt(dot(*this)); }
+constexpr auto length() const { return std::sqrt((double)dot(*this)); }
 constexpr auto normalized() const { auto l = length(); if (l == 0) return vec_t(0); make_for_all(ret[i] = (*this)[i] / l); }
 template <typename T>
 requires(!std::is_arithmetic_v<T>)
@@ -332,12 +334,20 @@ constexpr vec_t rotate(value_type_t angle) const {
   }
 }
 
-constexpr vec_t snap_to_grid(f32_t grid_size) const {
-  return (*this / grid_size + 0.5f).floor() * grid_size;
+constexpr vec_t snap_to_grid(value_type_t grid_size) const {
+  return (*this / grid_size + value_type_t(0.5)).floor() * grid_size;
 }
 
 constexpr vec_t snap_to_grid(const vec_t& grid_size) const {
-  return (*this / grid_size + 0.5f).floor() * grid_size;
+  return (*this / grid_size + value_type_t(0.5)).floor() * grid_size;
+}
+
+constexpr auto fmod(value_type_t divisor) const { 
+  make_for_all(ret[i] = std::fmod((*this)[i], divisor)); 
+}
+
+constexpr auto fmod(const vec_t& test0) const { 
+  make_for_all_test1(ret[i] = std::fmod((*this)[i], test0[i])); 
 }
 
 template <typename T>
@@ -357,17 +367,22 @@ constexpr bool in_range(const vec_t& lo, const vec_t& hi) const {
   return true;
 }
 
-std::string to_string(int precision = 4) const {
+static std::string to_string(const vec_t& vec, int precision = 4) {
   std::string out("{");
-  for (access_type_t i = 0; i < size() - 1; ++i) { out += val_to_string((*this)[i], precision) + ", "; }
-  if constexpr (size()) {
-    out += val_to_string((*this)[size() - 1], precision);
+  for (access_type_t i = 0; i < vec.size() - 1; ++i) { out += val_to_string(vec[i], precision) + ", "; }
+  if constexpr (vec.size()) {
+    out += val_to_string(vec[vec.size() - 1], precision);
   }
   out += '}';
   return out;
 }
 
-void from_string(const std::string& str) {
+operator std::string() const {
+  return to_string(*this);
+}
+
+static vec_t from_string(const std::string& str) {
+  vec_t vec;
   std::string s = str;
   // remove braces and spaces
   s.erase(std::remove_if(s.begin(), s.end(),
@@ -377,12 +392,13 @@ void from_string(const std::string& str) {
   std::string item;
   for (access_type_t i = 0; i < size(); ++i) {
     if (!std::getline(ss, item, ',')) {
-      (*this)[i] = value_type_t{};
+      vec[i] = value_type_t{};
     }
     else {
-      (*this)[i] = static_cast<value_type_t>(std::stof(item));
+      vec[i] = static_cast<value_type_t>(std::stof(item));
     }
   }
+  return vec;
 }
 
 static vec_t parse(const std::string& str) {
@@ -410,9 +426,9 @@ bool is_near(const vec_t& test0, value_type_t epsilon) const {
   return true;
 } 
 
-friend std::ostream& operator<<(std::ostream& os, const vec_t& test0) { os << test0.to_string(); return os; }
+friend std::ostream& operator<<(std::ostream& os, const vec_t& test0) { os << (std::string)test0; return os; }
 operator std::string const() const {
-  return to_string();
+  return to_string(*this);
 }
 
 #if !defined(fan_vector_array) && vec_n

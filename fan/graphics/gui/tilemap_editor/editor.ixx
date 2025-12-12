@@ -1209,9 +1209,10 @@ export struct fte_t {
 
       viewport_settings.window_related_mouse_pos = fan::vec2(fan::vec2(fan::graphics::gui::get_window_pos()) + fan::vec2(fan::graphics::gui::get_window_size() / 2) + fan::vec2(0, style.WindowPadding.y * 2 - frame_padding.y * 2));
 
-      fan::graphics::gui::set_window_font_scale(1.5);
+      fan::graphics::gui::set_font(fan::graphics::gui::get_font_size() * 1.5);
       fan::graphics::gui::text("brush type: "_str + brush.type_names[(uint8_t)brush.type]);
       fan::graphics::gui::text("brush depth: " + std::to_string((int)brush.depth - shape_depths_t::max_layer_depth / 2));
+      fan::graphics::gui::pop_font();
 
       fan::vec2 prev_item_spacing = style.ItemSpacing;
       style.ItemSpacing = fan::vec2(0);
@@ -1255,9 +1256,9 @@ export struct fte_t {
       fan::vec2 cursor_position = fan::window::get_mouse_position();
       fan::vec2i grid_pos;
       if (window_relative_to_grid(cursor_position, &grid_pos)) {
-        auto str = (grid_pos / (tile_size * 2.f)).to_string();
+        std::string str = (std::string)(grid_pos / (tile_size * 2.f));
         fan::graphics::gui::text_bottom_right(str.c_str(), 1);
-        str = grid_pos.to_string();
+        str = grid_pos;
         fan::graphics::gui::text_bottom_right(str.c_str(), 0);
       }
 
@@ -2048,7 +2049,7 @@ export struct fte_t {
           remove_duplicates.insert(key);
         }
         else {
-          fan::graphics::gui::print_warning("warning duplicate tile positions:", key.to_string() + ", skipping...");
+          fan::graphics::gui::print_warning("warning duplicate tile positions:", (std::string)key + ", skipping...");
           continue;
         }
         fan::json tile;
@@ -2090,7 +2091,7 @@ export struct fte_t {
           remove_duplicates.insert(j.visual.get_position());
         }
         else {
-          fan::graphics::gui::print_warning("warning duplicate tile positions:", j.visual.get_position().to_string() + ", skipping...");
+          fan::graphics::gui::print_warning("warning duplicate tile positions:", (std::string)j.visual.get_position() + ", skipping...");
           continue;
         }
         tile["mesh_property"] = fte_t::mesh_property_t::physics_shape;

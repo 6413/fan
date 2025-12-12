@@ -434,6 +434,8 @@ export namespace fan::graphics {
 	struct render_view_t {
 		fan::graphics::camera_t camera;
 		fan::graphics::viewport_t viewport;
+    render_view_t() = default;
+    explicit render_view_t(bool);
 		void create();
 		void remove();
 		void set(

@@ -176,7 +176,7 @@ export namespace fan {
   #endif
   }
   template <typename ...Args>
-  constexpr void print_no_endline(const Args&... args) {
+  constexpr void printnln(const Args&... args) {
     std::cout << format_args_with_space(args...);
   }
   template <typename ...Args>

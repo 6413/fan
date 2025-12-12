@@ -150,7 +150,7 @@
 
 #define fan_ternary_void(f0, f1) [&]{ f0;}() : [&]{f1;}()
 
-#define __FAN_PRINT_EACH__(x) fan::print_no_endline("", #x"=",x, ",")
+#define __FAN_PRINT_EACH__(x) fan::printnln("", #x"=",x, ",")
 #define fan_print(...) __FAN__FOREACH_NS(__FAN_PRINT_EACH__, __VA_ARGS__);fan::print("")
 
 #define fan_validate_buffer(buffer, function) \

@@ -97,8 +97,6 @@ namespace fan {
 
 namespace fan::graphics {
 
-  engine_init_t::init_callback_t engine_init_cbs;
-
   std::uint32_t get_draw_mode(std::uint8_t internal_draw_mode) {
     if (gloco->get_renderer() == fan::window_t::renderer_t::opengl) {
     #if defined(fan_opengl)
@@ -694,8 +692,8 @@ void loco_t::generate_commands(loco_t* loco) {
       );
       gloco->console.println(
         "  id: " + std::to_string(NRI) +
-        "\n  position " + props.position.to_string() +
-        "\n  size " + props.size.to_string() +
+        "\n  position " + (std::string)props.position +
+        "\n  size " + (std::string)props.size +
         "\n  color " + props.color.to_string(),
         fan::graphics::highlight_e::info
       );
@@ -816,6 +814,8 @@ loco_t::loco_t() : loco_t(loco_t::properties_t()) {
 }
 
 loco_t::loco_t(const loco_t::properties_t& p) {
+
+  fan::graphics::engine_init_cbs.Open(); // leak, double open
 
   auto& ctx = fan::graphics::ctx();
 
