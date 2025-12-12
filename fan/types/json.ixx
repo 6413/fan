@@ -22,6 +22,8 @@ export {
       json() = default;
       json(const base& j) : base(j) {}
       json(base&& j) : base(std::move(j)) {}
+      json(std::initializer_list<typename base::value_type> init) 
+        : base(init) {}
 
     // nice pain
 
@@ -51,6 +53,13 @@ export {
       const json& operator[](size_t idx) const {
         return static_cast<const json&>(base::operator[](idx));
       }
+      json& operator[](int idx) {
+        return static_cast<json&>(base::operator[](static_cast<size_t>(idx)));
+      }
+      const json& operator[](int idx) const {
+        return static_cast<const json&>(base::operator[](static_cast<size_t>(idx)));
+      }
+
 
       class iterator : public base::iterator {
       public:

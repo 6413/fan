@@ -145,12 +145,13 @@ export namespace fan::graphics {
 #define BLL_set_type_node uint16_t
 #define BLL_set_NodeDataType std::function<void(loco_t*)>
 #define BLL_set_CPP_CopyAtPointerChange 1
+#undef BLL_set_CPP_ConstructDestruct
 #include <BLL/BLL.h>
 
 		using init_callback_nr_t = init_callback_NodeReference_t;
 	};
 	// cbs called every time engine opens
-	extern engine_init_t::init_callback_t engine_init_cbs;
+	engine_init_t::init_callback_t engine_init_cbs;
 
 	std::uint32_t get_draw_mode(std::uint8_t internal_draw_mode);
 
