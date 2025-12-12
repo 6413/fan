@@ -78,7 +78,7 @@ struct simple_engine_demo_t {
 
     mouse_move_nr = engine.on_mouse_move([&](const auto& d) {
       // Since camera is transformable, we want the mouse position inside the world, not the window
-      mouse_position = fan::graphics::transform_position(d.position, engine.orthographic_render_view);
+      mouse_position = fan::graphics::screen_to_world(d.position, engine.orthographic_render_view);
     });
 
     mouse_click_nr = engine.on_mouse_click(fan::mouse_left, [&](const auto& data) {

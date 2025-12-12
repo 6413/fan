@@ -158,6 +158,42 @@ struct settings_menu_t {
         gui::checkbox("##track_opengl_calls", (bool*)&fan_track_opengl_calls);
       }
 
+      {
+        static const char* fill_modes[] = {
+          "Fill",
+          "Line"
+        };
+        gui::table_next_column();
+        gui::text("Fill mode");
+        gui::table_next_column();
+        static int fill_mode = 0;
+        
+        if (gui::begin_combo("##Fill_mode", fill_modes[fill_mode])) {
+          for (int i = 0; i < std::size(fill_modes); ++i) {
+            bool is_selected = (fill_mode == i);
+            if (gui::selectable(fill_modes[i], is_selected)) {
+              fill_mode = i;
+              switch (i) {
+              case 0:
+              {
+                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                break;
+              }
+              case 1:
+              {
+                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                break;
+              }
+              }
+            }
+            if (is_selected) {
+              gui::set_item_default_focus();
+            }
+          }
+          gui::end_combo();
+        }
+      }
+
       gui::end_table();
     }
     end_menu_left();

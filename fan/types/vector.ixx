@@ -201,6 +201,7 @@ export namespace fan {
    using vec1ui = vec1_wrap_t<uint32_t>;
 	 using vec2ui = vec2_wrap_t<uint32_t>;
 	 using vec3ui = vec3_wrap_t<uint32_t>;
+   using vec3ull = vec3_wrap_t<uint64_t>;
 	 using vec4ui = vec4_wrap_t<uint32_t>;
 
    using vec1f = vec1_wrap_t<f32_t>;
@@ -296,26 +297,6 @@ export namespace fan {
   template <typename T>
   concept is_vector = is_vector_type_v<std::remove_cvref_t<T>>;
 }
-/*
-template <typename T>
-struct hash<vector<T>>
-{
-  template<class T>
-  static auto call_if_possible(const T& t, int) -> decltype(t()) { return t(); }
-  template<class T>
-  static auto call_if_possible(const T& t, ...) -> decltype(t) { return t; }
-
-  size_t operator()(const vector<T> &x) const
-  {
-    size_t res = 0;
-    for(const auto &v:x) {
-      boost::hash_combine(res,call_if_possible(v, 0));
-    }
-    return res;
-  }
-};
-*/
-
 
 namespace std {
   constexpr size_t hash_combine(size_t seed, size_t hash) {
@@ -455,6 +436,16 @@ namespace std {
       seed = hash_combine(seed, std::hash<uint32_t>{}(v.x));
       seed = hash_combine(seed, std::hash<uint32_t>{}(v.y));
       seed = hash_combine(seed, std::hash<uint32_t>{}(v.z));
+      return seed;
+    }
+  };
+  template <>
+  struct hash<fan::vec3_wrap_t<uint64_t>> {
+    constexpr size_t operator()(const fan::vec3_wrap_t<uint64_t>& v) const noexcept {
+      size_t seed = 0;
+      seed = hash_combine(seed, std::hash<uint64_t>{}(v.x));
+      seed = hash_combine(seed, std::hash<uint64_t>{}(v.y));
+      seed = hash_combine(seed, std::hash<uint64_t>{}(v.z));
       return seed;
     }
   };

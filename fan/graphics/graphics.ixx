@@ -700,7 +700,7 @@ export namespace fan::graphics {
   fan::graphics::shapes::shape_t& sprite(const sprite_properties_t& props = {});
   fan::graphics::shapes::shape_t& unlit_sprite(const unlit_sprite_properties_t& props = {});
   fan::graphics::shapes::shape_t& line(const line_properties_t& props = {});
-  fan::graphics::shapes::shape_t& line(const fan::vec3& src, const fan::vec3& dst, const fan::color& color = fan::colors::white, f32_t thickness = 3.f, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+  fan::graphics::shapes::shape_t& line(const fan::vec3& src, const fan::vec3& dst, const fan::color& color = fan::colors::white, f32_t thickness = line_properties_t().thickness, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   fan::graphics::shapes::shape_t& light(const light_properties_t& props = {});
   fan::graphics::shapes::shape_t& circle(const circle_properties_t& props = {});
   fan::graphics::shapes::shape_t& circle(const fan::vec3& position, f32_t radius, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
@@ -936,7 +936,9 @@ export namespace fan::graphics {
     void apply_highlight(F&& func) {
       fan::vec3 op = children[0].get_position();
       fan::vec2 os = children[0].get_size();
-      fan::graphics::render_view_t rv {children[0].get_camera(), children[0].get_viewport()};
+      fan::graphics::render_view_t rv;
+      rv.camera = children[0].get_camera();
+      rv.viewport = children[0].get_viewport();
       for (size_t j = 0; j < highlight.size(); ++j) {
         for (size_t i = 0; i < highlight[0].size(); ++i) {
           func(highlight[j][i], get_highlight_positions(op, os, i), rv);

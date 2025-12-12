@@ -714,7 +714,7 @@ void main() {
   static void demo_physics_update_sensor(engine_demo_t* engine_demo) {
     auto& data = *engine_demo->demo_physics_sensor_data;
 
-    fan::graphics::gui::text("Sensor Demo", fan::colors::yellow);
+    fan::graphics::gui::text(fan::colors::yellow, "Sensor Demo");
 
     data.sensor1.set_physics_position(get_mouse_position(engine_demo->right_column_view));
 
@@ -808,10 +808,10 @@ void main() {
     data.shape = make_circle(engine_demo, { 0, 0 });
 
     data.mouse_down_handle[0] = engine_demo->engine.on_mouse_down(fan::mouse_left, [&, engine_demo](const engine_t::button_data_t& bdata) {
-      data.src = fan::graphics::transform_position(bdata.position, engine_demo->right_column_view);
+      data.src = fan::graphics::screen_to_world(bdata.position, engine_demo->right_column_view);
     });
     data.mouse_down_handle[1] = engine_demo->engine.on_mouse_down(fan::mouse_right, [&, engine_demo](const engine_t::button_data_t& bdata) {
-      data.dst = fan::graphics::transform_position(bdata.position, engine_demo->right_column_view);
+      data.dst = fan::graphics::screen_to_world(bdata.position, engine_demo->right_column_view);
     });
   }
   static void demo_algorithm_update_grid_highlight(engine_demo_t* engine_demo) {
@@ -884,7 +884,7 @@ void main() {
     data.generator.set_diagonal_movement(false);
 
     data.mouse_down_handle[0] = engine_demo->engine.on_mouse_down(fan::mouse_right, [&, engine_demo](const engine_t::mouse_down_data_t& bdata) {
-      fan::vec2i cell = (fan::graphics::transform_position(bdata.position, engine_demo->right_column_view) / data.tile_size).floor();
+      fan::vec2i cell = (fan::graphics::screen_to_world(bdata.position, engine_demo->right_column_view) / data.tile_size).floor();
       if (fan::window::is_key_down(fan::key_left_shift)) {
         data.grid.remove_wall(cell, data.generator);
       }
@@ -894,7 +894,7 @@ void main() {
       }
     });
     data.mouse_down_handle[1] = engine_demo->engine.on_mouse_down(fan::mouse_left, [&, engine_demo](const engine_t::mouse_down_data_t& bdata) {
-      fan::vec2i cell = (fan::graphics::transform_position(bdata.position, engine_demo->right_column_view) / data.tile_size).floor();
+      fan::vec2i cell = (fan::graphics::screen_to_world(bdata.position, engine_demo->right_column_view) / data.tile_size).floor();
       if (fan::window::is_key_down(fan::key_left_shift)) {
         data.grid.add_wall(cell, data.generator);
       }
@@ -1023,7 +1023,7 @@ void main() {
       node.r.set_position(fabs(delta.x) < 0.5f ? node.target_pos : current + delta * 0.25f);
     }
 
-    fan::graphics::gui::text("Sorting visualization (bubble sort)", fan::colors::yellow);
+    fan::graphics::gui::text(fan::colors::yellow, "Sorting visualization (bubble sort)");
   }
 
   static void demo_algorithm_sorting_cleanup(engine_demo_t* engine_demo) {
@@ -1215,7 +1215,7 @@ void main() {
 
     gui::text(data->progress_message);
     gui::text_wrapped("Generates the image procedurally in a background thread while rendering it on the main thread as it's being generated");
-    gui::text("The image is purposefully generated slowly to simulate load", fan::colors::yellow);
+    gui::text(fan::colors::yellow, "The image is purposefully generated slowly to simulate load");
   }
   static void demo_cleanup_multithreaded_image_loading(engine_demo_t* engine_demo) {
     auto data = engine_demo->demo_multithreaded_image_loading_data;
@@ -1326,7 +1326,7 @@ void main() {
   static void render_demos(menu_t* menu, const std::vector<std::string>& titles) {
     std::size_t title_index = 0;
     std::string title = titles[title_index];
-    gui::text(title, fan::color::from_rgba(0x948c80ff) * 1.5);
+    gui::text(fan::color::from_rgba(0x948c80ff) * 1.5, title);
     gui::push_style_var(gui::style_var_cell_padding, fan::vec2(0));
     fan_graphics_gui_table(
       (title + "_settings_left_table_display").c_str(), 
@@ -1342,7 +1342,7 @@ void main() {
             gui::end_table();
             gui::new_line();
             gui::new_line();
-            gui::text(title, fan::color::from_rgba(0x948c80ff) * 1.5);
+            gui::text(fan::color::from_rgba(0x948c80ff) * 1.5, title);
             gui::begin_table(title + "_settings_left_table_display", 1,
               gui::table_flags_borders_inner_h |
               gui::table_flags_borders_outer_h

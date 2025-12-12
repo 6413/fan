@@ -107,6 +107,10 @@ namespace fan::graphics {
     return *this != fan::graphics::ctx().default_texture && iic() == false;
   }
 
+  render_view_t::render_view_t(bool) {
+    create();
+  }
+
   void render_view_t::create() {
     camera = g_render_context_handle->camera_create(g_render_context_handle);
     viewport = g_render_context_handle->viewport_create(g_render_context_handle);

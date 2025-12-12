@@ -140,6 +140,9 @@ export namespace fan::graphics::gui {
 
   void push_font(font_t* font);
   void pop_font();
+
+  // remember to call pop when done with the font
+  void set_font(f32_t size);
   font_t* get_font();
   f32_t get_font_size();
   f32_t get_text_line_height();
