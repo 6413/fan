@@ -668,6 +668,71 @@ void add_shape_type(fan::graphics::shaper_t::ShapeTypes_NodeData_t& st, const fa
   }
 }
 
+void draw_all_shape_aabbs() {
+  auto& shapes = fan::graphics::get_shapes();
+  auto& shaper = shapes.shaper;
+
+  fan::graphics::shaper_t::KeyTraverse_t kt;
+  kt.Init(shaper);
+
+  while (kt.Loop(shaper)) {
+
+    if (!kt.isbm) {
+      continue;
+    }
+
+    fan::graphics::shaper_t::BlockTraverse_t bt;
+    auto sti = bt.Init(shaper, kt.bmid());
+
+    if (sti == fan::graphics::shapes::shape_type_t::vfi || 
+        sti == fan::graphics::shapes::shape_type_t::light_end ||
+        sti == fan::graphics::shapes::shape_type_t::line) 
+    {
+      continue;
+    }
+
+    do {
+      auto blid = bt.GetBlockID();
+      auto count = bt.GetAmount(shaper);
+
+      for (fan::graphics::shaper_t::MaxElementPerBlock_t i = 0; i < count; ++i) {
+
+        auto sid = *shaper.GetShapeID(sti, blid, i);
+        if (sid.iic()) {
+          continue;
+        }
+        //fan::print(fan::graphics::shapes::shape_names[sti]);
+
+        auto* shape = ((fan::graphics::shapes::shape_t*)&sid);
+
+        fan::physics::aabb_t aabb = shape->get_aabb();
+
+        fan::vec2 p0{ aabb.min.x, aabb.min.y };
+        fan::vec2 p1{ aabb.max.x, aabb.min.y };
+        fan::vec2 p2{ aabb.max.x, aabb.max.y };
+        fan::vec2 p3{ aabb.min.x, aabb.max.y };
+
+        auto emit = [this, &shapes, shape](fan::vec2 a, fan::vec2 b) {
+          fan::graphics::shapes::line_t::properties_t lp;
+          lp.src = fan::vec3(a, 0xFFA0);
+          lp.dst = fan::vec3(b, 0);
+          lp.color = shape->get_color();
+          lp.camera = shape->get_camera();
+          lp.viewport = shape->get_viewport();
+          //static std::vector<fan::graphics::shapes::ShapeId_t> as;
+          loco.add_shape_to_immediate_draw(lp);
+        };
+
+        emit(p0, p1);
+        emit(p1, p2);
+        emit(p2, p3);
+        emit(p3, p0);
+      }
+
+    } while (bt.Loop(shaper));
+  }
+}
+
 void draw_shapes() {
   fan::graphics::shaper_t::KeyTraverse_t KeyTraverse;
   KeyTraverse.Init(fan::graphics::g_shapes->shaper);
@@ -806,8 +871,7 @@ void draw_shapes() {
     }
     }
 
-    if (KeyTraverse.isbm) {
-      
+    if (KeyTraverse.isbm) {      
 #if fan_debug >= fan_debug_medium
       if (draw_mode == (decltype(draw_mode))-1) {
         fan::throw_error("uninitialized draw mode");
@@ -820,8 +884,10 @@ void draw_shapes() {
       fan::graphics::shaper_t::BlockTraverse_t BlockTraverse;
       fan::graphics::shaper_t::ShapeTypeIndex_t shape_type = BlockTraverse.Init(fan::graphics::g_shapes->shaper, KeyTraverse.bmid());
 
-      if (shape_type == fan::graphics::shapes::shape_type_t::light_end) {
-        break;
+      if (loco.force_line_draw && shape_type != fan::graphics::shapes::shape_type_t::line &&
+        shape_type != fan::graphics::shapes::shape_type_t::grid) 
+      {
+        continue;
       }
 
       do {

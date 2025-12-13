@@ -31,7 +31,7 @@ inline std::function<void(std::string func_name, uint64_t elapsed)>& fan_opengl_
         c.start(); \
       }\
       ~measure_func_t() { \
-        if (fan_track_opengl_calls) { \
+        if (fan_track_opengl_calls()) { \
           glFlush(); \
           glFinish(); \
           if (c.elapsed() / 1e+9 > 0.01) {\

@@ -878,6 +878,14 @@ namespace fan::graphics{
 
 #if defined(fan_physics)
 	fan::physics::aabb_t shapes::shape_t::get_aabb() const {
+
+    switch (get_shape_type()) {
+    case shape_type_t::circle:
+      return { get_position() - get_radius(), get_position() + get_radius()};
+    case shape_type_t::capsule:
+      return { get_position() - get_radius(), get_position() + get_radius() };
+    }
+
 		fan::vec2 pos = get_position();
 		fan::vec2 he = get_size(); // half extents
 		f32_t cs = std::cos(get_angle().z);
