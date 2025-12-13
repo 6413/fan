@@ -126,7 +126,7 @@ namespace fan::physics {
     if (!is_valid()) return;
     b2BodyId id = *this;
 
-    gphysics->sensor_events.remove_body_contacts(id);
+    gphysics()->sensor_events.remove_body_contacts(id);
     b2DestroyBody(id);
     invalidate();
   }
@@ -260,17 +260,17 @@ namespace fan::physics {
       [](void* mem) { fan::heap_profiler_t::instance().deallocate_memory(mem); }
     );
   #endif
-    gphysics = this;
+    gphysics() = this;
     b2WorldDef world_def = b2DefaultWorldDef();
     world_def.gravity = properties.gravity;
 
     b2SetLengthUnitsPerMeter(1.f / length_units_per_meter);
     world_id = b2CreateWorld(&world_def);
 
-    gphysics.get_gravity = [this]() -> fan::vec2 {
+    gphysics().get_gravity = [this]() -> fan::vec2 {
       return get_gravity();
     };
-    gphysics.set_gravity = [this](const fan::vec2& new_gravity) -> void {
+    gphysics().set_gravity = [this](const fan::vec2& new_gravity) -> void {
       return set_gravity(new_gravity);
     };
   }
@@ -728,7 +728,7 @@ namespace fan::physics {
     context.found_overlap = false;
 
     b2QueryFilter filter = b2DefaultQueryFilter();
-    b2World_OverlapShape(gphysics->world_id, &proxy, filter, overlap_result_callback, &context);
+    b2World_OverlapShape(gphysics()->world_id, &proxy, filter, overlap_result_callback, &context);
     return context.found_overlap;
   }
 
@@ -739,7 +739,7 @@ namespace fan::physics {
     aabb.upperBound = fan::physics::render_to_physics(position) + fan::physics::render_to_physics(point_size);
     b2QueryFilter filter = b2DefaultQueryFilter();
     bool hit = false;
-    b2World_OverlapAABB(gphysics->world_id, aabb, filter, [](b2ShapeId shapeId, void* ctx) { return *(bool*)ctx = true; }, &hit);
+    b2World_OverlapAABB(gphysics()->world_id, aabb, filter, [](b2ShapeId shapeId, void* ctx) { return *(bool*)ctx = true; }, &hit);
     return hit;
   }
 
@@ -761,7 +761,7 @@ namespace fan::physics {
     context.target_shape = body_a.get_shape_id();
 
     b2QueryFilter filter = b2DefaultQueryFilter();
-    b2World_OverlapShape(gphysics->world_id, &proxy, filter, overlap_callback_fcn, &context);
+    b2World_OverlapShape(gphysics()->world_id, &proxy, filter, overlap_callback_fcn, &context);
   }
   void queue_one_time_command(std::function<void()> callback) {
     one_time_commands.push_back(std::move(callback));
@@ -851,21 +851,21 @@ namespace fan::physics {
     return true;
   }
   bool is_colliding(const b2ShapeId& a, const b2ShapeId& b) {
-    return gphysics->is_colliding(a, b);
+    return gphysics()->is_colliding(a, b);
   }
   fan::physics::entity_t create_sensor_circle(const fan::vec2& position, f32_t radius) {
-    return gphysics->create_sensor_circle(position, radius);
+    return gphysics()->create_sensor_circle(position, radius);
   }
   fan::physics::entity_t create_sensor_rectangle(const fan::vec2& position, const fan::vec2& size) {
-    return gphysics->create_sensor_rectangle(position, size);
+    return gphysics()->create_sensor_rectangle(position, size);
   }
   physics_step_callback_nr_t add_physics_step_callback(std::function<void()> callback) {
     return fan::add_bll_raii_struct_cb<
       fan::physics::context_t
-    >(gphysics, &fan::physics::context_t::physics_step_callbacks, std::move(callback));
+    >(gphysics(), &fan::physics::context_t::physics_step_callbacks, std::move(callback));
   }
   void remove_physics_step_callback(physics_step_callback_nr_t nr) {
-    gphysics->physics_step_callbacks.unlrec(nr);
+    gphysics()->physics_step_callbacks.unlrec(nr);
   }
   bool presolve_oneway_collision(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, fan::physics::body_id_t character_body) {
     if (!b2Shape_IsValid(shapeIdA)) {
@@ -998,12 +998,12 @@ namespace fan::physics {
 
   // for drawing physics shapes
   fan::physics::physics_update_cbs_t::nr_t add_physics_update(const fan::physics::physics_update_data_t& cb_data) {
-    auto it = gphysics->physics_updates->NewNodeLast();
-    (*gphysics->physics_updates)[it] = (fan::physics::physics_update_data_t)cb_data;
+    auto it = gphysics()->physics_updates->NewNodeLast();
+    (*gphysics()->physics_updates)[it] = (fan::physics::physics_update_data_t)cb_data;
     return it;
   }
   void remove_physics_update(fan::physics::physics_update_cbs_t::nr_t nr) {
-    gphysics->physics_updates->unlrec(nr);
+    gphysics()->physics_updates->unlrec(nr);
   }
   bool overlap_result_callback(b2ShapeId shape_id, void* context) {
     overlap_test_context_t* ctx = static_cast<overlap_test_context_t*>(context);

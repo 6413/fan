@@ -219,7 +219,7 @@ export struct fte_renderer_t : fte_loader_t {
   void add_tile(node_t& node, fte_t::tile_t& j, int x, int y, std::uint32_t depth) {
     {
       if (fan::get_hash(j.id.c_str()) == fan::get_hash("##tile_world_dirt")) {
-        fan::physics::gphysics->create_box(node.position + fan::vec2(j.position) * node.size, j.size * node.size);
+        fan::physics::gphysics()->create_box(node.position + fan::vec2(j.position) * node.size, j.size * node.size);
       }
     }
 

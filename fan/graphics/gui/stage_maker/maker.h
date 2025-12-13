@@ -193,16 +193,16 @@ void update(){
       fan::vec2 editor_size;
 
       if (ImGui::Begin(stages_str, nullptr, ImGuiWindowFlags_DockNodeHost)) {
-        fan::vec2 window_size = gloco->window.get_size();
+        fan::vec2 window_size = gloco()->window.get_size();
         fan::vec2 viewport_size = ImGui::GetWindowSize();
         fan::vec2 ratio = viewport_size / viewport_size.max();
-        gloco->camera_set_ortho(
-          gloco->orthographic_render_view.camera,
+        gloco()->camera_set_ortho(
+          gloco()->orthographic_render_view.camera,
           fan::vec2(0, viewport_size.x),
           fan::vec2(0, viewport_size.y)
         );
-        gloco->viewport_set(
-          gloco->orthographic_render_view.viewport,
+        gloco()->viewport_set(
+          gloco()->orthographic_render_view.viewport,
           ImGui::GetWindowPos(), viewport_size, window_size
         );
         editor_size = ImGui::GetContentRegionAvail();

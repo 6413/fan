@@ -28,31 +28,31 @@ module fan.graphics;
 
 namespace fan::window {
   void add_input_action(const int* keys, std::size_t count, const std::string& action_name) {
-    fan::graphics::g_render_context_handle.input_action->add(keys, count, action_name);
+    fan::graphics::ctx().input_action->add(keys, count, action_name);
   }
 
   void add_input_action(std::initializer_list<int> keys, const std::string& action_name) {
-    fan::graphics::g_render_context_handle.input_action->add(keys, action_name);
+    fan::graphics::ctx().input_action->add(keys, action_name);
   }
 
   void add_input_action(int key, const std::string& action_name) {
-    fan::graphics::g_render_context_handle.input_action->add(key, action_name);
+    fan::graphics::ctx().input_action->add(key, action_name);
   }
 
   bool is_input_action_active(const std::string& action_name, int pstate) {
-    return fan::graphics::g_render_context_handle.input_action->is_active(action_name);
+    return fan::graphics::ctx().input_action->is_active(action_name);
   }
 
   bool is_action_clicked(const std::string& action_name) {
-    return fan::graphics::g_render_context_handle.input_action->is_active(action_name);
+    return fan::graphics::ctx().input_action->is_active(action_name);
   }
 
   bool is_action_down(const std::string& action_name) {
-    return fan::graphics::g_render_context_handle.input_action->is_active(action_name, fan::window::input_action_t::press_or_repeat);
+    return fan::graphics::ctx().input_action->is_active(action_name, fan::window::input_action_t::press_or_repeat);
   }
 
   bool exists(const std::string& action_name) {
-    return fan::graphics::g_render_context_handle.input_action->input_actions.find(action_name) != fan::graphics::g_render_context_handle.input_action->input_actions.end();
+    return fan::graphics::ctx().input_action->input_actions.find(action_name) != fan::graphics::ctx().input_action->input_actions.end();
   }
 }
 
@@ -749,13 +749,13 @@ namespace fan::graphics {
   }
 
   void interactive_camera_t::update() {
-    fan::vec2 s = fan::graphics::g_render_context_handle->viewport_get_size(
-      fan::graphics::g_render_context_handle,
+    fan::vec2 s = fan::graphics::ctx()->viewport_get_size(
+      fan::graphics::ctx(),
       reference_viewport
     );
     fan::vec2 ortho_size = s / zoom;
-    fan::graphics::g_render_context_handle->camera_set_ortho(
-      fan::graphics::g_render_context_handle,
+    fan::graphics::ctx()->camera_set_ortho(
+      fan::graphics::ctx(),
       reference_camera,
       fan::vec2(-ortho_size.x / 2.f, ortho_size.x / 2.f),
       fan::vec2(-ortho_size.y / 2.f, ortho_size.y / 2.f)
@@ -795,22 +795,24 @@ namespace fan::graphics {
         return;
       }
 
+		#if defined(fan_gui)
       if (fan::graphics::gui::want_io()) {
         return;
       }
+		#endif
 
       bool mouse_inside_viewport = fan::graphics::inside(
         reference_viewport,
         fan::window::get_mouse_position()
       );
       if (mouse_inside_viewport) {
+			#if defined(fan_gui)
         auto* context = fan::graphics::gui::get_context();
         auto* hovered_window = context->HoveredWindow;
-
         if (hovered_window) {
           fan::graphics::gui::set_window_focus(hovered_window->Name);
         }
-
+			#endif
         if (d.button == fan::mouse_scroll_up) {
           zoom *= 1.2;
           update();
@@ -884,8 +886,8 @@ namespace fan::graphics {
   }
 
   fan::vec2 interactive_camera_t::get_size() const {
-    return fan::graphics::g_render_context_handle->camera_get_size(
-      fan::graphics::g_render_context_handle,
+    return fan::graphics::ctx()->camera_get_size(
+      fan::graphics::ctx(),
       reference_camera);
   }
 

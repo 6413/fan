@@ -108,7 +108,7 @@ int main() {
     std::string current_directory = "game/";
     // init client animations
     fan::json json_data = fan::graphics::read_json(current_directory + "entities/player/player.json");
-    gloco->parse_animations(json_data);
+    gloco()->parse_animations(json_data);
     fan::graphics::map_animations(anims);
     client_shape.set_shape(fan::graphics::extract_single_shape(json_data));
     client_shape.set_size(client_shape.get_size() / 2.5);

@@ -26,7 +26,7 @@ int main() {
   std::vector<fan::graphics::model_t> models;
   //fan::graphics::model_t model(p);
 
-  gloco->m_post_draw.push_back([&] {
+  gloco()->m_post_draw.push_back([&] {
 
     for (auto& m : models) {
       m.draw();
@@ -61,7 +61,7 @@ int main() {
     planets.push_back(planet_props);
   }
 
-  auto& camera = gloco->camera_get(gloco->perspective_camera.camera);
+  auto& camera = gloco()->camera_get(gloco()->perspective_camera.camera);
   fan::vec2 motion = 0;
 
   loco.window.add_mouse_motion([&](const auto& d) {

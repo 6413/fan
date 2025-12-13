@@ -209,7 +209,7 @@ int main() {
 
   loco.window.add_resize_callback([&](const auto& d) {
     loco.viewport_set(
-      gloco->orthographic_render_view.viewport,
+      gloco()->orthographic_render_view.viewport,
       fan::vec2(0, 0),
       d.size
       );
@@ -288,8 +288,8 @@ int main() {
 
       fan::vec2 reflection = fan::math::reflection_no_rot(velocity, p0, p1, wall_size);
 
-      auto nr = gloco->m_write_queue.write_queue.NewNodeFirst();
-      gloco->m_write_queue.write_queue[nr].cb = [oid = sip0->ObjectID, reflection] {
+      auto nr = gloco()->m_write_queue.write_queue.NewNodeFirst();
+      gloco()->m_write_queue.write_queue[nr].cb = [oid = sip0->ObjectID, reflection] {
         fan::graphics::bcol.SetObject_Velocity(oid, reflection);
         };
     };*/

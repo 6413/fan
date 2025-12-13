@@ -22,7 +22,7 @@ elseif is_mode("debug") then
   set_optimize("none")
   set_symbols("debug")
   add_cxxflags("-g", "-gdwarf-4", {force = true})
-  add_defines("_DEBUG=4")
+  add_defines("_DEBUG=3")
 end
 
 option("fan_gui") set_default(true) option_end()

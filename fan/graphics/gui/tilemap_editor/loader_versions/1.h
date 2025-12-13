@@ -30,7 +30,7 @@ if (version != current_version) {
 // global data
 map_size = std::string_read_data<fan::vec2ui>(in, off);
 tile_size = std::string_read_data<fan::vec2ui>(in, off);
-gloco->lighting.ambient = std::string_read_data<fan::vec3>(in, off);
+gloco()->lighting.ambient = std::string_read_data<fan::vec3>(in, off);
 
 #if tilemap_renderer == 0
 compiled_map.compiled_shapes.resize(map_size.y);

@@ -23,6 +23,8 @@ module;
 
 module fan.graphics.gui.base;
 
+#if defined(fan_gui)
+
 import fan.utility;
 
 //imgui_stdlib.cpp:
@@ -45,9 +47,11 @@ static int InputTextCallback(ImGuiInputTextCallbackData* data) {
   return 0;
 }
 
-#if defined(fan_gui)
 namespace fan::graphics::gui {
-  std::unordered_map<std::string, bool> want_io_ignore_list;
+  std::unordered_map<std::string, bool>& want_io_ignore_list() {
+    static std::unordered_map<std::string, bool> list;
+    return list;
+  }
   bool begin(const std::string& window_name, bool* p_open, window_flags_t window_flags) {
 
     if (window_flags & window_flags_no_title_bar) {
@@ -56,7 +60,7 @@ namespace fan::graphics::gui {
       ImGui::SetNextWindowClass(&window_class);
     }
     if (window_flags & window_flags_override_input) {
-      want_io_ignore_list[window_name] = true;
+      want_io_ignore_list()[window_name] = true;
     }
 
     return ImGui::Begin(window_name.c_str(), p_open, window_flags);
@@ -348,12 +352,12 @@ namespace fan::graphics::gui {
         return;
       }
     }
-    if (g->NavWindow && want_io_ignore_list.find(g->NavWindow->Name) != want_io_ignore_list.end()) {
+    if (g->NavWindow && want_io_ignore_list().find(g->NavWindow->Name) != want_io_ignore_list().end()) {
       g_want_io = false;
       return;
     }
 
-    if (g->HoveredWindow && want_io_ignore_list.find(g->HoveredWindow->Name) != want_io_ignore_list.end()
+    if (g->HoveredWindow && want_io_ignore_list().find(g->HoveredWindow->Name) != want_io_ignore_list().end()
       ) {
       g_want_io = false;
       return;
