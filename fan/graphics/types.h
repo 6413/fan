@@ -2,7 +2,7 @@
 
 struct fan_window_loop_t{
   fan_window_loop_t(const auto& lambda) {
-    gloco->loop(lambda);
+    gloco()->loop(lambda);
   }
 };
 
@@ -11,7 +11,7 @@ struct fan_window_loop_t{
   static fan_window_loop_t __fan_window_loop_entry = [&]()
 
 #define fan_window_close() \
-  gloco->close(); \
+  gloco()->close(); \
   return
 
 //const std::string& window_name, bool* p_open = 0, window_flags_t window_flags = 0

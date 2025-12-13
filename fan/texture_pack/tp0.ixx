@@ -202,8 +202,8 @@ export namespace fan::graphics {
           }
         }
 
-        auto data = fan::graphics::g_render_context_handle->image_get_pixel_data(
-          fan::graphics::g_render_context_handle, 
+        auto data = fan::graphics::ctx()->image_get_pixel_data(
+          fan::graphics::ctx(), 
           image, 
           GL_RGBA, 
           texture_properties.uv_pos, 

@@ -10,7 +10,7 @@ struct blur_t {
     brightness_fbo.bind(loco.context.gl);
 
     fan::opengl::core::renderbuffer_t::properties_t rp;
-    rp.size = gloco->window.get_size();
+    rp.size = gloco()->window.get_size();
     rp.internalformat = GL_DEPTH_COMPONENT;
     rbo.open(loco.context.gl);
     rbo.set_storage(loco.context.gl, rp);
@@ -124,7 +124,7 @@ struct blur_t {
     fan_opengl_call(glDisable(GL_BLEND));
     fan_opengl_call(glBlendFunc(GL_ONE, GL_ONE));
 
-    fan::vec2 window_size = gloco->window.get_size();
+    fan::vec2 window_size = gloco()->window.get_size();
 
     loco.shader_set_value(shader_downsample, "resolution", window_size);
     loco.shader_set_value(shader_downsample, "mipLevel", 0);
@@ -201,7 +201,7 @@ struct blur_t {
     brightness_fbo.unbind(context);
 
 
-    fan::vec2 window_size = gloco->window.get_size();
+    fan::vec2 window_size = gloco()->window.get_size();
     fan_opengl_call(glViewport(0, 0, window_size.x, window_size.y));
   }
 

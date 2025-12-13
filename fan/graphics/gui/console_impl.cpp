@@ -25,7 +25,7 @@ namespace fan {
 
   void commands_t::empty_output_colored(const std::string&, const fan::color& color) {}
 
-  fan::commands_t::command_t& commands_t::add(const std::string& cmd, std::function<void(const fan::commands_t::arg_t&)> func) {
+  fan::commands_t::command_t& commands_t::add(const std::string& cmd, decltype(command_t::func) func) {
     command_t command;
     command.func = func;
     command_t& obj = func_table[cmd];
@@ -95,7 +95,7 @@ namespace fan {
       rest = cmd.substr(arg0_off + 1);
     }
     if (found->second.command_chain.empty()) {
-      found->second.func(split_args(rest));
+      found->second.func(OFFSETLESS(this, console_t, commands), split_args(rest));
     }
     else {
       for (const auto& i : found->second.command_chain) {
@@ -113,7 +113,7 @@ namespace fan {
       static std::regex pattern(";\\s+");
       auto removed_spaces_before_semicolon = std::regex_replace(args[1], pattern, ";");
       obj.command_chain = fan::split(removed_spaces_before_semicolon, ";");
-      obj.func = [](auto) {};
+      obj.func = [](console_t*, const commands_t::arg_t&) {};
       return true;
     }
     return false;

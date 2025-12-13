@@ -11,14 +11,14 @@ int main(int argc, char** argv) {
 
   std::string image_path = argv[3];
 
-  image_divider.root_image = gloco->image_load(
+  image_divider.root_image = gloco()->image_load(
     image_path.c_str()
   );
-  auto& img = gloco->image_get_data(image_divider.root_image);
+  auto& img = gloco()->image_get_data(image_divider.root_image);
   image_divider.open_properties.preferred_pack_size = img.size;
 
   if (image_divider.root_image.iic() == false) {
-    auto& img = gloco->image_get_data(image_divider.root_image);
+    auto& img = gloco()->image_get_data(image_divider.root_image);
     fan::vec2i divider{std::stoi(argv[1]), std::stoi(argv[2])};
     fan::vec2 uv_size = img.size / divider / img.size;
 

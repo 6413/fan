@@ -117,7 +117,7 @@ export namespace fan {
 }
 
 bool init_fan_track_opengl_print = []() {
-  fan_opengl_track_print = [](std::string func_name, uint64_t elapsed) {
+  fan_opengl_track_print() = [](std::string func_name, uint64_t elapsed) {
     fan::printclnnh(fan::graphics::highlight_e::text, func_name + ":");
     fan::printclh(fan::graphics::highlight_e::warning, std::to_string(elapsed / 1e+6f)/*fan::to_string(elapsed / 1e+6)*/ + "ms");
   };
@@ -237,13 +237,13 @@ export namespace fan::graphics {
     operator fan::graphics::shapes::shape_t& () { return *this; }
     operator const fan::graphics::shapes::shape_t& () const { return *this; }
     light_t(light_properties_t p = light_properties_t());
-    light_t(const fan::vec3& position, const fan::vec2& size, const fan::color& color, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+    light_t(const fan::vec3& position, const fan::vec2& size, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   };
 
 #if defined(loco_line)
   struct line_properties_t {
     render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
-    fan::vec3 src = fan::vec3(fan::vec2(fan::graphics::g_render_context_handle.window->get_size() / 2), 0);
+    fan::vec3 src = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
     fan::vec2 dst = fan::vec2(1, 1);
     fan::color color = fan::color(1, 1, 1, 1);
     f32_t thickness = 4.0f;
@@ -257,13 +257,13 @@ export namespace fan::graphics {
     operator fan::graphics::shapes::shape_t& () { return *this; }
     operator const fan::graphics::shapes::shape_t& () const { return *this; }
     line_t(line_properties_t p = line_properties_t());
-    line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& color, f32_t thickness = 3.f, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+    line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& color = fan::colors::white, f32_t thickness = 3.f, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   };
 #endif
 
   struct rectangle_properties_t {
     render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
-    fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::g_render_context_handle.window->get_size() / 2), 0);
+    fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
     fan::vec2 size = fan::vec2(32, 32);
     fan::color color = fan::color(1, 1, 1, 1);
     fan::color outline_color = color;
@@ -278,12 +278,12 @@ export namespace fan::graphics {
     operator fan::graphics::shapes::shape_t& () { return *this; }
     operator const fan::graphics::shapes::shape_t& () const { return *this; }
     rectangle_t(rectangle_properties_t p = rectangle_properties_t());
-    rectangle_t(const fan::vec3& position, const fan::vec2& size, const fan::color& color, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+    rectangle_t(const fan::vec3& position, const fan::vec2& size, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   };
 
   struct sprite_properties_t {
     render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
-    fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::g_render_context_handle.window->get_size() / 2), 0);
+    fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
     fan::vec2 size = fan::vec2(32, 32);
     fan::vec3 angle = 0;
     fan::color color = fan::color(1, 1, 1, 1);
@@ -309,7 +309,7 @@ export namespace fan::graphics {
 
   struct unlit_sprite_properties_t {
     render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
-    fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::g_render_context_handle.window->get_size() / 2), 0);
+    fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
     fan::vec2 size = fan::vec2(32, 32);
     fan::vec3 angle = 0;
     fan::color color = fan::color(1, 1, 1, 1);
@@ -334,7 +334,7 @@ export namespace fan::graphics {
 #if defined(loco_circle)
   struct circle_properties_t {
     render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
-    fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::g_render_context_handle.window->get_size() / 2), 0);
+    fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
     f32_t radius = 32.f;
     fan::vec3 angle = 0;
     fan::color color = fan::color(1, 1, 1, 1);
@@ -362,7 +362,7 @@ export namespace fan::graphics {
         )
       );
     }
-    circle_t(const fan::vec3& position, float radius, const fan::color& color, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view)
+    circle_t(const fan::vec3& position, float radius, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view)
       : circle_t(circle_properties_t {
         .render_view = render_view,
         .position = position,
@@ -374,7 +374,7 @@ export namespace fan::graphics {
 
   struct capsule_properties_t {
     render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
-    fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::g_render_context_handle.window->get_size() / 2), 0);
+    fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
     fan::vec2 center0 = 0;
     fan::vec2 center1 {0, 128.f};
     f32_t radius = 64.0f;
@@ -1071,7 +1071,7 @@ export namespace fan::graphics {
       const fan::color& color,
       const fan::vec2& area = fan::window::get_size(),
       const fan::vec2& offset = fan::vec2(0, 0),
-      render_view_t* render_view = fan::graphics::g_render_context_handle.orthographic_render_view);
+      render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
 
     fan::vec2i get_cell_count();
 
@@ -1099,7 +1099,7 @@ export namespace fan::graphics {
       const fan::color& color,
       const fan::vec2& area = fan::window::get_size(),
       const fan::vec2& offset = fan::vec2(0, 0),
-      render_view_t* render_view = fan::graphics::g_render_context_handle.orthographic_render_view
+      render_view_t* render_view = fan::graphics::ctx().orthographic_render_view
     );
     void set_tile_color(const fan::vec2i& pos, const fan::color& c);
     static constexpr f32_t circle_overlap(f32_t r, f32_t i0, f32_t i1);
@@ -1107,7 +1107,7 @@ export namespace fan::graphics {
       const fan::color& highlight_color);
     void highlight_line(const fan::graphics::shapes::shape_t& line,
       const fan::color& color,
-      render_view_t* render_view = fan::graphics::g_render_context_handle.orthographic_render_view);
+      render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
     void highlight(const fan::graphics::shapes::shape_t& shape,
       const fan::color& color);
 
@@ -1213,7 +1213,7 @@ export namespace fan::event {
   struct callback_awaiter : fan::event::condition_awaiter<derived_t> {
     template<typename promise_t>
     void await_suspend(std::coroutine_handle<promise_t> h) {
-      auto* callbacks = fan::graphics::g_render_context_handle.update_callback;
+      auto* callbacks = fan::graphics::ctx().update_callback;
       node = callbacks->NewNodeLast();
       (*callbacks)[node] = [this, h](void*) {
         if (static_cast<const derived_t*>(this)->check_condition()) {
@@ -1224,7 +1224,7 @@ export namespace fan::event {
     }
     void unlink() {
       if (node) {
-        fan::graphics::g_render_context_handle.update_callback->unlrec(node);
+        fan::graphics::ctx().update_callback->unlrec(node);
         node.sic();
       }
     }

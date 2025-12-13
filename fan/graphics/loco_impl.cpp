@@ -98,12 +98,12 @@ namespace fan {
 namespace fan::graphics {
 
   std::uint32_t get_draw_mode(std::uint8_t internal_draw_mode) {
-    if (gloco->get_renderer() == fan::window_t::renderer_t::opengl) {
+    if (gloco()->get_renderer() == fan::window_t::renderer_t::opengl) {
     #if defined(fan_opengl)
       return fan::opengl::core::get_draw_mode(internal_draw_mode);
     #endif
     }
-    else if (gloco->get_renderer() == fan::window_t::renderer_t::vulkan) {
+    else if (gloco()->get_renderer() == fan::window_t::renderer_t::vulkan) {
     #if defined(fan_vulkan)
       return fan::vulkan::core::get_draw_mode(internal_draw_mode);
     #endif
@@ -404,10 +404,10 @@ bool loco_t::inside_wir(fan::graphics::viewport_nr_t nr, const fan::vec2& positi
   return context_functions.viewport_inside_wir(&context, nr, position);
 }
 
-bool loco_t::inside(const fan::graphics::render_view_t& render_view, const fan::vec2& position) const {
+bool loco_t::inside(const fan::graphics::render_view_t& render_view, const fan::vec2& position) {
   fan::vec2 tp = translate_position(position, render_view.viewport, render_view.camera);
 
-  auto c = gloco->camera_get(render_view.camera);
+  auto c = camera_get(render_view.camera);
   f32_t l = c.coordinates.left;
   f32_t r = c.coordinates.right;
   f32_t t = c.coordinates.up;
@@ -416,7 +416,7 @@ bool loco_t::inside(const fan::graphics::render_view_t& render_view, const fan::
   return tp.x >= l && tp.x <= r && tp.y >= t && tp.y <= b;
 }
 
-bool loco_t::is_mouse_inside(const fan::graphics::render_view_t& render_view) const {
+bool loco_t::is_mouse_inside(const fan::graphics::render_view_t& render_view) {
   return inside(render_view, get_mouse_position());
 }
 
@@ -427,7 +427,7 @@ std::string loco_t::read_shader(const std::string& path, const std::source_locat
 }
 
 void loco_t::use() {
-  gloco = this;
+  gloco() = this;
   window.make_context_current();
 }
 
@@ -446,41 +446,41 @@ void loco_t::camera_move(fan::graphics::context_camera_t& camera, f64_t dt, f32_
   }
 
   f64_t msd = (movement_speed * dt);
-  if (gloco->window.key_pressed(fan::input::key_w)) {
+  if (window.key_pressed(fan::input::key_w)) {
     camera.velocity += camera.m_front * msd;
   }
-  if (gloco->window.key_pressed(fan::input::key_s)) {
+  if (window.key_pressed(fan::input::key_s)) {
     camera.velocity -= camera.m_front * msd;
   }
-  if (gloco->window.key_pressed(fan::input::key_a)) {
+  if (window.key_pressed(fan::input::key_a)) {
     camera.velocity -= camera.m_right * msd;
   }
-  if (gloco->window.key_pressed(fan::input::key_d)) {
+  if (window.key_pressed(fan::input::key_d)) {
     camera.velocity += camera.m_right * msd;
   }
 
-  if (gloco->window.key_pressed(fan::input::key_space)) {
+  if (window.key_pressed(fan::input::key_space)) {
     camera.velocity.y += msd;
   }
-  if (gloco->window.key_pressed(fan::input::key_left_shift)) {
+  if (window.key_pressed(fan::input::key_left_shift)) {
     camera.velocity.y -= msd;
   }
 
-  f64_t rotate = camera.sensitivity * camera_rotate_speed * gloco->delta_time;
-  if (gloco->window.key_pressed(fan::input::key_left)) {
+  f64_t rotate = camera.sensitivity * camera_rotate_speed * delta_time;
+  if (window.key_pressed(fan::input::key_left)) {
     camera.set_yaw(camera.get_yaw() - rotate);
   }
-  if (gloco->window.key_pressed(fan::input::key_right)) {
+  if (window.key_pressed(fan::input::key_right)) {
     camera.set_yaw(camera.get_yaw() + rotate);
   }
-  if (gloco->window.key_pressed(fan::input::key_up)) {
+  if (window.key_pressed(fan::input::key_up)) {
     camera.set_pitch(camera.get_pitch() + rotate);
   }
-  if (gloco->window.key_pressed(fan::input::key_down)) {
+  if (window.key_pressed(fan::input::key_down)) {
     camera.set_pitch(camera.get_pitch() - rotate);
   }
 
-  camera.position += camera.velocity * gloco->delta_time;
+  camera.position += camera.velocity * delta_time;
   camera.update_view();
 
   camera.m_view = camera.get_view_matrix();
@@ -504,46 +504,49 @@ void loco_t::generate_commands(loco_t* loco) {
 #if defined(fan_gui)
   loco->console.open();
 
-  loco->console.commands.add("echo", [](const fan::commands_t::arg_t& args) {
+  loco->console.commands.add("echo", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, console);
     fan::commands_t::output_t out;
     out.text = fan::append_args(args) + "\n";
     out.highlight = fan::graphics::highlight_e::info;
-    gloco->console.commands.output_cb(out);
+    loco->console.commands.output_cb(out);
   }).description = "prints something - usage echo [args]";
 
-  loco->console.commands.add("help", [](const fan::commands_t::arg_t& args) {
+  loco->console.commands.add("help", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, console);
     if (args.empty()) {
       fan::commands_t::output_t out;
       out.highlight = fan::graphics::highlight_e::info;
       std::string out_str;
       out_str += "{\n";
-      for (const auto& i : gloco->console.commands.func_table) {
+      for (const auto& i : loco->console.commands.func_table) {
         out_str += "\t" + i.first + ",\n";
       }
       out_str += "}\n";
       out.text = out_str;
-      gloco->console.commands.output_cb(out);
+      loco->console.commands.output_cb(out);
       return;
     }
     else if (args.size() == 1) {
-      auto found = gloco->console.commands.func_table.find(args[0]);
-      if (found == gloco->console.commands.func_table.end()) {
-        gloco->console.commands.print_command_not_found(args[0]);
+      auto found = loco->console.commands.func_table.find(args[0]);
+      if (found == loco->console.commands.func_table.end()) {
+        loco->console.commands.print_command_not_found(args[0]);
         return;
       }
       fan::commands_t::output_t out;
       out.text = found->second.description + "\n";
       out.highlight = fan::graphics::highlight_e::info;
-      gloco->console.commands.output_cb(out);
+      loco->console.commands.output_cb(out);
     }
     else {
-      gloco->console.commands.print_invalid_arg_count();
+      loco->console.commands.print_invalid_arg_count();
     }
   }).description = "get info about specific command - usage help command";
 
-  loco->console.commands.add("list", [](const fan::commands_t::arg_t& args) {
+  loco->console.commands.add("list", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, console);
     std::string out_str;
-    for (const auto& i : gloco->console.commands.func_table) {
+    for (const auto& i : loco->console.commands.func_table) {
       out_str += i.first + "\n";
     }
 
@@ -551,94 +554,105 @@ void loco_t::generate_commands(loco_t* loco) {
     out.text = out_str;
     out.highlight = fan::graphics::highlight_e::info;
 
-    gloco->console.commands.output_cb(out);
+    loco->console.commands.output_cb(out);
   }).description = "lists all commands - usage list";
 
-  loco->console.commands.add("alias", [](const fan::commands_t::arg_t& args) {
+  loco->console.commands.add("alias", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, console);
     if (args.size() < 2 || args[1].empty()) {
-      gloco->console.commands.print_invalid_arg_count();
+      loco->console.commands.print_invalid_arg_count();
       return;
     }
-    if (gloco->console.commands.insert_to_command_chain(args)) {
+    if (loco->console.commands.insert_to_command_chain(args)) {
       return;
     }
-    gloco->console.commands.func_table[args[0]] = gloco->console.commands.func_table[args[1]];
+    loco->console.commands.func_table[args[0]] = loco->console.commands.func_table[args[1]];
   }).description = "can create alias commands - usage alias [cmd name] [cmd]";
 
 
-  loco->console.commands.add("show_fps", [](const fan::commands_t::arg_t& args) {
+  loco->console.commands.add("show_fps", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, console);
     if (args.size() != 1) {
-      gloco->console.commands.print_invalid_arg_count();
+      loco->console.commands.print_invalid_arg_count();
       return;
     }
-    gloco->show_fps = std::stoi(args[0]);
+    loco->show_fps = std::stoi(args[0]);
   }).description = "toggles fps - usage show_fps [value]";
 
-  loco->console.commands.add("quit", [](const fan::commands_t::arg_t& args) {
+  loco->console.commands.add("quit", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
     exit(0);
   }).description = "quits program - usage quit";
 
-  loco->console.commands.add("clear", [](const fan::commands_t::arg_t& args) {
-    gloco->console.output_buffer.clear();
-    gloco->console.editor.SetText("");
+  loco->console.commands.add("clear", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, console);
+    loco->console.output_buffer.clear();
+    loco->console.editor.SetText("");
   }).description = "clears output buffer - usage clear";
 
-  loco->console.commands.add("set_gamma", [](const fan::commands_t::arg_t& args) {
+  loco->console.commands.add("set_gamma", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, console);
     if (args.size() != 1) {
-      gloco->console.commands.print_invalid_arg_count();
+      loco->console.commands.print_invalid_arg_count();
       return;
     }
-    gloco->shader_set_value(gloco->gl.m_fbo_final_shader, "gamma", std::stof(args[0]));
+    loco->shader_set_value(loco->gl.m_fbo_final_shader, "gamma", std::stof(args[0]));
   }).description = "sets gamma for postprocessing shader";
 
-  loco->console.commands.add("set_gamma", [](const fan::commands_t::arg_t& args) {
+  loco->console.commands.add("set_gamma", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, console);
     if (args.size() != 1) {
-      gloco->console.commands.print_invalid_arg_count();
+      loco->console.commands.print_invalid_arg_count();
       return;
     }
-    gloco->shader_set_value(gloco->gl.m_fbo_final_shader, "gamma", std::stof(args[0]));
+    loco->shader_set_value(loco->gl.m_fbo_final_shader, "gamma", std::stof(args[0]));
   }).description = "sets gamma for postprocessing shader";
-  loco->console.commands.add("set_contrast", [](const fan::commands_t::arg_t& args) {
+  loco->console.commands.add("set_contrast", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, console);
     if (args.size() != 1) {
-      gloco->console.commands.print_invalid_arg_count();
+      loco->console.commands.print_invalid_arg_count();
       return;
     }
-    gloco->shader_set_value(gloco->gl.m_fbo_final_shader, "contrast", std::stof(args[0]));
+    loco->shader_set_value(loco->gl.m_fbo_final_shader, "contrast", std::stof(args[0]));
   }).description = "sets contrast for postprocessing shader";
 
-  loco->console.commands.add("set_exposure", [](const fan::commands_t::arg_t& args) {
+  loco->console.commands.add("set_exposure", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, console);
     if (args.size() != 1) {
-      gloco->console.commands.print_invalid_arg_count();
+      loco->console.commands.print_invalid_arg_count();
       return;
     }
-    gloco->shader_set_value(gloco->gl.m_fbo_final_shader, "exposure", std::stof(args[0]));
+    loco->shader_set_value(loco->gl.m_fbo_final_shader, "exposure", std::stof(args[0]));
   }).description = "sets exposure for postprocessing shader";
 
-  loco->console.commands.add("set_bloom_strength", [](const fan::commands_t::arg_t& args) {
+  loco->console.commands.add("set_bloom_strength", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, console);
     if (args.size() != 1) {
-      gloco->console.commands.print_invalid_arg_count();
+      loco->console.commands.print_invalid_arg_count();
       return;
     }
-    gloco->shader_set_value(gloco->gl.m_fbo_final_shader, "bloom_strength", std::stof(args[0]));
+    loco->shader_set_value(loco->gl.m_fbo_final_shader, "bloom_strength", std::stof(args[0]));
   }).description = "sets bloom strength for postprocessing shader";
 
-  loco->console.commands.add("set_vsync", [](const fan::commands_t::arg_t& args) {
+  loco->console.commands.add("set_vsync", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, console);
     if (args.size() != 1) {
-      gloco->console.commands.print_invalid_arg_count();
+      loco->console.commands.print_invalid_arg_count();
       return;
     }
-    gloco->set_vsync(std::stoi(args[0]));
+    loco->set_vsync(std::stoi(args[0]));
   }).description = "sets vsync";
 
-  loco->console.commands.add("set_target_fps", [](const fan::commands_t::arg_t& args) {
+  loco->console.commands.add("set_target_fps", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, console);
     if (args.size() != 1) {
-      gloco->console.commands.print_invalid_arg_count();
+      loco->console.commands.print_invalid_arg_count();
       return;
     }
-    gloco->set_target_fps(std::stoi(args[0]));
+    loco->set_target_fps(std::stoi(args[0]));
   }).description = "sets target fps";
 
-  loco->console.commands.add("debug_memory", [loco, nr = loco_t::update_callback_handle_t()](const fan::commands_t::arg_t& args) mutable {
+  loco->console.commands.add("debug_memory", [loco, nr = loco_t::update_callback_handle_t()](fan::console_t* self, const fan::commands_t::arg_t& args) mutable {
+    auto* loco = OFFSETLESS(self, loco_t, console);
     if (args.size() != 1) {
       loco->console.commands.print_invalid_arg_count();
       return;
@@ -662,18 +676,20 @@ void loco_t::generate_commands(loco_t* loco) {
     }
   }).description = "opens memory debug window";
 
-  loco->console.commands.add("set_clear_color", [](const fan::commands_t::arg_t& args) {
+  loco->console.commands.add("set_clear_color", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, console);
     if (args.size() != 1) {
-      gloco->console.commands.print_invalid_arg_count();
+      loco->console.commands.print_invalid_arg_count();
       return;
     }
-    gloco->clear_color = fan::color::parse(args[0]);
+    loco->clear_color = fan::color::parse(args[0]);
   }).description = "sets clear color of window - input example {1,0,0,1} red";
 
   // shapes
-  loco->console.commands.add("rectangle", [](const fan::commands_t::arg_t& args) {
+  loco->console.commands.add("rectangle", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, console);
     if (args.size() < 1 || args.size() > 3) {
-      gloco->console.commands.print_invalid_arg_count();
+      loco->console.commands.print_invalid_arg_count();
       return;
     }
 
@@ -685,12 +701,12 @@ void loco_t::generate_commands(loco_t* loco) {
       // optional
       props.color = args.size() == 3 ? fan::color::parse(args[2]) : fan::colors::white;
 
-      auto NRI = gloco->add_shape_to_static_draw(props);
-      gloco->console.println_colored(
+      auto NRI = loco->add_shape_to_static_draw(props);
+      loco->console.println_colored(
         "Added rectangle",
         fan::colors::green
       );
-      gloco->console.println(
+      loco->console.println(
         "  id: " + std::to_string(NRI) +
         "\n  position " + (std::string)props.position +
         "\n  size " + (std::string)props.size +
@@ -699,13 +715,14 @@ void loco_t::generate_commands(loco_t* loco) {
       );
     }
     catch (const std::exception& e) {
-      gloco->console.println_colored("Invalid arguments: " + std::string(e.what()), fan::colors::red);
+      loco->console.println_colored("Invalid arguments: " + std::string(e.what()), fan::colors::red);
     }
   }).description = "Adds static rectangle {x,y[,z]} {w,h} [{r,g,b,a}]";
 
-  loco->console.commands.add("remove_shape", [](const fan::commands_t::arg_t& args) {
+  loco->console.commands.add("remove_shape", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, console);
     if (args.size() != 1) {
-      gloco->console.commands.print_invalid_arg_count();
+      loco->console.commands.print_invalid_arg_count();
       return;
     }
 
@@ -713,25 +730,26 @@ void loco_t::generate_commands(loco_t* loco) {
       uint32_t shape_id = std::stoull(args[0]);
       //shape_id
       fan::graphics::shapes::shape_t* s = reinterpret_cast<fan::graphics::shapes::shape_t*>(&shape_id);
-      gloco->remove_static_shape_draw(*s);
-      gloco->console.println_colored(
+      loco->remove_static_shape_draw(*s);
+      loco->console.println_colored(
         "Removed shape with id {}" + std::to_string(shape_id),
         fan::colors::green
       );
     }
     catch (const std::exception& e) {
-      gloco->console.println_colored(
+      loco->console.println_colored(
         "Invalid argument: " + std::string(e.what()),
         fan::colors::red
       );
     }
   }).description = "Removes a shape by its id";
 
-  loco->console.commands.add("print", [](const fan::commands_t::arg_t& args) {
+  loco->console.commands.add("print", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, console);
     fan::commands_t::output_t out;
     out.text = fan::append_args(args) + "\n";
     out.highlight = fan::graphics::highlight_e::info;
-    gloco->text_logger.print(fan::graphics::highlight_color_table[out.highlight], out.text);
+    loco->text_logger.print(fan::graphics::highlight_color_table[out.highlight], out.text);
   }).description = "prints something to bottom left of screen - usage print [args]";
 
 #endif
@@ -850,10 +868,10 @@ loco_t::loco_t(const loco_t::properties_t& p) {
     return window.key_state(key);
   };
 
-  fan::graphics::shaper_t::gl_add_shape_type = [&](
+  fan::graphics::shaper_t::gl_add_shape_type() = [](
     fan::graphics::shaper_t::ShapeTypes_NodeData_t& nd,
     const fan::graphics::shaper_t::BlockProperties_t& bp) {
-    gl.add_shape_type(nd, bp);
+    gloco()->gl.add_shape_type(nd, bp); // dont look here
   };
   fan::graphics::g_shapes = &shapes;
 
@@ -886,7 +904,7 @@ loco_t::loco_t(const loco_t::properties_t& p) {
 
   window.set_antialiasing(p.samples);
   window.open(p.window_size, fan::window_t::default_window_name, p.window_flags, p.window_open_mode);
-  gloco = this;
+  gloco() = this;
 
 
 #if fan_debug >= fan_debug_high && !defined(fan_vulkan)
@@ -926,7 +944,7 @@ loco_t::loco_t(const loco_t::properties_t& p) {
 
   load_engine_images();
 
-  fan::graphics::g_shapes->shaper.Open();
+  shapes.shaper.Open();
 
   {
 
@@ -1007,7 +1025,7 @@ loco_t::loco_t(const loco_t::properties_t& p) {
 
 #endif
 
-  fan::graphics::g_render_context_handle.default_texture = default_texture;
+  fan::graphics::ctx().default_texture = default_texture;
 
 #if defined(fan_gui)
   console.commands.call("debug_memory " + std::to_string((int)fan::heap_profiler_t::instance().enabled));
@@ -1083,9 +1101,10 @@ void loco_t::setup_input_callbacks() {
 
   keys_handle = window.add_keys_callback([&, windowed = true](const fan::window_t::keys_data_t& d) mutable {
     fan::graphics::g_shapes->vfi.feed_keyboard(d.key, d.state);
-    if (d.key == fan::key_enter && d.state == fan::keyboard_state::press && gloco->window.key_pressed(fan::key_left_alt)) {
+    auto* loco = OFFSETLESS(d.window, loco_t, window);
+    if (d.key == fan::key_enter && d.state == fan::keyboard_state::press && loco->window.key_pressed(fan::key_left_alt)) {
       windowed = !windowed;
-      gloco->window.set_display_mode(windowed ? fan::window_t::mode::windowed : fan::window_t::mode::borderless);
+      loco->window.set_display_mode(windowed ? fan::window_t::mode::windowed : fan::window_t::mode::borderless);
     }
   });
 
@@ -1510,7 +1529,9 @@ void loco_t::process_gui() {
   #endif
   );
 #endif
+#if defined(fan_gui)
   fan::graphics::gui::set_want_io();
+#endif
   gui_draw_time_s = gui_draw_timer.seconds();
 }
 
@@ -2048,15 +2069,15 @@ fan::vec2 loco_t::get_mouse_position(const fan::graphics::render_view_t& render_
 
 fan::vec2 loco_t::get_mouse_position() const {
   return window.get_mouse_position();
-  //return get_mouse_position(gloco->default_camera->camera, gloco->default_camera->viewport); behaving oddly
+  //return get_mouse_position(gloco()->default_camera->camera, gloco()->default_camera->viewport); behaving oddly
 }
 
-fan::vec2 loco_t::translate_position(const fan::vec2& p, viewport_t viewport, camera_t camera) const {
-  auto v = gloco->viewport_get(viewport);
+fan::vec2 loco_t::translate_position(const fan::vec2& p, viewport_t viewport, camera_t camera) {
+  auto v = viewport_get(viewport);
   fan::vec2 viewport_position = v.viewport_position;
   fan::vec2 viewport_size = v.viewport_size;
 
-  auto c = gloco->camera_get(camera);
+  auto c = camera_get(camera);
 
   f32_t l = c.coordinates.left;
   f32_t r = c.coordinates.right;
@@ -2070,7 +2091,7 @@ fan::vec2 loco_t::translate_position(const fan::vec2& p, viewport_t viewport, ca
   return tp;
 }
 
-fan::vec2 loco_t::translate_position(const fan::vec2& p) const {
+fan::vec2 loco_t::translate_position(const fan::vec2& p) {
   return translate_position(p, orthographic_render_view.viewport, orthographic_render_view.camera);
 }
 
@@ -2117,7 +2138,7 @@ void loco_t::shape_open(
   uint16_t shape_type,
   std::size_t sizeof_vi,
   std::size_t sizeof_ri,
-  shape_shader_locations_t shape_shader_locations,
+  fan::graphics::shape_gl_init_list_t shape_shader_locations,
   const std::string& vertex,
   const std::string& fragment,
   fan::graphics::shaper_t::ShapeRenderDataSize_t instance_count,
@@ -2158,10 +2179,10 @@ void loco_t::shape_open(
     decltype(vk.shape_data.m_descriptor)::properties_t rectp;
     // image
     //uint32_t ds_offset = 3;
-    auto& shaderd = *(fan::vulkan::context_t::shader_t*)gloco->context_functions.shader_get(&gloco->context.vk, shader);
+    auto& shaderd = *(fan::vulkan::context_t::shader_t*)gloco()->context_functions.shader_get(&gloco()->context.vk, shader);
     uint32_t ds_offset = 2;
-    vk.shape_data.open(gloco->context.vk, 1);
-    vk.shape_data.allocate(gloco->context.vk, 0xffffff);
+    vk.shape_data.open(gloco()->context.vk, 1);
+    vk.shape_data.allocate(gloco()->context.vk, 0xffffff);
 
     std::array<fan::vulkan::write_descriptor_set_t, vulkan_buffer_count> ds_properties {{{0}}};
     {
@@ -2169,18 +2190,18 @@ void loco_t::shape_open(
       ds_properties[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
       ds_properties[0].flags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
       ds_properties[0].range = VK_WHOLE_SIZE;
-      ds_properties[0].buffer = vk.shape_data.common.memory[gloco->get_context().vk.current_frame].buffer;
+      ds_properties[0].buffer = vk.shape_data.common.memory[gloco()->get_context().vk.current_frame].buffer;
       ds_properties[0].dst_binding = 0;
 
       ds_properties[1].binding = 1;
       ds_properties[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
       ds_properties[1].flags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-      ds_properties[1].buffer = shaderd.projection_view_block->common.memory[gloco->get_context().vk.current_frame].buffer;
+      ds_properties[1].buffer = shaderd.projection_view_block->common.memory[gloco()->get_context().vk.current_frame].buffer;
       ds_properties[1].range = shaderd.projection_view_block->m_size;
       ds_properties[1].dst_binding = 1;
 
       VkDescriptorImageInfo imageInfo {};
-      auto img = gloco->image_get(gloco->default_texture).vk;
+      auto img = gloco()->image_get(gloco()->default_texture).vk;
       imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       imageInfo.imageView = img.image_view;
       imageInfo.sampler = img.sampler;
@@ -2195,7 +2216,7 @@ void loco_t::shape_open(
       }
 
       //imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-      //imageInfo.imageView = gloco->get_context().vk.postProcessedColorImageViews[0].image_view;
+      //imageInfo.imageView = gloco()->get_context().vk.postProcessedColorImageViews[0].image_view;
       //imageInfo.sampler = sampler;
 
       //imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -2209,7 +2230,7 @@ void loco_t::shape_open(
       //}
     }
 
-    vk.shape_data.open_descriptors(gloco->context.vk, {ds_properties.begin(), ds_properties.end()});
+    vk.shape_data.open_descriptors(gloco()->context.vk, {ds_properties.begin(), ds_properties.end()});
     vk.shape_data.m_descriptor.update(context.vk, 3, 0);
     fan::vulkan::context_t::pipeline_t p;
     fan::vulkan::context_t::pipeline_t::properties_t pipe_p;
@@ -2284,11 +2305,11 @@ fan::graphics::image_t loco_t::create_noise_image(const fan::vec2& size, const s
 }
 
 fan::vec2 loco_t::convert_mouse_to_ndc(const fan::vec2& mouse_position) const {
-  return fan::math::convert_position_ndc(mouse_position, gloco->window.get_size());
+  return fan::math::convert_position_ndc(mouse_position, window.get_size());
 }
 
 fan::vec2 loco_t::convert_mouse_to_ndc() const {
-  return fan::math::convert_position_ndc(gloco->get_mouse_position(), gloco->window.get_size());
+  return fan::math::convert_position_ndc(get_mouse_position(), window.get_size());
 }
 
 fan::ray3_t loco_t::convert_mouse_to_ray(const fan::vec3& camera_position, const fan::mat4& projection, const fan::mat4& view) {
@@ -2306,7 +2327,7 @@ void loco_t::cuda_textures_t::close(loco_t* loco, fan::graphics::shapes::shape_t
   for (uint32_t i = 0; i < image_amount; ++i) {
     wresources[i].close();
     if (ri.images_rest[i] != loco->default_texture) {
-      gloco->image_unload(ri.images_rest[i]);
+      gloco()->image_unload(ri.images_rest[i]);
     }
     ri.images_rest[i] = loco->default_texture;
   }
@@ -2325,16 +2346,16 @@ void loco_t::cuda_textures_t::resize(loco_t* loco, fan::graphics::shapes::shape_
     uint8_t image_amount = fan::graphics::get_channel_amount(format);
     for (uint32_t i = 0; i < image_amount; ++i) {
       if (i == 0) {
-        wresources[i].open(gloco->image_get_handle(vi_image));
+        wresources[i].open(gloco()->image_get_handle(vi_image));
       }
       else {
-        wresources[i].open(gloco->image_get_handle(ri.images_rest[i - 1]));
+        wresources[i].open(gloco()->image_get_handle(ri.images_rest[i - 1]));
       }
     }
     inited = true;
   }
   else {
-    if (gloco->image_get_data(vi_image).size == size) {
+    if (gloco()->image_get_data(vi_image).size == size) {
       return;
     }
     for (uint32_t i = 0; i < fan::graphics::get_channel_amount(ri.format); ++i) {
@@ -2347,10 +2368,10 @@ void loco_t::cuda_textures_t::resize(loco_t* loco, fan::graphics::shapes::shape_
     // Re-register with CUDA after successful reload
     for (uint32_t i = 0; i < image_amount; ++i) {
       if (i == 0) {
-        wresources[i].open(gloco->image_get_handle(vi_image));
+        wresources[i].open(gloco()->image_get_handle(vi_image));
       }
       else {
-        wresources[i].open(gloco->image_get_handle(ri.images_rest[i - 1]));
+        wresources[i].open(gloco()->image_get_handle(ri.images_rest[i - 1]));
       }
     }
   }
@@ -2413,19 +2434,19 @@ void loco_t::camera_move_to_smooth(const fan::graphics::shapes::shape_t& shape) 
 bool loco_t::shader_update_fragment(uint16_t shape_type, const std::string& fragment) {
   auto shader_nr = shader_get_nr(shape_type);
   auto shader_data = shader_get_data(shape_type);
-  gloco->shader_set_vertex(shader_nr, shader_data.svertex);
-  gloco->shader_set_fragment(shader_nr, fragment);
-  return gloco->shader_compile(shader_nr);
+  shader_set_vertex(shader_nr, shader_data.svertex);
+  shader_set_fragment(shader_nr, fragment);
+  return shader_compile(shader_nr);
 }
 
 #if defined(fan_gui)
 namespace fan::graphics::gui {
   void process_frame() {
-    auto it = gloco->gui_draw_cb.GetNodeFirst();
-    while (it != gloco->gui_draw_cb.dst) {
-      gloco->gui_draw_cb.StartSafeNext(it);
-      gloco->gui_draw_cb[it]();
-      it = gloco->gui_draw_cb.EndSafeNext();
+    auto it = gloco()->gui_draw_cb.GetNodeFirst();
+    while (it != gloco()->gui_draw_cb.dst) {
+      gloco()->gui_draw_cb.StartSafeNext(it);
+      gloco()->gui_draw_cb[it]();
+      it = gloco()->gui_draw_cb.EndSafeNext();
     }
   }
   // fan_track_allocations() must be called in global scope before calling this function
@@ -2478,7 +2499,7 @@ namespace fan::graphics::gui {
     gui::text("Allocation size:", profiler.current_allocation_size / 1e6, " (MB)");
 
     int total_mem_MB, used_MB;
-    gloco->get_vram_usage(&total_mem_MB, &used_MB);
+    gloco()->get_vram_usage(&total_mem_MB, &used_MB);
 
     if (used_MB != -1) {
       gui::text("VRAM used memory", used_MB, " (MB)");

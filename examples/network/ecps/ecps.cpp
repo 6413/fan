@@ -417,7 +417,7 @@ struct render_thread_t {
 
   fan::graphics::universal_image_renderer_t network_frame{ {
       .position = fan::vec3(fan::vec2(0), 1),
-      .size = gloco->window.get_size() / 2,
+      .size = gloco()->window.get_size() / 2,
   } };
   f32_t displayed_fps = 0.0f;
 

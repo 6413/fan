@@ -1361,6 +1361,6 @@ namespace fan::graphics {
 }
 
 fan::opengl::context_t& fan::graphics::get_gl_context() {
-  return (*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle)));
+  return (*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx())));
 }
 #endif

@@ -1245,19 +1245,19 @@ export namespace fan {
 
         camera.m_view = fan::math::look_at_left<fan::mat4, fan::vec3>(position, position + front, fan::camera::world_up);
 
-        //auto it = gloco->m_viewport_resize_callback.GetNodeFirst();
+        //auto it = gloco()->m_viewport_resize_callback.GetNodeFirst();
 
-        //while (it != gloco->m_viewport_resize_callback.dst) {
+        //while (it != gloco()->m_viewport_resize_callback.dst) {
 
-        //  gloco->m_viewport_resize_callback.StartSafeNext(it);
+        //  gloco()->m_viewport_resize_callback.StartSafeNext(it);
 
         //  resize_cb_data_t cbd;
         //  cbd.camera = this;
         //  cbd.position = get_position();
         //  cbd.size = get_camera_size();
-        //  gloco->m_viewport_resize_callback[it].data(cbd);
+        //  gloco()->m_viewport_resize_callback[it].data(cbd);
 
-        //  it = gloco->m_viewport_resize_callback.EndSafeNext();
+        //  it = gloco()->m_viewport_resize_callback.EndSafeNext();
         //}
       }
 
@@ -1300,19 +1300,19 @@ export namespace fan {
 
         camera.m_view = camera.get_view_matrix();
 
-        //auto it = gloco->m_viewport_resize_callback.GetNodeFirst();
+        //auto it = gloco()->m_viewport_resize_callback.GetNodeFirst();
 
-        //while (it != gloco->m_viewport_resize_callback.dst) {
+        //while (it != gloco()->m_viewport_resize_callback.dst) {
 
-        //  gloco->m_viewport_resize_callback.StartSafeNext(it);
+        //  gloco()->m_viewport_resize_callback.StartSafeNext(it);
 
         //  resize_cb_data_t cbd;
         //  cbd.camera = this;
         //  cbd.position = get_position();
         //  cbd.size = get_camera_size();
-        //  gloco->m_viewport_resize_callback[it].data(cbd);
+        //  gloco()->m_viewport_resize_callback[it].data(cbd);
 
-        //  it = gloco->m_viewport_resize_callback.EndSafeNext();
+        //  it = gloco()->m_viewport_resize_callback.EndSafeNext();
         //}
       }
 
@@ -3155,7 +3155,7 @@ fan::graphics::context_functions_t fan::graphics::get_vk_context_functions() {
 
 export namespace fan::graphics {
   fan::vulkan::context_t& get_vk_context() {
-    return (*static_cast<fan::vulkan::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle)));
+    return (*static_cast<fan::vulkan::context_t*>(static_cast<void*>(fan::graphics::ctx())));
   }
 }
 

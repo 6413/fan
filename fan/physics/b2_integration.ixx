@@ -51,11 +51,10 @@ export namespace fan::physics {
     std::function<void(const fan::vec2&)> set_gravity;
   };
 
-  // tiny compile boost xd
-#if !defined(fan_compiler_msvc)
-  inline
-  #endif
-    thread_local global_physics_t gphysics;
+  global_physics_t& gphysics() {
+    static global_physics_t physics;
+    return physics;
+  }
 }
 
 export namespace fan {

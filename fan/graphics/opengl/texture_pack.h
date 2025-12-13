@@ -94,8 +94,8 @@ struct texture_pack_t {
       }
       image_info.type = fan::image::image_type_e::webp;
       image_info.channels = 4;
-      image_list[i].image = fan::graphics::g_render_context_handle->image_load_info_props(
-        fan::graphics::g_render_context_handle, 
+      image_list[i].image = fan::graphics::ctx()->image_load_info_props(
+        fan::graphics::ctx(), 
         *(fan::image::info_t*)&image_info, 
         lp
       );

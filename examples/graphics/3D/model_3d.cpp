@@ -28,15 +28,15 @@ int main() {
  // GLFWwindow* offscreen_context = create_window(1, 1, "", loco.window);
   //
 
-  gloco->camera_set_position(gloco->perspective_camera.camera, { 3.46, 1.94, -6.22 });
+  gloco()->camera_set_position(gloco()->perspective_camera.camera, { 3.46, 1.94, -6.22 });
 
-  gloco->m_post_draw.push_back([&] {
+  gloco()->m_post_draw.push_back([&] {
 
     model.draw();
     ImGui::End();
   });
 
-  auto& camera = gloco->camera_get(gloco->perspective_camera.camera);
+  auto& camera = gloco()->camera_get(gloco()->perspective_camera.camera);
 
   fan::vec2 motion = 0;
   loco.window.add_mouse_motion([&](const auto& d) {
@@ -64,30 +64,30 @@ int main() {
 
     static fan::vec3 light_pos = 0;
     {
-      auto str = gloco->camera_get_position(gloco->perspective_camera.camera).to_string();
+      auto str = gloco()->camera_get_position(gloco()->perspective_camera.camera).to_string();
       ImGui::Text("%s", str.c_str());
     }
     ImGui::DragFloat3("light position", light_pos.data());
     fan::vec4 lpt = fan::vec4(light_pos, 1);
-    gloco->shader_set_value(model.m_shader, "light_pos", *(fan::vec3*)&lpt);
+    gloco()->shader_set_value(model.m_shader, "light_pos", *(fan::vec3*)&lpt);
 
 
     static f32_t f0 = 0;
     ImGui::DragFloat("f0", &f0, 0.001, 0, 1);
-    gloco->shader_set_value(model.m_shader, "F0", f0);
+    gloco()->shader_set_value(model.m_shader, "F0", f0);
 
 
     static f32_t metallic = 0;
     ImGui::DragFloat("metallic", &metallic, 0.001, 0, 1);
-    gloco->shader_set_value(model.m_shader, "metallic", metallic);
+    gloco()->shader_set_value(model.m_shader, "metallic", metallic);
 
     static f32_t roughness = 0;
     ImGui::DragFloat("rough", &roughness, 0.001, 0, 1);
-    gloco->shader_set_value(model.m_shader, "rough", roughness);
+    gloco()->shader_set_value(model.m_shader, "rough", roughness);
 
     static f32_t light_intensity = 1;
     ImGui::DragFloat("light_intensity", &light_intensity, 0.1);
-    gloco->shader_set_value(model.m_shader, "light_intensity", light_intensity);
+    gloco()->shader_set_value(model.m_shader, "light_intensity", light_intensity);
 
     camera.move(100);
 

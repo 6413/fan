@@ -36,7 +36,6 @@ namespace fan::opengl {
 }
 
 export namespace fan::opengl {
-  using ::fan_track_opengl_calls;
   struct context_t {
     struct properties_t { };
 

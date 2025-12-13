@@ -1452,10 +1452,10 @@ struct library_usage_t {
     // Demonstrates custom GUI console commands
     struct console {
       console() {
-        gloco->console.commands.add("test", [&](const fan::commands_t::arg_t& args) {
+        gloco()->console.commands.add("test", [&](fan::console_t* self, const fan::commands_t::arg_t& args) {
           fan::printcl("test command executed");
         });
-        gloco->console.commands.add("sum", [&](const fan::commands_t::arg_t& args) {
+        gloco()->console.commands.add("sum", [&](fan::console_t* self, const fan::commands_t::arg_t& args) {
           if (args.size() == 2) {
             int a = std::stoi(args[0]);
             int b = std::stoi(args[1]);
@@ -1467,8 +1467,8 @@ struct library_usage_t {
 
       }
       void close() {
-        gloco->console.commands.remove("test");
-        gloco->console.commands.remove("sum");
+        gloco()->console.commands.remove("test");
+        gloco()->console.commands.remove("sum");
       }
     };
     //-------------------------------------------------------------------
@@ -1478,20 +1478,20 @@ struct library_usage_t {
     // Demonstrates input action system with key bindings and combos
     struct action {
       action() {
-        gloco->input_action.add({ fan::key_space }, "jump");
-        gloco->input_action.add_keycombo({ fan::key_space, fan::key_a }, "combo_test");
+        gloco()->input_action.add({ fan::key_space }, "jump");
+        gloco()->input_action.add_keycombo({ fan::key_space, fan::key_a }, "combo_test");
       }
       void update() {
-        if (gloco->input_action.is_active("jump")) {
+        if (gloco()->input_action.is_active("jump")) {
           fan::print("jump");
         }
-        if (gloco->input_action.is_active("combo_test")) {
+        if (gloco()->input_action.is_active("combo_test")) {
           fan::print("combo_test");
         }
       }
       void close() {
-        gloco->input_action.remove("jump");
-        gloco->input_action.remove("combo_test");
+        gloco()->input_action.remove("jump");
+        gloco()->input_action.remove("combo_test");
       }
     };
     //-------------------------------------------------------------------
@@ -1507,8 +1507,8 @@ struct library_usage_t {
         vfip.shape.rectangle->position = fan::vec3(500, 500, 1);
         vfip.shape.rectangle->size = fan::vec2(100, 100);
         vfip.shape.rectangle->size.x /= 2; // hitbox takes half size
-        vfip.shape.rectangle->camera = gloco->orthographic_render_view.camera;
-        vfip.shape.rectangle->viewport = gloco->orthographic_render_view.viewport;
+        vfip.shape.rectangle->camera = gloco()->orthographic_render_view.camera;
+        vfip.shape.rectangle->viewport = gloco()->orthographic_render_view.viewport;
 
         vfip.mouse_button_cb = [](const fan::graphics::vfi_t::mouse_button_data_t& data) -> int {
           fan::print("Rectangle clicked.");
@@ -1686,7 +1686,7 @@ struct library_usage_t {
         iterator.callback = [&](const std::filesystem::directory_entry& entry) -> fan::event::task_t {
           std::string path_str = entry.path().generic_string();
           if (fan::image::valid(path_str)) {
-            images.emplace_back(gloco->image_load(path_str));
+            images.emplace_back(gloco()->image_load(path_str));
             co_await fan::co_sleep(100);
           }
           co_return;
@@ -1754,7 +1754,7 @@ struct library_usage_t {
 
 int main() {////
   engine_demo_t demo;
-
+  
   fan_window_loop{
     demo.update();
   };

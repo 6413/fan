@@ -49,7 +49,11 @@ export namespace fan::graphics {
     uint32_t size;
     uint32_t type; // for example GL_FLOAT
     uint32_t stride;
-    void* pointer;
+    uint32_t pointer;
+  };
+  struct shape_gl_init_list_t {
+    fan::graphics::shape_gl_init_t* ptr = nullptr;
+    int count = 0;
   };
 }
 
@@ -66,7 +70,8 @@ namespace fan {
 export namespace fan::graphics {
 
   struct shapes;
-	thread_local inline shapes* g_shapes = nullptr;
+
+	inline shapes* g_shapes = nullptr;
 
   struct context_shader_t {
     context_shader_t();
@@ -233,7 +238,7 @@ export namespace fan::graphics {
 
   struct sprite_sheet_animation_t {
     struct image_t {
-      fan::graphics::image_t image = fan::graphics::g_render_context_handle.default_texture;
+      fan::graphics::image_t image = fan::graphics::ctx().default_texture;
       int hframes = 1, vframes = 1;
     #if defined(fan_json)
       operator fan::json() const;
@@ -559,8 +564,40 @@ export namespace fan::graphics {
       void start_particles();
       void stop_particles();
 
+      //vram
+      //_d = decltype usage decltype(itself)
       template <typename T>
-      T::ri_t& get_data() {
+      T& get_vdata() {
+        return *(T*)GetRenderData(g_shapes->shaper);
+      }
+      template <typename T>
+      T& get_data() {
+        return *(T*)GetData(g_shapes->shaper);
+      }
+      // read from gpu itself
+      template <typename T>
+      T get_gldata() {
+        T vi;
+        glFinish();
+        auto& vbo = get_shape_type_data().renderer.gl.m_vbo;
+        get_shape_type_data().renderer.gl.m_vao.bind(*(fan::opengl::context_t*)ctx().render_context);
+        vbo.bind(*(fan::opengl::context_t*)ctx().render_context);
+        fan::opengl::core::get_glbuffer(*(fan::opengl::context_t*)ctx().render_context, &vi, vbo.m_buffer, sizeof(vi), 0, vbo.m_target);
+        return vi;
+      }
+
+      
+
+      shaper_t::ShapeTypes_t::nd_t& get_shape_type_data() {
+        return g_shapes->shaper.ShapeTypes[get_shape_type()];
+      }
+      //vram
+      template <typename T>
+      T::vi_t& get_shape_vdata() {
+        return *(typename T::vi_t*)GetRenderData(g_shapes->shaper);
+      }
+      template <typename T>
+      T::ri_t& get_shape_data() {
         return *(typename T::ri_t*)GetData(g_shapes->shaper);
       }
     };
@@ -572,1003 +609,1005 @@ export namespace fan::graphics {
 
 		fan::graphics::texture_pack_t* texture_pack = nullptr;
 
-		struct light_t {
+    struct light_t {
 
-			static inline fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::light;
-			static constexpr int kpi = kp::light;
+      static inline fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::light;
+      static constexpr int kpi = kp::light;
 
-		#pragma pack(push, 1)
+    #pragma pack(push, 1)
 
-			struct vi_t {
-				fan::vec3 position;
-				f32_t parallax_factor;
-				fan::vec2 size;
-				fan::vec2 rotation_point;
-				fan::color color;
-				uint32_t flags = 0;
-				fan::vec3 angle;
-			};;
-			struct ri_t {
+      struct vi_t {
+        fan::vec3 position;
+        f32_t parallax_factor;
+        fan::vec2 size;
+        fan::vec2 rotation_point;
+        fan::color color;
+        uint32_t flags = 0;
+        fan::vec3 angle;
+      };;
+      struct ri_t {
 
-			};
+      };
 
-		#pragma pack(pop)
+    #pragma pack(pop)
 
-			inline static std::vector<shape_gl_init_t> locations = {
-				shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
-				shape_gl_init_t{{1, "in_parallax_factor"}, 1, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, parallax_factor))},
-				shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
-				shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
-				shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
-				shape_gl_init_t{{5, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
-				shape_gl_init_t{{6, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))}
-			};
+      static std::array<shape_gl_init_t, 7>& get_locations() {
+        static std::array<shape_gl_init_t, 7> locs{{
+            shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
+            shape_gl_init_t{{1, "in_parallax_factor"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, parallax_factor)},
+            shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, size)},
+            shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
+            shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)},
+            shape_gl_init_t{{5, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), offsetof(vi_t, flags)},
+            shape_gl_init_t{{6, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, angle)}
+          }};
+        return locs;
+      }
 
-			struct properties_t {
-				using type_t = light_t;
+      struct properties_t {
+        using type_t = light_t;
 
 
-				fan::vec3 position = 0;
-				f32_t parallax_factor = 0;
-				fan::vec2 size = 0;
-				fan::vec2 rotation_point = 0;
-				fan::color color = fan::colors::white;
-				uint32_t flags = 0;
-				fan::vec3 angle = 0;
+        fan::vec3 position = 0;
+        f32_t parallax_factor = 0;
+        fan::vec2 size = 0;
+        fan::vec2 rotation_point = 0;
+        fan::color color = fan::colors::white;
+        uint32_t flags = 0;
+        fan::vec3 angle = 0;
 
-				fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
-				fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
+        fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
+        fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
 
-				uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
-				uint32_t vertex_count = 6;
-			};
-
-      shape_t push_back(const properties_t& properties);
-		}light;
-
-		struct line_t {
-
-			static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::line;
-			static constexpr int kpi = kp::common;
-
-		#pragma pack(push, 1)
-
-			struct vi_t {
-				fan::color color;
-				fan::vec3 src;
-				fan::vec2 dst;
-				f32_t thickness;
-				f32_t pad;
-			};
-			struct ri_t {
-
-			};
-
-		#pragma pack(pop)
-
-			inline static std::vector<shape_gl_init_t> locations = {
-				shape_gl_init_t{{0, "in_color"}, decltype(vi_t::color)::size(), GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, color)},
-				shape_gl_init_t{{1, "in_src"}, decltype(vi_t::src)::size(), GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, src)},
-				shape_gl_init_t{{2, "in_dst"}, decltype(vi_t::dst)::size(), GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, dst)},
-				shape_gl_init_t{{3, "line_thickness"}, 1, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, thickness)}
-			};
-
-			struct properties_t {
-				using type_t = line_t;
-
-				fan::color color = fan::colors::white;
-				fan::vec3 src;
-				fan::vec3 dst;
-				f32_t thickness = 4.0f;
-
-				bool blending = true;
-
-				fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
-				fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
-
-				uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
-				uint32_t vertex_count = 6;
-			};
+        uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+        uint32_t vertex_count = 6;
+      };
 
       shape_t push_back(const properties_t& properties);
-		}line;
+    }light;
 
-		struct rectangle_t {
+    struct line_t {
 
-			static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::rectangle;
-			static constexpr int kpi = kp::common;
+      static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::line;
+      static constexpr int kpi = kp::common;
 
-		#pragma pack(push, 1)
+    #pragma pack(push, 1)
 
-			struct vi_t {
-				fan::vec3 position;
-				f32_t pad;
-				fan::vec2 size;
-				fan::vec2 rotation_point;
-				fan::color color;
-				fan::color outline_color;
-				fan::vec3 angle;
-				f32_t pad2;
-			};
-			struct ri_t {
+      struct vi_t {
+        fan::color color;
+        fan::vec3 src;
+        fan::vec2 dst;
+        f32_t thickness;
+        f32_t pad;
+      };
+      struct ri_t {
 
-			};
+      };
 
-		#pragma pack(pop)
+    #pragma pack(pop)
 
-			// accounts padding
-			inline static std::vector<shape_gl_init_t> locations = {
-				shape_gl_init_t{{0, "in_position"}, 4, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
-				shape_gl_init_t{{1, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
-				shape_gl_init_t{{2, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
-				shape_gl_init_t{{3, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
-				shape_gl_init_t{{4, "in_outline_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, outline_color))},
-				shape_gl_init_t{{5, "in_angle"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))}
-			};
+      static std::array<shape_gl_init_t, 4>& get_locations() {
+        static std::array<shape_gl_init_t, 4> locs{{
+            shape_gl_init_t{{0, "in_color"}, decltype(vi_t::color)::size(), GL_FLOAT, sizeof(line_t::vi_t), offsetof(line_t::vi_t, color)},
+            shape_gl_init_t{{1, "in_src"}, decltype(vi_t::src)::size(), GL_FLOAT, sizeof(line_t::vi_t), offsetof(line_t::vi_t, src)},
+            shape_gl_init_t{{2, "in_dst"}, decltype(vi_t::dst)::size(), GL_FLOAT, sizeof(line_t::vi_t), offsetof(line_t::vi_t, dst)},
+            shape_gl_init_t{{3, "line_thickness"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, thickness)}
+          }};
+        return locs;
+      }
 
-			struct properties_t {
-				using type_t = rectangle_t;
+      struct properties_t {
+        using type_t = line_t;
 
-				fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::g_render_context_handle.window->get_size() / 2), 0);
-				fan::vec2 size = fan::vec2(32, 32);
-				fan::color color = fan::colors::white;
-				fan::color outline_color = color;
-				bool blending = false;
-				fan::vec3 angle = 0;
-				fan::vec2 rotation_point = 0;
+        fan::color color = fan::colors::white;
+        fan::vec3 src;
+        fan::vec3 dst;
+        f32_t thickness = 4.0f;
 
-				fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
-				fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
-				uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
-				uint32_t vertex_count = 6;
-			};
+        bool blending = true;
+
+        fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
+        fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
+
+        uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+        uint32_t vertex_count = 6;
+      };
 
       shape_t push_back(const properties_t& properties);
-		}rectangle;
+    }line;
 
-		//----------------------------------------------------------
+    struct rectangle_t {
 
-		struct sprite_t {
+      static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::rectangle;
+      static constexpr int kpi = kp::common;
 
-			static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::sprite;
-			static constexpr int kpi = kp::texture;
+    #pragma pack(push, 1)
 
-		#pragma pack(push, 1)
+      struct vi_t {
+        fan::vec3 position;
+        f32_t pad;
+        fan::vec2 size;
+        fan::vec2 rotation_point;
+        fan::color color;
+        fan::color outline_color;
+        fan::vec3 angle;
+        f32_t pad2;
+      };
+      struct ri_t {
 
-			struct vi_t {
-				fan::vec3 position;
-				f32_t parallax_factor;
-				fan::vec2 size;
-				fan::vec2 rotation_point;
-				fan::color color;
-				fan::vec3 angle;
-				uint32_t flags;
-				fan::vec2 tc_position;
-				fan::vec2 tc_size;
-				f32_t seed;
-				fan::vec3 pad;
-			};
-			struct ri_t {
-				// main image + light buffer + 30
-				std::array<fan::graphics::image_t, 30> images; // what about tc_pos and tc_size
-				fan::graphics::texture_pack::unique_t texture_pack_unique_id;
+      };
 
-				sprite_sheet_data_t sprite_sheet_data;
+    #pragma pack(pop)
 
-				animation_shape_nr_t shape_animations;
-				animation_nr_t current_animation;
-			};
+      static std::array<shape_gl_init_t, 6>& get_locations() {
+        static std::array<shape_gl_init_t, 6> locs{{
+            shape_gl_init_t{{0, "in_position"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
+            shape_gl_init_t{{1, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, size)},
+            shape_gl_init_t{{2, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
+            shape_gl_init_t{{3, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)},
+            shape_gl_init_t{{4, "in_outline_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, outline_color)},
+            shape_gl_init_t{{5, "in_angle"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, angle)}
+          }};
+        return locs;
+      }
 
-		#pragma pack(pop)
+      struct properties_t {
+        using type_t = rectangle_t;
 
-			inline static std::vector<shape_gl_init_t> locations = {
-				shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
-				shape_gl_init_t{{1, "in_parallax_factor"}, 1, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, parallax_factor))},
-				shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
-				shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
-				shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
-				shape_gl_init_t{{5, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))},
-				shape_gl_init_t{{6, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
-				shape_gl_init_t{{7, "in_tc_position"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_position))},
-				shape_gl_init_t{{8, "in_tc_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_size))},
-				shape_gl_init_t{{9, "in_seed"}, 1, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, seed)},
-			};
+        fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
+        fan::vec2 size = fan::vec2(32, 32);
+        fan::color color = fan::colors::white;
+        fan::color outline_color = color;
+        bool blending = false;
+        fan::vec3 angle = 0;
+        fan::vec2 rotation_point = 0;
 
-			struct properties_t {
-				using type_t = sprite_t;
-
-				fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::g_render_context_handle.window->get_size() / 2), 0);
-				f32_t parallax_factor = 0;
-				fan::vec2 size = fan::vec2(32, 32);
-				fan::vec2 rotation_point = 0;
-				fan::color color = fan::colors::white;
-				fan::vec3 angle = fan::vec3(0);
-				uint32_t flags = light_flags_e::circle | light_flags_e::multiplicative;
-				fan::vec2 tc_position = 0;
-				fan::vec2 tc_size = 1;
-				f32_t seed = 0;
-				fan::graphics::texture_pack::unique_t texture_pack_unique_id;
-				animation_shape_nr_t shape_animations;
-				animation_nr_t current_animation;
-
-				bool load_tp(fan::graphics::texture_pack::ti_t* ti) {
-					auto& im = ti->image;
-					image = im;
-					auto& img = image_get_data(im);
-					tc_position = ti->position / img.size;
-					tc_size = ti->size / img.size;
-					texture_pack_unique_id = ti->unique_id;
-					return 0;
-				}
-
-				bool blending = false;
-
-				fan::graphics::image_t image = fan::graphics::g_render_context_handle.default_texture;
-				std::array<fan::graphics::image_t, 30> images;
-
-				fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
-				fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
-				uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
-				uint32_t vertex_count = 6;
-			};
+        fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
+        fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
+        uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+        uint32_t vertex_count = 6;
+      };
 
       shape_t push_back(const properties_t& properties);
-		}sprite;
+    }rectangle;
 
-		struct unlit_sprite_t {
+    struct sprite_t {
 
-			static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::unlit_sprite;
-			static constexpr int kpi = kp::texture;
+      static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::sprite;
+      static constexpr int kpi = kp::texture;
 
-		#pragma pack(push, 1)
+    #pragma pack(push, 1)
 
-			struct vi_t {
-				fan::vec3 position;
-				f32_t parallax_factor;
-				fan::vec2 size;
-				fan::vec2 rotation_point;
-				fan::color color;
-				fan::vec3 angle;
-				uint32_t flags;
-				fan::vec2 tc_position;
-				fan::vec2 tc_size;
-				f32_t seed = 0;
-			};
-			struct ri_t {
-				// main image + light buffer + 30
-				std::array<fan::graphics::image_t, 30> images;
-				fan::graphics::texture_pack::unique_t texture_pack_unique_id;
-			};
+      struct vi_t {
+        fan::vec3 position;
+        f32_t parallax_factor;
+        fan::vec2 size;
+        fan::vec2 rotation_point;
+        fan::color color;
+        fan::vec3 angle;
+        uint32_t flags;
+        fan::vec2 tc_position;
+        fan::vec2 tc_size;
+        f32_t seed;
+        fan::vec3 pad;
+      };
+      struct ri_t {
+        std::array<fan::graphics::image_t, 30> images;
+        fan::graphics::texture_pack::unique_t texture_pack_unique_id;
 
-		#pragma pack(pop)
+        sprite_sheet_data_t sprite_sheet_data;
 
-			inline static std::vector<shape_gl_init_t> locations = {
-				shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
-				shape_gl_init_t{{1, "in_parallax_factor"}, 1, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, parallax_factor))},
-				shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
-				shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
-				shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
-				shape_gl_init_t{{5, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))},
-				shape_gl_init_t{{6, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
-				shape_gl_init_t{{7, "in_tc_position"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_position))},
-				shape_gl_init_t{{8, "in_tc_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_size))},
-				shape_gl_init_t{{9, "in_seed"}, 1, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, seed)},
-			};
+        animation_shape_nr_t shape_animations;
+        animation_nr_t current_animation;
+      };
 
-			struct properties_t {
-				using type_t = unlit_sprite_t;
+    #pragma pack(pop)
 
-				fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::g_render_context_handle.window->get_size() / 2), 0);
-				f32_t parallax_factor = 0;
-				fan::vec2 size = 32;
-				fan::vec2 rotation_point = 0;
-				fan::color color = fan::colors::white;
-				fan::vec3 angle = fan::vec3(0);
-				int flags = 0;
-				fan::vec2 tc_position = 0;
-				fan::vec2 tc_size = 1;
-				f32_t seed = 0;
+      static std::array<shape_gl_init_t, 10>& get_locations() {
+        static std::array<shape_gl_init_t, 10> locs{{
+            shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
+            shape_gl_init_t{{1, "in_parallax_factor"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, parallax_factor)},
+            shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, size)},
+            shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
+            shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)},
+            shape_gl_init_t{{5, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, angle)},
+            shape_gl_init_t{{6, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), offsetof(vi_t, flags)},
+            shape_gl_init_t{{7, "in_tc_position"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, tc_position)},
+            shape_gl_init_t{{8, "in_tc_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, tc_size)},
+            shape_gl_init_t{{9, "in_seed"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, seed)},
+          }};
+        return locs;
+      }
 
-				bool blending = false;
+      struct properties_t {
+        using type_t = sprite_t;
 
-				fan::graphics::image_t image = fan::graphics::g_render_context_handle.default_texture;
-				std::array<fan::graphics::image_t, 30> images;
-				fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
-				fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
+        fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
+        f32_t parallax_factor = 0;
+        fan::vec2 size = fan::vec2(32, 32);
+        fan::vec2 rotation_point = 0;
+        fan::color color = fan::colors::white;
+        fan::vec3 angle = fan::vec3(0);
+        uint32_t flags = light_flags_e::circle | light_flags_e::multiplicative;
+        fan::vec2 tc_position = 0;
+        fan::vec2 tc_size = 1;
+        f32_t seed = 0;
+        fan::graphics::texture_pack::unique_t texture_pack_unique_id;
+        animation_shape_nr_t shape_animations;
+        animation_nr_t current_animation;
 
-				uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
-				uint32_t vertex_count = 6;
-				fan::graphics::texture_pack::unique_t texture_pack_unique_id;
+        bool load_tp(fan::graphics::texture_pack::ti_t* ti) {
+          auto& im = ti->image;
+          image = im;
+          auto& img = image_get_data(im);
+          tc_position = ti->position / img.size;
+          tc_size = ti->size / img.size;
+          texture_pack_unique_id = ti->unique_id;
+          return 0;
+        }
 
-				bool load_tp(fan::graphics::texture_pack::ti_t* ti) {
-					auto& im = ti->image;
-					image = im;
-					tc_position = ti->position / im.get_size();
-					tc_size = ti->size / im.get_size();
-					texture_pack_unique_id = ti->unique_id;
-					return 0;
-				}
-			};
+        bool blending = false;
+
+        fan::graphics::image_t image = fan::graphics::ctx().default_texture;
+        std::array<fan::graphics::image_t, 30> images;
+
+        fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
+        fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
+        uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+        uint32_t vertex_count = 6;
+      };
+
+      shape_t push_back(const properties_t& properties);
+    }sprite;
+
+    struct unlit_sprite_t {
+
+      static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::unlit_sprite;
+      static constexpr int kpi = kp::texture;
+
+    #pragma pack(push, 1)
+
+      struct vi_t {
+        fan::vec3 position;
+        f32_t parallax_factor;
+        fan::vec2 size;
+        fan::vec2 rotation_point;
+        fan::color color;
+        fan::vec3 angle;
+        uint32_t flags;
+        fan::vec2 tc_position;
+        fan::vec2 tc_size;
+        f32_t seed = 0;
+      };
+      struct ri_t {
+        std::array<fan::graphics::image_t, 30> images;
+        fan::graphics::texture_pack::unique_t texture_pack_unique_id;
+      };
+
+    #pragma pack(pop)
+
+      static std::array<shape_gl_init_t, 10>& get_locations() {
+        static std::array<shape_gl_init_t, 10> locs{{
+            shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
+            shape_gl_init_t{{1, "in_parallax_factor"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, parallax_factor)},
+            shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, size)},
+            shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
+            shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)},
+            shape_gl_init_t{{5, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, angle)},
+            shape_gl_init_t{{6, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), offsetof(vi_t, flags)},
+            shape_gl_init_t{{7, "in_tc_position"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, tc_position)},
+            shape_gl_init_t{{8, "in_tc_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, tc_size)},
+            shape_gl_init_t{{9, "in_seed"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, seed)},
+          }};
+        return locs;
+      }
+
+      struct properties_t {
+        using type_t = unlit_sprite_t;
+
+        fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
+        f32_t parallax_factor = 0;
+        fan::vec2 size = 32;
+        fan::vec2 rotation_point = 0;
+        fan::color color = fan::colors::white;
+        fan::vec3 angle = fan::vec3(0);
+        int flags = 0;
+        fan::vec2 tc_position = 0;
+        fan::vec2 tc_size = 1;
+        f32_t seed = 0;
+
+        bool blending = false;
+
+        fan::graphics::image_t image = fan::graphics::ctx().default_texture;
+        std::array<fan::graphics::image_t, 30> images;
+        fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
+        fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
+
+        uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+        uint32_t vertex_count = 6;
+        fan::graphics::texture_pack::unique_t texture_pack_unique_id;
+
+        bool load_tp(fan::graphics::texture_pack::ti_t* ti) {
+          auto& im = ti->image;
+          image = im;
+          tc_position = ti->position / im.get_size();
+          tc_size = ti->size / im.get_size();
+          texture_pack_unique_id = ti->unique_id;
+          return 0;
+        }
+      };
 
       shape_t push_back(const properties_t& properties);
 
-		}unlit_sprite;
+    }unlit_sprite;
 
-		struct text_t {
+    struct text_t {
 
-			struct vi_t {
+      struct vi_t {
 
-			};
+      };
 
-			struct ri_t {
+      struct ri_t {
 
-			};
+      };
 
-			struct properties_t {
-				using type_t = text_t;
+      struct properties_t {
+        using type_t = text_t;
 
-				fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
-				fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
+        fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
+        fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
 
-				fan::vec3 position;
-				f32_t outline_size = 1;
-				fan::vec2 size;
-				fan::vec2 tc_position;
-				fan::color color = fan::colors::white;
-				fan::color outline_color;
-				fan::vec2 tc_size;
-				fan::vec3 angle = 0;
+        fan::vec3 position;
+        f32_t outline_size = 1;
+        fan::vec2 size;
+        fan::vec2 tc_position;
+        fan::color color = fan::colors::white;
+        fan::color outline_color;
+        fan::vec2 tc_size;
+        fan::vec3 angle = 0;
 
-				std::string text;
+        std::string text;
 
-				uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
-				uint32_t vertex_count = 6;
-			};
+        uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+        uint32_t vertex_count = 6;
+      };
 
       shape_t push_back(const properties_t& properties);
-		}text;
+    }text;
 
-		struct circle_t {
+    struct circle_t {
 
-			static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::circle;
-			static constexpr int kpi = kp::common;
+      static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::circle;
+      static constexpr int kpi = kp::common;
 
-		#pragma pack(push, 1)
+    #pragma pack(push, 1)
 
-			struct vi_t {
-				fan::vec3 position;
-				f32_t radius;
-				fan::vec2 rotation_point;
-				fan::color color;
-				fan::vec3 angle;
-				uint32_t flags;
-			};
-			struct ri_t {
+      struct vi_t {
+        fan::vec3 position;
+        f32_t radius;
+        fan::vec2 rotation_point;
+        fan::color color;
+        fan::vec3 angle;
+        uint32_t flags;
+      };
+      struct ri_t {
 
-			};
+      };
 
-		#pragma pack(pop)
+    #pragma pack(pop)
 
-			inline static std::vector<shape_gl_init_t> locations = {
-				shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position) },
-				shape_gl_init_t{{1, "in_radius"}, 1, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, radius)) },
-				shape_gl_init_t{{2, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point)) },
-				shape_gl_init_t{{3, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color)) },
-				shape_gl_init_t{{5, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle)) },
-				shape_gl_init_t{{6, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))}
-			};
+      static std::array<shape_gl_init_t, 6>& get_locations() {
+        static std::array<shape_gl_init_t, 6> locs{{
+            shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position) },
+            shape_gl_init_t{{1, "in_radius"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, radius)},
+            shape_gl_init_t{{2, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
+            shape_gl_init_t{{3, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)},
+            shape_gl_init_t{{5, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, angle)},
+            shape_gl_init_t{{6, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), offsetof(vi_t, flags)}
+          }};
+        return locs;
+      }
 
-			struct properties_t {
-				using type_t = circle_t;
+      struct properties_t {
+        using type_t = circle_t;
 
-				fan::vec3 position = 0;
-				f32_t radius = 0;
-				fan::vec2 rotation_point = 0;
-				fan::color color = fan::colors::white;
-				fan::vec3 angle = 0;
-				uint32_t flags = 0;
+        fan::vec3 position = 0;
+        f32_t radius = 0;
+        fan::vec2 rotation_point = 0;
+        fan::color color = fan::colors::white;
+        fan::vec3 angle = 0;
+        uint32_t flags = 0;
 
-				bool blending = false;
+        bool blending = false;
 
-				fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
-				fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
+        fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
+        fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
 
-				uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
-				uint32_t vertex_count = 6;
-			};
+        uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+        uint32_t vertex_count = 6;
+      };
 
 
       fan::graphics::shapes::shape_t push_back(const circle_t::properties_t& properties);
 
-		}circle;
+    }circle;
 
-		struct capsule_t {
+    struct capsule_t {
 
-			static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::capsule;
-			static constexpr int kpi = kp::common;
+      static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::capsule;
+      static constexpr int kpi = kp::common;
 
-		#pragma pack(push, 1)
+    #pragma pack(push, 1)
 
-			struct vi_t {
-				fan::vec3 position;
-				fan::vec2 center0;
-				fan::vec2 center1;
-				f32_t radius;
-				fan::vec2 rotation_point;
-				fan::color color;
-				fan::vec3 angle;
-				uint32_t flags;
-				fan::color outline_color;
-			};
-			struct ri_t {
+      struct vi_t {
+        fan::vec3 position;
+        fan::vec2 center0;
+        fan::vec2 center1;
+        f32_t radius;
+        fan::vec2 rotation_point;
+        fan::color color;
+        fan::vec3 angle;
+        uint32_t flags;
+        fan::color outline_color;
+      };
+      struct ri_t {
 
-			};
+      };
 
-		#pragma pack(pop)
+    #pragma pack(pop)
 
-			inline static std::vector<shape_gl_init_t> locations = {
-				shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position) },
-				shape_gl_init_t{{1, "in_center0"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, center0)) },
-				shape_gl_init_t{{2, "in_center1"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, center1)) },
-				shape_gl_init_t{{3, "in_radius"}, 1, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, radius)) },
-				shape_gl_init_t{{4, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point)) },
-				shape_gl_init_t{{5, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color)) },
-				shape_gl_init_t{{6, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle)) },
-				shape_gl_init_t{{7, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
-				shape_gl_init_t{{8, "in_outline_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, outline_color)) },
-			};
+      static std::array<shape_gl_init_t, 9>& get_locations() {
+        static std::array<shape_gl_init_t, 9> locs{{
+            shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position) },
+            shape_gl_init_t{{1, "in_center0"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, center0)},
+            shape_gl_init_t{{2, "in_center1"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, center1)},
+            shape_gl_init_t{{3, "in_radius"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, radius)},
+            shape_gl_init_t{{4, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
+            shape_gl_init_t{{5, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)},
+            shape_gl_init_t{{6, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, angle)},
+            shape_gl_init_t{{7, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), offsetof(vi_t, flags)},
+            shape_gl_init_t{{8, "in_outline_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, outline_color)},
+          }};
+        return locs;
+      }
 
-			struct properties_t {
-				using type_t = capsule_t;
+      struct properties_t {
+        using type_t = capsule_t;
 
-				fan::vec3 position = 0;
-				fan::vec2 center0 = 0;
-				fan::vec2 center1 = { 0, 1.f };
-				f32_t radius = 0;
-				fan::vec2 rotation_point = 0;
-				fan::color color = fan::colors::white;
-				fan::color outline_color = color;
-				fan::vec3 angle = 0;
-				uint32_t flags = 0;
+        fan::vec3 position = 0;
+        fan::vec2 center0 = 0;
+        fan::vec2 center1 = { 0, 1.f };
+        f32_t radius = 0;
+        fan::vec2 rotation_point = 0;
+        fan::color color = fan::colors::white;
+        fan::color outline_color = color;
+        fan::vec3 angle = 0;
+        uint32_t flags = 0;
 
-				bool blending = true;
+        bool blending = true;
 
-				fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
-				fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
+        fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
+        fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
 
-				uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
-				uint32_t vertex_count = 6;
-			};
+        uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+        uint32_t vertex_count = 6;
+      };
 
       fan::graphics::shapes::shape_t push_back(const capsule_t::properties_t& properties);
-		}capsule;
+    }capsule;
 
-	#pragma pack(push, 1)
+  #pragma pack(push, 1)
 
-		struct polygon_t {
-			static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::polygon;
-			static constexpr int kpi = kp::common;
+    struct polygon_t {
+      static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::polygon;
+      static constexpr int kpi = kp::common;
 
 
-			struct vi_t {
+      struct vi_t {
 
-			};
-			struct ri_t {
-				uint32_t buffer_size = 0;
-				fan::opengl::core::vao_t vao;
-				fan::opengl::core::vbo_t vbo;
-			};
+      };
+      struct ri_t {
+        uint32_t buffer_size = 0;
+        fan::opengl::core::vao_t vao;
+        fan::opengl::core::vbo_t vbo;
+      };
 
-		#pragma pack(pop)
+    #pragma pack(pop)
 
-			inline static std::vector<shape_gl_init_t> locations = {
-				shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(polygon_vertex_t), (void*)(offsetof(polygon_vertex_t, position)) },
-				shape_gl_init_t{{1, "in_color"}, 4, GL_FLOAT, sizeof(polygon_vertex_t), (void*)(offsetof(polygon_vertex_t, color)) },
-				shape_gl_init_t{{2, "in_offset"}, 3, GL_FLOAT, sizeof(polygon_vertex_t), (void*)(offsetof(polygon_vertex_t, offset)) },
-				shape_gl_init_t{{3, "in_angle"}, 3, GL_FLOAT, sizeof(polygon_vertex_t), (void*)(offsetof(polygon_vertex_t, angle)) },
-				shape_gl_init_t{{4, "in_rotation_point"}, 2, GL_FLOAT, sizeof(polygon_vertex_t), (void*)(offsetof(polygon_vertex_t, rotation_point)) },
-			};
+      static std::array<shape_gl_init_t, 5>& get_locations() {
+        static std::array<shape_gl_init_t, 5> locs{{
+            shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(polygon_vertex_t), offsetof(polygon_vertex_t, position)},
+            shape_gl_init_t{{1, "in_color"}, 4, GL_FLOAT, sizeof(polygon_vertex_t), offsetof(polygon_vertex_t, color)},
+            shape_gl_init_t{{2, "in_offset"}, 3, GL_FLOAT, sizeof(polygon_vertex_t), offsetof(polygon_vertex_t, offset)},
+            shape_gl_init_t{{3, "in_angle"}, 3, GL_FLOAT, sizeof(polygon_vertex_t), offsetof(polygon_vertex_t, angle)},
+            shape_gl_init_t{{4, "in_rotation_point"}, 2, GL_FLOAT, sizeof(polygon_vertex_t), offsetof(polygon_vertex_t, rotation_point)},
+          }};
+        return locs;
+      }
 
-			struct properties_t {
-				using type_t = polygon_t;
-				fan::vec3 position = 0;
-				fan::vec3 angle = 0;
-				fan::vec2 rotation_point = 0;
-				std::vector<vertex_t> vertices;
-				bool blending = true;
-				fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
-				fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
+      struct properties_t {
+        using type_t = polygon_t;
+        fan::vec3 position = 0;
+        fan::vec3 angle = 0;
+        fan::vec2 rotation_point = 0;
+        std::vector<vertex_t> vertices;
+        bool blending = true;
+        fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
+        fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
 
-				uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
-				uint32_t vertex_count = 3;
-			};
+        uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+        uint32_t vertex_count = 3;
+      };
 
       fan::graphics::shapes::shape_t push_back(const properties_t& properties);
-		}polygon;
+    }polygon;
 
-		struct grid_t {
+    struct grid_t {
 
-			static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::grid;
-			static constexpr int kpi = kp::common;
+      static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::grid;
+      static constexpr int kpi = kp::common;
 
-		#pragma pack(push, 1)
+    #pragma pack(push, 1)
 
-			struct vi_t {
-				fan::vec3 position;
-				fan::vec2 size;
-				fan::vec2 grid_size;
-				fan::vec2 rotation_point;
-				fan::color color;
-				fan::vec3 angle;
-			};
-			struct ri_t {
+      struct vi_t {
+        fan::vec3 position;
+        fan::vec2 size;
+        fan::vec2 grid_size;
+        fan::vec2 rotation_point;
+        fan::color color;
+        fan::vec3 angle;
+      };
+      struct ri_t {
 
-			};
+      };
 
-		#pragma pack(pop)
+    #pragma pack(pop)
 
-			inline static std::vector<shape_gl_init_t> locations = {
-				shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
-				shape_gl_init_t{{1, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, size)},
-				shape_gl_init_t{{2, "in_grid_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, grid_size)},
-				shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, rotation_point)},
-				shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, color)},
-				shape_gl_init_t{{5, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, angle)},
-			};
+      static std::array<shape_gl_init_t, 6>& get_locations() {
+        static std::array<shape_gl_init_t, 6> locs{{
+            shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
+            shape_gl_init_t{{1, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, size)},
+            shape_gl_init_t{{2, "in_grid_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, grid_size)},
+            shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
+            shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)},
+            shape_gl_init_t{{5, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, angle)},
+          }};
+        return locs;
+      }
 
-			struct properties_t {
-				using type_t = grid_t;
+      struct properties_t {
+        using type_t = grid_t;
 
-				fan::vec3 position = 0;
-				fan::vec2 size = 0;
-				fan::vec2 grid_size;
-				fan::vec2 rotation_point = 0;
-				fan::color color = fan::colors::white;
-				fan::vec3 angle = 0;
+        fan::vec3 position = 0;
+        fan::vec2 size = 0;
+        fan::vec2 grid_size;
+        fan::vec2 rotation_point = 0;
+        fan::color color = fan::colors::white;
+        fan::vec3 angle = 0;
 
-				bool blending = true;
+        bool blending = true;
 
-				fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
-				fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
+        fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
+        fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
 
-				uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
-				uint32_t vertex_count = 6;
-			};
+        uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+        uint32_t vertex_count = 6;
+      };
 
       shape_t push_back(const properties_t& properties);
-		}grid;
+    }grid;
 
 
-		struct particles_t {
+    struct particles_t {
 
-			static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::particles;
-			static constexpr int kpi = kp::texture;
+      static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::particles;
+      static constexpr int kpi = kp::texture;
 
-			inline static std::vector<shape_gl_init_t> locations = {};
+      static std::array<shape_gl_init_t, 0>& get_locations() {
+        static std::array<shape_gl_init_t, 0> locs = {};
+        return locs;
+      }
 
-		#pragma pack(push, 1)
+    #pragma pack(push, 1)
 
-			struct vi_t {
+      struct vi_t {
 
-			};
+      };
 
-			struct shapes_e {
-				enum {
-					circle,
-					rectangle
-				};
-			};
+      struct shapes_e {
+        enum {
+          circle,
+          rectangle
+        };
+      };
 
-			struct ri_t {
+      struct ri_t {
 
         bool loop = true;
         f32_t loop_enabled_time;
         f32_t loop_disabled_time;
 
-				fan::vec3 position;
-				fan::vec2 size;
-				fan::color color;
+        fan::vec3 position;
+        fan::vec2 size;
+        fan::color color;
 
-				uint64_t begin_time;
+        uint64_t begin_time;
         f32_t alive_time;
-				f32_t respawn_time;
-				uint32_t count;
-				fan::vec2 position_velocity;
-				fan::vec3 angle_velocity;
-				f32_t begin_angle;
-				f32_t end_angle;
+        f32_t respawn_time;
+        uint32_t count;
+        fan::vec2 position_velocity;
+        fan::vec3 angle_velocity;
+        f32_t begin_angle;
+        f32_t end_angle;
 
-				fan::vec3 angle;
+        fan::vec3 angle;
 
-				fan::vec2 gap_size;
-        f32_t expansion_power; // 1.0 = linear, 2.0 = quadratic, 0.5 = slow start, etc...
-				fan::vec2 max_spread_size;
-				fan::vec2 size_velocity;
+        fan::vec2 gap_size;
+        f32_t expansion_power;
+        fan::vec2 max_spread_size;
+        fan::vec2 size_velocity;
 
-				uint32_t shape;
+        uint32_t shape;
 
-				bool blending;
-			};
-		#pragma pack(pop)
+        bool blending;
+      };
+    #pragma pack(pop)
 
-			struct properties_t {
-				using type_t = particles_t;
+      struct properties_t {
+        using type_t = particles_t;
 
         bool loop = true;
         f32_t loop_enabled_time = 0.0f;
         f32_t loop_disabled_time = 0.0f;
 
-				fan::vec3 position = 0;
-				fan::vec2 size = 100;
-				fan::color color = fan::colors::white;
+        fan::vec3 position = 0;
+        fan::vec2 size = 100;
+        fan::color color = fan::colors::white;
 
-				uint64_t begin_time = 0;
-				f32_t alive_time = 1;
-				f32_t respawn_time = 0;
-				uint32_t count = 10;
-				fan::vec2 position_velocity = 130;
-				fan::vec3 angle_velocity = fan::vec3(0, 0, 0);
-				f32_t begin_angle = 0;
-				f32_t end_angle = fan::math::pi * 2;
+        uint64_t begin_time = 0;
+        f32_t alive_time = 1;
+        f32_t respawn_time = 0;
+        uint32_t count = 10;
+        fan::vec2 position_velocity = 130;
+        fan::vec3 angle_velocity = fan::vec3(0, 0, 0);
+        f32_t begin_angle = 0;
+        f32_t end_angle = fan::math::pi * 2;
+        fan::vec3 angle = 0;
 
-				fan::vec3 angle = 0;
+        fan::vec2 gap_size = 1;
+        fan::vec2 max_spread_size = 100;
+        f32_t expansion_power = 1.0f;
+        fan::vec2 size_velocity = 1;
 
-				fan::vec2 gap_size = 1;
-				fan::vec2 max_spread_size = 100;
-        f32_t expansion_power = 1.0f; // 1.0 = linear, 2.0 = quadratic, 0.5 = slow start, etc...
-				fan::vec2 size_velocity = 1;
+        uint32_t shape = shapes_e::circle;
 
-				uint32_t shape = shapes_e::circle;
+        bool blending = true;
 
-				bool blending = true;
+        fan::graphics::image_t image = fan::graphics::ctx().default_texture;
+        fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
+        fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
 
-				fan::graphics::image_t image = fan::graphics::g_render_context_handle.default_texture;
-				fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
-				fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
-
-				uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
-				uint32_t vertex_count = 6;
-			};
-
-      shape_t push_back(const properties_t& properties);
-		}particles;
-
-		struct universal_image_renderer_t {
-
-			static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::universal_image_renderer;
-			static constexpr int kpi = kp::texture;
-
-		#pragma pack(push, 1)
-
-			struct vi_t {
-				fan::vec3 position = 0;
-				fan::vec2 size = 0;
-				fan::vec2 tc_position = 0;
-				fan::vec2 tc_size = 1;
-			};
-			struct ri_t {
-				std::array<fan::graphics::image_t, 3> images_rest; // 3 + 1 (pk)
-				uint8_t format = fan::graphics::image_format::undefined;
-			};
-
-		#pragma pack(pop)
-
-			inline static std::vector<shape_gl_init_t> locations = {
-				shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
-				shape_gl_init_t{{1, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
-				shape_gl_init_t{{2, "in_tc_position"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_position))},
-				shape_gl_init_t{{3, "in_tc_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_size))}
-			};
-
-			struct properties_t {
-				using type_t = universal_image_renderer_t;
-
-				fan::vec3 position = 0;
-				fan::vec2 size = 0;
-				fan::vec2 tc_position = 0;
-				fan::vec2 tc_size = 1;
-
-				bool blending = false;
-
-				std::array<fan::graphics::image_t, 4> images = {
-					fan::graphics::g_render_context_handle.default_texture,
-					fan::graphics::g_render_context_handle.default_texture,
-					fan::graphics::g_render_context_handle.default_texture,
-					fan::graphics::g_render_context_handle.default_texture
-				};
-				fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
-				fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
-
-				uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
-				uint32_t vertex_count = 6;
-			};
+        uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+        uint32_t vertex_count = 6;
+      };
 
       shape_t push_back(const properties_t& properties);
-		}universal_image_renderer;
+    }particles;
+    struct universal_image_renderer_t {
+      static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::universal_image_renderer;
+      static constexpr int kpi = kp::texture;
+    #pragma pack(push, 1)
+      struct vi_t {
+        fan::vec3 position = 0;
+        fan::vec2 size = 0;
+        fan::vec2 tc_position = 0;
+        fan::vec2 tc_size = 1;
+      };
+      struct ri_t {
+        std::array<fan::graphics::image_t, 3> images_rest;
+        uint8_t format = fan::graphics::image_format::undefined;
+      };
+    #pragma pack(pop)
+      static std::array<shape_gl_init_t, 4>& get_locations() {
+        static std::array<shape_gl_init_t, 4> locs{{
+            shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
+            shape_gl_init_t{{1, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, size)},
+            shape_gl_init_t{{2, "in_tc_position"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, tc_position)},
+            shape_gl_init_t{{3, "in_tc_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, tc_size)}
+          }};
+        return locs;
+      }
 
-		struct gradient_t {
+      struct properties_t {
+        using type_t = universal_image_renderer_t;
 
-			static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::gradient;
-			static constexpr int kpi = kp::common;
+        fan::vec3 position = 0;
+        fan::vec2 size = 0;
+        fan::vec2 tc_position = 0;
+        fan::vec2 tc_size = 1;
 
-		#pragma pack(push, 1)
+        bool blending = false;
 
-			struct vi_t {
-				fan::vec3 position;
-				fan::vec2 size;
-				fan::vec2 rotation_point;
-				// top left, top right
-				// bottom left, bottom right
-				std::array<fan::color, 4> color;
-				fan::vec3 angle;
-			};
-			struct ri_t {
+        std::array<fan::graphics::image_t, 4> images = {
+          fan::graphics::ctx().default_texture,
+          fan::graphics::ctx().default_texture,
+          fan::graphics::ctx().default_texture,
+          fan::graphics::ctx().default_texture
+        };
+        fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
+        fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
 
-			};
-
-		#pragma pack(pop)
-
-			inline static std::vector<shape_gl_init_t> locations = {
-				shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
-				shape_gl_init_t{{1, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
-				shape_gl_init_t{{2, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
-				shape_gl_init_t{{3, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color) + sizeof(fan::color) * 0)},
-				shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color) + sizeof(fan::color) * 1)},
-				shape_gl_init_t{{5, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color) + sizeof(fan::color) * 2)},
-				shape_gl_init_t{{6, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color) + sizeof(fan::color) * 3)},
-				shape_gl_init_t{{7, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))}
-			};
-
-			struct properties_t {
-				using type_t = gradient_t;
-
-				fan::vec3 position = 0;
-				fan::vec2 size = 0;
-				std::array<fan::color, 4> color = {
-					fan::random::color(),
-					fan::random::color(),
-					fan::random::color(),
-					fan::random::color()
-				};
-				bool blending = false;
-				fan::vec3 angle = 0;
-				fan::vec2 rotation_point = 0;
-
-				fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
-				fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
-
-				uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
-				uint32_t vertex_count = 6;
-			};
+        uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+        uint32_t vertex_count = 6;
+      };
 
       shape_t push_back(const properties_t& properties);
-		}gradient;
+    }universal_image_renderer;
+    struct gradient_t {
+      static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::gradient;
+      static constexpr int kpi = kp::common;
+    #pragma pack(push, 1)
+      struct vi_t {
+        fan::vec3 position;
+        fan::vec2 size;
+        fan::vec2 rotation_point;
+        std::array<fan::color, 4> color;
+        fan::vec3 angle;
+      };
+      struct ri_t {
 
-		struct shadow_t {
+      };
+    #pragma pack(pop)
+      static std::array<shape_gl_init_t, 8>& get_locations() {
+        static std::array<shape_gl_init_t, 8> locs{{
+            shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
+            shape_gl_init_t{{1, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, size)},
+            shape_gl_init_t{{2, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
+            shape_gl_init_t{{3, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color) + sizeof(fan::color) * 0},
+            shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color) + sizeof(fan::color) * 1},
+            shape_gl_init_t{{5, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color) + sizeof(fan::color) * 2},
+            shape_gl_init_t{{6, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color) + sizeof(fan::color) * 3},
+            shape_gl_init_t{{7, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, angle)}
+          }};
+        return locs;
+      }
 
-			static inline fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::shadow;
-			static constexpr int kpi = kp::light;
+      struct properties_t {
+        using type_t = gradient_t;
 
-		#pragma pack(push, 1)
+        fan::vec3 position = 0;
+        fan::vec2 size = 0;
+        std::array<fan::color, 4> color = {
+          fan::random::color(),
+          fan::random::color(),
+          fan::random::color(),
+          fan::random::color()
+        };
+        bool blending = false;
+        fan::vec3 angle = 0;
+        fan::vec2 rotation_point = 0;
 
-			enum shape_e {
-				rectangle,
-				circle
-			};
+        fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
+        fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
 
-			struct vi_t {
-				fan::vec3 position;
-				int shape;
-				fan::vec2 size;
-				fan::vec2 rotation_point;
-				fan::color color;
-				uint32_t flags = 0;
-				fan::vec3 angle;
-				fan::vec2 light_position;
-				f32_t light_radius;
-				f32_t pad;
-			};
-			struct ri_t {
-
-			};
-
-		#pragma pack(pop)
-
-			inline static std::vector<shape_gl_init_t> locations = {
-				shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
-				shape_gl_init_t{{1, "in_shape"}, 1, GL_INT, sizeof(vi_t), (void*)(offsetof(vi_t, shape))},
-				shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
-				shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
-				shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
-				shape_gl_init_t{{5, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
-				shape_gl_init_t{{6, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))},
-				shape_gl_init_t{{7, "in_light_position"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, light_position))},
-				shape_gl_init_t{{8, "in_light_radius"}, 1, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, light_radius))},
-				shape_gl_init_t{{9, "in_pad"}, 1, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, pad))},
-			};
-
-			struct properties_t {
-				using type_t = shadow_t;
-
-
-				fan::vec3 position = 0;
-				int shape = shadow_t::rectangle;
-				fan::vec2 size = 0;
-				fan::vec2 rotation_point = 0;
-				fan::color color = fan::colors::white;
-				uint32_t flags = 0;
-				fan::vec3 angle = 0;
-				fan::vec2 light_position = 0;
-				f32_t light_radius = 100.f;
-
-				fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
-				fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
-
-				uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
-				uint32_t vertex_count = 6;
-			};
+        uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+        uint32_t vertex_count = 6;
+      };
 
       shape_t push_back(const properties_t& properties);
-		}shadow;
+    }gradient;
+    struct shadow_t {
+      static inline fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::shadow;
+      static constexpr int kpi = kp::light;
+    #pragma pack(push, 1)
+      enum shape_e {
+        rectangle,
+        circle
+      };
 
-		struct shader_shape_t {
+      struct vi_t {
+        fan::vec3 position;
+        int shape;
+        fan::vec2 size;
+        fan::vec2 rotation_point;
+        fan::color color;
+        uint32_t flags = 0;
+        fan::vec3 angle;
+        fan::vec2 light_position;
+        f32_t light_radius;
+        f32_t pad;
+      };
+      struct ri_t {
 
-			static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::shader_shape;
-			static constexpr int kpi = kp::texture;
+      };
+    #pragma pack(pop)
+      static std::array<shape_gl_init_t, 10>& get_locations() {
+        static std::array<shape_gl_init_t, 10> locs{{
+            shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
+            shape_gl_init_t{{1, "in_shape"}, 1, GL_INT, sizeof(vi_t), offsetof(vi_t, shape)},
+            shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, size)},
+            shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
+            shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)},
+            shape_gl_init_t{{5, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), offsetof(vi_t, flags)},
+            shape_gl_init_t{{6, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, angle)},
+            shape_gl_init_t{{7, "in_light_position"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, light_position)},
+            shape_gl_init_t{{8, "in_light_radius"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, light_radius)},
+            shape_gl_init_t{{9, "in_pad"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, pad)},
+          }};
+        return locs;
+      }
 
-		#pragma pack(push, 1)
+      struct properties_t {
+        using type_t = shadow_t;
 
-			struct vi_t {
-				fan::vec3 position;
-				f32_t parallax_factor;
-				fan::vec2 size;
-				fan::vec2 rotation_point;
-				fan::color color;
-				fan::vec3 angle;
-				uint32_t flags;
-				fan::vec2 tc_position;
-				fan::vec2 tc_size;
-				f32_t seed;
-			};
-			struct ri_t {
-				// main image + light buffer + 30
-				std::array<fan::graphics::image_t, 30> images;
-			};
 
-		#pragma pack(pop)
+        fan::vec3 position = 0;
+        int shape = shadow_t::rectangle;
+        fan::vec2 size = 0;
+        fan::vec2 rotation_point = 0;
+        fan::color color = fan::colors::white;
+        uint32_t flags = 0;
+        fan::vec3 angle = 0;
+        fan::vec2 light_position = 0;
+        f32_t light_radius = 100.f;
 
-			inline static std::vector<shape_gl_init_t> locations = {
-				shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, position)},
-				shape_gl_init_t{{1, "in_parallax_factor"}, 1, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, parallax_factor))},
-				shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
-				shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, rotation_point))},
-				shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))},
-				shape_gl_init_t{{5, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, angle))},
-				shape_gl_init_t{{6, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), (void*)(offsetof(vi_t, flags))},
-				shape_gl_init_t{{7, "in_tc_position"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_position))},
-				shape_gl_init_t{{8, "in_tc_size"}, 2, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, tc_size))},
-				shape_gl_init_t{{9, "in_seed"}, 1, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t, seed)},
-			};
+        fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
+        fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
 
-			struct properties_t {
-				using type_t = shader_shape_t;
-
-				fan::vec3 position = 0;
-				f32_t parallax_factor = 0;
-				fan::vec2 size = 0;
-				fan::vec2 rotation_point = 0;
-				fan::color color = fan::colors::white;
-				fan::vec3 angle = fan::vec3(0);
-				uint32_t flags = 0;
-				fan::vec2 tc_position = 0;
-				fan::vec2 tc_size = 1;
-				f32_t seed = 0;
-				fan::graphics::shader_t shader;
-				bool blending = true;
-
-				fan::graphics::image_t image = fan::graphics::g_render_context_handle.default_texture;
-				std::array<fan::graphics::image_t, 30> images;
-
-				fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
-				fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
-
-				uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
-				uint32_t vertex_count = 6;
-			};
+        uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+        uint32_t vertex_count = 6;
+      };
 
       shape_t push_back(const properties_t& properties);
-		}shader_shape;
+    }shadow;
+    struct shader_shape_t {
+      static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::shader_shape;
+      static constexpr int kpi = kp::texture;
+    #pragma pack(push, 1)
+      struct vi_t {
+        fan::vec3 position;
+        f32_t parallax_factor;
+        fan::vec2 size;
+        fan::vec2 rotation_point;
+        fan::color color;
+        fan::vec3 angle;
+        uint32_t flags;
+        fan::vec2 tc_position;
+        fan::vec2 tc_size;
+        f32_t seed;
+      };
+      struct ri_t {
+        std::array<fan::graphics::image_t, 30> images;
+      };
+    #pragma pack(pop)
+      static std::array<shape_gl_init_t, 10>& get_locations() {
+        static std::array<shape_gl_init_t, 10> locs{{
+            shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
+            shape_gl_init_t{{1, "in_parallax_factor"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, parallax_factor)},
+            shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, size)},
+            shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
+            shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)},
+            shape_gl_init_t{{5, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, angle)},
+            shape_gl_init_t{{6, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), offsetof(vi_t, flags)},
+            shape_gl_init_t{{7, "in_tc_position"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, tc_position)},
+            shape_gl_init_t{{8, "in_tc_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, tc_size)},
+            shape_gl_init_t{{9, "in_seed"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, seed)},
+          }};
+        return locs;
+      }
 
-	#if defined(fan_3D)
-		struct rectangle3d_t {
+      struct properties_t {
+        using type_t = shader_shape_t;
 
-			static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::rectangle3d;
-			static constexpr int kpi = kp::common;
+        fan::vec3 position = 0;
+        f32_t parallax_factor = 0;
+        fan::vec2 size = 0;
+        fan::vec2 rotation_point = 0;
+        fan::color color = fan::colors::white;
+        fan::vec3 angle = fan::vec3(0);
+        uint32_t flags = 0;
+        fan::vec2 tc_position = 0;
+        fan::vec2 tc_size = 1;
+        f32_t seed = 0;
+        fan::graphics::shader_t shader;
+        bool blending = true;
 
-		#pragma pack(push, 1)
+        fan::graphics::image_t image = fan::graphics::ctx().default_texture;
+        std::array<fan::graphics::image_t, 30> images;
 
-			struct vi_t {
-				fan::vec3 position;
-				fan::vec3 size;
-				fan::color color;
-				fan::vec3 angle;
-			};
-			struct ri_t {
+        fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
+        fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
 
-			};
+        uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+        uint32_t vertex_count = 6;
+      };
 
-		#pragma pack(pop)
+      shape_t push_back(const properties_t& properties);
+    }shader_shape;
+  #if defined(fan_3D)
+    struct rectangle3d_t {
+      static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::rectangle3d;
+      static constexpr int kpi = kp::common;
+    #pragma pack(push, 1)
+      struct vi_t {
+        fan::vec3 position;
+        fan::vec3 size;
+        fan::color color;
+        fan::vec3 angle;
+      };
+      struct ri_t {
 
-			inline static std::vector<shape_gl_init_t> locations = {
-				shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), (void*)offsetof(vi_t,  position)},
-				shape_gl_init_t{{1, "in_size"}, 3, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, size))},
-				shape_gl_init_t{{2, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), (void*)(offsetof(vi_t, color))}
-			};
+      };
+    #pragma pack(pop)
+      static std::array<shape_gl_init_t, 3>& get_locations() {
+        static std::array<shape_gl_init_t, 3> locs{{
+            shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t,  position)},
+            shape_gl_init_t{{1, "in_size"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, size)},
+            shape_gl_init_t{{2, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)}
+          }};
+        return locs;
+      }
 
-			struct properties_t {
-				using type_t = rectangle_t;
+      struct properties_t {
+        using type_t = rectangle_t;
 
-				fan::vec3 position = 0;
-				fan::vec3 size = 0;
-				fan::color color = fan::colors::white;
-				bool blending = false;
-				fan::vec3 angle = 0;
+        fan::vec3 position = 0;
+        fan::vec3 size = 0;
+        fan::color color = fan::colors::white;
+        bool blending = false;
+        fan::vec3 angle = 0;
 
-				fan::graphics::camera_t camera = fan::graphics::g_render_context_handle.perspective_render_view->camera;
-				fan::graphics::viewport_t viewport = fan::graphics::g_render_context_handle.perspective_render_view->viewport;
+        fan::graphics::camera_t camera = fan::graphics::ctx().perspective_render_view->camera;
+        fan::graphics::viewport_t viewport = fan::graphics::ctx().perspective_render_view->viewport;
 
-				uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
-				uint32_t vertex_count = 36;
-			};
+        uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+        uint32_t vertex_count = 36;
+      };
 
 
       shape_t push_back(const properties_t& properties);
-		}rectangle3d;
+    }rectangle3d;
+    struct line3d_t {
+      static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::line3d;
+      static constexpr int kpi = kp::common;
+    #pragma pack(push, 1)
+      struct vi_t {
+        fan::color color;
+        fan::vec3 src;
+        fan::vec3 dst;
+      };
+      struct ri_t {
 
-		struct line3d_t {
+      };
+    #pragma pack(pop)
+      static std::array<shape_gl_init_t, 3>& get_locations() {
+        static std::array<shape_gl_init_t, 3> locs{{
+            shape_gl_init_t{{0, "in_color"}, 4, GL_FLOAT, sizeof(line_t::vi_t), offsetof(line_t::vi_t, color)},
+            shape_gl_init_t{{1, "in_src"}, 3, GL_FLOAT, sizeof(line_t::vi_t), offsetof(line_t::vi_t, src)},
+            shape_gl_init_t{{2, "in_dst"}, 3, GL_FLOAT, sizeof(line_t::vi_t), offsetof(line_t::vi_t, dst)}
+          }};
+        return locs;
+      }
 
-			static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::line3d;
-			static constexpr int kpi = kp::common;
+      struct properties_t {
+        using type_t = line_t;
 
-		#pragma pack(push, 1)
+        fan::color color = fan::colors::white;
+        fan::vec3 src;
+        fan::vec3 dst;
 
-			struct vi_t {
-				fan::color color;
-				fan::vec3 src;
-				fan::vec3 dst;
-			};
-			struct ri_t {
+        bool blending = false;
 
-			};
+        fan::graphics::camera_t camera = fan::graphics::ctx().perspective_render_view->camera;
+        fan::graphics::viewport_t viewport = fan::graphics::ctx().perspective_render_view->viewport;
 
-		#pragma pack(pop)
-
-			inline static std::vector<shape_gl_init_t> locations = {
-				shape_gl_init_t{{0, "in_color"}, 4, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, color)},
-				shape_gl_init_t{{1, "in_src"}, 3, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, src)},
-				shape_gl_init_t{{2, "in_dst"}, 3, GL_FLOAT, sizeof(line_t::vi_t), (void*)offsetof(line_t::vi_t, dst)}
-			};
-
-			struct properties_t {
-				using type_t = line_t;
-
-				fan::color color = fan::colors::white;
-				fan::vec3 src;
-				fan::vec3 dst;
-
-				bool blending = false;
-
-				fan::graphics::camera_t camera = fan::graphics::g_render_context_handle.perspective_render_view->camera;
-				fan::graphics::viewport_t viewport = fan::graphics::g_render_context_handle.perspective_render_view->viewport;
-
-				uint8_t draw_mode = fan::graphics::primitive_topology_t::lines;
-				uint32_t vertex_count = 2;
-			};
+        uint8_t draw_mode = fan::graphics::primitive_topology_t::lines;
+        uint32_t vertex_count = 2;
+      };
 
       shape_t push_back(const properties_t& properties);
-		}line3d;
-
-	#endif
+    }line3d;
+  #endif
 
     std::vector<fan::graphics::shapes::shape_t>* immediate_render_list = nullptr;
     std::unordered_map<uint32_t, fan::graphics::shapes::shape_t>* static_render_list = nullptr;

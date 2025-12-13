@@ -237,6 +237,7 @@ struct shaper_t{
   #define BLL_set_LinkSentinel 0
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_type_node _blid_t
+  #define BLL_set_Usage 1
   #include <BLL/BLL.h>
   using blid_t = BlockList_t::nr_t;
   struct ShapeType_t{
@@ -263,7 +264,7 @@ struct shaper_t{
       fan::opengl::core::vao_t m_vao;
       fan::opengl::core::vbo_t m_vbo;
 
-      std::vector<fan::graphics::shape_gl_init_t>* locations;
+      shape_gl_init_list_t locations;
       fan::graphics::shader_nr_t shader;
       bool instanced = true;
       int vertex_count = 6;
@@ -625,11 +626,11 @@ struct shaper_t{
   #if shaper_set_fan
     fan::graphics::shader_nr_t& GetShader(ShapeTypeIndex_t sti) {
       auto& d = ShapeTypes[sti];
-      if (fan::graphics::g_render_context_handle.get_renderer() == fan::window_t::renderer_t::opengl) {
+      if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
         return d.renderer.gl.shader;
       }
       #if defined(fan_vulkan)
-      else if (fan::graphics::g_render_context_handle.get_renderer() == fan::window_t::renderer_t::vulkan) {
+      else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {
         return d.renderer.vk.pipeline.shader_nr;
       }
       #endif
@@ -639,7 +640,7 @@ struct shaper_t{
     }
     fan::opengl::core::vao_t GetVAO(ShapeTypeIndex_t sti) {
       auto& st = ShapeTypes[sti];
-      if (fan::graphics::g_render_context_handle.get_renderer() == fan::window_t::renderer_t::opengl) {
+      if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
         return st.renderer.gl.m_vao;
       }
       fan::throw_error("Unsupported renderer type");
@@ -648,20 +649,21 @@ struct shaper_t{
     }
     fan::opengl::core::vbo_t GetVBO(ShapeTypeIndex_t sti) {
       auto& st = ShapeTypes[sti];
-      if (fan::graphics::g_render_context_handle.get_renderer() == fan::window_t::renderer_t::opengl) {
+      if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
         return st.renderer.gl.m_vbo;
       }
       fan::throw_error("Unsupported renderer type");
       fan::opengl::core::vbo_t doesnt_happen;
       return doesnt_happen;
     }
-    std::vector<fan::graphics::shape_gl_init_t>& GetLocations(ShapeTypeIndex_t sti) {
+    fan::graphics::shape_gl_init_list_t& GetLocations(ShapeTypeIndex_t sti) {
       auto& st = ShapeTypes[sti];
-      if (fan::graphics::g_render_context_handle.get_renderer() == fan::window_t::renderer_t::opengl) {
-        return *st.renderer.gl.locations;
+      if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
+        return st.renderer.gl.locations;
       }
       fan::throw_error("Unsupported renderer type");
-      static std::vector<fan::graphics::shape_gl_init_t> doesnt_happen;
+      __unreachable();
+      static fan::graphics::shape_gl_init_list_t doesnt_happen;
       return doesnt_happen;
     }
     ShapeTypes_NodeData_t& GetShapeTypes(ShapeTypeIndex_t sti) {
@@ -745,11 +747,11 @@ struct shaper_t{
     ~BlockProperties_t() {
 #if shaper_set_fan
       // TODO gloco bad but how else
-      if (fan::graphics::g_render_context_handle.get_renderer() == fan::window_t::renderer_t::opengl) {
+      if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
         std::destroy_at(&renderer.gl);
       }
     #if defined(fan_vulkan)
-      else if (fan::graphics::g_render_context_handle.get_renderer() == fan::window_t::renderer_t::vulkan)  {
+      else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan)  {
         std::destroy_at(&renderer.vk);
       }
     #endif
@@ -762,7 +764,7 @@ struct shaper_t{
     #if shaper_set_fan
     struct gl_t {
       gl_t() = default;
-      std::vector<fan::graphics::shape_gl_init_t>* locations;
+      shape_gl_init_list_t locations;
       fan::graphics::shader_nr_t shader;
       bool instanced = true;
       GLuint draw_mode = GL_TRIANGLES;
@@ -790,7 +792,13 @@ struct shaper_t{
     #endif
   };
 
-  thread_local inline static std::function<void(fan::graphics::shaper_t::ShapeTypes_NodeData_t&, const fan::graphics::shaper_t::BlockProperties_t&)> gl_add_shape_type;
+  static auto& gl_add_shape_type() {
+    static std::function<void(
+      fan::graphics::shaper_t::ShapeTypes_NodeData_t&, 
+      const fan::graphics::shaper_t::BlockProperties_t&
+    )> f;
+    return f;
+  }
 
   void Open(){
     KeyTypeAmount = 0;
@@ -811,23 +819,23 @@ struct shaper_t{
       auto& st = ShapeTypes[sti];
 
     #if shaper_set_fan
-      if (fan::graphics::g_render_context_handle.get_renderer() == fan::window_t::renderer_t::opengl) {
+      if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
         auto& gl = st.renderer.gl;
         if (!gl.shader.iic()) {
-          fan::graphics::g_render_context_handle->shader_erase(fan::graphics::g_render_context_handle, gl.shader);
+          fan::graphics::ctx()->shader_erase(fan::graphics::ctx(), gl.shader);
         }
         if (gl.m_vao.is_valid()) {
-          gl.m_vao.close(*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle)));
+          gl.m_vao.close(*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx())));
         }
         if (gl.m_vbo.is_valid()) {
-          gl.m_vbo.close(*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle)));
+          gl.m_vbo.close(*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx())));
         }
       }
     #if defined(fan_vulkan)
-      else if (fan::graphics::g_render_context_handle.get_renderer() == fan::window_t::renderer_t::vulkan) {
+      else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {
         auto& vk = st.renderer.vk;
         vk.shape_data.m_descriptor.close(fan::graphics::get_vk_context());
-        //vk.shape_data.deallocate(gloco->context.vk);
+        //vk.shape_data.deallocate(gloco()->context.vk);
         vk.shape_data.close(fan::graphics::get_vk_context());
         vk.pipeline.close(fan::graphics::get_vk_context());
       }
@@ -998,13 +1006,13 @@ struct shaper_t{
     st.DataSize = bp.DataSize;
 
   #if shaper_set_fan
-    if (fan::graphics::g_render_context_handle.get_renderer() == fan::window_t::renderer_t::opengl) {
+    if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
       ShapeType_t::gl_t d;
       st.renderer.gl = d;
-      shaper_t::gl_add_shape_type(st, bp);
+      shaper_t::gl_add_shape_type()(st, bp);
     }
     #if defined(fan_vulkan)
-    else if (fan::graphics::g_render_context_handle.get_renderer() == fan::window_t::renderer_t::vulkan) {
+    else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {
       ShapeType_t::vk_t d;
       std::construct_at(&st.renderer.vk);
       auto& bpr = bp.renderer.vk;
@@ -1020,7 +1028,7 @@ struct shaper_t{
 
   void ProcessBlockEditQueue(){
     #if shaper_set_fan
-    fan::opengl::context_t &context = *static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle));
+    fan::opengl::context_t &context = *static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()));
     #endif
 
     auto beid = BlockEditQueue.GetNodeFirst();
@@ -1030,7 +1038,7 @@ struct shaper_t{
       auto &bu = GetBlockUnique(be.sti, be.blid);
 
       #if shaper_set_fan
-      if (fan::graphics::g_render_context_handle.get_renderer() == fan::window_t::renderer_t::opengl) {
+      if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
         auto& gl = st.renderer.gl;
         gl.m_vao.bind(context);
         fan::opengl::core::edit_glbuffer(
@@ -1043,7 +1051,7 @@ struct shaper_t{
         );
       }
       #if defined(fan_vulkan)
-      else if (fan::graphics::g_render_context_handle.get_renderer() == fan::window_t::renderer_t::vulkan) {
+      else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {
         auto& vk = st.renderer.vk;
         auto wrote = bu.MaxEdit - bu.MinEdit;
         for (uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {
@@ -1113,9 +1121,9 @@ struct shaper_t{
     BlockList_t::nr_t node_id;
     traverse.Open(&st.BlockList, &node_id);
     
-    if (fan::graphics::g_render_context_handle.get_renderer() == fan::window_t::renderer_t::opengl) {
+    if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
       auto& gl = st.renderer.gl;
-      fan::opengl::context_t &context = *static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle));
+      fan::opengl::context_t &context = *static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()));
       gl.m_vao.bind(context);
       while(traverse.Loop(&st.BlockList, &node_id)){
         fan::opengl::core::edit_glbuffer(
@@ -1129,7 +1137,7 @@ struct shaper_t{
       }
     }
     #if defined(fan_vulkan)
-    else if (fan::graphics::g_render_context_handle.get_renderer() == fan::window_t::renderer_t::vulkan){
+    else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan){
       auto& vk = st.renderer.vk;
       while (traverse.Loop(&st.BlockList, &node_id)) {
         for (uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {
@@ -1149,11 +1157,11 @@ struct shaper_t{
     auto &st = ShapeTypes[sti];
 
     #if shaper_set_fan
-    if (fan::graphics::g_render_context_handle.get_renderer() == fan::window_t::renderer_t::opengl) {
+    if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
       auto& gl = st.renderer.gl;
-      gl.m_vbo.bind(*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle)));
+      gl.m_vbo.bind(*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx())));
       fan::opengl::core::write_glbuffer(
-        *static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle)),
+        *static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx())),
         gl.m_vbo.m_buffer,
         0,
         new_capacity * st.RenderDataSize * st.MaxElementPerBlock(),
@@ -1162,10 +1170,10 @@ struct shaper_t{
       );
       _RenderDataReset(sti);
     }
-    else if (fan::graphics::g_render_context_handle.get_renderer() == fan::window_t::renderer_t::vulkan){
+    else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan){
       //memcpy(vk.shape_data.data, _GetRenderData(sti, node_id, 0) + GetRenderDataOffset(sti, node_id), st.RenderDataSize * st.MaxElementPerBlock());
-      //vk.shape_data.allocate(gloco->context.vk, New * st.RenderDataSize * st.MaxElementPerBlock());
-      //vk.shape_data.m_descriptor.update(gloco->context.vk, 1, 0, 1, 0);
+      //vk.shape_data.allocate(gloco()->context.vk, New * st.RenderDataSize * st.MaxElementPerBlock());
+      //vk.shape_data.m_descriptor.update(gloco()->context.vk, 1, 0, 1, 0);
       //fan::throw_error("");
       _RenderDataReset(sti);
     }

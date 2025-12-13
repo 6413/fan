@@ -286,14 +286,14 @@ struct vfi_t {
       case shape_t::rectangle:{
         instance.shape_data->depth = p.shape.rectangle->position.z;
         if (p.shape.rectangle->camera.iic()) {
-          instance.shape_data->shape.rectangle->camera = fan::graphics::g_render_context_handle.orthographic_render_view->camera;
+          instance.shape_data->shape.rectangle->camera = fan::graphics::ctx().orthographic_render_view->camera;
           fan::print("warning using default camera");
         }
         else {
           instance.shape_data->shape.rectangle->camera = p.shape.rectangle->camera;
         } 
         if (p.shape.rectangle->viewport.iic()) {
-          instance.shape_data->shape.rectangle->viewport = fan::graphics::g_render_context_handle.orthographic_render_view->viewport;
+          instance.shape_data->shape.rectangle->viewport = fan::graphics::ctx().orthographic_render_view->viewport;
           fan::print("warning using default viewport");
         }
         else {
@@ -368,8 +368,8 @@ struct vfi_t {
     }
 #endif
 
-    auto v = fan::graphics::g_render_context_handle->viewport_get(fan::graphics::g_render_context_handle, viewport);
-    auto c = fan::graphics::g_render_context_handle->camera_get(fan::graphics::g_render_context_handle, camera);
+    auto v = fan::graphics::ctx()->viewport_get(fan::graphics::ctx(), viewport);
+    auto c = fan::graphics::ctx()->camera_get(fan::graphics::ctx(), camera);
 
     fan::vec2 viewport_position = v.viewport_position;
     fan::vec2 viewport_size = v.viewport_size;
@@ -416,7 +416,7 @@ struct vfi_t {
       return v;
     }
     case shape_t::rectangle: {
-      fan::vec2 camera_position = fan::graphics::g_render_context_handle->camera_get(fan::graphics::g_render_context_handle, shape_data->shape.rectangle->camera).position;
+      fan::vec2 camera_position = fan::graphics::ctx()->camera_get(fan::graphics::ctx(), shape_data->shape.rectangle->camera).position;
       auto p = screen_to_world(
         v,
         shape_data->shape.rectangle->viewport,

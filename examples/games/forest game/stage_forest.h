@@ -2,7 +2,7 @@ void create_manual_collisions(std::vector<fan::physics::entity_t>& collisions, f
   for (auto& x : main_compiled_map->compiled_shapes) {
     for (auto& y : x) {
       for (auto& z : y) {
-        if (gloco->texture_pack[z.texture_pack_unique_id].name == "tile0" || gloco->texture_pack[z.texture_pack_unique_id].name == "tile1" || gloco->texture_pack[z.texture_pack_unique_id].name == "tile2") {
+        if (gloco()->texture_pack[z.texture_pack_unique_id].name == "tile0" || gloco()->texture_pack[z.texture_pack_unique_id].name == "tile1" || gloco()->texture_pack[z.texture_pack_unique_id].name == "tile2") {
           collisions.push_back(pile.loco.physics_context.create_circle(
             fan::vec2(z.position) + fan::vec2(0, z.size.y / 2),
             z.size.y / 2.f,
@@ -73,7 +73,7 @@ void close() {
 void update() {
   using namespace fan::graphics;
   if (!pile.is_map_changing && pile.loco.lighting.is_near(fan::vec3(pile.fadeout_target_color))) {
-    gloco->lighting.set_target(main_compiled_map->lighting.ambient);
+    gloco()->lighting.set_target(main_compiled_map->lighting.ambient);
   }
 
   gui::begin("A");

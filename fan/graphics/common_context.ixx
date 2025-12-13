@@ -392,9 +392,6 @@ export namespace fan::graphics {
 		void* text_logger = nullptr;
 	#endif
 	};
-
-	extern thread_local render_context_handle_t g_render_context_handle;
-
 	fan::window_t& get_window();
 	render_context_handle_t& ctx();
 	fan::graphics::render_view_t& get_orthographic_render_view();
@@ -448,7 +445,7 @@ export namespace fan::graphics {
 
 	fan::vec2 translate_position(const fan::vec2& p, viewport_t viewport, camera_t camera);
 	fan::vec2 screen_to_world(const fan::vec2& p, fan::graphics::viewport_t viewport, fan::graphics::camera_t camera);
-	fan::vec2 screen_to_world(const fan::vec2& p, const render_view_t& render_view = *fan::graphics::g_render_context_handle.orthographic_render_view);
+	fan::vec2 screen_to_world(const fan::vec2& p, const render_view_t& render_view = *fan::graphics::ctx().orthographic_render_view);
 	fan::vec2 world_to_screen(const fan::vec2& p, fan::graphics::viewport_t viewport, fan::graphics::camera_t camera);
 	fan::vec2 world_to_screen(const fan::vec2& p, const render_view_t& render_view);
 	fan::vec2 get_mouse_position();

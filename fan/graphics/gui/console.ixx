@@ -19,13 +19,14 @@ import fan.utility;
 export import fan.graphics.common_types;
 
 export namespace fan {
+  struct console_t;
   struct commands_t {
     using arg_t = std::vector<std::string>;
 
     struct command_t {
       std::vector<std::string> command_chain;
       std::string description;
-      std::function<void(const arg_t&)> func;
+      std::function<void(console_t* self, const arg_t&)> func;
     };
 
     std::unordered_map<std::string, fan::commands_t::command_t> func_table;
@@ -49,7 +50,7 @@ export namespace fan {
     static void empty_output_colored(const std::string&, const fan::color& color);
     std::function<void(const std::string&, const fan::color& color)> output_colored_cb = empty_output_colored;
 
-    fan::commands_t::command_t& add(const std::string& cmd, std::function<void(const fan::commands_t::arg_t&)> func);
+    fan::commands_t::command_t& add(const std::string& cmd, decltype(command_t::func) func);
     void remove(const std::string& cmd);
 
     std::vector<std::string> split_args(const std::string& input);

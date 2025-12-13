@@ -88,7 +88,7 @@ int main() {
   model->animation_list["Idle2"].weight = 1;
   model->active_anim = "Idle2";
   
-  fan::vec2 window_size = gloco->window.get_size();
+  fan::vec2 window_size = gloco()->window.get_size();
 
   bool draw_lines = 0;
 
@@ -104,7 +104,7 @@ int main() {
   fan::vec3 src = 0;
   fan::vec3 dst = 0;
 
-  gloco->m_pre_draw.push_back([&]() {
+  gloco()->m_pre_draw.push_back([&]() {
 
     ImGui::BeginDisabled(!cursor_mode);
 
@@ -166,10 +166,10 @@ int main() {
 
     if (ImGui::ToggleButton("draw lines", &draw_lines)) {
       if (draw_lines) {
-        gloco->fan_opengl_call(PolygonMode(GL_FRONT_AND_BACK, GL_LINE));
+        gloco()->fan_opengl_call(PolygonMode(GL_FRONT_AND_BACK, GL_LINE));
       }
       else {
-        gloco->fan_opengl_call(PolygonMode(GL_FRONT_AND_BACK, GL_FILL));
+        gloco()->fan_opengl_call(PolygonMode(GL_FRONT_AND_BACK, GL_FILL));
       }
     }
 
@@ -245,7 +245,7 @@ int main() {
     ImGui::EndDisabled();
   });
 
-  auto& camera = gloco->camera_get(gloco->perspective_camera.camera);
+  auto& camera = gloco()->camera_get(gloco()->perspective_camera.camera);
 
   fan::vec2 motion = 0;
 

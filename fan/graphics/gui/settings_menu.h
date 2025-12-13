@@ -60,22 +60,22 @@ struct settings_menu_t {
           gui::table_next_column();
           gui::text("Renderer");
           gui::table_next_column();
-          if (gui::begin_combo("##Renderer", renderers[gloco->window.renderer])) {
+          if (gui::begin_combo("##Renderer", renderers[gloco()->window.renderer])) {
             for (int i = 0; i < std::size(renderers); ++i) {
-              bool is_selected = (gloco->window.renderer == i);
+              bool is_selected = (gloco()->window.renderer == i);
               if (gui::selectable(renderers[i], is_selected)) {
                 switch (i) {
                 case 0:
                 {
-                  if (gloco->window.renderer != fan::window_t::renderer_t::opengl) {
-                    gloco->reload_renderer_to = fan::window_t::renderer_t::opengl;
+                  if (gloco()->window.renderer != fan::window_t::renderer_t::opengl) {
+                    gloco()->reload_renderer_to = fan::window_t::renderer_t::opengl;
                   }
                   break;
                 }
                 case 1:
                 {
-                  if (gloco->window.renderer != fan::window_t::renderer_t::vulkan) {
-                    gloco->reload_renderer_to = fan::window_t::renderer_t::vulkan;
+                  if (gloco()->window.renderer != fan::window_t::renderer_t::vulkan) {
+                    gloco()->reload_renderer_to = fan::window_t::renderer_t::vulkan;
                   }
                   break;
                 }
@@ -107,8 +107,8 @@ struct settings_menu_t {
         gui::text("Bloom Strength");
         gui::table_next_column();
         if (gui::slider("##BloomStrengthSlider", &menu->bloom_strength, 0, 1)) {
-          if (gloco->window.renderer == fan::window_t::renderer_t::opengl) {
-            gloco->shader_set_value(gloco->gl.m_fbo_final_shader, "bloom_strength", menu->bloom_strength);
+          if (gloco()->window.renderer == fan::window_t::renderer_t::opengl) {
+            gloco()->shader_set_value(gloco()->gl.m_fbo_final_shader, "bloom_strength", menu->bloom_strength);
           }
         }
       }
@@ -128,8 +128,8 @@ struct settings_menu_t {
         gui::table_next_column();
         gui::text("Enable VSync");
         gui::table_next_column();
-        if (gui::checkbox("##enable_vsync", (bool*)&gloco->vsync)) {
-          gloco->set_vsync(gloco->vsync);
+        if (gui::checkbox("##enable_vsync", (bool*)&gloco()->vsync)) {
+          gloco()->set_vsync(gloco()->vsync);
         }
       }
       {
@@ -137,7 +137,7 @@ struct settings_menu_t {
         gui::table_next_column();
         gui::text("Show fps");
         gui::table_next_column();
-        gui::checkbox("##show_fps", (bool*)&gloco->show_fps);
+        gui::checkbox("##show_fps", (bool*)&gloco()->show_fps);
       }
     #if defined(fan_std23)
       {
@@ -146,7 +146,7 @@ struct settings_menu_t {
         gui::text("Track Heap memory");
         gui::table_next_column();
         if (gui::checkbox("##track_heap", (bool*)&fan::heap_profiler_t::instance().enabled)) {
-          gloco->console.commands.call("debug_memory " + std::to_string((int)fan::heap_profiler_t::instance().enabled));
+          gloco()->console.commands.call("debug_memory " + std::to_string((int)fan::heap_profiler_t::instance().enabled));
         }
       }
     #endif
@@ -155,7 +155,7 @@ struct settings_menu_t {
         gui::table_next_column();
         gui::text("Track OpenGL calls");
         gui::table_next_column();
-        gui::checkbox("##track_opengl_calls", (bool*)&fan_track_opengl_calls);
+        gui::checkbox("##track_opengl_calls", (bool*)&fan_track_opengl_calls());
       }
 
       {
@@ -269,21 +269,21 @@ struct settings_menu_t {
       page.page_right_render = loco_t::settings_menu_t::menu_audio_right;
       pages.emplace_back(page);
     }
-    if (gloco->window.renderer == fan::window_t::renderer_t::opengl) {
-      gloco->shader_set_value(gloco->gl.m_fbo_final_shader, "bloom_strength", bloom_strength);
+    if (gloco()->window.renderer == fan::window_t::renderer_t::opengl) {
+      gloco()->shader_set_value(gloco()->gl.m_fbo_final_shader, "bloom_strength", bloom_strength);
     }
   }
 
   void change_target_fps(int direction) {
     int index = 0;
     for (int i = 0; i < std::size(fps_values); ++i) {
-      if (fps_values[i] == gloco->target_fps) {
+      if (fps_values[i] == gloco()->target_fps) {
         index = i;
         break;
       }
     }
     index = (index + direction + std::size(fps_values)) % std::size(fps_values);
-    gloco->set_target_fps(fps_values[index]);
+    gloco()->set_target_fps(fps_values[index]);
   }
   void render_display_mode() {
     static const char* display_mode_names[] = {
@@ -295,11 +295,11 @@ struct settings_menu_t {
     gui::table_next_column();
     gui::text("Display Mode");
     gui::table_next_column();
-    if (gui::begin_combo("##Display Mode", display_mode_names[gloco->window.display_mode - 1])) {
+    if (gui::begin_combo("##Display Mode", display_mode_names[gloco()->window.display_mode - 1])) {
       for (int i = 0; i < std::size(display_mode_names); ++i) {
-        bool is_selected = (gloco->window.display_mode - 1 == i);
+        bool is_selected = (gloco()->window.display_mode - 1 == i);
         if (gui::selectable(display_mode_names[i], is_selected)) {
-          gloco->window.set_display_mode(i + 1);
+          gloco()->window.set_display_mode(i + 1);
         }
         if (is_selected) {
           gui::set_item_default_focus();
@@ -318,7 +318,7 @@ struct settings_menu_t {
       change_target_fps(-1);
     }
     gui::same_line();
-    gui::text(gloco->target_fps);
+    gui::text(gloco()->target_fps);
     gui::same_line();
     if (gui::arrow_button("##right_arrow", gui::dir_right)) {
       change_target_fps(1);
@@ -326,7 +326,7 @@ struct settings_menu_t {
   }
 
   void render_resolution_dropdown() {
-    fan::vec2i current_size = gloco->window.get_size();
+    fan::vec2i current_size = gloco()->window.get_size();
 
     int current_resolution = -1;
     for (int i = 0; i < std::size(fan::window_t::resolutions); ++i) {
@@ -344,7 +344,7 @@ struct settings_menu_t {
     gui::text("Resolution");
     gui::table_next_column();
 
-    fan::vec2i window_size = gloco->window.get_size();
+    fan::vec2i window_size = gloco()->window.get_size();
     std::string custom_res = std::to_string(window_size.x) + "x" + std::to_string(window_size.y);
     const char* current_label = (current_resolution == std::size(fan::window_t::resolutions)) ?
       custom_res.c_str() : fan::window_t::resolution_labels[current_resolution];
@@ -354,7 +354,7 @@ struct settings_menu_t {
         bool is_selected = (current_resolution == i);
         if (gui::selectable(fan::window_t::resolution_labels[i], is_selected)) {
           current_resolution = i;
-          gloco->window.set_size(fan::window_t::resolutions[i]);
+          gloco()->window.set_size(fan::window_t::resolutions[i]);
         }
         if (is_selected) {
           gui::set_item_default_focus();
@@ -384,7 +384,7 @@ struct settings_menu_t {
   }
 
   fan::vec2 render_settings_top(f32_t min_x) {
-    fan::vec2 main_window_size = gloco->window.get_size();
+    fan::vec2 main_window_size = gloco()->window.get_size();
     gui::set_next_window_pos(fan::vec2(0, 0));
     gui::set_next_window_size(fan::vec2(main_window_size.x, main_window_size.y / 5));
     gui::set_next_window_bg_alpha(0.99);
@@ -437,7 +437,7 @@ struct settings_menu_t {
   }
 
   void render() {
-    if (gloco->reload_renderer_to != (decltype(gloco->reload_renderer_to))-1) {
+    if (gloco()->reload_renderer_to != (decltype(gloco()->reload_renderer_to))-1) {
       set_settings_theme();
     }
 
@@ -446,7 +446,7 @@ struct settings_menu_t {
     gui::push_style_color(gui::col_window_bg, fan::color(0.09411764889955521f, 0.09411764889955521f, 0.09411764889955521f, 0.99f));
     gui::push_style_color(gui::col_separator, fan::color(0.8, 0.8, 0.8, 1.0f));
 
-    fan::vec2 main_window_size = gloco->window.get_size();
+    fan::vec2 main_window_size = gloco()->window.get_size();
     fan::vec2 window_size = render_settings_top(min_x);
 
     fan::vec2 next_window_position = fan::vec2(0, window_size.y);
