@@ -573,7 +573,7 @@ namespace fan::graphics {
     return fan::graphics::get_shapes().immediate_render_list->back();
   }
 
-  auto add_shape_to_static_draw(fan::graphics::shapes::shape_t&& s) {
+  uint32_t add_shape_to_static_draw(fan::graphics::shapes::shape_t&& s) {
     auto ret = s.NRI;
     (*fan::graphics::get_shapes().static_render_list)[ret] = std::move(s);
     return ret;
@@ -893,6 +893,27 @@ namespace fan::graphics {
 
   fan::vec2 interactive_camera_t::get_viewport_size() const {
     return fan::graphics::viewport_get_size(reference_viewport);
+  }
+
+  world_window_t::world_window_t() : render_view(true), cam(render_view) {}
+  void world_window_t::update(const fan::vec2& viewport_pos, const fan::vec2& viewport_size) {
+    update(viewport_pos, viewport_size, cam.zoom);
+  }
+  void world_window_t::update(const fan::vec2& viewport_pos, const fan::vec2& viewport_size, f32_t zoom) {
+    fan::graphics::viewport_set(
+      render_view.viewport,
+      viewport_pos,
+      viewport_size
+    );
+
+    fan::graphics::camera_set_ortho(
+      render_view.camera,
+      fan::vec2(-viewport_size.x / 2, viewport_size.x / 2) / zoom,
+      fan::vec2(-viewport_size.y / 2, viewport_size.y / 2) / zoom
+    );
+  }
+  world_window_t::operator render_view_t* () {
+    return &render_view;
   }
 
   image_divider_t::image_divider_t() {

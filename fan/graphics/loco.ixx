@@ -381,7 +381,7 @@ public:
   f32_t time = 0;
 
   void add_shape_to_immediate_draw(fan::graphics::shapes::shape_t&& s);
-  auto add_shape_to_static_draw(fan::graphics::shapes::shape_t&& s);
+  uint32_t add_shape_to_static_draw(fan::graphics::shapes::shape_t&& s);
   void remove_static_shape_draw(const fan::graphics::shapes::shape_t& s);
 
   static void generate_commands(loco_t* loco);
@@ -641,6 +641,8 @@ public:
 	bool allow_docking = true;
 
 	bool gui_initialized = false;
+
+  bool force_line_draw = false;
 
 	fan::graphics::gui::text_logger_t text_logger;
 
