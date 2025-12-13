@@ -300,6 +300,23 @@ export namespace fan {
       return vector / fan::math::dot(vector, vector);
     }
 
+    template <typename vector_t>
+    vector_t snap_line_to_angle(const vector_t& start, const vector_t& end, f32_t snap_increment = 45.0f) {
+      vector_t direction = end - start;
+      f32_t length = direction.length();
+
+      if (length < 1.0f) {
+        return end;
+      }
+
+      f32_t current_angle = fan::math::degrees(direction.angle());
+      f32_t snapped_angle = std::round(current_angle / snap_increment) * snap_increment;
+      f32_t snapped_radians = fan::math::radians(snapped_angle);
+      vector_t snapped_direction(std::cos(snapped_radians), std::sin(snapped_radians));
+
+      return start + snapped_direction * length;
+    }
+
 #define PI_f32_t     3.14159265f
 #define PIBY2_f32_t  1.5707963f
     // |error| < 0.005

@@ -490,8 +490,8 @@ void loco_t::add_shape_to_immediate_draw(fan::graphics::shapes::shape_t&& s) {
   immediate_render_list.emplace_back(std::move(s));
 }
 
-auto loco_t::add_shape_to_static_draw(fan::graphics::shapes::shape_t&& s) {
-  auto ret = s.NRI;
+uint32_t loco_t::add_shape_to_static_draw(fan::graphics::shapes::shape_t&& s) {
+  uint32_t ret = s.NRI;
   static_render_list[ret] = std::move(s);
   return ret;
 }
@@ -1802,6 +1802,10 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
 #endif
 
   cb();
+
+  if (force_line_draw) {
+    gl.draw_all_shape_aabbs();
+  }
 
   // user can terminate from main loop
   if (should_close()) {

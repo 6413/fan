@@ -131,7 +131,8 @@ inline static fan::graphics::camera_t get_camera(const shape_t* shape) {
 		case shape_category_t::texture:
 			return shaper_get_key_safe(camera_t, texture_t, camera);
 		default:
-			fan::throw_error("unimplemented");
+      fan::print_throttled("[get_camera call for non existing shape category]");
+      return fan::graphics::get_orthographic_render_view().camera;
 	}
 }
 
@@ -172,7 +173,8 @@ inline static fan::graphics::viewport_t get_viewport(const shape_t* shape) {
 		case shape_category_t::texture:
 			return shaper_get_key_safe(viewport_t, texture_t, viewport);
 		default:
-			fan::throw_error("unimplemented");
+      fan::print_throttled("[get_viewport call for non existing shape category]");
+      return fan::graphics::get_orthographic_render_view().viewport;
 	}
 }
 

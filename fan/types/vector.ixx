@@ -87,7 +87,17 @@ export namespace fan {
     constexpr vec2_wrap_t(const VkExtent2D& v) { x = v.width; y = v.height; }
 #endif
     // coordinate system angle. TODO need rename to something meaningful
-		constexpr auto csangle() const { return atan2(x, -y);}
+		constexpr auto csangle() const { return std::atan2(x, -y); }
+    constexpr auto angle() const { return std::atan2(y, x); }
+
+    template <typename T>
+    bool is_collinear(const vec2_wrap_t<T>& a) {
+      return a.x == x || a.y == y;
+    }
+    template <typename T>
+    vec2_wrap_t<T> get_corner(const vec2_wrap_t<T>& a) {
+      return {a.x, y};
+    }
 
     template <typename T>
     vec2_wrap_t<T> lerp(const vec2_wrap_t<T>& dst, T t) {

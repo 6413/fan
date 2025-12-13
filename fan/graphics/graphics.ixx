@@ -693,7 +693,7 @@ export namespace fan::graphics {
   };
 
   fan::graphics::shapes::shape_t& add_shape_to_immediate_draw(fan::graphics::shapes::shape_t&& s);
-  auto add_shape_to_static_draw(fan::graphics::shapes::shape_t&& s);
+  uint32_t add_shape_to_static_draw(fan::graphics::shapes::shape_t&& s);
   void remove_static_shape_draw(const fan::graphics::shapes::shape_t& s);
   fan::graphics::shapes::shape_t& rectangle(const rectangle_properties_t& props = {});
   fan::graphics::shapes::shape_t& rectangle(const fan::vec3& position, const fan::vec2& size, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
@@ -1013,6 +1013,22 @@ export namespace fan::graphics {
     fan::window_t::buttons_handle_t button_cb_nr;
     fan::window_t::mouse_motion_handle_t mouse_motion_nr;
     fan::graphics::update_callback_nr_t uc_nr;
+  };
+
+  struct world_window_t {
+    world_window_t();
+    void update(
+      const fan::vec2& viewport_pos = 0, 
+      const fan::vec2& viewport_size = fan::window::get_size()
+    );
+    void update(
+      const fan::vec2& viewport_pos, 
+      const fan::vec2& viewport_size,
+      f32_t zoom
+    );
+    operator render_view_t*();
+    render_view_t render_view;
+    fan::graphics::interactive_camera_t cam;
   };
 
   struct image_divider_t {

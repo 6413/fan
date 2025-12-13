@@ -176,12 +176,12 @@ struct settings_menu_t {
               switch (i) {
               case 0:
               {
-                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+                gloco()->force_line_draw = false;
                 break;
               }
               case 1:
               {
-                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+                gloco()->force_line_draw = true;
                 break;
               }
               }

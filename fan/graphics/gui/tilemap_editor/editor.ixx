@@ -1109,22 +1109,6 @@ export struct fte_t {
     });
   }
 
-  fan::vec2 snap_line_to_angle(const fan::vec2& start, const fan::vec2& end, f32_t snap_increment = 45.0f) {
-    fan::vec2 direction = end - start;
-    f32_t length = direction.length();
-
-    if (length < 1.0f) {
-      return end;
-    }
-
-    f32_t current_angle = fan::math::degrees(std::atan2(direction.y, direction.x));
-    f32_t snapped_angle = std::round(current_angle / snap_increment) * snap_increment;
-    f32_t snapped_radians = fan::math::radians(snapped_angle);
-    fan::vec2 snapped_direction = fan::vec2(std::cos(snapped_radians), std::sin(snapped_radians));
-
-    return start + snapped_direction * length;
-  }
-
   bool handle_editor_window(fan::vec2& editor_size) {
     if (fan::graphics::gui::begin_main_menu_bar()) {
       static std::string fn;
@@ -1333,7 +1317,7 @@ export struct fte_t {
       bool control_pressed = fan::graphics::get_window().key_pressed(fan::key_left_control);
 
       if (control_pressed) {
-        line_dst = snap_line_to_angle(brush.line_src, line_dst, 45.0f);
+        line_dst = fan::math::snap_line_to_angle(brush.line_src, line_dst, 45.0f);
       }
 
       visual_line.set_line(brush.line_src, line_dst);

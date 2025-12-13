@@ -75,7 +75,7 @@ struct player_t {
           fan::vec3 player_pos = body.get_center() - fan::vec2(0, body.get_size().y / 4.f);
           static int potion_particle_index = 0;
           particles_drink_potion[potion_particle_index].set_position(fan::vec3(fan::vec2(player_pos), player_pos.z + 1));
-          particles_drink_potion[potion_particle_index].get_data<fan::graphics::shapes::particles_t>().begin_angle = -0.777 + 0.777 * -body.get_linear_velocity().sign().x;
+          particles_drink_potion[potion_particle_index].get_shape_data<fan::graphics::shapes::particles_t>().begin_angle = -0.777 + 0.777 * -body.get_linear_velocity().sign().x;
           particles_drink_potion[potion_particle_index].start_particles();
           potion_particle_index = (potion_particle_index + 1) % std::size(particles_drink_potion);
         }
