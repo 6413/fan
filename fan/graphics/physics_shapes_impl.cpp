@@ -199,14 +199,14 @@ namespace fan::graphics::physics {
     }
     init_ = false;
     box2d_debug_draw = [] {
-      fan::physics::gphysics->debug_draw_cb = []() {
+      fan::physics::gphysics()->debug_draw_cb = []() {
         z_depth = 0;
         debug_draw_polygon.clear();
         debug_draw_solid_polygon.clear();
         debug_draw_circle.clear();
         debug_draw_line.clear();
         debug_draw_capsule.clear();
-        b2World_Draw(fan::physics::gphysics->world_id, &box2d_debug_draw);
+        b2World_Draw(fan::physics::gphysics()->world_id, &box2d_debug_draw);
       };
       return initialize_debug(false);
     }();
@@ -217,7 +217,7 @@ namespace fan::graphics::physics {
     if (uc_nr) {
       return;
     }
-    auto& uc = *fan::graphics::g_render_context_handle.update_callback;
+    auto& uc = *fan::graphics::ctx().update_callback;
     uc_nr = uc.NewNodeLast();
     // called every frame
     uc[uc_nr] = [] (auto* loco) {
@@ -355,7 +355,7 @@ namespace fan::graphics::physics {
 
   base_shape_t::base_shape_t(const base_shape_t& r) : fan::graphics::shape_t(r), fan::physics::entity_t(r) {
     //if (this != )
-    fan::physics::body_id_t new_body_id = fan::physics::deep_copy_body(fan::physics::gphysics->world_id, *dynamic_cast<const fan::physics::body_id_t*>(&r));
+    fan::physics::body_id_t new_body_id = fan::physics::deep_copy_body(fan::physics::gphysics()->world_id, *dynamic_cast<const fan::physics::body_id_t*>(&r));
     if (!B2_ID_EQUALS(r, (*this))) {
       destroy();
     }
@@ -399,7 +399,7 @@ namespace fan::graphics::physics {
     if (this != &r) {
       fan::graphics::shape_t::operator=(r);
 
-      fan::physics::body_id_t new_body_id = fan::physics::deep_copy_body(fan::physics::gphysics->world_id, *dynamic_cast<const fan::physics::body_id_t*>(&r));
+      fan::physics::body_id_t new_body_id = fan::physics::deep_copy_body(fan::physics::gphysics()->world_id, *dynamic_cast<const fan::physics::body_id_t*>(&r));
       if (!B2_ID_EQUALS(r, (*this))) {
         destroy();
       }
@@ -459,15 +459,15 @@ namespace fan::graphics::physics {
   }
 
   fan::vec2 base_shape_t::get_draw_offset() const {
-    return (*fan::physics::gphysics->physics_updates)[physics_update_nr].draw_offset;
+    return (*fan::physics::gphysics()->physics_updates)[physics_update_nr].draw_offset;
   }
   void base_shape_t::set_draw_offset(fan::vec2 new_draw_offset) {
     draw_offset = new_draw_offset;
-    (*fan::physics::gphysics->physics_updates)[physics_update_nr].draw_offset = new_draw_offset;
+    (*fan::physics::gphysics()->physics_updates)[physics_update_nr].draw_offset = new_draw_offset;
   }
 
   void base_shape_t::sync_visual_angle(bool flag) {
-    (*fan::physics::gphysics->physics_updates)[physics_update_nr].sync_visual_angle = flag;
+    (*fan::physics::gphysics()->physics_updates)[physics_update_nr].sync_visual_angle = flag;
   }
 
   fan::vec3 base_shape_t::get_position() const {
@@ -493,7 +493,7 @@ namespace fan::graphics::physics {
   }
   rectangle_t::rectangle_t(const rectangle_t::properties_t& p) : base_shape_t(
     fan::graphics::shape_t(fan::graphics::rectangle_t {p}),
-    fan::physics::entity_t(fan::physics::gphysics->create_box(p.position, p.size, p.angle.z, p.body_type, p.shape_properties)),
+    fan::physics::entity_t(fan::physics::gphysics()->create_box(p.position, p.size, p.angle.z, p.body_type, p.shape_properties)),
     p.mass_data
   ) {}
   rectangle_t::rectangle_t(const rectangle_t& r) : base_shape_t(r) {}
@@ -507,7 +507,7 @@ namespace fan::graphics::physics {
   }
   sprite_t::sprite_t(const properties_t& p) : base_shape_t(
     fan::graphics::shape_t(fan::graphics::sprite_t {p}),
-    fan::physics::entity_t(fan::physics::gphysics->create_box(p.position, p.size, p.angle.z, p.body_type, p.shape_properties)),
+    fan::physics::entity_t(fan::physics::gphysics()->create_box(p.position, p.size, p.angle.z, p.body_type, p.shape_properties)),
     p.mass_data
   ) {}
 
@@ -527,7 +527,7 @@ namespace fan::graphics::physics {
 
   circle_t::circle_t(const properties_t& p) : base_shape_t(
     fan::graphics::shape_t(fan::graphics::circle_t {p}),
-    fan::physics::entity_t(fan::physics::gphysics->create_circle(p.position, p.radius, p.angle.z, p.body_type, p.shape_properties)),
+    fan::physics::entity_t(fan::physics::gphysics()->create_circle(p.position, p.radius, p.angle.z, p.body_type, p.shape_properties)),
     p.mass_data
   ) {}
 
@@ -547,7 +547,7 @@ namespace fan::graphics::physics {
 
   circle_sprite_t::circle_sprite_t(const properties_t& p) : base_shape_t(
     fan::graphics::shape_t(fan::graphics::sprite_t {p}),
-    fan::physics::entity_t(fan::physics::gphysics->create_circle(p.position, p.radius, p.angle.z, p.body_type, p.shape_properties)),
+    fan::physics::entity_t(fan::physics::gphysics()->create_circle(p.position, p.radius, p.angle.z, p.body_type, p.shape_properties)),
     p.mass_data
   ) {}
 
@@ -567,7 +567,7 @@ namespace fan::graphics::physics {
 
   capsule_t::capsule_t(const properties_t& p) : base_shape_t(
     fan::graphics::shape_t(fan::graphics::capsule_t {p}),
-    fan::physics::entity_t(fan::physics::gphysics->create_capsule(p.position, p.angle.z,
+    fan::physics::entity_t(fan::physics::gphysics()->create_capsule(p.position, p.angle.z,
       b2Capsule {.center1 = p.center0, .center2 = p.center1, .radius = p.radius}, p.body_type, p.shape_properties)),
     p.mass_data
   ) {}
@@ -588,7 +588,7 @@ namespace fan::graphics::physics {
 
   capsule_sprite_t::capsule_sprite_t(const properties_t& p) : base_shape_t(
     fan::graphics::shape_t(fan::graphics::sprite_t {p}),
-    fan::physics::entity_t(fan::physics::gphysics->create_capsule(p.position, p.angle.z, b2Capsule {
+    fan::physics::entity_t(fan::physics::gphysics()->create_capsule(p.position, p.angle.z, b2Capsule {
       .center1 = p.center0 * p.aabb_scale,
       .center2 = p.center1 * p.aabb_scale,
       .radius = p.size.max() / 2.f * p.aabb_scale.max()
@@ -618,7 +618,7 @@ namespace fan::graphics::physics {
     for (std::size_t i = 0; i < points.size(); ++i) {
       points[i] = p.vertices[i].position;
     }
-    return fan::physics::gphysics->create_polygon(
+    return fan::physics::gphysics()->create_polygon(
       p.position,
       p.radius,
       points.data(), points.size(), p.body_type, p.shape_properties
@@ -649,7 +649,7 @@ namespace fan::graphics::physics {
     for (std::size_t i = 0; i < points.size(); ++i) {
       points[i] = p.vertices[i].position;
     }
-    return fan::physics::gphysics->create_segment(
+    return fan::physics::gphysics()->create_segment(
       p.position,
       points, p.body_type, p.shape_properties
     );
@@ -731,7 +731,11 @@ namespace fan::graphics::physics {
   }
 
   void movement_state_t::move_to_direction_raw(fan::physics::body_id_t body, const fan::vec2& direction) {
-    fan::vec2 input_dir = direction.sign() * (check_gui ? !fan::graphics::gui::want_io() : 1);
+    fan::vec2 input_dir = direction.sign() 
+    #if defined(fan_gui)
+      * (check_gui ? !fan::graphics::gui::want_io() : 1)
+    #endif
+    ;
     fan::vec2 vel = body.get_linear_velocity();
     f32_t dt = fan::physics::default_physics_timestep;
 
@@ -757,7 +761,11 @@ namespace fan::graphics::physics {
   }
 
   void movement_state_t::move_to_direction(fan::physics::body_id_t body, const fan::vec2& direction) {
-    fan::vec2 input_dir = direction.sign() * (check_gui ? !fan::graphics::gui::want_io() : 1);
+    fan::vec2 input_dir = direction.sign() 
+    #if defined(fan_gui)
+      * (check_gui ? !fan::graphics::gui::want_io() : 1)
+    #endif
+    ;
     fan::vec2 vel = body.get_linear_velocity();
     f32_t dt = fan::physics::default_physics_timestep;
 
@@ -804,7 +812,11 @@ namespace fan::graphics::physics {
     bool allow_coyote = jump_state.can_coyote_jump(fan::time::now());
 
     if (touching_wall && !on_ground && jump_state.consumed && wall_jump && !wall_jump->consumed) {
-      fan::vec2 input = fan::window::get_input_vector() * (check_gui ? !fan::graphics::gui::want_io() : 1);
+      fan::vec2 input = fan::window::get_input_vector() 
+      #if defined(fan_gui)
+        * (check_gui ? !fan::graphics::gui::want_io() : 1)
+      #endif
+      ;
       bool pushing_into_wall = fan::math::sgn(input.x) == fan::math::sgn(wall_normal.x);
       if (!jump_state.jumping) {
         fan::vec2 vel = body_id.get_linear_velocity();
@@ -822,7 +834,11 @@ namespace fan::graphics::physics {
       }
     }
 
-    if ((!jump_state.consumed && !jump_state.jumping) * (check_gui ? !fan::graphics::gui::want_io() : 1)) {
+    if ((!jump_state.consumed && !jump_state.jumping) 
+    #if defined(fan_gui)
+      * (check_gui ? !fan::graphics::gui::want_io() : 1)
+    #endif
+    ) {
       fan::vec2 vel = body_id.get_linear_velocity();
       body_id.set_linear_velocity(fan::vec2(vel.x, 0));
       body_id.apply_linear_impulse_center({0, -jump_state.impulse});
@@ -833,7 +849,11 @@ namespace fan::graphics::physics {
       return;
     }
 
-    if ((jump_state.allow_double_jump && !jump_state.jumping && jump_state.consumed && !jump_state.double_jump_consumed) * (check_gui ? !fan::graphics::gui::want_io() : 1)) {
+    if ((jump_state.allow_double_jump && !jump_state.jumping && jump_state.consumed && !jump_state.double_jump_consumed) 
+    #if defined(fan_gui)
+      * (check_gui ? !fan::graphics::gui::want_io() : 1)
+    #endif
+    ) {
       fan::vec2 vel = body_id.get_linear_velocity();
       body_id.set_linear_velocity(fan::vec2(vel.x, 0));
       body_id.apply_linear_impulse_center({0, -jump_state.impulse});
@@ -1411,7 +1431,11 @@ namespace fan::graphics::physics {
         .trigger_type = animation_controller_t::animation_state_t::one_shot,
         .condition = config.attack_cb ? config.attack_cb :
         [](character2d_t& c) -> bool {
-          if (!fan::window::is_mouse_clicked() || fan::graphics::gui::want_io()) {
+          if (!fan::window::is_mouse_clicked() 
+          #if defined(fan_gui)
+            || fan::graphics::gui::want_io()
+          #endif
+          ) {
             return false;
           }
           return c.attack_state.try_attack(&c);
@@ -1874,7 +1898,7 @@ namespace fan::graphics::physics {
           static int x = 0;
           if (!x) {
             fan::vec2 pivot = fan::vec2(500, 300.f) / fan::physics::length_units_per_meter + bones[i].pivot * scale;
-            //     update_position(fan::physics::gphysics->world_id, bones[i].joint_id, pivot);
+            //     update_position(fan::physics::gphysics()->world_id, bones[i].joint_id, pivot);
             x++;
           }
 
@@ -1891,8 +1915,8 @@ namespace fan::graphics::physics {
       //quarter_pi *= 3; // why this is required?
       //quarter_pi += fan::math::pi;
       if (std::abs(torso_vel_x) / 130.f > 1.f && torso_vel_x) {
-        //   update_reference_angle(fan::physics::gphysics->world_id, blower_left_arm.joint_id, vel_sgn == 1 ? quarter_pi : -quarter_pi);
-        //    update_reference_angle(fan::physics::gphysics->world_id, blower_right_arm.joint_id, vel_sgn == 1 ? quarter_pi : -quarter_pi);
+        //   update_reference_angle(fan::physics::gphysics()->world_id, blower_left_arm.joint_id, vel_sgn == 1 ? quarter_pi : -quarter_pi);
+        //    update_reference_angle(fan::physics::gphysics()->world_id, blower_right_arm.joint_id, vel_sgn == 1 ? quarter_pi : -quarter_pi);
         look_direction = vel_sgn;
       }
 
@@ -1938,7 +1962,7 @@ namespace fan::graphics::physics {
     f32_t frictionTorque = 0.03f;
     f32_t hertz = 5.0f;
     f32_t dampingRatio = 0.5f;
-    b2WorldId worldId = fan::physics::gphysics->world_id;
+    b2WorldId worldId = fan::physics::gphysics()->world_id;
 
     b2Filter filter = b2DefaultFilter();
 
@@ -2084,7 +2108,7 @@ namespace fan::graphics::physics {
   mouse_joint_t::mouse_joint_t() {
 
     auto default_body = b2DefaultBodyDef();
-    dummy_body.set_body(b2CreateBody(fan::physics::gphysics->world_id, &default_body));
+    dummy_body.set_body(b2CreateBody(fan::physics::gphysics()->world_id, &default_body));
     nr = fan::graphics::ctx().update_callback->NewNodeLast();
     // not copy safe
     (*fan::graphics::ctx().update_callback)[nr] = [this](void* ptr) {
@@ -2097,7 +2121,7 @@ namespace fan::graphics::physics {
           box.upperBound = b2Add(p, d);
 
           QueryContext queryContext = {p, b2_nullBodyId};
-          b2World_OverlapAABB(fan::physics::gphysics->world_id, box, b2DefaultQueryFilter(), QueryCallback, &queryContext);
+          b2World_OverlapAABB(fan::physics::gphysics()->world_id, box, b2DefaultQueryFilter(), QueryCallback, &queryContext);
           if (B2_IS_NON_NULL(queryContext.bodyId)) {
 
             b2MouseJointDef mouseDef = b2DefaultMouseJointDef();
@@ -2107,7 +2131,7 @@ namespace fan::graphics::physics {
             mouseDef.hertz = 5.0f;
             mouseDef.dampingRatio = 0.7f;
             mouseDef.maxForce = 1000.0f * b2Body_GetMass(queryContext.bodyId);
-            mouse_joint = b2CreateMouseJoint(fan::physics::gphysics->world_id, &mouseDef);
+            mouse_joint = b2CreateMouseJoint(fan::physics::gphysics()->world_id, &mouseDef);
             b2Body_SetAwake(queryContext.bodyId, true);
           }
         }
@@ -2188,7 +2212,7 @@ namespace fan::graphics::physics {
   // creates physics body for visual shape
   fan::physics::entity_t character_capsule(const fan::graphics::shape_t& shape, f32_t shape_size_multiplier, const fan::physics::shape_properties_t& physics_properties, uint8_t body_type) {
     f32_t half_height = shape.get_size().y * shape_size_multiplier;
-    return fan::physics::gphysics->create_capsule(
+    return fan::physics::gphysics()->create_capsule(
       shape.get_position(),
       shape.get_angle().z,
       b2Capsule {
@@ -2282,11 +2306,11 @@ namespace fan::graphics::physics {
 
 namespace fan::physics {
   bool is_on_sensor(fan::physics::body_id_t test_id, fan::physics::body_id_t sensor_id) {
-    return fan::physics::gphysics->is_on_sensor(test_id, sensor_id);
+    return fan::physics::gphysics()->is_on_sensor(test_id, sensor_id);
   }
 
   fan::physics::ray_result_t raycast(const fan::vec2& src, const fan::vec2& dst) {
-    return fan::physics::gphysics->raycast(src, dst);
+    return fan::physics::gphysics()->raycast(src, dst);
   }
 }
 

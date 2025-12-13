@@ -1755,9 +1755,9 @@ export struct fte_t {
 
   void handle_physics_settings_window() {
     if (fan::graphics::gui::begin("physics settings", nullptr, fan::graphics::gui::window_flags_no_focus_on_appearing)) {
-      fan::vec2 gravity = fan::physics::gphysics.get_gravity();
+      fan::vec2 gravity = fan::physics::gphysics()->get_gravity();
       if (fan::graphics::gui::drag("gravity", &gravity, 0.01)) {
-        fan::physics::gphysics.set_gravity(gravity);
+        fan::physics::gphysics()->set_gravity(gravity);
       }
     }
     fan::graphics::gui::end();
@@ -1938,8 +1938,8 @@ export struct fte_t {
   void draw_id_labels() {
     auto* draw_list = fan::graphics::gui::get_foreground_draw_list();
 
-    auto v = fan::graphics::g_render_context_handle->viewport_get(
-      fan::graphics::g_render_context_handle,
+    auto v = fan::graphics::ctx()->viewport_get(
+      fan::graphics::ctx(),
       render_view->viewport
     );
 
@@ -2034,7 +2034,7 @@ export struct fte_t {
     ostr["camera_position"] = fan::graphics::camera_get_position(render_view->camera);
     ostr["camera_zoom"] = viewport_settings.zoom;
     ostr["lighting.ambient"] = fan::graphics::get_lighting().ambient;
-    ostr["gravity"] = fan::physics::gphysics.get_gravity();
+    ostr["gravity"] = fan::physics::gphysics()->get_gravity();
     fan::json jtps = fan::json::array();
     for (auto* tp : texture_packs) {
       jtps.push_back(tp->file_path);
@@ -2191,7 +2191,7 @@ export struct fte_t {
       viewport_settings.zoom = json["camera_zoom"];
     }
     if (json.contains("gravity")) {
-      fan::physics::gphysics.set_gravity(json["gravity"]);
+      fan::physics::gphysics()->set_gravity(json["gravity"]);
     }
     fan::graphics::get_lighting().set_target(json["lighting.ambient"]);
     map_tiles.clear();

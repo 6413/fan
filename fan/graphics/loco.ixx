@@ -124,7 +124,10 @@ struct global_loco_t {
 	}
 };
 
-export inline thread_local global_loco_t gloco;
+export global_loco_t& gloco() {
+  static global_loco_t loco;
+  return loco;
+}
 
 struct next_frame_awaiter {
   bool await_ready() const noexcept { return false; }
@@ -252,8 +255,8 @@ public:
   void viewport_zero(fan::graphics::viewport_nr_t nr);
   bool inside(fan::graphics::viewport_nr_t nr, const fan::vec2& position);
   bool inside_wir(fan::graphics::viewport_nr_t nr, const fan::vec2& position);
-  bool inside(const fan::graphics::render_view_t& render_view, const fan::vec2& position) const;
-  bool is_mouse_inside(const fan::graphics::render_view_t& render_view) const;
+  bool inside(const fan::graphics::render_view_t& render_view, const fan::vec2& position);
+  bool is_mouse_inside(const fan::graphics::render_view_t& render_view);
 
   static std::string read_shader(const std::string& path, const std::source_location& callers_path = std::source_location::current());
 
@@ -319,11 +322,11 @@ public:
 		fan::graphics::shaper_t::ShapeRenderData_t* data = shape->GetRenderData(fan::graphics::g_shapes->shaper);
 
 		// remove gloco
-		if (gloco->window.renderer == fan::window_t::renderer_t::opengl) {
-			gloco->gl.modify_render_data_element_arr(shape, data, attribute, i, arr_member, value);
+		if (gloco()->window.renderer == fan::window_t::renderer_t::opengl) {
+			gloco()->gl.modify_render_data_element_arr(shape, data, attribute, i, arr_member, value);
 		}
 #if defined(fan_vulkan)
-		else if (gloco->window.renderer == fan::window_t::renderer_t::vulkan) {
+		else if (gloco()->window.renderer == fan::window_t::renderer_t::vulkan) {
 			(((T*)data)->*attribute)[i].*arr_member = value;
 			auto& data = fan::graphics::g_shapes->shaper.ShapeList[*shape];
 			fan::graphics::g_shapes->shaper.ElementIsPartiallyEdited(
@@ -342,11 +345,11 @@ public:
 		fan::graphics::shaper_t::ShapeRenderData_t* data = shape->GetRenderData(fan::graphics::g_shapes->shaper);
 
 		// remove gloco
-		if (gloco->window.renderer == fan::window_t::renderer_t::opengl) {
-			gloco->gl.modify_render_data_element(shape, data, attribute, value);
+		if (gloco()->window.renderer == fan::window_t::renderer_t::opengl) {
+			gloco()->gl.modify_render_data_element(shape, data, attribute, value);
 		}
 #if defined(fan_vulkan)
-		else if (gloco->window.renderer == fan::window_t::renderer_t::vulkan) {
+		else if (gloco()->window.renderer == fan::window_t::renderer_t::vulkan) {
 			((T*)data)->*attribute = value;
 			auto& data = fan::graphics::g_shapes->shaper.ShapeList[*shape];
 			fan::graphics::g_shapes->shaper.ElementIsPartiallyEdited(
@@ -586,8 +589,8 @@ public:
   fan::vec2 get_mouse_position(const camera_t& camera, const viewport_t& viewport) const;
   fan::vec2 get_mouse_position(const fan::graphics::render_view_t& render_view) const;
   fan::vec2 get_mouse_position() const;
-  fan::vec2 translate_position(const fan::vec2& p, viewport_t viewport, camera_t camera) const;
-  fan::vec2 translate_position(const fan::vec2& p) const;
+  fan::vec2 translate_position(const fan::vec2& p, viewport_t viewport, camera_t camera);
+  fan::vec2 translate_position(const fan::vec2& p);
 
   bool is_mouse_clicked(int button = fan::mouse_left);
   bool is_mouse_down(int button = fan::mouse_left);
@@ -601,13 +604,12 @@ public:
 	// which assume that
 
 	// pointer
-	using shape_shader_locations_t = decltype(fan::graphics::shaper_t::BlockProperties_t::gl_t::locations);
 
   void shape_open(
     uint16_t shape_type,
     std::size_t sizeof_vi,
     std::size_t sizeof_ri,
-    shape_shader_locations_t shape_shader_locations,
+    fan::graphics::shape_gl_init_list_t shape_shader_locations,
     const std::string& vertex,
     const std::string& fragment,
     fan::graphics::shaper_t::ShapeRenderDataSize_t instance_count = 1,
@@ -709,6 +711,6 @@ export namespace fan::graphics {
 
   template <typename T>
   void shader_set_value(fan::graphics::shader_nr_t nr, const std::string& name, const T& val) {
-    gloco->shader_set_value<T>(nr, name, val);
+    gloco()->shader_set_value<T>(nr, name, val);
   }
 }

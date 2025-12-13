@@ -114,7 +114,7 @@ void update() {
   }
 
   if (!pile.is_map_changing && pile.loco.lighting.is_near(fan::vec3(pile.fadeout_target_color))) {
-    gloco->lighting.set_target(pile.maps_compiled[stage_name].lighting.ambient);
+    gloco()->lighting.set_target(pile.maps_compiled[stage_name].lighting.ambient);
   }
 
   if (!pile.is_map_changing && fan::physics::is_on_sensor(pile.player.body, player_sensor_door)) {

@@ -7,7 +7,7 @@ loco_t& get_loco() {
 
 template <typename T, typename T2, typename T3, typename T4>
 static void modify_render_data_element_arr(fan::graphics::shapes::shape_t* shape, fan::graphics::shaper_t::ShapeRenderData_t* data, T2 T::* attribute, std::size_t j, auto T4::*arr_member, const T3& value) {
-  if ((gloco->context.gl.opengl.major > 3) || (gloco->context.gl.opengl.major == 3 && gloco->context.gl.opengl.minor >= 3)) {
+  if ((gloco()->context.gl.opengl.major > 3) || (gloco()->context.gl.opengl.major == 3 && gloco()->context.gl.opengl.minor >= 3)) {
     (((T*)data)->*attribute)[j].*arr_member = value;
     auto& data = fan::graphics::g_shapes->shaper.ShapeList[*shape];
     fan::graphics::g_shapes->shaper.ElementIsPartiallyEdited(
@@ -37,7 +37,7 @@ static void modify_render_data_element_arr(fan::graphics::shapes::shape_t* shape
 // remove gloco
 template <typename T, typename T2, typename T3>
 static void modify_render_data_element(fan::graphics::shapes::shape_t* shape, fan::graphics::shaper_t::ShapeRenderData_t* data, T2 T::* attribute, const T3& value) {
-  if ((gloco->context.gl.opengl.major > 3) || (gloco->context.gl.opengl.major == 3 && gloco->context.gl.opengl.minor >= 3)) {
+  if ((gloco()->context.gl.opengl.major > 3) || (gloco()->context.gl.opengl.major == 3 && gloco()->context.gl.opengl.minor >= 3)) {
     ((T*)data)->*attribute = value;
     auto& data = fan::graphics::g_shapes->shaper.ShapeList[*shape];
     fan::graphics::g_shapes->shaper.ElementIsPartiallyEdited(
@@ -190,7 +190,7 @@ void init_framebuffer() {
     renderbuffer_properties.internalformat = GL_DEPTH_COMPONENT;
     loco.gl.m_rbo.set_storage(loco.context.gl, renderbuffer_properties);
 
-    fan::vec2 window_size = gloco->window.get_size();
+    fan::vec2 window_size = gloco()->window.get_size();
 
     loco.camera_set_ortho(
       loco.orthographic_render_view.camera,
@@ -241,7 +241,10 @@ void shapes_open() {
         fan::graphics::shapes::sprite_t::shape_type,
         sizeof(fan::graphics::shapes::sprite_t::vi_t),
         sizeof(fan::graphics::shapes::sprite_t::ri_t),
-        &fan::graphics::g_shapes->sprite.locations,
+        fan::graphics::shape_gl_init_list_t{
+          .ptr=fan::graphics::g_shapes->sprite.get_locations().data(),
+          .count=static_cast<int>(fan::graphics::g_shapes->sprite.get_locations().size())
+        },
         "shaders/opengl/2D/objects/sprite_2_1.vs",
         "shaders/opengl/2D/objects/sprite_2_1.fs",
         6 // set instance count to 6 vertices, in opengl 2.1 there is no instancing,
@@ -253,7 +256,10 @@ void shapes_open() {
         fan::graphics::shapes::sprite_t::shape_type,
         sizeof(fan::graphics::shapes::sprite_t::vi_t),
         sizeof(fan::graphics::shapes::sprite_t::ri_t),
-        &fan::graphics::g_shapes->sprite.locations,
+        fan::graphics::shape_gl_init_list_t{
+          .ptr=fan::graphics::g_shapes->sprite.get_locations().data(),
+          .count=static_cast<int>(fan::graphics::g_shapes->sprite.get_locations().size())
+        },
         "shaders/opengl/2D/objects/sprite.vs",
         "shaders/opengl/2D/objects/sprite.fs"
       );
@@ -268,7 +274,10 @@ void shapes_open() {
         fan::graphics::shapes::line_t::shape_type,
         sizeof(fan::graphics::shapes::line_t::vi_t),
         sizeof(fan::graphics::shapes::line_t::ri_t),
-        &fan::graphics::g_shapes->line.locations,
+        fan::graphics::shape_gl_init_list_t{
+          .ptr=fan::graphics::g_shapes->line.get_locations().data(),
+          .count=static_cast<int>(fan::graphics::g_shapes->line.get_locations().size())
+        },
         "shaders/opengl/2D/objects/line.vs",
         "shaders/opengl/2D/objects/line.fs"
       );
@@ -284,7 +293,10 @@ void shapes_open() {
         fan::graphics::shapes::rectangle_t::shape_type,
         sizeof(fan::graphics::shapes::rectangle_t::vi_t),
         sizeof(fan::graphics::shapes::rectangle_t::ri_t),
-        &fan::graphics::g_shapes->rectangle.locations,
+        fan::graphics::shape_gl_init_list_t{
+          .ptr=fan::graphics::g_shapes->rectangle.get_locations().data(),
+          .count=static_cast<int>(fan::graphics::g_shapes->rectangle.get_locations().size())
+        },
         "shaders/opengl/2D/objects/rectangle.vs",
         "shaders/opengl/2D/objects/rectangle.fs"
       );
@@ -300,7 +312,10 @@ void shapes_open() {
         fan::graphics::shapes::light_t::shape_type,
         sizeof(fan::graphics::shapes::light_t::vi_t),
         sizeof(fan::graphics::shapes::light_t::ri_t),
-        &fan::graphics::g_shapes->light.locations,
+        fan::graphics::shape_gl_init_list_t{
+          .ptr=fan::graphics::g_shapes->light.get_locations().data(),
+          .count=static_cast<int>(fan::graphics::g_shapes->light.get_locations().size())
+        },
         "shaders/opengl/2D/objects/light.vs",
         "shaders/opengl/2D/objects/light.fs"
       );
@@ -315,7 +330,10 @@ void shapes_open() {
         fan::graphics::shapes::unlit_sprite_t::shape_type,
         sizeof(fan::graphics::shapes::unlit_sprite_t::vi_t),
         sizeof(fan::graphics::shapes::unlit_sprite_t::ri_t),
-        &fan::graphics::g_shapes->unlit_sprite.locations,
+        fan::graphics::shape_gl_init_list_t{
+          .ptr=fan::graphics::g_shapes->unlit_sprite.get_locations().data(),
+          .count=static_cast<int>(fan::graphics::g_shapes->unlit_sprite.get_locations().size())
+        },
         "shaders/opengl/2D/objects/sprite.vs",
         "shaders/opengl/2D/objects/unlit_sprite.fs"
       );
@@ -331,7 +349,10 @@ void shapes_open() {
         fan::graphics::shapes::circle_t::shape_type,
         sizeof(fan::graphics::shapes::circle_t::vi_t),
         sizeof(fan::graphics::shapes::circle_t::ri_t),
-        &fan::graphics::g_shapes->circle.locations,
+        fan::graphics::shape_gl_init_list_t{
+          .ptr=fan::graphics::g_shapes->circle.get_locations().data(),
+          .count=static_cast<int>(fan::graphics::g_shapes->circle.get_locations().size())
+        },
         "shaders/opengl/2D/objects/circle.vs",
         "shaders/opengl/2D/objects/circle.fs"
       );
@@ -346,7 +367,10 @@ void shapes_open() {
         fan::graphics::shapes::capsule_t::shape_type,
         sizeof(fan::graphics::shapes::capsule_t::vi_t),
         sizeof(fan::graphics::shapes::capsule_t::ri_t),
-        &fan::graphics::g_shapes->capsule.locations,
+        fan::graphics::shape_gl_init_list_t{
+          .ptr=fan::graphics::g_shapes->capsule.get_locations().data(),
+          .count=static_cast<int>(fan::graphics::g_shapes->capsule.get_locations().size())
+        },
         "shaders/opengl/2D/objects/capsule.vs",
         "shaders/opengl/2D/objects/capsule.fs"
       );
@@ -361,7 +385,10 @@ void shapes_open() {
         fan::graphics::shapes::polygon_t::shape_type,
         sizeof(fan::graphics::shapes::polygon_t::vi_t),
         sizeof(fan::graphics::shapes::polygon_t::ri_t),
-        &fan::graphics::g_shapes->polygon.locations,
+        fan::graphics::shape_gl_init_list_t{
+          .ptr=fan::graphics::g_shapes->polygon.get_locations().data(),
+          .count=static_cast<int>(fan::graphics::g_shapes->polygon.get_locations().size())
+        },
         "shaders/opengl/2D/objects/polygon.vs",
         "shaders/opengl/2D/objects/polygon.fs",
         1,
@@ -379,7 +406,10 @@ void shapes_open() {
         fan::graphics::shapes::grid_t::shape_type,
         sizeof(fan::graphics::shapes::grid_t::vi_t),
         sizeof(fan::graphics::shapes::grid_t::ri_t),
-        &fan::graphics::g_shapes->grid.locations,
+        fan::graphics::shape_gl_init_list_t{
+          .ptr=fan::graphics::g_shapes->grid.get_locations().data(),
+          .count=static_cast<int>(fan::graphics::g_shapes->grid.get_locations().size())
+        },
         "shaders/opengl/2D/objects/grid.vs",
         "shaders/opengl/2D/objects/grid.fs"
       );
@@ -400,7 +430,10 @@ void shapes_open() {
         fan::graphics::shapes::particles_t::shape_type,
         sizeof(fan::graphics::shapes::particles_t::vi_t),
         sizeof(fan::graphics::shapes::particles_t::ri_t),
-        &fan::graphics::g_shapes->particles.locations,
+        fan::graphics::shape_gl_init_list_t{
+          .ptr=fan::graphics::g_shapes->particles.get_locations().data(),
+          .count=static_cast<int>(fan::graphics::g_shapes->particles.get_locations().size())
+        },
         "shaders/opengl/2D/effects/particles.vs",
         "shaders/opengl/2D/effects/particles.fs"
       );
@@ -416,7 +449,10 @@ void shapes_open() {
         fan::graphics::shapes::universal_image_renderer_t::shape_type,
         sizeof(fan::graphics::shapes::universal_image_renderer_t::vi_t),
         sizeof(fan::graphics::shapes::universal_image_renderer_t::ri_t),
-        &fan::graphics::g_shapes->universal_image_renderer.locations,
+        fan::graphics::shape_gl_init_list_t{
+          .ptr=fan::graphics::g_shapes->universal_image_renderer.get_locations().data(),
+          .count=static_cast<int>(fan::graphics::g_shapes->universal_image_renderer.get_locations().size())
+        },
         "shaders/opengl/2D/objects/pixel_format_renderer.vs",
         "shaders/opengl/2D/objects/yuv420p.fs"
       );
@@ -432,7 +468,10 @@ void shapes_open() {
         fan::graphics::shapes::gradient_t::shape_type,
         sizeof(fan::graphics::shapes::gradient_t::vi_t),
         sizeof(fan::graphics::shapes::gradient_t::ri_t),
-        &fan::graphics::g_shapes->gradient.locations,
+        fan::graphics::shape_gl_init_list_t{
+          .ptr=fan::graphics::g_shapes->gradient.get_locations().data(),
+          .count=static_cast<int>(fan::graphics::g_shapes->gradient.get_locations().size())
+        },
         "shaders/opengl/2D/effects/gradient.vs",
         "shaders/opengl/2D/effects/gradient.fs"
       );
@@ -448,7 +487,10 @@ void shapes_open() {
         fan::graphics::shapes::shader_shape_t::shape_type,
         sizeof(fan::graphics::shapes::shader_shape_t::vi_t),
         sizeof(fan::graphics::shapes::shader_shape_t::ri_t),
-        &fan::graphics::g_shapes->shader_shape.locations,
+        fan::graphics::shape_gl_init_list_t{
+          .ptr=fan::graphics::g_shapes->shader_shape.get_locations().data(),
+          .count=static_cast<int>(fan::graphics::g_shapes->shader_shape.get_locations().size())
+        },
         "shaders/opengl/2D/objects/sprite.vs",
         "shaders/opengl/2D/objects/sprite.fs"
       );
@@ -461,7 +503,10 @@ void shapes_open() {
       fan::graphics::shapes::rectangle3d_t::shape_type,
       sizeof(fan::graphics::shapes::rectangle3d_t::vi_t),
       sizeof(fan::graphics::shapes::rectangle3d_t::ri_t),
-      &fan::graphics::g_shapes->rectangle3d.locations,
+      fan::graphics::shape_gl_init_list_t{
+        .ptr=fan::graphics::g_shapes->rectangle3d.get_locations().data(),
+        .count=static_cast<int>(fan::graphics::g_shapes->rectangle3d.get_locations().size())
+      },
       "shaders/opengl/3D/objects/rectangle.vs",
       "shaders/opengl/3D/objects/rectangle.fs",
       (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) ? 36 : 1
@@ -478,7 +523,10 @@ void shapes_open() {
         fan::graphics::shapes::line3d_t::shape_type,
         sizeof(fan::graphics::shapes::line3d_t::vi_t),
         sizeof(fan::graphics::shapes::line3d_t::ri_t),
-        &fan::graphics::g_shapes->line3d.locations,
+        fan::graphics::shape_gl_init_list_t{
+          .ptr=fan::graphics::g_shapes->line3d.get_locations().data(),
+          .count=static_cast<int>(fan::graphics::g_shapes->line3d.get_locations().size())
+        },
         "shaders/opengl/3D/objects/line.vs",
         "shaders/opengl/3D/objects/line.fs"
       );
@@ -495,7 +543,10 @@ void shapes_open() {
         fan::graphics::shapes::shadow_t::shape_type,
         sizeof(fan::graphics::shapes::shadow_t::vi_t),
         sizeof(fan::graphics::shapes::shadow_t::ri_t),
-        &fan::graphics::g_shapes->shadow.locations,
+        fan::graphics::shape_gl_init_list_t{
+          .ptr=fan::graphics::g_shapes->shadow.get_locations().data(),
+          .count=static_cast<int>(fan::graphics::g_shapes->shadow.get_locations().size())
+        },
         "shaders/opengl/2D/objects/shadow.vs",
         "shaders/opengl/2D/objects/shadow.fs"
       );
@@ -567,11 +618,14 @@ void add_shape_type(fan::graphics::shaper_t::ShapeTypes_NodeData_t& st, const fa
     shader = loco.shader_get(data.shader);
   }
   uint64_t ptr_offset = 0;
-  if (data.locations == nullptr) {
+  if (data.locations.ptr == nullptr) {
     return;
   }
 
-  for (fan::graphics::shape_gl_init_t& location : *data.locations) {
+  fan::graphics::shape_gl_init_list_t& locations = data.locations;
+
+  for (int i = 0; i < locations.count; ++i) {
+    auto& location = locations.ptr[i];
     if ((loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) && !data.shader.iic()) {
       location.index.first = fan_opengl_call(glGetAttribLocation(shader.gl.id, location.index.second));
     }
@@ -907,7 +961,7 @@ void draw_shapes() {
           );
           //fan::print(fan::time::now() / 1e+9);
         }
-        loco.shader_set_value(shader, fan::graphics::lighting_t::ambient_name, gloco->lighting.ambient);
+        loco.shader_set_value(shader, fan::graphics::lighting_t::ambient_name, gloco()->lighting.ambient);
 
         auto m_vao = fan::graphics::g_shapes->shaper.GetVAO(shape_type);
         auto m_vbo = fan::graphics::g_shapes->shaper.GetVAO(shape_type);
@@ -917,8 +971,9 @@ void draw_shapes() {
 
         if (loco.context.gl.opengl.major < 4 || (loco.context.gl.opengl.major == 4 && loco.context.gl.opengl.minor < 2)) {
           uintptr_t offset = BlockTraverse.GetRenderDataOffset(fan::graphics::g_shapes->shaper);
-          std::vector<fan::graphics::shape_gl_init_t>& locations = fan::graphics::g_shapes->shaper.GetLocations(shape_type);
-          for (const auto& location : locations) {
+          fan::graphics::shape_gl_init_list_t& locations = fan::graphics::g_shapes->shaper.GetLocations(shape_type);
+          for (int i = 0; i < locations.count; ++i) {
+            const auto& location = locations.ptr[i];
             switch (location.type) {
             case GL_UNSIGNED_INT:
             case GL_INT: {

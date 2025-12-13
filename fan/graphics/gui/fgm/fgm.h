@@ -62,14 +62,14 @@ struct fgm_t {
 #include <BLL/BLL.h>
 
   void open_texturepack(const std::string& path) {
-    gloco->texture_pack.open_compiled(path);
+    gloco()->texture_pack.open_compiled(path);
     texturepack_images.clear();
-    texturepack_images.reserve(gloco->texture_pack.size());
+    texturepack_images.reserve(gloco()->texture_pack.size());
 
-    gloco->texture_pack.iterate_loaded_images([this](auto& image) {
+    gloco()->texture_pack.iterate_loaded_images([this](auto& image) {
       texturepack_image_t tp_image;
-      tp_image.image = gloco->texture_pack.get_pixel_data(image.unique_id).image;
-      auto& img_data = gloco->image_get_data(gloco->texture_pack.get_pixel_data(image.unique_id).image);
+      tp_image.image = gloco()->texture_pack.get_pixel_data(image.unique_id).image;
+      auto& img_data = gloco()->image_get_data(gloco()->texture_pack.get_pixel_data(image.unique_id).image);
       fan::vec2 size = img_data.size;
       tp_image.uv0 = fan::vec2(image.position) / size;
       tp_image.uv1 = fan::vec2(tp_image.uv0) + fan::vec2(image.size) / size;
@@ -87,10 +87,10 @@ struct fgm_t {
     content_browser.init(asset_path);
     content_browser.current_view_mode = gui::content_browser_t::view_mode_large_thumbnails;
 
-    render_view.camera = gloco->open_camera(fan::vec2(0, 1), fan::vec2(0, 1));
-    render_view.viewport = gloco->open_viewport(fan::vec2(0), fan::vec2(1));
+    render_view.camera = gloco()->open_camera(fan::vec2(0, 1), fan::vec2(0, 1));
+    render_view.viewport = gloco()->open_viewport(fan::vec2(0), fan::vec2(1));
 
-    auto transparent_texture = gloco->create_transparent_texture();
+    auto transparent_texture = gloco()->create_transparent_texture();
     background = fan::graphics::sprite_t{{
       .render_view = &render_view,
       .position = 0,
@@ -102,7 +102,7 @@ struct fgm_t {
       open_texturepack(texturepack_name);
     }
 
-    key_handle = gloco->window.add_keys_callback([this](const auto& d) {
+    key_handle = gloco()->window.add_keys_callback([this](const auto& d) {
       if (d.state != fan::keyboard_state::press || gui::is_any_item_active()) {
         return;
       }
@@ -111,26 +111,26 @@ struct fgm_t {
       }
     });
 
-    gloco->input_action.add_keycombo({fan::input::key_left_control, fan::input::key_space}, "toggle_content_browser");
-    gloco->input_action.add_keycombo({fan::input::key_left_control, fan::input::key_f}, "set_windowed_fullscreen");
-    gloco->input_action.add_keycombo({fan::input::key_left_control, fan::input::key_s}, "save_file");
+    gloco()->input_action.add_keycombo({fan::input::key_left_control, fan::input::key_space}, "toggle_content_browser");
+    gloco()->input_action.add_keycombo({fan::input::key_left_control, fan::input::key_f}, "set_windowed_fullscreen");
+    gloco()->input_action.add_keycombo({fan::input::key_left_control, fan::input::key_s}, "save_file");
 
-    mouse_move_handle = gloco->window.add_mouse_move_callback([this](const auto& d) {
+    mouse_move_handle = gloco()->window.add_mouse_move_callback([this](const auto& d) {
       if (viewport_settings.move) {
         fan::vec2 move_off = (d.position - viewport_settings.offset) / viewport_settings.zoom;
         auto camera_pos = viewport_settings.pos - move_off;
-        gloco->camera_set_position(render_view.camera, camera_pos);
+        gloco()->camera_set_position(render_view.camera, camera_pos);
       }
     });
 
-    button_handle = gloco->window.add_buttons_callback([this](const auto& d) {
+    button_handle = gloco()->window.add_buttons_callback([this](const auto& d) {
       f32_t old_zoom = viewport_settings.zoom;
 
       switch (d.button) {
       case fan::mouse_middle: {
         viewport_settings.move = (bool)d.state;
-        viewport_settings.offset = gloco->get_mouse_position();
-        viewport_settings.pos = gloco->camera_get_position(render_view.camera);
+        viewport_settings.offset = gloco()->get_mouse_position();
+        viewport_settings.pos = gloco()->camera_get_position(render_view.camera);
         break;
       }
       case fan::mouse_scroll_up: {
@@ -271,15 +271,15 @@ struct fgm_t {
       render_texture_property(shape, 2, "Specular map", true);
       render_texture_property(shape, 3, "Occlusion map", true);
 
-      int current_image_filter = gloco->image_get_settings(shape->children[0].get_image()).min_filter;
+      int current_image_filter = gloco()->image_get_settings(shape->children[0].get_image()).min_filter;
       static const char* image_filters[] = {"nearest", "linear"};
       if (gui::combo("image filter", &current_image_filter, image_filters, std::size(image_filters))) {
         fan::graphics::image_load_properties_t ilp;
         ilp.min_filter = current_image_filter;
         ilp.mag_filter = current_image_filter;
-        gloco->image_set_settings(shape->children[0].get_image(), ilp);
+        gloco()->image_set_settings(shape->children[0].get_image(), ilp);
         if (shape->children[0].get_images()[0].iic() == false) {
-          gloco->image_set_settings(shape->children[0].get_images()[0], ilp);
+          gloco()->image_set_settings(shape->children[0].get_images()[0], ilp);
         }
       }
 
@@ -288,12 +288,12 @@ struct fgm_t {
       if (gui::input_text("image path", &str)) {
         if (gui::is_item_deactivated_after_edit()) {
           fan::graphics::texture_pack::ti_t ti;
-          if (gloco->texture_pack.qti(str.c_str(), &ti)) {
+          if (gloco()->texture_pack.qti(str.c_str(), &ti)) {
             fan::print_no_space("failed to load texture:", str);
           }
           else {
             current = str.substr(0, std::strlen(str.c_str()));
-            auto& data = gloco->texture_pack.get_pixel_data(ti.unique_id);
+            auto& data = gloco()->texture_pack.get_pixel_data(ti.unique_id);
             if (shape->children[0].get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {
               shape->children[0].load_tp(&ti);
             }
@@ -312,16 +312,16 @@ struct fgm_t {
     using namespace fan::graphics;
     auto current_image = is_array ? shape->children[0].get_images()[index - 1] : shape->children[0].get_image();
     if (current_image.iic()) {
-      current_image = gloco->default_texture;
+      current_image = gloco()->default_texture;
     }
     fan::vec2 uv0 = shape->children[0].get_tc_position(), uv1 = shape->children[0].get_tc_size();
     uv1 += uv0;
     gui::image(current_image, fan::vec2(64), uv0, uv1);
     gui::receive_drag_drop_target("CONTENT_BROWSER_ITEMS", [&, shape, index, is_array](const std::string& path) {
-      if (current_image != gloco->default_texture) {
-        gloco->image_unload(current_image);
+      if (current_image != gloco()->default_texture) {
+        gloco()->image_unload(current_image);
       }
-      auto new_image = gloco->image_load((std::filesystem::path(content_browser.asset_path) / path).generic_string());
+      auto new_image = gloco()->image_load((std::filesystem::path(content_browser.asset_path) / path).generic_string());
       if (is_array) {
         auto images = shape->children[0].get_images();
         images[index - 1] = new_image;
@@ -550,14 +550,14 @@ struct fgm_t {
 
     fan::vec2 editor_size;
 
-    if (gloco->input_action.is_active("set_windowed_fullscreen")) {
-      gloco->window.set_windowed_fullscreen();
+    if (gloco()->input_action.is_active("set_windowed_fullscreen")) {
+      gloco()->window.set_windowed_fullscreen();
     }
 
-    if (gloco->input_action.is_active("toggle_content_browser")) {
+    if (gloco()->input_action.is_active("toggle_content_browser")) {
       render_content_browser = !render_content_browser;
     }
-    if (gloco->input_action.is_active("save_file")) {
+    if (gloco()->input_action.is_active("save_file")) {
       fout(previous_filename);
     }
 
@@ -566,7 +566,7 @@ struct fgm_t {
     }
 
     if (gui::begin("Editor", nullptr, gui::window_flags_menu_bar | gui::window_flags_no_background)) {
-      fan::vec2 window_size = gloco->window.get_size();
+      fan::vec2 window_size = gloco()->window.get_size();
       fan::vec2 viewport_size = gui::get_window_size();
       fan::vec2 ratio = viewport_size / viewport_size.max();
       fan::vec2 s = viewport_size;
@@ -575,7 +575,7 @@ struct fgm_t {
 
       f32_t zoom = viewport_settings.zoom;
       fan::vec2 ground_size = viewport_size * (1.0f / zoom);
-      fan::vec2 camera_pos = gloco->camera_get_position(render_view.camera);
+      fan::vec2 camera_pos = gloco()->camera_get_position(render_view.camera);
 
       auto world_size = viewport_size / zoom;
 
@@ -609,13 +609,13 @@ struct fgm_t {
 
       viewport_size = vMax - vMin + fan::vec2(style.WindowPadding) * 2;
 
-      gloco->viewport_set(
+      gloco()->viewport_set(
         render_view.viewport,
         vMin - fan::vec2(style.WindowPadding),
         viewport_size
       );
 
-      gloco->camera_set_ortho(
+      gloco()->camera_set_ortho(
         render_view.camera,
         fan::vec2(-viewport_size.x / 2, viewport_size.x / 2) / viewport_settings.zoom,
         fan::vec2(-viewport_size.y / 2, viewport_size.y / 2) / viewport_settings.zoom
@@ -646,9 +646,9 @@ struct fgm_t {
           fin(file);
         }
         else {
-          auto image = gloco->image_load((fs).generic_string());
+          auto image = gloco()->image_load((fs).generic_string());
           fan::vec2 initial_size = 128.f;
-          fan::vec2 original_size = gloco->image_get_data(image).size;
+          fan::vec2 original_size = gloco()->image_get_data(image).size;
           initial_size.x *= (original_size.x / original_size.y);
           auto nr = push_shape(fan::graphics::shapes::shape_type_t::sprite, get_mouse_position(), initial_size);
           shape_list[nr]->children[0].set_image(image);
@@ -657,7 +657,7 @@ struct fgm_t {
 
       gui::receive_drag_drop_target("FGM_TEXTUREPACK_DROP", [&](const std::string& path) {
         fan::graphics::texture_pack_t::ti_t ti;
-        if (gloco->texture_pack.qti(path, &ti)) {
+        if (gloco()->texture_pack.qti(path, &ti)) {
           fan::print_no_space("non texturepack texture or failed to load texture:", path);
         }
         else {
@@ -750,9 +750,9 @@ struct fgm_t {
     gui::end();
 
     if (gui::begin("Settings")) {
-      if (gui::color_edit3("background", &gloco->clear_color)) {
+      if (gui::color_edit3("background", &gloco()->clear_color)) {
       }
-      if (gui::color_edit3("ambient", &gloco->lighting.ambient)) {
+      if (gui::color_edit3("ambient", &gloco()->lighting.ambient)) {
       }
       if (gui::drag("grid snap", &fan::graphics::vfi_root_t::snap, 1, 0, FLT_MAX, gui::slider_flags_always_clamp)) {
       }
@@ -790,7 +790,7 @@ struct fgm_t {
             if (shape.get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {
               auto& anim = fan::graphics::get_sprite_sheet_animation(animations_application.current_animation_nr);
               if (animation_changed && animations_application.current_animation_nr && animations_application.play_animation) {
-                if (gloco->is_image_valid(shape.get_image()) == false) {
+                if (gloco()->is_image_valid(shape.get_image()) == false) {
                   shape.set_tc_position(0);
                   shape.set_tc_size(1);
                 }
@@ -899,7 +899,7 @@ struct fgm_t {
 
     for (auto& [shape, anim] : shape_animations) {
       if (anim.is_playing && anim.owner_shape && !anim.keyframes.empty()) {
-        anim.update(gloco->delta_time);
+        anim.update(gloco()->delta_time);
         anim.apply_to_shape(anim.owner_shape);
       }
     }
@@ -917,11 +917,11 @@ struct fgm_t {
 
     fan::json ostr;
     ostr["version"] = current_version;
-    if (gloco->lighting.ambient != fan::graphics::lighting_t().ambient) {
-      ostr["lighting.ambient"] = gloco->lighting.ambient;
+    if (gloco()->lighting.ambient != fan::graphics::lighting_t().ambient) {
+      ostr["lighting.ambient"] = gloco()->lighting.ambient;
     }
-    if (gloco->clear_color != fan::colors::black) {
-      ostr["clear_color"] = gloco->clear_color;
+    if (gloco()->clear_color != fan::colors::black) {
+      ostr["clear_color"] = gloco()->clear_color;
     }
     {
       auto animations_json = fan::graphics::sprite_sheet_serialize();
@@ -987,11 +987,11 @@ struct fgm_t {
 
   void load_tp(fgm_t::shape_list_NodeData_t& node) {
     fan::graphics::texture_pack_t::ti_t ti;
-    if (gloco->texture_pack.qti(node->children[0].get_image_data().image_path, &ti)) {
+    if (gloco()->texture_pack.qti(node->children[0].get_image_data().image_path, &ti)) {
       fan::graphics::gui::print_warning("texturepack: non texturepack texture or failed to load texture:", node->children[0].get_image_data().image_path);
     }
     else {
-      auto& data = gloco->texture_pack.get_pixel_data(ti.unique_id);
+      auto& data = gloco()->texture_pack.get_pixel_data(ti.unique_id);
       node->children[0].load_tp(&ti);
     }
   }
@@ -1004,10 +1004,10 @@ struct fgm_t {
     fan::io::file::read(filename, &in);
     fan::json json_in = fan::json::parse(in);
     if (json_in.contains("lighting.ambient")) {
-      gloco->lighting.ambient = json_in["lighting.ambient"];
+      gloco()->lighting.ambient = json_in["lighting.ambient"];
     }
     if (json_in.contains("clear_color")) {
-      gloco->clear_color = json_in["clear_color"];
+      gloco()->clear_color = json_in["clear_color"];
     }
 
     json_in.find_and_iterate("image_path", [&filename](fan::json& value) {

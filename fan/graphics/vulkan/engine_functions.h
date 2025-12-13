@@ -37,10 +37,10 @@ void shapes_open() {
     std::vector<fan::vulkan::write_descriptor_set_t> ds_properties(2);
 
     VkDescriptorImageInfo imageInfo{};
-    gloco->context.vk.create_texture_sampler(post_process_sampler, fan::vulkan::context_t::image_load_properties_t());
+    gloco()->context.vk.create_texture_sampler(post_process_sampler, fan::vulkan::context_t::image_load_properties_t());
 
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = gloco->get_context().vk.mainColorImageViews[0].image_view;
+    imageInfo.imageView = gloco()->get_context().vk.mainColorImageViews[0].image_view;
     imageInfo.sampler = post_process_sampler;
 
     ds_properties[0].use_image = 1;
@@ -53,7 +53,7 @@ void shapes_open() {
     }
 
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageInfo.imageView = gloco->get_context().vk.postProcessedColorImageViews[0].image_view;
+    imageInfo.imageView = gloco()->get_context().vk.postProcessedColorImageViews[0].image_view;
     imageInfo.sampler = post_process_sampler;
 
     imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;

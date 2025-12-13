@@ -71,14 +71,14 @@ namespace fan {
         };
       //bcol.PreSolve_Shape_cb = ...
 
-  //    auto nr = gloco->m_update_callback.NewNodeLast();
-     /* gloco->m_update_callback[nr] = [] (auto* loco) {
+  //    auto nr = gloco()->m_update_callback.NewNodeLast();
+     /* gloco()->m_update_callback[nr] = [] (auto* loco) {
         {
           static f32_t bcol_delta = 0;
           const f32_t bcol_delta_max = 2;
 
           {
-            bcol_delta += gloco->delta_time;
+            bcol_delta += gloco()->delta_time;
           }
 
           if (bcol_delta > bcol_delta_max) {
@@ -174,27 +174,27 @@ namespace fan {
       }
 
       void move(const fan::vec2& speed) {
-        f32_t dt = gloco->delta_time;
+        f32_t dt = gloco()->delta_time;
         f32_t multiplier = 1;
 
         fan::vec2 velocity = 0;
-        if (gloco->window.key_pressed(fan::key_shift)) {
+        if (gloco()->window.key_pressed(fan::key_shift)) {
           multiplier = 3;
         }
-        if (gloco->window.key_pressed(fan::key_d)) {
+        if (gloco()->window.key_pressed(fan::key_d)) {
           velocity.x = speed.x * multiplier;
         }
-        else if (gloco->window.key_pressed(fan::key_a)) {
+        else if (gloco()->window.key_pressed(fan::key_a)) {
           velocity.x = -speed.x * multiplier;
         }
         else {
           velocity.x = 0;
         }
 
-        if (gloco->window.key_pressed(fan::key_w)) {
+        if (gloco()->window.key_pressed(fan::key_w)) {
           velocity.y = -speed.y * multiplier;
         }
-        else if (gloco->window.key_pressed(fan::key_s)) {
+        else if (gloco()->window.key_pressed(fan::key_s)) {
           velocity.y = speed.y * multiplier;
         }
         else {

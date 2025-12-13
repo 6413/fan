@@ -34,11 +34,11 @@ struct structor_t {
     if (!std::string(lstd_current_type::stage_name).empty()) {
       gstage->load_fgm(outside, op, lstd_current_type::stage_name);
     }
-    gstage->stage_list[outside->stage_common.stage_id].update_nr = gloco->m_update_callback.NewNodeFirst();
-    gloco->m_update_callback[gstage->stage_list[outside->stage_common.stage_id].update_nr] = [&, outside](void* ptr) {
+    gstage->stage_list[outside->stage_common.stage_id].update_nr = gloco()->m_update_callback.NewNodeFirst();
+    gloco()->m_update_callback[gstage->stage_list[outside->stage_common.stage_id].update_nr] = [&, outside](void* ptr) {
       outside->update();
     };
-    gstage->stage_list[outside->stage_common.stage_id].resize_id = gloco->window.add_resize_callback([outside](const auto& d) {
+    gstage->stage_list[outside->stage_common.stage_id].resize_id = gloco()->window.add_resize_callback([outside](const auto& d) {
       fan::print("todo -- stage common window resize (if_has_function)");
        // fan_if_has_function(outside, window_resize, ());
     });

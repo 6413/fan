@@ -56,7 +56,7 @@ struct player_t {
     //body updates
 
     // map renderer & camera update
-    gloco->camera_move_to_smooth(body);
+    gloco()->camera_move_to_smooth(body);
     fan::vec2 position = body.get_position();
     //ImGui::Begin("A");
     //ImGui::DragFloat("z", &z, 1);

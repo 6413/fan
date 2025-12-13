@@ -13,14 +13,14 @@ int main() {
   fan::graphics::model_t model(p);
 
 
-  //gloco->perspective_camera.camera.position = { 3.46, 1.94, -6.22 };
+  //gloco()->perspective_camera.camera.position = { 3.46, 1.94, -6.22 };
 
-  auto& opengl = gloco->get_context().opengl;
+  auto& opengl = gloco()->get_context().opengl;
 
   fan_opengl_call(GenTextures(1, &model.envMapTexture));
   fan_opengl_call(glBindTexture(GL_TEXTURE_CUBE_MAP, model.envMapTexture));
 
-  fan::vec2 window_size = gloco->window.get_size();
+  fan::vec2 window_size = gloco()->window.get_size();
 
 
   fan_opengl_call(TexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
@@ -38,13 +38,13 @@ int main() {
     fan::image::free(&image_info);
   }
 
-  gloco->m_post_draw.push_back([&] {
+  gloco()->m_post_draw.push_back([&] {
    
     model.draw();
     ImGui::End();
   });
 
-  auto& camera = gloco->camera_get(gloco->perspective_camera.camera);
+  auto& camera = gloco()->camera_get(gloco()->perspective_camera.camera);
 
   fan::vec2 motion = 0;
   loco.window.add_mouse_motion([&](const auto& d) {

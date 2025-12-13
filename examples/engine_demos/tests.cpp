@@ -12,6 +12,11 @@ import fan;
 
 using namespace fan::graphics;
 
+// make it global to try break it more with siof
+engine_t engine{ {
+  .renderer = fan::window_t::renderer_t::opengl,
+} };
+
 struct test_result_t {
   std::string name;
   bool passed;
@@ -105,7 +110,6 @@ struct shape_tester_t {
       throw std::runtime_error(msg);
     }
   }
-
   void test_keypack_integrity() {
     run_test("Keypack Integrity - Rectangle", [&]() {
       rectangle_t rect{ {
@@ -130,6 +134,56 @@ struct shape_tester_t {
 
       auto keypack_size = g_shapes->shaper.GetKeysSize(sprite);
       assert_true(keypack_size > 0, "Keypack size should be > 0");
+    });
+  }
+
+  void assert_shape_type_attribs_enabled(
+    fan::graphics::shaper_t& shaper,
+    fan::graphics::shaper_t::ShapeTypeIndex_t sti
+  ) {
+    if (fan::graphics::ctx().get_renderer() != fan::window_t::renderer_t::opengl) {
+      return;
+    }
+
+    auto& st = shaper.ShapeTypes[sti];
+    auto& gl = st.renderer.gl;
+
+    if (!gl.m_vao.is_valid()) {
+      return;
+    }
+
+    gl.m_vao.bind(*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx())));
+
+    if (gl.locations.ptr == nullptr || gl.locations.count == 0) {
+      return;
+    }
+
+    for (int i = 0; i < gl.locations.count; ++i) {
+      const auto& loc = gl.locations.ptr[i];
+      GLint enabled = 0;
+      glGetVertexAttribiv(loc.index.first, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &enabled);
+
+      if (!enabled) {
+        throw std::runtime_error(
+          "ShapeType sti=" + std::to_string((int)sti) +
+          " attrib disabled at location " + std::to_string(loc.index.first) +
+          " (" + (loc.index.second ? loc.index.second : "unnamed") + ")"
+        );
+      }
+    }
+  }
+  void test_all_shape_types_attribs() {
+    run_test("VAO Attrib Enabled - All ShapeTypes", [&]() {
+      auto& shaper = engine.shapes.shaper;
+
+      fan::graphics::shaper_t::ShapeTypes_t::nrtra_t tra;
+      fan::graphics::shaper_t::ShapeTypeIndex_t sti;
+
+      tra.Open(&shaper.ShapeTypes, &sti);
+      while (tra.Loop(&shaper.ShapeTypes, &sti)) {
+        assert_shape_type_attribs_enabled(shaper, sti);
+      }
+      tra.Close(&shaper.ShapeTypes);
     });
   }
 
@@ -954,6 +1008,7 @@ struct shape_tester_t {
     fan::print_color(fan::colors::green, "\n=== Running Shape System Tests ===\n");
 
     test_keypack_integrity();
+    test_all_shape_types_attribs();
     test_position_operations();
     test_size_operations();
     test_color_operations();
@@ -991,10 +1046,6 @@ struct shape_tester_t {
 
     print_benchmark_results();
   }
-
-  engine_t engine{ {
-    .renderer = fan::window_t::renderer_t::opengl,
-  } };
 
   std::vector<test_result_t> test_results;
   std::vector<benchmark_result_t> benchmark_results;

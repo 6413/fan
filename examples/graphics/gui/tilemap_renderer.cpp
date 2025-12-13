@@ -4,7 +4,7 @@
 
 struct player_t {
    player_t() {
-    b2World_SetPreSolveCallback(gloco->physics_context.world_id, presolve_static, this);
+    b2World_SetPreSolveCallback(gloco()->physics_context.world_id, presolve_static, this);
   }
   static bool presolve_static(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, void* context) {
     player_t* pl = static_cast<player_t*>(context);
@@ -89,8 +89,8 @@ int main() {
       map_id0_t = renderer.add(&compiled_map, p);
     }
     fan::vec2 dst = player.player.character.get_position();
-    fan::vec2 src = gloco->camera_get_position(gloco->orthographic_render_view.camera);
-    gloco->camera_set_position(gloco->orthographic_render_view.camera, dst);
+    fan::vec2 src = gloco()->camera_get_position(gloco()->orthographic_render_view.camera);
+    gloco()->camera_set_position(gloco()->orthographic_render_view.camera, dst);
     renderer.update(map_id0_t, dst);
   });
 }

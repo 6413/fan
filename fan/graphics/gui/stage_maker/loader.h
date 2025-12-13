@@ -81,8 +81,8 @@ public:
 
   struct stage_open_properties_t {
 
-    fan::graphics::camera_t* camera = &gloco->orthographic_render_view.camera;
-    fan::graphics::viewport_t* viewport = &gloco->orthographic_render_view.viewport;
+    fan::graphics::camera_t* camera = &gloco()->orthographic_render_view.camera;
+    fan::graphics::viewport_t* viewport = &gloco()->orthographic_render_view.viewport;
 
     stage_loader_t::nr_t parent_id;
     uint32_t itToDepthMultiplier = 0x100;
@@ -189,7 +189,7 @@ public:
 
   void erase_stage(nr_t id) {
     auto* sc = (stage_common_t*)stage_list[id].stage;
-    gloco->m_update_callback.unlrec(stage_list[id].update_nr);
+    gloco()->m_update_callback.unlrec(stage_list[id].update_nr);
     sc->close(stage_list[id].stage);
     stage_list.unlrec(id);
     //stage->close();

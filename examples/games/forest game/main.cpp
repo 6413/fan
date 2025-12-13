@@ -86,7 +86,7 @@ pile_t::pile_t() {
   lp.min_filter = fan::graphics::image_filter::nearest;
   lp.mag_filter = fan::graphics::image_filter::nearest;
 
-  gloco->texture_pack.open_compiled("examples/games/forest game/tileset.ftp", lp);
+  gloco()->texture_pack.open_compiled("examples/games/forest game/tileset.ftp", lp);
 
   renderer.open();
   

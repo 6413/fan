@@ -17,13 +17,13 @@ int main() {
   loco.shader_set_fragment(model.m_shader, model.material_fs);
   loco.shader_compile(model.m_shader);
 
-  loco.camera_set_position(gloco->perspective_camera.camera, { 3.46, 1.94, -6.22 });
+  loco.camera_set_position(gloco()->perspective_camera.camera, { 3.46, 1.94, -6.22 });
   //fan_3d::graphics::add_camera_rotation_callback(&camera);
 
   fan::time::timer timer;
   timer.start();
 
-  fan::vec2 window_size = gloco->window.get_size();
+  fan::vec2 window_size = gloco()->window.get_size();
 
   f32_t angle = 0;
 
@@ -228,7 +228,7 @@ int main() {
   uint64_t rotation_count = 0;
   int prev_rot = 0;
 
-  gloco->m_post_draw.push_back([&] {
+  gloco()->m_post_draw.push_back([&] {
     ImGui::Checkbox("pause", &pause);
 
     static bool shuffle = true;
@@ -280,14 +280,14 @@ int main() {
 
       prev_angle = angle;
       if (!pause)
-        angle += gloco->delta_time * speed;
+        angle += gloco()->delta_time * speed;
     }
 
     model.draw();
     ImGui::End();
   });
 
-  auto& camera = gloco->camera_get(gloco->perspective_camera.camera);
+  auto& camera = gloco()->camera_get(gloco()->perspective_camera.camera);
 
   fan::vec2 motion = 0;
   loco.window.add_mouse_motion([&](const auto& d) {
@@ -301,7 +301,7 @@ int main() {
 
   loco.loop([&] {
 
-    model.fms.x += gloco->delta_time;
+    model.fms.x += gloco()->delta_time;
     ImGui::Begin("window");
 
     fan::mat4 rot = fan::mat4(1).rotate(loco.delta_time, 1);
@@ -311,7 +311,7 @@ int main() {
       i.transform = i.transform * rot;
     }*/
 
-    fan::ray3_t ray = gloco->convert_mouse_to_ray(camera.position, camera.m_projection, camera.m_view);
+    fan::ray3_t ray = gloco()->convert_mouse_to_ray(camera.position, camera.m_projection, camera.m_view);
 
     if (!ImGui::IsAnyItemActive()) {
       if (ImGui::IsKeyDown(ImGuiKey_LeftArrow)) {

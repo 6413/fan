@@ -159,7 +159,7 @@ struct pile_t {
         if (get_editor().begin_render_common("Render view", flags)) {
           fan::graphics::gui::set_viewport(get_editor().viewport_nr);
           if (ImGui::IsWindowFocused()) {
-            get_loco().camera_move(get_editor().camera, gloco->delta_time, get_editor().camera_properties.speed, get_editor().camera_properties.friction);
+            get_loco().camera_move(get_editor().camera, gloco()->delta_time, get_editor().camera_properties.speed, get_editor().camera_properties.friction);
           }
 
           // drag and drop
@@ -737,9 +737,9 @@ struct pile_t {
     fan::graphics::context_viewport_t& viewport;
     fan::graphics::gui::content_browser_t content_browser;
 
-    fan::graphics::image_t icon_video_camera = gloco->image_load("images/editor/video-camera.webp");
-    fan::graphics::image_t icon_lightbulb = gloco->image_load("images/editor/lightbulb.webp");
-    fan::graphics::image_t icon_skeleton = gloco->image_load("images/editor/skeleton.webp");
+    fan::graphics::image_t icon_video_camera = gloco()->image_load("images/editor/video-camera.webp");
+    fan::graphics::image_t icon_lightbulb = gloco()->image_load("images/editor/lightbulb.webp");
+    fan::graphics::image_t icon_skeleton = gloco()->image_load("images/editor/skeleton.webp");
 
     void init_editor_theme() {
       ImGuiStyle& style = ImGui::GetStyle();

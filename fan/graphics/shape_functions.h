@@ -79,9 +79,9 @@ inline static void update_shape(shape_t* shape, modifier_t&& modifier_fn) {
   if (sti == fan::graphics::shapes::shape_type_t::sprite) {
     if (add_sprite_sheet_update) {
       auto& new_ri = *(fan::graphics::shapes::sprite_t::ri_t*)shape->GetData(g_shapes->shaper);
-      new_ri.sprite_sheet_data.frame_update_nr = fan::graphics::g_render_context_handle.update_callback->NewNodeLast();
+      new_ri.sprite_sheet_data.frame_update_nr = fan::graphics::ctx().update_callback->NewNodeLast();
       //fan::print("+", new_ri.sprite_sheet_data.frame_update_nr.NRI);
-      (*fan::graphics::g_render_context_handle.update_callback)[new_ri.sprite_sheet_data.frame_update_nr] = [nr = shape->NRI](void* ptr) {
+      (*fan::graphics::ctx().update_callback)[new_ri.sprite_sheet_data.frame_update_nr] = [nr = shape->NRI](void* ptr) {
         fan::graphics::shapes::shape_t::sprite_sheet_frame_update_cb(g_shapes->shaper, (fan::graphics::shapes::shape_t*)&nr);
       };
     }
@@ -94,6 +94,11 @@ inline static void update_shape(shape_t* shape, modifier_t&& modifier_fn) {
 
 template<typename sti_t, typename key_pack_t>
 inline static void set_position_impl(sti_t sti, key_pack_t key_pack, const fan::vec3& position) {
+#if fan_debug >= 3
+  if (position.z > std::numeric_limits<decltype(kps_t::common_t::depth)>::max()) {
+    fan::throw_error("z depth value exceeded. dont give me bigger depth than", std::numeric_limits<decltype(kps_t::common_t::depth)>::max());
+  }
+#endif
 	switch (get_shape_category(sti)) {
 		case shape_category_t::common:
 			shaper_get_key_safe(depth_t, common_t, depth) = position.z;
@@ -507,11 +512,14 @@ struct shape_functions_t {
 	#define MAKE_ENTRY(shape, op, cb_type) base_functions_t<cb_type>{TRY_DEFAULT(op, cb_type, shape)},
 	#define MAKE_VTABLE(shape) {VTABLE_OPS(MAKE_ENTRY, shape)}
 
-	inline static shape_vtable_t vtables[shape_type_t::last] = {
-		#define MAKE_ONE(shape) MAKE_VTABLE(shape),
-			SHAPE_LIST(MAKE_ONE)
-		#undef MAKE_ONE
-	};
+  static std::array<shape_vtable_t, shape_type_t::last>& vtables() {
+    static std::array<shape_vtable_t, shape_type_t::last> vtabs = {{
+      #define MAKE_ONE(shape) MAKE_VTABLE(shape),
+      SHAPE_LIST(MAKE_ONE)
+      #undef MAKE_ONE
+    }};
+    return vtabs;
+  }
 
 	struct functions_t {
 	#define MAKE_MEMBER(shape, op, cb_type) base_functions_t<cb_type> op;
@@ -519,12 +527,12 @@ struct shape_functions_t {
 		#undef MAKE_MEMBER
 	};
 
-	#define SHAPE_FUNCTION_OVERRIDE(shape, op, fn) (shape_functions_t::vtables[shape].op = shape_functions_t::base_functions_t{ fn })
+	#define SHAPE_FUNCTION_OVERRIDE(shape, op, fn) (shape_functions_t::vtables()[shape].op = shape_functions_t::base_functions_t{ fn })
 
 	shape_functions_t() {
 		{
 			static auto f = +[] (const shape_t* shape) -> fan::graphics::image_data_t& {
-				return (*fan::graphics::g_render_context_handle.image_list)[shape->get_image()];
+				return (*fan::graphics::ctx().image_list)[shape->get_image()];
 			};
 			SHAPE_FUNCTION_OVERRIDE(shape_type_t::sprite, get_image_data, f);
 			SHAPE_FUNCTION_OVERRIDE(shape_type_t::unlit_sprite, get_image_data, f);
@@ -535,7 +543,7 @@ struct shape_functions_t {
 				auto ri = (polygon_t::ri_t*)shape->GetData(g_shapes->shaper);
 				fan::vec3 position = 0;
 				fan::opengl::core::get_glbuffer(
-					(*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle))),
+					(*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))),
 					&position,
 					ri->vbo.m_buffer,
 					sizeof(position),
@@ -546,12 +554,12 @@ struct shape_functions_t {
 			});
 			SHAPE_FUNCTION_OVERRIDE(shape_type_t::polygon, set_position2, +[](shape_t* shape, const fan::vec2& position) {
 				auto ri = (polygon_t::ri_t*)shape->GetData(g_shapes->shaper);
-				ri->vao.bind((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle))));
-				ri->vbo.bind((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle))));
+				ri->vao.bind((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))));
+				ri->vbo.bind((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))));
 				uint32_t vertex_count = ri->buffer_size / sizeof(polygon_vertex_t);
 				for (uint32_t i = 0; i < vertex_count; ++i) {
 					fan::opengl::core::edit_glbuffer(
-						(*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle))),
+						(*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))),
 						ri->vbo.m_buffer,
 						&position,
 						sizeof(polygon_vertex_t) * i + fan::member_offset(&polygon_vertex_t::offset),
@@ -562,12 +570,12 @@ struct shape_functions_t {
 			});
 			SHAPE_FUNCTION_OVERRIDE(shape_type_t::polygon, set_angle, +[] (shape_t* shape, const fan::vec3& angle) {
 				auto ri = (polygon_t::ri_t*)shape->GetData(g_shapes->shaper);
-				ri->vao.bind((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle))));
-				ri->vbo.bind((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle))));
+				ri->vao.bind((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))));
+				ri->vbo.bind((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))));
 				uint32_t vertex_count = ri->buffer_size / sizeof(polygon_vertex_t);
 				for (uint32_t i = 0; i < vertex_count; ++i) {
 					fan::opengl::core::edit_glbuffer(
-						(*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::g_render_context_handle))),
+						(*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))),
 						ri->vbo.m_buffer,
 						&angle,
 						sizeof(polygon_vertex_t) * i + fan::member_offset(&polygon_vertex_t::angle),
@@ -579,13 +587,13 @@ struct shape_functions_t {
 		}
 		{ // light
 			SHAPE_FUNCTION_OVERRIDE(shape_type_t::light, get_radius, +[] (const shape_t* shape) {
-				return vtables[shape_type_t::light].get_size(shape).x;
+				return vtables()[shape_type_t::light].get_size(shape).x;
 			});
 		}
 	}
 
 	auto& operator[](uint16_t shape){
-		return vtables[shape];
+		return vtables()[shape];
 	}
 };
 
