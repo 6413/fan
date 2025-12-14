@@ -9,6 +9,8 @@ typedef void(*page_function_t)(settings_menu_t*, const fan::vec2& next_window_po
 struct settings_menu_t {
   // pages are divided into two vertically
 
+  inline static bool hide_bg = false;
+
   static void begin_menu_left(
     const char* name, 
     const fan::vec2& next_window_position,
@@ -17,7 +19,7 @@ struct settings_menu_t {
     gui::push_font(gui::get_font(24));
     gui::set_next_window_pos(next_window_position);
     gui::set_next_window_size(next_window_size);
-    gui::set_next_window_bg_alpha(0.99);
+    gui::set_next_window_bg_alpha(hide_bg ? 0 : 0.99);
     gui::begin(name, nullptr, wnd_flags);
   }
   static void end_menu_left() {
@@ -160,16 +162,79 @@ struct settings_menu_t {
         gui::checkbox("##track_opengl_calls", (bool*)&fan_track_opengl_calls());
       }
 
+      gui::end_table();
+    }
+
+    gui::new_line();
+    gui::new_line();
+    {
+      gui::text(title_color, "DEBUG");
+      gui::begin_table("settings_left_table_debug", 2,
+        gui::table_flags_borders_inner_h |
+        gui::table_flags_borders_outer_h
+      );
+
+      static bool hide_gui_settings = false;
+
+      bool did_hide_bg = hide_gui_settings;
+      {
+        gui::table_next_row();
+
+        gui::table_next_column();
+        gui::text("Frustum culling");
+
+        gui::table_next_column();
+        gui::text("Enable frustum culling");
+        gui::checkbox("##enable_culling", &gloco()->frustum_culling.enabled);
+
+        gui::text("Visualize culling");
+        static bool visualize_culling = false;
+        gui::checkbox("##visualize_culling", &visualize_culling);
+
+        if (visualize_culling) {
+          gloco()->frustum_culling.visualize();
+
+          gui::text("Frustum culling extents padding (default render view)");
+          gui::indent(10.f);
+          //gui::table_next_column();
+          gui::drag("##culling_bounds", &gloco()->frustum_culling.padding, 1);
+
+          if (!hide_gui_settings) {
+            hide_bg = gui::is_item_active();
+            if (hide_bg != did_hide_bg) {
+              did_hide_bg = true;
+            }
+          }
+
+          gui::unindent();
+        }
+      }
+
+      {
+        gui::table_next_row();
+
+        gui::table_next_column();
+        gui::text("Hide settings background");
+
+        gui::table_next_column();
+        gui::checkbox("##hide_settings_bg", &hide_gui_settings);
+        if (!did_hide_bg) {
+          hide_bg = hide_gui_settings;
+        }
+      }
+
       {
         static const char* fill_modes[] = {
           "Fill",
           "Line"
         };
+        gui::table_next_row();
+
         gui::table_next_column();
         gui::text("Fill mode");
         gui::table_next_column();
         static int fill_mode = 0;
-        
+
         if (gui::begin_combo("##Fill_mode", fill_modes[fill_mode])) {
           for (int i = 0; i < std::size(fill_modes); ++i) {
             bool is_selected = (fill_mode == i);
@@ -205,7 +270,7 @@ struct settings_menu_t {
 
     gui::set_next_window_pos(next_window_position);
     gui::set_next_window_size(next_window_size);
-    gui::set_next_window_bg_alpha(0.99);
+    gui::set_next_window_bg_alpha(hide_bg ? 0 : 0.99);
     gui::begin("##Menu Graphics Right", nullptr, wnd_flags);
 
     gui::push_font(gui::get_font(32, true));
@@ -447,7 +512,8 @@ struct settings_menu_t {
 
     set_settings_theme();
 
-    gui::push_style_color(gui::col_window_bg, fan::color(0.09411764889955521f, 0.09411764889955521f, 0.09411764889955521f, 0.99f));
+    //gui::push_style_color(gui::col_window_bg, fan::color(0.09411764889955521f, 0.09411764889955521f, 0.09411764889955521f, 0.99f));
+    gui::push_style_color(gui::col_window_bg, fan::color(0.01f, 0.01f, 0.01f, 0.99f));
     gui::push_style_color(gui::col_separator, fan::color(0.8, 0.8, 0.8, 1.0f));
 
     fan::vec2 main_window_size = gloco()->window.get_size();

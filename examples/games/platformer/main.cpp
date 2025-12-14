@@ -33,7 +33,6 @@ int main() {
   pile = (pile_t*)std::malloc(sizeof(pile_t));
   std::construct_at(pile);
   pile->engine.window.set_size(1024);
-  //pile->engine.frustum_culling.padding = -400.f;
   pile->engine.console.commands.call("set_bloom_strength 0.075");
   pile->engine.loop();
 }

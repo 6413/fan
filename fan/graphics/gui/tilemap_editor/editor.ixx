@@ -70,27 +70,6 @@ export struct fte_t {
     remove
   };
 
-  struct vec2i_hasher {
-    std::size_t operator()(const fan::vec2i& k) const {
-      std::hash<int> hasher;
-      std::size_t hash_value = 17;
-      hash_value = hash_value * 31 + hasher(k.x);
-      hash_value = hash_value * 31 + hasher(k.y);
-      return hash_value;
-    }
-  };
-
-  struct vec3_hasher {
-    std::size_t operator()(const fan::vec3& k) const {
-      std::hash<f32_t> hasher;
-      std::size_t hash_value = 17;
-      hash_value = hash_value * 31 + hasher(k.x);
-      hash_value = hash_value * 31 + hasher(k.y);
-      hash_value = hash_value * 31 + hasher(k.z);
-      return hash_value;
-    }
-  };
-
   struct sort_by_y_t {
     bool operator()(const fan::vec2i& a, const fan::vec2i& b) const {
       if (a.y == b.y) {
@@ -114,7 +93,7 @@ export struct fte_t {
   };
 
   struct visual_layer_t {
-    std::unordered_map<fan::vec2i, bool, vec2i_hasher> positions;
+    std::unordered_map<fan::vec2i, bool> positions;
     std::string text = "default";
     bool visible = true;
   };
@@ -171,13 +150,11 @@ export struct fte_t {
   };
 
   struct viewport_settings_t {
-    f32_t zoom = 1;
     bool move = false;
     fan::vec2 pos = 0;
     fan::vec2 size = 0;
     fan::vec2 offset = 0;
     fan::vec2 window_related_mouse_pos = 0;
-    fan::vec2 zoom_offset = 0;
   };
 
   struct editor_settings_t {
@@ -281,7 +258,7 @@ export struct fte_t {
 
     mouse_move_handle = fan::graphics::get_window().add_mouse_move_callback([this](const auto& d) {
       if (viewport_settings.move) {
-        fan::vec2 move_off = (d.position - viewport_settings.offset) / viewport_settings.zoom;
+        fan::vec2 move_off = (d.position - viewport_settings.offset) / fan::graphics::camera_get_zoom(render_view->camera);
         fan::graphics::camera_set_position(render_view->camera, viewport_settings.pos - move_off);
       }
 
@@ -305,7 +282,7 @@ export struct fte_t {
         return;
       }
 
-      f32_t old_zoom = viewport_settings.zoom;
+      f32_t old_zoom = fan::graphics::camera_get_zoom(render_view->camera);
 
       switch (d.button) {
         case fan::mouse_middle: {
@@ -324,7 +301,7 @@ export struct fte_t {
             grid_visualize.highlight_hover.set_size(tile_size * brush.size);
           }
           else {
-            viewport_settings.zoom *= scroll_speed;
+            fan::graphics::camera_set_zoom(render_view->camera, fan::graphics::camera_get_zoom(render_view->camera) * scroll_speed);
             auto& style = fan::graphics::gui::get_style();
             fan::vec2 pos = (fan::graphics::get_window().get_mouse_position() - viewport_settings.window_related_mouse_pos);
             pos /= fan::graphics::get_window().get_size();
@@ -343,7 +320,7 @@ export struct fte_t {
             grid_visualize.highlight_hover.set_size(tile_size * brush.size);
           }
           else {
-            viewport_settings.zoom /= scroll_speed;
+            fan::graphics::camera_set_zoom(render_view->camera, fan::graphics::camera_get_zoom(render_view->camera) / scroll_speed);
           }
           return;
         }
@@ -1174,15 +1151,11 @@ export struct fte_t {
 
       fan::graphics::camera_set_ortho(
         render_view->camera,
-        (fan::vec2(-real_viewport_size.x / 2, real_viewport_size.x / 2) / viewport_settings.zoom) + viewport_settings.zoom_offset.x,
-        (fan::vec2(-real_viewport_size.y / 2, real_viewport_size.y / 2) / viewport_settings.zoom) + viewport_settings.zoom_offset.y
+        (fan::vec2(-real_viewport_size.x / 2, real_viewport_size.x / 2)),
+        (fan::vec2(-real_viewport_size.y / 2, real_viewport_size.y / 2))
       );
 
-      fan::graphics::viewport_set(
-        render_view->viewport, 
-        viewport_pos + fan::vec2(0, style.WindowPadding.y * 2),
-        real_viewport_size
-      );
+      fan::graphics::gui::set_viewport(render_view->viewport);
       editor_size = real_viewport_size;
       viewport_settings.size = viewport_size;
 
@@ -1225,7 +1198,7 @@ export struct fte_t {
 
           fan::graphics::gui::image_rotated(
             j.ti.image,
-            (tile_viewer_sprite_size / std::max(1.f, current_tile_brush_count.x / 5.f)) * viewport_settings.zoom,
+            (tile_viewer_sprite_size / std::max(1.f, current_tile_brush_count.x / 5.f)) * fan::graphics::camera_get_zoom(render_view->camera),
             360.f - fan::math::degrees(brush.angle.z),
             j.ti.position / size,
             j.ti.position / size + j.ti.size / size,
@@ -1883,7 +1856,7 @@ export struct fte_t {
     f32_t fs_last = fan::graphics::gui::font_sizes[std::size(fan::graphics::gui::font_sizes) - 1];
 
     if (zoomed_font_size < fs_first) {
-      fan::graphics::gui::set_window_font_scale(zoomed_font_size / fs_first);
+      //fan::graphics::gui::set_window_font_scale(zoomed_font_size / fs_first);
     }
 
     zoomed_font_size = std::clamp(zoomed_font_size, fs_first, fs_last);
@@ -1927,10 +1900,10 @@ export struct fte_t {
       render_view->viewport
     );
 
-    fan::vec2 clip_min(v.viewport_position.x, v.viewport_position.y);
+    fan::vec2 clip_min(v.position.x, v.position.y);
     fan::vec2 clip_max(
-      v.viewport_position.x + v.viewport_size.x,
-      v.viewport_position.y + v.viewport_size.y
+      v.position.x + v.size.x,
+      v.position.y + v.size.y
     );
 
     draw_list->PushClipRect(clip_min, clip_max, true);
@@ -1943,7 +1916,7 @@ export struct fte_t {
           mark.id,
           mark.position,
           base_font_size,
-          viewport_settings.zoom,
+          fan::graphics::camera_get_zoom(render_view->camera),
           render_view,
           draw_list
         );
@@ -1956,7 +1929,7 @@ export struct fte_t {
           shape.id,
           shape.visual.get_position(),
           base_font_size,
-          viewport_settings.zoom,
+          fan::graphics::camera_get_zoom(render_view->camera),
           render_view,
           draw_list
         );
@@ -2004,305 +1977,519 @@ export struct fte_t {
     handle_gui();
   }
 
+  bool same_visual(
+    const fte_t::shapes_t::global_t::layer_t& a,
+    const fte_t::shapes_t::global_t::layer_t& b
+  ) {
+    return
+      a.tile.mesh_property == b.tile.mesh_property &&
+      a.tile.id == b.tile.id &&
+      a.tile.size == b.tile.size &&
+      a.shape.get_angle() == b.shape.get_angle() &&
+      a.shape.get_color() == b.shape.get_color() &&
+      a.shape.get_flags() == b.shape.get_flags() &&
+      a.shape.get_tp().unique_id == b.shape.get_tp().unique_id;
+  }
   void fout(std::string filename) {
     if (!filename.ends_with(".fte") && !filename.ends_with(".json")) {
       filename += ".fte";
     }
     bool is_temp = filename.find("temp") != std::string::npos;
+
   #if defined(fan_json)
     previous_filename = filename;
     fan::json ostr;
+
     ostr["version"] = 1;
     ostr["map_size"] = map_size;
     ostr["tile_size"] = tile_size;
     ostr["camera_position"] = fan::graphics::camera_get_position(render_view->camera);
-    ostr["camera_zoom"] = viewport_settings.zoom;
+    ostr["camera_zoom"] = fan::graphics::camera_get_zoom(render_view->camera);
     ostr["lighting.ambient"] = fan::graphics::get_lighting().ambient;
     ostr["gravity"] = fan::physics::gphysics()->get_gravity();
+
     fan::json jtps = fan::json::array();
+    jtps.get_ptr<fan::json::array_t*>()->reserve(texture_packs.size());
     for (auto* tp : texture_packs) {
       jtps.push_back(tp->file_path);
     }
-    ostr["texture_packs"] = jtps;
+    ostr["texture_packs"] = std::move(jtps);
+
+    size_t total_tiles = 0;
+    for (auto& [depth, vec] : physics_shapes) {
+      total_tiles += vec.size();
+    }
+    for (auto& [depth, marks] : spawn_marks) {
+      total_tiles += marks.size();
+    }
+
+    std::unordered_map<uint16_t, std::unordered_map<fan::vec2i, fte_t::shapes_t::global_t::layer_t*>> depth_tiles;
+    depth_tiles.reserve(visual_layers.size());
+
+    for (auto& [gp, cell] : map_tiles) {
+      for (auto& layer : cell.layers) {
+        depth_tiles[layer.tile.position.z][gp] = &layer;
+      }
+    }
+
+    for (auto& [depth, tilemap] : depth_tiles) {
+      total_tiles += tilemap.size() / 2 + 1;
+    }
+
     fan::json tiles = fan::json::array();
-    std::unordered_set<fan::vec3> remove_duplicates;
-    for (auto& i : map_tiles) {
-      for (auto& j : i.second.layers) {
-        fan::vec3 key(j.tile.position.x, j.tile.position.y, j.tile.position.z);
-        if (remove_duplicates.find(key) == remove_duplicates.end()) {
-          remove_duplicates.insert(key);
-        }
-        else {
-          fan::graphics::gui::print_warning("warning duplicate tile positions:", (std::string)key + ", skipping...");
+    tiles.get_ptr<fan::json::array_t*>()->reserve(total_tiles);
+
+    static const fte_t::tile_t defaults = fte_t::tile_t();
+
+    for (auto& [depth, tilemap] : depth_tiles) {
+      std::unordered_set<fan::vec2i> visited;
+      visited.reserve(tilemap.size());
+
+      std::vector<std::pair<fan::vec2i, fte_t::shapes_t::global_t::layer_t*>> sorted_tiles;
+      sorted_tiles.reserve(tilemap.size());
+      for (auto& pair : tilemap) {
+        sorted_tiles.push_back(pair);
+      }
+
+      std::sort(sorted_tiles.begin(), sorted_tiles.end(), 
+        [](const auto& a, const auto& b) {
+        return a.first.y < b.first.y || (a.first.y == b.first.y && a.first.x < b.first.x);
+      });
+
+      for (auto& [gp, base] : sorted_tiles) {
+        if (visited.contains(gp)) {
           continue;
         }
-        fan::json tile;
-        if (j.shape.get_size() == 0 && !is_temp) {
-          fan::graphics::gui::print_warning("warning exporting tile with size 0", j.tile.position);
+
+        int max_x = gp.x;
+        {
+          fan::vec2i test_pos = gp;
+          while (true) {
+            test_pos.x = max_x + 1;
+            if (visited.contains(test_pos)) break;
+
+            auto it = tilemap.find(test_pos);
+            if (it == tilemap.end() || !same_visual(*base, *it->second)) {
+              break;
+            }
+            max_x++;
+          }
         }
-        fan::graphics::shape_serialize(j.shape, &tile);
-        fte_t::tile_t defaults;
-        if (j.tile.mesh_property != defaults.mesh_property) {
-          tile["mesh_property"] = j.tile.mesh_property;
+
+        int max_y = gp.y;
+        {
+          bool can_extend = true;
+          while (can_extend) {
+            int test_y = max_y + 1;
+            for (int x = gp.x; x <= max_x; ++x) {
+              fan::vec2i p(x, test_y);
+              if (visited.contains(p)) {
+                can_extend = false;
+                break;
+              }
+              auto it = tilemap.find(p);
+              if (it == tilemap.end() || !same_visual(*base, *it->second)) {
+                can_extend = false;
+                break;
+              }
+            }
+            if (can_extend) {
+              max_y = test_y;
+            }
+          }
         }
-        if (j.tile.id != defaults.id) {
-          tile["id"] = j.tile.id;
+
+        std::vector<fan::vec2i> to_visit;
+        int rect_size = (max_x - gp.x + 1) * (max_y - gp.y + 1);
+        to_visit.reserve(rect_size);
+        for (int y = gp.y; y <= max_y; ++y) {
+          for (int x = gp.x; x <= max_x; ++x) {
+            to_visit.emplace_back(x, y);
+          }
         }
-        if (j.tile.action != defaults.action) {
-          tile["action"] = j.tile.action;
+        visited.insert(to_visit.begin(), to_visit.end());
+
+        fan::json tile_json;
+        fan::graphics::shape_serialize(base->shape, &tile_json);
+
+        if (base->tile.mesh_property != defaults.mesh_property) {
+          tile_json["mesh_property"] = base->tile.mesh_property;
         }
-        if (j.tile.key != defaults.key) {
-          tile["key"] = j.tile.key;
+        if (!base->tile.id.empty() && base->tile.id != defaults.id) {
+          tile_json["id"] = base->tile.id;
         }
-        if (j.tile.key_state != defaults.key_state) {
-          tile["key_state"] = j.tile.key_state;
+        if (base->tile.action != defaults.action) {
+          tile_json["action"] = base->tile.action;
         }
-        if (j.tile.object_names != defaults.object_names) {
-          tile["object_names"] = j.tile.object_names;
+        if (base->tile.key != defaults.key) {
+          tile_json["key"] = base->tile.key;
         }
-        tiles.push_back(tile);
+        if (base->tile.key_state != defaults.key_state) {
+          tile_json["key_state"] = base->tile.key_state;
+        }
+        if (!base->tile.object_names.empty() && base->tile.object_names != defaults.object_names) {
+          tile_json["object_names"] = base->tile.object_names;
+        }
+
+        int count_x = max_x - gp.x + 1;
+        int count_y = max_y - gp.y + 1;
+
+        if (count_x > 1 || count_y > 1) {
+          fan::json inst;
+          inst["count_x"] = count_x;
+          inst["count_y"] = count_y;
+          inst["delta_x"] = fan::vec3((f32_t)tile_size.x * 2.f, 0.f, 0.f);
+          inst["delta_y"] = fan::vec3(0.f, (f32_t)tile_size.y * 2.f, 0.f);
+          tile_json["instance"] = std::move(inst);
+        }
+
+        tiles.push_back(std::move(tile_json));
       }
     }
-    remove_duplicates.clear();
-    for (auto& i : physics_shapes) {
-      for (auto& j : i.second) {
-        fan::json tile;
-        if (j.visual.get_size() == 0 && !is_temp) {
-          fan::graphics::gui::print_warning("warning exporting tile with size 0", j.visual.get_position());
+
+    {
+      std::unordered_set<fan::vec3> seen;
+      seen.reserve(physics_shapes.size() * 10);
+
+      static const fan::physics::shape_properties_t default_props;
+
+      for (auto& [depth, vec] : physics_shapes) {
+        for (auto& j : vec) {
+          if (!seen.insert(j.visual.get_position()).second) {
+            continue;
+          }
+
+          fan::json tile;
+          fan::graphics::shape_serialize(j.visual, &tile);
+          tile["mesh_property"] = mesh_property_t::physics_shape;
+
+          if (!j.id.empty()) {
+            tile["id"] = j.id;
+          }
+
+          fan::json ps;
+          if (j.type != 0) ps["type"] = j.type;
+          if (j.body_type != 0) ps["body_type"] = j.body_type;
+          if (j.draw != false) ps["draw"] = j.draw;
+          if (j.shape_properties.friction != default_props.friction) {
+            ps["friction"] = j.shape_properties.friction;
+          }
+          if (j.shape_properties.density != default_props.density) {
+            ps["density"] = j.shape_properties.density;
+          }
+          if (j.shape_properties.fixed_rotation != default_props.fixed_rotation) {
+            ps["fixed_rotation"] = j.shape_properties.fixed_rotation;
+          }
+          if (j.shape_properties.presolve_events != default_props.presolve_events) {
+            ps["presolve_events"] = j.shape_properties.presolve_events;
+          }
+          if (j.shape_properties.is_sensor != default_props.is_sensor) {
+            ps["is_sensor"] = j.shape_properties.is_sensor;
+          }
+
+          if (!ps.empty()) {
+            tile["physics_shape_data"] = std::move(ps);
+          }
+
+          tiles.push_back(std::move(tile));
         }
-        fan::graphics::shape_serialize(j.visual, &tile);
-        if (remove_duplicates.find(j.visual.get_position()) == remove_duplicates.end()) {
-          remove_duplicates.insert(j.visual.get_position());
-        }
-        else {
-          fan::graphics::gui::print_warning("warning duplicate tile positions:", (std::string)j.visual.get_position() + ", skipping...");
-          continue;
-        }
-        tile["mesh_property"] = fte_t::mesh_property_t::physics_shape;
-        if (j.id.size()) {
-          tile["id"] = j.id;
-        }
-        fan::json physics_shape_data;
-        if (j.type != decltype(j.type){}) {
-          physics_shape_data["type"] = j.type;
-        }
-        if (j.body_type != decltype(j.body_type){}) {
-          physics_shape_data["body_type"] = j.body_type;
-        }
-        if (j.draw != decltype(j.draw){}) {
-          physics_shape_data["draw"] = j.draw;
-        }
-        fan::physics::shape_properties_t sp_defaults;
-        if (j.shape_properties.friction != sp_defaults.friction) {
-          physics_shape_data["friction"] = j.shape_properties.friction;
-        }
-        if (j.shape_properties.density != sp_defaults.density) {
-          physics_shape_data["density"] = j.shape_properties.density;
-        }
-        if (j.shape_properties.fixed_rotation != sp_defaults.fixed_rotation) {
-          physics_shape_data["fixed_rotation"] = j.shape_properties.fixed_rotation;
-        }
-        if (j.shape_properties.presolve_events != sp_defaults.presolve_events) {
-          physics_shape_data["presolve_events"] = j.shape_properties.presolve_events;
-        }
-        if (j.shape_properties.is_sensor != sp_defaults.is_sensor) {
-          physics_shape_data["is_sensor"] = j.shape_properties.is_sensor;
-        }
-        if (!physics_shape_data.empty()) {
-          tile["physics_shape_data"] = physics_shape_data;
-        }
-        tiles.push_back(tile);
       }
     }
-    for (auto& depth_pair : spawn_marks) {
-      for (auto& mark : depth_pair.second) {
+
+    for (auto& [depth, marks] : spawn_marks) {
+      for (auto& m : marks) {
         fan::json tile;
-        tile["position"] = mark.position;
-        tile["size"] = mark.size;
-        tile["color"] = mark.color;
-        tile["mesh_property"] = mark.type;
-        if (mark.id.size()) {
-          tile["id"] = mark.id;
+        tile["position"] = m.position;
+        tile["size"] = m.size;
+        tile["color"] = m.color;
+        tile["mesh_property"] = m.type;
+        if (!m.id.empty()) {
+          tile["id"] = m.id;
         }
-        tiles.push_back(tile);
+        tiles.push_back(std::move(tile));
       }
     }
-    fan::json j;
-    for (auto& layer : visual_layers) {
-      fan::json layer_json;
-      layer_json["layer_name"] = layer.second.text;
-      layer_json["depth"] = layer.first;
-      j.push_back(layer_json);
+
+    {
+      fan::json j = fan::json::array();
+      j.get_ptr<fan::json::array_t*>()->reserve(visual_layers.size());
+
+      for (auto& [depth, layer] : visual_layers) {
+        fan::json l;
+        l["layer_name"] = layer.text;
+        l["depth"] = depth;
+        j.push_back(std::move(l));
+      }
+      ostr["layer_info"] = std::move(j);
     }
-    ostr["layer_info"] = j;
-    ostr["tiles"] = tiles;
-    fan::io::file::write(filename, ostr.dump(2), std::ios_base::binary);
+
+    ostr["tiles"] = std::move(tiles);
+
+    std::string json_str = ostr.dump(2);
+
+    std::ofstream file(filename, std::ios::binary);
+    if (!file) {
+      fan::throw_error("Failed to open file for writing: " + filename);
+      return;
+    }
+
+    constexpr size_t BUFFER_SIZE = 1024 * 1024; 
+
+    file.rdbuf()->pubsetbuf(nullptr, BUFFER_SIZE);
+    file.write(json_str.c_str(), json_str.size());
+    file.close();
+
     if (!is_temp) {
       fan::graphics::gui::print_success("File saved to " + std::filesystem::absolute(filename).generic_string());
     }
   #else
     fan::throw_error("fan_json not enabled");
-    __unreachable();
   #endif
   }
 
   void fin(const std::string& filename, const std::source_location& callers_path = std::source_location::current()) {
-    std::string out;
-    fan::io::file::read(fan::io::file::find_relative_path(filename, callers_path), &out);
-    fan::json json = fan::json::parse(out);
+  #if defined(fan_json)
+
+    std::ifstream file(fan::io::file::find_relative_path(filename, callers_path), std::ios::binary | std::ios::ate);
+    if (!file) {
+      fan::throw_error("Failed to open file: " + filename);
+      return;
+    }
+
+    std::streamsize size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    std::string buffer;
+    buffer.resize(size);
+
+    if (!file.read(&buffer[0], size)) {
+      fan::throw_error("Failed to read file: " + filename);
+      return;
+    }
+    file.close();
+
+    fan::json json = fan::json::parse(buffer);
+    buffer.clear(); 
+
+    buffer.shrink_to_fit();
+
     if (json["version"] != 1) {
       fan::throw_error("version mismatch");
     }
+
     if (json.contains("texture_packs")) {
       std::vector<std::string> tp_paths = json["texture_packs"];
       for (auto& path : tp_paths) {
         open_texture_pack(path);
       }
     }
-  #if defined(fan_json)
-    else if (texture_packs[0]->size() == 0) {
+    else if (texture_packs.empty() || texture_packs[0]->size() == 0) {
       fan::print("open valid texturepack");
       return;
     }
+
     invalidate_selection();
     previous_filename = filename;
+
     map_size = json["map_size"];
     tile_size = json["tile_size"];
+
     if (json.contains("camera_position")) {
       fan::graphics::camera_set_position(render_view->camera, json["camera_position"]);
     }
     if (json.contains("camera_zoom")) {
-      viewport_settings.zoom = json["camera_zoom"];
+      fan::graphics::camera_set_zoom(render_view->camera, json["camera_zoom"]);
     }
     if (json.contains("gravity")) {
       fan::physics::gphysics()->set_gravity(json["gravity"]);
     }
     fan::graphics::get_lighting().set_target(json["lighting.ambient"]);
+
     map_tiles.clear();
     visual_layers.clear();
     visual_shapes.clear();
     physics_shapes.clear();
     spawn_marks.clear();
+
+    size_t estimated_tiles = map_size.x * map_size.y / 4;
+    map_tiles.reserve(estimated_tiles);
+
     resize_map();
+
+    static fan::graphics::image_t player_marker_image = fan::graphics::image_create(fan::color(0, 1, 0, 0.5));
+    static fan::graphics::image_t enemy_marker_image = fan::graphics::image_create(fan::color(1, 0, 0, 0.5));
+    static fan::graphics::image_t mark_marker_image = fan::graphics::image_create(fan::color(1, 1, 0, 0.5));
+
+    static const fte_t::physics_shapes_t physics_defaults;
+    static const fte_t::tile_t tile_defaults = fte_t::tile_t();
+
+    auto expand_instance = [&](const fan::json& shape_json, auto emit_one) {
+      if (!shape_json.contains("instance")) {
+        emit_one(fan::vec3(0, 0, 0));
+        return;
+      }
+
+      const auto& inst = shape_json["instance"];
+
+      if (inst.contains("count_x")) {
+        int cx = inst.value("count_x", 1);
+        int cy = inst.value("count_y", 1);
+
+        fan::vec3 dx = inst.value("delta_x", fan::vec3(0, 0, 0));
+        fan::vec3 dy = inst.value("delta_y", fan::vec3(0, 0, 0));
+
+        for (int y = 0; y < cy; y++) {
+          for (int x = 0; x < cx; x++) {
+            emit_one(dx * (f32_t)x + dy * (f32_t)y);
+          }
+        }
+        return;
+      }
+
+      int count = inst.value("count", 1);
+      fan::vec3 delta = inst.value("delta", fan::vec3(0, 0, 0));
+      for (int i = 0; i < count; i++) {
+        emit_one(delta * (f32_t)i);
+      }
+    };
+
     fan::graphics::shape_deserialize_t it;
-    fan::graphics::shape_t shape;
-    while (it.iterate(json["tiles"], &shape)) {
+    fan::graphics::shape_t base_shape;
+
+    const auto& tiles_array = json["tiles"];
+
+    while (it.iterate(tiles_array, &base_shape)) {
       const auto& shape_json = *(it.data.it - 1);
-      if (shape_json.contains("mesh_property")) {
-        auto& mesh_prop = shape_json["mesh_property"];
-        if (mesh_prop == fte_t::mesh_property_t::physics_shape) {
-          auto& physics_shape = physics_shapes[shape.get_position().z];
-          physics_shape.resize(physics_shape.size() + 1);
-          auto& physics_element = physics_shape.back();
-          shape.set_camera(render_view->camera);
-          shape.set_viewport(render_view->viewport);
-          shape.set_image(grid_visualize.collider_color);
-          if (shape_json.contains("physics_shape_data")) {
-            fte_t::physics_shapes_t defaults;
-            physics_element.id = shape_json.value("id", defaults.id);
-            const fan::json& physics_shape_data = shape_json["physics_shape_data"];
-            physics_element.type = physics_shape_data.value("type", defaults.type);
-            physics_element.body_type = physics_shape_data.value("body_type", defaults.body_type);
-            physics_element.draw = physics_shape_data.value("draw", defaults.draw);
-            physics_element.shape_properties.friction = physics_shape_data.value("friction", defaults.shape_properties.friction);
-            physics_element.shape_properties.density = physics_shape_data.value("density", defaults.shape_properties.density);
-            physics_element.shape_properties.fixed_rotation = physics_shape_data.value("fixed_rotation", defaults.shape_properties.fixed_rotation);
-            physics_element.shape_properties.presolve_events = physics_shape_data.value("presolve_events", defaults.shape_properties.presolve_events);
-            physics_element.shape_properties.is_sensor = physics_shape_data.value("is_sensor", defaults.shape_properties.is_sensor);
+
+      expand_instance(shape_json, [&](const fan::vec3& offs) {
+        fan::graphics::shape_t shape = base_shape;
+        shape.set_position(shape.get_position() + offs);
+
+        if (shape_json.contains("mesh_property")) {
+          auto mesh_prop = shape_json["mesh_property"].get<mesh_property_t>();
+
+          if (mesh_prop == fte_t::mesh_property_t::physics_shape) {
+            uint16_t depth = shape.get_position().z;
+            auto& physics_shape = physics_shapes[depth];
+            physics_shape.emplace_back();
+            auto& physics_element = physics_shape.back();
+
+            shape.set_camera(render_view->camera);
+            shape.set_viewport(render_view->viewport);
+            shape.set_image(grid_visualize.collider_color);
+
+            if (shape_json.contains("physics_shape_data")) {
+              physics_element.id = shape_json.value("id", physics_defaults.id);
+              const fan::json& physics_shape_data = shape_json["physics_shape_data"];
+              physics_element.type = physics_shape_data.value("type", physics_defaults.type);
+              physics_element.body_type = physics_shape_data.value("body_type", physics_defaults.body_type);
+              physics_element.draw = physics_shape_data.value("draw", physics_defaults.draw);
+              physics_element.shape_properties.friction = physics_shape_data.value("friction", physics_defaults.shape_properties.friction);
+              physics_element.shape_properties.density = physics_shape_data.value("density", physics_defaults.shape_properties.density);
+              physics_element.shape_properties.fixed_rotation = physics_shape_data.value("fixed_rotation", physics_defaults.shape_properties.fixed_rotation);
+              physics_element.shape_properties.presolve_events = physics_shape_data.value("presolve_events", physics_defaults.shape_properties.presolve_events);
+              physics_element.shape_properties.is_sensor = physics_shape_data.value("is_sensor", physics_defaults.shape_properties.is_sensor);
+            }
+
+            physics_element.visual = std::move(shape);
+            return;
           }
-          physics_element.visual = std::move(shape);
-          continue;
+          else if (mesh_prop == mesh_property_t::player_spawn ||
+            mesh_prop == mesh_property_t::enemy_spawn ||
+            mesh_prop == mesh_property_t::mark) {
+
+            spawn_mark_t mark;
+            mark.position = shape_json["position"];
+            mark.position += offs;
+            mark.size = shape_json["size"];
+            mark.color = shape_json["color"];
+            mark.type = mesh_prop;
+            mark.id = shape_json.value("id", "");
+
+            uint16_t depth = mark.position.z;
+            spawn_marks[depth].push_back(std::move(mark));
+            auto& inserted_mark = spawn_marks[depth].back();
+
+            fan::graphics::image_t marker_image;
+            if (mesh_prop == mesh_property_t::player_spawn) {
+              marker_image = player_marker_image;
+            }
+            else if (mesh_prop == mesh_property_t::enemy_spawn) {
+              marker_image = enemy_marker_image;
+            }
+            else {
+              marker_image = mark_marker_image;
+            }
+
+            visual_shapes[inserted_mark.position].shape = 
+              make_sprite(inserted_mark.position, inserted_mark.size, 
+                fan::color(1), render_view, marker_image);
+            return;
+          }
         }
-        else if (mesh_prop == mesh_property_t::player_spawn || 
-          mesh_prop == mesh_property_t::enemy_spawn || 
-          mesh_prop == mesh_property_t::mark) {
 
-          spawn_mark_t mark;
-          mark.position = shape_json["position"];
-          mark.size = shape_json["size"];
-          mark.color = shape_json["color"];
-          mark.type = mesh_prop;
-          mark.id = shape_json.value("id", "");
+        fan::vec2i gp = shape.get_position();
+        uint16_t depth = shape.get_position().z;
 
-          spawn_marks[mark.position.z].push_back(mark);
+        convert_draw_to_grid(gp);
+        gp /= tile_size * 2;
 
-          fan::graphics::image_t marker_image;
-          if (mesh_prop == mesh_property_t::player_spawn) {
-            marker_image = fan::graphics::image_create(fan::color(0, 1, 0, 0.5));
-          }
-          else if (mesh_prop == mesh_property_t::enemy_spawn) {
-            marker_image = fan::graphics::image_create(fan::color(1, 0, 0, 0.5));
-          }
-          else {
-            marker_image = fan::graphics::image_create(fan::color(1, 1, 0, 0.5));
-          }
+        visual_layers[depth].positions[gp];
 
-          visual_shapes[mark.position].shape = make_sprite(mark.position, mark.size, fan::color(1), render_view, marker_image);
-          continue;
+        auto& cell = map_tiles[gp];
+        cell.layers.emplace_back();
+        auto* layer = &cell.layers.back();
+
+        layer->tile.position = fan::vec3i(gp, depth);
+        layer->tile.size = shape.get_size();
+        layer->tile.angle = shape.get_angle();
+        layer->tile.color = shape.get_color();
+        layer->tile.id = shape_json.value("id", tile_defaults.id);
+        layer->tile.mesh_property = shape_json.value("mesh_property", tile_defaults.mesh_property);
+
+        layer->shape = std::move(shape);
+
+        switch (layer->tile.mesh_property) {
+        case fte_t::mesh_property_t::none: {
+          layer->shape.set_camera(render_view->camera);
+          layer->shape.set_viewport(render_view->viewport);
+          break;
         }
-      }
-      fan::vec2i gp = shape.get_position();
-      uint16_t depth = shape.get_position().z;
-      convert_draw_to_grid(gp);
-      gp /= tile_size * 2;
-      auto found = map_tiles.find(gp);
-      fte_t::shapes_t::global_t::layer_t* layer = nullptr;
-      visual_layers[depth].positions[gp];
-      if (found != map_tiles.end()) {
-        found->second.layers.resize(found->second.layers.size() + 1);
-        layer = &found->second.layers.back();
-      }
-      else {
-        map_tiles[gp].layers.resize(1);
-        layer = &map_tiles[gp].layers.back();
-      }
-      layer->tile.position = fan::vec3i(gp, depth);
-      layer->tile.size = shape.get_size();
-      layer->tile.angle = shape.get_angle();
-      layer->tile.color = shape.get_color();
-      layer->tile.id = shape_json.value("id", "");
-      layer->tile.mesh_property = (mesh_property_t)shape_json.value("mesh_property", fte_t::tile_t().mesh_property);
-      layer->shape = shape;
-      switch (layer->tile.mesh_property) {
-      case fte_t::mesh_property_t::none: {
-        layer->shape.set_camera(render_view->camera);
-        layer->shape.set_viewport(render_view->viewport);
-        break;
-      }
-      case fte_t::mesh_property_t::light: {
-        layer->shape = fan::graphics::light_t{{
-            .render_view = render_view,
-            .position = shape.get_position(),
-            .size = layer->tile.size,
-            .color = layer->tile.color
-          }};
-        visual_shapes[shape.get_position()].shape = fan::graphics::sprite_t{{
-            .render_view = render_view,
-            .position = fan::vec3(fan::vec2(shape.get_position()), shape.get_position().z + 1),
-            .size = tile_size,
-            .image = grid_visualize.light_color,
-            .blending = true
-          }};
-        break;
-      }
-      default: {
-        fan::throw_error("");
-      }
-      }
+        case fte_t::mesh_property_t::light: {
+          layer->shape = fan::graphics::light_t{{
+              .render_view = render_view,
+              .position = layer->shape.get_position(),
+              .size = layer->tile.size,
+              .color = layer->tile.color
+            }};
+          visual_shapes[layer->shape.get_position()].shape = fan::graphics::sprite_t{{
+              .render_view = render_view,
+              .position = fan::vec3(fan::vec2(layer->shape.get_position()), layer->shape.get_position().z + 1),
+              .size = tile_size,
+              .image = grid_visualize.light_color,
+              .blending = true
+            }};
+          break;
+        }
+        default: {
+          fan::throw_error("");
+        }
+        }
+      });
     }
+
     if (json.contains("layer_info")) {
       for (const auto& layer_json : json["layer_info"]) {
         layer_info_t layer_info;
         layer_info.layer_name = layer_json["layer_name"];
         layer_info.depth = layer_json["depth"];
         if (visual_layers.find(layer_info.depth) != visual_layers.end()) {
-          visual_layers[layer_info.depth].text = layer_info.layer_name;
+          visual_layers[layer_info.depth].text = std::move(layer_info.layer_name);
         }
       }
     }
-  #else 
+  #else
     fan::throw_error("fan_json not enabled");
-    __unreachable();
   #endif
   }
 
@@ -2315,10 +2502,7 @@ export struct fte_t {
     }
 
     void init() {
-      render_view.create();
-      ic.reference_camera = render_view.camera;
-      ic.reference_viewport = render_view.viewport;
-      ic.set_zoom(0.15f);
+      ic.create_default(0.15f);
 
       tile_world.init();
       fan::vec2 map_size = tile_world.map_size;
@@ -2328,7 +2512,7 @@ export struct fte_t {
       for (int y = 0; y < map_size.y; y++) {
         for (int x = 0; x < map_size.x; x++) {
           rects.push_back(fan::graphics::sprite_t{ {
-            .render_view = &render_view,
+            .render_view = ic,
             .position = fan::vec3(fan::vec2(x, y) * cell_size * 2.f + cell_size, 0xFFFA),
             .size = fan::vec2(cell_size, cell_size),
             .image = fan::graphics::tile_world_images::dirt
@@ -2337,7 +2521,7 @@ export struct fte_t {
       }
 
       visual_grid = fan::graphics::grid_t{ {
-        .render_view = &render_view,
+        .render_view = ic,
         .position = fan::vec3(fan::vec2(map_size.x, map_size.y) * cell_size, 0xFFFA),
         .size = fan::vec2(map_size.x, map_size.y) * cell_size,
         .grid_size = fan::vec2(map_size.x, map_size.y) / 2.f,
@@ -2373,7 +2557,9 @@ export struct fte_t {
     void render() {
       fan::graphics::gui::set_next_window_bg_alpha(0);
       if (fan::graphics::gui::begin("Terrain Generator", nullptr,
-        fan::graphics::gui::window_flags_no_background | fan::graphics::gui::window_flags_no_focus_on_appearing)) 
+        fan::graphics::gui::window_flags_no_background | fan::graphics::gui::window_flags_no_focus_on_appearing |
+        fan::graphics::gui::window_flags_override_input
+      )) 
       {
         {
           if (fan::graphics::gui::button("Iterate")) iterate();
@@ -2408,7 +2594,7 @@ export struct fte_t {
         {
           fan::vec2 need_init = !prev_viewport_size
             || prev_viewport_size != fan::graphics::gui::get_window_size();
-          fan::graphics::gui::set_viewport(render_view.viewport);
+          fan::graphics::gui::set_viewport(ic.render_view.viewport);
           if (need_init) {
             ic.update();
           }
@@ -2416,7 +2602,7 @@ export struct fte_t {
         }
       }
       else {
-        fan::graphics::viewport_zero(render_view.viewport);
+        fan::graphics::viewport_zero(ic.render_view.viewport);
       }
       fan::graphics::gui::end();
     }
@@ -2471,7 +2657,6 @@ export struct fte_t {
 
     fan::graphics::grid_t visual_grid;
     fan::graphics::interactive_camera_t ic;
-    fan::graphics::render_view_t render_view;
     fan::vec2 prev_viewport_size = 0;
   }terrain_generator;
 
@@ -2485,9 +2670,9 @@ export struct fte_t {
   fan::vec2i current_tile_brush_count;
   std::vector<std::vector<tile_info_t>> current_tile_images;
   std::map<fan::vec2i, int, sort_by_y_t> current_image_indices;
-  std::unordered_map<fan::vec2i, shapes_t::global_t, vec2i_hasher> map_tiles;
+  std::unordered_map<fan::vec2i, shapes_t::global_t> map_tiles;
   std::unordered_map<f32_t, std::vector<fte_t::physics_shapes_t>> physics_shapes;
-  std::unordered_map<fan::vec3, visualize_t, vec3_hasher> visual_shapes;
+  std::unordered_map<fan::vec3, visualize_t> visual_shapes;
   struct spawn_mark_t {
     fan::vec3 position;
     fan::vec2 size;

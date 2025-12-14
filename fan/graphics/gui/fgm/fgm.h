@@ -117,15 +117,13 @@ struct fgm_t {
 
     mouse_move_handle = gloco()->window.add_mouse_move_callback([this](const auto& d) {
       if (viewport_settings.move) {
-        fan::vec2 move_off = (d.position - viewport_settings.offset) / viewport_settings.zoom;
+        fan::vec2 move_off = (d.position - viewport_settings.offset) / fan::graphics::camera_get_zoom(render_view.camera);
         auto camera_pos = viewport_settings.pos - move_off;
         gloco()->camera_set_position(render_view.camera, camera_pos);
       }
     });
 
     button_handle = gloco()->window.add_buttons_callback([this](const auto& d) {
-      f32_t old_zoom = viewport_settings.zoom;
-
       switch (d.button) {
       case fan::mouse_middle: {
         viewport_settings.move = (bool)d.state;
@@ -135,14 +133,14 @@ struct fgm_t {
       }
       case fan::mouse_scroll_up: {
         if (viewport_settings.editor_hovered) {
-          viewport_settings.zoom *= scroll_speed;
+          fan::graphics::camera_set_zoom(render_view.camera, fan::graphics::camera_get_zoom(render_view.camera) * scroll_speed);
           update_line_thickness();
         }
         return;
       }
       case fan::mouse_scroll_down: {
         if (viewport_settings.editor_hovered) {
-          viewport_settings.zoom /= scroll_speed;
+          fan::graphics::camera_set_zoom(render_view.camera, fan::graphics::camera_get_zoom(render_view.camera) / scroll_speed);
           update_line_thickness();
         }
         return;
@@ -185,7 +183,7 @@ struct fgm_t {
   }
 
   void update_line_thickness() {
-    f32_t line_thickness = std::max(2.0 / viewport_settings.zoom, 2.0);
+    f32_t line_thickness = std::max(2.0 / fan::graphics::camera_get_zoom(render_view.camera), 2.0);
     xy_lines[0].set_thickness(line_thickness);
     xy_lines[1].set_thickness(line_thickness);
     if (current_shape) {
@@ -492,7 +490,7 @@ struct fgm_t {
     using namespace fan::graphics;
     auto& style = gui::get_style();
     fan::vec2 pos = fan::vec2((gui::get_mouse_pos() - viewport_settings.start_pos + fan::vec2(style.WindowPadding)) - viewport_settings.size / 2);
-    pos = fan::vec2(viewport_settings.pos) + pos / viewport_settings.zoom;
+    pos = fan::vec2(viewport_settings.pos) + pos / fan::graphics::camera_get_zoom(render_view.camera);
     return pos;
   }
 
@@ -573,7 +571,7 @@ struct fgm_t {
 
       editor_pos = gui::get_window_pos();
 
-      f32_t zoom = viewport_settings.zoom;
+      f32_t zoom = fan::graphics::camera_get_zoom(render_view.camera);
       fan::vec2 ground_size = viewport_size * (1.0f / zoom);
       fan::vec2 camera_pos = gloco()->camera_get_position(render_view.camera);
 
@@ -617,15 +615,15 @@ struct fgm_t {
 
       gloco()->camera_set_ortho(
         render_view.camera,
-        fan::vec2(-viewport_size.x / 2, viewport_size.x / 2) / viewport_settings.zoom,
-        fan::vec2(-viewport_size.y / 2, viewport_size.y / 2) / viewport_settings.zoom
+        fan::vec2(-viewport_size.x / 2, viewport_size.x / 2),
+        fan::vec2(-viewport_size.y / 2, viewport_size.y / 2)
       );
 
       viewport_settings.size = viewport_size;
       viewport_settings.start_pos = vMin;
 
       {
-        std::string str = fan::to_string(viewport_settings.zoom * 100);
+        std::string str = fan::to_string(gloco()->camera_get_zoom(render_view.camera) * 100);
         str += " %";
         gui::text_bottom_right(str, 1);
       }
@@ -1549,7 +1547,6 @@ struct shape_keyframe_animation_t {
   fan::vec2 drag_start;
   fan::graphics::shape_t drag_select;
   struct {
-    f32_t zoom = 1;
     bool move = false;
     fan::vec2 pos = 0;
     fan::vec2 size = 0;

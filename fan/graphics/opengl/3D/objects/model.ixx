@@ -143,7 +143,7 @@ export namespace fan {
       }
       void draw(const fan::mat4& model_transform = fan::mat4(1), const std::vector<fan::mat4>& bone_transforms = {}) {
         auto viewport = fan::graphics::viewport_get(viewport_nr);
-        fan::graphics::viewport_set(viewport.viewport_position, viewport.viewport_size);
+        fan::graphics::viewport_set(viewport.position, viewport.size);
         fan::graphics::get_gl_context().shader_set_value(m_shader, "model", m_transform * user_transform);
         fan::graphics::get_gl_context().shader_set_value(m_shader, "use_cpu", p.use_cpu);
         fan::graphics::get_gl_context().shader_set_camera(m_shader, camera_nr);
