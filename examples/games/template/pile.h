@@ -20,7 +20,7 @@ struct pile_t {
   }
   fan::graphics::engine_t engine;
   player_t player;
-  fte_renderer_t renderer;
+  tilemap_renderer_t renderer;
 
   stage_loader_t stage_loader;
     stage_loader_t::nr_t  level_stage;

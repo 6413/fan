@@ -773,12 +773,24 @@ namespace fan::opengl {
   fan::graphics::camera_nr_t context_t::camera_create() { return __fan_internal_camera_list.NewNode(); }
   void context_t::camera_erase(fan::graphics::camera_nr_t nr) { __fan_internal_camera_list.Recycle(nr); }
   void context_t::camera_set_ortho(fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y) {
+    camera_get(nr).coordinates.v = fan::vec4(x, y);
+    camera_update_projection(nr);
+    camera_update_view(nr);
+  }
+  void context_t::camera_update_projection(fan::graphics::camera_nr_t nr) {
     auto& camera = camera_get(nr);
-    camera.coordinates.left = x.x;
-    camera.coordinates.right = x.y;
-    camera.coordinates.down = y.y;
-    camera.coordinates.up = y.x;
-    camera.m_projection = fan::math::ortho<fan::mat4>(camera.coordinates.left, camera.coordinates.right, camera.coordinates.down, camera.coordinates.up, 0.1, fan::graphics::znearfar);
+
+    camera.m_projection = fan::math::ortho<fan::mat4>(
+      camera.coordinates.left / camera.zoom,
+      camera.coordinates.right / camera.zoom,
+      camera.coordinates.bottom / camera.zoom,
+      camera.coordinates.top / camera.zoom,
+      0.1f,
+      fan::graphics::znearfar
+    );
+  }
+  void context_t::camera_update_view(fan::graphics::camera_nr_t nr) {
+    auto& camera = camera_get(nr);
     camera.m_view[3][0] = 0;
     camera.m_view[3][1] = 0;
     camera.m_view[3][2] = 0;
@@ -806,7 +818,15 @@ namespace fan::opengl {
   }
   fan::vec2 context_t::camera_get_size(fan::graphics::camera_nr_t nr) {
     auto& camera = camera_get(nr);
-    return fan::vec2(std::abs(camera.coordinates.right - camera.coordinates.left), std::abs(camera.coordinates.down - camera.coordinates.up));
+    return fan::vec2(std::abs(camera.coordinates.right - camera.coordinates.left), std::abs(camera.coordinates.bottom - camera.coordinates.top));
+  }
+  f32_t context_t::camera_get_zoom(fan::graphics::camera_nr_t nr) {
+    return camera_get(nr).zoom;
+  }
+  void context_t::camera_set_zoom(fan::graphics::camera_nr_t nr, f32_t new_zoom) {
+    camera_get(nr).zoom = new_zoom;
+    camera_update_projection(nr);
+    camera_update_view(nr);
   }
   void context_t::camera_set_perspective(fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size) {
     auto& camera = camera_get(nr);
@@ -1307,9 +1327,15 @@ namespace fan::graphics {
     cf.camera_get_size = [](void* context, fan::graphics::camera_nr_t nr) {
       return ((fan::opengl::context_t*)context)->camera_get_size(nr);
       };
+    cf.camera_get_zoom = [](void* context, fan::graphics::camera_nr_t nr) {
+      return ((fan::opengl::context_t*)context)->camera_get_zoom(nr);
+    };
+    cf.camera_set_zoom = [](void* context, fan::graphics::camera_nr_t nr, f32_t new_zoom) {
+      ((fan::opengl::context_t*)context)->camera_set_zoom(nr, new_zoom);
+    };
     cf.camera_set_ortho = [](void* context, fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y) {
       ((fan::opengl::context_t*)context)->camera_set_ortho(nr, x, y);
-      };
+    };
     cf.camera_set_perspective = [](void* context, fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size) {
       ((fan::opengl::context_t*)context)->camera_set_perspective(nr, fov, window_size);
       };

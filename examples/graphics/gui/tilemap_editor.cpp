@@ -70,17 +70,17 @@ struct scene_manager_t {
   }
 
   void reload_scene(fte_t& fte, fan::graphics::render_view_t* view) {
-    renderer = std::make_unique<fte_renderer_t>();
+    renderer = std::make_unique<tilemap_renderer_t>();
     renderer->open();
 
-    static fte_loader_t::compiled_map_t compiled_map;
+    static tilemap_loader_t::compiled_map_t compiled_map;
     compiled_map = renderer->compile(add_temp_before_ext(fte.file_name));
 
-    fte_loader_t::properties_t p;
+    tilemap_loader_t::properties_t p;
     p.position = fan::vec3(0, 0, 0);
     p.size = fan::vec2i(16, 9);
     p.render_view = view;
-    map_id = std::make_unique<fte_renderer_t::id_t>(renderer->add(&compiled_map, p));
+    map_id = std::make_unique<tilemap_renderer_t::id_t>(renderer->add(&compiled_map, p));
   }
 
   void clear_scene() {
@@ -116,8 +116,8 @@ struct scene_manager_t {
   }
 
   std::unique_ptr<player_t> player;
-  std::unique_ptr<fte_renderer_t> renderer;
-  std::unique_ptr<fte_renderer_t::id_t> map_id;
+  std::unique_ptr<tilemap_renderer_t> renderer;
+  std::unique_ptr<tilemap_renderer_t::id_t> map_id;
   bool render_scene = false;
 };
 

@@ -49,7 +49,7 @@ struct pile_t {
 
   loco_t loco;
   player_t player;
-  fte_renderer_t renderer;
+  tilemap_renderer_t renderer;
 
   fan::algorithm::path_solver_t path_solver;
 
@@ -59,7 +59,7 @@ struct pile_t {
   uint16_t current_stage = 0;
 
   bool is_map_changing = true;
-  std::unordered_map<std::string, fte_renderer_t::compiled_map_t> maps_compiled;
+  std::unordered_map<std::string, tilemap_renderer_t::compiled_map_t> maps_compiled;
 
   fan::vec3 fadeout_target_color = -1.0f;
 }pile;

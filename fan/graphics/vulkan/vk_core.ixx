@@ -1224,14 +1224,25 @@ export namespace fan {
 
         camera.coordinates.left = x.x;
         camera.coordinates.right = x.y;
-        camera.coordinates.down = y.y;
-        camera.coordinates.up = y.x;
+        camera.coordinates.bottom = y.y;
+        camera.coordinates.top = y.x;
+
+        camera_update_projection(nr);
+      }
+
+      void context_t::camera_set_ortho(fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y) {
+        auto& c = camera_get(nr);
+        c.coordinates.v = fan::vec4(x, y);
+        camera_update_projection(nr);
+      }
+      void camera_update_projection(fan::graphics::camera_nr_t nr) {
+        auto& camera = camera_get(nr);
 
         camera.m_projection = fan::math::ortho<fan::mat4>(
           camera.coordinates.left,
           camera.coordinates.right,
-          camera.coordinates.up,
-          camera.coordinates.down,
+          camera.coordinates.top,
+          camera.coordinates.bottom,
           -fan::graphics::znearfar / 2,
           fan::graphics::znearfar / 2
         );
@@ -1244,21 +1255,6 @@ export namespace fan {
         constexpr fan::vec3 front(0, 0, 1);
 
         camera.m_view = fan::math::look_at_left<fan::mat4, fan::vec3>(position, position + front, fan::camera::world_up);
-
-        //auto it = gloco()->m_viewport_resize_callback.GetNodeFirst();
-
-        //while (it != gloco()->m_viewport_resize_callback.dst) {
-
-        //  gloco()->m_viewport_resize_callback.StartSafeNext(it);
-
-        //  resize_cb_data_t cbd;
-        //  cbd.camera = this;
-        //  cbd.position = get_position();
-        //  cbd.size = get_camera_size();
-        //  gloco()->m_viewport_resize_callback[it].data(cbd);
-
-        //  it = gloco()->m_viewport_resize_callback.EndSafeNext();
-        //}
       }
 
       fan::graphics::camera_nr_t camera_create(const fan::vec2& x, const fan::vec2& y) {
@@ -1288,7 +1284,30 @@ export namespace fan {
 
       fan::vec2 camera_get_size(fan::graphics::camera_nr_t nr) {
         fan::graphics::context_camera_t& camera = camera_get(nr);
-        return fan::vec2(std::abs(camera.coordinates.right - camera.coordinates.left), std::abs(camera.coordinates.down - camera.coordinates.up));
+        return fan::vec2(std::abs(camera.coordinates.right - camera.coordinates.left), std::abs(camera.coordinates.bottom - camera.coordinates.top));
+      }
+
+      f32_t camera_get_zoom(fan::graphics::camera_nr_t nr) {
+        return camera_get(nr).zoom;
+      }
+      void camera_set_zoom(fan::graphics::camera_nr_t nr, f32_t new_zoom) {
+        auto& c = camera_get(nr);
+
+        if (new_zoom <= 0) {
+          return;
+        }
+
+        fan::vec4& v = c.coordinates.v;
+        fan::vec2 size = v.yw() - v.xz();
+        fan::vec2 center = (v.yw() + v.xz()) * 0.5f;
+        fan::vec2 half = size * (c.zoom / new_zoom) * 0.5f;
+
+        v.xz() = center - half;
+        v.yw() = center + half;
+
+        c.zoom = new_zoom;
+
+        camera_update_projection(nr);
       }
 
       void camera_set_perspective(fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size) {
@@ -3108,6 +3127,12 @@ fan::graphics::context_functions_t fan::graphics::get_vk_context_functions() {
   };
   cf.camera_get_size = [](void* context, camera_nr_t nr) { 
     return ((fan::vulkan::context_t*)context)->camera_get_size(nr); 
+  };
+  cf.camera_get_zoom = [](void* context, fan::graphics::camera_nr_t nr) {
+    return ((fan::opengl::context_t*)context)->camera_get_zoom(nr);
+  };
+  cf.camera_set_zoom = [](void* context, fan::graphics::camera_nr_t nr, f32_t new_zoom) {
+    ((fan::opengl::context_t*)context)->camera_set_position(nr, new_zoom);
   };
   cf.camera_set_ortho = [](void* context, camera_nr_t nr, fan::vec2 x, fan::vec2 y) { 
     ((fan::vulkan::context_t*)context)->camera_set_ortho(nr, x, y); 

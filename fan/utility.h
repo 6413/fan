@@ -3,7 +3,8 @@
 
 #define STRINGIFY(p0) #p0
 #define STRINGIFY_DEFINE(a) STRINGIFY(a)
-#define REMOVE_TEMPLTE(a)  
+
+#define EXPAND(x) x
 
 #ifndef _CONCAT
 	#define _CONCAT(_0_m, _1_m) _0_m ## _1_m

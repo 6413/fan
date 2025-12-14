@@ -1,7 +1,7 @@
 void open(void* sod) {
   main_compiled_map = pile.renderer.compile("sample_level.fte");
   fan::vec2i render_size(16, 9);
-  fte_loader_t::properties_t p;
+  tilemap_loader_t::properties_t p;
   p.size = render_size;
   p.position = pile.player.body.get_position();
   main_map_id = pile.renderer.add(&main_compiled_map, p);
@@ -27,5 +27,5 @@ void update() {
   pile.step();
 }
 
-fte_loader_t::id_t main_map_id;
-fte_loader_t::compiled_map_t main_compiled_map;
+tilemap_loader_t::id_t main_map_id;
+tilemap_loader_t::compiled_map_t main_compiled_map;

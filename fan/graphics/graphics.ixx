@@ -191,18 +191,22 @@ export namespace fan::graphics {
   bool shader_update_fragment(uint16_t shape_type, const std::string& fragment);
 
   fan::graphics::camera_nr_t camera_create();
-  fan::graphics::context_camera_t& camera_get(fan::graphics::camera_nr_t nr);
+  fan::graphics::context_camera_t& camera_get(fan::graphics::camera_nr_t nr = fan::graphics::get_orthographic_render_view().camera);
   void camera_erase(fan::graphics::camera_nr_t nr);
+  fan::graphics::camera_nr_t camera_create(const fan::vec2& x, const fan::vec2& y);
   fan::graphics::camera_nr_t camera_create(const fan::vec2& x, const fan::vec2& y);
   fan::vec3 camera_get_position(fan::graphics::camera_nr_t nr);
   void camera_set_position(fan::graphics::camera_nr_t nr, const fan::vec3& cp);
   fan::vec2 camera_get_size(fan::graphics::camera_nr_t nr);
   fan::vec2 viewport_get_size(fan::graphics::viewport_nr_t nr);
-  f32_t camera_get_zoom(fan::graphics::camera_nr_t nr, fan::graphics::viewport_nr_t viewport);
+  f32_t camera_get_zoom(fan::graphics::camera_nr_t nr);
+  void camera_set_zoom(fan::graphics::camera_nr_t nr, f32_t new_zoom);
   void camera_set_ortho(fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y);
   void camera_set_perspective(fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size);
   void camera_rotate(fan::graphics::camera_nr_t nr, const fan::vec2& offset);
   void camera_set_target(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed = 10);
+  void camera_look_at(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed = 10.f);
+  void camera_look_at(const fan::vec2& target, f32_t move_speed = 10.f);
 
   fan::graphics::viewport_nr_t viewport_create();
   fan::graphics::viewport_nr_t viewport_create(const fan::vec2& viewport_position, const fan::vec2& viewport_size);
@@ -710,6 +714,8 @@ export namespace fan::graphics {
 #if defined(fan_physics)
   void aabb(const fan::physics::aabb_t& b, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1));
   void aabb(const fan::graphics::shapes::shape_t& s, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1));
+  void aabb(const fan::vec2& min, const fan::vec2& max, f32_t depth, const fan::color& c = fan::colors::white, render_view_t* render_view = &fan::graphics::get_orthographic_render_view());
+  void aabb(const fan::vec2& min, const fan::vec2& max, render_view_t* render_view = &fan::graphics::get_orthographic_render_view());
 #endif
 
   struct sprite_sheet_config_t {
@@ -986,6 +992,8 @@ export namespace fan::graphics {
       f32_t new_zoom = 2
     );
     void create(const fan::graphics::render_view_t& render_view, f32_t new_zoom = 2.f);
+    void create_default(f32_t zoom = 1.f);
+    interactive_camera_t(f32_t zoom); // calls create_default
     interactive_camera_t(
       fan::graphics::camera_t camera_nr = fan::graphics::get_orthographic_render_view().camera,
       fan::graphics::viewport_t viewport_nr = fan::graphics::get_orthographic_render_view().viewport,
@@ -996,11 +1004,11 @@ export namespace fan::graphics {
 
     fan::vec2 get_position() const;
     void set_position(const fan::vec2& position);
+    f32_t get_zoom() const;
     void set_zoom(f32_t new_zoom);
     fan::vec2 get_size() const;
     fan::vec2 get_viewport_size() const;
 
-    f32_t zoom = 1;
     bool ignore_input = false;
     bool zoom_on_window_resize = true;
     bool pan_with_middle_mouse = true;
@@ -1020,11 +1028,6 @@ export namespace fan::graphics {
     void update(
       const fan::vec2& viewport_pos = 0, 
       const fan::vec2& viewport_size = fan::window::get_size()
-    );
-    void update(
-      const fan::vec2& viewport_pos, 
-      const fan::vec2& viewport_size,
-      f32_t zoom
     );
     operator render_view_t*();
     render_view_t render_view;

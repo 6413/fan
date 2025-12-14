@@ -1,7 +1,7 @@
 module;
 
-#define loco_framebuffer
-#define loco_post_process
+//#define loco_framebuffer
+//#define loco_post_process
 #define loco_vfi
 
 #include <fan/graphics/opengl/init.h>
@@ -230,13 +230,14 @@ public:
   fan::graphics::image_nr_t image_create(const fan::color& color, const fan::graphics::image_load_properties_t& p);
 
   fan::graphics::camera_nr_t camera_create();
-  fan::graphics::context_camera_t& camera_get(fan::graphics::camera_nr_t nr);
+  fan::graphics::context_camera_t& camera_get(fan::graphics::camera_nr_t nr = fan::graphics::get_orthographic_render_view().camera);
   void camera_erase(fan::graphics::camera_nr_t nr);
   fan::graphics::camera_nr_t camera_create(const fan::vec2& x, const fan::vec2& y);
   fan::vec3 camera_get_position(fan::graphics::camera_nr_t nr);
   void camera_set_position(fan::graphics::camera_nr_t nr, const fan::vec3& cp);
   fan::vec2 camera_get_size(fan::graphics::camera_nr_t nr);
-  f32_t camera_get_zoom(fan::graphics::camera_nr_t nr, fan::graphics::viewport_nr_t viewport);
+  f32_t camera_get_zoom(fan::graphics::camera_nr_t nr);
+  void camera_set_zoom(fan::graphics::camera_nr_t nr, f32_t new_zoom);
   void camera_set_ortho(fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y);
   void camera_set_perspective(fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size);
   void camera_rotate(fan::graphics::camera_nr_t nr, const fan::vec2& offset);
@@ -280,16 +281,20 @@ public:
 	// opengl namespace
 	struct opengl {
 #include <fan/graphics/opengl/engine_functions.h>
+  #if defined(loco_framebuffer)
 #include <fan/graphics/opengl/2D/effects/blur.h>
 
 		blur_t blur;
+  #endif
 
     fan::window_t::resize_handle_t window_resize_handle;
 
+  #if defined(loco_framebuffer)
 		fan::opengl::core::framebuffer_t m_framebuffer;
 		fan::opengl::core::renderbuffer_t m_rbo;
 		fan::graphics::image_t color_buffers[4];
 		fan::graphics::shader_t m_fbo_final_shader;
+  #endif
 
 		GLenum blend_src_factor = GL_SRC_ALPHA;
 		GLenum blend_dst_factor = GL_ONE_MINUS_SRC_ALPHA;
@@ -410,7 +415,7 @@ public:
 
 	// to change renderer, pass: fan::window_t::renderer_t::*
   void switch_renderer(std::uint8_t renderer);
-  void draw_shapes();
+  void shapes_draw();
   void process_shapes();
   void process_gui();
   void get_vram_usage(int* total_mem_MB, int* used_MB);
@@ -575,11 +580,6 @@ public:
 #if defined(fan_physics)
 	fan::physics::context_t physics_context{ {} };
   void update_physics();
-  fan::physics::physics_update_cbs_t::nr_t add_physics_update(const fan::physics::physics_update_data_t& cb_data);
-  fan::physics::physics_update_cbs_t::nd_t& get_physics_update_data(fan::physics::physics_update_cbs_t::nr_t nr);
-  void remove_physics_update(fan::physics::physics_update_cbs_t::nr_t nr);
-	
-	fan::physics::physics_update_cbs_t shape_physics_update_cbs;
 #endif
 
 	// clears shapes after drawing, good for debug draw, not best for performance
@@ -628,6 +628,28 @@ public:
 
 	fan::graphics::lighting_t lighting;
 
+  bool force_line_draw = false;
+
+  struct frustum_culling_t {
+    struct bounds_t {
+      f32_t left, right, top, bottom;
+    };
+
+    bool enabled = true;
+    fan::vec2 last_camera_pos;
+    fan::vec2 last_camera_size;
+    fan::vec2 padding = 100.0f; // extra padding just in case
+
+    bool needs_update(fan::graphics::camera_nr_t camera);
+    bounds_t calculate_bounds(const fan::graphics::context_camera_t& cam);
+
+    bool is_visible(const fan::vec3& pos, const fan::vec2& half_size, 
+      fan::graphics::camera_nr_t camera);
+
+    // draws extents of frustum
+    void visualize();
+  }frustum_culling;
+
 	//gui
 #if defined(fan_gui)
   void toggle_console();
@@ -641,8 +663,6 @@ public:
 	bool allow_docking = true;
 
 	bool gui_initialized = false;
-
-  bool force_line_draw = false;
 
 	fan::graphics::gui::text_logger_t text_logger;
 

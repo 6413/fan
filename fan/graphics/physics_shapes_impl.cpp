@@ -132,7 +132,7 @@ void DrawPoint(b2Vec2 p, f32_t size, b2HexColor color, void* context) {
 void DrawString(b2Vec2 p, const char* s, b2HexColor color, void* context) {
 #if defined(fan_gui)
   fan::vec2 pos = fan::physics::physics_to_render(p) - fan::graphics::camera_get_position(fan::graphics::get_orthographic_render_view().camera);
-  pos *= fan::graphics::camera_get_zoom(fan::graphics::get_orthographic_render_view().camera, fan::graphics::get_orthographic_render_view().viewport) * 0.5f;
+  pos *= fan::graphics::camera_get_zoom(fan::graphics::get_orthographic_render_view().camera);
   pos += fan::graphics::get_window().get_size() / 2.f;
 
   fan::graphics::gui::text_outlined_at(s, pos, fan::color::from_rgb(color));
@@ -459,15 +459,15 @@ namespace fan::graphics::physics {
   }
 
   fan::vec2 base_shape_t::get_draw_offset() const {
-    return (*fan::physics::gphysics()->physics_updates)[physics_update_nr].draw_offset;
+    return fan::physics::gphysics()->physics_updates[physics_update_nr].draw_offset;
   }
   void base_shape_t::set_draw_offset(fan::vec2 new_draw_offset) {
     draw_offset = new_draw_offset;
-    (*fan::physics::gphysics()->physics_updates)[physics_update_nr].draw_offset = new_draw_offset;
+    fan::physics::gphysics()->physics_updates[physics_update_nr].draw_offset = new_draw_offset;
   }
 
   void base_shape_t::sync_visual_angle(bool flag) {
-    (*fan::physics::gphysics()->physics_updates)[physics_update_nr].sync_visual_angle = flag;
+    fan::physics::gphysics()->physics_updates[physics_update_nr].sync_visual_angle = flag;
   }
 
   fan::vec3 base_shape_t::get_position() const {
@@ -1489,7 +1489,7 @@ namespace fan::graphics::physics {
     }
     case movement_e::top_view:
     {
-      movement_state.move_to_direction(*this, input_vector);
+      movement_state.move_to_direction_raw(*this, input_vector);
       break;
     }
     }
@@ -2313,5 +2313,15 @@ namespace fan::physics {
     return fan::physics::gphysics()->raycast(src, dst);
   }
 }
+
+namespace fan::graphics {
+  void camera_look_at(fan::graphics::camera_nr_t nr, const fan::graphics::physics::character2d_t& target, f32_t move_speed) {
+    camera_set_target(nr, target.get_position(), move_speed);
+  }
+  void camera_look_at(const fan::graphics::physics::character2d_t& target, f32_t move_speed) {
+    camera_look_at(fan::graphics::get_orthographic_render_view().camera, target, move_speed);
+  }
+}
+
 
 #endif

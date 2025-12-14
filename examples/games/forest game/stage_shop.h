@@ -2,7 +2,7 @@ void open(void* sod) {
   fan::time::timer t{ true };
   fan::vec2i render_size(16, 9);
   render_size /= 1.5;
-  fte_loader_t::properties_t p;
+  tilemap_loader_t::properties_t p;
   p.size = render_size;
   pile.player.body.set_position(fan::vec2{ 320.384949, 382.723236 });
   pile.player.body.set_physics_position(pile.player.body.get_position());
@@ -137,7 +137,7 @@ void update() {
 
 
 
-fte_loader_t::id_t main_map_id;
+tilemap_loader_t::id_t main_map_id;
 
 fan::vec2 old_light_size;
 fan::physics::body_id_t player_sensor_door;

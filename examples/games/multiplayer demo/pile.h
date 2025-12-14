@@ -30,7 +30,7 @@ struct pile_t {
   fan::graphics::engine_t engine;
   player_t player;
   peers_t peers;
-  fte_renderer_t renderer;
+  tilemap_renderer_t renderer;
 
   stage_loader_t stage_loader;
   uint16_t level_stage = 0;
