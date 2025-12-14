@@ -44,7 +44,7 @@ struct pile_t {
   // arrow keys
   //car_t car2;
 
-  fte_renderer_t renderer;
+  tilemap_renderer_t renderer;
 
   stage_loader_t stage_loader;
   stage_loader_t::nr_t level_stage;

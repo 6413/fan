@@ -39,13 +39,13 @@ int main() {
   //tp.open_compiled("texture_packs/tilemap.ftp", lp);
   tp.open_compiled("platformer.ftp", lp);
 
-  fte_renderer_t renderer;
+  tilemap_renderer_t renderer;
 
   fan::physics::body_id_t sensor_id = b2_nullBodyId;
   // must be set before calling open
   renderer.sensor_id_callbacks["sensor0"] = [&](
-    fte_renderer_t::physics_entities_t& pe,
-    fte_renderer_t::physics_data_t& pd
+    tilemap_renderer_t::physics_entities_t& pe,
+    tilemap_renderer_t::physics_data_t& pd
     ) {
     std::visit([&](const auto& entity) { sensor_id = entity.body_id; }, pe.visual);
   };
@@ -57,12 +57,12 @@ int main() {
   auto compiled_map = renderer.compile("sensor_test.json");
   fan::vec2i render_size(16, 9);
 
-  fte_loader_t::properties_t p;
+  tilemap_loader_t::properties_t p;
   
   p.position = fan::vec3(0, 0, 0);
   p.size = render_size;
   // add custom stuff when importing files
-  //p.object_add_cb = [&](fte_loader_t::fte_t::tile_t& tile) {
+  //p.object_add_cb = [&](tilemap_loader_t::fte_t::tile_t& tile) {
   //  if (tile.id == "1") {
   //    fan::print("a");
   //  }

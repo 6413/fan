@@ -23,7 +23,7 @@ void open(void* sod) {
   pile.is_map_changing = false;
   fan::vec2i render_size(16, 9);
   render_size /= 1.5;
-  fte_loader_t::properties_t p;
+  tilemap_loader_t::properties_t p;
   p.size = render_size;
   p.position = pile.player.body.get_position();
   main_map_id = pile.renderer.add(main_compiled_map, p);
@@ -132,7 +132,7 @@ std::vector<fan::graphics::rectangle_t> rect_path;
 fan::graphics::rectangle_t rect_dst;
 fan::physics::body_id_t player_sensor_door;
 
-fte_loader_t::id_t main_map_id;
-fte_loader_t::compiled_map_t* main_compiled_map=0;
+tilemap_loader_t::id_t main_map_id;
+tilemap_loader_t::compiled_map_t* main_compiled_map=0;
 
 equipable_t object_key;

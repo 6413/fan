@@ -699,9 +699,9 @@ export namespace fan::graphics {
       struct properties_t {
         using type_t = line_t;
 
+        fan::vec3 src = 0;
+        fan::vec3 dst = 800;
         fan::color color = fan::colors::white;
-        fan::vec3 src;
-        fan::vec3 dst;
         f32_t thickness = 4.0f;
 
         bool blending = true;

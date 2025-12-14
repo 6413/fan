@@ -102,7 +102,7 @@ struct player_t {
   }
   void respawn(){
     if (current_checkpoint == -1){
-      body.set_physics_position(pile->renderer.get_all_spawn_positions(pile->get_level().main_map_id, fte_loader_t::fte_t::mesh_property_t::player_spawn)[0]);
+      body.set_physics_position(pile->renderer.get_all_spawn_positions(pile->get_level().main_map_id, tilemap_loader_t::fte_t::mesh_property_t::player_spawn)[0]);
     }
     else{
       body.set_physics_position(pile->get_level().player_checkpoints[current_checkpoint].visual.get_position());

@@ -23,7 +23,7 @@ static constexpr auto stage_name = "";
   bool pause = false;
   void update_camera_zoom() {
     fan::vec2 r = engine.window.get_current_monitor_resolution() / fan::vec2(2560, 1440);
-    ic.zoom = 2.2f * r.max();
+    ic.set_zoom(2.2f * r.max());
   }
   void update() {
   //  update_camera_zoom();
@@ -36,7 +36,10 @@ static constexpr auto stage_name = "";
         }
       }
     }
-
+    //engine.frustum_culling.enabled = false;
+    fan::graphics::gui::text(fan::graphics::screen_to_world(fan::window::get_mouse_position()));
+    engine.frustum_culling.padding = -200.f;
+    engine.frustum_culling.visualize();
     engine.camera_set_target(engine.orthographic_render_view.camera, player.get_physics_pos()-fan::vec2(0, 50), 0);
     fan::graphics::gui::set_viewport(engine.orthographic_render_view.viewport);
   }
@@ -47,7 +50,7 @@ static constexpr auto stage_name = "";
     return stage_loader.get_stage_data<gui_t>(gui_stage);
   }
   fan::graphics::engine_t engine {{.window_size = {1920,1080}}};
-  fte_renderer_t renderer;
+  tilemap_renderer_t renderer;
   stage_loader_t stage_loader;
   stage_loader_t::nr_t level_stage, gui_stage;
   fan::graphics::interactive_camera_t ic{

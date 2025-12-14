@@ -20,7 +20,7 @@ static inline constexpr std::array<fan::vec2, 3> get_spike_points(std::string_vi
 
 void load_enemies() {
   pile->enemy_list.Clear();
-  pile->renderer.iterate_marks(main_map_id, [&](fte_loader_t::fte_t::spawn_mark_data_t &data) ->bool {
+  pile->renderer.iterate_marks(main_map_id, [&](tilemap_loader_t::fte_t::spawn_mark_data_t &data) ->bool {
     const auto& id = data.id;
     if (id.contains("enemy_skeleton")) {
       auto nr = pile->enemy_list.NewNodeLast();
@@ -80,8 +80,8 @@ bool handle_pickupable(const std::string& id, T& who) {
 void load_map() {
   main_compiled_map = pile->renderer.compile("sample_level.fte");
   fan::vec2i render_size(16, 9);
-  fte_loader_t::properties_t p;
-  p.size = render_size;
+  tilemap_loader_t::properties_t p;
+  p.size = render_size * 1000;
   p.position = pile->player.body.get_position();
   main_map_id = pile->renderer.add(&main_compiled_map, p);
   pile->engine.lighting.set_target(main_compiled_map.lighting.ambient, 0.01);
@@ -103,7 +103,7 @@ void load_map() {
     .loop = true
     });
 
-  pile->renderer.iterate_visual(main_map_id, [&](fte_loader_t::tile_t& tile) -> bool {
+  pile->renderer.iterate_visual(main_map_id, [&](tilemap_loader_t::tile_t& tile) -> bool {
 
     const std::string& id = tile.id;
 
@@ -148,7 +148,7 @@ void load_map() {
       l.set_current_animation_frame(fan::random::value(0, l.get_current_animation_frame_count()));
       l.set_position(fan::vec3(fan::vec2(tile.position) + fan::vec2(1.f, -2.f), 1));
     }
-    else if (tile.mesh_property == fte_loader_t::fte_t::mesh_property_t::none) {
+    else if (tile.mesh_property == tilemap_loader_t::fte_t::mesh_property_t::none) {
       tile_collisions.emplace_back(
         pile->engine.physics_context.create_rectangle(
           tile.position,
@@ -279,8 +279,8 @@ void update() {
   pile->update();
 }
 
-fte_loader_t::id_t main_map_id;
-fte_loader_t::compiled_map_t main_compiled_map;
+tilemap_loader_t::id_t main_map_id;
+tilemap_loader_t::compiled_map_t main_compiled_map;
 
 std::vector<fan::physics::entity_t> spike_sensors;
 std::vector<std::pair<std::string, fan::physics::body_id_t>> pickupables;
@@ -300,13 +300,13 @@ std::vector<checkpoint_t> player_checkpoints;
 std::vector<fan::graphics::sprite_t> lamps;
 std::vector<fan::graphics::light_t> lights;
 
-fan::graphics::sprite_t background {{
-  .position = fan::vec3(10000, 6010, 0),
-  .size = fan::vec2(9192, 10000),
-  .color = fan::color(0.6, 0.576, 1),
-  .image = fan::graphics::image_t("images/background.png"),
-  .tc_size = 1 * 300.0,
-}};
+//fan::graphics::sprite_t background {{
+//  .position = fan::vec3(10000, 6010, 0),
+//  .size = fan::vec2(9192, 10000),
+//  .color = fan::color(0.6, 0.576, 1),
+//  .image = fan::graphics::image_t("images/background.png"),
+//  .tc_size = 1 * 300.0,
+//}};
 
 fan::audio::piece_t
   audio_pickup_item{"audio/pickup.sac"};

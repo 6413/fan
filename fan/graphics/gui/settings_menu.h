@@ -94,6 +94,7 @@ struct settings_menu_t {
     }
     gui::new_line();
     gui::new_line();
+    #if defined(loco_framebuffer)
     {
       gui::text(title_color, "POST PROCESSING");
       gui::begin_table("settings_left_table_post_processing", 2,
@@ -115,6 +116,7 @@ struct settings_menu_t {
 
       gui::end_table();
     }
+    #endif
     gui::new_line();
     gui::new_line();
     {
@@ -269,9 +271,11 @@ struct settings_menu_t {
       page.page_right_render = loco_t::settings_menu_t::menu_audio_right;
       pages.emplace_back(page);
     }
+  #if defined(loco_framebuffer)
     if (gloco()->window.renderer == fan::window_t::renderer_t::opengl) {
       gloco()->shader_set_value(gloco()->gl.m_fbo_final_shader, "bloom_strength", bloom_strength);
     }
+  #endif
   }
 
   void change_target_fps(int direction) {

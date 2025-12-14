@@ -26,7 +26,7 @@ import fan.types.json;
 import fan.physics.types;
 import fan.physics.b2_integration;
 
-export struct fte_loader_t {
+export struct tilemap_loader_t {
 
   struct fte_t {
   #include "common2.h"

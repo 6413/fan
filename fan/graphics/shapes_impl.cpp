@@ -170,7 +170,7 @@ namespace fan::graphics {
     if (hframes != defaults.hframes) {
       j["hframes"] = hframes;
     }
-    if (hframes != defaults.vframes) {
+    if (vframes != defaults.vframes) {
       j["vframes"] = vframes;
     }
     j.update(fan::graphics::image_to_json(image), true);
@@ -1444,7 +1444,6 @@ namespace fan::graphics{
       }
 			int actual_frame = animation.selected_frames[sheet_data.current_frame];
 
-			// Find which image this frame belongs to and the local frame within that image
 			int image_index = 0;
 			int local_frame = actual_frame;
 			int frame_count = 0;

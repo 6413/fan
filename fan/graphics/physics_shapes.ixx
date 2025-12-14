@@ -599,7 +599,9 @@ export namespace fan {
         static character2d_t from_json(const character_config_t& config, const std::source_location& callers_path = std::source_location::current());
 
         character2d_t() = default;
-        character2d_t(auto&& shape) : base_shape_t(std::move(shape)) {}
+        template <typename T>
+        requires(!fan::is_vector_type_v<T> && !std::is_arithmetic_v<T>)
+        character2d_t(T&& shape) : base_shape_t(std::move(shape)) {}
         character2d_t(const character2d_t& o);
         character2d_t(character2d_t&& o) noexcept;
         character2d_t& operator=(const character2d_t& o);
@@ -863,6 +865,11 @@ export namespace fan::graphics::physics {
     const fan::graphics::physics::polygon_t::properties_t& visual_properties,
     const fan::physics::shape_properties_t& physics_properties = {.fixed_rotation = true}
   );
+}
+
+export namespace fan::graphics {
+  void camera_look_at(fan::graphics::camera_nr_t nr, const fan::graphics::physics::character2d_t& target, f32_t move_speed);
+  void camera_look_at(const fan::graphics::physics::character2d_t& target, f32_t move_speed);
 }
 
 #endif

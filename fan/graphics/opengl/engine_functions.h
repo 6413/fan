@@ -1,5 +1,5 @@
-#define loco_framebuffer
-#define loco_post_process
+//#define loco_framebuffer
+//#define loco_post_process
 loco_t& get_loco() {
   return (*OFFSETLESS(this, loco_t, gl));
 }
@@ -124,8 +124,10 @@ void open() {
 }
 
 void close() {
+#if defined(loco_framebuffer)
   blur.close();
   loco.shader_erase(loco.gl.m_fbo_final_shader);
+#endif
 }
 
 void init_framebuffer() {
@@ -553,6 +555,7 @@ void shapes_open() {
     }
   }
 
+#if defined(loco_framebuffer)
   init_framebuffer();
 
   loco.gl.m_fbo_final_shader = loco.shader_create();
@@ -566,6 +569,7 @@ void shapes_open() {
     loco.read_shader("shaders/opengl/2D/effects/loco_fbo.fs")
   );
   loco.shader_compile(loco.gl.m_fbo_final_shader);
+#endif
 
   fan::graphics::shader_t shader = loco.shader_create();
 
@@ -733,7 +737,7 @@ void draw_all_shape_aabbs() {
   }
 }
 
-void draw_shapes() {
+void shapes_draw() {
   fan::graphics::shaper_t::KeyTraverse_t KeyTraverse;
   KeyTraverse.Init(fan::graphics::g_shapes->shaper);
 
@@ -742,6 +746,8 @@ void draw_shapes() {
   viewport.sic();
   camera_t camera;
   camera.sic();
+
+  bool check_culling = false;
 
   fan::graphics::shaper_t::ShapeTypeIndex_t prev_st = -1;
 
@@ -756,9 +762,8 @@ void draw_shapes() {
   uint64_t draw_mode = -1;
   uint32_t vertex_count = -1;
   while (KeyTraverse.Loop(fan::graphics::g_shapes->shaper)) {
-    
-    fan::graphics::shaper_t::KeyTypeIndex_t kti = KeyTraverse.kti(fan::graphics::g_shapes->shaper);
 
+    fan::graphics::shaper_t::KeyTypeIndex_t kti = KeyTraverse.kti(fan::graphics::g_shapes->shaper);
 
     switch (kti) {
     case fan::graphics::Key_e::blending: {
@@ -778,11 +783,11 @@ void draw_shapes() {
       break;
     }
     case fan::graphics::Key_e::depth: {
-#if defined(depth_debug)
+    #if defined(depth_debug)
       depth_t Key = *(depth_t*)KeyTraverse.kd();
       depth_Key = true;
       fan::print(Key);
-#endif
+    #endif
       break;
     }
     case fan::graphics::Key_e::image: {
@@ -816,7 +821,7 @@ void draw_shapes() {
         break;
       }
       if (light_buffer_enabled == false) {
-#if defined(loco_framebuffer)
+      #if defined(loco_framebuffer)
         loco.context.gl.set_depth_test(false);
         fan_opengl_call(glEnable(GL_BLEND));
         fan_opengl_call(glBlendFunc(GL_ONE, GL_ONE));
@@ -828,7 +833,7 @@ void draw_shapes() {
 
         fan_opengl_call(glDrawBuffers(std::size(attachments), attachments));
         light_buffer_enabled = true;
-#endif
+      #endif
       }
       break;
     }
@@ -837,7 +842,7 @@ void draw_shapes() {
         break;
       }
       if (light_buffer_enabled) {
-#if defined(loco_framebuffer)
+      #if defined(loco_framebuffer)
         loco.context.gl.set_depth_test(true);
         unsigned int attachments[sizeof(loco.gl.color_buffers) / sizeof(color_buffers[0])];
 
@@ -847,7 +852,7 @@ void draw_shapes() {
 
         fan_opengl_call(glDrawBuffers(1, attachments));
         light_buffer_enabled = false;
-#endif
+      #endif
         continue;
       }
       break;
@@ -862,7 +867,7 @@ void draw_shapes() {
       break;
     }
     case fan::graphics::Key_e::shadow: {
-      
+
       GLenum blend_src_factor = GL_DST_COLOR;
       GLenum blend_dst_factor = GL_ONE_MINUS_SRC_ALPHA;
       fan_opengl_call(glEnable(GL_BLEND));
@@ -872,14 +877,14 @@ void draw_shapes() {
     }
 
     if (KeyTraverse.isbm) {      
-#if fan_debug >= fan_debug_medium
+    #if fan_debug >= fan_debug_medium
       if (draw_mode == (decltype(draw_mode))-1) {
         fan::throw_error("uninitialized draw mode");
       }
       if (vertex_count == (decltype(draw_mode))-1) {
         fan::throw_error("uninitialized vertex count");
       }
-#endif
+    #endif
 
       fan::graphics::shaper_t::BlockTraverse_t BlockTraverse;
       fan::graphics::shaper_t::ShapeTypeIndex_t shape_type = BlockTraverse.Init(fan::graphics::g_shapes->shaper, KeyTraverse.bmid());
@@ -890,16 +895,54 @@ void draw_shapes() {
         continue;
       }
 
+      check_culling = loco.frustum_culling.enabled && 
+        (shape_type == fan::graphics::shapes::shape_type_t::sprite ||
+          shape_type == fan::graphics::shapes::shape_type_t::unlit_sprite ||
+          shape_type == fan::graphics::shapes::shape_type_t::rectangle ||
+          shape_type == fan::graphics::shapes::shape_type_t::circle);
+
       do {
         auto shader = fan::graphics::g_shapes->shaper.GetShader(shape_type);
         if (shape_type == fan::graphics::shapes::shape_type_t::vfi || shape_type == fan::graphics::shapes::shape_type_t::light_end) {
           break;
         }
-#if fan_debug >= fan_debug_medium
+
+        uint32_t visible_count = BlockTraverse.GetAmount(fan::graphics::g_shapes->shaper);
+        std::vector<std::pair<uint32_t, uint32_t>> draw_ranges;
+
+        if (check_culling) {
+          visible_count = 0;
+          uint32_t draw_begin = 0;
+          uint32_t draw_count = 0;
+
+          auto block_camera = camera.iic() ? loco.orthographic_render_view.camera : camera;
+          auto amount = BlockTraverse.GetAmount(fan::graphics::g_shapes->shaper);
+          auto blid = BlockTraverse.GetBlockID();
+
+          for (uint32_t i = 0; i < amount; ++i) {
+            auto sid = *fan::graphics::g_shapes->shaper.GetShapeID(shape_type, blid, i);
+            auto* shape = reinterpret_cast<fan::graphics::shapes::shape_t*>(&sid);
+
+            if (loco.frustum_culling.is_visible(shape->get_position(), shape->get_size(), block_camera)) {
+              if (!draw_count) draw_begin = i;
+              ++draw_count;
+              ++visible_count;
+            }
+            else if (draw_count) {
+              draw_ranges.emplace_back(draw_begin, draw_count);
+              draw_count = 0;
+            }
+          }
+
+          if (draw_count) draw_ranges.emplace_back(draw_begin, draw_count);
+          if (!visible_count) continue;
+        }
+
+      #if fan_debug >= fan_debug_medium
         if ((shader.iic())) {
           fan::throw_error("invalid stuff");
         }
-#endif
+      #endif
         loco.shader_use(shader);
 
         if (camera.iic() == false) {
@@ -911,19 +954,19 @@ void draw_shapes() {
         if (viewport.iic() == false) {
           auto v = loco.viewport_get(viewport);
           loco.viewport_set(v.viewport_position, v.viewport_size);
-         // fan::print(v.viewport_position, v.viewport_size);
+          // fan::print(v.viewport_position, v.viewport_size);
         }
         loco.shader_set_value(shader, "_t00", 0);
         if ((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) {
           loco.shader_set_value(shader, "_t01", 1);
         }
-#if defined(depth_debug)
+      #if defined(depth_debug)
         if (depth_Key) {
           auto& ri = *(fan::vec3*)BlockTraverse.GetRenderData(fan::graphics::g_shapes->shaper);
           fan::print("d", ri.z);
         }
-#endif
-#if fan_debug >= fan_debug_high
+      #endif
+      #if fan_debug >= fan_debug_high
         switch (shape_type) {
         default: {
           if (camera.iic()) {
@@ -935,7 +978,7 @@ void draw_shapes() {
           break;
         }
         }
-#endif
+      #endif
 
         if (shape_type == fan::graphics::shapes::shape_type_t::universal_image_renderer) {          
           auto& ri = *(fan::graphics::shapes::universal_image_renderer_t::ri_t*)BlockTraverse.GetData(fan::graphics::g_shapes->shaper);
@@ -978,19 +1021,21 @@ void draw_shapes() {
 
         if (shape_type != fan::graphics::shapes::shape_type_t::light) {
 
+        #if defined(loco_framebuffer)
           if (shape_type == fan::graphics::shapes::shape_type_t::sprite || shape_type == fan::graphics::shapes::shape_type_t::unlit_sprite) {
             if ((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) {
               fan_opengl_call(glActiveTexture(GL_TEXTURE1));
               fan_opengl_call(glBindTexture(GL_TEXTURE_2D, loco.image_get_handle(color_buffers[1])));
             }
           }
+        #endif
 
           auto c = loco.camera_get(camera);
 
           loco.shader_set_value(
             shader,
             "matrix_size",
-            fan::vec2(c.coordinates.right - c.coordinates.left, c.coordinates.down - c.coordinates.up).abs()
+            fan::vec2(c.coordinates.right - c.coordinates.left, c.coordinates.bottom - c.coordinates.top).abs()
           );
           loco.shader_set_value(
             shader,
@@ -1023,7 +1068,7 @@ void draw_shapes() {
           loco.shader_set_value(
             shader,
             "camera_zoom",
-            loco.camera_get_zoom(camera, viewport)
+            loco.camera_get_zoom(camera)
           );
           //fan::print(fan::time::now() / 1e+9);
         }
@@ -1035,8 +1080,8 @@ void draw_shapes() {
         m_vao.bind(loco.context.gl);
         m_vbo.bind(loco.context.gl);
 
-        if (loco.context.gl.opengl.major < 4 || (loco.context.gl.opengl.major == 4 && loco.context.gl.opengl.minor < 2)) {
-          uintptr_t offset = BlockTraverse.GetRenderDataOffset(fan::graphics::g_shapes->shaper);
+        auto set_attrib_offset = [&](uintptr_t base_offset) {
+          uintptr_t offset = base_offset;
           fan::graphics::shape_gl_init_list_t& locations = fan::graphics::g_shapes->shaper.GetLocations(shape_type);
           for (int i = 0; i < locations.count; ++i) {
             const auto& location = locations.ptr[i];
@@ -1064,10 +1109,15 @@ void draw_shapes() {
             }
             }
           }
+        };
+
+        if (loco.context.gl.opengl.major < 4 || (loco.context.gl.opengl.major == 4 && loco.context.gl.opengl.minor < 2)) {
+          uintptr_t base = BlockTraverse.GetRenderDataOffset(fan::graphics::g_shapes->shaper);
+          set_attrib_offset(base);
         }
 
         switch (shape_type) {
-      #if defined(fan_3D)
+        #if defined(fan_3D)
         case fan::graphics::shapes::shape_type_t::rectangle3d: {
           // illegal xd
           loco.context.gl.set_depth_test(false);
@@ -1077,7 +1127,7 @@ void draw_shapes() {
           // illegal xd
           loco.context.gl.set_depth_test(false);
         }//fallthrough
-      #endif
+                                                      #endif
         case fan::graphics::shapes::shape_type_t::particles: {
           //fan::print("shaper design is changed");
           fan::graphics::shapes::particles_t::ri_t* pri = (fan::graphics::shapes::particles_t::ri_t*)BlockTraverse.GetData(fan::graphics::g_shapes->shaper);
@@ -1138,48 +1188,88 @@ void draw_shapes() {
         }
         default: {
           auto& shape_data = fan::graphics::g_shapes->shaper.GetShapeTypes(shape_type).renderer.gl;
+
           if (((loco.context.gl.opengl.major > 4) || (loco.context.gl.opengl.major == 4 && loco.context.gl.opengl.minor >= 2)) && shape_data.instanced) {
-            fan_opengl_call(glDrawArraysInstancedBaseInstance(
-              draw_mode,
-              0,
-              vertex_count,//polygon_t::max_vertices_per_element breaks light
-              BlockTraverse.GetAmount(fan::graphics::g_shapes->shaper),
-              BlockTraverse.GetRenderDataOffset(fan::graphics::g_shapes->shaper) / fan::graphics::g_shapes->shaper.GetRenderDataSize(shape_type)
-            ));
+
+            const uint32_t base_instance = (BlockTraverse.GetRenderDataOffset(fan::graphics::g_shapes->shaper) /
+                fan::graphics::g_shapes->shaper.GetRenderDataSize(shape_type));
+
+            if (check_culling) {
+              for (auto& r : draw_ranges) {
+                fan_opengl_call(glDrawArraysInstancedBaseInstance(
+                  draw_mode,
+                  0,
+                  vertex_count,
+                  r.second,
+                  base_instance + r.first
+                ));
+              }
+            }
+            else {
+              fan_opengl_call(glDrawArraysInstancedBaseInstance(
+                draw_mode,
+                0,
+                vertex_count,//polygon_t::max_vertices_per_element breaks light
+                BlockTraverse.GetAmount(fan::graphics::g_shapes->shaper),
+                base_instance
+              ));
+            }
           }
           else if (((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) && shape_data.instanced) {
-            fan_opengl_call(glDrawArraysInstanced(
-              draw_mode,
-              0,
-              vertex_count,
-              BlockTraverse.GetAmount(fan::graphics::g_shapes->shaper)
-            ));
+
+            if (check_culling) {
+              const uintptr_t base = BlockTraverse.GetRenderDataOffset(fan::graphics::g_shapes->shaper);
+              const uintptr_t stride = fan::graphics::g_shapes->shaper.GetRenderDataSize(shape_type);
+
+              for (auto& r : draw_ranges) {
+                set_attrib_offset(base + (uintptr_t)r.first * stride);
+                fan_opengl_call(glDrawArraysInstanced(
+                  draw_mode,
+                  0,
+                  vertex_count,
+                  r.second
+                ));
+              }
+
+              set_attrib_offset(base);
+            }
+            else {
+              fan_opengl_call(glDrawArraysInstanced(
+                draw_mode,
+                0,
+                vertex_count,
+                BlockTraverse.GetAmount(fan::graphics::g_shapes->shaper)
+              ));
+            }
           }
           else {
             fan_opengl_call(glDrawArrays(
               draw_mode,
-              (!!!(loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1)) * (BlockTraverse.GetRenderDataOffset(fan::graphics::g_shapes->shaper) / fan::graphics::g_shapes->shaper.GetRenderDataSize(shape_type)) * shape_data.vertex_count,
+              (!!!(loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1)) *
+              (BlockTraverse.GetRenderDataOffset(fan::graphics::g_shapes->shaper) /
+                fan::graphics::g_shapes->shaper.GetRenderDataSize(shape_type)) * shape_data.vertex_count,
               vertex_count * BlockTraverse.GetAmount(fan::graphics::g_shapes->shaper)
             ));
           }
           break;
         }
         }
-        } while (BlockTraverse.Loop(fan::graphics::g_shapes->shaper));
+      } while (BlockTraverse.Loop(fan::graphics::g_shapes->shaper));
     }
   }
+
   {
-#if defined(loco_framebuffer)
+  #if defined(loco_framebuffer)
 
     if ((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) {
       loco.gl.m_framebuffer.unbind(loco.context.gl);
 
-#if defined(loco_post_process)
+    #if defined(loco_post_process)
 
       if (loco.window.renderer == fan::window_t::renderer_t::opengl) {
         loco.gl.blur.draw(&loco.gl.color_buffers[0]);
       }
-#endif
+    #endif
 
       //blur[1].draw(&color_buffers[3]);
 
@@ -1194,28 +1284,29 @@ void draw_shapes() {
 
       loco.shader_set_value(loco.gl.m_fbo_final_shader, "window_size", window_size);
 
-
       if (loco.window.renderer == fan::window_t::renderer_t::opengl) {
         fan_opengl_call(glActiveTexture(GL_TEXTURE0));
         loco.image_bind(loco.gl.color_buffers[0]);
       }
 
       if (loco.window.renderer == fan::window_t::renderer_t::opengl) {
-#if defined(loco_post_process)
+      #if defined(loco_post_process)
 
         fan_opengl_call(glActiveTexture(GL_TEXTURE1));
         loco.image_bind(loco.gl.blur.mips.front().image);
-#endif
+      #endif
         render_final_fb();
       }
-#endif
     }
+  #endif
   }
 }
+
 
 void begin_process_frame() {
   fan_opengl_call(glViewport(0, 0, loco.window.get_size().x, loco.window.get_size().y));
 
+#if defined(loco_framebuffer)
   if ((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) {
     loco.gl.m_framebuffer.bind(loco.context.gl);
 
@@ -1230,10 +1321,7 @@ void begin_process_frame() {
       fan_opengl_call(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
     }
   }
-  else {
-    fan_opengl_call(glClearColor(loco.clear_color.r, loco.clear_color.g, loco.clear_color.b, loco.clear_color.a));
-    fan_opengl_call(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-  }
+#endif
   fan_opengl_call(glClearColor(loco.clear_color.r, loco.clear_color.g, loco.clear_color.b, loco.clear_color.a));
   fan_opengl_call(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 }

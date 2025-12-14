@@ -97,13 +97,14 @@ export namespace fan {
 			fan::mat4 m_view = fan::mat4(1);
 			f32_t zfar = 1000.f;
 			f32_t znear = 0.1f;
+      f32_t zoom = 1.0f;
 
 			union {
 				struct {
 					f32_t left;
 					f32_t right;
-					f32_t up;
-					f32_t down;
+					f32_t top;
+					f32_t bottom;
 				};
 				fan::vec4 v;
 			}coordinates;
@@ -434,6 +435,7 @@ export namespace fan::graphics {
     render_view_t() = default;
     explicit render_view_t(bool);
 		void create();
+    void create_default(const fan::vec2& window_size, f32_t zoom = 1.f);
 		void remove();
 		void set(
 			const fan::vec2& ortho_x, const fan::vec2& ortho_y,
@@ -447,7 +449,7 @@ export namespace fan::graphics {
 	fan::vec2 screen_to_world(const fan::vec2& p, fan::graphics::viewport_t viewport, fan::graphics::camera_t camera);
 	fan::vec2 screen_to_world(const fan::vec2& p, const render_view_t& render_view = *fan::graphics::ctx().orthographic_render_view);
 	fan::vec2 world_to_screen(const fan::vec2& p, fan::graphics::viewport_t viewport, fan::graphics::camera_t camera);
-	fan::vec2 world_to_screen(const fan::vec2& p, const render_view_t& render_view);
+	fan::vec2 world_to_screen(const fan::vec2& p, const render_view_t& render_view = *fan::graphics::ctx().orthographic_render_view);
 	fan::vec2 get_mouse_position();
 	fan::vec2 get_mouse_position(const camera_t& camera, const viewport_t& viewport);
 	fan::vec2 get_mouse_position(const fan::graphics::render_view_t& render_view);

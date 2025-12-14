@@ -9,9 +9,11 @@
   build_function(camera_get_position, fan::vec3, fan::graphics::camera_nr_t nr) \
   build_function(camera_set_position, void, fan::graphics::camera_nr_t nr, const fan::vec3& cp) \
   build_function(camera_get_size, fan::vec2, fan::graphics::camera_nr_t nr) \
+  build_function(camera_get_zoom, f32_t, fan::graphics::camera_nr_t nr) \
+  build_function(camera_set_zoom, void, fan::graphics::camera_nr_t nr, f32_t new_zoom) \
   build_function(camera_set_ortho, void, fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y) \
   build_function(camera_set_perspective, void, fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size) \
-  build_function(camera_rotate, void, fan::graphics::camera_nr_t nr, const fan::vec2& offset)
+  build_function(camera_rotate, void, fan::graphics::camera_nr_t nr, const fan::vec2& offset) \
 
 #define context_build_shader_functions(build_function) \
   CONCAT(build_function, 2)(shader_create, fan::graphics::shader_nr_t) \

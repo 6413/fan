@@ -390,10 +390,14 @@ export namespace fan::opengl {
     fan::graphics::camera_nr_t camera_create();
     void camera_erase(fan::graphics::camera_nr_t nr);
     void camera_set_ortho(fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y);
+    void camera_update_projection(fan::graphics::camera_nr_t nr);
+    void camera_update_view(fan::graphics::camera_nr_t nr);
     fan::graphics::camera_nr_t camera_create(const fan::vec2& x, const fan::vec2& y);
     fan::vec3 camera_get_position(fan::graphics::camera_nr_t nr);
     void camera_set_position(fan::graphics::camera_nr_t nr, const fan::vec3& cp);
     fan::vec2 camera_get_size(fan::graphics::camera_nr_t nr);
+    f32_t camera_get_zoom(fan::graphics::camera_nr_t nr);
+    void camera_set_zoom(fan::graphics::camera_nr_t nr, f32_t new_zoom);
     void camera_set_perspective(fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size);
 
     void camera_rotate(fan::graphics::camera_nr_t nr, const fan::vec2& offset);

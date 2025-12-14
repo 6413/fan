@@ -314,6 +314,10 @@ export namespace fan {
 
       fan::physics::entity_t create_sensor_rectangle(const fan::vec2& position, const fan::vec2& size);
 
+      physics_update_cbs_t::nr_t add_physics_update(const physics_update_data_t& cb_data);
+      fan::physics::physics_update_cbs_t::nd_t& get_physics_update_data(fan::physics::physics_update_cbs_t::nr_t nr);
+      void remove_physics_update(physics_update_cbs_t::nr_t nr);
+
       b2WorldId world_id;
       sensor_events_t sensor_events;
       f32_t delta_time = 0;
@@ -323,7 +327,7 @@ export namespace fan {
       };
 
       std::unordered_set<std::pair<uint64_t, uint64_t>, pair_hash_t> active_collisions;
-      fan::physics::physics_update_cbs_t* physics_updates = nullptr;
+      fan::physics::physics_update_cbs_t physics_updates;
       physics_step_callbacks_t physics_step_callbacks;
       std::function<void()> debug_draw_cb = [] {};
     };
@@ -368,7 +372,10 @@ export namespace fan {
     body_id_t deep_copy_body(b2WorldId worldId, body_id_t sourceBodyId);
     void set_pre_solve_callback(b2WorldId world_id, b2PreSolveFcn* fcn, void* context);
 
+    void update_physics();
+
     physics_update_cbs_t::nr_t add_physics_update(const physics_update_data_t& cb_data);
+    fan::physics::physics_update_cbs_t::nd_t& get_physics_update_data(fan::physics::physics_update_cbs_t::nr_t nr);
     void remove_physics_update(physics_update_cbs_t::nr_t nr);
     bool overlap_result_callback(b2ShapeId shape_id, void* context);
   }

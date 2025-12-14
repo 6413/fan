@@ -174,7 +174,7 @@ void begin_draw() {
   }
 }
 
-void draw_shapes() {
+void shapes_draw() {
 
   loco.context.vk.memory_queue.process(loco.context.vk);
 

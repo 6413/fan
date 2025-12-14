@@ -106,12 +106,29 @@ namespace fan::graphics {
   }
 
   render_view_t::render_view_t(bool) {
-    create();
+    create_default(fan::window::get_size());
   }
 
   void render_view_t::create() {
     camera = ctx()->camera_create(ctx());
     viewport = ctx()->viewport_create(ctx());
+  }
+  void render_view_t::create_default(const fan::vec2& window_size, f32_t zoom) {
+    create();
+    ctx()->camera_set_ortho(
+      ctx(),
+      camera,
+      fan::vec2(0, window_size.x),
+      fan::vec2(0, window_size.y)
+    );
+    ctx()->camera_set_zoom(ctx(), camera, zoom);
+    ctx()->viewport_set_nr(
+      ctx(),
+      viewport,
+      fan::vec2(0, 0),
+      window_size,
+      window_size
+    );
   }
   void render_view_t::remove() {
     ctx()->camera_erase(ctx(), camera);
@@ -134,10 +151,10 @@ namespace fan::graphics {
     auto c = ctx()->camera_get(ctx(), camera);
     fan::vec2 viewport_position = v.viewport_position;
     fan::vec2 viewport_size = v.viewport_size;
-    f32_t l = c.coordinates.left;
-    f32_t r = c.coordinates.right;
-    f32_t t = c.coordinates.up;
-    f32_t b = c.coordinates.down;
+    f32_t l = c.coordinates.left / c.zoom;
+    f32_t r = c.coordinates.right / c.zoom;
+    f32_t t = c.coordinates.top / c.zoom;
+    f32_t b = c.coordinates.bottom / c.zoom;
     fan::vec2 tp = p - viewport_position;
     fan::vec2 d = viewport_size;
     tp /= d;
@@ -149,10 +166,10 @@ namespace fan::graphics {
     auto c = ctx()->camera_get(ctx(), camera);
     fan::vec2 viewport_position = v.viewport_position;
     fan::vec2 viewport_size = v.viewport_size;
-    f32_t l = c.coordinates.left;
-    f32_t r = c.coordinates.right;
-    f32_t t = c.coordinates.up;
-    f32_t b = c.coordinates.down;
+    f32_t l = c.coordinates.left / c.zoom;
+    f32_t r = c.coordinates.right / c.zoom;
+    f32_t t = c.coordinates.top / c.zoom;
+    f32_t b = c.coordinates.bottom / c.zoom;
     fan::vec2 tp = p - viewport_position;
     fan::vec2 d = viewport_size;
     tp /= d;
@@ -168,10 +185,10 @@ namespace fan::graphics {
     auto c = ctx()->camera_get(ctx(), camera);
     fan::vec2 viewport_position = v.viewport_position;
     fan::vec2 viewport_size = v.viewport_size;
-    f32_t l = c.coordinates.left;
-    f32_t r = c.coordinates.right;
-    f32_t t = c.coordinates.up;
-    f32_t b = c.coordinates.down;
+    f32_t l = c.coordinates.left / c.zoom;
+    f32_t r = c.coordinates.right / c.zoom;
+    f32_t t = c.coordinates.top / c.zoom;
+    f32_t b = c.coordinates.bottom / c.zoom;
     fan::vec2 tp = p - c.position;
     f32_t u = (tp.x - l) / (r - l);
     f32_t vcoord = (tp.y - t) / (b - t);
