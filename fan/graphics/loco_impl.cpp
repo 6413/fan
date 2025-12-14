@@ -322,12 +322,12 @@ fan::vec2 loco_t::camera_get_size(fan::graphics::camera_nr_t nr) {
   return context_functions.camera_get_size(&context, nr);
 }
 
-f32_t loco_t::camera_get_zoom(fan::graphics::camera_nr_t nr, fan::graphics::viewport_nr_t viewport) {
-  fan::vec2 s = viewport_get_size(viewport);
+f32_t loco_t::camera_get_zoom(fan::graphics::camera_nr_t nr) {
+  return context_functions.camera_get_zoom(&context, nr);
+}
 
-  auto& camera = camera_get(nr);
-
-  return (s.x * 2) / (camera.coordinates.right - camera.coordinates.left);
+void loco_t::camera_set_zoom(fan::graphics::camera_nr_t nr, f32_t new_zoom) {
+  context_functions.camera_set_zoom(&context, nr, new_zoom);
 }
 
 void loco_t::camera_set_ortho(fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y) {
@@ -410,8 +410,8 @@ bool loco_t::inside(const fan::graphics::render_view_t& render_view, const fan::
   auto c = camera_get(render_view.camera);
   f32_t l = c.coordinates.left;
   f32_t r = c.coordinates.right;
-  f32_t t = c.coordinates.up;
-  f32_t b = c.coordinates.down;
+  f32_t t = c.coordinates.top;
+  f32_t b = c.coordinates.bottom;
 
   return tp.x >= l && tp.x <= r && tp.y >= t && tp.y <= b;
 }
@@ -589,6 +589,7 @@ void loco_t::generate_commands(loco_t* loco) {
     loco->console.editor.SetText("");
   }).description = "clears output buffer - usage clear";
 
+#if defined(loco_framebuffer)
   loco->console.commands.add("set_gamma", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
     auto* loco = OFFSETLESS(self, loco_t, console);
     if (args.size() != 1) {
@@ -632,7 +633,7 @@ void loco_t::generate_commands(loco_t* loco) {
     }
     loco->shader_set_value(loco->gl.m_fbo_final_shader, "bloom_strength", std::stof(args[0]));
   }).description = "sets bloom strength for postprocessing shader";
-
+#endif
   loco->console.commands.add("set_vsync", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
     auto* loco = OFFSETLESS(self, loco_t, console);
     if (args.size() != 1) {
@@ -860,10 +861,6 @@ loco_t::loco_t(const loco_t::properties_t& p) {
   shapes.immediate_render_list = &immediate_render_list;
   shapes.static_render_list = &static_render_list;
 
-#if defined(fan_physics)
-  physics_context.physics_updates = &shape_physics_update_cbs;
-#endif
-
   input_action.is_active_func = [this](int key) -> int {
     return window.key_state(key);
   };
@@ -969,14 +966,7 @@ loco_t::loco_t(const loco_t::properties_t& p) {
   {
     fan::vec2 window_size = window.get_size();
     {
-      orthographic_render_view.camera = open_camera(
-        fan::vec2(0, window_size.x),
-        fan::vec2(0, window_size.y)
-      );
-      orthographic_render_view.viewport = open_viewport(
-        fan::vec2(0, 0),
-        window_size
-      );
+      orthographic_render_view.create_default(window_size);
     }
     {
       perspective_render_view.camera = open_camera_perspective();
@@ -1208,7 +1198,7 @@ void loco_t::switch_renderer(uint8_t renderer) {
           camera_set_ortho(
             nr,
             fan::vec2(cam.coordinates.left, cam.coordinates.right),
-            fan::vec2(cam.coordinates.up, cam.coordinates.down)
+            fan::vec2(cam.coordinates.top, cam.coordinates.bottom)
           );
         }
         nrtra.Close(&camera_list);
@@ -1349,15 +1339,15 @@ void loco_t::switch_renderer(uint8_t renderer) {
   reload_renderer_to = -1;
 }
 
-void loco_t::draw_shapes() {
+void loco_t::shapes_draw() {
   shape_draw_timer.start();
   if (window.renderer == fan::window_t::renderer_t::opengl) {
-    gl.draw_shapes();
+    gl.shapes_draw();
   }
 #if defined(fan_vulkan)
   else
     if (window.renderer == fan::window_t::renderer_t::vulkan) {
-      vk.draw_shapes();
+      vk.shapes_draw();
     }
 #endif
   shape_draw_time_s = shape_draw_timer.seconds();
@@ -1378,7 +1368,7 @@ void loco_t::process_shapes() {
     i();
   }
 
-  draw_shapes();
+  shapes_draw();
 
   for (const auto& i : m_post_draw) {
     i();
@@ -1629,17 +1619,6 @@ void loco_t::process_render() {
       it = m_update_callback.EndSafeNext();
     }
   }
-
-#if defined(fan_physics)
-  {
-    auto it = shape_physics_update_cbs.GetNodeFirst();
-    while (it != shape_physics_update_cbs.dst) {
-      shape_physics_update_cbs.StartSafeNext(it);
-      ((fan::physics::shape_physics_update_cb)shape_physics_update_cbs[it].cb)(shape_physics_update_cbs[it]);
-      it = shape_physics_update_cbs.EndSafeNext();
-    }
-  }
-#endif
 
   for (const auto& i : single_queue) {
     i();
@@ -2047,20 +2026,6 @@ f64_t loco_t::current_time() const {
 void loco_t::update_physics() {
   physics_context.step(delta_time);
 }
-
-fan::physics::physics_update_cbs_t::nr_t loco_t::add_physics_update(const fan::physics::physics_update_data_t& cb_data) {
-  auto it = shape_physics_update_cbs.NewNodeLast();
-  shape_physics_update_cbs[it] = (fan::physics::physics_update_data_t)cb_data;
-  return it;
-}
-
-fan::physics::physics_update_cbs_t::nd_t& loco_t::get_physics_update_data(fan::physics::physics_update_cbs_t::nr_t nr) {
-  return shape_physics_update_cbs[nr];
-}
-
-void loco_t::remove_physics_update(fan::physics::physics_update_cbs_t::nr_t nr) {
-  shape_physics_update_cbs.unlrec(nr);
-}
 #endif
 
 fan::vec2 loco_t::get_mouse_position(const camera_t& camera, const viewport_t& viewport) const {
@@ -2085,8 +2050,8 @@ fan::vec2 loco_t::translate_position(const fan::vec2& p, viewport_t viewport, ca
 
   f32_t l = c.coordinates.left;
   f32_t r = c.coordinates.right;
-  f32_t t = c.coordinates.up;
-  f32_t b = c.coordinates.down;
+  f32_t t = c.coordinates.top;
+  f32_t b = c.coordinates.bottom;
 
   fan::vec2 tp = p - viewport_position;
   fan::vec2 d = viewport_size;
@@ -2273,6 +2238,98 @@ fan::graphics::shader_t loco_t::get_sprite_vertex_shader(const std::string& frag
   }
   return {};
 }
+
+bool loco_t::frustum_culling_t::needs_update(fan::graphics::camera_nr_t camera) {
+  if (!enabled) return false;
+
+  loco_t* loco = OFFSETLESS(this, loco_t, frustum_culling);
+  auto cam = loco->camera_get(camera);
+  const fan::vec2 current_pos(cam.position.x, cam.position.y);
+  const fan::vec2 current_size = loco->camera_get_size(camera);
+
+  if (current_pos != last_camera_pos || current_size != last_camera_size) {
+    last_camera_pos = current_pos;
+    last_camera_size = current_size;
+    return true;
+  }
+  return false;
+}
+loco_t::frustum_culling_t::bounds_t
+loco_t::frustum_culling_t::calculate_bounds(
+  const fan::graphics::context_camera_t& cam
+) {
+  fan::vec2 p = padding / cam.zoom;
+
+  return {
+    .left   = cam.position.x + cam.coordinates.left  / cam.zoom- p.x,
+    .right  = cam.position.x + cam.coordinates.right / cam.zoom+ p.x,
+    .top    = cam.position.y + cam.coordinates.top   / cam.zoom- p.y,
+    .bottom = cam.position.y + cam.coordinates.bottom/ cam.zoom+ p.y
+  };
+}
+
+
+bool loco_t::frustum_culling_t::is_visible(
+  const fan::vec3& pos,
+  const fan::vec2& half_size,
+  fan::graphics::camera_nr_t camera
+) {
+  loco_t* loco = OFFSETLESS(this, loco_t, frustum_culling);
+  auto cam = loco->camera_get(camera);
+
+  auto bounds = calculate_bounds(cam);
+
+  if (pos.z == 32202) {
+    //fan::print(pos);
+    //fan::print("");
+  }
+
+  return
+    pos.x + half_size.x >= bounds.left &&
+    pos.x - half_size.x <= bounds.right &&
+    pos.y + half_size.y >= bounds.top &&
+    pos.y - half_size.y <= bounds.bottom;
+}
+
+void loco_t::frustum_culling_t::visualize() {
+  loco_t* loco = OFFSETLESS(this, loco_t, frustum_culling);
+  auto cam = loco->camera_get();
+
+  const bounds_t bounds = calculate_bounds(cam);
+
+  const f32_t z = 0xFFF0;
+  const f32_t t = 1.0f / cam.zoom * 5.f;
+  const fan::color c = fan::colors::red.set_alpha(0.5f);
+
+  using namespace fan::graphics;
+
+  loco->add_shape_to_immediate_draw(shapes::line_t::properties_t{
+    .src = { bounds.left,  bounds.top, z },
+    .dst = { bounds.right, bounds.top, z },
+    .color = c,
+    .thickness = t
+  });
+  loco->add_shape_to_immediate_draw(shapes::line_t::properties_t{
+    .src = { bounds.right, bounds.top, z },
+    .dst = { bounds.right, bounds.bottom, z },
+    .color = c,
+    .thickness = t
+  });
+  loco->add_shape_to_immediate_draw(shapes::line_t::properties_t{
+    .src = { bounds.right, bounds.bottom, z },
+    .dst = { bounds.left,  bounds.bottom, z },
+    .color = c,
+    .thickness = t
+  });
+  loco->add_shape_to_immediate_draw(shapes::line_t::properties_t{
+    .src = { bounds.left,  bounds.bottom, z },
+    .dst = { bounds.left,  bounds.top,    z },
+    .color = c,
+    .thickness = t
+  });
+}
+
+
 #if defined(fan_gui)
 
 void loco_t::toggle_console() {

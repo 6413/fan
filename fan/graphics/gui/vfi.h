@@ -374,10 +374,10 @@ struct vfi_t {
     fan::vec2 viewport_position = v.viewport_position;
     fan::vec2 viewport_size = v.viewport_size;
 
-    f32_t l = c.coordinates.left;
-    f32_t r = c.coordinates.right;
-    f32_t t = c.coordinates.up;
-    f32_t b = c.coordinates.down;
+    f32_t l = c.coordinates.left / c.zoom;
+    f32_t r = c.coordinates.right / c.zoom;
+    f32_t t = c.coordinates.top / c.zoom;
+    f32_t b = c.coordinates.bottom / c.zoom;
 
     fan::vec2 tp = p - viewport_position;
     fan::vec2 d = viewport_size;

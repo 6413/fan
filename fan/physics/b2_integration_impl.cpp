@@ -506,6 +506,15 @@ namespace fan::physics {
       sensor_events.update(world_id);
       accumulator -= physics_timestep;
     }
+    {
+      auto it = physics_updates.GetNodeFirst();
+      while (it != physics_updates.dst) {
+        physics_updates.StartSafeNext(it);
+        ((fan::physics::shape_physics_update_cb)physics_updates[it].cb)(physics_updates[it]);
+        it = physics_updates.EndSafeNext();
+      }
+    }
+
     debug_draw_cb();
   }
 
@@ -597,6 +606,20 @@ namespace fan::physics {
       body_type_e::static_body,
       shape_properties_t {.is_sensor = true}
     );
+  }
+
+  physics_update_cbs_t::nr_t context_t::add_physics_update(const physics_update_data_t& cb_data) {
+    auto it = gphysics()->physics_updates.NewNodeLast();
+    gphysics()->physics_updates[it] = (fan::physics::physics_update_data_t)cb_data;
+    return it;
+  }
+
+  fan::physics::physics_update_cbs_t::nd_t& context_t::get_physics_update_data(fan::physics::physics_update_cbs_t::nr_t nr) {
+    return gphysics()->get_physics_update_data(nr);
+  }
+
+  void context_t::remove_physics_update(physics_update_cbs_t::nr_t nr) {
+    gphysics()->physics_updates.unlrec(nr);
   }
 
   void sensor_events_t::update(b2WorldId world_id) {
@@ -998,12 +1021,13 @@ namespace fan::physics {
 
   // for drawing physics shapes
   fan::physics::physics_update_cbs_t::nr_t add_physics_update(const fan::physics::physics_update_data_t& cb_data) {
-    auto it = gphysics()->physics_updates->NewNodeLast();
-    (*gphysics()->physics_updates)[it] = (fan::physics::physics_update_data_t)cb_data;
-    return it;
+    return gphysics()->add_physics_update(cb_data);
+  }
+  fan::physics::physics_update_cbs_t::nd_t& get_physics_update_data(fan::physics::physics_update_cbs_t::nr_t nr) {
+    return gphysics()->get_physics_update_data(nr);
   }
   void remove_physics_update(fan::physics::physics_update_cbs_t::nr_t nr) {
-    gphysics()->physics_updates->unlrec(nr);
+    gphysics()->remove_physics_update(nr);
   }
   bool overlap_result_callback(b2ShapeId shape_id, void* context) {
     overlap_test_context_t* ctx = static_cast<overlap_test_context_t*>(context);

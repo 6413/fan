@@ -349,10 +349,11 @@ namespace fan::graphics {
     return fan::graphics::ctx()->viewport_get_size(fan::graphics::ctx(), nr);
   }
 
-  f32_t camera_get_zoom(fan::graphics::camera_nr_t nr, fan::graphics::viewport_nr_t viewport) {
-    fan::vec2 s = viewport_get_size(viewport);
-    auto& camera = camera_get(nr);
-    return (s.x * 2) / (camera.coordinates.right - camera.coordinates.left);
+  f32_t camera_get_zoom(fan::graphics::camera_nr_t nr) {
+    return fan::graphics::ctx()->camera_get_zoom(fan::graphics::ctx(), nr);
+  }
+  void camera_set_zoom(fan::graphics::camera_nr_t nr, f32_t new_zoom) {
+    fan::graphics::ctx()->camera_set_zoom(fan::graphics::ctx(), nr, new_zoom);
   }
 
   void camera_set_ortho(fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y) {
@@ -375,6 +376,12 @@ namespace fan::graphics {
       fan::graphics::get_orthographic_render_view().camera,
       move_speed == 0 ? target : src + (target - src) * fan::graphics::get_window().m_delta_time * move_speed
     );
+  }
+  void camera_look_at(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed) {
+    camera_set_target(nr, target, move_speed);
+  }
+  void camera_look_at(const fan::vec2& target, f32_t move_speed) {
+    camera_set_target(fan::graphics::get_orthographic_render_view().camera, target, move_speed);
   }
 
   fan::graphics::viewport_nr_t viewport_create() {
@@ -422,8 +429,8 @@ namespace fan::graphics {
     auto c = fan::graphics::camera_get(render_view.camera);
     f32_t l = c.coordinates.left;
     f32_t r = c.coordinates.right;
-    f32_t t = c.coordinates.up;
-    f32_t b = c.coordinates.down;
+    f32_t t = c.coordinates.top;
+    f32_t b = c.coordinates.bottom;
     return tp.x >= l && tp.x <= r &&
       tp.y >= t && tp.y <= b;
   }
@@ -648,15 +655,25 @@ namespace fan::graphics {
   }
 
 #if defined(fan_physics)
-  void aabb(const fan::physics::aabb_t& b, f32_t depth, const fan::color& c) {
-    fan::graphics::line({.src = {b.min, depth}, .dst = {b.max.x, b.min.y}, .color = c});
-    fan::graphics::line({.src = {b.max.x, b.min.y, depth}, .dst = {b.max}, .color = c});
-    fan::graphics::line({.src = {b.max, depth}, .dst = {b.min.x, b.max.y}, .color = c});
-    fan::graphics::line({.src = {b.min.x, b.max.y, depth}, .dst = {b.min}, .color = c});
+  void aabb(const fan::physics::aabb_t& b, f32_t depth, const fan::color& c, render_view_t* render_view) {
+    fan::graphics::line({.render_view = render_view, .src = {b.min, depth}, .dst = {b.max.x, b.min.y}, .color = c});
+    fan::graphics::line({.render_view = render_view, .src = {b.max.x, b.min.y, depth}, .dst = {b.max}, .color = c});
+    fan::graphics::line({.render_view = render_view, .src = {b.max, depth}, .dst = {b.min.x, b.max.y}, .color = c});
+    fan::graphics::line({.render_view = render_view, .src = {b.min.x, b.max.y, depth}, .dst = {b.min}, .color = c});
   }
 
-  void aabb(const fan::graphics::shapes::shape_t& s, f32_t depth, const fan::color& c) {
-    fan::graphics::aabb(s.get_aabb(), depth, c);
+  void aabb(const fan::graphics::shapes::shape_t& s, f32_t depth, const fan::color& c, render_view_t* render_view) {
+    fan::graphics::aabb(s.get_aabb(), depth, c, render_view);
+  }
+
+  void aabb(const fan::vec2& min, const fan::vec2& max, f32_t depth, const fan::color& c, render_view_t* render_view ) {
+    fan::physics::aabb_t aabb_;
+    aabb_.min = min;
+    aabb_.max = max;
+    aabb(aabb_, depth, c, render_view);
+  }
+  void aabb(const fan::vec2& min, const fan::vec2& max, render_view_t* render_view) {
+    aabb(min, max, 0xFFF0, fan::colors::white, render_view);
   }
 #endif
 
@@ -743,7 +760,6 @@ namespace fan::graphics {
   }
 
   void interactive_camera_t::reset_view() {
-    zoom = 1;
     camera_offset = {};
     update();
   }
@@ -752,13 +768,12 @@ namespace fan::graphics {
     fan::vec2 s = fan::graphics::ctx()->viewport_get_size(
       fan::graphics::ctx(),
       reference_viewport
-    );
-    fan::vec2 ortho_size = s / zoom;
+    );;
     fan::graphics::ctx()->camera_set_ortho(
       fan::graphics::ctx(),
       reference_camera,
-      fan::vec2(-ortho_size.x / 2.f, ortho_size.x / 2.f),
-      fan::vec2(-ortho_size.y / 2.f, ortho_size.y / 2.f)
+      fan::vec2(-s.x / 2.f, s.x / 2.f),
+      fan::vec2(-s.y / 2.f, s.y / 2.f)
     );
   }
 
@@ -769,7 +784,7 @@ namespace fan::graphics {
   ) {
     reference_camera = camera_nr;
     reference_viewport = viewport_nr;
-    zoom = new_zoom;
+    set_zoom(new_zoom);;
     auto& window = fan::graphics::get_window();
     old_window_size = window.get_size();
 
@@ -784,8 +799,8 @@ namespace fan::graphics {
       if (old_window_size.x > 0 && old_window_size.y > 0) {
         fan::vec2 ratio = fan::vec2(d.size) / old_window_size;
         f32_t size_ratio = (ratio.y + ratio.x) / 2.0f;
-        f32_t zoom_change = zoom * (size_ratio - 1.0f);
-        zoom += zoom_change;
+        f32_t zoom_change = get_zoom() * (size_ratio - 1.0f);
+        set_zoom(get_zoom() + zoom_change);
       }
       old_window_size = d.size;
     });
@@ -814,12 +829,10 @@ namespace fan::graphics {
         }
 			#endif
         if (d.button == fan::mouse_scroll_up) {
-          zoom *= 1.2;
-          update();
+          set_zoom(get_zoom() * 1.2f);
         }
         else if (d.button == fan::mouse_scroll_down) {
-          zoom /= 1.2;
-          update();
+          set_zoom(get_zoom() / 1.2f);
         }
       }
       auto state = d.window->key_state(fan::mouse_middle);
@@ -838,7 +851,7 @@ namespace fan::graphics {
         ) {
         if (pan_with_middle_mouse && clicked_inside_viewport) {
           fan::vec2 viewport_size = fan::graphics::viewport_get_size(reference_viewport);
-          camera_offset -= (d.motion * viewport_size / (viewport_size * zoom));
+          camera_offset -= (d.motion * viewport_size / (viewport_size * get_zoom()));
           fan::graphics::camera_set_position(reference_camera, camera_offset);
         }
       }
@@ -847,6 +860,16 @@ namespace fan::graphics {
 
   void interactive_camera_t::create(const fan::graphics::render_view_t& render_view, f32_t new_zoom) {
     create(render_view.camera, render_view.viewport, new_zoom);
+  }
+
+  void interactive_camera_t::create_default(f32_t zoom) {
+    render_view_t render_view;
+    render_view.create_default(zoom); // create own render view, leaks...
+    create(render_view.camera, render_view.viewport, zoom);
+  }
+
+  interactive_camera_t::interactive_camera_t(f32_t zoom) {
+    create_default(zoom);
   }
 
   interactive_camera_t::interactive_camera_t(
@@ -880,8 +903,12 @@ namespace fan::graphics {
     update();
   }
 
+  f32_t interactive_camera_t::get_zoom() const {
+    return fan::graphics::camera_get_zoom(reference_camera);
+  }
+
   void interactive_camera_t::set_zoom(f32_t new_zoom) {
-    zoom = new_zoom;
+    fan::graphics::camera_set_zoom(reference_camera, new_zoom);
     update();
   }
 
@@ -897,9 +924,6 @@ namespace fan::graphics {
 
   world_window_t::world_window_t() : render_view(true), cam(render_view) {}
   void world_window_t::update(const fan::vec2& viewport_pos, const fan::vec2& viewport_size) {
-    update(viewport_pos, viewport_size, cam.zoom);
-  }
-  void world_window_t::update(const fan::vec2& viewport_pos, const fan::vec2& viewport_size, f32_t zoom) {
     fan::graphics::viewport_set(
       render_view.viewport,
       viewport_pos,
@@ -908,8 +932,8 @@ namespace fan::graphics {
 
     fan::graphics::camera_set_ortho(
       render_view.camera,
-      fan::vec2(-viewport_size.x / 2, viewport_size.x / 2) / zoom,
-      fan::vec2(-viewport_size.y / 2, viewport_size.y / 2) / zoom
+      fan::vec2(-viewport_size.x / 2, viewport_size.x / 2),
+      fan::vec2(-viewport_size.y / 2, viewport_size.y / 2)
     );
   }
   world_window_t::operator render_view_t* () {
