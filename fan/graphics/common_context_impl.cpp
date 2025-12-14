@@ -149,8 +149,8 @@ namespace fan::graphics {
   fan::vec2 translate_position(const fan::vec2& p, viewport_t viewport, camera_t camera) {
     auto v = ctx()->viewport_get(ctx(), viewport);
     auto c = ctx()->camera_get(ctx(), camera);
-    fan::vec2 viewport_position = v.viewport_position;
-    fan::vec2 viewport_size = v.viewport_size;
+    fan::vec2 viewport_position = v.position;
+    fan::vec2 viewport_size = v.size;
     f32_t l = c.coordinates.left / c.zoom;
     f32_t r = c.coordinates.right / c.zoom;
     f32_t t = c.coordinates.top / c.zoom;
@@ -164,8 +164,8 @@ namespace fan::graphics {
   fan::vec2 screen_to_world(const fan::vec2& p, fan::graphics::viewport_t viewport, fan::graphics::camera_t camera) {
     auto v = ctx()->viewport_get(ctx(), viewport);
     auto c = ctx()->camera_get(ctx(), camera);
-    fan::vec2 viewport_position = v.viewport_position;
-    fan::vec2 viewport_size = v.viewport_size;
+    fan::vec2 viewport_position = v.position;
+    fan::vec2 viewport_size = v.size;
     f32_t l = c.coordinates.left / c.zoom;
     f32_t r = c.coordinates.right / c.zoom;
     f32_t t = c.coordinates.top / c.zoom;
@@ -183,8 +183,8 @@ namespace fan::graphics {
   fan::vec2 world_to_screen(const fan::vec2& p, fan::graphics::viewport_t viewport, fan::graphics::camera_t camera) {
     auto v = ctx()->viewport_get(ctx(), viewport);
     auto c = ctx()->camera_get(ctx(), camera);
-    fan::vec2 viewport_position = v.viewport_position;
-    fan::vec2 viewport_size = v.viewport_size;
+    fan::vec2 viewport_position = v.position;
+    fan::vec2 viewport_size = v.size;
     f32_t l = c.coordinates.left / c.zoom;
     f32_t r = c.coordinates.right / c.zoom;
     f32_t t = c.coordinates.top / c.zoom;

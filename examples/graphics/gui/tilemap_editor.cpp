@@ -165,6 +165,9 @@ int main(int argc, char** argv) {
   engine.loop([&] {
     fte.render();
 
+    engine.frustum_culling.padding = -300.f;
+    engine.frustum_culling.visualize(views.editor);
+
     if (scene.render_scene && scene.player) {
       if (fan::graphics::gui::begin("Program", 0, fan::graphics::gui::window_flags_no_background)) {
         fan::graphics::gui::set_viewport(views.program.viewport);

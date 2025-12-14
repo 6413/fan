@@ -752,6 +752,10 @@ namespace fan::graphics {
   }
 
 
+  interactive_camera_t::operator render_view_t* () {
+    return &render_view;
+  }
+
   void interactive_camera_t::reset() {
     ignore_input = false;
     zoom_on_window_resize = true;
@@ -767,11 +771,11 @@ namespace fan::graphics {
   void interactive_camera_t::update() {
     fan::vec2 s = fan::graphics::ctx()->viewport_get_size(
       fan::graphics::ctx(),
-      reference_viewport
+      render_view.viewport
     );;
     fan::graphics::ctx()->camera_set_ortho(
       fan::graphics::ctx(),
-      reference_camera,
+      render_view.camera,
       fan::vec2(-s.x / 2.f, s.x / 2.f),
       fan::vec2(-s.y / 2.f, s.y / 2.f)
     );
@@ -782,8 +786,8 @@ namespace fan::graphics {
     fan::graphics::viewport_t viewport_nr,
     f32_t new_zoom
   ) {
-    reference_camera = camera_nr;
-    reference_viewport = viewport_nr;
+    render_view.camera = camera_nr;
+    render_view.viewport = viewport_nr;
     set_zoom(new_zoom);;
     auto& window = fan::graphics::get_window();
     old_window_size = window.get_size();
@@ -817,7 +821,7 @@ namespace fan::graphics {
 		#endif
 
       bool mouse_inside_viewport = fan::graphics::inside(
-        reference_viewport,
+        render_view.viewport,
         fan::window::get_mouse_position()
       );
       if (mouse_inside_viewport) {
@@ -850,9 +854,9 @@ namespace fan::graphics {
         state == (int)fan::mouse_state::repeat
         ) {
         if (pan_with_middle_mouse && clicked_inside_viewport) {
-          fan::vec2 viewport_size = fan::graphics::viewport_get_size(reference_viewport);
+          fan::vec2 viewport_size = fan::graphics::viewport_get_size(render_view.viewport);
           camera_offset -= (d.motion * viewport_size / (viewport_size * get_zoom()));
-          fan::graphics::camera_set_position(reference_camera, camera_offset);
+          fan::graphics::camera_set_position(render_view.camera, camera_offset);
         }
       }
     });
@@ -863,7 +867,6 @@ namespace fan::graphics {
   }
 
   void interactive_camera_t::create_default(f32_t zoom) {
-    render_view_t render_view;
     render_view.create_default(zoom); // create own render view, leaks...
     create(render_view.camera, render_view.viewport, zoom);
   }
@@ -899,27 +902,27 @@ namespace fan::graphics {
 
   void interactive_camera_t::set_position(const fan::vec2& position) {
     camera_offset = position;
-    fan::graphics::camera_set_position(reference_camera, camera_offset);
+    fan::graphics::camera_set_position(render_view.camera, camera_offset);
     update();
   }
 
   f32_t interactive_camera_t::get_zoom() const {
-    return fan::graphics::camera_get_zoom(reference_camera);
+    return fan::graphics::camera_get_zoom(render_view.camera);
   }
 
   void interactive_camera_t::set_zoom(f32_t new_zoom) {
-    fan::graphics::camera_set_zoom(reference_camera, new_zoom);
+    fan::graphics::camera_set_zoom(render_view.camera, new_zoom);
     update();
   }
 
   fan::vec2 interactive_camera_t::get_size() const {
     return fan::graphics::ctx()->camera_get_size(
       fan::graphics::ctx(),
-      reference_camera);
+      render_view.camera);
   }
 
   fan::vec2 interactive_camera_t::get_viewport_size() const {
-    return fan::graphics::viewport_get_size(reference_viewport);
+    return fan::graphics::viewport_get_size(render_view.viewport);
   }
 
   world_window_t::world_window_t() : render_view(true), cam(render_view) {}

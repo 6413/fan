@@ -1383,7 +1383,7 @@ export namespace fan {
 
       void viewport_set(fan::graphics::viewport_nr_t nr, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
         fan::graphics::context_viewport_t& viewport = viewport_get(nr);
-        viewport.viewport_position = viewport_position_;
+        viewport.position = viewport_position_;
         viewport.viewport_size = viewport_size_;
 
         viewport_set(viewport_position_, viewport_size_, window_size);
@@ -1402,28 +1402,28 @@ export namespace fan {
       }
 
       fan::vec2 viewport_get_position(fan::graphics::viewport_nr_t nr) {
-        return viewport_get(nr).viewport_position;
+        return viewport_get(nr).position;
       }
 
       fan::vec2 viewport_get_size(fan::graphics::viewport_nr_t nr) {
-        return viewport_get(nr).viewport_size;
+        return viewport_get(nr).size;
       }
 
       void viewport_zero(fan::graphics::viewport_nr_t nr) {
         auto& viewport = viewport_get(nr);
-        viewport.viewport_position = 0;
-        viewport.viewport_size = 0;
+        viewport.position = 0;
+        viewport.size = 0;
         viewport_set(0, 0, 0); // window_size not used
       }
 
       bool viewport_inside(fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
         fan::graphics::context_viewport_t& viewport = viewport_get(nr);
-        return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport.viewport_position + viewport.viewport_size / 2, viewport.viewport_size / 2);
+        return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport.position + viewport.size / 2, viewport.size / 2);
       }
 
       bool viewport_inside_wir(fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
         fan::graphics::context_viewport_t& viewport = viewport_get(nr);
-        return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport.viewport_size / 2, viewport.viewport_size / 2);
+        return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport.size / 2, viewport.size / 2);
       }
 
       //-----------------------------viewport-----------------------------
