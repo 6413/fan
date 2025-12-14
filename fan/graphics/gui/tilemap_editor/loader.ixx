@@ -292,93 +292,169 @@ public:
   }
 
   compiled_map_t compile(const std::string& filename, const std::source_location& callers_path = std::source_location::current()) {
-  #if defined (fan_json)
-    std::string out;
-    fan::io::file::read(fan::io::file::find_relative_path(filename, callers_path), &out);
-    fan::json json = fan::json::parse(out);
+  #if defined(fan_json)
+
+    std::ifstream file(fan::io::file::find_relative_path(filename, callers_path), std::ios::binary | std::ios::ate);
+    if (!file) {
+      fan::throw_error("Failed to open file: " + filename);
+    }
+
+    std::streamsize size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    std::string buffer;
+    buffer.resize(size);
+
+    if (!file.read(&buffer[0], size)) {
+      fan::throw_error("Failed to read file: " + filename);
+    }
+    file.close();
+
+    fan::json json = fan::json::parse(buffer);
+    buffer.clear();
+    buffer.shrink_to_fit();
+
     if (json["version"] != 1) {
       fan::throw_error("version mismatch");
     }
 
     compiled_map_t compiled_map;
-
     compiled_map.lighting.ambient = json["lighting.ambient"];
     compiled_map.map_size = json["map_size"];
     compiled_map.tile_size = json["tile_size"];
+
     if (json.contains("gravity")) {
       fan::physics::gphysics()->set_gravity(json["gravity"]);
     }
 
     compiled_map.compiled_shapes.resize(compiled_map.map_size.y);
-    for (auto& i : compiled_map.compiled_shapes) {
-      i.resize(compiled_map.map_size.x);
+    for (auto& row : compiled_map.compiled_shapes) {
+      row.resize(compiled_map.map_size.x);
+
+      for (auto& cell : row) {
+        cell.reserve(2);
+      }
     }
 
-    fan::graphics::shape_deserialize_t it;
-    fan::graphics::shape_t shape;
-    while (it.iterate(json["tiles"], &shape)) {
-      auto& shape_json = *(it.data.it - 1);
-      if (shape_json.contains("mesh_property")) {
-        auto mesh_prop = shape_json["mesh_property"];
-        if (mesh_prop == fte_t::mesh_property_t::physics_shape) {
-          compiled_map.physics_shapes.resize(compiled_map.physics_shapes.size() + 1);
-          compiled_map_t::physics_data_t& physics_element = compiled_map.physics_shapes.back();
+    compiled_map.physics_shapes.reserve(100);
+    compiled_map.spawn_marks.reserve(50);
 
-          physics_element.position = shape.get_position();
-          physics_element.size = shape.get_size();
-          fte_t::physics_shapes_t defaults;
-          physics_element.physics_shapes.id = shape_json.value("id", defaults.id);
-          if (shape_json.contains("physics_shape_data")) {
-            const fan::json& physics_shape_data = shape_json["physics_shape_data"];
-            physics_element.physics_shapes.type = physics_shape_data.value("type", defaults.type);
-            physics_element.physics_shapes.body_type = physics_shape_data.value("body_type", defaults.body_type);
-            physics_element.physics_shapes.draw = physics_shape_data.value("draw", defaults.draw);
-            physics_element.physics_shapes.shape_properties.friction = physics_shape_data.value("friction", defaults.shape_properties.friction);
-            physics_element.physics_shapes.shape_properties.density = physics_shape_data.value("density", defaults.shape_properties.density);
-            physics_element.physics_shapes.shape_properties.fixed_rotation = physics_shape_data.value("fixed_rotation", defaults.shape_properties.fixed_rotation);
-            physics_element.physics_shapes.shape_properties.presolve_events = physics_shape_data.value("presolve_events", defaults.shape_properties.presolve_events);
-            physics_element.physics_shapes.shape_properties.is_sensor = physics_shape_data.value("is_sensor", defaults.shape_properties.is_sensor);
+    static const fte_t::physics_shapes_t physics_defaults;
+    static const fte_t::tile_t tile_defaults = fte_t::tile_t();
+
+    auto expand_instance = [&](const fan::json& shape_json, auto emit_one) {
+      if (!shape_json.contains("instance")) {
+        emit_one(fan::vec3(0, 0, 0));
+        return;
+      }
+
+      const auto& inst = shape_json["instance"];
+
+      if (inst.contains("count_x")) {
+        int cx = inst.value("count_x", 1);
+        int cy = inst.value("count_y", 1);
+        fan::vec3 dx = inst.value("delta_x", fan::vec3(0, 0, 0));
+        fan::vec3 dy = inst.value("delta_y", fan::vec3(0, 0, 0));
+
+        for (int y = 0; y < cy; y++) {
+          for (int x = 0; x < cx; x++) {
+            emit_one(dx * (f32_t)x + dy * (f32_t)y);
           }
         }
-        else if (mesh_prop == fte_t::mesh_property_t::player_spawn ||
-          mesh_prop == fte_t::mesh_property_t::enemy_spawn ||
-          mesh_prop == fte_t::mesh_property_t::mark) {
+        return;
+      }
 
-          compiled_map.spawn_marks.resize(compiled_map.spawn_marks.size() + 1);
-          auto& mark = compiled_map.spawn_marks.back();
+      int count = inst.value("count", 1);
+      fan::vec3 delta = inst.value("delta", fan::vec3(0, 0, 0));
+      for (int i = 0; i < count; i++) {
+        emit_one(delta * (f32_t)i);
+      }
+    };
 
-          mark.position = shape_json["position"];
-          mark.size = shape_json["size"];
-          mark.color = shape_json["color"];
-          mark.type = mesh_prop;
-          mark.id = shape_json.value("id", "");
-          continue;
+    fan::graphics::shape_deserialize_t it;
+    fan::graphics::shape_t base_shape;
+
+    while (it.iterate(json["tiles"], &base_shape)) {
+      auto& shape_json = *(it.data.it - 1);
+
+      expand_instance(shape_json, [&](const fan::vec3& offs) {
+        fan::graphics::shape_t shape = base_shape;
+        shape.set_position(shape.get_position() + offs);
+
+        if (shape_json.contains("mesh_property")) {
+          auto mesh_prop = shape_json["mesh_property"];
+
+          if (mesh_prop == fte_t::mesh_property_t::physics_shape) {
+            compiled_map.physics_shapes.emplace_back();
+            compiled_map_t::physics_data_t& physics_element = compiled_map.physics_shapes.back();
+
+            physics_element.position = shape.get_position();
+            physics_element.size = shape.get_size();
+            physics_element.physics_shapes.id = shape_json.value("id", physics_defaults.id);
+
+            if (shape_json.contains("physics_shape_data")) {
+              const fan::json& physics_shape_data = shape_json["physics_shape_data"];
+              physics_element.physics_shapes.type = physics_shape_data.value("type", physics_defaults.type);
+              physics_element.physics_shapes.body_type = physics_shape_data.value("body_type", physics_defaults.body_type);
+              physics_element.physics_shapes.draw = physics_shape_data.value("draw", physics_defaults.draw);
+              physics_element.physics_shapes.shape_properties.friction = physics_shape_data.value("friction", physics_defaults.shape_properties.friction);
+              physics_element.physics_shapes.shape_properties.density = physics_shape_data.value("density", physics_defaults.shape_properties.density);
+              physics_element.physics_shapes.shape_properties.fixed_rotation = physics_shape_data.value("fixed_rotation", physics_defaults.shape_properties.fixed_rotation);
+              physics_element.physics_shapes.shape_properties.presolve_events = physics_shape_data.value("presolve_events", physics_defaults.shape_properties.presolve_events);
+              physics_element.physics_shapes.shape_properties.is_sensor = physics_shape_data.value("is_sensor", physics_defaults.shape_properties.is_sensor);
+            }
+            return;
+          }
+          else if (mesh_prop == fte_t::mesh_property_t::player_spawn ||
+            mesh_prop == fte_t::mesh_property_t::enemy_spawn ||
+            mesh_prop == fte_t::mesh_property_t::mark) {
+
+            compiled_map.spawn_marks.emplace_back();
+            auto& mark = compiled_map.spawn_marks.back();
+
+            mark.position = shape_json["position"];
+            mark.position += offs;
+            mark.size = shape_json["size"];
+            mark.color = shape_json["color"];
+            mark.type = mesh_prop;
+            mark.id = shape_json.value("id", "");
+            return;
+          }
         }
-      }
-      fte_t::tile_t tile;
-      fan::vec2i gp = shape.get_position();
-      gp /= compiled_map.tile_size * 2;
-      tile.position = shape.get_position();
-      tile.size = shape.get_size();
-      tile.angle = shape.get_angle();
-      tile.color = shape.get_color();
-      if (shape.get_shape_type() == fan::graphics::shape_type_t::sprite) {
-        tile.texture_pack_unique_id = ((fan::graphics::shapes::sprite_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper))->texture_pack_unique_id;
-      }
-      else if (shape.get_shape_type() == fan::graphics::shape_type_t::unlit_sprite) {
-        tile.texture_pack_unique_id = ((fan::graphics::shapes::unlit_sprite_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper))->texture_pack_unique_id;
-      }
-      tile.mesh_property = (fte_t::mesh_property_t)shape_json.value("mesh_property", fte_t::tile_t().mesh_property);
-      tile.id = shape_json.value("id", fte_t::tile_t().id);
-      tile.action = shape_json.value("action", fte_t::actions_e::none);
-      tile.key = shape_json.value("key", fan::key_invalid);
-      tile.key_state = shape_json.value("key_state", (int)fan::keyboard_state::press);
-      tile.flags = shape.get_flags();
-      compiled_map.compiled_shapes[gp.y][gp.x].push_back(tile);
-      if (!tile.id.empty()) {
-        compiled_map.id_lookup[tile.id].push_back(&compiled_map.compiled_shapes[gp.y][gp.x].back());
-      }
+
+        fte_t::tile_t tile;
+        fan::vec2i gp = shape.get_position();
+        gp /= compiled_map.tile_size * 2;
+
+        tile.position = shape.get_position();
+        tile.size = shape.get_size();
+        tile.angle = shape.get_angle();
+        tile.color = shape.get_color();
+
+        if (shape.get_shape_type() == fan::graphics::shape_type_t::sprite) {
+          tile.texture_pack_unique_id =
+            ((fan::graphics::shapes::sprite_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper))->texture_pack_unique_id;
+        }
+        else if (shape.get_shape_type() == fan::graphics::shape_type_t::unlit_sprite) {
+          tile.texture_pack_unique_id =
+            ((fan::graphics::shapes::unlit_sprite_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper))->texture_pack_unique_id;
+        }
+
+        tile.mesh_property = (fte_t::mesh_property_t)shape_json.value("mesh_property", tile_defaults.mesh_property);
+        tile.id = shape_json.value("id", tile_defaults.id);
+        tile.action = shape_json.value("action", fte_t::actions_e::none);
+        tile.key = shape_json.value("key", fan::key_invalid);
+        tile.key_state = shape_json.value("key_state", (int)fan::keyboard_state::press);
+        tile.flags = shape.get_flags();
+
+        compiled_map.compiled_shapes[gp.y][gp.x].push_back(std::move(tile));
+
+        if (!tile.id.empty()) {
+          compiled_map.id_lookup[tile.id].push_back(&compiled_map.compiled_shapes[gp.y][gp.x].back());
+        }
+      });
     }
+
     return compiled_map;
   #else
     fan::throw_error("fan_json not enabled");

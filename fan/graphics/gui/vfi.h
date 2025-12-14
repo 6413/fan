@@ -371,8 +371,8 @@ struct vfi_t {
     auto v = fan::graphics::ctx()->viewport_get(fan::graphics::ctx(), viewport);
     auto c = fan::graphics::ctx()->camera_get(fan::graphics::ctx(), camera);
 
-    fan::vec2 viewport_position = v.viewport_position;
-    fan::vec2 viewport_size = v.viewport_size;
+    fan::vec2 viewport_position = v.position;
+    fan::vec2 viewport_size = v.size;
 
     f32_t l = c.coordinates.left / c.zoom;
     f32_t r = c.coordinates.right / c.zoom;

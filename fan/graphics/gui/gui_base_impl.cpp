@@ -357,6 +357,14 @@ namespace fan::graphics::gui {
       return;
     }
 
+    if (g->HoveredWindow) {
+      std::string nav_window_name = g->HoveredWindow->Name;
+      if (nav_window_name.find("WindowOverViewport_") == 0) {
+        g_want_io = false;
+        return;
+      }
+    }
+
     if (g->HoveredWindow && want_io_ignore_list().find(g->HoveredWindow->Name) != want_io_ignore_list().end()
       ) {
       g_want_io = false;

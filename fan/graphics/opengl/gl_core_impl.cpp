@@ -845,8 +845,8 @@ namespace fan::opengl {
   fan::graphics::context_viewport_t& context_t::viewport_get(fan::graphics::viewport_nr_t nr) { return __fan_internal_viewport_list[nr]; }
   void context_t::viewport_set(fan::graphics::viewport_nr_t nr, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
     auto& viewport = viewport_get(nr);
-    viewport.viewport_position = viewport_position_;
-    viewport.viewport_size = viewport_size_;
+    viewport.position = viewport_position_;
+    viewport.size = viewport_size_;
     viewport_set(viewport_position_, viewport_size_, window_size);
   }
   fan::graphics::viewport_nr_t context_t::viewport_create() {
@@ -855,21 +855,21 @@ namespace fan::opengl {
     return nr;
   }
   void context_t::viewport_erase(fan::graphics::viewport_nr_t nr) { __fan_internal_viewport_list.Recycle(nr); }
-  fan::vec2 context_t::viewport_get_position(fan::graphics::viewport_nr_t nr) { return viewport_get(nr).viewport_position; }
-  fan::vec2 context_t::viewport_get_size(fan::graphics::viewport_nr_t nr) { return viewport_get(nr).viewport_size; }
+  fan::vec2 context_t::viewport_get_position(fan::graphics::viewport_nr_t nr) { return viewport_get(nr).position; }
+  fan::vec2 context_t::viewport_get_size(fan::graphics::viewport_nr_t nr) { return viewport_get(nr).size; }
   void context_t::viewport_zero(fan::graphics::viewport_nr_t nr) {
     auto& viewport = viewport_get(nr);
-    viewport.viewport_position = 0;
-    viewport.viewport_size = 0;
+    viewport.position = 0;
+    viewport.size = 0;
     fan_opengl_call(glViewport(0, 0, 0, 0));
   }
   bool context_t::viewport_inside(fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
     auto& viewport = viewport_get(nr);
-    return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport.viewport_position + viewport.viewport_size / 2, viewport.viewport_size / 2);
+    return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport.position + viewport.size / 2, viewport.size / 2);
   }
   bool context_t::viewport_inside_wir(fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
     auto& viewport = viewport_get(nr);
-    return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport.viewport_size / 2, viewport.viewport_size / 2);
+    return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport.size / 2, viewport.size / 2);
   }
 
   uint32_t context_t::global_to_opengl_format(uintptr_t format) {

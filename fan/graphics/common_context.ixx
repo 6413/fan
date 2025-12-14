@@ -111,8 +111,8 @@ export namespace fan {
 		};
 
 		struct context_viewport_t {
-			fan::vec2 viewport_position;
-			fan::vec2 viewport_size;
+			fan::vec2 position;
+			fan::vec2 size;
 		};
 
 		struct image_load_properties_t {

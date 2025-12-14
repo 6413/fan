@@ -916,6 +916,7 @@ void shapes_draw() {
           uint32_t draw_count = 0;
 
           auto block_camera = camera.iic() ? loco.orthographic_render_view.camera : camera;
+          auto block_viewport = viewport.iic() ? loco.orthographic_render_view.viewport : viewport;
           auto amount = BlockTraverse.GetAmount(fan::graphics::g_shapes->shaper);
           auto blid = BlockTraverse.GetBlockID();
 
@@ -923,7 +924,7 @@ void shapes_draw() {
             auto sid = *fan::graphics::g_shapes->shaper.GetShapeID(shape_type, blid, i);
             auto* shape = reinterpret_cast<fan::graphics::shapes::shape_t*>(&sid);
 
-            if (loco.frustum_culling.is_visible(shape->get_position(), shape->get_size(), block_camera)) {
+            if (loco.frustum_culling.is_visible(shape->get_position(), shape->get_size(), block_camera, block_viewport)) {
               if (!draw_count) draw_begin = i;
               ++draw_count;
               ++visible_count;
@@ -953,7 +954,7 @@ void shapes_draw() {
         }
         if (viewport.iic() == false) {
           auto v = loco.viewport_get(viewport);
-          loco.viewport_set(v.viewport_position, v.viewport_size);
+          loco.viewport_set(v.position, v.size);
           // fan::print(v.viewport_position, v.viewport_size);
         }
         loco.shader_set_value(shader, "_t00", 0);
@@ -1035,7 +1036,7 @@ void shapes_draw() {
           loco.shader_set_value(
             shader,
             "matrix_size",
-            fan::vec2(c.coordinates.right - c.coordinates.left, c.coordinates.bottom - c.coordinates.top).abs()
+            fan::vec2(c.coordinates.right - c.coordinates.left, c.coordinates.bottom - c.coordinates.top).abs() / c.zoom
           );
           loco.shader_set_value(
             shader,
@@ -1301,7 +1302,6 @@ void shapes_draw() {
   #endif
   }
 }
-
 
 void begin_process_frame() {
   fan_opengl_call(glViewport(0, 0, loco.window.get_size().x, loco.window.get_size().y));

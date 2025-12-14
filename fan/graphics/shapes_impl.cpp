@@ -821,7 +821,7 @@ namespace fan::graphics{
 		g_shapes->shape_functions[get_shape_type()].set_color(this, color);
 	}
 
-	fan::color shapes::shape_t::get_color() {
+	fan::color shapes::shape_t::get_color() const {
 		return g_shapes->shape_functions[get_shape_type()].get_color(this);
 	}
 
@@ -949,7 +949,7 @@ namespace fan::graphics{
 		return true;
 	}
 
-	fan::graphics::texture_pack::ti_t shapes::shape_t::get_tp() {
+	fan::graphics::texture_pack::ti_t shapes::shape_t::get_tp() const {
 		fan::graphics::texture_pack::ti_t ti;
     ti.unique_id = get_tp_unique();
 		ti.image = get_image();

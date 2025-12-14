@@ -920,7 +920,7 @@ export namespace fan::graphics {
       }
     }
 
-    fan::color get_color() {
+    fan::color get_color() const {
       return children.empty() ? fan::color(1) : children[0].get_color();
     }
 
@@ -983,15 +983,17 @@ export namespace fan::graphics {
     interactive_camera_t& operator=(interactive_camera_t&&) = delete;
     interactive_camera_t& operator=(const interactive_camera_t&) = delete;
 
+    operator render_view_t*();
+
     void reset();
     void reset_view();
     void update();
     void create(
       fan::graphics::camera_t camera_nr = fan::graphics::get_orthographic_render_view().camera,
       fan::graphics::viewport_t viewport_nr = fan::graphics::get_orthographic_render_view().viewport,
-      f32_t new_zoom = 2
+      f32_t new_zoom = 1.f
     );
-    void create(const fan::graphics::render_view_t& render_view, f32_t new_zoom = 2.f);
+    void create(const fan::graphics::render_view_t& render_view, f32_t new_zoom = 1.f);
     void create_default(f32_t zoom = 1.f);
     interactive_camera_t(f32_t zoom); // calls create_default
     interactive_camera_t(
@@ -999,7 +1001,7 @@ export namespace fan::graphics {
       fan::graphics::viewport_t viewport_nr = fan::graphics::get_orthographic_render_view().viewport,
       f32_t new_zoom = 1
     );
-    interactive_camera_t(const fan::graphics::render_view_t& render_view, f32_t new_zoom = 2.f);
+    interactive_camera_t(const fan::graphics::render_view_t& render_view, f32_t new_zoom = 1.f);
     ~interactive_camera_t();
 
     fan::vec2 get_position() const;
@@ -1015,8 +1017,7 @@ export namespace fan::graphics {
     bool clicked_inside_viewport = false;
     fan::vec2 old_window_size {};
     fan::vec2 camera_offset {};
-    fan::graphics::camera_t reference_camera;
-    fan::graphics::viewport_t reference_viewport;
+    fan::graphics::render_view_t render_view;
     fan::window_t::resize_callback_NodeReference_t resize_callback_nr;
     fan::window_t::buttons_handle_t button_cb_nr;
     fan::window_t::mouse_motion_handle_t mouse_motion_nr;

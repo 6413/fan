@@ -38,8 +38,6 @@ static constexpr auto stage_name = "";
     }
     //engine.frustum_culling.enabled = false;
     fan::graphics::gui::text(fan::graphics::screen_to_world(fan::window::get_mouse_position()));
-    engine.frustum_culling.padding = -200.f;
-    engine.frustum_culling.visualize();
     engine.camera_set_target(engine.orthographic_render_view.camera, player.get_physics_pos()-fan::vec2(0, 50), 0);
     fan::graphics::gui::set_viewport(engine.orthographic_render_view.viewport);
   }

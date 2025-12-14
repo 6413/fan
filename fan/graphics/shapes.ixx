@@ -465,7 +465,7 @@ export namespace fan::graphics {
       void set_rotation_point(const fan::vec2& rotation_point);
       fan::vec2 get_rotation_point() const;
       void set_color(const fan::color& color);
-      fan::color get_color();
+      fan::color get_color() const;
       void set_angle(const fan::vec3& angle);
       fan::vec3 get_angle() const;
       fan::basis get_basis() const;
@@ -483,7 +483,7 @@ export namespace fan::graphics {
       fan::vec2 get_tc_size() const;
       void set_tc_size(const fan::vec2& tc_size);
       bool load_tp(fan::graphics::texture_pack::ti_t* ti);
-      fan::graphics::texture_pack::ti_t get_tp();
+      fan::graphics::texture_pack::ti_t get_tp() const;
       bool set_tp(fan::graphics::texture_pack::ti_t* ti);
       fan::graphics::texture_pack::unique_t get_tp_unique() const;
       fan::graphics::camera_t get_camera() const;

@@ -641,13 +641,20 @@ public:
     fan::vec2 padding = 100.0f; // extra padding just in case
 
     bool needs_update(fan::graphics::camera_nr_t camera);
-    bounds_t calculate_bounds(const fan::graphics::context_camera_t& cam);
+    bounds_t calculate_bounds(
+      const fan::graphics::context_camera_t& cam,
+      const fan::graphics::context_viewport_t& viewport
+    );
 
-    bool is_visible(const fan::vec3& pos, const fan::vec2& half_size, 
-      fan::graphics::camera_nr_t camera);
+    bool is_visible(
+      const fan::vec3& pos, 
+      const fan::vec2& half_size, 
+      fan::graphics::camera_nr_t camera, 
+      fan::graphics::viewport_nr_t viewport
+    );
 
     // draws extents of frustum
-    void visualize();
+    void visualize(const fan::graphics::render_view_t& render_view = fan::graphics::get_orthographic_render_view());
   }frustum_culling;
 
 	//gui

@@ -1310,7 +1310,8 @@ void main() {
     engine_demo.mouse_inside_demo_view = engine_demo.engine.is_mouse_inside(engine_demo.right_column_view);
     engine_demo.interactive_camera.ignore_input = !engine_demo.mouse_inside_demo_view;
 
-    fan_graphics_gui_window("##Menu Engine Demo Right Content Bottom", 0, wnd_flags | gui::window_flags_no_inputs) {
+    
+    fan_graphics_gui_window("##Menu Engine Demo Right Content Bottom", 0, wnd_flags | gui::window_flags_no_inputs | gui::window_flags_override_input) {
       gui::set_viewport(engine_demo.right_column_view.viewport);
       if (engine_demo.interactive_camera.get_position() == fan::vec2(0.f)) {
         engine_demo.interactive_camera.set_position(engine_demo.engine.viewport_get_size(engine_demo.right_column_view.viewport) / 2.f);
@@ -1394,7 +1395,8 @@ void main() {
     right_column_view.create();
     interactive_camera.create(
       right_column_view.camera,
-      right_column_view.viewport
+      right_column_view.viewport,
+      1.f
     );
     interactive_camera.pan_with_middle_mouse = true;
   }

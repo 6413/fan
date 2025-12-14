@@ -275,8 +275,8 @@ void shapes_draw() {
         {
           auto viewport_data = loco.viewport_get(viewport);
           VkViewport vk_viewport = {};
-          vk_viewport.x = viewport_data.viewport_position.x;
-          vk_viewport.y = viewport_data.viewport_position.y;
+          vk_viewport.x = viewport_data.position.x;
+          vk_viewport.y = viewport_data.position.y;
           vk_viewport.width = viewport_data.viewport_size.x;
           vk_viewport.height = viewport_data.viewport_size.y;
           vk_viewport.minDepth = 0.0f;
@@ -285,8 +285,8 @@ void shapes_draw() {
           vkCmdSetViewport(cmd_buffer, 0, 1, &vk_viewport);
 
           VkRect2D scissor = {};
-          scissor.offset.x = viewport_data.viewport_position.x;
-          scissor.offset.y = viewport_data.viewport_position.y;
+          scissor.offset.x = viewport_data.position.x;
+          scissor.offset.y = viewport_data.position.y;
           scissor.extent = viewport_data.viewport_size;
 
           vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
