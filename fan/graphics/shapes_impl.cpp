@@ -29,34 +29,6 @@ module fan.graphics.shapes;
 import fan.utility;
 import fan.graphics.gui.text_logger;
 
-std::uint8_t* A_resize(void* ptr, std::uintptr_t size) {
-	if (ptr) {
-		if (size) {
-			void* rptr = (void*)__generic_realloc(ptr, size);
-			if (rptr == 0) {
-				fan::throw_error_impl();
-			}
-			return (std::uint8_t*)rptr;
-		}
-		else {
-			__generic_free(ptr);
-			return 0;
-		}
-	}
-	else {
-		if (size) {
-			void* rptr = (void*)__generic_malloc(size);
-			if (rptr == 0) {
-				fan::throw_error_impl();
-			}
-			return (std::uint8_t*)rptr;
-		}
-		else {
-			return 0;
-		}
-	}
-}
-
 namespace fan::graphics {
 	context_shader_t::context_shader_t() {}
 	context_shader_t::~context_shader_t() {}
@@ -749,6 +721,92 @@ namespace fan::graphics{
 	void shapes::shape_t::erase() {
 		remove();
 	}
+
+  shaper_t::ShapeID_t shapes::shape_t::get_id() const {
+    return static_cast<const shaper_t::ShapeID_t&>(*this);
+  }
+
+  bool shapes::shape_t::is_visible() const {
+    return g_shapes->shape_functions[get_shape_type()].get_visible(this);
+  }
+
+  void shapes::shape_t::set_visible(bool flag) {
+    g_shapes->shape_functions[get_shape_type()].set_visible(this, flag);
+  }
+
+  void shapes::shape_t::set_static() {
+    shaper_t::ShapeID_t sid = *this;
+    auto& vs = g_shapes->visibility;
+    if (sid.NRI >= vs.registry.shapeid_to_movement.size()) {
+      vs.registry.shapeid_to_movement.resize(sid.NRI + 1, culling::movement_dynamic);
+      vs.registry.shapeid_to_dynamic_index.resize(sid.NRI + 1, UINT32_MAX);
+    }
+    auto& m = vs.registry.shapeid_to_movement[sid.NRI];
+    if (m == culling::movement_static) {
+      return;
+    }
+    if (m == culling::movement_dynamic) {
+      uint32_t idx = vs.registry.shapeid_to_dynamic_index[sid.NRI];
+      if (idx != UINT32_MAX) {
+        auto& grid = vs.dynamic_grid;
+        if (idx < grid.objects.size()) {
+          auto& obj = grid.objects[idx];
+          auto& cell = grid.cells[obj.cell];
+          auto it = std::find(cell.begin(), cell.end(), idx);
+          if (it != cell.end()) {
+            *it = cell.back();
+            cell.pop_back();
+          }
+
+          if (idx != grid.objects.size() - 1) {
+            grid.objects[idx] = grid.objects.back();
+            vs.registry.shapeid_to_dynamic_index[grid.objects[idx].sid.NRI] = idx;
+          }
+          grid.objects.pop_back();
+        }
+
+        auto& vec = vs.registry.dynamic_shapes;
+        auto dit = std::find(vec.begin(), vec.end(), sid);
+        if (dit != vec.end()) {
+          *dit = vec.back();
+          if (!vec.empty() && dit != vec.end() && dit < vec.end()) {
+            vs.registry.shapeid_to_dynamic_index[(*dit).NRI] = std::distance(vec.begin(), dit);
+          }
+          vec.pop_back();
+        }
+
+        vs.registry.shapeid_to_dynamic_index[sid.NRI] = UINT32_MAX;
+      }
+    }
+    vs.registry.static_shapes.push_back(sid);
+    m = culling::movement_static;
+  }
+
+  void shapes::shape_t::set_dynamic() {
+    shaper_t::ShapeID_t sid = *this;
+    auto& vs = g_shapes->visibility;
+    if (sid.NRI >= vs.registry.shapeid_to_movement.size()) {
+      vs.registry.shapeid_to_movement.resize(sid.NRI + 1, culling::movement_dynamic);
+      vs.registry.shapeid_to_dynamic_index.resize(sid.NRI + 1, UINT32_MAX);
+    }
+    auto& m = vs.registry.shapeid_to_movement[sid.NRI];
+    if (m == culling::movement_dynamic) {
+      return;
+    }
+    if (m == culling::movement_static) {
+      auto& v = vs.registry.static_shapes;
+      auto it = std::find(v.begin(), v.end(), sid);
+      if (it != v.end()) {
+        *it = v.back();
+        v.pop_back();
+      }
+    }
+    uint32_t idx = (uint32_t)vs.registry.dynamic_shapes.size();
+    vs.registry.shapeid_to_dynamic_index[sid.NRI] = idx;
+    vs.registry.dynamic_shapes.push_back(sid);
+    fan::graphics::culling::dynamic_add(vs, sid);
+    m = culling::movement_dynamic;
+  }
 
 	// many things assume uint16_t so thats why not shaper_t::ShapeTypeIndex_t
 	uint16_t shapes::shape_t::get_shape_type() const {
@@ -1693,7 +1751,7 @@ namespace fan::graphics{
     ri.loop_disabled_time = 0.0;
   }
 
-
+  static constexpr uint8_t default_visible = 1;
   //shapes
   shapes::shape_t shapes::light_t::push_back(const properties_t& properties) {
     vi_t vi;
@@ -1708,6 +1766,7 @@ namespace fan::graphics{
 
     return shape_add(shape_type, vi, ri,
       Key_e::light, (uint8_t)0,
+      Key_e::visible, (uint8_t)default_visible,
       Key_e::viewport, properties.viewport,
       Key_e::camera, properties.camera,
       Key_e::ShapeType, shape_type,
@@ -1724,6 +1783,7 @@ namespace fan::graphics{
     ri_t ri;
 
     return shape_add(shape_type, vi, ri,
+      Key_e::visible, (uint8_t)default_visible,
       Key_e::depth, (uint16_t)properties.src.z,
       Key_e::blending, (uint8_t)properties.blending,
       Key_e::viewport, properties.viewport,
@@ -1744,6 +1804,7 @@ namespace fan::graphics{
     ri_t ri;
 
     return shape_add(shape_type, vi, ri,
+      Key_e::visible, (uint8_t)default_visible,
       Key_e::depth, (uint16_t)properties.position.z,
       Key_e::blending, (uint8_t)properties.blending,
       Key_e::viewport, properties.viewport,
@@ -1794,6 +1855,7 @@ namespace fan::graphics{
       if (((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))).opengl.major > 3) || ((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))).opengl.major == 3 && ((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))).opengl.minor >= 3))) {
         return shape_add(
           shape_type, vi, ri,
+          Key_e::visible, (visible_t)default_visible,
           Key_e::depth,
           static_cast<uint16_t>(properties.position.z),
           Key_e::blending, static_cast<uint8_t>(properties.blending),
@@ -1813,7 +1875,9 @@ namespace fan::graphics{
         }
 
         return shape_add(
-          shape_type, vertices[0], ri, Key_e::depth,
+          shape_type, vertices[0], ri, 
+          Key_e::visible, (visible_t)default_visible,
+          Key_e::depth,
           static_cast<uint16_t>(properties.position.z),
           Key_e::blending, static_cast<uint8_t>(properties.blending),
           Key_e::image, uses_texture_pack ? ti.image : properties.image, Key_e::viewport,
@@ -1826,7 +1890,9 @@ namespace fan::graphics{
     }
     else if (fan::graphics::ctx().window->renderer == fan::window_t::renderer_t::vulkan) {
       return shape_add(
-        shape_type, vi, ri, Key_e::depth,
+        shape_type, vi, ri, 
+        Key_e::visible, (visible_t)default_visible,
+        Key_e::depth,
         static_cast<uint16_t>(properties.position.z),
         Key_e::blending, static_cast<uint8_t>(properties.blending),
         Key_e::image, uses_texture_pack ? ti.image : properties.image, Key_e::viewport,
@@ -1872,6 +1938,7 @@ namespace fan::graphics{
     }
 
     return shape_add(shape_type, vi, ri,
+      Key_e::visible, (uint8_t)default_visible,
       Key_e::depth, (uint16_t)properties.position.z,
       Key_e::blending, (uint8_t)properties.blending,
       Key_e::image, uses_texture_pack ? ti.image : properties.image,
@@ -1895,6 +1962,7 @@ namespace fan::graphics{
     vi.flags = properties.flags;
     circle_t::ri_t ri;
     return shape_add(shape_type, vi, ri,
+      Key_e::visible, (uint8_t)default_visible,
       Key_e::depth, (uint16_t)properties.position.z,
       Key_e::blending, (uint8_t)properties.blending,
       Key_e::viewport, properties.viewport,
@@ -1917,6 +1985,7 @@ namespace fan::graphics{
     vi.flags = properties.flags;
     capsule_t::ri_t ri;
     return shape_add(shape_type, vi, ri,
+      Key_e::visible, (uint8_t)default_visible,
       Key_e::depth, (uint16_t)properties.position.z,
       Key_e::blending, (uint8_t)properties.blending,
       Key_e::viewport, properties.viewport,
@@ -1999,6 +2068,7 @@ namespace fan::graphics{
     }
 
     return shape_add(shape_type, vis, ri,
+      Key_e::visible, (uint8_t)default_visible,
       Key_e::depth, (uint16_t)properties.position.z,
       Key_e::blending, (uint8_t)properties.blending,
       Key_e::viewport, properties.viewport,
@@ -2019,6 +2089,7 @@ namespace fan::graphics{
     vi.angle = properties.angle;
     ri_t ri;
     return shape_add(shape_type, vi, ri,
+      Key_e::visible, (uint8_t)default_visible,
       Key_e::depth, (uint16_t)properties.position.z,
       Key_e::blending, (uint8_t)properties.blending,
       Key_e::viewport, properties.viewport,
@@ -2056,6 +2127,7 @@ namespace fan::graphics{
     ri.shape = properties.shape;
 
     return shape_add(shape_type, vi, ri,
+      Key_e::visible, (uint8_t)default_visible,
       Key_e::depth, (uint16_t)properties.position.z,
       Key_e::blending, (uint8_t)properties.blending,
       Key_e::image, properties.image,
@@ -2075,7 +2147,9 @@ namespace fan::graphics{
     ri_t ri;
     // + 1
     std::copy(&properties.images[1], &properties.images[0] + properties.images.size(), ri.images_rest.data());
-    shapes::shape_t shape = shape_add(shape_type, vi, ri,
+    shapes::shape_t shape = shape_add(
+      shape_type, vi, ri,
+      Key_e::visible, (visible_t)default_visible,
       Key_e::depth, (uint16_t)properties.position.z,
       Key_e::blending, (uint8_t)properties.blending,
       Key_e::image, properties.images[0],
@@ -2105,6 +2179,7 @@ namespace fan::graphics{
     ri_t ri;
 
     return shape_add(shape_type, vi, ri,
+      Key_e::visible, (uint8_t)default_visible,
       Key_e::depth, (uint16_t)properties.position.z,
       Key_e::blending, (uint8_t)properties.blending,
       Key_e::viewport, properties.viewport,
@@ -2128,6 +2203,7 @@ namespace fan::graphics{
     ri_t ri;
 
     return shape_add(shape_type, vi, ri,
+      Key_e::visible, (uint8_t)default_visible,
       Key_e::shadow, (uint8_t)0,
       Key_e::viewport, properties.viewport,
       Key_e::camera, properties.camera,
@@ -2152,6 +2228,7 @@ namespace fan::graphics{
     ri_t ri;
     ri.images = properties.images;
     fan::graphics::shapes::shape_t ret = shape_add(shape_type, vi, ri,
+      Key_e::visible, (uint8_t)default_visible,
       Key_e::depth, (uint16_t)properties.position.z,
       Key_e::blending, (uint8_t)properties.blending,
       Key_e::image, properties.image,
@@ -2177,6 +2254,7 @@ namespace fan::graphics{
       if (((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))).opengl.major > 3) || ((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))).opengl.major == 3 && ((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))).opengl.minor >= 3))) {
         // might not need depth
         return shape_add(shape_type, vi, ri,
+          Key_e::visible, (uint8_t)default_visible,
           Key_e::depth, (uint16_t)properties.position.z,
           Key_e::blending, (uint8_t)properties.blending,
           Key_e::viewport, properties.viewport,
@@ -2193,6 +2271,7 @@ namespace fan::graphics{
         }
 
         return shape_add(shape_type, vertices[0], ri,
+          Key_e::visible, (uint8_t)default_visible,
           Key_e::depth, (uint16_t)properties.position.z,
           Key_e::blending, (uint8_t)properties.blending,
           Key_e::viewport, properties.viewport,
@@ -2217,6 +2296,7 @@ namespace fan::graphics{
     ri_t ri;
 
     return shape_add(shape_type, vi, ri,
+      Key_e::visible, (uint8_t)default_visible,
       Key_e::depth, (uint16_t)properties.src.z,
       Key_e::blending, (uint8_t)properties.blending,
       Key_e::viewport, properties.viewport,

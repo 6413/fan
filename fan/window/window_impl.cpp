@@ -182,6 +182,7 @@ namespace fan::window {
   void resize_callback(GLFWwindow* wnd, int width, int height) {
     fan::window_t* window = (fan::window_t*)glfwGetWindowUserPointer(wnd);
     auto it = window->m_resize_callback.GetNodeFirst();
+    auto it2 = window->m_resize_callback.GetNodeLast();
 
     while (it != window->m_resize_callback.dst) {
       fan::window_t::resize_data_t cbd;

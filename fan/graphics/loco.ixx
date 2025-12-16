@@ -41,6 +41,7 @@ export import fan.types.color;
 export import fan.random;
 export import fan.texture_pack.tp0;
 export import fan.io.file;
+import fan.graphics.culling;
 #if defined(fan_physics)
 	import fan.physics.b2_integration;
   import fan.physics.common_context;
@@ -233,10 +234,10 @@ public:
   fan::graphics::context_camera_t& camera_get(fan::graphics::camera_nr_t nr = fan::graphics::get_orthographic_render_view().camera);
   void camera_erase(fan::graphics::camera_nr_t nr);
   fan::graphics::camera_nr_t camera_create(const fan::vec2& x, const fan::vec2& y);
-  fan::vec3 camera_get_position(fan::graphics::camera_nr_t nr);
+  fan::vec3 camera_get_position(fan::graphics::camera_nr_t nr = fan::graphics::get_orthographic_render_view().camera);
   void camera_set_position(fan::graphics::camera_nr_t nr, const fan::vec3& cp);
   fan::vec2 camera_get_size(fan::graphics::camera_nr_t nr);
-  f32_t camera_get_zoom(fan::graphics::camera_nr_t nr);
+  f32_t camera_get_zoom(fan::graphics::camera_nr_t nr = fan::graphics::get_orthographic_render_view().camera);
   void camera_set_zoom(fan::graphics::camera_nr_t nr, f32_t new_zoom);
   void camera_set_ortho(fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y);
   void camera_set_perspective(fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size);
@@ -245,10 +246,10 @@ public:
 
   fan::graphics::viewport_nr_t viewport_create();
   fan::graphics::viewport_nr_t viewport_create(const fan::vec2& viewport_position, const fan::vec2& viewport_size);
-  fan::graphics::context_viewport_t& viewport_get(fan::graphics::viewport_nr_t nr);
+  fan::graphics::context_viewport_t& viewport_get(fan::graphics::viewport_nr_t nr = fan::graphics::get_orthographic_render_view().viewport);
   void viewport_erase(fan::graphics::viewport_nr_t nr);
-  fan::vec2 viewport_get_position(fan::graphics::viewport_nr_t nr);
-  fan::vec2 viewport_get_size(fan::graphics::viewport_nr_t nr);
+  fan::vec2 viewport_get_position(fan::graphics::viewport_nr_t nr = fan::graphics::get_orthographic_render_view().viewport);
+  fan::vec2 viewport_get_size(fan::graphics::viewport_nr_t nr = fan::graphics::get_orthographic_render_view().viewport);
   void viewport_set(const fan::vec2& viewport_position, const fan::vec2& viewport_size);
   void viewport_set(fan::graphics::viewport_nr_t nr, const fan::vec2& viewport_position, const fan::vec2& viewport_size);
   void viewport_set_size(fan::graphics::viewport_nr_t nr, const fan::vec2& viewport_size);
@@ -392,6 +393,41 @@ public:
   static void generate_commands(loco_t* loco);
 	// -1 no reload, opengl = 0 etc
 	std::uint8_t reload_renderer_to = -1;
+
+  fan::vec2 world_min = fan::vec2(-10000);
+  fan::vec2 cell_size = fan::vec2(256);
+  fan::vec2i grid_size = fan::vec2i(256);
+
+  void culling_rebuild_grid() {
+    fan::graphics::culling::static_grid_init(
+      shapes.visibility.static_grid,
+      world_min,
+      cell_size,
+      grid_size
+    );
+
+    fan::graphics::culling::dynamic_grid_init(
+      shapes.visibility.dynamic_grid,
+      world_min,
+      cell_size,
+      grid_size
+    );
+  }
+
+  void rebuild_static_culling() {
+    fan::graphics::culling::rebuild_static(shapes.visibility);
+  }
+
+  void set_culling_enabled(bool enabled) {
+    shapes.visibility.enabled = enabled;
+    if (enabled) {
+      fan::graphics::culling::rebuild_static(shapes.visibility);
+    }
+  }
+  void get_culling_stats(uint32_t& visible, uint32_t& culled) const {
+    visible = shapes.visibility.current_result.total_visible;
+    culled = shapes.visibility.current_result.total_culled;
+  }
 
 #if defined(fan_vulkan)
   // todo move to vulkan context
@@ -629,33 +665,6 @@ public:
 	fan::graphics::lighting_t lighting;
 
   bool force_line_draw = false;
-
-  struct frustum_culling_t {
-    struct bounds_t {
-      f32_t left, right, top, bottom;
-    };
-
-    bool enabled = true;
-    fan::vec2 last_camera_pos;
-    fan::vec2 last_camera_size;
-    fan::vec2 padding = 100.0f; // extra padding just in case
-
-    bool needs_update(fan::graphics::camera_nr_t camera);
-    bounds_t calculate_bounds(
-      const fan::graphics::context_camera_t& cam,
-      const fan::graphics::context_viewport_t& viewport
-    );
-
-    bool is_visible(
-      const fan::vec3& pos, 
-      const fan::vec2& half_size, 
-      fan::graphics::camera_nr_t camera, 
-      fan::graphics::viewport_nr_t viewport
-    );
-
-    // draws extents of frustum
-    void visualize(const fan::graphics::render_view_t& render_view = fan::graphics::get_orthographic_render_view());
-  }frustum_culling;
 
 	//gui
 #if defined(fan_gui)

@@ -794,8 +794,8 @@ struct shaper_t{
 
   static auto& gl_add_shape_type() {
     static std::function<void(
-      fan::graphics::shaper_t::ShapeTypes_NodeData_t&, 
-      const fan::graphics::shaper_t::BlockProperties_t&
+      ShapeTypes_NodeData_t&, 
+      const BlockProperties_t&
     )> f;
     return f;
   }

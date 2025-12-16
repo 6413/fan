@@ -52,6 +52,22 @@ constexpr vec_t(Args&&...args) {
   access_type_t i = 0;
   ((this->operator[](i++) = args), ...);
 }
+// initializer list
+template <typename U>
+requires (std::is_convertible_v<U, value_type_t>)
+constexpr vec_t(std::initializer_list<U> init) {
+  access_type_t i = 0;
+  for (auto&& e : init) {
+    if (i >= size()) {
+      break;
+    }
+    (*this)[i++] = static_cast<value_type_t>(e);
+  }
+
+  for (; i < size(); ++i) {
+    (*this)[i] = value_type_t{};
+  }
+}
 template<typename... Args>
 requires(
   (std::is_same_v<value_type_t, std::remove_reference_t<Args>> && ...) &&

@@ -24,6 +24,7 @@ module;
 #include <numeric>
 #include <sstream>
 #include <cmath>
+#include <initializer_list>
 
 export module fan.types.vector;
 
@@ -142,6 +143,18 @@ export import fan.math;
 //---------------------------------------------------------------------------------
 
 export namespace fan {
+  struct vec_lexi_comp {
+    template<typename vec_T>
+    constexpr bool operator()(const vec_T& a, const vec_T& b) const {
+      auto min_size = a.size() < b.size() ? a.size() : b.size();
+      for (decltype(min_size) i = 0; i < min_size; ++i) {
+        if (a[i] < b[i]) return true;
+        if (a[i] > b[i]) return false;
+      }
+      return a.size() < b.size();
+    }
+  };
+
   template <typename vec_t, typename value_type_t>
   struct vec_ref2 {
     value_type_t& a;
@@ -362,9 +375,10 @@ export namespace fan {
   X(b,   bool) \
   X(i,   int) \
   X(ui,  uint32_t) \
-  X(ull, uint64_t) \
+  X(ull, unsigned long long) \
   X(f,   f32_t) \
-  X(d,   f64_t)
+  X(d,   f64_t) \
+  X(ll,  long long) \
 
 #define fan_define_vec_aliases(T) \
   using vec1##T = vec1_wrap_t<T>; \

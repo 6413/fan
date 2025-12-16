@@ -747,559 +747,369 @@ void shapes_draw() {
   camera_t camera;
   camera.sic();
 
-  bool check_culling = false;
-
   fan::graphics::shaper_t::ShapeTypeIndex_t prev_st = -1;
-
   bool light_buffer_enabled = false;
 
-  { // update 3d view every frame
+  {
     auto& camera_perspective = loco.camera_get(loco.perspective_render_view.camera);
     camera_perspective.update_view();
-
     camera_perspective.m_view = camera_perspective.get_view_matrix();
   }
+
   uint64_t draw_mode = -1;
   uint32_t vertex_count = -1;
+  bool visible = true;
+
+  fan::graphics::shapes& shapes = loco.shapes;
+  const bool using_culling = shapes.visibility.enabled;
+
+  bool culled_this_frame = true;  // ← Add this
+
+  if (using_culling) {
+    fan::graphics::culling::cull_camera(
+      shapes.visibility,
+      fan::graphics::g_shapes->shaper,
+      loco.orthographic_render_view.camera,  // ← Use orthographic directly
+      loco.window.get_size()
+    );
+  }
+
   while (KeyTraverse.Loop(fan::graphics::g_shapes->shaper)) {
 
-    fan::graphics::shaper_t::KeyTypeIndex_t kti = KeyTraverse.kti(fan::graphics::g_shapes->shaper);
+    fan::graphics::shaper_t::KeyTypeIndex_t kti =
+      KeyTraverse.kti(fan::graphics::g_shapes->shaper);
 
     switch (kti) {
+    case fan::graphics::Key_e::visible:
+      visible = *(fan::graphics::visible_t*)KeyTraverse.kd();
+      break;
+
     case fan::graphics::Key_e::blending: {
       uint8_t Key = *(uint8_t*)KeyTraverse.kd();
       if (Key) {
         loco.context.gl.set_depth_test(false);
         fan_opengl_call(glEnable(GL_BLEND));
         fan_opengl_call(glBlendFunc(loco.gl.blend_src_factor, loco.gl.blend_dst_factor));
-        // shaper.SetKeyOrder(fan::graphics::Key_e::depth, fan::graphics::shaper_t::KeyBitOrderLow);
       }
       else {
         fan_opengl_call(glDisable(GL_BLEND));
         loco.context.gl.set_depth_test(true);
-
-        //shaper.SetKeyOrder(fan::graphics::Key_e::depth, fan::graphics::shaper_t::KeyBitOrderHigh);
       }
       break;
     }
-    case fan::graphics::Key_e::depth: {
-    #if defined(depth_debug)
-      depth_t Key = *(depth_t*)KeyTraverse.kd();
-      depth_Key = true;
-      fan::print(Key);
-    #endif
-      break;
-    }
+
     case fan::graphics::Key_e::image: {
       fan::graphics::image_t texture = *(fan::graphics::image_t*)KeyTraverse.kd();
-      if (texture.iic() == false) {
-        // TODO FIX + 0
-        fan_opengl_call(glActiveTexture(GL_TEXTURE0 + 0));
+      if (!texture.iic()) {
+        fan_opengl_call(glActiveTexture(GL_TEXTURE0));
         fan_opengl_call(glBindTexture(GL_TEXTURE_2D, loco.image_get_handle(texture)));
-        //++texture_count;
       }
       break;
     }
-    case fan::graphics::Key_e::viewport: {
+
+    case fan::graphics::Key_e::viewport:
       viewport = *(fan::graphics::viewport_t*)KeyTraverse.kd();
       break;
-    }
-    case fan::graphics::Key_e::camera: {
+
+    case fan::graphics::Key_e::camera:
       camera = *(loco_t::camera_t*)KeyTraverse.kd();
+
+      // ← Cull here after we know the camera
+      if (using_culling && !culled_this_frame) {
+        fan::graphics::culling::cull_camera(
+          shapes.visibility,
+          fan::graphics::g_shapes->shaper,
+          camera.iic() ? loco.orthographic_render_view.camera : camera,
+          loco.window.get_size()
+        );
+        culled_this_frame = true;
+      }
       break;
-    }
-    case fan::graphics::Key_e::ShapeType: {
-      // if i remove this why it breaks/corrupts?
+
+    case fan::graphics::Key_e::ShapeType:
       prev_st = *(fan::graphics::shaper_t::ShapeTypeIndex_t*)KeyTraverse.kd();
       if (prev_st == fan::graphics::shapes::shape_type_t::light_end) {
         continue;
       }
       break;
-    }
-    case fan::graphics::Key_e::light: {
-      if (!((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3))) {
-        break;
-      }
-      if (light_buffer_enabled == false) {
-      #if defined(loco_framebuffer)
-        loco.context.gl.set_depth_test(false);
-        fan_opengl_call(glEnable(GL_BLEND));
-        fan_opengl_call(glBlendFunc(GL_ONE, GL_ONE));
-        unsigned int attachments[sizeof(loco.gl.color_buffers) / sizeof(loco.gl.color_buffers[0])];
 
-        for (uint8_t i = 0; i < std::size(loco.gl.color_buffers); ++i) {
-          attachments[i] = GL_COLOR_ATTACHMENT0 + i;
-        }
-
-        fan_opengl_call(glDrawBuffers(std::size(attachments), attachments));
-        light_buffer_enabled = true;
-      #endif
-      }
+    case fan::graphics::Key_e::draw_mode:
+      draw_mode = fan::graphics::get_draw_mode(*(uint8_t*)KeyTraverse.kd());
       break;
-    }
-    case fan::graphics::Key_e::light_end: {
-      if (!((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3))) {
-        break;
-      }
-      if (light_buffer_enabled) {
-      #if defined(loco_framebuffer)
-        loco.context.gl.set_depth_test(true);
-        unsigned int attachments[sizeof(loco.gl.color_buffers) / sizeof(color_buffers[0])];
 
-        for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
-          attachments[i] = GL_COLOR_ATTACHMENT0 + i;
-        }
-
-        fan_opengl_call(glDrawBuffers(1, attachments));
-        light_buffer_enabled = false;
-      #endif
-        continue;
-      }
-      break;
-    }
-    case fan::graphics::Key_e::draw_mode: {
-      draw_mode = *(uint8_t*)KeyTraverse.kd();
-      draw_mode = fan::graphics::get_draw_mode(draw_mode);
-      break;
-    }
-    case fan::graphics::Key_e::vertex_count: {
+    case fan::graphics::Key_e::vertex_count:
       vertex_count = *(uint32_t*)KeyTraverse.kd();
       break;
     }
-    case fan::graphics::Key_e::shadow: {
 
-      GLenum blend_src_factor = GL_DST_COLOR;
-      GLenum blend_dst_factor = GL_ONE_MINUS_SRC_ALPHA;
-      fan_opengl_call(glEnable(GL_BLEND));
-      fan_opengl_call(glBlendFunc(blend_src_factor, blend_dst_factor));
+    if (!KeyTraverse.isbm) {
+      continue;
+    }
+
+    if (!visible) {
+      continue;
+    }
+
+    auto shape_type = prev_st;
+
+    if (loco.force_line_draw &&
+      shape_type != fan::graphics::shapes::shape_type_t::line &&
+      shape_type != fan::graphics::shapes::shape_type_t::grid) {
+      continue;
+    }
+
+    auto current_bmid = KeyTraverse.bmid();  // ← Get current bmid
+
+   /* static int frame = 0;
+    if (frame++ < 10) {
+      fan::print("Drawing bmid:", current_bmid.gint(), "shape_type:", shape_type);
+    }*/
+
+    auto& draw_list = shapes.visibility.current_result.draw_lists[shape_type];
+    if (using_culling && draw_list.ranges.empty()) {
+      continue;
+    }
+
+
+    auto shader = fan::graphics::g_shapes->shaper.GetShader(shape_type);
+    loco.shader_use(shader);
+
+    if (!camera.iic()) {
+      loco.shader_set_camera(shader, camera);
+    }
+    else {
+      loco.shader_set_camera(shader, loco.orthographic_render_view.camera);
+    }
+
+    if (!viewport.iic()) {
+      auto v = loco.viewport_get(viewport);
+      loco.viewport_set(v.position, v.size);
+    }
+
+    loco.shader_set_value(shader, "_t00", 0);
+    if ((loco.context.gl.opengl.major > 3) ||
+      (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) {
+      loco.shader_set_value(shader, "_t01", 1);
+    }
+
+    auto m_vao = fan::graphics::g_shapes->shaper.GetVAO(shape_type);
+    auto m_vbo = fan::graphics::g_shapes->shaper.GetVBO(shape_type);
+
+    m_vao.bind(loco.context.gl);
+    m_vbo.bind(loco.context.gl);
+
+    // ← Add all this from old code:
+    if (shape_type == fan::graphics::shapes::shape_type_t::universal_image_renderer) {
+      auto& ri = *(fan::graphics::shapes::universal_image_renderer_t::ri_t*)
+        fan::graphics::g_shapes->shaper.GetData(shape_type, 
+          fan::graphics::g_shapes->shaper.BlockManager[current_bmid].FirstBlockNR, 0);
+
+      if (ri.images_rest[0].iic() == false && ri.images_rest[0] != loco.default_texture) {
+        fan_opengl_call(glActiveTexture(GL_TEXTURE0 + 1));
+        fan_opengl_call(glBindTexture(GL_TEXTURE_2D, loco.image_get_handle(ri.images_rest[0])));
+        loco.shader_set_value(shader, "_t01", 1);
+      }
+      if (ri.images_rest[1].iic() == false && ri.images_rest[1] != loco.default_texture) {
+        fan_opengl_call(glActiveTexture(GL_TEXTURE0 + 2));
+        fan_opengl_call(glBindTexture(GL_TEXTURE_2D, loco.image_get_handle(ri.images_rest[1])));
+        loco.shader_set_value(shader, "_t02", 2);
+      }
+      if (ri.images_rest[2].iic() == false && ri.images_rest[2] != loco.default_texture) {
+        fan_opengl_call(glActiveTexture(GL_TEXTURE0 + 3));
+        fan_opengl_call(glBindTexture(GL_TEXTURE_2D, loco.image_get_handle(ri.images_rest[2])));
+        loco.shader_set_value(shader, "_t03", 3);
+      }
+    }
+    else if (shape_type == fan::graphics::shapes::shape_type_t::sprite ||
+      shape_type == fan::graphics::shapes::shape_type_t::unlit_sprite ||
+      shape_type == fan::graphics::shapes::shape_type_t::shader_shape) {
+
+      auto& ri = *(fan::graphics::shapes::sprite_t::ri_t*)
+        fan::graphics::g_shapes->shaper.GetData(shape_type,
+          fan::graphics::g_shapes->shaper.BlockManager[current_bmid].FirstBlockNR, 0);
+
+      loco.shader_set_value(shader, "has_normal_map", int(!ri.images[0].iic() && ri.images[0] != loco.default_texture));
+      loco.shader_set_value(shader, "has_specular_map", int(!ri.images[1].iic() && ri.images[1] != loco.default_texture));
+      loco.shader_set_value(shader, "has_occlusion_map", int(!ri.images[2].iic() && ri.images[2] != loco.default_texture));
+
+      for (std::size_t i = 2; i < std::size(ri.images) + 2; ++i) {
+        if (ri.images[i - 2].iic() == false) {
+          loco.shader_set_value(shader, "_t0" + std::to_string(i), i);
+          fan_opengl_call(glActiveTexture(GL_TEXTURE0 + i));
+          fan_opengl_call(glBindTexture(GL_TEXTURE_2D, loco.image_get_handle(ri.images[i - 2])));
+        }
+      }
+    }
+
+    if (shape_type != fan::graphics::shapes::shape_type_t::light) {
+    /*  if (shape_type == fan::graphics::shapes::shape_type_t::sprite || 
+        shape_type == fan::graphics::shapes::shape_type_t::unlit_sprite) {
+        if ((loco.context.gl.opengl.major > 3) || 
+          (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) {
+          fan_opengl_call(glActiveTexture(GL_TEXTURE1));
+          fan_opengl_call(glBindTexture(GL_TEXTURE_2D, loco.image_get_handle(color_buffers[1])));
+        }
+      }*/
+
+      auto c = loco.camera_get(camera);
+
+      loco.shader_set_value(shader, "matrix_size",
+        fan::vec2(c.coordinates.right - c.coordinates.left, 
+          c.coordinates.bottom - c.coordinates.top).abs());
+      loco.shader_set_value(shader, "viewport",
+        fan::vec4(loco.viewport_get_position(viewport),
+          loco.viewport_get_size(viewport)));
+      loco.shader_set_value(shader, "window_size",
+        fan::vec2(loco.window.get_size()));
+      loco.shader_set_value(shader, "camera_position", c.position);
+      loco.shader_set_value(shader, "_time",
+        f32_t((fan::time::now() - loco.start_time) / 1e+9));
+      loco.shader_set_value(shader, "mouse_position",
+        loco.get_mouse_position());
+      loco.shader_set_value(shader, "camera_zoom",
+        loco.camera_get_zoom(camera));
+    }
+
+    loco.shader_set_value(shader, fan::graphics::lighting_t::ambient_name, 
+      gloco()->lighting.ambient);
+
+
+    auto& shaper = fan::graphics::g_shapes->shaper;
+    auto& st = shaper.GetShapeTypes(shape_type);
+    auto& shape_gl = st.renderer.gl;
+
+    switch (shape_type) {
+    #if defined(fan_3D)
+    case fan::graphics::shapes::shape_type_t::rectangle3d:
+      loco.context.gl.set_depth_test(false);
       break;
-    }
-    }
-
-    if (KeyTraverse.isbm) {      
-    #if fan_debug >= fan_debug_medium
-      if (draw_mode == (decltype(draw_mode))-1) {
-        fan::throw_error("uninitialized draw mode");
-      }
-      if (vertex_count == (decltype(draw_mode))-1) {
-        fan::throw_error("uninitialized vertex count");
-      }
+    case fan::graphics::shapes::shape_type_t::line3d:
+      loco.context.gl.set_depth_test(false);
+      break;
     #endif
-
+    case fan::graphics::shapes::shape_type_t::particles: {
       fan::graphics::shaper_t::BlockTraverse_t BlockTraverse;
-      fan::graphics::shaper_t::ShapeTypeIndex_t shape_type = BlockTraverse.Init(fan::graphics::g_shapes->shaper, KeyTraverse.bmid());
-
-      if (loco.force_line_draw && shape_type != fan::graphics::shapes::shape_type_t::line &&
-        shape_type != fan::graphics::shapes::shape_type_t::grid) 
-      {
-        continue;
-      }
-
-      check_culling = loco.frustum_culling.enabled && 
-        (shape_type == fan::graphics::shapes::shape_type_t::sprite ||
-          shape_type == fan::graphics::shapes::shape_type_t::unlit_sprite ||
-          shape_type == fan::graphics::shapes::shape_type_t::rectangle ||
-          shape_type == fan::graphics::shapes::shape_type_t::circle);
+      BlockTraverse.Init(shaper, current_bmid);
 
       do {
-        auto shader = fan::graphics::g_shapes->shaper.GetShader(shape_type);
-        if (shape_type == fan::graphics::shapes::shape_type_t::vfi || shape_type == fan::graphics::shapes::shape_type_t::light_end) {
-          break;
+        fan::graphics::shapes::particles_t::ri_t* pri = 
+          (fan::graphics::shapes::particles_t::ri_t*)BlockTraverse.GetData(shaper);
+
+        for (int i = 0; i < BlockTraverse.GetAmount(shaper); ++i) {
+          auto& ri = pri[i];
+          loco.shader_set_value(shader, "loop", ri.loop);
+          loco.shader_set_value(shader, "loop_enabled_time", ri.loop_enabled_time);
+          loco.shader_set_value(shader, "loop_disabled_time", ri.loop_disabled_time);
+          loco.shader_set_value(shader, "time", (f32_t)((fan::time::now() - ri.begin_time) / 1e+9));
+          loco.shader_set_value(shader, "vertex_count", 6);
+          loco.shader_set_value(shader, "count", ri.count);
+          loco.shader_set_value(shader, "alive_time", (f32_t)(ri.alive_time));
+          loco.shader_set_value(shader, "respawn_time", (f32_t)(ri.respawn_time));
+          loco.shader_set_value(shader, "position", *(fan::vec2*)&ri.position);
+          loco.shader_set_value(shader, "size", ri.size);
+          loco.shader_set_value(shader, "position_velocity", ri.position_velocity);
+          loco.shader_set_value(shader, "angle_velocity", ri.angle_velocity);
+          loco.shader_set_value(shader, "begin_angle", ri.begin_angle);
+          loco.shader_set_value(shader, "end_angle", ri.end_angle);
+          loco.shader_set_value(shader, "angle", ri.angle);
+          loco.shader_set_value(shader, "color", ri.color);
+          loco.shader_set_value(shader, "gap_size", ri.gap_size);
+          loco.shader_set_value(shader, "expansion_power", ri.expansion_power);
+          loco.shader_set_value(shader, "max_spread_size", ri.max_spread_size);
+          loco.shader_set_value(shader, "size_velocity", ri.size_velocity);
+          loco.shader_set_value(shader, "shape", ri.shape);
+
+          fan_opengl_call(glDrawArrays(GL_TRIANGLES, 0, 6 * ri.count));
+        }
+      } while (BlockTraverse.Loop(shaper));
+
+      continue;  // Skip normal drawing
+    }
+    case fan::graphics::shapes::shape_type_t::polygon: {
+      fan::graphics::shaper_t::BlockTraverse_t BlockTraverse;
+      BlockTraverse.Init(shaper, current_bmid);
+
+      do {
+        fan::graphics::shapes::polygon_t::ri_t* pri = 
+          (fan::graphics::shapes::polygon_t::ri_t*)BlockTraverse.GetData(shaper);
+
+        for (int i = 0; i < BlockTraverse.GetAmount(shaper); ++i) {
+          auto& ri = pri[i];
+          ri.vao.bind(loco.context.gl);
+          ri.vbo.bind(loco.context.gl);
+          fan_opengl_call(glDrawArrays(draw_mode, 0, 
+            ri.buffer_size / sizeof(fan::graphics::polygon_vertex_t)));
+        }
+      } while (BlockTraverse.Loop(shaper));
+
+      continue;  // Skip normal drawing
+    }
+    }
+
+    if (using_culling) {
+      fan::graphics::shaper_t::BlockTraverse_t BlockTraverse;
+      BlockTraverse.Init(shaper, current_bmid);
+
+      auto current_block = BlockTraverse.GetBlockID();
+
+      uint32_t block_base_instance = (uint32_t)current_block.gint() *
+        (uint32_t)shaper.ShapeTypes[shape_type].MaxElementPerBlock();
+
+      for (auto& r : draw_list.ranges) {
+        if (r.bmid != current_bmid) {
+          continue;
         }
 
-        uint32_t visible_count = BlockTraverse.GetAmount(fan::graphics::g_shapes->shaper);
-        std::vector<std::pair<uint32_t, uint32_t>> draw_ranges;
+        uint32_t block_base_instance = (uint32_t)r.block_id.gint() *
+          (uint32_t)shaper.ShapeTypes[shape_type].MaxElementPerBlock();
 
-        if (check_culling) {
-          visible_count = 0;
-          uint32_t draw_begin = 0;
-          uint32_t draw_count = 0;
+        fan_opengl_call(glDrawArraysInstancedBaseInstance(
+          draw_mode,
+          0,
+          vertex_count,
+          r.count,
+          block_base_instance + r.first_instance
+        ));
+      }
+    }
+    else {
+      fan::graphics::shaper_t::BlockTraverse_t BlockTraverse;
+      BlockTraverse.Init(shaper, current_bmid);
 
-          auto block_camera = camera.iic() ? loco.orthographic_render_view.camera : camera;
-          auto block_viewport = viewport.iic() ? loco.orthographic_render_view.viewport : viewport;
-          auto amount = BlockTraverse.GetAmount(fan::graphics::g_shapes->shaper);
-          auto blid = BlockTraverse.GetBlockID();
-
-          for (uint32_t i = 0; i < amount; ++i) {
-            auto sid = *fan::graphics::g_shapes->shaper.GetShapeID(shape_type, blid, i);
-            auto* shape = reinterpret_cast<fan::graphics::shapes::shape_t*>(&sid);
-
-            if (loco.frustum_culling.is_visible(shape->get_position(), shape->get_size(), block_camera, block_viewport)) {
-              if (!draw_count) draw_begin = i;
-              ++draw_count;
-              ++visible_count;
-            }
-            else if (draw_count) {
-              draw_ranges.emplace_back(draw_begin, draw_count);
-              draw_count = 0;
-            }
-          }
-
-          if (draw_count) draw_ranges.emplace_back(draw_begin, draw_count);
-          if (!visible_count) continue;
+      do {
+        if (((loco.context.gl.opengl.major > 4) ||
+          (loco.context.gl.opengl.major == 4 && loco.context.gl.opengl.minor >= 2)) &&
+          shape_gl.instanced) {
+          fan_opengl_call(glDrawArraysInstancedBaseInstance(
+            draw_mode,
+            0,
+            vertex_count,
+            BlockTraverse.GetAmount(shaper),
+            BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type)
+          ));
         }
+        else if (((loco.context.gl.opengl.major > 3) ||
+          (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) &&
+          shape_gl.instanced) {
 
-      #if fan_debug >= fan_debug_medium
-        if ((shader.iic())) {
-          fan::throw_error("invalid stuff");
-        }
-      #endif
-        loco.shader_use(shader);
-
-        if (camera.iic() == false) {
-          loco.shader_set_camera(shader, camera);
+          fan_opengl_call(glDrawArraysInstanced(
+            draw_mode,
+            0,
+            vertex_count,
+            BlockTraverse.GetAmount(shaper)
+          ));
         }
         else {
-          loco.shader_set_camera(shader, loco.orthographic_render_view.camera);
+          fan_opengl_call(glDrawArrays(
+            draw_mode,
+            (!!!(loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1)) *
+            (BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type)) *
+            shape_gl.vertex_count,
+            vertex_count * BlockTraverse.GetAmount(shaper)
+          ));
         }
-        if (viewport.iic() == false) {
-          auto v = loco.viewport_get(viewport);
-          loco.viewport_set(v.position, v.size);
-          // fan::print(v.viewport_position, v.viewport_size);
-        }
-        loco.shader_set_value(shader, "_t00", 0);
-        if ((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) {
-          loco.shader_set_value(shader, "_t01", 1);
-        }
-      #if defined(depth_debug)
-        if (depth_Key) {
-          auto& ri = *(fan::vec3*)BlockTraverse.GetRenderData(fan::graphics::g_shapes->shaper);
-          fan::print("d", ri.z);
-        }
-      #endif
-      #if fan_debug >= fan_debug_high
-        switch (shape_type) {
-        default: {
-          if (camera.iic()) {
-            fan::throw_error("failed to get camera");
-          }
-          if (viewport.iic()) {
-            fan::throw_error("failed to get viewport");
-          }
-          break;
-        }
-        }
-      #endif
-
-        if (shape_type == fan::graphics::shapes::shape_type_t::universal_image_renderer) {          
-          auto& ri = *(fan::graphics::shapes::universal_image_renderer_t::ri_t*)BlockTraverse.GetData(fan::graphics::g_shapes->shaper);
-
-          if (ri.images_rest[0].iic() == false && ri.images_rest[0] != loco.default_texture) {
-            fan_opengl_call(glActiveTexture(GL_TEXTURE0 + 1));
-            fan_opengl_call(glBindTexture(GL_TEXTURE_2D, loco.image_get_handle(ri.images_rest[0])));
-            loco.shader_set_value(shader, "_t01", 1);
-          }
-          if (ri.images_rest[1].iic() == false && ri.images_rest[1] != loco.default_texture) {
-            fan_opengl_call(glActiveTexture(GL_TEXTURE0 + 2));
-            fan_opengl_call(glBindTexture(GL_TEXTURE_2D, loco.image_get_handle(ri.images_rest[1])));
-            loco.shader_set_value(shader, "_t02", 2);
-          }
-
-          if (ri.images_rest[2].iic() == false && ri.images_rest[2] != loco.default_texture) {
-            fan_opengl_call(glActiveTexture(GL_TEXTURE0 + 3));
-            fan_opengl_call(glBindTexture(GL_TEXTURE_2D, loco.image_get_handle(ri.images_rest[2])));
-            loco.shader_set_value(shader, "_t03", 3);
-          }
-          //fan::throw_error("shaper design is changed");
-        }
-        else if (shape_type == fan::graphics::shapes::shape_type_t::sprite ||
-          shape_type == fan::graphics::shapes::shape_type_t::unlit_sprite || 
-          shape_type == fan::graphics::shapes::shape_type_t::shader_shape) {
-          //fan::print("shaper design is changed");
-          auto& ri = *(fan::graphics::shapes::sprite_t::ri_t*)BlockTraverse.GetData(fan::graphics::g_shapes->shaper);
-          auto shader = fan::graphics::g_shapes->shaper.GetShader(shape_type);
-          loco.shader_set_value(shader, "has_normal_map", int(!ri.images[0].iic() && ri.images[0] != loco.default_texture));
-          loco.shader_set_value(shader, "has_specular_map", int(!ri.images[1].iic() && ri.images[1] != loco.default_texture));
-          loco.shader_set_value(shader, "has_occlusion_map", int(!ri.images[2].iic() && ri.images[2] != loco.default_texture));
-          for (std::size_t i = 2; i < std::size(ri.images) + 2; ++i) {
-            if (ri.images[i - 2].iic() == false) {
-              loco.shader_set_value(shader, "_t0" + std::to_string(i), i);
-              fan_opengl_call(glActiveTexture(GL_TEXTURE0 + i));
-              fan_opengl_call(glBindTexture(GL_TEXTURE_2D, loco.image_get_handle(ri.images[i - 2])));
-            }
-          }
-        }
-
-        if (shape_type != fan::graphics::shapes::shape_type_t::light) {
-
-        #if defined(loco_framebuffer)
-          if (shape_type == fan::graphics::shapes::shape_type_t::sprite || shape_type == fan::graphics::shapes::shape_type_t::unlit_sprite) {
-            if ((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) {
-              fan_opengl_call(glActiveTexture(GL_TEXTURE1));
-              fan_opengl_call(glBindTexture(GL_TEXTURE_2D, loco.image_get_handle(color_buffers[1])));
-            }
-          }
-        #endif
-
-          auto c = loco.camera_get(camera);
-
-          loco.shader_set_value(
-            shader,
-            "matrix_size",
-            fan::vec2(c.coordinates.right - c.coordinates.left, c.coordinates.bottom - c.coordinates.top).abs() / c.zoom
-          );
-          loco.shader_set_value(
-            shader,
-            "viewport",
-            fan::vec4(
-              loco.viewport_get_position(viewport),
-              loco.viewport_get_size(viewport)
-            )
-          );
-          loco.shader_set_value(
-            shader,
-            "window_size",
-            fan::vec2(loco.window.get_size())
-          );
-          loco.shader_set_value(
-            shader,
-            "camera_position",
-            c.position
-          );
-          loco.shader_set_value(
-            shader,
-            "_time",
-            f32_t((fan::time::now() - loco.start_time) / 1e+9)
-          );
-          loco.shader_set_value(
-            shader,
-            "mouse_position",
-            loco.get_mouse_position()
-          );
-          loco.shader_set_value(
-            shader,
-            "camera_zoom",
-            loco.camera_get_zoom(camera)
-          );
-          //fan::print(fan::time::now() / 1e+9);
-        }
-        loco.shader_set_value(shader, fan::graphics::lighting_t::ambient_name, gloco()->lighting.ambient);
-
-        auto m_vao = fan::graphics::g_shapes->shaper.GetVAO(shape_type);
-        auto m_vbo = fan::graphics::g_shapes->shaper.GetVAO(shape_type);
-
-        m_vao.bind(loco.context.gl);
-        m_vbo.bind(loco.context.gl);
-
-        auto set_attrib_offset = [&](uintptr_t base_offset) {
-          uintptr_t offset = base_offset;
-          fan::graphics::shape_gl_init_list_t& locations = fan::graphics::g_shapes->shaper.GetLocations(shape_type);
-          for (int i = 0; i < locations.count; ++i) {
-            const auto& location = locations.ptr[i];
-            switch (location.type) {
-            case GL_UNSIGNED_INT:
-            case GL_INT: {
-              fan_opengl_call(glVertexAttribIPointer(location.index.first, location.size, location.type, location.stride, (void*)offset));
-              break;
-            }
-            default: {
-              fan_opengl_call(glVertexAttribPointer(location.index.first, location.size, location.type, GL_FALSE, location.stride, (void*)offset));
-            }
-            }
-            switch (location.type) {
-            case GL_FLOAT: {
-              offset += location.size * sizeof(GLfloat);
-              break;
-            }
-            case GL_UNSIGNED_INT: {
-              offset += location.size * sizeof(GLuint);
-              break;
-            }
-            default: {
-              fan::throw_error_impl();
-            }
-            }
-          }
-        };
-
-        if (loco.context.gl.opengl.major < 4 || (loco.context.gl.opengl.major == 4 && loco.context.gl.opengl.minor < 2)) {
-          uintptr_t base = BlockTraverse.GetRenderDataOffset(fan::graphics::g_shapes->shaper);
-          set_attrib_offset(base);
-        }
-
-        switch (shape_type) {
-        #if defined(fan_3D)
-        case fan::graphics::shapes::shape_type_t::rectangle3d: {
-          // illegal xd
-          loco.context.gl.set_depth_test(false);
-          break;
-        }
-        case fan::graphics::shapes::shape_type_t::line3d: {
-          // illegal xd
-          loco.context.gl.set_depth_test(false);
-        }//fallthrough
-                                                      #endif
-        case fan::graphics::shapes::shape_type_t::particles: {
-          //fan::print("shaper design is changed");
-          fan::graphics::shapes::particles_t::ri_t* pri = (fan::graphics::shapes::particles_t::ri_t*)BlockTraverse.GetData(fan::graphics::g_shapes->shaper);
-          for (int i = 0; i < BlockTraverse.GetAmount(fan::graphics::g_shapes->shaper); ++i) {
-            auto& ri = pri[i];
-            loco.shader_set_value(shader, "loop", ri.loop);
-            loco.shader_set_value(shader, "loop_enabled_time", ri.loop_enabled_time);
-            loco.shader_set_value(shader, "loop_disabled_time", ri.loop_disabled_time);
-            loco.shader_set_value(shader, "time", (f32_t)((fan::time::now() - ri.begin_time) / 1e+9));
-            loco.shader_set_value(shader, "vertex_count", 6);
-            loco.shader_set_value(shader, "count", ri.count);
-            loco.shader_set_value(shader, "alive_time", (f32_t)(ri.alive_time));
-            loco.shader_set_value(shader, "respawn_time", (f32_t)(ri.respawn_time));
-            loco.shader_set_value(shader, "position", *(fan::vec2*)&ri.position);
-            loco.shader_set_value(shader, "size", ri.size);
-            loco.shader_set_value(shader, "position_velocity", ri.position_velocity);
-            loco.shader_set_value(shader, "angle_velocity", ri.angle_velocity);
-            loco.shader_set_value(shader, "begin_angle", ri.begin_angle);
-            loco.shader_set_value(shader, "end_angle", ri.end_angle);
-            loco.shader_set_value(shader, "angle", ri.angle);
-            loco.shader_set_value(shader, "color", ri.color);
-            loco.shader_set_value(shader, "gap_size", ri.gap_size);
-            loco.shader_set_value(shader, "expansion_power", ri.expansion_power);
-            loco.shader_set_value(shader, "max_spread_size", ri.max_spread_size);
-            loco.shader_set_value(shader, "size_velocity", ri.size_velocity);
-
-            loco.shader_set_value(shader, "shape", ri.shape);
-
-            // TODO how to get begin?
-            fan_opengl_call(glDrawArrays(
-              GL_TRIANGLES,
-              0,
-              6 * ri.count
-            ));
-          }
-
-          break;
-        }
-        case fan::graphics::shapes::shape_type_t::polygon: {
-
-          fan::graphics::shapes::polygon_t::ri_t* pri = (fan::graphics::shapes::polygon_t::ri_t*)BlockTraverse.GetData(fan::graphics::g_shapes->shaper);
-
-          for (int i = 0; i < BlockTraverse.GetAmount(fan::graphics::g_shapes->shaper); ++i) {
-            auto& ri = pri[i];
-
-            auto& shape_data = fan::graphics::g_shapes->shaper.GetShapeTypes(shape_type).renderer.gl;
-
-            ri.vao.bind(loco.context.gl);
-            ri.vbo.bind(loco.context.gl);
-
-            fan_opengl_call(glDrawArrays(
-              draw_mode,
-              0,
-              ri.buffer_size / sizeof(fan::graphics::polygon_vertex_t)
-            ));
-          }
-          break;
-        }
-        default: {
-          auto& shape_data = fan::graphics::g_shapes->shaper.GetShapeTypes(shape_type).renderer.gl;
-
-          if (((loco.context.gl.opengl.major > 4) || (loco.context.gl.opengl.major == 4 && loco.context.gl.opengl.minor >= 2)) && shape_data.instanced) {
-
-            const uint32_t base_instance = (BlockTraverse.GetRenderDataOffset(fan::graphics::g_shapes->shaper) /
-                fan::graphics::g_shapes->shaper.GetRenderDataSize(shape_type));
-
-            if (check_culling) {
-              for (auto& r : draw_ranges) {
-                fan_opengl_call(glDrawArraysInstancedBaseInstance(
-                  draw_mode,
-                  0,
-                  vertex_count,
-                  r.second,
-                  base_instance + r.first
-                ));
-              }
-            }
-            else {
-              fan_opengl_call(glDrawArraysInstancedBaseInstance(
-                draw_mode,
-                0,
-                vertex_count,//polygon_t::max_vertices_per_element breaks light
-                BlockTraverse.GetAmount(fan::graphics::g_shapes->shaper),
-                base_instance
-              ));
-            }
-          }
-          else if (((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) && shape_data.instanced) {
-
-            if (check_culling) {
-              const uintptr_t base = BlockTraverse.GetRenderDataOffset(fan::graphics::g_shapes->shaper);
-              const uintptr_t stride = fan::graphics::g_shapes->shaper.GetRenderDataSize(shape_type);
-
-              for (auto& r : draw_ranges) {
-                set_attrib_offset(base + (uintptr_t)r.first * stride);
-                fan_opengl_call(glDrawArraysInstanced(
-                  draw_mode,
-                  0,
-                  vertex_count,
-                  r.second
-                ));
-              }
-
-              set_attrib_offset(base);
-            }
-            else {
-              fan_opengl_call(glDrawArraysInstanced(
-                draw_mode,
-                0,
-                vertex_count,
-                BlockTraverse.GetAmount(fan::graphics::g_shapes->shaper)
-              ));
-            }
-          }
-          else {
-            fan_opengl_call(glDrawArrays(
-              draw_mode,
-              (!!!(loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1)) *
-              (BlockTraverse.GetRenderDataOffset(fan::graphics::g_shapes->shaper) /
-                fan::graphics::g_shapes->shaper.GetRenderDataSize(shape_type)) * shape_data.vertex_count,
-              vertex_count * BlockTraverse.GetAmount(fan::graphics::g_shapes->shaper)
-            ));
-          }
-          break;
-        }
-        }
-      } while (BlockTraverse.Loop(fan::graphics::g_shapes->shaper));
+      } while (BlockTraverse.Loop(shaper));
     }
-  }
-
-  {
-  #if defined(loco_framebuffer)
-
-    if ((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) {
-      loco.gl.m_framebuffer.unbind(loco.context.gl);
-
-    #if defined(loco_post_process)
-
-      if (loco.window.renderer == fan::window_t::renderer_t::opengl) {
-        loco.gl.blur.draw(&loco.gl.color_buffers[0]);
-      }
-    #endif
-
-      //blur[1].draw(&color_buffers[3]);
-
-      fan_opengl_call(glClearColor(loco.clear_color.r, loco.clear_color.g, loco.clear_color.b, loco.clear_color.a));
-      fan_opengl_call(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
-      fan::vec2 window_size = loco.window.get_size();
-      loco.viewport_set(0, window_size);
-
-      loco.shader_set_value(loco.gl.m_fbo_final_shader, "_t00", 0);
-      loco.shader_set_value(loco.gl.m_fbo_final_shader, "_t01", 1);
-      loco.shader_set_value(loco.gl.m_fbo_final_shader, "framebuffer_alpha", loco.clear_color.a);
-
-      loco.shader_set_value(loco.gl.m_fbo_final_shader, "window_size", window_size);
-
-      if (loco.window.renderer == fan::window_t::renderer_t::opengl) {
-        fan_opengl_call(glActiveTexture(GL_TEXTURE0));
-        loco.image_bind(loco.gl.color_buffers[0]);
-      }
-
-      if (loco.window.renderer == fan::window_t::renderer_t::opengl) {
-      #if defined(loco_post_process)
-
-        fan_opengl_call(glActiveTexture(GL_TEXTURE1));
-        loco.image_bind(loco.gl.blur.mips.front().image);
-      #endif
-        render_final_fb();
-      }
-    }
-  #endif
   }
 }
 
