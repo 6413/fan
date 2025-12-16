@@ -198,7 +198,7 @@ export namespace fan::graphics {
   fan::vec3 camera_get_position(fan::graphics::camera_nr_t nr);
   void camera_set_position(fan::graphics::camera_nr_t nr, const fan::vec3& cp);
   fan::vec2 camera_get_size(fan::graphics::camera_nr_t nr);
-  fan::vec2 viewport_get_size(fan::graphics::viewport_nr_t nr);
+  fan::vec2 viewport_get_size(fan::graphics::viewport_nr_t nr = fan::graphics::get_orthographic_render_view().viewport);
   f32_t camera_get_zoom(fan::graphics::camera_nr_t nr);
   void camera_set_zoom(fan::graphics::camera_nr_t nr, f32_t new_zoom);
   void camera_set_ortho(fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y);
@@ -712,10 +712,10 @@ export namespace fan::graphics {
   fan::graphics::shapes::shape_t& polygon(const polygon_properties_t& props = {});
   fan::graphics::shapes::shape_t& grid(const grid_properties_t& props = {});
 #if defined(fan_physics)
-  void aabb(const fan::physics::aabb_t& b, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1));
-  void aabb(const fan::graphics::shapes::shape_t& s, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1));
-  void aabb(const fan::vec2& min, const fan::vec2& max, f32_t depth, const fan::color& c = fan::colors::white, render_view_t* render_view = &fan::graphics::get_orthographic_render_view());
-  void aabb(const fan::vec2& min, const fan::vec2& max, render_view_t* render_view = &fan::graphics::get_orthographic_render_view());
+  void aabb(const fan::physics::aabb_t& b, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1), f32_t thickness = line_properties_t().thickness, render_view_t* render_view = &fan::graphics::get_orthographic_render_view());
+  void aabb(const fan::graphics::shapes::shape_t& s, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1), f32_t thickness = line_properties_t().thickness, render_view_t* render_view = &fan::graphics::get_orthographic_render_view());
+  void aabb(const fan::vec2& min, const fan::vec2& max, f32_t depth, const fan::color& c = fan::colors::white, f32_t thickness = line_properties_t().thickness, render_view_t* render_view = &fan::graphics::get_orthographic_render_view());
+  void aabb(const fan::vec2& min, const fan::vec2& max, f32_t thickness = line_properties_t().thickness, render_view_t* render_view = &fan::graphics::get_orthographic_render_view());
 #endif
 
   struct sprite_sheet_config_t {
@@ -1018,7 +1018,7 @@ export namespace fan::graphics {
     fan::vec2 old_window_size {};
     fan::vec2 camera_offset {};
     fan::graphics::render_view_t render_view;
-    fan::window_t::resize_callback_NodeReference_t resize_callback_nr;
+    fan::window_t::resize_handle_t resize_callback_nr;
     fan::window_t::buttons_handle_t button_cb_nr;
     fan::window_t::mouse_motion_handle_t mouse_motion_nr;
     fan::graphics::update_callback_nr_t uc_nr;

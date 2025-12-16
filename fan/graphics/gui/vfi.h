@@ -701,7 +701,7 @@ struct vfi_t {
     focus.text.sic();
 
     shaper_t::BlockProperties_t bp;
-    bp.MaxElementPerBlock = (shaper_t::MaxElementPerBlock_t)MaxElementPerBlock;
+    bp.MaxElementPerBlock = (shaper_t::MaxElementPerBlock_t)fan::graphics::MaxElementPerBlock;
     bp.RenderDataSize = 0;
     bp.DataSize = sizeof(ri_t);
 

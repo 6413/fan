@@ -15,6 +15,48 @@ export namespace fan::physics {
   struct aabb_t {
     fan::vec2 min;
     fan::vec2 max;
+
+    static constexpr aabb_t normalized_impl(const fan::vec2& a,
+      const fan::vec2& b) {
+      const bool x_lt = a.x < b.x;
+      const bool y_lt = a.y < b.y;
+
+      return {
+        { x_lt ? a.x : b.x, y_lt ? a.y : b.y },
+        { x_lt ? b.x : a.x, y_lt ? b.y : a.y }
+      };
+    }
+    constexpr void normalize() {
+      *this = normalized_impl(min, max);
+    }
+
+    constexpr aabb_t normalized() const {
+      return normalized_impl(min, max);
+    }
+
+    static constexpr aabb_t normalized(const fan::vec2& a,
+      const fan::vec2& b) {
+      return normalized_impl(a, b);
+    }
+
+    constexpr bool intersects(const aabb_t& o) const {
+      return !(max.x < o.min.x || min.x > o.max.x ||
+        max.y < o.min.y || min.y > o.max.y);
+    }
+
+    constexpr bool intersects(const fan::vec2& a, const fan::vec2& b) const {
+      return intersects(normalized(a, b));
+    }
+
+    constexpr bool contains(const aabb_t& o) const {
+      return o.min.x >= min.x && o.max.x <= max.x &&
+        o.min.y >= min.y && o.max.y <= max.y;
+    }
+
+    constexpr bool contains_point(const fan::vec2& p) const {
+      return p.x >= min.x && p.x <= max.x &&
+        p.y >= min.y && p.y <= max.y;
+    }
   };
 
   inline double length_units_per_meter = 256.0;

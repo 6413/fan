@@ -231,6 +231,48 @@ inline static void set_image(shape_t* shape, fan::graphics::image_t image) {
 	});
 }
 
+
+inline static bool get_visible(const shape_t* shape) {
+  auto sti = shape->get_shape_type();
+  uint8_t* key_pack = g_shapes->shaper.GetKeys(*shape);
+
+  switch (get_shape_category(sti)) {
+  case shape_category_t::light:
+    return shaper_get_key_safe(visible_t, light_t, visible);
+  case shape_category_t::common:
+    return shaper_get_key_safe(visible_t, common_t, visible);
+  case shape_category_t::texture:
+    return shaper_get_key_safe(visible_t, texture_t, visible);
+  default:
+    fan::print_throttled("[get_visible call for non existing shape category]");
+    return true;
+  }
+}
+template<typename sti_t, typename key_pack_t>
+inline static void set_visible_impl(sti_t sti, key_pack_t key_pack, bool flag) {
+  auto cat_t = get_shape_category(sti);
+
+  switch (cat_t) {
+  case shape_category_t::light:
+    shaper_get_key_safe(visible_t, light_t, visible) = flag;
+    break;
+  case shape_category_t::common:
+    shaper_get_key_safe(visible_t, common_t, visible) = flag;
+    break;
+  case shape_category_t::texture:
+    shaper_get_key_safe(visible_t, texture_t, visible) = flag;
+    break;
+  default:
+    fan::throw_error("unimplemented");
+  }
+}
+
+inline static void set_visible(shape_t* shape, bool flag) {
+  update_shape(shape, [&](auto sti, auto key_pack) {
+    set_visible_impl(sti, key_pack, flag);
+  });
+}
+
 struct shape_functions_t {
 
 #define GEN_SHAPES_SKIP(x)
@@ -257,7 +299,7 @@ struct shape_functions_t {
 			if constexpr (std::is_same_v<first_arg_t, shape_t*> ||
 				std::is_same_v<first_arg_t, const shape_t*>) {
 				auto* s = const_cast<shape_t*>(std::get<0>(std::forward_as_tuple(args...)));
-				fan::print_throttled("  for shape " + fan::graphics::shapes::shape_names[s->get_shape_type()]);
+				fan::print_throttled("  for shape " + fan::graphics::shape_names[s->get_shape_type()]);
 			}
 		}
 
@@ -316,6 +358,7 @@ struct shape_functions_t {
 	X(shape, get_image, fan::graphics::image_t(*)(const shape_t*)) \
 	X(shape, set_image, void(*)(shape_t*, fan::graphics::image_t)) \
 	X(shape, get_image_data, fan::graphics::image_data_t& (*)(const shape_t*)) \
+  X(shape, get_visible, bool(*)(const shape_t*)) \
 	X(shape, get_parallax_factor, f32_t(*)(const shape_t*)) \
 	X(shape, set_parallax_factor, void(*)(shape_t*, f32_t)) \
 	X(shape, get_flags, uint32_t(*)(const shape_t*)) \
@@ -325,7 +368,8 @@ struct shape_functions_t {
 	X(shape, get_dst, fan::vec2(*)(const shape_t*)) \
 	X(shape, get_outline_size, f32_t(*)(const shape_t*)) \
 	X(shape, get_outline_color, fan::color(*)(const shape_t*)) \
-	X(shape, set_outline_color, void(*)(shape_t*, const fan::color&))
+	X(shape, set_outline_color, void(*)(shape_t*, const fan::color&)) \
+  X(shape, set_visible, void(*)(shape_t*, bool))
 
 	struct shape_vtable_t {
 	#define MAKE_MEMBER(shape, op, cb_type) base_functions_t<cb_type> op;
@@ -478,7 +522,13 @@ struct shape_functions_t {
 	} \
 	static void CONCAT2(set_image_, shape)(shape_t* s, fan::graphics::image_t img) { \
 		set_image(s, img); \
-	}
+	} \
+	static bool CONCAT2(get_visible_, shape)(const shape_t* s) { \
+		return get_visible(const_cast<shape_t*>(s)); \
+	} \
+  static void CONCAT2(set_visible_, shape)(shape_t* s, bool flag) { \
+		set_visible(s, flag); \
+	} \
 
 	SHAPE_FUNCS(GENERATE_WRAPPERS)
 
@@ -592,6 +642,16 @@ struct shape_functions_t {
 				return vtables()[shape_type_t::light].get_size(shape).x;
 			});
 		}
+    { // line
+      SHAPE_FUNCTION_OVERRIDE(shape_type_t::line, get_size, +[] (const shape_t* shape) {
+        return vtables()[shape_type_t::line].get_dst(shape) - vtables()[shape_type_t::line].get_src(shape);
+      });
+    }
+    { // line
+      SHAPE_FUNCTION_OVERRIDE(shape_type_t::line, get_position, +[] (const shape_t* shape) {
+        return vtables()[shape_type_t::line].get_src(shape);
+      });
+    }
 	}
 
 	auto& operator[](uint16_t shape){
