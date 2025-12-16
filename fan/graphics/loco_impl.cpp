@@ -948,6 +948,7 @@ loco_t::loco_t(const loco_t::properties_t& p) {
     // filler
     fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::light, sizeof(uint8_t), fan::graphics::shaper_t::KeyBitOrderAny);
     fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::light_end, sizeof(uint8_t), fan::graphics::shaper_t::KeyBitOrderAny);
+    fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::visible, sizeof(uint8_t), fan::graphics::shaper_t::KeyBitOrderAny);
     fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::depth, sizeof(fan::graphics::depth_t), fan::graphics::shaper_t::KeyBitOrderLow);
     fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::blending, sizeof(fan::graphics::blending_t), fan::graphics::shaper_t::KeyBitOrderLow);
     fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::image, sizeof(fan::graphics::image_t), fan::graphics::shaper_t::KeyBitOrderLow);
@@ -1020,6 +1021,8 @@ loco_t::loco_t(const loco_t::properties_t& p) {
 #if defined(fan_gui)
   console.commands.call("debug_memory " + std::to_string((int)fan::heap_profiler_t::instance().enabled));
 #endif
+
+  culling_rebuild_grid();
 }
 
 loco_t::~loco_t() {
@@ -2239,125 +2242,19 @@ fan::graphics::shader_t loco_t::get_sprite_vertex_shader(const std::string& frag
   return {};
 }
 
-bool loco_t::frustum_culling_t::needs_update(fan::graphics::camera_nr_t camera) {
-  if (!enabled) return false;
-
-  loco_t* loco = OFFSETLESS(this, loco_t, frustum_culling);
-  auto cam = loco->camera_get(camera);
-  const fan::vec2 current_pos(cam.position.x, cam.position.y);
-  const fan::vec2 current_size = loco->camera_get_size(camera);
-
-  if (current_pos != last_camera_pos || current_size != last_camera_size) {
-    last_camera_pos = current_pos;
-    last_camera_size = current_size;
-    return true;
+struct bmid_hash {
+  size_t operator()(const fan::graphics::shaper_t::bmid_t& v) const noexcept {
+    auto& nc = const_cast<fan::graphics::shaper_t::bmid_t&>(v);
+    return std::hash<uint32_t>{}(nc.gint());
   }
-  return false;
-}
-loco_t::frustum_culling_t::bounds_t loco_t::frustum_culling_t::calculate_bounds(
-  const fan::graphics::context_camera_t& cam,
-  const fan::graphics::context_viewport_t& viewport
-) {
-  loco_t* loco = OFFSETLESS(this, loco_t, frustum_culling);
-  fan::vec2 p = padding / cam.zoom;
-
-  fan::vec2 x = {
-    cam.coordinates.left / cam.zoom,
-    cam.coordinates.right / cam.zoom,
-  };
-
-  fan::vec2 y = {
-    cam.coordinates.top / cam.zoom,
-    cam.coordinates.bottom / cam.zoom
-  };
-
-  x[0] -= p.x;
-  x[1] += p.x;
-
-  y[0] -= p.y;
-  y[1] += p.y;
-
-  x += cam.position.x;
-  y += cam.position.y;
-
-  return {
-    .left   = x[0],
-    .right  = x[1],
-    .top    = y[0],
-    .bottom = y[1]
-  };
-}
-
-
-bool loco_t::frustum_culling_t::is_visible(
-  const fan::vec3& pos,
-  const fan::vec2& half_size,
-  fan::graphics::camera_nr_t camera,
-  fan::graphics::viewport_nr_t viewport
-) {
-  loco_t* loco = OFFSETLESS(this, loco_t, frustum_culling);
-  auto cam = loco->camera_get(camera);
-
-  auto bounds = calculate_bounds(cam, loco->viewport_get(viewport));
-
-  if (pos.z == 32202) {
-    //fan::print(pos);
-    //fan::print("");
+};
+struct bmid_eq {
+  bool operator()(const fan::graphics::shaper_t::bmid_t& a, const fan::graphics::shaper_t::bmid_t& b) const noexcept {
+    auto& na = const_cast<fan::graphics::shaper_t::bmid_t&>(a);
+    auto& nb = const_cast<fan::graphics::shaper_t::bmid_t&>(b);
+    return na.gint() == nb.gint();
   }
-
-  return
-    pos.x + half_size.x >= bounds.left &&
-    pos.x - half_size.x <= bounds.right &&
-    pos.y + half_size.y >= bounds.top &&
-    pos.y - half_size.y <= bounds.bottom;
-}
-
-void loco_t::frustum_culling_t::visualize(const fan::graphics::render_view_t& render_view) {
-  loco_t* loco = OFFSETLESS(this, loco_t, frustum_culling);
-  auto cam = loco->camera_get(render_view.camera);
-
-  const bounds_t bounds = calculate_bounds(cam, loco->viewport_get(render_view.viewport));
-
-  const f32_t z = 0xFFF0;
-  const f32_t t = 1.0f / cam.zoom * 5.f;
-  const fan::color c = fan::colors::red.set_alpha(0.5f);
-
-  using namespace fan::graphics;
-
-  loco->add_shape_to_immediate_draw(shapes::line_t::properties_t{
-    .src = { bounds.left,  bounds.top, z },
-    .dst = { bounds.right, bounds.top, z },
-    .color = c,
-    .thickness = t,
-    .camera = render_view.camera,
-    .viewport = render_view.viewport,
-  });
-  loco->add_shape_to_immediate_draw(shapes::line_t::properties_t{
-    .src = { bounds.right, bounds.top, z },
-    .dst = { bounds.right, bounds.bottom, z },
-    .color = c,
-    .thickness = t,
-    .camera = render_view.camera,
-    .viewport = render_view.viewport,
-  });
-  loco->add_shape_to_immediate_draw(shapes::line_t::properties_t{
-    .src = { bounds.right, bounds.bottom, z },
-    .dst = { bounds.left,  bounds.bottom, z },
-    .color = c,
-    .thickness = t,
-    .camera = render_view.camera,
-    .viewport = render_view.viewport,
-  });
-  loco->add_shape_to_immediate_draw(shapes::line_t::properties_t{
-    .src = { bounds.left,  bounds.bottom, z },
-    .dst = { bounds.left,  bounds.top,    z },
-    .color = c,
-    .thickness = t,
-    .camera = render_view.camera,
-    .viewport = render_view.viewport,
-  });
-}
-
+};
 
 #if defined(fan_gui)
 

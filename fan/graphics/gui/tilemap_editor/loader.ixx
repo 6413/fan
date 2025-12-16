@@ -1,6 +1,6 @@
 module;
 
-#if defined(fan_physics) && defined(fan_gui)
+#if defined(fan_physics)
 
 #include <fan/utility.h>
 #include <unordered_map>
@@ -16,7 +16,7 @@ module;
 
 export module fan.graphics.gui.tilemap_editor.loader;
 
-#if defined(fan_physics) && defined(fan_gui)
+#if defined(fan_physics)
 import fan.print;
 import fan.utility;
 import fan.graphics;

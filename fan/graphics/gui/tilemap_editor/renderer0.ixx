@@ -8,7 +8,7 @@ module;
 
 export module fan.graphics.gui.tilemap_editor.renderer;
 
-#if defined(fan_physics) && defined(fan_gui)
+#if defined(fan_physics)
 
 export import fan.graphics.gui.tilemap_editor.loader;
 
@@ -44,7 +44,7 @@ export struct tilemap_renderer_t : tilemap_loader_t {
     node.compiled_map = compiled_map;
 
     view_size = p.size * 2;
-    view_size = view_size.clamp(0, node.compiled_map->map_size);
+    view_size = view_size.clamp(0, node.compiled_map->map_size * 4);
     node.prev_render = convert_to_grid(p.position, node);
     node.size = p.scale;
 
@@ -255,6 +255,7 @@ export struct tilemap_renderer_t : tilemap_loader_t {
       return;
     }
     }
+    node.rendered_tiles[tile_key].set_static();
     if (!j.id.empty()) {
       node.rendered_tiles[tile_key].id = j.id;
       node.id_to_shape[j.id] = &node.rendered_tiles[tile_key];

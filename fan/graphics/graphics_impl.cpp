@@ -655,25 +655,26 @@ namespace fan::graphics {
   }
 
 #if defined(fan_physics)
-  void aabb(const fan::physics::aabb_t& b, f32_t depth, const fan::color& c, render_view_t* render_view) {
-    fan::graphics::line({.render_view = render_view, .src = {b.min, depth}, .dst = {b.max.x, b.min.y}, .color = c});
-    fan::graphics::line({.render_view = render_view, .src = {b.max.x, b.min.y, depth}, .dst = {b.max}, .color = c});
-    fan::graphics::line({.render_view = render_view, .src = {b.max, depth}, .dst = {b.min.x, b.max.y}, .color = c});
-    fan::graphics::line({.render_view = render_view, .src = {b.min.x, b.max.y, depth}, .dst = {b.min}, .color = c});
+  void aabb(const fan::physics::aabb_t& b, f32_t depth, const fan::color& c, f32_t thickness, render_view_t* render_view) {
+    fan::graphics::line({.render_view = render_view, .src = {b.min, depth}, .dst = {b.max.x, b.min.y}, .color = c, .thickness=thickness});
+    fan::graphics::line({.render_view = render_view, .src = {b.max.x, b.min.y, depth}, .dst = {b.max}, .color = c, .thickness=thickness});
+    fan::graphics::line({.render_view = render_view, .src = {b.max, depth}, .dst = {b.min.x, b.max.y}, .color = c, .thickness=thickness});
+    fan::graphics::line({.render_view = render_view, .src = {b.min.x, b.max.y, depth}, .dst = {b.min}, .color = c, .thickness=thickness});
   }
 
-  void aabb(const fan::graphics::shapes::shape_t& s, f32_t depth, const fan::color& c, render_view_t* render_view) {
-    fan::graphics::aabb(s.get_aabb(), depth, c, render_view);
+
+  void aabb(const fan::graphics::shapes::shape_t& s, f32_t depth, const fan::color& c, f32_t thickness, render_view_t* render_view) {
+    fan::graphics::aabb(s.get_aabb(), depth, c, thickness, render_view);
   }
 
-  void aabb(const fan::vec2& min, const fan::vec2& max, f32_t depth, const fan::color& c, render_view_t* render_view ) {
+  void aabb(const fan::vec2& min, const fan::vec2& max, f32_t depth, const fan::color& c, f32_t thickness, render_view_t* render_view ) {
     fan::physics::aabb_t aabb_;
     aabb_.min = min;
     aabb_.max = max;
-    aabb(aabb_, depth, c, render_view);
+    aabb(aabb_, depth, c, thickness, render_view);
   }
-  void aabb(const fan::vec2& min, const fan::vec2& max, render_view_t* render_view) {
-    aabb(min, max, 0xFFF0, fan::colors::white, render_view);
+  void aabb(const fan::vec2& min, const fan::vec2& max, f32_t thickness, render_view_t* render_view) {
+    aabb(min, max, 0xFFF0, fan::colors::white, thickness, render_view);
   }
 #endif
 
@@ -801,6 +802,7 @@ namespace fan::graphics {
 
     resize_callback_nr = window.add_resize_callback([&](const auto& d) {
       if (old_window_size.x > 0 && old_window_size.y > 0) {
+        fan::graphics::viewport_set(render_view.viewport, fan::vec2(0, 0), d.size);
         fan::vec2 ratio = fan::vec2(d.size) / old_window_size;
         f32_t size_ratio = (ratio.y + ratio.x) / 2.0f;
         f32_t zoom_change = get_zoom() * (size_ratio - 1.0f);
