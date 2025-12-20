@@ -1160,6 +1160,7 @@ struct shaper_t{
     if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
       auto& gl = st.renderer.gl;
       gl.m_vbo.bind(*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx())));
+      //fan::print(new_capacity * st.RenderDataSize * st.MaxElementPerBlock());
       fan::opengl::core::write_glbuffer(
         *static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx())),
         gl.m_vbo.m_buffer,

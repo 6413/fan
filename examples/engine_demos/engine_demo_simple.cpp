@@ -28,6 +28,7 @@ struct simple_engine_demo_t {
       fan::vec2(64, 64),
       fan::colors::red
     });
+    rectangles.back().set_dynamic();
 
     circles.push_back(fan::graphics::circle_t{{
       .position = center + fan::vec2(200, 0),
@@ -43,12 +44,12 @@ struct simple_engine_demo_t {
       .image = tire_image
     }});
 
-    sprites.push_back(fan::graphics::sprite_t{{
-      .position = center + fan::vec2(0, 200),
-      .size = fan::vec2(64, 64),
-      .color = fan::random::bright_color(),
-      .image = tire_image
-    }});
+    //sprites.push_back(fan::graphics::sprite_t{{
+    //  .position = center + fan::vec2(0, 200),
+    //  .size = fan::vec2(64, 64),
+    //  .color = fan::random::bright_color(),
+    //  .image = tire_image
+    //}});
 
     lines.push_back(fan::graphics::line_t{
       fan::vec3(100, 100, 0),
@@ -83,11 +84,20 @@ struct simple_engine_demo_t {
 
     mouse_click_nr = engine.on_mouse_click(fan::mouse_left, [&](const auto& data) {
       circles.push_back(fan::graphics::circle_t{{
-        .position = data.position,
+        .position = fan::graphics::screen_to_world(data.position),
         .radius = fan::random::value(16.f, 48.f),
         .color = fan::random::bright_color()
       }});
+      circles.back().set_dynamic();
       circle_velocities.push_back(fan::random::vec2(-120.f, 120.f));
+
+      //sprites.push_back(fan::graphics::sprite_t{{
+      //    .position = fan::graphics::screen_to_world(data.position),
+      //    .size = fan::vec2(96, 96),
+      //    .color = fan::colors::white,
+      //    .image = tire_image
+      //  }});
+
     });
 
     key_click_nr = engine.on_key_click(fan::key_space, [&] (const auto& data) {
@@ -106,17 +116,14 @@ struct simple_engine_demo_t {
   }
 
   void update() {
-    if (fan::window::is_key_down(fan::key_w)) {
-      rectangles[0].set_position(rectangles[0].get_position() + fan::vec3(0, -200 * engine.delta_time, 0));
-    }
-    if (fan::window::is_key_down(fan::key_s)) {
-      rectangles[0].set_position(rectangles[0].get_position() + fan::vec3(0, 200 * engine.delta_time, 0));
-    }
-    if (fan::window::is_key_down(fan::key_a)) {
-      rectangles[0].set_position(rectangles[0].get_position() + fan::vec3(-200 * engine.delta_time, 0, 0));
-    }
-    if (fan::window::is_key_down(fan::key_d)) {
-      rectangles[0].set_position(rectangles[0].get_position() + fan::vec3(200 * engine.delta_time, 0, 0));
+    //uint32_t v, c;
+    //engine.get_culling_stats(v, c);
+    //fan::print_throttled(v, c);
+
+    fan::vec2 direction = fan::window::get_input_vector();
+
+    if (direction.x || direction.y) {
+      rectangles[0].set_position(rectangles[0].get_position() + fan::vec3(direction * 600.f * engine.delta_time, 0));
     }
 
     sprites[0].set_angle(sprites[0].get_angle() + fan::vec3(0, 0, engine.delta_time));
@@ -130,7 +137,7 @@ struct simple_engine_demo_t {
       // Raise the Z value slightly so overlapping shapes don't fight for the same depth
       // This avoids flickering artifacts (z-fighting) when two objects share the same plane
       p += fan::vec3(circle_velocities[i] * engine.delta_time, 10 + i);
-      circles[i].set_position(p);
+      circles[i].set_position(fan::vec2(p));
     }
 
     fan::graphics::gui::text("WASD - Move red rectangle");

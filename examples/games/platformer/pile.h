@@ -36,15 +36,7 @@ static constexpr auto stage_name = "";
         }
       }
     }
-    //engine.frustum_culling.enabled = false;
-    static int i = 0;
-    if (i++ == 5) {
-      engine.rebuild_static_culling();
-      engine.set_culling_enabled(true);
 
-
-
-    }
     fan::graphics::gui::text(fan::graphics::screen_to_world(fan::window::get_mouse_position()));
     engine.camera_set_target(engine.orthographic_render_view.camera, player.get_physics_pos()-fan::vec2(0, 50), 0);
     fan::graphics::gui::set_viewport(engine.orthographic_render_view.viewport);
@@ -138,4 +130,6 @@ pile_t::pile_t() {
   audio_background = fan::audio::piece_t("audio/background.sac");
   fan::audio::set_volume(0.0f);
   fan::audio::play(audio_background, 0, true);
+
+
 }

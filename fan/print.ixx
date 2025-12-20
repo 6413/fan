@@ -13,6 +13,8 @@ module;
 #include <iomanip>
 #include <unordered_map>
 #include <chrono>
+#include <type_traits>
+#include <bitset>
 
 export module fan.print;
 
@@ -194,7 +196,20 @@ export namespace fan {
   }
 
   template <typename T>
-  requires requires(const T& t) { t.size(); } && (!std::is_same_v<T, std::string>)
+  struct is_bitset : std::false_type {};
+
+  template <size_t N>
+  struct is_bitset<std::bitset<N>> : std::true_type {};
+
+  template <typename T>
+  concept has_subscript_and_size = requires(const T& t) { 
+    t.size(); 
+    t[0]; 
+  } && (!std::is_same_v<T, std::string>) 
+    && (!is_bitset<std::remove_cvref_t<T>>::value);
+
+  template <typename T>
+  requires has_subscript_and_size<T>
   std::ostream& operator<<(std::ostream& os, const T& container) noexcept {
     for (uintptr_t i = 0; i < container.size(); i++) {
       os << container[i] << ' ';

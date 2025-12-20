@@ -23,6 +23,8 @@ module fan.graphics;
 
 #if defined(fan_json)
   import fan.types.json;
+#endif
+#if defined(fan_gui)
   import fan.graphics.gui.base;
 #endif
 
@@ -687,7 +689,7 @@ namespace fan::graphics {
     return fan::graphics::extract_single_shape(json_data, callers_path);
   }
 
-  void fan::graphics::resolve_json_image_paths(fan::json& out, const std::string& json_path, const std::source_location& callers_path) {
+  void resolve_json_image_paths(fan::json& out, const std::string& json_path, const std::source_location& callers_path) {
     out.find_and_iterate("image_path", [&json_path, &callers_path](fan::json& value) {
       std::filesystem::path base = fan::io::file::find_relative_path(json_path, callers_path);
       base = std::filesystem::is_directory(base) ? base : base.parent_path();
@@ -695,7 +697,7 @@ namespace fan::graphics {
     });
   }
 
-  fan::graphics::sprite_t fan::graphics::sprite_sheet_from_json(
+  fan::graphics::sprite_t sprite_sheet_from_json(
     const sprite_sheet_config_t config,
     const std::source_location& callers_path) 
   {

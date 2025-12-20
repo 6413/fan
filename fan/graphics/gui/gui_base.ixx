@@ -230,7 +230,8 @@ export namespace fan::graphics::gui {
   template <typename ...Args>
   void text(const fan::color& color, const Args&... args) {
     gui::push_style_color(col_text, color);
-    ImGui::Text(fan::format_args(args...).c_str());
+    std::string txt = fan::format_args(args...);
+    ImGui::TextUnformatted(txt.c_str());
     gui::pop_style_color();
   }
 

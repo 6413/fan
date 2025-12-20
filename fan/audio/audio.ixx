@@ -128,7 +128,7 @@ export namespace fan {
         const std::source_location& callers_path = std::source_location::current()
       ) {
         fan::audio_t::piece_t* piece = &(fan::audio_t::piece_t&)*this;
-        sint32_t err = g_audio->Open(piece, fan::io::file::find_relative_path(path, callers_path).string(), flags);
+        sint32_t err = g_audio->Open(piece, fan::io::file::find_relative_path(path, callers_path).generic_string(), flags);
         if (err != 0) {
           fan::throw_error("failed to open piece:" + path, "with error:", err);
         }

@@ -131,7 +131,7 @@ export namespace fan {
       bool operator!=(const shape_id_t& shape) const;
 
       bool is_valid() const;
-      operator bool() const;
+      explicit operator bool() const;
     };
 
     struct ray_result_t : b2RayResult {
@@ -140,7 +140,7 @@ export namespace fan {
       fan::vec2 normal;
       f32_t fraction;
       bool hit;
-      operator bool();
+      explicit operator bool();
     };
 
     struct body_id_t : b2BodyId {

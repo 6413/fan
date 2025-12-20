@@ -1,5 +1,5 @@
 #!/bin/bash
-INSTALL_DIR="$(pwd)/thirdparty/fan"
+INSTALL_DIR="$(pwd)/third_party/fan"
 INCLUDE_DIR="$INSTALL_DIR/include"
 LIB_DIR="$INSTALL_DIR/lib"
 mkdir -p "$INCLUDE_DIR" "$LIB_DIR"
@@ -64,7 +64,10 @@ if [[ "$FORCE_REBUILD" == "true" ]] || [[ ! -f "$LIB_DIR/libbox2d.a" ]]; then
     git checkout v3.1.1
     mkdir build
     cd build
-    cmake -DBOX2D_SAMPLES=OFF \
+    cmake -DCMAKE_CXX_COMPILER=clang++ \
+					-DCMAKE_C_COMPILER=clang \
+					-DCMAKE_CXX_FLAGS="-stdlib=libstdc++" \
+					-DBOX2D_SAMPLES=OFF \
           -DBOX2D_BENCHMARKS=OFF \
           -DBOX2D_DOCS=OFF \
           -DBOX2D_PROFILE=OFF \
@@ -105,6 +108,9 @@ if [[ "$FORCE_REBUILD" == "true" ]] || [[ ! -f "$LIB_DIR/libfreetype.a" ]]; then
     cd build
 
     cmake .. \
+				-DCMAKE_CXX_COMPILER=clang++ \
+				-DCMAKE_C_COMPILER=clang \
+				-DCMAKE_CXX_FLAGS="-stdlib=libstdc++" \
         -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
         -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR" \
         -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
@@ -140,7 +146,10 @@ if [[ "$FORCE_REBUILD" == "true" ]] || [[ ! -f "$LIB_DIR/liblunasvg.a" ]]; then
     cd "$LUNASVG_DIR"
     mkdir build
     cd build
-    cmake -DCMAKE_INSTALL_PREFIX="$INSTALL_DIR" \
+    cmake -DCMAKE_CXX_COMPILER=clang++ \
+					-DCMAKE_C_COMPILER=clang \
+					-DCMAKE_CXX_FLAGS="-stdlib=libstdc++" \
+					-DCMAKE_INSTALL_PREFIX="$INSTALL_DIR" \
           -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
           -DBUILD_SHARED_LIBS=OFF \
           -DLUNASVG_BUILD_EXAMPLES=OFF ..

@@ -3745,6 +3745,76 @@
       "texture_pack_name": "tile1217"
     },
     {
+      "id": "lamp1",
+      "mesh_property": 6,
+      "position": [
+        1472.0,
+        15232.0,
+        32084.0
+      ],
+      "shape": "sprite"
+    },
+    {
+      "id": "lamp1",
+      "mesh_property": 6,
+      "position": [
+        2496.0,
+        15040.0,
+        32084.0
+      ],
+      "shape": "sprite"
+    },
+    {
+      "id": "lamp1",
+      "mesh_property": 6,
+      "position": [
+        4288.0,
+        15104.0,
+        32084.0
+      ],
+      "shape": "sprite"
+    },
+    {
+      "id": "lamp1",
+      "mesh_property": 6,
+      "position": [
+        5120.0,
+        15040.0,
+        32084.0
+      ],
+      "shape": "sprite"
+    },
+    {
+      "id": "lamp1",
+      "mesh_property": 6,
+      "position": [
+        6144.0,
+        14784.0,
+        32084.0
+      ],
+      "shape": "sprite"
+    },
+    {
+      "id": "lamp1",
+      "mesh_property": 6,
+      "position": [
+        6656.0,
+        14784.0,
+        32084.0
+      ],
+      "shape": "sprite"
+    },
+    {
+      "id": "lamp1",
+      "mesh_property": 6,
+      "position": [
+        3520.0,
+        15040.0,
+        32084.0
+      ],
+      "shape": "sprite"
+    },
+    {
       "id": "checkpoint1",
       "mesh_property": 1,
       "physics_shape_data": {
@@ -3776,139 +3846,6 @@
       "size": [
         64.0,
         64.0
-      ]
-    },
-    {
-      "color": [
-        1.0,
-        1.0,
-        1.0,
-        1.0
-      ],
-      "id": "lamp1",
-      "mesh_property": 6,
-      "position": [
-        1472.0,
-        15232.0,
-        32084.0
-      ],
-      "size": [
-        0.0,
-        0.0
-      ]
-    },
-    {
-      "color": [
-        1.0,
-        1.0,
-        1.0,
-        1.0
-      ],
-      "id": "lamp1",
-      "mesh_property": 6,
-      "position": [
-        2496.0,
-        15040.0,
-        32084.0
-      ],
-      "size": [
-        0.0,
-        0.0
-      ]
-    },
-    {
-      "color": [
-        1.0,
-        1.0,
-        1.0,
-        1.0
-      ],
-      "id": "lamp1",
-      "mesh_property": 6,
-      "position": [
-        4288.0,
-        15104.0,
-        32084.0
-      ],
-      "size": [
-        0.0,
-        0.0
-      ]
-    },
-    {
-      "color": [
-        1.0,
-        1.0,
-        1.0,
-        1.0
-      ],
-      "id": "lamp1",
-      "mesh_property": 6,
-      "position": [
-        5120.0,
-        15040.0,
-        32084.0
-      ],
-      "size": [
-        0.0,
-        0.0
-      ]
-    },
-    {
-      "color": [
-        1.0,
-        1.0,
-        1.0,
-        1.0
-      ],
-      "id": "lamp1",
-      "mesh_property": 6,
-      "position": [
-        6144.0,
-        14784.0,
-        32084.0
-      ],
-      "size": [
-        0.0,
-        0.0
-      ]
-    },
-    {
-      "color": [
-        1.0,
-        1.0,
-        1.0,
-        1.0
-      ],
-      "id": "lamp1",
-      "mesh_property": 6,
-      "position": [
-        6656.0,
-        14784.0,
-        32084.0
-      ],
-      "size": [
-        0.0,
-        0.0
-      ]
-    },
-    {
-      "color": [
-        1.0,
-        1.0,
-        1.0,
-        1.0
-      ],
-      "id": "lamp1",
-      "mesh_property": 6,
-      "position": [
-        3520.0,
-        15040.0,
-        32084.0
-      ],
-      "size": [
-        0.0,
-        0.0
       ]
     },
     {

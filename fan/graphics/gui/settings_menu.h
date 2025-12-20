@@ -178,36 +178,40 @@ struct settings_menu_t {
 
       bool did_hide_bg = hide_gui_settings;
       {
-       /* gui::table_next_row();*/
+        gui::table_next_row();
 
-        //gui::table_next_column();
-        //gui::text("Frustum culling");
+        gui::table_next_column();
+        gui::text("Frustum culling");
 
-        //gui::table_next_column();
-        //gui::text("Enable frustum culling");
-        //gui::checkbox("##enable_culling", &gloco()->frustum_culling.enabled);
+        gui::table_next_column();
+        gui::text("Enable frustum culling");
+        if (gui::checkbox("##enable_culling", &gloco()->shapes.visibility.enabled)) {
+          gloco()->set_culling_enabled(gloco()->shapes.visibility.enabled);
+        }
 
-        //gui::text("Visualize culling");
-        //static bool visualize_culling = false;
-        //gui::checkbox("##visualize_culling", &visualize_culling);
+        gui::text("Visualize culling");
+        gui::checkbox("##visualize_culling", &gloco()->is_visualizing_culling);
 
-        //if (visualize_culling) {
-        //  gloco()->frustum_culling.visualize();
+        if (gloco()->is_visualizing_culling) {
 
-        //  gui::text("Frustum culling extents padding (default render view)");
-        //  gui::indent(10.f);
-        //  //gui::table_next_column();
-        //  gui::drag("##culling_bounds", &gloco()->frustum_culling.padding, 1);
+          gui::text("Frustum culling extents padding (default render view)");
+          gui::indent(10.f);
+          //gui::table_next_column();
+          if (gui::drag("##culling_bounds", &gloco()->shapes.visibility.padding, 1)) {
+            for (auto& [cam_id, cam_state] : gloco()->shapes.visibility.camera_states) {
+              cam_state.view_dirty = true;
+            }
+          }
 
-        //  if (!hide_gui_settings) {
-        //    hide_bg = gui::is_item_active();
-        //    if (hide_bg != did_hide_bg) {
-        //      did_hide_bg = true;
-        //    }
-        //  }
+          if (!hide_gui_settings) {
+            hide_bg = gui::is_item_active();
+            if (hide_bg != did_hide_bg) {
+              did_hide_bg = true;
+            }
+          }
 
-        //  gui::unindent();
-        //}
+          gui::unindent();
+        }
       }
 
       {

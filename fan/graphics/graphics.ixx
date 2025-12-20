@@ -34,7 +34,9 @@ export import fan.graphics.algorithm.raycast_grid;
 export import fan.graphics.algorithm.pathfind;
 export import fan.event;
 export import fan.math;
-export import fan.graphics.gui.text_logger;
+#if defined(fan_gui)
+  export import fan.graphics.gui.text_logger;
+#endif
 
 #if defined(fan_json)
   import fan.types.json;
@@ -238,8 +240,8 @@ export namespace fan::graphics {
   struct light_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    operator fan::graphics::shapes::shape_t& () { return *this; }
-    operator const fan::graphics::shapes::shape_t& () const { return *this; }
+    
+    
     light_t(light_properties_t p = light_properties_t());
     light_t(const fan::vec3& position, const fan::vec2& size, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   };
@@ -258,8 +260,8 @@ export namespace fan::graphics {
   struct line_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    operator fan::graphics::shapes::shape_t& () { return *this; }
-    operator const fan::graphics::shapes::shape_t& () const { return *this; }
+    
+    
     line_t(line_properties_t p = line_properties_t());
     line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& color = fan::colors::white, f32_t thickness = 3.f, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   };
@@ -279,8 +281,8 @@ export namespace fan::graphics {
   struct rectangle_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    operator fan::graphics::shapes::shape_t& () { return *this; }
-    operator const fan::graphics::shapes::shape_t& () const { return *this; }
+    
+    
     rectangle_t(rectangle_properties_t p = rectangle_properties_t());
     rectangle_t(const fan::vec3& position, const fan::vec2& size, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   };
@@ -305,8 +307,8 @@ export namespace fan::graphics {
   struct sprite_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    operator fan::graphics::shapes::shape_t& () { return *this; }
-    operator const fan::graphics::shapes::shape_t& () const { return *this; }
+    
+    
     sprite_t(sprite_properties_t p = sprite_properties_t());
     sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   };
@@ -328,8 +330,8 @@ export namespace fan::graphics {
   struct unlit_sprite_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    operator fan::graphics::shapes::shape_t& () { return *this; }
-    operator const fan::graphics::shapes::shape_t& () const { return *this; }
+    
+    
     unlit_sprite_t(unlit_sprite_properties_t p = unlit_sprite_properties_t());
     unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   };
@@ -349,8 +351,8 @@ export namespace fan::graphics {
   struct circle_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    operator fan::graphics::shapes::shape_t& () { return *this; }
-    operator const fan::graphics::shapes::shape_t& () const { return *this; }
+    
+    
     circle_t(circle_properties_t p = circle_properties_t()) {
       *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
         fan_init_struct(
@@ -392,8 +394,8 @@ export namespace fan::graphics {
   struct capsule_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    operator fan::graphics::shapes::shape_t& () { return *this; }
-    operator const fan::graphics::shapes::shape_t& () const { return *this; }
+    
+    
     capsule_t(capsule_properties_t p = capsule_properties_t()) {
       *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
         fan_init_struct(
@@ -427,8 +429,8 @@ export namespace fan::graphics {
   struct polygon_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    operator fan::graphics::shapes::shape_t& () { return *this; }
-    operator const fan::graphics::shapes::shape_t& () const { return *this; }
+    
+    
     polygon_t() = default;
     polygon_t(polygon_properties_t p) {
       *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
@@ -459,8 +461,8 @@ export namespace fan::graphics {
   struct grid_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    operator fan::graphics::shapes::shape_t& () { return *this; }
-    operator const fan::graphics::shapes::shape_t& () const { return *this; }
+    
+    
     grid_t(grid_properties_t p = grid_properties_t()) {
       *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
         fan_init_struct(
@@ -498,8 +500,8 @@ export namespace fan::graphics {
   struct universal_image_renderer_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    operator fan::graphics::shapes::shape_t& () { return *this; }
-    operator const fan::graphics::shapes::shape_t& () const { return *this; }
+    
+    
     universal_image_renderer_t(const universal_image_renderer_properties_t& p = universal_image_renderer_properties_t()) {
       *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
         fan_init_struct(
@@ -539,8 +541,8 @@ export namespace fan::graphics {
   struct gradient_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    operator fan::graphics::shapes::shape_t& () { return *this; }
-    operator const fan::graphics::shapes::shape_t& () const { return *this; }
+    
+    
     gradient_t(const gradient_properties_t& p = gradient_properties_t()) {
       *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
         fan_init_struct(
@@ -594,8 +596,8 @@ export namespace fan::graphics {
   struct shadow_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    operator fan::graphics::shapes::shape_t& () { return *this; }
-    operator const fan::graphics::shapes::shape_t& () const { return *this; }
+    
+    
     using shape_e = fan::graphics::shapes::shadow_t::shape_e;
 
     shadow_t(shadow_properties_t p = shadow_properties_t()) {
@@ -655,8 +657,8 @@ export namespace fan::graphics {
   struct line3d_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    operator fan::graphics::shapes::shape_t& () { return *this; }
-    operator const fan::graphics::shapes::shape_t& () const { return *this; }
+    
+    
     line3d_t(line3d_properties_t p = line3d_properties_t()) {
       *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
         fan_init_struct(
@@ -683,7 +685,7 @@ export namespace fan::graphics {
     aabb_t() = default;
 
     aabb_t(const fan::vec3& c, const fan::vec2& hsize, f32_t d = 55000, const fan::color& col = fan::color(1, 0, 0, 1))
-      : center(c), half_size(hsize), depth(d), color(col) {
+      : center(c), half_size(hsize), color(col), depth(d) {
       fan::vec3 bl(center.x - half_size.x, center.y - half_size.y, depth);
       fan::vec3 br(center.x + half_size.x, center.y - half_size.y, depth);
       fan::vec3 tr(center.x + half_size.x, center.y + half_size.y, depth);

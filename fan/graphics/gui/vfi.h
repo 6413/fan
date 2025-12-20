@@ -279,33 +279,33 @@ struct vfi_t {
     instance.shape_data->keyboard_cb = p.keyboard_cb;
     instance.shape_data->text_cb = p.text_cb;
     switch(p.shape_type) {
-      case shape_t::always:{
-        instance.shape_data->depth = p.shape.always->z;
-        break;
+    case shape_t::always:{
+      instance.shape_data->depth = p.shape.always->z;
+      break;
+    }
+    case shape_t::rectangle:{
+      instance.shape_data->depth = p.shape.rectangle->position.z;
+      if (p.shape.rectangle->camera.iic()) {
+        instance.shape_data->shape.rectangle->camera = fan::graphics::ctx().orthographic_render_view->camera;
+        fan::print("warning using default camera");
       }
-      case shape_t::rectangle:{
-        instance.shape_data->depth = p.shape.rectangle->position.z;
-        if (p.shape.rectangle->camera.iic()) {
-          instance.shape_data->shape.rectangle->camera = fan::graphics::ctx().orthographic_render_view->camera;
-          fan::print("warning using default camera");
-        }
-        else {
-          instance.shape_data->shape.rectangle->camera = p.shape.rectangle->camera;
-        } 
-        if (p.shape.rectangle->viewport.iic()) {
-          instance.shape_data->shape.rectangle->viewport = fan::graphics::ctx().orthographic_render_view->viewport;
-          fan::print("warning using default viewport");
-        }
-        else {
-          instance.shape_data->shape.rectangle->viewport = p.shape.rectangle->viewport;
-        }
-        
-        instance.shape_data->shape.rectangle->position = *(fan::vec2*)&p.shape.rectangle->position;
-        instance.shape_data->shape.rectangle->angle = p.shape.rectangle->angle;
-        instance.shape_data->shape.rectangle->rotation_point = p.shape.rectangle->rotation_point;
-        instance.shape_data->shape.rectangle->size = p.shape.rectangle->size;
-        break;
+      else {
+        instance.shape_data->shape.rectangle->camera = p.shape.rectangle->camera;
+      } 
+      if (p.shape.rectangle->viewport.iic()) {
+        instance.shape_data->shape.rectangle->viewport = fan::graphics::ctx().orthographic_render_view->viewport;
+        fan::print("warning using default viewport");
       }
+      else {
+        instance.shape_data->shape.rectangle->viewport = p.shape.rectangle->viewport;
+      }
+
+      instance.shape_data->shape.rectangle->position = *(fan::vec2*)&p.shape.rectangle->position;
+      instance.shape_data->shape.rectangle->angle = p.shape.rectangle->angle;
+      instance.shape_data->shape.rectangle->rotation_point = p.shape.rectangle->rotation_point;
+      instance.shape_data->shape.rectangle->size = p.shape.rectangle->size;
+      break;
+    }
     }
 
     auto ret = g_shapes->shape_add(fan::graphics::shapes::shape_type_t::vfi, 0, instance,
@@ -359,14 +359,14 @@ struct vfi_t {
 
   static fan::vec2 screen_to_world(const fan::vec2& p, fan::graphics::viewport_t viewport, fan::graphics::camera_t camera) {
 
-#if fan_debug >= fan_debug_high
+  #if fan_debug >= fan_debug_high
     if (viewport.iic()) {
       fan::throw_error("invalid viewport");
     }
     if (camera.iic()) {
       fan::throw_error("invalid camera");
     }
-#endif
+  #endif
 
     auto v = fan::graphics::ctx()->viewport_get(fan::graphics::ctx(), viewport);
     auto c = fan::graphics::ctx()->camera_get(fan::graphics::ctx(), camera);
@@ -516,9 +516,9 @@ struct vfi_t {
           }
         }
         switch (kti) {
-            case Key_e::draw_mode: 
-            case Key_e::vertex_count: 
-            continue;
+        case Key_e::draw_mode: 
+        case Key_e::vertex_count: 
+          continue;
         }
         if (!KeyTraverse.isbm) {
           continue;
@@ -527,17 +527,17 @@ struct vfi_t {
         BlockTraverse.Init(g_shapes->shaper, KeyTraverse.bmid());
 
         do {
-         for (int i = 0; i < BlockTraverse.GetAmount(g_shapes->shaper); ++i) {
-           auto& data = ((ri_t*)BlockTraverse.GetData(g_shapes->shaper))[i];
-           fan::vec2 tp = transform(position, data.shape_type, data.shape_data);
-           mouse_move_data.mouse_stage = viewport_inside(data.shape_type, data.shape_data, tp);
-           if (mouse_move_data.mouse_stage == mouse_stage_e::viewport_inside) {
-             if (data.shape_data->depth > closest_z) {
-               closest_z = data.shape_data->depth;
-               closest_z_nr = *g_shapes->shaper.GetShapeID(fan::graphics::shapes::shape_type_t::vfi, BlockTraverse.GetBlockID(), i);
-             }
-           }
-         }
+          for (int i = 0; i < BlockTraverse.GetAmount(g_shapes->shaper); ++i) {
+            auto& data = ((ri_t*)BlockTraverse.GetData(g_shapes->shaper))[i];
+            fan::vec2 tp = transform(position, data.shape_type, data.shape_data);
+            mouse_move_data.mouse_stage = viewport_inside(data.shape_type, data.shape_data, tp);
+            if (mouse_move_data.mouse_stage == mouse_stage_e::viewport_inside) {
+              if (data.shape_data->depth > closest_z) {
+                closest_z = data.shape_data->depth;
+                closest_z_nr = *g_shapes->shaper.GetShapeID(fan::graphics::shapes::shape_type_t::vfi, BlockTraverse.GetBlockID(), i);
+              }
+            }
+          }
         } while (BlockTraverse.Loop(g_shapes->shaper));
 
       }
@@ -706,35 +706,32 @@ struct vfi_t {
     bp.DataSize = sizeof(ri_t);
 
     g_shapes->shaper.SetShapeType(fan::graphics::shapes::shape_type_t::vfi, bp);
-    SHAPE_FUNCTION_OVERRIDE(fan::graphics::shapes::shape_type_t::vfi, get_position,
-      +[](const fan::graphics::shapes::shape_t* shape) {
-        return g_shapes->vfi.get_position(*shape);
-      }
-    );
+    g_shapes->shape_functions.vtables_storage[fan::graphics::shapes::shape_type_t::vfi].get_position =
+      +[](const fan::graphics::shapes::shape_t* s) -> fan::vec3 {
+      return g_shapes->vfi.get_position(*s);
+    };
 
-    SHAPE_FUNCTION_OVERRIDE(fan::graphics::shapes::shape_type_t::vfi, set_position2,
-      +[](fan::graphics::shapes::shape_t* shape, const fan::vec2& position) {
-        g_shapes->vfi.set_position(*shape, fan::vec3(position, g_shapes->vfi.get_position(*shape).z));
-      }
-    );
+    g_shapes->shape_functions.vtables_storage[fan::graphics::shapes::shape_type_t::vfi].set_position2 =
+      +[](fan::graphics::shapes::shape_t* s, const fan::vec2& position) {
+      g_shapes->vfi.set_position(
+        *s,
+        fan::vec3(position, g_shapes->vfi.get_position(*s).z)
+      );
+    };
 
-    SHAPE_FUNCTION_OVERRIDE(fan::graphics::shapes::shape_type_t::vfi, set_position3,
-      +[](fan::graphics::shapes::shape_t* shape, const fan::vec3& position) {
-        g_shapes->vfi.set_position(*shape, position);
-      }
-    );
+    g_shapes->shape_functions.vtables_storage[fan::graphics::shapes::shape_type_t::vfi].set_position3 =
+      +[](fan::graphics::shapes::shape_t* s, const fan::vec3& position) {
+      g_shapes->vfi.set_position(*s, position);
+    };
 
-    SHAPE_FUNCTION_OVERRIDE(fan::graphics::shapes::shape_type_t::vfi, get_size,
-      +[](const fan::graphics::shapes::shape_t* shape) {
-        return g_shapes->vfi.get_size(*shape);
-      }
-    );
+    g_shapes->shape_functions.vtables_storage[fan::graphics::shapes::shape_type_t::vfi].get_size =
+      +[](const fan::graphics::shapes::shape_t* s) -> fan::vec2 {
+      return g_shapes->vfi.get_size(*s);
+    };
 
-    SHAPE_FUNCTION_OVERRIDE(fan::graphics::shapes::shape_type_t::vfi, set_size,
-      +[](fan::graphics::shapes::shape_t* shape, const fan::vec2& size) {
-        g_shapes->vfi.set_size(*shape, size);
-      }
-    );
-
+    g_shapes->shape_functions.vtables_storage[fan::graphics::shapes::shape_type_t::vfi].set_size =
+      +[](fan::graphics::shapes::shape_t* s, const fan::vec2& size) {
+      g_shapes->vfi.set_size(*s, size);
+    };
   }
 };

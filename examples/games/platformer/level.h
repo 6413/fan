@@ -81,7 +81,9 @@ void load_map() {
   main_compiled_map = pile->renderer.compile("sample_level.fte");
   fan::vec2i render_size(16, 9);
   tilemap_loader_t::properties_t p;
-  p.size = render_size * 1000;
+  p.size = render_size *1000;
+  pile->engine.set_cull_padding(-150);
+
   p.position = pile->player.body.get_position();
   main_map_id = pile->renderer.add(&main_compiled_map, p);
   pile->engine.lighting.set_target(main_compiled_map.lighting.ambient, 0.01);
@@ -103,8 +105,19 @@ void load_map() {
     .loop = true
     });
 
-  pile->renderer.iterate_visual(main_map_id, [&](tilemap_loader_t::tile_t& tile) -> bool {
+  pile->renderer.iterate_marks(main_map_id, [&](tilemap_loader_t::fte_t::spawn_mark_data_t& data) -> bool {
+    const auto& id = data.id;
+    if (id.contains("lamp1")) {
+      lamps.emplace_back(lamp1_anim);
+      auto& l = lamps.back();
+      l.set_current_animation_frame(fan::random::value(0, l.get_current_animation_frame_count()));
+      l.set_position(fan::vec3(fan::vec2(data.position) + fan::vec2(1.f, -2.f), 1));
+      l.start_sprite_sheet_animation();
+    }
+    return false; // continue iterating all instances
+  });
 
+  pile->renderer.iterate_visual(main_map_id, [&](tilemap_loader_t::tile_t& tile) -> bool {
     const std::string& id = tile.id;
 
     if (id.contains("checkpoint")) {
@@ -141,12 +154,6 @@ void load_map() {
           {.is_sensor = true}
         )
       );
-    }
-    else if (id.contains("lamp1")) {
-      lamps.emplace_back(lamp1_anim);
-      auto& l = lamps.back();
-      l.set_current_animation_frame(fan::random::value(0, l.get_current_animation_frame_count()));
-      l.set_position(fan::vec3(fan::vec2(tile.position) + fan::vec2(1.f, -2.f), 1));
     }
     else if (tile.mesh_property == tilemap_loader_t::fte_t::mesh_property_t::none) {
       tile_collisions.emplace_back(
@@ -193,6 +200,7 @@ void close() {
 void reload_map() {
   pile->stage_loader.erase_stage(this->stage_common.stage_id);
   pile->stage_loader.open_stage<level_t>();
+  pile->renderer.update(main_map_id, pile->player.body.get_position());
 }
 
 void update() {
@@ -275,7 +283,7 @@ void update() {
       return;
     }
   }
-  pile->renderer.update(main_map_id, pile->player.body.get_position());
+  
   pile->update();
 }
 

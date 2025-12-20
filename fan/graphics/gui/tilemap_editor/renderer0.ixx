@@ -328,8 +328,8 @@ export struct tilemap_renderer_t : tilemap_loader_t {
       }
     }
 
-    node.prev_render = 10000000;
-    initialize(node, node.position);
+    //node.prev_render = 10000000;
+    //initialize(node, node.position);
   }
 
   struct shape_depths_t {

@@ -1212,7 +1212,7 @@ namespace fan::opengl::core {
 }
 
 namespace fan::graphics {
-  fan::graphics::context_functions_t fan::graphics::get_gl_context_functions() {
+  fan::graphics::context_functions_t get_gl_context_functions() {
     fan::graphics::context_functions_t cf;
     cf.shader_create = [](void* context) {
       return ((fan::opengl::context_t*)context)->shader_create();

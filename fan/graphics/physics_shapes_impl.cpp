@@ -17,8 +17,11 @@ module fan.graphics.physics_shapes;
 #if defined(fan_physics)
 
 import fan.types;
-import fan.graphics.gui.base;
 import fan.print;
+
+#if defined(fan_gui)
+  import fan.graphics.gui.base;
+#endif
 
 // higher the draw depth, less debug draws will be if maximum depth is 2^16
 // so make sure your game objects do not pass this depth
@@ -1628,7 +1631,7 @@ namespace fan::graphics::physics {
   //------------------------------------------------------------------------------------------------
   //------------------------------------------------------------------------------------------------
 
-  std::string fan::graphics::physics::bone_to_string(int bone) {
+  std::string bone_to_string(int bone) {
     if (bone >= std::size(bone_names)) {
       return "N/A";
     }

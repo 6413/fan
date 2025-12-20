@@ -62,6 +62,9 @@ import fan.types.fstring;
 
 export namespace fan::graphics {
 
+  // warning does deep copy, addresses can die
+  fan::graphics::context_shader_t shader_get(fan::graphics::shader_nr_t nr);
+
   struct shapes;
   inline shapes* g_shapes = nullptr;
 
@@ -95,7 +98,7 @@ export namespace fan::graphics {
     animation_nr_t();
     animation_nr_t(uint32_t id);
     operator uint32_t() const;
-    operator bool() const;
+    explicit operator bool() const;
     animation_nr_t operator++(int);
     bool operator==(const animation_nr_t& other) const;
     bool operator!=(const animation_nr_t& other) const;
@@ -114,10 +117,15 @@ export namespace fan::graphics {
 #pragma pack(push, 1)
   struct sprite_sheet_data_t {
     // current_frame in 'selected_frames'
-    int current_frame;
+    int current_frame = 0;
     fan::time::timer update_timer;
     // sprite sheet update function nr
     fan::graphics::update_callback_nr_t frame_update_nr;
+
+    animation_shape_nr_t shape_animations;
+    animation_nr_t current_animation;
+
+    bool start_animation = false;
   };
 #pragma pack(pop)
   extern std::unordered_map<animation_nr_t, sprite_sheet_animation_t, animation_nr_hash_t> all_animations;
@@ -229,16 +237,23 @@ export namespace fan::graphics {
       shape_t(const T& properties) : shape_t() {
         auto shape_type = T::type_t::shape_type;
         *this = fan::graphics::g_shapes->shape_functions[shape_type].push_back((void*)&properties);
+        //fan::print_throttled("setting static");
+        if (fan::graphics::g_shapes->visibility.enabled) {
+          set_static();
+        }
+        else {
+          push_vram();
+        }
       #if defined(debug_shape_t)
         fan::print("+", NRI);
       #endif
       }
-      shape_t(shaper_t::ShapeID_t&& s);
+      shape_t(shape_t&& s) noexcept;
       shape_t(const shaper_t::ShapeID_t& s);
-      shape_t(shape_t&& s);
-      shape_t(const fan::graphics::shapes::shape_t& s);
-      fan::graphics::shapes::shape_t& operator=(const fan::graphics::shapes::shape_t& s);
-      fan::graphics::shapes::shape_t& operator=(fan::graphics::shapes::shape_t&& s);
+      shape_t(const shape_t& s);
+      shape_t(shaper_t::ShapeID_t&& s) noexcept;
+      shape_t& operator=(shape_t&& s) noexcept;
+      shape_t& operator=(const shape_t& s);
     #if defined(fan_json)
       operator fan::json();
       operator std::string();
@@ -248,7 +263,7 @@ export namespace fan::graphics {
       shape_t& operator=(const std::string&); // assume json string
     #endif
       ~shape_t();
-      operator bool() const;
+      explicit operator bool() const;
       bool operator==(const shape_t& shape) const;
       void remove();
       void erase();
@@ -259,6 +274,16 @@ export namespace fan::graphics {
       void set_visible(bool flag);
       void set_static();
       void set_dynamic();
+
+      fan::graphics::culling::movement_type_t get_movement() const;
+      void update_dynamic();
+
+      void push_vram();
+      void erase_vram();
+
+      fan::graphics::shaper_t::ShapeID_t& get_visual_id() const;
+      shape_t* get_visual_shape() const;
+
 
       // many things assume uint16_t so thats why not shaper_t::ShapeTypeIndex_t
       uint16_t get_shape_type() const;
@@ -272,6 +297,7 @@ export namespace fan::graphics {
       f32_t get_y() const;
       f32_t get_z() const;
       void set_size(const fan::vec2& size);
+      void set_radius(f32_t radius);
       void set_size3(const fan::vec3& size);
       // returns half extents of draw
       fan::vec2 get_size() const;
@@ -319,7 +345,7 @@ export namespace fan::graphics {
       void set_flags(uint32_t flag);
       f32_t get_radius() const;
       fan::vec3 get_src() const;
-      fan::vec3 get_dst() const;
+      fan::vec2 get_dst() const;
       f32_t get_outline_size() const;
       fan::color get_outline_color() const;
       void set_outline_color(const fan::color& color);
@@ -381,13 +407,18 @@ export namespace fan::graphics {
       //vram
       //_d = decltype usage decltype(itself)
       template <typename T>
-      T& get_vdata() {
-        return *(T*)GetRenderData(g_shapes->shaper);
+      T* get_vdata() {
+        return (T*)GetRenderData(g_shapes->shaper);
       }
       template <typename T>
-      T& get_data() {
-        return *(T*)GetData(g_shapes->shaper);
+      T* get_data() {
+        return (T*)GetData(g_shapes->shaper);
       }
+
+      // override
+      shaper_t::ShapeRenderData_t* GetRenderData(shaper_t& shaper) const;
+      shaper_t::ShapeData_t* GetData(shaper_t& shaper) const;
+
       // read from gpu itself
       template <typename T>
       T get_gldata() {
@@ -400,19 +431,71 @@ export namespace fan::graphics {
         return vi;
       }
 
-      
+      shaper_t::ShapeTypes_t::nd_t& get_shape_type_data();
 
-      shaper_t::ShapeTypes_t::nd_t& get_shape_type_data() {
-        return g_shapes->shaper.ShapeTypes[get_shape_type()];
+      uint8_t* get_keys();
+      shaper_t::KeyPackSize_t get_keys_size();
+
+      template<typename T, typename R, R T::*M>
+      R get_keypack() { 
+        auto& vid = get_visual_id();
+        if (vid.iic()) { 
+          return R{};
+        }
+
+        auto key_pack_size = g_shapes->shaper.GetKeysSize(vid);
+        std::unique_ptr<uint8_t[]> key_pack(new uint8_t[key_pack_size]);
+        g_shapes->shaper.WriteKeys(get_visual_id(), key_pack.get());
+        auto o = fan::offset_of<T, R, M>();
+        return *reinterpret_cast<R*>(&key_pack[o]); 
       }
+
+
+
+      //  
+
+      //template <typename ReturnT, typename KpsType, typename MemberT>
+      //ReturnT& get_keypack(uint8_t* key_pack, MemberT KpsType::* member) {
+      //  // Compute offsets between the underscore type and the normal type
+      //  auto o = g_shapes->shaper.GetKeyOffset(
+      //    offsetof(typename KpsType::type, member)
+      //    offsetof(KpsType, member)               
+      //  );
+
+      //  // Safety check: ensure the member really has the expected type
+      //  static_assert(
+      //    std::is_same_v<decltype(KpsType::member), ReturnT>,
+      //    "possibly unwanted behaviour"
+      //    );
+
+      //  // Return reference into the buffer
+      //  return *reinterpret_cast<ReturnT*>(&key_pack[o]);
+      //}
+
+
+
       //vram
       template <typename T>
-      T::vi_t& get_shape_vdata() {
+      typename T::vi_t& get_shape_vdata() {
         return *(typename T::vi_t*)GetRenderData(g_shapes->shaper);
       }
       template <typename T>
-      T::ri_t& get_shape_data() {
+      typename T::ri_t& get_shape_rdata() {
         return *(typename T::ri_t*)GetData(g_shapes->shaper);
+      }
+
+      template <typename T>
+      typename T::properties_t& get_shape_data() {
+        typename T::properties_t* result = nullptr;
+        g_shapes->visit_shape_draw_data(NRI, [&]<typename props_t>(props_t& props) {
+          if constexpr (std::is_same_v<props_t, typename T::properties_t>) {
+            result = &props;
+          }
+        });
+        if (!result) {
+          fan::throw_error("properties_t not available for this shape");
+        }
+        return *result;
       }
     };
 
@@ -516,7 +599,7 @@ export namespace fan::graphics {
         using type_t = line_t;
 
         fan::vec3 src = 0;
-        fan::vec3 dst = 800;
+        fan::vec2 dst = 800;
         fan::color color = fan::colors::white;
         f32_t thickness = 4.0f;
 
@@ -612,9 +695,6 @@ export namespace fan::graphics {
         fan::graphics::texture_pack::unique_t texture_pack_unique_id;
 
         sprite_sheet_data_t sprite_sheet_data;
-
-        animation_shape_nr_t shape_animations;
-        animation_nr_t current_animation;
       };
 
     #pragma pack(pop)
@@ -649,8 +729,8 @@ export namespace fan::graphics {
         fan::vec2 tc_size = 1;
         f32_t seed = 0;
         fan::graphics::texture_pack::unique_t texture_pack_unique_id;
-        animation_shape_nr_t shape_animations;
-        animation_nr_t current_animation;
+
+        sprite_sheet_data_t sprite_sheet_data;
 
         bool load_tp(fan::graphics::texture_pack::ti_t* ti) {
           auto& im = ti->image;
@@ -698,6 +778,8 @@ export namespace fan::graphics {
       struct ri_t {
         std::array<fan::graphics::image_t, 30> images;
         fan::graphics::texture_pack::unique_t texture_pack_unique_id;
+
+        sprite_sheet_data_t sprite_sheet_data;
       };
 
     #pragma pack(pop)
@@ -742,6 +824,7 @@ export namespace fan::graphics {
         uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
         uint32_t vertex_count = 6;
         fan::graphics::texture_pack::unique_t texture_pack_unique_id;
+        sprite_sheet_data_t sprite_sheet_data;
 
         bool load_tp(fan::graphics::texture_pack::ti_t* ti) {
           auto& im = ti->image;
@@ -1155,6 +1238,9 @@ export namespace fan::graphics {
 
         uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
         uint32_t vertex_count = 6;
+
+        //internals
+        uintptr_t format = 0;
       };
 
       shape_t push_back(const properties_t& properties);
@@ -1427,6 +1513,256 @@ export namespace fan::graphics {
 
     std::vector<fan::graphics::shapes::shape_t>* immediate_render_list = nullptr;
     std::unordered_map<uint32_t, fan::graphics::shapes::shape_t>* static_render_list = nullptr;
+
+
+    // dont look here
+    // -----------------------------------shape lists-----------------------------------
+    // ---------------------------------------------------------------------------------
+
+    using shape_nr_t = decltype(shaper_t::ShapeID_t::NRI);
+
+  #define shape sprite
+  #include "build_shape_list.h"
+  #define shape text
+  #include "build_shape_list.h"
+  #define shape line
+  #include "build_shape_list.h"
+  #define shape rectangle
+  #include "build_shape_list.h"
+  #define shape light
+  #include "build_shape_list.h"
+  #define shape unlit_sprite
+  #include "build_shape_list.h"
+  #define shape circle
+  #include "build_shape_list.h"
+  #define shape capsule
+  #include "build_shape_list.h"
+  #define shape polygon
+  #include "build_shape_list.h"
+  #define shape grid
+  #include "build_shape_list.h"
+  #define shape vfi
+  #include "build_shape_list.h"
+  #define shape particles
+  #include "build_shape_list.h"
+  #define shape universal_image_renderer
+  #include "build_shape_list.h"
+  #define shape gradient
+  #include "build_shape_list.h"
+  #define shape shader_shape
+  #include "build_shape_list.h"
+  #if defined(fan_3D)
+  #define shape rectangle3d
+  #include "build_shape_list.h"
+  #define shape line3d
+  #include "build_shape_list.h"
+  #endif
+  #define shape shadow
+  #include "build_shape_list.h"
+
+  #undef shape
+
+  struct shape_list_data_t {
+    shape_nr_t data_nr;
+    shapes::shape_t visual;
+    uint8_t shape_type;
+  };
+
+  #define BLL_set_AreWeInsideStruct 1 
+  #define BLL_set_prefix shape_ids 
+  #include <fan/fan_bll_preset.h> 
+  #define BLL_set_Link 1 
+  #define BLL_set_type_node shape_nr_t
+  #define BLL_set_NodeDataType shape_list_data_t
+  #include <BLL/BLL.h>
+  
+  shape_ids_t shape_ids;
+
+  #define get_shape_list(name) CONCAT3(name, _, list)
+
+    using get_list_fn_t = void*(*)(shapes*);
+
+    __forceinline void* get_list_ptr(uint16_t st) {
+      switch (st) {
+      #define X(name) case shape_type_t::name: return (void*)&this->CONCAT3(name, _, list);
+      #define SKIP(x)
+        GEN_SHAPES(X, SKIP)
+        #undef X
+        #undef SKIP
+      default:
+        fan::throw_error("invalid shape_type");
+      }
+    }
+
+    template <typename Fn>
+    using thunk_t = void(*)(void*, shape_list_data_t&, Fn*);
+
+    template <typename Fn>
+    static __forceinline thunk_t<Fn>* get_thunk_table_ptr() {
+      static thunk_t<Fn> table[(size_t)shape_type_t::last] = {
+      #define X(name) +[](void* list, shape_list_data_t& sd, Fn* fn) { \
+        auto& typed = *static_cast<CONCAT3(name, _, list_t)*>(list); \
+        (*fn)(typed, sd); \
+      },
+      #define SKIP(x) +[](void*, shape_list_data_t&, Fn*) { fan::throw_error("unsupported/disabled shape_type in dispatch"); },
+        GEN_SHAPES(X, SKIP)
+      #undef X
+      #undef SKIP
+      };
+      return table;
+    }
+
+    template <typename ListT>
+    static consteval uint8_t shape_type_of() {
+    #define X(name) if constexpr (std::is_same_v<ListT, CONCAT3(name, _, list_t)>) return (uint8_t)shape_type_t::name;
+    #define SKIP(x)
+      GEN_SHAPES(X, SKIP)
+      #undef X
+        return 0;
+    }
+
+    template <typename F>
+    __forceinline
+      void dispatch_shape(shape_nr_t raw_id, F&& f) {
+      using Fn = std::remove_reference_t<F>;
+
+      shapes::shape_ids_t::nr_t gid;
+      gid.gint() = raw_id;
+
+      auto& sd = shape_ids[gid];
+      const uint8_t st = sd.shape_type;
+
+      auto* list_ptr = get_list_ptr(st);
+      if (list_ptr == nullptr) {
+        fan::throw_error("shape_list_table entry is null (skipped shape type)");
+      }
+      auto* thunk_table = get_thunk_table_ptr<Fn>();
+      thunk_table[st](list_ptr, sd, &f);
+    }
+
+    template <typename F>
+    __forceinline
+    void with_shape_list(shape_nr_t raw_id, F&& f) {
+      shapes::shape_ids_t::nr_t id;
+      id.gint() = raw_id;
+
+      auto& sd = shape_ids[id];
+
+    #define CASE(name) \
+      case shape_type_t::name: { \
+        auto& list = get_shape_list(name); \
+        typename CONCAT2(name, _list_t)::nr_t nr; \
+        nr.gint() = sd.data_nr; \
+        f(list, nr, sd); \
+        break; \
+      }
+
+      switch (sd.shape_type) {
+        GEN_SHAPES(CASE, SKIP)
+      default:
+        fan::throw_error("invalid shape_type");
+      }
+
+    #undef CASE
+    }
+
+
+    template<typename ShapeList>
+    shape_ids_t::nr_t add_shape(ShapeList& list, const auto& props) {
+      auto lnr = list.NewNodeLast();
+      auto& node = list[lnr];
+      node = props;
+
+      auto gnr = shape_ids.NewNodeLast();
+      shape_ids[gnr] = {
+        .data_nr = lnr.gint(),
+        .shape_type = shape_type_of<ShapeList>()
+      };
+      return gnr;
+    }
+
+    template <typename F>
+    __forceinline
+      void visit_shape_draw_data(shape_nr_t id, F&& f) {
+      dispatch_shape(id, [&](auto& list, auto& sd) {
+        using list_t = std::decay_t<decltype(list)>;
+        typename list_t::nr_t nr;
+        nr.gint() = sd.data_nr;
+        f(list[nr]);
+      });
+    }
+
+    __forceinline
+      void visibility_remove(shape_nr_t id) {
+      /*shapes::shape_ids_t::nr_t gid;
+      gid.gint() = id;
+      auto& sd = shape_ids[gid];
+
+      if (!sd.visual) {
+        return;
+      }
+
+      shaper.remove(sd.visual);
+
+      sd.visual.sic();
+
+      const uint32_t nr = id;
+      if (nr < visibility.registry.visible.size()) {
+        visibility.registry.visible[nr] = 0;
+      }*/
+      shapes::shape_ids_t::nr_t gid;
+      gid.gint() = id;
+      auto& sd = shape_ids[gid];
+
+      if (!sd.visual) {
+        return;
+      }
+
+    fan::graphics::culling::remove_shape(visibility, sd.visual);
+      shaper.remove(sd.visual);
+      sd.visual.sic();
+    }
+
+    __forceinline
+      void remove_shape(shape_nr_t id) {
+        {
+          g_shapes->visibility_remove(id);
+        }
+
+        shapes::shape_ids_t::nr_t gid;
+        gid.gint() = id;
+
+        auto& sd = shape_ids[gid];
+
+      #define CASE(name) \
+      case shape_type_t::name: { \
+        auto& list = get_shape_list(name); \
+        typename CONCAT2(name, _list_t)::nr_t nr; \
+        nr.gint() = sd.data_nr; \
+        list.unlrec(nr); \
+        break; \
+      }
+
+        switch (sd.shape_type) {
+          GEN_SHAPES(CASE, SKIP)
+        default:
+          fan::throw_error("invalid shape_type");
+        }
+
+      #undef CASE
+
+        shape_ids.unlrec(gid);
+    }
+
+
+  #undef SKIP_ENTRY
+    #undef get_shape_list
+
+
+
+    // -----------------------------------shape lists-----------------------------------
+    // ---------------------------------------------------------------------------------
+
 	};
 
   fan::graphics::shapes& get_shapes() {
