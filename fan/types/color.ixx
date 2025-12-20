@@ -12,7 +12,10 @@ export module fan.types.color;
 import fan.types;
 import fan.types.vector;
 import fan.random;
-import fan.graphics.gui.types;
+
+#if defined(fan_gui)
+  import fan.graphics.gui.types;
+#endif
 
 #pragma pack(push, 1)
 

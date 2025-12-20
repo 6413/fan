@@ -615,7 +615,7 @@ namespace fan::physics {
   }
 
   fan::physics::physics_update_cbs_t::nd_t& context_t::get_physics_update_data(fan::physics::physics_update_cbs_t::nr_t nr) {
-    return gphysics()->get_physics_update_data(nr);
+    return gphysics()->physics_updates[nr];
   }
 
   void context_t::remove_physics_update(physics_update_cbs_t::nr_t nr) {

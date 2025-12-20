@@ -1447,7 +1447,7 @@ namespace fan::graphics::gui {
     }
     if (adding_sprite_sheet && gui::begin("add_animations_sprite_sheet")) {
       gui::text_box("Drop sprite sheet here", fan::vec2(256, 64));
-      gui::receive_drag_drop_target(drag_drop_id, [this, shape_animation_id](const std::string& file_path) {
+      gui::receive_drag_drop_target(drag_drop_id, [this](const std::string& file_path) {
         if (fan::image::valid(file_path)) {
           sprite_sheet_drag_drop_name = file_path;
         }
@@ -1517,7 +1517,7 @@ namespace fan::graphics::gui {
       //fan::vec2 avail = gui::get_content_region_avail();
       fan::vec2 child_size = gui::get_window_size();
       dummy(child_size);
-      gui::receive_drag_drop_target(drag_drop_id, [this, shape_animation_id](const std::string& file_paths) {
+      gui::receive_drag_drop_target(drag_drop_id, [this](const std::string& file_paths) {
         for (const std::string& file_path : fan::split(file_paths, ";")) {
           if (fan::image::valid(file_path)) {
             if (auto it = fan::graphics::all_animations.find(current_animation_nr); it != fan::graphics::all_animations.end()) {
@@ -1686,7 +1686,7 @@ namespace fan::graphics::gui {
         auto it = This->drawables.GetNodeFirst();
         while (it != This->drawables.dst) {
           This->drawables.StartSafeNext(it);
-          if (auto* button = dynamic_cast<button_t*>(This->drawables[it])) {
+          if (dynamic_cast<button_t*>(This->drawables[it])) {
             delete This->drawables[it];
             This->drawables.unlrec(it);
           }
@@ -1764,15 +1764,13 @@ namespace fan::graphics::gui {
   int dialogue_box_t::get_button_choice() {
     int btn_choice = -1;
 
-    uint64_t button_index = 0;
     auto it = drawables.GetNodeFirst();
     while (it != drawables.dst) {
       drawables.StartSafeNext(it);
-      if (auto* button = dynamic_cast<button_t*>(drawables[it])) {
+      if (dynamic_cast<button_t*>(drawables[it])) {
         if (button_choice == it) {
           break;
         }
-        ++button_index;
       }
       it = drawables.EndSafeNext();
     }

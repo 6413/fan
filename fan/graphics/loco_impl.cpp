@@ -652,7 +652,7 @@ void loco_t::generate_commands(loco_t* loco) {
     loco->set_target_fps(std::stoi(args[0]));
   }).description = "sets target fps";
 
-  loco->console.commands.add("debug_memory", [loco, nr = loco_t::update_callback_handle_t()](fan::console_t* self, const fan::commands_t::arg_t& args) mutable {
+  loco->console.commands.add("debug_memory", [nr = loco_t::update_callback_handle_t()](fan::console_t* self, const fan::commands_t::arg_t& args) mutable {
     auto* loco = OFFSETLESS(self, loco_t, console);
     if (args.size() != 1) {
       loco->console.commands.print_invalid_arg_count();
@@ -756,6 +756,111 @@ void loco_t::generate_commands(loco_t* loco) {
 #endif
 }
 
+void loco_t::culling_rebuild_grid() {
+  fan::graphics::culling::static_grid_init(
+    shapes.visibility.static_grid,
+    world_min,
+    cell_size,
+    grid_size
+  );
+
+  fan::graphics::culling::dynamic_grid_init(
+    shapes.visibility.dynamic_grid,
+    world_min,
+    cell_size,
+    grid_size
+  );
+}
+
+void loco_t::rebuild_static_culling() {
+  fan::graphics::culling::rebuild_static(shapes.visibility);
+}
+
+bool loco_t::culling_enabled() const {
+  return shapes.visibility.enabled;
+}
+
+void loco_t::set_culling_enabled(bool enabled) {
+  shapes.visibility.enabled = enabled;
+}
+
+void loco_t::get_culling_stats(uint32_t& visible, uint32_t& culled) const {
+  visible = 0;
+  uint32_t total = 0;
+  for (auto const& [cam_id, cam_state] : shapes.visibility.camera_states) {
+    visible += std::count(cam_state.visible.begin(), cam_state.visible.end(), 1);
+    total = std::max<uint32_t>(total, cam_state.visible.size());
+  }
+  culled = (total >= visible) ? (total - visible) : 0;
+}
+
+void loco_t::run_culling() {
+  fan::graphics::camera_list_t::nrtra_t nrtra;
+  fan::graphics::camera_nr_t nr;
+  nrtra.Open(&camera_list, &nr);
+
+  auto& culling = shapes.visibility;
+
+  while (nrtra.Loop(&camera_list, &nr)) {
+    if (nr == perspective_render_view.camera) {
+      continue;
+    }
+    fan::graphics::culling::cull_camera(
+      culling,
+      fan::graphics::g_shapes->shaper,
+      nr
+    );
+  }
+
+  nrtra.Close(&camera_list);
+}
+
+void loco_t::set_cull_padding(const fan::vec2& padding) {
+  shapes.visibility.padding = padding;
+}
+
+void loco_t::visualize_culling() {
+  const auto& cam = camera_get();
+  
+  fan::vec2 top_left = fan::graphics::screen_to_world(fan::vec2(0, 0), orthographic_render_view);
+  fan::vec2 bottom_right = fan::graphics::screen_to_world(viewport_get_size(), orthographic_render_view);
+  
+  fan::vec2 scaled_padding = shapes.visibility.padding / cam.zoom;
+  fan::vec2 padded_min = top_left - scaled_padding;
+  fan::vec2 padded_max = bottom_right + scaled_padding;
+  
+  fan::vec2 top_right(padded_max.x, padded_min.y);
+  fan::vec2 bottom_left(padded_min.x, padded_max.y);
+  
+  add_shape_to_immediate_draw(fan::graphics::shapes::line_t::properties_t{
+    .src = padded_min, 
+    .dst = top_right,
+    .color = fan::color(1, 0, 0, 0.8f),
+    .thickness = 5.f / cam.zoom
+  });
+  add_shape_to_immediate_draw(fan::graphics::shapes::line_t::properties_t{
+    .src = top_right, 
+    .dst = padded_max,
+    .color = fan::color(1, 0, 0, 0.8f),
+    .thickness = 5.f / cam.zoom
+  });
+  add_shape_to_immediate_draw(fan::graphics::shapes::line_t::properties_t{
+    .src = padded_max, 
+    .dst = bottom_left,
+    .color = fan::color(1, 0, 0, 0.8f),
+    .thickness = 5.f / cam.zoom
+  });
+  add_shape_to_immediate_draw(fan::graphics::shapes::line_t::properties_t{
+    .src = bottom_left, 
+    .dst = padded_min,
+    .color = fan::color(1, 0, 0, 0.8f),
+    .thickness = 5.f / cam.zoom
+  });
+
+  for (int i = 0; i < 4; ++i) {
+    (immediate_render_list.end() - 1 - i)->push_vram();
+  }
+}
 #if defined(fan_vulkan)
 void loco_t::check_vk_result(VkResult err) {
   if (err != VK_SUCCESS) {
@@ -1022,7 +1127,10 @@ loco_t::loco_t(const loco_t::properties_t& p) {
   console.commands.call("debug_memory " + std::to_string((int)fan::heap_profiler_t::instance().enabled));
 #endif
 
+  set_culling_enabled(true);
+  cell_size = 256;
   culling_rebuild_grid();
+  //shapes.visibility.padding = fan::vec2(1000, 1000);
 }
 
 loco_t::~loco_t() {
@@ -1087,7 +1195,7 @@ void loco_t::setup_input_callbacks() {
   input_action.add_keycombo({fan::key_left_control, fan::key_5}, "debug_physics");
 #endif
 
-  buttons_handle = window.add_buttons_callback([this](const fan::window_t::buttons_data_t& d) {
+  buttons_handle = window.add_buttons_callback([](const fan::window_t::buttons_data_t& d) {
     fan::vec2 pos = fan::vec2(d.window->get_mouse_position());
     fan::graphics::g_shapes->vfi.feed_mouse_button(d.button, d.state);
   });
@@ -1608,6 +1716,12 @@ void loco_t::time_monitor_t::plot(const char* label) {
 
 void loco_t::process_render() {
 
+  if (init_culling) {
+    rebuild_static_culling();
+    init_culling = false;
+  }
+
+
   if (window.renderer == fan::window_t::renderer_t::opengl) {
     gl.begin_process_frame();
   }
@@ -1635,6 +1749,10 @@ void loco_t::process_render() {
 
   for (const auto& h : current_frame) {
     h.resume();
+  }
+
+  if (is_visualizing_culling) {
+    visualize_culling();
   }
 
 #if defined(fan_gui)

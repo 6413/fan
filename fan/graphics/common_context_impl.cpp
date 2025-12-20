@@ -95,12 +95,6 @@ namespace fan::graphics {
   std::string image_t::get_path() const {
     return fan::graphics::image_get_data(*this).image_path;
   }
-  image_t::operator fan::graphics::image_nr_t& () {
-    return static_cast<fan::graphics::image_nr_t&>(*this);
-  }
-  image_t::operator const fan::graphics::image_nr_t& () const {
-    return static_cast<const fan::graphics::image_nr_t&>(*this);
-  }
   bool image_t::valid() const {
     return *this != fan::graphics::ctx().default_texture && iic() == false;
   }

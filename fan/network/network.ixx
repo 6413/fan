@@ -210,7 +210,7 @@ export namespace fan {
     struct data_t {
       buffer_t buffer;
       ssize_t status = error_code::unknown;
-      operator bool() {
+      explicit operator bool() {
         return status == error_code::ok;
       }
       operator ssize_t() const {
@@ -344,7 +344,7 @@ export namespace fan {
       ssize_t status;
       bool done;
 
-      operator bool() {
+      explicit operator bool() {
         return status == error_code::ok;
       }
       operator ssize_t() const {
@@ -618,7 +618,7 @@ export namespace fan {
       ssize_t status;
       bool done;
 
-      operator bool() const {
+      explicit operator bool() const {
         return status == error_code::ok;
       }
       operator ssize_t() const {
