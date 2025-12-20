@@ -1,10 +1,10 @@
 {
   "camera_position": [
-    8272.1552734375,
-    13694.7685546875,
+    3193.787841796875,
+    15212.9521484375,
     0.0
   ],
-  "camera_zoom": 0.2790816128253937,
+  "camera_zoom": 0.833333432674408,
   "gravity": [
     0.0,
     3813.3759765625
@@ -3745,97 +3745,6 @@
       "texture_pack_name": "tile1217"
     },
     {
-      "id": "lamp1",
-      "mesh_property": 1,
-      "physics_shape_data": {
-        "is_sensor": true
-      },
-      "position": [
-        1472.0,
-        15232.0,
-        32084.0
-      ],
-      "shape": "sprite"
-    },
-    {
-      "id": "lamp1",
-      "mesh_property": 1,
-      "physics_shape_data": {
-        "is_sensor": true
-      },
-      "position": [
-        2496.0,
-        15040.0,
-        32084.0
-      ],
-      "shape": "sprite"
-    },
-    {
-      "id": "lamp1",
-      "mesh_property": 1,
-      "physics_shape_data": {
-        "is_sensor": true
-      },
-      "position": [
-        4288.0,
-        15104.0,
-        32084.0
-      ],
-      "shape": "sprite"
-    },
-    {
-      "id": "lamp1",
-      "mesh_property": 1,
-      "physics_shape_data": {
-        "is_sensor": true
-      },
-      "position": [
-        5120.0,
-        15040.0,
-        32084.0
-      ],
-      "shape": "sprite"
-    },
-    {
-      "id": "lamp1",
-      "mesh_property": 1,
-      "physics_shape_data": {
-        "is_sensor": true
-      },
-      "position": [
-        6144.0,
-        14784.0,
-        32084.0
-      ],
-      "shape": "sprite"
-    },
-    {
-      "id": "lamp1",
-      "mesh_property": 1,
-      "physics_shape_data": {
-        "is_sensor": true
-      },
-      "position": [
-        6656.0,
-        14784.0,
-        32084.0
-      ],
-      "shape": "sprite"
-    },
-    {
-      "id": "lamp1",
-      "mesh_property": 1,
-      "physics_shape_data": {
-        "is_sensor": true
-      },
-      "position": [
-        3520.0,
-        15040.0,
-        32084.0
-      ],
-      "shape": "sprite"
-    },
-    {
       "id": "checkpoint1",
       "mesh_property": 1,
       "physics_shape_data": {
@@ -3876,15 +3785,130 @@
         1.0,
         1.0
       ],
-      "mesh_property": 4,
+      "id": "lamp1",
+      "mesh_property": 6,
       "position": [
-        8832.0,
-        12608.0,
+        1472.0,
+        15232.0,
         32084.0
       ],
       "size": [
-        32.0,
-        32.0
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "id": "lamp1",
+      "mesh_property": 6,
+      "position": [
+        2496.0,
+        15040.0,
+        32084.0
+      ],
+      "size": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "id": "lamp1",
+      "mesh_property": 6,
+      "position": [
+        4288.0,
+        15104.0,
+        32084.0
+      ],
+      "size": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "id": "lamp1",
+      "mesh_property": 6,
+      "position": [
+        5120.0,
+        15040.0,
+        32084.0
+      ],
+      "size": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "id": "lamp1",
+      "mesh_property": 6,
+      "position": [
+        6144.0,
+        14784.0,
+        32084.0
+      ],
+      "size": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "id": "lamp1",
+      "mesh_property": 6,
+      "position": [
+        6656.0,
+        14784.0,
+        32084.0
+      ],
+      "size": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "id": "lamp1",
+      "mesh_property": 6,
+      "position": [
+        3520.0,
+        15040.0,
+        32084.0
+      ],
+      "size": [
+        0.0,
+        0.0
       ]
     },
     {
@@ -4013,6 +4037,24 @@
       "position": [
         11456.0,
         12544.0,
+        32084.0
+      ],
+      "size": [
+        32.0,
+        32.0
+      ]
+    },
+    {
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "mesh_property": 4,
+      "position": [
+        3328.0,
+        15104.0,
         32084.0
       ],
       "size": [

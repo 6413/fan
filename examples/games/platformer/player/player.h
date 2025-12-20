@@ -33,6 +33,7 @@ struct player_t {
         return c.attack_state.try_attack(&c);
       },
     });
+    body.set_dynamic();
     body.enable_default_movement();
     body.set_jump_height(60.f);
     body.enable_double_jump();
@@ -151,7 +152,6 @@ struct player_t {
 
     for (auto [i, checkpoint] : fan::enumerate(pile->get_level().player_checkpoints)) {
       if (fan::physics::is_on_sensor(body, checkpoint.entity) && current_checkpoint < (int)i) {
-        current_checkpoint = i;
         fan::audio::play(audio_checkpoint);
         task_particles = particles_explode();
         fan::graphics::gui::print("Checkpoint reached!!!!!");

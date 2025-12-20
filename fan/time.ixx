@@ -101,7 +101,7 @@ export namespace fan {
 				auto elapsed = this->elapsed();
 				return elapsed >= m_time;
 			}
-      operator bool const() {
+      explicit operator bool const() {
         return finished();
       }
 			bool started() const {
@@ -114,6 +114,13 @@ export namespace fan {
       // returns elapsed time since start in seconds
       double seconds() const {
         return elapsed() / 1e9;
+      }
+
+      uint64_t start_time() const {
+        return m_timer;
+      }
+      uint64_t start_time_seconds() const {
+        return m_timer / 1e9;
       }
 
 			uint64_t m_timer = 0;

@@ -28,7 +28,6 @@ export import fan.texture_pack.tp0;
 
 export import fan.event;
 
-#define fan_audio
 #if defined(fan_audio)
   export import fan.audio;
 #endif

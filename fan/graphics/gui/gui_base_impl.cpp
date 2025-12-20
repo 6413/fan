@@ -445,7 +445,7 @@ namespace fan::graphics::gui {
   /// <param name="color">The color of the text (defaults to white).</param>
   void text_colored(const char* text, const fan::color& color) {
     push_style_color(col_text, color);
-    ImGui::Text(text);
+    ImGui::TextUnformatted(text);
     pop_style_color();
   }
   /// <summary>
@@ -478,7 +478,7 @@ namespace fan::graphics::gui {
 
   void text_wrapped(const std::string& text, const fan::color& color) {
     ImGui::PushStyleColor(ImGuiCol_Text, color);
-    ImGui::TextWrapped("%s", text.c_str());
+    ImGui::TextWrapped(text.c_str());
     ImGui::PopStyleColor();
   }
 
@@ -922,7 +922,7 @@ namespace fan::graphics::gui {
     }
     if ( ImGui::BeginDragDropSource() ) {
       ImGui::SetDragDropPayload(id.c_str(), path.data(), (path.size() + 1) * sizeof(wchar_t));
-      ImGui::Text("%s", popup_.c_str());
+      ImGui::TextUnformatted(popup_.c_str());
       ImGui::EndDragDropSource();
     }
   }

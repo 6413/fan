@@ -481,41 +481,41 @@ export namespace fan {
 }
 
 #define fan_hash_vec1(type) \
-template <> struct std::hash<fan::vec1_wrap_t<type>> { \
+template <> struct hash<fan::vec1_wrap_t<type>> { \
   size_t operator()(const fan::vec1_wrap_t<type>& v) const noexcept { \
-    return std::hash<type>{}(v.x); \
+    return hash<type>{}(v.x); \
   } \
 };
 
 #define fan_hash_vec2(type) \
-template <> struct std::hash<fan::vec2_wrap_t<type>> { \
+template <> struct hash<fan::vec2_wrap_t<type>> { \
   size_t operator()(const fan::vec2_wrap_t<type>& v) const noexcept { \
     size_t s = 0; \
-    s = hash_combine(s, std::hash<type>{}(v.x)); \
-    s = hash_combine(s, std::hash<type>{}(v.y)); \
+    s = hash_combine(s, hash<type>{}(v.x)); \
+    s = hash_combine(s, hash<type>{}(v.y)); \
     return s; \
   } \
 };
 
 #define fan_hash_vec3(type) \
-template <> struct std::hash<fan::vec3_wrap_t<type>> { \
+template <> struct hash<fan::vec3_wrap_t<type>> { \
   size_t operator()(const fan::vec3_wrap_t<type>& v) const noexcept { \
     size_t s = 0; \
-    s = hash_combine(s, std::hash<type>{}(v.x)); \
-    s = hash_combine(s, std::hash<type>{}(v.y)); \
-    s = hash_combine(s, std::hash<type>{}(v.z)); \
+    s = hash_combine(s, hash<type>{}(v.x)); \
+    s = hash_combine(s, hash<type>{}(v.y)); \
+    s = hash_combine(s, hash<type>{}(v.z)); \
     return s; \
   } \
 };
 
 #define fan_hash_vec4(type) \
-template <> struct std::hash<fan::vec4_wrap_t<type>> { \
+template <> struct hash<fan::vec4_wrap_t<type>> { \
   size_t operator()(const fan::vec4_wrap_t<type>& v) const noexcept { \
     size_t s = 0; \
-    s = hash_combine(s, std::hash<type>{}(v.x)); \
-    s = hash_combine(s, std::hash<type>{}(v.y)); \
-    s = hash_combine(s, std::hash<type>{}(v.z)); \
-    s = hash_combine(s, std::hash<type>{}(v.w)); \
+    s = hash_combine(s, hash<type>{}(v.x)); \
+    s = hash_combine(s, hash<type>{}(v.y)); \
+    s = hash_combine(s, hash<type>{}(v.z)); \
+    s = hash_combine(s, hash<type>{}(v.w)); \
     return s; \
   } \
 };

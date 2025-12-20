@@ -61,7 +61,7 @@ export namespace fan::graphics {
 
 export namespace fan::graphics::shaper {
 #define shaper_set_fan 1
-#define shaper_set_MaxMaxElementPerBlock 1600000
+#define shaper_set_MaxMaxElementPerBlock 0x10000
   inline constexpr uint32_t MaxElementPerBlock = shaper_set_MaxMaxElementPerBlock;
 
   // sizeof(image_t) == 2
@@ -129,9 +129,6 @@ export namespace fan::graphics {
     };
   };
 
-  // warning does deep copy, addresses can die
-  fan::graphics::context_shader_t shader_get(fan::graphics::shader_nr_t nr);
-
 #pragma pack(push, 1)
 
   using blending_t = uint8_t;
@@ -139,11 +136,13 @@ export namespace fan::graphics {
   using visible_t = uint8_t;
 
 #define st(name, viewport_inside) \
+  struct CONCAT(_, name); \
 	template <bool cond> \
 	struct CONCAT(name, _cond) { \
 		template <typename T> \
 		using d = typename fan::type_or_uint8_t<cond>::template d<T>; \
 		viewport_inside \
+    using type = CONCAT(_, name); \
 	}; \
 	using name = CONCAT(name, _cond)<1>; \
 	struct CONCAT(_, name) : CONCAT(name, _cond<0>) {};
@@ -153,37 +152,37 @@ export namespace fan::graphics {
   struct kps_t {
     st(light_t,
       d<visible_t> visible;
-    d<uint8_t> genre;
-    d<fan::graphics::viewport_t> viewport;
-    d<fan::graphics::camera_t> camera;
-    d<shaper_t::ShapeTypeIndex_t> ShapeType;
-    d<uint8_t> draw_mode;
-    d<uint32_t> vertex_count;
-      );
+      d<uint8_t> genre;
+      d<fan::graphics::viewport_t> viewport;
+      d<fan::graphics::camera_t> camera;
+      d<shaper_t::ShapeTypeIndex_t> ShapeType;
+      d<uint8_t> draw_mode;
+      d<uint32_t> vertex_count;
+    );
     st(common_t,
       d<visible_t> visible;
-    d<depth_t> depth;
-    d<blending_t> blending;
-    d<fan::graphics::viewport_t> viewport;
-    d<fan::graphics::camera_t> camera;
-    d<shaper_t::ShapeTypeIndex_t> ShapeType;
-    d<uint8_t> draw_mode;
-    d<uint32_t> vertex_count;
-      );
+      d<depth_t> depth;
+      d<blending_t> blending;
+      d<fan::graphics::viewport_t> viewport;
+      d<fan::graphics::camera_t> camera;
+      d<shaper_t::ShapeTypeIndex_t> ShapeType;
+      d<uint8_t> draw_mode;
+      d<uint32_t> vertex_count;
+    );
     st(vfi_t,
       d<uint8_t> filler = 0;
     );
     st(texture_t,
       d<visible_t> visible;
-    d<depth_t> depth;
-    d<blending_t> blending;
-    d<fan::graphics::image_t> image;
-    d<fan::graphics::viewport_t> viewport;
-    d<fan::graphics::camera_t> camera;
-    d<shaper_t::ShapeTypeIndex_t> ShapeType;
-    d<uint8_t> draw_mode;
-    d<uint32_t> vertex_count;
-      );
+      d<depth_t> depth;
+      d<blending_t> blending;
+      d<fan::graphics::image_t> image;
+      d<fan::graphics::viewport_t> viewport;
+      d<fan::graphics::camera_t> camera;
+      d<shaper_t::ShapeTypeIndex_t> ShapeType;
+      d<uint8_t> draw_mode;
+      d<uint32_t> vertex_count;
+    );
   };
 
   struct Key_e {

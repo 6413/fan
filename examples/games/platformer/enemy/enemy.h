@@ -35,6 +35,9 @@ struct enemy_t : enemy_base_t {
       },
       .physics_properties={.density=density, .fixed_rotation=true, .linear_damping=2.0f}
     }, caller_path);
+
+    body.set_dynamic();
+
     body.set_jump_height(75.f * density);
     body.movement_state.accelerate_force = 120.f / 3.f;
     body.movement_state.max_speed = 500.f;

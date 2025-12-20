@@ -378,8 +378,8 @@ public:
       auto& shape_json = *(it.data.it - 1);
 
       expand_instance(shape_json, [&](const fan::vec3& offs) {
-        fan::graphics::shape_t shape = base_shape;
-        shape.set_position(shape.get_position() + offs);
+        //fan::graphics::shape_t shape = base_shape;
+        //shape.set_position(shape.get_position() + offs);
 
         if (shape_json.contains("mesh_property")) {
           auto mesh_prop = shape_json["mesh_property"];
@@ -388,8 +388,8 @@ public:
             compiled_map.physics_shapes.emplace_back();
             compiled_map_t::physics_data_t& physics_element = compiled_map.physics_shapes.back();
 
-            physics_element.position = shape.get_position();
-            physics_element.size = shape.get_size();
+            physics_element.position = base_shape.get_position() + offs/*shape.get_position()*/;
+            physics_element.size = base_shape.get_size()/*shape.get_size()*/;
             physics_element.physics_shapes.id = shape_json.value("id", physics_defaults.id);
 
             if (shape_json.contains("physics_shape_data")) {
@@ -412,10 +412,10 @@ public:
             compiled_map.spawn_marks.emplace_back();
             auto& mark = compiled_map.spawn_marks.back();
 
-            mark.position = shape_json["position"];
+            mark.position = shape_json.contains("position") ? shape_json["position"].get<fan::vec3>() : fan::vec3(0);
             mark.position += offs;
-            mark.size = shape_json["size"];
-            mark.color = shape_json["color"];
+            mark.size = shape_json.contains("size") ? shape_json["size"].get<fan::vec2>() : fan::vec2(0);
+            mark.color = shape_json.contains("color") ? shape_json["color"].get<fan::color>() : fan::colors::white;
             mark.type = mesh_prop;
             mark.id = shape_json.value("id", "");
             return;
@@ -423,21 +423,19 @@ public:
         }
 
         fte_t::tile_t tile;
-        fan::vec2i gp = shape.get_position();
+        fan::vec2i gp = base_shape.get_position() + offs;
         gp /= compiled_map.tile_size * 2;
 
-        tile.position = shape.get_position();
-        tile.size = shape.get_size();
-        tile.angle = shape.get_angle();
-        tile.color = shape.get_color();
+        tile.position = base_shape.get_position() + offs;
+        tile.size = base_shape.get_size();
+        tile.angle = base_shape.get_angle();
+        tile.color = base_shape.get_color();
 
-        if (shape.get_shape_type() == fan::graphics::shape_type_t::sprite) {
-          tile.texture_pack_unique_id =
-            ((fan::graphics::shapes::sprite_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper))->texture_pack_unique_id;
+        if (base_shape.get_shape_type() == fan::graphics::shape_type_t::sprite) {
+          tile.texture_pack_unique_id = base_shape.get_tp_unique();
         }
-        else if (shape.get_shape_type() == fan::graphics::shape_type_t::unlit_sprite) {
-          tile.texture_pack_unique_id =
-            ((fan::graphics::shapes::unlit_sprite_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper))->texture_pack_unique_id;
+        else if (base_shape.get_shape_type() == fan::graphics::shape_type_t::unlit_sprite) {
+          tile.texture_pack_unique_id = base_shape.get_tp_unique();
         }
 
         tile.mesh_property = (fte_t::mesh_property_t)shape_json.value("mesh_property", tile_defaults.mesh_property);
@@ -445,7 +443,7 @@ public:
         tile.action = shape_json.value("action", fte_t::actions_e::none);
         tile.key = shape_json.value("key", fan::key_invalid);
         tile.key_state = shape_json.value("key_state", (int)fan::keyboard_state::press);
-        tile.flags = shape.get_flags();
+        tile.flags = base_shape.get_flags();
 
         compiled_map.compiled_shapes[gp.y][gp.x].push_back(std::move(tile));
 

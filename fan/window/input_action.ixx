@@ -24,10 +24,12 @@ export namespace fan::window {
 
     struct action_data_t {
       static constexpr int max_keys_per_action = 5;
-      int keys[max_keys_per_action]{};
-      uint8_t count = 0;
       static constexpr int max_keys_combos = 5;
+
+      int keys[max_keys_per_action]{};
       int key_combos[max_keys_combos]{};
+
+      uint8_t count = 0;
       uint8_t combo_count = 0;
     };
 

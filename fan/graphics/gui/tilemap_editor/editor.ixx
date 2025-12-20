@@ -2399,10 +2399,10 @@ export struct fte_t {
             mesh_prop == mesh_property_t::mark) {
 
             spawn_mark_t mark;
-            mark.position = shape_json["position"];
+            mark.position = shape_json.contains("position") ? shape_json["position"].get<fan::vec3>() : fan::vec3(0);
             mark.position += offs;
-            mark.size = shape_json["size"];
-            mark.color = shape_json["color"];
+            mark.size = shape_json.contains("size") ? shape_json["size"].get<fan::vec2>() : fan::vec2(0);
+            mark.color = shape_json.contains("color") ? shape_json["color"].get<fan::color>() : fan::colors::white;
             mark.type = mesh_prop;
             mark.id = shape_json.value("id", "");
 
@@ -2678,7 +2678,7 @@ export struct fte_t {
     fan::vec2 size;
     mesh_property_t type;
     std::string id;
-    fan::color color;
+    fan::color color = fan::colors::white;
   };
   std::unordered_map<f32_t, std::vector<spawn_mark_t>> spawn_marks;
   std::map<uint16_t, visual_layer_t> visual_layers;

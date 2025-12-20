@@ -118,7 +118,7 @@ struct texture_pack_t {
     }
   }
 
-  operator bool() {
+  explicit operator bool() {
     return size();
   }
 

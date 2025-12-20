@@ -118,13 +118,16 @@ struct shape_tester_t {
         .color = fan::colors::red
       } };
 
-      auto keypack_size = g_shapes->shaper.GetKeysSize(rect);
+      if (engine.culling_enabled()) {
+        engine.run_culling();
+      }
+
+      auto keypack_size = rect.get_keys_size();
       assert_true(keypack_size > 0, "Keypack size should be > 0");
 
-      uint8_t* keypack = g_shapes->shaper.GetKeys(rect);
+      uint8_t* keypack = rect.get_keys();
       assert_true(keypack != nullptr, "Keypack should not be null");
     });
-
     run_test("Keypack Integrity - Sprite", [&]() {
       sprite_t sprite{ {
         .position = fan::vec3(100, 200, 3),
@@ -132,7 +135,11 @@ struct shape_tester_t {
         .image = engine.default_texture
       } };
 
-      auto keypack_size = g_shapes->shaper.GetKeysSize(sprite);
+      if (engine.culling_enabled()) {
+        engine.run_culling();
+      }
+
+      auto keypack_size = sprite.get_keys_size();
       assert_true(keypack_size > 0, "Keypack size should be > 0");
     });
   }
@@ -191,6 +198,7 @@ struct shape_tester_t {
     run_test("Position Set/Get - Rectangle", [&]() {
       rectangle_t rect{ {.position = fan::vec3(0, 0, 0)} };
 
+
       fan::vec3 new_pos(100, 200, 5);
       rect.set_position(new_pos);
 
@@ -211,6 +219,7 @@ struct shape_tester_t {
     run_test("Position XYZ Setters", [&]() {
       rectangle_t rect{ {.position = fan::vec3(100, 200, 5)} };
 
+
       rect.set_x(500);
       assert_equal(rect.get_x(), 500.0f, "X should be updated");
       assert_equal(rect.get_y(), 200.0f, "Y should remain unchanged");
@@ -226,6 +235,7 @@ struct shape_tester_t {
   void test_size_operations() {
     run_test("Size Set/Get - Rectangle", [&]() {
       rectangle_t rect{ {.size = fan::vec2(50, 60)} };
+
 
       fan::vec2 new_size(100, 120);
       rect.set_size(new_size);
@@ -252,6 +262,7 @@ struct shape_tester_t {
     run_test("Color Set/Get - Rectangle", [&]() {
       rectangle_t rect{ {.color = fan::colors::white} };
 
+
       fan::color new_color = fan::colors::red;
       rect.set_color(new_color);
 
@@ -277,6 +288,7 @@ struct shape_tester_t {
     run_test("Angle Set/Get - Rectangle", [&]() {
       rectangle_t rect{ {.angle = fan::vec3(0, 0, 0)} };
 
+
       fan::vec3 new_angle(0, 0, fan::math::pi / 4);
       rect.set_angle(new_angle);
 
@@ -290,6 +302,7 @@ struct shape_tester_t {
         .rotation_point = fan::vec2(0, 0)
       } };
 
+
       fan::vec2 new_rp(50, 50);
       rect.set_rotation_point(new_rp);
 
@@ -302,6 +315,7 @@ struct shape_tester_t {
     run_test("Camera Set/Get", [&]() {
       rectangle_t rect{ {.position = fan::vec3(0, 0, 0)} };
 
+
       auto new_cam = engine.orthographic_render_view.camera;
       rect.set_camera(new_cam);
 
@@ -311,6 +325,7 @@ struct shape_tester_t {
 
     run_test("Viewport Set/Get", [&]() {
       rectangle_t rect{ {.position = fan::vec3(0, 0, 0)} };
+
 
       auto new_vp = engine.orthographic_render_view.viewport;
       rect.set_viewport(new_vp);
@@ -348,14 +363,14 @@ struct shape_tester_t {
     run_test("Line Endpoints", [&]() {
       line_t line{ {
         .src = fan::vec3(0, 0, 0),
-        .dst = fan::vec3(100, 100, 0)
+        .dst = fan::vec2(100, 100)
       } };
 
       fan::vec3 got_src = line.get_src();
-      fan::vec3 got_dst = line.get_dst();
+      fan::vec2 got_dst = line.get_dst();
 
       assert_equal(got_src, fan::vec3(0, 0, 0), "Src should match");
-      assert_equal(got_dst, fan::vec3(100, 100, 0), "Dst should match");
+      assert_equal(got_dst, fan::vec2(100, 100), "Dst should match");
     });
   }
 
@@ -363,11 +378,12 @@ struct shape_tester_t {
     run_test("Keypack Changes - Position Update", [&]() {
       rectangle_t rect{ {.position = fan::vec3(100, 100, 5)} };
 
-      auto initial_keypack_size = g_shapes->shaper.GetKeysSize(rect);
+
+      auto initial_keypack_size = rect.get_keys_size();
 
       rect.set_position(fan::vec3(200, 200, 10));
 
-      auto new_keypack_size = g_shapes->shaper.GetKeysSize(rect);
+      auto new_keypack_size = rect.get_keys_size();
 
       assert_true(initial_keypack_size == new_keypack_size,
         "Keypack size should remain same after position update");
@@ -394,6 +410,7 @@ struct shape_tester_t {
     run_test("Sequential Position Updates", [&]() {
       rectangle_t rect{ {.position = fan::vec3(0, 0, 0)} };
 
+
       for (int i = 1; i <= 10; ++i) {
         fan::vec3 new_pos(i * 10.0f, i * 20.0f, i * 1.0f);
         rect.set_position(new_pos);
@@ -410,6 +427,7 @@ struct shape_tester_t {
         .size = fan::vec2(50, 50),
         .color = fan::colors::white
       } };
+
 
       rect.set_position(fan::vec3(100, 200, 5));
       assert_equal(rect.get_position(), fan::vec3(100, 200, 5));
@@ -522,6 +540,7 @@ struct shape_tester_t {
         .color = fan::colors::red
       } };
 
+
       assert_shape_pixels(rect, fan::colors::red);
     });
 
@@ -554,6 +573,7 @@ struct shape_tester_t {
         .size = fan::vec2(100, 100),
         .color = fan::colors::green
       } };
+
 
       engine.process_frame();
       engine.process_frame([&] {
@@ -669,6 +689,7 @@ struct shape_tester_t {
         .color = fan::colors::blue
       } };
 
+
       assert_true(rect1.intersects(rect2), "Overlapping rectangles should intersect");
 
       rect2.set_position(fan::vec3(300, 300, 0));
@@ -700,6 +721,7 @@ struct shape_tester_t {
         .size = fan::vec2(50, 50),
         .color = fan::colors::red
       } };
+
 
       assert_true(rect.point_inside(fan::vec2(100, 100)), "Center should be inside");
       assert_true(rect.point_inside(fan::vec2(120, 120)), "Interior point should be inside");
@@ -752,6 +774,7 @@ struct shape_tester_t {
         .angle = fan::vec3(0, 0, 0)
       } };
 
+
       auto basis = rect.get_basis();
       assert_equal(basis.right, fan::vec3(1, 0, 0), "Right vector at 0 rotation");
       assert_equal(basis.forward, fan::vec3(0, -1, 0), "Forward vector at 0 rotation");
@@ -772,6 +795,7 @@ struct shape_tester_t {
         .color = fan::colors::red,
         .angle = fan::vec3(0, 0, 0)
       } };
+
 
       auto aabb = rect.get_aabb();
 
@@ -883,6 +907,7 @@ struct shape_tester_t {
         .color = fan::colors::green
       } };
 
+
       assert_equal(rect.get_position(), shared_pos, "Rectangle position mismatch");
       assert_equal(circle.get_position(), shared_pos, "Circle position mismatch");
       assert_equal(sprite.get_position(), shared_pos, "Sprite position mismatch");
@@ -903,6 +928,7 @@ struct shape_tester_t {
         .size = fan::vec2(50, 60),
         .color = fan::colors::red
       } };
+
     });
 
     run_benchmark("Sprite Creation", 10000, [&]() {
@@ -911,6 +937,7 @@ struct shape_tester_t {
         .size = fan::vec2(32, 32),
         .image = engine.default_texture
       } };
+
     });
 
     run_benchmark("Circle Creation", 10000, [&]() {
@@ -919,6 +946,7 @@ struct shape_tester_t {
         .radius = 50,
         .color = fan::colors::blue
       } };
+
     });
   }
 
@@ -948,6 +976,7 @@ struct shape_tester_t {
       .size = fan::vec2(50, 60),
       .color = fan::colors::red
     } };
+
 
     fan::vec3 pos;
     run_benchmark("Position Get", 100000, [&]() {
@@ -1054,7 +1083,22 @@ struct shape_tester_t {
 int main() {
   shape_tester_t tester;
 
+  // enable glFlush & glFinish
+  fan_track_opengl_calls() = 1;
+
+  engine.shapes.visibility.padding = 10000;
+
+  engine.set_culling_enabled(false);
+  fan::print_color(fan::colors::yellow, "\n=== Running Tests with Culling Disabled ===\n");
   tester.run_all_tests();
+
+  tester.test_results.clear();
+
+
+  engine.set_culling_enabled(true);
+  fan::print_color(fan::colors::yellow, "\n=== Running Tests with Culling Enabled ===\n");
+  tester.run_all_tests();
+
   tester.run_all_benchmarks();
   //
   fan::print_success("\n=== ALL TESTS AND BENCHMARKS COMPLETE ===\n");

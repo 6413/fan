@@ -1,7 +1,7 @@
 module;
 
-//#define loco_framebuffer
-//#define loco_post_process
+#define loco_framebuffer
+#define loco_post_process
 #define loco_vfi
 
 #include <fan/graphics/opengl/init.h>
@@ -398,36 +398,15 @@ public:
   fan::vec2 cell_size = fan::vec2(256);
   fan::vec2i grid_size = fan::vec2i(256);
 
-  void culling_rebuild_grid() {
-    fan::graphics::culling::static_grid_init(
-      shapes.visibility.static_grid,
-      world_min,
-      cell_size,
-      grid_size
-    );
-
-    fan::graphics::culling::dynamic_grid_init(
-      shapes.visibility.dynamic_grid,
-      world_min,
-      cell_size,
-      grid_size
-    );
-  }
-
-  void rebuild_static_culling() {
-    fan::graphics::culling::rebuild_static(shapes.visibility);
-  }
-
-  void set_culling_enabled(bool enabled) {
-    shapes.visibility.enabled = enabled;
-    if (enabled) {
-      fan::graphics::culling::rebuild_static(shapes.visibility);
-    }
-  }
-  void get_culling_stats(uint32_t& visible, uint32_t& culled) const {
-    visible = shapes.visibility.current_result.total_visible;
-    culled = shapes.visibility.current_result.total_culled;
-  }
+  void culling_rebuild_grid();
+  void rebuild_static_culling();
+  bool culling_enabled() const;
+  void set_culling_enabled(bool enabled);
+  void get_culling_stats(uint32_t& visible, uint32_t& culled) const;
+  void run_culling();
+  void set_cull_padding(const fan::vec2& padding);
+  bool is_visualizing_culling = false;
+  void visualize_culling();
 
 #if defined(fan_vulkan)
   // todo move to vulkan context
@@ -542,6 +521,8 @@ public:
 	uv_idle_t idle_handle;
 	bool timer_init = false;
 	uv_timer_t timer_handle{};
+
+  bool init_culling = true;
 
 	int32_t target_fps = 165; // must be changed from function
 	bool timer_enabled = target_fps > 0;

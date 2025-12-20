@@ -1,3 +1,5 @@
+#include <string>
+
 import fan;
 import fan.graphics.gui.tilemap_editor.renderer;
 import fan.graphics.gui.tilemap_editor.editor;
@@ -123,7 +125,7 @@ struct scene_manager_t {
 
 int main(int argc, char** argv) {
   fan::graphics::engine_t engine {{.window_open_mode = fan::window_t::mode::windowed_fullscreen}};
-  
+  engine.set_culling_enabled(false);
   render_context_t views;
   scene_manager_t scene;
 
@@ -164,9 +166,6 @@ int main(int argc, char** argv) {
 
   engine.loop([&] {
     fte.render();
-
-    engine.frustum_culling.padding = -300.f;
-    engine.frustum_culling.visualize(views.editor);
 
     if (scene.render_scene && scene.player) {
       if (fan::graphics::gui::begin("Program", 0, fan::graphics::gui::window_flags_no_background)) {
