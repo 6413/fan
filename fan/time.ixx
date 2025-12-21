@@ -115,6 +115,9 @@ export namespace fan {
       double seconds() const {
         return elapsed() / 1e9;
       }
+      double millis() const {
+        return elapsed() / 1e6;
+      }
 
       uint64_t start_time() const {
         return m_timer;

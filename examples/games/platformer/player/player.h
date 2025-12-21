@@ -33,7 +33,6 @@ struct player_t {
         return c.attack_state.try_attack(&c);
       },
     });
-    body.set_dynamic();
     body.enable_default_movement();
     body.set_jump_height(60.f);
     body.enable_double_jump();
@@ -112,6 +111,7 @@ struct player_t {
     //body.set_health(10.f);
 
     pile->get_level().load_enemies();
+    //body.set_dynamic();// if player is always in the camera, no need to call update_dynamic i think
   }
   fan::event::task_t particles_explode(){
     particles.set_position(fan::vec3(pile->get_level().player_checkpoints[current_checkpoint].entity.get_position() + fan::vec2(-32, 80), 0));
@@ -146,6 +146,7 @@ struct player_t {
   }
 
   void update() {
+    //body.update_dynamic();
     handle_attack();
 
     body.update_animations();
@@ -199,7 +200,7 @@ struct player_t {
 
   fan::graphics::engine_t::key_handle_t key_click_handles[10];
 
-  int current_checkpoint = -1;
+  int current_checkpoint = 0;
   
   uint16_t potion_count = 0;
   fan::time::timer potion_consume_timer {0.1e9, true};

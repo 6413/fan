@@ -10,6 +10,7 @@ module;
 #include <source_location>
 #include <functional>
 #include <cstdlib>
+#include <chrono>
 #include <sstream>
 
 export module fan.graphics.common_context;
