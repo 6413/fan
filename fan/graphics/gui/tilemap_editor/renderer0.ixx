@@ -304,17 +304,23 @@ export struct tilemap_renderer_t : tilemap_loader_t {
 
     auto& cell = compiled_map.compiled_shapes[gp.y][gp.x];
     std::string removed_id;
+    bool found_tile = false;
 
     cell.erase(
       std::remove_if(cell.begin(), cell.end(), [&](const fte_t::tile_t& t) {
       if (t.position == position && str_id == t.id) {
         removed_id = t.id;
+        found_tile = true;
         return true;
       }
       return false;
     }),
       cell.end()
     );
+
+    if (!found_tile) {
+      return;
+    }
 
     if (!removed_id.empty()) {
       auto lookup_it = compiled_map.id_lookup.find(removed_id);
@@ -328,8 +334,26 @@ export struct tilemap_renderer_t : tilemap_loader_t {
       }
     }
 
-    //node.prev_render = 10000000;
-    //initialize(node, node.position);
+    auto rendered_it = node.rendered_tiles.begin();
+    while (rendered_it != node.rendered_tiles.end()) {
+      auto& shape = rendered_it->second;
+
+      if (shape.id == removed_id) {
+        fan::vec3 shape_pos = shape.get_position();
+
+        if (std::abs(shape_pos.x - position.x) < 1.0f && 
+          std::abs(shape_pos.y - position.y) < 1.0f) {
+
+          if (!shape.id.empty()) {
+            node.id_to_shape.erase(shape.id);
+          }
+
+          rendered_it = node.rendered_tiles.erase(rendered_it);
+          return;
+        }
+      }
+      ++rendered_it;
+    }
   }
 
   struct shape_depths_t {

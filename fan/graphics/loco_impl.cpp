@@ -800,7 +800,6 @@ void loco_t::run_culling() {
   nrtra.Open(&camera_list, &nr);
 
   auto& culling = shapes.visibility;
-
   while (nrtra.Loop(&camera_list, &nr)) {
     if (nr == perspective_render_view.camera) {
       continue;
@@ -1732,6 +1731,7 @@ void loco_t::process_render() {
     auto it = m_update_callback.GetNodeFirst();
     while (it != m_update_callback.dst) {
       m_update_callback.StartSafeNext(it);
+      auto prev = m_update_callback.SafeNext.NRI;
       m_update_callback[it](this);
       it = m_update_callback.EndSafeNext();
     }
