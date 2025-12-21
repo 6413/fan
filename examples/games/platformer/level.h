@@ -78,6 +78,8 @@ bool handle_pickupable(const std::string& id, T& who) {
 }
 
 void load_map() {
+  //pile->engine.culling_rebuild_grid();
+
   main_compiled_map = pile->renderer.compile("sample_level.fte");
   fan::vec2i render_size(16, 9);
   tilemap_loader_t::properties_t p;
@@ -98,28 +100,19 @@ void load_map() {
     .path = "traps/axe/axe.json",
     .loop = true,
     .start = false
-    });
+  });
 
   static auto lamp1_anim = fan::graphics::sprite_sheet_from_json({
     .path = "lights/lamp1/lamp.json",
     .loop = true
-    });
+  });
+  checkpoint_flag.set_position(fan::vec2(-0xfffff));
+  axe_anim.set_position(fan::vec2(-0xfffff));
+  lamp1_anim.set_position(fan::vec2(-0xfffff));
 
   pile->renderer.iterate_marks(main_map_id, [&](tilemap_loader_t::fte_t::spawn_mark_data_t& data) -> bool {
     const auto& id = data.id;
-    if (id.contains("lamp1")) {
-      lamps.emplace_back(lamp1_anim);
-      auto& l = lamps.back();
-      l.set_current_animation_frame(fan::random::value(0, l.get_current_animation_frame_count()));
-      l.set_position(fan::vec3(fan::vec2(data.position) + fan::vec2(1.f, -2.f), 1));
-      l.start_sprite_sheet_animation();
-    }
-    return false; // continue iterating all instances
-  });
-
-  pile->renderer.iterate_visual(main_map_id, [&](tilemap_loader_t::tile_t& tile) -> bool {
-    const std::string& id = tile.id;
-
+    // TODOODODODODOODO MOVE TO PHYSICS SHAPESSSSSSSSSSSS ITREATEEEEEEEEEEEEE
     if (id.contains("checkpoint")) {
       int checkpoint_idx = std::stoi(id.substr(std::strlen("checkpoint")));
       if (player_checkpoints.size() < checkpoint_idx) {
@@ -127,12 +120,25 @@ void load_map() {
       }
       auto& chkp = player_checkpoints[checkpoint_idx];
       chkp.visual = checkpoint_flag;
-      chkp.visual.set_position(fan::vec3(tile.position));
+      chkp.visual.set_position(fan::vec3(data.position));
       chkp.visual.set_size(checkpoint_flag.get_size() / fan::vec2(1.5f, 1.0f));
       chkp.visual.start_sprite_sheet_animation();
-      chkp.entity = fan::physics::create_sensor_rectangle(tile.position, tile.size);
+      chkp.entity = fan::physics::create_sensor_rectangle(data.position, 46);
     }
-    else if (id.contains("roof_chain")) {}
+    if (id.contains("lamp1")) {
+      lamps.emplace_back(lamp1_anim);
+      auto& l = lamps.back();
+
+      l.set_current_animation_frame(fan::random::value(0, l.get_current_animation_frame_count()));
+      l.set_position(fan::vec3(fan::vec2(data.position) + fan::vec2(1.f, -2.f), 1));
+    }
+    return false; // continue iterating all instances
+  });
+
+  pile->renderer.iterate_visual(main_map_id, [&](tilemap_loader_t::tile_t& tile) -> bool {
+    const std::string& id = tile.id;
+
+    if (id.contains("roof_chain")) {}
     else if (id.contains("trap_axe")) {
       axes.emplace_back(axe_anim);
       axes.back().set_position(fan::vec3(fan::vec2(tile.position), 3));
@@ -172,6 +178,8 @@ void load_map() {
 
   pile->player.respawn();
   pile->player.particles.set_color(0);
+
+  //pile->engine.rebuild_static_culling();
 }
 
 void open(void* sod) {
@@ -223,41 +231,27 @@ void update() {
     pile->engine.lighting.set_target(fan::color(pixels.data(), pixels.data() + ch) / 5.f + 0.7, 0.1);
   }
 
-  for (auto it = pickupables.begin(); it != pickupables.end(); ++it) {
+  for (auto it = pickupables.begin(); it != pickupables.end(); ) {
     auto& sensor = it->second;
     if (fan::physics::is_on_sensor(pile->player.body, sensor)) {
       if (handle_pickupable(it->first, pile->player)) {
         fan::vec2 pos = sensor.get_position();
+
         pile->renderer.remove_visual(
           pile->get_level().main_map_id,
           it->first,
           pos
         );
+
         sensor.destroy();
-        pickupables.erase(it);
+
+        it = pickupables.erase(it);
+        break;
+      } else {
+        ++it;
       }
-      break;
-    }
-    bool consumed = false;
-    for (auto enemy : pile->enemies()) {
-      if (!fan::physics::is_on_sensor(enemy.get_body(), sensor)) {
-        continue;
-      }
-      if (handle_pickupable(it->first, enemy)) {
-        fan::vec2 pos = sensor.get_position();
-        it->second.destroy();
-        pickupables.erase(it);
-        pile->renderer.remove_visual(
-          pile->get_level().main_map_id,
-          it->first,
-          pos
-        );
-        consumed = true;
-      }
-      break;
-    }
-    if (consumed) {
-      break;
+    } else {
+      ++it;
     }
   }
 
@@ -270,6 +264,7 @@ void update() {
       if (fan::physics::is_on_sensor(enemy.get_body(), spike)) {
         enemy.destroy();
       }
+      enemy.get_body().update_dynamic();
     }
   }
 
@@ -308,13 +303,13 @@ std::vector<checkpoint_t> player_checkpoints;
 std::vector<fan::graphics::sprite_t> lamps;
 std::vector<fan::graphics::light_t> lights;
 
-//fan::graphics::sprite_t background {{
-//  .position = fan::vec3(10000, 6010, 0),
-//  .size = fan::vec2(9192, 10000),
-//  .color = fan::color(0.6, 0.576, 1),
-//  .image = fan::graphics::image_t("images/background.png"),
-//  .tc_size = 1 * 300.0,
-//}};
+fan::graphics::sprite_t background {{
+  .position = fan::vec3(10000, 6010, 0),
+  .size = fan::vec2(9192, 10000),
+  .color = fan::color(0.6, 0.576, 1),
+  .image = fan::graphics::image_t("images/background.png"),
+  .tc_size = 1 * 300.0,
+}};
 
 fan::audio::piece_t
   audio_pickup_item{"audio/pickup.sac"};

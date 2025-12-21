@@ -32,6 +32,7 @@ int main() {
   //fan::heap_profiler_t::instance().enabled = true;
   pile = (pile_t*)std::malloc(sizeof(pile_t));
   std::construct_at(pile);
-  pile->engine.console.commands.call("set_bloom_strength 0.075");
+  
+  //pile->engine.console.commands.call("set_bloom_strength 0.075");
   pile->engine.loop();
 }

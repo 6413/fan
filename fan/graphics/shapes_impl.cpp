@@ -449,6 +449,11 @@ namespace fan::graphics{
 
     g_shapes->with_shape_list(s.NRI, [&](auto& list, auto src_nr, auto& src_sd) {
       auto props = list[src_nr];
+
+      if constexpr (requires { props.sprite_sheet_data; }) {
+        props.sprite_sheet_data.frame_update_nr.sic(); // make new one, dont use shared
+      }
+
       auto new_gid = g_shapes->add_shape(list, props);
       new_raw = new_gid.gint();
     });
@@ -487,6 +492,11 @@ namespace fan::graphics{
 
     g_shapes->with_shape_list(s.NRI, [&](auto& list, auto src_nr, auto& src_sd) {
       auto props = list[src_nr];
+
+      if constexpr (requires { props.sprite_sheet_data; }) {
+        props.sprite_sheet_data.frame_update_nr.sic(); // make new one, dont use shared
+      }
+
       auto new_gid = g_shapes->add_shape(list, props);
       new_raw = new_gid.gint();
     });
@@ -540,29 +550,6 @@ namespace fan::graphics{
     sic();
 
     return;
-
-	#if defined(debug_shape_t)
-		fan::print("-", NRI);
-	#endif
-		if (g_shapes->shaper.ShapeList.Usage() == 0) {
-			return;
-		}
-		auto shape_type = get_shape_type();
-		if (shape_type == fan::graphics::shapes::shape_type_t::vfi) {
-			g_shapes->vfi.erase(*this);
-			sic();
-			return;
-		}
-		if (shape_type == fan::graphics::shapes::shape_type_t::polygon) {
-			auto ri = (polygon_t::ri_t*)GetData(g_shapes->shaper);
-			ri->vbo.close((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))));
-			ri->vao.close((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))));
-		}
-		else if (shape_type == fan::graphics::shapes::shape_type_t::sprite) {
-      stop_sprite_sheet_animation();
-		}
-		g_shapes->shaper.remove(*this);
-		sic();
 	}
 
 	void shapes::shape_t::erase() {
@@ -1911,13 +1898,6 @@ namespace fan::graphics{
   }
 
   void fan::graphics::shapes::shape_t::set_sprite_sheet_next_frame(int advance) {
-    if (!get_visual_id()) {
-      return;
-    }
-
-    if (get_shape_type() != fan::graphics::shapes::shape_type_t::sprite) {
-      fan::throw_error("unimplemented for this shape");
-    }
     g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
       if constexpr (requires { props.sprite_sheet_data; }) {
         auto found = fan::graphics::all_animations.find(props.sprite_sheet_data.current_animation);
@@ -1926,6 +1906,7 @@ namespace fan::graphics{
         }
         auto& animation = found->second;
         auto& sheet_data = props.sprite_sheet_data;
+
         sheet_data.current_frame += advance;
         if (animation.loop) {
           if (sheet_data.current_frame >= animation.selected_frames.size()) {
@@ -1935,6 +1916,13 @@ namespace fan::graphics{
           sheet_data.current_frame = std::min(sheet_data.current_frame,
             (int)animation.selected_frames.size() - 1);
         }
+
+        sheet_data.update_timer.restart();
+
+        if (!get_visual_id()) {
+          return;
+        }
+
         int actual_frame = animation.selected_frames[sheet_data.current_frame];
         int image_index = 0, local_frame = actual_frame, frame_count = 0;
         for (int i = 0; i < animation.images.size(); ++i) {
@@ -1946,10 +1934,13 @@ namespace fan::graphics{
           }
           frame_count += frames_in_this_image;
         }
+
         auto& current_image = animation.images[image_index];
+
         if (get_image() != current_image.image) {
           set_image(current_image.image);
         }
+
         {
           fan::vec2 image_size = current_image.image.get_size();
           fan::vec2 frame_pixel_size(image_size.x / current_image.hframes,
@@ -1959,14 +1950,16 @@ namespace fan::graphics{
           size.x = size.y * aspect;
           set_size(size);
         }
-        sheet_data.update_timer.restart();
+
         fan::vec2 tc_size(1.0 / current_image.hframes, 1.0 / current_image.vframes);
         int frame_x = local_frame % current_image.hframes;
         int frame_y = local_frame / current_image.hframes;
         fan::vec2 pos(frame_x * tc_size.x, frame_y * tc_size.y);
+
         fan::vec2 sign = get_image_sign();
         if (sign.x < 0) pos.x += tc_size.x;
         if (sign.y < 0) pos.y += tc_size.y;
+
         set_tc_position(pos);
         set_tc_size(tc_size * sign);
 
@@ -1995,7 +1988,6 @@ namespace fan::graphics{
 		return result;
 	}
 
-	// Takes in seconds
   void shapes::shape_t::set_sprite_sheet_fps(f32_t fps) {
     if (get_shape_type() != fan::graphics::shapes::shape_type_t::sprite) {
       fan::throw_error("unimplemented for this shape");
@@ -2121,7 +2113,6 @@ namespace fan::graphics{
     return count;
   }
 
-	// dont store the pointer
 	sprite_sheet_animation_t* shapes::shape_t::get_animation(const std::string& name) {
 		auto anims = get_all_animations();
 		for (const auto& anim : anims) {
@@ -2575,12 +2566,15 @@ void fan::graphics::shapes::shape_t::start_sprite_sheet_animation() {
 
   set_sprite_sheet_next_frame(0);
 
-	if (!sheet_data->frame_update_nr) {
-    sheet_data->frame_update_nr = fan::graphics::ctx().update_callback->NewNodeLast();
-	}
-	(*fan::graphics::ctx().update_callback)[sheet_data->frame_update_nr] = [nr = NRI](void* ptr) {
-		sprite_sheet_frame_update_cb(g_shapes->shaper, (fan::graphics::shapes::shape_t*)&nr);
-	};
+  if (sheet_data->frame_update_nr) {
+    fan::graphics::ctx().update_callback->unlrec(sheet_data->frame_update_nr);
+  }
+
+  sheet_data->frame_update_nr = fan::graphics::ctx().update_callback->NewNodeLast();
+
+  (*fan::graphics::ctx().update_callback)[sheet_data->frame_update_nr] = [nr = NRI](void* ptr) {
+    sprite_sheet_frame_update_cb(g_shapes->shaper, (fan::graphics::shapes::shape_t*)&nr);
+  };
 }
 
 void fan::graphics::shapes::shape_t::stop_sprite_sheet_animation() {
