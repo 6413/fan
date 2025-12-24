@@ -1,6 +1,6 @@
 module;
 
-#if defined(fan_opengl)
+#if defined(FAN_OPENGL)
 #include <fan/graphics/opengl/init.h>
 
 #define __fan_internal_camera_list (*fan::graphics::ctx().camera_list)
@@ -15,7 +15,7 @@ module;
 
 module fan.graphics.opengl.core;
 
-#if defined(fan_opengl)
+#if defined(FAN_OPENGL)
 
 namespace fan::opengl {
 
@@ -489,7 +489,7 @@ namespace fan::opengl {
   }
   void context_t::image_set_settings(fan::graphics::image_nr_t nr, const fan::opengl::context_t::image_load_properties_t& p) {
     image_bind(nr);
-  #if fan_debug >= fan_debug_high
+  #if FAN_DEBUG >= fan_debug_high
     if (p.visual_output < 0xff) {
       fan::throw_error("invalid format");
     }
@@ -883,7 +883,7 @@ namespace fan::opengl {
     if (format == fan::graphics::image_format::r8_uint) return GL_RED_INTEGER;
     if (format == fan::graphics::image_format::r8g8b8a8_srgb) return GL_SRGB8_ALPHA8;
     if (format == fan::graphics::image_format::r11f_g11f_b10f) return GL_R11F_G11F_B10F;
-  #if fan_debug >= fan_debug_high
+  #if FAN_DEBUG >= fan_debug_high
     fan::throw_error("invalid format");
   #endif
     return GL_RGBA;
@@ -893,7 +893,7 @@ namespace fan::opengl {
     if (type == fan::graphics::fan_unsigned_byte) return GL_UNSIGNED_BYTE;
     if (type == fan::graphics::fan_unsigned_int) return GL_UNSIGNED_INT;
     if (type == fan::graphics::fan_float) return GL_FLOAT;
-  #if fan_debug >= fan_debug_high
+  #if FAN_DEBUG >= fan_debug_high
     fan::throw_error("invalid format");
   #endif
     return 0;
@@ -905,7 +905,7 @@ namespace fan::opengl {
     if (mode == fan::graphics::image_sampler_address_mode::clamp_to_edge) return GL_CLAMP_TO_EDGE;
     if (mode == fan::graphics::image_sampler_address_mode::clamp_to_border) return GL_CLAMP_TO_BORDER;
     if (mode == fan::graphics::image_sampler_address_mode::mirrored_clamp_to_edge) return GL_MIRROR_CLAMP_TO_EDGE;
-  #if fan_debug >= fan_debug_high
+  #if FAN_DEBUG >= fan_debug_high
     fan::throw_error("invalid format");
   #endif
     return GL_REPEAT;
@@ -921,7 +921,7 @@ namespace fan::opengl {
     case filter_t::nearest_mipmap_linear: return GL_NEAREST_MIPMAP_LINEAR;
     case filter_t::linear_mipmap_linear: return GL_LINEAR_MIPMAP_LINEAR;
     default:
-    #if fan_debug >= fan_debug_high
+    #if FAN_DEBUG >= fan_debug_high
       fan::throw_error("Invalid image filter value");
     #endif
       return GL_NEAREST;
@@ -938,7 +938,7 @@ namespace fan::opengl {
     if (format == GL_RED_INTEGER) return fan::graphics::image_format::r8_uint;
     if (format == GL_SRGB8_ALPHA8) return fan::graphics::image_format::r8g8b8a8_srgb;
     if (format == GL_R11F_G11F_B10F) return fan::graphics::image_format::r11f_g11f_b10f;
-  #if fan_debug >= fan_debug_high
+  #if FAN_DEBUG >= fan_debug_high
     fan::throw_error("invalid format");
   #endif
     return fan::graphics::image_format::rgba_unorm;
@@ -948,7 +948,7 @@ namespace fan::opengl {
     if (type == GL_UNSIGNED_BYTE) return fan::graphics::fan_unsigned_byte;
     if (type == GL_UNSIGNED_INT) return fan::graphics::fan_unsigned_int;
     if (type == GL_FLOAT) return fan::graphics::fan_float;
-  #if fan_debug >= fan_debug_high
+  #if FAN_DEBUG >= fan_debug_high
     fan::throw_error("invalid format");
   #endif
     return 0;
@@ -960,7 +960,7 @@ namespace fan::opengl {
     if (mode == GL_CLAMP_TO_EDGE) return fan::graphics::image_sampler_address_mode::clamp_to_edge;
     if (mode == GL_CLAMP_TO_BORDER) return fan::graphics::image_sampler_address_mode::clamp_to_border;
     if (mode == GL_MIRROR_CLAMP_TO_EDGE) return fan::graphics::image_sampler_address_mode::mirrored_clamp_to_edge;
-  #if fan_debug >= fan_debug_high
+  #if FAN_DEBUG >= fan_debug_high
     fan::throw_error("invalid format");
   #endif
     return fan::graphics::image_sampler_address_mode::repeat;
@@ -974,7 +974,7 @@ namespace fan::opengl {
     if (filter == GL_LINEAR_MIPMAP_NEAREST) return fan::graphics::image_filter::linear_mipmap_nearest;
     if (filter == GL_NEAREST_MIPMAP_LINEAR) return fan::graphics::image_filter::nearest_mipmap_linear;
     if (filter == GL_LINEAR_MIPMAP_LINEAR) return fan::graphics::image_filter::linear_mipmap_linear;
-  #if fan_debug >= fan_debug_high
+  #if FAN_DEBUG >= fan_debug_high
     fan::throw_error("Invalid OpenGL filter value.");
   #endif
     return fan::graphics::image_filter::nearest;
@@ -1052,7 +1052,7 @@ namespace fan::opengl::core {
 
   void edit_glbuffer(fan::opengl::context_t& context, GLuint buffer, const void* data, uintptr_t offset, uintptr_t size, uintptr_t target) {
     fan_opengl_call(glBindBuffer(target, buffer));
-#if fan_debug >= fan_debug_high
+#if FAN_DEBUG >= fan_debug_high
     int buffer_size = get_buffer_size(context, target, buffer);
     if ((buffer_size < (int)size) || (int)(offset + size) > buffer_size) {
       fan::throw_error("tried to write more than allocated");
@@ -1097,7 +1097,7 @@ namespace fan::opengl::core {
   }
 
   void vbo_t::close(fan::opengl::context_t& context) {
-#if fan_debug >= fan_debug_medium
+#if FAN_DEBUG >= fan_debug_medium
     if (m_buffer == (GLuint)-1) {
       return;
     }

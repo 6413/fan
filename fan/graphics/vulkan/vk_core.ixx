@@ -3,7 +3,7 @@ module;
 
 #include <fan/utility.h>
 
-#if defined(fan_vulkan)
+#if defined(FAN_VULKAN)
 
 #include <optional>
 #include <vector>
@@ -18,7 +18,7 @@ module;
 #define VK_USE_PLATFORM_XLIB_KHR
 #endif
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
   #include <fan/imgui/imgui_impl_vulkan.h>
 #endif
 
@@ -42,7 +42,7 @@ module;
 #endif
 export module fan.graphics.vulkan.core;
 
-#if defined(fan_vulkan)
+#if defined(FAN_VULKAN)
 
 import fan.physics.collision.rectangle;
 
@@ -68,14 +68,26 @@ export import fan.graphics.common_context;
   #pragma comment(lib, "shaderc_combined_mt.lib")
 #endif
 
+#define ENABLE_RAYTRACING_DEPENDENCIES
+
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
 };
 
 const std::vector<const char*> deviceExtensions = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-    VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME
+  VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+  VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+#if defined(ENABLE_RAYTRACING_DEPENDENCIES)
+  // RT
+  VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+  VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+  VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+  VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+  VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+  VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
+#endif
 };
+
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
   auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
@@ -134,7 +146,7 @@ namespace fan::graphics::format_converter {
     if (format == image_format::r8_uint) return VK_FORMAT_R8_UINT;
     if (format == image_format::r8g8b8a8_srgb) return VK_FORMAT_R8G8B8A8_SRGB;
     if (format == image_format::rgba_unorm) return VK_FORMAT_R8G8B8A8_UNORM;
-  #if fan_debug >= fan_debug_high
+  #if FAN_DEBUG >= fan_debug_high
     fan::throw_error("invalid format");
   #endif
     return VK_FORMAT_R8G8B8A8_UNORM;
@@ -145,7 +157,7 @@ namespace fan::graphics::format_converter {
     if (mode == image_sampler_address_mode::clamp_to_edge) return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     if (mode == image_sampler_address_mode::clamp_to_border) return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
     if (mode == image_sampler_address_mode::mirrored_clamp_to_edge) return VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE;
-  #if fan_debug >= fan_debug_high
+  #if FAN_DEBUG >= fan_debug_high
     fan::throw_error("invalid format");
   #endif
     return VK_SAMPLER_ADDRESS_MODE_REPEAT;
@@ -153,7 +165,7 @@ namespace fan::graphics::format_converter {
   VkFilter global_to_vulkan_filter(uintptr_t filter) {
     if (filter == image_filter::nearest) return VK_FILTER_NEAREST;
     if (filter == image_filter::linear) return VK_FILTER_LINEAR;
-  #if fan_debug >= fan_debug_high
+  #if FAN_DEBUG >= fan_debug_high
     fan::throw_error("invalid format");
   #endif
     return VK_FILTER_NEAREST;
@@ -165,7 +177,7 @@ namespace fan::graphics::format_converter {
     if (format == VK_FORMAT_R8_UNORM) return fan::graphics::image_format::r8_unorm;
     if (format == VK_FORMAT_R8_UINT) return fan::graphics::image_format::r8_uint;
     if (format == VK_FORMAT_R8G8B8A8_SRGB) return fan::graphics::image_format::r8g8b8a8_srgb;
-#if fan_debug >= fan_debug_high
+#if FAN_DEBUG >= fan_debug_high
     fan::throw_error("invalid format");
 #endif
     return fan::graphics::image_format::rgba_unorm;
@@ -176,7 +188,7 @@ namespace fan::graphics::format_converter {
     if (mode == VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE) return fan::graphics::image_sampler_address_mode::clamp_to_edge;
     if (mode == VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER) return fan::graphics::image_sampler_address_mode::clamp_to_border;
     if (mode == VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE) return fan::graphics::image_sampler_address_mode::mirrored_clamp_to_edge;
-#if fan_debug >= fan_debug_high
+#if FAN_DEBUG >= fan_debug_high
     fan::throw_error("invalid format");
 #endif
     return fan::graphics::image_sampler_address_mode::repeat;
@@ -184,7 +196,7 @@ namespace fan::graphics::format_converter {
   uint32_t vulkan_to_global_filter(VkFilter filter) {
     if (filter == VK_FILTER_NEAREST) return fan::graphics::image_filter::nearest;
     if (filter == VK_FILTER_LINEAR) return fan::graphics::image_filter::linear;
-#if fan_debug >= fan_debug_high
+#if FAN_DEBUG >= fan_debug_high
     fan::throw_error("invalid format");
 #endif
     return fan::graphics::image_filter::nearest;
@@ -520,7 +532,7 @@ export namespace fan {
           {
 
             { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            #if defined(fan_gui)
+            #if defined(FAN_GUI)
             IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE +
         #endif
             5 * max_frames_in_flight},
@@ -569,9 +581,11 @@ export namespace fan {
         shaderc::Compiler compiler;
         shaderc::CompileOptions options;
 
+        options.SetTargetEnvironment(shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2);
+
         // Like -DMY_DEFINE=1
         //options.AddMacroDefinition("MY_DEFINE", "1");
-      #if fan_debug > 1
+      #if FAN_DEBUG > 1
         options.SetOptimizationLevel(shaderc_optimization_level_zero);
       #else
         options.SetOptimizationLevel(shaderc_optimization_level_performance);
@@ -909,13 +923,13 @@ export namespace fan {
       }
 
       struct image_t {
-        VkImage image_index = 0;
-        VkImageView image_view;
-        VkDeviceMemory image_memory;
-        VkSampler sampler;
-        VkBuffer staging_buffer;
-        VkDeviceMemory staging_buffer_memory;
-        void* data;
+        VkImage image_index = VK_NULL_HANDLE;
+        VkImageView image_view = VK_NULL_HANDLE;
+        VkDeviceMemory image_memory = VK_NULL_HANDLE;
+        VkSampler sampler = VK_NULL_HANDLE;
+        VkBuffer staging_buffer = VK_NULL_HANDLE;
+        VkDeviceMemory staging_buffer_memory = VK_NULL_HANDLE;
+        void* data = nullptr;
       };
 
       std::vector<VkDescriptorImageInfo> image_pool; // for draw
@@ -936,18 +950,42 @@ export namespace fan {
       }
 
       void image_erase(fan::graphics::image_nr_t nr, int recycle = 1) {
-        fan::vulkan::context_t::image_t& image = image_get(nr);
-        vkDestroySampler(device, image.sampler, nullptr);
-        vkDestroyBuffer(device, image.staging_buffer, nullptr);
-        vkFreeMemory(device, image.staging_buffer_memory, nullptr);
-        vkDestroyImage(device, image.image_index, 0);
-        vkDestroyImageView(device, image.image_view, 0);
-        vkFreeMemory(device, image.image_memory, nullptr);
-        delete static_cast<fan::vulkan::context_t::image_t*>(__fan_internal_image_list[nr].internal);
+        auto& node = __fan_internal_image_list[nr];
+        auto& img = image_get(nr);
+
+        if (img.sampler != VK_NULL_HANDLE) {
+          vkDestroySampler(device, img.sampler, nullptr);
+          img.sampler = VK_NULL_HANDLE;
+        }
+        if (img.staging_buffer != VK_NULL_HANDLE) {
+          vkDestroyBuffer(device, img.staging_buffer, nullptr);
+          img.staging_buffer = VK_NULL_HANDLE;
+        }
+        if (img.staging_buffer_memory != VK_NULL_HANDLE) {
+          vkFreeMemory(device, img.staging_buffer_memory, nullptr);
+          img.staging_buffer_memory = VK_NULL_HANDLE;
+        }
+        if (img.image_index != VK_NULL_HANDLE) {
+          vkDestroyImage(device, img.image_index, nullptr);
+          img.image_index = VK_NULL_HANDLE;
+        }
+        if (img.image_view != VK_NULL_HANDLE) {
+          vkDestroyImageView(device, img.image_view, nullptr);
+          img.image_view = VK_NULL_HANDLE;
+        }
+        if (img.image_memory != VK_NULL_HANDLE) {
+          vkFreeMemory(device, img.image_memory, nullptr);
+          img.image_memory = VK_NULL_HANDLE;
+        }
+
+        delete node.internal;
+        node.internal = nullptr;
+
         if (recycle) {
           __fan_internal_image_list.Recycle(nr);
         }
       }
+
 
       void image_bind(fan::graphics::image_nr_t nr) {
 
@@ -1090,27 +1128,24 @@ export namespace fan {
 
       void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const fan::vulkan::context_t::image_load_properties_t& p) {
         auto image_multiplier = get_image_multiplier(p.format);
-
         VkDeviceSize image_size = image_info.size.multiply() * image_multiplier;
 
         fan::vulkan::context_t::image_t& image = image_get(nr);
         auto& image_data = __fan_internal_image_list[nr];
         image_data.size = image_info.size;
 
-        if (image.image_index == 0) {
-          VkDeviceSize image_size_bytes = image_info.size.multiply() * image_multiplier;
+        VkDeviceSize image_size_bytes = image_size;
 
+        if (image.image_index == 0) {
           create_buffer(
             image_size_bytes,
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-            //VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ,
             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
             image.staging_buffer,
             image.staging_buffer_memory
           );
 
           vkMapMemory(device, image.staging_buffer_memory, 0, image_size_bytes, 0, &image.data);
-          memcpy(image.data, image_info.data, image_size_bytes); // TODO  / 4 in yuv420p
 
           fan::vulkan::image_create(
             *this,
@@ -1122,17 +1157,18 @@ export namespace fan {
             image.image_index,
             image.image_memory
           );
+
           image.image_view = create_image_view(image.image_index, p.format, VK_IMAGE_ASPECT_COLOR_BIT);
           create_texture_sampler(image.sampler, p);
         }
 
-        memcpy(image.data, image_info.data, image_size / 4);
-
+        memcpy(image.data, image_info.data, image_size_bytes);
 
         transition_image_layout(image.image_index, p.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
         copy_buffer_to_image(image.staging_buffer, image.image_index, p.format, image_info.size);
         transition_image_layout(image.image_index, p.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
       }
+
 
       void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info) {
         image_reload(nr, image_info, fan::vulkan::context_t::image_load_properties_t());
@@ -1181,6 +1217,22 @@ export namespace fan {
         return image_create(color, fan::vulkan::context_t::image_load_properties_t());
       }
 
+      fan::graphics::image_nr_t image_create_from_view(
+        VkImageView view,
+        VkImage image,
+        fan::vec2ui size,
+        VkFormat format
+      ) {
+        fan::graphics::image_nr_t img_nr = image_create();
+        auto& img = image_get(img_nr);
+
+        img.image_index = image;
+        img.image_view = view;
+        create_texture_sampler(img.sampler, {});
+
+        return img_nr;
+      }
+
       constexpr uint32_t get_image_multiplier(VkFormat format) {
         switch (format) {
         case fan::vulkan::context_t::image_format::b8g8r8a8_unorm: {
@@ -1227,12 +1279,6 @@ export namespace fan {
         camera.coordinates.bottom = y.y;
         camera.coordinates.top = y.x;
 
-        camera_update_projection(nr);
-      }
-
-      void context_t::camera_set_ortho(fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y) {
-        auto& c = camera_get(nr);
-        c.coordinates.v = fan::vec4(x, y);
         camera_update_projection(nr);
       }
       void camera_update_projection(fan::graphics::camera_nr_t nr) {
@@ -1384,7 +1430,7 @@ export namespace fan {
       void viewport_set(fan::graphics::viewport_nr_t nr, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
         fan::graphics::context_viewport_t& viewport = viewport_get(nr);
         viewport.position = viewport_position_;
-        viewport.viewport_size = viewport_size_;
+        viewport.size = viewport_size_;
 
         viewport_set(viewport_position_, viewport_size_, window_size);
       }
@@ -1573,10 +1619,10 @@ export namespace fan {
       }
     #if defined(loco_window)
       void open(fan::window_t& window) {
-        window.add_resize_callback([&](const fan::window_t::resize_data_t& d) {
+        window_resize_handle = window.add_resize_callback([&](const fan::window_t::resize_data_t& d) {
           SwapChainRebuild = true;
           recreate_swap_chain(d.window, VK_ERROR_OUT_OF_DATE_KHR);
-          });
+        });
 
 
         create_instance();
@@ -1595,7 +1641,7 @@ export namespace fan {
         create_command_buffers();
         create_sync_objects();
         descriptor_pool.open(*this);
-      #if defined(fan_gui)
+      #if defined(FAN_GUI)
         ImGuiSetupVulkanWindow();
       #endif
 
@@ -1673,7 +1719,7 @@ export namespace fan {
         vkDestroyRenderPass(device, render_pass, nullptr);
         vkDestroyCommandPool(device, command_pool, nullptr);
 
-      #if fan_debug >= fan_debug_high
+      #if FAN_DEBUG >= fan_debug_high
         if (supports_validation_layers) {
           DestroyDebugUtilsMessengerEXT(instance, debug_messenger, nullptr);
         }
@@ -1686,7 +1732,7 @@ export namespace fan {
         cleanup_swap_chain_dependencies();
         descriptor_pool.close(*this);
         destroy_vulkan_soft();
-      #if defined(fan_gui)
+      #if defined(FAN_GUI)
         ImGui_ImplVulkanH_DestroyWindow(instance, device, &MainWindowData, nullptr);
       #endif
 
@@ -1773,7 +1819,7 @@ export namespace fan {
       // if swapchain changes, reque
       void update_swapchain_dependencies() {
         uint32_t imageCount =
-        #if defined(fan_gui)
+        #if defined(FAN_GUI)
           MinImageCount + 1
         #else 
           min_image_count + 1
@@ -1797,24 +1843,24 @@ export namespace fan {
           int fb_width, fb_height;
           glfwGetFramebufferSize(*window, &fb_width, &fb_height);
           if (fb_width > 0 && fb_height > 0 &&
-          #if defined(fan_gui)
+          #if defined(FAN_GUI)
             (
             #endif
               SwapChainRebuild
-            #if defined(fan_gui)
+            #if defined(FAN_GUI)
               || MainWindowData.Width != fb_width ||
               MainWindowData.Height != fb_height)
           #endif
             )
           {
 
-          #if defined(fan_gui)
+          #if defined(FAN_GUI)
             ImGui_ImplVulkan_SetMinImageCount(MinImageCount);
             ImGui_ImplVulkanH_CreateOrResizeWindow(instance, physical_device, device, &MainWindowData, queue_family, /*g_Allocator*/nullptr, fb_width, fb_height, MinImageCount);
             current_frame = MainWindowData.FrameIndex = 0;
           #endif
             SwapChainRebuild = false;
-          #if defined(fan_gui)
+          #if defined(FAN_GUI)
             swap_chain = MainWindowData.Swapchain;
           #endif
             swap_chain_size = fan::vec2(fb_width, fb_height);
@@ -1826,20 +1872,20 @@ export namespace fan {
         }
       }
 
-      void recreate_swap_chain(const fan::vec2i& window_size) {
-        vkDeviceWaitIdle(device);
-        cleanup_swap_chain();
-        create_swap_chain(window_size);
-        recreate_swap_chain_dependencies();
-        // need to recreate some imgui's swapchain dependencies
-      #if defined(fan_gui)
-        MainWindowData.Swapchain = swap_chain;
-      #endif
-      }
+      //void recreate_swap_chain(const fan::vec2i& window_size) {
+      //  vkDeviceWaitIdle(device);
+      //  cleanup_swap_chain();
+      //  create_swap_chain(window_size);
+      //  recreate_swap_chain_dependencies();
+      //  // need to recreate some imgui's swapchain dependencies
+      //#if defined(FAN_GUI)
+      //  MainWindowData.Swapchain = swap_chain;
+      //#endif
+      //}
 
       void create_instance() {
 
-      #if fan_debug >= fan_debug_high
+      #if FAN_DEBUG >= fan_debug_high
         if (!check_validation_layer_support()) {
           fan::print_warning("validation layers not supported");
           supports_validation_layers = false;
@@ -1849,10 +1895,18 @@ export namespace fan {
         VkApplicationInfo appInfo{};
         appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
         appInfo.pApplicationName = "application";
-        appInfo.applicationVersion = VK_MAKE_VERSION(1, 1, 0);
+        appInfo.applicationVersion = VK_MAKE_VERSION(1, 2, 0);
         appInfo.pEngineName = "fan";
-        appInfo.engineVersion = VK_MAKE_VERSION(1, 1, 0);
-        appInfo.apiVersion = VK_API_VERSION_1_1;
+        appInfo.engineVersion = VK_MAKE_VERSION(1, 2, 0);
+        appInfo.apiVersion = VK_API_VERSION_1_2;
+
+      #if fan_debug >= 2
+        VkPhysicalDeviceProperties deviceProperties;
+        vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
+        if (deviceProperties.apiVersion < VK_API_VERSION_1_2) {
+          fan::throw_error("unsupported Vulkan apiVersion:", appInfo.apiVersion);
+        }
+      #endif
 
         VkInstanceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -1869,7 +1923,7 @@ export namespace fan {
         createInfo.ppEnabledExtensionNames = extension_names.data();
 
         VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
-      #if fan_debug >= fan_debug_high
+      #if FAN_DEBUG >= fan_debug_high
         if (supports_validation_layers) {
           createInfo.enabledLayerCount = validationLayers.size();
           createInfo.ppEnabledLayerNames = validationLayers.data();
@@ -1894,7 +1948,7 @@ export namespace fan {
       }
 
       void setup_debug_messenger() {
-      #if fan_debug < fan_debug_high
+      #if FAN_DEBUG < fan_debug_high
         return;
       #endif
 
@@ -1944,13 +1998,17 @@ export namespace fan {
       void create_logical_device() {
         queue_family_indices_t indices = find_queue_families(physical_device);
 
+        // -----------------------------
+        // Queue creation
+        // -----------------------------
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
         std::set<uint32_t> uniqueQueueFamilies = {
           indices.graphics_family.value(),
-      #if defined(loco_window)
+        #if defined(loco_window)
           indices.present_family.value()
-      #endif
+        #endif
         };
+
         float queuePriority = 1.0f;
         for (uint32_t queueFamily : uniqueQueueFamilies) {
           VkDeviceQueueCreateInfo queueCreateInfo{};
@@ -1961,72 +2019,131 @@ export namespace fan {
           queueCreateInfos.push_back(queueCreateInfo);
         }
 
+        // -----------------------------
+        // Base features
+        // -----------------------------
+        VkPhysicalDeviceFeatures deviceFeatures{};
+        deviceFeatures.samplerAnisotropy = VK_TRUE;
+
+        // -----------------------------
+        // Query device properties
+        // -----------------------------
         VkPhysicalDeviceProperties2 deviceProperties{};
         deviceProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
         vkGetPhysicalDeviceProperties2(physical_device, &deviceProperties);
 
-        VkPhysicalDeviceFeatures deviceFeatures{};
-        deviceFeatures.samplerAnisotropy = VK_TRUE;
+        // -----------------------------
+        // Check extension support
+        // -----------------------------
+        if (!check_device_extension_support(physical_device)) {
+          fan::throw_error("Required Vulkan device extensions missing.");
+        }
 
-        //deviceFeatures.vertexPipelineStoresAndAtomics = VK_TRUE;
+        // Explicit RT extension check
+        bool rt_ok = true;
+        {
+          uint32_t extCount = 0;
+          vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extCount, nullptr);
+          std::vector<VkExtensionProperties> exts(extCount);
+          vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extCount, exts.data());
 
+          auto hasExt = [&](const char* name) {
+            for (auto& e : exts) {
+              if (strcmp(e.extensionName, name) == 0) return true;
+            }
+            return false;
+          };
+
+        #if defined(ENABLE_RAYTRACING_DEPENDENCIES)
+          if (!hasExt(VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME) ||
+            !hasExt(VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME) ||
+            !hasExt(VK_KHR_SPIRV_1_4_EXTENSION_NAME) ||
+            !hasExt(VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME) ||
+            !hasExt(VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME) ||
+            !hasExt(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME)) {
+            rt_ok = false;
+          }
+        #endif
+        }
+
+      #if defined(ENABLE_RAYTRACING_DEPENDENCIES)
+        if (!rt_ok) {
+          fan::throw_error("Ray tracing not supported on this GPU.");
+        }
+      #endif
+
+        // -----------------------------
+        // Build feature chain
+        // -----------------------------
+        VkPhysicalDeviceFeatures2 features2{};
+        features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+        features2.features = deviceFeatures;
+
+        VkPhysicalDeviceVulkan12Features vulkan12{};
+        vulkan12.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+        vulkan12.runtimeDescriptorArray = VK_TRUE;
+        vulkan12.descriptorIndexing = VK_TRUE;
+        vulkan12.descriptorBindingVariableDescriptorCount = VK_TRUE;
+        vulkan12.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+
+      #if defined(ENABLE_RAYTRACING_DEPENDENCIES)
+        vulkan12.bufferDeviceAddress = VK_TRUE;
+
+        VkPhysicalDeviceAccelerationStructureFeaturesKHR accel{};
+        accel.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+        accel.accelerationStructure = VK_TRUE;
+
+        VkPhysicalDeviceRayTracingPipelineFeaturesKHR rt{};
+        rt.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+        rt.rayTracingPipeline = VK_TRUE;
+
+        // Chain: features2 → vulkan12 → accel → rt
+        features2.pNext = &vulkan12;
+        vulkan12.pNext = &accel;
+        accel.pNext = &rt;
+      #else
+        features2.pNext = &vulkan12;
+        vulkan12.pNext = nullptr;
+      #endif
+
+        // -----------------------------
+        // Device create info
+        // -----------------------------
         VkDeviceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        createInfo.queueCreateInfoCount = queueCreateInfos.size();
+        createInfo.queueCreateInfoCount = (uint32_t)queueCreateInfos.size();
         createInfo.pQueueCreateInfos = queueCreateInfos.data();
+        createInfo.pNext = &features2;
+        createInfo.pEnabledFeatures = nullptr;
 
-        if (deviceProperties.properties.apiVersion >= VK_API_VERSION_1_2) {
-          // Use Vulkan 1.2 features
-          VkPhysicalDeviceVulkan12Features vulkan12Features{};
-          vulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
-          vulkan12Features.runtimeDescriptorArray = VK_TRUE;
-          vulkan12Features.descriptorIndexing = VK_TRUE;
-          vulkan12Features.descriptorBindingVariableDescriptorCount = VK_TRUE;
-          vulkan12Features.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
-
-          VkPhysicalDeviceFeatures2 deviceFeatures2{};
-          deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-          deviceFeatures2.features = deviceFeatures;
-          deviceFeatures2.pNext = &vulkan12Features;
-
-          createInfo.pNext = &deviceFeatures2;
-          createInfo.pEnabledFeatures = nullptr;
-        }
-        else {
-          VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures{};
-          indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
-          indexingFeatures.runtimeDescriptorArray = VK_TRUE;
-          indexingFeatures.descriptorBindingVariableDescriptorCount = VK_TRUE;
-          indexingFeatures.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
-
-          VkPhysicalDeviceFeatures2 deviceFeatures2{};
-          deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-          deviceFeatures2.features = deviceFeatures;
-          deviceFeatures2.pNext = &indexingFeatures;
-
-          createInfo.pNext = &deviceFeatures2;
-          createInfo.pEnabledFeatures = nullptr;
-        }
-
-        createInfo.enabledExtensionCount = deviceExtensions.size();
+        createInfo.enabledExtensionCount = (uint32_t)deviceExtensions.size();
         createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
-      #if fan_debug >= fan_debug_high
+      #if FAN_DEBUG >= fan_debug_high
         if (supports_validation_layers) {
-          createInfo.enabledLayerCount = validationLayers.size();
+          createInfo.enabledLayerCount = (uint32_t)validationLayers.size();
           createInfo.ppEnabledLayerNames = validationLayers.data();
         }
       #endif
 
-        if (vkCreateDevice(physical_device, &createInfo, nullptr, &device) != VK_SUCCESS) {
-          fan::throw_error("failed to create logical device!");
+        // -----------------------------
+        // Create device
+        // -----------------------------
+        VkResult r = vkCreateDevice(physical_device, &createInfo, nullptr, &device);
+        if (r != VK_SUCCESS) {
+          fan::print("vkCreateDevice failed with code:", (int)r);
+          fan::throw_error("failed to create logical device");
         }
 
+        // -----------------------------
+        // Get queues
+        // -----------------------------
         vkGetDeviceQueue(device, indices.graphics_family.value(), 0, &graphics_queue);
       #if defined(loco_window)
         vkGetDeviceQueue(device, indices.present_family.value(), 0, &present_queue);
       #endif
       }
+
 
     #if defined(loco_window)
       void create_swap_chain(const fan::vec2ui& framebuffer_size) {
@@ -2160,17 +2277,17 @@ export namespace fan {
         mainColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         mainColorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         mainColorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        mainColorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        mainColorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // For post-process input
+        mainColorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        mainColorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
         VkAttachmentDescription postProcessedColorAttachment{};
         postProcessedColorAttachment.format = swap_chain_image_format;
         postProcessedColorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        postProcessedColorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR /*shapes_top ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_DONT_CARE*/;
+        postProcessedColorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
         postProcessedColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
         postProcessedColorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
         postProcessedColorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-        postProcessedColorAttachment.initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        postProcessedColorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
         postProcessedColorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
         VkAttachmentDescription depthAttachment{};
@@ -2217,10 +2334,11 @@ export namespace fan {
         VkSubpassDependency extToMainDep{};
         extToMainDep.srcSubpass = VK_SUBPASS_EXTERNAL;
         extToMainDep.dstSubpass = 0;
-        extToMainDep.srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+        extToMainDep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         extToMainDep.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         extToMainDep.srcAccessMask = 0;
         extToMainDep.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        extToMainDep.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
         VkSubpassDependency mainToPostDep{};
         mainToPostDep.srcSubpass = 0;
@@ -2228,7 +2346,8 @@ export namespace fan {
         mainToPostDep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
         mainToPostDep.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
         mainToPostDep.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-        mainToPostDep.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        mainToPostDep.dstAccessMask = VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
+        mainToPostDep.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
 
         VkSubpassDependency postToExtDep{};
         postToExtDep.srcSubpass = 1;
@@ -2237,6 +2356,8 @@ export namespace fan {
         postToExtDep.dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
         postToExtDep.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
         postToExtDep.dstAccessMask = 0;
+        postToExtDep.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
 
         VkAttachmentDescription attachments[] = {
           mainColorAttachment,
@@ -2268,6 +2389,7 @@ export namespace fan {
           fan::throw_error("failed to create render pass");
         }
       }
+
 
       void create_framebuffers() {
         swap_chain_framebuffers.resize(swap_chain_image_views.size());
@@ -2347,10 +2469,16 @@ export namespace fan {
         VkMemoryRequirements memRequirements;
         vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
 
+        VkMemoryAllocateFlagsInfo allocFlags{};
+        allocFlags.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
+        allocFlags.flags = (usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) ? VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT : 0;
+        allocFlags.pNext = nullptr;
+
         VkMemoryAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize = memRequirements.size;
         allocInfo.memoryTypeIndex = find_memory_type(memRequirements.memoryTypeBits, properties);
+        allocInfo.pNext = (allocFlags.flags != 0) ? &allocFlags : nullptr;
 
         fan::vulkan::validate(vkAllocateMemory(device, &allocInfo, nullptr, &buffer_memory));
         fan::vulkan::validate(vkBindBufferMemory(device, buffer, buffer_memory, 0));
@@ -2495,7 +2623,7 @@ export namespace fan {
 
        //----------------------------------------------imgui stuff----------------------------------------------
       bool                     SwapChainRebuild = false;
-      #if defined(fan_gui)
+      #if defined(FAN_GUI)
       ImGui_ImplVulkanH_Window MainWindowData;
       uint32_t                 MinImageCount = 2;
 
@@ -2589,8 +2717,8 @@ export namespace fan {
 
       void begin_compute_shader() {
         //?
-        //vkWaitForFences(device, 1, &inFlightFences[current_frame], VK_TRUE, UINT64_MAX);
 
+        vkWaitForFences(device, 1, &in_flight_fences[current_frame], VK_TRUE, UINT64_MAX);
         vkResetFences(device, 1, &in_flight_fences[current_frame]);
 
         vkResetCommandBuffer(command_buffers[current_frame], /*VkCommandBufferResetFlagBits*/ 0);
@@ -2636,6 +2764,7 @@ export namespace fan {
       }
 
       VkPresentModeKHR choose_swap_present_mode(const std::vector<VkPresentModeKHR>& available_present_modes) {
+        return VK_PRESENT_MODE_IMMEDIATE_KHR;
         for (const auto& available_present_mode : available_present_modes) {
           if (available_present_mode == VK_PRESENT_MODE_IMMEDIATE_KHR && !vsync) {
             return VK_PRESENT_MODE_IMMEDIATE_KHR;
@@ -2787,7 +2916,7 @@ export namespace fan {
           extension_str[i] = available_extensions[i].extensionName;
         }
 
-      #if fan_debug >= fan_debug_high
+      #if FAN_DEBUG >= fan_debug_high
         if (supports_validation_layers) {
           extension_str.push_back((char*)VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         }
@@ -2838,12 +2967,13 @@ export namespace fan {
         return VK_FALSE;
       }
 
-#if defined(loco_window)
-void set_vsync(fan::window_t* window, bool flag) {
-  vsync = flag;
-  recreate_swap_chain(window->get_size());
-}
-#endif
+      #if defined(loco_window)
+      void set_vsync(fan::window_t* window, bool flag) {
+        vsync = flag;
+        SwapChainRebuild = true;
+        recreate_swap_chain(window, VK_ERROR_OUT_OF_DATE_KHR);
+      }
+      #endif
 
       VkInstance instance;
       VkDebugUtilsMessengerEXT debug_messenger;
@@ -2883,10 +3013,14 @@ void set_vsync(fan::window_t* window, bool flag) {
       
       std::vector<VkCommandBuffer> command_buffers;
 
+      std::vector<std::function<void(VkCommandBuffer)>> begin_cmd_cb;
+
       std::vector<VkSemaphore> image_available_semaphores;
       std::vector<VkSemaphore> render_finished_semaphores;
       std::vector<VkFence> in_flight_fences;
       uint32_t current_frame = 0;
+
+      fan::window_t::resize_handle_t window_resize_handle;
 
       bool enable_clear = true;
       bool shapes_top = false;
@@ -3129,10 +3263,10 @@ fan::graphics::context_functions_t fan::graphics::get_vk_context_functions() {
     return ((fan::vulkan::context_t*)context)->camera_get_size(nr); 
   };
   cf.camera_get_zoom = [](void* context, fan::graphics::camera_nr_t nr) {
-    return ((fan::opengl::context_t*)context)->camera_get_zoom(nr);
+    return ((fan::vulkan::context_t*)context)->camera_get_zoom(nr);
   };
   cf.camera_set_zoom = [](void* context, fan::graphics::camera_nr_t nr, f32_t new_zoom) {
-    ((fan::opengl::context_t*)context)->camera_set_position(nr, new_zoom);
+    ((fan::vulkan::context_t*)context)->camera_set_position(nr, new_zoom);
   };
   cf.camera_set_ortho = [](void* context, camera_nr_t nr, fan::vec2 x, fan::vec2 y) { 
     ((fan::vulkan::context_t*)context)->camera_set_ortho(nr, x, y); 

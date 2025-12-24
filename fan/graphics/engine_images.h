@@ -19,7 +19,7 @@ void unload_engine_images() {
   image_unload(fan::graphics::icons.pause);
   image_unload(fan::graphics::icons.settings);
 
-#if defined(fan_opengl) && defined(loco_framebuffer)
+#if defined(FAN_OPENGL) && defined(loco_framebuffer)
   for (auto& i : gl.color_buffers) {
     image_unload(i);
   }

@@ -11,7 +11,7 @@ import fan.types;
 import fan.graphics;
 import fan.random;
 
-#include <fan/graphics/algorithm/FastNoiseLite.h>
+#include <fan/graphics/2D/algorithm/FastNoiseLite.h>
 
 export namespace fan {
 

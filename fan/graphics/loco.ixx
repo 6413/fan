@@ -5,7 +5,7 @@ module;
 #define loco_vfi
 
 #include <fan/graphics/opengl/init.h>
-#if defined(fan_vulkan)
+#if defined(FAN_VULKAN)
   #include <vulkan/vulkan.h>
 #endif
 #include <fan/event/types.h>
@@ -32,7 +32,7 @@ module;
 export module fan.graphics.loco;
 
 import fan.utility;
-#if defined(fan_gui)
+#if defined(FAN_GUI)
   import fan.graphics.gui.text_logger;
 #endif
 export import fan.event;
@@ -42,29 +42,29 @@ export import fan.random;
 export import fan.texture_pack.tp0;
 export import fan.io.file;
 import fan.graphics.culling;
-#if defined(fan_physics)
+#if defined(FAN_PHYSICS_2D)
 	import fan.physics.b2_integration;
   import fan.physics.common_context;
 #endif
-#if defined(fan_audio)
+#if defined(FAN_AUDIO)
 	export import fan.audio;
 #endif
-#if defined(fan_gui)
+#if defined(FAN_GUI)
   import fan.graphics.gui.base;
 	export import fan.console;
 #endif
 export import fan.graphics.opengl.core;
-#if defined(fan_vulkan)
+#if defined(FAN_VULKAN)
 	export import fan.graphics.vulkan.core;
 #endif
 export import fan.graphics.shapes;
 export import fan.physics.collision.rectangle;
 export import fan.noise;
-#if defined(fan_json)
+#if defined(FAN_JSON)
 	export import fan.types.json;
 #endif
 
-#if defined(fan_json)
+#if defined(FAN_JSON)
 export namespace fan {
   struct json_stream_parser_t {
     std::string buf;
@@ -260,8 +260,6 @@ public:
   bool inside(const fan::graphics::render_view_t& render_view, const fan::vec2& position);
   bool is_mouse_inside(const fan::graphics::render_view_t& render_view);
 
-  static std::string read_shader(const std::string& path, const std::source_location& callers_path = std::source_location::current());
-
   fan::graphics::context_functions_t context_functions;
   fan::graphics::context_t context;
 
@@ -271,14 +269,14 @@ public:
 	loco_t(loco_t&&) = delete;
 	loco_t& operator=(loco_t&&) = delete;
 
-#if defined (fan_gui)
+#if defined (FAN_GUI)
 	using console_t = fan::console_t;
 #endif
 
   void use();
   void camera_move(fan::graphics::context_camera_t& camera, f64_t dt, f32_t movement_speed, f32_t friction = 12);
 
-#if defined(fan_opengl)
+#if defined(FAN_OPENGL)
 	// opengl namespace
 	struct opengl {
 #include <fan/graphics/opengl/engine_functions.h>
@@ -307,67 +305,18 @@ public:
 	}gl;
 #endif
 
-#if defined(fan_vulkan)
+#if defined(FAN_VULKAN)
 	struct vulkan {
 #include <fan/graphics/vulkan/engine_functions.h>
 
 		fan::vulkan::context_t::descriptor_t d_attachments;
 		fan::vulkan::context_t::pipeline_t post_process;
 		VkResult image_error = VK_SUCCESS;
+
+    fan::window_t::resize_handle_t window_resize_handle;
 	}vk;
 #endif
 
-	template <typename T, typename T2>
-	static T2& get_render_data(fan::graphics::shapes::shape_t* shape, T2 T::* attribute) {
-		fan::graphics::shaper_t::ShapeRenderData_t* data = shape->GetRenderData(fan::graphics::g_shapes->shaper);
-		return ((T*)data)->*attribute;
-	}
-
-	template <typename T, typename T2, typename T3, typename T4>
-	static void modify_render_data_element_arr(fan::graphics::shapes::shape_t* shape, T2 T::* attribute, std::size_t i, auto T4::* arr_member, const T3& value) {
-		fan::graphics::shaper_t::ShapeRenderData_t* data = shape->GetRenderData(fan::graphics::g_shapes->shaper);
-
-		// remove gloco
-		if (gloco()->window.renderer == fan::window_t::renderer_t::opengl) {
-			gloco()->gl.modify_render_data_element_arr(shape, data, attribute, i, arr_member, value);
-		}
-#if defined(fan_vulkan)
-		else if (gloco()->window.renderer == fan::window_t::renderer_t::vulkan) {
-			(((T*)data)->*attribute)[i].*arr_member = value;
-			auto& data = fan::graphics::g_shapes->shaper.ShapeList[*shape];
-			fan::graphics::g_shapes->shaper.ElementIsPartiallyEdited(
-				data.sti,
-				data.blid,
-				data.ElementIndex,
-				fan::member_offset(attribute),
-				sizeof(T3)
-			);
-		}
-#endif
-	}
-
-	template <typename T, typename T2, typename T3>
-	static void modify_render_data_element(fan::graphics::shapes::shape_t* shape, T2 T::* attribute, const T3& value) {
-		fan::graphics::shaper_t::ShapeRenderData_t* data = shape->GetRenderData(fan::graphics::g_shapes->shaper);
-
-		// remove gloco
-		if (gloco()->window.renderer == fan::window_t::renderer_t::opengl) {
-			gloco()->gl.modify_render_data_element(shape, data, attribute, value);
-		}
-#if defined(fan_vulkan)
-		else if (gloco()->window.renderer == fan::window_t::renderer_t::vulkan) {
-			((T*)data)->*attribute = value;
-			auto& data = fan::graphics::g_shapes->shaper.ShapeList[*shape];
-			fan::graphics::g_shapes->shaper.ElementIsPartiallyEdited(
-				data.sti,
-				data.blid,
-				data.ElementIndex,
-				fan::member_offset(attribute),
-				sizeof(T3)
-			);
-		}
-#endif
-	}
 public:
 
 	std::vector<std::function<void()>> m_pre_draw;
@@ -386,17 +335,21 @@ public:
 	fan::time::timer start_time;
   f32_t time = 0;
 
+#if defined(FAN_2D)
   void add_shape_to_immediate_draw(fan::graphics::shapes::shape_t&& s);
   uint32_t add_shape_to_static_draw(fan::graphics::shapes::shape_t&& s);
   void remove_static_shape_draw(const fan::graphics::shapes::shape_t& s);
+#endif
 
   static void generate_commands(loco_t* loco);
 	// -1 no reload, opengl = 0 etc
 	std::uint8_t reload_renderer_to = -1;
 
+#if defined(FAN_2D)
   fan::vec2 world_min = fan::vec2(-10000);
   fan::vec2 cell_size = fan::vec2(256);
   fan::vec2i grid_size = fan::vec2i(256);
+  bool init_culling = true;
 
   void culling_rebuild_grid();
   void rebuild_static_culling();
@@ -407,18 +360,18 @@ public:
   void set_cull_padding(const fan::vec2& padding);
   bool is_visualizing_culling = false;
   void visualize_culling();
+#endif
 
-#if defined(fan_vulkan)
+#if defined(FAN_VULKAN)
   // todo move to vulkan context
   static void check_vk_result(VkResult err);
 #endif
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
   void init_gui();
   void destroy_gui();
   bool enable_overlay = true;
 #endif
-  void init_framebuffer();
 
   loco_t();
   loco_t(const properties_t& p);
@@ -448,7 +401,7 @@ public:
 
     stats_t calculate_stats(f32_t last_value) const;
 
-  #if defined(fan_gui)
+  #if defined(FAN_GUI)
     void plot(const char* label);
   #endif
 
@@ -511,7 +464,9 @@ public:
 	fan::graphics::render_view_t orthographic_render_view;
 	fan::graphics::render_view_t perspective_render_view;
 
+#if defined(FAN_2D)
   fan::graphics::shapes shapes;
+#endif
 
   void set_window_name(const std::string& name);
   void set_window_icon(const fan::image::info_t& info);
@@ -521,8 +476,6 @@ public:
 	uv_idle_t idle_handle;
 	bool timer_init = false;
 	uv_timer_t timer_handle{};
-
-  bool init_culling = true;
 
 	int32_t target_fps = 165; // must be changed from function
 	bool timer_enabled = target_fps > 0;
@@ -541,7 +494,7 @@ public:
   f64_t target_frame_time = 0.0;
   f64_t accumulated_time = 0.0;
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
 	fan::graphics::gui_draw_cb_t gui_draw_cb;
 #endif
 
@@ -594,14 +547,16 @@ public:
   mouse_move_handle_t mouse_move_handle;
   text_callback_handle_t text_callback_handle;
 
-#if defined(fan_physics)
+#if defined(FAN_PHYSICS_2D)
 	fan::physics::context_t physics_context{ {} };
   void update_physics();
 #endif
 
 	// clears shapes after drawing, good for debug draw, not best for performance
+#if defined(FAN_2D)
 	std::vector<fan::graphics::shapes::shape_t> immediate_render_list;
 	std::unordered_map<std::uint32_t, fan::graphics::shapes::shape_t> static_render_list;
+#endif
 
   fan::vec2 get_mouse_position(const camera_t& camera, const viewport_t& viewport) const;
   fan::vec2 get_mouse_position(const fan::graphics::render_view_t& render_view) const;
@@ -621,7 +576,7 @@ public:
 	// which assume that
 
 	// pointer
-
+#if defined(FAN_2D)
   void shape_open(
     uint16_t shape_type,
     std::size_t sizeof_vi,
@@ -632,6 +587,7 @@ public:
     fan::graphics::shaper_t::ShapeRenderDataSize_t instance_count = 1,
     bool instanced = true
   );
+#endif
 
   fan::graphics::shader_t get_sprite_vertex_shader(const std::string& fragment);
 
@@ -645,10 +601,12 @@ public:
 
 	fan::graphics::lighting_t lighting;
 
+#if defined(FAN_2D)
   bool force_line_draw = false;
+#endif
 
 	//gui
-#if defined(fan_gui)
+#if defined(FAN_GUI)
   void toggle_console();
   void toggle_console(bool active);
 
@@ -697,25 +655,27 @@ public:
   };
 #endif
 
-#if defined(fan_audio)
+#if defined(FAN_AUDIO)
 	fan::system_audio_t system_audio;
 	fan::audio_t audio;
 #endif
+#if defined(FAN_2D)
   void camera_move_to(const fan::graphics::shapes::shape_t& shape, const fan::graphics::render_view_t& render_view);
   void camera_move_to(const fan::graphics::shapes::shape_t& shape);
   void camera_move_to_smooth(const fan::graphics::shapes::shape_t& shape, const fan::graphics::render_view_t& render_view);
   void camera_move_to_smooth(const fan::graphics::shapes::shape_t& shape);
+#endif
   bool shader_update_fragment(uint16_t shape_type, const std::string& fragment);
 };
 
 //vk
 
-#if defined(fan_vulkan)
+#if defined(FAN_VULKAN)
 #include <fan/graphics/vulkan/uniform_block.h>
 #include <fan/graphics/vulkan/memory.h>
 #endif
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
 namespace fan {
 	namespace graphics {
 		using texture_packe0 = fan::graphics::texture_pack::internal_t;

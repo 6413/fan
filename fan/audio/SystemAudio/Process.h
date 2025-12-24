@@ -289,10 +289,10 @@ void _AddSoundToPlay(_PlayInfoList_NodeReference_t PlayInfoReference) {
   auto Play = &((_Play_t *)this->PlayList.ptr)[PlayID];
   Play->Reference = PlayInfoReference;
   auto PlayInfo = &this->PlayInfoList[PlayInfoReference];
-  #if fan_debug >= 0
+  #if FAN_DEBUG >= 0
     if (PlayInfo->PlayID != (uint32_t)-1) {
       /* trying play sound that already playing */
-      fan::throw_error("fan_debug");
+      fan::throw_error("FAN_DEBUG");
     }
   #endif
   PlayInfo->PlayID = PlayID;

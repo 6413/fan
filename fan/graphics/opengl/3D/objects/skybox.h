@@ -55,7 +55,7 @@
 //
 //      void open(fan::opengl::context_t* context) {
 //        m_draw_node_reference = fan::uninitialized;
-//        #if fan_debug >= fan_debug_low
+//        #if FAN_DEBUG >= fan_debug_low
 //          m_texture = 0;
 //        #endif
 //
@@ -74,7 +74,7 @@
 //        m_shader.compile(context);
 //      }
 //      void close(fan::opengl::context_t* context) {
-//        #if fan_debug >= fan_debug_low
+//        #if FAN_DEBUG >= fan_debug_low
 //        if (m_texture == 0) {
 //          fan::throw_error("trying to delete invalid texture");
 //        }
@@ -91,7 +91,7 @@
 //        m_draw_node_reference = context->enable_draw(this, [](fan::opengl::context_t* c, void* d) { ((decltype(this))d)->draw(c); });
 //      }
 //      void disable_draw(fan::opengl::context_t* context) {
-//        #if fan_debug >= fan_debug_low
+//        #if FAN_DEBUG >= fan_debug_low
 //        if (m_draw_node_reference == fan::uninitialized) {
 //          fan::throw_error("trying to disable non enabled draw");
 //        }

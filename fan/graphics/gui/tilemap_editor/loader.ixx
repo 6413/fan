@@ -1,22 +1,28 @@
 module;
 
-#if defined(fan_physics)
+#if defined(FAN_2D)
 
-#include <fan/utility.h>
-#include <unordered_map>
-#include <vector>
-#include <string>
-#include <variant>
-#include <source_location>
-#include <sstream>
-#include <fstream>
-#include <functional>
+  #if defined(FAN_PHYSICS_2D)
+
+  #include <fan/utility.h>
+  #include <unordered_map>
+  #include <vector>
+  #include <string>
+  #include <variant>
+  #include <source_location>
+  #include <sstream>
+  #include <fstream>
+  #include <functional>
+
+  #endif
 
 #endif
 
 export module fan.graphics.gui.tilemap_editor.loader;
 
-#if defined(fan_physics)
+#if defined(FAN_2D)
+
+#if defined(FAN_PHYSICS_2D)
 import fan.print;
 import fan.utility;
 import fan.graphics;
@@ -292,7 +298,7 @@ public:
   }
 
   compiled_map_t compile(const std::string& filename, const std::source_location& callers_path = std::source_location::current()) {
-  #if defined(fan_json)
+  #if defined(FAN_JSON)
 
     std::ifstream file(fan::io::file::find_relative_path(filename, callers_path), std::ios::binary | std::ios::ate);
     if (!file) {
@@ -455,7 +461,7 @@ public:
 
     return compiled_map;
   #else
-    fan::throw_error("fan_json not enabled");
+    fan::throw_error("FAN_JSON not enabled");
     __unreachable();
   #endif
   }
@@ -487,4 +493,6 @@ public:
 
   map_list_t map_list;
 };
+#endif
+
 #endif

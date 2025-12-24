@@ -1,6 +1,6 @@
 module;
 
-#if defined(fan_opengl)
+#if defined(FAN_OPENGL)
   #include <fan/graphics/opengl/init.h>
 #endif
 
@@ -18,9 +18,11 @@ module fan.graphics.shapes;
 
 import fan.utility;
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
   import fan.graphics.gui.text_logger;
 #endif
+
+#if defined(FAN_2D)
 
 #define shaper_get_key_safe(return_type, kps_type, variable) \
 	[key_pack] ()-> auto& { \
@@ -32,8 +34,12 @@ import fan.utility;
 		return *(fan::graphics::return_type*)&key_pack[o];\
 	}()
 
+
 #define shape_get_vi(shape) (*(fan::graphics::shapes::shape##_t::vi_t*)GetRenderData(fan::graphics::g_shapes->shaper))
 #define shape_get_ri(shape) (*(fan::graphics::shapes::shape##_t::ri_t*)GetData(fan::graphics::g_shapes->shaper))
+
+#endif
+
 namespace fan::graphics {
 
   // warning does deep copy, addresses can die
@@ -42,7 +48,7 @@ namespace fan::graphics {
 		if (fan::graphics::ctx().window->renderer == fan::window_t::renderer_t::opengl) {
 			context_shader.gl = *(fan::opengl::context_t::shader_t*)fan::graphics::ctx()->shader_get(fan::graphics::ctx(), nr);
 		}
-	#if defined(fan_vulkan)
+	#if defined(FAN_VULKAN)
 		else if (fan::graphics::ctx().window->renderer == fan::window_t::renderer_t::vulkan) {
 			context_shader.vk = *(fan::vulkan::context_t::shader_t*)fan::graphics::ctx()->shader_get(fan::graphics::ctx(), nr);
 		}
@@ -51,7 +57,7 @@ namespace fan::graphics {
 	}
 
 
-  #if defined(fan_json)
+  #if defined(FAN_JSON)
 	fan::json image_to_json(const fan::graphics::image_t& image) {
 		fan::json image_json;
 		if (image.iic()) {
@@ -132,8 +138,9 @@ namespace fan::graphics {
 	}
 #endif
 
+#if defined(FAN_2D)
 
-#if defined(fan_json)
+#if defined(FAN_JSON)
   sprite_sheet_animation_t::image_t::operator fan::json() const {
     fan::json j;
     image_t defaults;
@@ -295,7 +302,7 @@ namespace fan::graphics {
     return sd.current_frame == animation.selected_frames.size() - 1;
   }
 
-#if defined(fan_json)
+#if defined(FAN_JSON)
   fan::json sprite_sheet_serialize() {
     fan::json result = fan::json::object();
     fan::json animations_arr = fan::json::array();
@@ -384,18 +391,13 @@ namespace fan::graphics {
       }
     }
   }
-#endif // fan_json
+#endif // FAN_JSON
 
-
-  std::string read_shader(const std::string& path, const std::source_location& callers_path) {
-    std::string code;
-    fan::io::file::read(fan::io::file::find_relative_path(path, callers_path), &code);
-    return code;
-  }
+#endif
 }
 
 namespace fan::graphics{
-
+#if defined(FAN_2D)
   void shapes::shaper_deep_copy(shape_t* dst, const shape_t* const src, shaper_t::ShapeTypeIndex_t sti) {
     // alloc can be avoided inside switch
     uint8_t* KeyPack = new uint8_t[shaper.GetKeysSize(*src)];
@@ -1101,7 +1103,7 @@ namespace fan::graphics{
       g_shapes->shaper.GetShader(shape_type_t::shader_shape) = properties.shader;
       break;
     }
-    #if defined(fan_3D)
+    #if defined(FAN_3D)
     case shape_type_t::rectangle3d: {
       shapes::rectangle3d_list_t::nr_t nr;
       nr.gint() = sd.data_nr;
@@ -1327,7 +1329,7 @@ namespace fan::graphics{
 		return m;
 	}
 
-#if defined(fan_physics)
+#if defined(FAN_PHYSICS_2D)
 	fan::physics::aabb_t shapes::shape_t::get_aabb() const {
 
     switch (get_shape_type()) {
@@ -1490,7 +1492,7 @@ namespace fan::graphics{
 
 			return ret;
 		}
-	#if fan_debug >= fan_debug_medium
+	#if FAN_DEBUG >= fan_debug_medium
 		fan::throw_error("only for sprite and unlit_sprite");
 	#endif
 		return {};
@@ -1512,7 +1514,7 @@ namespace fan::graphics{
 		else if (shape_type == shape_type_t::unlit_sprite) {
 			((unlit_sprite_t::ri_t*)ShapeID_t::GetData(fan::graphics::g_shapes->shaper))->images = images;
 		}
-	#if fan_debug >= fan_debug_medium
+	#if FAN_DEBUG >= fan_debug_medium
 		else {
 			fan::throw_error("only for sprite and unlit_sprite");
 		}
@@ -1732,7 +1734,7 @@ namespace fan::graphics{
       update_dynamic();
 		}
     update_dynamic();
-	#if defined(fan_3D)
+	#if defined(FAN_3D)
 		if (st == fan::graphics::shapes::shape_type_t::line3d) {
 			auto data = reinterpret_cast<line3d_t::vi_t*>(GetRenderData(fan::graphics::g_shapes->shaper));
 			data->src = fan::vec3(src.x, src.y, 0);
@@ -1774,7 +1776,7 @@ namespace fan::graphics{
     return false;
 	}
 
-#if defined(fan_physics)
+#if defined(FAN_PHYSICS_2D)
 	bool shapes::shape_t::intersects(const fan::graphics::shapes::shape_t& shape) const {
 		switch (get_shape_type()) {
 		case shape_type_t::capsule: // inaccurate
@@ -2065,7 +2067,7 @@ namespace fan::graphics{
   }
 
 	void shapes::shape_t::set_current_animation_id(animation_nr_t animation_id) {
-	#if fan_debug >= fan_debug_medium
+	#if FAN_DEBUG >= fan_debug_medium
 		if (!animation_id) {
 			fan::throw_error("invalid animation id");
 		}
@@ -2075,7 +2077,7 @@ namespace fan::graphics{
 
 	sprite_sheet_animation_t& shapes::shape_t::get_current_animation() {
 		auto found = all_animations.find(get_current_animation_id());
-		#if fan_debug >= fan_debug_medium
+		#if FAN_DEBUG >= fan_debug_medium
 		if (found == all_animations.end()) {
 			fan::throw_error("animation not found");
 		}
@@ -2118,7 +2120,7 @@ namespace fan::graphics{
 		for (const auto& anim : anims) {
 			if (anim.first == name) {
 				auto found = all_animations.find(anim.second);
-			#if fan_debug >= fan_debug_medium
+			#if FAN_DEBUG >= fan_debug_medium
 				if (found == all_animations.end()) {
 					fan::throw_error("animation not found, animation list (corruption)");
 				}
@@ -2166,7 +2168,7 @@ namespace fan::graphics{
 
 	// for line
 	void shapes::shape_t::set_thickness(f32_t new_thickness) {
-	#if fan_debug >= 3
+	#if FAN_DEBUG >= 3
 		if (get_shape_type() != fan::graphics::shapes::shape_type_t::line) {
 			fan::throw_error("Invalid function call 'set_thickness', shape was not line");
 		}
@@ -2488,7 +2490,7 @@ namespace fan::graphics{
     return ret;
   }
 
-#if defined(fan_3D)
+#if defined(FAN_3D)
   shapes::shape_t shapes::rectangle3d_t::push_back(const properties_t& properties){
     auto new_item = g_shapes->add_shape(g_shapes->rectangle3d_list, properties);
     fan::graphics::shaper_t::ShapeID_t ret;
@@ -2504,7 +2506,10 @@ namespace fan::graphics{
   }
 #endif
 
+#endif // FAN_2D
 } // namespace fan::graphics
+
+#if defined(FAN_2D)
 
 void fan::graphics::shapes::shape_t::sprite_sheet_frame_update_cb(
   fan::graphics::shaper_t& shaper,
@@ -2634,7 +2639,11 @@ void fan::graphics::shapes::shape_t::add_sprite_sheet_animation(const fan::graph
   start_sprite_sheet_animation();
 }
 
-#if defined(fan_json)
+#endif
+
+#if defined(FAN_2D)
+
+#if defined(FAN_JSON)
 namespace fan::graphics {
   bool shape_to_json(fan::graphics::shapes::shape_t& shape, fan::json* json) {
     fan::json& out = *json;
@@ -3565,7 +3574,7 @@ namespace fan::graphics {
   bool shape_serialize(fan::graphics::shapes::shape_t& shape, std::vector<uint8_t>* out) {
 		return shape_to_bin(shape, out);
 	}
-#if defined(fan_physics)
+#if defined(FAN_PHYSICS_2D)
   bool shape_deserialize_t::iterate(const fan::json& json, fan::graphics::shapes::shape_t* shape, const std::source_location& callers_path) {
     if (init == false) {
       data.it = json.cbegin();
@@ -3596,7 +3605,7 @@ namespace fan::graphics {
     bin_to_shape(bin_data, shape, data.offset);
     return 1;
   }
-#if defined(fan_physics)
+#if defined(FAN_PHYSICS_2D)
   fan::graphics::shapes::shape_t extract_single_shape(const fan::json& json_data, const std::source_location& callers_path) {
     fan::graphics::shapes::shape_t shape;
     fan::graphics::shape_deserialize_t iterator;
@@ -3606,7 +3615,7 @@ namespace fan::graphics {
     else if (json_data.contains("shape")) {
       iterator.iterate(json_data, &shape, callers_path);
     }
-    #if defined(fan_gui)
+    #if defined(FAN_GUI)
     else {
       fan::graphics::gui::print_warning("Failed to load shape - extract_single_shape");
     }
@@ -3621,7 +3630,7 @@ namespace fan::graphics {
 #endif
 }
 
-#if defined(fan_json)
+#if defined(FAN_JSON)
   fan::graphics::shapes::shape_t::operator fan::json() {
 	  fan::json out;
 	  fan::graphics::shape_to_json(*this, &out);
@@ -3645,4 +3654,5 @@ namespace fan::graphics {
   fan::graphics::shapes::shape_t& fan::graphics::shapes::shape_t::operator=(const std::string& json_string) {
 	  return fan::graphics::shapes::shape_t::operator=(fan::json::parse(json_string));
   }
+#endif
 #endif

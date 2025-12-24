@@ -1,6 +1,6 @@
 module;
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
   #include <fan/imgui/imgui.h>
   #include <fan/imgui/imgui_internal.h>
   #include <fan/imgui/imgui_impl_glfw.h>
@@ -9,7 +9,7 @@ module;
 
   #include <fan/imgui/misc/freetype/imgui_freetype.h>
   #include <fan/imgui/imgui_impl_opengl3.h>
-  #if defined(fan_vulkan)
+  #if defined(FAN_VULKAN)
   #include <fan/imgui/imgui_impl_vulkan.h>
   #endif
 
@@ -23,7 +23,7 @@ module;
 
 module fan.graphics.gui.base;
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
 
 import fan.utility;
 
@@ -1077,7 +1077,7 @@ namespace fan::graphics::gui {
     int renderer,
     int opengl_renderer_definition,  // todo bad
     int vulkan_renderer_definition  //  todo bad
-  #if defined(fan_vulkan)
+  #if defined(FAN_VULKAN)
     , VkInstance instance, 
     VkPhysicalDevice physical_device, 
     VkDevice device, 
@@ -1116,7 +1116,7 @@ namespace fan::graphics::gui {
       renderer,
       opengl_renderer_definition,
       vulkan_renderer_definition
-    #if defined(fan_vulkan)
+    #if defined(FAN_VULKAN)
       , 
       instance, 
       physical_device, 
@@ -1144,7 +1144,7 @@ namespace fan::graphics::gui {
     int renderer,
     int opengl_renderer_definition,  // todo bad
     int vulkan_renderer_definition  //  todo bad
-  #if defined(fan_vulkan)
+  #if defined(FAN_VULKAN)
     , VkInstance instance, 
     VkPhysicalDevice physical_device, 
     VkDevice device, 
@@ -1165,7 +1165,7 @@ namespace fan::graphics::gui {
       ImGui_ImplOpenGL3_Init(glsl_version);
     }
 
-  #if defined(fan_vulkan)
+  #if defined(FAN_VULKAN)
     else if (renderer == vulkan_renderer_definition) {
       ImGui_ImplGlfw_InitForVulkan(window, true);
 
@@ -1284,14 +1284,14 @@ namespace fan::graphics::gui {
     int renderer,
     int opengl_renderer_definition,  // todo bad
     int vulkan_renderer_definition  //  todo bad
-  #if defined(fan_vulkan)
+  #if defined(FAN_VULKAN)
     , VkDevice device
   #endif
   ) {
     if (renderer == opengl_renderer_definition) {
       ImGui_ImplOpenGL3_Shutdown();
     }
-  #if defined(fan_vulkan)
+  #if defined(FAN_VULKAN)
     else if (renderer == vulkan_renderer_definition) {
       vkDeviceWaitIdle(device);
       ImGui_ImplVulkan_Shutdown();
@@ -1316,7 +1316,7 @@ namespace fan::graphics::gui {
     if (renderer == opengl_renderer_definition) {
       ImGui_ImplOpenGL3_NewFrame();
     }
-  #if defined(fan_vulkan)
+  #if defined(FAN_VULKAN)
     else if (renderer == vulkan_renderer_definition) {
       ImGui_ImplVulkan_NewFrame();
     }
@@ -1330,7 +1330,7 @@ namespace fan::graphics::gui {
     int opengl_renderer_definition,  // todo bad
     int vulkan_renderer_definition,  //  todo bad
     bool render_shapes_top
-  #if defined(fan_vulkan)
+  #if defined(FAN_VULKAN)
     ,
     void* context,
     const fan::color& clear_color,
@@ -1344,7 +1344,7 @@ namespace fan::graphics::gui {
     if (renderer == opengl_renderer_definition) {
       ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
     }
-  #if defined(fan_vulkan)
+  #if defined(FAN_VULKAN)
     else if (renderer == vulkan_renderer_definition) {
       if (image_error == (VkResult)-0xfff) {
         image_error = VK_SUCCESS;
@@ -1570,7 +1570,7 @@ namespace fan::graphics::gui {
   }
 } // namespace fan::graphics::gui
 
-#if defined(fan_audio)
+#if defined(FAN_AUDIO)
 namespace fan::graphics::gui {
   bool audio_button(const std::string& label, fan::audio::piece_t piece_hover, fan::audio::piece_t piece_click, const fan::vec2& size) {
     ImGui::PushID(label.c_str());

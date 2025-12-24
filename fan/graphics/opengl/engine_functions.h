@@ -3,6 +3,9 @@ loco_t& get_loco() {
 }
 #define loco get_loco()
 
+
+#if defined(FAN_2D)
+
 template <typename T, typename T2, typename T3, typename T4>
 static void modify_render_data_element_arr(fan::graphics::shapes::shape_t* shape, fan::graphics::shaper_t::ShapeRenderData_t* data, T2 T::* attribute, std::size_t j, auto T4::*arr_member, const T3& value) {
   if ((gloco()->context.gl.opengl.major > 3) || (gloco()->context.gl.opengl.major == 3 && gloco()->context.gl.opengl.minor >= 3)) {
@@ -61,6 +64,7 @@ static void modify_render_data_element(fan::graphics::shapes::shape_t* shape, fa
     }
   }
 }
+#endif
 
 void open() {
   if (loco.window.renderer == fan::window_t::renderer_t::opengl) {
@@ -175,6 +179,12 @@ void init_framebuffer() {
     loco.viewport_set(loco.orthographic_render_view.viewport, fan::vec2(0, 0), d.size);
     loco.viewport_set(loco.perspective_render_view.viewport, fan::vec2(0, 0), d.size);
 
+    loco.camera_set_ortho(
+      loco.orthographic_render_view.camera,
+      fan::vec2(0, d.size.x),
+      fan::vec2(0, d.size.y)
+    );
+
     fan::image::info_t image_info;
     image_info.data = nullptr;
     image_info.size = loco.window.get_size();
@@ -189,17 +199,6 @@ void init_framebuffer() {
     renderbuffer_properties.size = image_info.size;
     renderbuffer_properties.internalformat = GL_DEPTH_COMPONENT;
     loco.gl.m_rbo.set_storage(loco.context.gl, renderbuffer_properties);
-
-    fan::vec2 window_size = gloco()->window.get_size();
-
-    loco.camera_set_ortho(
-      loco.orthographic_render_view.camera,
-      fan::vec2(0, window_size.x),
-      fan::vec2(0, window_size.y)
-    );
-
-    loco.viewport_set(loco.orthographic_render_view.viewport, fan::vec2(0, 0), d.size);
-    loco.viewport_set(loco.perspective_render_view.viewport, fan::vec2(0, 0), d.size);
   });
 
   fan::opengl::core::renderbuffer_t::properties_t renderbuffer_properties;
@@ -233,6 +232,8 @@ void init_framebuffer() {
 
 #endif
 }
+
+#if defined(FAN_2D)
 
 void shapes_open() {
   {
@@ -417,9 +418,7 @@ void shapes_open() {
   }
 
   // vfi must be in this order
-#if defined(loco_vfi)
   fan::graphics::g_shapes->vfi.open();
-#endif
 
   {
     if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
@@ -498,7 +497,7 @@ void shapes_open() {
   }
 
   {
-#if defined(fan_3D)
+#if defined(FAN_3D)
     loco.shape_open(
       fan::graphics::shapes::rectangle3d_t::shape_type,
       sizeof(fan::graphics::shapes::rectangle3d_t::vi_t),
@@ -513,7 +512,7 @@ void shapes_open() {
     );
 #endif
   }
-  #if defined(fan_3D)
+  #if defined(FAN_3D)
   {
     if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
       // todo implement line
@@ -553,30 +552,14 @@ void shapes_open() {
     }
   }
 
-#if defined(loco_framebuffer)
-  init_framebuffer();
-
-  loco.gl.m_fbo_final_shader = loco.shader_create();
-
-  loco.shader_set_vertex(
-    loco.gl.m_fbo_final_shader,
-    loco.read_shader("shaders/opengl/2D/effects/loco_fbo.vs")
-  );
-  loco.shader_set_fragment(
-    loco.gl.m_fbo_final_shader,
-    loco.read_shader("shaders/opengl/2D/effects/loco_fbo.fs")
-  );
-  loco.shader_compile(loco.gl.m_fbo_final_shader);
-#endif
-
   fan::graphics::shader_t shader = loco.shader_create();
 
   loco.shader_set_vertex(shader,
-    loco.read_shader("shaders/empty.vs")
+    fan::graphics::read_shader("shaders/empty.vs")
   );
 
   loco.shader_set_fragment(shader,
-    loco.read_shader("shaders/empty.fs")
+    fan::graphics::read_shader("shaders/empty.fs")
   );
 
   loco.shader_compile(shader);
@@ -735,7 +718,10 @@ void draw_all_shape_aabbs() {
   }
 }
 
+#endif
+
 void shapes_draw() {
+#if defined(FAN_2D)
   fan::graphics::shaper_t::KeyTraverse_t KeyTraverse;
   KeyTraverse.Init(fan::graphics::g_shapes->shaper);
 
@@ -1002,7 +988,7 @@ void shapes_draw() {
     auto& shape_gl = st.renderer.gl;
 
     switch (shape_type) {
-    #if defined(fan_3D)
+    #if defined(FAN_3D)
     case fan::graphics::shapes::shape_type_t::rectangle3d:
       loco.context.gl.set_depth_test(false);
       break;
@@ -1110,6 +1096,8 @@ void shapes_draw() {
     } while (BlockTraverse.Loop(shaper));
   }
 
+#endif
+
   {
   #if defined(loco_framebuffer)
 
@@ -1200,6 +1188,23 @@ void render_final_fb() {
   fan_opengl_call(glBindVertexArray(loco.gl.fb_vao));
   fan_opengl_call(glDrawArrays(GL_TRIANGLE_STRIP, 0, 4));
   fan_opengl_call(glBindVertexArray(0));
+}
+
+void init() {
+
+  init_framebuffer();
+
+  loco.gl.m_fbo_final_shader = loco.shader_create();
+
+  loco.shader_set_vertex(
+    loco.gl.m_fbo_final_shader,
+    fan::graphics::read_shader("shaders/opengl/2D/effects/loco_fbo.vs")
+  );
+  loco.shader_set_fragment(
+    loco.gl.m_fbo_final_shader,
+    fan::graphics::read_shader("shaders/opengl/2D/effects/loco_fbo.fs")
+  );
+  loco.shader_compile(loco.gl.m_fbo_final_shader);
 }
 
 #undef loco

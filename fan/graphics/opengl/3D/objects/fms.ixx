@@ -2,15 +2,7 @@ module;
 
 #include <fan/utility.h>
 
-#ifndef fan_3D
-export module fan.graphics.opengl3D.objects.fms;
-#else
-
-#define fms_use_opengl
-
-#if defined(fms_use_opengl)
-  #include <GL/glew.h>
-#endif
+#if defined(FAN_3D)
 
 #include <fan/types/dme.h>
 
@@ -25,20 +17,16 @@ export module fan.graphics.opengl3D.objects.fms;
 
 //#define STB_IMAGE_IMPLEMENTATION
 #include <fan/stb/stb_image.h>
-export module fan.graphics.opengl3D.objects.fms;
+
+export module fan.graphics.fms;
 
 export import fan.types.matrix;
 export import fan.print;
 export import fan.graphics;
 
-#if defined(fan_opengl)
-  import fan.graphics.opengl.core;
-#endif
-
 import fan.graphics.gui.base;
 
 
-#undef fan_3d
 export namespace fan_3d {
   namespace model {
     struct vertex_t {
@@ -113,12 +101,6 @@ export namespace fan_3d {
       uint32_t indices_len = 0;
 
       std::string texture_names[AI_TEXTURE_TYPE_MAX + 1]{};
-
-#ifdef fms_use_opengl
-      fan::opengl::core::vao_t vao;
-      fan::opengl::core::vbo_t vbo;
-      GLuint ebo;
-#endif
     };
     // pm -- parsed model
     struct pm_texture_data_t {

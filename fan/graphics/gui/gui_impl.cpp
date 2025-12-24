@@ -18,11 +18,11 @@ import fan.types.vector;
 
 import fan.graphics.gui.base;
 
-#if defined(fan_audio)
+#if defined(FAN_AUDIO)
 import fan.audio;
 #endif
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
 namespace fan::graphics::gui {
   window_t::window_t(const std::string& window_name, bool* p_open, window_flags_t window_flags)
     : is_open(begin(window_name.c_str(), p_open, window_flags)) {}
@@ -281,6 +281,7 @@ namespace fan::graphics::gui {
     imgui_element_nr_t::set(lambda);
   }
 
+#if defined(FAN_2D)
   void shape_properties(const fan::graphics::shape_t& shape) {
     switch (shape.get_shape_type()) {
     case fan::graphics::shape_type_t::particles:
@@ -340,7 +341,7 @@ namespace fan::graphics::gui {
     }
     }
   }
-
+#endif
 
 
   content_browser_t::content_browser_t() {
@@ -1179,6 +1180,7 @@ namespace fan::graphics::gui {
     }
   }
 
+#if defined(FAN_2D)
   void fragment_shader_editor(uint16_t shape_type, std::string* fragment, bool* shader_compiled) {
     if (fragment->empty()) {
       *fragment = fan::graphics::shader_get_data(shape_type).sfragment;
@@ -1194,6 +1196,7 @@ namespace fan::graphics::gui {
       end();
     }
   }
+#endif
 
   // called inside window begin end
   void animated_popup_window(const std::string& popup_id, const fan::vec2& popup_size, const fan::vec2& start_pos, const fan::vec2& target_pos, bool trigger_popup, std::function<void()> content_cb, const f32_t anim_duration, const f32_t hide_delay) {
@@ -1264,6 +1267,8 @@ namespace fan::graphics::gui {
     storage->SetBool(hovering_popup_id, hovering_popup);
     storage->SetBool(popup_visible_id, popup_visible);
   }
+
+#if defined(FAN_2D)
 
   bool sprite_animations_t::render_list_box(fan::graphics::animation_nr_t& shape_animation_id) {
     bool list_item_changed = false;
@@ -1615,6 +1620,8 @@ namespace fan::graphics::gui {
     fan::graphics::gui::print_success("File saved to " + std::filesystem::absolute(filename).generic_string());
     fan::io::file::write(filename, json_data.dump(2), std::ios_base::binary);
   }
+
+#endif
 
   dialogue_box_t::render_type_t::~render_type_t() {}
 

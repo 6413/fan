@@ -25,38 +25,44 @@ elseif is_mode("debug") then
   add_defines("_DEBUG=3")
 end
 
-option("fan_gui") set_default(true) option_end()
-option("fan_physics") set_default(true) option_end()
-option("fan_json") set_default(true) option_end()
-option("fan_3d") set_default(false) option_end()
-option("fan_opengl") set_default(true) option_end()
-option("fan_vulkan") set_default(false) option_end()
-option("fan_fmt") set_default(true) option_end()
-option("fan_wayland_screen") set_default(false) option_end()
-option("fan_network") set_default(false) option_end()
+option("FAN_2D") set_default(true) option_end()
+option("FAN_GUI") set_default(true) option_end()
+option("FAN_PHYSICS_2D") set_default(true) option_end()
+option("FAN_JSON") set_default(true) option_end()
+option("FAN_3D") set_default(false) option_end()
+option("FAN_OPENGL") set_default(true) option_end()
+option("FAN_VULKAN") set_default(false) option_end()
+option("FAN_FMT") set_default(true) option_end()
+option("FAN_WAYLAND_SCREEN") set_default(false) option_end()
+option("FAN_NETWORK") set_default(false) option_end()
 option("main") set_default("examples/engine_demos/engine_demo.cpp") option_end()
 
-add_defines("fan_opengl")
-if has_config("fan_gui") then
-  add_defines("fan_gui")
+add_defines("FAN_OPENGL")
+
+if has_config("FAN_2D") then
+  add_defines("FAN_2D")
 end
-if has_config("fan_json") then
-  add_defines("fan_json")
+
+if has_config("FAN_GUI") then
+  add_defines("FAN_GUI")
 end
-if has_config("fan_3d") then
-  add_defines("fan_3D")
+if has_config("FAN_JSON") then
+  add_defines("FAN_JSON")
 end
-if has_config("fan_physics") then
-  add_defines("fan_physics")
+if has_config("FAN_3D") then
+  add_defines("FAN_3D")
 end
-if has_config("fan_vulkan") then
-  add_defines("fan_vulkan")
+if has_config("FAN_PHYSICS_2D") then
+  add_defines("FAN_PHYSICS_2D")
 end
-if has_config("fan_network") then
-  add_defines("fan_network")
+if has_config("FAN_VULKAN") then
+  add_defines("FAN_VULKAN")
 end
-if has_config("fan_fmt") then
-  add_defines("fan_fmt")
+if has_config("FAN_NETWORK") then
+  add_defines("FAN_NETWORK")
+end
+if has_config("FAN_FMT") then
+  add_defines("FAN_FMT")
 end
 
 add_includedirs(".", {public = true})
@@ -92,7 +98,7 @@ add_cxxflags(
   "-fmacro-backtrace-limit=0"
 )
 
-if has_config("fan_gui") then
+if has_config("FAN_GUI") then
   add_defines(
     "IMGUI_IMPL_OPENGL_LOADER_CUSTOM",
     "IMGUI_DEFINE_MATH_OPERATORS",
@@ -146,19 +152,19 @@ local module_files = {
   "fan/noise.ixx"
 }
 
-if has_config("fan_wayland_screen") then
+if has_config("FAN_WAYLAND_SCREEN") then
   table.insert(module_files, "fan/video/screen_codec.ixx")
 end
 
-if has_config("fan_json") then
+if has_config("FAN_JSON") then
   table.insert(module_files, "fan/types/json.ixx")
 end
 
-if has_config("fan_fmt") or has_config("fan_gui") then
+if has_config("FAN_FMT") or has_config("FAN_GUI") then
   table.insert(module_files, "fan/fmt.ixx")
 end
 
-if has_config("fan_gui") then
+if has_config("FAN_GUI") then
   table.insert(module_files, "fan/graphics/gui/gui_base.ixx")
   table.insert(module_files, "fan/graphics/gui/text_logger.ixx")
   table.insert(module_files, "fan/graphics/gui/gui_types.ixx")
@@ -168,18 +174,18 @@ if has_config("fan_gui") then
   table.insert(module_files, "fan/graphics/gui/tilemap_editor/renderer0.ixx")
 end
 
-if has_config("fan_network") then
+if has_config("FAN_NETWORK") then
 	table.insert(module_files, "fan/network/network.ixx")
 	table.insert(module_files, "fan/graphics/graphics_network.ixx")
 end
 
-if has_config("fan_physics") then
+if has_config("FAN_PHYSICS_2D") then
   table.insert(module_files, "fan/physics/b2_integration.ixx")
   table.insert(module_files, "fan/physics/physics_common_context.ixx")
   table.insert(module_files, "fan/graphics/physics_shapes.ixx")
 end
 
-if has_config("fan_3d") then
+if has_config("FAN_3D") then
   table.insert(module_files, "fan/graphics/opengl/3D/objects/fms.ixx")
   table.insert(module_files, "fan/graphics/opengl/3D/objects/model.ixx")
 end
@@ -214,7 +220,7 @@ target("fan_modules")
   add_includedirs(".", "thirdparty/fan/include", {public = true})
 target_end()
 
-if has_config("fan_gui") then
+if has_config("FAN_GUI") then
   target("imgui")
     set_kind("static")
     add_cxxflags("-stdlib=libstdc++", {force = true})
@@ -253,10 +259,10 @@ if has_config("fan_gui") then
       "fan/imgui/text_editor.cpp",
       "fan/imgui/misc/freetype/imgui_freetype.cpp"
     )
-    if has_config("fan_vulkan") then
+    if has_config("FAN_VULKAN") then
       add_files("fan/imgui/imgui_impl_vulkan.cpp")
     end
-    if has_config("fan_3d") and has_config("fan_gui") then
+    if has_config("FAN_3D") and has_config("FAN_GUI") then
       add_files("fan/imgui/ImGuizmo.cpp")
     end
     add_linkdirs("thirdparty/fan/lib")
@@ -306,7 +312,7 @@ end
 target("a.exe")
   set_kind("binary")
   add_deps("fan_modules")
-  if has_config("fan_gui") then
+  if has_config("FAN_GUI") then
     add_deps("imgui", "nfd")
   end
   add_files(module_files)
@@ -319,23 +325,23 @@ target("a.exe")
       "webp", "glfw", "X11", "opus", "pulse-simple",
       "uv", "GL", "GLEW", "ssl", "crypto", "png", "z", "curl"
     )
-    if has_config("fan_fmt") then
+    if has_config("FAN_FMT") then
       add_links("fmt")
     end
-    if has_config("fan_gui") then
+    if has_config("FAN_GUI") then
       add_links("freetype", "lunasvg")
     end
-    if has_config("fan_physics") then
+    if has_config("FAN_PHYSICS_2D") then
       add_ldflags("-Wl,--whole-archive", "thirdparty/fan/lib/libbox2d.a", "-Wl,--no-whole-archive", {force = true})
     end
-    if has_config("fan_3d") then
+    if has_config("FAN_3D") then
       add_links("assimp")
     end
-    if has_config("fan_vulkan") then
+    if has_config("FAN_VULKAN") then
       add_packages("vulkansdk")
       add_links("shaderc_shared")
     end
-    if has_config("fan_wayland_screen") then
+    if has_config("FAN_WAYLAND_SCREEN") then
       add_links("wayland-client", "pipewire-0.3", "dbus-1")
       add_links("avcodec", "avutil", "swscale")
     end
@@ -347,23 +353,23 @@ target("a.exe")
       "glfw3_mt", "glew32s", "uv_a", "libwebp",
       "opus", "libssl", "libcrypto"
     )
-    if has_config("fan_gui") then
+    if has_config("FAN_GUI") then
       add_linkdirs("lib/freetype", "lib/lunasvg")
       add_links("freetype", "lunasvg")
     end
-    if has_config("fan_physics") then
+    if has_config("FAN_PHYSICS_2D") then
       add_linkdirs("lib/box2d")
       add_links("box2d")
     end
-    if has_config("fan_3d") then
+    if has_config("FAN_3D") then
       add_linkdirs("C:/Program Files/Assimp/lib/x64")
       add_links("assimp-vc143-mt")
     end
-    if has_config("fan_vulkan") then
+    if has_config("FAN_VULKAN") then
       add_packages("vulkansdk")
       add_links("shaderc_shared")
     end
-    if has_config("fan_wayland_screen") then
+    if has_config("FAN_WAYLAND_SCREEN") then
       add_linkdirs("lib/libx264", "lib/openh264")
       add_links(
         "DXGI", "D3D11", "libx264",
@@ -374,7 +380,7 @@ target("a.exe")
   end
 
   on_load(function (target)
-    if target:is_plat("linux") and has_config("fan_gui") then
+    if target:is_plat("linux") and has_config("FAN_GUI") then
       import("lib.detect.find_tool")
       local pkg_config = find_tool("pkg-config")
       if pkg_config then

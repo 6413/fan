@@ -1,6 +1,6 @@
 module;
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
 #include <string>
 #include <vector>
 #include <sstream>
@@ -9,7 +9,7 @@ module;
 
 export module fan.graphics.gui.text_logger;
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
 import fan.graphics.common_context;
 import fan.types.color;
 import fan.types.vector;

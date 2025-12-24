@@ -2,7 +2,9 @@ module;
 
 // for shapes
 
-#if defined(fan_physics)
+#if defined(FAN_2D)
+
+#if defined(FAN_PHYSICS_2D)
   #include <fan/utility.h>
   #include <box2d/box2d.h>
 #endif
@@ -14,9 +16,13 @@ module;
 #include <algorithm>
 #include <functional>
 
+#endif
+
 export module fan.graphics.physics_shapes;
 
-#if defined(fan_physics)
+#if defined(FAN_2D)
+
+#if defined(FAN_PHYSICS_2D)
 
 import fan.types.vector;
 import fan.types.color;
@@ -28,7 +34,7 @@ import fan.window.input_action;
 import fan.types.json;
 import fan.math;
 
-#if (fan_gui)
+#if (FAN_GUI)
   import fan.graphics;
   import fan.graphics.common_context;
   import fan.graphics.shapes;
@@ -871,5 +877,7 @@ export namespace fan::graphics {
   void camera_look_at(fan::graphics::camera_nr_t nr, const fan::graphics::physics::character2d_t& target, f32_t move_speed);
   void camera_look_at(const fan::graphics::physics::character2d_t& target, f32_t move_speed);
 }
+
+#endif
 
 #endif

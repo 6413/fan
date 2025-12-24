@@ -1,6 +1,6 @@
 module;
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
   #include <fan/utility.h>
   #include <fan/imgui/text_editor.h>
 #endif
@@ -10,7 +10,7 @@ module;
 
 export module fan.console;
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
 
 export import fan.types.color;
 

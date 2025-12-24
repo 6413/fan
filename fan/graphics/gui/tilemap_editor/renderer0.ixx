@@ -1,14 +1,20 @@
 module;
 
+#if defined(FAN_2D)
+
 #include <cstdint>
 #include <string>
 #include <unordered_map>
 #include <functional>
 #include <cstdlib>
 
+#endif
+
 export module fan.graphics.gui.tilemap_editor.renderer;
 
-#if defined(fan_physics)
+#if defined(FAN_2D)
+
+#if defined(FAN_PHYSICS_2D)
 
 export import fan.graphics.gui.tilemap_editor.loader;
 
@@ -448,4 +454,6 @@ export struct tilemap_renderer_t : tilemap_loader_t {
   }
 };
 #undef tilemap_renderer
+#endif
+
 #endif

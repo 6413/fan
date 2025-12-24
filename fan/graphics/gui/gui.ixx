@@ -13,7 +13,7 @@ module;
 
 export module fan.graphics.gui;
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
   import fan.print;
   import fan.utility;
   import fan.math;
@@ -38,9 +38,9 @@ export module fan.graphics.gui;
 #endif
 
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
 export namespace fan::graphics::gui {
 
   /// <summary>
@@ -207,7 +207,9 @@ export namespace fan::graphics::gui {
     );
   };
 
+#if defined(FAN_2D)
   void shape_properties(f64_t current_time, const fan::graphics::shape_t& shape);
+#endif
 } // namespace fan::graphics::gui
 
 export namespace fan::graphics::gui {
@@ -317,6 +319,8 @@ export namespace fan::graphics::gui {
     void receive_drag_drop_target(std::function<void(const std::filesystem::path& fs)> receive_func);
   };
 
+#if defined(FAN_2D)
+
   struct sprite_animations_t {
     //fan::vec2i frame_coords; // starting from top left and increasing by one to get the next frame into that direction
 
@@ -344,8 +348,9 @@ export namespace fan::graphics::gui {
   };
 
   void fragment_shader_editor(uint16_t shape_type, std::string* fragment, bool* shader_compiled);
+#endif
 
-
+#if defined(FAN_2D)
   struct particle_editor_t {
     fan::graphics::shapes::particles_t::ri_t& get_ri();
 
@@ -382,6 +387,8 @@ export namespace fan::graphics::gui {
     fan::graphics::file_open_dialog_t open_file_dialog{};
     std::string filename{};
   };
+
+#endif
 
 
   struct dialogue_box_t {

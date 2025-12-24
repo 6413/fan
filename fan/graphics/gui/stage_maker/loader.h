@@ -69,7 +69,7 @@ public:
     nr_t(base_nr_t nr) : base_nr_t(nr) {}
 
     void erase() {
-      #if fan_debug >= 2
+      #if FAN_DEBUG >= 2
       if (iic()) {
         fan::throw_error("double erase or uninitialized erase");
       }

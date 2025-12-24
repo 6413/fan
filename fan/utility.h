@@ -180,12 +180,12 @@
 
 #define __ca__ ,
 
-#ifndef fan_debug
+#ifndef FAN_DEBUG
 #if fan_debug_build
-	#define fan_debug fan_debug_high
+	#define FAN_DEBUG fan_debug_high
 	#define __sanit 1
 #else
-	#define fan_debug fan_debug_none
+	#define FAN_DEBUG fan_debug_none
 #endif
 #endif
 
@@ -605,3 +605,23 @@ enum class name { __VA_ARGS__ }
 #ifndef __generic_free
 	#define __generic_free(ptr) fan::memory_profile_free_cb(ptr)
 #endif
+
+namespace fan {
+  template<typename T>
+  struct remove_reference {
+    using type = T;
+  };
+
+  template<typename T>
+  struct remove_reference<T&> {
+    using type = T;
+  };
+
+  template<typename T>
+  struct remove_reference<T&&> {
+    using type = T;
+  };
+
+  template<typename T>
+  using remove_reference_t = typename remove_reference<T>::type;
+}

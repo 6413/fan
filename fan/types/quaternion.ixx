@@ -1,6 +1,6 @@
 module;
 
-#if defined(fan_3D)
+#if defined(FAN_3D)
   #include <assimp/quaternion.h>
 #endif
 
@@ -25,7 +25,7 @@ export namespace fan {
 
 		constexpr quaternion() : fan::quaternion<T>(1, T{ 0 }, T{ 0 }, T{ 0 }) {}
 
-  #if defined(fan_3D)
+  #if defined(FAN_3D)
     constexpr quaternion(const aiQuaternion& aq) {
       this->w = aq.w;
       this->x = aq.x;

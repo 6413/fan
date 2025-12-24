@@ -1,3 +1,5 @@
+#if defined(FAN_2D)
+
 #include <algorithm>
 #include <math.h>
 #include "AStar.hpp"
@@ -176,3 +178,5 @@ AStar::uint AStar::Heuristic::octagonal(Vec2i source_, Vec2i target_)
     auto delta = getDelta(source_, target_);
     return 10 * (delta.x + delta.y) + (-6) * std::min(delta.x, delta.y);
 }
+
+#endif

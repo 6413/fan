@@ -9,15 +9,6 @@ module;
 #include <unordered_set>
 #include <algorithm>
 
-#define loco_vfi
-#define loco_line
-#define loco_rectangle
-#define loco_sprite
-#define loco_light
-#define loco_circle
-#define loco_responsive_text
-#define loco_universal_image_renderer
-
 export module fan.graphics;
 
 //import :graphics.opengl.core; // TODO this should not be here
@@ -34,20 +25,18 @@ export import fan.graphics.algorithm.raycast_grid;
 export import fan.graphics.algorithm.pathfind;
 export import fan.event;
 export import fan.math;
-#if defined(fan_gui)
+#if defined(FAN_GUI)
   export import fan.graphics.gui.text_logger;
 #endif
 
-#if defined(fan_json)
+#if defined(FAN_JSON)
   import fan.types.json;
 #endif
 
 import fan.random;
 import fan.graphics.opengl.core;
 
-#if defined(fan_physics)
 import fan.physics.types;
-#endif
 
 // user friendly functions
 /***************************************/
@@ -63,9 +52,11 @@ export namespace fan::window {
 }
 export namespace fan {
   namespace graphics {
+  #if defined(FAN_2D)
     using vfi_t = fan::graphics::shapes::vfi_t;
     using shape_t = fan::graphics::shapes::shape_t;
     using shape_type_t = fan::graphics::shapes::shape_type_t;
+  #endif
     using renderer_t = fan::window_t::renderer_t;
     extern fan::graphics::image_t invalid_image;
     fan::graphics::render_view_t add_render_view();
@@ -75,7 +66,7 @@ export namespace fan {
 
 export namespace fan {
   void printclnn(auto&&... values) {
-  #if defined (fan_gui)
+  #if defined (FAN_GUI)
     ([&](const auto& value) {
       std::ostringstream oss;
       oss << value;
@@ -84,14 +75,14 @@ export namespace fan {
   #endif
   }
   void printcl(auto&&... values) {
-  #if defined(fan_gui)
+  #if defined(FAN_GUI)
     printclnn(values...);
     fan::graphics::ctx().console->print("\n", 0);
   #endif
   }
 
   void printclnnh(int highlight, auto&&... values) {
-  #if defined(fan_gui)
+  #if defined(FAN_GUI)
     ([&](const auto& value) {
       std::ostringstream oss;
       oss << value;
@@ -101,18 +92,18 @@ export namespace fan {
   }
 
   void printclh(int highlight, auto&&... values) {
-  #if defined(fan_gui)
+  #if defined(FAN_GUI)
     printclnnh(highlight, values...);
     fan::graphics::ctx().console->print("\n", highlight);
   #endif
   }
   inline void printcl_err(auto&&... values) {
-  #if defined(fan_gui)
+  #if defined(FAN_GUI)
     printclh(fan::graphics::highlight_e::error, values...);
   #endif
   }
   inline void printcl_warn(auto&&... values) {
-  #if defined(fan_gui)
+  #if defined(FAN_GUI)
     printclh(fan::graphics::highlight_e::warning, values...);
   #endif
   }
@@ -188,9 +179,11 @@ export namespace fan::graphics {
   void shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string& vertex_code);
   void shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string& fragment_code);
   bool shader_compile(fan::graphics::shader_nr_t nr);
+#if defined(FAN_2D)
   fan::graphics::shader_nr_t shader_get_nr(uint16_t shape_type);
   fan::graphics::shader_list_t::nd_t& shader_get_data(uint16_t shape_type);
   bool shader_update_fragment(uint16_t shape_type, const std::string& fragment);
+#endif
 
   fan::graphics::camera_nr_t camera_create();
   fan::graphics::context_camera_t& camera_get(fan::graphics::camera_nr_t nr = fan::graphics::get_orthographic_render_view().camera);
@@ -223,6 +216,8 @@ export namespace fan::graphics {
   bool inside(const fan::graphics::render_view_t& render_view, const fan::vec2& position);
   bool is_mouse_inside(const fan::graphics::render_view_t& render_view);
 
+#if defined(FAN_2D)
+
   using light_flags_e = fan::graphics::light_flags_e;
 
   struct light_properties_t {
@@ -246,7 +241,6 @@ export namespace fan::graphics {
     light_t(const fan::vec3& position, const fan::vec2& size, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   };
 
-#if defined(loco_line)
   struct line_properties_t {
     render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
     fan::vec3 src = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
@@ -265,7 +259,6 @@ export namespace fan::graphics {
     line_t(line_properties_t p = line_properties_t());
     line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& color = fan::colors::white, f32_t thickness = 3.f, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   };
-#endif
 
   struct rectangle_properties_t {
     render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
@@ -337,7 +330,6 @@ export namespace fan::graphics {
   };
 
 
-#if defined(loco_circle)
   struct circle_properties_t {
     render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
     fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
@@ -376,7 +368,6 @@ export namespace fan::graphics {
         .color = color
         }) {}
   };
-#endif
 
   struct capsule_properties_t {
     render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
@@ -645,7 +636,7 @@ export namespace fan::graphics {
     }
   };
 
-#if defined(fan_3D)
+#if defined(FAN_3D)
   struct line3d_properties_t {
     render_view_t* render_view = fan::graphics::ctx().perspective_render_view;
     fan::vec3 src = fan::vec3(0, 0, 0);
@@ -713,7 +704,7 @@ export namespace fan::graphics {
   fan::graphics::shapes::shape_t& capsule(const capsule_properties_t& props = {});
   fan::graphics::shapes::shape_t& polygon(const polygon_properties_t& props = {});
   fan::graphics::shapes::shape_t& grid(const grid_properties_t& props = {});
-#if defined(fan_physics)
+#if defined(FAN_PHYSICS_2D)
   void aabb(const fan::physics::aabb_t& b, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1), f32_t thickness = line_properties_t().thickness, render_view_t* render_view = &fan::graphics::get_orthographic_render_view());
   void aabb(const fan::graphics::shapes::shape_t& s, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1), f32_t thickness = line_properties_t().thickness, render_view_t* render_view = &fan::graphics::get_orthographic_render_view());
   void aabb(const fan::vec2& min, const fan::vec2& max, f32_t depth, const fan::color& c = fan::colors::white, f32_t thickness = line_properties_t().thickness, render_view_t* render_view = &fan::graphics::get_orthographic_render_view());
@@ -726,7 +717,7 @@ export namespace fan::graphics {
     bool start = true;
   };
 
-#if defined(fan_json)
+#if defined(FAN_JSON)
 
   fan::graphics::shape_t shape_from_json(
     const std::string& json_path,
@@ -748,7 +739,6 @@ export namespace fan::graphics {
   // for line
   fan::line3 get_highlight_positions(const fan::vec3& op_, const fan::vec2& os, int index);
 
-#if defined(loco_vfi)
   // REQUIRES to be allocated by new since lambda captures this
     // also container that it's stored in, must not change pointers
   template <typename T>
@@ -972,9 +962,9 @@ export namespace fan::graphics {
   };
 
   using vfi_root_t = vfi_root_custom_t<__empty_struct>;
+  //#endif
 
 #endif
-  //#endif
 }
 
 export namespace fan::graphics {
@@ -1060,6 +1050,8 @@ export namespace fan::graphics {
     //
     image_divider_t();
   };
+
+#if defined(FAN_2D)
 
   fan::graphics::shapes::polygon_t::properties_t create_sine_ground(const fan::vec2& position, f32_t amplitude, f32_t frequency, f32_t width, f32_t groundWidth);
   std::vector<fan::vec2> ground_points(const fan::vec2& position, f32_t amplitude, f32_t frequency, f32_t width, f32_t groundWidth);
@@ -1175,6 +1167,7 @@ export namespace fan::graphics {
     const terrain_palette_t& palette,
     const sprite_properties_t& cp = {}
   );
+#endif
 }
 
 export namespace fan {
@@ -1188,18 +1181,6 @@ export namespace fan {
     );
   };
 }
-
-// makes shorter code
-#define fan_language \
-  void main_entry(); \
-  using namespace fan::graphics; \
-  using namespace fan; \
-  int main() { \
-    fan::graphics::engine_t engine; \
-    main_entry(); \
-    return 0; \
-  } \
-  void main_entry()
 
 export namespace fan::image {
   struct plane_split_t {
@@ -1215,6 +1196,8 @@ export namespace fan::image {
   plane_split_t plane_split(void* pixel_data, const fan::vec2ui& size, const fan::graphics::image_format& format);
 }
 
+#if defined(FAN_2D)
+
 export namespace fan::graphics {
   struct tile_world_generator_t {
     bool is_solid(int x, int y);
@@ -1228,6 +1211,8 @@ export namespace fan::graphics {
     std::vector<bool> tiles;
   };
 }
+
+#endif
 
 // graphics event wrappers
 export namespace fan::event {
@@ -1258,6 +1243,8 @@ export namespace fan::event {
   };
 }
 
+#if defined(FAN_2D)
+
 // graphics awaiters
 export namespace fan::graphics {
   struct animation_frame_awaiter : fan::event::callback_awaiter<animation_frame_awaiter> {
@@ -1274,3 +1261,5 @@ export namespace fan::graphics {
     int target_frame = 0;
   };
 }
+
+#endif

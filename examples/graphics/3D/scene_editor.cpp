@@ -584,7 +584,7 @@ struct pile_t {
           ImGui::End();
         }
       }
-#if defined(fan_json)
+#if defined(FAN_JSON)
       // expects camera block
       void import_settings(const fan::json& data) {
         get_editor().camera.zfar = data["zfar"];
@@ -691,7 +691,7 @@ struct pile_t {
     void begin_render() {
       ImGui::BeginMainMenuBar();
       if (ImGui::BeginMenu("Settings")) {
-#if defined(fan_json)
+#if defined(FAN_JSON)
         if (ImGui::MenuItem("Load")) {
           std::string editor_settings;
           fan::io::file::read("scene_editor.ini", &editor_settings);

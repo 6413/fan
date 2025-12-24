@@ -4,7 +4,7 @@ module;
 
 #include <cstdint>
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
   #include <fan/imgui/imgui.h>
 #endif
 
@@ -480,7 +480,7 @@ export namespace fan {
         }
       }
 
-      #if defined(fan_gui)
+      #if defined(FAN_GUI)
       int fan_to_imguikey(int key) {
         switch (key)
         {

@@ -10,21 +10,12 @@ module;
 #include <filesystem>
 #include <cstring>
 
-#define loco_vfi
-#define loco_line
-#define loco_rectangle
-#define loco_sprite
-#define loco_light
-#define loco_circle
-#define loco_responsive_text
-#define loco_universal_image_renderer
-
 module fan.graphics;
 
-#if defined(fan_json)
+#if defined(FAN_JSON)
   import fan.types.json;
 #endif
-#if defined(fan_gui)
+#if defined(FAN_GUI)
   import fan.graphics.gui.base;
 #endif
 
@@ -97,7 +88,7 @@ namespace fan::graphics {
     if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::opengl) {
       img.gl = *(fan::opengl::context_t::image_t*)fan::graphics::ctx()->image_get(fan::graphics::ctx(), nr);
     }
-  #if defined(fan_vulkan)
+  #if defined(FAN_VULKAN)
     else if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::vulkan) {
       img.vk = *(fan::vulkan::context_t::image_t*)fan::graphics::ctx()->image_get(fan::graphics::ctx(), nr);
     }
@@ -303,6 +294,7 @@ namespace fan::graphics {
     return fan::graphics::ctx()->shader_compile(fan::graphics::ctx(), nr);
   }
 
+#if defined(FAN_2D)
   fan::graphics::shader_nr_t shader_get_nr(uint16_t shape_type) {
     return fan::graphics::get_shapes().shaper.GetShader(shape_type);
   }
@@ -318,6 +310,7 @@ namespace fan::graphics {
     shader_set_fragment(shader_nr, fragment);
     return shader_compile(shader_nr);
   }
+#endif
 
   fan::graphics::camera_nr_t camera_create() {
     return fan::graphics::ctx()->camera_create(fan::graphics::ctx());
@@ -441,6 +434,8 @@ namespace fan::graphics {
     return inside(render_view, get_mouse_position());
   }
 
+#if defined(FAN_2D)
+
   light_t::light_t(light_properties_t p) {
     *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
       fan_init_struct(
@@ -466,32 +461,30 @@ namespace fan::graphics {
     .color = color
       }) {}
 
-#if defined(loco_line)
-  line_t::line_t(line_properties_t p) {
-    *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
-      fan_init_struct(
-        typename fan::graphics::shapes::line_t::properties_t,
-        .camera = p.render_view->camera,
-        .viewport = p.render_view->viewport,
-        .src = p.src,
-        .dst = p.dst,
-        .color = p.color,
-        .thickness = p.thickness,
-        .blending = p.blending,
-        .draw_mode = p.draw_mode
-      )
-    );
-  }
+line_t::line_t(line_properties_t p) {
+  *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
+    fan_init_struct(
+      typename fan::graphics::shapes::line_t::properties_t,
+      .camera = p.render_view->camera,
+      .viewport = p.render_view->viewport,
+      .src = p.src,
+      .dst = p.dst,
+      .color = p.color,
+      .thickness = p.thickness,
+      .blending = p.blending,
+      .draw_mode = p.draw_mode
+    )
+  );
+}
 
-  line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& color, f32_t thickness, render_view_t* render_view)
-    : line_t(line_properties_t {
-    .render_view = render_view,
-    .src = src,
-    .dst = dst,
-    .color = color,
-    .thickness = thickness
-      }) {}
-#endif
+line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& color, f32_t thickness, render_view_t* render_view)
+  : line_t(line_properties_t {
+  .render_view = render_view,
+  .src = src,
+  .dst = dst,
+  .color = color,
+  .thickness = thickness
+    }) {}
 
   rectangle_t::rectangle_t(rectangle_properties_t p) {
     *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
@@ -656,7 +649,7 @@ namespace fan::graphics {
     return add_shape_to_immediate_draw(grid_t(props));
   }
 
-#if defined(fan_physics)
+#if defined(FAN_PHYSICS_2D)
   void aabb(const fan::physics::aabb_t& b, f32_t depth, const fan::color& c, f32_t thickness, render_view_t* render_view) {
     fan::graphics::line({.render_view = render_view, .src = {b.min, depth}, .dst = {b.max.x, b.min.y}, .color = c, .thickness=thickness});
     fan::graphics::line({.render_view = render_view, .src = {b.max.x, b.min.y, depth}, .dst = {b.max}, .color = c, .thickness=thickness});
@@ -680,7 +673,7 @@ namespace fan::graphics {
   }
 #endif
 
-#if defined(fan_json)
+#if defined(FAN_JSON)
 
   fan::graphics::shape_t shape_from_json(const std::string& json_path, const std::source_location& callers_path) {
     fan::json json_data = fan::graphics::read_json(json_path, callers_path);
@@ -754,6 +747,7 @@ namespace fan::graphics {
     return positions;
   }
 
+#endif
 
   interactive_camera_t::operator render_view_t* () {
     return &render_view;
@@ -818,7 +812,7 @@ namespace fan::graphics {
         return;
       }
 
-		#if defined(fan_gui)
+		#if defined(FAN_GUI)
       if (fan::graphics::gui::want_io()) {
         return;
       }
@@ -829,7 +823,7 @@ namespace fan::graphics {
         fan::window::get_mouse_position()
       );
       if (mouse_inside_viewport) {
-			#if defined(fan_gui)
+			#if defined(FAN_GUI)
         auto* context = fan::graphics::gui::get_context();
         auto* hovered_window = context->HoveredWindow;
         if (hovered_window) {
@@ -953,6 +947,8 @@ namespace fan::graphics {
     texture_properties.min_filter = fan::graphics::image_filter::nearest;
     texture_properties.mag_filter = fan::graphics::image_filter::nearest;
   }
+
+#if defined(FAN_2D)
 
   fan::graphics::shapes::polygon_t::properties_t create_sine_ground(const fan::vec2& position, f32_t amplitude, f32_t frequency, f32_t width, f32_t groundWidth) {
     fan::graphics::shapes::polygon_t::properties_t pp;
@@ -1379,7 +1375,9 @@ namespace fan::graphics {
       co_await fan::co_sleep(1);
     }
   }
+  #endif
 }
+#if defined(FAN_2D)
 namespace fan::image {
   plane_split_t plane_split(void* pixel_data, const fan::vec2ui& size, const fan::graphics::image_format& format) {
     plane_split_t result;
@@ -1448,3 +1446,5 @@ namespace fan::graphics {
       sprite->get_current_animation().name == animation_name;
   }
 }
+
+#endif

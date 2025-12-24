@@ -1,6 +1,6 @@
 module;
 
-#if defined(fan_network)
+#if defined(FAN_NETWORK)
 
 #include <fan/utility.h>
 
@@ -25,7 +25,7 @@ module;
 
 export module fan.network;
 
-#if defined(fan_network)
+#if defined(FAN_NETWORK)
 
 import fan.utility;
 export import fan.event;

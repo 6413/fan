@@ -1,5 +1,5 @@
 module;
-#if defined(fan_gui)
+#if defined(FAN_GUI)
   #include <string>
   #include <algorithm>
   #include <sstream>
@@ -7,7 +7,7 @@ module;
 
 export module fan.ascii_renderer;
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
 
 import fan.graphics;
 import fan.types.color;

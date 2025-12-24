@@ -1,6 +1,6 @@
 module;
 
-#if defined(fan_physics)
+#if defined(FAN_PHYSICS_2D)
   #include <fan/utility.h>
   #include <box2d/box2d.h>
 #endif
@@ -11,7 +11,7 @@ module;
 
 export module fan.physics.b2_integration;
 
-#if defined(fan_physics)
+#if defined(FAN_PHYSICS_2D)
 
 export import fan.physics.types;
 

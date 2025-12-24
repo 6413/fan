@@ -1,6 +1,6 @@
 module;
 
-#if defined(fan_physics)
+#if defined(FAN_PHYSICS_2D)
 #include <fan/utility.h>
 #include <box2d/box2d.h>
 #endif
@@ -15,7 +15,7 @@ module fan.physics.b2_integration;
 
 import fan.utility;
 
-#if defined(fan_physics)
+#if defined(FAN_PHYSICS_2D)
 namespace fan::physics {
   circle_t::circle_t(const b2Circle& circle) : b2Circle(circle) {}
 
@@ -182,7 +182,7 @@ namespace fan::physics {
 
   shape_id_t body_id_t::get_shape_id() const {
     b2ShapeId shape_id = b2_nullShapeId;
-  #if fan_debug >= fan_debug_medium
+  #if FAN_DEBUG >= fan_debug_medium
     if (!b2Body_GetShapes(*this, &shape_id, 1)) {
       fan::throw_error();
     }
@@ -299,7 +299,7 @@ namespace fan::physics {
     body_def.angularDamping = shape_properties.angular_damping;
     body_def.allowFastRotation = shape_properties.fast_rotation;
     entity = b2CreateBody(world_id, &body_def);
-  #if fan_debug >= fan_debug_medium
+  #if FAN_DEBUG >= fan_debug_medium
     if (entity.is_valid() == false) {
       fan::throw_error();
     }
@@ -337,7 +337,7 @@ namespace fan::physics {
     body_def.allowFastRotation = shape_properties.fast_rotation;
 
     entity = b2CreateBody(world_id, &body_def);
-  #if fan_debug >= fan_debug_medium
+  #if FAN_DEBUG >= fan_debug_medium
     if (entity.is_valid() == false) {
       fan::throw_error();
     }
@@ -376,7 +376,7 @@ namespace fan::physics {
     body_def.angularDamping = shape_properties.angular_damping;
     body_def.allowFastRotation = shape_properties.fast_rotation;
     entity = b2CreateBody(world_id, &body_def);
-  #if fan_debug >= fan_debug_medium
+  #if FAN_DEBUG >= fan_debug_medium
     if (entity.is_valid() == false) {
       fan::throw_error();
     }
@@ -404,7 +404,7 @@ namespace fan::physics {
     body_def.angularDamping = shape_properties.angular_damping;
     body_def.allowFastRotation = shape_properties.fast_rotation;
     entity = b2CreateBody(world_id, &body_def);
-  #if fan_debug >= fan_debug_medium
+  #if FAN_DEBUG >= fan_debug_medium
     if (entity.is_valid() == false) {
       fan::throw_error();
     }
@@ -445,7 +445,7 @@ namespace fan::physics {
     body_def.allowFastRotation = shape_properties.fast_rotation;
     entity = b2CreateBody(world_id, &body_def);
 
-  #if fan_debug >= fan_debug_medium
+  #if FAN_DEBUG >= fan_debug_medium
     if (entity.is_valid() == false) {
       fan::throw_error();
     }

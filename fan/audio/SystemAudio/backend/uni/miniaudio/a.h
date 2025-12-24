@@ -13,9 +13,9 @@ using ma_uint32 = uint32_t;
 static void _miniaudio_DataCallback(ma_device *Device, void *Output, const void *Input, ma_uint32 FrameCount) {
 //  auto system_audio = (system_audio_t *)Device->pUserData;
 //
-//  #if fan_debug >= 0
+//  #if FAN_DEBUG >= 0
 //    if (FrameCount != _constants::CallFrameCount) {
-//      fan::throw_error("fan_debug");
+//      fan::throw_error("FAN_DEBUG");
 //    }
 //  #endif
 //

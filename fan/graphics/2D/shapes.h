@@ -1,4 +1,4 @@
-#if defined(fan_3D)
+#if defined(FAN_3D)
   #define IF_FAN_3D(X) X(rectangle3d) X(line3d)
 #else
   #define IF_FAN_3D(X)

@@ -1,4 +1,5 @@
 module;
+#if defined(FAN_2D)
 
 #include <fan/utility.h>
 #include <cstring>
@@ -8,14 +9,25 @@ module;
 
 #include <fan/graphics/opengl/init.h>
 
+#endif
+
 export module fan.graphics.shapes.types;
 
+#if defined(FAN_2D)
+  import fan.window;
+  import fan.graphics.common_context;
+  import fan.graphics.opengl.core;
 
-import fan.window;
+  #if defined(FAN_VULKAN)
+  import fan.graphics.vulkan.core;
+  #endif
 
-import fan.graphics.common_context;
-import fan.graphics.opengl.core;
+#else
+  import fan.types.vector;
+  import fan.types.color;
+#endif
 
+#if defined(FAN_2D)
 
 export namespace fan::graphics {
 
@@ -77,7 +89,7 @@ export namespace fan::graphics::shaper {
 #ifndef bcontainer_set_alloc_close
 #define bcontainer_set_alloc_close(ptr) std::free(ptr)
 #endif
-#include <fan/graphics/shaper.h>
+#include <fan/graphics/2D/shaper.h>
   // will die if renderer has different sizes of structs
 #define shaper_set_ShapeTypeChange \
 			__builtin_memcpy(new_renderdata, old_renderdata, element_count * g_shapes->shaper.GetRenderDataSize(sti)); \
@@ -92,42 +104,14 @@ namespace fan {
   };
 }
 
+#endif
+
 export namespace fan::graphics {
+#if defined(FAN_2D)
 
   using fan::graphics::shaper::MaxElementPerBlock;
 
   using shaper_t = shaper::shaper_t;
-
-  struct context_shader_t {
-    context_shader_t();
-    ~context_shader_t();
-    union {
-      fan::opengl::context_t::shader_t gl;
-    #if defined(fan_vulkan)
-      fan::vulkan::context_t::shader_t vk;
-    #endif
-    };
-  };
-  struct context_image_t {
-    context_image_t();
-    ~context_image_t();
-    union {
-      fan::opengl::context_t::image_t gl;
-    #if defined(fan_vulkan)
-      fan::vulkan::context_t::image_t vk; // note vk::image_t uses vector 
-    #endif
-    };
-  };
-  struct context_t {
-    context_t();
-    ~context_t();
-    union {
-      fan::opengl::context_t gl;
-    #if defined(fan_vulkan)
-      fan::vulkan::context_t vk;
-    #endif
-    };
-  };
 
 #pragma pack(push, 1)
 
@@ -202,7 +186,9 @@ export namespace fan::graphics {
       shadow
     };
   };
+#endif
 
+  // weird place for these
   struct vertex_t {
     fan::vec3 position;
     fan::color color;

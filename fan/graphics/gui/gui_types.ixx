@@ -1,6 +1,6 @@
 module;
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
   #include <fan/imgui/imgui.h>
   #include <fan/imgui/imgui_internal.h>
   #include <fan/imgui/imgui_impl_glfw.h>
@@ -11,7 +11,7 @@ module;
 
 export module fan.graphics.gui.types;
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
 export namespace fan::graphics::gui {
   enum dock_flags_e {
     dock_space = ImGuiDockNodeFlags_DockSpace,

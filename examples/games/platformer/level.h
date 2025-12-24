@@ -110,9 +110,8 @@ void load_map() {
   axe_anim.set_position(fan::vec2(-0xfffff));
   lamp1_anim.set_position(fan::vec2(-0xfffff));
 
-  pile->renderer.iterate_marks(main_map_id, [&](tilemap_loader_t::fte_t::spawn_mark_data_t& data) -> bool {
+  pile->renderer.iterate_physics_entities(main_map_id, [&](auto& data, auto& entity_visual) -> bool {
     const auto& id = data.id;
-    // TODOODODODODOODO MOVE TO PHYSICS SHAPESSSSSSSSSSSS ITREATEEEEEEEEEEEEE
     if (id.contains("checkpoint")) {
       int checkpoint_idx = std::stoi(id.substr(std::strlen("checkpoint")));
       if (player_checkpoints.size() < checkpoint_idx) {
@@ -120,11 +119,18 @@ void load_map() {
       }
       auto& chkp = player_checkpoints[checkpoint_idx];
       chkp.visual = checkpoint_flag;
-      chkp.visual.set_position(fan::vec3(data.position));
+      chkp.visual.set_position(fan::vec3(entity_visual.get_position()));
       chkp.visual.set_size(checkpoint_flag.get_size() / fan::vec2(1.5f, 1.0f));
       chkp.visual.start_sprite_sheet_animation();
-      chkp.entity = fan::physics::create_sensor_rectangle(data.position, 46);
+      chkp.entity = fan::physics::create_sensor_rectangle(entity_visual.get_position(), 46);
     }
+    return false;
+  });
+
+  pile->renderer.iterate_marks(main_map_id, [&](tilemap_loader_t::fte_t::spawn_mark_data_t& data) -> bool {
+    const auto& id = data.id;
+    // TODOODODODODOODO MOVE TO PHYSICS SHAPESSSSSSSSSSSS ITREATEEEEEEEEEEEEE
+
     if (id.contains("lamp1")) {
       lamps.emplace_back(lamp1_anim);
       auto& l = lamps.back();

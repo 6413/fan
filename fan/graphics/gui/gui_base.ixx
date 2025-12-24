@@ -1,6 +1,6 @@
 module;
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
   #include <fan/imgui/imgui.h>
   #include <fan/imgui/imgui_impl_glfw.h>
   #include <fan/imgui/implot.h>
@@ -12,15 +12,15 @@ module;
   #include <cstdint>
 #endif
 
-#if defined(fan_vulkan)
+#if defined(FAN_VULKAN)
   #include <vulkan/vulkan.h>
 #endif
 
 export module fan.graphics.gui.base;
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
 
-#if defined (fan_audio)
+#if defined (FAN_AUDIO)
 import fan.audio;
 #endif
 
@@ -447,7 +447,7 @@ export namespace fan::graphics::gui {
     int renderer,
     int opengl_renderer_definition,  // todo bad
     int vulkan_renderer_definition  //  todo bad
-  #if defined(fan_vulkan)
+  #if defined(FAN_VULKAN)
     , VkInstance instance,
     VkPhysicalDevice physical_device,
     VkDevice device,
@@ -466,7 +466,7 @@ export namespace fan::graphics::gui {
     int renderer,
     int opengl_renderer_definition,  // todo bad
     int vulkan_renderer_definition  //  todo bad
-  #if defined(fan_vulkan)
+  #if defined(FAN_VULKAN)
     , VkInstance instance,
     VkPhysicalDevice physical_device,
     VkDevice device,
@@ -487,7 +487,7 @@ export namespace fan::graphics::gui {
     int renderer,
     int opengl_renderer_definition,  // todo bad
     int vulkan_renderer_definition  //  todo bad
-  #if defined(fan_vulkan)
+  #if defined(FAN_VULKAN)
     , VkDevice device
   #endif
   );
@@ -500,7 +500,7 @@ export namespace fan::graphics::gui {
     int vulkan_renderer_definition  //  todo bad
   );
 
-#if defined(fan_vulkan)
+#if defined(FAN_VULKAN)
   typedef void (*ImGuiFrameRenderFunc)(void* context, VkResult, fan::color);
 #endif
 
@@ -509,7 +509,7 @@ export namespace fan::graphics::gui {
     int opengl_renderer_definition,  // todo bad
     int vulkan_renderer_definition,  //  todo bad
     bool render_shapes_top
-  #if defined(fan_vulkan)
+  #if defined(FAN_VULKAN)
     ,
     void* context,
     const fan::color& clear_color,
@@ -602,7 +602,7 @@ export namespace fan::graphics::gui::plot {
 
 } // namespace plot
 
-#if defined (fan_audio)
+#if defined (FAN_AUDIO)
 export namespace fan::graphics::gui {
 
   /// <summary>

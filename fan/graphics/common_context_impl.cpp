@@ -4,6 +4,7 @@ module;
 #include <string>
 #include <source_location>
 #include <cstdint>
+#include <fstream>
 
 module fan.graphics.common_context;
 
@@ -60,7 +61,7 @@ namespace fan::graphics {
   lighting_t& get_lighting() {
     return *ctx().lighting;
   }
-#if defined(fan_gui)
+#if defined(FAN_GUI)
   gui_draw_cb_t& get_gui_draw_cbs() {
     return *ctx().gui_draw_cbs;
   }
@@ -201,6 +202,12 @@ namespace fan::graphics {
   }
   fan::vec2 get_mouse_position(const fan::graphics::render_view_t& render_view) {
     return get_mouse_position(render_view.camera, render_view.viewport);
+  }
+
+  std::string read_shader(const std::string& path, const std::source_location& callers_path) {
+    std::string code;
+    fan::io::file::read(fan::io::file::find_relative_path(path, callers_path), &code);
+    return code;
   }
 }
 namespace fan::window {

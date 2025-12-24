@@ -1,5 +1,7 @@
 module;
 
+#if defined(FAN_2D)
+
 #include <fan/utility.h>
 #include <cstring>
 #include <functional>
@@ -12,9 +14,13 @@ module;
 #include <sstream>
 #include <fstream>
 
+#endif
+
 export module fan.graphics.gui.tilemap_editor.editor;
 
-#if defined(fan_gui) && defined(fan_physics)
+#if defined(FAN_2D)
+
+#if defined(FAN_GUI) && defined(FAN_PHYSICS_2D)
 
 import fan.graphics.gui;
 
@@ -1996,7 +2002,7 @@ export struct fte_t {
     }
     bool is_temp = filename.find("temp") != std::string::npos;
 
-  #if defined(fan_json)
+  #if defined(FAN_JSON)
     previous_filename = filename;
     fan::json ostr;
 
@@ -2243,12 +2249,12 @@ export struct fte_t {
       fan::graphics::gui::print_success("File saved to " + std::filesystem::absolute(filename).generic_string());
     }
   #else
-    fan::throw_error("fan_json not enabled");
+    fan::throw_error("FAN_JSON not enabled");
   #endif
   }
 
   void fin(const std::string& filename, const std::source_location& callers_path = std::source_location::current()) {
-  #if defined(fan_json)
+  #if defined(FAN_JSON)
 
     std::ifstream file(fan::io::file::find_relative_path(filename, callers_path), std::ios::binary | std::ios::ate);
     if (!file) {
@@ -2489,7 +2495,7 @@ export struct fte_t {
       }
     }
   #else
-    fan::throw_error("fan_json not enabled");
+    fan::throw_error("FAN_JSON not enabled");
   #endif
   }
 
@@ -2706,5 +2712,7 @@ export struct fte_t {
   inline static fan::graphics::file_open_dialog_t models_open_file_dialog;
   std::vector<fan::graphics::texture_pack_t*> texture_packs;
 };
+
+#endif
 
 #endif

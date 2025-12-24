@@ -1450,7 +1450,7 @@ void main() {
   // allows to move and zoom camera with mouse
   fan::graphics::interactive_camera_t interactive_camera;
   uint16_t current_demo_index = 0;
-  int shape_count = 100000;
+  int shape_count = 1000;
   std::vector<fan::graphics::shape_t> shapes;
   static inline constexpr f32_t default_right_window_split_ratio = 0.2f;
   f32_t right_window_split_ratio = default_right_window_split_ratio;
@@ -1464,6 +1464,7 @@ int main() {////
   engine_demo_t demo;
   //demo.engine.cell_size = 32;
   //demo.engine.culling_rebuild_grid();
+  demo.engine.set_culling_enabled(false);
   demo.engine.set_target_fps(0);
   demo.engine.set_vsync(0);
   demo.engine.show_fps = 1;

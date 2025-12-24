@@ -55,7 +55,7 @@ struct settings_menu_t {
         {
           static const char* renderers[] = {
             "OpenGL",
-          #if defined(fan_vulkan)
+          #if defined(FAN_VULKAN)
             "Vulkan",
           #endif
           };
@@ -177,6 +177,7 @@ struct settings_menu_t {
       static bool hide_gui_settings = false;
 
       bool did_hide_bg = hide_gui_settings;
+    #if defined(FAN_2D)
       {
         gui::table_next_row();
 
@@ -213,6 +214,7 @@ struct settings_menu_t {
           gui::unindent();
         }
       }
+    #endif
 
       {
         gui::table_next_row();
@@ -227,6 +229,7 @@ struct settings_menu_t {
         }
       }
 
+      #if defined(FAN_2D)
       {
         static const char* fill_modes[] = {
           "Fill",
@@ -264,6 +267,7 @@ struct settings_menu_t {
           gui::end_combo();
         }
       }
+      #endif // FAN_2D
 
       gui::end_table();
     }
@@ -298,7 +302,7 @@ struct settings_menu_t {
   }
 
   static void menu_audio_left(settings_menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
-  #if defined(fan_audio)
+  #if defined(FAN_AUDIO)
     begin_menu_left("##Menu Audio Left", next_window_position, next_window_size);
     {
       gui::begin_table("settings_left_table_display", 2,

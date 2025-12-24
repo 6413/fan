@@ -1,5 +1,7 @@
 #pragma once
 
+#if defined(FAN_2D)
+
 #include <fan/graphics/algorithm/AStar.hpp>
 
 namespace fan {
@@ -97,3 +99,4 @@ namespace fan {
     };
   }
 }
+#endif

@@ -5,10 +5,11 @@ module;
 #include <cstdlib>
 #include <cstring>
 #include <vector>
+#include <type_traits>
 
 export module fan.physics.common_context;
 
-#if defined(fan_physics)
+#if defined(FAN_PHYSICS_2D)
 
 import fan.utility;
 import fan.types.vector;
