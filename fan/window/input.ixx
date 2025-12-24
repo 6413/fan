@@ -12,7 +12,7 @@ module;
 
 #endif
 
-#if defined(fan_vulkan)
+#if defined(FAN_VULKAN)
 #include <vulkan/vulkan.h>
 #endif
 #if defined(fan_platform_windows)

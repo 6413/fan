@@ -1,6 +1,6 @@
 module;
 
-//#undef fan_gui
+//#undef FAN_GUI
 
 #include <string>
 #include <sstream>
@@ -13,7 +13,7 @@ import fan.types;
 import fan.types.vector;
 import fan.random;
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
   import fan.graphics.gui.types;
 #endif
 
@@ -168,7 +168,7 @@ export namespace fan {
 			return c;
 		}
 
-	#if defined(fan_gui)
+	#if defined(FAN_GUI)
 		constexpr color_(const fan::graphics::gui::vec4_t& v) {
 			r = v.x;
 			g = v.y;

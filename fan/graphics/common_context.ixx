@@ -12,6 +12,7 @@ module;
 #include <cstdlib>
 #include <chrono>
 #include <sstream>
+#include <type_traits>
 
 export module fan.graphics.common_context;
 
@@ -19,12 +20,13 @@ export import fan.types.color;
 export import fan.graphics.image_load;
 export import fan.camera;
 
+import fan.io.file;
 import fan.window;
 import fan.window.input_action;
 import fan.print;
 import fan.utility;
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
   import fan.graphics.gui.types;
 	import fan.console;
 #endif
@@ -310,7 +312,7 @@ namespace bll_builds {
 	#include <BLL/BLL.h>
 
 	
-#if defined(fan_gui)
+#if defined(FAN_GUI)
 	#define BLL_set_SafeNext 1
 	#define BLL_set_prefix gui_draw_cb
 	#include <fan/fan_bll_preset.h>
@@ -325,7 +327,7 @@ export namespace fan::graphics{
 	using update_callback_t = bll_builds::update_callback_t;
 	using update_callback_nr_t = bll_builds::update_callback_NodeReference_t;
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
 	using gui_draw_cb_t = bll_builds::gui_draw_cb_t;
 	using gui_draw_cb_nr_t = bll_builds::gui_draw_cb_NodeReference_t;
 	
@@ -382,13 +384,13 @@ export namespace fan::graphics {
 		update_callback_t* update_callback = nullptr;
 
 		fan::window::input_action_t* input_action = nullptr;
-	#if defined(fan_gui)
+	#if defined(FAN_GUI)
 		fan::console_t* console = nullptr;
 	#endif
 
 		lighting_t* lighting = nullptr;
 
-	#if defined(fan_gui)
+	#if defined(FAN_GUI)
 
 		gui_draw_cb_t* gui_draw_cbs = nullptr;
 		void* text_logger = nullptr;
@@ -401,7 +403,7 @@ export namespace fan::graphics {
 	fan::graphics::image_data_t& image_get_data(fan::graphics::image_nr_t nr);
 	lighting_t& get_lighting();
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
 	gui_draw_cb_t& get_gui_draw_cbs();
 #endif
 
@@ -464,6 +466,8 @@ export namespace fan::graphics {
 		inline static fan::graphics::image_t dirt;
 		inline static fan::graphics::image_t background;
 	};
+
+  std::string read_shader(const std::string& path, const std::source_location& callers_path = std::source_location::current());
 }
 
 export namespace fan {

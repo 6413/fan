@@ -1,25 +1,31 @@
 module;
 
-#if defined(fan_physics)
-#include <fan/utility.h>
-#include <box2d/box2d.h>
-#endif
+#if defined(FAN_2D)
 
-#include <vector>
-#include <utility>
-#include <functional>
-#include <string>
-#include <cstring>
-#include <source_location>
+  #if defined(FAN_PHYSICS_2D)
+  #include <fan/utility.h>
+  #include <box2d/box2d.h>
+  #endif
+
+  #include <vector>
+  #include <utility>
+  #include <functional>
+  #include <string>
+  #include <cstring>
+  #include <source_location>
+
+#endif
 
 module fan.graphics.physics_shapes;
 
-#if defined(fan_physics)
+#if defined(FAN_2D)
+
+#if defined(FAN_PHYSICS_2D)
 
 import fan.types;
 import fan.print;
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
   import fan.graphics.gui.base;
 #endif
 
@@ -133,7 +139,7 @@ void DrawPoint(b2Vec2 p, f32_t size, b2HexColor color, void* context) {
 
 /// Draw a string.
 void DrawString(b2Vec2 p, const char* s, b2HexColor color, void* context) {
-#if defined(fan_gui)
+#if defined(FAN_GUI)
   fan::vec2 pos = fan::physics::physics_to_render(p) - fan::graphics::camera_get_position(fan::graphics::get_orthographic_render_view().camera);
   pos *= fan::graphics::camera_get_zoom(fan::graphics::get_orthographic_render_view().camera);
   pos += fan::graphics::get_window().get_size() / 2.f;
@@ -735,7 +741,7 @@ namespace fan::graphics::physics {
 
   void movement_state_t::move_to_direction_raw(fan::physics::body_id_t body, const fan::vec2& direction) {
     fan::vec2 input_dir = direction.sign() 
-    #if defined(fan_gui)
+    #if defined(FAN_GUI)
       * (check_gui ? !fan::graphics::gui::want_io() : 1)
     #endif
     ;
@@ -765,7 +771,7 @@ namespace fan::graphics::physics {
 
   void movement_state_t::move_to_direction(fan::physics::body_id_t body, const fan::vec2& direction) {
     fan::vec2 input_dir = direction.sign() 
-    #if defined(fan_gui)
+    #if defined(FAN_GUI)
       * (check_gui ? !fan::graphics::gui::want_io() : 1)
     #endif
     ;
@@ -816,7 +822,7 @@ namespace fan::graphics::physics {
 
     if (touching_wall && !on_ground && jump_state.consumed && wall_jump && !wall_jump->consumed) {
       fan::vec2 input = fan::window::get_input_vector() 
-      #if defined(fan_gui)
+      #if defined(FAN_GUI)
         * (check_gui ? !fan::graphics::gui::want_io() : 1)
       #endif
       ;
@@ -838,7 +844,7 @@ namespace fan::graphics::physics {
     }
 
     if ((!jump_state.consumed && !jump_state.jumping) 
-    #if defined(fan_gui)
+    #if defined(FAN_GUI)
       * (check_gui ? !fan::graphics::gui::want_io() : 1)
     #endif
     ) {
@@ -853,7 +859,7 @@ namespace fan::graphics::physics {
     }
 
     if ((jump_state.allow_double_jump && !jump_state.jumping && jump_state.consumed && !jump_state.double_jump_consumed) 
-    #if defined(fan_gui)
+    #if defined(FAN_GUI)
       * (check_gui ? !fan::graphics::gui::want_io() : 1)
     #endif
     ) {
@@ -1435,7 +1441,7 @@ namespace fan::graphics::physics {
         .condition = config.attack_cb ? config.attack_cb :
         [](character2d_t& c) -> bool {
           if (!fan::window::is_mouse_clicked() 
-          #if defined(fan_gui)
+          #if defined(FAN_GUI)
             || fan::graphics::gui::want_io()
           #endif
           ) {
@@ -2326,5 +2332,7 @@ namespace fan::graphics {
   }
 }
 
+
+#endif
 
 #endif

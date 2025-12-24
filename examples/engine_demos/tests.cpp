@@ -674,7 +674,7 @@ struct shape_tester_t {
     });
   }
 
-  #if defined(fan_physics)
+  #if defined(FAN_PHYSICS_2D)
   void test_collision_detection() {
     run_test("Rectangle AABB Intersection", [&]() {
       rectangle_t rect1{ {
@@ -787,7 +787,7 @@ struct shape_tester_t {
       assert_true(std::abs(basis.right.y - 1.0f) < tolerance, "Right.y should be ~1 at 90deg");
     });
 
-  #if defined(fan_physics)
+  #if defined(FAN_PHYSICS_2D)
     run_test("Shape AABB Calculation", [&]() {
       rectangle_t rect{ {
         .position = fan::vec3(100, 100, 0),
@@ -1052,7 +1052,7 @@ struct shape_tester_t {
 
     test_camera_position();
     test_viewport_resize();
-  #if defined(fan_physics)
+  #if defined(FAN_PHYSICS_2D)
     test_collision_detection();
   #endif
     test_image_assignment();

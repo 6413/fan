@@ -2,7 +2,7 @@ module;
 
 #include <fan/utility.h>
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
   #include <fan/imgui/text_editor.h>
 #endif
 
@@ -17,7 +17,7 @@ import fan.types.fstring;
 import fan.utility;
 import fan.graphics.common_types;
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
 
 namespace fan {
 

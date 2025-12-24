@@ -29,6 +29,7 @@ module;
 #include <opus/opus.h>
 #include <cstring>
 #include <source_location>
+#include <type_traits>
 
 #if fan_audio_set_backend == 0
   #include <xaudio2.h>
@@ -102,7 +103,7 @@ extern "C" {
 }
 #endif
 
-#if defined(fan_audio)
+#if defined(FAN_AUDIO)
 export namespace fan {
   namespace audio {
 

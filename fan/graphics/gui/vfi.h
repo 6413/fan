@@ -359,7 +359,7 @@ struct vfi_t {
 
   static fan::vec2 screen_to_world(const fan::vec2& p, fan::graphics::viewport_t viewport, fan::graphics::camera_t camera) {
 
-  #if fan_debug >= fan_debug_high
+  #if FAN_DEBUG >= fan_debug_high
     if (viewport.iic()) {
       fan::throw_error("invalid viewport");
     }

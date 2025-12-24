@@ -64,6 +64,3 @@ void fan::camera::rotate_camera(fan::vec2 offset) {
   this->set_pitch(this->get_pitch() - offset.y);
   this->update_view();
 }
-void fan::camera::move(f32_t movement_speed, f32_t friction) {
-
-}

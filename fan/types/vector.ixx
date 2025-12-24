@@ -2,20 +2,20 @@ module;
 
 #include <fan/utility.h>
 
-#if defined(fan_vulkan)
+#if defined(FAN_VULKAN)
   #include <vulkan/vulkan.h>
 #endif
 
-#if defined(fan_gui)
+#if defined(FAN_GUI)
   #include <fan/imgui/imgui.h>
   #include <fan/imgui/implot.h>
 #endif
 
-#if defined(fan_3D)
+#if defined(FAN_3D)
   #include <assimp/vector3.h>
 #endif
 
-#if defined(fan_physics)
+#if defined(FAN_PHYSICS_2D)
   #include <box2d/math_functions.h>
 #endif
 
@@ -239,19 +239,19 @@ export namespace fan {
 
     constexpr auto copysign(const auto& test0) const { return vec2_wrap_t(fan::math::copysign(x, test0.x), fan::math::copysign(y, test0.y)); }
 
-  #if defined(fan_gui)
+  #if defined(FAN_GUI)
     constexpr operator ImPlotPoint() const { return ImPlotPoint((f32_t)x, (f32_t)y); }
     constexpr vec2_wrap_t(const ImPlotPoint& v) { x = v.x; y = v.y; }
     constexpr operator ImVec2() const { return ImVec2{(f32_t)x, (f32_t)y}; }
     constexpr vec2_wrap_t(const ImVec2& v) { x = v.x; y = v.y; }
   #endif
 
-  #if defined(fan_physics)
+  #if defined(FAN_PHYSICS_2D)
     constexpr operator b2Vec2() const { return b2Vec2{(f32_t)x, (f32_t)y}; }
     constexpr vec2_wrap_t(const b2Vec2& v) { x = v.x; y = v.y; }
   #endif
 
-  #if defined(fan_vulkan)
+  #if defined(FAN_VULKAN)
     constexpr operator VkExtent2D() const { return VkExtent2D{(uint32_t)x, (uint32_t)y}; }
     constexpr vec2_wrap_t(const VkExtent2D& v) { x = v.width; y = v.height; }
   #endif
@@ -302,7 +302,7 @@ export namespace fan {
     constexpr vec3_wrap_t(const vec4_wrap_t<T>& test0)
       : vec3_wrap_t(test0.x, test0.y, test0.z) { }
 
-  #if defined(fan_3D)
+  #if defined(FAN_3D)
     vec3_wrap_t(const aiVector3D& v) { x = v.x; y = v.y; z = v.z; }
     operator aiVector3D() { return {x, y, z}; }
   #endif
@@ -355,7 +355,7 @@ export namespace fan {
     constexpr vec4_wrap_t(const vec3_wrap_t<T>& test0, auto value)
       : vec4_wrap_t(test0.x, test0.y, test0.z, value) { }
 
-  #if defined(fan_gui)
+  #if defined(FAN_GUI)
     constexpr operator ImVec4() const { return ImVec4(x, y, z, w); }
     constexpr vec4_wrap_t(const ImVec4& v) { x = v.x; y = v.y; z = v.z; w = v.w; }
   #endif
