@@ -269,7 +269,7 @@ struct shaper_t{
       bool instanced = true;
       int vertex_count = 6;
     };
-    #if defined(fan_vulkan)
+    #if defined(FAN_VULKAN)
     struct vk_t {
       vk_t() = default;
       fan::vulkan::context_t::pipeline_t pipeline;
@@ -281,7 +281,7 @@ struct shaper_t{
       enum class type_t {
         none,
         gl,
-#if defined(fan_vulkan)
+#if defined(FAN_VULKAN)
         vk
 #endif
       };
@@ -296,7 +296,7 @@ struct shaper_t{
         case type_t::gl:
           new (&gl) gl_t(other.gl);
           break;
-#if defined(fan_vulkan)
+#if defined(FAN_VULKAN)
         case type_t::vk:
           new (&vk) vk_t(other.vk);
           break;
@@ -316,7 +316,7 @@ struct shaper_t{
         case type_t::gl:
           new (&gl) gl_t(other.gl);
           break;
-#if defined(fan_vulkan)
+#if defined(FAN_VULKAN)
         case type_t::vk:
           new (&vk) vk_t(other.vk);
           break;
@@ -337,7 +337,7 @@ struct shaper_t{
         case type_t::gl:
           gl.~gl_t();
           break;
-#if defined(fan_vulkan)
+#if defined(FAN_VULKAN)
         case type_t::vk:
           vk.~vk_t();
           break;
@@ -350,7 +350,7 @@ struct shaper_t{
 
       union {
         gl_t gl;
-#if defined(fan_vulkan)
+#if defined(FAN_VULKAN)
         vk_t vk;
 #endif
       };
@@ -629,7 +629,7 @@ struct shaper_t{
       if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
         return d.renderer.gl.shader;
       }
-      #if defined(fan_vulkan)
+      #if defined(FAN_VULKAN)
       else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {
         return d.renderer.vk.pipeline.shader_nr;
       }
@@ -750,7 +750,7 @@ struct shaper_t{
       if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
         std::destroy_at(&renderer.gl);
       }
-    #if defined(fan_vulkan)
+    #if defined(FAN_VULKAN)
       else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan)  {
         std::destroy_at(&renderer.vk);
       }
@@ -770,7 +770,7 @@ struct shaper_t{
       GLuint draw_mode = GL_TRIANGLES;
       GLsizei vertex_count = 6;
     };
-#if defined(fan_vulkan)
+#if defined(FAN_VULKAN)
     struct vk_t {
       vk_t() = default;
       fan::vulkan::context_t::pipeline_t pipeline;
@@ -783,7 +783,7 @@ struct shaper_t{
       ~renderer_t() {}
       union {
         gl_t gl;
-      #if defined(fan_vulkan)
+      #if defined(FAN_VULKAN)
         vk_t vk;
       #endif
       };
@@ -831,7 +831,7 @@ struct shaper_t{
           gl.m_vbo.close(*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx())));
         }
       }
-    #if defined(fan_vulkan)
+    #if defined(FAN_VULKAN)
       else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {
         auto& vk = st.renderer.vk;
         vk.shape_data.m_descriptor.close(fan::graphics::get_vk_context());
@@ -894,7 +894,7 @@ struct shaper_t{
       st.shaper = this;
       st.sti = csti;
       st.BlockList.Open(1);
-      #if fan_debug >= fan_debug_high
+      #if FAN_DEBUG >= fan_debug_high
       st.sti = -1;
       #endif
     }
@@ -1011,7 +1011,7 @@ struct shaper_t{
       st.renderer.gl = d;
       shaper_t::gl_add_shape_type()(st, bp);
     }
-    #if defined(fan_vulkan)
+    #if defined(FAN_VULKAN)
     else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {
       ShapeType_t::vk_t d;
       std::construct_at(&st.renderer.vk);
@@ -1050,7 +1050,7 @@ struct shaper_t{
           GL_ARRAY_BUFFER
         );
       }
-      #if defined(fan_vulkan)
+      #if defined(FAN_VULKAN)
       else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {
         auto& vk = st.renderer.vk;
         auto wrote = bu.MaxEdit - bu.MinEdit;
@@ -1136,7 +1136,7 @@ struct shaper_t{
         );
       }
     }
-    #if defined(fan_vulkan)
+    #if defined(FAN_VULKAN)
     else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan){
       auto& vk = st.renderer.vk;
       while (traverse.Loop(&st.BlockList, &node_id)) {
@@ -1238,7 +1238,7 @@ struct shaper_t{
     BlockManager_NodeData_t *bm;
 
     auto &st = ShapeTypes[sti];
-  #if fan_debug >= fan_debug_high
+  #if FAN_DEBUG >= fan_debug_high
     if (st.sti == (decltype(st.sti))-1) {
       fan::throw_error("");
     }

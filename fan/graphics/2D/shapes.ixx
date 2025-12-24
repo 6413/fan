@@ -31,21 +31,24 @@ import fan.physics.collision.circle;
 
 import fan.types.fstring;
 
-#if defined(fan_json)
+#if defined(FAN_JSON)
   import fan.types.json;
 #endif
 
-#if defined(fan_opengl)
+#if defined(FAN_OPENGL)
   import fan.graphics.opengl.core;
 #endif
 
-#if defined(fan_vulkan)
+#if defined(FAN_VULKAN)
   import fan.graphics.vulkan.core;
 #endif
 
-#if defined(fan_physics)
+#if defined(FAN_PHYSICS_2D)
   import fan.physics.types; // aabb
 #endif
+
+
+#if defined(FAN_2D)//
 
 #define shaper_get_key_safe(return_type, kps_type, variable) \
 [key_pack] ()-> auto& { \
@@ -60,15 +63,50 @@ import fan.types.fstring;
 #define shape_get_vi(shape) (*(fan::graphics::shapes::shape##_t::vi_t*)GetRenderData(fan::graphics::g_shapes->shaper))
 #define shape_get_ri(shape) (*(fan::graphics::shapes::shape##_t::ri_t*)GetData(fan::graphics::g_shapes->shaper))
 
+#endif
+
 export namespace fan::graphics {
+
+  struct context_shader_t {
+    context_shader_t();
+    ~context_shader_t();
+    union {
+      fan::opengl::context_t::shader_t gl;
+    #if defined(FAN_VULKAN)
+      fan::vulkan::context_t::shader_t vk;
+    #endif
+    };
+  };
+  struct context_image_t {
+    context_image_t();
+    ~context_image_t();
+    union {
+      fan::opengl::context_t::image_t gl;
+    #if defined(FAN_VULKAN)
+      fan::vulkan::context_t::image_t vk; // note vk::image_t uses vector 
+    #endif
+    };
+  };
+  struct context_t {
+    context_t();
+    ~context_t();
+    union {
+      fan::opengl::context_t gl;
+    #if defined(FAN_VULKAN)
+      fan::vulkan::context_t vk;
+    #endif
+    };
+  };
 
   // warning does deep copy, addresses can die
   fan::graphics::context_shader_t shader_get(fan::graphics::shader_nr_t nr);
 
+#if defined(FAN_2D)
+
   struct shapes;
   inline shapes* g_shapes = nullptr;
 
-#if defined(fan_json)
+#if defined(FAN_JSON)
   fan::json image_to_json(const fan::graphics::image_t& image);
   fan::graphics::image_t json_to_image(const fan::json& image_json, const std::source_location& callers_path = std::source_location::current());
 #endif
@@ -80,7 +118,7 @@ export namespace fan::graphics {
     struct image_t {
       fan::graphics::image_t image = fan::graphics::ctx().default_texture;
       int hframes = 1, vframes = 1;
-    #if defined(fan_json)
+    #if defined(FAN_JSON)
       operator fan::json() const;
       sprite_sheet_animation_t::image_t& assign(const fan::json& j, const std::source_location& callers_path = std::source_location::current());
     #endif
@@ -145,13 +183,11 @@ export namespace fan::graphics {
   animation_nr_t add_sprite_sheet_shape_animation(animation_nr_t shape_animation_id, const sprite_sheet_animation_t& new_anim);
   bool is_animation_finished(animation_nr_t nr, const fan::graphics::sprite_sheet_data_t& sd);
 
-#if defined(fan_json)
+#if defined(FAN_JSON)
   fan::json sprite_sheet_serialize();
   void parse_animations(const std::string& json_path, fan::json& json, const std::source_location& callers_path = std::source_location::current());
 #endif
   //-----------------------sprite sheet animations-----------------------
-
-  std::string read_shader(const std::string& path, const std::source_location& callers_path = std::source_location::current());
 
   struct light_flags_e {
     enum {
@@ -254,7 +290,7 @@ export namespace fan::graphics {
       shape_t(shaper_t::ShapeID_t&& s) noexcept;
       shape_t& operator=(shape_t&& s) noexcept;
       shape_t& operator=(const shape_t& s);
-    #if defined(fan_json)
+    #if defined(FAN_JSON)
       operator fan::json();
       operator std::string();
       shape_t(const fan::json& json);
@@ -315,7 +351,7 @@ export namespace fan::graphics {
       fan::mat3 get_rotation_matrix() const;
       fan::vec3 transform(const fan::vec3& local) const;
       fan::mat4 get_transform() const;
-    #if defined(fan_physics)
+    #if defined(FAN_PHYSICS_2D)
       fan::physics::aabb_t get_aabb() const;
     #endif
       fan::vec2 get_tc_position() const;
@@ -355,7 +391,7 @@ export namespace fan::graphics {
       void reload(uint8_t format, fan::graphics::image_t images[4]);
       void set_line(const fan::vec2& src, const fan::vec2& dst);
       bool is_mouse_inside();
-    #if defined(fan_physics)
+    #if defined(FAN_PHYSICS_2D)
       bool intersects(const fan::graphics::shapes::shape_t& shape) const;
       bool collides(const fan::graphics::shapes::shape_t& shape) const;
       bool point_inside(const fan::vec2& point) const;
@@ -1426,7 +1462,7 @@ export namespace fan::graphics {
 
       shape_t push_back(const properties_t& properties);
     }shader_shape;
-  #if defined(fan_3D)
+  #if defined(FAN_3D)
     struct rectangle3d_t {
       static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::rectangle3d;
       static constexpr int kpi = kp::common;
@@ -1551,7 +1587,7 @@ export namespace fan::graphics {
   #include "build_shape_list.h"
   #define shape shader_shape
   #include "build_shape_list.h"
-  #if defined(fan_3D)
+  #if defined(FAN_3D)
   #define shape rectangle3d
   #include "build_shape_list.h"
   #define shape line3d
@@ -1768,21 +1804,25 @@ export namespace fan::graphics {
   fan::graphics::shapes& get_shapes() {
     return *g_shapes;
   }
+
+  #endif
 }
+
+#if defined(FAN_2D)
 
 export namespace fan::graphics {
   struct shape_deserialize_t {
     struct {
       // json::iterator doesnt support union
       // i dont want to use variant either so i accept few extra bytes
-    #if defined(fan_json)
+    #if defined(FAN_JSON)
       json::const_iterator it;
     #endif
       uint64_t offset = 0;
     }data;
     bool init = false;
     bool was_object = false;
-  #if defined(fan_json)
+  #if defined(FAN_JSON)
     bool iterate(const fan::json& json, fan::graphics::shapes::shape_t* shape, const std::source_location& callers_path = std::source_location::current());
   #endif
     bool iterate(const std::vector<uint8_t>& bin_data, fan::graphics::shapes::shape_t* shape);
@@ -1793,7 +1833,7 @@ export namespace fan::graphics {
   bool shape_serialize(fan::graphics::shapes::shape_t& shape, std::vector<uint8_t>* out);
 }
 
-#if defined(fan_json)
+#if defined(FAN_JSON)
 export namespace fan::graphics {
   bool shape_to_json(fan::graphics::shapes::shape_t& shape, fan::json* json);
   bool json_to_shape(const fan::json& in, fan::graphics::shapes::shape_t* shape, const std::source_location& callers_path = std::source_location::current());
@@ -1819,5 +1859,7 @@ export namespace fan::graphics {
 		}
 	}
 } // namespace fan::graphics
+
+#endif
 
 #endif

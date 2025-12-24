@@ -1,11 +1,18 @@
 module;
+
+#if defined(FAN_2D)
+
 #include <vector>
 #include <unordered_map>
 #include <array>
 #include <limits>
 #include <cstdint>
 
+#endif
+
 export module fan.graphics.culling;
+
+#if defined(FAN_2D)
 
 import fan.graphics.common_context;
 import fan.graphics.shapes.types;
@@ -87,3 +94,5 @@ export namespace fan::graphics::culling {
   void rebuild_static(culling_t& culling);
   void set_enabled(culling_t& culling, bool flag);
 }
+
+#endif

@@ -21,12 +21,12 @@ struct blur_t {
 
     loco.shader_set_vertex(
       shader_downsample,
-      loco.read_shader("shaders/opengl/2D/effects/downsample.vs")
+      fan::graphics::read_shader("shaders/opengl/2D/effects/downsample.vs")
     );
 
     loco.shader_set_fragment(
       shader_downsample,
-      loco.read_shader("shaders/opengl/2D/effects/downsample.fs")
+      fan::graphics::read_shader("shaders/opengl/2D/effects/downsample.fs")
     );
 
     loco.shader_compile(shader_downsample);
@@ -38,12 +38,12 @@ struct blur_t {
 
     loco.shader_set_vertex(
       shader_upsample,
-      loco.read_shader("shaders/opengl/2D/effects/downsample.vs")
+      fan::graphics::read_shader("shaders/opengl/2D/effects/downsample.vs")
     );
 
     loco.shader_set_fragment(
       shader_upsample,
-      loco.read_shader("shaders/opengl/2D/effects/upsample.fs")
+      fan::graphics::read_shader("shaders/opengl/2D/effects/upsample.fs")
     );
 
     loco.shader_compile(shader_upsample);

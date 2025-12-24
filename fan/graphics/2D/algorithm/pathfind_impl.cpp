@@ -1,9 +1,12 @@
 module;
 
-#include <fan/graphics/algorithm/AStar.hpp>
+#if defined(FAN_2D)
+#include <fan/graphics/2D/algorithm/AStar.hpp>
+#endif
 
 module fan.graphics.algorithm.pathfind;
 
+#if defined(FAN_2D)
 
 fan::graphics::algorithm::pathfind::node::node(vec2i coord_, node* parent_)
   : G(0), H(0), coordinates(coord_), parent(parent_) {
@@ -62,3 +65,5 @@ fan::graphics::algorithm::pathfind::uint
 fan::graphics::algorithm::pathfind::heuristic::octagonal(vec2i a, vec2i b) {
   return ::AStar::Heuristic::octagonal(::AStar::Vec2i(a), ::AStar::Vec2i(b));
 }
+
+#endif

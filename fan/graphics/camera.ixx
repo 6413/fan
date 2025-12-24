@@ -19,7 +19,6 @@ export namespace fan {
     void set_pitch(f32_t angle);
     void update_view();
     void rotate_camera(fan::vec2 offset);
-    void move(f32_t movement_speed, f32_t friction = 12);
 
     f32_t sensitivity = 0.1f;
     bool first_movement = true;

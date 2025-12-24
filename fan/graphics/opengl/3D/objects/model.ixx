@@ -1,6 +1,6 @@
 module;
 
-#ifndef fan_3D
+#ifndef FAN_3D
 export module fan.graphics.opengl3D.objects.model;
 #else
 
@@ -10,7 +10,7 @@ export module fan.graphics.opengl3D.objects.model;
 
 export module fan.graphics.opengl3D.objects.model;
 export import fan.graphics;
-export import fan.graphics.opengl3D.objects.fms;
+export import fan.graphics.fms;
 export import fan.graphics.gui;
 import fan.graphics.opengl.core;
 
@@ -39,6 +39,7 @@ export namespace fan {
         fan::graphics::shader_compile(m_shader);
         
         // load textures
+        int mesh_index = 0;
         for (fan_3d::model::mesh_t& mesh : meshes) {
           for (const std::string& name : mesh.texture_names) {
             if (name.empty()) {
@@ -74,22 +75,28 @@ export namespace fan {
               fan_3d::model::cached_images[name] = fan::graphics::get_default_texture(); // insert default (missing) texture, since old doesnt exist
             }
           }
-          setup_mesh_buffers(mesh);
+          setup_mesh_buffers(mesh, mesh_index);
           mesh.vertices.clear();
           mesh.indices.clear();
+          ++mesh_index;
         }
       }
-      void setup_mesh_buffers(fan_3d::model::mesh_t& mesh) {
-        mesh.vao.open(fan::graphics::get_gl_context());
-        mesh.vbo.open(fan::graphics::get_gl_context(), GL_ARRAY_BUFFER);
-        fan_opengl_call(glGenBuffers(1, &mesh.ebo));
+      void setup_mesh_buffers(fan_3d::model::mesh_t& mesh, int mesh_index) {
+        if (gl_datas.size() <= mesh_index) {
+          gl_datas.resize(mesh_index + 1);
+        }
+        gl_t& gl = gl_datas[mesh_index];
+        gl.vao.open(fan::graphics::get_gl_context());
+        gl.vbo.open(fan::graphics::get_gl_context(), GL_ARRAY_BUFFER);
 
-        mesh.vao.bind(fan::graphics::get_gl_context());
+        fan_opengl_call(glGenBuffers(1, &gl.ebo));
 
-        mesh.vbo.bind(fan::graphics::get_gl_context());
+        gl.vao.bind(fan::graphics::get_gl_context());
+
+        gl.vbo.bind(fan::graphics::get_gl_context());
         fan_opengl_call(glBufferData(GL_ARRAY_BUFFER, mesh.vertices.size() * sizeof(fan_3d::model::vertex_t), &mesh.vertices[0], GL_STATIC_DRAW));
 
-        fan_opengl_call(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.ebo));
+        fan_opengl_call(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gl.ebo));
         fan_opengl_call(glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size() * sizeof(unsigned int), &mesh.indices[0], GL_STATIC_DRAW));
 
         fan::opengl::context_t::shader_t shader = fan::graphics::shader_get(m_shader).gl;
@@ -166,7 +173,7 @@ export namespace fan {
               &material_data_vector[mesh_index].color[0][0]
             ));
           }
-          meshes[mesh_index].vao.bind(fan::graphics::get_gl_context());
+          gl_datas[mesh_index].vao.bind(fan::graphics::get_gl_context());
           fan::vec3 camera_position = fan::graphics::camera_get_position(camera_nr);
           fan::graphics::get_gl_context().shader_set_value(m_shader, "view_p", camera_position);
           { // texture binding
@@ -211,7 +218,7 @@ export namespace fan {
           ));
         }
       }
-#if defined(fan_gui)
+#if defined(FAN_GUI)
       void draw_cached_images() {
         using namespace fan::graphics;
         gui::begin("test");
@@ -243,6 +250,12 @@ export namespace fan {
       fan::vec3 light_position{3.46f, 1.94f, 6.22f};
       fan::vec3 light_color{.8f,.8f,.8f};
       f32_t light_intensity{1.f};
+      struct gl_t {
+        fan::opengl::core::vao_t vao;
+        fan::opengl::core::vbo_t vbo;
+        GLuint ebo;
+      };
+      std::vector<gl_t> gl_datas;
       fan::graphics::shader_t m_shader;
       GLuint envMapTexture;
       fan::graphics::camera_t camera_nr;

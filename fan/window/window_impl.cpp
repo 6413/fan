@@ -2,7 +2,7 @@ module;
 
 #include <fan/utility.h>
 
-#if defined(fan_vulkan)
+#if defined(FAN_VULKAN)
 #include <vulkan/vulkan.h>
 #endif
 #if defined(fan_platform_windows)
@@ -254,7 +254,7 @@ namespace fan {
       window_size = resolutions[current_resolution];
     }
 
-  #if fan_debug >= fan_debug_high
+  #if FAN_DEBUG >= fan_debug_high
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_TRUE);
   #endif
 
@@ -476,7 +476,7 @@ namespace fan {
     f64_t current_frame_time = glfwGetTime();
     m_delta_time = current_frame_time - last_frame_time;
     /*if (m_delta_time >= 0.3) {
-    #if fan_debug >= 4
+    #if FAN_DEBUG >= 4
         fan::print("framerate too low, overriding delta time");
     #endif
         m_delta_time = 1.0 / 256.0;

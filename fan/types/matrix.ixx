@@ -1,6 +1,6 @@
 module;
 
-#if defined(fan_3D)
+#if defined(FAN_3D)
   #include <assimp/matrix4x4.h>
 #endif
 
@@ -262,7 +262,7 @@ export namespace fan {
         (*this)[0][3] == 0 && (*this)[1][3] == 0 && (*this)[2][3] == 0;
     }
 
-    #if defined(fan_3D)
+    #if defined(FAN_3D)
     _matrix4x4(const aiMatrix4x4& mat) {
       for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {

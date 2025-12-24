@@ -33,7 +33,7 @@ static void update_shape(shape_t* shape, modifier_t&& modifier_fn) {
 
 template<typename sti_t, typename key_pack_t>
 static void set_position_impl(sti_t sti, key_pack_t key_pack, const fan::vec3& position) {
-#if fan_debug >= 3
+#if FAN_DEBUG >= 3
   if (position.z > std::numeric_limits<decltype(kps_t::common_t::depth)>::max()) {
     fan::throw_error("z depth value exceeded. dont give me bigger depth than", std::numeric_limits<decltype(kps_t::common_t::depth)>::max());
   }
@@ -271,7 +271,7 @@ static constexpr int get_shape_category(uint16_t sti) {
   case fan::graphics::shapes::shape_type_t::grid:
   case fan::graphics::shapes::shape_type_t::circle:
   case fan::graphics::shapes::shape_type_t::rectangle:
-  #if defined(fan_3D)
+  #if defined(FAN_3D)
   case fan::graphics::shapes::shape_type_t::rectangle3d:
   #endif
   case fan::graphics::shapes::shape_type_t::line:

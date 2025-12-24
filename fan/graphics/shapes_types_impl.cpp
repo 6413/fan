@@ -17,6 +17,8 @@ namespace fan::graphics {
   context_t::context_t() {}
   context_t::~context_t() {}
 
+#if defined(FAN_2D)
+
   std::uint8_t* A_resize(void* ptr, std::uintptr_t size) {
     if (ptr) {
       if (size) {
@@ -44,7 +46,10 @@ namespace fan::graphics {
       }
     }
   }
+#endif
 }
+
+#if defined(FAN_2D)
 
 #define shaper_set_ShapeTypeChange \
   __builtin_memcpy(new_renderdata, old_renderdata, element_count * fan::graphics::g_shapes->shaper.GetRenderDataSize(sti)); \
@@ -61,3 +66,4 @@ void fan::graphics::shaper_t::_ShapeTypeChange(
 ) {
   shaper_set_ShapeTypeChange
 }
+#endif

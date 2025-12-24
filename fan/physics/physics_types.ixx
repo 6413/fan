@@ -1,6 +1,6 @@
 module;
 
-#if defined(fan_physics)
+#if defined(FAN_PHYSICS_2D)
   #include <box2d/box2d.h>
   #include <functional>
 #endif
@@ -9,9 +9,10 @@ export module fan.physics.types;
 
 export import fan.types.vector;
 
-#if defined(fan_physics)
+
 
 export namespace fan::physics {
+  // allow aabb build without flag
   struct aabb_t {
     fan::vec2 min;
     fan::vec2 max;
@@ -59,6 +60,8 @@ export namespace fan::physics {
     }
   };
 
+#if defined(FAN_PHYSICS_2D)
+
   inline double length_units_per_meter = 256.0;
 
   fan::vec2d physics_to_render(const fan::vec2d& p) {
@@ -94,5 +97,5 @@ export namespace fan::physics {
   };
 
   using body_type = b2BodyType;
-}
 #endif
+}

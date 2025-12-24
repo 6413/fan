@@ -27,7 +27,7 @@ bool fan::image::load(const std::string& file, info_t* image_info, const std::so
       image_info->type = image_type_e::stb;
     #endif
   }
-#if fan_debug >= fan_debug_low
+#if FAN_DEBUG >= fan_debug_low
   if (ret) {
     fan::print_warning("failed to load image data from path:" + file);
   }

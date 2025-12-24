@@ -115,7 +115,7 @@ bool fan::io::file::open(file_t** f, const std::string& path, const properties_t
 
 bool fan::io::file::close(file_t* f) {
   int ret = fclose(f);
-#if fan_debug >= fan_debug_low
+#if FAN_DEBUG >= fan_debug_low
   if (ret != 0) {
     fan::print_warning("failed to close file stream");
     return 1;
@@ -126,7 +126,7 @@ bool fan::io::file::close(file_t* f) {
 
 bool fan::io::file::read(file_t* f, void* data, std::uint64_t size, std::uint64_t elements) {
   std::uint64_t ret = fread(data, size, elements, f);
-#if fan_debug >= fan_debug_low
+#if FAN_DEBUG >= fan_debug_low
   if (ret != elements && size != 0) {
     fan::print_warning("failed to read from file stream");
     return 1;
@@ -137,7 +137,7 @@ bool fan::io::file::read(file_t* f, void* data, std::uint64_t size, std::uint64_
 
 bool fan::io::file::write(file_t* f, void* data, std::uint64_t size, std::uint64_t elements) {
   std::uint64_t ret = fwrite(data, size, elements, f);
-#if fan_debug >= fan_debug_low
+#if FAN_DEBUG >= fan_debug_low
   if (ret != elements && size != 0) {
     fan::print_warning("failed to write from file stream");
     return 1;

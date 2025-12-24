@@ -120,7 +120,7 @@ export namespace fan::opengl {
       GLint location = shader_loc_it->second;
 
 
-#if fan_debug >= fan_debug_insane
+#if FAN_DEBUG >= fan_debug_insane
       //fan_validate_value(location, validate_error_message(name));
 #endif
 

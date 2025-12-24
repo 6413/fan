@@ -1,10 +1,14 @@
 module;
 
-#include <cstdint>
-#include <algorithm>
-#include <string>
+#if defined(FAN_2D)
+  #include <cstdint>
+  #include <algorithm>
+  #include <string>
+#endif
 
 module fan.graphics.culling;
+
+#if defined(FAN_2D)
 
 import fan.graphics.shapes;
 import fan.print;
@@ -513,3 +517,5 @@ namespace fan::graphics::culling {
   }
 
 }
+
+#endif

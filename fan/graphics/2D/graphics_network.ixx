@@ -1,6 +1,7 @@
 module;
 
-#if defined(fan_network)
+
+#if defined(FAN_NETWORK) && defined(FAN_2D)
 
 #include <fan/utility.h>
 
@@ -12,7 +13,7 @@ module;
 
 export module fan.graphics.network;
 
-#if defined(fan_network)
+#if defined(FAN_NETWORK) && defined(FAN_2D)
 
 export import fan.utility;
 export import fan.graphics;

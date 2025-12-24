@@ -1,8 +1,12 @@
 module;
 
-#include <fan/graphics/algorithm/AStar.hpp>
+#if defined(FAN_2D)
+  #include <fan/graphics/2D/algorithm/AStar.hpp>
+#endif
 
 export module fan.graphics.algorithm.pathfind;
+
+#if defined(FAN_2D)
 
 export namespace fan::graphics::algorithm::pathfind {
   using uint = ::AStar::uint;
@@ -39,3 +43,5 @@ export namespace fan::graphics::algorithm::pathfind {
     static uint octagonal(vec2i a, vec2i b);
   };
 }
+
+#endif

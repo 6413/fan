@@ -2,7 +2,7 @@ module;
 
 #include <fan/utility.h>
 
-#if defined(fan_vulkan)
+#if defined(FAN_VULKAN)
 #include <vulkan/vulkan.h>
 #endif
 #if defined(fan_platform_windows)
@@ -20,6 +20,7 @@ module;
 #include <functional>
 #include <cstdlib>
 #include <string>
+#include <type_traits>
 
 export module fan.window;
 
