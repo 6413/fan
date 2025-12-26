@@ -27,12 +27,13 @@ struct player_t {
       .aabb_scale = aabb_scale,
       .draw_offset_override = draw_offset,
       .attack_cb = [](fan::graphics::physics::character2d_t& c) -> bool{
-        if (!fan::window::is_mouse_clicked() || fan::graphics::gui::want_io()){
+        if (!fan::window::is_mouse_clicked() && !fan::window::is_key_pressed(fan::gamepad_right_bumper) || fan::graphics::gui::want_io()){
           return false;
         }
         return c.attack_state.try_attack(&c);
       },
     });
+    body.set_dynamic();
     body.enable_default_movement();
     body.set_jump_height(60.f);
     body.enable_double_jump();
@@ -107,6 +108,7 @@ struct player_t {
     else{
       body.set_physics_position(pile->get_level().player_checkpoints[current_checkpoint].visual.get_position());
     }
+    body.set_max_health(200);
     body.set_health(body.get_max_health());
     //body.set_health(10.f);
 
@@ -153,9 +155,11 @@ struct player_t {
 
     for (auto [i, checkpoint] : fan::enumerate(pile->get_level().player_checkpoints)) {
       if (fan::physics::is_on_sensor(body, checkpoint.entity) && current_checkpoint < (int)i) {
+        current_checkpoint = i;
         fan::audio::play(audio_checkpoint);
-        task_particles = particles_explode();
+        //task_particles = particles_explode();
         fan::graphics::gui::print("Checkpoint reached!!!!!");
+        break;
       }
     }
 
@@ -200,7 +204,7 @@ struct player_t {
 
   fan::graphics::engine_t::key_handle_t key_click_handles[10];
 
-  int current_checkpoint = 0;
+  int current_checkpoint = 1;
   
   uint16_t potion_count = 0;
   fan::time::timer potion_consume_timer {0.1e9, true};

@@ -449,7 +449,7 @@ namespace fan::graphics {
         .color = p.color,
         .flags = p.flags,
         .angle = p.angle
-      )
+      ), p.enable_culling
     );
   }
 
@@ -473,7 +473,7 @@ line_t::line_t(line_properties_t p) {
       .thickness = p.thickness,
       .blending = p.blending,
       .draw_mode = p.draw_mode
-    )
+    ), p.enable_culling
   );
 }
 
@@ -499,7 +499,7 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
         .angle = p.angle,
         .rotation_point = p.rotation_point,
         .blending = p.blending
-      )
+      ), p.enable_culling
     );
   }
 
@@ -530,7 +530,7 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
         .blending = p.blending,
         .flags = p.flags,
         .texture_pack_unique_id = p.texture_pack_unique_id
-      )
+      ), p.enable_culling
     );
   }
 
@@ -558,7 +558,7 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
         .tc_size = p.tc_size,
         .rotation_point = p.rotation_point,
         .blending = p.blending
-      )
+      ), p.enable_culling
     );
   }
 

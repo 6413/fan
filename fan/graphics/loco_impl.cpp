@@ -785,7 +785,7 @@ bool loco_t::culling_enabled() const {
 }
 
 void loco_t::set_culling_enabled(bool enabled) {
-  shapes.visibility.enabled = enabled;
+  fan::graphics::culling::set_enabled(shapes.visibility, enabled);
 }
 
 void loco_t::get_culling_stats(uint32_t& visible, uint32_t& culled) const {
@@ -859,10 +859,6 @@ void loco_t::visualize_culling() {
     .color = fan::color(1, 0, 0, 0.8f),
     .thickness = 5.f / cam.zoom
   });
-
-  for (int i = 0; i < 4; ++i) {
-    (immediate_render_list.end() - 1 - i)->push_vram();
-  }
 }
 #endif
 
@@ -1208,11 +1204,11 @@ void loco_t::setup_input_callbacks() {
   input_action.add(fan::key_escape, "open_settings");
 #endif
 
-  input_action.add(fan::key_a, "move_left");
-  input_action.add(fan::key_d, "move_right");
-  input_action.add(fan::key_w, "move_forward");
-  input_action.add(fan::key_s, "move_back");
-  input_action.add({fan::key_space, fan::key_w}, "move_up");
+  input_action.add({fan::key_a}, "move_left");
+  input_action.add({fan::key_d}, "move_right");
+  input_action.add({fan::key_w}, "move_forward");
+  input_action.add({fan::key_s}, "move_back");
+  input_action.add({fan::key_space, fan::key_w, fan::gamepad_a}, "move_up");
 
 #if defined(FAN_PHYSICS_2D)
   input_action.add_keycombo({fan::key_left_control, fan::key_5}, "debug_physics");
@@ -1528,17 +1524,17 @@ void loco_t::process_shapes() {
     auto& cmd_buffer = context.vk.command_buffers[context.vk.current_frame];
     if (vk.image_error == VK_SUCCESS) {
       vkCmdNextSubpass(cmd_buffer, VK_SUBPASS_CONTENTS_INLINE);
-      //vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vk.post_process);
-      //vkCmdBindDescriptorSets(
-      //  cmd_buffer,
-      //  VK_PIPELINE_BIND_POINT_GRAPHICS,
-      //  vk.post_process.m_layout,
-      //  0,
-      //  1,
-      //  vk.d_attachments.m_descriptor_set,
-      //  0,
-      //  nullptr
-      //);
+      vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vk.post_process);
+      vkCmdBindDescriptorSets(
+        cmd_buffer,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        vk.post_process.m_layout,
+        0,
+        1,
+        vk.d_attachments.m_descriptor_set,
+        0,
+        nullptr
+      );
 
       context.vk.viewport_set(0, window.get_size(), window.get_size());
 
@@ -1840,8 +1836,13 @@ void loco_t::process_render() {
     vkCmdNextSubpass(cmd_buffer, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdEndRenderPass(cmd_buffer);
   #endif
-    VkResult err = context.vk.end_render();
-    context.vk.recreate_swap_chain(&window, err);
+    if (vk.image_error != VK_SUCCESS) { 
+      context.vk.command_buffer_in_use = false; 
+    }
+    else {
+      VkResult err = context.vk.end_render();
+      context.vk.recreate_swap_chain(&window, err);
+    }
   }
 #endif
 }
@@ -2028,6 +2029,10 @@ fan::vec2 loco_t::get_input_vector(
     input_action.is_action_down(right) - input_action.is_action_down(left),
     input_action.is_action_down(back) - input_action.is_action_down(forward)
   );
+  fan::vec2 v2 = window.get_gamepad_axis(fan::gamepad_left_thumb);
+  if (v2) {
+    return v2.length() > 0 ? v2.normalized() : v2;
+  }
   return v.length() > 0 ? v.normalized() : v;
 }
 

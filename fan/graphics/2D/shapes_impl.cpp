@@ -545,8 +545,11 @@ namespace fan::graphics{
       stop_sprite_sheet_animation();
     }
 
-
     fan::graphics::culling::remove_shape(g_shapes->visibility, get_id());
+
+    if (get_visual_id().iic() == false) {
+      erase_vram();
+    }
 
     g_shapes->remove_shape(NRI);
     sic();
@@ -1161,6 +1164,14 @@ namespace fan::graphics{
   }
 
   void shapes::shape_t::erase_vram() {
+
+    if (get_shape_type() == shape_type_t::polygon) {
+      auto& ri = get_shape_rdata<shapes::polygon_t>();
+      ri.vao.close((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))));
+      ri.vbo.close((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))));
+    }
+
+
     shapes::shape_ids_t::nr_t id;
     id.gint() = NRI;
 
@@ -1379,6 +1390,30 @@ namespace fan::graphics{
 	void shapes::shape_t::set_tc_size(const fan::vec2& tc_size) {
 		g_shapes->shape_functions[get_shape_type()].set_tc_size(this, tc_size);
 	}
+  fan::vec2 shapes::shape_t::get_image_sign() const {
+    return get_tc_size().sign();
+  }
+  void shapes::shape_t::set_image_sign(const fan::vec2& sign) {
+    fan::vec2 desired_sign = {
+      (f32_t)fan::math::sgn(sign.x),
+      (f32_t)fan::math::sgn(sign.y)
+    };
+
+    fan::vec2 tc = get_tc_size();
+    fan::vec2 current_sign = tc.sign();
+
+    bool did_change = current_sign != desired_sign;
+
+    set_tc_size({
+      std::abs(tc.x) * desired_sign.x,
+      std::abs(tc.y) * desired_sign.y
+      });
+
+    if (did_change) {
+      set_sprite_sheet_next_frame(0);
+    }
+  }
+
 
 	bool shapes::shape_t::load_tp(fan::graphics::texture_pack::ti_t* ti) {
 		auto st = get_shape_type();
@@ -1832,10 +1867,6 @@ namespace fan::graphics{
 	}
 #endif
 
-  fan::vec2 shapes::shape_t::get_image_sign() const {
-    return get_tc_size().sign();
-  }
-
 	void shapes::shape_t::add_existing_animation(animation_nr_t nr) {
 		if (get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {
 			auto& animation = fan::graphics::get_sprite_sheet_animation(nr);
@@ -1902,21 +1933,27 @@ namespace fan::graphics{
   void fan::graphics::shapes::shape_t::set_sprite_sheet_next_frame(int advance) {
     g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
       if constexpr (requires { props.sprite_sheet_data; }) {
+
         auto found = fan::graphics::all_animations.find(props.sprite_sheet_data.current_animation);
         if (found == fan::graphics::all_animations.end()) {
           fan::throw_error("current_animation not found");
         }
+
         auto& animation = found->second;
         auto& sheet_data = props.sprite_sheet_data;
 
         sheet_data.current_frame += advance;
+
         if (animation.loop) {
           if (sheet_data.current_frame >= animation.selected_frames.size()) {
             sheet_data.current_frame = 0;
           }
-        } else {
-          sheet_data.current_frame = std::min(sheet_data.current_frame,
-            (int)animation.selected_frames.size() - 1);
+        }
+        else {
+          sheet_data.current_frame = std::min(
+            sheet_data.current_frame,
+            (int)animation.selected_frames.size() - 1
+          );
         }
 
         sheet_data.update_timer.restart();
@@ -1925,51 +1962,93 @@ namespace fan::graphics{
           return;
         }
 
+        fan::vec2 sign = get_image_sign();
+        fan::vec2i8 new_sign = {
+          (int8_t)fan::math::sgn(sign.x),
+          (int8_t)fan::math::sgn(sign.y)
+        };
+
+        if (new_sign != sheet_data.last_sign) {
+          sheet_data.current_frame = 0;
+          sheet_data.last_sign = new_sign;
+        }
+        // ------------------------------------------------
+
         int actual_frame = animation.selected_frames[sheet_data.current_frame];
-        int image_index = 0, local_frame = actual_frame, frame_count = 0;
+
+        int total_frames = 0;
+        for (auto& img : animation.images) {
+          total_frames += img.hframes * img.vframes;
+        }
+
+        actual_frame = std::min(actual_frame, total_frames - 1);
+
+        int image_index = 0;
+        int frame_count = 0;
+
         for (int i = 0; i < animation.images.size(); ++i) {
-          int frames_in_this_image = animation.images[i].hframes * animation.images[i].vframes;
+          int frames_in_this_image =
+            animation.images[i].hframes * animation.images[i].vframes;
+
           if (actual_frame < frame_count + frames_in_this_image) {
             image_index = i;
-            local_frame = actual_frame - frame_count;
             break;
           }
+
           frame_count += frames_in_this_image;
         }
 
+        int local_frame = actual_frame - frame_count;
         auto& current_image = animation.images[image_index];
 
-        if (get_image() != current_image.image) {
+        bool image_changed = get_image() != current_image.image;
+        if (image_changed) {
           set_image(current_image.image);
         }
 
-        {
-          fan::vec2 image_size = current_image.image.get_size();
-          fan::vec2 frame_pixel_size(image_size.x / current_image.hframes,
-            image_size.y / current_image.vframes);
+        fan::vec2 image_size = get_image().get_size();
+        if (image_size.x > 0 && image_size.y > 0) {
+          fan::vec2 frame_pixel_size = image_size / fan::vec2(current_image.hframes, current_image.vframes);
           f32_t aspect = frame_pixel_size.x / frame_pixel_size.y;
           fan::vec2 size = get_size();
           size.x = size.y * aspect;
           set_size(size);
         }
 
-        fan::vec2 tc_size(1.0 / current_image.hframes, 1.0 / current_image.vframes);
+        fan::vec2 tc_size = {
+          1.0 / current_image.hframes,
+          1.0 / current_image.vframes
+        };
+
         int frame_x = local_frame % current_image.hframes;
         int frame_y = local_frame / current_image.hframes;
-        fan::vec2 pos(frame_x * tc_size.x, frame_y * tc_size.y);
 
-        fan::vec2 sign = get_image_sign();
-        if (sign.x < 0) pos.x += tc_size.x;
-        if (sign.y < 0) pos.y += tc_size.y;
+        fan::vec2 pos = {
+          frame_x * tc_size.x,
+          frame_y * tc_size.y
+        };
 
-        set_tc_position(pos);
-        set_tc_size(tc_size * sign);
+        fan::vec2 tc_abs = tc_size.abs();
+        fan::vec2 pos_clamped = pos;
+
+        if (new_sign.x < 0) {
+          pos_clamped.x += tc_abs.x;
+          pos_clamped.x = fan::math::clamp(pos_clamped.x, 0.0f, 1.0f - tc_abs.x);
+        }
+        if (new_sign.y < 0) {
+          pos_clamped.y += tc_abs.y;
+          pos_clamped.y = fan::math::clamp(pos_clamped.y, 0.0f, 1.0f - tc_abs.y);
+        }
+
+        set_tc_position(pos_clamped);
+        set_tc_size(tc_size * fan::vec2(new_sign));
 
         auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
         ri.sprite_sheet_data = sheet_data;
       }
     });
   }
+
 	animation_shape_nr_t shapes::shape_t::get_shape_animations_id() const {
     animation_shape_nr_t anim;
     g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {

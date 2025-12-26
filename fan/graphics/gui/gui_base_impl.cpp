@@ -6,6 +6,7 @@ module;
   #include <fan/imgui/imgui_impl_glfw.h>
   #include <fan/imgui/implot.h>
   #include <fan/graphics/gui/imgui_themes.h>
+  #include <fan/imgui/ImGuizmo.h>
 
   #include <fan/imgui/misc/freetype/imgui_freetype.h>
   #include <fan/imgui/imgui_impl_opengl3.h>
@@ -1596,5 +1597,72 @@ namespace fan::graphics::gui {
   }
 }
 #endif
+
+
+namespace fan::graphics::gui::gizmo {
+
+  void begin_frame() {
+    ImGuizmo::BeginFrame();
+  }
+
+  void set_orthographic(bool ortho) {
+    ImGuizmo::SetOrthographic(ortho);
+  }
+
+  void set_drawlist() {
+    ImGuizmo::SetDrawlist(ImGui::GetBackgroundDrawList());
+  }
+
+  void set_rect(const fan::vec2& pos, const fan::vec2& size) {
+    ImGuizmo::SetRect(pos.x, pos.y, size.x, size.y);
+  }
+
+  bool manipulate(
+    const fan::mat4& view,
+    const fan::mat4& projection,
+    int op,
+    int m,
+    fan::mat4& transform,
+    const fan::mat4* delta,
+    const fan::mat4* snap,
+    const fan::mat4* bounds,
+    const fan::mat4* bounds_snap
+  ) {
+    return ImGuizmo::Manipulate(
+      view.data(),
+      projection.data(),
+      static_cast<ImGuizmo::OPERATION>(op),
+      static_cast<ImGuizmo::MODE>(m),
+      transform.data(),
+      delta ? const_cast<float*>(delta->data()) : nullptr,
+      snap  ? const_cast<float*>(snap->data())  : nullptr,
+      bounds ? const_cast<float*>(bounds->data()) : nullptr,
+      bounds_snap ? const_cast<float*>(bounds_snap->data()) : nullptr
+    );
+  }
+
+  bool is_using() {
+    return ImGuizmo::IsUsing();
+  }
+
+  bool is_over() {
+    return ImGuizmo::IsOver();
+  }
+
+  bool is_using_any() {
+    return ImGuizmo::IsUsingAny();
+  }
+
+  void draw_grid(
+    const fan::mat4& view,
+    const fan::mat4& projection,
+    const fan::mat4& matrix,
+    float size
+  ) {
+    ImGuizmo::DrawGrid(view.data(), projection.data(), matrix.data(), size);
+  }
+
+} // namespace fan::graphics::gui::gizmo
+
 
 #endif

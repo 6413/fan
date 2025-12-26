@@ -18,12 +18,12 @@ export namespace fan::graphics::vulkan::ray_tracing::shapes {
     std::vector<uint32_t> indices; 
 
     triangle_mesh_t() = default;
-    triangle_mesh_t(const fan_3d::model::mesh_t& m) {
+    triangle_mesh_t(const fan::model::mesh_t& m) {
       vertices.reserve(m.vertices.size());
       indices.reserve(m.indices.size());
 
       for (auto& v : m.vertices) {
-        vertices.push_back(fan::mat4(1).scale(0.001) * v.position);
+        vertices.push_back(fan::mat4(1).scale(0.0001) * v.position);
       }
       for (auto idx : m.indices) {
         indices.push_back(idx);

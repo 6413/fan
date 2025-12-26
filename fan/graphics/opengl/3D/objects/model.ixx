@@ -14,7 +14,7 @@ export import fan.graphics.fms;
 export import fan.graphics.gui;
 import fan.graphics.opengl.core;
 
-namespace fan_3d {
+namespace fan {
   namespace model {
     inline static std::unordered_map<std::string, fan::graphics::image_t> cached_images;
   }
@@ -23,8 +23,8 @@ namespace fan_3d {
 export namespace fan {
   namespace graphics {
     using namespace opengl;
-    struct model_t : fan_3d::model::fms_t{
-      struct properties_t : fan_3d::model::fms_t::properties_t {
+    struct model_t : fan::model::fms_t{
+      struct properties_t : fan::model::fms_t::properties_t {
         fan::graphics::camera_t camera = fan::graphics::get_perspective_render_view().camera;
         fan::graphics::viewport_t viewport = fan::graphics::get_perspective_render_view().viewport;
       };
@@ -40,17 +40,17 @@ export namespace fan {
         
         // load textures
         int mesh_index = 0;
-        for (fan_3d::model::mesh_t& mesh : meshes) {
+        for (fan::model::mesh_t& mesh : meshes) {
           for (const std::string& name : mesh.texture_names) {
             if (name.empty()) {
               continue;
             }
-            auto found = fan_3d::model::cached_images.find(name);
-            if (found != fan_3d::model::cached_images.end()) { // check if texture has already been loaded for this cahce
+            auto found = fan::model::cached_images.find(name);
+            if (found != fan::model::cached_images.end()) { // check if texture has already been loaded for this cahce
              continue;
             }
             fan::image::info_t ii;
-            auto& td = fan_3d::model::cached_texture_data[name];
+            auto& td = fan::model::cached_texture_data[name];
             ii.data = td.data.data();
             ii.size = td.size;
             ii.channels = td.channels;
@@ -65,14 +65,14 @@ export namespace fan {
             };
             if (ii.channels < std::size(gl_formats) && gl_formats[ii.channels]) {
               ilp.format = ilp.internal_format = gl_formats[ii.channels];
-              fan_3d::model::cached_images[name] = fan::graphics::image_load(ii, ilp); // insert new texture, since old doesnt exist
+              fan::model::cached_images[name] = fan::graphics::image_load(ii, ilp); // insert new texture, since old doesnt exist
             }
             else if (ii.data == nullptr) {
               continue;
             }
             else {
               fan::print("unimplemented channel", ii.channels);
-              fan_3d::model::cached_images[name] = fan::graphics::get_default_texture(); // insert default (missing) texture, since old doesnt exist
+              fan::model::cached_images[name] = fan::graphics::get_default_texture(); // insert default (missing) texture, since old doesnt exist
             }
           }
           setup_mesh_buffers(mesh, mesh_index);
@@ -81,7 +81,7 @@ export namespace fan {
           ++mesh_index;
         }
       }
-      void setup_mesh_buffers(fan_3d::model::mesh_t& mesh, int mesh_index) {
+      void setup_mesh_buffers(fan::model::mesh_t& mesh, int mesh_index) {
         if (gl_datas.size() <= mesh_index) {
           gl_datas.resize(mesh_index + 1);
         }
@@ -94,7 +94,7 @@ export namespace fan {
         gl.vao.bind(fan::graphics::get_gl_context());
 
         gl.vbo.bind(fan::graphics::get_gl_context());
-        fan_opengl_call(glBufferData(GL_ARRAY_BUFFER, mesh.vertices.size() * sizeof(fan_3d::model::vertex_t), &mesh.vertices[0], GL_STATIC_DRAW));
+        fan_opengl_call(glBufferData(GL_ARRAY_BUFFER, mesh.vertices.size() * sizeof(fan::model::vertex_t), &mesh.vertices[0], GL_STATIC_DRAW));
 
         fan_opengl_call(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gl.ebo));
         fan_opengl_call(glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size() * sizeof(unsigned int), &mesh.indices[0], GL_STATIC_DRAW));
@@ -104,42 +104,42 @@ export namespace fan {
         int location = (fan::graphics::get_gl_context().opengl.major == 2 && fan::graphics::get_gl_context().opengl.minor == 1) ?
           fan_opengl_call(glGetAttribLocation(shader.id, "in_position")) : 0;
         fan_opengl_call(glEnableVertexAttribArray(location));
-        fan_opengl_call(glVertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, sizeof(fan_3d::model::vertex_t), (GLvoid*)offsetof(fan_3d::model::vertex_t, position)));
+        fan_opengl_call(glVertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, sizeof(fan::model::vertex_t), (GLvoid*)offsetof(fan::model::vertex_t, position)));
 
         location = (fan::graphics::get_gl_context().opengl.major == 2 && fan::graphics::get_gl_context().opengl.minor == 1) ?
           fan_opengl_call(glGetAttribLocation(shader.id, "in_normal")) : 1;
         fan_opengl_call(glEnableVertexAttribArray(location));
-        fan_opengl_call(glVertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, sizeof(fan_3d::model::vertex_t), (GLvoid*)offsetof(fan_3d::model::vertex_t, normal)));
+        fan_opengl_call(glVertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, sizeof(fan::model::vertex_t), (GLvoid*)offsetof(fan::model::vertex_t, normal)));
 
         location = (fan::graphics::get_gl_context().opengl.major == 2 && fan::graphics::get_gl_context().opengl.minor == 1) ?
           fan_opengl_call(glGetAttribLocation(shader.id, "in_uv")) : 2;
         fan_opengl_call(glEnableVertexAttribArray(location));
-        fan_opengl_call(glVertexAttribPointer(location, 2, GL_FLOAT, GL_FALSE, sizeof(fan_3d::model::vertex_t), (GLvoid*)offsetof(fan_3d::model::vertex_t, uv)));
+        fan_opengl_call(glVertexAttribPointer(location, 2, GL_FLOAT, GL_FALSE, sizeof(fan::model::vertex_t), (GLvoid*)offsetof(fan::model::vertex_t, uv)));
 
         location = (fan::graphics::get_gl_context().opengl.major == 2 && fan::graphics::get_gl_context().opengl.minor == 1) ?
           fan_opengl_call(glGetAttribLocation(shader.id, "in_bone_ids")) : 3;
         fan_opengl_call(glEnableVertexAttribArray(location));
-        fan_opengl_call(glVertexAttribIPointer(location, 4, GL_INT, sizeof(fan_3d::model::vertex_t), (void*)offsetof(fan_3d::model::vertex_t, bone_ids)));
+        fan_opengl_call(glVertexAttribIPointer(location, 4, GL_INT, sizeof(fan::model::vertex_t), (void*)offsetof(fan::model::vertex_t, bone_ids)));
 
         location = (fan::graphics::get_gl_context().opengl.major == 2 && fan::graphics::get_gl_context().opengl.minor == 1) ?
           fan_opengl_call(glGetAttribLocation(shader.id, "in_bone_weights")) : 4;
         fan_opengl_call(glEnableVertexAttribArray(location));
-        fan_opengl_call(glVertexAttribPointer(location, 4, GL_FLOAT, GL_FALSE, sizeof(fan_3d::model::vertex_t), (GLvoid*)offsetof(fan_3d::model::vertex_t, bone_weights)));
+        fan_opengl_call(glVertexAttribPointer(location, 4, GL_FLOAT, GL_FALSE, sizeof(fan::model::vertex_t), (GLvoid*)offsetof(fan::model::vertex_t, bone_weights)));
 
         location = (fan::graphics::get_gl_context().opengl.major == 2 && fan::graphics::get_gl_context().opengl.minor == 1) ?
           fan_opengl_call(glGetAttribLocation(shader.id, "in_tangent")) : 5;
         fan_opengl_call(glEnableVertexAttribArray(location));
-        fan_opengl_call(glVertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, sizeof(fan_3d::model::vertex_t), (GLvoid*)offsetof(fan_3d::model::vertex_t, tangent)));
+        fan_opengl_call(glVertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, sizeof(fan::model::vertex_t), (GLvoid*)offsetof(fan::model::vertex_t, tangent)));
 
         location = (fan::graphics::get_gl_context().opengl.major == 2 && fan::graphics::get_gl_context().opengl.minor == 1) ?
           fan_opengl_call(glGetAttribLocation(shader.id, "in_bitangent")) : 6;
         fan_opengl_call(glEnableVertexAttribArray(location));
-        fan_opengl_call(glVertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, sizeof(fan_3d::model::vertex_t), (GLvoid*)offsetof(fan_3d::model::vertex_t, bitangent)));
+        fan_opengl_call(glVertexAttribPointer(location, 3, GL_FLOAT, GL_FALSE, sizeof(fan::model::vertex_t), (GLvoid*)offsetof(fan::model::vertex_t, bitangent)));
 
         location = (fan::graphics::get_gl_context().opengl.major == 2 && fan::graphics::get_gl_context().opengl.minor == 1) ?
           fan_opengl_call(glGetAttribLocation(shader.id, "in_color")) : 7;
         fan_opengl_call(glEnableVertexAttribArray(location));
-        fan_opengl_call(glVertexAttribPointer(location, 4, GL_FLOAT, GL_FALSE, sizeof(fan_3d::model::vertex_t), (GLvoid*)offsetof(fan_3d::model::vertex_t, color)));
+        fan_opengl_call(glVertexAttribPointer(location, 4, GL_FLOAT, GL_FALSE, sizeof(fan::model::vertex_t), (GLvoid*)offsetof(fan::model::vertex_t, color)));
 
         fan_opengl_call(glBindVertexArray(0));
       }
@@ -193,10 +193,10 @@ export namespace fan {
               //tex.second.texture_datas
               fan_opengl_call(glActiveTexture(GL_TEXTURE0 + tex_index));
               fan::graphics::get_gl_context().shader_set_value(m_shader, oss.str(), tex_index);
-              if (fan_3d::model::cached_images[tex].iic()) {
-                fan_3d::model::cached_images[tex] = fan::graphics::get_default_texture();
+              if (fan::model::cached_images[tex].iic()) {
+                fan::model::cached_images[tex] = fan::graphics::get_default_texture();
               }
-              fan::graphics::image_bind(fan_3d::model::cached_images[tex]);
+              fan::graphics::image_bind(fan::model::cached_images[tex]);
               ++tex_index;
             }
           }
@@ -225,7 +225,7 @@ export namespace fan {
         auto& style = gui::get_style();
         f32_t cursor_pos_x = 64 + style.ItemSpacing.x;
 
-        for (auto& i : fan_3d::model::cached_images) {
+        for (auto& i : fan::model::cached_images) {
           ImVec2 imageSize(64, 64);
           fan::graphics::gui::image(i.second, imageSize);
 

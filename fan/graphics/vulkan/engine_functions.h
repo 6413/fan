@@ -66,6 +66,7 @@ void begin_render_pass() {
 }
 
 void begin_draw() {
+  vkQueueWaitIdle(loco.context.vk.graphics_queue);
   fan::vulkan::context_t& context = loco.context.vk;
   vkWaitForFences(context.device, 1, &context.in_flight_fences[context.current_frame], VK_TRUE, UINT64_MAX);
     
@@ -89,6 +90,29 @@ void begin_draw() {
       &context.image_index
     );
   }
+
+  if (loco.vk.image_error != VK_SUCCESS) { 
+    context.command_buffer_in_use = false; 
+    return; 
+  }
+
+  {
+    VkDescriptorImageInfo mainInfo{};
+    mainInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    mainInfo.imageView = context.mainColorImageViews[context.image_index].image_view;
+    mainInfo.sampler = VK_NULL_HANDLE;
+
+    VkWriteDescriptorSet write{};
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstSet = loco.vk.d_attachments.m_descriptor_set[0];
+    write.dstBinding = 1;
+    write.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+    write.descriptorCount = 1;
+    write.pImageInfo = &mainInfo;
+
+    vkUpdateDescriptorSets(context.device, 1, &write, 0, nullptr);
+  }
+
   vkResetFences(context.device, 1, &context.in_flight_fences[context.current_frame]);
   vkResetCommandBuffer(context.command_buffers[context.current_frame], /*VkCommandBufferResetFlagBits*/ 0);
   {
@@ -320,11 +344,11 @@ void init() {
   std::vector<fan::vulkan::write_descriptor_set_t> ds_properties(2);
 
   VkDescriptorImageInfo imageInfo{};
-  gloco()->context.vk.create_texture_sampler(post_process_sampler, fan::vulkan::context_t::image_load_properties_t());
+  //gloco()->context.vk.create_texture_sampler(post_process_sampler, fan::vulkan::context_t::image_load_properties_t());
 
   imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   imageInfo.imageView = gloco()->get_context().vk.mainColorImageViews[0].image_view;
-  imageInfo.sampler = post_process_sampler;
+  //imageInfo.sampler = post_process_sampler;
 
   ds_properties[0].use_image = 1;
   ds_properties[0].binding = 1;
@@ -337,7 +361,7 @@ void init() {
 
   imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   imageInfo.imageView = gloco()->get_context().vk.postProcessedColorImageViews[0].image_view;
-  imageInfo.sampler = post_process_sampler;
+  //imageInfo.sampler = post_process_sampler;
 
   imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   ds_properties[1].use_image = 1;

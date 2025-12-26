@@ -5,8 +5,11 @@ module;
 #include <source_location>
 #include <cstdint>
 #include <fstream>
+#include <sstream>
 
 module fan.graphics.common_context;
+
+import fan.print;
 
 namespace fan::graphics {
   void lighting_t::set_target(const fan::vec3& t, f32_t d) {
@@ -222,6 +225,10 @@ namespace fan::window {
       ia.is_action_down(right) - ia.is_action_down(left),
       ia.is_action_down(back) - ia.is_action_down(forward)
     );
+    fan::vec2 v2 = fan::graphics::ctx().window->get_gamepad_axis(fan::gamepad_left_thumb);
+    if (v2.length() > 0.2) {
+      return v2.length() > 0 ? v2.normalized() : v2;
+    }
     return v.length() > 0 ? v.normalized() : v;
   }
   fan::vec2 get_size() {

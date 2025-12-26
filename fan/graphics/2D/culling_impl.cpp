@@ -177,7 +177,7 @@ namespace fan::graphics::culling {
       }
     }
   }
-  void add_shape(culling_t& culling, shaper_t::ShapeID_t sid, movement_type_t movement) {
+  void add_shape(culling_t& culling, shaper_t::ShapeID_t sid, movement_type_t movement){
     uint32_t nr = sid.NRI;
     auto* sp = (fan::graphics::shapes::shape_t*)&sid;
     auto sc = sp->get_camera();
@@ -186,13 +186,18 @@ namespace fan::graphics::culling {
     culling.registry.shapeid_to_movement[nr] = movement;
     dbg("[add_shape]", "sid", nr, "movement", movement == movement_static ? "static" : "dynamic");
     auto aabb = get_shape_aabb(sid);
-    if (movement == movement_static) {
+    if(movement == movement_static){
       culling.registry.static_shapes.push_back(sid);
       dbg("[add_shape]", "static_shapes.size", (uint32_t)culling.registry.static_shapes.size());
       add_static_shape_to_grid(culling, sid);
-      check_and_push_shape_to_cameras(culling, sid, aabb);
+      if(!culling.enabled){
+        sp->push_vram();
+      }
+      else{
+        check_and_push_shape_to_cameras(culling, sid, aabb);
+      }
     }
-    else {
+    else{
       auto center = (aabb.min + aabb.max) * 0.5f;
       auto cell = world_to_cell_clamped(center, culling.dynamic_grid.world_min, culling.dynamic_grid.cell_size, culling.dynamic_grid.grid_size);
       uint32_t id = (uint32_t)culling.dynamic_grid.objects.size();
@@ -202,13 +207,19 @@ namespace fan::graphics::culling {
       culling.dynamic_grid.cells[idx].push_back(id);
       dbg("[add_shape]", "dynamic id", id, "sid", nr, "center", center.x, center.y, "cell", cell.x, cell.y, "idx", idx);
       dbg_aabb("           dyn AABB", nr, aabb);
-      check_and_push_shape_to_cameras(culling, sid, aabb);
+      if(!culling.enabled){
+        sp->push_vram();
+      }
+      else{
+        check_and_push_shape_to_cameras(culling, sid, aabb);
+      }
     }
-    for (auto& [cam_id, cam_state] : culling.camera_states) {
+    for(auto& [cam_id, cam_state] : culling.camera_states){
       cam_state.view_dirty = true;
       ensure_camera_visible_size(cam_state, nr);
     }
   }
+
   void remove_static_shape_from_grid(culling_t& culling, shaper_t::ShapeID_t sid) {
     uint32_t nr = sid.NRI;
     if (nr >= culling.registry.aabb_cache.size()) {
@@ -498,24 +509,45 @@ namespace fan::graphics::culling {
     mark_cameras_dirty(culling);
     dbg("[rebuild_static]", "end");
   }
-  void set_enabled(culling_t& culling, bool flag) {
-    culling.enabled = flag;
-    if (!culling.enabled) {
-      for (auto sid : culling.registry.static_shapes) {
+  void set_enabled(culling_t& culling, bool flag){
+    if(culling.enabled == flag){
+      return;
+    }
+
+    if(!flag){
+      for(auto sid : culling.registry.static_shapes){
         auto* shape = (fan::graphics::shapes::shape_t*)&sid;
-        if (!shape->get_visual_id().iic()) {
+        if(!shape->get_visual_id().iic()){
           shape->push_vram();
         }
       }
-      for (auto& obj : culling.dynamic_grid.objects) {
+      for(auto& obj : culling.dynamic_grid.objects){
         auto* shape = (fan::graphics::shapes::shape_t*)&obj.sid;
-        if (!shape->get_visual_id().iic()) {
+        if(!shape->get_visual_id().iic()){
+          shape->push_vram();
+        }
+      }
+
+      for(uint32_t i = 0; i < culling.registry.shapeid_to_movement.size(); ++i){
+        shaper_t::ShapeID_t sid;
+        sid.NRI = i;
+        if(sid.iic()){
+          continue;
+        }
+        auto* shape = (fan::graphics::shapes::shape_t*)&sid;
+        if(shape->get_visual_id().iic()){
           shape->push_vram();
         }
       }
     }
-  }
 
+    culling.enabled = flag;
+
+    if(flag){
+      rebuild_static(culling);
+      mark_cameras_dirty(culling);
+    }
+  }
 }
 
 #endif
