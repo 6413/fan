@@ -853,50 +853,41 @@ export namespace fan {
 
         end_single_time_commands(command_buffer);
       }
-      void copy_buffer_to_image(VkBuffer buffer, VkImage image, VkFormat format, const fan::vec2ui& size, const fan::vec2ui& stride = 1) {
+      void copy_buffer_to_image(
+        VkBuffer buffer,
+        VkImage image,
+        VkFormat format,
+        const fan::vec2ui& size,
+        const fan::vec2ui& stride = fan::vec2ui(1)
+      ) {
         VkCommandBuffer command_buffer = begin_single_time_commands();
 
-        uint32_t block_width = get_image_multiplier(format);
-        uint32_t block_x = (block_width - 1) / block_width;
-        uint32_t block_y = (block_width - 1) / block_width;
-        uint32_t block_h = std::max(1u, (size.y + block_width - 1) / block_width);
-        // Flush CPU and GPU caches if not coherent mapping.
-        VkDeviceSize buffer_flush_offset = block_y * stride.x;
-        VkDeviceSize buffer_flush_size = block_h * stride.x;
-
-        /*
         VkBufferImageCopy region{};
         region.bufferOffset = 0;
-        region.bufferRowLength = 0;
-        region.bufferImageHeight = 0;
+        region.bufferRowLength = 0;      // tightly packed
+        region.bufferImageHeight = 0;    // tightly packed
+
         region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         region.imageSubresource.mipLevel = 0;
         region.imageSubresource.baseArrayLayer = 0;
         region.imageSubresource.layerCount = 1;
-        region.imageOffset = { 0, 0, 0 };
-        region.imageExtent = {
-        size.x,
-        size.y,
-        1
-        };
-        */
 
-        VkBufferImageCopy region = {
-            block_y * stride.x + block_x,// VkDeviceSize             bufferOffset
-            size.x,                                        // uint32_t                 bufferRowLength
-            0,                                              // uint32_t                 bufferImageHeight
-            { 0, 0, 0, 1 },                  // VkImageSubresourceLayers imageSubresource
-            { 0, 0, 0 },  // VkOffset3D               imageOffset
-            { size.x, size.y, 1 }                              // VkExtent3D               imageExtent
-        };
+        region.imageOffset = {0, 0, 0};
+        region.imageExtent = {size.x, size.y, 1};
 
-        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        region.imageSubresource.layerCount = 1;
-
-        vkCmdCopyBufferToImage(command_buffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+        vkCmdCopyBufferToImage(
+          command_buffer,
+          buffer,
+          image,
+          VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+          1,
+          &region
+        );
 
         end_single_time_commands(command_buffer);
       }
+
+
 
       void create_texture_sampler(VkSampler& sampler, const image_load_properties_t& lp) {
         VkPhysicalDeviceProperties properties{};
@@ -931,6 +922,16 @@ export namespace fan {
         VkDeviceMemory staging_buffer_memory = VK_NULL_HANDLE;
         void* data = nullptr;
       };
+
+      VkFormat get_format_from_channels(int channels) {
+        switch (channels) {
+        case 1: return VK_FORMAT_R8_UNORM;
+        case 2: return VK_FORMAT_R8G8_UNORM;
+        case 3: return VK_FORMAT_R8G8B8_UNORM;
+        case 4: return VK_FORMAT_R8G8B8A8_UNORM;
+        default: return VK_FORMAT_R8G8B8A8_UNORM;
+        }
+      }
 
       std::vector<VkDescriptorImageInfo> image_pool; // for draw
 
@@ -1011,38 +1012,84 @@ export namespace fan {
         image_data.size = image_info.size;
         __fan_internal_image_list[nr].image_path = "";
 
-        auto image_multiplier = get_image_multiplier(p.format);
+        auto lp = p;
+        int src_channels = image_info.channels;
+        int format_channels = 0;
 
-        VkDeviceSize image_size_bytes = image_info.size.multiply() * image_multiplier;
+        if (lp.format == image_load_properties_defaults::format) {
+          if (src_channels <= 0) {
+            fan::throw_error("image_load: unknown channel count with default format");
+          }
+          if (src_channels == 1) {
+            lp.format = get_format_from_channels(1);
+            format_channels = 1;
+          }
+          else {
+            lp.format = get_format_from_channels(4);
+            format_channels = 4;
+          }
+        }
+        else {
+          format_channels = fan::graphics::get_channel_amount(
+            fan::graphics::format_converter::vulkan_to_global_format(lp.format)
+          );
+          if (src_channels <= 0) {
+            src_channels = format_channels;
+          }
+        }
+
+        VkDeviceSize image_size_bytes = image_info.size.multiply() * format_channels;
 
         create_buffer(
           image_size_bytes,
           VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-          //VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT ,
           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
           image.staging_buffer,
           image.staging_buffer_memory
         );
 
         vkMapMemory(device, image.staging_buffer_memory, 0, image_size_bytes, 0, &image.data);
-        memcpy(image.data, image_info.data, image_size_bytes); // TODO  / 4 in yuv420p
+
+        const uint8_t* src = static_cast<const uint8_t*>(image_info.data);
+        uint8_t* dst = static_cast<uint8_t*>(image.data);
+        uint64_t pixel_count = image_info.size.multiply();
+
+        if (src_channels == format_channels) {
+          memcpy(dst, src, image_size_bytes);
+        }
+        else if (src_channels == 3 && format_channels == 4) {
+          for (uint64_t i = 0; i < pixel_count; ++i) {
+            dst[0] = src[0];
+            dst[1] = src[1];
+            dst[2] = src[2];
+            dst[3] = 255;
+            src += 3;
+            dst += 4;
+          }
+        }
+        else {
+          vkUnmapMemory(device, image.staging_buffer_memory);
+          fan::throw_error("image_load: unsupported channel/format combination");
+        }
+
+        vkUnmapMemory(device, image.staging_buffer_memory);
 
         fan::vulkan::image_create(
           *this,
           image_info.size,
-          p.format,
+          lp.format,
           VK_IMAGE_TILING_OPTIMAL,
           VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
           image.image_index,
           image.image_memory
         );
-        image.image_view = create_image_view(image.image_index, p.format, VK_IMAGE_ASPECT_COLOR_BIT);
-        create_texture_sampler(image.sampler, p);
+        image.image_view = create_image_view(image.image_index, lp.format, VK_IMAGE_ASPECT_COLOR_BIT);
+        create_texture_sampler(image.sampler, lp);
 
-        transition_image_layout(image.image_index, p.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-        copy_buffer_to_image(image.staging_buffer, image.image_index, p.format, image_info.size);
-        transition_image_layout(image.image_index, p.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+        transition_image_layout(image.image_index, lp.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+        copy_buffer_to_image(image.staging_buffer, image.image_index, lp.format, image_info.size);
+        transition_image_layout(image.image_index, lp.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         return nr;
       }
@@ -2674,6 +2721,7 @@ export namespace fan {
         if (!command_buffer_in_use) {
           return VK_SUCCESS;
         }
+
         if (vkEndCommandBuffer(command_buffers[current_frame]) != VK_SUCCESS) {
           fan::throw_error("failed to record command buffer!");
         }
@@ -2696,9 +2744,12 @@ export namespace fan {
         submitInfo.signalSemaphoreCount = 1;
         submitInfo.pSignalSemaphores = signalSemaphores;
 
-        if (vkQueueSubmit(graphics_queue, 1, &submitInfo, in_flight_fences[current_frame]) != VK_SUCCESS) {
+        VkResult submit_result = vkQueueSubmit(graphics_queue, 1, &submitInfo, in_flight_fences[current_frame]);
+        if (submit_result != VK_SUCCESS) {
+          fan::print("vkQueueSubmit error:", (int)submit_result);
           fan::throw_error("failed to submit draw command buffer!");
         }
+
         VkPresentInfoKHR presentInfo{};
         presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
@@ -2713,42 +2764,6 @@ export namespace fan {
 
         current_frame = (current_frame + 1) % max_frames_in_flight;
         return result;
-      }
-
-      void begin_compute_shader() {
-        //?
-
-        vkWaitForFences(device, 1, &in_flight_fences[current_frame], VK_TRUE, UINT64_MAX);
-        vkResetFences(device, 1, &in_flight_fences[current_frame]);
-
-        vkResetCommandBuffer(command_buffers[current_frame], /*VkCommandBufferResetFlagBits*/ 0);
-
-        VkCommandBufferBeginInfo beginInfo{};
-        beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-        if (vkBeginCommandBuffer(command_buffers[current_frame], &beginInfo) != VK_SUCCESS) {
-          fan::throw_error("failed to begin recording command buffer!");
-        }
-
-        command_buffer_in_use = true;
-      }
-
-      void end_compute_shader() {
-        if (vkEndCommandBuffer(command_buffers[current_frame]) != VK_SUCCESS) {
-          fan::throw_error("failed to record command buffer!");
-        }
-
-        command_buffer_in_use = false;
-
-        VkSubmitInfo submitInfo{};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &command_buffers[current_frame];
-
-        if (vkQueueSubmit(graphics_queue, 1, &submitInfo, in_flight_fences[current_frame]) != VK_SUCCESS) {
-          fan::throw_error("failed to submit draw command buffer!");
-        }
       }
 
       VkSurfaceFormatKHR choose_swap_surface_format(const std::vector<VkSurfaceFormatKHR>& available_formats) {

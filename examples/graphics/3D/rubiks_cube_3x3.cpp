@@ -18,7 +18,7 @@ int main() {
   loco.shader_compile(model.m_shader);
 
   loco.camera_set_position(gloco()->perspective_camera.camera, { 3.46, 1.94, -6.22 });
-  //fan_3d::graphics::add_camera_rotation_callback(&camera);
+  //fan::graphics::add_camera_rotation_callback(&camera);
 
   fan::time::timer timer;
   timer.start();
@@ -30,7 +30,7 @@ int main() {
   auto get_mesh_beg_id = [](int start) {
     int overall_index = 0;
     for (int c = 0; c < start; ++c) {
-      overall_index += fan_3d::model::mesh_id_table[overall_index];
+      overall_index += fan::model::mesh_id_table[overall_index];
     }
     return overall_index;
   };
@@ -40,7 +40,7 @@ int main() {
     int start_idx = get_mesh_beg_id(start);
     int idx = start_idx;
     for (int c = start; c < end; ++c) {
-      for (int i = 0; i < fan_3d::model::mesh_id_table[start_idx]; ++i) {
+      for (int i = 0; i < fan::model::mesh_id_table[start_idx]; ++i) {
         model.render_objects[idx].m = q;
         if constexpr (use_flag == fan::graphics::model_t::use_flag_e::cpu) {
           model.fms.calculate_modified_vertices(idx, model.render_objects[idx].m, default_animation_transform);
@@ -48,7 +48,7 @@ int main() {
         }
         idx += 1;
       }
-      start_idx += fan_3d::model::mesh_id_table[start_idx];
+      start_idx += fan::model::mesh_id_table[start_idx];
     }
     };
 

@@ -479,7 +479,6 @@ export namespace fan {
         void move_to_direction(fan::physics::body_id_t body, const fan::vec2& direction);
         void perform_jump(fan::physics::body_id_t body_id, bool jump_condition, fan::vec2* wall_jump_normal = nullptr, wall_jump_t* wall_jump = nullptr);
 
-        fan::vec2 previous_sign = 0;
         f32_t accelerate_force = 120.f;
         f32_t max_speed = 600.f;
         bool enabled = false;

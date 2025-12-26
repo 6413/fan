@@ -131,12 +131,15 @@ export import fan.math;
   gen_vec2_swizzle(N,2,0) gen_vec2_swizzle(N,2,1) gen_vec2_swizzle(N,2,2) gen_vec2_swizzle(N,2,3) \
   gen_vec2_swizzle(N,3,0) gen_vec2_swizzle(N,3,1) gen_vec2_swizzle(N,3,2) gen_vec2_swizzle(N,3,3)
 
-#define fan_gen_vec_ref_arith(N, op) \
-  constexpr vec_t operator op (const vec_ref##N& v) { \
-    return vec_t(*this) op vec_t(v); \
-  } \
-  constexpr vec_t operator op (value_type_t v) { \
-    return vec_t(*this) op v; \
+#define fan_gen_vec_ref_arith(N, op)                                  \
+  constexpr vec_t operator op (const vec_ref##N& v) const {           \
+    return vec_t(*this) op vec_t(v);                                  \
+  }                                                                   \
+  constexpr vec_t operator op (const vec_t& v) const {                \
+    return vec_t(*this) op v;                                         \
+  }                                                                   \
+  constexpr vec_t operator op (value_type_t v) const {                \
+    return vec_t(*this) op v;                                         \
   }
 
 //---------------------------------------------------------------------------------
@@ -373,6 +376,7 @@ export namespace fan {
 
 #define fan_vector_types(X) \
   X(b,   bool) \
+  X(i8,  int8_t) \
   X(i,   int) \
   X(ui,  uint32_t) \
   X(ull, unsigned long long) \

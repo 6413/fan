@@ -5,6 +5,7 @@ module;
   #include <fan/imgui/imgui_impl_glfw.h>
   #include <fan/imgui/implot.h>
   #include <fan/imgui/imgui_internal.h>
+  #include <fan/imgui/ImGuizmo.h>
 
   #include <string>
   #include <sstream>
@@ -27,6 +28,7 @@ import fan.audio;
 export import fan.graphics.gui.types;
 import fan.types.vector;
 import fan.types.color;
+import fan.types.matrix;
 import fan.utility;
 import fan.math;
 import fan.print;
@@ -725,5 +727,53 @@ export namespace fan::graphics::gui {
     }
   }
 }
+
+export namespace fan::graphics::gui::gizmo {
+
+  struct operation {
+    enum {
+      translate = ImGuizmo::TRANSLATE,
+      rotate = ImGuizmo::ROTATE,
+      scale = ImGuizmo::SCALE,
+      bounds = ImGuizmo::BOUNDS
+    };
+  };
+  struct mode {
+    enum {
+      local = ImGuizmo::LOCAL,
+      world = ImGuizmo::WORLD
+    };
+  };
+
+  void begin_frame();
+  void set_orthographic(bool ortho);
+  void set_drawlist();
+
+  void set_rect(const fan::vec2& pos, const fan::vec2& size);
+
+  bool manipulate(
+    const fan::mat4& view,
+    const fan::mat4& projection,
+    int op,
+    int m,
+    fan::mat4& transform,
+    const fan::mat4* delta = nullptr,
+    const fan::mat4* snap = nullptr,
+    const fan::mat4* bounds = nullptr,
+    const fan::mat4* bounds_snap = nullptr
+  );
+
+  bool is_using();
+  bool is_over();
+  bool is_using_any();
+
+  void draw_grid(
+    const fan::mat4& view,
+    const fan::mat4& projection,
+    const fan::mat4& matrix,
+    float size
+  );
+
+} // namespace fan::graphics::gui::gizmo
 
 #endif

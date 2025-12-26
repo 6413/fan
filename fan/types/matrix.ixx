@@ -699,6 +699,9 @@ export namespace fan {
     type_t* data() {
       return &(*this)[0][0];
     }
+    const type_t* data() const {
+      return &(*this)[0][0];
+    }
   };
 
   template <uint32_t _i, uint32_t _j, typename data_t = f32_t>

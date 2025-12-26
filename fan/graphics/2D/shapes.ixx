@@ -162,7 +162,7 @@ export namespace fan::graphics {
 
     animation_shape_nr_t shape_animations;
     animation_nr_t current_animation;
-
+    fan::vec2i8 last_sign = 1;
     bool start_animation = false;
   };
 #pragma pack(pop)
@@ -270,11 +270,11 @@ export namespace fan::graphics {
       shape_t();
       template <typename T>
         requires requires(T t) { typename T::type_t; }
-      shape_t(const T& properties) : shape_t() {
+      shape_t(const T& properties, bool add_to_culling = true) : shape_t() {
         auto shape_type = T::type_t::shape_type;
         *this = fan::graphics::g_shapes->shape_functions[shape_type].push_back((void*)&properties);
         //fan::print_throttled("setting static");
-        if (fan::graphics::g_shapes->visibility.enabled) {
+        if (fan::graphics::g_shapes->visibility.enabled && add_to_culling) {
           set_static();
         }
         else {
@@ -358,6 +358,8 @@ export namespace fan::graphics {
       void set_tc_position(const fan::vec2& tc_position);
       fan::vec2 get_tc_size() const;
       void set_tc_size(const fan::vec2& tc_size);
+      fan::vec2 get_image_sign() const;
+      void set_image_sign(const fan::vec2& sign);
       bool load_tp(fan::graphics::texture_pack::ti_t* ti);
       fan::graphics::texture_pack::ti_t get_tp() const;
       bool set_tp(fan::graphics::texture_pack::ti_t* ti);
@@ -398,7 +400,6 @@ export namespace fan::graphics {
       bool collides(const fan::vec2& point) const;
     #endif
       // Returns the sign (+1 or −1) of each UV axis, indicating their orientation.
-      fan::vec2 get_image_sign() const;
       void add_existing_animation(animation_nr_t nr);
       bool is_animation_finished() const;
       bool is_animation_finished(animation_nr_t nr) const;
@@ -693,7 +694,7 @@ export namespace fan::graphics {
         fan::vec2 size = fan::vec2(32, 32);
         fan::color color = fan::colors::white;
         fan::color outline_color = color;
-        bool blending = false;
+        bool blending = true;
         fan::vec3 angle = 0;
         fan::vec2 rotation_point = 0;
 
@@ -778,7 +779,7 @@ export namespace fan::graphics {
           return 0;
         }
 
-        bool blending = false;
+        bool blending = true;
 
         fan::graphics::image_t image = fan::graphics::ctx().default_texture;
         std::array<fan::graphics::image_t, 30> images;
@@ -850,7 +851,7 @@ export namespace fan::graphics {
         fan::vec2 tc_size = 1;
         f32_t seed = 0;
 
-        bool blending = false;
+        bool blending = true;
 
         fan::graphics::image_t image = fan::graphics::ctx().default_texture;
         std::array<fan::graphics::image_t, 30> images;
@@ -953,7 +954,7 @@ export namespace fan::graphics {
         fan::vec3 angle = 0;
         uint32_t flags = 0;
 
-        bool blending = false;
+        bool blending = true;
 
         fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
         fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
@@ -1261,7 +1262,7 @@ export namespace fan::graphics {
         fan::vec2 tc_position = 0;
         fan::vec2 tc_size = 1;
 
-        bool blending = false;
+        bool blending = true;
 
         std::array<fan::graphics::image_t, 4> images = {
           fan::graphics::ctx().default_texture,
@@ -1321,7 +1322,7 @@ export namespace fan::graphics {
           fan::random::color(),
           fan::random::color()
         };
-        bool blending = false;
+        bool blending = true;
         fan::vec3 angle = 0;
         fan::vec2 rotation_point = 0;
 
@@ -1492,7 +1493,7 @@ export namespace fan::graphics {
         fan::vec3 position = 0;
         fan::vec3 size = 0;
         fan::color color = fan::colors::white;
-        bool blending = false;
+        bool blending = true;
         fan::vec3 angle = 0;
 
         fan::graphics::camera_t camera = fan::graphics::ctx().perspective_render_view->camera;
@@ -1534,7 +1535,7 @@ export namespace fan::graphics {
         fan::vec3 src;
         fan::vec3 dst;
 
-        bool blending = false;
+        bool blending = true;
 
         fan::graphics::camera_t camera = fan::graphics::ctx().perspective_render_view->camera;
         fan::graphics::viewport_t viewport = fan::graphics::ctx().perspective_render_view->viewport;

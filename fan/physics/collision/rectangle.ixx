@@ -92,7 +92,7 @@ export namespace fan_2d {
 	}
 }
 
-export namespace fan_3d {
+export namespace fan {
 	constexpr bool is_ray_intersecting_cube(const fan::ray3_t& ray, const fan::vec3& position, const fan::vec3& size) {
 		fan::vec3 min_bounds = position - size;
 		fan::vec3 max_bounds = position + size;
