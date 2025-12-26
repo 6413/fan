@@ -79,12 +79,12 @@ bool handle_pickupable(const std::string& id, T& who) {
 
 void load_map() {
   //pile->engine.culling_rebuild_grid();
-
+  background.set_static();
   main_compiled_map = pile->renderer.compile("sample_level.fte");
   fan::vec2i render_size(16, 9);
   tilemap_loader_t::properties_t p;
   p.size = render_size *1000;
-  pile->engine.set_cull_padding(-150);
+  pile->engine.set_cull_padding(100);
 
   p.position = pile->player.body.get_position();
   main_map_id = pile->renderer.add(&main_compiled_map, p);

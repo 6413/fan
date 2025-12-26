@@ -113,7 +113,7 @@ struct enemy_t : enemy_base_t {
     fan::vec2 distance = ai_behavior.get_target_distance(c.get_physics_position());
     return c.attack_state.try_attack(&c, distance);
   }
-  bool update() override {
+  bool base_update() {
     for (int i = 0; i < attack_hitbox.hitbox_count(); ++i) {
       if (attack_hitbox.check_hit(&body, i, &pile->player.body)) {
         if (pile->player.on_hit(&body, (pile->player.body.get_position() - body.get_position()).normalized())) {
@@ -126,6 +126,9 @@ struct enemy_t : enemy_base_t {
     render_health();
     return false;
   }
+  bool update() override {
+    return base_update();
+  }
   void render_health() override {
     int heart_count = body.get_max_health() / 10.f;
     for (int i = 0; i < heart_count; ++i) {
@@ -136,7 +139,7 @@ struct enemy_t : enemy_base_t {
       }
       f32_t image_size = 8.f;
       fan::graphics::sprite({
-        .position = fan::vec3(fan::vec2(body.get_physics_position() - fan::vec2(heart_count / 2.f * image_size - i * (image_size * 2.f) + image_size + image_size / 2.f, body.get_size().y / 1.5f)), body.get_position().z),
+        .position = fan::vec3(fan::vec2(body.get_physics_position() - fan::vec2(heart_count / 2.f * image_size - i * (image_size * 2.f) + image_size + image_size / 2.f, body.get_size().y / 1.5f)), 0xFFF0),
         .size = image_size, 
         .image = hp_image,
       });

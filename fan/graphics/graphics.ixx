@@ -230,6 +230,7 @@ export namespace fan::graphics {
     fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
     uint32_t flags = 0;
     fan::vec3 angle = fan::vec3(0, 0, 0);
+    bool enable_culling = true;
   };
 
   struct light_t : fan::graphics::shapes::shape_t {
@@ -249,6 +250,7 @@ export namespace fan::graphics {
     f32_t thickness = 4.0f;
     bool blending = true;
     uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+    bool enable_culling = true;
   };
 
   struct line_t : fan::graphics::shapes::shape_t {
@@ -269,6 +271,7 @@ export namespace fan::graphics {
     fan::vec3 angle = 0;
     fan::vec2 rotation_point = 0;
     bool blending = true;
+    bool enable_culling = true;
   };
 
   struct rectangle_t : fan::graphics::shapes::shape_t {
@@ -295,6 +298,7 @@ export namespace fan::graphics {
     bool blending = true;
     uint32_t flags = light_flags_e::circle | light_flags_e::multiplicative;
     fan::graphics::texture_pack::unique_t texture_pack_unique_id;
+    bool enable_culling = true;
   };
 
   struct sprite_t : fan::graphics::shapes::shape_t {
@@ -318,6 +322,7 @@ export namespace fan::graphics {
     fan::vec2 tc_position = 0;
     fan::vec2 tc_size = 1;
     bool blending = false;
+    bool enable_culling = true;
   };
 
   struct unlit_sprite_t : fan::graphics::shapes::shape_t {
@@ -338,6 +343,7 @@ export namespace fan::graphics {
     fan::color color = fan::color(1, 1, 1, 1);
     bool blending = true;
     uint32_t flags = 0;
+    bool enable_culling = true;
   };
 
   struct circle_t : fan::graphics::shapes::shape_t {
@@ -357,7 +363,8 @@ export namespace fan::graphics {
           .color = p.color,
           .blending = p.blending,
           .flags = p.flags
-        )
+        ),
+        p.enable_culling
       );
     }
     circle_t(const fan::vec3& position, float radius, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view)
@@ -380,6 +387,7 @@ export namespace fan::graphics {
     fan::color outline_color = color;
     bool blending = true;
     uint32_t flags = 0;
+    bool enable_culling = true;
   };
 
   struct capsule_t : fan::graphics::shapes::shape_t {
@@ -402,7 +410,7 @@ export namespace fan::graphics {
           .outline_color = p.outline_color,
           .blending = p.blending,
           .flags = p.flags
-        ));
+        ), p.enable_culling);
     }
   };
 
@@ -415,6 +423,7 @@ export namespace fan::graphics {
     bool blending = true;
     uint8_t draw_mode = fan::graphics::primitive_topology_t::triangle_strip;
     uint32_t vertex_count = 3;
+    bool enable_culling = true;
   };
 
   struct polygon_t : fan::graphics::shapes::shape_t {
@@ -436,7 +445,7 @@ export namespace fan::graphics {
           .blending = p.blending,
           .draw_mode = p.draw_mode,
           .vertex_count = p.vertex_count
-        ));
+        ), p.enable_culling);
     }
   };
 
@@ -448,6 +457,7 @@ export namespace fan::graphics {
     fan::vec2 rotation_point = fan::vec2(0, 0);
     fan::color color = fan::color(1, 1, 1, 1);
     fan::vec3 angle = fan::vec3(0, 0, 0);
+    bool enable_culling = true;
   };
   struct grid_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
@@ -466,7 +476,7 @@ export namespace fan::graphics {
           .rotation_point = p.rotation_point,
           .color = p.color,
           .angle = p.angle
-        ));
+        ), p.enable_culling);
     }
   };
 
@@ -486,6 +496,7 @@ export namespace fan::graphics {
       fan::graphics::ctx().default_texture
     };
     uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+    bool enable_culling = true;
   };
 
   struct universal_image_renderer_t : fan::graphics::shapes::shape_t {
@@ -506,7 +517,7 @@ export namespace fan::graphics {
           .blending = p.blending,
           .images = p.images,
           .draw_mode = p.draw_mode,
-          )
+          ), p.enable_culling
       );
     }
   };
@@ -527,6 +538,7 @@ export namespace fan::graphics {
     fan::vec2 rotation_point = 0;
 
     uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+    bool enable_culling = true;
   };
 
   struct gradient_t : fan::graphics::shapes::shape_t {
@@ -546,7 +558,7 @@ export namespace fan::graphics {
           .blending = p.blending,
           .angle = p.angle,
           .rotation_point = p.rotation_point
-        )
+        ), p.enable_culling
       );
     }
   };
@@ -569,6 +581,7 @@ export namespace fan::graphics {
     std::array<fan::graphics::image_t, 30> images;
 
     uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+    bool enable_culling = true;
   };
 
   struct shadow_properties_t {
@@ -582,6 +595,7 @@ export namespace fan::graphics {
     fan::vec3 angle = fan::vec3(0, 0, 0);
     fan::vec2 light_position = fan::vec2(0, 0);
     f32_t light_radius = 100.f;
+    bool enable_culling = true;
   };
 
   struct shadow_t : fan::graphics::shapes::shape_t {
@@ -606,7 +620,7 @@ export namespace fan::graphics {
           .angle = p.angle,
           .light_position = p.light_position,
           .light_radius = p.light_radius
-        ));
+        ), p.enable_culling);
     }
   };
 
@@ -631,7 +645,7 @@ export namespace fan::graphics {
           .image = p.image,
           .images = p.images,
           .draw_mode = p.draw_mode
-        )
+        ), p.enable_culling
       );
     }
   };

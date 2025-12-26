@@ -2,7 +2,7 @@
 //
 //#include _FAN_PATH(graphics/opengl/gl_core.h)
 //
-//namespace fan_3d {
+//namespace fan {
 //  namespace opengl {
 //
 //    struct skybox {

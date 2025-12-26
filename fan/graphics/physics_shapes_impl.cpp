@@ -35,26 +35,20 @@ static constexpr uint16_t draw_depth = 0xF000;
 
 int z_depth = 0;
 
-std::vector<fan::graphics::line_t> debug_draw_polygon;
-std::vector<fan::graphics::polygon_t> debug_draw_solid_polygon;
-std::vector<fan::graphics::circle_t> debug_draw_circle;
-std::vector<fan::graphics::line_t> debug_draw_line;
-std::vector<fan::graphics::capsule_t> debug_draw_capsule;
-
 /// Draw a closed polygon provided in CCW order.
 void DrawPolygon(const fan::vec2* vertices, int vertexCount, b2HexColor color, void* context) {
-  if (z_depth == 2) {
-    z_depth = 0;
-  }
-  for (int i = 0; i < vertexCount; i++) {
-    int next_i = (i + 1) % vertexCount;
+  //if (z_depth == 2) {
+  //  z_depth = 0;
+  //}
+  //for (int i = 0; i < vertexCount; i++) {
+  //  int next_i = (i + 1) % vertexCount;
 
-    //debug_draw_polygon.emplace_back(fan::graphics::line_t{ {
-    //  .src = fan::vec3(fan::physics::physics_to_render(vertices[i]), draw_depth + z_depth),
-    //  .dst = fan::physics::physics_to_render(vertices[next_i]),
-    //  .color = fan::color::from_rgb(color)
-    //} });
-  }
+  //  //debug_draw_polygon.emplace_back(fan::graphics::line_t{ {
+  //  //  .src = fan::vec3(fan::physics::physics_to_render(vertices[i]), draw_depth + z_depth),
+  //  //  .dst = fan::physics::physics_to_render(vertices[next_i]),
+  //  //  .color = fan::color::from_rgb(color)
+  //  //} });
+  //}
 }
 
 /// Draw a solid closed polygon provided in CCW order.
@@ -64,32 +58,36 @@ void DrawSolidPolygon(b2Transform transform, const b2Vec2* vertices, int vertexC
     v.position = fan::physics::physics_to_render(vertices[i]);
     v.color = fan::color::from_rgb(color).set_alpha(0.5);
   }
-  debug_draw_solid_polygon.emplace_back(fan::graphics::polygon_t {{
+  fan::graphics::add_shape_to_immediate_draw(fan::graphics::polygon_t {{
       .render_view = &fan::graphics::physics::debug_render_view,
       .position = fan::vec3(fan::physics::physics_to_render(transform.p), draw_depth + z_depth),
       .vertices = vs,
       .draw_mode = fan::graphics::primitive_topology_t::triangle_fan,
+      .enable_culling = false
       //.angle = std::acos(transform.q.c)
     }});
 }
 
 /// Draw a circle.
 void DrawCircle(b2Vec2 center, f32_t radius, b2HexColor color, void* context) {
-  debug_draw_circle.emplace_back(fan::graphics::circle_t {{
+  fan::graphics::add_shape_to_immediate_draw(fan::graphics::circle_t {{
       .render_view = &fan::graphics::physics::debug_render_view,
       .position = fan::vec3(fan::physics::physics_to_render(center), draw_depth + z_depth),
       .radius = (f32_t)fan::physics::physics_to_render(radius).x,
       .color = fan::color::from_rgb(color).set_alpha(0.5),
+      .enable_culling = false
+
     }});
 }
 
 /// Draw a solid circle.
 void DrawSolidCircle(b2Transform transform, f32_t radius, b2HexColor color, void* context) {
-  debug_draw_circle.emplace_back(fan::graphics::circle_t {{
+  fan::graphics::add_shape_to_immediate_draw(fan::graphics::circle_t {{
       .render_view = &fan::graphics::physics::debug_render_view,
       .position = fan::vec3(fan::physics::physics_to_render(transform.p), draw_depth + z_depth),
       .radius = (f32_t)fan::physics::physics_to_render(radius).x,
       .color = fan::color::from_rgb(color).set_alpha(0.5),
+      .enable_culling = false
     }});
 }
 
@@ -100,25 +98,27 @@ void DrawCapsule(b2Vec2 p1, b2Vec2 p2, f32_t radius, b2HexColor color, void* con
 
 /// Draw a solid capsule.
 void DrawSolidCapsule(b2Vec2 p1, b2Vec2 p2, f32_t radius, b2HexColor color, void* context) {
-  debug_draw_capsule.emplace_back(fan::graphics::capsule_t {{
+  fan::graphics::add_shape_to_immediate_draw(fan::graphics::capsule_t {{
       .render_view = &fan::graphics::physics::debug_render_view,
       .position = fan::vec3(0, 0, draw_depth + z_depth),
       .center0 = fan::physics::physics_to_render(p1),
       .center1 = fan::physics::physics_to_render(p2),
       .radius = (f32_t)fan::physics::physics_to_render(radius).x,
       .color = fan::color::from_rgb(color).set_alpha(0.5),
+      .enable_culling = false
     }});
 }
 
 
 /// Draw a line segment.
 void DrawSegment(b2Vec2 p1, b2Vec2 p2, b2HexColor color, void* context) {
-  debug_draw_line.emplace_back(fan::graphics::line_t {{
-      .render_view = &fan::graphics::physics::debug_render_view,
-      .src = fan::vec3(fan::physics::physics_to_render(p1), draw_depth + z_depth),
-      .dst = fan::vec3(fan::physics::physics_to_render(p2), draw_depth + z_depth),
-      .color = fan::color::from_rgb(color)
-    }});
+  //fan::graphics::add_shape_to_immediate_draw(fan::graphics::line_t {{
+  //    .render_view = &fan::graphics::physics::debug_render_view,
+  //    .src = fan::vec3(fan::physics::physics_to_render(p1), draw_depth + z_depth),
+  //    .dst = fan::vec3(fan::physics::physics_to_render(p2), draw_depth + z_depth),
+  //    .color = fan::color::from_rgb(color),
+  //    .enable_culling = false
+  //  }});
 }
 
 /// Draw a transform. Choose your own length scale.
@@ -128,13 +128,13 @@ void DrawTransform(b2Transform transform, void* context) {
 
 /// Draw a point.
 void DrawPoint(b2Vec2 p, f32_t size, b2HexColor color, void* context) {
-  //vs.back() = vs.front();
-  debug_draw_circle.emplace_back(fan::graphics::circle_t {{
-      .render_view = &fan::graphics::physics::debug_render_view,
-      .position = fan::vec3(fan::physics::physics_to_render(p), draw_depth + z_depth),
-      .radius = size / 2.f,
-      .color = fan::color::from_rgb(color).set_alpha(0.5)
-    }});
+  fan::graphics::add_shape_to_immediate_draw(fan::graphics::circle_t {{
+    .render_view = &fan::graphics::physics::debug_render_view,
+    .position = fan::vec3(fan::physics::physics_to_render(p), draw_depth + z_depth),
+    .radius = size / 2.f,
+    .color = fan::color::from_rgb(color).set_alpha(0.5),
+    .enable_culling = false
+  }});
 }
 
 /// Draw a string.
@@ -209,12 +209,6 @@ namespace fan::graphics::physics {
     init_ = false;
     box2d_debug_draw = [] {
       fan::physics::gphysics()->debug_draw_cb = []() {
-        z_depth = 0;
-        debug_draw_polygon.clear();
-        debug_draw_solid_polygon.clear();
-        debug_draw_circle.clear();
-        debug_draw_line.clear();
-        debug_draw_capsule.clear();
         b2World_Draw(fan::physics::gphysics()->world_id, &box2d_debug_draw);
       };
       return initialize_debug(false);
@@ -231,6 +225,7 @@ namespace fan::graphics::physics {
     // called every frame
     uc[uc_nr] = [] (auto* loco) {
       if (fan::window::is_input_action_active("debug_physics")) {
+        
         fan::graphics::physics::debug_draw(!fan::graphics::physics::get_debug_draw());
       }
     };
@@ -766,7 +761,6 @@ namespace fan::graphics::physics {
     }
 
     body.set_linear_velocity({vel.x, vel.y});
-    previous_sign = input_dir;
   }
 
   void movement_state_t::move_to_direction(fan::physics::body_id_t body, const fan::vec2& direction) {
@@ -788,18 +782,32 @@ namespace fan::graphics::physics {
     }
 
     body.set_linear_velocity({vel.x, vel.y});
-    previous_sign = input_dir;
   }
 
+  void update_ai_orientation(character2d_t& c, const fan::vec2& target_distance) {
 
-  void update_ai_orientation(character2d_t& c, const fan::vec2& distance) {
-    fan::vec2 tc = c.get_tc_size();
-    fan::vec2 new_tc {std::copysign(std::abs(tc.x), distance.x), tc.y};
-    if (new_tc != tc) {
-      c.set_tc_size(new_tc);
-      c.movement_state.previous_sign = new_tc.sign();
+    fan::vec2 vel = c.get_linear_velocity();
+    int8_t desired;
+
+    if (std::abs(vel.x) > 5.0f) {
+      desired = (int8_t)fan::math::sgn(vel.x);
+    }
+    else {
+      desired = (int8_t)fan::math::sgn(target_distance.x);
+    }
+
+    if (desired == 0) {
+      return;
+    }
+
+    fan::vec2 sign = c.get_image_sign();
+    if ((int8_t)fan::math::sgn(sign.x) != desired) {
+      c.set_image_sign({ (f32_t)desired, sign.y });
     }
   }
+
+
+
   void movement_state_t::perform_jump(fan::physics::body_id_t body_id, bool jump_condition, fan::vec2* wall_jump_normal, wall_jump_t* wall_jump) {
     bool on_ground = fan::physics::is_on_ground(body_id, jump_state.jumping);
     if (on_ground) {
@@ -896,9 +904,17 @@ namespace fan::graphics::physics {
   }
   bool attack_state_t::try_attack(character2d_t* character, const fan::vec2& target_distance) {
     if (is_attacking) {
-      update_ai_orientation(*character, target_distance);
+     // update_ai_orientation(*character, target_distance);
       return true;
     }
+    fan::vec2 sign = character->get_image_sign();
+    int8_t facing = (int8_t)fan::math::sgn(sign.x);
+    int8_t desired = (int8_t)fan::math::sgn(target_distance.x);
+
+    if (desired != 0 && facing != desired) {
+      return false;
+    }
+
     if (can_attack(target_distance)) {
       update_ai_orientation(*character, target_distance);
       cooldown_timer.restart();
@@ -1066,19 +1082,19 @@ namespace fan::graphics::physics {
   }
 
   void animation_controller_t::update_animation(character2d_t* character) {
-    f32_t animation_fps = (character->get_linear_velocity().x / character->movement_state.max_speed) * 30.f;
-    if (current_animation_requires_velocity_fps) {
-      if (character->has_animation()) {
-        character->set_sprite_sheet_fps(std::abs(animation_fps));
-      }
-    }
+    fan::vec2 vel = character->get_linear_velocity();
+    fan::vec2 sign = character->get_image_sign();
 
-    if (character->movement_state.previous_sign.x) {
-      fan::vec2 uvp = character->get_tc_position();
-      fan::vec2 uvs = character->get_tc_size();
-      character->set_tc_size(fan::vec2(std::abs(uvs.x) * character->movement_state.previous_sign.x, uvs.y));
+    // Only flip if velocity is strong enough to be intentional movement
+    if (vel.x > 5.0f && sign.x < 0) {
+      character->set_image_sign({1, sign.y});
+    }
+    else if (vel.x < -5.0f && sign.x > 0) {
+      character->set_image_sign({-1, sign.y});
     }
   }
+
+
 
   //------------------------------------------------------------------------------------------------
   //------------------------------------------------------------------------------------------------
@@ -1145,6 +1161,7 @@ namespace fan::graphics::physics {
         break;
       }
       fan::vec2 distance = get_target_distance(character->get_physics_position());
+      update_ai_orientation(*character, distance);
       character->attack_state.try_attack(character, distance);
       if (should_move(distance)) {
         movement_direction.x = distance.sign().x;
@@ -1210,7 +1227,6 @@ namespace fan::graphics::physics {
       }
       else {
         movement_direction.x = distance.sign().x;
-        character->movement_state.previous_sign = movement_direction;
         if (wall_jump.normal.x && movement_direction.x) {
           colliding_wall_id.set_friction(0.f);
           fan::vec2 vel = character->get_linear_velocity();
@@ -1440,7 +1456,7 @@ namespace fan::graphics::physics {
         .trigger_type = animation_controller_t::animation_state_t::one_shot,
         .condition = config.attack_cb ? config.attack_cb :
         [](character2d_t& c) -> bool {
-          if (!fan::window::is_mouse_clicked() 
+          if (!fan::window::is_mouse_clicked() && !fan::window::is_key_pressed(fan::gamepad_right_bumper)
           #if defined(FAN_GUI)
             || fan::graphics::gui::want_io()
           #endif
@@ -1560,7 +1576,6 @@ namespace fan::graphics::physics {
     fan::physics::ray_result_t result = fan::physics::raycast(from_pos, to_pos);
     return result.hit && (result.shapeId == target.get_shape_id() || result.shapeId == get_shape_id());
   }
-
   //------------------------------------------------------------------------------------------------
   //------------------------------------------------------------------------------------------------
 

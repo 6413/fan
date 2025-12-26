@@ -18,6 +18,7 @@ static constexpr auto stage_name = "";
 #include "enemy/enemy.h"
 #include "enemy/skeleton/skeleton.h"
 #include "enemy/fly/fly.h"
+  #include "enemy/boss.h"
 #include "enemy/boss_skeleton/boss_skeleton.h"
   pile_t();
   bool pause = false;
@@ -30,6 +31,9 @@ static constexpr auto stage_name = "";
     if (!pause) {
       engine.physics_context.step(engine.delta_time);
       player.update();
+    }
+    engine.camera_set_target(engine.orthographic_render_view.camera, player.get_physics_pos()-fan::vec2(0, 50), 0);
+    if (!pause) {
       for (auto enemy : enemies()) {
         if (enemy.update()) {
           break;
@@ -38,7 +42,6 @@ static constexpr auto stage_name = "";
     }
 
     fan::graphics::gui::text(fan::graphics::screen_to_world(fan::window::get_mouse_position()));
-    engine.camera_set_target(engine.orthographic_render_view.camera, player.get_physics_pos()-fan::vec2(0, 50), 0);
     fan::graphics::gui::set_viewport(engine.orthographic_render_view.viewport);
 
   }
@@ -116,7 +119,7 @@ static constexpr auto stage_name = "";
   }
 };
 pile_t::pile_t() {
-  pile->engine.set_culling_enabled(false);
+  //pile->engine.set_culling_enabled(false);
   //ic.ignore_input = true;
   update_camera_zoom();
   //engine.window.set_size(engine.window.get_current_monitor_resolution());

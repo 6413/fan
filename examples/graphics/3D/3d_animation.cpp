@@ -286,7 +286,7 @@ int main() {
     ImGui::DragFloat3("angle", angs.data(), 0.01);
     r = fan::quat::from_angles(angs);
     auto& bt = model->animation_list[model->active_anim].bone_transform_tracks;
-    auto& bones = fan_3d::model::fms_t::bone_names_default;
+    auto& bones = fan::model::fms_t::bone_names_default;
     fan::quat parent = bt[bones.left_arm].rotations[0];
    //bt[bones.left_arm].rotations[0] = parent.inverse() * fan::quat(fan::quat::from_angles({0, 1, 0}));
 

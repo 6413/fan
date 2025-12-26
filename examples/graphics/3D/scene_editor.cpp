@@ -384,7 +384,7 @@ struct pile_t {
               camera.m_projection, 
               camera.m_view
             );
-            bool hovering_on_model = fan_3d::is_ray_intersecting_cube(
+            bool hovering_on_model = fan::is_ray_intersecting_cube(
               ray, 
               it->second.model->user_transform.get_translation() + it->second.model->aabbmin,
               it->second.model->aabbmax - it->second.model->aabbmin
@@ -442,7 +442,7 @@ struct pile_t {
               fan::graphics::shapes::rectangle3d_t::properties_t rp;
               rp.position = (bone->bone_transform).get_translation() + e.model->user_transform.get_translation();
               rp.size = e.model->user_transform.get_scale().max() * get_editor().skeleton_properties.bone_scale;
-              bool hovering_on_bone = fan_3d::is_ray_intersecting_cube(ray, rp.position, rp.size);
+              bool hovering_on_bone = fan::is_ray_intersecting_cube(ray, rp.position, rp.size);
               if (hovering_on_bone && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !picked) 
               {
                 if (selected_bone == bone) {
@@ -480,7 +480,7 @@ struct pile_t {
       std::string file_dialog_path;
       std::vector<std::string> file_dialog_paths;
       decltype(entity_list)::iterator selected_entity = entity_list.end();
-      fan_3d::model::bone_t* selected_bone = nullptr;
+      fan::model::bone_t* selected_bone = nullptr;
       uint64_t tree_node_selection_mask = 0;
       fan::graphics::model_t* gizmo_model = nullptr;
       struct property_types_e : __dme_inherit(property_types_e, __empty_struct) {

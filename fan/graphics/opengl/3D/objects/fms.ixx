@@ -27,7 +27,42 @@ export import fan.graphics;
 import fan.graphics.gui.base;
 
 
-export namespace fan_3d {
+export namespace fan {
+
+  struct texture_type {
+    enum {
+      none = aiTextureType_NONE,
+      diffuse = aiTextureType_DIFFUSE,
+      specular = aiTextureType_SPECULAR,
+      ambient = aiTextureType_AMBIENT,
+      emissive = aiTextureType_EMISSIVE,
+      height = aiTextureType_HEIGHT,
+      normals = aiTextureType_NORMALS,
+      shininess = aiTextureType_SHININESS,
+      opacity = aiTextureType_OPACITY,
+      displacement = aiTextureType_DISPLACEMENT,
+      lightmap = aiTextureType_LIGHTMAP,
+      reflection = aiTextureType_REFLECTION,
+      base_color = aiTextureType_BASE_COLOR,
+      normal_camera = aiTextureType_NORMAL_CAMERA,
+      emission_color = aiTextureType_EMISSION_COLOR,
+      metalness = aiTextureType_METALNESS,
+      diffuse_roughness = aiTextureType_DIFFUSE_ROUGHNESS,
+      ambient_occlusion = aiTextureType_AMBIENT_OCCLUSION,
+      unknown = aiTextureType_UNKNOWN,
+      sheen = aiTextureType_SHEEN,
+      clearcoat = aiTextureType_CLEARCOAT,
+      transmission = aiTextureType_TRANSMISSION,
+      //maya_base = aiTextureType_MAYA_BASE,
+      //maya_specular = aiTextureType_MAYA_SPECULAR,
+      //maya_specular_color = aiTextureType_MAYA_SPECULAR_COLOR,
+      //maya_specular_roughness = aiTextureType_MAYA_SPECULAR_ROUGHNESS,
+      //anisotropy = aiTextureType_ANISOTROPY,
+      //gltf_metallic_roughness = aiTextureType_GLTF_METALLIC_ROUGHNESS
+    };
+  };
+
+
   namespace model {
     struct vertex_t {
       fan::vec3 position;
@@ -95,12 +130,13 @@ export namespace fan_3d {
         return fan::mat4(1).translate(position) * fan::mat4(1).rotate(rotation) * fan::mat4(1).scale(scale);
       }
     };
+    inline constexpr auto texture_max = AI_TEXTURE_TYPE_MAX + 1;
     struct mesh_t {
-      std::vector<fan_3d::model::vertex_t> vertices;
+      std::vector<fan::model::vertex_t> vertices;
       std::vector<uint32_t> indices;
       uint32_t indices_len = 0;
 
-      std::string texture_names[AI_TEXTURE_TYPE_MAX + 1]{};
+      std::string texture_names[texture_max]{};
     };
     // pm -- parsed model
     struct pm_texture_data_t {
@@ -125,52 +161,90 @@ export namespace fan_3d {
         if (!load_model(fmi.path)) {
           fan::throw_error("failed to load model:" + fmi.path);
         }
-        importer.~Importer();
+       // importer.~Importer();
       }
 
       // ---------------------model hierarchy---------------------
 
-      mesh_t process_mesh(aiMesh* mesh) {
+      void process_node(aiNode* node, const aiMatrix4x4& parent, fan::vec3& out_min, fan::vec3& out_max) {
+        aiMatrix4x4 global = parent * node->mTransformation;
+
+        for (unsigned int i = 0; i < node->mNumMeshes; i++) {
+          aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+
+          fan::vec3 mesh_min(FLT_MAX), mesh_max(-FLT_MAX);
+
+          mesh_t m = process_mesh(mesh, global, mesh_min, mesh_max);
+
+          out_min = std::min(out_min, mesh_min);
+          out_max = std::max(out_max, mesh_max);
+
+          pm_material_data_t mat = load_materials(mesh);
+          material_data_vector.push_back(mat);
+          load_textures(m, mesh);
+          process_bone_offsets(mesh);
+
+          meshes.push_back(m);
+        }
+
+        for (unsigned int i = 0; i < node->mNumChildren; i++) {
+          process_node(node->mChildren[i], global, out_min, out_max);
+        }
+      }
+
+      mesh_t process_mesh(aiMesh* mesh, const aiMatrix4x4& transform, fan::vec3& out_min, fan::vec3& out_max) {
         mesh_t new_mesh;
-        std::vector<vertex_t> temp_vertices(mesh->mNumVertices);
+        new_mesh.vertices.resize(mesh->mNumVertices);
+
+        aiMatrix3x3 normalMatrix = aiMatrix3x3(transform);
+        normalMatrix = normalMatrix.Transpose().Inverse();
 
         for (uint32_t i = 0; i < mesh->mNumVertices; i++) {
-          vertex_t& vertex = temp_vertices[i];
-          vertex.position = fan::vec3(
-            mesh->mVertices[i].x,
-            mesh->mVertices[i].y,
-            mesh->mVertices[i].z
-          );
+          vertex_t v;
+
+          aiVector3D p = mesh->mVertices[i];
+          p = transform * p;
+          v.position = fan::vec3(p.x, p.y, p.z);
+
+          out_min.x = std::min(out_min.x, v.position.x);
+          out_min.y = std::min(out_min.y, v.position.y);
+          out_min.z = std::min(out_min.z, v.position.z);
+
+          out_max.x = std::max(out_max.x, v.position.x);
+          out_max.y = std::max(out_max.y, v.position.y);
+          out_max.z = std::max(out_max.z, v.position.z);
+
           if (mesh->HasNormals()) {
-            vertex.normal = fan::vec3(
-              mesh->mNormals[i].x,
-              mesh->mNormals[i].y,
-              mesh->mNormals[i].z
-            );
-          }
-          if (mesh->mTextureCoords[0]) {
-            vertex.uv = fan::vec2(
-              mesh->mTextureCoords[0][i].x,
-              mesh->mTextureCoords[0][i].y
-            );
+            aiVector3D n = mesh->mNormals[i];
+            n = normalMatrix * n;
+            v.normal = fan::vec3(n.x, n.y, n.z).normalized();
           }
           else {
-            vertex.uv = fan::vec2(0.0f);
+            v.normal = fan::vec3(0, 1, 0);
           }
 
-          vertex.bone_ids = fan::vec4i(-1);
-          vertex.bone_weights = fan::vec4(0.0f);
-          if (mesh->HasVertexColors(0)) {
-            vertex.color = fan::vec4(
-              mesh->mColors[0][i].r,
-              mesh->mColors[0][i].g,
-              mesh->mColors[0][i].b,
-              mesh->mColors[0][i].a
-            );
+          if (mesh->mTextureCoords[0]) {
+            v.uv = fan::vec2(mesh->mTextureCoords[0][i].x,
+              mesh->mTextureCoords[0][i].y);
           }
           else {
-            vertex.color = fan::vec4(1.0f);
+            v.uv = fan::vec2(0.0f);
           }
+
+          v.bone_ids = fan::vec4i(-1);
+          v.bone_weights = fan::vec4(0.0f);
+
+          if (mesh->HasVertexColors(0)) {
+            v.color = fan::vec4(mesh->mColors[0][i].r,
+              mesh->mColors[0][i].g,
+              mesh->mColors[0][i].b,
+              mesh->mColors[0][i].a);
+          }
+          else {
+            v.color = fan::vec4(1.0f);
+          }
+
+          new_mesh.vertices[i] = v;
         }
 
         for (uint32_t i = 0; i < mesh->mNumBones; i++) {
@@ -185,45 +259,32 @@ export namespace fan_3d {
 
           for (uint32_t j = 0; j < bone->mNumWeights; j++) {
             uint32_t vertexId = bone->mWeights[j].mVertexId;
-            f32_t weight = bone->mWeights[j].mWeight;
+            float weight = bone->mWeights[j].mWeight;
 
-            // find the slot with minimum weight and replace if current weight is larger
             int min_index = 0;
-            f32_t min_weight = temp_vertices[vertexId].bone_weights[0];
+            float min_weight = new_mesh.vertices[vertexId].bone_weights[0];
 
             for (int k = 1; k < 4; k++) {
-              if (temp_vertices[vertexId].bone_weights[k] < min_weight) {
-                min_weight = temp_vertices[vertexId].bone_weights[k];
+              if (new_mesh.vertices[vertexId].bone_weights[k] < min_weight) {
+                min_weight = new_mesh.vertices[vertexId].bone_weights[k];
                 min_index = k;
               }
             }
 
             if (weight > min_weight) {
-              temp_vertices[vertexId].bone_weights[min_index] = weight;
-              temp_vertices[vertexId].bone_ids[min_index] = boneId;
+              new_mesh.vertices[vertexId].bone_weights[min_index] = weight;
+              new_mesh.vertices[vertexId].bone_ids[min_index] = boneId;
             }
           }
         }
 
-        if (bone_count > 200) {
-          fan::print("warning: over 200 bones - might lead to undefined behaviour");
-        }
-        // normalize weights
-        for (auto& vertex : temp_vertices) {
-          f32_t sum = vertex.bone_weights.x + vertex.bone_weights.y +
-            vertex.bone_weights.z + vertex.bone_weights.w;
-
+        for (auto& v : new_mesh.vertices) {
+          float sum = v.bone_weights.x + v.bone_weights.y +
+            v.bone_weights.z + v.bone_weights.w;
           if (sum > 0.0f) {
-            vertex.bone_weights /= sum;
-          }
-          else {
-            // if no bones influence this vertex, assign it to the first bone
-            vertex.bone_ids.x = 0;
-            vertex.bone_weights.x = 1.0f;
+            v.bone_weights /= sum;
           }
         }
-
-        new_mesh.vertices = temp_vertices;
 
         for (uint32_t i = 0; i < mesh->mNumFaces; i++) {
           aiFace& face = mesh->mFaces[i];
@@ -231,9 +292,11 @@ export namespace fan_3d {
             new_mesh.indices.push_back(face.mIndices[j]);
           }
         }
+
         new_mesh.indices_len = new_mesh.indices.size();
         return new_mesh;
       }
+
       void load_textures(mesh_t& mesh, aiMesh* ai_mesh) {
         if (scene->mNumMaterials == 0) {
           return;
@@ -258,7 +321,7 @@ export namespace fan_3d {
             // must not collide with other names
             std::string generated_str = path.C_Str() + std::to_string(texture_type);
             mesh.texture_names[texture_type] = generated_str;
-            auto& td = fan_3d::model::cached_texture_data[generated_str];
+            auto& td = fan::model::cached_texture_data[generated_str];
             td.size = fan::vec2(width, height);
             td.data.insert(td.data.end(), data, data + td.size.multiply() * nr_channels);
             td.channels = nr_channels;
@@ -439,33 +502,15 @@ export namespace fan_3d {
 
         meshes.clear();
 
-        fan::vec3 global_min(std::numeric_limits<float>::max());
-        fan::vec3 global_max(std::numeric_limits<float>::lowest());
+        fan::vec3 global_min(FLT_MAX);
+        fan::vec3 global_max(-FLT_MAX);
 
-        for (uint32_t i = 0; i < scene->mNumMeshes; i++) {
-          mesh_t mesh = process_mesh(scene->mMeshes[i]);
-          aiMesh* ai_mesh = scene->mMeshes[i];
-          pm_material_data_t material_data = load_materials(ai_mesh);
-          load_textures(mesh, ai_mesh);
-          material_data_vector.push_back(material_data);
-          process_bone_offsets(ai_mesh);
-          meshes.push_back(mesh);
-          fan::vec3 min = ai_mesh->mAABB.mMin;
-          fan::vec3 max = ai_mesh->mAABB.mMax;
+        process_node(scene->mRootNode, aiMatrix4x4(), global_min, global_max);
 
-          global_min.x = std::min(global_min.x, min.x);
-          global_min.y = std::min(global_min.y, min.y);
-          global_min.z = std::min(global_min.z, min.z);
-  
-          global_max.x = std::max(global_max.x, max.x);
-          global_max.y = std::max(global_max.y, max.y);
-          global_max.z = std::max(global_max.z, max.z);
-        }
-        aabbmin = global_min == std::numeric_limits<float>::max() ? fan::vec3(1) : global_min;
-        aabbmax = global_max == std::numeric_limits<float>::min() ? fan::vec3(1) : global_max;
-        //scale_divider = std::max(scale_divider, largest_bone.length());
+        aabbmin = global_min;
+        aabbmax = global_max;
+        
         update_bone_transforms();
-        //m_transform = m_transform.scale(1.0 / (scale_divider / 10));
         return true;
       }
       void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, const fan::mat4& model) {
@@ -760,7 +805,7 @@ export namespace fan_3d {
               fan::print("unmapped bone, skipping...");
               continue;
             }
-            fan_3d::model::bone_transform_track_t track;
+            fan::model::bone_transform_track_t track;
             for (int j = 0; j < channel->mNumPositionKeys; j++) {
               track.position_timestamps.push_back(channel->mPositionKeys[j].mTime * time_scale);
               track.positions.push_back(channel->mPositionKeys[j].mValue);
@@ -1013,7 +1058,7 @@ export namespace fan_3d {
         uintptr_t longest_length = 0;
         uintptr_t shortest_length_from = (uintptr_t)-1;
 
-        model.iterate_bones(*model.root_bone, [&](fan_3d::model::bone_t& bone) {
+        model.iterate_bones(*model.root_bone, [&](fan::model::bone_t& bone) {
           std::string from = bone.name;
 
           for (uintptr_t bni1 = 0; bni1 < bone_names_model[name_index].size(); bni1++) {
@@ -1060,7 +1105,7 @@ export namespace fan_3d {
       std::string get_bone_name_by_index(auto& model, uintptr_t index) {
         std::string ret;
         uintptr_t i = 0;
-        model.iterate_bones(*model.root_bone, [&](fan_3d::model::bone_t& bone) {
+        model.iterate_bones(*model.root_bone, [&](fan::model::bone_t& bone) {
           if (i == index) {
             ret = bone.name;
           }
@@ -1074,7 +1119,7 @@ export namespace fan_3d {
           {"Left_leg"}
         };
         bool left_leg = false;
-        iterator.iterate_bones(*iterator.root_bone, [&](fan_3d::model::bone_t& bone) {
+        iterator.iterate_bones(*iterator.root_bone, [&](fan::model::bone_t& bone) {
           if (get_bone_name_index(left_leg_vector, bone.name) == 0) {
             if (left_leg) {
               /* multiple left leg? */
@@ -1087,7 +1132,7 @@ export namespace fan_3d {
           std::vector<std::vector<std::string>> left_down_leg_vector = {
             {"Lower_Leg_L", "Left_knee"}
           };
-          iterator.iterate_bones(*iterator.root_bone, [&](fan_3d::model::bone_t& bone) {
+          iterator.iterate_bones(*iterator.root_bone, [&](fan::model::bone_t& bone) {
             if (get_bone_name_index(left_down_leg_vector, bone.name) == 0) {
               if (left_leg_meaning != (uint8_t)-1) {
                 /* multiple left leg meaning? */
@@ -1099,7 +1144,7 @@ export namespace fan_3d {
           std::vector<std::vector<std::string>> left_up_leg_vector = {
             {"Left_Up_Leg"}
           };
-          iterator.iterate_bones(*iterator.root_bone, [&](fan_3d::model::bone_t& bone) {
+          iterator.iterate_bones(*iterator.root_bone, [&](fan::model::bone_t& bone) {
             if (get_bone_name_index(left_up_leg_vector, bone.name) == 0) {
               if (left_leg_meaning != (uint8_t)-1) {
                 /* multiple left leg meaning? */
@@ -1133,7 +1178,7 @@ export namespace fan_3d {
           {"Right_leg"}
         };
         bool right_leg = false;
-        iterator.iterate_bones(*iterator.root_bone, [&](fan_3d::model::bone_t& bone) {
+        iterator.iterate_bones(*iterator.root_bone, [&](fan::model::bone_t& bone) {
           if (get_bone_name_index(right_leg_vector, bone.name) == 0) {
             if (right_leg) {
               /* multiple right leg? */
@@ -1146,7 +1191,7 @@ export namespace fan_3d {
           std::vector<std::vector<std::string>> right_down_leg_vector = {
             {"Lower_Leg_R", "Right_knee"}
           };
-          iterator.iterate_bones(*iterator.root_bone, [&](fan_3d::model::bone_t& bone) {
+          iterator.iterate_bones(*iterator.root_bone, [&](fan::model::bone_t& bone) {
             if (get_bone_name_index(right_down_leg_vector, bone.name) == 0) {
               if (right_leg_meaning != (uint8_t)-1) {
                 /* multiple right leg meaning? */
@@ -1158,7 +1203,7 @@ export namespace fan_3d {
           std::vector<std::vector<std::string>> right_up_leg_vector = {
             {"Right_Up_Leg"}
           };
-          iterator.iterate_bones(*iterator.root_bone, [&](fan_3d::model::bone_t& bone) {
+          iterator.iterate_bones(*iterator.root_bone, [&](fan::model::bone_t& bone) {
             if (get_bone_name_index(right_up_leg_vector, bone.name) == 0) {
               if (right_leg_meaning != (uint8_t)-1) {
                 /* multiple right leg meaning? */
@@ -1217,8 +1262,8 @@ export namespace fan_3d {
         return -1;
       }
       std::unordered_map<std::string, bool> bone_mapper;
-      static fan::mat4 get_world_matrix(fan_3d::model::bone_t* entity, fan::mat4 localMatrix) {
-        fan_3d::model::bone_t* parentID = entity->parent;
+      static fan::mat4 get_world_matrix(fan::model::bone_t* entity, fan::mat4 localMatrix) {
+        fan::model::bone_t* parentID = entity->parent;
         while (parentID != nullptr)
         {
           localMatrix = localMatrix * parentID->get_local_matrix();
@@ -1226,9 +1271,9 @@ export namespace fan_3d {
         }
         return localMatrix;
       }
-      static fan::mat4 get_inverse_parent_matrix(fan_3d::model::bone_t* entity) {
+      static fan::mat4 get_inverse_parent_matrix(fan::model::bone_t* entity) {
         fan::mat4 inverseParentMatrix(1);
-        fan_3d::model::bone_t* parentID = entity->parent;
+        fan::model::bone_t* parentID = entity->parent;
         if (parentID != nullptr)
         {
           while (parentID != nullptr)
@@ -1245,10 +1290,10 @@ export namespace fan_3d {
         bone_t& source_bone,
         bone_t& target_bone
       ) {
-        fan_3d::model::bone_t transform = source_bone;
+        fan::model::bone_t transform = source_bone;
         transform.position = position;
 
-        fan::mat4 local_matrix = source_bone.world_matrix.inverse() * fan_3d::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
+        fan::mat4 local_matrix = source_bone.world_matrix.inverse() * fan::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
         local_matrix = target_bone.world_matrix * local_matrix * target_bone.inverse_parent_matrix;
         return target_bone.position;
       }
@@ -1276,10 +1321,10 @@ export namespace fan_3d {
           tpose_adjust = fan::quat::from_angles(fan::vec3(-fan::math::radians(45), 0, 0));
         }
 
-        fan_3d::model::bone_t transform = source_bone;
+        fan::model::bone_t transform = source_bone;
         transform.rotation = (animation_rotation * tpose_adjust).normalized();
 
-        fan::mat4 local_matrix = source_bone.world_matrix.inverse() * fan_3d::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
+        fan::mat4 local_matrix = source_bone.world_matrix.inverse() * fan::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
         local_matrix = target_bone.world_matrix * local_matrix * target_bone.inverse_parent_matrix;
         return fan::quat(local_matrix).inverse();
       }
@@ -1288,10 +1333,10 @@ export namespace fan_3d {
         bone_t& source_bone,
         bone_t& target_bone
       ) {
-        fan_3d::model::bone_t transform = source_bone;
+        fan::model::bone_t transform = source_bone;
         transform.scale = scale;
 
-        fan::mat4 local_matrix = source_bone.world_matrix.inverse() * fan_3d::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
+        fan::mat4 local_matrix = source_bone.world_matrix.inverse() * fan::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
         local_matrix = target_bone.world_matrix * local_matrix * target_bone.inverse_parent_matrix;
         return local_matrix.get_scale();
       }
@@ -1312,7 +1357,7 @@ export namespace fan_3d {
         solve_legs(anim, bone_names_anim);
         solve_legs(*this, bone_names_model);
 
-        anim.iterate_bones(*anim.root_bone, [&](fan_3d::model::bone_t& bone) {
+        anim.iterate_bones(*anim.root_bone, [&](fan::model::bone_t& bone) {
           auto bone_name_index = get_bone_name_index(bone_names_anim, bone.name);
           if (bone_name_index == (uintptr_t)-1) {
             printf("f \"%s\"\n", bone.name.c_str());
@@ -1456,7 +1501,7 @@ export namespace fan_3d {
 
             bool time_stamps_open = gui::tree_node("timestamps");
             if (time_stamps_open) {
-              iterate_bones(*root_bone, [&](fan_3d::model::bone_t& bone) {
+              iterate_bones(*root_bone, [&](fan::model::bone_t& bone) {
                 auto& bt = anim.bone_transform_tracks[bone.id];
                 uint32_t data_count = bt.rotation_timestamps.size();
                 if (data_count) {
@@ -1474,7 +1519,7 @@ export namespace fan_3d {
 
             bool properties_open = gui::tree_node("properties");
             if (properties_open) {
-              iterate_bones(*root_bone, [&](fan_3d::model::bone_t& bone) {
+              iterate_bones(*root_bone, [&](fan::model::bone_t& bone) {
                 auto& bt = anim.bone_transform_tracks[bone.id];
                 uint32_t data_count = bt.rotations.size();
                 if (data_count) {
