@@ -139,6 +139,7 @@ struct next_frame_awaiter {
   static inline std::vector<std::coroutine_handle<>> pending;
 };
 
+
 export namespace fan::graphics {
 	struct engine_init_t {
 #define BLL_set_SafeNext 1
@@ -692,4 +693,37 @@ export namespace fan::graphics {
   void shader_set_value(fan::graphics::shader_nr_t nr, const std::string& name, const T& val) {
     gloco()->shader_set_value<T>(nr, name, val);
   }
+}
+
+
+export namespace fan {
+  struct color_transition_t {
+    fan::color from, to;
+    f32_t duration;
+    bool loop;
+
+    enum class ease_e { 
+      linear, 
+      sine,      // smooth in/out
+      pulse,     // ping-pong
+      ease_in,   // slow start
+      ease_out   // slow end
+    } easing = ease_e::sine;
+
+    fan::event::task_t animate(std::function<void(fan::color)> callback);
+  };
+  struct auto_color_transition_t {
+    fan::color_transition_t transition;
+    fan::event::task_t task;
+    std::function<void(fan::color)> callback;
+    bool active = false;
+
+    void start(const fan::color& from, const fan::color& to,
+      f32_t duration, std::function<void(fan::color)> cb);
+
+    void stop(const fan::color& reset_to);
+  };
+
+  color_transition_t pulse_red(f32_t duration = 1.f);
+  color_transition_t fade_out(f32_t duration = 0.5f);
 }
