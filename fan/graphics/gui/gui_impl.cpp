@@ -283,6 +283,9 @@ namespace fan::graphics::gui {
 
 #if defined(FAN_2D)
   void shape_properties(const fan::graphics::shape_t& shape) {
+    if (!shape.get_visual_id()) {
+      return;
+    }
     switch (shape.get_shape_type()) {
     case fan::graphics::shape_type_t::particles:
     {

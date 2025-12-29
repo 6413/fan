@@ -9,6 +9,7 @@ module;
 #include <vector>
 #include <cassert>
 #include <locale>
+#include <set>
 
 #include <assimp/Exporter.hpp>
 #include <assimp/scene.h>
@@ -152,7 +153,7 @@ export namespace fan {
     struct fms_t {
       struct properties_t {
         std::string path;
-        std::string texture_path;
+        std::string texture_path = "models/textures";
         int use_cpu = false;
       };
       fms_t() = default;
@@ -176,6 +177,7 @@ export namespace fan {
 
           mesh_t m = process_mesh(mesh, global, mesh_min, mesh_max);
 
+
           out_min = std::min(out_min, mesh_min);
           out_max = std::max(out_max, mesh_max);
 
@@ -191,6 +193,302 @@ export namespace fan {
           process_node(node->mChildren[i], global, out_min, out_max);
         }
       }
+
+      struct edge_key {
+        uint32_t a;
+        uint32_t b;
+
+        bool operator==(const edge_key &o) const {
+          return a == o.a && b == o.b;
+        }
+      };
+
+      struct edge_key_hash {
+        size_t operator()(const edge_key &k) const {
+          return (size_t(k.a) << 32) ^ size_t(k.b);
+        }
+      };
+
+      struct tri_edge_ref {
+        uint32_t tri_index;
+        uint8_t edge_slot;
+      };
+
+      static f32_t tri_uv_error(const mesh_t &mesh, uint32_t i0, uint32_t i1, uint32_t i2) {
+        const auto &v0 = mesh.vertices[i0];
+        const auto &v1 = mesh.vertices[i1];
+        const auto &v2 = mesh.vertices[i2];
+
+        fan::vec2 e01 = v1.uv - v0.uv;
+        fan::vec2 e12 = v2.uv - v1.uv;
+        fan::vec2 e20 = v0.uv - v2.uv;
+
+        return e01.dot(e01) + e12.dot(e12) + e20.dot(e20);
+      }
+
+      static bool triangles_coplanar(const mesh_t &mesh,
+        uint32_t i0, uint32_t i1, uint32_t i2,
+        uint32_t j0, uint32_t j1, uint32_t j2,
+        f32_t cos_threshold = 0.99f
+      ) {
+        const auto &a0 = mesh.vertices[i0];
+        const auto &a1 = mesh.vertices[i1];
+        const auto &a2 = mesh.vertices[i2];
+
+        const auto &b0 = mesh.vertices[j0];
+        const auto &b1 = mesh.vertices[j1];
+        const auto &b2 = mesh.vertices[j2];
+
+        fan::vec3 na = (a1.position - a0.position).cross(a2.position - a0.position);
+        fan::vec3 nb = (b1.position - b0.position).cross(b2.position - b0.position);
+
+        f32_t la2 = na.dot(na);
+        f32_t lb2 = nb.dot(nb);
+        if (la2 == 0.0f || lb2 == 0.0f) {
+          return false;
+        }
+
+        f32_t c = na.dot(nb) / std::sqrt(la2 * lb2);
+        return c > cos_threshold;
+      }
+
+      static bool segments_intersect(
+        const fan::vec2& p0,
+        const fan::vec2& p1,
+        const fan::vec2& p2,
+        const fan::vec2& p3
+      )
+      {
+        auto cross = [](const fan::vec2& a, const fan::vec2& b) {
+          return a.x * b.y - a.y * b.x;
+        };
+
+        fan::vec2 r = p1 - p0;
+        fan::vec2 s = p3 - p2;
+
+        float denom = cross(r, s);
+        float numer1 = cross(p2 - p0, r);
+        float numer2 = cross(p2 - p0, s);
+
+        if (denom == 0.0f) {
+          return false;
+        }
+
+        float t = numer1 / denom;
+        float u = numer2 / denom;
+
+        return t > 0.0f && t < 1.0f && u > 0.0f && u < 1.0f;
+      }
+
+
+      bool is_valid_quad(const mesh_t& mesh, uint32_t q[4]) {
+        const vec3& p0 = mesh.vertices[q[0]].position;
+        const vec3& p1 = mesh.vertices[q[1]].position;
+        const vec3& p2 = mesh.vertices[q[2]].position;
+        const vec3& p3 = mesh.vertices[q[3]].position;
+
+        vec3 n = (p1 - p0).cross(p2 - p0);
+        if (n.dot((p2 - p1).cross(p3 - p1)) < 0) return false;
+        if (n.dot((p3 - p2).cross(p0 - p2)) < 0) return false;
+
+        if (segments_intersect(p0, p1, p2, p3)) return false;
+        if (segments_intersect(p1, p2, p3, p0)) return false;
+
+        return true;
+      }
+
+
+      void fix_uv_diagonals(mesh_t &mesh) {
+        auto &indices = mesh.indices;
+        auto &verts = mesh.vertices;
+
+        if (indices.size() % 3 != 0 || verts.empty()) {
+          return;
+        }
+
+        std::unordered_map<edge_key, tri_edge_ref, edge_key_hash> edge_map;
+        edge_map.reserve(indices.size());
+
+        size_t tri_count = indices.size() / 3;
+
+        for (uint32_t t = 0; t < tri_count; t++) {
+          uint32_t i0 = indices[t * 3 + 0];
+          uint32_t i1 = indices[t * 3 + 1];
+          uint32_t i2 = indices[t * 3 + 2];
+
+          uint32_t tri_idx[3] = { i0, i1, i2 };
+
+          for (uint8_t e = 0; e < 3; e++) {
+            uint32_t a = tri_idx[e];
+            uint32_t b = tri_idx[(e + 1) % 3];
+
+            edge_key key;
+            key.a = fan::math::min(a, b);
+            key.b = fan::math::max(a, b);
+
+            auto it = edge_map.find(key);
+            if (it == edge_map.end()) {
+              tri_edge_ref ref;
+              ref.tri_index = t;
+              ref.edge_slot = e;
+              edge_map.insert({ key, ref });
+            }
+            else {
+              uint32_t t2 = it->second.tri_index;
+              if (t2 == t) {
+                continue;
+              }
+
+              uint32_t j0 = indices[t2 * 3 + 0];
+              uint32_t j1 = indices[t2 * 3 + 1];
+              uint32_t j2 = indices[t2 * 3 + 2];
+
+              uint32_t u[6] = { i0, i1, i2, j0, j1, j2 };
+              uint32_t quad[4];
+              uint32_t qc = 0;
+
+              for (uint32_t k = 0; k < 6; k++) {
+                uint32_t v = u[k];
+                bool found = false;
+                for (uint32_t m = 0; m < qc; m++) {
+                  if (quad[m] == v) {
+                    found = true;
+                    break;
+                  }
+                }
+                if (!found) {
+                  quad[qc++] = v;
+                  if (qc > 4) {
+                    break;
+                  }
+                }
+              }
+
+              if (!is_valid_quad(mesh, quad)) {
+                continue;
+              }
+
+              if (qc != 4) {
+                continue;
+              }
+
+              if (!triangles_coplanar(mesh, i0, i1, i2, j0, j1, j2, 0.99f)) {
+                continue;
+              }
+
+              fan::vec3 c = (verts[quad[0]].position +
+                verts[quad[1]].position +
+                verts[quad[2]].position +
+                verts[quad[3]].position) * 0.25f;
+
+              f32_t ang[4];
+              for (uint32_t k = 0; k < 4; k++) {
+                fan::vec3 d = verts[quad[k]].position - c;
+                ang[k] = std::atan2(d.y, d.x);
+              }
+
+              for (uint32_t a0 = 0; a0 < 4; a0++) {
+                for (uint32_t b0 = a0 + 1; b0 < 4; b0++) {
+                  if (ang[b0] < ang[a0]) {
+                    f32_t ta = ang[a0];
+                    ang[a0] = ang[b0];
+                    ang[b0] = ta;
+                    uint32_t tv = quad[a0];
+                    quad[a0] = quad[b0];
+                    quad[b0] = tv;
+                  }
+                }
+              }
+
+              uint32_t q0 = quad[0];
+              uint32_t q1 = quad[1];
+              uint32_t q2 = quad[2];
+              uint32_t q3 = quad[3];
+
+              uint32_t c0 = i0, c1 = i1, c2 = i2;
+              uint32_t c3 = j0, c4 = j1, c5 = j2;
+
+              f32_t uv_current =
+                tri_uv_error(mesh, c0, c1, c2) +
+                tri_uv_error(mesh, c3, c4, c5);
+
+              fan::vec3 g01 = verts[c1].position - verts[c0].position;
+              fan::vec3 g12 = verts[c2].position - verts[c1].position;
+              fan::vec3 g20 = verts[c0].position - verts[c2].position;
+              fan::vec3 g34 = verts[c4].position - verts[c3].position;
+              fan::vec3 g45 = verts[c5].position - verts[c4].position;
+              fan::vec3 g53 = verts[c3].position - verts[c5].position;
+
+              f32_t geom_current =
+                g01.dot(g01) + g12.dot(g12) + g20.dot(g20) +
+                g34.dot(g34) + g45.dot(g45) + g53.dot(g53);
+
+              f32_t total_current = uv_current + geom_current * 0.000001f;
+
+              f32_t uv_a =
+                tri_uv_error(mesh, q0, q1, q2) +
+                tri_uv_error(mesh, q0, q2, q3);
+
+              fan::vec3 a01 = verts[q1].position - verts[q0].position;
+              fan::vec3 a12 = verts[q2].position - verts[q1].position;
+              fan::vec3 a20 = verts[q0].position - verts[q2].position;
+              fan::vec3 a03 = verts[q3].position - verts[q0].position;
+              fan::vec3 a32 = verts[q2].position - verts[q3].position;
+              fan::vec3 a23 = verts[q3].position - verts[q2].position;
+
+              f32_t geom_a =
+                a01.dot(a01) + a12.dot(a12) + a20.dot(a20) +
+                a03.dot(a03) + a32.dot(a32) + a23.dot(a23);
+
+              f32_t total_a = uv_a + geom_a * 0.000001f;
+
+              f32_t uv_b =
+                tri_uv_error(mesh, q0, q1, q3) +
+                tri_uv_error(mesh, q1, q2, q3);
+
+              fan::vec3 b01 = verts[q1].position - verts[q0].position;
+              fan::vec3 b13 = verts[q3].position - verts[q1].position;
+              fan::vec3 b30 = verts[q0].position - verts[q3].position;
+              fan::vec3 b12 = verts[q2].position - verts[q1].position;
+              fan::vec3 b23 = verts[q3].position - verts[q2].position;
+              fan::vec3 b31 = verts[q1].position - verts[q3].position;
+
+              f32_t geom_b =
+                b01.dot(b01) + b13.dot(b13) + b30.dot(b30) +
+                b12.dot(b12) + b23.dot(b23) + b31.dot(b31);
+
+              f32_t total_b = uv_b + geom_b * 0.000001f;
+
+              f32_t best = total_current;
+              uint32_t bt0[3] = { c0, c1, c2 };
+              uint32_t bt1[3] = { c3, c4, c5 };
+
+              if (total_a + 1e-7f < best) {
+                best = total_a;
+                bt0[0] = q0; bt0[1] = q1; bt0[2] = q2;
+                bt1[0] = q0; bt1[1] = q2; bt1[2] = q3;
+              }
+
+              if (total_b + 1e-7f < best) {
+                best = total_b;
+                bt0[0] = q0; bt0[1] = q1; bt0[2] = q3;
+                bt1[0] = q1; bt1[1] = q2; bt1[2] = q3;
+              }
+
+              if (best < total_current - 1e-7f) {
+                indices[t * 3 + 0] = bt0[0];
+                indices[t * 3 + 1] = bt0[1];
+                indices[t * 3 + 2] = bt0[2];
+
+                indices[t2 * 3 + 0] = bt1[0];
+                indices[t2 * 3 + 1] = bt1[1];
+                indices[t2 * 3 + 2] = bt1[2];
+              }
+            }
+          }
+        }
+      }
+
 
       mesh_t process_mesh(aiMesh* mesh, const aiMatrix4x4& transform, fan::vec3& out_min, fan::vec3& out_max) {
         mesh_t new_mesh;
@@ -294,6 +592,8 @@ export namespace fan {
         }
 
         new_mesh.indices_len = new_mesh.indices.size();
+        fix_uv_diagonals(new_mesh);
+
         return new_mesh;
       }
 
@@ -356,7 +656,66 @@ export namespace fan {
         }
 
         aiMaterial* cmaterial = scene->mMaterials[ai_mesh->mMaterialIndex];
-        cmaterial->Get(AI_MATKEY_COLOR_DIFFUSE, material_data.color[aiTextureType_DIFFUSE]);
+
+        // Try multiple methods to get base color
+        bool found_color = false;
+        aiColor4D base_color(1.0f, 1.0f, 1.0f, 1.0f);
+
+        // Method 1: Try AI_MATKEY_BASE_COLOR (newer Assimp)
+        if (cmaterial->Get(AI_MATKEY_BASE_COLOR, base_color) == AI_SUCCESS) {
+          material_data.color[aiTextureType_DIFFUSE] = fan::vec4(base_color.r, base_color.g, base_color.b, base_color.a);
+          fan::print("Found base color via AI_MATKEY_BASE_COLOR:", base_color.r, base_color.g, base_color.b, base_color.a);
+          found_color = true;
+        }
+
+        // Method 2: Try direct property lookup for glTF
+        if (!found_color) {
+          if (cmaterial->Get("$clr.base", 0, 0, base_color) == AI_SUCCESS) {
+            material_data.color[aiTextureType_DIFFUSE] = fan::vec4(base_color.r, base_color.g, base_color.b, base_color.a);
+            fan::print("Found base color via $clr.base:", base_color.r, base_color.g, base_color.b, base_color.a);
+            found_color = true;
+          }
+        }
+
+        // Method 3: Iterate through all properties to find baseColorFactor
+        if (!found_color) {
+          for (unsigned int i = 0; i < cmaterial->mNumProperties; i++) {
+            aiMaterialProperty* prop = cmaterial->mProperties[i];
+            std::string key = prop->mKey.C_Str();
+
+            // Debug: print all properties
+            fan::print("Material property [", i, "]:", key, "type:", prop->mType, "dataLen:", prop->mDataLength);
+
+            // Look for base color property
+            if (key.find("base") != std::string::npos || 
+              key.find("Base") != std::string::npos ||
+              key.find("COLOR") != std::string::npos) {
+
+              if (prop->mType == aiPTI_Float && prop->mDataLength >= 16) {
+                // It's likely a vec4 color
+                float* color_data = (float*)prop->mData;
+                base_color.r = color_data[0];
+                base_color.g = color_data[1];
+                base_color.b = color_data[2];
+                base_color.a = color_data[3];
+
+                material_data.color[aiTextureType_DIFFUSE] = fan::vec4(base_color.r, base_color.g, base_color.b, base_color.a);
+                fan::print("Found base color via property search:", base_color.r, base_color.g, base_color.b, base_color.a);
+                found_color = true;
+                break;
+              }
+            }
+          }
+        }
+
+        // Method 4: Fall back to traditional diffuse color
+        if (!found_color) {
+          if (cmaterial->Get(AI_MATKEY_COLOR_DIFFUSE, base_color) == AI_SUCCESS) {
+            material_data.color[aiTextureType_DIFFUSE] = fan::vec4(base_color.r, base_color.g, base_color.b, base_color.a);
+            fan::print("Found diffuse color:", base_color.r, base_color.g, base_color.b, base_color.a);
+          }
+        }
+
         cmaterial->Get(AI_MATKEY_COLOR_AMBIENT, material_data.color[aiTextureType_AMBIENT]);
         cmaterial->Get(AI_MATKEY_COLOR_SPECULAR, material_data.color[aiTextureType_SPECULAR]);
         cmaterial->Get(AI_MATKEY_COLOR_EMISSIVE, material_data.color[aiTextureType_EMISSIVE]);

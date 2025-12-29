@@ -1753,7 +1753,52 @@ void loco_t::time_monitor_t::plot(const char* label) {
 }
 #endif
 
+//struct frame_validator_t {
+//  std::unordered_map<uint32_t, fan::graphics::image_t> expected_images;
+//  uint64_t frame = 0;
+//
+//  void snapshot_shapes() {
+//    expected_images.clear();
+//    fan::graphics::shaper_t::KeyTraverse_t kt;
+//    kt.Init(fan::graphics::g_shapes->shaper);
+//
+//    while (kt.Loop(fan::graphics::g_shapes->shaper)) {
+//      if (kt.kti(fan::graphics::g_shapes->shaper) == fan::graphics::Key_e::image) {
+//        auto img = *(fan::graphics::image_t*)kt.kd();
+//        auto bmid = kt.bmid();
+//        expected_images[bmid.gint()] = img;
+//      }
+//    }
+//  }
+//
+//  void validate_during_draw() {
+//    fan::graphics::shaper_t::KeyTraverse_t kt;
+//    kt.Init(fan::graphics::g_shapes->shaper);
+//
+//    while (kt.Loop(fan::graphics::g_shapes->shaper)) {
+//      if (kt.kti(fan::graphics::g_shapes->shaper) == fan::graphics::Key_e::image) {
+//        auto img = *(fan::graphics::image_t*)kt.kd();
+//        auto bmid = kt.bmid();
+//
+//        if (expected_images.count(bmid.gint()) && 
+//          expected_images[bmid.gint()] != img) {
+//          fan::print("FRAME", frame, "GLITCH DETECTED!");
+//          fan::print("  BMID:", bmid.gint());
+//          fan::print("  Expected:", expected_images[bmid.gint()].NRI);
+//          fan::print("  Got:", img.NRI);
+//
+//        #if defined(fan_std23)
+//          fan::print("Stack trace:");
+//          fan::print(std::stacktrace::current());
+//        #endif
+//        }
+//      }
+//    }
+//  }
+//} frame_validator;
+
 void loco_t::process_render() {
+  //frame_validator.snapshot_shapes();
 #if defined(FAN_2D)
   if (init_culling) {
     rebuild_static_culling();
@@ -1802,6 +1847,10 @@ void loco_t::process_render() {
   fan::graphics::gui::end();
 #endif
 
+  if (window.renderer == fan::window_t::renderer_t::opengl) {
+    run_culling();
+  }
+
 #if defined(FAN_2D)
   fan::graphics::g_shapes->shaper.ProcessBlockEditQueue();
 #endif
@@ -1813,6 +1862,8 @@ void loco_t::process_render() {
 #endif
 
   viewport_set(0, window.get_size());
+
+  //frame_validator.validate_during_draw();
 
   if (render_shapes_top == false) {
     process_shapes();
@@ -1845,6 +1896,7 @@ void loco_t::process_render() {
     }
   }
 #endif
+  //frame_validator.frame++;
 }
 
 bool loco_t::should_close() {
@@ -2766,4 +2818,78 @@ void fan::graphics::shader_set_camera(fan::graphics::shader_t nr, fan::graphics:
     fan::throw_error("todo");
   }
 #endif
+}
+
+namespace fan {
+  fan::event::task_t color_transition_t::animate(std::function<void(fan::color)> callback) {
+    f32_t elapsed = 0;
+    do {
+      fan::time::timer frame_timer;
+      frame_timer.start();
+
+      while (elapsed < duration) {
+        f32_t t = elapsed / duration;
+
+        switch (easing) {
+        case ease_e::linear:
+          break;
+        case ease_e::sine:
+          t = (std::sin((t - 0.5f) * fan::math::pi) + 1.f) * 0.5f;
+          break;
+        case ease_e::pulse:
+          t = std::sin(t * fan::math::pi);
+          break;
+        case ease_e::ease_in:
+          t = t * t;
+          break;
+        case ease_e::ease_out:
+          t = 1.f - (1.f - t) * (1.f - t);
+          break;
+        }
+
+        callback(from.lerp(to, t));
+        co_await fan::graphics::co_next_frame();
+        elapsed += gloco()->delta_time;
+      }
+
+      elapsed = 0;
+      co_await fan::graphics::co_next_frame();
+    } while (loop);
+
+    callback(to);
+  }
+
+  void auto_color_transition_t::start(const fan::color& from, const fan::color& to, 
+    f32_t duration, std::function<void(fan::color)> cb) {
+    if (active) return;
+    transition = {from, to, duration, true, fan::color_transition_t::ease_e::pulse};
+    callback = cb;
+    task = transition.animate(callback);
+    active = true;
+  }
+  void auto_color_transition_t::stop(const fan::color& reset_to) {
+    if (!active) return;
+    task = {};
+    callback(reset_to);
+    active = false;
+  }
+
+  color_transition_t pulse_red(f32_t duration) {
+    return color_transition_t{
+      fan::colors::white, 
+      {1, 0.2, 0.2}, 
+      duration, 
+      true, 
+      color_transition_t::ease_e::pulse
+    };
+  }
+  color_transition_t fade_out(f32_t duration) {
+    return color_transition_t{
+      fan::colors::white, 
+      fan::colors::transparent, 
+      duration, 
+      false, 
+      color_transition_t::ease_e::ease_out
+    };
+  }
 }

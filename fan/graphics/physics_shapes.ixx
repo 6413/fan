@@ -477,6 +477,7 @@ export namespace fan {
 
         void move_to_direction_raw(fan::physics::body_id_t body, const fan::vec2& direction);
         void move_to_direction(fan::physics::body_id_t body, const fan::vec2& direction);
+        void update_ai_orientation(character2d_t& c, const fan::vec2& target_distance);
         void perform_jump(fan::physics::body_id_t body_id, bool jump_condition, fan::vec2* wall_jump_normal = nullptr, wall_jump_t* wall_jump = nullptr);
 
         f32_t accelerate_force = 120.f;
@@ -485,6 +486,7 @@ export namespace fan {
         uint8_t type = movement_e::side_view;
         jump_state_t jump_state;
         bool check_gui = true;
+        fan::vec2 last_direction = 0;
       };
 
       struct attack_state_t {

@@ -1209,14 +1209,31 @@ namespace fan::graphics{
     return sd.shape_type;
   }
 
+  void set_particle_pos(shapes::shape_t* shape, fan::vec3 position) {
+    if (shape->get_shape_type() == shape_type_t::particles) {
+      g_shapes->visit_shape_draw_data(shape->NRI, [&](auto& props) {
+        if constexpr (requires { props.position; }) {
+          props.position = position;
+        }
+      });
+
+      if (shape->get_visual_id()) {
+        auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)
+          shape->GetData(fan::graphics::g_shapes->shaper);
+        ri.position = position;
+      }
+    }
+  }
 
 	void shapes::shape_t::set_position(const fan::vec2& position) {
 		g_shapes->shape_functions[get_shape_type()].set_position2(this, position);
+    set_particle_pos(this, position);
     update_dynamic();
 	}
 
 	void shapes::shape_t::set_position(const fan::vec3& position) {
 		g_shapes->shape_functions[get_shape_type()].set_position3(this, position);
+    set_particle_pos(this, position);
     update_dynamic();
 	}
 

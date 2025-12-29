@@ -746,8 +746,6 @@ void shapes_draw() {
 
   fan::graphics::shapes& shapes = loco.shapes;
 
-  loco.run_culling();
-
   while (KeyTraverse.Loop(fan::graphics::g_shapes->shaper)) {
 
     fan::graphics::shaper_t::KeyTypeIndex_t kti =

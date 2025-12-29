@@ -31,7 +31,7 @@ int main() {
     gui::set_viewport();
     rectangle({
       .position = fan::vec3(ic.camera_offset, 0),
-      .size = gui::get_window_size() / 2.f / ic.zoom,
+      .size = gui::get_window_size() / 2.f / ic.get_zoom(),
       .color = editor.bg_color
     });
     editor.render();

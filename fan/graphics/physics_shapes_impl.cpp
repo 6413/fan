@@ -734,12 +734,37 @@ namespace fan::graphics::physics {
     );
   }
 
+  //void movement_state_t::move_to_direction_raw(fan::physics::body_id_t body, const fan::vec2& direction) {
+  //  fan::vec2 input_dir = direction.sign() 
+  //  #if defined(FAN_GUI)
+  //    * (check_gui ? !fan::graphics::gui::want_io() : 1)
+  //  #endif
+  //  ;
+  //  fan::vec2 vel = body.get_linear_velocity();
+  //  f32_t dt = fan::physics::default_physics_timestep;
+
+  //  if (input_dir.x != 0) {
+  //    vel.x += input_dir.x * accelerate_force * dt * 100.f;
+  //    vel.x = fan::math::clamp(vel.x, -max_speed, max_speed);
+  //  }
+  //  else {
+  //    f32_t deceleration_factor = 0.3f * dt * 100.f;
+  //    vel.x = fan::math::lerp(vel.x, 0.f, deceleration_factor);
+  //  }
+  //  if (input_dir.y != 0) {
+  //    vel.y += input_dir.y * accelerate_force * dt * 100.f;
+  //    vel.y = fan::math::clamp(vel.y, -max_speed, max_speed);
+  //  }
+  //  else {
+  //    f32_t deceleration_factor = 0.3f * dt * 100.f;
+  //    vel.y = fan::math::lerp(vel.y, 0.f, deceleration_factor);
+  //  }
+  //  last_direction = direction;
+  //  body.set_linear_velocity({vel.x, vel.y});
+  //}
+
   void movement_state_t::move_to_direction_raw(fan::physics::body_id_t body, const fan::vec2& direction) {
-    fan::vec2 input_dir = direction.sign() 
-    #if defined(FAN_GUI)
-      * (check_gui ? !fan::graphics::gui::want_io() : 1)
-    #endif
-    ;
+    fan::vec2 input_dir = direction.sign();
     fan::vec2 vel = body.get_linear_velocity();
     f32_t dt = fan::physics::default_physics_timestep;
 
@@ -751,17 +776,12 @@ namespace fan::graphics::physics {
       f32_t deceleration_factor = 0.3f * dt * 100.f;
       vel.x = fan::math::lerp(vel.x, 0.f, deceleration_factor);
     }
-    if (input_dir.y != 0) {
-      vel.y += input_dir.y * accelerate_force * dt * 100.f;
-      vel.y = fan::math::clamp(vel.y, -max_speed, max_speed);
-    }
-    else {
-      f32_t deceleration_factor = 0.3f * dt * 100.f;
-      vel.y = fan::math::lerp(vel.y, 0.f, deceleration_factor);
-    }
 
+
+    last_direction = direction;
     body.set_linear_velocity({vel.x, vel.y});
   }
+
 
   void movement_state_t::move_to_direction(fan::physics::body_id_t body, const fan::vec2& direction) {
     fan::vec2 input_dir = direction.sign() 
@@ -782,9 +802,10 @@ namespace fan::graphics::physics {
     }
 
     body.set_linear_velocity({vel.x, vel.y});
+    last_direction = direction;
   }
 
-  void update_ai_orientation(character2d_t& c, const fan::vec2& target_distance) {
+  void movement_state_t::update_ai_orientation(character2d_t& c, const fan::vec2& target_distance) {
 
     fan::vec2 vel = c.get_linear_velocity();
     int8_t desired;
@@ -916,7 +937,7 @@ namespace fan::graphics::physics {
     }
 
     if (can_attack(target_distance)) {
-      update_ai_orientation(*character, target_distance);
+      character->movement_state.update_ai_orientation(*character, target_distance);
       cooldown_timer.restart();
       is_attacking = true;
       if (on_attack_start) {
@@ -1085,7 +1106,17 @@ namespace fan::graphics::physics {
     fan::vec2 vel = character->get_linear_velocity();
     fan::vec2 sign = character->get_image_sign();
 
-    // Only flip if velocity is strong enough to be intentional movement
+    fan::vec2 dir = character->movement_state.last_direction;
+
+    if (dir.x > 0) {
+      if (sign.x < 0) character->set_image_sign({1, sign.y});
+      return;
+    }
+    if (dir.x < 0) {
+      if (sign.x > 0) character->set_image_sign({-1, sign.y});
+      return;
+    }
+
     if (vel.x > 5.0f && sign.x < 0) {
       character->set_image_sign({1, sign.y});
     }
@@ -1093,6 +1124,7 @@ namespace fan::graphics::physics {
       character->set_image_sign({-1, sign.y});
     }
   }
+
 
 
 
@@ -1161,7 +1193,7 @@ namespace fan::graphics::physics {
         break;
       }
       fan::vec2 distance = get_target_distance(character->get_physics_position());
-      update_ai_orientation(*character, distance);
+      character->movement_state.update_ai_orientation(*character, distance);
       character->attack_state.try_attack(character, distance);
       if (should_move(distance)) {
         movement_direction.x = distance.sign().x;
@@ -1592,6 +1624,12 @@ namespace fan::graphics::physics {
     for (size_t i = 0; i < config.spawns.size(); ++i) {
       if (!hitbox_spawned[i] && character->animation_on(config.attack_animation, config.spawns[i].frame)) {
         spawn_hitbox(character, i);
+      }
+
+      if (hitbox_spawned[i] && !character->animation_on(config.attack_animation, config.spawns[i].frame)) {
+        instances[i].hitbox.destroy();
+        hitbox_spawned[i] = false;
+        instances[i].used = false;
       }
     }
   }

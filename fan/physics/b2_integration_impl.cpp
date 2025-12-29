@@ -143,6 +143,10 @@ namespace fan::physics {
     b2Body_SetLinearVelocity(*this, v / length_units_per_meter);
   }
 
+  void body_id_t::set_linear_damping(f32_t v) {
+    b2Body_SetLinearDamping(*this, v);
+  }
+
   f32_t body_id_t::get_angular_velocity() const {
     return b2Body_GetAngularVelocity(*this);
   }
