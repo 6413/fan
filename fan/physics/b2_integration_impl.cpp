@@ -207,6 +207,11 @@ namespace fan::physics {
   f32_t body_id_t::get_mass() const {
     return b2Shape_GetMassData(get_shape_id()).mass * length_units_per_meter;
   }
+  void body_id_t::set_mass(f32_t mass) {
+    b2MassData md = b2Body_GetMassData(*this);
+    md.mass = mass / length_units_per_meter;
+    b2Body_SetMassData(*this, md);
+  }
 
   f32_t body_id_t::get_restitution() const {
     return b2Shape_GetRestitution(get_shape_id());

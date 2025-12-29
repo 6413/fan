@@ -118,10 +118,6 @@ export namespace fan {
 
         void erase();
 
-        mass_data_t get_mass_data() const;
-
-        f32_t get_mass() const;
-
         fan::vec2 get_draw_offset() const;
         void set_draw_offset(fan::vec2 new_draw_offset);
 

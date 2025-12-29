@@ -237,8 +237,8 @@ export namespace fan::graphics {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
     
-    
-    light_t(light_properties_t p = light_properties_t());
+    light_t() = default;
+    light_t(light_properties_t p);
     light_t(const fan::vec3& position, const fan::vec2& size, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   };
 
@@ -257,8 +257,8 @@ export namespace fan::graphics {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
     
-    
-    line_t(line_properties_t p = line_properties_t());
+    line_t() = default;
+    line_t(line_properties_t p);
     line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& color = fan::colors::white, f32_t thickness = 3.f, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   };
 
@@ -278,8 +278,8 @@ export namespace fan::graphics {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
     
-    
-    rectangle_t(rectangle_properties_t p = rectangle_properties_t());
+    rectangle_t() = default;
+    rectangle_t(rectangle_properties_t p);
     rectangle_t(const fan::vec3& position, const fan::vec2& size, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   };
 
@@ -305,8 +305,8 @@ export namespace fan::graphics {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
     
-    
-    sprite_t(sprite_properties_t p = sprite_properties_t());
+    sprite_t() = default;
+    sprite_t(sprite_properties_t p);
     sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   };
 
@@ -329,8 +329,8 @@ export namespace fan::graphics {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
     
-    
-    unlit_sprite_t(unlit_sprite_properties_t p = unlit_sprite_properties_t());
+    unlit_sprite_t() = default;
+    unlit_sprite_t(unlit_sprite_properties_t p);
     unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   };
 
@@ -350,30 +350,9 @@ export namespace fan::graphics {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
     
-    
-    circle_t(circle_properties_t p = circle_properties_t()) {
-      *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
-        fan_init_struct(
-          typename fan::graphics::shapes::circle_t::properties_t,
-          .camera = p.render_view->camera,
-          .viewport = p.render_view->viewport,
-          .position = p.position,
-          .radius = p.radius,
-          .angle = p.angle,
-          .color = p.color,
-          .blending = p.blending,
-          .flags = p.flags
-        ),
-        p.enable_culling
-      );
-    }
-    circle_t(const fan::vec3& position, float radius, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view)
-      : circle_t(circle_properties_t {
-        .render_view = render_view,
-        .position = position,
-        .radius = radius,
-        .color = color
-        }) {}
+    circle_t() = default;
+    circle_t(circle_properties_t p);
+    circle_t(const fan::vec3& position, f32_t radius, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   };
 
   struct capsule_properties_t {
@@ -394,24 +373,8 @@ export namespace fan::graphics {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
     
-    
-    capsule_t(capsule_properties_t p = capsule_properties_t()) {
-      *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
-        fan_init_struct(
-          typename fan::graphics::shapes::capsule_t::properties_t,
-          .camera = p.render_view->camera,
-          .viewport = p.render_view->viewport,
-          .position = p.position,
-          .center0 = p.center0,
-          .center1 = p.center1,
-          .radius = p.radius,
-          .angle = p.angle,
-          .color = p.color,
-          .outline_color = p.outline_color,
-          .blending = p.blending,
-          .flags = p.flags
-        ), p.enable_culling);
-    }
+    capsule_t() = default;
+    capsule_t(capsule_properties_t p);
   };
 
   struct polygon_properties_t {
@@ -430,23 +393,8 @@ export namespace fan::graphics {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
     
-    
     polygon_t() = default;
-    polygon_t(polygon_properties_t p) {
-      *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
-        fan_init_struct(
-          typename fan::graphics::shapes::polygon_t::properties_t,
-          .camera = p.render_view->camera,
-          .viewport = p.render_view->viewport,
-          .position = p.position,
-          .vertices = p.vertices,
-          .angle = p.angle,
-          .rotation_point = p.rotation_point,
-          .blending = p.blending,
-          .draw_mode = p.draw_mode,
-          .vertex_count = p.vertex_count
-        ), p.enable_culling);
-    }
+    polygon_t(polygon_properties_t p);
   };
 
   struct grid_properties_t {
@@ -463,21 +411,8 @@ export namespace fan::graphics {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
     
-    
-    grid_t(grid_properties_t p = grid_properties_t()) {
-      *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
-        fan_init_struct(
-          typename fan::graphics::shapes::grid_t::properties_t,
-          .camera = p.render_view->camera,
-          .viewport = p.render_view->viewport,
-          .position = p.position,
-          .size = p.size,
-          .grid_size = p.grid_size,
-          .rotation_point = p.rotation_point,
-          .color = p.color,
-          .angle = p.angle
-        ), p.enable_culling);
-    }
+    grid_t() = default;
+    grid_t(grid_properties_t p);
   };
 
   struct universal_image_renderer_properties_t {
@@ -503,23 +438,8 @@ export namespace fan::graphics {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
     
-    
-    universal_image_renderer_t(const universal_image_renderer_properties_t& p = universal_image_renderer_properties_t()) {
-      *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
-        fan_init_struct(
-          typename fan::graphics::shapes::universal_image_renderer_t::properties_t,
-          .camera = p.render_view->camera,
-          .viewport = p.render_view->viewport,
-          .position = p.position,
-          .size = p.size,
-          .tc_position = p.tc_position,
-          .tc_size = p.tc_size,
-          .blending = p.blending,
-          .images = p.images,
-          .draw_mode = p.draw_mode,
-          ), p.enable_culling
-      );
-    }
+    universal_image_renderer_t() = default;
+    universal_image_renderer_t(const universal_image_renderer_properties_t& p);
   };
 
   struct gradient_properties_t {
@@ -545,22 +465,8 @@ export namespace fan::graphics {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
     
-    
-    gradient_t(const gradient_properties_t& p = gradient_properties_t()) {
-      *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
-        fan_init_struct(
-          typename fan::graphics::shapes::gradient_t::properties_t,
-          .camera = p.render_view->camera,
-          .viewport = p.render_view->viewport,
-          .position = p.position,
-          .size = p.size,
-          .color = p.color,
-          .blending = p.blending,
-          .angle = p.angle,
-          .rotation_point = p.rotation_point
-        ), p.enable_culling
-      );
-    }
+    gradient_t() = default;
+    gradient_t(const gradient_properties_t& p);
   };
 
   struct shader_shape_properties_t {
@@ -584,6 +490,11 @@ export namespace fan::graphics {
     bool enable_culling = true;
   };
 
+  struct shader_shape_t : fan::graphics::shapes::shape_t {
+    shader_shape_t() = default;
+    shader_shape_t(const shader_shape_properties_t& p);
+  };
+
   struct shadow_properties_t {
     render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
     fan::vec3 position = fan::vec3(0, 0, 0);
@@ -601,54 +512,11 @@ export namespace fan::graphics {
   struct shadow_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    
-    
-    using shape_e = fan::graphics::shapes::shadow_t::shape_e;
 
-    shadow_t(shadow_properties_t p = shadow_properties_t()) {
-      *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
-        fan_init_struct(
-          typename fan::graphics::shapes::shadow_t::properties_t,
-          .camera = p.render_view->camera,
-          .viewport = p.render_view->viewport,
-          .position = p.position,
-          .shape = p.shape,
-          .size = p.size,
-          .rotation_point = p.rotation_point,
-          .color = p.color,
-          .flags = p.flags,
-          .angle = p.angle,
-          .light_position = p.light_position,
-          .light_radius = p.light_radius
-        ), p.enable_culling);
-    }
+    shadow_t() = default;
+    shadow_t(shadow_properties_t p = shadow_properties_t());
   };
 
-
-  struct shader_shape_t : fan::graphics::shapes::shape_t {
-    shader_shape_t(const shader_shape_properties_t& p = shader_shape_properties_t()) {
-      *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
-        fan_init_struct(
-          typename fan::graphics::shapes::shader_shape_t::properties_t,
-          .camera = p.render_view->camera,
-          .viewport = p.render_view->viewport,
-          .position = p.position,
-          .size = p.size,
-          .rotation_point = p.rotation_point,
-          .color = p.color,
-          .angle = p.angle,
-          .flags = p.flags,
-          .tc_position = p.tc_position,
-          .tc_size = p.tc_size,
-          .shader = p.shader,
-          .blending = p.blending,
-          .image = p.image,
-          .images = p.images,
-          .draw_mode = p.draw_mode
-        ), p.enable_culling
-      );
-    }
-  };
 
 #if defined(FAN_3D)
   struct line3d_properties_t {
