@@ -169,6 +169,7 @@ export namespace fan {
       fan::vec2 get_linear_velocity() const;
 
       void set_linear_velocity(const fan::vec2& v);
+      void set_linear_damping(f32_t v);
 
       f32_t get_angular_velocity() const;
 

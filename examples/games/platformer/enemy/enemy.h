@@ -111,7 +111,7 @@ struct enemy_t : enemy_base_t {
   }
   bool should_attack(fan::graphics::physics::character2d_t& c) override {
     fan::vec2 distance = ai_behavior.get_target_distance(c.get_physics_position());
-    return c.attack_state.try_attack(&c, distance);
+    return c.attack_state.try_attack(&c, distance) && std::abs(c.get_linear_velocity().y) < 10.f;
   }
   bool base_update() {
     for (int i = 0; i < attack_hitbox.hitbox_count(); ++i) {

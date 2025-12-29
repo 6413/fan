@@ -15,7 +15,11 @@ struct player_t {
   player_t(){
     auto drink_potion = fan::graphics::shape_from_json("effects/drink_potion.json");
     drink_potion.stop_particles();
+    drink_potion.set_dynamic();
     std::fill(particles_drink_potion, particles_drink_potion + std::size(particles_drink_potion), drink_potion);
+    //for (auto& i : particles_drink_potion) {
+    //  i.set_dynamic();
+    //}
     //particles = fan::graphics::extract_single_shape("explosion.json");
     //particles_drink_potion = 
     auto image_star = pile->engine.image_load("images/waterdrop.webp");
@@ -75,10 +79,13 @@ struct player_t {
         {
           fan::vec3 player_pos = body.get_center() - fan::vec2(0, body.get_size().y / 4.f);
           static int potion_particle_index = 0;
-          particles_drink_potion[potion_particle_index].set_position(fan::vec3(fan::vec2(player_pos), player_pos.z + 1));
-          particles_drink_potion[potion_particle_index].get_shape_data<fan::graphics::shapes::particles_t>().begin_angle = -0.777 + 0.777 * -body.get_linear_velocity().sign().x;
           particles_drink_potion[potion_particle_index].start_particles();
+
+          
+          particles_drink_potion[potion_particle_index].set_position(fan::vec3(fan::vec2(player_pos), player_pos.z + 1));
+         // particles_drink_potion[potion_particle_index].get_shape_data<fan::graphics::shapes::particles_t>().begin_angle = -0.777 + 0.777 * -body.get_linear_velocity().sign().x;
           potion_particle_index = (potion_particle_index + 1) % std::size(particles_drink_potion);
+
         }
         potion_consume_timer.restart();
       });
@@ -108,7 +115,7 @@ struct player_t {
     else{
       body.set_physics_position(pile->get_level().player_checkpoints[current_checkpoint].visual.get_position());
     }
-    body.set_max_health(200);
+    //body.set_max_health(200);
     body.set_health(body.get_max_health());
     //body.set_health(10.f);
 
@@ -148,6 +155,7 @@ struct player_t {
   }
 
   void update() {
+
     //body.update_dynamic();
     handle_attack();
 
@@ -206,7 +214,7 @@ struct player_t {
 
   int current_checkpoint = 1;
   
-  uint16_t potion_count = 0;
+  uint16_t potion_count = 10;
   fan::time::timer potion_consume_timer {0.1e9, true};
   fan::graphics::shape_t particles_drink_potion[4];
 };

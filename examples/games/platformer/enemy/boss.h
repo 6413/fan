@@ -7,15 +7,26 @@ struct boss_t : enemy_t<derived_t> {
   std::string name;
   f32_t displayed_hp = base_t::body.get_health();
   f32_t delayed_hp = base_t::body.get_health();
-  f32_t anim_remove_hp_s = 20.f;
+  f32_t anim_remove_hp_s = 50.f;
 
   bool update() override {
     f32_t current_hp = base_t::body.get_health();
+
+    if (displayed_hp == 0.f && delayed_hp == 0.f) {
+      displayed_hp = current_hp;
+      delayed_hp = current_hp;
+    }
+
     displayed_hp = current_hp;
+
     if (delayed_hp > current_hp) {
       delayed_hp -= anim_remove_hp_s * pile->engine.delta_time;
       if (delayed_hp < current_hp) delayed_hp = current_hp;
     }
+    else if (delayed_hp < current_hp) {
+      delayed_hp = current_hp;
+    }
+
     return base_t::base_update();
   }
 

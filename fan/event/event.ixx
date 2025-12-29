@@ -15,6 +15,7 @@ export module fan.event;
 
 import fan.print;
 import fan.utility;
+import fan.types.color;
 export import :types;
 
 export namespace fan::event {

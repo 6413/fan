@@ -133,7 +133,8 @@ export struct tilemap_renderer_t : tilemap_loader_t {
         if (grid_pos.x < 0 || grid_pos.y < 0) {
           continue;
         }
-        if (grid_pos.y >= (std::int64_t)map_tiles.size() || grid_pos.x >= (std::int64_t)map_tiles[grid_pos.y].size()) {
+        if (grid_pos.y >= (std::int64_t)map_tiles.size() || 
+          grid_pos.x >= (std::int64_t)map_tiles[grid_pos.y].size()) {
           continue;
         }
         if (map_tiles[grid_pos.y][grid_pos.x].empty()) {
@@ -141,7 +142,7 @@ export struct tilemap_renderer_t : tilemap_loader_t {
         }
         int depth = 0;
         for (auto& j : map_tiles[grid_pos.y][grid_pos.x]) {
-          add_tile(node, j, src.x + x, src.y + y, depth++);
+          add_tile(node, j, grid_pos.x, grid_pos.y, depth++);
         }
       }
     }
@@ -231,6 +232,11 @@ export struct tilemap_renderer_t : tilemap_loader_t {
     }
 
     fan::vec3i tile_key(x, y, depth);
+    if (node.rendered_tiles.count(tile_key)) {
+      fan::print("WARNING: Tile already exists at", x, y, depth);
+      fan::print("  Old image:", node.rendered_tiles[tile_key].get_image().NRI);
+      fan::print("  New would be:", j.texture_pack_unique_id.NRI);
+    }
     int additional_depth = 0/*y + node.compiled_map->tile_size.y / 2*/;
     switch (j.mesh_property) {
     case fte_t::mesh_property_t::none: {
