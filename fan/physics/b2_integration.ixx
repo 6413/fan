@@ -186,6 +186,7 @@ export namespace fan {
       f32_t get_density() const;
       f32_t get_friction() const;
       f32_t get_mass() const;
+      void set_mass(f32_t mass);
       f32_t get_restitution() const;
       fan::physics::aabb_t get_aabb() const;
       fan::vec2 get_aabb_size() const;

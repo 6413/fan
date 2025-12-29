@@ -35,7 +35,7 @@ void update() {
     }
     gui::image(hp_image, heart_size);
   }
-  auto cp = gui::get_cursor_screen_pos().x;
+  auto cp = 0;
   auto& v = gui::get_style();
   gui::set_cursor_pos_x(cp + v.ItemSpacing.x + heart_size / 2.f - potion_size / 2.f);
   gui::image(health_potion, potion_size);
@@ -46,7 +46,6 @@ void update() {
   gui::set_cursor_pos_y(gui::get_cursor_pos_y() + potion_size - text_height);
   gui::text(potion_text);
   gui::pop_font();
-  cp = gui::get_cursor_screen_pos().x;
  // gui::end();
 }
 

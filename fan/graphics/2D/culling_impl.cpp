@@ -17,14 +17,14 @@ namespace fan::graphics::culling {
 
   template <typename... Args>
   static inline void dbg(const char* tag, Args&&... args) {
-    std::string t(tag);
+    //std::string t(tag);
     /* if (t.contains("show") || t.contains("[push_vram]") || t.contains("keep") || t.contains("test") || t.contains("span") || t.contains("[cull]") || t.contains("remove") || t == "[remove_static_shape_from_grid] AABB" || t == "[AABB]" || t == "[add_static_shape_to_grid]" || t == "[add_shape]" || t == "[remove_static_shape_from_grid]" || t == "[update_dynamic]" || t == "[zremove_shape]" || t == "[add_static_shape_to_grid] AABB" || t == "[dyn-test]" || t.contains("->") || t == "[update_dynamic] new AABB") {
     return;
     }
     */
-    /*if (t.contains("[AABB]")) {
-      fan::print_throttled(tag, std::forward<Args>(args)...);
-    }*/
+    //if (t.contains("[AABB]")) {
+    //  fan::print_throttled(tag, std::forward<Args>(args)...);
+    //}
   }
 
   constexpr int cell_index(const fan::vec2i& c, const fan::vec2i& grid_size) {

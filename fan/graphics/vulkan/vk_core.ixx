@@ -1286,7 +1286,7 @@ export namespace fan {
           return 4;
         }
         case fan::vulkan::context_t::image_format::r8_unorm: {
-          return 4; // 1?
+          return 1; // 1?
         }
         case fan::vulkan::context_t::image_format::r8g8b8a8_srgb: {
           return 4;
@@ -2779,7 +2779,7 @@ export namespace fan {
       }
 
       VkPresentModeKHR choose_swap_present_mode(const std::vector<VkPresentModeKHR>& available_present_modes) {
-        return VK_PRESENT_MODE_IMMEDIATE_KHR;
+        //return VK_PRESENT_MODE_IMMEDIATE_KHR;
         for (const auto& available_present_mode : available_present_modes) {
           if (available_present_mode == VK_PRESENT_MODE_IMMEDIATE_KHR && !vsync) {
             return VK_PRESENT_MODE_IMMEDIATE_KHR;

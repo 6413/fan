@@ -389,32 +389,43 @@ public:
   void process_gui();
   void get_vram_usage(int* total_mem_MB, int* used_MB);
   struct time_monitor_t {
-    static constexpr int buffer_size = 128;
 
-    void update(f32_t value);
+    void update(f32_t v);
     void reset();
 
     struct stats_t {
-      f32_t average;
-      f32_t lowest;
-      f32_t highest;
+      f32_t avg_frame_time_s;
+      f32_t min_frame_time_s;
+      f32_t max_frame_time_s;
+
+      f32_t avg_fps() const { return 1.0f / avg_frame_time_s; }
+      f32_t min_fps() const { return 1.0f / max_frame_time_s; }
+      f32_t max_fps() const { return 1.0f / min_frame_time_s; }
     };
 
-    stats_t calculate_stats(f32_t last_value) const;
+    stats_t stats() const;
 
   #if defined(FAN_GUI)
-    void plot(const char* label);
+    void plot(loco_t* loco, const char* label);
   #endif
 
+    void toggle_pause() { paused = !paused; }
+
+    std::vector<f32_t> buffer;
+    std::deque<int> min_q;
+    std::deque<int> max_q;
+    f32_t sum = 0.0f;
+
     bool paused = false;
-    int insert_index = 0;
-    int valid_samples = 0;
-    f32_t running_sum = 0.0f;
-    f32_t running_min = std::numeric_limits<f32_t>::max();
-    f32_t running_max = std::numeric_limits<f32_t>::min();
-    fan::time::timer refresh_speed{ (uint64_t)0.05e9, true };
-    std::array<f32_t, buffer_size> samples{};
   };
+  struct time_plot_scroll_t {
+    int scroll_offset = 0;
+    int view_size = 512;
+  };
+
+  time_plot_scroll_t time_plot_scroll;
+
+
   time_monitor_t frame_monitor;
   time_monitor_t shape_monitor;
   time_monitor_t gui_monitor;
@@ -698,6 +709,9 @@ export namespace fan::graphics {
 
 export namespace fan {
   struct color_transition_t {
+    ~color_transition_t() {
+      loop = false;
+    }
     fan::color from, to;
     f32_t duration;
     bool loop;
@@ -713,8 +727,8 @@ export namespace fan {
     fan::event::task_t animate(std::function<void(fan::color)> callback);
   };
   struct auto_color_transition_t {
-    fan::color_transition_t transition;
     fan::event::task_t task;
+    fan::color_transition_t transition;
     std::function<void(fan::color)> callback;
     bool active = false;
 
