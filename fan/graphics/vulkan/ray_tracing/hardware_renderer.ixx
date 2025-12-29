@@ -978,7 +978,13 @@ export namespace fan::graphics::vulkan::ray_tracing {
       );
       create_exposure_ubo(); 
       create_luminance_buffer(size.x, size.y);
-      add_model("models/NewSponza_Main_glTF_003.gltf", fan::mat4(1).scale(0.1f).translate(fan::vec3(0.1, -0.1, 0.1)));
+      //add_model("models/NewSponza_Main_glTF_003.gltf", fan::mat4(1).scale(0.1f).translate(fan::vec3(0.1, -0.1, 0.1)));
+      add_model("models/Fox.glb", fan::mat4(1).scale(0.001f).translate(fan::vec3(0.1, -0.1, 0.1)));
+      for (int i = 0; i < 100000; ++i) {
+        add_instance(0, fan::mat4(1).scale(0.001f).translate(fan::vec3(fan::random::value(0.0, 10.0) - 5.0, fan::random::value(0.0, 10.0), fan::random::value(0.0, 10.0) - 5.0)).rotate(fan::random::vec3(-fan::math::two_pi, fan::math::two_pi)));
+      }
+      add_model("models/floor.fbx", fan::mat4(1).scale(0.001f).translate(fan::vec3(0.1, -0.1, 0.1)));
+      add_model("models/wall.fbx", fan::mat4(1).scale(0.001f).translate(fan::vec3(0.1, -0.1, 0.1)));
       fan::print("models:", models.size(), "instances:", instances.size(),
         "materials:", materials.size(),
         "material_indices_per_primitive:", material_indices_per_primitive.size());

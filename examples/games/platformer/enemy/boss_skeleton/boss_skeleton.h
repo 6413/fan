@@ -16,27 +16,33 @@ struct boss_skeleton_t : boss_t<boss_skeleton_t> {
     body.set_health(body.get_max_health());
     body.attack_state.attack_range = {closeup_distance.x + 50, 200};
     body.movement_state.max_speed = 350.f;
+    body.anim_controller.auto_update_animations = false;
+
+    f32_t mass = body.get_mass();
+    mass *= 500.f;
+    body.set_mass(mass);
 
     attack_hitbox.setup({
       .spawns = {{
-          .frame = attack_hitbox_frames[0],
-          .create_hitbox = [](const fan::vec2& center, f32_t direction){
-
-      fan::vec2 offset = fan::vec2((40.f + 380.f/2.f) * direction, 0.f);
-      return pile->engine.physics_context.create_box(
-        center + offset,
-        fan::vec2(380.f / 2.f, 20.f),
-        0.f,
-        fan::physics::body_type_e::static_body,
-        {.is_sensor = true}
-      );
-    }
-        }},
+        .frame = attack_hitbox_frames[0],
+        .create_hitbox = [](const fan::vec2& center, f32_t direction){
+          fan::vec2 offset = fan::vec2((40.f + 380.f / 2.f) * direction, 0.f);
+          return pile->engine.physics_context.create_box(
+            center + offset,
+            fan::vec2(380.f / 2.f, 20.f),
+            0.f,
+            fan::physics::body_type_e::static_body,
+            {.is_sensor = true}
+          );
+        }
+      }},
       .attack_animation = "attack0",
       .track_hit_targets = false
-      });
+    });
 
     name = "Skeleton Lord";
+    idle_movement_timer.start(fan::random::value_i64(2.0e9, 4.0e9));
+    backstep_cooldown.start(5.0e9);
 
     physics_step_nr = fan::physics::add_physics_step_callback([
       &bll,
@@ -46,10 +52,8 @@ struct boss_skeleton_t : boss_t<boss_skeleton_t> {
       std::visit([xdist](auto& node) {
         using T = std::decay_t<decltype(node)>;
         if constexpr (std::is_same_v<T, boss_skeleton_t>) {
-          auto& level = pile->get_level();
-          fan::vec2 tile_size = pile->renderer.get_tile_size(level.main_map_id) * 2.f;
           fan::vec2 target_pos = pile->player.get_physics_pos();
-          update_boss_logic(node, xdist, target_pos, tile_size);
+          update_boss_logic(node, xdist, target_pos);
         }
       }, bll[nr]);
     });
@@ -58,64 +62,60 @@ struct boss_skeleton_t : boss_t<boss_skeleton_t> {
   static void update_boss_logic(
     boss_skeleton_t& node,
     f32_t ideal_distance,
-    const fan::vec2& target_pos,
-    const fan::vec2& tile_size
+    const fan::vec2& target_pos
   ) {
     auto& body = node.body;
-    auto& ai = node.ai_behavior;
-    auto& nav = node.navigation;
 
-    if (body.get_health() < body.get_max_health() / 2.f) {
-      if (!node.second_phase) {
-        node.second_phase = true;
-        node.task_pulse_red = node.pulse_red.animate([&body](auto c) {
-          body.set_color(c); 
-        });
-        body.movement_state.max_speed = 500.f;
-        body.attack_state.cooldown_duration = 1.0e9;
-      }
-      //static fan::color c = body.get_color();
-      //static f32_t t = 0;
-      //body.set_color(c.lerp(fan::color(1, 0.2, 0.2), t));
+    if (body.get_health() < body.get_max_health() / 2.f && !node.second_phase) {
+      node.second_phase = true;
+      node.task_pulse_red = node.pulse_red.animate([&body](auto c) {
+        body.set_color(c);
+      });
+      body.attack_state.cooldown_duration = 0.5e9;
+      node.backstep_cooldown.set_time(3.0e9);
+
+      body.movement_state.max_speed = 500.f;
     }
 
-    ai.update_ai(&body, nav, target_pos, tile_size);
-    fan::vec2 distance = ai.get_target_distance(body.get_physics_position());
+    fan::vec2 distance = target_pos - body.get_physics_position();
+    update_orientation(body, distance);
 
-    if (!body.raycast(pile->player.body) || body.attack_state.is_attacking) {
+    if (node.is_backstepping) {
+      body.movement_state.move_to_direction_raw(body, {(f32_t)node.backstep_dir, 0.f});
+      if (node.backstep_timer.finished()) {
+        node.end_backstep();
+      }
+      body.anim_controller.update(&body);
       return;
     }
 
-    ai.type = fan::graphics::physics::ai_behavior_t::behavior_type_e::none;
+    f32_t ax = std::abs(distance.x);
+
+    if (!body.attack_state.is_attacking && ax < body.attack_state.attack_range.x && node.backstep_cooldown.finished()) {
+      if (fan::random::value_f32(0, 1) > 0.3f) {
+        node.perform_backstep(distance);
+        return;
+      }
+    }
 
     fan::vec2 movement_direction = compute_movement_direction(distance, ideal_distance);
 
+    if (movement_direction.x == 0 && node.idle_movement_timer.finished()) {
+      node.perform_idle_movement(distance);
+      node.idle_movement_timer.start(fan::random::value_i64(3.0e9, 6.0e9));
+    }
+
     apply_movement(body, movement_direction);
-    update_orientation(body, distance);
-    update_animations(body);
-    node.did_attack = body.attack_state.is_attacking;
+    body.anim_controller.update(&body);
   }
 
 private:
 
   static fan::vec2 compute_movement_direction(const fan::vec2& distance, f32_t ideal) {
     fan::vec2 dir{0.f, 0.f};
-
-    f32_t ax = std::abs(distance.x);
-    f32_t margin = 20.f;
-    bool too_far   = ax > ideal + margin;
-    bool too_close = ax < ideal - margin;
-    int dir_to_player = (distance.x > 0.f) ? 1 : -1;
-
-    if (too_far) {
-      dir.x = (f32_t)dir_to_player;
-
+    if (std::abs(distance.x) > ideal + 20.f) {
+      dir.x = (distance.x > 0.f) ? 1.f : -1.f;
     }
-    //else if (too_close) {
-    //  dir.x = (f32_t)-dir_to_player;        
-
-    //}
-
     return dir;
   }
 
@@ -123,43 +123,53 @@ private:
     fan::graphics::physics::character2d_t& body,
     const fan::vec2& movement_direction
   ) {
-
-    if (std::abs(body.get_linear_velocity().y) > 0.5f) {
-      return;
-    }
-    body.movement_state.move_to_direction_raw(body, fan::vec2(movement_direction.x, 0.f));
+    body.movement_state.move_to_direction_raw(body, {movement_direction.x, 0.f});
   }
 
   static void update_orientation(
     fan::graphics::physics::character2d_t& body,
     const fan::vec2& distance
   ) {
-    fan::vec2 vel  = body.get_linear_velocity();
+    if (body.attack_state.is_attacking) { return;}
     fan::vec2 sign = body.get_image_sign();
-
-    int8_t desired;
-
-    if (std::abs(vel.x) > 5.0f) {
-      desired = (int8_t)fan::math::sgn(vel.x);
-    }
-    else {
-      desired = (distance.x > 0.f) ? 1 : -1;
-    }
-
-    if ((int8_t)fan::math::sgn(sign.x) != desired && std::abs(vel.y) < 0.5f) {
+    int desired = (distance.x > 0.f) ? 1 : -1;
+    if ((int)fan::math::sgn(sign.x) != desired) {
       body.set_image_sign({(f32_t)desired, sign.y});
     }
   }
 
-  static void update_animations(fan::graphics::physics::character2d_t& body) {
-    if (body.anim_controller.auto_update_animations) {
-      body.anim_controller.update(&body);
+  void perform_backstep(const fan::vec2& distance) {
+    int dir_away = (distance.x > 0.f) ? -1 : 1;
+    backstep_dir = dir_away;
+    is_backstepping = true;
+    backstep_timer.start(0.6e9);
+    backstep_cooldown.start(second_phase ? 3.0e9 : 5.0e9);
+  }
+
+  void end_backstep() {
+    is_backstepping = false;
+    backstep_dir = 0;
+  }
+
+  void perform_idle_movement(const fan::vec2& distance) {
+    f32_t r = fan::random::value_f32(0, 1);
+    int dir = (distance.x > 0.f) ? 1 : -1;
+
+    if (r < 0.3f) {
+      body.movement_state.move_to_direction_raw(body, {(f32_t)dir, 0.f});
+    }
+    else if (r < 0.6f) {
+      body.movement_state.move_to_direction_raw(body, {(f32_t)-dir, 0.f});
     }
   }
 
   fan::color_transition_t pulse_red = fan::pulse_red();
   fan::event::task_t task_pulse_red;
-  int blocked_frames = 0;
-  bool did_attack = false;
+  fan::time::timer idle_movement_timer;
+  fan::time::timer backstep_timer;
+  fan::time::timer backstep_cooldown;
+
+  bool is_backstepping = false;
   bool second_phase = false;
+  int backstep_dir = 0;
 };

@@ -31,8 +31,7 @@ void load_enemies() {
       pile->enemy_list[nr] = fly_t(pile->enemy_list, nr, fan::vec3(fan::vec2(data.position), 5));
     }
     else if (id.contains("boss_skeleton")) {
-      auto nr = pile->enemy_list.NewNodeLast();
-      pile->enemy_list[nr] = boss_skeleton_t(pile->enemy_list, nr, fan::vec3(fan::vec2(data.position), 5));
+      boss_position = data.position;
     }
     return false;
   });
@@ -90,7 +89,6 @@ void load_map() {
   main_map_id = pile->renderer.add(&main_compiled_map, p);
   pile->engine.lighting.set_target(main_compiled_map.lighting.ambient, 0.01);
 
-  static bool init_once = false;
   static auto checkpoint_flag = fan::graphics::sprite_sheet_from_json({
     .path = "effects/flag.json",
     .loop = true
@@ -118,25 +116,31 @@ void load_map() {
         player_checkpoints.resize(checkpoint_idx + 1);
       }
       auto& chkp = player_checkpoints[checkpoint_idx];
+      checkpoint_flag.set_position(fan::vec3(entity_visual.get_position()));
       chkp.visual = checkpoint_flag;
-      chkp.visual.set_position(fan::vec3(entity_visual.get_position()));
+      checkpoint_flag.set_position(fan::vec2(-0xfffff));
       chkp.visual.set_size(checkpoint_flag.get_size() / fan::vec2(1.5f, 1.0f));
       chkp.visual.start_sprite_sheet_animation();
-      chkp.entity = fan::physics::create_sensor_rectangle(entity_visual.get_position(), 46);
+      chkp.entity = entity_visual;
+    }
+    else if (id.contains("trigger_boss_skeleton")) {
+      boss_sensor = entity_visual;
     }
     return false;
   });
 
   pile->renderer.iterate_marks(main_map_id, [&](tilemap_loader_t::fte_t::spawn_mark_data_t& data) -> bool {
     const auto& id = data.id;
-    // TODOODODODODOODO MOVE TO PHYSICS SHAPESSSSSSSSSSSS ITREATEEEEEEEEEEEEE
-
     if (id.contains("lamp1")) {
-      lamps.emplace_back(lamp1_anim);
-      auto& l = lamps.back();
+      lamp_sprites.emplace_back(lamp1_anim);
+      auto& l = lamp_sprites.back();
 
       l.set_current_animation_frame(fan::random::value(0, l.get_current_animation_frame_count()));
       l.set_position(fan::vec3(fan::vec2(data.position) + fan::vec2(1.f, -2.f), 1));
+      lights.emplace_back(fan::graphics::light_t {{
+        .position = l.get_position(),
+        .size = 512
+      }});
     }
     return false; // continue iterating all instances
   });
@@ -197,9 +201,6 @@ void close() {
   for (auto& i : pickupables) {
     i.second.destroy();
   }
-  for (auto& i : player_checkpoints) {
-    i.entity.destroy();
-  }
   player_checkpoints.clear();
   for (auto& i : tile_collisions) {
     i.destroy();
@@ -214,15 +215,12 @@ void close() {
 void reload_map() {
   pile->stage_loader.erase_stage(this->stage_common.stage_id);
   pile->stage_loader.open_stage<level_t>();
-  pile->renderer.update(main_map_id, pile->player.body.get_position());
+  pile->renderer.update(pile->get_level().main_map_id, pile->player.body.get_position());
+  //                          ^ 'this' has been erased by erase stage, so query new pointer from get_level
 }
 
 void update() {
-  lights.resize(lamps.size());
-
-  for (auto [i, lamp] : fan::enumerate(lamps)) {
-    lights[i].set_position(fan::vec2(lamp.get_position()));
-    lights[i].set_size(512);
+  for (auto [i, lamp] : fan::enumerate(lamp_sprites)) {
     auto tc_center = lamp.get_tc_position() + lamp.get_tc_size() * 0.5f;
     auto pixel_size = fan::vec2(1.0f) / image_get_data(lamp.get_image()).size;
     auto pixels = read_pixels_from_image(lamp.get_image(), tc_center, pixel_size);
@@ -274,6 +272,12 @@ void update() {
     }
   }
 
+  if (boss_sensor && fan::physics::is_on_sensor(pile->player.body, boss_sensor)) {
+    auto nr = pile->enemy_list.NewNodeLast();
+    pile->enemy_list[nr] = boss_skeleton_t(pile->enemy_list, nr, fan::vec3(boss_position, 5));
+    boss_sensor.destroy();
+  }
+
   if (!pile->engine.render_console) {
     if (fan::window::is_key_pressed(fan::key_e)) {
       pile->pause = !pile->pause;
@@ -287,6 +291,9 @@ void update() {
   
   pile->update();
 }
+
+fan::physics::entity_t boss_sensor;
+fan::vec2 boss_position = 0;
 
 tilemap_loader_t::id_t main_map_id;
 tilemap_loader_t::compiled_map_t main_compiled_map;
@@ -306,7 +313,7 @@ struct checkpoint_t {
 
 std::vector<checkpoint_t> player_checkpoints;
 
-std::vector<fan::graphics::sprite_t> lamps;
+std::vector<fan::graphics::sprite_t> lamp_sprites;
 std::vector<fan::graphics::light_t> lights;
 
 fan::graphics::sprite_t background {{

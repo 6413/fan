@@ -449,19 +449,6 @@ namespace fan::graphics::physics {
     physics_update_nr.sic();
   }
 
-  mass_data_t base_shape_t::get_mass_data() const {
-    b2MassData md = b2Body_GetMassData(*this);
-    mass_data_t mass_data;
-    mass_data.mass = md.mass * (fan::physics::length_units_per_meter * fan::physics::length_units_per_meter);
-    mass_data.center_of_mass = md.center * fan::physics::length_units_per_meter;
-    mass_data.rotational_inertia = md.rotationalInertia * (fan::physics::length_units_per_meter * fan::physics::length_units_per_meter);
-    return mass_data;
-  }
-
-  f32_t base_shape_t::get_mass() const {
-    return get_mass_data().mass;
-  }
-
   fan::vec2 base_shape_t::get_draw_offset() const {
     return fan::physics::gphysics()->physics_updates[physics_update_nr].draw_offset;
   }
@@ -806,6 +793,9 @@ namespace fan::graphics::physics {
   }
 
   void movement_state_t::update_ai_orientation(character2d_t& c, const fan::vec2& target_distance) {
+    if (c.attack_state.is_attacking) {
+      return;
+    }
 
     fan::vec2 vel = c.get_linear_velocity();
     int8_t desired;
@@ -932,9 +922,10 @@ namespace fan::graphics::physics {
     int8_t facing = (int8_t)fan::math::sgn(sign.x);
     int8_t desired = (int8_t)fan::math::sgn(target_distance.x);
 
-    if (desired != 0 && facing != desired) {
+    if (!is_attacking && desired != 0 && facing != desired) {
       return false;
     }
+
 
     if (can_attack(target_distance)) {
       character->movement_state.update_ai_orientation(*character, target_distance);

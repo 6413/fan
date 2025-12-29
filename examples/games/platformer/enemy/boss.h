@@ -33,6 +33,15 @@ struct boss_t : enemy_t<derived_t> {
   void render_health() override {
     using namespace fan::graphics;
 
+    gui::set_next_window_pos(0);
+    gui::set_next_window_size(gui::get_window_size());
+    gui::begin("##boss_hud", nullptr,
+      gui::window_flags_no_background |
+      gui::window_flags_no_nav |
+      gui::window_flags_no_title_bar |
+      gui::window_flags_override_input
+    );
+
     fan::vec2 viewport_size = gui::get_window_size();
     fan::vec2 bar_center(viewport_size.x * 0.5f, viewport_size.y * 0.92f);
 
@@ -67,5 +76,6 @@ struct boss_t : enemy_t<derived_t> {
     rectangle({.position=fan::vec3(current_center, bar_world_center.z + 2), .size= current_half, .color = fan::colors::red.set_alpha(0.95f), .enable_culling = false});
 
     gui::set_cursor_pos(previous_cursor);
+    gui::end();
   }
 };

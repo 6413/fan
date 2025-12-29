@@ -212,7 +212,7 @@ struct player_t {
 
   fan::graphics::engine_t::key_handle_t key_click_handles[10];
 
-  int current_checkpoint = 1;
+  int current_checkpoint = -1;
   
   uint16_t potion_count = 10;
   fan::time::timer potion_consume_timer {0.1e9, true};

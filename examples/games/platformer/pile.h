@@ -5,21 +5,21 @@ pile_t* pile = 0;
 #include <fan/graphics/gui/stage_maker/loader.h>
 struct pile_t {
   lstd_defstruct(level_t)
-  #include <fan/graphics/gui/stage_maker/preset.h>
+    #include <fan/graphics/gui/stage_maker/preset.h>
     static constexpr auto stage_name = "";
-#include "level.h"
-};
-lstd_defstruct(gui_t)
-#include <fan/graphics/gui/stage_maker/preset.h>
-static constexpr auto stage_name = "";
-#include "gui.h"
+    #include "level.h"
   };
-#include "player/player.h"
-#include "enemy/enemy.h"
-#include "enemy/skeleton/skeleton.h"
-#include "enemy/fly/fly.h"
+  lstd_defstruct(gui_t)
+    #include <fan/graphics/gui/stage_maker/preset.h>
+    static constexpr auto stage_name = "";
+    #include "gui.h"
+  };
+  #include "player/player.h"
+  #include "enemy/enemy.h"
+  #include "enemy/skeleton/skeleton.h"
+  #include "enemy/fly/fly.h"
   #include "enemy/boss.h"
-#include "enemy/boss_skeleton/boss_skeleton.h"
+  #include "enemy/boss_skeleton/boss_skeleton.h"
   pile_t();
   bool pause = false;
   void update_camera_zoom() {
@@ -27,7 +27,7 @@ static constexpr auto stage_name = "";
     ic.set_zoom(2.2f * r.max());
   }
   void update() {
-  //  update_camera_zoom();
+    update_camera_zoom();
     if (!pause) {
       engine.physics_context.step(engine.delta_time);
       player.update();
@@ -41,7 +41,7 @@ static constexpr auto stage_name = "";
       }
     }
 
-    fan::graphics::gui::text(fan::graphics::screen_to_world(fan::window::get_mouse_position()));
+    //fan::graphics::gui::text(fan::graphics::screen_to_world(fan::window::get_mouse_position()));
     fan::graphics::gui::set_viewport(engine.orthographic_render_view.viewport);
 
   }

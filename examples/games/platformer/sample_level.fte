@@ -1,10 +1,10 @@
 {
   "camera_position": [
-    1589.37744140625,
-    15655.9423828125,
+    10802.0654296875,
+    12476.4228515625,
     0.0
   ],
-  "camera_zoom": 0.694444477558136,
+  "camera_zoom": 0.8333333730697632,
   "gravity": [
     0.0,
     3813.3759765625
@@ -3776,6 +3776,23 @@
       "size": [
         64.0,
         64.0
+      ]
+    },
+    {
+      "id": "trigger_boss_skeleton",
+      "mesh_property": 1,
+      "physics_shape_data": {
+        "is_sensor": true
+      },
+      "position": [
+        10752.0,
+        12416.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        288.0
       ]
     },
     {

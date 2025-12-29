@@ -1595,28 +1595,30 @@ void loco_t::process_gui() {
     gui::set_next_window_bg_alpha(0.99f);
     gui::set_next_window_size(fan::vec2(831.0000, 693.0000), gui::cond_once);
     gui::begin("Performance window", nullptr, window_flags);
+
     frame_monitor.update(delta_time);
     shape_monitor.update(shape_draw_time_s);
     gui_monitor.update(gui_draw_time_s);
 
-    auto frame_stats = frame_monitor.calculate_stats(delta_time);
-    auto shape_stats = shape_monitor.calculate_stats(shape_draw_time_s);
-    auto gui_stats = gui_monitor.calculate_stats(gui_draw_time_s);
+    auto frame_stats = frame_monitor.stats();
+    auto shape_stats = shape_monitor.stats();
+    auto gui_stats = gui_monitor.stats();
 
-    static auto format_val = [](f64_t v, int prec = 4) {
+    static auto format_val = [](double v, int prec = 4) {
       std::ostringstream oss;
       oss << std::fixed << std::setprecision(prec) << v;
       return oss.str();
     };
 
-    gui::text("FPS:", std::to_string(static_cast<int>(1.f / delta_time)));
-    gui::text("Frame Time Avg: ", format_val(frame_stats.average * 1e3) + " ms");
-    gui::text("Shape Draw Avg: ", format_val(shape_stats.average * 1e3) + " ms");
-    gui::text("GUI Draw Avg: ", format_val(gui_stats.average * 1e3) + " ms");
+    gui::text("Current FPS:", std::to_string(static_cast<int>(1.f / delta_time)));
+    gui::text("Average FPS:", std::to_string(static_cast<int>(frame_stats.avg_fps())));
+    gui::text("Lowest FPS:", std::to_string(static_cast<int>(frame_stats.min_fps())));
+    gui::text("Highest FPS:", std::to_string(static_cast<int>(frame_stats.max_fps())));
 
-    gui::text("Lowest FPS: ", format_val(frame_stats.lowest));
-    gui::text("Average FPS: ", format_val(1.0 / frame_stats.average));
-    gui::text("Highest FPS: ", format_val(frame_stats.highest));
+    gui::text("Frame Time Avg:", format_val(frame_stats.avg_frame_time_s * 1e3) + " ms");
+    gui::text("Shape Draw Avg:", format_val(shape_stats.avg_frame_time_s * 1e3) + " ms");
+    gui::text("GUI Draw Avg:", format_val(gui_stats.avg_frame_time_s * 1e3) + " ms");
+
 
 
     if (gui::button(frame_monitor.paused ? "Continue" : "Pause")) {
@@ -1637,9 +1639,14 @@ void loco_t::process_gui() {
         gui::plot::axis_flags_auto_fit | gui::plot::axis_flags_range_fit
       );
       gui::plot::setup_axis_ticks(gui::plot::axis_y1, 0.0, 10.0, 11);
-      frame_monitor.plot("Frame Draw Time");
-      shape_monitor.plot("Shape Draw Time");
-      gui_monitor.plot("GUI Draw Time");
+      frame_monitor.plot(this, "Frame Draw Time");
+      shape_monitor.plot(this, "Shape Draw Time");
+      gui_monitor.plot(this, "GUI Draw Time");
+
+      if (frame_monitor.buffer.size() > time_plot_scroll.view_size) {
+        int max_offset = static_cast<int>(frame_monitor.buffer.size()) - time_plot_scroll.view_size;
+        gui::slider("Scroll", &time_plot_scroll.scroll_offset, 0, max_offset);
+      }
       gui::plot::end_plot();
     }
 
@@ -1691,65 +1698,64 @@ void loco_t::get_vram_usage(int* total_mem_MB, int* used_MB) {
   }
 }
 
-void loco_t::time_monitor_t::update(f32_t value) {
-  if (paused) return;
-  if (!refresh_speed.finished()) return;
+void loco_t::time_monitor_t::update(f32_t v) {
+  if (paused || v <= 0.0f) return;
 
-  f32_t old_value = (valid_samples >= buffer_size) ? samples[insert_index] : 0.0f;
-  samples[insert_index] = value;
+  buffer.push_back(v);
+  sum += v;
 
-  if (valid_samples < buffer_size) {
-    running_sum += value;
-    valid_samples++;
+  int idx = static_cast<int>(buffer.size()) - 1;
+
+  while (!min_q.empty() && buffer[min_q.back()] >= v) {
+    min_q.pop_back();
   }
-  else {
-    running_sum += value - old_value;
+  min_q.push_back(idx);
+
+  while (!max_q.empty() && buffer[max_q.back()] <= v) {
+    max_q.pop_back();
   }
-
-  running_min = std::min(running_min, value);
-  running_max = std::max(running_max, value);
-
-  insert_index = (insert_index + 1) % buffer_size;
-  refresh_speed.restart();
+  max_q.push_back(idx);
 }
 
 void loco_t::time_monitor_t::reset() {
-  running_min = std::numeric_limits<f32_t>::max();
-  running_max = std::numeric_limits<f32_t>::min();
-  running_sum = 0.0f;
-  insert_index = 0;
-  valid_samples = 0;
-  samples.fill(0.0f);
+  buffer.clear();
+  sum = 0.0f;
+  min_q.clear();
+  max_q.clear();
 }
 
-loco_t::time_monitor_t::stats_t loco_t::time_monitor_t::calculate_stats(f32_t last_value) const {
-  int sample_count = std::min(valid_samples, buffer_size);
-  f32_t avg = (sample_count > 0) ? running_sum / sample_count : last_value;
-  f32_t low = (running_max > 0) ? 1.0f / running_max : 0.0f;
-  f32_t high = (running_min < std::numeric_limits<f32_t>::max()) ? 1.0f / running_min : 0.0f;
-  return {avg, low, high};
+loco_t::time_monitor_t::stats_t loco_t::time_monitor_t::stats() const {
+  if (buffer.empty()) return {0,0,0};
+
+  f32_t avg = sum / buffer.size();
+  f32_t min = buffer[min_q.front()];
+  f32_t max = buffer[max_q.front()];
+
+  return {avg, min, max};
 }
 
 #if defined(FAN_GUI)
-void loco_t::time_monitor_t::plot(const char* label) {
+void loco_t::time_monitor_t::plot(loco_t* loco, const char* label) {
   using namespace fan::graphics;
-  if (valid_samples == 0) return;
-  static std::array<f32_t, buffer_size> plot_data {};
-  int plot_count = std::min(valid_samples, buffer_size);
+  if (buffer.empty()) return;
 
-  if (valid_samples >= buffer_size) {
-    for (int i = 0; i < buffer_size; ++i) {
-      int src_index = (insert_index + i) % buffer_size;
-      plot_data[i] = samples[src_index] * 1e3f;
-    }
-    gui::plot::plot_line(label, plot_data.data(), buffer_size);
+  int plot_count = std::min(loco->time_plot_scroll.view_size, static_cast<int>(buffer.size()));
+  static std::vector<f32_t> plot_data;
+  plot_data.resize(plot_count);
+
+  if (!paused) {
+    int max_start = std::max(0, static_cast<int>(buffer.size()) - loco->time_plot_scroll.view_size);
+    loco->time_plot_scroll.scroll_offset = max_start;
   }
-  else {
-    for (int i = 0; i < valid_samples; ++i) {
-      plot_data[i] = samples[i] * 1e3f;
-    }
-    gui::plot::plot_line(label, plot_data.data(), valid_samples);
+
+  int max_start = std::max(0, static_cast<int>(buffer.size()) - loco->time_plot_scroll.view_size);
+  int start = std::min(loco->time_plot_scroll.scroll_offset, max_start);
+
+  for (int i = 0; i < plot_count; ++i) {
+    plot_data[i] = buffer[start + i] * 1e3f; // ms
   }
+
+  gui::plot::plot_line(label, plot_data.data(), plot_count);
 }
 #endif
 

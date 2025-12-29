@@ -570,6 +570,154 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
     .image = image
       }) {}
 
+  circle_t::circle_t(circle_properties_t p) {
+    *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
+      fan_init_struct(
+        typename fan::graphics::shapes::circle_t::properties_t,
+        .camera = p.render_view->camera,
+        .viewport = p.render_view->viewport,
+        .position = p.position,
+        .radius = p.radius,
+        .angle = p.angle,
+        .color = p.color,
+        .blending = p.blending,
+        .flags = p.flags
+      ),
+      p.enable_culling
+    );
+  }
+  circle_t::circle_t(const fan::vec3& position, f32_t radius, const fan::color& color, render_view_t* render_view)
+    : circle_t(circle_properties_t {
+    .render_view = render_view,
+    .position = position,
+    .radius = radius,
+    .color = color
+      }) {}
+
+  capsule_t::capsule_t(capsule_properties_t p) {
+    *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
+      fan_init_struct(
+        typename fan::graphics::shapes::capsule_t::properties_t,
+        .camera = p.render_view->camera,
+        .viewport = p.render_view->viewport,
+        .position = p.position,
+        .center0 = p.center0,
+        .center1 = p.center1,
+        .radius = p.radius,
+        .angle = p.angle,
+        .color = p.color,
+        .outline_color = p.outline_color,
+        .blending = p.blending,
+        .flags = p.flags
+      ), p.enable_culling
+    );
+  }
+
+  polygon_t::polygon_t(polygon_properties_t p) {
+    *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
+      fan_init_struct(
+        typename fan::graphics::shapes::polygon_t::properties_t,
+        .camera = p.render_view->camera,
+        .viewport = p.render_view->viewport,
+        .position = p.position,
+        .vertices = p.vertices,
+        .angle = p.angle,
+        .rotation_point = p.rotation_point,
+        .blending = p.blending,
+        .draw_mode = p.draw_mode,
+        .vertex_count = p.vertex_count
+      ), p.enable_culling);
+  }
+
+  grid_t::grid_t(grid_properties_t p) {
+    *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
+      fan_init_struct(
+        typename fan::graphics::shapes::grid_t::properties_t,
+        .camera = p.render_view->camera,
+        .viewport = p.render_view->viewport,
+        .position = p.position,
+        .size = p.size,
+        .grid_size = p.grid_size,
+        .rotation_point = p.rotation_point,
+        .color = p.color,
+        .angle = p.angle
+      ), p.enable_culling);
+  }
+
+  universal_image_renderer_t::universal_image_renderer_t(const universal_image_renderer_properties_t& p) {
+    *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
+      fan_init_struct(
+        typename fan::graphics::shapes::universal_image_renderer_t::properties_t,
+        .camera = p.render_view->camera,
+        .viewport = p.render_view->viewport,
+        .position = p.position,
+        .size = p.size,
+        .tc_position = p.tc_position,
+        .tc_size = p.tc_size,
+        .blending = p.blending,
+        .images = p.images,
+        .draw_mode = p.draw_mode,
+        ), p.enable_culling
+    );
+  }
+
+  gradient_t::gradient_t(const gradient_properties_t& p) {
+    *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
+      fan_init_struct(
+        typename fan::graphics::shapes::gradient_t::properties_t,
+        .camera = p.render_view->camera,
+        .viewport = p.render_view->viewport,
+        .position = p.position,
+        .size = p.size,
+        .color = p.color,
+        .blending = p.blending,
+        .angle = p.angle,
+        .rotation_point = p.rotation_point
+      ), p.enable_culling
+    );
+  }
+
+  shader_shape_t::shader_shape_t(const shader_shape_properties_t& p) {
+    *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
+      fan_init_struct(
+        typename fan::graphics::shapes::shader_shape_t::properties_t,
+        .camera = p.render_view->camera,
+        .viewport = p.render_view->viewport,
+        .position = p.position,
+        .size = p.size,
+        .rotation_point = p.rotation_point,
+        .color = p.color,
+        .angle = p.angle,
+        .flags = p.flags,
+        .tc_position = p.tc_position,
+        .tc_size = p.tc_size,
+        .shader = p.shader,
+        .blending = p.blending,
+        .image = p.image,
+        .images = p.images,
+        .draw_mode = p.draw_mode
+      ), p.enable_culling
+    );
+  }
+
+  shadow_t::shadow_t(shadow_properties_t p) {
+    *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
+      fan_init_struct(
+        typename fan::graphics::shapes::shadow_t::properties_t,
+        .camera = p.render_view->camera,
+        .viewport = p.render_view->viewport,
+        .position = p.position,
+        .shape = p.shape,
+        .size = p.size,
+        .rotation_point = p.rotation_point,
+        .color = p.color,
+        .flags = p.flags,
+        .angle = p.angle,
+        .light_position = p.light_position,
+        .light_radius = p.light_radius
+      ), p.enable_culling);
+  }
+
   fan::graphics::shapes::shape_t& add_shape_to_immediate_draw(fan::graphics::shapes::shape_t&& s) {
     fan::graphics::get_shapes().immediate_render_list->emplace_back(std::move(s));
     return fan::graphics::get_shapes().immediate_render_list->back();
