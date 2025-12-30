@@ -303,10 +303,19 @@ export namespace fan::graphics::gui {
   /// <param name="outline_color">The color of the outline (defaults to black).</param>
   void text_centered_outlined(const std::string& text, const fan::color& color = fan::colors::white, const fan::color& outline_color = fan::colors::black);
 
-  void text_box(const std::string& text,
-    const ImVec2& size = ImVec2(0, 0),
+  void text_box(
+    const std::string& text,
+    const fan::vec2& size = fan::vec2(0, 0),
     const fan::color& text_color = fan::colors::white,
     const fan::color& bg_color = fan::color());
+
+  void text_box_at(
+    const std::string& text,
+    const fan::vec2& pos,
+    const fan::vec2& size = fan::vec2(0, 0),
+    const fan::color& text_color = fan::colors::white,
+    const fan::color& bg_color = fan::color()
+  );
 
   f32_t calc_item_width();
   f32_t get_item_width();

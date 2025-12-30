@@ -462,7 +462,7 @@ namespace fan::graphics{
 
     this->gint() = new_raw;
     if (!g_shapes->visibility.enabled) {
-      push_vram();
+      push_shaper();
     }
     else {
       shaper_t::ShapeID_t new_sid;
@@ -506,7 +506,7 @@ namespace fan::graphics{
     this->gint() = new_raw;
 
     if (!g_shapes->visibility.enabled) {
-      push_vram();
+      push_shaper();
     }
     else {
       shaper_t::ShapeID_t new_sid;
@@ -548,7 +548,7 @@ namespace fan::graphics{
     fan::graphics::culling::remove_shape(g_shapes->visibility, get_id());
 
     if (get_visual_id().iic() == false) {
-      erase_vram();
+      erase_shaper();
     }
 
     g_shapes->remove_shape(NRI);
@@ -572,14 +572,12 @@ namespace fan::graphics{
   void shapes::shape_t::set_visible(bool flag) {
     g_shapes->shape_functions[get_shape_type()].set_visible(this, flag);
   }
-  void shapes::shape_t::set_static() {
+  void shapes::shape_t::set_static(bool update) {
     auto& c = g_shapes->visibility;
-    if (get_movement() == culling::movement_static) return;
+    if (get_movement() == culling::movement_static && !update) return;
     culling::remove_shape(c, *this);
     culling::add_shape(c, *this, culling::movement_static);
   }
-
-
   void shapes::shape_t::set_dynamic() {
     auto& c = g_shapes->visibility;
     if (get_movement() == culling::movement_dynamic) return;
@@ -596,7 +594,7 @@ namespace fan::graphics{
     }
   }
 
-  void shapes::shape_t::push_vram() {
+  void shapes::shape_t::push_shaper() {
     shapes::shape_ids_t::nr_t id;
     id.gint() = NRI;
     auto& sd = g_shapes->shape_ids[id];
@@ -1159,12 +1157,11 @@ namespace fan::graphics{
     }
     #endif
     default:
-      fan::print("unsupported shape type in push_vram");
+      fan::print("unsupported shape type in push_shaper");
     }
   }
 
-  void shapes::shape_t::erase_vram() {
-
+  void shapes::shape_t::erase_shaper() {
     if (get_shape_type() == shape_type_t::polygon) {
       auto& ri = get_shape_rdata<shapes::polygon_t>();
       ri.vao.close((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))));
@@ -1434,6 +1431,17 @@ namespace fan::graphics{
 
 	bool shapes::shape_t::load_tp(fan::graphics::texture_pack::ti_t* ti) {
 		auto st = get_shape_type();
+
+    g_shapes->visit_shape_draw_data(NRI, [&](auto& properties) {
+      if constexpr (requires { properties.texture_pack_unique_id; }) {
+        properties.texture_pack_unique_id = ti->unique_id;
+      }
+    });
+
+    if (!get_visual_id()) {
+      return false;
+    }
+
 		if (st == fan::graphics::shapes::shape_type_t::sprite ||
 			st == fan::graphics::shapes::shape_type_t::unlit_sprite) {
 			auto image = ti->image;
@@ -1532,14 +1540,14 @@ namespace fan::graphics{
 	std::array<fan::graphics::image_t, 30> shapes::shape_t::get_images() const {
 		auto shape_type = get_shape_type();
 		if (shape_type == shape_type_t::sprite) {
-			return ((sprite_t::ri_t*)ShapeID_t::GetData(fan::graphics::g_shapes->shaper))->images;
+			return ((sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper))->images;
 		}
 		else if (shape_type == shape_type_t::unlit_sprite) {
-			return ((unlit_sprite_t::ri_t*)ShapeID_t::GetData(fan::graphics::g_shapes->shaper))->images;
+			return ((unlit_sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper))->images;
 		}
 		else if (shape_type == shape_type_t::universal_image_renderer) {
 			std::array<fan::graphics::image_t, 30> ret;
-			auto uni_images = ((universal_image_renderer_t::ri_t*)ShapeID_t::GetData(fan::graphics::g_shapes->shaper))->images_rest;
+			auto uni_images = ((universal_image_renderer_t::ri_t*)GetData(fan::graphics::g_shapes->shaper))->images_rest;
 			std::copy(uni_images.begin(), uni_images.end(), ret.begin());
 
 			return ret;
@@ -2269,8 +2277,18 @@ namespace fan::graphics{
 			fan::throw_error("Invalid function call 'set_thickness', shape was not line");
 		}
 	#endif
+    g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
+      if constexpr (requires { props.thickness; }) {
+        props.thickness = new_thickness;
+      }
+    });
+
+    if (!get_visual_id()) {
+      return;
+    }
+
 		((line_t::vi_t*)GetRenderData(fan::graphics::g_shapes->shaper))->thickness = new_thickness;
-		auto& data = g_shapes->shaper.ShapeList[*this];
+		auto& data = g_shapes->shaper.ShapeList[get_visual_id()];
 		g_shapes->shaper.ElementIsPartiallyEdited(
 			data.sti,
 			data.blid,
@@ -2286,36 +2304,36 @@ namespace fan::graphics{
 		set_y(y);
 	} // shape_t
 
-  void shapes::shape_t::start_particles(){
+  void shapes::shape_t::start_particles() {
     g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
       if constexpr (requires { props.loop_enabled_time; }) {
-        props.loop_enabled_time = (fan::time::now() - props.begin_time) / 1e+9;
-        props.loop_disabled_time = 0.0;
+        props.loop_enabled_time = fan::time::now() / 1e9;
+        props.loop_disabled_time = -1;
       }
     });
     if (!get_visual_id()) {
       return;
     }
-
-    auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
-    ri.loop_enabled_time = (fan::time::now() - ri.begin_time) / 1e+9;
-    ri.loop_disabled_time = 0.0;
+    auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)
+      GetData(fan::graphics::g_shapes->shaper);
+    ri.loop_enabled_time = fan::time::now() / 1e9;
+    ri.loop_disabled_time = -1;
   }
-  void shapes::shape_t::stop_particles(){
+
+  void shapes::shape_t::stop_particles() {
     g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
-      if constexpr (requires { props.loop_enabled_time; }) {
-        props.loop_enabled_time = 999999.0;
-        props.loop_disabled_time = 0.0;
+      if constexpr (requires { props.loop_disabled_time; }) {
+        props.loop_disabled_time = fan::time::now() / 1e9;
       }
     });
     if (!get_visual_id()) {
       return;
     }
-
-    auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
-    ri.loop_enabled_time = 999999.0;
-    ri.loop_disabled_time = 0.0;
+    auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)
+      GetData(fan::graphics::g_shapes->shaper);
+    ri.loop_disabled_time = fan::time::now() / 1e9;
   }
+
 
   fan::graphics::shaper_t::ShapeRenderData_t* shapes::shape_t::GetRenderData(fan::graphics::shaper_t& shaper) const {
     return static_cast<ShapeID_t*>(get_visual_shape())->GetRenderData(shaper);
@@ -2548,7 +2566,8 @@ namespace fan::graphics{
   shapes::shape_t shapes::particles_t::push_back(const properties_t& properties){
     properties_t modified_props = properties;
     modified_props.begin_time = fan::time::now();
-
+    modified_props.loop_enabled_time = fan::time::now() / 1e9;
+    modified_props.loop_disabled_time = -1;
     auto new_item = g_shapes->add_shape(g_shapes->particles_list, modified_props);
     fan::graphics::shaper_t::ShapeID_t ret;
     ret.gint() = new_item.NRI;
@@ -3004,9 +3023,6 @@ namespace fan::graphics {
       if (ri.color != defaults.color) {
         out["color"] = ri.color;
       }
-      if (ri.begin_time != defaults.begin_time) {
-        out["begin_time"] = ri.begin_time;
-      }
       if (ri.alive_time != defaults.alive_time) {
         out["alive_time"] = ri.alive_time;
       }
@@ -3045,9 +3061,6 @@ namespace fan::graphics {
       }
       if (ri.shape != defaults.shape) {
         out["particle_shape"] = ri.shape;
-      }
-      if (ri.blending != defaults.blending) {
-        out["blending"] = ri.blending;
       }
       fan::graphics::image_t image = shape.get_image();
       if (image) {
@@ -3347,9 +3360,6 @@ namespace fan::graphics {
       if (in.contains("color")) {
         p.color = in["color"];
       }
-      if (in.contains("begin_time")) {
-        p.begin_time = in["begin_time"];
-      }
       if (in.contains("alive_time")) {
         p.alive_time = in["alive_time"];
       }
@@ -3388,9 +3398,6 @@ namespace fan::graphics {
       }
       if (in.contains("particle_shape")) {
         p.shape = in["particle_shape"];
-      }
-      if (in.contains("blending")) {
-        p.blending = in["blending"];
       }
       p.image = fan::graphics::json_to_image(in, callers_path);
       *shape = p;

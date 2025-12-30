@@ -308,7 +308,13 @@ struct vfi_t {
     }
     }
 
-    auto ret = g_shapes->shape_add(fan::graphics::shapes::shape_type_t::vfi, 0, instance,
+    auto new_item = g_shapes->add_shape(g_shapes->vfi_list, p);
+    fan::graphics::shaper_t::ShapeID_t ret;
+    ret.gint() = new_item.NRI;
+
+    auto& sd = g_shapes->shape_ids[new_item];
+
+    sd.visual = g_shapes->shape_add(fan::graphics::shapes::shape_type_t::vfi, 0, instance,
       Key_e::depth, (uint16_t)p.shape.rectangle->position.z,
       Key_e::viewport, p.shape.rectangle->viewport,
       Key_e::camera, p.shape.rectangle->camera,
@@ -483,6 +489,7 @@ struct vfi_t {
     mouse_move_data.flag = &focus.method.mouse.flags;
     if (!focus.mouse.iic()) {
       auto& data = *(ri_t*)focus.mouse.GetData(g_shapes->shaper);
+
       fan::vec2 tp = transform(position, data.shape_type, data.shape_data);
       mouse_move_data.mouse_stage = viewport_inside(data.shape_type, data.shape_data, tp);
       mouse_move_data.position = tp;

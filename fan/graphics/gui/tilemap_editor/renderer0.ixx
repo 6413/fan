@@ -7,6 +7,7 @@ module;
 #include <unordered_map>
 #include <functional>
 #include <cstdlib>
+#include <variant>
 
 #endif
 
@@ -73,7 +74,8 @@ export struct tilemap_renderer_t : tilemap_loader_t {
               .render_view = render_view,
               .position = node.position + fan::vec3(fan::vec2(j.position) * node.size, y + node.compiled_map->tile_size.y / 2 + j.position.z),
               .size = j.size * node.size,
-              .color = j.color
+              .color = j.color,
+              .flags = j.flags,
             }});
         }
       }
@@ -148,7 +150,7 @@ export struct tilemap_renderer_t : tilemap_loader_t {
     }
   }
 
-  void erase_id(id_t map_id, const std::string& id) {
+  void erase_visual(id_t map_id, const std::string& id) {
     auto& node = map_list[map_id];
     auto& compiled_map = *node.compiled_map;
 
@@ -451,6 +453,38 @@ export struct tilemap_renderer_t : tilemap_loader_t {
         }
       }
     }
+  }
+
+  void erase_physics_entity(id_t map_id, const std::string& id) {
+    if (map_id.iic()) {
+      return;
+    }
+
+    auto& node = map_list[map_id];
+    auto& compiled_map = *node.compiled_map;
+
+    for (auto it = node.physics_entities.begin(); it != node.physics_entities.end();) {
+      if (it->id == id) {
+        std::visit([&](auto& v) {
+          v.destroy();
+        }, it->visual);
+        it = node.physics_entities.erase(it);
+      }
+      else {
+        ++it;
+      }
+    }
+
+    compiled_map.physics_shapes.erase(
+      std::remove_if(
+        compiled_map.physics_shapes.begin(),
+        compiled_map.physics_shapes.end(),
+        [&](const physics_data_t& p) {
+          return p.physics_shapes.id == id;
+        }
+      ),
+      compiled_map.physics_shapes.end()
+    );
   }
 
   tile_draw_data_t* get_shape_by_id(id_t map_id, const std::string& id) {

@@ -613,24 +613,35 @@ namespace fan::graphics::gui {
     ImGui::PopStyleColor();
   }
 
-  void text_box(const std::string& text, const ImVec2& size, const fan::color& text_color, const fan::color& bg_color) {
+  void text_box(const std::string& text,
+    const fan::vec2& size,
+    const fan::color& text_color,
+    const fan::color& bg_color
+  ) {
+    text_box_at(text, ImGui::GetCursorScreenPos(), size, text_color, bg_color);
+  }
 
+  void text_box_at(const std::string& text,
+    const fan::vec2& pos,
+    const fan::vec2& size,
+    const fan::color& text_color,
+    const fan::color& bg_color
+  ) {
     ImVec2 text_size = ImGui::CalcTextSize(text.c_str());
     ImVec2 padding = ImGui::GetStyle().FramePadding;
     ImVec2 box_size = size;
 
-    if ( box_size.x <= 0 ) {
+    if (box_size.x <= 0) {
       box_size.x = text_size.x + padding.x * 2;
     }
-    if ( box_size.y <= 0 ) {
+    if (box_size.y <= 0) {
       box_size.y = text_size.y + padding.y * 2;
     }
 
-    ImVec2 pos = ImGui::GetCursorScreenPos();
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
     fan::color actual_bg_color = bg_color;
-    if ( bg_color.r == 0 && bg_color.g == 0 && bg_color.b == 0 && bg_color.a == 0 ) {
+    if (bg_color.r == 0 && bg_color.g == 0 && bg_color.b == 0 && bg_color.a == 0) {
       ImVec4 default_bg = ImGui::GetStyleColorVec4(ImGuiCol_Button);
       actual_bg_color = fan::color(default_bg.x, default_bg.y, default_bg.z, default_bg.w);
     }
