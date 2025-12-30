@@ -19,7 +19,11 @@ module;
 //#define STB_IMAGE_IMPLEMENTATION
 #include <fan/stb/stb_image.h>
 
+#endif
+
 export module fan.graphics.fms;
+
+#if defined(FAN_3D)
 
 export import fan.types.matrix;
 export import fan.print;

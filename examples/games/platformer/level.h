@@ -104,9 +104,13 @@ void load_map() {
     .path = "lights/lamp1/lamp.json",
     .loop = true
   });
+
+  static auto torch_particles = fan::graphics::shape_from_json("effects/torch.json");
+
   checkpoint_flag.set_position(fan::vec2(-0xfffff));
   axe_anim.set_position(fan::vec2(-0xfffff));
   lamp1_anim.set_position(fan::vec2(-0xfffff));
+  torch_particles.set_position(fan::vec2(-0xfffff));
 
   pile->renderer.iterate_physics_entities(main_map_id, [&](auto& data, auto& entity_visual) -> bool {
     const auto& id = data.id;
@@ -123,8 +127,16 @@ void load_map() {
       chkp.visual.start_sprite_sheet_animation();
       chkp.entity = entity_visual;
     }
-    else if (id.contains("trigger_boss_skeleton")) {
+    else if (id.contains("sensor_enter_boss")) {
       boss_sensor = entity_visual;
+    }
+    else if (id.contains("boss_door_collision")) {
+      boss_door_position = entity_visual.get_position();
+      boss_door_size = entity_visual.get_size();
+      boss_door_particles = fan::graphics::shape_from_json("effects/boss_spawn.json");
+      boss_door_particles.set_position(fan::vec3(fan::vec2(entity_visual.get_position()), 0xFAAA / 2 - 2 + boss_door_particles.get_position().z));
+      boss_door_particles.set_static(true); // reset the static culling build
+      boss_door_particles.start_particles();
     }
     return false;
   });
@@ -137,10 +149,23 @@ void load_map() {
 
       l.set_current_animation_frame(fan::random::value(0, l.get_current_animation_frame_count()));
       l.set_position(fan::vec3(fan::vec2(data.position) + fan::vec2(1.f, -2.f), 1));
+      l.set_static(true);
       lights.emplace_back(fan::graphics::light_t {{
         .position = l.get_position(),
         .size = 512
       }});
+    }
+    if (id.contains("lamp2")) {
+      //boss_torch_particles.emplace_back(torch_particles);
+      //auto& l = boss_torch_particles.back();
+      //l.start_particles();
+      //l.set_position(fan::vec3(fan::vec2(data.position) + fan::vec2(0, 30.f), 1));
+      //l.set_static(true);
+      //lights_boss.emplace_back(fan::graphics::light_t {{
+      //  .position = data.position,
+      //  .size = 512,
+      //  .color = fan::color::from_rgb(0x114753)*4.f,
+      //}});
     }
     return false; // continue iterating all instances
   });
@@ -189,15 +214,28 @@ void load_map() {
   pile->player.respawn();
   pile->player.particles.set_color(0);
 
+ /* flicker_anims.resize(lights_boss.size());
+  for (auto [i, light] : fan::enumerate(lights_boss)) {
+    static fan::color initial = light.get_color();
+    flicker_anims[i].start(initial, initial * 1.2f, 0.65f, [&](fan::color c){
+      light.set_color(c); 
+    });
+  }*/
+
   //pile->engine.rebuild_static_culling();
 }
 
 void open(void* sod) {
   pile->level_stage = this->stage_common.stage_id;
   load_map();
+  pile->engine.lighting.set_target(0, 0);
+  is_entering_door = false;
 }
 
 void close() {
+  if (boss_door_collision) {
+    boss_door_collision.destroy();
+  }
   for (auto& i : pickupables) {
     i.second.destroy();
   }
@@ -221,18 +259,21 @@ void reload_map() {
 
 void update() {
   for (auto [i, lamp] : fan::enumerate(lamp_sprites)) {
-    auto tc_center = lamp.get_tc_position() + lamp.get_tc_size() * 0.5f;
-    auto pixel_size = fan::vec2(1.0f) / image_get_data(lamp.get_image()).size;
-    auto pixels = read_pixels_from_image(lamp.get_image(), tc_center, pixel_size);
+    if (i < lights.size()) {
+      auto tc_center = lamp.get_tc_position() + lamp.get_tc_size() * 0.5f;
+      auto pixel_size = fan::vec2(1.0f) / image_get_data(lamp.get_image()).size;
+      auto pixels = read_pixels_from_image(lamp.get_image(), tc_center, pixel_size);
+  
+      uint32_t ch = fan::graphics::get_channel_amount(image_get_settings(lamp.get_image()).format);
+      fan::color current = lights[i].get_color() / 2.f;
+      f32_t lerp_speed = std::min(pile->engine.delta_time * 10.0f, 1.0);
+      fan::color new_color = current.lerp(fan::color(pixels.data(), pixels.data() + ch), lerp_speed);
+      fan::color yellow_tint(0.9f, 0.9f, 0.6f, 1.0f);
 
-    uint32_t ch = fan::graphics::get_channel_amount(image_get_settings(lamp.get_image()).format);
-    fan::color current = lights[i].get_color() / 2.f;
-    f32_t lerp_speed = std::min(pile->engine.delta_time * 10.0f, 1.0);
-    fan::color new_color = current.lerp(fan::color(pixels.data(), pixels.data() + ch), lerp_speed);
-    fan::color yellow_tint(0.9f, 0.9f, 0.2f, 1.0f);
+      lights[i].set_color(fan::color(pixels.data(), pixels.data() + ch) * yellow_tint * 2.f);
+    }
 
-    lights[i].set_color(fan::color(pixels.data(), pixels.data() + ch) * yellow_tint);
-    pile->engine.lighting.set_target(fan::color(pixels.data(), pixels.data() + ch) / 5.f + 0.7, 0.1);
+    //pile->engine.lighting.set_target(fan::color(pixels.data(), pixels.data() + ch) / 5.f + 0.7, 0.1);
   }
 
   for (auto it = pickupables.begin(); it != pickupables.end(); ) {
@@ -272,14 +313,26 @@ void update() {
     }
   }
 
-  if (boss_sensor && fan::physics::is_on_sensor(pile->player.body, boss_sensor)) {
-    auto nr = pile->enemy_list.NewNodeLast();
-    pile->enemy_list[nr] = boss_skeleton_t(pile->enemy_list, nr, fan::vec3(boss_position, 5));
-    boss_sensor.destroy();
+  if (boss_sensor && 
+    fan::physics::is_on_sensor(pile->player.body, boss_sensor)
+  )
+  {
+    if (pile->engine.is_key_pressed(fan::key_e)) {
+      pile->renderer.erase_physics_entity(main_map_id, "boss_door_collision");
+      boss_sensor.destroy();
+      is_entering_door = true;
+      //boss_door_particles.stop_particles();
+    }
+    else {
+      fan::vec2 window_size = fan::graphics::gui::get_window_size();
+      static std::string enter_text("Press E to enter");
+      static fan::vec2 text_size = fan::graphics::gui::get_text_size(enter_text);
+      fan::graphics::gui::text_box_at(enter_text, fan::vec2(window_size.x / 2.f - text_size.x / 2.f, window_size.y * 0.85f));
+    }
   }
 
   if (!pile->engine.render_console) {
-    if (fan::window::is_key_pressed(fan::key_e)) {
+    if (fan::window::is_key_pressed(fan::key_escape)) {
       pile->pause = !pile->pause;
     }
 
@@ -293,7 +346,11 @@ void update() {
 }
 
 fan::physics::entity_t boss_sensor;
+fan::graphics::shape_t boss_door_particles;
+std::vector<fan::graphics::shape_t> boss_torch_particles;
 fan::vec2 boss_position = 0;
+fan::vec2 boss_door_position = 0, boss_door_size = 0;
+fan::physics::entity_t boss_door_collision;
 
 tilemap_loader_t::id_t main_map_id;
 tilemap_loader_t::compiled_map_t main_compiled_map;
@@ -314,7 +371,8 @@ struct checkpoint_t {
 std::vector<checkpoint_t> player_checkpoints;
 
 std::vector<fan::graphics::sprite_t> lamp_sprites;
-std::vector<fan::graphics::light_t> lights;
+std::vector<fan::graphics::light_t> lights, lights_boss;
+std::vector<fan::auto_color_transition_t> flicker_anims;
 
 fan::graphics::sprite_t background {{
   .position = fan::vec3(10000, 6010, 0),
@@ -326,3 +384,5 @@ fan::graphics::sprite_t background {{
 
 fan::audio::piece_t
   audio_pickup_item{"audio/pickup.sac"};
+
+bool is_entering_door = false;

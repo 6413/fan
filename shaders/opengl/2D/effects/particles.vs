@@ -109,6 +109,7 @@ vec2 vec2_direction(uint r, uint r2, float min, float max){
   return vec2(cos(rr), sin(rr2));
 }
 
+// dont look here
 void main(){
   int modded_index = gl_VertexID % (int(count) * 6);
   uint id = uint(gl_VertexID) / vertex_count + 1u;
@@ -117,17 +118,46 @@ void main(){
   float rand_val = floatConstruct(RAND(seed));
   
   float new_time;
+  float time_mod;
   
   if (loop) {
     float spawn_delay = rand_val * cycle;
     float local_time = time - loop_enabled_time;
     
-    if (local_time <= 0.0001 || local_time < spawn_delay) {
-      i_color = vec4(0, 0, 0, 0);
-      return;
+    if (loop_disabled_time > 0.0) {
+      float time_at_disable = loop_disabled_time - loop_enabled_time;
+      
+      if (time_at_disable < spawn_delay) {
+        i_color = vec4(0, 0, 0, 0);
+        return;
+      }
+      
+      float time_since_stop = time - loop_disabled_time;
+      float age_at_stop = time_at_disable - spawn_delay;
+      age_at_stop = mod(age_at_stop, cycle) - respawn_time;
+      
+      if (age_at_stop < 0.0) {
+        i_color = vec4(0, 0, 0, 0);
+        return;
+      }
+      
+      new_time = age_at_stop + time_since_stop;
+      time_mod = new_time;
+      
+      if (new_time > alive_time) {
+        i_color = vec4(0, 0, 0, 0);
+        return;
+      }
     }
-    
-    new_time = local_time - spawn_delay;
+    else {
+      if (local_time <= 0.0001 || local_time < spawn_delay) {
+        i_color = vec4(0, 0, 0, 0);
+        return;
+      }
+      
+      new_time = local_time - spawn_delay;
+      time_mod = mod(new_time, cycle) - respawn_time;
+    }
   }
   else {
     if (loop_disabled_time > 0.0) {
@@ -163,9 +193,9 @@ void main(){
         return;
       }
     }
+    
+    time_mod = new_time;
   }
-  
-  float time_mod = loop ? mod(new_time, cycle) - respawn_time : new_time;
 
   if (time_mod < 0.0) {
     i_color = vec4(0, 0, 0, 0);
@@ -179,8 +209,8 @@ void main(){
 
   vec2 pos = position;
   if (shape == 1) {
-    pos.x += floatConstruct(RAND(id * 7919u)) * max_spread_size.x;
-    pos.y += floatConstruct(RAND(id * 7919u + 1u)) * max_spread_size.y;
+    pos.x += (floatConstruct(RAND(id * 7919u)) - 0.5) * max_spread_size.x;
+    pos.y += (floatConstruct(RAND(id * 7919u + 1u)) - 0.5) * max_spread_size.y;
   }
   else {
     float ang = floatConstruct(RAND(id * 7919u)) * 6.28318;

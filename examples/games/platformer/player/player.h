@@ -156,6 +156,27 @@ struct player_t {
 
   void update() {
 
+    if (pile->get_level().is_entering_door) {
+      static f32_t moved = body.get_position().x;
+      if (body.get_position().x - moved < 128.f) {
+        body.movement_state.ignore_input = true;
+        body.movement_state.move_to_direction_raw(body, fan::vec2(1, 0));
+      }
+      else {
+        body.movement_state.ignore_input = false;
+        auto& level = pile->get_level();
+        level.boss_door_collision = pile->engine.physics_context.create_rectangle(
+          level.boss_door_position,
+          level.boss_door_size
+        );
+        level.is_entering_door = false;
+        
+        // player has entered arena
+        auto nr = pile->enemy_list.NewNodeLast();
+        pile->enemy_list[nr] = boss_skeleton_t(pile->enemy_list, nr, fan::vec3(level.boss_position, 5));
+      }
+    }
+
     //body.update_dynamic();
     handle_attack();
 
@@ -184,7 +205,7 @@ struct player_t {
     body.take_hit(source, hit_direction);
     if (body.get_health() <= 0) {
       body.cancel_animation();
-      respawn();
+      pile->get_level().reload_map();
       return true;
     }
     return false;
@@ -212,7 +233,7 @@ struct player_t {
 
   fan::graphics::engine_t::key_handle_t key_click_handles[10];
 
-  int current_checkpoint = -1;
+  int current_checkpoint = 1;
   
   uint16_t potion_count = 10;
   fan::time::timer potion_consume_timer {0.1e9, true};

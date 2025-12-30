@@ -208,7 +208,7 @@ export namespace fan::graphics::gui {
   };
 
 #if defined(FAN_2D)
-  void shape_properties(f64_t current_time, const fan::graphics::shape_t& shape);
+  void shape_properties(const fan::graphics::shape_t& shape);
 #endif
 } // namespace fan::graphics::gui
 
@@ -352,18 +352,20 @@ export namespace fan::graphics::gui {
 
 #if defined(FAN_2D)
   struct particle_editor_t {
+
+    particle_editor_t();
+
     fan::graphics::shapes::particles_t::ri_t& get_ri();
 
     void handle_file_operations();
 
     void render_menu();
-
     void render_settings();
-
     void render();
 
     void fout(const std::string& filename);
 
+  private:
     fan::graphics::shapes::shape_t particle_shape = fan::graphics::shapes::particles_t::properties_t{
       .position = fan::vec3(32.108f, -1303.084f, 10.0f),
       .size = 28.638f,
@@ -379,6 +381,12 @@ export namespace fan::graphics::gui {
       .shape = fan::graphics::shapes::particles_t::shapes_e::rectangle,
       .image = fan::graphics::image_load("images/waterdrop.webp")
     };
+  public:
+
+    void set_particle_shape(fan::graphics::shape_t&& shape);
+
+    // just for gui visualization
+    fan::graphics::sprite_t particle_image_sprite;
 
     fan::color bg_color = fan::color::from_rgba(0xB8C4BFFF);
     fan::color base_color = fan::color::from_rgba(0x33333369);
@@ -490,6 +498,16 @@ export namespace fan::graphics::gui {
   );
 
   void text_partial_render(const std::string& text, size_t render_pos, f32_t wrap_width, f32_t line_spacing = 0);
+
+  void render_texture_property(
+    fan::graphics::shape_t& shape,
+    int index,
+    const char* label,
+    const std::wstring& asset_path = L"./",
+    f32_t image_size = 64.f,
+    const char* receive_drag_drop_target_name = "CONTENT_BROWSER_ITEMS"
+  );
+  void render_image_filter_property(fan::graphics::shape_t& shape, const char* label);
 }
 /*
 template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(

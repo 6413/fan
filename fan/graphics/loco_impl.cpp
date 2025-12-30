@@ -686,6 +686,15 @@ void loco_t::generate_commands(loco_t* loco) {
     loco->clear_color = fan::color::parse(args[0]);
   }).description = "sets clear color of window - input example {1,0,0,1} red";
 
+  loco->console.commands.add("set_lighting_ambient", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, console);
+    if (args.size() != 1) {
+      loco->console.commands.print_invalid_arg_count();
+      return;
+    }
+    loco->lighting.set_target(fan::color::parse(args[0]));
+  }).description = "sets clear color of window - input example {1,0,0,1} red";
+
 #if defined(FAN_2D)
   // shapes
   loco->console.commands.add("rectangle", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
@@ -2834,7 +2843,7 @@ namespace fan {
       frame_timer.start();
 
       while (elapsed < duration) {
-        f32_t t = elapsed / duration;
+        f32_t t = fmod((elapsed / duration) + phase_offset, 1.0f);
 
         switch (easing) {
         case ease_e::linear:
@@ -2868,7 +2877,7 @@ namespace fan {
   void auto_color_transition_t::start(const fan::color& from, const fan::color& to, 
     f32_t duration, std::function<void(fan::color)> cb) {
     if (active) return;
-    transition = {from, to, duration, true, fan::color_transition_t::ease_e::pulse};
+    transition = {from, to, duration, fan::random::value(0.0f, 1.0f), true, fan::color_transition_t::ease_e::pulse};
     callback = cb;
     task = transition.animate(callback);
     active = true;
@@ -2884,7 +2893,8 @@ namespace fan {
     return color_transition_t{
       fan::colors::white, 
       {1, 0.2, 0.2}, 
-      duration, 
+      duration,
+      0.0,
       true, 
       color_transition_t::ease_e::pulse
     };
@@ -2894,6 +2904,7 @@ namespace fan {
       fan::colors::white, 
       fan::colors::transparent, 
       duration, 
+      0.0,
       false, 
       color_transition_t::ease_e::ease_out
     };

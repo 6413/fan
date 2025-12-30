@@ -1431,6 +1431,9 @@ namespace fan::graphics::physics {
     movement_state.enabled = true;
     movement_state.type = movement;
     movement_cb_handle = add_movement_callback([this, movement]() {
+      if (movement_state.ignore_input) {
+        return;
+      }
       process_keyboard_movement(movement);
     });
   }

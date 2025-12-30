@@ -83,7 +83,7 @@ void update() {
 
   if (object_key.sensor) {
     if (fan::physics::is_on_sensor(pile.player.body, object_key.sensor)) {
-      pile.renderer.erase_id(main_map_id, "object_key");
+      pile.renderer.erase_visual(main_map_id, "object_key");
       object_key.sensor.destroy();
     }
   }

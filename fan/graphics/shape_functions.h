@@ -23,7 +23,7 @@ static void update_shape(shape_t* shape, modifier_t&& modifier_fn) {
   std::unique_ptr<uint8_t[]> ri(new uint8_t[rlen_t]);
   std::memcpy(ri.get(), _ri, rlen_t);
 
-  shape->erase_vram();
+  shape->erase_shaper();
   shape->get_visual_id() = g_shapes->shaper.add(sti, key_pack.get(), key_pack_size, vi.get(), ri.get());
 
 #if defined(debug_shape_t)

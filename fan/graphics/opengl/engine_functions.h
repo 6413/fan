@@ -872,6 +872,10 @@ void shapes_draw() {
       continue;
     }
 
+    if (shape_type == fan::graphics::shape_type_t::vfi) {
+      continue;
+    }
+
     auto current_bmid = KeyTraverse.bmid();
 
    /* static int frame = 0;
@@ -1008,7 +1012,7 @@ void shapes_draw() {
           loco.shader_set_value(shader, "loop", ri.loop);
           loco.shader_set_value(shader, "loop_enabled_time", ri.loop_enabled_time);
           loco.shader_set_value(shader, "loop_disabled_time", ri.loop_disabled_time);
-          loco.shader_set_value(shader, "time", (f32_t)((fan::time::now() - ri.begin_time) / 1e+9));
+          loco.shader_set_value(shader, "time", (f32_t)((fan::time::now()) / 1e+9));
           loco.shader_set_value(shader, "vertex_count", 6);
           loco.shader_set_value(shader, "count", ri.count);
           loco.shader_set_value(shader, "alive_time", (f32_t)(ri.alive_time));

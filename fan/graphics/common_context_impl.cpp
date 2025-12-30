@@ -19,6 +19,10 @@ namespace fan::graphics {
     elapsed = 0.0f;
   }
   void lighting_t::update(f32_t delta_time) {
+    if (duration == 0) {
+      ambient = target;
+      return;
+    }
     if (elapsed < duration) {
       elapsed += delta_time;
       f32_t t = std::min(elapsed / duration, 1.0f);

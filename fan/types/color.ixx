@@ -67,11 +67,11 @@ export namespace fan {
 			b = (int)b ^ (int)c.b;
 			return *this;
 		}
-		constexpr bool operator!=(const color_& c) const {
-			return r != c.r || g != c.g || b != c.b;
-		}
 		constexpr bool operator==(const color_& c) const {
 			return r == c.r && g == c.g && b == c.b && a == c.a;
+		}
+		constexpr bool operator!=(const color_& c) const {
+			return !(*this == c);
 		}
 		constexpr type_t& operator[](size_t x) {
 			return !x ? this->r : x == 1 ? this->g : x == 2 ? this->b : x == 3 ? this->a : this->a;

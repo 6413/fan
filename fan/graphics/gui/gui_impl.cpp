@@ -282,7 +282,7 @@ namespace fan::graphics::gui {
   }
 
 #if defined(FAN_2D)
-  void shape_properties(const fan::graphics::shape_t& shape) {
+  void shape_properties(fan::graphics::shape_t& shape) {
     if (!shape.get_visual_id()) {
       return;
     }
@@ -290,14 +290,15 @@ namespace fan::graphics::gui {
     case fan::graphics::shape_type_t::particles:
     {
       auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper);
-      static bool prev_loop_state = ri.loop;
+      static std::unordered_map<void*, bool> prev_loop_states;
+      bool& prev_loop_state = prev_loop_states[&ri];
+
       if (checkbox("loop", &ri.loop)) {
         if (prev_loop_state && !ri.loop) {
-          ri.loop_disabled_time = (fan::time::now() - ri.begin_time) / 1e+9;
+          shape.stop_particles();
         }
         if (!prev_loop_state && ri.loop) {
-          ri.loop_disabled_time = 0.0;
-          ri.loop_enabled_time = (fan::time::now() - ri.begin_time) / 1e+9;
+          shape.start_particles();
         }
         prev_loop_state = ri.loop;
       }
@@ -1558,6 +1559,10 @@ namespace fan::graphics::gui {
     return list_changed;
   }
 
+  particle_editor_t::particle_editor_t() {
+    set_particle_shape(std::move(particle_shape));
+  }
+
   fan::graphics::shapes::particles_t::ri_t& particle_editor_t::get_ri() {
     return *(fan::graphics::shapes::particles_t::ri_t*)particle_shape.GetData(fan::graphics::g_shapes->shaper);
   }
@@ -1566,6 +1571,7 @@ namespace fan::graphics::gui {
     if (open_file_dialog.is_finished()) {
       if (filename.size() != 0) {
         particle_shape = shape_from_json(filename);
+        particle_image_sprite.set_image(particle_shape.get_image());
       }
       open_file_dialog.finished = false;
     }
@@ -1596,6 +1602,9 @@ namespace fan::graphics::gui {
   void particle_editor_t::render_settings() {
     begin("particle settings");
     color_edit4("background color", &bg_color);
+    gui::render_texture_property(particle_image_sprite, 0, "Particle texture");
+    render_image_filter_property(particle_image_sprite, "Particle texture image filter");
+    particle_shape.set_image(particle_image_sprite.get_image());
     shape_properties(particle_shape);
     end();
 
@@ -1622,6 +1631,15 @@ namespace fan::graphics::gui {
     });
     fan::graphics::gui::print_success("File saved to " + std::filesystem::absolute(filename).generic_string());
     fan::io::file::write(filename, json_data.dump(2), std::ios_base::binary);
+  }
+
+  void particle_editor_t::set_particle_shape(fan::graphics::shape_t&& shape) {
+    particle_shape = std::move(shape);
+    g_shapes->visit_shape_draw_data(particle_shape.NRI, [&]<typename T>(T & properties) {
+      if constexpr (requires{ properties.image; }) {
+        particle_image_sprite = {{.size = 0, .image = properties.image, .enable_culling=false}};
+      }
+    });
   }
 
 #endif
@@ -1953,6 +1971,62 @@ namespace fan::graphics::gui {
     }
     if (empty_lines) {
       fan::graphics::gui::text(fan::colors::red, "warning empty lines:", empty_lines);
+    }
+  }
+
+  void render_texture_property(
+    fan::graphics::shape_t& shape, 
+    int index, 
+    const char* label,
+    const std::wstring& asset_path,
+    f32_t image_size,
+    const char* receive_drag_drop_target_name
+  ) {
+    using namespace fan::graphics;
+    auto current_image = index > 0 ? shape.get_images()[index - 1] : shape.get_image();
+    if (current_image.iic()) {
+      current_image = fan::graphics::ctx().default_texture;
+    }
+    fan::vec2 uv0 = shape.get_tc_position(), uv1 = shape.get_tc_size();
+    uv1 += uv0;
+    gui::image(current_image, fan::vec2(image_size), uv0, uv1);
+    gui::receive_drag_drop_target(receive_drag_drop_target_name, [&, asset_path, index](const std::string& path) {
+      auto new_image = fan::graphics::image_load((std::filesystem::path(asset_path) / path).generic_string());
+      if (index > 0) {
+        auto images = shape.get_images();
+        images[index - 1] = new_image;
+        shape.set_images(images);
+      }
+      else {
+        shape.set_image(new_image);
+      }
+      shape.set_tc_position(0);
+      shape.set_tc_size(1);
+    });
+    gui::same_line();
+    gui::text(label);
+  }
+  void render_image_filter_property(fan::graphics::shape_t& shape, const char* label) {
+    using namespace fan::graphics;
+
+    auto current_image = shape.get_image();
+    int current_filter = fan::graphics::image_get_settings(current_image).min_filter;
+
+    static const char* image_filters[] = { "nearest", "linear" };
+
+    if (gui::combo(label, &current_filter, image_filters, std::size(image_filters))) {
+      image_load_properties_t ilp;
+      ilp.min_filter = current_filter;
+      ilp.mag_filter = current_filter;
+
+      fan::graphics::image_set_settings(shape.get_image(), ilp);
+
+      auto images = shape.get_images();
+      for (size_t i = 0; i < images.size(); ++i) {
+        if (!images[i].iic()) {
+          fan::graphics::image_set_settings(images[i], ilp);
+        }
+      }
     }
   }
 }

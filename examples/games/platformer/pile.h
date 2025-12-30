@@ -27,12 +27,16 @@ struct pile_t {
     ic.set_zoom(2.2f * r.max());
   }
   void update() {
-    update_camera_zoom();
+    //update_camera_zoom();
     if (!pause) {
       engine.physics_context.step(engine.delta_time);
       player.update();
     }
-    engine.camera_set_target(engine.orthographic_render_view.camera, player.get_physics_pos()-fan::vec2(0, 50), 0);
+    if (!engine.is_key_down(fan::mouse_middle)) {
+      fan::vec2 target_pos = player.get_physics_pos() - fan::vec2(0, 50);
+      engine.camera_set_target(engine.orthographic_render_view.camera, target_pos, 0);
+      ic.camera_offset = target_pos;
+    }
     if (!pause) {
       for (auto enemy : enemies()) {
         if (enemy.update()) {

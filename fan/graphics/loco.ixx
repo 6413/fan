@@ -714,6 +714,7 @@ export namespace fan {
     }
     fan::color from, to;
     f32_t duration;
+    f32_t phase_offset = 0.0f;
     bool loop;
 
     enum class ease_e { 

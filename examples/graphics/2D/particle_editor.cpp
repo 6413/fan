@@ -1,6 +1,7 @@
 #include <climits>
 
 import fan;
+
 int main() {
   using namespace fan::graphics;
 
@@ -10,7 +11,7 @@ int main() {
 
   interactive_camera_t ic;
 
-  editor.particle_shape = shapes::particles_t::properties_t {
+  editor.set_particle_shape(shapes::particles_t::properties_t {
     .position = fan::vec3(engine.window.get_size() / 2.f, 10.0f),
     .size = 32.0f,
     /*.color = fan::color::from_rgba(0xFF6600FF),*/
@@ -24,9 +25,12 @@ int main() {
     .max_spread_size = fan::vec2(0.0f, 0.0f),
     .shape = shapes::particles_t::shapes_e::circle,
     .image = image_load("examples/games/platformer/effects/bubble.png", image_presets::pixel_art())
-  };
+  });
+
+  fan::graphics::gui::content_browser_t browser;
 
   engine.loop([&] {
+    browser.render();
     gui::begin("##ViewerTest", 0, gui::render_window_flags());
     gui::set_viewport();
     rectangle({

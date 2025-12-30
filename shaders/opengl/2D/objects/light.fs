@@ -29,12 +29,25 @@ void main() {
   }
   else if (fs_flags == 1u) {
     // Square lighting
-    smooth_edge *= multiplier;
-    radius *= multiplier2;
-    vec3 diff = abs(frag_position - instance_position) - vec3(radius);
-    float edge_distance = max(diff.x, diff.y);
-    intensity = 1.0 - smoothstep(radius - smooth_edge, radius, edge_distance);
+    vec2 half_size = instance_size * 0.5;
+
+    vec2 d = abs(frag_position.xy - instance_position.xy);
+
+    d.y *= half_size.x / half_size.y;
+
+    vec2 radius = vec2(half_size.x);
+    d -= radius;
+
+    float edge_distance = max(d.x, d.y);
+
+    float falloff = radius.x / 4.0;
+
+    float aa = fwidth(edge_distance);
+
+    intensity = 1.0 - smoothstep(-falloff, aa, edge_distance);
   }
+
+
   else if (fs_flags == 2u) {
     if (abs(frag_position.x - instance_position.x) < radius / 3 && abs(frag_position.y - instance_position.y) < radius / 3) {
       intensity = 1.0;
