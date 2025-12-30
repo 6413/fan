@@ -478,11 +478,12 @@ export namespace fan {
 
         f32_t accelerate_force = 120.f;
         f32_t max_speed = 600.f;
-        bool enabled = false;
         uint8_t type = movement_e::side_view;
         jump_state_t jump_state;
-        bool check_gui = true;
         fan::vec2 last_direction = 0;
+        bool ignore_input = false;
+        bool enabled = false;
+        bool check_gui = true;
       };
 
       struct attack_state_t {

@@ -1,11 +1,20 @@
 module;
+
+#if defined(FAN_3D) && defined(FAN_VULKAN)
+
 #include <vulkan/vulkan.h>
 #include <shaderc/shaderc.hpp>
 #include <vector>
 #include <cstring>
 #include <iostream>
 #include <cmath>
+
+#endif
+
 export module fan.graphics.vulkan.ray_tracing.hardware_renderer;
+
+#if defined(FAN_3D) && defined(FAN_VULKAN)
+
 import fan.graphics.vulkan.core;
 import fan.graphics;
 import fan.graphics.vulkan.ray_tracing.shapes;
@@ -1680,3 +1689,5 @@ export namespace fan::graphics::vulkan::ray_tracing {
     PFN_vkCmdTraceRaysKHR vkCmdTraceRaysKHR = nullptr;
   };
 }
+
+#endif

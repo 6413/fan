@@ -147,6 +147,7 @@ export struct fte_t {
     std::string id;
     fan::color color = fan::color(1);
     fan::vec2 offset = 0;
+    uint32_t flags = 0;
     uint8_t physics_type = physics_shapes_t::type_e::box;
     static constexpr const char* physics_type_names[] = {"Box", "Circle"};
     uint8_t physics_body_type = fan::physics::body_type_e::static_body;
@@ -558,7 +559,8 @@ export struct fte_t {
             .render_view = render_view,
             .position = pos,
             .size = tile_size * brush.tile_size,
-            .color = brush.dynamics_color == brush_t::dynamics_e::randomize ? fan::random::color() : brush.color
+            .color = brush.dynamics_color == brush_t::dynamics_e::randomize ? fan::random::color() : brush.color,
+            .flags = brush.flags
           }};
           layers.back().tile.mesh_property = mesh_property_t::light;
           visual_shapes[pos].shape = make_sprite(
@@ -595,6 +597,7 @@ export struct fte_t {
             .position = pos,
             .size = shape.get_size(),
             .color = shape.get_color(),
+            .flags = shape.get_flags(),
             .angle = shape.get_angle(),
           } };
           layer.tile.mesh_property = mesh_property_t::light;
@@ -1665,6 +1668,10 @@ export struct fte_t {
       fan::graphics::gui::color_edit4("color", &brush.color);
 
       switch (brush.type) {
+        case brush_t::type_e::light:{
+          fan::graphics::gui::drag("flags", &brush.flags, 0.1);
+          break;
+        }
         case brush_t::type_e::physics_shape: {
           fan::graphics::gui::drag("offset", &brush.offset, 0.1);
 
@@ -2466,7 +2473,8 @@ export struct fte_t {
               .render_view = render_view,
               .position = layer->shape.get_position(),
               .size = layer->tile.size,
-              .color = layer->tile.color
+              .color = layer->tile.color,
+              .flags = layer->shape.get_flags()
             }};
           visual_shapes[layer->shape.get_position()].shape = fan::graphics::sprite_t{{
               .render_view = render_view,

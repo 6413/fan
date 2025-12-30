@@ -1,0 +1,41 @@
+{
+  "alive_time": 2.619999885559082,
+  "begin_angle": 1.3279999494552612,
+  "blending": true,
+  "color": [
+    0.0,
+    0.4417993128299713,
+    0.5215686559677124,
+    1.0
+  ],
+  "count": 66,
+  "end_angle": 0.4779999852180481,
+  "expansion_power": 3.430000066757202,
+  "gap_size": [
+    0.0,
+    0.0
+  ],
+  "image_path": "torch.png",
+  "max_spread_size": [
+    0.0,
+    0.0
+  ],
+  "position": [
+    800.0,
+    450.0,
+    10.0
+  ],
+  "position_velocity": [
+    4.0,
+    3.0
+  ],
+  "shape": "particles",
+  "size": [
+    2.0,
+    8.0
+  ],
+  "size_velocity": [
+    2.0,
+    1.0
+  ]
+}

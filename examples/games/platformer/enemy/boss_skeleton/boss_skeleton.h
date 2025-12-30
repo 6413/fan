@@ -2,7 +2,7 @@ struct boss_skeleton_t : boss_t<boss_skeleton_t> {
   boss_skeleton_t() = default;
 
   template<typename container_t>
-  boss_skeleton_t(container_t& bll, typename container_t::nr_t nr, const fan::vec3& position) {
+  boss_skeleton_t(container_t& bll, typename container_t::nr_t nr, const fan::vec2& position) {
     draw_offset = {0, -135};
     aabb_scale = 0.1f;
     attack_hitbox_frames = {4};

@@ -273,12 +273,13 @@ export namespace fan::graphics {
       shape_t(const T& properties, bool add_to_culling = true) : shape_t() {
         auto shape_type = T::type_t::shape_type;
         *this = fan::graphics::g_shapes->shape_functions[shape_type].push_back((void*)&properties);
+
         //fan::print_throttled("setting static");
         if (fan::graphics::g_shapes->visibility.enabled && add_to_culling) {
           set_static();
         }
         else {
-          push_vram();
+          push_shaper();
         }
       #if defined(debug_shape_t)
         fan::print("+", NRI);
@@ -308,14 +309,14 @@ export namespace fan::graphics {
 
       bool is_visible() const;
       void set_visible(bool flag);
-      void set_static();
+      void set_static(bool update = false);
       void set_dynamic();
 
       fan::graphics::culling::movement_type_t get_movement() const;
       void update_dynamic();
 
-      void push_vram();
-      void erase_vram();
+      void push_shaper();
+      void erase_shaper();
 
       fan::graphics::shaper_t::ShapeID_t& get_visual_id() const;
       shape_t* get_visual_shape() const;
@@ -1193,14 +1194,14 @@ export namespace fan::graphics {
         using type_t = particles_t;
 
         bool loop = true;
-        f32_t loop_enabled_time = 0.0f;
-        f32_t loop_disabled_time = 0.0f;
+        f32_t loop_enabled_time = (f32_t)(fan::time::now() / 1e9);
+        f32_t loop_disabled_time = -1.0;
 
         fan::vec3 position = 0;
         fan::vec2 size = 100;
         fan::color color = fan::colors::white;
 
-        uint64_t begin_time = 0;
+        uint64_t begin_time = fan::time::now();
         f32_t alive_time = 1;
         f32_t respawn_time = 0;
         uint32_t count = 10;

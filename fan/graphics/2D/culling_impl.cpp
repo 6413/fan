@@ -1,5 +1,25 @@
 module;
 
+// if you are trying to debug here that why shape is not visible, 
+// make sure you give the initial position correctly to shape upon construction.
+// if you give random position and set position after, it is not gonna become visible, 
+// because shapes are by default static, so culling uses the initial construct position.
+// here are few options how to handle it:
+/*
+  
+  rectangle_t r(position_outside_view, size);
+
+  example 1: // this should be done only if position will update initially once.
+    rectangle_t r2 = r;
+    r2.set_position(position); // this will not update position
+    r2.set_static(true); // bake the culling again with new position
+
+  example 2: // for dynamic update, you can use
+    rectangle_t r2 = r;
+    r2.set_dynamic();
+    r2.set_position(position); // this will now update the position since we have dynamic shape
+*/
+
 #if defined(FAN_2D)
   #include <cstdint>
   #include <algorithm>
@@ -18,7 +38,7 @@ namespace fan::graphics::culling {
   template <typename... Args>
   static inline void dbg(const char* tag, Args&&... args) {
     //std::string t(tag);
-    /* if (t.contains("show") || t.contains("[push_vram]") || t.contains("keep") || t.contains("test") || t.contains("span") || t.contains("[cull]") || t.contains("remove") || t == "[remove_static_shape_from_grid] AABB" || t == "[AABB]" || t == "[add_static_shape_to_grid]" || t == "[add_shape]" || t == "[remove_static_shape_from_grid]" || t == "[update_dynamic]" || t == "[zremove_shape]" || t == "[add_static_shape_to_grid] AABB" || t == "[dyn-test]" || t.contains("->") || t == "[update_dynamic] new AABB") {
+    /* if (t.contains("show") || t.contains("[push_shaper]") || t.contains("keep") || t.contains("test") || t.contains("span") || t.contains("[cull]") || t.contains("remove") || t == "[remove_static_shape_from_grid] AABB" || t == "[AABB]" || t == "[add_static_shape_to_grid]" || t == "[add_shape]" || t == "[remove_static_shape_from_grid]" || t == "[update_dynamic]" || t == "[zremove_shape]" || t == "[add_static_shape_to_grid] AABB" || t == "[dyn-test]" || t.contains("->") || t == "[update_dynamic] new AABB") {
     return;
     }
     */
@@ -133,12 +153,12 @@ namespace fan::graphics::culling {
     auto* shape_ptr = (fan::graphics::shapes::shape_t*)&sid;
     auto sc = shape_ptr->get_camera();
     if (sc == culling_camera) {
-      dbg(push ? "[push_vram]" : "[erase_vram]", "sid", sid.NRI, "cam", sc.NRI);
+      dbg(push ? "[push_shaper]" : "[erase_shaper]", "sid", sid.NRI, "cam", sc.NRI);
       if (push) {
-        shape_ptr->push_vram();
+        shape_ptr->push_shaper();
       }
       else {
-        shape_ptr->erase_vram();
+        shape_ptr->erase_shaper();
       }
     }
     else {
@@ -193,7 +213,7 @@ namespace fan::graphics::culling {
       dbg("[add_shape]", "static_shapes.size", (uint32_t)culling.registry.static_shapes.size());
       add_static_shape_to_grid(culling, sid);
       if(!culling.enabled){
-        sp->push_vram();
+        sp->push_shaper();
       }
       else{
         check_and_push_shape_to_cameras(culling, sid, aabb);
@@ -210,7 +230,7 @@ namespace fan::graphics::culling {
       dbg("[add_shape]", "dynamic id", id, "sid", nr, "center", center.x, center.y, "cell", cell.x, cell.y, "idx", idx);
       dbg_aabb("           dyn AABB", nr, aabb);
       if(!culling.enabled){
-        sp->push_vram();
+        sp->push_shaper();
       }
       else{
         check_and_push_shape_to_cameras(culling, sid, aabb);
@@ -520,13 +540,13 @@ namespace fan::graphics::culling {
       for(auto sid : culling.registry.static_shapes){
         auto* shape = (fan::graphics::shapes::shape_t*)&sid;
         if(!shape->get_visual_id().iic()){
-          shape->push_vram();
+          shape->push_shaper();
         }
       }
       for(auto& obj : culling.dynamic_grid.objects){
         auto* shape = (fan::graphics::shapes::shape_t*)&obj.sid;
         if(!shape->get_visual_id().iic()){
-          shape->push_vram();
+          shape->push_shaper();
         }
       }
 
@@ -538,7 +558,7 @@ namespace fan::graphics::culling {
         }
         auto* shape = (fan::graphics::shapes::shape_t*)&sid;
         if(shape->get_visual_id().iic()){
-          shape->push_vram();
+          shape->push_shaper();
         }
       }
     }

@@ -211,7 +211,7 @@ struct fgm_t {
   void open_properties(fgm_t::shapes_t::global_t* shape, const fan::vec2& editor_size) {
     using namespace fan::graphics;
 
-    std::string shape_str = std::string("Shape name:") + fan::graphics::g_shapes->shape_names[shape->children[0].get_shape_type()];
+    std::string shape_str = std::string("Shape name:") + fan::graphics::shape_names[shape->children[0].get_shape_type()];
     gui::text(shape_str);
 
     fan::vec3 pos = shape->get_position();
@@ -264,10 +264,10 @@ struct fgm_t {
     switch (shape->children[0].get_shape_type()) {
     case fan::graphics::shapes::shape_type_t::unlit_sprite:
     case fan::graphics::shapes::shape_type_t::sprite: {
-      render_texture_property(shape, 0, "Base texture");
-      render_texture_property(shape, 1, "Normal map", true);
-      render_texture_property(shape, 2, "Specular map", true);
-      render_texture_property(shape, 3, "Occlusion map", true);
+      fan::graphics::gui::render_texture_property(shape->children[0], 0, "Base texture", content_browser.asset_path);
+      fan::graphics::gui::render_texture_property(shape->children[0], 1, "Normal map", content_browser.asset_path);
+      fan::graphics::gui::render_texture_property(shape->children[0], 2, "Specular map", content_browser.asset_path);
+      fan::graphics::gui::render_texture_property(shape->children[0], 3, "Occlusion map", content_browser.asset_path);
 
       int current_image_filter = gloco()->image_get_settings(shape->children[0].get_image()).min_filter;
       static const char* image_filters[] = {"nearest", "linear"};
@@ -306,35 +306,6 @@ struct fgm_t {
     }
   }
 
-  void render_texture_property(shapes_t::global_t* shape, int index, const char* label, bool is_array = false) {
-    using namespace fan::graphics;
-    auto current_image = is_array ? shape->children[0].get_images()[index - 1] : shape->children[0].get_image();
-    if (current_image.iic()) {
-      current_image = gloco()->default_texture;
-    }
-    fan::vec2 uv0 = shape->children[0].get_tc_position(), uv1 = shape->children[0].get_tc_size();
-    uv1 += uv0;
-    gui::image(current_image, fan::vec2(64), uv0, uv1);
-    gui::receive_drag_drop_target("CONTENT_BROWSER_ITEMS", [&, shape, index, is_array](const std::string& path) {
-      if (current_image != gloco()->default_texture) {
-        gloco()->image_unload(current_image);
-      }
-      auto new_image = gloco()->image_load((std::filesystem::path(content_browser.asset_path) / path).generic_string());
-      if (is_array) {
-        auto images = shape->children[0].get_images();
-        images[index - 1] = new_image;
-        shape->children[0].set_images(images);
-      }
-      else {
-        shape->children[0].set_image(new_image);
-      }
-      shape->children[0].set_tc_position(0);
-      shape->children[0].set_tc_size(1);
-    });
-    gui::same_line();
-    gui::text(label);
-  }
-
   shape_list_t::nr_t push_shape(uint16_t shape_type, const fan::vec2& pos, const fan::vec2& size = 128) {
     auto nr = shape_list.NewNodeLast();
 
@@ -348,8 +319,8 @@ struct fgm_t {
           .size = size
         }}};
       auto* ri = ((fan::graphics::shapes::sprite_t::ri_t*)shape_list[nr]->children[0].GetData(fan::graphics::g_shapes->shaper));
-      animations_application.current_animation_nr = ri->current_animation;
-      animations_application.current_animation_shape_nr = ri->shape_animations;
+      animations_application.current_animation_nr = ri->sprite_sheet_data.current_animation;
+      animations_application.current_animation_shape_nr = ri->sprite_sheet_data.shape_animations;
       break;
     }
     case fan::graphics::shapes::shape_type_t::unlit_sprite: {
@@ -458,7 +429,7 @@ struct fgm_t {
         (void*)(intptr_t)child.NRI,
         node_flags,
         "%s %u",
-        fan::graphics::g_shapes->shape_names[child.get_shape_type()],
+        fan::graphics::shape_names[child.get_shape_type()],
         child.NRI
       );
 
@@ -528,8 +499,8 @@ struct fgm_t {
           hit_any = true;
           if (shape->children[0].get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {
             auto* ri = ((fan::graphics::shapes::sprite_t::ri_t*)shape->children[0].GetData(fan::graphics::g_shapes->shaper));
-            animations_application.current_animation_nr = ri->current_animation;
-            animations_application.current_animation_shape_nr = ri->shape_animations;
+            animations_application.current_animation_nr = ri->sprite_sheet_data.current_animation;
+            animations_application.current_animation_shape_nr = ri->sprite_sheet_data.shape_animations;
           }
         }
         it = it.Next(&shape_list);
@@ -630,7 +601,7 @@ struct fgm_t {
 
       {
         fan::vec2 cursor_pos = ((gui::get_mouse_pos() - viewport_settings.start_pos + fan::vec2(style.WindowPadding)) - viewport_settings.size / 2);
-        std::string cursor_pos_str = cursor_pos.to_string();
+        std::string cursor_pos_str = cursor_pos.to_string(1);
         std::string str = cursor_pos_str.substr(1, cursor_pos_str.size() - 2);
         gui::text_bottom_right(str.c_str(), 0);
       }
@@ -768,7 +739,7 @@ struct fgm_t {
         fan::graphics::animation_shape_nr_t* shape_animation_nr = 0;
         if (shape.get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {
           auto* ri = ((fan::graphics::shapes::sprite_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper));
-          shape_animation_nr = &ri->shape_animations;
+          shape_animation_nr = &ri->sprite_sheet_data.shape_animations;
           if (animations_application.current_animation_nr) {
             auto& anim = fan::graphics::get_sprite_sheet_animation(animations_application.current_animation_nr);
           }
@@ -781,7 +752,7 @@ struct fgm_t {
           if (shape.get_shape_type() == fan::graphics::shapes::shape_type_t::sprite && animations_application.current_animation_nr) {
             auto* ri = ((fan::graphics::shapes::sprite_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper));
             if (animations_application.current_animation_nr && animations_application.current_animation_shape_nr == *shape_animation_nr) {
-              ri->current_animation = animations_application.current_animation_nr;
+              ri->sprite_sheet_data.current_animation = animations_application.current_animation_nr;
             }
           }
           if (*shape_animation_nr && animations_application.current_animation_shape_nr == *shape_animation_nr && (animations_application.toggle_play_animation || animations_application.play_animation || animation_changed)) {
@@ -1015,7 +986,7 @@ struct fgm_t {
     });
 
     if (json_in.contains("animations")) {
-      fan::graphics::parse_animations(json_in);
+      fan::graphics::parse_animations(filename, json_in);
     }
     if (json_in.contains("shape_keyframe_animations")) {
       std::vector<std::pair<int, shape_keyframe_animation_t>> pending_animations;
