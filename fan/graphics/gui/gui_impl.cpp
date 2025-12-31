@@ -308,7 +308,10 @@ namespace fan::graphics::gui {
       if (combo("shape", &current_shape, items, std::size(items))) {
         ri.shape = current_shape;
       }
-      if (color_edit4("particle color", &ri.color)) {
+      if (color_edit4("particle begin color", &ri.begin_color)) {
+
+      }
+      if (color_edit4("particle end color", &ri.end_color)) {
 
       }
       if (drag("position", &ri.position, 1)) {
@@ -324,14 +327,18 @@ namespace fan::graphics::gui {
       if (drag("expansion_power", &ri.expansion_power, 0.01)) {
       }
       if (ri.shape == fan::graphics::shapes::particles_t::shapes_e::rectangle) {
-        if (drag("max_spread_size", &ri.max_spread_size, 1)) {
+        if (drag("max_spread_size", &ri.max_spread_size, 0.1)) {
         }
       }
-      if (drag("position_velocity", &ri.position_velocity, 1)) {
+      if (drag("position_velocity", &ri.position_velocity, 0.1)) {
       }
-      if (drag("size_velocity", &ri.size_velocity, 1)) {
+      if (drag("size_velocity", &ri.size_velocity, 0.1)) {
       }
-      if (drag("angle_velocity", &ri.angle_velocity, 1)) {
+      if (drag("angle_velocity", &ri.angle_velocity, 0.1)) {
+      }
+      if (drag("turbulence", &ri.turbulence, 0.1)) {
+      }
+      if (drag("turbulence_speed", &ri.turbulence_speed, 0.1)) {
       }
       if (drag("count", &ri.count, 1)) {
       }

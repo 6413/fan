@@ -70,13 +70,16 @@ export struct tilemap_renderer_t : tilemap_loader_t {
           if (j.mesh_property != fte_t::mesh_property_t::light) {
             continue;
           }
-          node.lights.emplace_back(fan::graphics::light_t{{
-              .render_view = render_view,
-              .position = node.position + fan::vec3(fan::vec2(j.position) * node.size, y + node.compiled_map->tile_size.y / 2 + j.position.z),
-              .size = j.size * node.size,
-              .color = j.color,
-              .flags = j.flags,
-            }});
+          light_with_id_t light;
+          light.id = j.id;
+          light.shape = fan::graphics::light_t {{
+            .render_view = render_view,
+            .position = node.position + fan::vec3(fan::vec2(j.position) * node.size, y + node.compiled_map->tile_size.y / 2 + j.position.z),
+            .size = j.size * node.size,
+            .color = j.color,
+            .flags = j.flags,
+          }};
+          node.lights.emplace_back(std::move(light));
         }
       }
     }
@@ -491,6 +494,16 @@ export struct tilemap_renderer_t : tilemap_loader_t {
     auto& node = map_list[map_id];
     auto it = node.id_to_shape.find(id);
     return (it != node.id_to_shape.end()) ? it->second : nullptr;
+  }
+
+  fan::graphics::shape_t* get_light_by_id(tilemap_renderer_t::id_t map_id, const std::string& id) {
+    auto& node = map_list[map_id];
+    for (auto& light : node.lights) {
+      if (light.id == id) {
+        return &light.shape;
+      }
+    }
+    return nullptr;
   }
 };
 #undef tilemap_renderer

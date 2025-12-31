@@ -76,13 +76,95 @@ bool handle_pickupable(const std::string& id, T& who) {
   return ret;
 }
 
+
+std::vector<fan::auto_color_transition_t> light_lights;
+
+void start_lights(uint32_t index) {
+  static fan::color target_color = fan::color::from_rgb(0x114753) * 4.f;
+  static auto torch_particles = fan::graphics::shape_from_json("effects/torch.json");
+  torch_particles.set_position(fan::vec2(-0xfffff));
+
+  static auto add_light_particles = [] (level_t* level, uint32_t index) {
+    level->boss_torch_particles.emplace_back(torch_particles);
+    auto& l = level->boss_torch_particles.back();
+    l.start_particles();
+    l.set_position(fan::vec3(fan::vec2(level->lights_boss[index].get_position()) + fan::vec2(0, 30.f), 1));
+    l.set_static(true);
+  };
+
+  if (index + 1 >= lights_boss.size()) {
+      auto* shape = pile->renderer.get_light_by_id(main_map_id, "boss_room_ambient_light");
+    fan::color target_color = boss_room_target_color;
+    boss_room_light.start_once(
+      shape->get_color(),
+      target_color,
+      1.0f,
+      [shape](fan::color c) {
+        shape->set_color(c);
+      }
+    );
+  }
+
+  if (index >= lights_boss.size()) {
+    typename decltype(pile->enemy_list)::nr_t nr;
+    nr.gint() = boss_nr;
+    std::visit([]<typename T>(T& v) {
+      if constexpr (requires{ T::allow_move; }) {
+        v.allow_move = true;
+      }
+    }, pile->enemy_list[nr]);
+
+    for (auto [i, light] : fan::enumerate(light_lights)) {
+      light_lights[i] = fan::auto_color_transition_t{};
+      light_lights[i].start(
+        lights_boss[i].get_color() * (fan::color(1.0f, 0.7f, 0.7f) / 1.0f),
+        lights_boss[i].get_color() * (fan::color(1.0f, 1.0f, 1.0f) * 1.0f),
+        0.2f + fan::random::value(0.0f, 0.5f),
+        [this, i](fan::color c){
+          lights_boss[i].set_color(c); 
+        }
+      );
+    }
+    return;
+  }
+
+  light_lights[index] = fan::auto_color_transition_t{};
+  add_light_particles(this, index);
+
+  light_lights[index].start_once(
+    lights_boss[index].get_color(),
+    target_color,
+    1.0f,
+    [this, index](fan::color c) {
+      lights_boss[index].set_color(c);
+    },
+    [this, index] {
+      start_lights(index + 1);
+    }
+  );
+}
+
+void enter_boss() {
+  boss_door_collision = pile->engine.physics_context.create_rectangle(
+    boss_door_position,
+    boss_door_size
+  );
+  is_entering_door = false;
+  
+  auto nr= pile->enemy_list.NewNodeLast();
+  pile->enemy_list[nr] = boss_skeleton_t(pile->enemy_list, nr, fan::vec3(boss_position, 5));
+  boss_nr = nr.gint();
+  light_lights.resize(lights_boss.size());
+  start_lights(0);
+}
+
 void load_map() {
   //pile->engine.culling_rebuild_grid();
   background.set_static();
   main_compiled_map = pile->renderer.compile("sample_level.fte");
   fan::vec2i render_size(16, 9);
   tilemap_loader_t::properties_t p;
-  p.size = render_size *1000;
+  p.size = render_size * 1000;
   pile->engine.set_cull_padding(100);
 
   p.position = pile->player.body.get_position();
@@ -105,12 +187,10 @@ void load_map() {
     .loop = true
   });
 
-  static auto torch_particles = fan::graphics::shape_from_json("effects/torch.json");
 
   checkpoint_flag.set_position(fan::vec2(-0xfffff));
   axe_anim.set_position(fan::vec2(-0xfffff));
   lamp1_anim.set_position(fan::vec2(-0xfffff));
-  torch_particles.set_position(fan::vec2(-0xfffff));
 
   pile->renderer.iterate_physics_entities(main_map_id, [&](auto& data, auto& entity_visual) -> bool {
     const auto& id = data.id;
@@ -161,11 +241,11 @@ void load_map() {
       //l.start_particles();
       //l.set_position(fan::vec3(fan::vec2(data.position) + fan::vec2(0, 30.f), 1));
       //l.set_static(true);
-      //lights_boss.emplace_back(fan::graphics::light_t {{
-      //  .position = data.position,
-      //  .size = 512,
-      //  .color = fan::color::from_rgb(0x114753)*4.f,
-      //}});
+      lights_boss.emplace_back(fan::graphics::light_t {{
+        .position = data.position,
+        .size = 512,
+        .color = fan::colors::black,
+      }});
     }
     return false; // continue iterating all instances
   });
@@ -196,6 +276,9 @@ void load_map() {
         )
       );
     }
+    else if (id.contains("no_collision")) {
+      return false;
+    }
     else if (tile.mesh_property == tilemap_loader_t::fte_t::mesh_property_t::none) {
       tile_collisions.emplace_back(
         pile->engine.physics_context.create_rectangle(
@@ -214,15 +297,11 @@ void load_map() {
   pile->player.respawn();
   pile->player.particles.set_color(0);
 
- /* flicker_anims.resize(lights_boss.size());
-  for (auto [i, light] : fan::enumerate(lights_boss)) {
-    static fan::color initial = light.get_color();
-    flicker_anims[i].start(initial, initial * 1.2f, 0.65f, [&](fan::color c){
-      light.set_color(c); 
-    });
-  }*/
-
-  //pile->engine.rebuild_static_culling();
+  {
+    auto* boss_room_light = pile->renderer.get_light_by_id(main_map_id, "boss_room_ambient_light");
+    boss_room_target_color = boss_room_light->get_color();
+    boss_room_light->set_color(fan::colors::black);
+  }
 }
 
 void open(void* sod) {
@@ -292,10 +371,12 @@ void update() {
 
         it = pickupables.erase(it);
         break;
-      } else {
+      }
+      else {
         ++it;
       }
-    } else {
+    }
+    else {
       ++it;
     }
   }
@@ -327,7 +408,9 @@ void update() {
       fan::vec2 window_size = fan::graphics::gui::get_window_size();
       static std::string enter_text("Press E to enter");
       static fan::vec2 text_size = fan::graphics::gui::get_text_size(enter_text);
-      fan::graphics::gui::text_box_at(enter_text, fan::vec2(window_size.x / 2.f - text_size.x / 2.f, window_size.y * 0.85f));
+      if (fan::graphics::gui::hud("Interact hud")) {
+        fan::graphics::gui::text_box_at(enter_text, fan::vec2(window_size.x / 2.f - text_size.x / 2.f, window_size.y * 0.85f));
+      }
     }
   }
 
@@ -351,6 +434,10 @@ std::vector<fan::graphics::shape_t> boss_torch_particles;
 fan::vec2 boss_position = 0;
 fan::vec2 boss_door_position = 0, boss_door_size = 0;
 fan::physics::entity_t boss_door_collision;
+uint32_t boss_nr = (uint32_t)-1;
+fan::auto_color_transition_t boss_room_light;
+fan::color boss_room_target_color;
+
 
 tilemap_loader_t::id_t main_map_id;
 tilemap_loader_t::compiled_map_t main_compiled_map;
@@ -384,5 +471,6 @@ fan::graphics::sprite_t background {{
 
 fan::audio::piece_t
   audio_pickup_item{"audio/pickup.sac"};
+
 
 bool is_entering_door = false;

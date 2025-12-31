@@ -23,6 +23,7 @@ vec3 aces_tonemap(vec3 x) {
 void main() {
     vec3 hdrColor = texture(_t00, texture_coordinate).rgb;
     vec3 bloomColor = texture(_t01, texture_coordinate).rgb;
+
     
     vec3 color = hdrColor + bloomColor * bloom_strength;
     

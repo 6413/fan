@@ -218,7 +218,7 @@ export namespace fan::graphics {
 
 #if defined(FAN_2D)
 
-  using light_flags_e = fan::graphics::light_flags_e;
+  using sprite_flags_e = fan::graphics::sprite_flags_e;
 
   struct light_properties_t {
     render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
@@ -296,7 +296,7 @@ export namespace fan::graphics {
     std::array<fan::graphics::image_t, 30> images;
     f32_t parallax_factor = 0;
     bool blending = true;
-    uint32_t flags = light_flags_e::circle | light_flags_e::multiplicative;
+    uint32_t flags = sprite_flags_e::circle | sprite_flags_e::multiplicative;
     fan::graphics::texture_pack::unique_t texture_pack_unique_id;
     bool enable_culling = true;
   };

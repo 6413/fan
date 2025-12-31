@@ -39,7 +39,17 @@ void main() {
     float w3 = KarisAverage(s3);
         
     float totalWeight = w0 + w1 + w2 + w3;
-    o_color = (s0 * w0 + s1 * w1 + s2 * w2 + s3 * w3) / totalWeight;
+    vec3 col = (s0 * w0 + s1 * w1 + s2 * w2 + s3 * w3) / totalWeight;
+
+    float brightness = dot(col, vec3(0.2126, 0.7152, 0.0722));
+    
+    // Non-HDR settings
+    float bloom_threshold = 0.5;  // Bloom anything brighter than 50%
+    float bloom_softness = 0.2;
+    
+    float mask = smoothstep(bloom_threshold - bloom_softness, bloom_threshold + bloom_softness, brightness);
+    
+    o_color = col * mask;
   } 
   else {
     vec3 s0 = texture(_t00, texture_coordinate + vec2(-0.5, -0.5) * texelSize).rgb;

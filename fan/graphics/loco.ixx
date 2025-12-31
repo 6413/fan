@@ -2,6 +2,7 @@ module;
 
 #define loco_framebuffer
 #define loco_post_process
+
 #define loco_vfi
 
 #include <fan/graphics/opengl/init.h>
@@ -715,6 +716,7 @@ export namespace fan {
     fan::color from, to;
     f32_t duration;
     f32_t phase_offset = 0.0f;
+    std::function<void()> on_complete = {};
     bool loop;
 
     enum class ease_e { 
@@ -736,6 +738,13 @@ export namespace fan {
     void start(const fan::color& from, const fan::color& to,
       f32_t duration, std::function<void(fan::color)> cb);
 
+    void start_once(
+      const fan::color& from,
+      const fan::color& to,
+      f32_t duration,
+      std::function<void(fan::color)> cb,
+      std::function<void()> on_complete = {}
+    );
     void stop(const fan::color& reset_to);
   };
 

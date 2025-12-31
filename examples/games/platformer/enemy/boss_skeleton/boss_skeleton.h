@@ -12,7 +12,7 @@ struct boss_skeleton_t : boss_t<boss_skeleton_t> {
     open(bll, nr, "boss_skeleton.json");
     set_initial_position(position);
 
-    body.set_max_health(100.f);
+    body.set_max_health(200.f);
     body.set_health(body.get_max_health());
     body.attack_state.attack_range = {closeup_distance.x + 50, 200};
     body.movement_state.max_speed = 350.f;
@@ -53,6 +53,9 @@ struct boss_skeleton_t : boss_t<boss_skeleton_t> {
         using T = std::decay_t<decltype(node)>;
         if constexpr (std::is_same_v<T, boss_skeleton_t>) {
           fan::vec2 target_pos = pile->player.get_physics_pos();
+          if (!node.allow_move) {
+            return;
+          }
           update_boss_logic(node, xdist, target_pos);
         }
       }, bll[nr]);
@@ -172,4 +175,7 @@ private:
   bool is_backstepping = false;
   bool second_phase = false;
   int backstep_dir = 0;
+
+public:
+  bool allow_move = false;
 };

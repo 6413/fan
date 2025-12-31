@@ -13,6 +13,10 @@ struct player_t {
       }};
   }
   player_t(){
+    player_light.set_dynamic();
+    player_light.set_color(fan::color(0.610, 0.550, 0.340, 1.0));
+    player_light.set_size(256);
+
     auto drink_potion = fan::graphics::shape_from_json("effects/drink_potion.json");
     drink_potion.stop_particles();
     drink_potion.set_dynamic();
@@ -37,6 +41,9 @@ struct player_t {
         return c.attack_state.try_attack(&c);
       },
     });
+    body.set_flags(fan::graphics::sprite_flags_e::use_hsl);
+    body.set_color(fan::color::hsl(56.7f, 18.3f, -58.4f));
+
     body.set_dynamic();
     body.enable_default_movement();
     body.set_jump_height(60.f);
@@ -155,7 +162,7 @@ struct player_t {
   }
 
   void update() {
-
+    player_light.set_position(body.get_center());
     if (pile->get_level().is_entering_door) {
       static f32_t moved = body.get_position().x;
       if (body.get_position().x - moved < 128.f) {
@@ -165,15 +172,7 @@ struct player_t {
       else {
         body.movement_state.ignore_input = false;
         auto& level = pile->get_level();
-        level.boss_door_collision = pile->engine.physics_context.create_rectangle(
-          level.boss_door_position,
-          level.boss_door_size
-        );
-        level.is_entering_door = false;
-        
-        // player has entered arena
-        auto nr = pile->enemy_list.NewNodeLast();
-        pile->enemy_list[nr] = boss_skeleton_t(pile->enemy_list, nr, fan::vec3(level.boss_position, 5));
+        level.enter_boss();
       }
     }
 
@@ -238,4 +237,5 @@ struct player_t {
   uint16_t potion_count = 10;
   fan::time::timer potion_consume_timer {0.1e9, true};
   fan::graphics::shape_t particles_drink_potion[4];
+  fan::graphics::light_t player_light {{.position=0}};
 };

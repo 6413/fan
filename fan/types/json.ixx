@@ -285,12 +285,12 @@ export {
     }
   };
 
-  template <typename T> 
-  struct nlohmann::adl_serializer<fan::color_<T>> {
-    static void to_json(nlohmann::json& j, const fan::color_<T>& c) {
+  template <> 
+  struct nlohmann::adl_serializer<fan::color> {
+    static void to_json(nlohmann::json& j, const fan::color& c) {
       j = nlohmann::json{ c[0], c[1], c[2], c[3]};
     }
-    static void from_json(const nlohmann::json& j, fan::color_<T>& c) {
+    static void from_json(const nlohmann::json& j, fan::color& c) {
       c.r = j[0];
       c.g = j[1];
       c.b = j[2];

@@ -126,7 +126,6 @@ namespace fan::graphics {
 		if (image_json.contains("image_mag_filter")) {
 			lp.mag_filter = image_json["image_mag_filter"];
 		}
-
 		fan::graphics::image_nr_t image = fan::graphics::ctx()->image_load_path_props(
 			fan::graphics::ctx(),
 			path,
@@ -948,7 +947,8 @@ namespace fan::graphics{
       ri.loop_disabled_time = properties.loop_disabled_time;
       ri.position = properties.position;
       ri.size = properties.size;
-      ri.color = properties.color;
+      ri.begin_color = properties.begin_color;
+      ri.end_color = properties.end_color;
       ri.begin_time = properties.begin_time;
       ri.alive_time = properties.alive_time;
       ri.respawn_time = properties.respawn_time;
@@ -962,6 +962,8 @@ namespace fan::graphics{
       ri.max_spread_size = properties.max_spread_size;
       ri.expansion_power = properties.expansion_power;
       ri.size_velocity = properties.size_velocity;
+      ri.turbulence = properties.turbulence;
+      ri.turbulence_speed = properties.turbulence_speed;
       ri.shape = properties.shape;
 
       sd.visual = shape_add(
@@ -3020,8 +3022,11 @@ namespace fan::graphics {
       if (ri.size != defaults.size) {
         out["size"] = ri.size;
       }
-      if (ri.color != defaults.color) {
-        out["color"] = ri.color;
+      if (ri.begin_color != defaults.begin_color) {
+        out["begin_color"] = ri.begin_color;
+      }
+      if (ri.end_color != defaults.end_color) {
+        out["end_color"] = ri.end_color;
       }
       if (ri.alive_time != defaults.alive_time) {
         out["alive_time"] = ri.alive_time;
@@ -3058,6 +3063,12 @@ namespace fan::graphics {
       }
       if (ri.size_velocity != defaults.size_velocity) {
         out["size_velocity"] = ri.size_velocity;
+      }
+      if (ri.turbulence != defaults.turbulence) {
+        out["turbulence"] = ri.turbulence;
+      }
+      if (ri.turbulence_speed != defaults.turbulence_speed) {
+        out["turbulence_speed"] = ri.turbulence_speed;
       }
       if (ri.shape != defaults.shape) {
         out["particle_shape"] = ri.shape;
@@ -3357,8 +3368,11 @@ namespace fan::graphics {
       if (in.contains("size")) {
         p.size = in["size"];
       }
-      if (in.contains("color")) {
-        p.color = in["color"];
+      if (in.contains("begin_color")) {
+        p.begin_color = in["begin_color"];
+      }
+      if (in.contains("end_color")) {
+        p.end_color = in["end_color"];
       }
       if (in.contains("alive_time")) {
         p.alive_time = in["alive_time"];
@@ -3395,6 +3409,12 @@ namespace fan::graphics {
       }
       if (in.contains("size_velocity")) {
         p.size_velocity = in["size_velocity"];
+      }
+      if (in.contains("turbulence")) {
+        p.turbulence = in["turbulence"];
+      }
+      if (in.contains("turbulence_speed")) {
+        p.turbulence_speed = in["turbulence_speed"];
       }
       if (in.contains("particle_shape")) {
         p.shape = in["particle_shape"];
@@ -3503,7 +3523,8 @@ namespace fan::graphics {
       auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper);
       fan::write_to_vector(out, ri.position);
       fan::write_to_vector(out, ri.size);
-      fan::write_to_vector(out, ri.color);
+      fan::write_to_vector(out, ri.begin_color);
+      fan::write_to_vector(out, ri.end_color);
       fan::write_to_vector(out, ri.begin_time);
       fan::write_to_vector(out, ri.alive_time);
       fan::write_to_vector(out, ri.respawn_time);
@@ -3516,6 +3537,8 @@ namespace fan::graphics {
       fan::write_to_vector(out, ri.gap_size);
       fan::write_to_vector(out, ri.max_spread_size);
       fan::write_to_vector(out, ri.size_velocity);
+      fan::write_to_vector(out, ri.turbulence);
+      fan::write_to_vector(out, ri.turbulence_speed);
       fan::write_to_vector(out, ri.shape);
       fan::write_to_vector(out, ri.blending);
       break;
@@ -3643,7 +3666,8 @@ namespace fan::graphics {
       fan::graphics::shapes::particles_t::properties_t p;
       p.position = fan::vector_read_data<decltype(p.position)>(in, offset);
       p.size = fan::vector_read_data<decltype(p.size)>(in, offset);
-      p.color = fan::vector_read_data<decltype(p.color)>(in, offset);
+      p.begin_color = fan::vector_read_data<decltype(p.begin_color)>(in, offset);
+      p.end_color = fan::vector_read_data<decltype(p.end_color)>(in, offset);
       p.begin_time = fan::vector_read_data<decltype(p.begin_time)>(in, offset);
       p.alive_time = fan::vector_read_data<decltype(p.alive_time)>(in, offset);
       p.respawn_time = fan::vector_read_data<decltype(p.respawn_time)>(in, offset);
@@ -3656,6 +3680,8 @@ namespace fan::graphics {
       p.gap_size = fan::vector_read_data<decltype(p.gap_size)>(in, offset);
       p.max_spread_size = fan::vector_read_data<decltype(p.max_spread_size)>(in, offset);
       p.size_velocity = fan::vector_read_data<decltype(p.size_velocity)>(in, offset);
+      p.turbulence = fan::vector_read_data<decltype(p.turbulence)>(in, offset);
+      p.turbulence_speed = fan::vector_read_data<decltype(p.turbulence_speed)>(in, offset);
       p.shape = fan::vector_read_data<decltype(p.shape)>(in, offset);
       p.blending = fan::vector_read_data<decltype(p.blending)>(in, offset);
       *shape = p;
