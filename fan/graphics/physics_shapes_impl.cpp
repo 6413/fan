@@ -763,7 +763,10 @@ namespace fan::graphics::physics {
       f32_t deceleration_factor = 0.3f * dt * 100.f;
       vel.x = fan::math::lerp(vel.x, 0.f, deceleration_factor);
     }
-
+    if (input_dir.y != 0) {
+      vel.y += input_dir.y * accelerate_force * dt * 100.f;
+      vel.y = fan::math::clamp(vel.y, -max_speed, max_speed);
+    }
 
     last_direction = direction;
     body.set_linear_velocity({vel.x, vel.y});
@@ -922,10 +925,9 @@ namespace fan::graphics::physics {
     int8_t facing = (int8_t)fan::math::sgn(sign.x);
     int8_t desired = (int8_t)fan::math::sgn(target_distance.x);
 
-    if (!is_attacking && desired != 0 && facing != desired) {
+    if (attack_requires_facing_target && !is_attacking && desired != 0 && facing != desired) {
       return false;
     }
-
 
     if (can_attack(target_distance)) {
       character->movement_state.update_ai_orientation(*character, target_distance);
