@@ -111,7 +111,7 @@ struct engine_demo_t {
     fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     
     static auto image_background = engine_demo->engine.image_create(fan::color(0.5, 0.5, 0.5, 1));
-    uint32_t lighting_flags = fan::graphics::light_flags_e::additive | fan::graphics::light_flags_e::circle;
+    uint32_t lighting_flags = fan::graphics::sprite_flags_e::additive | fan::graphics::sprite_flags_e::circle;
 
     // bg
     engine_demo->shapes.emplace_back(fan::graphics::sprite_t{{

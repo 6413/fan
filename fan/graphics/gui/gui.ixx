@@ -208,7 +208,7 @@ export namespace fan::graphics::gui {
   };
 
 #if defined(FAN_2D)
-  void shape_properties(const fan::graphics::shape_t& shape);
+  void shape_properties(const fan::graphics::shapes::shape_t& shape);
 #endif
 } // namespace fan::graphics::gui
 
@@ -369,7 +369,8 @@ export namespace fan::graphics::gui {
     fan::graphics::shapes::shape_t particle_shape = fan::graphics::shapes::particles_t::properties_t{
       .position = fan::vec3(32.108f, -1303.084f, 10.0f),
       .size = 28.638f,
-      .color = fan::color::from_rgba(0x33333369),
+      .begin_color = fan::color::from_rgba(0x33333369),
+      .end_color = fan::color::from_rgba(0x33333369),
       .alive_time = 1768368768,
       .count = 1191,
       .position_velocity = fan::vec2(0.0f, 9104.127f),
@@ -508,6 +509,34 @@ export namespace fan::graphics::gui {
     const char* receive_drag_drop_target_name = "CONTENT_BROWSER_ITEMS"
   );
   void render_image_filter_property(fan::graphics::shape_t& shape, const char* label);
+
+  struct window_scope {
+    template <typename... Args>
+    window_scope(Args&&... args)
+      : window(std::forward<Args>(args)...),
+      active(static_cast<bool>(window)) {}
+
+    explicit operator bool() const { return active; }
+
+    fan::graphics::gui::window_t window;
+    bool active;
+  };
+
+  struct hud : window_scope {
+    hud(const std::string& name, bool* p_open = nullptr)
+      : window_scope(
+        (gui::set_next_window_pos(0),
+          gui::set_next_window_size(gui::get_window_size()),
+          name),
+        p_open,
+        gui::window_flags_no_background |
+        gui::window_flags_no_nav |
+        gui::window_flags_no_title_bar |
+        gui::window_flags_override_input
+      ) {}
+  };
+
+
 }
 /*
 template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(
