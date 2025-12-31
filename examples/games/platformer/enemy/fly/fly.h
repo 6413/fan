@@ -14,6 +14,7 @@ struct fly_t : enemy_t<fly_t> {
     body.attack_state.knockback_force = 100.f;
     body.set_gravity_scale(0);
     body.attack_state.attack_range = {80, 25};
+    body.attack_state.attack_requires_facing_target = false;
     ai_behavior.trigger_distance = {500, 300};
     ai_behavior.closeup_distance = {75, 75};
     //fan::print(body.get_gravity_scale());
