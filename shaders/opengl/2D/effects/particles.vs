@@ -16,11 +16,14 @@ uniform float respawn_time;
 uniform float begin_angle;
 uniform float end_angle;
 uniform vec3 angle;
-uniform vec4 color;
+uniform vec4 begin_color;
+uniform vec4 end_color;
 uniform vec2 gap_size;
 uniform vec2 max_spread_size;
 uniform float expansion_power;
 uniform vec2 size_velocity;
+uniform vec2 turbulence;
+uniform float turbulence_speed;
 uniform int shape;
 uniform float time;
 uniform mat4 projection;
@@ -228,6 +231,14 @@ void main(){
   float expansion = pow(time_mod, expansion_power);
   pos += velocity * expansion;
 
+  
+
+  pos += vec2(
+    sin(time_mod * turbulence_speed + float(seed)) * turbulence.x,
+    cos(time_mod * turbulence_speed + float(seed)) * turbulence.y
+  );
+
+
   mat4 m = translate(mat4(1), vec3(pos, 0.0));
   m = rotate(m, angle + time_mod * angle_velocity);
   m = scale(m, vec3(size * (vec2(1.0) + size_velocity * time_mod), 0.0));
@@ -235,6 +246,9 @@ void main(){
   gl_Position = projection * view * m * vec4(rectangle_vertices[gl_VertexID % 6], 0, 1);
   gl_Position.z = 1.0 - (float(modded_index) / 6.0) / float(count);
 
-  i_color = vec4(color.rgb, color.a * (1.0 - time_mod / alive_time));
+  float t = clamp(time_mod / alive_time, 0.0, 1.0);
+  vec4 c = mix(begin_color, end_color, t);
+  i_color = c;
+
   texture_coordinate = tc[gl_VertexID % 6];
 }

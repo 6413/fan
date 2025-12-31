@@ -24,10 +24,16 @@ struct pile_t {
   bool pause = false;
   void update_camera_zoom() {
     fan::vec2 r = engine.window.get_current_monitor_resolution() / fan::vec2(2560, 1440);
-    ic.set_zoom(2.2f * r.max());
+    ic.set_zoom(1.6f * r.max());
   }
   void update() {
-    //update_camera_zoom();
+    static bool force_zoom = true;
+    if (force_zoom) {
+      update_camera_zoom();
+    }
+    if (engine.is_key_pressed(fan::key_q)) {
+      force_zoom = !force_zoom;
+    }
     if (!pause) {
       engine.physics_context.step(engine.delta_time);
       player.update();
@@ -138,6 +144,4 @@ pile_t::pile_t() {
   audio_background = fan::audio::piece_t("audio/background.sac");
   fan::audio::set_volume(0.0f);
   fan::audio::play(audio_background, 0, true);
-
-
 }

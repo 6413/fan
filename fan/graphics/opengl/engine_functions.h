@@ -1024,11 +1024,14 @@ void shapes_draw() {
           loco.shader_set_value(shader, "begin_angle", ri.begin_angle);
           loco.shader_set_value(shader, "end_angle", ri.end_angle);
           loco.shader_set_value(shader, "angle", ri.angle);
-          loco.shader_set_value(shader, "color", ri.color);
+          loco.shader_set_value(shader, "begin_color", ri.begin_color);
+          loco.shader_set_value(shader, "end_color", ri.end_color);
           loco.shader_set_value(shader, "gap_size", ri.gap_size);
           loco.shader_set_value(shader, "expansion_power", ri.expansion_power);
           loco.shader_set_value(shader, "max_spread_size", ri.max_spread_size);
           loco.shader_set_value(shader, "size_velocity", ri.size_velocity);
+          loco.shader_set_value(shader, "turbulence", ri.turbulence);
+          loco.shader_set_value(shader, "turbulence_speed", ri.turbulence_speed);
           loco.shader_set_value(shader, "shape", ri.shape);
 
           fan_opengl_call(glDrawArrays(GL_TRIANGLES, 0, 6 * ri.count));

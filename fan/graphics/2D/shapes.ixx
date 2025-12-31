@@ -189,13 +189,14 @@ export namespace fan::graphics {
 #endif
   //-----------------------sprite sheet animations-----------------------
 
-  struct light_flags_e {
+  struct sprite_flags_e {
     enum {
       circle = 0,
       square = 1 << 0,
       lava = 1 << 1, // does this belong here
       additive = 1 << 2,
       multiplicative = 1 << 3,
+      use_hsl = 1 << 4
     };
   };
 
@@ -762,7 +763,7 @@ export namespace fan::graphics {
         fan::vec2 rotation_point = 0;
         fan::color color = fan::colors::white;
         fan::vec3 angle = fan::vec3(0);
-        uint32_t flags = light_flags_e::circle | light_flags_e::multiplicative;
+        uint32_t flags = sprite_flags_e::circle | sprite_flags_e::multiplicative;
         fan::vec2 tc_position = 0;
         fan::vec2 tc_size = 1;
         f32_t seed = 0;
@@ -1166,7 +1167,8 @@ export namespace fan::graphics {
 
         fan::vec3 position;
         fan::vec2 size;
-        fan::color color;
+        fan::color begin_color;
+        fan::color end_color;
 
         uint64_t begin_time;
         f32_t alive_time;
@@ -1183,6 +1185,8 @@ export namespace fan::graphics {
         f32_t expansion_power;
         fan::vec2 max_spread_size;
         fan::vec2 size_velocity;
+        fan::vec2 turbulence;
+        f32_t turbulence_speed;
 
         uint32_t shape;
 
@@ -1199,7 +1203,8 @@ export namespace fan::graphics {
 
         fan::vec3 position = 0;
         fan::vec2 size = 100;
-        fan::color color = fan::colors::white;
+        fan::color begin_color = fan::colors::white;
+        fan::color end_color = fan::colors::white;
 
         uint64_t begin_time = fan::time::now();
         f32_t alive_time = 1;
@@ -1215,6 +1220,8 @@ export namespace fan::graphics {
         fan::vec2 max_spread_size = 100;
         f32_t expansion_power = 1.0f;
         fan::vec2 size_velocity = 1;
+        fan::vec2 turbulence = 0;
+        f32_t turbulence_speed = 0.0;
 
         uint32_t shape = shapes_e::circle;
 

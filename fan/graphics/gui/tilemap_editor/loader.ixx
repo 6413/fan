@@ -95,10 +95,16 @@ export struct tilemap_loader_t {
 
 #include <fan/fan_bll_preset.h>
 
+  struct light_with_id_t {
+    std::string id;
+    fan::graphics::shape_t shape;
+  };
+
   struct map_list_data_t {
     compiled_map_t* compiled_map;
     std::unordered_map<fan::vec3i, tile_draw_data_t, vec3i_hasher> rendered_tiles;
-    std::vector<fan::graphics::shape_t> lights;
+
+    std::vector<light_with_id_t> lights;
     std::unordered_map<std::string, tile_draw_data_t*> id_to_shape;
     struct physics_entities_t {
       std::variant<

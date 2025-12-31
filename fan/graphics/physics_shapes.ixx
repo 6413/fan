@@ -166,7 +166,7 @@ export namespace fan {
           std::array<fan::graphics::image_t, 30> images;
           f32_t parallax_factor = 0;
           bool blending = true;
-          uint32_t flags = light_flags_e::circle | light_flags_e::multiplicative;
+          uint32_t flags = sprite_flags_e::circle | sprite_flags_e::multiplicative;
           operator fan::graphics::sprite_properties_t() const {
             return fan::graphics::sprite_properties_t{
               .render_view = render_view,
@@ -236,7 +236,7 @@ export namespace fan {
           fan::graphics::image_t image = fan::graphics::get_default_texture();
           fan::color color = fan::color(1, 1, 1, 1);
           bool blending = true;
-          uint32_t flags = light_flags_e::circle | light_flags_e::multiplicative;
+          uint32_t flags = sprite_flags_e::circle | sprite_flags_e::multiplicative;
           operator fan::graphics::sprite_properties_t() const {
             return fan::graphics::sprite_properties_t{
               .render_view = render_view,
@@ -314,7 +314,7 @@ export namespace fan {
           std::array<fan::graphics::image_t, 30> images;
           f32_t parallax_factor = 0;
           bool blending = true;
-          uint32_t flags = light_flags_e::circle | light_flags_e::multiplicative;
+          uint32_t flags = sprite_flags_e::circle | sprite_flags_e::multiplicative;
 
           uint8_t body_type = fan::physics::body_type_e::static_body;
           mass_data_t mass_data;
