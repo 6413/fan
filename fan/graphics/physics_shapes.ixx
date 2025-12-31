@@ -505,7 +505,7 @@ export namespace fan {
 
         f32_t cooldown_duration = 0.5e9;
         fan::time::timer cooldown_timer {cooldown_duration, true};
-
+        bool attack_requires_facing_target = true;
         bool took_damage = false;
         bool stun = true;
         character2d_t* target = nullptr; // TODOOO REMOVE

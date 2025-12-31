@@ -162,6 +162,10 @@ struct player_t {
   }
 
   void update() {
+    static f32_t v = 0;
+    v += pile->engine.delta_time * 100.f;
+    body.set_color(fan::color::hsl(v, 18.3f, -58.4f));
+
     player_light.set_position(body.get_center());
     if (pile->get_level().is_entering_door) {
       static f32_t moved = body.get_position().x;
@@ -232,7 +236,7 @@ struct player_t {
 
   fan::graphics::engine_t::key_handle_t key_click_handles[10];
 
-  int current_checkpoint = 1;
+  int current_checkpoint = 0;
   
   uint16_t potion_count = 10;
   fan::time::timer potion_consume_timer {0.1e9, true};
