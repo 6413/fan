@@ -27,7 +27,7 @@ struct pile_t {
     ic.set_zoom(1.6f * r.max());
   }
   void update() {
-    static bool force_zoom = true;
+    static bool force_zoom = false;
     if (force_zoom) {
       update_camera_zoom();
     }

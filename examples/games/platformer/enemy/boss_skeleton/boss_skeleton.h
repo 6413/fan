@@ -72,7 +72,6 @@ struct boss_skeleton_t : boss_t<boss_skeleton_t> {
     const fan::vec2& target_pos
   ) {
     auto& body = node.body;
-
     if (body.get_health() < body.get_max_health() / 2.f && !node.second_phase) {
       node.second_phase = true;
       node.task_pulse_red = node.pulse_red.animate([&body](auto c) {
@@ -137,12 +136,9 @@ private:
     fan::graphics::physics::character2d_t& body,
     const fan::vec2& distance
   ) {
-    if (body.attack_state.is_attacking) { return;}
-    fan::vec2 sign = body.get_image_sign();
+    if (body.attack_state.is_attacking) { return; }
     int desired = (distance.x > 0.f) ? 1 : -1;
-    if ((int)fan::math::sgn(sign.x) != desired) {
-      body.set_image_sign({(f32_t)desired, sign.y});
-    }
+    body.movement_state.desired_facing.x = desired;
   }
 
   void perform_backstep(const fan::vec2& distance) {

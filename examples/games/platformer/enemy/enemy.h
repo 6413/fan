@@ -20,7 +20,7 @@ struct enemy_t : enemy_base_t {
   fan::vec2 closeup_distance = {150, 100};
   //TODO use collision mask for player and entities
   std::vector<int> attack_hitbox_frames;
-  f32_t density = 4.f;
+  f32_t density = 1.f;
 
   enemy_t() {}
   enemy_t(const enemy_t& other) 
