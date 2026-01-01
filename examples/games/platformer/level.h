@@ -249,12 +249,21 @@ void load_map() {
     else if (id.contains("boss_elevator")) {
       fan::graphics::image_t image = fan::graphics::image_load("images/cage.png", fan::graphics::image_presets::pixel_art());
       fan::vec3 v = data.position;
-      v.y += 26.f;
+      static constexpr f32_t elevator_landing_offset_y = 43.f;
+      v.y += elevator_landing_offset_y;
 
       fan::vec2 start_pos = fan::vec2(v.x, v.y - 1024.f);
       fan::vec2 end_pos = fan::vec2(v.x, v.y);
       f32_t elevator_duration = 10.f;
-      cage_elevator.init(fan::graphics::sprite_t(fan::vec3(start_pos, v.z + 1), image.get_size() * 2.0f, image), start_pos, end_pos, elevator_duration);
+      cage_elevator.init(fan::graphics::sprite_t(fan::vec3(start_pos, v.z + 1), image.get_size() * 1.5f, image), start_pos, end_pos, elevator_duration);
+      fan::vec3 pos = cage_elevator.visual.get_position();
+      fan::vec2 size = cage_elevator.visual.get_size();
+      fan::graphics::image_t chain_image("images/chain.png");
+      cage_elevator_chain = fan::graphics::sprite_t(pos.offset_y(-size.y).offset_z(-1), fan::vec2(32, 512), chain_image);
+      cage_elevator_chain.set_dynamic();
+      size = cage_elevator_chain.get_size();
+      cage_elevator_chain.set_tc_size(fan::vec2(1.f, size.y / chain_image.get_size().y));
+
       cage_elevator.on_end_cb = [pos = data.position, this] {
         fan::vec3 v = pos;
         fan::vec2 start_pos = fan::vec2(v.x, v.y);
@@ -355,6 +364,7 @@ void reload_map() {
 }
 
 fan::graphics::physics::elevator_t cage_elevator;
+fan::graphics::sprite_t cage_elevator_chain;
 bool send_elevator_down_initially = true;
 
 void update() {
@@ -363,7 +373,12 @@ void update() {
     send_elevator_down_initially = false;
   }
 
-  cage_elevator.update(pile->player.body);
+  {
+    cage_elevator.update(pile->player.body);
+    fan::vec2 pos = cage_elevator.visual.get_position();
+    fan::vec2 size = cage_elevator.visual.get_size();
+    cage_elevator_chain.set_position(fan::vec2(pos.x, pos.y - size.y - cage_elevator_chain.get_size().y));
+  }
 
   for (auto [i, lamp] : fan::enumerate(lamp_sprites)) {
     if (i < lights.size()) {

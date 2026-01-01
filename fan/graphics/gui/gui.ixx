@@ -501,7 +501,7 @@ export namespace fan::graphics::gui {
   void text_partial_render(const std::string& text, size_t render_pos, f32_t wrap_width, f32_t line_spacing = 0);
 
   void render_texture_property(
-    fan::graphics::shape_t& shape,
+    fan::graphics::shapes::shape_t& shape,
     int index,
     const char* label,
     const std::wstring& asset_path = L"./",

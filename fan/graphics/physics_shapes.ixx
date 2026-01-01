@@ -484,6 +484,7 @@ export namespace fan {
         uint8_t type = movement_e::side_view;
         jump_state_t jump_state;
         fan::vec2 last_direction = 0;
+        fan::vec2 desired_facing = {1, 0};
         bool ignore_input = false;
         bool enabled = false;
         bool check_gui = true;

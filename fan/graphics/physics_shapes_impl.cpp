@@ -779,6 +779,9 @@ namespace fan::graphics::physics {
       * (check_gui ? !fan::graphics::gui::want_io() : 1)
     #endif
     ;
+
+    last_direction = direction;
+
     fan::vec2 vel = body.get_linear_velocity();
     f32_t dt = fan::physics::default_physics_timestep;
 
@@ -792,7 +795,6 @@ namespace fan::graphics::physics {
     }
 
     body.set_linear_velocity({vel.x, vel.y});
-    last_direction = direction;
   }
 
   void movement_state_t::update_ai_orientation(character2d_t& c, const fan::vec2& target_distance) {
@@ -1096,30 +1098,27 @@ namespace fan::graphics::physics {
   }
 
   void animation_controller_t::update_animation(character2d_t* character) {
-    fan::vec2 vel = character->get_linear_velocity();
     fan::vec2 sign = character->get_image_sign();
-
     fan::vec2 dir = character->movement_state.last_direction;
 
     if (dir.x > 0) {
       if (sign.x < 0) character->set_image_sign({1, sign.y});
+      character->movement_state.desired_facing.x = 1;
       return;
     }
     if (dir.x < 0) {
       if (sign.x > 0) character->set_image_sign({-1, sign.y});
+      character->movement_state.desired_facing.x = -1;
       return;
     }
-
-    if (vel.x > 5.0f && sign.x < 0) {
-      character->set_image_sign({1, sign.y});
-    }
-    else if (vel.x < -5.0f && sign.x > 0) {
-      character->set_image_sign({-1, sign.y});
+  
+    if (character->movement_state.desired_facing.x != 0) {
+      int desired = (int)fan::math::sgn(character->movement_state.desired_facing.x);
+      if ((int)fan::math::sgn(sign.x) != desired) {
+        character->set_image_sign({(f32_t)desired, sign.y});
+      }
     }
   }
-
-
-
 
   //------------------------------------------------------------------------------------------------
   //------------------------------------------------------------------------------------------------

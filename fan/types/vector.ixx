@@ -282,6 +282,17 @@ export namespace fan {
       return x * b.y - y * b.x;
     }
 
+    constexpr vec2_wrap_t offset_x(value_type_t dx) const {
+      return { x + dx, y };
+    }
+    constexpr vec2_wrap_t offset_y(value_type_t dy) const {
+      return { x, y + dy };
+    }
+    constexpr vec2_wrap_t offset(value_type_t dx, value_type_t dy) const {
+      return { x + dx, y + dy };
+    }
+
+
   #if defined(fan_compile_component_functions)
     generate_vec_component_functions(2);
   #endif
@@ -326,6 +337,20 @@ export namespace fan {
     vec3_wrap_t<T> lerp(const vec3_wrap_t<T>& dst, T t) const {
       return { x + t * (dst.x - x), y + t * (dst.y - y), z + t * (dst.z - z) };
     }
+
+    constexpr vec3_wrap_t offset_x(value_type_t dx) const {
+      return { x + dx, y, z };
+    }
+    constexpr vec3_wrap_t offset_y(value_type_t dy) const {
+      return { x, y + dy, z };
+    }
+    constexpr vec3_wrap_t offset_z(value_type_t dz) const {
+      return { x, y, z + dz };
+    }
+    constexpr vec3_wrap_t offset(value_type_t dx, value_type_t dy, value_type_t dz) const {
+      return { x + dx, y + dy, z + dz };
+    }
+
 
   #if defined(fan_compile_component_functions)
     generate_vec_component_functions(3);

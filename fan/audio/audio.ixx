@@ -31,6 +31,7 @@ module;
 #include <source_location>
 #include <type_traits>
 
+
 #if fan_audio_set_backend == 0
   #include <xaudio2.h>
 #elif fan_audio_set_backend == 1
@@ -47,6 +48,7 @@ import fan.print;
 import fan.utility;
 import fan.io.file;
 import fan.math;
+
 
 export namespace fan {
   struct system_audio_t {
