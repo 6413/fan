@@ -270,7 +270,7 @@ export namespace fan {
     vec2_wrap_t<T> get_corner(const vec2_wrap_t<T>& a) { return {a.x, y}; }
 
     template <typename T>
-    vec2_wrap_t<T> lerp(const vec2_wrap_t<T>& dst, T t) {
+    vec2_wrap_t<T> lerp(const vec2_wrap_t<T>& dst, T t) const {
       return { x + t * (dst.x - x), y + t * (dst.y - y) };
     }
 
@@ -323,7 +323,7 @@ export namespace fan {
     }
 
     template <typename T>
-    vec3_wrap_t<T> lerp(const vec3_wrap_t<T>& dst, T t) {
+    vec3_wrap_t<T> lerp(const vec3_wrap_t<T>& dst, T t) const {
       return { x + t * (dst.x - x), y + t * (dst.y - y), z + t * (dst.z - z) };
     }
 
