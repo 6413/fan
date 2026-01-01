@@ -131,15 +131,6 @@ export global_loco_t& gloco() {
   return loco;
 }
 
-struct next_frame_awaiter {
-  bool await_ready() const noexcept { return false; }
-  void await_suspend(std::coroutine_handle<> handle) {
-    pending.push_back(handle);
-  }
-  void await_resume() const noexcept {}
-  static inline std::vector<std::coroutine_handle<>> pending;
-};
-
 
 export namespace fan::graphics {
 	struct engine_init_t {
@@ -160,10 +151,6 @@ export namespace fan::graphics {
 	engine_init_t::init_callback_t engine_init_cbs;
 
 	std::uint32_t get_draw_mode(std::uint8_t internal_draw_mode);
-
-  next_frame_awaiter co_next_frame() {
-    return {};
-  }
 }
 
 export struct loco_t {
@@ -705,49 +692,4 @@ export namespace fan::graphics {
   void shader_set_value(fan::graphics::shader_nr_t nr, const std::string& name, const T& val) {
     gloco()->shader_set_value<T>(nr, name, val);
   }
-}
-
-
-export namespace fan {
-  struct color_transition_t {
-    ~color_transition_t() {
-      loop = false;
-    }
-    fan::color from, to;
-    f32_t duration;
-    f32_t phase_offset = 0.0f;
-    std::function<void()> on_complete = {};
-    bool loop;
-
-    enum class ease_e { 
-      linear, 
-      sine,      // smooth in/out
-      pulse,     // ping-pong
-      ease_in,   // slow start
-      ease_out   // slow end
-    } easing = ease_e::sine;
-
-    fan::event::task_t animate(std::function<void(fan::color)> callback);
-  };
-  struct auto_color_transition_t {
-    fan::event::task_t task;
-    fan::color_transition_t transition;
-    std::function<void(fan::color)> callback;
-    bool active = false;
-
-    void start(const fan::color& from, const fan::color& to,
-      f32_t duration, std::function<void(fan::color)> cb);
-
-    void start_once(
-      const fan::color& from,
-      const fan::color& to,
-      f32_t duration,
-      std::function<void(fan::color)> cb,
-      std::function<void()> on_complete = {}
-    );
-    void stop(const fan::color& reset_to);
-  };
-
-  color_transition_t pulse_red(f32_t duration = 1.f);
-  color_transition_t fade_out(f32_t duration = 0.5f);
 }

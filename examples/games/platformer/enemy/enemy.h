@@ -23,19 +23,37 @@ struct enemy_t : enemy_base_t {
   f32_t density = 4.f;
 
   enemy_t() {}
+  enemy_t(const enemy_t& other) 
+    : draw_offset(other.draw_offset),
+    aabb_scale(other.aabb_scale),
+    trigger_distance(other.trigger_distance),
+    closeup_distance(other.closeup_distance),
+    attack_hitbox_frames(other.attack_hitbox_frames),
+    density(other.density),
+    body(other.body),
+    attack_hitbox(other.attack_hitbox),
+    ai_behavior(other.ai_behavior),
+    navigation(other.navigation),
+    physics_step_nr(other.physics_step_nr),
+    initial_position(other.initial_position),
+    audio_attack(other.audio_attack),
+    audio_player_hits_enemy(other.audio_player_hits_enemy)
+  {
+    body.set_draw_offset(draw_offset);
+  }
   template<typename container_t>
   void open(container_t& bll, typename container_t::nr_t nr, const std::string& path, const std::source_location& caller_path = std::source_location::current()) {
 
     body = fan::graphics::physics::character2d_t::from_json({
       .json_path = path,
       .aabb_scale = aabb_scale,
-      .draw_offset_override = draw_offset,
       .attack_cb = [&bll, nr](auto& c){ 
         return std::visit([&c](auto& e) { return e.should_attack(c); }, bll[nr]); 
       },
       .physics_properties={.density=density, .fixed_rotation=true, .linear_damping=2.0f}
     }, caller_path);
 
+    body.set_draw_offset(draw_offset);
     body.set_dynamic();
 
     body.set_jump_height(75.f * density);
@@ -47,27 +65,23 @@ struct enemy_t : enemy_base_t {
     ai_behavior.closeup_distance = closeup_distance;
 
     if (attack_hitbox_frames.size()) {
-      attack_hitbox.setup({
-        .spawns = {{
-          .frame = attack_hitbox_frames[0],
+      std::vector<fan::graphics::physics::attack_hitbox_t::hitbox_spawn_t> spawns;
+  
+      for (size_t i = 0; i < attack_hitbox_frames.size(); ++i) {
+        spawns.push_back({
+          .frame = attack_hitbox_frames[i],
           .create_hitbox = [](const fan::vec2& center, f32_t direction){
             fan::vec2 offset = fan::vec2(50.f * direction, 0);
             return pile->engine.physics_context.create_box(
               center + offset, fan::vec2(60, 40), 0,
               fan::physics::body_type_e::static_body, {.is_sensor = true}
             );
-          }},
-          {
-            .frame = attack_hitbox_frames[1],
-            .create_hitbox = [](const fan::vec2& center, f32_t direction){
-              fan::vec2 offset = fan::vec2(50.f * direction, 0);
-              return pile->engine.physics_context.create_box(
-                center + offset, fan::vec2(60, 40), 0,
-                fan::physics::body_type_e::static_body, {.is_sensor = true}
-              );
-            }
           }
-        },
+        });
+      }
+  
+      attack_hitbox.setup({
+        .spawns = spawns,
         .attack_animation = "attack0",
         .track_hit_targets = false
       });
@@ -108,6 +122,7 @@ struct enemy_t : enemy_base_t {
         }
       }, bll[nr]);
     });
+    
   }
   bool should_attack(fan::graphics::physics::character2d_t& c) override {
     fan::vec2 distance = ai_behavior.get_target_distance(c.get_physics_position());

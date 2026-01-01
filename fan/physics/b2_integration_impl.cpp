@@ -10,6 +10,7 @@ module;
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
+#include <array>
 
 module fan.physics.b2_integration;
 
@@ -1045,6 +1046,40 @@ namespace fan::physics {
       return false;
     }
     return true;
+  }
+  std::array<fan::physics::entity_t, 4> create_stroked_rectangle(
+    const fan::vec2& center_position,
+    const fan::vec2& half_size,
+    f32_t thickness,
+    uint8_t body_type,
+    std::array<fan::physics::shape_properties_t, 4> shape_properties
+  ){
+    std::array<fan::physics::entity_t, 4> walls;
+
+    std::array<fan::vec2, 4> positions {{
+        fan::vec2(center_position.x, center_position.y - half_size.y),
+        fan::vec2(center_position.x, center_position.y + half_size.y),
+        fan::vec2(center_position.x - half_size.x, center_position.y),
+        fan::vec2(center_position.x + half_size.x, center_position.y)
+      }};
+
+    std::array<fan::vec2, 4> sizes {{
+        fan::vec2(half_size.x, thickness),
+        fan::vec2(half_size.x, thickness),
+        fan::vec2(thickness, half_size.y),
+        fan::vec2(thickness, half_size.y)
+      }};
+
+    for (uint32_t i = 0; i < 4; i++) {
+      walls[i] = fan::physics::gphysics()->create_rectangle(
+        positions[i],
+        sizes[i],
+        0.0f,
+        body_type,
+        shape_properties[i]
+      );
+    }
+    return walls;
   }
 }
 #endif

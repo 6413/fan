@@ -130,16 +130,15 @@ void start_lights(uint32_t index) {
 
   light_lights[index] = fan::auto_color_transition_t{};
   add_light_particles(this, index);
-
+  light_lights[index].on_end = [this, index] {
+    start_lights(index + 1);
+  };
   light_lights[index].start_once(
     lights_boss[index].get_color(),
     target_color,
     1.0f,
     [this, index](fan::color c) {
       lights_boss[index].set_color(c);
-    },
-    [this, index] {
-      start_lights(index + 1);
     }
   );
 }
@@ -235,7 +234,7 @@ void load_map() {
         .size = 512
       }});
     }
-    if (id.contains("lamp2")) {
+    else if (id.contains("lamp2")) {
       //boss_torch_particles.emplace_back(torch_particles);
       //auto& l = boss_torch_particles.back();
       //l.start_particles();
@@ -246,6 +245,24 @@ void load_map() {
         .size = 512,
         .color = fan::colors::black,
       }});
+    }
+    else if (id.contains("boss_elevator")) {
+      fan::graphics::image_t image = fan::graphics::image_load("images/cage.png", fan::graphics::image_presets::pixel_art());
+      fan::vec3 v = data.position;
+      v.y += 26.f;
+
+      fan::vec2 start_pos = fan::vec2(v.x, v.y - 1024.f);
+      fan::vec2 end_pos = fan::vec2(v.x, v.y);
+      f32_t elevator_duration = 10.f;
+      cage_elevator.init(fan::graphics::sprite_t(fan::vec3(start_pos, v.z + 1), image.get_size() * 2.0f, image), start_pos, end_pos, elevator_duration);
+      cage_elevator.on_end_cb = [pos = data.position, this] {
+        fan::vec3 v = pos;
+        fan::vec2 start_pos = fan::vec2(v.x, v.y);
+        fan::vec2 end_pos = fan::vec2(v.x, v.y - 5000.f);
+        cage_elevator.start_position = start_pos;
+        cage_elevator.end_position = end_pos;
+        cage_elevator.going_up = true;
+      };
     }
     return false; // continue iterating all instances
   });
@@ -312,6 +329,7 @@ void open(void* sod) {
 }
 
 void close() {
+  cage_elevator.destroy();
   if (boss_door_collision) {
     boss_door_collision.destroy();
   }
@@ -336,7 +354,17 @@ void reload_map() {
   //                          ^ 'this' has been erased by erase stage, so query new pointer from get_level
 }
 
+fan::graphics::physics::elevator_t cage_elevator;
+bool send_elevator_down_initially = true;
+
 void update() {
+  if (is_boss_dead && send_elevator_down_initially) {
+    cage_elevator.start();
+    send_elevator_down_initially = false;
+  }
+
+  cage_elevator.update(pile->player.body);
+
   for (auto [i, lamp] : fan::enumerate(lamp_sprites)) {
     if (i < lights.size()) {
       auto tc_center = lamp.get_tc_position() + lamp.get_tc_size() * 0.5f;
@@ -454,7 +482,6 @@ struct checkpoint_t {
   fan::physics::entity_t entity;
 };
 
-
 std::vector<checkpoint_t> player_checkpoints;
 
 std::vector<fan::graphics::sprite_t> lamp_sprites;
@@ -474,3 +501,4 @@ fan::audio::piece_t
 
 
 bool is_entering_door = false;
+bool is_boss_dead = false;

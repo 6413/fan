@@ -15,6 +15,7 @@ module;
 #include <vector>
 #include <algorithm>
 #include <functional>
+#include <coroutine>
 
 #endif
 
@@ -414,6 +415,7 @@ export namespace fan {
         const fan::vec2& half_size,
         f32_t thickness,
         const fan::color& wall_color = fan::color::from_rgba(0x6e8d6eff),
+        uint8_t body_type = fan::physics::body_type_e::static_body,
         std::array<fan::physics::shape_properties_t, 4> shape_properties = { {
           {.friction = 0  },
           {.friction = 0.6},
@@ -425,6 +427,7 @@ export namespace fan {
         const fan::vec2& bounds,
         f32_t thickness,
         const fan::color& wall_color = fan::color::from_rgba(0x6e8d6eff),
+        uint8_t body_type = fan::physics::body_type_e::static_body,
         std::array<fan::physics::shape_properties_t, 4> shape_properties = { {
           {.friction = 0  },  // top
           {.friction = 0.6},  // bottom
@@ -594,8 +597,6 @@ export namespace fan {
         struct character_config_t {
           std::string json_path;
           f32_t aabb_scale = 1.0f;
-          fan::vec2 draw_offset_override = {0,0};
-          bool auto_draw_offset = true;
           bool auto_animations = true;
           std::function<bool(character2d_t&)> attack_cb;
           fan::physics::shape_properties_t physics_properties = {.fixed_rotation = true};
@@ -874,6 +875,38 @@ export namespace fan::graphics::physics {
 export namespace fan::graphics {
   void camera_look_at(fan::graphics::camera_nr_t nr, const fan::graphics::physics::character2d_t& target, f32_t move_speed);
   void camera_look_at(const fan::graphics::physics::character2d_t& target, f32_t move_speed);
+}
+
+// dynamic object helpers
+export namespace fan::graphics::physics {
+
+  struct elevator_t {
+
+    void init(const fan::graphics::sprite_t& elevator_sprite, const fan::vec2& start_pos, const fan::vec2& end_pos, f32_t duration);
+    void create_trigger_sensor();
+    void create_elevator_box();
+
+    void start();
+
+    void update_positions(const fan::vec2& pos);
+    void update(const fan::physics::entity_t& sensor_triggerer);
+
+    void destroy();
+
+    fan::graphics::sprite_t visual;
+    fan::physics::entity_t trigger_sensor;
+    std::array<fan::physics::entity_t, 4> walls;
+    fan::auto_vec2_transition_t movement;
+    fan::vec2 start_position;
+    fan::vec2 end_position;
+    fan::vec2 last_position;
+    fan::vec2 current_velocity;
+    std::function<void()> on_end_cb = []{};
+    f32_t duration = 1.f;
+    bool is_active = false;
+    bool walls_created = false;
+    bool going_up = true;
+  };
 }
 
 #endif

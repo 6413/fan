@@ -1,6 +1,10 @@
 struct boss_skeleton_t : boss_t<boss_skeleton_t> {
   boss_skeleton_t() = default;
-
+  ~boss_skeleton_t() {
+    if (body.get_health() <= 0) {
+      pile->get_level().is_boss_dead = true;
+    }
+  }
   template<typename container_t>
   boss_skeleton_t(container_t& bll, typename container_t::nr_t nr, const fan::vec2& position) {
     draw_offset = {0, -135};
@@ -12,7 +16,7 @@ struct boss_skeleton_t : boss_t<boss_skeleton_t> {
     open(bll, nr, "boss_skeleton.json");
     set_initial_position(position);
 
-    body.set_max_health(200.f);
+    body.set_max_health(10.f);
     body.set_health(body.get_max_health());
     body.attack_state.attack_range = {closeup_distance.x + 50, 200};
     body.movement_state.max_speed = 350.f;
@@ -166,7 +170,7 @@ private:
     }
   }
 
-  fan::color_transition_t pulse_red = fan::pulse_red();
+  fan::auto_color_transition_t pulse_red = fan::pulse_red();
   fan::event::task_t task_pulse_red;
   fan::time::timer idle_movement_timer;
   fan::time::timer backstep_timer;

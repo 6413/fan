@@ -1127,6 +1127,159 @@ export namespace fan::event {
 
 #if defined(FAN_2D)
 
+
+export namespace fan {
+
+  enum class ease_e {
+    linear,
+    sine,
+    pulse,
+    ease_in,
+    ease_out
+  };
+
+  f32_t apply_ease(ease_e easing, f32_t t);
+
+  template <typename T>
+  struct transition_t {
+    ~transition_t() {
+      loop = false;
+    }
+
+    fan::event::task_t animate(std::function<void(const T&)> callback) {
+      if (on_start) {
+        on_start();
+      }
+
+      f32_t elapsed = 0.f;
+
+      do {
+        while (elapsed < duration) {
+          f32_t t = fmod((elapsed / duration) + phase_offset, 1.f);
+          t = fan::apply_ease(easing, t);
+          callback(lerp(from, to, t));
+          co_await fan::graphics::co_next_frame();
+          elapsed += fan::graphics::get_window().m_delta_time;
+        }
+
+        elapsed = 0.f;
+        co_await fan::graphics::co_next_frame();
+      } while (loop);
+
+      callback(to);
+
+      if (on_end) {
+        on_end();
+      }
+    }
+
+    T from;
+    T to;
+    f32_t duration;
+    f32_t phase_offset = 0.f;
+    std::function<T(const T&, const T&, f32_t)> lerp;
+    std::function<void()> on_start = {};
+    std::function<void()> on_end = {};
+    bool loop = false;
+    ease_e easing = ease_e::sine;
+  };
+
+  template <typename T>
+  struct auto_transition_t : transition_t<T> {
+    using base_t = transition_t<T>;
+    fan::event::task_t task;
+    std::function<void(const T&)> callback;
+    bool active = false;
+
+    void setup_lerp() {
+      if constexpr (requires (T a, T b, f32_t t) { a.lerp(b, t); }) {
+        base_t::lerp = [](const T& a, const T& b, f32_t t) {
+          return a.lerp(b, t);
+        };
+      }
+      else {
+        base_t::lerp = [](const T& a, const T& b, f32_t t) {
+          return a + (b - a) * t;
+        };
+      }
+    }
+
+    void start(
+      const T& from,
+      const T& to,
+      f32_t duration,
+      std::function<void(const T&)> cb,
+      ease_e easing = ease_e::pulse
+    ) {
+      if (active) {
+        return;
+      }
+
+      base_t::from = from;
+      base_t::to = to;
+      base_t::duration = duration;
+      base_t::phase_offset = fan::random::value(0.f, 1.f);
+      base_t::loop = true;
+      base_t::easing = easing;
+
+      setup_lerp();
+
+      callback = cb;
+      task = base_t::animate(callback);
+      active = true;
+    }
+
+    void start_once(
+      const T& from,
+      const T& to,
+      f32_t duration,
+      std::function<void(const T&)> cb
+    ) {
+      if (active) {
+        return;
+      }
+
+      base_t::from = from;
+      base_t::to = to;
+      base_t::duration = duration;
+      base_t::phase_offset = 0.f;
+      base_t::loop = false;
+      base_t::easing = ease_e::linear;
+
+      setup_lerp();
+
+      callback = cb;
+      task = base_t::animate(callback);
+      active = true;
+    }
+
+    void stop(const T& reset_to) {
+      if (!active) {
+        return;
+      }
+
+      task = {};
+      callback(reset_to);
+      active = false;
+    }
+
+    fan::event::task_t animate(std::function<void(const T&)> cb) {
+      return base_t::animate(cb);
+    }
+  };
+
+  using color_transition_t = transition_t<fan::color>;
+  using auto_color_transition_t = auto_transition_t<fan::color>;
+  using vec2_transition_t = transition_t<fan::vec2>;
+  using auto_vec2_transition_t = auto_transition_t<fan::vec2>;
+
+  auto_color_transition_t pulse_red(f32_t duration = 1.f);
+  color_transition_t fade_out(f32_t duration);
+  vec2_transition_t move_linear(const fan::vec2& from, const fan::vec2& to, f32_t duration);
+  vec2_transition_t move_pingpong(const fan::vec2& from, const fan::vec2& to, f32_t duration);
+
+}
+
 // graphics awaiters
 export namespace fan::graphics {
   struct animation_frame_awaiter : fan::event::callback_awaiter<animation_frame_awaiter> {
