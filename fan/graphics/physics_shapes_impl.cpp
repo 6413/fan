@@ -13,6 +13,7 @@ module;
   #include <string>
   #include <cstring>
   #include <source_location>
+  #include <coroutine>
 
 #endif
 
@@ -667,49 +668,47 @@ namespace fan::graphics::physics {
     const fan::vec2& half_size,
     f32_t thickness,
     const fan::color& wall_color,
+    uint8_t body_type,
     std::array<fan::physics::shape_properties_t, 4> shape_properties
-  ) {
+  ){
     std::array<fan::graphics::physics::rectangle_t, 4> walls;
-    const fan::color wall_outline = wall_color * 2;
-    // top
-    walls[0] = fan::graphics::physics::rectangle_t {{
-        .position = fan::vec2(center_position.x, center_position.y - half_size.y),
-        .size = fan::vec2(half_size.x * 2, thickness),
-        .color = wall_color,
-        .outline_color = wall_outline,
-        .shape_properties = shape_properties[0]
+    const fan::color outline = wall_color * 2;
+
+    std::array<fan::vec2, 4> positions {{
+        fan::vec2(center_position.x, center_position.y - half_size.y),
+        fan::vec2(center_position.x, center_position.y + half_size.y),
+        fan::vec2(center_position.x - half_size.x, center_position.y),
+        fan::vec2(center_position.x + half_size.x, center_position.y)
       }};
-    // bottom
-    walls[1] = fan::graphics::physics::rectangle_t {{
-        .position = fan::vec2(center_position.x, center_position.y + half_size.y),
-        .size = fan::vec2(half_size.x * 2, thickness),
-        .color = wall_color,
-        .outline_color = wall_color,
-        .shape_properties = shape_properties[1]
+
+    std::array<fan::vec2, 4> sizes {{
+        fan::vec2(half_size.x, thickness),
+        fan::vec2(half_size.x, thickness),
+        fan::vec2(thickness, half_size.y),
+        fan::vec2(thickness, half_size.y)
       }};
-    // left
-    walls[2] = fan::graphics::physics::rectangle_t {{
-        .position = fan::vec2(center_position.x - half_size.x, center_position.y),
-        .size = fan::vec2(thickness, half_size.y * 2),
-        .color = wall_color,
-        .outline_color = wall_outline,
-        .shape_properties = shape_properties[2]
-      }};
-    // right
-    walls[3] = fan::graphics::physics::rectangle_t {{
-        .position = fan::vec2(center_position.x + half_size.x, center_position.y),
-        .size = fan::vec2(thickness, half_size.y * 2),
-        .color = wall_color,
-        .outline_color = wall_outline,
-        .shape_properties = shape_properties[3]
-      }};
+
+    for (uint32_t i = 0; i < 4; i++) {
+      walls[i] = fan::graphics::physics::rectangle_t {{
+          .position = positions[i],
+          .size = sizes[i],
+          .color = wall_color,
+          .outline_color = outline,
+          .body_type = body_type,
+          .shape_properties = shape_properties[i]
+        }};
+    }
+
     return walls;
   }
+
+
 
   std::array<rectangle_t, 4> create_walls(
     const fan::vec2& bounds,
     f32_t thickness,
     const fan::color& wall_color,
+    uint8_t body_type,
     std::array<fan::physics::shape_properties_t, 4> shape_properties
   ) {
     return create_stroked_rectangle(
@@ -717,6 +716,7 @@ namespace fan::graphics::physics {
       bounds,
       thickness,
       wall_color,
+      body_type,
       shape_properties
     );
   }
@@ -1306,14 +1306,6 @@ namespace fan::graphics::physics {
         config.physics_properties
       )
     );
-
-    if (config.auto_draw_offset && config.draw_offset_override == fan::vec2(0, 0)) {
-      fan::vec2 size = character.get_size();
-      character.set_draw_offset(fan::vec2(0, -size.y * 0.3f));
-    }
-    else if (config.draw_offset_override != fan::vec2(0, 0)) {
-      character.set_draw_offset(config.draw_offset_override);
-    }
 
     if (config.auto_animations) {
       character.setup_default_animations(config);
@@ -2381,6 +2373,140 @@ namespace fan::graphics {
   }
 }
 
+
+// dynamic object helpers
+
+namespace fan::graphics::physics {
+  void elevator_t::init(const fan::graphics::sprite_t& elevator_sprite, const fan::vec2& start_pos, const fan::vec2& end_pos, f32_t dur){
+    visual = elevator_sprite;
+    visual.set_dynamic();
+    start_position = start_pos;
+    end_position = end_pos;
+    last_position = start_pos;
+    duration = dur;
+    current_velocity = fan::vec2(0, 0);
+
+    create_trigger_sensor();
+  }
+
+  void elevator_t::create_trigger_sensor() {
+    fan::vec2 cage_size = visual.get_size();
+    trigger_sensor = fan::physics::gphysics()->create_rectangle(
+      start_position,
+      cage_size / 8.f,
+      0.0f,
+      fan::physics::body_type_e::kinematic_body,
+      {.is_sensor = true}
+    );
+  }
+
+  void elevator_t::create_elevator_box(){
+    if (walls_created) {
+      return;
+    }
+    walls_created = true;
+
+    fan::vec2 cage_size = visual.get_size();
+    fan::vec2 p = fan::vec2(visual.get_position().x, visual.get_position().y);
+
+    auto rects = fan::physics::create_stroked_rectangle(
+      p,
+      cage_size,
+      3.f,
+      fan::physics::body_type_e::kinematic_body,
+      {{
+        {.friction = 1.f, .fixed_rotation = true,},
+        {.friction = 1.f, .fixed_rotation = true,},
+        {.friction = 0.f, .fixed_rotation = true,},
+        {.friction = 0.f, .fixed_rotation = true,}
+      }}
+    );
+
+    for (uint32_t i = 0; i < 4; i++) {
+      if (walls[i]) {
+        walls[i].destroy();
+      }
+      walls[i] = rects[i];
+    }
+  }
+
+  void elevator_t::start(){
+    if (is_active) {
+      return;
+    }
+    is_active = true;
+
+    create_elevator_box();
+    movement.on_end = [this] {
+      walls_created = false;
+      walls[2].destroy();
+      walls[3].destroy();
+      going_up = !going_up;
+      movement.active = false;
+      on_end_cb();
+    };
+
+    fan::vec2 from = going_up ? start_position : end_position;
+    fan::vec2 to   = going_up ? end_position   : start_position;
+
+    movement.start_once(
+      from,
+      to,
+      duration,
+      [this](const fan::vec2& pos){
+        update_positions(pos);
+      }
+    );
+    movement.easing = fan::ease_e::sine;
+  }
+
+  void elevator_t::update_positions(const fan::vec2& pos){
+    f32_t dt = fan::graphics::get_window().m_delta_time;
+    if (dt > 0) {
+      current_velocity = (pos - last_position) / dt;
+    }
+    last_position = pos;
+
+    if (!walls_created) {
+      return;
+    }
+
+    for (auto& w : walls) {
+      if (w) {
+        w.set_linear_velocity(current_velocity);
+      }
+    }
+    trigger_sensor.set_linear_velocity(current_velocity);
+  }
+
+  void elevator_t::update(const fan::physics::entity_t& sensor_triggerer){
+    if (walls_created && walls[0]) {
+      visual.set_position(fan::vec2(walls[0].get_physics_position() + fan::vec2(0, (walls[1].get_physics_position() - walls[0].get_physics_position()).y / 2.f)));
+    }
+    if (!is_active) {
+      if (fan::physics::is_on_sensor(sensor_triggerer, trigger_sensor)) {
+        start();
+      }
+    }
+    else {
+
+      if (!fan::physics::is_on_sensor(sensor_triggerer, trigger_sensor)) {
+        is_active = false;
+      }
+    }
+  }
+
+  void elevator_t::destroy(){
+    if (trigger_sensor) {
+      trigger_sensor.destroy();
+    }
+    for (auto& w : walls) {
+      if (w) {
+        w.destroy();
+      }
+    }
+  }
+}
 
 #endif
 

@@ -13,6 +13,7 @@ module;
 #include <chrono>
 #include <sstream>
 #include <type_traits>
+#include <coroutine>
 
 export module fan.graphics.common_context;
 
@@ -491,6 +492,19 @@ export namespace fan {
 	}
 }
 
+export namespace fan::graphics {
+  struct next_frame_awaiter {
+    bool await_ready() const noexcept { return false; }
+    void await_suspend(std::coroutine_handle<> handle) {
+      pending.push_back(handle);
+    }
+    void await_resume() const noexcept {}
+    static inline std::vector<std::coroutine_handle<>> pending;
+  };
+  next_frame_awaiter co_next_frame() {
+    return {};
+  }
+}
 
 #undef context_typedef_func_ptr
 #undef context_typedef_func_ptr2

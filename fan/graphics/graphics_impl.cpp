@@ -1595,4 +1595,79 @@ namespace fan::graphics {
   }
 }
 
+namespace fan {
+
+  f32_t apply_ease(ease_e easing, f32_t t) {
+    switch (easing) {
+    case ease_e::linear:
+      return t;
+    case ease_e::sine:
+      return (std::sin((t - 0.5f) * fan::math::pi) + 1.f) * 0.5f;
+    case ease_e::pulse:
+      return std::sin(t * fan::math::pi);
+    case ease_e::ease_in:
+      return t * t;
+    case ease_e::ease_out:
+      return 1.f - (1.f - t) * (1.f - t);
+    }
+    return t;
+  }
+
+  template <typename T>
+  auto make_lerp() {
+    if constexpr (requires (T a, T b, f32_t u) { a.lerp(b, u); }) {
+      return [](const T& a, const T& b, f32_t u) {
+        return a.lerp(b, u);
+      };
+    }
+    else {
+      return [](const T& a, const T& b, f32_t u) {
+        return a + (b - a) * u;
+      };
+    }
+  }
+
+  auto_color_transition_t pulse_red(f32_t duration) {
+    auto_color_transition_t t;
+    t.from = fan::colors::white;
+    t.to = fan::color(1.f, 0.2f, 0.2f);
+    t.duration = duration;
+    t.loop = true;
+    t.easing = ease_e::pulse;
+    t.lerp = make_lerp<fan::color>();
+    return t;
+  }
+  color_transition_t fade_out(f32_t duration) {
+    color_transition_t t;
+    t.from = fan::colors::white;
+    t.to = fan::colors::transparent;
+    t.duration = duration;
+    t.loop = false;
+    t.easing = ease_e::ease_out;
+    t.lerp = make_lerp<fan::color>();
+    return t;
+  }
+  vec2_transition_t move_linear(const fan::vec2& from, const fan::vec2& to, f32_t duration) {
+    vec2_transition_t t;
+    t.from = from;
+    t.to = to;
+    t.duration = duration;
+    t.loop = false;
+    t.easing = ease_e::linear;
+    t.lerp = make_lerp<fan::vec2>();
+    return t;
+  }
+  vec2_transition_t move_pingpong(const fan::vec2& from, const fan::vec2& to, f32_t duration) {
+    vec2_transition_t t;
+    t.from = from;
+    t.to = to;
+    t.duration = duration;
+    t.loop = true;
+    t.easing = ease_e::pulse;
+    t.lerp = make_lerp<fan::vec2>();
+    return t;
+  }
+
+}
+
 #endif

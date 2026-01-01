@@ -1850,7 +1850,7 @@ void loco_t::process_render() {
 
   std::vector<std::coroutine_handle<>> current_frame;
   // swap with pending to 
-  std::swap(current_frame, next_frame_awaiter::pending);
+  std::swap(current_frame, fan::graphics::next_frame_awaiter::pending);
 
   for (const auto& h : current_frame) {
     h.resume();
@@ -2837,118 +2837,4 @@ void fan::graphics::shader_set_camera(fan::graphics::shader_t nr, fan::graphics:
     fan::throw_error("todo");
   }
 #endif
-}
-
-namespace fan {
-  fan::event::task_t color_transition_t::animate(std::function<void(fan::color)> callback) {
-    f32_t elapsed = 0;
-
-    do {
-      fan::time::timer frame_timer;
-      frame_timer.start();
-
-      while (elapsed < duration) {
-        f32_t t = fmod((elapsed / duration) + phase_offset, 1.0f);
-
-        switch (easing) {
-        case ease_e::linear:
-          break;
-        case ease_e::sine:
-          t = (std::sin((t - 0.5f) * fan::math::pi) + 1.f) * 0.5f;
-          break;
-        case ease_e::pulse:
-          t = std::sin(t * fan::math::pi);
-          break;
-        case ease_e::ease_in:
-          t = t * t;
-          break;
-        case ease_e::ease_out:
-          t = 1.f - (1.f - t) * (1.f - t);
-          break;
-        }
-
-        callback(from.lerp(to, t));
-        co_await fan::graphics::co_next_frame();
-        elapsed += gloco()->delta_time;
-      }
-
-      elapsed = 0;
-      co_await fan::graphics::co_next_frame();
-
-    } while (loop);
-
-    callback(to);
-    on_complete();
-  }
-
-  void auto_color_transition_t::start(
-    const fan::color& from,
-    const fan::color& to,
-    f32_t duration,
-    std::function<void(fan::color)> cb
-  ) {
-    if (active) {
-      return;
-    }
-
-    fan::color_transition_t t;
-    t.from = from;
-    t.to = to;
-    t.duration = duration;
-    t.phase_offset = fan::random::value(0.0f, 1.0f);
-    t.loop = true;
-    t.easing = fan::color_transition_t::ease_e::pulse;
-
-    transition = t;
-    callback = cb;
-    task = transition.animate(callback);
-    active = true;
-  }
-  void auto_color_transition_t::start_once(
-    const fan::color& from,
-    const fan::color& to,
-    f32_t duration,
-    std::function<void(fan::color)> cb,
-    std::function<void()> on_complete
-  ) {
-    if (active) return;
-    transition.from = from;
-    transition.to = to;
-    transition.duration = duration;
-    transition.phase_offset = 0.0f;
-    transition.loop = false;
-    transition.easing = fan::color_transition_t::ease_e::linear;
-    callback = cb;
-    transition.on_complete = on_complete;
-    task = transition.animate(callback);
-    active = true;
-  }
-
-  void auto_color_transition_t::stop(const fan::color& reset_to) {
-    if (!active) return;
-    task = {};
-    callback(reset_to);
-    active = false;
-  }
-
-  fan::color_transition_t fan::pulse_red(f32_t duration) {
-    fan::color_transition_t t;
-    t.from = fan::colors::white;
-    t.to = fan::color(1, 0.2f, 0.2f);
-    t.duration = duration;
-    t.phase_offset = 0.0f;
-    t.loop = true;
-    t.easing = fan::color_transition_t::ease_e::pulse;
-    return t;
-  }
-  fan::color_transition_t fan::fade_out(f32_t duration) {
-    fan::color_transition_t t;
-    t.from = fan::colors::white;
-    t.to = fan::colors::transparent;
-    t.duration = duration;
-    t.phase_offset = 0.0f;
-    t.loop = false;
-    t.easing = fan::color_transition_t::ease_e::ease_out;
-    return t;
-  }
 }

@@ -1,10 +1,10 @@
 {
   "camera_position": [
-    11249.662109375,
-    12448.935546875,
+    11990.3818359375,
+    12502.912109375,
     0.0
   ],
-  "camera_zoom": 0.5787037014961243,
+  "camera_zoom": 1.2000001668930054,
   "gravity": [
     0.0,
     3813.3759765625
@@ -46,7 +46,7 @@
   "tiles": [
     {
       "instance": {
-        "count_x": 31,
+        "count_x": 27,
         "count_y": 1,
         "delta_x": [
           64.0,
@@ -61,6 +61,23 @@
       },
       "position": [
         10432.0,
+        11904.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.9453125,
+        0.4765625
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile771"
+    },
+    {
+      "position": [
+        12352.0,
         11904.0,
         32084.0
       ],
@@ -3661,6 +3678,27 @@
       "texture_pack_name": "tile896"
     },
     {
+      "color": [
+        0.06627450883388519,
+        0.14901961386203766,
+        0.16745097935199738,
+        0.0
+      ],
+      "flags": 1,
+      "id": "boss_room_ambient_light",
+      "mesh_property": 3,
+      "position": [
+        11392.0,
+        12352.0,
+        32089.0
+      ],
+      "shape": "light",
+      "size": [
+        2048.0,
+        1024.0
+      ]
+    },
+    {
       "id": "pickupable_health_potion",
       "position": [
         2368.0,
@@ -3859,27 +3897,6 @@
         0.03125
       ],
       "texture_pack_name": "tile1217"
-    },
-    {
-      "color": [
-        0.06627450980392,
-        0.14901960784313,
-        0.16745098039215,
-        0.0
-      ],
-      "flags": 1,
-      "id": "boss_room_ambient_light",
-      "mesh_property": 3,
-      "position": [
-        11392.0,
-        12352.0,
-        32089.0
-      ],
-      "shape": "light",
-      "size": [
-        2048.0,
-        1024.0
-      ]
     },
     {
       "id": "checkpoint1",
@@ -4302,6 +4319,25 @@
       "position": [
         11968.0,
         12544.0,
+        32084.0
+      ],
+      "size": [
+        32.0,
+        32.0
+      ]
+    },
+    {
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "id": "boss_elevator",
+      "mesh_property": 6,
+      "position": [
+        12224.0,
+        12608.0,
         32084.0
       ],
       "size": [

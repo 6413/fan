@@ -33,7 +33,6 @@ struct player_t {
     body = fan::graphics::physics::character2d_t::from_json({
       .json_path = "player/player.json",//
       .aabb_scale = aabb_scale,
-      .draw_offset_override = draw_offset,
       .attack_cb = [](fan::graphics::physics::character2d_t& c) -> bool{
         if (!fan::window::is_mouse_clicked() && !fan::window::is_key_pressed(fan::gamepad_right_bumper) || fan::graphics::gui::want_io()){
           return false;
@@ -41,6 +40,7 @@ struct player_t {
         return c.attack_state.try_attack(&c);
       },
     });
+    body.set_draw_offset(draw_offset);
     body.set_flags(fan::graphics::sprite_flags_e::use_hsl);
     body.set_color(fan::color::hsl(56.7f, 18.3f, -58.4f));
 
@@ -236,7 +236,7 @@ struct player_t {
 
   fan::graphics::engine_t::key_handle_t key_click_handles[10];
 
-  int current_checkpoint = 0;
+  int current_checkpoint = 1;
   
   uint16_t potion_count = 10;
   fan::time::timer potion_consume_timer {0.1e9, true};

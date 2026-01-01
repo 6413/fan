@@ -154,7 +154,7 @@ export namespace fan {
 
       bool operator!=(const body_id_t& b) const;
 
-      operator bool() const;
+      explicit operator bool() const;
 
       operator b2ShapeId() const;
 
@@ -380,6 +380,14 @@ export namespace fan {
     fan::physics::physics_update_cbs_t::nd_t& get_physics_update_data(fan::physics::physics_update_cbs_t::nr_t nr);
     void remove_physics_update(physics_update_cbs_t::nr_t nr);
     bool overlap_result_callback(b2ShapeId shape_id, void* context);
+
+    std::array<fan::physics::entity_t, 4> create_stroked_rectangle(
+      const fan::vec2& center_position,
+      const fan::vec2& half_size,
+      f32_t thickness,
+      uint8_t body_type,
+      std::array<fan::physics::shape_properties_t, 4> shape_properties
+    );
   }
 }
 
