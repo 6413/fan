@@ -455,6 +455,7 @@ public:
   using update_callback_handle_t = fan::graphics::update_callback_t::nr_t;
   // function callback parameter gives loco_t*
   update_callback_handle_t add_update_callback(std::function<void(void*)>&& cb);
+  update_callback_handle_t add_update_callback_front(std::function<void(void*)>&& cb);
   void remove_update_callback(update_callback_handle_t handle);
 	fan::graphics::update_callback_t m_update_callback;
 	std::vector<std::function<void()>> single_queue;
@@ -549,7 +550,8 @@ public:
 
 #if defined(FAN_PHYSICS_2D)
 	fan::physics::context_t physics_context{ {} };
-  void update_physics();
+  void update_physics(bool flag);
+  bool is_updating_physics = false;
 #endif
 
 	// clears shapes after drawing, good for debug draw, not best for performance
