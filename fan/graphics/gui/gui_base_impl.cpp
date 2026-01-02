@@ -930,7 +930,7 @@ namespace fan::graphics::gui {
   void send_drag_drop_item(const std::string& id, const std::wstring& path, const std::string& popup) {
     std::string popup_ = popup;
     if ( popup.empty() ) {
-      popup_ = {path.begin(), path.end()};
+      popup_ = std::string(path.begin(), path.end());
     }
     if ( ImGui::BeginDragDropSource() ) {
       ImGui::SetDragDropPayload(id.c_str(), path.data(), (path.size() + 1) * sizeof(wchar_t));

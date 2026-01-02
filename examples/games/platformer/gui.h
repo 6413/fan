@@ -17,7 +17,7 @@ void update() {
 
   f32_t heart_size = (wnd_size / 32.f).max();
   f32_t potion_size = (wnd_size / 48.f).max();
-  if (gui::hud("##platformer_gui")) {
+  if (auto hud = gui::hud("##platformer_gui")) {
     int heart_count = pile->player.body.get_max_health() / 10.f;
     for (int i = 0; i < heart_count; ++i) {
       gui::same_line();

@@ -126,6 +126,11 @@ export namespace fan::graphics {
       props.mag_filter = image_filter::nearest;
       return props;
     }
+    image_load_properties_t pixel_art_repeat() {
+      auto props = pixel_art();
+      props.visual_output = fan::graphics::image_sampler_address_mode::repeat;
+      return props;
+    }
 
     image_load_properties_t smooth() {
       image_load_properties_t props;

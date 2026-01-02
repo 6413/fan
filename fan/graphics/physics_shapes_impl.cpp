@@ -690,13 +690,13 @@ namespace fan::graphics::physics {
 
     for (uint32_t i = 0; i < 4; i++) {
       walls[i] = fan::graphics::physics::rectangle_t {{
-          .position = positions[i],
-          .size = sizes[i],
-          .color = wall_color,
-          .outline_color = outline,
-          .body_type = body_type,
-          .shape_properties = shape_properties[i]
-        }};
+        .position = positions[i],
+        .size = sizes[i],
+        .color = wall_color,
+        .outline_color = outline,
+        .body_type = body_type,
+        .shape_properties = shape_properties[i]
+      }};
     }
 
     return walls;
@@ -1503,7 +1503,7 @@ namespace fan::graphics::physics {
         .animation_id = move.id,
         .fps = move.fps,
         .condition = [](character2d_t& c) {
-          return std::abs(c.get_linear_velocity().x) >= 10.f || c.movement_state.jump_state.on_air_after_jump;
+          return std::abs(c.get_linear_velocity().x) >= 10.f/* || c.movement_state.jump_state.on_air_after_jump*/;
         }
       });
     }
@@ -2376,37 +2376,43 @@ namespace fan::graphics {
 // dynamic object helpers
 
 namespace fan::graphics::physics {
-  void elevator_t::init(const fan::graphics::sprite_t& elevator_sprite, const fan::vec2& start_pos, const fan::vec2& end_pos, f32_t dur){
-    visual = elevator_sprite;
+  void elevator_t::init(const fan::graphics::sprite_t& sprite, const fan::vec2& start_pos, const fan::vec2& end_pos, f32_t dur) {
+    visual = sprite;
     visual.set_dynamic();
     start_position = start_pos;
     end_position = end_pos;
-    last_position = start_pos;
     duration = dur;
-    current_velocity = fan::vec2(0, 0);
-
+    t = 0.0f;
+    is_active = false;
+    going_up = true;
+    walls_created = false;
+    waiting_for_player_exit = false;
     create_trigger_sensor();
+
+    step_cb = fan::physics::add_physics_step_callback([this] {
+      physics_step();
+    });
   }
 
   void elevator_t::create_trigger_sensor() {
     fan::vec2 cage_size = visual.get_size();
     trigger_sensor = fan::physics::gphysics()->create_rectangle(
       start_position,
-      cage_size / 8.f,
+      cage_size / 15.f,
       0.0f,
       fan::physics::body_type_e::kinematic_body,
       {.is_sensor = true}
     );
   }
 
-  void elevator_t::create_elevator_box(){
+  void elevator_t::create_elevator_box() {
     if (walls_created) {
       return;
     }
     walls_created = true;
 
     fan::vec2 cage_size = visual.get_size();
-    fan::vec2 p = fan::vec2(visual.get_position().x, visual.get_position().y);
+    fan::vec2 p = trigger_sensor.get_position();
 
     auto rects = fan::physics::create_stroked_rectangle(
       p,
@@ -2429,81 +2435,123 @@ namespace fan::graphics::physics {
     }
   }
 
-  void elevator_t::start(){
+  void elevator_t::start() {
     if (is_active) {
       return;
     }
     is_active = true;
-
+    t = 0.0f;
+    walls_created = false;
     create_elevator_box();
-    movement.on_end = [this] {
-      walls_created = false;
-      walls[2].destroy();
-      walls[3].destroy();
-      going_up = !going_up;
-      movement.active = false;
-      on_end_cb();
-    };
-
-    fan::vec2 from = going_up ? start_position : end_position;
-    fan::vec2 to   = going_up ? end_position   : start_position;
-
-    movement.start_once(
-      from,
-      to,
-      duration,
-      [this](const fan::vec2& pos){
-        update_positions(pos);
-      }
-    );
-    movement.easing = fan::ease_e::sine;
   }
 
-  void elevator_t::update_positions(const fan::vec2& pos){
-    f32_t dt = fan::graphics::get_window().m_delta_time;
-    if (dt > 0) {
-      current_velocity = (pos - last_position) / dt;
-    }
-    last_position = pos;
-
-    if (!walls_created) {
+  void elevator_t::physics_step() {
+    if (!is_active) {
       return;
     }
 
+    f32_t dt = fan::physics::default_physics_timestep;
+    t += dt / duration;
+    if (t >= 1.0f) {
+      t = 1.0f;
+    }
+
+    fan::vec2 from = going_up ? start_position : end_position;
+    fan::vec2 to = going_up ? end_position : start_position;
+
+    f32_t u = fan::apply_ease(fan::ease_e::sine, t);
+    fan::vec2 target = from + (to - from) * u;
+
+    fan::vec2 current = trigger_sensor.get_position();
+    fan::vec2 vel = (target - current) / dt;
+
+    if (t < 1.0f) {
+      trigger_sensor.set_linear_velocity(vel);
+      for (auto& w : walls) {
+        if (w) {
+          w.set_linear_velocity(vel);
+        }
+      }
+      return;
+    }
+
+    trigger_sensor.set_linear_velocity(fan::vec2(0));
     for (auto& w : walls) {
       if (w) {
-        w.set_linear_velocity(current_velocity);
+        w.set_linear_velocity(fan::vec2(0));
       }
     }
-    trigger_sensor.set_linear_velocity(current_velocity);
+
+    walls[2].destroy();
+    walls[3].destroy();
+
+    is_active = false;
+    waiting_for_player_exit = true;
+
+    fan::vec2 final_pos = trigger_sensor.get_position();
+
+    if (going_up) {
+      end_position = final_pos;
+    }
+    else {
+      start_position = final_pos;
+    }
+
+    going_up = !going_up;
+
+    if (on_end_cb) {
+      on_end_cb();
+    }
   }
 
-  void elevator_t::update(const fan::physics::entity_t& sensor_triggerer){
-    if (walls_created && walls[0]) {
-      visual.set_position(fan::vec2(walls[0].get_physics_position() + fan::vec2(0, (walls[1].get_physics_position() - walls[0].get_physics_position()).y / 2.f)));
+  void elevator_t::sync_visual() {
+    if (trigger_sensor) {
+      visual.set_position(trigger_sensor.get_position());
     }
+  }
+
+  void elevator_t::update(const fan::physics::entity_t& sensor_triggerer) {
+    sync_visual();
+
+    bool inside = fan::physics::is_on_sensor(sensor_triggerer, trigger_sensor);
+
     if (!is_active) {
-      if (fan::physics::is_on_sensor(sensor_triggerer, trigger_sensor)) {
+      if (waiting_for_player_exit) {
+        if (!inside) {
+          waiting_for_player_exit = false;
+        }
+        return;
+      }
+
+      if (inside) {
         start();
       }
     }
     else {
-
-      if (!fan::physics::is_on_sensor(sensor_triggerer, trigger_sensor)) {
+      if (t >= 1.0f && !inside) {
         is_active = false;
       }
     }
   }
 
-  void elevator_t::destroy(){
+  void elevator_t::destroy() {
+    if (step_cb.iic() == false) {
+      fan::physics::remove_physics_step_callback(step_cb);
+      step_cb.sic();
+    }
+
     if (trigger_sensor) {
       trigger_sensor.destroy();
     }
+
     for (auto& w : walls) {
       if (w) {
         w.destroy();
       }
     }
+
+    walls_created = false;
+    is_active = false;
   }
 }
 

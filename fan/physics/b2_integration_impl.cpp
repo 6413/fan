@@ -11,6 +11,7 @@ module;
 #include <cmath>
 #include <cstdlib>
 #include <array>
+#include <sstream>
 
 module fan.physics.b2_integration;
 
@@ -892,12 +893,12 @@ namespace fan::physics {
   fan::physics::entity_t create_sensor_rectangle(const fan::vec2& position, const fan::vec2& size) {
     return gphysics()->create_sensor_rectangle(position, size);
   }
-  physics_step_callback_nr_t add_physics_step_callback(std::function<void()> callback) {
+  step_callback_nr_t add_physics_step_callback(std::function<void()> callback) {
     return fan::add_bll_raii_struct_cb<
       fan::physics::context_t
     >(gphysics(), &fan::physics::context_t::physics_step_callbacks, std::move(callback));
   }
-  void remove_physics_step_callback(physics_step_callback_nr_t nr) {
+  void remove_physics_step_callback(step_callback_nr_t nr) {
     gphysics()->physics_step_callbacks.unlrec(nr);
   }
   bool presolve_oneway_collision(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, fan::physics::body_id_t character_body) {

@@ -6,12 +6,12 @@ pile_t* pile = 0;
 struct pile_t {
   lstd_defstruct(level_t)
     #include <fan/graphics/gui/stage_maker/preset.h>
-    static constexpr auto stage_name = "";
-    #include "level.h"
-  };
+      static constexpr auto stage_name = "level";
+      #include "level.h"
+    };
   lstd_defstruct(gui_t)
     #include <fan/graphics/gui/stage_maker/preset.h>
-    static constexpr auto stage_name = "";
+    static constexpr auto stage_name = "gui";
     #include "gui.h"
   };
   #include "player/player.h"
@@ -28,16 +28,17 @@ struct pile_t {
   }
   void update() {
     static bool force_zoom = false;
-    if (force_zoom) {
+     if (force_zoom) {
       update_camera_zoom();
     }
     if (engine.is_key_pressed(fan::key_q)) {
       force_zoom = !force_zoom;
     }
     if (!pause) {
-      engine.physics_context.step(engine.delta_time);
       player.update();
     }
+    
+    engine.update_physics(!pause);
     if (!engine.is_key_down(fan::mouse_middle)) {
       fan::vec2 target_pos = player.get_physics_pos() - fan::vec2(0, 50);
       engine.camera_set_target(engine.orthographic_render_view.camera, target_pos, 0);
@@ -53,7 +54,6 @@ struct pile_t {
 
     //fan::graphics::gui::text(fan::graphics::screen_to_world(fan::window::get_mouse_position()));
     fan::graphics::gui::set_viewport(engine.orthographic_render_view.viewport);
-
   }
   level_t& get_level() {
     return stage_loader.get_stage_data<level_t>(level_stage);
@@ -74,16 +74,16 @@ struct pile_t {
 
   using enemy_list_t = std::variant<skeleton_t, fly_t, boss_skeleton_t>;
 
-#define bcontainer_set_StoreFormat 1
-#define BLL_set_Usage 1
-#define BLL_set_SafeNext 1
-#define BLL_set_prefix enemies
-#include <fan/fan_bll_preset.h>
-#define BLL_set_Link 1
-#define BLL_set_type_node uint16_t
-#define BLL_set_NodeDataType enemy_list_t
-#define BLL_set_AreWeInsideStruct 1
-#include <BLL/BLL.h>
+  #define bcontainer_set_StoreFormat 1
+  #define BLL_set_Usage 1
+  #define BLL_set_SafeNext 1
+  #define BLL_set_prefix enemies
+  #include <fan/fan_bll_preset.h>
+  #define BLL_set_Link 1
+  #define BLL_set_type_node uint16_t
+  #define BLL_set_NodeDataType enemy_list_t
+  #define BLL_set_AreWeInsideStruct 1
+  #include <BLL/BLL.h>
   enemies_t enemy_list;
 
   struct enemy_range_t {
@@ -127,6 +127,8 @@ struct pile_t {
   enemy_range_t enemies() {
     return enemy_range_t{&enemy_list};
   }
+
+  fan::graphics::update_callback_nr_t frame_update_handle;
 };
 pile_t::pile_t() {
   //pile->engine.set_culling_enabled(false);
@@ -144,4 +146,8 @@ pile_t::pile_t() {
   audio_background = fan::audio::piece_t("audio/background.sac");
   fan::audio::set_volume(0.0f);
   fan::audio::play(audio_background, 0, true);
+
+  frame_update_handle = engine.add_update_callback_front([this] (void* engine) {
+    update();
+  });
 }

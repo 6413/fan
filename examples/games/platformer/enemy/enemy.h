@@ -204,7 +204,7 @@ struct enemy_t : enemy_base_t {
   fan::graphics::physics::attack_hitbox_t attack_hitbox;
   fan::graphics::physics::ai_behavior_t ai_behavior;
   fan::graphics::physics::navigation_helper_t navigation;
-  fan::physics::physics_step_callback_nr_t physics_step_nr;
+  fan::physics::step_callback_nr_t physics_step_nr;
   fan::vec2 initial_position = 0;
   fan::audio::piece_t audio_attack{"audio/enemy_attack.sac"}, audio_player_hits_enemy{"audio/player_hits_enemy.sac"};
 };

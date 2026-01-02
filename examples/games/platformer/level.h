@@ -151,7 +151,7 @@ void enter_boss() {
   is_entering_door = false;
   
   auto nr= pile->enemy_list.NewNodeLast();
-  pile->enemy_list[nr] = boss_skeleton_t(pile->enemy_list, nr, fan::vec3(boss_position, 5));
+  pile->enemy_list[nr] = boss_skeleton_t(pile->enemy_list, nr, boss_position);
   boss_nr = nr.gint();
   light_lights.resize(lights_boss.size());
   start_lights(0);
@@ -252,26 +252,28 @@ void load_map() {
       static constexpr f32_t elevator_landing_offset_y = 43.f;
       v.y += elevator_landing_offset_y;
 
-      fan::vec2 start_pos = fan::vec2(v.x, v.y - 1024.f);
+      fan::vec2 start_pos = fan::vec2(v.x, v.y - 512.f);
       fan::vec2 end_pos = fan::vec2(v.x, v.y);
-      f32_t elevator_duration = 10.f;
+      f32_t elevator_duration = 3.f;
       cage_elevator.init(fan::graphics::sprite_t(fan::vec3(start_pos, v.z + 1), image.get_size() * 1.5f, image), start_pos, end_pos, elevator_duration);
       fan::vec3 pos = cage_elevator.visual.get_position();
       fan::vec2 size = cage_elevator.visual.get_size();
-      fan::graphics::image_t chain_image("images/chain.png");
+      fan::graphics::image_t chain_image("images/chain.png", fan::graphics::image_presets::pixel_art_repeat());
       cage_elevator_chain = fan::graphics::sprite_t(pos.offset_y(-size.y).offset_z(-1), fan::vec2(32, 512), chain_image);
       cage_elevator_chain.set_dynamic();
       size = cage_elevator_chain.get_size();
       cage_elevator_chain.set_tc_size(fan::vec2(1.f, size.y / chain_image.get_size().y));
 
-      cage_elevator.on_end_cb = [pos = data.position, this] {
-        fan::vec3 v = pos;
-        fan::vec2 start_pos = fan::vec2(v.x, v.y);
-        fan::vec2 end_pos = fan::vec2(v.x, v.y - 5000.f);
-        cage_elevator.start_position = start_pos;
-        cage_elevator.end_position = end_pos;
+      cage_elevator.on_end_cb = [init = true, this] mutable {
+        if (!init) return;
+        init = false;
+        fan::vec2 top = cage_elevator.visual.get_position();
+        cage_elevator.start_position = top;
+        cage_elevator.end_position = fan::vec2(top.x, top.y - 5000.f);
         cage_elevator.going_up = true;
+        cage_elevator.duration = 10.f;
       };
+
     }
     return false; // continue iterating all instances
   });
@@ -451,7 +453,7 @@ void update() {
       fan::vec2 window_size = fan::graphics::gui::get_window_size();
       static std::string enter_text("Press E to enter");
       static fan::vec2 text_size = fan::graphics::gui::get_text_size(enter_text);
-      if (fan::graphics::gui::hud("Interact hud")) {
+      if (auto hud = fan::graphics::gui::hud("Interact hud")) {
         fan::graphics::gui::text_box_at(enter_text, fan::vec2(window_size.x / 2.f - text_size.x / 2.f, window_size.y * 0.85f));
       }
     }
@@ -467,8 +469,6 @@ void update() {
       return;
     }
   }
-  
-  pile->update();
 }
 
 fan::physics::entity_t boss_sensor;

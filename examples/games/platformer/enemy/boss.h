@@ -36,7 +36,7 @@ struct boss_t : enemy_t<derived_t> {
     gui::set_next_window_pos(0);
     gui::set_next_window_size(gui::get_window_size());
 
-    if (gui::hud("##boss_hud")) {
+    if (auto hud = gui::hud("##boss_hud")) {
       fan::vec2 viewport_size = gui::get_window_size();
       fan::vec2 bar_center(viewport_size.x * 0.5f, viewport_size.y * 0.92f);
 

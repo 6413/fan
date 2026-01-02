@@ -34,6 +34,7 @@ import fan.physics.common_context;
 import fan.window.input_action;
 import fan.types.json;
 import fan.math;
+import fan.random;
 
 #if (FAN_GUI)
   import fan.graphics;
@@ -563,7 +564,7 @@ export namespace fan {
       };
 
       struct ai_behavior_t {
-        using movement_callback_handle_t = fan::physics::physics_step_callback_nr_t;
+        using movement_callback_handle_t = fan::physics::step_callback_nr_t;
         enum behavior_type_e {
           none,
           follow_target,
@@ -593,7 +594,7 @@ export namespace fan {
 
       struct character2d_t : physics::base_shape_t {
         using physics::base_shape_t::base_shape_t;
-        using movement_callback_handle_t = fan::physics::physics_step_callback_nr_t;
+        using movement_callback_handle_t = fan::physics::step_callback_nr_t;
 
         struct character_config_t {
           std::string json_path;
@@ -657,7 +658,6 @@ export namespace fan {
         fan::physics::body_id_t feet[2];
       };
 
-
       struct attack_hitbox_t {
         struct hitbox_spawn_t {
           int frame = 4;
@@ -685,6 +685,73 @@ export namespace fan {
         std::vector<hitbox_instance_t> instances;
         std::vector<bool> hitbox_spawned;
         std::unordered_set<uint64_t> hit_enemies;
+      };
+
+      struct boss_behavior_t {
+        struct config_t {
+          f32_t ideal_distance = 400.f;
+          f32_t backstep_chance = 0.3f;
+          f32_t backstep_duration = 0.6e9;
+          f32_t backstep_cooldown = 5.0e9;
+          f32_t idle_movement_chance = 0.6f;
+          std::pair<uint64_t, uint64_t> idle_timer_range = {
+            static_cast<uint64_t>(3.0e9),
+            static_cast<uint64_t>(6.0e9)
+          };
+        };
+
+        fan::time::timer idle_timer, backstep_timer, backstep_cooldown;
+        bool is_backstepping = false;
+        int backstep_dir = 0;
+
+        void init(const config_t& cfg) {
+          idle_timer.start(fan::random::value(cfg.idle_timer_range.first, cfg.idle_timer_range.second));
+          backstep_cooldown.start(cfg.backstep_cooldown);
+        }
+
+        bool update(character2d_t& body, const fan::vec2& target_pos, const config_t& cfg) {
+          fan::vec2 distance = target_pos - body.get_physics_position();
+    
+          if (!body.attack_state.is_attacking) {
+            body.movement_state.desired_facing.x = fan::math::sgn(distance.x);
+          }
+
+          if (is_backstepping) {
+            body.movement_state.move_to_direction_raw(body, {(f32_t)backstep_dir, 0.f});
+            if (backstep_timer.finished()) {
+              is_backstepping = false;
+              backstep_dir = 0;
+            }
+            return true;
+          }
+
+          if (!body.attack_state.is_attacking && 
+              std::abs(distance.x) < body.attack_state.attack_range.x && 
+              backstep_cooldown.finished() && 
+              fan::random::value_f32(0, 1) > cfg.backstep_chance) {
+            backstep_dir = (distance.x > 0.f) ? -1 : 1;
+            is_backstepping = true;
+            backstep_timer.start(cfg.backstep_duration);
+            backstep_cooldown.start(cfg.backstep_cooldown);
+            return true;
+          }
+
+          fan::vec2 movement{0.f, 0.f};
+          if (std::abs(distance.x) > cfg.ideal_distance + 20.f) {
+            movement.x = fan::math::sgn(distance.x);
+          }
+
+          if (movement.x == 0 && idle_timer.finished()) {
+            f32_t r = fan::random::value_f32(0, 1);
+            if (r < cfg.idle_movement_chance) {
+              movement.x = (r < cfg.idle_movement_chance / 2.f) ? fan::math::sgn(distance.x) : -fan::math::sgn(distance.x);
+            }
+            idle_timer.start(fan::random::value_i64(cfg.idle_timer_range.first, cfg.idle_timer_range.second));
+          }
+
+          body.movement_state.move_to_direction_raw(body, movement);
+          return false;
+        }
       };
 
       struct bone_e {
@@ -882,32 +949,34 @@ export namespace fan::graphics {
 export namespace fan::graphics::physics {
 
   struct elevator_t {
-
-    void init(const fan::graphics::sprite_t& elevator_sprite, const fan::vec2& start_pos, const fan::vec2& end_pos, f32_t duration);
-    void create_trigger_sensor();
-    void create_elevator_box();
-
-    void start();
-
-    void update_positions(const fan::vec2& pos);
-    void update(const fan::physics::entity_t& sensor_triggerer);
-
-    void destroy();
-
     fan::graphics::sprite_t visual;
     fan::physics::entity_t trigger_sensor;
-    std::array<fan::physics::entity_t, 4> walls;
-    fan::auto_vec2_transition_t movement;
+    fan::physics::entity_t walls[4];
+
     fan::vec2 start_position;
     fan::vec2 end_position;
-    fan::vec2 last_position;
-    fan::vec2 current_velocity;
-    std::function<void()> on_end_cb = []{};
-    f32_t duration = 1.f;
-    bool is_active = false;
-    bool walls_created = false;
-    bool going_up = true;
+
+    f32_t duration;
+    f32_t t;
+    bool is_active;
+    bool going_up;
+    bool walls_created;
+    bool waiting_for_player_exit;
+
+    fan::physics::step_callback_nr_t step_cb;
+
+    std::function<void()> on_end_cb;
+
+    void init(const fan::graphics::sprite_t& sprite, const fan::vec2& start_pos, const fan::vec2& end_pos, f32_t dur);
+    void create_trigger_sensor();
+    void create_elevator_box();
+    void start();
+    void physics_step();
+    void sync_visual();
+    void update(const fan::physics::entity_t& sensor_triggerer);
+    void destroy();
   };
+
 }
 
 #endif
