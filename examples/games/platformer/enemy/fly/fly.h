@@ -44,11 +44,12 @@ struct fly_t : enemy_t<fly_t> {
       pile->player.body.apply_linear_impulse_center(fan::vec2(-distance.normalized().x * body.attack_state.knockback_force, -body.attack_state.knockback_force / 5.f));
       body.attack_state.end_attack();
     }
-    if (body.get_health() <= 0 && body.get_sprite_sheet_animation().name != "die") {
+    const std::string& anim_name = body.get_sprite_sheet_animation().name;
+    if (body.get_health() <= 0 && anim_name != "die") {
       body.set_sprite_sheet_animation("die");
     }
     
-    if (destroy_this && body.get_health() <= 0 && body.animation_on("die", 7)) {
+    if (destroy_this && body.get_health() <= 0 && anim_name == "die" && body.is_animation_finished()) {
       enemy_t<fly_t>::destroy();
       return true;
     }

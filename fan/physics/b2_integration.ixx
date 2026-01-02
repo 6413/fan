@@ -388,6 +388,13 @@ export namespace fan {
       uint8_t body_type,
       std::array<fan::physics::shape_properties_t, 4> shape_properties
     );
+
+    void b2_to_fan_vertices(
+      const b2Vec2* b2_vertices,
+      int vertex_count,
+      std::vector<fan::vec2>& out
+    );
+    bool is_rectangle(const std::vector<fan::vec2>& v);
   }
 }
 

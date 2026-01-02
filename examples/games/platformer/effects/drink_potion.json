@@ -1,48 +1,44 @@
 {
   "begin_angle": -0.7099999785423279,
-  "begin_time": 42713117825400,
-  "blending": true,
-  "begin_color": [
-    0.054901961237192154,
-    0.9490196108818054,
-    0.24705882370471954,
-    1.0
-  ],
-	 "end_color": [
-    0.054901961237192154,
-    0.9490196108818054,
-    0.24705882370471954,
-    0.0
-  ],
-  "count": 5,
   "end_angle": -1.590000033378601,
-  "expansion_power": 1.4199999570846558,
-  "gap_size": [
-    0.0,
-    0.0
-  ],
-  "image_mag_filter": 0,
-  "image_min_filter": 0,
-  "image_path": "bubble.png",
-  "image_visual_output": 3,
+
+  "begin_time": 42713117825400,
   "loop": false,
-  "max_spread_size": [
-    24.0,
-    8.0
-  ],
+  "blending": true,
+
+  "begin_color": [0.054901961, 0.94901961, 0.24705882, 1.0],
+  "end_color":   [0.054901961, 0.94901961, 0.24705882, 0.0],
+
+  "count": 5,
+
+  "expansion_power": 1.4199999570846558,
+
+  "spawn_spacing": [0.0, 0.0],
+
+  "start_spread": [24.0, 8.0],
+  "end_spread":   [24.0, 8.0],
+
   "particle_shape": 1,
-  "position": [
-    800.0,
-    450.0,
-    10.0
-  ],
-  "position_velocity": [
-    22.0,
-    -100.0
-  ],
-  "shape": "particles",
-  "size": [
-    5.0,
-    5.0
-  ]
+
+  "position": [800.0, 450.0, 10.0],
+
+  "start_velocity": [22.0, -100.0],
+  "end_velocity":   [22.0, -100.0],
+
+  "start_size": [5.0, 5.0],
+  "end_size":   [5.0, 5.0],
+
+  "start_angle_velocity": [0.0, 0.0, 0.0],
+  "end_angle_velocity":   [0.0, 0.0, 0.0],
+
+  "jitter_start": [0.0, 0.0],
+  "jitter_end":   [0.0, 0.0],
+  "jitter_speed": 0.0,
+
+  "image_path": "bubble.png",
+  "image_min_filter": 0,
+  "image_mag_filter": 0,
+  "image_visual_output": 3,
+
+  "shape": "particles"
 }

@@ -1,43 +1,42 @@
 {
-  "alive_time": 1.6100000143051147,
-  "begin_angle": 0.05000000074505806,
-  "blending": true,
-  "begin_color": [
-    0.5333333611488342,
-    0.5333333611488342,
-    0.501960813999176,
-    0.13725490868091583
-  ],
-	"end_color": [
-    0.5333333611488342,
-    0.5333333611488342,
-    0.501960813999176,
-    0.0
-  ],
-  "count": 676,
-  "end_angle": 6.2829999923706055,
-  "gap_size": [
-    0.0,
-    0.0
-  ],
-  "image_path": "smoke.png",
-  "max_spread_size": [
-    58.0,
-    431.0
-  ],
-  "particle_shape": 1,
-  "position": [
-    800.0,
-    450.0,
-    5.0
-  ],
-  "position_velocity": [
-    11.0,
-    0.0
-  ],
   "shape": "particles",
-  "size": [
-    16.0,
-    16.0
-  ]
+
+  "loop": true,
+
+  "position": [800.0, 450.0, 5.0],
+
+  "start_size": [16.0, 16.0],
+  "end_size": [16.0, 16.0],
+
+  "begin_color": [0.53333336, 0.53333336, 0.5019608, 0.1372549],
+  "end_color": [0.53333336, 0.53333336, 0.5019608, 0.0],
+
+  "alive_time": 1.6100000143051147,
+  "respawn_time": 0.0,
+  "count": 676,
+
+  "start_velocity": [11.0, 0.0],
+  "end_velocity": [11.0, 0.0],
+
+  "start_angle_velocity": [0.0, 0.0, 0.0],
+  "end_angle_velocity": [0.0, 0.0, 0.0],
+
+  "begin_angle": 0.05000000074505806,
+  "end_angle": 6.2829999923706055,
+  "angle": [0.0, 0.0, 0.0],
+
+  "spawn_spacing": [0.0, 0.0],
+  "expansion_power": 1.0,
+
+  "start_spread": [58.0, 431.0],
+  "end_spread": [58.0, 431.0],
+
+  "jitter_start": [0.0, 0.0],
+  "jitter_end": [0.0, 0.0],
+  "jitter_speed": 0.0,
+
+  "particle_shape": 1,
+  "blending": true,
+
+  "image_path": "smoke.png"
 }

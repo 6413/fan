@@ -1067,6 +1067,52 @@ namespace fan::opengl::core {
     return buffer_id;
   }
 
+   void reserve_glbuffer(
+    fan::opengl::context_t& ctx,
+    GLuint buffer,
+    uintptr_t& capacity,
+    uintptr_t needed,
+    uint32_t usage,
+    GLenum target
+  ){
+    if (needed <= capacity) {
+      return;
+    }
+
+    uintptr_t new_capacity = capacity ? capacity * 2 : 4096;
+    if (new_capacity < needed) {
+      new_capacity = needed;
+    }
+
+    fan::opengl::core::write_glbuffer(ctx, buffer, nullptr, new_capacity, usage, target);
+    capacity = new_capacity;
+  }
+
+  void append_glbuffer(
+    fan::opengl::context_t& ctx,
+    GLuint buffer,
+    uintptr_t& size_bytes,
+    uintptr_t& capacity_bytes,
+    const void* data,
+    uintptr_t data_size,
+    uint32_t usage,
+    GLenum target
+  ){
+    reserve_glbuffer(ctx, buffer, capacity_bytes, size_bytes + data_size, usage, target);
+
+    fan::opengl::core::edit_glbuffer(
+      ctx,
+      buffer,
+      data,
+      size_bytes,
+      data_size,
+      target
+    );
+
+    size_bytes += data_size;
+  }
+
+
   void vao_t::open(fan::opengl::context_t& context) {
     fan_opengl_call(glGenVertexArrays(1, &m_buffer));
   }

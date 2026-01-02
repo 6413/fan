@@ -61,7 +61,7 @@ export namespace fan::graphics {
     uint32_t size;
     uint32_t type; // for example GL_FLOAT
     uint32_t stride;
-    uint32_t pointer;
+    uint32_t offset;
   };
   struct shape_gl_init_list_t {
     fan::graphics::shape_gl_init_t* ptr = nullptr;

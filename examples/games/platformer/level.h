@@ -79,21 +79,21 @@ bool handle_pickupable(const std::string& id, T& who) {
 
 std::vector<fan::auto_color_transition_t> light_lights;
 
-void start_lights(uint32_t index) {
-  static fan::color target_color = fan::color::from_rgb(0x114753) * 4.f;
-  static auto torch_particles = fan::graphics::shape_from_json("effects/torch.json");
-  torch_particles.set_position(fan::vec2(-0xfffff));
+fan::graphics::shape_t torch_particles = fan::graphics::shape_from_json("effects/torch.json");
+inline static constexpr fan::color lamp2_color = fan::color::from_rgb(0x114753) * 4.f;
+inline static constexpr f32_t boss_light_adjustment_y = 30.f;
 
-  static auto add_light_particles = [] (level_t* level, uint32_t index) {
+void start_lights(uint32_t index) {
+  static auto add_light_particles = [this] (level_t* level, uint32_t index) {
     level->boss_torch_particles.emplace_back(torch_particles);
     auto& l = level->boss_torch_particles.back();
     l.start_particles();
-    l.set_position(fan::vec3(fan::vec2(level->lights_boss[index].get_position()) + fan::vec2(0, 30.f), 1));
+    l.set_position(level->lights_boss[index].get_position().offset_y(boss_light_adjustment_y).offset_z(1));
     l.set_static(true);
   };
 
   if (index + 1 >= lights_boss.size()) {
-      auto* shape = pile->renderer.get_light_by_id(main_map_id, "boss_room_ambient_light");
+    auto* shape = pile->renderer.get_light_by_id(main_map_id, "boss_room_ambient_light");
     fan::color target_color = boss_room_target_color;
     boss_room_light.start_once(
       shape->get_color(),
@@ -111,6 +111,7 @@ void start_lights(uint32_t index) {
     std::visit([]<typename T>(T& v) {
       if constexpr (requires{ T::allow_move; }) {
         v.allow_move = true;
+        v.render_health_bar = true;
       }
     }, pile->enemy_list[nr]);
 
@@ -135,7 +136,7 @@ void start_lights(uint32_t index) {
   };
   light_lights[index].start_once(
     lights_boss[index].get_color(),
-    target_color,
+    lamp2_color,
     1.0f,
     [this, index](fan::color c) {
       lights_boss[index].set_color(c);
@@ -158,6 +159,8 @@ void enter_boss() {
 }
 
 void load_map() {
+  torch_particles.set_position(fan::vec2(-0xfffff));
+
   //pile->engine.culling_rebuild_grid();
   background.set_static();
   main_compiled_map = pile->renderer.compile("sample_level.fte");
@@ -195,7 +198,7 @@ void load_map() {
     const auto& id = data.id;
     if (id.contains("checkpoint")) {
       int checkpoint_idx = std::stoi(id.substr(std::strlen("checkpoint")));
-      if (player_checkpoints.size() < checkpoint_idx) {
+      if (player_checkpoints.size() <= checkpoint_idx) {
         player_checkpoints.resize(checkpoint_idx + 1);
       }
       auto& chkp = player_checkpoints[checkpoint_idx];
@@ -235,21 +238,28 @@ void load_map() {
       }});
     }
     else if (id.contains("lamp2")) {
-      //boss_torch_particles.emplace_back(torch_particles);
-      //auto& l = boss_torch_particles.back();
-      //l.start_particles();
-      //l.set_position(fan::vec3(fan::vec2(data.position) + fan::vec2(0, 30.f), 1));
-      //l.set_static(true);
+      boss_torch_particles.emplace_back(torch_particles);
+      auto& l = boss_torch_particles.back();
+      l.start_particles();
+      l.set_position(data.position.offset_y(boss_light_adjustment_y));
+      l.set_static(true);
+      static_lights.emplace_back(fan::graphics::light_t {{
+        .position = l.get_position(),
+        .size = 512,
+        .color = lamp2_color
+      }});
+    }
+    else if (id.contains("boss_lamp")) {
       lights_boss.emplace_back(fan::graphics::light_t {{
         .position = data.position,
         .size = 512,
         .color = fan::colors::black,
       }});
     }
-    else if (id.contains("boss_elevator")) {
+    else if (id.contains("boss_elevator_begin")) {
       fan::graphics::image_t image = fan::graphics::image_load("images/cage.png", fan::graphics::image_presets::pixel_art());
       fan::vec3 v = data.position;
-      static constexpr f32_t elevator_landing_offset_y = 43.f;
+      static constexpr f32_t elevator_landing_offset_y = 45.f;
       v.y += elevator_landing_offset_y;
 
       fan::vec2 start_pos = fan::vec2(v.x, v.y - 512.f);
@@ -264,16 +274,57 @@ void load_map() {
       size = cage_elevator_chain.get_size();
       cage_elevator_chain.set_tc_size(fan::vec2(1.f, size.y / chain_image.get_size().y));
 
+      cage_elevator.on_start_cb = [this] {
+        audio_elevator_chain_id = fan::audio::play(audio_elevator_chain, 0, true);
+      };
       cage_elevator.on_end_cb = [init = true, this] mutable {
+        fan::audio::stop(audio_elevator_chain_id);
         if (!init) return;
         init = false;
         fan::vec2 top = cage_elevator.visual.get_position();
         cage_elevator.start_position = top;
-        cage_elevator.end_position = fan::vec2(top.x, top.y - 5000.f);
+        cage_elevator.end_position = boss_elevator_end.offset_y(-elevator_landing_offset_y / 2.2f);
         cage_elevator.going_up = true;
-        cage_elevator.duration = 10.f;
+        cage_elevator.duration = 20.f;
       };
+    }
+    else if (id.contains("boss_elevator_end")) {
+      boss_elevator_end = data.position;
+    }
+    else if (id.contains("exit_world")) {
+      fan::graphics::image_t image("images/portal.png", fan::graphics::image_presets::pixel_art());
+      fan::vec2 image_size = image.get_size();
+      portal_sprite = fan::graphics::sprite_t(data.position, fan::vec2(256) * image_size.normalized(), image);
+      fan::vec3 pos = portal_sprite.get_position();
+      fan::vec2 size = portal_sprite.get_size();
+      static constexpr fan::color portal_light_color = fan::color::from_rgb(0x008fbb) * 4.f;
+      static_lights.emplace_back(fan::graphics::light_t {{
+        .position = pos.offset_y(-size.y / 2.f),
+        .size = fan::vec2(200, 200),
+        .color = portal_light_color
+      }});
+      static_lights.emplace_back(fan::graphics::light_t {{
+        .position = pos.offset_y(size.y / 2),
+        .size = fan::vec2(400, 256),
+        .color = portal_light_color,
+        .flags = 1
+      }});
+      portal_light_flicker.start(
+        portal_light_color * (fan::color(1.0f, 0.7f, 0.7f) / 1.0f),
+        portal_light_color * (fan::color(1.0f, 1.0f, 1.0f) * 1.0f),
+        3.f,
+        [this, idx = static_lights.size() - 1, lsize = static_lights[static_lights.size() - 1].get_size()](fan::color c) {
+          static_lights[idx].set_color(c); 
+          static_lights[idx - 1].set_color(c); 
+        },
+        fan::ease_e::pulse
+      );
+      portal_particles = fan::graphics::shape_from_json("effects/portal.json");
+      portal_particles.set_position(pos.offset_z(1).offset_y(size.y / 4.f));
+      portal_particles.set_static();
+      portal_particles.start_particles();
 
+      portal_sensor = pile->engine.physics_context.create_sensor_rectangle(pos, fan::vec2(size.x / 2.5f, size.y));
     }
     return false; // continue iterating all instances
   });
@@ -340,6 +391,7 @@ void open(void* sod) {
 }
 
 void close() {
+  pile->enemy_list.Clear();
   cage_elevator.destroy();
   if (boss_door_collision) {
     boss_door_collision.destroy();
@@ -365,14 +417,11 @@ void reload_map() {
   //                          ^ 'this' has been erased by erase stage, so query new pointer from get_level
 }
 
-fan::graphics::physics::elevator_t cage_elevator;
-fan::graphics::sprite_t cage_elevator_chain;
-bool send_elevator_down_initially = true;
-
 void update() {
   if (is_boss_dead && send_elevator_down_initially) {
     cage_elevator.start();
     send_elevator_down_initially = false;
+    audio_elevator_chain_id = fan::audio::play(audio_elevator_chain, 0, true);
   }
 
   {
@@ -439,6 +488,9 @@ void update() {
     }
   }
 
+  static std::string enter_text("Press E to enter");
+  static fan::vec2 text_size = fan::graphics::gui::get_text_size(enter_text);
+
   if (boss_sensor && 
     fan::physics::is_on_sensor(pile->player.body, boss_sensor)
   )
@@ -451,8 +503,35 @@ void update() {
     }
     else {
       fan::vec2 window_size = fan::graphics::gui::get_window_size();
-      static std::string enter_text("Press E to enter");
-      static fan::vec2 text_size = fan::graphics::gui::get_text_size(enter_text);
+      if (auto hud = fan::graphics::gui::hud("Interact hud")) {
+        fan::graphics::gui::text_box_at(enter_text, fan::vec2(window_size.x / 2.f - text_size.x / 2.f, window_size.y * 0.85f));
+      }
+    }
+  }
+  if (fan::physics::is_on_sensor(pile->player.body, portal_sensor)) {
+    if (pile->engine.is_key_pressed(fan::key_e)) {
+      static fan::auto_color_transition_t close_anim;
+      pile->stage_transition = fan::graphics::rectangle_t(
+        pile->player.body.get_position().offset_z(1),
+        fan::graphics::gui::get_window_size(),
+        fan::colors::black.set_alpha(0)
+      );
+      close_anim.on_end = [this] {
+        pile->stage_transition.remove();
+        pile->stage_loader.erase_stage(this->stage_common.stage_id);
+        pile->level_stage.sic();
+      };
+      close_anim.start_once(
+        fan::colors::black.set_alpha(0),
+        fan::colors::black,
+        1.f,
+        [] (fan::color c) {
+          pile->stage_transition.set_color(c);
+        }
+      );
+    }
+    else {
+      fan::vec2 window_size = fan::graphics::gui::get_window_size();
       if (auto hud = fan::graphics::gui::hud("Interact hud")) {
         fan::graphics::gui::text_box_at(enter_text, fan::vec2(window_size.x / 2.f - text_size.x / 2.f, window_size.y * 0.85f));
       }
@@ -500,7 +579,7 @@ struct checkpoint_t {
 std::vector<checkpoint_t> player_checkpoints;
 
 std::vector<fan::graphics::sprite_t> lamp_sprites;
-std::vector<fan::graphics::light_t> lights, lights_boss;
+std::vector<fan::graphics::light_t> lights, lights_boss, static_lights;
 std::vector<fan::auto_color_transition_t> flicker_anims;
 
 fan::graphics::sprite_t background {{
@@ -512,8 +591,21 @@ fan::graphics::sprite_t background {{
 }};
 
 fan::audio::piece_t
-  audio_pickup_item{"audio/pickup.sac"};
+  audio_pickup_item{"audio/pickup.sac"},
+  audio_elevator_chain{"audio/chain.sac"}
+  ;
 
+fan::audio::sound_play_id_t audio_elevator_chain_id;
+
+fan::graphics::physics::elevator_t cage_elevator;
+fan::graphics::sprite_t cage_elevator_chain;
+fan::vec2 boss_elevator_end = 0;
+bool send_elevator_down_initially = true;
+
+fan::graphics::sprite_t portal_sprite;
+fan::graphics::shape_t portal_particles;
+fan::auto_color_transition_t portal_light_flicker;
+fan::physics::entity_t portal_sensor;
 
 bool is_entering_door = false;
 bool is_boss_dead = false;

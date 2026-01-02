@@ -1018,24 +1018,38 @@ void shapes_draw() {
           loco.shader_set_value(shader, "alive_time", (f32_t)(ri.alive_time));
           loco.shader_set_value(shader, "respawn_time", (f32_t)(ri.respawn_time));
           loco.shader_set_value(shader, "position", *(fan::vec2*)&ri.position);
-          loco.shader_set_value(shader, "size", ri.size);
-          loco.shader_set_value(shader, "position_velocity", ri.position_velocity);
-          loco.shader_set_value(shader, "angle_velocity", ri.angle_velocity);
+
+          loco.shader_set_value(shader, "start_size", ri.start_size);
+          loco.shader_set_value(shader, "end_size", ri.end_size);
+
+          loco.shader_set_value(shader, "start_velocity", ri.start_velocity);
+          loco.shader_set_value(shader, "end_velocity", ri.end_velocity);
+
+          loco.shader_set_value(shader, "start_angle_velocity", ri.start_angle_velocity);
+          loco.shader_set_value(shader, "end_angle_velocity", ri.end_angle_velocity);
+
           loco.shader_set_value(shader, "begin_angle", ri.begin_angle);
           loco.shader_set_value(shader, "end_angle", ri.end_angle);
           loco.shader_set_value(shader, "angle", ri.angle);
+
           loco.shader_set_value(shader, "begin_color", ri.begin_color);
           loco.shader_set_value(shader, "end_color", ri.end_color);
-          loco.shader_set_value(shader, "gap_size", ri.gap_size);
+
+          loco.shader_set_value(shader, "spawn_spacing", ri.spawn_spacing);
           loco.shader_set_value(shader, "expansion_power", ri.expansion_power);
-          loco.shader_set_value(shader, "max_spread_size", ri.max_spread_size);
-          loco.shader_set_value(shader, "size_velocity", ri.size_velocity);
-          loco.shader_set_value(shader, "turbulence", ri.turbulence);
-          loco.shader_set_value(shader, "turbulence_speed", ri.turbulence_speed);
+
+          loco.shader_set_value(shader, "start_spread", ri.start_spread);
+          loco.shader_set_value(shader, "end_spread", ri.end_spread);
+
+          loco.shader_set_value(shader, "jitter_start", ri.jitter_start);
+          loco.shader_set_value(shader, "jitter_end", ri.jitter_end);
+          loco.shader_set_value(shader, "jitter_speed", ri.jitter_speed);
+
           loco.shader_set_value(shader, "shape", ri.shape);
 
           fan_opengl_call(glDrawArrays(GL_TRIANGLES, 0, 6 * ri.count));
         }
+
       } while (BlockTraverse.Loop(shaper));
 
       continue;  // skip normal drawing
@@ -1061,7 +1075,6 @@ void shapes_draw() {
       continue;  // skip normal drawing
     }
     }
-
 
     fan::graphics::shaper_t::BlockTraverse_t BlockTraverse;
     BlockTraverse.Init(shaper, current_bmid);

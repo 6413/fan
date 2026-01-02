@@ -129,20 +129,20 @@ struct player_t {
     pile->get_level().load_enemies();
     //body.set_dynamic();// if player is always in the camera, no need to call update_dynamic i think
   }
-  fan::event::task_t particles_explode(){
-    particles.set_position(fan::vec3(pile->get_level().player_checkpoints[current_checkpoint].entity.get_position() + fan::vec2(-32, 80), 0));
-    fan::time::timer jump_timer{4.0e9f / 2.f, true};
-    while (!jump_timer){
-      f32_t t = jump_timer.seconds() / jump_timer.duration_seconds();
-      t = std::clamp(t, 0.0f, 1.0f);
-      f32_t progress = 1.0f - std::fabs(t * 2.0f - 1.0f);
-      f32_t progress2 = 1.0f - std::fabs(t * 4.0f - 1.0f);
-      particles.set_color(fan::color::hsv(340.9f, 88.9f, progress * 100.f));
-      ((fan::graphics::shapes::particles_t::ri_t*)particles.GetData(fan::graphics::g_shapes->shaper))->position_velocity.y = -progress2 * 1000.f;
-      co_await fan::graphics::co_next_frame();
-    }
-    particles.set_color(0);
-  }
+  //fan::event::task_t particles_explode(){
+  //  particles.set_position(fan::vec3(pile->get_level().player_checkpoints[current_checkpoint].entity.get_position() + fan::vec2(-32, 80), 0));
+  //  fan::time::timer jump_timer{4.0e9f / 2.f, true};
+  //  while (!jump_timer){
+  //    f32_t t = jump_timer.seconds() / jump_timer.duration_seconds();
+  //    t = std::clamp(t, 0.0f, 1.0f);
+  //    f32_t progress = 1.0f - std::fabs(t * 2.0f - 1.0f);
+  //    f32_t progress2 = 1.0f - std::fabs(t * 4.0f - 1.0f);
+  //    particles.set_color(fan::color::hsv(340.9f, 88.9f, progress * 100.f));
+  //    ((fan::graphics::shapes::particles_t::ri_t*)particles.GetData(fan::graphics::g_shapes->shaper))->position_velocity.y = -progress2 * 1000.f;
+  //    co_await fan::graphics::co_next_frame();
+  //  }
+  //  particles.set_color(0);
+  //}
   void handle_attack() {
     if (!did_attack && body.animation_on("attack0", attack_hitbox_frame)) {
       fan::audio::play(audio_attack);
@@ -167,6 +167,14 @@ struct player_t {
     body.set_color(fan::color::hsl(v, 18.3f, -58.4f));
 
     player_light.set_position(body.get_center());
+    body.update_animations();
+    handle_attack();
+
+    if (!pile->level_stage) {
+      return;
+    }
+
+    auto& level = pile->get_level();
     if (pile->get_level().is_entering_door) {
       static f32_t moved = body.get_position().x;
       if (body.get_position().x - moved < 128.f) {
@@ -175,15 +183,9 @@ struct player_t {
       }
       else {
         body.movement_state.ignore_input = false;
-        auto& level = pile->get_level();
         level.enter_boss();
       }
     }
-
-    //body.update_dynamic();
-    handle_attack();
-
-    body.update_animations();
 
     for (auto [i, checkpoint] : fan::enumerate(pile->get_level().player_checkpoints)) {
       if (fan::physics::is_on_sensor(body, checkpoint.entity) && current_checkpoint < (int)i) {
@@ -238,7 +240,7 @@ struct player_t {
 
   int current_checkpoint = 1;
   
-  uint16_t potion_count = 10;
+  uint16_t potion_count = 1;
   fan::time::timer potion_consume_timer {0.1e9, true};
   fan::graphics::shape_t particles_drink_potion[4];
   fan::graphics::light_t player_light {{.position=0}};
