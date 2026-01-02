@@ -368,20 +368,27 @@ export namespace fan::graphics::gui {
   private:
     fan::graphics::shapes::shape_t particle_shape = fan::graphics::shapes::particles_t::properties_t{
       .position = fan::vec3(32.108f, -1303.084f, 10.0f),
-      .size = 28.638f,
+      .start_size = fan::vec2(28.638f),
+      .end_size = fan::vec2(28.638f),
       .begin_color = fan::color::from_rgba(0x33333369),
       .end_color = fan::color::from_rgba(0x33333369),
       .alive_time = 1768368768,
       .count = 1191,
-      .position_velocity = fan::vec2(0.0f, 9104.127f),
+      .start_velocity = fan::vec2(0.0f, 9104.127f),
+      .end_velocity = fan::vec2(0.0f, 9104.127f),
       .begin_angle = 0,
       .end_angle = -0.16f,
       .angle = fan::vec3(0.0f, 0.0f, -0.494f),
-      .gap_size = fan::vec2(400.899f, 1.0f),
-      .max_spread_size = fan::vec2(2648.021f, 1.0f),
+      .spawn_spacing = fan::vec2(400.899f, 1.0f),
+      .start_spread = fan::vec2(2648.021f, 1.0f),
+      .end_spread = fan::vec2(2648.021f, 1.0f),
+      .jitter_start = fan::vec2(0.0f),
+      .jitter_end = fan::vec2(0.0f),
+      .jitter_speed = 0.0f,
       .shape = fan::graphics::shapes::particles_t::shapes_e::rectangle,
       .image = fan::graphics::image_load("images/waterdrop.webp")
     };
+
   public:
 
     void set_particle_shape(fan::graphics::shape_t&& shape);
@@ -389,7 +396,8 @@ export namespace fan::graphics::gui {
     // just for gui visualization
     fan::graphics::sprite_t particle_image_sprite;
 
-    fan::color bg_color = fan::color::from_rgba(0xB8C4BFFF);
+    /*fan::color bg_color = fan::color::from_rgba(0xB8C4BFFF);*/
+    fan::color bg_color = fan::colors::black;
     fan::color base_color = fan::color::from_rgba(0x33333369);
     f32_t color_intensity = 1.0f;
     fan::graphics::file_save_dialog_t save_file_dialog{};
@@ -532,11 +540,11 @@ export namespace fan::graphics::gui {
         gui::window_flags_no_background |
         gui::window_flags_no_nav |
         gui::window_flags_no_title_bar |
+        gui::window_flags_no_resize |
+        gui::window_flags_no_move |
         gui::window_flags_override_input
       ) {}
   };
-
-
 }
 /*
 template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(

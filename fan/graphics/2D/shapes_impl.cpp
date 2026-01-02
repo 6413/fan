@@ -946,24 +946,38 @@ namespace fan::graphics{
       ri.loop_enabled_time = properties.loop_enabled_time;
       ri.loop_disabled_time = properties.loop_disabled_time;
       ri.position = properties.position;
-      ri.size = properties.size;
+
+      ri.start_size = properties.start_size;
+      ri.end_size = properties.end_size;
+
       ri.begin_color = properties.begin_color;
       ri.end_color = properties.end_color;
+
       ri.begin_time = properties.begin_time;
       ri.alive_time = properties.alive_time;
       ri.respawn_time = properties.respawn_time;
       ri.count = properties.count;
-      ri.position_velocity = properties.position_velocity;
-      ri.angle_velocity = properties.angle_velocity;
+
+      ri.start_velocity = properties.start_velocity;
+      ri.end_velocity = properties.end_velocity;
+
+      ri.start_angle_velocity = properties.start_angle_velocity;
+      ri.end_angle_velocity = properties.end_angle_velocity;
+
       ri.begin_angle = properties.begin_angle;
       ri.end_angle = properties.end_angle;
       ri.angle = properties.angle;
-      ri.gap_size = properties.gap_size;
-      ri.max_spread_size = properties.max_spread_size;
+
+      ri.spawn_spacing = properties.spawn_spacing;
       ri.expansion_power = properties.expansion_power;
-      ri.size_velocity = properties.size_velocity;
-      ri.turbulence = properties.turbulence;
-      ri.turbulence_speed = properties.turbulence_speed;
+
+      ri.start_spread = properties.start_spread;
+      ri.end_spread = properties.end_spread;
+
+      ri.jitter_start = properties.jitter_start;
+      ri.jitter_end = properties.jitter_end;
+      ri.jitter_speed = properties.jitter_speed;
+
       ri.shape = properties.shape;
 
       sd.visual = shape_add(
@@ -2482,80 +2496,10 @@ namespace fan::graphics{
       fan::throw_error("invalid vertices");
     }
 
-    //std::vector<polygon_vertex_t> polygon_vertices(properties.vertices.size());
-    //for(std::size_t i = 0; i < properties.vertices.size(); ++i){
-    //  polygon_vertices[i].position = properties.vertices[i].position;
-    //  polygon_vertices[i].color = properties.vertices[i].color;
-    //  polygon_vertices[i].offset = properties.position;
-    //  polygon_vertices[i].angle = properties.angle;
-    //  polygon_vertices[i].rotation_point = properties.rotation_point;
-    //}
-
-    //properties_t modified_props = properties;
-    //modified_props.buffer_size = sizeof(decltype(polygon_vertices)::value_type) * polygon_vertices.size();
-
-    //auto new_item = g_shapes->add_shape(g_shapes->polygon_list, modified_props);
-
-    //auto& draw_data = g_shapes->get_shape_draw_data(g_shapes->polygon_list, new_item.NRI);
-    //draw_data.vao.open((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))));
-    //draw_data.vao.bind((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))));
-    //draw_data.vbo.open((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))), GL_ARRAY_BUFFER);
-    //fan::opengl::core::write_glbuffer(
-    //  (*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))),
-    //  draw_data.vbo.m_buffer,
-    //  polygon_vertices.data(),
-    //  draw_data.buffer_size,
-    //  GL_STATIC_DRAW,
-    //  draw_data.vbo.m_target
-    //);
-
-    //auto& shape_data = g_shapes->shaper.GetShapeTypes(shape_type).renderer.gl;
-    //fan::graphics::context_shader_t shader;
-    //if(!shape_data.shader.iic()){
-    //  shader = fan::graphics::shader_get(shape_data.shader);
-    //}
-    //uint64_t ptr_offset = 0;
-    //for(shape_gl_init_t& location : get_locations()){
-    //  if(((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))).opengl.major == 2 && (*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))).opengl.minor == 1) && !shape_data.shader.iic()){
-    //    location.index.first = fan_opengl_call(glGetAttribLocation(shader.gl.id, location.index.second));
-    //  }
-    //  fan_opengl_call(glEnableVertexAttribArray(location.index.first));
-    //  switch(location.type){
-    //  case GL_UNSIGNED_INT:
-    //  case GL_INT:{
-    //    fan_opengl_call(glVertexAttribIPointer(location.index.first, location.size, location.type, location.stride, (void*)ptr_offset));
-    //    break;
-    //  }
-    //  default:{
-    //    fan_opengl_call(glVertexAttribPointer(location.index.first, location.size, location.type, GL_FALSE, location.stride, (void*)ptr_offset));
-    //  }
-    //  }
-    //  if(((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))).opengl.major > 3) || ((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))).opengl.major == 3 && (*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))).opengl.minor >= 3)){
-    //    if(shape_data.instanced){
-    //      fan_opengl_call(glVertexAttribDivisor(location.index.first, 1));
-    //    }
-    //  }
-    //  switch(location.type){
-    //  case GL_FLOAT:{
-    //    ptr_offset += location.size * sizeof(GLfloat);
-    //    break;
-    //  }
-    //  case GL_UNSIGNED_INT:{
-    //    ptr_offset += location.size * sizeof(GLuint);
-    //    break;
-    //  }
-    //  default:{
-    //    fan::throw_error_impl();
-    //  }
-    //  }
-    //}
-
     auto new_item = g_shapes->add_shape(g_shapes->polygon_list, properties);
     fan::graphics::shaper_t::ShapeID_t ret;
     ret.gint() = new_item.NRI;
     return ret;
-    //fan::throw_error("TODO");
-    //return {};
   }
 
   shapes::shape_t shapes::grid_t::push_back(const properties_t& properties){
@@ -3013,21 +2957,28 @@ namespace fan::graphics {
       fan::graphics::shapes::particles_t::properties_t defaults;
       auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper);
       out["shape"] = "particles";
+
       if (ri.loop != defaults.loop) {
         out["loop"] = ri.loop;
       }
       if (ri.position != defaults.position) {
         out["position"] = ri.position;
       }
-      if (ri.size != defaults.size) {
-        out["size"] = ri.size;
+
+      if (ri.start_size != defaults.start_size) {
+        out["start_size"] = ri.start_size;
       }
+      if (ri.end_size != defaults.end_size) {
+        out["end_size"] = ri.end_size;
+      }
+
       if (ri.begin_color != defaults.begin_color) {
         out["begin_color"] = ri.begin_color;
       }
       if (ri.end_color != defaults.end_color) {
         out["end_color"] = ri.end_color;
       }
+
       if (ri.alive_time != defaults.alive_time) {
         out["alive_time"] = ri.alive_time;
       }
@@ -3037,12 +2988,21 @@ namespace fan::graphics {
       if (ri.count != defaults.count) {
         out["count"] = ri.count;
       }
-      if (ri.position_velocity != defaults.position_velocity) {
-        out["position_velocity"] = ri.position_velocity;
+
+      if (ri.start_velocity != defaults.start_velocity) {
+        out["start_velocity"] = ri.start_velocity;
       }
-      if (ri.angle_velocity != defaults.angle_velocity) {
-        out["angle_velocity"] = ri.angle_velocity;
+      if (ri.end_velocity != defaults.end_velocity) {
+        out["end_velocity"] = ri.end_velocity;
       }
+
+      if (ri.start_angle_velocity != defaults.start_angle_velocity) {
+        out["start_angle_velocity"] = ri.start_angle_velocity;
+      }
+      if (ri.end_angle_velocity != defaults.end_angle_velocity) {
+        out["end_angle_velocity"] = ri.end_angle_velocity;
+      }
+
       if (ri.begin_angle != defaults.begin_angle) {
         out["begin_angle"] = ri.begin_angle;
       }
@@ -3052,27 +3012,35 @@ namespace fan::graphics {
       if (ri.angle != defaults.angle) {
         out["angle"] = ri.angle;
       }
-      if (ri.gap_size != defaults.gap_size) {
-        out["gap_size"] = ri.gap_size;
-      }
-      if (ri.max_spread_size != defaults.max_spread_size) {
-        out["max_spread_size"] = ri.max_spread_size;
+
+      if (ri.spawn_spacing != defaults.spawn_spacing) {
+        out["spawn_spacing"] = ri.spawn_spacing;
       }
       if (ri.expansion_power != defaults.expansion_power) {
         out["expansion_power"] = ri.expansion_power;
       }
-      if (ri.size_velocity != defaults.size_velocity) {
-        out["size_velocity"] = ri.size_velocity;
+
+      if (ri.start_spread != defaults.start_spread) {
+        out["start_spread"] = ri.start_spread;
       }
-      if (ri.turbulence != defaults.turbulence) {
-        out["turbulence"] = ri.turbulence;
+      if (ri.end_spread != defaults.end_spread) {
+        out["end_spread"] = ri.end_spread;
       }
-      if (ri.turbulence_speed != defaults.turbulence_speed) {
-        out["turbulence_speed"] = ri.turbulence_speed;
+
+      if (ri.jitter_start != defaults.jitter_start) {
+        out["jitter_start"] = ri.jitter_start;
       }
+      if (ri.jitter_end != defaults.jitter_end) {
+        out["jitter_end"] = ri.jitter_end;
+      }
+      if (ri.jitter_speed != defaults.jitter_speed) {
+        out["jitter_speed"] = ri.jitter_speed;
+      }
+
       if (ri.shape != defaults.shape) {
         out["particle_shape"] = ri.shape;
       }
+
       fan::graphics::image_t image = shape.get_image();
       if (image) {
         out.update(fan::graphics::image_to_json(image), true);
@@ -3357,7 +3325,7 @@ namespace fan::graphics {
       *shape = p;
       break;
     }
-    case fan::get_hash("particles"): {
+    case fan::get_hash("particles"):{
       fan::graphics::shapes::particles_t::properties_t p;
       if (in.contains("loop")) {
         p.loop = in["loop"];
@@ -3365,15 +3333,21 @@ namespace fan::graphics {
       if (in.contains("position")) {
         p.position = in["position"];
       }
-      if (in.contains("size")) {
-        p.size = in["size"];
+
+      if (in.contains("start_size")) {
+        p.start_size = in["start_size"];
       }
+      if (in.contains("end_size")) {
+        p.end_size = in["end_size"];
+      }
+
       if (in.contains("begin_color")) {
         p.begin_color = in["begin_color"];
       }
       if (in.contains("end_color")) {
         p.end_color = in["end_color"];
       }
+
       if (in.contains("alive_time")) {
         p.alive_time = in["alive_time"];
       }
@@ -3383,12 +3357,21 @@ namespace fan::graphics {
       if (in.contains("count")) {
         p.count = in["count"];
       }
-      if (in.contains("position_velocity")) {
-        p.position_velocity = in["position_velocity"];
+
+      if (in.contains("start_velocity")) {
+        p.start_velocity = in["start_velocity"];
       }
-      if (in.contains("angle_velocity")) {
-        p.angle_velocity = in["angle_velocity"];
+      if (in.contains("end_velocity")) {
+        p.end_velocity = in["end_velocity"];
       }
+
+      if (in.contains("start_angle_velocity")) {
+        p.start_angle_velocity = in["start_angle_velocity"];
+      }
+      if (in.contains("end_angle_velocity")) {
+        p.end_angle_velocity = in["end_angle_velocity"];
+      }
+
       if (in.contains("begin_angle")) {
         p.begin_angle = in["begin_angle"];
       }
@@ -3398,24 +3381,31 @@ namespace fan::graphics {
       if (in.contains("angle")) {
         p.angle = in["angle"];
       }
-      if (in.contains("gap_size")) {
-        p.gap_size = in["gap_size"];
-      }
-      if (in.contains("max_spread_size")) {
-        p.max_spread_size = in["max_spread_size"];
+
+      if (in.contains("spawn_spacing")) {
+        p.spawn_spacing = in["spawn_spacing"];
       }
       if (in.contains("expansion_power")) {
         p.expansion_power = in["expansion_power"];
       }
-      if (in.contains("size_velocity")) {
-        p.size_velocity = in["size_velocity"];
+
+      if (in.contains("start_spread")) {
+        p.start_spread = in["start_spread"];
       }
-      if (in.contains("turbulence")) {
-        p.turbulence = in["turbulence"];
+      if (in.contains("end_spread")) {
+        p.end_spread = in["end_spread"];
       }
-      if (in.contains("turbulence_speed")) {
-        p.turbulence_speed = in["turbulence_speed"];
+
+      if (in.contains("jitter_start")) {
+        p.jitter_start = in["jitter_start"];
       }
+      if (in.contains("jitter_end")) {
+        p.jitter_end = in["jitter_end"];
+      }
+      if (in.contains("jitter_speed")) {
+        p.jitter_speed = in["jitter_speed"];
+      }
+
       if (in.contains("particle_shape")) {
         p.shape = in["particle_shape"];
       }
@@ -3456,6 +3446,7 @@ namespace fan::graphics {
       fan::write_to_vector(out, shape.get_src());
       fan::write_to_vector(out, shape.get_dst());
       break;
+    }
     case fan::graphics::shapes::shape_type_t::rectangle: {
       fan::write_to_vector(out, shape.get_position());
       fan::write_to_vector(out, shape.get_size());
@@ -3522,27 +3513,41 @@ namespace fan::graphics {
     case fan::graphics::shapes::shape_type_t::particles: {
       auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper);
       fan::write_to_vector(out, ri.position);
-      fan::write_to_vector(out, ri.size);
+
+      fan::write_to_vector(out, ri.start_size);
+      fan::write_to_vector(out, ri.end_size);
+
       fan::write_to_vector(out, ri.begin_color);
       fan::write_to_vector(out, ri.end_color);
+
       fan::write_to_vector(out, ri.begin_time);
       fan::write_to_vector(out, ri.alive_time);
       fan::write_to_vector(out, ri.respawn_time);
       fan::write_to_vector(out, ri.count);
-      fan::write_to_vector(out, ri.position_velocity);
-      fan::write_to_vector(out, ri.angle_velocity);
+
+      fan::write_to_vector(out, ri.start_velocity);
+      fan::write_to_vector(out, ri.end_velocity);
+
+      fan::write_to_vector(out, ri.start_angle_velocity);
+      fan::write_to_vector(out, ri.end_angle_velocity);
+
       fan::write_to_vector(out, ri.begin_angle);
       fan::write_to_vector(out, ri.end_angle);
       fan::write_to_vector(out, ri.angle);
-      fan::write_to_vector(out, ri.gap_size);
-      fan::write_to_vector(out, ri.max_spread_size);
-      fan::write_to_vector(out, ri.size_velocity);
-      fan::write_to_vector(out, ri.turbulence);
-      fan::write_to_vector(out, ri.turbulence_speed);
+
+      fan::write_to_vector(out, ri.spawn_spacing);
+      fan::write_to_vector(out, ri.expansion_power);
+
+      fan::write_to_vector(out, ri.start_spread);
+      fan::write_to_vector(out, ri.end_spread);
+
+      fan::write_to_vector(out, ri.jitter_start);
+      fan::write_to_vector(out, ri.jitter_end);
+      fan::write_to_vector(out, ri.jitter_speed);
+
       fan::write_to_vector(out, ri.shape);
       fan::write_to_vector(out, ri.blending);
       break;
-    }
     }
     case fan::graphics::shapes::shape_type_t::light_end: {
       break;
@@ -3665,25 +3670,41 @@ namespace fan::graphics {
     case fan::graphics::shapes::shape_type_t::particles: {
       fan::graphics::shapes::particles_t::properties_t p;
       p.position = fan::vector_read_data<decltype(p.position)>(in, offset);
-      p.size = fan::vector_read_data<decltype(p.size)>(in, offset);
+
+      p.start_size = fan::vector_read_data<decltype(p.start_size)>(in, offset);
+      p.end_size = fan::vector_read_data<decltype(p.end_size)>(in, offset);
+
       p.begin_color = fan::vector_read_data<decltype(p.begin_color)>(in, offset);
       p.end_color = fan::vector_read_data<decltype(p.end_color)>(in, offset);
+
       p.begin_time = fan::vector_read_data<decltype(p.begin_time)>(in, offset);
       p.alive_time = fan::vector_read_data<decltype(p.alive_time)>(in, offset);
       p.respawn_time = fan::vector_read_data<decltype(p.respawn_time)>(in, offset);
       p.count = fan::vector_read_data<decltype(p.count)>(in, offset);
-      p.position_velocity = fan::vector_read_data<decltype(p.position_velocity)>(in, offset);
-      p.angle_velocity = fan::vector_read_data<decltype(p.angle_velocity)>(in, offset);
+
+      p.start_velocity = fan::vector_read_data<decltype(p.start_velocity)>(in, offset);
+      p.end_velocity = fan::vector_read_data<decltype(p.end_velocity)>(in, offset);
+
+      p.start_angle_velocity = fan::vector_read_data<decltype(p.start_angle_velocity)>(in, offset);
+      p.end_angle_velocity = fan::vector_read_data<decltype(p.end_angle_velocity)>(in, offset);
+
       p.begin_angle = fan::vector_read_data<decltype(p.begin_angle)>(in, offset);
       p.end_angle = fan::vector_read_data<decltype(p.end_angle)>(in, offset);
       p.angle = fan::vector_read_data<decltype(p.angle)>(in, offset);
-      p.gap_size = fan::vector_read_data<decltype(p.gap_size)>(in, offset);
-      p.max_spread_size = fan::vector_read_data<decltype(p.max_spread_size)>(in, offset);
-      p.size_velocity = fan::vector_read_data<decltype(p.size_velocity)>(in, offset);
-      p.turbulence = fan::vector_read_data<decltype(p.turbulence)>(in, offset);
-      p.turbulence_speed = fan::vector_read_data<decltype(p.turbulence_speed)>(in, offset);
+
+      p.spawn_spacing = fan::vector_read_data<decltype(p.spawn_spacing)>(in, offset);
+      p.expansion_power = fan::vector_read_data<decltype(p.expansion_power)>(in, offset);
+
+      p.start_spread = fan::vector_read_data<decltype(p.start_spread)>(in, offset);
+      p.end_spread = fan::vector_read_data<decltype(p.end_spread)>(in, offset);
+
+      p.jitter_start = fan::vector_read_data<decltype(p.jitter_start)>(in, offset);
+      p.jitter_end = fan::vector_read_data<decltype(p.jitter_end)>(in, offset);
+      p.jitter_speed = fan::vector_read_data<decltype(p.jitter_speed)>(in, offset);
+
       p.shape = fan::vector_read_data<decltype(p.shape)>(in, offset);
       p.blending = fan::vector_read_data<decltype(p.blending)>(in, offset);
+
       *shape = p;
       break;
     }

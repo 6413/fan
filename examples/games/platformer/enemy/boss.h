@@ -33,6 +33,10 @@ struct boss_t : enemy_t<derived_t> {
   void render_health() override {
     using namespace fan::graphics;
 
+    if (!render_health_bar) {
+      return;
+    }
+
     gui::set_next_window_pos(0);
     gui::set_next_window_size(gui::get_window_size());
 
@@ -73,4 +77,5 @@ struct boss_t : enemy_t<derived_t> {
       gui::set_cursor_pos(previous_cursor);
     }
   }
+  bool render_health_bar = false;
 };

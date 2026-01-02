@@ -45,6 +45,10 @@ namespace fan::graphics::culling {
     //if (t.contains("[AABB]")) {
     //  fan::print_throttled(tag, std::forward<Args>(args)...);
     //}
+    //if (t.contains("[cull_camera]")) {
+    //  fan::print_throttled(tag, std::forward<Args>(args)...);
+    //}
+    //fan::print_throttled(tag, std::forward<Args>(args)...);
   }
 
   constexpr int cell_index(const fan::vec2i& c, const fan::vec2i& grid_size) {
@@ -95,6 +99,12 @@ namespace fan::graphics::culling {
         size = fan::vec2(std::abs(properties.dst.x - properties.src.x), std::abs(properties.dst.y - properties.src.y)) * 0.5f;
         has_bounds = true;
         matched = "srcdst";
+      }
+      else if constexpr (requires { properties.position; properties.start_size; }) {
+        position = properties.position;
+        size = properties.start_size;
+        has_bounds = true;
+        matched = "start_size";
       }
       else {
         fan::print_warning("shape aabb not found");
@@ -453,8 +463,8 @@ namespace fan::graphics::culling {
             dbg("[keep]", "cell", x, y, "sid", nr);
             continue;
           }
-          auto& aabb = aabb_cache[nr];
-          bool overlaps = is_aabb_in_view(aabb, view_min, view_max);
+          auto aabb = get_shape_aabb(sid);  // ← Get fresh AABB
+    bool overlaps = is_aabb_in_view(aabb, view_min, view_max);
           dbg("[test]", "cell", x, y, "sid", nr, "aabb.min", aabb.min.x, aabb.min.y, "aabb.max", aabb.max.x, aabb.max.y, "overlaps", overlaps ? "yes" : "no");
           if (overlaps) {
             update_shape_vram_if_camera_matches(sid, camera_nr, true);

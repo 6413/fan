@@ -1067,6 +1067,10 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
       render_view.camera);
   }
 
+  fan::vec4 interactive_camera_t::get_ortho() const {
+    return fan::graphics::camera_get(render_view.camera).coordinates.v;
+  }
+
   fan::vec2 interactive_camera_t::get_viewport_size() const {
     return fan::graphics::viewport_get_size(render_view.viewport);
   }

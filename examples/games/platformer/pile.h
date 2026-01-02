@@ -27,7 +27,7 @@ struct pile_t {
     ic.set_zoom(1.6f * r.max());
   }
   void update() {
-    static bool force_zoom = false;
+    static bool force_zoom = true;
      if (force_zoom) {
       update_camera_zoom();
     }
@@ -71,6 +71,7 @@ struct pile_t {
   };
   fan::audio::piece_t audio_background;
   player_t player;
+  fan::graphics::rectangle_t stage_transition;
 
   using enemy_list_t = std::variant<skeleton_t, fly_t, boss_skeleton_t>;
 

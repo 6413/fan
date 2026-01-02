@@ -192,8 +192,6 @@ public:
     gloco()->m_update_callback.unlrec(stage_list[id].update_nr);
     sc->close(stage_list[id].stage);
     stage_list.unlrec(id);
-    //stage->close();
-   // std::destroy_at(stage);
   }
 };
 #undef stage_loader_path

@@ -502,8 +502,9 @@ namespace fan::physics {
       {
         auto it = physics_step_callbacks.GetNodeFirst();
         while (it != physics_step_callbacks.dst) {
+          physics_step_callbacks.StartSafeNext(it);
           physics_step_callbacks[it]();
-          it = it.Next(&physics_step_callbacks);
+          it = physics_step_callbacks.EndSafeNext();
         }
       }
 
@@ -1081,6 +1082,46 @@ namespace fan::physics {
       );
     }
     return walls;
+  }
+
+  void b2_to_fan_vertices(
+    const b2Vec2* b2_vertices,
+    int vertex_count,
+    std::vector<fan::vec2>& out
+  ) {
+    out.resize(vertex_count);
+    for (auto [i, v] : fan::enumerate(out)) {
+      v = fan::physics::physics_to_render(b2_vertices[i]);
+    }
+  }
+
+  bool is_rectangle(const std::vector<fan::vec2>& v){
+    if (v.size() != 4) {
+      return false;
+    }
+
+    auto ab = v[1] - v[0];
+    auto bc = v[2] - v[1];
+    auto cd = v[3] - v[2];
+    auto da = v[0] - v[3];
+
+    constexpr f32_t eps = 1e-4f;
+
+    bool right_angles =
+      std::abs(ab.dot(bc)) < eps &&
+      std::abs(bc.dot(cd)) < eps &&
+      std::abs(cd.dot(da)) < eps &&
+      std::abs(da.dot(ab)) < eps;
+
+    if (!right_angles) {
+      return false;
+    }
+
+    bool equal_sides = 
+      std::abs(ab.length() - cd.length()) < eps &&
+      std::abs(bc.length() - da.length()) < eps;
+
+    return equal_sides;
   }
 }
 #endif

@@ -888,6 +888,7 @@ export namespace fan::graphics {
     f32_t get_zoom() const;
     void set_zoom(f32_t new_zoom);
     fan::vec2 get_size() const;
+    fan::vec4 get_ortho() const;
     fan::vec2 get_viewport_size() const;
 
     bool ignore_input = false;

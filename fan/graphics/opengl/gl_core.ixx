@@ -453,6 +453,24 @@ export namespace fan::opengl::core {
 
   // not tested
   int get_bound_buffer(fan::opengl::context_t& context);
+  void reserve_glbuffer(
+    fan::opengl::context_t& ctx,
+    GLuint buffer,
+    uint32_t& capacity,
+    uint32_t needed,
+    uint32_t usage,
+    GLenum target
+  );
+  void append_glbuffer(
+    fan::opengl::context_t& ctx,
+    GLuint buffer,
+    uintptr_t& size_bytes,
+    uintptr_t& capacity_bytes,
+    const void* data,
+    uintptr_t data_size,
+    uint32_t usage,
+    GLenum target
+  );
   //#pragma pack(push, 1)
   //#pragma pack(pop)
 
