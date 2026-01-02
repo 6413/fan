@@ -848,30 +848,34 @@ void loco_t::visualize_culling() {
   fan::vec2 top_right(padded_max.x, padded_min.y);
   fan::vec2 bottom_left(padded_min.x, padded_max.y);
   
-  add_shape_to_immediate_draw(fan::graphics::shapes::line_t::properties_t{
+  add_shape_to_immediate_draw(fan::graphics::shapes::shape_t(
+    fan::graphics::shapes::line_t::properties_t{
     .src = padded_min, 
     .dst = top_right,
     .color = fan::color(1, 0, 0, 0.8f),
     .thickness = 5.f / cam.zoom
-  });
-  add_shape_to_immediate_draw(fan::graphics::shapes::line_t::properties_t{
+  }, false));
+  add_shape_to_immediate_draw(fan::graphics::shapes::shape_t(
+    fan::graphics::shapes::line_t::properties_t{
     .src = top_right, 
     .dst = padded_max,
     .color = fan::color(1, 0, 0, 0.8f),
     .thickness = 5.f / cam.zoom
-  });
-  add_shape_to_immediate_draw(fan::graphics::shapes::line_t::properties_t{
+  }, false));
+  add_shape_to_immediate_draw(fan::graphics::shapes::shape_t(
+    fan::graphics::shapes::line_t::properties_t{
     .src = padded_max, 
     .dst = bottom_left,
     .color = fan::color(1, 0, 0, 0.8f),
     .thickness = 5.f / cam.zoom
-  });
-  add_shape_to_immediate_draw(fan::graphics::shapes::line_t::properties_t{
+  }, false));
+  add_shape_to_immediate_draw(fan::graphics::shapes::shape_t(
+    fan::graphics::shapes::line_t::properties_t{
     .src = bottom_left, 
     .dst = padded_min,
     .color = fan::color(1, 0, 0, 0.8f),
     .thickness = 5.f / cam.zoom
-  });
+  }, false));
 }
 #endif
 

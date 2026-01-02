@@ -38,58 +38,71 @@ int z_depth = 0;
 
 /// Draw a closed polygon provided in CCW order.
 void DrawPolygon(const fan::vec2* vertices, int vertexCount, b2HexColor color, void* context) {
-  //if (z_depth == 2) {
-  //  z_depth = 0;
-  //}
-  //for (int i = 0; i < vertexCount; i++) {
-  //  int next_i = (i + 1) % vertexCount;
 
-  //  //debug_draw_polygon.emplace_back(fan::graphics::line_t{ {
-  //  //  .src = fan::vec3(fan::physics::physics_to_render(vertices[i]), draw_depth + z_depth),
-  //  //  .dst = fan::physics::physics_to_render(vertices[next_i]),
-  //  //  .color = fan::color::from_rgb(color)
-  //  //} });
-  //}
 }
 
 /// Draw a solid closed polygon provided in CCW order.
-void DrawSolidPolygon(b2Transform transform, const b2Vec2* vertices, int vertexCount, f32_t radius, b2HexColor color, void* context) {
-  std::vector<fan::graphics::vertex_t> vs(vertexCount);
+void DrawSolidPolygon(
+  b2Transform transform,
+  const b2Vec2* vertices,
+  int vertexCount,
+  f32_t radius,
+  b2HexColor color,
+  void* context)
+{
+  if (vertexCount == 4) {
+    static std::vector<fan::vec2> fan_vertices;
+    fan::physics::b2_to_fan_vertices(vertices, vertexCount, fan_vertices);
+    if (fan::physics::is_rectangle(fan_vertices)) {
+      fan::graphics::add_shape_to_immediate_draw(fan::graphics::rectangle_t{{
+        .render_view = &fan::graphics::physics::debug_render_view,
+        .position = fan::vec3(fan::physics::physics_to_render(transform.p), draw_depth + z_depth),
+        .size = fan::vec2(fan_vertices[2] - fan_vertices[0]).abs() / 2.f,
+        .color = fan::color::from_rgb(color).set_alpha(0.5),
+        .angle = std::atan2(transform.q.s, transform.q.c),
+        .enable_culling = false
+      }});
+      return;
+    }
+  }
+
+  static std::vector<fan::graphics::vertex_t> vs;
+  vs.resize(vertexCount);
+
   for (auto [i, v] : fan::enumerate(vs)) {
     v.position = fan::physics::physics_to_render(vertices[i]);
     v.color = fan::color::from_rgb(color).set_alpha(0.5);
   }
+
   fan::graphics::add_shape_to_immediate_draw(fan::graphics::polygon_t {{
-      .render_view = &fan::graphics::physics::debug_render_view,
-      .position = fan::vec3(fan::physics::physics_to_render(transform.p), draw_depth + z_depth),
-      .vertices = vs,
-      .draw_mode = fan::graphics::primitive_topology_t::triangle_fan,
-      .enable_culling = false
-      //.angle = std::acos(transform.q.c)
-    }});
+    .render_view = &fan::graphics::physics::debug_render_view,
+    .position = fan::vec3(fan::physics::physics_to_render(transform.p), draw_depth + z_depth),
+    .vertices = vs,
+    .draw_mode = fan::graphics::primitive_topology_t::triangle_fan,
+    .enable_culling = false
+  }});
 }
 
 /// Draw a circle.
 void DrawCircle(b2Vec2 center, f32_t radius, b2HexColor color, void* context) {
   fan::graphics::add_shape_to_immediate_draw(fan::graphics::circle_t {{
-      .render_view = &fan::graphics::physics::debug_render_view,
-      .position = fan::vec3(fan::physics::physics_to_render(center), draw_depth + z_depth),
-      .radius = (f32_t)fan::physics::physics_to_render(radius).x,
-      .color = fan::color::from_rgb(color).set_alpha(0.5),
-      .enable_culling = false
-
-    }});
+    .render_view = &fan::graphics::physics::debug_render_view,
+    .position = fan::vec3(fan::physics::physics_to_render(center), draw_depth + z_depth),
+    .radius = (f32_t)fan::physics::physics_to_render(radius).x,
+    .color = fan::color::from_rgb(color).set_alpha(0.5),
+    .enable_culling = false
+  }});
 }
 
 /// Draw a solid circle.
 void DrawSolidCircle(b2Transform transform, f32_t radius, b2HexColor color, void* context) {
   fan::graphics::add_shape_to_immediate_draw(fan::graphics::circle_t {{
-      .render_view = &fan::graphics::physics::debug_render_view,
-      .position = fan::vec3(fan::physics::physics_to_render(transform.p), draw_depth + z_depth),
-      .radius = (f32_t)fan::physics::physics_to_render(radius).x,
-      .color = fan::color::from_rgb(color).set_alpha(0.5),
-      .enable_culling = false
-    }});
+    .render_view = &fan::graphics::physics::debug_render_view,
+    .position = fan::vec3(fan::physics::physics_to_render(transform.p), draw_depth + z_depth),
+    .radius = (f32_t)fan::physics::physics_to_render(radius).x,
+    .color = fan::color::from_rgb(color).set_alpha(0.5),
+    .enable_culling = false
+  }});
 }
 
 /// Draw a capsule.
@@ -100,26 +113,26 @@ void DrawCapsule(b2Vec2 p1, b2Vec2 p2, f32_t radius, b2HexColor color, void* con
 /// Draw a solid capsule.
 void DrawSolidCapsule(b2Vec2 p1, b2Vec2 p2, f32_t radius, b2HexColor color, void* context) {
   fan::graphics::add_shape_to_immediate_draw(fan::graphics::capsule_t {{
-      .render_view = &fan::graphics::physics::debug_render_view,
-      .position = fan::vec3(0, 0, draw_depth + z_depth),
-      .center0 = fan::physics::physics_to_render(p1),
-      .center1 = fan::physics::physics_to_render(p2),
-      .radius = (f32_t)fan::physics::physics_to_render(radius).x,
-      .color = fan::color::from_rgb(color).set_alpha(0.5),
-      .enable_culling = false
-    }});
+    .render_view = &fan::graphics::physics::debug_render_view,
+    .position = fan::vec3(0, 0, draw_depth + z_depth),
+    .center0 = fan::physics::physics_to_render(p1),
+    .center1 = fan::physics::physics_to_render(p2),
+    .radius = (f32_t)fan::physics::physics_to_render(radius).x,
+    .color = fan::color::from_rgb(color).set_alpha(0.5),
+    .enable_culling = false
+  }});
 }
 
 
 /// Draw a line segment.
 void DrawSegment(b2Vec2 p1, b2Vec2 p2, b2HexColor color, void* context) {
-  //fan::graphics::add_shape_to_immediate_draw(fan::graphics::line_t {{
-  //    .render_view = &fan::graphics::physics::debug_render_view,
-  //    .src = fan::vec3(fan::physics::physics_to_render(p1), draw_depth + z_depth),
-  //    .dst = fan::vec3(fan::physics::physics_to_render(p2), draw_depth + z_depth),
-  //    .color = fan::color::from_rgb(color),
-  //    .enable_culling = false
-  //  }});
+  fan::graphics::add_shape_to_immediate_draw(fan::graphics::line_t {{
+    .render_view = &fan::graphics::physics::debug_render_view,
+    .src = fan::vec3(fan::physics::physics_to_render(p1), draw_depth + z_depth),
+    .dst = fan::vec3(fan::physics::physics_to_render(p2), draw_depth + z_depth),
+    .color = fan::color::from_rgb(color),
+    .enable_culling = false
+  }});
 }
 
 /// Draw a transform. Choose your own length scale.
@@ -141,11 +154,19 @@ void DrawPoint(b2Vec2 p, f32_t size, b2HexColor color, void* context) {
 /// Draw a string.
 void DrawString(b2Vec2 p, const char* s, b2HexColor color, void* context) {
 #if defined(FAN_GUI)
-  fan::vec2 pos = fan::physics::physics_to_render(p) - fan::graphics::camera_get_position(fan::graphics::get_orthographic_render_view().camera);
-  pos *= fan::graphics::camera_get_zoom(fan::graphics::get_orthographic_render_view().camera);
-  pos += fan::graphics::get_window().get_size() / 2.f;
+  f32_t base_font_size = 14.0f;
+  f32_t zoomed_font_size = base_font_size * fan::graphics::camera_get_zoom(fan::graphics::physics::debug_render_view.camera);
+  f32_t fs_first = fan::graphics::gui::font_sizes[0];
+  f32_t fs_last = fan::graphics::gui::font_sizes[std::size(fan::graphics::gui::font_sizes) - 1];
 
-  fan::graphics::gui::text_outlined_at(s, pos, fan::color::from_rgb(color));
+  zoomed_font_size = std::clamp(zoomed_font_size, fs_first, fs_last);
+
+  fan::graphics::gui::push_font(
+    fan::graphics::gui::get_font(zoomed_font_size)
+  );
+
+  fan::graphics::gui::text_outlined_at(s, fan::graphics::world_to_screen(fan::physics::physics_to_render(p)), fan::color::from_rgb(color));
+  fan::graphics::gui::pop_font();
 #endif
 }
 
@@ -2524,6 +2545,7 @@ namespace fan::graphics::physics {
       }
 
       if (inside) {
+        on_start_cb();
         start();
       }
     }
@@ -2536,7 +2558,8 @@ namespace fan::graphics::physics {
 
   void elevator_t::destroy() {
     if (step_cb.iic() == false) {
-      fan::physics::remove_physics_step_callback(step_cb);
+      //fan::physics::remove_physics_step_callback(step_cb);
+      step_cb.~raii_nr_t();
       step_cb.sic();
     }
 

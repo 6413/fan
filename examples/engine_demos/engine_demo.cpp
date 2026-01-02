@@ -176,24 +176,49 @@ struct engine_demo_t {
   }
 
   static void demo_shapes_init_particles(engine_demo_t* engine_demo) {
-    
+
     static auto particle_texture = engine_demo->engine.image_load("images/waterdrop.webp");
 
     fan::graphics::shapes::particles_t::properties_t p;
     p.camera = engine_demo->right_column_view.camera;
     p.viewport = engine_demo->right_column_view.viewport;
+
     p.position = fan::vec3(0, 0, 10);
-    p.count = engine_demo->shape_count*100;
-    p.size = 4;
+    p.count = engine_demo->shape_count * 100;
+
+    p.start_size = fan::vec2(4);
+    p.end_size = fan::vec2(4);
+
     p.begin_angle = 4.133;
     p.end_angle = 1.0;
+    p.angle = fan::vec3(0);
+
     p.alive_time = 1e+9;
-    p.gap_size = fan::vec2(354.535, 1.0);
-    p.max_spread_size = fan::vec2(2423.231, 100.0);
+
+    p.spawn_spacing = fan::vec2(354.535, 1.0);
+
+    p.start_spread = fan::vec2(2423.231, 100.0);
+    p.end_spread = fan::vec2(2423.231, 100.0);
+
+    p.start_velocity = fan::vec2(0, 334);
+    p.end_velocity = fan::vec2(0, 334);
+
+    p.start_angle_velocity = fan::vec3(0);
+    p.end_angle_velocity = fan::vec3(0);
+
+    p.jitter_start = fan::vec2(0);
+    p.jitter_end = fan::vec2(0);
+    p.jitter_speed = 0.0f;
+
+    p.expansion_power = 1.0f;
+
     p.shape = fan::graphics::shapes::particles_t::shapes_e::rectangle;
-    p.position_velocity = fan::vec2(0,  334);
+
+    p.begin_color = fan::color(0.4, 0.4, 1.4);
+    p.end_color = fan::color(0.4, 0.4, 1.4);
+
     p.image = particle_texture;
-    p.color = fan::color(0.4, 0.4, 1.4);
+
     engine_demo->shapes.push_back(p);
   }
 
@@ -692,9 +717,6 @@ void main() {
         }
       }
     }
-
-    // Update physics
-    engine_demo->engine.update_physics();
   }
 
   static void demo_physics_cleanup_platformer(engine_demo_t* engine_demo) {
@@ -753,7 +775,7 @@ void main() {
     data.sensor2 = engine_demo->engine.physics_context.create_circle(get_mouse_position(engine_demo->right_column_view) + fan::vec2(128, 0), 64);
     // IMPORTANT: physics step after creating test box and then check is on_sensor,
     // because dummy id changes every frame so, you cannot check it on the next frame.
-    engine_demo->engine.update_physics();
+    //engine_demo->engine.update_physics();
 
     for (int i = 0; i < 3; ++i) {
       fan::vec2 pos = data.visuals[i].get_position();
@@ -1450,7 +1472,7 @@ void main() {
   // allows to move and zoom camera with mouse
   fan::graphics::interactive_camera_t interactive_camera;
   uint16_t current_demo_index = 0;
-  int shape_count = 1000;
+  int shape_count = 100;
   std::vector<fan::graphics::shape_t> shapes;
   static inline constexpr f32_t default_right_window_split_ratio = 0.2f;
   f32_t right_window_split_ratio = default_right_window_split_ratio;
@@ -1468,6 +1490,8 @@ int main() {////
   demo.engine.set_target_fps(0);
   demo.engine.set_vsync(0);
   demo.engine.show_fps = 1;
+  // Update physics
+  demo.engine.update_physics(true);
   fan_window_loop{
     auto camera = fan::graphics::camera_get(demo.right_column_view.camera);
     

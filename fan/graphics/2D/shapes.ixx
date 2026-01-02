@@ -152,7 +152,7 @@ export namespace fan::graphics {
   struct animation_pair_hash_t {
     std::size_t operator()(const std::pair<animation_nr_t, std::string>& p) const noexcept;
   };
-#pragma pack(push, 1)
+
   struct sprite_sheet_data_t {
     // current_frame in 'selected_frames'
     int current_frame = 0;
@@ -165,7 +165,7 @@ export namespace fan::graphics {
     fan::vec2i8 last_sign = 1;
     bool start_animation = false;
   };
-#pragma pack(pop)
+
   extern std::unordered_map<animation_nr_t, sprite_sheet_animation_t, animation_nr_hash_t> all_animations;
   extern animation_nr_t all_animations_counter;
   extern std::unordered_map<std::pair<animation_shape_nr_t, std::string>, animation_nr_t, animation_pair_hash_t> shape_animation_lookup_table;
@@ -563,11 +563,13 @@ export namespace fan::graphics {
         uint32_t flags = 0;
         fan::vec3 angle;
       };;
+
+    #pragma pack(pop)
+
       struct ri_t {
 
       };
 
-    #pragma pack(pop)
 
       static std::array<shape_gl_init_t, 7>& get_locations() {
         static std::array<shape_gl_init_t, 7> locs{{
@@ -618,11 +620,13 @@ export namespace fan::graphics {
         f32_t thickness;
         f32_t pad;
       };
+
+    #pragma pack(pop)
+
       struct ri_t {
 
       };
 
-    #pragma pack(pop)
 
       static std::array<shape_gl_init_t, 4>& get_locations() {
         static std::array<shape_gl_init_t, 4> locs{{
@@ -671,11 +675,13 @@ export namespace fan::graphics {
         fan::vec3 angle;
         f32_t pad2;
       };
+
+    #pragma pack(pop)
+
       struct ri_t {
 
       };
 
-    #pragma pack(pop)
 
       static std::array<shape_gl_init_t, 6>& get_locations() {
         static std::array<shape_gl_init_t, 6> locs{{
@@ -729,6 +735,9 @@ export namespace fan::graphics {
         f32_t seed;
         fan::vec3 pad;
       };
+
+    #pragma pack(pop)
+
       struct ri_t {
         std::array<fan::graphics::image_t, 30> images;
         fan::graphics::texture_pack::unique_t texture_pack_unique_id;
@@ -736,7 +745,6 @@ export namespace fan::graphics {
         sprite_sheet_data_t sprite_sheet_data;
       };
 
-    #pragma pack(pop)
 
       static std::array<shape_gl_init_t, 10>& get_locations() {
         static std::array<shape_gl_init_t, 10> locs{{
@@ -814,6 +822,8 @@ export namespace fan::graphics {
         fan::vec2 tc_size;
         f32_t seed = 0;
       };
+    #pragma pack(pop)
+
       struct ri_t {
         std::array<fan::graphics::image_t, 30> images;
         fan::graphics::texture_pack::unique_t texture_pack_unique_id;
@@ -821,7 +831,6 @@ export namespace fan::graphics {
         sprite_sheet_data_t sprite_sheet_data;
       };
 
-    #pragma pack(pop)
 
       static std::array<shape_gl_init_t, 10>& get_locations() {
         static std::array<shape_gl_init_t, 10> locs{{
@@ -928,11 +937,12 @@ export namespace fan::graphics {
         fan::vec3 angle;
         uint32_t flags;
       };
+    #pragma pack(pop)
+
       struct ri_t {
 
       };
 
-    #pragma pack(pop)
 
       static std::array<shape_gl_init_t, 6>& get_locations() {
         static std::array<shape_gl_init_t, 6> locs{{
@@ -988,11 +998,13 @@ export namespace fan::graphics {
         uint32_t flags;
         fan::color outline_color;
       };
+
+    #pragma pack(pop)
+
       struct ri_t {
 
       };
 
-    #pragma pack(pop)
 
       static std::array<shape_gl_init_t, 9>& get_locations() {
         static std::array<shape_gl_init_t, 9> locs{{
@@ -1034,23 +1046,22 @@ export namespace fan::graphics {
       fan::graphics::shapes::shape_t push_back(const capsule_t::properties_t& properties);
     }capsule;
 
-  #pragma pack(push, 1)
 
     struct polygon_t {
       static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::polygon;
       static constexpr int kpi = kp::common;
 
-
       struct vi_t {
 
       };
+
+      #pragma pack(pop)
+
       struct ri_t {
         uint32_t buffer_size = 0;
         fan::opengl::core::vao_t vao;
         fan::opengl::core::vbo_t vbo;
       };
-
-    #pragma pack(pop)
 
       static std::array<shape_gl_init_t, 5>& get_locations() {
         static std::array<shape_gl_init_t, 5> locs{{
@@ -1095,11 +1106,12 @@ export namespace fan::graphics {
         fan::color color;
         fan::vec3 angle;
       };
+
+    #pragma pack(pop)
       struct ri_t {
 
       };
 
-    #pragma pack(pop)
 
       static std::array<shape_gl_init_t, 6>& get_locations() {
         static std::array<shape_gl_init_t, 6> locs{{
@@ -1146,12 +1158,6 @@ export namespace fan::graphics {
         return locs;
       }
 
-    #pragma pack(push, 1)
-
-      struct vi_t {
-
-      };
-
       struct shapes_e {
         enum {
           circle,
@@ -1159,14 +1165,25 @@ export namespace fan::graphics {
         };
       };
 
-      struct ri_t {
 
+    #pragma pack(push, 1)
+
+      struct vi_t {
+
+      };
+
+    #pragma pack(pop)
+
+      struct ri_t {
         bool loop = true;
         f32_t loop_enabled_time;
         f32_t loop_disabled_time;
 
         fan::vec3 position;
-        fan::vec2 size;
+
+        fan::vec2 start_size;
+        fan::vec2 end_size;
+
         fan::color begin_color;
         fan::color end_color;
 
@@ -1174,25 +1191,32 @@ export namespace fan::graphics {
         f32_t alive_time;
         f32_t respawn_time;
         uint32_t count;
-        fan::vec2 position_velocity;
-        fan::vec3 angle_velocity;
+
+        fan::vec2 start_velocity;
+        fan::vec2 end_velocity;
+
+        fan::vec3 start_angle_velocity;
+        fan::vec3 end_angle_velocity;
+
         f32_t begin_angle;
         f32_t end_angle;
 
         fan::vec3 angle;
 
-        fan::vec2 gap_size;
+        fan::vec2 spawn_spacing;
         f32_t expansion_power;
-        fan::vec2 max_spread_size;
-        fan::vec2 size_velocity;
-        fan::vec2 turbulence;
-        f32_t turbulence_speed;
+
+        fan::vec2 start_spread;
+        fan::vec2 end_spread;
+
+        fan::vec2 jitter_start;
+        fan::vec2 jitter_end;
+        f32_t jitter_speed;
 
         uint32_t shape;
 
         bool blending;
       };
-    #pragma pack(pop)
 
       struct properties_t {
         using type_t = particles_t;
@@ -1202,7 +1226,10 @@ export namespace fan::graphics {
         f32_t loop_disabled_time = -1.0;
 
         fan::vec3 position = 0;
-        fan::vec2 size = 100;
+
+        fan::vec2 start_size = 100;
+        fan::vec2 end_size = 100;
+
         fan::color begin_color = fan::colors::white;
         fan::color end_color = fan::colors::white;
 
@@ -1210,18 +1237,27 @@ export namespace fan::graphics {
         f32_t alive_time = 1;
         f32_t respawn_time = 0;
         uint32_t count = 10;
-        fan::vec2 position_velocity = 130;
-        fan::vec3 angle_velocity = fan::vec3(0, 0, 0);
+
+        fan::vec2 start_velocity = 130;
+        fan::vec2 end_velocity = 130;
+
+        fan::vec3 start_angle_velocity = fan::vec3(0);
+        fan::vec3 end_angle_velocity = fan::vec3(0);
+
         f32_t begin_angle = 0;
         f32_t end_angle = fan::math::pi * 2;
+
         fan::vec3 angle = 0;
 
-        fan::vec2 gap_size = 1;
-        fan::vec2 max_spread_size = 100;
+        fan::vec2 spawn_spacing = 1;
         f32_t expansion_power = 1.0f;
-        fan::vec2 size_velocity = 1;
-        fan::vec2 turbulence = 0;
-        f32_t turbulence_speed = 0.0;
+
+        fan::vec2 start_spread = 100;
+        fan::vec2 end_spread = 100;
+
+        fan::vec2 jitter_start = 0;
+        fan::vec2 jitter_end = 0;
+        f32_t jitter_speed = 0.0;
 
         uint32_t shape = shapes_e::circle;
 
@@ -1247,11 +1283,12 @@ export namespace fan::graphics {
         fan::vec2 tc_position = 0;
         fan::vec2 tc_size = 1;
       };
+
+    #pragma pack(pop)
       struct ri_t {
         std::array<fan::graphics::image_t, 3> images_rest;
         uint8_t format = fan::graphics::image_format::undefined;
       };
-    #pragma pack(pop)
       static std::array<shape_gl_init_t, 4>& get_locations() {
         static std::array<shape_gl_init_t, 4> locs{{
             shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
@@ -1301,10 +1338,11 @@ export namespace fan::graphics {
         std::array<fan::color, 4> color;
         fan::vec3 angle;
       };
+
+    #pragma pack(pop)
       struct ri_t {
 
       };
-    #pragma pack(pop)
       static std::array<shape_gl_init_t, 8>& get_locations() {
         static std::array<shape_gl_init_t, 8> locs{{
             shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
@@ -1364,10 +1402,11 @@ export namespace fan::graphics {
         f32_t light_radius;
         f32_t pad;
       };
+
+    #pragma pack(pop)
       struct ri_t {
 
       };
-    #pragma pack(pop)
       static std::array<shape_gl_init_t, 10>& get_locations() {
         static std::array<shape_gl_init_t, 10> locs{{
             shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
@@ -1423,10 +1462,11 @@ export namespace fan::graphics {
         fan::vec2 tc_size;
         f32_t seed;
       };
+
+    #pragma pack(pop)
       struct ri_t {
         std::array<fan::graphics::image_t, 30> images;
       };
-    #pragma pack(pop)
       static std::array<shape_gl_init_t, 10>& get_locations() {
         static std::array<shape_gl_init_t, 10> locs{{
             shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
@@ -1482,10 +1522,11 @@ export namespace fan::graphics {
         fan::color color;
         fan::vec3 angle;
       };
+
+    #pragma pack(pop)
       struct ri_t {
 
       };
-    #pragma pack(pop)
       static std::array<shape_gl_init_t, 3>& get_locations() {
         static std::array<shape_gl_init_t, 3> locs{{
             shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t,  position)},
@@ -1523,10 +1564,11 @@ export namespace fan::graphics {
         fan::vec3 src;
         fan::vec3 dst;
       };
+
+    #pragma pack(pop)
       struct ri_t {
 
       };
-    #pragma pack(pop)
       static std::array<shape_gl_init_t, 3>& get_locations() {
         static std::array<shape_gl_init_t, 3> locs{{
             shape_gl_init_t{{0, "in_color"}, 4, GL_FLOAT, sizeof(line_t::vi_t), offsetof(line_t::vi_t, color)},

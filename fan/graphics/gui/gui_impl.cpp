@@ -87,13 +87,24 @@ namespace fan::graphics::gui {
   void set_viewport(const fan::graphics::render_view_t& render_view) {
     set_viewport(render_view.viewport);
 
-    fan::vec2 child_size = get_window_size();
+    auto& cam = fan::graphics::camera_get(render_view.camera);
+    fan::vec2 win = get_window_size();
 
-    fan::vec2 viewport_size = fan::vec2(child_size.x, child_size.y);
+    f32_t old_w = cam.coordinates.right  - cam.coordinates.left;
+    f32_t old_h = cam.coordinates.top    - cam.coordinates.bottom;
+
+    f32_t sx = win.x / old_w;
+    f32_t sy = win.y / old_h;
+
+    cam.coordinates.left   *= sx;
+    cam.coordinates.right  *= sx;
+    cam.coordinates.top    *= sy;
+    cam.coordinates.bottom *= sy;
+
     fan::graphics::camera_set_ortho(
       render_view.camera,
-      fan::vec2(0, viewport_size.x),
-      fan::vec2(0, viewport_size.y)
+      fan::vec2(cam.coordinates.left, cam.coordinates.right),
+      fan::vec2(cam.coordinates.bottom, cam.coordinates.top)
     );
   }
 
@@ -309,36 +320,40 @@ namespace fan::graphics::gui {
         ri.shape = current_shape;
       }
       if (color_edit4("particle begin color", &ri.begin_color)) {
-
       }
       if (color_edit4("particle end color", &ri.end_color)) {
-
       }
       if (drag("position", &ri.position, 1)) {
       }
-      if (drag("size", &ri.size, 1)) {
+      if (drag("start_size", &ri.start_size, 1)) {
+      }
+      if (drag("end_size", &ri.end_size, 1)) {
       }
       if (drag("alive_time", &ri.alive_time, 0.01)) {
       }
       if (ri.shape == fan::graphics::shapes::particles_t::shapes_e::rectangle) {
-        if (drag("gap_size", &ri.gap_size, 1)) {
+        if (drag("spawn_spacing", &ri.spawn_spacing, 1)) {
         }
       }
       if (drag("expansion_power", &ri.expansion_power, 0.01)) {
       }
-      if (ri.shape == fan::graphics::shapes::particles_t::shapes_e::rectangle) {
-        if (drag("max_spread_size", &ri.max_spread_size, 0.1)) {
-        }
+      if (drag("start_spread", &ri.start_spread, 0.1)) {
       }
-      if (drag("position_velocity", &ri.position_velocity, 0.1)) {
+      if (drag("end_spread", &ri.end_spread, 0.1)) {
       }
-      if (drag("size_velocity", &ri.size_velocity, 0.1)) {
+      if (drag("start_velocity", &ri.start_velocity, 0.1)) {
       }
-      if (drag("angle_velocity", &ri.angle_velocity, 0.1)) {
+      if (drag("end_velocity", &ri.end_velocity, 0.1)) {
       }
-      if (drag("turbulence", &ri.turbulence, 0.1)) {
+      if (drag("start_angle_velocity", &ri.start_angle_velocity, 0.1)) {
       }
-      if (drag("turbulence_speed", &ri.turbulence_speed, 0.1)) {
+      if (drag("end_angle_velocity", &ri.end_angle_velocity, 0.1)) {
+      }
+      if (drag("jitter_start", &ri.jitter_start, 0.1)) {
+      }
+      if (drag("jitter_end", &ri.jitter_end, 0.1)) {
+      }
+      if (drag("jitter_speed", &ri.jitter_speed, 0.1)) {
       }
       if (drag("count", &ri.count, 1)) {
       }
@@ -352,6 +367,7 @@ namespace fan::graphics::gui {
     }
     }
   }
+
 #endif
 
 

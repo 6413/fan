@@ -965,6 +965,7 @@ export namespace fan::graphics::physics {
 
     fan::physics::step_callback_nr_t step_cb;
 
+    std::function<void()> on_start_cb = [] {};
     std::function<void()> on_end_cb;
 
     void init(const fan::graphics::sprite_t& sprite, const fan::vec2& start_pos, const fan::vec2& end_pos, f32_t dur);
