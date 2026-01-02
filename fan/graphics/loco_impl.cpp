@@ -1830,32 +1830,6 @@ void loco_t::process_render() {
     gl.begin_process_frame();
   }
 
-  fan::event::deferred_resume_t::process_resumes();
-
-  {
-    auto it = m_update_callback.GetNodeFirst();
-    while (it != m_update_callback.dst) {
-      m_update_callback.StartSafeNext(it);
-      auto prev = m_update_callback.SafeNext.NRI;
-      m_update_callback[it](this);
-      it = m_update_callback.EndSafeNext();
-    }
-  }
-
-  for (const auto& i : single_queue) {
-    i();
-  }
-
-  single_queue.clear();
-
-  std::vector<std::coroutine_handle<>> current_frame;
-  // swap with pending to 
-  std::swap(current_frame, fan::graphics::next_frame_awaiter::pending);
-
-  for (const auto& h : current_frame) {
-    h.resume();
-  }
-
 #if defined(FAN_2D)
   if (is_visualizing_culling) {
     visualize_culling();
@@ -1926,6 +1900,7 @@ bool loco_t::should_close() {
 }
 
 bool loco_t::process_frame(const std::function<void()>& cb) {
+
   window.handle_events();
   time = start_time.seconds();
 
@@ -2021,6 +1996,39 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
     gui::pop_font();
   }
 #endif
+
+  fan::event::deferred_resume_t::process_resumes();
+
+
+  for (const auto& i : single_queue) {
+    i();
+  }
+
+  single_queue.clear();
+
+  std::vector<std::coroutine_handle<>> current_frame;
+  // swap with pending to 
+  std::swap(current_frame, fan::graphics::next_frame_awaiter::pending);
+
+  for (const auto& h : current_frame) {
+    h.resume();
+  }
+
+#if defined(FAN_PHYSICS_2D)
+  if (is_updating_physics) {
+    physics_context.step(delta_time);
+  }
+#endif
+
+  {
+    auto it = m_update_callback.GetNodeFirst();
+    while (it != m_update_callback.dst) {
+      m_update_callback.StartSafeNext(it);
+      auto prev = m_update_callback.SafeNext.NRI;
+      m_update_callback[it](this);
+      it = m_update_callback.EndSafeNext();
+    }
+  }
 
   cb();
 
@@ -2249,6 +2257,11 @@ loco_t::update_callback_handle_t loco_t::add_update_callback(std::function<void(
   m_update_callback[it] = std::move(cb);
   return it;
 }
+loco_t::update_callback_handle_t loco_t::add_update_callback_front(std::function<void(void*)>&& cb) {
+  loco_t::update_callback_handle_t it = m_update_callback.NewNodeFirst();
+  m_update_callback[it] = std::move(cb);
+  return it;
+}
 
 void loco_t::remove_update_callback(update_callback_handle_t handle) {
   m_update_callback.unlrec(handle);
@@ -2276,8 +2289,8 @@ f64_t loco_t::current_time() const {
 }
 
 #if defined(FAN_PHYSICS_2D)
-void loco_t::update_physics() {
-  physics_context.step(delta_time);
+void loco_t::update_physics(bool flag) {
+  is_updating_physics = flag;
 }
 #endif
 

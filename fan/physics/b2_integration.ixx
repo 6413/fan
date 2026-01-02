@@ -95,7 +95,7 @@ export namespace fan {
       segment_t(const b2Segment& segment);
     };
 
-    using physics_step_callback_nr_t = fan::raii_nr_t<
+    using step_callback_nr_t = fan::raii_nr_t<
       physics_step_callbacks_t::nr_t, fan::physics::context_t>;
 
     struct overlap_test_context_t {
@@ -346,8 +346,8 @@ export namespace fan {
 
     fan::physics::entity_t create_sensor_rectangle(const fan::vec2& position, const fan::vec2& size);
 
-    physics_step_callback_nr_t add_physics_step_callback(std::function<void()> callback);
-    void remove_physics_step_callback(physics_step_callback_nr_t nr);
+    step_callback_nr_t add_physics_step_callback(std::function<void()> callback);
+    void remove_physics_step_callback(step_callback_nr_t nr);
     // for drawing physics shapes
     fan::physics::physics_update_cbs_t::nr_t add_physics_update(const fan::physics::physics_update_data_t& cb_data);
     void remove_physics_update(fan::physics::physics_update_cbs_t::nr_t nr);
@@ -368,8 +368,8 @@ export namespace fan {
     
     entity_t create_sensor_circle(const fan::vec2& position, f32_t radius);
     entity_t create_sensor_rectangle(const fan::vec2& position, const fan::vec2& size);
-    physics_step_callback_nr_t add_physics_step_callback(std::function<void()> callback);
-    void remove_physics_step_callback(physics_step_callback_nr_t nr);
+    step_callback_nr_t add_physics_step_callback(std::function<void()> callback);
+    void remove_physics_step_callback(step_callback_nr_t nr);
     bool presolve_oneway_collision(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, body_id_t character_body);
     body_id_t deep_copy_body(b2WorldId worldId, body_id_t sourceBodyId);
     void set_pre_solve_callback(b2WorldId world_id, b2PreSolveFcn* fcn, void* context);
