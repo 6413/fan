@@ -541,7 +541,7 @@ namespace fan::graphics{
     id.gint() = NRI;
     auto& sd = g_shapes->shape_ids[id];
     if (sd.shape_type == shape_type_t::sprite) {
-      stop_sprite_sheet_animation();
+      stop_sprite_sheet();
     }
 
     fan::graphics::culling::remove_shape(g_shapes->visibility, get_id());
@@ -667,7 +667,7 @@ namespace fan::graphics{
       );
 
       if (properties.sprite_sheet_data.start_animation) {
-        start_sprite_sheet_animation();
+        player_sprite_sheet();
       }
       break;
     }
@@ -1440,10 +1440,22 @@ namespace fan::graphics{
       });
 
     if (did_change) {
-      set_sprite_sheet_next_frame(0);
+      g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
+        if constexpr (requires { props.sprite_sheet_data; }) {
+          props.sprite_sheet_data.current_frame = 0;
+          props.sprite_sheet_data.last_sign = {
+            (int8_t)desired_sign.x,
+            (int8_t)desired_sign.y
+          };
+          if (get_visual_id()) {
+            auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
+            ri.sprite_sheet_data.current_frame = 0;
+            ri.sprite_sheet_data.last_sign = props.sprite_sheet_data.last_sign;
+          }
+        }
+      });
     }
   }
-
 
 	bool shapes::shape_t::load_tp(fan::graphics::texture_pack::ti_t* ti) {
 		auto st = get_shape_type();
@@ -2008,11 +2020,6 @@ namespace fan::graphics{
           (int8_t)fan::math::sgn(sign.x),
           (int8_t)fan::math::sgn(sign.y)
         };
-
-        if (new_sign != sheet_data.last_sign) {
-          sheet_data.current_frame = 0;
-          sheet_data.last_sign = new_sign;
-        }
         // ------------------------------------------------
 
         int actual_frame = animation.selected_frames[sheet_data.current_frame];
@@ -2153,7 +2160,7 @@ namespace fan::graphics{
 			auto& current_anim = get_sprite_sheet_animation();
 			current_anim.images[image_index].hframes = horizontal_frames;
 			current_anim.images[image_index].vframes = vertical_frames;
-			start_sprite_sheet_animation();
+			player_sprite_sheet();
 		}
 		else {
 			fan::throw_error("Unimplemented for this shape");
@@ -2616,7 +2623,7 @@ fan::graphics::sprite_sheet_animation_t& fan::graphics::shapes::shape_t::get_spr
 }
 
 
-void fan::graphics::shapes::shape_t::start_sprite_sheet_animation() {
+void fan::graphics::shapes::shape_t::player_sprite_sheet() {
 
   fan::graphics::sprite_sheet_data_t* sheet_data = 0;
   g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
@@ -2643,7 +2650,7 @@ void fan::graphics::shapes::shape_t::start_sprite_sheet_animation() {
   };
 }
 
-void fan::graphics::shapes::shape_t::stop_sprite_sheet_animation() {
+void fan::graphics::shapes::shape_t::stop_sprite_sheet() {
   g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
     if constexpr (requires { props.sprite_sheet_data; }) {
       auto& sheet_data = props.sprite_sheet_data;
@@ -2660,11 +2667,17 @@ void fan::graphics::shapes::shape_t::stop_sprite_sheet_animation() {
   });
 }
 
-void fan::graphics::shapes::shape_t::set_sprite_sheet_animation(const std::string& name) {
-  set_sprite_sheet_animation(*get_animation(name));
+void fan::graphics::shapes::shape_t::play_sprite_sheet_once(const std::string& anim_name) {
+  set_sprite_sheet(anim_name);
+  set_current_animation_frame(0);
+  set_animation_loop(get_current_animation_id(), false);
 }
 
-void fan::graphics::shapes::shape_t::set_sprite_sheet_animation(const fan::graphics::sprite_sheet_animation_t& animation) {
+void fan::graphics::shapes::shape_t::set_sprite_sheet(const std::string& name) {
+  set_sprite_sheet(*get_animation(name));
+}
+
+void fan::graphics::shapes::shape_t::set_sprite_sheet(const fan::graphics::sprite_sheet_animation_t& animation) {
   if (get_shape_type() != fan::graphics::shapes::shape_type_t::sprite) {
     fan::throw_error("unimplemented for this shape");
   }
@@ -2679,10 +2692,10 @@ void fan::graphics::shapes::shape_t::set_sprite_sheet_animation(const fan::graph
       shape_animation_lookup_table[{props.sprite_sheet_data.shape_animations, animation.name}] = props.sprite_sheet_data.current_animation;
     }
   });
-  start_sprite_sheet_animation();
+  player_sprite_sheet();
 }
 
-void fan::graphics::shapes::shape_t::add_sprite_sheet_animation(const fan::graphics::sprite_sheet_animation_t& animation) {
+void fan::graphics::shapes::shape_t::add_sprite_sheet(const fan::graphics::sprite_sheet_animation_t& animation) {
   if (get_shape_type() != fan::graphics::shapes::shape_type_t::sprite) {
     fan::throw_error("unimplemented for this shape");
   }
@@ -2697,7 +2710,7 @@ void fan::graphics::shapes::shape_t::add_sprite_sheet_animation(const fan::graph
       }
     }
   });
-  start_sprite_sheet_animation();
+  player_sprite_sheet();
 }
 
 #endif

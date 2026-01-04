@@ -419,15 +419,18 @@ namespace fan::graphics {
     return fan::graphics::ctx()->viewport_inside_wir(fan::graphics::ctx(), nr, position);
   }
 
-  bool inside(const fan::graphics::render_view_t& render_view, const fan::vec2& position) {
-    fan::vec2 tp = fan::graphics::screen_to_world(position, render_view.viewport, render_view.camera);
-    auto c = fan::graphics::camera_get(render_view.camera);
-    f32_t l = c.coordinates.left;
-    f32_t r = c.coordinates.right;
-    f32_t t = c.coordinates.top;
-    f32_t b = c.coordinates.bottom;
-    return tp.x >= l && tp.x <= r &&
-      tp.y >= t && tp.y <= b;
+  bool inside(const fan::graphics::render_view_t& rv, const fan::vec2& p) {
+    fan::vec2 tp = fan::graphics::screen_to_world(p, rv.viewport, rv.camera);
+    f32_t z = fan::graphics::camera_get_zoom(rv.camera);
+    auto c = fan::graphics::camera_get(rv.camera);
+    fan::vec2 cp = fan::graphics::camera_get_position(rv.camera);
+
+    f32_t l = cp.x + c.coordinates.left / z;
+    f32_t r = cp.x + c.coordinates.right / z;
+    f32_t t = cp.y + c.coordinates.top / z;
+    f32_t b = cp.y + c.coordinates.bottom / z;
+
+    return tp.x >= l && tp.x <= r && tp.y >= t && tp.y <= b;
   }
 
   bool is_mouse_inside(const fan::graphics::render_view_t& render_view) {
@@ -845,7 +848,7 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
     auto shape = shape_from_json(config.path, callers_path);
     shape.set_animation_loop(shape.get_current_animation_id(), config.loop);
     if (config.start) {
-      shape.start_sprite_sheet_animation();
+      shape.player_sprite_sheet();
     }
     return shape;
   }
@@ -909,7 +912,7 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
   }
 
   void interactive_camera_t::reset_view() {
-    camera_offset = {};
+    set_position(get_initial_position());
     update();
   }
 
@@ -929,17 +932,25 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
   void interactive_camera_t::create(
     fan::graphics::camera_t camera_nr,
     fan::graphics::viewport_t viewport_nr,
-    f32_t new_zoom
+    f32_t new_zoom,
+    const fan::vec2& initial_pos
   ) {
     render_view.camera = camera_nr;
     render_view.viewport = viewport_nr;
-    set_zoom(new_zoom);;
+    set_zoom(new_zoom);
     auto& window = fan::graphics::get_window();
     old_window_size = window.get_size();
-
+    if (initial_pos == -0xFAFA) {
+      set_initial_position(viewport_get_size() / 2.f);
+    }
+    else {
+      set_initial_position(initial_pos);
+    }
     static auto update_ortho = [this](void* ptr) {
       update();
     };
+
+    update();
 
     auto it = fan::graphics::ctx().update_callback->NewNodeLast();
     (*fan::graphics::ctx().update_callback)[it] = update_ortho;
@@ -1024,15 +1035,18 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
   interactive_camera_t::interactive_camera_t(
     fan::graphics::camera_t camera_nr,
     fan::graphics::viewport_t viewport_nr,
-    f32_t new_zoom
+    f32_t new_zoom,
+    const fan::vec2& initial_pos
   ) {
-    create(camera_nr, viewport_nr, new_zoom);
-    set_position(fan::graphics::viewport_get_size(viewport_nr) / 2.f);
+    create(camera_nr, viewport_nr, new_zoom, initial_pos);
+    initial_position = fan::graphics::viewport_get_size(viewport_nr) / 2.f;
+    set_position(initial_position);
   }
 
   interactive_camera_t::interactive_camera_t(const fan::graphics::render_view_t& render_view, f32_t new_zoom) :
     interactive_camera_t(render_view.camera, render_view.viewport, new_zoom) {
-    set_position(fan::graphics::viewport_get_size(render_view.viewport) / 2.f);
+    initial_position = fan::graphics::viewport_get_size(render_view.viewport) / 2.f;
+    set_position(initial_position);
   }
 
   interactive_camera_t::~interactive_camera_t() {
@@ -1040,6 +1054,14 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
       fan::graphics::ctx().update_callback->unlrec(uc_nr);
       uc_nr.sic();
     }
+  }
+
+  fan::vec2 interactive_camera_t::get_initial_position() const {
+    return initial_position;
+  }
+
+  void interactive_camera_t::set_initial_position(const fan::vec2& position) {
+    initial_position = position;
   }
 
   fan::vec2 interactive_camera_t::get_position() const {
@@ -1351,17 +1373,16 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
     this->tile_size = tile_size;
     positions.resize(map_size.y, std::vector<fan::vec2>(map_size.x));
     shapes.resize(map_size.y, std::vector<fan::graphics::shape_t>(map_size.x));
-
     for (int i = 0; i < map_size.y; i++) {
       for (int j = 0; j < map_size.x; j++) {
         positions[i][j] = offset + tile_size / 2 + fan::vec2(j * tile_size.x, i * tile_size.y);
 
         shapes[i][j] = fan::graphics::rectangle_t {{
-            .render_view = render_view,
-            .position = fan::vec3(positions[i][j], 0),
-            .size = tile_size / 2,
-            .color = color
-          }};
+          .render_view = render_view,
+          .position = fan::vec3(positions[i][j], 0),
+          .size = tile_size / 2,
+          .color = color
+        }};
       }
     }
   }

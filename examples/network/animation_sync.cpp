@@ -112,7 +112,7 @@ int main() {
     fan::graphics::map_animations(anims);
     client_shape.set_shape(fan::graphics::extract_single_shape(json_data));
     client_shape.set_size(client_shape.get_size() / 2.5);
-    client_shape.start_sprite_sheet_animation();
+    client_shape.player_sprite_sheet();
 
 
     fan::graphics::line_t screen_splitter;

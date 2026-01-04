@@ -208,7 +208,7 @@ export namespace fan::graphics::gui {
   };
 
 #if defined(FAN_2D)
-  void shape_properties(const fan::graphics::shapes::shape_t& shape);
+  void shape_properties(const fan::graphics::shape_t& shape);
 #endif
 } // namespace fan::graphics::gui
 
@@ -366,7 +366,7 @@ export namespace fan::graphics::gui {
     void fout(const std::string& filename);
 
   private:
-    fan::graphics::shapes::shape_t particle_shape = fan::graphics::shapes::particles_t::properties_t{
+    fan::graphics::shape_t particle_shape = fan::graphics::shapes::particles_t::properties_t{
       .position = fan::vec3(32.108f, -1303.084f, 10.0f),
       .start_size = fan::vec2(28.638f),
       .end_size = fan::vec2(28.638f),
@@ -509,7 +509,7 @@ export namespace fan::graphics::gui {
   void text_partial_render(const std::string& text, size_t render_pos, f32_t wrap_width, f32_t line_spacing = 0);
 
   void render_texture_property(
-    fan::graphics::shapes::shape_t& shape,
+    fan::graphics::shape_t& shape,
     int index,
     const char* label,
     const std::wstring& asset_path = L"./",
@@ -518,21 +518,23 @@ export namespace fan::graphics::gui {
   );
   void render_image_filter_property(fan::graphics::shape_t& shape, const char* label);
 
-  struct window_scope {
-    template <typename... Args>
-    window_scope(Args&&... args)
-      : window(std::forward<Args>(args)...),
-      active(static_cast<bool>(window)) {}
+  struct window {
+    window(const std::string& title, fan::graphics::gui::window_flags_t flags = 0) :
+      wnd(title, nullptr, flags) {}
 
-    explicit operator bool() const { return active; }
+    window(const std::string& title, bool* p_open, fan::graphics::gui::window_flags_t flags = 0) :
+      wnd(title, p_open, flags) {}
 
-    fan::graphics::gui::window_t window;
-    bool active;
+    explicit operator bool() const {
+      return static_cast<bool>(wnd);
+    }
+
+    fan::graphics::gui::window_t wnd;
   };
 
-  struct hud : window_scope {
+  struct hud : window {
     hud(const std::string& name, bool* p_open = nullptr)
-      : window_scope(
+      : window(
         (gui::set_next_window_pos(0),
           gui::set_next_window_size(gui::get_window_size()),
           name),
@@ -544,6 +546,20 @@ export namespace fan::graphics::gui {
         gui::window_flags_no_move |
         gui::window_flags_override_input
       ) {}
+  };
+
+  struct table {
+    table(
+      const std::string& str_id, int columns, 
+      table_flags_t flags = 0, const fan::vec2& outer_size = fan::vec2(0.0f, 0.0f), 
+      f32_t inner_width = 0.0f) 
+      : tbl(str_id, columns, flags, outer_size, inner_width) {}
+
+    explicit operator bool() const {
+      return static_cast<bool>(tbl);
+    }
+
+    fan::graphics::gui::table_t tbl;
   };
 }
 /*

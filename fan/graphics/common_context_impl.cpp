@@ -148,6 +148,28 @@ namespace fan::graphics {
     );
   }
 
+  std::string render_view_t::debug_string() {
+    std::string s;
+
+    fan::vec3 cam_pos = ctx()->camera_get_position(ctx(), camera);
+    fan::vec2 cam_size = ctx()->camera_get_size(ctx(), camera);
+    f32_t cam_zoom = ctx()->camera_get_zoom(ctx(), camera);
+
+    s += "Camera Info:\n";
+    s += "  Position: " + cam_pos.to_string() + "\n";
+    s += "  Size: " + cam_size.to_string() + "\n";
+    s += "  Zoom: " + std::to_string(cam_zoom) + "\n";
+
+    fan::vec2 vp_pos = ctx()->viewport_get_position(ctx(), viewport);
+    fan::vec2 vp_size = ctx()->viewport_get_size(ctx(), viewport);
+
+    s += "Viewport Info:\n";
+    s += "  Position: " + vp_pos.to_string() + "\n";
+    s += "  Size: " + vp_size.to_string() + "\n";
+
+    return s;
+  }
+
   fan::vec2 translate_position(const fan::vec2& p, viewport_t viewport, camera_t camera) {
     auto v = ctx()->viewport_get(ctx(), viewport);
     auto c = ctx()->camera_get(ctx(), camera);
@@ -226,12 +248,12 @@ namespace fan::window {
   ) {
     auto& ia = *fan::graphics::ctx().input_action;
     fan::vec2 v(
-      ia.is_action_down(right) - ia.is_action_down(left),
-      ia.is_action_down(back) - ia.is_action_down(forward)
+      ia.is_down(right) - ia.is_down(left),
+      ia.is_down(back) - ia.is_down(forward)
     );
-    fan::vec2 v2 = fan::graphics::ctx().window->get_gamepad_axis(fan::gamepad_left_thumb);
-    if (v2.length() > 0.2) {
-      return v2.length() > 0 ? v2.normalized() : v2;
+    fan::vec2 v2 = fan::graphics::ctx().window->get_gamepad_axis(fan::graphics::ctx().input_action->get_first_gamepad_key(left));
+    if (v2.length() > fan::graphics::ctx().window->gamepad_axis_deadzone) {
+      return v2;
     }
     return v.length() > 0 ? v.normalized() : v;
   }

@@ -21,7 +21,7 @@ if is_mode("release") then
 elseif is_mode("debug") then
   set_optimize("none")
   set_symbols("debug")
-  add_cxxflags("-g", "-gdwarf-4", {force = true})
+  add_cxxflags("-g", "-gdwarf-4", "-fno-inline", "-fno-inline-functions", {force = true})
   add_defines("_DEBUG=3")
 end
 
@@ -35,14 +35,13 @@ option("FAN_VULKAN") set_default(false) option_end()
 option("FAN_FMT") set_default(true) option_end()
 option("FAN_WAYLAND_SCREEN") set_default(false) option_end()
 option("FAN_NETWORK") set_default(false) option_end()
-option("main") set_default("examples/engine_demos/engine_demo.cpp") option_end()
+option("FAN_AUDIO") set_default(true) option_end()
+option("main") set_default("examples/games/platformer/main.cpp") option_end()
 
 add_defines("FAN_OPENGL")
-
 if has_config("FAN_2D") then
   add_defines("FAN_2D")
 end
-
 if has_config("FAN_GUI") then
   add_defines("FAN_GUI")
 end
@@ -50,7 +49,7 @@ if has_config("FAN_JSON") then
   add_defines("FAN_JSON")
 end
 if has_config("FAN_3D") then
-  add_defines("FAN_3D")
+  add_defines("fan_3D")
 end
 if has_config("FAN_PHYSICS_2D") then
   add_defines("FAN_PHYSICS_2D")
@@ -63,6 +62,9 @@ if has_config("FAN_NETWORK") then
 end
 if has_config("FAN_FMT") then
   add_defines("FAN_FMT")
+end
+if has_config("FAN_AUDIO") then
+  add_defines("FAN_AUDIO")
 end
 
 add_includedirs(".", {public = true})
@@ -93,7 +95,9 @@ add_cxxflags(
   "-Wno-sign-compare",
   "-Wno-unused-but-set-parameter",
   "-Wno-unused-value",
-  "-w",
+	"-Wno-include-angled-in-module-purview", --bll inline includes
+  --"-w",
+	"-Wno-padded",
   "-fsized-deallocation",
   "-fmacro-backtrace-limit=0"
 )
@@ -136,12 +140,14 @@ local module_files = {
   "fan/graphics/opengl/gl_core.ixx",
   "fan/graphics/opengl/uniform_block.ixx",
   "fan/texture_pack/tp0.ixx",
-  "fan/graphics/shapes.ixx",
+	"fan/graphics/2D/shapes_types.ixx",
+	"fan/graphics/2D/culling.ixx",
+  "fan/graphics/2D/shapes.ixx",
   "fan/graphics/loco.ixx",
   "fan/graphics/graphics.ixx",
   "fan/graphics/file_dialog.ixx",
-  "fan/graphics/algorithm/raycast_grid.ixx",
-  "fan/graphics/algorithm/pathfind.ixx",
+  "fan/graphics/2D/algorithm/raycast_grid.ixx",
+  "fan/graphics/2D/algorithm/pathfind.ixx",
   "fan/window/window.ixx",
   "fan/window/input_common.ixx",
   "fan/window/input.ixx",
@@ -207,8 +213,8 @@ end
 
 local impl_files = find_impl_files(module_files)
 
-if os.isfile("fan/graphics/algorithm/AStar.cpp") then
-  table.insert(impl_files, "fan/graphics/algorithm/AStar.cpp")
+if os.isfile("fan/graphics/2D/algorithm/AStar.cpp") then
+  table.insert(impl_files, "fan/graphics/2D/algorithm/AStar.cpp")
 end
 
 target("fan_modules")
@@ -217,7 +223,7 @@ target("fan_modules")
   for _, impl in ipairs(impl_files) do
     add_files(impl)
   end
-  add_includedirs(".", "thirdparty/fan/include", {public = true})
+  add_includedirs(".", "third_party/fan/include", {public = true})
 target_end()
 
 if has_config("FAN_GUI") then
@@ -228,8 +234,8 @@ if has_config("FAN_GUI") then
     add_includedirs(
       "fan/imgui",
       "fan/imgui/misc/freetype",
-      "thirdparty/fan/include",
-      "thirdparty/fan/include/freetype2"
+      "third_party/fan/include",
+      "third_party/fan/include/freetype2"
     )
     on_load(function (target)
       if target:is_plat("linux") then
@@ -257,7 +263,8 @@ if has_config("FAN_GUI") then
       "fan/imgui/implot_items.cpp",
       "fan/imgui/implot.cpp",
       "fan/imgui/text_editor.cpp",
-      "fan/imgui/misc/freetype/imgui_freetype.cpp"
+      "fan/imgui/misc/freetype/imgui_freetype.cpp",
+			"fan/imgui/ImGuizmo.cpp"
     )
     if has_config("FAN_VULKAN") then
       add_files("fan/imgui/imgui_impl_vulkan.cpp")
@@ -265,7 +272,7 @@ if has_config("FAN_GUI") then
     if has_config("FAN_3D") and has_config("FAN_GUI") then
       add_files("fan/imgui/ImGuizmo.cpp")
     end
-    add_linkdirs("thirdparty/fan/lib")
+    add_linkdirs("third_party/fan/lib")
     add_links("freetype", "lunasvg")
   target_end()
 
@@ -316,9 +323,9 @@ target("a.exe")
     add_deps("imgui", "nfd")
   end
   add_files(module_files)
-  add_files(get_config("main") or "examples/engine_demos/engine_demo.cpp", {module = false})
+  add_files(get_config("main") or "examples/games/platformer/main.cpp", {module = false})
   add_includedirs(".", {public = true})
-  add_linkdirs("thirdparty/fan/lib")
+  add_linkdirs("third_party/fan/lib")
 
   if is_plat("linux") then
     add_links(
@@ -332,7 +339,7 @@ target("a.exe")
       add_links("freetype", "lunasvg")
     end
     if has_config("FAN_PHYSICS_2D") then
-      add_ldflags("-Wl,--whole-archive", "thirdparty/fan/lib/libbox2d.a", "-Wl,--no-whole-archive", {force = true})
+      add_ldflags("-Wl,--whole-archive", "third_party/fan/lib/libbox2d.a", "-Wl,--no-whole-archive", {force = true})
     end
     if has_config("FAN_3D") then
       add_links("assimp")

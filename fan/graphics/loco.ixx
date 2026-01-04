@@ -29,6 +29,7 @@ module;
 #include <iostream>
 #include <coroutine>
 #include <map>
+#include <cstring>
 
 export module fan.graphics.loco;
 
@@ -154,6 +155,44 @@ export namespace fan::graphics {
 }
 
 export struct loco_t {
+  using key_cb_t = fan::window_t::key_cb_t;
+  using key_handle_t = fan::window_t::key_handle_t;
+  using keys_handle_t = fan::window_t::keys_handle_t;
+  using buttons_handle_t = fan::window_t::buttons_handle_t;
+  using mouse_down_handle_t = fan::window_t::mouse_down_handle_t;
+  using resize_handle_t = fan::window_t::resize_handle_t;
+  using mouse_move_handle_t = fan::window_t::mouse_move_handle_t;
+
+  using buttons_data_t = fan::window_t::buttons_data_t;
+  using button_data_t = fan::window_t::button_data_t;
+  using mouse_down_data_t = fan::window_t::mouse_down_data_t;
+  using mouse_up_data_t = fan::window_t::mouse_up_data_t;
+  using mouse_click_data_t = fan::window_t::mouse_click_data_t;
+  using keys_data_t = fan::window_t::keys_data_t;
+  using key_data_t = fan::window_t::key_data_t;
+  using key_down_data_t = fan::window_t::key_down_data_t;
+  using key_up_data_t = fan::window_t::key_up_data_t;
+  using key_click_data_t = fan::window_t::key_click_data_t;
+  using text_callback_handle_t = fan::window_t::text_callback_handle_t;
+
+  using buttons_cb_t = fan::window_t::buttons_cb_t;
+
+  struct properties_t {
+		bool render_shapes_top = false;
+		bool vsync = true;
+    fan::vec2 window_position = -1;
+		fan::vec2 window_size = -1;
+		uint64_t window_flags = 0;
+    int window_open_mode = fan::window_t::mode::windowed;
+		std::uint8_t renderer = fan::window_t::renderer_t::opengl;
+		std::uint8_t samples = 0;
+	}open_props;
+  bool init_gloco;
+	fan::window::input_action_t input_action;
+  #if defined(FAN_GUI)
+    #include <fan/graphics/gui/settings_menu.h>
+	  settings_menu_t settings_menu;
+  #endif
   fan::window_t window; // destruct last
 // for shaper_get_* functions
 private:
@@ -311,16 +350,6 @@ public:
 	std::vector<std::function<void()>> m_pre_draw;
 	std::vector<std::function<void()>> m_post_draw;
 
-	struct properties_t {
-		bool render_shapes_top = false;
-		bool vsync = true;
-		fan::vec2 window_size = -1;
-		uint64_t window_flags = 0;
-    int window_open_mode = fan::window_t::mode::windowed;
-		std::uint8_t renderer = fan::window_t::renderer_t::opengl;
-		std::uint8_t samples = 0;
-	};
-
 	fan::time::timer start_time;
   f32_t time = 0;
 
@@ -430,10 +459,10 @@ public:
   fan::graphics::viewport_t open_viewport(const fan::vec2& viewport_position, const fan::vec2& viewport_size);
   void set_viewport(fan::graphics::viewport_t viewport, const fan::vec2& viewport_position, const fan::vec2& viewport_size);
   fan::vec2 get_input_vector(
-    const std::string& forward = "move_forward",
-    const std::string& back = "move_back",
-    const std::string& left = "move_left",
-    const std::string& right = "move_right"
+    const std::string& forward = fan::actions::move_forward,
+    const std::string& back = fan::actions::move_back,
+    const std::string& left = fan::actions::move_left,
+    const std::string& right = fan::actions::move_right
   );
   fan::vec2 transform_matrix(const fan::vec2& position);
   fan::vec2 screen_to_ndc(const fan::vec2& screen_pos);
@@ -451,7 +480,6 @@ public:
     const fan::vec2& viewport_position, const fan::vec2& viewport_size
   );
 
-	fan::window::input_action_t input_action;
   using update_callback_handle_t = fan::graphics::update_callback_t::nr_t;
   // function callback parameter gives loco_t*
   update_callback_handle_t add_update_callback(std::function<void(void*)>&& cb);
@@ -510,28 +538,6 @@ public:
     HANDLE on_##NAME(CBDATA_NAME cb) { \
       return window.on_##NAME(std::move(cb)); \
     }
-
-  using key_cb_t = fan::window_t::key_cb_t;
-  using key_handle_t = fan::window_t::key_handle_t;
-  using keys_handle_t = fan::window_t::keys_handle_t;
-  using buttons_handle_t = fan::window_t::buttons_handle_t;
-  using mouse_down_handle_t = fan::window_t::mouse_down_handle_t;
-  using resize_handle_t = fan::window_t::resize_handle_t;
-  using mouse_move_handle_t = fan::window_t::mouse_move_handle_t;
-
-  using buttons_data_t = fan::window_t::buttons_data_t;
-  using button_data_t = fan::window_t::button_data_t;
-  using mouse_down_data_t = fan::window_t::mouse_down_data_t;
-  using mouse_up_data_t = fan::window_t::mouse_up_data_t;
-  using mouse_click_data_t = fan::window_t::mouse_click_data_t;
-  using keys_data_t = fan::window_t::keys_data_t;
-  using key_data_t = fan::window_t::key_data_t;
-  using key_down_data_t = fan::window_t::key_down_data_t;
-  using key_up_data_t = fan::window_t::key_up_data_t;
-  using key_click_data_t = fan::window_t::key_click_data_t;
-  using text_callback_handle_t = fan::window_t::text_callback_handle_t;
-
-  using buttons_cb_t = fan::window_t::buttons_cb_t;
 
   FORWARD_CB_TO_WINDOW(mouse_click,  buttons_handle_t, buttons_cb_t);
   FORWARD_CB_TO_WINDOW(mouse_down,   mouse_down_handle_t, buttons_cb_t);
@@ -622,9 +628,6 @@ public:
 	bool gui_initialized = false;
 
 	fan::graphics::gui::text_logger_t text_logger;
-
-#include <fan/graphics/gui/settings_menu.h>
-	settings_menu_t settings_menu;
 #endif
 
 	fan::graphics::texture_pack_t texture_pack;

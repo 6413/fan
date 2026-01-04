@@ -393,6 +393,10 @@ static std::string to_string(const vec_t& vec, int precision = 4) {
   return out;
 }
 
+std::string to_string() const {
+  return to_string(*this);
+}
+
 operator std::string() const {
   return to_string(*this);
 }

@@ -230,7 +230,7 @@ export namespace fan {
   }
 
   template <int throttle_ms = 1000>
-  constexpr void print_throttled(const auto&... args) {
+  void print_throttled(const auto&... args) {
     static std::unordered_map<std::string, std::chrono::steady_clock::time_point> last_print_time;
     static std::unordered_map<std::string, int> count_map;
 
@@ -248,6 +248,32 @@ export namespace fan {
       last_print_time[key] = now;
     }
   }
+
+  template <bool print_count = true>
+  void print_once(const auto&... args) {
+    static std::unordered_map<std::string, std::string> last_value;
+    static std::unordered_map<std::string, int> count_map;
+
+    std::ostringstream oss;
+    oss << fan::format_args(args...);
+    std::string key = oss.str();
+
+    auto& last = last_value[key];
+    auto& count = count_map[key];
+
+    count++;
+
+    if (last != key) {
+      last = key;
+
+      if constexpr (print_count) {
+        std::cout << key << " (" << count << " times)" << std::endl;
+      } else {
+        std::cout << key << std::endl;
+      }
+    }
+  }
+
 
   namespace debug {
 

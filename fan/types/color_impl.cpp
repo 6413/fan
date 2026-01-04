@@ -1,6 +1,9 @@
 module;
 
 #include <sstream>
+#include <cmath>
+#include <algorithm>
+#include <utility>
 
 module fan.types.color;
 

@@ -46,7 +46,7 @@ bool handle_pickupable(const std::string& id, T& who) {
     switch (fan::get_hash(id)) {
     case fan::get_hash("pickupable_health"):
     {
-      if (who.get_body().get_health() >= who.get_body().get_max_health()) {
+      if (who.get_body().get_health() >= who.get_body().get_max_health() || who.get_body().get_health() <= 0) {
         return false;
       }
       static constexpr f32_t health_restore = 10.f;
@@ -108,10 +108,12 @@ void start_lights(uint32_t index) {
   if (index >= lights_boss.size()) {
     typename decltype(pile->enemy_list)::nr_t nr;
     nr.gint() = boss_nr;
-    std::visit([]<typename T>(T& v) {
+    std::visit([this]<typename T>(T& v) {
       if constexpr (requires{ T::allow_move; }) {
         v.allow_move = true;
         v.render_health_bar = true;
+        fan::audio::stop(pile->audio_background_play_id);
+        audio_skeleton_lord_id = fan::audio::play(audio_skeleton_lord, 0, true);
       }
     }, pile->enemy_list[nr]);
 
@@ -206,7 +208,7 @@ void load_map() {
       chkp.visual = checkpoint_flag;
       checkpoint_flag.set_position(fan::vec2(-0xfffff));
       chkp.visual.set_size(checkpoint_flag.get_size() / fan::vec2(1.5f, 1.0f));
-      chkp.visual.start_sprite_sheet_animation();
+      chkp.visual.player_sprite_sheet();
       chkp.entity = entity_visual;
     }
     else if (id.contains("sensor_enter_boss")) {
@@ -338,6 +340,14 @@ void load_map() {
       axes.back().set_position(fan::vec3(fan::vec2(tile.position), 3));
     }
     else if (id.contains("pickupable_")) {
+      if (collected_pickupables.count(fan::vec2i(tile.position))) {
+        pile->renderer.remove_visual(
+          main_map_id,
+          id,
+          tile.position
+        );
+        return false;
+      }
       pickupables.push_back(
         {id, fan::physics::create_sensor_rectangle(tile.position, tile.size / 1.2f)}
       );
@@ -455,11 +465,18 @@ void update() {
       if (handle_pickupable(it->first, pile->player)) {
         fan::vec2 pos = sensor.get_position();
 
+        // global tracking, to avoid pickupable reload after dying
+        collected_pickupables.insert(pos);
+
         pile->renderer.remove_visual(
           pile->get_level().main_map_id,
           it->first,
           pos
         );
+        auto found = dropped_pickupables.find(pos);
+        if (found != dropped_pickupables.end()) {
+          dropped_pickupables.erase(found);
+        }
 
         sensor.destroy();
 
@@ -488,14 +505,24 @@ void update() {
     }
   }
 
-  static std::string enter_text("Press E to enter");
-  static fan::vec2 text_size = fan::graphics::gui::get_text_size(enter_text);
+  auto keys = pile->engine.input_action.get_all_keys(actions::interact);
+
+  std::string enter_text = "Press ";
+  for (int i = 0; i < keys.size(); i++) {
+    enter_text += fan::get_key_name(keys[i]);
+    if (i + 1 < keys.size()) {
+      enter_text += " / ";
+    }
+  }
+
+  enter_text += " to enter";
+  fan::vec2 text_size = fan::graphics::gui::get_text_size(enter_text);
 
   if (boss_sensor && 
     fan::physics::is_on_sensor(pile->player.body, boss_sensor)
   )
   {
-    if (pile->engine.is_key_pressed(fan::key_e)) {
+    if (fan::window::is_input_action_active(actions::interact)) {
       pile->renderer.erase_physics_entity(main_map_id, "boss_door_collision");
       boss_sensor.destroy();
       is_entering_door = true;
@@ -509,7 +536,7 @@ void update() {
     }
   }
   if (fan::physics::is_on_sensor(pile->player.body, portal_sensor)) {
-    if (pile->engine.is_key_pressed(fan::key_e)) {
+    if (fan::window::is_input_action_active(actions::interact)) {
       static fan::auto_color_transition_t close_anim;
       pile->stage_transition = fan::graphics::rectangle_t(
         pile->player.body.get_position().offset_z(1),
@@ -539,11 +566,12 @@ void update() {
   }
 
   if (!pile->engine.render_console) {
-    if (fan::window::is_key_pressed(fan::key_escape)) {
+    if (pile->engine.input_action.is_clicked(fan::actions::toggle_settings)) {
       pile->pause = !pile->pause;
     }
 
-    if (fan::window::is_key_pressed(fan::key_t)) {
+    if (fan::window::is_key_down(fan::key_left_control) && fan::window::is_key_pressed(fan::key_t)) {
+      collected_pickupables.clear();
       reload_map();
       return;
     }
@@ -566,6 +594,7 @@ tilemap_loader_t::compiled_map_t main_compiled_map;
 
 std::vector<fan::physics::entity_t> spike_sensors;
 std::vector<std::pair<std::string, fan::physics::body_id_t>> pickupables;
+std::unordered_map<fan::vec2i, fan::graphics::sprite_t> dropped_pickupables;
 std::vector<fan::physics::entity_t> tile_collisions;
 
 std::vector<fan::graphics::sprite_t> axes;
@@ -592,10 +621,14 @@ fan::graphics::sprite_t background {{
 
 fan::audio::piece_t
   audio_pickup_item{"audio/pickup.sac"},
-  audio_elevator_chain{"audio/chain.sac"}
+  audio_elevator_chain{"audio/chain.sac"},
+  audio_skeleton_lord{"audio/skeleton_lord_music.sac"}
   ;
 
-fan::audio::sound_play_id_t audio_elevator_chain_id;
+fan::audio::sound_play_id_t 
+  audio_elevator_chain_id,
+  audio_skeleton_lord_id
+  ;
 
 fan::graphics::physics::elevator_t cage_elevator;
 fan::graphics::sprite_t cage_elevator_chain;
@@ -606,6 +639,7 @@ fan::graphics::sprite_t portal_sprite;
 fan::graphics::shape_t portal_particles;
 fan::auto_color_transition_t portal_light_flicker;
 fan::physics::entity_t portal_sensor;
+inline static std::unordered_set<fan::vec2i> collected_pickupables;
 
 bool is_entering_door = false;
 bool is_boss_dead = false;

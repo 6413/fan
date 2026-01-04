@@ -2,7 +2,10 @@ struct boss_skeleton_t : boss_t<boss_skeleton_t> {
   boss_skeleton_t() = default;
   ~boss_skeleton_t() {
     if (body.get_health() <= 0) {
-      pile->get_level().is_boss_dead = true;
+      auto& level = pile->get_level();
+      level.is_boss_dead = true;
+      fan::audio::stop(level.audio_skeleton_lord_id);
+      pile->audio_background_play_id = fan::audio::play(pile->audio_background);
     }
   }
 
@@ -17,7 +20,8 @@ struct boss_skeleton_t : boss_t<boss_skeleton_t> {
     open(bll, nr, "boss_skeleton.json");
     set_initial_position(position);
 
-    body.set_max_health(10.f);
+    //body.set_max_health(10.f);
+    body.set_max_health(300.f);
     body.set_health(body.get_max_health());
     body.attack_state.attack_range = {450, 200};
     body.movement_state.max_speed = 350.f;
@@ -45,6 +49,9 @@ struct boss_skeleton_t : boss_t<boss_skeleton_t> {
 
     physics_step_nr = fan::physics::add_physics_step_callback([&bll, nr]() {
       std::visit([](auto& node) {
+        if (node.body.get_health() <= 0) {
+          return;
+        }
         using T = std::decay_t<decltype(node)>;
         if constexpr (std::is_same_v<T, boss_skeleton_t>) {
           if (node.allow_move) {

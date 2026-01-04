@@ -447,6 +447,7 @@ export namespace fan::graphics {
 			const fan::vec2& viewport_size,
 			const fan::vec2& window_size
 		);
+    std::string debug_string();
 	};
 
 	fan::vec2 translate_position(const fan::vec2& p, viewport_t viewport, camera_t camera);
@@ -472,12 +473,23 @@ export namespace fan::graphics {
 }
 
 export namespace fan {
+  namespace actions {
+    inline constexpr const char* move_forward = "Move Forward";
+    inline constexpr const char* move_back = "Move Back";
+    inline constexpr const char* move_left = "Move Left";
+    inline constexpr const char* move_right = "Move Right";
+    inline constexpr const char* move_up = "Move Up";
+    inline constexpr const char* light_attack = "Light Attack";
+    inline constexpr const char* toggle_settings = "Toggle Settings";
+    inline constexpr const char* toggle_console = "Toggle Console";
+    inline constexpr const char* toggle_debug_physics = "Toggle Debug Physics";
+  }
 	namespace window {
 		fan::vec2 get_input_vector(
-			const std::string& forward = "move_forward",
-			const std::string& back = "move_back",
-			const std::string& left = "move_left",
-			const std::string& right = "move_right"
+			const std::string& forward = fan::actions::move_forward,
+			const std::string& back = fan::actions::move_back,
+			const std::string& left = fan::actions::move_left,
+			const std::string& right = fan::actions::move_right
 		);
 		fan::vec2 get_size();
 		void set_size(const fan::vec2& size);

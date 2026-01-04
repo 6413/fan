@@ -772,30 +772,34 @@ namespace fan::graphics::physics {
   //}
 
   void movement_state_t::move_to_direction_raw(fan::physics::body_id_t body, const fan::vec2& direction) {
-    fan::vec2 input_dir = direction.sign();
+    fan::vec2 input_dir = direction.min(fan::vec2(1.f));
     fan::vec2 vel = body.get_linear_velocity();
     f32_t dt = fan::physics::default_physics_timestep;
 
-    if (input_dir.x != 0) {
-      vel.x += input_dir.x * accelerate_force * dt * 100.f;
-      vel.x = fan::math::clamp(vel.x, -max_speed, max_speed);
+    f32_t accel = accelerate_force * dt * 100.f;
+    f32_t decel = 0.3f * dt * 100.f;
+
+    accel = fan::math::clamp(accel, 0.f, 1.f);
+    decel = fan::math::clamp(decel, 0.f, 1.f);
+
+    if (input_dir.x != 0.f) {
+      f32_t target_x = input_dir.x * max_speed;
+      vel.x = fan::math::lerp(vel.x, target_x, accel);
     }
     else {
-      f32_t deceleration_factor = 0.3f * dt * 100.f;
-      vel.x = fan::math::lerp(vel.x, 0.f, deceleration_factor);
+      vel.x = fan::math::lerp(vel.x, 0.f, decel);
     }
-    if (input_dir.y != 0) {
-      vel.y += input_dir.y * accelerate_force * dt * 100.f;
-      vel.y = fan::math::clamp(vel.y, -max_speed, max_speed);
+
+    if (input_dir.y != 0.f) {
+      f32_t target_y = input_dir.y * max_speed;
+      vel.y = fan::math::lerp(vel.y, target_y, accel);
     }
 
     last_direction = direction;
-    body.set_linear_velocity({vel.x, vel.y});
+    body.set_linear_velocity(vel);
   }
-
-
   void movement_state_t::move_to_direction(fan::physics::body_id_t body, const fan::vec2& direction) {
-    fan::vec2 input_dir = direction.sign() 
+    fan::vec2 input_dir = direction.min(fan::vec2(1.f))
     #if defined(FAN_GUI)
       * (check_gui ? !fan::graphics::gui::want_io() : 1)
     #endif
@@ -806,44 +810,26 @@ namespace fan::graphics::physics {
     fan::vec2 vel = body.get_linear_velocity();
     f32_t dt = fan::physics::default_physics_timestep;
 
-    if (input_dir.x != 0) {
-      vel.x += input_dir.x * accelerate_force * dt * 100.f;
-      vel.x = fan::math::clamp(vel.x, -max_speed, max_speed);
-    }
-    else {
-      f32_t deceleration_factor = 0.3f * dt * 100.f;
-      vel.x = fan::math::lerp(vel.x, 0.f, deceleration_factor);
-    }
+    f32_t accel = accelerate_force * dt * 100.f;
+    accel = fan::math::clamp(accel, 0.f, 1.f);
+
+    f32_t target_x = input_dir.x * max_speed;
+    vel.x = fan::math::lerp(vel.x, target_x, accel);
 
     body.set_linear_velocity({vel.x, vel.y});
   }
 
-  void movement_state_t::update_ai_orientation(character2d_t& c, const fan::vec2& target_distance) {
-    if (c.attack_state.is_attacking) {
-      return;
+  void movement_state_t::update_ai_orientation(character2d_t& character, const fan::vec2& distance) {
+    static constexpr f32_t FACING_DEAD_ZONE = 30.f;
+  
+    if (distance.x > FACING_DEAD_ZONE) {
+      desired_facing.x = 1;
+    } 
+    else if (distance.x < -FACING_DEAD_ZONE) {
+      desired_facing.x = -1;
     }
-
-    fan::vec2 vel = c.get_linear_velocity();
-    int8_t desired;
-
-    if (std::abs(vel.x) > 5.0f) {
-      desired = (int8_t)fan::math::sgn(vel.x);
-    }
-    else {
-      desired = (int8_t)fan::math::sgn(target_distance.x);
-    }
-
-    if (desired == 0) {
-      return;
-    }
-
-    fan::vec2 sign = c.get_image_sign();
-    if ((int8_t)fan::math::sgn(sign.x) != desired) {
-      c.set_image_sign({ (f32_t)desired, sign.y });
-    }
+    last_direction = distance.normalized();
   }
-
-
 
   void movement_state_t::perform_jump(fan::physics::body_id_t body_id, bool jump_condition, fan::vec2* wall_jump_normal, wall_jump_t* wall_jump) {
     bool on_ground = fan::physics::is_on_ground(body_id, jump_state.jumping);
@@ -981,6 +967,8 @@ namespace fan::graphics::physics {
     const fan::vec2& distance,
     fan::vec2 tile_size
   ) {
+    character->movement_state.is_wall_sliding = false;
+
     if (!auto_jump_obstacles) {
       return false;
     }
@@ -1020,6 +1008,7 @@ namespace fan::graphics::physics {
       bool pushing_into_wall = fan::math::sgn(distance.x) == fan::math::sgn(wall_normal.x);
       if (pushing_into_wall && current_vel.y > 0) {
         fan::physics::apply_wall_slide(*character, wall_normal, character->wall_jump.slide_speed);
+        character->movement_state.is_wall_sliding = true;
       }
     }
 
@@ -1071,6 +1060,7 @@ namespace fan::graphics::physics {
             if (!state.velocity_based_fps) {
               character->set_sprite_sheet_fps(state.fps);
             }
+
             prev_animation_id = state.animation_id;
           }
         }
@@ -1097,6 +1087,10 @@ namespace fan::graphics::physics {
             character->set_sprite_sheet_fps(state.fps);
           }
         }
+        if (state.velocity_based_fps) {
+          f32_t speed = fan::math::clamp((f32_t)character->movement_state.last_direction.length() + 0.35f, 0.f, 1.f);
+          character->set_sprite_sheet_fps(state.fps * speed);
+        }
         prev_animation_id = state.animation_id;
         return;
       }
@@ -1119,6 +1113,10 @@ namespace fan::graphics::physics {
   }
 
   void animation_controller_t::update_animation(character2d_t* character) {
+    if (fan::graphics::gui::want_io()) {
+      return;
+    }
+
     fan::vec2 sign = character->get_image_sign();
     fan::vec2 dir = character->movement_state.last_direction;
 
@@ -1331,7 +1329,7 @@ namespace fan::graphics::physics {
       character.setup_default_animations(config);
     }
 
-    character.start_sprite_sheet_animation();
+    character.player_sprite_sheet();
 
     return character;
   }
@@ -1496,7 +1494,7 @@ namespace fan::graphics::physics {
         .trigger_type = animation_controller_t::animation_state_t::one_shot,
         .condition = config.attack_cb ? config.attack_cb :
         [](character2d_t& c) -> bool {
-          if (!fan::window::is_mouse_clicked() && !fan::window::is_key_pressed(fan::gamepad_right_bumper)
+          if (!fan::window::is_input_action_active(fan::actions::light_attack) && !fan::window::is_key_pressed(fan::gamepad_right_bumper)
           #if defined(FAN_GUI)
             || fan::graphics::gui::want_io()
           #endif
@@ -1513,6 +1511,9 @@ namespace fan::graphics::physics {
         .animation_id = idle.id,
         .fps = idle.fps,
         .condition = [](character2d_t& c) {
+          if (c.get_health() <= 0) {
+            return false;
+          }
           return std::abs(c.get_linear_velocity().x) < 10.f && !c.movement_state.jump_state.on_air_after_jump;
         }
       });
@@ -1523,7 +1524,14 @@ namespace fan::graphics::physics {
         .name = "move",
         .animation_id = move.id,
         .fps = move.fps,
+        .velocity_based_fps = true,
         .condition = [](character2d_t& c) {
+          if (c.get_health() <= 0) {
+            return false;
+          }
+          if (c.movement_state.is_wall_sliding) {
+            return true;
+          }
           return std::abs(c.get_linear_velocity().x) >= 10.f/* || c.movement_state.jump_state.on_air_after_jump*/;
         }
       });
@@ -1531,6 +1539,7 @@ namespace fan::graphics::physics {
     anim_controller.auto_update_animations = true;
   }
   void character2d_t::process_keyboard_movement(uint8_t movement, f32_t friction) {
+    movement_state.is_wall_sliding = false;
     fan::vec2 velocity = get_linear_velocity();
     fan::physics::shape_id_t colliding_wall_id;
     wall_jump.normal = fan::physics::check_wall_contact(*this, &colliding_wall_id);
@@ -1542,14 +1551,14 @@ namespace fan::graphics::physics {
       bool on_ground = is_on_ground();
       f32_t air_control_multiplier = on_ground ? 1.0f : 0.8f;
       movement_state.move_to_direction(*this, fan::vec2(input_vector.x, 0) * air_control_multiplier);
-
       if (wall_jump.normal.x && input_vector.x) {
         if (!movement_state.jump_state.jumping && velocity.y > 0) {
           fan::physics::apply_wall_slide(*this, wall_jump.normal, wall_jump.slide_speed);
+          movement_state.is_wall_sliding = true;
         }
       }
 
-      movement_state.perform_jump(*this, fan::window::is_action_down("move_up"), &wall_jump.normal, &wall_jump);
+      movement_state.perform_jump(*this, fan::window::is_action_down(fan::actions::move_up), &wall_jump.normal, &wall_jump);
       break;
     }
     case movement_e::top_view:
