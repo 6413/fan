@@ -169,6 +169,7 @@ export namespace fan {
     key_right_alt = GLFW_KEY_RIGHT_ALT,
     key_right_super = GLFW_KEY_RIGHT_SUPER,
     key_menu = GLFW_KEY_MENU,
+    key_last = key_menu,
     mouse_first = GLFW_MOUSE_BUTTON_LEFT,
     mouse_left = GLFW_MOUSE_BUTTON_LEFT,
     mouse_right = GLFW_MOUSE_BUTTON_RIGHT,
@@ -176,12 +177,15 @@ export namespace fan {
     mouse_scroll_up = GLFW_MOUSE_BUTTON_LAST + 1,
     mouse_scroll_down = GLFW_MOUSE_BUTTON_LAST + 2,
     mouse_last = mouse_scroll_down,
-    gamepad_a = GLFW_KEY_LAST + 1,
+    gamepad_first = GLFW_KEY_LAST + 1,
+    gamepad_a = gamepad_first,
     gamepad_b,
     gamepad_x,
     gamepad_y,
     gamepad_left_bumper,
     gamepad_right_bumper,
+    gamepad_l1 = gamepad_left_bumper,
+    gamepad_r1 = gamepad_right_bumper,
     gamepad_back,
     gamepad_start,
     gamepad_left_thumb,
@@ -191,18 +195,18 @@ export namespace fan {
     gamepad_down,
     gamepad_left,
     gamepad_guide,
-    gamepad_last = gamepad_guide,
     gamepad_cross = gamepad_a,
     gamepad_circle = gamepad_b,
     gamepad_square = gamepad_x,
     gamepad_triangle = gamepad_y,
-    gamepad_l2,
+    gamepad_l2 = 364,
     gamepad_r2,
+    gamepad_last = gamepad_r2,
     key_invalid = GLFW_KEY_UNKNOWN,
-    key_last = gamepad_last
+    input_last = gamepad_last
   };
   
-  inline int input_enum_to_array_index(int key) {
+  constexpr int input_enum_to_array_index(int key) {
     switch (key) {
     case input::key_space: return 0;
     case input::key_0: return 1;
@@ -348,7 +352,7 @@ export namespace fan {
     }
   }
 
-  inline int array_index_to_enum_input(int index) {
+  constexpr int array_index_to_enum_input(int index) {
     switch (index) {
         case 0: return input::key_space;
         case 1: return input::key_0;
@@ -515,4 +519,158 @@ export namespace fan {
 		constexpr auto lctrl_lparam_up = 0xC01D0001;
 		constexpr auto rctrl_lparam_up = 0xC11D0001;
 	}
+
+  constexpr const char* get_key_name(int key) {
+    if (key == -1) {
+      return "None";
+    }
+
+    switch (key) {
+      case fan::key_space: return "Space";
+      case fan::key_apostrophe: return "'";
+      case fan::key_comma: return ",";
+      case fan::key_minus: return "-";
+      case fan::key_period: return ".";
+      case fan::key_slash: return "/";
+      case fan::key_0: return "0";
+      case fan::key_1: return "1";
+      case fan::key_2: return "2";
+      case fan::key_3: return "3";
+      case fan::key_4: return "4";
+      case fan::key_5: return "5";
+      case fan::key_6: return "6";
+      case fan::key_7: return "7";
+      case fan::key_8: return "8";
+      case fan::key_9: return "9";
+      case fan::key_semicolon: return ";";
+      case fan::key_plus: return "=";
+      case fan::key_a: return "A";
+      case fan::key_b: return "B";
+      case fan::key_c: return "C";
+      case fan::key_d: return "D";
+      case fan::key_e: return "E";
+      case fan::key_f: return "F";
+      case fan::key_g: return "G";
+      case fan::key_h: return "H";
+      case fan::key_i: return "I";
+      case fan::key_j: return "J";
+      case fan::key_k: return "K";
+      case fan::key_l: return "L";
+      case fan::key_m: return "M";
+      case fan::key_n: return "N";
+      case fan::key_o: return "O";
+      case fan::key_p: return "P";
+      case fan::key_q: return "Q";
+      case fan::key_r: return "R";
+      case fan::key_s: return "S";
+      case fan::key_t: return "T";
+      case fan::key_u: return "U";
+      case fan::key_v: return "V";
+      case fan::key_w: return "W";
+      case fan::key_x: return "X";
+      case fan::key_y: return "Y";
+      case fan::key_z: return "Z";
+      case fan::key_left_bracket: return "[";
+      case fan::key_backslash: return "\\";
+      case fan::key_right_bracket: return "]";
+      case fan::key_grave_accent: return "`";
+      case fan::key_escape: return "Escape";
+      case fan::key_enter: return "Enter";
+      case fan::key_tab: return "Tab";
+      case fan::key_backspace: return "Backspace";
+      case fan::key_insert: return "Insert";
+      case fan::key_delete: return "Delete";
+      case fan::key_right: return "Right";
+      case fan::key_left: return "Left";
+      case fan::key_down: return "Down";
+      case fan::key_up: return "Up";
+      case fan::key_page_up: return "Page Up";
+      case fan::key_page_down: return "Page Down";
+      case fan::key_home: return "Home";
+      case fan::key_end: return "End";
+      case fan::key_caps_lock: return "Caps Lock";
+      case fan::key_scroll_lock: return "Scroll Lock";
+      case fan::key_num_lock: return "Num Lock";
+      case fan::key_print_screen: return "Print Screen";
+      case fan::key_break: return "Pause/Break";
+      case fan::key_f1: return "F1";
+      case fan::key_f2: return "F2";
+      case fan::key_f3: return "F3";
+      case fan::key_f4: return "F4";
+      case fan::key_f5: return "F5";
+      case fan::key_f6: return "F6";
+      case fan::key_f7: return "F7";
+      case fan::key_f8: return "F8";
+      case fan::key_f9: return "F9";
+      case fan::key_f10: return "F10";
+      case fan::key_f11: return "F11";
+      case fan::key_f12: return "F12";
+      case fan::key_left_shift: return "Left Shift";
+      case fan::key_left_control: return "Left Ctrl";
+      case fan::key_left_alt: return "Left Alt";
+      case fan::key_left_super: return "Left Super";
+      case fan::key_right_shift: return "Right Shift";
+      case fan::key_right_control: return "Right Ctrl";
+      case fan::key_right_alt: return "Right Alt";
+      case fan::key_right_super: return "Right Super";
+      default:
+        switch (key) {
+        case fan::gamepad_a: return "Gamepad A";
+        case fan::gamepad_b: return "Gamepad B";
+        case fan::gamepad_x: return "Gamepad X";
+        case fan::gamepad_y: return "Gamepad Y";
+        case fan::gamepad_left_bumper: return "Gamepad LB";
+        case fan::gamepad_right_bumper: return "Gamepad RB";
+        case fan::gamepad_back: return "Gamepad Back";
+        case fan::gamepad_start: return "Gamepad Start";
+        case fan::gamepad_left_thumb: return "Gamepad LThumb";
+        case fan::gamepad_right_thumb: return "Gamepad RThumb";
+        case fan::gamepad_up: return "Gamepad DPad Up";
+        case fan::gamepad_right: return "Gamepad DPad Right";
+        case fan::gamepad_down: return "Gamepad DPad Down";
+        case fan::gamepad_left: return "Gamepad DPad Left";
+        case fan::gamepad_guide: return "Gamepad Guide";
+        case fan::gamepad_l2: return "Gamepad L2";
+        case fan::gamepad_r2: return "Gamepad R2";
+        default: return "Unknown";
+      }
+    }
+  }
+
+  constexpr const char* get_mouse_name(int button) {
+    if (button == -1) return "None";
+    
+    switch (button) {
+      case fan::mouse_left: return "Left Click";
+      case fan::mouse_right: return "Right Click";
+      case fan::mouse_middle: return "Middle Click";
+      default: return "Unknown";
+    }
+  }
+
+  const char* get_controller_button_name(int button) {
+    if (button == -1) return "None";
+
+    char buffer[32];
+    snprintf(buffer, sizeof(buffer), "Button %d", button);
+    return buffer;
+  }
+
+  const char* get_controller_axis_name(int axis) {
+    if (axis == -1) return "None";
+    
+    switch (axis) {
+      case 0: return "Left X";
+      case 1: return "Left Y";
+      case 2: return "Right X";
+      case 3: return "Right Y";
+      case 4: return "Left Trigger";
+      case 5: return "Right Trigger";
+      default: {
+        static char buffer[32];
+        snprintf(buffer, sizeof(buffer), "Axis %d", axis);
+        return buffer;
+      }
+    }
+  }
 }

@@ -8,6 +8,7 @@ module;
 #include <source_location>
 #include <unordered_set>
 #include <algorithm>
+#include <cmath>
 
 export module fan.graphics;
 
@@ -870,7 +871,8 @@ export namespace fan::graphics {
     void create(
       fan::graphics::camera_t camera_nr = fan::graphics::get_orthographic_render_view().camera,
       fan::graphics::viewport_t viewport_nr = fan::graphics::get_orthographic_render_view().viewport,
-      f32_t new_zoom = 1.f
+      f32_t new_zoom = 1.f,
+      const fan::vec2& initial_pos = -0xFAFA
     );
     void create(const fan::graphics::render_view_t& render_view, f32_t new_zoom = 1.f);
     void create_default(f32_t zoom = 1.f);
@@ -878,11 +880,14 @@ export namespace fan::graphics {
     interactive_camera_t(
       fan::graphics::camera_t camera_nr = fan::graphics::get_orthographic_render_view().camera,
       fan::graphics::viewport_t viewport_nr = fan::graphics::get_orthographic_render_view().viewport,
-      f32_t new_zoom = 1
+      f32_t new_zoom = 1,
+      const fan::vec2& initial_pos = -0xFAFA
     );
     interactive_camera_t(const fan::graphics::render_view_t& render_view, f32_t new_zoom = 1.f);
     ~interactive_camera_t();
 
+    fan::vec2 get_initial_position() const;
+    void set_initial_position(const fan::vec2& position);
     fan::vec2 get_position() const;
     void set_position(const fan::vec2& position);
     f32_t get_zoom() const;
@@ -891,10 +896,6 @@ export namespace fan::graphics {
     fan::vec4 get_ortho() const;
     fan::vec2 get_viewport_size() const;
 
-    bool ignore_input = false;
-    bool zoom_on_window_resize = true;
-    bool pan_with_middle_mouse = true;
-    bool clicked_inside_viewport = false;
     fan::vec2 old_window_size {};
     fan::vec2 camera_offset {};
     fan::graphics::render_view_t render_view;
@@ -902,6 +903,11 @@ export namespace fan::graphics {
     fan::window_t::buttons_handle_t button_cb_nr;
     fan::window_t::mouse_motion_handle_t mouse_motion_nr;
     fan::graphics::update_callback_nr_t uc_nr;
+    fan::vec2 initial_position = 0;
+    bool ignore_input = false;
+    bool zoom_on_window_resize = true;
+    bool pan_with_middle_mouse = true;
+    bool clicked_inside_viewport = false;
   };
 
   struct world_window_t {
@@ -1161,7 +1167,7 @@ export namespace fan {
 
       do {
         while (elapsed < duration) {
-          f32_t t = fmod((elapsed / duration) + phase_offset, 1.f);
+          f32_t t = std::fmod((elapsed / duration) + phase_offset, 1.f);
           t = fan::apply_ease(easing, t);
           callback(lerp(from, to, t));
           co_await fan::graphics::co_next_frame();

@@ -185,6 +185,7 @@ export namespace fan {
 
     struct move_data_t {
       fan::window_t* window;
+      fan::vec2i position;
     };
     using move_cb_t = std::function<void(const move_data_t&)>;
 
@@ -297,7 +298,7 @@ export namespace fan {
     using key_click_data_t = key_data_t;
 
     void open(std::uint64_t flags);
-    void open(fan::vec2i window_size, const std::string& name, std::uint64_t flags = 0, int open_mode = mode::windowed);
+    void open(fan::vec2i window_size, fan::vec2i window_pos, const std::string& name, std::uint64_t flags = 0, int open_mode = mode::windowed);
     void close();
     void make_context_current();
     void handle_key_states(); // can be 1 or 2 aka press or repeat
@@ -508,8 +509,9 @@ export namespace fan {
       return glfw_window;
     }
 
-    int prev_key_states[fan::key_last + 1]{};
-    int key_states[fan::key_last + 1]{};
+    int prev_key_states[fan::input_last + 1]{};
+    int key_states[fan::input_last + 1]{};
+    f32_t gamepad_axis_deadzone = 0.12f;
     GLFWwindow* glfw_window = nullptr;
 
     fan::vec2d previous_mouse_position = -0xfff;

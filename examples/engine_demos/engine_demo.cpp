@@ -1,4 +1,12 @@
 // This file is meant to stay up-to-date. More library usage will be implemented and showcased over time
+
+/*
+TODO:
+demo init function might place positions incorrectly which depend on viewport size, because the window height is calculated by their contents
+and we still dont know what the contents of gui will be until 'update' function. so viewport size might change after init function which 
+causes misalignment
+*/
+
 #include <fan/utility.h> // OFFSETLESS
 
 #include <vector>
@@ -113,7 +121,7 @@ struct engine_demo_t {
     static auto image_background = engine_demo->engine.image_create(fan::color(0.5, 0.5, 0.5, 1));
     uint32_t lighting_flags = fan::graphics::sprite_flags_e::additive | fan::graphics::sprite_flags_e::circle;
 
-    // bg
+    // Background
     engine_demo->shapes.emplace_back(fan::graphics::sprite_t{{
       .render_view = &engine_demo->right_column_view,
       .position = fan::vec3(viewport_size / 2, 0),
@@ -393,8 +401,6 @@ void main() {
     data.sprite_with_animation.set_camera(engine_demo->right_column_view.camera);
     data.sprite_with_animation.set_viewport(engine_demo->right_column_view.viewport);
     data.sprite_with_animation.set_position(viewport_size / 2);
-    fan::print(data.sprite_with_animation.get_image().gint(), 
-      engine_demo->engine.image_get_handle(data.sprite_with_animation.get_image()));
   }
 
   static void demo_sprite_sheet_cleanup(engine_demo_t* engine_demo) {
@@ -447,7 +453,6 @@ void main() {
   static void demo_shapes_init_shader_live_editor(engine_demo_t* engine_demo) {
     engine_demo->demo_shader_live_editor_data = new demo_shader_live_editor_t();
     auto& data = *engine_demo->demo_shader_live_editor_data;
-    engine_demo->right_window_split_ratio = 0.5f;
 
     data.shader = engine_demo->engine.get_sprite_vertex_shader(data.shader_code);
     fan::graphics::image_t image = engine_demo->engine.image_load("images/lava_seamless.webp");
@@ -460,11 +465,11 @@ void main() {
       .shader = data.shader,
       .image = image,
     } };
-    engine_demo->interactive_camera.set_zoom(engine_demo->right_window_split_ratio * 1.2f);
+    engine_demo->interactive_camera.set_zoom(engine_demo->engine.settings_menu.pages.front().split_ratio * 1.2f);
     engine_demo->interactive_camera.set_position(viewport_size / 2.f + 
       fan::vec2(
        0,
-       ((viewport_size.y) * (engine_demo->right_window_split_ratio)) - data.shader_shape.get_size().y
+       ((viewport_size.y) * engine_demo->engine.settings_menu.pages.front().split_ratio) - data.shader_shape.get_size().y
       )
     );
   }
@@ -476,17 +481,17 @@ void main() {
       gui::text("Failed to compile shader", fan::colors::red);
     }
 
-    if (gui::input_text_multiline("##Shader Code", &data.shader_code, gui::get_content_region_avail(), gui::input_text_flags_allow_tab_input)) {
+    fan::vec2 editor_size(gui::get_content_region_avail().x, engine_demo->panel_right_window_size.y / 2.f);
+    if (gui::input_text_multiline("##Shader Code", &data.shader_code, editor_size, gui::input_text_flags_allow_tab_input)) {
       engine_demo->engine.shader_set_vertex(data.shader, engine_demo->engine.shader_list[engine_demo->engine.shapes.shaper.GetShader(fan::graphics::shape_type_t::shader_shape)].svertex);
       engine_demo->engine.shader_set_fragment(data.shader, data.shader_code);
       data.shader_compiled = engine_demo->engine.shader_compile(data.shader);
     }
   }
   static void demo_shader_live_editor_cleanup(engine_demo_t* engine_demo) {
-    engine_demo->right_window_split_ratio = default_right_window_split_ratio;
     fan::vec2 new_viewport_size(
       engine_demo->panel_right_window_size.x,
-      engine_demo->panel_right_window_size.y * (1.0 - engine_demo->right_window_split_ratio)
+      engine_demo->panel_right_window_size.y * (1.0 - engine_demo->engine.settings_menu.pages.front().split_ratio)
     );
     engine_demo->engine.viewport_set_size(engine_demo->right_column_view.viewport, new_viewport_size);
     engine_demo->engine.shader_erase(engine_demo->demo_shader_live_editor_data->shader);
@@ -909,48 +914,81 @@ void main() {
     fan::vec2i src = 0;
     fan::vec2i dst = 2;
     engine_t::mouse_down_handle_t mouse_down_handle[2];
+    bool is_dragging_right = false;
+    bool is_dragging_left = false;
   }*demo_algorithm_pathfind_data = 0;
 
   static void demo_algorithm_init_pathfind(engine_demo_t* engine_demo) {
     engine_demo->demo_algorithm_pathfind_data = new demo_algorithm_pathfind_t();
     auto& data = *engine_demo->demo_algorithm_pathfind_data;
-
     fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
 
     data.grid.create(
       data.tile_size,
       fan::colors::gray,
       viewport_size,
-      { 0,0 },
+      {0, 0},
       &engine_demo->right_column_view
     );
-
-    // Setup pathfind parameters
-    data.generator.set_world_size({ (int)data.grid.size.x, (int)data.grid.size.y });
+    data.generator.set_world_size({(int)data.grid.size.x, (int)data.grid.size.y});
     data.generator.set_heuristic(fan::graphics::algorithm::pathfind::heuristic::euclidean);
     data.generator.set_diagonal_movement(false);
 
-    data.mouse_down_handle[0] = engine_demo->engine.on_mouse_down(fan::mouse_right, [&, engine_demo](const engine_t::mouse_down_data_t& bdata) {
-      fan::vec2i cell = (fan::graphics::screen_to_world(bdata.position, engine_demo->right_column_view) / data.tile_size).floor();
-      if (fan::window::is_key_down(fan::key_left_shift)) {
-        data.grid.remove_wall(cell, data.generator);
+    auto handle_cell_click = [](engine_demo_t* engine_demo, fan::vec2 mouse_pos, bool is_shift, auto&& action) {
+      mouse_pos = fan::graphics::screen_to_world(mouse_pos, engine_demo->right_column_view);
+      fan::vec2i cell = (mouse_pos / engine_demo->demo_algorithm_pathfind_data->tile_size).snap_to_grid(1).floor().clamp(fan::vec2i(0, 0), engine_demo->demo_algorithm_pathfind_data->grid.size - 1);
+      action(cell, is_shift);
+    };
+
+    data.mouse_down_handle[0] = engine_demo->engine.on_mouse_down(fan::mouse_right,
+      [&, engine_demo](const engine_t::mouse_down_data_t& bdata) {
+      if (bdata.state == fan::mouse_state::press) {
+        data.is_dragging_right = fan::graphics::inside(engine_demo->right_column_view, bdata.position);
       }
-      else {
-        data.src = cell;
-        data.grid.set_source(data.src, fan::colors::green);
+      if (bdata.state == fan::mouse_state::release) {
+        data.is_dragging_right = false;
+        return;
       }
+      if (!data.is_dragging_right) {
+        return;
+      }
+      handle_cell_click(engine_demo, bdata.position, fan::window::is_key_down(fan::key_left_shift),
+        [&](fan::vec2i cell, bool shift) {
+        if (shift) {
+          data.grid.remove_wall(cell, data.generator);
+        }
+        else {
+          data.src = cell;
+          data.grid.set_source(cell, fan::colors::green);
+        }
+      });
     });
-    data.mouse_down_handle[1] = engine_demo->engine.on_mouse_down(fan::mouse_left, [&, engine_demo](const engine_t::mouse_down_data_t& bdata) {
-      fan::vec2i cell = (fan::graphics::screen_to_world(bdata.position, engine_demo->right_column_view) / data.tile_size).floor();
-      if (fan::window::is_key_down(fan::key_left_shift)) {
-        data.grid.add_wall(cell, data.generator);
+
+    data.mouse_down_handle[1] = engine_demo->engine.on_mouse_down(fan::mouse_left,
+      [&, engine_demo](const engine_t::mouse_down_data_t& bdata) {
+      if (bdata.state == fan::mouse_state::press) {
+        data.is_dragging_left = fan::graphics::inside(engine_demo->right_column_view, bdata.position);
       }
-      else {
-        data.dst = cell;
-        data.grid.set_destination(data.dst, fan::colors::red);
+      if (bdata.state == fan::mouse_state::release) {
+        data.is_dragging_left = false;
+        return;
       }
+      if (!data.is_dragging_left) {
+        return;
+      }
+      handle_cell_click(engine_demo, bdata.position, fan::window::is_key_down(fan::key_left_shift),
+        [&](fan::vec2i cell, bool shift) {
+        if (shift) {
+          data.grid.add_wall(cell, data.generator);
+        }
+        else {
+          data.dst = cell;
+          data.grid.set_destination(cell, fan::colors::red);
+        }
+      });
     });
   }
+
   static void demo_algorithm_update_pathfind(engine_demo_t* engine_demo) {
     auto& data = *engine_demo->demo_algorithm_pathfind_data;
 
@@ -1325,7 +1363,7 @@ void main() {
 
     gui::set_next_window_pos(next_window_position);
     gui::set_next_window_size(next_window_size);
-    fan_graphics_gui_window("##Menu Engine Demo Left", 0, wnd_flags){
+    if (auto wnd = gui::window("##Menu Engine Demo Left", 0, wnd_flags)) {
       render_demos(menu, {
         "SHAPES",
         "GUI",
@@ -1338,9 +1376,9 @@ void main() {
   static void menus_engine_demo_right(menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
     engine_demo.panel_right_window_size = next_window_size;
     gui::set_next_window_pos(next_window_position);
-    gui::set_next_window_size(fan::vec2(next_window_size.x, next_window_size.y * engine_demo.right_window_split_ratio));
+    gui::set_next_window_size(fan::vec2(next_window_size.x, 0.f)); // auto window y size
     fan::vec2 window_size;
-    fan_graphics_gui_window("##Menu Engine Demo Right Top", 0, wnd_flags) {
+    if (auto wnd = gui::window("##Menu Engine Demo Right Top", 0, wnd_flags)) {
       engine_demo.engine.lighting.ambient = 1;
       auto& demo = demos[engine_demo.current_demo_index];
       if (demo.update_function) {
@@ -1358,16 +1396,21 @@ void main() {
     engine_demo.mouse_inside_demo_view = engine_demo.engine.is_mouse_inside(engine_demo.right_column_view);
     engine_demo.interactive_camera.ignore_input = !engine_demo.mouse_inside_demo_view;
 
-    
-    fan_graphics_gui_window("##Menu Engine Demo Right Content Bottom", 0, wnd_flags | gui::window_flags_no_inputs | gui::window_flags_override_input) {
+    if (auto wnd = gui::window(
+      "##Menu Engine Demo Right Content Bottom",
+      wnd_flags | gui::window_flags_no_inputs | gui::window_flags_override_input
+    ))
+    {
       gui::set_viewport(engine_demo.right_column_view.viewport);
-      if (engine_demo.interactive_camera.get_position() == fan::vec2(0.f)) {
-        engine_demo.interactive_camera.set_position(engine_demo.engine.viewport_get_size(engine_demo.right_column_view.viewport) / 2.f);
+      if (engine_demo.update_camera_position) {
+        engine_demo.update_camera_position = false;
+        engine_demo.interactive_camera.set_initial_position(engine_demo.interactive_camera.get_viewport_size() / 2.f);
+        engine_demo.interactive_camera.reset_view();
       }
     }
+    engine_demo.interactive_camera.update();
     gui::pop_style_color();
   }
-
 
   static constexpr int wnd_flags = gui::window_flags_no_move| 
     gui::window_flags_no_collapse | gui::window_flags_no_resize| gui::window_flags_no_title_bar;
@@ -1377,11 +1420,11 @@ void main() {
     std::string title = titles[title_index];
     gui::text(fan::color::from_rgba(0x948c80ff) * 1.5, title);
     gui::push_style_var(gui::style_var_cell_padding, fan::vec2(0));
-    fan_graphics_gui_table(
+    if (auto tbl = gui::table(
       (title + "_settings_left_table_display").c_str(), 
       1, 
       gui::table_flags_borders_inner_h | gui::table_flags_borders_outer_h
-    ) {
+    )) {
       {
         gui::push_style_var(gui::style_var_selectable_text_align, fan::vec2(0, 0.5));
         for (auto [demo_index, demo] : fan::enumerate(demos)) {
@@ -1436,15 +1479,17 @@ void main() {
       menu_t::page_t page;
       page.name = "Engine Demos";
       page.toggle = 1;
-      page.page_left_render = menus_engine_demo_left;
-      page.page_right_render = menus_engine_demo_right;
+      page.render_page_left = menus_engine_demo_left;
+      page.render_page_right = menus_engine_demo_right;
+      page.split_ratio = 0.35f;
       engine.settings_menu.pages.emplace_front(page);
     }
     right_column_view.create();
     interactive_camera.create(
       right_column_view.camera,
       right_column_view.viewport,
-      1.f
+      1.f,
+      0.f
     );
     interactive_camera.pan_with_middle_mouse = true;
   }
@@ -1462,22 +1507,21 @@ void main() {
       demos[current_demo_index].cleanup_function(this);
     }
     shapes.clear();
-    interactive_camera.reset_view();
     demo.init_function(this);
     current_demo_index = demo_index;
+    update_camera_position = true;
   }
 
   fan::graphics::render_view_t right_column_view;
-  bool mouse_inside_demo_view = false;
   // allows to move and zoom camera with mouse
-  fan::graphics::interactive_camera_t interactive_camera;
+  fan::graphics::interactive_camera_t interactive_camera {};
   uint16_t current_demo_index = 0;
   int shape_count = 100;
   std::vector<fan::graphics::shape_t> shapes;
-  static inline constexpr f32_t default_right_window_split_ratio = 0.2f;
-  f32_t right_window_split_ratio = default_right_window_split_ratio;
   fan::vec2 panel_right_render_position = 0.f;
   fan::vec2 panel_right_window_size = 0.f;
+  bool mouse_inside_demo_view = false;
+  bool update_camera_position = false;
 };
 
 #include "library_usage_samples.h"
@@ -1487,9 +1531,6 @@ int main() {////
   //demo.engine.cell_size = 32;
   //demo.engine.culling_rebuild_grid();
   demo.engine.set_culling_enabled(false);
-  demo.engine.set_target_fps(0);
-  demo.engine.set_vsync(0);
-  demo.engine.show_fps = 1;
   // Update physics
   demo.engine.update_physics(true);
   fan_window_loop{
@@ -1502,7 +1543,7 @@ int main() {////
     //fan::graphics::aabb(0, s*2.f, 5.f, &demo.right_column_view);
     uint32_t v, c;
     demo.engine.get_culling_stats(v, c);
-    fan::print_throttled(v, c);
+    fan::print_once(v, c);
     demo.update();
   };
 /*  Optionally
