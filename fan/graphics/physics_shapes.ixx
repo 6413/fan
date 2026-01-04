@@ -489,6 +489,7 @@ export namespace fan {
         bool ignore_input = false;
         bool enabled = false;
         bool check_gui = true;
+        bool is_wall_sliding = false;
       };
 
       struct attack_state_t {

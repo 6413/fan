@@ -14,32 +14,6 @@ struct fan_window_loop_t{
   gloco()->close(); \
   return
 
-//const std::string& window_name, bool* p_open = 0, window_flags_t window_flags = 0
-#define fan_graphics_gui_window(...) \
-    for (struct { \
-        fan::graphics::gui::window_t __window; \
-        int once; \
-      }__struct_var{{__VA_ARGS__}, {(bool)__struct_var.__window}}; \
-      __struct_var.once--;  \
-    )
-
-//(const std::string& window_name, const fan::vec2& size = fan::vec2(0, 0), child_window_flags_t window_flags = 0)
-#define fan_graphics_gui_child_window(...) \
-    for (struct { \
-        fan::graphics::gui::child_window_t __window; \
-        int once; \
-      }__struct_var{{__VA_ARGS__}, {(bool)__struct_var.__window}}; \
-      __struct_var.once--;  \
-    )
-
-#define fan_graphics_gui_table(...) \
-    for (struct { \
-        fan::graphics::gui::table_t __table; \
-        int once; \
-      }__struct_var{{__VA_ARGS__}, {(bool)__struct_var.__table}}; \
-      __struct_var.once--;  \
-    )
-
 // GUI
 #define fan_graphics_gui_slider_property(shape, kind) \
   [&]{ \

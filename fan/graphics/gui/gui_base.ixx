@@ -107,7 +107,7 @@ export namespace fan::graphics::gui {
   bool is_item_hovered(hovered_flag_t flags = 0);
   bool is_any_item_hovered();
   bool is_any_item_active();
-  bool is_item_clicked();
+  bool is_item_clicked(int mouse_button = 0);
   bool is_item_held(int mouse_button = 0);
 
   void begin_tooltip();

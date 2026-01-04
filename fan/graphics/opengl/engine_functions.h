@@ -697,7 +697,7 @@ void draw_all_shape_aabbs() {
         fan::vec2 p2{ aabb.max.x, aabb.max.y };
         fan::vec2 p3{ aabb.min.x, aabb.max.y };
 
-        auto emit = [this, &shapes, shape](fan::vec2 a, fan::vec2 b) {
+        auto emit = [this, shape](fan::vec2 a, fan::vec2 b) {
           fan::graphics::shapes::line_t::properties_t lp;
           lp.src = fan::vec3(a, 0xFFA0);
           lp.dst = fan::vec3(b, 0);

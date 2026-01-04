@@ -75,7 +75,7 @@ if [[ "$REBUILD" == true ]]; then
   
   echo ""
   echo -e "${BLUE}[4/4]${NC} Building..."
-  if ! xmake -vD "${XMAKE_ARGS[@]}"; then
+  if ! xmake "${XMAKE_ARGS[@]}"; then
     echo -e "${RED}✗ XMake build failed!${NC}"
     exit 1
   fi

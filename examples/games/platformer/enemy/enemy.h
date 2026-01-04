@@ -109,6 +109,9 @@ struct enemy_t : enemy_base_t {
       fan::vec2 tile_size = pile->renderer.get_tile_size(level.main_map_id) * 2.f;
       fan::vec2 target_pos = pile->player.get_physics_pos();
       std::visit([&](auto& node){
+        if (node.body.get_health() <= 0) {
+          return;
+        }
         node.ai_behavior.update_ai(&node.body, node.navigation, target_pos, tile_size);
         fan::vec2 distance = node.ai_behavior.get_target_distance(node.body.get_physics_position());
         if (!((std::abs(distance.x) < node.trigger_distance.x && std::abs(distance.y) < node.trigger_distance.y))) {
@@ -136,8 +139,10 @@ struct enemy_t : enemy_base_t {
         }
       }
     }
-    attack_hitbox.update(&body);
-    body.update_animations();
+    if (body.get_health() > 0) {
+      attack_hitbox.update(&body);
+      body.update_animations();
+    }
     render_health();
     return false;
   }
@@ -172,6 +177,32 @@ struct enemy_t : enemy_base_t {
     fan::audio::play(audio_player_hits_enemy);
     body.take_hit(source, hit_direction);
     if (body.is_dead()) {
+      static constexpr f32_t drop_chance = 0.33f;
+
+      if (fan::random::value(0.0f, 1.0f) < drop_chance) {
+        fan::vec2 tile_size = pile->get_level().main_compiled_map.tile_size;
+        fan::vec3i drop_pos = (body.get_center() / tile_size).floor() * tile_size;
+
+        struct drop_t { const char* name; const char* texture; };
+        static constexpr drop_t drops[] = {
+          {"pickupable_health", "tile1217"},
+          {"pickupable_health_potion", "tile1218"}
+        };
+
+        constexpr size_t count = std::size(drops);
+        size_t index = (size_t)(fan::random::value(0.0f, 1.0f) * count);
+
+        pile->get_level().pickupables.push_back({
+          drops[index].name,
+          fan::physics::create_sensor_rectangle(drop_pos, tile_size / 1.2f)
+        });
+
+        pile->get_level().dropped_pickupables[drop_pos] = fan::graphics::sprite_t {{
+          .position = drop_pos,
+          .size = tile_size,
+          .texture_pack_unique_id = pile->engine.texture_pack[drops[index].texture]
+        }};
+      }
       destroy();
       return true;
     }

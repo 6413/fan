@@ -22,6 +22,7 @@ module;
 #include <algorithm>
 #include <cstring>
 #include <sstream>
+#include <chrono>
 
 module fan.window;
 
@@ -181,9 +182,8 @@ namespace fan::window {
 
   void resize_callback(GLFWwindow* wnd, int width, int height) {
     fan::window_t* window = (fan::window_t*)glfwGetWindowUserPointer(wnd);
-    auto it = window->m_resize_callback.GetNodeFirst();
-    auto it2 = window->m_resize_callback.GetNodeLast();
 
+    auto it = window->m_resize_callback.GetNodeFirst();
     while (it != window->m_resize_callback.dst) {
       fan::window_t::resize_data_t cbd;
       cbd.window = window;
@@ -196,16 +196,17 @@ namespace fan::window {
 
   void move_callback(GLFWwindow* wnd, int xpos, int ypos) {
     fan::window_t* window = (fan::window_t*)glfwGetWindowUserPointer(wnd);
-    auto it = window->m_move_callback.GetNodeFirst();
 
+    auto it = window->m_move_callback.GetNodeFirst();
     while (it != window->m_move_callback.dst) {
       fan::window_t::move_data_t cbd;
       cbd.window = window;
+      cbd.position = fan::vec2i(xpos, ypos);
       window->m_move_callback[it](cbd);
-
       it = it.Next(&window->m_move_callback);
     }
   }
+
 
   void scroll_callback(GLFWwindow* wnd, double xoffset, double yoffset) {
     fan::window_t* window = (fan::window_t*)glfwGetWindowUserPointer(wnd);
@@ -241,10 +242,10 @@ namespace fan::window {
 namespace fan {
 
   void window_t::open(std::uint64_t flags) {
-    fan::window_t::open(default_window_size, default_window_name, flags, mode::windowed);
+    fan::window_t::open(default_window_size, -1, default_window_name, flags, mode::windowed);
   }
 
-  void window_t::open(fan::vec2i window_size, const std::string& name, std::uint64_t flags, int open_mode) {
+  void window_t::open(fan::vec2i window_size, fan::vec2i window_pos, const std::string& name, std::uint64_t flags, int open_mode) {
     this->flags = flags;
     std::fill(key_states, key_states + std::size(key_states), -1);
     std::fill(prev_key_states, prev_key_states + std::size(prev_key_states), -1);
@@ -289,8 +290,23 @@ namespace fan {
     GLFWmonitor* use_mon = nullptr;
 
     if (open_mode == mode::windowed) {
-      x = mx + (mode->width - w) / 2;
-      y = my + (mode->height - h) / 2;
+
+      if (window_pos.x != -1 && window_pos.y != -1) {
+        x = window_pos.x;
+        y = window_pos.y;
+      }
+      else {
+        x = mx + (mode->width - w) / 2;
+        y = my + (mode->height - h) / 2;
+      }
+
+    #if defined(fan_platform_windows)
+      if (y < my + 31) {
+        y = my + 31;
+      }
+    #endif
+      x = std::clamp(x, mx, mx + mode->width - w);
+      y = std::clamp(y, my + 31, my + mode->height - h);
     }
     else if (open_mode == mode::full_screen) {
       x = 0;
@@ -340,8 +356,6 @@ namespace fan {
 
     GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
     fan::vec2 screen_size = fan::vec2(mode->width, mode->height);
-    fan::vec2 window_pos = (screen_size - window_size) / 2;
-    //glfwSetWindowPos(glfw_window, window_pos.x, window_pos.y);
     if (renderer == renderer_t::opengl) {
       glfwMakeContextCurrent(glfw_window);
     }
@@ -354,6 +368,7 @@ namespace fan {
     glfwSetCursorPosCallback(glfw_window, fan::window::mouse_position_callback);
     glfwSetScrollCallback(glfw_window, fan::window::scroll_callback);
     glfwInitHint(GLFW_JOYSTICK_HAT_BUTTONS, GLFW_TRUE);
+    display_mode = open_mode;
   }
 
   void window_t::close() {
@@ -369,7 +384,6 @@ namespace fan {
   }
 
   void window_t::handle_key_states(){
-    std::memcpy(prev_key_states, key_states, sizeof(key_states));
     if (key_states[fan::mouse_scroll_up] == GLFW_PRESS) {
       key_states[fan::mouse_scroll_up] = GLFW_RELEASE;
     }
@@ -454,7 +468,7 @@ namespace fan {
       while (it != m_key_down_callbacks.dst) {
         m_key_down_callbacks.StartSafeNext(it);
 
-        for (int k = fan::key_first; k <= fan::key_last; ++k) {
+        for (int k = fan::key_first; k <= fan::input_last; ++k) {
           int st = key_states[k];
           if (st == fan::keyboard_state::press || st == fan::keyboard_state::repeat) {
             fan::window_t::keys_data_t cbd;
@@ -482,8 +496,10 @@ namespace fan {
         m_delta_time = 1.0 / 256.0;
     }*/
     last_frame_time = current_frame_time;
-    handle_key_states();
+
+    std::memcpy(prev_key_states, key_states, sizeof(key_states));
     glfwPollEvents();
+    handle_key_states();
     return 0;
   }
 
@@ -640,56 +656,124 @@ namespace fan {
   }
 
   void window_t::set_windowed() {
-    glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, true);
+    GLFWmonitor* m = get_current_monitor();
+    const GLFWvidmode* vm = glfwGetVideoMode(m);
 
-    GLFWmonitor* monitor = get_current_monitor();
-    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+    fan::vec2i size = get_size();
 
-    int monitor_x, monitor_y;
-    glfwGetMonitorPos(monitor, &monitor_x, &monitor_y);
+    int mx, my;
+    glfwGetMonitorPos(m, &mx, &my);
 
-    int window_width = mode->width / 2;
-    int window_height = mode->height / 2;
-    int window_x = monitor_x + mode->width / 8;
-    int window_y = monitor_y + mode->height / 8;
+    glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, GLFW_TRUE);
+    glfwPollEvents();
 
-    glfwSetWindowMonitor(glfw_window, NULL, window_x, window_y, window_width, window_height, mode->refreshRate);
-    display_mode = (uint8_t)mode::windowed;
+    int l, top, r, b;
+    glfwGetWindowFrameSize(glfw_window, &l, &top, &r, &b);
+    if (top == 0) top = 31;
+
+    // shrink if too large to fit with title bar
+    size.y = std::min(size.y, vm->height - top);
+    size.x = std::min(size.x, vm->width);
+
+    // center
+    int x = mx + (vm->width - size.x) / 2;
+    int y = my + (vm->height - size.y) / 2;
+
+    x = std::clamp(x, mx, mx + vm->width - size.x);
+    y = std::clamp(y, my + top, my + vm->height - size.y);
+
+    glfwSetWindowMonitor(
+      glfw_window,
+      nullptr,
+      x,
+      y,
+      size.x,
+      size.y,
+      vm->refreshRate
+    );
+
+    display_mode = mode::windowed;
   }
 
-  void window_t::set_fullscreen() {
-    GLFWmonitor* monitor = get_current_monitor();
-    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
-    glfwSetWindowMonitor(glfw_window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
-    display_mode = (uint8_t)mode::full_screen;
-  }
+
+
+
+
 
   void window_t::set_windowed_fullscreen() {
+    if (display_mode == (uint8_t)mode::windowed_fullscreen) {
+      return;
+    }
     GLFWmonitor* monitor = get_current_monitor();
-    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+    const GLFWvidmode* vm = glfwGetVideoMode(monitor);
 
-    int monitor_x, monitor_y;
-    glfwGetMonitorPos(monitor, &monitor_x, &monitor_y);
+    int mx, my;
+    glfwGetMonitorPos(monitor, &mx, &my);
 
-    int work_x, work_y, work_width, work_height;
-    glfwGetMonitorWorkarea(monitor, &work_x, &work_y, &work_width, &work_height);
+    glfwSetWindowMonitor(
+      glfw_window,
+      nullptr,
+      mx,
+      my,
+      vm->width,
+      vm->height,
+      vm->refreshRate
+    );
 
-    glfwSetWindowMonitor(glfw_window, NULL, work_x, work_y, work_width, work_height, mode->refreshRate);
+    glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, GLFW_FALSE);
+
     display_mode = (uint8_t)mode::windowed_fullscreen;
   }
 
-  void window_t::set_borderless() {
+  void window_t::set_fullscreen() {
+    if (display_mode == (uint8_t)mode::full_screen) {
+      return;
+    }
+
     GLFWmonitor* monitor = get_current_monitor();
-    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+    const GLFWvidmode* vm = glfwGetVideoMode(monitor);
 
-    int monitor_x, monitor_y;
-    glfwGetMonitorPos(monitor, &monitor_x, &monitor_y);
+    glfwSetWindowMonitor(
+      glfw_window,
+      monitor,
+      0,
+      0,
+      vm->width,
+      vm->height,
+      vm->refreshRate
+    );
 
-    glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, false);
-    set_position(fan::vec2(monitor_x, monitor_y));
-    set_size(fan::vec2(mode->width, mode->height));
+    glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, GLFW_FALSE);
+
+    display_mode = (uint8_t)mode::full_screen;
+  }
+
+  void window_t::set_borderless() {
+    if (display_mode == (uint8_t)mode::borderless) {
+      return;
+    }
+
+    fan::vec2i size = get_size();
+    fan::vec2 pos = get_position();
+
+    GLFWmonitor* monitor = get_current_monitor();
+    const GLFWvidmode* vm = glfwGetVideoMode(monitor);
+
+    glfwSetWindowMonitor(
+      glfw_window,
+      nullptr,
+      (int)pos.x,
+      (int)pos.y,
+      size.x,
+      size.y,
+      vm->refreshRate
+    );
+
+    glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, GLFW_FALSE);
+
     display_mode = (uint8_t)mode::borderless;
   }
+
 
   void window_t::set_cursor(int flag) {
     glfwSetInputMode(*this, GLFW_CURSOR, flag == 0 ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL);
@@ -741,37 +825,53 @@ namespace fan {
 
   fan::vec2 window_t::get_gamepad_axis(int key) const {
     fan::vec2 axis = 0;
+
     int axes_count;
     const float* axes = glfwGetJoystickAxes(GLFW_JOYSTICK_1, &axes_count);
-    if (axes_count == 0) {
+    if (!axes || axes_count == 0) {
       return axis;
     }
+
+    auto norm_trigger = [](f32_t v) {
+      if (v <= -1.f) {
+        return 0.f;
+      }
+      return (v + 1.f) * 0.5f;
+    };
+
     switch (key) {
-    case fan::gamepad_left_thumb: {
+    case fan::gamepad_left_thumb:
+    {
       if (axes_count > 1) {
-        axis = fan::vec2(axes[0], axes[1]);
+        axis.x = axes[0];
+        axis.y = axes[1];
       }
       break;
     }
-    case fan::gamepad_right_thumb: {
+    case fan::gamepad_right_thumb:
+    {
       if (axes_count > 3) {
-        axis = fan::vec2(axes[2], axes[3]);
+        axis.x = axes[2];
+        axis.y = axes[3];
       }
       break;
     }
-    case fan::gamepad_l2: {
+    case fan::gamepad_l2:
+    {
+      if (axes_count > 4) {
+        axis.x = norm_trigger(axes[4]);
+      }
+      break;
+    }
+    case fan::gamepad_r2:
+    {
       if (axes_count > 5) {
-        axis = fan::vec2(axes[4], axes[5]);
-      }
-      break;
-    }
-    case fan::gamepad_r2: {
-      if (axes_count > 5) {
-        axis = fan::vec2(axes[5], axes[4]);
+        axis.x = norm_trigger(axes[5]);
       }
       break;
     }
     }
+
     return axis;
   }
 }

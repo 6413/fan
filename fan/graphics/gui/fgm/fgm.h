@@ -772,11 +772,11 @@ struct fgm_t {
                    animations_application.play_animation && 
                    current_shape_anim.selected_frames.size()) 
               {
-                shape.start_sprite_sheet_animation();
+                shape.player_sprite_sheet();
               }
 
               if (animations_application.toggle_play_animation && !animations_application.play_animation) {
-                shape.stop_sprite_sheet_animation();
+                shape.stop_sprite_sheet();
               }
             }
           }

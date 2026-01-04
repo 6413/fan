@@ -1,8 +1,9 @@
 struct fly_t : enemy_t<fly_t> {
+  using base_t = enemy_t<fly_t>;
+
   fly_t() = default;
   template<typename container_t>
   fly_t(container_t& bll, typename container_t::nr_t nr, const fan::vec3& position) {
-
     open(bll, nr, "fly.json");
 
     set_initial_position(position);
@@ -17,10 +18,12 @@ struct fly_t : enemy_t<fly_t> {
     body.attack_state.attack_requires_facing_target = false;
     ai_behavior.trigger_distance = {500, 300};
     ai_behavior.closeup_distance = {75, 75};
-    //fan::print(body.get_gravity_scale());
     
     physics_step_nr = fan::physics::add_physics_step_callback([&bll, nr](){
       std::visit([](auto& node){
+        if (node.body.get_health() <= 0) {
+          return;
+        }
         auto& level = pile->get_level();
         fan::vec2 tile_size = pile->renderer.get_tile_size(level.main_map_id) * 2.f;
         fan::vec2 target_pos = pile->player.get_physics_pos();
@@ -46,15 +49,14 @@ struct fly_t : enemy_t<fly_t> {
     }
     const std::string& anim_name = body.get_sprite_sheet_animation().name;
     if (body.get_health() <= 0 && anim_name != "die") {
-      body.set_sprite_sheet_animation("die");
+      body.play_sprite_sheet_once("die");
+      body.anim_controller.auto_update_animations = false;
     }
-    
     if (destroy_this && body.get_health() <= 0 && anim_name == "die" && body.is_animation_finished()) {
-      enemy_t<fly_t>::destroy();
+      base_t::destroy();
       return true;
     }
-
-    return enemy_t<fly_t>::update();
+    return base_t::update();
   }
   void destroy() override {
     destroy_this = true;

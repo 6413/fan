@@ -7,7 +7,7 @@ struct player_t {
     fan::graphics::map_animations(anims);
     body.set_shape(fan::graphics::extract_single_shape(json_data));
     body.set_size(body.get_size() / 2.5);
-    body.start_sprite_sheet_animation();
+    body.player_sprite_sheet();
     
     body.jump_impulse = 3.5;
     body.force = 15;

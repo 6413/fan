@@ -17,10 +17,10 @@ struct car_t {
       body.set_physics_position(initial_position);
     }
     if (!movement_keybinds_prefix.empty()) {
-      fan::graphics::add_input_action(forward, movement_keybinds_prefix + "move_forward");
-      fan::graphics::add_input_action(back, movement_keybinds_prefix + "move_back");
-      fan::graphics::add_input_action(left, movement_keybinds_prefix + "move_left");
-      fan::graphics::add_input_action(right, movement_keybinds_prefix + "move_right");
+      fan::graphics::add_input_action(forward, movement_keybinds_prefix + fan::actions::move_forward);
+      fan::graphics::add_input_action(back, movement_keybinds_prefix + fan::actions::move_back);
+      fan::graphics::add_input_action(left, movement_keybinds_prefix + fan::actions::move_left);
+      fan::graphics::add_input_action(right, movement_keybinds_prefix + fan::actions::move_right);
     }
     body.set_color(color);
 
@@ -81,10 +81,10 @@ struct car_t {
   void handle_movement() {
     f32_t dt = engine.delta_time;
     fan::vec2 input = engine.get_input_vector(
-      movement_keybinds_prefix + "move_forward",
-      movement_keybinds_prefix + "move_back",
-      movement_keybinds_prefix + "move_left",
-      movement_keybinds_prefix + "move_right"
+      movement_keybinds_prefix + fan::actions::move_forward,
+      movement_keybinds_prefix + fan::actions::move_back,
+      movement_keybinds_prefix + fan::actions::move_left,
+      movement_keybinds_prefix + fan::actions::move_right
     );
     // texture points up, so rotate to 0 angle
     fan::basis basis = body.get_basis();

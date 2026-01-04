@@ -10,15 +10,7 @@ module fan.graphics.shapes.types;
 import fan.graphics.shapes;
 
 namespace fan::graphics {
-  context_shader_t::context_shader_t() {}
-  context_shader_t::~context_shader_t() {}
-  context_image_t::context_image_t() {}
-  context_image_t::~context_image_t() {}
-  context_t::context_t() {}
-  context_t::~context_t() {}
-
 #if defined(FAN_2D)
-
   std::uint8_t* A_resize(void* ptr, std::uintptr_t size) {
     if (ptr) {
       if (size) {

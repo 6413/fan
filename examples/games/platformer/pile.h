@@ -31,7 +31,7 @@ struct pile_t {
      if (force_zoom) {
       update_camera_zoom();
     }
-    if (engine.is_key_pressed(fan::key_q)) {
+    if (fan::window::is_key_down(fan::key_left_control) && engine.is_key_pressed(fan::key_q)) {
       force_zoom = !force_zoom;
     }
     if (!pause) {
@@ -70,6 +70,7 @@ struct pile_t {
     engine.orthographic_render_view.viewport
   };
   fan::audio::piece_t audio_background;
+  fan::audio::sound_play_id_t audio_background_play_id;
   player_t player;
   fan::graphics::rectangle_t stage_transition;
 
@@ -145,8 +146,7 @@ pile_t::pile_t() {
   level_stage = stage_loader.open_stage<level_t>();
   gui_stage = stage_loader.open_stage<gui_t>();
   audio_background = fan::audio::piece_t("audio/background.sac");
-  fan::audio::set_volume(0.0f);
-  fan::audio::play(audio_background, 0, true);
+  audio_background_play_id = fan::audio::play(audio_background, 0, true);
 
   frame_update_handle = engine.add_update_callback_front([this] (void* engine) {
     update();

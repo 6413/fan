@@ -68,8 +68,8 @@ import fan.types.fstring;
 export namespace fan::graphics {
 
   struct context_shader_t {
-    context_shader_t();
-    ~context_shader_t();
+    context_shader_t() {}
+    ~context_shader_t() {}
     union {
       fan::opengl::context_t::shader_t gl;
     #if defined(FAN_VULKAN)
@@ -78,8 +78,8 @@ export namespace fan::graphics {
     };
   };
   struct context_image_t {
-    context_image_t();
-    ~context_image_t();
+    context_image_t() {}
+    ~context_image_t() {}
     union {
       fan::opengl::context_t::image_t gl;
     #if defined(FAN_VULKAN)
@@ -88,8 +88,8 @@ export namespace fan::graphics {
     };
   };
   struct context_t {
-    context_t();
-    ~context_t();
+    context_t() {}
+    ~context_t() {}
     union {
       fan::opengl::context_t gl;
     #if defined(FAN_VULKAN)
@@ -418,12 +418,13 @@ export namespace fan::graphics {
       static void sprite_sheet_frame_update_cb(shaper_t& shaper, shape_t* shape);
       // returns currently active sprite sheet animation
       sprite_sheet_animation_t& get_sprite_sheet_animation();
-      void start_sprite_sheet_animation();
-      void stop_sprite_sheet_animation();
+      void player_sprite_sheet();
+      void stop_sprite_sheet();
+      void play_sprite_sheet_once(const std::string& anim_name);
       // overwrites 'ri.current_animation' animation
-      void set_sprite_sheet_animation(const std::string& name);
-      void set_sprite_sheet_animation(const sprite_sheet_animation_t& animation);
-      void add_sprite_sheet_animation(const sprite_sheet_animation_t& animation);
+      void set_sprite_sheet(const std::string& name);
+      void set_sprite_sheet(const sprite_sheet_animation_t& animation);
+      void add_sprite_sheet(const sprite_sheet_animation_t& animation);
       void set_sprite_sheet_frames(uint32_t image_index, int horizontal_frames, int vertical_frames);
       animation_nr_t& get_current_animation_id() const;
       bool animation_on(const std::string& name, int frame_index);

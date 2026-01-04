@@ -214,8 +214,8 @@ namespace fan::graphics::gui {
   bool is_any_item_active() {
     return ImGui::IsAnyItemActive();
   }
-  bool is_item_clicked() {
-    return ImGui::IsItemClicked();
+  bool is_item_clicked(int mouse_button) {
+    return ImGui::IsItemClicked(mouse_button);
   }
   bool is_item_held(int mouse_button) {
     if (ImGui::IsDragDropActive()) {

@@ -35,6 +35,10 @@ module;
 
 module fan.graphics.loco;
 
+#if defined(FAN_PHYSICS_2D)
+  import fan.physics.types;
+#endif
+
 #if defined(FAN_JSON)
 namespace fan {
   std::pair<size_t, size_t> json_stream_parser_t::find_next_json_bounds(std::string_view s, size_t pos) const noexcept {
@@ -634,8 +638,8 @@ void loco_t::generate_commands(loco_t* loco) {
       loco->console.commands.print_invalid_arg_count();
       return;
     }
-    loco->settings_menu.bloom_strength = std::stof(args[0]);
-    loco->shader_set_value(loco->gl.m_fbo_final_shader, "bloom_strength", loco->settings_menu.bloom_strength);
+    loco->settings_menu.config.post_processing.bloom_strength = std::stof(args[0]);
+    loco->shader_set_value(loco->gl.m_fbo_final_shader, "bloom_strength", loco->settings_menu.config.post_processing.bloom_strength);
   }).description = "sets bloom strength for postprocessing shader";
 #endif
   loco->console.commands.add("set_vsync", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
@@ -949,7 +953,11 @@ loco_t::loco_t() : loco_t(loco_t::properties_t()) {
 
 }
 
-loco_t::loco_t(const loco_t::properties_t& p) {
+loco_t::loco_t(const loco_t::properties_t& props) : 
+  open_props(props), 
+  init_gloco([this] { gloco() = this; return true; }()), 
+  settings_menu() 
+{
 
   fan::graphics::engine_init_cbs.Open(); // leak, double open
 
@@ -1012,18 +1020,16 @@ loco_t::loco_t(const loco_t::properties_t& p) {
   if (fan::init_manager_t::initialized() == false) {
     fan::init_manager_t::initialize();
   }
-  render_shapes_top = p.render_shapes_top;
-  window.renderer = p.renderer;
+  render_shapes_top = open_props.render_shapes_top;
+  window.renderer = open_props.renderer;
   if (window.renderer == fan::window_t::renderer_t::opengl) {
     new (&context.gl) fan::opengl::context_t();
     context_functions = fan::graphics::get_gl_context_functions();
     gl.open();
   }
 
-  window.set_antialiasing(p.samples);
-  window.open(p.window_size, fan::window_t::default_window_name, p.window_flags, p.window_open_mode);
-  gloco() = this;
-
+  window.set_antialiasing(open_props.samples);
+  window.open(open_props.window_size, open_props.window_position, fan::window_t::default_window_name, open_props.window_flags, open_props.window_open_mode);
 
 #if FAN_DEBUG >= fan_debug_high && !defined(FAN_VULKAN)
   if (window.renderer == fan::window_t::renderer_t::vulkan) {
@@ -1122,8 +1128,6 @@ loco_t::loco_t(const loco_t::properties_t& p) {
 #if defined(FAN_GUI)
   init_gui();
   generate_commands(this);
-
-  settings_menu.open();
 #endif
 
   setup_input_callbacks();
@@ -1162,6 +1166,7 @@ loco_t::loco_t(const loco_t::properties_t& p) {
 #endif
 
   set_vsync(false); // using libuv
+  settings_menu.init_runtime();
 }
 
 loco_t::~loco_t() {
@@ -1218,17 +1223,21 @@ void loco_t::close() {
 void loco_t::setup_input_callbacks() {
 
 #if defined(FAN_GUI)
-  input_action.add(fan::key_escape, "open_settings");
+  input_action.insert_or_assign({fan::key_escape, fan::gamepad_start}, fan::actions::toggle_settings);
+  input_action.insert_or_assign(fan::key_f3, fan::actions::toggle_console);
 #endif
 
-  input_action.add({fan::key_a}, "move_left");
-  input_action.add({fan::key_d}, "move_right");
-  input_action.add({fan::key_w}, "move_forward");
-  input_action.add({fan::key_s}, "move_back");
-  input_action.add({fan::key_space, fan::key_w, fan::gamepad_a}, "move_up");
+  input_action.insert_or_assign({fan::key_a, fan::gamepad_left_thumb}, fan::actions::move_left);
+  input_action.insert_or_assign({fan::key_d, fan::gamepad_left_thumb}, fan::actions::move_right);
+  input_action.insert_or_assign(fan::key_w, fan::actions::move_forward);
+  input_action.insert_or_assign(fan::key_s, fan::actions::move_back);
+  input_action.insert_or_assign({fan::key_space, fan::key_w}, fan::actions::move_up);
+  input_action.insert_or_assign(fan::gamepad_a, fan::actions::move_up);
+  input_action.insert_or_assign({fan::mouse_left, fan::gamepad_right_bumper}, fan::actions::light_attack);
+  // L1 guard
 
 #if defined(FAN_PHYSICS_2D)
-  input_action.add_keycombo({fan::key_left_control, fan::key_5}, "debug_physics");
+  input_action.insert_or_assign_combo({fan::key_left_control, fan::key_5}, fan::actions::toggle_debug_physics);
 #endif
 
   #if defined(FAN_2D)
@@ -1327,7 +1336,7 @@ void loco_t::switch_renderer(uint8_t renderer) {
       gl.open();
     }
 
-    window.open(window_size, fan::window_t::default_window_name, flags | fan::window_t::flags::hidden);
+    window.open(window_size, open_props.window_position, fan::window_t::default_window_name, flags | fan::window_t::flags::hidden);
     window.set_position(window_position);
     window.set_position(window_position);
     glfwShowWindow(window);
@@ -1578,7 +1587,7 @@ void loco_t::process_gui() {
   text_logger.render();
   gui::end();
 
-  if (fan::window::is_key_pressed(fan::key_f3)) {
+  if (input_action.is_clicked(fan::actions::toggle_console)) {
     render_console = !render_console;
 
     // force focus xd
@@ -1590,7 +1599,9 @@ void loco_t::process_gui() {
   if (render_console) {
     console.render();
   }
-  if (input_action.is_active("open_settings")) {
+  if (!settings_menu.keybind_menu.is_capturing() &&
+    input_action.is_clicked(fan::actions::toggle_settings) &&
+    !settings_menu.keybind_menu.should_suppress_input()) {
     if (render_console) {
       render_console = false;
     }
@@ -1598,6 +1609,7 @@ void loco_t::process_gui() {
       render_settings_menu = !render_settings_menu;
     }
   }
+  settings_menu.update();
   if (render_settings_menu) {
     settings_menu.render();
   }
@@ -2109,12 +2121,12 @@ fan::vec2 loco_t::get_input_vector(
   const std::string& left, const std::string& right
 ) {
   fan::vec2 v(
-    input_action.is_action_down(right) - input_action.is_action_down(left),
-    input_action.is_action_down(back) - input_action.is_action_down(forward)
+    input_action.is_down(right) - input_action.is_down(left),
+    input_action.is_down(back) - input_action.is_down(forward)
   );
-  fan::vec2 v2 = window.get_gamepad_axis(fan::gamepad_left_thumb);
-  if (v2) {
-    return v2.length() > 0 ? v2.normalized() : v2;
+  fan::vec2 v2 = window.get_gamepad_axis(input_action.get_first_gamepad_key(left));
+  if (v2.length() > window.gamepad_axis_deadzone) {
+    return v2;
   }
   return v.length() > 0 ? v.normalized() : v;
 }
