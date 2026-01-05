@@ -1,10 +1,10 @@
 {
   "camera_position": [
-    8100.1513671875,
-    14068.2998046875,
+    9865.97265625,
+    12869.7265625,
     0.0
   ],
-  "camera_zoom": 1.2000000476837158,
+  "camera_zoom": 0.8333333134651184,
   "gravity": [
     0.0,
     3813.3759765625
@@ -4116,6 +4116,23 @@
       "position": [
         8256.0,
         14080.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "size": [
+        64.0,
+        64.0
+      ]
+    },
+    {
+      "id": "checkpoint2",
+      "mesh_property": 1,
+      "physics_shape_data": {
+        "is_sensor": true
+      },
+      "position": [
+        12928.0,
+        7168.0,
         32084.0
       ],
       "shape": "sprite",
