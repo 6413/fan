@@ -40,22 +40,3 @@ namespace fan::graphics {
   }
 #endif
 }
-
-#if defined(FAN_2D)
-
-#define shaper_set_ShapeTypeChange \
-  __builtin_memcpy(new_renderdata, old_renderdata, element_count * fan::graphics::g_shapes->shaper.GetRenderDataSize(sti)); \
-  __builtin_memcpy(new_data, old_data, element_count * fan::graphics::g_shapes->shaper.GetDataSize(sti));
-void fan::graphics::shaper_t::_ShapeTypeChange(
-  ShapeTypeIndex_t sti,
-  KeyPackSize_t keypack_size,
-  uint8_t* keypack,
-  MaxElementPerBlock_t element_count,
-  const void* old_renderdata,
-  const void* old_data,
-  void* new_renderdata,
-  void* new_data
-) {
-  shaper_set_ShapeTypeChange
-}
-#endif

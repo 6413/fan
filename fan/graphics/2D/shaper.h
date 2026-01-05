@@ -5,7 +5,7 @@
 #ifndef shaper_set_MaxShapeTypes
   #define shaper_set_MaxShapeTypes 0x80
 #endif
-//////////
+
 /* in bytes */
 #ifndef shaper_set_MaxKeySize
   #define shaper_set_MaxKeySize 8
@@ -42,13 +42,7 @@
   #define shaper_set_RenderDataOffsetType uint32_t
 #endif
 
-#ifndef shaper_set_fan
-  #define shaper_set_fan 0
-#endif
-
 struct shaper_t{
-  public: /* -------------------------------------------------------------------------------- */
-
   #if shaper_set_MaxShapeTypes <= 0xff
     typedef uint8_t ShapeTypeAmount_t;
   #elif shaper_set_MaxShapeTypes <= 0xffff
@@ -171,10 +165,8 @@ struct shaper_t{
   typedef uint8_t ShapeRenderData_t;
   typedef uint8_t ShapeData_t;
 
-  private: /* ------------------------------------------------------------------------------- */
-
   /* key tree and block manager node reference type */
-  typedef uint16_t ktbmnr_t;
+  typedef uint16_t _ktbmnr_t;
 
   /* block list node reference */
   /*
@@ -184,7 +176,7 @@ struct shaper_t{
   typedef uint16_t _blid_t;
 
   #define BDBT_set_prefix _KeyTree
-  #define BDBT_set_type_node ktbmnr_t
+  #define BDBT_set_type_node _ktbmnr_t
   #define BDBT_set_lcpp
   #ifdef shaper_set_MaxKeySize
     #define BDBT_set_MaxKeySize (shaper_set_MaxKeySize * 8)
@@ -194,16 +186,12 @@ struct shaper_t{
   _KeyTree_t _KeyTree;
   _KeyTree_NodeReference_t _KeyTree_root;
 
-  public: /* -------------------------------------------------------------------------------- */
-
   typedef _KeyTree_BitOrder_t KeyBitOrder_t;
   constexpr static KeyBitOrder_t KeyBitOrderLow = _KeyTree_BitOrderLow;
   constexpr static KeyBitOrder_t KeyBitOrderHigh = _KeyTree_BitOrderHigh;
   constexpr static KeyBitOrder_t KeyBitOrderAny = _KeyTree_BitOrderAny;
 
-  public: /* ------------------------------------------------------------------------------- */
-
-  struct KeyType_t{
+  struct _KeyType_t{
     KeySizeInBytes_t Size;
     KeyBitOrder_t BitOrder;
 
@@ -212,22 +200,13 @@ struct shaper_t{
       return (KeySizeInBits_t)Size * 8;
     }
   };
-  KeyType_t *_KeyTypes;
+  _KeyType_t *_KeyTypes;
   KeyTypeAmount_t KeyTypeAmount;
 
   bool _InformCapacity;
-  #ifndef bcontainer_set_alloc_open
-    #define bcontainer_set_alloc_open(n) std::malloc(n)
-  #endif
-  #ifndef bcontainer_set_alloc_resize
-    #define bcontainer_set_alloc_resize(ptr, n) std::realloc(ptr, n)
-  #endif
-  #ifndef bcontainer_set_alloc_close
-    #define bcontainer_set_alloc_close(ptr) std::free(ptr)
-  #endif
-  #define BLL_set_Clear 1
-  #define BLL_set_nrtra 1
+
   #define BLL_set_prefix BlockList
+  #define BLL_set_nrtra 1
   #define BLL_set_CapacityUpdateInfo \
     auto st = OFFSETLESS(bll, ShapeType_t, BlockList); \
     if(st->shaper->_InformCapacity){ \
@@ -237,13 +216,9 @@ struct shaper_t{
   #define BLL_set_LinkSentinel 0
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_type_node _blid_t
-  #define BLL_set_Usage 1
   #include <BLL/BLL.h>
   using blid_t = BlockList_t::nr_t;
   struct ShapeType_t{
-    ShapeType_t() {
-      std::construct_at(&renderer.gl, gl_t{});
-    }
     /* this will be used from BlockList callbacks with offsetless */
     shaper_t *shaper;
     ShapeTypeAmount_t sti;
@@ -258,147 +233,32 @@ struct shaper_t{
     ShapeRenderDataSize_t RenderDataSize;
     ShapeDataSize_t DataSize;
 
-    #if shaper_set_fan
-    struct gl_t {
-      gl_t() = default;
-      fan::opengl::core::vao_t m_vao;
-      fan::opengl::core::vbo_t m_vbo;
-
-      shape_gl_init_list_t locations;
-      fan::graphics::shader_nr_t shader;
-      bool instanced = true;
-      int vertex_count = 6;
-    };
-    #if defined(FAN_VULKAN)
-    struct vk_t {
-      vk_t() = default;
-      fan::vulkan::context_t::pipeline_t pipeline;
-      fan::vulkan::context_t::ssbo_t shape_data;
-      uint32_t vertex_count = 6;
-    };
-#endif
-    struct renderer_t {
-      enum class type_t {
-        none,
-        gl,
-#if defined(FAN_VULKAN)
-        vk
-#endif
-      };
-
-      type_t type = type_t::gl;
-
-      renderer_t() {}
-
-      renderer_t(const renderer_t& other) {
-        type = other.type;
-        switch (type) {
-        case type_t::gl:
-          new (&gl) gl_t(other.gl);
-          break;
-#if defined(FAN_VULKAN)
-        case type_t::vk:
-          new (&vk) vk_t(other.vk);
-          break;
-#endif
-        case type_t::none:
-          break;
-        }
-      }
-
-      renderer_t& operator=(const renderer_t& other) {
-        if (this == &other) return *this;
-
-        destroy();
-
-        type = other.type;
-        switch (type) {
-        case type_t::gl:
-          new (&gl) gl_t(other.gl);
-          break;
-#if defined(FAN_VULKAN)
-        case type_t::vk:
-          new (&vk) vk_t(other.vk);
-          break;
-#endif
-        case type_t::none:
-          break;
-        }
-
-        return *this;
-      }
-
-      ~renderer_t() {
-        destroy();
-      }
-
-      void destroy() {
-        switch (type) {
-        case type_t::gl:
-          gl.~gl_t();
-          break;
-#if defined(FAN_VULKAN)
-        case type_t::vk:
-          vk.~vk_t();
-          break;
-#endif
-        case type_t::none:
-          break;
-        }
-        type = type_t::none;
-      }
-
-      union {
-        gl_t gl;
-#if defined(FAN_VULKAN)
-        vk_t vk;
-#endif
-      };
-    }renderer;
-
+    #if defined(shaper_set_ExpandInside_ShapeType)
+      shaper_set_ExpandInside_ShapeType
     #endif
-    //fan::vulkan::context_t::descriptor_t<vulkan_buffer_count>
+
     MaxElementPerBlock_t MaxElementPerBlock(){
       return (MaxElementPerBlock_t)MaxElementPerBlock_m1 + 1;
     }
   };
-  #ifndef bcontainer_set_alloc_open
-    #define bcontainer_set_alloc_open(n) std::malloc(n)
-  #endif
-  #ifndef bcontainer_set_alloc_resize
-    #define bcontainer_set_alloc_resize(ptr, n) std::realloc(ptr, n)
-  #endif
-  #ifndef bcontainer_set_alloc_close
-    #define bcontainer_set_alloc_close(ptr) std::free(ptr)
-  #endif
   #define BLL_set_prefix ShapeTypes
   #define BLL_set_Link 0
   #define BLL_set_Recycle 0
   #define BLL_set_IntegerNR 1
-  #define BLL_set_CPP_ConstructDestruct 1
+  #define BLL_set_Usage 1
   #define BLL_set_CPP_Node_ConstructDestruct 1
   #define BLL_set_CPP_CopyAtPointerChange 1
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_NodeDataType ShapeType_t
-  #define BLL_set_Usage 1
   #define BLL_set_type_node ShapeTypeAmount_t
   #include <BLL/BLL.h>
   ShapeTypes_t ShapeTypes;
 
-  #ifndef bcontainer_set_alloc_open
-    #define bcontainer_set_alloc_open(n) std::malloc(n)
-  #endif
-  #ifndef bcontainer_set_alloc_resize
-    #define bcontainer_set_alloc_resize(ptr, n) std::realloc(ptr, n)
-  #endif
-  #ifndef bcontainer_set_alloc_close
-    #define bcontainer_set_alloc_close(ptr) std::free(ptr)
-  #endif
   #define BLL_set_prefix BlockManager
   #define BLL_set_CPP_Node_ConstructDestruct 1
   #define BLL_set_Link 0
   #define BLL_set_AreWeInsideStruct 1
-  #define BLL_set_type_node ktbmnr_t
+  #define BLL_set_type_node _ktbmnr_t
   #define BLL_set_NodeData \
     KeyPackSize_t KeyPackSize; \
     uint8_t *KeyPack; \
@@ -410,56 +270,29 @@ struct shaper_t{
       A_resize(KeyPack, 0); \
     }
   #include <BLL/BLL.h>
+  using bmid_t = BlockManager_t::nr_t;
   BlockManager_t BlockManager;
 
   #pragma pack(push, 1)
     struct shape_t{
       ShapeTypeIndex_t sti;
-      BlockManager_t::nr_t bmid;
-      BlockList_t::nr_t blid;
+      bmid_t bmid;
+      blid_t blid;
       ElementIndexInBlock_t ElementIndex;
     };
   #pragma pack(pop)
 
-  #ifndef bcontainer_set_alloc_open
-    #define bcontainer_set_alloc_open(n) std::malloc(n)
-  #endif
-  #ifndef bcontainer_set_alloc_resize
-    #define bcontainer_set_alloc_resize(ptr, n) std::realloc(ptr, n)
-  #endif
-  #ifndef bcontainer_set_alloc_close
-    #define bcontainer_set_alloc_close(ptr) std::free(ptr)
-  #endif
-  #define BLL_set_Usage 1
   #define BLL_set_prefix ShapeList
   #define BLL_set_Link 0
   #define BLL_set_NodeDataType shape_t
   #define BLL_set_AreWeInsideStruct 1
   // actually it needs to be uint24_t
   #define BLL_set_type_node uint32_t
-  #ifndef bcontainer_set_alloc_open
-    #define bcontainer_set_alloc_open(n) std::malloc(n)
-  #endif
-  #ifndef bcontainer_set_alloc_resize
-    #define bcontainer_set_alloc_resize(ptr, n) std::realloc(ptr, n)
-  #endif
-  #ifndef bcontainer_set_alloc_close
-    #define bcontainer_set_alloc_close(ptr) std::free(ptr)
-  #endif
   #include <BLL/BLL.h>
   ShapeList_t ShapeList;
 
-  #ifndef bcontainer_set_alloc_open
-    #define bcontainer_set_alloc_open(n) std::malloc(n)
-  #endif
-  #ifndef bcontainer_set_alloc_resize
-    #define bcontainer_set_alloc_resize(ptr, n) std::realloc(ptr, n)
-  #endif
-  #ifndef bcontainer_set_alloc_close
-    #define bcontainer_set_alloc_close(ptr) std::free(ptr)
-  #endif
-  #define BLL_set_Clear 1
   #define BLL_set_prefix BlockEditQueue
+  #define BLL_set_Clear 1
   #define BLL_set_Link 1
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_NodeData \
@@ -618,63 +451,7 @@ struct shaper_t{
     );
   }
 
-  public: /* -------------------------------------------------------------------------------- */
-
-  
-  using bmid_t = BlockManager_t::nr_t;
-
-  #if shaper_set_fan
-    fan::graphics::shader_nr_t& GetShader(ShapeTypeIndex_t sti) {
-      auto& d = ShapeTypes[sti];
-      if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
-        return d.renderer.gl.shader;
-      }
-      #if defined(FAN_VULKAN)
-      else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {
-        return d.renderer.vk.pipeline.shader_nr;
-      }
-      #endif
-      fan::throw_error("");
-      static fan::graphics::shader_nr_t doesnt_happen;
-      return doesnt_happen;
-    }
-    fan::opengl::core::vao_t GetVAO(ShapeTypeIndex_t sti) {
-      auto& st = ShapeTypes[sti];
-      if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
-        return st.renderer.gl.m_vao;
-      }
-      fan::throw_error("Unsupported renderer type");
-      fan::opengl::core::vao_t doesnt_happen;
-      return doesnt_happen;
-    }
-    fan::opengl::core::vbo_t GetVBO(ShapeTypeIndex_t sti) {
-      auto& st = ShapeTypes[sti];
-      if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
-        return st.renderer.gl.m_vbo;
-      }
-      fan::throw_error("Unsupported renderer type");
-      fan::opengl::core::vbo_t doesnt_happen;
-      return doesnt_happen;
-    }
-    fan::graphics::shape_gl_init_list_t& GetLocations(ShapeTypeIndex_t sti) {
-      auto& st = ShapeTypes[sti];
-      if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
-        return st.renderer.gl.locations;
-      }
-      fan::throw_error("Unsupported renderer type");
-      __unreachable();
-      static fan::graphics::shape_gl_init_list_t doesnt_happen;
-      return doesnt_happen;
-    }
-    ShapeTypes_NodeData_t& GetShapeTypes(ShapeTypeIndex_t sti) {
-      return ShapeTypes[sti];
-    }
-  #endif
-
   struct ShapeID_t : ShapeList_t::nr_t{
-    
-    ShapeID_t() = default;
-
     ShapeTypeIndex_t sti(shaper_t &shaper){
       return shaper.ShapeList[*this].sti;
     }
@@ -696,8 +473,7 @@ struct shaper_t{
       auto &s = shaper.ShapeList[*this];
       return shaper.GetData(s.sti, s.blid, s.ElementIndex);
     }
-
-    using ShapeList_t::nr_t::nr_t;
+    constexpr ShapeID_t() = default;
     constexpr ShapeID_t(ShapeList_t::nr_t nr) : ShapeList_t::nr_t(nr) {}
   };
 
@@ -741,69 +517,22 @@ struct shaper_t{
   }
 
   struct BlockProperties_t{
-    BlockProperties_t() {
-      std::construct_at(&renderer.gl, gl_t{});
-    }
-    ~BlockProperties_t() {
-#if shaper_set_fan
-      // TODO gloco bad but how else
-      if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
-        std::destroy_at(&renderer.gl);
-      }
-    #if defined(FAN_VULKAN)
-      else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan)  {
-        std::destroy_at(&renderer.vk);
-      }
-    #endif
-#endif
-    }
     MaxElementPerBlock_t MaxElementPerBlock;
     decltype(ShapeType_t::RenderDataSize) RenderDataSize;
     decltype(ShapeType_t::DataSize) DataSize;
 
-    #if shaper_set_fan
-    struct gl_t {
-      gl_t() = default;
-      shape_gl_init_list_t locations;
-      fan::graphics::shader_nr_t shader;
-      bool instanced = true;
-      GLuint draw_mode = GL_TRIANGLES;
-      GLsizei vertex_count = 6;
-    };
-#if defined(FAN_VULKAN)
-    struct vk_t {
-      vk_t() = default;
-      fan::vulkan::context_t::pipeline_t pipeline;
-      fan::vulkan::context_t::ssbo_t shape_data;
-      uint32_t vertex_count = 6;
-    };
-#endif
-    struct renderer_t {
-      renderer_t() {}
-      ~renderer_t() {}
-      union {
-        gl_t gl;
-      #if defined(FAN_VULKAN)
-        vk_t vk;
-      #endif
-      };
-    }renderer;
-
+    #if defined(shaper_set_ExpandInside_BlockProperties)
+      shaper_set_ExpandInside_BlockProperties
     #endif
   };
-
-  static auto& gl_add_shape_type() {
-    static std::function<void(
-      ShapeTypes_NodeData_t&, 
-      const BlockProperties_t&
-    )> f;
-    return f;
-  }
 
   void Open(){
     KeyTypeAmount = 0;
     _KeyTypes = NULL;
+
     _InformCapacity = 1;
+
+    ShapeTypes.Open();
 
     _KeyTree.Open();
     _KeyTree_root = _KeyTree.NewNode();
@@ -811,45 +540,17 @@ struct shaper_t{
     BlockEditQueue.Open();
     ShapeList.Open();
   }
-  void Close() {
-    ShapeTypes_t::nrtra_t traverse;
-    ShapeTypeIndex_t sti;
-    traverse.Open(&ShapeTypes, &sti);
-    while (traverse.Loop(&ShapeTypes, &sti)) {
-      auto& st = ShapeTypes[sti];
-
-    #if shaper_set_fan
-      if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
-        auto& gl = st.renderer.gl;
-        if (!gl.shader.iic()) {
-          fan::graphics::ctx()->shader_erase(fan::graphics::ctx(), gl.shader);
-        }
-        if (gl.m_vao.is_valid()) {
-          gl.m_vao.close(*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx())));
-        }
-        if (gl.m_vbo.is_valid()) {
-          gl.m_vbo.close(*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx())));
-        }
-      }
-    #if defined(FAN_VULKAN)
-      else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {
-        auto& vk = st.renderer.vk;
-        vk.shape_data.m_descriptor.close(fan::graphics::get_vk_context());
-        //vk.shape_data.deallocate(gloco()->context.vk);
-        vk.shape_data.close(fan::graphics::get_vk_context());
-        vk.pipeline.close(fan::graphics::get_vk_context());
-      }
-    #endif
-    #endif
-
-      st.BlockList.Close();
-    }
-    traverse.Close(&ShapeTypes);
-
+  void Close(){
     ShapeList.Close();
     BlockEditQueue.Close();
     BlockManager.Close();
     _KeyTree.Close();
+
+    for(auto &st : ShapeTypes){
+      st.BlockList.Close();
+    }
+    ShapeTypes.Close();
+
     A_resize(_KeyTypes, 0);
   }
 
@@ -857,9 +558,9 @@ struct shaper_t{
     if(KeyTypeIndex >= KeyTypeAmount){
       KeyTypeAmount = KeyTypeIndex;
       KeyTypeAmount++;
-      _KeyTypes = (KeyType_t *)A_resize(
+      _KeyTypes = (_KeyType_t *)A_resize(
         _KeyTypes,
-        (uintptr_t)KeyTypeAmount * sizeof(KeyType_t)
+        (uintptr_t)KeyTypeAmount * sizeof(_KeyType_t)
       );
     }
 
@@ -874,13 +575,15 @@ struct shaper_t{
   void _ShapeTypeChange(
     ShapeTypeIndex_t sti,
     KeyPackSize_t keypack_size,
-    uint8_t* keypack,
+    uint8_t *keypack,
     MaxElementPerBlock_t element_count,
-    const void* old_renderdata,
-    const void* old_data,
-    void* new_renderdata,
-    void* new_data
-  );
+    const void *old_renderdata,
+    const void *old_data,
+    void *new_renderdata,
+    void *new_data
+  ){
+    shaper_set_ShapeTypeChange
+  }
 
   void SetShapeType(
     ShapeTypeIndex_t sti,
@@ -894,9 +597,6 @@ struct shaper_t{
       st.shaper = this;
       st.sti = csti;
       st.BlockList.Open(1);
-      #if FAN_DEBUG >= fan_debug_high
-      st.sti = -1;
-      #endif
     }
 
     auto &st = ShapeTypes[sti];
@@ -1000,70 +700,30 @@ struct shaper_t{
     }
     _InformCapacity = 1;
 
-    st.sti = sti;
     st.MaxElementPerBlock_m1 = bp.MaxElementPerBlock - 1;
     st.RenderDataSize = bp.RenderDataSize;
     st.DataSize = bp.DataSize;
 
-  #if shaper_set_fan
-    if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
-      ShapeType_t::gl_t d;
-      st.renderer.gl = d;
-      shaper_t::gl_add_shape_type()(st, bp);
-    }
-    #if defined(FAN_VULKAN)
-    else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {
-      ShapeType_t::vk_t d;
-      std::construct_at(&st.renderer.vk);
-      auto& bpr = bp.renderer.vk;
-      d.pipeline = bpr.pipeline;
-      d.shape_data = bpr.shape_data;
-      d.vertex_count = bpr.vertex_count;
-      st.renderer.vk = d;
-      //st.renderer.emplace<ShapeType_t::vk_t>();
-    }
-#endif
-  #endif
+    #if defined(shaper_set_ExpandInside_SetShapeType)
+      shaper_set_ExpandInside_SetShapeType
+    #endif
   }
 
   void ProcessBlockEditQueue(){
-    #if shaper_set_fan
-    fan::opengl::context_t &context = *static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()));
+    #if defined(shaper_set_ExpandInside_ProcessBlockEditQueue)
+      shaper_set_ExpandInside_ProcessBlockEditQueue
     #endif
 
     auto beid = BlockEditQueue.GetNodeFirst();
     while(beid != BlockEditQueue.dst){
       auto &be = BlockEditQueue[beid];
       auto &st = ShapeTypes[be.sti];
+      (void)st;
       auto &bu = GetBlockUnique(be.sti, be.blid);
 
-      #if shaper_set_fan
-      if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
-        auto& gl = st.renderer.gl;
-        gl.m_vao.bind(context);
-        fan::opengl::core::edit_glbuffer(
-          context,
-          gl.m_vbo.m_buffer,
-          GetRenderData(be.sti, be.blid, 0) + bu.MinEdit,
-          GetRenderDataOffset(be.sti, be.blid) + bu.MinEdit,
-          bu.MaxEdit - bu.MinEdit,
-          GL_ARRAY_BUFFER
-        );
-      }
-      #if defined(FAN_VULKAN)
-      else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {
-        auto& vk = st.renderer.vk;
-        auto wrote = bu.MaxEdit - bu.MinEdit;
-        for (uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {
-          memcpy(
-            vk.shape_data.data[frame] + (GetRenderDataOffset(be.sti, be.blid) + bu.MinEdit), // data  + offset
-            GetRenderData(be.sti, be.blid, 0) + bu.MinEdit,
-            wrote
-          );
-        }
-        
-      }
-#endif
+
+      #if defined(shaper_set_ExpandInside_ProcessBlockEditQueue_Traverse)
+        shaper_set_ExpandInside_ProcessBlockEditQueue_Traverse
       #endif
 
       bu.clear();
@@ -1084,16 +744,18 @@ struct shaper_t{
     ShapeType_t &st = ShapeTypes[sti];
     BlockUnique_t &bu = GetBlockUnique(sti, blid);
 
-    #if shaper_set_fan
-    bu.MinEdit = std::min(
-      bu.MinEdit,
-      (shaper_set_RenderDataOffsetType)eiib * st.RenderDataSize + byte_start
-    );
-    bu.MaxEdit = std::max(
-      bu.MaxEdit,
-      (shaper_set_RenderDataOffsetType)eiib * st.RenderDataSize + byte_start + byte_count
-    );
-    #endif
+    {
+      shaper_set_RenderDataOffsetType NewMinEdit =
+        (shaper_set_RenderDataOffsetType)eiib * st.RenderDataSize + byte_start;
+      if(NewMinEdit < bu.MinEdit){
+        bu.MinEdit = NewMinEdit;
+      }
+      shaper_set_RenderDataOffsetType NewMaxEdit =
+        (shaper_set_RenderDataOffsetType)eiib * st.RenderDataSize + byte_start + byte_count;
+      if(NewMaxEdit > bu.MaxEdit){
+        bu.MaxEdit = NewMaxEdit;
+      }
+    }
 
     if(!bu.beid.iic()){
       return;
@@ -1115,38 +777,12 @@ struct shaper_t{
 
   void _RenderDataReset(ShapeTypeIndex_t sti){
     auto &st = ShapeTypes[sti];
-    #if shaper_set_fan
+    (void)st;
+
     /* TODO remove all block edit queue stuff */
-    BlockList_t::nrtra_t traverse;
-    BlockList_t::nr_t node_id;
-    traverse.Open(&st.BlockList, &node_id);
-    
-    if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
-      auto& gl = st.renderer.gl;
-      fan::opengl::context_t &context = *static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()));
-      gl.m_vao.bind(context);
-      while(traverse.Loop(&st.BlockList, &node_id)){
-        fan::opengl::core::edit_glbuffer(
-          context,
-          gl.m_vbo.m_buffer,
-          GetRenderData(sti, node_id, 0),
-          GetRenderDataOffset(sti, node_id),
-          st.RenderDataSize * st.MaxElementPerBlock(),
-          GL_ARRAY_BUFFER
-        );
-      }
-    }
-    #if defined(FAN_VULKAN)
-    else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan){
-      auto& vk = st.renderer.vk;
-      while (traverse.Loop(&st.BlockList, &node_id)) {
-        for (uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {
-          memcpy(vk.shape_data.data[frame], GetRenderData(sti, node_id, 0), st.RenderDataSize * st.MaxElementPerBlock());
-        }
-      }
-    }
-    #endif
-    traverse.Close(&st.BlockList);
+
+    #if defined(shaper_set_ExpandInside__RenderDataReset)
+      shaper_set_ExpandInside__RenderDataReset
     #endif
   }
   void _BlockListCapacityChange(
@@ -1155,30 +791,13 @@ struct shaper_t{
     uintptr_t new_capacity
   ){
     auto &st = ShapeTypes[sti];
+    (void)st;
 
-    #if shaper_set_fan
-    if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
-      auto& gl = st.renderer.gl;
-      gl.m_vbo.bind(*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx())));
-      //fan::print(new_capacity * st.RenderDataSize * st.MaxElementPerBlock());
-      fan::opengl::core::write_glbuffer(
-        *static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx())),
-        gl.m_vbo.m_buffer,
-        0,
-        new_capacity * st.RenderDataSize * st.MaxElementPerBlock(),
-        GL_DYNAMIC_DRAW,
-        GL_ARRAY_BUFFER
-      );
-      _RenderDataReset(sti);
-    }
-    else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan){
-      //memcpy(vk.shape_data.data, _GetRenderData(sti, node_id, 0) + GetRenderDataOffset(sti, node_id), st.RenderDataSize * st.MaxElementPerBlock());
-      //vk.shape_data.allocate(gloco()->context.vk, New * st.RenderDataSize * st.MaxElementPerBlock());
-      //vk.shape_data.m_descriptor.update(gloco()->context.vk, 1, 0, 1, 0);
-      //fan::throw_error("");
-      _RenderDataReset(sti);
-    }
+    #if defined(shaper_set_ExpandInside__BlockListCapacityChange)
+      shaper_set_ExpandInside__BlockListCapacityChange
     #endif
+
+    _RenderDataReset(sti);
   }
 
   BlockList_t::nr_t _newblid(
@@ -1219,11 +838,11 @@ struct shaper_t{
   }
 
   void PrepareKeysForAdd(
-      const void *KeyPack,
-      KeyPackSize_t LastKeyOffset
-    ){
-      auto _KeyPack = (KeyData_t *)KeyPack;
-      _kti_SetLastBit(*(KeyTypeIndex_t *)&_KeyPack[LastKeyOffset]);
+    const void *KeyPack,
+    KeyPackSize_t LastKeyOffset
+  ){
+    auto _KeyPack = (KeyData_t *)KeyPack;
+    _kti_SetLastBit(*(KeyTypeIndex_t *)&_KeyPack[LastKeyOffset]);
   }
   ShapeID_t add(
     ShapeTypeIndex_t sti,
@@ -1238,16 +857,11 @@ struct shaper_t{
     BlockManager_NodeData_t *bm;
 
     auto &st = ShapeTypes[sti];
-  #if FAN_DEBUG >= fan_debug_high
-    if (st.sti == (decltype(st.sti))-1) {
-      fan::throw_error("");
-    }
-  #endif
 
     _KeyTree_NodeReference_t nr = _KeyTree_root;
     KeyPackSize_t ikp = 0;
     _KeyTree_KeySize_t bdbt_ki;
-    KeyType_t *kt;
+    _KeyType_t *kt;
     uint8_t step;
 
     /* DEBUG_HINT if this loop goes above KeyPackSize, your KeyPack is bad */
@@ -1348,6 +962,7 @@ struct shaper_t{
     *GetShapeID(sti, bm->LastBlockNR, bm->LastBlockElementCount) = shapeid;
 
     ElementIsFullyEdited(sti, bm->LastBlockNR, bm->LastBlockElementCount);
+
     return shapeid;
   }
 
@@ -1359,13 +974,14 @@ struct shaper_t{
     auto &st = ShapeTypes[sti];
     auto bmid = s.bmid;
     auto &bm = BlockManager[bmid];
+
     auto lsid = *GetShapeID(sti, bm.LastBlockNR, bm.LastBlockElementCount);
     if(sid != lsid){
       ElementIsFullyEdited(sti, s.blid, s.ElementIndex);
     }
 
     auto &ls = ShapeList[lsid];
-    
+
     __builtin_memmove(
       GetRenderData(sti, s.blid, s.ElementIndex),
       GetRenderData(sti, ls.blid, ls.ElementIndex),
@@ -1412,17 +1028,20 @@ struct shaper_t{
     KeySizeInBytes_t ks[shaper_set_MaxKeyAmountInBM * 2];
 
     auto KeyPack = bm.KeyPack;
+
     KeyPackSize_t ikp = 0;
     _KeyIndexInBM_t _kiibm = 0;
+
     {
       auto knr = _KeyTree_root;
-      while (ikp != bm.KeyPackSize) {
-        auto kti = (KeyTypeIndex_t*)&KeyPack[ikp];
+      while(ikp != bm.KeyPackSize){
+        auto kti = (KeyTypeIndex_t *)&KeyPack[ikp];
         knrs[_kiibm] = knr;
         ks[_kiibm++] = sizeof(*kti);
         _KeyTree_ConfidentQuery(&_KeyTree, true, sizeof(*kti) * 8, kti, &knr);
         ikp += sizeof(*kti);
-        auto& kt = _KeyTypes[_kti_GetNormal(*kti)];
+
+        auto &kt = _KeyTypes[_kti_GetNormal(*kti)];
         knrs[_kiibm] = knr;
         ks[_kiibm++] = kt.Size;
         _KeyTree_ConfidentQuery(&_KeyTree, true, kt.sibit(), &KeyPack[ikp], &knr);
@@ -1457,7 +1076,7 @@ struct shaper_t{
     uint8_t State;
     KeyIndexInBM_t kiibm;
     _KeyTree_NodeReference_t knr;
-    KeyType_t *kt;
+    _KeyType_t *kt;
     bool isbm;
 
     KeyTypeIndex_t kd0[shaper_set_MaxKeyAmountInBM];
@@ -1480,7 +1099,7 @@ struct shaper_t{
 
       switch(State){
         case 0:{
-         _KeyTree_TraverseInit(
+          _KeyTree_TraverseInit(
             &tra0[kiibm],
             KeyBitOrderLow,
             tra1[(uintptr_t)kiibm - 1].Output /* tra1 index is underflowable on purpose */
@@ -1548,14 +1167,11 @@ struct shaper_t{
   #pragma pack(pop)
 
   struct BlockTraverse_t{
-    private: /* ----------------------------------------------------------------------------- */
 
     ShapeTypeIndex_t sti;
     BlockList_t::nr_t From;
     BlockList_t::nr_t To;
     ElementIndexInBlock_t LastBlockElementCount;
-
-    public: /* ------------------------------------------------------------------------------ */
 
     ShapeTypeIndex_t Init(shaper_t &shaper, bmid_t bmid){
       auto &bm = shaper.BlockManager[bmid];
@@ -1584,17 +1200,43 @@ struct shaper_t{
     void *GetRenderData(shaper_t &shaper){
       return shaper.GetRenderData(sti, From, 0);
     }
-    BlockList_t::nr_t GetBlockID() {
+    BlockList_t::nr_t GetBlockID(){
       return From;
     }
     void *GetData(shaper_t &shaper){
       return shaper.GetData(sti, From, 0);
     }
   };
+
+  #if defined(shaper_set_ExpandInside)
+    shaper_set_ExpandInside
+  #endif
 };
 
-#undef gloco
-#undef shaper_set_fan
+#ifdef shaper_set_ExpandInside
+  #undef shaper_set_ExpandInside
+#endif
+#ifdef shaper_set_ExpandInside_ShapeType
+  #undef shaper_set_ExpandInside_ShapeType
+#endif
+#ifdef shaper_set_ExpandInside_BlockProperties
+  #undef shaper_set_ExpandInside_BlockProperties
+#endif
+#ifdef shaper_set_ExpandInside_SetShapeType
+  #undef shaper_set_ExpandInside_SetShapeType
+#endif
+#ifdef shaper_set_ExpandInside_ProcessBlockEditQueue
+  #undef shaper_set_ExpandInside_ProcessBlockEditQueue
+#endif
+#ifdef shaper_set_ExpandInside_ProcessBlockEditQueue_Traverse
+  #undef shaper_set_ExpandInside_ProcessBlockEditQueue_Traverse
+#endif
+#ifdef shaper_set_ExpandInside__RenderDataReset
+  #undef shaper_set_ExpandInside__RenderDataReset
+#endif
+#ifdef shaper_set_ExpandInside__BlockListCapacityChange
+  #undef shaper_set_ExpandInside__BlockListCapacityChange
+#endif
 
 #undef shaper_set_RenderDataOffsetType
 #undef shaper_set_MaxShapeDataSize

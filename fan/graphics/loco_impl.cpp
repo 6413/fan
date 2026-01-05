@@ -1231,8 +1231,7 @@ void loco_t::setup_input_callbacks() {
   input_action.insert_or_assign({fan::key_d, fan::gamepad_left_thumb}, fan::actions::move_right);
   input_action.insert_or_assign(fan::key_w, fan::actions::move_forward);
   input_action.insert_or_assign(fan::key_s, fan::actions::move_back);
-  input_action.insert_or_assign({fan::key_space, fan::key_w}, fan::actions::move_up);
-  input_action.insert_or_assign(fan::gamepad_a, fan::actions::move_up);
+  input_action.insert_or_assign({fan::key_space, fan::key_w, fan::gamepad_a}, fan::actions::move_up);
   input_action.insert_or_assign({fan::mouse_left, fan::gamepad_right_bumper}, fan::actions::light_attack);
   // L1 guard
 

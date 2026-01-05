@@ -54,5 +54,7 @@ int main() {
     pile->player.respawn();
   });
 
-  pile->engine.loop();
+  pile->engine.loop([&] {
+
+  });
 }

@@ -81,19 +81,352 @@ export namespace fan::graphics::shaper {
 #define shaper_set_MaxKeySize 2 * 30
 
 #ifndef bcontainer_set_alloc_open
-#define bcontainer_set_alloc_open(n) std::malloc(n)
+  #define bcontainer_set_alloc_open(n) std::malloc(n)
 #endif
 #ifndef bcontainer_set_alloc_resize
-#define bcontainer_set_alloc_resize(ptr, n) std::realloc(ptr, n)
+  #define bcontainer_set_alloc_resize(ptr, n) std::realloc(ptr, n)
 #endif
 #ifndef bcontainer_set_alloc_close
-#define bcontainer_set_alloc_close(ptr) std::free(ptr)
+  #define bcontainer_set_alloc_close(ptr) std::free(ptr)
 #endif
-#include <fan/graphics/2D/shaper.h>
-  // will die if renderer has different sizes of structs
+
+#ifdef FAN_VULKAN
+  #define vulkan_expand(...) __VA_ARGS__
+#else
+  #define vulkan_expand(...)
+#endif
+
+#ifdef FAN_OPENGL
+  #define opengl_expand(...) __VA_ARGS__
+#else
+  #define opengl_expand(...)
+#endif
+
+#define shaper_set_ExpandInside_BlockProperties \
+BlockProperties_t(){\
+  opengl_expand(std::construct_at(&renderer.gl, gl_t{});)\
+}\
+~BlockProperties_t(){\
+  if (0) {}\
+  opengl_expand(\
+    else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {\
+      std::destroy_at(&renderer.gl);\
+    }\
+  )\
+  vulkan_expand(\
+    else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {\
+      std::destroy_at(&renderer.vk);\
+    }\
+  )\
+}\
+\
+opengl_expand(\
+struct gl_t {\
+  gl_t() = default;\
+\
+  shape_gl_init_list_t locations;\
+  fan::graphics::shader_nr_t shader;\
+  bool instanced = true;\
+  GLuint draw_mode = GL_TRIANGLES;\
+  GLsizei vertex_count = 6;\
+};\
+)\
+\
+vulkan_expand(\
+struct vk_t {\
+  vk_t() = default;\
+\
+  fan::vulkan::context_t::pipeline_t pipeline;\
+  fan::vulkan::context_t::ssbo_t shape_data;\
+  uint32_t vertex_count = 6;\
+};\
+)\
+\
+struct renderer_t {\
+  renderer_t(){}\
+  ~renderer_t(){}\
+\
+  union {\
+    opengl_expand(gl_t gl;)\
+    vulkan_expand(vk_t vk;)\
+  };\
+};\
+\
+renderer_t renderer;
+
+#define shaper_set_ExpandInside_ShapeType \
+ShapeType_t(){\
+  opengl_expand(std::construct_at(&renderer.gl, gl_t{});)\
+}\
+\
+opengl_expand(\
+struct gl_t {\
+  gl_t() = default;\
+\
+  fan::opengl::core::vao_t m_vao;\
+  fan::opengl::core::vbo_t m_vbo;\
+  shape_gl_init_list_t locations;\
+  fan::graphics::shader_nr_t shader;\
+  bool instanced = true;\
+  int vertex_count = 6;\
+};\
+)\
+\
+vulkan_expand(\
+struct vk_t {\
+  vk_t() = default;\
+\
+  fan::vulkan::context_t::pipeline_t pipeline;\
+  fan::vulkan::context_t::ssbo_t shape_data;\
+  uint32_t vertex_count = 6;\
+};\
+)\
+\
+struct renderer_t {\
+  enum class type_t {\
+    none,\
+    opengl_expand(gl,)\
+    vulkan_expand(vk)\
+  };\
+\
+  renderer_t(){}\
+  renderer_t(const renderer_t& other){\
+    type = other.type;\
+    switch (type) {\
+    opengl_expand(\
+    case type_t::gl:\
+      new (&gl) gl_t(other.gl);\
+      break;\
+    )\
+    vulkan_expand(\
+    case type_t::vk:\
+      new (&vk) vk_t(other.vk);\
+      break;\
+    )\
+    case type_t::none:\
+      break;\
+    }\
+  }\
+  renderer_t& operator=(const renderer_t& other){\
+    if (this == &other) return *this;\
+    destroy();\
+    type = other.type;\
+    switch (type) {\
+    opengl_expand(\
+    case type_t::gl:\
+      new (&gl) gl_t(other.gl);\
+      break;\
+    )\
+    vulkan_expand(\
+    case type_t::vk:\
+      new (&vk) vk_t(other.vk);\
+      break;\
+    )\
+    case type_t::none:\
+      break;\
+    }\
+    return *this;\
+  }\
+  ~renderer_t(){\
+    destroy();\
+  }\
+  void destroy(){\
+    switch (type) {\
+    opengl_expand(\
+    case type_t::gl:\
+      gl.~gl_t();\
+      break;\
+    )\
+    vulkan_expand(\
+    case type_t::vk:\
+      vk.~vk_t();\
+      break;\
+    )\
+    case type_t::none:\
+      break;\
+    }\
+    type = type_t::none;\
+  }\
+\
+  union {\
+    opengl_expand(gl_t gl;)\
+    vulkan_expand(vk_t vk;)\
+  };\
+\
+  type_t type = opengl_expand(type_t::gl) vulkan_expand(type_t::vk);\
+};\
+\
+renderer_t renderer;
+
 #define shaper_set_ShapeTypeChange \
-			__builtin_memcpy(new_renderdata, old_renderdata, element_count * g_shapes->shaper.GetRenderDataSize(sti)); \
-			__builtin_memcpy(new_data, old_data, element_count * g_shapes->shaper.GetDataSize(sti));
+__builtin_memcpy(new_renderdata, old_renderdata, element_count * GetRenderDataSize(sti));\
+__builtin_memcpy(new_data, old_data, element_count * GetDataSize(sti));
+
+#define shaper_set_ExpandInside_SetShapeType \
+opengl_expand(\
+if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {\
+  ShapeType_t::gl_t d;\
+  st.renderer.gl = d;\
+  shaper_t::gl_add_shape_type()(st, bp);\
+}\
+)\
+vulkan_expand(\
+else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {\
+  ShapeType_t::vk_t d;\
+  std::construct_at(&st.renderer.vk);\
+  auto& bpr = bp.renderer.vk;\
+  d.pipeline = bpr.pipeline;\
+  d.shape_data = bpr.shape_data;\
+  d.vertex_count = bpr.vertex_count;\
+  st.renderer.vk = d;\
+}\
+)
+
+#define shaper_set_ExpandInside_ProcessBlockEditQueue \
+opengl_expand(\
+fan::opengl::context_t &context = *static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()));\
+)
+
+#define shaper_set_ExpandInside_ProcessBlockEditQueue_Traverse \
+opengl_expand(\
+if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {\
+  auto& gl = st.renderer.gl;\
+  gl.m_vao.bind(context);\
+  fan::opengl::core::edit_glbuffer(\
+    context,\
+    gl.m_vbo.m_buffer,\
+    GetRenderData(be.sti, be.blid, 0) + bu.MinEdit,\
+    GetRenderDataOffset(be.sti, be.blid) + bu.MinEdit,\
+    bu.MaxEdit - bu.MinEdit,\
+    GL_ARRAY_BUFFER\
+  );\
+}\
+)\
+vulkan_expand(\
+else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {\
+  auto& vk = st.renderer.vk;\
+  auto wrote = bu.MaxEdit - bu.MinEdit;\
+  for (uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {\
+    memcpy(\
+      vk.shape_data.data[frame] + (GetRenderDataOffset(be.sti, be.blid) + bu.MinEdit),\
+      GetRenderData(be.sti, be.blid, 0) + bu.MinEdit,\
+      wrote\
+    );\
+  }\
+}\
+)
+
+#define shaper_set_ExpandInside__RenderDataReset \
+BlockList_t::nrtra_t traverse;\
+BlockList_t::nr_t node_id;\
+traverse.Open(&st.BlockList, &node_id);\
+\
+opengl_expand(\
+if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {\
+  auto& gl = st.renderer.gl;\
+  fan::opengl::context_t &context = *static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()));\
+  gl.m_vao.bind(context);\
+  while(traverse.Loop(&st.BlockList, &node_id)){\
+    fan::opengl::core::edit_glbuffer(\
+      context,\
+      gl.m_vbo.m_buffer,\
+      GetRenderData(sti, node_id, 0),\
+      GetRenderDataOffset(sti, node_id),\
+      st.RenderDataSize * st.MaxElementPerBlock(),\
+      GL_ARRAY_BUFFER\
+    );\
+  }\
+}\
+)\
+vulkan_expand(\
+else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan){\
+  auto& vk = st.renderer.vk;\
+  while (traverse.Loop(&st.BlockList, &node_id)) {\
+    for (uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {\
+      memcpy(vk.shape_data.data[frame], GetRenderData(sti, node_id, 0), st.RenderDataSize * st.MaxElementPerBlock());\
+    }\
+  }\
+}\
+)\
+traverse.Close(&st.BlockList);
+
+#define shaper_set_ExpandInside__BlockListCapacityChange \
+opengl_expand(\
+if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {\
+  auto& gl = st.renderer.gl;\
+  gl.m_vbo.bind(*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx())));\
+  fan::opengl::core::write_glbuffer(\
+    *static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx())),\
+    gl.m_vbo.m_buffer,\
+    0,\
+    new_capacity * st.RenderDataSize * st.MaxElementPerBlock(),\
+    GL_DYNAMIC_DRAW,\
+    GL_ARRAY_BUFFER\
+  );\
+  _RenderDataReset(sti);\
+}\
+)\
+vulkan_expand(\
+else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan){\
+  _RenderDataReset(sti);\
+}\
+)
+
+#define shaper_set_ExpandInside \
+opengl_expand(\
+fan::graphics::shader_nr_t& GetShader(ShapeTypeIndex_t sti) {\
+  auto& d = ShapeTypes[sti];\
+  if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {\
+    return d.renderer.gl.shader;\
+  }\
+  vulkan_expand(\
+  else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {\
+    return d.renderer.vk.pipeline.shader_nr;\
+  }\
+  )\
+  fan::throw_error("");\
+  static fan::graphics::shader_nr_t doesnt_happen;\
+  return doesnt_happen;\
+}\
+fan::opengl::core::vao_t GetVAO(ShapeTypeIndex_t sti) {\
+  auto& st = ShapeTypes[sti];\
+  if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {\
+    return st.renderer.gl.m_vao;\
+  }\
+  fan::throw_error("Unsupported renderer type");\
+  fan::opengl::core::vao_t doesnt_happen;\
+  return doesnt_happen;\
+}\
+fan::opengl::core::vbo_t GetVBO(ShapeTypeIndex_t sti) {\
+  auto& st = ShapeTypes[sti];\
+  if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {\
+    return st.renderer.gl.m_vbo;\
+  }\
+  fan::throw_error("Unsupported renderer type");\
+  fan::opengl::core::vbo_t doesnt_happen;\
+  return doesnt_happen;\
+}\
+fan::graphics::shape_gl_init_list_t& GetLocations(ShapeTypeIndex_t sti) {\
+  auto& st = ShapeTypes[sti];\
+  if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {\
+    return st.renderer.gl.locations;\
+  }\
+  fan::throw_error("Unsupported renderer type");\
+  __unreachable();\
+  static fan::graphics::shape_gl_init_list_t doesnt_happen;\
+  return doesnt_happen;\
+}\
+ShapeTypes_NodeData_t& GetShapeTypes(ShapeTypeIndex_t sti) {\
+  return ShapeTypes[sti];\
+}\
+)\
+\
+static auto& gl_add_shape_type() {\
+  static std::function<void(ShapeTypes_NodeData_t&, const BlockProperties_t&)> f;\
+  return f;\
+}
+
+#include <fan/graphics/2D/shaper.h>
 }
 
 namespace fan {
