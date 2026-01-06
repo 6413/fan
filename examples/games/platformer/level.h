@@ -19,15 +19,15 @@ static inline constexpr std::array<fan::vec2, 3> get_spike_points(std::string_vi
 }
 
 void load_enemies() {
-  pile->enemy_list.Clear();
+  pile->enemy_list.clear();
   pile->renderer.iterate_marks(main_map_id, [&](tilemap_loader_t::fte_t::spawn_mark_data_t &data) ->bool {
     const auto& id = data.id;
     if (id.contains("enemy_skeleton")) {
-      auto nr = pile->enemy_list.NewNodeLast();
+      auto nr = pile->enemy_list.add();
       pile->enemy_list[nr] = skeleton_t(pile->enemy_list, nr, fan::vec3(fan::vec2(data.position), 5));
     }
     else if (id.contains("enemy_fly")) {
-      auto nr = pile->enemy_list.NewNodeLast();
+      auto nr = pile->enemy_list.add();
       pile->enemy_list[nr] = fly_t(pile->enemy_list, nr, fan::vec3(fan::vec2(data.position), 5));
     }
     else if (id.contains("boss_skeleton")) {
@@ -84,7 +84,7 @@ inline static constexpr fan::color lamp2_color = fan::color::from_rgb(0x114753) 
 inline static constexpr f32_t boss_light_adjustment_y = 30.f;
 
 void start_lights(uint32_t index) {
-  static auto add_light_particles = [this] (level_t* level, uint32_t index) {
+  auto add_light_particles = [this] (level_t* level, uint32_t index) {
     level->boss_torch_particles.emplace_back(torch_particles);
     auto& l = level->boss_torch_particles.back();
     l.start_particles();
@@ -153,7 +153,7 @@ void enter_boss() {
   );
   is_entering_door = false;
   
-  auto nr= pile->enemy_list.NewNodeLast();
+  auto nr = pile->enemy_list.add();
   pile->enemy_list[nr] = boss_skeleton_t(pile->enemy_list, nr, boss_position);
   boss_nr = nr.gint();
   light_lights.resize(lights_boss.size());
@@ -196,22 +196,17 @@ void load_map() {
   axe_anim.set_position(fan::vec2(-0xfffff));
   lamp1_anim.set_position(fan::vec2(-0xfffff));
 
+  checkpoint_system.load_from_map(pile->renderer, main_map_id, [](auto& visual, auto& entity) {
+    checkpoint_flag.set_position(entity.get_position());
+    visual = checkpoint_flag;
+    checkpoint_flag.set_position(fan::vec2(-0xfffff));
+    visual.set_size(checkpoint_flag.get_size() / fan::vec2(1.5f, 1.0f));
+    visual.play_sprite_sheet();
+  });
+
   pile->renderer.iterate_physics_entities(main_map_id, [&](auto& data, auto& entity_visual) -> bool {
     const auto& id = data.id;
-    if (id.contains("checkpoint")) {
-      int checkpoint_idx = std::stoi(id.substr(std::strlen("checkpoint")));
-      if (player_checkpoints.size() <= checkpoint_idx) {
-        player_checkpoints.resize(checkpoint_idx + 1);
-      }
-      auto& chkp = player_checkpoints[checkpoint_idx];
-      checkpoint_flag.set_position(fan::vec3(entity_visual.get_position()));
-      chkp.visual = checkpoint_flag;
-      checkpoint_flag.set_position(fan::vec2(-0xfffff));
-      chkp.visual.set_size(checkpoint_flag.get_size() / fan::vec2(1.5f, 1.0f));
-      chkp.visual.player_sprite_sheet();
-      chkp.entity = entity_visual;
-    }
-    else if (id.contains("sensor_enter_boss")) {
+    if (id.contains("sensor_enter_boss")) {
       boss_sensor = entity_visual;
     }
     else if (id.contains("boss_door_collision")) {
@@ -398,10 +393,119 @@ void open(void* sod) {
   load_map();
   pile->engine.lighting.set_target(0, 0);
   is_entering_door = false;
+
+  physics_step_nr = fan::physics::add_physics_step_callback([this]() {
+
+    auto keys = pile->engine.input_action.get_all_keys(actions::interact);
+
+    std::string enter_text = "Press '";
+    for (int i = 0; i < keys.size(); i++) {
+      enter_text += fan::get_key_name(keys[i]);
+      if (i + 1 < keys.size()) {
+        enter_text += " / ";
+      }
+    }
+
+    enter_text += "' to enter";
+    fan::vec2 text_size = fan::graphics::gui::get_text_size(enter_text);
+
+    if (boss_sensor &&
+      fan::physics::is_on_sensor(pile->player.body, boss_sensor)
+      ) {
+      if (fan::window::is_input_action_active(actions::interact)) {
+        pile->renderer.erase_physics_entity(main_map_id, "boss_door_collision");
+        boss_sensor.destroy();
+        is_entering_door = true;
+        //boss_door_particles.stop_particles();
+      }
+      else {
+        fan::vec2 window_size = fan::graphics::gui::get_window_size();
+        if (auto hud = fan::graphics::gui::hud("Interact hud")) {
+          fan::graphics::gui::text_box_at(enter_text, fan::vec2(window_size.x / 2.f - text_size.x / 2.f, window_size.y * 0.85f));
+        }
+      }
+    }
+
+    for (auto it = pickupables.begin(); it != pickupables.end(); ) {
+      auto& sensor = it->second;
+      if (fan::physics::is_on_sensor(pile->player.body, sensor)) {
+        if (handle_pickupable(it->first, pile->player)) {
+          fan::vec2 pos = sensor.get_position();
+
+          // global tracking, to avoid pickupable reload after dying
+          collected_pickupables.insert(pos);
+
+          pile->renderer.remove_visual(
+            pile->get_level().main_map_id,
+            it->first,
+            pos
+          );
+          auto found = dropped_pickupables.find(pos);
+          if (found != dropped_pickupables.end()) {
+            dropped_pickupables.erase(found);
+          }
+
+          sensor.destroy();
+
+          it = pickupables.erase(it);
+          break;
+        }
+        else {
+          ++it;
+        }
+      }
+      else {
+        ++it;
+      }
+    }
+
+    for (auto& spike : spike_sensors) {
+      if (fan::physics::is_on_sensor(pile->player.body, spike)) {
+        pile->player.respawn();
+        load_enemies();
+      }
+      for (auto& enemy : pile->enemies()) {//
+        if (fan::physics::is_on_sensor(enemy.get_body(), spike)) {//
+          enemy.destroy();
+        }
+        enemy.get_body().update_dynamic();
+      }
+    }
+
+    if (fan::physics::is_on_sensor(pile->player.body, portal_sensor)) {
+      if (fan::window::is_input_action_active(actions::interact)) {
+        static fan::auto_color_transition_t close_anim;
+        pile->stage_transition = fan::graphics::rectangle_t(
+          pile->player.body.get_position().offset_z(1),
+          fan::graphics::gui::get_window_size(),
+          fan::colors::black.set_alpha(0)
+        );
+        close_anim.on_end = [this] {
+          pile->stage_transition.remove();
+          pile->stage_loader.erase_stage(this->stage_common.stage_id);
+          pile->level_stage.sic();
+        };
+        close_anim.start_once(
+          fan::colors::black.set_alpha(0),
+          fan::colors::black,
+          1.f,
+          [](fan::color c) {
+          pile->stage_transition.set_color(c);
+        }
+        );
+      }
+      else {
+        fan::vec2 window_size = fan::graphics::gui::get_window_size();
+        if (auto hud = fan::graphics::gui::hud("Interact hud")) {
+          fan::graphics::gui::text_box_at(enter_text, fan::vec2(window_size.x / 2.f - text_size.x / 2.f, window_size.y * 0.85f));
+        }
+      }
+    }
+  });
 }
 
 void close() {
-  pile->enemy_list.Clear();
+  pile->enemy_list.clear();
   cage_elevator.destroy();
   if (boss_door_collision) {
     boss_door_collision.destroy();
@@ -409,7 +513,7 @@ void close() {
   for (auto& i : pickupables) {
     i.second.destroy();
   }
-  player_checkpoints.clear();
+  checkpoint_system.clear();
   for (auto& i : tile_collisions) {
     i.destroy();
   }
@@ -459,112 +563,6 @@ void update() {
     //pile->engine.lighting.set_target(fan::color(pixels.data(), pixels.data() + ch) / 5.f + 0.7, 0.1);
   }
 
-  for (auto it = pickupables.begin(); it != pickupables.end(); ) {
-    auto& sensor = it->second;
-    if (fan::physics::is_on_sensor(pile->player.body, sensor)) {
-      if (handle_pickupable(it->first, pile->player)) {
-        fan::vec2 pos = sensor.get_position();
-
-        // global tracking, to avoid pickupable reload after dying
-        collected_pickupables.insert(pos);
-
-        pile->renderer.remove_visual(
-          pile->get_level().main_map_id,
-          it->first,
-          pos
-        );
-        auto found = dropped_pickupables.find(pos);
-        if (found != dropped_pickupables.end()) {
-          dropped_pickupables.erase(found);
-        }
-
-        sensor.destroy();
-
-        it = pickupables.erase(it);
-        break;
-      }
-      else {
-        ++it;
-      }
-    }
-    else {
-      ++it;
-    }
-  }
-
-  for (auto& spike : spike_sensors) {
-    if (fan::physics::is_on_sensor(pile->player.body, spike)) {
-      pile->player.respawn();
-      load_enemies();
-    }
-    for (auto enemy : pile->enemies()) {
-      if (fan::physics::is_on_sensor(enemy.get_body(), spike)) {
-        enemy.destroy();
-      }
-      enemy.get_body().update_dynamic();
-    }
-  }
-
-  auto keys = pile->engine.input_action.get_all_keys(actions::interact);
-
-  std::string enter_text = "Press ";
-  for (int i = 0; i < keys.size(); i++) {
-    enter_text += fan::get_key_name(keys[i]);
-    if (i + 1 < keys.size()) {
-      enter_text += " / ";
-    }
-  }
-
-  enter_text += " to enter";
-  fan::vec2 text_size = fan::graphics::gui::get_text_size(enter_text);
-
-  if (boss_sensor && 
-    fan::physics::is_on_sensor(pile->player.body, boss_sensor)
-  )
-  {
-    if (fan::window::is_input_action_active(actions::interact)) {
-      pile->renderer.erase_physics_entity(main_map_id, "boss_door_collision");
-      boss_sensor.destroy();
-      is_entering_door = true;
-      //boss_door_particles.stop_particles();
-    }
-    else {
-      fan::vec2 window_size = fan::graphics::gui::get_window_size();
-      if (auto hud = fan::graphics::gui::hud("Interact hud")) {
-        fan::graphics::gui::text_box_at(enter_text, fan::vec2(window_size.x / 2.f - text_size.x / 2.f, window_size.y * 0.85f));
-      }
-    }
-  }
-  if (fan::physics::is_on_sensor(pile->player.body, portal_sensor)) {
-    if (fan::window::is_input_action_active(actions::interact)) {
-      static fan::auto_color_transition_t close_anim;
-      pile->stage_transition = fan::graphics::rectangle_t(
-        pile->player.body.get_position().offset_z(1),
-        fan::graphics::gui::get_window_size(),
-        fan::colors::black.set_alpha(0)
-      );
-      close_anim.on_end = [this] {
-        pile->stage_transition.remove();
-        pile->stage_loader.erase_stage(this->stage_common.stage_id);
-        pile->level_stage.sic();
-      };
-      close_anim.start_once(
-        fan::colors::black.set_alpha(0),
-        fan::colors::black,
-        1.f,
-        [] (fan::color c) {
-          pile->stage_transition.set_color(c);
-        }
-      );
-    }
-    else {
-      fan::vec2 window_size = fan::graphics::gui::get_window_size();
-      if (auto hud = fan::graphics::gui::hud("Interact hud")) {
-        fan::graphics::gui::text_box_at(enter_text, fan::vec2(window_size.x / 2.f - text_size.x / 2.f, window_size.y * 0.85f));
-      }
-    }
-  }
-
   if (!pile->engine.render_console) {
     if (pile->engine.input_action.is_clicked(fan::actions::toggle_settings)) {
       pile->pause = !pile->pause;
@@ -605,7 +603,7 @@ struct checkpoint_t {
   fan::physics::entity_t entity;
 };
 
-std::vector<checkpoint_t> player_checkpoints;
+fan::graphics::gameplay::checkpoint_system_t checkpoint_system;
 
 std::vector<fan::graphics::sprite_t> lamp_sprites;
 std::vector<fan::graphics::light_t> lights, lights_boss, static_lights;
@@ -623,12 +621,12 @@ fan::audio::piece_t
   audio_pickup_item{"audio/pickup.sac"},
   audio_elevator_chain{"audio/chain.sac"},
   audio_skeleton_lord{"audio/skeleton_lord_music.sac"}
-  ;
+;
 
 fan::audio::sound_play_id_t 
   audio_elevator_chain_id,
   audio_skeleton_lord_id
-  ;
+;
 
 fan::graphics::physics::elevator_t cage_elevator;
 fan::graphics::sprite_t cage_elevator_chain;
@@ -639,6 +637,7 @@ fan::graphics::sprite_t portal_sprite;
 fan::graphics::shape_t portal_particles;
 fan::auto_color_transition_t portal_light_flicker;
 fan::physics::entity_t portal_sensor;
+fan::physics::step_callback_nr_t physics_step_nr;
 inline static std::unordered_set<fan::vec2i> collected_pickupables;
 
 bool is_entering_door = false;

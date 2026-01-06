@@ -958,9 +958,6 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   init_gloco([this] { gloco() = this; return true; }()), 
   settings_menu() 
 {
-
-  fan::graphics::engine_init_cbs.Open(); // leak, double open
-
   auto& ctx = fan::graphics::ctx();
 
   // init globals
@@ -1132,13 +1129,6 @@ loco_t::loco_t(const loco_t::properties_t& props) :
 
   setup_input_callbacks();
 
-  auto it = fan::graphics::engine_init_cbs.GetNodeFirst();
-  while (it != fan::graphics::engine_init_cbs.dst) {
-    fan::graphics::engine_init_cbs.StartSafeNext(it);
-    fan::graphics::engine_init_cbs[it](this);
-    it = fan::graphics::engine_init_cbs.EndSafeNext();
-  }
-
 #if defined(FAN_AUDIO)
 
   if (system_audio.Open() != 0) {
@@ -1167,6 +1157,14 @@ loco_t::loco_t(const loco_t::properties_t& props) :
 
   set_vsync(false); // using libuv
   settings_menu.init_runtime();
+
+  
+  auto it = fan::graphics::get_engine_init_cbs().GetNodeFirst();
+  while (it != fan::graphics::get_engine_init_cbs().dst) {
+    fan::graphics::get_engine_init_cbs().StartSafeNext(it);
+    fan::graphics::get_engine_init_cbs()[it](this);
+    it = fan::graphics::get_engine_init_cbs().EndSafeNext();
+  }
 }
 
 loco_t::~loco_t() {

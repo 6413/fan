@@ -4,7 +4,7 @@ struct fly_t : enemy_t<fly_t> {
   fly_t() = default;
   template<typename container_t>
   fly_t(container_t& bll, typename container_t::nr_t nr, const fan::vec3& position) {
-    open(bll, nr, "fly.json");
+    open(&bll, nr, "fly.json");
 
     set_initial_position(position);
     body.set_jump_height(body.get_jump_height() / 10.f);
@@ -12,15 +12,16 @@ struct fly_t : enemy_t<fly_t> {
     body.set_health(body.get_max_health());
     body.attack_state.cooldown_duration = 1.0e9;
     body.attack_state.cooldown_timer = fan::time::timer{body.attack_state.cooldown_duration, true};
-    body.attack_state.knockback_force = 100.f;
+    body.attack_state.knockback_force = 600.f;
     body.set_gravity_scale(0);
     body.attack_state.attack_range = {80, 25};
     body.attack_state.attack_requires_facing_target = false;
+    body.attack_state.damage = 0;
     ai_behavior.trigger_distance = {500, 300};
     ai_behavior.closeup_distance = {75, 75};
     
-    physics_step_nr = fan::physics::add_physics_step_callback([&bll, nr](){
-      std::visit([](auto& node){
+    physics_step_nr = fan::physics::add_physics_step_callback([b = &bll, nr](){
+      std::visit([nr](auto& node){
         if (node.body.get_health() <= 0) {
           return;
         }
@@ -38,13 +39,15 @@ struct fly_t : enemy_t<fly_t> {
         else  {
           node.ai_behavior.enable_ai_patrol({node.initial_position - fan::vec2(400, 0), node.initial_position + fan::vec2(400, 0)});
         }
-      }, bll[nr]);
+      }, (*b)[nr]);
     });
   }
   bool update() override {
     fan::vec2 distance = body.get_position() - pile->player.body.get_position();
     if (body.attack_state.try_attack(&pile->player.body, distance)) {
-      pile->player.body.apply_linear_impulse_center(fan::vec2(-distance.normalized().x * body.attack_state.knockback_force, -body.attack_state.knockback_force / 5.f));
+      pile->player.body.take_hit(&body, -distance.normalized());
+      //pile->player.body.apply_linear_impulse_center(fan::vec2(-distance.normalized().x * body.attack_state.knockback_force, -
+// body.attack_state.knockback_force / 5.f));
       body.attack_state.end_attack();
     }
     const std::string& anim_name = body.get_sprite_sheet_animation().name;

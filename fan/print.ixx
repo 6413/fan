@@ -229,27 +229,42 @@ export namespace fan {
     return os;
   }
 
-  template <int throttle_ms = 1000>
-  void print_throttled(const auto&... args) {
-    static std::unordered_map<std::string, std::chrono::steady_clock::time_point> last_print_time;
-    static std::unordered_map<std::string, int> count_map;
+  template <int throttle_ms = 1000, typename... Args>
+  void print_throttled(const Args&... args) {
+    static std::unordered_map<std::string, fan::time::timer> timers;
+    static std::unordered_map<std::string, int> total_count;
+    static std::unordered_map<std::string, int> delta_count;
 
     std::ostringstream oss;
     oss << fan::format_args(args...);
     std::string key = oss.str();
 
-    auto now = std::chrono::steady_clock::now();
-    count_map[key]++;
+    total_count[key]++;
+    delta_count[key]++;
 
-    if (last_print_time.find(key) == last_print_time.end() ||
-      std::chrono::duration_cast<std::chrono::milliseconds>(now - last_print_time[key]).count() >= throttle_ms) {
+    auto& t = timers[key];
 
-      std::cout << key << " (" << count_map[key] << " times)" << std::endl;
-      last_print_time[key] = now;
+    if (!t.started()) {
+      t.start_millis(throttle_ms);
+      return;
+    }
+
+    if (t.finished()) {
+      std::cout << key
+        << " (" << delta_count[key] << " since last, "
+        << total_count[key] << " total)"
+        << std::endl;
+      fan::printr(
+        key + " (" + 
+        std::to_string(delta_count[key]) + " since last, " + 
+        std::to_string(total_count[key]) + " total)" + '\n'
+      );
+
+      delta_count[key] = 0;
+      t.start_millis(throttle_ms);
     }
   }
 
-  template <bool print_count = true>
   void print_once(const auto&... args) {
     static std::unordered_map<std::string, std::string> last_value;
     static std::unordered_map<std::string, int> count_map;
@@ -265,15 +280,9 @@ export namespace fan {
 
     if (last != key) {
       last = key;
-
-      if constexpr (print_count) {
-        std::cout << key << " (" << count << " times)" << std::endl;
-      } else {
-        std::cout << key << std::endl;
-      }
+      std::cout << key << std::endl;
     }
   }
-
 
   namespace debug {
 

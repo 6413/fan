@@ -486,6 +486,10 @@ export namespace fan {
         jump_state_t jump_state;
         fan::vec2 last_direction = 0;
         fan::vec2 desired_facing = {1, 0};
+        fan::vec2 knockback_initial_velocity = 0;
+        int knockback_ticks_remaining = 0;
+        f32_t knockback_duration = 0.1f;
+        bool is_in_knockback = false;
         bool ignore_input = false;
         bool enabled = false;
         bool check_gui = true;
@@ -657,6 +661,7 @@ export namespace fan {
         wall_jump_t wall_jump;
         movement_callback_handle_t movement_cb_handle;
         fan::physics::body_id_t feet[2];
+        int combat_frame = 0;
       };
 
       struct attack_hitbox_t {
@@ -671,11 +676,15 @@ export namespace fan {
         };
         struct hitbox_instance_t {
           fan::physics::entity_t hitbox;
-          bool spawned = false;
+          int spawn_frame = -1;
+          int destroy_frame = -1;
           bool used = false;
+          bool pending_destroy = false;
         };
+
         void setup(const hitbox_config_t& cfg);
         void update(character2d_t* character);
+        void process_destruction();
         void spawn_hitbox(character2d_t* character, int index);
         bool spawned() const;
         bool check_hit(character2d_t* character, int index, character2d_t* target);
@@ -754,6 +763,45 @@ export namespace fan {
           return false;
         }
       };
+      // --------------------------------------------------------------------------------
+
+      struct character_movement_preset_t {
+        static constexpr f32_t default_jump_height = 60.f;
+        static constexpr f32_t default_knockback = 20.f;
+
+        static void setup_default_controls(fan::graphics::physics::character2d_t& body) {
+          body.enable_default_movement();
+          body.set_jump_height(default_jump_height);
+          body.enable_double_jump();
+          body.sync_visual_angle(false);
+        }
+      };
+      struct combat_controller_t {
+        fan::graphics::physics::attack_hitbox_t hitbox;
+        bool did_attack = false;
+        f32_t damage = 10.f;
+
+        void setup_attack(fan::graphics::physics::character2d_t& body, const std::string& anim_name, int hit_frame) {
+          hitbox.setup({
+            .spawns = {{.frame = hit_frame}},
+            .attack_animation = anim_name,
+            .track_hit_targets = true
+            });
+        }
+
+        template <typename enemies_t>
+        void handle_attack(fan::graphics::physics::character2d_t& body, enemies_t& enemies) {
+          for (auto& enemy : enemies) {
+            if (!hitbox.check_hit(&body, 0, &enemy.get_body())) continue;
+            if (enemy.on_hit(&body, (enemy.get_body().get_position() - body.get_position()).normalized())) {
+              break;
+            }
+          }
+          hitbox.update(&body);
+        }
+      };
+
+      // -----------------------------------bone stuff-----------------------------------
 
       struct bone_e {
         enum {

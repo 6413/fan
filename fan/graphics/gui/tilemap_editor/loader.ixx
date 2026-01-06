@@ -276,9 +276,10 @@ public:
     auto& marks = node.compiled_map->spawn_marks;
 
     for (auto& mark : marks) {
-      if (mark.id == type_id) {
-        return mark.position;
+      if (type_id.size() && mark.id != type_id) {
+        continue;
       }
+      return mark.position;
     }
 
     fan::throw_error("spawn position not found: " + type_id);

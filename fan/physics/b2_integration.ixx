@@ -390,6 +390,7 @@ export namespace fan {
     );
 
     void b2_to_fan_vertices(
+      const b2Transform& xf,
       const b2Vec2* b2_vertices,
       int vertex_count,
       std::vector<fan::vec2>& out

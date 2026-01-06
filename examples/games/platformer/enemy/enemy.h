@@ -20,35 +20,21 @@ struct enemy_t : enemy_base_t {
   fan::vec2 closeup_distance = {150, 100};
   //TODO use collision mask for player and entities
   std::vector<int> attack_hitbox_frames;
-  f32_t density = 1.f;
+  f32_t density = 100.f;
 
   enemy_t() {}
-  enemy_t(const enemy_t& other) 
-    : draw_offset(other.draw_offset),
-    aabb_scale(other.aabb_scale),
-    trigger_distance(other.trigger_distance),
-    closeup_distance(other.closeup_distance),
-    attack_hitbox_frames(other.attack_hitbox_frames),
-    density(other.density),
-    body(other.body),
-    attack_hitbox(other.attack_hitbox),
-    ai_behavior(other.ai_behavior),
-    navigation(other.navigation),
-    physics_step_nr(other.physics_step_nr),
-    initial_position(other.initial_position),
-    audio_attack(other.audio_attack),
-    audio_player_hits_enemy(other.audio_player_hits_enemy)
-  {
-    body.set_draw_offset(draw_offset);
+  ~enemy_t() {
+    attack_hitbox.cleanup(&body);
   }
+
   template<typename container_t>
-  void open(container_t& bll, typename container_t::nr_t nr, const std::string& path, const std::source_location& caller_path = std::source_location::current()) {
+  void open(container_t* bll, typename container_t::nr_t nr, const std::string& path, const std::source_location& caller_path = std::source_location::current()) {
 
     body = fan::graphics::physics::character2d_t::from_json({
       .json_path = path,
       .aabb_scale = aabb_scale,
-      .attack_cb = [&bll, nr](auto& c){ 
-        return std::visit([&c](auto& e) { return e.should_attack(c); }, bll[nr]); 
+      .attack_cb = [bll, nr](auto& c){ 
+        return std::visit([&c](auto& e) { return e.should_attack(c); }, (*bll)[nr]); 
       },
       .physics_properties={.density=density, .fixed_rotation=true, .linear_damping=2.0f}
     }, caller_path);
@@ -89,7 +75,7 @@ struct enemy_t : enemy_base_t {
 
     body.setup_attack_properties({
       .damage = 10.f,
-      .knockback_force = 10.f,
+      .knockback_force = 5.f,
       .attack_range = {closeup_distance.x, body.attack_state.attack_range.y},
       .cooldown_duration = 2.0e9,
       .cooldown_timer = fan::time::timer(body.attack_state.cooldown_duration, true),
@@ -101,17 +87,19 @@ struct enemy_t : enemy_base_t {
 
     navigation.auto_jump_obstacles = true;
     navigation.jump_lookahead_tiles = 1.5f;
-    navigation.on_check_obstacle = [&bll, nr](const fan::vec2& check_pos){
-      return std::visit([&check_pos](auto& e) { return e.is_spike_at(check_pos); }, bll[nr]);
+    navigation.on_check_obstacle = [bll, nr](const fan::vec2& check_pos){
+      return false;
+      //return std::visit([&check_pos](auto& e) { return e.is_spike_at(check_pos); }, (*bll)[nr]);
     };
-    physics_step_nr = fan::physics::add_physics_step_callback([&bll, nr](){
-      auto& level = pile->get_level();
-      fan::vec2 tile_size = pile->renderer.get_tile_size(level.main_map_id) * 2.f;
-      fan::vec2 target_pos = pile->player.get_physics_pos();
-      std::visit([&](auto& node){
+    physics_step_nr = fan::physics::add_physics_step_callback([bll, nr](){
+      std::visit([](auto& node){
         if (node.body.get_health() <= 0) {
           return;
         }
+        node.attack_hitbox.update(&node.body);
+        auto& level = pile->get_level();
+        fan::vec2 tile_size = pile->renderer.get_tile_size(level.main_map_id) * 2.f;
+        fan::vec2 target_pos = pile->player.get_physics_pos();
         node.ai_behavior.update_ai(&node.body, node.navigation, target_pos, tile_size);
         fan::vec2 distance = node.ai_behavior.get_target_distance(node.body.get_physics_position());
         if (!((std::abs(distance.x) < node.trigger_distance.x && std::abs(distance.y) < node.trigger_distance.y))) {
@@ -123,9 +111,8 @@ struct enemy_t : enemy_base_t {
         else {
           node.ai_behavior.enable_ai_patrol({node.initial_position - fan::vec2(400, 0), node.initial_position + fan::vec2(400, 0)});
         }
-      }, bll[nr]);
+      }, (*bll)[nr]);
     });
-    
   }
   bool should_attack(fan::graphics::physics::character2d_t& c) override {
     fan::vec2 distance = ai_behavior.get_target_distance(c.get_physics_position());
@@ -139,8 +126,8 @@ struct enemy_t : enemy_base_t {
         }
       }
     }
+    attack_hitbox.process_destruction();
     if (body.get_health() > 0) {
-      attack_hitbox.update(&body);
       body.update_animations();
     }
     render_health();
@@ -166,9 +153,9 @@ struct enemy_t : enemy_base_t {
     }
   }
   void destroy() override {
-    for (auto [it, enemy] : fan::enumerate(pile->enemy_list)) {
-      if (std::visit([this](auto& e) { return e.body.NRI == body.NRI; }, enemy)) {
-        pile->enemy_list.unlrec(it);
+    for (auto [nr, enemy] : fan::enumerate(pile->enemies())) {
+      if (enemy.get_body().NRI == body.NRI) {
+        pile->enemy_list.remove(nr);
         break;
       }
     }

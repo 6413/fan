@@ -45,11 +45,7 @@ struct pile_t {
       ic.camera_offset = target_pos;
     }
     if (!pause) {
-      for (auto enemy : enemies()) {
-        if (enemy.update()) {
-          break;
-        }
-      }
+      enemy_list.update();
     }
 
     //fan::graphics::gui::text(fan::graphics::screen_to_world(fan::window::get_mouse_position()));
@@ -74,64 +70,14 @@ struct pile_t {
   player_t player;
   fan::graphics::rectangle_t stage_transition;
 
-  using enemy_list_t = std::variant<skeleton_t, fly_t, boss_skeleton_t>;
-
-  #define bcontainer_set_StoreFormat 1
-  #define BLL_set_Usage 1
-  #define BLL_set_SafeNext 1
-  #define BLL_set_prefix enemies
-  #include <fan/fan_bll_preset.h>
-  #define BLL_set_Link 1
-  #define BLL_set_type_node uint16_t
-  #define BLL_set_NodeDataType enemy_list_t
-  #define BLL_set_AreWeInsideStruct 1
-  #include <BLL/BLL.h>
-  enemies_t enemy_list;
-
-  struct enemy_range_t {
-    enemies_t* container;
-    struct iterator_t {
-      using bll_iter = fan::bll_iterator_t<enemies_t>;
-      bll_iter it;
-      struct wrapper_t {
-        enemy_list_t* variant_ref;
-        bool update() {
-          return std::visit([](auto& e) { return e.update(); }, *variant_ref); 
-        }
-        void destroy() {
-          std::visit([](auto& e) { e.destroy(); }, *variant_ref);
-        }
-        bool on_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction) {
-          return std::visit([source, &hit_direction](auto& e) { return e.on_hit(source, hit_direction); }, *variant_ref);
-        }
-        fan::graphics::physics::character2d_t& get_body() { 
-          return std::visit([](auto& e) -> auto& { return e.get_body(); }, *variant_ref); 
-        }
-      };
-      wrapper_t operator*() {
-        return wrapper_t{&(*it)};
-      }
-      iterator_t& operator++() { 
-        ++it;
-        return *this; 
-      }
-      bool operator!=(const iterator_t& o) const { 
-        return it != o.it; 
-      }
-    };
-    iterator_t begin() { 
-      return {fan::bll_iterator_t<enemies_t>(container, container->GetNodeFirst())};
-    }
-    iterator_t end() { 
-      return {fan::bll_iterator_t<enemies_t>(container, container->dst)};
-    }
-  };
-  enemy_range_t enemies() {
-    return enemy_range_t{&enemy_list};
-  }
+  using enemy_list_t = fan::graphics::entity::enemy_container_t<skeleton_t, fly_t, boss_skeleton_t>;
+  enemy_list_t enemy_list;
+  enemy_list_t& enemies() { return enemy_list; }
+  const enemy_list_t& enemies() const = delete;
 
   fan::graphics::update_callback_nr_t frame_update_handle;
 };
+
 pile_t::pile_t() {
   //pile->engine.set_culling_enabled(false);
   //ic.ignore_input = true;
