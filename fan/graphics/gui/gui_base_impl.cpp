@@ -340,35 +340,44 @@ namespace fan::graphics::gui {
   }
 
   // TODO need gui storage
-  bool g_want_io = false;
-  bool want_io() {
+  bool& want_io() {
+    static bool g_want_io = false;
     return g_want_io;
   }
+  // gets cleared to false in start of every frame
+  bool& force_want_io_for_frame() {
+    static bool g_force_io = false;
+    return g_force_io;
+  }
   void set_want_io(bool flag, bool op_or) {
+    if (force_want_io_for_frame()) {
+      want_io() = true;
+      return;
+    }
     ImGuiContext* g = ImGui::GetCurrentContext();
     if (g->NavWindow) {
       std::string nav_window_name = g->NavWindow->Name;
       if (nav_window_name.find("WindowOverViewport_") == 0) {
-        g_want_io = false;
+        want_io() = false;
         return;
       }
     }
     if (g->NavWindow && want_io_ignore_list().find(g->NavWindow->Name) != want_io_ignore_list().end()) {
-      g_want_io = false;
+      want_io() = false;
       return;
     }
 
     if (g->HoveredWindow) {
       std::string nav_window_name = g->HoveredWindow->Name;
       if (nav_window_name.find("WindowOverViewport_") == 0) {
-        g_want_io = false;
+        want_io() = false;
         return;
       }
     }
 
     if (g->HoveredWindow && want_io_ignore_list().find(g->HoveredWindow->Name) != want_io_ignore_list().end()
       ) {
-      g_want_io = false;
+      want_io() = false;
       return;
     }
     /*
@@ -385,7 +394,7 @@ namespace fan::graphics::gui {
       printf("Nav window: %s\n", g->NavWindow->Name);
     }
     */
-    g_want_io = op_or ? g_want_io | flag : flag;
+    want_io() = op_or ? want_io() | flag : flag;
   }
   void set_keyboard_focus_here() {
     ImGui::SetKeyboardFocusHere();
@@ -1335,6 +1344,8 @@ namespace fan::graphics::gui {
   #endif
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
+
+    force_want_io_for_frame() = false;
   }
 
   void render(

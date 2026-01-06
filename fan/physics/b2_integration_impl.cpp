@@ -1085,13 +1085,16 @@ namespace fan::physics {
   }
 
   void b2_to_fan_vertices(
+    const b2Transform& xf,
     const b2Vec2* b2_vertices,
     int vertex_count,
     std::vector<fan::vec2>& out
   ) {
     out.resize(vertex_count);
+
     for (auto [i, v] : fan::enumerate(out)) {
-      v = fan::physics::physics_to_render(b2_vertices[i]);
+      b2Vec2 w = b2TransformPoint(xf, b2_vertices[i]);
+      v = fan::physics::physics_to_render(w);
     }
   }
 

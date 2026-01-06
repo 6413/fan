@@ -198,6 +198,36 @@ export namespace fan {
       g_audio->SetVolume(volume);
     }
     fan::audio::piece_t piece_hover, piece_click;
+
+    struct sound_t {
+      fan::audio::piece_t piece;
+      fan::audio::sound_play_id_t play_id;
+
+      sound_t(const std::string& path,
+        fan::audio_t::PieceFlag::t flags = 0,
+        const std::source_location& callers_path = std::source_location::current()
+      ) : piece(path, flags, callers_path) {}
+
+      void play(bool loop = false) {
+        play_id = fan::audio::play(piece, 0, loop);
+      }
+      void play_once() {
+        play(false);
+      }
+      void play_looped() {
+        play(true);
+      }
+      void stop() {
+        fan::audio::stop(play_id);
+      }
+    };
+
+    sound_play_id_t play_once(fan::audio::piece_t piece) {
+      return fan::audio::play(piece);
+    }
+    sound_play_id_t play_looped(fan::audio::piece_t piece, uint32_t group_id = 0) {
+      return fan::audio::play(piece, group_id, true);
+    }
   }
 }
 #endif
