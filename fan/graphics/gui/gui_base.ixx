@@ -178,7 +178,8 @@ export namespace fan::graphics::gui {
 
   bool is_item_active();
 
-  bool want_io();
+  bool& want_io();
+  bool& force_want_io_for_frame();
   void set_want_io(bool flag = ImGui::GetIO().WantCaptureMouse | 
     ImGui::GetIO().WantCaptureKeyboard | 
     ImGui::GetIO().WantTextInput, 

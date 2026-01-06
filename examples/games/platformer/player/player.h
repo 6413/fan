@@ -1,36 +1,30 @@
 struct player_t {
-  static inline constexpr fan::vec2 draw_offset{ 0.f, -42.5f };
+  static inline constexpr fan::vec2 draw_offset{0.f, -42.5f};
   static inline constexpr f32_t aabb_scale = 0.17f;
-  static inline constexpr f32_t task_tick = 1000.f / 144.f;
-  static inline constexpr int attack_hitbox_frame = 4;
   static inline constexpr f32_t sword_length = 120.f;
+  static inline constexpr int attack_hitbox_frame = 3;
 
   static inline constexpr std::array<fan::vec2, 3> get_hitbox_points(f32_t direction){
     return {{
       {sword_length * direction, 0.0f},
       {0.0f, -20.0f},
       {0.0f, 20.0f}
-      }};
+    }};
   }
+
   player_t(){
     player_light.set_dynamic();
     player_light.set_color(fan::color(0.610, 0.550, 0.340, 1.0));
     player_light.set_size(256);
 
-    auto drink_potion = fan::graphics::shape_from_json("effects/drink_potion.json");
-    drink_potion.stop_particles();
-    drink_potion.set_dynamic();
-    std::fill(particles_drink_potion, particles_drink_potion + std::size(particles_drink_potion), drink_potion);
-    //for (auto& i : particles_drink_potion) {
-    //  i.set_dynamic();
-    //}
-    //particles = fan::graphics::extract_single_shape("explosion.json");
-    //particles_drink_potion = 
+    potion_particles.from_json("effects/drink_potion.json");
+
     auto image_star = pile->engine.image_load("images/waterdrop.webp");
     particles = fan::graphics::shape_from_json("effects/explosion.json");
     particles.set_image(image_star);
+
     body = fan::graphics::physics::character2d_t::from_json({
-      .json_path = "player/player.json",//
+      .json_path = "player/player.json",
       .aabb_scale = aabb_scale,
       .attack_cb = [](fan::graphics::physics::character2d_t& c) -> bool {
         const bool attack_input =
@@ -48,17 +42,15 @@ struct player_t {
     body.set_draw_offset(draw_offset);
     body.set_flags(fan::graphics::sprite_flags_e::use_hsl);
     body.set_color(fan::color::hsl(56.7f, 18.3f, -58.4f));
-
     body.set_dynamic();
-    body.enable_default_movement();
-    body.set_jump_height(60.f);
-    body.enable_double_jump();
-    body.sync_visual_angle(false);
-    body.movement_state.jump_state.on_jump = [&] (int jump_state) {
+
+    fan::graphics::physics::character_movement_preset_t::setup_default_controls(body);
+
+    body.movement_state.jump_state.on_jump = [&](int jump_state) {
       task_jump = jump(jump_state);
     };
 
-    attack_hitbox.setup({
+    combat.hitbox.setup({
       .spawns = {{
         .frame = attack_hitbox_frame,
         .create_hitbox = [](const fan::vec2& center, f32_t direction){
@@ -72,16 +64,22 @@ struct player_t {
       .attack_animation = "attack0",
       .track_hit_targets = true
     });
+
     body.setup_attack_properties({
       .max_health = 60.f,
       .damage = 10.f,
       .knockback_force = 20.f,
       .cooldown_duration = 0.05e9,
-      .on_attack_end = [this]() { did_attack = false;  },
+      .on_attack_end = [this]() { combat.did_attack = false; },
+    });
+
+    physics_step_nr = fan::physics::add_physics_step_callback([this]() {
+      handle_attack();
     });
   }
+
   fan::event::task_t jump(bool is_double_jump){
-    fan::audio::play(audio_jump);
+    audio_jump.play();
     if (!is_double_jump){
       co_return;
     }
@@ -96,96 +94,71 @@ struct player_t {
     }
     body.set_angle(0.f);
   }
+
   void respawn(){
     body.set_angle(0.f);
-    if (current_checkpoint == -1){
-      body.set_physics_position(pile->renderer.get_all_spawn_positions(pile->get_level().main_map_id, tilemap_loader_t::fte_t::mesh_property_t::player_spawn)[0]);
+    
+    fan::vec3 spawn_pos = pile->get_level().checkpoint_system.get_respawn_position(1);
+    if (spawn_pos == fan::vec3(0)) {
+      spawn_pos = fan::graphics::tilemap::helpers::get_spawn_position_or_default(
+        pile->renderer, pile->get_level().main_map_id
+      );
     }
-    else{
-      body.set_physics_position(pile->get_level().player_checkpoints[current_checkpoint].visual.get_position());
-    }
-    //body.set_max_health(500);
+    body.set_physics_position(spawn_pos);
+
     body.set_health(body.get_max_health());
-    //body.set_health(10.f);
-
     pile->get_level().load_enemies();
-    //body.set_dynamic();// if player is always in the camera, no need to call update_dynamic i think
   }
-  //fan::event::task_t particles_explode(){
-  //  particles.set_position(fan::vec3(pile->get_level().player_checkpoints[current_checkpoint].entity.get_position() + fan::vec2(-32, 80), 0));
-  //  fan::time::timer jump_timer{4.0e9f / 2.f, true};
-  //  while (!jump_timer){
-  //    f32_t t = jump_timer.seconds() / jump_timer.duration_seconds();
-  //    t = std::clamp(t, 0.0f, 1.0f);
-  //    f32_t progress = 1.0f - std::fabs(t * 2.0f - 1.0f);
-  //    f32_t progress2 = 1.0f - std::fabs(t * 4.0f - 1.0f);
-  //    particles.set_color(fan::color::hsv(340.9f, 88.9f, progress * 100.f));
-  //    ((fan::graphics::shapes::particles_t::ri_t*)particles.GetData(fan::graphics::g_shapes->shaper))->position_velocity.y = -progress2 * 1000.f;
-  //    co_await fan::graphics::co_next_frame();
-  //  }
-  //  particles.set_color(0);
-  //}
-  void handle_attack() {
-    if (!did_attack && body.animation_on("attack0", attack_hitbox_frame)) {
-      fan::audio::play(audio_attack);
-      did_attack = true;
+
+  void handle_attack(){
+    if (!combat.did_attack && body.animation_crossed("attack0", attack_hitbox_frame)) {
+      audio_attack.play();
+      combat.did_attack = true;
     }
 
-    for (auto enemy : pile->enemies()) {
-      if (!attack_hitbox.check_hit(&body, 0, &enemy.get_body())) {
-        continue;
-      }
-      if (enemy.on_hit(&body, (enemy.get_body().get_position() - body.get_position()).normalized())) {
-        break;
-      }
-    }
-
-    attack_hitbox.update(&body);
+    combat.handle_attack(body, pile->enemies());
   }
-  void drink_potion() {
+
+  void drink_potion(){
     if (!potion_count) return;
     if (!potion_consume_timer) return;
     --potion_count;
+
     static constexpr f32_t potion_heal = 20.f;
-    fan::audio::play(audio_drink_potion);
     body.set_health(std::min(body.get_health() + potion_heal, body.get_max_health()));
-    {
-      fan::vec3 player_pos = body.get_center() - fan::vec2(0, body.get_size().y / 4.f);
-      static int potion_particle_index = 0;
-      particles_drink_potion[potion_particle_index].start_particles();
 
-      particles_drink_potion[potion_particle_index].set_position(fan::vec3(fan::vec2(player_pos), player_pos.z + 1));
-      // particles_drink_potion[potion_particle_index].get_shape_data<fan::graphics::shapes::particles_t>().begin_angle = -0.777 + 0.777 * -body.get_linear_velocity().sign().x;
-      potion_particle_index = (potion_particle_index + 1) % std::size(particles_drink_potion);
+    audio_drink_potion.play();
 
-    }
+    fan::vec3 player_pos = body.get_center() - fan::vec2(0, body.get_size().y / 4.f);
+    potion_particles.spawn_at(fan::vec3(fan::vec2(player_pos), player_pos.z + 1));
+
     potion_consume_timer.restart();
   }
-  void update() {
+
+  void update(){
+    combat.hitbox.process_destruction();
     if (fan::window::is_input_action_active(actions::drink_potion)) {
       drink_potion();
     }
 
     if (body.is_on_ground()) {
-      if (body.get_angle() != 0.f) {
-        body.set_angle(0);
+      if (body.get_angle().z != 0.f) {
+        body.set_angle(0.f);
       }
     }
 
     static f32_t v = 0;
     v += pile->engine.delta_time * 100.f;
-    //body.set_color(fan::color::hsl(v, 18.3f, -58.4f));
 
     player_light.set_position(body.get_center());
     body.update_animations();
-    handle_attack();
 
     if (!pile->level_stage) {
       return;
     }
 
     auto& level = pile->get_level();
-    if (pile->get_level().is_entering_door) {
+    if (level.is_entering_door) {
       static f32_t moved = body.get_position().x;
       if (body.get_position().x - moved < 128.f) {
         body.movement_state.ignore_input = true;
@@ -197,26 +170,23 @@ struct player_t {
       }
     }
 
-    for (auto [i, checkpoint] : fan::enumerate(pile->get_level().player_checkpoints)) {
-      if (fan::physics::is_on_sensor(body, checkpoint.entity) && current_checkpoint < (int)i) {
-        current_checkpoint = i;
-        fan::audio::play(audio_checkpoint);
-        //task_particles = particles_explode();
-        fan::graphics::gui::print("Checkpoint reached!!!!!");
-        break;
-      }
-    }
+    level.checkpoint_system.check_and_update(body, [this](auto& cp) {
+      audio_checkpoint.play();
+      fan::graphics::gui::print("Checkpoint reached!");
+    });
 
-    auto& map_compiled = pile->get_level().main_compiled_map;
-    if (get_physics_pos().y > map_compiled.map_size.y * (map_compiled.tile_size.y*2.f)) {
+    auto& map_compiled = level.main_compiled_map;
+    if (get_physics_pos().y > map_compiled.map_size.y * (map_compiled.tile_size.y * 2.f)) {
       respawn();
     }
   }
-  fan::vec2 get_physics_pos() {
+
+  fan::vec2 get_physics_pos(){
     return body.get_physics_position();
   }
-  bool on_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction) {
-    fan::audio::play(audio_enemy_hits_player);
+
+  bool on_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction){
+    audio_enemy_hits_player.play();
     body.take_hit(source, hit_direction);
     if (body.get_health() <= 0) {
       body.cancel_animation();
@@ -226,32 +196,24 @@ struct player_t {
     return false;
   }
 
-  fan::graphics::physics::character2d_t& get_body() {
+  fan::graphics::physics::character2d_t& get_body(){
     return body;
   }
 
   fan::graphics::physics::character2d_t body;
-  fan::graphics::physics::attack_hitbox_t attack_hitbox;
-
+  fan::graphics::physics::combat_controller_t combat;
   fan::event::task_t task_jump;
-  bool did_attack = false;
-
-  fan::audio::piece_t 
+  fan::audio::sound_t
     audio_jump{"audio/jump.sac"},
     audio_attack{"audio/player_attack.sac"},
     audio_enemy_hits_player{"audio/enemy_hits_player.sac"},
     audio_checkpoint{"audio/checkpoint.sac"},
     audio_drink_potion{"audio/drink_potion.sac"};
-
   fan::graphics::shape_t particles;
   fan::event::task_t task_particles;
-
-  fan::graphics::engine_t::key_handle_t key_click_handles[10];
-
-  int current_checkpoint = 2;
-  
   uint16_t potion_count = 1;
-  fan::time::timer potion_consume_timer {0.1e9, true};
-  fan::graphics::shape_t particles_drink_potion[4];
-  fan::graphics::light_t player_light {{.position=0}};
+  fan::time::timer potion_consume_timer{0.1e9, true};
+  fan::graphics::effects::particle_pool_t::pool_t<4> potion_particles;
+  fan::graphics::light_t player_light{{.position = 0}};
+  fan::physics::step_callback_nr_t physics_step_nr;
 };

@@ -667,7 +667,7 @@ namespace fan::graphics{
       );
 
       if (properties.sprite_sheet_data.start_animation) {
-        player_sprite_sheet();
+        play_sprite_sheet();
       }
       break;
     }
@@ -1442,15 +1442,14 @@ namespace fan::graphics{
     if (did_change) {
       g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
         if constexpr (requires { props.sprite_sheet_data; }) {
+          props.sprite_sheet_data.previous_frame = props.sprite_sheet_data.current_frame;
           props.sprite_sheet_data.current_frame = 0;
           props.sprite_sheet_data.last_sign = {
             (int8_t)desired_sign.x,
             (int8_t)desired_sign.y
           };
           if (get_visual_id()) {
-            auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
-            ri.sprite_sheet_data.current_frame = 0;
-            ri.sprite_sheet_data.last_sign = props.sprite_sheet_data.last_sign;
+            set_sprite_sheet_next_frame(0);
           }
         }
       });
@@ -1962,9 +1961,11 @@ namespace fan::graphics{
   void fan::graphics::shapes::shape_t::reset_current_sprite_sheet_animation_frame() {
     g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
       if constexpr (requires { props.sprite_sheet_data; }) {
+        props.sprite_sheet_data.previous_frame = props.sprite_sheet_data.current_frame;
         props.sprite_sheet_data.current_frame = 0;
         if (get_visual_id()) {
           auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
+          ri.sprite_sheet_data.previous_frame = props.sprite_sheet_data.previous_frame;
           ri.sprite_sheet_data.current_frame = 0;
         }
       }
@@ -1973,10 +1974,12 @@ namespace fan::graphics{
   void fan::graphics::shapes::shape_t::reset_current_sprite_sheet_animation() {
     g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
       if constexpr (requires { props.sprite_sheet_data; }) {
+        props.sprite_sheet_data.previous_frame = props.sprite_sheet_data.current_frame;
         props.sprite_sheet_data.current_frame = 0;
-        props.sprite_sheet_data.update_timer.restart();
+        props.sprite_sheet_data.frame_accumulator = 0.f;
         if (get_visual_id()) {
           auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
+          ri.sprite_sheet_data.previous_frame = props.sprite_sheet_data.previous_frame;
           ri.sprite_sheet_data = props.sprite_sheet_data;
         }
       }
@@ -1986,74 +1989,61 @@ namespace fan::graphics{
   void fan::graphics::shapes::shape_t::set_sprite_sheet_next_frame(int advance) {
     g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
       if constexpr (requires { props.sprite_sheet_data; }) {
-
         auto found = fan::graphics::all_animations.find(props.sprite_sheet_data.current_animation);
         if (found == fan::graphics::all_animations.end()) {
           fan::throw_error("current_animation not found");
         }
-
-        auto& animation = found->second;
         auto& sheet_data = props.sprite_sheet_data;
+        auto& animation = found->second;
 
-        sheet_data.current_frame += advance;
+        int frame_count = animation.selected_frames.size();
+
+        sheet_data.previous_frame = sheet_data.current_frame;
+
+        sheet_data.current_frame = (sheet_data.current_frame + advance);
 
         if (animation.loop) {
-          if (sheet_data.current_frame >= animation.selected_frames.size()) {
-            sheet_data.current_frame = 0;
-          }
+          sheet_data.current_frame %= frame_count;
         }
         else {
-          sheet_data.current_frame = std::min(
-            sheet_data.current_frame,
-            (int)animation.selected_frames.size() - 1
-          );
+          sheet_data.current_frame = std::min(sheet_data.current_frame, frame_count - 1);
         }
-
-        sheet_data.update_timer.restart();
 
         if (!get_visual_id()) {
           return;
         }
-
         fan::vec2 sign = get_image_sign();
         fan::vec2i8 new_sign = {
           (int8_t)fan::math::sgn(sign.x),
           (int8_t)fan::math::sgn(sign.y)
         };
-        // ------------------------------------------------
 
+        if (animation.selected_frames.empty()) {
+          return;
+        }
         int actual_frame = animation.selected_frames[sheet_data.current_frame];
-
         int total_frames = 0;
         for (auto& img : animation.images) {
           total_frames += img.hframes * img.vframes;
         }
-
         actual_frame = std::min(actual_frame, total_frames - 1);
-
         int image_index = 0;
-        int frame_count = 0;
-
+        frame_count = 0;
         for (int i = 0; i < animation.images.size(); ++i) {
           int frames_in_this_image =
             animation.images[i].hframes * animation.images[i].vframes;
-
           if (actual_frame < frame_count + frames_in_this_image) {
             image_index = i;
             break;
           }
-
           frame_count += frames_in_this_image;
         }
-
         int local_frame = actual_frame - frame_count;
         auto& current_image = animation.images[image_index];
-
         bool image_changed = get_image() != current_image.image;
         if (image_changed) {
           set_image(current_image.image);
         }
-
         fan::vec2 image_size = get_image().get_size();
         if (image_size.x > 0 && image_size.y > 0) {
           fan::vec2 frame_pixel_size = image_size / fan::vec2(current_image.hframes, current_image.vframes);
@@ -2062,23 +2052,18 @@ namespace fan::graphics{
           size.x = size.y * aspect;
           set_size(size);
         }
-
         fan::vec2 tc_size = {
           1.0 / current_image.hframes,
           1.0 / current_image.vframes
         };
-
         int frame_x = local_frame % current_image.hframes;
         int frame_y = local_frame / current_image.hframes;
-
         fan::vec2 pos = {
           frame_x * tc_size.x,
           frame_y * tc_size.y
         };
-
         fan::vec2 tc_abs = tc_size.abs();
         fan::vec2 pos_clamped = pos;
-
         if (new_sign.x < 0) {
           pos_clamped.x += tc_abs.x;
           pos_clamped.x = fan::math::clamp(pos_clamped.x, 0.0f, 1.0f - tc_abs.x);
@@ -2087,10 +2072,8 @@ namespace fan::graphics{
           pos_clamped.y += tc_abs.y;
           pos_clamped.y = fan::math::clamp(pos_clamped.y, 0.0f, 1.0f - tc_abs.y);
         }
-
         set_tc_position(pos_clamped);
         set_tc_size(tc_size * fan::vec2(new_sign));
-
         auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
         ri.sprite_sheet_data = sheet_data;
       }
@@ -2129,38 +2112,25 @@ namespace fan::graphics{
         for (auto& animation_nrs : shape_animations[props.sprite_sheet_data.shape_animations]) {
           ::fan::graphics::get_sprite_sheet_animation(animation_nrs).fps = fps;
         }
-
-        if (sheet_data.update_timer.m_time == (uint64_t)-1) {
-          sheet_data.update_timer.start(1.0 / fps * 1e+9);
-        }
-        else {
-          sheet_data.update_timer.set_time(1.0 / fps * 1e+9);
-        }
-
-        if (get_visual_id()) {
-          auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
-          ri.sprite_sheet_data = sheet_data;
-        }
       }
     });
   }
 
-	bool shapes::shape_t::has_animation() {
-		if (get_shape_type() != fan::graphics::shapes::shape_type_t::sprite) {
-			return false;
-		}
-
-		auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
-		fan::graphics::sprite_sheet_data_t& sheet_data = ri.sprite_sheet_data;
-		return sheet_data.update_timer.started();
-	}
+  bool shapes::shape_t::has_animation() {
+    if (get_shape_type() != fan::graphics::shapes::shape_type_t::sprite) {
+      return false;
+    }
+    auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
+    fan::graphics::sprite_sheet_data_t& sheet_data = ri.sprite_sheet_data;
+    return sheet_data.frame_update_nr.iic() == false;
+  }
 
 	void shapes::shape_t::set_sprite_sheet_frames(uint32_t image_index, int horizontal_frames, int vertical_frames) {
 		if (get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {
 			auto& current_anim = get_sprite_sheet_animation();
 			current_anim.images[image_index].hframes = horizontal_frames;
 			current_anim.images[image_index].vframes = vertical_frames;
-			player_sprite_sheet();
+			play_sprite_sheet();
 		}
 		else {
 			fan::throw_error("Unimplemented for this shape");
@@ -2193,14 +2163,40 @@ namespace fan::graphics{
     return false;
   }
 
-	void shapes::shape_t::set_current_animation_id(animation_nr_t animation_id) {
-	#if FAN_DEBUG >= fan_debug_medium
-		if (!animation_id) {
-			fan::throw_error("invalid animation id");
-		}
-	#endif
-		get_current_animation_id() = animation_id;
-	}
+  bool shapes::shape_t::animation_crossed(const std::string& name, int frame_index) {
+    if (name != get_current_animation().name) {
+      return false;
+    }
+
+    int prev = 0;
+    int curr = 0;
+
+    g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
+      if constexpr (requires { props.sprite_sheet_data; }) {
+        prev = props.sprite_sheet_data.previous_frame;
+        curr = props.sprite_sheet_data.current_frame;
+      }
+    });
+    return prev < frame_index && curr >= frame_index;
+  }
+
+  void shapes::shape_t::set_current_animation_id(animation_nr_t animation_id) {
+  #if FAN_DEBUG >= fan_debug_medium
+    if (!animation_id) {
+      fan::throw_error("invalid animation id");
+    }
+  #endif
+
+    g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
+      if constexpr (requires { props.sprite_sheet_data; }) {
+        props.sprite_sheet_data.previous_frame = props.sprite_sheet_data.current_frame;
+        props.sprite_sheet_data.current_frame = 0;
+      }
+    });
+
+    get_current_animation_id() = animation_id;
+  }
+
 
 	sprite_sheet_animation_t& shapes::shape_t::get_current_animation() {
 		auto found = all_animations.find(get_current_animation_id());
@@ -2211,7 +2207,15 @@ namespace fan::graphics{
 		#endif
 		return found->second;
 	}
-
+  int shapes::shape_t::get_previous_animation_frame() const {
+    int prev_frame = 0;
+    g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
+      if constexpr (requires { props.sprite_sheet_data; }) {
+        prev_frame = props.sprite_sheet_data.previous_frame;
+      }
+    });
+    return prev_frame;
+  }
   int shapes::shape_t::get_current_animation_frame() const {
     int frame = 0;
     g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
@@ -2582,31 +2586,47 @@ namespace fan::graphics{
 void fan::graphics::shapes::shape_t::sprite_sheet_frame_update_cb(
   fan::graphics::shaper_t& shaper,
   fan::graphics::shapes::shape_t* shape
-) 
-{
+){
   g_shapes->visit_shape_draw_data(shape->NRI, [&](auto& props) {
     if constexpr (requires { props.sprite_sheet_data; }) {
       auto& sheet_data = props.sprite_sheet_data;
-      if (sheet_data.update_timer) {
-        if (props.sprite_sheet_data.current_animation) {
-          auto& selected_frames = all_animations[props.sprite_sheet_data.current_animation].selected_frames;
-          if (selected_frames.empty()) {
-            return;
-          }
+      
+      if (props.sprite_sheet_data.current_animation) {
+        auto& animation = all_animations[props.sprite_sheet_data.current_animation];
+        auto& selected_frames = animation.selected_frames;
+        
+        if (selected_frames.empty()) {
+          return;
+        }
+
+        f32_t dt = fan::graphics::get_window().m_delta_time;
+        f32_t frame_duration = 1.0f / animation.fps;
+        
+        sheet_data.frame_accumulator += dt;
+        
+        while (sheet_data.frame_accumulator >= frame_duration) {
+          sheet_data.frame_accumulator -= frame_duration;
           shape->set_sprite_sheet_next_frame();
         }
-        else {
-          shape->set_sprite_sheet_next_frame();
-        }
-        sheet_data.update_timer.restart();
 
         if (shape->get_visual_id()) {
           auto& ri = *(sprite_t::ri_t*)shape->GetData(shaper);
           ri.sprite_sheet_data = sheet_data;
+          props.sprite_sheet_data = ri.sprite_sheet_data;
         }
       }
     }
   });
+}
+
+fan::graphics::sprite_sheet_data_t& fan::graphics::shapes::shape_t::get_sprite_sheet_data() {
+  fan::graphics::sprite_sheet_data_t* data = nullptr;
+  g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
+    if constexpr (requires { props.sprite_sheet_data; }) {
+      data = &props.sprite_sheet_data;
+    }
+  });
+  return *data;
 }
 
 fan::graphics::sprite_sheet_animation_t& fan::graphics::shapes::shape_t::get_sprite_sheet_animation() {
@@ -2622,18 +2642,13 @@ fan::graphics::sprite_sheet_animation_t& fan::graphics::shapes::shape_t::get_spr
   return *result;
 }
 
-
-void fan::graphics::shapes::shape_t::player_sprite_sheet() {
-
+void fan::graphics::shapes::shape_t::play_sprite_sheet(){
   fan::graphics::sprite_sheet_data_t* sheet_data = 0;
   g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
     if constexpr (requires { props.sprite_sheet_data; }) {
       props.sprite_sheet_data.start_animation = true;
+      props.sprite_sheet_data.frame_accumulator = 0.f;
       sheet_data = &props.sprite_sheet_data;
-      if (!sheet_data->update_timer.started()) {
-        auto& current_anim = get_sprite_sheet_animation();
-        sheet_data->update_timer.start(1.0 / current_anim.fps * 1e+9);
-      }
     }
   });
 
@@ -2692,7 +2707,7 @@ void fan::graphics::shapes::shape_t::set_sprite_sheet(const fan::graphics::sprit
       shape_animation_lookup_table[{props.sprite_sheet_data.shape_animations, animation.name}] = props.sprite_sheet_data.current_animation;
     }
   });
-  player_sprite_sheet();
+  play_sprite_sheet();
 }
 
 void fan::graphics::shapes::shape_t::add_sprite_sheet(const fan::graphics::sprite_sheet_animation_t& animation) {
@@ -2710,7 +2725,7 @@ void fan::graphics::shapes::shape_t::add_sprite_sheet(const fan::graphics::sprit
       }
     }
   });
-  player_sprite_sheet();
+  play_sprite_sheet();
 }
 
 #endif

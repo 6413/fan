@@ -74,6 +74,24 @@ export namespace fan {
           start();
         }
       }
+      static timer seconds_timer(f64_t s) {
+        timer t;
+        t.start_seconds(s);
+        return t;
+      }
+
+      static timer millis_timer(f64_t ms) {
+        timer t;
+        t.start_millis(ms);
+        return t;
+      }
+
+      static timer micros_timer(f64_t us) {
+        timer t;
+        t.start_micros(us);
+        return t;
+      }
+
 			constexpr uint64_t count() const {
 				return m_time;
 			}
@@ -91,6 +109,19 @@ export namespace fan {
         m_time = time;
         this->start();
       }
+      void start_seconds(f64_t s) {
+        m_time = (uint64_t)(s * 1e9);
+        start();
+      }
+      void start_millis(f64_t ms) {
+        m_time = (uint64_t)(ms * 1e6);
+        start();
+      }
+      void start_micros(f64_t us) {
+        m_time = (uint64_t)(us * 1e3);
+        start();
+      }
+
       void set_time(uint64_t time) {
         m_time = time;
       }

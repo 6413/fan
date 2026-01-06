@@ -2,6 +2,7 @@ module;
 
 #include <fan/utility.h>
 
+#include <iostream>
 #include <type_traits>
 #include <coroutine>
 #include <iterator>
@@ -11,6 +12,7 @@ module;
 #include <map>
 #include <functional> // raii_nr_t
 #include <cstring>
+#include <memory>
 
 namespace raii_build {
   #include <fan/types/raii_nr.h>
@@ -125,6 +127,7 @@ namespace fan {
       mutable bool safe_next_active = false;
     };
   }
+
   namespace fan_detail {
     template<typename T>
     struct iterator_traits {
@@ -141,43 +144,54 @@ namespace fan {
     auto get_begin(T& container) {
       using base_t = std::remove_const_t<T>;
       if constexpr (has_get_node_first<base_t>) {
-        return bll_iterator_t<base_t>{const_cast<base_t*>(&container), const_cast<base_t&>(container).GetNodeFirst()};
+        return bll_iterator_t<base_t>{
+          const_cast<base_t*>(&container),
+          const_cast<base_t&>(container).GetNodeFirst()
+        };
       }
       else {
         return container.begin();
       }
     }
+
     template<typename T>
     auto get_end(T& container) {
       using base_t = std::remove_const_t<T>;
       if constexpr (has_get_node_first<base_t>) {
-        return bll_iterator_t<base_t>{const_cast<base_t*>(&container), const_cast<base_t&>(container).dst};
+        return bll_iterator_t<base_t>{
+          const_cast<base_t*>(&container),
+          const_cast<base_t&>(container).dst
+        };
       }
       else {
         return container.end();
       }
     }
+
     template<typename T>
     auto get_first(T& container) {
       using base_t = std::remove_const_t<T>;
       if constexpr (has_get_node_first<base_t>) {
-        return container.GetNodeFirst();
+        return const_cast<base_t&>(container).GetNodeFirst();
       }
       else {
-        return typename T::size_type(0);
+        return typename base_t::size_type(0);
       }
     }
+
     template<typename T>
     auto get_size(T& container) {
       using base_t = std::remove_const_t<T>;
       if constexpr (has_get_node_first<base_t>) {
-        return container.dst;
+        return const_cast<base_t&>(container).dst;
       }
       else {
-        return container.size();
+        return const_cast<base_t&>(container).size();
       }
     }
-  }
+
+  } // namespace fan_detail
+
 
   template <typename T>
   struct enumerate_iterator_t {
@@ -240,14 +254,42 @@ namespace fan {
     enumerate_view_t(container_t& container) : _container(container) {}
 
     iterator begin() {
-      return { fan_detail::get_begin(_container), fan_detail::get_first(_container) };
+      auto it = fan_detail::get_begin(_container);
+      using iter_t = decltype(it);
+
+      if constexpr (requires(iter_t t) { t.get_index(); }) {
+        return {it, typename iterator::iter_index_t{}};
+      }
+      else {
+        return {it, fan_detail::get_first(_container)};
+      }
     }
+
     iterator end() {
-      return { fan_detail::get_end(_container), fan_detail::get_size(_container) };
+      auto it = fan_detail::get_end(_container);
+      using iter_t = decltype(it);
+
+      if constexpr (requires(iter_t t) { t.get_index(); }) {
+        return {it, typename iterator::iter_index_t{}};
+      }
+      else {
+        return {it, fan_detail::get_size(_container)};
+      }
+    }
+
+    iterator begin() const {
+      return const_cast<enumerate_view_t*>(this)->begin();
+    }
+
+    iterator end() const {
+      return const_cast<enumerate_view_t*>(this)->end();
     }
 
     container_t& _container;
   };
+
+
+
 
   struct enumerate_fn {
     template <typename container_t>

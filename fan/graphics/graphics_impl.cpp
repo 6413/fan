@@ -848,7 +848,7 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
     auto shape = shape_from_json(config.path, callers_path);
     shape.set_animation_loop(shape.get_current_animation_id(), config.loop);
     if (config.start) {
-      shape.player_sprite_sheet();
+      shape.play_sprite_sheet();
     }
     return shape;
   }

@@ -25,6 +25,7 @@ module fan.graphics.physics_shapes;
 
 import fan.types;
 import fan.print;
+import fan.graphics.loco;
 
 #if defined(FAN_GUI)
   import fan.graphics.gui.base;
@@ -52,14 +53,24 @@ void DrawSolidPolygon(
 {
   if (vertexCount == 4) {
     static std::vector<fan::vec2> fan_vertices;
-    fan::physics::b2_to_fan_vertices(vertices, vertexCount, fan_vertices);
-    if (fan::physics::is_rectangle(fan_vertices)) {
-      fan::graphics::add_shape_to_immediate_draw(fan::graphics::rectangle_t{{
+    fan_vertices.resize(4);
+
+    for (int i = 0; i < 4; ++i) {
+      b2Vec2 w = b2TransformPoint(transform, vertices[i]);
+      fan_vertices[i] = fan::physics::physics_to_render(w);
+    }
+
+    if (vertexCount == 4) {
+      // half size
+      fan::vec2 size = fan::physics::physics_to_render(fan::vec2(vertices[0].x, vertices[0].y).abs());
+      fan::vec2 center = fan::physics::physics_to_render(b2TransformPoint(transform, {0,0}));
+
+      fan::graphics::add_shape_to_immediate_draw(fan::graphics::rectangle_t {{
         .render_view = &fan::graphics::physics::debug_render_view,
-        .position = fan::vec3(fan::physics::physics_to_render(transform.p), draw_depth + z_depth),
-        .size = fan::vec2(fan_vertices[2] - fan_vertices[0]).abs() / 2.f,
+        .position = fan::vec3(center, draw_depth + z_depth),
+        .size = size,
         .color = fan::color::from_rgb(color).set_alpha(0.5),
-        .angle = std::atan2(transform.q.s, transform.q.c),
+        .angle = fan::vec3(0, 0, std::atan2(transform.q.s, transform.q.c)),
         .enable_culling = false
       }});
       return;
@@ -70,13 +81,14 @@ void DrawSolidPolygon(
   vs.resize(vertexCount);
 
   for (auto [i, v] : fan::enumerate(vs)) {
-    v.position = fan::physics::physics_to_render(vertices[i]);
+    b2Vec2 w = b2TransformPoint(transform, vertices[i]); 
+    v.position = fan::physics::physics_to_render(w);     
     v.color = fan::color::from_rgb(color).set_alpha(0.5);
   }
 
   fan::graphics::add_shape_to_immediate_draw(fan::graphics::polygon_t {{
     .render_view = &fan::graphics::physics::debug_render_view,
-    .position = fan::vec3(fan::physics::physics_to_render(transform.p), draw_depth + z_depth),
+    .position = fan::vec3(0, 0, draw_depth + z_depth),
     .vertices = vs,
     .draw_mode = fan::graphics::primitive_topology_t::triangle_fan,
     .enable_culling = false
@@ -237,7 +249,7 @@ namespace fan::graphics::physics {
     }();
   }
 
-  void frame_init_lazy() {
+  void frame_init() {
     static fan::graphics::update_callback_nr_t uc_nr;
     if (uc_nr) {
       return;
@@ -246,12 +258,18 @@ namespace fan::graphics::physics {
     uc_nr = uc.NewNodeLast();
     // called every frame
     uc[uc_nr] = [] (auto* loco) {
-      if (fan::window::is_input_action_active("debug_physics")) {
+      if (fan::window::is_input_action_active(fan::actions::toggle_debug_physics)) {
         
         fan::graphics::physics::debug_draw(!fan::graphics::physics::get_debug_draw());
       }
     };
   }
+  static bool debug_draw_initialized =  []{
+    fan::graphics::get_engine_init_cbs().push_back([] (loco_t*loco) {
+      frame_init();
+    });
+    return true;
+  }();
 
   void debug_draw(bool enabled) {
     init();
@@ -262,7 +280,6 @@ namespace fan::graphics::physics {
   }
 
   void shape_physics_update(const fan::physics::physics_update_data_t& data) {
-    frame_init_lazy();
     if (!b2Body_IsValid(*(b2BodyId*)&data.body_id)) {
       //   fan::print("invalid body data (corruption)");
       return;
@@ -742,45 +759,29 @@ namespace fan::graphics::physics {
     );
   }
 
-  //void movement_state_t::move_to_direction_raw(fan::physics::body_id_t body, const fan::vec2& direction) {
-  //  fan::vec2 input_dir = direction.sign() 
-  //  #if defined(FAN_GUI)
-  //    * (check_gui ? !fan::graphics::gui::want_io() : 1)
-  //  #endif
-  //  ;
-  //  fan::vec2 vel = body.get_linear_velocity();
-  //  f32_t dt = fan::physics::default_physics_timestep;
-
-  //  if (input_dir.x != 0) {
-  //    vel.x += input_dir.x * accelerate_force * dt * 100.f;
-  //    vel.x = fan::math::clamp(vel.x, -max_speed, max_speed);
-  //  }
-  //  else {
-  //    f32_t deceleration_factor = 0.3f * dt * 100.f;
-  //    vel.x = fan::math::lerp(vel.x, 0.f, deceleration_factor);
-  //  }
-  //  if (input_dir.y != 0) {
-  //    vel.y += input_dir.y * accelerate_force * dt * 100.f;
-  //    vel.y = fan::math::clamp(vel.y, -max_speed, max_speed);
-  //  }
-  //  else {
-  //    f32_t deceleration_factor = 0.3f * dt * 100.f;
-  //    vel.y = fan::math::lerp(vel.y, 0.f, deceleration_factor);
-  //  }
-  //  last_direction = direction;
-  //  body.set_linear_velocity({vel.x, vel.y});
-  //}
-
-  void movement_state_t::move_to_direction_raw(fan::physics::body_id_t body, const fan::vec2& direction) {
+  void movement_state_t::move_to_direction_raw(
+    fan::physics::body_id_t body,
+    const fan::vec2& direction
+  ) {
     fan::vec2 input_dir = direction.min(fan::vec2(1.f));
     fan::vec2 vel = body.get_linear_velocity();
     f32_t dt = fan::physics::default_physics_timestep;
 
     f32_t accel = accelerate_force * dt * 100.f;
     f32_t decel = 0.3f * dt * 100.f;
-
     accel = fan::math::clamp(accel, 0.f, 1.f);
     decel = fan::math::clamp(decel, 0.f, 1.f);
+
+    if (is_in_knockback) {
+      fan::vec2 kb_vel = body.get_linear_velocity();
+      kb_vel.x = knockback_initial_velocity.x;
+      body.set_linear_velocity(kb_vel);
+
+      if (--knockback_ticks_remaining <= 0) {
+        is_in_knockback = false;
+      }
+      return;
+    }
 
     if (input_dir.x != 0.f) {
       f32_t target_x = input_dir.x * max_speed;
@@ -798,20 +799,33 @@ namespace fan::graphics::physics {
     last_direction = direction;
     body.set_linear_velocity(vel);
   }
-  void movement_state_t::move_to_direction(fan::physics::body_id_t body, const fan::vec2& direction) {
+  void movement_state_t::move_to_direction(
+    fan::physics::body_id_t body,
+    const fan::vec2& direction
+  ) {
     fan::vec2 input_dir = direction.min(fan::vec2(1.f))
     #if defined(FAN_GUI)
       * (check_gui ? !fan::graphics::gui::want_io() : 1)
     #endif
-    ;
+      ;
 
     last_direction = direction;
-
     fan::vec2 vel = body.get_linear_velocity();
     f32_t dt = fan::physics::default_physics_timestep;
 
     f32_t accel = accelerate_force * dt * 100.f;
     accel = fan::math::clamp(accel, 0.f, 1.f);
+
+    if (is_in_knockback) {
+      fan::vec2 kb_vel = body.get_linear_velocity();
+      kb_vel.x = knockback_initial_velocity.x;
+      body.set_linear_velocity(kb_vel);
+
+      if (--knockback_ticks_remaining <= 0) {
+        is_in_knockback = false;
+      }
+      return;
+    }
 
     f32_t target_x = input_dir.x * max_speed;
     vel.x = fan::math::lerp(vel.x, target_x, accel);
@@ -821,10 +835,10 @@ namespace fan::graphics::physics {
 
   void movement_state_t::update_ai_orientation(character2d_t& character, const fan::vec2& distance) {
     static constexpr f32_t FACING_DEAD_ZONE = 30.f;
-  
+
     if (distance.x > FACING_DEAD_ZONE) {
       desired_facing.x = 1;
-    } 
+    }
     else if (distance.x < -FACING_DEAD_ZONE) {
       desired_facing.x = -1;
     }
@@ -1079,7 +1093,12 @@ namespace fan::graphics::physics {
         }
       }
       else if (triggered) {
-        if (prev_animation_id != state.animation_id || character->get_current_animation_id() != state.animation_id) {
+        if (character->attack_state.is_attacking &&
+          state.name != "attack0") {
+          return;
+        }
+
+        if (prev_animation_id != state.animation_id) {
           character->set_current_animation_id(state.animation_id);
           character->reset_current_sprite_sheet_animation();
           character->anim_controller.current_animation_requires_velocity_fps = state.velocity_based_fps;
@@ -1329,7 +1348,7 @@ namespace fan::graphics::physics {
       character.setup_default_animations(config);
     }
 
-    character.player_sprite_sheet();
+    character.play_sprite_sheet();
 
     return character;
   }
@@ -1340,16 +1359,16 @@ namespace fan::graphics::physics {
     attack_state(o.attack_state),
     movement_state(o.movement_state),
     wall_jump(o.wall_jump),
-    movement_cb_handle(o.movement_cb_handle),
-    feet{o.feet[0], o.feet[1]}
-  {
+    movement_cb_handle(),
+    feet {o.feet[0], o.feet[1]} {
     if (movement_state.enabled) {
-      movement_cb_handle.remove();
       movement_cb_handle = add_movement_callback([this]() {
         process_keyboard_movement(movement_state.type);
       });
     }
+    set_draw_offset(o.get_draw_offset());
   }
+
 
   character2d_t::character2d_t(character2d_t&& o) noexcept
     : base_shape_t(std::move(o)),
@@ -1357,9 +1376,16 @@ namespace fan::graphics::physics {
     attack_state(std::move(o.attack_state)),
     movement_state(std::move(o.movement_state)),
     wall_jump(std::move(o.wall_jump)),
-    movement_cb_handle(std::move(o.movement_cb_handle)),
-    feet{std::move(o.feet[0]), std::move(o.feet[1])}
-  {}
+    movement_cb_handle(),
+    feet {std::move(o.feet[0]), std::move(o.feet[1])} {
+    if (movement_state.enabled) {
+      movement_cb_handle = add_movement_callback([this]() {
+        process_keyboard_movement(movement_state.type);
+      });
+    }
+
+    o.movement_cb_handle.sic();
+  }
 
   character2d_t& character2d_t::operator=(const character2d_t& o) {
     if (this != &o) {
@@ -1368,30 +1394,47 @@ namespace fan::graphics::physics {
       attack_state = o.attack_state;
       movement_state = o.movement_state;
       wall_jump = o.wall_jump;
-      movement_cb_handle = o.movement_cb_handle;
       feet[0] = o.feet[0];
       feet[1] = o.feet[1];
 
-      if (movement_state.enabled) {
+      if (!movement_cb_handle.iic()) {
         movement_cb_handle.remove();
+        movement_cb_handle.sic();
+      }
+
+      if (movement_state.enabled) {
         movement_cb_handle = add_movement_callback([this]() {
           process_keyboard_movement(movement_state.type);
         });
       }
+      set_draw_offset(o.get_draw_offset());
     }
     return *this;
   }
 
+
   character2d_t& character2d_t::operator=(character2d_t&& o) noexcept {
     if (this != &o) {
+      if (!movement_cb_handle.iic()) {
+        movement_cb_handle.remove();
+        movement_cb_handle.sic();
+      }
+
       base_shape_t::operator=(std::move(o));
       anim_controller = std::move(o.anim_controller);
       attack_state = std::move(o.attack_state);
       movement_state = std::move(o.movement_state);
       wall_jump = std::move(o.wall_jump);
-      movement_cb_handle = std::move(o.movement_cb_handle);
       feet[0] = std::move(o.feet[0]);
       feet[1] = std::move(o.feet[1]);
+
+      if (movement_state.enabled) {
+        movement_cb_handle = add_movement_callback([this]() {
+          process_keyboard_movement(movement_state.type);
+        });
+      }
+
+      o.movement_cb_handle.sic();
     }
     return *this;
   }
@@ -1601,10 +1644,25 @@ namespace fan::graphics::physics {
   void character2d_t::setup_attack_properties(attack_state_t&& attack_state) {
     this->attack_state = std::move(attack_state);
   }
-  void character2d_t::take_hit(character2d_t* source, const fan::vec2& hit_direction, f32_t knockback_multiplier) {
+  void character2d_t::take_hit(
+    character2d_t* source,
+    const fan::vec2& hit_direction,
+    f32_t knockback_multiplier
+  ) {
     attack_state.health -= source->attack_state.damage;
     attack_state.health = std::max(attack_state.health, 0.f);
-    apply_linear_impulse_center(fan::vec2(hit_direction.x * source->attack_state.knockback_force * knockback_multiplier, -source->attack_state.knockback_force / 5.f));
+
+    fan::vec2 knockback_vel = fan::vec2(
+      hit_direction.sign().x * source->attack_state.knockback_force * knockback_multiplier,
+      -source->attack_state.knockback_force / 5.f
+    );
+
+    movement_state.is_in_knockback = true;
+    movement_state.knockback_ticks_remaining = movement_state.knockback_duration / fan::physics::default_physics_timestep;
+    movement_state.knockback_initial_velocity = knockback_vel;
+
+    set_linear_velocity(knockback_vel);
+
     attack_state.took_damage = true;
     if (attack_state.stun) {
       attack_state.end_attack();
@@ -1638,18 +1696,39 @@ namespace fan::graphics::physics {
       cleanup(character);
       return;
     }
+
+    int prev = character->get_previous_animation_frame();
+    int curr = character->get_current_animation_frame();
+
+
     for (size_t i = 0; i < config.spawns.size(); ++i) {
-      if (!hitbox_spawned[i] && character->animation_on(config.attack_animation, config.spawns[i].frame)) {
+      auto& inst = instances[i];
+      int target = config.spawns[i].frame;
+      if (!hitbox_spawned[i] && curr >= target) {
         spawn_hitbox(character, i);
+        inst.spawn_frame = curr;
+        inst.pending_destroy = false;
+        inst.used = false;
+        hitbox_spawned[i] = true;
       }
 
-      if (hitbox_spawned[i] && !character->animation_on(config.attack_animation, config.spawns[i].frame)) {
-        instances[i].hitbox.destroy();
-        hitbox_spawned[i] = false;
-        instances[i].used = false;
+      if (hitbox_spawned[i] && curr > target && !inst.pending_destroy) {
+        inst.pending_destroy = true;
       }
     }
   }
+
+  void attack_hitbox_t::process_destruction() {
+    for (auto& inst : instances) {
+      if (inst.pending_destroy) {
+        inst.hitbox.destroy();
+        inst.spawn_frame = -1;
+        inst.used = false;
+        inst.pending_destroy = false;
+      }
+    }
+  }
+
   void attack_hitbox_t::spawn_hitbox(character2d_t* character, int index) {
     if (instances[index].hitbox.is_valid()) {
       instances[index].hitbox.destroy();
@@ -1660,7 +1739,7 @@ namespace fan::graphics::physics {
     instances[index].used = false;
   }
   bool attack_hitbox_t::spawned() const {
-    return !hitbox_spawned.size();
+    return std::any_of(hitbox_spawned.begin(), hitbox_spawned.end(), [](bool b){ return b; });
   }
   bool attack_hitbox_t::check_hit(character2d_t* character, int index, character2d_t* target) {
     if (!character->attack_state.is_attacking) {
@@ -1685,14 +1764,11 @@ namespace fan::graphics::physics {
     return true;
   }
   void attack_hitbox_t::cleanup(character2d_t* character) {
-    if (character->attack_state.is_attacking) {
-      return;
-    }
     for (auto& instance : instances) {
       if (instance.hitbox.is_valid()) {
         instance.hitbox.destroy();
       }
-      instance.spawned = false;
+      instance.spawn_frame = -1;
       instance.used = false;
     }
     std::fill(hitbox_spawned.begin(), hitbox_spawned.end(), false);
@@ -2566,12 +2642,6 @@ namespace fan::graphics::physics {
   }
 
   void elevator_t::destroy() {
-    if (step_cb.iic() == false) {
-      //fan::physics::remove_physics_step_callback(step_cb);
-      step_cb.~raii_nr_t();
-      step_cb.sic();
-    }
-
     if (trigger_sensor) {
       trigger_sensor.destroy();
     }

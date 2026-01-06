@@ -25,6 +25,12 @@
 import fan;
 import fan.graphics.gui.tilemap_editor.renderer;
 
+// inlines
+#include <fan/graphics/gameplay.h>
+#include <fan/graphics/tilemap_helpers.h>
+#include <fan/graphics/entity/enemy.h>
+
+
 namespace actions {
   static constexpr const char* drink_potion = "Drink Potion";
   static constexpr const char* interact = "Interact";
@@ -50,7 +56,7 @@ int main() {
       pile->engine.console.commands.print_invalid_arg_count();
       return;
     }
-    pile->player.current_checkpoint = std::stoi(args[0]);
+    pile->get_level().checkpoint_system.set_checkpoint(std::stoi(args[0]));
     pile->player.respawn();
   });
 

@@ -16,6 +16,7 @@ import fan.types.color;
 import fan.types.fstring;
 import fan.utility;
 import fan.graphics.common_types;
+import fan.graphics.gui.base;
 
 #if defined(FAN_GUI)
 
@@ -253,6 +254,13 @@ namespace fan {
       init_focus = false;
     }
     input.Render("input");
+
+    if (input.IsFocused()) {
+      fan::graphics::gui::force_want_io_for_frame() = true;
+    }
+    else {
+      print("A", 0);
+    }
 
     current_command = input.GetText();
     current_command.pop_back();

@@ -421,7 +421,7 @@ ShapeTypes_NodeData_t& GetShapeTypes(ShapeTypeIndex_t sti) {\
 }\
 )\
 \
-static auto& gl_add_shape_type() {\
+static std::function<void(ShapeTypes_NodeData_t&, const BlockProperties_t&)>& gl_add_shape_type() {\
   static std::function<void(ShapeTypes_NodeData_t&, const BlockProperties_t&)> f;\
   return f;\
 }

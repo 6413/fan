@@ -1104,6 +1104,32 @@ export namespace fan::graphics {
     f32_t cell_size = 32;
     std::vector<bool> tiles;
   };
+
+  namespace effects {
+    struct particle_pool_t {
+      template<size_t N>
+      struct pool_t {
+        fan::graphics::shape_t particles[N];
+        size_t current_index = 0;
+
+        void from_json(
+          const std::string& path,
+          const std::source_location& callers_path = std::source_location::current()
+        ) {
+          auto base = fan::graphics::shape_from_json(path, callers_path);
+          base.stop_particles();
+          base.set_dynamic();
+          std::fill(std::begin(particles), std::end(particles), base);
+        }
+
+        void spawn_at(const fan::vec2& position) {
+          particles[current_index].start_particles();
+          particles[current_index].set_position(position);
+          current_index = (current_index + 1) % N;
+        }
+      };
+    };
+  }
 }
 
 #endif

@@ -154,9 +154,10 @@ export namespace fan::graphics {
   };
 
   struct sprite_sheet_data_t {
+    int previous_frame = 0;
     // current_frame in 'selected_frames'
     int current_frame = 0;
-    fan::time::timer update_timer;
+    f32_t frame_accumulator = 0.f;
     // sprite sheet update function nr
     fan::graphics::update_callback_nr_t frame_update_nr;
 
@@ -417,8 +418,9 @@ export namespace fan::graphics {
       bool has_animation();
       static void sprite_sheet_frame_update_cb(shaper_t& shaper, shape_t* shape);
       // returns currently active sprite sheet animation
+      fan::graphics::sprite_sheet_data_t& get_sprite_sheet_data();
       sprite_sheet_animation_t& get_sprite_sheet_animation();
-      void player_sprite_sheet();
+      void play_sprite_sheet();
       void stop_sprite_sheet();
       void play_sprite_sheet_once(const std::string& anim_name);
       // overwrites 'ri.current_animation' animation
@@ -429,8 +431,10 @@ export namespace fan::graphics {
       animation_nr_t& get_current_animation_id() const;
       bool animation_on(const std::string& name, int frame_index);
       bool animation_on(const std::string& name, const std::initializer_list<int>& arr);
+      bool animation_crossed(const std::string& name, int frame_index);
       void set_current_animation_id(animation_nr_t animation_id);
       sprite_sheet_animation_t& get_current_animation();
+      int get_previous_animation_frame() const;
       int get_current_animation_frame() const;
       void set_current_animation_frame(int frame_id);
       int get_current_animation_frame_count();

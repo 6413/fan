@@ -13,11 +13,12 @@ struct boss_skeleton_t : boss_t<boss_skeleton_t> {
   boss_skeleton_t(container_t& bll, typename container_t::nr_t nr, const fan::vec2& position) {
     draw_offset = {0, -135};
     aabb_scale = 0.1f;
-    attack_hitbox_frames = {4};
+    attack_hitbox_frames = {1, 3}; // or (3, 4)
     closeup_distance.x = 400;
     trigger_distance.x = 10000;
+    density = 10000.f;
 
-    open(bll, nr, "boss_skeleton.json");
+    open(&bll, nr, "boss_skeleton.json");
     set_initial_position(position);
 
     //body.set_max_health(10.f);
@@ -26,20 +27,41 @@ struct boss_skeleton_t : boss_t<boss_skeleton_t> {
     body.attack_state.attack_range = {450, 200};
     body.movement_state.max_speed = 350.f;
     body.anim_controller.auto_update_animations = false;
-    body.set_mass(body.get_mass() * 500.f);
+    body.attack_state.knockback_force = 800.f,
 
     attack_hitbox.setup({
-      .spawns = {{
-        .frame = attack_hitbox_frames[0],
-        .create_hitbox = [](const fan::vec2& center, f32_t direction) {
-          return pile->engine.physics_context.create_box(
-            center + fan::vec2((40.f + 190.f) * direction, 0.f),
-            fan::vec2(190.f, 20.f), 0.f,
-            fan::physics::body_type_e::static_body,
-            {.is_sensor = true}
-          );
+      .spawns = {
+        {
+          .frame = attack_hitbox_frames[0],
+         .create_hitbox = [](const fan::vec2& center, f32_t direction) {
+    // 45° offset from boss origin
+    fan::vec2 offset = fan::vec2(direction, -1).normalized() * 230.f;
+
+    // rotate hitbox itself by ±45°
+    f32_t angle = direction * fan::math::radians(-45.f);
+
+    return pile->engine.physics_context.create_box(
+        center + offset,
+        fan::vec2(190.f, 20.f),
+        angle, // ⭐ rotation here
+        fan::physics::body_type_e::static_body,
+        {.is_sensor = true}
+    );
+}
+
+        },
+        {
+          .frame = attack_hitbox_frames[1],
+          .create_hitbox = [](const fan::vec2& center, f32_t direction) {
+            return pile->engine.physics_context.create_box(
+              center + fan::vec2((40.f + 190.f) * direction, 0.f),
+              fan::vec2(190.f, 20.f), 0.f,
+              fan::physics::body_type_e::static_body,
+              {.is_sensor = true}
+            );
+          }
         }
-      }},
+      },
       .attack_animation = "attack0",
       .track_hit_targets = false
     });
@@ -52,6 +74,7 @@ struct boss_skeleton_t : boss_t<boss_skeleton_t> {
         if (node.body.get_health() <= 0) {
           return;
         }
+        node.attack_hitbox.update(&node.body);
         using T = std::decay_t<decltype(node)>;
         if constexpr (std::is_same_v<T, boss_skeleton_t>) {
           if (node.allow_move) {
@@ -72,7 +95,6 @@ private:
       body.movement_state.max_speed = 500.f;
       behavior_config.backstep_cooldown = 3.0e9;
     }
-
     behavior.update(body, pile->player.get_physics_pos(), behavior_config);
     body.anim_controller.update(&body);
   }
