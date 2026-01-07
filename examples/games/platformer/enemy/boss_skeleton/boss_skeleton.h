@@ -32,25 +32,6 @@ struct boss_skeleton_t : boss_t<boss_skeleton_t> {
     attack_hitbox.setup({
       .spawns = {
         {
-          .frame = attack_hitbox_frames[0],
-         .create_hitbox = [](const fan::vec2& center, f32_t direction) {
-    // 45° offset from boss origin
-    fan::vec2 offset = fan::vec2(direction, -1).normalized() * 230.f;
-
-    // rotate hitbox itself by ±45°
-    f32_t angle = direction * fan::math::radians(-45.f);
-
-    return pile->engine.physics_context.create_box(
-        center + offset,
-        fan::vec2(190.f, 20.f),
-        angle, // ⭐ rotation here
-        fan::physics::body_type_e::static_body,
-        {.is_sensor = true}
-    );
-}
-
-        },
-        {
           .frame = attack_hitbox_frames[1],
           .create_hitbox = [](const fan::vec2& center, f32_t direction) {
             return pile->engine.physics_context.create_box(

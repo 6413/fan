@@ -621,6 +621,10 @@ public:
   void toggle_console(bool active);
 
 	fan::console_t console;
+  fan::time::timer fps_timer;
+  uint32_t frame_count = 0;
+  uint32_t last_fps = 0;
+
 	bool render_console = false;
 	bool show_fps = false;
 	bool render_settings_menu = 0;

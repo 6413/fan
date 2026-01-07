@@ -46,8 +46,8 @@ struct player_t {
 
     fan::graphics::physics::character_movement_preset_t::setup_default_controls(body);
 
-    body.movement_state.jump_state.on_jump = [&](int jump_state) {
-      task_jump = jump(jump_state);
+    body.movement_state.jump_state.on_jump = [&](int jump_type) {
+      task_jump = jump(jump_type == 1);
     };
 
     combat.hitbox.setup({
@@ -66,7 +66,7 @@ struct player_t {
     });
 
     body.setup_attack_properties({
-      .max_health = 60.f,
+      .max_health = 50.f,
       .damage = 10.f,
       .knockback_force = 20.f,
       .cooldown_duration = 0.05e9,
@@ -78,15 +78,15 @@ struct player_t {
     });
   }
 
-  fan::event::task_t jump(bool is_double_jump){
+  fan::event::task_t jump(bool is_double_jump) {
     audio_jump.play();
-    if (!is_double_jump){
+    if (!is_double_jump) {
       co_return;
     }
     body.set_rotation_point(-body.get_draw_offset());
 
-    fan::time::timer jump_timer{1.0e9f / 2.f, true};
-    while (!jump_timer){
+    fan::time::timer jump_timer {1.0e9f / 2.f, true};
+    while (!jump_timer) {
       f32_t progress = jump_timer.seconds() / jump_timer.duration_seconds();
       f32_t angle = progress * fan::math::two_pi * body.get_image_sign().x;
       body.set_angle(fan::vec3(0, 0, angle));
@@ -98,7 +98,7 @@ struct player_t {
   void respawn(){
     body.set_angle(0.f);
     
-    fan::vec3 spawn_pos = pile->get_level().checkpoint_system.get_respawn_position(1);
+    fan::vec3 spawn_pos = pile->checkpoint_system.get_respawn_position(pile->renderer, pile->get_level().main_map_id);
     if (spawn_pos == fan::vec3(0)) {
       spawn_pos = fan::graphics::tilemap::helpers::get_spawn_position_or_default(
         pile->renderer, pile->get_level().main_map_id
@@ -170,7 +170,7 @@ struct player_t {
       }
     }
 
-    level.checkpoint_system.check_and_update(body, [this](auto& cp) {
+    pile->checkpoint_system.check_and_update(body, [this](auto& cp) {
       audio_checkpoint.play();
       fan::graphics::gui::print("Checkpoint reached!");
     });

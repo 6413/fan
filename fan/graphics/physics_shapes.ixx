@@ -440,16 +440,17 @@ export namespace fan {
       struct character2d_t;
 
       struct jump_state_t {
+        std::function<void(int jump_state)> on_jump = [](int) {};
+        f32_t last_ground_time = 0.f;
+        f32_t coyote_time = 0.1f;
+        f32_t impulse = 40.f;
+        bool prev_jump_button = false;
         bool jumping = false;
         bool consumed = false;
         bool double_jump_consumed = false;
         bool on_air_after_jump = false;
-        f32_t last_ground_time = 0.f;
-        f32_t coyote_time = 0.1f;
-        f32_t impulse = 40.f;
         bool handle_jump = true;
         bool allow_double_jump = false;
-        std::function<void(int jump_state)> on_jump = [](int) {};
 
         void reset(){
           jumping = false;

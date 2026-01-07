@@ -66,6 +66,41 @@ export namespace fan::graphics::gui {
   bool begin_combo(const std::string& label, const std::string& preview_value, int flags = 0);
   void end_combo();
 
+  /// <summary>
+/// RAII containers for gui windows.
+/// </summary>
+  struct window_t {
+    window_t(const std::string& window_name, bool* p_open = 0, window_flags_t window_flags = 0);
+    ~window_t();
+    explicit operator bool() const;
+
+  private:
+    bool is_open;
+  };
+  /// <summary>
+  /// RAII containers for gui child windows.
+  /// </summary>
+  struct child_window_t {
+    child_window_t(const std::string& window_name, const fan::vec2& size = fan::vec2(0, 0), child_window_flags_t window_flags = 0);
+    ~child_window_t();
+    explicit operator bool() const;
+
+  private:
+    bool is_open;
+  };
+
+  /// <summary>
+  /// RAII containers for gui tables.
+  /// </summary>
+  struct table_t {
+    table_t(const std::string& str_id, int columns, table_flags_t flags = 0, const fan::vec2& outer_size = fan::vec2(0.0f, 0.0f), f32_t inner_width = 0.0f);
+    ~table_t();
+    explicit operator bool() const;
+
+  private:
+    bool is_open;
+  };
+
   void set_item_default_focus();
 
   void same_line(f32_t offset_from_start_x = 0.f, f32_t spacing_w = -1.f);
@@ -533,6 +568,50 @@ export namespace fan::graphics::gui {
 
 
   void profile_heap(void* (*dynamic_malloc)(size_t, void*), void (*dynamic_free)(void*, void*));
+
+  struct window {
+    window(const std::string& title, fan::graphics::gui::window_flags_t flags = 0) :
+      wnd(title, nullptr, flags) {}
+
+    window(const std::string& title, bool* p_open, fan::graphics::gui::window_flags_t flags = 0) :
+      wnd(title, p_open, flags) {}
+
+    explicit operator bool() const {
+      return static_cast<bool>(wnd);
+    }
+
+    fan::graphics::gui::window_t wnd;
+  };
+
+  struct hud : window {
+    hud(const std::string& name, bool* p_open = nullptr)
+      : window(
+        (gui::set_next_window_pos(ImGui::GetMainViewport()->Pos),
+          gui::set_next_window_size(ImGui::GetMainViewport()->Size),
+          name),
+        p_open,
+        gui::window_flags_no_background |
+        gui::window_flags_no_nav |
+        gui::window_flags_no_title_bar |
+        gui::window_flags_no_resize |
+        gui::window_flags_no_move |
+        gui::window_flags_override_input
+      ) {}
+  };
+
+  struct table {
+    table(
+      const std::string& str_id, int columns, 
+      table_flags_t flags = 0, const fan::vec2& outer_size = fan::vec2(0.0f, 0.0f), 
+      f32_t inner_width = 0.0f) 
+      : tbl(str_id, columns, flags, outer_size, inner_width) {}
+
+    explicit operator bool() const {
+      return static_cast<bool>(tbl);
+    }
+
+    fan::graphics::gui::table_t tbl;
+  };
 } // namespace fan::graphics::gui
 
 

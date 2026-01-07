@@ -35,12 +35,16 @@ namespace fan::graphics::gameplay {
       return false;
     }
 
-    fan::vec3 get_respawn_position(int checkpoint) const {
-      if (checkpoint == -1 || checkpoints.empty()) return 0;
+    fan::vec3 get_respawn_position(tilemap_renderer_t& renderer, tilemap_renderer_t::id_t map_id, int checkpoint) const {
+      if (checkpoint == -1 || checkpoints.empty()) {
+        fan::vec3 p = 0;
+        renderer.get_player_spawn_position(map_id, &p);
+        return p;
+      }
       return checkpoints[checkpoint].visual.get_position();
     }
-    fan::vec3 get_respawn_position() const {
-      return get_respawn_position(current_checkpoint);
+    fan::vec3 get_respawn_position(tilemap_renderer_t& renderer, tilemap_renderer_t::id_t map_id) const {
+      return get_respawn_position(renderer, map_id, current_checkpoint);
     }
 
     void set_checkpoint(int index) {

@@ -253,7 +253,9 @@ struct renderer_t {\
     vulkan_expand(vk_t vk;)\
   };\
 \
-  type_t type = opengl_expand(type_t::gl) vulkan_expand(type_t::vk);\
+  type_t type = \
+  opengl_expand(type_t::gl) \
+  ; \
 };\
 \
 renderer_t renderer;

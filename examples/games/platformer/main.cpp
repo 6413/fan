@@ -56,8 +56,8 @@ int main() {
       pile->engine.console.commands.print_invalid_arg_count();
       return;
     }
-    pile->get_level().checkpoint_system.set_checkpoint(std::stoi(args[0]));
-    pile->player.respawn();
+    pile->checkpoint_system.set_checkpoint(std::stoi(args[0]));
+    pile->get_level().reload_map();
   });
 
   pile->engine.loop([&] {

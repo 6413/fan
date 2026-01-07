@@ -258,9 +258,6 @@ namespace fan {
     if (input.IsFocused()) {
       fan::graphics::gui::force_want_io_for_frame() = true;
     }
-    else {
-      print("A", 0);
-    }
 
     current_command = input.GetText();
     current_command.pop_back();

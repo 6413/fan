@@ -160,6 +160,27 @@ void enter_boss() {
   start_lights(0);
 }
 
+void reload_boss_door_collision() {
+  if (boss_sensor) {
+    return;
+  }
+  pile->renderer.iterate_physics_entities(main_map_id, [&](auto& data, auto& entity_visual) -> bool {
+    const auto& id = data.id;
+    if (id.contains("sensor_enter_boss")) {
+      boss_sensor = entity_visual;
+    }
+    else if (id.contains("boss_door_collision")) {
+      boss_door_position = entity_visual.get_position();
+      boss_door_size = entity_visual.get_size();
+      boss_door_particles = fan::graphics::shape_from_json("effects/boss_spawn.json");
+      boss_door_particles.set_position(fan::vec3(fan::vec2(entity_visual.get_position()), 0xFAAA / 2 - 2 + boss_door_particles.get_position().z));
+      boss_door_particles.set_static(true); // reset the static culling build
+      boss_door_particles.start_particles();
+    }
+    return false;
+  });
+}
+
 void load_map() {
   torch_particles.set_position(fan::vec2(-0xfffff));
 
@@ -196,7 +217,7 @@ void load_map() {
   axe_anim.set_position(fan::vec2(-0xfffff));
   lamp1_anim.set_position(fan::vec2(-0xfffff));
 
-  checkpoint_system.load_from_map(pile->renderer, main_map_id, [](auto& visual, auto& entity) {
+  pile->checkpoint_system.load_from_map(pile->renderer, main_map_id, [](auto& visual, auto& entity) {
     checkpoint_flag.set_position(entity.get_position());
     visual = checkpoint_flag;
     checkpoint_flag.set_position(fan::vec2(-0xfffff));
@@ -204,21 +225,7 @@ void load_map() {
     visual.play_sprite_sheet();
   });
 
-  pile->renderer.iterate_physics_entities(main_map_id, [&](auto& data, auto& entity_visual) -> bool {
-    const auto& id = data.id;
-    if (id.contains("sensor_enter_boss")) {
-      boss_sensor = entity_visual;
-    }
-    else if (id.contains("boss_door_collision")) {
-      boss_door_position = entity_visual.get_position();
-      boss_door_size = entity_visual.get_size();
-      boss_door_particles = fan::graphics::shape_from_json("effects/boss_spawn.json");
-      boss_door_particles.set_position(fan::vec3(fan::vec2(entity_visual.get_position()), 0xFAAA / 2 - 2 + boss_door_particles.get_position().z));
-      boss_door_particles.set_static(true); // reset the static culling build
-      boss_door_particles.start_particles();
-    }
-    return false;
-  });
+  reload_boss_door_collision();
 
   pile->renderer.iterate_marks(main_map_id, [&](tilemap_loader_t::fte_t::spawn_mark_data_t& data) -> bool {
     const auto& id = data.id;
@@ -316,6 +323,13 @@ void load_map() {
         },
         fan::ease_e::pulse
       );
+
+      /*
+      *       boss_door_particles = fan::graphics::shape_from_json("effects/boss_spawn.json");
+      boss_door_particles.set_position(fan::vec3(fan::vec2(entity_visual.get_position()), 0xFAAA / 2 - 2 + boss_door_particles.get_position().z));
+      boss_door_particles.set_static(true); // reset the static culling build
+      boss_door_particles.start_particles();
+      */
       portal_particles = fan::graphics::shape_from_json("effects/portal.json");
       portal_particles.set_position(pos.offset_z(1).offset_y(size.y / 4.f));
       portal_particles.set_static();
@@ -415,6 +429,7 @@ void open(void* sod) {
       if (fan::window::is_input_action_active(actions::interact)) {
         pile->renderer.erase_physics_entity(main_map_id, "boss_door_collision");
         boss_sensor.destroy();
+        boss_sensor.invalidate();
         is_entering_door = true;
         //boss_door_particles.stop_particles();
       }
@@ -461,14 +476,15 @@ void open(void* sod) {
 
     for (auto& spike : spike_sensors) {
       if (fan::physics::is_on_sensor(pile->player.body, spike)) {
-        pile->player.respawn();
-        load_enemies();
+        reload_map();
+        return;
       }
       for (auto& enemy : pile->enemies()) {//
         if (fan::physics::is_on_sensor(enemy.get_body(), spike)) {//
           enemy.destroy();
         }
         enemy.get_body().update_dynamic();
+        break;
       }
     }
 
@@ -502,6 +518,8 @@ void open(void* sod) {
       }
     }
   });
+
+  pile->renderer.update(main_map_id, pile->player.body.get_position());
 }
 
 void close() {
@@ -513,7 +531,6 @@ void close() {
   for (auto& i : pickupables) {
     i.second.destroy();
   }
-  checkpoint_system.clear();
   for (auto& i : tile_collisions) {
     i.destroy();
   }
@@ -527,8 +544,6 @@ void close() {
 void reload_map() {
   pile->stage_loader.erase_stage(this->stage_common.stage_id);
   pile->stage_loader.open_stage<level_t>();
-  pile->renderer.update(pile->get_level().main_map_id, pile->player.body.get_position());
-  //                          ^ 'this' has been erased by erase stage, so query new pointer from get_level
 }
 
 void update() {
@@ -602,8 +617,6 @@ struct checkpoint_t {
   fan::graphics::sprite_t visual;
   fan::physics::entity_t entity;
 };
-
-fan::graphics::gameplay::checkpoint_system_t checkpoint_system;
 
 std::vector<fan::graphics::sprite_t> lamp_sprites;
 std::vector<fan::graphics::light_t> lights, lights_boss, static_lights;

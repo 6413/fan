@@ -763,7 +763,12 @@ namespace fan::graphics::physics {
     fan::physics::body_id_t body,
     const fan::vec2& direction
   ) {
-    fan::vec2 input_dir = direction.min(fan::vec2(1.f));
+    fan::vec2 input_dir = direction;
+    f32_t len = input_dir.length();
+    if (len > 1.f) {
+      input_dir /= len;
+    }
+
     fan::vec2 vel = body.get_linear_velocity();
     f32_t dt = fan::physics::default_physics_timestep;
 
@@ -803,11 +808,15 @@ namespace fan::graphics::physics {
     fan::physics::body_id_t body,
     const fan::vec2& direction
   ) {
-    fan::vec2 input_dir = direction.min(fan::vec2(1.f))
-    #if defined(FAN_GUI)
-      * (check_gui ? !fan::graphics::gui::want_io() : 1)
-    #endif
-      ;
+    fan::vec2 input_dir = direction;
+    f32_t len = input_dir.length();
+    if (len > 1.f) {
+      input_dir /= len;
+    }
+
+  #if defined(FAN_GUI)
+    input_dir *= (check_gui ? !fan::graphics::gui::want_io() : 1);
+  #endif
 
     last_direction = direction;
     fan::vec2 vel = body.get_linear_velocity();
@@ -829,7 +838,6 @@ namespace fan::graphics::physics {
 
     f32_t target_x = input_dir.x * max_speed;
     vel.x = fan::math::lerp(vel.x, target_x, accel);
-
     body.set_linear_velocity({vel.x, vel.y});
   }
 
@@ -845,78 +853,72 @@ namespace fan::graphics::physics {
     last_direction = distance.normalized();
   }
 
-  void movement_state_t::perform_jump(fan::physics::body_id_t body_id, bool jump_condition, fan::vec2* wall_jump_normal, wall_jump_t* wall_jump) {
-    bool on_ground = fan::physics::is_on_ground(body_id, jump_state.jumping);
-    if (on_ground) {
-      jump_state.last_ground_time = fan::time::now();
-      jump_state.reset();
-      if (wall_jump) {
-        wall_jump->consumed = false;
-      }
-    }
-    if (!jump_condition || !jump_state.handle_jump) {
-      jump_state.jumping = false;
-      return;
-    }
+ void movement_state_t::perform_jump(fan::physics::body_id_t body_id, bool jump_condition, fan::vec2* wall_jump_normal, wall_jump_t* wall_jump) {
+  bool on_ground = fan::physics::is_on_ground(body_id, jump_state.jumping);
 
-    fan::physics::shape_id_t colliding_wall_id;
-    fan::vec2 wall_normal = wall_jump_normal ? *wall_jump_normal
-      : fan::physics::check_wall_contact(body_id, &colliding_wall_id);
-    bool touching_wall = (wall_normal.x != 0 || wall_normal.y != 0);
-    bool allow_coyote = jump_state.can_coyote_jump(fan::time::now());
+  bool jump_pressed_this_frame = jump_condition && !jump_state.prev_jump_button;
+  jump_state.prev_jump_button = jump_condition;
 
-    if (touching_wall && !on_ground && jump_state.consumed && wall_jump && !wall_jump->consumed) {
-      fan::vec2 input = fan::window::get_input_vector() 
-      #if defined(FAN_GUI)
-        * (check_gui ? !fan::graphics::gui::want_io() : 1)
-      #endif
-      ;
-      bool pushing_into_wall = fan::math::sgn(input.x) == fan::math::sgn(wall_normal.x);
-      if (!jump_state.jumping) {
-        fan::vec2 vel = body_id.get_linear_velocity();
-        body_id.set_linear_velocity(fan::vec2(vel.x, 0));
-        if (1) {
-          if (fan::physics::wall_jump(body_id, wall_normal, wall_jump->push_away_force, jump_state.impulse)) {
-            jump_state.on_jump(2);
-          }
-        }
-        jump_state.jumping = true;
-        jump_state.on_air_after_jump = true;
-        wall_jump->consumed = true;
-        jump_state.double_jump_consumed = true;
-        return;
-      }
-    }
-
-    if ((!jump_state.consumed && !jump_state.jumping) 
-    #if defined(FAN_GUI)
-      * (check_gui ? !fan::graphics::gui::want_io() : 1)
-    #endif
-    ) {
-      fan::vec2 vel = body_id.get_linear_velocity();
-      body_id.set_linear_velocity(fan::vec2(vel.x, 0));
-      body_id.apply_linear_impulse_center({0, -jump_state.impulse});
-      jump_state.on_jump(0);
-      jump_state.jumping = true;
-      jump_state.consumed = true;
-      jump_state.on_air_after_jump = true;
-      return;
-    }
-
-    if ((jump_state.allow_double_jump && !jump_state.jumping && jump_state.consumed && !jump_state.double_jump_consumed) 
-    #if defined(FAN_GUI)
-      * (check_gui ? !fan::graphics::gui::want_io() : 1)
-    #endif
-    ) {
-      fan::vec2 vel = body_id.get_linear_velocity();
-      body_id.set_linear_velocity(fan::vec2(vel.x, 0));
-      body_id.apply_linear_impulse_center({0, -jump_state.impulse});
-      jump_state.on_jump(1);
-      jump_state.jumping = true;
-      jump_state.double_jump_consumed = true;
+  // Only reset when landing (but not immediately after jumping)
+  if (on_ground && jump_state.on_air_after_jump && !jump_state.jumping) {
+    jump_state.last_ground_time = fan::time::now();
+    jump_state.reset();
+    if (wall_jump) {
+      wall_jump->consumed = false;
     }
   }
 
+  if (!jump_condition || !jump_state.handle_jump) {
+    jump_state.jumping = false;
+    return;
+  }
+
+  fan::physics::shape_id_t colliding_wall_id;
+  fan::vec2 wall_normal = wall_jump_normal ? *wall_jump_normal
+    : fan::physics::check_wall_contact(body_id, &colliding_wall_id);
+  bool touching_wall = (wall_normal.x != 0 || wall_normal.y != 0);
+
+  if (touching_wall && !on_ground && jump_state.consumed && wall_jump && !wall_jump->consumed) {
+    if (jump_pressed_this_frame) {
+      fan::vec2 vel = body_id.get_linear_velocity();
+      body_id.set_linear_velocity(fan::vec2(vel.x, 0));
+      if (fan::physics::wall_jump(body_id, wall_normal, wall_jump->push_away_force, jump_state.impulse)) {
+        jump_state.on_jump(2);
+      }
+      jump_state.jumping = true;
+      jump_state.on_air_after_jump = true;
+      wall_jump->consumed = true;
+      jump_state.double_jump_consumed = true;
+      return;
+    }
+  }
+
+  if (!jump_state.consumed && jump_pressed_this_frame) {
+#if defined(FAN_GUI)
+    if (check_gui && fan::graphics::gui::want_io()) return;
+#endif
+    fan::vec2 vel = body_id.get_linear_velocity();
+    body_id.set_linear_velocity(fan::vec2(vel.x, 0));
+    body_id.apply_linear_impulse_center({0, -jump_state.impulse});
+    jump_state.on_jump(0);
+    jump_state.jumping = true;
+    jump_state.consumed = true;
+    jump_state.on_air_after_jump = true;
+    return;
+  }
+
+  if (jump_state.allow_double_jump && !jump_state.double_jump_consumed && jump_pressed_this_frame) {
+#if defined(FAN_GUI)
+    if (check_gui && fan::graphics::gui::want_io()) return;
+#endif
+    fan::vec2 vel = body_id.get_linear_velocity();
+    body_id.set_linear_velocity(fan::vec2(vel.x, 0));
+    body_id.apply_linear_impulse_center({0, -jump_state.impulse});
+    jump_state.on_jump(1);
+    jump_state.jumping = true;
+    jump_state.double_jump_consumed = true;
+  }
+}
   //------------------------------------------------------------------------------------------------
   //------------------------------------------------------------------------------------------------
 
@@ -1227,7 +1229,7 @@ namespace fan::graphics::physics {
       character->attack_state.try_attack(character, distance);
       if (should_move(distance)) {
         movement_direction.x = distance.sign().x;
-        f32_t air_control_multiplier = on_ground ? 1.0f : 0.8f;
+        f32_t air_control_multiplier = on_ground ? 1.0f : 1.0f;
         if (wall_jump.normal.x && movement_direction.x) {
           colliding_wall_id.set_friction(0.f);
           fan::vec2 vel = character->get_linear_velocity();
@@ -1574,7 +1576,10 @@ namespace fan::graphics::physics {
           }
           if (c.movement_state.is_wall_sliding) {
             return true;
-          }
+          } 
+          //if (c.movement_state.jump_state.on_air_after_jump) {
+          //  return true;
+          //}
           return std::abs(c.get_linear_velocity().x) >= 10.f/* || c.movement_state.jump_state.on_air_after_jump*/;
         }
       });
@@ -1592,8 +1597,12 @@ namespace fan::graphics::physics {
     case movement_e::side_view:
     {
       bool on_ground = is_on_ground();
-      f32_t air_control_multiplier = on_ground ? 1.0f : 0.8f;
-      movement_state.move_to_direction(*this, fan::vec2(input_vector.x, 0) * air_control_multiplier);
+      f32_t air_control_multiplier = on_ground ? 1.0f : 1.0f;
+
+      fan::vec2 move_input = fan::vec2(input_vector.x, 0) * air_control_multiplier;
+
+      movement_state.move_to_direction(*this, move_input);
+
       if (wall_jump.normal.x && input_vector.x) {
         if (!movement_state.jump_state.jumping && velocity.y > 0) {
           fan::physics::apply_wall_slide(*this, wall_jump.normal, wall_jump.slide_speed);
@@ -1601,12 +1610,14 @@ namespace fan::graphics::physics {
         }
       }
 
-      movement_state.perform_jump(*this, fan::window::is_action_down(fan::actions::move_up), &wall_jump.normal, &wall_jump);
+      bool jump_pressed = fan::window::is_action_down(fan::actions::move_up);
+      movement_state.perform_jump(*this, jump_pressed, &wall_jump.normal, &wall_jump);
       break;
     }
     case movement_e::top_view:
     {
-      movement_state.move_to_direction_raw(*this, input_vector);
+      fan::vec2 normalized_input = input_vector.length() > 0 ? input_vector.normalized() : input_vector;
+      movement_state.move_to_direction_raw(*this, normalized_input);
       break;
     }
     }
