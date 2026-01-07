@@ -111,6 +111,38 @@ namespace fan::graphics::gui {
   void end_group() {
     ImGui::EndGroup();
   }
+  window_t::window_t(const std::string& window_name, bool* p_open, window_flags_t window_flags)
+    : is_open(begin(window_name.c_str(), p_open, window_flags)) {}
+
+  window_t::~window_t() {
+    end();
+  }
+
+  window_t::operator bool() const {
+    return is_open;
+  }
+
+  child_window_t::child_window_t(const std::string& window_name, const fan::vec2& size, child_window_flags_t window_flags)
+    : is_open(begin_child(window_name.c_str(), size, window_flags)) {}
+
+  child_window_t::~child_window_t() {
+    end_child();
+  }
+
+  child_window_t::operator bool() const {
+    return is_open;
+  }
+
+  table_t::table_t(const std::string& str_id, int columns, table_flags_t flags, const fan::vec2& outer_size, f32_t inner_width)
+    : is_open(begin_table(str_id, columns, flags, outer_size, inner_width)) {}
+
+  table_t::~table_t() {
+    end_table();
+  }
+
+  table_t::operator bool() const {
+    return is_open;
+  }
   void table_setup_column(const std::string& label, table_column_flags_t flags, f32_t init_width_or_weight, id_t user_id) {
     ImGui::TableSetupColumn(label.c_str(), flags, init_width_or_weight, user_id);
   }

@@ -1680,7 +1680,68 @@ void loco_t::process_gui() {
     gui::text("Shape Draw Time: ", format_val(shape_draw_time_s * 1e3) + " ms");
     gui::text("GUI Draw Time: ", format_val(gui_draw_time_s * 1e3) + " ms");
 
+
     gui::end();
+  }
+
+  {
+    frame_count++;
+
+    if (!fps_timer.started()) {
+      last_fps = 1.0 / delta_time;
+      fps_timer.start();
+    }
+
+    if (fps_timer.seconds() >= 1.0f) {
+      last_fps = frame_count;
+      frame_count = 0;
+      fps_timer.restart();
+    }
+
+    std::string s = std::to_string(last_fps);
+
+    gui::push_font(gui::get_font(15.f));
+
+    fan::vec2 ts = gui::calc_text_size(s);
+    fan::vec2 bs = fan::vec2(34, ts.y * 1.4f);
+
+    fan::vec2 p = fan::vec2(
+      window.get_size().x - bs.x,
+      0
+    );
+
+    fan::vec2 tp = fan::vec2(
+      p.x + (bs.x - ts.x) * 0.5f,
+      p.y + (bs.y - ts.y) * 0.5f
+    );
+
+    auto* dl = gui::get_foreground_draw_list();
+
+    auto bg = fan::color(0, 0, 0, 1).get_gui_color();
+    auto border = gui::get_color_u32(gui::col_border);
+    f32_t rounding = gui::get_style().FrameRounding;
+
+    dl->AddRectFilled(
+      ImVec2(p.x, p.y),
+      ImVec2(p.x + bs.x, p.y + bs.y),
+      bg,
+      rounding
+    );
+
+    dl->AddRect(
+      ImVec2(p.x, p.y),
+      ImVec2(p.x + bs.x, p.y + bs.y),
+      border,
+      rounding
+    );
+
+    dl->AddText(
+      ImVec2(tp.x, tp.y),
+      fan::color(0, 1, 0, 1).get_gui_color(),
+      s.c_str()
+    );
+
+    gui::pop_font();
   }
 
 #if defined(loco_framebuffer)
@@ -1971,43 +2032,6 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
 
   gui::begin("##global_renderer", nullptr, flags);
 
-  {
-    static f32_t font_size = 15.f;
-    std::string fps_text = std::to_string(int(1.0 / delta_time));
-
-    gui::push_font(gui::get_font(font_size));
-
-    fan::vec2 box_size = fan::vec2(34, gui::get_font_size() * 1.4f);
-    fan::vec2 text_size = gui::calc_text_size(fps_text);
-
-    fan::vec2 fps_pos = fan::vec2(
-      window.get_size().x - box_size.x,
-      0
-    );
-
-    fan::vec2 bg_min = fps_pos;
-    fan::vec2 bg_max = fps_pos + box_size;
-
-    gui::get_window_draw_list()->AddRectFilled(
-      bg_min,
-      bg_max,
-      fan::color(0, 0, 0, 1.0f).get_gui_color(),
-      0.0f
-    );
-
-    fan::vec2 text_pos = fan::vec2(
-      fps_pos.x + box_size.x - text_size.x,
-      fps_pos.y + (box_size.y - text_size.y) * 0.5f
-    );
-
-    gui::get_window_draw_list()->AddText(
-      text_pos,
-      fan::color(0.0f, 1, 0.0f, 1.f).get_gui_color(),
-      fps_text.c_str()
-    );
-
-    gui::pop_font();
-  }
 #endif
 
   fan::event::deferred_resume_t::process_resumes();
@@ -2114,19 +2138,22 @@ void loco_t::set_viewport(fan::graphics::viewport_t viewport, const fan::vec2& v
 }
 
 fan::vec2 loco_t::get_input_vector(
-  const std::string& forward, const std::string& back,
-  const std::string& left, const std::string& right
-) {
-  fan::vec2 v(
-    input_action.is_down(right) - input_action.is_down(left),
-    input_action.is_down(back) - input_action.is_down(forward)
-  );
-  fan::vec2 v2 = window.get_gamepad_axis(input_action.get_first_gamepad_key(left));
-  if (v2.length() > window.gamepad_axis_deadzone) {
-    return v2;
+    const std::string& forward,
+    const std::string& back,
+    const std::string& left,
+    const std::string& right
+  ) {
+    auto& ia = *fan::graphics::ctx().input_action;
+    fan::vec2 v(
+      ia.is_down(right) - ia.is_down(left),
+      ia.is_down(back) - ia.is_down(forward)
+    );
+    fan::vec2 v2 = fan::graphics::ctx().window->get_gamepad_axis(fan::graphics::ctx().input_action->get_first_gamepad_key(left));
+    if (v2.length() > fan::graphics::ctx().window->gamepad_axis_deadzone) {
+      return v2;
+    }
+    return v;
   }
-  return v.length() > 0 ? v.normalized() : v;
-}
 
 fan::vec2 loco_t::transform_matrix(const fan::vec2& position) {
   fan::vec2 window_size = window.get_size();
