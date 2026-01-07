@@ -104,10 +104,11 @@ export namespace fan {
       }
 			void start() {
 				m_timer = fan::time::now();
+        m_time = -2;
 			}
       void start(uint64_t time) {
-        m_time = time;
         this->start();
+        m_time = time;
       }
       void start_seconds(f64_t s) {
         m_time = (uint64_t)(s * 1e9);

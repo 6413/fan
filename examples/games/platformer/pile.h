@@ -58,6 +58,7 @@ struct pile_t {
     return stage_loader.get_stage_data<gui_t>(gui_stage);
   }
   fan::graphics::engine_t engine {{.window_size = {1920,1080}}};
+  fan::graphics::gameplay::checkpoint_system_t checkpoint_system;
   tilemap_renderer_t renderer;
   stage_loader_t stage_loader;
   stage_loader_t::nr_t level_stage, gui_stage;

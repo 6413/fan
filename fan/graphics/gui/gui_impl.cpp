@@ -24,39 +24,6 @@ import fan.audio;
 
 #if defined(FAN_GUI)
 namespace fan::graphics::gui {
-  window_t::window_t(const std::string& window_name, bool* p_open, window_flags_t window_flags)
-    : is_open(begin(window_name.c_str(), p_open, window_flags)) {}
-
-  window_t::~window_t() {
-    end();
-  }
-
-  window_t::operator bool() const {
-    return is_open;
-  }
-
-  child_window_t::child_window_t(const std::string& window_name, const fan::vec2& size, child_window_flags_t window_flags)
-    : is_open(begin_child(window_name.c_str(), size, window_flags)) {}
-
-  child_window_t::~child_window_t() {
-    end_child();
-  }
-
-  child_window_t::operator bool() const {
-    return is_open;
-  }
-
-  table_t::table_t(const std::string& str_id, int columns, table_flags_t flags, const fan::vec2& outer_size, f32_t inner_width)
-    : is_open(begin_table(str_id, columns, flags, outer_size, inner_width)) {}
-
-  table_t::~table_t() {
-    end_table();
-  }
-
-  table_t::operator bool() const {
-    return is_open;
-  }
-
   const char* item_getter1(const std::vector<std::string>& items, int index) {
     if (index >= 0 && index < (int)items.size()) {
       return items[index].c_str();
@@ -363,6 +330,34 @@ namespace fan::graphics::gui {
       }
       if (slider("angle", &ri.angle, -fan::math::pi * 2, fan::math::pi * 2)) {
       }
+      g_shapes->visit_shape_draw_data(shape.gint(), [&]<typename T>(T& properties) {
+        if constexpr (std::is_same_v<fan::graphics::shapes::particles_t::properties_t, T>) {
+          properties.loop = ri.loop;
+          properties.shape = ri.shape;
+          properties.begin_color = ri.begin_color;
+          properties.end_color = ri.end_color;
+          properties.position = ri.position;
+          properties.start_size = ri.start_size;
+          properties.end_size = ri.end_size;
+          properties.alive_time = ri.alive_time;
+          properties.spawn_spacing = ri.spawn_spacing;
+          properties.expansion_power = ri.expansion_power;
+          properties.start_spread = ri.start_spread;
+          properties.end_spread = ri.end_spread;
+          properties.start_velocity = ri.start_velocity;
+          properties.end_velocity = ri.end_velocity;
+          properties.start_angle_velocity = ri.start_angle_velocity;
+          properties.end_angle_velocity = ri.end_angle_velocity;
+          properties.jitter_start = ri.jitter_start;
+          properties.jitter_end = ri.jitter_end;
+          properties.jitter_speed = ri.jitter_speed;
+          properties.count = ri.count;
+          properties.begin_angle = ri.begin_angle;
+          properties.end_angle = ri.end_angle;
+          properties.angle = ri.angle;
+        }
+      });
+
       break;
     }
     }

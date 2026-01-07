@@ -17,11 +17,15 @@ struct boss_t : enemy_t<derived_t> {
       delayed_hp = current_hp;
     }
 
-    displayed_hp = current_hp;
+    if (displayed_hp != current_hp) {
+      displayed_hp = current_hp;
+    }
 
     if (delayed_hp > current_hp) {
       delayed_hp -= anim_remove_hp_s * pile->engine.delta_time;
-      if (delayed_hp < current_hp) delayed_hp = current_hp;
+      if (delayed_hp < current_hp) {
+        delayed_hp = current_hp;
+      }
     }
     else if (delayed_hp < current_hp) {
       delayed_hp = current_hp;

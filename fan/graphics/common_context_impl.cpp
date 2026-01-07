@@ -255,7 +255,7 @@ namespace fan::window {
     if (v2.length() > fan::graphics::ctx().window->gamepad_axis_deadzone) {
       return v2;
     }
-    return v.length() > 0 ? v.normalized() : v;
+    return v;
   }
   fan::vec2 get_size() {
     return fan::graphics::ctx().window->get_size();
