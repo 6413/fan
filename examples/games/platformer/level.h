@@ -89,7 +89,6 @@ void start_lights(uint32_t index) {
     auto& l = level->boss_torch_particles.back();
     l.start_particles();
     l.set_position(level->lights_boss[index].get_position().offset_y(boss_light_adjustment_y).offset_z(1));
-    l.set_static(true);
   };
 
   if (index + 1 >= lights_boss.size()) {
@@ -174,7 +173,6 @@ void reload_boss_door_collision() {
       boss_door_size = entity_visual.get_size();
       boss_door_particles = fan::graphics::shape_from_json("effects/boss_spawn.json");
       boss_door_particles.set_position(fan::vec3(fan::vec2(entity_visual.get_position()), 0xFAAA / 2 - 2 + boss_door_particles.get_position().z));
-      boss_door_particles.set_static(true); // reset the static culling build
       boss_door_particles.start_particles();
     }
     return false;
@@ -185,7 +183,6 @@ void load_map() {
   torch_particles.set_position(fan::vec2(-0xfffff));
 
   //pile->engine.culling_rebuild_grid();
-  background.set_static();
   main_compiled_map = pile->renderer.compile("sample_level.fte");
   fan::vec2i render_size(16, 9);
   tilemap_loader_t::properties_t p;
@@ -235,7 +232,6 @@ void load_map() {
 
       l.set_current_animation_frame(fan::random::value(0, l.get_current_animation_frame_count()));
       l.set_position(fan::vec3(fan::vec2(data.position) + fan::vec2(1.f, -2.f), 1));
-      l.set_static(true);
       lights.emplace_back(fan::graphics::light_t {{
         .position = l.get_position(),
         .size = 512
@@ -246,7 +242,6 @@ void load_map() {
       auto& l = boss_torch_particles.back();
       l.start_particles();
       l.set_position(data.position.offset_y(boss_light_adjustment_y));
-      l.set_static(true);
       static_lights.emplace_back(fan::graphics::light_t {{
         .position = l.get_position(),
         .size = 512,
@@ -332,7 +327,6 @@ void load_map() {
       */
       portal_particles = fan::graphics::shape_from_json("effects/portal.json");
       portal_particles.set_position(pos.offset_z(1).offset_y(size.y / 4.f));
-      portal_particles.set_static();
       portal_particles.start_particles();
 
       portal_sensor = pile->engine.physics_context.create_sensor_rectangle(pos, fan::vec2(size.x / 2.5f, size.y));

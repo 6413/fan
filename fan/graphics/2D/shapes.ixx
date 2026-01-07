@@ -311,11 +311,12 @@ export namespace fan::graphics {
 
       bool is_visible() const;
       void set_visible(bool flag);
-      void set_static(bool update = false);
+      void set_static(bool update = true);
       void set_dynamic();
 
       fan::graphics::culling::movement_type_t get_movement() const;
       void update_dynamic();
+      void update_culling();
 
       void push_shaper();
       void erase_shaper();

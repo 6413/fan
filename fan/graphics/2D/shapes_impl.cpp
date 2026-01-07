@@ -592,6 +592,14 @@ namespace fan::graphics{
       culling::update_dynamic(g_shapes->visibility, *this);
     }
   }
+  void shapes::shape_t::update_culling() {
+    if (get_movement() == culling::movement_static) {
+      set_static(true);
+    }
+    else {
+      update_dynamic();
+    }
+  }
 
   void shapes::shape_t::push_shaper() {
     shapes::shape_ids_t::nr_t id;
@@ -1238,26 +1246,26 @@ namespace fan::graphics{
     }
   }
 
-	void shapes::shape_t::set_position(const fan::vec2& position) {
-		g_shapes->shape_functions[get_shape_type()].set_position2(this, position);
+  void shapes::shape_t::set_position(const fan::vec2& position) {
+    g_shapes->shape_functions[get_shape_type()].set_position2(this, position);
     set_particle_pos(this, position);
-    update_dynamic();
-	}
+    update_culling();
+  }
 
 	void shapes::shape_t::set_position(const fan::vec3& position) {
 		g_shapes->shape_functions[get_shape_type()].set_position3(this, position);
     set_particle_pos(this, position);
-    update_dynamic();
+    update_culling();
 	}
 
 	void shapes::shape_t::set_x(f32_t x) {
 		set_position(fan::vec2(x, get_position().y));
-    update_dynamic();
+    update_culling();
 	}
 
 	void shapes::shape_t::set_y(f32_t y) {
 		set_position(fan::vec2(get_position().x, y));
-    update_dynamic();
+    update_culling();
 	}
 
 	void shapes::shape_t::set_z(f32_t z) {
@@ -1283,15 +1291,15 @@ namespace fan::graphics{
 
 	void shapes::shape_t::set_size(const fan::vec2& size) {
 		g_shapes->shape_functions[get_shape_type()].set_size(this, size);
-    update_dynamic();
+    update_culling();
 	}
   void shapes::shape_t::set_radius(f32_t radius) {
     g_shapes->shape_functions[get_shape_type()].set_size(this, radius);
-    update_dynamic();
+    update_culling();
   }
 	void shapes::shape_t::set_size3(const fan::vec3& size) {
 		g_shapes->shape_functions[get_shape_type()].set_size3(this, size);
-    update_dynamic();
+    update_culling();
 	}
 
 	// returns half extents of draw
@@ -1818,9 +1826,8 @@ namespace fan::graphics{
 		auto st = get_shape_type();
 		if (st == fan::graphics::shapes::shape_type_t::line) {
       g_shapes->shape_functions[get_shape_type()].set_line(this, src, dst);
-      update_dynamic();
 		}
-    update_dynamic();
+    update_culling();
 	#if defined(FAN_3D)
 		if (st == fan::graphics::shapes::shape_type_t::line3d) {
 			auto data = reinterpret_cast<line3d_t::vi_t*>(GetRenderData(fan::graphics::g_shapes->shaper));
