@@ -40,13 +40,14 @@ struct spike_spatial_t {
     auto minc = fan::graphics::spatial::world_to_cell_clamped(aabb.min, world_min, cell_size, grid_size);
     auto maxc = fan::graphics::spatial::world_to_cell_clamped(aabb.max, world_min, cell_size, grid_size);
 
-    for (int y = minc.y; y <= maxc.y; ++y)
+    for (int y = minc.y; y <= maxc.y; ++y) {
       for (int x = minc.x; x <= maxc.x; ++x) {
         auto& v = cells[fan::graphics::spatial::cell_index({x, y}, grid_size)];
         for (auto& spike : v)
           if (fan::physics::is_on_sensor(entity, spike))
             return &spike;
       }
+    }
 
     return nullptr;
   }
