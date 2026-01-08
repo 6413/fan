@@ -29,13 +29,13 @@ namespace fan {
   fan::commands_t::command_t& commands_t::add(const std::string& cmd, decltype(command_t::func) func) {
     command_t command;
     command.func = func;
-    command_t& obj = func_table[cmd];
+    command_t& obj = get_func_table()[cmd];
     obj = command;
     return obj;
   }
 
   void commands_t::remove(const std::string& cmd) {
-    func_table.erase(cmd);
+    get_func_table().erase(cmd);
   }
 
   std::vector<std::string> commands_t::split_args(const std::string& input) {
@@ -83,8 +83,8 @@ namespace fan {
       arg0_off = cmd.size();
     }
     std::string arg0 = cmd.substr(0, arg0_off);
-    auto found = func_table.find(arg0);
-    if (found == func_table.end()) {
+    auto found = get_func_table().find(arg0);
+    if (found == get_func_table().end()) {
       commands_t::print_command_not_found(cmd);
       return command_errors_e::function_not_found;
     }
@@ -110,7 +110,7 @@ namespace fan {
   int commands_t::insert_to_command_chain(const commands_t::arg_t& args)
   {
     if (args[1].find(";") != std::string::npos) {
-      auto& obj = func_table[args[0]];
+      auto& obj = get_func_table()[args[0]];
       static std::regex pattern(";\\s+");
       auto removed_spaces_before_semicolon = std::regex_replace(args[1], pattern, ";");
       obj.command_chain = fan::split(removed_spaces_before_semicolon, ";");
@@ -224,7 +224,7 @@ namespace fan {
     ImGui::EndChild();
 
     if (current_command.size()) {
-      for (const auto& i : commands.func_table) {
+      for (const auto& i : commands.get_func_table()) {
         const auto& command = i.first;
         std::size_t len = std::strlen(current_command.c_str());
         if (len && command.substr(0, len) == current_command.c_str()) {

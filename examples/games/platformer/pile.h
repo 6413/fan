@@ -71,6 +71,8 @@ struct pile_t {
   player_t player;
   fan::graphics::rectangle_t stage_transition;
 
+  std::unordered_map<std::string, tilemap_loader_t::compiled_map_t> tilemaps_compiled;
+
   using enemy_list_t = fan::graphics::entity::enemy_container_t<skeleton_t, fly_t, boss_skeleton_t>;
   enemy_list_t enemy_list;
   enemy_list_t& enemies() { return enemy_list; }
@@ -90,8 +92,9 @@ pile_t::pile_t() {
 
   player.body.set_physics_position(player.body.get_position());
   engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position(), 0);
-  level_stage = stage_loader.open_stage<level_t>();
   gui_stage = stage_loader.open_stage<gui_t>();
+  tilemaps_compiled[level_t::stage_name] = pile->renderer.compile("sample_level.fte");
+  level_stage = stage_loader.open_stage<level_t>();
   audio_background = fan::audio::piece_t("audio/background.sac");
   audio_background_play_id = fan::audio::play(audio_background, 0, true);
 

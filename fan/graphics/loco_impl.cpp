@@ -1,7 +1,8 @@
 module;
 
-#define loco_framebuffer
-#define loco_post_process
+// loco framebuffer is recommended, you cant see sprites without it, 
+// since light uses framebuffer _t01. you could use unlit_sprite, if required
+#define LOCO_FRAMEBUFFER
 
 #include <fan/utility.h>
 
@@ -526,7 +527,7 @@ void loco_t::generate_commands(loco_t* loco) {
       out.highlight = fan::graphics::highlight_e::info;
       std::string out_str;
       out_str += "{\n";
-      for (const auto& i : loco->console.commands.func_table) {
+      for (const auto& i : loco->console.commands.get_func_table()) {
         out_str += "\t" + i.first + ",\n";
       }
       out_str += "}\n";
@@ -535,8 +536,8 @@ void loco_t::generate_commands(loco_t* loco) {
       return;
     }
     else if (args.size() == 1) {
-      auto found = loco->console.commands.func_table.find(args[0]);
-      if (found == loco->console.commands.func_table.end()) {
+      auto found = loco->console.commands.get_func_table().find(args[0]);
+      if (found == loco->console.commands.get_func_table().end()) {
         loco->console.commands.print_command_not_found(args[0]);
         return;
       }
@@ -553,7 +554,7 @@ void loco_t::generate_commands(loco_t* loco) {
   loco->console.commands.add("list", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
     auto* loco = OFFSETLESS(self, loco_t, console);
     std::string out_str;
-    for (const auto& i : loco->console.commands.func_table) {
+    for (const auto& i : loco->console.commands.get_func_table()) {
       out_str += i.first + "\n";
     }
 
@@ -573,7 +574,7 @@ void loco_t::generate_commands(loco_t* loco) {
     if (loco->console.commands.insert_to_command_chain(args)) {
       return;
     }
-    loco->console.commands.func_table[args[0]] = loco->console.commands.func_table[args[1]];
+    loco->console.commands.get_func_table()[args[0]] = loco->console.commands.get_func_table()[args[1]];
   }).description = "can create alias commands - usage alias [cmd name] [cmd]";
 
 
@@ -596,7 +597,7 @@ void loco_t::generate_commands(loco_t* loco) {
     loco->console.editor.SetText("");
   }).description = "clears output buffer - usage clear";
 
-#if defined(loco_framebuffer)
+#if defined(LOCO_FRAMEBUFFER)
   loco->console.commands.add("set_gamma", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
     auto* loco = OFFSETLESS(self, loco_t, console);
     if (args.size() != 1) {
@@ -604,7 +605,7 @@ void loco_t::generate_commands(loco_t* loco) {
       return;
     }
     loco->shader_set_value(loco->gl.m_fbo_final_shader, "gamma", std::stof(args[0]));
-  }).description = "sets gamma for postprocessing shader";
+  }).description = "sets gamma for post processing shader";
 
   loco->console.commands.add("set_gamma", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
     auto* loco = OFFSETLESS(self, loco_t, console);
@@ -613,7 +614,7 @@ void loco_t::generate_commands(loco_t* loco) {
       return;
     }
     loco->shader_set_value(loco->gl.m_fbo_final_shader, "gamma", std::stof(args[0]));
-  }).description = "sets gamma for postprocessing shader";
+  }).description = "sets gamma for post processing shader";
   loco->console.commands.add("set_contrast", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
     auto* loco = OFFSETLESS(self, loco_t, console);
     if (args.size() != 1) {
@@ -621,7 +622,7 @@ void loco_t::generate_commands(loco_t* loco) {
       return;
     }
     loco->shader_set_value(loco->gl.m_fbo_final_shader, "contrast", std::stof(args[0]));
-  }).description = "sets contrast for postprocessing shader";
+  }).description = "sets contrast for post processing shader";
 
   loco->console.commands.add("set_exposure", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
     auto* loco = OFFSETLESS(self, loco_t, console);
@@ -630,7 +631,7 @@ void loco_t::generate_commands(loco_t* loco) {
       return;
     }
     loco->shader_set_value(loco->gl.m_fbo_final_shader, "exposure", std::stof(args[0]));
-  }).description = "sets exposure for postprocessing shader";
+  }).description = "sets exposure for post processing shader";
 
   loco->console.commands.add("set_bloom_strength", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
     auto* loco = OFFSETLESS(self, loco_t, console);
@@ -640,7 +641,7 @@ void loco_t::generate_commands(loco_t* loco) {
     }
     loco->settings_menu.config.post_processing.bloom_strength = std::stof(args[0]);
     loco->shader_set_value(loco->gl.m_fbo_final_shader, "bloom_strength", loco->settings_menu.config.post_processing.bloom_strength);
-  }).description = "sets bloom strength for postprocessing shader";
+  }).description = "sets bloom strength for post processing shader";
 #endif
   loco->console.commands.add("set_vsync", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
     auto* loco = OFFSETLESS(self, loco_t, console);
@@ -809,7 +810,11 @@ void loco_t::get_culling_stats(uint32_t& visible, uint32_t& culled) const {
   visible = 0;
   uint32_t total = 0;
   for (auto const& [cam_id, cam_state] : shapes.visibility.camera_states) {
-    visible += std::count(cam_state.visible.begin(), cam_state.visible.end(), 1);
+    visible += std::count_if(
+      cam_state.visible.begin(),
+      cam_state.visible.end(),
+      [](const auto& pair) { return pair.second == 1; }
+    );
     total = std::max<uint32_t>(total, cam_state.visible.size());
   }
   culled = (total >= visible) ? (total - visible) : 0;
@@ -1138,7 +1143,7 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   fan::audio::piece_hover.open_piece("audio/hover.sac", 0);
   fan::audio::piece_click.open_piece("audio/click.sac", 0);
 
-  fan::audio::g_audio = &audio;
+  fan::audio::gaudio() = &audio;
 
 #endif
 
@@ -1149,9 +1154,9 @@ loco_t::loco_t(const loco_t::properties_t& props) :
 #endif
 
 #if defined(FAN_2D)
-  set_culling_enabled(true);
   cell_size = 256;
   culling_rebuild_grid();
+  set_culling_enabled(true);
   //shapes.visibility.padding = fan::vec2(1000, 1000);
 #endif
 
@@ -1184,7 +1189,7 @@ void loco_t::destroy() {
   }
 
 #if defined(FAN_GUI)
-  console.commands.func_table.clear();
+  console.commands.get_func_table().clear();
   console.close();
 #endif
 
@@ -1580,9 +1585,9 @@ void loco_t::process_gui() {
   fan::graphics::gui::process_frame();
 
   // append
-  gui::begin("##global_renderer");
-  text_logger.render();
-  gui::end();
+  if(auto h = gui::hud("##text_logger")) {
+    text_logger.render();
+  }
 
   if (input_action.is_clicked(fan::actions::toggle_console)) {
     render_console = !render_console;
@@ -1615,8 +1620,7 @@ void loco_t::process_gui() {
     using namespace fan::graphics;
 
     gui::window_flags_t window_flags =
-      gui::window_flags_no_title_bar |
-      gui::window_flags_no_focus_on_appearing;
+      gui::window_flags_no_title_bar;
 
     gui::set_next_window_bg_alpha(0.99f);
     gui::set_next_window_size(fan::vec2(831.0000, 693.0000), gui::cond_once);
@@ -1722,21 +1726,21 @@ void loco_t::process_gui() {
     f32_t rounding = gui::get_style().FrameRounding;
 
     dl->AddRectFilled(
-      ImVec2(p.x, p.y),
-      ImVec2(p.x + bs.x, p.y + bs.y),
+      fan::vec2(p.x, p.y),
+      fan::vec2(p.x + bs.x, p.y + bs.y),
       bg,
       rounding
     );
 
     dl->AddRect(
-      ImVec2(p.x, p.y),
-      ImVec2(p.x + bs.x, p.y + bs.y),
+      fan::vec2(p.x, p.y),
+      fan::vec2(p.x + bs.x, p.y + bs.y),
       border,
       rounding
     );
 
     dl->AddText(
-      ImVec2(tp.x, tp.y),
+      fan::vec2(tp.x, tp.y),
       fan::color(0, 1, 0, 1).get_gui_color(),
       s.c_str()
     );
@@ -1744,7 +1748,7 @@ void loco_t::process_gui() {
     gui::pop_font();
   }
 
-#if defined(loco_framebuffer)
+#if defined(LOCO_FRAMEBUFFER)
 
 #endif
 
@@ -1899,7 +1903,6 @@ void loco_t::process_render() {
   }
 #endif
 
-
   if (window.renderer == fan::window_t::renderer_t::opengl) {
     gl.begin_process_frame();
   }
@@ -2017,25 +2020,26 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
   }
 
   gui::pop_style_color(2);
+
   gui::set_next_window_pos(fan::vec2(0, 0));
   gui::set_next_window_size(fan::vec2(window.get_size()));
 
-  int flags = gui::window_flags_no_docking | gui::window_flags_no_saved_settings |
-    gui::window_flags_no_focus_on_appearing | gui::window_flags_no_move |
-    gui::window_flags_no_collapse | gui::window_flags_no_background |
-    gui::window_flags_no_resize | gui::dock_node_flags_no_docking_split |
-    gui::window_flags_no_title_bar | gui::window_flags_no_bring_to_front_on_focus | gui::window_flags_no_inputs;
-
-  if (!enable_overlay) {
-    flags |= gui::window_flags_no_nav;
+  
+  {
+    static constexpr int wnd_flags = 
+      gui::window_flags_no_docking | gui::window_flags_no_saved_settings |
+      gui::window_flags_no_focus_on_appearing | gui::window_flags_no_move |
+      gui::window_flags_no_collapse | gui::window_flags_no_background |
+      gui::window_flags_no_resize | gui::dock_node_flags_no_docking_split |
+      gui::window_flags_no_title_bar | gui::window_flags_no_bring_to_front_on_focus | 
+      gui::window_flags_no_inputs
+    ;
+    gui::begin("##global_renderer", nullptr, wnd_flags | (!enable_overlay ? gui::window_flags_no_nav | gui::window_flags_override_input : 0));
   }
-
-  gui::begin("##global_renderer", nullptr, flags);
 
 #endif
 
   fan::event::deferred_resume_t::process_resumes();
-
 
   for (const auto& i : single_queue) {
     i();

@@ -189,7 +189,9 @@ export namespace fan {
       void set_mass(f32_t mass);
       f32_t get_restitution() const;
       fan::physics::aabb_t get_aabb() const;
-      fan::vec2 get_aabb_size() const;
+      fan::vec2 get_size() const;
+      void set_body_type(uint8_t body_type);
+
       bool test_overlap(const body_id_t& other) const;
       void on_overlap(const body_id_t& other, std::function<void()> callback);
       f32_t get_gravity_scale() const;

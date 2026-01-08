@@ -175,7 +175,7 @@ struct player_t {
       fan::graphics::gui::print("Checkpoint reached!");
     });
 
-    auto& map_compiled = level.main_compiled_map;
+    auto& map_compiled = pile->tilemaps_compiled[pile->get_level().stage_name];
     if (get_physics_pos().y > map_compiled.map_size.y * (map_compiled.tile_size.y * 2.f)) {
       respawn();
     }

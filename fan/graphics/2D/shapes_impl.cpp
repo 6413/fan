@@ -583,7 +583,10 @@ namespace fan::graphics{
     culling::remove_shape(c, *this);
     culling::add_shape(c, *this, culling::movement_dynamic);
   }
-
+  void shapes::shape_t::remove_culling() {
+    auto& c = g_shapes->visibility;
+    culling::remove_shape(c, *this);
+  }
   fan::graphics::culling::movement_type_t shapes::shape_t::get_movement() const {
     return fan::graphics::culling::get_movement(g_shapes->visibility, *this);
   }
@@ -593,6 +596,10 @@ namespace fan::graphics{
     }
   }
   void shapes::shape_t::update_culling() {
+    auto& c = g_shapes->visibility;
+    if (c.registry.id_to_movement.find(*this) == c.registry.id_to_movement.end()) {
+      return;
+    }
     if (get_movement() == culling::movement_static) {
       set_static(true);
     }
@@ -1247,12 +1254,18 @@ namespace fan::graphics{
   }
 
   void shapes::shape_t::set_position(const fan::vec2& position) {
+    if (fan::vec2(get_position()) == position) {
+      return;
+    }
     g_shapes->shape_functions[get_shape_type()].set_position2(this, position);
     set_particle_pos(this, position);
     update_culling();
   }
 
 	void shapes::shape_t::set_position(const fan::vec3& position) {
+    if (get_position() == position) {
+      return;
+    }
 		g_shapes->shape_functions[get_shape_type()].set_position3(this, position);
     set_particle_pos(this, position);
     update_culling();
@@ -1290,6 +1303,9 @@ namespace fan::graphics{
 	}
 
 	void shapes::shape_t::set_size(const fan::vec2& size) {
+    if (get_size() == size) {
+      return;
+    }
 		g_shapes->shape_functions[get_shape_type()].set_size(this, size);
     update_culling();
 	}
@@ -1565,6 +1581,9 @@ namespace fan::graphics{
 	}
 
 	void shapes::shape_t::set_image(fan::graphics::image_t image) {
+    if (get_image() == image) {
+      return;
+    }
 		g_shapes->shape_functions[get_shape_type()].set_image(this, image);
 	}
 

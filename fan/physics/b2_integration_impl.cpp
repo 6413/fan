@@ -227,10 +227,14 @@ namespace fan::physics {
     };
   }
 
-  fan::vec2 body_id_t::get_aabb_size() const {
+  fan::vec2 body_id_t::get_size() const {
     aabb_t aabb = get_aabb();
     fan::vec2 size = aabb.max - aabb.min;
-    return size * 0.5f;
+    return size;
+  }
+
+  void body_id_t::set_body_type(uint8_t body_type) {
+    b2Body_SetType(*this, (b2BodyType)body_type);
   }
 
   bool body_id_t::test_overlap(const body_id_t& other) const {
@@ -494,6 +498,8 @@ namespace fan::physics {
 
   void context_t::step(f32_t dt) {
     static f32_t accumulator = 0.0f;
+    static constexpr f32_t max_frame_time = 1.f;
+    dt = std::min(dt, max_frame_time);
     accumulator += dt;
 
     f32_t physics_timestep = default_physics_timestep;
@@ -967,9 +973,6 @@ namespace fan::physics {
       return b2_nullBodyId;
     }
 
-    b2MassData massData = b2Body_GetMassData(sourceBodyId);
-    b2Body_SetMassData(newBodyId, massData);
-
     const int shapeCount = b2Body_GetShapeCount(sourceBodyId);
     if (shapeCount > 0) {
       std::vector<b2ShapeId> shapes(shapeCount);
@@ -1026,6 +1029,8 @@ namespace fan::physics {
         }
       }
     }
+    b2MassData massData = b2Body_GetMassData(sourceBodyId);
+    b2Body_SetMassData(newBodyId, massData);
     return newBodyId;
   }
 

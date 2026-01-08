@@ -227,7 +227,7 @@ export namespace fan::graphics {
   using sprite_flags_e = fan::graphics::sprite_flags_e;
 
   struct light_properties_t {
-    render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
+    const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
     fan::vec3 position = fan::vec3(0, 0, 0);
     f32_t parallax_factor = 0;
     fan::vec2 size = fan::vec2(0.1, 0.1);
@@ -249,7 +249,7 @@ export namespace fan::graphics {
   };
 
   struct line_properties_t {
-    render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
+    const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
     fan::vec3 src = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
     fan::vec2 dst = fan::vec2(1, 1);
     fan::color color = fan::color(1, 1, 1, 1);
@@ -269,7 +269,7 @@ export namespace fan::graphics {
   };
 
   struct rectangle_properties_t {
-    render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
+    const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
     fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
     fan::vec2 size = fan::vec2(32, 32);
     fan::color color = fan::color(1, 1, 1, 1);
@@ -290,7 +290,7 @@ export namespace fan::graphics {
   };
 
   struct sprite_properties_t {
-    render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
+    const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
     fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
     fan::vec2 size = fan::vec2(32, 32);
     fan::vec3 angle = 0;
@@ -317,7 +317,7 @@ export namespace fan::graphics {
   };
 
   struct unlit_sprite_properties_t {
-    render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
+    const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
     fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
     fan::vec2 size = fan::vec2(32, 32);
     fan::vec3 angle = 0;
@@ -327,7 +327,7 @@ export namespace fan::graphics {
     std::array<fan::graphics::image_t, 30> images;
     fan::vec2 tc_position = 0;
     fan::vec2 tc_size = 1;
-    bool blending = false;
+    bool blending = true;
     bool enable_culling = true;
   };
 
@@ -342,7 +342,7 @@ export namespace fan::graphics {
 
 
   struct circle_properties_t {
-    render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
+    const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
     fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
     f32_t radius = 32.f;
     fan::vec3 angle = 0;
@@ -362,7 +362,7 @@ export namespace fan::graphics {
   };
 
   struct capsule_properties_t {
-    render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
+    const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
     fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
     fan::vec2 center0 = 0;
     fan::vec2 center1 {0, 128.f};
@@ -384,7 +384,7 @@ export namespace fan::graphics {
   };
 
   struct polygon_properties_t {
-    render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
+    const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
     fan::vec3 position = fan::vec3(0, 0, 0);
     std::vector<vertex_t> vertices;
     fan::vec3 angle = 0;
@@ -404,7 +404,7 @@ export namespace fan::graphics {
   };
 
   struct grid_properties_t {
-    render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
+    const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
     fan::vec3 position = fan::vec3(0, 0, 0);
     fan::vec2 size = fan::vec2(0.1, 0.1);
     fan::vec2 grid_size = fan::vec2(1, 1);
@@ -422,13 +422,13 @@ export namespace fan::graphics {
   };
 
   struct universal_image_renderer_properties_t {
-    render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
+    const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
     fan::vec3 position = 0;
     fan::vec2 size = 0;
     fan::vec2 tc_position = 0;
     fan::vec2 tc_size = 1;
 
-    bool blending = false;
+    bool blending = true;
 
     std::array<fan::graphics::image_t, 4> images = {
       fan::graphics::ctx().default_texture,
@@ -449,7 +449,7 @@ export namespace fan::graphics {
   };
 
   struct gradient_properties_t {
-    render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
+    const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
 
     fan::vec3 position = 0;
     fan::vec2 size = 0;
@@ -502,7 +502,7 @@ export namespace fan::graphics {
   };
 
   struct shadow_properties_t {
-    render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
+    const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
     fan::vec3 position = fan::vec3(0, 0, 0);
     int shape = fan::graphics::shapes::shadow_t::rectangle;
     fan::vec2 size = fan::vec2(0.1, 0.1);
@@ -530,7 +530,7 @@ export namespace fan::graphics {
     fan::vec3 src = fan::vec3(0, 0, 0);
     fan::vec3 dst = fan::vec3(10, 10, 10);
     fan::color color = fan::color(1, 1, 1, 1);
-    bool blending = false;
+    bool blending = true;
   };
 
   struct line3d_t : fan::graphics::shapes::shape_t {

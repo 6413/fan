@@ -106,6 +106,11 @@ export namespace fan::graphics::gui {
   void same_line(f32_t offset_from_start_x = 0.f, f32_t spacing_w = -1.f);
   void new_line();
 
+  struct viewport_rect_t {
+    fan::vec2 position;
+    fan::vec2 size;
+  };
+  viewport_rect_t get_viewport_rect();
   viewport_t* get_main_viewport();
 
   f32_t get_frame_height();
@@ -585,16 +590,19 @@ export namespace fan::graphics::gui {
 
   struct hud : window {
     hud(const std::string& name, bool* p_open = nullptr)
-      : window(
-        (gui::set_next_window_pos(ImGui::GetMainViewport()->Pos),
-          gui::set_next_window_size(ImGui::GetMainViewport()->Size),
-          name),
+      : window((
+          gui::set_next_window_pos(get_viewport_rect().position),
+          gui::set_next_window_size(get_viewport_rect().size),
+          name
+        ),
         p_open,
         gui::window_flags_no_background |
         gui::window_flags_no_nav |
+        gui::window_flags_no_inputs |
         gui::window_flags_no_title_bar |
         gui::window_flags_no_resize |
         gui::window_flags_no_move |
+        gui::window_flags_no_saved_settings |
         gui::window_flags_override_input
       ) {}
   };

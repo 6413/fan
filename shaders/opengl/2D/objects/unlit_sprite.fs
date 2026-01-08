@@ -9,19 +9,13 @@ in vec4 instance_color;
 flat in uint fs_flags;
 
 uniform sampler2D _t00;
-uniform sampler2D _t01;
+uniform sampler2D _t01; // light buffer
 
 void main() {
-  o_attachment0 = texture(_t00, texture_coordinate) * instance_color;
-  if (o_attachment0.a <= 0.5) {
+  vec4 c = texture(_t00, texture_coordinate) * instance_color;
+  if (c.a <= 0.5) {
     discard;
+    return;
   }
-
-  if ((fs_flags & 0x2u) == 0x2u) {
-   // o_attachment2 = o_attachment0;
-  }
-  else {
-    //discard;
-    //o_attachment2 = vec4(0, 0, 0, 0);
-  }
+  o_attachment0 = c;
 }

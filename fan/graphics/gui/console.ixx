@@ -16,6 +16,7 @@ export import fan.types.color;
 
 import fan.types.fstring;
 import fan.utility;
+import fan.print;
 export import fan.graphics.common_types;
 
 export namespace fan {
@@ -29,7 +30,11 @@ export namespace fan {
       std::function<void(console_t* self, const arg_t&)> func;
     };
 
-    std::unordered_map<std::string, fan::commands_t::command_t> func_table;
+    std::unordered_map<std::string, fan::commands_t::command_t>& get_func_table() {
+      static std::unordered_map<std::string, fan::commands_t::command_t> func_table;
+      return func_table;
+    }
+
 
     struct command_errors_e {
       enum {
@@ -56,6 +61,8 @@ export namespace fan {
     std::vector<std::string> split_args(const std::string& input);
 
     int call(const std::string& cmd);
+    template <typename... Args>
+    int call(const std::string& cmd, Args&&... args);
 
     int insert_to_command_chain(const commands_t::arg_t& args);
 
@@ -102,4 +109,32 @@ export namespace fan {
     frame_cb_t frame_cbs;
   };
 }
+
+template <typename... Args>
+int fan::commands_t::call(const std::string& cmd, Args&&... args) {
+  auto found = get_func_table().find(cmd);
+  if (found == get_func_table().end()) {
+    commands_t::print_command_not_found(cmd);
+    return command_errors_e::function_not_found;
+  }
+
+  std::vector<std::string> argv {
+    fan::format_args_raw(std::forward<Args>(args))...
+  };
+
+  if (found->second.command_chain.empty()) {
+    found->second.func(
+      OFFSETLESS(this, fan::console_t, commands),
+      argv
+    );
+  }
+  else {
+    for (const auto& i : found->second.command_chain) {
+      call(i);
+    }
+  }
+
+  return command_errors_e::success;
+}
+
 #endif
