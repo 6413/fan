@@ -313,6 +313,7 @@ export namespace fan::graphics {
       void set_visible(bool flag);
       void set_static(bool update = true);
       void set_dynamic();
+      void remove_culling();
 
       fan::graphics::culling::movement_type_t get_movement() const;
       void update_dynamic();
@@ -1056,6 +1057,8 @@ export namespace fan::graphics {
     struct polygon_t {
       static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::polygon;
       static constexpr int kpi = kp::common;
+
+      #pragma pack(push, 1)
 
       struct vi_t {
 

@@ -321,6 +321,7 @@ constexpr auto dot(const auto& test0) const { return fan::math::dot(*this, test0
 template <typename... Ts>
 constexpr auto cross(Ts... args) const { return fan::math::cross(*this, args...); }
 constexpr auto length() const { return std::sqrt((double)dot(*this)); }
+constexpr auto length_squared() const { return dot(*this); }
 constexpr auto normalized() const { auto l = length(); if (l == 0) return vec_t(0); make_for_all(ret[i] = (*this)[i] / l); }
 template <typename T>
 requires(!std::is_arithmetic_v<T>)

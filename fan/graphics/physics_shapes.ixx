@@ -128,6 +128,8 @@ export namespace fan {
 
         fan::vec3 get_position() const;
         fan::vec3 get_physics_position() const;
+        fan::vec2 get_size() const;
+        fan::physics::aabb_t get_aabb() const;
 
         fan::vec2 draw_offset = 0;
         fan::physics::physics_update_cbs_t::nr_t physics_update_nr;
@@ -613,8 +615,11 @@ export namespace fan {
 
         character2d_t() = default;
         template <typename T>
-        requires(!fan::is_vector_type_v<T> && !std::is_arithmetic_v<T>)
-        character2d_t(T&& shape) : base_shape_t(std::move(shape)) {}
+        requires(
+          std::is_convertible_v<T, base_shape_t> &&
+          !std::is_same_v<std::remove_cvref_t<T>, character2d_t>
+        )
+        explicit character2d_t(T&& shape) : base_shape_t(std::forward<T>(shape)) {}
         character2d_t(const character2d_t& o);
         character2d_t(character2d_t&& o) noexcept;
         character2d_t& operator=(const character2d_t& o);

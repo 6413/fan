@@ -170,6 +170,12 @@ namespace fan::graphics::gui {
   void new_line() {
     ImGui::NewLine();
   }
+  gui::viewport_rect_t get_viewport_rect() {
+    gui::viewport_rect_t vr;
+    vr.position = ImGui::GetMainViewport()->Pos;
+    vr.size = ImGui::GetMainViewport()->Size;
+    return vr;
+  }
   viewport_t* get_main_viewport() {
     return ImGui::GetMainViewport();
   }

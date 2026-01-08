@@ -826,11 +826,28 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
 
 #if defined(FAN_JSON)
 
+  struct json_cache_t {
+    fan::graphics::shape_t shape;
+    fan::vec2 original_pos;
+  };
+  std::unordered_map<std::string, json_cache_t> json_cache;
+
   fan::graphics::shape_t shape_from_json(const std::string& json_path, const std::source_location& callers_path) {
-    fan::json json_data = fan::graphics::read_json(json_path, callers_path);
-    resolve_json_image_paths(json_data, json_path, callers_path);
-    fan::graphics::parse_animations(json_path, json_data, callers_path);
-    return fan::graphics::extract_single_shape(json_data, callers_path);
+    if (json_cache.find(json_path) == json_cache.end()) {
+      fan::json json_data = fan::graphics::read_json(json_path, callers_path);
+      resolve_json_image_paths(json_data, json_path, callers_path);
+      fan::graphics::parse_animations(json_path, json_data, callers_path);
+      fan::graphics::shape_t shape = fan::graphics::extract_single_shape(json_data, callers_path);
+      auto& cache = json_cache[json_path];
+      cache.shape = shape;
+      cache.original_pos = shape.get_position();
+      cache.shape.set_position(fan::vec2(-0xfffff));
+      return shape;
+    }
+    auto& cache = json_cache[json_path];
+    fan::graphics::shape_t shape = cache.shape;
+    shape.set_position(cache.original_pos);
+    return shape;
   }
 
   void resolve_json_image_paths(fan::json& out, const std::string& json_path, const std::source_location& callers_path) {

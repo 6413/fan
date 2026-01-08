@@ -32,15 +32,20 @@ namespace fan::graphics::gui {
   }
 
   void set_viewport(fan::graphics::viewport_t viewport) {
-    fan::vec2 child_pos = get_window_pos();
-    fan::vec2 child_size = get_window_size();
-    fan::vec2 mainViewportPos = get_main_viewport()->Pos;
+    auto* current = get_current_window();
+    viewport_rect_t main_viewport = get_viewport_rect();
+    fan::vec2 wnd_pos = main_viewport.position;
+    fan::vec2 wnd_size = main_viewport.size;
+    if (current->ParentWindow) {
+      wnd_pos = get_window_pos();
+      wnd_size = get_window_size();
+    }
 
     fan::vec2 windowPosRelativeToMainViewport;
-    windowPosRelativeToMainViewport.x = child_pos.x - mainViewportPos.x;
-    windowPosRelativeToMainViewport.y = child_pos.y - mainViewportPos.y;
+    windowPosRelativeToMainViewport.x = wnd_pos.x - main_viewport.position.x;
+    windowPosRelativeToMainViewport.y = wnd_pos.y - main_viewport.position.y;
 
-    fan::vec2 viewport_size = fan::vec2(child_size.x, child_size.y);
+    fan::vec2 viewport_size = fan::vec2(wnd_size.x, wnd_size.y);
     fan::vec2 viewport_pos = windowPosRelativeToMainViewport;
 
     fan::vec2 window_size = fan::graphics::get_window().get_size();
