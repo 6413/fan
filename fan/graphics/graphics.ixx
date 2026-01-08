@@ -51,18 +51,16 @@ export namespace fan::window {
   bool is_action_down(const std::string& action_name);
   bool exists(const std::string& action_name);
 }
-export namespace fan {
-  namespace graphics {
-  #if defined(FAN_2D)
-    using vfi_t = fan::graphics::shapes::vfi_t;
-    using shape_t = fan::graphics::shapes::shape_t;
-    using shape_type_t = fan::graphics::shapes::shape_type_t;
-  #endif
-    using renderer_t = fan::window_t::renderer_t;
-    extern fan::graphics::image_t invalid_image;
-    fan::graphics::render_view_t add_render_view();
-    fan::graphics::render_view_t add_render_view(const fan::vec2& ortho_x, const fan::vec2& ortho_y, const fan::vec2& viewport_position, const fan::vec2& viewport_size);
-  }
+export namespace fan::graphics {
+#if defined(FAN_2D)
+  using vfi_t = fan::graphics::shapes::vfi_t;
+  using shape_t = fan::graphics::shapes::shape_t;
+  using shape_type_t = fan::graphics::shapes::shape_type_t;
+#endif
+  using renderer_t = fan::window_t::renderer_t;
+  extern fan::graphics::image_t invalid_image;
+  fan::graphics::render_view_t add_render_view();
+  fan::graphics::render_view_t add_render_view(const fan::vec2& ortho_x, const fan::vec2& ortho_y, const fan::vec2& viewport_position, const fan::vec2& viewport_size);
 }
 
 export namespace fan {

@@ -39,7 +39,7 @@ namespace actions {
   static constexpr const char* drink_potion = "Drink Potion";
   static constexpr const char* interact = "Interact";
 }
-
+////
 #include "pile.h"
 
 int main() {
