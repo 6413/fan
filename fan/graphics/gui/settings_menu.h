@@ -34,7 +34,7 @@ struct settings_config_t {
   };
 
   struct post_processing_t {
-    f32_t bloom_strength = 0.0f;
+    f32_t bloom_strength = 0.0445f;
   };
 
   void load_from_json(const fan::json& j) {
@@ -77,7 +77,9 @@ struct settings_config_t {
     }
     if (j.contains("post_processing")) {
       const auto& pp = j["post_processing"];
+      if (pp.contains("bloom_enabled")) gloco()->open_props.enable_bloom = pp["bloom_enabled"];
       if (pp.contains("bloom_strength")) post_processing.bloom_strength = pp["bloom_strength"];
+      if (pp.contains("bloom_filter_radius")) gloco()->gl.blur.bloom_filter_radius = pp["bloom_filter_radius"];
     }
     if (j.contains("keybinds")) {
       OFFSETLESS(this, settings_menu_t, config)->keybind_menu.load_from_settings_json(j);
@@ -106,7 +108,9 @@ struct settings_config_t {
     j["debug"]["hide_settings_bg"] = debug.hide_settings_bg;
     j["debug"]["fill_mode"] = debug.fill_mode;
     j["audio"]["volume"] = audio.volume;
+    j["post_processing"]["bloom_enabled"] = gloco()->open_props.enable_bloom;
     j["post_processing"]["bloom_strength"] = post_processing.bloom_strength;
+    j["post_processing"]["bloom_filter_radius"] = gloco()->gl.blur.bloom_filter_radius;
     OFFSETLESS(this, settings_menu_t, config)->keybind_menu.save_to_settings_json(j);
     return j;
   }
@@ -190,6 +194,53 @@ struct settings_menu_t {
         mark_dirty();
       }
     });
+    gloco()->console.commands.call("set_bloom_strength", config.post_processing.bloom_strength);
+  }
+
+  static bool draw_toggle_row(
+    const char* label,
+    const char* id,
+    bool* enabled
+  ) {
+    gui::table_next_row();
+
+    gui::table_next_column();
+    gui::text(label);
+
+    gui::table_next_column();
+    bool dirty = false;
+    if (gui::checkbox(id, enabled)) {
+      dirty = true;
+    }
+    return dirty;
+  }
+
+  static void draw_sub_row(
+    const char* sublabel,
+    auto widget_fn,
+    f32_t sublabel_indent = 50.f,
+    f32_t subwidget_indent = 20.f
+  ) {
+    gui::table_next_row();
+
+    gui::table_next_column();
+    {
+      float y = gui::get_cursor_pos_y();
+      float frame_h = gui::get_frame_height();
+      float text_h = gui::get_text_line_height();
+
+      float x = gui::get_cursor_pos_x();
+      gui::set_cursor_pos_x(x + sublabel_indent);
+      gui::set_cursor_pos_y(y + (frame_h - text_h) * 0.5f);
+      gui::text(sublabel);
+    }
+
+    gui::table_next_column();
+    {
+      float x = gui::get_cursor_pos_x();
+      gui::set_cursor_pos_x(x + subwidget_indent);
+      widget_fn();
+    }
   }
 
   static void begin_menu_left(const char* name, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
@@ -262,25 +313,49 @@ struct settings_menu_t {
     }
     gui::new_line();
     gui::new_line();
-    #if defined(loco_framebuffer)
+    #if defined(LOCO_FRAMEBUFFER)
     {
       gui::text(title_color, "POST PROCESSING");
-      gui::begin_table("settings_left_table_post_processing", 2, gui::table_flags_borders_inner_h | gui::table_flags_borders_outer_h);
-      {
-        gui::table_next_row();
-        gui::table_next_column();
-        gui::text("Bloom Strength");
-        gui::table_next_column();
-        if (gui::slider("##BloomStrengthSlider", &menu->config.post_processing.bloom_strength, 0, 1)) {
-          if (gloco()->window.renderer == fan::window_t::renderer_t::opengl) {
-            gloco()->shader_set_value(gloco()->gl.m_fbo_final_shader, "bloom_strength", menu->config.post_processing.bloom_strength);
-          }
-          menu->mark_dirty();
-        }
+      gui::begin_table(
+        "settings_left_table_post_processing", 
+        2, 
+        gui::table_flags_borders_inner_h | gui::table_flags_borders_outer_h
+      );
+
+      if (draw_toggle_row(
+        "Enable bloom",
+        "##enable_bloom",
+        &gloco()->open_props.enable_bloom
+      )) {
+        menu->mark_dirty();
       }
+
+      if (gloco()->open_props.enable_bloom) {
+        draw_sub_row("Strength", [&] {
+          if (gui::slider("##bloom_strength_slider",
+            &menu->config.post_processing.bloom_strength, 0, 1)) {
+            if (gloco()->window.renderer == fan::window_t::renderer_t::opengl) {
+              gloco()->shader_set_value(
+                gloco()->gl.m_fbo_final_shader,
+                "bloom_strength",
+                menu->config.post_processing.bloom_strength
+              );
+            }
+            menu->mark_dirty();
+          }
+        });
+        #if defined(LOCO_FRAMEBUFFER)
+          draw_sub_row("Filter radius", [&] {
+            if (gui::slider("##bloom_filter_radius", &gloco()->gl.blur.bloom_filter_radius, 0, 0.01)) {
+              menu->mark_dirty();
+            }
+          });
+        #endif
+      }
+
       gui::end_table();
     }
-    #endif
+  #endif
     gui::new_line();
     gui::new_line();
     {
@@ -352,30 +427,35 @@ struct settings_menu_t {
           menu->config.debug.frustum_culling_enabled = gloco()->shapes.visibility.enabled;
           menu->mark_dirty();
         }
-        gui::text("Visualize culling");
-        if (gui::checkbox("##visualize_culling", &gloco()->is_visualizing_culling)) {
+        if (draw_toggle_row(
+          "Visualize culling",
+          "##visualize_culling",
+          &gloco()->is_visualizing_culling
+        )) {
           menu->config.debug.visualize_culling = gloco()->is_visualizing_culling;
           menu->mark_dirty();
         }
+
         if (gloco()->is_visualizing_culling) {
-          gui::text("Frustum culling extents padding (default render view)");
-          gui::indent(10.f);
-          if (gui::drag("##culling_bounds", &gloco()->shapes.visibility.padding, 1)) {
-            for (auto& [cam_id, cam_state] : gloco()->shapes.visibility.camera_states) {
-              cam_state.view_dirty = true;
+
+          draw_sub_row("padding (default render view)", [&] {
+            if (gui::drag("##culling_bounds", &gloco()->shapes.visibility.padding, 1)) {
+              for (auto& [cam_id, cam_state] : gloco()->shapes.visibility.camera_states) {
+                cam_state.view_dirty = true;
+              }
+              menu->config.debug.culling_padding = gloco()->shapes.visibility.padding;
+              menu->mark_dirty();
             }
-            menu->config.debug.culling_padding = gloco()->shapes.visibility.padding;
-            menu->mark_dirty();
-          }
-          if (!hide_gui_settings) {
-            hide_bg = gui::is_item_active();
-            if (hide_bg != did_hide_bg) {
-              did_hide_bg = true;
+            if (!hide_gui_settings) {
+              hide_bg = gui::is_item_active();
+              if (hide_bg != did_hide_bg) {
+                did_hide_bg = true;
+              }
             }
-          }
-          gui::unindent();
+          });
         }
       }
+
     #endif
       {
         gui::table_next_row();
@@ -547,7 +627,7 @@ struct settings_menu_t {
     #if defined(FAN_AUDIO)
       fan::audio::set_volume(config.audio.volume);
     #endif
-    #if defined(loco_framebuffer)
+    #if defined(LOCO_FRAMEBUFFER)
       if (gloco()->open_props.renderer == fan::window_t::renderer_t::opengl) {
         gloco()->shader_set_value(gloco()->gl.m_fbo_final_shader,
           "bloom_strength",
@@ -697,7 +777,7 @@ struct settings_menu_t {
     fan::vec2 main_window_size = gloco()->window.get_size();
     gui::set_next_window_pos(fan::vec2(0, 0));
     gui::set_next_window_size(fan::vec2(main_window_size.x, main_window_size.y / 5));
-    gui::set_next_window_bg_alpha(0.99);
+    gui::set_next_window_bg_alpha(hide_bg ? 0 : 0.99);
     gui::begin("##Fan Settings Nav", nullptr, gui::window_flags_no_move | gui::window_flags_no_collapse | gui::window_flags_no_resize | gui::window_flags_no_title_bar);
     gui::push_font(gui::get_font(48, true));
     gui::indent(min_x);

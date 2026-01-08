@@ -18,6 +18,48 @@ static inline constexpr std::array<fan::vec2, 3> get_spike_points(std::string_vi
   return {{a, b, c}};
 }
 
+struct spike_spatial_t {
+  spike_spatial_t() {
+    cells.resize(grid_size.x * grid_size.y);
+  }
+
+  void add(fan::physics::entity_t spike) {
+    auto aabb = spike.get_aabb();
+    auto minc = fan::graphics::spatial::world_to_cell_clamped(aabb.min, world_min, cell_size, grid_size);
+    auto maxc = fan::graphics::spatial::world_to_cell_clamped(aabb.max, world_min, cell_size, grid_size);
+
+    for (int y = minc.y; y <= maxc.y; ++y) {
+      for (int x = minc.x; x <= maxc.x; ++x) {
+        cells[fan::graphics::spatial::cell_index({x, y}, grid_size)].push_back(spike);
+      }
+    }
+  }
+
+  fan::physics::entity_t* query(fan::physics::entity_t& entity) {
+    auto aabb = entity.get_aabb();
+    auto minc = fan::graphics::spatial::world_to_cell_clamped(aabb.min, world_min, cell_size, grid_size);
+    auto maxc = fan::graphics::spatial::world_to_cell_clamped(aabb.max, world_min, cell_size, grid_size);
+
+    for (int y = minc.y; y <= maxc.y; ++y)
+      for (int x = minc.x; x <= maxc.x; ++x) {
+        auto& v = cells[fan::graphics::spatial::cell_index({x, y}, grid_size)];
+        for (auto& spike : v)
+          if (fan::physics::is_on_sensor(entity, spike))
+            return &spike;
+      }
+
+    return nullptr;
+  }
+
+  void clear() {
+    for (auto& v : cells) v.clear();
+  }
+  fan::vec2 world_min = 0;
+  fan::vec2 cell_size = 256;
+  fan::vec2i grid_size = {4096, 4096};
+  std::vector<std::vector<fan::physics::entity_t>> cells;
+}spike_spatial;
+
 void load_enemies() {
   pile->enemy_list.clear();
   pile->renderer.iterate_marks(main_map_id, [&](tilemap_loader_t::fte_t::spawn_mark_data_t &data) ->bool {
@@ -180,18 +222,23 @@ void reload_boss_door_collision() {
 }
 
 void load_map() {
+  spike_spatial.clear();
+  pickupable_spatial.init(
+    fan::vec2(0),
+    pile->tilemaps_compiled[stage_name].map_size * pile->tilemaps_compiled[stage_name].tile_size * 2.f
+  );
+
   torch_particles.set_position(fan::vec2(-0xfffff));
 
   //pile->engine.culling_rebuild_grid();
-  main_compiled_map = pile->renderer.compile("sample_level.fte");
   fan::vec2i render_size(16, 9);
   tilemap_loader_t::properties_t p;
   p.size = render_size * 1000;
   pile->engine.set_cull_padding(100);
 
   p.position = pile->player.body.get_position();
-  main_map_id = pile->renderer.add(&main_compiled_map, p);
-  pile->engine.lighting.set_target(main_compiled_map.lighting.ambient, 0.01);
+  main_map_id = pile->renderer.add(&pile->tilemaps_compiled[stage_name], p);
+  pile->engine.lighting.set_target(pile->tilemaps_compiled[stage_name].lighting.ambient, 0.01);
 
   static auto checkpoint_flag = fan::graphics::sprite_sheet_from_json({
     .path = "effects/flag.json",
@@ -344,16 +391,11 @@ void load_map() {
     }
     else if (id.contains("pickupable_")) {
       if (collected_pickupables.count(fan::vec2i(tile.position))) {
-        pile->renderer.remove_visual(
-          main_map_id,
-          id,
-          tile.position
-        );
+        pile->renderer.remove_visual(main_map_id, id, tile.position);
         return false;
       }
-      pickupables.push_back(
-        {id, fan::physics::create_sensor_rectangle(tile.position, tile.size / 1.2f)}
-      );
+      fan::physics::body_id_t sensor = fan::physics::create_sensor_rectangle(tile.position, tile.size / 1.2f);
+      pickupable_spatial.add(id, sensor);
     }
     else if (id.contains("spikes")) {
       auto pts = get_spike_points(id.substr(std::strlen("spikes_")));
@@ -367,6 +409,7 @@ void load_map() {
           {.is_sensor = true}
         )
       );
+      spike_spatial.add(spike_sensors.back());
     }
     else if (id.contains("no_collision")) {
       return false;
@@ -435,50 +478,40 @@ void open(void* sod) {
       }
     }
 
-    for (auto it = pickupables.begin(); it != pickupables.end(); ) {
-      auto& sensor = it->second;
-      if (fan::physics::is_on_sensor(pile->player.body, sensor)) {
-        if (handle_pickupable(it->first, pile->player)) {
-          fan::vec2 pos = sensor.get_position();
+    fan::vec2 player_pos = pile->player.body.get_position();
+    auto nearby_indices = pickupable_spatial.query_radius(player_pos, 100.f);
 
-          // global tracking, to avoid pickupable reload after dying
+    for (auto idx : nearby_indices) {
+      auto* pickup = pickupable_spatial.get(idx);
+      if (!pickup) continue;
+
+      if (fan::physics::is_on_sensor(pile->player.body, pickup->sensor)) {
+        if (handle_pickupable(pickup->id, pile->player)) {
+          fan::vec2 pos = pickup->sensor.get_position();
           collected_pickupables.insert(pos);
 
-          pile->renderer.remove_visual(
-            pile->get_level().main_map_id,
-            it->first,
-            pos
-          );
+          pile->renderer.remove_visual(main_map_id, pickup->id, pos);
+
           auto found = dropped_pickupables.find(pos);
           if (found != dropped_pickupables.end()) {
             dropped_pickupables.erase(found);
           }
 
-          sensor.destroy();
-
-          it = pickupables.erase(it);
+          pickup->sensor.destroy();
+          pickupable_spatial.remove(idx);
           break;
         }
-        else {
-          ++it;
-        }
-      }
-      else {
-        ++it;
       }
     }
 
-    for (auto& spike : spike_sensors) {
-      if (fan::physics::is_on_sensor(pile->player.body, spike)) {
-        reload_map();
-        return;
-      }
-      for (auto& enemy : pile->enemies()) {//
-        if (fan::physics::is_on_sensor(enemy.get_body(), spike)) {//
-          enemy.destroy();
-        }
-        enemy.get_body().update_dynamic();
-        break;
+    if (spike_spatial.query(pile->player.body)) {
+      reload_map();
+      return;
+    }
+
+    for (auto& enemy : pile->enemies()) {
+      if (spike_spatial.query(enemy.get_body())) {
+        enemy.destroy();
       }
     }
 
@@ -522,9 +555,6 @@ void close() {
   if (boss_door_collision) {
     boss_door_collision.destroy();
   }
-  for (auto& i : pickupables) {
-    i.second.destroy();
-  }
   for (auto& i : tile_collisions) {
     i.destroy();
   }
@@ -533,11 +563,15 @@ void close() {
     i.destroy();
   }
   pile->renderer.erase(main_map_id);
+  pickupable_spatial.clear();
 }
 
 void reload_map() {
+  fan::time::timer t {true};
+  //fan::print(fan::time::now());
   pile->stage_loader.erase_stage(this->stage_common.stage_id);
   pile->stage_loader.open_stage<level_t>();
+  fan::print(t.seconds());
 }
 
 void update() {
@@ -554,29 +588,60 @@ void update() {
     cage_elevator_chain.set_position(fan::vec2(pos.x, pos.y - size.y - cage_elevator_chain.get_size().y));
   }
 
+  // give me fps pls
+  static constexpr fan::color lamp_colors[] = {
+    {0.937255f, 0.588235f, 0.176471f, 1.0f},
+    {0.992157f, 0.635294f, 0.227451f, 1.0f},
+    {0.992157f, 0.635294f, 0.227451f, 1.0f},
+    {1.0f,      0.811765f, 0.345098f, 1.0f},
+    {0.992157f, 0.635294f, 0.227451f, 1.0f},
+    {0.937255f, 0.588235f, 0.176471f, 1.0f},
+    {0.992157f, 0.635294f, 0.227451f, 1.0f},
+    {1.0f,      0.811765f, 0.345098f, 1.0f},
+    {0.992157f, 0.635294f, 0.227451f, 1.0f},
+    {0.992157f, 0.635294f, 0.227451f, 1.0f},
+    {1.0f,      0.811765f, 0.345098f, 1.0f},
+    {0.992157f, 0.635294f, 0.227451f, 1.0f},
+    {0.937255f, 0.588235f, 0.176471f, 1.0f},
+    {0.992157f, 0.635294f, 0.227451f, 1.0f},
+    {1.0f,      0.811765f, 0.345098f, 1.0f},
+    {0.992157f, 0.635294f, 0.227451f, 1.0f},
+    {0.992157f, 0.635294f, 0.227451f, 1.0f},
+    {1.0f,      0.811765f, 0.345098f, 1.0f},
+    {0.992157f, 0.635294f, 0.227451f, 1.0f},
+    {0.937255f, 0.588235f, 0.176471f, 1.0f},
+    {0.992157f, 0.635294f, 0.227451f, 1.0f},
+    {1.0f,      0.811765f, 0.345098f, 1.0f},
+    {0.992157f, 0.635294f, 0.227451f, 1.0f},
+    {0.992157f, 0.635294f, 0.227451f, 1.0f},
+    {1.0f,      0.811765f, 0.345098f, 1.0f},
+    {0.992157f, 0.635294f, 0.227451f, 1.0f},
+    {0.937255f, 0.588235f, 0.176471f, 1.0f},
+    {0.992157f, 0.635294f, 0.227451f, 1.0f},
+    {1.0f,      0.811765f, 0.345098f, 1.0f},
+    {0.937255f, 0.588235f, 0.176471f, 1.0f},
+    {0.631373f, 0.266667f, 0.0f,      1.0f},
+    {0.631373f, 0.266667f, 0.0f,      1.0f},
+    {0.254902f, 0.137255f, 0.039216f, 1.0f},
+    {0.254902f, 0.137255f, 0.039216f, 1.0f},
+    {0.631373f, 0.266667f, 0.0f,      1.0f},
+    {0.631373f, 0.266667f, 0.0f,      1.0f},
+    {0.784314f, 0.454902f, 0.007843f, 1.0f},
+    {0.937255f, 0.588235f, 0.176471f, 1.0f}
+  };
+
   for (auto [i, lamp] : fan::enumerate(lamp_sprites)) {
     if (i < lights.size()) {
-      auto tc_center = lamp.get_tc_position() + lamp.get_tc_size() * 0.5f;
-      auto pixel_size = fan::vec2(1.0f) / image_get_data(lamp.get_image()).size;
-      auto pixels = read_pixels_from_image(lamp.get_image(), tc_center, pixel_size);
-  
-      uint32_t ch = fan::graphics::get_channel_amount(image_get_settings(lamp.get_image()).format);
-      fan::color current = lights[i].get_color() / 2.f;
-      f32_t lerp_speed = std::min(pile->engine.delta_time * 10.0f, 1.0);
-      fan::color new_color = current.lerp(fan::color(pixels.data(), pixels.data() + ch), lerp_speed);
       fan::color yellow_tint(0.9f, 0.9f, 0.6f, 1.0f);
-
-      lights[i].set_color(fan::color(pixels.data(), pixels.data() + ch) * yellow_tint * 2.f);
+      lights[i].set_color(lamp_colors[lamp.get_current_animation_frame()] * yellow_tint * 2.f);
     }
-
-    //pile->engine.lighting.set_target(fan::color(pixels.data(), pixels.data() + ch) / 5.f + 0.7, 0.1);
   }
 
   if (!pile->engine.render_console) {
     if (pile->engine.input_action.is_clicked(fan::actions::toggle_settings)) {
       pile->pause = !pile->pause;
     }
-
+    //fan::print(fan::window::is_key_down(fan::key_left_control), fan::window::is_key_pressed(fan::key_t));
     if (fan::window::is_key_down(fan::key_left_control) && fan::window::is_key_pressed(fan::key_t)) {
       collected_pickupables.clear();
       reload_map();
@@ -595,12 +660,9 @@ uint32_t boss_nr = (uint32_t)-1;
 fan::auto_color_transition_t boss_room_light;
 fan::color boss_room_target_color;
 
-
 tilemap_loader_t::id_t main_map_id;
-tilemap_loader_t::compiled_map_t main_compiled_map;
 
 std::vector<fan::physics::entity_t> spike_sensors;
-std::vector<std::pair<std::string, fan::physics::body_id_t>> pickupables;
 std::unordered_map<fan::vec2i, fan::graphics::sprite_t> dropped_pickupables;
 std::vector<fan::physics::entity_t> tile_collisions;
 
@@ -645,6 +707,7 @@ fan::graphics::shape_t portal_particles;
 fan::auto_color_transition_t portal_light_flicker;
 fan::physics::entity_t portal_sensor;
 fan::physics::step_callback_nr_t physics_step_nr;
+fan::graphics::gameplay::pickupable_spatial_t pickupable_spatial;
 inline static std::unordered_set<fan::vec2i> collected_pickupables;
 
 bool is_entering_door = false;

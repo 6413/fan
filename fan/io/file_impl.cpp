@@ -348,33 +348,3 @@ std::filesystem::path fan::io::file::find_relative_path(const std::string& filen
   fan::print("failed to find path for:", filename, ". called from", src_dir.generic_string());
   return {};
 }
-
-bool fan::io::file::read(const std::string& path, std::string* str) {
-  std::ifstream file(path.c_str(), std::ifstream::ate | std::ifstream::binary);
-  if (file.fail()) {
-    return 1;
-  }
-  str->resize(file.tellg());
-  file.seekg(0, std::ios::beg);
-  file.read(&(*str)[0], str->size());
-  file.close();
-  return 0;
-}
-
-bool fan::io::file::read(const std::string& path, std::string* str, std::size_t length) {
-  std::ifstream file(path.c_str(), std::ifstream::binary);
-  if (file.fail()) {
-    return 1;
-  }
-  str->resize(length);
-  file.seekg(0, std::ios::beg);
-  file.read(&(*str)[0], length);
-  file.close();
-  return 0;
-}
-std::string fan::io::file::read(const std::string& path, bool* success) {
-  std::string data;
-  bool ret = fan::io::file::read(path, &data);
-  if (success) *success = ret;
-  return data;
-}

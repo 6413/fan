@@ -127,7 +127,9 @@ export namespace fan {
         m_time = time;
       }
 			void restart() {
+        auto prev = m_time;
 				start();
+        m_time = prev;
 			}
 			bool finished() const {
 				auto elapsed = this->elapsed();

@@ -3,9 +3,25 @@ set_languages("cxx23")
 
 set_toolchains("clang")
 
-rule("mode.mode_none") rule_end()
+rule("mode.mode_none")
+rule_end()
 
 add_rules("mode.mode_none", "mode.debug", "mode.release")
+
+rule("mode.asan")
+	on_load(function (target)
+		target:set("optimize", "none")
+		target:set("symbols", "debug")
+		target:add("cxxflags", "-fsanitize=address", "-fno-omit-frame-pointer")
+		target:add("ldflags", "-fsanitize=address")
+		target:add("defines", "_DEBUG=3")
+	end)
+rule_end()
+
+if is_mode("asan") then
+  add_rules("mode.asan")
+end
+
 set_defaultmode("mode_none")
 
 if is_mode("mode_none") then
@@ -24,6 +40,7 @@ elseif is_mode("debug") then
   add_cxxflags("-g", "-gdwarf-4", "-fno-inline", "-fno-inline-functions", {force = true})
   add_defines("_DEBUG=3")
 end
+
 
 option("FAN_2D") set_default(true) option_end()
 option("FAN_GUI") set_default(true) option_end()
@@ -139,6 +156,7 @@ local module_files = {
   "fan/graphics/common_context.ixx",
   "fan/graphics/opengl/gl_core.ixx",
   "fan/graphics/opengl/uniform_block.ixx",
+	"fan/graphics/gameplay.ixx",
   "fan/texture_pack/tp0.ixx",
 	"fan/graphics/2D/shapes_types.ixx",
 	"fan/graphics/2D/culling.ixx",
@@ -148,6 +166,7 @@ local module_files = {
   "fan/graphics/file_dialog.ixx",
   "fan/graphics/2D/algorithm/raycast_grid.ixx",
   "fan/graphics/2D/algorithm/pathfind.ixx",
+	"fan/graphics/2D/algorithm/spatial.ixx",
   "fan/window/window.ixx",
   "fan/window/input_common.ixx",
   "fan/window/input.ixx",

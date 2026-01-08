@@ -1,9 +1,8 @@
 module;
 
-#define loco_framebuffer
-#define loco_post_process
-
-#define loco_vfi
+// loco framebuffer is recommended, you cant see sprites without it, 
+// since light uses framebuffer _t01. you could use unlit_sprite, if required
+#define LOCO_FRAMEBUFFER
 
 #include <fan/graphics/opengl/init.h>
 #if defined(FAN_VULKAN)
@@ -30,6 +29,7 @@ module;
 #include <coroutine>
 #include <map>
 #include <cstring>
+#include <fstream>
 
 export module fan.graphics.loco;
 
@@ -188,7 +188,9 @@ export struct loco_t {
     int window_open_mode = fan::window_t::mode::windowed;
 		std::uint8_t renderer = fan::window_t::renderer_t::opengl;
 		std::uint8_t samples = 0;
+    bool enable_bloom = true;
 	}open_props;
+	int32_t target_fps = 165; // must be changed from function
   bool init_gloco;
 	fan::window::input_action_t input_action;
   #if defined(FAN_GUI)
@@ -310,7 +312,7 @@ public:
 	// opengl namespace
 	struct opengl {
 #include <fan/graphics/opengl/engine_functions.h>
-  #if defined(loco_framebuffer)
+  #if defined(LOCO_FRAMEBUFFER)
 #include <fan/graphics/opengl/2D/effects/blur.h>
 
 		blur_t blur;
@@ -318,7 +320,7 @@ public:
 
     fan::window_t::resize_handle_t window_resize_handle;
 
-  #if defined(loco_framebuffer)
+  #if defined(LOCO_FRAMEBUFFER)
 		fan::opengl::core::framebuffer_t m_framebuffer;
 		fan::opengl::core::renderbuffer_t m_rbo;
 		fan::graphics::image_t color_buffers[4];
@@ -508,7 +510,6 @@ public:
 	bool timer_init = false;
 	uv_timer_t timer_handle{};
 
-	int32_t target_fps = 165; // must be changed from function
 	bool timer_enabled = target_fps > 0;
 	bool vsync = false;
 

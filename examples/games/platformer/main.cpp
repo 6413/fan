@@ -21,12 +21,16 @@
 #include <set>
 #include <stacktrace>
 #include <map>
+#include <box2d/box2d.h>
+#include <iostream>
+
 
 import fan;
 import fan.graphics.gui.tilemap_editor.renderer;
+import fan.graphics.gameplay;
+import fan.graphics.spatial;
 
 // inlines
-#include <fan/graphics/gameplay.h>
 #include <fan/graphics/tilemap_helpers.h>
 #include <fan/graphics/entity/enemy.h>
 
@@ -47,9 +51,6 @@ int main() {
   pile->engine.input_action.insert_or_assign({fan::key_e, fan::gamepad_y}, actions::interact);
 
   pile->engine.settings_menu.keybind_menu.refresh_input_actions();
-
-  pile->engine.console.commands.call("set_bloom_strength 0.445");
-
 
   pile->engine.console.commands.add("set_checkpoint", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
     if (args.size() != 1) {

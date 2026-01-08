@@ -15,7 +15,7 @@ module;
 #include <filesystem>
 #include <source_location>
 #include <vector>
-
+#include <istream>
 
 export module fan.io.file;
 
@@ -25,8 +25,8 @@ export namespace fan {
   namespace io {
     namespace file {
 
-      template<typename T>
-      concept path_t = std::same_as<T, std::filesystem::path>;
+      template <typename T>
+      concept path_t = std::convertible_to<T, std::filesystem::path>;
 
       std::string extension(const std::string& file_path);
       bool exists(const std::string& name);
@@ -81,48 +81,40 @@ export namespace fan {
       bool try_write(std::string path, const std::string& data, fs_mode mode);
       std::string get_exe_path();
       std::filesystem::path find_relative_path(const std::string& filepath, const std::source_location& location = std::source_location::current());
-      bool read(const std::string& path, std::string* str);
-      bool read(const std::string& path, std::string* str, std::size_t length);
-      std::string read(const std::string& path, bool* success = nullptr);
-
-      bool read(const path_t auto& path, std::string* str) {
-        std::ifstream file(path, std::ifstream::ate | std::ifstream::binary);
-        if (file.fail()) {
-          return 1;
-        }
-        str->resize(file.tellg());
-        file.seekg(0, std::ios::beg);
-        file.read(&(*str)[0], str->size());
-        file.close();
-        return 0;
+      inline std::uint64_t file_size(const path_t auto& path) {
+        std::ifstream f(path, std::ifstream::ate | std::ifstream::binary);
+        return f.good() ? static_cast<std::uint64_t>(f.tellg()) : 0;
       }
-
+      inline bool read_bytes(const path_t auto& path, void* dst, std::size_t size) {
+        std::ifstream f(path, std::ifstream::binary);
+        if (!f.good()) return false;
+        f.read(static_cast<char*>(dst), size);
+        return f.good();
+      }
       bool read(const path_t auto& path, std::string* str, std::size_t length) {
-        std::ifstream file(path, std::ifstream::binary);
-        if (file.fail()) {
-          return 1;
-        }
         str->resize(length);
-        file.seekg(0, std::ios::beg);
-        file.read(&(*str)[0], length);
-        file.close();
-        return 0;
+        return !read_bytes(path, str->data(), length);
       }
-
+      std::string read(const path_t auto& path, bool* success = nullptr) {
+        std::string data;
+        bool ret = fan::io::file::read(path, &data);
+        if (success) *success = ret;
+        return data;
+      }
+      bool read(const path_t auto& path, std::string* str) {
+        auto size = file_size(path);
+        if (!size) return true;
+        str->resize(size);
+        return !read_bytes(path, str->data(), size);
+      }
       template <typename T>
-      std::vector<T> read(const std::string& path) {
-        std::ifstream file(path.c_str(), std::ifstream::ate | std::ifstream::binary);
-        if (!file.good()) {
-          return {};
-        }
-        std::vector<T> vector;
-        std::uint64_t size = file.tellg();
-        vector.resize(size / sizeof(T));
-        file.seekg(0, std::ios::beg);
-        file.read(reinterpret_cast<char*>(&vector[0]), size);
-        return vector;
+      std::vector<T> read(const path_t auto& path) {
+        auto size = file_size(path);
+        if (!size || size % sizeof(T)) return {};
+        std::vector<T> v(size / sizeof(T));
+        if (!read_bytes(path, v.data(), size)) return {};
+        return v;
       }
-
     }
   }
 }

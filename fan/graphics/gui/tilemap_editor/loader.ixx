@@ -241,15 +241,6 @@ public:
     return tiles.size();
   }
 
-  bool get_player_spawn_position(id_t map_id, fan::vec3* pos) {
-    auto body = get_physics_body(map_id, "player_spawn");
-    if (body) {
-      *pos = body.get_physics_position();
-      return true;
-    }
-    return false;
-  }
-
   bool get_visual_bodies(id_t map_id, const std::string& id, std::vector<fte_t::tile_t>* tiles) {
     auto& node = map_list[map_id];
     auto& compiled_map = *node.compiled_map;
@@ -271,18 +262,18 @@ public:
     return {};
   }
 
-  fan::vec3 get_spawn_position(id_t map_id, const std::string& type_id) {
+  fan::vec3 get_spawn_position(id_t map_id, const std::string& id = "") {
     auto& node = map_list[map_id];
     auto& marks = node.compiled_map->spawn_marks;
 
     for (auto& mark : marks) {
-      if (type_id.size() && mark.id != type_id) {
-        continue;
+      if ((id.size() ? (mark.id != id) : (mark.type != fte_t::mesh_property_t::player_spawn))) {
+        continue; 
       }
       return mark.position;
     }
 
-    fan::throw_error("spawn position not found: " + type_id);
+    fan::throw_error("spawn position not found: " + id);
     return {};
   }
 

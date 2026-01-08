@@ -29,7 +29,6 @@ struct enemy_t : enemy_base_t {
 
   template<typename container_t>
   void open(container_t* bll, typename container_t::nr_t nr, const std::string& path, const std::source_location& caller_path = std::source_location::current()) {
-
     body = fan::graphics::physics::character2d_t::from_json({
       .json_path = path,
       .aabb_scale = aabb_scale,
@@ -46,7 +45,6 @@ struct enemy_t : enemy_base_t {
     body.movement_state.accelerate_force = 120.f / 3.f;
     body.movement_state.max_speed = 500.f;
     body.movement_state.check_gui = false;
-    body.set_size(body.get_size());
     ai_behavior.trigger_distance = trigger_distance;
     ai_behavior.closeup_distance = closeup_distance;
 
@@ -113,6 +111,23 @@ struct enemy_t : enemy_base_t {
         }
       }, (*bll)[nr]);
     });
+    {
+      hearts.clear();
+
+      int heart_count = body.get_max_health() / 10.f;
+      hearts.reserve(heart_count);
+
+      f32_t image_size = 8.f;
+
+      for (int i = 0; i < heart_count; ++i) {
+        hearts.emplace_back(fan::graphics::unlit_sprite_t({
+          .position = fan::vec3(0, 0, 0xFFF0),
+          .size = image_size,
+          .image = pile->get_gui().health_empty
+        }));
+        hearts.back().set_dynamic();
+      }
+    }
   }
   bool should_attack(fan::graphics::physics::character2d_t& c) override {
     fan::vec2 distance = ai_behavior.get_target_distance(c.get_physics_position());
@@ -137,19 +152,31 @@ struct enemy_t : enemy_base_t {
     return base_update();
   }
   void render_health() override {
-    int heart_count = body.get_max_health() / 10.f;
+    int heart_count = hearts.size();
+    if (!heart_count) {
+      return;
+    }
+
+    f32_t progress = body.get_health() / body.get_max_health();
+    f32_t image_size = hearts[0].get_size().x;
+
+    fan::vec2 base_pos = body.get_physics_position();
+    base_pos.y -= body.get_size().y / 1.5f;
+
     for (int i = 0; i < heart_count; ++i) {
-      fan::graphics::image_t hp_image = pile->get_gui().health_empty;
-      f32_t progress = body.get_health() / body.get_max_health();
       if (progress * heart_count > i) {
-        hp_image = pile->get_gui().health_full;
+        hearts[i].set_image(pile->get_gui().health_full);
       }
-      f32_t image_size = 8.f;
-      fan::graphics::sprite({
-        .position = fan::vec3(fan::vec2(body.get_physics_position() - fan::vec2(heart_count / 2.f * image_size - i * (image_size * 2.f) + image_size + image_size / 2.f, body.get_size().y / 1.5f)), 0xFFF0),
-        .size = image_size, 
-        .image = hp_image,
-      });
+      else {
+        hearts[i].set_image(pile->get_gui().health_empty);
+      }
+
+      f32_t x_offset =
+        -heart_count / 2.f * image_size +
+        i * (image_size * 2.f) +
+        image_size + image_size / 2.f;
+
+      hearts[i].set_position(fan::vec2(base_pos.offset_x(x_offset)));
     }
   }
   void destroy() override {
@@ -167,7 +194,7 @@ struct enemy_t : enemy_base_t {
       static constexpr f32_t drop_chance = 0.33f;
 
       if (fan::random::value(0.0f, 1.0f) < drop_chance) {
-        fan::vec2 tile_size = pile->get_level().main_compiled_map.tile_size;
+        fan::vec2 tile_size = pile->tilemaps_compiled[pile->get_level().stage_name].tile_size;
         fan::vec3i drop_pos = (body.get_center() / tile_size).floor() * tile_size;
 
         struct drop_t { const char* name; const char* texture; };
@@ -178,11 +205,15 @@ struct enemy_t : enemy_base_t {
 
         constexpr size_t count = std::size(drops);
         size_t index = (size_t)(fan::random::value(0.0f, 1.0f) * count);
+        auto sensor = fan::physics::create_sensor_rectangle(
+          drop_pos,
+          tile_size / 1.2f
+        );
 
-        pile->get_level().pickupables.push_back({
+        size_t idx = pile->get_level().pickupable_spatial.add(
           drops[index].name,
-          fan::physics::create_sensor_rectangle(drop_pos, tile_size / 1.2f)
-        });
+          sensor
+        );
 
         pile->get_level().dropped_pickupables[drop_pos] = fan::graphics::sprite_t {{
           .position = drop_pos,
@@ -222,7 +253,8 @@ struct enemy_t : enemy_base_t {
   fan::graphics::physics::attack_hitbox_t attack_hitbox;
   fan::graphics::physics::ai_behavior_t ai_behavior;
   fan::graphics::physics::navigation_helper_t navigation;
-  fan::physics::step_callback_nr_t physics_step_nr;
+  std::vector<fan::graphics::unlit_sprite_t> hearts;
   fan::vec2 initial_position = 0;
+  fan::physics::step_callback_nr_t physics_step_nr;
   fan::audio::piece_t audio_attack{"audio/enemy_attack.sac"}, audio_player_hits_enemy{"audio/player_hits_enemy.sac"};
 };
