@@ -988,24 +988,24 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
         return;
       }
 
-		#if defined(FAN_GUI)
+    #if defined(FAN_GUI)
       if (fan::graphics::gui::want_io()) {
         return;
       }
-		#endif
+    #endif
 
       bool mouse_inside_viewport = fan::graphics::inside(
         render_view.viewport,
         fan::window::get_mouse_position()
       );
       if (mouse_inside_viewport) {
-			#if defined(FAN_GUI)
+      #if defined(FAN_GUI)
         auto* context = fan::graphics::gui::get_context();
         auto* hovered_window = context->HoveredWindow;
         if (hovered_window) {
           fan::graphics::gui::set_window_focus(hovered_window->Name);
         }
-			#endif
+      #endif
         if (d.button == fan::mouse_scroll_up) {
           set_zoom(get_zoom() * 1.2f);
         }
