@@ -474,16 +474,31 @@ export namespace fan::graphics {
 
 export namespace fan {
   namespace actions {
+    namespace groups {
+      inline constexpr const char* system = "System";
+      inline constexpr const char* movement = "Movement";
+      inline constexpr const char* combat = "Combat";
+      inline constexpr const char* debug = "Debug";
+    }
+
+    // System
+    inline constexpr const char* toggle_settings = "Toggle Settings";
+    inline constexpr const char* toggle_console = "Toggle Console";
+
+    // Movement
     inline constexpr const char* move_forward = "Move Forward";
     inline constexpr const char* move_back = "Move Back";
     inline constexpr const char* move_left = "Move Left";
     inline constexpr const char* move_right = "Move Right";
     inline constexpr const char* move_up = "Move Up";
+
+    // Combat
     inline constexpr const char* light_attack = "Light Attack";
-    inline constexpr const char* toggle_settings = "Toggle Settings";
-    inline constexpr const char* toggle_console = "Toggle Console";
-    inline constexpr const char* toggle_debug_physics = "Toggle Debug Physics";
+
+    // Debug
+    constexpr const char* toggle_debug_physics = "Toggle Debug Physics";
   }
+
 	namespace window {
 		fan::vec2 get_input_vector(
 			const std::string& forward = fan::actions::move_forward,
