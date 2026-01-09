@@ -1263,6 +1263,7 @@ namespace fan::graphics::gui {
     io.Fonts->FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
 
     load_fonts(fan::graphics::gui::fonts, "fonts/SourceCodePro-Regular.ttf");
+    load_fonts(fan::graphics::gui::fonts_bold, "fonts/SourceCodePro-Bold.ttf");
 
     build_fonts();
 

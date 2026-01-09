@@ -857,7 +857,7 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
       value = (base / std::filesystem::path(value.get<std::string>())).generic_string();
     });
   }
-
+  
   fan::graphics::sprite_t sprite_sheet_from_json(
     const sprite_sheet_config_t config,
     const std::source_location& callers_path) 

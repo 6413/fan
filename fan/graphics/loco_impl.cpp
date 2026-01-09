@@ -1224,29 +1224,32 @@ void loco_t::close() {
 }
 
 void loco_t::setup_input_callbacks() {
+  // System
+  #if defined(FAN_GUI)
+    input_action.insert_or_assign({fan::key_escape, fan::gamepad_start}, fan::actions::toggle_settings, fan::actions::groups::system);
+    input_action.insert_or_assign(fan::key_f3, fan::actions::toggle_console, fan::actions::groups::system);
+  #endif
 
-#if defined(FAN_GUI)
-  input_action.insert_or_assign({fan::key_escape, fan::gamepad_start}, fan::actions::toggle_settings);
-  input_action.insert_or_assign(fan::key_f3, fan::actions::toggle_console);
-#endif
+  // Movement
+  input_action.insert_or_assign({fan::key_a, fan::gamepad_left_thumb}, fan::actions::move_left, fan::actions::groups::movement);
+  input_action.insert_or_assign({fan::key_d, fan::gamepad_left_thumb}, fan::actions::move_right, fan::actions::groups::movement);
+  input_action.insert_or_assign(fan::key_w, fan::actions::move_forward, fan::actions::groups::movement);
+  input_action.insert_or_assign(fan::key_s, fan::actions::move_back, fan::actions::groups::movement);
+  input_action.insert_or_assign({fan::key_space, fan::key_w, fan::gamepad_a}, fan::actions::move_up, fan::actions::groups::movement);
 
-  input_action.insert_or_assign({fan::key_a, fan::gamepad_left_thumb}, fan::actions::move_left);
-  input_action.insert_or_assign({fan::key_d, fan::gamepad_left_thumb}, fan::actions::move_right);
-  input_action.insert_or_assign(fan::key_w, fan::actions::move_forward);
-  input_action.insert_or_assign(fan::key_s, fan::actions::move_back);
-  input_action.insert_or_assign({fan::key_space, fan::key_w, fan::gamepad_a}, fan::actions::move_up);
-  input_action.insert_or_assign({fan::mouse_left, fan::gamepad_right_bumper}, fan::actions::light_attack);
-  // L1 guard
+  // Combat
+  input_action.insert_or_assign({fan::mouse_left, fan::gamepad_right_bumper}, fan::actions::light_attack, fan::actions::groups::combat);
 
-#if defined(FAN_PHYSICS_2D)
-  input_action.insert_or_assign_combo({fan::key_left_control, fan::key_5}, fan::actions::toggle_debug_physics);
-#endif
+  // Debug
+  #if defined(FAN_PHYSICS_2D)
+    input_action.insert_or_assign_combo({fan::key_left_control, fan::key_5}, fan::actions::toggle_debug_physics, fan::actions::groups::debug);
+  #endif
 
   #if defined(FAN_2D)
-  buttons_handle = window.add_buttons_callback([](const fan::window_t::buttons_data_t& d) {
-    fan::vec2 pos = fan::vec2(d.window->get_mouse_position());
-    fan::graphics::g_shapes->vfi.feed_mouse_button(d.button, d.state);
-  });
+    buttons_handle = window.add_buttons_callback([](const fan::window_t::buttons_data_t& d) {
+      fan::vec2 pos = fan::vec2(d.window->get_mouse_position());
+      fan::graphics::g_shapes->vfi.feed_mouse_button(d.button, d.state);
+    });
   #endif
 
   keys_handle = window.add_keys_callback([&, windowed = true](const fan::window_t::keys_data_t& d) mutable {

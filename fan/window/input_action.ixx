@@ -35,6 +35,7 @@ export namespace fan::window {
     };
 
     std::unordered_map<std::string, action_data_t> input_actions;
+    std::unordered_map<std::string, std::string> action_groups;
 
     std::function<int(int key)> is_active_func;
 
@@ -168,13 +169,17 @@ export namespace fan::window {
       return input_actions.find(action_name) != input_actions.end();
     }
 
-    void insert_or_assign(std::initializer_list<int> keys, const std::string& action_name) {
+    void insert_or_assign(std::initializer_list<int> keys, const std::string& action_name, const std::string& group_name = "") {
       for (int key : keys) {
-        insert_or_assign(key, action_name);
+        insert_or_assign(key, action_name, group_name);
       }
     }
 
-    void insert_or_assign(int key, const std::string& action_name) {
+    void insert_or_assign(int key, const std::string& action_name, const std::string& group_name = "") {
+      if (!group_name.empty()) {
+        action_groups[action_name] = group_name;
+      }
+
       combo_t combo {key};
       chord_t target;
       target.push_back(combo);
@@ -190,9 +195,12 @@ export namespace fan::window {
       action_data.keybinds.push_back(target);
     }
 
-    void insert_or_assign_combo(std::initializer_list<int> keys, const std::string& action_name) {
-      if (keys.size() == 0) {
-        return;
+
+    void insert_or_assign_combo(std::initializer_list<int> keys,
+      const std::string& action_name,
+      const std::string& group_name = "") {
+      if (!group_name.empty()) {
+        action_groups[action_name] = group_name;
       }
 
       combo_t combo(keys.begin(), keys.end());
@@ -212,6 +220,7 @@ export namespace fan::window {
 
       action_data.keybinds.push_back(target);
     }
+
 
 
     void add_empty_keybind(const std::string& action_name) {
