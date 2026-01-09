@@ -892,8 +892,11 @@ struct settings_menu_t {
     style.SelectableTextAlign = fan::vec2(0.0f, 0.0f);
     style.Colors[gui::col_text] = fan::color(0.9803921580314636f, 0.9803921580314636f, 0.9803921580314636f, 1.0f);
     style.Colors[gui::col_text_disabled] = fan::color(0.4980392158031464f, 0.4980392158031464f, 0.4980392158031464f, 1.0f);
-    style.Colors[gui::col_window_bg] = fan::color(0.09411764889955521f, 0.09411764889955521f, 0.09411764889955521f, 0.99);
-    style.Colors[gui::col_child_bg] = fan::color(0.1568627506494522f, 0.1568627506494522f, 0.1568627506494522f, 1.0f);
+    style.Colors[gui::col_window_bg] = fan::color(0.01f, 0.01f, 0.01f, 0.99f);
+    style.Colors[gui::col_child_bg] = fan::color(0.01f, 0.01f, 0.01f, 1.0f);
+    //style.Colors[gui::col_window_bg] = fan::color(0.09411764889955521f, 0.09411764889955521f, 0.09411764889955521f, 0.99);
+    //style.Colors[gui::col_child_bg] = style.Colors[gui::col_window_bg];
+    //style.Colors[gui::col_child_bg] = fan::color(0.1568627506494522f, 0.1568627506494522f, 0.1568627506494522f, 1.0f);
     style.Colors[gui::col_popup_bg] = fan::color(0.09411764889955521f, 0.09411764889955521f, 0.09411764889955521f, 1.0f);
     style.Colors[gui::col_border] = fan::color(1.0f, 1.0f, 1.0f, 0.09803921729326248f);
     style.Colors[gui::col_border_shadow] = fan::color(0.0f, 0.0f, 0.0f, 0.0f);

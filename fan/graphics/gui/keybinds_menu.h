@@ -437,7 +437,7 @@ struct keybind_menu_t {
     gui::table_next_row();
     gui::table_next_column();
 
-    gui::set_cursor_pos_x(gui::get_cursor_pos_x() + 12.f);
+    gui::set_cursor_pos_x(gui::get_cursor_pos_x() + 25.f);
     gui::set_cursor_pos_y(gui::get_cursor_pos_y() + 9.f);
     gui::text(action_name.c_str());
 
@@ -454,9 +454,6 @@ struct keybind_menu_t {
     gui::table_next_column();
     render_input_button(action_name, base_listening_index + 2, device_gamepad, gamepad_combo);
   }
-
-
-
 
   static void menu_keybinds_left(
     keybind_menu_t* menu,
@@ -506,7 +503,10 @@ struct keybind_menu_t {
 
     gui::push_style_var(gui::style_var_cell_padding, fan::vec2(16.f, 12.f));
     gui::push_style_var(gui::style_var_item_spacing, fan::vec2(8.f, 4.f));
-    gui::push_style_color(gui::col_table_row_bg_alt, fan::color(1.0f, 1.0f, 1.0f, 0.05f));
+    //gui::push_style_color(gui::col_table_row_bg_alt, fan::color(0.f, 0.f, 0.f, 0.05f));
+    gui::push_style_color(gui::col_table_row_bg,     fan::color(0.0f, 0.0f, 0.0f, 0.00f));
+    gui::push_style_color(gui::col_table_row_bg_alt, fan::color(1.0f, 1.0f, 1.0f, 0.06f));
+
     gui::begin_table("keybinds_table", 4,
       gui::table_flags_row_bg |
       gui::table_flags_borders_inner_h |
@@ -526,7 +526,7 @@ struct keybind_menu_t {
     constexpr f32_t action_padding = 50.f;
     f32_t action_column_width = max_action_width + action_padding;
 
-    gui::table_setup_column("Action", gui::table_column_flags_width_fixed, action_column_width);
+    gui::table_setup_column("Control", gui::table_column_flags_width_fixed, action_column_width);
     gui::table_setup_column("Keyboard", gui::table_column_flags_width_fixed, max_keyboard_width);
     gui::table_setup_column("Mouse", gui::table_column_flags_width_fixed, max_mouse_width + spacing);
     gui::table_setup_column("Gamepad", gui::table_column_flags_width_fixed, 200.f);
@@ -534,23 +534,23 @@ struct keybind_menu_t {
     gui::table_next_row(gui::table_row_flags_headers, 40.f);
 
     gui::table_next_column();
-    gui::push_font(gui::get_font(20, true));
+    gui::push_font(gui::get_font(28, true));
     gui::set_cursor_pos_x(gui::get_cursor_pos_x() + 12.f);
-    gui::text("Action");
+    gui::text("Control");
     gui::pop_font();
 
     gui::table_next_column();
-    gui::push_font(gui::get_font(20, true));
+    gui::push_font(gui::get_font(28, true));
     gui::text("Keyboard");
     gui::pop_font();
 
     gui::table_next_column();
-    gui::push_font(gui::get_font(20, true));
+    gui::push_font(gui::get_font(28, true));
     gui::text("Mouse");
     gui::pop_font();
 
     gui::table_next_column();
-    gui::push_font(gui::get_font(20, true));
+    gui::push_font(gui::get_font(28, true));
     gui::text("Gamepad");
     gui::pop_font();
 
@@ -573,14 +573,78 @@ struct keybind_menu_t {
       );
     }
 
+    std::map<std::string, std::vector<std::string>> grouped;
+
+    auto& ia = gloco()->input_action;
+
+    for (auto& [action_name, _] : ia.input_actions) {
+      std::string group = "";
+      auto it = ia.action_groups.find(action_name);
+      if (it != ia.action_groups.end()) {
+        group = it->second;
+      }
+      grouped[group].push_back(action_name);
+    }
+
     int base_index = 0;
-    for (auto& [action_name, bindings] : menu->device_bindings) {
-      menu->render_action_row(base_index, action_name);
-      base_index += 3;
+
+    std::vector<std::string> group_order;
+    group_order.reserve(grouped.size());
+
+    for (auto& [group_name, _] : grouped) {
+      group_order.push_back(group_name);
+    }
+
+    std::sort(group_order.begin(), group_order.end(), [](const std::string& a, const std::string& b) {
+      if (a.empty()) return false;
+      if (b.empty()) return true;
+      return a < b;
+    });
+
+    for (const auto& group_name : group_order) {
+      auto& actions = grouped[group_name];
+
+      if (&group_name != &grouped.begin()->first) {
+        gui::table_next_row();
+        gui::table_next_column();
+        gui::dummy(fan::vec2(0, 12.f));
+      }
+      gui::table_next_row();
+      gui::table_next_column();
+
+      auto* dl = gui::get_window_draw_list();
+      fan::vec2 cursor = gui::get_cursor_screen_pos();
+
+      gui::push_font(gui::get_font(28, true));
+      std::string display_name = group_name.empty() ? "Other" : group_name;
+      fan::vec2 text_size = gui::calc_text_size(display_name);
+
+      fan::vec2 table_min = gui::get_cursor_screen_pos();
+      table_min.x -= 12.f;
+      table_min.y -= 4.f;
+
+      fan::vec2 content_region = gui::get_content_region_avail();
+      fan::vec2 table_max = fan::vec2(
+        table_min.x + content_region.x + 24.f,
+        table_min.y + text_size.y + 8.f
+      );
+
+      gui::set_cursor_pos_x(gui::get_cursor_pos_x() + 12.f);
+      gui::text(title_color, display_name.c_str());
+      gui::pop_font();
+
+      gui::table_next_column();
+      gui::table_next_column();
+      gui::table_next_column();
+
+      for (const auto& action_name : actions) {
+        menu->render_action_row(base_index, action_name);
+        base_index += 3;
+      }
     }
 
     gui::end_table();
-    gui::pop_style_color();
+    gui::pop_style_color(2);
     gui::pop_style_var(2);
     gui::end_child();
     gui::pop_style_color();
