@@ -152,6 +152,22 @@ namespace fan::graphics::gui {
   bool table_set_column_index(int column_n) {
     return ImGui::TableSetColumnIndex(column_n);
   }
+  f32_t table_get_column_offset(int column_n) {
+    int current_col = ImGui::TableGetColumnIndex();
+    ImGui::TableSetColumnIndex(column_n);
+    f32_t x_pos = ImGui::GetCursorScreenPos().x;
+    ImGui::TableSetColumnIndex(current_col);
+    return x_pos;
+  }
+  f32_t table_get_cell_width(f32_t init_width) {
+    return init_width + gui::get_style().CellPadding.x * 2.f + gui::get_style().FramePadding.x;
+  }
+  void push_clip_rect(const fan::vec2& min, const fan::vec2& max, bool intersect_with_current_clip_rect) {
+    ImGui::PushClipRect(min, max, intersect_with_current_clip_rect);
+  }
+  void show_debug_log_window(bool* p_open) {
+    ImGui::ShowDebugLogWindow(p_open);
+  }
   bool menu_item(const std::string& label, const std::string& shortcut, bool selected, bool enabled) {
     return ImGui::MenuItem(label.c_str(), shortcut.empty() ? nullptr : shortcut.c_str(), selected, enabled);
   }

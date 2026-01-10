@@ -8,7 +8,7 @@
           "hframes": 4,
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "flag.png",
+          "image_path": "flag.webp",
           "vframes": 3
         }
       ],
@@ -36,7 +36,7 @@
         {
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "flag.png"
+          "image_path": "flag.webp"
         }
       ],
       "position": [

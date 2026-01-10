@@ -158,10 +158,14 @@ struct enemy_t : enemy_base_t {
     }
 
     f32_t progress = body.get_health() / body.get_max_health();
-    f32_t image_size = hearts[0].get_size().x;
+    f32_t half_size = hearts[0].get_size().x;
+    f32_t full_size = half_size * 2.f;       
 
     fan::vec2 base_pos = body.get_physics_position();
     base_pos.y -= body.get_size().y / 1.5f;
+
+    f32_t total_width = heart_count * full_size;
+    f32_t start_x = -total_width * 0.5f + full_size * 0.5f;
 
     for (int i = 0; i < heart_count; ++i) {
       if (progress * heart_count > i) {
@@ -171,14 +175,11 @@ struct enemy_t : enemy_base_t {
         hearts[i].set_image(pile->get_gui().health_empty);
       }
 
-      f32_t x_offset =
-        -heart_count / 2.f * image_size +
-        i * (image_size * 2.f) +
-        image_size + image_size / 2.f;
-
+      f32_t x_offset = start_x + i * full_size;
       hearts[i].set_position(fan::vec2(base_pos.offset_x(x_offset)));
     }
   }
+
   void destroy() override {
     for (auto [nr, enemy] : fan::enumerate(pile->enemies())) {
       if (enemy.get_body().NRI == body.NRI) {

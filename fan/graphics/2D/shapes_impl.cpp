@@ -1981,8 +1981,17 @@ namespace fan::graphics{
     return sheet_data.current_frame == animation.selected_frames.size() - 1;
   }
   void shapes::shape_t::set_animation_loop(animation_nr_t nr, bool flag) {
-    auto& animation = fan::graphics::get_sprite_sheet_animation(nr);
-    animation.loop = flag;
+    g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
+      if constexpr (requires { props.sprite_sheet_data; }) {
+        if (props.sprite_sheet_data.current_animation == nr) {
+          animation_nr_t new_nr = all_animations_counter++;
+          all_animations[new_nr] = all_animations[nr];
+          all_animations[new_nr].loop = flag;
+
+          props.sprite_sheet_data.current_animation = new_nr;
+        }
+      }
+    });
   }
   void fan::graphics::shapes::shape_t::reset_current_sprite_sheet_animation_frame() {
     g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
@@ -2133,10 +2142,11 @@ namespace fan::graphics{
 
     g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
       if constexpr (requires { props.sprite_sheet_data; }) {
-        auto& sheet_data = props.sprite_sheet_data;
-
-        for (auto& animation_nrs : shape_animations[props.sprite_sheet_data.shape_animations]) {
-          ::fan::graphics::get_sprite_sheet_animation(animation_nrs).fps = fps;
+        // Only modify animations belonging to THIS shape
+        auto& shape_anims = shape_animations[props.sprite_sheet_data.shape_animations];
+        for (auto& animation_nr : shape_anims) {
+          auto& anim = all_animations[animation_nr];
+          anim.fps = fps;
         }
       }
     });
@@ -2709,9 +2719,16 @@ void fan::graphics::shapes::shape_t::stop_sprite_sheet() {
 }
 
 void fan::graphics::shapes::shape_t::play_sprite_sheet_once(const std::string& anim_name) {
-  set_sprite_sheet(anim_name);
+  auto* original_anim = get_animation(anim_name);
+  if (!original_anim) {
+    return;
+  }
+  
+  sprite_sheet_animation_t anim_copy = *original_anim;
+  anim_copy.loop = false;
+  
+  set_sprite_sheet(anim_copy);
   set_current_animation_frame(0);
-  set_animation_loop(get_current_animation_id(), false);
 }
 
 void fan::graphics::shapes::shape_t::set_sprite_sheet(const std::string& name) {
@@ -2722,15 +2739,21 @@ void fan::graphics::shapes::shape_t::set_sprite_sheet(const fan::graphics::sprit
   if (get_shape_type() != fan::graphics::shapes::shape_type_t::sprite) {
     fan::throw_error("unimplemented for this shape");
   }
+  
   g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
     if constexpr (requires { props.sprite_sheet_data.shape_animations; }) {
-      auto& previous_anim = ::fan::graphics::get_sprite_sheet_animation(props.sprite_sheet_data.current_animation);
-      auto found = shape_animation_lookup_table.find({props.sprite_sheet_data.shape_animations, previous_anim.name});
-      if (found != shape_animation_lookup_table.end()) {
-        shape_animation_lookup_table.erase(found);
+      animation_nr_t new_anim_nr = all_animations_counter++;
+      all_animations[new_anim_nr] = animation;
+      
+      props.sprite_sheet_data.current_animation = new_anim_nr;
+      
+      auto& shape_anims = shape_animations[props.sprite_sheet_data.shape_animations];
+      auto it = std::find(shape_anims.begin(), shape_anims.end(), new_anim_nr);
+      if (it == shape_anims.end()) {
+        shape_anims.push_back(new_anim_nr);
       }
-      previous_anim = animation;
-      shape_animation_lookup_table[{props.sprite_sheet_data.shape_animations, animation.name}] = props.sprite_sheet_data.current_animation;
+      
+      shape_animation_lookup_table[{props.sprite_sheet_data.shape_animations, animation.name}] = new_anim_nr;
     }
   });
   play_sprite_sheet();

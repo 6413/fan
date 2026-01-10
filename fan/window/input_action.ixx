@@ -195,7 +195,6 @@ export namespace fan::window {
       action_data.keybinds.push_back(target);
     }
 
-
     void insert_or_assign_combo(std::initializer_list<int> keys,
       const std::string& action_name,
       const std::string& group_name = "") {

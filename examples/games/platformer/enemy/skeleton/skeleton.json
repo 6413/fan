@@ -8,7 +8,7 @@
           "hframes": 13,
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "enemy/skeleton/idle.png",
+          "image_path": "enemy/skeleton/idle.webp",
           "vframes": 1
         }
       ],
@@ -28,7 +28,7 @@
           "hframes": 13,
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "enemy/skeleton/walk.png",
+          "image_path": "enemy/skeleton/walk.webp",
           "vframes": 1
         }
       ],
@@ -56,7 +56,7 @@
           "hframes": 13,
 					"image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "enemy/skeleton/attack.png",
+          "image_path": "enemy/skeleton/attack.webp",
           "vframes": 1
         }
       ],
@@ -85,7 +85,7 @@
           "hframes": 13,
 					"image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "enemy/skeleton/hurt.png",
+          "image_path": "enemy/skeleton/hurt.webp",
           "vframes": 1
         }
       ],
@@ -107,7 +107,7 @@
       ],
       "images": [
         {
-          "image_path": "enemy/skeleton/hurt.png"
+          "image_path": "enemy/skeleton/hurt.webp"
         }
       ],
       "position": [

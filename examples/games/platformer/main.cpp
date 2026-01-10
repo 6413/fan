@@ -58,6 +58,7 @@ int main() {
       return;
     }
     pile->checkpoint_system.set_checkpoint(std::stoi(args[0]));
+    pile->player.checkpoint_position = 0;
     pile->get_level().reload_map();
   });
 

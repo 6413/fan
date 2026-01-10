@@ -1696,10 +1696,10 @@ void loco_t::process_gui() {
 
     if (!fps_timer.started()) {
       last_fps = 1.0 / delta_time;
-      fps_timer.start();
+      fps_timer.start_seconds(1.0f);
     }
 
-    if (fps_timer.seconds() >= 1.0f) {
+    if (fps_timer.finished()) {
       last_fps = frame_count;
       frame_count = 0;
       fps_timer.restart();

@@ -60,6 +60,10 @@ export namespace fan::graphics::gui {
   void table_setup_column(const std::string& label, table_column_flags_t flags = 0, f32_t init_width_or_weight = 0.0f, id_t user_id = 0);
   void table_headers_row();
   bool table_set_column_index(int column_n);
+  f32_t table_get_column_offset(int column_n = -1);
+  f32_t table_get_cell_width(f32_t init_width = 0.f);
+  void push_clip_rect(const fan::vec2& min, const fan::vec2& max, bool intersect_with_current_clip_rect);
+  void show_debug_log_window(bool* p_open = nullptr);
 
   bool menu_item(const std::string& label, const std::string& shortcut = "", bool selected = false, bool enabled = true);
   

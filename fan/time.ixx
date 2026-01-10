@@ -111,16 +111,16 @@ export namespace fan {
         m_time = time;
       }
       void start_seconds(f64_t s) {
-        m_time = (uint64_t)(s * 1e9);
         start();
+        m_time = (uint64_t)(s * 1e9);
       }
       void start_millis(f64_t ms) {
-        m_time = (uint64_t)(ms * 1e6);
         start();
+        m_time = (uint64_t)(ms * 1e6);
       }
       void start_micros(f64_t us) {
-        m_time = (uint64_t)(us * 1e3);
         start();
+        m_time = (uint64_t)(us * 1e3);
       }
 
       void set_time(uint64_t time) {

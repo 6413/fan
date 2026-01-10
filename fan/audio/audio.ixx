@@ -153,21 +153,21 @@ export namespace fan {
         fan::audio_t::PieceFlag::t flags = 0,
         const std::source_location& callers_path = std::source_location::current()
       ){
-        std::string resolved_path = fan::io::file::find_relative_path(path, callers_path).generic_string();
         
-        auto it = gaudio().cache.find(resolved_path);
+        auto it = gaudio().cache.find(path);
         if (it != gaudio().cache.end()) {
           *(fan::audio_t::piece_t*)this = it->second;
           return *this;
         }
 
+        std::string resolved_path = fan::io::file::find_relative_path(path, callers_path).generic_string();
         fan::audio_t::piece_t* piece = &(fan::audio_t::piece_t&)*this;
         sint32_t err = gaudio()->Open(piece, resolved_path, flags);
         if (err != 0) {
           fan::print("failed to open piece:" + path, "with error:", err);
         }
         
-        gaudio().cache[resolved_path] = *piece;
+        gaudio().cache[path] = *piece;
         return *this;
       }
 
