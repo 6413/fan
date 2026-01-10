@@ -95,18 +95,21 @@ struct player_t {
     body.set_angle(0.f);
   }
 
-  void respawn(){
-    body.set_angle(0.f);
-    
-    fan::vec3 spawn_pos = pile->checkpoint_system.get_respawn_position(pile->renderer, pile->get_level().main_map_id);
-    if (spawn_pos == fan::vec3(0)) {
-      spawn_pos = fan::graphics::tilemap::helpers::get_spawn_position_or_default(
-        pile->renderer, pile->get_level().main_map_id
-      );
+  void respawn() {
+    if (!checkpoint_position) {
+      checkpoint_position = pile->checkpoint_system.get_respawn_position(pile->renderer, pile->get_level().main_map_id);
+      if (!checkpoint_position) {
+        fan::throw_error("no checkpoint found");
+      }
     }
-    body.set_physics_position(spawn_pos);
 
-    body.set_health(body.get_max_health());
+    body.set_physics_position(checkpoint_position);
+    body.set_linear_velocity(fan::vec2(0));
+    body.set_angular_velocity(0);
+
+    f32_t max_health = body.get_max_health();
+    body.set_health(max_health);
+    particles.set_position(body.get_position());
     pile->get_level().load_enemies();
   }
 
@@ -173,6 +176,7 @@ struct player_t {
     pile->checkpoint_system.check_and_update(body, [this](auto& cp) {
       audio_checkpoint.play();
       fan::graphics::gui::print("Checkpoint reached!");
+      checkpoint_position = pile->checkpoint_system.get_respawn_position(pile->renderer, pile->get_level().main_map_id);
     });
 
     auto& map_compiled = pile->tilemaps_compiled[pile->get_level().stage_name];
@@ -216,4 +220,5 @@ struct player_t {
   fan::graphics::effects::particle_pool_t::pool_t<4> potion_particles;
   fan::graphics::light_t player_light{{.position = 0}};
   fan::physics::step_callback_nr_t physics_step_nr;
+  fan::vec2 checkpoint_position = 0;
 };

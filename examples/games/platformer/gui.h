@@ -1,9 +1,9 @@
 #define gui fan::graphics::gui
 
 void open(void* sod) {
-  health_empty = fan::graphics::image_t("gui/hp_empty.png");
-  health_full = fan::graphics::image_t("gui/hp_full.png");
-  health_potion = fan::graphics::image_t("gui/health_potion.png");
+  health_empty = fan::graphics::image_t("gui/hp_empty.webp");
+  health_full = fan::graphics::image_t("gui/hp_full.webp");
+  health_potion = fan::graphics::image_t("gui/health_potion.webp");
   gui::load_fonts(font_pixel, "fonts/PixelatedEleganceRegular-ovyAA.ttf");
 }
 

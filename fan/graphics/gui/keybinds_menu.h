@@ -10,12 +10,14 @@ struct keybind_config_t {
     }
     return r;
   }
+
   static std::string trim(const std::string& s) {
     size_t b = 0, e = s.size();
     while (b < e && std::isspace((unsigned char)s[b])) ++b;
     while (e > b && std::isspace((unsigned char)s[e - 1])) --e;
     return s.substr(b, e - b);
   }
+
   static bool iequals(const std::string& a, const std::string& b) {
     if (a.size() != b.size()) return false;
     for (size_t i = 0; i < a.size(); ++i) {
@@ -24,6 +26,7 @@ struct keybind_config_t {
     }
     return true;
   }
+
   static bool is_modifier(int key) {
     return
       key == fan::key_left_control ||
@@ -35,6 +38,7 @@ struct keybind_config_t {
       key == fan::key_left_super ||
       key == fan::key_right_super;
   }
+
   static void sort_combo(combo_t& combo) {
     std::sort(combo.begin(), combo.end(), [](int a, int b) {
       bool ma = is_modifier(a), mb = is_modifier(b);
@@ -43,15 +47,19 @@ struct keybind_config_t {
     });
     combo.erase(std::unique(combo.begin(), combo.end()), combo.end());
   }
+
   static bool is_keyboard_key(int key) {
     return key >= fan::key_first && key <= fan::key_last;
   }
+
   static bool is_mouse_button(int key) {
     return key >= fan::mouse_first && key <= fan::mouse_last;
   }
+
   static bool is_gamepad_button(int key) {
     return key >= fan::gamepad_first && key <= fan::gamepad_last;
   }
+
   static int key_name_to_code(const std::string& name) {
     std::string trimmed = trim(name);
     if (trimmed.empty()) return -1;
@@ -87,6 +95,7 @@ struct keybind_config_t {
 
     return -1;
   }
+
   static std::string key_code_to_name(int key) {
     if (key >= fan::gamepad_a && key <= fan::gamepad_last) {
       const char* gn = fan::get_key_name(key);
@@ -108,6 +117,7 @@ struct keybind_config_t {
     if (std::strcmp(kn, "Unknown") == 0) return "Unknown";
     return std::string(kn);
   }
+
   static combo_t combo_from_string(const std::string& combo_str) {
     combo_t combo;
     std::string trimmed = trim(combo_str);
@@ -131,6 +141,7 @@ struct keybind_config_t {
     sort_combo(combo);
     return combo;
   }
+
   static std::string combo_to_string(const combo_t& combo) {
     if (combo.empty()) return "None";
 
@@ -174,6 +185,8 @@ struct keybind_menu_t {
 
   static constexpr int first_key = fan::key_first;
   static constexpr int last_key = fan::input_last;
+  static constexpr int wnd_flags = gui::window_flags_no_move | gui::window_flags_no_collapse | gui::window_flags_no_resize | gui::window_flags_no_title_bar;
+  static constexpr fan::color title_color = fan::color::from_rgba(0x948c80ff) * 1.5f;
 
   static bool is_gamepad_button_down(int key) {
     int jid = 0;
@@ -188,6 +201,7 @@ struct keybind_menu_t {
 
     return buttons[idx] == GLFW_PRESS;
   }
+
   static bool is_gamepad_axis_active(int key) {
     fan::vec2 axis = gloco()->window.get_gamepad_axis(key);
 
@@ -197,36 +211,49 @@ struct keybind_menu_t {
 
     return axis.length() > gloco()->window.gamepad_axis_deadzone;
   }
-  static combo_t get_current_combo() {
+
+  static std::string combo_to_string(const combo_t& combo) {
+    return keybind_config_t::combo_to_string(combo);
+  }
+
+  static combo_t get_current_combo(device_type_e device) {
     combo_t combo;
     combo.reserve(8);
 
-    for (int key = first_key; key <= last_key; ++key) {
-      if (fan::window::is_key_down(key)) {
-        combo.push_back(key);
+    if (device == device_keyboard) {
+      for (int key = first_key; key <= last_key; ++key) {
+        if (fan::window::is_key_down(key)) {
+          combo.push_back(key);
+        }
       }
     }
 
-    for (int btn = fan::mouse_first; btn <= fan::mouse_last; ++btn) {
-      if (fan::window::is_key_down(btn)) {
-        combo.push_back(btn);
+    if (device == device_mouse) {
+      for (int btn = fan::mouse_first; btn <= fan::mouse_last; ++btn) {
+        if (fan::window::is_key_down(btn)) {
+          combo.push_back(btn);
+        }
       }
     }
 
-    for (int btn = fan::gamepad_a; btn <= fan::gamepad_last; ++btn) {
-      if (is_gamepad_button_down(btn) || is_gamepad_axis_active(btn)) {
-        combo.push_back(btn);
+    if (device == device_gamepad) {
+      for (int btn = fan::gamepad_a; btn <= fan::gamepad_last; ++btn) {
+        if (is_gamepad_button_down(btn) || is_gamepad_axis_active(btn)) {
+          combo.push_back(btn);
+        }
       }
     }
 
     keybind_config_t::sort_combo(combo);
     return combo;
   }
+
   void begin_capture() {
     key_cap_state.active = true;
     key_cap_state.capturing = true;
     key_cap_state.current_combo.clear();
   }
+
   void finish_capture(const std::string& action_name, device_type_e device) {
     key_cap_state.active = false;
     key_cap_state.capturing = false;
@@ -272,156 +299,118 @@ struct keybind_menu_t {
     mark_dirty();
     suppress_input_frame = 2;
   }
+
   void cancel_capture() {
     key_cap_state = {};
   }
+
   bool is_capturing() const {
     return key_cap_state.active;
   }
-  static std::string combo_to_string(const combo_t& combo) {
-    return keybind_config_t::combo_to_string(combo);
-  }
-  static combo_t get_current_combo(device_type_e device) {
-    combo_t combo;
-    combo.reserve(8);
 
-    if (device == device_keyboard) {
-      for (int key = first_key; key <= last_key; ++key) {
-        if (fan::window::is_key_down(key)) {
-          combo.push_back(key);
-        }
-      }
-    }
+  void render_input_button(
+  const std::string& action_name,
+  int listening_index,
+  device_type_e device,
+  const combo_t& combo
+) {
+  static constexpr f32_t key_button_height = 26.f;
 
-    if (device == device_mouse) {
-      for (int btn = fan::mouse_first; btn <= fan::mouse_last; ++btn) {
-        if (fan::window::is_key_down(btn)) {
-          combo.push_back(btn);
-        }
-      }
-    }
+  bool is_listening = listening_states[listening_index];
+  std::string label = is_listening ? "Press keys..." : combo_to_string(combo);
 
-    if (device == device_gamepad) {
-      for (int btn = fan::gamepad_a; btn <= fan::gamepad_last; ++btn) {
-        if (is_gamepad_button_down(btn) || is_gamepad_axis_active(btn)) {
-          combo.push_back(btn);
-        }
-      }
-    }
+  fan::vec2 cell_size = gui::get_content_region_avail();
+  fan::vec2 frame_pad = gui::get_style().FramePadding;
+  cell_size.y = key_button_height;
 
-    keybind_config_t::sort_combo(combo);
-    return combo;
+  fan::vec2 cell_pad = gui::get_style().CellPadding;
+  fan::vec2 old_cursor = gui::get_cursor_pos();
+  gui::set_cursor_pos(gui::get_cursor_pos() - cell_pad);
+  bool pressed = gui::invisible_button(
+    ("##" + action_name + "_" + std::to_string(listening_index)).c_str(),
+    cell_size + cell_pad * 2.f
+  );
+  gui::set_cursor_pos(old_cursor);
+  fan::vec2 pmin = gui::get_item_rect_min();
+  fan::vec2 pmax = gui::get_item_rect_max();
+  fan::vec2 psize = pmax - pmin;
+
+  if (gui::is_item_hovered()) {
+    auto* dl = gui::get_window_draw_list();
+    dl->AddRect(pmin, pmax, fan::color(0.f, 1.f, 1.f, 1.f).get_gui_color(), 0.f, 1.5f);
   }
 
-  void render_input_button(const std::string& action_name,
-    int listening_index,
-    device_type_e device,
-    const combo_t& combo) {
-    static constexpr f32_t key_button_height = 36.f;
+  fan::vec2 text_size = gui::calc_text_size(label);
+  gui::set_cursor_screen_pos(
+    fan::vec2(
+      pmin.x + (psize.x - text_size.x) * 0.5f,
+      pmin.y + (psize.y - text_size.y) * 0.5f
+    )
+  );
+  gui::text(label.c_str());
 
-    bool is_listening = listening_states[listening_index];
+  if (!is_listening && pressed) {
+    std::fill(listening_states.begin(), listening_states.end(), false);
+    listening_states[listening_index] = true;
+    key_cap_state = {};
+  }
 
-    std::string label = is_listening ? "Press keys..." : combo_to_string(combo);
-
-    fan::vec2 text_size = gui::calc_text_size(label);
-
-    constexpr f32_t horizontal_padding = 10.f;
-    f32_t vertical_padding = (key_button_height - text_size.y) * 0.5f;
-
-    f32_t button_width = text_size.x + 2 * horizontal_padding;
-
-    gui::push_style_var(gui::style_var_frame_padding,
-      fan::vec2(horizontal_padding, vertical_padding));
-    gui::push_style_var(gui::style_var_frame_rounding, 6.f);
-
-    if (is_listening) {
-      gui::push_style_color(gui::col_button,
-        fan::color(0.85f, 0.55f, 0.25f, 1.0f));
+  if (gui::is_item_clicked(fan::mouse_right)) {
+    auto it = device_bindings.find(action_name);
+    if (it != device_bindings.end()) {
+      auto& bindings = it->second;
+      switch (device) {
+        case device_keyboard:
+          if (!bindings.keyboard.empty()) bindings.keyboard[0].clear();
+          break;
+        case device_mouse:
+          if (!bindings.mouse.empty()) bindings.mouse[0].clear();
+          break;
+        case device_gamepad:
+          if (!bindings.gamepad.empty()) bindings.gamepad[0].clear();
+          break;
+      }
+      update_input_action(action_name);
+      mark_dirty();
     }
+  }
 
-    bool pressed = gui::button(
-      (label + "##" + action_name + "_" + std::to_string(listening_index)).c_str(),
-      fan::vec2(button_width, key_button_height)
-    );
-
-    if (is_listening) {
-      gui::pop_style_color();
-    }
-
-    if (is_listening) {
-      if (device != device_keyboard &&
+  if (is_listening) {
+    if (device != device_keyboard &&
         fan::window::is_key_pressed(fan::key_escape) &&
         key_cap_state.current_combo.empty()) {
-        cancel_capture();
-        listening_states[listening_index] = false;
-        gui::pop_style_var(2);
-        return;
-      }
-      if (!key_cap_state.active) {
-        begin_capture();
-        suppress_input_frame = 1;
-        gui::pop_style_var(2);
-        return;
-      }
-      if (suppress_input_frame > 0) {
-        gui::pop_style_var(2);
-        return;
-      }
-      combo_t current = get_current_combo(device);
-
-      if (!current.empty()) {
-        if (key_cap_state.current_combo.empty() ||
+      cancel_capture();
+      listening_states[listening_index] = false;
+      return;
+    }
+    if (!key_cap_state.active) {
+      begin_capture();
+      suppress_input_frame = 1;
+      return;
+    }
+    if (suppress_input_frame > 0) {
+      return;
+    }
+    combo_t current = get_current_combo(device);
+    if (!current.empty()) {
+      if (key_cap_state.current_combo.empty() ||
           current.size() > key_cap_state.current_combo.size()) {
-          key_cap_state.current_combo = current;
-        }
-
-        if (device == device_mouse) {
-          finish_capture(action_name, device);
-          listening_states[listening_index] = false;
-        }
-
-        gui::pop_style_var(2);
-        return;
+        key_cap_state.current_combo = current;
       }
-      if ((device == device_keyboard || device == device_gamepad) &&
-        !key_cap_state.current_combo.empty()) {
+      if (device == device_mouse) {
         finish_capture(action_name, device);
         listening_states[listening_index] = false;
       }
+      return;
     }
-    else {
-      if (pressed) {
-        std::fill(listening_states.begin(), listening_states.end(), false);
-        listening_states[listening_index] = true;
-        key_cap_state = {};
-      }
-
-      if (gui::is_item_clicked(fan::mouse_right)) {
-        auto it = device_bindings.find(action_name);
-        if (it != device_bindings.end()) {
-          auto& bindings = it->second;
-
-          switch (device) {
-          case device_keyboard:
-            if (!bindings.keyboard.empty()) bindings.keyboard[0].clear();
-            break;
-          case device_mouse:
-            if (!bindings.mouse.empty()) bindings.mouse[0].clear();
-            break;
-          case device_gamepad:
-            if (!bindings.gamepad.empty()) bindings.gamepad[0].clear();
-            break;
-          }
-
-          update_input_action(action_name);
-          mark_dirty();
-        }
-      }
+    if ((device == device_keyboard || device == device_gamepad) &&
+        !key_cap_state.current_combo.empty()) {
+      finish_capture(action_name, device);
+      listening_states[listening_index] = false;
     }
-
-
-    gui::pop_style_var(2);
   }
+}
+
 
   f32_t calc_button_width(const std::string& label) {
     f32_t text_width = gui::calc_text_size(label).x;
@@ -437,7 +426,6 @@ struct keybind_menu_t {
     gui::table_next_row();
     gui::table_next_column();
 
-    gui::set_cursor_pos_x(gui::get_cursor_pos_x() + 25.f);
     gui::set_cursor_pos_y(gui::get_cursor_pos_y() + 9.f);
     gui::text(action_name.c_str());
 
@@ -465,7 +453,10 @@ struct keybind_menu_t {
     gui::set_next_window_size(next_window_size);
     gui::set_next_window_bg_alpha(0.99);
     gui::begin("##Keybinds Left", nullptr, wnd_flags);
-    gui::text(title_color, "KEYBINDS");
+
+    if (menu->device_bindings.empty()) {
+      menu->refresh_input_actions();
+    }
 
     int num_actions = (int)menu->device_bindings.size();
     int required_size = num_actions * 3;
@@ -475,110 +466,18 @@ struct keybind_menu_t {
       menu->listening_states.resize(required_size, false);
     }
 
-    f32_t max_keyboard_width = 0;
-    f32_t max_mouse_width = 0;
-
-    for (const auto& [action_name, bindings] : menu->device_bindings) {
-      combo_t kb = bindings.keyboard.empty() ? combo_t {} : bindings.keyboard[0];
-      combo_t ms = bindings.mouse.empty() ? combo_t {} : bindings.mouse[0];
-
-      std::string kb_label = keybind_menu_t::combo_to_string(kb);
-      std::string ms_label = keybind_menu_t::combo_to_string(ms);
-
-      f32_t kb_width = std::max(100.f, gui::calc_text_size(kb_label).x + 20.f);
-      f32_t ms_width = std::max(100.f, gui::calc_text_size(ms_label).x + 20.f);
-
-      max_keyboard_width = std::max(max_keyboard_width, kb_width);
-      max_mouse_width = std::max(max_mouse_width, ms_width);
-    }
-
-    constexpr f32_t spacing = 20.f;
-
-    gui::push_style_color(gui::col_table_header_bg, fan::colors::transparent);
-
-    gui::begin_child("##keybinds_scroll_region", fan::vec2(0, -70), false,
-      gui::window_flags_horizontal_scrollbar |
-      gui::window_flags_always_horizontal_scrollbar
+    gui::begin_child(
+      "##keybinds_scroll_region",
+      fan::vec2(0, -70),
+      false,
+      gui::window_flags_horizontal_scrollbar
     );
-
-    gui::push_style_var(gui::style_var_cell_padding, fan::vec2(16.f, 12.f));
-    gui::push_style_var(gui::style_var_item_spacing, fan::vec2(8.f, 4.f));
-    //gui::push_style_color(gui::col_table_row_bg_alt, fan::color(0.f, 0.f, 0.f, 0.05f));
-    gui::push_style_color(gui::col_table_row_bg,     fan::color(0.0f, 0.0f, 0.0f, 0.00f));
-    gui::push_style_color(gui::col_table_row_bg_alt, fan::color(1.0f, 1.0f, 1.0f, 0.06f));
-
-    gui::begin_table("keybinds_table", 4,
-      gui::table_flags_row_bg |
-      gui::table_flags_borders_inner_h |
-      gui::table_flags_scroll_x |
-      gui::table_flags_no_clip
-    );
-
-    f32_t max_action_width = 0.f;
-
-    gui::push_font(gui::get_font(20));
-    for (const auto& [action_name, bindings] : menu->device_bindings) {
-      f32_t w = gui::calc_text_size(action_name).x;
-      max_action_width = std::max(max_action_width, w);
-    }
-    gui::pop_font();
-
-    constexpr f32_t action_padding = 50.f;
-    f32_t action_column_width = max_action_width + action_padding;
-
-    gui::table_setup_column("Control", gui::table_column_flags_width_fixed, action_column_width);
-    gui::table_setup_column("Keyboard", gui::table_column_flags_width_fixed, max_keyboard_width);
-    gui::table_setup_column("Mouse", gui::table_column_flags_width_fixed, max_mouse_width + spacing);
-    gui::table_setup_column("Gamepad", gui::table_column_flags_width_fixed, 200.f);
-
-    gui::table_next_row(gui::table_row_flags_headers, 40.f);
-
-    gui::table_next_column();
-    gui::push_font(gui::get_font(28, true));
-    gui::set_cursor_pos_x(gui::get_cursor_pos_x() + 12.f);
-    gui::text("Control");
-    gui::pop_font();
-
-    gui::table_next_column();
-    gui::push_font(gui::get_font(28, true));
-    gui::text("Keyboard");
-    gui::pop_font();
-
-    gui::table_next_column();
-    gui::push_font(gui::get_font(28, true));
-    gui::text("Mouse");
-    gui::pop_font();
-
-    gui::table_next_column();
-    gui::push_font(gui::get_font(28, true));
-    gui::text("Gamepad");
-    gui::pop_font();
-
-    {
-      auto* dl = gui::get_window_draw_list();
-
-      fan::vec2 win_pos = gui::get_window_pos();
-      fan::vec2 win_size = gui::get_window_size();
-
-      f32_t x = win_pos.x + gui::get_window_content_region_min().x + action_column_width;
-
-      f32_t y_min = win_pos.y;
-      f32_t y_max = win_pos.y + win_size.y;
-
-      dl->AddLine(
-        {x, y_min},
-        {x, y_max},
-        fan::color::rgb(255, 255, 255, 40).get_gui_color(),
-        1.f
-      );
-    }
 
     std::map<std::string, std::vector<std::string>> grouped;
-
     auto& ia = gloco()->input_action;
 
-    for (auto& [action_name, _] : ia.input_actions) {
-      std::string group = "";
+    for (auto& [action_name, _] : menu->device_bindings) {
+      std::string group;
       auto it = ia.action_groups.find(action_name);
       if (it != ia.action_groups.end()) {
         group = it->second;
@@ -586,83 +485,132 @@ struct keybind_menu_t {
       grouped[group].push_back(action_name);
     }
 
-    int base_index = 0;
-
     std::vector<std::string> group_order;
     group_order.reserve(grouped.size());
-
-    for (auto& [group_name, _] : grouped) {
+    for (auto& [group_name, actions] : grouped) {
       group_order.push_back(group_name);
+      std::sort(actions.begin(), actions.end());
     }
 
-    std::sort(group_order.begin(), group_order.end(), [](const std::string& a, const std::string& b) {
+    std::sort(
+      group_order.begin(),
+      group_order.end(),
+      [](const std::string& a, const std::string& b) {
       if (a.empty()) return false;
       if (b.empty()) return true;
       return a < b;
-    });
+    }
+    );
 
-    for (const auto& group_name : group_order) {
-      auto& actions = grouped[group_name];
+    constexpr f32_t device_col_width = 200.f;
 
-      if (&group_name != &grouped.begin()->first) {
-        gui::table_next_row();
-        gui::table_next_column();
-        gui::dummy(fan::vec2(0, 12.f));
+    int base_index = 0;
+
+    for (size_t group_idx = 0; group_idx < group_order.size(); ++group_idx) {
+      const auto& group_name = group_order[group_idx];
+      const auto& actions = grouped[group_name];
+
+      if (group_idx > 0) {
+        gui::dummy(fan::vec2(0.f, 20.f));
       }
-      gui::table_next_row();
-      gui::table_next_column();
-
-      auto* dl = gui::get_window_draw_list();
-      fan::vec2 cursor = gui::get_cursor_screen_pos();
 
       gui::push_font(gui::get_font(28, true));
       std::string display_name = group_name.empty() ? "Other" : group_name;
-      fan::vec2 text_size = gui::calc_text_size(display_name);
-
-      fan::vec2 table_min = gui::get_cursor_screen_pos();
-      table_min.x -= 12.f;
-      table_min.y -= 4.f;
-
-      fan::vec2 content_region = gui::get_content_region_avail();
-      fan::vec2 table_max = fan::vec2(
-        table_min.x + content_region.x + 24.f,
-        table_min.y + text_size.y + 8.f
-      );
-
-      gui::set_cursor_pos_x(gui::get_cursor_pos_x() + 12.f);
       gui::text(title_color, display_name.c_str());
+
+      if (group_idx == 0) {
+        f32_t cell_width = gui::table_get_cell_width(device_col_width);
+        f32_t action_width = gui::get_content_region_avail().x - cell_width * 3.f;
+
+        const char* labels[] = {"Keyboard", "Mouse", "Gamepad"};
+
+        for (int i = 0; i < 3; i++) {
+          gui::same_line();
+          f32_t tw = gui::get_text_size(labels[i]).x;
+          gui::set_cursor_pos_x(action_width + cell_width * (i + 0.5f) - tw * 0.5f);
+          gui::text(title_color, labels[i]);
+        }
+      }
+
       gui::pop_font();
 
-      gui::table_next_column();
-      gui::table_next_column();
-      gui::table_next_column();
+      gui::dummy(fan::vec2(0.f, 8.f));
 
-      for (const auto& action_name : actions) {
-        menu->render_action_row(base_index, action_name);
-        base_index += 3;
+      std::string table_id = "keybinds_table_" + std::to_string(group_idx);
+
+      gui::push_style_var(gui::style_var_cell_padding, fan::vec2(16.f, 12.f));
+      gui::push_style_var(gui::style_var_item_spacing, fan::vec2(8.f, 4.f));
+      gui::push_style_color(
+        gui::col_table_row_bg,
+        fan::color(0.0f, 0.0f, 0.0f, 0.00f)
+      );
+      gui::push_style_color(
+        gui::col_table_row_bg_alt,
+        fan::color(1.0f, 1.0f, 1.0f, 0.06f)
+      );
+
+      if (gui::begin_table(
+        table_id.c_str(),
+        4,
+        gui::table_flags_row_bg |
+        gui::table_flags_borders_inner_h |
+        gui::table_flags_borders_outer_h |
+        gui::table_flags_borders_outer_v |
+        gui::table_flags_borders_inner_v |
+        gui::table_flags_no_clip
+      )) {
+        gui::table_setup_column(
+          "Action",
+          gui::table_column_flags_width_stretch
+        );
+        gui::table_setup_column(
+          "Keyboard",
+          gui::table_column_flags_width_fixed,
+          device_col_width
+        );
+
+        gui::table_setup_column(
+          "Mouse",
+          gui::table_column_flags_width_fixed,
+          device_col_width
+        );
+        gui::table_setup_column(
+          "Gamepad",
+          gui::table_column_flags_width_fixed,
+          device_col_width
+        );
+
+        for (const auto& action_name : actions) {
+          menu->render_action_row(base_index, action_name);
+          base_index += 3;
+        }
+
+        gui::end_table();
       }
+
+      gui::pop_style_color(2);
+      gui::pop_style_var(2);
     }
 
-    gui::end_table();
-    gui::pop_style_color(2);
-    gui::pop_style_var(2);
     gui::end_child();
-    gui::pop_style_color();
 
-    gui::dummy(fan::vec2(0, 5.f));
+    gui::dummy(fan::vec2(0.f, 5.f));
     gui::push_style_var(gui::style_var_frame_padding, fan::vec2(15.f, 10.f));
-    if (gui::button("Reset Defaults", fan::vec2(190, 40))) {
+
+    if (gui::button("Reset Defaults", fan::vec2(190.f, 40.f))) {
       menu->reset_keybinds_cb();
       menu->mark_dirty();
     }
+
     gui::same_line();
-    gui::dummy(fan::vec2(10.f, 0));
+    gui::dummy(fan::vec2(10.f, 0.f));
     gui::same_line();
-    if (gui::button("Save", fan::vec2(100, 40))) {
+
+    if (gui::button("Save", fan::vec2(100.f, 40.f))) {
       OFFSETLESS(menu, settings_menu_t, keybind_menu)->config.save();
     }
-    gui::pop_style_var();
 
+    gui::pop_style_var();
     gui::end();
     gui::pop_font();
   }
@@ -677,21 +625,26 @@ struct keybind_menu_t {
     gui::text(title_color, "Keybind Info");
     gui::pop_font();
     gui::new_line();
-    gui::text_wrapped("Click on any keybind to rebind it.");
+    gui::text_wrapped("Click any keybind to rebind it.");
+    gui::text_wrapped("Right-click to remove a binding.");
     gui::text_wrapped("Press ESC to cancel rebinding.");
     gui::end();
   }
+
   void mark_dirty() {
     OFFSETLESS(this, settings_menu_t, keybind_menu)->mark_dirty();
   }
+
   void update() {
     if (suppress_input_frame > 0) {
       suppress_input_frame--;
     }
   }
+
   bool should_suppress_input() const {
     return suppress_input_frame > 0;
   }
+
   void sync_from_input_action() {
     auto& actions = gloco()->input_action.input_actions;
 
@@ -730,6 +683,7 @@ struct keybind_menu_t {
       device_bindings[action_name] = bindings;
     }
   }
+
   void update_input_action(const std::string& action_name) {
     auto& actions = gloco()->input_action.input_actions;
     auto it = device_bindings.find(action_name);
@@ -755,12 +709,14 @@ struct keybind_menu_t {
       action_data.keybinds.push_back(chord);
     }
   }
+
   void load_from_settings_json(const fan::json& j) {
     if (!j.contains("keybinds")) return;
     const auto& kb = j["keybinds"];
     if (!kb.is_object()) return;
 
-    device_bindings.clear();
+    // Fixed: Do not clear here. Merging allows default binds (from sync) to survive if not present in JSON.
+    // device_bindings.clear(); 
 
     for (auto it = kb.begin(); it != kb.end(); ++it) {
       std::string action_name = it.key();
@@ -800,6 +756,7 @@ struct keybind_menu_t {
       update_input_action(action_name);
     }
   }
+
   void save_to_settings_json(fan::json& j) const {
     fan::json keybinds_json = fan::json::object();
 
@@ -849,9 +806,6 @@ struct keybind_menu_t {
     listening_states.resize(num_actions * 3, false);
   }
 
-  static constexpr int wnd_flags = gui::window_flags_no_move | gui::window_flags_no_collapse | gui::window_flags_no_resize | gui::window_flags_no_title_bar;
-  static constexpr fan::color title_color = fan::color::from_rgba(0x948c80ff) * 1.5f;
-
   std::unordered_map<std::string, device_bindings_t> device_bindings;
   key_capture_state_t key_cap_state;
   std::vector<bool> listening_states;
@@ -863,6 +817,7 @@ struct keybind_settings_bridge_t {
   static void menu_left(settings_menu_t* settings_menu, const fan::vec2& pos, const fan::vec2& size) {
     keybind_menu_t::menu_keybinds_left(&OFFSETLESS(settings_menu, settings_menu_t, keybind_menu)->keybind_menu, pos, size);
   }
+
   static void menu_right(settings_menu_t* settings_menu, const fan::vec2& pos, const fan::vec2& size) {
     keybind_menu_t::menu_keybinds_right(&OFFSETLESS(settings_menu, settings_menu_t, keybind_menu)->keybind_menu, pos, size);
   }

@@ -450,6 +450,39 @@ namespace fan::graphics::culling {
       rebuild_static(culling);
     }
   }
+
+  void reset(culling_t& culling) {
+    for (auto& [cam_id, cam_state] : culling.camera_states) {
+      cam_state.visible.clear();
+      cam_state.visible.rehash(0);
+      cam_state.cached_view_min = fan::vec2(0);
+      cam_state.cached_view_max = fan::vec2(0);
+      cam_state.view_dirty = true;
+    }
+
+    culling.current_visible = 0;
+    culling.current_total = 0;
+
+    fan::graphics::spatial::reset(
+      culling.static_grid,
+      culling.dynamic_grid,
+      culling.registry
+    );
+
+    fan::graphics::spatial::static_grid_init(
+      culling.static_grid,
+      culling.static_grid.world_min,
+      culling.static_grid.cell_size,
+      culling.static_grid.grid_size
+    );
+
+    fan::graphics::spatial::dynamic_grid_init(
+      culling.dynamic_grid,
+      culling.dynamic_grid.world_min,
+      culling.dynamic_grid.cell_size,
+      culling.dynamic_grid.grid_size
+    );
+  }
 }
 
 #endif

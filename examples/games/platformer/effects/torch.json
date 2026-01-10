@@ -33,7 +33,7 @@
   "jitter_end":   [0.5, 0.1000000015],
   "jitter_speed": 7.9000000954,
 
-  "image_path": "torch.png",
+  "image_path": "torch.webp",
 
   "shape": "particles"
 }

@@ -8,7 +8,7 @@
           "hframes": 5,
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "skeletonAttack-Sheet146x64.png",
+          "image_path": "skeletonAttack-Sheet146x64.webp",
           "vframes": 5
         }
       ],
@@ -35,7 +35,7 @@
           "hframes": 5,
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "skeletonDie-Sheet118x64_all.png",
+          "image_path": "skeletonDie-Sheet118x64_all.webp",
           "vframes": 5
         }
       ],
@@ -75,7 +75,7 @@
           "hframes": 8,
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "skeletonIdle-Sheet64x64.png",
+          "image_path": "skeletonIdle-Sheet64x64.webp",
           "vframes": 1
         }
       ],
@@ -99,7 +99,7 @@
           "hframes": 10,
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "skeletonMove-Sheet64x64.png",
+          "image_path": "skeletonMove-Sheet64x64.webp",
           "vframes": 1
         }
       ],
@@ -130,7 +130,7 @@
         {
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "skeletonAttack-Sheet146x64.png"
+          "image_path": "skeletonAttack-Sheet146x64.webp"
         }
       ],
       "position": [

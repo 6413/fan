@@ -8,7 +8,7 @@
           "hframes": 6,
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "Giant Fly Sprite Sheet.png",
+          "image_path": "Giant Fly Sprite Sheet.webp",
           "vframes": 5
         }
       ],
@@ -28,7 +28,7 @@
           "hframes": 6,
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "Giant Fly Sprite Sheet.png",
+          "image_path": "Giant Fly Sprite Sheet.webp",
           "vframes": 5
         }
       ],
@@ -55,7 +55,7 @@
         {
           "image_mag_filter": 0,
           "image_min_filter": 0,
-          "image_path": "Giant Fly Sprite Sheet.png"
+          "image_path": "Giant Fly Sprite Sheet.webp"
         }
       ],
       "position": [

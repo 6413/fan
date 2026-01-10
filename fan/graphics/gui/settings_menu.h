@@ -136,7 +136,7 @@ struct settings_config_t {
     fan::json j = to_json();
     std::string json_str = j.dump(2);
     fan::io::file::write(config_save_path, json_str, std::ios_base::binary);
-    OFFSETLESS(this, settings_menu_t, config)->save_timer.start();
+    OFFSETLESS(this, settings_menu_t, config)->save_timer.start_millis(settings_menu_t::save_delay_ms);
   }
 
   display_settings_t display;
@@ -641,11 +641,11 @@ struct settings_menu_t {
 
   void mark_dirty() {
     is_dirty = true;
-    save_timer.start();
+    save_timer.start_millis(save_delay_ms);
   }
 
   void update() {
-    if (is_dirty && save_timer.millis() >= save_delay_ms) {
+    if (is_dirty && save_timer.finished()) {
       config.save();
       is_dirty = false;
     }
@@ -967,7 +967,7 @@ struct settings_menu_t {
   std::deque<page_t> pages;
   bool is_dirty = false;
   fan::time::timer save_timer;
-  int64_t save_delay_ms = 1000;
+  inline static constexpr int64_t save_delay_ms = 1000;
   loco_t::resize_handle_t resize_handle;
   fan::window_t::move_handle_t move_handle;
 };

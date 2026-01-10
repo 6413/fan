@@ -58,6 +58,29 @@ export namespace fan::graphics::culling {
   void cull_camera(culling_t& culling, shaper_t& shaper, const fan::graphics::camera_t& camera_nr);
   void rebuild_static(culling_t& culling);
   void set_enabled(culling_t& culling, bool flag);
+
+  void reset(culling_t& culling);
+
+  void clean_removed(culling_t& culling) {
+    auto& reg = culling.registry;
+
+    for (auto& [cam_id, cam_state] : culling.camera_states) {
+      std::vector<uint32_t> dead;
+
+      for (auto& [nr, vis] : cam_state.visible) {
+        shaper_t::ShapeID_t sid;
+        sid.NRI = nr;
+
+        if (reg.id_to_movement.find(sid) == reg.id_to_movement.end()) {
+          dead.push_back(nr);
+        }
+      }
+
+      for (auto nr : dead) {
+        cam_state.visible.erase(nr);
+      }
+    }
+  }
 }
 
 #endif

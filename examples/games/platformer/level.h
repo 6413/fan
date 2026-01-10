@@ -1,3 +1,13 @@
+#define ENABLE_STAGE_TIMING 0
+
+#if ENABLE_STAGE_TIMING
+  #define STAGE_TIMER_START(name) fan::time::timer timer_##name{true}
+  #define STAGE_TIMER_PRINT(name) fan::print(#name ":", timer_##name.millis())
+#else
+  #define STAGE_TIMER_START(name)
+  #define STAGE_TIMER_PRINT(name)
+#endif
+
 static inline constexpr f32_t spike_height = 32.0f;
 static inline constexpr f32_t base_half_width = 32.0f;
 
@@ -19,9 +29,11 @@ static inline constexpr std::array<fan::vec2, 3> get_spike_points(std::string_vi
 }
 
 struct spike_spatial_t {
-  spike_spatial_t() {
-    cells.resize(grid_size.x * grid_size.y);
-  }
+  fan::vec2 world_min = 0;
+  fan::vec2 cell_size = 256;
+  fan::vec2i grid_size = {4096, 4096};
+
+  std::unordered_map<uint32_t, std::vector<fan::physics::entity_t>> cells;
 
   void add(fan::physics::entity_t spike) {
     auto aabb = spike.get_aabb();
@@ -30,7 +42,8 @@ struct spike_spatial_t {
 
     for (int y = minc.y; y <= maxc.y; ++y) {
       for (int x = minc.x; x <= maxc.x; ++x) {
-        cells[fan::graphics::spatial::cell_index({x, y}, grid_size)].push_back(spike);
+        uint32_t idx = fan::graphics::spatial::cell_index({x, y}, grid_size);
+        cells[idx].push_back(spike);
       }
     }
   }
@@ -42,24 +55,25 @@ struct spike_spatial_t {
 
     for (int y = minc.y; y <= maxc.y; ++y) {
       for (int x = minc.x; x <= maxc.x; ++x) {
-        auto& v = cells[fan::graphics::spatial::cell_index({x, y}, grid_size)];
-        for (auto& spike : v)
-          if (fan::physics::is_on_sensor(entity, spike))
+        uint32_t idx = fan::graphics::spatial::cell_index({x, y}, grid_size);
+        auto it = cells.find(idx);
+        if (it == cells.end()) continue;
+
+        for (auto& spike : it->second) {
+          if (fan::physics::is_on_sensor(entity, spike)) {
             return &spike;
+          }
+        }
       }
     }
-
     return nullptr;
   }
 
   void clear() {
-    for (auto& v : cells) v.clear();
+    cells.clear();
   }
-  fan::vec2 world_min = 0;
-  fan::vec2 cell_size = 256;
-  fan::vec2i grid_size = {4096, 4096};
-  std::vector<std::vector<fan::physics::entity_t>> cells;
 }spike_spatial;
+
 
 void load_enemies() {
   pile->enemy_list.clear();
@@ -223,24 +237,40 @@ void reload_boss_door_collision() {
 }
 
 void load_map() {
+  STAGE_TIMER_START(total_load_map);
+  
+  STAGE_TIMER_START(spike_spatial_clear);
   spike_spatial.clear();
+  STAGE_TIMER_PRINT(spike_spatial_clear);
+  
+  STAGE_TIMER_START(pickupable_spatial_init);
   pickupable_spatial.init(
     fan::vec2(0),
     pile->tilemaps_compiled[stage_name].map_size * pile->tilemaps_compiled[stage_name].tile_size * 2.f
   );
+  STAGE_TIMER_PRINT(pickupable_spatial_init);
 
+  STAGE_TIMER_START(torch_particles_move);
   torch_particles.set_position(fan::vec2(-0xfffff));
+  STAGE_TIMER_PRINT(torch_particles_move);
 
-  //pile->engine.culling_rebuild_grid();
+  STAGE_TIMER_START(engine_setup);
   fan::vec2i render_size(16, 9);
   tilemap_loader_t::properties_t p;
-  p.size = render_size * 1000;
+  p.size = render_size;
   pile->engine.set_cull_padding(100);
-
   p.position = pile->player.body.get_position();
-  main_map_id = pile->renderer.add(&pile->tilemaps_compiled[stage_name], p);
-  pile->engine.lighting.set_target(pile->tilemaps_compiled[stage_name].lighting.ambient, 0.01);
+  STAGE_TIMER_PRINT(engine_setup);
 
+  STAGE_TIMER_START(renderer_add);
+  main_map_id = pile->renderer.add(&pile->tilemaps_compiled[stage_name], p);
+  STAGE_TIMER_PRINT(renderer_add);
+  
+  STAGE_TIMER_START(lighting_set_target);
+  pile->engine.lighting.set_target(pile->tilemaps_compiled[stage_name].lighting.ambient, 0.01);
+  STAGE_TIMER_PRINT(lighting_set_target);
+
+  STAGE_TIMER_START(static_animations_setup);
   static auto checkpoint_flag = fan::graphics::sprite_sheet_from_json({
     .path = "effects/flag.json",
     .loop = true
@@ -257,11 +287,12 @@ void load_map() {
     .loop = true
   });
 
-
   checkpoint_flag.set_position(fan::vec2(-0xfffff));
   axe_anim.set_position(fan::vec2(-0xfffff));
   lamp1_anim.set_position(fan::vec2(-0xfffff));
+  STAGE_TIMER_PRINT(static_animations_setup);
 
+  STAGE_TIMER_START(checkpoint_system_load);
   pile->checkpoint_system.load_from_map(pile->renderer, main_map_id, [](auto& visual, auto& entity) {
     checkpoint_flag.set_position(entity.get_position());
     visual = checkpoint_flag;
@@ -269,9 +300,13 @@ void load_map() {
     visual.set_size(checkpoint_flag.get_size() / fan::vec2(1.5f, 1.0f));
     visual.play_sprite_sheet();
   });
+  STAGE_TIMER_PRINT(checkpoint_system_load);
 
+  STAGE_TIMER_START(reload_boss_door);
   reload_boss_door_collision();
+  STAGE_TIMER_PRINT(reload_boss_door);
 
+  STAGE_TIMER_START(iterate_marks);
   pile->renderer.iterate_marks(main_map_id, [&](tilemap_loader_t::fte_t::spawn_mark_data_t& data) -> bool {
     const auto& id = data.id;
     if (id.contains("lamp1")) {
@@ -304,7 +339,7 @@ void load_map() {
       }});
     }
     else if (id.contains("boss_elevator_begin")) {
-      fan::graphics::image_t image = fan::graphics::image_load("images/cage.png", fan::graphics::image_presets::pixel_art());
+      fan::graphics::image_t image = fan::graphics::image_load("images/cage.webp", fan::graphics::image_presets::pixel_art());
       fan::vec3 v = data.position;
       static constexpr f32_t elevator_landing_offset_y = 45.f;
       v.y += elevator_landing_offset_y;
@@ -315,7 +350,7 @@ void load_map() {
       cage_elevator.init(fan::graphics::sprite_t(fan::vec3(start_pos, v.z + 1), image.get_size() * 1.5f, image), start_pos, end_pos, elevator_duration);
       fan::vec3 pos = cage_elevator.visual.get_position();
       fan::vec2 size = cage_elevator.visual.get_size();
-      fan::graphics::image_t chain_image("images/chain.png", fan::graphics::image_presets::pixel_art_repeat());
+      fan::graphics::image_t chain_image("images/chain.webp", fan::graphics::image_presets::pixel_art_repeat());
       cage_elevator_chain = fan::graphics::sprite_t(pos.offset_y(-size.y).offset_z(-1), fan::vec2(32, 512), chain_image);
       cage_elevator_chain.set_dynamic();
       size = cage_elevator_chain.get_size();
@@ -339,49 +374,58 @@ void load_map() {
       boss_elevator_end = data.position;
     }
     else if (id.contains("exit_world")) {
-      fan::graphics::image_t image("images/portal.png", fan::graphics::image_presets::pixel_art());
+      fan::graphics::image_t image("images/portal.webp", fan::graphics::image_presets::pixel_art());
+
       fan::vec2 image_size = image.get_size();
-      portal_sprite = fan::graphics::sprite_t(data.position, fan::vec2(256) * image_size.normalized(), image);
+
+      portal_sprite = fan::graphics::sprite_t(
+        data.position,
+        fan::vec2(256) * image_size.normalized(),
+        image
+      );
+
       fan::vec3 pos = portal_sprite.get_position();
       fan::vec2 size = portal_sprite.get_size();
-      static constexpr fan::color portal_light_color = fan::color::from_rgb(0x008fbb) * 4.f;
+
       static_lights.emplace_back(fan::graphics::light_t {{
         .position = pos.offset_y(-size.y / 2.f),
         .size = fan::vec2(200, 200),
-        .color = portal_light_color
+        .color = fan::color::from_rgb(0x008fbb) * 4.f
       }});
+
       static_lights.emplace_back(fan::graphics::light_t {{
         .position = pos.offset_y(size.y / 2),
         .size = fan::vec2(400, 256),
-        .color = portal_light_color,
+        .color = fan::color::from_rgb(0x008fbb) * 4.f,
         .flags = 1
       }});
+
       portal_light_flicker.start(
-        portal_light_color * (fan::color(1.0f, 0.7f, 0.7f) / 1.0f),
-        portal_light_color * (fan::color(1.0f, 1.0f, 1.0f) * 1.0f),
+        fan::color::from_rgb(0x008fbb) * 4.f * (fan::color(1.0f, 0.7f, 0.7f) / 1.0f),
+        fan::color::from_rgb(0x008fbb) * 4.f * (fan::color(1.0f, 1.0f, 1.0f) * 1.0f),
         3.f,
-        [this, idx = static_lights.size() - 1, lsize = static_lights[static_lights.size() - 1].get_size()](fan::color c) {
-          static_lights[idx].set_color(c); 
-          static_lights[idx - 1].set_color(c); 
-        },
+        [this, idx = static_lights.size() - 1](fan::color c) {
+        static_lights[idx].set_color(c);
+        static_lights[idx - 1].set_color(c);
+      },
         fan::ease_e::pulse
       );
 
-      /*
-      *       boss_door_particles = fan::graphics::shape_from_json("effects/boss_spawn.json");
-      boss_door_particles.set_position(fan::vec3(fan::vec2(entity_visual.get_position()), 0xFAAA / 2 - 2 + boss_door_particles.get_position().z));
-      boss_door_particles.set_static(true); // reset the static culling build
-      boss_door_particles.start_particles();
-      */
       portal_particles = fan::graphics::shape_from_json("effects/portal.json");
+
       portal_particles.set_position(pos.offset_z(1).offset_y(size.y / 4.f));
       portal_particles.start_particles();
 
-      portal_sensor = pile->engine.physics_context.create_sensor_rectangle(pos, fan::vec2(size.x / 2.5f, size.y));
+      portal_sensor = pile->engine.physics_context.create_sensor_rectangle(
+        pos,
+        fan::vec2(size.x / 2.5f, size.y)
+      );
     }
-    return false; // continue iterating all instances
+    return false;
   });
+  STAGE_TIMER_PRINT(iterate_marks);
 
+  STAGE_TIMER_START(iterate_visual);
   pile->renderer.iterate_visual(main_map_id, [&](tilemap_loader_t::tile_t& tile) -> bool {
     const std::string& id = tile.id;
 
@@ -429,28 +473,47 @@ void load_map() {
 
     return false;
   });
+  STAGE_TIMER_PRINT(iterate_visual);
 
+  STAGE_TIMER_START(player_respawn);
   pile->player.respawn();
-  pile->player.particles.set_color(0);
+  STAGE_TIMER_PRINT(player_respawn);
 
+  STAGE_TIMER_START(boss_room_light_setup);
   {
     auto* boss_room_light = pile->renderer.get_light_by_id(main_map_id, "boss_room_ambient_light");
     boss_room_target_color = boss_room_light->get_color();
     boss_room_light->set_color(fan::colors::black);
   }
+  STAGE_TIMER_PRINT(boss_room_light_setup);
+  
+  STAGE_TIMER_PRINT(total_load_map);
 }
 
 void open(void* sod) {
+  STAGE_TIMER_START(total_open);
+  
+  STAGE_TIMER_START(setup);
   pile->level_stage = this->stage_common.stage_id;
+  STAGE_TIMER_PRINT(setup);
+  
+  STAGE_TIMER_START(load_map);
   load_map();
+  STAGE_TIMER_PRINT(load_map);
+  
+  STAGE_TIMER_START(lighting);
   pile->engine.lighting.set_target(0, 0);
   is_entering_door = false;
+  STAGE_TIMER_PRINT(lighting);
 
+  STAGE_TIMER_START(physics_callback);
   physics_step_nr = fan::physics::add_physics_step_callback([this]() {
 
+    std::string enter_text;
     auto keys = pile->engine.input_action.get_all_keys(actions::interact);
 
-    std::string enter_text = "Press '";
+    enter_text = "Press '";
+
     for (int i = 0; i < keys.size(); i++) {
       enter_text += fan::get_key_name(keys[i]);
       if (i + 1 < keys.size()) {
@@ -458,25 +521,12 @@ void open(void* sod) {
       }
     }
 
-    enter_text += "' to enter";
-    fan::vec2 text_size = fan::graphics::gui::get_text_size(enter_text);
+    enter_text += "' to interact";
 
-    if (boss_sensor &&
-      fan::physics::is_on_sensor(pile->player.body, boss_sensor)
-      ) {
-      if (fan::window::is_input_action_active(actions::interact)) {
-        pile->renderer.erase_physics_entity(main_map_id, "boss_door_collision");
-        boss_sensor.destroy();
-        boss_sensor.invalidate();
-        is_entering_door = true;
-        //boss_door_particles.stop_particles();
-      }
-      else {
-        fan::vec2 window_size = fan::graphics::gui::get_window_size();
-        if (auto hud = fan::graphics::gui::hud("Interact hud")) {
-          fan::graphics::gui::text_box_at(enter_text, fan::vec2(window_size.x / 2.f - text_size.x / 2.f, window_size.y * 0.85f));
-        }
-      }
+    interact_prompt.type = interact_type::none;
+
+    if (boss_sensor && fan::physics::is_on_sensor(pile->player.body, boss_sensor)) {
+      interact_prompt.type = interact_type::boss_door;
     }
 
     fan::vec2 player_pos = pile->player.body.get_position();
@@ -517,65 +567,152 @@ void open(void* sod) {
     }
 
     if (fan::physics::is_on_sensor(pile->player.body, portal_sensor)) {
-      if (fan::window::is_input_action_active(actions::interact)) {
-        static fan::auto_color_transition_t close_anim;
-        pile->stage_transition = fan::graphics::rectangle_t(
-          pile->player.body.get_position().offset_z(1),
-          fan::graphics::gui::get_window_size(),
-          fan::colors::black.set_alpha(0)
-        );
-        close_anim.on_end = [this] {
-          pile->stage_transition.remove();
-          pile->stage_loader.erase_stage(this->stage_common.stage_id);
-          pile->level_stage.sic();
-        };
-        close_anim.start_once(
-          fan::colors::black.set_alpha(0),
-          fan::colors::black,
-          1.f,
-          [](fan::color c) {
-          pile->stage_transition.set_color(c);
-        }
-        );
-      }
-      else {
-        fan::vec2 window_size = fan::graphics::gui::get_window_size();
-        if (auto hud = fan::graphics::gui::hud("Interact hud")) {
-          fan::graphics::gui::text_box_at(enter_text, fan::vec2(window_size.x / 2.f - text_size.x / 2.f, window_size.y * 0.85f));
-        }
-      }
+      interact_prompt.type = interact_type::portal;
     }
   });
+  STAGE_TIMER_PRINT(physics_callback);
 
+  STAGE_TIMER_START(renderer_update);
   pile->renderer.update(main_map_id, pile->player.body.get_position());
+  STAGE_TIMER_PRINT(renderer_update);
+  
+  STAGE_TIMER_PRINT(total_open);
 }
 
 void close() {
+
+  STAGE_TIMER_START(total_close);
+  collected_pickupables.clear();
+
+  STAGE_TIMER_START(enemy_clear);
   pile->enemy_list.clear();
+  STAGE_TIMER_PRINT(enemy_clear);
+  pile->engine.shapes.visibility.camera_states.clear();
+  
+  STAGE_TIMER_START(cage_elevator);
   cage_elevator.destroy();
+  STAGE_TIMER_PRINT(cage_elevator);
+  
+  STAGE_TIMER_START(boss_door);
   if (boss_door_collision) {
     boss_door_collision.destroy();
   }
+  STAGE_TIMER_PRINT(boss_door);
+  if (boss_sensor) {
+    boss_sensor.destroy();
+  }
+  if (portal_sensor) {
+    portal_sensor.destroy();
+  }
+  
+  STAGE_TIMER_START(tile_collisions);
   for (auto& i : tile_collisions) {
     i.destroy();
   }
   tile_collisions.clear();
+  STAGE_TIMER_PRINT(tile_collisions);
+  
+  STAGE_TIMER_START(spike_sensors);
   for (auto& i : spike_sensors) {
     i.destroy();
   }
+  STAGE_TIMER_PRINT(spike_sensors);
+  
+  STAGE_TIMER_START(renderer_erase);
   pile->renderer.erase(main_map_id);
+  STAGE_TIMER_PRINT(renderer_erase);
+  
+  STAGE_TIMER_START(pickupable_clear);
   pickupable_spatial.clear();
+  STAGE_TIMER_PRINT(pickupable_clear);
+  
+  STAGE_TIMER_PRINT(total_close);
+}
+
+void enter_portal() {
+  static fan::auto_color_transition_t close_anim;
+  pile->stage_transition = fan::graphics::rectangle_t(
+    pile->player.body.get_position().offset_z(1),
+    fan::graphics::gui::get_window_size(),
+    fan::colors::black.set_alpha(0)
+  );
+  close_anim.on_end = [this] {
+    pile->stage_transition.remove();
+    pile->stage_loader.erase_stage(this->stage_common.stage_id);
+    pile->level_stage.sic();
+  };
+  close_anim.start_once(
+    fan::colors::black.set_alpha(0),
+    fan::colors::black,
+    1.f,
+    [](fan::color c) {
+    pile->stage_transition.set_color(c);
+  }
+  );
 }
 
 void reload_map() {
-  fan::time::timer t {true};
-  //fan::print(fan::time::now());
-  pile->stage_loader.erase_stage(this->stage_common.stage_id);
-  pile->stage_loader.open_stage<level_t>();
-  fan::print(t.seconds());
+  #if ENABLE_STAGE_TIMING
+    fan::print("\n");
+  #endif
+  STAGE_TIMER_START(total_reload);
+
+  STAGE_TIMER_START(erase_stage);
+  pile->stage_loader.erase_stage(stage_common.stage_id);
+  STAGE_TIMER_PRINT(erase_stage);
+
+  STAGE_TIMER_START(open_stage);
+  pile->level_stage = pile->stage_loader.open_stage<level_t>();
+  STAGE_TIMER_PRINT(open_stage);
+
+  STAGE_TIMER_PRINT(total_reload);
 }
 
 void update() {
+  pile->renderer.update(main_map_id, pile->player.body.get_position());
+  auto keys = pile->engine.input_action.get_all_keys(actions::interact);
+
+  std::string enter_text = "Press '";
+  for (int i = 0; i < keys.size(); i++) {
+    enter_text += fan::get_key_name(keys[i]);
+    if (i + 1 < keys.size()) {
+      enter_text += " / ";
+    }
+  }
+  enter_text += "' to interact";
+
+  if (interact_prompt.type != interact_type::none) {
+    fan::vec2 window_size = fan::graphics::gui::get_window_size();
+    fan::vec2 text_size = fan::graphics::gui::get_text_size(enter_text);
+
+    if (auto hud = fan::graphics::gui::hud("Interact hud")) {
+      fan::graphics::gui::text_box_at(
+        enter_text,
+        fan::vec2(window_size.x * 0.5f - text_size.x * 0.5f,
+          window_size.y * 0.85f)
+      );
+    }
+  }
+  if (interact_prompt.type != interact_type::none &&
+    fan::window::is_input_action_active(actions::interact)) {
+
+    switch (interact_prompt.type) {
+    case interact_type::boss_door:
+      pile->renderer.erase_physics_entity(main_map_id, "boss_door_collision");
+      boss_sensor.destroy();
+      boss_sensor.invalidate();
+      is_entering_door = true;
+      break;
+
+    case interact_type::portal:
+      enter_portal();
+      break;
+
+    default:
+      break;
+    }
+  }
+
   if (is_boss_dead && send_elevator_down_initially) {
     cage_elevator.start();
     send_elevator_down_initially = false;
@@ -634,7 +771,7 @@ void update() {
   for (auto [i, lamp] : fan::enumerate(lamp_sprites)) {
     if (i < lights.size()) {
       fan::color yellow_tint(0.9f, 0.9f, 0.6f, 1.0f);
-      lights[i].set_color(lamp_colors[lamp.get_current_animation_frame()] * yellow_tint * 2.f);
+      lights[i].set_color(lamp_colors[lamp.get_current_animation_frame() % std::size(lamp_colors)] * yellow_tint * 2.f);
     }
   }
 
@@ -642,12 +779,25 @@ void update() {
     if (pile->engine.input_action.is_clicked(fan::actions::toggle_settings)) {
       pile->pause = !pile->pause;
     }
-    //fan::print(fan::window::is_key_down(fan::key_left_control), fan::window::is_key_pressed(fan::key_t));
+    static bool toggle = 1;
+        //fan::print(fan::window::is_key_down(fan::key_left_control), fan::window::is_key_pressed(fan::key_t));
+    //if (fan::window::is_key_down(fan::key_left_control) && fan::window::is_key_pressed(fan::key_t)) {
+    //  toggle = !toggle;
+    //  /*
+    //  reload_map();
+    //  return;*/
+    //}
+    //if (toggle) {
+    //  reload_map();
+    //  return;
+
+    //}
+
     if (fan::window::is_key_down(fan::key_left_control) && fan::window::is_key_pressed(fan::key_t)) {
-      collected_pickupables.clear();
       reload_map();
       return;
     }
+
   }
 }
 
@@ -683,7 +833,7 @@ fan::graphics::sprite_t background {{
   .position = fan::vec3(10000, 6010, 0),
   .size = fan::vec2(9192, 10000),
   .color = fan::color(0.6, 0.576, 1),
-  .image = fan::graphics::image_t("images/background.png"),
+  .image = fan::graphics::image_t("images/background.webp"),
   .tc_size = 1 * 300.0,
 }};
 
@@ -709,7 +859,18 @@ fan::auto_color_transition_t portal_light_flicker;
 fan::physics::entity_t portal_sensor;
 fan::physics::step_callback_nr_t physics_step_nr;
 fan::graphics::gameplay::pickupable_spatial_t pickupable_spatial;
+
 inline static std::unordered_set<fan::vec2i> collected_pickupables;
+
+enum class interact_type {
+  none,
+  boss_door,
+  portal
+};
+
+struct interact_prompt_t {
+  interact_type type = interact_type::none;
+}interact_prompt;
 
 bool is_entering_door = false;
 bool is_boss_dead = false;

@@ -35,7 +35,7 @@
   "jitter_end":   [0.0, 0.0],
   "jitter_speed": 0.0,
 
-  "image_path": "bubble.png",
+  "image_path": "bubble.webp",
   "image_min_filter": 0,
   "image_mag_filter": 0,
   "image_visual_output": 3,
