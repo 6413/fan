@@ -11,6 +11,16 @@ module;
 
 #endif
 
+#define MEASURE_LOAD_TIMES 0
+
+#if MEASURE_LOAD_TIMES
+  #define TIMER_START(name) fan::time::timer timer_##name{true}; fan::print(#name " start")
+  #define TIMER_END(name) fan::print(#name " end", timer_##name.millis())
+#else
+  #define TIMER_START(name)
+  #define TIMER_END(name)
+#endif
+
 export module fan.graphics.gui.tilemap_editor.renderer;
 
 #if defined(FAN_2D)
@@ -62,55 +72,85 @@ export struct tilemap_renderer_t : tilemap_loader_t {
   }
 
   void initialize(node_t& node, const fan::vec2& position) {
-    initialize_visual(node, position);
+    TIMER_START(total_initialize);
 
-    for (int y = 0; y < node.compiled_map->map_size.y; ++y) {
-      for (int x = 0; x < node.compiled_map->map_size.x; ++x) {
-        for (auto& j : node.compiled_map->compiled_shapes[y][x]) {
-          if (j.mesh_property != fte_t::mesh_property_t::light) {
-            continue;
+    node.physics_entities.clear();
+    node.lights.clear();
+
+    auto& compiled_map = *node.compiled_map;
+    size_t light_count = 0;
+    size_t physics_count = compiled_map.physics_shapes.size();
+
+    TIMER_START(light_count_scan);
+    for (int y = 0; y < compiled_map.map_size.y; ++y) {
+      for (int x = 0; x < compiled_map.map_size.x; ++x) {
+        for (auto& j : compiled_map.compiled_shapes[y][x]) {
+          if (j.mesh_property == fte_t::mesh_property_t::light) {
+            ++light_count;
           }
+        }
+      }
+    }
+    TIMER_END(light_count_scan);
+
+    node.lights.reserve(light_count);
+    node.physics_entities.reserve(physics_count);
+
+    TIMER_START(initialize_visual_block);
+    initialize_visual(node, position);
+    TIMER_END(initialize_visual_block);
+
+    TIMER_START(add_lights_block);
+    for (int y = 0; y < compiled_map.map_size.y; ++y) {
+      for (int x = 0; x < compiled_map.map_size.x; ++x) {
+        for (auto& j : compiled_map.compiled_shapes[y][x]) {
+          if (j.mesh_property != fte_t::mesh_property_t::light) continue;
+
           light_with_id_t light;
           light.id = j.id;
           light.shape = fan::graphics::light_t {{
-            .render_view = render_view,
-            .position = node.position + fan::vec3(fan::vec2(j.position) * node.size, y + node.compiled_map->tile_size.y / 2 + j.position.z),
-            .size = j.size * node.size,
-            .color = j.color,
-            .flags = j.flags,
+              .render_view = render_view,
+              .position = node.position + fan::vec3(fan::vec2(j.position) * node.size, y + compiled_map.tile_size.y / 2 + j.position.z),
+              .size = j.size * node.size,
+              .color = j.color,
+              .flags = j.flags
           }};
           node.lights.emplace_back(std::move(light));
         }
       }
     }
+    TIMER_END(add_lights_block);
 
-    for (compiled_map_t::physics_data_t& pd : node.compiled_map->physics_shapes) {
+    TIMER_START(add_physics_block);
+    for (compiled_map_t::physics_data_t& pd : compiled_map.physics_shapes) {
       switch (pd.physics_shapes.type) {
-      case fte_t::physics_shapes_t::type_e::box: {
+      case fte_t::physics_shapes_t::type_e::box:
+      {
         node.physics_entities.push_back({
-          .visual = fan::graphics::physics::rectangle_t{{
-              .render_view = render_view,
-              .position = node.position + pd.position * node.size,
-              .size = pd.size * node.size,
-              .color = pd.physics_shapes.draw ? fan::color::from_rgba(0x6e8d6eff) : fan::colors::transparent,
-              .outline_color = (pd.physics_shapes.draw ? fan::color::from_rgba(0x6e8d6eff) : fan::colors::transparent) * 2,
-              .blending = true,
-              .body_type = pd.physics_shapes.body_type,
-              .shape_properties = pd.physics_shapes.shape_properties,
+            .visual = fan::graphics::physics::rectangle_t{{
+                .render_view = render_view,
+                .position = node.position + pd.position * node.size,
+                .size = pd.size * node.size,
+                .color = pd.physics_shapes.draw ? fan::color::from_rgba(0x6e8d6eff) : fan::colors::transparent,
+                .outline_color = (pd.physics_shapes.draw ? fan::color::from_rgba(0x6e8d6eff) : fan::colors::transparent) * 2,
+                .blending = true,
+                .body_type = pd.physics_shapes.body_type,
+                .shape_properties = pd.physics_shapes.shape_properties
             }}
           });
         break;
       }
-      case fte_t::physics_shapes_t::type_e::circle: {
+      case fte_t::physics_shapes_t::type_e::circle:
+      {
         node.physics_entities.push_back({
-          .visual = fan::graphics::physics::circle_t{{
-              .render_view = render_view,
-              .position = node.position + pd.position * node.size,
-              .radius = (pd.size.max() * node.size.x == node.compiled_map->tile_size.x ? pd.size.y * node.size.y : pd.size.x * node.size.x),
-              .color = pd.physics_shapes.draw ? fan::color::from_rgba(0x6e8d6eff) : fan::colors::transparent,
-              .blending = true,
-              .body_type = pd.physics_shapes.body_type,
-              .shape_properties = pd.physics_shapes.shape_properties
+            .visual = fan::graphics::physics::circle_t{{
+                .render_view = render_view,
+                .position = node.position + pd.position * node.size,
+                .radius = (pd.size.max() * node.size.x == compiled_map.tile_size.x ? pd.size.y * node.size.y : pd.size.x * node.size.x),
+                .color = pd.physics_shapes.draw ? fan::color::from_rgba(0x6e8d6eff) : fan::colors::transparent,
+                .blending = true,
+                .body_type = pd.physics_shapes.body_type,
+                .shape_properties = pd.physics_shapes.shape_properties
             }}
           });
         break;
@@ -122,9 +162,15 @@ export struct tilemap_renderer_t : tilemap_loader_t {
         found->second(node.physics_entities.back(), pd);
       }
     }
+    TIMER_END(add_physics_block);
+
+    TIMER_END(total_initialize);
   }
 
+
   void initialize_visual(node_t& node, const fan::vec2& position) {
+    TIMER_START(total_initialize_visual);
+
     clear_visual(node);
 
     fan::vec2i src = convert_to_grid(position, node);
@@ -132,25 +178,39 @@ export struct tilemap_renderer_t : tilemap_loader_t {
 
     auto& map_tiles = node.compiled_map->compiled_shapes;
 
+    size_t tile_estimate = 0;
+    TIMER_START(tile_estimate_scan);
     for (int y = 0; y < view_size.y; ++y) {
       for (int x = 0; x < view_size.x; ++x) {
         fan::vec2i grid_pos = src + fan::vec2i(x, y);
-        if (grid_pos.x < 0 || grid_pos.y < 0) {
-          continue;
-        }
-        if (grid_pos.y >= (std::int64_t)map_tiles.size() || 
-          grid_pos.x >= (std::int64_t)map_tiles[grid_pos.y].size()) {
-          continue;
-        }
-        if (map_tiles[grid_pos.y][grid_pos.x].empty()) {
-          continue;
-        }
+        if (grid_pos.x < 0 || grid_pos.y < 0) continue;
+        if (grid_pos.y >= (std::int64_t)map_tiles.size() ||
+          grid_pos.x >= (std::int64_t)map_tiles[grid_pos.y].size()) continue;
+        tile_estimate += map_tiles[grid_pos.y][grid_pos.x].size();
+      }
+    }
+    TIMER_END(tile_estimate_scan);
+
+    node.rendered_tiles.reserve(tile_estimate);
+
+    TIMER_START(tile_add_loop);
+    for (int y = 0; y < view_size.y; ++y) {
+      for (int x = 0; x < view_size.x; ++x) {
+        fan::vec2i grid_pos = src + fan::vec2i(x, y);
+        if (grid_pos.x < 0 || grid_pos.y < 0) continue;
+        if (grid_pos.y >= (std::int64_t)map_tiles.size() ||
+          grid_pos.x >= (std::int64_t)map_tiles[grid_pos.y].size()) continue;
+        if (map_tiles[grid_pos.y][grid_pos.x].empty()) continue;
+
         int depth = 0;
-        for (auto& j : map_tiles[grid_pos.y][grid_pos.x]) {
-          add_tile(node, j, grid_pos.x, grid_pos.y, depth++);
+        for (auto& tile_data : map_tiles[grid_pos.y][grid_pos.x]) {
+          add_tile(node, tile_data, grid_pos.x, grid_pos.y, depth++);
         }
       }
     }
+    TIMER_END(tile_add_loop);
+
+    TIMER_END(total_initialize_visual);
   }
 
   void erase_visual(id_t map_id, const std::string& id) {
@@ -295,7 +355,14 @@ export struct tilemap_renderer_t : tilemap_loader_t {
 
   void clear(node_t& node) {
     clear_visual(node);
+
+    for (auto& e : node.physics_entities) {
+      std::visit([](auto& v) {
+        v.destroy();
+      }, e.visual);
+    }
     node.physics_entities.clear();
+
     node.lights.clear();
   }
 
