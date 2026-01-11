@@ -26,12 +26,15 @@ struct player_t {
     body = fan::graphics::physics::character2d_t::from_json({
       .json_path = "player/player.json",
       .aabb_scale = aabb_scale,
-      .attack_cb = [](fan::graphics::physics::character2d_t& c) -> bool {
+      .attack_cb = [this](fan::graphics::physics::character2d_t& c) -> bool {
         const bool attack_input =
           fan::window::is_input_action_active(fan::actions::light_attack) ||
-          fan::window::is_key_pressed(fan::gamepad_right_bumper);
+          fan::window::is_key_pressed(fan::gamepad_right_bumper)
+        ;
 
-        if (!attack_input || fan::graphics::gui::want_io()) {
+        bool attack_pressed = attack_input;
+
+        if (!attack_pressed || fan::graphics::gui::want_io()) {
           return false;
         }
 
@@ -69,13 +72,15 @@ struct player_t {
       .max_health = 50.f,
       .damage = 10.f,
       .knockback_force = 20.f,
-      .cooldown_duration = 0.05e9,
+      .cooldown_timer = fan::time::timer{0.05e9, true},
       .on_attack_end = [this]() { combat.did_attack = false; },
     });
 
     physics_step_nr = fan::physics::add_physics_step_callback([this]() {
       handle_attack();
     });
+
+    sprite_shield.set_position(body.get_center());
   }
 
   fan::event::task_t jump(bool is_double_jump) {
@@ -90,6 +95,7 @@ struct player_t {
       f32_t progress = jump_timer.seconds() / jump_timer.duration_seconds();
       f32_t angle = progress * fan::math::two_pi * body.get_image_sign().x;
       body.set_angle(fan::vec3(0, 0, angle));
+      sprite_shield.set_angle(fan::vec3(0, 0, angle));
       co_await fan::graphics::co_next_frame();
     }
     body.set_angle(0.f);
@@ -138,7 +144,11 @@ struct player_t {
     potion_consume_timer.restart();
   }
 
-  void update(){
+  bool is_blocking() const {
+    return fan::window::is_mouse_down(fan::mouse_right);
+  }
+
+  void update() {
     combat.hitbox.process_destruction();
     if (fan::window::is_input_action_active(actions::drink_potion)) {
       drink_potion();
@@ -150,11 +160,40 @@ struct player_t {
       }
     }
 
-    static f32_t v = 0;
-    v += pile->engine.delta_time * 100.f;
-
     player_light.set_position(body.get_center());
-    body.update_animations();
+
+    if (fan::window::is_mouse_released(fan::mouse_right)) {
+      body.cancel_animation();
+    }
+    if (fan::window::is_mouse_down(fan::mouse_right)) {
+      fan::vec2 input_vector = fan::window::get_input_vector();
+      if (input_vector.x != 0) {
+        fan::vec2 sign = body.get_image_sign();
+        int desired_sign = fan::math::sgn(input_vector.x);
+        if (fan::math::sgn(sign.x) != desired_sign) {
+          body.set_image_sign(fan::vec2(desired_sign, sign.y));
+        }
+      }
+
+      fan::vec2 sign = body.get_image_sign();
+      f32_t facing_direction = sign.x;
+
+      fan::vec2 shield_offset = fan::vec2(body.get_size().x * facing_direction, 0);
+      fan::vec3 shield_pos = body.get_center().offset_z(1) + shield_offset;
+
+      sprite_shield.set_position(shield_pos);
+      sprite_shield.set_rotation_point(body.get_center() - shield_pos);
+      sprite_shield.set_tc_size(fan::vec2(facing_direction, 1.0f));
+      body.cancel_animation();
+      body.set_sprite_sheet("attack0");
+      body.set_current_animation_frame(3);
+      body.movement_state.max_speed = max_player_speed / 3.f;
+    }
+    else {
+      body.movement_state.max_speed = max_player_speed;
+      sprite_shield.set_position(fan::vec2(-0xfffff));
+      body.update_animations();
+    }
 
     if (!pile->level_stage) {
       return;
@@ -185,22 +224,36 @@ struct player_t {
     }
   }
 
-  fan::vec2 get_physics_pos(){
+  fan::vec2 get_physics_pos() {
     return body.get_physics_position();
   }
 
-  bool on_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction){
+  int on_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction) {
+    if (is_blocking()) {
+      fan::vec2 sign = body.get_image_sign();
+      f32_t shield_direction = sign.x;
+      f32_t attack_direction = fan::math::sgn(hit_direction.x);
+
+      // check opposite signs
+      if (shield_direction != attack_direction) {
+        // give stun
+        body.take_knockback(source, hit_direction);
+        // audio_block.play();
+        return attack_result_e::blocked;
+      }
+    }
+
     audio_enemy_hits_player.play();
     body.take_hit(source, hit_direction);
     if (body.get_health() <= 0) {
       body.cancel_animation();
       pile->get_level().reload_map();
-      return true;
+      return attack_result_e::hit;
     }
-    return false;
+    return attack_result_e::miss;
   }
 
-  fan::graphics::physics::character2d_t& get_body(){
+  fan::graphics::physics::character2d_t& get_body() {
     return body;
   }
 
@@ -220,5 +273,9 @@ struct player_t {
   fan::graphics::effects::particle_pool_t::pool_t<4> potion_particles;
   fan::graphics::light_t player_light{{.position = 0}};
   fan::physics::step_callback_nr_t physics_step_nr;
+  fan::graphics::sprite_t sprite_shield {{
+    .image = "images/shield.webp"
+  }};
   fan::vec2 checkpoint_position = 0;
+  f32_t max_player_speed = 600.f;
 };

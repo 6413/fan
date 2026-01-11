@@ -1062,12 +1062,11 @@ namespace fan::graphics::physics {
     states.emplace_back(state);
   }
   void animation_controller_t::update(character2d_t* character) {
-    update_animation(character);
+    update_image_sign(character);
 
     for (auto& state : states) {
-      bool triggered = false;
-      bool attack_cond = state.name == "attack0";
-      triggered = state.condition(*character);
+      bool triggered = state.condition(*character);
+
       if (state.trigger_type == animation_state_t::one_shot) {
         if (triggered && !state.is_playing) {
           for (auto& other : states) {
@@ -1076,17 +1075,13 @@ namespace fan::graphics::physics {
           state.is_playing = true;
           if (prev_animation_id != state.animation_id) {
             character->set_current_animation_id(state.animation_id);
-            character->reset_current_sprite_sheet_animation();
+            character->reset_current_sprite_sheet();
             character->anim_controller.current_animation_requires_velocity_fps = state.velocity_based_fps;
             if (!state.velocity_based_fps) {
               character->set_sprite_sheet_fps(state.fps);
             }
-
             prev_animation_id = state.animation_id;
           }
-        }
-        if (character->attack_state.knockback_force == 10.f && state.is_playing && state.name == "attack0") {
-
         }
         if (state.is_playing && character->is_animation_finished(state.animation_id)) {
           state.is_playing = false;
@@ -1100,24 +1095,24 @@ namespace fan::graphics::physics {
         }
       }
       else if (triggered) {
-        if (character->attack_state.is_attacking &&
-          state.name != "attack0") {
+        if (character->attack_state.is_attacking && state.name != "attack0") {
           return;
         }
 
         if (prev_animation_id != state.animation_id) {
           character->set_current_animation_id(state.animation_id);
-          character->reset_current_sprite_sheet_animation();
+          character->reset_current_sprite_sheet();
           character->anim_controller.current_animation_requires_velocity_fps = state.velocity_based_fps;
           if (!state.velocity_based_fps) {
             character->set_sprite_sheet_fps(state.fps);
           }
+          prev_animation_id = state.animation_id;
         }
+
         if (state.velocity_based_fps) {
           f32_t speed = fan::math::clamp((f32_t)character->movement_state.last_direction.length() + 0.35f, 0.f, 1.f);
           character->set_sprite_sheet_fps(state.fps * speed);
         }
-        prev_animation_id = state.animation_id;
         return;
       }
     }
@@ -1126,6 +1121,7 @@ namespace fan::graphics::physics {
     for (auto& state : states) {
       state.is_playing = false;
     }
+    prev_animation_id = -1;
   }
 
   animation_controller_t::animation_state_t& animation_controller_t::get_state(const std::string& name) {
@@ -1138,7 +1134,7 @@ namespace fan::graphics::physics {
     __unreachable();
   }
 
-  void animation_controller_t::update_animation(character2d_t* character) {
+  void animation_controller_t::update_image_sign(character2d_t* character) {
     if (fan::graphics::gui::want_io()) {
       return;
     }
@@ -1563,6 +1559,11 @@ namespace fan::graphics::physics {
         .trigger_type = animation_controller_t::animation_state_t::one_shot,
         .condition = config.attack_cb ? config.attack_cb :
         [](character2d_t& c) -> bool {
+          // dont attack while already attacking
+          if (c.attack_state.is_attacking) {
+            return false;
+          }
+        
           if (!fan::window::is_input_action_active(fan::actions::light_attack) && !fan::window::is_key_pressed(fan::gamepad_right_bumper)
           #if defined(FAN_GUI)
             || fan::graphics::gui::want_io()
@@ -1583,7 +1584,8 @@ namespace fan::graphics::physics {
           if (c.get_health() <= 0) {
             return false;
           }
-          return std::abs(c.get_linear_velocity().x) < 10.f && !c.movement_state.jump_state.on_air_after_jump;
+          bool enough_x = std::abs(c.get_linear_velocity().x) < 10.f;
+          return (!c.is_on_ground() && enough_x) || (enough_x && !c.movement_state.jump_state.on_air_after_jump);
         }
       });
       set_current_animation_id(idle.id);
@@ -1598,13 +1600,8 @@ namespace fan::graphics::physics {
           if (c.get_health() <= 0) {
             return false;
           }
-          if (c.movement_state.is_wall_sliding) {
-            return true;
-          } 
-          //if (c.movement_state.jump_state.on_air_after_jump) {
-          //  return true;
-          //}
-          return std::abs(c.get_linear_velocity().x) >= 10.f/* || c.movement_state.jump_state.on_air_after_jump*/;
+          // always show move animation when not on ground or when moving
+          return !c.is_on_ground() || std::abs(c.get_linear_velocity().x) >= 10.f;
         }
       });
     }
@@ -1679,14 +1676,7 @@ namespace fan::graphics::physics {
   void character2d_t::setup_attack_properties(attack_state_t&& attack_state) {
     this->attack_state = std::move(attack_state);
   }
-  void character2d_t::take_hit(
-    character2d_t* source,
-    const fan::vec2& hit_direction,
-    f32_t knockback_multiplier
-  ) {
-    attack_state.health -= source->attack_state.damage;
-    attack_state.health = std::max(attack_state.health, 0.f);
-
+  void character2d_t::take_knockback(character2d_t* source, const fan::vec2& hit_direction, f32_t knockback_multiplier) {
     fan::vec2 knockback_vel = fan::vec2(
       hit_direction.sign().x * source->attack_state.knockback_force * knockback_multiplier,
       -source->attack_state.knockback_force / 5.f
@@ -1697,13 +1687,26 @@ namespace fan::graphics::physics {
     movement_state.knockback_initial_velocity = knockback_vel;
 
     set_linear_velocity(knockback_vel);
+  }
+
+  void character2d_t::take_hit(
+    character2d_t* source,
+    const fan::vec2& hit_direction,
+    f32_t knockback_multiplier) 
+  {
+    attack_state.health -= source->attack_state.damage;
+    attack_state.health = std::max(attack_state.health, 0.f);
+
+    take_knockback(source, hit_direction, knockback_multiplier);
 
     attack_state.took_damage = true;
+
     if (attack_state.stun) {
       attack_state.end_attack();
       anim_controller.cancel_current();
     }
   }
+
   void character2d_t::update_animations() {
     anim_controller.update(this);
   }

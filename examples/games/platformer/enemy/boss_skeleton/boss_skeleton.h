@@ -1,4 +1,7 @@
 struct boss_skeleton_t : boss_t<boss_skeleton_t> {
+
+  f32_t attack_delay = 0.5e9;
+
   boss_skeleton_t() = default;
   ~boss_skeleton_t() {
     if (body.get_health() <= 0) {
@@ -27,7 +30,8 @@ struct boss_skeleton_t : boss_t<boss_skeleton_t> {
     body.attack_state.attack_range = {450, 200};
     body.movement_state.max_speed = 350.f;
     body.anim_controller.auto_update_animations = false;
-    body.attack_state.knockback_force = 800.f,
+    body.attack_state.knockback_force = 1200.f;
+    body.attack_state.cooldown_timer.start(attack_delay),
 
     attack_hitbox.setup({
       .spawns = {
@@ -66,13 +70,24 @@ struct boss_skeleton_t : boss_t<boss_skeleton_t> {
     });
   }
 
+  void attack_blocked() override {
+    base_t::attack_blocked();
+    body.attack_state.cooldown_timer.start(attack_delay * 1.5f);
+  }
+
 private:
   void update_logic() {
+    // recover from stun
+    if (!second_phase && body.attack_state.cooldown_timer.duration() != attack_delay && body.attack_state.cooldown_timer.finished()) {
+      body.attack_state.cooldown_timer.start(attack_delay);
+    }
+
     // rage
     if (body.get_health() < body.get_max_health() / 2.f && !second_phase) {
       second_phase = true;
       task_pulse_red = pulse_red.animate([this](auto c) { body.set_color(c); });
-      body.attack_state.cooldown_duration = 0.5e9;
+      attack_delay = 0.25e9;
+      body.attack_state.cooldown_timer.start(attack_delay);
       body.movement_state.max_speed = 500.f;
       behavior_config.backstep_cooldown = 3.0e9;
     }

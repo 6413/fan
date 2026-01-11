@@ -404,13 +404,16 @@ export namespace fan::graphics {
       bool point_inside(const fan::vec2& point) const;
       bool collides(const fan::vec2& point) const;
     #endif
-      // Returns the sign (+1 or −1) of each UV axis, indicating their orientation.
       void add_existing_animation(animation_nr_t nr);
       bool is_animation_finished() const;
       bool is_animation_finished(animation_nr_t nr) const;
+      // sprite sheet
+      int get_current_last_frame_index() const;
+      void finish_current_sprite_sheet();
+      // shape specific
       void set_animation_loop(animation_nr_t nr, bool flag);
-      void reset_current_sprite_sheet_animation_frame();
-      void reset_current_sprite_sheet_animation();
+      void reset_current_sprite_sheet_frame();
+      void reset_current_sprite_sheet();
       // sprite sheet - sprite specific
       void set_sprite_sheet_next_frame(int advance = 1);
       animation_shape_nr_t get_shape_animations_id() const;
@@ -435,7 +438,7 @@ export namespace fan::graphics {
       bool animation_on(const std::string& name, const std::initializer_list<int>& arr);
       bool animation_crossed(const std::string& name, int frame_index);
       void set_current_animation_id(animation_nr_t animation_id);
-      sprite_sheet_animation_t& get_current_animation();
+      sprite_sheet_animation_t& get_current_animation() const;
       int get_previous_animation_frame() const;
       int get_current_animation_frame() const;
       void set_current_animation_frame(int frame_id);

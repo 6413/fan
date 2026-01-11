@@ -1980,20 +1980,41 @@ namespace fan::graphics{
     fan::graphics::sprite_sheet_data_t& sheet_data = ri.sprite_sheet_data;
     return sheet_data.current_frame == animation.selected_frames.size() - 1;
   }
+  
+  int shapes::shape_t::get_current_last_frame_index() const {
+    const auto& anim = get_current_animation();
+    return anim.selected_frames[anim.selected_frames.size() - 1];
+  }
+  void shapes::shape_t::finish_current_sprite_sheet() {
+    set_current_animation_frame(get_current_last_frame_index());
+  }
   void shapes::shape_t::set_animation_loop(animation_nr_t nr, bool flag) {
     g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
       if constexpr (requires { props.sprite_sheet_data; }) {
-        if (props.sprite_sheet_data.current_animation == nr) {
-          animation_nr_t new_nr = all_animations_counter++;
-          all_animations[new_nr] = all_animations[nr];
-          all_animations[new_nr].loop = flag;
+        auto& shape_anims = fan::graphics::shape_animations[props.sprite_sheet_data.shape_animations];
 
-          props.sprite_sheet_data.current_animation = new_nr;
+        for (auto& anim_nr : shape_anims) {
+          if (anim_nr == nr) {
+            animation_nr_t new_nr = all_animations_counter++;
+            all_animations[new_nr] = all_animations[nr];
+            all_animations[new_nr].loop = flag;
+
+            anim_nr = new_nr;
+
+            auto& anim = all_animations[new_nr];
+            shape_animation_lookup_table[{props.sprite_sheet_data.shape_animations, anim.name}] = new_nr;
+
+            if (props.sprite_sheet_data.current_animation == nr) {
+              props.sprite_sheet_data.current_animation = new_nr;
+            }
+
+            break;
+          }
         }
       }
     });
   }
-  void fan::graphics::shapes::shape_t::reset_current_sprite_sheet_animation_frame() {
+  void fan::graphics::shapes::shape_t::reset_current_sprite_sheet_frame() {
     g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
       if constexpr (requires { props.sprite_sheet_data; }) {
         props.sprite_sheet_data.previous_frame = props.sprite_sheet_data.current_frame;
@@ -2006,7 +2027,7 @@ namespace fan::graphics{
       }
     });
   }
-  void fan::graphics::shapes::shape_t::reset_current_sprite_sheet_animation() {
+  void fan::graphics::shapes::shape_t::reset_current_sprite_sheet() {
     g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
       if constexpr (requires { props.sprite_sheet_data; }) {
         props.sprite_sheet_data.previous_frame = props.sprite_sheet_data.current_frame;
@@ -2234,7 +2255,7 @@ namespace fan::graphics{
   }
 
 
-  sprite_sheet_animation_t& shapes::shape_t::get_current_animation() {
+  sprite_sheet_animation_t& shapes::shape_t::get_current_animation() const {
     auto found = all_animations.find(get_current_animation_id());
     #if FAN_DEBUG >= fan_debug_medium
     if (found == all_animations.end()) {
@@ -2283,19 +2304,37 @@ namespace fan::graphics{
   }
 
   sprite_sheet_animation_t* shapes::shape_t::get_animation(const std::string& name) {
-    auto anims = get_all_animations();
-    for (const auto& anim : anims) {
-      if (anim.first == name) {
-        auto found = all_animations.find(anim.second);
-      #if FAN_DEBUG >= fan_debug_medium
-        if (found == all_animations.end()) {
-          fan::throw_error("animation not found, animation list (corruption)");
+    //auto anims = get_all_animations();
+    //for (const auto& anim : anims) {
+    //  if (anim.first == name) {
+    //    auto found = all_animations.find(anim.second);
+    //  #if FAN_DEBUG >= fan_debug_medium
+    //    if (found == all_animations.end()) {
+    //      fan::throw_error("animation not found, animation list (corruption)");
+    //    }
+    //  #endif
+    //    return &found->second;
+    //  }
+    //}
+    sprite_sheet_animation_t* anim = nullptr;
+    g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
+      if constexpr (requires { props.sprite_sheet_data; }) {
+        auto found = shape_animation_lookup_table.find({props.sprite_sheet_data.shape_animations, name});
+        if (found == shape_animation_lookup_table.end()) {
+          fan::throw_error("animation not found:", name);
         }
-      #endif
-        return &found->second;
+        else {
+          auto found2 = all_animations.find(found->second);
+          if (found2 == all_animations.end()) {
+            fan::throw_error("animation not found:", name);
+          }
+          else {
+            anim = &found2->second;
+          }
+        }
       }
-    }
-    return nullptr;
+    });
+    return anim;
   }
 
   void shapes::shape_t::set_light_position(const fan::vec3& new_pos) {
