@@ -9,9 +9,9 @@
 #endif
 
 #include "loader.h"
-#include "spikes.h"
+#include "../spikes.h"
 spike_spatial_t spike_spatial;
-#include "lamp_colors.h"
+#include "../lamp_colors.h"
 
 void load_enemies() {
   pile->enemy_list.clear();

@@ -329,7 +329,6 @@ export namespace fan::window {
       
       return combo;
     }
-    using combo_t = std::vector<key_code_t>;
     void sort_combo(combo_t& combo) {
       std::sort(combo.begin(), combo.end(), [](int a, int b) {
         bool ma = fan::is_modifier(a), mb = fan::is_modifier(b);

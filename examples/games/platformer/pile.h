@@ -79,8 +79,8 @@ struct pile_t {
   const enemy_list_t& enemies() const = delete;
 
   template <typename T, typename... Args>
-  auto spawn_enemy(Args&&... args) {
-    auto nr = pile->enemy_list.add();
+  enemy_list_t::nr_t spawn_enemy(Args&&... args) {
+    enemy_list_t::nr_t nr = pile->enemy_list.add();
     pile->enemy_list[nr] = T(pile->enemy_list, nr, std::forward<Args>(args)...);
     return nr;
   }
