@@ -516,8 +516,7 @@ export namespace fan {
         fan::vec2 attack_range = {100, 50};
         bool is_attacking = false;
 
-        f32_t cooldown_duration = 0.5e9;
-        fan::time::timer cooldown_timer {cooldown_duration, true};
+        fan::time::timer cooldown_timer {0.5e9, true};
         bool attack_requires_facing_target = true;
         bool took_damage = false;
         bool stun = true;
@@ -563,7 +562,7 @@ export namespace fan {
         void cancel_current();
         animation_state_t& get_state(const std::string& name);
 
-        void update_animation(character2d_t* character);
+        void update_image_sign(character2d_t* character);
 
         std::vector<animation_state_t> states;
         fan::graphics::animation_nr_t prev_animation_id;
@@ -652,6 +651,7 @@ export namespace fan {
         void enable_double_jump();
 
         void setup_attack_properties(attack_state_t&& attack_state);
+        void take_knockback(character2d_t* source, const fan::vec2& hit_direction, f32_t knockback_multiplier = 1.0f);
         void take_hit(character2d_t* source, const fan::vec2& hit_direction, f32_t knockback_multiplier = 1.0f);
 
         void update_animations();
@@ -719,6 +719,12 @@ export namespace fan {
         fan::time::timer idle_timer, backstep_timer, backstep_cooldown;
         bool is_backstepping = false;
         int backstep_dir = 0;
+
+        void restart() {
+          idle_timer.restart();
+          backstep_timer.restart();
+          backstep_cooldown.restart();
+        }
 
         void init(const config_t& cfg) {
           idle_timer.start(fan::random::value(cfg.idle_timer_range.first, cfg.idle_timer_range.second));

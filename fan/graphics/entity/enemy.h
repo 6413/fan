@@ -6,7 +6,7 @@ namespace fan::graphics::entity {
       void update() { std::visit([](auto& e) { e.update(); }, *this); }
       void destroy() { std::visit([](auto& e) { e.destroy(); }, *this); }
       auto& get_body() { return std::visit([](auto& e) -> auto& { return e.get_body(); }, *this); }
-      bool on_hit(auto* source, const fan::vec2& dir) {
+      int on_hit(auto* source, const fan::vec2& dir) {
         return std::visit([source, dir](auto& e) { return e.on_hit(source, dir); }, *this);
       }
     };
