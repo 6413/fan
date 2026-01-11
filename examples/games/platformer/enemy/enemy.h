@@ -189,7 +189,7 @@ struct enemy_t : enemy_base_t {
     }
   }
   bool on_hit(fan::graphics::physics::character2d_t* source, const fan::vec2& hit_direction) override {
-    fan::audio::play(audio_player_hits_enemy);
+    audio_player_hits_enemy.play();
     body.take_hit(source, hit_direction);
     if (body.is_dead()) {
       static constexpr f32_t drop_chance = 0.33f;
@@ -230,7 +230,7 @@ struct enemy_t : enemy_base_t {
   bool is_spike_at(const fan::vec2& pos) override {
     for (auto& spike : pile->get_level().spike_sensors) {
       fan::vec2 spike_pos = spike.get_position();
-      fan::vec2 spike_size = pile_t::level_t::spike_height * 2.f;
+      fan::vec2 spike_size = pile_t::level0_t::spike_spatial_t::spike_height * 2.f;
       if (std::abs(pos.x - spike_pos.x) < spike_size.x / 2.f && std::abs(pos.y - spike_pos.y) < spike_size.y / 2.f) {
         return true;
       }
@@ -257,5 +257,8 @@ struct enemy_t : enemy_base_t {
   std::vector<fan::graphics::unlit_sprite_t> hearts;
   fan::vec2 initial_position = 0;
   fan::physics::step_callback_nr_t physics_step_nr;
-  fan::audio::piece_t audio_attack{"audio/enemy_attack.sac"}, audio_player_hits_enemy{"audio/player_hits_enemy.sac"};
+  fan::audio::sound_t 
+    audio_attack{"audio/enemy_attack.sac"}, 
+    audio_player_hits_enemy{"audio/player_hits_enemy.sac"}
+  ;
 };

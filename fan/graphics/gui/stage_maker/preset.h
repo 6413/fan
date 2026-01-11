@@ -44,3 +44,5 @@ struct structor_t {
     });
   }
 }structor;
+
+using self_t = lstd_current_type;

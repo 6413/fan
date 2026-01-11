@@ -1120,7 +1120,7 @@ export namespace fan::graphics {
           std::fill(std::begin(particles), std::end(particles), base);
         }
 
-        void spawn_at(const fan::vec2& position) {
+        void spawn_at(const fan::vec3& position) {
           particles[current_index].start_particles();
           particles[current_index].set_position(position);
           current_index = (current_index + 1) % N;

@@ -4,7 +4,7 @@ struct boss_skeleton_t : boss_t<boss_skeleton_t> {
     if (body.get_health() <= 0) {
       auto& level = pile->get_level();
       level.is_boss_dead = true;
-      fan::audio::stop(level.audio_skeleton_lord_id);
+      level.audio_skeleton_lord.stop();
       pile->audio_background_play_id = fan::audio::play(pile->audio_background);
     }
   }
