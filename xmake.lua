@@ -191,9 +191,12 @@ end
 
 if has_config("FAN_GUI") then
   table.insert(module_files, "fan/graphics/gui/gui_base.ixx")
+
   table.insert(module_files, "fan/graphics/gui/text_logger.ixx")
   table.insert(module_files, "fan/graphics/gui/gui_types.ixx")
   table.insert(module_files, "fan/graphics/gui/gui.ixx")
+	table.insert(module_files, "fan/graphics/gui/settings_menu.ixx")
+	table.insert(module_files, "fan/graphics/gui/keybinds_menu.ixx")
   table.insert(module_files, "fan/graphics/gui/console.ixx")
   table.insert(module_files, "fan/graphics/gui/tilemap_editor/loader.ixx")
   table.insert(module_files, "fan/graphics/gui/tilemap_editor/renderer0.ixx")
@@ -342,7 +345,7 @@ target("a.exe")
     add_deps("imgui", "nfd")
   end
   add_files(module_files)
-  add_files(get_config("main") or "examples/games/platformer/main.cpp", {module = false})
+  add_files(get_config("main"), {module = false})
   add_includedirs(".", {public = true})
   add_linkdirs("third_party/fan/lib")
 

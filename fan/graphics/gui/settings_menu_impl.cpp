@@ -14,6 +14,7 @@ import fan.graphics.gui.keybinds_menu;
 import fan.audio;
 import fan.io.file;
 import fan.graphics.loco;
+import fan.graphics.gui.base;
 
 namespace fan::graphics::gui {
   struct keybind_settings_bridge_t {

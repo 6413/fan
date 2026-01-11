@@ -4,6 +4,7 @@ module;
 #include <string>
 #include <unordered_map>
 #include <set>
+#include <functional>
 
 export module fan.graphics.gui.keybinds_menu;
 

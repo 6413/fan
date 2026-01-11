@@ -2,6 +2,13 @@ module;
 
 #include <fan/utility.h>
 
+#include <vector>
+#include <string>
+#include <map>
+#include <cmath>
+#include <algorithm>
+#include <set>
+
 module fan.graphics.gui.keybinds_menu;
 
 import fan.graphics.loco;
