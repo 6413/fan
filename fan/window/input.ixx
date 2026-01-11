@@ -24,7 +24,8 @@ module;
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 #include <string>
-
+#include <vector>
+#include <string_view>
 
 export module fan.window.input;
 
@@ -787,5 +788,14 @@ export namespace fan {
     if (!kn) return "Unknown";
     if (std::strcmp(kn, "Unknown") == 0) return "Unknown";
     return std::string(kn);
+  }
+  std::string join_keys(const std::vector<int>& keys, std::string_view sep) {
+    std::string r;
+    r.reserve(keys.size() * 6);
+    for (std::size_t i = 0; i < keys.size(); i++) {
+      r += fan::get_key_name(keys[i]);
+      if (i + 1 < keys.size()) r += sep;
+    }
+    return r;
   }
 }

@@ -4,10 +4,10 @@ pile_t* pile = 0;
 #define stage_loader_path .
 #include <fan/graphics/gui/stage_maker/loader.h>
 struct pile_t {
-  lstd_defstruct(level_t)
+  lstd_defstruct(level0_t)
     #include <fan/graphics/gui/stage_maker/preset.h>
-      static constexpr auto stage_name = "level";
-      #include "level.h"
+      static constexpr auto stage_name = "level0";
+      #include "level0/map.h"
     };
   lstd_defstruct(gui_t)
     #include <fan/graphics/gui/stage_maker/preset.h>
@@ -51,8 +51,8 @@ struct pile_t {
     //fan::graphics::gui::text(fan::graphics::screen_to_world(fan::window::get_mouse_position()));
     fan::graphics::gui::set_viewport(engine.orthographic_render_view.viewport);
   }
-  level_t& get_level() {
-    return stage_loader.get_stage_data<level_t>(level_stage);
+  level0_t& get_level() {
+    return stage_loader.get_stage_data<level0_t>(level_stage);
   }
   gui_t& get_gui() {
     return stage_loader.get_stage_data<gui_t>(gui_stage);
@@ -78,6 +78,13 @@ struct pile_t {
   enemy_list_t& enemies() { return enemy_list; }
   const enemy_list_t& enemies() const = delete;
 
+  template <typename T, typename... Args>
+  auto spawn_enemy(Args&&... args) {
+    auto nr = pile->enemy_list.add();
+    pile->enemy_list[nr] = T(pile->enemy_list, nr, std::forward<Args>(args)...);
+    return nr;
+  }
+
   fan::graphics::update_callback_nr_t frame_update_handle;
 };
 
@@ -93,8 +100,8 @@ pile_t::pile_t() {
   player.body.set_physics_position(player.body.get_position());
   engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position(), 0);
   gui_stage = stage_loader.open_stage<gui_t>();
-  tilemaps_compiled[level_t::stage_name] = pile->renderer.compile("sample_level.fte");
-  level_stage = stage_loader.open_stage<level_t>();
+  tilemaps_compiled[level0_t::stage_name] = pile->renderer.compile("sample_level.fte");
+  level_stage = stage_loader.open_stage<level0_t>();
   audio_background = fan::audio::piece_t("audio/background.sac");
   audio_background_play_id = fan::audio::play(audio_background, 0, true);
 
