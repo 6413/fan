@@ -10,8 +10,7 @@ struct fly_t : enemy_t<fly_t> {
     body.set_jump_height(body.get_jump_height() / 10.f);
     body.set_max_health(100);
     body.set_health(body.get_max_health());
-    body.attack_state.cooldown_duration = 1.0e9;
-    body.attack_state.cooldown_timer = fan::time::timer{body.attack_state.cooldown_duration, true};
+    body.attack_state.cooldown_timer = fan::time::timer{1.0e9, true};
     body.attack_state.knockback_force = 600.f;
     body.set_gravity_scale(0);
     body.attack_state.attack_range = {80, 25};

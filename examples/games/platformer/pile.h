@@ -68,6 +68,11 @@ struct pile_t {
   };
   fan::audio::piece_t audio_background;
   fan::audio::sound_play_id_t audio_background_play_id;
+  enum attack_result_e {
+    miss,
+    hit,
+    blocked
+  };
   player_t player;
   fan::graphics::rectangle_t stage_transition;
 

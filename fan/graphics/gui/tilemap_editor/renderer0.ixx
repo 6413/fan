@@ -362,7 +362,6 @@ export struct tilemap_renderer_t : tilemap_loader_t {
       }, e.visual);
     }
     node.physics_entities.clear();
-
     node.lights.clear();
   }
 
@@ -544,17 +543,6 @@ export struct tilemap_renderer_t : tilemap_loader_t {
         ++it;
       }
     }
-
-    compiled_map.physics_shapes.erase(
-      std::remove_if(
-        compiled_map.physics_shapes.begin(),
-        compiled_map.physics_shapes.end(),
-        [&](const physics_data_t& p) {
-          return p.physics_shapes.id == id;
-        }
-      ),
-      compiled_map.physics_shapes.end()
-    );
   }
 
   tile_draw_data_t* get_shape_by_id(id_t map_id, const std::string& id) {

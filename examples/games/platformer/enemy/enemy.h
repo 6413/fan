@@ -9,6 +9,7 @@ struct enemy_base_t {
   virtual bool should_attack(fan::graphics::physics::character2d_t& c) = 0;
   virtual bool is_spike_at(const fan::vec2& pos) = 0;
   virtual void render_health() = 0;
+  virtual void attack_blocked() = 0;
   virtual fan::graphics::physics::character2d_t& get_body() = 0;
 };
 
@@ -73,10 +74,9 @@ struct enemy_t : enemy_base_t {
 
     body.setup_attack_properties({
       .damage = 10.f,
-      .knockback_force = 5.f,
+      .knockback_force = 600.f,
       .attack_range = {closeup_distance.x, body.attack_state.attack_range.y},
-      .cooldown_duration = 2.0e9,
-      .cooldown_timer = fan::time::timer(body.attack_state.cooldown_duration, true),
+      .cooldown_timer = fan::time::timer(0.8e9, true),
       .stun = false
     });
     ai_behavior.target = &pile->player.body;
@@ -134,17 +134,21 @@ struct enemy_t : enemy_base_t {
     return c.attack_state.try_attack(&c, distance) && std::abs(c.get_linear_velocity().y) < 10.f;
   }
   bool base_update() {
-    for (int i = 0; i < attack_hitbox.hitbox_count(); ++i) {
-      if (attack_hitbox.check_hit(&body, i, &pile->player.body)) {
-        if (pile->player.on_hit(&body, (pile->player.body.get_position() - body.get_position()).normalized())) {
-          return true;
-        }
-      }
-    }
     attack_hitbox.process_destruction();
     if (body.get_health() > 0) {
       body.update_animations();
     }
+    for (int i = 0; i < attack_hitbox.hitbox_count(); ++i) {
+      if (attack_hitbox.check_hit(&body, i, &pile->player.body)) {
+        if (auto result = pile->player.on_hit(&body, (pile->player.body.get_position() - body.get_position()).normalized())) {
+          if (result == attack_result_e::blocked) {
+            attack_blocked();
+          }
+          return true;
+        }
+      }
+    }
+
     render_health();
     return false;
   }
@@ -192,7 +196,7 @@ struct enemy_t : enemy_base_t {
     audio_player_hits_enemy.play();
     body.take_hit(source, hit_direction);
     if (body.is_dead()) {
-      static constexpr f32_t drop_chance = 0.33f;
+      static constexpr f32_t drop_chance = 1.0f;
 
       if (fan::random::value(0.0f, 1.0f) < drop_chance) {
         fan::vec2 tile_size = pile->tilemaps_compiled[pile->get_level().stage_name].tile_size;
@@ -226,6 +230,10 @@ struct enemy_t : enemy_base_t {
       return true;
     }
     return false;
+  }
+  void attack_blocked() override {
+    body.attack_state.end_attack();
+    body.cancel_animation();
   }
   bool is_spike_at(const fan::vec2& pos) override {
     for (auto& spike : pile->get_level().spike_sensors) {

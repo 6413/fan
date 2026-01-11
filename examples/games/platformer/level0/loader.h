@@ -292,7 +292,7 @@ void open(void* sod) {
     }
 
     fan::vec2 player_pos = pile->player.body.get_position();
-    auto nearby_indices = pickupable_spatial.query_radius(player_pos, 100.f);
+    auto nearby_indices = pickupable_spatial.query_radius(player_pos, 128.f);
 
     for (auto idx : nearby_indices) {
       auto* pickup = pickupable_spatial.get(idx);

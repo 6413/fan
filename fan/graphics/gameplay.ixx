@@ -87,7 +87,7 @@ export namespace fan::graphics::gameplay {
 
     fan::graphics::spatial::dynamic_grid_t<size_t> grid;
     fan::graphics::spatial::registry_t<size_t> registry;
-    std::vector<pickupable_data_t> pickupables;
+    std::unordered_map<size_t, pickupable_data_t> pickupables;
     size_t next_id = 0;
 
     void init(const fan::vec2& world_min, const fan::vec2& world_size, f32_t cell_size = 128.f) {
@@ -97,14 +97,12 @@ export namespace fan::graphics::gameplay {
 
     size_t add(const std::string& id, fan::physics::body_id_t sensor) {
       size_t idx = next_id++;
-      pickupables.push_back({id, sensor});
 
       fan::vec2 pos = sensor.get_position();
       fan::vec2 size = sensor.get_size();
       fan::physics::aabb_t aabb {pos - size, pos + size};
 
-      // always use dynamic since pickupables can be added or removed
-      fan::graphics::spatial::static_grid_t<size_t> dummy_static; // unused but required by api
+      fan::graphics::spatial::static_grid_t<size_t> dummy_static;
       fan::graphics::spatial::add_object(
         registry,
         dummy_static,
@@ -114,45 +112,27 @@ export namespace fan::graphics::gameplay {
         fan::graphics::spatial::movement_dynamic
       );
 
+      pickupables[idx] = {id, sensor};
       return idx;
     }
 
-    void remove(size_t idx) {
-      if (idx >= pickupables.size()) {
+    void remove(size_t id) {
+      auto it = pickupables.find(id);
+      if (it == pickupables.end()) {
         return;
       }
 
       fan::graphics::spatial::static_grid_t<size_t> dummy_static;
 
-      size_t last = pickupables.size() - 1;
-
       fan::graphics::spatial::remove_object(
         registry,
         dummy_static,
         grid,
-        idx
+        id
       );
 
-      pickupables[idx].sensor.destroy();
-
-      if (idx != last) {
-        pickupables[idx] = pickupables[last];
-
-        fan::vec2 pos = pickupables[idx].sensor.get_position();
-        fan::vec2 size = pickupables[idx].sensor.get_size();
-        fan::physics::aabb_t aabb {pos - size, pos + size};
-
-        fan::graphics::spatial::add_object(
-          registry,
-          dummy_static,
-          grid,
-          idx,
-          aabb,
-          fan::graphics::spatial::movement_dynamic
-        );
-      }
-
-      pickupables.pop_back();
+      it->second.sensor.destroy();
+      pickupables.erase(it);
     }
 
     std::vector<size_t> query_radius(const fan::vec2& center, f32_t radius) {
@@ -163,24 +143,35 @@ export namespace fan::graphics::gameplay {
       return result;
     }
 
-    pickupable_data_t* get(size_t idx) {
-      if (idx >= pickupables.size()) {
+    pickupable_data_t* get(size_t id) {
+      auto it = pickupables.find(id);
+      if (it == pickupables.end()) {
         return nullptr;
       }
-      return &pickupables[idx];
+      return &it->second;
     }
 
     void clear() {
-      for (auto& p : pickupables) {
-        p.sensor.destroy();
+      for (auto& [id, data] : pickupables) {
+        data.sensor.destroy();
       }
+
       pickupables.clear();
+      pickupables.rehash(0);
+
       grid.objects.clear();
       grid.cells.clear();
       grid.id_to_object.clear();
+
       registry.id_to_dynamic.clear();
+      registry.id_to_dynamic.rehash(0);
+
       registry.id_to_movement.clear();
+      registry.id_to_movement.rehash(0);
+
       registry.aabb_cache.clear();
+      registry.aabb_cache.rehash(0);
+
       next_id = 0;
     }
   };
