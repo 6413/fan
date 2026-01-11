@@ -525,6 +525,7 @@ export namespace fan::graphics::gui {
   using tab_item_flags_t = int;
   using hovered_flag_t = int;
   using selectable_flag_t = int;
+  using table_data_t = ImGuiTable;
   using table_flags_t = int;
   using table_row_flags_t = int;
   using style_var_t = int;

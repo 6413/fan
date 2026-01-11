@@ -1,43 +1,31 @@
-struct settings_menu_t;
+module;
 
-typedef void(*page_function_t)(settings_menu_t*, const fan::vec2& next_window_position, const fan::vec2& next_window_size);
+#include <fan/utility.h>
+#include <deque>
+#include <string>
+#include <fstream>
+#include <fan/graphics/opengl/init.h>
 
-#define gui fan::graphics::gui
+module fan.graphics.gui.settings_menu;
 
-struct settings_config_t {
-  struct display_settings_t {
-    int display_mode = 1; // windowed
-    int target_fps = gloco()->target_fps;
-    int resolution_index = -1;
-    fan::vec2i window_position = -1;
-    fan::vec2i custom_resolution = fan::vec2i(-1, -1);
-    int renderer = 0; // opengl
+import fan.types.vector;
+import fan.types.json;
+import fan.graphics.gui.keybinds_menu;
+import fan.audio;
+import fan.io.file;
+import fan.graphics.loco;
+
+namespace fan::graphics::gui {
+  struct keybind_settings_bridge_t {
+    static void menu_left(settings_menu_t* settings_menu, const fan::vec2& pos, const fan::vec2& size) {
+      keybind_menu_t::menu_keybinds_left(&OFFSETLESS(settings_menu, settings_menu_t, keybind_menu)->keybind_menu, pos, size);
+    }
+    static void menu_right(settings_menu_t* settings_menu, const fan::vec2& pos, const fan::vec2& size) {
+      keybind_menu_t::menu_keybinds_right(&OFFSETLESS(settings_menu, settings_menu_t, keybind_menu)->keybind_menu, pos, size);
+    }
   };
 
-  struct performance_settings_t {
-    bool vsync = false;
-    bool show_fps = false;
-    bool track_heap = false;
-    bool track_opengl_calls = false;
-  };
-
-  struct debug_settings_t {
-    bool frustum_culling_enabled = true;
-    bool visualize_culling = false;
-    fan::vec2 culling_padding = 0.0f;
-    bool hide_settings_bg = false;
-    int fill_mode = 0;
-  };
-
-  struct audio_settings_t {
-    f32_t volume = 1.0f;
-  };
-
-  struct post_processing_t {
-    f32_t bloom_strength = 0.0445f;
-  };
-
-  void load_from_json(const fan::json& j) {
+  void settings_config_t::load_from_json(const fan::json& j) {
     if (j.contains("display")) {
       const auto& d = j["display"];
       if (d.contains("display_mode")) display.display_mode = d["display_mode"];
@@ -53,6 +41,7 @@ struct settings_config_t {
       }
       if (d.contains("renderer")) display.renderer = d["renderer"];
     }
+
     if (j.contains("performance")) {
       const auto& p = j["performance"];
       if (p.contains("vsync")) performance.vsync = p["vsync"];
@@ -60,6 +49,7 @@ struct settings_config_t {
       if (p.contains("track_heap")) performance.track_heap = p["track_heap"];
       if (p.contains("track_opengl_calls")) performance.track_opengl_calls = p["track_opengl_calls"];
     }
+
     if (j.contains("debug")) {
       const auto& d = j["debug"];
       if (d.contains("frustum_culling_enabled")) debug.frustum_culling_enabled = d["frustum_culling_enabled"];
@@ -71,23 +61,23 @@ struct settings_config_t {
       if (d.contains("hide_settings_bg")) debug.hide_settings_bg = d["hide_settings_bg"];
       if (d.contains("fill_mode")) debug.fill_mode = d["fill_mode"];
     }
+
     if (j.contains("audio")) {
       const auto& a = j["audio"];
       if (a.contains("volume")) audio.volume = a["volume"];
     }
+
     if (j.contains("post_processing")) {
       const auto& pp = j["post_processing"];
-      if (pp.contains("bloom_enabled")) gloco()->open_props.enable_bloom = pp["bloom_enabled"];
-      if (pp.contains("bloom_strength")) post_processing.bloom_strength = pp["bloom_strength"];
-      if (pp.contains("bloom_filter_radius")) gloco()->gl.blur.bloom_filter_radius = pp["bloom_filter_radius"];
-    }
-    if (j.contains("keybinds")) {
-      OFFSETLESS(this, settings_menu_t, config)->keybind_menu.load_from_settings_json(j);
+      if (pp.contains("bloom_strength")) {
+        post_processing.bloom_strength = pp["bloom_strength"];
+      }
     }
   }
 
-  fan::json to_json() const {
+  fan::json settings_config_t::to_json() const {
     fan::json j;
+
     j["display"]["display_mode"] = display.display_mode;
     j["display"]["target_fps"] = display.target_fps;
     j["display"]["resolution_index"] = display.resolution_index;
@@ -101,30 +91,28 @@ struct settings_config_t {
     j["performance"]["show_fps"] = performance.show_fps;
     j["performance"]["track_heap"] = performance.track_heap;
     j["performance"]["track_opengl_calls"] = performance.track_opengl_calls;
+
     j["debug"]["frustum_culling_enabled"] = debug.frustum_culling_enabled;
     j["debug"]["visualize_culling"] = debug.visualize_culling;
     j["debug"]["culling_padding"]["x"] = debug.culling_padding.x;
     j["debug"]["culling_padding"]["y"] = debug.culling_padding.y;
     j["debug"]["hide_settings_bg"] = debug.hide_settings_bg;
     j["debug"]["fill_mode"] = debug.fill_mode;
+
     j["audio"]["volume"] = audio.volume;
-    j["post_processing"]["bloom_enabled"] = gloco()->open_props.enable_bloom;
     j["post_processing"]["bloom_strength"] = post_processing.bloom_strength;
-    j["post_processing"]["bloom_filter_radius"] = gloco()->gl.blur.bloom_filter_radius;
-    OFFSETLESS(this, settings_menu_t, config)->keybind_menu.save_to_settings_json(j);
+
     return j;
   }
 
-  std::string config_save_path = "fan_settings.json";
-
-  bool load() {
+  bool settings_config_t::load() {
     std::string content;
     if (fan::io::file::read(config_save_path, &content) != 0) {
       return false;
     }
+
     try {
-      fan::json j = fan::json::parse(content);
-      load_from_json(j);
+      load_from_json(fan::json::parse(content));
       return true;
     }
     catch (...) {
@@ -132,130 +120,105 @@ struct settings_config_t {
     }
   }
 
-  void save() {
+  void settings_config_t::save() {
     fan::json j = to_json();
-    std::string json_str = j.dump(2);
-    fan::io::file::write(config_save_path, json_str, std::ios_base::binary);
-    OFFSETLESS(this, settings_menu_t, config)->save_timer.start_millis(settings_menu_t::save_delay_ms);
+    fan::io::file::write(
+      config_save_path,
+      j.dump(2),
+      std::ios_base::binary
+    );
   }
 
-  display_settings_t display;
-  performance_settings_t performance;
-  debug_settings_t debug;
-  audio_settings_t audio;
-  post_processing_t post_processing;
-};
-
-struct settings_menu_t {
-
-  #include "keybinds_menu.h"
-
-  keybind_menu_t keybind_menu;
-
-  inline static bool hide_bg = false;
-
-  settings_menu_t() {
+  settings_menu_t::settings_menu_t() {
     config.load();
     query_current_resolution();
     apply_config(true, false);
+
     page_t page;
-    page.toggle = 1;
-    {
-      page.name = "Graphics";
-      page.render_page_left = loco_t::settings_menu_t::menu_graphics_left;
-      page.render_page_right = loco_t::settings_menu_t::menu_graphics_right;
-      pages.emplace_back(page);
-    }
-    page.toggle = 0;
-    {
-      page.name = "Audio";
-      page.render_page_left = loco_t::settings_menu_t::menu_audio_left;
-      page.render_page_right = loco_t::settings_menu_t::menu_audio_right;
-      pages.emplace_back(page);
-    }
-    {
-      page.name = "Keybinds";
-      page.render_page_left = keybind_settings_bridge_t::menu_left;
-      page.render_page_right = keybind_settings_bridge_t::menu_right;
-      page.split_ratio = 0.70f;
-      pages.emplace_back(page);
-    }
-  }
-  void init_runtime() {
-    set_settings_theme();
-    keybind_menu.sync_from_input_action();
-    apply_config(false, true);
-    resize_handle = gloco()->on_resize([this](const loco_t::resize_data_t& rdata) {
-      on_window_resize(rdata.size);
-    });
-    move_handle = gloco()->window.add_move_callback([this](const auto& d) {
-      if (d.window->display_mode == fan::window_t::mode::windowed) { 
-        config.display.window_position = d.position;
-        mark_dirty();
-      }
-    });
-    gloco()->console.commands.call("set_bloom_strength", config.post_processing.bloom_strength);
+
+    page.toggle = true;
+    page.name = "Graphics";
+    page.render_page_left = menu_graphics_left;
+    page.render_page_right = menu_graphics_right;
+    pages.emplace_back(page);
+
+    page.toggle = false;
+    page.name = "Audio";
+    page.render_page_left = menu_audio_left;
+    page.render_page_right = menu_audio_right;
+    pages.emplace_back(page);
+
+    page.name = "Keybinds";
+    page.render_page_left = keybind_settings_bridge_t::menu_left;
+    page.render_page_right = keybind_settings_bridge_t::menu_right;
+    page.split_ratio = 0.5f;
+    pages.emplace_back(page);
   }
 
-  static bool draw_toggle_row(
+  void settings_menu_t::init_runtime() {
+    set_settings_theme();
+    keybind_menu.sync_from_input_action();
+    config.display.target_fps = gloco()->target_fps;
+    apply_config(false, true);
+
+    resize_handle = gloco()->on_resize(
+      [this](const fan::window_t::resize_data_t& r) {
+        on_window_resize(r.size);
+      }
+    );
+
+    move_handle = gloco()->window.add_move_callback(
+      [this](const auto& d) {
+        if (d.window->display_mode == fan::window_t::mode::windowed) {
+          config.display.window_position = d.position;
+          mark_dirty();
+        }
+      }
+    );
+  }
+
+  bool settings_menu_t::draw_toggle_row(
     const char* label,
     const char* id,
     bool* enabled
   ) {
     gui::table_next_row();
-
     gui::table_next_column();
     gui::text(label);
-
     gui::table_next_column();
-    bool dirty = false;
-    if (gui::checkbox(id, enabled)) {
-      dirty = true;
-    }
-    return dirty;
+    return gui::checkbox(id, enabled);
   }
 
-  static void draw_sub_row(
+  void settings_menu_t::draw_sub_row(
     const char* sublabel,
     auto widget_fn,
-    f32_t sublabel_indent = 50.f,
-    f32_t subwidget_indent = 20.f
+    f32_t sublabel_indent,
+    f32_t subwidget_indent
   ) {
     gui::table_next_row();
-
     gui::table_next_column();
-    {
-      float y = gui::get_cursor_pos_y();
-      float frame_h = gui::get_frame_height();
-      float text_h = gui::get_text_line_height();
-
-      float x = gui::get_cursor_pos_x();
-      gui::set_cursor_pos_x(x + sublabel_indent);
-      gui::set_cursor_pos_y(y + (frame_h - text_h) * 0.5f);
-      gui::text(sublabel);
-    }
-
+    gui::indent(sublabel_indent);
+    gui::text(sublabel);
+    gui::unindent(sublabel_indent);
     gui::table_next_column();
-    {
-      float x = gui::get_cursor_pos_x();
-      gui::set_cursor_pos_x(x + subwidget_indent);
-      widget_fn();
-    }
+    gui::indent(subwidget_indent);
+    widget_fn();
+    gui::unindent(subwidget_indent);
   }
 
-  static void begin_menu_left(const char* name, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
+  void settings_menu_t::begin_menu_left(const char* name, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
     gui::push_font(gui::get_font(24));
     gui::set_next_window_pos(next_window_position);
     gui::set_next_window_size(next_window_size);
     gui::set_next_window_bg_alpha(hide_bg ? 0 : 0.99);
     gui::begin(name, nullptr, wnd_flags);
   }
-  static void end_menu_left() {
+  void settings_menu_t::end_menu_left() {
     gui::end();
     gui::pop_font();
   }
 
-  static void menu_graphics_left(settings_menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
+  void settings_menu_t::menu_graphics_left(settings_menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
     begin_menu_left("##Menu Graphics Left", next_window_position, next_window_size);
     {
       gui::text(title_color, "DISPLAY");
@@ -500,7 +463,7 @@ struct settings_menu_t {
     end_menu_left();
   }
 
-  static void menu_graphics_right(settings_menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
+  void settings_menu_t::menu_graphics_right(settings_menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
     gui::set_next_window_pos(next_window_position);
     gui::set_next_window_size(next_window_size);
     gui::set_next_window_bg_alpha(hide_bg ? 0 : 0.99);
@@ -519,7 +482,7 @@ struct settings_menu_t {
     gui::end();
   }
 
-  static void menu_audio_left(settings_menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
+  void settings_menu_t::menu_audio_left(settings_menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
   #if defined(FAN_AUDIO)
     begin_menu_left("##Menu Audio Left", next_window_position, next_window_size);
     {
@@ -541,132 +504,81 @@ struct settings_menu_t {
     end_menu_left();
   #endif
   }
-  static void menu_audio_right(settings_menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
-    loco_t::settings_menu_t::menu_graphics_right(menu, next_window_position, next_window_size);
+  void settings_menu_t::menu_audio_right(settings_menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
+    settings_menu_t::menu_graphics_right(menu, next_window_position, next_window_size);
   }
 
-  void query_current_resolution() {
-    if (config.display.resolution_index == -1 &&
-      config.display.custom_resolution.x == -1 &&
-      config.display.custom_resolution.y == -1) {
+  void settings_menu_t::query_current_resolution() {
+    if (
+      config.display.resolution_index != -1 ||
+      config.display.custom_resolution.x != -1
+    ) {
+      return;
+    }
 
-      fan::vec2i current_size = gloco()->open_props.window_size;
-      bool found = false;
-
-      for (int i = 0; i < std::size(fan::window_t::resolutions); ++i) {
-        if (fan::window_t::resolutions[i] == current_size) {
-          config.display.resolution_index = i;
-          found = true;
-          break;
-        }
-      }
-
-      if (!found) {
-        config.display.custom_resolution = current_size;
+    fan::vec2i current = gloco()->window.get_size();
+    for (int i = 0; i < std::size(fan::window_t::resolutions); ++i) {
+      if (fan::window_t::resolutions[i] == current) {
+        config.display.resolution_index = i;
+        return;
       }
     }
+
+    config.display.custom_resolution = current;
   }
 
-
-  void on_window_resize(const fan::vec2i& new_size) {
-    bool found = false;
+  void settings_menu_t::on_window_resize(const fan::vec2i& new_size) {
     for (int i = 0; i < std::size(fan::window_t::resolutions); ++i) {
       if (fan::window_t::resolutions[i] == new_size) {
         config.display.resolution_index = i;
-        config.display.custom_resolution = fan::vec2i(-1, -1);
-        found = true;
-        break;
+        config.display.custom_resolution = {-1, -1};
+        mark_dirty();
+        return;
       }
     }
-    if (!found) {
-      config.display.resolution_index = -1;
-      config.display.custom_resolution = new_size;
-    }
+
+    config.display.resolution_index = -1;
+    config.display.custom_resolution = new_size;
     mark_dirty();
   }
-
-  void apply_config(bool construct, bool rest) {
-    if (!rest) {
-      if (config.display.display_mode == fan::window_t::mode::windowed) {
-        fan::vec2i size;
-        fan::vec2i pos = gloco()->open_props.window_size;
-
-        if (config.display.window_position.x != -1) { 
-          gloco()->open_props.window_position = config.display.window_position; 
-        }
-
-        if (config.display.resolution_index != -1) {
-          size = fan::window_t::resolutions[config.display.resolution_index];
-        }
-        else {
-          size = config.display.custom_resolution;
-        }
-
-        gloco()->open_props.window_size = size;
-        gloco()->open_props.window_open_mode = fan::window_t::mode::windowed;
-      }
-      else {
-        gloco()->open_props.window_open_mode = config.display.display_mode;
-      }
-
+  void settings_menu_t::apply_config(bool /*construct*/, bool runtime) {
+    if (!runtime) {
       gloco()->open_props.window_open_mode = config.display.display_mode;
+      return;
     }
-    else {
-      gloco()->set_target_fps(config.display.target_fps);
-      gloco()->set_vsync(config.performance.vsync);
-      gloco()->show_fps = config.performance.show_fps;
-    #if defined(fan_std23)
-      fan::heap_profiler_t::instance().enabled = config.performance.track_heap;
-    #endif
-    #if defined(FAN_2D)
-      gloco()->shapes.visibility.enabled = config.debug.frustum_culling_enabled;
-      gloco()->is_visualizing_culling = config.debug.visualize_culling;
-      gloco()->shapes.visibility.padding = config.debug.culling_padding;
-      gloco()->force_line_draw = (config.debug.fill_mode == 1);
-    #endif
-    #if defined(FAN_AUDIO)
-      fan::audio::set_volume(config.audio.volume);
-    #endif
-    #if defined(LOCO_FRAMEBUFFER)
-      if (gloco()->open_props.renderer == fan::window_t::renderer_t::opengl) {
-        gloco()->shader_set_value(gloco()->gl.m_fbo_final_shader,
-          "bloom_strength",
-          config.post_processing.bloom_strength);
-      }
-    #endif
-    }
+
+    gloco()->set_target_fps(config.display.target_fps);
+    gloco()->set_vsync(config.performance.vsync);
+    gloco()->show_fps = config.performance.show_fps;
+    fan::audio::set_volume(config.audio.volume);
   }
 
-
-
-  void mark_dirty() {
+  void settings_menu_t::mark_dirty() {
     is_dirty = true;
     save_timer.start_millis(save_delay_ms);
   }
-
-  void update() {
+  void settings_menu_t::update() {
     if (is_dirty && save_timer.finished()) {
       config.save();
       is_dirty = false;
     }
   }
-
-  void change_target_fps(int direction) {
-    int index = 0;
+  void settings_menu_t::change_target_fps(int dir) {
+    int idx = 0;
     for (int i = 0; i < std::size(fps_values); ++i) {
       if (fps_values[i] == gloco()->target_fps) {
-        index = i;
+        idx = i;
         break;
       }
     }
-    index = (index + direction + std::size(fps_values)) % std::size(fps_values);
-    gloco()->set_target_fps(fps_values[index]);
-    config.display.target_fps = fps_values[index];
+
+    idx = (idx + dir + std::size(fps_values)) % std::size(fps_values);
+    gloco()->set_target_fps(fps_values[idx]);
+    config.display.target_fps = fps_values[idx];
     mark_dirty();
   }
-
-  void render_display_mode() {
-    static const char* display_mode_names[] = {
+  void settings_menu_t::render_display_mode() {
+    static constexpr const char* display_mode_names[] = {
       "Windowed",
       "Borderless",
       "Windowed Fullscreen",
@@ -694,8 +606,7 @@ struct settings_menu_t {
     }
   }
 
-
-  void render_target_fps() {
+  void settings_menu_t::render_target_fps() {
     gui::table_next_column();
     gui::text("Target Framerate");
     gui::table_next_column();
@@ -711,7 +622,7 @@ struct settings_menu_t {
     }
   }
 
-  void render_resolution_dropdown() {
+  void settings_menu_t::render_resolution_dropdown() {
     fan::vec2i current_size = gloco()->window.get_size();
     int current_resolution = -1;
     for (int i = 0; i < std::size(fan::window_t::resolutions); ++i) {
@@ -751,7 +662,7 @@ struct settings_menu_t {
     }
   }
 
-  void render_separator_full_width(f32_t y_offset = 0.f) {
+  void settings_menu_t::render_separator_full_width(f32_t y_offset) {
     auto* draw_list = gui::get_window_draw_list();
 
     fan::vec2 win_pos = gui::get_window_pos();
@@ -765,15 +676,15 @@ struct settings_menu_t {
     );
   }
 
-  void render_settings_left(const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
+  void settings_menu_t::render_settings_left(const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
     pages[current_page].render_page_left(this, next_window_position, next_window_size);
   }
 
-  void render_settings_right(const fan::vec2& next_window_position, const fan::vec2& next_window_size, f32_t min_x) {
+  void settings_menu_t::render_settings_right(const fan::vec2& next_window_position, const fan::vec2& next_window_size, f32_t min_x) {
     pages[current_page].render_page_right(this, next_window_position, next_window_size);
   }
 
-  fan::vec2 render_settings_top(f32_t min_x) {
+  fan::vec2 settings_menu_t::render_settings_top(f32_t min_x) {
     fan::vec2 main_window_size = gloco()->window.get_size();
     gui::set_next_window_pos(fan::vec2(0, 0));
     gui::set_next_window_size(fan::vec2(main_window_size.x, main_window_size.y / 5));
@@ -820,45 +731,31 @@ struct settings_menu_t {
     gui::end();
     return window_size;
   }
+  void settings_menu_t::render() {
+    render_settings_top(min_x);
 
-  void render() {
-    if (gloco()->reload_renderer_to != (decltype(gloco()->reload_renderer_to))-1) {
-      set_settings_theme();
-    }
-    {
-      gui::push_style_color(gui::col_window_bg, fan::color(0.01f, 0.01f, 0.01f, 0.99f));
-      gui::push_style_color(gui::col_separator, fan::color(0.8, 0.8, 0.8, 1.0f));
-      fan::vec2 main_window_size = gloco()->window.get_size();
-      fan::vec2 window_size = render_settings_top(min_x);
-      fan::vec2 next_window_position = fan::vec2(0, window_size.y);
-      f32_t total_height = main_window_size.y - next_window_position.y;
-      f32_t ratio = pages[current_page].split_ratio;
-      f32_t left_width  = main_window_size.x * ratio;
-      f32_t right_width = main_window_size.x * (1.0f - ratio);
+    fan::vec2 size = gloco()->window.get_size();
+    f32_t ratio = pages[current_page].split_ratio;
 
-      render_settings_left(
-          next_window_position,
-          fan::vec2(left_width, total_height)
-      );
-      render_settings_right(
-          fan::vec2(next_window_position.x + left_width, next_window_position.y),
-          fan::vec2(right_width, total_height),
-          min_x
-      );
+    render_settings_left(
+      {0, size.y * 0.2f},
+      {size.x * ratio, size.y}
+    );
 
-      gui::pop_style_color(2);
-    }
+    render_settings_right(
+      {size.x * ratio, size.y * 0.2f},
+      {size.x * (1.f - ratio), size.y},
+      min_x
+    );
 
     keybind_menu.update();
   }
-
-  void reset_page_selection() {
-    for (auto& page : pages) {
-      page.toggle = 0;
+  void settings_menu_t::reset_page_selection() {
+    for (auto& p : pages) {
+      p.toggle = false;
     }
   }
-
-  static void set_settings_theme() {
+  void settings_menu_t::set_settings_theme() {
     auto& style = gui::get_style();
     style.Alpha = 1.0f;
     style.DisabledAlpha = 0.5f;
@@ -945,31 +842,5 @@ struct settings_menu_t {
     style.Colors[gui::col_nav_cursor] = fan::color(1.0f, 1.0f, 1.0f, 1.0f);
     style.Colors[gui::col_nav_windowing_highlight] = fan::color(1.0f, 1.0f, 1.0f, 0.699999988079071f);
     style.Colors[gui::col_nav_windowing_dim_bg] = fan::color(0.800000011920929f, 0.800000011920929f, 0.800000011920929f, 0.2000000029802322f);
-    style.Colors[gui::col_modal_window_dim_bg] = fan::color(0.0f, 0.0f, 0.0f, 0.5647059082984924f);
   }
-
-  static constexpr int wnd_flags = gui::window_flags_no_move | gui::window_flags_no_collapse | gui::window_flags_no_resize | gui::window_flags_no_title_bar;
-  static constexpr fan::color title_color = fan::color::from_rgba(0x948c80ff) * 1.5f;
-  static constexpr const int fps_values[] = {0, 30, 60, 144, 165, 240};
-  
-  struct page_t {
-    bool toggle = false;
-    std::string name;
-    page_function_t render_page_left;
-    page_function_t render_page_right;
-    f32_t split_ratio = 0.5f; // left/right
-  };
-
-  settings_config_t config;
-  int current_page = 0;
-  int current_resolution = 0;
-  f32_t min_x = 40.f;
-  std::deque<page_t> pages;
-  bool is_dirty = false;
-  fan::time::timer save_timer;
-  inline static constexpr int64_t save_delay_ms = 1000;
-  loco_t::resize_handle_t resize_handle;
-  fan::window_t::move_handle_t move_handle;
-};
-
-#undef gui
+} // namespace fan::graphics::gui

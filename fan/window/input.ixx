@@ -23,11 +23,14 @@ module;
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
+#include <string>
 
 
 export module fan.window.input;
 
 export namespace fan {
+  using key_code_t = int;
+
   struct keyboard_state {
     enum {
       release = GLFW_RELEASE,
@@ -672,5 +675,117 @@ export namespace fan {
         return buffer;
       }
     }
+  }
+  enum device_type_e {
+    device_keyboard,
+    device_mouse,
+    device_gamepad
+  };
+
+  constexpr device_type_e get_key_device_type(int key) {
+    if (key >= key_first && key <= key_last) return device_keyboard;
+    if (key >= mouse_first && key <= mouse_last) return device_mouse;
+    if (key >= gamepad_first && key <= gamepad_last) return device_gamepad;
+    return device_keyboard; // default
+  }
+  constexpr bool is_keyboard_key(int key) {
+    return key >= key_first && key <= key_last;
+  }
+  constexpr bool is_mouse_button(int key) {
+    return key >= mouse_first && key <= mouse_last;
+  }
+  constexpr bool is_gamepad_button(int key) {
+    return key >= gamepad_first && key <= gamepad_last;
+  }
+  
+  std::string to_lower(const std::string& s) {
+    std::string r;
+    r.reserve(s.size());
+    for (unsigned char c : s) {
+      r.push_back((char)std::tolower(c));
+    }
+    return r;
+  }
+  std::string trim(const std::string& s) {
+    size_t b = 0, e = s.size();
+    while (b < e && std::isspace((unsigned char)s[b])) ++b;
+    while (e > b && std::isspace((unsigned char)s[e - 1])) --e;
+    return s.substr(b, e - b);
+  }
+  bool iequals(const std::string& a, const std::string& b) {
+    if (a.size() != b.size()) return false;
+    for (size_t i = 0; i < a.size(); ++i) {
+      if (std::tolower((unsigned char)a[i]) != std::tolower((unsigned char)b[i]))
+        return false;
+    }
+    return true;
+  }
+  bool is_modifier(int key) {
+    return
+      key == fan::key_left_control ||
+      key == fan::key_right_control ||
+      key == fan::key_left_shift ||
+      key == fan::key_right_shift ||
+      key == fan::key_left_alt ||
+      key == fan::key_right_alt ||
+      key == fan::key_left_super ||
+      key == fan::key_right_super;
+  }
+  int key_name_to_code(const std::string& name) {
+    std::string trimmed = trim(name);
+    if (trimmed.empty()) return -1;
+    std::string lowered = to_lower(trimmed);
+
+    if (iequals(lowered, "none") || iequals(lowered, "unknown")) {
+      return -1;
+    }
+
+    for (int key = fan::mouse_first; key <= fan::mouse_last; ++key) {
+      const char* mn = fan::get_mouse_name(key);
+      if (!mn) continue;
+      if (iequals(lowered, to_lower(mn))) {
+        return key;
+      }
+    }
+
+    for (int key = fan::gamepad_a; key <= fan::gamepad_last; ++key) {
+      const char* gn = fan::get_key_name(key);
+      if (!gn) continue;
+      if (iequals(lowered, to_lower(gn))) {
+        return key;
+      }
+    }
+
+    for (int key = fan::key_first; key <= fan::key_last; ++key) {
+      const char* kn = fan::get_key_name(key);
+      if (!kn) continue;
+      if (iequals(lowered, to_lower(kn))) {
+        return key;
+      }
+    }
+
+    return -1;
+  }
+
+  std::string key_code_to_name(int key) {
+    if (key >= fan::gamepad_a && key <= fan::gamepad_last) {
+      const char* gn = fan::get_key_name(key);
+      if (gn && std::strcmp(gn, "Unknown") != 0) {
+        return std::string(gn);
+      }
+      return "Unknown";
+    }
+
+    if (key >= fan::mouse_first && key <= fan::mouse_last) {
+      const char* mn = fan::get_mouse_name(key);
+      if (mn && std::strcmp(mn, "Unknown") != 0) {
+        return std::string(mn);
+      }
+    }
+
+    const char* kn = fan::get_key_name(key);
+    if (!kn) return "Unknown";
+    if (std::strcmp(kn, "Unknown") == 0) return "Unknown";
+    return std::string(kn);
   }
 }
