@@ -165,6 +165,15 @@ namespace fan::graphics::gui {
   void push_clip_rect(const fan::vec2& min, const fan::vec2& max, bool intersect_with_current_clip_rect) {
     ImGui::PushClipRect(min, max, intersect_with_current_clip_rect);
   }
+  bool button_behavior(const gui::rect_t& bb, gui::id_t id, bool* out_hovered, bool* out_held, int flags) {
+    return ImGui::ButtonBehavior(bb, id, out_hovered, out_held, flags);
+  }
+  gui::table_data_t* get_current_table() {
+    return ImGui::GetCurrentTable();
+  }
+  void pop_clip_rect() {
+    ImGui::PopClipRect();
+  }
   void show_debug_log_window(bool* p_open) {
     ImGui::ShowDebugLogWindow(p_open);
   }

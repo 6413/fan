@@ -14,10 +14,10 @@ module;
 #undef max
 // +cuda
 #if __has_include("cuda.h")
-	//#include "cuda_runtime.h"
-	//#include <cuda.h>
-	#include <nvcuvid.h>
-	//#define loco_cuda
+  //#include "cuda_runtime.h"
+  //#include <cuda.h>
+  #include <nvcuvid.h>
+  //#define loco_cuda
 #endif
 
 #include <source_location>
@@ -43,27 +43,29 @@ export import fan.types.color;
 export import fan.random;
 export import fan.texture_pack.tp0;
 export import fan.io.file;
+export import fan.window.input_action;
 import fan.graphics.culling;
 #if defined(FAN_PHYSICS_2D)
-	import fan.physics.b2_integration;
+  import fan.physics.b2_integration;
   import fan.physics.common_context;
 #endif
 #if defined(FAN_AUDIO)
-	export import fan.audio;
+  export import fan.audio;
 #endif
 #if defined(FAN_GUI)
   import fan.graphics.gui.base;
-	export import fan.console;
+  import fan.graphics.gui.settings_menu;
+  export import fan.console;
 #endif
 export import fan.graphics.opengl.core;
 #if defined(FAN_VULKAN)
-	export import fan.graphics.vulkan.core;
+  export import fan.graphics.vulkan.core;
 #endif
 export import fan.graphics.shapes;
 export import fan.physics.collision.rectangle;
 export import fan.noise;
 #if defined(FAN_JSON)
-	export import fan.types.json;
+  export import fan.types.json;
 #endif
 
 #if defined(FAN_JSON)
@@ -89,23 +91,23 @@ export namespace fan {
 
 #if defined(loco_cuda)
 export namespace fan {
-	namespace cuda {
-		void check_error(auto result) {
-			if (result != CUDA_SUCCESS) {
-				if constexpr (std::is_same_v<decltype(result), CUresult>) {
-					const char* err_str = nullptr;
-					cuGetErrorString(result, &err_str);
-					fan::throw_error("function failed with:" + std::to_string(result) + ", " + err_str);
-				}
-				else {
-					fan::throw_error("function failed with:" + std::to_string(result) + ", ");
-				}
-			}
-		}
-	}
+  namespace cuda {
+    void check_error(auto result) {
+      if (result != CUDA_SUCCESS) {
+        if constexpr (std::is_same_v<decltype(result), CUresult>) {
+          const char* err_str = nullptr;
+          cuGetErrorString(result, &err_str);
+          fan::throw_error("function failed with:" + std::to_string(result) + ", " + err_str);
+        }
+        else {
+          fan::throw_error("function failed with:" + std::to_string(result) + ", ");
+        }
+      }
+    }
+  }
 }
 export extern "C" {
-	extern __host__ cudaError_t CUDARTAPI cudaGraphicsGLRegisterImage(struct cudaGraphicsResource** resource, GLuint image, GLenum target, unsigned int flags);
+  extern __host__ cudaError_t CUDARTAPI cudaGraphicsGLRegisterImage(struct cudaGraphicsResource** resource, GLuint image, GLenum target, unsigned int flags);
 }
 #endif
 // -cuda
@@ -116,15 +118,15 @@ export struct loco_t;
 
 // to set new loco use gloco = new_loco;
 struct global_loco_t {
-	loco_t* loco = nullptr;
-	operator loco_t* () { return loco; }
-	global_loco_t& operator=(loco_t* l) {
-		loco = l;
-		return *this;
-	}
-	loco_t* operator->() {
-		return loco;
-	}
+  loco_t* loco = nullptr;
+  operator loco_t* () { return loco; }
+  global_loco_t& operator=(loco_t* l) {
+    loco = l;
+    return *this;
+  }
+  loco_t* operator->() {
+    return loco;
+  }
 };
 
 export global_loco_t& gloco() {
@@ -134,7 +136,7 @@ export global_loco_t& gloco() {
 
 
 export namespace fan::graphics {
-	struct engine_init_t {
+  struct engine_init_t {
 #define BLL_set_SafeNext 1
 #define BLL_set_AreWeInsideStruct 1
 #define BLL_set_prefix init_callback
@@ -145,15 +147,15 @@ export namespace fan::graphics {
 #define BLL_set_CPP_CopyAtPointerChange 1
 #include <BLL/BLL.h>
 
-		using init_callback_nr_t = init_callback_NodeReference_t;
-	};
-	// cbs called every time engine opens
+    using init_callback_nr_t = init_callback_NodeReference_t;
+  };
+  // cbs called every time engine opens
   engine_init_t::init_callback_t& get_engine_init_cbs() {
-	  static engine_init_t::init_callback_t engine_init_cbs;
+    static engine_init_t::init_callback_t engine_init_cbs;
     return engine_init_cbs;
   }
 
-	std::uint32_t get_draw_mode(std::uint8_t internal_draw_mode);
+  std::uint32_t get_draw_mode(std::uint8_t internal_draw_mode);
 }
 
 export struct loco_t {
@@ -180,34 +182,33 @@ export struct loco_t {
   using buttons_cb_t = fan::window_t::buttons_cb_t;
 
   struct properties_t {
-		bool render_shapes_top = false;
-		bool vsync = true;
+    bool render_shapes_top = false;
+    bool vsync = true;
     fan::vec2 window_position = -1;
-		fan::vec2 window_size = -1;
-		uint64_t window_flags = 0;
+    fan::vec2 window_size = -1;
+    uint64_t window_flags = 0;
     int window_open_mode = fan::window_t::mode::windowed;
-		std::uint8_t renderer = fan::window_t::renderer_t::opengl;
-		std::uint8_t samples = 0;
+    std::uint8_t renderer = fan::window_t::renderer_t::opengl;
+    std::uint8_t samples = 0;
     bool enable_bloom = true;
-	}open_props;
-	int32_t target_fps = 165; // must be changed from function
+  }open_props;
+  int32_t target_fps = 165; // must be changed from function
   bool init_gloco;
-	fan::window::input_action_t input_action;
+  fan::window::input_action_t input_action;
   #if defined(FAN_GUI)
-    #include <fan/graphics/gui/settings_menu.h>
-	  settings_menu_t settings_menu;
+    fan::graphics::gui::settings_menu_t settings_menu;
   #endif
   fan::window_t window; // destruct last
 // for shaper_get_* functions
 private:
-	using shader_t = fan::graphics::shader_nr_t;
-	using image_t = fan::graphics::image_nr_t;
-	using camera_t = fan::graphics::camera_nr_t;
-	using viewport_t = fan::graphics::viewport_nr_t;
+  using shader_t = fan::graphics::shader_nr_t;
+  using image_t = fan::graphics::image_nr_t;
+  using camera_t = fan::graphics::camera_nr_t;
+  using viewport_t = fan::graphics::viewport_nr_t;
 public:
-	using image_load_properties_t = fan::graphics::image_load_properties_t;
+  using image_load_properties_t = fan::graphics::image_load_properties_t;
 
-	using image_sampler_address_mode = fan::graphics::image_sampler_address_mode;
+  using image_sampler_address_mode = fan::graphics::image_sampler_address_mode;
 
   std::uint8_t get_renderer();
   fan::graphics::shader_nr_t shader_create();
@@ -217,23 +218,23 @@ public:
   void shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string& vertex_code);
   void shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string& fragment_code);
   bool shader_compile(fan::graphics::shader_nr_t nr);
-	template <typename T>
-	void shader_set_value(fan::graphics::shader_nr_t nr, const std::string& name, const T& val) {
-		if (window.renderer == fan::window_t::renderer_t::opengl) {
-			context.gl.shader_set_value(nr, name, val);
-		}
-		else if (window.renderer == fan::window_t::renderer_t::vulkan) {
-			fan::throw_error("todo");
-		}
-	}
+  template <typename T>
+  void shader_set_value(fan::graphics::shader_nr_t nr, const std::string& name, const T& val) {
+    if (window.renderer == fan::window_t::renderer_t::opengl) {
+      context.gl.shader_set_value(nr, name, val);
+    }
+    else if (window.renderer == fan::window_t::renderer_t::vulkan) {
+      fan::throw_error("todo");
+    }
+  }
   void shader_set_camera(shader_t nr, camera_t camera_nr);
   fan::graphics::shader_nr_t shader_get_nr(uint16_t shape_type);
   fan::graphics::shader_list_t::nd_t& shader_get_data(uint16_t shape_type);
 
-	fan::graphics::camera_list_t camera_list;
-	fan::graphics::shader_list_t shader_list;
-	fan::graphics::image_list_t image_list;
-	fan::graphics::viewport_list_t viewport_list;
+  fan::graphics::camera_list_t camera_list;
+  fan::graphics::shader_list_t shader_list;
+  fan::graphics::image_list_t image_list;
+  fan::graphics::viewport_list_t viewport_list;
 
   std::vector<std::uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, int image_format, fan::vec2 uvp = 0, fan::vec2 uvs = 1);
   fan::graphics::image_nr_t image_create();
@@ -295,66 +296,66 @@ public:
   fan::graphics::context_functions_t context_functions;
   fan::graphics::context_t context;
 
-	// unsafe
-	loco_t(const loco_t&) = delete;
-	loco_t& operator=(const loco_t&) = delete;
-	loco_t(loco_t&&) = delete;
-	loco_t& operator=(loco_t&&) = delete;
+  // unsafe
+  loco_t(const loco_t&) = delete;
+  loco_t& operator=(const loco_t&) = delete;
+  loco_t(loco_t&&) = delete;
+  loco_t& operator=(loco_t&&) = delete;
 
 #if defined (FAN_GUI)
-	using console_t = fan::console_t;
+  using console_t = fan::console_t;
 #endif
 
   void use();
   void camera_move(fan::graphics::context_camera_t& camera, f64_t dt, f32_t movement_speed, f32_t friction = 12);
 
 #if defined(FAN_OPENGL)
-	// opengl namespace
-	struct opengl {
+  // opengl namespace
+  struct opengl {
 #include <fan/graphics/opengl/engine_functions.h>
   #if defined(LOCO_FRAMEBUFFER)
 #include <fan/graphics/opengl/2D/effects/blur.h>
 
-		blur_t blur;
+    blur_t blur;
   #endif
 
     fan::window_t::resize_handle_t window_resize_handle;
 
   #if defined(LOCO_FRAMEBUFFER)
-		fan::opengl::core::framebuffer_t m_framebuffer;
-		fan::opengl::core::renderbuffer_t m_rbo;
-		fan::graphics::image_t color_buffers[4];
-		fan::graphics::shader_t m_fbo_final_shader;
+    fan::opengl::core::framebuffer_t m_framebuffer;
+    fan::opengl::core::renderbuffer_t m_rbo;
+    fan::graphics::image_t color_buffers[4];
+    fan::graphics::shader_t m_fbo_final_shader;
   #endif
 
-		GLenum blend_src_factor = GL_SRC_ALPHA;
-		GLenum blend_dst_factor = GL_ONE_MINUS_SRC_ALPHA;
+    GLenum blend_src_factor = GL_SRC_ALPHA;
+    GLenum blend_dst_factor = GL_ONE_MINUS_SRC_ALPHA;
 
-		std::uint32_t fb_vao;
-		std::uint32_t fb_vbo;
+    std::uint32_t fb_vao;
+    std::uint32_t fb_vbo;
 
 #undef loco
-	}gl;
+  }gl;
 #endif
 
 #if defined(FAN_VULKAN)
-	struct vulkan {
+  struct vulkan {
 #include <fan/graphics/vulkan/engine_functions.h>
 
-		fan::vulkan::context_t::descriptor_t d_attachments;
-		fan::vulkan::context_t::pipeline_t post_process;
-		VkResult image_error = VK_SUCCESS;
+    fan::vulkan::context_t::descriptor_t d_attachments;
+    fan::vulkan::context_t::pipeline_t post_process;
+    VkResult image_error = VK_SUCCESS;
 
     fan::window_t::resize_handle_t window_resize_handle;
-	}vk;
+  }vk;
 #endif
 
 public:
 
-	std::vector<std::function<void()>> m_pre_draw;
-	std::vector<std::function<void()>> m_post_draw;
+  std::vector<std::function<void()>> m_pre_draw;
+  std::vector<std::function<void()>> m_post_draw;
 
-	fan::time::timer start_time;
+  fan::time::timer start_time;
   f32_t time = 0;
 
 #if defined(FAN_2D)
@@ -364,8 +365,8 @@ public:
 #endif
 
   static void generate_commands(loco_t* loco);
-	// -1 no reload, opengl = 0 etc
-	std::uint8_t reload_renderer_to = -1;
+  // -1 no reload, opengl = 0 etc
+  std::uint8_t reload_renderer_to = -1;
 
 #if defined(FAN_2D)
   fan::vec2 world_min = fan::vec2(-10000);
@@ -403,7 +404,7 @@ public:
   void close();
   void setup_input_callbacks();
 
-	// to change renderer, pass: fan::window_t::renderer_t::*
+  // to change renderer, pass: fan::window_t::renderer_t::*
   void switch_renderer(std::uint8_t renderer);
   void shapes_draw();
   void process_shapes();
@@ -451,7 +452,7 @@ public:
   time_monitor_t shape_monitor;
   time_monitor_t gui_monitor;
 
-	std::vector<std::function<void()>> draw_end_cb;
+  std::vector<std::function<void()>> draw_end_cb;
 
   void process_render();
   bool should_close();
@@ -489,13 +490,13 @@ public:
   update_callback_handle_t add_update_callback(std::function<void(void*)>&& cb);
   update_callback_handle_t add_update_callback_front(std::function<void(void*)>&& cb);
   void remove_update_callback(update_callback_handle_t handle);
-	fan::graphics::update_callback_t m_update_callback;
-	std::vector<std::function<void()>> single_queue;
+  fan::graphics::update_callback_t m_update_callback;
+  std::vector<std::function<void()>> single_queue;
 
-	#include "engine_images.h"
+  #include "engine_images.h"
 
-	fan::graphics::render_view_t orthographic_render_view;
-	fan::graphics::render_view_t perspective_render_view;
+  fan::graphics::render_view_t orthographic_render_view;
+  fan::graphics::render_view_t perspective_render_view;
 
 #if defined(FAN_2D)
   fan::graphics::shapes shapes;
@@ -505,19 +506,19 @@ public:
   void set_window_icon(const fan::image::info_t& info);
   void set_window_icon(const fan::graphics::image_t& image);
 
-	bool idle_init = false;
-	uv_idle_t idle_handle;
-	bool timer_init = false;
-	uv_timer_t timer_handle{};
+  bool idle_init = false;
+  uv_idle_t idle_handle;
+  bool timer_init = false;
+  uv_timer_t timer_handle{};
 
-	bool timer_enabled = target_fps > 0;
-	bool vsync = false;
+  bool timer_enabled = target_fps > 0;
+  bool vsync = false;
 
-	std::function<void()> main_loop; // bad, but forced
+  std::function<void()> main_loop; // bad, but forced
 
   f64_t current_time() const;
 
-	f64_t delta_time = window.m_delta_time;
+  f64_t delta_time = window.m_delta_time;
   fan::time::timer shape_draw_timer;
   fan::time::timer gui_draw_timer;
   f64_t shape_draw_time_s = 0;
@@ -527,7 +528,7 @@ public:
   f64_t accumulated_time = 0.0;
 
 #if defined(FAN_GUI)
-	fan::graphics::gui_draw_cb_t gui_draw_cb;
+  fan::graphics::gui_draw_cb_t gui_draw_cb;
 #endif
 
   #define FORWARD_CB_TO_WINDOW(NAME, HANDLE, CBDATA_NAME) \
@@ -558,15 +559,15 @@ public:
   text_callback_handle_t text_callback_handle;
 
 #if defined(FAN_PHYSICS_2D)
-	fan::physics::context_t physics_context{ {} };
+  fan::physics::context_t physics_context{ {} };
   void update_physics(bool flag);
   bool is_updating_physics = false;
 #endif
 
-	// clears shapes after drawing, good for debug draw, not best for performance
+  // clears shapes after drawing, good for debug draw, not best for performance
 #if defined(FAN_2D)
-	std::vector<fan::graphics::shapes::shape_t> immediate_render_list;
-	std::unordered_map<std::uint32_t, fan::graphics::shapes::shape_t> static_render_list;
+  std::vector<fan::graphics::shapes::shape_t> immediate_render_list;
+  std::unordered_map<std::uint32_t, fan::graphics::shapes::shape_t> static_render_list;
 #endif
 
   fan::vec2 get_mouse_position(const camera_t& camera, const viewport_t& viewport) const;
@@ -583,10 +584,10 @@ public:
   bool is_key_down(int key);
   bool is_key_released(int key);
 
-	// ShapeID_t must be at the beginning of fan::graphics::shapes::shape_t's memory since there are reinterpret_casts,
-	// which assume that
+  // ShapeID_t must be at the beginning of fan::graphics::shapes::shape_t's memory since there are reinterpret_casts,
+  // which assume that
 
-	// pointer
+  // pointer
 #if defined(FAN_2D)
   void shape_open(
     uint16_t shape_type,
@@ -602,45 +603,45 @@ public:
 
   fan::graphics::shader_t get_sprite_vertex_shader(const std::string& fragment);
 
-	//#if defined(loco_texture_pack)
-	//#endif
+  //#if defined(loco_texture_pack)
+  //#endif
 
-	fan::color clear_color = {
-		/*0.10f, 0.10f, 0.131f, 1.f */
-		0.f, 0.f, 0.f, 1.f
-	};
+  fan::color clear_color = {
+    /*0.10f, 0.10f, 0.131f, 1.f */
+    0.f, 0.f, 0.f, 1.f
+  };
 
-	fan::graphics::lighting_t lighting;
+  fan::graphics::lighting_t lighting;
 
 #if defined(FAN_2D)
   bool force_line_draw = false;
 #endif
 
-	//gui
+  //gui
 #if defined(FAN_GUI)
   void toggle_console();
   void toggle_console(bool active);
 
-	fan::console_t console;
+  fan::console_t console;
   fan::time::timer fps_timer;
   uint32_t frame_count = 0;
   uint32_t last_fps = 0;
 
-	bool render_console = false;
-	bool show_fps = false;
-	bool render_settings_menu = 0;
+  bool render_console = false;
+  bool show_fps = false;
+  bool render_settings_menu = 0;
 
-	bool allow_docking = true;
+  bool allow_docking = true;
 
-	bool gui_initialized = false;
+  bool gui_initialized = false;
 
-	fan::graphics::gui::text_logger_t text_logger;
+  fan::graphics::gui::text_logger_t text_logger;
 #endif
 
-	fan::graphics::texture_pack_t texture_pack;
+  fan::graphics::texture_pack_t texture_pack;
 
-	bool render_shapes_top = false;
-	//gui
+  bool render_shapes_top = false;
+  //gui
 
   fan::graphics::image_load_properties_t default_noise_image_properties();
   fan::graphics::image_t create_noise_image(const fan::vec2& size, int seed = fan::random::value_i64(0, ((std::uint32_t)-1) / 2));
@@ -668,8 +669,8 @@ public:
 #endif
 
 #if defined(FAN_AUDIO)
-	fan::system_audio_t system_audio;
-	fan::audio_t audio;
+  fan::system_audio_t system_audio;
+  fan::audio_t audio;
 #endif
 #if defined(FAN_2D)
   void camera_move_to(const fan::graphics::shapes::shape_t& shape, const fan::graphics::render_view_t& render_view);
@@ -689,10 +690,10 @@ public:
 
 #if defined(FAN_GUI)
 namespace fan {
-	namespace graphics {
-		using texture_packe0 = fan::graphics::texture_pack::internal_t;
-		using ti_t = fan::graphics::texture_pack::ti_t;
-	}
+  namespace graphics {
+    using texture_packe0 = fan::graphics::texture_pack::internal_t;
+    using ti_t = fan::graphics::texture_pack::ti_t;
+  }
 }
 #endif
 

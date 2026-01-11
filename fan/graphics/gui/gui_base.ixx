@@ -63,6 +63,10 @@ export namespace fan::graphics::gui {
   f32_t table_get_column_offset(int column_n = -1);
   f32_t table_get_cell_width(f32_t init_width = 0.f);
   void push_clip_rect(const fan::vec2& min, const fan::vec2& max, bool intersect_with_current_clip_rect);
+  void pop_clip_rect();
+  bool button_behavior(const gui::rect_t& bb, gui::id_t id, bool* out_hovered, bool* out_held, int flags = 0);
+  gui::table_data_t* get_current_table();
+  
   void show_debug_log_window(bool* p_open = nullptr);
 
   bool menu_item(const std::string& label, const std::string& shortcut = "", bool selected = false, bool enabled = true);

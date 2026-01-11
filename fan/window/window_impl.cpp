@@ -874,4 +874,191 @@ namespace fan {
 
     return axis;
   }
+
+  uint8_t window_t::get_antialiasing() const {
+    return m_antialiasing_samples;
+  }
+  void window_t::set_antialiasing(int samples) {
+    if (samples < 0) {
+      samples = 0;
+    }
+
+    m_antialiasing_samples = samples;
+
+    if (glfw_window != nullptr) {
+      fan::throw_error_impl("Call before making window");
+    }
+  }
+  void window_t::set_name(const std::string& name) {
+    glfwSetWindowTitle(glfw_window, name.c_str());
+  }
+  void window_t::set_icon(const fan::image::info_t& icon_info) {
+    GLFWimage icon;
+    icon.width = icon_info.size.x;
+    icon.height = icon_info.size.y;
+    icon.pixels = (decltype(icon.pixels))icon_info.data;
+    glfwSetWindowIcon(glfw_window, 1, &icon);
+  }
+
+  void window_t::swap_buffers() {
+    glfwSwapBuffers(glfw_window);
+  }
+
+#if defined(fan_platform_windows)
+  //---------------------------Windows specific code---------------------------
+
+  HWND window_t::get_win32_handle() {
+    return glfwGetWin32Window(glfw_window);
+  }
+
+  void window_t::set_topmost() {
+    SetWindowPos(get_win32_handle(), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+  }
+  void window_t::make_click_through() {
+    auto handle = get_win32_handle();
+    LONG exStyle = GetWindowLong(handle, GWL_EXSTYLE);
+    SetWindowLong(handle, GWL_EXSTYLE, exStyle | WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOPMOST | WS_EX_TOOLWINDOW);
+  }
+
+  void window_t::initialize_dark_mode() {
+    if (dark_mode_initialized) {
+      return;
+    }
+
+    // Get Windows build number
+    typedef BOOL(WINAPI* fn_rtl_get_nt_version_numbers)(LPDWORD major, LPDWORD minor, LPDWORD build);
+    auto rtl_get_nt_version_numbers = reinterpret_cast<fn_rtl_get_nt_version_numbers>(
+      GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlGetNtVersionNumbers"));
+
+    if (rtl_get_nt_version_numbers) {
+      DWORD major, minor;
+      rtl_get_nt_version_numbers(&major, &minor, &g_build_number);
+      g_build_number &= ~0xF0000000;
+    }
+
+    // Load dark mode functions from uxtheme.dll
+    if (g_build_number >= 17763) { // Windows 10 1809+
+      HMODULE uxtheme = LoadLibraryExW(L"uxtheme.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+      if (uxtheme) {
+        _should_apps_use_dark_mode = reinterpret_cast<fn_should_apps_use_dark_mode>(
+          GetProcAddress(uxtheme, MAKEINTRESOURCEA(132)));
+        _is_dark_mode_allowed_for_window = reinterpret_cast<fn_is_dark_mode_allowed_for_window>(
+          GetProcAddress(uxtheme, MAKEINTRESOURCEA(137)));
+      }
+
+      // Load SetWindowCompositionAttribute from user32.dll
+      HMODULE user32 = GetModuleHandleW(L"user32.dll");
+      if (user32) {
+        _set_window_composition_attribute = reinterpret_cast<fn_set_window_composition_attribute>(
+          GetProcAddress(user32, "SetWindowCompositionAttribute"));
+      }
+    }
+
+    dark_mode_initialized = true;
+  }
+  bool window_t::is_high_contrast() const {
+    HIGHCONTRASTW high_contrast = {sizeof(high_contrast)};
+    if (SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(high_contrast), &high_contrast, FALSE)) {
+      return high_contrast.dwFlags & HCF_HIGHCONTRASTON;
+    }
+    return false;
+  }
+
+  void window_t::apply_window_theme() {
+    if (!glfw_window) {
+      return;
+    }
+
+    initialize_dark_mode();
+
+    HWND hwnd = get_win32_handle();
+    if (!hwnd) {
+      return;
+    }
+
+    BOOL is_dark = FALSE;
+
+    // Check if dark mode should be applied
+    if (_is_dark_mode_allowed_for_window &&
+      _should_apps_use_dark_mode &&
+      _is_dark_mode_allowed_for_window(hwnd) &&
+      _should_apps_use_dark_mode() &&
+      !is_high_contrast()) {
+      is_dark = TRUE;
+    }
+
+    // Apply dark mode based on Windows build number
+    if (g_build_number < 18362) {
+      // Windows 10 versions before 1903
+      SetPropW(hwnd, L"UseImmersiveDarkModeColors",
+        reinterpret_cast<HANDLE>(static_cast<INT_PTR>(is_dark)));
+    }
+    else if (_set_window_composition_attribute) {
+      // Windows 10 1903+ and Windows 11
+      WINDOWCOMPOSITIONATTRIBDATA composition_data = {
+          WCA_USEDARKMODECOLORS,
+          &is_dark,
+          sizeof(is_dark)
+      };
+      _set_window_composition_attribute(hwnd, &composition_data);
+    }
+  }
+  //---------------------------Windows specific code---------------------------
+#endif
+}
+
+bool fan::window_t::is_key_pressed(int key) {
+  if (!this) return false;
+  if (key < 0 || key > fan::input_last) return false;
+  return key_states[key] == fan::keyboard_state::press &&
+    prev_key_states[key] != fan::keyboard_state::press;
+}
+bool fan::window_t::is_key_down(int key) {
+  if (!this) return false;
+  if (key < 0 || key > fan::input_last) return false;
+  return key_states[key] == fan::keyboard_state::press ||
+    key_states[key] == fan::keyboard_state::repeat;
+}
+bool fan::window_t::is_key_released(int key) {
+  if (!this) return false;
+  if (key < 0 || key > fan::input_last) return false;
+  return key_states[key] != fan::keyboard_state::press &&
+    prev_key_states[key] == fan::keyboard_state::press;
+}
+
+bool fan::window_t::is_mouse_clicked(int button) {
+  if (!this) return false;
+  if (button < fan::mouse_first || button > fan::mouse_last) return false;
+  return key_states[button] == fan::keyboard_state::press &&
+         prev_key_states[button] != fan::keyboard_state::press;
+}
+bool fan::window_t::is_mouse_down(int button) {
+  if (!this) return false;
+  if (button < fan::mouse_first || button > fan::mouse_last) return false;
+  return key_states[button] == fan::keyboard_state::press ||
+    key_states[button] == fan::keyboard_state::repeat;
+}
+bool fan::window_t::is_gamepad_button_down(int key) {
+  int jid = 0;
+  if (!glfwJoystickPresent(jid)) return false;
+
+  int count;
+  const unsigned char* buttons = glfwGetJoystickButtons(jid, &count);
+  if (!buttons) return false;
+
+  int idx = key - fan::gamepad_a;
+  if (idx < 0 || idx >= count) return false;
+
+  return buttons[idx] == GLFW_PRESS;
+}
+bool fan::window_t::is_gamepad_axis_active(int key) {
+  fan::vec2 axis = get_gamepad_axis(key);
+  if (key == fan::gamepad_l2 || key == fan::gamepad_r2) {
+    return axis.x > gamepad_axis_deadzone;
+  }
+  return axis.length() > gamepad_axis_deadzone;
+}
+fan::vec2 fan::window_t::get_current_gamepad_axis(int key) {
+  if (!this) return fan::vec2(0, 0);
+  return get_gamepad_axis(key);
 }

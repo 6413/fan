@@ -13,11 +13,10 @@ module;
 export module fan.window.input_action;
 
 export import fan.window.input;
+export import fan.window;
 
 export namespace fan::window {
-
   struct input_action_t {
-
     enum {
       none = -1,
       release = (int)fan::keyboard_state::release,
@@ -26,9 +25,8 @@ export namespace fan::window {
       press_or_repeat
     };
 
-    using key_code_t = int;
-    using combo_t    = std::vector<key_code_t>; // simultaneous keys
-    using chord_t    = std::vector<combo_t>; // sequence of combos
+    using combo_t = std::vector<key_code_t>; // simultaneous keys
+    using chord_t = std::vector<combo_t>; // sequence of combos
 
     struct action_data_t {
       std::vector<chord_t> keybinds; // multiple keybinds per action
@@ -37,18 +35,18 @@ export namespace fan::window {
     std::unordered_map<std::string, action_data_t> input_actions;
     std::unordered_map<std::string, std::string> action_groups;
 
-    std::function<int(int key)> is_active_func;
+    fan::window_t* window = nullptr;
 
     // ---- internal helpers ----
 
-    static int eval_combo(const combo_t& combo, const std::function<int(int)>& key_state_fn) {
+    int eval_combo(const combo_t& combo) {
       if (combo.empty()) {
         return none;
       }
 
       int min_state = repeat;
       for (int key : combo) {
-        int s = key_state_fn(key);
+        int s = window->key_state(key);
         if (s != press && s != repeat) {
           return none;
         }
@@ -59,14 +57,13 @@ export namespace fan::window {
       return min_state;
     }
 
-    static int eval_chord(const chord_t& chord, const std::function<int(int)>& key_state_fn) {
+    int eval_chord(const chord_t& chord) {
       if (chord.empty()) {
         return none;
       }
 
-      return eval_combo(chord[0], key_state_fn);
+      return eval_combo(chord[0]);
     }
-
 
     void add(const int* keys, std::size_t count, const std::string& action_name) {
       if (count == 0) {
@@ -127,16 +124,12 @@ export namespace fan::window {
         return pstate == input_action_t::none;
       }
 
-      if (!is_active_func) {
-        return false;
-      }
-
       action_data_t& action_data = found->second;
 
       int best_state = none;
 
       for (const chord_t& chord : action_data.keybinds) {
-        int s = eval_chord(chord, is_active_func);
+        int s = eval_chord(chord);
         if (s > best_state) {
           best_state = s;
         }
@@ -220,8 +213,6 @@ export namespace fan::window {
       action_data.keybinds.push_back(target);
     }
 
-
-
     void add_empty_keybind(const std::string& action_name) {
       action_data_t& action_data = input_actions[action_name];
       chord_t chord;
@@ -295,5 +286,103 @@ export namespace fan::window {
 
       return -1;
     }
+
+    static fan::device_type_e get_combo_device_type(const combo_t& combo) {
+      for (int key : combo) {
+        if (fan::is_keyboard_key(key)) return fan::device_keyboard;
+        if (fan::is_mouse_button(key)) return fan::device_mouse;
+        if (fan::is_gamepad_button(key)) return fan::device_gamepad;
+      }
+      return fan::device_keyboard;
+    }
+    combo_t get_current_combo(fan::device_type_e device) {
+      combo_t combo;
+      combo.reserve(8);
+
+      if (device == fan::device_keyboard) {
+        for (int key = fan::key_first; key <= fan::input_last; ++key) {
+          if (window->is_key_down(key)) {
+            combo.push_back(key);
+          }
+        }
+      }
+
+      if (device == fan::device_mouse) {
+        for (int btn = fan::mouse_first; btn <= fan::mouse_last; ++btn) {
+          if (window->is_key_down(btn)) {
+            combo.push_back(btn);
+          }
+        }
+      }
+
+      if (device == fan::device_gamepad) {
+        for (int btn = fan::gamepad_a; btn <= fan::gamepad_last; ++btn) {
+          if (window->is_gamepad_button_down(btn) || 
+              window->is_gamepad_axis_active(btn)) {
+            combo.push_back(btn);
+          }
+        }
+      }
+
+      std::sort(combo.begin(), combo.end());
+      combo.erase(std::unique(combo.begin(), combo.end()), combo.end());
+      
+      return combo;
+    }
+    using combo_t = std::vector<key_code_t>;
+    void sort_combo(combo_t& combo) {
+      std::sort(combo.begin(), combo.end(), [](int a, int b) {
+        bool ma = fan::is_modifier(a), mb = fan::is_modifier(b);
+        if (ma != mb) return ma > mb;
+        return a < b;
+      });
+      combo.erase(std::unique(combo.begin(), combo.end()), combo.end());
+    }
+
+    combo_t combo_from_string(const std::string& combo_str) {
+      combo_t combo;
+      std::string trimmed = fan::trim(combo_str);
+      if (trimmed.empty()) return combo;
+
+      size_t start = 0;
+      while (start <= trimmed.size()) {
+        size_t end = trimmed.find('+', start);
+        std::string token = (end == std::string::npos)
+          ? trimmed.substr(start)
+          : trimmed.substr(start, end - start);
+        start = (end == std::string::npos) ? trimmed.size() + 1 : end + 1;
+
+        token = fan::trim(token);
+        if (token.empty()) continue;
+
+        int key = fan::key_name_to_code(token);
+        if (key != -1) combo.push_back(key);
+      }
+
+      sort_combo(combo);
+      return combo;
+    }
+
+    std::string combo_to_string(const combo_t& combo) {
+      if (combo.empty()) return "None";
+
+      combo_t sorted = combo;
+      sort_combo(sorted);
+
+      std::string s;
+      bool first = true;
+      for (int key : sorted) {
+        std::string name = fan::key_code_to_name(key);
+        if (fan::iequals(name, "unknown")) continue;
+        if (!first) s += " + ";
+        s += name;
+        first = false;
+      }
+      return s.empty() ? "None" : s;
+    }
   };
+
+  inline constexpr auto device_keyboard = fan::device_keyboard;
+  inline constexpr auto device_mouse = fan::device_mouse;
+  inline constexpr auto device_gamepad = fan::device_gamepad;
 }

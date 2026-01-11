@@ -1,11 +1,11 @@
-#define ENABLE_STAGE_TIMING 0
+#define MEASURE_TIME 1
 
-#if ENABLE_STAGE_TIMING
-  #define STAGE_TIMER_START(name) fan::time::timer timer_##name{true}
-  #define STAGE_TIMER_PRINT(name) fan::print(#name ":", timer_##name.millis())
+#if MEASURE_TIME
+  #define TIMER_START(name) fan::time::timer timer_##name{true}
+  #define TIMER_PRINT(name) fan::printcl("Load:", #name ":", fan::to_string(timer_##name.millis(), 3) + "ms")
 #else
-  #define STAGE_TIMER_START(name)
-  #define STAGE_TIMER_PRINT(name)
+  #define TIMER_START(name)
+  #define TIMER_PRINT(name)
 #endif
 
 static inline constexpr f32_t spike_height = 32.0f;
@@ -237,40 +237,40 @@ void reload_boss_door_collision() {
 }
 
 void load_map() {
-  STAGE_TIMER_START(total_load_map);
+  TIMER_START(total_load_map);
   
-  STAGE_TIMER_START(spike_spatial_clear);
+  TIMER_START(spike_spatial_clear);
   spike_spatial.clear();
-  STAGE_TIMER_PRINT(spike_spatial_clear);
+  TIMER_PRINT(spike_spatial_clear);
   
-  STAGE_TIMER_START(pickupable_spatial_init);
+  TIMER_START(pickupable_spatial_init);
   pickupable_spatial.init(
     fan::vec2(0),
     pile->tilemaps_compiled[stage_name].map_size * pile->tilemaps_compiled[stage_name].tile_size * 2.f
   );
-  STAGE_TIMER_PRINT(pickupable_spatial_init);
+  TIMER_PRINT(pickupable_spatial_init);
 
-  STAGE_TIMER_START(torch_particles_move);
+  TIMER_START(torch_particles_move);
   torch_particles.set_position(fan::vec2(-0xfffff));
-  STAGE_TIMER_PRINT(torch_particles_move);
+  TIMER_PRINT(torch_particles_move);
 
-  STAGE_TIMER_START(engine_setup);
+  TIMER_START(engine_setup);
   fan::vec2i render_size(16, 9);
   tilemap_loader_t::properties_t p;
   p.size = render_size;
   pile->engine.set_cull_padding(100);
   p.position = pile->player.body.get_position();
-  STAGE_TIMER_PRINT(engine_setup);
+  TIMER_PRINT(engine_setup);
 
-  STAGE_TIMER_START(renderer_add);
+  TIMER_START(renderer_add);
   main_map_id = pile->renderer.add(&pile->tilemaps_compiled[stage_name], p);
-  STAGE_TIMER_PRINT(renderer_add);
+  TIMER_PRINT(renderer_add);
   
-  STAGE_TIMER_START(lighting_set_target);
+  TIMER_START(lighting_set_target);
   pile->engine.lighting.set_target(pile->tilemaps_compiled[stage_name].lighting.ambient, 0.01);
-  STAGE_TIMER_PRINT(lighting_set_target);
+  TIMER_PRINT(lighting_set_target);
 
-  STAGE_TIMER_START(static_animations_setup);
+  TIMER_START(static_animations_setup);
   static auto checkpoint_flag = fan::graphics::sprite_sheet_from_json({
     .path = "effects/flag.json",
     .loop = true
@@ -290,9 +290,9 @@ void load_map() {
   checkpoint_flag.set_position(fan::vec2(-0xfffff));
   axe_anim.set_position(fan::vec2(-0xfffff));
   lamp1_anim.set_position(fan::vec2(-0xfffff));
-  STAGE_TIMER_PRINT(static_animations_setup);
+  TIMER_PRINT(static_animations_setup);
 
-  STAGE_TIMER_START(checkpoint_system_load);
+  TIMER_START(checkpoint_system_load);
   pile->checkpoint_system.load_from_map(pile->renderer, main_map_id, [](auto& visual, auto& entity) {
     checkpoint_flag.set_position(entity.get_position());
     visual = checkpoint_flag;
@@ -300,13 +300,13 @@ void load_map() {
     visual.set_size(checkpoint_flag.get_size() / fan::vec2(1.5f, 1.0f));
     visual.play_sprite_sheet();
   });
-  STAGE_TIMER_PRINT(checkpoint_system_load);
+  TIMER_PRINT(checkpoint_system_load);
 
-  STAGE_TIMER_START(reload_boss_door);
+  TIMER_START(reload_boss_door);
   reload_boss_door_collision();
-  STAGE_TIMER_PRINT(reload_boss_door);
+  TIMER_PRINT(reload_boss_door);
 
-  STAGE_TIMER_START(iterate_marks);
+  TIMER_START(iterate_marks);
   pile->renderer.iterate_marks(main_map_id, [&](tilemap_loader_t::fte_t::spawn_mark_data_t& data) -> bool {
     const auto& id = data.id;
     if (id.contains("lamp1")) {
@@ -423,9 +423,9 @@ void load_map() {
     }
     return false;
   });
-  STAGE_TIMER_PRINT(iterate_marks);
+  TIMER_PRINT(iterate_marks);
 
-  STAGE_TIMER_START(iterate_visual);
+  TIMER_START(iterate_visual);
   pile->renderer.iterate_visual(main_map_id, [&](tilemap_loader_t::tile_t& tile) -> bool {
     const std::string& id = tile.id;
 
@@ -473,40 +473,40 @@ void load_map() {
 
     return false;
   });
-  STAGE_TIMER_PRINT(iterate_visual);
+  TIMER_PRINT(iterate_visual);
 
-  STAGE_TIMER_START(player_respawn);
+  TIMER_START(player_respawn);
   pile->player.respawn();
-  STAGE_TIMER_PRINT(player_respawn);
+  TIMER_PRINT(player_respawn);
 
-  STAGE_TIMER_START(boss_room_light_setup);
+  TIMER_START(boss_room_light_setup);
   {
     auto* boss_room_light = pile->renderer.get_light_by_id(main_map_id, "boss_room_ambient_light");
     boss_room_target_color = boss_room_light->get_color();
     boss_room_light->set_color(fan::colors::black);
   }
-  STAGE_TIMER_PRINT(boss_room_light_setup);
+  TIMER_PRINT(boss_room_light_setup);
   
-  STAGE_TIMER_PRINT(total_load_map);
+  TIMER_PRINT(total_load_map);
 }
 
 void open(void* sod) {
-  STAGE_TIMER_START(total_open);
+  TIMER_START(total_open);
   
-  STAGE_TIMER_START(setup);
+  TIMER_START(setup);
   pile->level_stage = this->stage_common.stage_id;
-  STAGE_TIMER_PRINT(setup);
+  TIMER_PRINT(setup);
   
-  STAGE_TIMER_START(load_map);
+  TIMER_START(load_map);
   load_map();
-  STAGE_TIMER_PRINT(load_map);
+  TIMER_PRINT(load_map);
   
-  STAGE_TIMER_START(lighting);
+  TIMER_START(lighting);
   pile->engine.lighting.set_target(0, 0);
   is_entering_door = false;
-  STAGE_TIMER_PRINT(lighting);
+  TIMER_PRINT(lighting);
 
-  STAGE_TIMER_START(physics_callback);
+  TIMER_START(physics_callback);
   physics_step_nr = fan::physics::add_physics_step_callback([this]() {
 
     std::string enter_text;
@@ -570,34 +570,34 @@ void open(void* sod) {
       interact_prompt.type = interact_type::portal;
     }
   });
-  STAGE_TIMER_PRINT(physics_callback);
+  TIMER_PRINT(physics_callback);
 
-  STAGE_TIMER_START(renderer_update);
+  TIMER_START(renderer_update);
   pile->renderer.update(main_map_id, pile->player.body.get_position());
-  STAGE_TIMER_PRINT(renderer_update);
+  TIMER_PRINT(renderer_update);
   
-  STAGE_TIMER_PRINT(total_open);
+  TIMER_PRINT(total_open);
 }
 
 void close() {
 
-  STAGE_TIMER_START(total_close);
+  TIMER_START(total_close);
   collected_pickupables.clear();
 
-  STAGE_TIMER_START(enemy_clear);
+  TIMER_START(enemy_clear);
   pile->enemy_list.clear();
-  STAGE_TIMER_PRINT(enemy_clear);
+  TIMER_PRINT(enemy_clear);
   pile->engine.shapes.visibility.camera_states.clear();
   
-  STAGE_TIMER_START(cage_elevator);
+  TIMER_START(cage_elevator);
   cage_elevator.destroy();
-  STAGE_TIMER_PRINT(cage_elevator);
+  TIMER_PRINT(cage_elevator);
   
-  STAGE_TIMER_START(boss_door);
+  TIMER_START(boss_door);
   if (boss_door_collision) {
     boss_door_collision.destroy();
   }
-  STAGE_TIMER_PRINT(boss_door);
+  TIMER_PRINT(boss_door);
   if (boss_sensor) {
     boss_sensor.destroy();
   }
@@ -605,28 +605,28 @@ void close() {
     portal_sensor.destroy();
   }
   
-  STAGE_TIMER_START(tile_collisions);
+  TIMER_START(tile_collisions);
   for (auto& i : tile_collisions) {
     i.destroy();
   }
   tile_collisions.clear();
-  STAGE_TIMER_PRINT(tile_collisions);
+  TIMER_PRINT(tile_collisions);
   
-  STAGE_TIMER_START(spike_sensors);
+  TIMER_START(spike_sensors);
   for (auto& i : spike_sensors) {
     i.destroy();
   }
-  STAGE_TIMER_PRINT(spike_sensors);
+  TIMER_PRINT(spike_sensors);
   
-  STAGE_TIMER_START(renderer_erase);
+  TIMER_START(renderer_erase);
   pile->renderer.erase(main_map_id);
-  STAGE_TIMER_PRINT(renderer_erase);
+  TIMER_PRINT(renderer_erase);
   
-  STAGE_TIMER_START(pickupable_clear);
+  TIMER_START(pickupable_clear);
   pickupable_spatial.clear();
-  STAGE_TIMER_PRINT(pickupable_clear);
+  TIMER_PRINT(pickupable_clear);
   
-  STAGE_TIMER_PRINT(total_close);
+  TIMER_PRINT(total_close);
 }
 
 void enter_portal() {
@@ -652,20 +652,20 @@ void enter_portal() {
 }
 
 void reload_map() {
-  #if ENABLE_STAGE_TIMING
+  #if MEASURE_TIME
     fan::print("\n");
   #endif
-  STAGE_TIMER_START(total_reload);
+  TIMER_START(total_reload);
 
-  STAGE_TIMER_START(erase_stage);
+  TIMER_START(erase_stage);
   pile->stage_loader.erase_stage(stage_common.stage_id);
-  STAGE_TIMER_PRINT(erase_stage);
+  TIMER_PRINT(erase_stage);
 
-  STAGE_TIMER_START(open_stage);
+  TIMER_START(open_stage);
   pile->level_stage = pile->stage_loader.open_stage<level_t>();
-  STAGE_TIMER_PRINT(open_stage);
+  TIMER_PRINT(open_stage);
 
-  STAGE_TIMER_PRINT(total_reload);
+  TIMER_PRINT(total_reload);
 }
 
 void update() {

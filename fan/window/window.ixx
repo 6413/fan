@@ -28,7 +28,6 @@ import fan.print;
 export import fan.utility;
 export import fan.graphics.image_load;
 export import fan.window.input_common;
-export import fan.window.input_action;
 
 export import fan.types.vector;
 
@@ -332,35 +331,11 @@ export namespace fan {
     int key_state(int key) const;
     bool key_pressed(int key, int press = fan::keyboard_state::press) const;
     fan::vec2 get_gamepad_axis(int key) const;
-
-    uint8_t get_antialiasing() const {
-      return m_antialiasing_samples;
-    }
-    void set_antialiasing(int samples) {
-      if (samples < 0) {
-        samples = 0;
-      }
-
-      m_antialiasing_samples = samples;
-
-      if (glfw_window != nullptr) {
-        fan::throw_error_impl("Call before making window");
-      }
-    }
-    void set_name(const std::string& name) {
-      glfwSetWindowTitle(glfw_window, name.c_str());
-    }
-    void set_icon(const fan::image::info_t& icon_info) {
-      GLFWimage icon;
-      icon.width = icon_info.size.x;
-      icon.height = icon_info.size.y;
-      icon.pixels = (decltype(icon.pixels))icon_info.data;
-      glfwSetWindowIcon(glfw_window, 1, &icon);
-    }
-
-    void swap_buffers() {
-      glfwSwapBuffers(glfw_window);
-    }
+    uint8_t get_antialiasing() const;
+    void set_antialiasing(int samples);
+    void set_name(const std::string& name);
+    void set_icon(const fan::image::info_t& icon_info);
+    void swap_buffers();
 
 #if defined(fan_platform_windows)
     //---------------------------Windows specific code---------------------------
@@ -382,105 +357,26 @@ export namespace fan {
     DWORD g_build_number = 0;
     bool dark_mode_initialized = false;
 
-    void initialize_dark_mode() {
-      if (dark_mode_initialized) {
-        return;
-      }
+    void initialize_dark_mode();
+    bool is_high_contrast() const;
 
-      // Get Windows build number
-      typedef BOOL(WINAPI* fn_rtl_get_nt_version_numbers)(LPDWORD major, LPDWORD minor, LPDWORD build);
-      auto rtl_get_nt_version_numbers = reinterpret_cast<fn_rtl_get_nt_version_numbers>(
-        GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlGetNtVersionNumbers"));
-
-      if (rtl_get_nt_version_numbers) {
-        DWORD major, minor;
-        rtl_get_nt_version_numbers(&major, &minor, &g_build_number);
-        g_build_number &= ~0xF0000000;
-      }
-
-      // Load dark mode functions from uxtheme.dll
-      if (g_build_number >= 17763) { // Windows 10 1809+
-        HMODULE uxtheme = LoadLibraryExW(L"uxtheme.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
-        if (uxtheme) {
-          _should_apps_use_dark_mode = reinterpret_cast<fn_should_apps_use_dark_mode>(
-            GetProcAddress(uxtheme, MAKEINTRESOURCEA(132)));
-          _is_dark_mode_allowed_for_window = reinterpret_cast<fn_is_dark_mode_allowed_for_window>(
-            GetProcAddress(uxtheme, MAKEINTRESOURCEA(137)));
-        }
-
-        // Load SetWindowCompositionAttribute from user32.dll
-        HMODULE user32 = GetModuleHandleW(L"user32.dll");
-        if (user32) {
-          _set_window_composition_attribute = reinterpret_cast<fn_set_window_composition_attribute>(
-            GetProcAddress(user32, "SetWindowCompositionAttribute"));
-        }
-      }
-
-      dark_mode_initialized = true;
-    }
-    bool is_high_contrast() const {
-      HIGHCONTRASTW high_contrast = { sizeof(high_contrast) };
-      if (SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(high_contrast), &high_contrast, FALSE)) {
-        return high_contrast.dwFlags & HCF_HIGHCONTRASTON;
-      }
-      return false;
-    }
   public:
-
-    HWND get_win32_handle() {
-      return glfwGetWin32Window(glfw_window);
-    }
-
-    void set_topmost() {
-      SetWindowPos(get_win32_handle(), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-    }
-    void make_click_through() {
-      auto handle = get_win32_handle();
-      LONG exStyle = GetWindowLong(handle, GWL_EXSTYLE);
-      SetWindowLong(handle, GWL_EXSTYLE, exStyle | WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOPMOST | WS_EX_TOOLWINDOW);
-    }
-
-    void apply_window_theme() {
-      if (!glfw_window) {
-        return;
-      }
-
-      initialize_dark_mode();
-
-      HWND hwnd = get_win32_handle();
-      if (!hwnd) {
-        return;
-      }
-
-      BOOL is_dark = FALSE;
-
-      // Check if dark mode should be applied
-      if (_is_dark_mode_allowed_for_window &&
-        _should_apps_use_dark_mode &&
-        _is_dark_mode_allowed_for_window(hwnd) &&
-        _should_apps_use_dark_mode() &&
-        !is_high_contrast()) {
-        is_dark = TRUE;
-      }
-
-      // Apply dark mode based on Windows build number
-      if (g_build_number < 18362) {
-        // Windows 10 versions before 1903
-        SetPropW(hwnd, L"UseImmersiveDarkModeColors",
-          reinterpret_cast<HANDLE>(static_cast<INT_PTR>(is_dark)));
-      }
-      else if (_set_window_composition_attribute) {
-        // Windows 10 1903+ and Windows 11
-        WINDOWCOMPOSITIONATTRIBDATA composition_data = {
-            WCA_USEDARKMODECOLORS,
-            &is_dark,
-            sizeof(is_dark)
-        };
-        _set_window_composition_attribute(hwnd, &composition_data);
-      }
-    }
+    HWND get_win32_handle();
+    void set_topmost();
+    void make_click_through();
+    void apply_window_theme();
     //---------------------------Windows specific code---------------------------
 #endif
+
+    bool is_key_pressed(int key);
+    bool is_key_down(int key);
+    bool is_key_released(int key);
+    bool is_mouse_clicked(int button);
+    bool is_mouse_down(int button);
+    bool is_mouse_released(int button);
+    bool is_gamepad_button_down(int key);
+    bool is_gamepad_axis_active(int key);
+    fan::vec2 get_current_gamepad_axis(int key);
 
     uint8_t renderer = renderer_t::opengl;
     double last_frame_time = glfwGetTime();

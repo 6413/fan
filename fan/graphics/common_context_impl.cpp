@@ -314,15 +314,21 @@ namespace fan::window {
     return fan::vec2();
   }
   bool is_key_pressed(int key) {
-    return fan::graphics::ctx().window->key_state(key) == (int)fan::mouse_state::press;
+    return fan::graphics::ctx().window->is_key_pressed(key);
   }
   bool is_key_down(int key) {
-    int state = fan::graphics::ctx().window->key_state(key);
-    return
-      state == (int)fan::mouse_state::press ||
-      state == (int)fan::mouse_state::repeat;
+    return fan::graphics::ctx().window->is_key_down(key);
   }
   bool is_key_released(int key) {
     return fan::graphics::ctx().window->key_state(key) == (int)fan::mouse_state::release;
+  }
+  bool is_gamepad_button_down(int key) {
+    return fan::graphics::ctx().window->is_gamepad_button_down(key);
+  }
+  bool is_gamepad_axis_active(int key) {
+    return fan::graphics::ctx().window->is_gamepad_axis_active(key);
+  }
+  fan::vec2 get_current_gamepad_axis(int key) {
+    return fan::graphics::ctx().window->get_current_gamepad_axis(key);
   }
 }
