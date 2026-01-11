@@ -990,9 +990,7 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   shapes.static_render_list = &static_render_list;
 #endif
 
-  input_action.is_active_func = [this](int key) -> int {
-    return window.key_state(key);
-  };
+  input_action.window = &window;
 #if defined(FAN_2D)
 
   fan::graphics::shaper_t::gl_add_shape_type() = [](
