@@ -1,10 +1,12 @@
 module;
 
 #include <deque>
+#include <string>
 
 export module fan.graphics.gui.settings_menu;
 
 import fan.types.vector;
+import fan.types.color;
 import fan.types.json;
 import fan.window;
 import fan.graphics.gui.keybinds_menu;

@@ -26,6 +26,7 @@ module;
 #include <string>
 #include <vector>
 #include <string_view>
+#include <cstring>
 
 export module fan.window.input;
 
@@ -655,7 +656,7 @@ export namespace fan {
   const char* get_controller_button_name(int button) {
     if (button == -1) return "None";
 
-    char buffer[32];
+    thread_local char buffer[32];
     snprintf(buffer, sizeof(buffer), "Button %d", button);
     return buffer;
   }

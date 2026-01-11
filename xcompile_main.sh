@@ -23,6 +23,10 @@ while [[ $# -gt 0 ]]; do
       MODE="release"
       shift
       ;;
+    --asan)
+      MODE="asan"
+      shift
+      ;;
     --rebuild)
       REBUILD=true
       shift
