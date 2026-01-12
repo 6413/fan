@@ -106,7 +106,7 @@ void load_map() {
       static constexpr f32_t elevator_landing_offset_y = 45.f;
       v.y += elevator_landing_offset_y;
 
-      fan::vec2 start_pos = fan::vec2(v.x, v.y - 512.f);
+      fan::vec2 start_pos = fan::vec2(v.x, v.y - 1024.f);
       fan::vec2 end_pos = fan::vec2(v.x, v.y);
       f32_t elevator_duration = 3.f;
       cage_elevator.init(fan::graphics::sprite_t(fan::vec3(start_pos, v.z + 1), image.get_size() * 1.5f, image), start_pos, end_pos, elevator_duration);

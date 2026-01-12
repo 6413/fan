@@ -3,6 +3,7 @@ struct pile_t;
 pile_t* pile = 0;
 #define stage_loader_path .
 #include <fan/graphics/gui/stage_maker/loader.h>
+
 struct pile_t {
   lstd_defstruct(level0_t)
     #include <fan/graphics/gui/stage_maker/preset.h>
@@ -104,11 +105,14 @@ pile_t::pile_t() {
 
   player.body.set_physics_position(player.body.get_position());
   engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position(), 0);
+
+  items::init();
+
   gui_stage = stage_loader.open_stage<gui_t>();
   tilemaps_compiled[level0_t::stage_name] = pile->renderer.compile("sample_level.fte");
   level_stage = stage_loader.open_stage<level0_t>();
   audio_background = fan::audio::piece_t("audio/background.sac");
-  audio_background_play_id = fan::audio::play(audio_background, 0, true);
+  //audio_background_play_id = fan::audio::play(audio_background, 0, true);
 
   frame_update_handle = engine.add_update_callback_front([this] (void* engine) {
     update();

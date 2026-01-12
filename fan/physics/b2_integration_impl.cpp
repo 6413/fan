@@ -219,6 +219,10 @@ namespace fan::physics {
     return b2Shape_GetRestitution(get_shape_id());
   }
 
+  void body_id_t::set_restitution(f32_t restitution) {
+    b2Shape_SetRestitution(*this, restitution);
+  }
+
   aabb_t body_id_t::get_aabb() const {
     b2AABB aabb = b2Shape_GetAABB(get_shape_id());
     return {

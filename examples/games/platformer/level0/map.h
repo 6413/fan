@@ -34,9 +34,15 @@ bool handle_pickupable(const std::string& id, T& who) {
       break;
 
     case fan::get_hash("pickupable_health_potion"):
-      if constexpr (!std::is_same_v<T, player_t>) return false;
-      ++who.potion_count;
-      break;
+    if constexpr (!std::is_same_v<T, player_t>) {
+      return false;
+    }
+    {
+      auto& reg = fan::graphics::gameplay::items::get_registry();
+      auto item = reg.create_item(items::id_e::health_potion);
+      pile->get_gui().inventory.add_item(item, 1);
+    }
+    break;
 
     default: return false;
   }
