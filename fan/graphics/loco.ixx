@@ -206,6 +206,11 @@ private:
   using camera_t = fan::graphics::camera_nr_t;
   using viewport_t = fan::graphics::viewport_nr_t;
 public:
+
+  bool is_input_clicked(const std::string& name);
+  bool is_input_down(const std::string& name);
+  bool is_input_released(const std::string& name);
+
   using image_load_properties_t = fan::graphics::image_load_properties_t;
 
   using image_sampler_address_mode = fan::graphics::image_sampler_address_mode;

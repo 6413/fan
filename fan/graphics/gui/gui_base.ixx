@@ -32,6 +32,7 @@ import fan.types.matrix;
 import fan.utility;
 import fan.math;
 import fan.print;
+import fan.graphics.common_context;
 
 export namespace fan::graphics::gui {
   bool begin(const std::string& window_name, bool* p_open = 0, window_flags_t window_flags = 0);
@@ -464,6 +465,20 @@ export namespace fan::graphics::gui {
   font_t* get_font(f32_t font_size, bool bold = false);
 
   void image(texture_id_t texture, const fan::vec2& size, const fan::vec2& uv0 = fan::vec2(0, 0), const fan::vec2& uv1 = fan::vec2(1, 1), const fan::color& tint_col = fan::colors::white, const fan::color& border_col = fan::color(0, 0, 0, 0));
+  
+  void image(fan::graphics::image_t img, const fan::vec2& size, const fan::vec2& uv0 = fan::vec2(0, 0), const fan::vec2& uv1 = fan::vec2(1, 1), const fan::color& tint_col = fan::color(1, 1, 1, 1), const fan::color& border_col = fan::color(0, 0, 0, 0));
+  bool image_button(const std::string& str_id, fan::graphics::image_t img, const fan::vec2& size, const fan::vec2& uv0 = fan::vec2(0, 0), const fan::vec2& uv1 = fan::vec2(1, 1), int frame_padding = -1, const fan::color& bg_col = fan::color(0, 0, 0, 0), const fan::color& tint_col = fan::color(1, 1, 1, 1));
+  bool image_text_button(
+    fan::graphics::image_t img,
+    const std::string& text,
+    const fan::color& color,
+    const fan::vec2& size,
+    const fan::vec2& uv0 = fan::vec2(0, 0),
+    const fan::vec2& uv1 = fan::vec2(1, 1),
+    int frame_padding = -1,
+    const fan::color& bg_col = fan::color(0, 0, 0, 0),
+    const fan::color& tint_col = fan::color(1, 1, 1, 1)
+  );
   bool image_button(const std::string& str_id, texture_id_t texture, const fan::vec2& size, const fan::vec2& uv0 = fan::vec2(0, 0), const fan::vec2& uv1 = fan::vec2(1, 1), const fan::color& bg_col = fan::color(0, 0, 0, 0), const fan::color& tint_col = fan::colors::white);
 
   bool item_add(const rect_t& bb, id_t id, const rect_t* nav_bb = NULL, item_flags_t extra_flags = 0);
@@ -578,7 +593,6 @@ export namespace fan::graphics::gui {
     ImGuiFrameRenderFunc render_func
   #endif
   );
-
 
   void profile_heap(void* (*dynamic_malloc)(size_t, void*), void (*dynamic_free)(void*, void*));
 
@@ -706,7 +720,6 @@ export namespace fan::graphics::gui::plot {
 
   void push_plot_clip_rect(f32_t expand=0);
   void pop_plot_clip_rect();
-
 } // namespace plot
 
 #if defined (FAN_AUDIO)
@@ -880,5 +893,38 @@ export namespace fan::graphics::gui::gizmo {
   );
 
 } // namespace fan::graphics::gui::gizmo
+
+export namespace fan::graphics::gui::slot {
+  void background(gui::draw_list_t* dl,
+    const fan::vec2& p_min,
+    const fan::vec2& p_max,
+    const fan::color& color,
+    f32_t rounding
+  );
+  void border(gui::draw_list_t* dl,
+    const fan::vec2& p_min,
+    const fan::vec2& p_max,
+    const fan::color& color,
+    f32_t rounding,
+    f32_t thickness
+  );
+  void selected_border(gui::draw_list_t* dl,
+    const fan::vec2& p_min,
+    const fan::vec2& p_max,
+    const fan::color& color,
+    f32_t thickness,
+    f32_t expand = 3.0f
+  );
+  void icon(const fan::graphics::image_t& img,
+    const fan::vec2& p_min,
+    const fan::vec2& p_max,
+    const fan::vec2& padding
+  );
+  void stack_count(uint32_t count,
+    const fan::vec2& p_min,
+    const fan::vec2& p_max
+  );
+  void tooltip(const std::string& text, bool show);
+} // namespace fan::graphics::gui::slot
 
 #endif

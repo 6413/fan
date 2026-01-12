@@ -80,23 +80,6 @@ namespace fan::graphics::gui {
     );
   }
 
-  void image(fan::graphics::image_t img, const fan::vec2& size, const fan::vec2& uv0, const fan::vec2& uv1, const fan::color& tint_col, const fan::color& border_col) {
-    image((texture_id_t)fan::graphics::image_get_handle(img), size, uv0, uv1, tint_col, border_col);
-  }
-
-  bool image_button(const std::string& str_id, fan::graphics::image_t img, const fan::vec2& size, const fan::vec2& uv0, const fan::vec2& uv1, int frame_padding, const fan::color& bg_col, const fan::color& tint_col) {
-    return image_button(str_id.c_str(), (texture_id_t)fan::graphics::image_get_handle(img), size, uv0, uv1, bg_col, tint_col);
-  }
-
-  bool image_text_button(fan::graphics::image_t img, const std::string& text, const fan::color& color, const fan::vec2& size, const fan::vec2& uv0, const fan::vec2& uv1, int frame_padding, const fan::color& bg_col, const fan::color& tint_col) {
-    bool ret = image_button(text.c_str(), (texture_id_t)fan::graphics::image_get_handle(img), size, uv0, uv1, bg_col, tint_col);
-    fan::vec2 text_size = calc_text_size(text.c_str());
-    fan::vec2 min = get_item_rect_min();
-    fan::vec2 pos = min + (get_item_rect_max() - min) / 2 - text_size / 2;
-    get_window_draw_list()->AddText(pos, color.get_gui_color(), text.c_str());
-    return ret;
-  }
-
   bool toggle_image_button(const std::string& char_id, fan::graphics::image_t image, const fan::vec2& size, bool* toggle) {
     bool clicked = false;
 

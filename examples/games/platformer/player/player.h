@@ -1,3 +1,5 @@
+#define gui fan::graphics::gui
+#define gameplay fan::graphics::gameplay
 struct player_t {
   static inline constexpr fan::vec2 draw_offset{0.f, -42.5f};
   static inline constexpr f32_t aabb_scale = 0.17f;
@@ -34,7 +36,7 @@ struct player_t {
 
         bool attack_pressed = attack_input;
 
-        if (!attack_pressed || fan::graphics::gui::want_io()) {
+        if (!attack_pressed || gui::want_io()) {
           return false;
         }
 
@@ -76,6 +78,8 @@ struct player_t {
       .on_attack_end = [this]() { combat.did_attack = false; },
     });
 
+    body.set_restitution(0);
+
     physics_step_nr = fan::physics::add_physics_step_callback([this]() {
       handle_attack();
     });
@@ -84,12 +88,14 @@ struct player_t {
   }
 
   fan::event::task_t jump(bool is_double_jump) {
-    audio_jump.play();
+    //audio_jump.play();
+    audio_attack.play();
+    body.set_angle(0.f);
+    sprite_shield.set_angle(0.f);
     if (!is_double_jump) {
       co_return;
     }
     body.set_rotation_point(-body.get_draw_offset());
-
     fan::time::timer jump_timer {1.0e9f / 2.f, true};
     while (!jump_timer) {
       f32_t progress = jump_timer.seconds() / jump_timer.duration_seconds();
@@ -117,6 +123,12 @@ struct player_t {
     body.set_health(max_health);
     particles.set_position(body.get_position());
     pile->get_level().load_enemies();
+
+    auto& lgui = pile->get_gui();    
+    auto potion = gameplay::items::create(items::id_e::health_potion);
+    lgui.inventory.add_item(potion, 5);
+    auto shield = gameplay::items::create(items::id_e::iron_shield);
+    lgui.inventory.add_item(shield, 1);
   }
 
   void handle_attack(){
@@ -128,13 +140,25 @@ struct player_t {
     combat.handle_attack(body, pile->enemies());
   }
 
-  void drink_potion(){
-    if (!potion_count) return;
-    if (!potion_consume_timer) return;
-    --potion_count;
+  void drink_potion() {
+    if (!potion_consume_timer) {
+      return;
+    }
 
-    static constexpr f32_t potion_heal = 20.f;
-    body.set_health(std::min(body.get_health() + potion_heal, body.get_max_health()));
+    auto& inv = pile->get_gui().inventory;
+
+    if (!inv.remove_item(items::id_e::health_potion, 1)) {
+      return;
+    }
+
+    auto& registry = gameplay::items::get_registry();
+    auto* def = registry.get_definition(items::id_e::health_potion);
+
+    f32_t new_health = std::min(
+      body.get_health() + def->effects.front().value,
+      body.get_max_health()
+    );
+    body.set_health(new_health);
 
     audio_drink_potion.play();
 
@@ -144,28 +168,58 @@ struct player_t {
     potion_consume_timer.restart();
   }
 
+  void use_item(const gameplay::item_t& item) {
+    switch (item.id) {
+    case items::id_e::health_potion:
+      drink_potion();
+      break;
+
+    case items::id_e::mana_potion:
+      // drink_mana_potion();
+      break;
+
+    default:
+      break;
+    }
+  }
+
+
   bool is_blocking() const {
-    return fan::window::is_mouse_down(fan::mouse_right);
+    if (fan::window::is_input_clicked(fan::actions::block_attack)) {
+      gui::print("try blocking");
+    }
+    return fan::window::is_input_down(fan::actions::block_attack) && pile->get_gui().equipment.has_item(items::id_e::iron_shield);
+  }
+
+  void process_hotbar() {
+    if (fan::window::is_input_action_active(actions::drink_potion)) {
+      auto& hotbar = pile->get_gui().hotbar;
+      auto& slot = hotbar.slots[hotbar.selected_slot];
+
+      hotbar.consume_slot(hotbar.selected_slot, hotbar.on_item_use);
+      /*else inventory*/
+    }
   }
 
   void update() {
     combat.hitbox.process_destruction();
-    if (fan::window::is_input_action_active(actions::drink_potion)) {
-      drink_potion();
-    }
 
-    if (body.is_on_ground()) {
+    process_hotbar();
+
+
+    if (body.is_on_ground() || body.movement_state.is_wall_sliding) {
       if (body.get_angle().z != 0.f) {
         body.set_angle(0.f);
       }
+      sprite_shield.set_angle(0.f);
     }
 
     player_light.set_position(body.get_center());
 
-    if (fan::window::is_mouse_released(fan::mouse_right)) {
+    if (fan::window::is_input_released(fan::actions::block_attack)) {
       body.cancel_animation();
     }
-    if (fan::window::is_mouse_down(fan::mouse_right)) {
+    if (is_blocking()) {
       fan::vec2 input_vector = fan::window::get_input_vector();
       if (input_vector.x != 0) {
         fan::vec2 sign = body.get_image_sign();
@@ -214,7 +268,7 @@ struct player_t {
 
     pile->checkpoint_system.check_and_update(body, [this](auto& cp) {
       audio_checkpoint.play();
-      fan::graphics::gui::print("Checkpoint reached!");
+      gui::print("Checkpoint reached!");
       checkpoint_position = pile->checkpoint_system.get_respawn_position(pile->renderer, pile->get_level().main_map_id);
     });
 
@@ -238,7 +292,7 @@ struct player_t {
       if (shield_direction != attack_direction) {
         // give stun
         body.take_knockback(source, hit_direction);
-        // audio_block.play();
+        audio_shield_block.play();
         return attack_result_e::blocked;
       }
     }
@@ -265,10 +319,11 @@ struct player_t {
     audio_attack{"audio/player_attack.sac"},
     audio_enemy_hits_player{"audio/enemy_hits_player.sac"},
     audio_checkpoint{"audio/checkpoint.sac"},
-    audio_drink_potion{"audio/drink_potion.sac"};
+    audio_drink_potion{"audio/drink_potion.sac"},
+    audio_shield_block{"audio/shield_block.sac"}
+  ;
   fan::graphics::shape_t particles;
   fan::event::task_t task_particles;
-  uint16_t potion_count = 1;
   fan::time::timer potion_consume_timer{0.1e9, true};
   fan::graphics::effects::particle_pool_t::pool_t<4> potion_particles;
   fan::graphics::light_t player_light{{.position = 0}};
@@ -279,3 +334,5 @@ struct player_t {
   fan::vec2 checkpoint_position = 0;
   f32_t max_player_speed = 600.f;
 };
+#undef gui
+#undef gameplay

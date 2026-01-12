@@ -24,31 +24,41 @@
 #include <box2d/box2d.h>
 #include <iostream>
 
-
 import fan;
 import fan.graphics.gui.tilemap_editor.renderer;
 import fan.graphics.gameplay;
 import fan.graphics.spatial;
+import fan.graphics.gui.inventory_hotbar;
+import fan.graphics.gameplay.items;
+import fan.graphics.gui.gameplay.equipment;
+import fan.graphics.gui.input;
 
-// inlines
 #include <fan/graphics/tilemap_helpers.h>
 #include <fan/graphics/entity/enemy.h>
 
+#include "items.h"
 
 namespace actions {
   static constexpr const char* drink_potion = "Drink Potion";
   static constexpr const char* interact = "Interact";
+  static constexpr const char* toggle_inventory = "Toggle inventory";
 }
-////
+
 #include "pile.h"
 
-int main() {
-  //fan::heap_profiler_t::instance().enabled = true;
-  pile = (pile_t*)std::malloc(sizeof(pile_t));
-  std::construct_at(pile);
-  
+void register_inputs() {
   pile->engine.input_action.insert_or_assign({fan::key_r, fan::gamepad_x}, actions::drink_potion);
   pile->engine.input_action.insert_or_assign({fan::key_e, fan::gamepad_y}, actions::interact);
+  pile->engine.input_action.insert_or_assign({fan::key_tab}, actions::toggle_inventory);
+}
+
+using namespace fan::graphics;
+
+int main(){
+  pile = (pile_t*)std::malloc(sizeof(pile_t));
+  std::construct_at(pile);
+
+  register_inputs();
 
   pile->engine.settings_menu.keybind_menu.refresh_input_actions();
 
@@ -62,7 +72,5 @@ int main() {
     pile->get_level().reload_map();
   });
 
-  pile->engine.loop([&] {
-
-  });
+  pile->engine.loop();
 }

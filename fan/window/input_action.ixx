@@ -153,9 +153,11 @@ export namespace fan::window {
     bool is_clicked(const std::string& action_name) {
       return is_active(action_name, input_action_t::press);
     }
-
     bool is_down(const std::string& action_name) {
       return is_active(action_name, input_action_t::press_or_repeat);
+    }
+    bool is_released(const std::string& action_name) {
+      return is_active(action_name, input_action_t::release);
     }
 
     bool exists(const std::string& action_name) {

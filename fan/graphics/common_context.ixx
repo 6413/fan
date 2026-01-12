@@ -494,6 +494,7 @@ export namespace fan {
 
     // Combat
     inline constexpr const char* light_attack = "Light Attack";
+    inline constexpr const char* block_attack = "Block Attack";
 
     // Debug
     constexpr const char* toggle_debug_physics = "Toggle Debug Physics";
@@ -519,6 +520,10 @@ export namespace fan {
     bool is_gamepad_button_down(int key);
     bool is_gamepad_axis_active(int key);
     fan::vec2 get_current_gamepad_axis(int key);
+
+    bool is_input_clicked(const std::string& name);
+    bool is_input_down(const std::string& name);
+    bool is_input_released(const std::string& name);
   }
 }
 

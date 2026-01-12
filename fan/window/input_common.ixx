@@ -481,7 +481,7 @@ export namespace fan {
       }
 
       #if defined(FAN_GUI)
-      int fan_to_imguikey(int key) {
+      int to_imgui_key(int key) {
         switch (key)
         {
         case fan::mouse_left: return (ImGuiKey)ImGuiMouseButton_Left;

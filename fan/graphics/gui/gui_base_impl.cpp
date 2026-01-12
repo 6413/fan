@@ -17,6 +17,7 @@ module;
   #include <string>
   #include <functional>
   #include <cmath>
+  #include <sstream>
 
   #define GLFW_INCLUDE_NONE
   #include <GLFW/glfw3.h>
@@ -1063,8 +1064,28 @@ namespace fan::graphics::gui {
     return get_font_impl(font_size, bold);
   }
 
+  auto get_image_handle(fan::graphics::image_t image) {
+    return fan::graphics::ctx()->image_get_handle(fan::graphics::ctx(), image);
+  }
+
   void image(texture_id_t user_texture_id, const fan::vec2& size, const fan::vec2& uv0, const fan::vec2& uv1, const fan::color& tint_col, const fan::color& border_col) {
     ImGui::Image(user_texture_id, size, uv0, uv1, tint_col, border_col);
+  }
+  void image(fan::graphics::image_t img, const fan::vec2& size, const fan::vec2& uv0, const fan::vec2& uv1, const fan::color& tint_col, const fan::color& border_col) {
+    image((texture_id_t)get_image_handle(img), size, uv0, uv1, tint_col, border_col);
+  }
+
+  bool image_button(const std::string& str_id, fan::graphics::image_t img, const fan::vec2& size, const fan::vec2& uv0, const fan::vec2& uv1, int frame_padding, const fan::color& bg_col, const fan::color& tint_col) {
+    return image_button(str_id.c_str(), (texture_id_t)get_image_handle(img), size, uv0, uv1, bg_col, tint_col);
+  }
+
+  bool image_text_button(fan::graphics::image_t img, const std::string& text, const fan::color& color, const fan::vec2& size, const fan::vec2& uv0, const fan::vec2& uv1, int frame_padding, const fan::color& bg_col, const fan::color& tint_col) {
+    bool ret = image_button(text.c_str(), (texture_id_t)get_image_handle(img), size, uv0, uv1, bg_col, tint_col);
+    fan::vec2 text_size = calc_text_size(text.c_str());
+    fan::vec2 min = get_item_rect_min();
+    fan::vec2 pos = min + (get_item_rect_max() - min) / 2 - text_size / 2;
+    get_window_draw_list()->AddText(pos, color.get_gui_color(), text.c_str());
+    return ret;
   }
   bool image_button(const std::string& str_id, texture_id_t user_texture_id, const fan::vec2& size, const fan::vec2& uv0, const fan::vec2& uv1, const fan::color& bg_col, const fan::color& tint_col) {
     return ImGui::ImageButton(str_id.c_str(), user_texture_id, size, uv0, uv1, bg_col, tint_col);
@@ -1447,8 +1468,6 @@ namespace fan::graphics::gui {
     }
   #endif
   }
-
-
   void profile_heap(void* (*dynamic_malloc)(size_t, void*), void (*dynamic_free)(void*, void*)) {
     ImGui::SetAllocatorFunctions(dynamic_malloc, dynamic_free, nullptr);
   }
@@ -1750,5 +1769,64 @@ namespace fan::graphics::gui::gizmo {
 
 } // namespace fan::graphics::gui::gizmo
 
+namespace fan::graphics::gui::slot {
+  void background(gui::draw_list_t* dl,
+    const fan::vec2& p_min,
+    const fan::vec2& p_max,
+    const fan::color& color,
+    f32_t rounding)
+  {
+    dl->AddRectFilled(p_min, p_max, color.get_gui_color(), rounding);
+  }
+
+  void border(gui::draw_list_t* dl,
+    const fan::vec2& p_min,
+    const fan::vec2& p_max,
+    const fan::color& color,
+    f32_t rounding,
+    f32_t thickness)
+  {
+    dl->AddRect(p_min, p_max, color.get_gui_color(), rounding, 0, thickness);
+  }
+  void selected_border(gui::draw_list_t* dl,
+    const fan::vec2& p_min,
+    const fan::vec2& p_max,
+    const fan::color& color,
+    f32_t thickness,
+    f32_t expand) 
+  {
+    fan::vec2 o_min = p_min - fan::vec2(expand, expand);
+    fan::vec2 o_max = p_max + fan::vec2(expand, expand);
+    dl->AddRect(o_min, o_max, color.get_gui_color(), 0, 0, thickness);
+  }
+
+  void icon(const fan::graphics::image_t& img,
+    const fan::vec2& p_min,
+    const fan::vec2& p_max,
+    const fan::vec2& padding) 
+  {
+    if (!img.valid()) return;
+    gui::set_cursor_screen_pos(p_min + padding);
+    gui::image(img, (p_max - p_min) - padding * 2);
+  }
+
+  void stack_count(uint32_t count,
+    const fan::vec2& p_min,
+    const fan::vec2& p_max) 
+  {
+    if (count <= 1) return;
+    std::string s = std::to_string(count);
+    fan::vec2 ts = gui::calc_text_size(s);
+    gui::set_cursor_screen_pos(fan::vec2(p_max.x - ts.x - 4, p_max.y - ts.y - 4));
+    gui::text(s.c_str());
+  }
+
+  void tooltip(const std::string& text, bool show) {
+    if (!show) return;
+    gui::begin_tooltip();
+    gui::text(text.c_str());
+    gui::end_tooltip();
+  }
+} // namespace fan::graphics::gui::slot
 
 #endif

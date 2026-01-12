@@ -91,20 +91,6 @@ export namespace fan::graphics::gui {
   void set_viewport(fan::graphics::viewport_t viewport);
   void set_viewport(const fan::graphics::render_view_t& render_view = fan::graphics::get_orthographic_render_view());
 
-  void image(fan::graphics::image_t img, const fan::vec2& size, const fan::vec2& uv0 = fan::vec2(0, 0), const fan::vec2& uv1 = fan::vec2(1, 1), const fan::color& tint_col = fan::color(1, 1, 1, 1), const fan::color& border_col = fan::color(0, 0, 0, 0));
-  bool image_button(const std::string& str_id, fan::graphics::image_t img, const fan::vec2& size, const fan::vec2& uv0 = fan::vec2(0, 0), const fan::vec2& uv1 = fan::vec2(1, 1), int frame_padding = -1, const fan::color& bg_col = fan::color(0, 0, 0, 0), const fan::color& tint_col = fan::color(1, 1, 1, 1));
-  bool image_text_button(
-    fan::graphics::image_t img,
-    const std::string& text,
-    const fan::color& color,
-    const fan::vec2& size,
-    const fan::vec2& uv0 = fan::vec2(0, 0),
-    const fan::vec2& uv1 = fan::vec2(1, 1),
-    int frame_padding = -1,
-    const fan::color& bg_col = fan::color(0, 0, 0, 0),
-    const fan::color& tint_col = fan::color(1, 1, 1, 1)
-  );
-
   
   bool toggle_image_button(const std::string& char_id, fan::graphics::image_t image, const fan::vec2& size, bool* toggle);
 

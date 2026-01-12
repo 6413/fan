@@ -123,6 +123,16 @@ namespace fan::graphics {
   }
 }
 
+bool loco_t::is_input_clicked(const std::string& name) {
+  return input_action.is_clicked(name);
+}
+bool loco_t::is_input_down(const std::string& name) {
+  return input_action.is_down(name);
+}
+bool loco_t::is_input_released(const std::string& name) {
+  return input_action.is_released(name);
+}
+
 uint8_t loco_t::get_renderer() {
   return window.renderer;
 }
@@ -1237,6 +1247,7 @@ void loco_t::setup_input_callbacks() {
 
   // Combat
   input_action.insert_or_assign({fan::mouse_left, fan::gamepad_right_bumper}, fan::actions::light_attack, fan::actions::groups::combat);
+  input_action.insert_or_assign({fan::mouse_right, fan::gamepad_left_bumper}, fan::actions::block_attack, fan::actions::groups::combat);
 
   // Debug
   #if defined(FAN_PHYSICS_2D)
