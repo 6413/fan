@@ -188,6 +188,7 @@ export namespace fan {
       f32_t get_mass() const;
       void set_mass(f32_t mass);
       f32_t get_restitution() const;
+      void set_restitution(f32_t restitution);
       fan::physics::aabb_t get_aabb() const;
       fan::vec2 get_size() const;
       void set_body_type(uint8_t body_type);

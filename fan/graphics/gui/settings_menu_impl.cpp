@@ -159,7 +159,9 @@ namespace fan::graphics::gui {
   void settings_menu_t::init_runtime() {
     set_settings_theme();
     keybind_menu.sync_from_input_action();
-    config.display.target_fps = gloco()->target_fps;
+    if (gloco()->target_fps == config.display.target_fps) {
+      config.display.target_fps = gloco()->target_fps;
+    }
     apply_config(false, true);
 
     resize_handle = gloco()->on_resize(

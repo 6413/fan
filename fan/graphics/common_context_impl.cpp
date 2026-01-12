@@ -331,4 +331,13 @@ namespace fan::window {
   fan::vec2 get_current_gamepad_axis(int key) {
     return fan::graphics::ctx().window->get_current_gamepad_axis(key);
   }
+  bool is_input_clicked(const std::string& name) {
+    return fan::graphics::ctx().input_action->is_clicked(name);
+  }
+  bool is_input_down(const std::string& name) {
+    return fan::graphics::ctx().input_action->is_down(name);
+  }
+  bool is_input_released(const std::string& name) {
+    return fan::graphics::ctx().input_action->is_released(name);
+  }
 }
