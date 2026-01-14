@@ -2,7 +2,7 @@
 
 #if defined(FAN_2D)
 
-#include <fan/graphics/algorithm/AStar.hpp>
+#include <fan/graphics/2D/algorithm/AStar.hpp>
 
 namespace fan {
   namespace algorithm {

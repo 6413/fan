@@ -1,8 +1,10 @@
 #include <fan/utility.h>
 #include <fan/event/types.h>
 
+#include <coroutine>
 #include <string>
-#include <fan/graphics/algorithm/astar.h>
+#include <fstream>
+#include <fan/graphics/2D/algorithm/astar.h>
 
 import fan;
 import fan.graphics.gui.tilemap_editor.renderer;
@@ -41,7 +43,7 @@ struct pile_t {
     
     fan::graphics::gui::set_viewport(loco.orthographic_render_view.viewport);
 
-    pile.weather.rain_particles.set_position(fan::vec3(1200, -900, 50000));
+    //pile.weather.rain_particles.set_position(fan::vec3(1200, -900, 50000));
 
     // physics step
     loco.physics_context.step(loco.delta_time);
@@ -119,20 +121,20 @@ void weather_t::lightning() {
 }
 
 void weather_t::load_rain(fan::graphics::shape_t& rain_particles) {
-  std::string data;
-  fan::io::file::read("raindrops.json", &data);
-  fan::json in = fan::json::parse(data);
-  fan::graphics::shape_deserialize_t it;
-  while (it.iterate(in, &rain_particles)) {
-  }
-  auto image_star = pile.loco.image_load("images/waterdrop.webp");
-  rain_particles.set_image(image_star);
+  //std::string data;
+  //fan::io::file::read("raindrops.json", &data);
+  //fan::json in = fan::json::parse(data);
+  //fan::graphics::shape_deserialize_t it;
+  //while (it.iterate(in, &rain_particles)) {
+  //}
+  //auto image_star = pile.loco.image_load("images/waterdrop.webp");
+  //rain_particles.set_image(image_star);
 }
 
 int main() {
   pile.loco.clear_color = 0;
-  pile.player.body.force = 50;
-  pile.player.body.max_speed = 1000;
+  pile.player.body.movement_state.accelerate_force = 50;
+  pile.player.body.movement_state.max_speed = 1000;
 
   fan::graphics::physics::debug_draw(true);
 
@@ -143,8 +145,8 @@ int main() {
   );
 
  // auto shape = pile.loco.grid.push_back(loco_t::grid_t::properties_t{.position= fan::vec3(fan::vec2(32*32+32-32*6), 50000),.size = 32 * 32, .grid_size = 32});
-
+  pile.player.body.enable_default_movement(fan::graphics::physics::movement_e::top_view);
   pile.loco.loop([&] {
-    pile.player.body.move_to_direction(pile.path_solver.step(pile.player.body.get_position()));
+    //pile.player.body.move_to_direction(pile.path_solver.step(pile.player.body.get_position()));
   });
 }

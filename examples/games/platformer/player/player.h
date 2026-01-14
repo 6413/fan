@@ -26,22 +26,26 @@ struct player_t {
     particles.set_image(image_star);
 
     body = fan::graphics::physics::character2d_t::from_json({
-      .json_path = "player/player.json",
-      .aabb_scale = aabb_scale,
-      .attack_cb = [this](fan::graphics::physics::character2d_t& c) -> bool {
-        const bool attack_input =
+    .json_path = "player/player.json",
+    .aabb_scale = aabb_scale,
+    .attack_cb = [this](fan::graphics::physics::character2d_t& c) -> bool {
+      if (is_blocking()) {
+          return false;
+      }
+
+      const bool attack_input =
           fan::window::is_input_action_active(fan::actions::light_attack) ||
           fan::window::is_key_pressed(fan::gamepad_right_bumper)
-        ;
+      ;
 
-        bool attack_pressed = attack_input;
+      bool attack_pressed = attack_input;
 
-        if (!attack_pressed || gui::want_io()) {
+      if (!attack_pressed || gui::want_io()) {
           return false;
-        }
+      }
 
-        return c.attack_state.try_attack(&c);
-      },
+      return c.attack_state.try_attack(&c);
+    },
     });
 
     body.set_draw_offset(draw_offset);
@@ -124,11 +128,15 @@ struct player_t {
     particles.set_position(body.get_position());
     pile->get_level().load_enemies();
 
-    auto& lgui = pile->get_gui();    
-    auto potion = gameplay::items::create(items::id_e::health_potion);
-    lgui.inventory.add_item(potion, 5);
-    auto shield = gameplay::items::create(items::id_e::iron_shield);
-    lgui.inventory.add_item(shield, 1);
+    static bool once = true;
+    if (once) {
+      auto& lgui = pile->get_gui();    
+      auto potion = gameplay::items::create(items::id_e::health_potion);
+      lgui.inventory.add_item(potion, 5);
+      auto shield = gameplay::items::create(items::id_e::iron_shield);
+      lgui.inventory.add_item(shield, 1);
+      once = false;
+    }
   }
 
   void handle_attack(){
@@ -185,9 +193,6 @@ struct player_t {
 
 
   bool is_blocking() const {
-    if (fan::window::is_input_clicked(fan::actions::block_attack)) {
-      gui::print("try blocking");
-    }
     return fan::window::is_input_down(fan::actions::block_attack) && pile->get_gui().equipment.has_item(items::id_e::iron_shield);
   }
 
@@ -206,77 +211,83 @@ struct player_t {
 
     process_hotbar();
 
-
     if (body.is_on_ground() || body.movement_state.is_wall_sliding) {
-      if (body.get_angle().z != 0.f) {
-        body.set_angle(0.f);
-      }
-      sprite_shield.set_angle(0.f);
+        if (body.get_angle().z != 0.f) {
+            body.set_angle(0.f);
+        }
+        sprite_shield.set_angle(0.f);
     }
 
     player_light.set_position(body.get_center());
 
+    bool blocking = is_blocking();
+
     if (fan::window::is_input_released(fan::actions::block_attack)) {
-      body.cancel_animation();
+        body.cancel_animation();
     }
-    if (is_blocking()) {
-      fan::vec2 input_vector = fan::window::get_input_vector();
-      if (input_vector.x != 0) {
-        fan::vec2 sign = body.get_image_sign();
-        int desired_sign = fan::math::sgn(input_vector.x);
-        if (fan::math::sgn(sign.x) != desired_sign) {
-          body.set_image_sign(fan::vec2(desired_sign, sign.y));
+    
+    if (blocking) {
+        fan::vec2 input_vector = fan::window::get_input_vector();
+        if (input_vector.x != 0) {
+            fan::vec2 sign = body.get_image_sign();
+            int desired_sign = fan::math::sgn(input_vector.x);
+            if (fan::math::sgn(sign.x) != desired_sign) {
+                body.set_image_sign(fan::vec2(desired_sign, sign.y));
+            }
         }
-      }
 
-      fan::vec2 sign = body.get_image_sign();
-      f32_t facing_direction = sign.x;
+        fan::vec2 sign = body.get_image_sign();
+        f32_t facing_direction = sign.x;
 
-      fan::vec2 shield_offset = fan::vec2(body.get_size().x * facing_direction, 0);
-      fan::vec3 shield_pos = body.get_center().offset_z(1) + shield_offset;
+        fan::vec2 shield_offset = fan::vec2(body.get_size().x * facing_direction, 0);
+        fan::vec3 shield_pos = body.get_center().offset_z(1) + shield_offset;
 
-      sprite_shield.set_position(shield_pos);
-      sprite_shield.set_rotation_point(body.get_center() - shield_pos);
-      sprite_shield.set_tc_size(fan::vec2(facing_direction, 1.0f));
-      body.cancel_animation();
-      body.set_sprite_sheet("attack0");
-      body.set_current_animation_frame(3);
-      body.movement_state.max_speed = max_player_speed / 3.f;
+        sprite_shield.set_position(shield_pos);
+        sprite_shield.set_rotation_point(body.get_center() - shield_pos);
+        sprite_shield.set_tc_size(fan::vec2(facing_direction, 1.0f));
+        
+        if (!body.attack_state.is_attacking) {
+            body.cancel_animation();
+            body.set_sprite_sheet("attack0");
+            body.set_current_animation_frame(3);
+        }
+        
+        body.movement_state.max_speed = max_player_speed / 3.f;
     }
     else {
-      body.movement_state.max_speed = max_player_speed;
-      sprite_shield.set_position(fan::vec2(-0xfffff));
-      body.update_animations();
+        body.movement_state.max_speed = max_player_speed;
+        sprite_shield.set_position(fan::vec2(-0xfffff));
+        body.update_animations();
     }
 
     if (!pile->level_stage) {
-      return;
+        return;
     }
 
     auto& level = pile->get_level();
     if (level.is_entering_door) {
-      static f32_t moved = body.get_position().x;
-      if (body.get_position().x - moved < 128.f) {
-        body.movement_state.ignore_input = true;
-        body.movement_state.move_to_direction_raw(body, fan::vec2(1, 0));
-      }
-      else {
-        body.movement_state.ignore_input = false;
-        level.enter_boss();
-      }
+        static f32_t moved = body.get_position().x;
+        if (body.get_position().x - moved < 128.f) {
+            body.movement_state.ignore_input = true;
+            body.movement_state.move_to_direction_raw(body, fan::vec2(1, 0));
+        }
+        else {
+            body.movement_state.ignore_input = false;
+            level.enter_boss();
+        }
     }
 
     pile->checkpoint_system.check_and_update(body, [this](auto& cp) {
-      audio_checkpoint.play();
-      gui::print("Checkpoint reached!");
-      checkpoint_position = pile->checkpoint_system.get_respawn_position(pile->renderer, pile->get_level().main_map_id);
+        audio_checkpoint.play();
+        gui::print("Checkpoint reached!");
+        checkpoint_position = pile->checkpoint_system.get_respawn_position(pile->renderer, pile->get_level().main_map_id);
     });
 
     auto& map_compiled = pile->tilemaps_compiled[pile->get_level().stage_name];
     if (get_physics_pos().y > map_compiled.map_size.y * (map_compiled.tile_size.y * 2.f)) {
-      respawn();
+        respawn();
     }
-  }
+}
 
   fan::vec2 get_physics_pos() {
     return body.get_physics_position();

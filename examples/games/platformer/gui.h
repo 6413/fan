@@ -55,7 +55,7 @@ void close() {
 }
 
 void handle_inventory_hotbar() {
-  //gui::render_theme_editor(inventory.style.theme, inventory, hotbar);
+  gui::render_theme_editor(inventory.style.theme, inventory, hotbar);
   hotbar.handle_input();
   if (pile->engine.is_input_clicked(actions::toggle_inventory)) {
     inventory.visible = !inventory.visible;
@@ -63,9 +63,11 @@ void handle_inventory_hotbar() {
   if (inventory.visible) {
     inventory.render([&]{
       fan::vec2 grid_origin = inventory.get_slot_grid_origin();
-
-      // 20px above grid
-      fan::vec2 equip_pos = grid_origin - fan::vec2(0, equipment.get_slot_size().y + 20);
+      //static fan::vec2 offset = 0;
+      //gui::begin("AA");
+      //gui::drag("O", &offset);
+      //gui::end();
+      fan::vec2 equip_pos = grid_origin - fan::vec2(0, equipment.get_slot_size().y) + fan::vec2(172, -43.f);
 
       gui::set_cursor_pos(equip_pos);
       equipment.render_inside_inventory(inventory.style.theme, inventory.drag_state);

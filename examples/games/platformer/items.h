@@ -22,9 +22,9 @@ namespace items {
       .name = "Health Potion",
       .icon = "gui/health_potion.webp",
       .max_stack = 20,
-      .description = "Restores 20 HP",
+      .description = "Restores 20 HP",  
       .effects = {
-        {.type = id_e::health_potion, .value = 20 }
+        {.type = id_e::health_potion, .value = 20 },
       }
     });
 

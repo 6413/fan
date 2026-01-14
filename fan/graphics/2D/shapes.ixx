@@ -184,6 +184,28 @@ export namespace fan::graphics {
   animation_nr_t add_sprite_sheet_shape_animation(animation_nr_t shape_animation_id, const sprite_sheet_animation_t& new_anim);
   bool is_animation_finished(animation_nr_t nr, const fan::graphics::sprite_sheet_data_t& sd);
 
+  fan::graphics::sprite_sheet_animation_t create_sprite_sheet(
+    const std::string& name,
+    const std::string& image_path,
+    int hframes,
+    int vframes,
+    int fps = 10,
+    bool loop = true,
+    uint32_t filter = fan::graphics::image_filter::nearest,
+    const std::vector<int>& frames = {},
+    const std::source_location& callers_path = std::source_location::current()
+  );
+
+  fan::graphics::sprite_sheet_animation_t create_sprite_sheet(
+    const std::string& name,
+    fan::graphics::image_t image,
+    int hframes,
+    int vframes,
+    int fps = 10,
+    bool loop = true,
+    const std::vector<int>& frames = {}
+  );
+
 #if defined(FAN_JSON)
   fan::json sprite_sheet_serialize();
   void parse_animations(const std::string& json_path, fan::json& json, const std::source_location& callers_path = std::source_location::current());
