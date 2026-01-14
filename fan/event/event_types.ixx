@@ -322,6 +322,10 @@ struct task_value_wrap_t<void, suspend_type_t> {
       h.resume();
     }
   }
+  void resume() {
+    if (!owner) return;
+    owner->h.resume();
+  }
   void request_stop() {
     if (!owner) return;
     owner->h.promise().cancelled = true;

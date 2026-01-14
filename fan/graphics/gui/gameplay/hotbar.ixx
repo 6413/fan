@@ -1,9 +1,6 @@
 module;
 
 #include <cstdint>
-#include <vector>
-#include <string>
-#include <optional>
 
 export module fan.graphics.gui.hotbar;
 
@@ -11,9 +8,9 @@ import fan.graphics;
 import fan.graphics.gui.base;
 import fan.graphics.gui.input;
 import fan.graphics.gui.drag_drop;
+import fan.graphics.gui.slot_renderer;
 export import fan.graphics.gameplay.types;
 export import fan.graphics.gameplay.items;
-
 
 using namespace fan::graphics;
 
@@ -113,7 +110,6 @@ export namespace fan::graphics::gui {
       gui::push_style_color(gui::col_window_bg, theme.panel_bg);
       gui::push_style_color(gui::col_border, theme.panel_border);
 
-
       if (gui::begin(
         "Hotbar",
         nullptr,
@@ -128,63 +124,32 @@ export namespace fan::graphics::gui {
         }
 
         gui::set_cursor_pos(fan::vec2(padding_x, padding_y));
-        fan::vec2 origin = gui::get_cursor_screen_pos();
 
-        for (uint32_t i = 0; i < slots.size(); ++i) {
-          fan::vec2 slot_pos = origin + fan::vec2(
-            i * (slot_size.x + slot_padding.x),
-            0
-          );
-          gui::set_cursor_screen_pos(slot_pos);
+        slot_layout_t layout{
+          .slot_size = slot_size,
+          .slot_padding = slot_padding,
+          .border_thickness = 2.0f,
+          .corner_rounding = 0.0f,
+          .columns = static_cast<uint32_t>(slots.size()),
+          .horizontal = true
+        };
 
-          auto& slot = slots[i];
-          fan::vec2 cursor = gui::get_cursor_screen_pos();
+        slot_callbacks_t callbacks {
+          .on_use = on_item_use,
+          .is_secondary = true
+        };
 
-          gui::push_id(static_cast<int>(i));
+        slot_visual_state_t visual{
+          .selected_slot = selected_slot,
+          .show_selection = true
+        };
 
-          gui::invisible_button("hotbar_slot", slot_size);
+        hovered_slot = render_slot_grid(
+          slots, 0, static_cast<uint32_t>(slots.size()),
+          layout, theme, drag_state, callbacks, visual
+        );
 
-          bool left_pressed = gui::input::left_click();
-          bool right_pressed = gui::input::right_click();
-
-          fan::vec2 p_min = cursor;
-          fan::vec2 p_max = cursor + slot_size;
-
-          bool hovered = gui::input::hover(p_min, p_max);
-
-          if (hovered) {
-            hovered_secondary_slot = i;
-            hovered_slot = i;
-          }
-
-          handle_clicks(i, slot, hovered, left_pressed, right_pressed, drag_state);
-
-          auto* dl = gui::get_window_draw_list();
-
-          bool is_selected = i == selected_slot;
-
-          fan::color bg_color =
-            hovered ? theme.slot_bg_hover :
-            theme.slot_bg;
-
-          gui::slot::background(dl, p_min, p_max, bg_color, 0.0f);
-          gui::slot::border(dl, p_min, p_max, theme.slot_border, 0.0f, 2.0f);
-
-          if (is_selected) {
-            gui::slot::selected_border(dl, p_min, p_max, theme.selected_border_color, 4.0f, 3.0f);
-          }
-
-          if (!slot.is_empty()) {
-            auto& reg = fan::graphics::gameplay::items::get_registry();
-            auto* def = reg.get_definition(*slot.id);
-
-            gui::slot::icon(def->icon, p_min, p_max, fan::vec2(4, 4));
-            gui::slot::stack_count(*slot.stack_size, p_min, p_max);
-            gui::slot::tooltip(def->name, hovered && !drag_state.active);
-          }
-
-          gui::pop_id();
-        }
+        hovered_secondary_slot = hovered_slot;
 
         drag_drop::render_visual(theme, drag_state);
       }
@@ -192,24 +157,6 @@ export namespace fan::graphics::gui {
 
       gui::pop_style_color(2);
       gui::pop_style_var(2);
-    }
-
-    void handle_clicks(
-      uint32_t slot_index,
-      gameplay::item_slot_t& slot,
-      bool hovered,
-      bool left_pressed,
-      bool right_pressed,
-      gui::drag_drop::drag_state_t& drag_state
-    ) {
-      if (right_pressed && hovered && !slot.is_empty()) {
-        consume_slot(slot_index, on_item_use);
-        return;
-      }
-
-      if (!drag_state.active && left_pressed && hovered && !slot.is_empty()) {
-        drag_drop::begin_from_slot(drag_state, slot, true, slot_index);
-      }
     }
 
     bool consume_slot(uint32_t slot_index, item_use_cb_t use_cb) {

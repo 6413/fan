@@ -6,6 +6,8 @@ module;
 #include <fstream>
 #include <fan/graphics/opengl/init.h>
 
+#define LOCO_FRAMEBUFFER
+
 module fan.graphics.gui.settings_menu;
 
 import fan.types.vector;
@@ -132,7 +134,6 @@ namespace fan::graphics::gui {
 
   settings_menu_t::settings_menu_t() {
     config.load();
-    query_current_resolution();
     apply_config(true, false);
 
     page_t page;
@@ -159,6 +160,9 @@ namespace fan::graphics::gui {
   void settings_menu_t::init_runtime() {
     set_settings_theme();
     keybind_menu.sync_from_input_action();
+
+    query_current_resolution();
+
     if (gloco()->target_fps == config.display.target_fps) {
       config.display.target_fps = gloco()->target_fps;
     }
@@ -199,14 +203,14 @@ namespace fan::graphics::gui {
     f32_t subwidget_indent
   ) {
     gui::table_next_row();
+
     gui::table_next_column();
-    gui::indent(sublabel_indent);
+    gui::set_cursor_pos_x(gui::get_cursor_pos_x() + sublabel_indent);
     gui::text(sublabel);
-    gui::unindent(sublabel_indent);
+
     gui::table_next_column();
-    gui::indent(subwidget_indent);
+    gui::set_cursor_pos_x(gui::get_cursor_pos_x() + subwidget_indent);
     widget_fn();
-    gui::unindent(subwidget_indent);
   }
 
   void settings_menu_t::begin_menu_left(const char* name, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
@@ -285,16 +289,16 @@ namespace fan::graphics::gui {
       gui::begin_table(
         "settings_left_table_post_processing", 
         2, 
-        gui::table_flags_borders_inner_h | gui::table_flags_borders_outer_h
+        gui::table_flags_borders_inner_h | gui::table_flags_borders_outer_h |
+        gui::table_flags_no_clip
       );
 
-      if (draw_toggle_row(
-        "Enable bloom",
-        "##enable_bloom",
-        &gloco()->open_props.enable_bloom
-      )) {
-        menu->mark_dirty();
-      }
+      draw_sub_row("Enable bloom", [&] {
+        if (gui::checkbox("##enable_bloom", &gloco()->open_props.enable_bloom)) {
+          menu->mark_dirty();
+        }
+      });
+
 
       if (gloco()->open_props.enable_bloom) {
         draw_sub_row("Strength", [&] {
@@ -326,7 +330,8 @@ namespace fan::graphics::gui {
     gui::new_line();
     {
       gui::text(title_color, "PERFORMANCE STATS");
-      gui::begin_table("settings_left_table_post_processing", 2, gui::table_flags_borders_inner_h | gui::table_flags_borders_outer_h);
+      gui::new_line();
+      gui::begin_table("settings_left_table_performance_stats", 2, gui::table_flags_borders_inner_h | gui::table_flags_borders_outer_h | gui::table_flags_no_clip);
       {
         gui::table_next_row();
         gui::table_next_column();
@@ -531,22 +536,44 @@ namespace fan::graphics::gui {
   }
 
   void settings_menu_t::on_window_resize(const fan::vec2i& new_size) {
+    bool matched = false;
+
     for (int i = 0; i < std::size(fan::window_t::resolutions); ++i) {
       if (fan::window_t::resolutions[i] == new_size) {
         config.display.resolution_index = i;
         config.display.custom_resolution = {-1, -1};
-        mark_dirty();
-        return;
+        matched = true;
+        break;
       }
     }
 
-    config.display.resolution_index = -1;
-    config.display.custom_resolution = new_size;
+    if (!matched) {
+      config.display.resolution_index = -1;
+      config.display.custom_resolution = new_size;
+    }
+
     mark_dirty();
   }
-  void settings_menu_t::apply_config(bool /*construct*/, bool runtime) {
+
+  void settings_menu_t::apply_config(bool construct, bool runtime) {
     if (!runtime) {
       gloco()->open_props.window_open_mode = config.display.display_mode;
+
+      if (config.display.window_position.x != -1 &&
+        config.display.window_position.y != -1) {
+        gloco()->open_props.window_position = config.display.window_position;
+      }
+
+      gloco()->open_props.renderer = config.display.renderer;
+
+      if (config.display.custom_resolution.x != -1) {
+        gloco()->open_props.window_size = config.display.custom_resolution;
+      }
+      else if (config.display.resolution_index != -1) {
+        gloco()->open_props.window_size =
+          fan::window_t::resolutions[config.display.resolution_index];
+      }
+
       return;
     }
 
@@ -555,6 +582,8 @@ namespace fan::graphics::gui {
     gloco()->show_fps = config.performance.show_fps;
     fan::audio::set_volume(config.audio.volume);
   }
+
+
 
   void settings_menu_t::mark_dirty() {
     is_dirty = true;
@@ -692,7 +721,11 @@ namespace fan::graphics::gui {
     gui::set_next_window_pos(fan::vec2(0, 0));
     gui::set_next_window_size(fan::vec2(main_window_size.x, main_window_size.y / 5));
     gui::set_next_window_bg_alpha(hide_bg ? 0 : 0.99);
-    gui::begin("##Fan Settings Nav", nullptr, gui::window_flags_no_move | gui::window_flags_no_collapse | gui::window_flags_no_resize | gui::window_flags_no_title_bar);
+    gui::begin("##Fan Settings Nav", nullptr, 
+      gui::window_flags_no_move | gui::window_flags_no_collapse | 
+      gui::window_flags_no_resize | gui::window_flags_no_title_bar |
+      gui::window_flags_always_vertical_scrollbar
+    );
     gui::push_font(gui::get_font(48, true));
     gui::indent(min_x);
     gui::text("Settings");
@@ -740,16 +773,20 @@ namespace fan::graphics::gui {
     fan::vec2 size = gloco()->window.get_size();
     f32_t ratio = pages[current_page].split_ratio;
 
+    const float top_h = size.y * 0.2f;
+
     render_settings_left(
-      {0, size.y * 0.2f},
-      {size.x * ratio, size.y}
+      {0, top_h},
+      {size.x * ratio, size.y - top_h}
     );
 
     render_settings_right(
-      {size.x * ratio, size.y * 0.2f},
-      {size.x * (1.f - ratio), size.y},
+      {size.x * ratio, top_h},
+      {size.x * (1.f - ratio), size.y - top_h},
       min_x
     );
+
+
 
     keybind_menu.update();
   }
