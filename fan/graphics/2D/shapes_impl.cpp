@@ -301,6 +301,77 @@ namespace fan::graphics {
     return sd.current_frame == animation.selected_frames.size() - 1;
   }
 
+  fan::graphics::sprite_sheet_animation_t create_sprite_sheet(
+    const std::string& name,
+    const std::string& image_path,
+    int hframes,
+    int vframes,
+    int fps,
+    bool loop,
+    uint32_t filter,
+    const std::vector<int>& frames,
+    const std::source_location& callers_path
+  ) {
+    fan::graphics::sprite_sheet_animation_t anim;
+    anim.name = name;
+    anim.fps = fps;
+    anim.loop = loop;
+
+    fan::graphics::sprite_sheet_animation_t::image_t img;
+    fan::graphics::image_load_properties_t props;
+    props.min_filter = filter;
+    props.mag_filter = filter;
+    img.image = fan::graphics::ctx()->image_load_path_props(fan::graphics::ctx(), image_path, props, callers_path);
+    img.hframes = hframes;
+    img.vframes = vframes;
+    anim.images.push_back(img);
+
+    if (frames.empty()) {
+      int total_frames = hframes * vframes;
+      for (int i = 0; i < total_frames; ++i) {
+        anim.selected_frames.push_back(i);
+      }
+    }
+    else {
+      anim.selected_frames = frames;
+    }
+
+    return anim;
+  }
+
+  fan::graphics::sprite_sheet_animation_t create_sprite_sheet(
+    const std::string& name,
+    fan::graphics::image_t image,
+    int hframes,
+    int vframes,
+    int fps,
+    bool loop,
+    const std::vector<int>& frames
+  ) {
+    fan::graphics::sprite_sheet_animation_t anim;
+    anim.name = name;
+    anim.fps = fps;
+    anim.loop = loop;
+
+    fan::graphics::sprite_sheet_animation_t::image_t img;
+    img.image = image;
+    img.hframes = hframes;
+    img.vframes = vframes;
+    anim.images.push_back(img);
+
+    if (frames.empty()) {
+      int total_frames = hframes * vframes;
+      for (int i = 0; i < total_frames; ++i) {
+        anim.selected_frames.push_back(i);
+      }
+    }
+    else {
+      anim.selected_frames = frames;
+    }
+
+    return anim;
+  }
+
 #if defined(FAN_JSON)
   fan::json sprite_sheet_serialize() {
     fan::json result = fan::json::object();
@@ -2114,6 +2185,7 @@ namespace fan::graphics{
         };
         int frame_x = local_frame % current_image.hframes;
         int frame_y = local_frame / current_image.hframes;
+
         fan::vec2 pos = {
           frame_x * tc_size.x,
           frame_y * tc_size.y
@@ -2121,13 +2193,14 @@ namespace fan::graphics{
         fan::vec2 tc_abs = tc_size.abs();
         fan::vec2 pos_clamped = pos;
         if (new_sign.x < 0) {
-          pos_clamped.x += tc_abs.x;
-          pos_clamped.x = fan::math::clamp(pos_clamped.x, 0.0f, 1.0f - tc_abs.x);
+          pos_clamped.x = 1.0f - (pos.x + tc_abs.x);
+          pos_clamped.x = 1.0f - pos_clamped.x;
         }
         if (new_sign.y < 0) {
           pos_clamped.y += tc_abs.y;
           pos_clamped.y = fan::math::clamp(pos_clamped.y, 0.0f, 1.0f - tc_abs.y);
         }
+
         set_tc_position(pos_clamped);
         set_tc_size(tc_size * fan::vec2(new_sign));
         auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);

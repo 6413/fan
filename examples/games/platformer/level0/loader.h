@@ -393,7 +393,7 @@ void close() {
 
 void reload_map() {
   #if MEASURE_TIME
-    fan::print("\n");
+    fan::printcl("\n");
   #endif
   TIMER_START(total_reload);
 

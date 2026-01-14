@@ -42,10 +42,10 @@ void open(void* sod) {
     .blending = true
   }};
 
-  object_key.sensor = pile.renderer.add_sensor_rectangle(main_map_id, "object_key");
-  if (!object_key.sensor) {
-    fan::throw_error("key not found");
-  }
+  //object_key.sensor = pile.renderer.add_sensor_rectangle(main_map_id, "object_key");
+  //if (!object_key.sensor) {
+  //  fan::throw_error("key not found");
+  //}
   static bool initialized = false;
   if (!initialized) {
     initialized = true;
@@ -53,7 +53,7 @@ void open(void* sod) {
   }
 
   if (pile.stage_loader.previous_stage_name == stage_shop_t::stage_name) {
-    pile.player.body.set_physics_position(player_sensor_door.get_physics_position() + fan::vec2(0, player_sensor_door.get_aabb_size().y*2.f));
+    pile.player.body.set_physics_position(player_sensor_door.get_physics_position() + fan::vec2(0, player_sensor_door.get_size().y*2.f));
     pile.loco.camera_set_position(pile.loco.orthographic_render_view.camera, pile.player.body.get_position());
   }
   else {

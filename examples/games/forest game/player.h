@@ -44,14 +44,14 @@ struct player_t {
   void step() {
     using namespace fan::graphics;
 
-    animator.process_walk(
-      body,
-      body.get_linear_velocity(),
-      img_idle, img_movement[fan::movement_e::left], img_movement[fan::movement_e::right],
-      img_movement[fan::movement_e::up], img_movement[fan::movement_e::down]
-    );
+    //animator.process_walk(
+    //  body,
+    //  body.get_linear_velocity(),
+    //  img_idle, img_movement[fan::movement_e::left], img_movement[fan::movement_e::right],
+    //  img_movement[fan::movement_e::up], img_movement[fan::movement_e::down]
+    //);
     light.set_position(body.get_position());
-    fan::vec2 dir = animator.prev_dir;
+    //fan::vec2 dir = animator.prev_dir;
     uint32_t flag = 0;
     //body updates
 
@@ -67,7 +67,6 @@ struct player_t {
       return;
     }
 
-    body.process_movement(fan::graphics::physics::character2d_t::movement_e::top_view);
   }
 
   fan::graphics::physics::character2d_t body{ fan::graphics::physics::circle_sprite_t{{
@@ -89,5 +88,4 @@ struct player_t {
     },
   }} };
   fan::graphics::shape_t light;
-  fan::graphics::animator_t animator;
 };

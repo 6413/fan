@@ -18,14 +18,17 @@ causes misalignment
 #include <coroutine>
 #include <functional>
 #include <filesystem>
+#include <fstream>
 //
 import fan;
+
+import fan.graphics.gui.settings_menu;
 
 // include macro extensions after import fan;
 #include <fan/graphics/types.h>
 //
 using namespace fan::graphics;
-using menu_t = engine_t::settings_menu_t;
+using menu_t = fan::graphics::gui::settings_menu_t;
 
 struct engine_demo_t {
   engine_t engine{{ // initialize before everything

@@ -57,7 +57,7 @@ struct simple_engine_demo_t {
       fan::colors::cyan,
       3.f
     });
-
+    
     lights.push_back(fan::graphics::light_t{{
       .position = fan::vec3(center, 0),
       .size = fan::vec2(200, 200),
