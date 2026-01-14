@@ -549,7 +549,7 @@ export namespace fan {
             manual
           };
           std::string name;
-          fan::graphics::animation_nr_t animation_id;
+          fan::graphics::sprite_sheet_id_t animation_id;
           int fps = 15;
           bool velocity_based_fps = false;
           trigger_type_e trigger_type = continuous;
@@ -565,7 +565,7 @@ export namespace fan {
         void update_image_sign(character2d_t* character);
 
         std::vector<animation_state_t> states;
-        fan::graphics::animation_nr_t prev_animation_id;
+        fan::graphics::sprite_sheet_id_t prev_animation_id;
         bool current_animation_requires_velocity_fps = false;
         bool auto_update_animations = false;
       };

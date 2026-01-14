@@ -3,8 +3,8 @@ struct player_t {
   player_t() {
     // init client animations
     fan::json json_data = fan::graphics::read_json("entities/player/player.json");
-    gloco()->parse_animations(json_data);
-    fan::graphics::map_animations(anims);
+    gloco()->sprite_sheets_parse(json_data);
+    fan::graphics::map_sprite_sheets(anims);
     body.set_shape(fan::graphics::extract_single_shape(json_data));
     body.set_size(body.get_size() / 2.5);
     body.play_sprite_sheet();

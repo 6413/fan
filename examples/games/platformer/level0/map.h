@@ -195,7 +195,7 @@ void update() {
   for (auto [i, lamp] : fan::enumerate(lamp_sprites)) {
     if (i < lights.size()) {
       fan::color tint(0.9f, 0.9f, 0.6f, 1.f);
-      lights[i].set_color(lamp_colors[lamp.get_current_animation_frame() % std::size(lamp_colors)] * tint * 2.f);
+      lights[i].set_color(lamp_colors[lamp.get_current_sprite_sheet_frame() % std::size(lamp_colors)] * tint * 2.f);
     }
   }
 

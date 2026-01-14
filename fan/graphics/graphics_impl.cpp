@@ -836,7 +836,7 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
     if (json_cache.find(json_path) == json_cache.end()) {
       fan::json json_data = fan::graphics::read_json(json_path, callers_path);
       resolve_json_image_paths(json_data, json_path, callers_path);
-      fan::graphics::parse_animations(json_path, json_data, callers_path);
+      fan::graphics::sprite_sheets_parse(json_path, json_data, callers_path);
       fan::graphics::shape_t shape = fan::graphics::extract_single_shape(json_data, callers_path);
       auto& cache = json_cache[json_path];
       cache.shape = shape;
@@ -863,7 +863,7 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
     const std::source_location& callers_path) 
   {
     auto shape = shape_from_json(config.path, callers_path);
-    shape.set_animation_loop(shape.get_current_animation_id(), config.loop);
+    shape.set_sprite_sheet_loop(shape.get_current_sprite_sheet_id(), config.loop);
     if (config.start) {
       shape.play_sprite_sheet();
     }
@@ -1632,8 +1632,8 @@ namespace fan::graphics {
   ) : sprite(sprite_), animation_name(anim_), target_frame(frame_) {}
 
   bool animation_frame_awaiter::check_condition() const {
-    return sprite && sprite->get_current_animation_frame() >= (target_frame - 1) &&
-      sprite->get_current_animation().name == animation_name;
+    return sprite && sprite->get_current_sprite_sheet_frame() >= (target_frame - 1) &&
+      sprite->get_current_sprite_sheet().name == animation_name;
   }
 }
 

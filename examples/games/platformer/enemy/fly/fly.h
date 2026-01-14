@@ -49,12 +49,12 @@ struct fly_t : enemy_t<fly_t> {
 // body.attack_state.knockback_force / 5.f));
       body.attack_state.end_attack();
     }
-    const std::string& anim_name = body.get_sprite_sheet_animation().name;
+    const std::string& anim_name = body.get_sprite_sheet().name;
     if (body.get_health() <= 0 && anim_name != "die") {
       body.play_sprite_sheet_once("die");
       body.anim_controller.auto_update_animations = false;
     }
-    if (destroy_this && body.get_health() <= 0 && anim_name == "die" && body.is_animation_finished()) {
+    if (destroy_this && body.get_health() <= 0 && anim_name == "die" && body.is_sprite_sheet_finished()) {
       base_t::destroy();
       return true;
     }

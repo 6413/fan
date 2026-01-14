@@ -75,7 +75,7 @@ void load_map() {
       lamp_sprites.emplace_back(lamp1_anim);
       auto& l = lamp_sprites.back();
 
-      l.set_current_animation_frame(fan::random::value(0, l.get_current_animation_frame_count()));
+      l.set_current_sprite_sheet_frame(fan::random::value(0, l.get_current_sprite_sheet_frame_count()));
       l.set_position(fan::vec3(fan::vec2(data.position) + fan::vec2(1.f, -2.f), 1));
       lights.emplace_back(fan::graphics::light_t {{
         .position = l.get_position(),
