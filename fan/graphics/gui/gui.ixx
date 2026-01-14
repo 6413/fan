@@ -275,8 +275,8 @@ export namespace fan::graphics::gui {
   struct sprite_animations_t {
     //fan::vec2i frame_coords; // starting from top left and increasing by one to get the next frame into that direction
 
-    fan::graphics::animation_nr_t current_animation_shape_nr;
-    fan::graphics::animation_nr_t current_animation_nr;
+    fan::graphics::sprite_sheet_id_t current_animation_shape_nr;
+    fan::graphics::sprite_sheet_id_t current_animation_nr;
     std::string animation_list_name_to_edit; // animation rename
     std::string animation_list_name_edit_buffer;
 
@@ -292,10 +292,10 @@ export namespace fan::graphics::gui {
     bool toggle_play_animation = false;
     static inline constexpr f32_t animation_names_padding = 10.f;
 
-    bool render_list_box(fan::graphics::animation_nr_t& shape_animation_id);
+    bool render_list_box(fan::graphics::sprite_sheet_id_t& shape_sprite_sheet_id);
 
-    bool render_selectable_frames(fan::graphics::sprite_sheet_animation_t& current_animation);
-    bool render(const std::string& drag_drop_id, fan::graphics::animation_nr_t& shape_animation_id);
+    bool render_selectable_frames(fan::graphics::sprite_sheet_t& current_sprite_sheet);
+    bool render(const std::string& drag_drop_id, fan::graphics::sprite_sheet_id_t& shape_sprite_sheet_id);
   };
 
   void fragment_shader_editor(uint16_t shape_type, std::string* fragment, bool* shader_compiled);

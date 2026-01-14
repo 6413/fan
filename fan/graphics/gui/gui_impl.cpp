@@ -1280,7 +1280,7 @@ namespace fan::graphics::gui {
 
 #if defined(FAN_2D)
 
-  bool sprite_animations_t::render_list_box(fan::graphics::animation_nr_t& shape_animation_id) {
+  bool sprite_animations_t::render_list_box(fan::graphics::sprite_sheet_id_t& shape_sprite_sheet_id) {
     bool list_item_changed = false;
 
     gui::begin_child("animations_tool_bar", 0, 1);
@@ -1288,18 +1288,18 @@ namespace fan::graphics::gui {
     gui::indent(animation_names_padding);
 
     if (gui::button("+")) {
-      fan::graphics::sprite_sheet_animation_t animation;
-      animation.name = std::to_string((uint32_t)fan::graphics::all_animations_counter); // think this over
-      shape_animation_id = fan::graphics::add_sprite_sheet_shape_animation(shape_animation_id, animation);
+      fan::graphics::sprite_sheet_t animation;
+      animation.name = std::to_string((uint32_t)fan::graphics::sprite_sheet_counter); // think this over
+      shape_sprite_sheet_id = fan::graphics::add_shape_sprite_sheet(shape_sprite_sheet_id, animation);
     }
-    if (!shape_animation_id) {
+    if (!shape_sprite_sheet_id) {
       gui::unindent(animation_names_padding);
       gui::end_child();
       return false;
     }
     gui::push_item_width(gui::get_window_size().x * 0.8f);
-    for (auto [i, animation_nr] : fan::enumerate(fan::graphics::get_sprite_sheet_shape_animation(shape_animation_id))) {
-      auto& animation = fan::graphics::get_sprite_sheet_animation(animation_nr);
+    for (auto [i, animation_nr] : fan::enumerate(fan::graphics::get_shape_sprite_sheets(shape_sprite_sheet_id))) {
+      auto& animation = fan::graphics::get_sprite_sheet(animation_nr);
       if (animation.name == animation_list_name_to_edit) {
         std::snprintf(animation_list_name_edit_buffer.data(), animation_list_name_edit_buffer.size() + 1, "%s", animation.name.c_str());
         gui::push_id(i);
@@ -1310,7 +1310,7 @@ namespace fan::graphics::gui {
 
         if (gui::input_text("##edit", &animation_list_name_edit_buffer, gui::input_text_flags_enter_returns_true)) {
           if (animation_list_name_edit_buffer != animation.name) {
-            fan::graphics::rename_sprite_sheet_shape_animation(shape_animation_id, animation.name, animation_list_name_edit_buffer);
+            fan::graphics::rename_shape_sprite_sheet(shape_sprite_sheet_id, animation.name, animation_list_name_edit_buffer);
             animation.name = animation_list_name_edit_buffer;
             animation_list_name_to_edit.clear();
             gui::pop_id();
@@ -1331,7 +1331,7 @@ namespace fan::graphics::gui {
             animation_list_name_to_edit = animation.name;
             set_focus = true;
           }
-          current_animation_shape_nr = shape_animation_id;
+          current_animation_shape_nr = shape_sprite_sheet_id;
           current_animation_nr = animation_nr;
           list_item_changed = true;
         }
@@ -1344,7 +1344,7 @@ namespace fan::graphics::gui {
     return list_item_changed;
   }
 
-  bool sprite_animations_t::render_selectable_frames(fan::graphics::sprite_sheet_animation_t& current_animation) {
+  bool sprite_animations_t::render_selectable_frames(fan::graphics::sprite_sheet_t& current_sprite_sheet) {
     bool changed = false;
     if (fan::window::is_mouse_released()) {
       previous_hold_selected.clear();
@@ -1352,8 +1352,8 @@ namespace fan::graphics::gui {
     int grid_index = 0;
     bool first_button = true;
 
-    for (int i = 0; i < current_animation.images.size(); ++i) {
-      auto current_image = current_animation.images[i];
+    for (int i = 0; i < current_sprite_sheet.images.size(); ++i) {
+      auto current_image = current_sprite_sheet.images[i];
       int hframes = current_image.hframes;
       int vframes = current_image.vframes;
       for (int y = 0; y < vframes; ++y) {
@@ -1376,7 +1376,7 @@ namespace fan::graphics::gui {
 
           fan::vec2 cursor_screen_pos = gui::get_cursor_screen_pos() + fan::vec2(7.f, 0);
           gui::image_button("", current_image.image, 128, uv_src, uv_dst);
-          auto& sf = current_animation.selected_frames;
+          auto& sf = current_sprite_sheet.selected_frames;
           auto it_found = std::find_if(sf.begin(), sf.end(), [a = grid_index](int b) {
             return a == b;
           });
@@ -1402,7 +1402,7 @@ namespace fan::graphics::gui {
           }
           gui::pop_id();
 
-          if (!(y == vframes - 1 && x == hframes - 1 && i == current_animation.images.size() - 1)) {
+          if (!(y == vframes - 1 && x == hframes - 1 && i == current_sprite_sheet.images.size() - 1)) {
             gui::same_line();
           }
 
@@ -1414,12 +1414,12 @@ namespace fan::graphics::gui {
     return changed;
   }
 
-  bool sprite_animations_t::render(const std::string& drag_drop_id, fan::graphics::animation_nr_t& shape_animation_id) {
+  bool sprite_animations_t::render(const std::string& drag_drop_id, fan::graphics::sprite_sheet_id_t& shape_sprite_sheet_id) {
     gui::push_style_var(gui::style_var_item_spacing, fan::vec2(12.f, 12.f));
     gui::columns(2, "animation_columns", false);
     gui::set_column_width(0, gui::get_window_size().x * 0.2f);
 
-    bool list_changed = render_list_box(shape_animation_id);
+    bool list_changed = render_list_box(shape_sprite_sheet_id);
 
     gui::next_column();
 
@@ -1440,12 +1440,12 @@ namespace fan::graphics::gui {
       play_animation = false;
       toggle_play_animation = true;
     }
-    decltype(fan::graphics::all_animations)::iterator current_animation;
+    decltype(fan::graphics::all_sprite_sheets)::iterator current_sprite_sheet;
     if (!current_animation_nr) {
       goto g_end_frame;
     }
-    current_animation = fan::graphics::all_animations.find(current_animation_nr);
-    if (current_animation == fan::graphics::all_animations.end()) {
+    current_sprite_sheet = fan::graphics::all_sprite_sheets.find(current_animation_nr);
+    if (current_sprite_sheet == fan::graphics::all_sprite_sheets.end()) {
     g_end_frame:
       gui::columns(1);
       gui::end_child();
@@ -1456,7 +1456,7 @@ namespace fan::graphics::gui {
     gui::same_line(0, 20.f);
 
     gui::slider_flags_t slider_flags = slider_flags_always_clamp | gui::slider_flags_no_speed_tweaks;
-    list_changed |= gui::drag("fps", &current_animation->second.fps, 1, 0, 244, slider_flags);
+    list_changed |= gui::drag("fps", &current_sprite_sheet->second.fps, 1, 0, 244, slider_flags);
     if (gui::button("add sprite sheet")) {
       adding_sprite_sheet = true;
     }
@@ -1509,9 +1509,9 @@ namespace fan::graphics::gui {
       }
 
       if (gui::button("Add")) {
-        if (auto it = fan::graphics::all_animations.find(current_animation_nr); it != fan::graphics::all_animations.end()) {
+        if (auto it = fan::graphics::all_sprite_sheets.find(current_animation_nr); it != fan::graphics::all_sprite_sheets.end()) {
           auto& anim = it->second;
-          fan::graphics::sprite_sheet_animation_t::image_t new_image;
+          fan::graphics::sprite_sheet_t::image_t new_image;
           new_image.image = fan::graphics::image_load(sprite_sheet_drag_drop_name);
           new_image.hframes = hframes;
           new_image.vframes = vframes;
@@ -1535,13 +1535,13 @@ namespace fan::graphics::gui {
       gui::receive_drag_drop_target(drag_drop_id, [this](const std::string& file_paths) {
         for (const std::string& file_path : fan::split(file_paths, ";")) {
           if (fan::image::valid(file_path)) {
-            if (auto it = fan::graphics::all_animations.find(current_animation_nr); it != fan::graphics::all_animations.end()) {
+            if (auto it = fan::graphics::all_sprite_sheets.find(current_animation_nr); it != fan::graphics::all_sprite_sheets.end()) {
               auto& anim = it->second;
               //// unload previous image
               //if (fan::graphics::is_image_valid(anim.sprite_sheet)) {
               //  fan::graphics::image_unload(anim.sprite_sheet);
               //}
-              fan::graphics::sprite_sheet_animation_t::image_t new_image;
+              fan::graphics::sprite_sheet_t::image_t new_image;
               new_image.image = fan::graphics::image_load(file_path);
               anim.images.push_back(new_image);
             }
@@ -1556,7 +1556,7 @@ namespace fan::graphics::gui {
 
     //render_play_animation();
 
-    list_changed |= render_selectable_frames(current_animation->second);
+    list_changed |= render_selectable_frames(current_sprite_sheet->second);
 
     gui::unindent(animation_names_padding);
     gui::end_child();

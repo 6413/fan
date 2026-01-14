@@ -140,7 +140,7 @@ struct player_t {
   }
 
   void handle_attack(){
-    if (!combat.did_attack && body.animation_crossed("attack0", attack_hitbox_frame)) {
+    if (!combat.did_attack && body.sprite_sheet_crossed("attack0", attack_hitbox_frame)) {
       audio_attack.play();
       combat.did_attack = true;
     }
@@ -249,7 +249,7 @@ struct player_t {
         if (!body.attack_state.is_attacking) {
             body.cancel_animation();
             body.set_sprite_sheet("attack0");
-            body.set_current_animation_frame(3);
+            body.set_current_sprite_sheet_frame(3);
         }
         
         body.movement_state.max_speed = max_player_speed / 3.f;

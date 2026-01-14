@@ -319,8 +319,8 @@ struct fgm_t {
           .size = size
         }}};
       auto* ri = ((fan::graphics::shapes::sprite_t::ri_t*)shape_list[nr]->children[0].GetData(fan::graphics::g_shapes->shaper));
-      animations_application.current_animation_nr = ri->sprite_sheet_data.current_animation;
-      animations_application.current_animation_shape_nr = ri->sprite_sheet_data.shape_animations;
+      animations_application.current_animation_nr = ri->sprite_sheet_data.current_sprite_sheet;
+      animations_application.current_animation_shape_nr = ri->sprite_sheet_data.shape_sprite_sheets;
       break;
     }
     case fan::graphics::shapes::shape_type_t::unlit_sprite: {
@@ -499,8 +499,8 @@ struct fgm_t {
           hit_any = true;
           if (shape->children[0].get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {
             auto* ri = ((fan::graphics::shapes::sprite_t::ri_t*)shape->children[0].GetData(fan::graphics::g_shapes->shaper));
-            animations_application.current_animation_nr = ri->sprite_sheet_data.current_animation;
-            animations_application.current_animation_shape_nr = ri->sprite_sheet_data.shape_animations;
+            animations_application.current_animation_nr = ri->sprite_sheet_data.current_sprite_sheet;
+            animations_application.current_animation_shape_nr = ri->sprite_sheet_data.shape_sprite_sheets;
           }
         }
         it = it.Next(&shape_list);
@@ -736,12 +736,12 @@ struct fgm_t {
         gui::begin_child("properties_animations", 0, 1);
         gui::text("Animations");
         auto& shape = current_shape->children[0];
-        fan::graphics::animation_shape_nr_t* shape_animation_nr = 0;
+        fan::graphics::sprite_sheet_shape_id_t* shape_animation_nr = 0;
         if (shape.get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {
           auto* ri = ((fan::graphics::shapes::sprite_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper));
-          shape_animation_nr = &ri->sprite_sheet_data.shape_animations;
+          shape_animation_nr = &ri->sprite_sheet_data.shape_sprite_sheets;
           if (animations_application.current_animation_nr) {
-            auto& anim = fan::graphics::get_sprite_sheet_animation(animations_application.current_animation_nr);
+            auto& anim = fan::graphics::get_sprite_sheet(animations_application.current_animation_nr);
           }
         }
         if (shape_animation_nr == nullptr) {
@@ -752,12 +752,12 @@ struct fgm_t {
           if (shape.get_shape_type() == fan::graphics::shapes::shape_type_t::sprite && animations_application.current_animation_nr) {
             auto* ri = ((fan::graphics::shapes::sprite_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper));
             if (animations_application.current_animation_nr && animations_application.current_animation_shape_nr == *shape_animation_nr) {
-              ri->sprite_sheet_data.current_animation = animations_application.current_animation_nr;
+              ri->sprite_sheet_data.current_sprite_sheet = animations_application.current_animation_nr;
             }
           }
           if (*shape_animation_nr && animations_application.current_animation_shape_nr == *shape_animation_nr && (animations_application.toggle_play_animation || animations_application.play_animation || animation_changed)) {
             if (shape.get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {
-              auto& anim = fan::graphics::get_sprite_sheet_animation(animations_application.current_animation_nr);
+              auto& anim = fan::graphics::get_sprite_sheet(animations_application.current_animation_nr);
               if (animation_changed && animations_application.current_animation_nr && animations_application.play_animation) {
                 if (gloco()->is_image_valid(shape.get_image()) == false) {
                   shape.set_tc_position(0);
@@ -767,7 +767,7 @@ struct fgm_t {
               else if (anim.selected_frames.size()) {
               }
 
-              auto& current_shape_anim = shape.get_sprite_sheet_animation();
+              auto& current_shape_anim = shape.get_sprite_sheet();
               if ((animations_application.toggle_play_animation || animation_changed) &&
                    animations_application.play_animation && 
                    current_shape_anim.selected_frames.size()) 
@@ -849,13 +849,13 @@ struct fgm_t {
 
     if (gui::begin("Shape Animations")) {
       if (current_shape && current_shape->children.size() > 0) {
-        auto it = shape_animations.find(current_shape);
+        auto it = shape_sprite_sheets.find(current_shape);
 
-        if (it == shape_animations.end()) {
+        if (it == shape_sprite_sheets.end()) {
           // Create new animation and set owner immediately
-          auto& new_anim = shape_animations[current_shape];
+          auto& new_anim = shape_sprite_sheets[current_shape];
           new_anim.owner_shape = current_shape;
-          it = shape_animations.find(current_shape);
+          it = shape_sprite_sheets.find(current_shape);
         }
 
         it->second.render_gui(current_shape);
@@ -866,7 +866,7 @@ struct fgm_t {
     }
     gui::end();
 
-    for (auto& [shape, anim] : shape_animations) {
+    for (auto& [shape, anim] : shape_sprite_sheets) {
       if (anim.is_playing && anim.owner_shape && !anim.keyframes.empty()) {
         anim.update(gloco()->delta_time);
         anim.apply_to_shape(anim.owner_shape);
@@ -900,7 +900,7 @@ struct fgm_t {
     }
     {
       fan::json shape_anims = fan::json::array();
-      for (const auto& [shape, anim] : shape_animations) {
+      for (const auto& [shape, anim] : shape_sprite_sheets) {
         if (anim.keyframes.empty()) {
           continue;
         }
@@ -986,7 +986,7 @@ struct fgm_t {
     });
 
     if (json_in.contains("animations")) {
-      fan::graphics::parse_animations(filename, json_in);
+      fan::graphics::sprite_sheets_parse(filename, json_in);
     }
     if (json_in.contains("shape_keyframe_animations")) {
       std::vector<std::pair<int, shape_keyframe_animation_t>> pending_animations;
@@ -1002,7 +1002,7 @@ struct fgm_t {
         int current_index = 0;
         while (it != shape_list.dst) {
           if (current_index == shape_index) {
-            shape_animations[shape_list[it]] = anim;
+            shape_sprite_sheets[shape_list[it]] = anim;
             break;
           }
           current_index++;
@@ -1501,7 +1501,7 @@ struct shape_keyframe_animation_t {
 };
 
 
-  std::unordered_map<shapes_t::global_t*, shape_keyframe_animation_t> shape_animations;
+  std::unordered_map<shapes_t::global_t*, shape_keyframe_animation_t> shape_sprite_sheets;
 
   fan::graphics::shape_t xy_lines[2];
   fan::vec2 texturepack_size{};

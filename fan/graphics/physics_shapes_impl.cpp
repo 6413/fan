@@ -1074,7 +1074,7 @@ namespace fan::graphics::physics {
           }
           state.is_playing = true;
           if (prev_animation_id != state.animation_id) {
-            character->set_current_animation_id(state.animation_id);
+            character->set_current_sprite_sheet_id(state.animation_id);
             character->reset_current_sprite_sheet();
             character->anim_controller.current_animation_requires_velocity_fps = state.velocity_based_fps;
             if (!state.velocity_based_fps) {
@@ -1083,7 +1083,7 @@ namespace fan::graphics::physics {
             prev_animation_id = state.animation_id;
           }
         }
-        if (state.is_playing && character->is_animation_finished(state.animation_id)) {
+        if (state.is_playing && character->is_sprite_sheet_finished(state.animation_id)) {
           state.is_playing = false;
           if (state.name == "attack0" && character->attack_state.is_attacking) {
             character->attack_state.end_attack();
@@ -1100,7 +1100,7 @@ namespace fan::graphics::physics {
         }
 
         if (prev_animation_id != state.animation_id) {
-          character->set_current_animation_id(state.animation_id);
+          character->set_current_sprite_sheet_id(state.animation_id);
           character->reset_current_sprite_sheet();
           character->anim_controller.current_animation_requires_velocity_fps = state.velocity_based_fps;
           if (!state.velocity_based_fps) {
@@ -1342,7 +1342,7 @@ namespace fan::graphics::physics {
     if (json_cache.find(config.json_path) == json_cache.end()) {
       fan::json json_data = fan::graphics::read_json(config.json_path, callers_path);
       fan::graphics::resolve_json_image_paths(json_data, config.json_path, callers_path);
-      fan::graphics::parse_animations(config.json_path, json_data, callers_path);
+      fan::graphics::sprite_sheets_parse(config.json_path, json_data, callers_path);
       auto shape = fan::graphics::extract_single_shape(json_data, callers_path);
       fan::graphics::physics::character2d_t character;
       character.set_shape(std::move(shape));
@@ -1515,13 +1515,13 @@ namespace fan::graphics::physics {
     });
   }
   void character2d_t::setup_default_animations(const fan::graphics::physics::character2d_t::character_config_t& config) {
-    auto anims = get_all_animations();
+    auto anims = get_sprite_sheets();
     struct anim_t {
       int fps = 0;
-      fan::graphics::animation_nr_t id {};
+      fan::graphics::sprite_sheet_id_t id {};
     } attack, idle, move, hurt;
     for (auto& [name, anim_id] : anims) {
-      auto& a = fan::graphics::all_animations[anim_id];
+      auto& a = fan::graphics::all_sprite_sheets[anim_id];
       if (name == "attack0") {
         attack = {a.fps, anim_id};
       }
@@ -1551,7 +1551,7 @@ namespace fan::graphics::physics {
       });
     }
     if (attack.fps) {
-      set_animation_loop(attack.id, false);
+      set_sprite_sheet_loop(attack.id, false);
       anim_controller.add_state({
         .name = "attack0",
         .animation_id = attack.id,
@@ -1588,7 +1588,7 @@ namespace fan::graphics::physics {
           return (!c.is_on_ground() && enough_x) || (enough_x && !c.movement_state.jump_state.on_air_after_jump);
         }
       });
-      set_current_animation_id(idle.id);
+      set_current_sprite_sheet_id(idle.id);
     }
     if (move.fps) {
       anim_controller.add_state({
@@ -1735,8 +1735,8 @@ namespace fan::graphics::physics {
       return;
     }
 
-    int prev = character->get_previous_animation_frame();
-    int curr = character->get_current_animation_frame();
+    int prev = character->get_previous_sprite_sheet_frame();
+    int curr = character->get_current_sprite_sheet_frame();
 
 
     for (size_t i = 0; i < config.spawns.size(); ++i) {

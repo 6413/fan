@@ -52,12 +52,12 @@ import fan.types.fstring;
 
 #define shaper_get_key_safe(return_type, kps_type, variable) \
 [key_pack] ()-> auto& { \
-	auto o = g_shapes->shaper.GetKeyOffset( \
-		offsetof(fan::graphics::kps_t::CONCAT(_, kps_type), variable), \
-		offsetof(fan::graphics::kps_t::kps_type, variable) \
-	);\
-	static_assert(std::is_same_v<decltype(fan::graphics::kps_t::kps_type::variable), fan::graphics::return_type>, "possibly unwanted behaviour"); \
-	return *(fan::graphics::return_type*)&key_pack[o];\
+  auto o = g_shapes->shaper.GetKeyOffset( \
+    offsetof(fan::graphics::kps_t::CONCAT(_, kps_type), variable), \
+    offsetof(fan::graphics::kps_t::kps_type, variable) \
+  );\
+  static_assert(std::is_same_v<decltype(fan::graphics::kps_t::kps_type::variable), fan::graphics::return_type>, "possibly unwanted behaviour"); \
+  return *(fan::graphics::return_type*)&key_pack[o];\
 }()
 
 #define shape_get_vi(shape) (*(fan::graphics::shapes::shape##_t::vi_t*)GetRenderData(fan::graphics::g_shapes->shaper))
@@ -112,45 +112,45 @@ export namespace fan::graphics {
 #endif
   // things that shapes require, should be moved in future to own.ixx
 
-  //-----------------------sprite sheet animations-----------------------
+  //-----------------------sprite sheet -----------------------
 
-  struct sprite_sheet_animation_t {
+  struct sprite_sheet_t {
     struct image_t {
       fan::graphics::image_t image = fan::graphics::ctx().default_texture;
       int hframes = 1, vframes = 1;
     #if defined(FAN_JSON)
       operator fan::json() const;
-      sprite_sheet_animation_t::image_t& assign(const fan::json& j, const std::source_location& callers_path = std::source_location::current());
+      sprite_sheet_t::image_t& assign(const fan::json& j, const std::source_location& callers_path = std::source_location::current());
     #endif
     };
-    sprite_sheet_animation_t();
-    ~sprite_sheet_animation_t();
+    sprite_sheet_t();
+    ~sprite_sheet_t();
     std::vector<int> selected_frames;
-    std::vector<sprite_sheet_animation_t::image_t> images;
+    std::vector<sprite_sheet_t::image_t> images;
     std::string name;
     int fps = 15;
     bool loop = true;
   };
 
-  struct animation_nr_t {
-    animation_nr_t();
-    animation_nr_t(uint32_t id);
+  struct sprite_sheet_id_t {
+    sprite_sheet_id_t();
+    sprite_sheet_id_t(uint32_t id);
     operator uint32_t() const;
     explicit operator bool() const;
-    animation_nr_t operator++(int);
-    bool operator==(const animation_nr_t& other) const;
-    bool operator!=(const animation_nr_t& other) const;
+    sprite_sheet_id_t operator++(int);
+    bool operator==(const sprite_sheet_id_t& other) const;
+    bool operator!=(const sprite_sheet_id_t& other) const;
     uint32_t id = -1;
   };
 
-  using animation_shape_nr_t = animation_nr_t;
+  using sprite_sheet_shape_id_t = sprite_sheet_id_t;
 
-  struct animation_nr_hash_t {
-    size_t operator()(const animation_nr_t& anim_nr) const noexcept;
+  struct sprite_sheet_id_hash_t {
+    size_t operator()(const sprite_sheet_id_t& sprite_sheet_id) const noexcept;
   };
 
-  struct animation_pair_hash_t {
-    std::size_t operator()(const std::pair<animation_nr_t, std::string>& p) const noexcept;
+  struct sprite_sheet_pair_hash_t {
+    std::size_t operator()(const std::pair<sprite_sheet_id_t, std::string>& p) const noexcept;
   };
 
   struct sprite_sheet_data_t {
@@ -161,30 +161,30 @@ export namespace fan::graphics {
     // sprite sheet update function nr
     fan::graphics::update_callback_nr_t frame_update_nr;
 
-    animation_shape_nr_t shape_animations;
-    animation_nr_t current_animation;
+    sprite_sheet_shape_id_t shape_sprite_sheets;
+    sprite_sheet_id_t current_sprite_sheet;
     fan::vec2i8 last_sign = 1;
-    bool start_animation = false;
+    bool start_sprite_sheet = false;
   };
 
-  extern std::unordered_map<animation_nr_t, sprite_sheet_animation_t, animation_nr_hash_t> all_animations;
-  extern animation_nr_t all_animations_counter;
-  extern std::unordered_map<std::pair<animation_shape_nr_t, std::string>, animation_nr_t, animation_pair_hash_t> shape_animation_lookup_table;
-  extern std::unordered_map<animation_shape_nr_t, std::vector<animation_nr_t>, animation_nr_hash_t> shape_animations;
-  extern animation_nr_t shape_animation_counter;
+  extern std::unordered_map<sprite_sheet_id_t, sprite_sheet_t, sprite_sheet_id_hash_t> all_sprite_sheets;
+  extern sprite_sheet_id_t sprite_sheet_counter;
+  extern std::unordered_map<std::pair<sprite_sheet_shape_id_t, std::string>, sprite_sheet_id_t, sprite_sheet_pair_hash_t> shape_sprite_sheet_lookup_table;
+  extern std::unordered_map<sprite_sheet_shape_id_t, std::vector<sprite_sheet_id_t>, sprite_sheet_id_hash_t> shape_sprite_sheets;
+  extern sprite_sheet_id_t shape_sprite_sheet_counter;
 
-  sprite_sheet_animation_t& get_sprite_sheet_animation(animation_nr_t nr);
-  sprite_sheet_animation_t& get_sprite_sheet_animation(animation_nr_t shape_animation_id, const std::string& anim_name);
-  std::vector<fan::graphics::animation_nr_t>& get_sprite_sheet_shape_animation(animation_nr_t shape_animation_id);
-  void rename_sprite_sheet_shape_animation(animation_nr_t shape_animation_id, const std::string& old_name, const std::string& new_name);
-  // adds animation to shape collection
-  animation_nr_t add_sprite_sheet_shape_animation(animation_nr_t new_anim);
-  animation_nr_t add_existing_sprite_sheet_shape_animation(animation_nr_t existing_anim, animation_nr_t shape_animation_id, const sprite_sheet_animation_t& new_anim);
-  // returns unique key to access list of animation keys
-  animation_nr_t add_sprite_sheet_shape_animation(animation_nr_t shape_animation_id, const sprite_sheet_animation_t& new_anim);
-  bool is_animation_finished(animation_nr_t nr, const fan::graphics::sprite_sheet_data_t& sd);
+  sprite_sheet_t& get_sprite_sheet(sprite_sheet_id_t nr);
+  sprite_sheet_t& get_sprite_sheet(sprite_sheet_id_t shape_sprite_sheet_id, const std::string& sprite_sheet_name);
+  std::vector<fan::graphics::sprite_sheet_id_t>& get_shape_sprite_sheets(sprite_sheet_id_t shape_sprite_sheet_id);
+  void rename_shape_sprite_sheet(sprite_sheet_id_t shape_sprite_sheet_id, const std::string& old_name, const std::string& new_name);
+  // adds sprite sheet to shape collection
+  sprite_sheet_id_t add_shape_sprite_sheet(sprite_sheet_id_t new_sprite_sheet);
+  sprite_sheet_id_t add_existing_sprite_sheet_shape(sprite_sheet_id_t existing_sprite_sheet, sprite_sheet_id_t shape_sprite_sheet_id, const sprite_sheet_t& new_sprite_sheet);
+  // returns unique key to access list of sprite sheet keys
+  sprite_sheet_id_t add_shape_sprite_sheet(sprite_sheet_id_t shape_sprite_sheet_id, const sprite_sheet_t& new_sprite_sheet);
+  bool is_sprite_sheet_finished(sprite_sheet_id_t nr, const fan::graphics::sprite_sheet_data_t& sd);
 
-  fan::graphics::sprite_sheet_animation_t create_sprite_sheet(
+  fan::graphics::sprite_sheet_t create_sprite_sheet(
     const std::string& name,
     const std::string& image_path,
     int hframes,
@@ -196,7 +196,7 @@ export namespace fan::graphics {
     const std::source_location& callers_path = std::source_location::current()
   );
 
-  fan::graphics::sprite_sheet_animation_t create_sprite_sheet(
+  fan::graphics::sprite_sheet_t create_sprite_sheet(
     const std::string& name,
     fan::graphics::image_t image,
     int hframes,
@@ -208,9 +208,9 @@ export namespace fan::graphics {
 
 #if defined(FAN_JSON)
   fan::json sprite_sheet_serialize();
-  void parse_animations(const std::string& json_path, fan::json& json, const std::source_location& callers_path = std::source_location::current());
+  void sprite_sheets_parse(const std::string& json_path, fan::json& json, const std::source_location& callers_path = std::source_location::current());
 #endif
-  //-----------------------sprite sheet animations-----------------------
+  //-----------------------sprite sheet-----------------------
 
   struct sprite_flags_e {
     enum {
@@ -426,47 +426,47 @@ export namespace fan::graphics {
       bool point_inside(const fan::vec2& point) const;
       bool collides(const fan::vec2& point) const;
     #endif
-      void add_existing_animation(animation_nr_t nr);
-      bool is_animation_finished() const;
-      bool is_animation_finished(animation_nr_t nr) const;
+      void add_existing_sprite_sheet(sprite_sheet_id_t nr);
+      bool is_sprite_sheet_finished() const;
+      bool is_sprite_sheet_finished(sprite_sheet_id_t nr) const;
       // sprite sheet
-      int get_current_last_frame_index() const;
+      int get_current_sprite_sheet_last_frame_index() const;
       void finish_current_sprite_sheet();
       // shape specific
-      void set_animation_loop(animation_nr_t nr, bool flag);
+      void set_sprite_sheet_loop(sprite_sheet_id_t nr, bool flag);
       void reset_current_sprite_sheet_frame();
       void reset_current_sprite_sheet();
       // sprite sheet - sprite specific
       void set_sprite_sheet_next_frame(int advance = 1);
-      animation_shape_nr_t get_shape_animations_id() const;
-      std::unordered_map<std::string, fan::graphics::animation_nr_t> get_all_animations() const;
+      sprite_sheet_shape_id_t get_shape_sprite_sheet_id() const;
+      std::unordered_map<std::string, fan::graphics::sprite_sheet_id_t> get_sprite_sheets() const;
       // Takes in seconds
       void set_sprite_sheet_fps(f32_t fps);
-      bool has_animation();
+      bool has_sprite_sheet();
       static void sprite_sheet_frame_update_cb(shaper_t& shaper, shape_t* shape);
-      // returns currently active sprite sheet animation
+      // returns currently active sprite sheet
       fan::graphics::sprite_sheet_data_t& get_sprite_sheet_data();
-      sprite_sheet_animation_t& get_sprite_sheet_animation();
+      sprite_sheet_t& get_sprite_sheet();
       void play_sprite_sheet();
       void stop_sprite_sheet();
-      void play_sprite_sheet_once(const std::string& anim_name);
-      // overwrites 'ri.current_animation' animation
+      void play_sprite_sheet_once(const std::string& sprite_sheet_name);
+      // overwrites 'ri.current_sprite_sheet'
       void set_sprite_sheet(const std::string& name);
-      void set_sprite_sheet(const sprite_sheet_animation_t& animation);
-      void add_sprite_sheet(const sprite_sheet_animation_t& animation);
+      void set_sprite_sheet(const sprite_sheet_t& sprite_sheet);
+      void add_sprite_sheet(const sprite_sheet_t& sprite_sheet);
       void set_sprite_sheet_frames(uint32_t image_index, int horizontal_frames, int vertical_frames);
-      animation_nr_t& get_current_animation_id() const;
-      bool animation_on(const std::string& name, int frame_index);
-      bool animation_on(const std::string& name, const std::initializer_list<int>& arr);
-      bool animation_crossed(const std::string& name, int frame_index);
-      void set_current_animation_id(animation_nr_t animation_id);
-      sprite_sheet_animation_t& get_current_animation() const;
-      int get_previous_animation_frame() const;
-      int get_current_animation_frame() const;
-      void set_current_animation_frame(int frame_id);
-      int get_current_animation_frame_count();
+      sprite_sheet_id_t& get_current_sprite_sheet_id() const;
+      bool sprite_sheet_on(const std::string& name, int frame_index);
+      bool sprite_sheet_on(const std::string& name, const std::initializer_list<int>& arr);
+      bool sprite_sheet_crossed(const std::string& name, int frame_index);
+      void set_current_sprite_sheet_id(sprite_sheet_id_t sprite_sheet_id);
+      sprite_sheet_t& get_current_sprite_sheet() const;
+      int get_previous_sprite_sheet_frame() const;
+      int get_current_sprite_sheet_frame() const;
+      void set_current_sprite_sheet_frame(int frame_id);
+      int get_current_sprite_sheet_frame_count();
       // dont store the pointer
-      sprite_sheet_animation_t* get_animation(const std::string& name);
+      sprite_sheet_t* get_sprite_sheet(const std::string& name);
       void set_light_position(const fan::vec3& new_pos);
       void set_light_radius(f32_t radius);
       // for line
@@ -577,7 +577,7 @@ export namespace fan::graphics {
   #include <fan/graphics/gui/vfi.h>
     vfi_t vfi;
 
-		fan::graphics::texture_pack_t* texture_pack = nullptr;
+    fan::graphics::texture_pack_t* texture_pack = nullptr;
 
     struct light_t {
 
@@ -1884,7 +1884,7 @@ export namespace fan::graphics {
     // -----------------------------------shape lists-----------------------------------
     // ---------------------------------------------------------------------------------
 
-	};
+  };
 
   fan::graphics::shapes& get_shapes() {
     return *g_shapes;
@@ -1928,21 +1928,21 @@ export namespace fan::graphics {
 export namespace fan::graphics {
   fan::graphics::shapes::shape_t extract_single_shape(const fan::json& json_data, const std::source_location& callers_path = std::source_location::current());
   fan::json read_json(const std::string& path, const std::source_location& callers_path = std::source_location::current());
-	struct animation_t {
-		fan::graphics::animation_nr_t nr;
-	};
-	// for dme type
-	void map_animations(auto& anims) {
-		for (auto [i, animation] : fan::enumerate(fan::graphics::all_animations)) {
-			for (int j = 0; j < anims.size(); ++j) {
-				auto& anim = *anims.NA(j);
-				if (animation.second.name == (const char*)anim) {
-					anim = animation_t{ .nr = animation.first };
-					break;
-				}
-			}
-		}
-	}
+  struct sprite_sheet_map_t {
+    fan::graphics::sprite_sheet_id_t nr;
+  };
+  // for dme type
+  void map_sprite_sheets(auto& sheets) {
+    for (auto [i, sprite_sheet] : fan::enumerate(fan::graphics::all_sprite_sheets)) {
+      for (int j = 0; j < sheets.size(); ++j) {
+        auto& sheet = *sheets.NA(j);
+        if (sprite_sheet.second.name == (const char*)sheet) {
+          sheet = sprite_sheet_map_t{ .nr = sprite_sheet.first };
+          break;
+        }
+      }
+    }
+  }
 } // namespace fan::graphics
 
 #endif
