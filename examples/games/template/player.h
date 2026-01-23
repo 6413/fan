@@ -1,13 +1,9 @@
 struct player_t {
-
   player_t() {
-    body.jump_impulse = 3;
-    body.force = 15;
-    body.max_speed = 270;
+    body.enable_default_movement();
   }
 
   void step() {
-    body.process_movement(fan::graphics::physics::character2d_t::movement_e::side_view);
     light.set_position(fan::vec2(body.get_position()));
   }
 
@@ -23,7 +19,6 @@ struct player_t {
     //.mass_data{.mass = 0.01f},
     .shape_properties{
       .friction = 0.6f, 
-      .density = 0.1f, 
       .fixed_rotation = true
     },
   }}};

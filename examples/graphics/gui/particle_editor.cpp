@@ -6,7 +6,7 @@ int main() {
   using namespace fan::graphics;
 
   engine_t engine;
-  engine.set_culling_enabled(true);
+  engine.set_culling_enabled(false);
   engine.clear_color = fan::colors::black;
   gui::particle_editor_t editor;
 

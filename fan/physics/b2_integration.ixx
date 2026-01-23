@@ -331,6 +331,14 @@ export namespace fan {
         size_t operator()(const std::pair<uint64_t, uint64_t>& p) const;
       };
 
+      struct debug_state_t {
+        bool enabled = false;
+        b2DebugDraw debug_draw = {};
+        void* render_view = nullptr;
+      };
+
+      debug_state_t debug;
+
       std::unordered_set<std::pair<uint64_t, uint64_t>, pair_hash_t> active_collisions;
       fan::physics::physics_update_cbs_t physics_updates;
       physics_step_callbacks_t physics_step_callbacks;
