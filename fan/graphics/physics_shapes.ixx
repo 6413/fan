@@ -83,10 +83,6 @@ b2DebugDraw initialize_debug(bool enabled);
 export namespace fan {
   namespace graphics {
     namespace physics {
-
-      b2DebugDraw box2d_debug_draw{};
-      fan::graphics::render_view_t debug_render_view;
-
       void init();
 
       void step(f32_t dt);
@@ -541,35 +537,7 @@ export namespace fan {
         bool is_stuck_state = false;
         std::function<bool(const fan::vec2& position)> on_check_obstacle = [](const fan::vec2&) { return false; };
       };
-      struct animation_controller_t {
-        struct animation_state_t {
-          enum trigger_type_e {
-            continuous,
-            one_shot,
-            manual
-          };
-          std::string name;
-          fan::graphics::sprite_sheet_id_t animation_id;
-          int fps = 15;
-          bool velocity_based_fps = false;
-          trigger_type_e trigger_type = continuous;
-          std::function<bool(character2d_t&)> condition;
-          bool is_playing = false;
-        };
-
-        void add_state(const animation_state_t& state);
-        void update(character2d_t* character);
-        void cancel_current();
-        animation_state_t& get_state(const std::string& name);
-
-        void update_image_sign(character2d_t* character);
-
-        std::vector<animation_state_t> states;
-        fan::graphics::sprite_sheet_id_t prev_animation_id;
-        bool current_animation_requires_velocity_fps = false;
-        bool auto_update_animations = false;
-      };
-
+      
       struct ai_behavior_t {
         using movement_callback_handle_t = fan::physics::step_callback_nr_t;
         enum behavior_type_e {
@@ -660,7 +628,7 @@ export namespace fan {
         bool raycast(
           const character2d_t& target
         );
-        animation_controller_t anim_controller;
+        fan::graphics::sprite_sheet_controller_t anim_controller;
         attack_state_t attack_state;
         
         movement_state_t movement_state;

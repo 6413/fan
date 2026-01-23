@@ -92,6 +92,23 @@ export namespace fan {
     void erase_frame_process(frame_cb_t::nr_t& nr);
     frame_cb_t::nr_t push_frame_process(std::function<void()> func);
 
+    void add_cmd(const std::string& cmd, decltype(fan::commands_t::command_t::func) func);
+    void remove_cmd(const std::string& cmd);
+
+    int call(const std::string& cmd) {
+      return commands.call(cmd);
+    }
+    template <typename... Args>
+    int call(const std::string& cmd, Args&&... args) {
+      return commands.call(cmd, std::forward<Args>(args)...);
+    }
+    void print_command_not_found(const std::string& cmd) {
+      commands.print_command_not_found(cmd);
+    }
+    void print_invalid_arg_count() {
+      commands.print_invalid_arg_count();
+    }
+
     std::vector<std::string> command_history;
     std::string current_command;
     int command_history_index = 0;

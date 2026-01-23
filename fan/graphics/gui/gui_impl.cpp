@@ -34,6 +34,26 @@ namespace fan::graphics::gui {
   void set_viewport(fan::graphics::viewport_t viewport) {
     auto* current = get_current_window();
     viewport_rect_t main_viewport = get_viewport_rect();
+    fan::vec2 wnd_pos = get_window_pos();
+    fan::vec2 wnd_size = get_window_size();
+
+    fan::vec2 windowPosRelativeToMainViewport;
+    windowPosRelativeToMainViewport.x = wnd_pos.x - main_viewport.position.x;
+    windowPosRelativeToMainViewport.y = wnd_pos.y - main_viewport.position.y;
+
+    fan::vec2 viewport_size = fan::vec2(wnd_size.x, wnd_size.y);
+    fan::vec2 viewport_pos = windowPosRelativeToMainViewport;
+
+    fan::vec2 window_size = fan::graphics::get_window().get_size();
+    fan::graphics::viewport_set(
+      viewport,
+      viewport_pos,
+      viewport_size
+    );
+  }
+  void set_viewport_full(fan::graphics::viewport_t viewport) {
+    auto* current = get_current_window();
+    viewport_rect_t main_viewport = get_viewport_rect();
     fan::vec2 wnd_pos = main_viewport.position;
     fan::vec2 wnd_size = main_viewport.size;
     if (current->ParentWindow) {
@@ -309,6 +329,12 @@ namespace fan::graphics::gui {
       if (drag("jitter_end", &ri.jitter_end, 0.1)) {
       }
       if (drag("jitter_speed", &ri.jitter_speed, 0.1)) {
+      }
+      if (drag("size_random_range", &ri.size_random_range, 0.1)) {
+      }
+      if (drag("color_random_range", &ri.color_random_range, 0.1)) {
+      }
+      if (drag("angle_random_range", &ri.angle_random_range, 0.1)) {
       }
       if (drag("count", &ri.count, 1)) {
       }

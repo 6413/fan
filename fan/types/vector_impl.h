@@ -230,7 +230,12 @@ constexpr bool operator>=(T rhs) const {
 }
 
 explicit constexpr operator bool() const {
-  return (*this != value_type_t(0));
+  for (access_type_t i = 0; i < size(); ++i) {
+    if ((*this)[i] != value_type_t(0)) {
+      return true;
+    }
+  }
+  return false;
 }
                     
 #define __FAN_SWITCH_IDX(x, idx) case size() - (idx + 1): return x

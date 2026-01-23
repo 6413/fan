@@ -38,6 +38,7 @@ module fan.graphics.loco;
 
 #if defined(FAN_PHYSICS_2D)
   import fan.physics.types;
+  import fan.graphics.physics_shapes;
 #endif
 
 #if defined(FAN_JSON)
@@ -1086,6 +1087,7 @@ loco_t::loco_t(const loco_t::properties_t& props) :
     fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::light_end, sizeof(uint8_t), fan::graphics::shaper_t::KeyBitOrderAny);
     fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::visible, sizeof(uint8_t), fan::graphics::shaper_t::KeyBitOrderAny);
     fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::depth, sizeof(fan::graphics::depth_t), fan::graphics::shaper_t::KeyBitOrderLow);
+    fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::shader, sizeof(fan::graphics::shader_raw_t), fan::graphics::shaper_t::KeyBitOrderLow); // should it be any?
     fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::blending, sizeof(fan::graphics::blending_t), fan::graphics::shaper_t::KeyBitOrderLow);
     fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::image, sizeof(fan::graphics::image_t), fan::graphics::shaper_t::KeyBitOrderLow);
     fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::viewport, sizeof(fan::graphics::viewport_t), fan::graphics::shaper_t::KeyBitOrderAny);
@@ -1171,6 +1173,19 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   set_vsync(false); // using libuv
   settings_menu.init_runtime();
 
+  #if defined(FAN_PHYSICS_2D)
+  {
+    static fan::graphics::update_callback_nr_t debug_input_nr;
+    if (!debug_input_nr) {
+      debug_input_nr = m_update_callback.NewNodeLast();
+      m_update_callback[debug_input_nr] = [](void* loco){
+        if (((loco_t*)loco)->input_action.is_active(fan::actions::toggle_debug_physics)) {
+          fan::graphics::physics::debug_draw(!fan::graphics::physics::get_debug_draw());
+        }
+      };
+    }
+  }
+  #endif
   
   auto it = fan::graphics::get_engine_init_cbs().GetNodeFirst();
   while (it != fan::graphics::get_engine_init_cbs().dst) {
@@ -2069,6 +2084,7 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
 
 #if defined(FAN_PHYSICS_2D)
   if (is_updating_physics) {
+    physics_context.debug_draw_cb();
     physics_context.step(delta_time);
   }
 #endif
