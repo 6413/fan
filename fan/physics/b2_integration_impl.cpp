@@ -536,8 +536,6 @@ namespace fan::physics {
         it = physics_updates.EndSafeNext();
       }
     }
-
-    debug_draw_cb();
   }
 
   bool context_t::is_on_sensor(body_id_t test_id, body_id_t sensor_id) const {

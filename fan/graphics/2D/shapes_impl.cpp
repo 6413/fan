@@ -17,6 +17,7 @@ module;
 module fan.graphics.shapes;
 
 import fan.utility;
+import fan.graphics.gui.base;
 
 #if defined(FAN_GUI)
   import fan.graphics.gui.text_logger;
@@ -743,6 +744,7 @@ namespace fan::graphics{
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::sprite, vi, ri,
         Key_e::visible, (visible_t)true,
         Key_e::depth, (uint16_t)properties.position.z,
+        Key_e::shader, (fan::graphics::shader_raw_t)fan::graphics::g_shapes->shaper.GetShader(shape_type_t::sprite).gint(),
         Key_e::blending, (uint8_t)properties.blending,
         Key_e::image, properties.image,
         Key_e::viewport, properties.viewport,
@@ -863,6 +865,7 @@ namespace fan::graphics{
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::unlit_sprite, vi, ri,
         Key_e::visible, (uint8_t)true,
         Key_e::depth, (uint16_t)properties.position.z,
+        Key_e::shader, (fan::graphics::shader_raw_t)fan::graphics::g_shapes->shaper.GetShader(shape_type_t::unlit_sprite).gint(),
         Key_e::blending, (uint8_t)properties.blending,
         Key_e::image, properties.image,
         Key_e::viewport, properties.viewport,
@@ -1064,12 +1067,17 @@ namespace fan::graphics{
       ri.jitter_end = properties.jitter_end;
       ri.jitter_speed = properties.jitter_speed;
 
+      ri.size_random_range = properties.size_random_range;
+      ri.color_random_range = properties.color_random_range;
+      ri.angle_random_range = properties.angle_random_range;
+
       ri.shape = properties.shape;
 
       sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::particles, vi, ri,
         Key_e::visible, (uint8_t)true,
         Key_e::depth, (uint16_t)properties.position.z,
+        Key_e::shader, (fan::graphics::shader_raw_t)fan::graphics::g_shapes->shaper.GetShader(shape_type_t::particles).gint(),
         Key_e::blending, (uint8_t)properties.blending,
         Key_e::image, properties.image,
         Key_e::viewport, properties.viewport,
@@ -1094,10 +1102,11 @@ namespace fan::graphics{
       shapes::universal_image_renderer_t::ri_t ri;
       std::copy(&properties.images[1], &properties.images[0] + properties.images.size(), ri.images_rest.data());
 
-      shapes::shape_t shape = shape_add(
+      sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::universal_image_renderer, vi, ri,
         Key_e::visible, (uint8_t)true,
         Key_e::depth, (uint16_t)properties.position.z,
+        Key_e::shader, (fan::graphics::shader_raw_t)fan::graphics::g_shapes->shaper.GetShader(shape_type_t::universal_image_renderer).gint(),
         Key_e::blending, (uint8_t)properties.blending,
         Key_e::image, properties.images[0],
         Key_e::viewport, properties.viewport,
@@ -1108,10 +1117,9 @@ namespace fan::graphics{
       );
       g_shapes->visit_shape_draw_data(NRI, [&](auto& properties) {
         if constexpr (requires { properties.format; }) {
-          properties.format = shape.get_image_data().image_settings.format;
+          properties.format = sd.visual.get_image_data().image_settings.format;
         }
       });
-      sd.visual = shape;
       break;
     }
     case shape_type_t::gradient: {
@@ -1195,6 +1203,7 @@ namespace fan::graphics{
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::shader_shape, vi, ri,
         Key_e::visible, (uint8_t)true,
         Key_e::depth, (uint16_t)properties.position.z,
+        Key_e::shader, (fan::graphics::shader_raw_t)properties.shader.gint(),
         Key_e::blending, (uint8_t)properties.blending,
         Key_e::image, properties.image,
         Key_e::viewport, properties.viewport,
@@ -1645,8 +1654,9 @@ namespace fan::graphics{
   }
 
   fan::graphics::image_t shapes::shape_t::get_image() const {
-    if (g_shapes->shape_functions[get_shape_type()].get_image) {
-      return g_shapes->shape_functions[get_shape_type()].get_image(this);
+    auto st = get_shape_type();
+    if (g_shapes->shape_functions[st].get_image) {
+      return g_shapes->shape_functions[st].get_image(this);
     }
     return fan::graphics::ctx().default_texture;
   }
@@ -1754,11 +1764,18 @@ namespace fan::graphics{
   void shapes::shape_t::reload(uint8_t format, void** image_data, const fan::vec2& image_size) {
     auto& settings = fan::graphics::ctx()->image_get_settings(fan::graphics::ctx(), get_image());
     uint32_t filter = settings.min_filter;
-    universal_image_renderer_t::ri_t& ri = *(universal_image_renderer_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
+
+    shapes::shape_ids_t::nr_t id;
+    id.gint() = NRI;
+    auto& sd = g_shapes->shape_ids[id];
+    shapes::universal_image_renderer_list_t::nr_t nr;
+    nr.gint() = sd.data_nr;
+
+    universal_image_renderer_t::properties_t& props = g_shapes->universal_image_renderer_list[nr];
     uint8_t image_count_new = fan::graphics::get_channel_amount(format);
-    if (format != ri.format) {
+    if (format != props.format) {
       auto sti = get_shape_type();
-      uint8_t* key_pack = g_shapes->shaper.GetKeys(*this);
+      uint8_t* key_pack = g_shapes->shaper.GetKeys(*get_visual_shape());
       fan::graphics::image_t vi_image = get_image();
 
       auto shader = g_shapes->shaper.GetShader(sti);
@@ -1786,7 +1803,7 @@ namespace fan::graphics{
         fan::graphics::ctx()->shader_compile(fan::graphics::ctx(), shader);
       }
 
-      uint8_t image_count_old = fan::graphics::get_channel_amount(ri.format);
+      uint8_t image_count_old = fan::graphics::get_channel_amount(props.format);
       if (image_count_new < image_count_old) {
         uint8_t textures_to_remove = image_count_old - image_count_new;
         if (vi_image.iic() || vi_image == fan::graphics::ctx().default_texture) { // uninitialized
@@ -1800,8 +1817,8 @@ namespace fan::graphics{
             set_image(fan::graphics::ctx().default_texture);
           }
           else {
-            fan::graphics::ctx()->image_erase(fan::graphics::ctx(), ri.images_rest[index - 1]);
-            ri.images_rest[index - 1] = fan::graphics::ctx().default_texture;
+            fan::graphics::ctx()->image_erase(fan::graphics::ctx(), props.images[index - 1]);
+            props.images[index - 1] = fan::graphics::ctx().default_texture;
           }
         }
       }
@@ -1811,7 +1828,7 @@ namespace fan::graphics{
           images[i] = fan::graphics::ctx()->image_create(fan::graphics::ctx());
         }
         set_image(images[0]);
-        std::copy(&images[1], &images[0] + ri.images_rest.size(), ri.images_rest.data());
+        std::copy(&images[1], &images[0] + props.images.size(), props.images.data());
       }
     }
 
@@ -1825,8 +1842,8 @@ namespace fan::graphics{
         }
       }
       else {
-        if (ri.images_rest[i - 1].iic() || ri.images_rest[i - 1] == fan::graphics::ctx().default_texture) {
-          ri.images_rest[i - 1] = fan::graphics::ctx()->image_create(fan::graphics::ctx());
+        if (props.images[i - 1].iic() || props.images[i - 1] == fan::graphics::ctx().default_texture) {
+          props.images[i - 1] = fan::graphics::ctx()->image_create(fan::graphics::ctx());
         }
       }
     }
@@ -1855,13 +1872,15 @@ namespace fan::graphics{
       else {
             
         fan::graphics::ctx()->image_reload_image_info_props(fan::graphics::ctx(), 
-          ri.images_rest[i - 1],
+          props.images[i - 1],
           image_info,
           lp
         );
       }
     }
-    ri.format = format;
+    universal_image_renderer_t::ri_t& ri = *(universal_image_renderer_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
+    std::copy(props.images.begin(), props.images.end(), ri.images_rest.data());
+    props.format = format;
   }
 
   void shapes::shape_t::reload(uint8_t format, const fan::vec2& image_size) {
@@ -2467,10 +2486,10 @@ namespace fan::graphics{
     set_y(y);
   } // shape_t
 
-  void shapes::shape_t::start_particles() {
+  void shapes::shape_t::start_particles(f32_t start_offset) {
     g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
       if constexpr (requires { props.loop_enabled_time; }) {
-        props.loop_enabled_time = fan::time::now() / 1e9;
+        props.loop_enabled_time = fan::time::now() / 1e9 - start_offset; // negate the offset to travel to future
         props.loop_disabled_time = -1;
       }
     });
@@ -2479,7 +2498,7 @@ namespace fan::graphics{
     }
     auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)
       GetData(fan::graphics::g_shapes->shaper);
-    ri.loop_enabled_time = fan::time::now() / 1e9;
+    ri.loop_enabled_time = fan::time::now() / 1e9 - start_offset;  // negate the offset to travel to future
     ri.loop_disabled_time = -1;
   }
 
@@ -3214,6 +3233,16 @@ namespace fan::graphics {
         out["jitter_speed"] = ri.jitter_speed;
       }
 
+      if (ri.size_random_range != defaults.size_random_range) {
+        out["size_random_range"] = ri.size_random_range;
+      }
+      if (ri.color_random_range != defaults.color_random_range) {
+        out["color_random_range"] = ri.color_random_range;
+      }
+      if (ri.angle_random_range != defaults.angle_random_range) {
+        out["angle_random_range"] = ri.angle_random_range;
+      }
+
       if (ri.shape != defaults.shape) {
         out["particle_shape"] = ri.shape;
       }
@@ -3583,6 +3612,16 @@ namespace fan::graphics {
         p.jitter_speed = in["jitter_speed"];
       }
 
+      if (in.contains("size_random_range")) {
+        p.size_random_range = in["size_random_range"];
+      }
+      if (in.contains("color_random_range")) {
+        p.color_random_range = in["color_random_range"];
+      }
+      if (in.contains("angle_random_range")) {
+        p.angle_random_range = in["angle_random_range"];
+      }
+
       if (in.contains("particle_shape")) {
         p.shape = in["particle_shape"];
       }
@@ -3721,6 +3760,10 @@ namespace fan::graphics {
       fan::write_to_vector(out, ri.jitter_start);
       fan::write_to_vector(out, ri.jitter_end);
       fan::write_to_vector(out, ri.jitter_speed);
+
+      fan::write_to_vector(out, ri.size_random_range);
+      fan::write_to_vector(out, ri.color_random_range);
+      fan::write_to_vector(out, ri.angle_random_range);
 
       fan::write_to_vector(out, ri.shape);
       fan::write_to_vector(out, ri.blending);
@@ -3879,6 +3922,10 @@ namespace fan::graphics {
       p.jitter_end = fan::vector_read_data<decltype(p.jitter_end)>(in, offset);
       p.jitter_speed = fan::vector_read_data<decltype(p.jitter_speed)>(in, offset);
 
+      p.size_random_range = fan::vector_read_data<decltype(p.size_random_range)>(in, offset);
+      p.color_random_range = fan::vector_read_data<decltype(p.color_random_range)>(in, offset);
+      p.angle_random_range = fan::vector_read_data<decltype(p.angle_random_range)>(in, offset);
+
       p.shape = fan::vector_read_data<decltype(p.shape)>(in, offset);
       p.blending = fan::vector_read_data<decltype(p.blending)>(in, offset);
 
@@ -3955,6 +4002,222 @@ namespace fan::graphics {
     return fan::json::parse(json_bytes);
   }
 #endif
+
+  void sprite_sheet_controller_t::add_state(const animation_state_t& state) {
+    states.emplace_back(state);
+  }
+
+  void sprite_sheet_controller_t::update(fan::graphics::shapes::shape_t& shape, const fan::vec2& velocity) {
+    last_direction = velocity;
+    if (auto_flip_sprite) {
+      update_image_sign(shape, velocity);
+    }
+
+    g_shapes->visit_shape_draw_data(shape.NRI, [&](auto& props) {
+      if constexpr (requires { props.sprite_sheet_data; }) {
+        for (auto& state : states) {
+          if (state.animation_id.id == (uint32_t)-1) {
+            auto found = shape_sprite_sheet_lookup_table.find({props.sprite_sheet_data.shape_sprite_sheets, state.name});
+            if (found != shape_sprite_sheet_lookup_table.end()) {
+              state.animation_id = found->second;
+            }
+          }
+        }
+      }
+    });
+
+    for (auto& state : states) {
+      bool triggered = state.condition(shape);
+
+      if (state.trigger_type == animation_state_t::one_shot) {
+        if (triggered && !state.is_playing) {
+          for (auto& other : states) {
+            other.is_playing = false;
+          }
+          state.is_playing = true;
+          if (prev_animation_id != state.animation_id) {
+            shape.set_current_sprite_sheet_id(state.animation_id);
+            shape.reset_current_sprite_sheet();
+            current_animation_requires_velocity_fps = state.velocity_based_fps;
+            if (!state.velocity_based_fps) {
+              shape.set_sprite_sheet_fps(state.fps);
+            }
+            prev_animation_id = state.animation_id;
+          }
+        }
+        if (state.is_playing && shape.is_sprite_sheet_finished(state.animation_id)) {
+          state.is_playing = false;
+          continue;
+        }
+        if (state.is_playing) {
+          return;
+        }
+      }
+      else if (triggered) {
+        if (prev_animation_id != state.animation_id) {
+          shape.set_current_sprite_sheet_id(state.animation_id);
+          shape.reset_current_sprite_sheet();
+          current_animation_requires_velocity_fps = state.velocity_based_fps;
+          if (!state.velocity_based_fps) {
+            shape.set_sprite_sheet_fps(state.fps);
+          }
+          prev_animation_id = state.animation_id;
+        }
+
+        if (state.velocity_based_fps) {
+          f32_t speed = fan::math::clamp((f32_t)velocity.length() / 100.f + 0.35f, 0.f, 1.f);
+          shape.set_sprite_sheet_fps(state.fps * speed);
+        }
+        return;
+      }
+    }
+  }
+
+  void sprite_sheet_controller_t::cancel_current() {
+    for (auto& state : states) {
+      state.is_playing = false;
+    }
+    prev_animation_id = -1;
+  }
+
+  sprite_sheet_controller_t::animation_state_t& sprite_sheet_controller_t::get_state(const std::string& name) {
+    for (auto& state : states) {
+      if (name == state.name) {
+        return state;
+      }
+    }
+    fan::throw_error("state not found");
+    __unreachable();
+  }
+
+  void sprite_sheet_controller_t::update_image_sign(fan::graphics::shapes::shape_t& shape, const fan::vec2& direction) {
+  #if defined(FAN_GUI)
+    if (fan::graphics::gui::want_io()) {
+      return;
+    }
+  #endif
+
+    fan::vec2 sign = shape.get_image_sign();
+
+    if (direction.x > 0) {
+      if (sign.x < 0) shape.set_image_sign({1, sign.y});
+      desired_facing.x = 1;
+      return;
+    }
+    if (direction.x < 0) {
+      if (sign.x > 0) shape.set_image_sign({-1, sign.y});
+      desired_facing.x = -1;
+      return;
+    }
+
+    if (desired_facing.x != 0) {
+      int desired = (int)fan::math::sgn(desired_facing.x);
+      if ((int)fan::math::sgn(sign.x) != desired) {
+        shape.set_image_sign({(f32_t)desired, sign.y});
+      }
+    }
+  }
+
+  void sprite_sheet_controller_t::enable_directional(const directional_config_t& config) {
+    idle_threshold = config.idle_threshold;
+    use_8_directions = config.use_8_directions;
+
+    direction_map[direction_e::idle] = config.idle;
+    direction_map[direction_e::up] = config.move_up;
+    direction_map[direction_e::down] = config.move_down;
+    direction_map[direction_e::left] = config.move_left;
+    direction_map[direction_e::right] = config.move_right;
+
+    if (use_8_directions) {
+      direction_map[direction_e::up_left] = config.move_up_left;
+      direction_map[direction_e::up_right] = config.move_up_right;
+      direction_map[direction_e::down_left] = config.move_down_left;
+      direction_map[direction_e::down_right] = config.move_down_right;
+    }
+
+    add_state({
+      .name = config.idle,
+      .condition = [this](fan::graphics::shapes::shape_t& s) {
+        return last_direction.length() < idle_threshold;
+      }
+    });
+
+    auto make_directional_condition = [this](f32_t x_min, f32_t x_max, f32_t y_min, f32_t y_max) {
+      return [this, x_min, x_max, y_min, y_max](fan::graphics::shapes::shape_t& s) {
+        if (last_direction.length() < idle_threshold) return false;
+        fan::vec2 norm = last_direction.normalized();
+        return norm.x >= x_min && norm.x <= x_max && norm.y >= y_min && norm.y <= y_max;
+      };
+    };
+
+    if (use_8_directions) {
+      add_state({.name = config.move_up,  
+        .condition = make_directional_condition(-0.4f, 0.4f, -1.f, -0.4f)});
+      add_state({.name = config.move_down, 
+        .condition = make_directional_condition(-0.4f, 0.4f, 0.4f, 1.f)});
+      add_state({.name = config.move_left, 
+        .condition = make_directional_condition(-1.f, -0.4f, -0.4f, 0.4f)});
+      add_state({.name = config.move_right, 
+        .condition = make_directional_condition(0.4f, 1.f, -0.4f, 0.4f)});
+      add_state({.name = config.move_up_left, 
+        .condition = make_directional_condition(-1.f, -0.4f, -1.f, -0.4f)});
+      add_state({.name = config.move_up_right, 
+        .condition = make_directional_condition(0.4f, 1.f, -1.f, -0.4f)});
+      add_state({.name = config.move_down_left, 
+        .condition = make_directional_condition(-1.f, -0.4f, 0.4f, 1.f)});
+      add_state({.name = config.move_down_right, 
+        .condition = make_directional_condition(0.4f, 1.f, 0.4f, 1.f)});
+    }
+    else {
+      add_state({.name = config.move_up, 
+        .condition = make_directional_condition(-1.f, 1.f, -1.f, -0.4f)});
+      add_state({.name = config.move_down, 
+        .condition = make_directional_condition(-1.f, 1.f, 0.4f, 1.f)});
+      add_state({.name = config.move_left, 
+        .condition = make_directional_condition(-1.f, -0.4f, -1.f, 1.f)});
+      add_state({.name = config.move_right, 
+        .condition = make_directional_condition(0.4f, 1.f, -1.f, 1.f)});
+    }
+
+    auto_update_animations = true;
+  }
+
+  void sprite_sheet_controller_t::add_directional_state(const std::string& animation_name, uint8_t direction) {
+    direction_map[direction] = animation_name;
+  }
+
+  void sprite_sheet_controller_t::set_idle_animation(const std::string& name, f32_t threshold) {
+    idle_threshold = threshold;
+    direction_map[direction_e::idle] = name;
+
+    add_state({
+      .name = name,
+      .condition = [this](fan::graphics::shapes::shape_t& s) {
+        return last_direction.length() < idle_threshold;
+      }
+    });
+  }
+
+  void sprite_sheet_controller_t::override_animation(uint8_t direction, const std::string& name) {
+    direction_map[direction] = name;
+    for (auto& state : states) {
+      auto it = std::find_if(direction_map.begin(), direction_map.end(),
+        [&](const auto& pair) { return pair.second == state.name; });
+      if (it != direction_map.end() && it->first == direction) {
+        state.name = name;
+        break;
+      }
+    }
+  }
+
+  sprite_sheet_controller_t& sprite_sheet_controller_t::set_direction_animation(uint8_t direction, const std::string& name) {
+    direction_map[direction] = name;
+    return *this;
+  }
+
+  void sprite_sheet_controller_t::use_preset_2d() {
+    enable_directional({});
+  }
 }
 
 #if defined(FAN_JSON)

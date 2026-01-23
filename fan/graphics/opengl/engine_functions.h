@@ -725,9 +725,10 @@ void shapes_draw() {
 
   uint32_t texture_count = 0;
   viewport_t viewport;
-  viewport.sic();
   camera_t camera;
-  camera.sic();
+  shader_t shader;
+
+  bool shader_assigned = false;
 
   fan::graphics::shaper_t::ShapeTypeIndex_t prev_st = -1;
   bool light_buffer_enabled = false;
@@ -753,7 +754,11 @@ void shapes_draw() {
     case fan::graphics::Key_e::visible:
       visible = *(fan::graphics::visible_t*)KeyTraverse.kd();
       break;
-
+    case fan::graphics::Key_e::shader:
+      shader.gint() = *(fan::graphics::shader_raw_t*)KeyTraverse.kd();
+      loco.shader_use(shader);
+      shader_assigned = true;
+      break;
     case fan::graphics::Key_e::blending: {
       uint8_t Key = *(uint8_t*)KeyTraverse.kd();
       if (Key) {
@@ -767,7 +772,6 @@ void shapes_draw() {
       }
       break;
     }
-
     case fan::graphics::Key_e::image: {
       fan::graphics::image_t texture = *(fan::graphics::image_t*)KeyTraverse.kd();
       if (!texture.iic()) {
@@ -875,14 +879,18 @@ void shapes_draw() {
     }
 
     auto current_bmid = KeyTraverse.bmid();
-
    /* static int frame = 0;
     if (frame++ < 10) {
       fan::print("Drawing bmid:", current_bmid.gint(), "shape_type:", shape_type);
     }*/
 
-    auto shader = fan::graphics::g_shapes->shaper.GetShader(shape_type);
-    loco.shader_use(shader);
+
+    if (!shader_assigned) {
+      shader = fan::graphics::g_shapes->shaper.GetShader(shape_type);
+      loco.shader_use(shader);
+    }
+    shader_assigned = false;
+
 
     if (!camera.iic()) {
       loco.shader_set_camera(shader, camera);
@@ -942,6 +950,7 @@ void shapes_draw() {
       loco.shader_set_value(shader, "has_occlusion_map", int(!ri.images[2].iic() && ri.images[2] != loco.default_texture));
 
       for (std::size_t i = 2; i < std::size(ri.images) + 2; ++i) {
+        // will be true always, since everything is initialized to default_texture
         if (ri.images[i - 2].iic() == false) {
           loco.shader_set_value(shader, "_t0" + std::to_string(i), i);
           fan_opengl_call(glActiveTexture(GL_TEXTURE0 + i));
@@ -960,7 +969,6 @@ void shapes_draw() {
       }*/
 
       auto c = loco.camera_get(camera);
-
       loco.shader_set_value(shader, "matrix_size",
         fan::vec2(c.coordinates.right - c.coordinates.left, 
           c.coordinates.bottom - c.coordinates.top).abs() / c.zoom);
@@ -1041,6 +1049,10 @@ void shapes_draw() {
           loco.shader_set_value(shader, "jitter_start", ri.jitter_start);
           loco.shader_set_value(shader, "jitter_end", ri.jitter_end);
           loco.shader_set_value(shader, "jitter_speed", ri.jitter_speed);
+
+          loco.shader_set_value(shader, "size_random_range", ri.size_random_range);
+          loco.shader_set_value(shader, "color_random_range", ri.color_random_range);
+          loco.shader_set_value(shader, "angle_random_range", ri.angle_random_range);
 
           loco.shader_set_value(shader, "shape", ri.shape);
 

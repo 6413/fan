@@ -1288,7 +1288,7 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
   tilemap_t::tilemap_t(const fan::vec2& tile_size,
     const fan::color& color,
     const fan::vec2& area,
-    const fan::vec2& offset,
+    const fan::vec3& offset,
     render_view_t* render_view) {
     create(tile_size, color, area, offset, render_view);
   }
@@ -1378,7 +1378,7 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
     const fan::vec2& tile_size,
     const fan::color& color,
     const fan::vec2& area,
-    const fan::vec2& offset,
+    const fan::vec3& offset,
     render_view_t* render_view
   ) {
     fan::vec2 map_size(
@@ -1392,22 +1392,27 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
     shapes.resize(map_size.y, std::vector<fan::graphics::shape_t>(map_size.x));
     for (int i = 0; i < map_size.y; i++) {
       for (int j = 0; j < map_size.x; j++) {
-        positions[i][j] = offset + tile_size / 2 + fan::vec2(j * tile_size.x, i * tile_size.y);
-
-        shapes[i][j] = fan::graphics::rectangle_t {{
+        positions[i][j] = fan::vec2(offset) + tile_size / 2 + fan::vec2(j * tile_size.x, i * tile_size.y);
+        static fan::graphics::image_t img = fan::graphics::image_create(fan::colors::white);
+        shapes[i][j] = fan::graphics::sprite_t {{
           .render_view = render_view,
-          .position = fan::vec3(positions[i][j], 0),
+          .position = fan::vec3(positions[i][j], offset.z),
           .size = tile_size / 2,
-          .color = color
+          .color = color,
+          .image = img,
         }};
       }
     }
   }
 
   void tilemap_t::set_tile_color(const fan::vec2i& pos, const fan::color& c) {
-    if (pos.x < 0 || pos.x >= size.x) return;
-    if (pos.y < 0 || pos.y >= size.y) return;
+    if (!in_bounds(pos)) return;
     shapes[pos.y][pos.x].set_color(c);
+  }
+
+  void tilemap_t::set_tile_image(const fan::vec2i& pos, fan::graphics::image_t image) {
+    if (!in_bounds(pos)) return;
+    shapes[pos.y][pos.x].set_image(image);
   }
 
   constexpr f32_t tilemap_t::circle_overlap(f32_t r, f32_t i0, f32_t i1) {
@@ -1491,6 +1496,21 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
       fan::throw_error("method not implemented");
       break;
     }
+  }
+
+  fan::graphics::shape_t& tilemap_t::get_tile(const fan::vec2i& pos) {
+    return shapes[pos.y][pos.x];
+  }
+
+  bool tilemap_t::in_bounds(const fan::vec2i& pos) const {
+    return pos.x >= 0 && pos.x < size.x &&
+      pos.y >= 0 && pos.y < size.y;
+  }
+  fan::vec2i tilemap_t::to_grid(const fan::vec2& world_pos) const {
+    return fan::vec2i(
+      world_pos.x / tile_size.x,
+      world_pos.y / tile_size.y
+    );
   }
 
   fan::color terrain_palette_t::get(int value) const {
@@ -1617,7 +1637,7 @@ namespace fan::graphics {
   void tile_world_generator_t::init_tile_world() {
     tiles.resize(map_size.x * map_size.y);
     for (int i = 0; i < map_size.x * map_size.y; i++) {
-      tiles[i] = fan::random::value(0.f, 1.0f) < 0.45f;
+      tiles[i] = fan::random::value(0.f, 1.0f) < initial_fill;
     }
   }
 

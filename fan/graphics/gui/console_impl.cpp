@@ -352,5 +352,12 @@ namespace fan {
     return it;
   }
 
+  void console_t::add_cmd(const std::string& cmd, decltype(fan::commands_t::command_t::func) func) {
+    commands.add(cmd, func);
+  }
+  void console_t::remove_cmd(const std::string& cmd) {
+    commands.remove(cmd);
+  }
+
 }
 #endif

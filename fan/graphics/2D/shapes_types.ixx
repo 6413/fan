@@ -456,6 +456,7 @@ export namespace fan::graphics {
   using blending_t = uint8_t;
   using depth_t = uint16_t;
   using visible_t = uint8_t;
+  using shader_raw_t = decltype(fan::graphics::shader_t::NRI);
 
 #define st(name, viewport_inside) \
   struct CONCAT(_, name); \
@@ -497,6 +498,7 @@ export namespace fan::graphics {
     st(texture_t,
       d<visible_t> visible;
       d<depth_t> depth;
+      d<shader_raw_t> shader_raw;
       d<blending_t> blending;
       d<fan::graphics::image_t> image;
       d<fan::graphics::viewport_t> viewport;
@@ -514,6 +516,7 @@ export namespace fan::graphics {
       visible, // mainly for culling
       blending,
       depth,
+      shader,
       image,
       viewport,
       camera,

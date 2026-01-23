@@ -474,7 +474,7 @@ export namespace fan::graphics {
   };
 
   struct shader_shape_properties_t {
-    render_view_t* render_view = fan::graphics::ctx().perspective_render_view;
+    render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
 
     fan::vec3 position = 0;
     fan::vec2 size = 0;
@@ -976,7 +976,7 @@ export namespace fan::graphics {
     tilemap_t(const fan::vec2& tile_size,
       const fan::color& color,
       const fan::vec2& area = fan::window::get_size(),
-      const fan::vec2& offset = fan::vec2(0, 0),
+      const fan::vec3& offset = fan::vec3(0),
       render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
 
     fan::vec2i get_cell_count();
@@ -1004,10 +1004,11 @@ export namespace fan::graphics {
       const fan::vec2& tile_size,
       const fan::color& color,
       const fan::vec2& area = fan::window::get_size(),
-      const fan::vec2& offset = fan::vec2(0, 0),
+      const fan::vec3& offset = fan::vec3(0),
       render_view_t* render_view = fan::graphics::ctx().orthographic_render_view
     );
     void set_tile_color(const fan::vec2i& pos, const fan::color& c);
+    void set_tile_image(const fan::vec2i& pos, fan::graphics::image_t image);
     static constexpr f32_t circle_overlap(f32_t r, f32_t i0, f32_t i1);
     void highlight_circle(const fan::graphics::shapes::shape_t& circle,
       const fan::color& highlight_color);
@@ -1016,6 +1017,10 @@ export namespace fan::graphics {
       render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
     void highlight(const fan::graphics::shapes::shape_t& shape,
       const fan::color& color);
+    shape_t& get_tile(const fan::vec2i& pos);
+    bool in_bounds(const fan::vec2i& pos) const;
+    fan::vec2i to_grid(const fan::vec2& world_pos) const;
+
 
     std::vector<std::vector<fan::vec2>> positions;
     std::vector<std::vector<fan::graphics::shapes::shape_t>> shapes;
@@ -1098,9 +1103,10 @@ export namespace fan::graphics {
     void init_tile_world();
     void init();
 
+    std::vector<bool> tiles;
     fan::vec2i map_size = 64;
     f32_t cell_size = 32;
-    std::vector<bool> tiles;
+    f32_t initial_fill = 0.45f;
   };
 
   namespace effects {

@@ -89,6 +89,9 @@ struct player_t {
     });
 
     sprite_shield.set_position(body.get_center());
+    body.anim_controller.auto_update_animations = false;
+    body.anim_controller.auto_flip_sprite = true;
+
   }
 
   fan::event::task_t jump(bool is_double_jump) {
@@ -212,10 +215,10 @@ struct player_t {
     process_hotbar();
 
     if (body.is_on_ground() || body.movement_state.is_wall_sliding) {
-        if (body.get_angle().z != 0.f) {
-            body.set_angle(0.f);
-        }
-        sprite_shield.set_angle(0.f);
+      if (body.get_angle().z != 0.f) {
+        body.set_angle(0.f);
+      }
+      sprite_shield.set_angle(0.f);
     }
 
     player_light.set_position(body.get_center());
@@ -223,45 +226,45 @@ struct player_t {
     bool blocking = is_blocking();
 
     if (fan::window::is_input_released(fan::actions::block_attack)) {
-        body.cancel_animation();
+      body.cancel_animation();
     }
-    
+
     if (blocking) {
-        fan::vec2 input_vector = fan::window::get_input_vector();
-        if (input_vector.x != 0) {
-            fan::vec2 sign = body.get_image_sign();
-            int desired_sign = fan::math::sgn(input_vector.x);
-            if (fan::math::sgn(sign.x) != desired_sign) {
-                body.set_image_sign(fan::vec2(desired_sign, sign.y));
-            }
-        }
-
+      fan::vec2 input_vector = fan::window::get_input_vector();
+      if (input_vector.x != 0) {
         fan::vec2 sign = body.get_image_sign();
-        f32_t facing_direction = sign.x;
-
-        fan::vec2 shield_offset = fan::vec2(body.get_size().x * facing_direction, 0);
-        fan::vec3 shield_pos = body.get_center().offset_z(1) + shield_offset;
-
-        sprite_shield.set_position(shield_pos);
-        sprite_shield.set_rotation_point(body.get_center() - shield_pos);
-        sprite_shield.set_tc_size(fan::vec2(facing_direction, 1.0f));
-        
-        if (!body.attack_state.is_attacking) {
-            body.cancel_animation();
-            body.set_sprite_sheet("attack0");
-            body.set_current_sprite_sheet_frame(3);
+        int desired_sign = fan::math::sgn(input_vector.x);
+        if (fan::math::sgn(sign.x) != desired_sign) {
+          body.set_image_sign(fan::vec2(desired_sign, sign.y));
         }
-        
-        body.movement_state.max_speed = max_player_speed / 3.f;
+      }
+
+      fan::vec2 sign = body.get_image_sign();
+      f32_t facing_direction = sign.x;
+
+      fan::vec2 shield_offset = fan::vec2(body.get_size().x * facing_direction, 0);
+      fan::vec3 shield_pos = body.get_center().offset_z(1) + shield_offset;
+
+      sprite_shield.set_position(shield_pos);
+      sprite_shield.set_rotation_point(body.get_center() - shield_pos);
+      sprite_shield.set_tc_size(fan::vec2(facing_direction, 1.0f));
+
+      if (!body.attack_state.is_attacking) {
+        body.cancel_animation();
+        body.set_sprite_sheet("attack0");
+        body.set_current_sprite_sheet_frame(3);
+      }
+
+      body.movement_state.max_speed = max_player_speed / 3.f;
     }
     else {
-        body.movement_state.max_speed = max_player_speed;
-        sprite_shield.set_position(fan::vec2(-0xfffff));
-        body.update_animations();
+      body.movement_state.max_speed = max_player_speed;
+      sprite_shield.set_position(fan::vec2(-0xfffff));
+      body.update_animations();
     }
 
     if (!pile->level_stage) {
-        return;
+      return;
     }
 
     auto& level = pile->get_level();

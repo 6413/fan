@@ -115,5 +115,17 @@ export namespace fan {
       f32_t r = fan::random::value_f32(min, max);
       return fan::vec2(cos(r), sin(r));
     }
+    f32_t angle_45() {
+      int i = fan::random::value_i64(-4, 4);
+      return i * (fan::math::pi / 4);
+    }
+    f32_t angle_90() {
+      int i = fan::random::value_i64(-2, 2);
+      return i * (fan::math::pi / 2);
+    }
+    f32_t angle_180() {
+      int i = fan::random::value_i64(-1, 1);
+      return i * fan::math::pi;
+    }
   }
 }

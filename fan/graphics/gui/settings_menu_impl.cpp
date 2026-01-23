@@ -55,7 +55,7 @@ namespace fan::graphics::gui {
 
     if (j.contains("debug")) {
       const auto& d = j["debug"];
-      if (d.contains("frustum_culling_enabled")) debug.frustum_culling_enabled = d["frustum_culling_enabled"];
+      if (d.contains("frustum_culling")) debug.frustum_culling_enabled = d["frustum_culling"];
       if (d.contains("visualize_culling")) debug.visualize_culling = d["visualize_culling"];
       if (d.contains("culling_padding")) {
         debug.culling_padding.x = d["culling_padding"]["x"];
@@ -72,6 +72,9 @@ namespace fan::graphics::gui {
 
     if (j.contains("post_processing")) {
       const auto& pp = j["post_processing"];
+      if (pp.contains("bloom")) {
+        gloco()->open_props.enable_bloom = pp["bloom"];
+      }
       if (pp.contains("bloom_strength")) {
         post_processing.bloom_strength = pp["bloom_strength"];
       }
@@ -95,7 +98,7 @@ namespace fan::graphics::gui {
     j["performance"]["track_heap"] = performance.track_heap;
     j["performance"]["track_opengl_calls"] = performance.track_opengl_calls;
 
-    j["debug"]["frustum_culling_enabled"] = debug.frustum_culling_enabled;
+    j["debug"]["frustum_culling"] = debug.frustum_culling_enabled;
     j["debug"]["visualize_culling"] = debug.visualize_culling;
     j["debug"]["culling_padding"]["x"] = debug.culling_padding.x;
     j["debug"]["culling_padding"]["y"] = debug.culling_padding.y;
@@ -103,6 +106,7 @@ namespace fan::graphics::gui {
     j["debug"]["fill_mode"] = debug.fill_mode;
 
     j["audio"]["volume"] = audio.volume;
+    j["post_processing"]["bloom"] = gloco()->open_props.enable_bloom;
     j["post_processing"]["bloom_strength"] = post_processing.bloom_strength;
 
     return j;
@@ -182,6 +186,14 @@ namespace fan::graphics::gui {
         }
       }
     );
+    gloco()->shader_set_value(
+      gloco()->gl.m_fbo_final_shader,
+      "bloom_strength",
+      config.post_processing.bloom_strength
+    );
+
+
+    gloco()->set_culling_enabled(config.debug.frustum_culling_enabled);
   }
 
   bool settings_menu_t::draw_toggle_row(

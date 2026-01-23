@@ -210,6 +210,7 @@ export namespace fan::graphics {
   fan::json sprite_sheet_serialize();
   void sprite_sheets_parse(const std::string& json_path, fan::json& json, const std::source_location& callers_path = std::source_location::current());
 #endif
+
   //-----------------------sprite sheet-----------------------
 
   struct sprite_flags_e {
@@ -472,7 +473,8 @@ export namespace fan::graphics {
       // for line
       void set_thickness(f32_t new_thickness);
       void apply_floating_motion(f32_t time = 0.f/*start_time.seconds()*/, f32_t amplitude = 5.f, f32_t speed = 2.f, f32_t phase = 0.f);
-      void start_particles();
+      // offset in seconds
+      void start_particles(f32_t start_offset = 0.f);
       void stop_particles();
 
       //vram
@@ -1247,6 +1249,10 @@ export namespace fan::graphics {
         fan::vec2 jitter_end;
         f32_t jitter_speed;
 
+        fan::vec2 size_random_range = 0;
+        fan::vec4 color_random_range = 0;
+        fan::vec3 angle_random_range = 0;
+
         uint32_t shape;
 
         bool blending;
@@ -1292,6 +1298,10 @@ export namespace fan::graphics {
         fan::vec2 jitter_start = 0;
         fan::vec2 jitter_end = 0;
         f32_t jitter_speed = 0.0;
+
+        fan::vec2 size_random_range = 0;
+        fan::vec4 color_random_range = 0;
+        fan::vec3 angle_random_range = 0;
 
         uint32_t shape = shapes_e::circle;
 
@@ -1943,6 +1953,75 @@ export namespace fan::graphics {
       }
     }
   }
+
+
+  struct direction_e {
+    enum {
+      idle = 0,
+      up = 1,
+      down = 2,
+      left = 3,
+      right = 4,
+      up_left = 5,
+      up_right = 6,
+      down_left = 7,
+      down_right = 8
+    };
+  };
+
+  struct sprite_sheet_controller_t {
+    struct animation_state_t {
+      enum trigger_type_e {
+        continuous,
+        one_shot,
+        manual
+      };
+      std::string name;
+      fan::graphics::sprite_sheet_id_t animation_id;
+      int fps = 15;
+      bool velocity_based_fps = false;
+      trigger_type_e trigger_type = continuous;
+      std::function<bool(fan::graphics::shapes::shape_t&)> condition;
+      bool is_playing = false;
+    };
+    struct directional_config_t {
+      std::string idle = "idle";
+      std::string move_up = "move_up";
+      std::string move_down = "move_down";
+      std::string move_left = "move_left";
+      std::string move_right = "move_right";
+      std::string move_up_left = "move_up_left";
+      std::string move_up_right = "move_up_right";
+      std::string move_down_left = "move_down_left";
+      std::string move_down_right = "move_down_right";
+      f32_t idle_threshold = 0.1f;
+      bool use_8_directions = false;
+    };
+
+    void add_state(const animation_state_t& state);
+    void update(fan::graphics::shapes::shape_t& shape, const fan::vec2& velocity);
+    void cancel_current();
+    animation_state_t& get_state(const std::string& name);
+    void update_image_sign(fan::graphics::shapes::shape_t& shape, const fan::vec2& direction);
+    void enable_directional(const directional_config_t& config);
+    void add_directional_state(const std::string& animation_name, uint8_t direction);
+    void set_idle_animation(const std::string& name, f32_t threshold);
+    void override_animation(uint8_t direction, const std::string& name);
+    sprite_sheet_controller_t& set_direction_animation(uint8_t direction, const std::string& name);
+    void use_preset_2d();
+
+    std::vector<animation_state_t> states;
+    std::unordered_map<uint8_t, std::string> direction_map;
+    fan::vec2 last_direction = 0;
+    fan::vec2 desired_facing = {1, 0};
+    fan::graphics::sprite_sheet_id_t prev_animation_id;
+    f32_t idle_threshold = 0.1f;
+    bool auto_flip_sprite = true; 
+    bool current_animation_requires_velocity_fps = false;
+    bool auto_update_animations = false;
+    bool use_8_directions = false;
+  };
+
 } // namespace fan::graphics
 
 #endif

@@ -91,8 +91,8 @@ private:
       body.movement_state.max_speed = 500.f;
       behavior_config.backstep_cooldown = 3.0e9;
     }
-    behavior.update(body, pile->player.get_physics_pos(), behavior_config);
-    body.anim_controller.update(&body);
+    behavior.update(body, pile->player.get_physics_pos(), behavior_config); 
+    body.anim_controller.update(body, body.get_linear_velocity());
   }
 
   fan::graphics::physics::boss_behavior_t behavior;
