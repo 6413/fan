@@ -161,7 +161,7 @@ struct engine_demo_t {
     if (engine_demo->shapes.empty()) {
       return;
     }
-    engine_demo->engine.lighting.ambient = 0.5;
+    engine_demo->engine.lighting.set_target(0.4f);
     fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     engine_demo->shapes[0].set_position(fan::vec2(0));
     engine_demo->shapes[0].set_size(viewport_size/2);
@@ -175,6 +175,9 @@ struct engine_demo_t {
     engine_demo->shapes[4].set_size(viewport_size.min() / 3);
 
     engine_demo->shapes.back().set_position(get_mouse_position(engine_demo->right_column_view));
+  }
+  static void demo_shapes_lighting_cleanup(engine_demo_t* engine_demo) {
+    engine_demo->engine.lighting.set_target(1.f);
   }
 
   struct demo_particles_t {
@@ -1326,7 +1329,7 @@ void main() {
     demo_t{.name = "Gradient",                    .init_function = demo_shapes_init_gradient,              .update_function=shape_update_function                                                                                  },
     demo_t{.name = "Grid",                        .init_function = demo_shapes_init_grid,                                                                                                                                          },
     demo_t{.name = "Image Decoder",               .init_function = demo_shapes_init_universal_image_renderer                                                                                                                       },
-    demo_t{.name = "Light",                       .init_function = demo_shapes_init_lighting,              .update_function = demo_shapes_lighting_update                                                                          },
+    demo_t{.name = "Light",                       .init_function = demo_shapes_init_lighting,              .update_function = demo_shapes_lighting_update,             .cleanup_function = demo_shapes_lighting_cleanup            },
     demo_t{.name = "Particles",                   .init_function = demo_shapes_init_particles,             .update_function = demo_shapes_particles_update,            .cleanup_function = demo_shapes_particles_cleanup           },
     demo_t{.name = "Polygon",                     .init_function = demo_shapes_init_polygon,               .update_function = shape_update_function                                                                                },
     demo_t{.name = "Rectangle",                   .init_function = demo_shapes_init_rectangle,             .update_function = shape_update_function                                                                                },
@@ -1533,6 +1536,7 @@ void main() {
 
 int main() {////
   engine_demo_t demo;
+
   //demo.engine.cell_size = 32;
   //demo.engine.culling_rebuild_grid();
   demo.engine.set_culling_enabled(false);
