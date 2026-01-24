@@ -43,7 +43,7 @@ struct engine_demo_t {
     }
   }
 
-  static void demo_shapes_init_capsule(engine_demo_t* engine_demo) {
+  static void demo_shapes_init_capsules(engine_demo_t* engine_demo) {
     init_shapes<fan::graphics::capsule_t>(engine_demo, [&](uint32_t i, fan::vec2 viewport_size) {
       return fan::graphics::capsule_t {{
         .render_view = &engine_demo->right_column_view,
@@ -55,7 +55,7 @@ struct engine_demo_t {
       }};
     });
   }
-  static void demo_shapes_init_circle(engine_demo_t* engine_demo) {
+  static void demo_shapes_init_circles(engine_demo_t* engine_demo) {
     init_shapes<fan::graphics::circle_t>(engine_demo, [&](uint32_t i, fan::vec2 viewport_size) {
       return fan::graphics::circle_t{{
         .render_view = &engine_demo->right_column_view,
@@ -65,7 +65,7 @@ struct engine_demo_t {
       }};
     });
   }
-  static void demo_shapes_init_gradient(engine_demo_t* engine_demo) {
+  static void demo_shapes_init_gradients(engine_demo_t* engine_demo) {
     init_shapes<fan::graphics::gradient_t>(engine_demo, [&](uint32_t i, fan::vec2 viewport_size) {
       return fan::graphics::gradient_t{{
         .render_view = &engine_demo->right_column_view,
@@ -101,7 +101,11 @@ struct engine_demo_t {
     }});////
     std::string pixel_data_str;
     constexpr fan::vec2ui image_size = fan::vec2ui(510, 510);
-    fan::io::file::read("images/rgb_510x510_420p.yuv", &pixel_data_str);
+    std::string img_file = "images/rgb_510x510_420p.yuv";
+    if (fan::io::file::read(img_file, &pixel_data_str)) {
+      fan::print_error("failed to open file:" + img_file);
+      return;
+    }
     void* pixel_data = pixel_data_str.data();
     auto split = fan::image::plane_split(pixel_data, image_size, fan::graphics::image_format::yuv420p);
     engine_demo->shapes.back().reload(fan::graphics::image_format::yuv420p, split, image_size);
@@ -109,7 +113,7 @@ struct engine_demo_t {
 
   fan::graphics::image_t image_tire = engine.image_load("images/tire.webp");
 
-  static void demo_shapes_init_lighting(engine_demo_t* engine_demo) {
+  static void demo_shapes_init_lights(engine_demo_t* engine_demo) {
     fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     
     static auto image_background = engine_demo->engine.image_create(fan::color(0.5, 0.5, 0.5, 1));
@@ -157,7 +161,7 @@ struct engine_demo_t {
       .color = fan::colors::purple
     }});
   }
-  static void demo_shapes_lighting_update(engine_demo_t* engine_demo) {
+  static void demo_shapes_lights_update(engine_demo_t* engine_demo) {
     if (engine_demo->shapes.empty()) {
       return;
     }
@@ -176,7 +180,7 @@ struct engine_demo_t {
 
     engine_demo->shapes.back().set_position(get_mouse_position(engine_demo->right_column_view));
   }
-  static void demo_shapes_lighting_cleanup(engine_demo_t* engine_demo) {
+  static void demo_shapes_lights_cleanup(engine_demo_t* engine_demo) {
     engine_demo->engine.lighting.set_target(1.f);
   }
 
@@ -233,7 +237,7 @@ struct engine_demo_t {
     delete engine_demo->demo_particles_data;
   }
 
-  static void demo_shapes_init_polygon(engine_demo_t* engine_demo) {
+  static void demo_shapes_init_polygons(engine_demo_t* engine_demo) {
     engine_demo->shapes.resize(engine_demo->shape_count);
     fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
 
@@ -290,7 +294,7 @@ struct engine_demo_t {
       };
     }
   }
-  static void demo_shapes_init_rectangle(engine_demo_t* engine_demo) {
+  static void demo_shapes_init_rectangles(engine_demo_t* engine_demo) {
     init_shapes<fan::graphics::rectangle_t>(engine_demo, [&](uint32_t i, fan::vec2 viewport_size) {
       return fan::graphics::rectangle_t{{
         .render_view = &engine_demo->right_column_view,
@@ -370,7 +374,7 @@ void main() {
     }
   }
 
-  static void demo_shapes_init_sprite(engine_demo_t* engine_demo) {
+  static void demo_shapes_init_sprites(engine_demo_t* engine_demo) {
     init_shapes<fan::graphics::sprite_t>(engine_demo, [&](uint32_t i, fan::vec2 viewport_size) {
       return fan::graphics::sprite_t{{
         .render_view = &engine_demo->right_column_view,
@@ -386,7 +390,7 @@ void main() {
     fan::graphics::shape_t sprite_with_animation;
   }*demo_sprite_sheet_data = 0;
 
-  static void demo_shapes_init_sprite_sheet(engine_demo_t* engine_demo) {
+  static void demo_shapes_init_sprites_sheet(engine_demo_t* engine_demo) {
     engine_demo->demo_sprite_sheet_data = new demo_sprite_sheet_t();
     auto& data = *engine_demo->demo_sprite_sheet_data;
 
@@ -1324,18 +1328,18 @@ void main() {
 
   inline static auto demos = std::to_array({
     // Shapes
-    demo_t{.name = "Capsule",                     .init_function = demo_shapes_init_capsule,               .update_function=shape_update_function                                                                                  },
-    demo_t{.name = "Circle",                      .init_function = demo_shapes_init_circle,                .update_function=shape_update_function                                                                                  },
-    demo_t{.name = "Gradient",                    .init_function = demo_shapes_init_gradient,              .update_function=shape_update_function                                                                                  },
+    demo_t{.name = "Capsules",                    .init_function = demo_shapes_init_capsules,              .update_function=shape_update_function                                                                                  },
+    demo_t{.name = "Circles",                     .init_function = demo_shapes_init_circles,               .update_function=shape_update_function                                                                                  },
+    demo_t{.name = "Gradients",                   .init_function = demo_shapes_init_gradients,             .update_function=shape_update_function                                                                                  },
     demo_t{.name = "Grid",                        .init_function = demo_shapes_init_grid,                                                                                                                                          },
     demo_t{.name = "Image Decoder",               .init_function = demo_shapes_init_universal_image_renderer                                                                                                                       },
-    demo_t{.name = "Light",                       .init_function = demo_shapes_init_lighting,              .update_function = demo_shapes_lighting_update,             .cleanup_function = demo_shapes_lighting_cleanup            },
-    demo_t{.name = "Particles",                   .init_function = demo_shapes_init_particles,             .update_function = demo_shapes_particles_update,            .cleanup_function = demo_shapes_particles_cleanup           },
-    demo_t{.name = "Polygon",                     .init_function = demo_shapes_init_polygon,               .update_function = shape_update_function                                                                                },
-    demo_t{.name = "Rectangle",                   .init_function = demo_shapes_init_rectangle,             .update_function = shape_update_function                                                                                },
+    demo_t{.name = "Lights",                      .init_function = demo_shapes_init_lights,                .update_function = demo_shapes_lights_update,              .cleanup_function = demo_shapes_lights_cleanup               },
+    demo_t{.name = "Particles",                   .init_function = demo_shapes_init_particles,             .update_function = demo_shapes_particles_update,           .cleanup_function = demo_shapes_particles_cleanup            },
+    demo_t{.name = "Polygon",                     .init_function = demo_shapes_init_polygons,              .update_function = shape_update_function                                                                                },
+    demo_t{.name = "Rectangles",                  .init_function = demo_shapes_init_rectangles,            .update_function = shape_update_function                                                                                },
     demo_t{.name = "Shader",                      .init_function = demo_shapes_init_shader_shape,          .update_function = demo_shader_shape_update                                                                             },
-    demo_t{.name = "Sprite",                      .init_function = demo_shapes_init_sprite,                .update_function = shape_update_function                                                                                },
-    demo_t{.name = "Sprite Sheet",                .init_function = demo_shapes_init_sprite_sheet,                                                                     .cleanup_function = demo_sprite_sheet_cleanup                },
+    demo_t{.name = "Sprites",                     .init_function = demo_shapes_init_sprites,                .update_function = shape_update_function                                                                               },
+    demo_t{.name = "Sprite Sheets",               .init_function = demo_shapes_init_sprites_sheet,                                                                     .cleanup_function = demo_sprite_sheet_cleanup               },
     demo_t{.name = "_next"                                                                                                                                                                                                         },
     // GUI                                                                                                                                                                                                                         
     demo_t{.name = "Live Shader Editor",          .init_function = demo_shapes_init_shader_live_editor,    .update_function = demo_shader_live_editor_update,         .cleanup_function = demo_shader_live_editor_cleanup          },

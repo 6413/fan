@@ -153,7 +153,9 @@ static fan::graphics::image_t get_image(const shape_t* shape) {
   });
   g_shapes->visit_shape_draw_data(shape->NRI, [&](auto& props) {
     if constexpr (requires { props.images; }) {
-      img = props.images[0];
+      if (!img.valid()) {
+        img = props.images[0];
+      }
     }
   });
   return img;

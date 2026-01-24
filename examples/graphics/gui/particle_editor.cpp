@@ -45,7 +45,7 @@ int main() {
 
     .shape = shapes::particles_t::shapes_e::circle,
 
-    .image = image_load("examples/games/platformer/effects/bubble.png", image_presets::pixel_art())
+    .image = image_load("images/bubble.webp", image_presets::pixel_art())
   });
 
   fan::graphics::gui::content_browser_t browser;
