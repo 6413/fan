@@ -119,8 +119,7 @@ namespace fan::graphics::gui {
         full_rect.Min,
         full_rect.Max,
         fan::color(0.f, 1.f, 1.f, 1.f).get_gui_color(),
-        0.f,
-        1.5f
+        0.f
       );
     }
 

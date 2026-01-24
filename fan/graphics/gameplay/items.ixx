@@ -6,6 +6,7 @@ module;
 
 export module fan.graphics.gameplay.items;
 
+import fan.print;
 import fan.graphics;
 import fan.graphics.gui.base;
 import fan.graphics.gameplay.types;

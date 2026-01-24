@@ -1,5 +1,11 @@
+module;
+
+#include <cstdint>
+#include <array>
+
 export module fan.graphics.gui.gameplay.equipment;
 
+import fan.types.vector;
 import fan.graphics;
 import fan.graphics.gui.base;
 import fan.graphics.gui.input;

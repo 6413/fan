@@ -1,6 +1,8 @@
 module;
 
+#include <cstdint>
 #include <optional>
+#include <vector>
 
 export module fan.graphics.gui.inventory;
 
@@ -10,13 +12,12 @@ import fan.graphics.gui.input;
 import fan.graphics.gui.drag_drop;
 import fan.graphics.gui.slot_renderer;
 import fan.graphics.gameplay.items;
+import fan.graphics.gui.hotbar;
 export import fan.graphics.gameplay.types;
 
 using namespace fan::graphics;
 
 export namespace fan::graphics::gui {
-
-  struct hotbar_t;
 
   struct inventory_style_t {
     fan::vec2 slot_size = fan::vec2(81, 81);
@@ -205,7 +206,7 @@ export namespace fan::graphics::gui {
           }
         }
       }
-}
+    }
 
     void drop_to_inventory_slot(uint32_t slot_index) {
       if (!drag_state.active || slot_index >= slots.size()) {
@@ -215,9 +216,106 @@ export namespace fan::graphics::gui {
       drag_drop::apply_to_slot(drag_state, dst_slot);
     }
 
-    void drop_to_secondary_slot(uint32_t slot_index);
-    void return_drag_to_source();
-    void transfer_to_secondary_exact(uint32_t inventory_slot_index, uint32_t secondary_slot_index);
+    void drop_to_secondary_slot(uint32_t slot_index) {
+      if (!drag_state.active || !secondary || slot_index >= secondary->slots.size()) {
+        return;
+      }
+      auto& dst_slot = secondary->slots[slot_index];
+      drag_drop::apply_to_slot(drag_state, dst_slot);
+    }
+    void return_drag_to_source() {
+      if (!drag_state.active) {
+        return;
+      }
+
+      if (drag_state.from_secondary) {
+        if (!secondary) {
+          drag_drop::cancel(drag_state);
+          return;
+        }
+        if (drag_state.slot_index < secondary->slots.size()) {
+          auto& slot = secondary->slots[drag_state.slot_index];
+          if (slot.is_empty()) {
+            slot.id = drag_state.id;
+            slot.stack_size = drag_state.stack_size;
+          }
+          else {
+            drag_drop::apply_to_slot(drag_state, slot);
+          }
+        }
+        drag_state.active = false;
+      }
+      else {
+        if (drag_state.slot_index < slots.size()) {
+          auto& slot = slots[drag_state.slot_index];
+          if (slot.is_empty()) {
+            slot.id = drag_state.id;
+            slot.stack_size = drag_state.stack_size;
+          }
+          else {
+            drag_drop::apply_to_slot(drag_state, slot);
+          }
+        }
+        drag_state.active = false;
+      }
+    }
+    void transfer_to_secondary_exact(uint32_t inventory_slot_index, uint32_t secondary_slot_index) {
+      if (!secondary) {
+        return;
+      }
+      if (inventory_slot_index >= slots.size()) {
+        return;
+      }
+      if (secondary_slot_index >= secondary->slots.size()) {
+        return;
+      }
+      auto& src_slot = slots[inventory_slot_index];
+      auto& dst_slot = secondary->slots[secondary_slot_index];
+      if (src_slot.is_empty()) {
+        return;
+      }
+      auto& reg = fan::graphics::gameplay::items::get_registry();
+      auto* def = reg.get_definition(*src_slot.id);
+      if (!def) {
+        return;
+      }
+      if (dst_slot.is_empty()) {
+        dst_slot.id = src_slot.id;
+        dst_slot.stack_size = src_slot.stack_size;
+        src_slot.id.reset();
+        src_slot.stack_size.reset();
+        return;
+      }
+      if (*dst_slot.id == *src_slot.id) {
+        uint32_t free_space = 0;
+        if (*dst_slot.stack_size < def->max_stack) {
+          free_space = def->max_stack - *dst_slot.stack_size;
+        }
+        if (free_space == 0) {
+          uint32_t tmp_id = *dst_slot.id;
+          uint32_t tmp_stack = *dst_slot.stack_size;
+          dst_slot.id = *src_slot.id;
+          dst_slot.stack_size = *src_slot.stack_size;
+          src_slot.id = tmp_id;
+          src_slot.stack_size = tmp_stack;
+          return;
+        }
+        uint32_t to_add = std::min(free_space, *src_slot.stack_size);
+        *dst_slot.stack_size += to_add;
+        *src_slot.stack_size -= to_add;
+        if (*src_slot.stack_size == 0) {
+          src_slot.id.reset();
+          src_slot.stack_size.reset();
+        }
+        return;
+      }
+      uint32_t tmp_id = *dst_slot.id;
+      uint32_t tmp_stack = *dst_slot.stack_size;
+      dst_slot.id = *src_slot.id;
+      dst_slot.stack_size = *src_slot.stack_size;
+      src_slot.id = tmp_id;
+      src_slot.stack_size = tmp_stack;
+    }
 
     bool try_drop_here(uint32_t slot_index, gui::drag_drop::drag_state_t& drag_state) {
       drop_to_inventory_slot(slot_index);
