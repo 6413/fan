@@ -46,9 +46,12 @@ namespace fan::graphics {
   // warning does deep copy, addresses can die
   fan::graphics::context_shader_t shader_get(fan::graphics::shader_nr_t nr) {
     fan::graphics::context_shader_t context_shader;
-    if (fan::graphics::ctx().window->renderer == fan::window_t::renderer_t::opengl) {
+    if (0) {}
+  #if defined(FAN_OPENGL)
+    else if (fan::graphics::ctx().window->renderer == fan::window_t::renderer_t::opengl) {
       context_shader.gl = *(fan::opengl::context_t::shader_t*)fan::graphics::ctx()->shader_get(fan::graphics::ctx(), nr);
     }
+  #endif
   #if defined(FAN_VULKAN)
     else if (fan::graphics::ctx().window->renderer == fan::window_t::renderer_t::vulkan) {
       context_shader.vk = *(fan::vulkan::context_t::shader_t*)fan::graphics::ctx()->shader_get(fan::graphics::ctx(), nr);
@@ -1138,11 +1141,6 @@ namespace fan::graphics{
         Key_e::draw_mode, properties.draw_mode,
         Key_e::vertex_count, properties.vertex_count
       );
-      g_shapes->visit_shape_draw_data(NRI, [&](auto& properties) {
-        if constexpr (requires { properties.format; }) {
-          properties.format = sd.visual.get_image_data().image_settings.format;
-        }
-      });
       break;
     }
     case shape_type_t::gradient: {
@@ -1497,7 +1495,6 @@ namespace fan::graphics{
     return m;
   }
 
-#if defined(FAN_PHYSICS_2D)
   fan::physics::aabb_t shapes::shape_t::get_aabb() const {
 
     switch (get_shape_type()) {
@@ -1529,7 +1526,6 @@ namespace fan::graphics{
 
     return { minp, maxp };
   }
-#endif
 
   fan::vec2 shapes::shape_t::get_tc_position() const {
     return g_shapes->shape_functions[get_shape_type()].get_tc_position(this);
@@ -1678,6 +1674,17 @@ namespace fan::graphics{
 
   fan::graphics::image_t shapes::shape_t::get_image() const {
     auto st = get_shape_type();
+    if (get_shape_type() == fan::graphics::shape_type_t::universal_image_renderer) {
+      if (get_visual_id()) {
+        return g_shapes->shape_functions[st].get_image(this);
+      }
+      shapes::shape_ids_t::nr_t id;
+      id.gint() = NRI;
+      auto& sd = g_shapes->shape_ids[id];
+      shapes::universal_image_renderer_list_t::nr_t nr;
+      nr.gint() = sd.data_nr;
+      return g_shapes->universal_image_renderer_list[nr].images[0];
+    }
     if (g_shapes->shape_functions[st].get_image) {
       return g_shapes->shape_functions[st].get_image(this);
     }
@@ -1692,7 +1699,7 @@ namespace fan::graphics{
   }
 
   fan::graphics::image_data_t& shapes::shape_t::get_image_data() {
-    return g_shapes->shape_functions[get_shape_type()].get_image_data(this);
+    return (*fan::graphics::ctx().image_list)[get_image()];
   }
 
   std::array<fan::graphics::image_t, 30> shapes::shape_t::get_images() const {
@@ -1704,10 +1711,15 @@ namespace fan::graphics{
       return ((unlit_sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper))->images;
     }
     else if (shape_type == shape_type_t::universal_image_renderer) {
-      std::array<fan::graphics::image_t, 30> ret;
-      auto uni_images = ((universal_image_renderer_t::ri_t*)GetData(fan::graphics::g_shapes->shaper))->images_rest;
-      std::copy(uni_images.begin(), uni_images.end(), ret.begin());
+      shapes::shape_ids_t::nr_t id;
+      id.gint() = NRI;
+      auto& sd = g_shapes->shape_ids[id];
+      shapes::universal_image_renderer_list_t::nr_t nr;
+      nr.gint() = sd.data_nr;
 
+      auto& imgs = g_shapes->universal_image_renderer_list[nr].images;
+      std::array<fan::graphics::image_t, 30> ret;
+      std::copy(imgs.begin(), imgs.end(), ret.data());
       return ret;
     }
   #if FAN_DEBUG >= fan_debug_medium
@@ -1798,7 +1810,6 @@ namespace fan::graphics{
     uint8_t image_count_new = fan::graphics::get_channel_amount(format);
     if (format != props.format) {
       auto sti = get_shape_type();
-      uint8_t* key_pack = g_shapes->shaper.GetKeys(*get_visual_shape());
       fan::graphics::image_t vi_image = get_image();
 
       auto shader = g_shapes->shaper.GetShader(sti);
@@ -1840,8 +1851,8 @@ namespace fan::graphics{
             set_image(fan::graphics::ctx().default_texture);
           }
           else {
-            fan::graphics::ctx()->image_erase(fan::graphics::ctx(), props.images[index - 1]);
-            props.images[index - 1] = fan::graphics::ctx().default_texture;
+            fan::graphics::ctx()->image_erase(fan::graphics::ctx(), props.images[index]);
+            props.images[index] = fan::graphics::ctx().default_texture;
           }
         }
       }
@@ -1851,7 +1862,7 @@ namespace fan::graphics{
           images[i] = fan::graphics::ctx()->image_create(fan::graphics::ctx());
         }
         set_image(images[0]);
-        std::copy(&images[1], &images[0] + props.images.size(), props.images.data());
+        std::copy(&images[0], &images[0] + props.images.size(), props.images.data());
       }
     }
 
@@ -1865,8 +1876,8 @@ namespace fan::graphics{
         }
       }
       else {
-        if (props.images[i - 1].iic() || props.images[i - 1] == fan::graphics::ctx().default_texture) {
-          props.images[i - 1] = fan::graphics::ctx()->image_create(fan::graphics::ctx());
+        if (props.images[i].iic() || props.images[i] == fan::graphics::ctx().default_texture) {
+          props.images[i] = fan::graphics::ctx()->image_create(fan::graphics::ctx());
         }
       }
     }
@@ -1893,16 +1904,17 @@ namespace fan::graphics{
         );
       }
       else {
-            
         fan::graphics::ctx()->image_reload_image_info_props(fan::graphics::ctx(), 
-          props.images[i - 1],
+          props.images[i],
           image_info,
           lp
         );
       }
     }
-    universal_image_renderer_t::ri_t& ri = *(universal_image_renderer_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
-    std::copy(props.images.begin(), props.images.end(), ri.images_rest.data());
+    if (get_visual_id()) {
+      universal_image_renderer_t::ri_t& ri = *(universal_image_renderer_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
+      std::copy(props.images.begin() + 1, props.images.end(), ri.images_rest.data());
+    }
     props.format = format;
   }
 
@@ -3971,7 +3983,6 @@ namespace fan::graphics {
   bool shape_serialize(fan::graphics::shapes::shape_t& shape, std::vector<uint8_t>* out) {
     return shape_to_bin(shape, out);
   }
-#if defined(FAN_PHYSICS_2D)
   bool shape_deserialize_t::iterate(const fan::json& json, fan::graphics::shapes::shape_t* shape, const std::source_location& callers_path) {
     if (init == false) {
       data.it = json.cbegin();
@@ -3991,7 +4002,6 @@ namespace fan::graphics {
     }
     return 1;
   }
-#endif
   bool shape_deserialize_t::iterate(const std::vector<uint8_t>& bin_data, fan::graphics::shapes::shape_t* shape) {
     if (bin_data.empty()) {
       return 0;
@@ -4002,7 +4012,6 @@ namespace fan::graphics {
     bin_to_shape(bin_data, shape, data.offset);
     return 1;
   }
-#if defined(FAN_PHYSICS_2D)
   fan::graphics::shapes::shape_t extract_single_shape(const fan::json& json_data, const std::source_location& callers_path) {
     fan::graphics::shapes::shape_t shape;
     fan::graphics::shape_deserialize_t iterator;
@@ -4024,7 +4033,6 @@ namespace fan::graphics {
     fan::io::file::read(fan::io::file::find_relative_path(path, callers_path), &json_bytes);
     return fan::json::parse(json_bytes);
   }
-#endif
 
   void sprite_sheet_controller_t::add_state(const animation_state_t& state) {
     states.emplace_back(state);

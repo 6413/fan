@@ -305,6 +305,11 @@ export namespace fan {
       raw_writer_t& operator=(raw_writer_t&&) = default;
 
       int write(const buffer_t& some_data) {
+
+        if (!uv_is_writable(data->stream.get())) { 
+          fan::throw_error("tcp write failed: socket not writable (not connected)"); 
+        }
+
         data->to_write = some_data;
         data->status = 1;
         uv_buf_t buf = uv_buf_init(data->to_write.data(), data->to_write.size());
@@ -317,7 +322,8 @@ export namespace fan {
             }
           });
         if (r < 0) {
-          fan::throw_error("tcp write failed:", uv_strerror(r));
+          std::string msg = std::string("tcp write failed: ") + uv_err_name(r) + " (" + uv_strerror(r) + ")"; 
+          fan::throw_error(msg);
         }
         return r;
       }

@@ -1,5 +1,7 @@
 module;
 
+#if defined(FAN_AUDIO)
+
 #include <fan/utility.h> // abort
 
 #ifndef fan_audio_set_backend
@@ -42,13 +44,16 @@ module;
 #include <WITCH/T/T.h>
 #include <WITCH/TH/TH.h>
 
+#endif
+
 export module fan.audio;
+
+#if defined(FAN_AUDIO)
 
 import fan.print;
 import fan.utility;
 import fan.io.file;
 import fan.math;
-
 
 export namespace fan {
   struct system_audio_t {
@@ -284,4 +289,6 @@ export namespace fan {
     }
   }
 }
+#endif
+
 #endif

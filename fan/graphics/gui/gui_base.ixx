@@ -182,8 +182,14 @@ export namespace fan::graphics::gui {
     16, 18, 20, 22, 24, 28,
     32, 36, 48, 60, 72
   };
-  fan::graphics::gui::font_t* fonts[std::size(font_sizes)]{};
-  fan::graphics::gui::font_t* fonts_bold[std::size(font_sizes)]{};
+  auto& get_font_main() {
+    static fan::graphics::gui::font_t* fonts[std::size(font_sizes)] {};
+    return fonts;
+  }
+  auto& get_font_bold() {
+    static fan::graphics::gui::font_t* fonts_bold[std::size(font_sizes)] {};
+    return fonts_bold;
+  }
 
   void build_fonts();
   void rebuild_fonts();

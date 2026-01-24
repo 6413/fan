@@ -43,9 +43,7 @@ import fan.types.fstring;
   import fan.graphics.vulkan.core;
 #endif
 
-#if defined(FAN_PHYSICS_2D)
-  import fan.physics.types; // aabb
-#endif
+import fan.physics.types; // aabb
 
 
 #if defined(FAN_2D)//
@@ -71,7 +69,9 @@ export namespace fan::graphics {
     context_shader_t() {}
     ~context_shader_t() {}
     union {
+    #if defined(FAN_OPENGL)
       fan::opengl::context_t::shader_t gl;
+    #endif
     #if defined(FAN_VULKAN)
       fan::vulkan::context_t::shader_t vk;
     #endif
@@ -81,7 +81,9 @@ export namespace fan::graphics {
     context_image_t() {}
     ~context_image_t() {}
     union {
+    #if defined(FAN_OPENGL)
       fan::opengl::context_t::image_t gl;
+    #endif
     #if defined(FAN_VULKAN)
       fan::vulkan::context_t::image_t vk; // note vk::image_t uses vector 
     #endif
@@ -91,7 +93,9 @@ export namespace fan::graphics {
     context_t() {}
     ~context_t() {}
     union {
+    #if defined(FAN_OPENGL)
       fan::opengl::context_t gl;
+    #endif
     #if defined(FAN_VULKAN)
       fan::vulkan::context_t vk;
     #endif
@@ -385,9 +389,7 @@ export namespace fan::graphics {
       fan::mat3 get_rotation_matrix() const;
       fan::vec3 transform(const fan::vec3& local) const;
       fan::mat4 get_transform() const;
-    #if defined(FAN_PHYSICS_2D)
       fan::physics::aabb_t get_aabb() const;
-    #endif
       fan::vec2 get_tc_position() const;
       void set_tc_position(const fan::vec2& tc_position);
       fan::vec2 get_tc_size() const;
@@ -1372,7 +1374,7 @@ export namespace fan::graphics {
         uint32_t vertex_count = 6;
 
         //internals
-        uintptr_t format = 0;
+        uint8_t format = fan::graphics::image_format::undefined;
       };
 
       shape_t push_back(const properties_t& properties);

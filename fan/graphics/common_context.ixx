@@ -35,8 +35,8 @@ import fan.utility;
 export namespace fan {
   namespace graphics {
     enum image_format {
-      undefined = -1,
-      r8b8g8a8_unorm,
+      undefined = 255,
+      r8b8g8a8_unorm = 0,
       b8g8r8a8_unorm,
       r8_unorm,
       rg8_unorm,
@@ -112,6 +112,7 @@ export namespace fan {
         };
         fan::vec4 v;
       }coordinates;
+      fan::vec4 original_coordinates = fan::vec4(0, 0, 0, 0);
     };
 
     struct context_viewport_t {

@@ -547,6 +547,8 @@ export namespace fan::graphics {
 #pragma pack(pop)
 }
 
+
+#if defined(FAN_2D)
 export namespace std {
   template<>
   struct hash<fan::graphics::shaper::shaper_t::ShapeID_t> {
@@ -555,3 +557,4 @@ export namespace std {
     }
   };
 }
+#endif

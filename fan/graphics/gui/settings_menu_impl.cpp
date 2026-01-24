@@ -1,5 +1,7 @@
 module;
 
+#if defined(FAN_GUI)
+
 #include <fan/utility.h>
 #include <deque>
 #include <string>
@@ -8,7 +10,11 @@ module;
 
 #define LOCO_FRAMEBUFFER
 
+#endif
+
 module fan.graphics.gui.settings_menu;
+
+#if defined(FAN_GUI)
 
 import fan.types.vector;
 import fan.types.json;
@@ -896,3 +902,5 @@ namespace fan::graphics::gui {
     style.Colors[gui::col_nav_windowing_dim_bg] = fan::color(0.800000011920929f, 0.800000011920929f, 0.800000011920929f, 0.2000000029802322f);
   }
 } // namespace fan::graphics::gui
+
+#endif

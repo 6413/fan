@@ -1,9 +1,15 @@
 module;
 
+#if defined(FAN_GUI)
+
 #include <deque>
 #include <string>
 
+#endif
+
 export module fan.graphics.gui.settings_menu;
+
+#if defined(FAN_GUI)
 
 import fan.types.vector;
 import fan.types.color;
@@ -137,3 +143,5 @@ export namespace fan::graphics::gui {
     fan::window_t::move_handle_t move_handle;
   };
 }
+
+#endif

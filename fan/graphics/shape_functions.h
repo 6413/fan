@@ -151,6 +151,11 @@ static fan::graphics::image_t get_image(const shape_t* shape) {
       img = props.image;
     }
   });
+  g_shapes->visit_shape_draw_data(shape->NRI, [&](auto& props) {
+    if constexpr (requires { props.images; }) {
+      img = props.images[0];
+    }
+  });
   return img;
 }
 
@@ -171,6 +176,11 @@ static void set_image_impl(
 static void set_image(shape_t* shape, fan::graphics::image_t image) {
   update_shape(shape, [&](auto sti, auto key_pack) {
     set_image_impl(sti, key_pack, image);
+  });
+  g_shapes->visit_shape_draw_data(shape->NRI, [&](auto& props) {
+    if constexpr (requires { props.images; }) {
+      props.images[0] = image;
+    }
   });
 }
 
@@ -204,20 +214,6 @@ static void generic_set_grid_size(shape_t* s, const fan::vec2& v) {
       props.grid_size = v;
     }
   });
-}
-
-template<typename shape_type>
-static fan::graphics::image_data_t& generic_get_image_data(const shape_t* s) {
-  static fan::graphics::image_data_t dummy{};
-  fan::graphics::image_data_t* out = &dummy;
-
-  g_shapes->visit_shape_draw_data(s->NRI, [&](auto& props) {
-    if constexpr (requires { props.image_data; }) {
-      out = &props.image_data;
-    }
-  });
-
-  return *out;
 }
 
 template<typename shape_type>
@@ -318,7 +314,6 @@ X(get_viewport, fan::graphics::viewport_t(*)(const shape_t*)) \
 X(set_viewport, void(*)(shape_t*, fan::graphics::viewport_t)) \
 X(get_image, fan::graphics::image_t(*)(const shape_t*)) \
 X(set_image, void(*)(shape_t*, fan::graphics::image_t)) \
-X(get_image_data, fan::graphics::image_data_t&(*)(const shape_t*)) \
 X(get_visible, bool(*)(const shape_t*)) \
 X(set_visible, void(*)(shape_t*, bool)) \
 X(get_parallax_factor, f32_t(*)(const shape_t*)) \
@@ -382,7 +377,6 @@ vtables_storage[shape_type_t::shape_name].get_image = get_image; \
 vtables_storage[shape_type_t::shape_name].set_image = generic_set_image_kp<shape_name##_t>; \
 vtables_storage[shape_type_t::shape_name].get_grid_size = generic_get_grid_size<shape_name##_t>; \
 vtables_storage[shape_type_t::shape_name].set_grid_size = generic_set_grid_size<shape_name##_t>; \
-vtables_storage[shape_type_t::shape_name].get_image_data = generic_get_image_data<shape_name##_t>; \
 vtables_storage[shape_type_t::shape_name].get_visible = generic_get_visible<shape_name##_t>; \
 vtables_storage[shape_type_t::shape_name].set_visible = generic_set_visible<shape_name##_t>; \
 vtables_storage[shape_type_t::shape_name].get_radius = get_radius; \

@@ -1,9 +1,15 @@
 module;
 
+#if defined(FAN_GUI)
+
 #include <cstdint>
 #include <vector>
 
+#endif
+
 export module fan.graphics.gui.slot_renderer;
+
+#if defined(FAN_GUI)
 
 import fan.graphics;
 import fan.graphics.gui.base;
@@ -151,3 +157,5 @@ export namespace fan::graphics::gui {
     return hovered_slot;
   }
 }
+
+#endif

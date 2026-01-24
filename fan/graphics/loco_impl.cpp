@@ -144,9 +144,12 @@ fan::graphics::shader_nr_t loco_t::shader_create() {
 
 fan::graphics::context_shader_t loco_t::shader_get(fan::graphics::shader_nr_t nr) {
   fan::graphics::context_shader_t context_shader;
-  if (window.renderer == fan::window_t::renderer_t::opengl) {
+  if (0) {}
+#if defined(FAN_OPENGL)
+  else if (window.renderer == fan::window_t::renderer_t::opengl) {
     context_shader.gl = *(fan::opengl::context_t::shader_t*)context_functions.shader_get(&context, nr);
   }
+#endif
 #if defined(FAN_VULKAN)
   else if (window.renderer == fan::window_t::renderer_t::vulkan) {
     context_shader.vk = *(fan::vulkan::context_t::shader_t*)context_functions.shader_get(&context, nr);
@@ -176,9 +179,12 @@ bool loco_t::shader_compile(fan::graphics::shader_nr_t nr) {
 }
 
 void loco_t::shader_set_camera(shader_t nr, camera_t camera_nr) {
-  if (window.renderer == fan::window_t::renderer_t::opengl) {
+  if (0) {}
+#if defined(FAN_OPENGL)
+  else if (window.renderer == fan::window_t::renderer_t::opengl) {
     context.gl.shader_set_camera(nr, camera_nr);
   }
+#endif
 #if defined(FAN_VULKAN)
   else if (window.renderer == fan::window_t::renderer_t::vulkan) {
     fan::throw_error("todo");
@@ -197,9 +203,12 @@ void loco_t::shader_set_camera(shader_t nr, camera_t camera_nr) {
 #endif
 
 std::vector<uint8_t> loco_t::image_get_pixel_data(fan::graphics::image_nr_t nr, int image_format, fan::vec2 uvp, fan::vec2 uvs) {
-  if (window.renderer == fan::window_t::renderer_t::opengl) {
+  if (0) {}
+#if defined(FAN_OPENGL)
+  else if (window.renderer == fan::window_t::renderer_t::opengl) {
     return context_functions.image_get_pixel_data(&context, nr, fan::opengl::context_t::global_to_opengl_format(image_format), uvp, uvs);
   }
+#endif
   else {
     fan::throw_error("");
     return {};
@@ -212,9 +221,12 @@ fan::graphics::image_nr_t loco_t::image_create() {
 
 fan::graphics::context_image_t loco_t::image_get(fan::graphics::image_nr_t nr) {
   fan::graphics::context_image_t img;
-  if (window.renderer == fan::window_t::renderer_t::opengl) {
+  if (0) {}
+#if defined(FAN_OPENGL)
+  else if (window.renderer == fan::window_t::renderer_t::opengl) {
     img.gl = *(fan::opengl::context_t::image_t*)context_functions.image_get(&context, nr);
   }
+#endif
 #if defined(FAN_VULKAN)
   else if (window.renderer == fan::window_t::renderer_t::vulkan) {
     img.vk = *(fan::vulkan::context_t::image_t*)context_functions.image_get(&context, nr);
@@ -971,8 +983,10 @@ loco_t::loco_t() : loco_t(loco_t::properties_t()) {
 
 loco_t::loco_t(const loco_t::properties_t& props) : 
   open_props(props), 
-  init_gloco([this] { gloco() = this; return true; }()), 
-  settings_menu() 
+  init_gloco([this] { gloco() = this; return true; }()) 
+#if defined(FAN_GUI)
+  ,settings_menu() 
+#endif
 {
   auto& ctx = fan::graphics::ctx();
 
@@ -1033,11 +1047,14 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   }
   render_shapes_top = open_props.render_shapes_top;
   window.renderer = open_props.renderer;
+
+#if defined(FAN_OPENGL)
   if (window.renderer == fan::window_t::renderer_t::opengl) {
     new (&context.gl) fan::opengl::context_t();
     context_functions = fan::graphics::get_gl_context_functions();
     gl.open();
   }
+#endif
 
   window.set_antialiasing(open_props.samples);
   window.open(open_props.window_size, open_props.window_position, fan::window_t::default_window_name, open_props.window_flags, open_props.window_open_mode);
@@ -1060,6 +1077,7 @@ loco_t::loco_t(const loco_t::properties_t& props) :
 
   start_time.start();
 
+#if defined(FAN_OPENGL)
   //fan::print("less pain", this, (void*)&lighting, (void*)((uint8_t*)&lighting - (uint8_t*)this), sizeof(*this), lighting.ambient);
   if (window.renderer == fan::window_t::renderer_t::opengl) {
     window.make_context_current();
@@ -1074,6 +1092,7 @@ loco_t::loco_t(const loco_t::properties_t& props) :
 
     gl.initialize_fb_vaos();
   }
+#endif
 
 
   load_engine_images();
@@ -1117,9 +1136,12 @@ loco_t::loco_t(const loco_t::properties_t& props) :
     }
   }
 
-  if (window.renderer == fan::window_t::renderer_t::opengl) {
+  if (0) {}
+  #if defined(FAN_OPENGL)
+  else if (window.renderer == fan::window_t::renderer_t::opengl) {
     gl.init();
   }
+  #endif
 #if defined(FAN_VULKAN)
   else if (window.renderer == fan::window_t::renderer_t::vulkan) {
     vk.init();
@@ -1171,7 +1193,9 @@ loco_t::loco_t(const loco_t::properties_t& props) :
 #endif
 
   set_vsync(false); // using libuv
+#if defined(FAN_GUI)
   settings_menu.init_runtime();
+#endif
 
   #if defined(FAN_PHYSICS_2D)
   {
@@ -1333,11 +1357,13 @@ void loco_t::switch_renderer(uint8_t renderer) {
     }
     else
     #endif
+    #if defined(FAN_OPENGL)
       if (window.renderer == fan::window_t::renderer_t::opengl) {
         glDeleteVertexArrays(1, &gl.fb_vao);
         glDeleteBuffers(1, &gl.fb_vbo);
         context.gl.internal_close();
       }
+    #endif
 
   #if defined(FAN_GUI)
     if (gui_initialized) {
@@ -1359,11 +1385,13 @@ void loco_t::switch_renderer(uint8_t renderer) {
 
   {// reopen
     window.renderer = reload_renderer_to; // i dont like this {window.renderer = ...}
+    #if defined(FAN_OPENGL)
     if (window.renderer == fan::window_t::renderer_t::opengl) {
       context_functions = fan::graphics::get_gl_context_functions();
       new (&context.gl) fan::opengl::context_t();
       gl.open();
     }
+    #endif
 
     window.open(window_size, open_props.window_position, fan::window_t::default_window_name, flags | fan::window_t::flags::hidden);
     window.set_position(window_position);
@@ -1419,12 +1447,14 @@ void loco_t::switch_renderer(uint8_t renderer) {
           fan::graphics::image_nr_t nr;
           nrtra.Open(&image_list, &nr);
           while (nrtra.Loop(&image_list, &nr)) {
-
-            if (window.renderer == fan::window_t::renderer_t::opengl) {
+            if (0) {}
+          #if defined(FAN_OPENGL)
+            else if (window.renderer == fan::window_t::renderer_t::opengl) {
               // illegal
               image_list[nr].internal = new fan::opengl::context_t::image_t;
               fan_opengl_call(glGenTextures(1, &((fan::opengl::context_t::image_t*)context_functions.image_get(&context.gl, nr))->texture_id));
             }
+          #endif
           #if defined(FAN_VULKAN)
             else if (window.renderer == fan::window_t::renderer_t::vulkan) {
               // illegal
@@ -1455,9 +1485,12 @@ void loco_t::switch_renderer(uint8_t renderer) {
           fan::graphics::shader_nr_t nr;
           nrtra.Open(&shader_list, &nr);
           while (nrtra.Loop(&shader_list, &nr)) {
-            if (window.renderer == fan::window_t::renderer_t::opengl) {
+            if (0) {}
+          #if defined(FAN_OPENGL)
+            else if (window.renderer == fan::window_t::renderer_t::opengl) {
               shader_list[nr].internal = new fan::opengl::context_t::shader_t;
             }
+          #endif
           #if defined(FAN_VULKAN)
             else if (window.renderer == fan::window_t::renderer_t::vulkan) {
               shader_list[nr].internal = new fan::vulkan::context_t::shader_t;
@@ -1483,10 +1516,12 @@ void loco_t::switch_renderer(uint8_t renderer) {
     #if defined(FAN_2D)
       gl.shapes_open();
     #endif
+      #if defined(FAN_OPENGL)
       gl.initialize_fb_vaos();
       if (window.get_antialiasing() > 0) {
         glEnable(GL_MULTISAMPLE);
       }
+      #endif
     }
   #if defined(FAN_VULKAN)
     else if (window.renderer == fan::window_t::renderer_t::vulkan) {
@@ -1539,9 +1574,12 @@ void loco_t::switch_renderer(uint8_t renderer) {
 
 void loco_t::shapes_draw() {
   shape_draw_timer.start();
-  if (window.renderer == fan::window_t::renderer_t::opengl) {
+  if (0) {}
+#if defined(FAN_OPENGL)
+  else if (window.renderer == fan::window_t::renderer_t::opengl) {
     gl.shapes_draw();
   }
+#endif
 #if defined(FAN_VULKAN)
   else
     if (window.renderer == fan::window_t::renderer_t::vulkan) {
@@ -1930,9 +1968,11 @@ void loco_t::process_render() {
   }
 #endif
 
+#if defined(FAN_OPENGL)
   if (window.renderer == fan::window_t::renderer_t::opengl) {
     gl.begin_process_frame();
   }
+#endif
 
 #if defined(FAN_2D)
   if (is_visualizing_culling) {
@@ -1944,9 +1984,11 @@ void loco_t::process_render() {
   fan::graphics::gui::end();
 #endif
 
+#if defined(FAN_OPENGL) // ?
   if (window.renderer == fan::window_t::renderer_t::opengl) {
     run_culling();
   }
+#endif
 
 #if defined(FAN_2D)
   fan::graphics::g_shapes->shaper.ProcessBlockEditQueue();
@@ -2207,9 +2249,12 @@ fan::vec2 loco_t::ndc_to_screen(const fan::vec2& ndc_position) {
 void loco_t::set_vsync(bool flag) {
   vsync = flag;
   // vulkan vsync is enabled by presentation mode in swap chain
-  if (window.renderer == fan::window_t::renderer_t::opengl) {
+  if (0) {}
+#if defined(FAN_OPENGL)
+  else if (window.renderer == fan::window_t::renderer_t::opengl) {
     context.gl.set_vsync(&window, flag);
   }
+#endif
 #if defined(FAN_VULKAN)
   if (window.renderer == fan::window_t::renderer_t::vulkan) {
     context.vk.set_vsync(&window, flag);
@@ -2914,9 +2959,12 @@ namespace fan::graphics::gui {
 #endif
 
 void fan::graphics::shader_set_camera(fan::graphics::shader_t nr, fan::graphics::camera_t camera_nr) {
-  if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::opengl) {
+  if (0) {}
+#if defined(FAN_OPENGL)
+  else if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::opengl) {
     get_gl_context().shader_set_camera(nr, camera_nr);
   }
+#endif
 #if defined(FAN_VULKAN)
   else if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::vulkan) {
     fan::throw_error("todo");

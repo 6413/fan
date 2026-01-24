@@ -1,5 +1,7 @@
 module;
 
+#if defined(FAN_GUI)
+
 #include <fan/utility.h>
 
 #include <vector>
@@ -9,7 +11,11 @@ module;
 #include <algorithm>
 #include <set>
 
+#endif
+
 module fan.graphics.gui.keybinds_menu;
+
+#if defined(FAN_GUI)
 
 import fan.graphics.loco;
 import fan.graphics.gui.settings_menu;
@@ -516,3 +522,5 @@ namespace fan::graphics::gui {
     listening_states.resize(num_actions * 3, false);
   }
 }
+
+#endif

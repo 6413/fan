@@ -1,8 +1,14 @@
 module;
 
+#if defined(FAN_GUI)
+
 #include <cstdint>
 
+#endif
+
 export module fan.graphics.gui.input;
+
+#if defined(FAN_GUI)
 
 import fan.types.vector;
 import fan.window.input_common;
@@ -59,3 +65,5 @@ export namespace fan::graphics::gui::input {
     return !drag_active && clicked && !slot_empty;
   }
 }
+
+#endif

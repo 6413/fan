@@ -422,6 +422,8 @@ namespace fan {
 
 
 export namespace fan {
+  using fan::write_error_to_disk;
+
   using heap_profiler_t = heap_profiler::heap_profiler_t;
   void* memory_profile_malloc_cb(std::size_t n) {
     return heap_profiler_t::instance().allocate_memory(n);

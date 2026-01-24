@@ -1,9 +1,15 @@
 module;
 
+#if defined(FAN_GUI)
+
 #include <cstdint>
 #include <array>
 
+#endif
+
 export module fan.graphics.gui.gameplay.equipment;
+
+#if defined(FAN_GUI)
 
 import fan.types.vector;
 import fan.graphics;
@@ -158,3 +164,5 @@ export namespace fan::graphics::gui::gameplay {
     uint32_t hovered_slot = (uint32_t)-1;
   };
 }
+
+#endif

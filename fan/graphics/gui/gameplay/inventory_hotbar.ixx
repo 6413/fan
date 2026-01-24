@@ -1,10 +1,16 @@
 module;
 
+#if defined(FAN_GUI)
+
 #include <cstdint>
 #include <algorithm>
 #include <string>
 
+#endif
+
 export module fan.graphics.gui.inventory_hotbar;
+
+#if defined(FAN_GUI)
 
 import fan.types.vector;
 import fan.graphics.gui.base;
@@ -56,3 +62,5 @@ export namespace fan::graphics::gui {
 
 
 }
+
+#endif

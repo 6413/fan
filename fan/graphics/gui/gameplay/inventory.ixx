@@ -1,10 +1,16 @@
 module;
 
+#if defined(FAN_GUI)
+
 #include <cstdint>
 #include <optional>
 #include <vector>
 
+#endif
+
 export module fan.graphics.gui.inventory;
+
+#if defined(FAN_GUI)
 
 import fan.graphics;
 import fan.graphics.gui.base;
@@ -339,3 +345,5 @@ export namespace fan::graphics::gui {
     hotbar_t* secondary = nullptr;
   };
 }
+
+#endif

@@ -33,6 +33,8 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <chrono>
+#include <iomanip>
 
 #if defined(__clang__)
 	#define fan_compiler_clang
@@ -317,6 +319,7 @@ enum class name { __VA_ARGS__ }
 #define fan_make_flexible_array(type, name, ...) \
 	std::array<type, std::initializer_list<type>{__VA_ARGS__}.size()> name = {__VA_ARGS__}
 
+namespace fan {
   struct log_t {
     std::string filename = "fan_errors.txt";
   };
@@ -329,9 +332,25 @@ enum class name { __VA_ARGS__ }
   inline void write_error_to_disk(const std::string& msg) {
     auto& log = get_error_log();
 
+    auto now = std::chrono::system_clock::now();
+    std::time_t t = std::chrono::system_clock::to_time_t(now);
+
+    // format: YYYY-MM-DD HH:MM:SS ISO‑8601
+    std::tm tm {};
+  #ifdef _WIN32
+    localtime_s(&tm, &t);
+  #else
+    localtime_r(&t, &tm);
+  #endif
+
+    std::ostringstream oss;
+    oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
+
     std::ofstream out(log.filename, std::ios::binary | std::ios::app);
-    out << msg << '\n';
+    out << oss.str() << " - " << msg << '\n';
   }
+}
+
 
 #ifndef __throw_error_impl
 	namespace fan {
