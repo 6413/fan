@@ -70,9 +70,12 @@ namespace fan::graphics {
   }
 
   std::vector<uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, int image_format, fan::vec2 uvp, fan::vec2 uvs) {
-    if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::opengl) {
+    if (0) {}
+  #if defined(FAN_OPENGL)
+    else if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::opengl) {
       return fan::graphics::ctx()->image_get_pixel_data(fan::graphics::ctx(), nr, fan::opengl::context_t::global_to_opengl_format(image_format), uvp, uvs);
     }
+  #endif
     else {
       fan::throw_error("");
       return {};
@@ -85,9 +88,12 @@ namespace fan::graphics {
 
   fan::graphics::context_image_t image_get(fan::graphics::image_nr_t nr) {
     fan::graphics::context_image_t img;
-    if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::opengl) {
+    if (0) {}
+  #if defined(FAN_OPENGL)
+    else if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::opengl) {
       img.gl = *(fan::opengl::context_t::image_t*)fan::graphics::ctx()->image_get(fan::graphics::ctx(), nr);
     }
+  #endif
   #if defined(FAN_VULKAN)
     else if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::vulkan) {
       img.vk = *(fan::vulkan::context_t::image_t*)fan::graphics::ctx()->image_get(fan::graphics::ctx(), nr);
@@ -192,11 +198,14 @@ namespace fan::graphics {
     return fan::graphics::ctx()->image_create_color_props(fan::graphics::ctx(), color, p);
   }
 
+
+#if defined(FAN_OPENGL)
   std::vector<uint8_t> read_pixels(const fan::vec2& position, const fan::vec2& size) {
     std::vector<uint8_t> pixels(size.multiply() * 4);
     glReadPixels(position.x, position.y, size.x, size.y, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
     return pixels;
   }
+#endif
 
   //std::vector<uint8_t> read_pixels_from_image(
   //  fan::graphics::image_nr_t nr, 
@@ -234,6 +243,7 @@ namespace fan::graphics {
   //  return out;
   //}
 
+#if defined(FAN_OPENGL)
   std::vector<uint8_t> read_pixels_from_image(
     fan::graphics::image_nr_t nr, 
     const fan::vec2& uv_pos, 
@@ -269,6 +279,7 @@ namespace fan::graphics {
 
     return out;
   }
+#endif
 
   fan::graphics::shader_nr_t shader_create() {
     return fan::graphics::ctx()->shader_create(fan::graphics::ctx());
@@ -1132,12 +1143,14 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
     return &render_view;
   }
 
+#if defined(FAN_OPENGL)
   image_divider_t::image_divider_t() {
     e.open(open_properties);
     texture_properties.visual_output = fan::graphics::image_sampler_address_mode::clamp_to_edge;
     texture_properties.min_filter = fan::graphics::image_filter::nearest;
     texture_properties.mag_filter = fan::graphics::image_filter::nearest;
   }
+#endif
 
 #if defined(FAN_2D)
 

@@ -1,9 +1,15 @@
 module;
 
+#if defined(FAN_OPENGL)
+
 #include <fan/graphics/opengl/init.h>
 #include <source_location>
 
+#endif
+
 export module fan.graphics.opengl.core;
+
+#if defined(FAN_OPENGL)
 
 import fan.physics.collision.rectangle;
 
@@ -554,3 +560,5 @@ namespace fan::graphics {
 export namespace fan::graphics {
   fan::opengl::context_t& get_gl_context();
 }
+
+#endif

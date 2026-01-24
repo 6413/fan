@@ -1,11 +1,17 @@
 module;
 
+#if defined(FAN_OPENGL)
+
 #include <fan/utility.h>
 
 #include <cstdlib>
 #include <functional>
 
+#endif
+
 export module fan.graphics.opengl.uniform_block;
+
+#if defined(FAN_OPENGL)
 
 import fan.utility;
 import fan.graphics.opengl.core;
@@ -51,3 +57,5 @@ export namespace fan::opengl::core {
     memory_write_queue_t::memory_edit_cb_t write_cb;
   };
 }
+
+#endif

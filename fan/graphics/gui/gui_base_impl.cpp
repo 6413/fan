@@ -1039,7 +1039,7 @@ namespace fan::graphics::gui {
 
 
   font_t* get_font_impl(f32_t font_size, bool bold) {
-    return get_font(bold ? fonts_bold : fonts, font_size);
+    return get_font(bold ? get_font_bold() : get_font_main(), font_size);
   }
   font_t* get_font(
     font_t* (&fonts)[std::size(fan::graphics::gui::font_sizes)],
@@ -1308,12 +1308,12 @@ namespace fan::graphics::gui {
     io.Fonts->FontBuilderIO = ImGuiFreeType::GetBuilderForFreeType();
     io.Fonts->FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
 
-    load_fonts(fan::graphics::gui::fonts, "fonts/SourceCodePro-Regular.ttf");
-    load_fonts(fan::graphics::gui::fonts_bold, "fonts/SourceCodePro-Bold.ttf");
+    load_fonts(fan::graphics::gui::get_font_main(), "fonts/SourceCodePro-Regular.ttf");
+    load_fonts(fan::graphics::gui::get_font_bold(), "fonts/SourceCodePro-Bold.ttf");
 
     build_fonts();
 
-    io.FontDefault = fan::graphics::gui::fonts[default_font_size_index];
+    io.FontDefault = fan::graphics::gui::get_font_main()[default_font_size_index];
   }
 
 
@@ -1361,12 +1361,12 @@ namespace fan::graphics::gui {
     io.Fonts->FontBuilderIO = ImGuiFreeType::GetBuilderForFreeType();
     io.Fonts->FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
 
-    for (std::size_t i = 0; i < std::size(fan::graphics::gui::fonts); ++i) {
+    for (std::size_t i = 0; i < std::size(fan::graphics::gui::get_font_main()); ++i) {
       f32_t font_size = fan::graphics::gui::font_sizes[i] * 2;
       // load 2x font size and possibly downscale for better quality
 
       ImFontConfig main_cfg;
-      fan::graphics::gui::fonts[i] = io.Fonts->AddFontFromFileTTF(
+      fan::graphics::gui::get_font_main()[i] = io.Fonts->AddFontFromFileTTF(
         "fonts/SourceCodePro-Regular.ttf", font_size, &main_cfg
       );
 
@@ -1382,8 +1382,9 @@ namespace fan::graphics::gui {
       );
     }
 
+    load_fonts(fan::graphics::gui::get_font_bold(), "fonts/SourceCodePro-Bold.ttf");
     build_fonts();
-    io.FontDefault = fan::graphics::gui::fonts[9];
+    io.FontDefault = fan::graphics::gui::get_font_main()[9];
   }
 
   void shutdown_graphics_context(

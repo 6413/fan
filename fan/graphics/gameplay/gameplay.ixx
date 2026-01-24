@@ -1,10 +1,16 @@
 module;
 
+#if defined(FAN_PHYSICS_2D)
+
 #include <vector>
 #include <string>
 #include <unordered_map>
 
+#endif
+
 export module fan.graphics.gameplay;
+
+#if defined(FAN_PHYSICS_2D)
 
 import fan.graphics;
 import fan.physics.b2_integration;
@@ -177,3 +183,5 @@ export namespace fan::graphics::gameplay {
     }
   };
 }
+
+#endif

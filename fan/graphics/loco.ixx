@@ -44,7 +44,9 @@ export import fan.random;
 export import fan.texture_pack.tp0;
 export import fan.io.file;
 export import fan.window.input_action;
+export import fan.graphics.common_context;
 import fan.graphics.culling;
+import fan.physics.types;
 #if defined(FAN_PHYSICS_2D)
   import fan.physics.b2_integration;
   import fan.physics.common_context;
@@ -225,9 +227,12 @@ public:
   bool shader_compile(fan::graphics::shader_nr_t nr);
   template <typename T>
   void shader_set_value(fan::graphics::shader_nr_t nr, const std::string& name, const T& val) {
-    if (window.renderer == fan::window_t::renderer_t::opengl) {
+    if (0) {}
+    #if defined(FAN_OPENGL)
+    else if (window.renderer == fan::window_t::renderer_t::opengl) {
       context.gl.shader_set_value(nr, name, val);
     }
+    #endif
     else if (window.renderer == fan::window_t::renderer_t::vulkan) {
       fan::throw_error("todo");
     }
@@ -643,7 +648,9 @@ public:
   fan::graphics::gui::text_logger_t text_logger;
 #endif
 
+#if defined(FAN_OPENGL)
   fan::graphics::texture_pack_t texture_pack;
+#endif
 
   bool render_shapes_top = false;
   //gui

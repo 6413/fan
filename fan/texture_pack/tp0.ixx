@@ -1,5 +1,7 @@
 module;
 
+#if defined(FAN_OPENGL)
+
 #include <fan/utility.h>
 
 #include <cstdlib>
@@ -12,7 +14,11 @@ module;
 
 #include <fan/graphics/opengl/init.h>
 
+#endif
+
 export module fan.texture_pack.tp0;
+
+#if defined(FAN_OPENGL)
 
 import fan.utility;
 import fan.graphics.common_context;
@@ -570,3 +576,5 @@ export namespace fan::graphics {
   };
   #include <fan/graphics/opengl/texture_pack.h>
 }
+
+#endif

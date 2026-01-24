@@ -1,14 +1,17 @@
 module;
 
+#if defined(FAN_2D)
+
 #include <WITCH/WITCH.h>
 
 extern "C" {
-#include <libavcodec/avcodec.h>
-#include <libavformat/avformat.h>
-#include <libavutil/avutil.h>
-#include <libavutil/imgutils.h>
-#include <libavutil/opt.h>
-#include <libswscale/swscale.h>
+  #include <libavcodec/avcodec.h>
+  #include <libavformat/avformat.h>
+  #include <libavutil/avutil.h>
+  #include <libavutil/imgutils.h>
+  #include <libavutil/opt.h>
+  #include <libavutil/log.h>
+  #include <libswscale/swscale.h>
 }
 
 #include <string>
@@ -28,7 +31,11 @@ extern "C" {
 #include <WITCH/PR/PR.h>
 #include <WITCH/MD/SCR/SCR.h>
 
+#endif
+
 export module fan.graphics.video.screen_codec;
+
+#if defined(FAN_2D)
 
 export import fan.graphics;
 import fan.time;
@@ -821,7 +828,7 @@ export namespace fan {
             int result = avcodec_open2(codec_ctx_, codec_, nullptr);
             open_result.store(result);
             open_completed.store(true);
-            });
+          });
 
           auto start_time = std::chrono::steady_clock::now();
           bool timed_out = false;
@@ -879,6 +886,25 @@ export namespace fan {
         return false;
       }
 
+      static void ffmpeg_log_callback(void* ptr, int level, const char* fmt, va_list vl) {
+        if (level > AV_LOG_WARNING)
+          return;
+
+        char buffer[2048];
+        vsnprintf(buffer, sizeof(buffer), fmt, vl);
+
+        size_t len = strlen(buffer);
+        if (len && buffer[len - 1] == '\n')
+          buffer[len - 1] = '\0';
+
+        fan::write_error_to_disk(buffer);
+      }
+
+      void init_ffmpeg_logging() {
+        av_log_set_callback(ffmpeg_log_callback);
+        av_log_set_level(AV_LOG_VERBOSE);
+      }
+
       bool find_and_init_sw_decoder(const std::string& codec_type) {
         std::unordered_map<std::string, std::string> sw_decoders = {
           {"h264", "h264"},
@@ -889,11 +915,14 @@ export namespace fan {
         auto it = sw_decoders.find(codec_type);
         if (it == sw_decoders.end()) return false;
 
+        init_ffmpeg_logging();
+
         codec_ = avcodec_find_decoder_by_name(it->second.c_str());
         if (!codec_) return false;
 
         codec_ctx_ = avcodec_alloc_context3(codec_);
         if (!codec_ctx_) return false;
+
 
         if (avcodec_open2(codec_ctx_, codec_, nullptr) == 0) {
           codec_name_ = it->second;
@@ -1848,3 +1877,5 @@ void fan::graphics::resolution_manager_t::detect_and_set_optimal(screen_encode_t
 
   auto_detected = true;
 }
+
+#endif

@@ -1,9 +1,15 @@
 module;
 
+#if defined(FAN_OPENGL)
+
 #include <cstdint>
 #include <algorithm>
 
+#endif
+
 module fan.graphics.opengl.uniform_block;
+
+#if defined(FAN_OPENGL)
 
 import fan.graphics.opengl.core;
 
@@ -74,3 +80,5 @@ namespace fan::opengl::core {
     queued = false;
   }
 }
+
+#endif
