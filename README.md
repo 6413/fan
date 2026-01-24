@@ -112,7 +112,8 @@ Older versions
 
 Particles editor
 ![output](https://github.com/user-attachments/assets/1b323519-50e4-4dd0-9012-b6b1fc18df40)
-![image](https://github.com/user-attachments/assets/b8b19b22-ea8c-4ab3-a0f6-0c2c00f36128)
+![image](https://github.com/user-attachments/assets/4b7f863b-449b-433e-ba23-244acf28de07)
+
 
 
 
