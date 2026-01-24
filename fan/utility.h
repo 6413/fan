@@ -318,19 +318,19 @@ enum class name { __VA_ARGS__ }
 	std::array<type, std::initializer_list<type>{__VA_ARGS__}.size()> name = {__VA_ARGS__}
 
   struct log_t {
-    std::string data;
     std::string filename = "fan_errors.txt";
-    ~log_t() {
-      if (data.size()) {
-        std::ofstream out(filename, std::ios::binary);
-        out << data;
-      }
-    }
   };
 
   inline log_t& get_error_log() {
     static log_t log;
     return log;
+  }
+
+  inline void write_error_to_disk(const std::string& msg) {
+    auto& log = get_error_log();
+
+    std::ofstream out(log.filename, std::ios::binary | std::ios::app);
+    out << msg << '\n';
   }
 
 #ifndef __throw_error_impl
@@ -342,7 +342,7 @@ enum class name { __VA_ARGS__ }
 		inline void throw_error_impl(const char* reason = "") {
       std::string res(reason);
       if (res.size()) {
-        get_error_log().data += res + '\n';
+        write_error_to_disk(reason);
       }
 			printf("%s\n", reason);
 #ifdef fan_compiler_msvc

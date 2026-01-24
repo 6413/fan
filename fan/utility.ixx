@@ -380,7 +380,7 @@ namespace fan {
     inline void throw_error_impl(const char* reason = "") {
       std::string res(reason);
       if (res.size()) {
-        get_error_log().data += res + '\n';
+        write_error_to_disk(res);
       }
     #ifdef fan_compiler_msvc
       //system("pause");
