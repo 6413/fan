@@ -708,7 +708,7 @@ export namespace fan {
     }
     return r;
   }
-  std::string trim(const std::string& s) {
+  std::string trim_ws(const std::string& s) {
     size_t b = 0, e = s.size();
     while (b < e && std::isspace((unsigned char)s[b])) ++b;
     while (e > b && std::isspace((unsigned char)s[e - 1])) --e;
@@ -734,7 +734,7 @@ export namespace fan {
       key == fan::key_right_super;
   }
   int key_name_to_code(const std::string& name) {
-    std::string trimmed = trim(name);
+    std::string trimmed = trim_ws(name);
     if (trimmed.empty()) return -1;
     std::string lowered = to_lower(trimmed);
 

@@ -29,6 +29,11 @@
 #include <cstddef>
 #include <stdio.h>
 
+// for logging
+#include <fstream>
+#include <iostream>
+#include <string>
+
 #if defined(__clang__)
 	#define fan_compiler_clang
 #elif defined(__GNUC__)
@@ -312,6 +317,22 @@ enum class name { __VA_ARGS__ }
 #define fan_make_flexible_array(type, name, ...) \
 	std::array<type, std::initializer_list<type>{__VA_ARGS__}.size()> name = {__VA_ARGS__}
 
+  struct log_t {
+    std::string data;
+    std::string filename = "fan_errors.txt";
+    ~log_t() {
+      if (data.size()) {
+        std::ofstream out(filename, std::ios::binary);
+        out << data;
+      }
+    }
+  };
+
+  inline log_t& get_error_log() {
+    static log_t log;
+    return log;
+  }
+
 #ifndef __throw_error_impl
 	namespace fan {
 		struct exception_t {
@@ -319,6 +340,10 @@ enum class name { __VA_ARGS__ }
 		};
 
 		inline void throw_error_impl(const char* reason = "") {
+      std::string res(reason);
+      if (res.size()) {
+        get_error_log().data += res + '\n';
+      }
 			printf("%s\n", reason);
 #ifdef fan_compiler_msvc
 			//system("pause");
