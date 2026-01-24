@@ -26,26 +26,26 @@ struct player_t {
     particles.set_image(image_star);
 
     body = fan::graphics::physics::character2d_t::from_json({
-    .json_path = "player/player.json",
-    .aabb_scale = aabb_scale,
-    .attack_cb = [this](fan::graphics::physics::character2d_t& c) -> bool {
-      if (is_blocking()) {
-          return false;
-      }
+      .json_path = "player/player.json",
+      .aabb_scale = aabb_scale,
+      .attack_cb = [this](fan::graphics::physics::character2d_t& c) -> bool {
+        if (is_blocking()) {
+            return false;
+        }
 
-      const bool attack_input =
-          fan::window::is_input_action_active(fan::actions::light_attack) ||
-          fan::window::is_key_pressed(fan::gamepad_right_bumper)
-      ;
+        const bool attack_input =
+            fan::window::is_input_action_active(fan::actions::light_attack) ||
+            fan::window::is_key_pressed(fan::gamepad_right_bumper)
+        ;
 
-      bool attack_pressed = attack_input;
+        bool attack_pressed = attack_input;
 
-      if (!attack_pressed || gui::want_io()) {
-          return false;
-      }
+        if (!attack_pressed || gui::want_io()) {
+            return false;
+        }
 
-      return c.attack_state.try_attack(&c);
-    },
+        return c.attack_state.try_attack(&c);
+      },
     });
 
     body.set_draw_offset(draw_offset);

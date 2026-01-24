@@ -14,25 +14,36 @@ uniform float grass_wind;
 
 void main() {
   vec2 uv = texture_coordinate;
-  float sway_factor = 1.0 - uv.y;
-  float phase = object_seed * 10.0;
-  float amp = mix(0.8, 1.2, fract(sin(object_seed * 123.456) * 999.0));
-  float offset =
-    sin(grass_time * 6.0 + uv.y * 12.0 + phase)
-    * sway_factor
-    * 0.05
-    * grass_wind
-    * amp;
 
-  uv.x += offset;
+float sway_factor = pow(1.0 - uv.y, 1.5);
+float phase = object_seed * 10.0 + uv.y * 5.0;
+float amp = mix(0.8, 1.2, fract(sin(object_seed * 123.456) * 999.0));
 
-  vec4 c = texture(_t00, uv) * instance_color;
+float sway = sin(grass_time * 3.0 + uv.y * 3.0 + phase)
+           * sway_factor
+           * 0.02
+           * grass_wind
+           * amp;
 
-  if (c.a < 0.1) {
-    discard;
-  }
+float flutter = sin(grass_time * 4.0 + uv.y * 40.0 + phase)
+              * 0.005
+              * grass_wind;
 
-  o_attachment0 = c;
+float vertical_drop = sin(grass_time * 2.0 + phase)
+                    * 0.01
+                    * grass_wind;
+
+uv.x += sway + flutter;
+uv.y += vertical_drop;
+
+vec4 c = texture(_t00, uv) * instance_color;
+
+if (c.a < 0.1) {
+  discard;
+}
+
+o_attachment0 = c;
+
 }
 )";
 
@@ -45,14 +56,21 @@ enum tile_type_t {
 
 struct cave_config_t {
   fan::vec2i map_tiles = fan::vec2{8400, 2400} / 14.f;
-  f32_t tile_size = 64.f;
+  f32_t tile_size = 16.f;
   int iterations = 3;
   int neighbor_threshold = 10;
+  f32_t dig_range = 200.f;
+  f32_t dig_speed = 30.f;
+  f32_t pickup_range = 100.f;
   fan::color empty_color = fan::colors::transparent;
   fan::color dirt_color = fan::color(0.5, 0.3, 0.1);
   fan::color stone_color = fan::color(0.3, 0.3, 0.3);
 };
 
+struct pickupable_t {
+  fan::graphics::physics::sprite_t sprite;
+  f32_t spawn_time;
+};
 
 void break_block(int x, int y) {
   int idx = x + y * world.map_size.x;
@@ -62,14 +80,30 @@ void break_block(int x, int y) {
   world.tiles[idx] = false;
   tilemap.set_tile_color({x, y}, cfg.empty_color);
   collisions[idx].destroy();
-  //auto& shape = tilemap.get_tile({x, y});
-  //fan::graphics::physics::sprite_t::properties_t props;
-  //props.position = shape.get_position().offset_z(1);
-  //props.size = shape.get_size() / 4.f;
-  //props.image = shape.get_image();
-  //props.body_type = fan::physics::body_type_e::dynamic_body;
-
-  //pickupables.push_back(props);
+  
+  auto& shape = tilemap.get_tile({x, y});
+  fan::graphics::physics::sprite_t::properties_t props;
+  props.position = shape.get_position().offset_z(1);
+  props.size = shape.get_size() / 4.f;
+  props.image = shape.get_image();
+  props.body_type = fan::physics::body_type_e::dynamic_body;
+  props.shape_properties.linear_damping = 2.f;
+  props.shape_properties.angular_damping = 2.f;
+  
+  f32_t desired_velocity = 200.f;
+  f32_t mass = props.shape_properties.density * (props.size.x / fan::physics::length_units_per_meter) * (props.size.y / fan::physics::length_units_per_meter);
+  
+  pickupables.push_back({
+    fan::graphics::physics::sprite_t(props),
+    (f32_t)fan::time::now()
+  });
+  
+  auto& p = pickupables.back().sprite;
+  fan::vec2 impulse = fan::vec2(
+    fan::random::value(-desired_velocity, desired_velocity),
+    -desired_velocity
+  ) * mass;
+  p.apply_linear_impulse_center(impulse);
 }
 bool is_air(int x, int y) {
   if (x < 0 || y < 0 || x >= world.map_size.x || y >= world.map_size.y) {
@@ -85,14 +119,14 @@ bool is_empty(int x, int y) {
 }
 void spawn_grass_leaf(int x, int y, f32_t ts) {
   fan::vec2 tile_pos = fan::vec2(x + fan::random::value(-ts/2.f, ts/2.f), y) * ts;
-  fan::vec2 leaf_size = fan::vec2(ts) / fan::random::value(4.f, 8.f);
+  fan::vec2 leaf_size = fan::vec2(ts) / fan::random::value(1.f, 2.f);
   fan::vec2 leaf_pos = tile_pos + fan::vec2(ts * 0.5f, ts - leaf_size.y / 1.1f);
   grass_leaves.push_back(fan::graphics::shader_shape_t{{
     .position = fan::vec3(leaf_pos, 0),
     .size = leaf_size,
     .rotation_point = fan::vec2(0, leaf_size.y),
     .shader = grass_shader,
-    .image = fan::graphics::image_t("images/grass_leaves.webp", fan::graphics::image_presets::smooth()),
+    .image = fan::graphics::image_t("images/plant_03.png", fan::graphics::image_presets::smooth()),
     .enable_culling = false
   }});
 }
@@ -197,22 +231,13 @@ void open(void* sod) {
     }
   }
 
-  //crack_overlay = fan::graphics::shader_shape_t{{
-  //  .render_view = &view,
-  //  .position = fan::vec3(0, 0, 10000),
-  //  .size = fan::vec2(ts) / 2.f,
-  //  .shader = crack_shader,
-  //  .image = pile.engine.default_texture,
-  //  .enable_culling = false
-  //}};
   ready = true;
 }
-
 void update_grass() {
   int seed = 0;
   for (auto& leaf : grass_leaves) {
 
-    float sway = sin(grass_time * 7.f + seed++);
+    float sway = sin(grass_time * 4.f + seed++);
 
     float max_angle = 0.05f;
     float angle_z = sway * max_angle * grass_wind;
@@ -224,58 +249,78 @@ void update_grass() {
   gloco()->shader_set_value(grass_shader, "grass_time", grass_time);
   gloco()->shader_set_value(grass_shader, "grass_wind", grass_wind);
 }
-
-void update_crack() {
-  f32_t ts = cfg.tile_size;
-
+fan::vec2i find_closest_tile(const fan::vec2& player_pos) {
+  fan::vec2 mouse_pos = fan::graphics::screen_to_world(gloco()->get_mouse_position());
+  fan::vec2 dir = (mouse_pos - player_pos).normalized();
+  
+  std::vector<fan::vec2i> cells = fan::graphics::algorithm::grid_raycast(
+    {player_pos, player_pos + dir * cfg.dig_range},
+    fan::vec2(cfg.tile_size)
+  );
+  
+  for (const auto& cell : cells) {
+    if (!tilemap.in_bounds(cell)) {
+      continue;
+    }
+    int idx = cell.x + cell.y * world.map_size.x;
+    if (world.tiles[idx]) {
+      return cell;
+    }
+  }
+  return fan::vec2i(-1, -1);
+}
+void update_digging(const fan::vec2& player_pos) {
   bool held = gloco()->is_mouse_down();
-  fan::vec2 pos = fan::graphics::screen_to_world(gloco()->get_mouse_position());
-  fan::vec2i cell = tilemap.to_grid(pos);
-
-  if (gloco()->is_mouse_clicked()) {
-  //  crack_overlay.set_color(fan::color(1, 1, 1, fan::random::value(0.f, 1.f)));
-  }
- // crack_overlay.set_size(cracking ? fan::vec2(ts) / 2.f : fan::vec2(0));
-
-  if (!held || !tilemap.in_bounds(cell)) {
+  
+  if (!held) {
     crack_progress = 0;
     cracking = false;
     return;
   }
-
-  int idx = cell.x + cell.y * world.map_size.x;
-  if (!world.tiles[idx]) {
+  
+  fan::vec2i cell = find_closest_tile(player_pos);
+  
+  if (cell.x == -1) {
     crack_progress = 0;
     cracking = false;
     return;
   }
-
+  
   if (!cracking || crack_tile != cell) {
     cracking = true;
     crack_tile = cell;
     crack_progress = 0;
-    auto& shape = tilemap.get_tile(cell);
-  //  crack_overlay.set_image(shape.get_image());
-  //  crack_overlay.set_position(fan::vec3(fan::vec2(cell) * cfg.tile_size + cfg.tile_size / 2.f, 10000));
   }
-
-  crack_progress += gloco()->delta_time * 30.f;
+  
+  crack_progress += gloco()->delta_time * cfg.dig_speed;
   if (crack_progress > 1.f) {
     break_block(cell.x, cell.y);
     crack_progress = 0;
     cracking = false;
-    return;
   }
-
-  //gloco()->shader_set_value(crack_shader, "crack_strength", crack_progress);
 }
-
+void update_pickupables(const fan::vec2& player_pos) {
+  for (int i = pickupables.size() - 1; i >= 0; --i) {
+    auto& p = pickupables[i];
+    fan::vec2 pickup_pos = p.sprite.get_position();
+    f32_t dist = (pickup_pos - player_pos).length();
+    
+    if (dist < cfg.pickup_range) {
+      p.sprite.erase();
+      pickupables.erase(pickupables.begin() + i);
+    }
+  }
+}
 void update() {
-
   update_grass();
-  update_crack();
+  update_digging(pile.player.body.get_center());
+  update_pickupables(pile.player.body.get_center());
 }
 void close() {
+  for (auto& p : pickupables) {
+    p.sprite.erase();
+  }
+  pickupables.clear();
   ready = false;
 }
 
@@ -283,7 +328,7 @@ fan::graphics::tilemap_t tilemap;
 fan::graphics::tile_world_generator_t world;
 std::vector<fan::physics::entity_t> collisions;
 std::vector<fan::graphics::shader_shape_t> grass_leaves;
-std::vector<fan::graphics::physics::sprite_t> pickupables;
+std::vector<pickupable_t> pickupables;
 bool ready = false;
 fan::graphics::render_view_t view;
 fan::graphics::shader_t crack_shader;
@@ -294,5 +339,4 @@ f32_t crack_progress = 0;
 bool cracking = false;
 f32_t grass_time = 0.0f;
 f32_t grass_wind = 0.6f;
-
 cave_config_t cfg;

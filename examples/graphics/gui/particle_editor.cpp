@@ -59,7 +59,9 @@ int main() {
         .size = gui::get_window_size() / 2.f / ic.get_zoom(),
         .color = editor.bg_color
       });
+      gui::begin("particle settings");
       editor.render();
+      gui::end();
     }
     gui::end();
   });

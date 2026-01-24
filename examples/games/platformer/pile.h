@@ -30,7 +30,7 @@ struct pile_t {
   void update() {
     static bool force_zoom = true;
      if (force_zoom) {
-      update_camera_zoom();
+     // update_camera_zoom();
     }
     if (fan::window::is_key_down(fan::key_left_control) && engine.is_key_pressed(fan::key_q)) {
       force_zoom = !force_zoom;

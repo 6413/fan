@@ -1,12 +1,5 @@
 // This file is meant to stay up-to-date. More library usage will be implemented and showcased over time
 
-/*
-TODO:
-demo init function might place positions incorrectly which depend on viewport size, because the window height is calculated by their contents
-and we still dont know what the contents of gui will be until 'update' function. so viewport size might change after init function which 
-causes misalignment
-*/
-
 #include <fan/utility.h> // OFFSETLESS
 
 #include <vector>
@@ -40,11 +33,19 @@ struct engine_demo_t {
   }
 
   // ------------------------SHAPES------------------------
-  static void demo_shapes_init_capsule(engine_demo_t* engine_demo) {
+
+  template<typename shape_t, typename property_func_t>
+  static void init_shapes(engine_demo_t* engine_demo, property_func_t&& prop_func) {
     engine_demo->shapes.resize(engine_demo->shape_count);
     fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     for (uint32_t i = 0; i < engine_demo->shape_count; ++i) {
-      engine_demo->shapes[i] = fan::graphics::capsule_t{ {
+      engine_demo->shapes[i] = prop_func(i, viewport_size);
+    }
+  }
+
+  static void demo_shapes_init_capsule(engine_demo_t* engine_demo) {
+    init_shapes<fan::graphics::capsule_t>(engine_demo, [&](uint32_t i, fan::vec2 viewport_size) {
+      return fan::graphics::capsule_t {{
         .render_view = &engine_demo->right_column_view,
         .position = fan::random::vec2(-viewport_size / 2.f, viewport_size / 2.f),
         .center0 = 0,
@@ -52,25 +53,21 @@ struct engine_demo_t {
         .radius = fan::random::value(16.f, 64.f),
         .color = fan::random::color()
       }};
-    }
+    });
   }
   static void demo_shapes_init_circle(engine_demo_t* engine_demo) {
-    engine_demo->shapes.resize(engine_demo->shape_count);
-    fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
-    for (uint32_t i = 0; i < engine_demo->shape_count; ++i) {
-      engine_demo->shapes[i] = fan::graphics::circle_t{ {
+    init_shapes<fan::graphics::circle_t>(engine_demo, [&](uint32_t i, fan::vec2 viewport_size) {
+      return fan::graphics::circle_t{{
         .render_view = &engine_demo->right_column_view,
         .position = fan::random::vec2(-viewport_size / 2.f, viewport_size / 2.f),
         .radius = fan::random::value(16.f, 64.f),
         .color = fan::random::color()
       }};
-    }
+    });
   }
   static void demo_shapes_init_gradient(engine_demo_t* engine_demo) {
-    engine_demo->shapes.resize(engine_demo->shape_count);
-    fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
-    for (uint32_t i = 0; i < engine_demo->shape_count; ++i) {
-      engine_demo->shapes[i] = fan::graphics::gradient_t{ {
+    init_shapes<fan::graphics::gradient_t>(engine_demo, [&](uint32_t i, fan::vec2 viewport_size) {
+      return fan::graphics::gradient_t{{
         .render_view = &engine_demo->right_column_view,
         .position = fan::random::vec2(-viewport_size / 2.f, viewport_size / 2.f),
         .size = fan::random::vec2(30, 200),
@@ -81,17 +78,17 @@ struct engine_demo_t {
           fan::random::color()
         }
       }};
-    }
+    });
   }
 
   static void demo_shapes_init_grid(engine_demo_t* engine_demo) {
     fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     engine_demo->shapes.emplace_back(fan::graphics::grid_t{{
-    .render_view = &engine_demo->right_column_view,
-    .position = fan::vec3(-8, -8, 0),
-    .size = viewport_size.max(),
-    .grid_size = 32,
-    .color = fan::colors::white
+      .render_view = &engine_demo->right_column_view,
+      .position = fan::vec3(-8, -8, 0),
+      .size = viewport_size.max(),
+      .grid_size = 32,
+      .color = fan::colors::white
     }});
   }
 
@@ -111,8 +108,8 @@ struct engine_demo_t {
   }
 
   fan::graphics::image_t image_tire = engine.image_load("images/tire.webp");
-  static void demo_shapes_init_lighting(engine_demo_t* engine_demo) {
 
+  static void demo_shapes_init_lighting(engine_demo_t* engine_demo) {
     fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     
     static auto image_background = engine_demo->engine.image_create(fan::color(0.5, 0.5, 0.5, 1));
@@ -160,7 +157,7 @@ struct engine_demo_t {
       .color = fan::colors::purple
     }});
   }
-  static void demo_lighting_update(engine_demo_t* engine_demo) {
+  static void demo_shapes_lighting_update(engine_demo_t* engine_demo) {
     if (engine_demo->shapes.empty()) {
       return;
     }
@@ -180,51 +177,57 @@ struct engine_demo_t {
     engine_demo->shapes.back().set_position(get_mouse_position(engine_demo->right_column_view));
   }
 
+  struct demo_particles_t {
+    gui::particle_editor_t editor;
+  }*demo_particles_data = 0;
+
   static void demo_shapes_init_particles(engine_demo_t* engine_demo) {
+    fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
+    engine_demo->demo_particles_data = new demo_particles_t;
+    engine_demo->demo_particles_data->editor.set_particle_shape(fan::graphics::shapes::particles_t::properties_t{
+      .position = fan::vec3(0.f, 0.f, 10.0f),
 
-    static auto particle_texture = engine_demo->engine.image_load("images/waterdrop.webp");
+      .start_size = fan::vec2(32.0f),
+      .end_size = fan::vec2(32.0f),
 
-    fan::graphics::shapes::particles_t::properties_t p;
-    p.camera = engine_demo->right_column_view.camera;
-    p.viewport = engine_demo->right_column_view.viewport;
+      /*.color = fan::color::from_rgba(0xFF6600FF),*/
 
-    p.position = fan::vec3(0, 0, 10);
-    p.count = engine_demo->shape_count * 100;
+      .alive_time = 1.0,
+      .count = (uint32_t)engine_demo->shape_count,
 
-    p.start_size = fan::vec2(4);
-    p.end_size = fan::vec2(4);
+      .start_velocity = fan::vec2(100.0f, 100.0f),
+      .end_velocity = fan::vec2(100.0f, 100.0f),
 
-    p.begin_angle = 4.133;
-    p.end_angle = 1.0;
-    p.angle = fan::vec3(0);
+      .start_angle_velocity = fan::vec3(0.0f),
+      .end_angle_velocity = fan::vec3(0.0f),
 
-    p.alive_time = 1e+9;
+      .begin_angle = 0.0f,
+      .end_angle = 6.28f,
+      .angle = fan::vec3(0.0f, 0.0f, 0.0f),
 
-    p.spawn_spacing = fan::vec2(354.535, 1.0);
+      .spawn_spacing = fan::vec2(0.0f, 0.0f),
+      .expansion_power = 1.0f,
 
-    p.start_spread = fan::vec2(2423.231, 100.0);
-    p.end_spread = fan::vec2(2423.231, 100.0);
+      .start_spread = fan::vec2(0.0f, 0.0f),
+      .end_spread = fan::vec2(0.0f, 0.0f),
 
-    p.start_velocity = fan::vec2(0, 334);
-    p.end_velocity = fan::vec2(0, 334);
+      .jitter_start = fan::vec2(0.0f),
+      .jitter_end = fan::vec2(0.0f),
+      .jitter_speed = 0.0f,
 
-    p.start_angle_velocity = fan::vec3(0);
-    p.end_angle_velocity = fan::vec3(0);
+      .shape = shapes::particles_t::shapes_e::circle,
 
-    p.jitter_start = fan::vec2(0);
-    p.jitter_end = fan::vec2(0);
-    p.jitter_speed = 0.0f;
-
-    p.expansion_power = 1.0f;
-
-    p.shape = fan::graphics::shapes::particles_t::shapes_e::rectangle;
-
-    p.begin_color = fan::color(0.4, 0.4, 1.4);
-    p.end_color = fan::color(0.4, 0.4, 1.4);
-
-    p.image = particle_texture;
-
-    engine_demo->shapes.push_back(p);
+      .image = image_load("images/bubble.webp", image_presets::pixel_art()),
+      .camera = engine_demo->right_column_view.camera,
+      .viewport = engine_demo->right_column_view.viewport,
+    });
+  }
+  static void demo_shapes_particles_update(engine_demo_t* engine_demo) {
+    engine_demo->disable_render_gui_bg = true;
+    engine_demo->demo_particles_data->editor.render();
+  }
+  static void demo_shapes_particles_cleanup(engine_demo_t* engine_demo) {
+    delete engine_demo->demo_particles_data;
   }
 
   static void demo_shapes_init_polygon(engine_demo_t* engine_demo) {
@@ -285,17 +288,14 @@ struct engine_demo_t {
     }
   }
   static void demo_shapes_init_rectangle(engine_demo_t* engine_demo) {
-    
-    engine_demo->shapes.resize(engine_demo->shape_count);
-    fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
-    for (uint32_t i = 0; i < engine_demo->shape_count; ++i) {
-      engine_demo->shapes[i] = fan::graphics::rectangle_t{ {
+    init_shapes<fan::graphics::rectangle_t>(engine_demo, [&](uint32_t i, fan::vec2 viewport_size) {
+      return fan::graphics::rectangle_t{{
         .render_view = &engine_demo->right_column_view,
         .position = fan::vec3(fan::random::vec2(-viewport_size / 2.f, viewport_size / 2.f), i),
         .size = fan::random::vec2(30, 200),
         .color = fan::random::color()
       }};
-    }
+    });
   }
 
   inline static const char* demo_shader_shape_fragment_shader = R"(#version 330
@@ -368,17 +368,15 @@ void main() {
   }
 
   static void demo_shapes_init_sprite(engine_demo_t* engine_demo) {
-    engine_demo->shapes.resize(engine_demo->shape_count);
-    fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
-    for (uint32_t i = 0; i < engine_demo->shape_count; ++i) {
-      engine_demo->shapes[i] = fan::graphics::sprite_t{ {
+    init_shapes<fan::graphics::sprite_t>(engine_demo, [&](uint32_t i, fan::vec2 viewport_size) {
+      return fan::graphics::sprite_t{{
         .render_view = &engine_demo->right_column_view,
         .position = fan::random::vec2(-viewport_size / 2.f, viewport_size / 2.f),
         .size = fan::random::value(30.f, 200.f),
-        .color = fan::random::bright_color(), // add tint to the image
+        .color = fan::random::bright_color(),
         .image = engine_demo->image_tire
       }};
-    }
+    });
   }
 
   struct demo_sprite_sheet_t {
@@ -395,9 +393,10 @@ void main() {
       .path = "effects/light/lamp.json",
       .loop = true
     });
-    data.sprite_with_animation.set_camera(engine_demo->right_column_view.camera);
-    data.sprite_with_animation.set_viewport(engine_demo->right_column_view.viewport);
+    data.sprite_with_animation.set_render_view(engine_demo->right_column_view);
     data.sprite_with_animation.set_position(fan::vec2(0));
+    data.sprite_with_animation.set_size(viewport_size / 3.f);
+    data.sprite_with_animation.play_sprite_sheet();
   }
 
   static void demo_sprite_sheet_cleanup(engine_demo_t* engine_demo) {
@@ -916,9 +915,9 @@ void main() {
 
     data.grid_visual = {{
       .render_view = &engine_demo->right_column_view,
-      .position = fan::vec3(fan::vec2(viewport_size.max() / 2.f), 0xfff0),
-      .size = viewport_size.max() / 2.f,
-      .grid_size = viewport_size.max() / 2.f / data.tile_size
+      .position = fan::vec3(fan::vec2(0, 0), 0xfff0),
+      .size = viewport_size.max(),
+      .grid_size = viewport_size.max() / data.tile_size
     }};
 
     data.grid.create(
@@ -934,6 +933,7 @@ void main() {
 
     auto handle_cell_click = [](engine_demo_t* engine_demo, fan::vec2 mouse_pos, bool is_shift, auto&& action) {
       mouse_pos = fan::graphics::screen_to_world(mouse_pos, engine_demo->right_column_view);
+      mouse_pos -= engine_demo->demo_algorithm_pathfind_data->tile_size / 2.f;
       fan::vec2i cell = (mouse_pos / engine_demo->demo_algorithm_pathfind_data->tile_size).snap_to_grid(1).floor().clamp(fan::vec2i(0, 0), engine_demo->demo_algorithm_pathfind_data->grid.size - 1);
       action(cell, is_shift);
     };
@@ -1033,62 +1033,54 @@ void main() {
   static void demo_algorithm_sorting_init(engine_demo_t* engine_demo) {
     engine_demo->demo_sorting_data = new demo_algorithm_sorting_t();
     auto& data = *engine_demo->demo_sorting_data;
-
     const fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
-    static constexpr f32_t count = 500;
-
-    auto calculate_position_and_size = [&](int value) {
-      fan::vec2 s = { viewport_size.x / count / 2.f, viewport_size.y * (1.f - (f32_t)value / count) / 2.f };
-      fan::vec2 p = { viewport_size.x - (f32_t)value / count * viewport_size.x - s.x, viewport_size.y - s.y };
-      return std::make_pair(p, s);
-    };
-
-    auto update_target_pos = [&](demo_algorithm_sorting_t::node_t& node) {
-      fan::vec2 old = node.r.get_position();
-      node.target_pos = { viewport_size.x - (f32_t)node.value / count * viewport_size.x, old.y };
-    };
-
+    const int count = engine_demo->shape_count;
+    const f32_t bar_width = viewport_size.x / (f32_t)count;
     data.lines.reserve(count);
-
     for (int i = 0; i < count; ++i) {
-      auto [p, s] = calculate_position_and_size(i);
+      f32_t norm = (f32_t)i / (f32_t)count;
+      f32_t h = viewport_size.y * (1.f - norm);
+      fan::vec2 size = {bar_width * 0.5f, h * 0.5f};
+      f32_t rect_x = (count - 1 - i) * bar_width - viewport_size.x * 0.5f + bar_width * 0.5f;
+      f32_t rect_y = viewport_size.y * 0.5f - size.y;
+      fan::vec2 rect_pos = {rect_x, rect_y};
       data.lines.push_back({
         .r = fan::graphics::rectangle_t{{
           .render_view = &engine_demo->right_column_view,
-          .position = p- viewport_size / 2.f,
-          .size = s,
-          .color = fan::color::hsv((f32_t)i / count * 360, 100, 100)
+          .position = rect_pos,
+          .size = size,
+          .color = fan::color::hsv(norm * 360.f, 100, 100)
         }},
         .value = i,
-        .target_pos = p - viewport_size / 2.f
-      });
+        .target_pos = rect_pos
+        });
     }
-
     for (int i = data.lines.size() - 1; i > 0; --i) {
       std::swap(data.lines[i].value, data.lines[fan::random::value_i64(0, i)].value);
     }
-
-    for (auto& node : data.lines) {
-      update_target_pos(node);
-      node.r.set_position(node.target_pos- viewport_size / 2.f);
+    for (int i = 0; i < data.lines.size(); ++i) {
+      auto& node = data.lines[i];
+      f32_t rect_x = (count - 1 - node.value) * bar_width - viewport_size.x * 0.5f + bar_width * 0.5f;
+      node.target_pos = {rect_x, node.r.get_position().y};
+      node.r.set_position(node.target_pos);
     }
   }
-
   static void demo_algorithm_sorting_update(engine_demo_t* engine_demo) {
+    menus_engine_demo_render_element_count(&engine_demo->engine.settings_menu);
     auto& data = *engine_demo->demo_sorting_data;
     const fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
+    const int count = data.lines.size();
+    const f32_t bar_width = viewport_size.x / (f32_t)count;
     int comparisons = 0;
     while (comparisons < data.comparisons_per_frame && data.step < data.lines.size()) {
       if (data.i < data.lines.size() - 1 - data.step) {
         if (data.lines[data.i].value > data.lines[data.i + 1].value) {
           std::swap(data.lines[data.i].value, data.lines[data.i + 1].value);
-
-          auto update_target_pos = [&](demo_algorithm_sorting_t::node_t& node) {
-            fan::vec2 old = node.r.get_position();
-            node.target_pos = { viewport_size.x - (f32_t)node.value / data.lines.size() * viewport_size.x, old.y } - viewport_size / 2.f;
-          };
-          update_target_pos(data.lines[data.i]);
-          update_target_pos(data.lines[data.i + 1]);
+          for (int idx = 0; idx < 2; ++idx) {
+            auto& node = data.lines[data.i + idx];
+            f32_t rect_x = (count - 1 - node.value) * bar_width - viewport_size.x * 0.5f + bar_width * 0.5f;
+            node.target_pos = {rect_x, node.r.get_position().y};
+          }
         }
         data.i++;
       }
@@ -1098,13 +1090,11 @@ void main() {
       }
       comparisons++;
     }
-
     for (auto& node : data.lines) {
       fan::vec2 current = node.r.get_position();
       fan::vec2 delta = node.target_pos - current;
       node.r.set_position(fabs(delta.x) < 0.5f ? node.target_pos : current + delta * 0.25f);
     }
-
     fan::graphics::gui::text(fan::colors::yellow, "Sorting visualization (bubble sort)");
   }
 
@@ -1314,6 +1304,9 @@ void main() {
   typedef void(*demo_function_update_t)(engine_demo_t*);
   //
   static void default_update_function(engine_demo_t* engine_demo) {
+    
+  }
+  static void shape_update_function(engine_demo_t* engine_demo) {
     menus_engine_demo_render_element_count(&engine_demo->engine.settings_menu);
   }
 
@@ -1321,38 +1314,42 @@ void main() {
     const char* name;
     demo_function_t init_function = 0;
     demo_function_update_t update_function = default_update_function;
-    demo_function_t cleanup_function = 0;
+    demo_function_t cleanup_function = nullptr;
   };
 
   #define engine_demo (*OFFSETLESS(OFFSETLESS(menu, fan::graphics::engine_t, settings_menu), engine_demo_t, engine))
 
   inline static auto demos = std::to_array({
-    demo_t{.name = "Capsule", .init_function = demo_shapes_init_capsule, .update_function = default_update_function, .cleanup_function = nullptr},
-    demo_t{.name = "Circle", .init_function = demo_shapes_init_circle, .update_function = default_update_function, .cleanup_function = nullptr},
-    demo_t{.name = "Gradient", .init_function = demo_shapes_init_gradient, .update_function = default_update_function, .cleanup_function = nullptr},
-    demo_t{.name = "Grid", .init_function = demo_shapes_init_grid, .update_function = default_update_function, .cleanup_function = nullptr},
-    demo_t{.name = "Image Decoder", .init_function = demo_shapes_init_universal_image_renderer, .update_function = default_update_function, .cleanup_function = nullptr},
-    demo_t{.name = "Light", .init_function = demo_shapes_init_lighting, .update_function = demo_lighting_update, .cleanup_function = nullptr},
-    demo_t{.name = "Particles", .init_function = demo_shapes_init_particles, .update_function = default_update_function, .cleanup_function = nullptr},
-    demo_t{.name = "Polygon", .init_function = demo_shapes_init_polygon, .update_function = default_update_function, .cleanup_function = nullptr},
-    demo_t{.name = "Rectangle", .init_function = demo_shapes_init_rectangle, .update_function = default_update_function, .cleanup_function = nullptr},
-    demo_t{.name = "Shader", .init_function = demo_shapes_init_shader_shape, .update_function = demo_shader_shape_update, .cleanup_function = nullptr},
-    demo_t{.name = "Sprite", .init_function = demo_shapes_init_sprite, .update_function = default_update_function, .cleanup_function = nullptr},
-    demo_t{.name = "Sprite Sheet", .init_function = demo_shapes_init_sprite_sheet, .update_function = default_update_function, .cleanup_function = demo_sprite_sheet_cleanup},
-    demo_t{.name = "_next", .init_function = nullptr, .update_function = default_update_function, .cleanup_function = nullptr}, // skip to next title
-    //GUI STUFF
-    demo_t{.name = "Live Shader Editor", .init_function = demo_shapes_init_shader_live_editor, .update_function = demo_shader_live_editor_update, .cleanup_function = demo_shader_live_editor_cleanup},
-    demo_t{.name = "_next", .init_function = nullptr, .update_function = default_update_function, .cleanup_function = nullptr}, // skip to next title
-    demo_t{.name = "Reflective Mirrors", .init_function = demo_physics_init_mirrors, .update_function = demo_physics_update_mirrors, .cleanup_function = demo_physics_cleanup_mirrors},
-    demo_t{.name = "Platformer Builder", .init_function = demo_physics_init_platformer, .update_function = demo_physics_update_platformer, .cleanup_function = demo_physics_cleanup_platformer},
-    demo_t{.name = "Sensors", .init_function = demo_physics_init_sensor, .update_function = demo_physics_update_sensor, .cleanup_function = demo_physics_cleanup_sensor},
-    demo_t{.name = "_next", .init_function = nullptr, .update_function = default_update_function, .cleanup_function = nullptr}, // skip to next title
-    demo_t{.name = "Grid Highlight", .init_function = demo_algorithm_init_grid_highlight, .update_function = demo_algorithm_update_grid_highlight, .cleanup_function = demo_algorithm_cleanup_grid_highlight},
-    demo_t{.name = "A* Pathfind", .init_function = demo_algorithm_init_pathfind, .update_function = demo_algorithm_update_pathfind, .cleanup_function = demo_algorithm_cleanup_pathfind},
-    demo_t{.name = "Sorting visualization", .init_function = demo_algorithm_sorting_init, .update_function = demo_algorithm_sorting_update, .cleanup_function = demo_algorithm_sorting_cleanup},
-    demo_t{.name = "Terrain Generation", .init_function = demo_algorithm_terrain_init, .update_function = demo_algorithm_terrain_update, .cleanup_function = demo_algorithm_terrain_cleanup},
-    demo_t{.name = "_next", .init_function = nullptr, .update_function = default_update_function, .cleanup_function = nullptr}, // skip to next title
-    demo_t{.name = "Multithreaded image loading", .init_function = demo_init_multithreaded_image_loading, .update_function = demo_update_multithreaded_image_loading, .cleanup_function = demo_cleanup_multithreaded_image_loading},
+    // Shapes
+    demo_t{.name = "Capsule",                     .init_function = demo_shapes_init_capsule,               .update_function=shape_update_function                                                                                  },
+    demo_t{.name = "Circle",                      .init_function = demo_shapes_init_circle,                .update_function=shape_update_function                                                                                  },
+    demo_t{.name = "Gradient",                    .init_function = demo_shapes_init_gradient,              .update_function=shape_update_function                                                                                  },
+    demo_t{.name = "Grid",                        .init_function = demo_shapes_init_grid,                                                                                                                                          },
+    demo_t{.name = "Image Decoder",               .init_function = demo_shapes_init_universal_image_renderer                                                                                                                       },
+    demo_t{.name = "Light",                       .init_function = demo_shapes_init_lighting,              .update_function = demo_shapes_lighting_update                                                                          },
+    demo_t{.name = "Particles",                   .init_function = demo_shapes_init_particles,             .update_function = demo_shapes_particles_update,            .cleanup_function = demo_shapes_particles_cleanup           },
+    demo_t{.name = "Polygon",                     .init_function = demo_shapes_init_polygon,               .update_function = shape_update_function                                                                                },
+    demo_t{.name = "Rectangle",                   .init_function = demo_shapes_init_rectangle,             .update_function = shape_update_function                                                                                },
+    demo_t{.name = "Shader",                      .init_function = demo_shapes_init_shader_shape,          .update_function = demo_shader_shape_update                                                                             },
+    demo_t{.name = "Sprite",                      .init_function = demo_shapes_init_sprite,                .update_function = shape_update_function                                                                                },
+    demo_t{.name = "Sprite Sheet",                .init_function = demo_shapes_init_sprite_sheet,                                                                     .cleanup_function = demo_sprite_sheet_cleanup                },
+    demo_t{.name = "_next"                                                                                                                                                                                                         },
+    // GUI                                                                                                                                                                                                                         
+    demo_t{.name = "Live Shader Editor",          .init_function = demo_shapes_init_shader_live_editor,    .update_function = demo_shader_live_editor_update,         .cleanup_function = demo_shader_live_editor_cleanup          },
+    demo_t{.name = "_next"                                                                                                                                                                                                         },
+    // Physics                                                                                                                                                                                                                     
+    demo_t{.name = "Reflective Mirrors",          .init_function = demo_physics_init_mirrors,              .update_function = demo_physics_update_mirrors,            .cleanup_function = demo_physics_cleanup_mirrors             },
+    demo_t{.name = "Platformer Builder",          .init_function = demo_physics_init_platformer,           .update_function = demo_physics_update_platformer,         .cleanup_function = demo_physics_cleanup_platformer          },
+    demo_t{.name = "Sensors",                     .init_function = demo_physics_init_sensor,               .update_function = demo_physics_update_sensor,             .cleanup_function = demo_physics_cleanup_sensor              },
+    demo_t{.name = "_next"                                                                                                                                                                                                         },
+    // Algorithms                                                                                                                                                                                                                  
+    demo_t{.name = "Grid Highlight",              .init_function = demo_algorithm_init_grid_highlight,     .update_function = demo_algorithm_update_grid_highlight,   .cleanup_function = demo_algorithm_cleanup_grid_highlight    },
+    demo_t{.name = "A* Pathfind",                 .init_function = demo_algorithm_init_pathfind,           .update_function = demo_algorithm_update_pathfind,         .cleanup_function = demo_algorithm_cleanup_pathfind          },
+    demo_t{.name = "Sorting visualization",       .init_function = demo_algorithm_sorting_init,            .update_function = demo_algorithm_sorting_update,          .cleanup_function = demo_algorithm_sorting_cleanup           },
+    demo_t{.name = "Terrain Generation",          .init_function = demo_algorithm_terrain_init,            .update_function = demo_algorithm_terrain_update,          .cleanup_function = demo_algorithm_terrain_cleanup           },
+    demo_t{.name = "_next"                                                                                                                                                                                                         },
+    // Misc
+    demo_t{.name = "Multithreaded image loading", .init_function = demo_init_multithreaded_image_loading, .update_function = demo_update_multithreaded_image_loading, .cleanup_function = demo_cleanup_multithreaded_image_loading }
   });
 
   static void menus_engine_demo_left(menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
@@ -1373,45 +1370,53 @@ void main() {
     }
   }
   static void menus_engine_demo_right(menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
-    engine_demo.panel_right_window_size = next_window_size;
     gui::set_next_window_pos(next_window_position);
-    gui::set_next_window_size(fan::vec2(next_window_size.x, next_window_size.y / 2.f)); // auto window y size
-    fan::vec2 window_size;
-    if (auto wnd = gui::window("##Menu Engine Demo Right Top", 0, wnd_flags)) {
-      engine_demo.engine.lighting.ambient = 1;
-
-      auto& demo = demos[engine_demo.current_demo_index];
-      if (demo.update_function) {
-        demo.update_function(&engine_demo);
-      }
-      window_size = gui::get_window_size();
-    }
-
-    engine_demo.panel_right_render_position = next_window_position + fan::vec2(0, window_size.y);
-
-    gui::set_next_window_pos(next_window_position + fan::vec2(0, window_size.y));
-    gui::set_next_window_size(fan::vec2(next_window_size.x, next_window_size.y - window_size.y));
+    gui::set_next_window_size(next_window_size);
     gui::push_style_color(gui::col_window_bg, fan::colors::transparent);
-
     engine_demo.mouse_inside_demo_view = engine_demo.engine.is_mouse_inside(engine_demo.right_column_view);
     engine_demo.interactive_camera.ignore_input = !engine_demo.mouse_inside_demo_view;
 
     if (auto wnd = gui::window(
       "##Menu Engine Demo Right Content Bottom",
-      wnd_flags | gui::window_flags_no_inputs | gui::window_flags_override_input
-    ))
-    {
+      wnd_flags | gui::window_flags_override_input
+    )) {
       gui::set_viewport(engine_demo.right_column_view.viewport);
+
+      auto& demo = demos[engine_demo.current_demo_index];
+      if (demo.update_function) {
+        fan::vec2 cursor_start = gui::get_cursor_screen_pos();
+        f32_t start_y = gui::get_cursor_pos_y();
+
+        engine_demo.disable_render_gui_bg = false;
+        demo.update_function(&engine_demo);
+
+        if (!engine_demo.disable_render_gui_bg) {
+          f32_t end_y = gui::get_cursor_pos_y();
+          f32_t content_height = end_y - start_y;
+          fan::vec2 window_size = gui::get_window_size();
+  
+          auto* draw_list = gui::get_background_draw_list();
+          fan::vec2 rect_end = cursor_start + fan::vec2(window_size.x - gui::get_style().WindowPadding.x * 2, content_height);
+          if (rect_end.y - cursor_start.y > 5.f) { // render bg if content exists
+            draw_list->AddRectFilled(
+              cursor_start,
+              rect_end,
+              fan::color(0.05f, 0.05f, 0.05f, 0.99f),
+              5.0f
+            );
+          }
+        }
+      }
+
       if (engine_demo.new_demo_index != (uint16_t)-1) {
         engine_demo.clear_and_set_demo(engine_demo.new_demo_index);
         engine_demo.new_demo_index = -1;
       }
     }
-//   engine_demo.interactive_camera.update();
     gui::pop_style_color();
   }
 
-  static constexpr int wnd_flags = gui::window_flags_no_move| 
+  static constexpr int wnd_flags = gui::window_flags_no_move |
     gui::window_flags_no_collapse | gui::window_flags_no_resize| gui::window_flags_no_title_bar;
 
   static void render_demos(menu_t* menu, const std::vector<std::string>& titles) {
@@ -1521,6 +1526,7 @@ void main() {
   fan::vec2 panel_right_render_position = 0.f;
   fan::vec2 panel_right_window_size = 0.f;
   bool mouse_inside_demo_view = false;
+  bool disable_render_gui_bg = false;
 };
 
 #include "library_usage_samples.h"

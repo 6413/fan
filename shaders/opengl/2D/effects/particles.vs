@@ -39,6 +39,10 @@ uniform vec2 jitter_start;
 uniform vec2 jitter_end;
 uniform float jitter_speed;
 
+uniform vec2 size_random_range;
+uniform vec4 color_random_range;
+uniform vec3 angle_random_range;
+
 uniform int shape;
 uniform float time;
 uniform mat4 projection;
@@ -203,6 +207,8 @@ void main() {
 
   float t = clamp(time_mod / alive_time, 0.0, 1.0);
 
+  uint pseed = seed + id * 7919u;
+
   vec2 base_pos = position;
   vec2 spread_max = mix(start_spread, end_spread, t);
 
@@ -232,10 +238,28 @@ void main() {
     cos(time_mod * jitter_speed + float(seed)) * jitter_amount.y
   );
 
-  vec2 size = mix(start_size, end_size, t);
+  vec2 size;
+  if (size_random_range.x > 0.0) {
+    float size_rand = floatConstruct(RAND(pseed * 2u));
+    size = mix(start_size, end_size, t) * (1.0 + (size_rand - 0.5) * size_random_range.x * 2.0);
+  }
+  else {
+    size = mix(start_size, end_size, t);
+  }
 
   vec3 angle_vel = mix(start_angle_velocity, end_angle_velocity, t);
-  vec3 total_angle = angle + time_mod * angle_vel;
+  vec3 total_angle;
+  if (angle_random_range.x > 0.0) {
+    vec3 rand_angle = vec3(
+      floatConstruct(RAND(pseed * 13u)),
+      floatConstruct(RAND(pseed * 17u)),
+      floatConstruct(RAND(pseed * 19u))
+    );
+    total_angle = angle + time_mod * angle_vel + (rand_angle - 0.5) * angle_random_range * 2.0;
+  }
+  else {
+    total_angle = angle + time_mod * angle_vel;
+  }
 
   vec2 v = rectangle_vertices[gl_VertexID % 6] * size;
 
@@ -253,6 +277,22 @@ void main() {
   gl_Position = projection * view * vec4(world_pos, 0.0, 1.0);
   gl_Position.z = 1.0 - (float(modded_index) / 6.0) / float(count);
 
-  i_color = mix(begin_color, end_color, t);
+  vec4 particle_color;
+  if (color_random_range.x > 0.0) {
+    vec4 rand_color = vec4(
+      floatConstruct(RAND(pseed * 3u)),
+      floatConstruct(RAND(pseed * 5u)),
+      floatConstruct(RAND(pseed * 7u)),
+      floatConstruct(RAND(pseed * 11u))
+    );
+    particle_color = mix(begin_color, end_color, t);
+    particle_color += (rand_color - 0.5) * color_random_range * 2.0;
+    particle_color = clamp(particle_color, 0.0, 1.0);
+  }
+  else {
+    particle_color = mix(begin_color, end_color, t);
+  }
+
+  i_color = particle_color;
   texture_coordinate = tc[gl_VertexID % 6];
 }

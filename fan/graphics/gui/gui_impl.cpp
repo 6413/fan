@@ -1315,7 +1315,7 @@ namespace fan::graphics::gui {
 
     if (gui::button("+")) {
       fan::graphics::sprite_sheet_t animation;
-      animation.name = std::to_string((uint32_t)fan::graphics::sprite_sheet_counter); // think this over
+      animation.name = std::to_string((uint32_t)fan::graphics::ss_counter()); // think this over
       shape_sprite_sheet_id = fan::graphics::add_shape_sprite_sheet(shape_sprite_sheet_id, animation);
     }
     if (!shape_sprite_sheet_id) {
@@ -1466,12 +1466,12 @@ namespace fan::graphics::gui {
       play_animation = false;
       toggle_play_animation = true;
     }
-    decltype(fan::graphics::all_sprite_sheets)::iterator current_sprite_sheet;
+    typename fan::graphics::ss_map_t::iterator current_sprite_sheet;
     if (!current_animation_nr) {
       goto g_end_frame;
     }
-    current_sprite_sheet = fan::graphics::all_sprite_sheets.find(current_animation_nr);
-    if (current_sprite_sheet == fan::graphics::all_sprite_sheets.end()) {
+    current_sprite_sheet = fan::graphics::all_sprite_sheets().find(current_animation_nr);
+    if (current_sprite_sheet == fan::graphics::all_sprite_sheets().end()) {
     g_end_frame:
       gui::columns(1);
       gui::end_child();
@@ -1535,7 +1535,7 @@ namespace fan::graphics::gui {
       }
 
       if (gui::button("Add")) {
-        if (auto it = fan::graphics::all_sprite_sheets.find(current_animation_nr); it != fan::graphics::all_sprite_sheets.end()) {
+        if (auto it = fan::graphics::all_sprite_sheets().find(current_animation_nr); it != fan::graphics::all_sprite_sheets().end()) {
           auto& anim = it->second;
           fan::graphics::sprite_sheet_t::image_t new_image;
           new_image.image = fan::graphics::image_load(sprite_sheet_drag_drop_name);
@@ -1561,7 +1561,7 @@ namespace fan::graphics::gui {
       gui::receive_drag_drop_target(drag_drop_id, [this](const std::string& file_paths) {
         for (const std::string& file_path : fan::split(file_paths, ";")) {
           if (fan::image::valid(file_path)) {
-            if (auto it = fan::graphics::all_sprite_sheets.find(current_animation_nr); it != fan::graphics::all_sprite_sheets.end()) {
+            if (auto it = fan::graphics::all_sprite_sheets().find(current_animation_nr); it != fan::graphics::all_sprite_sheets().end()) {
               auto& anim = it->second;
               //// unload previous image
               //if (fan::graphics::is_image_valid(anim.sprite_sheet)) {
@@ -1632,13 +1632,11 @@ namespace fan::graphics::gui {
   }
 
   void particle_editor_t::render_settings() {
-    begin("particle settings");
     color_edit4("background color", &bg_color);
     gui::render_texture_property(particle_image_sprite, 0, "Particle texture");
     render_image_filter_property(particle_image_sprite, "Particle texture image filter");
     particle_shape.set_image(particle_image_sprite.get_image());
     shape_properties(particle_shape);
-    end();
 
     if (fan::window::is_key_pressed(fan::key_s) && fan::window::is_key_down(fan::key_left_control)) {
       fout(filename);
