@@ -1,9 +1,15 @@
 module;
 
+#if defined(FAN_GUI)
+
 #include <cstdint>
 #include <vector>
 
+#endif
+
 export module fan.graphics.gui.hotbar;
+
+#if defined(FAN_GUI)
 
 import fan.graphics;
 import fan.graphics.gui.base;
@@ -207,3 +213,5 @@ export namespace fan::graphics::gui {
     item_use_cb_t on_item_use = nullptr;
   };
 }
+
+#endif

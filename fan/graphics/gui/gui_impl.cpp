@@ -78,25 +78,22 @@ namespace fan::graphics::gui {
 
   void set_viewport(const fan::graphics::render_view_t& render_view) {
     set_viewport(render_view.viewport);
-
     auto& cam = fan::graphics::camera_get(render_view.camera);
+
+    if (!cam.original_coordinates[0] && !cam.original_coordinates[1] && !cam.original_coordinates[2] && !cam.original_coordinates[3]) {
+      cam.original_coordinates = cam.coordinates.v;
+    }
+
     fan::vec2 win = get_window_size();
-
-    f32_t old_w = cam.coordinates.right  - cam.coordinates.left;
-    f32_t old_h = cam.coordinates.top    - cam.coordinates.bottom;
-
-    f32_t sx = win.x / old_w;
-    f32_t sy = win.y / old_h;
-
-    cam.coordinates.left   *= sx;
-    cam.coordinates.right  *= sx;
-    cam.coordinates.top    *= sy;
-    cam.coordinates.bottom *= sy;
+    f32_t orig_w = cam.original_coordinates.y - cam.original_coordinates.x;
+    f32_t orig_h = cam.original_coordinates.w - cam.original_coordinates.z;
+    f32_t sx = win.x / orig_w;
+    f32_t sy = win.y / orig_h;
 
     fan::graphics::camera_set_ortho(
       render_view.camera,
-      fan::vec2(cam.coordinates.left, cam.coordinates.right),
-      fan::vec2(cam.coordinates.bottom, cam.coordinates.top)
+      fan::vec2(cam.original_coordinates.x * sx, cam.original_coordinates.y * sx),
+      fan::vec2(cam.original_coordinates.z * sy, cam.original_coordinates.w * sy)
     );
   }
 

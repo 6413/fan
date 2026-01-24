@@ -1,12 +1,18 @@
 module;
 
+#if defined(FAN_GUI)
+
 #include <vector>
 #include <string>
 #include <unordered_map>
 #include <set>
 #include <functional>
 
+#endif
+
 export module fan.graphics.gui.keybinds_menu;
+
+#if defined(FAN_GUI)
 
 import fan.window.input_action;
 import fan.graphics.gui.base;
@@ -102,3 +108,5 @@ export namespace fan::graphics::gui {
     int suppress_input_frame = 0;
   };
 }
+
+#endif

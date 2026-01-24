@@ -1,10 +1,16 @@
 module;
 
+#if defined(FAN_GUI)
+
 #include <cstdint>
 #include <algorithm>
 #include <string>
 
+#endif
+
 export module fan.graphics.gui.drag_drop;
+
+#if defined(FAN_GUI)
 
 import fan.graphics.gui.base;
 import fan.graphics;
@@ -162,3 +168,5 @@ export namespace fan::graphics::gui::drag_drop {
     virtual ~drop_target_t() {}
   };
 }
+
+#endif

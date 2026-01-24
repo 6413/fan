@@ -937,9 +937,11 @@ export namespace fan::graphics {
       int count_index;
     };
 
+  #if defined(FAN_OPENGL)
     fan::graphics::texture_pack::internal_t::open_properties_t open_properties;
     fan::graphics::texture_pack::internal_t e;
     fan::graphics::texture_pack::internal_t::texture_properties_t texture_properties;
+  #endif
 
     //
     image_divider_t();
