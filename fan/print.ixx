@@ -87,7 +87,7 @@ export namespace fan {
   std::string format_warning(const std::string& message) {
   #ifndef fan_disable_warnings
     std::string ret = "fan warning:" + message;
-    get_error_log().data += ret + '\n';
+    write_error_to_disk(ret);
     return ret;
   #else
     return "";
@@ -96,7 +96,7 @@ export namespace fan {
   std::string format_warning_no_space(const std::string& message) {
   #ifndef fan_disable_warnings
     std::string ret = "fan warning:" + message;
-    get_error_log().data += ret + '\n';
+    write_error_to_disk(ret);
     return ret;
   #else
     return "";
@@ -168,19 +168,19 @@ export namespace fan {
   }
   void print_warning(const std::string& message) {
   #ifndef fan_disable_warnings
-    get_error_log().data += message + '\n';
+    write_error_to_disk(message);
     print_color(fan::colors::yellow, message);
   #endif
   }
   void print_error(const std::string& message) {
   #ifndef fan_disable_errors
-    get_error_log().data += message + '\n';
+    write_error_to_disk(message);
     print_color(fan::colors::red, message);
   #endif
   }
   void print_warning_no_space(const std::string& message) {
   #ifndef fan_disable_warnings
-    get_error_log().data += message + '\n';
+    write_error_to_disk(message);
     std::cout << format_warning_no_space(message) << '\n';
   #endif
   }
