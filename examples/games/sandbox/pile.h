@@ -1,6 +1,6 @@
 // All stages are included here
 
-#include "player.h"
+#include "player/player.h"
 
 #define stage_loader_path .
 #include <fan/graphics/gui/stage_maker/loader.h>
@@ -39,8 +39,9 @@ lstd_defstruct(example_stage_t)
 
 pile_t::pile_t() {
   // physics step
-  engine.physics_context.set_gravity(fan::vec2(0, 5813.3759765625));
+  engine.physics_context.set_gravity(fan::vec2(0, 980.f));
   engine.update_physics(true);
+  ic.set_zoom(2.f);
 
   engine.clear_color = 0;
   engine.lighting.ambient = 1;

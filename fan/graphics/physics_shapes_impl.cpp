@@ -1199,14 +1199,18 @@ namespace fan::graphics::physics {
     fan::graphics::physics::character2d_t character;
     fan::vec2 original_pos;
   };
-  std::unordered_map<std::string, json_cache_t> json_cache;
+  using jcache_t = std::unordered_map<std::string, json_cache_t>;
+  jcache_t& json_cache() {
+    static jcache_t json_cache;
+    return json_cache;
+  }
 
 
   fan::graphics::physics::character2d_t fan::graphics::physics::character2d_t::from_json(
     const fan::graphics::physics::character2d_t::character_config_t& config,
     const std::source_location& callers_path
   ) {
-    if (json_cache.find(config.json_path) == json_cache.end()) {
+    if (json_cache().find(config.json_path) == json_cache().end()) {
       fan::json json_data = fan::graphics::read_json(config.json_path, callers_path);
       fan::graphics::resolve_json_image_paths(json_data, config.json_path, callers_path);
       fan::graphics::sprite_sheets_parse(config.json_path, json_data, callers_path);
@@ -1226,7 +1230,7 @@ namespace fan::graphics::physics {
       }
 
       character.play_sprite_sheet();
-      auto& cache = json_cache[config.json_path];
+      auto& cache = json_cache()[config.json_path];
       cache.character = character;
       cache.character.set_body_type(fan::physics::body_type_e::static_body);
       cache.original_pos = character.get_position();
@@ -1235,7 +1239,7 @@ namespace fan::graphics::physics {
       cache.character.set_physics_position(-b2_huge);
       return character;
     }
-    auto& cache = json_cache[config.json_path];
+    auto& cache = json_cache()[config.json_path];
     fan::graphics::physics::character2d_t character = cache.character;
     character.set_body_type(fan::physics::body_type_e::dynamic_body);
     character.set_physics_position(cache.original_pos);
@@ -1389,7 +1393,7 @@ namespace fan::graphics::physics {
     } attack, idle, move, hurt;
 
     for (auto& [name, anim_id] : anims) {
-      auto& a = fan::graphics::all_sprite_sheets[anim_id];
+      auto& a = fan::graphics::all_sprite_sheets()[anim_id];
       if (name == "attack0") {
         attack = {a.fps, anim_id};
       }

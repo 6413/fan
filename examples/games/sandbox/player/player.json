@@ -1,0 +1,141 @@
+{
+  "animations": [
+    {
+      "fps": 15,
+      "id": 0,
+      "images": [
+        {
+          "hframes": 10,
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "IDLE.webp",
+          "vframes": 1
+        }
+      ],
+      "name": "idle",
+      "selected_frames": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ]
+    },
+    {
+      "fps": 30,
+      "id": 1,
+      "images": [
+        {
+          "hframes": 16,
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "RUN.webp",
+          "vframes": 1
+        }
+      ],
+      "name": "move",
+      "selected_frames": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ]
+    },
+    {
+      "fps": 60,
+      "id": 2,
+      "images": [
+        {
+          "hframes": 7,
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "ATTACK 1.webp",
+          "vframes": 1
+        }
+      ],
+      "name": "attack0",
+      "selected_frames": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ]
+    },
+    {
+      "fps": 15,
+      "id": 3,
+      "images": [
+        {
+          "hframes": 4,
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "HURT.webp",
+          "vframes": 1
+        }
+      ],
+      "name": "hurt",
+      "selected_frames": [
+        0,
+        1,
+        2,
+        3
+      ]
+    }
+  ],
+  "shapes": [
+    {
+      "animations": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "images": [
+        {
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "ATTACK 1.webp"
+        }
+      ],
+      "position": [
+        0.0,
+        0.0,
+        32202.0
+      ],
+      "shape": "sprite",
+      "size": [
+        128.0,
+        128.0
+      ],
+      "tc_position": [
+        0.5714285969734192,
+        0.0
+      ],
+      "tc_size": [
+        0.1428571492433548,
+        1.0
+      ]
+    }
+  ],
+  "version": 1
+}

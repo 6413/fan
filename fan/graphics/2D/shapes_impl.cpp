@@ -211,42 +211,65 @@ namespace fan::graphics {
   }
 
   // cache path + file unique sprite_sheet id
-  std::unordered_map<std::pair<sprite_sheet_id_t, std::string>, sprite_sheet_id_t, sprite_sheet_pair_hash_t> all_sprite_sheets_cache;
-  std::unordered_map<sprite_sheet_id_t, sprite_sheet_t, sprite_sheet_id_hash_t> all_sprite_sheets;
-  sprite_sheet_id_t sprite_sheet_counter = 0;
-  std::unordered_map<std::pair<sprite_sheet_shape_id_t, std::string>, sprite_sheet_id_t, sprite_sheet_pair_hash_t> shape_sprite_sheet_lookup_table;
-  std::unordered_map<sprite_sheet_shape_id_t, std::vector<sprite_sheet_id_t>, sprite_sheet_id_hash_t> shape_sprite_sheets;
-  sprite_sheet_id_t shape_sprite_sheet_counter = 0;
+  ss_cache_t& ss_cache() {
+    static ss_cache_t cache;
+    return cache;
+  }
+
+  ss_map_t& all_sprite_sheets() {
+    static ss_map_t sheets;
+    return sheets;
+  }
+
+  sprite_sheet_id_t& ss_counter() {
+    static sprite_sheet_id_t counter = 0;
+    return counter;
+  }
+
+  ss_lookup_t& ss_lookup() {
+    static ss_lookup_t table;
+    return table;
+  }
+
+  ss_shapes_t& shape_sprite_sheets() {
+    static ss_shapes_t sheets;
+    return sheets;
+  }
+
+  sprite_sheet_id_t& shape_ss_counter() {
+    static sprite_sheet_id_t counter = 0;
+    return counter;
+  }
 
   sprite_sheet_t& get_sprite_sheet(sprite_sheet_id_t nr) {
-    auto found_sheet = fan::graphics::all_sprite_sheets.find(nr);
-    if (found_sheet == fan::graphics::all_sprite_sheets.end()) {
+    auto found_sheet = fan::graphics::all_sprite_sheets().find(nr);
+    if (found_sheet == fan::graphics::all_sprite_sheets().end()) {
       fan::throw_error("Sprite sheet not found");
     }
     return found_sheet->second;
   }
 
   sprite_sheet_t& get_sprite_sheet(sprite_sheet_id_t shape_sprite_sheet_id, const std::string& sprite_sheet_name) {
-    auto found = shape_sprite_sheet_lookup_table.find(std::make_pair(shape_sprite_sheet_id, sprite_sheet_name));
-    if (found == shape_sprite_sheet_lookup_table.end()) {
+    auto found = ss_lookup().find(std::make_pair(shape_sprite_sheet_id, sprite_sheet_name));
+    if (found == ss_lookup().end()) {
       fan::throw_error("Failed to find sprite sheet:" + sprite_sheet_name);
     }
     return get_sprite_sheet(found->second);
   }
 
   std::vector<fan::graphics::sprite_sheet_id_t>& get_shape_sprite_sheets(sprite_sheet_id_t shape_sprite_sheet_id) {
-    auto found = shape_sprite_sheets.find(shape_sprite_sheet_id);
-    if (found == shape_sprite_sheets.end()) {
+    auto found = shape_sprite_sheets().find(shape_sprite_sheet_id);
+    if (found == shape_sprite_sheets().end()) {
       fan::throw_error("Failed to find sprite sheet:" + std::to_string((uint32_t)shape_sprite_sheet_id));
     }
     return found->second;
   }
 
   void rename_shape_sprite_sheet(sprite_sheet_id_t shape_sprite_sheet_id, const std::string& old_name, const std::string& new_name) {
-    auto& previous_sheets = shape_sprite_sheets[shape_sprite_sheet_id];
+    auto& previous_sheets = shape_sprite_sheets()[shape_sprite_sheet_id];
     auto found = std::find_if(previous_sheets.begin(), previous_sheets.end(), [old_name](const sprite_sheet_id_t nr) {
-      auto found = fan::graphics::all_sprite_sheets.find(nr);
-      if (found == fan::graphics::all_sprite_sheets.end()) {
+      auto found = fan::graphics::all_sprite_sheets().find(nr);
+      if (found == fan::graphics::all_sprite_sheets().end()) {
         fan::throw_error("Sprite sheet nr expired (bug)");
       }
       return found->second.name == old_name;
@@ -255,37 +278,37 @@ namespace fan::graphics {
       fan::throw_error("Sprite sheet:" + old_name, ", not found");
     }
     sprite_sheet_id_t previous_sheet_id = *found;
-    auto prev_found = fan::graphics::all_sprite_sheets.find(previous_sheet_id);
-    if (prev_found == fan::graphics::all_sprite_sheets.end()) {
+    auto prev_found = fan::graphics::all_sprite_sheets().find(previous_sheet_id);
+    if (prev_found == fan::graphics::all_sprite_sheets().end()) {
       fan::throw_error("Sprite sheet nr expired (bug)");
     }
     auto& previous_sheet = prev_found->second;
     {
-      auto found = fan::graphics::shape_sprite_sheet_lookup_table.find(std::make_pair(shape_sprite_sheet_id, previous_sheet.name));
-      if (found != fan::graphics::shape_sprite_sheet_lookup_table.end()) {
-        fan::graphics::shape_sprite_sheet_lookup_table.erase(found);
+      auto found = fan::graphics::ss_lookup().find(std::make_pair(shape_sprite_sheet_id, previous_sheet.name));
+      if (found != fan::graphics::ss_lookup().end()) {
+        fan::graphics::ss_lookup().erase(found);
       }
     }
     previous_sheet.name = new_name;
-    fan::graphics::shape_sprite_sheet_lookup_table[std::make_pair(shape_sprite_sheet_id, new_name)] = previous_sheet_id;
+    fan::graphics::ss_lookup()[std::make_pair(shape_sprite_sheet_id, new_name)] = previous_sheet_id;
   }
 
   sprite_sheet_id_t add_shape_sprite_sheet(sprite_sheet_id_t new_sprite_sheet) {
-    shape_sprite_sheets[shape_sprite_sheet_counter].emplace_back(new_sprite_sheet);
-    return shape_sprite_sheet_counter++;
+    shape_sprite_sheets()[shape_ss_counter()].emplace_back(new_sprite_sheet);
+    return shape_ss_counter()++;
   }
 
   sprite_sheet_id_t add_existing_sprite_sheet_shape(sprite_sheet_id_t existing_sprite_sheet, sprite_sheet_id_t shape_sprite_sheet_id, const sprite_sheet_t& new_sprite_sheet) {
     sprite_sheet_id_t new_sheet_id = existing_sprite_sheet;
-    all_sprite_sheets[existing_sprite_sheet] = new_sprite_sheet;
+    all_sprite_sheets()[existing_sprite_sheet] = new_sprite_sheet;
     if (!shape_sprite_sheet_id) {
       shape_sprite_sheet_id = add_shape_sprite_sheet(new_sheet_id);
-      shape_sprite_sheet_lookup_table[std::make_pair(shape_sprite_sheet_id, new_sprite_sheet.name)] = new_sheet_id;
+      ss_lookup()[std::make_pair(shape_sprite_sheet_id, new_sprite_sheet.name)] = new_sheet_id;
       return shape_sprite_sheet_id;
     }
-    shape_sprite_sheet_lookup_table[std::make_pair(shape_sprite_sheet_id, new_sprite_sheet.name)] = new_sheet_id;
-    auto found = shape_sprite_sheets.find(shape_sprite_sheet_id);
-    if (found == shape_sprite_sheets.end()) {
+    ss_lookup()[std::make_pair(shape_sprite_sheet_id, new_sprite_sheet.name)] = new_sheet_id;
+    auto found = shape_sprite_sheets().find(shape_sprite_sheet_id);
+    if (found == shape_sprite_sheets().end()) {
       fan::throw_error("add_shape_sprite_sheet:given shape sprite_sheet id not found");
     }
     found->second.emplace_back(new_sheet_id);
@@ -293,7 +316,7 @@ namespace fan::graphics {
   }
 
   sprite_sheet_id_t add_shape_sprite_sheet(sprite_sheet_id_t shape_sprite_sheet_id, const sprite_sheet_t& new_sprite_sheet) {
-    sprite_sheet_id_t new_sheet_id = sprite_sheet_counter++;
+    sprite_sheet_id_t new_sheet_id = ss_counter()++;
     return add_existing_sprite_sheet_shape(new_sheet_id, shape_sprite_sheet_id, new_sprite_sheet);
   }
 
@@ -378,7 +401,7 @@ namespace fan::graphics {
     fan::json result = fan::json::object();
     fan::json animations_arr = fan::json::array();
 
-    for (auto& sheet : all_sprite_sheets) {
+    for (auto& sheet : all_sprite_sheets()) {
       fan::json ss;
       ss["name"] = sheet.second.name;
       ss["selected_frames"] = sheet.second.selected_frames;
@@ -404,7 +427,7 @@ namespace fan::graphics {
   }
 
   void sprite_sheets_parse(const std::string& json_path, fan::json& json, const std::source_location& callers_path) {
-    auto current_global_id = sprite_sheet_counter.id;
+    auto current_global_id = ss_counter().id;
     if (json.contains("animations")) {
       for (const auto& item : json["animations"]) {
         sprite_sheet_t sheet;
@@ -429,15 +452,15 @@ namespace fan::graphics {
 
         sprite_sheet_id_t original_id = item.value("id", uint32_t());
         sprite_sheet_id_t new_id = original_id.id + current_global_id;
-        auto found = all_sprite_sheets_cache.find({original_id, std::filesystem::absolute(json_path).generic_string()});
-        if (found == all_sprite_sheets_cache.end()) {
-          all_sprite_sheets_cache[{original_id, std::filesystem::absolute(json_path).generic_string()}] = new_id;
-          sprite_sheet_counter = std::max(sprite_sheet_counter.id, static_cast<uint32_t>(new_id.id + 1));
+        auto found = ss_cache().find({original_id, std::filesystem::absolute(json_path).generic_string()});
+        if (found == ss_cache().end()) {
+          ss_cache()[{original_id, std::filesystem::absolute(json_path).generic_string()}] = new_id;
+          ss_counter() = std::max(ss_counter().id, static_cast<uint32_t>(new_id.id + 1));
         }
         else {
           new_id = found->second;
         }
-        all_sprite_sheets[new_id] = sheet;
+        all_sprite_sheets()[new_id] = sheet;
       }
     }
 
@@ -449,10 +472,10 @@ namespace fan::graphics {
             sprite_sheet_id_t original_id = anim_id.get<uint32_t>();
             sprite_sheet_id_t new_id = original_id.id + current_global_id;
 
-            auto found = all_sprite_sheets_cache.find({original_id, std::filesystem::absolute(json_path).generic_string()});
-            if (found == all_sprite_sheets_cache.end()) {
-              all_sprite_sheets_cache[{original_id, std::filesystem::absolute(json_path).generic_string()}] = new_id;
-              sprite_sheet_counter = std::max(sprite_sheet_counter.id, static_cast<uint32_t>(new_id.id + 1));
+            auto found = ss_cache().find({original_id, std::filesystem::absolute(json_path).generic_string()});
+            if (found == ss_cache().end()) {
+              ss_cache()[{original_id, std::filesystem::absolute(json_path).generic_string()}] = new_id;
+              ss_counter() = std::max(ss_counter().id, static_cast<uint32_t>(new_id.id + 1));
             } else {
               new_id = found->second;
             }
@@ -2042,7 +2065,7 @@ namespace fan::graphics{
       g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
         if constexpr (requires { props.sprite_sheet_data.shape_sprite_sheets; }) {
           props.sprite_sheet_data.shape_sprite_sheets = fan::graphics::add_existing_sprite_sheet_shape(nr, props.sprite_sheet_data.shape_sprite_sheets, sprite_sheet);
-          props.sprite_sheet_data.current_sprite_sheet = fan::graphics::shape_sprite_sheets[props.sprite_sheet_data.shape_sprite_sheets].back();
+          props.sprite_sheet_data.current_sprite_sheet = fan::graphics::shape_sprite_sheets()[props.sprite_sheet_data.shape_sprite_sheets].back();
         }
       });
       if (!get_visual_id()) {
@@ -2051,7 +2074,7 @@ namespace fan::graphics{
 
       auto& ri = shape_get_ri(sprite);
       ri.sprite_sheet_data.shape_sprite_sheets = fan::graphics::add_existing_sprite_sheet_shape(nr, ri.sprite_sheet_data.shape_sprite_sheets, sprite_sheet);
-      ri.sprite_sheet_data.current_sprite_sheet = fan::graphics::shape_sprite_sheets[ri.sprite_sheet_data.shape_sprite_sheets].back();
+      ri.sprite_sheet_data.current_sprite_sheet = fan::graphics::shape_sprite_sheets()[ri.sprite_sheet_data.shape_sprite_sheets].back();
     }
     else {
       fan::throw_error("Unimplemented for this shape");
@@ -2081,18 +2104,18 @@ namespace fan::graphics{
   void shapes::shape_t::set_sprite_sheet_loop(sprite_sheet_id_t nr, bool flag) {
     g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
       if constexpr (requires { props.sprite_sheet_data; }) {
-        auto& shape_sheets = fan::graphics::shape_sprite_sheets[props.sprite_sheet_data.shape_sprite_sheets];
+        auto& shape_sheets = fan::graphics::shape_sprite_sheets()[props.sprite_sheet_data.shape_sprite_sheets];
 
         for (auto& sheet_id : shape_sheets) {
           if (sheet_id == nr) {
-            sprite_sheet_id_t new_nr = sprite_sheet_counter++;
-            all_sprite_sheets[new_nr] = all_sprite_sheets[nr];
-            all_sprite_sheets[new_nr].loop = flag;
+            sprite_sheet_id_t new_nr = ss_counter()++;
+            all_sprite_sheets()[new_nr] = all_sprite_sheets()[nr];
+            all_sprite_sheets()[new_nr].loop = flag;
 
             sheet_id = new_nr;
 
-            auto& sheet = all_sprite_sheets[new_nr];
-            shape_sprite_sheet_lookup_table[{props.sprite_sheet_data.shape_sprite_sheets, sheet.name}] = new_nr;
+            auto& sheet = all_sprite_sheets()[new_nr];
+            ss_lookup()[{props.sprite_sheet_data.shape_sprite_sheets, sheet.name}] = new_nr;
 
             if (props.sprite_sheet_data.current_sprite_sheet == nr) {
               props.sprite_sheet_data.current_sprite_sheet = new_nr;
@@ -2135,8 +2158,8 @@ namespace fan::graphics{
   void fan::graphics::shapes::shape_t::set_sprite_sheet_next_frame(int advance) {
     g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
       if constexpr (requires { props.sprite_sheet_data; }) {
-        auto found = fan::graphics::all_sprite_sheets.find(props.sprite_sheet_data.current_sprite_sheet);
-        if (found == fan::graphics::all_sprite_sheets.end()) {
+        auto found = fan::graphics::all_sprite_sheets().find(props.sprite_sheet_data.current_sprite_sheet);
+        if (found == fan::graphics::all_sprite_sheets().end()) {
           fan::throw_error("current_sprite_sheet not found");
         }
         auto& sheet_data = props.sprite_sheet_data;
@@ -2241,8 +2264,8 @@ namespace fan::graphics{
   std::unordered_map<std::string, fan::graphics::sprite_sheet_id_t> shapes::shape_t::get_sprite_sheets() const {
     std::unordered_map<std::string, fan::graphics::sprite_sheet_id_t> result;
 
-    for (auto& sprite_sheet_ids : fan::graphics::shape_sprite_sheets[get_shape_sprite_sheet_id()]) {
-      auto& sheet = fan::graphics::all_sprite_sheets[sprite_sheet_ids];
+    for (auto& sprite_sheet_ids : fan::graphics::shape_sprite_sheets()[get_shape_sprite_sheet_id()]) {
+      auto& sheet = fan::graphics::all_sprite_sheets()[sprite_sheet_ids];
       result[sheet.name] = sprite_sheet_ids;
     }
     return result;
@@ -2256,9 +2279,9 @@ namespace fan::graphics{
     g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
       if constexpr (requires { props.sprite_sheet_data; }) {
         // Only modify sprite sheets belonging to THIS shape
-        auto& shape_sheets = shape_sprite_sheets[props.sprite_sheet_data.shape_sprite_sheets];
+        auto& shape_sheets = shape_sprite_sheets()[props.sprite_sheet_data.shape_sprite_sheets];
         for (auto& sprite_sheet_id : shape_sheets) {
-          auto& sheet = all_sprite_sheets[sprite_sheet_id];
+          auto& sheet = all_sprite_sheets()[sprite_sheet_id];
           sheet.fps = fps;
         }
       }
@@ -2348,9 +2371,9 @@ namespace fan::graphics{
 
 
   sprite_sheet_t& shapes::shape_t::get_current_sprite_sheet() const {
-    auto found = all_sprite_sheets.find(get_current_sprite_sheet_id());
+    auto found = all_sprite_sheets().find(get_current_sprite_sheet_id());
     #if FAN_DEBUG >= fan_debug_medium
-    if (found == all_sprite_sheets.end()) {
+    if (found == all_sprite_sheets().end()) {
       fan::throw_error("sprite_sheet not found");
     }
     #endif
@@ -2399,13 +2422,13 @@ namespace fan::graphics{
     sprite_sheet_t* sheet = nullptr;
     g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
       if constexpr (requires { props.sprite_sheet_data; }) {
-        auto found = shape_sprite_sheet_lookup_table.find({props.sprite_sheet_data.shape_sprite_sheets, name});
-        if (found == shape_sprite_sheet_lookup_table.end()) {
+        auto found = ss_lookup().find({props.sprite_sheet_data.shape_sprite_sheets, name});
+        if (found == ss_lookup().end()) {
           fan::throw_error("sprite_sheet not found:", name);
         }
         else {
-          auto found2 = all_sprite_sheets.find(found->second);
-          if (found2 == all_sprite_sheets.end()) {
+          auto found2 = all_sprite_sheets().find(found->second);
+          if (found2 == all_sprite_sheets().end()) {
             fan::throw_error("sprite_sheet not found:", name);
           }
           else {
@@ -2747,7 +2770,7 @@ void fan::graphics::shapes::shape_t::sprite_sheet_frame_update_cb(
       auto& sheet_data = props.sprite_sheet_data;
       
       if (props.sprite_sheet_data.current_sprite_sheet) {
-        auto& sprite_sheet = all_sprite_sheets[props.sprite_sheet_data.current_sprite_sheet];
+        auto& sprite_sheet = all_sprite_sheets()[props.sprite_sheet_data.current_sprite_sheet];
         auto& selected_frames = sprite_sheet.selected_frames;
         
         if (selected_frames.empty()) {
@@ -2861,18 +2884,18 @@ void fan::graphics::shapes::shape_t::set_sprite_sheet(const fan::graphics::sprit
   
   g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
     if constexpr (requires { props.sprite_sheet_data.shape_sprite_sheets; }) {
-      sprite_sheet_id_t new_sheet_id = sprite_sheet_counter++;
-      all_sprite_sheets[new_sheet_id] = sprite_sheet;
+      sprite_sheet_id_t new_sheet_id = ss_counter()++;
+      all_sprite_sheets()[new_sheet_id] = sprite_sheet;
       
       props.sprite_sheet_data.current_sprite_sheet = new_sheet_id;
       
-      auto& shape_sheets = shape_sprite_sheets[props.sprite_sheet_data.shape_sprite_sheets];
+      auto& shape_sheets = shape_sprite_sheets()[props.sprite_sheet_data.shape_sprite_sheets];
       auto it = std::find(shape_sheets.begin(), shape_sheets.end(), new_sheet_id);
       if (it == shape_sheets.end()) {
         shape_sheets.push_back(new_sheet_id);
       }
       
-      shape_sprite_sheet_lookup_table[{props.sprite_sheet_data.shape_sprite_sheets, sprite_sheet.name}] = new_sheet_id;
+      ss_lookup()[{props.sprite_sheet_data.shape_sprite_sheets, sprite_sheet.name}] = new_sheet_id;
     }
   });
   play_sprite_sheet();
@@ -2885,7 +2908,7 @@ void fan::graphics::shapes::shape_t::add_sprite_sheet(const fan::graphics::sprit
   g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
     if constexpr (requires { props.sprite_sheet_data.shape_sprite_sheets; }) {
       props.sprite_sheet_data.shape_sprite_sheets = add_shape_sprite_sheet(props.sprite_sheet_data.shape_sprite_sheets, sprite_sheet);
-      props.sprite_sheet_data.current_sprite_sheet = shape_sprite_sheets[props.sprite_sheet_data.shape_sprite_sheets].back();
+      props.sprite_sheet_data.current_sprite_sheet = shape_sprite_sheets()[props.sprite_sheet_data.shape_sprite_sheets].back();
       if (get_visual_id()) {
         auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
         ri.sprite_sheet_data.shape_sprite_sheets = props.sprite_sheet_data.shape_sprite_sheets;
@@ -3013,7 +3036,7 @@ namespace fan::graphics {
           }
           if (properties.sprite_sheet_data.shape_sprite_sheets) {
             fan::json sprite_sheet_array = fan::json::array();
-            for (auto& sprite_sheet_ids : fan::graphics::shape_sprite_sheets[properties.sprite_sheet_data.shape_sprite_sheets]) {
+            for (auto& sprite_sheet_ids : fan::graphics::shape_sprite_sheets()[properties.sprite_sheet_data.shape_sprite_sheets]) {
               sprite_sheet_array.push_back(sprite_sheet_ids.id);
             }
             if (sprite_sheet_array.empty() == false) {
@@ -4017,8 +4040,8 @@ namespace fan::graphics {
       if constexpr (requires { props.sprite_sheet_data; }) {
         for (auto& state : states) {
           if (state.animation_id.id == (uint32_t)-1) {
-            auto found = shape_sprite_sheet_lookup_table.find({props.sprite_sheet_data.shape_sprite_sheets, state.name});
-            if (found != shape_sprite_sheet_lookup_table.end()) {
+            auto found = ss_lookup().find({props.sprite_sheet_data.shape_sprite_sheets, state.name});
+            if (found != ss_lookup().end()) {
               state.animation_id = found->second;
             }
           }
