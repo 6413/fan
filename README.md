@@ -48,10 +48,7 @@
     
     (```./uninstall.sh```) to remove repos from /usr/local/include/*
 3. Main usage:
-  -  To compile main use `./compile_main.sh -DMAIN="examples/engine_demos/engine_demo.cpp"`, which also compiles fan
-
-### Compiling fan as a library:
--  Using `-DBUILD_FAN_LIBRARY=` can be set to either `STATIC` or `SHARED`
+  -  To compile main use `./xcompile_main.sh`, which also compiles fan
 
 ### Windows
 1. Clone the repository: `git clone https://github.com/6413/fan.git`
@@ -115,7 +112,8 @@ Older versions
 
 Particles editor
 ![output](https://github.com/user-attachments/assets/1b323519-50e4-4dd0-9012-b6b1fc18df40)
-![image](https://github.com/user-attachments/assets/b8b19b22-ea8c-4ab3-a0f6-0c2c00f36128)
+![image](https://github.com/user-attachments/assets/4b7f863b-449b-433e-ba23-244acf28de07)
+
 
 
 
