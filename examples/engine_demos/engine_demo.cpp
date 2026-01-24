@@ -97,11 +97,11 @@ struct engine_demo_t {
     engine_demo->shapes.emplace_back(fan::graphics::universal_image_renderer_t{{
       .render_view = &engine_demo->right_column_view,
       .position = fan::vec3(0),
-      .size = viewport_size / 2,//
+      .size = viewport_size.min() / 2,//
     }});////
     std::string pixel_data_str;
-    constexpr fan::vec2ui image_size = fan::vec2ui(1920, 1080);
-    fan::io::file::read("images/output1920.yuv", &pixel_data_str);
+    constexpr fan::vec2ui image_size = fan::vec2ui(510, 510);
+    fan::io::file::read("images/rgb_510x510_420p.yuv", &pixel_data_str);
     void* pixel_data = pixel_data_str.data();
     auto split = fan::image::plane_split(pixel_data, image_size, fan::graphics::image_format::yuv420p);
     engine_demo->shapes.back().reload(fan::graphics::image_format::yuv420p, split, image_size);

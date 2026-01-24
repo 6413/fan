@@ -342,7 +342,7 @@ export namespace fan::window {
 
     combo_t combo_from_string(const std::string& combo_str) {
       combo_t combo;
-      std::string trimmed = fan::trim(combo_str);
+      std::string trimmed = fan::trim_ws(combo_str);
       if (trimmed.empty()) return combo;
 
       size_t start = 0;
@@ -353,7 +353,7 @@ export namespace fan::window {
           : trimmed.substr(start, end - start);
         start = (end == std::string::npos) ? trimmed.size() + 1 : end + 1;
 
-        token = fan::trim(token);
+        token = fan::trim_ws(token);
         if (token.empty()) continue;
 
         int key = fan::key_name_to_code(token);

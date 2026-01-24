@@ -1949,7 +1949,7 @@ export namespace fan::graphics {
   };
   // for dme type
   void map_sprite_sheets(auto& sheets) {
-    for (auto [i, sprite_sheet] : fan::enumerate(fan::graphics::all_sprite_sheets)) {
+    for (auto [i, sprite_sheet] : fan::enumerate(fan::graphics::all_sprite_sheets())) {
       for (int j = 0; j < sheets.size(); ++j) {
         auto& sheet = *sheets.NA(j);
         if (sprite_sheet.second.name == (const char*)sheet) {

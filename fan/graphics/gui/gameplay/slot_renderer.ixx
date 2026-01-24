@@ -1,4 +1,7 @@
+module;
+
 #include <cstdint>
+#include <vector>
 
 export module fan.graphics.gui.slot_renderer;
 
