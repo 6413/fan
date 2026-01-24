@@ -487,7 +487,7 @@ namespace fan::graphics::gui {
   }
 
   void push_style_color(col_t index, const fan::color& col) {
-    ImGui::PushStyleColor(index, col);
+    ImGui::PushStyleColor(index, col.get_gui_color());
   }
   void pop_style_color(int n) {
     ImGui::PopStyleColor(n);
@@ -551,7 +551,7 @@ namespace fan::graphics::gui {
   }
 
   void text_wrapped(const std::string& text, const fan::color& color) {
-    ImGui::PushStyleColor(ImGuiCol_Text, color);
+    ImGui::PushStyleColor(ImGuiCol_Text, color.get_gui_color());
     ImGui::TextWrapped(text.c_str());
     ImGui::PopStyleColor();
   }
@@ -578,7 +578,7 @@ namespace fan::graphics::gui {
     current_pos.y -= text_size.y * 0.5f;
 
     ImGui::SetCursorPos(current_pos);
-    ImGui::PushStyleColor(ImGuiCol_Text, color);
+    ImGui::PushStyleColor(ImGuiCol_Text, color.get_gui_color());
     ImGui::Text("%s", text.c_str());
     ImGui::PopStyleColor();
   }
@@ -631,7 +631,7 @@ namespace fan::graphics::gui {
     fan::vec2 cursor_pos = ImGui::GetCursorPos();
 
     // Draw outline
-    ImGui::PushStyleColor(ImGuiCol_Text, outline_color);
+    ImGui::PushStyleColor(ImGuiCol_Text, outline_color.get_gui_color());
     for ( const auto& offset : outline_offsets ) {
       ImGui::SetCursorPos(cursor_pos + offset);
       ImGui::Text("%s", text.c_str());
@@ -639,7 +639,7 @@ namespace fan::graphics::gui {
     ImGui::PopStyleColor();
 
     ImGui::SetCursorPos(cursor_pos);
-    ImGui::PushStyleColor(ImGuiCol_Text, color);
+    ImGui::PushStyleColor(ImGuiCol_Text, color.get_gui_color());
     ImGui::Text("%s", text.c_str());
     ImGui::PopStyleColor();
   }
@@ -675,13 +675,13 @@ namespace fan::graphics::gui {
 
     for ( const auto& offset : outline_offsets ) {
       ImGui::SetCursorPos(current_pos + offset);
-      ImGui::PushStyleColor(ImGuiCol_Text, outline_color);
+      ImGui::PushStyleColor(ImGuiCol_Text, outline_color.get_gui_color());
       ImGui::Text("%s", text.c_str());
       ImGui::PopStyleColor();
     }
 
     ImGui::SetCursorPos(current_pos);
-    ImGui::PushStyleColor(ImGuiCol_Text, color);
+    ImGui::PushStyleColor(ImGuiCol_Text, color.get_gui_color());
     ImGui::Text("%s", text.c_str());
     ImGui::PopStyleColor();
   }
@@ -1560,7 +1560,7 @@ namespace fan::graphics::gui {
   }
 
   void plot::push_style_color(col_t idx, const fan::color& color) {
-    ImPlot::PushStyleColor(idx, color);
+    ImPlot::PushStyleColor(idx, color.get_gui_color());
   }
 
   void plot::pop_style_color(int count) {

@@ -167,11 +167,17 @@ export namespace fan::graphics {
     bool start_sprite_sheet = false;
   };
 
-  extern std::unordered_map<sprite_sheet_id_t, sprite_sheet_t, sprite_sheet_id_hash_t> all_sprite_sheets;
-  extern sprite_sheet_id_t sprite_sheet_counter;
-  extern std::unordered_map<std::pair<sprite_sheet_shape_id_t, std::string>, sprite_sheet_id_t, sprite_sheet_pair_hash_t> shape_sprite_sheet_lookup_table;
-  extern std::unordered_map<sprite_sheet_shape_id_t, std::vector<sprite_sheet_id_t>, sprite_sheet_id_hash_t> shape_sprite_sheets;
-  extern sprite_sheet_id_t shape_sprite_sheet_counter;
+  using ss_cache_t = std::unordered_map<std::pair<sprite_sheet_id_t, std::string>, sprite_sheet_id_t, sprite_sheet_pair_hash_t>;
+  using ss_map_t = std::unordered_map<sprite_sheet_id_t, sprite_sheet_t, sprite_sheet_id_hash_t>;
+  using ss_lookup_t = std::unordered_map<std::pair<sprite_sheet_shape_id_t, std::string>, sprite_sheet_id_t, sprite_sheet_pair_hash_t>;
+  using ss_shapes_t = std::unordered_map<sprite_sheet_shape_id_t, std::vector<sprite_sheet_id_t>, sprite_sheet_id_hash_t>;
+
+  ss_cache_t& ss_cache();
+  ss_map_t& all_sprite_sheets();
+  sprite_sheet_id_t& ss_counter();
+  ss_lookup_t& ss_lookup();
+  ss_shapes_t& shape_sprite_sheets();
+  sprite_sheet_id_t& shape_ss_counter();
 
   sprite_sheet_t& get_sprite_sheet(sprite_sheet_id_t nr);
   sprite_sheet_t& get_sprite_sheet(sprite_sheet_id_t shape_sprite_sheet_id, const std::string& sprite_sheet_name);

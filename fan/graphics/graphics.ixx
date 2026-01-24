@@ -597,6 +597,8 @@ export namespace fan::graphics {
   void aabb(const fan::vec2& min, const fan::vec2& max, f32_t thickness = line_properties_t().thickness, render_view_t* render_view = &fan::graphics::get_orthographic_render_view());
 #endif
 
+  inline constexpr f32_t default_float_value = 100000.1234;
+
   struct sprite_sheet_config_t {
     std::string path;
     bool loop = true;

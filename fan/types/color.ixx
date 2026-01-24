@@ -241,8 +241,11 @@ export namespace fan {
     constexpr operator fan::vec3() const {
       return fan::vec3{ r, g, b };
     }
-    fan::graphics::gui::u32_t get_gui_color() const {
+    constexpr fan::graphics::gui::u32_t get_gui_color() const {
       return get_abgr();
+    }
+    constexpr operator fan::graphics::gui::u32_t() const {
+      return get_gui_color();
     }
   #endif
 
