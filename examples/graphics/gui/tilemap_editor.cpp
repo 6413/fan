@@ -96,14 +96,15 @@ struct scene_manager_t {
 
   void toggle_scene(fte_t& fte, fan::graphics::engine_t& engine, scene_manager_t& scene, fan::graphics::render_view_t* view) {
     render_scene = !render_scene;
+    engine.update_physics(render_scene);
     if (render_scene) {
       fte.fout(add_temp_before_ext(fte.file_name));
       reload_scene(fte, view);
-      fan::vec3 pos;
-      if (!scene.renderer->get_player_spawn_position(*scene.map_id, &pos)) {
+      fan::vec3 pos = 0;
+     /* if (!scene.renderer->get_player_spawn_position(*scene.map_id, &pos)) {
         fan::gprint("failed to find player spawn position, using fte.map_size * fte.tile_size");
         pos = fte.map_size * fte.tile_size;
-      }
+      }*/
       player = std::make_unique<player_t>(
         pos,
         /*fan::vec2(fte.map_size.x * fte.tile_size.x / 2.f, 0),*/
@@ -148,12 +149,6 @@ int main(int argc, char** argv) {
     if (d.key == fan::key_f5) {
       scene.toggle_scene(fte, engine, scene, &views.program);
     }
-    if (d.key == fan::key_5) {
-      if (fan::window::is_key_down(fan::key_left_control)) {
-        fan::graphics::physics::debug_render_view = views.program;
-        fan::graphics::physics::debug_draw(!fan::graphics::physics::get_debug_draw());
-      }
-    }
   });
 
   fte.modify_cb = [&](int mode) {
@@ -170,7 +165,6 @@ int main(int argc, char** argv) {
     if (scene.render_scene && scene.player) {
       if (fan::graphics::gui::begin("Program", 0, fan::graphics::gui::window_flags_no_background)) {
         fan::graphics::gui::set_viewport(views.program.viewport);
-        engine.update_physics();
         engine.viewport_zero(views.editor.viewport);
 
         fan::vec2 position = scene.player->character.player.get_position();

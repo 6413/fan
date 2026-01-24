@@ -159,7 +159,7 @@ export namespace fan::graphics::gui {
   };
 
 #if defined(FAN_2D)
-  void shape_properties(const fan::graphics::shape_t& shape);
+  void shape_properties(fan::graphics::shape_t& shape);
 #endif
 } // namespace fan::graphics::gui
 
