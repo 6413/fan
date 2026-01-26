@@ -2,6 +2,7 @@ module;
 
 #include <fan/utility.h>
 #include <cmath>
+#include <functional>
 
 #ifdef fan_platform_windows
   #define WIN32_LEAN_AND_MEAN
@@ -178,5 +179,18 @@ export namespace fan {
       nanosleep(&t, 0);
 #endif
     }
+
+    struct scope_timer {
+      fan::time::timer t;
+      std::function<void(const fan::time::timer&)> cb;
+      scope_timer(std::function<void(const fan::time::timer&)> cb_) :
+        cb(std::move(cb_)) 
+      {
+        t.start();
+      }
+      ~scope_timer() {
+        cb(t);
+      }
+    };
 	}
 }

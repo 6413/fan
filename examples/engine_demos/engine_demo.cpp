@@ -23,6 +23,14 @@ import fan.graphics.gui.settings_menu;
 using namespace fan::graphics;
 using menu_t = fan::graphics::gui::settings_menu_t;
 
+/*
+  Tracking ram is enabled by fan::heap_profiler_t::instance().enabled = true;
+    Slowest ram allocations can be printed fan::heap_profiler_t::instance().print_slowest_allocs(top_count)
+
+  Tracking vram is enabled by fan_track_opengl_calls() = true; 
+    TODO make more flexible, currently prints slow functions to console.
+*/
+
 struct engine_demo_t {
   engine_t engine{{ // initialize before everything
     .renderer= fan::graphics::renderer_t::opengl,
@@ -298,7 +306,7 @@ struct engine_demo_t {
     init_shapes<fan::graphics::rectangle_t>(engine_demo, [&](uint32_t i, fan::vec2 viewport_size) {
       return fan::graphics::rectangle_t{{
         .render_view = &engine_demo->right_column_view,
-        .position = fan::vec3(fan::random::vec2(-viewport_size / 2.f, viewport_size / 2.f), i),
+        .position = fan::random::vec2(-viewport_size / 2.f, viewport_size / 2.f),
         .size = fan::random::vec2(30, 200),
         .color = fan::random::color()
       }};
@@ -1438,20 +1446,30 @@ void main() {
     )) {
       {
         gui::push_style_var(gui::style_var_selectable_text_align, fan::vec2(0, 0.5));
+        std::string table_id;
+        table_id.reserve(128);
+
         for (auto [demo_index, demo] : fan::enumerate(demos)) {
           if (demo.name == "_next") {
             ++title_index;
             title = titles[title_index];
+
             gui::end_table();
             gui::new_line();
             gui::new_line();
             gui::text(fan::color::from_rgba(0x948c80ff) * 1.5, title);
-            gui::begin_table(title + "_settings_left_table_display", 1,
+
+            table_id.clear();
+            table_id.append(title);
+            table_id.append("_settings_left_table_display");
+
+            gui::begin_table(std::string_view(table_id), 1,
               gui::table_flags_borders_inner_h |
               gui::table_flags_borders_outer_h
             );
             continue;
           }
+
           gui::table_next_row();
           gui::table_next_column();
           f32_t row_height = gui::get_text_line_height_with_spacing() * 2;
@@ -1546,9 +1564,10 @@ int main() {////
   demo.engine.set_culling_enabled(false);
   // Update physics
   demo.engine.update_physics(true);
-  fan_window_loop{
+
+  demo.engine.loop([&] {
     auto camera = fan::graphics::camera_get(demo.right_column_view.camera);
-    
+
     /*fan::vec2 s(
       (camera.coordinates.right - camera.coordinates.left) / 2.f,
       (camera.coordinates.bottom - camera.coordinates.top) / 2.f
@@ -1558,7 +1577,7 @@ int main() {////
     demo.engine.get_culling_stats(v, c);
     fan::print_throttled(v, c);
     demo.update();
-  };
+  });
 /*  Optionally
   demo.engine.loop([&]{
     demo.update();

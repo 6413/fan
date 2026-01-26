@@ -1277,7 +1277,7 @@ export struct fte_t {
             modify_cb(0);
           }
           fan::graphics::gui::same_line();
-          fan::graphics::gui::input_text(fmt, &layer.text);
+          fan::graphics::gui::input_text(fmt.c_str(), &layer.text);
         }
       }
       fan::graphics::gui::end();

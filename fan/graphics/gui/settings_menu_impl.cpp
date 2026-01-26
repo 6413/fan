@@ -311,12 +311,14 @@ namespace fan::graphics::gui {
         gui::table_flags_no_clip
       );
 
-      draw_sub_row("Enable bloom", [&] {
-        if (gui::checkbox("##enable_bloom", &gloco()->open_props.enable_bloom)) {
-          menu->mark_dirty();
-        }
-      });
+      gui::table_next_row();
+      gui::table_next_column();
 
+      gui::text("Enable bloom");
+      gui::table_next_column();
+      if (gui::checkbox("##enable_bloom", &gloco()->open_props.enable_bloom)) {
+        menu->mark_dirty();
+      }
 
       if (gloco()->open_props.enable_bloom) {
         draw_sub_row("Strength", [&] {
@@ -377,9 +379,9 @@ namespace fan::graphics::gui {
         gui::table_next_column();
         gui::text("Track Heap memory");
         gui::table_next_column();
-        if (gui::checkbox("##track_heap", (bool*)&fan::heap_profiler_t::instance().enabled)) {
-          gloco()->console.commands.call("debug_memory " + std::to_string((int)fan::heap_profiler_t::instance().enabled));
-          menu->config.performance.track_heap = fan::heap_profiler_t::instance().enabled;
+        if (gui::checkbox("##track_heap", (bool*)&fan::memory::heap_profiler_t::instance().enabled)) {
+          gloco()->console.commands.call("debug_memory " + std::to_string((int)fan::memory::heap_profiler_t::instance().enabled));
+          menu->config.performance.track_heap = fan::memory::heap_profiler_t::instance().enabled;
           menu->mark_dirty();
         }
       }

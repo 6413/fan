@@ -12,21 +12,19 @@ module;
 #include <map>
 #include <functional> // raii_nr_t
 #include <cstring>
-#include <memory>
+
+#include <mutex>
 
 namespace raii_build {
   #include <fan/types/raii_nr.h>
 }
 
-namespace heap_profiler {
-  #include <fan/memory/memory.h>
-}
-
-fan_track_allocations();
 
 export module fan.utility;
+export import fan.memory;
 
 export import fan.time;
+
 
 export namespace fan {
   template <typename T, typename = void>
@@ -424,15 +422,14 @@ namespace fan {
 export namespace fan {
   using fan::write_error_to_disk;
 
-  using heap_profiler_t = heap_profiler::heap_profiler_t;
   void* memory_profile_malloc_cb(std::size_t n) {
-    return heap_profiler_t::instance().allocate_memory(n);
+    return fan::memory::heap_profiler_t::instance().allocate_memory(n);
   }
   void* memory_profile_realloc_cb(void* ptr, std::size_t n) {
-    return heap_profiler_t::instance().reallocate_memory(ptr, n);
+    return fan::memory::heap_profiler_t::instance().reallocate_memory(ptr, n);
   }
   void memory_profile_free_cb(void* ptr) {
-    heap_profiler_t::instance().deallocate_memory(ptr);
+    fan::memory::heap_profiler_t::instance().deallocate_memory(ptr);
   }
 }
 

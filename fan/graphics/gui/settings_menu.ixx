@@ -82,7 +82,7 @@ export namespace fan::graphics::gui {
       const char* sublabel,
       auto widget_fn,
       f32_t sublabel_indent = 50.f,
-      f32_t subwidget_indent = 20.f
+      f32_t subwidget_indent = 0.f
     );
 
     static void begin_menu_left(const char* name, const fan::vec2& next_window_position, const fan::vec2& next_window_size);
