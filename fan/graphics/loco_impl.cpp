@@ -25,6 +25,7 @@ module;
 #include <utility>
 #include <coroutine>
 #include <iostream>
+#include <mutex>
 
 #if defined(fan_std23)
   #include <stacktrace>
@@ -35,6 +36,8 @@ module;
 #endif
 
 module fan.graphics.loco;
+
+import fan.utility;
 
 #if defined(FAN_PHYSICS_2D)
   import fan.physics.types;
@@ -690,23 +693,7 @@ void loco_t::generate_commands(loco_t* loco) {
       loco->console.commands.print_invalid_arg_count();
       return;
     }
-    if (nr.iic() && std::stoi(args[0])) {
-      nr = loco->add_update_callback([] (void* loco_ptr) {
-        fan::graphics::gui::set_next_window_bg_alpha(0.99f);
-        static int init = 0;
-        fan::graphics::gui::window_flags_t window_flags = fan::graphics::gui::window_flags_no_title_bar | fan::graphics::gui::window_flags_no_focus_on_appearing;
-        if (init == 0) {
-          fan::graphics::gui::set_next_window_size(fan::vec2(600, 300));
-          init = 1;
-        }
-        fan::graphics::gui::begin("fan_memory_dbg_wnd", nullptr, window_flags);
-        fan::graphics::gui::render_allocations_plot();
-        fan::graphics::gui::end();
-      });
-    }
-    else if (!nr.iic() && !std::stoi(args[0])) {
-      loco->remove_update_callback(nr);
-    }
+    loco->render_debug_memory = std::stoi(args[0]);
   }).description = "opens memory debug window";
 
   loco->console.commands.add("set_clear_color", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
@@ -922,7 +909,7 @@ void loco_t::check_vk_result(VkResult err) {
 #if defined(FAN_GUI)
 
 void loco_t::init_gui() {
-  if (fan::graphics::gui::g_gui_initialized) {
+  if (fan::graphics::gui::is_gui_initialized()) {
     gui_initialized = true;
     return;
   }
@@ -950,7 +937,7 @@ void loco_t::init_gui() {
 }
 
 void loco_t::destroy_gui() {
-  if (!gui_initialized || !fan::graphics::gui::g_gui_initialized) {
+  if (!gui_initialized || !fan::graphics::gui::is_gui_initialized()) {
     return;
   }
 
@@ -1029,10 +1016,10 @@ loco_t::loco_t(const loco_t::properties_t& props) :
 #if defined(FAN_GUI)
   fan::graphics::gui::profile_heap(
     [](size_t size, void* user_data) -> void* {
-    return fan::heap_profiler_t::instance().allocate_memory(size); // malloc
+    return fan::memory::heap_profiler_t::instance().allocate_memory(size); // malloc
   },
     [](void* ptr, void* user_data) {
-    fan::heap_profiler_t::instance().deallocate_memory(ptr); // free
+    fan::memory::heap_profiler_t::instance().deallocate_memory(ptr); // free
   }
   );
 #endif
@@ -1182,7 +1169,7 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   fan::graphics::ctx().default_texture = default_texture;
 
 #if defined(FAN_GUI)
-  console.commands.call("debug_memory " + std::to_string((int)fan::heap_profiler_t::instance().enabled));
+  console.commands.call("debug_memory " + std::to_string((int)fan::memory::heap_profiler_t::instance().enabled));
 #endif
 
 #if defined(FAN_2D)
@@ -1532,7 +1519,7 @@ void loco_t::switch_renderer(uint8_t renderer) {
   #endif
 
   #if defined(FAN_GUI)
-    if (was_imgui_init && fan::graphics::gui::g_gui_initialized) {
+    if (was_imgui_init && fan::graphics::gui::is_gui_initialized()) {
       fan::graphics::gui::init_graphics_context(
         window,
         window.renderer,
@@ -1681,11 +1668,19 @@ void loco_t::process_gui() {
     settings_menu.render();
   }
 
-  if (show_fps) {
-    using namespace fan::graphics;
+  if (render_debug_memory) {
+    gui::set_next_window_bg_alpha(0.99f);
+    gui::window_flags_t window_flags = gui::window_flags_no_title_bar |
+      gui::window_flags_topmost;
+    gui::set_next_window_size(fan::vec2(600, 300), gui::cond_once);
+    gui::begin("fan_memory_dbg_wnd", nullptr, window_flags);
+    gui::render_allocations_plot();
+    gui::end();
+  }
 
-    gui::window_flags_t window_flags =
-      gui::window_flags_no_title_bar;
+  if (show_fps) {
+    gui::window_flags_t window_flags = gui::window_flags_no_title_bar |
+      gui::window_flags_topmost;
 
     gui::set_next_window_bg_alpha(0.99f);
     gui::set_next_window_size(fan::vec2(831.0000, 693.0000), gui::cond_once);
@@ -1713,8 +1708,6 @@ void loco_t::process_gui() {
     gui::text("Frame Time Avg:", format_val(frame_stats.avg_frame_time_s * 1e3) + " ms");
     gui::text("Shape Draw Avg:", format_val(shape_stats.avg_frame_time_s * 1e3) + " ms");
     gui::text("GUI Draw Avg:", format_val(gui_stats.avg_frame_time_s * 1e3) + " ms");
-
-
 
     if (gui::button(frame_monitor.paused ? "Continue" : "Pause")) {
       frame_monitor.paused = !frame_monitor.paused;
@@ -1813,18 +1806,16 @@ void loco_t::process_gui() {
     gui::pop_font();
   }
 
-#if defined(LOCO_FRAMEBUFFER)
+  fan::graphics::gui::enforce_topmost();
 
-#endif
-
-  fan::graphics::gui::render(
+  gui::render(
     window.renderer,
     fan::window_t::renderer_t::opengl,
     fan::window_t::renderer_t::vulkan,
     render_shapes_top
   #if defined(FAN_VULKAN)
     ,
-    &fan::graphics::get_vk_context(),
+    &get_vk_context(),
     clear_color,
     vk.image_error,
     context.vk.command_buffers[context.vk.current_frame],
@@ -1833,7 +1824,7 @@ void loco_t::process_gui() {
   );
 #endif
 #if defined(FAN_GUI)
-  fan::graphics::gui::set_want_io();
+  gui::set_want_io();
 #endif
   gui_draw_time_s = gui_draw_timer.seconds();
 }
@@ -1891,7 +1882,7 @@ loco_t::time_monitor_t::stats_t loco_t::time_monitor_t::stats() const {
 }
 
 #if defined(FAN_GUI)
-void loco_t::time_monitor_t::plot(loco_t* loco, const char* label) {
+void loco_t::time_monitor_t::plot(loco_t* loco, std::string_view label) {
   using namespace fan::graphics;
   if (buffer.empty()) return;
 
@@ -2118,7 +2109,7 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
 
   std::vector<std::coroutine_handle<>> current_frame;
   // swap with pending to 
-  std::swap(current_frame, fan::graphics::next_frame_awaiter::pending);
+  std::swap(current_frame, fan::graphics::next_frame_awaiter::get_pending());
 
   for (const auto& h : current_frame) {
     h.resume();
@@ -2135,7 +2126,6 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
     auto it = m_update_callback.GetNodeFirst();
     while (it != m_update_callback.dst) {
       m_update_callback.StartSafeNext(it);
-      auto prev = m_update_callback.SafeNext.NRI;
       m_update_callback[it](this);
       it = m_update_callback.EndSafeNext();
     }
@@ -2808,7 +2798,6 @@ namespace fan::graphics::gui {
       it = gloco()->gui_draw_cb.EndSafeNext();
     }
   }
-  // fan_track_allocations() must be called in global scope before calling this function
   void render_allocations_plot() {
     using namespace fan::graphics;
 
@@ -2816,14 +2805,12 @@ namespace fan::graphics::gui {
       bool paused;
     };
 
-    static pause_state_t pause_state = {
-      false
-    };
+    static pause_state_t pause_state = {false};
 
     gui::checkbox("pause updates", &pause_state.paused);
 
     static std::vector<f32_t> allocation_sizes;
-    static std::vector<fan::heap_profiler_t::memory_data_t> allocations;
+    static std::vector<fan::memory::heap_profiler_t::memory_data_t> allocations;
     static f32_t max_y = 0;
 
     if (!pause_state.paused) {
@@ -2831,29 +2818,51 @@ namespace fan::graphics::gui {
       allocations.clear();
       max_y = 0;
 
-      auto &profiler = fan::heap_profiler_t::instance();
+      struct alloc_view_t {
+        void* p;
+        std::size_t n;
+      };
 
-      std::vector<std::pair<void*, fan::heap_profiler_t::memory_data_t>> sorted_allocs;
-      sorted_allocs.reserve(profiler.memory_map.size());
+      static std::vector<alloc_view_t> sorted_allocs;
 
-      for (auto const &kv : profiler.memory_map) {
-        sorted_allocs.emplace_back(const_cast<void*>(kv.first), kv.second);
+      auto& profiler = fan::memory::heap_profiler_t::instance();
+
+      sorted_allocs.clear();
+      sorted_allocs.reserve(profiler.get_memory_map().size());
+      allocations.reserve(profiler.get_memory_map().size());
+
+      {
+        // avoid recursive locking inside profiler while we copy stacktraces
+        bool was_enabled = profiler.enabled;
+        profiler.enabled = false;
+
+        std::lock_guard<std::mutex> lock(profiler.memory_mutex);
+
+        for (auto const& kv : profiler.get_memory_map()) {
+          sorted_allocs.push_back(alloc_view_t {
+            kv.first,
+            kv.second.n
+            });
+          // full copy, including stacktrace, but with tracking disabled
+          allocations.push_back(kv.second);
+        }
+
+        profiler.enabled = was_enabled;
       }
 
       std::sort(sorted_allocs.begin(), sorted_allocs.end(),
-        [](auto const &a, auto const &b) {
-        return (uintptr_t)a.first < (uintptr_t)b.first;
+        [](auto const& a, auto const& b) {
+        return (uintptr_t)a.p < (uintptr_t)b.p;
       });
 
-      for (auto const &[addr, data] : sorted_allocs) {
-        f32_t v = (f32_t)data.n / (1024 * 1024);
+      for (auto const& av : sorted_allocs) {
+        f32_t v = (f32_t)av.n / (1024 * 1024);
         allocation_sizes.push_back(v);
         max_y = max_y < v ? v : max_y;
-        allocations.push_back(data);
       }
     }
 
-    auto &profiler = fan::heap_profiler_t::instance();
+    auto& profiler = fan::memory::heap_profiler_t::instance();
     gui::text("Active allocations:", profiler.memory_map.size());
     gui::text("Allocation size:", profiler.current_allocation_size / 1e6, " (MB)");
 
@@ -2875,7 +2884,9 @@ namespace fan::graphics::gui {
     static std::stacktrace stack;
   #endif
 
-    if (allocation_sizes.size() && gui::plot::begin_plot("Memory Allocations", available_size, gui::plot::flags_no_frame | gui::plot::flags_no_legend)) {
+    if (allocation_sizes.size() &&
+      gui::plot::begin_plot("Memory Allocations", available_size,
+        gui::plot::flags_no_frame | gui::plot::flags_no_legend)) {
       gui::plot::setup_axis(gui::plot::axis_y1, "Memory (MB)");
       gui::plot::setup_axis_limits(gui::plot::axis_y1, 0, max_y);
       gui::plot::setup_axis(gui::plot::axis_x1, "Allocations");
@@ -2891,9 +2902,9 @@ namespace fan::graphics::gui {
         auto mouse = gui::plot::get_plot_mouse_pos();
         mouse.x = (int)mouse.x;
 
-        f32_t half_width = 0.25;
-        f32_t tool_l = gui::plot::plot_to_pixels(mouse.x - half_width * 1.5, mouse.y).x;
-        f32_t tool_r = gui::plot::plot_to_pixels(mouse.x + half_width * 1.5, mouse.y).x;
+        f32_t half_width = 0.25f;
+        f32_t tool_l = gui::plot::plot_to_pixels(mouse.x - half_width * 1.5f, mouse.y).x;
+        f32_t tool_r = gui::plot::plot_to_pixels(mouse.x + half_width * 1.5f, mouse.y).x;
         f32_t tool_t = gui::plot::get_plot_pos().y;
         f32_t tool_b = tool_t + gui::plot::get_plot_size().y;
 
@@ -2955,6 +2966,7 @@ namespace fan::graphics::gui {
       gui::plot::end_plot();
     }
   }
+
 } // namespace fan::graphics::gui
 #endif
 

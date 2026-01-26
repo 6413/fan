@@ -195,6 +195,8 @@ namespace fan {
     input.SetReadOnly(false);
     palette[(int)TextEditor::PaletteIndex::Background] = TextEditor::GetDarkPalette()[(int)TextEditor::PaletteIndex::Background];
     input.SetPalette(palette);
+
+    editor.SetRenderCursor(false);
   }
 
   void console_t::close() {
@@ -217,7 +219,8 @@ namespace fan {
       }
     }
 
-    ImGui::Begin("console", 0);
+
+    fan::graphics::gui::begin("console", 0, fan::graphics::gui::window_flags_topmost);
 
     ImGui::BeginChild("output_buffer", ImVec2(0, ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() * 1), false);
     editor.Render("editor");
@@ -317,7 +320,7 @@ namespace fan {
 
     ImGui::EndChild();
 
-    ImGui::End();
+    fan::graphics::gui::end();
   }
 
   void console_t::print(const std::string& msg, int highlight) {

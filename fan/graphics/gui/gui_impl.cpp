@@ -97,7 +97,7 @@ namespace fan::graphics::gui {
     );
   }
 
-  bool toggle_image_button(const std::string& char_id, fan::graphics::image_t image, const fan::vec2& size, bool* toggle) {
+  bool toggle_image_button(fan::graphics::gui::label_t char_id, fan::graphics::image_t image, const fan::vec2& size, bool* toggle) {
     bool clicked = false;
 
     fan::color tintColor = fan::color(1, 1, 1, 1);
@@ -537,7 +537,7 @@ namespace fan::graphics::gui {
     return gui::get_pressed_key();
   }
 
-  void content_browser_t::handle_keyboard_navigation(const std::string& filename, int pressed_key) {
+  void content_browser_t::handle_keyboard_navigation(std::string_view filename, int pressed_key) {
     if (pressed_key != -1 && !filename.empty()) {
       if (std::tolower(filename[0]) == std::tolower(pressed_key)) {
         set_scroll_here_y();
@@ -545,7 +545,7 @@ namespace fan::graphics::gui {
     }
   }
 
-  void content_browser_t::handle_right_click(const std::string& filename) {
+  void content_browser_t::handle_right_click(std::string_view filename) {
     if (is_item_hovered() && fan::window::is_mouse_clicked(fan::mouse_right)) {
       item_right_clicked = true;
       item_right_clicked_name = filename;
@@ -789,7 +789,8 @@ namespace fan::graphics::gui {
 
         std::string unique_id = "search_" + std::to_string(original_index) + "_" + file_info.filename;
 
-        push_id(unique_id);
+        push_id(std::string_view(unique_id));
+        unique_id.insert(0, "##");
 
         fan::vec2 item_pos = get_cursor_screen_pos();
 
@@ -807,7 +808,7 @@ namespace fan::graphics::gui {
         }
 
         bool item_clicked = image_button(
-          "##" + unique_id,
+          std::string_view(unique_id),
           fan::graphics::is_image_valid(file_info.preview_image) ? file_info.preview_image
           : file_info.is_directory ? icon_directory : file_info.filename.ends_with(".json") ? icon_object : icon_file,
           fan::vec2(thumbnail_size, thumbnail_size)
@@ -864,7 +865,7 @@ namespace fan::graphics::gui {
       for (const auto& [file_info, original_index] : sorted_files) {
         handle_keyboard_navigation(file_info.filename, pressed_key);
 
-        push_id(file_info.filename);
+        push_id(std::string_view(file_info.filename));
 
         fan::vec2 item_pos = get_cursor_screen_pos();
 
@@ -881,8 +882,10 @@ namespace fan::graphics::gui {
           push_style_color(col_button_active, fan::color(0.5f, 0.5f, 0.5f, 0.3f));
         }
 
+        std::string id = "##" + file_info.filename;
+        std::string_view sv{id};
         bool item_clicked = image_button(
-          "##" + file_info.filename,
+          sv,
           fan::graphics::is_image_valid(file_info.preview_image) ? file_info.preview_image
           : file_info.is_directory ? icon_directory : file_info.filename.ends_with(".json") ? icon_object : icon_file,
           fan::vec2(thumbnail_size, thumbnail_size)
@@ -1047,9 +1050,9 @@ namespace fan::graphics::gui {
           while (calc_text_size(space.c_str()).x < image_size.x) {
             space += " ";
           }
-          auto str = space + file_info.filename;
+          std::string str = space + file_info.filename;
 
-          bool item_clicked = selectable(str, directory_cache[original_index].is_selected, selectable_flags_span_all_columns);
+          bool item_clicked = selectable(std::string_view(str), directory_cache[original_index].is_selected, selectable_flags_span_all_columns);
 
           if (item_clicked) {
             io_t& io = get_io();
@@ -1232,25 +1235,34 @@ namespace fan::graphics::gui {
 #endif
 
   // called inside window begin end
-  void animated_popup_window(const std::string& popup_id, const fan::vec2& popup_size, const fan::vec2& start_pos, const fan::vec2& target_pos, bool trigger_popup, std::function<void()> content_cb, const f32_t anim_duration, const f32_t hide_delay) {
-    storage_t* storage = get_state_storage();
-    id_t anim_time_id = get_id(popup_id + "_anim_time");
-    id_t hide_timer_id = get_id(popup_id + "_hide_timer");
-    id_t hovering_popup_id = get_id(popup_id + "_hovering");
-    id_t popup_visible_id = get_id(popup_id + "_visible");
+  void animated_popup_window(
+    std::string_view popup_id,
+    const fan::vec2& popup_size,
+    const fan::vec2& start_pos,
+    const fan::vec2& target_pos,
+    bool trigger_popup,
+    const std::function<void()>& content_cb,
+    f32_t anim_duration,
+    f32_t hide_delay
+  ) {
+    std::string popup_id_str = std::string(popup_id);
+    std::string id_anim_time = popup_id_str + "_anim_time";
+    std::string id_hide_timer = popup_id_str + "_hide_timer";
+    std::string id_hovering = popup_id_str + "_hovering";
+    std::string id_visible = popup_id_str + "_visible";
+
+    id_t anim_time_id = get_id(std::string_view(id_anim_time));
+    id_t hide_timer_id = get_id(std::string_view(id_hide_timer));
+    id_t hovering_popup_id = get_id(std::string_view(id_hovering));
+    id_t popup_visible_id = get_id(std::string_view(id_visible));
 
     f32_t delta_time = get_io().DeltaTime;
 
+    storage_t* storage = get_state_storage();
     f32_t popup_anim_time = storage->GetFloat(anim_time_id, 0.0f);
     f32_t hide_timer = storage->GetFloat(hide_timer_id, 0.0f);
     bool hovering_popup = storage->GetBool(hovering_popup_id, false);
     bool popup_visible = storage->GetBool(popup_visible_id, false);
-
-    // Check if mouse is in parent window area
-    //bool mouse_in_parent = (current_mouse_pos.x >= parent_min.x &&
-    //  current_mouse_pos.x <= parent_max.x &&
-    //  current_mouse_pos.y >= parent_min.y &&
-    //  current_mouse_pos.y <= parent_max.y);
 
     if (trigger_popup || hovering_popup) {
       popup_visible = true;
@@ -1261,7 +1273,8 @@ namespace fan::graphics::gui {
     }
 
     if (popup_visible) {
-      popup_anim_time = hide_timer < hide_delay ? std::min(popup_anim_time + delta_time, anim_duration)
+      popup_anim_time = hide_timer < hide_delay
+        ? std::min(popup_anim_time + delta_time, anim_duration)
         : std::max(popup_anim_time - delta_time, 0.0f);
 
       if (popup_anim_time == 0.0f) {
@@ -1272,7 +1285,6 @@ namespace fan::graphics::gui {
         f32_t t = popup_anim_time / anim_duration;
         t = t * t * (3.0f - 2.0f * t); // smoothstep
 
-        // Simple interpolation between start and target positions
         fan::vec2 popup_pos = start_pos + (target_pos - start_pos) * t;
 
         set_next_window_pos(popup_pos);
@@ -1283,11 +1295,13 @@ namespace fan::graphics::gui {
           window_flags_no_move | window_flags_no_saved_settings |
           window_flags_no_collapse | window_flags_no_scrollbar |
           window_flags_no_focus_on_appearing)) {
+
           hovering_popup = is_window_hovered(
             hovered_flags_child_windows |
             hovered_flags_no_popup_hierarchy |
             hovered_flags_allow_when_blocked_by_popup |
-            hovered_flags_allow_when_blocked_by_active_item);
+            hovered_flags_allow_when_blocked_by_active_item
+          );
 
           content_cb();
         }
@@ -1349,7 +1363,7 @@ namespace fan::graphics::gui {
       }
       else {
         gui::push_id(i);
-        if (gui::selectable(animation.name, current_animation_nr && current_animation_nr == animation_nr, gui::selectable_flags_allow_double_click, fan::vec2(gui::get_content_region_avail().x * 0.8f, 0))) {
+        if (gui::selectable(std::string_view(animation.name), current_animation_nr && current_animation_nr == animation_nr, gui::selectable_flags_allow_double_click, fan::vec2(gui::get_content_region_avail().x * 0.8f, 0))) {
           if (gui::is_mouse_double_clicked()) {
             animation_list_name_to_edit = animation.name;
             set_focus = true;
@@ -1437,7 +1451,7 @@ namespace fan::graphics::gui {
     return changed;
   }
 
-  bool sprite_animations_t::render(const std::string& drag_drop_id, fan::graphics::sprite_sheet_id_t& shape_sprite_sheet_id) {
+  bool sprite_animations_t::render(std::string_view drag_drop_id, fan::graphics::sprite_sheet_id_t& shape_sprite_sheet_id) {
     gui::push_style_var(gui::style_var_item_spacing, fan::vec2(12.f, 12.f));
     gui::columns(2, "animation_columns", false);
     gui::set_column_width(0, gui::get_window_size().x * 0.2f);
@@ -1447,8 +1461,6 @@ namespace fan::graphics::gui {
     gui::next_column();
 
     gui::begin_child("animation_window_right", 0, 1, gui::window_flags_horizontal_scrollbar);
-
-    // just drop image from directory
 
     gui::push_item_width(72);
     gui::indent(animation_names_padding);
@@ -1511,10 +1523,7 @@ namespace fan::graphics::gui {
             for (int y = 0; y < vframes; ++y) {
               for (int x = 0; x < hframes; ++x) {
                 fan::vec2 tc_size = fan::vec2(1.0 / hframes, 1.0 / vframes);
-                fan::vec2 uv_src = fan::vec2(
-                  tc_size.x * x,
-                  tc_size.y * y
-                );
+                fan::vec2 uv_src = fan::vec2(tc_size.x * x, tc_size.y * y);
                 fan::vec2 uv_dst = uv_src + tc_size;
 
                 gui::push_id(y * hframes + x);
@@ -1551,8 +1560,7 @@ namespace fan::graphics::gui {
     gui::separator();
 
     fan::vec2 cursor_pos = gui::get_cursor_pos();
-    if (drag_drop_id.size()) {
-      //fan::vec2 avail = gui::get_content_region_avail();
+    if (!drag_drop_id.empty()) {
       fan::vec2 child_size = gui::get_window_size();
       dummy(child_size);
       gui::receive_drag_drop_target(drag_drop_id, [this](const std::string& file_paths) {
@@ -1560,10 +1568,6 @@ namespace fan::graphics::gui {
           if (fan::image::valid(file_path)) {
             if (auto it = fan::graphics::all_sprite_sheets().find(current_animation_nr); it != fan::graphics::all_sprite_sheets().end()) {
               auto& anim = it->second;
-              //// unload previous image
-              //if (fan::graphics::is_image_valid(anim.sprite_sheet)) {
-              //  fan::graphics::image_unload(anim.sprite_sheet);
-              //}
               fan::graphics::sprite_sheet_t::image_t new_image;
               new_image.image = fan::graphics::image_load(file_path);
               anim.images.push_back(new_image);
@@ -1577,8 +1581,6 @@ namespace fan::graphics::gui {
     }
     gui::set_cursor_pos(cursor_pos);
 
-    //render_play_animation();
-
     list_changed |= render_selectable_frames(current_sprite_sheet->second);
 
     gui::unindent(animation_names_padding);
@@ -1586,7 +1588,7 @@ namespace fan::graphics::gui {
     gui::columns(1);
     gui::pop_style_var();
     return list_changed;
-  }
+}
 
   particle_editor_t::particle_editor_t() {
     set_particle_shape(std::move(particle_shape));
@@ -1646,16 +1648,18 @@ namespace fan::graphics::gui {
     render_settings();
   }
 
-  void particle_editor_t::fout(const std::string& f) {
+  void particle_editor_t::fout(std::string_view f) {
     filename = f;
     fan::json json_data = particle_shape;
     if (!filename.ends_with(".json")) {
       filename += ".json";
     }
+
     // set relative path from json to image
     json_data.find_and_iterate("image_path", [this](fan::json& value) {
       value = fan::io::file::relative_path(value.get<std::string>(), filename).generic_string();
     });
+
     fan::graphics::gui::print_success("File saved to " + std::filesystem::absolute(filename).generic_string());
     fan::io::file::write(filename, json_data.dump(2), std::ios_base::binary);
   }
@@ -1736,7 +1740,7 @@ namespace fan::graphics::gui {
       set_cursor_pos(cursor);
 
 
-      if (gui::button(text, size == 0 ? button_size : size)) {
+      if (gui::button(std::string_view(text), size == 0 ? button_size : size)) {
         This->button_choice = nr;
         auto it = This->drawables.GetNodeFirst();
         while (it != This->drawables.dst) {
@@ -1769,19 +1773,20 @@ namespace fan::graphics::gui {
     this->indent = indent;
   }
 
-  fan::event::task_value_resume_t<dialogue_box_t::drawable_nr_t> dialogue_box_t::text_delayed(const std::string& character_name, const std::string& text) {
-    return text_delayed(character_name, text, 20); // 20 characters per second
-  }
-
-  fan::event::task_value_resume_t<dialogue_box_t::drawable_nr_t> dialogue_box_t::text_delayed(const std::string& character_name, const std::string& text, int characters_per_second) {
+  fan::event::task_value_resume_t<dialogue_box_t::drawable_nr_t> dialogue_box_t::text_delayed(
+    std::string_view character_name, 
+    std::string_view text, 
+    int characters_per_second) {
     text_delayed_t td;
     td.character_per_s = characters_per_second;
     td.text = text;
     td.render_pos = 0;
     td.dialogue_line_finished = false;
 
+
     auto it = drawables.NewNodeLast();
     drawables[it] = new text_delayed_t(std::move(td));
+
 
     co_return it;
   }
@@ -1839,7 +1844,7 @@ namespace fan::graphics::gui {
     }
   }
 
-  void dialogue_box_t::render(const std::string& window_name, font_t* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing, const std::function<void()>& inside_window_cb) {
+  void dialogue_box_t::render(fan::graphics::gui::label_t window_name, font_t* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing, const std::function<void()>& inside_window_cb) {
     push_font(font);
 
     fan::vec2 root_window_size = get_window_size();
@@ -1886,10 +1891,6 @@ namespace fan::graphics::gui {
     end();
     pop_font();
 
-  }
-
-  void dialogue_box_t::render(const std::string& window_name, font_t* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing) {
-    render(window_name, font, window_size, wrap_width, line_spacing, [] {});
   }
 
   void dialogue_box_t::clear() {
@@ -2004,7 +2005,7 @@ namespace fan::graphics::gui {
   void render_texture_property(
     fan::graphics::shape_t& shape, 
     int index, 
-    const char* label,
+    fan::graphics::gui::label_t label,
     const std::wstring& asset_path,
     f32_t image_size,
     const char* receive_drag_drop_target_name
@@ -2033,7 +2034,10 @@ namespace fan::graphics::gui {
     gui::same_line();
     gui::text(label);
   }
-  void render_image_filter_property(fan::graphics::shape_t& shape, const char* label) {
+  void render_image_filter_property(
+    fan::graphics::shape_t& shape, 
+    fan::graphics::gui::label_t label
+  ) {
     using namespace fan::graphics;
 
     auto current_image = shape.get_image();

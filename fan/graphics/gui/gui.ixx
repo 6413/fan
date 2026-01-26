@@ -92,7 +92,7 @@ export namespace fan::graphics::gui {
   void set_viewport(const fan::graphics::render_view_t& render_view = fan::graphics::get_orthographic_render_view());
 
   
-  bool toggle_image_button(const std::string& char_id, fan::graphics::image_t image, const fan::vec2& size, bool* toggle);
+  bool toggle_image_button(fan::graphics::gui::label_t char_id, fan::graphics::image_t image, const fan::vec2& size, bool* toggle);
 
   template <std::size_t N>
   bool toggle_image_button(const std::array<fan::graphics::image_t, N>& images, const fan::vec2& size, int* selectedIndex)
@@ -114,7 +114,8 @@ export namespace fan::graphics::gui {
       }*/
       set_cursor_pos_y(y_pos);
 
-      if (fan::graphics::gui::image_button("##toggle_image_button" + std::to_string(i) + std::to_string((uint64_t)&clicked), images[i], size)) {
+      std::string button_id = "##toggle_image_button" + std::to_string(i) + std::to_string((uint64_t)&clicked);
+      if (fan::graphics::gui::image_button(std::string_view(button_id), images[i], size)) {
         *selectedIndex = i;
         clicked = true;
       }
@@ -247,9 +248,9 @@ export namespace fan::graphics::gui {
 
     int get_pressed_key();
 
-    void handle_keyboard_navigation(const std::string& filename, int pressed_key);
+    void handle_keyboard_navigation(std::string_view filename, int pressed_key);
 
-    void handle_right_click(const std::string& filename);
+    void handle_right_click(std::string_view filename);
 
     void process_next_directory();
 
@@ -295,7 +296,7 @@ export namespace fan::graphics::gui {
     bool render_list_box(fan::graphics::sprite_sheet_id_t& shape_sprite_sheet_id);
 
     bool render_selectable_frames(fan::graphics::sprite_sheet_t& current_sprite_sheet);
-    bool render(const std::string& drag_drop_id, fan::graphics::sprite_sheet_id_t& shape_sprite_sheet_id);
+    bool render(std::string_view drag_drop_id, fan::graphics::sprite_sheet_id_t& shape_sprite_sheet_id);
   };
 
   void fragment_shader_editor(uint16_t shape_type, std::string* fragment, bool* shader_compiled);
@@ -314,7 +315,7 @@ export namespace fan::graphics::gui {
     void render_settings();
     void render();
 
-    void fout(const std::string& filename);
+    void fout(std::string_view filename);
 
   private:
     fan::graphics::shape_t particle_shape = fan::graphics::shapes::particles_t::properties_t{
@@ -414,8 +415,11 @@ export namespace fan::graphics::gui {
     void set_cursor_position(const fan::vec2& pos);
     void set_indent(f32_t indent);
 
-    fan::event::task_value_resume_t<drawable_nr_t> text_delayed(const std::string& character_name, const std::string& text);
-    fan::event::task_value_resume_t<drawable_nr_t> text_delayed(const std::string& character_name, const std::string& text, int characters_per_second);
+    fan::event::task_value_resume_t<drawable_nr_t> text_delayed(
+      std::string_view character_name, 
+      std::string_view text, 
+      int characters_per_second = 20
+    );
     fan::event::task_value_resume_t<drawable_nr_t> text(const std::string& text);
 
     fan::event::task_value_resume_t<drawable_nr_t> button(const std::string& text, const fan::vec2& position, const fan::vec2& size = { 0, 0 });
@@ -427,9 +431,7 @@ export namespace fan::graphics::gui {
     int get_button_choice();
 
     fan::event::task_t wait_user_input();
-    void render(const std::string& window_name, font_t* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing, const std::function<void()>& inside_window_cb);
-
-    void render(const std::string& window_name, font_t* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing);
+    void render(fan::graphics::gui::label_t window_name, font_t* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing, const std::function<void()>& inside_window_cb = []{});
 
     void clear();
 
@@ -447,7 +449,7 @@ export namespace fan::graphics::gui {
   };
   // called inside window begin end
   void animated_popup_window(
-    const std::string& popup_id,
+    std::string_view popup_id,
     const fan::vec2& popup_size,
     const fan::vec2& start_pos,
     const fan::vec2& target_pos,
@@ -462,12 +464,15 @@ export namespace fan::graphics::gui {
   void render_texture_property(
     fan::graphics::shape_t& shape,
     int index,
-    const char* label,
+    fan::graphics::gui::label_t label,
     const std::wstring& asset_path = L"./",
     f32_t image_size = 64.f,
     const char* receive_drag_drop_target_name = "CONTENT_BROWSER_ITEMS"
   );
-  void render_image_filter_property(fan::graphics::shape_t& shape, const char* label);
+  void render_image_filter_property(
+    fan::graphics::shape_t& shape,
+    fan::graphics::gui::label_t label
+  );
 }
 /*
 template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(

@@ -730,7 +730,6 @@ namespace fan::graphics{
       vi.rotation_point = properties.rotation_point;
 
       shapes::rectangle_t::ri_t ri;
-
       sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::rectangle, vi, ri,
         Key_e::visible, (uint8_t)true,

@@ -190,6 +190,36 @@ export namespace fan {
     }
   }
 
+  std::string wstring_to_utf8(const std::wstring& w) {
+    std::string out;
+    out.reserve(w.size());
+
+    for (wchar_t wc : w) {
+      uint32_t c = (uint32_t)wc;
+
+      if (c <= 0x7F) {
+        out.push_back((char)c);
+      }
+      else if (c <= 0x7FF) {
+        out.push_back((char)(0xC0 | ((c >> 6) & 0x1F)));
+        out.push_back((char)(0x80 | (c & 0x3F)));
+      }
+      else if (c <= 0xFFFF) {
+        out.push_back((char)(0xE0 | ((c >> 12) & 0x0F)));
+        out.push_back((char)(0x80 | ((c >> 6) & 0x3F)));
+        out.push_back((char)(0x80 | (c & 0x3F)));
+      }
+      else {
+        out.push_back((char)(0xF0 | ((c >> 18) & 0x07)));
+        out.push_back((char)(0x80 | ((c >> 12) & 0x3F)));
+        out.push_back((char)(0x80 | ((c >> 6) & 0x3F)));
+        out.push_back((char)(0x80 | (c & 0x3F)));
+      }
+    }
+
+    return out;
+  }
+
   template <typename T>
   void read_from_string(auto& f, auto& off, T& data) {
     data = fan::string_read_data<T>(f, off);

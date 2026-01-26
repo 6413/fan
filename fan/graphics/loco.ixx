@@ -37,6 +37,7 @@ import fan.utility;
 #if defined(FAN_GUI)
   import fan.graphics.gui.text_logger;
 #endif
+
 export import fan.event;
 export import fan.window;
 export import fan.types.color;
@@ -438,7 +439,7 @@ public:
     stats_t stats() const;
 
   #if defined(FAN_GUI)
-    void plot(loco_t* loco, const char* label);
+    void plot(loco_t* loco, std::string_view label);
   #endif
 
     void toggle_pause() { paused = !paused; }
@@ -638,6 +639,7 @@ public:
   uint32_t last_fps = 0;
 
   bool render_console = false;
+  bool render_debug_memory = false;
   bool show_fps = false;
   bool render_settings_menu = 0;
 

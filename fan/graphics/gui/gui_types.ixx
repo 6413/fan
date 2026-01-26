@@ -51,7 +51,7 @@ export namespace fan::graphics::gui {
     dock_node_flags_no_undocking = ImGuiDockNodeFlags_NoUndocking,   //       // Disable undocking this node.
   };
 
-  enum window_flags_e {
+  enum window_flags_e : uint64_t {
     window_flags_none = ImGuiWindowFlags_None,
     window_flags_no_title_bar = ImGuiWindowFlags_NoTitleBar,   
     window_flags_no_resize = ImGuiWindowFlags_NoResize,   
@@ -76,7 +76,8 @@ export namespace fan::graphics::gui {
     window_flags_no_nav = ImGuiWindowFlags_NoNav,  
     window_flags_no_decoration = ImGuiWindowFlags_NoDecoration,  
     window_flags_no_inputs = ImGuiWindowFlags_NoInputs,
-    window_flags_override_input = 1 << 31, // ignores this window from want_io()
+    window_flags_override_input = 1ULL << 31, // ignores this window from want_io()
+    window_flags_topmost = 1ULL << 32,
   };
   enum child_flags_e {
     child_flags_none = ImGuiChildFlags_None,
@@ -520,7 +521,7 @@ export namespace fan::graphics::gui {
   using font_t = ImFont;
   using font_config_t = ImFontConfig;
   using dock_flag_t = int;
-  using window_flags_t = int;
+  using window_flags_t = uint64_t;
   using child_window_flags_t = int;
   using tab_item_flags_t = int;
   using hovered_flag_t = int;

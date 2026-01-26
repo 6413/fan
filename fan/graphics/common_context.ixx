@@ -532,10 +532,14 @@ export namespace fan::graphics {
   struct next_frame_awaiter {
     bool await_ready() const noexcept { return false; }
     void await_suspend(std::coroutine_handle<> handle) {
-      pending.push_back(handle);
+      get_pending().push_back(handle);
     }
     void await_resume() const noexcept {}
-    static inline std::vector<std::coroutine_handle<>> pending;
+    static std::vector<std::coroutine_handle<>>& get_pending() {
+      static std::vector<std::coroutine_handle<>> pending;
+      return pending;
+    }
+    
   };
   next_frame_awaiter co_next_frame() {
     return {};

@@ -280,6 +280,9 @@ export namespace fan::graphics {
 
       uintptr_t LastKeyOffset = s - last_sizeof_v - 1;
       fan::graphics::g_shapes->shaper.PrepareKeysForAdd(&a, LastKeyOffset);
+      fan::time::scope_timer timer([sti](const auto& t) {
+        fan::print(sti, t.millis());
+      });
       return fan::graphics::g_shapes->shaper.add(sti, &a, s, &rd, &d);
     }
 

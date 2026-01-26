@@ -1014,7 +1014,7 @@ void TextEditor::Render()
           }
 
           // Render the cursor
-          if (mFocused)
+          if (mFocused && mRenderCursor)
           {
             auto timeEnd = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
             auto elapsed = timeEnd - mStartTime;
