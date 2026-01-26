@@ -137,6 +137,8 @@ local module_files = {
   "fan/types/quaternion.ixx",
   "fan/types/matrix.ixx",
   "fan/types/fstring.ixx",
+	"fan/types/compile_time_string.ixx",
+	"fan/memory/memory.ixx",
   "fan/math/math.ixx",
   "fan/time.ixx",
   "fan/utility.ixx",
@@ -156,7 +158,6 @@ local module_files = {
   "fan/graphics/common_context.ixx",
   "fan/graphics/opengl/gl_core.ixx",
   "fan/graphics/opengl/uniform_block.ixx",
-	"fan/graphics/gameplay.ixx",
   "fan/texture_pack/tp0.ixx",
 	"fan/graphics/2D/shapes_types.ixx",
 	"fan/graphics/2D/culling.ixx",
@@ -174,7 +175,10 @@ local module_files = {
   "fan/audio/audio.ixx",
   "fan/event/event_types.ixx",
   "fan/event/event.ixx",
-  "fan/noise.ixx"
+  "fan/noise.ixx",
+	"fan/graphics/gameplay/gameplay_types.ixx",
+	"fan/graphics/gameplay/gameplay.ixx",
+	"fan/graphics/gameplay/items.ixx",
 }
 
 if has_config("FAN_WAYLAND_SCREEN") then
@@ -191,7 +195,13 @@ end
 
 if has_config("FAN_GUI") then
   table.insert(module_files, "fan/graphics/gui/gui_base.ixx")
-
+	table.insert(module_files, "fan/graphics/gui/gui_input.ixx")
+	table.insert(module_files, "fan/graphics/gui/gameplay/equipment.ixx")
+	table.insert(module_files, "fan/graphics/gui/gameplay/hotbar.ixx")
+	table.insert(module_files, "fan/graphics/gui/gameplay/inventory.ixx")
+	table.insert(module_files, "fan/graphics/gui/gameplay/inventory_hotbar.ixx")
+	table.insert(module_files, "fan/graphics/gui/gameplay/drag_drop.ixx")
+	table.insert(module_files, "fan/graphics/gui/gameplay/slot_renderer.ixx")
   table.insert(module_files, "fan/graphics/gui/text_logger.ixx")
   table.insert(module_files, "fan/graphics/gui/gui_types.ixx")
   table.insert(module_files, "fan/graphics/gui/gui.ixx")

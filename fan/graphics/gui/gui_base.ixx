@@ -7,7 +7,7 @@ module;
   #include <fan/imgui/imgui_internal.h>
   #include <fan/imgui/ImGuizmo.h>
 
-  #include <string>
+  #include <string_view>
   #include <sstream>
   #include <functional>
   #include <cstdint>
@@ -29,231 +29,47 @@ export import fan.graphics.gui.types;
 import fan.types.vector;
 import fan.types.color;
 import fan.types.matrix;
+import fan.types.compile_time_string;
 import fan.utility;
 import fan.math;
 import fan.print;
 import fan.graphics.common_context;
 
 export namespace fan::graphics::gui {
-  bool begin(const std::string& window_name, bool* p_open = 0, window_flags_t window_flags = 0);
-  void end();
-  bool begin_child(const std::string& window_name, const fan::vec2& size = fan::vec2(0, 0), child_window_flags_t child_window_flags = 0, window_flags_t window_flags = 0);
-  void end_child();
+  struct label_t {
+    std::string_view sv;
 
-  bool begin_tab_item(const std::string& label, bool* p_open = 0, window_flags_t window_flags = 0);
-  void end_tab_item();
-  bool begin_tab_bar(const std::string& tab_bar_name, window_flags_t window_flags = 0);
-  void end_tab_bar();
+    label_t(const char* s) : sv(s) {}
+    label_t(std::string_view s) : sv(s) {}
 
-  bool begin_main_menu_bar();
-  void end_main_menu_bar();
+    label_t(const std::string&) = delete;
+    label_t(std::string&) = delete;
+    label_t(std::string&&) = delete;
 
-  bool begin_menu_bar();
-
-  void end_menu_bar();
-
-  bool begin_menu(const std::string& label, bool enabled = true);
-  void end_menu();
-
-  void begin_group();
-  void end_group();
-
-  void table_setup_column(const std::string& label, table_column_flags_t flags = 0, f32_t init_width_or_weight = 0.0f, id_t user_id = 0);
-  void table_headers_row();
-  bool table_set_column_index(int column_n);
-  f32_t table_get_column_offset(int column_n = -1);
-  f32_t table_get_cell_width(f32_t init_width = 0.f);
-  void push_clip_rect(const fan::vec2& min, const fan::vec2& max, bool intersect_with_current_clip_rect);
-  void pop_clip_rect();
-  bool button_behavior(const gui::rect_t& bb, gui::id_t id, bool* out_hovered, bool* out_held, int flags = 0);
-  gui::table_data_t* get_current_table();
-  
-  void show_debug_log_window(bool* p_open = nullptr);
-
-  bool menu_item(const std::string& label, const std::string& shortcut = "", bool selected = false, bool enabled = true);
-  
-  bool begin_combo(const std::string& label, const std::string& preview_value, int flags = 0);
-  void end_combo();
-
-  /// <summary>
-/// RAII containers for gui windows.
-/// </summary>
-  struct window_t {
-    window_t(const std::string& window_name, bool* p_open = 0, window_flags_t window_flags = 0);
-    ~window_t();
-    explicit operator bool() const;
-
-  private:
-    bool is_open;
-  };
-  /// <summary>
-  /// RAII containers for gui child windows.
-  /// </summary>
-  struct child_window_t {
-    child_window_t(const std::string& window_name, const fan::vec2& size = fan::vec2(0, 0), child_window_flags_t window_flags = 0);
-    ~child_window_t();
-    explicit operator bool() const;
-
-  private:
-    bool is_open;
+    operator std::string_view() { return sv; }
+    operator std::string_view() const { return sv; }
+    
+    operator const char* () const {
+      thread_local fan::temp_cstr<> storage;
+      storage.set(sv);
+      return storage.ptr;
+    }
   };
 
-  /// <summary>
-  /// RAII containers for gui tables.
-  /// </summary>
-  struct table_t {
-    table_t(const std::string& str_id, int columns, table_flags_t flags = 0, const fan::vec2& outer_size = fan::vec2(0.0f, 0.0f), f32_t inner_width = 0.0f);
-    ~table_t();
-    explicit operator bool() const;
+  struct topmost_window_data_t {
+    std::vector<std::string> windows;
 
-  private:
-    bool is_open;
+    void register_window(std::string_view name);
+    void unregister_window(std::string_view name);
   };
 
-  void set_item_default_focus();
+  topmost_window_data_t& topmost_data();
+  void enforce_topmost();
 
-  void same_line(f32_t offset_from_start_x = 0.f, f32_t spacing_w = -1.f);
-  void new_line();
-
-  struct viewport_rect_t {
-    fan::vec2 position;
-    fan::vec2 size;
-  };
-  viewport_rect_t get_viewport_rect();
-  viewport_t* get_main_viewport();
-
-  f32_t get_frame_height();
-
-  f32_t get_text_line_height_with_spacing();
-
-  fan::vec2 get_mouse_pos();
-
-  bool selectable(const std::string& label, bool selected = false, selectable_flag_t flags = 0, const fan::vec2& size = fan::vec2(0, 0));
-  bool selectable(const std::string& label, bool* p_selected, selectable_flag_t flags = 0, const fan::vec2& size = fan::vec2(0, 0));
-
-  bool is_mouse_double_clicked(int button = 0);
-
-  fan::vec2 get_content_region_avail();
-  fan::vec2 get_content_region_max();
-  fan::vec2 get_item_rect_min();
-  fan::vec2 get_item_rect_max();
-  void item_size(const fan::vec2& s);
-  void item_size(const rect_t& bb, f32_t text_baseline_y = -1.0f);
-  void push_item_width(f32_t item_width);
-  void pop_item_width();
-
-  void set_cursor_screen_pos(const fan::vec2& pos);
-
-  void push_id(const std::string& str_id);
-  void push_id(int int_id);
-  void pop_id();
-
-  void set_next_item_width(f32_t width);
-
-  void push_text_wrap_pos(f32_t local_pos = 0);
-  void pop_text_wrap_pos();
-
-  bool is_item_hovered(hovered_flag_t flags = 0);
-  bool is_any_item_hovered();
-  bool is_any_item_active();
-  bool is_item_clicked(int mouse_button = 0);
-  bool is_item_held(int mouse_button = 0);
-
-  void begin_tooltip();
-  void end_tooltip();
-
-  void set_tooltip(const std::string& tooltip);
-
-  bool begin_table(const std::string& str_id, int columns, table_flags_t flags = 0, const fan::vec2& outer_size = fan::vec2(0.0f, 0.0f), f32_t inner_width = 0.0f);
-
-  void end_table();
-
-  void table_next_row(table_row_flags_t row_flags = 0, f32_t min_row_height = 0.0f);
-  bool table_next_column();
-
-  void columns(int count = 1, const char* id = nullptr, bool borders = true);
-
-  void next_column();
-
-  // gvars
-  inline constexpr std::size_t default_font_size_index = 9;
-  inline constexpr f32_t font_sizes[] = {
-    4, 5, 6, 7, 8, 9, 10, 11, 12, 14,
-    16, 18, 20, 22, 24, 28,
-    32, 36, 48, 60, 72
-  };
-  auto& get_font_main() {
-    static fan::graphics::gui::font_t* fonts[std::size(font_sizes)] {};
-    return fonts;
+  // for print
+  inline std::ostream& operator<<(std::ostream& os, const label_t& label) {
+    return os << label.sv;
   }
-  auto& get_font_bold() {
-    static fan::graphics::gui::font_t* fonts_bold[std::size(font_sizes)] {};
-    return fonts_bold;
-  }
-
-  void build_fonts();
-  void rebuild_fonts();
-  void load_fonts(font_t* (&fonts)[std::size(fan::graphics::gui::font_sizes)], const std::string& name, font_config_t* cfg = nullptr);
-
-  void push_font(font_t* font);
-  void pop_font();
-
-  // remember to call pop when done with the font
-  void set_font(f32_t size);
-  font_t* get_font();
-  f32_t get_font_size();
-  f32_t get_text_line_height();
-
-  void indent(f32_t indent_w = 0.0f);
-  void unindent(f32_t indent_w = 0.0f);
-
-  fan::vec2 calc_text_size(const std::string& text, const char* text_end = NULL, bool hide_text_after_double_hash = false, f32_t wrap_width = -1.0f);
-  fan::vec2 get_text_size(const std::string& text, const char* text_end = NULL, bool hide_text_after_double_hash = false, f32_t wrap_width = -1.0f);
-  fan::vec2 text_size(const std::string& text, const char* text_end = NULL, bool hide_text_after_double_hash = false, f32_t wrap_width = -1.0f);
-  void set_cursor_pos_x(f32_t pos);
-  void set_cursor_pos_y(f32_t pos);
-  void set_cursor_pos(const fan::vec2& pos);
-  fan::vec2 get_cursor_pos();
-  f32_t get_cursor_pos_x();
-  f32_t get_cursor_pos_y();
-  fan::vec2 get_cursor_screen_pos();
-  fan::vec2 get_cursor_start_pos();
-
-  bool is_window_hovered(hovered_flag_t hovered_flags = 0);
-  bool is_window_focused();
-  void set_next_window_focus();
-  void set_window_focus(const std::string& name);
-
-  int render_window_flags();
-
-  fan::vec2 get_window_content_region_min();
-  fan::vec2 get_window_content_region_max();
-  f32_t get_column_width(int index = -1);
-  void set_column_width(int index, f32_t width);
-
-  bool is_item_active();
-
-  bool& want_io();
-  bool& force_want_io_for_frame();
-  void set_want_io(bool flag = ImGui::GetIO().WantCaptureMouse | 
-    ImGui::GetIO().WantCaptureKeyboard | 
-    ImGui::GetIO().WantTextInput, 
-    bool op_or = false
-  );
-
-  void set_keyboard_focus_here();
-
-  fan::vec2 get_mouse_drag_delta(int button = 0, f32_t lock_threshold = -1.0f);
-
-  void reset_mouse_drag_delta(int button = 0);
-
-  void set_scroll_x(f32_t scroll_x);
-
-  void set_scroll_y(f32_t scroll_y);
-  void set_scroll_here_y();
-  f32_t get_scroll_x();
-  f32_t get_scroll_y();
-
   template<typename T>
   constexpr data_type_t get_imgui_data_type() {
     if constexpr (std::is_same_v<T, std::int8_t>) return ImGuiDataType_S8;
@@ -266,7 +82,7 @@ export namespace fan::graphics::gui {
     else if constexpr (std::is_same_v<T, std::uint64_t>) return ImGuiDataType_U64;
     else if constexpr (std::is_same_v<T, f32_t>) return ImGuiDataType_Float;
     else if constexpr (std::is_same_v<T, double>) return ImGuiDataType_Double;
-    else static_assert(false, "Unsupported type for ImGui");
+    else static_assert(!sizeof(T), "Unsupported type for ImGui");
   }
 
   void push_style_color(col_t index, const fan::color& col);
@@ -276,9 +92,11 @@ export namespace fan::graphics::gui {
   void push_style_var(style_var_t index, const fan::vec2& val);
   void pop_style_var(int n = 1);
 
-  bool button(const std::string& label, const fan::vec2& size = fan::vec2(0, 0));
-  bool invisible_button(const std::string& label, const fan::vec2& size = fan::vec2(0, 0));
-  bool arrow_button(const std::string& label, dir_t dir);
+  bool button(label_t label, const fan::vec2& size = fan::vec2(0, 0));
+
+  bool invisible_button(label_t label, const fan::vec2& size = fan::vec2(0, 0));
+
+  bool arrow_button(label_t label, dir_t dir);
 
   /// <summary>
   /// Draws the specified text, with its position influenced by other GUI elements.
@@ -308,11 +126,13 @@ export namespace fan::graphics::gui {
   /// <param name="text">The text to draw.</param>
   /// <param name="position">The position of the text.</param>
   /// <param name="color">The color of the text (defaults to white).</param>
-  void text_at(const std::string& text, const fan::vec2& position = 0, const fan::color& color = fan::colors::white);
+  void text_at(std::string_view text, const fan::vec2& position = 0, const fan::color& color = fan::colors::white);
 
-  void text_wrapped(const std::string& text, const fan::color& color = fan::colors::white);
-  void text_unformatted(const std::string& text, const char* text_end = NULL);
-  void text_disabled(const std::string& text);
+  void text_wrapped(std::string_view text, const fan::color& color = fan::colors::white);
+
+  void text_unformatted(std::string_view text, const char* text_end = NULL);
+
+  void text_disabled(std::string_view text);
 
   /// <summary>
   /// Draws text centered horizontally.
@@ -320,7 +140,7 @@ export namespace fan::graphics::gui {
   /// <param name="text">The text to draw.</param>
   /// <param name="color">The color of the text (defaults to white).</param>
   /// <param name="offset">Offset from center position.</param>
-  void text_centered(const std::string& text, const fan::color& color = fan::colors::white);
+  void text_centered(std::string_view text, const fan::color& color = fan::colors::white);
 
   /// <summary>
   /// Draws text centered at a specific position.
@@ -328,19 +148,19 @@ export namespace fan::graphics::gui {
   /// <param name="text">The text to draw.</param>
   /// <param name="center_position">The position where the text should be centered.</param>
   /// <param name="color">The color of the text (defaults to white).</param>
-  void text_centered_at(const std::string& text, const fan::vec2& center_position, const fan::color& color = fan::colors::white);
-
+  void text_centered_at(std::string_view text, const fan::vec2& center_position, const fan::color& color = fan::colors::white);
+  
   /// <summary>
   /// Draws text to bottom right.
   /// </summary>
   /// <param name="text">The text to draw.</param>
   /// <param name="color">The color of the text (defaults to white).</param>
   /// <param name="offset">Offset from the bottom-right corner.</param>
-  void text_bottom_right(const std::string& text, const fan::color& color = fan::colors::white, const fan::vec2& offset = 0);
+  void text_bottom_right(std::string_view text, const fan::color& color = fan::colors::white, const fan::vec2& offset = 0);
 
-  void text_outlined_at(const std::string& text, const fan::vec2& screen_pos, const fan::color& color = fan::colors::white, const fan::color& outline_color = fan::colors::black);
+  void text_outlined_at(std::string_view text, const fan::vec2& screen_pos, const fan::color& color = fan::colors::white, const fan::color& outline_color = fan::colors::black);
 
-  void text_outlined(const std::string& text, const fan::color& color = fan::colors::white, const fan::color& outline_color = fan::colors::black);
+  void text_outlined(std::string_view text, const fan::color& color = fan::colors::white, const fan::color& outline_color = fan::colors::black);
 
   /// <summary>
   /// Draws outlined text centered at a specific position.
@@ -349,7 +169,7 @@ export namespace fan::graphics::gui {
   /// <param name="center_position">The position where the text should be centered.</param>
   /// <param name="color">The color of the text (defaults to white).</param>
   /// <param name="outline_color">The color of the outline (defaults to black).</param>
-  void text_centered_outlined_at(const std::string& text, const fan::vec2& center_position, const fan::color& color = fan::colors::white, const fan::color& outline_color = fan::colors::black);
+  void text_centered_outlined_at(std::string_view text, const fan::vec2& center_position, const fan::color& color = fan::colors::white, const fan::color& outline_color = fan::colors::black);
 
   /// <summary>
   /// Draws outlined text centered horizontally within the current window.
@@ -357,16 +177,17 @@ export namespace fan::graphics::gui {
   /// <param name="text">The text to draw.</param>
   /// <param name="color">The color of the text (defaults to white).</param>
   /// <param name="outline_color">The color of the outline (defaults to black).</param>
-  void text_centered_outlined(const std::string& text, const fan::color& color = fan::colors::white, const fan::color& outline_color = fan::colors::black);
+  void text_centered_outlined(std::string_view text, const fan::color& color = fan::colors::white, const fan::color& outline_color = fan::colors::black);
 
   void text_box(
-    const std::string& text,
+    std::string_view text,
     const fan::vec2& size = fan::vec2(0, 0),
     const fan::color& text_color = fan::colors::white,
-    const fan::color& bg_color = fan::color());
+    const fan::color& bg_color = fan::color()
+  );
 
   void text_box_at(
-    const std::string& text,
+    std::string_view text,
     const fan::vec2& pos,
     const fan::vec2& size = fan::vec2(0, 0),
     const fan::color& text_color = fan::colors::white,
@@ -376,29 +197,28 @@ export namespace fan::graphics::gui {
   f32_t calc_item_width();
   f32_t get_item_width();
 
-  bool input_text(const std::string& label, std::string* buf, input_text_flags_t flags = 0, input_text_callback_t callback = nullptr, void* user_data = nullptr);
-  bool input_text_multiline(const std::string& label, std::string* buf, const ImVec2& size = ImVec2(0, 0), input_text_flags_t flags = 0, input_text_callback_t callback = nullptr, void* user_data = nullptr);
+  bool input_text(label_t label, std::string* buf, input_text_flags_t flags = 0, input_text_callback_t callback = nullptr, void* user_data = nullptr);
 
-  bool input_float(const std::string& label, f32_t* v, f32_t step = 0.0f, f32_t step_fast = 0.0f, const char* format = "%.3f", input_text_flags_t flags = 0);
-  bool input_float(const std::string& label, fan::vec2* v, const char* format = "%.3f", input_text_flags_t flags = 0);
-  bool input_float(const std::string& label, fan::vec3* v, const char* format = "%.3f", input_text_flags_t flags = 0);
-  bool input_float(const std::string& label, fan::vec4* v, const char* format = "%.3f", input_text_flags_t flags = 0);
-  bool input_int(const std::string& label, int* v, int step = 1, int step_fast = 100, input_text_flags_t flags = 0);
-  bool input_int(const std::string& label, fan::vec2i* v, input_text_flags_t flags = 0);
-  bool input_int(const std::string& label, fan::vec3i* v, input_text_flags_t flags = 0);
-  bool input_int(const std::string& label, fan::vec4i* v, input_text_flags_t flags = 0);
+  bool input_text_multiline(label_t label, std::string* buf, const ImVec2& size = ImVec2(0, 0), input_text_flags_t flags = 0, input_text_callback_t callback = nullptr, void* user_data = nullptr);
 
-  bool color_edit3(const std::string& label, fan::color* color, color_edit_flags_t flags = 0);
+  bool input_float(label_t label, f32_t* v, f32_t step = 0.0f, f32_t step_fast = 0.0f, const char* format = "%.3f", input_text_flags_t flags = 0);
+  bool input_float(label_t label, fan::vec2* v, const char* format = "%.3f", input_text_flags_t flags = 0);
+  bool input_float(label_t label, fan::vec3* v, const char* format = "%.3f", input_text_flags_t flags = 0);
+  bool input_float(label_t label, fan::vec4* v, const char* format = "%.3f", input_text_flags_t flags = 0);
 
-  bool color_edit3(const std::string& label, fan::vec3* color, color_edit_flags_t flags= 0);
+  bool input_int(label_t label, int* v, int step = 1, int step_fast = 100, input_text_flags_t flags = 0);
+  bool input_int(label_t label, fan::vec2i* v, input_text_flags_t flags = 0);
+  bool input_int(label_t label, fan::vec3i* v, input_text_flags_t flags = 0);
+  bool input_int(label_t label, fan::vec4i* v, input_text_flags_t flags = 0);
 
-  bool color_edit4(const std::string& label, fan::color* color, color_edit_flags_t flags = 0);
+  bool color_edit3(label_t label, fan::color* color, color_edit_flags_t flags = 0);
+  bool color_edit3(label_t label, fan::vec3* color, color_edit_flags_t flags = 0);
+  bool color_edit4(label_t label, fan::color* color, color_edit_flags_t flags = 0);
 
   fan::vec2 get_window_pos();
   fan::vec2 get_window_size();
 
   void set_next_window_pos(const fan::vec2& position, cond_t cond = cond_none, const fan::vec2& pivot = 0);
-
   void set_next_window_size(const fan::vec2& size, cond_t cond = cond_none);
 
   void set_next_window_bg_alpha(f32_t a);
@@ -412,6 +232,7 @@ export namespace fan::graphics::gui {
   void set_mouse_cursor(cursor_t type);
 
   style_t& get_style();
+
   fan::color get_color(col_t idx);
   uint32_t get_color_u32(col_t idx);
 
@@ -424,10 +245,12 @@ export namespace fan::graphics::gui {
   bool tree_node_ex(void* id, tree_node_flags_t flags, const char* fmt, Args&&... args) {
     return ImGui::TreeNodeEx(id, flags, fmt, std::forward<Args>(args)...);
   }
-  bool tree_node_ex(const std::string& label, tree_node_flags_t flags = 0);
+
+  bool tree_node_ex(label_t label, tree_node_flags_t flags = 0);
+
   void tree_pop();
 
-  bool tree_node(const std::string& label);
+  bool tree_node(label_t label);
 
   bool is_item_toggled_open();
 
@@ -439,44 +262,85 @@ export namespace fan::graphics::gui {
 
   window_handle_t* get_current_window();
 
-  bool combo(const std::string& label, int* current_item, const char* const items[], int items_count, int popup_max_height_in_items = -1);
+  bool combo(label_t label, int* current_item, const char* const items[], int items_count, int popup_max_height_in_items = -1);
+
   // Separate items with \0 within a string, end item-list with \0\0. e.g. "One\0Two\0Three\0"
-  bool combo(const std::string& label, int* current_item, const char* items_separated_by_zeros, int popup_max_height_in_items = -1);
-  bool combo(const std::string& label, int* current_item, const char* (*getter)(void* user_data, int idx), void* user_data, int items_count, int popup_max_height_in_items = -1);
-  bool checkbox(const std::string& label, bool* v);
-  bool list_box(const std::string &label, int* current_item, bool (*old_callback)(void* user_data, int idx, const char** out_text), void* user_data, int items_count, int height_in_items = -1);
-  bool list_box(const std::string& label, int* current_item, const char* const items[], int items_count, int height_in_items = -1);
-  bool list_box(const std::string& label, int* current_item, const char* (*getter)(void* user_data, int idx), void* user_data, int items_count, int height_in_items = -1);
+  bool combo(label_t label, int* current_item, const char* items_separated_by_zeros, int popup_max_height_in_items = -1);
 
-  bool toggle_button(const std::string& str, bool* v);
+  bool combo(label_t label, int* current_item, const char* (*getter)(void* user_data, int idx), void* user_data, int items_count, int popup_max_height_in_items = -1);
 
-  void text_bottom_right(const std::string& text, uint32_t reverse_yoffset = 0);
+  bool checkbox(label_t label, bool* v);
 
-  fan::vec2 get_position_bottom_corner(const std::string& text = "", uint32_t reverse_yoffset = 0);
+  bool list_box(label_t label, int* current_item, bool (*old_callback)(void* user_data, int idx, const char** out_text), void* user_data, int items_count, int height_in_items = -1);
 
-  void send_drag_drop_item(const std::string& id, const std::wstring& path, const std::string& popup = "");
-  void receive_drag_drop_target(const std::string& id, std::function<void(std::string)> receive_func);
+  bool list_box(label_t label, int* current_item, const char* const items[], int items_count, int height_in_items = -1);
 
-  bool slider_scalar(const char* label, data_type_t data_type, void* p_data, const void* p_min, const void* p_max, const char* format = NULL, slider_flags_t flags = 0);
-  bool slider_scalar_n(const char* label, data_type_t data_type, void* p_data, int components, const void* p_min, const void* p_max, const char* format = NULL, slider_flags_t flags = 0);
+  bool list_box(label_t label, int* current_item, const char* (*getter)(void* user_data, int idx), void* user_data, int items_count, int height_in_items = -1);
 
-  bool drag_scalar(const char* label, data_type_t data_type, void* p_data, f32_t v_speed = 1.0f, const void* p_min = NULL, const void* p_max = NULL, const char* format = NULL, slider_flags_t flags = 0);
-  bool drag_scalar_n(const char* label, data_type_t data_type, void* p_data, int components, f32_t v_speed = 1.0f, const void* p_min = NULL, const void* p_max = NULL, const char* format = NULL, slider_flags_t flags = 0); 
+  bool toggle_button(label_t label, bool* v);
+
+  void text_bottom_right(std::string_view text, uint32_t reverse_yoffset = 0);
+
+  fan::vec2 get_position_bottom_corner(std::string_view text = {}, uint32_t reverse_yoffset = 0);
+
+  void send_drag_drop_item(label_t id, const std::wstring& path, label_t popup);
+
+  void receive_drag_drop_target(label_t id, std::function<void(std::string)> receive_func);
+
+  bool slider_scalar(label_t label, data_type_t data_type, void* p_data, const void* p_min, const void* p_max, const char* format = NULL, slider_flags_t flags = 0);
+  bool slider_scalar_n(label_t label, data_type_t data_type, void* p_data, int components, const void* p_min, const void* p_max, const char* format = NULL, slider_flags_t flags = 0);
+
+  bool drag_scalar(label_t label, data_type_t data_type, void* p_data, f32_t v_speed = 1.0f, const void* p_min = NULL, const void* p_max = NULL, const char* format = NULL, slider_flags_t flags = 0);
+  bool drag_scalar_n(label_t label, data_type_t data_type, void* p_data, int components, f32_t v_speed = 1.0f, const void* p_min = NULL, const void* p_max = NULL, const char* format = NULL, slider_flags_t flags = 0);
+
+  inline constexpr std::size_t default_font_size_index = 9;
+  inline constexpr f32_t font_sizes[] = {
+    4, 5, 6, 7, 8, 9, 10, 11, 12, 14,
+    16, 18, 20, 22, 24, 28,
+    32, 36, 48, 60, 72
+  };
 
   font_t* get_font_impl(f32_t font_size, bool bold = false);
+
   font_t* get_font(
     font_t* (&fonts)[std::size(fan::graphics::gui::font_sizes)],
     f32_t font_size
   );
+
   font_t* get_font(f32_t font_size, bool bold = false);
 
-  void image(texture_id_t texture, const fan::vec2& size, const fan::vec2& uv0 = fan::vec2(0, 0), const fan::vec2& uv1 = fan::vec2(1, 1), const fan::color& tint_col = fan::colors::white, const fan::color& border_col = fan::color(0, 0, 0, 0));
-  
-  void image(fan::graphics::image_t img, const fan::vec2& size, const fan::vec2& uv0 = fan::vec2(0, 0), const fan::vec2& uv1 = fan::vec2(1, 1), const fan::color& tint_col = fan::color(1, 1, 1, 1), const fan::color& border_col = fan::color(0, 0, 0, 0));
-  bool image_button(const std::string& str_id, fan::graphics::image_t img, const fan::vec2& size, const fan::vec2& uv0 = fan::vec2(0, 0), const fan::vec2& uv1 = fan::vec2(1, 1), int frame_padding = -1, const fan::color& bg_col = fan::color(0, 0, 0, 0), const fan::color& tint_col = fan::color(1, 1, 1, 1));
+  void image(
+    texture_id_t texture,
+    const fan::vec2& size,
+    const fan::vec2& uv0 = fan::vec2(0, 0),
+    const fan::vec2& uv1 = fan::vec2(1, 1),
+    const fan::color& tint_col = fan::colors::white,
+    const fan::color& border_col = fan::color(0, 0, 0, 0)
+  );
+
+  void image(
+    fan::graphics::image_t img,
+    const fan::vec2& size,
+    const fan::vec2& uv0 = fan::vec2(0, 0),
+    const fan::vec2& uv1 = fan::vec2(1, 1),
+    const fan::color& tint_col = fan::color(1, 1, 1, 1),
+    const fan::color& border_col = fan::color(0, 0, 0, 0)
+  );
+
+  bool image_button(
+    label_t str_id,
+    fan::graphics::image_t img,
+    const fan::vec2& size,
+    const fan::vec2& uv0 = fan::vec2(0, 0),
+    const fan::vec2& uv1 = fan::vec2(1, 1),
+    int frame_padding = -1,
+    const fan::color& bg_col = fan::color(0, 0, 0, 0),
+    const fan::color& tint_col = fan::color(1, 1, 1, 1)
+  );
+
   bool image_text_button(
     fan::graphics::image_t img,
-    const std::string& text,
+    std::string_view text,
     const fan::color& color,
     const fan::vec2& size,
     const fan::vec2& uv0 = fan::vec2(0, 0),
@@ -485,49 +349,71 @@ export namespace fan::graphics::gui {
     const fan::color& bg_col = fan::color(0, 0, 0, 0),
     const fan::color& tint_col = fan::color(1, 1, 1, 1)
   );
-  bool image_button(const std::string& str_id, texture_id_t texture, const fan::vec2& size, const fan::vec2& uv0 = fan::vec2(0, 0), const fan::vec2& uv1 = fan::vec2(1, 1), const fan::color& bg_col = fan::color(0, 0, 0, 0), const fan::color& tint_col = fan::colors::white);
+
+  bool image_button(
+    label_t str_id,
+    texture_id_t texture,
+    const fan::vec2& size,
+    const fan::vec2& uv0 = fan::vec2(0, 0),
+    const fan::vec2& uv1 = fan::vec2(1, 1),
+    const fan::color& bg_col = fan::color(0, 0, 0, 0),
+    const fan::color& tint_col = fan::colors::white
+  );
 
   bool item_add(const rect_t& bb, id_t id, const rect_t* nav_bb = NULL, item_flags_t extra_flags = 0);
-
 
   int is_key_pressed(key_t key, bool repeat = true);
   int get_pressed_key();
 
   void set_next_window_class(const class_t* c);
 
-  // TODO flags
   bool begin_drag_drop_source();
-  bool set_drag_drop_payload(const std::string& type, const void* data, size_t sz, cond_t cond = cond_none);
+  bool set_drag_drop_payload(label_t type, const void* data, size_t sz, cond_t cond = cond_none);
+
   void end_drag_drop_source();
 
   bool begin_drag_drop_target();
-  const payload_t* accept_drag_drop_payload(const std::string& type);
+
+  const payload_t* accept_drag_drop_payload(label_t type);
+
   void end_drag_drop_target();
+
   const payload_t* get_drag_drop_payload();
 
-  bool begin_popup(const std::string& id, window_flags_t flags = 0);
-  bool begin_popup_modal(const std::string& id, window_flags_t flags = 0);
-  void end_popup();
-  void open_popup(const std::string& id);
-  void close_current_popup();
-  bool is_popup_open(const std::string& id);
+  bool begin_popup(label_t id, window_flags_t flags = 0);
 
-  id_t get_id(const std::string& str_id);
+  bool begin_popup_modal(label_t id, window_flags_t flags = 0);
+
+  void end_popup();
+
+  void open_popup(label_t id);
+
+  void close_current_popup();
+
+  bool is_popup_open(label_t id);
+
+  id_t get_id(label_t str_id);
+
   storage_t* get_state_storage();
 
   f32_t get_line_height_with_spacing();
 
   void seperator();
+
   void dock_space_over_viewport(id_t dockspace_id = 0, const gui::viewport_t* viewport = NULL, int flags = 0, const void* window_class = NULL);
 
   context_t* get_context();
 
-  inline bool g_gui_initialized = false;
+  bool& is_gui_initialized() {
+    static bool g_gui_initialized = false;
+    return g_gui_initialized;
+  }
+
   void init(
     GLFWwindow* window,
     int renderer,
-    int opengl_renderer_definition,  // todo bad
-    int vulkan_renderer_definition  //  todo bad
+    int opengl_renderer_definition,
+    int vulkan_renderer_definition
   #if defined(FAN_VULKAN)
     , VkInstance instance,
     VkPhysicalDevice physical_device,
@@ -542,11 +428,12 @@ export namespace fan::graphics::gui {
     void (*check_vk_result)(VkResult)
   #endif
   );
+
   void init_graphics_context(
     GLFWwindow* window,
     int renderer,
-    int opengl_renderer_definition,  // todo bad
-    int vulkan_renderer_definition  //  todo bad
+    int opengl_renderer_definition,
+    int vulkan_renderer_definition
   #if defined(FAN_VULKAN)
     , VkInstance instance,
     VkPhysicalDevice physical_device,
@@ -561,24 +448,26 @@ export namespace fan::graphics::gui {
     void (*check_vk_result)(VkResult)
   #endif
   );
+
   void init_fonts();
   void load_emojis();
 
   void shutdown_graphics_context(
     int renderer,
-    int opengl_renderer_definition,  // todo bad
-    int vulkan_renderer_definition  //  todo bad
+    int opengl_renderer_definition,
+    int vulkan_renderer_definition
   #if defined(FAN_VULKAN)
     , VkDevice device
   #endif
   );
+
   void shutdown_window_context();
   void destroy();
 
   void new_frame(
     int renderer,
-    int opengl_renderer_definition,  // todo bad
-    int vulkan_renderer_definition  //  todo bad
+    int opengl_renderer_definition,
+    int vulkan_renderer_definition
   );
 
 #if defined(FAN_VULKAN)
@@ -587,8 +476,8 @@ export namespace fan::graphics::gui {
 
   void render(
     int renderer,
-    int opengl_renderer_definition,  // todo bad
-    int vulkan_renderer_definition,  //  todo bad
+    int opengl_renderer_definition,
+    int vulkan_renderer_definition,
     bool render_shapes_top
   #if defined(FAN_VULKAN)
     ,
@@ -602,107 +491,498 @@ export namespace fan::graphics::gui {
 
   void profile_heap(void* (*dynamic_malloc)(size_t, void*), void (*dynamic_free)(void*, void*));
 
+  bool begin(label_t window_name, bool* p_open = 0, window_flags_t window_flags = 0);
+  void end();
+
+  bool begin_child(label_t window_name, const fan::vec2& size = fan::vec2(0, 0), child_window_flags_t child_window_flags = 0, window_flags_t window_flags = 0);
+  void end_child();
+
+  bool begin_tab_item(label_t label, bool* p_open = 0, window_flags_t window_flags = 0);
+  void end_tab_item();
+
+  bool begin_tab_bar(label_t tab_bar_name, window_flags_t window_flags = 0);
+  void end_tab_bar();
+
+  bool begin_main_menu_bar();
+  void end_main_menu_bar();
+
+  bool begin_menu_bar();
+  void end_menu_bar();
+
+  bool begin_menu(label_t label, bool enabled = true);
+  void end_menu();
+
+  void begin_group();
+  void end_group();
+
+  void table_setup_column(label_t label, table_column_flags_t flags = 0, f32_t init_width_or_weight = 0.0f, id_t user_id = 0);
+
+  void table_headers_row();
+  bool table_set_column_index(int column_n);
+  f32_t table_get_column_offset(int column_n = -1);
+  f32_t table_get_cell_width(f32_t init_width = 0.f);
+
+  void push_clip_rect(const fan::vec2& min, const fan::vec2& max, bool intersect_with_current_clip_rect);
+  void pop_clip_rect();
+
+  bool button_behavior(const gui::rect_t& bb, gui::id_t id, bool* out_hovered, bool* out_held, int flags = 0);
+
+  gui::table_data_t* get_current_table();
+
+  void show_debug_log_window(bool* p_open = nullptr);
+
+  bool menu_item(label_t label, std::string_view shortcut = {}, bool selected = false, bool enabled = true);
+
+  bool begin_combo(label_t label, std::string_view preview_value, int flags = 0);
+
+  void end_combo();
+
+  /// <summary>
+  /// RAII containers for gui windows.
+  /// </summary>
+  struct window_t {
+    window_t(label_t window_name, bool* p_open = 0, window_flags_t window_flags = 0);
+
+    ~window_t();
+
+    explicit operator bool() const;
+
+    bool is_open;
+  };
+
+  /// <summary>
+  /// RAII containers for gui child windows.
+  /// </summary>
+  struct child_window_t {
+    child_window_t(label_t window_name, const fan::vec2& size = fan::vec2(0, 0), child_window_flags_t window_flags = 0);
+
+    ~child_window_t();
+
+    explicit operator bool() const;
+
+    bool is_open;
+  };
+
+  /// <summary>
+  /// RAII containers for gui tables.
+  /// </summary>
+  struct table_t {
+    table_t(label_t str_id, int columns, table_flags_t flags = 0, const fan::vec2& outer_size = fan::vec2(0.0f, 0.0f), f32_t inner_width = 0.0f);
+
+    ~table_t();
+
+    explicit operator bool() const;
+
+    bool is_open;
+  };
+
+  void set_item_default_focus();
+
+  void same_line(f32_t offset_from_start_x = 0.f, f32_t spacing_w = -1.f);
+  void new_line();
+
+  struct viewport_rect_t {
+    fan::vec2 position;
+    fan::vec2 size;
+  };
+
+  viewport_rect_t get_viewport_rect();
+  viewport_t* get_main_viewport();
+
+  f32_t get_frame_height();
+  f32_t get_text_line_height_with_spacing();
+
+  fan::vec2 get_mouse_pos();
+
+  bool selectable(label_t label, bool selected = false, selectable_flag_t flags = 0, const fan::vec2& size = fan::vec2(0, 0));
+
+  bool selectable(label_t label, bool* p_selected, selectable_flag_t flags = 0, const fan::vec2& size = fan::vec2(0, 0));
+
+  bool is_mouse_double_clicked(int button = 0);
+
+  fan::vec2 get_content_region_avail();
+  fan::vec2 get_content_region_max();
+  fan::vec2 get_item_rect_min();
+  fan::vec2 get_item_rect_max();
+
+  void item_size(const fan::vec2& s);
+  void item_size(const rect_t& bb, f32_t text_baseline_y = -1.0f);
+
+  void push_item_width(f32_t item_width);
+  void pop_item_width();
+
+  void set_cursor_screen_pos(const fan::vec2& pos);
+
+  void push_id(label_t str_id);
+  void push_id(int int_id);
+
+  void pop_id();
+
+  void set_next_item_width(f32_t width);
+
+  void push_text_wrap_pos(f32_t local_pos = 0);
+  void pop_text_wrap_pos();
+
+  bool is_item_hovered(hovered_flag_t flags = 0);
+  bool is_any_item_hovered();
+  bool is_any_item_active();
+  bool is_item_clicked(int mouse_button = 0);
+  bool is_item_held(int mouse_button = 0);
+
+  void begin_tooltip();
+  void end_tooltip();
+
+  void set_tooltip(std::string_view tooltip);
+
+  bool begin_table(label_t str_id, int columns, table_flags_t flags = 0, const fan::vec2& outer_size = fan::vec2(0.0f, 0.0f), f32_t inner_width = 0.0f);
+
+  void end_table();
+
+  void table_next_row(table_row_flags_t row_flags = 0, f32_t min_row_height = 0.0f);
+  bool table_next_column();
+
+  void columns(int count = 1, const char* id = nullptr, bool borders = true);
+
+  void next_column();
+
+  inline auto& get_font_main() {
+    static fan::graphics::gui::font_t* fonts[std::size(font_sizes)] {};
+    return fonts;
+  }
+
+  inline auto& get_font_bold() {
+    static fan::graphics::gui::font_t* fonts_bold[std::size(font_sizes)] {};
+    return fonts_bold;
+  }
+
+  void build_fonts();
+  void rebuild_fonts();
+
+  void load_fonts(font_t* (&fonts)[std::size(fan::graphics::gui::font_sizes)], std::string_view name, font_config_t* cfg = nullptr);
+
+  void push_font(font_t* font);
+  void pop_font();
+
+  void set_font(f32_t size);
+
+  font_t* get_font();
+  f32_t get_font_size();
+  f32_t get_text_line_height();
+
+  void indent(f32_t indent_w = 0.0f);
+  void unindent(f32_t indent_w = 0.0f);
+
+  fan::vec2 calc_text_size(std::string_view text, const char* text_end = NULL, bool hide_text_after_double_hash = false, f32_t wrap_width = -1.0f);
+
+  fan::vec2 get_text_size(std::string_view text, const char* text_end = NULL, bool hide_text_after_double_hash = false, f32_t wrap_width = -1.0f);
+
+  fan::vec2 text_size(std::string_view text, const char* text_end = NULL, bool hide_text_after_double_hash = false, f32_t wrap_width = -1.0f);
+
+
+  void set_cursor_pos_x(f32_t pos);
+  void set_cursor_pos_y(f32_t pos);
+  void set_cursor_pos(const fan::vec2& pos);
+
+  fan::vec2 get_cursor_pos();
+  f32_t get_cursor_pos_x();
+  f32_t get_cursor_pos_y();
+
+  fan::vec2 get_cursor_screen_pos();
+  fan::vec2 get_cursor_start_pos();
+
+  bool is_window_hovered(hovered_flag_t hovered_flags = 0);
+  bool is_window_focused();
+
+  void set_next_window_focus();
+
+  void set_window_focus(label_t name);
+
+  int render_window_flags();
+
+  fan::vec2 get_window_content_region_min();
+  fan::vec2 get_window_content_region_max();
+
+  f32_t get_column_width(int index = -1);
+  void set_column_width(int index, f32_t width);
+
+  bool is_item_active();
+
+  bool& want_io();
+  bool& force_want_io_for_frame();
+
+  void set_want_io(
+    bool flag = ImGui::GetIO().WantCaptureMouse |
+      ImGui::GetIO().WantCaptureKeyboard |
+      ImGui::GetIO().WantTextInput,
+    bool op_or = false
+  );
+
+  void set_keyboard_focus_here();
+
+  fan::vec2 get_mouse_drag_delta(int button = 0, f32_t lock_threshold = -1.0f);
+  void reset_mouse_drag_delta(int button = 0);
+
+  void set_scroll_x(f32_t scroll_x);
+  void set_scroll_y(f32_t scroll_y);
+
+  void set_scroll_here_y();
+
+  f32_t get_scroll_x();
+  f32_t get_scroll_y();
+
   struct window {
-    window(const std::string& title, fan::graphics::gui::window_flags_t flags = 0) :
-      wnd(title, nullptr, flags) {}
+    window(label_t title, fan::graphics::gui::window_flags_t flags = 0);
+    window(label_t title, bool* p_open, fan::graphics::gui::window_flags_t flags = 0);
 
-    window(const std::string& title, bool* p_open, fan::graphics::gui::window_flags_t flags = 0) :
-      wnd(title, p_open, flags) {}
+    explicit operator bool() const;
 
-    explicit operator bool() const {
-      return static_cast<bool>(wnd);
-    }
-
+  private:
     fan::graphics::gui::window_t wnd;
   };
 
-  struct hud : window {
-    hud(const std::string& name, bool* p_open = nullptr)
-      : window((
-          gui::set_next_window_pos(get_viewport_rect().position),
-          gui::set_next_window_size(get_viewport_rect().size),
-          name
-        ),
-        p_open,
-        gui::window_flags_no_background |
-        gui::window_flags_no_nav |
-        gui::window_flags_no_inputs |
-        gui::window_flags_no_title_bar |
-        gui::window_flags_no_resize |
-        gui::window_flags_no_move |
-        gui::window_flags_no_saved_settings |
-        gui::window_flags_override_input
-      ) {}
+  struct hud {
+    hud(label_t name, bool* p_open = 0);
+    operator bool() const;
+  private:
+    window wnd;
   };
 
   struct table {
-    table(
-      const std::string& str_id, int columns, 
-      table_flags_t flags = 0, const fan::vec2& outer_size = fan::vec2(0.0f, 0.0f), 
-      f32_t inner_width = 0.0f) 
-      : tbl(str_id, columns, flags, outer_size, inner_width) {}
-
-    explicit operator bool() const {
-      return static_cast<bool>(tbl);
-    }
-
-    fan::graphics::gui::table_t tbl;
+    table(label_t str_id, int columns,
+      table_flags_t flags = 0,
+      const fan::vec2& outer_size = fan::vec2(0.0f, 0.0f),
+      f32_t inner_width = 0.0f);
+    operator bool() const;
+  private:
+    table_t tbl;
   };
+
+  template<typename T>
+  constexpr const char* get_default_format() {
+    if constexpr (std::is_integral_v<T>) {
+      if constexpr (std::is_signed_v<T>) {
+        return "%d";
+      }
+      else {
+        return "%u";
+      }
+    }
+    else {
+      return "%.3f";
+    }
+  }
+
+  template<typename T>
+  bool slider(label_t label, T* v, auto v_min, auto v_max, slider_flags_t flags = 0) {
+    if constexpr (get_component_count<T>() == 1) {
+      T min_val = static_cast<T>(v_min);
+      T max_val = static_cast<T>(v_max);
+      return slider_scalar(label, get_imgui_data_type<T>(), v, &min_val, &max_val, get_default_format<T>(), flags);
+    }
+    else {
+      using component_type = component_type_t<T>;
+      component_type min_val = static_cast<component_type>(v_min);
+      component_type max_val = static_cast<component_type>(v_max);
+      return slider_scalar_n(label, get_imgui_data_type<component_type>(), v->data(), get_component_count<T>(), &min_val, &max_val, get_default_format<component_type>(), flags);
+    }
+  }
+
+  template<typename T>
+  bool slider(label_t label, T* v, slider_flags_t flags = 0) {
+    if constexpr (std::is_integral_v<T> || std::is_integral_v<component_type_t<T>>) {
+      return slider(label, v, 0, 100, flags);
+    }
+    else {
+      return slider(label, v, 0.0, 1.0, flags);
+    }
+  }
+
+  template<typename T>
+  bool drag(label_t label, T* v, f32_t v_speed = 1.f, f32_t v_min = 0, f32_t v_max = 0, slider_flags_t flags = 0) {
+    if constexpr (get_component_count<T>() == 1) {
+      T min_val;
+      T max_val;
+
+      if constexpr (std::is_floating_point_v<T>) {
+        min_val = static_cast<T>(v_min);
+        max_val = static_cast<T>(v_max);
+      }
+      else {
+        constexpr f32_t safe_min = static_cast<f32_t>(std::numeric_limits<T>::min());
+        constexpr f32_t safe_max = static_cast<f32_t>(std::numeric_limits<T>::max());
+
+        min_val =
+          (v_min <= safe_min) ? std::numeric_limits<T>::min() :
+          (v_min >= safe_max) ? std::numeric_limits<T>::max() :
+          static_cast<T>(v_min);
+
+        max_val =
+          (v_max <= safe_min) ? std::numeric_limits<T>::min() :
+          (v_max >= safe_max) ? std::numeric_limits<T>::max() :
+          static_cast<T>(v_max);
+      }
+
+      if (min_val > max_val) {
+        std::swap(min_val, max_val);
+      }
+
+      return drag_scalar(label, get_imgui_data_type<T>(), v, v_speed, &min_val, &max_val, get_default_format<T>(), flags);
+    }
+    else {
+      using component_type = component_type_t<T>;
+
+      component_type speed_val = static_cast<component_type>(v_speed);
+      component_type min_val;
+      component_type max_val;
+
+      if constexpr (std::is_floating_point_v<component_type>) {
+        min_val = static_cast<component_type>(v_min);
+        max_val = static_cast<component_type>(v_max);
+      }
+      else {
+        constexpr f32_t safe_min = static_cast<f32_t>(std::numeric_limits<component_type>::min());
+        constexpr f32_t safe_max = static_cast<f32_t>(std::numeric_limits<component_type>::max());
+
+        min_val =
+          (v_min <= safe_min) ? std::numeric_limits<component_type>::min() :
+          (v_min >= safe_max) ? std::numeric_limits<component_type>::max() :
+          static_cast<component_type>(v_min);
+
+        max_val =
+          (v_max <= safe_min) ? std::numeric_limits<component_type>::min() :
+          (v_max >= safe_max) ? std::numeric_limits<component_type>::max() :
+          static_cast<component_type>(v_max);
+      }
+
+      if (min_val > max_val) {
+        std::swap(min_val, max_val);
+      }
+
+      return drag_scalar_n(label, get_imgui_data_type<component_type>(), v->data(), get_component_count<T>(), speed_val, &min_val, &max_val, get_default_format<component_type>(), flags);
+    }
+  }
+
 } // namespace fan::graphics::gui
 
-
-  // plot
 export namespace fan::graphics::gui::plot {
-  bool begin_plot(const std::string& title, const fan::vec2& size = fan::vec2(-1, 0), flags_t flags = flags_none);
+
+  bool begin_plot(label_t title, const fan::vec2& size = fan::vec2(-1, 0), flags_t flags = flags_none);
+
   void end_plot();
-  void setup_axes(const std::string& x_label, const std::string& y_label,
-    axis_flags_t x_flags = axis_flags_none, axis_flags_t y_flags = axis_flags_none);
-  void setup_axis(axis_t axis, const std::string& label = "", axis_flags_t flags = axis_flags_none);
+
+  void setup_axes(
+    label_t x_label,
+    label_t y_label,
+    axis_flags_t x_flags = axis_flags_none,
+    axis_flags_t y_flags = axis_flags_none
+  );
+
+  void setup_axis(axis_t axis, label_t label, axis_flags_t flags = axis_flags_none);
+
   void setup_axis_limits(axis_t axis, double v_min, double v_max, cond_t cond = cond_once);
   void setup_axes_limits(double x_min, double x_max, double y_min, double y_max, cond_t cond = cond_once);
-  void setup_axis_format(axis_t idx, const std::string& format);
+
+  void setup_axis_format(axis_t idx, std::string_view format);
+
   void setup_axis_links(axis_t idx, double* min_lnk, double* max_lnk);
+
   void setup_axis_format(axis_t idx, formatter_t formatter, void* data);
+
   void setup_legend(location_t location, int flags = 0);
   void setup_finish();
 
-  void plot_line(const std::string& label, const std::vector<f32_t>& values,
-    double x_scale = 1.0, double x_start = 0.0, line_flags_t flags = line_flags_none);
-  void plot_line(const std::string& label, const std::vector<f32_t>& xs, const std::vector<f32_t>& ys,
-    line_flags_t flags = line_flags_none);
-  void plot_line(const std::string& label, const f32_t* xs, const f32_t* ys, int count,
-    line_flags_t flags = line_flags_none);
-  void plot_scatter(const std::string& label, const std::vector<f32_t>& values,
-    double x_scale = 1.0, double x_start = 0.0, scatter_flags_t flags = scatter_flags_none);
-  void plot_scatter(const std::string& label, const std::vector<f32_t>& xs, const std::vector<f32_t>& ys,
-    scatter_flags_t flags = scatter_flags_none);
-  void plot_scatter(const std::string& label, const f32_t* xs, const f32_t* ys, int count,
-    scatter_flags_t flags = scatter_flags_none);
-  void plot_bars(const std::string& label, const std::vector<f32_t>& values,
-    double bar_size = 0.67, double shift = 0, bars_flags_t flags = bars_flags_none);
-  void plot_bars(const std::string& label, const std::vector<f32_t>& xs, const std::vector<f32_t>& ys,
-    double bar_size, bars_flags_t flags = bars_flags_none);
-  void plot_shaded(const std::string& label, const std::vector<f32_t>& xs, const std::vector<f32_t>& ys,
-    double y_ref = 0.0, int flags = 0);
+  void plot_line(
+    label_t label,
+    const std::vector<f32_t>& values,
+    double x_scale = 1.0,
+    double x_start = 0.0,
+    line_flags_t flags = line_flags_none
+  );
+
+  void plot_line(
+    label_t label,
+    const std::vector<f32_t>& xs,
+    const std::vector<f32_t>& ys,
+    line_flags_t flags = line_flags_none
+  );
+
+  void plot_line(
+    label_t label,
+    const f32_t* xs,
+    const f32_t* ys,
+    int count,
+    line_flags_t flags = line_flags_none
+  );
+
+  void plot_scatter(
+    label_t label,
+    const std::vector<f32_t>& values,
+    double x_scale = 1.0,
+    double x_start = 0.0,
+    scatter_flags_t flags = scatter_flags_none
+  );
+
+  void plot_scatter(
+    label_t label,
+    const std::vector<f32_t>& xs,
+    const std::vector<f32_t>& ys,
+    scatter_flags_t flags = scatter_flags_none
+  );
+
+  void plot_scatter(
+    label_t label,
+    const f32_t* xs,
+    const f32_t* ys,
+    int count,
+    scatter_flags_t flags = scatter_flags_none
+  );
+
+  void plot_bars(
+    label_t label,
+    const std::vector<f32_t>& values,
+    double bar_size = 0.67,
+    double shift = 0,
+    bars_flags_t flags = bars_flags_none
+  );
+
+  void plot_bars(
+    label_t label,
+    const std::vector<f32_t>& xs,
+    const std::vector<f32_t>& ys,
+    double bar_size,
+    bars_flags_t flags = bars_flags_none
+  );
+
+  void plot_shaded(
+    label_t label,
+    const std::vector<f32_t>& xs,
+    const std::vector<f32_t>& ys,
+    double y_ref = 0.0,
+    int flags = 0
+  );
 
   void push_style_color(col_t idx, const fan::color& color);
   void pop_style_color(int count = 1);
+
   void push_style_var(int idx, f32_t val);
   void push_style_var(int idx, const fan::vec2& val);
   void pop_style_var(int count = 1);
 
   void set_next_line_style(const fan::color& col = fan::color(0, 0, 0, -1), f32_t weight = -1.0f);
   void set_next_fill_style(const fan::color& col = fan::color(0, 0, 0, -1), f32_t alpha_mod = -1.0f);
-  void set_next_marker_style(marker_t marker = -1, f32_t size = -1.0f,
-    const fan::color& fill = fan::color(0, 0, 0, -1), f32_t weight = -1.0f,
-    const fan::color& outline = fan::color(0, 0, 0, -1));
+
+  void set_next_marker_style(
+    marker_t marker = -1,
+    f32_t size = -1.0f,
+    const fan::color& fill = fan::color(0, 0, 0, -1),
+    f32_t weight = -1.0f,
+    const fan::color& outline = fan::color(0, 0, 0, -1)
+  );
 
   fan::vec2 get_plot_pos();
-
   fan::vec2 get_plot_size();
 
   bool is_plot_hovered();
-
   bool is_axis_hovered(axis_t axis);
 
   fan::vec2 pixels_to_plot(const fan::vec2& pix, axis_t x_axis = plot_auto, axis_t y_axis = plot_auto);
@@ -710,23 +990,53 @@ export namespace fan::graphics::gui::plot {
 
   fan::vec2 get_plot_mouse_pos(axis_t x_axis = plot_auto, axis_t y_axis = plot_auto);
 
-  void annotation(double x, double y, const fan::color& col, const fan::vec2& pix_offset, bool clamp, const std::string& text);
+  void annotation(
+    double x,
+    double y,
+    const fan::color& col,
+    const fan::vec2& pix_offset,
+    bool clamp,
+    std::string_view text
+  );
 
-  void tag_x(double x, const fan::color& col, const std::string& text = "");
-  void tag_y(double y, const fan::color& col, const std::string& text = "");
+  void tag_x(double x, const fan::color& col, std::string_view text = {});
 
-  void plot_text(const std::string& text, double x, double y, const fan::vec2& pix_offset = fan::vec2(0, 0), int flags = 0);
-  void plot_dummy(const std::string& label_id, int flags = 0);
+  void tag_y(double y, const fan::color& col, std::string_view text = {});
+
+  void plot_text(std::string_view text, double x, double y, const fan::vec2& pix_offset = fan::vec2(0, 0), int flags = 0);
+
+  void plot_dummy(label_t label_id, int flags = 0);
 
   fan::color next_colormap_color();
   fan::color get_last_item_color();
 
-  void setup_axis_ticks(axis_t axis, const double* values, int n_ticks, const char* const labels[]=nullptr, bool keep_default=false);
-  void setup_axis_ticks(axis_t axis, double v_min, double v_max, int n_ticks, const char* const labels[]=nullptr, bool keep_default=false);
+  void setup_axis_ticks(axis_t axis, const double* values, int n_ticks, const char* const labels[] = nullptr, bool keep_default = false);
+  void setup_axis_ticks(axis_t axis, double v_min, double v_max, int n_ticks, const char* const labels[] = nullptr, bool keep_default = false);
 
-  void push_plot_clip_rect(f32_t expand=0);
+  void push_plot_clip_rect(f32_t expand = 0);
   void pop_plot_clip_rect();
-} // namespace plot
+
+  template <typename T>
+  void plot_bars(label_t label_id, const T* values, int count, double bar_size = 0.67, double shift = 0, bars_flags_t flags = 0, int offset = 0, int stride = sizeof(T)) {
+    ImPlot::PlotBars<T>(label_id, values, count, bar_size, shift, flags, offset, stride);
+  }
+
+  template <typename T>
+  void plot_bars(label_t label_id, const T* xs, const T* ys, int count, double bar_size, bars_flags_t flags = 0, int offset = 0, int stride = sizeof(T)) {
+    ImPlot::PlotBars<T>(label_id, xs, ys, count, bar_size, flags, offset, stride);
+  }
+
+  template <typename T>
+  void plot_line(label_t label_id, const T* values, int count, double xscale = 1, double xstart = 0, int flags = 0, int offset = 0, int stride = sizeof(T)) {
+    ImPlot::PlotLine(label_id, values, count, xscale, xstart, flags, offset, stride);
+  }
+
+  template <typename T>
+  void plot_line(label_t label_id, const T* xs, const T* ys, int count, int flags = 0, int offset = 0, int stride = sizeof(T)) {
+    ImPlot::PlotLine(label_id, xs, ys, count, flags, offset, stride);
+  }
+
+} // namespace fan::graphics::gui::plot
 
 #if defined (FAN_AUDIO)
 export namespace fan::graphics::gui {
@@ -741,116 +1051,14 @@ export namespace fan::graphics::gui {
   /// <param name="size">Size of the button (defaults to automatic).</param>
   /// <returns></returns>
   bool audio_button(
-    const std::string& label, 
-    fan::audio::piece_t piece_hover = fan::audio::piece_invalid, 
-    fan::audio::piece_t piece_click = fan::audio::piece_invalid, 
+    label_t label,
+    fan::audio::piece_t piece_hover = fan::audio::piece_invalid,
+    fan::audio::piece_t piece_click = fan::audio::piece_invalid,
     const fan::vec2& size = fan::vec2(0, 0)
   );
-}
+
+} // namespace fan::graphics::gui
 #endif
-
-// templates
-export namespace fan::graphics::gui {
-  template<typename T>
-  constexpr const char* get_default_format() {
-    if constexpr (std::is_integral_v<T>) {
-      if constexpr (std::is_signed_v<T>) return "%d";
-      else return "%u";
-    }
-    else return "%.3f";
-  }
-
-  template<typename T>
-  bool slider(const std::string& label, T* v, auto v_min, auto v_max, slider_flags_t flags = 0) {
-    if constexpr (get_component_count<T>() == 1) {
-      T min_val = static_cast<T>(v_min);
-      T max_val = static_cast<T>(v_max);
-      return slider_scalar(label.c_str(), get_imgui_data_type<T>(), v, &min_val, &max_val, get_default_format<T>(), flags);
-    }
-    else {
-      using component_type = component_type_t<T>;
-      component_type min_val = static_cast<component_type>(v_min);
-      component_type max_val = static_cast<component_type>(v_max);
-      return slider_scalar_n(label.c_str(), get_imgui_data_type<component_type>(), v->data(), get_component_count<T>(), &min_val, &max_val, get_default_format<component_type>(), flags);
-    }
-  }
-  template<typename T>
-  bool slider(const std::string& label, T* v, slider_flags_t flags = 0) {
-    if constexpr (std::is_integral_v<T> || std::is_integral_v<component_type_t<T>>) {
-      return slider(label, v, 0, 100, flags);
-    }
-    else {
-      return slider(label, v, 0.0, 1.0, flags);
-    }
-  }
-
-
-  template<typename T>
-  bool drag(const std::string& label, T* v, f32_t v_speed = 1.f, f32_t v_min = 0, f32_t v_max = 0, slider_flags_t flags = 0) {
-    if constexpr (get_component_count<T>() == 1) {
-      T min_val, max_val;
-
-      if constexpr (std::is_floating_point_v<T>) {
-        min_val = static_cast<T>(v_min);
-        max_val = static_cast<T>(v_max);
-      }
-      else {
-        constexpr f32_t safe_min = static_cast<f32_t>(std::numeric_limits<T>::min());
-        constexpr f32_t safe_max = static_cast<f32_t>(std::numeric_limits<T>::max());
-        min_val = (v_min <= safe_min) ? std::numeric_limits<T>::min() : (v_min >= safe_max) ? std::numeric_limits<T>::max() : static_cast<T>(v_min);
-        max_val = (v_max <= safe_min) ? std::numeric_limits<T>::min() : (v_max >= safe_max) ? std::numeric_limits<T>::max() : static_cast<T>(v_max);
-      }
-
-      if (min_val > max_val) {
-        std::swap(min_val, max_val);
-      }
-
-      return drag_scalar(label.c_str(), get_imgui_data_type<T>(), v, v_speed, &min_val, &max_val, get_default_format<T>(), flags);
-    }
-    else {
-      using component_type = component_type_t<T>;
-      component_type speed_val = static_cast<component_type>(v_speed);
-      component_type min_val, max_val;
-
-      if constexpr (std::is_floating_point_v<component_type>) {
-        min_val = static_cast<component_type>(v_min);
-        max_val = static_cast<component_type>(v_max);
-      }
-      else {
-        constexpr f32_t safe_min = static_cast<f32_t>(std::numeric_limits<component_type>::min());
-        constexpr f32_t safe_max = static_cast<f32_t>(std::numeric_limits<component_type>::max());
-        min_val = (v_min <= safe_min) ? std::numeric_limits<component_type>::min() : (v_min >= safe_max) ? std::numeric_limits<component_type>::max() : static_cast<component_type>(v_min);
-        max_val = (v_max <= safe_min) ? std::numeric_limits<component_type>::min() : (v_max >= safe_max) ? std::numeric_limits<component_type>::max() : static_cast<component_type>(v_max);
-      }
-
-      if (min_val > max_val) {
-        std::swap(min_val, max_val);
-      }
-
-      return drag_scalar_n(label.c_str(), get_imgui_data_type<component_type>(), v->data(), get_component_count<T>(), speed_val, &min_val, &max_val, get_default_format<component_type>(), flags);
-    }
-  }
-
-  namespace plot {
-    template <typename T>
-    void plot_bars(const std::string& label_id, const T* values, int count, double bar_size = 0.67, double shift = 0, bars_flags_t flags = 0, int offset = 0, int stride = sizeof(T)) {
-      ImPlot::PlotBars<T>(label_id.c_str(), values, count, bar_size, shift, flags, offset, stride);
-    }
-    template <typename T>
-    void plot_bars(const std::string& label_id, const T* xs, const T* ys, int count, double bar_size, bars_flags_t flags = 0, int offset = 0, int stride = sizeof(T)) {
-      ImPlot::PlotBars<T>(label_id.c_str(), xs, ys, count, bar_size, flags, offset, stride);
-    }
-
-    template <typename T>
-    void plot_line(const std::string& label_id, const T* values, int count, double xscale = 1, double xstart = 0, int flags = 0, int offset = 0, int stride = sizeof(T)) {
-      ImPlot::PlotLine(label_id.c_str(), values, count, xscale, xstart, flags, offset, stride);
-    }
-    template <typename T>
-    void plot_line(const std::string& label_id, const T* xs, const T* ys, int count, int flags = 0, int offset = 0, int stride = sizeof(T)) {
-      ImPlot::PlotLine(label_id.c_str(), xs, ys, count, flags, offset, stride);
-    }
-  }
-}
 
 export namespace fan::graphics::gui::gizmo {
 
@@ -862,6 +1070,7 @@ export namespace fan::graphics::gui::gizmo {
       bounds = ImGuizmo::BOUNDS
     };
   };
+
   struct mode {
     enum {
       local = ImGuizmo::LOCAL,
@@ -901,36 +1110,48 @@ export namespace fan::graphics::gui::gizmo {
 } // namespace fan::graphics::gui::gizmo
 
 export namespace fan::graphics::gui::slot {
-  void background(gui::draw_list_t* dl,
+
+  void background(
+    gui::draw_list_t* dl,
     const fan::vec2& p_min,
     const fan::vec2& p_max,
     const fan::color& color,
     f32_t rounding
   );
-  void border(gui::draw_list_t* dl,
+
+  void border(
+    gui::draw_list_t* dl,
     const fan::vec2& p_min,
     const fan::vec2& p_max,
     const fan::color& color,
     f32_t rounding,
     f32_t thickness
   );
-  void selected_border(gui::draw_list_t* dl,
+
+  void selected_border(
+    gui::draw_list_t* dl,
     const fan::vec2& p_min,
     const fan::vec2& p_max,
     const fan::color& color,
     f32_t thickness,
     f32_t expand = 3.0f
   );
-  void icon(const fan::graphics::image_t& img,
+
+  void icon(
+    const fan::graphics::image_t& img,
     const fan::vec2& p_min,
     const fan::vec2& p_max,
     const fan::vec2& padding
   );
-  void stack_count(uint32_t count,
+
+  void stack_count(
+    uint32_t count,
     const fan::vec2& p_min,
     const fan::vec2& p_max
   );
-  void tooltip(const std::string& text, bool show);
+
+  void tooltip(std::string_view text, bool show);
+
 } // namespace fan::graphics::gui::slot
 
 #endif
