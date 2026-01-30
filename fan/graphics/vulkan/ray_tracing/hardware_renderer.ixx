@@ -9,6 +9,8 @@ module;
 #include <iostream>
 #include <cmath>
 
+#include <fstream>
+
 #endif
 
 export module fan.graphics.vulkan.ray_tracing.hardware_renderer;

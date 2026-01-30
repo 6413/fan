@@ -1,5 +1,7 @@
 module;
 
+#include <vector>
+
 #if defined(FAN_GUI)
   #include <fan/imgui/imgui.h>
   #include <fan/imgui/imgui_internal.h>
@@ -11,8 +13,38 @@ module;
 
 export module fan.graphics.gui.types;
 
+import fan.types.compile_time_string;
+
 #if defined(FAN_GUI)
 export namespace fan::graphics::gui {
+  struct label_t {
+    std::string_view sv;
+
+    label_t(const char* s) : sv(s) {}
+    label_t(std::string_view s) : sv(s) {}
+
+    label_t(const std::string&) = delete;
+    label_t(std::string&) = delete;
+    label_t(std::string&&) = delete;
+
+    operator std::string_view() { return sv; }
+    operator std::string_view() const { return sv; }
+    
+    operator const char* () const {
+   //   thread_local fan::temp_cstr<> storage;
+    //  storage.set(sv);
+     // return storage.ptr;
+      return sv.data();
+    }
+  };
+
+  struct topmost_window_data_t {
+    std::vector<std::string> windows;
+
+    void register_window(std::string_view name);
+    void unregister_window(std::string_view name);
+  };
+
   enum dock_flags_e {
     dock_space = ImGuiDockNodeFlags_DockSpace,
     dock_central_node = ImGuiDockNodeFlags_CentralNode,

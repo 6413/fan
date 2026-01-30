@@ -11,9 +11,11 @@ module;
 #include <functional>
 #include <cstdlib>
 #include <chrono>
-#include <sstream>
 #include <type_traits>
 #include <coroutine>
+
+#include <sstream>
+#include <fstream>
 
 export module fan.graphics.common_context;
 
@@ -26,6 +28,8 @@ import fan.window;
 import fan.window.input_action;
 import fan.print;
 import fan.utility;
+import fan.types.compile_time_string;
+
 
 #if defined(FAN_GUI)
   import fan.graphics.gui.types;
@@ -137,6 +141,7 @@ export namespace fan {
     };
 
     struct shader_data_t {
+      fan::temp_cstr<256> path_vertex, path_fragment;
       std::string svertex, sfragment;
       std::unordered_map<std::string, std::string> uniform_type_table;
       void* internal;
@@ -470,7 +475,10 @@ export namespace fan::graphics {
     inline static fan::graphics::image_t background;
   };
 
-  std::string read_shader(const std::string& path, const std::source_location& callers_path = std::source_location::current());
+  std::string read_shader(
+    std::string_view path,
+    const std::source_location& callers_path = std::source_location::current()
+  );
 }
 
 export namespace fan {
@@ -499,6 +507,9 @@ export namespace fan {
 
     // Debug
     constexpr const char* toggle_debug_physics = "Toggle Debug Physics";
+
+    constexpr const char* toggle_debug_light_buffer = "Toggle Light Buffer";
+    constexpr const char* recompile_shaders = "Recompile Shaders";
   }
 
   namespace window {

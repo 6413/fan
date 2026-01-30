@@ -9,6 +9,7 @@ module;
 #include <cstddef>
 #include <sstream>
 #include <fstream>
+#include <filesystem>
 
 module fan.graphics.webp;
 

@@ -460,15 +460,15 @@ export namespace fan::graphics {
 
 #define st(name, viewport_inside) \
   struct CONCAT(_, name); \
-	template <bool cond> \
-	struct CONCAT(name, _cond) { \
-		template <typename T> \
-		using d = typename fan::type_or_uint8_t<cond>::template d<T>; \
-		viewport_inside \
+  template <bool cond> \
+  struct CONCAT(name, _cond) { \
+    template <typename T> \
+    using d = typename fan::type_or_uint8_t<cond>::template d<T>; \
+    viewport_inside \
     using type = CONCAT(_, name); \
-	}; \
-	using name = CONCAT(name, _cond)<1>; \
-	struct CONCAT(_, name) : CONCAT(name, _cond<0>) {};
+  }; \
+  using name = CONCAT(name, _cond)<1>; \
+  struct CONCAT(_, name) : CONCAT(name, _cond<0>) {};
 
   using multitexture_image_t = std::array<fan::graphics::image_t, 30>;
 
