@@ -1815,7 +1815,10 @@ export namespace fan {
           gui::indent(10.0f);
         }
 
-        bool node_open = gui::tree_node_ex(bone->name + " | parent " + (bone->parent ? bone->parent->name : "N/A"), flags);
+        std::string label =
+          bone->name + " | parent " + (bone->parent ? bone->parent->name : "N/A");
+
+        bool node_open = gui::tree_node_ex(std::string_view(label), flags);
 
         if (node_open) {
           for (bone_t* child : bone->children) {
@@ -1858,7 +1861,7 @@ export namespace fan {
       void display_animations() {
         using namespace fan::graphics;
         for (auto& anim_pair : animation_list) {
-          bool nodeOpen = gui::tree_node(anim_pair.first);
+          bool nodeOpen = gui::tree_node(std::string_view(anim_pair.first));
           if (nodeOpen) {
             auto& anim = anim_pair.second;
 
@@ -1868,10 +1871,12 @@ export namespace fan {
                 auto& bt = anim.bone_transform_tracks[bone.id];
                 uint32_t data_count = bt.rotation_timestamps.size();
                 if (data_count) {
-                  bool node_open = gui::tree_node(bone.name);
+                  bool node_open = gui::tree_node(std::string_view(bone.name));
                   if (node_open) {
+                    std::string str;
                     for (int i = 0; i < bt.rotation_timestamps.size(); ++i) {
-                      gui::drag("rotation:" + std::to_string(i), &bt.rotation_timestamps[i]);
+                      str = "rotation:" + std::to_string(i);
+                      gui::drag(std::string_view(str), &bt.rotation_timestamps[i]);
                     }
                     gui::tree_pop();
                   }
@@ -1886,10 +1891,12 @@ export namespace fan {
                 auto& bt = anim.bone_transform_tracks[bone.id];
                 uint32_t data_count = bt.rotations.size();
                 if (data_count) {
-                  bool node_open = gui::tree_node(bone.name);
+                  bool node_open = gui::tree_node(std::string_view(bone.name));
                   if (node_open) {
+                    std::string str;
                     for (int i = 0; i < bt.rotations.size(); ++i) {
-                      gui::drag("rotation:" + std::to_string(i), bt.rotations[i].data());
+                      str = "rotation:" + std::to_string(i);
+                      gui::drag(std::string_view(str), bt.rotations[i].data());
                     }
                     gui::tree_pop();
                   }
@@ -1930,8 +1937,10 @@ export namespace fan {
         if (active_bone != -1) {
           auto& anim = get_active_animation();
           auto& bt = anim.bone_transform_tracks[active_bone];
+          std::string str;
           for (int i = 0; i < bt.rotations.size(); ++i) {
-            gui::drag("rotations:" + std::to_string(i), bt.rotations[i].data(), 0.01);
+            str = "rotations:" + std::to_string(i);
+            gui::drag(std::string_view(str), bt.rotations[i].data(), 0.01);
           }
 
           static int32_t current_frame = 0;

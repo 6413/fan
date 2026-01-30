@@ -386,9 +386,9 @@ void main() {
     init_shapes<fan::graphics::sprite_t>(engine_demo, [&](uint32_t i, fan::vec2 viewport_size) {
       return fan::graphics::sprite_t{{
         .render_view = &engine_demo->right_column_view,
-        .position = fan::random::vec2(-viewport_size / 2.f, viewport_size / 2.f),
+        .position = fan::vec3(fan::random::vec2(-viewport_size / 2.f, viewport_size / 2.f), fan::random::value(0, 65500)),
         .size = fan::random::value(30.f, 200.f),
-        .color = fan::random::bright_color(),
+        //.color = fan::random::bright_color(),
         .image = engine_demo->image_tire
       }};
     });
@@ -1435,6 +1435,7 @@ void main() {
     gui::window_flags_no_collapse | gui::window_flags_no_resize| gui::window_flags_no_title_bar;
 
   static void render_demos(menu_t* menu, const std::vector<std::string>& titles) {
+    fan::print(fan::graphics::gui::want_io());
     std::size_t title_index = 0;
     std::string title = titles[title_index];
     gui::text(fan::color::from_rgba(0x948c80ff) * 1.5, title);

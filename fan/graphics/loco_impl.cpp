@@ -203,6 +203,43 @@ void loco_t::shader_set_camera(shader_t nr, camera_t camera_nr) {
   fan::graphics::shader_list_t::nd_t& loco_t::shader_get_data(uint16_t shape_type) {
     return loco_t::shader_list[shader_get_nr(shape_type)];
   }
+  fan::graphics::shader_list_t::nd_t& loco_t::shader_get_data(fan::graphics::shader_t shader) {
+    return loco_t::shader_list[shader];
+  }
+
+  void loco_t::shader_set_paths(fan::graphics::shader_t shader, std::string_view vertex, std::string_view fragment) {
+    auto& sdata = shader_get_data(shader);
+    sdata.path_vertex = vertex;
+    sdata.path_fragment = fragment;
+  }
+
+  void loco_t::shader_recompile_all() {
+    fan::graphics::shader_list_t::nrtra_t nrtra;
+    fan::graphics::shader_nr_t nr;
+    nrtra.Open(&shader_list, &nr);
+
+    while (nrtra.Loop(&shader_list, &nr)) {
+      auto& shader_data = shader_list[nr];
+      if (shader_data.svertex.empty() || shader_data.sfragment.empty()) {
+        continue;
+      }
+      std::string svertex = fan::graphics::read_shader(shader_data.path_vertex);
+      std::string sfragment = fan::graphics::read_shader(shader_data.path_fragment);
+      if (svertex.empty() && !shader_data.svertex.empty()) {
+        fan::print_warning("failed to recompile shader:" + std::string(shader_data.path_vertex) + ", assigning old compiled shader.");
+      }
+      if (sfragment.empty() && !shader_data.sfragment.empty()) {
+        fan::print_warning("failed to recompile shader:" + std::string(shader_data.path_fragment) + ", assigning old compiled shader.");
+      }
+      shader_set_vertex(nr, svertex);
+      shader_set_fragment(nr, sfragment);
+      if (!shader_compile(nr)) {
+        fan::print_warning("failed to recompile shader. vertex shader:" + std::string(shader_data.path_vertex) + ", fragment shader:" + std::string(shader_data.path_fragment));
+      }
+    }
+
+    nrtra.Close(&shader_list);
+  }
 #endif
 
 std::vector<uint8_t> loco_t::image_get_pixel_data(fan::graphics::image_nr_t nr, int image_format, fan::vec2 uvp, fan::vec2 uvs) {
@@ -1183,20 +1220,6 @@ loco_t::loco_t(const loco_t::properties_t& props) :
 #if defined(FAN_GUI)
   settings_menu.init_runtime();
 #endif
-
-  #if defined(FAN_PHYSICS_2D)
-  {
-    static fan::graphics::update_callback_nr_t debug_input_nr;
-    if (!debug_input_nr) {
-      debug_input_nr = m_update_callback.NewNodeLast();
-      m_update_callback[debug_input_nr] = [](void* loco){
-        if (((loco_t*)loco)->input_action.is_active(fan::actions::toggle_debug_physics)) {
-          fan::graphics::physics::debug_draw(!fan::graphics::physics::get_debug_draw());
-        }
-      };
-    }
-  }
-  #endif
   
   auto it = fan::graphics::get_engine_init_cbs().GetNodeFirst();
   while (it != fan::graphics::get_engine_init_cbs().dst) {
@@ -1259,26 +1282,85 @@ void loco_t::close() {
 
 void loco_t::setup_input_callbacks() {
   // System
-  #if defined(FAN_GUI)
-    input_action.insert_or_assign({fan::key_escape, fan::gamepad_start}, fan::actions::toggle_settings, fan::actions::groups::system);
-    input_action.insert_or_assign(fan::key_f3, fan::actions::toggle_console, fan::actions::groups::system);
-  #endif
+#if defined(FAN_GUI)
+  input_action.insert_or_assign(
+    {fan::key_escape, fan::gamepad_start},
+    fan::actions::toggle_settings,
+    fan::actions::groups::system
+  );
+
+  input_action.insert_or_assign(
+    fan::key_f3,
+    fan::actions::toggle_console,
+    fan::actions::groups::system
+  );
+#endif
 
   // Movement
-  input_action.insert_or_assign({fan::key_a, fan::gamepad_left_thumb}, fan::actions::move_left, fan::actions::groups::movement);
-  input_action.insert_or_assign({fan::key_d, fan::gamepad_left_thumb}, fan::actions::move_right, fan::actions::groups::movement);
-  input_action.insert_or_assign(fan::key_w, fan::actions::move_forward, fan::actions::groups::movement);
-  input_action.insert_or_assign(fan::key_s, fan::actions::move_back, fan::actions::groups::movement);
-  input_action.insert_or_assign({fan::key_space, fan::key_w, fan::gamepad_a}, fan::actions::move_up, fan::actions::groups::movement);
+  input_action.insert_or_assign(
+    {fan::key_a, fan::gamepad_left_thumb},
+    fan::actions::move_left,
+    fan::actions::groups::movement
+  );
+
+  input_action.insert_or_assign(
+    {fan::key_d, fan::gamepad_left_thumb},
+    fan::actions::move_right,
+    fan::actions::groups::movement
+  );
+
+  input_action.insert_or_assign(
+    fan::key_w,
+    fan::actions::move_forward,
+    fan::actions::groups::movement
+  );
+
+  input_action.insert_or_assign(
+    fan::key_s,
+    fan::actions::move_back,
+    fan::actions::groups::movement
+  );
+
+  input_action.insert_or_assign(
+    {fan::key_space, fan::key_w, fan::gamepad_a},
+    fan::actions::move_up,
+    fan::actions::groups::movement
+  );
 
   // Combat
-  input_action.insert_or_assign({fan::mouse_left, fan::gamepad_right_bumper}, fan::actions::light_attack, fan::actions::groups::combat);
-  input_action.insert_or_assign({fan::mouse_right, fan::gamepad_left_bumper}, fan::actions::block_attack, fan::actions::groups::combat);
+  input_action.insert_or_assign(
+    {fan::mouse_left, fan::gamepad_right_bumper},
+    fan::actions::light_attack,
+    fan::actions::groups::combat
+  );
+
+  input_action.insert_or_assign(
+    {fan::mouse_right, fan::gamepad_left_bumper},
+    fan::actions::block_attack,
+    fan::actions::groups::combat
+  );
 
   // Debug
-  #if defined(FAN_PHYSICS_2D)
-    input_action.insert_or_assign_combo({fan::key_left_control, fan::key_5}, fan::actions::toggle_debug_physics, fan::actions::groups::debug);
-  #endif
+
+  input_action.insert_or_assign_combo(
+    {fan::key_left_control, fan::key_4},
+    fan::actions::toggle_debug_light_buffer,
+    fan::actions::groups::debug
+  );
+
+#if defined(FAN_PHYSICS_2D)
+  input_action.insert_or_assign_combo(
+    {fan::key_left_control, fan::key_5},
+    fan::actions::toggle_debug_physics,
+    fan::actions::groups::debug
+  );
+#endif
+
+  input_action.insert_or_assign_combo(
+    {fan::key_left_control, fan::key_left_shift, fan::key_r},
+    fan::actions::recompile_shaders,
+    fan::actions::groups::debug
+  );
 
   #if defined(FAN_2D)
     buttons_handle = window.add_buttons_callback([](const fan::window_t::buttons_data_t& d) {
@@ -2120,7 +2202,16 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
     physics_context.debug_draw_cb();
     physics_context.step(delta_time);
   }
+  if (input_action.is_active(fan::actions::toggle_debug_physics)) {
+    fan::graphics::physics::debug_draw(!fan::graphics::physics::get_debug_draw());
+  }
 #endif
+  if (input_action.is_toggled(fan::actions::toggle_debug_light_buffer)) {
+    debug_draw_light_buffer();
+  }
+  if (input_action.is_clicked(fan::actions::recompile_shaders)) {
+    shader_recompile_all();
+  }
 
   {
     auto it = m_update_callback.GetNodeFirst();
@@ -2395,6 +2486,31 @@ f64_t loco_t::current_time() const {
   return delta_time;
 }
 
+void loco_t::debug_draw_light_buffer() {
+  fan::vec2 window_size = window.get_size();
+  fan::vec2 cam_pos = camera_get_position();
+  fan::vec2 viewport_size = viewport_get_size();
+  fan::graphics::shapes::rectangle_t::properties_t r;
+  { // bg
+    r.position = fan::vec3(window_size * 0.5f + cam_pos - viewport_size / 2.f, 65532);
+    r.size = window_size * 0.5f;
+    r.color = fan::color::rgb(0, 255, 0, 55.f);
+
+    add_shape_to_immediate_draw(fan::graphics::shape_t(r, false));
+  }
+  { // light buffer
+    fan::graphics::shapes::unlit_sprite_t::properties_t p;
+    p.position = r.position.offset_z(1);
+    p.size = r.size;
+    p.size.y *= -1;
+    p.image = gl.color_buffers[1];
+    p.color = fan::colors::red;
+
+    add_shape_to_immediate_draw(fan::graphics::shape_t(p, false));
+  }
+}
+
+
 #if defined(FAN_PHYSICS_2D)
 void loco_t::update_physics(bool flag) {
   is_updating_physics = flag;
@@ -2498,6 +2614,8 @@ void loco_t::shape_open(
   );
 
   shader_compile(shader);
+
+  shader_set_paths(shader, vertex, fragment);
 
   fan::graphics::shaper_t::BlockProperties_t bp;
   bp.MaxElementPerBlock = (fan::graphics::shaper_t::MaxElementPerBlock_t)fan::graphics::MaxElementPerBlock;

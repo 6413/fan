@@ -1929,7 +1929,7 @@ namespace fan::graphics{
     universal_image_renderer_t::ri_t& ri = *(universal_image_renderer_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
     uint8_t image_count_new = fan::graphics::get_channel_amount(format);
     if (format != ri.format) {
-      auto sti = g_shapes->shaper.ShapeList[*this].sti;
+      auto sti = g_shapes->shaper.ShapeList[get_visual_id()].sti;
       uint8_t* key_pack = g_shapes->shaper.GetKeys(*this);
       fan::graphics::image_t vi_image = shaper_get_key_safe(image_t, texture_t, image);
 
@@ -1977,7 +1977,7 @@ namespace fan::graphics{
       data->src = fan::vec3(src.x, src.y, 0);
       data->dst = fan::vec3(dst.x, dst.y, 0);
       if (fan::graphics::ctx().window->renderer == fan::window_t::renderer_t::opengl) {
-        auto& data = g_shapes->shaper.ShapeList[*this];
+        auto& data = g_shapes->shaper.ShapeList[get_visual_id()];
         g_shapes->shaper.ElementIsPartiallyEdited(
           data.sti,
           data.blid,
@@ -2457,7 +2457,7 @@ namespace fan::graphics{
     }
     reinterpret_cast<shadow_t::vi_t*>(GetRenderData(fan::graphics::g_shapes->shaper))->light_position = new_pos;
     if (fan::graphics::ctx().window->renderer == fan::window_t::renderer_t::opengl) {
-      auto& data = g_shapes->shaper.ShapeList[*this];
+      auto& data = g_shapes->shaper.ShapeList[get_visual_id()];
       g_shapes->shaper.ElementIsPartiallyEdited(
         data.sti,
         data.blid,
@@ -2475,7 +2475,7 @@ namespace fan::graphics{
 
     reinterpret_cast<shadow_t::vi_t*>(GetRenderData(fan::graphics::g_shapes->shaper))->light_radius = radius;
     if (fan::graphics::ctx().window->renderer == fan::window_t::renderer_t::opengl) {
-      auto& data = g_shapes->shaper.ShapeList[*this];
+      auto& data = g_shapes->shaper.ShapeList[get_visual_id()];
       g_shapes->shaper.ElementIsPartiallyEdited(
         data.sti,
         data.blid,
@@ -4129,23 +4129,23 @@ namespace fan::graphics {
 
     fan::vec2 sign = shape.get_image_sign();
 
-    if (direction.x > 0) {
-      if (sign.x < 0) shape.set_image_sign({1, sign.y});
-      desired_facing.x = 1;
-      return;
-    }
-    if (direction.x < 0) {
-      if (sign.x > 0) shape.set_image_sign({-1, sign.y});
-      desired_facing.x = -1;
-      return;
-    }
+    //if (direction.x > 0) {
+    //  if (sign.x < 0) shape.set_image_sign({1, sign.y});
+    //  desired_facing.x = 1;
+    //  return;
+    //}
+    //if (direction.x < 0) {
+    //  if (sign.x > 0) shape.set_image_sign({-1, sign.y});
+    //  desired_facing.x = -1;
+    //  return;
+    //}
 
-    if (desired_facing.x != 0) {
-      int desired = (int)fan::math::sgn(desired_facing.x);
-      if ((int)fan::math::sgn(sign.x) != desired) {
-        shape.set_image_sign({(f32_t)desired, sign.y});
-      }
-    }
+    //if (desired_facing.x != 0) {
+    //  int desired = (int)fan::math::sgn(desired_facing.x);
+    //  if ((int)fan::math::sgn(sign.x) != desired) {
+    //    shape.set_image_sign({(f32_t)desired, sign.y});
+    //  }
+    //}
   }
 
   void sprite_sheet_controller_t::enable_directional(const directional_config_t& config) {

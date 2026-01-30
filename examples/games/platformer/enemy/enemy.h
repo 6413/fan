@@ -128,9 +128,12 @@ struct enemy_t : enemy_base_t {
         hearts.back().set_dynamic();
       }
     }
+    body.set_friction(0.0f);
+
   }
   bool should_attack(fan::graphics::physics::character2d_t& c) override {
     fan::vec2 distance = ai_behavior.get_target_distance(c.get_physics_position());
+    if (distance.y < -body.get_size().y * 0.5f) { return false; }
     return c.attack_state.try_attack(&c, distance) && std::abs(c.get_linear_velocity().y) < 10.f;
   }
   bool base_update() {

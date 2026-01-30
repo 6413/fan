@@ -19,15 +19,18 @@ struct blur_t {
 
     shader_downsample = loco.shader_create();
 
+    static constexpr const char* vert_path = "shaders/opengl/2D/effects/downsample.vs";
+    static constexpr const char* downsmpl_frag_path = "shaders/opengl/2D/effects/downsample.fs";
     loco.shader_set_vertex(
       shader_downsample,
-      fan::graphics::read_shader("shaders/opengl/2D/effects/downsample.vs")
+      fan::graphics::read_shader(vert_path)
     );
 
     loco.shader_set_fragment(
       shader_downsample,
-      fan::graphics::read_shader("shaders/opengl/2D/effects/downsample.fs")
+      fan::graphics::read_shader(downsmpl_frag_path)
     );
+    loco.shader_set_paths(shader_downsample, vert_path, downsmpl_frag_path);
 
     loco.shader_compile(shader_downsample);
 
@@ -35,15 +38,17 @@ struct blur_t {
 
     //
     shader_upsample = loco.shader_create();
+    static constexpr const char* upsmpl_frag_path = "shaders/opengl/2D/effects/upsample.fs";
+    loco.shader_set_paths(shader_upsample, vert_path, upsmpl_frag_path);
 
     loco.shader_set_vertex(
       shader_upsample,
-      fan::graphics::read_shader("shaders/opengl/2D/effects/downsample.vs")
+      fan::graphics::read_shader(vert_path)
     );
 
     loco.shader_set_fragment(
       shader_upsample,
-      fan::graphics::read_shader("shaders/opengl/2D/effects/upsample.fs")
+      fan::graphics::read_shader(upsmpl_frag_path)
     );
 
     loco.shader_compile(shader_upsample);

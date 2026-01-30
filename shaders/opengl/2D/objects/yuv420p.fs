@@ -11,11 +11,11 @@ in vec2 texture_coordinate;
 
 void main() {
 
-	vec3 yuv;
+  vec3 yuv;
 
-	yuv.x = texture2D(_t00, vec2(texture_coordinate.x, texture_coordinate.y)).r;
-	yuv.y = texture2D(_t01, vec2(texture_coordinate.x, texture_coordinate.y)).r;
-	yuv.z = texture2D(_t02, vec2(texture_coordinate.x, texture_coordinate.y)).r;
+  yuv.x = texture2D(_t00, vec2(texture_coordinate.x, texture_coordinate.y)).r;
+  yuv.y = texture2D(_t01, vec2(texture_coordinate.x, texture_coordinate.y)).r;
+  yuv.z = texture2D(_t02, vec2(texture_coordinate.x, texture_coordinate.y)).r;
 
   vec3 rgb;
 
@@ -27,5 +27,5 @@ void main() {
   rgb.y = yuv.x - 0.391773 * yuv.y - 0.81290 * yuv.z;
   rgb.z = yuv.x + 2.017 * yuv.y;
 
-	color = vec4(rgb.x, rgb.y, rgb.z, 1);
+  color = vec4(rgb.x, rgb.y, rgb.z, 1);
 }

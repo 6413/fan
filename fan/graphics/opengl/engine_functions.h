@@ -552,15 +552,19 @@ void shapes_open() {
 
   fan::graphics::shader_t shader = loco.shader_create();
 
+  static constexpr const char* vert_path = "shaders/empty.vs";
+  static constexpr const char* frag_path = "shaders/empty.fs";
+
   loco.shader_set_vertex(shader,
-    fan::graphics::read_shader("shaders/empty.vs")
+    fan::graphics::read_shader(vert_path)
   );
 
   loco.shader_set_fragment(shader,
-    fan::graphics::read_shader("shaders/empty.fs")
+    fan::graphics::read_shader(frag_path)
   );
 
   loco.shader_compile(shader);
+  loco.shader_set_paths(shader, vert_path, frag_path);
 
   fan::graphics::shaper_t::BlockProperties_t::gl_t st_gl;
   st_gl.locations = {};
@@ -940,22 +944,32 @@ void shapes_draw() {
     else if (shape_type == fan::graphics::shapes::shape_type_t::sprite ||
       shape_type == fan::graphics::shapes::shape_type_t::unlit_sprite ||
       shape_type == fan::graphics::shapes::shape_type_t::shader_shape) {
+      void* data = fan::graphics::g_shapes->shaper.GetData(shape_type,
+        fan::graphics::g_shapes->shaper.BlockManager[current_bmid].FirstBlockNR, 0);
 
-      auto& ri = *(fan::graphics::shapes::sprite_t::ri_t*)
-        fan::graphics::g_shapes->shaper.GetData(shape_type,
-          fan::graphics::g_shapes->shaper.BlockManager[current_bmid].FirstBlockNR, 0);
-
-      loco.shader_set_value(shader, "has_normal_map", int(!ri.images[0].iic() && ri.images[0] != loco.default_texture));
-      loco.shader_set_value(shader, "has_specular_map", int(!ri.images[1].iic() && ri.images[1] != loco.default_texture));
-      loco.shader_set_value(shader, "has_occlusion_map", int(!ri.images[2].iic() && ri.images[2] != loco.default_texture));
-
-      for (std::size_t i = 2; i < std::size(ri.images) + 2; ++i) {
-        // will be true always, since everything is initialized to default_texture
-        if (ri.images[i - 2].iic() == false) {
-          loco.shader_set_value(shader, "_t0" + std::to_string(i), i);
-          fan_opengl_call(glActiveTexture(GL_TEXTURE0 + i));
-          fan_opengl_call(glBindTexture(GL_TEXTURE_2D, loco.image_get_handle(ri.images[i - 2])));
+      auto process_images = [&](auto& ri) {
+        if (int(!ri.images[0].iic() && ri.images[0] != loco.default_texture)) fan::print("v", fan::graphics::shape_names[shape_type], ri.images[0].gint());
+        loco.shader_set_value(shader, "has_normal_map", int(!ri.images[0].iic() && ri.images[0] != loco.default_texture));
+        loco.shader_set_value(shader, "has_specular_map", int(!ri.images[1].iic() && ri.images[1] != loco.default_texture));
+        loco.shader_set_value(shader, "has_occlusion_map", int(!ri.images[2].iic() && ri.images[2] != loco.default_texture));
+        for (std::size_t i = 2; i < std::size(ri.images) + 2; ++i) {
+          // will be true always, since everything is initialized to default_texture
+          if (ri.images[i - 2].iic() == false) {
+            loco.shader_set_value(shader, "_t0" + std::to_string(i), i);
+            fan_opengl_call(glActiveTexture(GL_TEXTURE0 + i));
+            fan_opengl_call(glBindTexture(GL_TEXTURE_2D, loco.image_get_handle(ri.images[i - 2])));
+          }
         }
+      };
+
+      if (shape_type == fan::graphics::shapes::shape_type_t::sprite) {
+        process_images(*(fan::graphics::shapes::sprite_t::ri_t*)data);
+      }
+      else if (shape_type == fan::graphics::shapes::shape_type_t::unlit_sprite) {
+        process_images(*(fan::graphics::shapes::unlit_sprite_t::ri_t*)data);
+      }
+      else {
+        process_images(*(fan::graphics::shapes::shader_shape_t::ri_t*)data);
       }
     }
     if (shape_type != fan::graphics::shapes::shape_type_t::light) {
@@ -1238,15 +1252,19 @@ void init() {
 
   loco.gl.m_fbo_final_shader = loco.shader_create();
 
+  static constexpr const char* vertex_path = "shaders/opengl/2D/effects/loco_fbo.vs";
+  static constexpr const char* fragment_path = "shaders/opengl/2D/effects/loco_fbo.fs";
+
   loco.shader_set_vertex(
     loco.gl.m_fbo_final_shader,
-    fan::graphics::read_shader("shaders/opengl/2D/effects/loco_fbo.vs")
+    fan::graphics::read_shader(vertex_path)
   );
   loco.shader_set_fragment(
     loco.gl.m_fbo_final_shader,
-    fan::graphics::read_shader("shaders/opengl/2D/effects/loco_fbo.fs")
+    fan::graphics::read_shader(fragment_path)
   );
   loco.shader_compile(loco.gl.m_fbo_final_shader);
+  loco.shader_set_paths(loco.gl.m_fbo_final_shader, vertex_path, fragment_path);
 #endif
 }
 

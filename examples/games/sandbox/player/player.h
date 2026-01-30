@@ -4,7 +4,7 @@ struct player_t {
   static inline constexpr f32_t aabb_scale = 0.17f / 2.f;
 
   player_t() {
-    //body.set_dynamic();
+    body.set_dynamic();
 
     body = fan::graphics::physics::character2d_t::from_json({
       .json_path = "player/player.json",
@@ -17,10 +17,13 @@ struct player_t {
     fan::graphics::physics::character_movement_preset_t::setup_default_controls(body);
     body.set_jump_height(1.f * body.get_mass());
     body.movement_state.max_speed = 100.f;
+        body.anim_controller.auto_update_animations = false;
+    body.anim_controller.auto_flip_sprite = true;
     //light.set_dynamic();
   }
 
   void step() {
+    body.update_animations();
     //fan::vec2 vel = body.get_linear_velocity();
     //fan::print("velocity.y: ", vel.y, " mass: ", body.get_mass());
     light.set_position(fan::vec2(body.get_position()));

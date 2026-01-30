@@ -95,7 +95,7 @@ struct pile_t {
 };
 
 pile_t::pile_t() {
-  //pile->engine.set_culling_enabled(false);
+  pile->engine.set_culling_enabled(false);
   //ic.ignore_input = true;
   update_camera_zoom();
   //engine.window.set_size(engine.window.get_current_monitor_resolution());

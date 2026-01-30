@@ -6,6 +6,7 @@ module;
 #include <cstdint>
 #include <fstream>
 #include <sstream>
+#include <filesystem>
 
 module fan.graphics.common_context;
 
@@ -233,9 +234,16 @@ namespace fan::graphics {
     return get_mouse_position(render_view.camera, render_view.viewport);
   }
 
-  std::string read_shader(const std::string& path, const std::source_location& callers_path) {
+  std::string read_shader(
+    std::string_view path,
+    const std::source_location& callers_path
+  ) {
     std::string code;
-    fan::io::file::read(fan::io::file::find_relative_path(path, callers_path), &code);
+    auto found = fan::io::file::find_relative_path(path, callers_path);
+    if (found.empty()) {
+      return code;
+    }
+    fan::io::file::read(found, &code);
     return code;
   }
 }

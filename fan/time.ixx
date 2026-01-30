@@ -4,6 +4,8 @@ module;
 #include <cmath>
 #include <functional>
 
+#include <cstdio>
+
 #ifdef fan_platform_windows
   #define WIN32_LEAN_AND_MEAN
   #define NOMINMAX
@@ -191,6 +193,15 @@ export namespace fan {
       ~scope_timer() {
         cb(t);
       }
+    };
+    struct scope_timer_print {
+      scope_timer_print() :
+        sc([](auto timer){
+        printf("elapsed: %.2fms", timer.millis());
+      }) {}
+      scope_timer_print(const scope_timer_print&) = delete;
+      scope_timer_print(scope_timer_print&&) = delete;
+      scope_timer sc;
     };
 	}
 }
