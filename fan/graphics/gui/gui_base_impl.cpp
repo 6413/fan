@@ -70,7 +70,7 @@ namespace fan::graphics::gui {
     }
 
     inline auto& want_io_ignore_list() {
-      static std::unordered_map<std::string, bool> list;
+      static std::unordered_map<std::string_view, bool> list;
       return list;
     }
 
@@ -278,6 +278,14 @@ namespace fan::graphics::gui {
       topmost_data().unregister_window(window_name.sv);
     }
 
+    if (flags & window_flags_no_title_bar) {
+      ImGuiWindowClass window_class;
+      window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoTabBar;
+      ImGui::SetNextWindowClass(&window_class);
+    }
+    if (flags & window_flags_override_input) {
+      detail::want_io_ignore_list()[window_name] = true;
+    }
     bool result = ImGui::Begin(fan::temp_cstr(window_name.sv), p_open, flags);
     return result;
   }
@@ -522,7 +530,7 @@ namespace fan::graphics::gui {
   }
 
   void set_cursor_screen_pos(const fan::vec2& pos) {
-    ImGui::SetCursorScreenPos(ImVec2(pos.x, pos.y));
+    ImGui::SetCursorScreenPos(pos);
   }
 
   void push_id(label_t str_id) {
@@ -531,6 +539,10 @@ namespace fan::graphics::gui {
 
   void push_id(int int_id) {
     ImGui::PushID(int_id);
+  }
+
+  void push_id(const void* ptr_id) {
+    ImGui::PushID(ptr_id);
   }
 
   void pop_id() {
@@ -586,7 +598,7 @@ namespace fan::graphics::gui {
 
   bool begin_table(label_t str_id, int columns, table_flags_t flags, const fan::vec2& outer_size, f32_t inner_width) {
     return ImGui::BeginTable(fan::temp_cstr(str_id.sv), columns, flags,
-      ImVec2(outer_size.x, outer_size.y), inner_width);
+      outer_size, inner_width);
   }
 
   void end_table() {
@@ -1051,7 +1063,7 @@ namespace fan::graphics::gui {
       &cb_user_data);
   }
 
-  bool input_text_multiline(label_t label, std::string* buf, const ImVec2& size, input_text_flags_t flags, input_text_callback_t callback, void* user_data) {
+  bool input_text_multiline(label_t label, std::string* buf, const fan::vec2& size, input_text_flags_t flags, input_text_callback_t callback, void* user_data) {
     IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
     flags |= ImGuiInputTextFlags_CallbackResize;
     detail::input_text_callback_user_data_t cb_user_data;

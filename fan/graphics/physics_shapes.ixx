@@ -532,6 +532,7 @@ export namespace fan {
         f32_t stuck_threshold = 0.5f;
         fan::time::timer stuck_timer{0.1e9, true};
         fan::time::timer wall_hit_timer {0.3e9, true};
+        int wiggle_dir = 1;
         f32_t prev_x = 0;
         bool was_jumping = false;
         bool is_stuck_state = false;

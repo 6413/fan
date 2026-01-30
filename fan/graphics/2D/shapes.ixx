@@ -280,9 +280,6 @@ export namespace fan::graphics {
 
       uintptr_t LastKeyOffset = s - last_sizeof_v - 1;
       fan::graphics::g_shapes->shaper.PrepareKeysForAdd(&a, LastKeyOffset);
-      fan::time::scope_timer timer([sti](const auto& t) {
-        fan::print(sti, t.millis());
-      });
       return fan::graphics::g_shapes->shaper.add(sti, &a, s, &rd, &d);
     }
 
@@ -511,7 +508,18 @@ export namespace fan::graphics {
         auto& vbo = get_shape_type_data().renderer.gl.m_vbo;
         get_shape_type_data().renderer.gl.m_vao.bind(*(fan::opengl::context_t*)ctx().render_context);
         vbo.bind(*(fan::opengl::context_t*)ctx().render_context);
-        fan::opengl::core::get_glbuffer(*(fan::opengl::context_t*)ctx().render_context, &vi, vbo.m_buffer, sizeof(vi), 0, vbo.m_target);
+        fan::print("reading from buffer:", vbo.m_buffer, NRI);
+        auto& data = g_shapes->shaper.ShapeList[get_visual_id()];
+        uintptr_t instance_offset = g_shapes->shaper.GetRenderDataOffset(data.sti, data.blid);
+
+        fan::opengl::core::get_glbuffer(
+          *(fan::opengl::context_t*)ctx().render_context,
+          &vi,
+          vbo.m_buffer,
+          sizeof(vi),
+          instance_offset,
+          vbo.m_target
+        );
         return vi;
       }
 
@@ -635,7 +643,7 @@ export namespace fan::graphics {
 
         fan::vec3 position = 0;
         f32_t parallax_factor = 0;
-        fan::vec2 size = 0;
+        fan::vec2 size = 128;
         fan::vec2 rotation_point = 0;
         fan::color color = fan::colors::white;
         uint32_t flags = 0;
@@ -2033,6 +2041,11 @@ export namespace fan::graphics {
     bool use_8_directions = false;
   };
 
+#if defined(FAN_2D)
+  using vfi_t = fan::graphics::shapes::vfi_t;
+  using shape_t = fan::graphics::shapes::shape_t;
+  using shape_type_t = fan::graphics::shapes::shape_type_t;
+#endif
 } // namespace fan::graphics
 
 #endif

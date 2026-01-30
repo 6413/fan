@@ -52,11 +52,6 @@ export namespace fan::window {
   bool exists(const std::string& action_name);
 }
 export namespace fan::graphics {
-#if defined(FAN_2D)
-  using vfi_t = fan::graphics::shapes::vfi_t;
-  using shape_t = fan::graphics::shapes::shape_t;
-  using shape_type_t = fan::graphics::shapes::shape_type_t;
-#endif
   using renderer_t = fan::window_t::renderer_t;
   extern fan::graphics::image_t invalid_image;
   fan::graphics::render_view_t add_render_view();
@@ -228,7 +223,7 @@ export namespace fan::graphics {
     const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
     fan::vec3 position = fan::vec3(0, 0, 0);
     f32_t parallax_factor = 0;
-    fan::vec2 size = fan::vec2(0.1, 0.1);
+    fan::vec2 size = 128.f;
     fan::vec2 rotation_point = fan::vec2(0, 0);
     fan::color color = fan::color(1, 1, 1, 1);
     fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
@@ -404,8 +399,8 @@ export namespace fan::graphics {
   struct grid_properties_t {
     const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
     fan::vec3 position = fan::vec3(0, 0, 0);
-    fan::vec2 size = fan::vec2(0.1, 0.1);
-    fan::vec2 grid_size = fan::vec2(1, 1);
+    fan::vec2 size = 128.f;
+    fan::vec2 grid_size = fan::vec2(32);
     fan::vec2 rotation_point = fan::vec2(0, 0);
     fan::color color = fan::color(1, 1, 1, 1);
     fan::vec3 angle = fan::vec3(0, 0, 0);
@@ -503,7 +498,7 @@ export namespace fan::graphics {
     const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
     fan::vec3 position = fan::vec3(0, 0, 0);
     int shape = fan::graphics::shapes::shadow_t::rectangle;
-    fan::vec2 size = fan::vec2(0.1, 0.1);
+    fan::vec2 size = 128.f;
     fan::vec2 rotation_point = fan::vec2(0, 0);
     fan::color color = fan::color(1, 1, 1, 1);
     uint32_t flags = 0;

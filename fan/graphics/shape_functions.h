@@ -150,12 +150,8 @@ static fan::graphics::image_t get_image(const shape_t* shape) {
     if constexpr (requires { props.image; }) {
       img = props.image;
     }
-  });
-  g_shapes->visit_shape_draw_data(shape->NRI, [&](auto& props) {
-    if constexpr (requires { props.images; }) {
-      if (!img.valid()) {
-        img = props.images[0];
-      }
+    else if constexpr (requires { props.images; }) {
+      img = props.images[0];
     }
   });
   return img;
@@ -180,7 +176,7 @@ static void set_image(shape_t* shape, fan::graphics::image_t image) {
     set_image_impl(sti, key_pack, image);
   });
   g_shapes->visit_shape_draw_data(shape->NRI, [&](auto& props) {
-    if constexpr (requires { props.images; }) {
+    if constexpr (requires { props.images; } && !requires{ props.image; }) {
       props.images[0] = image;
     }
   });

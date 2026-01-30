@@ -185,6 +185,7 @@ export namespace fan {
       shape_id_t get_shape_id() const;
       f32_t get_density() const;
       f32_t get_friction() const;
+      void set_friction(f32_t friction);
       f32_t get_mass() const;
       void set_mass(f32_t mass);
       f32_t get_restitution() const;

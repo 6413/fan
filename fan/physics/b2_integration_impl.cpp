@@ -205,7 +205,9 @@ namespace fan::physics {
   f32_t body_id_t::get_friction() const {
     return b2Shape_GetFriction(get_shape_id());
   }
-
+  void body_id_t::set_friction(f32_t friction) {
+    b2Shape_SetFriction(get_shape_id(), friction);
+  }
   f32_t body_id_t::get_mass() const {
     return b2Shape_GetMassData(get_shape_id()).mass * length_units_per_meter;
   }

@@ -241,6 +241,9 @@ public:
   void shader_set_camera(shader_t nr, camera_t camera_nr);
   fan::graphics::shader_nr_t shader_get_nr(uint16_t shape_type);
   fan::graphics::shader_list_t::nd_t& shader_get_data(uint16_t shape_type);
+  fan::graphics::shader_list_t::nd_t& shader_get_data(fan::graphics::shader_t shader);
+  void shader_set_paths(fan::graphics::shader_t shader, std::string_view vertex, std::string_view fragment);
+  void shader_recompile_all();
 
   fan::graphics::camera_list_t camera_list;
   fan::graphics::shader_list_t shader_list;
@@ -569,7 +572,10 @@ public:
   mouse_move_handle_t mouse_move_handle;
   text_callback_handle_t text_callback_handle;
 
+  void debug_draw_light_buffer();
+
 #if defined(FAN_PHYSICS_2D)
+  
   fan::physics::context_t physics_context{ {} };
   void update_physics(bool flag);
   bool is_updating_physics = false;

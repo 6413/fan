@@ -17,6 +17,8 @@ module fan.graphics.opengl.core;
 
 #if defined(FAN_OPENGL)
 
+import fan.print;
+
 namespace fan::opengl {
 
   void opengl_t::open() {
@@ -1041,6 +1043,7 @@ namespace fan::opengl::core {
   }
 
   void write_glbuffer(fan::opengl::context_t& context, GLuint buffer, const void* data, uintptr_t size, uint32_t usage, GLenum target) {
+    //fan::print("write_glbuffer", buffer);
     fan_opengl_call(glBindBuffer(target, buffer));
     fan_opengl_call(glBufferData(target, size, data, usage));
   }
@@ -1052,6 +1055,7 @@ namespace fan::opengl::core {
 
   void edit_glbuffer(fan::opengl::context_t& context, GLuint buffer, const void* data, uintptr_t offset, uintptr_t size, uintptr_t target) {
     fan_opengl_call(glBindBuffer(target, buffer));
+    //fan::print("edit_glbuffer", buffer);
 #if FAN_DEBUG >= fan_debug_high
     int buffer_size = get_buffer_size(context, target, buffer);
     if ((buffer_size < (int)size) || (int)(offset + size) > buffer_size) {
@@ -1262,117 +1266,117 @@ namespace fan::graphics {
     fan::graphics::context_functions_t cf;
     cf.shader_create = [](void* context) {
       return ((fan::opengl::context_t*)context)->shader_create();
-      };
+    };
     cf.shader_get = [](void* context, fan::graphics::shader_nr_t nr) {
       return (void*)&((fan::opengl::context_t*)context)->shader_get(nr);
-      };
+    };
     cf.shader_erase = [](void* context, fan::graphics::shader_nr_t nr) {
       ((fan::opengl::context_t*)context)->shader_erase(nr);
-      };
+    };
     cf.shader_use = [](void* context, fan::graphics::shader_nr_t nr) {
       ((fan::opengl::context_t*)context)->shader_use(nr);
-      };
+    };
     cf.shader_set_vertex = [](void* context, fan::graphics::shader_nr_t nr, const std::string& vertex_code) {
       ((fan::opengl::context_t*)context)->shader_set_vertex(nr, vertex_code);
-      };
+    };
     cf.shader_set_fragment = [](void* context, fan::graphics::shader_nr_t nr, const std::string& fragment_code) {
       ((fan::opengl::context_t*)context)->shader_set_fragment(nr, fragment_code);
-      };
+    };
     cf.shader_compile = [](void* context, fan::graphics::shader_nr_t nr) {
       return ((fan::opengl::context_t*)context)->shader_compile(nr);
-      };
+    };
     /*image*/
     cf.image_create = [](void* context) {
       return ((fan::opengl::context_t*)context)->image_create();
-      };
+    };
     cf.image_get_handle = [](void* context, fan::graphics::image_nr_t nr) {
       return (uint64_t)((fan::opengl::context_t*)context)->image_get_handle(nr);
-      };
+    };
     cf.image_get = [](void* context, fan::graphics::image_nr_t nr) {
       return (void*)&((fan::opengl::context_t*)context)->image_get(nr);
-      };
+    };
     cf.image_erase = [](void* context, fan::graphics::image_nr_t nr) {
       ((fan::opengl::context_t*)context)->image_erase(nr);
-      };
+    };
     cf.image_bind = [](void* context, fan::graphics::image_nr_t nr) {
       ((fan::opengl::context_t*)context)->image_bind(nr);
-      };
+    };
     cf.image_unbind = [](void* context, fan::graphics::image_nr_t nr) {
       ((fan::opengl::context_t*)context)->image_unbind(nr);
-      };
+    };
     cf.image_get_settings = [](void* context, fan::graphics::image_nr_t nr) -> fan::graphics::image_load_properties_t& {
       return ((fan::opengl::context_t*)context)->image_get_settings(nr);
-      };
+    };
     cf.image_set_settings = [](void* context, fan::graphics::image_nr_t nr, const fan::graphics::image_load_properties_t& settings) {
       ((fan::opengl::context_t*)context)->image_set_settings(nr, ((fan::opengl::context_t*)context)->image_global_to_opengl(settings));
-      };
+    };
     cf.image_load_info = [](void* context, const fan::image::info_t& image_info) {
       return ((fan::opengl::context_t*)context)->image_load(image_info);
-      };
+    };
     cf.image_load_info_props = [](void* context, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
       return ((fan::opengl::context_t*)context)->image_load(image_info, ((fan::opengl::context_t*)context)->image_global_to_opengl(p));
-      };
+    };
     cf.image_load_path = [](void* context, const std::string& path, const std::source_location& callers_path = std::source_location::current()) {
       return ((fan::opengl::context_t*)context)->image_load(path, callers_path);
-      };
+    };
     cf.image_load_path_props = [](void* context, const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current()) {
       return ((fan::opengl::context_t*)context)->image_load(path, ((fan::opengl::context_t*)context)->image_global_to_opengl(p), callers_path);
-      };
+    };
     cf.image_load_colors = [](void* context, fan::color* colors, const fan::vec2ui& size_) {
       return ((fan::opengl::context_t*)context)->image_load(colors, size_);
-      };
+    };
     cf.image_load_colors_props = [](void* context, fan::color* colors, const fan::vec2ui& size_, const fan::graphics::image_load_properties_t& p) {
       return ((fan::opengl::context_t*)context)->image_load(colors, size_, ((fan::opengl::context_t*)context)->image_global_to_opengl(p));
-      };
+    };
     cf.image_unload = [](void* context, fan::graphics::image_nr_t nr) {
       ((fan::opengl::context_t*)context)->image_unload(nr);
-      };
+    };
     cf.create_missing_texture = [](void* context) {
       return ((fan::opengl::context_t*)context)->create_missing_texture();
-      };
+    };
     cf.create_transparent_texture = [](void* context) {
       return ((fan::opengl::context_t*)context)->create_transparent_texture(*(fan::opengl::context_t*)context);
-      };
+    };
     cf.image_reload_image_info = [](void* context, fan::graphics::image_nr_t nr, const fan::image::info_t& image_info) {
       return ((fan::opengl::context_t*)context)->image_reload(nr, image_info);
-      };
+    };
     cf.image_reload_image_info_props = [](void* context, fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
       return ((fan::opengl::context_t*)context)->image_reload(nr, image_info, ((fan::opengl::context_t*)context)->image_global_to_opengl(p));
-      };
+    };
     cf.image_reload_path = [](void* context, fan::graphics::image_nr_t nr, const std::string& path, const std::source_location& callers_path = std::source_location::current()) {
       return ((fan::opengl::context_t*)context)->image_reload(nr, path);
-      };
+    };
     cf.image_reload_path_props = [](void* context, fan::graphics::image_nr_t nr, const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current()) {
       return ((fan::opengl::context_t*)context)->image_reload(nr, path, ((fan::opengl::context_t*)context)->image_global_to_opengl(p));
-      };
+    };
     cf.image_create_color = [](void* context, const fan::color& color) {
       return ((fan::opengl::context_t*)context)->image_create(color);
-      };
+    };
     cf.image_create_color_props = [](void* context, const fan::color& color, const fan::graphics::image_load_properties_t& p) {
       return ((fan::opengl::context_t*)context)->image_create(color, ((fan::opengl::context_t*)context)->image_global_to_opengl(p));
-      };
+    };
     /*camera*/
     cf.camera_create = [](void* context) {
       return ((fan::opengl::context_t*)context)->camera_create();
-      };
+    };
     cf.camera_get = [](void* context, fan::graphics::camera_nr_t nr) -> decltype(auto) {
       return ((fan::opengl::context_t*)context)->camera_get(nr);
-      };
+    };
     cf.camera_erase = [](void* context, fan::graphics::camera_nr_t nr) {
       ((fan::opengl::context_t*)context)->camera_erase(nr);
-      };
+    };
     cf.camera_create_params = [](void* context, const fan::vec2& x, const fan::vec2& y) {
       return ((fan::opengl::context_t*)context)->camera_create(x, y);
-      };
+    };
     cf.camera_get_position = [](void* context, fan::graphics::camera_nr_t nr) {
       return ((fan::opengl::context_t*)context)->camera_get_position(nr);
-      };
+    };
     cf.camera_set_position = [](void* context, fan::graphics::camera_nr_t nr, const fan::vec3& cp) {
       ((fan::opengl::context_t*)context)->camera_set_position(nr, cp);
-      };
+    };
     cf.camera_get_size = [](void* context, fan::graphics::camera_nr_t nr) {
       return ((fan::opengl::context_t*)context)->camera_get_size(nr);
-      };
+    };
     cf.camera_get_zoom = [](void* context, fan::graphics::camera_nr_t nr) {
       return ((fan::opengl::context_t*)context)->camera_get_zoom(nr);
     };
@@ -1384,14 +1388,14 @@ namespace fan::graphics {
     };
     cf.camera_set_perspective = [](void* context, fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size) {
       ((fan::opengl::context_t*)context)->camera_set_perspective(nr, fov, window_size);
-      };
+    };
     cf.camera_rotate = [](void* context, fan::graphics::camera_nr_t nr, const fan::vec2& offset) {
       ((fan::opengl::context_t*)context)->camera_rotate(nr, offset);
-      };
+    };
     /*viewport*/
     cf.viewport_create = [](void* context) {
       return ((fan::opengl::context_t*)context)->viewport_create();
-      };
+    };
     cf.viewport_create_params = [](void* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
       auto gl_context = ((fan::opengl::context_t*)context);
       auto nr = gl_context->viewport_create();
@@ -1400,31 +1404,31 @@ namespace fan::graphics {
     };
     cf.viewport_get = [](void* context, fan::graphics::viewport_nr_t nr) -> fan::graphics::context_viewport_t& {
       return ((fan::opengl::context_t*)context)->viewport_get(nr);
-      };
+    };
     cf.viewport_erase = [](void* context, fan::graphics::viewport_nr_t nr) {
       ((fan::opengl::context_t*)context)->viewport_erase(nr);
-      };
+    };
     cf.viewport_get_position = [](void* context, fan::graphics::viewport_nr_t nr) {
       return ((fan::opengl::context_t*)context)->viewport_get_position(nr);
-      };
+    };
     cf.viewport_get_size = [](void* context, fan::graphics::viewport_nr_t nr) {
       return ((fan::opengl::context_t*)context)->viewport_get_size(nr);
-      };
+    };
     cf.viewport_set = [](void* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
       ((fan::opengl::context_t*)context)->viewport_set(viewport_position_, viewport_size_, window_size);
-      };
+    };
     cf.viewport_set_nr = [](void* context, fan::graphics::viewport_nr_t nr, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
       ((fan::opengl::context_t*)context)->viewport_set(nr, viewport_position_, viewport_size_, window_size);
-      };
+    };
     cf.viewport_zero = [](void* context, fan::graphics::viewport_nr_t nr) {
       ((fan::opengl::context_t*)context)->viewport_zero(nr);
-      };
+    };
     cf.viewport_inside = [](void* context, fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
       return ((fan::opengl::context_t*)context)->viewport_inside(nr, position);
-      };
+    };
     cf.viewport_inside_wir = [](void* context, fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
       return ((fan::opengl::context_t*)context)->viewport_inside_wir(nr, position);
-      };
+    };
     cf.image_get_pixel_data = [](void* context, fan::graphics::image_nr_t nr, GLenum format, fan::vec2 uvp, fan::vec2 uvs) {
       return ((fan::opengl::context_t*)context)->image_get_pixel_data(nr, format, uvp, uvs);
     };

@@ -71,7 +71,6 @@ namespace fan::window {
   void mouse_button_callback(GLFWwindow* wnd, int button, int action, int mods) {
     fan::window_t* window = (fan::window_t*)glfwGetWindowUserPointer(wnd);
     window->key_states[button] = action;
-
     auto it = window->m_buttons_callback.GetNodeFirst();
 
     while (it != window->m_buttons_callback.dst) {

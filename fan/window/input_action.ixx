@@ -34,6 +34,7 @@ export namespace fan::window {
 
     std::unordered_map<std::string, action_data_t> input_actions;
     std::unordered_map<std::string, std::string> action_groups;
+    std::unordered_map<std::string, bool> toggle_state;
 
     fan::window_t* window = nullptr;
 
@@ -149,7 +150,13 @@ export namespace fan::window {
       }
       return false;
     }
-
+    bool is_toggled(const std::string& action_name) {
+      if (is_clicked(action_name)) {
+        bool& v = toggle_state[action_name];
+        v = !v;
+      }
+      return toggle_state[action_name];
+    }
     bool is_clicked(const std::string& action_name) {
       return is_active(action_name, input_action_t::press);
     }
