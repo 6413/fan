@@ -218,7 +218,7 @@ export namespace fan::graphics {
 
 #if defined(FAN_JSON)
   fan::json sprite_sheet_serialize();
-  void sprite_sheets_parse(const std::string& json_path, fan::json& json, const std::source_location& callers_path = std::source_location::current());
+  void sprite_sheets_parse(std::string_view json_path, fan::json& json, const std::source_location& callers_path = std::source_location::current());
 #endif
 
   //-----------------------sprite sheet-----------------------
@@ -1956,7 +1956,7 @@ export namespace fan::graphics {
 
 export namespace fan::graphics {
   fan::graphics::shapes::shape_t extract_single_shape(const fan::json& json_data, const std::source_location& callers_path = std::source_location::current());
-  fan::json read_json(const std::string& path, const std::source_location& callers_path = std::source_location::current());
+  fan::json read_json(std::string_view path, const std::source_location& callers_path = std::source_location::current());
   struct sprite_sheet_map_t {
     fan::graphics::sprite_sheet_id_t nr;
   };

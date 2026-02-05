@@ -314,14 +314,6 @@ namespace fan {
       h = mode->height;
       use_mon = monitor;
     }
-    else if (open_mode == mode::windowed_fullscreen) {
-      int wx, wy, ww, wh;
-      glfwGetMonitorWorkarea(monitor, &wx, &wy, &ww, &wh);
-      x = mx;
-      y = my;
-      w = mode->width;
-      h = mode->height;
-    }
     else if (open_mode == mode::borderless) {
       glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
       w = mode->width;
@@ -694,36 +686,6 @@ namespace fan {
     display_mode = mode::windowed;
   }
 
-
-
-
-
-
-  void window_t::set_windowed_fullscreen() {
-    if (display_mode == (uint8_t)mode::windowed_fullscreen) {
-      return;
-    }
-    GLFWmonitor* monitor = get_current_monitor();
-    const GLFWvidmode* vm = glfwGetVideoMode(monitor);
-
-    int mx, my;
-    glfwGetMonitorPos(monitor, &mx, &my);
-
-    glfwSetWindowMonitor(
-      glfw_window,
-      nullptr,
-      mx,
-      my,
-      vm->width,
-      vm->height,
-      vm->refreshRate
-    );
-
-    glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, GLFW_FALSE);
-
-    display_mode = (uint8_t)mode::windowed_fullscreen;
-  }
-
   void window_t::set_fullscreen() {
     if (display_mode == (uint8_t)mode::full_screen) {
       return;
@@ -752,23 +714,27 @@ namespace fan {
       return;
     }
 
+    glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, GLFW_FALSE);
+
     fan::vec2i size = get_size();
     fan::vec2 pos = get_position();
 
     GLFWmonitor* monitor = get_current_monitor();
     const GLFWvidmode* vm = glfwGetVideoMode(monitor);
 
+    int mx, my;
+    glfwGetMonitorPos(monitor, &mx, &my);
+
     glfwSetWindowMonitor(
       glfw_window,
       nullptr,
-      (int)pos.x,
-      (int)pos.y,
-      size.x,
-      size.y,
+      mx,
+      my,
+      vm->width,
+      vm->height,
       vm->refreshRate
     );
 
-    glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, GLFW_FALSE);
 
     display_mode = (uint8_t)mode::borderless;
   }
@@ -795,10 +761,6 @@ namespace fan {
     }
     case mode::borderless: {
       set_borderless();
-      break;
-    }
-    case mode::windowed_fullscreen: {
-      set_windowed_fullscreen();
       break;
     }
     default: {

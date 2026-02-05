@@ -12,7 +12,7 @@ struct player_t {
     });
     body.set_physics_position(fan::vec2(48, -4) * 64);
     body.set_draw_offset(draw_offset);
-    body.set_size(fan::vec2(8.f, 48.f) * 1.48179f);
+    body.set_size(fan::vec2(8.f, 48.f) * 6.48179f);
     fan::print(body.get_size());
     fan::graphics::physics::character_movement_preset_t::setup_default_controls(body);
     body.set_jump_height(1.f * body.get_mass());

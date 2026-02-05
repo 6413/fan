@@ -841,9 +841,9 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
     fan::graphics::shape_t shape;
     fan::vec2 original_pos;
   };
-  std::unordered_map<std::string, json_cache_t> json_cache;
+  std::unordered_map<fan::ct_string<256>, json_cache_t, fan::ct_string_hash> json_cache;
 
-  fan::graphics::shape_t shape_from_json(const std::string& json_path, const std::source_location& callers_path) {
+  fan::graphics::shape_t shape_from_json(std::string_view json_path, const std::source_location& callers_path) {
     if (json_cache.find(json_path) == json_cache.end()) {
       fan::json json_data = fan::graphics::read_json(json_path, callers_path);
       resolve_json_image_paths(json_data, json_path, callers_path);
@@ -861,7 +861,7 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
     return shape;
   }
 
-  void resolve_json_image_paths(fan::json& out, const std::string& json_path, const std::source_location& callers_path) {
+  void resolve_json_image_paths(fan::json& out, std::string_view json_path, const std::source_location& callers_path) {
     out.find_and_iterate("image_path", [&json_path, &callers_path](fan::json& value) {
       std::filesystem::path base = fan::io::file::find_relative_path(json_path, callers_path);
       base = std::filesystem::is_directory(base) ? base : base.parent_path();
@@ -1040,7 +1040,7 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
         ) {
         if (pan_with_middle_mouse && clicked_inside_viewport) {
           fan::vec2 viewport_size = fan::graphics::viewport_get_size(render_view.viewport);
-          camera_offset -= (d.motion * viewport_size / (viewport_size * get_zoom()));
+          camera_offset -= (d.motion * viewport_size / (viewport_size * get_zoom())) * (fan::vec2i(1) - lock_axis);
           fan::graphics::camera_set_position(render_view.camera, camera_offset);
         }
       }
@@ -1656,6 +1656,138 @@ namespace fan::graphics {
 
   void tile_world_generator_t::init() {
     init_tile_world();
+  }
+
+  void polyline_build(const polyline_properties_t& props, std::vector<vertex_t>& out) {
+    out.clear();
+    if (props.points.size() < 2 || props.thickness <= 0.f) {
+      return;
+    }
+
+    std::vector<fan::vec2> pts;
+    pts.reserve(props.points.size());
+    for (auto& p : props.points) {
+      pts.push_back(p);
+    }
+
+    f32_t half = props.thickness * 0.5f;
+    int n = pts.size();
+
+    auto emit_pair = [&](const fan::vec2& p, const fan::vec2& perp) {
+      out.push_back({fan::vec3(p + perp * half, props.depth), props.color});
+      out.push_back({fan::vec3(p - perp * half, props.depth), props.color});
+    };
+
+    auto emit_round_cap = [&](const fan::vec2& p, const fan::vec2& dir, bool start) {
+      int steps = 12;
+      f32_t base = std::atan2(dir.y, dir.x);
+      f32_t offset = start ? fan::math::pi : 0.f;
+      for (int i = 0; i <= steps; ++i) {
+        f32_t a = base + offset + fan::math::pi * (i / (f32_t)steps);
+        fan::vec2 perp(std::cos(a), std::sin(a));
+        emit_pair(p, perp);
+      }
+    };
+
+    if (props.cap_start == polyline_cap_t::square) {
+      fan::vec2 dir = (pts[1] - pts[0]).normalized();
+      pts.insert(pts.begin(), pts[0] - dir * half);
+      n++;
+    }
+    else if (props.cap_start == polyline_cap_t::round) {
+      fan::vec2 dir = (pts[1] - pts[0]).normalized();
+      emit_round_cap(pts[0], -dir, true);
+    }
+
+    if (props.cap_end == polyline_cap_t::square) {
+      fan::vec2 dir = (pts[n - 1] - pts[n - 2]).normalized();
+      pts.push_back(pts[n - 1] + dir * half);
+      n++;
+    }
+
+    for (int i = 0; i < n; ++i) {
+      fan::vec2 p = pts[i];
+      fan::vec2 dir_prev, dir_next;
+
+      if (i > 0) {
+        dir_prev = pts[i] - pts[i - 1];
+        f32_t len = dir_prev.length();
+        if (len > 0) dir_prev /= len;
+      }
+      if (i + 1 < n) {
+        dir_next = pts[i + 1] - pts[i];
+        f32_t len = dir_next.length();
+        if (len > 0) dir_next /= len;
+      }
+
+      if (i == 0) {
+        fan::vec2 perp(-dir_next.y, dir_next.x);
+        emit_pair(p, perp);
+        continue;
+      }
+
+      if (i == n - 1) {
+        fan::vec2 perp(-dir_prev.y, dir_prev.x);
+        emit_pair(p, perp);
+        continue;
+      }
+
+      fan::vec2 perp_prev(-dir_prev.y, dir_prev.x);
+      fan::vec2 perp_next(-dir_next.y, dir_next.x);
+
+      if (props.join == polyline_join_t::round) {
+        f32_t a0 = std::atan2(perp_prev.y, perp_prev.x);
+        f32_t a1 = std::atan2(perp_next.y, perp_next.x);
+        f32_t diff = a1 - a0;
+        if (diff > fan::math::pi) diff -= fan::math::two_pi;
+        if (diff < -fan::math::pi) diff += fan::math::two_pi;
+        f32_t ad = std::abs(diff);
+
+        if (ad < 1e-3f) {
+          emit_pair(p, perp_prev);
+        }
+        else {
+          int steps = std::clamp((int)(ad / (fan::math::pi / 16.f)), 2, 16);
+          for (int j = 0; j <= steps; ++j) {
+            f32_t t = j / (f32_t)steps;
+            f32_t a = a0 + diff * t;
+            fan::vec2 perp(std::cos(a), std::sin(a));
+            emit_pair(p, perp);
+          }
+        }
+      }
+      else if (props.join == polyline_join_t::bevel) {
+        fan::vec2 perp = perp_prev + perp_next;
+        f32_t len = perp.length();
+        if (len > 0) perp /= len;
+        else perp = perp_prev;
+        emit_pair(p, perp);
+      }
+      else {
+        fan::vec2 perp = perp_prev + perp_next;
+        f32_t len = perp.length();
+        if (len > 0) perp /= len;
+        else perp = perp_prev;
+        emit_pair(p, perp);
+      }
+    }
+
+    if (props.cap_end == polyline_cap_t::round) {
+      fan::vec2 dir = (pts[n - 1] - pts[n - 2]).normalized();
+      emit_round_cap(pts[n - 1], dir, false);
+    }
+  }
+
+  void update_infinite_tiled_sprite(
+    shape_t& sprite, 
+    fan::vec2 tile_size,
+    fan::vec2 world_size
+  ) {
+    tile_size *= 2.f;
+    fan::vec2 world_min = world_size * 0.5f;
+    sprite.set_tc_size(world_size / tile_size);
+    fan::vec2 grid_offset = (world_min.fmod(tile_size) + tile_size).fmod(tile_size);
+    sprite.set_tc_position((grid_offset + tile_size / 2.f) / tile_size);
   }
 
   animation_frame_awaiter::animation_frame_awaiter(

@@ -429,7 +429,7 @@ namespace fan::graphics {
     return result;
   }
 
-  void sprite_sheets_parse(const std::string& json_path, fan::json& json, const std::source_location& callers_path) {
+  void sprite_sheets_parse(std::string_view json_path, fan::json& json, const std::source_location& callers_path) {
     auto current_global_id = ss_counter().id;
     if (json.contains("animations")) {
       for (const auto& item : json["animations"]) {
@@ -4027,7 +4027,7 @@ namespace fan::graphics {
     #endif
     return shape;
   }
-  fan::json read_json(const std::string& path, const std::source_location& callers_path) {
+  fan::json read_json(std::string_view path, const std::source_location& callers_path) {
     std::string json_bytes;
     fan::io::file::read(fan::io::file::find_relative_path(path, callers_path), &json_bytes);
     return fan::json::parse(json_bytes);

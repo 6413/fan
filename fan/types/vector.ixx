@@ -262,6 +262,16 @@ export namespace fan {
     // coordinate system angle. TODO need rename to something meaningful
     constexpr auto csangle() const { return std::atan2(x, -y); }
     constexpr auto angle() const { return std::atan2(y, x); }
+    // returns the angle of the cardinal direction this vector points toward
+    constexpr value_type_t dir_angle() const {
+      if (fan::math::abs(x) > fan::math::abs(y)) {
+        return x > 0 ? 0 : fan::math::pi;
+      }
+      return y > 0 ? fan::math::half_pi : fan::math::pi * 1.5f;
+    }
+    constexpr value_type_t corner_angle(const vec2_wrap_t& to) const {
+      return dir_angle() + (cross(to) > 0 ? 0 : fan::math::half_pi);
+    }
 
     template <typename T>
     bool is_collinear(const vec2_wrap_t<T>& a) { return a.x == x || a.y == y; }

@@ -470,7 +470,6 @@ void main() {
 
     fan::vec2 viewport_pos = engine_demo->engine.viewport_get_position(engine_demo->right_column_view.viewport);
     fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
-    fan::print(viewport_size);
     data.shader_shape = fan::graphics::shader_shape_t{ {
       .render_view = &engine_demo->right_column_view,
       .position = fan::vec3(fan::vec2(0), 3),
@@ -1435,7 +1434,6 @@ void main() {
     gui::window_flags_no_collapse | gui::window_flags_no_resize| gui::window_flags_no_title_bar;
 
   static void render_demos(menu_t* menu, const std::vector<std::string>& titles) {
-    fan::print(fan::graphics::gui::want_io());
     std::size_t title_index = 0;
     std::string title = titles[title_index];
     gui::text(fan::color::from_rgba(0x948c80ff) * 1.5, title);

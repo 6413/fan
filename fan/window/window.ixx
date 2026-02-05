@@ -71,7 +71,6 @@ export namespace fan {
         not_set,
         windowed,
         borderless,
-        windowed_fullscreen,
         full_screen,
         count
       };
@@ -322,7 +321,6 @@ export namespace fan {
     fan::vec2 get_current_monitor_resolution();
     void set_windowed();
     void set_fullscreen();
-    void set_windowed_fullscreen();
     void set_borderless();
     void set_cursor(int flag);
     void toggle_cursor();

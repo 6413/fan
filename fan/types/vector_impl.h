@@ -1,32 +1,32 @@
 #pragma pack(push, 1)
 #define make_for_all(todo) \
-	vec_t ret = 0; for (access_type_t i = 0; i < size(); ++i) { todo; } return ret
+  vec_t ret = 0; for (access_type_t i = 0; i < size(); ++i) { todo; } return ret
 #define make_for_all_test1_noret(todo) for (access_type_t i = 0; i < size() && i < test0.size(); ++i) { todo; }
 #define make_for_all_test1(todo) \
-	vec_t ret = *this; for (access_type_t i = 0; i < size() && i < test0.size(); ++i) { todo; } return ret
+  vec_t ret = *this; for (access_type_t i = 0; i < size() && i < test0.size(); ++i) { todo; } return ret
 #define make_for_all_test2(todo) \
-	vec_t ret = *this; for (access_type_t i = 0; i < size() && i < test0.size() && i < test1.size(); ++i) { todo; } return ret
+  vec_t ret = *this; for (access_type_t i = 0; i < size() && i < test0.size() && i < test1.size(); ++i) { todo; } return ret
 
 #define make_operator_const(arithmetic) \
 template <typename T> \
 requires (!std::is_arithmetic_v<T>) \
 constexpr vec_t operator arithmetic(const T& test0) const \
 { \
-	make_for_all_test1(ret[i] = (*this)[i] arithmetic test0[i]); \
+  make_for_all_test1(ret[i] = (*this)[i] arithmetic test0[i]); \
 } \
 \
 template <typename T> \
 requires (std::is_arithmetic_v<T>)\
 constexpr vec_t operator arithmetic(T v0) const \
 { \
-	make_for_all(ret[i] = (*this)[i] arithmetic v0); \
+  make_for_all(ret[i] = (*this)[i] arithmetic v0); \
 }
 #define make_operator_assign(arithmetic) \
 template <typename T> \
 requires (!std::is_arithmetic_v<T>) \
 constexpr vec_t& operator CONCAT(arithmetic,=) (const T& test0) \
 { \
-	make_for_all_test1_noret((*this)[i] CONCAT(arithmetic,=) test0[i]); \
+  make_for_all_test1_noret((*this)[i] CONCAT(arithmetic,=) test0[i]); \
   return *this; \
 } \
 \
@@ -34,7 +34,7 @@ template <typename T> \
 requires (std::is_arithmetic_v<T>)\
 constexpr vec_t operator CONCAT(arithmetic,=)(T v0) \
 { \
-	make_for_all((*this)[i] CONCAT(arithmetic,=) v0); \
+  make_for_all((*this)[i] CONCAT(arithmetic,=) v0); \
 }
 
 using value_type = value_type_t;

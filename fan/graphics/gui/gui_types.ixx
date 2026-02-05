@@ -31,7 +31,7 @@ export namespace fan::graphics::gui {
     operator std::string_view() const { return sv; }
     
     operator const char* () const {
-   //   thread_local fan::temp_cstr<> storage;
+   //   thread_local fan::ct_string<> storage;
     //  storage.set(sv);
      // return storage.ptr;
       return sv.data();

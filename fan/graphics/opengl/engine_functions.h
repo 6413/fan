@@ -128,6 +128,7 @@ void open() {
 void close() {
 #if defined(LOCO_FRAMEBUFFER)
   blur.close();
+  reflection.close();
   loco.shader_erase(loco.gl.m_fbo_final_shader);
 #endif
 }
@@ -1156,6 +1157,10 @@ void shapes_draw() {
       fan::vec2 window_size = loco.window.get_size();
       loco.viewport_set(0, window_size);
 
+      loco.gl.m_framebuffer.bind(loco.context.gl);
+      loco.gl.reflection.draw();
+      loco.gl.m_framebuffer.unbind(loco.context.gl);
+
       loco.shader_set_value(loco.gl.m_fbo_final_shader, "_t00", 0);
       loco.shader_set_value(loco.gl.m_fbo_final_shader, "_t01", 1);
       loco.shader_set_value(loco.gl.m_fbo_final_shader, "framebuffer_alpha", loco.clear_color.a);
@@ -1249,6 +1254,7 @@ void render_final_fb() {
 void init() {
 #if defined(LOCO_FRAMEBUFFER)
   init_framebuffer();
+  reflection.open();
 
   loco.gl.m_fbo_final_shader = loco.shader_create();
 
