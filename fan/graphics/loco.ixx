@@ -328,9 +328,11 @@ public:
   struct opengl {
 #include <fan/graphics/opengl/engine_functions.h>
   #if defined(LOCO_FRAMEBUFFER)
-#include <fan/graphics/opengl/2D/effects/blur.h>
-
+    #include <fan/graphics/opengl/2D/effects/blur.h>
     blur_t blur;
+
+    #include <fan/graphics/opengl/2D/effects/reflection.h>
+    reflection_t reflection;
   #endif
 
     fan::window_t::resize_handle_t window_resize_handle;

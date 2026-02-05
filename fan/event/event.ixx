@@ -22,8 +22,8 @@ export namespace fan::event {
 
   loop_t loop_new();
   loop_t& get_loop();
-  void loop_stop(loop_t loop);
-  int loop_close(loop_t loop);
+  void loop_stop(loop_t loop = fan::event::get_loop());
+  int loop_close(loop_t loop = fan::event::get_loop());
 
   struct error_code_t {
     int code;

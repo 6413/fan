@@ -51,17 +51,6 @@ struct player_t {
 
     body.set_color(fan::color::hsl(56.7f, 18.3f, -58.4f));
     //body.set_dynamic();
-    /*
-      template <typename T>
-      typename T::vi_t& get_shape_vdata() {
-        return *(typename T::vi_t*)GetRenderData(g_shapes->shaper);
-      }
-      template <typename T>
-      typename T::ri_t& get_shape_rdata() {
-        return *(typename T::ri_t*)GetData(g_shapes->shaper);
-      }
-    */
-
 
     fan::graphics::physics::character_movement_preset_t::setup_default_controls(body);
 
@@ -90,7 +79,7 @@ struct player_t {
       .knockback_force = 20.f,
       .cooldown_timer = fan::time::timer{0.05e9, true},
       .on_attack_end = [this]() { combat.did_attack = false; },
-      });
+    });
 
     body.set_restitution(0);
 
@@ -101,7 +90,6 @@ struct player_t {
     sprite_shield.set_position(body.get_center());
     body.anim_controller.auto_update_animations = false;
     body.anim_controller.auto_flip_sprite = true;
-
   }
 
   fan::event::task_t jump(bool is_double_jump) {
