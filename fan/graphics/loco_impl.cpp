@@ -214,6 +214,8 @@ void loco_t::shader_set_camera(shader_t nr, camera_t camera_nr) {
   }
 
   void loco_t::shader_recompile_all() {
+    glFlush();
+    glFinish();
     fan::graphics::shader_list_t::nrtra_t nrtra;
     fan::graphics::shader_nr_t nr;
     nrtra.Open(&shader_list, &nr);
@@ -239,6 +241,9 @@ void loco_t::shader_set_camera(shader_t nr, camera_t camera_nr) {
     }
 
     nrtra.Close(&shader_list);
+    glFlush();
+    glFinish();
+    shader_set_value(gl.m_fbo_final_shader, "bloom_strength", settings_menu.config.post_processing.bloom_strength);
   }
 #endif
 

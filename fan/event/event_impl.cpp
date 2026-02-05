@@ -21,10 +21,10 @@ namespace fan::event {
     static loop_t event_loop = uv_default_loop();
     return event_loop;
   }
-  void loop_stop(loop_t loop = fan::event::get_loop()) {
+  void loop_stop(loop_t loop) {
     uv_stop(loop);
   }
-  int loop_close(loop_t loop = fan::event::get_loop()) {
+  int loop_close(loop_t loop) {
     return uv_loop_close(loop);
   }
 

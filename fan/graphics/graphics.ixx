@@ -9,6 +9,7 @@ module;
 #include <unordered_set>
 #include <algorithm>
 #include <cmath>
+#include <span>
 
 export module fan.graphics;
 
@@ -603,19 +604,26 @@ export namespace fan::graphics {
 #if defined(FAN_JSON)
 
   fan::graphics::shape_t shape_from_json(
-    const std::string& json_path,
+    std::string_view json_path,
     const std::source_location& callers_path = std::source_location::current()
   );
 
   void resolve_json_image_paths(
     fan::json& out,
-    const std::string& json_path,
+    std::string_view json_path,
     const std::source_location& callers_path = std::source_location::current()
   );
   fan::graphics::sprite_t sprite_sheet_from_json(
     const sprite_sheet_config_t flags,
     const std::source_location& callers_path = std::source_location::current()
   );
+
+  fan::graphics::shape_t particles_load(
+    std::string_view path,
+    const std::source_location& callers_path = std::source_location::current()
+  ) {
+    return fan::graphics::shape_from_json(path, callers_path);
+  }
 #endif
 
   fan::graphics::shapes::polygon_t::properties_t create_hexagon(f32_t radius, const fan::color& color = fan::colors::white);
@@ -899,6 +907,7 @@ export namespace fan::graphics {
     fan::window_t::mouse_motion_handle_t mouse_motion_nr;
     fan::graphics::update_callback_nr_t uc_nr;
     fan::vec2 initial_position = 0;
+    fan::vec2i lock_axis{0, 0};
     bool ignore_input = false;
     bool zoom_on_window_resize = true;
     bool pan_with_middle_mouse = true;
@@ -1133,7 +1142,57 @@ export namespace fan::graphics {
       };
     };
   }
-}
+
+  enum class polyline_join_t {
+    miter,
+    bevel,
+    round
+  };
+
+  enum class polyline_cap_t {
+    none,
+    square,
+    round
+  };
+
+  struct polyline_properties_t {
+    std::span<const fan::vec2> points;
+    f32_t thickness;
+    fan::color color = fan::colors::white;
+    f32_t depth = 0.f;
+    polyline_join_t join = polyline_join_t::round;
+    polyline_cap_t cap_start = polyline_cap_t::round;
+    polyline_cap_t cap_end = polyline_cap_t::round;
+  };
+
+  void polyline_build(const polyline_properties_t& props, std::vector<vertex_t>& out);
+
+  struct polyline_t {
+    void set(const polyline_properties_t& props) {
+      std::vector<vertex_t> verts;
+      polyline_build(props, verts);
+      mesh = polygon_t {{
+        .position = fan::vec3(0, 0, props.depth),
+        .vertices = verts,
+        .draw_mode = primitive_topology_t::triangle_strip,
+        .enable_culling = false
+      }};
+    }
+
+    operator polygon_t&() {
+      return mesh;
+    }
+
+    polygon_t mesh;
+  };
+
+  // for drawing repeated tile images
+  void update_infinite_tiled_sprite(
+    shape_t& sprite, 
+    fan::vec2 tile_size,
+    fan::vec2 world_size
+  );
+} // namespace fan::graphics
 
 #endif
 
@@ -1164,7 +1223,7 @@ export namespace fan::event {
   private:
     fan::graphics::update_callback_nr_t node;
   };
-}
+} // namespace fan::event
 
 #if defined(FAN_2D)
 

@@ -633,7 +633,6 @@ namespace fan::graphics::gui {
     static constexpr const char* display_mode_names[] = {
       "Windowed",
       "Borderless",
-      "Windowed Fullscreen",
       "Fullscreen"
     };
 
