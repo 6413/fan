@@ -66,9 +66,9 @@
       fan::graphics::engine_t engine;
     
       fan::graphics::rectangle_t rect{{
-          .position = 400,
-          .size = 200,
-          .color = fan::colors::red
+        .position = 400,
+        .size = 200,
+        .color = fan::colors::red
       }};
       
       engine.loop();
