@@ -747,6 +747,7 @@ void shapes_draw() {
   uint64_t draw_mode = -1;
   uint32_t vertex_count = -1;
   bool visible = true;
+  bool using_blending = false;
 
   fan::graphics::shapes& shapes = loco.shapes;
 
@@ -767,11 +768,13 @@ void shapes_draw() {
     case fan::graphics::Key_e::blending: {
       uint8_t Key = *(uint8_t*)KeyTraverse.kd();
       if (Key) {
+        using_blending = true;
         loco.context.gl.set_depth_test(false);
         fan_opengl_call(glEnable(GL_BLEND));
         fan_opengl_call(glBlendFunc(loco.gl.blend_src_factor, loco.gl.blend_dst_factor));
       }
       else {
+        using_blending = false;
         fan_opengl_call(glDisable(GL_BLEND));
         loco.context.gl.set_depth_test(true);
       }
@@ -964,9 +967,11 @@ void shapes_draw() {
       };
 
       if (shape_type == fan::graphics::shapes::shape_type_t::sprite) {
+        loco.shader_set_value(shader, "has_blending", using_blending);
         process_images(*(fan::graphics::shapes::sprite_t::ri_t*)data);
       }
       else if (shape_type == fan::graphics::shapes::shape_type_t::unlit_sprite) {
+        loco.shader_set_value(shader, "has_blending", using_blending);
         process_images(*(fan::graphics::shapes::unlit_sprite_t::ri_t*)data);
       }
       else {

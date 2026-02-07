@@ -127,5 +127,9 @@ export namespace fan {
       int i = fan::random::value_i64(-1, 1);
       return i * fan::math::pi;
     }
+    f32_t angle() {
+      return fan::random::value_f32(-fan::math::pi, fan::math::pi);
+    }
+
   }
 }

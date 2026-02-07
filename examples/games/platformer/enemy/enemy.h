@@ -43,7 +43,7 @@ struct enemy_t : enemy_base_t {
     body.set_dynamic();
 
     body.set_jump_height(75.f * density);
-    body.movement_state.accelerate_force = 120.f / 3.f;
+    body.movement_state.acceleration_force = 120.f / 3.f;
     body.movement_state.max_speed = 500.f;
     body.movement_state.check_gui = false;
     ai_behavior.trigger_distance = trigger_distance;
