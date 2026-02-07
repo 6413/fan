@@ -54,9 +54,6 @@ export namespace fan::graphics::gui {
     void load_from_json(const fan::json& j);
     fan::json to_json() const;
 
-    bool load();
-    void save();
-
     std::string config_save_path = "fan_settings.json";
 
     display_settings_t display;
@@ -113,6 +110,9 @@ export namespace fan::graphics::gui {
 
     void reset_page_selection();
     static void set_settings_theme();
+
+    bool load();
+    void save();
 
     static constexpr int wnd_flags =
       gui::window_flags_no_move |

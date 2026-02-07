@@ -19,6 +19,7 @@ module fan.graphics.gui.keybinds_menu;
 
 import fan.graphics.loco;
 import fan.graphics.gui.settings_menu;
+import fan.types.compile_time_string;
 
 namespace fan::graphics::gui {
   void keybind_menu_t::categorize_combo_into_bindings(device_bindings_t& bindings, const combo_t& combo) {
@@ -60,7 +61,7 @@ namespace fan::graphics::gui {
     key_cap_state.current_combo.clear();
   }
 
-  void keybind_menu_t::finish_capture(const std::string& action_name, fan::device_type_e device) {
+  void keybind_menu_t::finish_capture(std::string_view action_name, fan::device_type_e device) {
     key_cap_state.active = false;
     key_cap_state.capturing = false;
 
@@ -69,7 +70,8 @@ namespace fan::graphics::gui {
     fan::device_type_e combo_device = get_combo_device_type(key_cap_state.current_combo);
     if (combo_device != device) return;
 
-    auto it = device_bindings.find(action_name);
+    action_key_t k(action_name);
+    auto it = device_bindings.find(k);
     if (it == device_bindings.end()) return;
 
     update_device_binding(it->second, device, key_cap_state.current_combo);
@@ -87,7 +89,7 @@ namespace fan::graphics::gui {
   }
 
   void keybind_menu_t::render_input_button(
-    const std::string& action_name,
+    std::string_view action_name,
     int listening_index,
     fan::device_type_e device,
     const combo_t& combo
@@ -110,7 +112,11 @@ namespace fan::graphics::gui {
     );
 
     auto* window = gui::get_current_window();
-    auto id = window->GetID(("##" + action_name + "_" + std::to_string(listening_index)).c_str());
+    std::string id_str = "##";
+    id_str += action_name;
+    id_str += "_";
+    id_str += std::to_string(listening_index);
+    auto id = window->GetID(id_str.c_str());
     gui::item_add(full_rect, id);
 
     bool hovered = false;
@@ -149,7 +155,8 @@ namespace fan::graphics::gui {
     }
 
     if (hovered && fan::window::is_mouse_clicked(fan::mouse_right)) {
-      auto it = device_bindings.find(action_name);
+      action_key_t k(action_name);
+      auto it = device_bindings.find(k);
       if (it != device_bindings.end()) {
         update_device_binding(it->second, device, combo_t {});
         update_input_action(action_name);
@@ -202,8 +209,9 @@ namespace fan::graphics::gui {
     return std::max(100.f, text_width + 20.f);
   }
 
-  void keybind_menu_t::render_action_row(int base_listening_index, const std::string& action_name) {
-    auto it = device_bindings.find(action_name);
+  void keybind_menu_t::render_action_row(int base_listening_index, std::string_view action_name) {
+    action_key_t k(action_name);
+    auto it = device_bindings.find(k);
     if (it == device_bindings.end()) return;
 
     auto& bindings = it->second;
@@ -217,7 +225,8 @@ namespace fan::graphics::gui {
     f32_t y_offset = (key_button_height - text_height) * 0.5f;
 
     gui::set_cursor_pos_y(gui::get_cursor_pos_y() + y_offset);
-    gui::text(action_name.c_str());
+    std::string action_label(action_name);
+    gui::text(action_label.c_str());
 
     combo_t keyboard_combo = bindings.keyboard.empty() ? combo_t {} : bindings.keyboard[0];
     combo_t mouse_combo = bindings.mouse.empty() ? combo_t {} : bindings.mouse[0];
@@ -270,9 +279,9 @@ namespace fan::graphics::gui {
       std::string group;
       auto it = ia.action_groups.find(action_name);
       if (it != ia.action_groups.end()) {
-        group = it->second;
+        group = (std::string)std::string_view(it->second);
       }
-      grouped[group].push_back(action_name);
+      grouped[group].push_back((std::string)std::string_view(action_name));
     }
 
     std::vector<std::string> group_order;
@@ -381,7 +390,7 @@ namespace fan::graphics::gui {
     gui::same_line();
 
     if (gui::button(label_save, fan::vec2(100.f, 40.f))) {
-      OFFSETLESS(menu, fan::graphics::gui::settings_menu_t, keybind_menu)->config.save();
+      OFFSETLESS(menu, fan::graphics::gui::settings_menu_t, keybind_menu)->save();
     }
 
     gui::pop_style_var();
@@ -433,13 +442,14 @@ namespace fan::graphics::gui {
     }
   }
 
-  void keybind_menu_t::update_input_action(const std::string& action_name) {
+  void keybind_menu_t::update_input_action(std::string_view action_name) {
     auto& actions = gloco()->input_action.input_actions;
-    auto it = device_bindings.find(action_name);
+    action_key_t k(action_name);
+    auto it = device_bindings.find(k);
     if (it == device_bindings.end()) return;
 
     auto& bindings = it->second;
-    auto& action_data = actions[action_name];
+    auto& action_data = actions[k];
     action_data.keybinds.clear();
 
     for (const auto& combo : bindings.keyboard) {
@@ -480,7 +490,7 @@ namespace fan::graphics::gui {
     if (!kb.is_object()) return;
 
     for (auto it = kb.begin(); it != kb.end(); ++it) {
-      std::string action_name = it.key();
+      std::string action_name_str = it.key();
       const fan::json& binds_arr = it.value();
       if (!binds_arr.is_array()) continue;
 
@@ -491,8 +501,9 @@ namespace fan::graphics::gui {
         categorize_combo_into_bindings(bindings, combo);
       }
 
-      device_bindings[action_name] = bindings;
-      update_input_action(action_name);
+      action_key_t k(action_name_str);
+      device_bindings[k] = bindings;
+      update_input_action(action_name_str);
     }
   }
 
@@ -508,11 +519,38 @@ namespace fan::graphics::gui {
       add_bindings_to_json(binds_arr, unique_combos, bindings.gamepad);
 
       if (!binds_arr.empty()) {
-        keybinds_json[action_name] = binds_arr;
+        keybinds_json[(std::string)std::string_view(action_name)] = binds_arr;
       }
     }
 
     j["keybinds"] = keybinds_json;
+  }
+
+  void keybind_menu_t::apply_to_input_action() {
+    auto& ia = gloco()->input_action;
+
+    for (const auto& [action_name, bindings] : device_bindings) {
+      auto& a = ia.input_actions[action_name];
+      a.keybinds.clear();
+
+      for (const auto& combo : bindings.keyboard) {
+        fan::window::input_action_t::chord_t chord;
+        chord.push_back(combo);
+        a.keybinds.push_back(chord);
+      }
+
+      for (const auto& combo : bindings.mouse) {
+        fan::window::input_action_t::chord_t chord;
+        chord.push_back(combo);
+        a.keybinds.push_back(chord);
+      }
+
+      for (const auto& combo : bindings.gamepad) {
+        fan::window::input_action_t::chord_t chord;
+        chord.push_back(combo);
+        a.keybinds.push_back(chord);
+      }
+    }
   }
 
   void keybind_menu_t::refresh_input_actions() {

@@ -39,8 +39,9 @@ struct snake_t {
   void update(f32_t dt, fan::vec2 input, fan::vec2 tile) {
     if (input.length() > 0) {
       input = (input.abs().x > input.abs().y) ? fan::vec2(input.sign().x, 0) : fan::vec2(0, input.sign().y);
-      if (input != -dir && !(next_dir.length() > 0 && input == -next_dir))
+      if (input != -dir && !(next_dir.length() > 0 && input == -next_dir)) {
         next_dir = input;
+      }
     }
 
     f32_t dist = speed * dt;
@@ -140,7 +141,7 @@ struct snake_t {
   fan::vec2 next_dir {0, 0};
   f32_t speed = 350.f;
   f32_t spacing = 4.f;
-  f32_t length = 192.f;
+  f32_t length = 1024.f;
   circle_t head;
   polyline_t body;
   std::vector<fan::vec2> trail;
@@ -178,7 +179,8 @@ struct food_t {
 
 struct app_t {
   app_t() {
-    recalculate_layout(engine.window.get_size());
+    engine.window.set_size(1024);
+    on_resize(engine.window.get_size());
     
     bg = {{
       .position = fan::vec3(origin, 0),
@@ -191,7 +193,7 @@ struct app_t {
     food.spawn(grid, tile, tile_count, snake);
     
     resize_handle = engine.window.on_resize([this](const engine_t::resize_data_t& rdata) {
-      recalculate_layout(rdata.size);
+      on_resize(rdata.size);
       
       fan::vec2 grid = origin - size / 2.f;
       snake.grid_origin = grid;
@@ -214,7 +216,7 @@ struct app_t {
       food.sprite.set_radius(tile.x * 0.3f);
     });
   }
-  void recalculate_layout(fan::vec2 win) {
+  void on_resize(fan::vec2 win) {
     old_origin = origin;
     old_size = size;
     old_tile = tile;

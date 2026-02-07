@@ -85,6 +85,8 @@ export namespace fan::physics {
     fan::vec2 collision_multiplier = 1; // possibility to change multiplier of collision size
     b2Filter filter = b2DefaultFilter();
     bool fast_rotation = false;
+    bool is_bullet = false;
+    bool allow_sleep = true;
   };
 
   struct body_type_e {

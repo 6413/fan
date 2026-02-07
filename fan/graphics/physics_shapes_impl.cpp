@@ -738,33 +738,27 @@ namespace fan::graphics::physics {
     );
   }
 
-  void movement_state_t::move_to_direction_raw(
-    fan::physics::body_id_t body,
-    const fan::vec2& direction
-  ) {
+  fan::vec2 movement_state_t::calculate_velocity(
+    const fan::vec2& current_velocity,
+    const fan::vec2& direction,
+    f32_t dt
+  ) const {
     fan::vec2 input_dir = direction;
     f32_t len = input_dir.length();
     if (len > 1.f) {
       input_dir /= len;
     }
 
-    fan::vec2 vel = body.get_linear_velocity();
-    f32_t dt = fan::physics::default_physics_timestep;
+    fan::vec2 vel = current_velocity;
 
-    f32_t accel = accelerate_force * dt * 100.f;
-    f32_t decel = 0.3f * dt * 100.f;
+    f32_t accel = acceleration_force * dt * 100.f;
+    f32_t decel = deceleration_force * dt;
     accel = fan::math::clamp(accel, 0.f, 1.f);
     decel = fan::math::clamp(decel, 0.f, 1.f);
 
     if (is_in_knockback) {
-      fan::vec2 kb_vel = body.get_linear_velocity();
-      kb_vel.x = knockback_initial_velocity.x;
-      body.set_linear_velocity(kb_vel);
-
-      if (--knockback_ticks_remaining <= 0) {
-        is_in_knockback = false;
-      }
-      return;
+      vel.x = knockback_initial_velocity.x;
+      return vel;
     }
 
     if (input_dir.x != 0.f) {
@@ -779,9 +773,27 @@ namespace fan::graphics::physics {
       f32_t target_y = input_dir.y * max_speed;
       vel.y = fan::math::lerp(vel.y, target_y, accel);
     }
+    else {
+      vel.y = fan::math::lerp(vel.y, 0.f, decel);
+    }
+
+    return vel;
+  }
+  void movement_state_t::move_to_direction_raw(
+    fan::physics::body_id_t body,
+    const fan::vec2& direction
+  ) {
+    if (is_in_knockback && --knockback_ticks_remaining <= 0) {
+      is_in_knockback = false;
+    }
+
+    fan::vec2 current_vel = body.get_linear_velocity();
+    f32_t dt = fan::physics::default_physics_timestep;
+
+    fan::vec2 new_vel = calculate_velocity(current_vel, direction, dt);
 
     last_direction = direction;
-    body.set_linear_velocity(vel);
+    body.set_linear_velocity(new_vel);
   }
   void movement_state_t::move_to_direction(
     fan::physics::body_id_t body,
@@ -801,7 +813,7 @@ namespace fan::graphics::physics {
     fan::vec2 vel = body.get_linear_velocity();
     f32_t dt = fan::physics::default_physics_timestep;
 
-    f32_t accel = accelerate_force * dt * 100.f;
+    f32_t accel = acceleration_force * dt * 100.f;
     accel = fan::math::clamp(accel, 0.f, 1.f);
 
     if (is_in_knockback) {
@@ -1354,6 +1366,11 @@ namespace fan::graphics::physics {
     return fan::physics::add_physics_step_callback(fn);
   }
   void character2d_t::enable_default_movement(uint8_t movement) {
+  #if FAN_DEBUG >= 3
+    if (get_body_type() == fan::physics::body_type_e::static_body) {
+      fan::graphics::gui::print_warning("trying to enable default movement for static body");
+    }
+  #endif
     movement_state.enabled = true;
     movement_state.type = movement;
     movement_cb_handle = add_movement_callback([this, movement]() {

@@ -17,6 +17,11 @@ module fan.physics.b2_integration;
 
 import fan.utility;
 
+/*
+  TODO: create function for converting shape properties to b2BodyDef
+*/
+
+
 #if defined(FAN_PHYSICS_2D)
 namespace fan::physics {
   circle_t::circle_t(const b2Circle& circle) : b2Circle(circle) {}
@@ -239,6 +244,10 @@ namespace fan::physics {
     return size;
   }
 
+  uint8_t body_id_t::get_body_type() const {
+    return b2Body_GetType(*this);
+  }
+
   void body_id_t::set_body_type(uint8_t body_type) {
     b2Body_SetType(*this, (b2BodyType)body_type);
   }
@@ -319,6 +328,9 @@ namespace fan::physics {
     body_def.linearDamping = shape_properties.linear_damping;
     body_def.angularDamping = shape_properties.angular_damping;
     body_def.allowFastRotation = shape_properties.fast_rotation;
+    body_def.isBullet = shape_properties.is_bullet;
+    body_def.enableSleep = shape_properties.allow_sleep;
+    
     entity = b2CreateBody(world_id, &body_def);
   #if FAN_DEBUG >= fan_debug_medium
     if (entity.is_valid() == false) {
@@ -356,6 +368,8 @@ namespace fan::physics {
     body_def.linearDamping = shape_properties.linear_damping;
     body_def.angularDamping = shape_properties.angular_damping;
     body_def.allowFastRotation = shape_properties.fast_rotation;
+    body_def.isBullet = shape_properties.is_bullet;
+    body_def.enableSleep = shape_properties.allow_sleep;
 
     entity = b2CreateBody(world_id, &body_def);
   #if FAN_DEBUG >= fan_debug_medium
@@ -396,6 +410,8 @@ namespace fan::physics {
     body_def.linearDamping = shape_properties.linear_damping;
     body_def.angularDamping = shape_properties.angular_damping;
     body_def.allowFastRotation = shape_properties.fast_rotation;
+    body_def.isBullet = shape_properties.is_bullet;
+    body_def.enableSleep = shape_properties.allow_sleep;
     entity = b2CreateBody(world_id, &body_def);
   #if FAN_DEBUG >= fan_debug_medium
     if (entity.is_valid() == false) {
@@ -424,6 +440,8 @@ namespace fan::physics {
     body_def.linearDamping = shape_properties.linear_damping;
     body_def.angularDamping = shape_properties.angular_damping;
     body_def.allowFastRotation = shape_properties.fast_rotation;
+    body_def.isBullet = shape_properties.is_bullet;
+    body_def.enableSleep = shape_properties.allow_sleep;
     entity = b2CreateBody(world_id, &body_def);
   #if FAN_DEBUG >= fan_debug_medium
     if (entity.is_valid() == false) {
@@ -464,6 +482,8 @@ namespace fan::physics {
     body_def.linearDamping = shape_properties.linear_damping;
     body_def.angularDamping = shape_properties.angular_damping;
     body_def.allowFastRotation = shape_properties.fast_rotation;
+    body_def.isBullet = shape_properties.is_bullet;
+    body_def.enableSleep = shape_properties.allow_sleep;
     entity = b2CreateBody(world_id, &body_def);
 
   #if FAN_DEBUG >= fan_debug_medium

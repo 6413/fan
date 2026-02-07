@@ -20,31 +20,31 @@ module fan.graphics;
 #endif
 
 namespace fan::window {
-  void add_input_action(const int* keys, std::size_t count, const std::string& action_name) {
+  void add_input_action(const int* keys, std::size_t count, const std::string_view& action_name) {
     fan::graphics::ctx().input_action->add(keys, count, action_name);
   }
 
-  void add_input_action(std::initializer_list<int> keys, const std::string& action_name) {
+  void add_input_action(std::initializer_list<int> keys, const std::string_view& action_name) {
     fan::graphics::ctx().input_action->add(keys, action_name);
   }
 
-  void add_input_action(int key, const std::string& action_name) {
+  void add_input_action(int key, const std::string_view& action_name) {
     fan::graphics::ctx().input_action->add(key, action_name);
   }
 
-  bool is_input_action_active(const std::string& action_name, int pstate) {
+  bool is_input_action_active(const std::string_view& action_name, int pstate) {
     return fan::graphics::ctx().input_action->is_active(action_name);
   }
 
-  bool is_action_clicked(const std::string& action_name) {
+  bool is_action_clicked(const std::string_view& action_name) {
     return fan::graphics::ctx().input_action->is_active(action_name);
   }
 
-  bool is_action_down(const std::string& action_name) {
+  bool is_action_down(const std::string_view& action_name) {
     return fan::graphics::ctx().input_action->is_active(action_name, fan::window::input_action_t::press_or_repeat);
   }
 
-  bool exists(const std::string& action_name) {
+  bool exists(const std::string_view& action_name) {
     return fan::graphics::ctx().input_action->input_actions.find(action_name) != fan::graphics::ctx().input_action->input_actions.end();
   }
 }

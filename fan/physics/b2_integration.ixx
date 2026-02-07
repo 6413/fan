@@ -192,6 +192,7 @@ export namespace fan {
       void set_restitution(f32_t restitution);
       fan::physics::aabb_t get_aabb() const;
       fan::vec2 get_size() const;
+      uint8_t get_body_type() const;
       void set_body_type(uint8_t body_type);
 
       bool test_overlap(const body_id_t& other) const;
@@ -380,8 +381,6 @@ export namespace fan {
     
     entity_t create_sensor_circle(const fan::vec2& position, f32_t radius);
     entity_t create_sensor_rectangle(const fan::vec2& position, const fan::vec2& size);
-    step_callback_nr_t add_physics_step_callback(std::function<void()> callback);
-    void remove_physics_step_callback(step_callback_nr_t nr);
     bool presolve_oneway_collision(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, body_id_t character_body);
     body_id_t deep_copy_body(b2WorldId worldId, body_id_t sourceBodyId);
     void set_pre_solve_callback(b2WorldId world_id, b2PreSolveFcn* fcn, void* context);

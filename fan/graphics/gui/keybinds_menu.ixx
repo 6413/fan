@@ -18,11 +18,13 @@ import fan.window.input_action;
 import fan.graphics.gui.base;
 import fan.types.color;
 import fan.types.json;
+import fan.types.compile_time_string;
 
 export namespace fan::graphics::gui {
   struct keybind_menu_t {
     using key_code_t = fan::key_code_t;
     using combo_t = fan::window::input_action_t::combo_t;
+    using action_key_t = fan::ct_string<256>;
 
     static constexpr const char* label_action = "Action";
     static constexpr const char* device_name_keyboard = "Keyboard";
@@ -58,19 +60,19 @@ export namespace fan::graphics::gui {
     void update_device_binding(device_bindings_t& bindings, fan::device_type_e device, const combo_t& combo);
 
     void begin_capture();
-    void finish_capture(const std::string& action_name, fan::device_type_e device);
+    void finish_capture(std::string_view action_name, fan::device_type_e device);
     void cancel_capture();
     bool is_capturing() const;
 
     void render_input_button(
-      const std::string& action_name,
+      std::string_view action_name,
       int listening_index,
       fan::device_type_e device,
       const combo_t& combo
     );
 
     f32_t calc_button_width(const std::string& label);
-    void render_action_row(int base_listening_index, const std::string& action_name);
+    void render_action_row(int base_listening_index, std::string_view action_name);
 
     static void menu_keybinds_left(
       keybind_menu_t* menu,
@@ -89,7 +91,7 @@ export namespace fan::graphics::gui {
     bool should_suppress_input() const;
 
     void sync_from_input_action();
-    void update_input_action(const std::string& action_name);
+    void update_input_action(std::string_view action_name);
 
     void add_bindings_to_json(
       fan::json& binds_arr,
@@ -99,9 +101,15 @@ export namespace fan::graphics::gui {
 
     void load_from_settings_json(const fan::json& j);
     void save_to_settings_json(fan::json& j) const;
+    void apply_to_input_action();
     void refresh_input_actions();
 
-    std::unordered_map<std::string, device_bindings_t> device_bindings;
+    std::unordered_map<
+      action_key_t, 
+      device_bindings_t, 
+      fan::ct_string_hash, 
+      fan::ct_string_equal
+    > device_bindings;
     key_capture_state_t key_cap_state;
     std::vector<bool> listening_states;
     std::function<void()> reset_keybinds_cb = [] {};

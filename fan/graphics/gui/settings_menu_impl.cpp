@@ -118,32 +118,8 @@ namespace fan::graphics::gui {
     return j;
   }
 
-  bool settings_config_t::load() {
-    std::string content;
-    if (fan::io::file::read(config_save_path, &content) != 0) {
-      return false;
-    }
-
-    try {
-      load_from_json(fan::json::parse(content));
-      return true;
-    }
-    catch (...) {
-      return false;
-    }
-  }
-
-  void settings_config_t::save() {
-    fan::json j = to_json();
-    fan::io::file::write(
-      config_save_path,
-      j.dump(2),
-      std::ios_base::binary
-    );
-  }
-
   settings_menu_t::settings_menu_t() {
-    config.load();
+    load();
     apply_config(true, false);
 
     page_t page;
@@ -611,7 +587,7 @@ namespace fan::graphics::gui {
   }
   void settings_menu_t::update() {
     if (is_dirty && save_timer.finished()) {
-      config.save();
+      save();
       is_dirty = false;
     }
   }
@@ -805,8 +781,6 @@ namespace fan::graphics::gui {
       min_x
     );
 
-
-
     keybind_menu.update();
   }
   void settings_menu_t::reset_page_selection() {
@@ -901,6 +875,35 @@ namespace fan::graphics::gui {
     style.Colors[gui::col_nav_cursor] = fan::color(1.0f, 1.0f, 1.0f, 1.0f);
     style.Colors[gui::col_nav_windowing_highlight] = fan::color(1.0f, 1.0f, 1.0f, 0.699999988079071f);
     style.Colors[gui::col_nav_windowing_dim_bg] = fan::color(0.800000011920929f, 0.800000011920929f, 0.800000011920929f, 0.2000000029802322f);
+  }
+
+  bool settings_menu_t::load() {
+     std::string content;
+    if (fan::io::file::read(config.config_save_path, &content) != 0) {
+      return false;
+    }
+
+    fan::json j;
+    try {
+      j = fan::json::parse(content);
+    }
+    catch (...) {
+      return false;
+    }
+
+    config.load_from_json(j);
+
+    if (j.contains("keybinds")) {
+      keybind_menu.load_from_settings_json(j);
+      keybind_menu.apply_to_input_action();
+    }
+
+    return true;
+  }
+  void settings_menu_t::save() {
+    fan::json j = config.to_json();
+    keybind_menu.save_to_settings_json(j);
+    fan::io::file::write(config.config_save_path, j.dump(2), std::ios_base::binary);
   }
 } // namespace fan::graphics::gui
 

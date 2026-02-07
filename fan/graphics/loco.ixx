@@ -210,9 +210,9 @@ private:
   using viewport_t = fan::graphics::viewport_nr_t;
 public:
 
-  bool is_input_clicked(const std::string& name);
-  bool is_input_down(const std::string& name);
-  bool is_input_released(const std::string& name);
+  bool is_input_clicked(const std::string_view& name);
+  bool is_input_down(const std::string_view& name);
+  bool is_input_released(const std::string_view& name);
 
   using image_load_properties_t = fan::graphics::image_load_properties_t;
 

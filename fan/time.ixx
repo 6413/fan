@@ -3,6 +3,7 @@ module;
 #include <fan/utility.h>
 #include <cmath>
 #include <functional>
+#include <source_location>
 
 #include <cstdio>
 
@@ -18,16 +19,16 @@ module;
   static ZwSetTimerResolution_t ZwSetTimerResolution = (ZwSetTimerResolution_t)(long(__stdcall*)(ULONG, BOOLEAN, PULONG)) GetProcAddress(GetModuleHandle("ntdll.dll"), "ZwSetTimerResolution");
   static void delay_w(float us)
   {
-	  static bool once = true;
-	  if (once) {
-		  ULONG actualResolution;
-		  ZwSetTimerResolution(1, true, &actualResolution);
-		  once = false;
-	  }
+    static bool once = true;
+    if (once) {
+      ULONG actualResolution;
+      ZwSetTimerResolution(1, true, &actualResolution);
+      once = false;
+    }
 
-	  LARGE_INTEGER interval;
-	  interval.QuadPart = (LONGLONG)(-10.f * us);
-	  NtDelayExecution(false, &interval);
+    LARGE_INTEGER interval;
+    interval.QuadPart = (LONGLONG)(-10.f * us);
+    NtDelayExecution(false, &interval);
   }
 #elif defined(fan_platform_unix)
   #include <time.h>
@@ -38,7 +39,7 @@ export module fan.time;
 import fan.types;
 
 export namespace fan {
-	namespace time {
+  namespace time {
     // returns time in nanoseconds
     uint64_t now() {
     #if defined(fan_platform_windows)
@@ -60,8 +61,8 @@ export namespace fan {
       return fan::time::now() / 1e9;
     }
 
-		struct timer {
-			timer() = default;
+    struct timer {
+      timer() = default;
       explicit timer(uint64_t time, bool start_timer) {
         if (start_timer) {
           start(time);
@@ -95,9 +96,9 @@ export namespace fan {
         return t;
       }
 
-			constexpr uint64_t count() const {
-				return m_time;
-			}
+      constexpr uint64_t count() const {
+        return m_time;
+      }
       // Returns the total length of the timer
       constexpr uint64_t duration() const {
         return count();
@@ -105,10 +106,10 @@ export namespace fan {
       constexpr f64_t duration_seconds() const {
         return duration() / 1e9;
       }
-			void start() {
-				m_timer = fan::time::now();
+      void start() {
+        m_timer = fan::time::now();
         m_time = -2;
-			}
+      }
       void start(uint64_t time) {
         this->start();
         m_time = time;
@@ -129,25 +130,25 @@ export namespace fan {
       void set_time(uint64_t time) {
         m_time = time;
       }
-			void restart() {
+      void restart() {
         auto prev = m_time;
-				start();
+        start();
         m_time = prev;
-			}
-			bool finished() const {
-				auto elapsed = this->elapsed();
-				return elapsed >= m_time;
-			}
+      }
+      bool finished() const {
+        auto elapsed = this->elapsed();
+        return elapsed >= m_time;
+      }
       explicit operator bool const() {
         return finished();
       }
-			bool started() const {
-				return m_time != (uint64_t)-1;
-			}
-			// returns elapsed time since start in nanoseconds
-			uint64_t elapsed() const {
-				return m_timer == 0 ? 0 : fan::time::now() - m_timer;
-			}
+      bool started() const {
+        return m_time != (uint64_t)-1;
+      }
+      // returns elapsed time since start in nanoseconds
+      uint64_t elapsed() const {
+        return m_timer == 0 ? 0 : fan::time::now() - m_timer;
+      }
       // returns elapsed time since start in seconds
       double seconds() const {
         return elapsed() / 1e9;
@@ -163,9 +164,9 @@ export namespace fan {
         return m_timer / 1e9;
       }
 
-			uint64_t m_timer = 0;
-			uint64_t m_time = (uint64_t)-1;
-		};
+      uint64_t m_timer = 0;
+      uint64_t m_time = (uint64_t)-1;
+    };
     void delay(uint64_t time) {
 #ifdef fan_platform_windows
 
@@ -203,5 +204,15 @@ export namespace fan {
       scope_timer_print(scope_timer_print&&) = delete;
       scope_timer sc;
     };
-	}
+    template<auto token = +[](){}>
+    bool every(f64_t interval_ms) {
+      static uint64_t last_time = 0;  
+      uint64_t interval_ns = (uint64_t)(interval_ms * 1e6);
+      uint64_t current = fan::time::now();
+      uint64_t elapsed = current - last_time;
+      uint64_t finished = (last_time == 0) | (elapsed >= interval_ns);
+      last_time = last_time * (finished ^ 1) + current * finished;
+      return finished;
+    }
+  }
 }

@@ -133,7 +133,7 @@ void weather_t::load_rain(fan::graphics::shape_t& rain_particles) {
 
 int main() {
   pile.loco.clear_color = 0;
-  pile.player.body.movement_state.accelerate_force = 50;
+  pile.player.body.movement_state.acceleration_force = 50;
   pile.player.body.movement_state.max_speed = 1000;
 
   fan::graphics::physics::debug_draw(true);

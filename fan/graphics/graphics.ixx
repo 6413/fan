@@ -44,13 +44,13 @@ import fan.physics.types;
 /***************************************/
 //
 export namespace fan::window {
-  void add_input_action(const int* keys, std::size_t count, const std::string& action_name);
-  void add_input_action(std::initializer_list<int> keys, const std::string& action_name);
-  void add_input_action(int key, const std::string& action_name);
-  bool is_input_action_active(const std::string& action_name, int pstate = fan::window::input_action_t::press);
-  bool is_action_clicked(const std::string& action_name);
-  bool is_action_down(const std::string& action_name);
-  bool exists(const std::string& action_name);
+  void add_input_action(const int* keys, std::size_t count, const std::string_view& action_name);
+  void add_input_action(std::initializer_list<int> keys, const std::string_view& action_name);
+  void add_input_action(int key, const std::string_view& action_name);
+  bool is_input_action_active(const std::string_view& action_name, int pstate = fan::window::input_action_t::press);
+  bool is_action_clicked(const std::string_view& action_name);
+  bool is_action_down(const std::string_view& action_name);
+  bool exists(const std::string_view& action_name);
 }
 export namespace fan::graphics {
   using renderer_t = fan::window_t::renderer_t;
