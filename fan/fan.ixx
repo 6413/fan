@@ -42,6 +42,7 @@ export import fan.event;
 #endif
 #if defined(FAN_PHYSICS_2D)
   export import fan.physics.collision.rectangle;
+  export import fan.physics.collision.circle;
   export import fan.physics.b2_integration;
   export import fan.graphics.physics_shapes;
 #endif

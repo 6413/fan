@@ -127,13 +127,13 @@ namespace fan::graphics {
   }
 }
 
-bool loco_t::is_input_clicked(const std::string& name) {
+bool loco_t::is_input_clicked(const std::string_view& name) {
   return input_action.is_clicked(name);
 }
-bool loco_t::is_input_down(const std::string& name) {
+bool loco_t::is_input_down(const std::string_view& name) {
   return input_action.is_down(name);
 }
-bool loco_t::is_input_released(const std::string& name) {
+bool loco_t::is_input_released(const std::string_view& name) {
   return input_action.is_released(name);
 }
 
