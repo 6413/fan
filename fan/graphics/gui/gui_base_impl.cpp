@@ -269,13 +269,13 @@ namespace fan::graphics::gui {
     flags &= ~window_flags_topmost;
 
     if (is_topmost) {
-      topmost_data().register_window(window_name.sv);
+      topmost_data().register_window(window_name);
 
       flags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
       flags |= ImGuiWindowFlags_NoFocusOnAppearing;
     }
     else {
-      topmost_data().unregister_window(window_name.sv);
+      topmost_data().unregister_window(window_name);
     }
 
     if (flags & window_flags_no_title_bar) {
@@ -286,7 +286,7 @@ namespace fan::graphics::gui {
     if (flags & window_flags_override_input) {
       detail::want_io_ignore_list()[window_name] = true;
     }
-    bool result = ImGui::Begin(fan::ct_string(window_name.sv), p_open, flags);
+    bool result = ImGui::Begin(fan::ct_string(window_name), p_open, flags);
     return result;
   }
 
@@ -296,7 +296,7 @@ namespace fan::graphics::gui {
   }
 
   bool begin_child(label_t window_name, const fan::vec2& size, child_window_flags_t child_window_flags, window_flags_t window_flags) {
-    return ImGui::BeginChild(fan::ct_string(window_name.sv),
+    return ImGui::BeginChild(fan::ct_string(window_name),
       ImVec2(size.x, size.y),
       child_window_flags,
       window_flags);
@@ -315,7 +315,7 @@ namespace fan::graphics::gui {
   }
 
   bool begin_tab_bar(label_t tab_bar_name, window_flags_t window_flags) {
-    return ImGui::BeginTabBar(fan::ct_string(tab_bar_name.sv), window_flags);
+    return ImGui::BeginTabBar(fan::ct_string(tab_bar_name), window_flags);
   }
 
   void end_tab_bar() {
@@ -399,7 +399,7 @@ namespace fan::graphics::gui {
   }
 
   bool menu_item(label_t label, std::string_view shortcut, bool selected, bool enabled) {
-    const char* sc = shortcut.empty() ? nullptr : fan::ct_string(shortcut);
+    const char* sc = shortcut.empty() ? nullptr : shortcut.data();
     return ImGui::MenuItem(label, sc, selected, enabled);
   }
 
@@ -534,7 +534,7 @@ namespace fan::graphics::gui {
   }
 
   void push_id(label_t str_id) {
-    ImGui::PushID(fan::ct_string(str_id.sv));
+    ImGui::PushID(fan::ct_string(str_id));
   }
 
   void push_id(int int_id) {
@@ -597,7 +597,7 @@ namespace fan::graphics::gui {
   }
 
   bool begin_table(label_t str_id, int columns, table_flags_t flags, const fan::vec2& outer_size, f32_t inner_width) {
-    return ImGui::BeginTable(fan::ct_string(str_id.sv), columns, flags,
+    return ImGui::BeginTable(fan::ct_string(str_id), columns, flags,
       outer_size, inner_width);
   }
 
@@ -772,7 +772,7 @@ namespace fan::graphics::gui {
   }
 
   void set_window_focus(label_t name) {
-    ImGui::SetWindowFocus(fan::ct_string(name.sv));
+    ImGui::SetWindowFocus(fan::ct_string(name));
   }
 
   int render_window_flags() {
@@ -1251,7 +1251,7 @@ namespace fan::graphics::gui {
   }
 
   bool toggle_button(label_t str, bool* v) {
-    return detail::toggle_button_impl(fan::ct_string(str.sv), v);
+    return detail::toggle_button_impl(fan::ct_string(str), v);
   }
 
   void text_bottom_right(std::string_view text, uint32_t reverse_yoffset) {
@@ -1269,9 +1269,9 @@ namespace fan::graphics::gui {
     return pos;
   }
 
-  void send_drag_drop_item(label_t id, const std::wstring& path, std::string_view popup) {
+  void send_drag_drop_item(label_t id, const std::wstring& path, label_t popup) {
     if (ImGui::BeginDragDropSource()) {
-      ImGui::SetDragDropPayload(fan::ct_string(id.sv), path.c_str(), (path.size() + 1) * sizeof(wchar_t));
+      ImGui::SetDragDropPayload(fan::ct_string(id), path.c_str(), (path.size() + 1) * sizeof(wchar_t));
       if (!popup.empty()) {
         ImGui::TextUnformatted(popup.data(), popup.data() + popup.size());
       }
@@ -1280,7 +1280,7 @@ namespace fan::graphics::gui {
   }
 
   void receive_drag_drop_target(label_t id, std::function<void(std::string)> receive_func) {
-    detail::receive_drag_drop_target_impl(fan::ct_string(id.sv), std::move(receive_func));
+    detail::receive_drag_drop_target_impl(fan::ct_string(id), std::move(receive_func));
   }
 
   bool slider_scalar(label_t label, data_type_t data_type, void* p_data, const void* p_min, const void* p_max, const char* format, slider_flags_t flags) {
@@ -1343,7 +1343,7 @@ namespace fan::graphics::gui {
     int frame_padding,
     const fan::color& bg_col,
     const fan::color& tint_col) {
-    return detail::image_button_img_impl(fan::ct_string(str_id.sv), img, size, uv0, uv1, frame_padding, bg_col, tint_col);
+    return detail::image_button_img_impl(fan::ct_string(str_id), img, size, uv0, uv1, frame_padding, bg_col, tint_col);
   }
 
   bool image_text_button(fan::graphics::image_t img,
@@ -1367,7 +1367,7 @@ namespace fan::graphics::gui {
     const fan::color& tint_col) {
     ImVec4 bg(bg_col.r, bg_col.g, bg_col.b, bg_col.a);
     ImVec4 tint(tint_col.r, tint_col.g, tint_col.b, tint_col.a);
-    return ImGui::ImageButton(fan::ct_string(str_id.sv),
+    return ImGui::ImageButton(fan::ct_string(str_id),
       texture,
       ImVec2(size.x, size.y),
       ImVec2(uv0.x, uv0.y),
@@ -1380,19 +1380,18 @@ namespace fan::graphics::gui {
     return ImGui::ItemAdd(bb, id, nav_bb, extra_flags);
   }
 
-  int is_key_pressed(key_t key, bool repeat) {
+  int is_key_clicked(key_t key, bool repeat) {
     return ImGui::IsKeyPressed(key, repeat) ? 1 : 0;
   }
 
   int get_pressed_key() {
-    for (int k = 0; k < ImGuiKey_COUNT; ++k) {
+    for (int k = ImGuiKey_NamedKey_BEGIN; k < ImGuiKey_NamedKey_END; ++k) {
       if (ImGui::IsKeyPressed(static_cast<ImGuiKey>(k))) {
         return k;
       }
     }
     return -1;
   }
-
   void set_next_window_class(const class_t* c) {
     ImGui::SetNextWindowClass(static_cast<const ImGuiWindowClass*>(c));
   }
@@ -1402,7 +1401,7 @@ namespace fan::graphics::gui {
   }
 
   bool set_drag_drop_payload(label_t type, const void* data, size_t sz, cond_t cond) {
-    return ImGui::SetDragDropPayload(fan::ct_string(type.sv), data, sz, cond);
+    return ImGui::SetDragDropPayload(fan::ct_string(type), data, sz, cond);
   }
 
   void end_drag_drop_source() {
@@ -1414,7 +1413,7 @@ namespace fan::graphics::gui {
   }
 
   const payload_t* accept_drag_drop_payload(label_t type) {
-    return ImGui::AcceptDragDropPayload(fan::ct_string(type.sv));
+    return ImGui::AcceptDragDropPayload(fan::ct_string(type));
   }
 
   void end_drag_drop_target() {
@@ -1426,11 +1425,11 @@ namespace fan::graphics::gui {
   }
 
   bool begin_popup(label_t id, window_flags_t flags) {
-    return ImGui::BeginPopup(fan::ct_string(id.sv), flags);
+    return ImGui::BeginPopup(fan::ct_string(id), flags);
   }
 
   bool begin_popup_modal(label_t id, window_flags_t flags) {
-    return ImGui::BeginPopupModal(fan::ct_string(id.sv), nullptr, flags);
+    return ImGui::BeginPopupModal(fan::ct_string(id), nullptr, flags);
   }
 
   void end_popup() {
@@ -1438,7 +1437,7 @@ namespace fan::graphics::gui {
   }
 
   void open_popup(label_t id) {
-    ImGui::OpenPopup(fan::ct_string(id.sv));
+    ImGui::OpenPopup(fan::ct_string(id));
   }
 
   void close_current_popup() {
@@ -1446,11 +1445,11 @@ namespace fan::graphics::gui {
   }
 
   bool is_popup_open(label_t id) {
-    return ImGui::IsPopupOpen(fan::ct_string(id.sv));
+    return ImGui::IsPopupOpen(fan::ct_string(id));
   }
 
   id_t get_id(label_t str_id) {
-    return ImGui::GetID(fan::ct_string(str_id.sv));
+    return ImGui::GetID(fan::ct_string(str_id));
   }
 
   storage_t* get_state_storage() {
@@ -1782,7 +1781,7 @@ namespace fan::graphics::gui {
 namespace fan::graphics::gui::plot {
 
   bool begin_plot(label_t title, const fan::vec2& size, flags_t flags) {
-    return ImPlot::BeginPlot(fan::ct_string(title.sv), ImVec2(size.x, size.y), flags);
+    return ImPlot::BeginPlot(fan::ct_string(title), ImVec2(size.x, size.y), flags);
   }
 
   void end_plot() {
@@ -1790,7 +1789,7 @@ namespace fan::graphics::gui::plot {
   }
 
   void setup_axes(label_t x_label, label_t y_label, axis_flags_t x_flags, axis_flags_t y_flags) {
-    ImPlot::SetupAxes(fan::ct_string(x_label.sv), fan::ct_string(y_label.sv), x_flags, y_flags);
+    ImPlot::SetupAxes(fan::ct_string(x_label), fan::ct_string(y_label), x_flags, y_flags);
   }
 
   void setup_axis(axis_t axis, label_t label, axis_flags_t flags) {
@@ -1952,7 +1951,7 @@ namespace fan::graphics::gui::plot {
   }
 
   void plot_dummy(label_t label_id, int flags) {
-    ImPlot::PlotDummy(fan::ct_string(label_id.sv), flags);
+    ImPlot::PlotDummy(fan::ct_string(label_id), flags);
   }
 
   fan::color next_colormap_color() {

@@ -17,24 +17,17 @@ import fan.types.compile_time_string;
 
 #if defined(FAN_GUI)
 export namespace fan::graphics::gui {
-  struct label_t {
-    std::string_view sv;
+  struct label_t : std::string_view {
+    using std::string_view::string_view;
 
-    label_t(const char* s) : sv(s) {}
-    label_t(std::string_view s) : sv(s) {}
-
+    label_t(const char* s) : std::string_view(s) {}
+    label_t(std::string_view s) : std::string_view(s) {}
     label_t(const std::string&) = delete;
     label_t(std::string&) = delete;
     label_t(std::string&&) = delete;
 
-    operator std::string_view() { return sv; }
-    operator std::string_view() const { return sv; }
-    
     operator const char* () const {
-   //   thread_local fan::ct_string<> storage;
-    //  storage.set(sv);
-     // return storage.ptr;
-      return sv.data();
+      return data();
     }
   };
 

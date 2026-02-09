@@ -134,9 +134,15 @@ namespace fan {
     }
 
     r = values[0];
-    g = values[1];
-    b = values[2];
-    a = values[3];
+    if (i == 1) {
+      b = g = r;
+      a = 1.f;
+    }
+    else {
+      g = values[1];
+      b = values[2];
+      a = values[3];
+    }
   }
 
   color color::parse(const std::string& str) {

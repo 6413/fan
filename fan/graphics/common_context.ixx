@@ -36,55 +36,75 @@ import fan.types.compile_time_string;
   import fan.console;
 #endif
 
+#define __dme_extend \
+  static auto get_names_impl() { \
+    std::array<fan::ct_string<256>, size()> a{}; \
+    for (size_t i = 0; i < size(); i++) { \
+      a[i] = fan::snake_to_title(items()[i]); \
+    } \
+    return a; \
+  } \
+  static auto get_names() { \
+    static auto names = get_names_impl(); \
+    std::array<const char*, size()> p{}; \
+    for (size_t i = 0; i < size(); i++) \
+      p[i] = names[i].c_str(); \
+    return p; \
+  }
+
+#include <fan/types/dme.h>
+
 export namespace fan {
   namespace graphics {
-    enum image_format {
-      undefined = 255,
-      r8b8g8a8_unorm = 0,
-      b8g8r8a8_unorm,
-      r8_unorm,
-      rg8_unorm,
-      rgb_unorm,
-      rgba_unorm,
-      bgr_unorm,
-      r8_uint,
-      r8g8b8a8_srgb,
-      r11f_g11f_b10f,
-      yuv420p,
-      nv12,
-    };
+    struct image_format_e : __dme_inherit(image_format_e) {
+      __dme(r8b8g8a8_unorm);
+      __dme(b8g8r8a8_unorm);
+      __dme(r8_unorm);
+      __dme(rg8_unorm);
+      __dme(rgb_unorm);
+      __dme(rgba_unorm);
+      __dme(bgr_unorm);
+      __dme(r8_uint);
+      __dme(r8g8b8a8_srgb);
+      __dme(r11f_g11f_b10f);
+      __dme(yuv420p);
+      __dme(nv12);
+
+      static constexpr uint8_t undefined = 255;
+    }image_format;
+
     constexpr uint8_t get_texture_amount(uint8_t format) {
       switch (format) {
-      case undefined: {
+      case image_format_e::undefined: {
         return 0;
       }
-      case yuv420p: {
+      case image_format_e::yuv420p: {
         return 3;
       }
-      case nv12: {
+      case image_format_e::nv12: {
         return 2;
       }
       default: {
         fan::throw_error("invalid format");
-        return undefined;
+        return image_format_e::undefined;
       }
       }
     }
-    enum image_sampler_address_mode {
-      repeat,
-      mirrored_repeat,
-      clamp_to_edge,
-      clamp_to_border,
-      mirrored_clamp_to_edge,
-    };
-    enum image_filter {
-      nearest,
-      linear,
-      nearest_mipmap_nearest,
-      linear_mipmap_nearest,
-      nearest_mipmap_linear,
-      linear_mipmap_linear,
-    };
+    struct image_sampler_address_mode_e : __dme_inherit(image_sampler_address_mode_e) {
+      __dme(repeat);
+      __dme(mirrored_repeat);
+      __dme(clamp_to_edge);
+      __dme(clamp_to_border);
+      __dme(mirrored_clamp_to_edge);
+    }image_sampler_address_mode;
+    struct image_filter_e : __dme_inherit(image_filter_e) {
+      __dme(nearest);
+      __dme(linear);
+      __dme(nearest_mipmap_nearest);
+      __dme(linear_mipmap_nearest);
+      __dme(nearest_mipmap_linear);
+      __dme(linear_mipmap_linear);
+    } image_filter;
     enum data_types {
       fan_unsigned_byte,
       fan_byte,
@@ -92,12 +112,12 @@ export namespace fan {
       fan_float,
     };
     struct image_load_properties_defaults {
-      static constexpr uint32_t visual_output = repeat;
-      static constexpr uint32_t internal_format = r8b8g8a8_unorm;
-      static constexpr uint32_t format = r8b8g8a8_unorm;
+      static constexpr uint32_t visual_output = image_sampler_address_mode_e::repeat;
+      static constexpr uint32_t internal_format = image_format_e::r8b8g8a8_unorm;
+      static constexpr uint32_t format = image_format_e::r8b8g8a8_unorm;
       static constexpr uint32_t type = fan_unsigned_byte; // internal
-      static constexpr uint32_t min_filter = linear;
-      static constexpr uint32_t mag_filter = linear;
+      static constexpr uint32_t min_filter = image_filter_e::linear;
+      static constexpr uint32_t mag_filter = image_filter_e::linear;
     };
 
     struct context_camera_t : fan::camera {
@@ -235,28 +255,28 @@ export namespace fan {
     };
     context_functions_t get_vk_context_functions();
 
-    constexpr uint8_t get_channel_amount(uint8_t format) {
-      switch (static_cast<image_format>(format)) {
-      case image_format::undefined: return 0;
+    constexpr uint8_t get_channel_amount(uint32_t format) {
+      switch (format) {
+      case image_format_e::undefined: return 0;
 
-      case image_format::r8_unorm:
-      case image_format::r8_uint: return 1;
+      case image_format_e::r8_unorm:
+      case image_format_e::r8_uint: return 1;
 
-      case image_format::rg8_unorm: return 2;
+      case image_format_e::rg8_unorm: return 2;
 
-      case image_format::rgb_unorm: return 3;
-      case image_format::bgr_unorm: return 3;
+      case image_format_e::rgb_unorm:
+      case image_format_e::bgr_unorm: return 3;
 
-      case image_format::r8b8g8a8_unorm:
-      case image_format::b8g8r8a8_unorm:
-      case image_format::rgba_unorm:
-      case image_format::r8g8b8a8_srgb: return 4;
+      case image_format_e::r8b8g8a8_unorm:
+      case image_format_e::b8g8r8a8_unorm:
+      case image_format_e::rgba_unorm:
+      case image_format_e::r8g8b8a8_srgb: return 4;
 
-      case image_format::r11f_g11f_b10f: return 3;
+      case image_format_e::r11f_g11f_b10f: return 3;
 
-      case image_format::nv12: return 2;
+      case image_format_e::nv12: return 2;
 
-      case image_format::yuv420p: return 3;
+      case image_format_e::yuv420p: return 3;
 
       default:
         fan::throw_error("Invalid format");
@@ -264,38 +284,41 @@ export namespace fan {
       }
     }
 
-
     constexpr std::array<fan::vec2ui, 4> get_image_sizes(uint8_t format, const fan::vec2ui& image_size) {
       using namespace fan::graphics;
       switch (format) {
-      case  image_format::yuv420p: {
+      case image_format_e::yuv420p:
+      {
         return std::array<fan::vec2ui, 4>{image_size, image_size / 2, image_size / 2};
       }
-      case  image_format::nv12: {
-        return std::array<fan::vec2ui, 4>{image_size, fan::vec2ui{ image_size.x / 2, image_size.y / 2 }};
+      case image_format_e::nv12:
+      {
+        return std::array<fan::vec2ui, 4>{image_size, fan::vec2ui {image_size.x / 2, image_size.y / 2}};
       }
-      default: {
+      default:
+      {
         fan::throw_error("invalid format");
         return std::array<fan::vec2ui, 4>{};
       }
       }
     }
+
     template <typename T>
     constexpr std::array<T, 4> get_image_properties(uint8_t format) {
       using namespace fan::graphics;
-      std::array<T, 4> result{};
+      std::array<T, 4> result {};
 
       switch (format) {
-      case image_format::yuv420p:
+      case image_format_e::yuv420p:
         for (int i = 0; i < 3; ++i) {
-          result[i].internal_format = fan::graphics::image_format::r8_unorm;
-          result[i].format = fan::graphics::image_format::r8_unorm;
+          result[i].internal_format = fan::graphics::image_format_e::r8_unorm;
+          result[i].format = fan::graphics::image_format_e::r8_unorm;
         }
         break;
 
-      case image_format::nv12:
-        result[0].internal_format = result[0].format = fan::graphics::image_format::r8_unorm;
-        result[1].internal_format = result[1].format = fan::graphics::image_format::rg8_unorm;
+      case image_format_e::nv12:
+        result[0].internal_format = result[0].format = fan::graphics::image_format_e::r8_unorm;
+        result[1].internal_format = result[1].format = fan::graphics::image_format_e::rg8_unorm;
         break;
 
       default:
@@ -304,6 +327,7 @@ export namespace fan {
 
       return result;
     }
+
   };
 }
 
@@ -526,7 +550,7 @@ export namespace fan {
     bool is_mouse_down(int button = fan::mouse_left);
     bool is_mouse_released(int button = fan::mouse_left);
     fan::vec2 get_mouse_drag(int button = fan::mouse_left);
-    bool is_key_pressed(int key);
+    bool is_key_clicked(int key);
     bool is_key_down(int key);
     bool is_key_released(int key);
     bool is_gamepad_button_down(int key);

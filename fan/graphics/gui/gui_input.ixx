@@ -49,7 +49,7 @@ export namespace fan::graphics::gui::input {
   }
   bool number(uint32_t& out_number) {
     for (uint32_t i = 0; i < 9; ++i) {
-      if (gui::is_key_pressed((gui::key_t)fan::window::input::to_imgui_key(fan::key_1 + i), false)) {
+      if (gui::is_key_clicked((gui::key_t)fan::window::input::to_imgui_key(fan::key_1 + i), false)) {
         out_number = i;
         return true;
       }

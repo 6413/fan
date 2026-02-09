@@ -149,12 +149,12 @@ void init_framebuffer() {
   //
   static auto load_texture = [&](fan::image::info_t& image_info, fan::graphics::image_t& color_buffer, GLenum attachment, bool reload = false) {
     fan::graphics::image_load_properties_t load_properties;
-    load_properties.visual_output = fan::graphics::image_sampler_address_mode::repeat;
-    load_properties.internal_format = fan::graphics::image_format::r8b8g8a8_unorm;
-    load_properties.format = fan::graphics::image_format::r8b8g8a8_unorm;
+    load_properties.visual_output = fan::graphics::image_sampler_address_mode_e::repeat;
+    load_properties.internal_format = fan::graphics::image_format_e::r8b8g8a8_unorm;
+    load_properties.format = fan::graphics::image_format_e::r8b8g8a8_unorm;
     load_properties.type = fan::graphics::fan_float;
-    load_properties.min_filter = fan::graphics::image_filter::linear;
-    load_properties.mag_filter = fan::graphics::image_filter::linear;
+    load_properties.min_filter = fan::graphics::image_filter_e::linear;
+    load_properties.mag_filter = fan::graphics::image_filter_e::linear;
     if (reload == true) {
       loco.image_reload(color_buffer, image_info, load_properties);
     }
@@ -1207,7 +1207,7 @@ void begin_process_frame() {
 
     loco.gl.m_framebuffer.bind(loco.context.gl);
 
-    fan_opengl_call(glClearColor(0, 0, 0, loco.clear_color.a));
+    fan_opengl_call(glClearColor(loco.clear_color.r, loco.clear_color.g, loco.clear_color.b, loco.clear_color.a));
 
     for (std::size_t i = 0; i < std::size(loco.gl.color_buffers); ++i) {
       fan_opengl_call(glActiveTexture(GL_TEXTURE0 + i));

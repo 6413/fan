@@ -321,8 +321,8 @@ namespace fan::window {
     }
     return fan::vec2();
   }
-  bool is_key_pressed(int key) {
-    return fan::graphics::ctx().window->is_key_pressed(key);
+  bool is_key_clicked(int key) {
+    return fan::graphics::ctx().window->is_key_clicked(key);
   }
   bool is_key_down(int key) {
     return fan::graphics::ctx().window->is_key_down(key);

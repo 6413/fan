@@ -121,9 +121,7 @@ export namespace fan {
     std::size_t len = 0;
   };
 
-
-  // Transparent hashing
-  export struct ct_string_hash {
+  struct ct_string_hash {
     using is_transparent = void;
 
     template<std::size_t N>
@@ -149,7 +147,7 @@ export namespace fan {
     }
   };
 
-  export struct ct_string_equal {
+  struct ct_string_equal {
     using is_transparent = void;
 
     template<std::size_t N>
@@ -177,4 +175,13 @@ export namespace fan {
       return std::string_view(a) == std::string_view(b.ptr, b.len);
     }
   };
+
+  // Converts snake_case to Title Case in compile time
+  template<size_t N = 256>
+  constexpr ct_string<N> snake_to_title(const char* s) {
+    ct_string<N> o {};
+    for (bool c = 1; *s && o.len < N - 1; c = *s == '_', ++s)
+      o.buffer[o.len++] = *s == '_' ? ' ' : (c ? (*s & ~32) : *s);
+    return o.buffer[o.len] = 0, o.ptr = o.buffer, o;
+  }
 }

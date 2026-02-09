@@ -214,10 +214,6 @@ public:
   bool is_input_down(const std::string_view& name);
   bool is_input_released(const std::string_view& name);
 
-  using image_load_properties_t = fan::graphics::image_load_properties_t;
-
-  using image_sampler_address_mode = fan::graphics::image_sampler_address_mode;
-
   std::uint8_t get_renderer();
   fan::graphics::shader_nr_t shader_create();
   fan::graphics::context_shader_t shader_get(fan::graphics::shader_nr_t nr);
@@ -599,7 +595,7 @@ public:
   bool is_mouse_down(int button = fan::mouse_left);
   bool is_mouse_released(int button = fan::mouse_left);
   fan::vec2 get_mouse_drag(int button = fan::mouse_left);
-  bool is_key_pressed(int key);
+  bool is_key_clicked(int key);
   bool is_key_down(int key);
   bool is_key_released(int key);
 

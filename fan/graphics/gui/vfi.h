@@ -1,3 +1,5 @@
+/*it's miracle this implementation works with the global shape_ids and get_visual_id()*/
+
 struct vfi_t {
 
   typedef uint16_t shape_type_t;
@@ -247,9 +249,9 @@ struct vfi_t {
   //};
 
   struct {
-    fan::graphics::shapes::shape_t mouse;
-    fan::graphics::shapes::shape_t keyboard;
-    fan::graphics::shapes::shape_t text;
+    shaper_t::ShapeID_t mouse;
+    shaper_t::ShapeID_t keyboard;
+    shaper_t::ShapeID_t text;
 
     struct {
       struct {
@@ -332,15 +334,15 @@ struct vfi_t {
 
     return ret;
   }
-  void erase(fan::graphics::shapes::shape_t& in) {
-    bool fm = focus.mouse == in;
+  void erase(shaper_t::ShapeID_t& in) {
+    bool fm = focus.mouse.NRI == in.NRI;
     if (fm) {
       focus.mouse.sic();
     }
-    if (focus.keyboard == in) {
+    if (focus.keyboard.NRI == in.NRI) {
       focus.keyboard.sic();
     }
-    if (focus.text == in) {
+    if (focus.text.NRI == in.NRI) {
       focus.text.sic();
     }
     auto data = ((ri_t*)in.GetData(g_shapes->shaper))->shape_data;
@@ -351,15 +353,15 @@ struct vfi_t {
     }
   }
   template <typename T>
-  void set_always(fan::graphics::shapes::shape_t in, auto T::*member, auto value) {
+  void set_always(auto T::*member, auto value) {
     ((ri_t*)focus.mouse.GetData(g_shapes->shaper))->shape_data->shape.always->*member = value;
   }
   template <typename T>
-  void set_rectangle(fan::graphics::shapes::shape_t in, auto T::*member, auto value) {
+  void set_rectangle(auto T::*member, auto value) {
     ((T*)&((ri_t*)focus.mouse.GetData(g_shapes->shaper))->shape_data->shape.rectangle)->*member = value;
   }
 
-  void set_common_data(fan::graphics::shapes::shape_t in, auto common_shape_data_t::*member, auto value) {
+  void set_common_data(auto common_shape_data_t::*member, auto value) {
     ((ri_t*)focus.mouse.GetData(g_shapes->shaper))->shape_data->*member = value;
   }
 
@@ -443,9 +445,9 @@ struct vfi_t {
 
   // might fail because shape_type isnt set
 
-  fan::graphics::shapes::shape_t& get_focus_mouse() {
-    return focus.mouse;
-  }
+  //fan::graphics::shapes::shape_t& get_focus_mouse() {
+  //  return focus.mouse;
+  //}
 
   // otherwise copy with const&
   void set_focus_mouse(const shaper_t::ShapeID_t& id) {
@@ -453,17 +455,17 @@ struct vfi_t {
     init_focus_mouse_flag();
   }
 
-  fan::graphics::shapes::shape_t& get_focus_keyboard() {
-    return focus.keyboard;
-  }
+  //fan::graphics::shapes::shape_t& get_focus_keyboard() {
+  //  return focus.keyboard;
+  //}
 
   void set_focus_keyboard(const shaper_t::ShapeID_t& id) {
     focus.keyboard.NRI = id.NRI;
   }
 
-  fan::graphics::shapes::shape_t& get_focus_text() {
-    return focus.text;
-  }
+  //fan::graphics::shapes::shape_t& get_focus_text() {
+  //  return focus.text;
+  //}
 
   void set_focus_text(const shaper_t::ShapeID_t& id) {
     focus.text.NRI = id.NRI;

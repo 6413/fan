@@ -17,6 +17,7 @@ uniform float _time;
 uniform int has_normal_map;
 uniform int has_specular_map;
 uniform int has_occlusion_map;
+uniform bool has_blending;
 vec3 rgb_to_hsl(vec3 rgb) {
   float maxc = max(max(rgb.r, rgb.g), rgb.b);
   float minc = min(min(rgb.r, rgb.g), rgb.b);
@@ -96,8 +97,9 @@ void main() {
   else {
     tex_color = tex_color_raw * instance_color;
   }
-  if (tex_color.a <= 0.25)
+  if (!has_blending && tex_color.a <= 0.25) {
     discard;
+  }
   bool draw_mode = has_normal_map == 1 || has_specular_map == 1 || has_occlusion_map == 1;
   vec3 brightness_magic = vec3(0.2126, 0.7152, 0.0722);
   float tex_brightness = dot(tex_color_raw.rgb, brightness_magic);

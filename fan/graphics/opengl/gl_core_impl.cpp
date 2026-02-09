@@ -875,16 +875,16 @@ namespace fan::opengl {
   }
 
   uint32_t context_t::global_to_opengl_format(uintptr_t format) {
-    if (format == fan::graphics::image_format::b8g8r8a8_unorm) return GL_BGRA;
-    if (format == fan::graphics::image_format::r8b8g8a8_unorm) return GL_RGBA;
-    if (format == fan::graphics::image_format::r8_unorm) return GL_RED;
-    if (format == fan::graphics::image_format::rg8_unorm) return GL_RG;
-    if (format == fan::graphics::image_format::rgb_unorm) return GL_RGB;
-    if (format == fan::graphics::image_format::rgba_unorm) return GL_RGBA;
-    if (format == fan::graphics::image_format::bgr_unorm) return GL_BGR;
-    if (format == fan::graphics::image_format::r8_uint) return GL_RED_INTEGER;
-    if (format == fan::graphics::image_format::r8g8b8a8_srgb) return GL_SRGB8_ALPHA8;
-    if (format == fan::graphics::image_format::r11f_g11f_b10f) return GL_R11F_G11F_B10F;
+    if (format == fan::graphics::image_format_e::b8g8r8a8_unorm) return GL_BGRA;
+    if (format == fan::graphics::image_format_e::r8b8g8a8_unorm) return GL_RGBA;
+    if (format == fan::graphics::image_format_e::r8_unorm) return GL_RED;
+    if (format == fan::graphics::image_format_e::rg8_unorm) return GL_RG;
+    if (format == fan::graphics::image_format_e::rgb_unorm) return GL_RGB;
+    if (format == fan::graphics::image_format_e::rgba_unorm) return GL_RGBA;
+    if (format == fan::graphics::image_format_e::bgr_unorm) return GL_BGR;
+    if (format == fan::graphics::image_format_e::r8_uint) return GL_RED_INTEGER;
+    if (format == fan::graphics::image_format_e::r8g8b8a8_srgb) return GL_SRGB8_ALPHA8;
+    if (format == fan::graphics::image_format_e::r11f_g11f_b10f) return GL_R11F_G11F_B10F;
   #if FAN_DEBUG >= fan_debug_high
     fan::throw_error("invalid format");
   #endif
@@ -902,11 +902,11 @@ namespace fan::opengl {
   }
 
   uint32_t context_t::global_to_opengl_address_mode(uint32_t mode) {
-    if (mode == fan::graphics::image_sampler_address_mode::repeat) return GL_REPEAT;
-    if (mode == fan::graphics::image_sampler_address_mode::mirrored_repeat) return GL_MIRRORED_REPEAT;
-    if (mode == fan::graphics::image_sampler_address_mode::clamp_to_edge) return GL_CLAMP_TO_EDGE;
-    if (mode == fan::graphics::image_sampler_address_mode::clamp_to_border) return GL_CLAMP_TO_BORDER;
-    if (mode == fan::graphics::image_sampler_address_mode::mirrored_clamp_to_edge) return GL_MIRROR_CLAMP_TO_EDGE;
+    if (mode == fan::graphics::image_sampler_address_mode_e::repeat) return GL_REPEAT;
+    if (mode == fan::graphics::image_sampler_address_mode_e::mirrored_repeat) return GL_MIRRORED_REPEAT;
+    if (mode == fan::graphics::image_sampler_address_mode_e::clamp_to_edge) return GL_CLAMP_TO_EDGE;
+    if (mode == fan::graphics::image_sampler_address_mode_e::clamp_to_border) return GL_CLAMP_TO_BORDER;
+    if (mode == fan::graphics::image_sampler_address_mode_e::mirrored_clamp_to_edge) return GL_MIRROR_CLAMP_TO_EDGE;
   #if FAN_DEBUG >= fan_debug_high
     fan::throw_error("invalid format");
   #endif
@@ -914,7 +914,7 @@ namespace fan::opengl {
   }
 
   uint32_t context_t::global_to_opengl_filter(uintptr_t filter) {
-    using filter_t = fan::graphics::image_filter;
+    using filter_t = fan::graphics::image_filter_e;
     switch (filter) {
     case filter_t::nearest: return GL_NEAREST;
     case filter_t::linear: return GL_LINEAR;
@@ -931,19 +931,19 @@ namespace fan::opengl {
   }
 
   uint32_t context_t::opengl_to_global_format(uintptr_t format) {
-    if (format == GL_BGRA) return fan::graphics::image_format::b8g8r8a8_unorm;
-    if (format == GL_RGBA) return fan::graphics::image_format::r8b8g8a8_unorm;
-    if (format == GL_RED) return fan::graphics::image_format::r8_unorm;
-    if (format == GL_RG) return fan::graphics::image_format::rg8_unorm;
-    if (format == GL_RGB) return fan::graphics::image_format::rgb_unorm;
-    if (format == GL_BGR) return fan::graphics::image_format::bgr_unorm;
-    if (format == GL_RED_INTEGER) return fan::graphics::image_format::r8_uint;
-    if (format == GL_SRGB8_ALPHA8) return fan::graphics::image_format::r8g8b8a8_srgb;
-    if (format == GL_R11F_G11F_B10F) return fan::graphics::image_format::r11f_g11f_b10f;
+    if (format == GL_BGRA) return fan::graphics::image_format_e::b8g8r8a8_unorm;
+    if (format == GL_RGBA) return fan::graphics::image_format_e::r8b8g8a8_unorm;
+    if (format == GL_RED) return fan::graphics::image_format_e::r8_unorm;
+    if (format == GL_RG) return fan::graphics::image_format_e::rg8_unorm;
+    if (format == GL_RGB) return fan::graphics::image_format_e::rgb_unorm;
+    if (format == GL_BGR) return fan::graphics::image_format_e::bgr_unorm;
+    if (format == GL_RED_INTEGER) return fan::graphics::image_format_e::r8_uint;
+    if (format == GL_SRGB8_ALPHA8) return fan::graphics::image_format_e::r8g8b8a8_srgb;
+    if (format == GL_R11F_G11F_B10F) return fan::graphics::image_format_e::r11f_g11f_b10f;
   #if FAN_DEBUG >= fan_debug_high
     fan::throw_error("invalid format");
   #endif
-    return fan::graphics::image_format::rgba_unorm;
+    return fan::graphics::image_format_e::rgba_unorm;
   }
 
   uint32_t context_t::opengl_to_global_type(uintptr_t type) {
@@ -957,29 +957,29 @@ namespace fan::opengl {
   }
 
   uint32_t context_t::opengl_to_global_address_mode(uint32_t mode) {
-    if (mode == GL_REPEAT) return fan::graphics::image_sampler_address_mode::repeat;
-    if (mode == GL_MIRRORED_REPEAT) return fan::graphics::image_sampler_address_mode::mirrored_repeat;
-    if (mode == GL_CLAMP_TO_EDGE) return fan::graphics::image_sampler_address_mode::clamp_to_edge;
-    if (mode == GL_CLAMP_TO_BORDER) return fan::graphics::image_sampler_address_mode::clamp_to_border;
-    if (mode == GL_MIRROR_CLAMP_TO_EDGE) return fan::graphics::image_sampler_address_mode::mirrored_clamp_to_edge;
+    if (mode == GL_REPEAT) return fan::graphics::image_sampler_address_mode_e::repeat;
+    if (mode == GL_MIRRORED_REPEAT) return fan::graphics::image_sampler_address_mode_e::mirrored_repeat;
+    if (mode == GL_CLAMP_TO_EDGE) return fan::graphics::image_sampler_address_mode_e::clamp_to_edge;
+    if (mode == GL_CLAMP_TO_BORDER) return fan::graphics::image_sampler_address_mode_e::clamp_to_border;
+    if (mode == GL_MIRROR_CLAMP_TO_EDGE) return fan::graphics::image_sampler_address_mode_e::mirrored_clamp_to_edge;
   #if FAN_DEBUG >= fan_debug_high
     fan::throw_error("invalid format");
   #endif
-    return fan::graphics::image_sampler_address_mode::repeat;
+    return fan::graphics::image_sampler_address_mode_e::repeat;
   }
 
   uint32_t context_t::opengl_to_global_filter(uintptr_t filter) {
     using namespace fan::graphics;
-    if (filter == GL_NEAREST) return fan::graphics::image_filter::nearest;
-    if (filter == GL_LINEAR) return fan::graphics::image_filter::linear;
-    if (filter == GL_NEAREST_MIPMAP_NEAREST) return fan::graphics::image_filter::nearest_mipmap_nearest;
-    if (filter == GL_LINEAR_MIPMAP_NEAREST) return fan::graphics::image_filter::linear_mipmap_nearest;
-    if (filter == GL_NEAREST_MIPMAP_LINEAR) return fan::graphics::image_filter::nearest_mipmap_linear;
-    if (filter == GL_LINEAR_MIPMAP_LINEAR) return fan::graphics::image_filter::linear_mipmap_linear;
+    if (filter == GL_NEAREST) return fan::graphics::image_filter_e::nearest;
+    if (filter == GL_LINEAR) return fan::graphics::image_filter_e::linear;
+    if (filter == GL_NEAREST_MIPMAP_NEAREST) return fan::graphics::image_filter_e::nearest_mipmap_nearest;
+    if (filter == GL_LINEAR_MIPMAP_NEAREST) return fan::graphics::image_filter_e::linear_mipmap_nearest;
+    if (filter == GL_NEAREST_MIPMAP_LINEAR) return fan::graphics::image_filter_e::nearest_mipmap_linear;
+    if (filter == GL_LINEAR_MIPMAP_LINEAR) return fan::graphics::image_filter_e::linear_mipmap_linear;
   #if FAN_DEBUG >= fan_debug_high
     fan::throw_error("Invalid OpenGL filter value.");
   #endif
-    return fan::graphics::image_filter::nearest;
+    return fan::graphics::image_filter_e::nearest;
   }
 
   void context_t::close(fan::opengl::context_t& context) {

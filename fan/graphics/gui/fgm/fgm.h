@@ -5,7 +5,7 @@ struct fgm_t {
   static constexpr auto max_depth = 0xff;
   static constexpr int max_path_input = 40;
   static constexpr int max_id_input = 20;
-  static constexpr fan::vec2 default_button_size{100, 30};
+  static constexpr fan::vec2 default_button_size {100, 30};
 
   inline static fan::graphics::file_open_dialog_t open_tp_dialog;
 
@@ -22,7 +22,7 @@ struct fgm_t {
       global_t() = default;
 
       template <typename T>
-      global_t(uint16_t shape_type, fgm_t* fgm, const T& obj, bool shape_add = true) 
+      global_t(uint16_t shape_type, fgm_t* fgm, const T& obj, bool shape_add = true)
         : fan::graphics::gui::imgui_element_t() {
         T temp = obj;
         this->shape_type = shape_type;
@@ -91,13 +91,13 @@ struct fgm_t {
     render_view.viewport = gloco()->open_viewport(fan::vec2(0), fan::vec2(1));
 
     auto transparent_texture = gloco()->create_transparent_texture();
-    background = fan::graphics::sprite_t{{
+    background = fan::graphics::sprite_t {{
       .render_view = &render_view,
       .position = 0,
       .size = 0,
       .image = transparent_texture,
     }};
-    
+
     if (texturepack_name.size()) {
       open_texturepack(texturepack_name);
     }
@@ -125,20 +125,23 @@ struct fgm_t {
 
     button_handle = gloco()->window.add_buttons_callback([this](const auto& d) {
       switch (d.button) {
-      case fan::mouse_middle: {
+      case fan::mouse_middle:
+      {
         viewport_settings.move = (bool)d.state;
         viewport_settings.offset = gloco()->get_mouse_position();
         viewport_settings.pos = gloco()->camera_get_position(render_view.camera);
         break;
       }
-      case fan::mouse_scroll_up: {
+      case fan::mouse_scroll_up:
+      {
         if (viewport_settings.editor_hovered) {
           fan::graphics::camera_set_zoom(render_view.camera, fan::graphics::camera_get_zoom(render_view.camera) * scroll_speed);
           update_line_thickness();
         }
         return;
       }
-      case fan::mouse_scroll_down: {
+      case fan::mouse_scroll_down:
+      {
         if (viewport_settings.editor_hovered) {
           fan::graphics::camera_set_zoom(render_view.camera, fan::graphics::camera_get_zoom(render_view.camera) / scroll_speed);
           update_line_thickness();
@@ -148,21 +151,21 @@ struct fgm_t {
       }
     });
 
-    xy_lines[0] = fan::graphics::line_t{{
+    xy_lines[0] = fan::graphics::line_t {{
       .render_view = &render_view,
       .src = fan::vec3(-0xfffff, 0, 0x1fff),
       .dst = fan::vec2(0xfffff, 0),
       .color = fan::colors::red / 2
     }};
 
-    xy_lines[1] = fan::graphics::line_t{{
+    xy_lines[1] = fan::graphics::line_t {{
       .render_view = &render_view,
       .src = fan::vec3(0, -0xfffff, 0x1fff),
       .dst = fan::vec2(0, 0xfffff),
       .color = fan::colors::green / 2
     }};
 
-    drag_select = fan::graphics::rectangle_t{{
+    drag_select = fan::graphics::rectangle_t {{
       .render_view = &render_view,
       .position = fan::vec3(0, 0, 0xffff - 0xff),
       .size = 0,
@@ -208,7 +211,7 @@ struct fgm_t {
     return false;
   }
 
-  void open_properties(fgm_t::shapes_t::global_t* shape, const fan::vec2& editor_size) {
+  void open_properties(fgm_t::shapes_t::global_t* shape) {
     using namespace fan::graphics;
 
     std::string shape_str = std::string("Shape name:") + fan::graphics::shape_names[shape->children[0].get_shape_type()];
@@ -245,6 +248,16 @@ struct fgm_t {
       }
     }
 
+    fan::vec2 tc_position = shape->children[0].get_tc_position();
+    if (gui::drag("tc position", &tc_position, 0.1f)) {
+      shape->children[0].set_tc_position(tc_position);
+    }
+
+    fan::vec2 tc_size = shape->children[0].get_tc_size();
+    if (gui::drag("tc size", &tc_size, 0.1f)) {
+      shape->children[0].set_tc_size(tc_size);
+    }
+
     std::string& id = current_shape->id;
     std::string str = id;
     if (gui::input_text("id", &str)) {
@@ -263,21 +276,33 @@ struct fgm_t {
 
     switch (shape->children[0].get_shape_type()) {
     case fan::graphics::shapes::shape_type_t::unlit_sprite:
-    case fan::graphics::shapes::shape_type_t::sprite: {
+    case fan::graphics::shapes::shape_type_t::sprite:
+    {
       fan::graphics::gui::render_texture_property(shape->children[0], 0, "Base texture", content_browser.asset_path);
       fan::graphics::gui::render_texture_property(shape->children[0], 1, "Normal map", content_browser.asset_path);
       fan::graphics::gui::render_texture_property(shape->children[0], 2, "Specular map", content_browser.asset_path);
       fan::graphics::gui::render_texture_property(shape->children[0], 3, "Occlusion map", content_browser.asset_path);
 
-      int current_image_filter = gloco()->image_get_settings(shape->children[0].get_image()).min_filter;
-      static const char* image_filters[] = {"nearest", "linear"};
-      if (gui::combo("image filter", &current_image_filter, image_filters, std::size(image_filters))) {
-        fan::graphics::image_load_properties_t ilp;
-        ilp.min_filter = current_image_filter;
-        ilp.mag_filter = current_image_filter;
-        gloco()->image_set_settings(shape->children[0].get_image(), ilp);
+      auto current_settings = gloco()->image_get_settings(shape->children[0].get_image());
+
+      int current_image_filter = current_settings.min_filter;
+      static auto filter_names = fan::graphics::image_filter_e::get_names();
+      if (gui::combo("image filter", &current_image_filter, filter_names.data(), (int)filter_names.size())) {
+        current_settings.min_filter = current_image_filter;
+        current_settings.mag_filter = current_image_filter;
+        gloco()->image_set_settings(shape->children[0].get_image(), current_settings);
         if (shape->children[0].get_images()[0].iic() == false) {
-          gloco()->image_set_settings(shape->children[0].get_images()[0], ilp);
+          gloco()->image_set_settings(shape->children[0].get_images()[0], current_settings);
+        }
+      }
+
+      int current_address_mode = current_settings.visual_output;
+      static auto address_mode_names = fan::graphics::image_sampler_address_mode.get_names();
+      if (gui::combo("address mode", &current_address_mode, address_mode_names.data(), address_mode_names.size())) {
+        current_settings.visual_output = current_address_mode;
+        gloco()->image_set_settings(shape->children[0].get_image(), current_settings);
+        if (shape->children[0].get_images()[0].iic() == false) {
+          gloco()->image_set_settings(shape->children[0].get_images()[0], current_settings);
         }
       }
 
@@ -310,8 +335,9 @@ struct fgm_t {
     auto nr = shape_list.NewNodeLast();
 
     switch (shape_type) {
-    case fan::graphics::shapes::shape_type_t::sprite: {
-      shape_list[nr] = new shapes_t::global_t{
+    case fan::graphics::shapes::shape_type_t::sprite:
+    {
+      shape_list[nr] = new shapes_t::global_t {
         fan::graphics::shapes::shape_type_t::sprite,
         this, fan::graphics::sprite_t{{
           .render_view = &render_view,
@@ -323,8 +349,9 @@ struct fgm_t {
       animations_application.current_animation_shape_nr = ri->sprite_sheet_data.shape_sprite_sheets;
       break;
     }
-    case fan::graphics::shapes::shape_type_t::unlit_sprite: {
-      shape_list[nr] = new shapes_t::global_t{
+    case fan::graphics::shapes::shape_type_t::unlit_sprite:
+    {
+      shape_list[nr] = new shapes_t::global_t {
         fan::graphics::shapes::shape_type_t::unlit_sprite,
         this, fan::graphics::unlit_sprite_t{{
           .render_view = &render_view,
@@ -333,8 +360,9 @@ struct fgm_t {
         }}};
       break;
     }
-    case fan::graphics::shapes::shape_type_t::rectangle: {
-      shape_list[nr] = new shapes_t::global_t{
+    case fan::graphics::shapes::shape_type_t::rectangle:
+    {
+      shape_list[nr] = new shapes_t::global_t {
         fan::graphics::shapes::shape_type_t::rectangle,
         this, fan::graphics::rectangle_t{{
           .render_view = &render_view,
@@ -343,15 +371,16 @@ struct fgm_t {
         }}};
       break;
     }
-    case fan::graphics::shapes::shape_type_t::light: {
-      shape_list[nr] = new shapes_t::global_t{
+    case fan::graphics::shapes::shape_type_t::light:
+    {
+      shape_list[nr] = new shapes_t::global_t {
         fan::graphics::shapes::shape_type_t::light,
         this, fan::graphics::light_t{{
           .render_view = &render_view,
           .position = pos,
           .size = size
         }}};
-      shape_list[nr]->push_child(fan::graphics::circle_t{{
+      shape_list[nr]->push_child(fan::graphics::circle_t {{
         .render_view = &render_view,
         .position = fan::vec3(pos, current_z),
         .radius = size.x,
@@ -517,10 +546,8 @@ struct fgm_t {
       drag_select.set_size(fan::vec2(0));
     }
 
-    fan::vec2 editor_size;
-
     if (gloco()->input_action.is_active("set_windowed_fullscreen")) {
-      gloco()->window.set_windowed_fullscreen();
+      gloco()->window.set_borderless();
     }
 
     if (gloco()->input_action.is_active("toggle_content_browser")) {
@@ -650,12 +677,12 @@ struct fgm_t {
     }
 
     if (fan::window::is_key_down(fan::key_left_control)) {
-      if (fan::window::is_key_pressed(fan::key_d)) {
+      if (fan::window::is_key_clicked(fan::key_d)) {
         for (auto& i : fan::graphics::vfi_root_t::selected_objects) {
           for (auto& child : i->children) {
             auto it = shape_list.NewNodeLast();
             auto& node = shape_list[it];
-            node = new shapes_t::global_t{child.get_shape_type(), this, child};
+            node = new shapes_t::global_t {child.get_shape_type(), this, child};
           }
         }
         fan::graphics::vfi_root_t::selected_objects.clear();
@@ -730,7 +757,7 @@ struct fgm_t {
 
     if (gui::begin("Properties")) {
       if (current_shape != nullptr) {
-        open_properties(current_shape, editor_size);
+        open_properties(current_shape);
 
         gui::new_line();
         gui::begin_child("properties_animations", 0, 1);
@@ -769,9 +796,8 @@ struct fgm_t {
 
               auto& current_shape_anim = shape.get_sprite_sheet();
               if ((animations_application.toggle_play_animation || animation_changed) &&
-                   animations_application.play_animation && 
-                   current_shape_anim.selected_frames.size()) 
-              {
+                animations_application.play_animation &&
+                current_shape_anim.selected_frames.size()) {
                 shape.play_sprite_sheet();
               }
 
@@ -994,7 +1020,7 @@ struct fgm_t {
         int shape_index = anim_entry["shape_index"].get<int>();
         shape_keyframe_animation_t anim;
         anim.deserialize(anim_entry["animation"]);
-        pending_animations.push_back({ shape_index, anim });
+        pending_animations.push_back({shape_index, anim});
       }
 
       for (const auto& [shape_index, anim] : pending_animations) {
@@ -1036,7 +1062,8 @@ struct fgm_t {
       auto it = shape_list.NewNodeLast();
       auto& node = shape_list[it];
       switch (shape.get_shape_type()) {
-      case fan::graphics::shapes::shape_type_t::sprite: {
+      case fan::graphics::shapes::shape_type_t::sprite:
+      {
         node = new fgm_t::shapes_t::global_t(
           fan::graphics::shapes::shape_type_t::sprite,
           this,
@@ -1047,7 +1074,8 @@ struct fgm_t {
         node->children[0].get_image_data().image_path = shape.get_image_data().image_path;
         break;
       }
-      case fan::graphics::shapes::shape_type_t::unlit_sprite: {
+      case fan::graphics::shapes::shape_type_t::unlit_sprite:
+      {
         node = new fgm_t::shapes_t::global_t(
           fan::graphics::shapes::shape_type_t::unlit_sprite,
           this,
@@ -1058,7 +1086,8 @@ struct fgm_t {
         node->children[0].get_image_data().image_path = shape.get_image_data().image_path;
         break;
       }
-      case fan::graphics::shapes::shape_type_t::rectangle: {
+      case fan::graphics::shapes::shape_type_t::rectangle:
+      {
         node = new fgm_t::shapes_t::global_t(
           fan::graphics::shapes::shape_type_t::rectangle,
           this,
@@ -1067,14 +1096,15 @@ struct fgm_t {
         );
         break;
       }
-      case fan::graphics::shapes::shape_type_t::light: {
+      case fan::graphics::shapes::shape_type_t::light:
+      {
         node = new fgm_t::shapes_t::global_t(
           fan::graphics::shapes::shape_type_t::light,
           this,
           shape,
           false
         );
-        node->push_child(fan::graphics::circle_t{{
+        node->push_child(fan::graphics::circle_t {{
           .render_view = &render_view,
           .position = shape.get_position(),
           .radius = shape.get_size().x,
@@ -1083,7 +1113,8 @@ struct fgm_t {
         }});
         break;
       }
-      case fan::graphics::shapes::shape_type_t::particles: {
+      case fan::graphics::shapes::shape_type_t::particles:
+      {
         node = new fgm_t::shapes_t::global_t(
           fan::graphics::shapes::shape_type_t::particles,
           this,
@@ -1092,7 +1123,8 @@ struct fgm_t {
         );
         break;
       }
-      default: {
+      default:
+      {
         gui::print("unimplemented shape type");
         break;
       }
@@ -1136,39 +1168,39 @@ struct fgm_t {
     }
   }
 
-enum class rotation_position_e : uint8_t {
-  center,
-  top_left,
-  top_middle,
-  top_right,
-  middle_left,
-  middle_right,
-  bottom_left,
-  bottom_middle,
-  bottom_right
-};
-
-struct shape_keyframe_animation_t {
-  struct keyframe_t {
-    static keyframe_t lerp(const keyframe_t& a, const keyframe_t& b, f32_t t) {
-      keyframe_t result;
-      result.time = a.time + (b.time - a.time) * t;
-      result.position = a.position + (b.position - a.position) * t;
-      result.size = a.size + (b.size - a.size) * t;
-      result.angle = a.angle + (b.angle - a.angle) * t;
-      result.rotation_pos = a.rotation_pos;
-      return result;
-    }
-
-    f32_t time = 0.0f;
-    fan::vec3 position = 0;
-    fan::vec2 size = 0;
-    fan::vec3 angle = 0;
-    rotation_position_e rotation_pos = rotation_position_e::center;
+  enum class rotation_position_e : uint8_t {
+    center,
+    top_left,
+    top_middle,
+    top_right,
+    middle_left,
+    middle_right,
+    bottom_left,
+    bottom_middle,
+    bottom_right
   };
 
-  fan::vec2 get_rotation_offset(rotation_position_e pos, const fan::vec2& half_size) const {
-    switch (pos) {
+  struct shape_keyframe_animation_t {
+    struct keyframe_t {
+      static keyframe_t lerp(const keyframe_t& a, const keyframe_t& b, f32_t t) {
+        keyframe_t result;
+        result.time = a.time + (b.time - a.time) * t;
+        result.position = a.position + (b.position - a.position) * t;
+        result.size = a.size + (b.size - a.size) * t;
+        result.angle = a.angle + (b.angle - a.angle) * t;
+        result.rotation_pos = a.rotation_pos;
+        return result;
+      }
+
+      f32_t time = 0.0f;
+      fan::vec3 position = 0;
+      fan::vec2 size = 0;
+      fan::vec3 angle = 0;
+      rotation_position_e rotation_pos = rotation_position_e::center;
+    };
+
+    fan::vec2 get_rotation_offset(rotation_position_e pos, const fan::vec2& half_size) const {
+      switch (pos) {
       case rotation_position_e::top_left: return {-half_size.x, -half_size.y};
       case rotation_position_e::top_middle: return {0, -half_size.y};
       case rotation_position_e::top_right: return {half_size.x, -half_size.y};
@@ -1178,337 +1210,337 @@ struct shape_keyframe_animation_t {
       case rotation_position_e::bottom_middle: return {0, half_size.y};
       case rotation_position_e::bottom_right: return {half_size.x, half_size.y};
       default: return {0, 0};
+      }
     }
-  }
 
-  void add_keyframe(const fan::vec3& pos, const fan::vec2& sz, const fan::vec3& ang, rotation_position_e rot_pos) {
-    f32_t time = current_time;
-    if (auto_increment_time && !keyframes.empty()) {
-      time = keyframes.back().time + time_increment;
-    }
-    keyframe_t kf{time, pos, sz, ang, rot_pos};
-    auto it = std::lower_bound(keyframes.begin(), keyframes.end(), kf,
-      [](const keyframe_t& a, const keyframe_t& b) {
+    void add_keyframe(const fan::vec3& pos, const fan::vec2& sz, const fan::vec3& ang, rotation_position_e rot_pos) {
+      f32_t time = current_time;
+      if (auto_increment_time && !keyframes.empty()) {
+        time = keyframes.back().time + time_increment;
+      }
+      keyframe_t kf {time, pos, sz, ang, rot_pos};
+      auto it = std::lower_bound(keyframes.begin(), keyframes.end(), kf,
+        [](const keyframe_t& a, const keyframe_t& b) {
         return a.time < b.time;
       });
-    keyframes.insert(it, kf);
-    if (auto_increment_time) {
-      current_time = time;
-    }
-  }
-
-  void remove_keyframe(int index) {
-    if (index >= 0 && index < keyframes.size()) {
-      keyframes.erase(keyframes.begin() + index);
-      if (selected_keyframe >= keyframes.size()) {
-        selected_keyframe = keyframes.size() - 1;
+      keyframes.insert(it, kf);
+      if (auto_increment_time) {
+        current_time = time;
       }
     }
-  }
 
-  keyframe_t get_current_frame() const {
-    if (keyframes.empty()) {
-      return keyframe_t{};
-    }
-    if (keyframes.size() == 1) {
-      return keyframes[0];
-    }
-
-    for (size_t i = 0; i < keyframes.size() - 1; ++i) {
-      if (current_time >= keyframes[i].time && current_time <= keyframes[i + 1].time) {
-        f32_t delta = keyframes[i + 1].time - keyframes[i].time;
-        if (delta <= 0.0f) {
-          return keyframes[i];
+    void remove_keyframe(int index) {
+      if (index >= 0 && index < keyframes.size()) {
+        keyframes.erase(keyframes.begin() + index);
+        if (selected_keyframe >= keyframes.size()) {
+          selected_keyframe = keyframes.size() - 1;
         }
-        f32_t t = (current_time - keyframes[i].time) / delta;
-        return keyframe_t::lerp(keyframes[i], keyframes[i + 1], t);
       }
     }
 
-    if (slerp_to_first && loop && keyframes.size() > 1) {
-      f32_t last_time = keyframes.back().time;
-      f32_t wrap_duration = slerp_duration;
-      f32_t wrap_end = last_time + wrap_duration;
-      
-      if (current_time > last_time && current_time <= wrap_end) {
-        f32_t t = (current_time - last_time) / wrap_duration;
-        return keyframe_t::lerp(keyframes.back(), keyframes.front(), t);
+    keyframe_t get_current_frame() const {
+      if (keyframes.empty()) {
+        return keyframe_t {};
+      }
+      if (keyframes.size() == 1) {
+        return keyframes[0];
+      }
+
+      for (size_t i = 0; i < keyframes.size() - 1; ++i) {
+        if (current_time >= keyframes[i].time && current_time <= keyframes[i + 1].time) {
+          f32_t delta = keyframes[i + 1].time - keyframes[i].time;
+          if (delta <= 0.0f) {
+            return keyframes[i];
+          }
+          f32_t t = (current_time - keyframes[i].time) / delta;
+          return keyframe_t::lerp(keyframes[i], keyframes[i + 1], t);
+        }
+      }
+
+      if (slerp_to_first && loop && keyframes.size() > 1) {
+        f32_t last_time = keyframes.back().time;
+        f32_t wrap_duration = slerp_duration;
+        f32_t wrap_end = last_time + wrap_duration;
+
+        if (current_time > last_time && current_time <= wrap_end) {
+          f32_t t = (current_time - last_time) / wrap_duration;
+          return keyframe_t::lerp(keyframes.back(), keyframes.front(), t);
+        }
+      }
+
+      return keyframes.back();
+    }
+
+    void update(f32_t dt) {
+      if (!is_playing || keyframes.empty() || !owner_shape) {
+        return;
+      }
+
+      current_time += dt;
+      f32_t max_time = keyframes.back().time;
+      if (slerp_to_first && loop) {
+        max_time += slerp_duration;
+      }
+
+      if (current_time > max_time) {
+        if (loop) {
+          current_time = 0.0f;
+        }
+        else {
+          current_time = max_time;
+          is_playing = false;
+        }
       }
     }
 
-    return keyframes.back();
-  }
-
-  void update(f32_t dt) {
-    if (!is_playing || keyframes.empty() || !owner_shape) {
-      return;
-    }
-
-    current_time += dt;
-    f32_t max_time = keyframes.back().time;
-    if (slerp_to_first && loop) {
-      max_time += slerp_duration;
-    }
-
-    if (current_time > max_time) {
-      if (loop) {
-        current_time = 0.0f;
+    void apply_to_shape(shapes_t::global_t* shape) {
+      if (keyframes.empty()) {
+        return;
       }
-      else {
-        current_time = max_time;
-        is_playing = false;
+      if (!shape || shape != owner_shape) {
+        return;
       }
-    }
-  }
 
-  void apply_to_shape(shapes_t::global_t* shape) {
-    if (keyframes.empty()) {
-      return;
-    }
-    if (!shape || shape != owner_shape) {
-      return;
-    }
-    
-    auto saved_selected = fan::graphics::vfi_root_t::selected_objects;
-    fan::graphics::vfi_root_t::selected_objects.clear();
-    
-    auto frame = get_current_frame();
-    shape->set_position(frame.position);
-    shape->children[0].set_size(frame.size);
-    shape->children[0].set_angle(frame.angle);
-    
-    fan::vec2 offset = get_rotation_offset(frame.rotation_pos, frame.size);
-    shape->children[0].set_rotation_point(offset);
-    
-    fan::graphics::vfi_root_t::selected_objects = saved_selected;
-  }
+      auto saved_selected = fan::graphics::vfi_root_t::selected_objects;
+      fan::graphics::vfi_root_t::selected_objects.clear();
 
-  fan::json serialize() const {
-    fan::json j;
-    j["name"] = name;
-    j["loop"] = loop;
-    j["slerp_to_first"] = slerp_to_first;
-    j["slerp_duration"] = slerp_duration;
-    j["current_rotation_pos"] = static_cast<int>(current_rotation_pos);
-    j["auto_increment_time"] = auto_increment_time;
-    j["time_increment"] = time_increment;
-    
-    fan::json keyframes_json = fan::json::array();
-    for (const auto& kf : keyframes) {
-      fan::json kf_json;
-      kf_json["time"] = kf.time;
-      kf_json["position"] = kf.position;
-      kf_json["size"] = kf.size;
-      kf_json["angle"] = kf.angle;
-      kf_json["rotation_pos"] = static_cast<int>(kf.rotation_pos);
-      keyframes_json.push_back(kf_json);
-    }
-    j["keyframes"] = keyframes_json;
-    
-    return j;
-  }
+      auto frame = get_current_frame();
+      shape->set_position(frame.position);
+      shape->children[0].set_size(frame.size);
+      shape->children[0].set_angle(frame.angle);
 
-  void deserialize(const fan::json& j) {
-    if (j.contains("name")) {
-      name = j["name"].get<std::string>();
+      fan::vec2 offset = get_rotation_offset(frame.rotation_pos, frame.size);
+      shape->children[0].set_rotation_point(offset);
+
+      fan::graphics::vfi_root_t::selected_objects = saved_selected;
     }
-    if (j.contains("loop")) {
-      loop = j["loop"].get<bool>();
-    }
-    if (j.contains("slerp_to_first")) {
-      slerp_to_first = j["slerp_to_first"].get<bool>();
-    }
-    if (j.contains("slerp_duration")) {
-      slerp_duration = j["slerp_duration"].get<f32_t>();
-    }
-    if (j.contains("current_rotation_pos")) {
-      current_rotation_pos = static_cast<rotation_position_e>(j["current_rotation_pos"].get<int>());
-    }
-    if (j.contains("auto_increment_time")) {
-      auto_increment_time = j["auto_increment_time"].get<bool>();
-    }
-    if (j.contains("time_increment")) {
-      time_increment = j["time_increment"].get<f32_t>();
-    }
-    
-    keyframes.clear();
-    selected_keyframe = -1;
-    current_time = 0.0f;
-    is_playing = false;
-    
-    if (j.contains("keyframes")) {
-      for (const auto& kf_json : j["keyframes"]) {
-        keyframe_t kf;
-        kf.time = kf_json["time"].get<f32_t>();
-        kf.position = kf_json["position"];
-        kf.size = kf_json["size"];
-        kf.angle = kf_json["angle"];
-        kf.rotation_pos = static_cast<rotation_position_e>(kf_json["rotation_pos"].get<int>());
-        keyframes.push_back(kf);
+
+    fan::json serialize() const {
+      fan::json j;
+      j["name"] = name;
+      j["loop"] = loop;
+      j["slerp_to_first"] = slerp_to_first;
+      j["slerp_duration"] = slerp_duration;
+      j["current_rotation_pos"] = static_cast<int>(current_rotation_pos);
+      j["auto_increment_time"] = auto_increment_time;
+      j["time_increment"] = time_increment;
+
+      fan::json keyframes_json = fan::json::array();
+      for (const auto& kf : keyframes) {
+        fan::json kf_json;
+        kf_json["time"] = kf.time;
+        kf_json["position"] = kf.position;
+        kf_json["size"] = kf.size;
+        kf_json["angle"] = kf.angle;
+        kf_json["rotation_pos"] = static_cast<int>(kf.rotation_pos);
+        keyframes_json.push_back(kf_json);
       }
-    }
-  }
+      j["keyframes"] = keyframes_json;
 
-  void render_gui(shapes_t::global_t* shape) {
-    using namespace fan::graphics;
-
-    gui::text(fan::format("Shape ptr: {} | Owner ptr: {} | Keyframes: {}", 
-      (void*)shape, (void*)owner_shape, keyframes.size()).c_str());
-
-    if (owner_shape != shape) {
-      gui::text("ERROR: Wrong animation! This belongs to another shape.");
-      gui::text("This should never happen - check map logic.");
-      return;
+      return j;
     }
 
-    gui::input_text("Name", &name);
-
-    if (gui::button(is_playing ? "Stop" : "Play")) {
-      is_playing = !is_playing;
-      if (is_playing && current_time >= (keyframes.empty() ? 0 : keyframes.back().time)) {
-        current_time = 0.0f;
+    void deserialize(const fan::json& j) {
+      if (j.contains("name")) {
+        name = j["name"].get<std::string>();
       }
-    }
-    gui::same_line();
-    if (gui::button("Reset")) {
+      if (j.contains("loop")) {
+        loop = j["loop"].get<bool>();
+      }
+      if (j.contains("slerp_to_first")) {
+        slerp_to_first = j["slerp_to_first"].get<bool>();
+      }
+      if (j.contains("slerp_duration")) {
+        slerp_duration = j["slerp_duration"].get<f32_t>();
+      }
+      if (j.contains("current_rotation_pos")) {
+        current_rotation_pos = static_cast<rotation_position_e>(j["current_rotation_pos"].get<int>());
+      }
+      if (j.contains("auto_increment_time")) {
+        auto_increment_time = j["auto_increment_time"].get<bool>();
+      }
+      if (j.contains("time_increment")) {
+        time_increment = j["time_increment"].get<f32_t>();
+      }
+
+      keyframes.clear();
+      selected_keyframe = -1;
       current_time = 0.0f;
-    }
-    gui::same_line();
-    gui::checkbox("Loop", &loop);
-    gui::same_line();
-    gui::checkbox("Slerp to First", &slerp_to_first);
+      is_playing = false;
 
-    gui::checkbox("Auto Increment Time", &auto_increment_time);
-    if (auto_increment_time) {
-      gui::drag("Time Increment", &time_increment, 0.01f, 0.0f, 10.0f);
-    }
-
-    if (slerp_to_first) {
-      gui::drag("Slerp Duration", &slerp_duration, 0.01f, 0.0f, 10.0f);
-    }
-
-    f32_t max_time = keyframes.empty() ? 10.f : keyframes.back().time;
-    if (slerp_to_first && loop) {
-      max_time += slerp_duration;
-    }
-    if (gui::slider("Time##current_time", &current_time, 0.0f, std::max(max_time, 0.1f))) {
-      apply_to_shape(shape);
+      if (j.contains("keyframes")) {
+        for (const auto& kf_json : j["keyframes"]) {
+          keyframe_t kf;
+          kf.time = kf_json["time"].get<f32_t>();
+          kf.position = kf_json["position"];
+          kf.size = kf_json["size"];
+          kf.angle = kf_json["angle"];
+          kf.rotation_pos = static_cast<rotation_position_e>(kf_json["rotation_pos"].get<int>());
+          keyframes.push_back(kf);
+        }
+      }
     }
 
-    gui::separator();
-    gui::text("Keyframes: ", (int)keyframes.size());
+    void render_gui(shapes_t::global_t* shape) {
+      using namespace fan::graphics;
 
-    if (gui::button("Add Keyframe")) {
-      add_keyframe(
-        shape->get_position(),
-        shape->children[0].get_size(),
-        shape->children[0].get_angle(),
-        current_rotation_pos
-      );
-    }
-    gui::same_line();
-    if (gui::button("Remove Selected") && selected_keyframe >= 0) {
-      remove_keyframe(selected_keyframe);
-    }
+      gui::text(fan::format("Shape ptr: {} | Owner ptr: {} | Keyframes: {}",
+        (void*)shape, (void*)owner_shape, keyframes.size()).c_str());
 
-    gui::separator();
-    gui::begin_child("keyframes_list", fan::vec2(0, 200), true);
+      if (owner_shape != shape) {
+        gui::text("ERROR: Wrong animation! This belongs to another shape.");
+        gui::text("This should never happen - check map logic.");
+        return;
+      }
 
-    for (int i = 0; i < keyframes.size(); ++i) {
-      gui::push_id(i);
-      bool is_selected = (i == selected_keyframe);
-      if (gui::selectable(fan::format("KF {}: {:.2f}s", i, keyframes[i].time).c_str(), is_selected)) {
-        selected_keyframe = i;
-        current_time = keyframes[i].time;
+      gui::input_text("Name", &name);
+
+      if (gui::button(is_playing ? "Stop" : "Play")) {
+        is_playing = !is_playing;
+        if (is_playing && current_time >= (keyframes.empty() ? 0 : keyframes.back().time)) {
+          current_time = 0.0f;
+        }
+      }
+      gui::same_line();
+      if (gui::button("Reset")) {
+        current_time = 0.0f;
+      }
+      gui::same_line();
+      gui::checkbox("Loop", &loop);
+      gui::same_line();
+      gui::checkbox("Slerp to First", &slerp_to_first);
+
+      gui::checkbox("Auto Increment Time", &auto_increment_time);
+      if (auto_increment_time) {
+        gui::drag("Time Increment", &time_increment, 0.01f, 0.0f, 10.0f);
+      }
+
+      if (slerp_to_first) {
+        gui::drag("Slerp Duration", &slerp_duration, 0.01f, 0.0f, 10.0f);
+      }
+
+      f32_t max_time = keyframes.empty() ? 10.f : keyframes.back().time;
+      if (slerp_to_first && loop) {
+        max_time += slerp_duration;
+      }
+      if (gui::slider("Time##current_time", &current_time, 0.0f, std::max(max_time, 0.1f))) {
         apply_to_shape(shape);
       }
-      gui::pop_id();
-    }
 
-    gui::end_child();
-
-    if (selected_keyframe >= 0 && selected_keyframe < keyframes.size()) {
       gui::separator();
-      auto& kf = keyframes[selected_keyframe];
+      gui::text("Keyframes: ", (int)keyframes.size());
 
-      if (gui::drag("Time", &kf.time, 0.01f, 0.0f, FLT_MAX)) {
-        std::sort(keyframes.begin(), keyframes.end(),
-          [](const keyframe_t& a, const keyframe_t& b) {
+      if (gui::button("Add Keyframe")) {
+        add_keyframe(
+          shape->get_position(),
+          shape->children[0].get_size(),
+          shape->children[0].get_angle(),
+          current_rotation_pos
+        );
+      }
+      gui::same_line();
+      if (gui::button("Remove Selected") && selected_keyframe >= 0) {
+        remove_keyframe(selected_keyframe);
+      }
+
+      gui::separator();
+      gui::begin_child("keyframes_list", fan::vec2(0, 200), true);
+
+      for (int i = 0; i < keyframes.size(); ++i) {
+        gui::push_id(i);
+        bool is_selected = (i == selected_keyframe);
+        if (gui::selectable(fan::format("KF {}: {:.2f}s", i, keyframes[i].time).c_str(), is_selected)) {
+          selected_keyframe = i;
+          current_time = keyframes[i].time;
+          apply_to_shape(shape);
+        }
+        gui::pop_id();
+      }
+
+      gui::end_child();
+
+      if (selected_keyframe >= 0 && selected_keyframe < keyframes.size()) {
+        gui::separator();
+        auto& kf = keyframes[selected_keyframe];
+
+        if (gui::drag("Time", &kf.time, 0.01f, 0.0f, FLT_MAX)) {
+          std::sort(keyframes.begin(), keyframes.end(),
+            [](const keyframe_t& a, const keyframe_t& b) {
             return a.time < b.time;
           });
-      }
+        }
 
-      if (gui::drag("Position", &kf.position, 0.1f)) {
-        if (current_time == kf.time) {
-          shape->set_position(kf.position);
+        if (gui::drag("Position", &kf.position, 0.1f)) {
+          if (current_time == kf.time) {
+            shape->set_position(kf.position);
+          }
+        }
+
+        if (gui::drag("Size", &kf.size, 0.1f)) {
+          if (current_time == kf.time) {
+            shape->children[0].set_size(kf.size);
+          }
+        }
+
+        fan::vec3 angle_deg = fan::math::degrees(kf.angle);
+        if (gui::drag("Angle", &angle_deg, 1.0f)) {
+          kf.angle = fan::math::radians(angle_deg);
+          if (current_time == kf.time) {
+            shape->children[0].set_angle(kf.angle);
+          }
+        }
+
+        int rot_pos_idx = static_cast<int>(kf.rotation_pos);
+        const char* rot_names[] = {
+          "Center (0, 0)",
+          "Top Left (-X, -Y)", "Top Middle (0, -Y)", "Top Right (+X, -Y)",
+          "Middle Left (-X, 0)", "Middle Right (+X, 0)",
+          "Bottom Left (-X, +Y)", "Bottom Middle (0, +Y)", "Bottom Right (+X, +Y)"
+        };
+        if (gui::combo("Rotation Position", &rot_pos_idx, rot_names, 9)) {
+          kf.rotation_pos = static_cast<rotation_position_e>(rot_pos_idx);
+          if (current_time == kf.time) {
+            apply_to_shape(shape);
+          }
         }
       }
 
-      if (gui::drag("Size", &kf.size, 0.1f)) {
-        if (current_time == kf.time) {
-          shape->children[0].set_size(kf.size);
-        }
-      }
-
-      fan::vec3 angle_deg = fan::math::degrees(kf.angle);
-      if (gui::drag("Angle", &angle_deg, 1.0f)) {
-        kf.angle = fan::math::radians(angle_deg);
-        if (current_time == kf.time) {
-          shape->children[0].set_angle(kf.angle);
-        }
-      }
-
-      int rot_pos_idx = static_cast<int>(kf.rotation_pos);
+      gui::separator();
+      int global_rot_pos = static_cast<int>(current_rotation_pos);
       const char* rot_names[] = {
         "Center (0, 0)",
         "Top Left (-X, -Y)", "Top Middle (0, -Y)", "Top Right (+X, -Y)",
         "Middle Left (-X, 0)", "Middle Right (+X, 0)",
         "Bottom Left (-X, +Y)", "Bottom Middle (0, +Y)", "Bottom Right (+X, +Y)"
       };
-      if (gui::combo("Rotation Position", &rot_pos_idx, rot_names, 9)) {
-        kf.rotation_pos = static_cast<rotation_position_e>(rot_pos_idx);
-        if (current_time == kf.time) {
-          apply_to_shape(shape);
-        }
+      if (gui::combo("Default Rotation Position", &global_rot_pos, rot_names, 9)) {
+        current_rotation_pos = static_cast<rotation_position_e>(global_rot_pos);
       }
     }
 
-    gui::separator();
-    int global_rot_pos = static_cast<int>(current_rotation_pos);
-    const char* rot_names[] = {
-      "Center (0, 0)",
-      "Top Left (-X, -Y)", "Top Middle (0, -Y)", "Top Right (+X, -Y)",
-      "Middle Left (-X, 0)", "Middle Right (+X, 0)",
-      "Bottom Left (-X, +Y)", "Bottom Middle (0, +Y)", "Bottom Right (+X, +Y)"
-    };
-    if (gui::combo("Default Rotation Position", &global_rot_pos, rot_names, 9)) {
-      current_rotation_pos = static_cast<rotation_position_e>(global_rot_pos);
-    }
-  }
-
-  std::vector<keyframe_t> keyframes;
-  std::string name = "Animation";
-  f32_t current_time = 0.0f;
-  bool is_playing = false;
-  bool loop = true;
-  bool slerp_to_first = true;
-  f32_t slerp_duration = 0.5f;
-  bool auto_increment_time = true;
-  f32_t time_increment = 0.5f;
-  int selected_keyframe = -1;
-  rotation_position_e current_rotation_pos = rotation_position_e::center;
-  shapes_t::global_t* owner_shape = nullptr;
-};
+    std::vector<keyframe_t> keyframes;
+    std::string name = "Animation";
+    f32_t current_time = 0.0f;
+    bool is_playing = false;
+    bool loop = true;
+    bool slerp_to_first = true;
+    f32_t slerp_duration = 0.5f;
+    bool auto_increment_time = true;
+    f32_t time_increment = 0.5f;
+    int selected_keyframe = -1;
+    rotation_position_e current_rotation_pos = rotation_position_e::center;
+    shapes_t::global_t* owner_shape = nullptr;
+  };
 
 
   std::unordered_map<shapes_t::global_t*, shape_keyframe_animation_t> shape_sprite_sheets;
 
   fan::graphics::shape_t xy_lines[2];
-  fan::vec2 texturepack_size{};
-  fan::vec2 texturepack_single_image_size{};
+  fan::vec2 texturepack_size {};
+  fan::vec2 texturepack_single_image_size {};
   std::vector<texturepack_image_t> texturepack_images;
   fan::graphics::render_view_t render_view;
-  fan::graphics::gui::content_browser_t content_browser{false};
+  fan::graphics::gui::content_browser_t content_browser {false};
   shapes_t::global_t* current_shape = nullptr;
   shape_list_t shape_list;
   f32_t current_z = 1;

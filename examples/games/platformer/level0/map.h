@@ -204,7 +204,7 @@ void update() {
       pile->pause = !pile->pause;
 
     if (fan::window::is_key_down(fan::key_left_control) &&
-        fan::window::is_key_pressed(fan::key_t)) {
+        fan::window::is_key_clicked(fan::key_t)) {
       reload_map();
       return;
     }

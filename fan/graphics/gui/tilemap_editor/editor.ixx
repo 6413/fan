@@ -252,9 +252,9 @@ export struct fte_t {
 
   void open(const properties_t& properties) {
     fan::graphics::image_load_properties_t lp;
-    lp.visual_output = fan::graphics::image_sampler_address_mode::repeat;
-    lp.min_filter = fan::graphics::image_filter::nearest;
-    lp.mag_filter = fan::graphics::image_filter::nearest;
+    lp.visual_output = fan::graphics::image_sampler_address_mode_e::repeat;
+    lp.min_filter = fan::graphics::image_filter_e::nearest;
+    lp.mag_filter = fan::graphics::image_filter_e::nearest;
 
     if (properties.camera == nullptr) {
       render_view = &fan::graphics::get_orthographic_render_view();
@@ -372,8 +372,8 @@ export struct fte_t {
       .image = transparent_texture,
     }};
 
-    lp.min_filter = fan::graphics::image_filter::nearest;
-    lp.mag_filter = fan::graphics::image_filter::nearest;
+    lp.min_filter = fan::graphics::image_filter_e::nearest;
+    lp.mag_filter = fan::graphics::image_filter_e::nearest;
 
     grid_visualize.highlight_color = fan::graphics::image_load("images/highlight_hover.webp", lp);
     grid_visualize.collider_color = fan::graphics::image_create(fan::color(0, 0.5, 0, 0.5));
@@ -1290,7 +1290,7 @@ export struct fte_t {
     editor_settings.hovered = fan::graphics::gui::is_window_hovered();
     fan::graphics::gui::end();
 
-    if (fan::window::is_key_pressed(fan::key_s) && fan::window::is_key_down(fan::key_left_control)) {
+    if (fan::window::is_key_clicked(fan::key_s) && fan::window::is_key_down(fan::key_left_control)) {
       fout(previous_filename);
     }
 
