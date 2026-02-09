@@ -838,30 +838,92 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
 #if defined(FAN_JSON)
 
   struct json_cache_t {
-    fan::graphics::shape_t shape;
-    fan::vec2 original_pos;
+    std::vector<fan::graphics::shape_t> shapes;
+    std::vector<fan::vec2> original_pos;
   };
-  std::unordered_map<fan::ct_string<256>, json_cache_t, fan::ct_string_hash> json_cache;
 
-  fan::graphics::shape_t shape_from_json(std::string_view json_path, const std::source_location& callers_path) {
-    if (json_cache.find(json_path) == json_cache.end()) {
-      fan::json json_data = fan::graphics::read_json(json_path, callers_path);
-      resolve_json_image_paths(json_data, json_path, callers_path);
-      fan::graphics::sprite_sheets_parse(json_path, json_data, callers_path);
-      fan::graphics::shape_t shape = fan::graphics::extract_single_shape(json_data, callers_path);
-      auto& cache = json_cache[json_path];
-      cache.shape = shape;
-      cache.original_pos = shape.get_position();
-      cache.shape.set_position(fan::vec2(-0xfffff));
-      return shape;
-    }
-    auto& cache = json_cache[json_path];
-    fan::graphics::shape_t shape = cache.shape;
-    shape.set_position(cache.original_pos);
-    return shape;
+  auto& get_json_cache() {
+    static std::unordered_map<
+      fan::ct_string<256>, 
+      json_cache_t, 
+      fan::ct_string_hash,
+      fan::ct_string_equal
+    > json_cache;
+    return json_cache;
   }
 
-  void resolve_json_image_paths(fan::json& out, std::string_view json_path, const std::source_location& callers_path) {
+  static void load_json_shapes(
+    std::string_view json_path,
+    const std::source_location& callers_path) 
+  {
+    fan::json json_data = fan::graphics::read_json(json_path, callers_path);
+    resolve_json_image_paths(json_data, json_path, callers_path);
+    fan::graphics::sprite_sheets_parse(json_path, json_data, callers_path);
+
+    std::vector<fan::graphics::shape_t> shapes;
+
+    if (json_data.contains("shapes")) {
+      fan::graphics::shape_deserialize_t it;
+      fan::graphics::shape_t s;
+      while (it.iterate(json_data["shapes"], &s, callers_path)) {
+        shapes.emplace_back(std::move(s));
+      }
+    }
+    else if (json_data.contains("shape")) {
+      shapes.emplace_back(fan::graphics::extract_single_shape(json_data, callers_path));
+    }
+
+    auto& cache = get_json_cache()[json_path];
+    cache.shapes = shapes;
+    cache.original_pos.resize(shapes.size());
+
+    for (size_t i = 0; i < shapes.size(); ++i) {
+      cache.original_pos[i] = shapes[i].get_position();
+      cache.shapes[i].set_position(fan::vec2(-0xfffff));
+    }
+  }
+
+  fan::graphics::shape_t shape_from_json(
+    std::string_view json_path,
+    const std::source_location& callers_path) 
+  {
+    auto& cache_map = get_json_cache();
+    if (!cache_map.contains(json_path)) {
+      load_json_shapes(json_path, callers_path);
+    }
+
+    auto& cache = cache_map[json_path];
+    fan::graphics::shape_t s = cache.shapes[0];
+    s.set_position(cache.original_pos[0]);
+    return s;
+  }
+
+  std::vector<fan::graphics::shape_t> shapes_from_json(
+    std::string_view json_path,
+    const std::source_location& callers_path) 
+  {
+    auto& cache_map = get_json_cache();
+    if (!cache_map.contains(json_path)) {
+      load_json_shapes(json_path, callers_path);
+    }
+
+    auto& cache = cache_map[json_path];
+    std::vector<fan::graphics::shape_t> out(cache.shapes.size());
+
+    for (size_t i = 0; i < cache.shapes.size(); ++i) {
+      fan::graphics::shape_t s = cache.shapes[i];
+      s.set_position(cache.original_pos[i]);
+      out[i] = std::move(s);
+    }
+
+    return out;
+  }
+
+  void resolve_json_image_paths(
+    fan::json& out, 
+    std::string_view json_path, 
+    const std::source_location& callers_path) 
+  {
     out.find_and_iterate("image_path", [&json_path, &callers_path](fan::json& value) {
       std::filesystem::path base = fan::io::file::find_relative_path(json_path, callers_path);
       base = std::filesystem::is_directory(base) ? base : base.parent_path();
@@ -1146,9 +1208,9 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
 #if defined(FAN_OPENGL)
   image_divider_t::image_divider_t() {
     e.open(open_properties);
-    texture_properties.visual_output = fan::graphics::image_sampler_address_mode::clamp_to_edge;
-    texture_properties.min_filter = fan::graphics::image_filter::nearest;
-    texture_properties.mag_filter = fan::graphics::image_filter::nearest;
+    texture_properties.visual_output = fan::graphics::image_sampler_address_mode_e::clamp_to_edge;
+    texture_properties.min_filter = fan::graphics::image_filter_e::nearest;
+    texture_properties.mag_filter = fan::graphics::image_filter_e::nearest;
   }
 #endif
 
@@ -1602,10 +1664,10 @@ line_t::line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& col
 }
 #if defined(FAN_2D)
 namespace fan::image {
-  plane_split_t plane_split(void* pixel_data, const fan::vec2ui& size, const fan::graphics::image_format& format) {
+  plane_split_t plane_split(void* pixel_data, const fan::vec2ui& size, uint32_t format) {
     plane_split_t result;
     uint64_t offset = 0;
-    if (format == fan::graphics::image_format::yuv420p) {
+    if (format == fan::graphics::image_format_e::yuv420p) {
       result.planes[0] = pixel_data;
       result.planes[1] = (uint8_t*)pixel_data + (offset += size.multiply());
       result.planes[2] = (uint8_t*)pixel_data + (offset += size.multiply() / 4);

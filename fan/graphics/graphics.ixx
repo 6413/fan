@@ -116,29 +116,29 @@ export namespace fan::graphics {
   namespace image_presets {
     image_load_properties_t pixel_art() {
       image_load_properties_t props;
-      props.visual_output = fan::graphics::image_sampler_address_mode::clamp_to_border;
-      props.min_filter = image_filter::nearest;
-      props.mag_filter = image_filter::nearest;
+      props.visual_output = fan::graphics::image_sampler_address_mode_e::clamp_to_border;
+      props.min_filter = image_filter_e::nearest;
+      props.mag_filter = image_filter_e::nearest;
       return props;
     }
     image_load_properties_t pixel_art_repeat() {
       auto props = pixel_art();
-      props.visual_output = fan::graphics::image_sampler_address_mode::repeat;
+      props.visual_output = fan::graphics::image_sampler_address_mode_e::repeat;
       return props;
     }
 
     image_load_properties_t smooth() {
       image_load_properties_t props;
-      props.visual_output = fan::graphics::image_sampler_address_mode::clamp_to_border;
-      props.min_filter = image_filter::linear;
-      props.mag_filter = image_filter::linear;
+      props.visual_output = fan::graphics::image_sampler_address_mode_e::clamp_to_border;
+      props.min_filter = image_filter_e::linear;
+      props.mag_filter = image_filter_e::linear;
       return props;
     }
 
     image_load_properties_t mipmapped() {
       image_load_properties_t props;
-      props.min_filter = image_filter::linear_mipmap_linear;
-      props.mag_filter = image_filter::linear;
+      props.min_filter = image_filter_e::linear_mipmap_linear;
+      props.mag_filter = image_filter_e::linear;
       return props;
     }
   }
@@ -604,6 +604,10 @@ export namespace fan::graphics {
 #if defined(FAN_JSON)
 
   fan::graphics::shape_t shape_from_json(
+    std::string_view json_path,
+    const std::source_location& callers_path = std::source_location::current()
+  );
+  std::vector<fan::graphics::shape_t> shapes_from_json(
     std::string_view json_path,
     const std::source_location& callers_path = std::source_location::current()
   );
@@ -1098,7 +1102,7 @@ export namespace fan::image {
     }
   };
 
-  plane_split_t plane_split(void* pixel_data, const fan::vec2ui& size, const fan::graphics::image_format& format);
+  plane_split_t plane_split(void* pixel_data, const fan::vec2ui& size, uint32_t format);
 }
 
 #if defined(FAN_2D)

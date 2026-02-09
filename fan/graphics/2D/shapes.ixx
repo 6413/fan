@@ -201,7 +201,7 @@ export namespace fan::graphics {
     int vframes,
     int fps = 10,
     bool loop = true,
-    uint32_t filter = fan::graphics::image_filter::nearest,
+    uint32_t filter = fan::graphics::image_filter_e::nearest,
     const std::vector<int>& frames = {},
     const std::source_location& callers_path = std::source_location::current()
   );
@@ -380,6 +380,8 @@ export namespace fan::graphics {
       fan::vec2 get_rotation_point() const;
       void set_color(const fan::color& color);
       fan::color get_color() const;
+      std::array<fan::color, 4> get_colors() const;
+      void set_colors(const std::array<fan::color, 4>& colors);
       void set_angle(const fan::vec3& angle);
       fan::vec3 get_angle() const;
       fan::basis get_basis() const;
@@ -1350,7 +1352,7 @@ export namespace fan::graphics {
     #pragma pack(pop)
       struct ri_t {
         std::array<fan::graphics::image_t, 3> images_rest;
-        uint8_t format = fan::graphics::image_format::undefined;
+        uint8_t format = fan::graphics::image_format_e::undefined;
       };
       static std::array<shape_gl_init_t, 4>& get_locations() {
         static std::array<shape_gl_init_t, 4> locs{{
@@ -1385,7 +1387,7 @@ export namespace fan::graphics {
         uint32_t vertex_count = 6;
 
         //internals
-        uint8_t format = fan::graphics::image_format::undefined;
+        uint8_t format = fan::graphics::image_format_e::undefined;
       };
 
       shape_t push_back(const properties_t& properties);

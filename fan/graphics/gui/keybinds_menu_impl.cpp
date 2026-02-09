@@ -166,7 +166,7 @@ namespace fan::graphics::gui {
 
     if (is_listening) {
       if (device != fan::device_keyboard &&
-        fan::window::is_key_pressed(fan::key_escape) &&
+        fan::window::is_key_clicked(fan::key_escape) &&
         key_cap_state.current_combo.empty()) {
         cancel_capture();
         listening_states[listening_index] = false;
