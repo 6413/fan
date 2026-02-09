@@ -284,6 +284,51 @@ static constexpr int get_shape_category(uint16_t sti) {
   return -1;
 }
 
+static std::array<fan::color, 4> get_colors(const shape_t* s) {
+  std::array<fan::color, 4> result {};
+  g_shapes->visit_shape_draw_data(s->NRI, [&](auto& props) {
+    if constexpr (requires { props.color; }) {
+      using color_t = std::remove_cvref_t<decltype(props.color)>; 
+      if constexpr (std::is_same_v<color_t, std::array<fan::color, 4>>) {
+        result = props.color;
+      }
+    }
+  });
+  return result;
+}
+static void set_colors(shape_t* s, const std::array<fan::color, 4>& v) {
+  g_shapes->visit_shape_draw_data(s->NRI, [&](auto& props) {
+    if constexpr (requires { props.color; }) {
+      using color_t = std::remove_cvref_t<decltype(props.color)>; 
+      if constexpr (std::is_same_v<color_t, std::array<fan::color, 4>>) {
+        props.color = v;
+      }
+    }
+  });
+
+  if (!s->get_visual_id()) {
+    return;
+  }
+
+  if (auto* vdata = s->get_vdata<gradient_t::vi_t>()) {
+    vdata->color = v;
+
+    auto& vid = s->get_visual_id();
+    auto& sldata = g_shapes->shaper.ShapeList[vid];
+
+    g_shapes->shaper.ElementIsPartiallyEdited(
+      sldata.sti,
+      sldata.blid,
+      sldata.ElementIndex,
+      offsetof(gradient_t::vi_t, color),
+      sizeof(vdata->color)
+    );
+  }
+}
+
+using get_colors_fn_t = std::array<fan::color,4> (*)(const shape_t*);
+using set_colors_fn_t = void (*)(shape_t*, const std::array<fan::color,4>&);
+
 #define SHAPE_FUNCTION_LIST(X) \
 X(push_back, shape_t(*)(void*)) \
 X(get_position, fan::vec3(*)(const shape_t*)) \
@@ -325,15 +370,18 @@ X(get_outline_size, f32_t(*)(const shape_t*)) \
 X(get_outline_color, fan::color(*)(const shape_t*)) \
 X(set_outline_color, void(*)(shape_t*, const fan::color&)) \
 X(set_line, void(*)(shape_t*, const fan::vec2&, const fan::vec2&)) \
-X(set_line3, void(*)(shape_t*, const fan::vec3&, const fan::vec2&))
+X(set_line3, void(*)(shape_t*, const fan::vec3&, const fan::vec2&)) \
+X(get_colors, get_colors_fn_t) \
+X(set_colors, set_colors_fn_t)
+
 
 struct shape_functions_t {
 #define MAKE_TYPEDEF(name, type) using name##_fn = type;
   SHAPE_FUNCTION_LIST(MAKE_TYPEDEF)
   #undef MAKE_TYPEDEF
 
-    struct vtable_t {
-  #define MAKE_MEMBER(name, type) name##_fn name;
+  struct vtable_t {
+    #define MAKE_MEMBER(name, type) name##_fn name;
     SHAPE_FUNCTION_LIST(MAKE_MEMBER)
     #undef MAKE_MEMBER
   };
@@ -380,7 +428,9 @@ vtables_storage[shape_type_t::shape_name].set_visible = generic_set_visible<shap
 vtables_storage[shape_type_t::shape_name].get_radius = get_radius; \
 vtables_storage[shape_type_t::shape_name].get_src = generic_get_src<shape_name##_t>; \
 vtables_storage[shape_type_t::shape_name].get_dst = generic_get_dst<shape_name##_t>; \
-vtables_storage[shape_type_t::shape_name].get_outline_size = generic_get_outline_size<shape_name##_t>;
+vtables_storage[shape_type_t::shape_name].get_outline_size = generic_get_outline_size<shape_name##_t>; \
+vtables_storage[shape_type_t::shape_name].get_colors = get_colors; \
+vtables_storage[shape_type_t::shape_name].set_colors = set_colors;
 
   /*vtables_storage[shape_type_t::shape_name].get_size3 = generic_get_size3<shape_name##_t>; \
   vtables_storage[shape_type_t::shape_name].set_size3 = generic_set_size3<shape_name##_t>; \*/

@@ -1637,7 +1637,7 @@ namespace fan::graphics::gui {
     particle_shape.set_image(particle_image_sprite.get_image());
     shape_properties(particle_shape);
 
-    if (fan::window::is_key_pressed(fan::key_s) && fan::window::is_key_down(fan::key_left_control)) {
+    if (fan::window::is_key_clicked(fan::key_s) && fan::window::is_key_down(fan::key_left_control)) {
       fout(filename);
     }
   }

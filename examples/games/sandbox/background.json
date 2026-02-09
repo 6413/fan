@@ -1,0 +1,120 @@
+{
+  "shapes": [
+    {
+      "images": [
+        {
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "images/far-clouds.png"
+        }
+      ],
+      "position": [
+        32.0,
+        -188.39999389648438,
+        1.0
+      ],
+      "shape": "sprite",
+      "size": [
+        2560.0,
+        128.0
+      ],
+      "tc_size": [
+        42.0,
+        1.0
+      ]
+    },
+    {
+      "images": [
+        {
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "images/near-clouds.png"
+        }
+      ],
+      "position": [
+        0.0,
+        -159.3000030517578,
+        2.0
+      ],
+      "shape": "sprite",
+      "size": [
+        2560.0,
+        128.0
+      ],
+      "tc_size": [
+        42.0,
+        1.0
+      ]
+    },
+    {
+      "images": [
+        {
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "images/mountains.png"
+        }
+      ],
+      "position": [
+        -96.0,
+        -128.0,
+        4.0
+      ],
+      "shape": "sprite",
+      "size": [
+        618.3670043945313,
+        128.0
+      ],
+      "tc_size": [
+        4.900000095367432,
+        1.0
+      ]
+    },
+    {
+      "images": [
+        {
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "images/far-mountains.png"
+        }
+      ],
+      "position": [
+        0.0,
+        -128.0,
+        3.0
+      ],
+      "shape": "sprite",
+      "size": [
+        1024.0,
+        128.0
+      ],
+      "tc_size": [
+        16.299999237060547,
+        1.0
+      ]
+    },
+    {
+      "images": [
+        {
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "images/trees.png"
+        }
+      ],
+      "position": [
+        -96.0,
+        -129.3000030517578,
+        4.0
+      ],
+      "shape": "sprite",
+      "size": [
+        1024.0,
+        128.0
+      ],
+      "tc_size": [
+        10.199999809265137,
+        1.0
+      ]
+    }
+  ],
+  "version": 1
+}

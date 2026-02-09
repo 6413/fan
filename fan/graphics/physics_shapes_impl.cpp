@@ -1439,7 +1439,7 @@ namespace fan::graphics::physics {
        if (
          !(
            fan::window::is_input_action_active(fan::actions::light_attack) ||
-           fan::window::is_key_pressed(fan::gamepad_right_bumper)
+           fan::window::is_key_clicked(fan::gamepad_right_bumper)
            )
        #if defined(FAN_GUI)
          || fan::graphics::gui::want_io()

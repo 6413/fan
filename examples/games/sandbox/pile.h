@@ -1,11 +1,11 @@
 // All stages are included here
 
-#include "player/player.h"
-
 #define stage_loader_path .
 #include <fan/graphics/gui/stage_maker/loader.h>
 
 struct pile_t {
+  #include "player/player.h"
+
   pile_t();
 
   void step() {
@@ -46,9 +46,9 @@ pile_t::pile_t() {
   engine.clear_color = 0;
   engine.lighting.ambient = 1;
   fan::graphics::image_load_properties_t lp;
-  lp.visual_output = fan::graphics::image_sampler_address_mode::clamp_to_border;
-  lp.min_filter = fan::graphics::image_filter::nearest;
-  lp.mag_filter = fan::graphics::image_filter::nearest;
+  lp.visual_output = fan::graphics::image_sampler_address_mode_e::clamp_to_border;
+  lp.min_filter = fan::graphics::image_filter_e::nearest;
+  lp.mag_filter = fan::graphics::image_filter_e::nearest;
 
   engine.texture_pack.open_compiled("sample_texture_pack.ftp", lp);
 

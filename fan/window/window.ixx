@@ -366,7 +366,7 @@ export namespace fan {
     //---------------------------Windows specific code---------------------------
 #endif
 
-    bool is_key_pressed(int key);
+    bool is_key_clicked(int key);
     bool is_key_down(int key);
     bool is_key_released(int key);
     bool is_mouse_clicked(int button);

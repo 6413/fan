@@ -1543,9 +1543,9 @@ void loco_t::switch_renderer(uint8_t renderer) {
               info.size = 2;
               info.channels = 4;
               fan::graphics::image_load_properties_t lp;
-              lp.min_filter = fan::graphics::image_filter::nearest;
-              lp.mag_filter = fan::graphics::image_filter::nearest;
-              lp.visual_output = fan::graphics::image_sampler_address_mode::repeat;
+              lp.min_filter = fan::graphics::image_filter_e::nearest;
+              lp.mag_filter = fan::graphics::image_filter_e::nearest;
+              lp.visual_output = fan::graphics::image_sampler_address_mode_e::repeat;
               image_reload(nr, info, lp);
             }
             else {
@@ -1580,9 +1580,9 @@ void loco_t::switch_renderer(uint8_t renderer) {
       info.size = 2;
       info.channels = 4;
       fan::graphics::image_load_properties_t lp;
-      lp.min_filter = fan::graphics::image_filter::nearest;
-      lp.mag_filter = fan::graphics::image_filter::nearest;
-      lp.visual_output = fan::graphics::image_sampler_address_mode::repeat;
+      lp.min_filter = fan::graphics::image_filter_e::nearest;
+      lp.mag_filter = fan::graphics::image_filter_e::nearest;
+      lp.visual_output = fan::graphics::image_sampler_address_mode_e::repeat;
       image_reload(default_texture, info, lp);
     }
 
@@ -2582,7 +2582,7 @@ fan::vec2 loco_t::get_mouse_drag(int button) {
   return fan::vec2();
 }
 
-bool loco_t::is_key_pressed(int key) {
+bool loco_t::is_key_clicked(int key) {
   return window.key_state(key) == (int)fan::mouse_state::press;
 }
 
@@ -2750,11 +2750,11 @@ void loco_t::toggle_console(bool active) {
 
 fan::graphics::image_load_properties_t loco_t::default_noise_image_properties() {
   fan::graphics::image_load_properties_t lp;
-  lp.format = fan::graphics::image_format::rgb_unorm;
-  lp.internal_format = fan::graphics::image_format::rgb_unorm;
-  lp.min_filter = fan::graphics::image_filter::linear;
-  lp.mag_filter = fan::graphics::image_filter::linear;
-  lp.visual_output = fan::graphics::image_sampler_address_mode::mirrored_repeat;
+  lp.format = fan::graphics::image_format_e::rgb_unorm;
+  lp.internal_format = fan::graphics::image_format_e::rgb_unorm;
+  lp.min_filter = fan::graphics::image_filter_e::linear;
+  lp.mag_filter = fan::graphics::image_filter_e::linear;
+  lp.visual_output = fan::graphics::image_sampler_address_mode_e::mirrored_repeat;
   return lp;
 }
 

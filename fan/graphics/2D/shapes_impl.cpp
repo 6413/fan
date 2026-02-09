@@ -546,6 +546,45 @@ namespace fan::graphics{
     shape_nr_t new_raw;
     auto src_move = fan::graphics::culling::get_movement(g_shapes->visibility, s);
 
+    //{ // vfi
+    //  shapes::shape_ids_t::nr_t src_id;
+    //  src_id.gint() = s.NRI;
+    //  auto& src_sd = g_shapes->shape_ids[src_id];
+
+    //  if (src_sd.shape_type == shape_type_t::vfi) {
+    //    auto* src_ri = (vfi_t::ri_t*)src_sd.visual.GetData(g_shapes->shaper);
+
+    //    shapes::vfi_list_t::nr_t src_vfi_nr;
+    //    src_vfi_nr.gint() = src_sd.data_nr;
+    //    auto props = g_shapes->vfi_list[src_vfi_nr];
+
+    //    vfi_t::common_shape_data_t* new_shape_data = nullptr;
+    //    if (src_ri && src_ri->shape_data) {
+    //      new_shape_data = new vfi_t::common_shape_data_t(*src_ri->shape_data);
+    //    }
+
+    //    auto new_vfi_shape = g_shapes->vfi.push_back(props);
+
+    //    auto* new_ri = (vfi_t::ri_t*)new_vfi_shape.GetData(g_shapes->shaper);
+    //    if (new_ri && new_shape_data) {
+    //      delete new_ri->shape_data;
+    //      new_ri->shape_data = new_shape_data;
+    //    }
+
+    //    this->gint() = new_vfi_shape.NRI;
+
+    //    if (!g_shapes->visibility.enabled) {
+    //      push_shaper();
+    //    }
+    //    else {
+    //      shaper_t::ShapeID_t new_sid;
+    //      new_sid.NRI = new_vfi_shape.NRI;
+    //      fan::graphics::culling::add_shape(g_shapes->visibility, new_sid, src_move);
+    //    }
+    //    return;
+    //  }
+    //}
+
     g_shapes->with_shape_list(s.NRI, [&](auto& list, auto src_nr, auto& src_sd) {
       auto props = list[src_nr];
 
@@ -588,6 +627,46 @@ namespace fan::graphics{
 
     shape_nr_t new_raw;
     auto src_move = fan::graphics::culling::get_movement(g_shapes->visibility, s);
+
+    //{ // vfi
+    //  shapes::shape_ids_t::nr_t src_id;
+    //  src_id.gint() = s.NRI;
+    //  auto& src_sd = g_shapes->shape_ids[src_id];
+
+    //  if (src_sd.shape_type == shape_type_t::vfi) {
+    //    auto* src_ri = (vfi_t::ri_t*)src_sd.visual.GetData(g_shapes->shaper);
+
+    //    shapes::vfi_list_t::nr_t src_vfi_nr;
+    //    src_vfi_nr.gint() = src_sd.data_nr;
+    //    auto props = g_shapes->vfi_list[src_vfi_nr];
+
+    //    vfi_t::common_shape_data_t* new_shape_data = nullptr;
+    //    if (src_ri && src_ri->shape_data) {
+    //      new_shape_data = new vfi_t::common_shape_data_t(*src_ri->shape_data);
+    //    }
+
+    //    auto new_vfi_shape = g_shapes->vfi.push_back(props);
+
+    //    auto* new_ri = (vfi_t::ri_t*)new_vfi_shape.GetData(g_shapes->shaper);
+    //    if (new_ri && new_shape_data) {
+    //      delete new_ri->shape_data;
+    //      new_ri->shape_data = new_shape_data;
+    //    }
+
+    //    this->gint() = new_vfi_shape.NRI;
+
+    //    if (!g_shapes->visibility.enabled) {
+    //      push_shaper();
+    //    }
+    //    else {
+    //      shaper_t::ShapeID_t new_sid;
+    //      new_sid.NRI = new_vfi_shape.NRI;
+    //      fan::graphics::culling::add_shape(g_shapes->visibility, new_sid, src_move);
+    //    }
+
+    //    return *this;
+    //  }
+    //}
 
     g_shapes->with_shape_list(s.NRI, [&](auto& list, auto src_nr, auto& src_sd) {
       auto props = list[src_nr];
@@ -638,11 +717,17 @@ namespace fan::graphics{
     shapes::shape_ids_t::nr_t id;
     id.gint() = NRI;
     auto& sd = g_shapes->shape_ids[id];
+    if(sd.shape_type == shape_type_t::vfi) {
+      g_shapes->vfi.erase(get_visual_id());
+      sic();
+      return;
+    }
     if (sd.shape_type == shape_type_t::sprite) {
       stop_sprite_sheet();
     }
 
     fan::graphics::culling::remove_shape(g_shapes->visibility, get_id());
+
 
     if (get_visual_id().iic() == false) {
       erase_shaper();
@@ -650,8 +735,6 @@ namespace fan::graphics{
 
     g_shapes->remove_shape(NRI);
     sic();
-
-    return;
   }
 
   void shapes::shape_t::erase() {
@@ -1443,6 +1526,13 @@ namespace fan::graphics{
     return g_shapes->shape_functions[get_shape_type()].get_color(this);
   }
 
+  std::array<fan::color, 4> shapes::shape_t::get_colors() const {
+    return g_shapes->shape_functions[get_shape_type()].get_colors(this);
+  }
+  void shapes::shape_t::set_colors(const std::array<fan::color, 4>& colors) {
+    return g_shapes->shape_functions[get_shape_type()].set_colors(this, colors);
+  }
+
   void shapes::shape_t::set_angle(const fan::vec3& angle) {
     g_shapes->shape_functions[get_shape_type()].set_angle(this, angle);
   }
@@ -1820,11 +1910,11 @@ namespace fan::graphics{
       {
         std::string fs;
         switch (format) {
-        case fan::graphics::image_format::yuv420p: {
+        case fan::graphics::image_format_e::yuv420p: {
           fs = read_shader("shaders/opengl/2D/objects/yuv420p.fs");
           break;
         }
-        case fan::graphics::image_format::nv12: {
+        case fan::graphics::image_format_e::nv12: {
           fs = read_shader("shaders/opengl/2D/objects/nv12.fs");
           break;
         }
@@ -1887,12 +1977,12 @@ namespace fan::graphics{
       image_info.size = fan::graphics::get_image_sizes(format, image_size)[i];
       auto lp = fan::graphics::get_image_properties<image_load_properties_t>(format)[i];
       lp.min_filter = filter;
-      if (filter == fan::graphics::image_filter::linear ||
-        filter == fan::graphics::image_filter::nearest) {
+      if (filter == fan::graphics::image_filter_e::linear ||
+        filter == fan::graphics::image_filter_e::nearest) {
         lp.mag_filter = filter;
       }
       else {
-        lp.mag_filter = fan::graphics::image_filter::linear;
+        lp.mag_filter = fan::graphics::image_filter_e::linear;
       }
       if (i == 0) {
             
@@ -1943,11 +2033,11 @@ namespace fan::graphics{
       {
         std::string fs;
         switch (format) {
-        case fan::graphics::image_format::yuv420p: {
+        case fan::graphics::image_format_e::yuv420p: {
           fs = read_shader("shaders/opengl/2D/objects/yuv420p.fs");
           break;
         }
-        case fan::graphics::image_format::nv12: {
+        case fan::graphics::image_format_e::nv12: {
           fs = read_shader("shaders/opengl/2D/objects/nv12.fs");
           break;
         }

@@ -41,7 +41,7 @@ export namespace fan::graphics::gui {
 
   // for print
   inline std::ostream& operator<<(std::ostream& os, const label_t& label) {
-    return os << label.sv;
+    return os << static_cast<std::string_view>(label);
   }
   template<typename T>
   constexpr data_type_t get_imgui_data_type() {
@@ -275,7 +275,7 @@ export namespace fan::graphics::gui {
 
   fan::vec2 get_position_bottom_corner(std::string_view text = {}, uint32_t reverse_yoffset = 0);
 
-  void send_drag_drop_item(label_t id, const std::wstring& path, label_t popup);
+  void send_drag_drop_item(label_t id, const std::wstring& path, label_t popup = "");
 
   void receive_drag_drop_target(label_t id, std::function<void(std::string)> receive_func);
 
@@ -354,7 +354,7 @@ export namespace fan::graphics::gui {
 
   bool item_add(const rect_t& bb, id_t id, const rect_t* nav_bb = NULL, item_flags_t extra_flags = 0);
 
-  int is_key_pressed(key_t key, bool repeat = true);
+  int is_key_clicked(key_t key, bool repeat = true);
   int get_pressed_key();
 
   void set_next_window_class(const class_t* c);

@@ -968,7 +968,7 @@ namespace fan {
 #endif
 }
 
-bool fan::window_t::is_key_pressed(int key) {
+bool fan::window_t::is_key_clicked(int key) {
   if (!this) return false;
   if (key < 0 || key > fan::input_last) return false;
   return key_states[key] == fan::keyboard_state::press &&

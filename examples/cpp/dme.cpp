@@ -1,4 +1,18 @@
-#include <fan/types/dme.h>
+#define __dme_extend \
+  static auto get_names_impl() { \
+    std::array<fan::ct_string<256>, size()> a{}; \
+    for (size_t i = 0; i < size(); i++) { \
+      a[i] = fan::snake_to_title(items()[i]); \
+    } \
+    return a; \
+  } \
+  static auto get_names() { \
+    static auto names = get_names_impl(); \
+    std::array<const char*, size()> p{}; \
+    for (size_t i = 0; i < size(); i++) \
+      p[i] = names[i].c_str(); \
+    return p; \
+  }
 
 #define DME_VERIFY_PRINT 1
 
@@ -11,7 +25,15 @@
 
 #if VERIFY_DME == 1
   #include <cassert>
+  #include <string_view>
 #endif
+
+// dme extend
+#include <array>
+
+import fan.types.compile_time_string;
+
+#include <fan/types/dme.h>
 
 
 #pragma pack(push, 1)
@@ -281,7 +303,7 @@ struct dme_t : __dme_inherit(dme_t, data_we_want_t) {
   __dme(x9,) = {{.number = 5}};
   __dme(y9,) = {{.number = 5}};
   __dme(z9,) = {{.number = 5}};
-  __dme(a10,) = {{.number = 5}};
+  __dme(a10_snake_test,) = {{.number = 5}};
 };
 
 struct dme2_t : __dme_inherit(dme2_t, data_we_want_t) {
@@ -526,14 +548,13 @@ struct dme2_t : __dme_inherit(dme2_t, data_we_want_t) {
 int main() {
   dme2_t c;
   printf("%s %s %d\n", c.a_str, typeid(dme2_t::a_t).name(), c.NA(0)->m_DSS);
-  c.GetMemberAmount();
 
   dme_t a;
   dme_t b;
 
   //
 //#if DME_VERIFY_PRINT == 1
-  printf("%d %d %d %d %d %d", (int)a.a, (int)b.a, (int)b.z8, (int)a.b, (int)a.z8, (int)c.c);
+  printf("%d %d %d %d %d %d\n", (int)a.a, (int)b.a, (int)b.z8, (int)a.b, (int)a.z8, (int)c.c);
 //#endif
 
 #if VERIFY_DME == 1
@@ -542,11 +563,11 @@ int main() {
   assert((int)b.z8 == 233);
   assert((int)c.c == 2 && c.c == 2);
   assert((void*)c.NA(2) == (void*)&c.c_ram);
-  assert(c.GetMemberAmount() == sizeof(c) / sizeof(decltype(c)::dme_type_t));
+  assert(c.size() == sizeof(c) / sizeof(decltype(c)::dme_type_t));
+  assert(std::string_view(a.get_names()[a.size() - 1]) == "A10 Snake Test");
   //decltype(c.d)::dt::;
 
   //printf("%s\n", typeid(std::tuple_element_t<0, std::tuple<decltype(a.b)::a_t>>).name());
 #endif
-  
   return a.a + b.a + b.z8 + a.b + a.z8 + c.c;
 }

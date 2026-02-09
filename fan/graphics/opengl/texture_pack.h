@@ -104,9 +104,9 @@ struct texture_pack_t {
 
   void open_compiled(const std::string &filename, const std::source_location &callers_path = std::source_location::current()) {
     fan::graphics::image_load_properties_t lp;
-    lp.visual_output = fan::graphics::image_sampler_address_mode::clamp_to_edge;
-    lp.min_filter = fan::graphics::image_filter::nearest;
-    lp.mag_filter = fan::graphics::image_filter::nearest;
+    lp.visual_output = fan::graphics::image_sampler_address_mode_e::clamp_to_edge;
+    lp.min_filter = fan::graphics::image_filter_e::nearest;
+    lp.mag_filter = fan::graphics::image_filter_e::nearest;
     /*
     lp.min_filter = (decltype(lp.min_filter))min_filter;
     lp.mag_filter = (decltype(lp.mag_filter))mag_filter;
