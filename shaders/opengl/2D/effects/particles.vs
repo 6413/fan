@@ -261,20 +261,25 @@ void main() {
     total_angle = angle + time_mod * angle_vel;
   }
 
-  vec2 v = rectangle_vertices[gl_VertexID % 6] * size;
-
-  float c = cos(total_angle.z);
-  float s = sin(total_angle.z);
+  float cx = cos(total_angle.x), sx = sin(total_angle.x);
+  float cy = cos(total_angle.y), sy = sin(total_angle.y);
+  float cz = cos(total_angle.z), sz = sin(total_angle.z);
 
   vec2 offset = base_pos - position;
   offset = vec2(
-    offset.x * c - offset.y * s,
-    offset.x * s + offset.y * c
+    offset.x * cz - offset.y * sz,
+    offset.x * sz + offset.y * cz
   );
 
-  vec2 world_pos = position + offset + v;
+  vec3 v3 = vec3(rectangle_vertices[gl_VertexID % 6] * size, 0.0);
+  v3 = vec3(
+    cy*cz*v3.x + (sx*sy*cz - cx*sz)*v3.y,
+    cy*sz*v3.x + (sx*sy*sz + cx*cz)*v3.y,
+    -sy*v3.x + sx*cy*v3.y
+  );
 
-  gl_Position = projection * view * vec4(world_pos, 0.0, 1.0);
+  vec2 world_pos = position + offset + v3.xy;
+  gl_Position = projection * view * vec4(world_pos, v3.z, 1.0);
   gl_Position.z = 1.0 - (float(modded_index) / 6.0) / float(count);
 
   vec4 particle_color;

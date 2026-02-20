@@ -99,6 +99,42 @@ export namespace fan {
     constexpr color operator/(T value) const {
       return color(r / value, g / value, b / value);
     }
+    constexpr color operator*(const fan::vec3& value) const {
+      return color(r * value.x, g * value.y, b * value.z, a);
+    }
+    constexpr color operator+(const fan::vec3& value) const {
+      return color(r + value.x, g + value.y, b + value.z, a);
+    }
+    constexpr color operator-(const fan::vec3& value) const {
+      return color(r - value.x, g - value.y, b - value.z, a);
+    }
+    constexpr color operator/(const fan::vec3& value) const {
+      return color(r / value.x, g / value.y, b / value.z, a);
+    }
+    constexpr color& operator*=(const fan::vec3& value) {
+      r *= value.x;
+      g *= value.y;
+      b *= value.z;
+      return *this;
+    }
+    constexpr color& operator+=(const fan::vec3& value) {
+      r += value.x;
+      g += value.y;
+      b += value.z;
+      return *this;
+    }
+    constexpr color& operator-=(const fan::vec3& value) {
+      r -= value.x;
+      g -= value.y;
+      b -= value.z;
+      return *this;
+    }
+    constexpr color& operator/=(const fan::vec3& value) {
+      r /= value.x;
+      g /= value.y;
+      b /= value.z;
+      return *this;
+    }
 
     template <typename T>
     constexpr color mult_no_alpha(T value) const {

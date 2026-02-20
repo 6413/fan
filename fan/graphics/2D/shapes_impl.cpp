@@ -3029,100 +3029,54 @@ namespace fan::graphics {
   bool shape_to_json(fan::graphics::shapes::shape_t& shape, fan::json* json) {
     fan::json& out = *json;
     switch (shape.get_shape_type()) {
-    case fan::graphics::shapes::shape_type_t::light: {
+    case fan::graphics::shapes::shape_type_t::light:
+    {
       fan::graphics::shapes::light_t::properties_t defaults;
       out["shape"] = "light";
-      if (shape.get_position() != defaults.position) {
-        out["position"] = shape.get_position();
-      }
-      if (shape.get_parallax_factor() != defaults.parallax_factor) {
-        out["parallax_factor"] = shape.get_parallax_factor();
-      }
-      if (shape.get_size() != defaults.size) {
-        out["size"] = shape.get_size();
-      }
-      if (shape.get_rotation_point() != defaults.rotation_point) {
-        out["rotation_point"] = shape.get_rotation_point();
-      }
-      if (shape.get_color() != defaults.color) {
-        out["color"] = shape.get_color();
-      }
-      if (shape.get_flags() != defaults.flags) {
-        out["flags"] = shape.get_flags();
-      }
-      if (shape.get_angle() != defaults.angle) {
-        out["angle"] = shape.get_angle();
-      }
+      if (shape.get_position() != defaults.position) out["position"] = shape.get_position();
+      if (shape.get_parallax_factor() != defaults.parallax_factor) out["parallax_factor"] = shape.get_parallax_factor();
+      if (shape.get_size() != defaults.size) out["size"] = shape.get_size();
+      if (shape.get_rotation_point() != defaults.rotation_point) out["rotation_point"] = shape.get_rotation_point();
+      if (shape.get_color() != defaults.color) out["color"] = shape.get_color();
+      if (shape.get_flags() != defaults.flags) out["flags"] = shape.get_flags();
+      if (shape.get_angle() != defaults.angle) out["angle"] = shape.get_angle();
       break;
     }
-    case fan::graphics::shapes::shape_type_t::line: {
+    case fan::graphics::shapes::shape_type_t::line:
+    {
       fan::graphics::shapes::line_t::properties_t defaults;
       out["shape"] = "line";
-      if (shape.get_color() != defaults.color) {
-        out["color"] = shape.get_color();
-      }
-      if (shape.get_src() != defaults.src) {
-        out["src"] = shape.get_src();
-      }
-      if (shape.get_dst() != defaults.dst) {
-        out["dst"] = shape.get_dst();
-      }
+      if (shape.get_color() != defaults.color) out["color"] = shape.get_color();
+      if (shape.get_src() != defaults.src) out["src"] = shape.get_src();
+      if (shape.get_dst() != defaults.dst) out["dst"] = shape.get_dst();
       break;
     }
-    case fan::graphics::shapes::shape_type_t::rectangle: {
+    case fan::graphics::shapes::shape_type_t::rectangle:
+    {
       fan::graphics::shapes::rectangle_t::properties_t defaults;
       out["shape"] = "rectangle";
-      if (shape.get_position() != defaults.position) {
-        out["position"] = shape.get_position();
-      }
-      if (shape.get_size() != defaults.size) {
-        out["size"] = shape.get_size();
-      }
-      if (shape.get_rotation_point() != defaults.rotation_point) {
-        out["rotation_point"] = shape.get_rotation_point();
-      }
-      if (shape.get_color() != defaults.color) {
-        out["color"] = shape.get_color();
-      }
-      if (shape.get_outline_color() != defaults.outline_color) {
-        out["outline_color"] = shape.get_outline_color();
-      }
-      if (shape.get_angle() != defaults.angle) {
-        out["angle"] = shape.get_angle();
-      }
+      if (shape.get_position() != defaults.position) out["position"] = shape.get_position();
+      if (shape.get_size() != defaults.size) out["size"] = shape.get_size();
+      if (shape.get_rotation_point() != defaults.rotation_point) out["rotation_point"] = shape.get_rotation_point();
+      if (shape.get_color() != defaults.color) out["color"] = shape.get_color();
+      if (shape.get_outline_color() != defaults.outline_color) out["outline_color"] = shape.get_outline_color();
+      if (shape.get_angle() != defaults.angle) out["angle"] = shape.get_angle();
       break;
     }
-    case fan::graphics::shapes::shape_type_t::sprite: {
+    case fan::graphics::shapes::shape_type_t::sprite:
+    {
       fan::graphics::shapes::sprite_t::properties_t defaults;
       out["shape"] = "sprite";
-      if (shape.get_position() != defaults.position) {
-        out["position"] = shape.get_position();
-      }
-      if (shape.get_parallax_factor() != defaults.parallax_factor) {
-        out["parallax_factor"] = shape.get_parallax_factor();
-      }
-      if (shape.get_size() != defaults.size) {
-        out["size"] = shape.get_size();
-      }
-      if (shape.get_rotation_point() != defaults.rotation_point) {
-        out["rotation_point"] = shape.get_rotation_point();
-      }
-      if (shape.get_color() != defaults.color) {
-        out["color"] = shape.get_color();
-      }
-      if (shape.get_angle() != defaults.angle) {
-        out["angle"] = shape.get_angle();
-      }
-      if (shape.get_flags() != defaults.flags) {
-        out["flags"] = shape.get_flags();
-      }
-      if (shape.get_tc_position() != defaults.tc_position) {
-        out["tc_position"] = shape.get_tc_position();
-      }
-      if (shape.get_tc_size() != defaults.tc_size) {
-        out["tc_size"] = shape.get_tc_size();
-      }
-      g_shapes->visit_shape_draw_data(shape.NRI, [&]<typename T>(T& properties) {
+      if (shape.get_position() != defaults.position) out["position"] = shape.get_position();
+      if (shape.get_parallax_factor() != defaults.parallax_factor) out["parallax_factor"] = shape.get_parallax_factor();
+      if (shape.get_size() != defaults.size) out["size"] = shape.get_size();
+      if (shape.get_rotation_point() != defaults.rotation_point) out["rotation_point"] = shape.get_rotation_point();
+      if (shape.get_color() != defaults.color) out["color"] = shape.get_color();
+      if (shape.get_angle() != defaults.angle) out["angle"] = shape.get_angle();
+      if (shape.get_flags() != defaults.flags) out["flags"] = shape.get_flags();
+      if (shape.get_tc_position() != defaults.tc_position) out["tc_position"] = shape.get_tc_position();
+      if (shape.get_tc_size() != defaults.tc_size) out["tc_size"] = shape.get_tc_size();
+      g_shapes->visit_shape_draw_data(shape.NRI, [&]<typename T>(T & properties) {
         if constexpr (requires {
           properties.texture_pack_unique_id;
         }) {
@@ -3167,36 +3121,19 @@ namespace fan::graphics {
       });
       break;
     }
-    case fan::graphics::shapes::shape_type_t::unlit_sprite: {
+    case fan::graphics::shapes::shape_type_t::unlit_sprite:
+    {
       fan::graphics::shapes::unlit_sprite_t::properties_t defaults;
       out["shape"] = "unlit_sprite";
-      if (shape.get_position() != defaults.position) {
-        out["position"] = shape.get_position();
-      }
-      if (shape.get_parallax_factor() != defaults.parallax_factor) {
-        out["parallax_factor"] = shape.get_parallax_factor();
-      }
-      if (shape.get_size() != defaults.size) {
-        out["size"] = shape.get_size();
-      }
-      if (shape.get_rotation_point() != defaults.rotation_point) {
-        out["rotation_point"] = shape.get_rotation_point();
-      }
-      if (shape.get_color() != defaults.color) {
-        out["color"] = shape.get_color();
-      }
-      if (shape.get_angle() != defaults.angle) {
-        out["angle"] = shape.get_angle();
-      }
-      if (shape.get_flags() != defaults.flags) {
-        out["flags"] = shape.get_flags();
-      }
-      if (shape.get_tc_position() != defaults.tc_position) {
-        out["tc_position"] = shape.get_tc_position();
-      }
-      if (shape.get_tc_size() != defaults.tc_size) {
-        out["tc_size"] = shape.get_tc_size();
-      }
+      if (shape.get_position() != defaults.position) out["position"] = shape.get_position();
+      if (shape.get_parallax_factor() != defaults.parallax_factor) out["parallax_factor"] = shape.get_parallax_factor();
+      if (shape.get_size() != defaults.size) out["size"] = shape.get_size();
+      if (shape.get_rotation_point() != defaults.rotation_point) out["rotation_point"] = shape.get_rotation_point();
+      if (shape.get_color() != defaults.color) out["color"] = shape.get_color();
+      if (shape.get_angle() != defaults.angle) out["angle"] = shape.get_angle();
+      if (shape.get_flags() != defaults.flags) out["flags"] = shape.get_flags();
+      if (shape.get_tc_position() != defaults.tc_position) out["tc_position"] = shape.get_tc_position();
+      if (shape.get_tc_size() != defaults.tc_size) out["tc_size"] = shape.get_tc_size();
       if (*fan::graphics::g_shapes->texture_pack) {
         auto t = (*fan::graphics::g_shapes->texture_pack)[((fan::graphics::shapes::unlit_sprite_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper))->texture_pack_unique_id];
         if (t.name.size()) {
@@ -3226,150 +3163,67 @@ namespace fan::graphics {
 
       break;
     }
-    case fan::graphics::shapes::shape_type_t::text: {
+    case fan::graphics::shapes::shape_type_t::text:
+    {
       out["shape"] = "text";
       break;
     }
-    case fan::graphics::shapes::shape_type_t::circle: {
+    case fan::graphics::shapes::shape_type_t::circle:
+    {
       fan::graphics::shapes::circle_t::properties_t defaults;
       out["shape"] = "circle";
-      if (shape.get_position() != defaults.position) {
-        out["position"] = shape.get_position();
-      }
-      if (shape.get_radius() != defaults.radius) {
-        out["radius"] = shape.get_radius();
-      }
-      if (shape.get_rotation_point() != defaults.rotation_point) {
-        out["rotation_point"] = shape.get_rotation_point();
-      }
-      if (shape.get_color() != defaults.color) {
-        out["color"] = shape.get_color();
-      }
-      if (shape.get_angle() != defaults.angle) {
-        out["angle"] = shape.get_angle();
-      }
+      if (shape.get_position() != defaults.position) out["position"] = shape.get_position();
+      if (shape.get_radius() != defaults.radius) out["radius"] = shape.get_radius();
+      if (shape.get_rotation_point() != defaults.rotation_point) out["rotation_point"] = shape.get_rotation_point();
+      if (shape.get_color() != defaults.color) out["color"] = shape.get_color();
+      if (shape.get_angle() != defaults.angle) out["angle"] = shape.get_angle();
       break;
     }
-    case fan::graphics::shapes::shape_type_t::grid: {
+    case fan::graphics::shapes::shape_type_t::grid:
+    {
       fan::graphics::shapes::grid_t::properties_t defaults;
       out["shape"] = "grid";
-      if (shape.get_position() != defaults.position) {
-        out["position"] = shape.get_position();
-      }
-      if (shape.get_size() != defaults.size) {
-        out["size"] = shape.get_size();
-      }
-      if (shape.get_grid_size() != defaults.grid_size) {
-        out["grid_size"] = shape.get_grid_size();
-      }
-      if (shape.get_rotation_point() != defaults.rotation_point) {
-        out["rotation_point"] = shape.get_rotation_point();
-      }
-      if (shape.get_color() != defaults.color) {
-        out["color"] = shape.get_color();
-      }
-      if (shape.get_angle() != defaults.angle) {
-        out["angle"] = shape.get_angle();
-      }
+      if (shape.get_position() != defaults.position) out["position"] = shape.get_position();
+      if (shape.get_size() != defaults.size) out["size"] = shape.get_size();
+      if (shape.get_grid_size() != defaults.grid_size) out["grid_size"] = shape.get_grid_size();
+      if (shape.get_rotation_point() != defaults.rotation_point) out["rotation_point"] = shape.get_rotation_point();
+      if (shape.get_color() != defaults.color) out["color"] = shape.get_color();
+      if (shape.get_angle() != defaults.angle) out["angle"] = shape.get_angle();
       break;
     }
-    case fan::graphics::shapes::shape_type_t::particles: {
+    case fan::graphics::shapes::shape_type_t::particles:
+    {
       fan::graphics::shapes::particles_t::properties_t defaults;
       auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper);
       out["shape"] = "particles";
 
-      if (ri.loop != defaults.loop) {
-        out["loop"] = ri.loop;
-      }
-      if (ri.position != defaults.position) {
-        out["position"] = ri.position;
-      }
-
-      if (ri.start_size != defaults.start_size) {
-        out["start_size"] = ri.start_size;
-      }
-      if (ri.end_size != defaults.end_size) {
-        out["end_size"] = ri.end_size;
-      }
-
-      if (ri.begin_color != defaults.begin_color) {
-        out["begin_color"] = ri.begin_color;
-      }
-      if (ri.end_color != defaults.end_color) {
-        out["end_color"] = ri.end_color;
-      }
-
-      if (ri.alive_time != defaults.alive_time) {
-        out["alive_time"] = ri.alive_time;
-      }
-      if (ri.respawn_time != defaults.respawn_time) {
-        out["respawn_time"] = ri.respawn_time;
-      }
-      if (ri.count != defaults.count) {
-        out["count"] = ri.count;
-      }
-
-      if (ri.start_velocity != defaults.start_velocity) {
-        out["start_velocity"] = ri.start_velocity;
-      }
-      if (ri.end_velocity != defaults.end_velocity) {
-        out["end_velocity"] = ri.end_velocity;
-      }
-
-      if (ri.start_angle_velocity != defaults.start_angle_velocity) {
-        out["start_angle_velocity"] = ri.start_angle_velocity;
-      }
-      if (ri.end_angle_velocity != defaults.end_angle_velocity) {
-        out["end_angle_velocity"] = ri.end_angle_velocity;
-      }
-
-      if (ri.begin_angle != defaults.begin_angle) {
-        out["begin_angle"] = ri.begin_angle;
-      }
-      if (ri.end_angle != defaults.end_angle) {
-        out["end_angle"] = ri.end_angle;
-      }
-      if (ri.angle != defaults.angle) {
-        out["angle"] = ri.angle;
-      }
-
-      if (ri.spawn_spacing != defaults.spawn_spacing) {
-        out["spawn_spacing"] = ri.spawn_spacing;
-      }
-      if (ri.expansion_power != defaults.expansion_power) {
-        out["expansion_power"] = ri.expansion_power;
-      }
-
-      if (ri.start_spread != defaults.start_spread) {
-        out["start_spread"] = ri.start_spread;
-      }
-      if (ri.end_spread != defaults.end_spread) {
-        out["end_spread"] = ri.end_spread;
-      }
-
-      if (ri.jitter_start != defaults.jitter_start) {
-        out["jitter_start"] = ri.jitter_start;
-      }
-      if (ri.jitter_end != defaults.jitter_end) {
-        out["jitter_end"] = ri.jitter_end;
-      }
-      if (ri.jitter_speed != defaults.jitter_speed) {
-        out["jitter_speed"] = ri.jitter_speed;
-      }
-
-      if (ri.size_random_range != defaults.size_random_range) {
-        out["size_random_range"] = ri.size_random_range;
-      }
-      if (ri.color_random_range != defaults.color_random_range) {
-        out["color_random_range"] = ri.color_random_range;
-      }
-      if (ri.angle_random_range != defaults.angle_random_range) {
-        out["angle_random_range"] = ri.angle_random_range;
-      }
-
-      if (ri.shape != defaults.shape) {
-        out["particle_shape"] = ri.shape;
-      }
+      if (ri.loop != defaults.loop) out["loop"] = ri.loop;
+      if (ri.position != defaults.position) out["position"] = ri.position;
+      if (ri.start_size != defaults.start_size) out["start_size"] = ri.start_size;
+      if (ri.end_size != defaults.end_size) out["end_size"] = ri.end_size;
+      if (ri.begin_color != defaults.begin_color) out["begin_color"] = ri.begin_color;
+      if (ri.end_color != defaults.end_color) out["end_color"] = ri.end_color;
+      if (ri.alive_time != defaults.alive_time) out["alive_time"] = ri.alive_time;
+      if (ri.respawn_time != defaults.respawn_time) out["respawn_time"] = ri.respawn_time;
+      if (ri.count != defaults.count) out["count"] = ri.count;
+      if (ri.start_velocity != defaults.start_velocity) out["start_velocity"] = ri.start_velocity;
+      if (ri.end_velocity != defaults.end_velocity) out["end_velocity"] = ri.end_velocity;
+      if (ri.start_angle_velocity != defaults.start_angle_velocity) out["start_angle_velocity"] = ri.start_angle_velocity;
+      if (ri.end_angle_velocity != defaults.end_angle_velocity) out["end_angle_velocity"] = ri.end_angle_velocity;
+      if (ri.begin_angle != defaults.begin_angle) out["begin_angle"] = ri.begin_angle;
+      if (ri.end_angle != defaults.end_angle) out["end_angle"] = ri.end_angle;
+      if (ri.angle != defaults.angle) out["angle"] = ri.angle;
+      if (ri.spawn_spacing != defaults.spawn_spacing) out["spawn_spacing"] = ri.spawn_spacing;
+      if (ri.expansion_power != defaults.expansion_power) out["expansion_power"] = ri.expansion_power;
+      if (ri.start_spread != defaults.start_spread) out["start_spread"] = ri.start_spread;
+      if (ri.end_spread != defaults.end_spread) out["end_spread"] = ri.end_spread;
+      if (ri.jitter_start != defaults.jitter_start) out["jitter_start"] = ri.jitter_start;
+      if (ri.jitter_end != defaults.jitter_end) out["jitter_end"] = ri.jitter_end;
+      if (ri.jitter_speed != defaults.jitter_speed) out["jitter_speed"] = ri.jitter_speed;
+      if (ri.size_random_range != defaults.size_random_range) out["size_random_range"] = ri.size_random_range;
+      if (ri.color_random_range != defaults.color_random_range) out["color_random_range"] = ri.color_random_range;
+      if (ri.angle_random_range != defaults.angle_random_range) out["angle_random_range"] = ri.angle_random_range;
+      if (ri.shape != defaults.shape) out["particle_shape"] = ri.shape;
 
       fan::graphics::image_t image = shape.get_image();
       if (image) {
@@ -3377,7 +3231,8 @@ namespace fan::graphics {
       }
       break;
     }
-    default: {
+    default:
+    {
       fan::throw_error("unimplemented shape");
     }
     }
@@ -3389,99 +3244,53 @@ namespace fan::graphics {
     }
     std::string shape_type = in["shape"];
     switch (fan::get_hash(shape_type.c_str())) {
-    case fan::get_hash("rectangle"): {
+    case fan::get_hash("rectangle"):
+    {
       fan::graphics::shapes::rectangle_t::properties_t p;
-      if (in.contains("position")) {
-        p.position = in["position"];
-      }
-      if (in.contains("size")) {
-        p.size = in["size"];
-      }
-      if (in.contains("rotation_point")) {
-        p.rotation_point = in["rotation_point"];
-      }
-      if (in.contains("color")) {
-        p.color = in["color"];
-      }
-      if (in.contains("outline_color")) {
-        p.outline_color = in["outline_color"];
-      }
-      if (in.contains("angle")) {
-        p.angle = in["angle"];
-      }
+      in.get_if("position", p.position);
+      in.get_if("size", p.size);
+      in.get_if("rotation_point", p.rotation_point);
+      in.get_if("color", p.color);
+      in.get_if("outline_color", p.outline_color);
+      in.get_if("angle", p.angle);
       *shape = p;
       break;
     }
-    case fan::get_hash("light"): {
+    case fan::get_hash("light"):
+    {
       fan::graphics::shapes::light_t::properties_t p;
-      if (in.contains("position")) {
-        p.position = in["position"];
-      }
-      if (in.contains("parallax_factor")) {
-        p.parallax_factor = in["parallax_factor"];
-      }
-      if (in.contains("size")) {
-        p.size = in["size"];
-      }
-      if (in.contains("rotation_point")) {
-        p.rotation_point = in["rotation_point"];
-      }
-      if (in.contains("color")) {
-        p.color = in["color"];
-      }
-      if (in.contains("flags")) {
-        p.flags = in["flags"];
-      }
-      if (in.contains("angle")) {
-        p.angle = in["angle"];
-      }
+      in.get_if("position", p.position);
+      in.get_if("parallax_factor", p.parallax_factor);
+      in.get_if("size", p.size);
+      in.get_if("rotation_point", p.rotation_point);
+      in.get_if("color", p.color);
+      in.get_if("flags", p.flags);
+      in.get_if("angle", p.angle);
       *shape = p;
       break;
     }
-    case fan::get_hash("line"): {
+    case fan::get_hash("line"):
+    {
       fan::graphics::shapes::line_t::properties_t p;
-      if (in.contains("color")) {
-        p.color = in["color"];
-      }
-      if (in.contains("src")) {
-        p.src = in["src"];
-      }
-      if (in.contains("dst")) {
-        p.dst = in["dst"];
-      }
+      in.get_if("color", p.color);
+      in.get_if("src", p.src);
+      in.get_if("dst", p.dst);
       *shape = p;
       break;
     }
-    case fan::get_hash("sprite"): {
+    case fan::get_hash("sprite"):
+    {
       fan::graphics::shapes::sprite_t::properties_t p;
       p.blending = true;
-      if (in.contains("position")) {
-        p.position = in["position"];
-      }
-      if (in.contains("parallax_factor")) {
-        p.parallax_factor = in["parallax_factor"];
-      }
-      if (in.contains("size")) {
-        p.size = in["size"];
-      }
-      if (in.contains("rotation_point")) {
-        p.rotation_point = in["rotation_point"];
-      }
-      if (in.contains("color")) {
-        p.color = in["color"];
-      }
-      if (in.contains("angle")) {
-        p.angle = in["angle"];
-      }
-      if (in.contains("flags")) {
-        p.flags = in["flags"];
-      }
-      if (in.contains("tc_position")) {
-        p.tc_position = in["tc_position"];
-      }
-      if (in.contains("tc_size")) {
-        p.tc_size = in["tc_size"];
-      }
+      in.get_if("position", p.position);
+      in.get_if("parallax_factor", p.parallax_factor);
+      in.get_if("size", p.size);
+      in.get_if("rotation_point", p.rotation_point);
+      in.get_if("color", p.color);
+      in.get_if("angle", p.angle);
+      in.get_if("flags", p.flags);
+      in.get_if("tc_position", p.tc_position);
+      in.get_if("tc_size", p.tc_size);
       bool contains_animations = in.contains("animations");
       // load texture pack only if no sprite sheet animations
       // because sprite sheet animations use image for it
@@ -3491,21 +3300,11 @@ namespace fan::graphics {
       *shape = p;
 
       fan::graphics::image_load_properties_t lp;
-      if (in.contains("image_visual_output")) {
-        lp.visual_output = in["image_visual_output"];
-      }
-      if (in.contains("image_format")) {
-        lp.format = in["image_format"];
-      }
-      if (in.contains("image_type")) {
-        lp.type = in["image_type"];
-      }
-      if (in.contains("image_min_filter")) {
-        lp.min_filter = in["image_min_filter"];
-      }
-      if (in.contains("image_mag_filter")) {
-        lp.mag_filter = in["image_mag_filter"];
-      }
+      in.get_if("image_visual_output", lp.visual_output);
+      in.get_if("image_format", lp.format);
+      in.get_if("image_type", lp.type);
+      in.get_if("image_min_filter", lp.min_filter);
+      in.get_if("image_mag_filter", lp.mag_filter);
       if (in.contains("images") && in["images"].is_array()) {
         for (const auto [i, image_json] : fan::enumerate(in["images"])) {
           // leaking (cache taking care of it)
@@ -3531,70 +3330,43 @@ namespace fan::graphics {
 
       break;
     }
-    case fan::get_hash("unlit_sprite"): {
+    case fan::get_hash("unlit_sprite"):
+    {
       fan::graphics::shapes::unlit_sprite_t::properties_t p;
       p.blending = true;
-      if (in.contains("position")) {
-        p.position = in["position"];
-      }
-      if (in.contains("parallax_factor")) {
-        p.parallax_factor = in["parallax_factor"];
-      }
-      if (in.contains("size")) {
-        p.size = in["size"];
-      }
-      if (in.contains("rotation_point")) {
-        p.rotation_point = in["rotation_point"];
-      }
-      if (in.contains("color")) {
-        p.color = in["color"];
-      }
-      if (in.contains("angle")) {
-        p.angle = in["angle"];
-      }
-      if (in.contains("flags")) {
-        p.flags = in["flags"];
-      }
-      if (in.contains("tc_position")) {
-        p.tc_position = in["tc_position"];
-      }
-      if (in.contains("tc_size")) {
-        p.tc_size = in["tc_size"];
-      }
+      in.get_if("position", p.position);
+      in.get_if("parallax_factor", p.parallax_factor);
+      in.get_if("size", p.size);
+      in.get_if("rotation_point", p.rotation_point);
+      in.get_if("color", p.color);
+      in.get_if("angle", p.angle);
+      in.get_if("flags", p.flags);
+      in.get_if("tc_position", p.tc_position);
+      in.get_if("tc_size", p.tc_size);
       if (in.contains("texture_pack_name") && *fan::graphics::g_shapes->texture_pack) {
         p.texture_pack_unique_id = (*fan::graphics::g_shapes->texture_pack)[in["texture_pack_name"]];
       }
       *shape = p;
       fan::graphics::image_load_properties_t lp;
-      if (in.contains("image_visual_output")) {
-        lp.visual_output = in["image_visual_output"];
-      }
-      if (in.contains("image_format")) {
-        lp.format = in["image_format"];
-      }
-      if (in.contains("image_type")) {
-        lp.type = in["image_type"];
-      }
-      if (in.contains("image_min_filter")) {
-        lp.min_filter = in["image_min_filter"];
-      }
-      if (in.contains("image_mag_filter")) {
-        lp.mag_filter = in["image_mag_filter"];
-      }
+      in.get_if("image_visual_output", lp.visual_output);
+      in.get_if("image_format", lp.format);
+      in.get_if("image_type", lp.type);
+      in.get_if("image_min_filter", lp.min_filter);
+      in.get_if("image_mag_filter", lp.mag_filter);
 
       if (in.contains("images") && in["images"].is_array()) {
         for (const auto [i, image_json] : fan::enumerate(in["images"])) {
           if (!image_json.contains("image_path")) continue;
 
           auto path = image_json["image_path"];
-          if (fan::io::file::exists(path)) {
+          if (fan::io::file::exists(path.get<std::string>())) {
             fan::graphics::image_load_properties_t lp;
 
-            if (image_json.contains("image_visual_output")) lp.visual_output = image_json["image_visual_output"];
-            if (image_json.contains("image_format")) lp.format = image_json["image_format"];
-            if (image_json.contains("image_type")) lp.type = image_json["image_type"];
-            if (image_json.contains("image_min_filter")) lp.min_filter = image_json["image_min_filter"];
-            if (image_json.contains("image_mag_filter")) lp.mag_filter = image_json["image_mag_filter"];
+            image_json.get_if("image_visual_output", lp.visual_output);
+            image_json.get_if("image_format", lp.format);
+            image_json.get_if("image_type", lp.type);
+            image_json.get_if("image_min_filter", lp.min_filter);
+            image_json.get_if("image_mag_filter", lp.mag_filter);
 
             auto image = fan::graphics::ctx()->image_load_path_props(fan::graphics::ctx(), path, lp, callers_path);
 
@@ -3612,148 +3384,65 @@ namespace fan::graphics {
       }
       break;
     }
-    case fan::get_hash("circle"): {
+    case fan::get_hash("circle"):
+    {
       fan::graphics::shapes::circle_t::properties_t p;
-      if (in.contains("position")) {
-        p.position = in["position"];
-      }
-      if (in.contains("radius")) {
-        p.radius = in["radius"];
-      }
-      if (in.contains("rotation_point")) {
-        p.rotation_point = in["rotation_point"];
-      }
-      if (in.contains("color")) {
-        p.color = in["color"];
-      }
-      if (in.contains("angle")) {
-        p.angle = in["angle"];
-      }
+      in.get_if("position", p.position);
+      in.get_if("radius", p.radius);
+      in.get_if("rotation_point", p.rotation_point);
+      in.get_if("color", p.color);
+      in.get_if("angle", p.angle);
       *shape = p;
       break;
     }
-    case fan::get_hash("grid"): {
+    case fan::get_hash("grid"):
+    {
       fan::graphics::shapes::grid_t::properties_t p;
-      if (in.contains("position")) {
-        p.position = in["position"];
-      }
-      if (in.contains("size")) {
-        p.size = in["size"];
-      }
-      if (in.contains("grid_size")) {
-        p.grid_size = in["grid_size"];
-      }
-      if (in.contains("rotation_point")) {
-        p.rotation_point = in["rotation_point"];
-      }
-      if (in.contains("color")) {
-        p.color = in["color"];
-      }
-      if (in.contains("angle")) {
-        p.angle = in["angle"];
-      }
+      in.get_if("position", p.position);
+      in.get_if("size", p.size);
+      in.get_if("grid_size", p.grid_size);
+      in.get_if("rotation_point", p.rotation_point);
+      in.get_if("color", p.color);
+      in.get_if("angle", p.angle);
       *shape = p;
       break;
     }
-    case fan::get_hash("particles"):{
+    case fan::get_hash("particles"):
+    {
       fan::graphics::shapes::particles_t::properties_t p;
-      if (in.contains("loop")) {
-        p.loop = in["loop"];
-      }
-      if (in.contains("position")) {
-        p.position = in["position"];
-      }
-
-      if (in.contains("start_size")) {
-        p.start_size = in["start_size"];
-      }
-      if (in.contains("end_size")) {
-        p.end_size = in["end_size"];
-      }
-
-      if (in.contains("begin_color")) {
-        p.begin_color = in["begin_color"];
-      }
-      if (in.contains("end_color")) {
-        p.end_color = in["end_color"];
-      }
-
-      if (in.contains("alive_time")) {
-        p.alive_time = in["alive_time"];
-      }
-      if (in.contains("respawn_time")) {
-        p.respawn_time = in["respawn_time"];
-      }
-      if (in.contains("count")) {
-        p.count = in["count"];
-      }
-
-      if (in.contains("start_velocity")) {
-        p.start_velocity = in["start_velocity"];
-      }
-      if (in.contains("end_velocity")) {
-        p.end_velocity = in["end_velocity"];
-      }
-
-      if (in.contains("start_angle_velocity")) {
-        p.start_angle_velocity = in["start_angle_velocity"];
-      }
-      if (in.contains("end_angle_velocity")) {
-        p.end_angle_velocity = in["end_angle_velocity"];
-      }
-
-      if (in.contains("begin_angle")) {
-        p.begin_angle = in["begin_angle"];
-      }
-      if (in.contains("end_angle")) {
-        p.end_angle = in["end_angle"];
-      }
-      if (in.contains("angle")) {
-        p.angle = in["angle"];
-      }
-
-      if (in.contains("spawn_spacing")) {
-        p.spawn_spacing = in["spawn_spacing"];
-      }
-      if (in.contains("expansion_power")) {
-        p.expansion_power = in["expansion_power"];
-      }
-
-      if (in.contains("start_spread")) {
-        p.start_spread = in["start_spread"];
-      }
-      if (in.contains("end_spread")) {
-        p.end_spread = in["end_spread"];
-      }
-
-      if (in.contains("jitter_start")) {
-        p.jitter_start = in["jitter_start"];
-      }
-      if (in.contains("jitter_end")) {
-        p.jitter_end = in["jitter_end"];
-      }
-      if (in.contains("jitter_speed")) {
-        p.jitter_speed = in["jitter_speed"];
-      }
-
-      if (in.contains("size_random_range")) {
-        p.size_random_range = in["size_random_range"];
-      }
-      if (in.contains("color_random_range")) {
-        p.color_random_range = in["color_random_range"];
-      }
-      if (in.contains("angle_random_range")) {
-        p.angle_random_range = in["angle_random_range"];
-      }
-
-      if (in.contains("particle_shape")) {
-        p.shape = in["particle_shape"];
-      }
+      in.get_if("loop", p.loop);
+      in.get_if("position", p.position);
+      in.get_if("start_size", p.start_size);
+      in.get_if("end_size", p.end_size);
+      in.get_if("begin_color", p.begin_color);
+      in.get_if("end_color", p.end_color);
+      in.get_if("alive_time", p.alive_time);
+      in.get_if("respawn_time", p.respawn_time);
+      in.get_if("count", p.count);
+      in.get_if("start_velocity", p.start_velocity);
+      in.get_if("end_velocity", p.end_velocity);
+      in.get_if("start_angle_velocity", p.start_angle_velocity);
+      in.get_if("end_angle_velocity", p.end_angle_velocity);
+      in.get_if("begin_angle", p.begin_angle);
+      in.get_if("end_angle", p.end_angle);
+      in.get_if("angle", p.angle);
+      in.get_if("spawn_spacing", p.spawn_spacing);
+      in.get_if("expansion_power", p.expansion_power);
+      in.get_if("start_spread", p.start_spread);
+      in.get_if("end_spread", p.end_spread);
+      in.get_if("jitter_start", p.jitter_start);
+      in.get_if("jitter_end", p.jitter_end);
+      in.get_if("jitter_speed", p.jitter_speed);
+      in.get_if("size_random_range", p.size_random_range);
+      in.get_if("color_random_range", p.color_random_range);
+      in.get_if("angle_random_range", p.angle_random_range);
+      in.get_if("particle_shape", p.shape);
       p.image = fan::graphics::json_to_image(in, callers_path);
       *shape = p;
       break;
     }
-    default: {
+    default:
+    {
       fan::throw_error("unimplemented shape");
     }
     }

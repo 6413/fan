@@ -52,7 +52,9 @@ import fan.types.compile_time_string;
     return p; \
   }
 
-#include <fan/types/dme.h>
+namespace fan {
+  #include <fan/types/dme.h>
+}
 
 export namespace fan {
   namespace graphics {

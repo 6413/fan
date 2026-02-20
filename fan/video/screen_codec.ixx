@@ -1811,10 +1811,10 @@ export namespace fan {
 
         switch (frame.pixel_format) {
         case AV_PIX_FMT_YUV420P:
-          ret.pixel_format = fan::graphics::image_format::yuv420p;
+          ret.pixel_format = fan::graphics::image_format_e::yuv420p;
           break;
         case AV_PIX_FMT_NV12:
-          ret.pixel_format = fan::graphics::image_format::nv12;
+          ret.pixel_format = fan::graphics::image_format_e::nv12;
           break;
         default:
           ret.type = 249;
@@ -1847,9 +1847,9 @@ export namespace fan {
 
     uint8_t convert_pixel_format(::AVPixelFormat fmt) {
       switch (fmt) {
-      case AV_PIX_FMT_YUV420P: return fan::graphics::image_format::yuv420p;
-      case AV_PIX_FMT_NV12: return fan::graphics::image_format::nv12;
-      case AV_PIX_FMT_BGRA: return fan::graphics::image_format::b8g8r8a8_unorm;
+      case AV_PIX_FMT_YUV420P: return fan::graphics::image_format_e::yuv420p;
+      case AV_PIX_FMT_NV12: return fan::graphics::image_format_e::nv12;
+      case AV_PIX_FMT_BGRA: return fan::graphics::image_format_e::b8g8r8a8_unorm;
       default: return 0;
       }
     }
