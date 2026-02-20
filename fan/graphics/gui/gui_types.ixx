@@ -10,6 +10,7 @@ module;
 #endif
 
 #include <string>
+#include <algorithm> // topmost find
 
 export module fan.graphics.gui.types;
 
@@ -34,8 +35,18 @@ export namespace fan::graphics::gui {
   struct topmost_window_data_t {
     std::vector<std::string> windows;
 
-    void register_window(std::string_view name);
-    void unregister_window(std::string_view name);
+    void register_window(std::string_view name) {
+      if (std::find(windows.begin(), windows.end(), name) == windows.end()) {
+        windows.push_back(std::string(name));
+      }
+    }
+
+    void unregister_window(std::string_view name) {
+      auto it = std::find(windows.begin(), windows.end(), name);
+      if (it != windows.end()) {
+        windows.erase(it);
+      }
+    }
   };
 
   enum dock_flags_e {
@@ -325,7 +336,7 @@ export namespace fan::graphics::gui {
     // Flags for SetNextItemShortcut()
     input_flags_tooltip = ImGuiInputFlags_Tooltip,                 // Automatically display a tooltip when hovering item [BETA] Unsure of right api (opt-in/opt-out)
   };
-  enum color_edit_flags_e {
+  enum color_edit_flags_e : uint64_t {
     color_edit_flags_none = ImGuiColorEditFlags_None,
     color_edit_flags_no_alpha = ImGuiColorEditFlags_NoAlpha,         // ColorEdit, ColorPicker, ColorButton: ignore Alpha component (will only read 3 components from the input pointer).
     color_edit_flags_no_picker = ImGuiColorEditFlags_NoPicker,        // ColorEdit: disable picker when clicking on color square.
@@ -356,6 +367,7 @@ export namespace fan::graphics::gui {
     // Defaults Options. You can set application defaults using SetColorEditOptions(). The intent is that you probably don't want to
     // override them in most of your calls. Let the user choose via the option menu and/or call SetColorEditOptions() once during startup.
     color_edit_flags_default_options = ImGuiColorEditFlags_DefaultOptions_, // Uint8 | DisplayRGB | InputRGB | PickerHueBar combination.
+    color_edit_flags_init_once = 1ULL << 32,
   };
   enum cond_e {
     cond_none = ImGuiCond_None,        // No condition (always set the variable), same as _Always
@@ -537,7 +549,7 @@ export namespace fan::graphics::gui {
   using slider_flags_t = int;
   using input_text_flags_t = int;
   using input_flags_t = int;
-  using color_edit_flags_t = int;
+  using color_edit_flags_t = uint64_t;
   using cond_t = int;
   using col_t = int;
   using cursor_t = int;

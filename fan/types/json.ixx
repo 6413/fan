@@ -244,6 +244,18 @@ export {
           }
         }
       }
+      template<typename T>
+      void get_if(const char* key, T& out) {
+        if (contains(key)) out = (*this)[key].get<T>();
+      }
+      template<typename T>
+      void get_if(const char* key, T& out) const {
+        if (contains(key)) out = (*this)[key].get<T>();
+      }
+      template<typename T>
+      void set(const char* key, const T& val) {
+        (*this)[key] = val;
+      }
     };
   }
 

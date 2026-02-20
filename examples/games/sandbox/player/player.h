@@ -32,16 +32,18 @@ struct player_t {
     if (pile.engine.is_key_clicked(fan::key_r)) {
       respawn();
     }
+    
     body.update_animations();
     //fan::vec2 vel = body.get_linear_velocity();
     //fan::print("velocity.y: ", vel.y, " mass: ", body.get_mass());
     light.set_position(fan::vec2(body.get_position()));
+    body.set_size(0);
   }
 
   fan::graphics::physics::character2d_t body;
   fan::graphics::light_t light{ {
-    .size = {512, 256},
-    .color = fan::colors::white / 1.5f,
-    .flags = 1
+    .size = fan::vec2{512, 256} * 20.f,
+    .color = fan::colors::white / 2.5f,
+    .flags = 0
   } };
 };

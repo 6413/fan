@@ -151,18 +151,18 @@ struct fgm_t {
       }
     });
 
-    xy_lines[0] = fan::graphics::line_t {{
+    axis_lines[0] = fan::graphics::line_t {{
       .render_view = &render_view,
       .src = fan::vec3(-0xfffff, 0, 0x1fff),
       .dst = fan::vec2(0xfffff, 0),
-      .color = fan::colors::red / 2
+      .color = axis_x_color
     }};
 
-    xy_lines[1] = fan::graphics::line_t {{
+    axis_lines[1] = fan::graphics::line_t {{
       .render_view = &render_view,
       .src = fan::vec3(0, -0xfffff, 0x1fff),
       .dst = fan::vec2(0, 0xfffff),
-      .color = fan::colors::green / 2
+      .color = axis_y_color
     }};
 
     drag_select = fan::graphics::rectangle_t {{
@@ -187,8 +187,8 @@ struct fgm_t {
 
   void update_line_thickness() {
     f32_t line_thickness = std::max(2.0 / fan::graphics::camera_get_zoom(render_view.camera), 2.0);
-    xy_lines[0].set_thickness(line_thickness);
-    xy_lines[1].set_thickness(line_thickness);
+    axis_lines[0].set_thickness(line_thickness);
+    axis_lines[1].set_thickness(line_thickness);
     if (current_shape) {
       for (auto& i : current_shape->highlight) {
         for (auto& line : i) {
@@ -751,6 +751,10 @@ struct fgm_t {
       if (gui::color_edit3("ambient", &gloco()->lighting.ambient)) {
       }
       if (gui::drag("grid snap", &fan::graphics::vfi_root_t::snap, 1, 0, FLT_MAX, gui::slider_flags_always_clamp)) {
+      }
+      if (gui::checkbox("render axes", &render_axis_lines)) {
+        axis_lines[0].set_color(axis_x_color * render_axis_lines);
+        axis_lines[1].set_color(axis_y_color * render_axis_lines);
       }
     }
     gui::end();
@@ -1535,7 +1539,7 @@ struct fgm_t {
 
   std::unordered_map<shapes_t::global_t*, shape_keyframe_animation_t> shape_sprite_sheets;
 
-  fan::graphics::shape_t xy_lines[2];
+  fan::graphics::shape_t axis_lines[2];
   fan::vec2 texturepack_size {};
   fan::vec2 texturepack_single_image_size {};
   std::vector<texturepack_image_t> texturepack_images;
@@ -1566,4 +1570,8 @@ struct fgm_t {
   fan::graphics::engine_t::keys_handle_t key_handle;
   fan::graphics::engine_t::mouse_move_handle_t mouse_move_handle;
   fan::graphics::engine_t::buttons_handle_t button_handle;
+  
+  static constexpr fan::color axis_x_color = (fan::colors::red / 2.f).set_alpha(0.8f);
+  static constexpr fan::color axis_y_color = (fan::colors::green / 2.f).set_alpha(0.8f);
+  bool render_axis_lines = true;
 };

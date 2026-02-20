@@ -200,6 +200,10 @@ void open(void* sod) {
   cloud_system->init(5);
   f32_t ts = cfg.tile_size;
 
+  static fan::graphics::shape_t shape = fan::graphics::shape_from_json("rain.json");
+  shape.remove_culling();
+  shape.push_shaper();
+
   tilemap = fan::graphics::tilemap_t(fan::vec2(ts), fan::colors::gray, fan::vec2(cfg.map_tiles) * ts, fan::vec3(0, 0, 100));
   crack_shader = fan::graphics::shader_t {gloco()->get_sprite_vertex_shader(crack_shader_fragment)};
   grass_shader = fan::graphics::shader_t {gloco()->get_sprite_vertex_shader(grass_shader_fragment)};
@@ -208,10 +212,11 @@ void open(void* sod) {
   for (auto [i, shape] : fan::enumerate(parallax_bg)) {
     shape.remove_culling();
     shape.push_shaper();
-    shape.set_position(fan::vec2(shape.get_position()) + fan::vec2(3000, 0));
+    shape.set_position(fan::vec2(shape.get_position()) + fan::vec2(3000, shape.get_position().z*14.f));
     shape.set_parallax_factor(1.f - shape.get_position().z / 100.f);
   }
-
+  parallax_bg.back().set_parallax_factor(0.75f);
+  shape.set_position(parallax_bg.back().get_position().offset_z(1).offset_y(-500).offset_x(500));
   gen_world();
 
   pile.engine.lighting.set_target(0.0);
@@ -224,18 +229,34 @@ void close() {
   pickupables.clear();
 }
 void update() {
-  //pile.engine.clear_color = fan::color::from_rgb(0x574a89) * fan::color(pile.engine.lighting.ambient);
+  pile.engine.clear_color = fan::color::from_rgb(0x372540)*2.1f * fan::color(pile.engine.lighting.ambient);
 
   if (cloud_system) {
     cloud_system->update(gloco()->delta_time);
   }
-  update_grass();
-  update_digging(pile.player.body.get_center());
-  update_pickupables(pile.player.body.get_center());
-  auto sky_cs = sky_colors;
-  for (auto& col : sky_cs) {
-    col = col * fan::color(pile.engine.lighting.ambient);
+  constinit static fan::color c = fan::color::from_rgb(0x7CCAD8);
+  fan::graphics::gui::begin("A");
+  if (fan::graphics::gui::color_edit4(&c, fan::graphics::gui::color_edit_flags_init_once)) {
+    pile.engine.lighting.set_target(c);
   }
+  fan::graphics::gui::end();
+
+  update_grass();
+  //update_digging(pile.player.body.get_center());
+  //update_pickupables(pile.player.body.get_center());
+  auto sky_cs = sky_colors;
+  fan::vec3 ambient = pile.engine.lighting.ambient;
+
+  for (size_t i = 0; i < sky_cs.size(); ++i) {
+    auto& col = sky_cs[i];
+
+    col = col * ambient;
+
+    f32_t gradient_factor = (f32_t)i / (sky_cs.size() - 1);  // 0.0 to 1.0
+    f32_t boost = 0.5f + gradient_factor * 0.5f;  // 0.5 to 1.0
+    col = col * boost;
+  }
+
   sky.set_colors(sky_cs);
 }
 

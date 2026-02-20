@@ -15,15 +15,27 @@ export namespace fan {
       buffer[0] = '\0';
     }
 
-    constexpr ct_string(std::string_view sv) {
+    constexpr ct_string(std::string_view sv) : buffer{}, ptr(buffer), len(0) {
       set(sv);
     }
 
-    constexpr ct_string(const ct_string& o) {
+    //template <std::size_t N>
+    //constexpr ct_string(const char (&c)[N]) {
+    //  assign_from_ptr_len(c, N);
+    //}
+
+    template <std::size_t M>
+    constexpr ct_string(const char (&c)[M]): buffer{}, ptr(buffer), len(M-1) {
+      for (std::size_t i = 0; i < M; ++i) {
+        buffer[i] = c[i];
+      }
+    }
+
+    constexpr ct_string(const ct_string& o) : buffer{}, ptr(buffer), len(0) {
       assign_from(o);
     }
 
-    constexpr ct_string(ct_string&& o) noexcept {
+    constexpr ct_string(ct_string&& o) noexcept : buffer{}, ptr(buffer), len(0) {
       assign_from(o);
     }
 
@@ -184,4 +196,42 @@ export namespace fan {
       o.buffer[o.len++] = *s == '_' ? ' ' : (c ? (*s & ~32) : *s);
     return o.buffer[o.len] = 0, o.ptr = o.buffer, o;
   }
+
+  template <std::size_t N>
+  struct xor_string_t : fan::ct_string<N> {
+    static constexpr uint8_t xor_key = 0x55;
+
+    constexpr xor_string_t() = default;
+    template <std::size_t M>
+    constexpr xor_string_t(const char(&c)[M]) : fan::ct_string<N>() {
+      this->len = M - 1;
+      this->ptr = this->buffer;
+      for (std::size_t i = 0; i < M; ++i) {
+        this->buffer[i] = c[i] ^ xor_key;
+      }
+    }
+    constexpr fan::ct_string<N> decrypt() const {
+      fan::ct_string<N> str;
+      for (std::size_t i = 0; i < this->len; ++i) {
+        str.buffer[i] = this->buffer[i] ^ xor_key;
+      }
+      str.buffer[this->len] = '\0';
+      str.len = this->len;
+      str.ptr = str.buffer;
+      return str;
+    }
+    constexpr const char* c_str() const {
+      static thread_local char decrypted[N];
+      for (std::size_t i = 0; i < this->len + 1; ++i) {
+        decrypted[i] = this->buffer[i] ^ xor_key;
+      }
+      return decrypted;
+    }
+    constexpr operator const char* () const {
+      return c_str();
+    }
+  };
+
+  template <std::size_t M>
+  xor_string_t(const char(&)[M]) -> xor_string_t<M>;
 }

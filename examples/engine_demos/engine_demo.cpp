@@ -115,8 +115,8 @@ struct engine_demo_t {
       return;
     }
     void* pixel_data = pixel_data_str.data();
-    auto split = fan::image::plane_split(pixel_data, image_size, fan::graphics::image_format::yuv420p);
-    engine_demo->shapes.back().reload(fan::graphics::image_format::yuv420p, split, image_size);
+    auto split = fan::image::plane_split(pixel_data, image_size, fan::graphics::image_format_e::yuv420p);
+    engine_demo->shapes.back().reload(fan::graphics::image_format_e::yuv420p, split, image_size);
   }
 
   fan::graphics::image_t image_tire = engine.image_load("images/tire.webp");
@@ -1212,8 +1212,8 @@ void main() {
     sprite_t image_sprite;
     image_t procedural_image;
     fan::graphics::image_load_properties_t image_load_properties{
-      .internal_format = fan::graphics::image_format::rgb_unorm,
-      .format = fan::graphics::image_format::rgb_unorm,
+      .internal_format = fan::graphics::image_format_e::rgb_unorm,
+      .format = fan::graphics::image_format_e::rgb_unorm,
     };
   }*demo_multithreaded_image_loading_data=0;
 

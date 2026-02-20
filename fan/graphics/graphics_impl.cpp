@@ -19,6 +19,8 @@ module fan.graphics;
   import fan.graphics.gui.base;
 #endif
 
+import fan.types.compile_time_string;
+
 namespace fan::window {
   void add_input_action(const int* keys, std::size_t count, const std::string_view& action_name) {
     fan::graphics::ctx().input_action->add(keys, count, action_name);

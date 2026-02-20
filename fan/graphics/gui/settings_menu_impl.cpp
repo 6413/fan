@@ -37,9 +37,10 @@ namespace fan::graphics::gui {
   void settings_config_t::load_from_json(const fan::json& j) {
     if (j.contains("display")) {
       const auto& d = j["display"];
-      if (d.contains("display_mode")) display.display_mode = d["display_mode"];
-      if (d.contains("target_fps")) display.target_fps = d["target_fps"];
-      if (d.contains("resolution_index")) display.resolution_index = d["resolution_index"];
+      d.get_if("display_mode", display.display_mode);
+      d.get_if("target_fps", display.target_fps);
+      d.get_if("resolution_index", display.resolution_index);
+      d.get_if("renderer", display.renderer);
       if (d.contains("window_position")) {
         display.window_position.x = d["window_position"]["x"];
         display.window_position.y = d["window_position"]["y"];
@@ -48,73 +49,68 @@ namespace fan::graphics::gui {
         display.custom_resolution.x = d["custom_resolution"]["x"];
         display.custom_resolution.y = d["custom_resolution"]["y"];
       }
-      if (d.contains("renderer")) display.renderer = d["renderer"];
     }
-
     if (j.contains("performance")) {
       const auto& p = j["performance"];
-      if (p.contains("vsync")) performance.vsync = p["vsync"];
-      if (p.contains("show_fps")) performance.show_fps = p["show_fps"];
-      if (p.contains("track_heap")) performance.track_heap = p["track_heap"];
-      if (p.contains("track_opengl_calls")) performance.track_opengl_calls = p["track_opengl_calls"];
+      p.get_if("vsync", performance.vsync);
+      p.get_if("show_fps", performance.show_fps);
+      p.get_if("track_heap", performance.track_heap);
+      p.get_if("track_opengl_calls", performance.track_opengl_calls);
     }
-
     if (j.contains("debug")) {
       const auto& d = j["debug"];
-      if (d.contains("frustum_culling")) debug.frustum_culling_enabled = d["frustum_culling"];
-      if (d.contains("visualize_culling")) debug.visualize_culling = d["visualize_culling"];
+      d.get_if("frustum_culling", debug.frustum_culling_enabled);
+      d.get_if("visualize_culling", debug.visualize_culling);
+      d.get_if("hide_settings_bg", debug.hide_settings_bg);
+      d.get_if("fill_mode", debug.fill_mode);
       if (d.contains("culling_padding")) {
         debug.culling_padding.x = d["culling_padding"]["x"];
         debug.culling_padding.y = d["culling_padding"]["y"];
       }
-      if (d.contains("hide_settings_bg")) debug.hide_settings_bg = d["hide_settings_bg"];
-      if (d.contains("fill_mode")) debug.fill_mode = d["fill_mode"];
     }
-
     if (j.contains("audio")) {
-      const auto& a = j["audio"];
-      if (a.contains("volume")) audio.volume = a["volume"];
+      j["audio"].get_if("volume", audio.volume);
     }
-
     if (j.contains("post_processing")) {
       const auto& pp = j["post_processing"];
-      if (pp.contains("bloom")) {
-        gloco()->open_props.enable_bloom = pp["bloom"];
-      }
-      if (pp.contains("bloom_strength")) {
-        post_processing.bloom_strength = pp["bloom_strength"];
-      }
+      pp.get_if("bloom", gloco()->open_props.enable_bloom);
+      pp.get_if("bloom_strength", post_processing.bloom_strength);
+      pp.get_if("gamma", post_processing.gamma);
+      pp.get_if("exposure", post_processing.exposure);
+      pp.get_if("contrast", post_processing.contrast);
     }
   }
 
   fan::json settings_config_t::to_json() const {
     fan::json j;
-
-    j["display"]["display_mode"] = display.display_mode;
-    j["display"]["target_fps"] = display.target_fps;
-    j["display"]["resolution_index"] = display.resolution_index;
-    j["display"]["window_position"]["x"] = display.window_position.x;
-    j["display"]["window_position"]["y"] = display.window_position.y;
-    j["display"]["custom_resolution"]["x"] = display.custom_resolution.x;
-    j["display"]["custom_resolution"]["y"] = display.custom_resolution.y;
-    j["display"]["renderer"] = display.renderer;
-
-    j["performance"]["vsync"] = performance.vsync;
-    j["performance"]["show_fps"] = performance.show_fps;
-    j["performance"]["track_heap"] = performance.track_heap;
-    j["performance"]["track_opengl_calls"] = performance.track_opengl_calls;
-
-    j["debug"]["frustum_culling"] = debug.frustum_culling_enabled;
-    j["debug"]["visualize_culling"] = debug.visualize_culling;
-    j["debug"]["culling_padding"]["x"] = debug.culling_padding.x;
-    j["debug"]["culling_padding"]["y"] = debug.culling_padding.y;
-    j["debug"]["hide_settings_bg"] = debug.hide_settings_bg;
-    j["debug"]["fill_mode"] = debug.fill_mode;
-
-    j["audio"]["volume"] = audio.volume;
-    j["post_processing"]["bloom"] = gloco()->open_props.enable_bloom;
-    j["post_processing"]["bloom_strength"] = post_processing.bloom_strength;
-
+    auto& d = j["display"];
+    d.set("display_mode", display.display_mode);
+    d.set("target_fps", display.target_fps);
+    d.set("resolution_index", display.resolution_index);
+    d.set("renderer", display.renderer);
+    d["window_position"]["x"] = display.window_position.x;
+    d["window_position"]["y"] = display.window_position.y;
+    d["custom_resolution"]["x"] = display.custom_resolution.x;
+    d["custom_resolution"]["y"] = display.custom_resolution.y;
+    auto& p = j["performance"];
+    p.set("vsync", performance.vsync);
+    p.set("show_fps", performance.show_fps);
+    p.set("track_heap", performance.track_heap);
+    p.set("track_opengl_calls", performance.track_opengl_calls);
+    auto& db = j["debug"];
+    db.set("frustum_culling", debug.frustum_culling_enabled);
+    db.set("visualize_culling", debug.visualize_culling);
+    db.set("hide_settings_bg", debug.hide_settings_bg);
+    db.set("fill_mode", debug.fill_mode);
+    db["culling_padding"]["x"] = debug.culling_padding.x;
+    db["culling_padding"]["y"] = debug.culling_padding.y;
+    j["audio"].set("volume", audio.volume);
+    auto& pp = j["post_processing"];
+    pp.set("bloom", gloco()->open_props.enable_bloom);
+    pp.set("bloom_strength", post_processing.bloom_strength);
+    pp.set("gamma", post_processing.gamma);
+    pp.set("exposure", post_processing.exposure);
+    pp.set("contrast", post_processing.contrast);
     return j;
   }
 
@@ -123,7 +119,6 @@ namespace fan::graphics::gui {
     apply_config(true, false);
 
     page_t page;
-
     page.toggle = true;
     page.name = "Graphics";
     page.render_page_left = menu_graphics_left;
@@ -146,7 +141,6 @@ namespace fan::graphics::gui {
   void settings_menu_t::init_runtime() {
     set_settings_theme();
     keybind_menu.sync_from_input_action();
-
     query_current_resolution();
 
     if (gloco()->target_fps == config.display.target_fps) {
@@ -159,7 +153,6 @@ namespace fan::graphics::gui {
         on_window_resize(r.size);
       }
     );
-
     move_handle = gloco()->window.add_move_callback(
       [this](const auto& d) {
         if (d.window->display_mode == fan::window_t::mode::windowed) {
@@ -168,40 +161,26 @@ namespace fan::graphics::gui {
         }
       }
     );
-    gloco()->shader_set_value(
-      gloco()->gl.m_fbo_final_shader,
-      "bloom_strength",
-      config.post_processing.bloom_strength
-    );
-
-
+    gloco()->shader_set_value(gloco()->gl.m_fbo_final_shader, "bloom_strength", config.post_processing.bloom_strength);
+    gloco()->shader_set_value(gloco()->gl.m_fbo_final_shader, "gamma", config.post_processing.gamma);
+    gloco()->shader_set_value(gloco()->gl.m_fbo_final_shader, "exposure", config.post_processing.exposure);
+    gloco()->shader_set_value(gloco()->gl.m_fbo_final_shader, "contrast", config.post_processing.contrast);
     gloco()->set_culling_enabled(config.debug.frustum_culling_enabled);
   }
 
-  bool settings_menu_t::draw_toggle_row(
-    const char* label,
-    const char* id,
-    bool* enabled
-  ) {
+  bool settings_menu_t::draw_toggle_row(const char* label, bool* enabled) {
     gui::table_next_row();
     gui::table_next_column();
     gui::text(label);
     gui::table_next_column();
-    return gui::checkbox(id, enabled);
+    return gui::checkbox(enabled);
   }
 
-  void settings_menu_t::draw_sub_row(
-    const char* sublabel,
-    auto widget_fn,
-    f32_t sublabel_indent,
-    f32_t subwidget_indent
-  ) {
+  void settings_menu_t::draw_sub_row(const char* sublabel, auto widget_fn, f32_t sublabel_indent, f32_t subwidget_indent) {
     gui::table_next_row();
-
     gui::table_next_column();
     gui::set_cursor_pos_x(gui::get_cursor_pos_x() + sublabel_indent);
     gui::text(sublabel);
-
     gui::table_next_column();
     gui::set_cursor_pos_x(gui::get_cursor_pos_x() + subwidget_indent);
     widget_fn();
@@ -265,9 +244,7 @@ namespace fan::graphics::gui {
                 }
                 }
               }
-              if (is_selected) {
-                gui::set_item_default_focus();
-              }
+              if (is_selected) gui::set_item_default_focus();
             }
             gui::end_combo();
           }
@@ -277,48 +254,54 @@ namespace fan::graphics::gui {
     }
     gui::new_line();
     gui::new_line();
-    #if defined(LOCO_FRAMEBUFFER)
+  #if defined(LOCO_FRAMEBUFFER)
     {
       gui::text(title_color, "POST PROCESSING");
-      gui::begin_table(
-        "settings_left_table_post_processing", 
-        2, 
-        gui::table_flags_borders_inner_h | gui::table_flags_borders_outer_h |
-        gui::table_flags_no_clip
-      );
+      gui::begin_table("settings_left_table_post_processing", 2,
+        gui::table_flags_borders_inner_h | gui::table_flags_borders_outer_h | gui::table_flags_no_clip);
 
       gui::table_next_row();
       gui::table_next_column();
-
       gui::text("Enable bloom");
       gui::table_next_column();
-      if (gui::checkbox("##enable_bloom", &gloco()->open_props.enable_bloom)) {
+      if (gui::checkbox(&gloco()->open_props.enable_bloom)) {
         menu->mark_dirty();
       }
-
       if (gloco()->open_props.enable_bloom) {
         draw_sub_row("Strength", [&] {
-          if (gui::slider("##bloom_strength_slider",
-            &menu->config.post_processing.bloom_strength, 0, 1)) {
+          if (gui::slider(&menu->config.post_processing.bloom_strength, 0, 1)) {
             if (gloco()->window.renderer == fan::window_t::renderer_t::opengl) {
-              gloco()->shader_set_value(
-                gloco()->gl.m_fbo_final_shader,
-                "bloom_strength",
-                menu->config.post_processing.bloom_strength
-              );
+              gloco()->shader_set_value(gloco()->gl.m_fbo_final_shader, "bloom_strength", menu->config.post_processing.bloom_strength);
             }
             menu->mark_dirty();
           }
         });
-        #if defined(LOCO_FRAMEBUFFER)
-          draw_sub_row("Filter radius", [&] {
-            if (gui::slider("##bloom_filter_radius", &gloco()->gl.blur.bloom_filter_radius, 0, 0.01)) {
-              menu->mark_dirty();
-            }
-          });
-        #endif
+      #if defined(LOCO_FRAMEBUFFER)
+        draw_sub_row("Filter radius", [&] {
+          if (gui::slider(&gloco()->gl.blur.bloom_filter_radius, 0, 0.01)) {
+            menu->mark_dirty();
+          }
+        });
+      #endif
       }
-
+      draw_sub_row("Gamma", [&] {
+        if (gui::drag(&menu->config.post_processing.gamma, 0.01f, 0.1f, 5.0f)) {
+          gloco()->shader_set_value(gloco()->gl.m_fbo_final_shader, "gamma", menu->config.post_processing.gamma);
+          menu->mark_dirty();
+        }
+      });
+      draw_sub_row("Exposure", [&] {
+        if (gui::drag(&menu->config.post_processing.exposure, 0.01f, 0.0f, 10.0f)) {
+          gloco()->shader_set_value(gloco()->gl.m_fbo_final_shader, "exposure", menu->config.post_processing.exposure);
+          menu->mark_dirty();
+        }
+      });
+      draw_sub_row("Contrast", [&] {
+        if (gui::drag(&menu->config.post_processing.contrast, 0.01f, 0.0f, 5.0f)) {
+          gloco()->shader_set_value(gloco()->gl.m_fbo_final_shader, "contrast", menu->config.post_processing.contrast);
+          menu->mark_dirty();
+        }
+      });
       gui::end_table();
     }
   #endif
@@ -327,47 +310,26 @@ namespace fan::graphics::gui {
     {
       gui::text(title_color, "PERFORMANCE STATS");
       gui::new_line();
-      gui::begin_table("settings_left_table_performance_stats", 2, gui::table_flags_borders_inner_h | gui::table_flags_borders_outer_h | gui::table_flags_no_clip);
+      gui::begin_table("settings_left_table_performance_stats", 2,
+        gui::table_flags_borders_inner_h | gui::table_flags_borders_outer_h | gui::table_flags_no_clip);
       {
-        gui::table_next_row();
-        gui::table_next_column();
-        gui::text("Enable VSync");
-        gui::table_next_column();
-        if (gui::checkbox("##enable_vsync", (bool*)&gloco()->vsync)) {
+        if (draw_toggle_row("Enable VSync", (bool*)&gloco()->vsync)) {
           gloco()->set_vsync(gloco()->vsync);
           menu->config.performance.vsync = gloco()->vsync;
           menu->mark_dirty();
         }
-      }
-      {
-        gui::table_next_row();
-        gui::table_next_column();
-        gui::text("Show fps");
-        gui::table_next_column();
-        if (gui::checkbox("##show_fps", (bool*)&gloco()->show_fps)) {
+        if (draw_toggle_row("Show fps", (bool*)&gloco()->show_fps)) {
           menu->config.performance.show_fps = gloco()->show_fps;
           menu->mark_dirty();
         }
-      }
-    #if defined(fan_std23)
-      {
-        gui::table_next_row();
-        gui::table_next_column();
-        gui::text("Track Heap memory");
-        gui::table_next_column();
-        if (gui::checkbox("##track_heap", (bool*)&fan::memory::heap_profiler_t::instance().enabled)) {
+      #if defined(fan_std23)
+        if (draw_toggle_row("Track Heap memory", (bool*)&fan::memory::heap_profiler_t::instance().enabled)) {
           gloco()->console.commands.call("debug_memory " + std::to_string((int)fan::memory::heap_profiler_t::instance().enabled));
           menu->config.performance.track_heap = fan::memory::heap_profiler_t::instance().enabled;
           menu->mark_dirty();
         }
-      }
-    #endif
-      {
-        gui::table_next_row();
-        gui::table_next_column();
-        gui::text("Track OpenGL calls");
-        gui::table_next_column();
-        if (gui::checkbox("##track_opengl_calls", (bool*)&fan_track_opengl_calls())) {
+      #endif
+        if (draw_toggle_row("Track OpenGL calls", (bool*)&fan_track_opengl_calls())) {
           menu->config.performance.track_opengl_calls = fan_track_opengl_calls();
           menu->mark_dirty();
         }
@@ -389,24 +351,18 @@ namespace fan::graphics::gui {
         gui::text("Frustum culling");
         gui::table_next_column();
         gui::text("Enable frustum culling");
-        if (gui::checkbox("##enable_culling", &gloco()->shapes.visibility.enabled)) {
+        if (gui::checkbox(&gloco()->shapes.visibility.enabled)) {
           gloco()->set_culling_enabled(gloco()->shapes.visibility.enabled);
           menu->config.debug.frustum_culling_enabled = gloco()->shapes.visibility.enabled;
           menu->mark_dirty();
         }
-        if (draw_toggle_row(
-          "Visualize culling",
-          "##visualize_culling",
-          &gloco()->is_visualizing_culling
-        )) {
+        if (draw_toggle_row("Visualize culling", &gloco()->is_visualizing_culling)) {
           menu->config.debug.visualize_culling = gloco()->is_visualizing_culling;
           menu->mark_dirty();
         }
-
         if (gloco()->is_visualizing_culling) {
-
           draw_sub_row("padding (default render view)", [&] {
-            if (gui::drag("##culling_bounds", &gloco()->shapes.visibility.padding, 1)) {
+            if (gui::drag(&gloco()->shapes.visibility.padding, 1)) {
               for (auto& [cam_id, cam_state] : gloco()->shapes.visibility.camera_states) {
                 cam_state.view_dirty = true;
               }
@@ -422,14 +378,13 @@ namespace fan::graphics::gui {
           });
         }
       }
-
     #endif
       {
         gui::table_next_row();
         gui::table_next_column();
         gui::text("Hide settings background");
         gui::table_next_column();
-        if (gui::checkbox("##hide_settings_bg", &hide_gui_settings)) {
+        if (gui::checkbox(&hide_gui_settings)) {
           menu->config.debug.hide_settings_bg = hide_gui_settings;
           menu->mark_dirty();
         }
@@ -437,7 +392,7 @@ namespace fan::graphics::gui {
           hide_bg = hide_gui_settings;
         }
       }
-      #if defined(FAN_2D)
+    #if defined(FAN_2D)
       {
         static const char* fill_modes[] = {"Fill", "Line"};
         gui::table_next_row();
@@ -454,14 +409,12 @@ namespace fan::graphics::gui {
               menu->config.debug.fill_mode = i;
               menu->mark_dirty();
             }
-            if (is_selected) {
-              gui::set_item_default_focus();
-            }
+            if (is_selected) gui::set_item_default_focus();
           }
           gui::end_combo();
         }
       }
-      #endif
+    #endif
       gui::end_table();
     }
     end_menu_left();
@@ -497,7 +450,7 @@ namespace fan::graphics::gui {
         gui::text("Volume");
         gui::table_next_column();
         f32_t volume = fan::audio::get_volume();
-        if (gui::slider("##slider_volume", &volume, 0.f, 1.f, gui::slider_flags_always_clamp)) {
+        if (gui::slider(&volume, 0.f, 1.f, gui::slider_flags_always_clamp)) {
           fan::audio::set_volume(volume);
           menu->config.audio.volume = volume;
           menu->mark_dirty();
@@ -513,13 +466,9 @@ namespace fan::graphics::gui {
   }
 
   void settings_menu_t::query_current_resolution() {
-    if (
-      config.display.resolution_index != -1 ||
-      config.display.custom_resolution.x != -1
-    ) {
+    if (config.display.resolution_index != -1 || config.display.custom_resolution.x != -1) {
       return;
     }
-
     fan::vec2i current = gloco()->window.get_size();
     for (int i = 0; i < std::size(fan::window_t::resolutions); ++i) {
       if (fan::window_t::resolutions[i] == current) {
@@ -527,13 +476,11 @@ namespace fan::graphics::gui {
         return;
       }
     }
-
     config.display.custom_resolution = current;
   }
 
   void settings_menu_t::on_window_resize(const fan::vec2i& new_size) {
     bool matched = false;
-
     for (int i = 0; i < std::size(fan::window_t::resolutions); ++i) {
       if (fan::window_t::resolutions[i] == new_size) {
         config.display.resolution_index = i;
@@ -542,44 +489,33 @@ namespace fan::graphics::gui {
         break;
       }
     }
-
     if (!matched) {
       config.display.resolution_index = -1;
       config.display.custom_resolution = new_size;
     }
-
     mark_dirty();
   }
 
   void settings_menu_t::apply_config(bool construct, bool runtime) {
     if (!runtime) {
       gloco()->open_props.window_open_mode = config.display.display_mode;
-
-      if (config.display.window_position.x != -1 &&
-        config.display.window_position.y != -1) {
+      if (config.display.window_position.x != -1 && config.display.window_position.y != -1) {
         gloco()->open_props.window_position = config.display.window_position;
       }
-
       gloco()->open_props.renderer = config.display.renderer;
-
       if (config.display.custom_resolution.x != -1) {
         gloco()->open_props.window_size = config.display.custom_resolution;
       }
       else if (config.display.resolution_index != -1) {
-        gloco()->open_props.window_size =
-          fan::window_t::resolutions[config.display.resolution_index];
+        gloco()->open_props.window_size = fan::window_t::resolutions[config.display.resolution_index];
       }
-
       return;
     }
-
     gloco()->set_target_fps(config.display.target_fps);
     gloco()->set_vsync(config.performance.vsync);
     gloco()->show_fps = config.performance.show_fps;
     fan::audio::set_volume(config.audio.volume);
   }
-
-
 
   void settings_menu_t::mark_dirty() {
     is_dirty = true;
@@ -599,23 +535,17 @@ namespace fan::graphics::gui {
         break;
       }
     }
-
     idx = (idx + dir + std::size(fps_values)) % std::size(fps_values);
     gloco()->set_target_fps(fps_values[idx]);
     config.display.target_fps = fps_values[idx];
     mark_dirty();
   }
-  void settings_menu_t::render_display_mode() {
-    static constexpr const char* display_mode_names[] = {
-      "Windowed",
-      "Borderless",
-      "Fullscreen"
-    };
 
+  void settings_menu_t::render_display_mode() {
+    static constexpr const char* display_mode_names[] = { "Windowed", "Borderless", "Fullscreen" };
     gui::table_next_column();
     gui::text("Display Mode");
     gui::table_next_column();
-
     if (gui::begin_combo("##Display Mode", display_mode_names[gloco()->open_props.window_open_mode - 1])) {
       for (int i = 0; i < std::size(display_mode_names); ++i) {
         bool is_selected = (gloco()->open_props.window_open_mode - 1 == i);
@@ -625,9 +555,7 @@ namespace fan::graphics::gui {
           mark_dirty();
           gloco()->window.set_display_mode(config.display.display_mode);
         }
-        if (is_selected) {
-          gui::set_item_default_focus();
-        }
+        if (is_selected) gui::set_item_default_focus();
       }
       gui::end_combo();
     }
@@ -638,15 +566,11 @@ namespace fan::graphics::gui {
     gui::text("Target Framerate");
     gui::table_next_column();
     gui::same_line();
-    if (gui::arrow_button("##left_arrow", gui::dir_left)) {
-      change_target_fps(-1);
-    }
+    if (gui::arrow_button("##left_arrow", gui::dir_left)) change_target_fps(-1);
     gui::same_line();
     gui::text(gloco()->target_fps);
     gui::same_line();
-    if (gui::arrow_button("##right_arrow", gui::dir_right)) {
-      change_target_fps(1);
-    }
+    if (gui::arrow_button("##right_arrow", gui::dir_right)) change_target_fps(1);
   }
 
   void settings_menu_t::render_resolution_dropdown() {
@@ -658,15 +582,17 @@ namespace fan::graphics::gui {
         break;
       }
     }
-    if (current_resolution == -1) {
-      current_resolution = std::size(fan::window_t::resolutions);
-    }
+    if (current_resolution == -1) current_resolution = std::size(fan::window_t::resolutions);
+
     gui::table_next_column();
     gui::text("Resolution");
     gui::table_next_column();
     fan::vec2i window_size = gloco()->window.get_size();
     std::string custom_res = std::to_string(window_size.x) + "x" + std::to_string(window_size.y);
-    const char* current_label = (current_resolution == std::size(fan::window_t::resolutions)) ? custom_res.c_str() : fan::window_t::resolution_labels[current_resolution];
+    const char* current_label = (current_resolution == std::size(fan::window_t::resolutions))
+      ? custom_res.c_str()
+      : fan::window_t::resolution_labels[current_resolution];
+
     if (gui::begin_combo("##ResolutionCombo", current_label)) {
       for (int i = 0; i < std::size(fan::window_t::resolution_labels); ++i) {
         bool is_selected = (current_resolution == i);
@@ -677,9 +603,7 @@ namespace fan::graphics::gui {
           config.display.custom_resolution = fan::vec2i(-1, -1);
           mark_dirty();
         }
-        if (is_selected) {
-          gui::set_item_default_focus();
-        }
+        if (is_selected) gui::set_item_default_focus();
       }
       if (current_resolution == std::size(fan::window_t::resolutions) && gui::selectable(custom_res.c_str(), true)) {
         config.display.resolution_index = -1;
@@ -691,7 +615,6 @@ namespace fan::graphics::gui {
 
   void settings_menu_t::render_separator_full_width(f32_t y_offset) {
     auto* draw_list = gui::get_window_draw_list();
-
     fan::vec2 win_pos = gui::get_window_pos();
     fan::vec2 win_size = gui::get_window_size();
     f32_t y = win_pos.y + gui::get_cursor_pos().y + y_offset;
@@ -706,7 +629,6 @@ namespace fan::graphics::gui {
   void settings_menu_t::render_settings_left(const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
     pages[current_page].render_page_left(this, next_window_position, next_window_size);
   }
-
   void settings_menu_t::render_settings_right(const fan::vec2& next_window_position, const fan::vec2& next_window_size, f32_t min_x) {
     pages[current_page].render_page_right(this, next_window_position, next_window_size);
   }
@@ -716,8 +638,8 @@ namespace fan::graphics::gui {
     gui::set_next_window_pos(fan::vec2(0, 0));
     gui::set_next_window_size(fan::vec2(main_window_size.x, main_window_size.y / 5));
     gui::set_next_window_bg_alpha(hide_bg ? 0 : 0.99);
-    gui::begin("##Fan Settings Nav", nullptr, 
-      gui::window_flags_no_move | gui::window_flags_no_collapse | 
+    gui::begin("##Fan Settings Nav", nullptr,
+      gui::window_flags_no_move | gui::window_flags_no_collapse |
       gui::window_flags_no_resize | gui::window_flags_no_title_bar |
       gui::window_flags_always_vertical_scrollbar
     );
@@ -736,12 +658,9 @@ namespace fan::graphics::gui {
     for (std::size_t i = 0; i < std::size(pages); ++i) {
       gui::table_next_column();
       bool& is_toggled = pages[i].toggle;
-      if (is_toggled) {
-        gui::push_style_color(gui::col_button, gui::get_color(gui::col_button_hovered));
-      }
-      else {
-        gui::push_style_color(gui::col_button, fan::colors::transparent);
-      }
+      gui::push_style_color(gui::col_button, is_toggled
+        ? gui::get_color(gui::col_button_hovered)
+        : fan::colors::transparent);
       if (gui::button(pages[i].name.c_str())) {
         pages[i].toggle = !pages[i].toggle;
         if (pages[i].toggle) {
@@ -762,32 +681,21 @@ namespace fan::graphics::gui {
     gui::end();
     return window_size;
   }
+
   void settings_menu_t::render() {
     render_settings_top(min_x);
-
     fan::vec2 size = gloco()->window.get_size();
     f32_t ratio = pages[current_page].split_ratio;
-
-    const float top_h = size.y * 0.2f;
-
-    render_settings_left(
-      {0, top_h},
-      {size.x * ratio, size.y - top_h}
-    );
-
-    render_settings_right(
-      {size.x * ratio, top_h},
-      {size.x * (1.f - ratio), size.y - top_h},
-      min_x
-    );
-
+    const f32_t top_h = size.y * 0.2f;
+    render_settings_left({0, top_h}, {size.x * ratio, size.y - top_h});
+    render_settings_right({size.x * ratio, top_h}, {size.x * (1.f - ratio), size.y - top_h}, min_x);
     keybind_menu.update();
   }
+
   void settings_menu_t::reset_page_selection() {
-    for (auto& p : pages) {
-      p.toggle = false;
-    }
+    for (auto& p : pages) p.toggle = false;
   }
+
   void settings_menu_t::set_settings_theme() {
     auto& style = gui::get_style();
     style.Alpha = 1.0f;
@@ -820,69 +728,63 @@ namespace fan::graphics::gui {
     style.ColorButtonPosition = gui::dir_right;
     style.ButtonTextAlign = fan::vec2(0.5f, 0.5f);
     style.SelectableTextAlign = fan::vec2(0.0f, 0.0f);
-    style.Colors[gui::col_text] = fan::color(0.9803921580314636f, 0.9803921580314636f, 0.9803921580314636f, 1.0f);
-    style.Colors[gui::col_text_disabled] = fan::color(0.4980392158031464f, 0.4980392158031464f, 0.4980392158031464f, 1.0f);
-    style.Colors[gui::col_window_bg] = fan::color(0.01f, 0.01f, 0.01f, 0.99f);
-    style.Colors[gui::col_child_bg] = fan::color(0.01f, 0.01f, 0.01f, 1.0f);
-    //style.Colors[gui::col_window_bg] = fan::color(0.09411764889955521f, 0.09411764889955521f, 0.09411764889955521f, 0.99);
-    //style.Colors[gui::col_child_bg] = style.Colors[gui::col_window_bg];
-    //style.Colors[gui::col_child_bg] = fan::color(0.1568627506494522f, 0.1568627506494522f, 0.1568627506494522f, 1.0f);
-    style.Colors[gui::col_popup_bg] = fan::color(0.09411764889955521f, 0.09411764889955521f, 0.09411764889955521f, 1.0f);
-    style.Colors[gui::col_border] = fan::color(1.0f, 1.0f, 1.0f, 0.09803921729326248f);
-    style.Colors[gui::col_border_shadow] = fan::color(0.0f, 0.0f, 0.0f, 0.0f);
-    style.Colors[gui::col_frame_bg] = fan::color(1.0f, 1.0f, 1.0f, 0.09803921729326248f);
-    style.Colors[gui::col_frame_bg_hovered] = fan::color(1.0f, 1.0f, 1.0f, 0.1568627506494522f);
-    style.Colors[gui::col_frame_bg_active] = fan::color(0.0f, 0.0f, 0.0f, 0.0470588244497776f);
-    style.Colors[gui::col_title_bg] = fan::color(0.1176470592617989f, 0.1176470592617989f, 0.1176470592617989f, 1.0f);
-    style.Colors[gui::col_title_bg_active] = fan::color(0.1568627506494522f, 0.1568627506494522f, 0.1568627506494522f, 1.0f);
-    style.Colors[gui::col_title_bg_collapsed] = fan::color(0.1176470592617989f, 0.1176470592617989f, 0.1176470592617989f, 1.0f);
-    style.Colors[gui::col_menu_bar_bg] = fan::color(0.09411764889955521f, 0.09411764889955521f, 0.09411764889955521f, 1.f);
-    style.Colors[gui::col_scrollbar_bg] = fan::color(0.0f, 0.0f, 0.0f, 0.1098039224743843f);
-    style.Colors[gui::col_scrollbar_grab] = fan::color(1.0f, 1.0f, 1.0f, 0.3921568691730499f);
+    style.Colors[gui::col_text]                   = fan::color(0.9803921580314636f,  0.9803921580314636f,  0.9803921580314636f,  1.0f);
+    style.Colors[gui::col_text_disabled]          = fan::color(0.4980392158031464f,  0.4980392158031464f,  0.4980392158031464f,  1.0f);
+    style.Colors[gui::col_window_bg]              = fan::color(0.01f,                0.01f,                0.01f,                0.99f);
+    style.Colors[gui::col_child_bg]               = fan::color(0.01f,                0.01f,                0.01f,                1.0f);
+    style.Colors[gui::col_popup_bg]               = fan::color(0.09411764889955521f, 0.09411764889955521f, 0.09411764889955521f, 1.0f);
+    style.Colors[gui::col_border]                 = fan::color(1.0f, 1.0f, 1.0f, 0.09803921729326248f);
+    style.Colors[gui::col_border_shadow]          = fan::color(0.0f, 0.0f, 0.0f, 0.0f);
+    style.Colors[gui::col_frame_bg]               = fan::color(1.0f, 1.0f, 1.0f, 0.09803921729326248f);
+    style.Colors[gui::col_frame_bg_hovered]       = fan::color(1.0f, 1.0f, 1.0f, 0.1568627506494522f);
+    style.Colors[gui::col_frame_bg_active]        = fan::color(0.0f, 0.0f, 0.0f, 0.0470588244497776f);
+    style.Colors[gui::col_title_bg]               = fan::color(0.1176470592617989f,  0.1176470592617989f,  0.1176470592617989f,  1.0f);
+    style.Colors[gui::col_title_bg_active]        = fan::color(0.1568627506494522f,  0.1568627506494522f,  0.1568627506494522f,  1.0f);
+    style.Colors[gui::col_title_bg_collapsed]     = fan::color(0.1176470592617989f,  0.1176470592617989f,  0.1176470592617989f,  1.0f);
+    style.Colors[gui::col_menu_bar_bg]            = fan::color(0.09411764889955521f, 0.09411764889955521f, 0.09411764889955521f, 1.0f);
+    style.Colors[gui::col_scrollbar_bg]           = fan::color(0.0f, 0.0f, 0.0f, 0.1098039224743843f);
+    style.Colors[gui::col_scrollbar_grab]         = fan::color(1.0f, 1.0f, 1.0f, 0.3921568691730499f);
     style.Colors[gui::col_scrollbar_grab_hovered] = fan::color(1.0f, 1.0f, 1.0f, 0.4705882370471954f);
-    style.Colors[gui::col_scrollbar_grab_active] = fan::color(0.0f, 0.0f, 0.0f, 0.09803921729326248f);
-    style.Colors[gui::col_check_mark] = fan::color(1.0f, 1.0f, 1.0f, 1.0f);
-    style.Colors[gui::col_slider_grab] = fan::color(1.0f, 1.0f, 1.0f, 0.3921568691730499f);
-    style.Colors[gui::col_slider_grab_active] = fan::color(1.0f, 1.0f, 1.0f, 0.3137255012989044f);
-    style.Colors[gui::col_button] = fan::color(1.0f, 1.0f, 1.0f, 0.09803921729326248f);
-    style.Colors[gui::col_button_hovered] = fan::color(1.0f, 1.0f, 1.0f, 0.1568627506494522f);
-    style.Colors[gui::col_button_active] = fan::color(0.0f, 0.0f, 0.0f, 0.0470588244497776f);
-    style.Colors[gui::col_header] = fan::color(1.0f, 1.0f, 1.0f, 0.09803921729326248f);
-    style.Colors[gui::col_header_hovered] = fan::color(1.0f, 1.0f, 1.0f, 0.1568627506494522f);
-    style.Colors[gui::col_header_active] = fan::color(0.0f, 0.0f, 0.0f, 0.0470588244497776f);
-    style.Colors[gui::col_separator] = fan::color(1.0f, 1.0f, 1.0f, 0.1568627506494522f);
-    style.Colors[gui::col_separator_hovered] = fan::color(1.0f, 1.0f, 1.0f, 0.2352941185235977f);
-    style.Colors[gui::col_separator_active] = fan::color(1.0f, 1.0f, 1.0f, 0.2352941185235977f);
-    style.Colors[gui::col_resize_grip] = fan::color(1.0f, 1.0f, 1.0f, 0.1568627506494522f);
-    style.Colors[gui::col_resize_grip_hovered] = fan::color(1.0f, 1.0f, 1.0f, 0.2352941185235977f);
-    style.Colors[gui::col_resize_grip_active] = fan::color(1.0f, 1.0f, 1.0f, 0.2352941185235977f);
-    style.Colors[gui::col_tab] = fan::color(1.0f, 1.0f, 1.0f, 0.09803921729326248f);
-    style.Colors[gui::col_tab_hovered] = fan::color(1.0f, 1.0f, 1.0f, 0.1568627506494522f);
-    style.Colors[gui::col_tab_selected] = fan::color(1.0f, 1.0f, 1.0f, 0.3137255012989044f);
-    style.Colors[gui::col_tab_dimmed] = fan::color(0.0f, 0.0f, 0.0f, 0.1568627506494522f);
-    style.Colors[gui::col_tab_dimmed_selected] = fan::color(1.0f, 1.0f, 1.0f, 0.2352941185235977f);
-    style.Colors[gui::col_plot_lines] = fan::color(1.0f, 1.0f, 1.0f, 0.3529411852359772f);
-    style.Colors[gui::col_plot_lines_hovered] = fan::color(1.0f, 1.0f, 1.0f, 1.0f);
-    style.Colors[gui::col_plot_histogram] = fan::color(1.0f, 1.0f, 1.0f, 0.3529411852359772f);
+    style.Colors[gui::col_scrollbar_grab_active]  = fan::color(0.0f, 0.0f, 0.0f, 0.09803921729326248f);
+    style.Colors[gui::col_check_mark]             = fan::color(1.0f, 1.0f, 1.0f, 1.0f);
+    style.Colors[gui::col_slider_grab]            = fan::color(1.0f, 1.0f, 1.0f, 0.3921568691730499f);
+    style.Colors[gui::col_slider_grab_active]     = fan::color(1.0f, 1.0f, 1.0f, 0.3137255012989044f);
+    style.Colors[gui::col_button]                 = fan::color(1.0f, 1.0f, 1.0f, 0.09803921729326248f);
+    style.Colors[gui::col_button_hovered]         = fan::color(1.0f, 1.0f, 1.0f, 0.1568627506494522f);
+    style.Colors[gui::col_button_active]          = fan::color(0.0f, 0.0f, 0.0f, 0.0470588244497776f);
+    style.Colors[gui::col_header]                 = fan::color(1.0f, 1.0f, 1.0f, 0.09803921729326248f);
+    style.Colors[gui::col_header_hovered]         = fan::color(1.0f, 1.0f, 1.0f, 0.1568627506494522f);
+    style.Colors[gui::col_header_active]          = fan::color(0.0f, 0.0f, 0.0f, 0.0470588244497776f);
+    style.Colors[gui::col_separator]              = fan::color(1.0f, 1.0f, 1.0f, 0.1568627506494522f);
+    style.Colors[gui::col_separator_hovered]      = fan::color(1.0f, 1.0f, 1.0f, 0.2352941185235977f);
+    style.Colors[gui::col_separator_active]       = fan::color(1.0f, 1.0f, 1.0f, 0.2352941185235977f);
+    style.Colors[gui::col_resize_grip]            = fan::color(1.0f, 1.0f, 1.0f, 0.1568627506494522f);
+    style.Colors[gui::col_resize_grip_hovered]    = fan::color(1.0f, 1.0f, 1.0f, 0.2352941185235977f);
+    style.Colors[gui::col_resize_grip_active]     = fan::color(1.0f, 1.0f, 1.0f, 0.2352941185235977f);
+    style.Colors[gui::col_tab]                    = fan::color(1.0f, 1.0f, 1.0f, 0.09803921729326248f);
+    style.Colors[gui::col_tab_hovered]            = fan::color(1.0f, 1.0f, 1.0f, 0.1568627506494522f);
+    style.Colors[gui::col_tab_selected]           = fan::color(1.0f, 1.0f, 1.0f, 0.3137255012989044f);
+    style.Colors[gui::col_tab_dimmed]             = fan::color(0.0f, 0.0f, 0.0f, 0.1568627506494522f);
+    style.Colors[gui::col_tab_dimmed_selected]    = fan::color(1.0f, 1.0f, 1.0f, 0.2352941185235977f);
+    style.Colors[gui::col_plot_lines]             = fan::color(1.0f, 1.0f, 1.0f, 0.3529411852359772f);
+    style.Colors[gui::col_plot_lines_hovered]     = fan::color(1.0f, 1.0f, 1.0f, 1.0f);
+    style.Colors[gui::col_plot_histogram]         = fan::color(1.0f, 1.0f, 1.0f, 0.3529411852359772f);
     style.Colors[gui::col_plot_histogram_hovered] = fan::color(1.0f, 1.0f, 1.0f, 1.0f);
-    style.Colors[gui::col_table_header_bg] = fan::color(0.1568627506494522f, 0.1568627506494522f, 0.1568627506494522f, 1.0f);
-    style.Colors[gui::col_table_border_strong] = fan::color(1.0f, 1.0f, 1.0f, 0.3137255012989044f);
-    style.Colors[gui::col_table_border_light] = fan::color(1.0f, 1.0f, 1.0f, 0.196078434586525f);
-    style.Colors[gui::col_table_row_bg] = fan::color(0.0f, 0.0f, 0.0f, 0.0f);
-    style.Colors[gui::col_table_row_bg_alt] = fan::color(1.0f, 1.0f, 1.0f, 0.01960784383118153f);
-    style.Colors[gui::col_text_selected_bg] = fan::color(0.0f, 0.0f, 0.0f, 1.0f);
-    style.Colors[gui::col_drag_drop_target] = fan::color(0.168627455830574f, 0.2313725501298904f, 0.5372549295425415f, 1.0f);
-    style.Colors[gui::col_nav_cursor] = fan::color(1.0f, 1.0f, 1.0f, 1.0f);
-    style.Colors[gui::col_nav_windowing_highlight] = fan::color(1.0f, 1.0f, 1.0f, 0.699999988079071f);
-    style.Colors[gui::col_nav_windowing_dim_bg] = fan::color(0.800000011920929f, 0.800000011920929f, 0.800000011920929f, 0.2000000029802322f);
+    style.Colors[gui::col_table_header_bg]        = fan::color(0.1568627506494522f,  0.1568627506494522f,  0.1568627506494522f,  1.0f);
+    style.Colors[gui::col_table_border_strong]    = fan::color(1.0f, 1.0f, 1.0f, 0.3137255012989044f);
+    style.Colors[gui::col_table_border_light]     = fan::color(1.0f, 1.0f, 1.0f, 0.196078434586525f);
+    style.Colors[gui::col_table_row_bg]           = fan::color(0.0f, 0.0f, 0.0f, 0.0f);
+    style.Colors[gui::col_table_row_bg_alt]       = fan::color(1.0f, 1.0f, 1.0f, 0.01960784383118153f);
+    style.Colors[gui::col_text_selected_bg]       = fan::color(0.0f, 0.0f, 0.0f, 1.0f);
+    style.Colors[gui::col_drag_drop_target]       = fan::color(0.168627455830574f,   0.2313725501298904f,  0.5372549295425415f,  1.0f);
+    style.Colors[gui::col_nav_cursor]             = fan::color(1.0f, 1.0f, 1.0f, 1.0f);
+    style.Colors[gui::col_nav_windowing_highlight]= fan::color(1.0f, 1.0f, 1.0f, 0.699999988079071f);
+    style.Colors[gui::col_nav_windowing_dim_bg]   = fan::color(0.800000011920929f,   0.800000011920929f,   0.800000011920929f,   0.2000000029802322f);
   }
 
   bool settings_menu_t::load() {
-     std::string content;
-    if (fan::io::file::read(config.config_save_path, &content) != 0) {
-      return false;
-    }
-
+    std::string content;
+    if (fan::io::file::read(config.config_save_path, &content) != 0) return false;
     fan::json j;
     try {
       j = fan::json::parse(content);
@@ -890,14 +792,11 @@ namespace fan::graphics::gui {
     catch (...) {
       return false;
     }
-
     config.load_from_json(j);
-
     if (j.contains("keybinds")) {
       keybind_menu.load_from_settings_json(j);
       keybind_menu.apply_to_input_action();
     }
-
     return true;
   }
   void settings_menu_t::save() {
