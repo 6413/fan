@@ -232,19 +232,6 @@ namespace fan::graphics::gui {
 
   } // namespace detail
 
-  void topmost_window_data_t::register_window(std::string_view name) {
-    if (std::find(windows.begin(), windows.end(), name) == windows.end()) {
-      windows.push_back(std::string(name));
-    }
-  }
-
-  void topmost_window_data_t::unregister_window(std::string_view name) {
-    auto it = std::find(windows.begin(), windows.end(), name);
-    if (it != windows.end()) {
-      windows.erase(it);
-    }
-  }
-
   topmost_window_data_t& topmost_data() {
     static topmost_window_data_t d;
     return d;
@@ -1119,8 +1106,40 @@ namespace fan::graphics::gui {
     return ImGui::ColorEdit3(label, color->data(), flags);
   }
 
-  bool color_edit4(label_t label, fan::color* color, color_edit_flags_t flags) {
-    return ImGui::ColorEdit4(label, color->data(), flags);
+  bool color_edit4(label_t label, fan::color* color, gui::color_edit_flags_t flags) {
+    bool init_once = flags & gui::color_edit_flags_init_once;
+    auto imgui_flags = (ImGuiColorEditFlags)(flags & ~gui::color_edit_flags_init_once);
+
+    ImGuiID id = ImGui::GetID(label);
+    bool initialized = ImGui::GetStateStorage()->GetBool(id, false);
+
+    bool ret = ImGui::ColorEdit4(label, color->data(), imgui_flags);
+
+    if (init_once && !initialized) {
+      ImGui::GetStateStorage()->SetBool(id, true);
+      ret = true;
+    }
+
+    return ret;
+  }
+  bool color_edit4(fan::color* color, gui::color_edit_flags_t flags) {
+    push_id(color);
+
+    bool init_once = flags & gui::color_edit_flags_init_once;
+    auto imgui_flags = (ImGuiColorEditFlags)(flags & ~gui::color_edit_flags_init_once);
+
+    ImGuiID id = ImGui::GetID("init_once");
+    bool initialized = ImGui::GetStateStorage()->GetBool(id, false);
+
+    bool ret = ImGui::ColorEdit4("##", color->data(), imgui_flags);
+
+    if (init_once && !initialized) {
+      ImGui::GetStateStorage()->SetBool(id, true);
+      ret = true;
+    }
+
+    pop_id();
+    return ret;
   }
 
   fan::vec2 get_window_pos() {
@@ -1236,6 +1255,13 @@ namespace fan::graphics::gui {
 
   bool checkbox(label_t label, bool* v) {
     return ImGui::Checkbox(label, v);
+  }
+
+  bool checkbox(bool* v) {
+    push_id(v);
+    bool ret = ImGui::Checkbox("##", v);
+    pop_id();
+    return ret;
   }
 
   bool list_box(label_t label, int* current_item, bool (*old_callback)(void* user_data, int idx, const char** out_text), void* user_data, int items_count, int height_in_items) {
