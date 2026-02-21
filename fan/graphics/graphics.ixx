@@ -1,5 +1,4 @@
 module;
-// extension to loco.ixx
 
 #include <fan/graphics/opengl/init.h>
 #include <fan/event/types.h>
@@ -13,7 +12,6 @@ module;
 
 export module fan.graphics;
 
-//import :graphics.opengl.core; // TODO this should not be here
 export import fan.graphics.common_context;
 export import fan.graphics.common_types;
 export import fan.graphics.shapes;
@@ -37,12 +35,8 @@ export import fan.math;
 
 import fan.random;
 import fan.graphics.opengl.core;
-
 import fan.physics.types;
 
-// user friendly functions
-/***************************************/
-//
 export namespace fan::window {
   void add_input_action(const int* keys, std::size_t count, const std::string_view& action_name);
   void add_input_action(std::initializer_list<int> keys, const std::string_view& action_name);
@@ -52,6 +46,7 @@ export namespace fan::window {
   bool is_action_down(const std::string_view& action_name);
   bool exists(const std::string_view& action_name);
 }
+
 export namespace fan::graphics {
   using renderer_t = fan::window_t::renderer_t;
   extern fan::graphics::image_t invalid_image;
@@ -61,7 +56,7 @@ export namespace fan::graphics {
 
 export namespace fan {
   void printclnn(auto&&... values) {
-  #if defined (FAN_GUI)
+  #if defined(FAN_GUI)
     ([&](const auto& value) {
       std::ostringstream oss;
       oss << value;
@@ -69,6 +64,7 @@ export namespace fan {
     }(values), ...);
   #endif
   }
+
   void printcl(auto&&... values) {
   #if defined(FAN_GUI)
     printclnn(values...);
@@ -92,11 +88,13 @@ export namespace fan {
     fan::graphics::ctx().console->print("\n", highlight);
   #endif
   }
+
   inline void printcl_err(auto&&... values) {
   #if defined(FAN_GUI)
     printclh(fan::graphics::highlight_e::error, values...);
   #endif
   }
+
   inline void printcl_warn(auto&&... values) {
   #if defined(FAN_GUI)
     printclh(fan::graphics::highlight_e::warning, values...);
@@ -107,7 +105,7 @@ export namespace fan {
 bool init_fan_track_opengl_print = []() {
   fan_opengl_track_print() = [](std::string func_name, uint64_t elapsed) {
     fan::printclnnh(fan::graphics::highlight_e::text, func_name + ":");
-    fan::printclh(fan::graphics::highlight_e::warning, std::to_string(elapsed / 1e+6f)/*fan::to_string(elapsed / 1e+6)*/ + "ms");
+    fan::printclh(fan::graphics::highlight_e::warning, std::to_string(elapsed / 1e+6f) + "ms");
   };
   return 1;
 }();
@@ -121,6 +119,7 @@ export namespace fan::graphics {
       props.mag_filter = image_filter_e::nearest;
       return props;
     }
+
     image_load_properties_t pixel_art_repeat() {
       auto props = pixel_art();
       props.visual_output = fan::graphics::image_sampler_address_mode_e::repeat;
@@ -170,7 +169,7 @@ export namespace fan::graphics {
   void image_reload(fan::graphics::image_nr_t nr, const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current());
   fan::graphics::image_nr_t image_create(const fan::color& color);
   fan::graphics::image_nr_t image_create(const fan::color& color, const fan::graphics::image_load_properties_t& p);
-  std::vector<uint8_t> read_pixels(fan::graphics::image_nr_t nr, const fan::vec2& position, const fan::vec2& size);
+  std::vector<uint8_t> read_pixels(const fan::vec2& position, const fan::vec2& size);
   std::vector<uint8_t> read_pixels_from_image(fan::graphics::image_nr_t nr, const fan::vec2& uv_position = 0, const fan::vec2& uv_size = 1);
 
   fan::graphics::shader_nr_t shader_create();
@@ -188,7 +187,6 @@ export namespace fan::graphics {
   fan::graphics::camera_nr_t camera_create();
   fan::graphics::context_camera_t& camera_get(fan::graphics::camera_nr_t nr = fan::graphics::get_orthographic_render_view().camera);
   void camera_erase(fan::graphics::camera_nr_t nr);
-  fan::graphics::camera_nr_t camera_create(const fan::vec2& x, const fan::vec2& y);
   fan::graphics::camera_nr_t camera_create(const fan::vec2& x, const fan::vec2& y);
   fan::vec3 camera_get_position(fan::graphics::camera_nr_t nr);
   void camera_set_position(fan::graphics::camera_nr_t nr, const fan::vec3& cp);
@@ -236,7 +234,7 @@ export namespace fan::graphics {
   struct light_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    
+
     light_t() = default;
     light_t(light_properties_t p);
     light_t(const fan::vec3& position, const fan::vec2& size, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
@@ -256,7 +254,7 @@ export namespace fan::graphics {
   struct line_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    
+
     line_t() = default;
     line_t(line_properties_t p);
     line_t(const fan::vec3& src, const fan::vec3& dst, const fan::color& color = fan::colors::white, f32_t thickness = 3.f, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
@@ -277,7 +275,7 @@ export namespace fan::graphics {
   struct rectangle_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    
+
     rectangle_t() = default;
     rectangle_t(rectangle_properties_t p);
     rectangle_t(const fan::vec3& position, const fan::vec2& size, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
@@ -304,7 +302,7 @@ export namespace fan::graphics {
   struct sprite_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    
+
     sprite_t() = default;
     sprite_t(sprite_properties_t p);
     sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
@@ -328,12 +326,11 @@ export namespace fan::graphics {
   struct unlit_sprite_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    
+
     unlit_sprite_t() = default;
     unlit_sprite_t(unlit_sprite_properties_t p);
     unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   };
-
 
   struct circle_properties_t {
     const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
@@ -349,7 +346,7 @@ export namespace fan::graphics {
   struct circle_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    
+
     circle_t() = default;
     circle_t(circle_properties_t p);
     circle_t(const fan::vec3& position, f32_t radius, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
@@ -372,7 +369,7 @@ export namespace fan::graphics {
   struct capsule_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    
+
     capsule_t() = default;
     capsule_t(capsule_properties_t p);
   };
@@ -392,7 +389,7 @@ export namespace fan::graphics {
   struct polygon_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    
+
     polygon_t() = default;
     polygon_t(polygon_properties_t p);
   };
@@ -407,10 +404,11 @@ export namespace fan::graphics {
     fan::vec3 angle = fan::vec3(0, 0, 0);
     bool enable_culling = true;
   };
+
   struct grid_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    
+
     grid_t() = default;
     grid_t(grid_properties_t p);
   };
@@ -421,9 +419,7 @@ export namespace fan::graphics {
     fan::vec2 size = 0;
     fan::vec2 tc_position = 0;
     fan::vec2 tc_size = 1;
-
     bool blending = true;
-
     std::array<fan::graphics::image_t, 4> images = {
       fan::graphics::ctx().default_texture,
       fan::graphics::ctx().default_texture,
@@ -437,14 +433,13 @@ export namespace fan::graphics {
   struct universal_image_renderer_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    
+
     universal_image_renderer_t() = default;
     universal_image_renderer_t(const universal_image_renderer_properties_t& p);
   };
 
   struct gradient_properties_t {
     const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
-
     fan::vec3 position = 0;
     fan::vec2 size = 0;
     std::array<fan::color, 4> color = {
@@ -456,7 +451,6 @@ export namespace fan::graphics {
     bool blending = true;
     fan::vec3 angle = 0;
     fan::vec2 rotation_point = 0;
-
     uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
     bool enable_culling = true;
   };
@@ -464,14 +458,13 @@ export namespace fan::graphics {
   struct gradient_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    
+
     gradient_t() = default;
     gradient_t(const gradient_properties_t& p);
   };
 
   struct shader_shape_properties_t {
     render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
-
     fan::vec3 position = 0;
     fan::vec2 size = 0;
     fan::vec2 rotation_point = 0;
@@ -482,10 +475,8 @@ export namespace fan::graphics {
     fan::vec2 tc_size = 1;
     fan::graphics::shader_t shader;
     bool blending = true;
-
     fan::graphics::image_t image = fan::graphics::ctx().default_texture;
     std::array<fan::graphics::image_t, 30> images;
-
     uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
     bool enable_culling = true;
   };
@@ -517,7 +508,6 @@ export namespace fan::graphics {
     shadow_t(shadow_properties_t p = shadow_properties_t());
   };
 
-
 #if defined(FAN_3D)
   struct line3d_properties_t {
     render_view_t* render_view = fan::graphics::ctx().perspective_render_view;
@@ -530,8 +520,7 @@ export namespace fan::graphics {
   struct line3d_t : fan::graphics::shapes::shape_t {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
-    
-    
+
     line3d_t(line3d_properties_t p = line3d_properties_t()) {
       *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
         fan_init_struct(
@@ -547,7 +536,6 @@ export namespace fan::graphics {
   };
 #endif
 
-
   struct aabb_t {
     fan::vec3 center;
     fan::vec2 half_size;
@@ -556,14 +544,12 @@ export namespace fan::graphics {
     std::array<fan::graphics::shapes::shape_t, 4> edges;
 
     aabb_t() = default;
-
     aabb_t(const fan::vec3& c, const fan::vec2& hsize, f32_t d = 55000, const fan::color& col = fan::color(1, 0, 0, 1))
       : center(c), half_size(hsize), color(col), depth(d) {
       fan::vec3 bl(center.x - half_size.x, center.y - half_size.y, depth);
       fan::vec3 br(center.x + half_size.x, center.y - half_size.y, depth);
       fan::vec3 tr(center.x + half_size.x, center.y + half_size.y, depth);
       fan::vec3 tl(center.x - half_size.x, center.y + half_size.y, depth);
-
       edges[0] = line_t(line_properties_t {.src = bl, .dst = br, .color = color});
       edges[1] = line_t(line_properties_t {.src = br, .dst = tr, .color = color});
       edges[2] = line_t(line_properties_t {.src = tr, .dst = tl, .color = color});
@@ -586,6 +572,7 @@ export namespace fan::graphics {
   fan::graphics::shapes::shape_t& capsule(const capsule_properties_t& props = {});
   fan::graphics::shapes::shape_t& polygon(const polygon_properties_t& props = {});
   fan::graphics::shapes::shape_t& grid(const grid_properties_t& props = {});
+
 #if defined(FAN_PHYSICS_2D)
   void aabb(const fan::physics::aabb_t& b, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1), f32_t thickness = line_properties_t().thickness, render_view_t* render_view = &fan::graphics::get_orthographic_render_view());
   void aabb(const fan::graphics::shapes::shape_t& s, f32_t depth = 55000, const fan::color& c = fan::color(1, 0, 0, 1), f32_t thickness = line_properties_t().thickness, render_view_t* render_view = &fan::graphics::get_orthographic_render_view());
@@ -602,7 +589,6 @@ export namespace fan::graphics {
   };
 
 #if defined(FAN_JSON)
-
   fan::graphics::shape_t shape_from_json(
     std::string_view json_path,
     const std::source_location& callers_path = std::source_location::current()
@@ -611,7 +597,6 @@ export namespace fan::graphics {
     std::string_view json_path,
     const std::source_location& callers_path = std::source_location::current()
   );
-
   void resolve_json_image_paths(
     fan::json& out,
     std::string_view json_path,
@@ -621,7 +606,6 @@ export namespace fan::graphics {
     const sprite_sheet_config_t flags,
     const std::source_location& callers_path = std::source_location::current()
   );
-
   fan::graphics::shape_t particles_load(
     std::string_view path,
     const std::source_location& callers_path = std::source_location::current()
@@ -635,7 +619,7 @@ export namespace fan::graphics {
   fan::line3 get_highlight_positions(const fan::vec3& op_, const fan::vec2& os, int index);
 
   // REQUIRES to be allocated by new since lambda captures this
-    // also container that it's stored in, must not change pointers
+  // also container that it's stored in, must not change pointers
   template <typename T>
   struct vfi_root_custom_t {
     using shape_t = fan::graphics::shapes::shape_t;
@@ -857,7 +841,6 @@ export namespace fan::graphics {
   };
 
   using vfi_root_t = vfi_root_custom_t<__empty_struct>;
-  //#endif
 
 #endif
 }
@@ -866,12 +849,10 @@ export namespace fan::graphics {
   struct interactive_camera_t {
     interactive_camera_t(const interactive_camera_t&) = delete;
     interactive_camera_t(interactive_camera_t&&) = delete;
-
     interactive_camera_t& operator=(interactive_camera_t&&) = delete;
     interactive_camera_t& operator=(const interactive_camera_t&) = delete;
 
     operator render_view_t*();
-
     void reset();
     void reset_view();
     void update();
@@ -883,7 +864,7 @@ export namespace fan::graphics {
     );
     void create(const fan::graphics::render_view_t& render_view, f32_t new_zoom = 1.f);
     void create_default(f32_t zoom = 1.f);
-    interactive_camera_t(f32_t zoom); // calls create_default
+    interactive_camera_t(f32_t zoom);
     interactive_camera_t(
       fan::graphics::camera_t camera_nr = fan::graphics::get_orthographic_render_view().camera,
       fan::graphics::viewport_t viewport_nr = fan::graphics::get_orthographic_render_view().viewport,
@@ -911,7 +892,7 @@ export namespace fan::graphics {
     fan::window_t::mouse_motion_handle_t mouse_motion_nr;
     fan::graphics::update_callback_nr_t uc_nr;
     fan::vec2 initial_position = 0;
-    fan::vec2i lock_axis{0, 0};
+    fan::vec2i lock_axis {0, 0};
     bool ignore_input = false;
     bool zoom_on_window_resize = true;
     bool pan_with_middle_mouse = true;
@@ -921,10 +902,11 @@ export namespace fan::graphics {
   struct world_window_t {
     world_window_t();
     void update(
-      const fan::vec2& viewport_pos = 0, 
+      const fan::vec2& viewport_pos = 0,
       const fan::vec2& viewport_size = fan::window::get_size()
     );
     operator render_view_t*();
+
     render_view_t render_view;
     fan::graphics::interactive_camera_t cam;
   };
@@ -936,10 +918,6 @@ export namespace fan::graphics {
       fan::graphics::image_t image;
     };
 
-    fan::graphics::image_t root_image = fan::graphics::ctx().default_texture;
-    //
-    std::vector<std::vector<image_t>> images;
-    //
     struct image_click_t {
       int highlight = 0;
       int count_index;
@@ -951,7 +929,9 @@ export namespace fan::graphics {
     fan::graphics::texture_pack::internal_t::texture_properties_t texture_properties;
   #endif
 
-    //
+    fan::graphics::image_t root_image = fan::graphics::ctx().default_texture;
+    std::vector<std::vector<image_t>> images;
+
     image_divider_t();
   };
 
@@ -966,19 +946,20 @@ export namespace fan::graphics {
     uint64_t creation_time;
     f32_t base_alpha;
   };
+
   struct trail_t {
+    void set_point(const fan::vec3& point, f32_t drift_intensity);
+    void update();
+
+    trail_t();
+    ~trail_t();
+
     std::vector<trail_segment_t> trails;
     fan::color color = fan::colors::black.set_alpha(0.5);
     f32_t thickness = 2.f;
     uint64_t fade_duration = 2e9;
     uint64_t max_trail_lifetime = 5e9;
     fan::graphics::update_callback_nr_t update_callback_nr;
-
-    trail_t();
-    ~trail_t();
-
-    void set_point(const fan::vec3& point, f32_t drift_intensity);
-    void update();
   };
 
   f32_t get_depth_from_y(const fan::vec2& position, f32_t tile_size_y);
@@ -1022,40 +1003,37 @@ export namespace fan::graphics {
     void set_tile_color(const fan::vec2i& pos, const fan::color& c);
     void set_tile_image(const fan::vec2i& pos, fan::graphics::image_t image);
     static constexpr f32_t circle_overlap(f32_t r, f32_t i0, f32_t i1);
-    void highlight_circle(const fan::graphics::shapes::shape_t& circle,
-      const fan::color& highlight_color);
+    void highlight_circle(const fan::graphics::shapes::shape_t& circle, const fan::color& highlight_color);
     void highlight_line(const fan::graphics::shapes::shape_t& line,
       const fan::color& color,
       render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
-    void highlight(const fan::graphics::shapes::shape_t& shape,
-      const fan::color& color);
+    void highlight(const fan::graphics::shapes::shape_t& shape, const fan::color& color);
     shape_t& get_tile(const fan::vec2i& pos);
     bool in_bounds(const fan::vec2i& pos) const;
     fan::vec2i to_grid(const fan::vec2& world_pos) const;
-
 
     std::vector<std::vector<fan::vec2>> positions;
     std::vector<std::vector<fan::graphics::shapes::shape_t>> shapes;
     fan::vec2 size;
     fan::vec2 tile_size;
-
     std::unordered_set<fan::vec2i> wall_cells;
   };
 
   struct terrain_palette_t {
     constexpr terrain_palette_t() {
       stops = {
-        { 50, fan::color::from_rgba(0x003eb2ff) }, // deep water
-        { 80, fan::color::from_rgba(0x0952c6ff) }, // shallow water
-        { 100, fan::color::from_rgba(0x726231ff) }, // coast
-        { 150, fan::color::from_rgba(0xa49463ff) }, // lowlands
-        { 200, fan::color::from_rgba(0x3c6114ff) }, // midlands
-        { 250, fan::color::from_rgba(0x4f6b31ff) }, // highlands
-        { 300, fan::color::from_rgba(0xffffffff) }  // snow
+        { 50,  fan::color::from_rgba(0x003eb2ff) },
+        { 80,  fan::color::from_rgba(0x0952c6ff) },
+        { 100, fan::color::from_rgba(0x726231ff) },
+        { 150, fan::color::from_rgba(0xa49463ff) },
+        { 200, fan::color::from_rgba(0x3c6114ff) },
+        { 250, fan::color::from_rgba(0x4f6b31ff) },
+        { 300, fan::color::from_rgba(0xffffffff) }
       };
     }
 
     fan::color get(int value) const;
+
     std::vector<std::pair<int, fan::color>> stops;
   };
 
@@ -1076,6 +1054,7 @@ export namespace fan::graphics {
     const terrain_palette_t& palette,
     const sprite_properties_t& cp = {}
   );
+
 #endif
 }
 
@@ -1094,12 +1073,8 @@ export namespace fan {
 export namespace fan::image {
   struct plane_split_t {
     void* planes[3] {};
-    operator void** () {
-      return planes;
-    }
-    operator const void* const* () const {
-      return planes;
-    }
+    operator void** () { return planes; }
+    operator const void* const* () const { return planes; }
   };
 
   plane_split_t plane_split(void* pixel_data, const fan::vec2ui& size, uint32_t format);
@@ -1125,9 +1100,6 @@ export namespace fan::graphics {
     struct particle_pool_t {
       template<size_t N>
       struct pool_t {
-        fan::graphics::shape_t particles[N];
-        size_t current_index = 0;
-
         void from_json(
           const std::string& path,
           const std::source_location& callers_path = std::source_location::current()
@@ -1143,6 +1115,9 @@ export namespace fan::graphics {
           particles[current_index].set_position(position);
           current_index = (current_index + 1) % N;
         }
+
+        fan::graphics::shape_t particles[N];
+        size_t current_index = 0;
       };
     };
   }
@@ -1183,20 +1158,18 @@ export namespace fan::graphics {
       }};
     }
 
-    operator polygon_t&() {
-      return mesh;
-    }
+    operator polygon_t&() { return mesh; }
 
     polygon_t mesh;
   };
 
   // for drawing repeated tile images
   void update_infinite_tiled_sprite(
-    shape_t& sprite, 
+    shape_t& sprite,
     fan::vec2 tile_size,
     fan::vec2 world_size
   );
-} // namespace fan::graphics
+}
 
 #endif
 
@@ -1215,25 +1188,26 @@ export namespace fan::event {
         }
       };
     }
+
     void unlink() {
       if (node) {
         fan::graphics::ctx().update_callback->unlrec(node);
         node.sic();
       }
     }
+
     ~callback_awaiter() {
       unlink();
     }
+
   private:
     fan::graphics::update_callback_nr_t node;
   };
-} // namespace fan::event
+}
 
 #if defined(FAN_2D)
 
-
 export namespace fan {
-
   enum class ease_e {
     linear,
     sine,
@@ -1291,20 +1265,13 @@ export namespace fan {
   template <typename T>
   struct auto_transition_t : transition_t<T> {
     using base_t = transition_t<T>;
-    fan::event::task_t task;
-    std::function<void(const T&)> callback;
-    bool active = false;
 
     void setup_lerp() {
       if constexpr (requires (T a, T b, f32_t t) { a.lerp(b, t); }) {
-        base_t::lerp = [](const T& a, const T& b, f32_t t) {
-          return a.lerp(b, t);
-        };
+        base_t::lerp = [](const T& a, const T& b, f32_t t) { return a.lerp(b, t); };
       }
       else {
-        base_t::lerp = [](const T& a, const T& b, f32_t t) {
-          return a + (b - a) * t;
-        };
+        base_t::lerp = [](const T& a, const T& b, f32_t t) { return a + (b - a) * t; };
       }
     }
 
@@ -1318,16 +1285,13 @@ export namespace fan {
       if (active) {
         return;
       }
-
       base_t::from = from;
       base_t::to = to;
       base_t::duration = duration;
       base_t::phase_offset = fan::random::value(0.f, 1.f);
       base_t::loop = true;
       base_t::easing = easing;
-
       setup_lerp();
-
       callback = cb;
       task = base_t::animate(callback);
       active = true;
@@ -1342,16 +1306,13 @@ export namespace fan {
       if (active) {
         return;
       }
-
       base_t::from = from;
       base_t::to = to;
       base_t::duration = duration;
       base_t::phase_offset = 0.f;
       base_t::loop = false;
       base_t::easing = ease_e::linear;
-
       setup_lerp();
-
       callback = cb;
       task = base_t::animate(callback);
       active = true;
@@ -1361,7 +1322,6 @@ export namespace fan {
       if (!active) {
         return;
       }
-
       task = {};
       callback(reset_to);
       active = false;
@@ -1370,6 +1330,10 @@ export namespace fan {
     fan::event::task_t animate(std::function<void(const T&)> cb) {
       return base_t::animate(cb);
     }
+
+    fan::event::task_t task;
+    std::function<void(const T&)> callback;
+    bool active = false;
   };
 
   using color_transition_t = transition_t<fan::color>;
@@ -1381,7 +1345,6 @@ export namespace fan {
   color_transition_t fade_out(f32_t duration);
   vec2_transition_t move_linear(const fan::vec2& from, const fan::vec2& to, f32_t duration);
   vec2_transition_t move_pingpong(const fan::vec2& from, const fan::vec2& to, f32_t duration);
-
 }
 
 // graphics awaiters
