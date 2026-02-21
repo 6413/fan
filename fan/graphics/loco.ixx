@@ -6,7 +6,7 @@ module;
 
 #include <fan/graphics/opengl/init.h>
 #if defined(FAN_VULKAN)
-  #include <vulkan/vulkan.h>
+#include <vulkan/vulkan.h>
 #endif
 #include <fan/event/types.h>
 #include <uv.h>
@@ -14,10 +14,8 @@ module;
 #undef max
 // +cuda
 #if __has_include("cuda.h")
-  //#include "cuda_runtime.h"
-  //#include <cuda.h>
-  #include <nvcuvid.h>
-  //#define loco_cuda
+#include <nvcuvid.h>
+//#define loco_cuda
 #endif
 
 #include <source_location>
@@ -35,7 +33,7 @@ export module fan.graphics.loco;
 
 import fan.utility;
 #if defined(FAN_GUI)
-  import fan.graphics.gui.text_logger;
+import fan.graphics.gui.text_logger;
 #endif
 
 export import fan.event;
@@ -49,26 +47,26 @@ export import fan.graphics.common_context;
 import fan.graphics.culling;
 import fan.physics.types;
 #if defined(FAN_PHYSICS_2D)
-  import fan.physics.b2_integration;
-  import fan.physics.common_context;
+import fan.physics.b2_integration;
+import fan.physics.common_context;
 #endif
 #if defined(FAN_AUDIO)
-  export import fan.audio;
+export import fan.audio;
 #endif
 #if defined(FAN_GUI)
-  import fan.graphics.gui.base;
-  import fan.graphics.gui.settings_menu;
-  export import fan.console;
+import fan.graphics.gui.base;
+import fan.graphics.gui.settings_menu;
+export import fan.console;
 #endif
 export import fan.graphics.opengl.core;
 #if defined(FAN_VULKAN)
-  export import fan.graphics.vulkan.core;
+export import fan.graphics.vulkan.core;
 #endif
 export import fan.graphics.shapes;
 export import fan.physics.collision.rectangle;
 export import fan.noise;
 #if defined(FAN_JSON)
-  export import fan.types.json;
+export import fan.types.json;
 #endif
 
 #if defined(FAN_JSON)
@@ -114,12 +112,9 @@ export extern "C" {
 }
 #endif
 // -cuda
-// 
-//#define debug_shape_t
 
 export struct loco_t;
 
-// to set new loco use gloco = new_loco;
 struct global_loco_t {
   loco_t* loco = nullptr;
   operator loco_t* () { return loco; }
@@ -137,18 +132,17 @@ export global_loco_t& gloco() {
   return loco;
 }
 
-
 export namespace fan::graphics {
   struct engine_init_t {
-#define BLL_set_SafeNext 1
-#define BLL_set_AreWeInsideStruct 1
-#define BLL_set_prefix init_callback
-#include <fan/fan_bll_preset.h>
-#define BLL_set_Link 1
-#define BLL_set_type_node uint16_t
-#define BLL_set_NodeDataType std::function<void(loco_t*)>
-#define BLL_set_CPP_CopyAtPointerChange 1
-#include <BLL/BLL.h>
+  #define BLL_set_SafeNext 1
+  #define BLL_set_AreWeInsideStruct 1
+  #define BLL_set_prefix init_callback
+  #include <fan/fan_bll_preset.h>
+  #define BLL_set_Link 1
+  #define BLL_set_type_node uint16_t
+  #define BLL_set_NodeDataType std::function<void(loco_t*)>
+  #define BLL_set_CPP_CopyAtPointerChange 1
+  #include <BLL/BLL.h>
 
     using init_callback_nr_t = init_callback_NodeReference_t;
   };
@@ -198,21 +192,21 @@ export struct loco_t {
   int32_t target_fps = 165; // must be changed from function
   bool init_gloco;
   fan::window::input_action_t input_action;
-  #if defined(FAN_GUI)
-    fan::graphics::gui::settings_menu_t settings_menu;
-  #endif
+#if defined(FAN_GUI)
+  fan::graphics::gui::settings_menu_t settings_menu;
+#endif
   fan::window_t window; // destruct last
-// for shaper_get_* functions
+
 private:
   using shader_t = fan::graphics::shader_nr_t;
   using image_t = fan::graphics::image_nr_t;
   using camera_t = fan::graphics::camera_nr_t;
   using viewport_t = fan::graphics::viewport_nr_t;
-public:
 
-  bool is_input_clicked(const std::string_view& name);
-  bool is_input_down(const std::string_view& name);
-  bool is_input_released(const std::string_view& name);
+  // shared impl for is_mouse_clicked/down and is_key_clicked/down
+  bool key_state_is(int key, bool include_repeat);
+
+public:
 
   std::uint8_t get_renderer();
   fan::graphics::shader_nr_t shader_create();
@@ -225,11 +219,11 @@ public:
   template <typename T>
   void shader_set_value(fan::graphics::shader_nr_t nr, const std::string& name, const T& val) {
     if (0) {}
-    #if defined(FAN_OPENGL)
+  #if defined(FAN_OPENGL)
     else if (window.renderer == fan::window_t::renderer_t::opengl) {
       context.gl.shader_set_value(nr, name, val);
     }
-    #endif
+  #endif
     else if (window.renderer == fan::window_t::renderer_t::vulkan) {
       fan::throw_error("todo");
     }
@@ -320,14 +314,13 @@ public:
   void camera_move(fan::graphics::context_camera_t& camera, f64_t dt, f32_t movement_speed, f32_t friction = 12);
 
 #if defined(FAN_OPENGL)
-  // opengl namespace
   struct opengl {
-#include <fan/graphics/opengl/engine_functions.h>
+  #include <fan/graphics/opengl/engine_functions.h>
   #if defined(LOCO_FRAMEBUFFER)
-    #include <fan/graphics/opengl/2D/effects/blur.h>
+  #include <fan/graphics/opengl/2D/effects/blur.h>
     blur_t blur;
 
-    #include <fan/graphics/opengl/2D/effects/reflection.h>
+  #include <fan/graphics/opengl/2D/effects/reflection.h>
     reflection_t reflection;
   #endif
 
@@ -346,13 +339,13 @@ public:
     std::uint32_t fb_vao;
     std::uint32_t fb_vbo;
 
-#undef loco
+  #undef loco
   }gl;
 #endif
 
 #if defined(FAN_VULKAN)
   struct vulkan {
-#include <fan/graphics/vulkan/engine_functions.h>
+  #include <fan/graphics/vulkan/engine_functions.h>
 
     fan::vulkan::context_t::descriptor_t d_attachments;
     fan::vulkan::context_t::pipeline_t post_process;
@@ -398,7 +391,6 @@ public:
 #endif
 
 #if defined(FAN_VULKAN)
-  // todo move to vulkan context
   static void check_vk_result(VkResult err);
 #endif
 
@@ -416,14 +408,13 @@ public:
   void close();
   void setup_input_callbacks();
 
-  // to change renderer, pass: fan::window_t::renderer_t::*
   void switch_renderer(std::uint8_t renderer);
   void shapes_draw();
   void process_shapes();
   void process_gui();
   void get_vram_usage(int* total_mem_MB, int* used_MB);
-  struct time_monitor_t {
 
+  struct time_monitor_t {
     void update(f32_t v);
     void reset();
 
@@ -449,17 +440,15 @@ public:
     std::deque<int> min_q;
     std::deque<int> max_q;
     f32_t sum = 0.0f;
-
     bool paused = false;
   };
+
   struct time_plot_scroll_t {
     int scroll_offset = 0;
     int view_size = 512;
   };
 
   time_plot_scroll_t time_plot_scroll;
-
-
   time_monitor_t frame_monitor;
   time_monitor_t shape_monitor;
   time_monitor_t gui_monitor;
@@ -505,7 +494,7 @@ public:
   fan::graphics::update_callback_t m_update_callback;
   std::vector<std::function<void()>> single_queue;
 
-  #include "engine_images.h"
+#include "engine_images.h"
 
   fan::graphics::render_view_t orthographic_render_view;
   fan::graphics::render_view_t perspective_render_view;
@@ -521,7 +510,7 @@ public:
   bool idle_init = false;
   uv_idle_t idle_handle;
   bool timer_init = false;
-  uv_timer_t timer_handle{};
+  uv_timer_t timer_handle {};
 
   bool timer_enabled = target_fps > 0;
   bool vsync = false;
@@ -543,24 +532,24 @@ public:
   fan::graphics::gui_draw_cb_t gui_draw_cb;
 #endif
 
-  #define FORWARD_CB_TO_WINDOW(NAME, HANDLE, CBDATA_NAME) \
-    HANDLE on_##NAME(int arg, CBDATA_NAME cb) {        \
-      return window.on_##NAME(arg, std::move(cb));          \
+#define FORWARD_CB_TO_WINDOW(NAME, HANDLE, CBDATA_NAME) \
+    HANDLE on_##NAME(int arg, CBDATA_NAME cb) { \
+      return window.on_##NAME(arg, std::move(cb)); \
     }
 
-  #define FORWARD_CB_TO_WINDOW_NOARG(NAME, HANDLE, CBDATA_NAME) \
+#define FORWARD_CB_TO_WINDOW_NOARG(NAME, HANDLE, CBDATA_NAME) \
     using CBDATA_NAME = fan::window_t::CBDATA_NAME; \
     using NAME##_data_t = fan::window_t::NAME##_data_t; \
     HANDLE on_##NAME(CBDATA_NAME cb) { \
       return window.on_##NAME(std::move(cb)); \
     }
 
-  FORWARD_CB_TO_WINDOW(mouse_click,  buttons_handle_t, buttons_cb_t);
-  FORWARD_CB_TO_WINDOW(mouse_down,   mouse_down_handle_t, buttons_cb_t);
-  FORWARD_CB_TO_WINDOW(mouse_up,     buttons_handle_t, buttons_cb_t);
-  FORWARD_CB_TO_WINDOW(key_click,    key_handle_t, key_cb_t);
-  FORWARD_CB_TO_WINDOW(key_down,     key_handle_t, key_cb_t);
-  FORWARD_CB_TO_WINDOW(key_up,       key_handle_t, key_cb_t);
+  FORWARD_CB_TO_WINDOW(mouse_click, buttons_handle_t, buttons_cb_t);
+  FORWARD_CB_TO_WINDOW(mouse_down, mouse_down_handle_t, buttons_cb_t);
+  FORWARD_CB_TO_WINDOW(mouse_up, buttons_handle_t, buttons_cb_t);
+  FORWARD_CB_TO_WINDOW(key_click, key_handle_t, key_cb_t);
+  FORWARD_CB_TO_WINDOW(key_down, key_handle_t, key_cb_t);
+  FORWARD_CB_TO_WINDOW(key_up, key_handle_t, key_cb_t);
 
   FORWARD_CB_TO_WINDOW_NOARG(mouse_move, mouse_move_handle_t, mouse_move_cb_t);
   FORWARD_CB_TO_WINDOW_NOARG(resize, resize_handle_t, resize_cb_t);
@@ -573,14 +562,13 @@ public:
   void debug_draw_light_buffer();
 
 #if defined(FAN_PHYSICS_2D)
-  
-  fan::physics::context_t physics_context{ {} };
+  fan::physics::context_t physics_context {{}};
   void update_physics(bool flag);
   bool is_updating_physics = false;
 #endif
 
-  // clears shapes after drawing, good for debug draw, not best for performance
 #if defined(FAN_2D)
+  // clears shapes after drawing, good for debug draw, not best for performance
   std::vector<fan::graphics::shapes::shape_t> immediate_render_list;
   std::unordered_map<std::uint32_t, fan::graphics::shapes::shape_t> static_render_list;
 #endif
@@ -599,10 +587,15 @@ public:
   bool is_key_down(int key);
   bool is_key_released(int key);
 
-  // ShapeID_t must be at the beginning of fan::graphics::shapes::shape_t's memory since there are reinterpret_casts,
-  // which assume that
+  // input action wrappers
+  bool is_active(std::string_view action_name, int pstate = fan::window::input_action_t::press);
+  bool is_toggled(std::string_view action_name);
+  bool is_toggled(int key);
+  bool is_toggled(std::initializer_list<int> keys);
+  bool is_clicked(std::string_view action_name);
+  bool is_down(std::string_view action_name);
+  bool is_released(std::string_view action_name);
 
-  // pointer
 #if defined(FAN_2D)
   void shape_open(
     uint16_t shape_type,
@@ -618,13 +611,7 @@ public:
 
   fan::graphics::shader_t get_sprite_vertex_shader(const std::string& fragment);
 
-  //#if defined(loco_texture_pack)
-  //#endif
-
-  fan::color clear_color = {
-    /*0.10f, 0.10f, 0.131f, 1.f */
-    0.f, 0.f, 0.f, 1.f
-  };
+  fan::color clear_color = {0.f, 0.f, 0.f, 1.f};
 
   fan::graphics::lighting_t lighting;
 
@@ -632,7 +619,6 @@ public:
   bool force_line_draw = false;
 #endif
 
-  //gui
 #if defined(FAN_GUI)
   void toggle_console();
   void toggle_console(bool active);
@@ -648,7 +634,6 @@ public:
   bool render_settings_menu = 0;
 
   bool allow_docking = true;
-
   bool gui_initialized = false;
 
   fan::graphics::gui::text_logger_t text_logger;
@@ -659,7 +644,6 @@ public:
 #endif
 
   bool render_shapes_top = false;
-  //gui
 
   fan::graphics::image_load_properties_t default_noise_image_properties();
   fan::graphics::image_t create_noise_image(const fan::vec2& size, int seed = fan::random::value_i64(0, ((std::uint32_t)-1) / 2));
@@ -668,6 +652,7 @@ public:
   fan::vec2 convert_mouse_to_ndc() const;
   fan::ray3_t convert_mouse_to_ray(const fan::vec3& camera_position, const fan::mat4& projection, const fan::mat4& view);
   fan::ray3_t convert_mouse_to_ray(const fan::mat4& projection, const fan::mat4& view);
+
 #if defined(loco_cuda)
   struct cuda_textures_t {
     void close(loco_t* loco, fan::graphics::shapes::shape_t& cid);
@@ -690,16 +675,15 @@ public:
   fan::system_audio_t system_audio;
   fan::audio_t audio;
 #endif
+
 #if defined(FAN_2D)
   void camera_move_to(const fan::graphics::shapes::shape_t& shape, const fan::graphics::render_view_t& render_view);
   void camera_move_to(const fan::graphics::shapes::shape_t& shape);
   void camera_move_to_smooth(const fan::graphics::shapes::shape_t& shape, const fan::graphics::render_view_t& render_view);
   void camera_move_to_smooth(const fan::graphics::shapes::shape_t& shape);
-#endif
   bool shader_update_fragment(uint16_t shape_type, const std::string& fragment);
+#endif
 };
-
-//vk
 
 #if defined(FAN_VULKAN)
 #include <fan/graphics/vulkan/uniform_block.h>

@@ -113,6 +113,44 @@ namespace fan::opengl {
     glfwSwapInterval(flag);
   }
 
+  context_t::pbo_t context_t::pbo_create(size_t size) {
+    pbo_t p;
+    p.size = size;
+    glGenBuffers(1, &p.id);
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, p.id);
+    glBufferData(GL_PIXEL_UNPACK_BUFFER, size, nullptr, GL_STREAM_DRAW);
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+    return p;
+  }
+  void context_t::pbo_destroy(context_t::pbo_t& p) {
+    if (p.id) { glDeleteBuffers(1, &p.id); p.id = 0; }
+  }
+  uint8_t* context_t::pbo_map_write(const context_t::pbo_t& p) {
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, p.id);
+    return (uint8_t*)glMapBufferRange(
+      GL_PIXEL_UNPACK_BUFFER, 0, p.size,
+      GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT | GL_MAP_UNSYNCHRONIZED_BIT
+    );
+  }
+  void context_t::pbo_unmap() {
+    glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+  }
+  void context_t::pbo_upload_to_texture(
+    fan::graphics::image_nr_t nr,
+    const context_t::pbo_t& p,
+    fan::vec2ui size,
+    uintptr_t global_format,
+    GLenum type
+  ) {
+    GLenum gl_format = global_to_opengl_format(global_format);
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, p.id);
+    glBindTexture(GL_TEXTURE_2D, image_get_handle(nr));
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, size.x, size.y, gl_format, type, nullptr);
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+  }
+
+
   void context_t::message_callback(
     GLenum,
     GLenum type,

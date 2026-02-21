@@ -36,32 +36,10 @@ export namespace fan::window {
 
     using action_key_t = fan::ct_string<256>;
 
-    fan::window_t* window = nullptr;
-
-    std::unordered_map<
-      action_key_t, 
-      action_data_t, 
-      fan::ct_string_hash, 
-      fan::ct_string_equal
-    > input_actions;
-    std::unordered_map<
-      action_key_t, 
-      action_key_t, 
-      fan::ct_string_hash, 
-      fan::ct_string_equal
-    > action_groups;
-    std::unordered_map<
-      action_key_t, 
-      bool, 
-      fan::ct_string_hash, 
-      fan::ct_string_equal
-    > toggle_state;
-
     int eval_combo(const combo_t& combo) {
       if (combo.empty()) {
         return none;
       }
-
       int min_state = repeat;
       for (int key : combo) {
         int s = window->key_state(key);
@@ -79,64 +57,46 @@ export namespace fan::window {
       if (chord.empty()) {
         return none;
       }
-
       return eval_combo(chord[0]);
     }
 
-    void add(const int* keys, std::size_t count, std::string_view action_name) {
-      if (count == 0) {
-        return;
-      }
-
-      action_key_t k(action_name);
-      action_data_t& action_data = input_actions[k];
-
-      for (std::size_t i = 0; i < count; ++i) {
-        int key = keys[i];
-        chord_t chord;
-        chord.push_back(combo_t {key});
-        action_data.keybinds.push_back(chord);
-      }
-    }
-
     void add(int key, std::string_view action_name) {
-      add(&key, 1, action_name);
+      action_key_t k(action_name);
+      chord_t chord;
+      chord.push_back(combo_t{key});
+      input_actions[k].keybinds.push_back(chord);
     }
 
     void add(std::initializer_list<int> keys, std::string_view action_name) {
-      add(keys.begin(), keys.size(), action_name);
+      for (int key : keys) {
+        add(key, action_name);
+      }
     }
 
     void edit(int key, std::string_view action_name) {
       action_key_t k(action_name);
       action_data_t& action_data = input_actions[k];
-
       chord_t chord;
-      chord.push_back(combo_t {key});
-
+      chord.push_back(combo_t{key});
       action_data.keybinds.clear();
       action_data.keybinds.push_back(chord);
     }
 
     void add_keycombo(std::initializer_list<int> keys, std::string_view action_name) {
-      std::vector<int> v(keys.begin(), keys.end());
-      add_keycombo(v, action_name);
+      add_keycombo(std::vector<int>(keys.begin(), keys.end()), action_name);
     }
 
     void add_keycombo(const std::vector<int>& keys, std::string_view action_name) {
       if (keys.empty()) {
         return;
       }
-
       combo_t combo = keys;
       std::sort(combo.begin(), combo.end());
       combo.erase(std::unique(combo.begin(), combo.end()), combo.end());
 
       chord_t chord;
       chord.push_back(combo);
-
-      action_key_t k(action_name);
-      input_actions[k].keybinds.push_back(chord);
+      input_actions[action_key_t(action_name)].keybinds.push_back(chord);
     }
 
     bool is_active(std::string_view action_name, int pstate = input_action_t::press) {
@@ -146,11 +106,8 @@ export namespace fan::window {
         return pstate == input_action_t::none;
       }
 
-      action_data_t& action_data = found->second;
-
       int best_state = none;
-
-      for (const chord_t& chord : action_data.keybinds) {
+      for (const chord_t& chord : found->second.keybinds) {
         int s = eval_chord(chord);
         if (s > best_state) {
           best_state = s;
@@ -158,28 +115,13 @@ export namespace fan::window {
       }
 
       switch (pstate) {
-      case input_action_t::press:
-        return best_state == input_action_t::press;
-      case input_action_t::repeat:
-        return best_state == input_action_t::repeat;
-      case input_action_t::press_or_repeat:
-        return best_state == input_action_t::press || best_state == input_action_t::repeat;
-      case input_action_t::none:
-        return best_state == input_action_t::none;
-      default:
-        break;
+      case input_action_t::press:         return best_state == input_action_t::press;
+      case input_action_t::repeat:        return best_state == input_action_t::repeat;
+      case input_action_t::press_or_repeat: return best_state == input_action_t::press || best_state == input_action_t::repeat;
+      case input_action_t::none:          return best_state == input_action_t::none;
+      default: break;
       }
       return false;
-    }
-
-    bool is_toggled(std::string_view action_name) {
-      if (is_clicked(action_name)) {
-        action_key_t k(action_name);
-        bool& v = toggle_state[k];
-        v = !v;
-      }
-      action_key_t k(action_name);
-      return toggle_state[k];
     }
 
     bool is_clicked(std::string_view action_name) {
@@ -195,8 +137,57 @@ export namespace fan::window {
     }
 
     bool exists(std::string_view action_name) {
+      return input_actions.find(action_key_t(action_name)) != input_actions.end();
+    }
+
+    // shared toggle logic - registers action automatically if missing
+    bool toggle_by_name(std::string_view name) {
+      action_key_t k(name);
+      if (is_clicked(name)) {
+        toggle_state[k] = !toggle_state[k];
+      }
+      return toggle_state[k];
+    }
+
+    bool is_toggled(std::string_view action_name) {
+      return toggle_by_name(action_name);
+    }
+
+    bool is_toggled(int key) {
+      std::string name = fan::key_code_to_name(key);
+      if (!exists(name)) {
+        add(key, name);
+      }
+      return toggle_by_name(name);
+    }
+
+    bool is_toggled(std::initializer_list<int> keys) {
+      combo_t combo(keys.begin(), keys.end());
+      sort_combo(combo);
+      std::string name = combo_to_string(combo);
+      if (!exists(name)) {
+        add_keycombo(std::vector<int>(combo.begin(), combo.end()), name);
+      }
+      return toggle_by_name(name);
+    }
+
+    void insert_or_assign(int key, std::string_view action_name, std::string_view group_name = {}) {
       action_key_t k(action_name);
-      return input_actions.find(k) != input_actions.end();
+      if (!group_name.empty()) {
+        action_groups[k] = action_key_t(group_name);
+      }
+
+      combo_t combo{key};
+      chord_t target;
+      target.push_back(combo);
+
+      action_data_t& action_data = input_actions[k];
+      for (const chord_t& chord : action_data.keybinds) {
+        if (chord.size() == 1 && chord[0] == combo) {
+          return;
+        }
+      }
+      action_data.keybinds.push_back(target);
     }
 
     void insert_or_assign(std::initializer_list<int> keys, std::string_view action_name, std::string_view group_name = {}) {
@@ -205,35 +196,10 @@ export namespace fan::window {
       }
     }
 
-    void insert_or_assign(int key, std::string_view action_name, std::string_view group_name = {}) {
+    void insert_or_assign_combo(std::initializer_list<int> keys, std::string_view action_name, std::string_view group_name = {}) {
       action_key_t k(action_name);
       if (!group_name.empty()) {
-        action_key_t g(group_name);
-        action_groups[k] = g;
-      }
-
-      combo_t combo {key};
-      chord_t target;
-      target.push_back(combo);
-
-      action_data_t& action_data = input_actions[k];
-
-      for (const chord_t& chord : action_data.keybinds) {
-        if (chord.size() == 1 && chord[0] == combo) {
-          return;
-        }
-      }
-
-      action_data.keybinds.push_back(target);
-    }
-
-    void insert_or_assign_combo(std::initializer_list<int> keys,
-      std::string_view action_name,
-      std::string_view group_name = {}) {
-      action_key_t k(action_name);
-      if (!group_name.empty()) {
-        action_key_t g(group_name);
-        action_groups[k] = g;
+        action_groups[k] = action_key_t(group_name);
       }
 
       combo_t combo(keys.begin(), keys.end());
@@ -244,21 +210,16 @@ export namespace fan::window {
       target.push_back(combo);
 
       action_data_t& action_data = input_actions[k];
-
       for (const chord_t& chord : action_data.keybinds) {
         if (chord.size() == 1 && chord[0] == combo) {
           return;
         }
       }
-
       action_data.keybinds.push_back(target);
     }
 
     void add_empty_keybind(std::string_view action_name) {
-      action_key_t k(action_name);
-      action_data_t& action_data = input_actions[k];
-      chord_t chord;
-      action_data.keybinds.push_back(chord);
+      input_actions[action_key_t(action_name)].keybinds.push_back(chord_t{});
     }
 
     void remove_index(std::string_view action_name, int index) {
@@ -267,12 +228,10 @@ export namespace fan::window {
       if (it == input_actions.end()) {
         return;
       }
-
       auto& keybinds = it->second.keybinds;
       if (index < 0 || index >= (int)keybinds.size()) {
         return;
       }
-
       keybinds.erase(keybinds.begin() + index);
     }
 
@@ -309,53 +268,36 @@ export namespace fan::window {
 
     std::vector<int> get_all_keys(std::string_view action_name) const {
       std::vector<int> result;
-
-      action_key_t k(action_name);
-      auto it = input_actions.find(k);
+      auto it = input_actions.find(action_key_t(action_name));
       if (it == input_actions.end()) {
         return result;
       }
-
-      const auto& keybinds = it->second.keybinds;
-
-      for (const auto& chord : keybinds) {
+      for (const auto& chord : it->second.keybinds) {
         if (chord.empty()) {
           continue;
         }
-
-        const auto& combo = chord[0];
-
-        for (int key : combo) {
+        for (int key : chord[0]) {
           result.push_back(key);
         }
       }
-
       return result;
     }
 
     int get_first_gamepad_key(std::string_view action_name) const {
-      action_key_t k(action_name);
-      auto it = input_actions.find(k);
+      auto it = input_actions.find(action_key_t(action_name));
       if (it == input_actions.end()) {
         return -1;
       }
-
-      const auto& keybinds = it->second.keybinds;
-
-      for (const auto& chord : keybinds) {
+      for (const auto& chord : it->second.keybinds) {
         if (chord.empty()) {
           continue;
         }
-
-        const auto& combo = chord[0];
-
-        for (int key : combo) {
+        for (int key : chord[0]) {
           if (key >= fan::gamepad_a && key <= fan::gamepad_last) {
             return key;
           }
         }
       }
-
       return -1;
     }
 
@@ -379,7 +321,6 @@ export namespace fan::window {
           }
         }
       }
-
       if (device == fan::device_mouse) {
         for (int btn = fan::mouse_first; btn <= fan::mouse_last; ++btn) {
           if (window->is_key_down(btn)) {
@@ -387,11 +328,9 @@ export namespace fan::window {
           }
         }
       }
-
       if (device == fan::device_gamepad) {
         for (int btn = fan::gamepad_a; btn <= fan::gamepad_last; ++btn) {
-          if (window->is_gamepad_button_down(btn) ||
-            window->is_gamepad_axis_active(btn)) {
+          if (window->is_gamepad_button_down(btn) || window->is_gamepad_axis_active(btn)) {
             combo.push_back(btn);
           }
         }
@@ -399,7 +338,6 @@ export namespace fan::window {
 
       std::sort(combo.begin(), combo.end());
       combo.erase(std::unique(combo.begin(), combo.end()), combo.end());
-
       return combo;
     }
 
@@ -424,10 +362,8 @@ export namespace fan::window {
           ? trimmed.substr(start)
           : trimmed.substr(start, end - start);
         start = (end == std::string::npos) ? trimmed.size() + 1 : end + 1;
-
         token = fan::trim_ws(token);
         if (token.empty()) continue;
-
         int key = fan::key_name_to_code(token);
         if (key != -1) combo.push_back(key);
       }
@@ -453,6 +389,12 @@ export namespace fan::window {
       }
       return s.empty() ? "None" : s;
     }
+
+    fan::window_t* window = nullptr;
+
+    std::unordered_map<action_key_t, action_data_t, fan::ct_string_hash, fan::ct_string_equal> input_actions;
+    std::unordered_map<action_key_t, action_key_t, fan::ct_string_hash, fan::ct_string_equal> action_groups;
+    std::unordered_map<action_key_t, bool, fan::ct_string_hash, fan::ct_string_equal> toggle_state;
   };
 
   inline constexpr auto device_keyboard = fan::device_keyboard;

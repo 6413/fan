@@ -59,6 +59,41 @@ export namespace fan::opengl {
     void set_stencil_op(GLenum sfail, GLenum dpfail, GLenum dppass);
     void set_vsync(fan::window_t* window, bool flag);
 
+    struct pbo_t {
+      GLuint id = 0;
+      size_t size = 0;
+    };
+
+    pbo_t pbo_create(size_t size);
+    void pbo_destroy(pbo_t& p);
+    uint8_t* pbo_map_write(const pbo_t& p);
+    void pbo_unmap();
+    void pbo_upload_to_texture(
+      fan::graphics::image_nr_t nr,
+      const pbo_t& p,
+      fan::vec2ui size,
+      uintptr_t global_format,
+      GLenum type = GL_UNSIGNED_BYTE
+    );
+
+    template<typename fill_fn_t>
+    void pbo_write_and_upload(
+      const pbo_t& write_pbo,
+      const pbo_t& read_pbo,
+      fan::graphics::image_nr_t nr,
+      fan::vec2ui size,
+      uintptr_t global_format,  // fan::graphics::image_format_e
+      fill_fn_t&& fill,
+      GLenum type = GL_UNSIGNED_BYTE
+    ) {
+      uint8_t* ptr = pbo_map_write(write_pbo);
+      if (ptr) {
+        fill(ptr, write_pbo.size);
+        pbo_unmap();
+      }
+      pbo_upload_to_texture(nr, read_pbo, size, global_format, type);
+    }
+
     static void message_callback(
       GLenum source,
       GLenum type,
@@ -179,6 +214,36 @@ export namespace fan::opengl {
         fan_opengl_call(glUniformMatrix4fv(location, 1, GL_FALSE, (f32_t*)&value[0]));
         break;
       }
+      }
+    }
+    template <typename T>
+    void shader_set_value(fan::graphics::shader_nr_t nr, const std::string& name, const std::vector<T>& val) {
+      shader_use(nr);
+      auto found = __fan_internal_shader_list[nr].uniform_type_table.find(name);
+      if (found == __fan_internal_shader_list[nr].uniform_type_table.end()) return;
+
+      size_t hash0 = std::hash<std::string> {}(name);
+      size_t hash1 = std::hash<decltype(fan::graphics::shader_nr_t::NRI)> {}(nr.NRI);
+      auto shader_loc_it = shader_location_cache.find(hash0 ^ hash1);
+      if (shader_loc_it == shader_location_cache.end()) {
+        GLint location = glGetUniformLocation(shader_get(nr).id, name.c_str());
+        if (location == -1) return;
+        shader_loc_it = shader_location_cache.emplace(hash0 ^ hash1, location).first;
+      }
+      GLint location = shader_loc_it->second;
+      GLsizei count = (GLsizei)val.size();
+
+      switch (fan::get_hash(found->second)) {
+      case fan::get_hash(std::string_view("float")):
+        glUniform1fv(location, count, (f32_t*)val.data()); break;
+      case fan::get_hash(std::string_view("vec2")):
+        glUniform2fv(location, count, (f32_t*)val.data()); break;
+      case fan::get_hash(std::string_view("vec3")):
+        glUniform3fv(location, count, (f32_t*)val.data()); break;
+      case fan::get_hash(std::string_view("vec4")):
+        glUniform4fv(location, count, (f32_t*)val.data()); break;
+      case fan::get_hash(std::string_view("int")):
+        glUniform1iv(location, count, (GLint*)val.data()); break;
       }
     }
 
