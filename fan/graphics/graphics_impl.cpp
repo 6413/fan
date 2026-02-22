@@ -154,6 +154,10 @@ namespace fan::graphics {
     return fan::graphics::ctx()->image_load_colors_props(fan::graphics::ctx(), colors, size, p);
   }
 
+  fan::graphics::image_nr_t image_load(std::span<const fan::color> colors, const fan::vec2ui& size) {
+    return fan::graphics::ctx()->image_load_colors_props(fan::graphics::ctx(), const_cast<fan::color*>(colors.data()), size, image_presets::pixel_art());
+  }
+
   void image_unload(fan::graphics::image_nr_t nr) {
     fan::graphics::ctx()->image_unload(fan::graphics::ctx(), nr);
   }
@@ -521,6 +525,34 @@ namespace fan::graphics {
       .image = image
     }) {}
 
+  sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::color& color)
+  : sprite_t(sprite_properties_t {
+    .position = position,
+    .size = size,
+    .image = fan::graphics::image_load(std::span<const fan::color>(&color, 1), fan::vec2ui(1, 1))
+  }) {}
+
+  sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, std::initializer_list<fan::color> colors, render_view_t* render_view)
+  : sprite_t(sprite_properties_t {
+    .render_view = render_view,
+    .position = position,
+    .size = size,
+    .image = fan::graphics::image_load(std::span<const fan::color>(colors.begin(), colors.size()), fan::vec2ui(colors.size(), 1))
+  }) {}
+sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const std::vector<uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view)
+  : sprite_t(sprite_properties_t {
+    .render_view = render_view,
+    .position = position,
+    .size = size,
+    .image = [&] {
+      fan::image::info_t info;
+      info.data = const_cast<void*>((const void*)data.data());
+      info.size = tex_size;
+      info.channels = 4;
+      return fan::graphics::image_load(info, image_presets::pixel_art());
+    }()
+  }) {}
+
   unlit_sprite_t::unlit_sprite_t(unlit_sprite_properties_t p) {
     *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
       fan_init_struct(
@@ -548,6 +580,27 @@ namespace fan::graphics {
       .size = size,
       .image = image
     }) {}
+
+  unlit_sprite_t::unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, std::initializer_list<fan::color> colors, render_view_t* render_view)
+    : unlit_sprite_t(unlit_sprite_properties_t {
+        .render_view = render_view,
+        .position = position,
+        .size = size,
+        .image = fan::graphics::image_load(std::span<const fan::color>(colors.begin(), colors.size()), fan::vec2ui(colors.size(), 1))
+      }) {}
+  unlit_sprite_t::unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, const std::vector<uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view)
+  : unlit_sprite_t(unlit_sprite_properties_t {
+    .render_view = render_view,
+    .position = position,
+    .size = size,
+    .image = [&] {
+      fan::image::info_t info;
+      info.data = const_cast<void*>((const void*)data.data());
+      info.size = tex_size;
+      info.channels = 4;
+      return fan::graphics::image_load(info, image_presets::pixel_art());
+    }()
+  }) {}
 
   circle_t::circle_t(circle_properties_t p) {
     *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
