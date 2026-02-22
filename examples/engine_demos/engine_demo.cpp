@@ -12,6 +12,7 @@
 #include <functional>
 #include <filesystem>
 #include <fstream>
+#include <condition_variable>
 //
 import fan;
 
@@ -123,7 +124,7 @@ struct engine_demo_t {
 
   static void demo_shapes_init_lights(engine_demo_t* engine_demo) {
     fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
-    
+
     static auto image_background = engine_demo->engine.image_create(fan::color(0.5, 0.5, 0.5, 1));
     uint32_t lighting_flags = fan::graphics::sprite_flags_e::additive | fan::graphics::sprite_flags_e::circle;
 
@@ -250,8 +251,7 @@ struct engine_demo_t {
     fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
 
     for (uint32_t i = 0; i < engine_demo->shape_count; ++i) {
-      uint32_t sides = fan::random::value(3u, 12u);
-      sides = std::max(3u, sides);
+      uint32_t sides = std::max(3u, fan::random::value(3u, 12u));
 
       fan::vec2 position = fan::random::vec2(-viewport_size / 2.f, viewport_size / 2.f);
       f32_t radius = fan::random::value(50.f, 200.f);
@@ -266,8 +266,7 @@ struct engine_demo_t {
       f32_t angle_step = 2.0f * fan::math::pi / sides;
       for (uint32_t j = 0; j < sides; ++j) {
         f32_t angle = j * angle_step;
-        fan::vec2 vertex_position = position + fan::vec2(std::cos(angle), std::sin(angle)) * radius;
-        polygon_points.push_back(vertex_position);
+        polygon_points.push_back(position + fan::vec2(std::cos(angle), std::sin(angle)) * radius);
       }
 
       fan::vec2 centroid(0, 0);
@@ -277,29 +276,16 @@ struct engine_demo_t {
       centroid /= sides;
 
       for (uint32_t j = 0; j < sides; ++j) {
-        pp.vertices.push_back(fan::graphics::vertex_t{
-          fan::vec3(polygon_points[j], i),
-          color
-          });
-
-        pp.vertices.push_back(fan::graphics::vertex_t{
-          fan::vec3(polygon_points[(j + 1) % sides], i),
-          color
-          });
-
-        pp.vertices.push_back(fan::graphics::vertex_t{
-          fan::vec3(centroid, i),
-          color
-        });
+        pp.vertices.push_back(fan::graphics::vertex_t{fan::vec3(polygon_points[j], i), color});
+        pp.vertices.push_back(fan::graphics::vertex_t{fan::vec3(polygon_points[(j + 1) % sides], i), color});
+        pp.vertices.push_back(fan::graphics::vertex_t{fan::vec3(centroid, i), color});
       }
 
-      engine_demo->shapes[i] = fan::graphics::polygon_t{
-        {
-          .render_view = &engine_demo->right_column_view,
-          .position = 0,
-          .vertices = pp.vertices
-        }
-      };
+      engine_demo->shapes[i] = fan::graphics::polygon_t{{
+        .render_view = &engine_demo->right_column_view,
+        .position = 0,
+        .vertices = pp.vertices
+      }};
     }
   }
   static void demo_shapes_init_rectangles(engine_demo_t* engine_demo) {
@@ -357,12 +343,11 @@ void main() {
   fan::graphics::shader_t demo_shader_shape_shader{engine.get_sprite_vertex_shader(demo_shader_shape_fragment_shader)};
   fan::color custom_color = fan::colors::red;
   static void demo_shapes_init_shader_shape(engine_demo_t* engine_demo) {
-    // if engine is initially initialized with vulkan, the nr valu doesnt update
     if (engine_demo->demo_shader_shape_shader.iic()) {
       fan::throw_error("failed to compile custom shader");
       return;
     }
-    
+
     fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
 
     fan::graphics::image_t image = engine_demo->engine.image_load("images/lava_seamless.webp");
@@ -373,7 +358,6 @@ void main() {
       .shader = engine_demo->demo_shader_shape_shader,
       .image = image,
     }});
-    // init
     engine_demo->engine.shader_set_value(engine_demo->demo_shader_shape_shader, "custom_color", engine_demo->custom_color);
   }
   static void demo_shader_shape_update(engine_demo_t* engine_demo) {
@@ -468,7 +452,6 @@ void main() {
     data.shader = engine_demo->engine.get_sprite_vertex_shader(data.shader_code);
     fan::graphics::image_t image = engine_demo->engine.image_load("images/lava_seamless.webp");
 
-    fan::vec2 viewport_pos = engine_demo->engine.viewport_get_position(engine_demo->right_column_view.viewport);
     fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     data.shader_shape = fan::graphics::shader_shape_t{ {
       .render_view = &engine_demo->right_column_view,
@@ -477,7 +460,6 @@ void main() {
       .shader = data.shader,
       .image = image,
     } };
-    //engine_demo->interactive_camera.set_zoom(engine_demo->engine.settings_menu.pages.front().split_ratio * 1.2f);
     engine_demo->interactive_camera.reset_view();
   }
 
@@ -583,7 +565,7 @@ void main() {
     fan::vec2 src = mirror_data.user_ray.get_src();
     fan::vec2 dst = mirror_data.user_ray.get_dst();
     mirror_data.user_ray.set_line(src, dst);
-    
+
     if (fan::window::is_mouse_down(fan::mouse_right) && engine_demo->mouse_inside_demo_view) {
       mirror_data.user_ray.set_line(get_mouse_position(engine_demo->right_column_view), dst);
       mirror_data.user_ray_tips[0].set_position(mirror_data.user_ray.get_src());
@@ -646,35 +628,30 @@ void main() {
     auto& data = *engine_demo->demo_physics_platformer_data;
     fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
 
-    // Load highlight image. Loads from cache if done repeatedly. Automatically gets freed on engine close.
     data.highlight_image = engine_demo->engine.image_load("images/highlight_hover.webp");
 
-    // Create walls around the viewport
-    // Bounds, Thickness
     data.walls = physics::create_stroked_rectangle(fan::vec2(0), viewport_size / 2.f, data.grid_size);
     for (auto& wall : data.walls) {
       wall.set_camera(engine_demo->right_column_view.camera);
       wall.set_viewport(engine_demo->right_column_view.viewport);
     }
 
-    // Create player character
     data.player = fan::graphics::physics::character_capsule(
-      { // Visual properties
+      {
         .render_view = &engine_demo->right_column_view,
         .position = fan::vec3(fan::vec2(0), 10),
         .radius = 16.f,
         .color = fan::colors::green
       },
-    { // Physics properties
-      .fixed_rotation = true
-    }
+      {
+        .fixed_rotation = true
+      }
     );
 
     engine_demo->demo_physics_platformer_data->player.enable_default_movement();
   }
 
   static void demo_physics_update_platformer(engine_demo_t* engine_demo) {
-    // GUI
     fan::graphics::gui::text("Controls:", fan::colors::yellow);
     fan::graphics::gui::text("A or D - Move side ways");
     fan::graphics::gui::text("Space - Jump");
@@ -683,24 +660,18 @@ void main() {
 
     auto& data = *engine_demo->demo_physics_platformer_data;
 
-    // Get mouse position and snap to grid
     fan::vec2 mouse_pos = get_mouse_position(engine_demo->right_column_view) - data.grid_size / 2.f;
     fan::vec2 place_pos = mouse_pos.snap_to_grid(data.grid_size) + data.grid_size / 2.f;
 
-    // Draw highlight sprite. For better performance you would use fan::graphics::sprite_t object and update the position.
-    // This uses fan::graphics::sprite() function to draw the sprite for simplicity and demonstration purposes
     sprite({
       .render_view = &engine_demo->right_column_view,
       .position = fan::vec3(place_pos, 0xfff),
       .size = data.grid_size / 2.f,
       .image = data.highlight_image
-      });
+    });
 
-    // Place block on mouse click
     if (fan::window::is_mouse_clicked() && engine_demo->mouse_inside_demo_view) {
       bool block_exists = false;
-      // Iterate all blocks to find if block exists. 
-      // In real implementation you would use constant time lookup and not iterate through all, but this is fine for demo
       for (auto& block : data.placed_blocks) {
         if (block.get_position() == place_pos) {
           block_exists = true;
@@ -708,19 +679,15 @@ void main() {
         }
       }
       if (!block_exists) {
-        data.placed_blocks.emplace_back(physics::rectangle_t{
-          {
-            .render_view = &engine_demo->right_column_view,
-            .position = place_pos,
-            .size = data.grid_size / 2.f,
-            .color = fan::random::bright_color()
-          }
-        });
+        data.placed_blocks.emplace_back(physics::rectangle_t{{
+          .render_view = &engine_demo->right_column_view,
+          .position = place_pos,
+          .size = data.grid_size / 2.f,
+          .color = fan::random::bright_color()
+        }});
       }
     }
 
-    // Iterate all blocks to delete block using right mouse click
-    // In real implementation you would use constant time lookup and not iterate through all, but this is fine for demo
     if (fan::window::is_mouse_clicked(fan::mouse_right) && engine_demo->mouse_inside_demo_view) {
       for (auto it = data.placed_blocks.begin(); it != data.placed_blocks.end(); ++it) {
         if (it->get_position() == place_pos) {
@@ -732,8 +699,6 @@ void main() {
   }
 
   static void demo_physics_cleanup_platformer(engine_demo_t* engine_demo) {
-    auto& data = *engine_demo->demo_physics_platformer_data;
-    // Unload highlight image
     delete engine_demo->demo_physics_platformer_data;
   }
 
@@ -784,15 +749,12 @@ void main() {
     data.sensor2.set_physics_position(get_mouse_position(engine_demo->right_column_view) + fan::vec2(128, 0));
 
     for (int i = 0; i < 3; ++i) {
-      fan::vec2 pos = data.visuals[i].get_position();
-      if (fan::physics::is_on_sensor(data.sensor1, data.sensors[i]) ||
-          fan::physics::is_on_sensor(data.sensor2, data.sensors[i])) 
-      {
-        data.visuals[i].set_color(fan::colors::green.set_alpha(0.6));
-      }
-      else {
-        data.visuals[i].set_color(fan::colors::blue.set_alpha(0.5));
-      }
+      data.visuals[i].set_color(
+        (fan::physics::is_on_sensor(data.sensor1, data.sensors[i]) ||
+         fan::physics::is_on_sensor(data.sensor2, data.sensors[i]))
+          ? fan::colors::green.set_alpha(0.6)
+          : fan::colors::blue.set_alpha(0.5)
+      );
     }
   }
 
@@ -871,37 +833,31 @@ void main() {
   static void demo_algorithm_update_grid_highlight(engine_demo_t* engine_demo) {
     auto& data = *engine_demo->demo_algorithm_grid_highlight_data;
 
-    if (data.mode == demo_algorithm_grid_highlight_t::circle) {
-      fan::graphics::gui::text("Move mouse to highlight grid cells with circle");
-    }
-    else {
-      fan::graphics::gui::text("Left click sets line start");
-      fan::graphics::gui::text("Right click sets line end");
+    gui::text(data.mode == demo_algorithm_grid_highlight_t::circle
+      ? "Move mouse to highlight grid cells with circle"
+      : "Left click sets line start");
+    if (data.mode == demo_algorithm_grid_highlight_t::line) {
+      gui::text("Right click sets line end");
     }
 
-    fan::graphics::gui::text("Shape Mode:");
+    gui::text("Shape Mode:");
 
     data.tilemap.reset_colors(fan::colors::red);
 
     const char* modes[] = { "Circle", "Line" };
     int current = (data.mode == demo_algorithm_grid_highlight_t::circle ? 0 : 1);
     if (fan::graphics::gui::combo("Mode", &current, modes, 2)) {
-      data.mode = (current == 0 ? demo_algorithm_grid_highlight_t::circle : demo_algorithm_grid_highlight_t::line);
+      data.mode = current == 0 ? demo_algorithm_grid_highlight_t::circle : demo_algorithm_grid_highlight_t::line;
     }
 
-    if (data.mode == demo_algorithm_grid_highlight_t::circle) {
-      fan::vec2 world_pos = get_mouse_position(engine_demo->right_column_view);
-      data.shape = make_circle(engine_demo, world_pos);
-    }
-    else {
-      data.shape = make_line(engine_demo, data.src, data.dst);
-    }
+    data.shape = data.mode == demo_algorithm_grid_highlight_t::circle
+      ? (shape_t)make_circle(engine_demo, get_mouse_position(engine_demo->right_column_view))
+      : (shape_t)make_line(engine_demo, data.src, data.dst);
 
     data.tilemap.highlight(data.shape, fan::colors::green);
   }
 
   static void demo_algorithm_cleanup_grid_highlight(engine_demo_t* engine_demo) {
-    auto& data = *engine_demo->demo_algorithm_grid_highlight_data;
     delete engine_demo->demo_algorithm_grid_highlight_data;
   }
 
@@ -1023,7 +979,6 @@ void main() {
   }
 
   static void demo_algorithm_cleanup_pathfind(engine_demo_t* engine_demo) {
-    auto& data = *engine_demo->demo_algorithm_pathfind_data;
     delete engine_demo->demo_algorithm_pathfind_data;
   }
 
@@ -1055,9 +1010,7 @@ void main() {
       f32_t norm = (f32_t)i / (f32_t)count;
       f32_t h = viewport_size.y * (1.f - norm);
       fan::vec2 size = {bar_width * 0.5f, h * 0.5f};
-      f32_t rect_x = (count - 1 - i) * bar_width - viewport_size.x * 0.5f + bar_width * 0.5f;
-      f32_t rect_y = viewport_size.y * 0.5f - size.y;
-      fan::vec2 rect_pos = {rect_x, rect_y};
+      fan::vec2 rect_pos = {(count - 1 - i) * bar_width - viewport_size.x * 0.5f + bar_width * 0.5f, viewport_size.y * 0.5f - size.y};
       data.lines.push_back({
         .r = fan::graphics::rectangle_t{{
           .render_view = &engine_demo->right_column_view,
@@ -1067,15 +1020,14 @@ void main() {
         }},
         .value = i,
         .target_pos = rect_pos
-        });
+      });
     }
     for (int i = data.lines.size() - 1; i > 0; --i) {
       std::swap(data.lines[i].value, data.lines[fan::random::value_i64(0, i)].value);
     }
-    for (int i = 0; i < data.lines.size(); ++i) {
+    for (int i = 0; i < (int)data.lines.size(); ++i) {
       auto& node = data.lines[i];
-      f32_t rect_x = (count - 1 - node.value) * bar_width - viewport_size.x * 0.5f + bar_width * 0.5f;
-      node.target_pos = {rect_x, node.r.get_position().y};
+      node.target_pos.x = (count - 1 - node.value) * bar_width - viewport_size.x * 0.5f + bar_width * 0.5f;
       node.r.set_position(node.target_pos);
     }
   }
@@ -1086,14 +1038,13 @@ void main() {
     const int count = data.lines.size();
     const f32_t bar_width = viewport_size.x / (f32_t)count;
     int comparisons = 0;
-    while (comparisons < data.comparisons_per_frame && data.step < data.lines.size()) {
-      if (data.i < data.lines.size() - 1 - data.step) {
+    while (comparisons < data.comparisons_per_frame && data.step < (int)data.lines.size()) {
+      if (data.i < (int)data.lines.size() - 1 - data.step) {
         if (data.lines[data.i].value > data.lines[data.i + 1].value) {
           std::swap(data.lines[data.i].value, data.lines[data.i + 1].value);
           for (int idx = 0; idx < 2; ++idx) {
             auto& node = data.lines[data.i + idx];
-            f32_t rect_x = (count - 1 - node.value) * bar_width - viewport_size.x * 0.5f + bar_width * 0.5f;
-            node.target_pos = {rect_x, node.r.get_position().y};
+            node.target_pos.x = (count - 1 - node.value) * bar_width - viewport_size.x * 0.5f + bar_width * 0.5f;
           }
         }
         data.i++;
@@ -1136,13 +1087,12 @@ void main() {
     data.built_mesh.clear();
     data.noise.apply();
     data.noise_data = data.noise.generate_data(data.noise_size);
-    // wait for task to finish
     data.task_gen_mesh.stop_and_join();
     data.task_gen_mesh = fan::graphics::async_generate_mesh(
-      data.noise_size, 
-      data.noise_data, 
-      data.dirt, 
-      data.built_mesh, 
+      data.noise_size,
+      data.noise_data,
+      data.dirt,
+      data.built_mesh,
       data.palette,
       {.render_view = &engine_demo->right_column_view}
     );
@@ -1152,16 +1102,14 @@ void main() {
     engine_demo->demo_algorithm_terrain_data = new demo_algorithm_terrain_t();
     auto& data = *engine_demo->demo_algorithm_terrain_data;
     data.dirt = engine_demo->engine.image_create(fan::colors::white);
-    // save noise_data so stack doesnt die in async func
     data.noise_data = data.noise.generate_data(data.noise_size);
     const fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     engine_demo->interactive_camera.set_position(viewport_size / 2.f);
-    // coroutine
     data.task_gen_mesh = fan::graphics::async_generate_mesh(
-      data.noise_size, 
-      data.noise_data, 
-      data.dirt, 
-      data.built_mesh, 
+      data.noise_size,
+      data.noise_data,
+      data.dirt,
+      data.built_mesh,
       data.palette,
       {.render_view = &engine_demo->right_column_view}
     );
@@ -1187,7 +1135,6 @@ void main() {
 
   static void demo_algorithm_terrain_cleanup(engine_demo_t* engine_demo) {
     auto data = engine_demo->demo_algorithm_terrain_data;
-    // wait for task to finish
     data->task_gen_mesh.stop_and_join();
     delete data;
   }
@@ -1206,7 +1153,8 @@ void main() {
     std::mutex data_mutex;
     std::atomic<bool> should_quit{false};
     std::atomic<bool> generation_complete{false};
-    std::atomic<bool> needs_update{false}; 
+    std::atomic<bool> needs_update{false};
+    std::condition_variable cv;
     std::string progress_message = "Generating image: 0%";
 
     sprite_t image_sprite;
@@ -1226,8 +1174,7 @@ void main() {
     }
     for (uint32_t y = 0; y < data->image_size.y; ++y) {
       if (data->should_quit) {
-        data->generation_complete.store(true);
-        return;
+        break;
       }
       {
         std::lock_guard<std::mutex> lock(data->data_mutex);
@@ -1248,14 +1195,13 @@ void main() {
       data->needs_update.store(true);
     }
     data->generation_complete.store(true);
+    data->cv.notify_all();
   }
 
   static void demo_init_multithreaded_image_loading(engine_demo_t* engine_demo) {
     engine_demo->demo_multithreaded_image_loading_data = new demo_multithreaded_image_loading_t;
     auto* data = engine_demo->demo_multithreaded_image_loading_data;
     fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
-    int height = viewport_size.y / 2;
-    height -= height % 4;
     data->image_sprite = {{
       .render_view = &engine_demo->right_column_view,
       .position = 0,
@@ -1306,9 +1252,10 @@ void main() {
     gui::text(fan::colors::yellow, "The image is purposefully generated slowly to simulate load");
   }
   static void demo_cleanup_multithreaded_image_loading(engine_demo_t* engine_demo) {
-    auto data = engine_demo->demo_multithreaded_image_loading_data;
+    auto* data = engine_demo->demo_multithreaded_image_loading_data;
     data->should_quit = true;
-    while (!data->generation_complete) {}
+    std::unique_lock<std::mutex> lock(data->data_mutex);
+    data->cv.wait(lock, [data] { return data->generation_complete.load(); });
     delete data;
   }
 
@@ -1318,7 +1265,7 @@ void main() {
   typedef void(*demo_function_update_t)(engine_demo_t*);
   //
   static void default_update_function(engine_demo_t* engine_demo) {
-    
+
   }
   static void shape_update_function(engine_demo_t* engine_demo) {
     menus_engine_demo_render_element_count(&engine_demo->engine.settings_menu);
@@ -1345,18 +1292,18 @@ void main() {
     demo_t{.name = "Polygon",                     .init_function = demo_shapes_init_polygons,              .update_function = shape_update_function                                                                                },
     demo_t{.name = "Rectangles",                  .init_function = demo_shapes_init_rectangles,            .update_function = shape_update_function                                                                                },
     demo_t{.name = "Shader",                      .init_function = demo_shapes_init_shader_shape,          .update_function = demo_shader_shape_update                                                                             },
-    demo_t{.name = "Sprites",                     .init_function = demo_shapes_init_sprites,                .update_function = shape_update_function                                                                               },
+    demo_t{.name = "Sprites",                     .init_function = demo_shapes_init_sprites,               .update_function = shape_update_function                                                                                },
     demo_t{.name = "Sprite Sheets",               .init_function = demo_shapes_init_sprites_sheet,                                                                     .cleanup_function = demo_sprite_sheet_cleanup               },
     demo_t{.name = "_next"                                                                                                                                                                                                         },
-    // GUI                                                                                                                                                                                                                         
+    // GUI
     demo_t{.name = "Live Shader Editor",          .init_function = demo_shapes_init_shader_live_editor,    .update_function = demo_shader_live_editor_update,         .cleanup_function = demo_shader_live_editor_cleanup          },
     demo_t{.name = "_next"                                                                                                                                                                                                         },
-    // Physics                                                                                                                                                                                                                     
+    // Physics
     demo_t{.name = "Reflective Mirrors",          .init_function = demo_physics_init_mirrors,              .update_function = demo_physics_update_mirrors,            .cleanup_function = demo_physics_cleanup_mirrors             },
     demo_t{.name = "Platformer Builder",          .init_function = demo_physics_init_platformer,           .update_function = demo_physics_update_platformer,         .cleanup_function = demo_physics_cleanup_platformer          },
     demo_t{.name = "Sensors",                     .init_function = demo_physics_init_sensor,               .update_function = demo_physics_update_sensor,             .cleanup_function = demo_physics_cleanup_sensor              },
     demo_t{.name = "_next"                                                                                                                                                                                                         },
-    // Algorithms                                                                                                                                                                                                                  
+    // Algorithms
     demo_t{.name = "Grid Highlight",              .init_function = demo_algorithm_init_grid_highlight,     .update_function = demo_algorithm_update_grid_highlight,   .cleanup_function = demo_algorithm_cleanup_grid_highlight    },
     demo_t{.name = "A* Pathfind",                 .init_function = demo_algorithm_init_pathfind,           .update_function = demo_algorithm_update_pathfind,         .cleanup_function = demo_algorithm_cleanup_pathfind          },
     demo_t{.name = "Sorting visualization",       .init_function = demo_algorithm_sorting_init,            .update_function = demo_algorithm_sorting_update,          .cleanup_function = demo_algorithm_sorting_cleanup           },
@@ -1367,10 +1314,6 @@ void main() {
   });
 
   static void menus_engine_demo_left(menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
-    //static std::string code;
-    //static bool compiled = false;
-    //gui::fragment_shader_editor(engine_t::shape_type_t::line, &code, &compiled);
-
     gui::set_next_window_pos(next_window_position);
     gui::set_next_window_size(next_window_size);
     if (auto wnd = gui::window("##Menu Engine Demo Left", 0, wnd_flags)) {
@@ -1405,13 +1348,12 @@ void main() {
         demo.update_function(&engine_demo);
 
         if (!engine_demo.disable_render_gui_bg) {
-          f32_t end_y = gui::get_cursor_pos_y();
-          f32_t content_height = end_y - start_y;
+          f32_t content_height = gui::get_cursor_pos_y() - start_y;
           fan::vec2 window_size = gui::get_window_size();
-  
+
           auto* draw_list = gui::get_background_draw_list();
           fan::vec2 rect_end = cursor_start + fan::vec2(window_size.x - gui::get_style().WindowPadding.x * 2, content_height);
-          if (rect_end.y - cursor_start.y > 5.f) { // render bg if content exists
+          if (rect_end.y - cursor_start.y > 5.f) {
             draw_list->AddRectFilled(
               cursor_start,
               rect_end,
@@ -1439,8 +1381,8 @@ void main() {
     gui::text(fan::color::from_rgba(0x948c80ff) * 1.5, title);
     gui::push_style_var(gui::style_var_cell_padding, fan::vec2(0));
     if (auto tbl = gui::table(
-      (title + "_settings_left_table_display").c_str(), 
-      1, 
+      (title + "_settings_left_table_display").c_str(),
+      1,
       gui::table_flags_borders_inner_h | gui::table_flags_borders_outer_h
     )) {
       {
@@ -1449,7 +1391,7 @@ void main() {
         table_id.reserve(128);
 
         for (auto [demo_index, demo] : fan::enumerate(demos)) {
-          if (demo.name == "_next") {
+          if (demo.name == std::string_view("_next")) {
             ++title_index;
             title = titles[title_index];
 
@@ -1496,12 +1438,10 @@ void main() {
     }
   }
 
-
 #undef engine_demo
 
   void create_gui() {
     engine.clear_color = 0;
-    // disable actively rendering page and assign "Engine Demos" option as first
     engine.settings_menu.reset_page_selection();
     {
       menu_t::page_t page;
@@ -1530,21 +1470,22 @@ void main() {
   }
 
   void clear_and_set_demo(size_t demo_index) {
-    engine_demo_t::demo_t& demo = demos[demo_index];
+    auto& demo = demos[demo_index];
     if (demos[current_demo_index].cleanup_function) {
       demos[current_demo_index].cleanup_function(this);
     }
     shapes.clear();
     interactive_camera.reset_view();
-    demo.init_function(this);
+    if (demo.init_function) {
+      demo.init_function(this);
+    }
     current_demo_index = demo_index;
   }
 
   fan::graphics::render_view_t right_column_view;
-  // allows to move and zoom camera with mouse
   fan::graphics::interactive_camera_t interactive_camera;
   uint16_t current_demo_index = 0;
-  uint16_t new_demo_index = current_demo_index;
+  uint16_t new_demo_index = -1;
   int shape_count = 100;
   std::vector<fan::graphics::shape_t> shapes;
   fan::vec2 panel_right_render_position = 0.f;
@@ -1561,7 +1502,6 @@ int main() {////
   //demo.engine.cell_size = 32;
   //demo.engine.culling_rebuild_grid();
   demo.engine.set_culling_enabled(false);
-  // Update physics
   demo.engine.update_physics(true);
 
   demo.engine.loop([&] {

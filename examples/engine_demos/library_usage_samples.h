@@ -6,8 +6,33 @@
 
 
 // Library usage samples, these structs expect there is an instance of a fan::graphics::engine_t.
-// They use "gloco" to access global engine pointer
+// They use "gloco()" to access global engine pointer
 struct library_usage_t {
+  struct graphics {
+    //-------------------------------------------------------------------
+    // Demonstrates sprite construction from different color sources
+    struct sprite_color_construction {
+      fan::color colors[4] {
+        {1, 0, 0, 1},
+        {0, 1, 0, 1},
+        {0, 0, 1, 1},
+        {1, 1, 1, 1},
+      };
+      sprite_t sprites[4] {
+        sprite_t({100, 50, 0}, {100, 50}, colors),
+        sprite_t({300, 50, 0}, {100, 50}, {{0.5f, 0.5f, 0, 1}, {0, 0.0f, 0.5f, 1}}),
+        sprite_t({500, 50, 0}, {100, 50}, fan::colors::brown),
+        sprite_t({700, 50, 0}, {100, 50}, std::vector<uint8_t>({255, 0, 0, 255}), fan::vec2ui(1, 1)),
+      };
+      void update() {
+        fan::graphics::gui::text("Sprites created from: color array, initializer_list, single color, raw uint8 bytes");
+        for (auto& s : sprites) {
+          fan::graphics::gui::text_at(s.get_position().to_string(), s.get_position() + fan::vec2(s.get_size().x / 2.f, s.get_size().y));
+        }
+      }
+    };
+    //-------------------------------------------------------------------
+  };
   struct gui {
     //-------------------------------------------------------------------
     // Demonstrates GUI console print
@@ -84,10 +109,10 @@ struct library_usage_t {
         };
 
         rectangle = fan::graphics::rectangle_t{ {
-            .position = fan::vec3(*(fan::vec2*)&vfip.shape.rectangle->position, 0),
-            .size = vfip.shape.rectangle->size,
-            .color = fan::colors::red
-          } };
+          .position = fan::vec3(*(fan::vec2*)&vfip.shape.rectangle->position, 0),
+          .size = vfip.shape.rectangle->size,
+          .color = fan::colors::red
+        } };
 
         vfi_root.set_root(vfip);
       }
@@ -106,10 +131,10 @@ struct library_usage_t {
         while (true) {
           shapes.clear();
           shapes.push_back(fan::graphics::rectangle_t{ {
-              .position = fan::vec3(fan::random::vec2(0, 400), 0),
-              .size = fan::random::vec2(100, 400),
-              .color = fan::random::color()
-            } });
+            .position = fan::vec3(fan::random::vec2(0, 400), 0),
+            .size = fan::random::vec2(100, 400),
+            .color = fan::random::color()
+          } });
           co_await fan::co_sleep(1000); // async sleep - doesn't block main thread
         }
       }
@@ -128,13 +153,12 @@ struct library_usage_t {
     // Demonstrates shape serialization to JSON
     struct shape_serialization {
       shape_serialization() {
-        // Test shapes
         for (int i = 0; i < 10; ++i) {
           shapes.push_back(fan::graphics::rectangle_t{ {
-              .position = fan::random::vec2(0, 400),
-              .size = fan::random::vec2(20, 100),
-              .color = fan::random::color()
-            } });
+            .position = fan::random::vec2(0, 400),
+            .size = fan::random::vec2(20, 100),
+            .color = fan::random::color()
+          } });
         }
       }
       void update() {
