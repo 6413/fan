@@ -157,6 +157,7 @@ export namespace fan::graphics {
   fan::graphics::image_nr_t image_load(const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current());
   fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size);
   fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p);
+  fan::graphics::image_nr_t image_load(std::span<const fan::color> colors, const fan::vec2ui& size);
   void image_unload(fan::graphics::image_nr_t nr);
   bool is_image_valid(fan::graphics::image_nr_t nr);
   fan::graphics::image_t image_load_pixel_art(const std::string& path);
@@ -306,6 +307,18 @@ export namespace fan::graphics {
     sprite_t() = default;
     sprite_t(sprite_properties_t p);
     sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+    // for single color texture
+    sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::color& single_color);
+    sprite_t(const fan::vec3& position, const fan::vec2& size, std::initializer_list<fan::color> colors, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+    sprite_t(const fan::vec3& position, const fan::vec2& size, const std::vector<uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+    template <std::size_t N>
+    sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::color(&colors)[N], render_view_t* render_view = fan::graphics::ctx().orthographic_render_view)
+      : sprite_t(sprite_properties_t {
+        .render_view = render_view,
+        .position = position,
+        .size = size,
+        .image = fan::graphics::image_load(std::span<const fan::color>(colors, N), fan::vec2ui(N, 1))
+      }) {}
   };
 
   struct unlit_sprite_properties_t {
@@ -330,6 +343,16 @@ export namespace fan::graphics {
     unlit_sprite_t() = default;
     unlit_sprite_t(unlit_sprite_properties_t p);
     unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+    unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, std::initializer_list<fan::color> colors, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+    unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, const std::vector<uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+    template <std::size_t N>
+    unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::color(&colors)[N], render_view_t* render_view = fan::graphics::ctx().orthographic_render_view)
+      : unlit_sprite_t(unlit_sprite_properties_t {
+          .render_view = render_view,
+          .position = position,
+          .size = size,
+          .image = fan::graphics::image_load(std::span<const fan::color>(colors, N), fan::vec2ui(N, 1))
+        }) {}
   };
 
   struct circle_properties_t {
