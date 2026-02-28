@@ -59,6 +59,10 @@ export namespace fan::physics {
 
 export namespace fan {
   namespace physics {
+    b2ShapeId shape_get_null();
+    b2BodyId body_get_null();
+    b2JointId joint_get_null();
+
     struct body_id_t;
 
     void fill_shape_proxy(b2ShapeProxy& proxy, b2ShapeId shape_id, body_id_t body_id);
@@ -100,11 +104,11 @@ export namespace fan {
 
     struct overlap_test_context_t {
       bool found_overlap = false;
-      b2ShapeId target_shape = b2_nullShapeId;
+      b2ShapeId target_shape = shape_get_null();
     };
     struct overlap_callback_context_t {
       std::function<void()> callback;
-      b2ShapeId target_shape = b2_nullShapeId;
+      b2ShapeId target_shape = shape_get_null();
     };
 
     std::vector<std::function<void()>> one_time_commands;

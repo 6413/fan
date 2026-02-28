@@ -23,6 +23,41 @@ import fan.utility;
 import fan.types.color;
 
 export namespace fan {
+
+  template <typename T>
+  struct is_bitset : std::false_type {};
+
+  template <size_t N>
+  struct is_bitset<std::bitset<N>> : std::true_type {};
+
+  template <typename T>
+  concept has_subscript_and_size = requires(const T& t) { 
+    t.size(); 
+    t[0]; 
+  } && (!std::is_same_v<T, std::string>) 
+    && (!is_bitset<std::remove_cvref_t<T>>::value);
+
+  template <typename T>
+  requires has_subscript_and_size<T>
+  std::ostream& operator<<(std::ostream& os, const T& container) noexcept {
+    for (uintptr_t i = 0; i < container.size(); i++) {
+      os << container[i] << ' ';
+    }
+    return os;
+  }
+
+  template <typename T>
+  requires requires(const T& t) { t.size.size(); }
+  std::ostream& operator<<(std::ostream& os, const T& container_within) noexcept {
+    for (uintptr_t i = 0; i < container_within.size(); i++) {
+      for (uintptr_t j = 0; j < container_within[i].size(); j++) {
+        os << container_within[i][j] << ' ';
+      }
+      os << '\n';
+    }
+    return os;
+  }
+
   template <typename ...Args>
   constexpr std::string format_args(const Args&... args) {
     std::ostringstream oss;
@@ -200,40 +235,6 @@ export namespace fan {
   constexpr void throw_error(const Args&... args) {
     std::string error_msg = format_error_args(args...);
     fan::throw_error_impl(error_msg.c_str());
-  }
-
-  template <typename T>
-  struct is_bitset : std::false_type {};
-
-  template <size_t N>
-  struct is_bitset<std::bitset<N>> : std::true_type {};
-
-  template <typename T>
-  concept has_subscript_and_size = requires(const T& t) { 
-    t.size(); 
-    t[0]; 
-  } && (!std::is_same_v<T, std::string>) 
-    && (!is_bitset<std::remove_cvref_t<T>>::value);
-
-  template <typename T>
-  requires has_subscript_and_size<T>
-  std::ostream& operator<<(std::ostream& os, const T& container) noexcept {
-    for (uintptr_t i = 0; i < container.size(); i++) {
-      os << container[i] << ' ';
-    }
-    return os;
-  }
-
-  template <typename T>
-  requires requires(const T& t) { t.size.size(); }
-  std::ostream& operator<<(std::ostream& os, const T& container_within) noexcept {
-    for (uintptr_t i = 0; i < container_within.size(); i++) {
-      for (uintptr_t j = 0; j < container_within[i].size(); j++) {
-        os << container_within[i][j] << ' ';
-      }
-      os << '\n';
-    }
-    return os;
   }
 
   template <int throttle_ms = 1000, typename... Args>

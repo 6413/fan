@@ -39,9 +39,17 @@ module fan.graphics.loco;
 
 import fan.utility;
 
+#if defined(FAN_2D)
+  import fan.graphics.culling;
+#endif
+
 #if defined(FAN_PHYSICS_2D)
 import fan.physics.types;
 import fan.graphics.physics_shapes;
+#endif
+
+#if defined (FAN_GUI)
+  import fan.graphics.gui.settings_menu;
 #endif
 
 #if defined(FAN_JSON)
@@ -233,7 +241,7 @@ void loco_t::shader_recompile_all() {
   nrtra.Close(&shader_list);
   glFlush();
   glFinish();
-  shader_set_value(gl.m_fbo_final_shader, "bloom_strength", settings_menu.config.post_processing.bloom_strength);
+  shader_set_value(gl.m_fbo_final_shader, "bloom_strength", ((fan::graphics::gui::settings_menu_t*)settings_menu)->config.post_processing.bloom_strength);
 }
 #endif
 
@@ -661,8 +669,8 @@ void loco_t::generate_commands(loco_t* loco) {
       loco->console.commands.print_invalid_arg_count();
       return;
     }
-    loco->settings_menu.config.post_processing.bloom_strength = std::stof(args[0]);
-    loco->shader_set_value(loco->gl.m_fbo_final_shader, "bloom_strength", loco->settings_menu.config.post_processing.bloom_strength);
+    ((fan::graphics::gui::settings_menu_t*)loco->settings_menu)->config.post_processing.bloom_strength = std::stof(args[0]);
+    loco->shader_set_value(loco->gl.m_fbo_final_shader, "bloom_strength", ((fan::graphics::gui::settings_menu_t*)loco->settings_menu)->config.post_processing.bloom_strength);
   }).description = "sets bloom strength for post processing shader";
 #endif
 
@@ -774,26 +782,26 @@ void loco_t::generate_commands(loco_t* loco) {
 #if defined(FAN_2D)
 
 void loco_t::culling_rebuild_grid() {
-  fan::graphics::culling::static_grid_init(shapes.visibility.static_grid, world_min, cell_size, grid_size);
-  fan::graphics::culling::dynamic_grid_init(shapes.visibility.dynamic_grid, world_min, cell_size, grid_size);
+  fan::graphics::culling::static_grid_init(((fan::graphics::culling::culling_t*)shapes.visibility)->static_grid, world_min, cell_size, grid_size);
+  fan::graphics::culling::dynamic_grid_init(((fan::graphics::culling::culling_t*)shapes.visibility)->dynamic_grid, world_min, cell_size, grid_size);
 }
 
 void loco_t::rebuild_static_culling() {
-  fan::graphics::culling::rebuild_static(shapes.visibility);
+  fan::graphics::culling::rebuild_static(*((fan::graphics::culling::culling_t*)shapes.visibility));
 }
 
 bool loco_t::culling_enabled() const {
-  return shapes.visibility.enabled;
+  return ((fan::graphics::culling::culling_t*)shapes.visibility)->enabled;
 }
 
 void loco_t::set_culling_enabled(bool enabled) {
-  fan::graphics::culling::set_enabled(shapes.visibility, enabled);
+  fan::graphics::culling::set_enabled(*((fan::graphics::culling::culling_t*)shapes.visibility), enabled);
 }
 
 void loco_t::get_culling_stats(uint32_t& visible, uint32_t& culled) const {
   visible = 0;
   uint32_t total = 0;
-  for (auto const& [cam_id, cam_state] : shapes.visibility.camera_states) {
+  for (auto const& [cam_id, cam_state] : ((fan::graphics::culling::culling_t*)shapes.visibility)->camera_states) {
     visible += std::count_if(
       cam_state.visible.begin(),
       cam_state.visible.end(),
@@ -809,7 +817,7 @@ void loco_t::run_culling() {
   fan::graphics::camera_nr_t nr;
   nrtra.Open(&camera_list, &nr);
 
-  auto& culling = shapes.visibility;
+  auto& culling = *((fan::graphics::culling::culling_t*)shapes.visibility);
   while (nrtra.Loop(&camera_list, &nr)) {
     if (nr == perspective_render_view.camera) {
       continue;
@@ -821,7 +829,7 @@ void loco_t::run_culling() {
 }
 
 void loco_t::set_cull_padding(const fan::vec2& padding) {
-  shapes.visibility.padding = padding;
+  ((fan::graphics::culling::culling_t*)shapes.visibility)->padding = padding;
 }
 
 void loco_t::visualize_culling() {
@@ -830,7 +838,7 @@ void loco_t::visualize_culling() {
   fan::vec2 top_left = fan::graphics::screen_to_world(fan::vec2(0, 0), orthographic_render_view);
   fan::vec2 bottom_right = fan::graphics::screen_to_world(viewport_get_size(), orthographic_render_view);
 
-  fan::vec2 scaled_padding = shapes.visibility.padding / cam.zoom;
+  fan::vec2 scaled_padding = ((fan::graphics::culling::culling_t*)shapes.visibility)->padding / cam.zoom;
   fan::vec2 padded_min = top_left - scaled_padding;
   fan::vec2 padded_max = bottom_right + scaled_padding;
 
@@ -966,6 +974,8 @@ loco_t::loco_t(const loco_t::properties_t& props) :
     gloco()->gl.add_shape_type(nd, bp); // dont look here
   };
   fan::graphics::g_shapes = &shapes;
+
+  shapes.visibility = new fan::graphics::culling::culling_t;
 #endif
 
 #if defined(FAN_GUI)
@@ -1124,7 +1134,8 @@ loco_t::loco_t(const loco_t::properties_t& props) :
 
   set_vsync(false); // using libuv
 #if defined(FAN_GUI)
-  settings_menu.init_runtime();
+  settings_menu = new fan::graphics::gui::settings_menu_t;
+  ((fan::graphics::gui::settings_menu_t*)settings_menu)->init_runtime();
 #endif
 
   auto it = fan::graphics::get_engine_init_cbs().GetNodeFirst();
@@ -1144,6 +1155,7 @@ void loco_t::destroy() {
   // TODO fix destruct order to not do manually, because shaper closes before them?
   static_render_list.clear();
   immediate_render_list.clear();
+  delete ((fan::graphics::culling::culling_t*)shapes.visibility);
 #endif
 
   if (window == nullptr) {
@@ -1498,7 +1510,7 @@ void loco_t::switch_renderer(uint8_t renderer) {
       #endif
       );
       gui_initialized = true;
-      settings_menu.set_settings_theme();
+      ((fan::graphics::gui::settings_menu_t*)settings_menu)->set_settings_theme();
     }
   #endif
 
@@ -1608,9 +1620,9 @@ void loco_t::process_gui() {
   if (render_console) {
     console.render();
   }
-  if (!settings_menu.keybind_menu.is_capturing() &&
+  if (!((fan::graphics::gui::settings_menu_t*)settings_menu)->keybind_menu.is_capturing() &&
     input_action.is_clicked(fan::actions::toggle_settings) &&
-    !settings_menu.keybind_menu.should_suppress_input()) {
+    !((fan::graphics::gui::settings_menu_t*)settings_menu)->keybind_menu.should_suppress_input()) {
     if (render_console) {
       render_console = false;
     }
@@ -1618,9 +1630,9 @@ void loco_t::process_gui() {
       render_settings_menu = !render_settings_menu;
     }
   }
-  settings_menu.update();
+  ((fan::graphics::gui::settings_menu_t*)settings_menu)->update();
   if (render_settings_menu) {
-    settings_menu.render();
+    ((fan::graphics::gui::settings_menu_t*)settings_menu)->render();
   }
 
   if (render_debug_memory) {

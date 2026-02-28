@@ -16,8 +16,6 @@ export module fan.graphics.shapes;
 
 export import fan.graphics.shapes.types;
 
-import fan.graphics.culling;
-
 import fan.graphics.opengl.core;
 import fan.types.vector;
 import fan.texture_pack.tp0;
@@ -310,7 +308,7 @@ export namespace fan::graphics {
         *this = fan::graphics::g_shapes->shape_functions[shape_type].push_back((void*)&properties);
 
         //fan::print_throttled("setting static");
-        if (fan::graphics::g_shapes->visibility.enabled && add_to_culling) {
+        if (fan::graphics::g_shapes->culling_enabled() && add_to_culling) {
           set_static();
         }
         else {
@@ -327,8 +325,8 @@ export namespace fan::graphics {
       shape_t& operator=(shape_t&& s) noexcept;
       shape_t& operator=(const shape_t& s);
     #if defined(FAN_JSON)
-      operator fan::json();
-      operator std::string();
+      explicit operator fan::json();
+      explicit operator std::string();
       shape_t(const fan::json& json);
       shape_t(const std::string&); // assume json string
       shape_t& operator=(const fan::json& json);
@@ -348,7 +346,7 @@ export namespace fan::graphics {
       void set_dynamic();
       void remove_culling();
 
-      fan::graphics::culling::movement_type_t get_movement() const;
+      uint8_t get_movement() const;
       void update_dynamic();
       void update_culling();
 
@@ -595,7 +593,8 @@ export namespace fan::graphics {
 
     shaper_t shaper;
 
-    fan::graphics::culling::culling_t visibility;
+    void* visibility = nullptr;
+    bool culling_enabled();
 
   #include <fan/graphics/gui/vfi.h>
     vfi_t vfi;
@@ -1734,7 +1733,7 @@ export namespace fan::graphics {
 
     using get_list_fn_t = void*(*)(shapes*);
 
-    __forceinline void* get_list_ptr(uint16_t st) {
+    void* get_list_ptr(uint16_t st) {
       switch (st) {
       #define X(name) case shape_type_t::name: return (void*)&this->CONCAT3(name, _, list);
       #define SKIP(x)
@@ -1750,7 +1749,7 @@ export namespace fan::graphics {
     using thunk_t = void(*)(void*, shape_list_data_t&, Fn*);
 
     template <typename Fn>
-    static __forceinline thunk_t<Fn>* get_thunk_table_ptr() {
+    static thunk_t<Fn>* get_thunk_table_ptr() {
       static thunk_t<Fn> table[(size_t)shape_type_t::last] = {
       #define X(name) +[](void* list, shape_list_data_t& sd, Fn* fn) { \
         auto& typed = *static_cast<CONCAT3(name, _, list_t)*>(list); \
@@ -1774,8 +1773,7 @@ export namespace fan::graphics {
     }
 
     template <typename F>
-    __forceinline
-      void dispatch_shape(shape_nr_t raw_id, F&& f) {
+    void dispatch_shape(shape_nr_t raw_id, F&& f) {
       using Fn = std::remove_reference_t<F>;
 
       shapes::shape_ids_t::nr_t gid;
@@ -1793,7 +1791,6 @@ export namespace fan::graphics {
     }
 
     template <typename F>
-    __forceinline
     void with_shape_list(shape_nr_t raw_id, F&& f) {
       shapes::shape_ids_t::nr_t id;
       id.gint() = raw_id;
@@ -1834,7 +1831,6 @@ export namespace fan::graphics {
     }
 
     template <typename F>
-    __forceinline
       void visit_shape_draw_data(shape_nr_t id, F&& f) {
       dispatch_shape(id, [&](auto& list, auto& sd) {
         using list_t = std::decay_t<decltype(list)>;
@@ -1844,49 +1840,19 @@ export namespace fan::graphics {
       });
     }
 
-    __forceinline
-      void visibility_remove(shape_nr_t id) {
-      /*shapes::shape_ids_t::nr_t gid;
-      gid.gint() = id;
-      auto& sd = shape_ids[gid];
+    void visibility_remove(shape_nr_t id);
 
-      if (!sd.visual) {
-        return;
+    void remove_shape(shape_nr_t id) {
+      {
+        g_shapes->visibility_remove(id);
       }
 
-      shaper.remove(sd.visual);
-
-      sd.visual.sic();
-
-      const uint32_t nr = id;
-      if (nr < visibility.registry.visible.size()) {
-        visibility.registry.visible[nr] = 0;
-      }*/
       shapes::shape_ids_t::nr_t gid;
       gid.gint() = id;
+
       auto& sd = shape_ids[gid];
 
-      if (!sd.visual) {
-        return;
-      }
-
-    fan::graphics::culling::remove_shape(visibility, sd.visual);
-      shaper.remove(sd.visual);
-      sd.visual.sic();
-    }
-
-    __forceinline
-      void remove_shape(shape_nr_t id) {
-        {
-          g_shapes->visibility_remove(id);
-        }
-
-        shapes::shape_ids_t::nr_t gid;
-        gid.gint() = id;
-
-        auto& sd = shape_ids[gid];
-
-      #define CASE(name) \
+    #define CASE(name) \
       case shape_type_t::name: { \
         auto& list = get_shape_list(name); \
         typename CONCAT2(name, _list_t)::nr_t nr; \
@@ -1895,15 +1861,15 @@ export namespace fan::graphics {
         break; \
       }
 
-        switch (sd.shape_type) {
-          GEN_SHAPES(CASE, SKIP)
-        default:
-          fan::throw_error("invalid shape_type");
-        }
+      switch (sd.shape_type) {
+        GEN_SHAPES(CASE, SKIP)
+      default:
+        fan::throw_error("invalid shape_type");
+      }
 
-      #undef CASE
+    #undef CASE
 
-        shape_ids.unlrec(gid);
+      shape_ids.unlrec(gid);
     }
 
 

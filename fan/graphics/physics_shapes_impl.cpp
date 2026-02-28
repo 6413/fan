@@ -64,7 +64,7 @@ void DrawSolidPolygon(
     if (vertexCount == 4) {
       // half size
       fan::vec2 size = fan::physics::physics_to_render(fan::vec2(vertices[0].x, vertices[0].y).abs());
-      fan::vec2 center = fan::physics::physics_to_render(b2TransformPoint(transform, {0,0}));
+      fan::vec2 center = fan::physics::physics_to_render(b2TransformPoint(transform, {0.f,0.f}));
 
       fan::graphics::add_shape_to_immediate_draw(fan::graphics::rectangle_t {{
         .render_view = (fan::graphics::render_view_t*)fan::physics::gphysics()->debug.render_view,
@@ -369,7 +369,7 @@ namespace fan::graphics::physics {
     b2Body_SetMassData(*dynamic_cast<b2BodyId*>(this), md_copy);
   }
 
-  base_shape_t::base_shape_t(const base_shape_t& r) : fan::graphics::shape_t(r), fan::physics::entity_t(r) {
+  base_shape_t::base_shape_t(const base_shape_t& r) : fan::graphics::shape_t(*static_cast<const fan::graphics::shape_t*>(&r)), fan::physics::entity_t(*static_cast<const fan::physics::entity_t*>(&r)) {
     //if (this != )
     fan::physics::body_id_t new_body_id = fan::physics::deep_copy_body(fan::physics::gphysics()->world_id, *dynamic_cast<const fan::physics::body_id_t*>(&r));
     if (!B2_ID_EQUALS(r, (*this))) {
@@ -893,7 +893,7 @@ namespace fan::graphics::physics {
     #endif
       fan::vec2 vel = body_id.get_linear_velocity();
       body_id.set_linear_velocity(fan::vec2(vel.x, 0));
-      body_id.apply_linear_impulse_center({0, -jump_state.impulse});
+      body_id.apply_linear_impulse_center({0.f, -jump_state.impulse});
       jump_state.on_jump(0);
       jump_state.jumping = true;
       jump_state.consumed = true;
@@ -907,7 +907,7 @@ namespace fan::graphics::physics {
     #endif
       fan::vec2 vel = body_id.get_linear_velocity();
       body_id.set_linear_velocity(fan::vec2(vel.x, 0));
-      body_id.apply_linear_impulse_center({0, -jump_state.impulse});
+      body_id.apply_linear_impulse_center({0.f, -jump_state.impulse});
       jump_state.on_jump(1);
       jump_state.jumping = true;
       jump_state.double_jump_consumed = true;
@@ -1145,7 +1145,7 @@ namespace fan::graphics::physics {
 
       if (std::abs(movement_direction.x) > 0.01f) {
         character->movement_state.desired_facing.x = fan::math::sgn(movement_direction.x);
-        character->set_image_sign({character->movement_state.desired_facing.x, 1});
+        character->set_image_sign({character->movement_state.desired_facing.x, 1.f});
       }
 
       if (wall_jump.normal.x && movement_direction.x) {
@@ -1236,39 +1236,39 @@ namespace fan::graphics::physics {
     return character;
   }
 
-  character2d_t::character2d_t(const character2d_t& o)
-    : base_shape_t(o),
-    anim_controller(o.anim_controller),
-    attack_state(o.attack_state),
-    movement_state(o.movement_state),
-    wall_jump(o.wall_jump),
-    movement_cb_handle(),
-    feet {o.feet[0], o.feet[1]} {
-    if (movement_state.enabled) {
-      movement_cb_handle = add_movement_callback([this]() {
-        process_keyboard_movement(movement_state.type);
-      });
-    }
-    set_draw_offset(o.get_draw_offset());
-  }
+  //character2d_t::character2d_t(const character2d_t& o)
+  //  : base_shape_t(o),
+  //  anim_controller(o.anim_controller),
+  //  attack_state(o.attack_state),
+  //  movement_state(o.movement_state),
+  //  wall_jump(o.wall_jump),
+  //  movement_cb_handle(),
+  //  feet(o.feet[0], o.feet[1]) {
+  //  if (movement_state.enabled) {
+  //    movement_cb_handle = add_movement_callback([this]() {
+  //      process_keyboard_movement(movement_state.type);
+  //    });
+  //  }
+  //  set_draw_offset(o.get_draw_offset());
+  //}
 
 
-  character2d_t::character2d_t(character2d_t&& o) noexcept
-    : base_shape_t(std::move(o)),
-    anim_controller(std::move(o.anim_controller)),
-    attack_state(std::move(o.attack_state)),
-    movement_state(std::move(o.movement_state)),
-    wall_jump(std::move(o.wall_jump)),
-    movement_cb_handle(),
-    feet {std::move(o.feet[0]), std::move(o.feet[1])} {
-    if (movement_state.enabled) {
-      movement_cb_handle = add_movement_callback([this]() {
-        process_keyboard_movement(movement_state.type);
-      });
-    }
+  //character2d_t::character2d_t(character2d_t&& o) noexcept
+  //  : base_shape_t(std::move(o)),
+  //  anim_controller(std::move(o.anim_controller)),
+  //  attack_state(std::move(o.attack_state)),
+  //  movement_state(std::move(o.movement_state)),
+  //  wall_jump(std::move(o.wall_jump)),
+  //  movement_cb_handle(),
+  //  feet {std::move(o.feet[0]), std::move(o.feet[1])} {
+  //  if (movement_state.enabled) {
+  //    movement_cb_handle = add_movement_callback([this]() {
+  //      process_keyboard_movement(movement_state.type);
+  //    });
+  //  }
 
-    o.movement_cb_handle.sic();
-  }
+  //  o.movement_cb_handle.sic();
+  //}
 
   character2d_t& character2d_t::operator=(const character2d_t& o) {
     if (this != &o) {

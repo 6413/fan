@@ -1,7 +1,13 @@
 set_project("fan")
 set_languages("cxx23")
 
-set_toolchains("clang")
+option("compiler") set_default("clang") option_end()
+
+if get_config("compiler") == "gcc" then
+  set_toolchains("gcc")
+else
+  set_toolchains("clang")
+end
 
 rule("mode.mode_none")
 rule_end()
@@ -53,7 +59,7 @@ option("FAN_FMT") set_default(true) option_end()
 option("FAN_WAYLAND_SCREEN") set_default(false) option_end()
 option("FAN_NETWORK") set_default(false) option_end()
 option("FAN_AUDIO") set_default(true) option_end()
-option("main") set_default("examples/games/platformer/main.cpp") option_end()
+option("main") set_default("tests/29.cpp") option_end()
 
 add_defines("FAN_OPENGL")
 if has_config("FAN_2D") then
@@ -92,15 +98,19 @@ if type(get_config) == "function" then
   if cfgsdk and cfgsdk ~= "" then llvm_sdk = cfgsdk end
 end
 
-add_cxxflags("-stdlib=libstdc++", {force = true})
+local is_gcc = get_config("compiler") == "gcc"
+
+if not is_gcc then
+  add_cxxflags("-stdlib=libstdc++", {force = true})
+end
 
 set_values("c++.modules.std", false)
 set_values("c++.modules.compat", false)
 
 add_cxxflags("-pthread", {force = true})
 
-add_cxxflags(
-  "-Wall", "-Wextra", "-ferror-limit=20",
+local common_flags = {
+  "-Wall", "-Wextra",
   "-Wno-shift-op-parentheses",
   "-Wno-unused-variable",
   "-Wno-int-to-void-pointer-cast",
@@ -112,12 +122,29 @@ add_cxxflags(
   "-Wno-sign-compare",
   "-Wno-unused-but-set-parameter",
   "-Wno-unused-value",
-	"-Wno-include-angled-in-module-purview", --bll inline includes
-  --"-w",
-	"-Wno-padded",
+  "-Wno-padded",
   "-fsized-deallocation",
-  "-fmacro-backtrace-limit=0"
-)
+}
+
+local clang_only_flags = {
+  "-ferror-limit=20",
+  "-Wno-include-angled-in-module-purview",
+  "-fmacro-backtrace-limit=0",
+}
+
+local gcc_only_flags = {
+  "-fmax-errors=20",
+}
+
+add_cxxflags(table.unpack(common_flags))
+
+if is_gcc then
+  add_cxxflags(table.unpack(gcc_only_flags))
+  add_cxxflags("-fmodules-ts", "-fno-module-lazy", {force = true})
+  add_sysincludedirs(".")
+else
+  add_cxxflags(table.unpack(clang_only_flags))
+end
 
 if has_config("FAN_GUI") then
   add_defines(
@@ -261,8 +288,10 @@ target_end()
 if has_config("FAN_GUI") then
   target("imgui")
     set_kind("static")
-    add_cxxflags("-stdlib=libstdc++", {force = true})
-    add_ldflags("-stdlib=libstdc++", "-lstdc++", {force = true})
+    if not is_gcc then
+      add_cxxflags("-stdlib=libstdc++", {force = true})
+      add_ldflags("-stdlib=libstdc++", "-lstdc++", {force = true})
+    end
     add_includedirs(
       "fan/imgui",
       "fan/imgui/misc/freetype",

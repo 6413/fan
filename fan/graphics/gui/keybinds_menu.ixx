@@ -1,13 +1,11 @@
 module;
 
 #if defined(FAN_GUI)
-
-#include <vector>
-#include <string>
-#include <unordered_map>
-#include <set>
-#include <functional>
-
+  #include <vector>
+  #include <string>
+  #include <unordered_map>
+  #include <set>
+  #include <functional>
 #endif
 
 export module fan.graphics.gui.keybinds_menu;
@@ -112,6 +110,8 @@ export namespace fan::graphics::gui {
     > device_bindings;
     key_capture_state_t key_cap_state;
     std::vector<bool> listening_states;
+    std::function<void()> save_cb = [] {};
+    std::function<void()> mark_dirty_cb = [] {};
     std::function<void()> reset_keybinds_cb = [] {};
     int suppress_input_frame = 0;
   };
