@@ -16,6 +16,7 @@ export import fan.io.directory;
 export import fan.random;
 
 export import fan.graphics.loco;
+export import fan.graphics.gui.settings_menu;
 
 #if defined(FAN_2D)
   export import fan.graphics;

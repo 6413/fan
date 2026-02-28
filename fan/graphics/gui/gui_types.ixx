@@ -1,5 +1,6 @@
 module;
 
+#include <cstdint>
 #include <vector>
 
 #if defined(FAN_GUI)
@@ -87,7 +88,7 @@ export namespace fan::graphics::gui {
     dock_node_flags_no_undocking = ImGuiDockNodeFlags_NoUndocking,   //       // Disable undocking this node.
   };
 
-  enum window_flags_e : uint64_t {
+  enum window_flags_e : std::uint64_t {
     window_flags_none = ImGuiWindowFlags_None,
     window_flags_no_title_bar = ImGuiWindowFlags_NoTitleBar,   
     window_flags_no_resize = ImGuiWindowFlags_NoResize,   
@@ -336,7 +337,7 @@ export namespace fan::graphics::gui {
     // Flags for SetNextItemShortcut()
     input_flags_tooltip = ImGuiInputFlags_Tooltip,                 // Automatically display a tooltip when hovering item [BETA] Unsure of right api (opt-in/opt-out)
   };
-  enum color_edit_flags_e : uint64_t {
+  enum color_edit_flags_e : std::uint64_t {
     color_edit_flags_none = ImGuiColorEditFlags_None,
     color_edit_flags_no_alpha = ImGuiColorEditFlags_NoAlpha,         // ColorEdit, ColorPicker, ColorButton: ignore Alpha component (will only read 3 components from the input pointer).
     color_edit_flags_no_picker = ImGuiColorEditFlags_NoPicker,        // ColorEdit: disable picker when clicking on color square.

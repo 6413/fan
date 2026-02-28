@@ -18,7 +18,8 @@ module;
 
 module fan.io.file;
 
-import fan;
+import fan.print;
+import fan.utility;
 
 std::string fan::io::file::extension(const std::string& file_path) {
   size_t dotPosition = file_path.find_last_of('.');

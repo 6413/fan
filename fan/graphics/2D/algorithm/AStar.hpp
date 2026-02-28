@@ -13,8 +13,6 @@
 #include <functional>
 #include <set>
 
-import fan.types.vector;
-
 namespace AStar
 {
     struct Vec2i
@@ -33,13 +31,13 @@ namespace AStar
         Vec2i operator+(const AStar::Vec2i& right_) const{
             return Vec2i(x + right_.x, y + right_.y);
         }
-        Vec2i(const fan::vec2i& v) {
-          x = v.x;
-          y = v.y;
-        }
-        operator fan::vec2i const() const {
-          return {x, y};
-        }
+        template<typename T>
+          requires requires(T t) { t.x; t.y; }
+        Vec2i(const T& v) : x((int)v.x), y((int)v.y) {}
+
+        template<typename T>
+          requires requires(T t) { t.x; t.y; }
+        operator T() const { return T {(decltype(T::x))x, (decltype(T::y))y}; }
     };
 
     using uint = unsigned int;

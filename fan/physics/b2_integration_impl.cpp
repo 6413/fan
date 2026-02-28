@@ -24,6 +24,17 @@ import fan.utility;
 
 #if defined(FAN_PHYSICS_2D)
 namespace fan::physics {
+  
+  b2ShapeId shape_get_null() {
+    return b2_nullShapeId;
+  }
+  b2BodyId body_get_null() {
+    return b2_nullBodyId;
+  }
+  b2JointId joint_get_null() {
+    return b2_nullJointId;
+  }
+
   circle_t::circle_t(const b2Circle& circle) : b2Circle(circle) {}
 
   joint_id_t::joint_id_t() : b2JointId(b2_nullJointId) {}
@@ -597,12 +608,12 @@ namespace fan::physics {
   }
 
   void context_t::add_collision(b2ShapeId a, b2ShapeId b) {
-    auto pair = std::minmax(get_shape_key(a), get_shape_key(b));
+    auto pair = std::minmax({get_shape_key(a), get_shape_key(b)});
     active_collisions.insert(pair);
   }
 
   void context_t::remove_collision(b2ShapeId a, b2ShapeId b) {
-    auto pair = std::minmax(get_shape_key(a), get_shape_key(b));
+    auto pair = std::minmax({get_shape_key(a), get_shape_key(b)});
     active_collisions.erase(pair);
   }
 
@@ -626,7 +637,7 @@ namespace fan::physics {
   }
 
   bool context_t::is_colliding(b2ShapeId a, b2ShapeId b) const {
-    auto pair = std::minmax(get_shape_key(a), get_shape_key(b));
+    auto pair = std::minmax({get_shape_key(a), get_shape_key(b)});
     return active_collisions.count(pair) > 0;
   }
 

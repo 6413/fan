@@ -18,6 +18,7 @@ module fan.graphics.shapes;
 
 import fan.utility;
 import fan.graphics.gui.base;
+import fan.graphics.culling;
 
 #if defined(FAN_GUI)
   import fan.graphics.gui.text_logger;
@@ -497,8 +498,8 @@ namespace fan::graphics{
 #if defined(FAN_2D)
   void shapes::shaper_deep_copy(shape_t* dst, const shape_t* const src, shaper_t::ShapeTypeIndex_t sti) {
     // alloc can be avoided inside switch
-    uint8_t* KeyPack = new uint8_t[shaper.GetKeysSize(*src)];
-    shaper.WriteKeys(*src, KeyPack);
+    uint8_t* KeyPack = new uint8_t[shaper.GetKeysSize(*static_cast<const shaper_t::ShapeID_t*>(src))];
+    shaper.WriteKeys(*static_cast<const shaper_t::ShapeID_t*>(src), KeyPack);
 
     auto _vi = src->GetRenderData(shaper);
     auto vlen = shaper.GetRenderDataSize(sti);
@@ -514,7 +515,7 @@ namespace fan::graphics{
     *dst = fan::graphics::g_shapes->shaper.add(
       sti,
       KeyPack,
-      fan::graphics::g_shapes->shaper.GetKeysSize(*src),
+      fan::graphics::g_shapes->shaper.GetKeysSize(*static_cast<const shaper_t::ShapeID_t*>(src)),
       vi,
       ri
     );
@@ -544,7 +545,7 @@ namespace fan::graphics{
     }
 
     shape_nr_t new_raw;
-    auto src_move = fan::graphics::culling::get_movement(g_shapes->visibility, s);
+    auto src_move = fan::graphics::culling::get_movement(*((fan::graphics::culling::culling_t*)g_shapes->visibility), *static_cast<const shaper_t::ShapeID_t*>(&s));
 
     //{ // vfi
     //  shapes::shape_ids_t::nr_t src_id;
@@ -573,13 +574,13 @@ namespace fan::graphics{
 
     //    this->gint() = new_vfi_shape.NRI;
 
-    //    if (!g_shapes->visibility.enabled) {
+    //    if (!g_shapes->culling_enabled()) {
     //      push_shaper();
     //    }
     //    else {
     //      shaper_t::ShapeID_t new_sid;
     //      new_sid.NRI = new_vfi_shape.NRI;
-    //      fan::graphics::culling::add_shape(g_shapes->visibility, new_sid, src_move);
+    //      fan::graphics::culling::add_shape(*((fan::graphics::culling::culling_t*)g_shapes->visibility), new_sid, src_move);
     //    }
     //    return;
     //  }
@@ -597,13 +598,13 @@ namespace fan::graphics{
     });
 
     this->gint() = new_raw;
-    if (!g_shapes->visibility.enabled) {
+    if (!((fan::graphics::culling::culling_t*)g_shapes->visibility)->enabled) {
       push_shaper();
     }
     else {
       shaper_t::ShapeID_t new_sid;
       new_sid.NRI = new_raw;
-      fan::graphics::culling::add_shape(g_shapes->visibility, new_sid, src_move);
+      fan::graphics::culling::add_shape(*((fan::graphics::culling::culling_t*)g_shapes->visibility), new_sid, src_move);
     }
   }
   shapes::shape_t::shape_t(const shape_t& s) 
@@ -626,7 +627,7 @@ namespace fan::graphics{
     if (s.iic()) return *this;
 
     shape_nr_t new_raw;
-    auto src_move = fan::graphics::culling::get_movement(g_shapes->visibility, s);
+    auto src_move = fan::graphics::culling::get_movement(*((fan::graphics::culling::culling_t*)g_shapes->visibility), *static_cast<const shaper_t::ShapeID_t*>(&s));
 
     //{ // vfi
     //  shapes::shape_ids_t::nr_t src_id;
@@ -655,13 +656,13 @@ namespace fan::graphics{
 
     //    this->gint() = new_vfi_shape.NRI;
 
-    //    if (!g_shapes->visibility.enabled) {
+    //    if (!g_shapes->culling_enabled()) {
     //      push_shaper();
     //    }
     //    else {
     //      shaper_t::ShapeID_t new_sid;
     //      new_sid.NRI = new_vfi_shape.NRI;
-    //      fan::graphics::culling::add_shape(g_shapes->visibility, new_sid, src_move);
+    //      fan::graphics::culling::add_shape(*((fan::graphics::culling::culling_t*)g_shapes->visibility), new_sid, src_move);
     //    }
 
     //    return *this;
@@ -681,13 +682,13 @@ namespace fan::graphics{
 
     this->gint() = new_raw;
 
-    if (!g_shapes->visibility.enabled) {
+    if (!g_shapes->culling_enabled()) {
       push_shaper();
     }
     else {
       shaper_t::ShapeID_t new_sid;
       new_sid.NRI = new_raw;
-      fan::graphics::culling::add_shape(g_shapes->visibility, new_sid, src_move);
+      fan::graphics::culling::add_shape(*((fan::graphics::culling::culling_t*)g_shapes->visibility), new_sid, src_move);
     }
 
     return *this;
@@ -726,7 +727,7 @@ namespace fan::graphics{
       stop_sprite_sheet();
     }
 
-    fan::graphics::culling::remove_shape(g_shapes->visibility, get_id());
+    fan::graphics::culling::remove_shape(*((fan::graphics::culling::culling_t*)g_shapes->visibility), get_id());
 
 
     if (get_visual_id().iic() == false) {
@@ -753,31 +754,31 @@ namespace fan::graphics{
     g_shapes->shape_functions[get_shape_type()].set_visible(this, flag);
   }
   void shapes::shape_t::set_static(bool update) {
-    auto& c = g_shapes->visibility;
+    auto& c = *((fan::graphics::culling::culling_t*)g_shapes->visibility);
     if (get_movement() == culling::movement_static && !update) return;
     culling::remove_shape(c, *this);
     culling::add_shape(c, *this, culling::movement_static);
   }
   void shapes::shape_t::set_dynamic() {
-    auto& c = g_shapes->visibility;
+    auto& c = *((fan::graphics::culling::culling_t*)g_shapes->visibility);
     if (get_movement() == culling::movement_dynamic) return;
     culling::remove_shape(c, *this);
     culling::add_shape(c, *this, culling::movement_dynamic);
   }
   void shapes::shape_t::remove_culling() {
-    auto& c = g_shapes->visibility;
+    auto& c = *((fan::graphics::culling::culling_t*)g_shapes->visibility);
     culling::remove_shape(c, *this);
   }
-  fan::graphics::culling::movement_type_t shapes::shape_t::get_movement() const {
-    return fan::graphics::culling::get_movement(g_shapes->visibility, *this);
+  uint8_t shapes::shape_t::get_movement() const {
+    return fan::graphics::culling::get_movement(*((fan::graphics::culling::culling_t*)g_shapes->visibility), *static_cast<const shaper_t::ShapeID_t*>(this));
   }
   void shapes::shape_t::update_dynamic() {
     if (get_movement() == fan::graphics::culling::movement_dynamic) {
-      culling::update_dynamic(g_shapes->visibility, *this);
+      culling::update_dynamic(*((fan::graphics::culling::culling_t*)g_shapes->visibility), *static_cast<const shaper_t::ShapeID_t*>(this));
     }
   }
   void shapes::shape_t::update_culling() {
-    auto& c = g_shapes->visibility;
+    auto& c = *((fan::graphics::culling::culling_t*)g_shapes->visibility);
     if (c.registry.id_to_movement.find(*this) == c.registry.id_to_movement.end()) {
       return;
     }
@@ -4027,6 +4028,40 @@ namespace fan::graphics {
   void sprite_sheet_controller_t::use_preset_2d() {
     enable_directional({});
   }
+}
+
+bool fan::graphics::shapes::culling_enabled() {
+  return ((fan::graphics::culling::culling_t*)visibility)->enabled;
+}
+
+void fan::graphics::shapes::visibility_remove(shape_nr_t id) {
+  /*shapes::shape_ids_t::nr_t gid;
+  gid.gint() = id;
+  auto& sd = shape_ids[gid];
+
+  if (!sd.visual) {
+    return;
+  }
+
+  shaper.remove(sd.visual);
+
+  sd.visual.sic();
+
+  const uint32_t nr = id;
+  if (nr < visibility.registry.visible.size()) {
+    visibility.registry.visible[nr] = 0;
+  }*/
+  shapes::shape_ids_t::nr_t gid;
+  gid.gint() = id;
+  auto& sd = shape_ids[gid];
+
+  if (!sd.visual) {
+    return;
+  }
+
+  fan::graphics::culling::remove_shape(*(fan::graphics::culling::culling_t*)visibility, sd.visual);
+  shaper.remove(sd.visual);
+  sd.visual.sic();
 }
 
 #if defined(FAN_JSON)

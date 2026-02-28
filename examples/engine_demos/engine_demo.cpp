@@ -16,8 +16,6 @@
 //
 import fan;
 
-import fan.graphics.gui.settings_menu;
-
 // include macro extensions after import fan;
 #include <fan/graphics/types.h>
 //
@@ -32,6 +30,9 @@ using menu_t = fan::graphics::gui::settings_menu_t;
     TODO make more flexible, currently prints slow functions to console.
 */
 
+struct engine_demo_t;
+engine_demo_t* engine_demo_ptr;
+
 struct engine_demo_t {
   engine_t engine{{ // initialize before everything
     .renderer= fan::graphics::renderer_t::opengl,
@@ -39,6 +40,16 @@ struct engine_demo_t {
 
   engine_demo_t() {
     create_gui();
+
+    engine.clear_color = 0;
+    right_column_view.create();
+    interactive_camera.create(
+      right_column_view.camera,
+      right_column_view.viewport,
+      1.f,
+      0.f
+    );
+    interactive_camera.pan_with_middle_mouse = true;
   }
 
   // ------------------------SHAPES------------------------
@@ -480,7 +491,7 @@ void main() {
   static void demo_shader_live_editor_cleanup(engine_demo_t* engine_demo) {
     fan::vec2 new_viewport_size(
       engine_demo->panel_right_window_size.x,
-      engine_demo->panel_right_window_size.y * (1.0 - engine_demo->engine.settings_menu.pages.front().split_ratio)
+      engine_demo->panel_right_window_size.y * (1.0 - ((fan::graphics::gui::settings_menu_t*)engine_demo->engine.settings_menu)->pages.front().split_ratio)
     );
     engine_demo->engine.viewport_set_size(engine_demo->right_column_view.viewport, new_viewport_size);
     engine_demo->engine.shader_erase(engine_demo->demo_shader_live_editor_data->shader);
@@ -892,7 +903,7 @@ void main() {
 
     data.grid.create(
       data.tile_size,
-      fan::colors::gray,
+      fan::colors::gray * 1.2f,
       viewport_size,
       {0, 0},
       &engine_demo->right_column_view
@@ -1032,7 +1043,7 @@ void main() {
     }
   }
   static void demo_algorithm_sorting_update(engine_demo_t* engine_demo) {
-    menus_engine_demo_render_element_count(&engine_demo->engine.settings_menu);
+    menus_engine_demo_render_element_count((fan::graphics::gui::settings_menu_t*)engine_demo->engine.settings_menu);
     auto& data = *engine_demo->demo_sorting_data;
     const fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     const int count = data.lines.size();
@@ -1268,17 +1279,18 @@ void main() {
 
   }
   static void shape_update_function(engine_demo_t* engine_demo) {
-    menus_engine_demo_render_element_count(&engine_demo->engine.settings_menu);
+    menus_engine_demo_render_element_count((fan::graphics::gui::settings_menu_t*)engine_demo->engine.settings_menu);
   }
 
   struct demo_t {
     const char* name;
-    demo_function_t init_function = 0;
-    demo_function_update_t update_function = default_update_function;
-    demo_function_t cleanup_function = nullptr;
+    demo_function_t init_function;
+    demo_function_update_t update_function;
+    demo_function_t cleanup_function;
+    fan::graphics::image_t thumbnail;
   };
 
-  #define engine_demo (*OFFSETLESS(OFFSETLESS(menu, fan::graphics::engine_t, settings_menu), engine_demo_t, engine))
+  #define engine_demo (*engine_demo_ptr)
 
   inline static auto demos = std::to_array({
     // Shapes
@@ -1373,56 +1385,109 @@ void main() {
   }
 
   static constexpr int wnd_flags = gui::window_flags_no_move |
-    gui::window_flags_no_collapse | gui::window_flags_no_resize| gui::window_flags_no_title_bar;
+    gui::window_flags_no_collapse | gui::window_flags_no_resize | gui::window_flags_no_title_bar;
 
   static void render_demos(menu_t* menu, const std::vector<std::string>& titles) {
+    gui::input_text("##search", &engine_demo.search_filter);
+    gui::dummy(fan::vec2(0, 6));
+
     std::size_t title_index = 0;
     std::string title = titles[title_index];
-    gui::text(fan::color::from_rgba(0x948c80ff) * 1.5, title);
+
+    // count per category
+    auto count_category = [&](std::size_t start) {
+      int n = 0;
+      for (std::size_t i = start; i < demos.size() && std::string_view(demos[i].name) != "_next"; ++i) {
+        ++n;
+      }
+      return n;
+    };
+
+    std::size_t category_start = 0;
     gui::push_style_var(gui::style_var_cell_padding, fan::vec2(0));
-    if (auto tbl = gui::table(
-      (title + "_settings_left_table_display").c_str(),
-      1,
-      gui::table_flags_borders_inner_h | gui::table_flags_borders_outer_h
-    )) {
-      {
-        gui::push_style_var(gui::style_var_selectable_text_align, fan::vec2(0, 0.5));
-        std::string table_id;
-        table_id.reserve(128);
 
-        for (auto [demo_index, demo] : fan::enumerate(demos)) {
-          if (demo.name == std::string_view("_next")) {
-            ++title_index;
-            title = titles[title_index];
+    std::string header;
+    header.reserve(64);
 
-            gui::end_table();
-            gui::new_line();
-            gui::new_line();
-            gui::text(fan::color::from_rgba(0x948c80ff) * 1.5, title);
+    bool searching = !engine_demo.search_filter.empty();
+    bool table_open = false;
 
-            table_id.clear();
-            table_id.append(title);
-            table_id.append("_settings_left_table_display");
+    auto begin_category = [&] {
+      int n = count_category(category_start);
+      header = title + " (" + std::to_string(n) + ")";
+      bool& open = engine_demo.category_open[title];
+      bool visible = searching ? true : open;
+      gui::push_style_var(gui::style_var_frame_padding, fan::vec2(4, 4));
+      gui::push_style_color(gui::col_header, gui::get_color(gui::col_header));
+      gui::push_style_color(gui::col_header_hovered, gui::get_color(gui::col_header));
+      gui::push_style_color(gui::col_header_active, gui::get_color(gui::col_header));
+      if (gui::collapsing_header(header.c_str(), nullptr, visible ? gui::tree_node_flags_default_open : 0)) {
+        if (!searching) open = true;
+        table_open = true;
+        gui::begin_table((title + "_tbl").c_str(), 1,
+          gui::table_flags_borders_inner_h | gui::table_flags_borders_outer_h);
+      }
+      else {
+        if (!searching) open = false;
+        table_open = false;
+      }
+      gui::pop_style_color(3);
+      gui::pop_style_var();
+    };
+    begin_category();
 
-            gui::begin_table(std::string_view(table_id), 1,
-              gui::table_flags_borders_inner_h |
-              gui::table_flags_borders_outer_h
-            );
-            continue;
-          }
+    gui::push_style_var(gui::style_var_selectable_text_align, fan::vec2(0, 0.5));
 
-          gui::table_next_row();
-          gui::table_next_column();
-          f32_t row_height = gui::get_text_line_height_with_spacing() * 2;
-          if (gui::selectable(demo.name, engine_demo.current_demo_index == demo_index, 0, fan::vec2(0.0f, row_height))) {
-            engine_demo.new_demo_index = demo_index;
-          }
+    for (auto [demo_index, demo] : fan::enumerate(demos)) {
+      if (std::string_view(demo.name) == "_next") {
+        if (table_open) {
+          gui::end_table();
         }
-        gui::pop_style_var();
+        ++title_index;
+        title = titles[title_index];
+        category_start = demo_index + 1;
+        begin_category();
+        continue;
+      }
+
+      if (!table_open) {
+        continue;
+      }
+
+      if (!engine_demo.search_filter.empty()) {
+        std::string name_lower = demo.name;
+        std::string filter_lower = engine_demo.search_filter;
+        auto to_lower = [](std::string& s) { for (auto& c : s) c = tolower(c); };
+        to_lower(name_lower);
+        to_lower(filter_lower);
+        if (name_lower.find(filter_lower) == std::string::npos) {
+          continue;
+        }
+      }
+
+      gui::table_next_row();
+      gui::table_next_column();
+      gui::table_next_row();
+      gui::table_next_column();
+      gui::indent(16.f);
+      f32_t row_height = gui::get_text_line_height_with_spacing() * 2;
+      if (gui::selectable(demo.name, engine_demo.current_demo_index == demo_index, 0, fan::vec2(0.0f, row_height))) {
+        engine_demo.new_demo_index = demo_index;
+      }
+      gui::unindent(16.f);
+      if (demo.thumbnail && gui::is_item_hovered()) {
+        gui::begin_tooltip();
+        gui::image(demo.thumbnail, fan::vec2(128, 128));
+        gui::end_tooltip();
       }
     }
+
+    if (table_open) {
+      gui::end_table();
+    }
+
     gui::pop_style_var();
-#undef make_table
+    gui::pop_style_var();
   }
 
   static void menus_engine_demo_render_element_count(menu_t* menu) {
@@ -1441,8 +1506,7 @@ void main() {
 #undef engine_demo
 
   void create_gui() {
-    engine.clear_color = 0;
-    engine.settings_menu.reset_page_selection();
+    ((fan::graphics::gui::settings_menu_t*)engine.settings_menu)->reset_page_selection();
     {
       menu_t::page_t page;
       page.name = "Engine Demos";
@@ -1450,21 +1514,21 @@ void main() {
       page.render_page_left = menus_engine_demo_left;
       page.render_page_right = menus_engine_demo_right;
       page.split_ratio = 0.35f;
-      engine.settings_menu.pages.emplace_front(page);
+      ((fan::graphics::gui::settings_menu_t*)engine.settings_menu)->pages.emplace_front(page);
     }
-    right_column_view.create();
-    interactive_camera.create(
-      right_column_view.camera,
-      right_column_view.viewport,
-      1.f,
-      0.f
-    );
-    interactive_camera.pan_with_middle_mouse = true;
+
+    for (auto& demo : demos) {
+      if (std::string_view(demo.name) == "_next") continue;
+      std::string path = "thumbnails/" + std::string(demo.name) + ".webp";
+      if (fan::io::file::exists(path)) {
+        demo.thumbnail = engine.image_load(path);
+      }
+    }
   }
 
   void update() {
     engine.render_settings_menu = true;
-    if (engine.settings_menu.current_page != 0) {
+    if (((fan::graphics::gui::settings_menu_t*)engine.settings_menu)->current_page != 0) {
       shapes.clear();
     }
   }
@@ -1482,6 +1546,9 @@ void main() {
     current_demo_index = demo_index;
   }
 
+  std::string search_filter;
+  std::unordered_map<std::string, bool> category_open;
+
   fan::graphics::render_view_t right_column_view;
   fan::graphics::interactive_camera_t interactive_camera;
   uint16_t current_demo_index = 0;
@@ -1497,12 +1564,16 @@ void main() {
 #include "library_usage_samples.h"
 
 int main() {////
-  engine_demo_t demo;
+  engine_demo_ptr = new engine_demo_t;
+  engine_demo_t& demo = *engine_demo_ptr;
 
   //demo.engine.cell_size = 32;
   //demo.engine.culling_rebuild_grid();
   demo.engine.set_culling_enabled(false);
   demo.engine.update_physics(true);
+
+  // remove default "open settings" keybind
+  demo.engine.input_action.remove(fan::actions::toggle_settings);
 
   demo.engine.loop([&] {
     auto camera = fan::graphics::camera_get(demo.right_column_view.camera);
@@ -1514,7 +1585,7 @@ int main() {////
     //fan::graphics::aabb(0, s*2.f, 5.f, &demo.right_column_view);
     uint32_t v, c;
     demo.engine.get_culling_stats(v, c);
-    fan::print_throttled(v, c);
+    //fan::print_throttled(v, c);
     demo.update();
   });
 /*  Optionally

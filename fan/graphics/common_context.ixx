@@ -33,7 +33,6 @@ import fan.types.compile_time_string;
 
 #if defined(FAN_GUI)
   import fan.graphics.gui.types;
-  import fan.console;
 #endif
 
 #define __dme_extend \
@@ -238,6 +237,7 @@ namespace bll_builds {
 };
 
 export namespace fan {
+
   namespace graphics {
     using camera_list_t = bll_builds::camera_list_t;
     using shader_list_t = bll_builds::shader_list_t;
@@ -418,7 +418,7 @@ export namespace fan::graphics {
 
     fan::window::input_action_t* input_action = nullptr;
   #if defined(FAN_GUI)
-    fan::console_t* console = nullptr;
+    void* console = nullptr;
   #endif
 
     lighting_t* lighting = nullptr;

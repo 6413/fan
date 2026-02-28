@@ -55,7 +55,6 @@ export import fan.audio;
 #endif
 #if defined(FAN_GUI)
 import fan.graphics.gui.base;
-import fan.graphics.gui.settings_menu;
 export import fan.console;
 #endif
 export import fan.graphics.opengl.core;
@@ -193,7 +192,7 @@ export struct loco_t {
   bool init_gloco;
   fan::window::input_action_t input_action;
 #if defined(FAN_GUI)
-  fan::graphics::gui::settings_menu_t settings_menu;
+  void* settings_menu = nullptr;
 #endif
   fan::window_t window; // destruct last
 

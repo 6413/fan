@@ -365,6 +365,10 @@ namespace fan::graphics::gui {
     return init_width + get_style().CellPadding.x * 2.f + get_style().FramePadding.x;
   }
 
+  bool collapsing_header(label_t label, bool* p_open, tree_node_flags_t flags) {
+    return ImGui::CollapsingHeader(label, p_open, flags);
+  }
+
   void push_clip_rect(const fan::vec2& min, const fan::vec2& max, bool intersect_with_current_clip_rect) {
     ImGui::PushClipRect(ImVec2(min.x, min.y), ImVec2(max.x, max.y), intersect_with_current_clip_rect);
   }
