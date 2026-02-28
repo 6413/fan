@@ -514,6 +514,8 @@ export namespace fan::graphics::gui {
   f32_t table_get_column_offset(int column_n = -1);
   f32_t table_get_cell_width(f32_t init_width = 0.f);
 
+  bool collapsing_header(label_t label, bool* p_open = nullptr, tree_node_flags_t flags = 0);
+
   void push_clip_rect(const fan::vec2& min, const fan::vec2& max, bool intersect_with_current_clip_rect);
   void pop_clip_rect();
 

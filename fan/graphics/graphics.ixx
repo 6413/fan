@@ -12,6 +12,11 @@ module;
 
 export module fan.graphics;
 
+#if defined(FAN_GUI)
+  export import fan.console; // include before common_context:. console_t forward decl
+  export import fan.graphics.gui.text_logger;
+#endif
+
 export import fan.graphics.common_context;
 export import fan.graphics.common_types;
 export import fan.graphics.shapes;
@@ -25,9 +30,6 @@ export import fan.graphics.algorithm.raycast_grid;
 export import fan.graphics.algorithm.pathfind;
 export import fan.event;
 export import fan.math;
-#if defined(FAN_GUI)
-  export import fan.graphics.gui.text_logger;
-#endif
 
 #if defined(FAN_JSON)
   import fan.types.json;
@@ -36,6 +38,7 @@ export import fan.math;
 import fan.random;
 import fan.graphics.opengl.core;
 import fan.physics.types;
+
 
 export namespace fan::window {
   void add_input_action(const int* keys, std::size_t count, const std::string_view& action_name);
@@ -55,12 +58,18 @@ export namespace fan::graphics {
 }
 
 export namespace fan {
+
+  inline fan::console_t& g_console() {
+    //static fan::console_t gconsole;
+    return *(fan::console_t*)fan::graphics::ctx().console;
+  }
+
   void printclnn(auto&&... values) {
   #if defined(FAN_GUI)
     ([&](const auto& value) {
       std::ostringstream oss;
       oss << value;
-      fan::graphics::ctx().console->print(oss.str() + " ", 0);
+      g_console().print(oss.str() + " ", 0);
     }(values), ...);
   #endif
   }
@@ -68,7 +77,7 @@ export namespace fan {
   void printcl(auto&&... values) {
   #if defined(FAN_GUI)
     printclnn(values...);
-    fan::graphics::ctx().console->print("\n", 0);
+    g_console().print("\n", 0);
   #endif
   }
 
@@ -77,7 +86,7 @@ export namespace fan {
     ([&](const auto& value) {
       std::ostringstream oss;
       oss << value;
-      fan::graphics::ctx().console->print(oss.str() + " ", highlight);
+      g_console().print(oss.str() + " ", highlight);
     }(values), ...);
   #endif
   }
@@ -85,7 +94,7 @@ export namespace fan {
   void printclh(int highlight, auto&&... values) {
   #if defined(FAN_GUI)
     printclnnh(highlight, values...);
-    fan::graphics::ctx().console->print("\n", highlight);
+    g_console().print("\n", highlight);
   #endif
   }
 
@@ -379,7 +388,7 @@ export namespace fan::graphics {
     const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
     fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
     fan::vec2 center0 = 0;
-    fan::vec2 center1 {0, 128.f};
+    fan::vec2 center1 {0.f, 128.f};
     f32_t radius = 64.0f;
     fan::vec3 angle = 0.f;
     fan::color color = fan::color(1, 1, 1, 1);

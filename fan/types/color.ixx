@@ -2,6 +2,7 @@ module;
 
 //#undef FAN_GUI
 
+#include <cstdint>
 #include <string>
 #include <cmath>
 #include <algorithm>

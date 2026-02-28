@@ -165,7 +165,7 @@ struct library_usage_t {
         if (fan::graphics::gui::button("Serialize to JSON")) {
           fan::json out;
           for (auto& shape : shapes) {
-            out += shape;
+            out += (std::string)shape;
           }
           fan::io::file::write("demo_shapes.json", out.dump(2), std::ios_base::binary);
           fan::print("JSON wrote to \"demo_shapes.json\"");

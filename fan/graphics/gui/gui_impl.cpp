@@ -1650,7 +1650,8 @@ namespace fan::graphics::gui {
 
   void particle_editor_t::fout(std::string_view f) {
     filename = f;
-    fan::json json_data = particle_shape;
+    fan::json json_data;
+    fan::graphics::shape_to_json(particle_shape, &json_data);
     if (!filename.ends_with(".json")) {
       filename += ".json";
     }

@@ -265,8 +265,8 @@ export namespace fan {
         struct properties_t {
           render_view_t* render_view = &fan::graphics::get_orthographic_render_view();
           fan::vec3 position = fan::vec3(fan::vec2(fan::window::get_size() / 2), 0);
-          fan::vec2 center0{ 0, -32.f };
-          fan::vec2 center1{ 0, 32.f };
+          fan::vec2 center0{ 0.f, -32.f };
+          fan::vec2 center1{ 0.f, 32.f };
           f32_t radius = 16.f;
           fan::vec3 angle = 0.f;
           fan::color color = fan::color(1, 1, 1, 1);
@@ -303,8 +303,8 @@ export namespace fan {
         struct properties_t {
           render_view_t* render_view = &fan::graphics::get_orthographic_render_view();
           fan::vec3 position = fan::vec3(0, 0, 0);
-          fan::vec2 center0{ 0, -32.f };
-          fan::vec2 center1{ 0, 32.f };
+          fan::vec2 center0{ 0.f, -32.f };
+          fan::vec2 center1{ 0.f, 32.f };
           fan::vec2 size = 64.0f;
           fan::vec3 angle = 0;
           fan::color color = fan::color(1, 1, 1, 1);
@@ -587,15 +587,45 @@ export namespace fan {
         };
         static character2d_t from_json(const character_config_t& config, const std::source_location& callers_path = std::source_location::current());
 
-        character2d_t() = default;
+        character2d_t() {}
         template <typename T>
         requires(
           std::is_convertible_v<T, base_shape_t> &&
           !std::is_same_v<std::remove_cvref_t<T>, character2d_t>
-        )
-        explicit character2d_t(T&& shape) : base_shape_t(std::forward<T>(shape)) {}
-        character2d_t(const character2d_t& o);
-        character2d_t(character2d_t&& o) noexcept;
+            )
+          explicit character2d_t(T&& shape) : base_shape_t(std::forward<T>(shape)) {}
+        character2d_t(const character2d_t& o)
+          : base_shape_t(o),
+          anim_controller(o.anim_controller),
+          attack_state(o.attack_state),
+          movement_state(o.movement_state),
+          wall_jump(o.wall_jump),
+          movement_cb_handle(),
+          feet(o.feet[0], o.feet[1]) {
+          if (movement_state.enabled) {
+            movement_cb_handle = add_movement_callback([this]() {
+              process_keyboard_movement(movement_state.type);
+            });
+          }
+          set_draw_offset(o.get_draw_offset());
+        }
+
+        character2d_t(character2d_t&& o) noexcept
+          : base_shape_t(std::move(o)),
+          anim_controller(std::move(o.anim_controller)),
+          attack_state(std::move(o.attack_state)),
+          movement_state(std::move(o.movement_state)),
+          wall_jump(std::move(o.wall_jump)),
+          movement_cb_handle(),
+          feet {std::move(o.feet[0]), std::move(o.feet[1])} {
+          if (movement_state.enabled) {
+            movement_cb_handle = add_movement_callback([this]() {
+              process_keyboard_movement(movement_state.type);
+            });
+          }
+
+          o.movement_cb_handle.sic();
+        }
         character2d_t& operator=(const character2d_t& o);
         character2d_t& operator=(character2d_t&& o) noexcept;
         ~character2d_t();
@@ -817,7 +847,7 @@ export namespace fan {
 
       struct bone_t {
         fan::graphics::physics::base_shape_t visual;
-        fan::physics::joint_id_t joint_id = b2_nullJointId;
+        fan::physics::joint_id_t joint_id = fan::physics::joint_get_null();
         f32_t friction_scale;
         int parent_index;
         // local
@@ -871,7 +901,7 @@ export namespace fan {
 
         struct QueryContext {
           b2Vec2 point;
-          b2BodyId bodyId = b2_nullBodyId;
+          b2BodyId bodyId = fan::physics::body_get_null();
         };
 
         static bool QueryCallback(b2ShapeId shapeId, void* context);
@@ -880,7 +910,7 @@ export namespace fan {
         ~mouse_joint_t();
 
         fan::physics::body_id_t target_body;
-        fan::physics::joint_id_t mouse_joint = b2_nullJointId;
+        fan::physics::joint_id_t mouse_joint = fan::physics::joint_get_null();
       };
     }
   }
@@ -916,8 +946,8 @@ export namespace fan::graphics::physics {
   );
   fan::graphics::physics::character2d_t character_capsule(
     const fan::vec3& position,
-    const fan::vec2& center0 = { 0, -32.f },
-    const fan::vec2& center1 = { 0, 32.f },
+    const fan::vec2& center0 = { 0.f, -32.f },
+    const fan::vec2& center1 = { 0.f, 32.f },
     f32_t radius = 16.f,
     const fan::physics::shape_properties_t& shape_properties = {}
   );
@@ -934,8 +964,8 @@ export namespace fan::graphics::physics {
   );
   fan::graphics::physics::character2d_t character_capsule_sprite(
     const fan::vec3& position,
-    const fan::vec2& center0 = { 0, -32.f },
-    const fan::vec2& center1 = { 0, 32.f },
+    const fan::vec2& center0 = { 0.f, -32.f },
+    const fan::vec2& center1 = { 0.f, 32.f },
     const fan::vec2& size = { 64.f, 64.f },
     const fan::graphics::image_t& image = fan::graphics::get_default_texture(),
     const fan::physics::shape_properties_t& shape_properties = {.fixed_rotation = true}

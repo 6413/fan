@@ -8,6 +8,8 @@ export module fan.graphics.algorithm.pathfind;
 
 #if defined(FAN_2D)
 
+import fan.types.vector;
+
 export namespace fan::graphics::algorithm::pathfind {
   using uint = ::AStar::uint;
   using heuristic_function = ::AStar::HeuristicFunction;

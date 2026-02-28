@@ -11,6 +11,7 @@ set -e
 MODE=""
 REBUILD=false
 MAIN_FILE=""
+COMPILER="clang"
 XMAKE_ARGS=()
 
 while [[ $# -gt 0 ]]; do
@@ -35,6 +36,14 @@ while [[ $# -gt 0 ]]; do
       MAIN_FILE="$2"
       shift 2
       ;;
+    --gcc)
+      COMPILER="gcc"
+      shift
+      ;;
+    --clang)
+      COMPILER="clang"
+      shift
+      ;;
     *)
       XMAKE_ARGS+=("$1")
       shift
@@ -42,9 +51,19 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+if [[ "$COMPILER" == "gcc" ]]; then
+  CC="gcc-15"
+  CXX="g++-15"
+  TOOLCHAIN="gcc"
+else
+  CC="clang-20"
+  CXX="clang++-20"
+  TOOLCHAIN="clang"
+fi
+
 if [[ -n "$MAIN_FILE" ]]; then
   echo -e "${CYAN}Setting main file:${NC} ${MAIN_FILE}"
-  if ! xmake f --main="$MAIN_FILE" "${XMAKE_ARGS[@]}"; then
+  if ! xmake f --main="$MAIN_FILE" --compiler="$COMPILER" "${XMAKE_ARGS[@]}"; then
     echo -e "${RED}✗ XMake configuration failed!${NC}"
     exit 1
   fi
@@ -53,30 +72,31 @@ fi
 if [[ "$REBUILD" == true ]]; then
   echo -e "${BLUE}[1/4]${NC} Cleaning build directory..."
   rm -rf build .xmake
-  
+
   echo ""
   echo -e "${BLUE}[2/4]${NC} Initial configuration..."
   CONFIG_ARGS=("${XMAKE_ARGS[@]}")
   if [[ -n "$MAIN_FILE" ]]; then
     CONFIG_ARGS+=("--main=$MAIN_FILE")
   fi
+  CONFIG_ARGS+=("--compiler=$COMPILER")
   if ! xmake f -c "${CONFIG_ARGS[@]}"; then
     echo -e "${RED}✗ XMake clean configuration failed!${NC}"
     exit 1
   fi
-  
+
   echo ""
   echo -e "${BLUE}[3/4]${NC} Configuring toolchain..."
   EXTRA_FLAGS=()
   if [[ -n "$MODE" ]]; then
     EXTRA_FLAGS+=("-m" "$MODE")
   fi
-  
-  if ! xmake f --toolchain=clang --cc=clang-20 --cxx=clang++-20 "${EXTRA_FLAGS[@]}" "${CONFIG_ARGS[@]}"; then
+
+  if ! xmake f --toolchain="$TOOLCHAIN" --cc="$CC" --cxx="$CXX" "${EXTRA_FLAGS[@]}" "${CONFIG_ARGS[@]}"; then
     echo -e "${RED}✗ XMake configuration failed!${NC}"
     exit 1
   fi
-  
+
   echo ""
   echo -e "${BLUE}[4/4]${NC} Building..."
   if ! xmake "${XMAKE_ARGS[@]}"; then
@@ -85,14 +105,14 @@ if [[ "$REBUILD" == true ]]; then
   fi
 else
   echo -e "${BLUE}Building...${NC}"
-  
+
   if [[ -n "$MODE" ]]; then
-    if ! xmake f -m "$MODE" "${XMAKE_ARGS[@]}"; then
+    if ! xmake f -m "$MODE" --compiler="$COMPILER" "${XMAKE_ARGS[@]}"; then
       echo -e "${RED}✗ XMake mode configuration failed!${NC}"
       exit 1
     fi
   fi
-  
+
   if ! xmake "${XMAKE_ARGS[@]}"; then
     echo -e "${RED}✗ XMake build failed!${NC}"
     exit 1

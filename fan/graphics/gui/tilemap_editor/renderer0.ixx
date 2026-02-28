@@ -8,6 +8,7 @@ module;
 #include <functional>
 #include <cstdlib>
 #include <variant>
+#include <algorithm> // remove_if
 
 #endif
 

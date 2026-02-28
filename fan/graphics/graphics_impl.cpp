@@ -9,6 +9,7 @@ module;
 #include <algorithm>
 #include <filesystem>
 #include <cstring>
+#include <span>
 
 module fan.graphics;
 
@@ -1394,7 +1395,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const std::
     if (wall_cells.find(cell) == wall_cells.end()) {
       gen.add_collision(cell);
       wall_cells.insert(cell);
-      shapes[cell.y][cell.x].set_color(fan::colors::gray / 3);
+      shapes[cell.y][cell.x].set_color(fan::colors::gray * 1.5f);
     }
   }
 

@@ -19,12 +19,10 @@ namespace raii_build {
   #include <fan/types/raii_nr.h>
 }
 
-
 export module fan.utility;
+
 export import fan.memory;
-
 export import fan.time;
-
 
 export namespace fan {
   template <typename T, typename = void>
@@ -76,13 +74,14 @@ namespace fan {
     T2 second;
   };
 
+  template <typename T>
+  T&& declval() noexcept;
+
   template<typename It>
   struct iterator_traits {
     using reference = decltype(*(declval<It>()));
   };
 
-  template <typename T>
-  T&& declval() noexcept;
 
   export {
     template<typename container_t>

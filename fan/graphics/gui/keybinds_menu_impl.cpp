@@ -17,9 +17,8 @@ module fan.graphics.gui.keybinds_menu;
 
 #if defined(FAN_GUI)
 
-import fan.graphics.loco;
-import fan.graphics.gui.settings_menu;
 import fan.types.compile_time_string;
+import fan.graphics.common_context;
 
 namespace fan::graphics::gui {
   void keybind_menu_t::categorize_combo_into_bindings(device_bindings_t& bindings, const combo_t& combo) {
@@ -97,7 +96,7 @@ namespace fan::graphics::gui {
     static constexpr f32_t key_button_height = 26.f;
 
     bool is_listening = listening_states[listening_index];
-    std::string label = is_listening ? label_press_keys : gloco()->input_action.combo_to_string(combo);
+    std::string label = is_listening ? label_press_keys : fan::graphics::ctx().input_action->combo_to_string(combo);
 
     fan::vec2 cell_pad = gui::get_style().CellPadding;
     fan::vec2 cursor = gui::get_cursor_screen_pos();
@@ -183,7 +182,7 @@ namespace fan::graphics::gui {
         return;
       }
 
-      combo_t current = gloco()->input_action.get_current_combo(device);
+      combo_t current = fan::graphics::ctx().input_action->get_current_combo(device);
       if (!current.empty()) {
         if (key_cap_state.current_combo.empty() ||
           current.size() > key_cap_state.current_combo.size()) {
@@ -273,7 +272,7 @@ namespace fan::graphics::gui {
     );
 
     std::map<std::string, std::vector<std::string>> grouped;
-    auto& ia = gloco()->input_action;
+    auto& ia = *fan::graphics::ctx().input_action;
 
     for (auto& [action_name, _] : menu->device_bindings) {
       std::string group;
@@ -390,7 +389,7 @@ namespace fan::graphics::gui {
     gui::same_line();
 
     if (gui::button(label_save, fan::vec2(100.f, 40.f))) {
-      OFFSETLESS(menu, fan::graphics::gui::settings_menu_t, keybind_menu)->save();
+      menu->save_cb();
     }
 
     gui::pop_style_var();
@@ -414,7 +413,7 @@ namespace fan::graphics::gui {
   }
 
   void keybind_menu_t::mark_dirty() {
-    OFFSETLESS(this, settings_menu_t, keybind_menu)->mark_dirty();
+    mark_dirty_cb();
   }
 
   void keybind_menu_t::update() {
@@ -428,7 +427,7 @@ namespace fan::graphics::gui {
   }
 
   void keybind_menu_t::sync_from_input_action() {
-    auto& actions = gloco()->input_action.input_actions;
+    auto& actions = fan::graphics::ctx().input_action->input_actions;
 
     for (auto& [action_name, action_data] : actions) {
       if (device_bindings.find(action_name) != device_bindings.end()) continue;
@@ -443,7 +442,7 @@ namespace fan::graphics::gui {
   }
 
   void keybind_menu_t::update_input_action(std::string_view action_name) {
-    auto& actions = gloco()->input_action.input_actions;
+    auto& actions = fan::graphics::ctx().input_action->input_actions;
     action_key_t k(action_name);
     auto it = device_bindings.find(k);
     if (it == device_bindings.end()) return;
@@ -475,7 +474,7 @@ namespace fan::graphics::gui {
     const std::vector<combo_t>& combos
   ) const {
     for (const combo_t& combo : combos) {
-      std::string combo_str = gloco()->input_action.combo_to_string(combo);
+      std::string combo_str = fan::graphics::ctx().input_action->combo_to_string(combo);
       if (!combo_str.empty() && !fan::iequals(combo_str, "none")) {
         if (unique_combos.insert(combo_str).second) {
           binds_arr.push_back(combo_str);
@@ -497,7 +496,7 @@ namespace fan::graphics::gui {
       device_bindings_t bindings;
       for (const auto& combo_str : binds_arr) {
         if (!combo_str.is_string()) continue;
-        combo_t combo = gloco()->input_action.combo_from_string((std::string)combo_str);
+        combo_t combo = fan::graphics::ctx().input_action->combo_from_string((std::string)combo_str);
         categorize_combo_into_bindings(bindings, combo);
       }
 
@@ -527,7 +526,7 @@ namespace fan::graphics::gui {
   }
 
   void keybind_menu_t::apply_to_input_action() {
-    auto& ia = gloco()->input_action;
+    auto& ia = *fan::graphics::ctx().input_action;
 
     for (const auto& [action_name, bindings] : device_bindings) {
       auto& a = ia.input_actions[action_name];

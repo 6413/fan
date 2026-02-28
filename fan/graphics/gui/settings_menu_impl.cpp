@@ -23,6 +23,7 @@ import fan.audio;
 import fan.io.file;
 import fan.graphics.loco;
 import fan.graphics.gui.base;
+import fan.graphics.culling;
 
 namespace fan::graphics::gui {
   struct keybind_settings_bridge_t {
@@ -136,6 +137,9 @@ namespace fan::graphics::gui {
     page.render_page_right = keybind_settings_bridge_t::menu_right;
     page.split_ratio = 0.5f;
     pages.emplace_back(page);
+
+    keybind_menu.save_cb = [this]() { save(); };
+    keybind_menu.mark_dirty_cb = [this]() { mark_dirty(); };
   }
 
   void settings_menu_t::init_runtime() {
@@ -351,9 +355,9 @@ namespace fan::graphics::gui {
         gui::text("Frustum culling");
         gui::table_next_column();
         gui::text("Enable frustum culling");
-        if (gui::checkbox(&gloco()->shapes.visibility.enabled)) {
-          gloco()->set_culling_enabled(gloco()->shapes.visibility.enabled);
-          menu->config.debug.frustum_culling_enabled = gloco()->shapes.visibility.enabled;
+        if (gui::checkbox(&((fan::graphics::culling::culling_t*)gloco()->shapes.visibility)->enabled)) {
+          gloco()->set_culling_enabled(((fan::graphics::culling::culling_t*)gloco()->shapes.visibility)->enabled);
+          menu->config.debug.frustum_culling_enabled = ((fan::graphics::culling::culling_t*)gloco()->shapes.visibility)->enabled;
           menu->mark_dirty();
         }
         if (draw_toggle_row("Visualize culling", &gloco()->is_visualizing_culling)) {
@@ -362,11 +366,11 @@ namespace fan::graphics::gui {
         }
         if (gloco()->is_visualizing_culling) {
           draw_sub_row("padding (default render view)", [&] {
-            if (gui::drag(&gloco()->shapes.visibility.padding, 1)) {
-              for (auto& [cam_id, cam_state] : gloco()->shapes.visibility.camera_states) {
+            if (gui::drag(&((fan::graphics::culling::culling_t*)gloco()->shapes.visibility)->padding, 1)) {
+              for (auto& [cam_id, cam_state] : ((fan::graphics::culling::culling_t*)gloco()->shapes.visibility)->camera_states) {
                 cam_state.view_dirty = true;
               }
-              menu->config.debug.culling_padding = gloco()->shapes.visibility.padding;
+              menu->config.debug.culling_padding = ((fan::graphics::culling::culling_t*)gloco()->shapes.visibility)->padding;
               menu->mark_dirty();
             }
             if (!hide_gui_settings) {
@@ -687,7 +691,7 @@ namespace fan::graphics::gui {
     fan::vec2 size = gloco()->window.get_size();
     f32_t ratio = pages[current_page].split_ratio;
     const f32_t top_h = size.y * 0.2f;
-    render_settings_left({0, top_h}, {size.x * ratio, size.y - top_h});
+    render_settings_left({0.f, top_h}, {size.x * ratio, size.y - top_h});
     render_settings_right({size.x * ratio, top_h}, {size.x * (1.f - ratio), size.y - top_h}, min_x);
     keybind_menu.update();
   }

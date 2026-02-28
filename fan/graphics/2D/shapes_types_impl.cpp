@@ -1,13 +1,8 @@
 module;
-
 #include <fan/utility.h>
-
 #include <cstdint>
 #include <cstring>
-
 module fan.graphics.shapes.types;
-
-import fan.graphics.shapes;
 
 namespace fan::graphics {
 #if defined(FAN_2D)
