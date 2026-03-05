@@ -194,8 +194,8 @@ int main() {
 
   fan::graphics::image_t image;
   fan::graphics::image_load_properties_t lp;
-  lp.internal_format = fan::graphics::image_format::rgb_unorm;
-  lp.format = fan::graphics::image_format::bgr_unorm;
+  lp.internal_format = fan::graphics::image_format_e::rgb_unorm;
+  lp.format = fan::graphics::image_format_e::bgr_unorm;
   image = loco.image_load(ii, lp);
 
   fan::vec2 window_size = loco.window.get_size();
@@ -298,14 +298,14 @@ int main() {
 
   auto walls = fan::graphics::physics::create_stroked_rectangle(window_size / 2, window_size / 4, 10.f);
 
-  fan::graphics::image_t duck_image{ "images/duck.webp" };
-  fan::graphics::physics::circle_sprite_t duck{ {
-    .position = fan::vec3(window_size / 2, 200),
-    .size = 128,
-    .image = duck_image,
-    .body_type = fan::physics::body_type_e::dynamic_body,
-    .shape_properties{.restitution=1.0}
-  } };
+  //fan::graphics::image_t duck_image{ "images/duck.webp" };
+  //fan::graphics::physics::circle_sprite_t duck{ {
+  //  .position = fan::vec3(window_size / 2, 200),
+  //  .size = 128,
+  //  .image = duck_image,
+  //  .body_type = fan::physics::body_type_e::dynamic_body,
+  //  .shape_properties{.restitution=1.0}
+  //} };
 
   loco.physics_context.set_gravity(0);
   
@@ -313,15 +313,14 @@ int main() {
   f32_t z = 0;
 
   loco.draw_end_cb.emplace_back([&] {
-    auto pixel_data = loco.image_get_pixel_data(loco.gl.color_buffers[0], fan::graphics::image_format::rgba_unorm);
+    auto pixel_data = loco.image_get_pixel_data(loco.gl.color_buffers[0], fan::graphics::image_format_e::rgba_unorm);
     std::memcpy(pixels, pixel_data.data(), pixel_data.size());
   });
-
+  loco.update_physics(true);
   loco.loop([&] {
-    loco.physics_context.step(std::min(loco.delta_time, 1000.0 / 60));
     if (fan::window::is_mouse_clicked()) {
-      duck.set_linear_velocity(fan::random::vec2(-200, 200));
-      duck.set_angular_velocity(0.01);
+   //   duck.set_linear_velocity(fan::random::vec2(-200, 200));
+   //   duck.set_angular_velocity(0.01);
     }
     //duck.set_angle(fan::vec3(0, 0, z));
     //z += loco.delta_time;
