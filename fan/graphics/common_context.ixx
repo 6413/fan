@@ -16,6 +16,7 @@ module;
 
 #include <sstream>
 #include <fstream>
+#include <span>
 
 export module fan.graphics.common_context;
 
@@ -440,6 +441,38 @@ export namespace fan::graphics {
   gui_draw_cb_t& get_gui_draw_cbs();
 #endif
 
+  namespace image_presets {
+    image_load_properties_t pixel_art() {
+      image_load_properties_t props;
+      props.visual_output = fan::graphics::image_sampler_address_mode_e::clamp_to_border;
+      props.min_filter = image_filter_e::nearest;
+      props.mag_filter = image_filter_e::nearest;
+      return props;
+    }
+
+    image_load_properties_t pixel_art_repeat() {
+      auto props = pixel_art();
+      props.visual_output = fan::graphics::image_sampler_address_mode_e::repeat;
+      return props;
+    }
+
+    image_load_properties_t smooth() {
+      image_load_properties_t props;
+      props.visual_output = fan::graphics::image_sampler_address_mode_e::clamp_to_border;
+      props.min_filter = image_filter_e::linear;
+      props.mag_filter = image_filter_e::linear;
+      return props;
+    }
+
+    image_load_properties_t mipmapped() {
+      image_load_properties_t props;
+      props.min_filter = image_filter_e::linear_mipmap_linear;
+      props.mag_filter = image_filter_e::linear;
+      return props;
+    }
+  }
+
+
   struct image_t : fan::graphics::image_nr_t {
     using fan::graphics::image_nr_t::image_nr_t;
     // for no gloco access
@@ -453,14 +486,33 @@ export namespace fan::graphics {
     image_t(const char* path, const fan::graphics::image_load_properties_t lp, const std::source_location& callers_path = std::source_location::current());
     image_t(const std::string& path, const fan::graphics::image_load_properties_t lp, const std::source_location& callers_path = std::source_location::current());
 
+    image_t(const fan::image::info_t& info, const std::source_location& callers_path = std::source_location::current());
+    image_t(const fan::image::info_t& info, const fan::graphics::image_load_properties_t& lp, const std::source_location& callers_path = std::source_location::current());
+    image_t(fan::color* colors, const fan::vec2ui& size);
+    image_t(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& lp);
+    image_t(std::span<const fan::color> colors, const fan::vec2ui& size);
+    image_t(const fan::vec2& size, uint32_t channels = 4, const image_load_properties_t& lp = image_presets::pixel_art());
 
     fan::vec2 get_size() const;
     image_load_properties_t get_load_properties() const;
     std::string get_path() const;
 
-    operator fan::graphics::image_nr_t& ();
-    operator const fan::graphics::image_nr_t& () const;
     bool valid() const;
+
+    void reload(const fan::image::info_t& info);
+    void reload(const fan::image::info_t& info, const fan::graphics::image_load_properties_t& lp);
+    void reload(const std::string& path, const std::source_location& callers_path = std::source_location::current());
+    void reload(const std::string& path, const fan::graphics::image_load_properties_t& lp, const std::source_location& callers_path = std::source_location::current());
+    void unload();
+    void update(const void* data, uint32_t channels = 4);
+    void update(const std::vector<uint8_t>& data, uint32_t channels = 4);
+    std::vector<uint8_t> get_pixel_data(int image_format, fan::vec2 uvp = 0, fan::vec2 uvs = 1) const;
+    std::vector<uint8_t> read_pixels(const fan::vec2& uv_position = 0, const fan::vec2& uv_size = 1) const;
+    void bind() const;
+    void unbind() const;
+    uint64_t get_handle() const;
+    image_load_properties_t& get_settings();
+    void set_settings(const fan::graphics::image_load_properties_t& settings);
   };
 
   fan::graphics::image_t get_default_texture();

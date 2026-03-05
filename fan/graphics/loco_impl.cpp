@@ -1136,6 +1136,10 @@ loco_t::loco_t(const loco_t::properties_t& props) :
 #if defined(FAN_GUI)
   settings_menu = new fan::graphics::gui::settings_menu_t;
   ((fan::graphics::gui::settings_menu_t*)settings_menu)->init_runtime();
+  if (window.get_size() != open_props.window_size) {
+    window.set_position(((fan::graphics::gui::settings_menu_t*)settings_menu)->config.display.window_position);
+    window.set_size(open_props.window_size);
+  }
 #endif
 
   auto it = fan::graphics::get_engine_init_cbs().GetNodeFirst();

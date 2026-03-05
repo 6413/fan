@@ -130,6 +130,10 @@ export namespace fan {
     f32_t angle() {
       return fan::random::value_f32(-fan::math::pi, fan::math::pi);
     }
-
+    std::vector<uint8_t> pixels(size_t count) {
+      std::vector<uint8_t> result(count);
+      for (auto& p : result) p = value(0.f, 255.f);
+      return result;
+    }
   }
 }
