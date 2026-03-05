@@ -1470,6 +1470,32 @@ namespace fan::graphics {
     cf.image_get_pixel_data = [](void* context, fan::graphics::image_nr_t nr, GLenum format, fan::vec2 uvp, fan::vec2 uvs) {
       return ((fan::opengl::context_t*)context)->image_get_pixel_data(nr, format, uvp, uvs);
     };
+    cf.image_read_pixels = [](void* context, fan::graphics::image_nr_t nr, fan::vec2 uv_pos, fan::vec2 uv_size) {
+      auto& gl = *(fan::opengl::context_t*)context;
+      auto size = fan::graphics::image_get_data(nr).size;
+      auto img_settings = gl.image_get_settings(nr);
+      uint32_t channels = fan::graphics::get_channel_amount(img_settings.format);
+      int px = std::clamp((int)std::round(uv_pos.x * size.x), 0, (int)size.x);
+      int py = std::clamp((int)std::round(uv_pos.y * size.y), 0, (int)size.y);
+      int pw = std::min((int)std::round(uv_size.x * size.x), (int)size.x - px);
+      int ph = std::min((int)std::round(uv_size.y * size.y), (int)size.y - py);
+      std::vector<uint8_t> full(size.x * size.y * channels);
+      glBindTexture(GL_TEXTURE_2D, gl.image_get_handle(nr));
+      glGetTexImage(GL_TEXTURE_2D, 0,
+        fan::opengl::context_t::global_to_opengl_format(img_settings.format),
+        GL_UNSIGNED_BYTE, full.data());
+      std::vector<uint8_t> out(pw * ph * channels);
+      for (int row = 0; row < ph; ++row) {
+        std::memcpy(&out[row * pw * channels],
+          &full[((py + row) * (int)size.x + px) * channels],
+          pw * channels);
+      }
+      return out;
+    };
+    cf.image_get_pixel_data = [](void* context, fan::graphics::image_nr_t nr, uint32_t format, fan::vec2 uvp, fan::vec2 uvs) {
+      return ((fan::opengl::context_t*)context)->image_get_pixel_data(nr,
+        fan::opengl::context_t::global_to_opengl_format(format), uvp, uvs);
+    };
     return cf;
   }
 }

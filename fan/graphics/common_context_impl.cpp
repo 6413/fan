@@ -8,6 +8,10 @@ module;
 #include <sstream>
 #include <filesystem>
 
+#if defined (FAN_OPENGL)
+  #include <fan/graphics/opengl/init.h>
+#endif
+
 module fan.graphics.common_context;
 
 import fan.print;
@@ -95,6 +99,25 @@ namespace fan::graphics {
   image_t::image_t(const std::string& path, const fan::graphics::image_load_properties_t lp, const std::source_location& callers_path) 
     : fan::graphics::image_nr_t(ctx()->image_load_path_props(ctx(), path, lp, callers_path)) {}
 
+  image_t::image_t(const fan::image::info_t& info, const std::source_location&)
+    : fan::graphics::image_nr_t(ctx()->image_load_info(ctx(), info)) {}
+  image_t::image_t(const fan::image::info_t& info, const fan::graphics::image_load_properties_t& lp, const std::source_location&)
+    : fan::graphics::image_nr_t(ctx()->image_load_info_props(ctx(), info, lp)) {}
+  image_t::image_t(fan::color* colors, const fan::vec2ui& size)
+    : fan::graphics::image_nr_t(ctx()->image_load_colors(ctx(), colors, size)) {}
+  image_t::image_t(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& lp)
+    : fan::graphics::image_nr_t(ctx()->image_load_colors_props(ctx(), colors, size, lp)) {}
+  image_t::image_t(std::span<const fan::color> colors, const fan::vec2ui& size)
+    : fan::graphics::image_nr_t(ctx()->image_load_colors_props(ctx(), const_cast<fan::color*>(colors.data()), size, image_presets::pixel_art())) {}
+  image_t::image_t(const fan::vec2& size, uint32_t channels, const image_load_properties_t& lp) {
+    std::vector<uint8_t> blank(size.multiply() * channels, 0);
+    fan::image::info_t info;
+    info.size = size;
+    info.channels = channels;
+    info.data = blank.data();
+    *(fan::graphics::image_nr_t*)this = ctx()->image_load_info_props(ctx(), info, lp);
+  }
+
   fan::vec2 image_t::get_size() const {
     return fan::graphics::image_get_data(*this).size;
   }
@@ -106,6 +129,53 @@ namespace fan::graphics {
   }
   bool image_t::valid() const {
     return *this != fan::graphics::ctx().default_texture && iic() == false;
+  }
+
+  void image_t::reload(const fan::image::info_t& info) {
+    ctx()->image_reload_image_info(ctx(), *this, info);
+  }
+  void image_t::reload(const fan::image::info_t& info, const fan::graphics::image_load_properties_t& lp) {
+    ctx()->image_reload_image_info_props(ctx(), *this, info, lp);
+  }
+  void image_t::reload(const std::string& path, const std::source_location& callers_path) {
+    ctx()->image_reload_path(ctx(), *this, path, callers_path);
+  }
+  void image_t::reload(const std::string& path, const fan::graphics::image_load_properties_t& lp, const std::source_location& callers_path) {
+    ctx()->image_reload_path_props(ctx(), *this, path, lp, callers_path);
+  }
+  void image_t::unload() {
+    ctx()->image_unload(ctx(), *this);
+  }
+  void image_t::update(const void* data, uint32_t channels) {
+    fan::image::info_t info;
+    info.size = get_size();
+    info.channels = channels;
+    info.data = const_cast<void*>(data);
+    reload(info);
+  }
+  void image_t::update(const std::vector<uint8_t>& data, uint32_t channels) {
+    update(data.data(), channels);
+  }
+  std::vector<uint8_t> image_t::get_pixel_data(int image_format, fan::vec2 uvp, fan::vec2 uvs) const {
+    return ctx()->image_get_pixel_data(ctx(), *this, image_format, uvp, uvs);
+  }
+  std::vector<uint8_t> image_t::read_pixels(const fan::vec2& uv_pos, const fan::vec2& uv_size) const {
+    return ctx()->image_read_pixels(ctx(), *this, uv_pos, uv_size);
+  }
+  void image_t::bind() const {
+    ctx()->image_bind(ctx(), *this);
+  }
+  void image_t::unbind() const {
+    ctx()->image_unbind(ctx(), *this);
+  }
+  uint64_t image_t::get_handle() const {
+    return ctx()->image_get_handle(ctx(), *this);
+  }
+  image_load_properties_t& image_t::get_settings() {
+    return ctx()->image_get_settings(ctx(), *this);
+  }
+  void image_t::set_settings(const fan::graphics::image_load_properties_t& settings) {
+    ctx()->image_set_settings(ctx(), *this, settings);
   }
 
   render_view_t::render_view_t(bool) {

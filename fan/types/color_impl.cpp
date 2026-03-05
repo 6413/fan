@@ -4,6 +4,7 @@ module;
 #include <cmath>
 #include <algorithm>
 #include <utility>
+#include <vector>
 
 module fan.types.color;
 
@@ -169,5 +170,16 @@ namespace fan {
     fan::color rand_color = fan::random::color();
     f32_t max_channel = std::max({ rand_color.r, rand_color.g, rand_color.b });
     return rand_color / max_channel;
+  }
+
+  void lerp_pixels(std::vector<uint8_t>& dst, const std::vector<uint8_t>& target, f32_t t, uint8_t channels) {
+    for (uint32_t i = 0; i < dst.size(); i++) {
+      int diff = (int)target[i] - (int)dst[i];
+      if (diff != 0) {
+        int delta = (int)std::round(diff * t);
+        if (delta == 0) delta = diff > 0 ? 1 : -1;
+        dst[i] = (uint8_t)std::clamp((int)dst[i] + delta, 0, 255);
+      }
+    }
   }
 }

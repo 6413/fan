@@ -213,41 +213,6 @@ namespace fan::graphics {
     glReadPixels(position.x, position.y, size.x, size.y, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
     return pixels;
   }
-
-  std::vector<uint8_t> read_pixels_from_image(
-    fan::graphics::image_nr_t nr,
-    const fan::vec2& uv_pos,
-    const fan::vec2& uv_size)
-  {
-    auto size = image_get_data(nr).size;
-    auto img_settings = image_get_settings(nr);
-    uint32_t channels = fan::graphics::get_channel_amount(img_settings.format);
-
-    int px = std::round(uv_pos.x * size.x);
-    int py = std::round(uv_pos.y * size.y);
-    int pw = std::round(uv_size.x * size.x);
-    int ph = std::round(uv_size.y * size.y);
-
-    px = std::clamp(px, 0, (int)size.x - pw);
-    py = std::clamp(py, 0, (int)size.y - ph);
-    pw = std::min(pw, (int)size.x - px);
-    ph = std::min(ph, (int)size.y - py);
-
-    std::vector<uint8_t> full(size.x * size.y * channels);
-    glBindTexture(GL_TEXTURE_2D, image_get_handle(nr));
-    glGetTexImage(GL_TEXTURE_2D, 0,
-      fan::opengl::context_t::global_to_opengl_format(img_settings.format),
-      GL_UNSIGNED_BYTE, full.data());
-
-    std::vector<uint8_t> out(pw * ph * channels);
-    for (int row = 0; row < ph; ++row) {
-      std::memcpy(&out[row * pw * channels],
-        &full[((py + row) * size.x + px) * channels],
-        pw * channels);
-    }
-
-    return out;
-  }
 #endif
 
   fan::graphics::shader_nr_t shader_create() {
@@ -554,6 +519,14 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const std::
     }()
   }) {}
 
+sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::image::info_t& info, const fan::graphics::image_load_properties_t& p, render_view_t* render_view)
+  : sprite_t(sprite_properties_t {
+    .render_view = render_view,
+    .position = position,
+    .size = size,
+    .image = fan::graphics::image_load(info, p)
+  }) {}
+
   unlit_sprite_t::unlit_sprite_t(unlit_sprite_properties_t p) {
     *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
       fan_init_struct(
@@ -602,6 +575,13 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const std::
       return fan::graphics::image_load(info, image_presets::pixel_art());
     }()
   }) {}
+  unlit_sprite_t::unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::image::info_t& info, const fan::graphics::image_load_properties_t& p, render_view_t* render_view)
+    : unlit_sprite_t(unlit_sprite_properties_t {
+      .render_view = render_view,
+      .position = position,
+      .size = size,
+      .image = fan::graphics::image_load(info, p)
+    }) {}
 
   circle_t::circle_t(circle_properties_t p) {
     *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
@@ -782,9 +762,39 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const std::
   fan::graphics::shapes::shape_t& sprite(const sprite_properties_t& props) {
     return add_shape_to_immediate_draw(sprite_t(props));
   }
+  fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, const fan::color& single_color) {
+    return add_shape_to_immediate_draw(sprite_t(position, size, single_color));
+  }
+  fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, std::initializer_list<fan::color> colors, render_view_t* render_view) {
+    return add_shape_to_immediate_draw(sprite_t(position, size, colors, render_view));
+  }
+  fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, const std::vector<uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view) {
+    return add_shape_to_immediate_draw(sprite_t(position, size, data, tex_size, render_view));
+  }
+  fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, const fan::image::info_t& info, const fan::graphics::image_load_properties_t& p, render_view_t* render_view) {
+    return add_shape_to_immediate_draw(sprite_t(position, size, info, p, render_view));
+  }
+  fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view) {
+    return add_shape_to_immediate_draw(sprite_t(position, size, image, render_view));
+  }
 
   fan::graphics::shapes::shape_t& unlit_sprite(const unlit_sprite_properties_t& props) {
     return add_shape_to_immediate_draw(unlit_sprite_t(props));
+  }
+  fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const fan::color& single_color) {
+    return add_shape_to_immediate_draw(unlit_sprite_t(position, size, single_color));
+  }
+  fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, std::initializer_list<fan::color> colors, render_view_t* render_view) {
+    return add_shape_to_immediate_draw(unlit_sprite_t(position, size, colors, render_view));
+  }
+  fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const std::vector<uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view) {
+    return add_shape_to_immediate_draw(unlit_sprite_t(position, size, data, tex_size, render_view));
+  }
+  fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const fan::image::info_t& info, const fan::graphics::image_load_properties_t& p, render_view_t* render_view) {
+    return add_shape_to_immediate_draw(unlit_sprite_t(position, size, info, p, render_view));
+  }
+  fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view) {
+    return add_shape_to_immediate_draw(unlit_sprite_t(position, size, image, render_view));
   }
 
   fan::graphics::shapes::shape_t& line(const line_properties_t& props) {

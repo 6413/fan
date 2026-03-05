@@ -1,22 +1,23 @@
 module;
 
-#include <utility>
 #include <coroutine>
-#include <string>
+#include <utility>
 #include <functional>
+#include <string>
 #include <filesystem>
 #include <thread>
 
 #include <uv.h>
-#undef min
-#undef max
 
 export module fan.event;
+
+#undef min
+#undef max
 
 import fan.print;
 import fan.utility;
 import fan.types.color;
-export import :types;
+export import fan.event.types;
 
 export namespace fan::event {
 

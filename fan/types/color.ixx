@@ -6,6 +6,7 @@ module;
 #include <string>
 #include <cmath>
 #include <algorithm>
+#include <vector>
 
 export module fan.types.color;
 
@@ -38,8 +39,8 @@ export namespace fan {
       this->b = b;
       this->a = a;
     }
-    constexpr color(uint8_t* begin, uint8_t* end) {
-      uint8_t* ptr = begin;
+    constexpr color(const uint8_t* begin, const uint8_t* end) {
+      const uint8_t* ptr = begin;
       int i = 0;
       while (ptr != end) {
         (*this)[i++] = *ptr / f32_t(255);
@@ -386,6 +387,8 @@ export namespace fan {
 
   template <typename T>
   concept is_color = is_color_type_v<std::remove_cvref_t<T>>;
+
+  void lerp_pixels(std::vector<uint8_t>& dst, const std::vector<uint8_t>& target, f32_t t, uint8_t channels = 4);
 }
 
 #pragma pack(pop)

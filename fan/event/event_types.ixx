@@ -8,7 +8,7 @@ module;
 #undef min
 #undef max
 
-export module fan.event:types;
+export module fan.event.types;
 
 export namespace fan{
   constexpr int fs_o_append      = UV_FS_O_APPEND;
