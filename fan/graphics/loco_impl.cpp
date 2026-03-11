@@ -1137,8 +1137,8 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   settings_menu = new fan::graphics::gui::settings_menu_t;
   ((fan::graphics::gui::settings_menu_t*)settings_menu)->init_runtime();
   if (window.get_size() != open_props.window_size) {
-    window.set_position(((fan::graphics::gui::settings_menu_t*)settings_menu)->config.display.window_position);
-    window.set_size(open_props.window_size);
+   // window.set_position(((fan::graphics::gui::settings_menu_t*)settings_menu)->config.display.window_position);
+   // window.set_size(open_props.window_size);
   }
 #endif
 
@@ -1148,6 +1148,10 @@ loco_t::loco_t(const loco_t::properties_t& props) :
     fan::graphics::get_engine_init_cbs()[it](this);
     it = fan::graphics::get_engine_init_cbs().EndSafeNext();
   }
+}
+
+loco_t::loco_t(std::function<void()> loop_fn) : loco_t(properties_t()){
+  loop(loop_fn);
 }
 
 loco_t::~loco_t() {

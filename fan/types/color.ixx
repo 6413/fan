@@ -294,6 +294,9 @@ export namespace fan {
     }
 
     static fan::color hsv(f32_t H, f32_t S, f32_t V);
+    static fan::vec3 to_hsv(const fan::color& c);
+    fan::color shift_hue(f32_t degrees) const;
+
     static constexpr color rgb(cf_t r, cf_t g, cf_t b, cf_t a = 255) {
       return color(r / 255.f, g / 255.f, b / 255.f, a / 255.f);
     }
@@ -377,6 +380,8 @@ export namespace fan {
     fan::color color();
     // always makes one channel brightest and scales other channels accordingly
     fan::color bright_color();
+
+    fan::color color_near(const fan::color& base, f32_t hue_variance = 30.f, f32_t sv_variance = 15.f);
   }
 
   template <typename>

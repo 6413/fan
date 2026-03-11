@@ -579,6 +579,7 @@ export namespace fan::graphics::gui {
   using payload_t = ImGuiPayload;
   using storage_t = ImGuiStorage;
   using draw_data_t = ImDrawData;
+  using wcharacter_t = ImWchar;
 
   using u32_t = ImU32;
   using vec4_t = ImVec4;

@@ -587,6 +587,14 @@ namespace fan::graphics::gui {
     ImGui::SetTooltip("%.*s", (int)tooltip.size(), tooltip.data());
   }
 
+  void tooltip_on_hover(std::string_view text, const fan::color& color) {
+    if (!gui::is_item_hovered()) return;
+    gui::begin_tooltip();
+    gui::text(color, text);
+    gui::end_tooltip();
+  }
+
+
   bool begin_table(label_t str_id, int columns, table_flags_t flags, const fan::vec2& outer_size, f32_t inner_width) {
     return ImGui::BeginTable(fan::ct_string(str_id), columns, flags,
       outer_size, inner_width);
@@ -896,12 +904,22 @@ namespace fan::graphics::gui {
     return ImGui::Button(label, ImVec2(size.x, size.y));
   }
 
+  bool button(label_t label, const fan::vec2& size, f32_t font_size, bool bold) {
+    font_scope_t _(font_size, bold);
+    return button(label, size);
+  }
+
   bool invisible_button(label_t label, const fan::vec2& size) {
     return ImGui::InvisibleButton(label, ImVec2(size.x, size.y));
   }
 
   bool arrow_button(label_t label, dir_t dir) {
     return ImGui::ArrowButton(label, dir);
+  }
+
+  void text_sized(const std::string_view& str, f32_t font_size, bool bold) {
+    font_scope_t _(font_size, bold);
+    text(str);
   }
 
   void text_at(std::string_view text, const fan::vec2& position, const fan::color& color) {
@@ -1341,6 +1359,14 @@ namespace fan::graphics::gui {
     return get_font_impl(font_size, bold);
   }
 
+  font_scope_t::font_scope_t(f32_t size, bool bold) {
+    active = size > 0;
+    if (active) gui::push_font(gui::get_font(size, bold));
+  }
+  font_scope_t::~font_scope_t() {
+    if (active) gui::pop_font();
+  }
+
   void image(texture_id_t texture,
     const fan::vec2& size,
     const fan::vec2& uv0,
@@ -1421,6 +1447,12 @@ namespace fan::graphics::gui {
       }
     }
     return -1;
+  }
+  wcharacter_t get_char_pressed() {
+    auto& io = ImGui::GetIO();
+    if (io.InputQueueCharacters.Size > 0)
+      return io.InputQueueCharacters[0];
+    return 0;
   }
   void set_next_window_class(const class_t* c) {
     ImGui::SetNextWindowClass(static_cast<const ImGuiWindowClass*>(c));
@@ -1806,6 +1838,68 @@ namespace fan::graphics::gui {
     return static_cast<bool>(tbl);
   }
 
+  bool button_grid(
+    const char* const labels[],
+    int count,
+    int columns,
+    const fan::vec2& size,
+    std::function<void(int, const char*)> on_click
+  ) {
+    bool any = false;
+    for (int i = 0; i < count; ++i) {
+      if (gui::button(labels[i], size)) {
+        if (on_click) on_click(i, labels[i]);
+        any = true;
+      }
+      if (i != count - 1 && (i + 1) % columns != 0)
+        gui::same_line();
+    }
+    return any;
+  }
+  bool button_grid(
+    std::initializer_list<const char*> labels,
+    int columns,
+    const fan::vec2& size,
+    std::function<void(int, const char*)> on_click,
+    f32_t font_size,
+    bool bold) 
+  {
+    font_scope_t fs(font_size, bold);
+    bool any = false;
+    int i = 0;
+    for (const char* lbl : labels) {
+      if (button(lbl, size)) {
+        if (on_click) on_click(i, lbl);
+        any = true;
+      }
+      if (i != (int)labels.size() - 1 && (i + 1) % columns != 0) {
+        same_line();
+      }
+
+      ++i;
+    }
+    return any;
+  }
+  void button_row(std::initializer_list<const char*> labels, const fan::vec2& size, f32_t font_size, std::function<void(const char*)> on_click) {
+    for (const char* l : labels) {
+      same_line();
+      if (button(l, size, font_size)) on_click(l);
+    }
+  }
+  void button_layout(
+    std::initializer_list<std::initializer_list<const char*>> rows,
+    const fan::vec2& size,
+    f32_t font_size,
+    std::function<void(const char*)> on_click) {
+    for (auto& row : rows) {
+      bool first = true;
+      for (const char* l : row) {
+        if (!first) same_line();
+        if (button(l, size, font_size)) on_click(l);
+        first = false;
+      }
+    }
+  }
 } // namespace fan::graphics::gui
 
 namespace fan::graphics::gui::plot {

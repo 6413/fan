@@ -24,6 +24,18 @@ namespace fan {
     return fan::color(rgb[i][0] + m, rgb[i][1] + m, rgb[i][2] + m, 1.0f);
   }
 
+  fan::vec3 color::to_hsv(const fan::color& c) {
+    f32_t h, s, l;
+    rgb_to_hsl(c.r, c.g, c.b, h, s, l);
+    f32_t v = l + s * std::min(l, 1.f - l);
+    f32_t sv = v == 0.f ? 0.f : 2.f * (1.f - l / v);
+    return {h * 360.f, sv * 100.f, v * 100.f};
+  }
+
+  fan::color color::shift_hue(f32_t degrees) const {
+    return hue(degrees);
+  }
+
   color color::to_srgb(const color& c) {
     return color(
       linear_to_srgb_channel(c.r),
@@ -157,20 +169,31 @@ namespace fan {
     return os;
   }
 
-  fan::color random::color() {
-    return fan::color(
-      fan::random::value(0.f, 1.f),
-      fan::random::value(0.f, 1.f),
-      fan::random::value(0.f, 1.f),
-      1
-    );
-  }
+  namespace random {
+    fan::color color() {
+      return fan::color(
+        fan::random::value(0.f, 1.f),
+        fan::random::value(0.f, 1.f),
+        fan::random::value(0.f, 1.f),
+        1
+      );
+    }
 
-  fan::color random::bright_color() {
-    fan::color rand_color = fan::random::color();
-    f32_t max_channel = std::max({ rand_color.r, rand_color.g, rand_color.b });
-    return rand_color / max_channel;
-  }
+    fan::color color_near(const fan::color& base, f32_t hue_variance, f32_t sv_variance) {
+      fan::vec3 hsv = fan::color::to_hsv(base);
+      f32_t h = std::fmod(hsv.x + fan::random::value(-hue_variance, hue_variance) + 360.f, 360.f);
+      f32_t s = std::clamp(hsv.y + fan::random::value(-sv_variance, sv_variance), 0.f, 100.f);
+      f32_t v = std::clamp(hsv.z + fan::random::value(-sv_variance, sv_variance), 0.f, 100.f);
+      return fan::color::hsv(h, s, v);
+    }
+
+    fan::color bright_color() {
+      fan::color rand_color = fan::random::color();
+      f32_t max_channel = std::max({rand_color.r, rand_color.g, rand_color.b});
+      return rand_color / max_channel;
+    }
+
+  } // namespace random
 
   void lerp_pixels(std::vector<uint8_t>& dst, const std::vector<uint8_t>& target, f32_t t, uint8_t channels) {
     for (uint32_t i = 0; i < dst.size(); i++) {

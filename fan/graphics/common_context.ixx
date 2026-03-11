@@ -614,6 +614,7 @@ export namespace fan {
     bool is_input_clicked(const std::string& name);
     bool is_input_down(const std::string& name);
     bool is_input_released(const std::string& name);
+    char get_char_pressed();
   }
 }
 

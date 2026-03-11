@@ -1450,6 +1450,10 @@ namespace fan::graphics{
     if (get_position() == position) {
       return;
     }
+    if (get_position().z == position.z) {
+      set_position(fan::vec2(position)); // no need depth key update for nothing
+      return;
+    }
     g_shapes->shape_functions[get_shape_type()].set_position3(this, position);
     set_particle_pos(this, position);
     update_culling();
@@ -1494,7 +1498,7 @@ namespace fan::graphics{
     update_culling();
   }
   void shapes::shape_t::set_radius(f32_t radius) {
-    g_shapes->shape_functions[get_shape_type()].set_size(this, radius);
+    g_shapes->shape_functions[get_shape_type()].set_radius(this, radius);
     update_culling();
   }
   void shapes::shape_t::set_size3(const fan::vec3& size) {
