@@ -401,6 +401,7 @@ public:
 
   loco_t();
   loco_t(const properties_t& p);
+  loco_t(std::function<void()> loop_fn);
   ~loco_t();
 
   void destroy();

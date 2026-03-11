@@ -418,4 +418,7 @@ namespace fan::window {
   bool is_input_released(const std::string& name) {
     return fan::graphics::ctx().input_action->is_released(name);
   }
+  char get_char_pressed() {
+    return fan::graphics::ctx().window->get_char_pressed();
+  }
 }

@@ -1014,7 +1014,7 @@ export namespace fan::graphics {
         using type_t = circle_t;
 
         fan::vec3 position = 0;
-        f32_t radius = 0;
+        f32_t radius = 32;
         fan::vec2 rotation_point = 0;
         fan::color color = fan::colors::white;
         fan::vec3 angle = 0;

@@ -66,12 +66,14 @@ export namespace fan::graphics::gui {
   void pop_style_var(int n = 1);
 
   bool button(label_t label, const fan::vec2& size = fan::vec2(0, 0));
-  bool button(const fan::vec2& size = fan::vec2(0, 0));
+  bool button(label_t label, const fan::vec2& size, f32_t font_size, bool bold = false);
 
   bool invisible_button(label_t label, const fan::vec2& size = fan::vec2(0, 0));
   bool invisible_button(const fan::vec2& size = fan::vec2(0, 0));
 
   bool arrow_button(label_t label, dir_t dir);
+
+  void text_sized(const std::string_view& str, f32_t font_size, bool bold = false);
 
   /// <summary>
   /// Draws the specified text, with its position influenced by other GUI elements.
@@ -301,6 +303,12 @@ export namespace fan::graphics::gui {
 
   font_t* get_font(f32_t font_size, bool bold = false);
 
+  struct font_scope_t {
+    font_scope_t(f32_t size, bool bold = false);
+    ~font_scope_t();
+    bool active = false;
+  };
+
   void image(
     texture_id_t texture,
     const fan::vec2& size,
@@ -356,6 +364,7 @@ export namespace fan::graphics::gui {
 
   int is_key_clicked(key_t key, bool repeat = true);
   int get_pressed_key();
+  wcharacter_t get_char_pressed();
 
   void set_next_window_class(const class_t* c);
 
@@ -628,6 +637,8 @@ export namespace fan::graphics::gui {
 
   void set_tooltip(std::string_view tooltip);
 
+  void tooltip_on_hover(std::string_view text, const fan::color& color = fan::colors::white);
+
   bool begin_table(label_t str_id, int columns, table_flags_t flags = 0, const fan::vec2& outer_size = fan::vec2(0.0f, 0.0f), f32_t inner_width = 0.0f);
 
   void end_table();
@@ -792,7 +803,7 @@ export namespace fan::graphics::gui {
   }
 
   template<typename T>
-    requires (!std::convertible_to<T*, label_t>)
+  requires (!std::convertible_to<T*, label_t>)
   bool slider(T* v, auto v_min, auto v_max, slider_flags_t flags = 0) {
     push_id(v);
     bool changed = slider("##", v, v_min, v_max, flags);
@@ -801,7 +812,7 @@ export namespace fan::graphics::gui {
   }
 
   template<typename T>
-    requires (!std::convertible_to<T*, label_t>)
+  requires (!std::convertible_to<T*, label_t>)
   bool slider(T* v, slider_flags_t flags = 0) {
     push_id(v);
     bool changed = slider("##", v, flags);
@@ -881,6 +892,33 @@ export namespace fan::graphics::gui {
     return changed;
   }
 
+  bool button_grid(
+    const char* const labels[],
+    int count,
+    int columns,
+    const fan::vec2& size = {60, 60},
+    std::function<void(int, const char*)> on_click = nullptr
+  );
+  bool button_grid(
+    std::initializer_list<const char*> labels,
+    int columns,
+    const fan::vec2& size,
+    std::function<void(int, const char*)> on_click,
+    f32_t font_size = 0,
+    bool bold = false
+  );
+  void button_row(
+    std::initializer_list<const char*> labels,
+    const fan::vec2& size,
+    f32_t font_size,
+    std::function<void(const char*)> on_click
+  );
+  void button_layout(
+    std::initializer_list<std::initializer_list<const char*>> rows,
+    const fan::vec2& size,
+    f32_t font_size,
+    std::function<void(const char*)> on_click
+  );
 } // namespace fan::graphics::gui
 
 export namespace fan::graphics::gui::plot {
@@ -1075,7 +1113,6 @@ export namespace fan::graphics::gui {
     fan::audio::piece_t piece_click = fan::audio::piece_invalid,
     const fan::vec2& size = fan::vec2(0, 0)
   );
-
 } // namespace fan::graphics::gui
 #endif
 
