@@ -1140,6 +1140,63 @@ export namespace fan::graphics {
     };
   }
 
+  template<typename user_shape_t, typename sim_data_t, int n>
+  struct particle_pool_t {
+    struct particle_t : sim_data_t {
+      shape_t shape;
+    };
+
+    particle_pool_t() {
+      for (int i = 0; i < n; ++i) {
+        new (&slots[i].shape) user_shape_t {{
+          .position = fan::vec3(-99999, -99999, 0xfff),
+          .radius = 0.f,
+          .color = fan::colors::white
+        }};
+        next[i] = i + 1;
+        active[i] = false;
+      }
+      next[n - 1] = -1;
+      free_head = 0;
+    }
+
+    template<typename shape_props_t, typename sim_init_fn_t>
+    particle_t* spawn(shape_props_t&& shape_fn, sim_init_fn_t&& sim_fn) {
+      int i = free_head;
+      if (i == -1) return nullptr;
+      free_head = next[i];
+
+      auto& p = slots[i];
+      shape_fn(p.shape);
+      sim_fn(static_cast<sim_data_t&>(p));
+
+      active[i] = true;
+      return &p;
+    }
+
+    template<typename update_fn_t>
+    void update_and_cull(f32_t dt, update_fn_t&& fn) {
+      for (int i = 0; i < n; ++i) {
+        if (!active[i]) continue;
+
+        bool alive = fn(slots[i], dt);
+        if (!alive) {
+          slots[i].shape.set_radius(0.f);
+          slots[i].shape.set_position(fan::vec3(-99999, -99999, 0xfff));
+
+          active[i] = false;
+          next[i] = free_head;
+          free_head = i;
+        }
+      }
+    }
+
+    particle_t slots[n];
+    int next[n];
+    bool active[n] = {};
+    int free_head = 0;
+  };
+
   enum class polyline_join_t {
     miter,
     bevel,
@@ -1187,6 +1244,112 @@ export namespace fan::graphics {
     fan::vec2 tile_size,
     fan::vec2 world_size
   );
+
+  template<typename T, int N>
+  struct shape_pool_t {
+    shape_pool_t() {
+      shapes.reserve(N);
+      for (int i = 0; i < N; ++i) {
+        shapes.push_back(T {{
+          .position = fan::vec3(-99999, -99999, 0xfff),
+          .radius = 0.f,
+          .color = fan::colors::white
+        }});
+        next[i] = i + 1;
+      }
+      next[N - 1] = -1;
+      free_head = 0;
+    }
+    int acquire() {
+      if (free_head == -1) return -1;
+      int i = free_head;
+      free_head = next[i];
+      return i;
+    }
+    void release(int i) {
+      shapes[i].set_radius(0.f);
+      shapes[i].set_position(fan::vec3(-99999, -99999, 0xfff));
+      next[i] = free_head;
+      free_head = i;
+    }
+    T& operator[](int i) { return shapes[i]; }
+    int size() const { return N; }
+
+    std::vector<T> shapes;
+    int next[N];
+    int free_head = 0;
+  };
+  template<typename pool_t, typename fn_t>
+  void emit_radial(pool_t& pool, fan::vec2 pos, int count, f32_t speed_min, f32_t speed_max, fn_t&& per_particle) {
+    for (int i = 0; i < count; ++i) {
+      f32_t angle = fan::random::value(0.f, fan::math::pi * 2.f);
+      f32_t speed = fan::random::value(speed_min, speed_max);
+      fan::vec2 vel = {std::cos(angle) * speed, std::sin(angle) * speed};
+      per_particle(pool, pos, vel);
+    }
+  }
+
+  struct trail_particle_t {
+    fan::vec2 pos;
+    fan::vec2 vel;
+    f32_t life;
+    f32_t max_life;
+    f32_t base_radius;
+    f32_t render_radius;
+    f32_t render_alpha;
+  };
+
+  struct trail_particle_updater_t {
+    trail_particle_updater_t(f32_t gravity = 0.f, int z = 0)
+      : gravity(gravity), z(z) {}
+
+    template<typename T>
+    bool operator()(T& t, f32_t dt) const {
+      t.life -= dt;
+      if (t.life <= 0.f) return false;
+
+      t.vel.y += gravity * dt;
+      t.pos += t.vel * dt;
+
+      f32_t frac = std::max(0.f, t.life / t.max_life);
+
+      t.shape.set_position(fan::vec3(t.pos, z));
+      t.shape.set_radius(t.base_radius * (0.3f + frac * 0.7f));
+
+      fan::color c = t.shape.get_color();
+      c.a = frac * 0.8f;
+      t.shape.set_color(c);
+
+      return true;
+    }
+
+    f32_t gravity;
+    int z;
+  };
+
+
+  template<typename pool_t>
+  void spawn_trail(pool_t& pool, fan::vec2 pos, fan::vec2 parent_vel, fan::color col, f32_t radius, f32_t lifetime, int z) {
+    pool.spawn(
+      [&](shape_t& shape) {
+      fan::color tc = col; tc.a = 0.8f;
+      shape.set_position(fan::vec3(pos, z));
+      shape.set_radius(radius);
+      shape.set_color(tc);
+    },
+      [&](fan::graphics::trail_particle_t& s) {
+      s.pos = pos;
+      s.vel = parent_vel * 0.08f + fan::vec2 {
+        fan::random::value(-60.f, 60.f),
+        fan::random::value(-60.f, 60.f)
+      };
+      s.life = s.max_life = lifetime;
+      s.base_radius = radius;
+      s.render_radius = radius;
+      s.render_alpha = 0.8f;
+    }
+    );
+  }
 }
 
 #endif

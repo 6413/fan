@@ -326,6 +326,21 @@ static void set_colors(shape_t* s, const std::array<fan::color, 4>& v) {
   }
 }
 
+template<typename shape_type>
+static void generic_set_radius(shape_t* s, f32_t v) {
+  using props_t = typename shape_type::properties_t;
+  if constexpr (requires { std::declval<props_t>().radius; }) {
+    if constexpr (requires { typename shape_type::vi_t; }) {
+      using vi_t = typename shape_type::vi_t;
+      if constexpr (requires { std::declval<vi_t>().radius; }) {
+        set_with_sync<shape_type>(s, v, &props_t::radius, &vi_t::radius, false);
+      } else {
+        set_with_sync<shape_type>(s, v, &props_t::radius, nullptr, false);
+      }
+    }
+  }
+}
+
 using get_colors_fn_t = std::array<fan::color,4> (*)(const shape_t*);
 using set_colors_fn_t = void (*)(shape_t*, const std::array<fan::color,4>&);
 
@@ -364,6 +379,7 @@ X(set_parallax_factor, void(*)(shape_t*, f32_t)) \
 X(get_flags, uint32_t(*)(const shape_t*)) \
 X(set_flags, void(*)(shape_t*, uint32_t)) \
 X(get_radius, f32_t(*)(const shape_t*)) \
+X(set_radius, void(*)(shape_t*, f32_t)) \
 X(get_src, fan::vec3(*)(const shape_t*)) \
 X(get_dst, fan::vec2(*)(const shape_t*)) \
 X(get_outline_size, f32_t(*)(const shape_t*)) \
@@ -426,6 +442,7 @@ vtables_storage[shape_type_t::shape_name].set_grid_size = generic_set_grid_size<
 vtables_storage[shape_type_t::shape_name].get_visible = generic_get_visible<shape_name##_t>; \
 vtables_storage[shape_type_t::shape_name].set_visible = generic_set_visible<shape_name##_t>; \
 vtables_storage[shape_type_t::shape_name].get_radius = get_radius; \
+vtables_storage[shape_type_t::shape_name].set_radius = generic_set_radius<shape_name##_t>; \
 vtables_storage[shape_type_t::shape_name].get_src = generic_get_src<shape_name##_t>; \
 vtables_storage[shape_type_t::shape_name].get_dst = generic_get_dst<shape_name##_t>; \
 vtables_storage[shape_type_t::shape_name].get_outline_size = generic_get_outline_size<shape_name##_t>; \

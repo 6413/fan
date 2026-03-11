@@ -121,6 +121,7 @@ namespace fan::window {
 
   void text_callback(GLFWwindow* wnd, unsigned int codepoint) {
     fan::window_t* window = (fan::window_t*)glfwGetWindowUserPointer(wnd);
+    window->char_pressed = codepoint;
     auto it = window->m_text_callback.GetNodeFirst();
 
     while (it != window->m_text_callback.dst) {
@@ -489,6 +490,7 @@ namespace fan {
     last_frame_time = current_frame_time;
 
     std::memcpy(prev_key_states, key_states, sizeof(key_states));
+    char_pressed = 0;
     glfwPollEvents();
     handle_key_states();
     return 0;
@@ -1022,4 +1024,7 @@ bool fan::window_t::is_gamepad_axis_active(int key) {
 fan::vec2 fan::window_t::get_current_gamepad_axis(int key) {
   if (!this) return fan::vec2(0, 0);
   return get_gamepad_axis(key);
+}
+char fan::window_t::get_char_pressed() const {
+  return char_pressed < 128 ? static_cast<char>(char_pressed) : 0;
 }

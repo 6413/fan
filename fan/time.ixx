@@ -224,5 +224,21 @@ export namespace fan {
       last_time = last_time * (finished ^ 1) + current * finished;
       return finished;
     }
+
+    struct interval_t {
+      interval_t() = default;
+      interval_t(f32_t interval) : interval(interval) {}
+      bool tick(f32_t dt) {
+        timer -= dt;
+        if (timer <= 0.f) {
+          timer += interval;
+          return true;
+        }
+        return false;
+      }
+      void reset() { timer = 0.f; }
+      f32_t interval = 0.f;
+      f32_t timer = 0.f;
+    };
   }
 }

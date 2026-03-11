@@ -35,6 +35,7 @@ export namespace fan {
     t.size(); 
     t[0]; 
   } && (!std::is_same_v<T, std::string>) 
+    && (!std::is_same_v<T, std::string_view>)
     && (!is_bitset<std::remove_cvref_t<T>>::value);
 
   template <typename T>
@@ -290,6 +291,13 @@ export namespace fan {
       last = key;
       std::cout << key << std::endl;
     }
+  }
+
+  std::string format_number(f64_t v) {
+    std::string s = std::to_string(v);
+    while (s.back() == '0' && s.find('.') != std::string::npos) s.pop_back();
+    if (s.back() == '.') s.pop_back();
+    return s;
   }
 
   namespace debug {

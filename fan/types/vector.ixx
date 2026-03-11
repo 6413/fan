@@ -573,3 +573,12 @@ namespace std {
 
   fan_vector_types(fan_gen_all_hashes)
 }
+
+export namespace fan::math {
+  fan::vec2 launch_to_target(fan::vec2 start, fan::vec2 target, f32_t gravity) {
+    f32_t dy = target.y - start.y;
+    f32_t vy = -std::sqrt(std::max(0.f, 2.f * gravity * std::abs(dy)));
+    f32_t t = -vy / gravity;
+    return {t > 0.f ? (target.x - start.x) / t : 0.f, vy};
+  }
+}

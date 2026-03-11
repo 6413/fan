@@ -1,6 +1,3 @@
-
-
-
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/videoio/videoio.hpp>
@@ -22,100 +19,56 @@ import fan;
 DEFINE_GUID(CLSID_DShowSoftcam,
 0xaef3b972, 0x5fa5, 0x4647, 0x95, 0x71, 0x35, 0x8e, 0xb4, 0x72, 0xbc, 0x9e);
 
-
 namespace {
-
-  // Setup data
-
   const wchar_t FILTER_NAME[] = L"fan virtual camera";
   const GUID& FILTER_CLASSID = CLSID_DShowSoftcam;
 
-  const AMOVIESETUP_MEDIATYPE s_pin_types[] =
-  {
+  const AMOVIESETUP_MEDIATYPE s_pin_types[] = {
+    { &MEDIATYPE_Video, &MEDIASUBTYPE_NULL }
+  };
+
+  const AMOVIESETUP_PIN s_pins[] = {
     {
-      &MEDIATYPE_Video,       // Major type
-      &MEDIASUBTYPE_NULL      // Minor type
+      const_cast<LPWSTR>(L"Output"),
+      FALSE, TRUE, FALSE, FALSE,
+      &CLSID_NULL, NULL,
+      1, s_pin_types
     }
   };
 
-  const AMOVIESETUP_PIN s_pins[] =
-  {
-    {
-      const_cast<LPWSTR>(L"Output"),  // Pin string name
-      FALSE,                  // Is it rendered
-      TRUE,                   // Is it an output
-      FALSE,                  // Can we have none
-      FALSE,                  // Can we have many
-      &CLSID_NULL,            // Connects to filter
-      NULL,                   // Connects to pin
-      1,                      // Number of types
-      s_pin_types             // Pin details
-    }
-  };
+  const REGFILTER2 s_reg_filter2 = { 1, MERIT_DO_NOT_USE, 1, s_pins };
 
-  const REGFILTER2 s_reg_filter2 =
-  {
-    1,
-    MERIT_DO_NOT_USE,
-    1,
-    s_pins
-  };
-
-  CUnknown* WINAPI CreateSoftcamInstance(LPUNKNOWN lpunk, HRESULT* phr)
-  {
+  CUnknown* WINAPI CreateSoftcamInstance(LPUNKNOWN lpunk, HRESULT* phr) {
     return softcam::Softcam::CreateInstance(lpunk, FILTER_CLASSID, phr);
   }
-
 } // namespace
 
-// COM global table of objects in this dll
-
-CFactoryTemplate g_Templates[] =
-{
-  {
-    FILTER_NAME,
-    &FILTER_CLASSID,
-    &CreateSoftcamInstance,
-    NULL,
-    nullptr
-  }
+CFactoryTemplate g_Templates[] = {
+  { FILTER_NAME, &FILTER_CLASSID, &CreateSoftcamInstance, NULL, nullptr }
 };
 int g_cTemplates = sizeof(g_Templates) / sizeof(g_Templates[0]);
 
-
-STDAPI DllRegisterServer()
-{
+STDAPI DllRegisterServer() {
   HRESULT hr = AMovieDllRegisterServer2(TRUE);
-  if (FAILED(hr))
-  {
+  if (FAILED(hr)) {
     return hr;
   }
   hr = CoInitialize(nullptr);
-  if (FAILED(hr))
-  {
+  if (FAILED(hr)) {
     return hr;
   }
-  do
-  {
+  do {
     IFilterMapper2* pFM2 = nullptr;
     hr = CoCreateInstance(
-            CLSID_FilterMapper2, nullptr, CLSCTX_INPROC_SERVER,
-            IID_IFilterMapper2, (void**)&pFM2);
-    if (FAILED(hr))
-    {
+      CLSID_FilterMapper2, nullptr, CLSCTX_INPROC_SERVER,
+      IID_IFilterMapper2, (void**)&pFM2);
+    if (FAILED(hr)) {
       break;
     }
-    pFM2->UnregisterFilter(
-            &CLSID_VideoInputDeviceCategory,
-            0,
-            FILTER_CLASSID);
+    pFM2->UnregisterFilter(&CLSID_VideoInputDeviceCategory, 0, FILTER_CLASSID);
     hr = pFM2->RegisterFilter(
-            FILTER_CLASSID,
-            FILTER_NAME,
-            0,
-            &CLSID_VideoInputDeviceCategory,
-            FILTER_NAME,
-            &s_reg_filter2);
+      FILTER_CLASSID, FILTER_NAME, 0,
+      &CLSID_VideoInputDeviceCategory, FILTER_NAME, &s_reg_filter2);
     pFM2->Release();
   } while (0);
   CoFreeUnusedLibraries();
@@ -123,32 +76,25 @@ STDAPI DllRegisterServer()
   return hr;
 }
 
-STDAPI DllUnregisterServer()
-{
+STDAPI DllUnregisterServer() {
   HRESULT hr = AMovieDllRegisterServer2(FALSE);
-  if (FAILED(hr))
-  {
+  if (FAILED(hr)) {
     return hr;
   }
   hr = CoInitialize(nullptr);
-  if (FAILED(hr))
-  {
+  if (FAILED(hr)) {
     return hr;
   }
-  do
-  {
+  do {
     IFilterMapper2* pFM2 = nullptr;
     hr = CoCreateInstance(
-            CLSID_FilterMapper2, nullptr, CLSCTX_INPROC_SERVER,
-            IID_IFilterMapper2, (void**)&pFM2);
-    if (FAILED(hr))
-    {
+      CLSID_FilterMapper2, nullptr, CLSCTX_INPROC_SERVER,
+      IID_IFilterMapper2, (void**)&pFM2);
+    if (FAILED(hr)) {
       break;
     }
     hr = pFM2->UnregisterFilter(
-            &CLSID_VideoInputDeviceCategory,
-            FILTER_NAME,
-            FILTER_CLASSID);
+      &CLSID_VideoInputDeviceCategory, FILTER_NAME, FILTER_CLASSID);
     pFM2->Release();
   } while (0);
   CoFreeUnusedLibraries();
@@ -158,51 +104,43 @@ STDAPI DllUnregisterServer()
 
 extern "C" BOOL WINAPI DllEntryPoint(HINSTANCE, ULONG, LPVOID);
 
-BOOL APIENTRY DllMain(HANDLE hModule, DWORD  dwReason, LPVOID lpReserved)
-{
+BOOL APIENTRY DllMain(HANDLE hModule, DWORD dwReason, LPVOID lpReserved) {
   return DllEntryPoint((HINSTANCE)(hModule), dwReason, lpReserved);
 }
 
-
-extern "C" scCamera scCreateCamera(int width, int height, float framerate)
-{
+extern "C" scCamera scCreateCamera(int width, int height, f32_t framerate) {
   return softcam::sender::CreateCamera(width, height, framerate);
 }
-
-extern "C" void     scDeleteCamera(scCamera camera)
-{
+extern "C" void scDeleteCamera(scCamera camera) {
   return softcam::sender::DeleteCamera(camera);
 }
-
-extern "C" void     scSendFrame(scCamera camera, const void* image_bits)
-{
+extern "C" void scSendFrame(scCamera camera, const void* image_bits) {
   return softcam::sender::SendFrame(camera, image_bits);
 }
-
-extern "C" bool     scWaitForConnection(scCamera camera, float timeout)
-{
+extern "C" bool scWaitForConnection(scCamera camera, f32_t timeout) {
   return softcam::sender::WaitForConnection(camera, timeout);
 }
 
 int main() {
-  loco_t loco{ {.window_size = 800} };
+  static constexpr int cam_width = 1920;
+  static constexpr int cam_height = 1080;
+  static constexpr fan::vec2 cam_size = fan::vec2(cam_width, cam_height);
 
+  loco_t loco{ {.window_size = cam_size} };
 
   fan::image::info_t ii;
   ii.size = loco.window.get_current_monitor_resolution();
   ii.data = 0;
 
-  fan::graphics::image_t image;
   fan::graphics::image_load_properties_t lp;
   lp.internal_format = fan::graphics::image_format_e::rgb_unorm;
   lp.format = fan::graphics::image_format_e::bgr_unorm;
-  image = loco.image_load(ii, lp);
 
-  fan::vec2 window_size = loco.window.get_size();
+  fan::graphics::image_t image = loco.image_load(ii, lp);
 
   fan::graphics::sprite_t s{{
-    .position = fan::vec3(window_size / 2.f, 100),
-    .size = window_size / 2,
+    .position = fan::vec3(cam_size / 2.f, 100),
+    .size = cam_size / 2.f,
     .image = image,
     .blending = true
   }};
@@ -212,126 +150,39 @@ int main() {
       gloco()->orthographic_render_view.viewport,
       fan::vec2(0, 0),
       d.size
-      );
+    );
   });
 
   cv::VideoCapture capture(0);
-
   if (!capture.isOpened()) {
     fan::throw_error("Error: Could not open the camera.");
   }
-
-  cv::Mat frame;
-
+  capture.set(cv::CAP_PROP_FRAME_WIDTH, cam_size.x);
+  capture.set(cv::CAP_PROP_FRAME_HEIGHT, cam_size.y);
+  fan::print(capture.get(cv::CAP_PROP_FRAME_WIDTH), capture.get(cv::CAP_PROP_FRAME_HEIGHT));
   loco.set_vsync(false);
 
-  scCamera cam = scCreateCamera(800, 800, 30);
+  scCamera cam = scCreateCamera(cam_width, cam_height, 30);
 
   fan::time::timer camera_fps;
   camera_fps.start(66.33e+6);
-  cv::Mat flipped;
 
-  uint8_t* pixels = new uint8_t[loco.window.get_size().multiply() * 4];
+  uint8_t* pixels = new uint8_t[cam_width * cam_height * 4];
 
-  //fan::graphics::text_t t{{
-  //    .text = "hello from fan"
-  //  }};
-
-
-
- /* static constexpr int wall_count = 4;
-  fan::graphics::collider_static_t walls[wall_count];
-  for (int i = 0; i < wall_count; ++i) {
-    f32_t angle = 2 * fan::math::pi * i / wall_count;
-    static constexpr int outline = 1.01;
-    int x = std::cos(angle) / outline;
-    int y = std::sin(angle) / outline;
-    walls[i] = fan::graphics::rectangle_t{{
-        .position = fan::vec2(x, y),
-        .size = fan::vec2(
-          std::abs(x) == 0 ? 1 : 0.1,
-          std::abs(y) == 0 ? 1 : 0.1
-        ),
-      .color = fan::colors::red / 2
-      }};
-  }
-
-
-  std::vector<fan::graphics::collider_dynamic_t> balls;
-  static constexpr int ball_count = 30;
-  balls.reserve(ball_count);
-  for (int i = 0; i < ball_count; ++i) {
-    balls.push_back(fan::graphics::letter_t{{
-        .color = fan::random::color(),
-        .position = fan::vec3(fan::random::vec2(-0.8, 0.8), 0),
-        .font_size = 0.1,
-        .letter_id = fan::random::string(1).get_utf8(0)
-      }});
-    balls.back().set_velocity(fan::random::vec2_direction(-1, 1) * 2);
-  }
-
-  fan::graphics::bcol.PreSolve_Shape_cb = [](
-    bcol_t* bcol,
-    const bcol_t::ShapeInfoPack_t* sip0,
-    const bcol_t::ShapeInfoPack_t* sip1,
-    bcol_t::Contact_Shape_t* Contact
-    ) {
-      if (sip0->ShapeEnum == sip1->ShapeEnum) {
-        bcol->Contact_Shape_DisableContact(Contact);
-        return;
-      }
-
-      fan::vec2 velocity = bcol->GetObject_Velocity(sip0->ObjectID);
-      fan::vec2 p0 = bcol->GetObject_Position(sip0->ObjectID);
-      fan::vec2 p1 = bcol->GetObject_Position(sip1->ObjectID);
-      fan::vec2 wall_size = bcol->GetShape_Rectangle_Size(bcol->GetObjectExtraData(sip1->ObjectID)->shape_id);
-
-      fan::vec2 reflection = fan::math::reflection_no_rot(velocity, p0, p1, wall_size);
-
-      auto nr = gloco()->m_write_queue.write_queue.NewNodeFirst();
-      gloco()->m_write_queue.write_queue[nr].cb = [oid = sip0->ObjectID, reflection] {
-        fan::graphics::bcol.SetObject_Velocity(oid, reflection);
-        };
-    };*/
-
- // f32_t angle = 0;
-
-  auto walls = fan::graphics::physics::create_stroked_rectangle(window_size / 2, window_size / 4, 10.f);
-
-  //fan::graphics::image_t duck_image{ "images/duck.webp" };
-  //fan::graphics::physics::circle_sprite_t duck{ {
-  //  .position = fan::vec3(window_size / 2, 200),
-  //  .size = 128,
-  //  .image = duck_image,
-  //  .body_type = fan::physics::body_type_e::dynamic_body,
-  //  .shape_properties{.restitution=1.0}
-  //} };
+  auto walls = fan::graphics::physics::create_stroked_rectangle(cam_size / 2, cam_size / 4, 10.f);
 
   loco.physics_context.set_gravity(0);
-  
-
-  f32_t z = 0;
 
   loco.draw_end_cb.emplace_back([&] {
     auto pixel_data = loco.image_get_pixel_data(loco.gl.color_buffers[0], fan::graphics::image_format_e::rgba_unorm);
     std::memcpy(pixels, pixel_data.data(), pixel_data.size());
   });
+
   loco.update_physics(true);
   loco.loop([&] {
-    if (fan::window::is_mouse_clicked()) {
-   //   duck.set_linear_velocity(fan::random::vec2(-200, 200));
-   //   duck.set_angular_velocity(0.01);
-    }
-    //duck.set_angle(fan::vec3(0, 0, z));
-    //z += loco.delta_time;
-    //int idx = 0;
-    //for (auto& i : balls) {
-    //  i.set_position(i.get_collider_position());
-    //  i.set_angle(angle + idx);
-    //}
-    //angle += loco.get_delta_time();
     if (camera_fps.finished()) {
       do {
+        cv::Mat frame;
         capture >> frame;
         if (frame.empty()) {
           break;
@@ -339,30 +190,22 @@ int main() {
         ii.data = frame.data;
         ii.size = fan::vec2(frame.cols, frame.rows);
 
-        
-
-        cv::Mat image_rgb;
-        cv::Mat resized_bgr;
-
-        cv::Mat image_rgba(800, 800, CV_8UC4, pixels);
-        // Convert RGBA to RGB
+        cv::Mat image_rgb, flipped_image;
+        cv::Mat image_rgba(cam_height, cam_width, CV_8UC4, pixels);
         cv::cvtColor(image_rgba, image_rgb, cv::COLOR_RGBA2BGR);
-        cv::resize(image_rgb, resized_bgr, cv::Size(800, 800));
-        cv::Mat flipped_image;
-        cv::flip(image_rgb, flipped_image, 0);
+
+        cv::Mat resized_bgr;
+        cv::resize(image_rgb, resized_bgr, cv::Size(cam_width, cam_height));
+        cv::flip(resized_bgr, flipped_image, 0);
 
         scSendFrame(cam, flipped_image.data);
 
-
-
         loco.image_unload(image);
         image = loco.image_load(ii, lp);
-
       } while (0);
       camera_fps.restart();
     }
-    
   });
-  delete pixels;
 
+  delete[] pixels;
 }

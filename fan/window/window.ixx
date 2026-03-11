@@ -376,6 +376,8 @@ export namespace fan {
     bool is_gamepad_axis_active(int key);
     fan::vec2 get_current_gamepad_axis(int key);
 
+    char get_char_pressed() const;
+
     uint8_t renderer = renderer_t::opengl;
     double last_frame_time = glfwGetTime();
     f64_t m_delta_time = 1.0 / 256.0;
@@ -412,5 +414,7 @@ export namespace fan {
 
     fan::vec2 drag_delta_start = -1;
     uint8_t display_mode = (uint8_t)mode::windowed;
+
+    uint32_t char_pressed = 0;
   };
 }

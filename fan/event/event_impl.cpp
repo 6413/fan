@@ -69,7 +69,7 @@ namespace fan::event {
       if (data->co_handle) {
         data->co_handle();
       }
-      }, timeout, repeat);
+    }, timeout, repeat);
   }
 
   error_code_t timer_t::again() noexcept {
