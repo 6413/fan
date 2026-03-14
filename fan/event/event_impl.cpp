@@ -334,37 +334,6 @@ namespace fan::event {
     uv_timer_stop(&timer);
   }
 
-  fan::event::task_value_resume_t<void> wait_fd(loop_t loop, int fd, int events) {
-    fd_waiter_t waiter;
-    waiter.poll_handle.data = &waiter;
-    int result = uv_poll_init(loop, &waiter.poll_handle, fd);
-    if (result != 0) {
-      throw std::runtime_error("Failed to init poll handle");
-    }
-    result = uv_poll_start(&waiter.poll_handle, events, [](uv_poll_t* handle, int status, int events) {
-      auto* waiter = static_cast<fd_waiter_t*>(handle->data);
-      waiter->ready = true;
-      waiter->events_received = events;
-      uv_poll_stop(handle);
-      if (waiter->co_handle) {
-        waiter->co_handle();
-      }
-      });
-    if (result != 0) {
-      throw std::runtime_error("Failed to start poll");
-    }
-    if (!waiter.ready) {
-      struct awaiter {
-        fd_waiter_t* w;
-        bool await_ready() const { return w->ready; }
-        void await_suspend(std::coroutine_handle<> h) { w->co_handle = h; }
-        void await_resume() const {}
-      };
-      co_await awaiter{ &waiter };
-    }
-    uv_close(reinterpret_cast<uv_handle_t*>(&waiter.poll_handle), nullptr);
-  }
-
   void sleep(unsigned int msec) {
     uv_sleep(msec);
   }
@@ -380,6 +349,26 @@ namespace fan::event {
   std::string strerror(int err) {
     return uv_strerror(err);
   }
+
+  poll_awaitable_t::poll_awaitable_t(loop_t loop, int fd, int events) {
+    poll_handle.data = this;
+    uv_poll_init(loop, &poll_handle, fd);
+    uv_poll_start(&poll_handle, events, [](uv_poll_t* handle, int, int events) {
+      auto* self = static_cast<poll_awaitable_t*>(handle->data);
+      self->events_received = events;
+      self->ready = true;
+      uv_poll_stop(handle);
+      if (self->co_handle) self->co_handle();
+    });
+  }
+
+  bool poll_awaitable_t::await_ready() const noexcept { return ready; }
+
+  void poll_awaitable_t::await_suspend(std::coroutine_handle<> h) noexcept { co_handle = h; }
+
+  int poll_awaitable_t::await_resume() noexcept { return events_received; }
+
+  poll_awaitable_t poll_task(loop_t loop, int fd, int events) { return poll_awaitable_t(loop, fd, events); }
 }
 
 namespace fan::io {

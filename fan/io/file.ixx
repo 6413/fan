@@ -80,7 +80,26 @@ export namespace fan {
 
       using fs_mode = decltype(std::ios_base::binary | std::ios_base::app);
 
-      bool write(std::string path, const std::string& data, fs_mode mode);
+      template <path_t P>
+      bool write(P&& path, const std::string& data, fs_mode mode) {
+        std::string p;
+
+        if constexpr (std::is_same_v<std::remove_cvref_t<P>, std::filesystem::path>) {
+          p = path.string();
+        }
+        else {
+          p = std::string {path};
+        }
+
+        std::ofstream ofile(p.c_str(), mode);
+        if (ofile.fail()) {
+          fan::print_warning("failed to write to:" + p);
+          return false;
+        }
+
+        ofile.write(data.data(), data.size());
+        return !ofile.fail();
+      }
       
       template <typename T>
       void write(
@@ -308,5 +327,11 @@ export namespace fan {
     else {
       fan::io::file::write(f, (uint8_t*)&o, sizeof(o), 1);
     }
+  }
+}
+
+export namespace fan::path {
+  inline std::string join(const std::string& dir, const std::string& file) {
+    return (std::filesystem::path(dir.empty() ? "." : dir) / file).string();
   }
 }

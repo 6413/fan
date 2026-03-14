@@ -234,4 +234,18 @@ export namespace fan {
 
   template <std::size_t M>
   xor_string_t(const char(&)[M]) -> xor_string_t<M>;
+
+  struct str_view_t : std::string_view {
+    using std::string_view::string_view;
+
+    str_view_t(const char* s) : std::string_view(s) {}
+    str_view_t(std::string_view s) : std::string_view(s) {}
+    str_view_t(const std::string&) = delete;
+    str_view_t(std::string&) = delete;
+    str_view_t(std::string&&) = delete;
+
+    operator const char* () const {
+      return data();
+    }
+  };
 }

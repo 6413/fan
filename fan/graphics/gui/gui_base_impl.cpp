@@ -251,7 +251,7 @@ namespace fan::graphics::gui {
     }
   }
 
-  bool begin(label_t window_name, bool* p_open, window_flags_t flags) {
+  bool begin(str_view_t window_name, bool* p_open, window_flags_t flags) {
     bool is_topmost = flags & window_flags_topmost;
     flags &= ~window_flags_topmost;
 
@@ -282,7 +282,7 @@ namespace fan::graphics::gui {
     ImGui::End();
   }
 
-  bool begin_child(label_t window_name, const fan::vec2& size, child_window_flags_t child_window_flags, window_flags_t window_flags) {
+  bool begin_child(str_view_t window_name, const fan::vec2& size, child_window_flags_t child_window_flags, window_flags_t window_flags) {
     return ImGui::BeginChild(fan::ct_string(window_name),
       ImVec2(size.x, size.y),
       child_window_flags,
@@ -293,7 +293,7 @@ namespace fan::graphics::gui {
     ImGui::EndChild();
   }
 
-  bool begin_tab_item(label_t label, bool* p_open, window_flags_t window_flags) {
+  bool begin_tab_item(str_view_t label, bool* p_open, window_flags_t window_flags) {
     return ImGui::BeginTabItem(label, p_open, window_flags);
   }
 
@@ -301,7 +301,7 @@ namespace fan::graphics::gui {
     ImGui::EndTabItem();
   }
 
-  bool begin_tab_bar(label_t tab_bar_name, window_flags_t window_flags) {
+  bool begin_tab_bar(str_view_t tab_bar_name, window_flags_t window_flags) {
     return ImGui::BeginTabBar(fan::ct_string(tab_bar_name), window_flags);
   }
 
@@ -325,7 +325,7 @@ namespace fan::graphics::gui {
     ImGui::EndMenuBar();
   }
 
-  bool begin_menu(label_t label, bool enabled) {
+  bool begin_menu(str_view_t label, bool enabled) {
     return ImGui::BeginMenu(label, enabled);
   }
 
@@ -341,7 +341,7 @@ namespace fan::graphics::gui {
     ImGui::EndGroup();
   }
 
-  void table_setup_column(label_t label, table_column_flags_t flags, f32_t init_width_or_weight, id_t user_id) {
+  void table_setup_column(str_view_t label, table_column_flags_t flags, f32_t init_width_or_weight, id_t user_id) {
     ImGui::TableSetupColumn(label, flags, init_width_or_weight, user_id);
   }
 
@@ -365,7 +365,7 @@ namespace fan::graphics::gui {
     return init_width + get_style().CellPadding.x * 2.f + get_style().FramePadding.x;
   }
 
-  bool collapsing_header(label_t label, bool* p_open, tree_node_flags_t flags) {
+  bool collapsing_header(str_view_t label, bool* p_open, tree_node_flags_t flags) {
     return ImGui::CollapsingHeader(label, p_open, flags);
   }
 
@@ -389,12 +389,12 @@ namespace fan::graphics::gui {
     ImGui::ShowDebugLogWindow(p_open);
   }
 
-  bool menu_item(label_t label, std::string_view shortcut, bool selected, bool enabled) {
+  bool menu_item(str_view_t label, std::string_view shortcut, bool selected, bool enabled) {
     const char* sc = shortcut.empty() ? nullptr : shortcut.data();
     return ImGui::MenuItem(label, sc, selected, enabled);
   }
 
-  bool begin_combo(label_t label, std::string_view preview_value, int flags) {
+  bool begin_combo(str_view_t label, std::string_view preview_value, int flags) {
     return ImGui::BeginCombo(label, fan::ct_string(preview_value), flags);
   }
 
@@ -402,7 +402,7 @@ namespace fan::graphics::gui {
     ImGui::EndCombo();
   }
 
-  window_t::window_t(label_t window_name, bool* p_open, window_flags_t window_flags)
+  window_t::window_t(str_view_t window_name, bool* p_open, window_flags_t window_flags)
     : is_open(begin(window_name, p_open, window_flags)) {}
 
   window_t::~window_t() {
@@ -413,7 +413,7 @@ namespace fan::graphics::gui {
     return is_open;
   }
 
-  child_window_t::child_window_t(label_t window_name, const fan::vec2& size, child_window_flags_t window_flags)
+  child_window_t::child_window_t(str_view_t window_name, const fan::vec2& size, child_window_flags_t window_flags)
     : is_open(begin_child(window_name, size, window_flags)) {}
 
   child_window_t::~child_window_t() {
@@ -424,7 +424,7 @@ namespace fan::graphics::gui {
     return is_open;
   }
 
-  table_t::table_t(label_t str_id, int columns, table_flags_t flags, const fan::vec2& outer_size, f32_t inner_width)
+  table_t::table_t(str_view_t str_id, int columns, table_flags_t flags, const fan::vec2& outer_size, f32_t inner_width)
     : is_open(begin_table(str_id, columns, flags, outer_size, inner_width)) {}
 
   table_t::~table_t() {
@@ -472,11 +472,11 @@ namespace fan::graphics::gui {
     return fan::vec2(p.x, p.y);
   }
 
-  bool selectable(label_t label, bool selected, selectable_flag_t flags, const fan::vec2& size) {
+  bool selectable(str_view_t label, bool selected, selectable_flag_t flags, const fan::vec2& size) {
     return ImGui::Selectable(label, selected, flags, ImVec2(size.x, size.y));
   }
 
-  bool selectable(label_t label, bool* p_selected, selectable_flag_t flags, const fan::vec2& size) {
+  bool selectable(str_view_t label, bool* p_selected, selectable_flag_t flags, const fan::vec2& size) {
     return ImGui::Selectable(label, p_selected, flags, ImVec2(size.x, size.y));
   }
 
@@ -524,7 +524,7 @@ namespace fan::graphics::gui {
     ImGui::SetCursorScreenPos(pos);
   }
 
-  void push_id(label_t str_id) {
+  void push_id(str_view_t str_id) {
     ImGui::PushID(fan::ct_string(str_id));
   }
 
@@ -595,7 +595,7 @@ namespace fan::graphics::gui {
   }
 
 
-  bool begin_table(label_t str_id, int columns, table_flags_t flags, const fan::vec2& outer_size, f32_t inner_width) {
+  bool begin_table(str_view_t str_id, int columns, table_flags_t flags, const fan::vec2& outer_size, f32_t inner_width) {
     return ImGui::BeginTable(fan::ct_string(str_id), columns, flags,
       outer_size, inner_width);
   }
@@ -770,7 +770,7 @@ namespace fan::graphics::gui {
     ImGui::SetNextWindowFocus();
   }
 
-  void set_window_focus(label_t name) {
+  void set_window_focus(str_view_t name) {
     ImGui::SetWindowFocus(fan::ct_string(name));
   }
 
@@ -900,20 +900,28 @@ namespace fan::graphics::gui {
     ImGui::PopStyleVar(n);
   }
 
-  bool button(label_t label, const fan::vec2& size) {
+  bool button(str_view_t label, const fan::vec2& size) {
     return ImGui::Button(label, ImVec2(size.x, size.y));
   }
 
-  bool button(label_t label, const fan::vec2& size, f32_t font_size, bool bold) {
+  bool button(str_view_t label, const fan::vec2& size, f32_t font_size, bool bold) {
     font_scope_t _(font_size, bold);
     return button(label, size);
   }
 
-  bool invisible_button(label_t label, const fan::vec2& size) {
+  bool button_fill(str_view_t label) {
+    return button(label, {-1.f, 0.f});
+  }
+
+  f32_t calc_button_width(str_view_t label) {
+    return calc_text_size(label).x + get_style().FramePadding.x * 2;
+  }
+
+  bool invisible_button(str_view_t label, const fan::vec2& size) {
     return ImGui::InvisibleButton(label, ImVec2(size.x, size.y));
   }
 
-  bool arrow_button(label_t label, dir_t dir) {
+  bool arrow_button(str_view_t label, dir_t dir) {
     return ImGui::ArrowButton(label, dir);
   }
 
@@ -1057,7 +1065,7 @@ namespace fan::graphics::gui {
     return calc_item_width();
   }
 
-  bool input_text(label_t label, std::string* buf, input_text_flags_t flags, input_text_callback_t callback, void* user_data) {
+  bool input_text(str_view_t label, std::string* buf, input_text_flags_t flags, input_text_callback_t callback, void* user_data) {
     IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
     flags |= ImGuiInputTextFlags_CallbackResize;
     detail::input_text_callback_user_data_t cb_user_data;
@@ -1072,7 +1080,7 @@ namespace fan::graphics::gui {
       &cb_user_data);
   }
 
-  bool input_text_multiline(label_t label, std::string* buf, const fan::vec2& size, input_text_flags_t flags, input_text_callback_t callback, void* user_data) {
+  bool input_text_multiline(str_view_t label, std::string* buf, const fan::vec2& size, input_text_flags_t flags, input_text_callback_t callback, void* user_data) {
     IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
     flags |= ImGuiInputTextFlags_CallbackResize;
     detail::input_text_callback_user_data_t cb_user_data;
@@ -1088,47 +1096,47 @@ namespace fan::graphics::gui {
       &cb_user_data);
   }
 
-  bool input_float(label_t label, f32_t* v, f32_t step, f32_t step_fast, const char* format, input_text_flags_t flags) {
+  bool input_float(str_view_t label, f32_t* v, f32_t step, f32_t step_fast, const char* format, input_text_flags_t flags) {
     return ImGui::InputFloat(label, v, step, step_fast, format, flags);
   }
 
-  bool input_float(label_t label, fan::vec2* v, const char* format, input_text_flags_t flags) {
+  bool input_float(str_view_t label, fan::vec2* v, const char* format, input_text_flags_t flags) {
     return ImGui::InputFloat2(label, v->data(), format, flags);
   }
 
-  bool input_float(label_t label, fan::vec3* v, const char* format, input_text_flags_t flags) {
+  bool input_float(str_view_t label, fan::vec3* v, const char* format, input_text_flags_t flags) {
     return ImGui::InputFloat3(label, v->data(), format, flags);
   }
 
-  bool input_float(label_t label, fan::vec4* v, const char* format, input_text_flags_t flags) {
+  bool input_float(str_view_t label, fan::vec4* v, const char* format, input_text_flags_t flags) {
     return ImGui::InputFloat4(label, v->data(), format, flags);
   }
 
-  bool input_int(label_t label, int* v, int step, int step_fast, input_text_flags_t flags) {
+  bool input_int(str_view_t label, int* v, int step, int step_fast, input_text_flags_t flags) {
     return ImGui::InputInt(label, v, step, step_fast, flags);
   }
 
-  bool input_int(label_t label, fan::vec2i* v, input_text_flags_t flags) {
+  bool input_int(str_view_t label, fan::vec2i* v, input_text_flags_t flags) {
     return ImGui::InputInt2(label, v->data(), flags);
   }
 
-  bool input_int(label_t label, fan::vec3i* v, input_text_flags_t flags) {
+  bool input_int(str_view_t label, fan::vec3i* v, input_text_flags_t flags) {
     return ImGui::InputInt3(label, v->data(), flags);
   }
 
-  bool input_int(label_t label, fan::vec4i* v, input_text_flags_t flags) {
+  bool input_int(str_view_t label, fan::vec4i* v, input_text_flags_t flags) {
     return ImGui::InputInt4(label, v->data(), flags);
   }
 
-  bool color_edit3(label_t label, fan::color* color, color_edit_flags_t flags) {
+  bool color_edit3(str_view_t label, fan::color* color, color_edit_flags_t flags) {
     return ImGui::ColorEdit3(label, color->data(), flags);
   }
 
-  bool color_edit3(label_t label, fan::vec3* color, color_edit_flags_t flags) {
+  bool color_edit3(str_view_t label, fan::vec3* color, color_edit_flags_t flags) {
     return ImGui::ColorEdit3(label, color->data(), flags);
   }
 
-  bool color_edit4(label_t label, fan::color* color, gui::color_edit_flags_t flags) {
+  bool color_edit4(str_view_t label, fan::color* color, gui::color_edit_flags_t flags) {
     bool init_once = flags & gui::color_edit_flags_init_once;
     auto imgui_flags = (ImGuiColorEditFlags)(flags & ~gui::color_edit_flags_init_once);
 
@@ -1227,7 +1235,7 @@ namespace fan::graphics::gui {
     return ImGui::GetIO();
   }
 
-  bool tree_node_ex(label_t label, tree_node_flags_t flags) {
+  bool tree_node_ex(str_view_t label, tree_node_flags_t flags) {
     return ImGui::TreeNodeEx(label, flags);
   }
 
@@ -1235,7 +1243,7 @@ namespace fan::graphics::gui {
     ImGui::TreePop();
   }
 
-  bool tree_node(label_t label) {
+  bool tree_node(str_view_t label) {
     return ImGui::TreeNode(label);
   }
 
@@ -1246,6 +1254,20 @@ namespace fan::graphics::gui {
   void dummy(const fan::vec2& size) {
     ImGui::Dummy(ImVec2(size.x, size.y));
   }
+
+  void fill_width() { set_next_item_width(-1); }
+  void fill_width_except(str_view_t next_label) {
+    auto& style = get_style();
+    float bw = calc_text_size(next_label).x + style.FramePadding.x * 2;
+    float avail = get_content_region_avail().x;
+    set_next_item_width(avail - bw - style.ItemSpacing.x);
+  }
+  f32_t fill_width_between(f32_t left_w, f32_t right_w) {
+    auto& s = get_style();
+    return get_content_region_avail().x - left_w - right_w - s.ItemSpacing.x * 2;
+  }
+  f32_t calc_item_spacing_x() { return get_style().ItemSpacing.x; }
+  void spacing(f32_t px) { dummy({0, px}); }
 
   draw_list_t* get_window_draw_list() {
     return ImGui::GetWindowDrawList();
@@ -1263,19 +1285,19 @@ namespace fan::graphics::gui {
     return ImGui::GetCurrentWindow();
   }
 
-  bool combo(label_t label, int* current_item, const char* const items[], int items_count, int popup_max_height_in_items) {
+  bool combo(str_view_t label, int* current_item, const char* const items[], int items_count, int popup_max_height_in_items) {
     return ImGui::Combo(label, current_item, items, items_count, popup_max_height_in_items);
   }
 
-  bool combo(label_t label, int* current_item, const char* items_separated_by_zeros, int popup_max_height_in_items) {
+  bool combo(str_view_t label, int* current_item, const char* items_separated_by_zeros, int popup_max_height_in_items) {
     return ImGui::Combo(label, current_item, items_separated_by_zeros, popup_max_height_in_items);
   }
 
-  bool combo(label_t label, int* current_item, const char* (*getter)(void* user_data, int idx), void* user_data, int items_count, int popup_max_height_in_items) {
+  bool combo(str_view_t label, int* current_item, const char* (*getter)(void* user_data, int idx), void* user_data, int items_count, int popup_max_height_in_items) {
     return ImGui::Combo(label, current_item, getter, user_data, items_count, popup_max_height_in_items);
   }
 
-  bool checkbox(label_t label, bool* v) {
+  bool checkbox(str_view_t label, bool* v) {
     return ImGui::Checkbox(label, v);
   }
 
@@ -1286,19 +1308,19 @@ namespace fan::graphics::gui {
     return ret;
   }
 
-  bool list_box(label_t label, int* current_item, bool (*old_callback)(void* user_data, int idx, const char** out_text), void* user_data, int items_count, int height_in_items) {
+  bool list_box(str_view_t label, int* current_item, bool (*old_callback)(void* user_data, int idx, const char** out_text), void* user_data, int items_count, int height_in_items) {
     return ImGui::ListBox(label, current_item, old_callback, user_data, items_count, height_in_items);
   }
 
-  bool list_box(label_t label, int* current_item, const char* const items[], int items_count, int height_in_items) {
+  bool list_box(str_view_t label, int* current_item, const char* const items[], int items_count, int height_in_items) {
     return ImGui::ListBox(label, current_item, items, items_count, height_in_items);
   }
 
-  bool list_box(label_t label, int* current_item, const char* (*getter)(void* user_data, int idx), void* user_data, int items_count, int height_in_items) {
+  bool list_box(str_view_t label, int* current_item, const char* (*getter)(void* user_data, int idx), void* user_data, int items_count, int height_in_items) {
     return ImGui::ListBox(label, current_item, getter, user_data, items_count, height_in_items);
   }
 
-  bool toggle_button(label_t str, bool* v) {
+  bool toggle_button(str_view_t str, bool* v) {
     return detail::toggle_button_impl(fan::ct_string(str), v);
   }
 
@@ -1317,7 +1339,7 @@ namespace fan::graphics::gui {
     return pos;
   }
 
-  void send_drag_drop_item(label_t id, const std::wstring& path, label_t popup) {
+  void send_drag_drop_item(str_view_t id, const std::wstring& path, str_view_t popup) {
     if (ImGui::BeginDragDropSource()) {
       ImGui::SetDragDropPayload(fan::ct_string(id), path.c_str(), (path.size() + 1) * sizeof(wchar_t));
       if (!popup.empty()) {
@@ -1327,23 +1349,23 @@ namespace fan::graphics::gui {
     }
   }
 
-  void receive_drag_drop_target(label_t id, std::function<void(std::string)> receive_func) {
+  void receive_drag_drop_target(str_view_t id, std::function<void(std::string)> receive_func) {
     detail::receive_drag_drop_target_impl(fan::ct_string(id), std::move(receive_func));
   }
 
-  bool slider_scalar(label_t label, data_type_t data_type, void* p_data, const void* p_min, const void* p_max, const char* format, slider_flags_t flags) {
+  bool slider_scalar(str_view_t label, data_type_t data_type, void* p_data, const void* p_min, const void* p_max, const char* format, slider_flags_t flags) {
     return ImGui::SliderScalar(label, data_type, p_data, p_min, p_max, format, flags);
   }
 
-  bool slider_scalar_n(label_t label, data_type_t data_type, void* p_data, int components, const void* p_min, const void* p_max, const char* format, slider_flags_t flags) {
+  bool slider_scalar_n(str_view_t label, data_type_t data_type, void* p_data, int components, const void* p_min, const void* p_max, const char* format, slider_flags_t flags) {
     return ImGui::SliderScalarN(label, data_type, p_data, components, p_min, p_max, format, flags);
   }
 
-  bool drag_scalar(label_t label, data_type_t data_type, void* p_data, f32_t v_speed, const void* p_min, const void* p_max, const char* format, slider_flags_t flags) {
+  bool drag_scalar(str_view_t label, data_type_t data_type, void* p_data, f32_t v_speed, const void* p_min, const void* p_max, const char* format, slider_flags_t flags) {
     return ImGui::DragScalar(label, data_type, p_data, v_speed, p_min, p_max, format, flags);
   }
 
-  bool drag_scalar_n(label_t label, data_type_t data_type, void* p_data, int components, f32_t v_speed, const void* p_min, const void* p_max, const char* format, slider_flags_t flags) {
+  bool drag_scalar_n(str_view_t label, data_type_t data_type, void* p_data, int components, f32_t v_speed, const void* p_min, const void* p_max, const char* format, slider_flags_t flags) {
     return ImGui::DragScalarN(label, data_type, p_data, components, v_speed, p_min, p_max, format, flags);
   }
 
@@ -1391,7 +1413,7 @@ namespace fan::graphics::gui {
     image(tex, size, uv0, uv1, tint_col, border_col);
   }
 
-  bool image_button(label_t str_id,
+  bool image_button(str_view_t str_id,
     fan::graphics::image_t img,
     const fan::vec2& size,
     const fan::vec2& uv0,
@@ -1414,7 +1436,7 @@ namespace fan::graphics::gui {
     return detail::image_text_button_impl(img, fan::ct_string(text), color, size, uv0, uv1, frame_padding, bg_col, tint_col);
   }
 
-  bool image_button(label_t str_id,
+  bool image_button(str_view_t str_id,
     texture_id_t texture,
     const fan::vec2& size,
     const fan::vec2& uv0,
@@ -1462,7 +1484,7 @@ namespace fan::graphics::gui {
     return ImGui::BeginDragDropSource();
   }
 
-  bool set_drag_drop_payload(label_t type, const void* data, size_t sz, cond_t cond) {
+  bool set_drag_drop_payload(str_view_t type, const void* data, size_t sz, cond_t cond) {
     return ImGui::SetDragDropPayload(fan::ct_string(type), data, sz, cond);
   }
 
@@ -1474,7 +1496,7 @@ namespace fan::graphics::gui {
     return ImGui::BeginDragDropTarget();
   }
 
-  const payload_t* accept_drag_drop_payload(label_t type) {
+  const payload_t* accept_drag_drop_payload(str_view_t type) {
     return ImGui::AcceptDragDropPayload(fan::ct_string(type));
   }
 
@@ -1486,11 +1508,11 @@ namespace fan::graphics::gui {
     return ImGui::GetDragDropPayload();
   }
 
-  bool begin_popup(label_t id, window_flags_t flags) {
+  bool begin_popup(str_view_t id, window_flags_t flags) {
     return ImGui::BeginPopup(fan::ct_string(id), flags);
   }
 
-  bool begin_popup_modal(label_t id, window_flags_t flags) {
+  bool begin_popup_modal(str_view_t id, window_flags_t flags) {
     return ImGui::BeginPopupModal(fan::ct_string(id), nullptr, flags);
   }
 
@@ -1498,7 +1520,7 @@ namespace fan::graphics::gui {
     ImGui::EndPopup();
   }
 
-  void open_popup(label_t id) {
+  void open_popup(str_view_t id) {
     ImGui::OpenPopup(fan::ct_string(id));
   }
 
@@ -1506,11 +1528,11 @@ namespace fan::graphics::gui {
     ImGui::CloseCurrentPopup();
   }
 
-  bool is_popup_open(label_t id) {
+  bool is_popup_open(str_view_t id) {
     return ImGui::IsPopupOpen(fan::ct_string(id));
   }
 
-  id_t get_id(label_t str_id) {
+  id_t get_id(str_view_t str_id) {
     return ImGui::GetID(fan::ct_string(str_id));
   }
 
@@ -1795,17 +1817,22 @@ namespace fan::graphics::gui {
     ImGui::SetAllocatorFunctions(dynamic_malloc, dynamic_free);
   }
 
-  window::window(label_t title, window_flags_t flags)
+  window::window(str_view_t title, window_flags_t flags)
     : wnd(title, nullptr, flags) {}
 
-  window::window(label_t title, bool* p_open, window_flags_t flags)
+  window::window(str_view_t title, bool* p_open, window_flags_t flags)
     : wnd(title, p_open, flags) {}
 
   window::operator bool() const {
     return static_cast<bool>(wnd);
   }
 
-  hud::hud(label_t name, bool* p_open)
+  child_window::child_window(str_view_t id, const fan::vec2& size, bool border, window_flags_t flags)
+    : visible(ImGui::BeginChild(id, size, border, flags)) {}
+  child_window::operator bool() const { return visible; }
+  child_window::~child_window() { ImGui::EndChild(); }
+
+  hud::hud(str_view_t name, bool* p_open)
     : wnd(
       (
         gui::set_next_window_pos(gui::get_viewport_rect().position),
@@ -1827,7 +1854,7 @@ namespace fan::graphics::gui {
     return static_cast<bool>(wnd);
   }
 
-  table::table(label_t str_id,
+  table::table(str_view_t str_id,
     int columns,
     table_flags_t flags,
     const fan::vec2& outer_size,
@@ -1836,6 +1863,40 @@ namespace fan::graphics::gui {
 
   table::operator bool() const {
     return static_cast<bool>(tbl);
+  }
+
+  gui::window fullscreen_window(str_view_t id, window_flags_t extra_flags) {
+    auto* vp = gui::get_main_viewport();
+
+    gui::set_next_window_pos(vp->Pos);
+    gui::set_next_window_size(vp->Size);
+
+    static constexpr int base_flags =
+      gui::window_flags_no_move |
+      gui::window_flags_no_collapse |
+      gui::window_flags_no_resize |
+      gui::window_flags_no_title_bar;
+
+    return gui::window(id, base_flags | extra_flags);
+  }
+
+  gui::window centered_window(
+    str_view_t id,
+    fan::vec2 size,
+    bool* open,
+    window_flags_t extra_flags
+  ) {
+    auto* vp = gui::get_main_viewport();
+
+    fan::vec2 pos = {
+      vp->Pos.x + (vp->Size.x - size.x) * 0.5f,
+      vp->Pos.y + (vp->Size.y - size.y) * 0.5f
+    };
+
+    gui::set_next_window_pos(pos, gui::cond_appearing);
+    gui::set_next_window_size(size, gui::cond_appearing);
+
+    return gui::window(id, open, extra_flags);
   }
 
   bool button_grid(
@@ -1904,7 +1965,7 @@ namespace fan::graphics::gui {
 
 namespace fan::graphics::gui::plot {
 
-  bool begin_plot(label_t title, const fan::vec2& size, flags_t flags) {
+  bool begin_plot(str_view_t title, const fan::vec2& size, flags_t flags) {
     return ImPlot::BeginPlot(fan::ct_string(title), ImVec2(size.x, size.y), flags);
   }
 
@@ -1912,11 +1973,11 @@ namespace fan::graphics::gui::plot {
     ImPlot::EndPlot();
   }
 
-  void setup_axes(label_t x_label, label_t y_label, axis_flags_t x_flags, axis_flags_t y_flags) {
+  void setup_axes(str_view_t x_label, str_view_t y_label, axis_flags_t x_flags, axis_flags_t y_flags) {
     ImPlot::SetupAxes(fan::ct_string(x_label), fan::ct_string(y_label), x_flags, y_flags);
   }
 
-  void setup_axis(axis_t axis, label_t label, axis_flags_t flags) {
+  void setup_axis(axis_t axis, str_view_t label, axis_flags_t flags) {
     ImPlot::SetupAxis(axis, label, flags);
   }
 
@@ -1948,39 +2009,39 @@ namespace fan::graphics::gui::plot {
     ImPlot::SetupFinish();
   }
 
-  void plot_line(label_t label, const std::vector<f32_t>& values, double x_scale, double x_start, line_flags_t flags) {
+  void plot_line(str_view_t label, const std::vector<f32_t>& values, double x_scale, double x_start, line_flags_t flags) {
     ImPlot::PlotLine(label, values.data(), (int)values.size(), x_scale, x_start, flags);
   }
 
-  void plot_line(label_t label, const std::vector<f32_t>& xs, const std::vector<f32_t>& ys, line_flags_t flags) {
+  void plot_line(str_view_t label, const std::vector<f32_t>& xs, const std::vector<f32_t>& ys, line_flags_t flags) {
     ImPlot::PlotLine(label, xs.data(), ys.data(), (int)xs.size(), flags);
   }
 
-  void plot_line(label_t label, const f32_t* xs, const f32_t* ys, int count, line_flags_t flags) {
+  void plot_line(str_view_t label, const f32_t* xs, const f32_t* ys, int count, line_flags_t flags) {
     ImPlot::PlotLine(label, xs, ys, count, flags);
   }
 
-  void plot_scatter(label_t label, const std::vector<f32_t>& values, double x_scale, double x_start, scatter_flags_t flags) {
+  void plot_scatter(str_view_t label, const std::vector<f32_t>& values, double x_scale, double x_start, scatter_flags_t flags) {
     ImPlot::PlotScatter(label, values.data(), (int)values.size(), x_scale, x_start, flags);
   }
 
-  void plot_scatter(label_t label, const std::vector<f32_t>& xs, const std::vector<f32_t>& ys, scatter_flags_t flags) {
+  void plot_scatter(str_view_t label, const std::vector<f32_t>& xs, const std::vector<f32_t>& ys, scatter_flags_t flags) {
     ImPlot::PlotScatter(label, xs.data(), ys.data(), (int)xs.size(), flags);
   }
 
-  void plot_scatter(label_t label, const f32_t* xs, const f32_t* ys, int count, scatter_flags_t flags) {
+  void plot_scatter(str_view_t label, const f32_t* xs, const f32_t* ys, int count, scatter_flags_t flags) {
     ImPlot::PlotScatter(label, xs, ys, count, flags);
   }
 
-  void plot_bars(label_t label, const std::vector<f32_t>& values, double bar_size, double shift, bars_flags_t flags) {
+  void plot_bars(str_view_t label, const std::vector<f32_t>& values, double bar_size, double shift, bars_flags_t flags) {
     ImPlot::PlotBars(label, values.data(), (int)values.size(), bar_size, shift, flags);
   }
 
-  void plot_bars(label_t label, const std::vector<f32_t>& xs, const std::vector<f32_t>& ys, double bar_size, bars_flags_t flags) {
+  void plot_bars(str_view_t label, const std::vector<f32_t>& xs, const std::vector<f32_t>& ys, double bar_size, bars_flags_t flags) {
     ImPlot::PlotBars(label, xs.data(), ys.data(), (int)xs.size(), bar_size, flags);
   }
 
-  void plot_shaded(label_t label, const std::vector<f32_t>& xs, const std::vector<f32_t>& ys, double y_ref, int flags) {
+  void plot_shaded(str_view_t label, const std::vector<f32_t>& xs, const std::vector<f32_t>& ys, double y_ref, int flags) {
     ImPlot::PlotShaded(label, xs.data(), ys.data(), (int)xs.size(), y_ref, flags);
   }
 
@@ -2074,7 +2135,7 @@ namespace fan::graphics::gui::plot {
     ImPlot::PlotText(fan::ct_string(text), x, y, ImVec2(pix_offset.x, pix_offset.y), flags);
   }
 
-  void plot_dummy(label_t label_id, int flags) {
+  void plot_dummy(str_view_t label_id, int flags) {
     ImPlot::PlotDummy(fan::ct_string(label_id), flags);
   }
 
@@ -2108,7 +2169,7 @@ namespace fan::graphics::gui::plot {
 
 #if defined(FAN_AUDIO)
 namespace fan::graphics::gui {
-  bool audio_button(label_t label, fan::audio::piece_t piece_hover, fan::audio::piece_t piece_click, const fan::vec2& size) {
+  bool audio_button(str_view_t label, fan::audio::piece_t piece_hover, fan::audio::piece_t piece_click, const fan::vec2& size) {
     return detail::audio_button_impl(label, piece_hover, piece_click, size);
   }
 }

@@ -147,16 +147,6 @@ std::uint64_t fan::io::file::size(const std::string& filename) {
   return f.tellg();
 }
 
-bool fan::io::file::write(std::string path, const std::string& data, fs_mode mode) {
-  std::ofstream ofile(path.c_str(), mode);
-  if (ofile.fail()) {
-    fan::print_warning("failed to write to:" + path);
-    return 0;
-  }
-  ofile.write(data.c_str(), data.size());
-  return 1;
-}
-
 std::vector<std::string> fan::io::file::read_line(const std::string& path) {
   std::ifstream file(path.c_str(), std::ifstream::binary);
   if (file.fail()) {

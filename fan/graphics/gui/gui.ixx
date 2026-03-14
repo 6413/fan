@@ -22,6 +22,7 @@ export module fan.graphics.gui;
   import fan.types.quaternion;
   import fan.types.fstring;
   import fan.types.json;
+  import fan.types.compile_time_string;
   import fan.utility;
   import fan.event;
   import fan.fmt;
@@ -92,7 +93,7 @@ export namespace fan::graphics::gui {
   void set_viewport(const fan::graphics::render_view_t& render_view = fan::graphics::get_orthographic_render_view());
 
   
-  bool toggle_image_button(fan::graphics::gui::label_t char_id, fan::graphics::image_t image, const fan::vec2& size, bool* toggle);
+  bool toggle_image_button(fan::str_view_t char_id, fan::graphics::image_t image, const fan::vec2& size, bool* toggle);
 
   template <std::size_t N>
   bool toggle_image_button(const std::array<fan::graphics::image_t, N>& images, const fan::vec2& size, int* selectedIndex)
@@ -431,7 +432,7 @@ export namespace fan::graphics::gui {
     int get_button_choice();
 
     fan::event::task_t wait_user_input();
-    void render(fan::graphics::gui::label_t window_name, font_t* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing, const std::function<void()>& inside_window_cb = []{});
+    void render(fan::str_view_t window_name, font_t* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing, const std::function<void()>& inside_window_cb = []{});
 
     void clear();
 
@@ -464,14 +465,14 @@ export namespace fan::graphics::gui {
   void render_texture_property(
     fan::graphics::shape_t& shape,
     int index,
-    fan::graphics::gui::label_t label,
+    fan::str_view_t label,
     const std::wstring& asset_path = L"./",
     f32_t image_size = 64.f,
     const char* receive_drag_drop_target_name = "CONTENT_BROWSER_ITEMS"
   );
   void render_image_filter_property(
     fan::graphics::shape_t& shape,
-    fan::graphics::gui::label_t label
+    fan::str_view_t label
   );
 }
 /*

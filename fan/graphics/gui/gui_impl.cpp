@@ -97,7 +97,7 @@ namespace fan::graphics::gui {
     );
   }
 
-  bool toggle_image_button(fan::graphics::gui::label_t char_id, fan::graphics::image_t image, const fan::vec2& size, bool* toggle) {
+  bool toggle_image_button(fan::str_view_t char_id, fan::graphics::image_t image, const fan::vec2& size, bool* toggle) {
     bool clicked = false;
 
     fan::color tintColor = fan::color(1, 1, 1, 1);
@@ -1845,7 +1845,7 @@ namespace fan::graphics::gui {
     }
   }
 
-  void dialogue_box_t::render(fan::graphics::gui::label_t window_name, font_t* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing, const std::function<void()>& inside_window_cb) {
+  void dialogue_box_t::render(fan::str_view_t window_name, font_t* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing, const std::function<void()>& inside_window_cb) {
     push_font(font);
 
     fan::vec2 root_window_size = get_window_size();
@@ -2006,7 +2006,7 @@ namespace fan::graphics::gui {
   void render_texture_property(
     fan::graphics::shape_t& shape, 
     int index, 
-    fan::graphics::gui::label_t label,
+    fan::str_view_t label,
     const std::wstring& asset_path,
     f32_t image_size,
     const char* receive_drag_drop_target_name
@@ -2037,7 +2037,7 @@ namespace fan::graphics::gui {
   }
   void render_image_filter_property(
     fan::graphics::shape_t& shape, 
-    fan::graphics::gui::label_t label
+    fan::str_view_t label
   ) {
     using namespace fan::graphics;
 
