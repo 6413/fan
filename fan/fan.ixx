@@ -47,3 +47,5 @@ export import fan.event;
   export import fan.physics.b2_integration;
   export import fan.graphics.physics_shapes;
 #endif
+
+  export import fan.process;

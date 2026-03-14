@@ -263,7 +263,6 @@ export namespace fan::event {
     int events_received = 0;
   };
 
-  fan::event::task_value_resume_t<void> wait_fd(loop_t loop, int fd, int events);
   void sleep(unsigned int msec);
   void loop(fan::event::loop_t loop = fan::event::get_loop(), bool once = false);
   uint64_t now();
@@ -277,6 +276,21 @@ export namespace fan::event {
       std::apply(cb, args);
     }).detach();
   }
+
+  struct poll_awaitable_t {
+    poll_awaitable_t(loop_t loop, int fd, int events);
+
+    bool await_ready() const noexcept;
+    void await_suspend(std::coroutine_handle<> h) noexcept;
+    int await_resume() noexcept;
+
+    uv_poll_t poll_handle;
+    std::coroutine_handle<> co_handle = nullptr;
+    bool ready = false;
+    int events_received = 0;
+  };
+
+  poll_awaitable_t poll_task(loop_t loop, int fd, int events);
 }
 
 export namespace fan {

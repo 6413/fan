@@ -199,17 +199,24 @@ export namespace fan {
   constexpr void print_no_space(const Args&... args) {
     std::cout << format_args_no_space(args...) << '\n';
   }
-  void print_success(const std::string& message) {
+  template <typename ...Args>
+  void print_success(const Args&... args) {
+    std::string message = format_args(args...);
+    write_error_to_disk(message);
     print_color(fan::colors::green, message);
   }
-  void print_warning(const std::string& message) {
+  template <typename ...Args>
+  void print_warning(const Args&... args) {
   #ifndef fan_disable_warnings
+    std::string message = format_args(args...);
     write_error_to_disk(message);
     print_color(fan::colors::yellow, message);
   #endif
   }
-  void print_error(const std::string& message) {
+  template <typename ...Args>
+  void print_error(const Args&... args) {
   #ifndef fan_disable_errors
+    std::string message = format_args(args...);
     write_error_to_disk(message);
     print_color(fan::colors::red, message);
   #endif

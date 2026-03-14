@@ -30,6 +30,7 @@ export import fan.graphics.algorithm.raycast_grid;
 export import fan.graphics.algorithm.pathfind;
 export import fan.event;
 export import fan.math;
+import fan.log_dispatcher;
 
 #if defined(FAN_JSON)
   import fan.types.json;
@@ -108,6 +109,17 @@ export namespace fan {
   #if defined(FAN_GUI)
     printclh(fan::graphics::highlight_e::warning, values...);
   #endif
+  }
+}
+
+export namespace fan::graphics::gui {
+  fan::log_dispatcher_t default_logger() {
+    return fan::log_dispatcher_t {}
+      .on("ERROR:", [](std::string_view l) { fan::printcl_err(l); })
+      .on("error:", [](std::string_view l) { fan::printcl_err(l); })
+      .on("WARNING:", [](std::string_view l) { fan::printcl_warn(l); })
+      .on("warning:", [](std::string_view l) { fan::printcl_warn(l); })
+      .otherwise([](std::string_view l) { fan::printcl(l); });
   }
 }
 

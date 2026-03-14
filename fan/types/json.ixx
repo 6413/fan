@@ -14,6 +14,8 @@ export module fan.types.json;
 
 import fan.types.vector;
 import fan.types.color;
+import fan.types.compile_time_string;
+import fan.io.file;
 
 export {
   namespace fan {
@@ -256,6 +258,41 @@ export {
       template<typename T>
       void set(const char* key, const T& val) {
         (*this)[key] = val;
+      }
+      static json load_file(fan::str_view_t path) {
+        std::string raw;
+
+        if (fan::io::file::read(path, &raw)) {
+          return json::object();
+        }
+
+        try {
+          return json::parse(raw);
+        }
+        catch (...) {
+          return json::object();
+        }
+      }
+      static bool save_file(fan::str_view_t path, const json& j, int indent = 2) {
+        return fan::io::file::write(
+          path,
+          j.dump(indent),
+          std::ios_base::binary
+        ) == 0;
+      }
+      bool save(fan::str_view_t path, int indent = 2) const {
+        return save_file(path, *this, indent);
+      }
+      template<typename T>
+      static void load_struct(fan::str_view_t path, T& obj) {
+        auto j = load_file(path);
+        obj.json_read(j);
+      }
+      template<typename T>
+      static void save_struct(fan::str_view_t path, const T& obj) {
+        fan::json j;
+        obj.json_write(j);
+        j.save(path);
       }
     };
   }
