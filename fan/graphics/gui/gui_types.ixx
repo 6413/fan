@@ -19,20 +19,6 @@ import fan.types.compile_time_string;
 
 #if defined(FAN_GUI)
 export namespace fan::graphics::gui {
-  struct label_t : std::string_view {
-    using std::string_view::string_view;
-
-    label_t(const char* s) : std::string_view(s) {}
-    label_t(std::string_view s) : std::string_view(s) {}
-    label_t(const std::string&) = delete;
-    label_t(std::string&) = delete;
-    label_t(std::string&&) = delete;
-
-    operator const char* () const {
-      return data();
-    }
-  };
-
   struct topmost_window_data_t {
     std::vector<std::string> windows;
 
