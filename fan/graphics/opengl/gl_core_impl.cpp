@@ -11,6 +11,8 @@ module;
   #include <regex>
   #include <source_location>
   #include <sstream>
+  #include <cmath>
+  #include <cstring>
 #endif
 
 module fan.graphics.opengl.core;

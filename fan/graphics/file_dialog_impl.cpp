@@ -4,6 +4,7 @@ module;
 #include <mutex>
 #include <thread>
 #include <vector>
+#include <functional>
 
 #include <fan/nativefiledialog/nfd.h>
 

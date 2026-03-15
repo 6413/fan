@@ -18,6 +18,7 @@ module;
 
 export module fan.print;
 
+import fan.types;
 import fan.utility;
 // for colored prints
 import fan.types.color;

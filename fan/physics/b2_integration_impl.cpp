@@ -329,6 +329,7 @@ namespace fan::physics {
   }
 
   entity_t context_t::create_box(const fan::vec2& position, const fan::vec2& size, f32_t angle, uint8_t body_type, const shape_properties_t& shape_properties) {
+    fan::print("create_box size:", size);
     polygon_t shape = b2MakeBox(size.x / length_units_per_meter * shape_properties.collision_multiplier.x, size.y / length_units_per_meter * shape_properties.collision_multiplier.y);
     entity_t entity;
     b2BodyDef body_def = b2DefaultBodyDef();
