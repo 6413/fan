@@ -91,6 +91,17 @@
   }
   ```
 
+## Exporting
+
+Use `export.py` to collect all assets and shaders needed by your exe into a folder:
+```
+python export.py your_exe.exe export_folder
+```
+
+On Windows you can also just drag an exe onto `export.bat`. On Linux run `./export.sh` (run `chmod +x export.sh` once to make it executable).
+
+If the output folder isn't empty it will ask to clear it first, or pass `--force` to skip the prompt.
+
 ## Demos
 
 [Engine demo](examples/engine_demos/engine_demo.cpp)
