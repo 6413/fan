@@ -44,6 +44,11 @@ export struct tilemap_renderer_t : tilemap_loader_t {
   fan::vec2i view_size = 1;
   fan::graphics::render_view_t* render_view = nullptr;
 
+  id_t open_map(compiled_map_t& out_compiled, const char* path, const properties_t& p = {}, const std::source_location& callers_path = std::source_location::current()) {
+    out_compiled = compile(path, callers_path);
+    return add(&out_compiled, p);
+  }
+
   id_t add(compiled_map_t* compiled_map) {
     return add(compiled_map, properties_t());
   }
