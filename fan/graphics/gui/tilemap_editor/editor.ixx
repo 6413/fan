@@ -2297,7 +2297,7 @@ export struct fte_t {
       }
     }
     else if (texture_packs.empty() || texture_packs[0]->size() == 0) {
-      fan::print("open valid texturepack");
+      fan::graphics::gui::print("open valid texturepack");
       return;
     }
 

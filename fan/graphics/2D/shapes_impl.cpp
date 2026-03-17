@@ -422,7 +422,6 @@ namespace fan::graphics {
 
       animations_arr.push_back(ss);
     }
-
     if (!animations_arr.empty()) {
       result["animations"] = animations_arr;
     }
