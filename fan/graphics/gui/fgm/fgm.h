@@ -769,11 +769,11 @@ struct fgm_t {
         auto& shape = current_shape->children[0];
         fan::graphics::sprite_sheet_shape_id_t* shape_animation_nr = 0;
         if (shape.get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {
-          auto* ri = ((fan::graphics::shapes::sprite_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper));
-          shape_animation_nr = &ri->sprite_sheet_data.shape_sprite_sheets;
-          if (animations_application.current_animation_nr) {
-            auto& anim = fan::graphics::get_sprite_sheet(animations_application.current_animation_nr);
-          }
+          fan::graphics::g_shapes->visit_shape_draw_data(shape.NRI, [&](auto& props) {
+            if constexpr (requires { props.sprite_sheet_data.shape_sprite_sheets; }) {
+              shape_animation_nr = &props.sprite_sheet_data.shape_sprite_sheets;
+            }
+          });
         }
         if (shape_animation_nr == nullptr) {
           goto g_end_animations;
@@ -781,9 +781,12 @@ struct fgm_t {
         {
           bool animation_changed = animations_application.render("CONTENT_BROWSER_ITEMS", *shape_animation_nr);
           if (shape.get_shape_type() == fan::graphics::shapes::shape_type_t::sprite && animations_application.current_animation_nr) {
-            auto* ri = ((fan::graphics::shapes::sprite_t::ri_t*)shape.GetData(fan::graphics::g_shapes->shaper));
             if (animations_application.current_animation_nr && animations_application.current_animation_shape_nr == *shape_animation_nr) {
-              ri->sprite_sheet_data.current_sprite_sheet = animations_application.current_animation_nr;
+              fan::graphics::g_shapes->visit_shape_draw_data(shape.NRI, [&](auto& props) {
+                if constexpr (requires { props.sprite_sheet_data.current_sprite_sheet; }) {
+                  props.sprite_sheet_data.current_sprite_sheet = animations_application.current_animation_nr;
+                }
+              });
             }
           }
           if (*shape_animation_nr && animations_application.current_animation_shape_nr == *shape_animation_nr && (animations_application.toggle_play_animation || animations_application.play_animation || animation_changed)) {
@@ -960,7 +963,8 @@ struct fgm_t {
 
       shapes_t::global_t defaults;
 
-      fan::json shape_json = shape;
+      fan::json shape_json;
+      fan::graphics::shape_to_json(shape, &shape_json);
 
       if (shape_instance->id != defaults.id) {
         shape_json["id"] = shape_instance->id;

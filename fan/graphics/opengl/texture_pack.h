@@ -102,19 +102,16 @@ struct texture_pack_t {
     return 0;
   }
 
-  void open_compiled(const std::string &filename, const std::source_location &callers_path = std::source_location::current()) {
-    fan::graphics::image_load_properties_t lp;
-    lp.visual_output = fan::graphics::image_sampler_address_mode_e::clamp_to_edge;
-    lp.min_filter = fan::graphics::image_filter_e::nearest;
-    lp.mag_filter = fan::graphics::image_filter_e::nearest;
-    /*
-    lp.min_filter = (decltype(lp.min_filter))min_filter;
-    lp.mag_filter = (decltype(lp.mag_filter))mag_filter;
-    */
-    open_compiled(filename, lp, callers_path);
+  texture_pack_t() = default;
+  texture_pack_t(const std::string& filename, const std::source_location &callers_path = std::source_location::current()) {
+    open_compiled(filename, callers_path);
   }
 
-  void open_compiled(const std::string &filename, fan::graphics::image_load_properties_t lp, const std::source_location &callers_path = std::source_location::current()) {
+  void open_compiled(const std::string &filename, const std::source_location &callers_path = std::source_location::current()) {
+    open_compiled(filename, fan::graphics::image_presets::pixel_art(), callers_path);
+  }
+
+  void open_compiled(const std::string &filename, fan::graphics::image_load_properties_t lp, const std::source_location& callers_path = std::source_location::current()) {
     texture_major_list.clear();
     image_list.clear();
     unique_map.Clear();
