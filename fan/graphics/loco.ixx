@@ -400,6 +400,8 @@ public:
   bool enable_overlay = true;
 #endif
 
+  void bind_global_context();
+
   loco_t();
   loco_t(const properties_t& p);
   loco_t(std::function<void()> loop_fn);
