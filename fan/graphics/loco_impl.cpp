@@ -426,6 +426,10 @@ void loco_t::camera_set_target(fan::graphics::camera_nr_t nr, const fan::vec2& t
   );
 }
 
+void loco_t::camera_set_target(const fan::vec2& target, f32_t move_speed) {
+  camera_set_target(orthographic_render_view, target, move_speed);
+}
+
 fan::graphics::viewport_nr_t loco_t::viewport_create() {
   return context_functions.viewport_create(&context);
 }

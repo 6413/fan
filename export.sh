@@ -5,12 +5,12 @@ script_dir="$(dirname "$0")"
 input_exe="$1"
 [ -z "$input_exe" ] && input_exe="fan.exe"
 
-default_name="$(basename "$input_exe" .exe)"
+base="$(basename "$input_exe" .exe)"
 
-read -p "New exe name [$default_name]: " newname
-[ -z "$newname" ] && newname="$default_name"
+read -p "New exe name [$base]: " newname
+[ -z "$newname" ] && newname="$base"
 
-outdir="$script_dir/export_minimal_linux"
+outdir="$script_dir/$base"
 
 python3 "$script_dir/export.py" "$input_exe" "$outdir" --force
 

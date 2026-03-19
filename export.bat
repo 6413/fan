@@ -6,17 +6,16 @@ set script_dir=%~dp0
 set input_exe=%~1
 if "%input_exe%"=="" set input_exe=fan.exe
 
-set default_name=%~n1
-if "%default_name%"=="" set default_name=fan
+set base=%~n1
+if "%base%"=="" set base=fan
 
-set /p newname=New exe name [%default_name%]:
+set /p outname=Output folder name [%base%]:
+if "%outname%"=="" set outname=%base%
 
-if "%newname%"=="" set newname=%default_name%
-
-set outdir=%script_dir%export_minimal
+set outdir=%script_dir%%outname%
 
 python "%script_dir%export.py" "%input_exe%" "%outdir%" --force
 
-rename "%outdir%\%~nx1" "%newname%.exe"
+rename "%outdir%\%~nx1" "%outname%.exe"
 
 pause
