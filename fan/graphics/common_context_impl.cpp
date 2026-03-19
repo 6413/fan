@@ -241,6 +241,13 @@ namespace fan::graphics {
     return s;
   }
 
+  render_view_t::operator fan::graphics::camera_t&() {
+    return camera;
+  }
+  render_view_t::operator fan::graphics::viewport_t&() {
+    return viewport;
+  }
+
   fan::vec2 translate_position(const fan::vec2& p, viewport_t viewport, camera_t camera) {
     auto v = ctx()->viewport_get(ctx(), viewport);
     auto c = ctx()->camera_get(ctx(), camera);

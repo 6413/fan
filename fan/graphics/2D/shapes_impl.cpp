@@ -19,6 +19,7 @@ module fan.graphics.shapes;
 import fan.utility;
 import fan.graphics.gui.base;
 import fan.graphics.culling;
+import fan.random;
 
 #if defined(FAN_GUI)
   import fan.graphics.gui.text_logger;
@@ -1653,19 +1654,18 @@ namespace fan::graphics{
     set_tc_size({
       std::abs(tc.x) * desired_sign.x,
       std::abs(tc.y) * desired_sign.y
-      });
+    });
 
     if (did_change) {
       g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
         if constexpr (requires { props.sprite_sheet_data; }) {
           props.sprite_sheet_data.previous_frame = props.sprite_sheet_data.current_frame;
-          props.sprite_sheet_data.current_frame = 0;
           props.sprite_sheet_data.last_sign = {
             (int8_t)desired_sign.x,
             (int8_t)desired_sign.y
           };
           if (get_visual_id()) {
-            set_sprite_sheet_next_frame(0);
+            set_sprite_sheet_next_frame(props.sprite_sheet_data.current_frame);
           }
         }
       });
@@ -2513,6 +2513,11 @@ namespace fan::graphics{
       }
     });
   }
+  void shapes::shape_t::set_random_sprite_sheet_frame() {
+    int n = get_current_sprite_sheet_frame_count();
+    if (n == 0) return;
+    set_current_sprite_sheet_frame(fan::random::value(0, n));
+  }
   int shapes::shape_t::get_current_sprite_sheet_frame_count() {
     int count = 0;
     g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
@@ -2644,6 +2649,51 @@ namespace fan::graphics{
     ri.loop_disabled_time = fan::time::now() / 1e9;
   }
 
+  void apply_delta(shapes::shape_t& shape, const fan::vec2& delta) {
+    fan::vec2 pos = shape.get_position();
+    shape.set_position(pos + delta);
+  }
+
+  void apply_scaled_delta(shapes::shape_t& shape, const fan::vec2& target, const fan::vec2& scale) {
+    fan::vec2 pos = shape.get_position();
+    fan::vec2 delta = target - pos;
+    if (scale >= 1.f || delta.length() < 0.001f) {
+      shape.set_position(target);
+      return;
+    }
+    shape.set_position(pos + delta * scale);
+  }
+
+  void shapes::shape_t::move_direction(const fan::vec2& direction, const fan::vec2& speed) {
+    if (direction == fan::vec2(0)) {
+      return;
+    }
+    f32_t dt = fan::graphics::get_window().m_delta_time;
+    apply_delta(*this, direction.normalized() * speed * dt);
+  }
+
+  void shapes::shape_t::move_to_position(const fan::vec2& target, f32_t seconds) {
+    if (seconds <= 0) {
+      set_position(target);
+      return;
+    }
+    f32_t dt = fan::graphics::get_window().m_delta_time;
+    apply_scaled_delta(*this, target, dt / seconds);
+  }
+
+  void shapes::shape_t::move_towards(const fan::vec2& target, const fan::vec2& speed) {
+    f32_t dt = fan::graphics::get_window().m_delta_time;
+    fan::vec2 pos = get_position();
+    fan::vec2 delta = target - pos;
+    f32_t dist = delta.length();
+    if (dist > 0.001f) {
+      fan::vec2 sign = get_tc_size().sign();
+      if (std::abs(delta.x) > 0.001f) sign.x = fan::math::sgn(delta.x);
+      if (std::abs(delta.y) > 0.001f) sign.y = fan::math::sgn(delta.y);
+      set_image_sign(sign);
+      apply_scaled_delta(*this, target, (speed * dt) / dist);
+    }
+  }
 
   fan::graphics::shaper_t::ShapeRenderData_t* shapes::shape_t::GetRenderData(fan::graphics::shaper_t& shaper) const {
     return static_cast<ShapeID_t*>(get_visual_shape())->GetRenderData(shaper);
@@ -2946,6 +2996,11 @@ void fan::graphics::shapes::shape_t::play_sprite_sheet(){
   (*fan::graphics::ctx().update_callback)[sheet_data->frame_update_nr] = [nr = NRI](void* ptr) {
     sprite_sheet_frame_update_cb(g_shapes->shaper, (fan::graphics::shapes::shape_t*)&nr);
   };
+}
+
+void fan::graphics::shapes::shape_t::play_sprite_sheet(const std::string& sprite_sheet_name) {
+  set_sprite_sheet(sprite_sheet_name);
+  play_sprite_sheet();
 }
 
 void fan::graphics::shapes::shape_t::stop_sprite_sheet() {

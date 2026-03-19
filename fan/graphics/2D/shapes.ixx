@@ -457,6 +457,7 @@ export namespace fan::graphics {
       fan::graphics::sprite_sheet_data_t& get_sprite_sheet_data();
       sprite_sheet_t& get_sprite_sheet();
       void play_sprite_sheet();
+      void play_sprite_sheet(const std::string& sprite_sheet_name);
       void stop_sprite_sheet();
       void play_sprite_sheet_once(const std::string& sprite_sheet_name);
       // overwrites 'ri.current_sprite_sheet'
@@ -473,6 +474,7 @@ export namespace fan::graphics {
       int get_previous_sprite_sheet_frame() const;
       int get_current_sprite_sheet_frame() const;
       void set_current_sprite_sheet_frame(int frame_id);
+      void set_random_sprite_sheet_frame();
       int get_current_sprite_sheet_frame_count();
       // dont store the pointer
       sprite_sheet_t* get_sprite_sheet(const std::string& name);
@@ -484,6 +486,12 @@ export namespace fan::graphics {
       // offset in seconds
       void start_particles(f32_t start_offset = 0.f);
       void stop_particles();
+
+      void move_direction(const fan::vec2& direction, const fan::vec2& speed = 100.f);
+      void move_to_position(const fan::vec2& target, f32_t seconds = 1.f);
+      void move_towards(const fan::vec2& target, const fan::vec2& speed);
+
+
 
       //vram
       //_d = decltype usage decltype(itself)

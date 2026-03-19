@@ -473,7 +473,6 @@ export namespace fan {
         };
       };
       struct movement_state_t {
-
         fan::vec2 calculate_velocity(
           const fan::vec2& current_velocity,
           const fan::vec2& direction,

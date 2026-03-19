@@ -532,6 +532,8 @@ export namespace fan::graphics {
       const fan::vec2& window_size
     );
     std::string debug_string();
+    operator fan::graphics::camera_t&();
+    operator fan::graphics::viewport_t&();
   };
 
   fan::vec2 translate_position(const fan::vec2& p, viewport_t viewport, camera_t camera);

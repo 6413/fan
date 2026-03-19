@@ -317,12 +317,16 @@ namespace fan::graphics {
     );
   }
 
+  void camera_set_target(const fan::vec2& target, f32_t move_speed) {
+    camera_set_target(fan::graphics::get_orthographic_render_view(), target, move_speed);
+  }
+
   void camera_look_at(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed) {
     camera_set_target(nr, target, move_speed);
   }
 
   void camera_look_at(const fan::vec2& target, f32_t move_speed) {
-    camera_set_target(fan::graphics::get_orthographic_render_view().camera, target, move_speed);
+    camera_set_target(fan::graphics::get_orthographic_render_view(), target, move_speed);
   }
 
   fan::graphics::viewport_nr_t viewport_create() {
