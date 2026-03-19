@@ -10,7 +10,7 @@ module;
 #include <fan/graphics/opengl/init.h>
 #if defined(FAN_VULKAN)
   // TODO REMOVE
-#include <vulkan/vulkan.h>
+  #include <vulkan/vulkan.h>
 #endif
 
 #include <uv.h>
@@ -28,12 +28,14 @@ module;
 #include <mutex>
 
 #if defined(fan_std23)
-#include <stacktrace>
+  #include <stacktrace>
 #endif
 
 #if defined(FAN_GUI)
-#include <iomanip>
+  #include <iomanip>
 #endif
+
+#include <fan/graphics/shape_macros.h>
 
 module fan.graphics.loco;
 
@@ -115,6 +117,17 @@ namespace fan {
 }
 #endif
 
+template<typename list_t, typename fn_t>
+static void for_each_list(list_t& list, fn_t&& fn) {
+  typename list_t::nrtra_t nrtra;
+  typename list_t::nr_t nr;
+  nrtra.Open(&list, &nr);
+  while (nrtra.Loop(&list, &nr)) {
+    fn(list, nr);
+  }
+  nrtra.Close(&list);
+}
+
 namespace fan::graphics {
   std::uint32_t get_draw_mode(std::uint8_t internal_draw_mode) {
     if (gloco()->get_renderer() == fan::window_t::renderer_t::opengl) {
@@ -144,17 +157,10 @@ fan::graphics::shader_nr_t loco_t::shader_create() {
 
 fan::graphics::context_shader_t loco_t::shader_get(fan::graphics::shader_nr_t nr) {
   fan::graphics::context_shader_t context_shader;
-  if (0) {}
-#if defined(FAN_OPENGL)
-  else if (window.renderer == fan::window_t::renderer_t::opengl) {
-    context_shader.gl = *(fan::opengl::context_t::shader_t*)context_functions.shader_get(&context, nr);
-  }
-#endif
-#if defined(FAN_VULKAN)
-  else if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    context_shader.vk = *(fan::vulkan::context_t::shader_t*)context_functions.shader_get(&context, nr);
-  }
-#endif
+  renderer_call(
+    context_shader.gl = *(fan::opengl::context_t::shader_t*)fan::graphics::ctx()->shader_get(fan::graphics::ctx(), nr),
+    context_shader.vk = *(fan::vulkan::context_t::shader_t*)fan::graphics::ctx()->shader_get(fan::graphics::ctx(), nr)
+  );
   return context_shader;
 }
 
@@ -179,17 +185,10 @@ bool loco_t::shader_compile(fan::graphics::shader_nr_t nr) {
 }
 
 void loco_t::shader_set_camera(shader_t nr, camera_t camera_nr) {
-  if (0) {}
-#if defined(FAN_OPENGL)
-  else if (window.renderer == fan::window_t::renderer_t::opengl) {
-    context.gl.shader_set_camera(nr, camera_nr);
-  }
-#endif
-#if defined(FAN_VULKAN)
-  else if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    fan::throw_error("todo");
-  }
-#endif
+  renderer_call(
+    context.gl.shader_set_camera(nr, camera_nr),
+    fan::throw_error("todo")
+  );
 }
 
 #if defined(FAN_2D)
@@ -212,16 +211,14 @@ void loco_t::shader_set_paths(fan::graphics::shader_t shader, std::string_view v
 }
 
 void loco_t::shader_recompile_all() {
+#if defined(FAN_OPENGL)
   glFlush();
   glFinish();
-  fan::graphics::shader_list_t::nrtra_t nrtra;
-  fan::graphics::shader_nr_t nr;
-  nrtra.Open(&shader_list, &nr);
-
-  while (nrtra.Loop(&shader_list, &nr)) {
-    auto& shader_data = shader_list[nr];
+#endif
+  for_each_list(shader_list, [&](auto& list, auto nr) {
+    auto& shader_data = list[nr];
     if (shader_data.svertex.empty() || shader_data.sfragment.empty()) {
-      continue;
+      return;
     }
     std::string svertex = fan::graphics::read_shader(shader_data.path_vertex);
     std::string sfragment = fan::graphics::read_shader(shader_data.path_fragment);
@@ -236,26 +233,29 @@ void loco_t::shader_recompile_all() {
     if (!shader_compile(nr)) {
       fan::print_warning("failed to recompile shader. vertex shader:" + std::string(shader_data.path_vertex) + ", fragment shader:" + std::string(shader_data.path_fragment));
     }
-  }
-
-  nrtra.Close(&shader_list);
+  });
   glFlush();
   glFinish();
   shader_set_value(gl.m_fbo_final_shader, "bloom_strength", ((fan::graphics::gui::settings_menu_t*)settings_menu)->config.post_processing.bloom_strength);
 }
 #endif
 
-std::vector<uint8_t> loco_t::image_get_pixel_data(fan::graphics::image_nr_t nr, int image_format, fan::vec2 uvp, fan::vec2 uvs) {
-  if (0) {}
-#if defined(FAN_OPENGL)
-  else if (window.renderer == fan::window_t::renderer_t::opengl) {
-    return context_functions.image_get_pixel_data(&context, nr, fan::opengl::context_t::global_to_opengl_format(image_format), uvp, uvs);
-  }
-#endif
-  else {
-    fan::throw_error("");
-    return {};
-  }
+std::vector<uint8_t> loco_t::image_get_pixel_data(
+  fan::graphics::image_nr_t nr,
+  int image_format,
+  fan::vec2 uvp,
+  fan::vec2 uvs
+) {
+  renderer_call_ret(
+    context_functions.image_get_pixel_data(
+      &context,
+      nr,
+      fan::opengl::context_t::global_to_opengl_format(image_format),
+      uvp,
+      uvs
+    ),
+    fan::throw_error("todo")
+  );
 }
 
 fan::graphics::image_nr_t loco_t::image_create() {
@@ -264,17 +264,10 @@ fan::graphics::image_nr_t loco_t::image_create() {
 
 fan::graphics::context_image_t loco_t::image_get(fan::graphics::image_nr_t nr) {
   fan::graphics::context_image_t img;
-  if (0) {}
-#if defined(FAN_OPENGL)
-  else if (window.renderer == fan::window_t::renderer_t::opengl) {
-    img.gl = *(fan::opengl::context_t::image_t*)context_functions.image_get(&context, nr);
-  }
-#endif
-#if defined(FAN_VULKAN)
-  else if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    img.vk = *(fan::vulkan::context_t::image_t*)context_functions.image_get(&context, nr);
-  }
-#endif
+  renderer_call(
+    img.gl = *(fan::opengl::context_t::image_t*)fan::graphics::ctx()->image_get(fan::graphics::ctx(), nr),
+    img.vk = *(fan::vulkan::context_t::image_t*)fan::graphics::ctx()->image_get(fan::graphics::ctx(), nr)
+  );
   return img;
 }
 
@@ -553,9 +546,53 @@ void loco_t::remove_static_shape_draw(const fan::graphics::shapes::shape_t& s) {
 }
 #endif
 
+static void add_simple_command(
+  fan::console_t& console,
+  const std::string& name,
+  const std::string& desc,
+  int arg_count,
+  std::function<void(loco_t*, const std::string&)> fn)
+{
+  console.commands.add(name, [fn, arg_count](fan::console_t* self, const auto& args) {
+    auto* loco = OFFSETLESS(self, loco_t, console);
+    if ((int)args.size() != arg_count) {
+      loco->console.commands.print_invalid_arg_count();
+      return;
+    }
+    fn(loco, args.empty() ? "" : args[0]);
+  }).description = desc;
+}
+
 void loco_t::generate_commands(loco_t* loco) {
 #if defined(FAN_GUI)
   loco->console.open();
+
+  add_simple_command(loco->console, "set_vsync", "sets vsync", 1,
+    [](loco_t* l, const std::string& v) { l->set_vsync(std::stoi(v)); });
+  add_simple_command(loco->console, "set_target_fps", "sets target fps", 1,
+    [](loco_t* l, const std::string& v) { l->set_target_fps(std::stoi(v)); });
+  add_simple_command(loco->console, "show_fps", "toggles fps", 1,
+    [](loco_t* l, const std::string& v) { l->show_fps = std::stoi(v); });
+  add_simple_command(loco->console, "debug_memory", "opens memory debug", 1,
+    [](loco_t* l, const std::string& v) { l->render_debug_memory = std::stoi(v); });
+  add_simple_command(loco->console, "set_clear_color", "sets clear color - example {1,0,0,1}", 1,
+    [](loco_t* l, const std::string& v) { l->clear_color = fan::color::parse(v); });
+  add_simple_command(loco->console, "set_lighting_ambient", "sets lighting ambient color", 1,
+    [](loco_t* l, const std::string& v) { l->lighting.set_target(fan::color::parse(v)); });
+#if defined(LOCO_FRAMEBUFFER)
+  add_simple_command(loco->console, "set_gamma", "sets gamma", 1,
+    [](loco_t* l, const std::string& v) { l->shader_set_value(l->gl.m_fbo_final_shader, "gamma", std::stof(v)); });
+  add_simple_command(loco->console, "set_contrast", "sets contrast", 1,
+    [](loco_t* l, const std::string& v) { l->shader_set_value(l->gl.m_fbo_final_shader, "contrast", std::stof(v)); });
+  add_simple_command(loco->console, "set_exposure", "sets exposure", 1,
+    [](loco_t* l, const std::string& v) { l->shader_set_value(l->gl.m_fbo_final_shader, "exposure", std::stof(v)); });
+  add_simple_command(loco->console, "set_bloom_strength", "sets bloom strength", 1,
+    [](loco_t* l, const std::string& v) {
+    auto* sm = (fan::graphics::gui::settings_menu_t*)l->settings_menu;
+    sm->config.post_processing.bloom_strength = std::stof(v);
+    l->shader_set_value(l->gl.m_fbo_final_shader, "bloom_strength", sm->config.post_processing.bloom_strength);
+  });
+#endif
 
   loco->console.commands.add("echo", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
     auto* loco = OFFSETLESS(self, loco_t, console);
@@ -620,15 +657,6 @@ void loco_t::generate_commands(loco_t* loco) {
     loco->console.commands.get_func_table()[args[0]] = loco->console.commands.get_func_table()[args[1]];
   }).description = "can create alias commands - usage alias [cmd name] [cmd]";
 
-  loco->console.commands.add("show_fps", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
-    auto* loco = OFFSETLESS(self, loco_t, console);
-    if (args.size() != 1) {
-      loco->console.commands.print_invalid_arg_count();
-      return;
-    }
-    loco->show_fps = std::stoi(args[0]);
-  }).description = "toggles fps - usage show_fps [value]";
-
   loco->console.commands.add("quit", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
     exit(0);
   }).description = "quits program - usage quit";
@@ -638,90 +666,6 @@ void loco_t::generate_commands(loco_t* loco) {
     loco->console.output_buffer.clear();
     loco->console.editor.SetText("");
   }).description = "clears output buffer - usage clear";
-
-#if defined(LOCO_FRAMEBUFFER)
-  loco->console.commands.add("set_gamma", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
-    auto* loco = OFFSETLESS(self, loco_t, console);
-    if (args.size() != 1) {
-      loco->console.commands.print_invalid_arg_count();
-      return;
-    }
-    loco->shader_set_value(loco->gl.m_fbo_final_shader, "gamma", std::stof(args[0]));
-  }).description = "sets gamma for post processing shader";
-
-  loco->console.commands.add("set_contrast", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
-    auto* loco = OFFSETLESS(self, loco_t, console);
-    if (args.size() != 1) {
-      loco->console.commands.print_invalid_arg_count();
-      return;
-    }
-    loco->shader_set_value(loco->gl.m_fbo_final_shader, "contrast", std::stof(args[0]));
-  }).description = "sets contrast for post processing shader";
-
-  loco->console.commands.add("set_exposure", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
-    auto* loco = OFFSETLESS(self, loco_t, console);
-    if (args.size() != 1) {
-      loco->console.commands.print_invalid_arg_count();
-      return;
-    }
-    loco->shader_set_value(loco->gl.m_fbo_final_shader, "exposure", std::stof(args[0]));
-  }).description = "sets exposure for post processing shader";
-
-  loco->console.commands.add("set_bloom_strength", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
-    auto* loco = OFFSETLESS(self, loco_t, console);
-    if (args.size() != 1) {
-      loco->console.commands.print_invalid_arg_count();
-      return;
-    }
-    ((fan::graphics::gui::settings_menu_t*)loco->settings_menu)->config.post_processing.bloom_strength = std::stof(args[0]);
-    loco->shader_set_value(loco->gl.m_fbo_final_shader, "bloom_strength", ((fan::graphics::gui::settings_menu_t*)loco->settings_menu)->config.post_processing.bloom_strength);
-  }).description = "sets bloom strength for post processing shader";
-#endif
-
-  loco->console.commands.add("set_vsync", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
-    auto* loco = OFFSETLESS(self, loco_t, console);
-    if (args.size() != 1) {
-      loco->console.commands.print_invalid_arg_count();
-      return;
-    }
-    loco->set_vsync(std::stoi(args[0]));
-  }).description = "sets vsync";
-
-  loco->console.commands.add("set_target_fps", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
-    auto* loco = OFFSETLESS(self, loco_t, console);
-    if (args.size() != 1) {
-      loco->console.commands.print_invalid_arg_count();
-      return;
-    }
-    loco->set_target_fps(std::stoi(args[0]));
-  }).description = "sets target fps";
-
-  loco->console.commands.add("debug_memory", [nr = loco_t::update_callback_handle_t()](fan::console_t* self, const fan::commands_t::arg_t& args) mutable {
-    auto* loco = OFFSETLESS(self, loco_t, console);
-    if (args.size() != 1) {
-      loco->console.commands.print_invalid_arg_count();
-      return;
-    }
-    loco->render_debug_memory = std::stoi(args[0]);
-  }).description = "opens memory debug window";
-
-  loco->console.commands.add("set_clear_color", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
-    auto* loco = OFFSETLESS(self, loco_t, console);
-    if (args.size() != 1) {
-      loco->console.commands.print_invalid_arg_count();
-      return;
-    }
-    loco->clear_color = fan::color::parse(args[0]);
-  }).description = "sets clear color of window - input example {1,0,0,1} red";
-
-  loco->console.commands.add("set_lighting_ambient", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
-    auto* loco = OFFSETLESS(self, loco_t, console);
-    if (args.size() != 1) {
-      loco->console.commands.print_invalid_arg_count();
-      return;
-    }
-    loco->lighting.set_target(fan::color::parse(args[0]));
-  }).description = "sets clear color of window - input example {1,0,0,1} red";
 
 #if defined(FAN_2D)
   loco->console.commands.add("rectangle", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
@@ -817,19 +761,13 @@ void loco_t::get_culling_stats(uint32_t& visible, uint32_t& culled) const {
 }
 
 void loco_t::run_culling() {
-  fan::graphics::camera_list_t::nrtra_t nrtra;
-  fan::graphics::camera_nr_t nr;
-  nrtra.Open(&camera_list, &nr);
-
   auto& culling = *((fan::graphics::culling::culling_t*)shapes.visibility);
-  while (nrtra.Loop(&camera_list, &nr)) {
+  for_each_list(camera_list, [&](auto&, auto nr) {
     if (nr == perspective_render_view.camera) {
-      continue;
+      return;
     }
     fan::graphics::culling::cull_camera(culling, fan::graphics::g_shapes->shaper, nr);
-  }
-
-  nrtra.Close(&camera_list);
+  });
 }
 
 void loco_t::set_cull_padding(const fan::vec2& padding) {
@@ -931,20 +869,8 @@ void loco_t::destroy_gui() {
 }
 #endif
 
-loco_t::loco_t() : loco_t(loco_t::properties_t()) {
-
-}
-
-loco_t::loco_t(const loco_t::properties_t& props) :
-  open_props(props),
-  init_gloco([this] { gloco() = this; return true; }())
-#if defined(FAN_GUI)
-  , settings_menu()
-#endif
-{
+void loco_t::bind_global_context() {
   auto& ctx = fan::graphics::ctx();
-
-  // init globals
   ctx.context_functions = &context_functions;
   ctx.render_context = &context;
   ctx.camera_list = &camera_list;
@@ -957,11 +883,22 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   ctx.update_callback = &m_update_callback;
   ctx.input_action = &input_action;
   ctx.lighting = &lighting;
+  IF_GUI(ctx.console = &console;)
+  IF_GUI(ctx.text_logger = &text_logger;)
+}
 
+loco_t::loco_t() : loco_t(loco_t::properties_t()) {
+
+}
+
+loco_t::loco_t(const loco_t::properties_t& props) :
+  open_props(props),
+  init_gloco([this] { gloco() = this; return true; }())
 #if defined(FAN_GUI)
-  ctx.console = &console;
-  ctx.text_logger = &text_logger;
+  , settings_menu()
 #endif
+{
+  bind_global_context();
 
 #if defined(FAN_2D)
   shapes.texture_pack = &texture_pack;
@@ -1084,28 +1021,18 @@ loco_t::loco_t(const loco_t::properties_t& props) :
     }
   }
 
-  if (0) {}
-#if defined(FAN_OPENGL)
-  else if (window.renderer == fan::window_t::renderer_t::opengl) {
-    gl.init();
-  }
-#endif
-#if defined(FAN_VULKAN)
-  else if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    vk.init();
-  }
-#endif
+  renderer_call(
+    gl.init(),
+    vk.init()
+  );
 
 #if defined(FAN_2D)
-  if (window.renderer == fan::window_t::renderer_t::opengl) {
-    gl.shapes_open();
-  }
-#if defined(FAN_VULKAN)
-  else if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    vk.shapes_open();
-  }
+  renderer_call(
+    gl.shapes_open(),
+    vk.shapes_open()
+  );
 #endif
-#endif
+
 
 #if defined(FAN_GUI)
   init_gui();
@@ -1393,30 +1320,18 @@ void loco_t::switch_renderer(uint8_t renderer) {
   }
 
   { // reload
-    {
-      fan::graphics::camera_list_t::nrtra_t nrtra;
-      fan::graphics::camera_nr_t nr;
-      nrtra.Open(&camera_list, &nr);
-      while (nrtra.Loop(&camera_list, &nr)) {
-        auto& cam = camera_list[nr];
-        camera_set_ortho(
-          nr,
-          fan::vec2(cam.coordinates.left, cam.coordinates.right),
-          fan::vec2(cam.coordinates.top, cam.coordinates.bottom)
-        );
-      }
-      nrtra.Close(&camera_list);
-    }
-    {
-      fan::graphics::viewport_list_t::nrtra_t nrtra;
-      fan::graphics::viewport_nr_t nr;
-      nrtra.Open(&viewport_list, &nr);
-      while (nrtra.Loop(&viewport_list, &nr)) {
-        auto& viewport = viewport_list[nr];
-        viewport_set(nr, viewport.position, viewport.size);
-      }
-      nrtra.Close(&viewport_list);
-    }
+    for_each_list(camera_list, [&](auto& list, auto nr) {
+      auto& cam = list[nr];
+      camera_set_ortho(
+        nr,
+        fan::vec2(cam.coordinates.left, cam.coordinates.right),
+        fan::vec2(cam.coordinates.top, cam.coordinates.bottom)
+      );
+    });
+    for_each_list(viewport_list, [&](auto& list, auto nr) {
+      auto& viewport = list[nr];
+      viewport_set(nr, viewport.position, viewport.size);
+    });
 
     // reconstruct missing texture props once, reuse across image loop
     fan::image::info_t missing_info;
@@ -1428,55 +1343,40 @@ void loco_t::switch_renderer(uint8_t renderer) {
     missing_lp.mag_filter = fan::graphics::image_filter_e::nearest;
     missing_lp.visual_output = fan::graphics::image_sampler_address_mode_e::repeat;
 
-    {
-      fan::graphics::image_list_t::nrtra_t nrtra;
-      fan::graphics::image_nr_t nr;
-      nrtra.Open(&image_list, &nr);
-      while (nrtra.Loop(&image_list, &nr)) {
-        if (0) {}
-      #if defined(FAN_OPENGL)
-        else if (window.renderer == fan::window_t::renderer_t::opengl) {
-          // illegal
-          image_list[nr].internal = new fan::opengl::context_t::image_t;
+    for_each_list(image_list, [&](auto& list, auto nr) {
+      IF_GL(
+        if (window.renderer == fan::window_t::renderer_t::opengl) {
+          list[nr].internal = new fan::opengl::context_t::image_t;
           fan_opengl_call(glGenTextures(1, &((fan::opengl::context_t::image_t*)context_functions.image_get(&context.gl, nr))->texture_id));
         }
-      #endif
-      #if defined(FAN_VULKAN)
-        else if (window.renderer == fan::window_t::renderer_t::vulkan) {
-          // illegal
-          image_list[nr].internal = new fan::vulkan::context_t::image_t;
+      )
+      IF_VK(
+        if (window.renderer == fan::window_t::renderer_t::vulkan) {
+          list[nr].internal = new fan::vulkan::context_t::image_t;
         }
-      #endif
-        auto image_path = image_list[nr].image_path;
-        if (image_path.empty()) {
-          image_reload(nr, missing_info, missing_lp);
-        }
-        else {
-          image_reload(nr, image_list[nr].image_path);
-        }
+      )
+      auto image_path = list[nr].image_path;
+      if (image_path.empty()) {
+        image_reload(nr, missing_info, missing_lp);
       }
-      nrtra.Close(&image_list);
-    }
-    {
-      fan::graphics::shader_list_t::nrtra_t nrtra;
-      fan::graphics::shader_nr_t nr;
-      nrtra.Open(&shader_list, &nr);
-      while (nrtra.Loop(&shader_list, &nr)) {
-        if (0) {}
-      #if defined(FAN_OPENGL)
-        else if (window.renderer == fan::window_t::renderer_t::opengl) {
-          shader_list[nr].internal = new fan::opengl::context_t::shader_t;
-        }
-      #endif
-      #if defined(FAN_VULKAN)
-        else if (window.renderer == fan::window_t::renderer_t::vulkan) {
-          shader_list[nr].internal = new fan::vulkan::context_t::shader_t;
-          ((fan::vulkan::context_t::shader_t*)shader_list[nr].internal)->projection_view_block = new std::remove_pointer_t<decltype(fan::vulkan::context_t::shader_t::projection_view_block)>;
-        }
-      #endif
+      else {
+        image_reload(nr, list[nr].image_path);
       }
-      nrtra.Close(&shader_list);
-    }
+    });
+    for_each_list(shader_list, [&](auto& list, auto nr) {
+      IF_GL(
+        if (window.renderer == fan::window_t::renderer_t::opengl) {
+          list[nr].internal = new fan::opengl::context_t::shader_t;
+        }
+      )
+      IF_VK(
+        if (window.renderer == fan::window_t::renderer_t::vulkan) {
+          list[nr].internal = new fan::vulkan::context_t::shader_t;
+          ((fan::vulkan::context_t::shader_t*)list[nr].internal)->projection_view_block =
+            new std::remove_pointer_t<decltype(fan::vulkan::context_t::shader_t::projection_view_block)>;
+        }
+      )
+    });
 
     image_reload(default_texture, missing_info, missing_lp);
 
@@ -1542,17 +1442,12 @@ void loco_t::switch_renderer(uint8_t renderer) {
 
 void loco_t::shapes_draw() {
   shape_draw_timer.start();
-  if (0) {}
-#if defined(FAN_OPENGL)
-  else if (window.renderer == fan::window_t::renderer_t::opengl) {
-    gl.shapes_draw();
-  }
-#endif
-#if defined(FAN_VULKAN)
-  else if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    vk.shapes_draw();
-  }
-#endif
+
+  renderer_call(
+    gl.shapes_draw(),
+    vk.shapes_draw()
+  );
+
   shape_draw_time_s = shape_draw_timer.seconds();
 
 #if defined(FAN_2D)
@@ -2140,17 +2035,10 @@ fan::vec2 loco_t::ndc_to_screen(const fan::vec2& ndc_position) {
 void loco_t::set_vsync(bool flag) {
   vsync = flag;
   // vulkan vsync is enabled by presentation mode in swap chain
-  if (0) {}
-#if defined(FAN_OPENGL)
-  else if (window.renderer == fan::window_t::renderer_t::opengl) {
-    context.gl.set_vsync(&window, flag);
-  }
-#endif
-#if defined(FAN_VULKAN)
-  if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    context.vk.set_vsync(&window, flag);
-  }
-#endif
+  renderer_call(
+    context.gl.set_vsync(&window, flag),
+    context.vk.set_vsync(&window, flag)
+  );
 }
 
 void loco_t::start_timer() {
@@ -2861,15 +2749,8 @@ namespace fan::graphics::gui {
 #endif
 
 void fan::graphics::shader_set_camera(fan::graphics::shader_t nr, fan::graphics::camera_t camera_nr) {
-  if (0) {}
-#if defined(FAN_OPENGL)
-  else if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::opengl) {
-    get_gl_context().shader_set_camera(nr, camera_nr);
-  }
-#endif
-#if defined(FAN_VULKAN)
-  else if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::vulkan) {
-    fan::throw_error("todo");
-  }
-#endif
+  renderer_call(
+    get_gl_context().shader_set_camera(nr, camera_nr),
+    fan::throw_error("todo")
+  );
 }
