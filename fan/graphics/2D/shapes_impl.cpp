@@ -2552,15 +2552,15 @@ namespace fan::graphics{
     apply_scaled_delta(*this, target, dt / seconds);
   }
 
-  void shapes::shape_t::move_towards(const fan::vec2& target, const fan::vec2& speed) {
+  void shapes::shape_t::move_towards(const fan::vec2& target, const fan::vec2& speed, const fan::vec2& image_orientation) {
     f32_t dt = fan::graphics::get_window().m_delta_time;
     fan::vec2 pos = get_position();
     fan::vec2 delta = target - pos;
     f32_t dist = delta.length();
     if (dist > 0.001f) {
       fan::vec2 sign = get_tc_size().sign();
-      if (std::abs(delta.x) > 0.001f) sign.x = fan::math::sgn(delta.x);
-      if (std::abs(delta.y) > 0.001f) sign.y = fan::math::sgn(delta.y);
+      if (std::abs(delta.x) > 0.001f) sign.x = fan::math::sgn(delta.x) * image_orientation.x;
+      if (std::abs(delta.y) > 0.001f) sign.y = fan::math::sgn(delta.y) * image_orientation.y;
       set_image_sign(sign);
       apply_scaled_delta(*this, target, (speed * dt) / dist);
     }
