@@ -13,6 +13,7 @@ module;
 #include <fstream>
 #include <utility>
 
+#include <fan/graphics/shape_macros.h>
 
 module fan.graphics.shapes;
 
@@ -529,8 +530,6 @@ namespace fan::graphics{
     delete[] ri;
   }
 
-
-
   shapes::shape_t::shape_t() {
     sic();
   }
@@ -546,45 +545,6 @@ namespace fan::graphics{
 
     shape_nr_t new_raw;
     auto src_move = fan::graphics::culling::get_movement(*((fan::graphics::culling::culling_t*)g_shapes->visibility), *static_cast<const shaper_t::ShapeID_t*>(&s));
-
-    //{ // vfi
-    //  shapes::shape_ids_t::nr_t src_id;
-    //  src_id.gint() = s.NRI;
-    //  auto& src_sd = g_shapes->shape_ids[src_id];
-
-    //  if (src_sd.shape_type == shape_type_t::vfi) {
-    //    auto* src_ri = (vfi_t::ri_t*)src_sd.visual.GetData(g_shapes->shaper);
-
-    //    shapes::vfi_list_t::nr_t src_vfi_nr;
-    //    src_vfi_nr.gint() = src_sd.data_nr;
-    //    auto props = g_shapes->vfi_list[src_vfi_nr];
-
-    //    vfi_t::common_shape_data_t* new_shape_data = nullptr;
-    //    if (src_ri && src_ri->shape_data) {
-    //      new_shape_data = new vfi_t::common_shape_data_t(*src_ri->shape_data);
-    //    }
-
-    //    auto new_vfi_shape = g_shapes->vfi.push_back(props);
-
-    //    auto* new_ri = (vfi_t::ri_t*)new_vfi_shape.GetData(g_shapes->shaper);
-    //    if (new_ri && new_shape_data) {
-    //      delete new_ri->shape_data;
-    //      new_ri->shape_data = new_shape_data;
-    //    }
-
-    //    this->gint() = new_vfi_shape.NRI;
-
-    //    if (!g_shapes->culling_enabled()) {
-    //      push_shaper();
-    //    }
-    //    else {
-    //      shaper_t::ShapeID_t new_sid;
-    //      new_sid.NRI = new_vfi_shape.NRI;
-    //      fan::graphics::culling::add_shape(*((fan::graphics::culling::culling_t*)g_shapes->visibility), new_sid, src_move);
-    //    }
-    //    return;
-    //  }
-    //}
 
     g_shapes->with_shape_list(s.NRI, [&](auto& list, auto src_nr, auto& src_sd) {
       auto props = list[src_nr];
@@ -628,46 +588,6 @@ namespace fan::graphics{
 
     shape_nr_t new_raw;
     auto src_move = fan::graphics::culling::get_movement(*((fan::graphics::culling::culling_t*)g_shapes->visibility), *static_cast<const shaper_t::ShapeID_t*>(&s));
-
-    //{ // vfi
-    //  shapes::shape_ids_t::nr_t src_id;
-    //  src_id.gint() = s.NRI;
-    //  auto& src_sd = g_shapes->shape_ids[src_id];
-
-    //  if (src_sd.shape_type == shape_type_t::vfi) {
-    //    auto* src_ri = (vfi_t::ri_t*)src_sd.visual.GetData(g_shapes->shaper);
-
-    //    shapes::vfi_list_t::nr_t src_vfi_nr;
-    //    src_vfi_nr.gint() = src_sd.data_nr;
-    //    auto props = g_shapes->vfi_list[src_vfi_nr];
-
-    //    vfi_t::common_shape_data_t* new_shape_data = nullptr;
-    //    if (src_ri && src_ri->shape_data) {
-    //      new_shape_data = new vfi_t::common_shape_data_t(*src_ri->shape_data);
-    //    }
-
-    //    auto new_vfi_shape = g_shapes->vfi.push_back(props);
-
-    //    auto* new_ri = (vfi_t::ri_t*)new_vfi_shape.GetData(g_shapes->shaper);
-    //    if (new_ri && new_shape_data) {
-    //      delete new_ri->shape_data;
-    //      new_ri->shape_data = new_shape_data;
-    //    }
-
-    //    this->gint() = new_vfi_shape.NRI;
-
-    //    if (!g_shapes->culling_enabled()) {
-    //      push_shaper();
-    //    }
-    //    else {
-    //      shaper_t::ShapeID_t new_sid;
-    //      new_sid.NRI = new_vfi_shape.NRI;
-    //      fan::graphics::culling::add_shape(*((fan::graphics::culling::culling_t*)g_shapes->visibility), new_sid, src_move);
-    //    }
-
-    //    return *this;
-    //  }
-    //}
 
     g_shapes->with_shape_list(s.NRI, [&](auto& list, auto src_nr, auto& src_sd) {
       auto props = list[src_nr];
@@ -1421,6 +1341,14 @@ namespace fan::graphics{
     return sd.shape_type;
   }
 
+  SHAPE_PROP_SIMPLE(fan::color, color);
+  SHAPE_PROP_SIMPLE(fan::vec3,  angle);
+  SHAPE_PROP_SIMPLE(fan::vec2,  rotation_point);
+  SHAPE_PROP_SIMPLE(fan::vec2,  tc_position);
+  SHAPE_PROP_SIMPLE(fan::vec2,  tc_size);
+  SHAPE_PROP_SIMPLE(fan::vec2,  grid_size);
+  SHAPE_PROP_SIMPLE(fan::color, outline_color);
+
   void set_particle_pos(shapes::shape_t* shape, fan::vec3 position) {
     if (shape->get_shape_type() == shape_type_t::particles) {
       g_shapes->visit_shape_draw_data(shape->NRI, [&](auto& props) {
@@ -1515,35 +1443,11 @@ namespace fan::graphics{
     return fan::graphics::g_shapes->shape_functions[get_shape_type()].get_size3(this);
   }
 
-  void shapes::shape_t::set_rotation_point(const fan::vec2& rotation_point) {
-    fan::graphics::g_shapes->shape_functions[get_shape_type()].set_rotation_point(this, rotation_point);
-  }
-
-  fan::vec2 shapes::shape_t::get_rotation_point() const {
-    return fan::graphics::g_shapes->shape_functions[get_shape_type()].get_rotation_point(this);
-  }
-
-  void shapes::shape_t::set_color(const fan::color& color) {
-    g_shapes->shape_functions[get_shape_type()].set_color(this, color);
-  }
-
-  fan::color shapes::shape_t::get_color() const {
-    return g_shapes->shape_functions[get_shape_type()].get_color(this);
-  }
-
   std::array<fan::color, 4> shapes::shape_t::get_colors() const {
     return g_shapes->shape_functions[get_shape_type()].get_colors(this);
   }
   void shapes::shape_t::set_colors(const std::array<fan::color, 4>& colors) {
     return g_shapes->shape_functions[get_shape_type()].set_colors(this, colors);
-  }
-
-  void shapes::shape_t::set_angle(const fan::vec3& angle) {
-    g_shapes->shape_functions[get_shape_type()].set_angle(this, angle);
-  }
-
-  fan::vec3 shapes::shape_t::get_angle() const {
-    return g_shapes->shape_functions[get_shape_type()].get_angle(this);
   }
 
   fan::basis shapes::shape_t::get_basis() const {
@@ -1621,22 +1525,6 @@ namespace fan::graphics{
     return { minp, maxp };
   }
 
-  fan::vec2 shapes::shape_t::get_tc_position() const {
-    return g_shapes->shape_functions[get_shape_type()].get_tc_position(this);
-  }
-
-  void shapes::shape_t::set_tc_position(const fan::vec2& tc_position) {
-    auto st = get_shape_type();
-    g_shapes->shape_functions[st].set_tc_position(this, tc_position);
-  }
-
-  fan::vec2 shapes::shape_t::get_tc_size() const {
-    return g_shapes->shape_functions[get_shape_type()].get_tc_size(this);
-  }
-
-  void shapes::shape_t::set_tc_size(const fan::vec2& tc_size) {
-    g_shapes->shape_functions[get_shape_type()].set_tc_size(this, tc_size);
-  }
   fan::vec2 shapes::shape_t::get_image_sign() const {
     return get_tc_size().sign();
   }
@@ -1757,14 +1645,6 @@ namespace fan::graphics{
     set_viewport(render_view.viewport);
   }
 
-  fan::vec2 shapes::shape_t::get_grid_size() {
-    return g_shapes->shape_functions[get_shape_type()].get_grid_size(this);
-  }
-
-  void shapes::shape_t::set_grid_size(const fan::vec2& grid_size) {
-    g_shapes->shape_functions[get_shape_type()].set_grid_size(this, grid_size);
-  }
-
   fan::graphics::image_t shapes::shape_t::get_image() const {
     auto st = get_shape_type();
     if (get_shape_type() == fan::graphics::shape_type_t::universal_image_renderer) {
@@ -1847,7 +1727,6 @@ namespace fan::graphics{
   f32_t shapes::shape_t::get_parallax_factor() const {
     return g_shapes->shape_functions[get_shape_type()].get_parallax_factor(this);
   }
-
   void shapes::shape_t::set_parallax_factor(f32_t parallax_factor) {
     g_shapes->shape_functions[get_shape_type()].set_parallax_factor(this, parallax_factor);
   }
@@ -1879,14 +1758,6 @@ namespace fan::graphics{
 
   f32_t shapes::shape_t::get_outline_size() const {
     return g_shapes->shape_functions[get_shape_type()].get_outline_size(this);
-  }
-
-  fan::color shapes::shape_t::get_outline_color() const {
-    return g_shapes->shape_functions[get_shape_type()].get_outline_color(this);
-  }
-
-  void shapes::shape_t::set_outline_color(const fan::color& color) {
-    return g_shapes->shape_functions[get_shape_type()].set_outline_color(this, color);
   }
 
   void shapes::shape_t::reload(uint8_t format, void** image_data, const fan::vec2& image_size) {
@@ -2713,29 +2584,15 @@ namespace fan::graphics{
     return g_shapes->shaper.GetKeysSize(get_visual_id());
   }
 
+  static shapes::shape_t make_shape_ret(shapes::shape_nr_t nri) {
+    fan::graphics::shaper_t::ShapeID_t ret;
+    ret.gint() = nri;
+    return ret;
+  }
+
   static constexpr uint8_t default_visible = 1;
   //shapes
-  shapes::shape_t shapes::light_t::push_back(const properties_t& properties){
-    auto new_item = g_shapes->add_shape(g_shapes->light_list, properties);
-    fan::graphics::shaper_t::ShapeID_t ret;
-    ret.gint() = new_item.NRI;
-    return ret;
-  }
-
-  shapes::shape_t shapes::line_t::push_back(const properties_t& properties){
-    auto new_item = g_shapes->add_shape(g_shapes->line_list, properties);
-    fan::graphics::shaper_t::ShapeID_t ret;
-    ret.gint() = new_item.NRI;
-    return ret;
-  }
-
-  shapes::shape_t shapes::rectangle_t::push_back(const properties_t& properties){
-    auto new_item = g_shapes->add_shape(g_shapes->rectangle_list, properties);
-    fan::graphics::shaper_t::ShapeID_t ret;
-    ret.gint() = new_item.NRI;
-    return ret;
-  }
-
+  
   shapes::shape_t shapes::sprite_t::push_back(const properties_t& properties){
     bool uses_texture_pack = properties.texture_pack_unique_id.iic() == false && g_shapes->texture_pack;
     fan::graphics::texture_pack::ti_t ti;
@@ -2814,45 +2671,6 @@ namespace fan::graphics{
     return ret;
   }
 
-  shapes::shape_t shapes::text_t::push_back(const properties_t& properties){
-    auto new_item = g_shapes->add_shape(g_shapes->text_list, properties);
-    fan::graphics::shaper_t::ShapeID_t ret;
-    ret.gint() = new_item.NRI;
-    return ret;
-  }
-
-  shapes::shape_t shapes::circle_t::push_back(const properties_t& properties){
-    auto new_item = g_shapes->add_shape(g_shapes->circle_list, properties);
-    fan::graphics::shaper_t::ShapeID_t ret;
-    ret.gint() = new_item.NRI;
-    return ret;
-  }
-
-  shapes::shape_t shapes::capsule_t::push_back(const properties_t& properties){
-    auto new_item = g_shapes->add_shape(g_shapes->capsule_list, properties);
-    fan::graphics::shaper_t::ShapeID_t ret;
-    ret.gint() = new_item.NRI;
-    return ret;
-  }
-
-  shapes::shape_t shapes::polygon_t::push_back(const properties_t& properties){
-    if(properties.vertices.empty()){
-      fan::throw_error("invalid vertices");
-    }
-
-    auto new_item = g_shapes->add_shape(g_shapes->polygon_list, properties);
-    fan::graphics::shaper_t::ShapeID_t ret;
-    ret.gint() = new_item.NRI;
-    return ret;
-  }
-
-  shapes::shape_t shapes::grid_t::push_back(const properties_t& properties){
-    auto new_item = g_shapes->add_shape(g_shapes->grid_list, properties);
-    fan::graphics::shaper_t::ShapeID_t ret;
-    ret.gint() = new_item.NRI;
-    return ret;
-  }
-
   shapes::shape_t shapes::particles_t::push_back(const properties_t& properties){
     properties_t modified_props = properties;
     modified_props.begin_time = fan::time::now();
@@ -2864,53 +2682,22 @@ namespace fan::graphics{
     return ret;
   }
 
-  shapes::shape_t shapes::universal_image_renderer_t::push_back(const properties_t& properties){
-    auto new_item = g_shapes->add_shape(g_shapes->universal_image_renderer_list, properties);
-
-    fan::graphics::shaper_t::ShapeID_t ret;
-    ret.gint() = new_item.NRI;
-    return ret;
-  }
-
-  shapes::shape_t shapes::gradient_t::push_back(const properties_t& properties){
-    auto new_item = g_shapes->add_shape(g_shapes->gradient_list, properties);
-    fan::graphics::shaper_t::ShapeID_t ret;
-    ret.gint() = new_item.NRI;
-    return ret;
-  }
-
-  shapes::shape_t shapes::shadow_t::push_back(const properties_t& properties){
-    auto new_item = g_shapes->add_shape(g_shapes->shadow_list, properties);
-    fan::graphics::shaper_t::ShapeID_t ret;
-    ret.gint() = new_item.NRI;
-    return ret;
-  }
-
-  shapes::shape_t shapes::shader_shape_t::push_back(const properties_t& properties){
-    auto new_item = g_shapes->add_shape(g_shapes->shader_shape_list, properties);
-    g_shapes->shaper.GetShader(shape_type) = properties.shader;
-
-    fan::graphics::shaper_t::ShapeID_t ret;
-    ret.gint() = new_item.NRI;
-    return ret;
-  }
-
-#if defined(FAN_3D)
-  shapes::shape_t shapes::rectangle3d_t::push_back(const properties_t& properties){
-    auto new_item = g_shapes->add_shape(g_shapes->rectangle3d_list, properties);
-    fan::graphics::shaper_t::ShapeID_t ret;
-    ret.gint() = new_item.NRI;
-    return ret;
-  }
-
-  shapes::shape_t shapes::line3d_t::push_back(const properties_t& properties){
-    auto new_item = g_shapes->add_shape(g_shapes->line3d_list, properties);
-    fan::graphics::shaper_t::ShapeID_t ret;
-    ret.gint() = new_item.NRI;
-    return ret;
-  }
-#endif
-
+  DEFINE_PUSH_BACK(light);
+  DEFINE_PUSH_BACK(line);
+  DEFINE_PUSH_BACK(rectangle);
+  DEFINE_PUSH_BACK(text);
+  DEFINE_PUSH_BACK(circle);
+  DEFINE_PUSH_BACK(capsule);
+  DEFINE_PUSH_BACK(polygon);
+  DEFINE_PUSH_BACK(grid);
+  DEFINE_PUSH_BACK(universal_image_renderer);
+  DEFINE_PUSH_BACK(gradient);
+  DEFINE_PUSH_BACK(shadow);
+  DEFINE_PUSH_BACK(shader_shape);
+  #if defined(FAN_3D)
+    DEFINE_PUSH_BACK(rectangle3d);
+    DEFINE_PUSH_BACK(line3d);
+  #endif  // FAN_3D
 #endif // FAN_2D
 } // namespace fan::graphics
 
@@ -3092,34 +2879,34 @@ namespace fan::graphics {
     {
       fan::graphics::shapes::light_t::properties_t defaults;
       out["shape"] = "light";
-      if (shape.get_position() != defaults.position) out["position"] = shape.get_position();
-      if (shape.get_parallax_factor() != defaults.parallax_factor) out["parallax_factor"] = shape.get_parallax_factor();
-      if (shape.get_size() != defaults.size) out["size"] = shape.get_size();
-      if (shape.get_rotation_point() != defaults.rotation_point) out["rotation_point"] = shape.get_rotation_point();
-      if (shape.get_color() != defaults.color) out["color"] = shape.get_color();
-      if (shape.get_flags() != defaults.flags) out["flags"] = shape.get_flags();
-      if (shape.get_angle() != defaults.angle) out["angle"] = shape.get_angle();
+      SHAPE_JSON_EMIT(position);
+      SHAPE_JSON_EMIT(parallax_factor);
+      SHAPE_JSON_EMIT(size);
+      SHAPE_JSON_EMIT(rotation_point);
+      SHAPE_JSON_EMIT(color);
+      SHAPE_JSON_EMIT(flags);
+      SHAPE_JSON_EMIT(angle);
       break;
     }
     case fan::graphics::shapes::shape_type_t::line:
     {
       fan::graphics::shapes::line_t::properties_t defaults;
       out["shape"] = "line";
-      if (shape.get_color() != defaults.color) out["color"] = shape.get_color();
-      if (shape.get_src() != defaults.src) out["src"] = shape.get_src();
-      if (shape.get_dst() != defaults.dst) out["dst"] = shape.get_dst();
+      SHAPE_JSON_EMIT(color);
+      SHAPE_JSON_EMIT_CUSTOM("src", get_src, src);
+      SHAPE_JSON_EMIT_CUSTOM("dst", get_dst, dst);
       break;
     }
     case fan::graphics::shapes::shape_type_t::rectangle:
     {
       fan::graphics::shapes::rectangle_t::properties_t defaults;
       out["shape"] = "rectangle";
-      if (shape.get_position() != defaults.position) out["position"] = shape.get_position();
-      if (shape.get_size() != defaults.size) out["size"] = shape.get_size();
-      if (shape.get_rotation_point() != defaults.rotation_point) out["rotation_point"] = shape.get_rotation_point();
-      if (shape.get_color() != defaults.color) out["color"] = shape.get_color();
-      if (shape.get_outline_color() != defaults.outline_color) out["outline_color"] = shape.get_outline_color();
-      if (shape.get_angle() != defaults.angle) out["angle"] = shape.get_angle();
+      SHAPE_JSON_EMIT(position);
+      SHAPE_JSON_EMIT(size);
+      SHAPE_JSON_EMIT(rotation_point);
+      SHAPE_JSON_EMIT(color);
+      SHAPE_JSON_EMIT(outline_color);
+      SHAPE_JSON_EMIT(angle);
       break;
     }
     case fan::graphics::shapes::shape_type_t::sprite:
@@ -3231,23 +3018,23 @@ namespace fan::graphics {
     {
       fan::graphics::shapes::circle_t::properties_t defaults;
       out["shape"] = "circle";
-      if (shape.get_position() != defaults.position) out["position"] = shape.get_position();
-      if (shape.get_radius() != defaults.radius) out["radius"] = shape.get_radius();
-      if (shape.get_rotation_point() != defaults.rotation_point) out["rotation_point"] = shape.get_rotation_point();
-      if (shape.get_color() != defaults.color) out["color"] = shape.get_color();
-      if (shape.get_angle() != defaults.angle) out["angle"] = shape.get_angle();
+      SHAPE_JSON_EMIT(position);
+      SHAPE_JSON_EMIT_CUSTOM("radius", get_radius, radius);
+      SHAPE_JSON_EMIT(rotation_point);
+      SHAPE_JSON_EMIT(color);
+      SHAPE_JSON_EMIT(angle);
       break;
     }
     case fan::graphics::shapes::shape_type_t::grid:
     {
       fan::graphics::shapes::grid_t::properties_t defaults;
       out["shape"] = "grid";
-      if (shape.get_position() != defaults.position) out["position"] = shape.get_position();
-      if (shape.get_size() != defaults.size) out["size"] = shape.get_size();
-      if (shape.get_grid_size() != defaults.grid_size) out["grid_size"] = shape.get_grid_size();
-      if (shape.get_rotation_point() != defaults.rotation_point) out["rotation_point"] = shape.get_rotation_point();
-      if (shape.get_color() != defaults.color) out["color"] = shape.get_color();
-      if (shape.get_angle() != defaults.angle) out["angle"] = shape.get_angle();
+      SHAPE_JSON_EMIT(position);
+      SHAPE_JSON_EMIT(size);
+      SHAPE_JSON_EMIT_CUSTOM("grid_size", get_grid_size, grid_size);
+      SHAPE_JSON_EMIT(rotation_point);
+      SHAPE_JSON_EMIT(color);
+      SHAPE_JSON_EMIT(angle);
       break;
     }
     case fan::graphics::shapes::shape_type_t::particles:
@@ -3306,34 +3093,34 @@ namespace fan::graphics {
     case fan::get_hash("rectangle"):
     {
       fan::graphics::shapes::rectangle_t::properties_t p;
-      in.get_if("position", p.position);
-      in.get_if("size", p.size);
-      in.get_if("rotation_point", p.rotation_point);
-      in.get_if("color", p.color);
-      in.get_if("outline_color", p.outline_color);
-      in.get_if("angle", p.angle);
+      SHAPE_JSON_GET(position);
+      SHAPE_JSON_GET(size);
+      SHAPE_JSON_GET(rotation_point);
+      SHAPE_JSON_GET(color);
+      SHAPE_JSON_GET(outline_color);
+      SHAPE_JSON_GET(angle);
       *shape = p;
       break;
     }
     case fan::get_hash("light"):
     {
       fan::graphics::shapes::light_t::properties_t p;
-      in.get_if("position", p.position);
-      in.get_if("parallax_factor", p.parallax_factor);
-      in.get_if("size", p.size);
-      in.get_if("rotation_point", p.rotation_point);
-      in.get_if("color", p.color);
-      in.get_if("flags", p.flags);
-      in.get_if("angle", p.angle);
+      SHAPE_JSON_GET(position);
+      SHAPE_JSON_GET(parallax_factor);
+      SHAPE_JSON_GET(size);
+      SHAPE_JSON_GET(rotation_point);
+      SHAPE_JSON_GET(color);
+      SHAPE_JSON_GET(flags);
+      SHAPE_JSON_GET(angle);
       *shape = p;
       break;
     }
     case fan::get_hash("line"):
     {
       fan::graphics::shapes::line_t::properties_t p;
-      in.get_if("color", p.color);
-      in.get_if("src", p.src);
-      in.get_if("dst", p.dst);
+      SHAPE_JSON_GET(color);
+      SHAPE_JSON_GET(src);
+      SHAPE_JSON_GET(dst);
       *shape = p;
       break;
     }
@@ -3446,55 +3233,55 @@ namespace fan::graphics {
     case fan::get_hash("circle"):
     {
       fan::graphics::shapes::circle_t::properties_t p;
-      in.get_if("position", p.position);
-      in.get_if("radius", p.radius);
-      in.get_if("rotation_point", p.rotation_point);
-      in.get_if("color", p.color);
-      in.get_if("angle", p.angle);
+      SHAPE_JSON_GET(position);
+      SHAPE_JSON_GET(radius);
+      SHAPE_JSON_GET(rotation_point);
+      SHAPE_JSON_GET(color);
+      SHAPE_JSON_GET(angle);
       *shape = p;
       break;
     }
     case fan::get_hash("grid"):
     {
       fan::graphics::shapes::grid_t::properties_t p;
-      in.get_if("position", p.position);
-      in.get_if("size", p.size);
-      in.get_if("grid_size", p.grid_size);
-      in.get_if("rotation_point", p.rotation_point);
-      in.get_if("color", p.color);
-      in.get_if("angle", p.angle);
+      SHAPE_JSON_GET(position);
+      SHAPE_JSON_GET(size);
+      SHAPE_JSON_GET(grid_size);
+      SHAPE_JSON_GET(rotation_point);
+      SHAPE_JSON_GET(color);
+      SHAPE_JSON_GET(angle);
       *shape = p;
       break;
     }
     case fan::get_hash("particles"):
     {
       fan::graphics::shapes::particles_t::properties_t p;
-      in.get_if("loop", p.loop);
-      in.get_if("position", p.position);
-      in.get_if("start_size", p.start_size);
-      in.get_if("end_size", p.end_size);
-      in.get_if("begin_color", p.begin_color);
-      in.get_if("end_color", p.end_color);
-      in.get_if("alive_time", p.alive_time);
-      in.get_if("respawn_time", p.respawn_time);
-      in.get_if("count", p.count);
-      in.get_if("start_velocity", p.start_velocity);
-      in.get_if("end_velocity", p.end_velocity);
-      in.get_if("start_angle_velocity", p.start_angle_velocity);
-      in.get_if("end_angle_velocity", p.end_angle_velocity);
-      in.get_if("begin_angle", p.begin_angle);
-      in.get_if("end_angle", p.end_angle);
-      in.get_if("angle", p.angle);
-      in.get_if("spawn_spacing", p.spawn_spacing);
-      in.get_if("expansion_power", p.expansion_power);
-      in.get_if("start_spread", p.start_spread);
-      in.get_if("end_spread", p.end_spread);
-      in.get_if("jitter_start", p.jitter_start);
-      in.get_if("jitter_end", p.jitter_end);
-      in.get_if("jitter_speed", p.jitter_speed);
-      in.get_if("size_random_range", p.size_random_range);
-      in.get_if("color_random_range", p.color_random_range);
-      in.get_if("angle_random_range", p.angle_random_range);
+      SHAPE_JSON_GET(loop);
+      SHAPE_JSON_GET(position);
+      SHAPE_JSON_GET(start_size);
+      SHAPE_JSON_GET(end_size);
+      SHAPE_JSON_GET(begin_color);
+      SHAPE_JSON_GET(end_color);
+      SHAPE_JSON_GET(alive_time);
+      SHAPE_JSON_GET(respawn_time);
+      SHAPE_JSON_GET(count);
+      SHAPE_JSON_GET(start_velocity);
+      SHAPE_JSON_GET(end_velocity);
+      SHAPE_JSON_GET(start_angle_velocity);
+      SHAPE_JSON_GET(end_angle_velocity);
+      SHAPE_JSON_GET(begin_angle);
+      SHAPE_JSON_GET(end_angle);
+      SHAPE_JSON_GET(angle);
+      SHAPE_JSON_GET(spawn_spacing);
+      SHAPE_JSON_GET(expansion_power);
+      SHAPE_JSON_GET(start_spread);
+      SHAPE_JSON_GET(end_spread);
+      SHAPE_JSON_GET(jitter_start);
+      SHAPE_JSON_GET(jitter_end);
+      SHAPE_JSON_GET(jitter_speed);
+      SHAPE_JSON_GET(size_random_range);
+      SHAPE_JSON_GET(color_random_range);
+      SHAPE_JSON_GET(angle_random_range);
       in.get_if("particle_shape", p.shape);
       p.image = fan::graphics::json_to_image(in, callers_path);
       *shape = p;
@@ -3512,6 +3299,50 @@ namespace fan::graphics {
   }
 }
 #endif
+
+static void write_sprite_fields(std::vector<uint8_t>& out, fan::graphics::shapes::shape_t& shape) {
+  fan::write_to_vector(out, shape.get_position());
+  fan::write_to_vector(out, shape.get_parallax_factor());
+  fan::write_to_vector(out, shape.get_size());
+  fan::write_to_vector(out, shape.get_rotation_point());
+  fan::write_to_vector(out, shape.get_color());
+  fan::write_to_vector(out, shape.get_angle());
+  fan::write_to_vector(out, shape.get_flags());
+  fan::write_to_vector(out, shape.get_image_data().image_path);
+  fan::graphics::image_load_properties_t ilp = fan::graphics::ctx()->image_get_settings(
+    fan::graphics::ctx(), shape.get_image());
+  fan::write_to_vector(out, ilp.visual_output);
+  fan::write_to_vector(out, ilp.format);
+  fan::write_to_vector(out, ilp.type);
+  fan::write_to_vector(out, ilp.min_filter);
+  fan::write_to_vector(out, ilp.mag_filter);
+  fan::write_to_vector(out, shape.get_tc_position());
+  fan::write_to_vector(out, shape.get_tc_size());
+}
+
+template<typename props_t>
+static auto read_sprite_fields(const std::vector<uint8_t>& in, uint64_t& offset,
+  const std::source_location& callers_path)
+{
+  props_t p;
+  p.position          = fan::vector_read_data<decltype(p.position)>(in, offset);
+  p.parallax_factor   = fan::vector_read_data<decltype(p.parallax_factor)>(in, offset);
+  p.size              = fan::vector_read_data<decltype(p.size)>(in, offset);
+  p.rotation_point    = fan::vector_read_data<decltype(p.rotation_point)>(in, offset);
+  p.color             = fan::vector_read_data<decltype(p.color)>(in, offset);
+  p.angle             = fan::vector_read_data<decltype(p.angle)>(in, offset);
+  p.flags             = fan::vector_read_data<decltype(p.flags)>(in, offset);
+  std::string image_path = fan::vector_read_data<std::string>(in, offset);
+  fan::graphics::image_load_properties_t ilp;
+  ilp.visual_output   = fan::vector_read_data<decltype(ilp.visual_output)>(in, offset);
+  ilp.format          = fan::vector_read_data<decltype(ilp.format)>(in, offset);
+  ilp.type            = fan::vector_read_data<decltype(ilp.type)>(in, offset);
+  ilp.min_filter      = fan::vector_read_data<decltype(ilp.min_filter)>(in, offset);
+  ilp.mag_filter      = fan::vector_read_data<decltype(ilp.mag_filter)>(in, offset);
+  p.tc_position       = fan::vector_read_data<decltype(p.tc_position)>(in, offset);
+  p.tc_size           = fan::vector_read_data<decltype(p.tc_size)>(in, offset);
+  return std::make_pair(p, image_path);
+}
 
 namespace fan::graphics {
   bool shape_to_bin(fan::graphics::shapes::shape_t& shape, std::vector<uint8_t>* data) {
@@ -3543,44 +3374,12 @@ namespace fan::graphics {
       fan::write_to_vector(out, shape.get_angle());
       break;
     }
-    case fan::graphics::shapes::shape_type_t::sprite: {
-      fan::write_to_vector(out, shape.get_position());
-      fan::write_to_vector(out, shape.get_parallax_factor());
-      fan::write_to_vector(out, shape.get_size());
-      fan::write_to_vector(out, shape.get_rotation_point());
-      fan::write_to_vector(out, shape.get_color());
-      fan::write_to_vector(out, shape.get_angle());
-      fan::write_to_vector(out, shape.get_flags());
-      fan::write_to_vector(out, shape.get_image_data().image_path);
-      fan::graphics::image_load_properties_t ilp = fan::graphics::ctx()->image_get_settings(fan::graphics::ctx(), shape.get_image());
-      fan::write_to_vector(out, ilp.visual_output);
-      fan::write_to_vector(out, ilp.format);
-      fan::write_to_vector(out, ilp.type);
-      fan::write_to_vector(out, ilp.min_filter);
-      fan::write_to_vector(out, ilp.mag_filter);
-      fan::write_to_vector(out, shape.get_tc_position());
-      fan::write_to_vector(out, shape.get_tc_size());
+    case fan::graphics::shapes::shape_type_t::sprite:
+      write_sprite_fields(out, shape);
       break;
-    }
-    case fan::graphics::shapes::shape_type_t::unlit_sprite: {
-      fan::write_to_vector(out, shape.get_position());
-      fan::write_to_vector(out, shape.get_parallax_factor());
-      fan::write_to_vector(out, shape.get_size());
-      fan::write_to_vector(out, shape.get_rotation_point());
-      fan::write_to_vector(out, shape.get_color());
-      fan::write_to_vector(out, shape.get_angle());
-      fan::write_to_vector(out, shape.get_flags());
-      fan::write_to_vector(out, shape.get_image_data().image_path);
-      fan::graphics::image_load_properties_t ilp = fan::graphics::ctx()->image_get_settings(fan::graphics::ctx(), shape.get_image());
-      fan::write_to_vector(out, ilp.visual_output);
-      fan::write_to_vector(out, ilp.format);
-      fan::write_to_vector(out, ilp.type);
-      fan::write_to_vector(out, ilp.min_filter);
-      fan::write_to_vector(out, ilp.mag_filter);
-      fan::write_to_vector(out, shape.get_tc_position());
-      fan::write_to_vector(out, shape.get_tc_size());
+    case fan::graphics::shapes::shape_type_t::unlit_sprite:
+      write_sprite_fields(out, shape);
       break;
-    }
     case fan::graphics::shapes::shape_type_t::circle: {
       fan::write_to_vector(out, shape.get_position());
       fan::write_to_vector(out, shape.get_radius());
@@ -3688,53 +3487,20 @@ namespace fan::graphics {
       break;
     }
     case fan::graphics::shapes::shape_type_t::sprite: {
-      fan::graphics::shapes::sprite_t::properties_t p;
-      p.position = fan::vector_read_data<decltype(p.position)>(in, offset);
-      p.parallax_factor = fan::vector_read_data<decltype(p.parallax_factor)>(in, offset);
-      p.size = fan::vector_read_data<decltype(p.size)>(in, offset);
-      p.rotation_point = fan::vector_read_data<decltype(p.rotation_point)>(in, offset);
-      p.color = fan::vector_read_data<decltype(p.color)>(in, offset);
-      p.angle = fan::vector_read_data<decltype(p.angle)>(in, offset);
-      p.flags = fan::vector_read_data<decltype(p.flags)>(in, offset);
-
-      std::string image_path = fan::vector_read_data<std::string>(in, offset);
-      fan::graphics::image_load_properties_t ilp;
-      ilp.visual_output = fan::vector_read_data<decltype(ilp.visual_output)>(in, offset);
-      ilp.format = fan::vector_read_data<decltype(ilp.format)>(in, offset);
-      ilp.type = fan::vector_read_data<decltype(ilp.type)>(in, offset);
-      ilp.min_filter = fan::vector_read_data<decltype(ilp.min_filter)>(in, offset);
-      ilp.mag_filter = fan::vector_read_data<decltype(ilp.mag_filter)>(in, offset);
-      p.tc_position = fan::vector_read_data<decltype(p.tc_position)>(in, offset);
-      p.tc_size = fan::vector_read_data<decltype(p.tc_size)>(in, offset);
+      auto [p, image_path] = read_sprite_fields<fan::graphics::shapes::sprite_t::properties_t>(in, offset, callers_path);
       *shape = p;
       if (image_path.size()) {
         shape->get_image_data().image_path = image_path;
-        shape->set_image(fan::graphics::ctx()->image_load_path_props(fan::graphics::ctx(), image_path, ilp, callers_path));
+        shape->set_image(fan::graphics::ctx()->image_load_path_props(fan::graphics::ctx(), image_path, {}, callers_path));
       }
       break;
     }
     case fan::graphics::shapes::shape_type_t::unlit_sprite: {
-      fan::graphics::shapes::unlit_sprite_t::properties_t p;
-      p.position = fan::vector_read_data<decltype(p.position)>(in, offset);
-      p.parallax_factor = fan::vector_read_data<decltype(p.parallax_factor)>(in, offset);
-      p.size = fan::vector_read_data<decltype(p.size)>(in, offset);
-      p.rotation_point = fan::vector_read_data<decltype(p.rotation_point)>(in, offset);
-      p.color = fan::vector_read_data<decltype(p.color)>(in, offset);
-      p.angle = fan::vector_read_data<decltype(p.angle)>(in, offset);
-      p.flags = fan::vector_read_data<decltype(p.flags)>(in, offset);
-      std::string image_path = fan::vector_read_data<std::string>(in, offset);
-      fan::graphics::image_load_properties_t ilp;
-      ilp.visual_output = fan::vector_read_data<decltype(ilp.visual_output)>(in, offset);
-      ilp.format = fan::vector_read_data<decltype(ilp.format)>(in, offset);
-      ilp.type = fan::vector_read_data<decltype(ilp.type)>(in, offset);
-      ilp.min_filter = fan::vector_read_data<decltype(ilp.min_filter)>(in, offset);
-      ilp.mag_filter = fan::vector_read_data<decltype(ilp.mag_filter)>(in, offset);
-      p.tc_position = fan::vector_read_data<decltype(p.tc_position)>(in, offset);
-      p.tc_size = fan::vector_read_data<decltype(p.tc_size)>(in, offset);
+      auto [p, image_path] = read_sprite_fields<fan::graphics::shapes::unlit_sprite_t::properties_t>(in, offset, callers_path);
       *shape = p;
       if (image_path.size()) {
         shape->get_image_data().image_path = image_path;
-        shape->set_image(fan::graphics::ctx()->image_load_path_props(fan::graphics::ctx(), image_path, ilp, callers_path));
+        shape->set_image(fan::graphics::ctx()->image_load_path_props(fan::graphics::ctx(), image_path, {}, callers_path));
       }
       break;
     }
