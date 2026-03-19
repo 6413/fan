@@ -1458,7 +1458,7 @@ namespace fan::graphics::physics {
      .fps = attack.fps,
      .trigger_type = fan::graphics::sprite_sheet_controller_t::animation_state_t::one_shot,
      .condition = cond
-     });
+    });
 
 
     if (idle.fps) {

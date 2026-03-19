@@ -156,14 +156,8 @@ fan::graphics::shader_nr_t loco_t::shader_create() {
 }
 
 fan::graphics::context_shader_t loco_t::shader_get(fan::graphics::shader_nr_t nr) {
-  fan::graphics::context_shader_t context_shader;
-  renderer_call(
-    context_shader.gl = *(fan::opengl::context_t::shader_t*)fan::graphics::ctx()->shader_get(fan::graphics::ctx(), nr),
-    context_shader.vk = *(fan::vulkan::context_t::shader_t*)fan::graphics::ctx()->shader_get(fan::graphics::ctx(), nr)
-  );
-  return context_shader;
+  return render_context_call(fan::graphics::context_shader_t, shader_get, nr);
 }
-
 void loco_t::shader_erase(fan::graphics::shader_nr_t nr) {
   context_functions.shader_erase(&context, nr);
 }
@@ -184,11 +178,8 @@ bool loco_t::shader_compile(fan::graphics::shader_nr_t nr) {
   return context_functions.shader_compile(&context, nr);
 }
 
-void loco_t::shader_set_camera(shader_t nr, camera_t camera_nr) {
-  renderer_call(
-    context.gl.shader_set_camera(nr, camera_nr),
-    fan::throw_error("todo")
-  );
+void loco_t::shader_set_camera(fan::graphics::shader_nr_t nr, camera_t camera_nr) {
+  render_context_call(void, shader_set_camera, nr, camera_nr);
 }
 
 #if defined(FAN_2D)
@@ -246,16 +237,24 @@ std::vector<uint8_t> loco_t::image_get_pixel_data(
   fan::vec2 uvp,
   fan::vec2 uvs
 ) {
-  renderer_call_ret(
-    context_functions.image_get_pixel_data(
-      &context,
+  std::vector<uint8_t> result;
+
+  render_context_call_raw(
+    result = fan::graphics::get_gl_context().image_get_pixel_data(
       nr,
       fan::opengl::context_t::global_to_opengl_format(image_format),
       uvp,
       uvs
     ),
-    fan::throw_error("todo")
+    result = fan::graphics::get_vk_context().image_get_pixel_data(
+      nr,
+      image_format,
+      uvp,
+      uvs
+    )
   );
+
+  return result;
 }
 
 fan::graphics::image_nr_t loco_t::image_create() {
@@ -263,12 +262,7 @@ fan::graphics::image_nr_t loco_t::image_create() {
 }
 
 fan::graphics::context_image_t loco_t::image_get(fan::graphics::image_nr_t nr) {
-  fan::graphics::context_image_t img;
-  renderer_call(
-    img.gl = *(fan::opengl::context_t::image_t*)fan::graphics::ctx()->image_get(fan::graphics::ctx(), nr),
-    img.vk = *(fan::vulkan::context_t::image_t*)fan::graphics::ctx()->image_get(fan::graphics::ctx(), nr)
-  );
-  return img;
+  return render_context_call(fan::graphics::context_image_t, image_get, nr);
 }
 
 uint64_t loco_t::image_get_handle(fan::graphics::image_nr_t nr) {
@@ -1021,16 +1015,10 @@ loco_t::loco_t(const loco_t::properties_t& props) :
     }
   }
 
-  renderer_call(
-    gl.init(),
-    vk.init()
-  );
+  renderer_call(init);
 
 #if defined(FAN_2D)
-  renderer_call(
-    gl.shapes_open(),
-    vk.shapes_open()
-  );
+  renderer_call(shapes_open);
 #endif
 
 
@@ -1443,10 +1431,7 @@ void loco_t::switch_renderer(uint8_t renderer) {
 void loco_t::shapes_draw() {
   shape_draw_timer.start();
 
-  renderer_call(
-    gl.shapes_draw(),
-    vk.shapes_draw()
-  );
+  renderer_call(shapes_draw);
 
   shape_draw_time_s = shape_draw_timer.seconds();
 
@@ -2035,10 +2020,7 @@ fan::vec2 loco_t::ndc_to_screen(const fan::vec2& ndc_position) {
 void loco_t::set_vsync(bool flag) {
   vsync = flag;
   // vulkan vsync is enabled by presentation mode in swap chain
-  renderer_call(
-    context.gl.set_vsync(&window, flag),
-    context.vk.set_vsync(&window, flag)
-  );
+  render_context_call(void, set_vsync, &window, flag);
 }
 
 void loco_t::start_timer() {
@@ -2749,8 +2731,5 @@ namespace fan::graphics::gui {
 #endif
 
 void fan::graphics::shader_set_camera(fan::graphics::shader_t nr, fan::graphics::camera_t camera_nr) {
-  renderer_call(
-    get_gl_context().shader_set_camera(nr, camera_nr),
-    fan::throw_error("todo")
-  );
+  render_context_call(void, shader_set_camera, nr, camera_nr);
 }

@@ -489,9 +489,7 @@ export namespace fan::graphics {
 
       void move_direction(const fan::vec2& direction, const fan::vec2& speed = 100.f);
       void move_to_position(const fan::vec2& target, f32_t seconds = 1.f);
-      void move_towards(const fan::vec2& target, const fan::vec2& speed);
-
-
+      void move_towards(const fan::vec2& target, const fan::vec2& speed, const fan::vec2& image_orientation = {1.f, 1.f});
 
       //vram
       //_d = decltype usage decltype(itself)
