@@ -802,7 +802,7 @@ export namespace fan {
             .spawns = {{.frame = hit_frame}},
             .attack_animation = anim_name,
             .track_hit_targets = true
-            });
+          });
         }
 
         template <typename enemies_t>

@@ -1086,7 +1086,7 @@ int main() {
   // enable glFlush & glFinish
   fan_track_opengl_calls() = 1;
 
-  engine.shapes.visibility.padding = 10000;
+  engine.set_cull_padding(10000);
 
   engine.set_culling_enabled(false);
   fan::print_color(fan::colors::yellow, "\n=== Running Tests with Culling Disabled ===\n");

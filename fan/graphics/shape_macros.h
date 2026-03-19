@@ -18,15 +18,71 @@
   #define IF_GUI(...)
 #endif
 
-#define renderer_call(gl_expr, vk_expr) \
+#define RENDER_CALL_CTX(type, ctx, member, err, func, ...)                         \
+  if constexpr (requires { static_cast<void>(ctx.func(__VA_ARGS__)); }) {          \
+    if constexpr (std::is_void_v<type>) {                                          \
+      ctx.func(__VA_ARGS__);                                                       \
+      return;                                                                      \
+    }                                                                              \
+    else {                                                                         \
+      obj.member = (std::remove_reference_t<decltype(obj.member)>)                 \
+        ctx.func(__VA_ARGS__);                                                     \
+      return obj;                                                                  \
+    }                                                                              \
+  }                                                                                \
+  else { fan::throw_error(err); }                                                  \
+
+#define render_context_call(type, func, ...)                                       \
+([&]() {                                                                           \
+  auto& w = fan::graphics::get_window();                                           \
+  if constexpr (!std::is_void_v<type>) type obj;                                   \
+  IF_GL(                                                                           \
+    if (w.renderer == fan::window_t::renderer_t::opengl) {                         \
+      RENDER_CALL_CTX(                                                             \
+        type,                                                                      \
+        fan::graphics::get_gl_context(),                                           \
+        gl,                                                                        \
+        std::string("opengl backend TODO: ") +                                     \
+          STRINGIFY(fan::graphics::get_gl_context().func(__VA_ARGS__)),            \
+        func,                                                                      \
+        __VA_ARGS__                                                                \
+      )                                                                            \
+    }                                                                              \
+  )                                                                                \
+  IF_VK(                                                                           \
+    if (w.renderer == fan::window_t::renderer_t::vulkan) {                         \
+      RENDER_CALL_CTX(                                                             \
+        type,                                                                      \
+        fan::graphics::get_vk_context(),                                           \
+        vk,                                                                        \
+        std::string("vulkan backend TODO: ") +                                     \
+          STRINGIFY(fan::graphics::get_vk_context().func(__VA_ARGS__)),            \
+        func,                                                                      \
+        __VA_ARGS__                                                                \
+      )                                                                            \
+    }                                                                              \
+  )                                                                                \
+  fan::throw_error(std::string("renderer not supported: ") + STRINGIFY(func));     \
+  if constexpr (!std::is_void_v<type>) return obj;                                 \
+}())
+
+
+
+#define render_context_call_raw(gl_expr, vk_expr) \
   do { \
     IF_GL(if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::opengl) { gl_expr; }) \
     IF_VK(if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::vulkan) { vk_expr; }) \
   } while(0)
 
-#define renderer_call_ret(gl_expr, vk_expr) \
-  IF_GL(if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::opengl) { return gl_expr; }) \
-  IF_VK(if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::vulkan) { return vk_expr; })
+#define renderer_call(func) { \
+  auto& w = fan::graphics::get_window(); \
+  IF_GL(if (w.renderer == fan::window_t::renderer_t::opengl) { \
+    gl.func(); \
+  }) \
+  IF_VK(if (w.renderer == fan::window_t::renderer_t::opengl) { \
+    vk.func(); \
+  }) \
+}
 
 // shape push_back for trivial shapes
 #define DEFINE_PUSH_BACK(name) \
