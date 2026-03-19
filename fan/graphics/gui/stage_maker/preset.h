@@ -1,3 +1,5 @@
+inline static auto& engine = (*gloco());
+inline static auto& window = gloco()->window;
 stage_loader_t::stage_common_t stage_common = {
   .open = _stage_open,
   .close = _stage_close,

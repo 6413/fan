@@ -59,7 +59,7 @@ option("FAN_FMT") set_default(true) option_end()
 option("FAN_WAYLAND_SCREEN") set_default(false) option_end()
 option("FAN_NETWORK") set_default(false) option_end()
 option("FAN_AUDIO") set_default(true) option_end()
-option("main") set_default("tests/29.cpp") option_end()
+option("main") set_default("examples/engine_demos/engine_demo.cpp") option_end()
 
 add_defines("FAN_OPENGL")
 if has_config("FAN_2D") then
@@ -171,6 +171,8 @@ local module_files = {
   "fan/utility.ixx",
   "fan/print.ixx",
   "fan/random.ixx",
+  "fan/log_dispatcher.ixx",
+	"fan/process.ixx",
   "fan/io/directory.ixx",
   "fan/io/file.ixx",
   "fan/physics/collision/rectangle.ixx",
