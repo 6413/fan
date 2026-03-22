@@ -490,16 +490,12 @@ public:
   fan::time::timer start_time;
   f32_t time = 0;
 
-  f64_t& delta_time = window.m_delta_time;
-
   bool idle_init = false;
   uv_idle_t idle_handle;
   bool timer_init = false;
   uv_timer_t timer_handle {};
 
   std::function<void()> main_loop; // bad, but forced
-
-  f64_t current_time() const;
 
 #define FORWARD_CB_TO_WINDOW(NAME, HANDLE, CBDATA_NAME) \
     HANDLE on_##NAME(int arg, CBDATA_NAME cb) { \
@@ -524,11 +520,6 @@ public:
   FORWARD_CB_TO_WINDOW_NOARG(resize, resize_handle_t, resize_cb_t);
 
   void debug_draw_light_buffer();
-
-#if defined(FAN_PHYSICS_2D)
-  fan::graphics::physics_subsystem_t physics;
-  void update_physics(bool flag);
-#endif
 
 #if defined(FAN_2D)
   // clears shapes after drawing, good for debug draw, not best for performance
@@ -674,10 +665,11 @@ public:
   fan::graphics::input_subsystem_t input;
   fan::window::input_action_t& get_input_action() { return input.input_action; }
 
-
   fan::graphics::audio_subsystem_t audio;
 
   #if defined(FAN_PHYSICS_2D)
+    fan::graphics::physics_subsystem_t physics;
+    void update_physics(bool flag);
     fan::physics::context_t& get_physics_context() { return physics.context; }
   #endif
 

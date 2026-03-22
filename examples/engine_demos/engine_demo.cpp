@@ -192,7 +192,7 @@ struct engine_demo_t {
 
     engine_demo->shapes[1].set_position(fan::vec2(0));
     engine_demo->shapes[1].set_size(viewport_size.min() / 6);
-    engine_demo->shapes[1].set_angle(engine_demo->shapes[1].get_angle() + fan::vec3 {0, 0, engine_demo->engine.delta_time});
+    engine_demo->shapes[1].set_angle(engine_demo->shapes[1].get_angle() + fan::vec3 {0, 0, engine_demo->engine.get_delta_time()});
 
     engine_demo->shapes[2].set_size(viewport_size.min() / 3);
     engine_demo->shapes[3].set_size(viewport_size.min() / 3);
