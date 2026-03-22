@@ -1,5 +1,5 @@
 set_project("fan")
-set_languages("cxx23")
+set_languages("cxx26")
 
 option("compiler") set_default("clang") option_end()
 
@@ -191,6 +191,9 @@ local module_files = {
 	"fan/graphics/2D/shapes_types.ixx",
 	"fan/graphics/2D/culling.ixx",
   "fan/graphics/2D/shapes.ixx",
+	"fan/graphics/audio_subsystem.ixx",
+	"fan/graphics/physics_subsystem.ixx",
+	"fan/graphics/input_subsystem.ixx",
   "fan/graphics/loco.ixx",
   "fan/graphics/graphics.ixx",
   "fan/graphics/file_dialog.ixx",

@@ -238,7 +238,7 @@ namespace fan::graphics::gui {
                 switch (i) {
                 case 0: {
                   if (gloco()->window.renderer != fan::window_t::renderer_t::opengl) {
-                    gloco()->reload_renderer_to = fan::window_t::renderer_t::opengl;
+                    gloco()->renderer_state.reload_renderer_to = fan::window_t::renderer_t::opengl;
                     menu->config.display.renderer = 0;
                     menu->mark_dirty();
                   }
@@ -246,7 +246,7 @@ namespace fan::graphics::gui {
                 }
                 case 1: {
                   if (gloco()->window.renderer != fan::window_t::renderer_t::vulkan) {
-                    gloco()->reload_renderer_to = fan::window_t::renderer_t::vulkan;
+                    gloco()->renderer_state.reload_renderer_to = fan::window_t::renderer_t::vulkan;
                     menu->config.display.renderer = 1;
                     menu->mark_dirty();
                   }
@@ -323,18 +323,18 @@ namespace fan::graphics::gui {
       gui::begin_table("settings_left_table_performance_stats", 2,
         gui::table_flags_borders_inner_h | gui::table_flags_borders_outer_h | gui::table_flags_no_clip);
       {
-        if (draw_toggle_row("Enable VSync", (bool*)&gloco()->vsync)) {
-          gloco()->set_vsync(gloco()->vsync);
-          menu->config.performance.vsync = gloco()->vsync;
+        if (draw_toggle_row("Enable VSync", (bool*)&gloco()->timing.vsync)) {
+          gloco()->set_vsync(gloco()->timing.vsync);
+          menu->config.performance.vsync = gloco()->timing.vsync;
           menu->mark_dirty();
         }
-        if (draw_toggle_row("Show fps", (bool*)&gloco()->show_fps)) {
-          menu->config.performance.show_fps = gloco()->show_fps;
+        if (draw_toggle_row("Show fps", (bool*)&gloco()->gui.show_fps)) {
+          menu->config.performance.show_fps = gloco()->gui.show_fps;
           menu->mark_dirty();
         }
       #if defined(fan_std23)
         if (draw_toggle_row("Track Heap memory", (bool*)&fan::memory::heap_profiler_t::instance().enabled)) {
-          gloco()->console.commands.call("debug_memory " + std::to_string((int)fan::memory::heap_profiler_t::instance().enabled));
+          gloco()->gui.console.commands.call("debug_memory " + std::to_string((int)fan::memory::heap_profiler_t::instance().enabled));
           menu->config.performance.track_heap = fan::memory::heap_profiler_t::instance().enabled;
           menu->mark_dirty();
         }
@@ -415,7 +415,7 @@ namespace fan::graphics::gui {
             bool is_selected = (fill_mode == i);
             if (gui::selectable(fill_modes[i], is_selected)) {
               fill_mode = i;
-              gloco()->force_line_draw = (i == 1);
+              gloco()->renderer_state.force_line_draw = (i == 1);
               menu->config.debug.fill_mode = i;
               menu->mark_dirty();
             }
@@ -523,7 +523,7 @@ namespace fan::graphics::gui {
     }
     gloco()->set_target_fps(config.display.target_fps);
     gloco()->set_vsync(config.performance.vsync);
-    gloco()->show_fps = config.performance.show_fps;
+    gloco()->gui.show_fps = config.performance.show_fps;
     fan::audio::set_volume(config.audio.volume);
   }
 

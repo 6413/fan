@@ -459,7 +459,7 @@ struct shape_tester_t {
 
         engine.gl.m_framebuffer.unbind(engine.context.gl);
 
-        fan::color bg = engine.clear_color;
+        fan::color bg = engine.get_clear_color();
         int min_x = ws.x, max_x = 0, min_y = ws.y, max_y = 0;
 
         for (int y = 0; y < ws.y; ++y) {
