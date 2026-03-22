@@ -6,6 +6,7 @@ module;
 #include <iostream>
 #include <string>
 #include <string_view>
+#include <source_location>
 #if defined(fan_std23)
   #include <stacktrace>
 #endif
@@ -246,42 +247,44 @@ export namespace fan {
     fan::throw_error_impl(error_msg.c_str());
   }
 
+  // hashes the output and throttles prints based on print content
   template <int throttle_ms = 1000, typename... Args>
   void print_throttled(const Args&... args) {
-    static std::unordered_map<std::string, fan::time::timer> timers;
-    static std::unordered_map<std::string, int> total_count;
-    static std::unordered_map<std::string, int> delta_count;
+    static std::unordered_map<std::size_t, fan::time::timer> timers;
 
-    std::ostringstream oss;
-    oss << fan::format_args(args...);
-    std::string key = oss.str();
-
-    total_count[key]++;
-    delta_count[key]++;
+    std::string msg = fan::format_args(args...);
+    std::size_t key = std::hash<std::string> {}(msg);
 
     auto& t = timers[key];
-
     if (!t.started()) {
+      fan::printr(msg, '\n');
       t.start_millis(throttle_ms);
       return;
     }
-
     if (t.finished()) {
-      std::cout << key
-        << " (" << delta_count[key] << " since last, "
-        << total_count[key] << " total)"
-        << std::endl;
-      fan::printr(
-        key + " (" + 
-        std::to_string(delta_count[key]) + " since last, " + 
-        std::to_string(total_count[key]) + " total)" + '\n'
-      );
-
-      delta_count[key] = 0;
+      fan::printr(msg, '\n');
       t.start_millis(throttle_ms);
     }
   }
 
+  template<typename... Args,
+    #if defined(fan_compiler_msvc) || defined(fan_compiled_clang)
+      auto token = +[](){}
+    #else
+      uint64_t line = __builtin_LINE(), auto file = __builtin_FILE()
+    #endif
+  >
+  void print_every(int throttle_ms, const Args&... args) {
+    if (fan::time::every<
+      #if defined(fan_compiler_msvc) || defined(fan_compiled_clang)
+        token
+      #else
+        line, file
+      #endif
+    >(throttle_ms)) {
+      fan::printr(fan::format_args(args...), '\n');
+    }
+  }
   void print_once(const auto&... args) {
     static std::unordered_map<std::string, std::string> last_value;
     static std::unordered_map<std::string, int> count_map;

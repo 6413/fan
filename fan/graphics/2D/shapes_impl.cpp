@@ -2559,8 +2559,9 @@ namespace fan::graphics{
     f32_t dist = delta.length();
     if (dist > 0.001f) {
       fan::vec2 sign = get_tc_size().sign();
+      /* need only x? */
       if (std::abs(delta.x) > 0.001f) sign.x = fan::math::sgn(delta.x) * image_orientation.x;
-      if (std::abs(delta.y) > 0.001f) sign.y = fan::math::sgn(delta.y) * image_orientation.y;
+    //  if (std::abs(delta.y) > 0.001f) sign.y = fan::math::sgn(delta.y) * image_orientation.y;
       set_image_sign(sign);
       apply_scaled_delta(*this, target, (speed * dt) / dist);
     }

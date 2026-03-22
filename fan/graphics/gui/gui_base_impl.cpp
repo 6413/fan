@@ -1008,6 +1008,10 @@ namespace fan::graphics::gui {
     set_cursor_pos(current_pos);
     text_outlined(text, color, outline_color);
   }
+  void text_centered_outlined_big(std::string_view text, f32_t font_size, const fan::color& color, const fan::color& outline_color) {
+    font_scope_t fs(font_size);
+    text_centered_outlined(text, color, outline_color);
+  }
 
   void text_box(std::string_view text,
     const fan::vec2& size,
@@ -1532,6 +1536,9 @@ namespace fan::graphics::gui {
     return ImGui::IsPopupOpen(fan::ct_string(id));
   }
 
+  void begin_disabled() { ImGui::BeginDisabled(); }
+  void end_disabled() { ImGui::EndDisabled(); }
+
   id_t get_id(str_view_t str_id) {
     return ImGui::GetID(fan::ct_string(str_id));
   }
@@ -1854,6 +1861,30 @@ namespace fan::graphics::gui {
     return static_cast<bool>(wnd);
   }
 
+  hud_interactive::hud_interactive(str_view_t name, bool* p_open)
+    : wnd(
+      (
+        gui::set_next_window_pos(gui::get_viewport_rect().position),
+        gui::set_next_window_size(gui::get_viewport_rect().size),
+        gui::set_next_window_bg_alpha(0.f),
+        name
+        ),
+      p_open,
+      gui::window_flags_no_background |
+      gui::window_flags_no_title_bar |
+      gui::window_flags_no_resize |
+      gui::window_flags_no_move |
+      gui::window_flags_no_scrollbar |
+      gui::window_flags_no_saved_settings |
+      gui::window_flags_override_input
+    ) {
+  }
+
+  hud_interactive::operator bool() const {
+    return static_cast<bool>(wnd);
+  }
+
+
   table::table(str_view_t str_id,
     int columns,
     table_flags_t flags,
@@ -1959,6 +1990,29 @@ namespace fan::graphics::gui {
         if (button(l, size, font_size)) on_click(l);
         first = false;
       }
+    }
+  }
+  void healthbar(int value, int max, fan::vec2 size, const fan::color& fill, const fan::color& bg) {
+    fan::vec2 pos = get_cursor_screen_pos();
+    draw_list_t* dl = get_window_draw_list();
+    f32_t frac = max > 0 ? fan::math::clamp((f32_t)value / (f32_t)max, 0.f, 1.f) : 0.f;
+    ImU32 bg_u32 = ImGui::ColorConvertFloat4ToU32(ImVec4(bg.r, bg.g, bg.b, bg.a));
+    ImU32 fill_u32 = ImGui::ColorConvertFloat4ToU32(ImVec4(fill.r, fill.g, fill.b, fill.a));
+    dl->AddRectFilled(ImVec2(pos.x, pos.y), ImVec2(pos.x + size.x, pos.y + size.y), bg_u32, 3.f);
+    dl->AddRectFilled(ImVec2(pos.x, pos.y), ImVec2(pos.x + size.x * frac, pos.y + size.y), fill_u32, 3.f);
+    dummy(size);
+  }
+
+  void gold_text(int amount, const fan::color& color) {
+    text(color, fan::format_number(amount) + " gold");
+  }
+
+  void disabled_button_row(const std::string* labels, const bool* enabled, int count, fan::vec2 size, std::function<void(int)> on_click) {
+    for (int i = 0; i < count; ++i) {
+      if (!enabled[i]) begin_disabled();
+      if (button(labels[i], size)) { if (on_click) on_click(i); }
+      if (!enabled[i]) end_disabled();
+      if (i < count - 1) same_line();
     }
   }
 } // namespace fan::graphics::gui

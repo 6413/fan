@@ -147,23 +147,54 @@ namespace fan::graphics::gui {
     keybind_menu.sync_from_input_action();
     query_current_resolution();
 
+    fan::vec2i target_size = {-1, -1};
+    if (config.display.custom_resolution.x != -1)
+      target_size = config.display.custom_resolution;
+    else if (config.display.resolution_index != -1)
+      target_size = fan::window_t::resolutions[config.display.resolution_index];
+
+    if (config.display.display_mode != fan::window_t::mode::windowed)
+      gloco()->window.set_display_mode(config.display.display_mode);
+
+    if (target_size.x != -1)
+      gloco()->window.set_size(target_size);
+
+    if (config.display.display_mode == fan::window_t::mode::windowed &&
+      config.display.window_position.x != -1) {
+      gloco()->window.set_position(config.display.window_position);
+    }
+
     if (gloco()->target_fps == config.display.target_fps) {
       config.display.target_fps = gloco()->target_fps;
     }
+
+    if (config.display.display_mode == fan::window_t::mode::windowed &&
+    config.display.window_position.x != -1) {
+  gloco()->window.set_position(config.display.window_position);
+  fan::print("set:", config.display.window_position, "actual:", gloco()->window.get_position());
+  fan::print("monitor:", gloco()->window.get_current_monitor_resolution());
+fan::print("window size:", gloco()->window.get_size());
+}
+
     apply_config(false, true);
 
     resize_handle = gloco()->on_resize(
       [this](const fan::window_t::resize_data_t& r) {
-        on_window_resize(r.size);
+      on_window_resize(r.size);
+      if (gloco()->window.display_mode == fan::window_t::mode::windowed) {
+        config.display.custom_resolution = r.size;
+        config.display.resolution_index = -1;
+        mark_dirty();
       }
+    }
     );
     move_handle = gloco()->window.add_move_callback(
       [this](const auto& d) {
-        if (d.window->display_mode == fan::window_t::mode::windowed) {
-          config.display.window_position = d.position;
-          mark_dirty();
-        }
+      if (d.window->display_mode == fan::window_t::mode::windowed) {
+        config.display.window_position = d.position;
+        mark_dirty();
       }
+    }
     );
     gloco()->shader_set_value(gloco()->gl.m_fbo_final_shader, "bloom_strength", config.post_processing.bloom_strength);
     gloco()->shader_set_value(gloco()->gl.m_fbo_final_shader, "gamma", config.post_processing.gamma);

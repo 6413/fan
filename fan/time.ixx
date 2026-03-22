@@ -204,19 +204,14 @@ export namespace fan {
       scope_timer_print(scope_timer_print&&) = delete;
       scope_timer sc;
     };
-  /*  template<auto token = +[](){}>
+
+  #if defined(fan_compiler_msvc) || defined(fan_compiled_clang)
+    template<auto token = +[](){}>
+  #else
+    template<uint64_t line = __builtin_LINE(), auto file = __builtin_FILE()>
+  #endif
     bool every(f64_t interval_ms) {
       static uint64_t last_time = 0;  
-      uint64_t interval_ns = (uint64_t)(interval_ms * 1e6);
-      uint64_t current = fan::time::now();
-      uint64_t elapsed = current - last_time;
-      uint64_t finished = (last_time == 0) | (elapsed >= interval_ns);
-      last_time = last_time * (finished ^ 1) + current * finished;
-      return finished;
-    }*/
-    template<uint64_t line = __builtin_LINE(), auto file = __builtin_FILE()>
-    bool every(f64_t interval_ms) {
-      static uint64_t last_time = 0;
       uint64_t interval_ns = (uint64_t)(interval_ms * 1e6);
       uint64_t current = fan::time::now();
       uint64_t elapsed = current - last_time;
