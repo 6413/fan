@@ -41,7 +41,7 @@ struct engine_demo_t {
   engine_demo_t() {
     create_gui();
 
-    engine.clear_color = 0;
+    engine.get_clear_color() = 0;
     right_column_view.create();
     interactive_camera.create(
       right_column_view.camera,
@@ -185,7 +185,7 @@ struct engine_demo_t {
     if (engine_demo->shapes.empty()) {
       return;
     }
-    engine_demo->engine.lighting.set_target(0.4f);
+    engine_demo->engine.get_lighting().set_target(0.4f);
     fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     engine_demo->shapes[0].set_position(fan::vec2(0));
     engine_demo->shapes[0].set_size(viewport_size / 2);
@@ -201,7 +201,7 @@ struct engine_demo_t {
     engine_demo->shapes.back().set_position(get_mouse_position(engine_demo->right_column_view));
   }
   static void demo_shapes_lights_cleanup(engine_demo_t* engine_demo) {
-    engine_demo->engine.lighting.set_target(1.f);
+    engine_demo->engine.get_lighting().set_target(1.f);
   }
 
   struct demo_particles_t {
@@ -740,8 +740,8 @@ void main() {
         .color = fan::colors::blue.set_alpha(0.5)
       }};
     }
-    data.sensor1 = engine_demo->engine.physics_context.create_box(0, 64);
-    data.sensor2 = engine_demo->engine.physics_context.create_circle(fan::vec2(128, 0), 64);
+    data.sensor1 = engine_demo->engine.get_physics_context().create_box(0, 64);
+    data.sensor2 = engine_demo->engine.get_physics_context().create_circle(fan::vec2(128, 0), 64);
   }
 
   static void demo_physics_update_sensor(engine_demo_t* engine_demo) {
@@ -1041,7 +1041,7 @@ void main() {
     }
   }
   static void demo_algorithm_sorting_update(engine_demo_t* engine_demo) {
-    menus_engine_demo_render_element_count((fan::graphics::gui::settings_menu_t*)engine_demo->engine.settings_menu);
+    menus_engine_demo_render_element_count((fan::graphics::gui::settings_menu_t*)engine_demo->engine.get_settings_menu());
     auto& data = *engine_demo->demo_sorting_data;
     const fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     const int count = data.lines.size();
@@ -1277,7 +1277,7 @@ void main() {
 
   }
   static void shape_update_function(engine_demo_t* engine_demo) {
-    menus_engine_demo_render_element_count((fan::graphics::gui::settings_menu_t*)engine_demo->engine.settings_menu);
+    menus_engine_demo_render_element_count((fan::graphics::gui::settings_menu_t*)engine_demo->engine.get_settings_menu());
   }
 
   struct demo_t {
@@ -1504,7 +1504,7 @@ void main() {
 #undef engine_demo
 
   void create_gui() {
-    ((fan::graphics::gui::settings_menu_t*)engine.settings_menu)->reset_page_selection();
+    ((fan::graphics::gui::settings_menu_t*)engine.get_settings_menu())->reset_page_selection();
     {
       menu_t::page_t page;
       page.name = "Engine Demos";
@@ -1512,7 +1512,7 @@ void main() {
       page.render_page_left = menus_engine_demo_left;
       page.render_page_right = menus_engine_demo_right;
       page.split_ratio = 0.35f;
-      ((fan::graphics::gui::settings_menu_t*)engine.settings_menu)->pages.emplace_front(page);
+      ((fan::graphics::gui::settings_menu_t*)engine.get_settings_menu())->pages.emplace_front(page);
     }
 
     for (auto& demo : demos) {
@@ -1525,8 +1525,8 @@ void main() {
   }
 
   void update() {
-    engine.render_settings_menu = true;
-    if (((fan::graphics::gui::settings_menu_t*)engine.settings_menu)->current_page != 0) {
+    engine.get_render_settings_menu() = true;
+    if (((fan::graphics::gui::settings_menu_t*)engine.get_settings_menu())->current_page != 0) {
       shapes.clear();
     }
   }
@@ -1571,7 +1571,7 @@ int main() {////
   demo.engine.update_physics(true);
 
   // remove default "open settings" keybind
-  demo.engine.input_action.remove(fan::actions::toggle_settings);
+  demo.engine.get_input_action().remove(fan::actions::toggle_settings);
 
   demo.engine.loop([&] {
     auto camera = fan::graphics::camera_get(demo.right_column_view.camera);

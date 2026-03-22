@@ -876,7 +876,7 @@ void shapes_draw() {
 
     auto shape_type = prev_st;
 
-    if (loco.force_line_draw &&
+    if (loco.renderer_state.force_line_draw &&
       shape_type != fan::graphics::shapes::shape_type_t::line &&
       shape_type != fan::graphics::shapes::shape_type_t::grid) {
       continue;
@@ -1007,7 +1007,7 @@ void shapes_draw() {
     }
 
     loco.shader_set_value(shader, fan::graphics::lighting_t::ambient_name, 
-      gloco()->lighting.ambient);
+      gloco()->renderer_state.lighting.ambient);
 
 
     auto& shaper = fan::graphics::g_shapes->shaper;
@@ -1157,7 +1157,7 @@ void shapes_draw() {
 
       //blur[1].draw(&color_buffers[3]);
 
-      fan_opengl_call(glClearColor(loco.clear_color.r, loco.clear_color.g, loco.clear_color.b, loco.clear_color.a));
+      fan_opengl_call(glClearColor(loco.renderer_state.clear_color.r, loco.renderer_state.clear_color.g, loco.renderer_state.clear_color.b, loco.renderer_state.clear_color.a));
       fan_opengl_call(glClear(GL_COLOR_BUFFER_BIT));
       fan::vec2 window_size = loco.window.get_size();
       loco.viewport_set(0, window_size);
@@ -1168,7 +1168,7 @@ void shapes_draw() {
 
       loco.shader_set_value(loco.gl.m_fbo_final_shader, "_t00", 0);
       loco.shader_set_value(loco.gl.m_fbo_final_shader, "_t01", 1);
-      loco.shader_set_value(loco.gl.m_fbo_final_shader, "framebuffer_alpha", loco.clear_color.a);
+      loco.shader_set_value(loco.gl.m_fbo_final_shader, "framebuffer_alpha", loco.renderer_state.clear_color.a);
       loco.shader_set_value(loco.gl.m_fbo_final_shader, "enable_bloom", loco.open_props.enable_bloom);
 
       loco.shader_set_value(loco.gl.m_fbo_final_shader, "window_size", window_size);
@@ -1207,7 +1207,7 @@ void begin_process_frame() {
 
     loco.gl.m_framebuffer.bind(loco.context.gl);
 
-    fan_opengl_call(glClearColor(loco.clear_color.r, loco.clear_color.g, loco.clear_color.b, loco.clear_color.a));
+    fan_opengl_call(glClearColor(loco.renderer_state.clear_color.r, loco.renderer_state.clear_color.g, loco.renderer_state.clear_color.b, loco.renderer_state.clear_color.a));
 
     for (std::size_t i = 0; i < std::size(loco.gl.color_buffers); ++i) {
       fan_opengl_call(glActiveTexture(GL_TEXTURE0 + i));
@@ -1223,10 +1223,10 @@ void begin_process_frame() {
   }
 #else
   fan_opengl_call(glClearColor(
-    loco.clear_color.r,
-    loco.clear_color.g,
-    loco.clear_color.b,
-    loco.clear_color.a
+    loco.renderer_state.clear_color.r,
+    loco.renderer_state.clear_color.g,
+    loco.renderer_state.clear_color.b,
+    loco.renderer_state.clear_color.a
   ));
   fan_opengl_call(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 #endif
