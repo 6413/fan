@@ -147,34 +147,9 @@ namespace fan::graphics::gui {
     keybind_menu.sync_from_input_action();
     query_current_resolution();
 
-    fan::vec2i target_size = {-1, -1};
-    if (config.display.custom_resolution.x != -1)
-      target_size = config.display.custom_resolution;
-    else if (config.display.resolution_index != -1)
-      target_size = fan::window_t::resolutions[config.display.resolution_index];
-
-    if (config.display.display_mode != fan::window_t::mode::windowed)
-      gloco()->window.set_display_mode(config.display.display_mode);
-
-    if (target_size.x != -1)
-      gloco()->window.set_size(target_size);
-
-    if (config.display.display_mode == fan::window_t::mode::windowed &&
-      config.display.window_position.x != -1) {
-      gloco()->window.set_position(config.display.window_position);
-    }
-
     if (gloco()->target_fps == config.display.target_fps) {
       config.display.target_fps = gloco()->target_fps;
     }
-
-    if (config.display.display_mode == fan::window_t::mode::windowed &&
-    config.display.window_position.x != -1) {
-  gloco()->window.set_position(config.display.window_position);
-  fan::print("set:", config.display.window_position, "actual:", gloco()->window.get_position());
-  fan::print("monitor:", gloco()->window.get_current_monitor_resolution());
-fan::print("window size:", gloco()->window.get_size());
-}
 
     apply_config(false, true);
 
