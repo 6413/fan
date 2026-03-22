@@ -881,9 +881,152 @@ void loco_t::bind_global_context() {
   IF_GUI(ctx.text_logger = &text_logger;)
 }
 
-loco_t::loco_t() : loco_t(loco_t::properties_t()) {
-
+static void loco_init_shapes_context(loco_t* l) {
+#if defined(FAN_2D)
+  l->shapes.texture_pack = &l->texture_pack;
+  l->shapes.immediate_render_list = &l->immediate_render_list;
+  l->shapes.static_render_list = &l->static_render_list;
+  fan::graphics::shaper_t::gl_add_shape_type() = [](
+    fan::graphics::shaper_t::ShapeTypes_NodeData_t& nd,
+    const fan::graphics::shaper_t::BlockProperties_t& bp) {
+    gloco()->gl.add_shape_type(nd, bp);
+  };
+  fan::graphics::g_shapes = &l->shapes;
+  l->shapes.visibility = new fan::graphics::culling::culling_t;
+#endif
 }
+
+static void loco_init_platform(loco_t* l) {
+  l->input_action.window = &l->window;
+#if defined(FAN_GUI)
+  fan::graphics::gui::profile_heap(
+    [](size_t size, void*) -> void* { return fan::memory::heap_profiler_t::instance().allocate_memory(size); },
+    [](void* ptr, void*) { fan::memory::heap_profiler_t::instance().deallocate_memory(ptr); }
+  );
+#endif
+#if defined(fan_platform_windows)
+  SetConsoleOutputCP(CP_UTF8);
+#endif
+  if (!fan::init_manager_t::initialized()) {
+    fan::init_manager_t::initialize();
+  }
+}
+
+static void loco_init_renderer(loco_t* l) {
+  l->render_shapes_top = l->open_props.render_shapes_top;
+  l->window.renderer = l->open_props.renderer;
+#if defined(FAN_OPENGL)
+  if (l->window.renderer == fan::window_t::renderer_t::opengl) {
+    new (&l->context.gl) fan::opengl::context_t();
+    l->context_functions = fan::graphics::get_gl_context_functions();
+    l->gl.open();
+  }
+#endif
+}
+
+static void loco_load_settings_into_open_props(loco_t* l) {
+#if defined(FAN_GUI)
+  auto* sm = new fan::graphics::gui::settings_menu_t;
+  l->settings_menu = sm;
+  if (sm->config.display.custom_resolution.x != -1)
+    l->open_props.window_size = sm->config.display.custom_resolution;
+  else if (sm->config.display.resolution_index != -1)
+    l->open_props.window_size = fan::window_t::resolutions[sm->config.display.resolution_index];
+  if (sm->config.display.display_mode != fan::window_t::mode::windowed)
+    l->open_props.window_open_mode = sm->config.display.display_mode;
+  if (sm->config.display.window_position.x != -1)
+    l->open_props.window_position = sm->config.display.window_position;
+#endif
+}
+
+static void loco_open_window(loco_t* l) {
+  l->window.set_antialiasing(l->open_props.samples);
+  l->window.open(l->open_props.window_size, l->open_props.window_position,
+    fan::window_t::default_window_name, l->open_props.window_flags, l->open_props.window_open_mode);
+#if defined(FAN_VULKAN)
+  if (l->window.renderer == fan::window_t::renderer_t::vulkan) {
+    l->context_functions = fan::graphics::get_vk_context_functions();
+    new (&l->context.vk) fan::vulkan::context_t();
+    l->context.vk.enable_clear = !l->render_shapes_top;
+    l->context.vk.shapes_top = l->render_shapes_top;
+    l->context.vk.open(l->window);
+  }
+#endif
+}
+
+static void loco_init_renderer_post_window(loco_t* l) {
+  l->start_time.start();
+#if defined(FAN_OPENGL)
+  if (l->window.renderer == fan::window_t::renderer_t::opengl) {
+    l->window.make_context_current();
+#if FAN_DEBUG >= fan_debug_high
+    l->get_context().gl.set_error_callback();
+#endif
+    if (l->window.get_antialiasing() > 0) {
+      glEnable(GL_MULTISAMPLE);
+    }
+    l->gl.initialize_fb_vaos();
+  }
+#endif
+}
+
+static void loco_init_shapes_system(loco_t* l) {
+#if defined(FAN_2D)
+  l->shapes.shaper.Open();
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::light,        sizeof(uint8_t),                                   fan::graphics::shaper_t::KeyBitOrderAny);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::light_end,    sizeof(uint8_t),                                   fan::graphics::shaper_t::KeyBitOrderAny);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::visible,      sizeof(uint8_t),                                   fan::graphics::shaper_t::KeyBitOrderAny);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::depth,        sizeof(fan::graphics::depth_t),                    fan::graphics::shaper_t::KeyBitOrderLow);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::shader,       sizeof(fan::graphics::shader_raw_t),               fan::graphics::shaper_t::KeyBitOrderLow);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::blending,     sizeof(fan::graphics::blending_t),                 fan::graphics::shaper_t::KeyBitOrderLow);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::image,        sizeof(fan::graphics::image_t),                    fan::graphics::shaper_t::KeyBitOrderLow);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::viewport,     sizeof(fan::graphics::viewport_t),                 fan::graphics::shaper_t::KeyBitOrderAny);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::camera,       sizeof(fan::graphics::camera_t),                          fan::graphics::shaper_t::KeyBitOrderAny);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::ShapeType,    sizeof(fan::graphics::shaper_t::ShapeTypeIndex_t), fan::graphics::shaper_t::KeyBitOrderAny);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::filler,       sizeof(uint8_t),                                   fan::graphics::shaper_t::KeyBitOrderAny);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::draw_mode,    sizeof(uint8_t),                                   fan::graphics::shaper_t::KeyBitOrderAny);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::vertex_count, sizeof(uint32_t),                                  fan::graphics::shaper_t::KeyBitOrderAny);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::shadow,       sizeof(uint8_t),                                   fan::graphics::shaper_t::KeyBitOrderAny);
+#endif
+}
+
+static void loco_init_render_views(loco_t* l) {
+  fan::vec2 window_size = l->window.get_size();
+  l->orthographic_render_view.create_default(window_size);
+  l->perspective_render_view.camera = l->open_camera_perspective();
+  l->perspective_render_view.viewport = l->open_viewport(fan::vec2(0, 0), window_size);
+}
+
+static void loco_init_audio(loco_t* l) {
+#if defined(FAN_AUDIO)
+  if (l->system_audio.Open() != 0) {
+    fan::throw_error("failed to open fan audio");
+  }
+  l->audio.bind(&l->system_audio);
+  fan::audio::piece_hover.open_piece("audio/hover.sac", 0);
+  fan::audio::piece_click.open_piece("audio/click.sac", 0);
+  fan::audio::gaudio() = &l->audio;
+#endif
+}
+
+static void loco_init_culling(loco_t* l) {
+#if defined(FAN_2D)
+  l->cell_size = 256;
+  l->culling_rebuild_grid();
+  l->set_culling_enabled(true);
+#endif
+}
+
+static void loco_fire_engine_init_callbacks(loco_t* l) {
+  auto it = fan::graphics::get_engine_init_cbs().GetNodeFirst();
+  while (it != fan::graphics::get_engine_init_cbs().dst) {
+    fan::graphics::get_engine_init_cbs().StartSafeNext(it);
+    fan::graphics::get_engine_init_cbs()[it](l);
+    it = fan::graphics::get_engine_init_cbs().EndSafeNext();
+  }
+}
+
+loco_t::loco_t() : loco_t(loco_t::properties_t()) {}
 
 loco_t::loco_t(const loco_t::properties_t& props) :
   open_props(props),
@@ -893,180 +1036,35 @@ loco_t::loco_t(const loco_t::properties_t& props) :
 #endif
 {
   bind_global_context();
-
-#if defined(FAN_2D)
-  shapes.texture_pack = &texture_pack;
-  shapes.immediate_render_list = &immediate_render_list;
-  shapes.static_render_list = &static_render_list;
-#endif
-
-  input_action.window = &window;
-
-#if defined(FAN_2D)
-  fan::graphics::shaper_t::gl_add_shape_type() = [](
-    fan::graphics::shaper_t::ShapeTypes_NodeData_t& nd,
-    const fan::graphics::shaper_t::BlockProperties_t& bp) {
-    gloco()->gl.add_shape_type(nd, bp); // dont look here
-  };
-  fan::graphics::g_shapes = &shapes;
-
-  shapes.visibility = new fan::graphics::culling::culling_t;
-#endif
-
-#if defined(FAN_GUI)
-  fan::graphics::gui::profile_heap(
-    [](size_t size, void* user_data) -> void* {
-    return fan::memory::heap_profiler_t::instance().allocate_memory(size);
-  },
-    [](void* ptr, void* user_data) {
-    fan::memory::heap_profiler_t::instance().deallocate_memory(ptr);
-  }
-  );
-#endif
-
-#if defined(fan_platform_windows)
-  // use utf8 for console output
-  SetConsoleOutputCP(CP_UTF8);
-#endif
-
-  if (fan::init_manager_t::initialized() == false) {
-    fan::init_manager_t::initialize();
-  }
-  render_shapes_top = open_props.render_shapes_top;
-  window.renderer = open_props.renderer;
-
-#if defined(FAN_OPENGL)
-  if (window.renderer == fan::window_t::renderer_t::opengl) {
-    new (&context.gl) fan::opengl::context_t();
-    context_functions = fan::graphics::get_gl_context_functions();
-    gl.open();
-  }
-#endif
-
-  window.set_antialiasing(open_props.samples);
-  window.open(open_props.window_size, open_props.window_position, fan::window_t::default_window_name, open_props.window_flags, open_props.window_open_mode);
-
-#if FAN_DEBUG >= fan_debug_high && !defined(FAN_VULKAN)
-  if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    fan::throw_error("trying to use vulkan renderer, but FAN_VULKAN build flag is disabled");
-  }
-#endif
-
-#if defined(FAN_VULKAN)
-  if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    context_functions = fan::graphics::get_vk_context_functions();
-    new (&context.vk) fan::vulkan::context_t();
-    context.vk.enable_clear = !render_shapes_top;
-    context.vk.shapes_top = render_shapes_top;
-    context.vk.open(window);
-  }
-#endif
-
-  start_time.start();
-
-#if defined(FAN_OPENGL)
-  if (window.renderer == fan::window_t::renderer_t::opengl) {
-    window.make_context_current();
-
-  #if FAN_DEBUG >= fan_debug_high
-    get_context().gl.set_error_callback();
-  #endif
-
-    if (window.get_antialiasing() > 0) {
-      glEnable(GL_MULTISAMPLE);
-    }
-
-    gl.initialize_fb_vaos();
-  }
-#endif
-
+  loco_init_shapes_context(this);
+  loco_init_platform(this);
+  loco_init_renderer(this);
+  loco_load_settings_into_open_props(this);
+  loco_open_window(this);
+  loco_init_renderer_post_window(this);
   load_engine_images();
-
-#if defined(FAN_2D)
-  shapes.shaper.Open();
-  {
-    // filler
-    fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::light, sizeof(uint8_t), fan::graphics::shaper_t::KeyBitOrderAny);
-    fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::light_end, sizeof(uint8_t), fan::graphics::shaper_t::KeyBitOrderAny);
-    fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::visible, sizeof(uint8_t), fan::graphics::shaper_t::KeyBitOrderAny);
-    fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::depth, sizeof(fan::graphics::depth_t), fan::graphics::shaper_t::KeyBitOrderLow);
-    fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::shader, sizeof(fan::graphics::shader_raw_t), fan::graphics::shaper_t::KeyBitOrderLow);
-    fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::blending, sizeof(fan::graphics::blending_t), fan::graphics::shaper_t::KeyBitOrderLow);
-    fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::image, sizeof(fan::graphics::image_t), fan::graphics::shaper_t::KeyBitOrderLow);
-    fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::viewport, sizeof(fan::graphics::viewport_t), fan::graphics::shaper_t::KeyBitOrderAny);
-    fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::camera, sizeof(loco_t::camera_t), fan::graphics::shaper_t::KeyBitOrderAny);
-    fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::ShapeType, sizeof(fan::graphics::shaper_t::ShapeTypeIndex_t), fan::graphics::shaper_t::KeyBitOrderAny);
-    fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::filler, sizeof(uint8_t), fan::graphics::shaper_t::KeyBitOrderAny);
-    fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::draw_mode, sizeof(uint8_t), fan::graphics::shaper_t::KeyBitOrderAny);
-    fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::vertex_count, sizeof(uint32_t), fan::graphics::shaper_t::KeyBitOrderAny);
-    fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::shadow, sizeof(uint8_t), fan::graphics::shaper_t::KeyBitOrderAny);
-  }
-  // order of open needs to be same with shapes enum
-#endif
-
-  {
-    fan::vec2 window_size = window.get_size();
-    {
-      orthographic_render_view.create_default(window_size);
-    }
-    {
-      perspective_render_view.camera = open_camera_perspective();
-      perspective_render_view.viewport = open_viewport(fan::vec2(0, 0), window_size);
-    }
-  }
-
+  loco_init_shapes_system(this);
+  loco_init_render_views(this);
   renderer_call(init);
-
 #if defined(FAN_2D)
   renderer_call(shapes_open);
 #endif
-
-
 #if defined(FAN_GUI)
   init_gui();
   generate_commands(this);
 #endif
-
   setup_input_callbacks();
-
-#if defined(FAN_AUDIO)
-  if (system_audio.Open() != 0) {
-    fan::throw_error("failed to open fan audio");
-  }
-  audio.bind(&system_audio);
-  fan::audio::piece_hover.open_piece("audio/hover.sac", 0);
-  fan::audio::piece_click.open_piece("audio/click.sac", 0);
-  fan::audio::gaudio() = &audio;
-#endif
-
+  loco_init_audio(this);
   fan::graphics::ctx().default_texture = default_texture;
-
 #if defined(FAN_GUI)
   console.commands.call("debug_memory " + std::to_string((int)fan::memory::heap_profiler_t::instance().enabled));
 #endif
-
-#if defined(FAN_2D)
-  cell_size = 256;
-  culling_rebuild_grid();
-  set_culling_enabled(true);
-#endif
-
-  set_vsync(false); // using libuv
+  loco_init_culling(this);
+  set_vsync(false);
 #if defined(FAN_GUI)
-  settings_menu = new fan::graphics::gui::settings_menu_t;
   ((fan::graphics::gui::settings_menu_t*)settings_menu)->init_runtime();
-  if (window.get_size() != open_props.window_size) {
-   // window.set_position(((fan::graphics::gui::settings_menu_t*)settings_menu)->config.display.window_position);
-   // window.set_size(open_props.window_size);
-  }
 #endif
-
-  auto it = fan::graphics::get_engine_init_cbs().GetNodeFirst();
-  while (it != fan::graphics::get_engine_init_cbs().dst) {
-    fan::graphics::get_engine_init_cbs().StartSafeNext(it);
-    fan::graphics::get_engine_init_cbs()[it](this);
-    it = fan::graphics::get_engine_init_cbs().EndSafeNext();
-  }
+  loco_fire_engine_init_callbacks(this);
 }
 
 loco_t::loco_t(std::function<void()> loop_fn) : loco_t(properties_t()){
