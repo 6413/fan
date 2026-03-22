@@ -31,11 +31,6 @@ module;
 
 export module fan.graphics.loco;
 
-import fan.utility;
-#if defined(FAN_GUI)
-import fan.graphics.gui.text_logger;
-#endif
-
 export import fan.event;
 export import fan.window;
 export import fan.types.color;
@@ -44,29 +39,31 @@ export import fan.texture_pack.tp0;
 export import fan.io.file;
 export import fan.window.input_action;
 export import fan.graphics.common_context;
-import fan.graphics.culling;
-import fan.physics.types;
-#if defined(FAN_PHYSICS_2D)
-import fan.physics.b2_integration;
-import fan.physics.common_context;
-#endif
-#if defined(FAN_AUDIO)
-export import fan.audio;
+export import fan.graphics.shapes;
+export import fan.noise;
+export import fan.graphics.opengl.core;
+export import fan.types.json;        // #if FAN_JSON
+
+import fan.graphics.input_subsystem;
+
+#if defined(FAN_VULKAN)
+  export import fan.graphics.vulkan.core;
 #endif
 #if defined(FAN_GUI)
-import fan.graphics.gui.base;
-export import fan.console;
+  export import fan.console;
+  import fan.graphics.gui.base;      // not export — internal
+  import fan.graphics.gui.text_logger; // not export — internal
+  import fan.graphics.gui.settings_menu;
 #endif
-export import fan.graphics.opengl.core;
-#if defined(FAN_VULKAN)
-export import fan.graphics.vulkan.core;
+#if defined(FAN_AUDIO)
+  export import fan.graphics.audio_subsystem; // re-exports fan.audio
 #endif
-export import fan.graphics.shapes;
-export import fan.physics.collision.rectangle;
-export import fan.noise;
-#if defined(FAN_JSON)
-export import fan.types.json;
+#if defined(FAN_PHYSICS_2D)
+  export import fan.graphics.physics_subsystem; // re-exports b2_integration + common_context
 #endif
+
+import fan.graphics.culling;         // internal
+export import fan.physics.collision.rectangle; // keep — user uses collision shapes directly
 
 #if defined(FAN_JSON)
 export namespace fan {
@@ -190,10 +187,6 @@ export struct loco_t {
   }open_props;
   int32_t target_fps = 165; // must be changed from function
   bool init_gloco;
-  fan::window::input_action_t input_action;
-#if defined(FAN_GUI)
-  void* settings_menu = nullptr;
-#endif
   fan::window_t window; // destruct last
 
 private:
@@ -306,10 +299,6 @@ public:
   loco_t(loco_t&&) = delete;
   loco_t& operator=(loco_t&&) = delete;
 
-#if defined (FAN_GUI)
-  using console_t = fan::console_t;
-#endif
-
   void use();
   void camera_move(fan::graphics::context_camera_t& camera, f64_t dt, f32_t movement_speed, f32_t friction = 12);
 
@@ -360,9 +349,6 @@ public:
   std::vector<std::function<void()>> m_pre_draw;
   std::vector<std::function<void()>> m_post_draw;
 
-  fan::time::timer start_time;
-  f32_t time = 0;
-
 #if defined(FAN_2D)
   void add_shape_to_immediate_draw(fan::graphics::shapes::shape_t&& s);
   uint32_t add_shape_to_static_draw(fan::graphics::shapes::shape_t&& s);
@@ -370,8 +356,6 @@ public:
 #endif
 
   static void generate_commands(loco_t* loco);
-  // -1 no reload, opengl = 0 etc
-  std::uint8_t reload_renderer_to = -1;
 
 #if defined(FAN_2D)
   fan::vec2 world_min = fan::vec2(-10000);
@@ -397,7 +381,6 @@ public:
 #if defined(FAN_GUI)
   void init_gui();
   void destroy_gui();
-  bool enable_overlay = true;
 #endif
 
   void bind_global_context();
@@ -409,7 +392,6 @@ public:
 
   void destroy();
   void close();
-  void setup_input_callbacks();
 
   void switch_renderer(std::uint8_t renderer);
   void shapes_draw();
@@ -450,11 +432,6 @@ public:
     int scroll_offset = 0;
     int view_size = 512;
   };
-
-  time_plot_scroll_t time_plot_scroll;
-  time_monitor_t frame_monitor;
-  time_monitor_t shape_monitor;
-  time_monitor_t gui_monitor;
 
   std::vector<std::function<void()>> draw_end_cb;
 
@@ -510,30 +487,19 @@ public:
   void set_window_icon(const fan::image::info_t& info);
   void set_window_icon(const fan::graphics::image_t& image);
 
+  fan::time::timer start_time;
+  f32_t time = 0;
+
+  f64_t& delta_time = window.m_delta_time;
+
   bool idle_init = false;
   uv_idle_t idle_handle;
   bool timer_init = false;
   uv_timer_t timer_handle {};
 
-  bool timer_enabled = target_fps > 0;
-  bool vsync = false;
-
   std::function<void()> main_loop; // bad, but forced
 
   f64_t current_time() const;
-
-  f64_t delta_time = window.m_delta_time;
-  fan::time::timer shape_draw_timer;
-  fan::time::timer gui_draw_timer;
-  f64_t shape_draw_time_s = 0;
-  f64_t gui_draw_time_s = 0;
-  fan::time::timer frame_timer {true};
-  f64_t target_frame_time = 0.0;
-  f64_t accumulated_time = 0.0;
-
-#if defined(FAN_GUI)
-  fan::graphics::gui_draw_cb_t gui_draw_cb;
-#endif
 
 #define FORWARD_CB_TO_WINDOW(NAME, HANDLE, CBDATA_NAME) \
     HANDLE on_##NAME(int arg, CBDATA_NAME cb) { \
@@ -557,17 +523,11 @@ public:
   FORWARD_CB_TO_WINDOW_NOARG(mouse_move, mouse_move_handle_t, mouse_move_cb_t);
   FORWARD_CB_TO_WINDOW_NOARG(resize, resize_handle_t, resize_cb_t);
 
-  buttons_handle_t buttons_handle;
-  keys_handle_t keys_handle;
-  mouse_move_handle_t mouse_move_handle;
-  text_callback_handle_t text_callback_handle;
-
   void debug_draw_light_buffer();
 
 #if defined(FAN_PHYSICS_2D)
-  fan::physics::context_t physics_context {{}};
+  fan::graphics::physics_subsystem_t physics;
   void update_physics(bool flag);
-  bool is_updating_physics = false;
 #endif
 
 #if defined(FAN_2D)
@@ -614,39 +574,14 @@ public:
 
   fan::graphics::shader_t get_sprite_vertex_shader(const std::string& fragment);
 
-  fan::color clear_color = {0.f, 0.f, 0.f, 1.f};
-
-  fan::graphics::lighting_t lighting;
-
-#if defined(FAN_2D)
-  bool force_line_draw = false;
-#endif
-
 #if defined(FAN_GUI)
   void toggle_console();
   void toggle_console(bool active);
-
-  fan::console_t console;
-  fan::time::timer fps_timer;
-  uint32_t frame_count = 0;
-  uint32_t last_fps = 0;
-
-  bool render_console = false;
-  bool render_debug_memory = false;
-  bool show_fps = false;
-  bool render_settings_menu = 0;
-
-  bool allow_docking = true;
-  bool gui_initialized = false;
-
-  fan::graphics::gui::text_logger_t text_logger;
 #endif
 
 #if defined(FAN_OPENGL)
   fan::graphics::texture_pack_t texture_pack;
 #endif
-
-  bool render_shapes_top = false;
 
   fan::graphics::image_load_properties_t default_noise_image_properties();
   fan::graphics::image_t create_noise_image(const fan::vec2& size, int seed = fan::random::value_i64(0, ((std::uint32_t)-1) / 2));
@@ -674,10 +609,77 @@ public:
   };
 #endif
 
-#if defined(FAN_AUDIO)
-  fan::system_audio_t system_audio;
-  fan::audio_t audio;
+  struct renderer_state_t {
+    fan::color clear_color = {0.f, 0.f, 0.f, 1.f};
+    fan::graphics::lighting_t lighting;
+  #if defined(FAN_2D)
+    bool force_line_draw = false;
+  #endif
+    bool render_shapes_top = false;
+    // -1 no reload, opengl = 0 etc
+    std::uint8_t reload_renderer_to = -1;
+  } renderer_state;
+
+  fan::color&                get_clear_color()       { return renderer_state.clear_color; }
+  fan::graphics::lighting_t& get_lighting()          { return renderer_state.lighting; }
+  bool&                      get_render_shapes_top() { return renderer_state.render_shapes_top; }
+
+  
+  struct timing_t {
+    fan::time::timer shape_draw_timer;
+    fan::time::timer gui_draw_timer;
+    f64_t shape_draw_time_s = 0;
+    f64_t gui_draw_time_s = 0;
+    fan::time::timer frame_timer {true};
+    f64_t target_frame_time = 0.0;
+    f64_t accumulated_time = 0.0;
+    bool timer_enabled = true;
+    bool vsync = false;
+  } timing;
+
+  bool&  get_vsync()       { return timing.vsync; }
+  f64_t& get_delta_time()  { return window.m_delta_time; }
+
+#if defined(FAN_GUI)
+  struct gui_state_t {
+    fan::graphics::gui::settings_menu_t* settings_menu = nullptr;
+    fan::console_t console;
+    fan::time::timer fps_timer;
+    uint32_t frame_count = 0;
+    uint32_t last_fps = 0;
+    bool render_console = false;
+    bool render_debug_memory = false;
+    bool show_fps = false;
+    bool render_settings_menu = 0;
+    bool allow_docking = true;
+    bool gui_initialized = false;
+    fan::graphics::gui::text_logger_t text_logger;
+    fan::graphics::gui_draw_cb_t gui_draw_cb;
+    time_monitor_t frame_monitor;
+    time_monitor_t shape_monitor;
+    time_monitor_t gui_monitor;
+    time_plot_scroll_t time_plot_scroll;
+    bool enable_overlay = true;
+  } gui;
+
+  fan::graphics::gui::settings_menu_t*& get_settings_menu()       { return gui.settings_menu; }
+  bool&                                 get_render_settings_menu() { return gui.render_settings_menu; }
+  bool&                                 get_show_fps()             { return gui.show_fps; }
+  bool&                                 get_allow_docking()        { return gui.allow_docking; }
+  bool&                                 get_enable_overlay()       { return gui.enable_overlay; }
+  fan::console_t&                       get_console()              { return gui.console; }
 #endif
+
+  // input
+  fan::graphics::input_subsystem_t input;
+  fan::window::input_action_t& get_input_action() { return input.input_action; }
+
+
+  fan::graphics::audio_subsystem_t audio;
+
+  #if defined(FAN_PHYSICS_2D)
+    fan::physics::context_t& get_physics_context() { return physics.context; }
+  #endif
 
 #if defined(FAN_2D)
   void camera_move_to(const fan::graphics::shapes::shape_t& shape, const fan::graphics::render_view_t& render_view);

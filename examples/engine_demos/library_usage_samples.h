@@ -45,10 +45,10 @@ struct library_usage_t {
     // Demonstrates custom GUI console commands
     struct console {
       console() {
-        gloco()->console.commands.add("test", [&](fan::console_t* self, const fan::commands_t::arg_t& args) {
+        gloco()->get_console().commands.add("test", [&](fan::console_t* self, const fan::commands_t::arg_t& args) {
           fan::printcl("test command executed");
         });
-        gloco()->console.commands.add("sum", [&](fan::console_t* self, const fan::commands_t::arg_t& args) {
+        gloco()->get_console().commands.add("sum", [&](fan::console_t* self, const fan::commands_t::arg_t& args) {
           if (args.size() == 2) {
             int a = std::stoi(args[0]);
             int b = std::stoi(args[1]);
@@ -60,8 +60,8 @@ struct library_usage_t {
 
       }
       void close() {
-        gloco()->console.commands.remove("test");
-        gloco()->console.commands.remove("sum");
+        gloco()->get_console().commands.remove("test");
+        gloco()->get_console().commands.remove("sum");
       }
     };
     //-------------------------------------------------------------------
@@ -71,20 +71,20 @@ struct library_usage_t {
     // Demonstrates input action system with key bindings and combos
     struct action {
       action() {
-        gloco()->input_action.add({ fan::key_space }, "jump");
-        gloco()->input_action.add_keycombo({ fan::key_space, fan::key_a }, "combo_test");
+        gloco()->get_input_action().add({ fan::key_space }, "jump");
+        gloco()->get_input_action().add_keycombo({ fan::key_space, fan::key_a }, "combo_test");
       }
       void update() {
-        if (gloco()->input_action.is_active("jump")) {
+        if (gloco()->get_input_action().is_active("jump")) {
           fan::print("jump");
         }
-        if (gloco()->input_action.is_active("combo_test")) {
+        if (gloco()->get_input_action().is_active("combo_test")) {
           fan::print("combo_test");
         }
       }
       void close() {
-        gloco()->input_action.remove("jump");
-        gloco()->input_action.remove("combo_test");
+        gloco()->get_input_action().remove("jump");
+        gloco()->get_input_action().remove("combo_test");
       }
     };
     //-------------------------------------------------------------------

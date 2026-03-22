@@ -39,18 +39,10 @@ module;
 
 module fan.graphics.loco;
 
-import fan.utility;
-
-#if defined(FAN_2D)
-  import fan.graphics.culling;
-#endif
-
 #if defined(FAN_PHYSICS_2D)
-import fan.physics.types;
-import fan.graphics.physics_shapes;
+  import fan.graphics.physics_shapes;
 #endif
-
-#if defined (FAN_GUI)
+#if defined(FAN_GUI)
   import fan.graphics.gui.settings_menu;
 #endif
 
@@ -156,7 +148,7 @@ fan::graphics::shader_nr_t loco_t::shader_create() {
 }
 
 fan::graphics::context_shader_t loco_t::shader_get(fan::graphics::shader_nr_t nr) {
-  return render_context_call(fan::graphics::context_shader_t, shader_get, nr);
+  return renderer_get(fan::graphics::context_shader_t, gl, vk, shader_get, nr);
 }
 void loco_t::shader_erase(fan::graphics::shader_nr_t nr) {
   context_functions.shader_erase(&context, nr);
@@ -179,7 +171,7 @@ bool loco_t::shader_compile(fan::graphics::shader_nr_t nr) {
 }
 
 void loco_t::shader_set_camera(fan::graphics::shader_nr_t nr, camera_t camera_nr) {
-  render_context_call(void, shader_set_camera, nr, camera_nr);
+  renderer_set(shader_set_camera, nr, camera_nr);
 }
 
 #if defined(FAN_2D)
@@ -227,7 +219,7 @@ void loco_t::shader_recompile_all() {
   });
   glFlush();
   glFinish();
-  shader_set_value(gl.m_fbo_final_shader, "bloom_strength", ((fan::graphics::gui::settings_menu_t*)settings_menu)->config.post_processing.bloom_strength);
+  shader_set_value(gl.m_fbo_final_shader, "bloom_strength", gui.settings_menu->config.post_processing.bloom_strength);
 }
 #endif
 
@@ -262,7 +254,7 @@ fan::graphics::image_nr_t loco_t::image_create() {
 }
 
 fan::graphics::context_image_t loco_t::image_get(fan::graphics::image_nr_t nr) {
-  return render_context_call(fan::graphics::context_image_t, image_get, nr);
+  return renderer_get(fan::graphics::context_image_t,  gl, vk, image_get,  nr);
 }
 
 uint64_t loco_t::image_get_handle(fan::graphics::image_nr_t nr) {
@@ -548,9 +540,9 @@ static void add_simple_command(
   std::function<void(loco_t*, const std::string&)> fn)
 {
   console.commands.add(name, [fn, arg_count](fan::console_t* self, const auto& args) {
-    auto* loco = OFFSETLESS(self, loco_t, console);
+    auto* loco = OFFSETLESS(self, loco_t, gui.console);
     if ((int)args.size() != arg_count) {
-      loco->console.commands.print_invalid_arg_count();
+      loco->gui.console.commands.print_invalid_arg_count();
       return;
     }
     fn(loco, args.empty() ? "" : args[0]);
@@ -559,113 +551,113 @@ static void add_simple_command(
 
 void loco_t::generate_commands(loco_t* loco) {
 #if defined(FAN_GUI)
-  loco->console.open();
+  loco->gui.console.open();
 
-  add_simple_command(loco->console, "set_vsync", "sets vsync", 1,
+  add_simple_command(loco->gui.console, "set_vsync", "sets vsync", 1,
     [](loco_t* l, const std::string& v) { l->set_vsync(std::stoi(v)); });
-  add_simple_command(loco->console, "set_target_fps", "sets target fps", 1,
+  add_simple_command(loco->gui.console, "set_target_fps", "sets target fps", 1,
     [](loco_t* l, const std::string& v) { l->set_target_fps(std::stoi(v)); });
-  add_simple_command(loco->console, "show_fps", "toggles fps", 1,
-    [](loco_t* l, const std::string& v) { l->show_fps = std::stoi(v); });
-  add_simple_command(loco->console, "debug_memory", "opens memory debug", 1,
-    [](loco_t* l, const std::string& v) { l->render_debug_memory = std::stoi(v); });
-  add_simple_command(loco->console, "set_clear_color", "sets clear color - example {1,0,0,1}", 1,
-    [](loco_t* l, const std::string& v) { l->clear_color = fan::color::parse(v); });
-  add_simple_command(loco->console, "set_lighting_ambient", "sets lighting ambient color", 1,
-    [](loco_t* l, const std::string& v) { l->lighting.set_target(fan::color::parse(v)); });
+  add_simple_command(loco->gui.console, "gui.show_fps", "toggles fps", 1,
+    [](loco_t* l, const std::string& v) { l->gui.show_fps = std::stoi(v); });
+  add_simple_command(loco->gui.console, "debug_memory", "opens memory debug", 1,
+    [](loco_t* l, const std::string& v) { l->gui.render_debug_memory = std::stoi(v); });
+  add_simple_command(loco->gui.console, "set_clear_color", "sets clear color - example {1,0,0,1}", 1,
+    [](loco_t* l, const std::string& v) { l->renderer_state.clear_color = fan::color::parse(v); });
+  add_simple_command(loco->gui.console, "set_lighting_ambient", "sets lighting ambient color", 1,
+    [](loco_t* l, const std::string& v) { l->renderer_state.lighting.set_target(fan::color::parse(v)); });
 #if defined(LOCO_FRAMEBUFFER)
-  add_simple_command(loco->console, "set_gamma", "sets gamma", 1,
+  add_simple_command(loco->gui.console, "set_gamma", "sets gamma", 1,
     [](loco_t* l, const std::string& v) { l->shader_set_value(l->gl.m_fbo_final_shader, "gamma", std::stof(v)); });
-  add_simple_command(loco->console, "set_contrast", "sets contrast", 1,
+  add_simple_command(loco->gui.console, "set_contrast", "sets contrast", 1,
     [](loco_t* l, const std::string& v) { l->shader_set_value(l->gl.m_fbo_final_shader, "contrast", std::stof(v)); });
-  add_simple_command(loco->console, "set_exposure", "sets exposure", 1,
+  add_simple_command(loco->gui.console, "set_exposure", "sets exposure", 1,
     [](loco_t* l, const std::string& v) { l->shader_set_value(l->gl.m_fbo_final_shader, "exposure", std::stof(v)); });
-  add_simple_command(loco->console, "set_bloom_strength", "sets bloom strength", 1,
+  add_simple_command(loco->gui.console, "set_bloom_strength", "sets bloom strength", 1,
     [](loco_t* l, const std::string& v) {
-    auto* sm = (fan::graphics::gui::settings_menu_t*)l->settings_menu;
+    auto* sm = (fan::graphics::gui::settings_menu_t*)l->gui.settings_menu;
     sm->config.post_processing.bloom_strength = std::stof(v);
     l->shader_set_value(l->gl.m_fbo_final_shader, "bloom_strength", sm->config.post_processing.bloom_strength);
   });
 #endif
 
-  loco->console.commands.add("echo", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
-    auto* loco = OFFSETLESS(self, loco_t, console);
+  loco->gui.console.commands.add("echo", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, gui.console);
     fan::commands_t::output_t out;
     out.text = fan::append_args(args) + "\n";
     out.highlight = fan::graphics::highlight_e::info;
-    loco->console.commands.output_cb(out);
+    loco->gui.console.commands.output_cb(out);
   }).description = "prints something - usage echo [args]";
 
-  loco->console.commands.add("help", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
-    auto* loco = OFFSETLESS(self, loco_t, console);
+  loco->gui.console.commands.add("help", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, gui.console);
     if (args.empty()) {
       fan::commands_t::output_t out;
       out.highlight = fan::graphics::highlight_e::info;
       std::string out_str;
       out_str += "{\n";
-      for (const auto& i : loco->console.commands.get_func_table()) {
+      for (const auto& i : loco->gui.console.commands.get_func_table()) {
         out_str += "\t" + i.first + ",\n";
       }
       out_str += "}\n";
       out.text = out_str;
-      loco->console.commands.output_cb(out);
+      loco->gui.console.commands.output_cb(out);
       return;
     }
     else if (args.size() == 1) {
-      auto found = loco->console.commands.get_func_table().find(args[0]);
-      if (found == loco->console.commands.get_func_table().end()) {
-        loco->console.commands.print_command_not_found(args[0]);
+      auto found = loco->gui.console.commands.get_func_table().find(args[0]);
+      if (found == loco->gui.console.commands.get_func_table().end()) {
+        loco->gui.console.commands.print_command_not_found(args[0]);
         return;
       }
       fan::commands_t::output_t out;
       out.text = found->second.description + "\n";
       out.highlight = fan::graphics::highlight_e::info;
-      loco->console.commands.output_cb(out);
+      loco->gui.console.commands.output_cb(out);
     }
     else {
-      loco->console.commands.print_invalid_arg_count();
+      loco->gui.console.commands.print_invalid_arg_count();
     }
   }).description = "get info about specific command - usage help command";
 
-  loco->console.commands.add("list", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
-    auto* loco = OFFSETLESS(self, loco_t, console);
+  loco->gui.console.commands.add("list", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, gui.console);
     std::string out_str;
-    for (const auto& i : loco->console.commands.get_func_table()) {
+    for (const auto& i : loco->gui.console.commands.get_func_table()) {
       out_str += i.first + "\n";
     }
     fan::commands_t::output_t out;
     out.text = out_str;
     out.highlight = fan::graphics::highlight_e::info;
-    loco->console.commands.output_cb(out);
+    loco->gui.console.commands.output_cb(out);
   }).description = "lists all commands - usage list";
 
-  loco->console.commands.add("alias", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
-    auto* loco = OFFSETLESS(self, loco_t, console);
+  loco->gui.console.commands.add("alias", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, gui.console);
     if (args.size() < 2 || args[1].empty()) {
-      loco->console.commands.print_invalid_arg_count();
+      loco->gui.console.commands.print_invalid_arg_count();
       return;
     }
-    if (loco->console.commands.insert_to_command_chain(args)) {
+    if (loco->gui.console.commands.insert_to_command_chain(args)) {
       return;
     }
-    loco->console.commands.get_func_table()[args[0]] = loco->console.commands.get_func_table()[args[1]];
+    loco->gui.console.commands.get_func_table()[args[0]] = loco->gui.console.commands.get_func_table()[args[1]];
   }).description = "can create alias commands - usage alias [cmd name] [cmd]";
 
-  loco->console.commands.add("quit", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+  loco->gui.console.commands.add("quit", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
     exit(0);
   }).description = "quits program - usage quit";
 
-  loco->console.commands.add("clear", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
-    auto* loco = OFFSETLESS(self, loco_t, console);
-    loco->console.output_buffer.clear();
-    loco->console.editor.SetText("");
+  loco->gui.console.commands.add("clear", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, gui.console);
+    loco->gui.console.output_buffer.clear();
+    loco->gui.console.editor.SetText("");
   }).description = "clears output buffer - usage clear";
 
 #if defined(FAN_2D)
-  loco->console.commands.add("rectangle", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
-    auto* loco = OFFSETLESS(self, loco_t, console);
+  loco->gui.console.commands.add("rectangle", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, gui.console);
     if (args.size() < 1 || args.size() > 3) {
-      loco->console.commands.print_invalid_arg_count();
+      loco->gui.console.commands.print_invalid_arg_count();
       return;
     }
     try {
@@ -675,8 +667,8 @@ void loco_t::generate_commands(loco_t* loco) {
       props.color = args.size() == 3 ? fan::color::parse(args[2]) : fan::colors::white;
 
       auto NRI = loco->add_shape_to_static_draw(props);
-      loco->console.println_colored("Added rectangle", fan::colors::green);
-      loco->console.println(
+      loco->gui.console.println_colored("Added rectangle", fan::colors::green);
+      loco->gui.console.println(
         "  id: " + std::to_string(NRI) +
         "\n  position " + (std::string)props.position +
         "\n  size " + (std::string)props.size +
@@ -685,37 +677,37 @@ void loco_t::generate_commands(loco_t* loco) {
       );
     }
     catch (const std::exception& e) {
-      loco->console.println_colored("Invalid arguments: " + std::string(e.what()), fan::colors::red);
+      loco->gui.console.println_colored("Invalid arguments: " + std::string(e.what()), fan::colors::red);
     }
   }).description = "Adds static rectangle {x,y[,z]} {w,h} [{r,g,b,a}]";
 
-  loco->console.commands.add("remove_shape", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
-    auto* loco = OFFSETLESS(self, loco_t, console);
+  loco->gui.console.commands.add("remove_shape", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, gui.console);
     if (args.size() != 1) {
-      loco->console.commands.print_invalid_arg_count();
+      loco->gui.console.commands.print_invalid_arg_count();
       return;
     }
     try {
       uint32_t shape_id = std::stoull(args[0]);
       fan::graphics::shapes::shape_t* s = reinterpret_cast<fan::graphics::shapes::shape_t*>(&shape_id);
       loco->remove_static_shape_draw(*s);
-      loco->console.println_colored(
+      loco->gui.console.println_colored(
         "Removed shape with id {}" + std::to_string(shape_id),
         fan::colors::green
       );
     }
     catch (const std::exception& e) {
-      loco->console.println_colored("Invalid argument: " + std::string(e.what()), fan::colors::red);
+      loco->gui.console.println_colored("Invalid argument: " + std::string(e.what()), fan::colors::red);
     }
   }).description = "Removes a shape by its id";
 #endif
 
-  loco->console.commands.add("print", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
-    auto* loco = OFFSETLESS(self, loco_t, console);
+  loco->gui.console.commands.add("print", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    auto* loco = OFFSETLESS(self, loco_t, gui.console);
     fan::commands_t::output_t out;
     out.text = fan::append_args(args) + "\n";
     out.highlight = fan::graphics::highlight_e::info;
-    loco->text_logger.print(fan::graphics::highlight_color_table[out.highlight], out.text);
+    loco->gui.text_logger.print(fan::graphics::highlight_color_table[out.highlight], out.text);
   }).description = "prints something to bottom left of screen - usage print [args]";
 
 #endif
@@ -809,7 +801,7 @@ void loco_t::check_vk_result(VkResult err) {
 #if defined(FAN_GUI)
 void loco_t::init_gui() {
   if (fan::graphics::gui::is_gui_initialized()) {
-    gui_initialized = true;
+    gui.gui_initialized = true;
     return;
   }
   fan::graphics::gui::init(
@@ -832,11 +824,11 @@ void loco_t::init_gui() {
     check_vk_result
   #endif
   );
-  gui_initialized = true;
+  gui.gui_initialized = true;
 }
 
 void loco_t::destroy_gui() {
-  if (!gui_initialized || !fan::graphics::gui::is_gui_initialized()) {
+  if (!gui.gui_initialized || !fan::graphics::gui::is_gui_initialized()) {
     return;
   }
 
@@ -848,8 +840,8 @@ void loco_t::destroy_gui() {
     , context.vk.device
   #endif
   );
-  if (reload_renderer_to != (decltype(reload_renderer_to))-1) {
-    gui_initialized = false;
+  if (renderer_state.reload_renderer_to != (decltype(renderer_state.reload_renderer_to))-1) {
+    gui.gui_initialized = false;
     return;
   }
 #if defined(FAN_VULKAN)
@@ -859,7 +851,7 @@ void loco_t::destroy_gui() {
 #endif
 
   fan::graphics::gui::destroy();
-  gui_initialized = false;
+  gui.gui_initialized = false;
 }
 #endif
 
@@ -875,10 +867,10 @@ void loco_t::bind_global_context() {
   ctx.orthographic_render_view = &orthographic_render_view;
   ctx.perspective_render_view = &perspective_render_view;
   ctx.update_callback = &m_update_callback;
-  ctx.input_action = &input_action;
-  ctx.lighting = &lighting;
-  IF_GUI(ctx.console = &console;)
-  IF_GUI(ctx.text_logger = &text_logger;)
+  ctx.input_action = &input.input_action;
+  ctx.lighting = &renderer_state.lighting;
+  IF_GUI(ctx.console = &gui.console;)
+  IF_GUI(ctx.text_logger = &gui.text_logger;)
 }
 
 static void loco_init_shapes_context(loco_t* l) {
@@ -897,13 +889,6 @@ static void loco_init_shapes_context(loco_t* l) {
 }
 
 static void loco_init_platform(loco_t* l) {
-  l->input_action.window = &l->window;
-#if defined(FAN_GUI)
-  fan::graphics::gui::profile_heap(
-    [](size_t size, void*) -> void* { return fan::memory::heap_profiler_t::instance().allocate_memory(size); },
-    [](void* ptr, void*) { fan::memory::heap_profiler_t::instance().deallocate_memory(ptr); }
-  );
-#endif
 #if defined(fan_platform_windows)
   SetConsoleOutputCP(CP_UTF8);
 #endif
@@ -913,7 +898,7 @@ static void loco_init_platform(loco_t* l) {
 }
 
 static void loco_init_renderer(loco_t* l) {
-  l->render_shapes_top = l->open_props.render_shapes_top;
+  l->renderer_state.render_shapes_top = l->open_props.render_shapes_top;
   l->window.renderer = l->open_props.renderer;
 #if defined(FAN_OPENGL)
   if (l->window.renderer == fan::window_t::renderer_t::opengl) {
@@ -927,7 +912,7 @@ static void loco_init_renderer(loco_t* l) {
 static void loco_load_settings_into_open_props(loco_t* l) {
 #if defined(FAN_GUI)
   auto* sm = new fan::graphics::gui::settings_menu_t;
-  l->settings_menu = sm;
+  l->gui.settings_menu = sm;
   if (sm->config.display.custom_resolution.x != -1)
     l->open_props.window_size = sm->config.display.custom_resolution;
   else if (sm->config.display.resolution_index != -1)
@@ -947,8 +932,8 @@ static void loco_open_window(loco_t* l) {
   if (l->window.renderer == fan::window_t::renderer_t::vulkan) {
     l->context_functions = fan::graphics::get_vk_context_functions();
     new (&l->context.vk) fan::vulkan::context_t();
-    l->context.vk.enable_clear = !l->render_shapes_top;
-    l->context.vk.shapes_top = l->render_shapes_top;
+    l->context.vk.enable_clear = !l->renderer_state.render_shapes_top;
+    l->context.vk.shapes_top = l->renderer_state.render_shapes_top;
     l->context.vk.open(l->window);
   }
 #endif
@@ -998,15 +983,7 @@ static void loco_init_render_views(loco_t* l) {
 }
 
 static void loco_init_audio(loco_t* l) {
-#if defined(FAN_AUDIO)
-  if (l->system_audio.Open() != 0) {
-    fan::throw_error("failed to open fan audio");
-  }
-  l->audio.bind(&l->system_audio);
-  fan::audio::piece_hover.open_piece("audio/hover.sac", 0);
-  fan::audio::piece_click.open_piece("audio/click.sac", 0);
-  fan::audio::gaudio() = &l->audio;
-#endif
+  l->audio.init();
 }
 
 static void loco_init_culling(loco_t* l) {
@@ -1031,9 +1008,6 @@ loco_t::loco_t() : loco_t(loco_t::properties_t()) {}
 loco_t::loco_t(const loco_t::properties_t& props) :
   open_props(props),
   init_gloco([this] { gloco() = this; return true; }())
-#if defined(FAN_GUI)
-  , settings_menu()
-#endif
 {
   bind_global_context();
   loco_init_shapes_context(this);
@@ -1053,16 +1027,16 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   init_gui();
   generate_commands(this);
 #endif
-  setup_input_callbacks();
+  input.init(window);
   loco_init_audio(this);
   fan::graphics::ctx().default_texture = default_texture;
 #if defined(FAN_GUI)
-  console.commands.call("debug_memory " + std::to_string((int)fan::memory::heap_profiler_t::instance().enabled));
+  gui.console.commands.call("debug_memory " + std::to_string((int)fan::memory::heap_profiler_t::instance().enabled));
 #endif
   loco_init_culling(this);
   set_vsync(false);
 #if defined(FAN_GUI)
-  ((fan::graphics::gui::settings_menu_t*)settings_menu)->init_runtime();
+  gui.settings_menu->init_runtime();
 #endif
   loco_fire_engine_init_callbacks(this);
 }
@@ -1088,8 +1062,8 @@ void loco_t::destroy() {
   }
 
 #if defined(FAN_GUI)
-  console.commands.get_func_table().clear();
-  console.close();
+  gui.console.commands.get_func_table().clear();
+  gui.console.close();
 #endif
 
 #if defined(FAN_OPENGL)
@@ -1112,115 +1086,11 @@ void loco_t::destroy() {
   destroy_gui();
 #endif
   window.close();
-#if defined(FAN_AUDIO)
-  audio.unbind();
-  system_audio.Close();
-#endif
+  audio.destroy();
 }
 
 void loco_t::close() {
   destroy();
-}
-
-void loco_t::setup_input_callbacks() {
-  // System
-#if defined(FAN_GUI)
-  input_action.insert_or_assign(
-    {fan::key_escape, fan::gamepad_start},
-    fan::actions::toggle_settings,
-    fan::actions::groups::system
-  );
-
-  input_action.insert_or_assign(
-    fan::key_f3,
-    fan::actions::toggle_console,
-    fan::actions::groups::system
-  );
-#endif
-
-  // Movement
-  input_action.insert_or_assign(
-    {fan::key_a, fan::gamepad_left_thumb},
-    fan::actions::move_left,
-    fan::actions::groups::movement
-  );
-
-  input_action.insert_or_assign(
-    {fan::key_d, fan::gamepad_left_thumb},
-    fan::actions::move_right,
-    fan::actions::groups::movement
-  );
-
-  input_action.insert_or_assign(fan::key_w, fan::actions::move_forward, fan::actions::groups::movement);
-  input_action.insert_or_assign(fan::key_s, fan::actions::move_back, fan::actions::groups::movement);
-
-  input_action.insert_or_assign(
-    {fan::key_space, fan::key_w, fan::gamepad_a},
-    fan::actions::move_up,
-    fan::actions::groups::movement
-  );
-
-  // Combat
-  input_action.insert_or_assign(
-    {fan::mouse_left, fan::gamepad_right_bumper},
-    fan::actions::light_attack,
-    fan::actions::groups::combat
-  );
-
-  input_action.insert_or_assign(
-    {fan::mouse_right, fan::gamepad_left_bumper},
-    fan::actions::block_attack,
-    fan::actions::groups::combat
-  );
-
-  // Debug
-  input_action.insert_or_assign_combo(
-    {fan::key_left_control, fan::key_4},
-    fan::actions::toggle_debug_light_buffer,
-    fan::actions::groups::debug
-  );
-
-#if defined(FAN_PHYSICS_2D)
-  input_action.insert_or_assign_combo(
-    {fan::key_left_control, fan::key_5},
-    fan::actions::toggle_debug_physics,
-    fan::actions::groups::debug
-  );
-#endif
-
-  input_action.insert_or_assign_combo(
-    {fan::key_left_control, fan::key_left_shift, fan::key_r},
-    fan::actions::recompile_shaders,
-    fan::actions::groups::debug
-  );
-
-#if defined(FAN_2D)
-  buttons_handle = window.add_buttons_callback([](const fan::window_t::buttons_data_t& d) {
-    fan::vec2 pos = fan::vec2(d.window->get_mouse_position());
-    fan::graphics::g_shapes->vfi.feed_mouse_button(d.button, d.state);
-  });
-#endif
-
-  keys_handle = window.add_keys_callback([&, windowed = true](const fan::window_t::keys_data_t& d) mutable {
-  #if defined(FAN_2D)
-    fan::graphics::g_shapes->vfi.feed_keyboard(d.key, d.state);
-  #endif
-    auto* loco = OFFSETLESS(d.window, loco_t, window);
-    if (d.key == fan::key_enter && d.state == fan::keyboard_state::press && loco->window.key_pressed(fan::key_left_alt)) {
-      windowed = !windowed;
-      loco->window.set_display_mode(windowed ? fan::window_t::mode::windowed : fan::window_t::mode::borderless);
-    }
-  });
-
-#if defined(FAN_2D)
-  mouse_move_handle = window.add_mouse_move_callback([&](const fan::window_t::mouse_move_data_t& d) {
-    fan::graphics::g_shapes->vfi.feed_mouse_move(d.position);
-  });
-
-  text_callback_handle = window.add_text_callback([&](const fan::window_t::text_data_t& d) {
-    fan::graphics::g_shapes->vfi.feed_text(d.character);
-  });
-#endif
 }
 
 void loco_t::switch_renderer(uint8_t renderer) {
@@ -1229,7 +1099,7 @@ void loco_t::switch_renderer(uint8_t renderer) {
   uint64_t flags = window.flags;
 
 #if defined(FAN_GUI)
-  bool was_imgui_init = gui_initialized;
+  bool was_imgui_init = gui.gui_initialized;
 #endif
 
   { // close
@@ -1263,7 +1133,7 @@ void loco_t::switch_renderer(uint8_t renderer) {
   #endif
 
   #if defined(FAN_GUI)
-    if (gui_initialized) {
+    if (gui.gui_initialized) {
       fan::graphics::gui::shutdown_graphics_context(
         window.renderer,
         fan::window_t::renderer_t::opengl,
@@ -1273,7 +1143,7 @@ void loco_t::switch_renderer(uint8_t renderer) {
       #endif
       );
       fan::graphics::gui::shutdown_window_context();
-      gui_initialized = false;
+      gui.gui_initialized = false;
     }
   #endif
 
@@ -1281,7 +1151,7 @@ void loco_t::switch_renderer(uint8_t renderer) {
   }
 
   { // reopen
-    window.renderer = reload_renderer_to; // i dont like this {window.renderer = ...}
+    window.renderer = renderer_state.reload_renderer_to; // i dont like this {window.renderer = ...}
   #if defined(FAN_OPENGL)
     if (window.renderer == fan::window_t::renderer_t::opengl) {
       context_functions = fan::graphics::get_gl_context_functions();
@@ -1407,8 +1277,8 @@ void loco_t::switch_renderer(uint8_t renderer) {
         check_vk_result
       #endif
       );
-      gui_initialized = true;
-      ((fan::graphics::gui::settings_menu_t*)settings_menu)->set_settings_theme();
+      gui.gui_initialized = true;
+      gui.settings_menu->set_settings_theme();
     }
   #endif
 
@@ -1416,22 +1286,18 @@ void loco_t::switch_renderer(uint8_t renderer) {
     fan::graphics::g_shapes->shaper._BlockListCapacityChange(fan::graphics::shapes::shape_type_t::rectangle, 0, 1);
     fan::graphics::g_shapes->shaper._BlockListCapacityChange(fan::graphics::shapes::shape_type_t::sprite, 0, 1);
   #endif
-  #if defined(FAN_AUDIO)
-    if (system_audio.Open() != 0) {
-      fan::throw_error("failed to open fan audio");
-    }
-    audio.bind(&system_audio);
-  #endif
+    audio.destroy();
+    audio.init();
   }
-  reload_renderer_to = -1;
+  renderer_state.reload_renderer_to = -1;
 }
 
 void loco_t::shapes_draw() {
-  shape_draw_timer.start();
+  timing.shape_draw_timer.start();
 
   renderer_call(shapes_draw);
 
-  shape_draw_time_s = shape_draw_timer.seconds();
+  timing.shape_draw_time_s = timing.shape_draw_timer.seconds();
 
 #if defined(FAN_2D)
   immediate_render_list.clear();
@@ -1442,7 +1308,7 @@ void loco_t::process_shapes() {
 
 #if defined(FAN_VULKAN)
   if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    if (render_shapes_top == true) {
+    if (renderer_state.render_shapes_top == true) {
       vk.begin_render_pass();
     }
   }
@@ -1482,7 +1348,7 @@ void loco_t::process_shapes() {
       // render post process
       vkCmdDraw(cmd_buffer, 6, 1, 0, 0);
     }
-    if (render_shapes_top == true) {
+    if (renderer_state.render_shapes_top == true) {
       vkCmdEndRenderPass(cmd_buffer);
     }
   }
@@ -1491,41 +1357,41 @@ void loco_t::process_shapes() {
 
 void loco_t::process_gui() {
   using namespace fan::graphics;
-  gui_draw_timer.start();
+  timing.gui_draw_timer.start();
 #if defined(FAN_GUI)
   fan::graphics::gui::process_frame();
 
   if (auto h = gui::hud("##text_logger")) {
-    text_logger.render();
+    gui.text_logger.render();
   }
 
-  if (input_action.is_clicked(fan::actions::toggle_console)) {
-    render_console = !render_console;
+  if (input.input_action.is_clicked(fan::actions::toggle_console)) {
+    gui.render_console = !gui.render_console;
     // force focus xd
-    console.input.InsertText("a");
-    console.input.SetText("");
-    console.init_focus = true;
-    console.input.IsFocused() = false;
+    gui.console.input.InsertText("a");
+    gui.console.input.SetText("");
+    gui.console.init_focus = true;
+    gui.console.input.IsFocused() = false;
   }
-  if (render_console) {
-    console.render();
+  if (gui.render_console) {
+    gui.console.render();
   }
-  if (!((fan::graphics::gui::settings_menu_t*)settings_menu)->keybind_menu.is_capturing() &&
-    input_action.is_clicked(fan::actions::toggle_settings) &&
-    !((fan::graphics::gui::settings_menu_t*)settings_menu)->keybind_menu.should_suppress_input()) {
-    if (render_console) {
-      render_console = false;
+  if (!gui.settings_menu->keybind_menu.is_capturing() &&
+    input.input_action.is_clicked(fan::actions::toggle_settings) &&
+    !gui.settings_menu->keybind_menu.should_suppress_input()) {
+    if (gui.render_console) {
+      gui.render_console = false;
     }
     else {
-      render_settings_menu = !render_settings_menu;
+      gui.render_settings_menu = !gui.render_settings_menu;
     }
   }
-  ((fan::graphics::gui::settings_menu_t*)settings_menu)->update();
-  if (render_settings_menu) {
-    ((fan::graphics::gui::settings_menu_t*)settings_menu)->render();
+  gui.settings_menu->update();
+  if (gui.render_settings_menu) {
+    gui.settings_menu->render();
   }
 
-  if (render_debug_memory) {
+  if (gui.render_debug_memory) {
     gui::set_next_window_bg_alpha(0.99f);
     gui::window_flags_t window_flags = gui::window_flags_no_title_bar | gui::window_flags_topmost;
     gui::set_next_window_size(fan::vec2(600, 300), gui::cond_once);
@@ -1534,20 +1400,20 @@ void loco_t::process_gui() {
     gui::end();
   }
 
-  if (show_fps) {
+  if (gui.show_fps) {
     gui::window_flags_t window_flags = gui::window_flags_no_title_bar | gui::window_flags_topmost;
 
     gui::set_next_window_bg_alpha(0.99f);
     gui::set_next_window_size(fan::vec2(831.0000, 693.0000), gui::cond_once);
     gui::begin("Performance window", nullptr, window_flags);
 
-    frame_monitor.update(delta_time);
-    shape_monitor.update(shape_draw_time_s);
-    gui_monitor.update(gui_draw_time_s);
+    gui.frame_monitor.update(delta_time);
+    gui.frame_monitor.update(timing.shape_draw_time_s);
+    gui.gui_monitor.update(timing.gui_draw_time_s);
 
-    auto frame_stats = frame_monitor.stats();
-    auto shape_stats = shape_monitor.stats();
-    auto gui_stats = gui_monitor.stats();
+    auto frame_stats = gui.frame_monitor.stats();
+    auto shape_stats = gui.frame_monitor.stats();
+    auto gui_stats = gui.gui_monitor.stats();
 
     static auto format_val = [](double v, int prec = 4) {
       std::ostringstream oss;
@@ -1563,16 +1429,16 @@ void loco_t::process_gui() {
     gui::text("Shape Draw Avg:", format_val(shape_stats.avg_frame_time_s * 1e3) + " ms");
     gui::text("GUI Draw Avg:", format_val(gui_stats.avg_frame_time_s * 1e3) + " ms");
 
-    if (gui::button(frame_monitor.paused ? "Continue" : "Pause")) {
-      frame_monitor.paused = !frame_monitor.paused;
-      shape_monitor.paused = frame_monitor.paused;
-      gui_monitor.paused = frame_monitor.paused;
+    if (gui::button(gui.frame_monitor.paused ? "Continue" : "Pause")) {
+      gui.frame_monitor.paused = !gui.frame_monitor.paused;
+      gui.frame_monitor.paused = gui.frame_monitor.paused;
+      gui.gui_monitor.paused = gui.frame_monitor.paused;
     }
 
     if (gui::button("Reset data")) {
-      frame_monitor.reset();
-      shape_monitor.reset();
-      gui_monitor.reset();
+      gui.frame_monitor.reset();
+      gui.frame_monitor.reset();
+      gui.gui_monitor.reset();
     }
 
     if (gui::plot::begin_plot("Times", fan::vec2(-1, 0), gui::plot::flags_no_frame)) {
@@ -1581,39 +1447,39 @@ void loco_t::process_gui() {
         gui::plot::axis_flags_auto_fit | gui::plot::axis_flags_range_fit
       );
       gui::plot::setup_axis_ticks(gui::plot::axis_y1, 0.0, 10.0, 11);
-      frame_monitor.plot(this, "Frame Draw Time");
-      shape_monitor.plot(this, "Shape Draw Time");
-      gui_monitor.plot(this, "GUI Draw Time");
+      gui.frame_monitor.plot(this, "Frame Draw Time");
+      gui.frame_monitor.plot(this, "Shape Draw Time");
+      gui.gui_monitor.plot(this, "GUI Draw Time");
 
-      if (frame_monitor.buffer.size() > time_plot_scroll.view_size) {
-        int max_offset = static_cast<int>(frame_monitor.buffer.size()) - time_plot_scroll.view_size;
-        gui::drag("Scroll", &time_plot_scroll.scroll_offset);
+      if (gui.frame_monitor.buffer.size() > gui.time_plot_scroll.view_size) {
+        int max_offset = static_cast<int>(gui.frame_monitor.buffer.size()) - gui.time_plot_scroll.view_size;
+        gui::drag("Scroll", &gui.time_plot_scroll.scroll_offset);
       }
       gui::plot::end_plot();
     }
 
     gui::text("Frame Draw Time: ", format_val(delta_time * 1e3) + " ms");
-    gui::text("Shape Draw Time: ", format_val(shape_draw_time_s * 1e3) + " ms");
-    gui::text("GUI Draw Time: ", format_val(gui_draw_time_s * 1e3) + " ms");
+    gui::text("Shape Draw Time: ", format_val(timing.shape_draw_time_s * 1e3) + " ms");
+    gui::text("GUI Draw Time: ", format_val(timing.gui_draw_time_s * 1e3) + " ms");
 
     gui::end();
   }
 
   {
-    frame_count++;
+    gui.frame_count++;
 
-    if (!fps_timer.started()) {
-      last_fps = 1.0 / delta_time;
-      fps_timer.start_seconds(1.0f);
+    if (!gui.fps_timer.started()) {
+      gui.last_fps = 1.0 / delta_time;
+      gui.fps_timer.start_seconds(1.0f);
     }
 
-    if (fps_timer.finished()) {
-      last_fps = frame_count;
-      frame_count = 0;
-      fps_timer.restart();
+    if (gui.fps_timer.finished()) {
+      gui.last_fps = gui.frame_count;
+      gui.frame_count = 0;
+      gui.fps_timer.restart();
     }
 
-    std::string s = std::to_string(last_fps);
+    std::string s = std::to_string(gui.last_fps);
 
     gui::push_font(gui::get_font(15.f));
 
@@ -1640,7 +1506,7 @@ void loco_t::process_gui() {
     window.renderer,
     fan::window_t::renderer_t::opengl,
     fan::window_t::renderer_t::vulkan,
-    render_shapes_top
+    renderer_state.render_shapes_top
   #if defined(FAN_VULKAN)
     ,
     &get_vk_context(),
@@ -1654,7 +1520,7 @@ void loco_t::process_gui() {
 #if defined(FAN_GUI)
   gui::set_want_io();
 #endif
-  gui_draw_time_s = gui_draw_timer.seconds();
+  timing.gui_draw_time_s = timing.gui_draw_timer.seconds();
 }
 
 void loco_t::get_vram_usage(int* total_mem_MB, int* used_MB) {
@@ -1714,17 +1580,17 @@ void loco_t::time_monitor_t::plot(loco_t* loco, std::string_view label) {
   using namespace fan::graphics;
   if (buffer.empty()) return;
 
-  int plot_count = std::min(loco->time_plot_scroll.view_size, static_cast<int>(buffer.size()));
+  int plot_count = std::min(loco->gui.time_plot_scroll.view_size, static_cast<int>(buffer.size()));
   static std::vector<f32_t> plot_data;
   plot_data.resize(plot_count);
 
   if (!paused) {
-    int max_start = std::max(0, static_cast<int>(buffer.size()) - loco->time_plot_scroll.view_size);
-    loco->time_plot_scroll.scroll_offset = max_start;
+    int max_start = std::max(0, static_cast<int>(buffer.size()) - loco->gui.time_plot_scroll.view_size);
+    loco->gui.time_plot_scroll.scroll_offset = max_start;
   }
 
-  int max_start = std::max(0, static_cast<int>(buffer.size()) - loco->time_plot_scroll.view_size);
-  int start = std::min(loco->time_plot_scroll.scroll_offset, max_start);
+  int max_start = std::max(0, static_cast<int>(buffer.size()) - loco->gui.time_plot_scroll.view_size);
+  int start = std::min(loco->gui.time_plot_scroll.scroll_offset, max_start);
 
   for (int i = 0; i < plot_count; ++i) {
     plot_data[i] = buffer[start + i] * 1e3f; // ms
@@ -1776,7 +1642,7 @@ void loco_t::process_render() {
 
   viewport_set(0, window.get_size());
 
-  if (render_shapes_top == false) {
+  if (renderer_state.render_shapes_top == false) {
     process_shapes();
     process_gui();
   }
@@ -1827,15 +1693,15 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
   delta_time = window.m_delta_time;
 
 #if defined(FAN_PHYSICS_2D)
-  physics_context.begin_frame(delta_time);
+  physics.context.begin_frame(delta_time);
 #endif
 
 #if defined(FAN_GUI)
-  if (reload_renderer_to != (decltype(reload_renderer_to))-1) {
-    switch_renderer(reload_renderer_to);
+  if (renderer_state.reload_renderer_to != (decltype(renderer_state.reload_renderer_to))-1) {
+    switch_renderer(renderer_state.reload_renderer_to);
   }
 
-  lighting.update(delta_time);
+  renderer_state.lighting.update(delta_time);
 
   fan::graphics::gui::new_frame(
     window.renderer,
@@ -1851,7 +1717,7 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
   gui::push_style_color(gui::col_docking_empty_bg, fan::color(0, 0, 0, 0));
   gui::dock_space_over_viewport(0, gui::get_main_viewport());
 
-  if (allow_docking || is_key_down(fan::key_left_control)) {
+  if (gui.allow_docking || is_key_down(fan::key_left_control)) {
     gui::get_io().ConfigFlags |= gui::config_flags_docking_enable;
   }
   else {
@@ -1872,7 +1738,7 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
       gui::window_flags_no_title_bar | gui::window_flags_no_bring_to_front_on_focus |
       gui::window_flags_no_inputs
       ;
-    gui::begin("##global_renderer", nullptr, wnd_flags | (!enable_overlay ? gui::window_flags_no_nav | gui::window_flags_override_input : 0));
+    gui::begin("##global_renderer", nullptr, wnd_flags | (!gui.enable_overlay ? gui::window_flags_no_nav | gui::window_flags_override_input : 0));
   }
 #endif
 
@@ -1890,18 +1756,16 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
   }
 
 #if defined(FAN_PHYSICS_2D)
-  if (is_updating_physics) {
-    physics_context.debug_draw_cb();
-    physics_context.step(delta_time);
-  }
-  if (input_action.is_active(fan::actions::toggle_debug_physics)) {
+  physics.update(delta_time);
+
+  if (input.input_action.is_active(fan::actions::toggle_debug_physics)) {
     fan::graphics::physics::debug_draw(!fan::graphics::physics::get_debug_draw());
   }
 #endif
-  if (input_action.is_toggled(fan::actions::toggle_debug_light_buffer)) {
+  if (input.input_action.is_toggled(fan::actions::toggle_debug_light_buffer)) {
     debug_draw_light_buffer();
   }
-  if (input_action.is_clicked(fan::actions::recompile_shaders)) {
+  if (input.input_action.is_clicked(fan::actions::recompile_shaders)) {
     shader_recompile_all();
   }
 
@@ -1917,7 +1781,7 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
   cb();
 
 #if defined(FAN_2D)
-  if (force_line_draw) {
+  if (renderer_state.force_line_draw) {
     gl.draw_all_shape_aabbs();
   }
 #endif
@@ -2016,9 +1880,9 @@ fan::vec2 loco_t::ndc_to_screen(const fan::vec2& ndc_position) {
 }
 
 void loco_t::set_vsync(bool flag) {
-  vsync = flag;
+  timing.vsync = flag;
   // vulkan vsync is enabled by presentation mode in swap chain
-  render_context_call(void, set_vsync, &window, flag);
+  renderer_set(set_vsync, &window, flag);
 }
 
 void loco_t::start_timer() {
@@ -2035,12 +1899,12 @@ void loco_t::start_timer() {
     uv_timer_start(&timer_handle, [](uv_timer_t* handle) {
       loco_t* loco = static_cast<loco_t*>(handle->data);
 
-      f64_t elapsed = loco->frame_timer.seconds();
-      loco->frame_timer.restart();
-      loco->accumulated_time += elapsed;
+      f64_t elapsed = loco->timing.frame_timer.seconds();
+      loco->timing.frame_timer.restart();
+      loco->timing.accumulated_time += elapsed;
 
-      if (loco->accumulated_time >= loco->target_frame_time) {
-        loco->accumulated_time -= loco->target_frame_time;
+      if (loco->timing.accumulated_time >= loco->timing.target_frame_time) {
+        loco->timing.accumulated_time -= loco->timing.target_frame_time;
 
         if (loco->process_frame(loco->main_loop)) {
           uv_timer_stop(handle);
@@ -2074,18 +1938,18 @@ void loco_t::update_timer_interval(bool idle) {
   else {
     delay = std::floor(1.0 / target_fps * 1000.0 * 0.9);
     if (delay < 1) delay = 1;
-    target_frame_time = 1.0 / target_fps;
+    timing.target_frame_time = 1.0 / target_fps;
   }
 
   if (delay > 0) {
     if (idle_init) {
       uv_idle_stop(&idle_handle);
     }
-    if (!timer_enabled) {
-      frame_timer.start();
-      accumulated_time = 0.0;
+    if (!timing.timer_enabled) {
+      timing.frame_timer.start();
+      timing.accumulated_time = 0.0;
       start_timer();
-      timer_enabled = true;
+      timing.timer_enabled = true;
     }
     uv_timer_set_repeat(&timer_handle, delay);
     uv_timer_again(&timer_handle);
@@ -2093,7 +1957,7 @@ void loco_t::update_timer_interval(bool idle) {
   else {
     if (timer_init) {
       uv_timer_stop(&timer_handle);
-      timer_enabled = false;
+      timing.timer_enabled = false;
     }
     if (idle_init && idle) {
       uv_idle_start(&idle_handle, idle_cb);
@@ -2187,7 +2051,7 @@ void loco_t::debug_draw_light_buffer() {
 
 #if defined(FAN_PHYSICS_2D)
 void loco_t::update_physics(bool flag) {
-  is_updating_physics = flag;
+  physics.set_enabled(flag);
 }
 #endif
 
@@ -2253,31 +2117,31 @@ bool loco_t::is_key_released(int key) {
 }
 
 bool loco_t::is_active(std::string_view action_name, int pstate) {
-  return input_action.is_active(action_name, pstate);
+  return input.input_action.is_active(action_name, pstate);
 }
 
 bool loco_t::is_toggled(std::string_view action_name) {
-  return input_action.is_toggled(action_name);
+  return input.input_action.is_toggled(action_name);
 }
 
 bool loco_t::is_toggled(int key) {
-  return input_action.is_toggled(key);
+  return input.input_action.is_toggled(key);
 }
 
 bool loco_t::is_toggled(std::initializer_list<int> keys) {
-  return input_action.is_toggled(keys);
+  return input.input_action.is_toggled(keys);
 }
 
 bool loco_t::is_clicked(std::string_view action_name) {
-  return input_action.is_clicked(action_name);
+  return input.input_action.is_clicked(action_name);
 }
 
 bool loco_t::is_down(std::string_view action_name) {
-  return input_action.is_down(action_name);
+  return input.input_action.is_down(action_name);
 }
 
 bool loco_t::is_released(std::string_view action_name) {
-  return input_action.is_released(action_name);
+  return input.input_action.is_released(action_name);
 }
 
 #if defined(FAN_2D)
@@ -2397,11 +2261,11 @@ fan::graphics::shader_t loco_t::get_sprite_vertex_shader(const std::string& frag
 #if defined(FAN_GUI)
 
 void loco_t::toggle_console() {
-  render_console = !render_console;
+  gui.render_console = !gui.render_console;
 }
 
 void loco_t::toggle_console(bool active) {
-  render_console = active;
+  gui.render_console = active;
 }
 
 #endif
@@ -2562,11 +2426,11 @@ bool loco_t::shader_update_fragment(uint16_t shape_type, const std::string& frag
 #if defined(FAN_GUI)
 namespace fan::graphics::gui {
   void process_frame() {
-    auto it = gloco()->gui_draw_cb.GetNodeFirst();
-    while (it != gloco()->gui_draw_cb.dst) {
-      gloco()->gui_draw_cb.StartSafeNext(it);
-      gloco()->gui_draw_cb[it]();
-      it = gloco()->gui_draw_cb.EndSafeNext();
+    auto it = gloco()->gui.gui_draw_cb.GetNodeFirst();
+    while (it != gloco()->gui.gui_draw_cb.dst) {
+      gloco()->gui.gui_draw_cb.StartSafeNext(it);
+      gloco()->gui.gui_draw_cb[it]();
+      it = gloco()->gui.gui_draw_cb.EndSafeNext();
     }
   }
 
@@ -2729,5 +2593,5 @@ namespace fan::graphics::gui {
 #endif
 
 void fan::graphics::shader_set_camera(fan::graphics::shader_t nr, fan::graphics::camera_t camera_nr) {
-  render_context_call(void, shader_set_camera, nr, camera_nr);
+  renderer_set(shader_set_camera, nr, camera_nr);
 }
