@@ -401,7 +401,7 @@ void loco_t::camera_set_target(fan::graphics::camera_nr_t nr, const fan::vec2& t
   fan::vec2 src = camera_get_position(nr);
   camera_set_position(
     nr,
-    move_speed == 0 ? target : src + (target - src) * delta_time * move_speed
+    move_speed == 0 ? target : src + (target - src) * get_delta_time() * move_speed
   );
 }
 
@@ -504,13 +504,13 @@ void loco_t::camera_move(fan::graphics::context_camera_t& camera, f64_t dt, f32_
   if (window.key_pressed(fan::input::key_space)) { camera.velocity.y += msd; }
   if (window.key_pressed(fan::input::key_left_shift)) { camera.velocity.y -= msd; }
 
-  f64_t rotate = camera.sensitivity * camera_rotate_speed * delta_time;
+  f64_t rotate = camera.sensitivity * camera_rotate_speed * get_delta_time();
   if (window.key_pressed(fan::input::key_left)) { camera.set_yaw(camera.get_yaw() - rotate); }
   if (window.key_pressed(fan::input::key_right)) { camera.set_yaw(camera.get_yaw() + rotate); }
   if (window.key_pressed(fan::input::key_up)) { camera.set_pitch(camera.get_pitch() + rotate); }
   if (window.key_pressed(fan::input::key_down)) { camera.set_pitch(camera.get_pitch() - rotate); }
 
-  camera.position += camera.velocity * delta_time;
+  camera.position += camera.velocity * get_delta_time();
   camera.update_view();
   camera.m_view = camera.get_view_matrix();
 }
@@ -574,7 +574,7 @@ void loco_t::generate_commands(loco_t* loco) {
     [](loco_t* l, const std::string& v) { l->shader_set_value(l->gl.m_fbo_final_shader, "exposure", std::stof(v)); });
   add_simple_command(loco->gui.console, "set_bloom_strength", "sets bloom strength", 1,
     [](loco_t* l, const std::string& v) {
-    auto* sm = (fan::graphics::gui::settings_menu_t*)l->gui.settings_menu;
+    auto* sm = l->gui.settings_menu;
     sm->config.post_processing.bloom_strength = std::stof(v);
     l->shader_set_value(l->gl.m_fbo_final_shader, "bloom_strength", sm->config.post_processing.bloom_strength);
   });
@@ -898,7 +898,7 @@ static void loco_init_platform(loco_t* l) {
 }
 
 static void loco_init_renderer(loco_t* l) {
-  l->renderer_state.render_shapes_top = l->open_props.render_shapes_top;
+  l->get_render_shapes_top() = l->open_props.render_shapes_top;
   l->window.renderer = l->open_props.renderer;
 #if defined(FAN_OPENGL)
   if (l->window.renderer == fan::window_t::renderer_t::opengl) {
@@ -932,8 +932,8 @@ static void loco_open_window(loco_t* l) {
   if (l->window.renderer == fan::window_t::renderer_t::vulkan) {
     l->context_functions = fan::graphics::get_vk_context_functions();
     new (&l->context.vk) fan::vulkan::context_t();
-    l->context.vk.enable_clear = !l->renderer_state.render_shapes_top;
-    l->context.vk.shapes_top = l->renderer_state.render_shapes_top;
+    l->context.vk.enable_clear = !l->get_render_shapes_top();
+    l->context.vk.shapes_top = l->get_render_shapes_top();
     l->context.vk.open(l->window);
   }
 #endif
@@ -982,10 +982,6 @@ static void loco_init_render_views(loco_t* l) {
   l->perspective_render_view.viewport = l->open_viewport(fan::vec2(0, 0), window_size);
 }
 
-static void loco_init_audio(loco_t* l) {
-  l->audio.init();
-}
-
 static void loco_init_culling(loco_t* l) {
 #if defined(FAN_2D)
   l->cell_size = 256;
@@ -1028,7 +1024,7 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   generate_commands(this);
 #endif
   input.init(window);
-  loco_init_audio(this);
+  audio.init();
   fan::graphics::ctx().default_texture = default_texture;
 #if defined(FAN_GUI)
   gui.console.commands.call("debug_memory " + std::to_string((int)fan::memory::heap_profiler_t::instance().enabled));
@@ -1308,7 +1304,7 @@ void loco_t::process_shapes() {
 
 #if defined(FAN_VULKAN)
   if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    if (renderer_state.render_shapes_top == true) {
+    if (get_render_shapes_top() == true) {
       vk.begin_render_pass();
     }
   }
@@ -1348,7 +1344,7 @@ void loco_t::process_shapes() {
       // render post process
       vkCmdDraw(cmd_buffer, 6, 1, 0, 0);
     }
-    if (renderer_state.render_shapes_top == true) {
+    if (get_render_shapes_top() == true) {
       vkCmdEndRenderPass(cmd_buffer);
     }
   }
@@ -1407,12 +1403,12 @@ void loco_t::process_gui() {
     gui::set_next_window_size(fan::vec2(831.0000, 693.0000), gui::cond_once);
     gui::begin("Performance window", nullptr, window_flags);
 
-    gui.frame_monitor.update(delta_time);
-    gui.frame_monitor.update(timing.shape_draw_time_s);
+    gui.frame_monitor.update(get_delta_time());
+    gui.shape_monitor.update(timing.shape_draw_time_s);
     gui.gui_monitor.update(timing.gui_draw_time_s);
 
     auto frame_stats = gui.frame_monitor.stats();
-    auto shape_stats = gui.frame_monitor.stats();
+    auto shape_stats = gui.shape_monitor.stats();
     auto gui_stats = gui.gui_monitor.stats();
 
     static auto format_val = [](double v, int prec = 4) {
@@ -1421,7 +1417,7 @@ void loco_t::process_gui() {
       return oss.str();
     };
 
-    gui::text("Current FPS:", std::to_string(static_cast<int>(1.f / delta_time)));
+    gui::text("Current FPS:", std::to_string(static_cast<int>(1.f / get_delta_time())));
     gui::text("Average FPS:", std::to_string(static_cast<int>(frame_stats.avg_fps())));
     gui::text("Lowest FPS:", std::to_string(static_cast<int>(frame_stats.min_fps())));
     gui::text("Highest FPS:", std::to_string(static_cast<int>(frame_stats.max_fps())));
@@ -1431,7 +1427,6 @@ void loco_t::process_gui() {
 
     if (gui::button(gui.frame_monitor.paused ? "Continue" : "Pause")) {
       gui.frame_monitor.paused = !gui.frame_monitor.paused;
-      gui.frame_monitor.paused = gui.frame_monitor.paused;
       gui.gui_monitor.paused = gui.frame_monitor.paused;
     }
 
@@ -1448,7 +1443,7 @@ void loco_t::process_gui() {
       );
       gui::plot::setup_axis_ticks(gui::plot::axis_y1, 0.0, 10.0, 11);
       gui.frame_monitor.plot(this, "Frame Draw Time");
-      gui.frame_monitor.plot(this, "Shape Draw Time");
+      gui.shape_monitor.plot(this, "Shape Draw Time");
       gui.gui_monitor.plot(this, "GUI Draw Time");
 
       if (gui.frame_monitor.buffer.size() > gui.time_plot_scroll.view_size) {
@@ -1458,7 +1453,7 @@ void loco_t::process_gui() {
       gui::plot::end_plot();
     }
 
-    gui::text("Frame Draw Time: ", format_val(delta_time * 1e3) + " ms");
+    gui::text("Frame Draw Time: ", format_val(get_delta_time() * 1e3) + " ms");
     gui::text("Shape Draw Time: ", format_val(timing.shape_draw_time_s * 1e3) + " ms");
     gui::text("GUI Draw Time: ", format_val(timing.gui_draw_time_s * 1e3) + " ms");
 
@@ -1469,7 +1464,7 @@ void loco_t::process_gui() {
     gui.frame_count++;
 
     if (!gui.fps_timer.started()) {
-      gui.last_fps = 1.0 / delta_time;
+      gui.last_fps = 1.0 / get_delta_time();
       gui.fps_timer.start_seconds(1.0f);
     }
 
@@ -1506,11 +1501,11 @@ void loco_t::process_gui() {
     window.renderer,
     fan::window_t::renderer_t::opengl,
     fan::window_t::renderer_t::vulkan,
-    renderer_state.render_shapes_top
+    get_render_shapes_top()
   #if defined(FAN_VULKAN)
     ,
     &get_vk_context(),
-    clear_color,
+    renderer_state.clear_color,
     vk.image_error,
     context.vk.command_buffers[context.vk.current_frame],
     fan::vulkan::context_t::ImGuiFrameRender
@@ -1642,7 +1637,7 @@ void loco_t::process_render() {
 
   viewport_set(0, window.get_size());
 
-  if (renderer_state.render_shapes_top == false) {
+  if (get_render_shapes_top() == false) {
     process_shapes();
     process_gui();
   }
@@ -1690,10 +1685,10 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
     return 1;
   }
 
-  delta_time = window.m_delta_time;
+  get_delta_time() = window.m_delta_time;
 
 #if defined(FAN_PHYSICS_2D)
-  physics.context.begin_frame(delta_time);
+  physics.context.begin_frame(get_delta_time());
 #endif
 
 #if defined(FAN_GUI)
@@ -1701,7 +1696,7 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
     switch_renderer(renderer_state.reload_renderer_to);
   }
 
-  renderer_state.lighting.update(delta_time);
+  renderer_state.lighting.update(get_delta_time());
 
   fan::graphics::gui::new_frame(
     window.renderer,
@@ -1756,7 +1751,7 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
   }
 
 #if defined(FAN_PHYSICS_2D)
-  physics.update(delta_time);
+  physics.update(get_delta_time());
 
   if (input.input_action.is_active(fan::actions::toggle_debug_physics)) {
     fan::graphics::physics::debug_draw(!fan::graphics::physics::get_debug_draw());
@@ -2021,10 +2016,6 @@ void loco_t::set_window_icon(const fan::graphics::image_t& image) {
   info.size = image_data.size;
   info.data = image_pixels.data();
   window.set_icon(info);
-}
-
-f64_t loco_t::current_time() const {
-  return delta_time;
 }
 
 void loco_t::debug_draw_light_buffer() {
