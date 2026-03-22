@@ -604,7 +604,19 @@ namespace fan {
   }
 
   void window_t::set_position(const fan::vec2& position) {
+  #if defined(fan_platform_windows)
+    GLFWmonitor* m = get_current_monitor();
+    int mx, my;
+    glfwGetMonitorPos(m, &mx, &my);
+    int l, top, r, b;
+    glfwGetWindowFrameSize(glfw_window, &l, &top, &r, &b);
+    if (top == 0) top = 31;
+    fan::vec2 clamped = position;
+    if (clamped.y < my + top) clamped.y = my + top;
+    glfwSetWindowPos(glfw_window, clamped.x, clamped.y);
+  #else
     glfwSetWindowPos(glfw_window, position.x, position.y);
+  #endif
   }
 
   GLFWmonitor* window_t::get_current_monitor() {

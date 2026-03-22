@@ -159,6 +159,7 @@ export namespace fan::graphics::gui {
   /// <param name="color">The color of the text (defaults to white).</param>
   /// <param name="outline_color">The color of the outline (defaults to black).</param>
   void text_centered_outlined(std::string_view text, const fan::color& color = fan::colors::white, const fan::color& outline_color = fan::colors::black);
+  void text_centered_outlined_big(std::string_view text, f32_t font_size, const fan::color& color = fan::colors::white, const fan::color& outline_color = fan::colors::black);
 
   void text_box(
     std::string_view text,
@@ -409,6 +410,9 @@ export namespace fan::graphics::gui {
   void close_current_popup();
 
   bool is_popup_open(str_view_t id);
+
+  void begin_disabled();
+  void end_disabled();
 
   id_t get_id(str_view_t str_id);
 
@@ -778,6 +782,13 @@ export namespace fan::graphics::gui {
     window wnd;
   };
 
+  struct hud_interactive {
+    hud_interactive(str_view_t name, bool* p_open = 0);
+    operator bool() const;
+  private:
+    window wnd;
+  };
+
   struct table {
     table(str_view_t str_id, int columns,
       table_flags_t flags = 0,
@@ -966,6 +977,10 @@ export namespace fan::graphics::gui {
     f32_t font_size,
     std::function<void(const char*)> on_click
   );
+
+  void healthbar(int value, int max, fan::vec2 size, const fan::color& fill = fan::colors::green, const fan::color& bg = fan::color(0.2f, 0.2f, 0.2f, 1.f));
+  void gold_text(int amount, const fan::color& color = fan::color(1.f, 0.85f, 0.f, 1.f));
+  void disabled_button_row(const std::string* labels, const bool* enabled, int count, fan::vec2 size, std::function<void(int)> on_click);
 } // namespace fan::graphics::gui
 
 export namespace fan::graphics::gui::plot {

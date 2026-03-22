@@ -48,4 +48,5 @@ export import fan.event;
   export import fan.graphics.physics_shapes;
 #endif
 
-  export import fan.process;
+export import fan.graphics.spatial;
+export import fan.process;
