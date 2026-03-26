@@ -238,11 +238,12 @@ export namespace fan {
   struct str_view_t : std::string_view {
     using std::string_view::string_view;
 
-    str_view_t(const char* s) : std::string_view(s) {}
-    str_view_t(std::string_view s) : std::string_view(s) {}
-    str_view_t(const std::string& s) : std::string_view(s) {}
+    constexpr str_view_t() = default;
+    constexpr str_view_t(const char* s) : std::string_view(s) {}
+    constexpr str_view_t(std::string_view s) : std::string_view(s) {}
+    constexpr str_view_t(const std::string& s) : std::string_view(s) {}
     //str_view_t(const std::string&) = delete;
-    str_view_t(std::string&) = delete;
+    //str_view_t(std::string&) = delete;
     str_view_t(std::string&&) = delete;
 
     operator const char* () const {

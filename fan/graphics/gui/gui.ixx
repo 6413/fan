@@ -310,8 +310,6 @@ export namespace fan::graphics::gui {
 
     fan::graphics::shapes::particles_t::ri_t& get_ri();
 
-    void handle_file_operations();
-
     void render_menu();
     void render_settings();
     void render();
@@ -353,8 +351,6 @@ export namespace fan::graphics::gui {
     fan::color bg_color = fan::colors::black;
     fan::color base_color = fan::color::from_rgba(0x33333369);
     f32_t color_intensity = 1.0f;
-    fan::graphics::file_save_dialog_t save_file_dialog{};
-    fan::graphics::file_open_dialog_t open_file_dialog{};
     std::string filename{};
   };
 

@@ -187,6 +187,7 @@ export struct loco_t {
   }open_props;
   int32_t target_fps = 165; // must be changed from function
   bool init_gloco;
+  fan::window_t& get_window();
   fan::window_t window; // destruct last
 
 private:
@@ -611,9 +612,10 @@ public:
     std::uint8_t reload_renderer_to = -1;
   } renderer_state;
 
-  fan::color&                get_clear_color()       { return renderer_state.clear_color; }
   fan::graphics::lighting_t& get_lighting()          { return renderer_state.lighting; }
   bool&                      get_render_shapes_top() { return renderer_state.render_shapes_top; }
+  fan::color&                get_clear_color() { return renderer_state.clear_color; }
+  void                       set_clear_color(const fan::color& color) { get_clear_color() = color; }
 
   
   struct timing_t {

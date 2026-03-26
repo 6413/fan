@@ -71,7 +71,7 @@ export namespace fan {
         not_set,
         windowed,
         borderless,
-        full_screen,
+        fullscreen,
         count
       };
     };
@@ -117,7 +117,7 @@ export namespace fan {
       static constexpr std::uint64_t no_resize = 1 << 1;
       static constexpr std::uint64_t mode = 1 << 2;
       static constexpr std::uint64_t borderless = 1 << 3;
-      static constexpr std::uint64_t full_screen = 1 << 4;
+      static constexpr std::uint64_t fullscreen = 1 << 4;
       static constexpr std::uint64_t undecorated = 1 << 5;
       static constexpr std::uint64_t transparent = 1 << 6;
       static constexpr std::uint64_t hidden = 1 << 7;

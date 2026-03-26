@@ -1,5 +1,6 @@
 module;
 
+#include <fan/utility.h>
 #include <coroutine>
 #include <utility>
 #include <functional>
@@ -143,23 +144,45 @@ export namespace fan::event {
 
   template<typename T = void>
   struct signal_awaitable_t {
-    bool ready;
-    std::coroutine_handle<> waiting_coroutine;
-    T value;
-    void signal(T val = T{});
-    bool await_ready() const;
-    void await_suspend(std::coroutine_handle<> h);
-    T await_resume() const;
+    void signal(T val = T {}) {
+      value = std::move(val);
+      ready = true;
+      if (waiting_coroutine) {
+        waiting_coroutine.resume();
+      }
+    }
+    bool await_ready() const {
+      return ready;
+    }
+    void await_suspend(std::coroutine_handle<> h) {
+      waiting_coroutine = h;
+    }
+    T await_resume() const {
+      return value;
+    }
+    bool ready = false;
+    std::coroutine_handle<> waiting_coroutine {};
+    T value {};
   };
 
   template<>
   struct signal_awaitable_t<void> {
-    bool ready;
-    std::coroutine_handle<> waiting_coroutine;
-    void signal();
-    bool await_ready() const;
-    void await_suspend(std::coroutine_handle<> h);
-    void await_resume() const;
+    void signal() {
+      ready = true;
+      if (waiting_coroutine) {
+        waiting_coroutine.resume();
+      }
+    }
+    bool await_ready() const {
+      return ready;
+    }
+    void await_suspend(std::coroutine_handle<> h) {
+      waiting_coroutine = h;
+    }
+    void await_resume() const {}
+
+    bool ready = false;
+    std::coroutine_handle<> waiting_coroutine {};
   };
 
   struct uv_fs_awaitable {
@@ -295,6 +318,20 @@ export namespace fan::event {
 
 export namespace fan {
   using co_sleep = event::timer_t;
+
+  template<typename func_t, FAN_UNIQUE_CALL>
+  auto do_once(func_t&& f)
+    requires (!fan::is_awaitable_v<decltype(f())>)
+  {
+    return f();
+  }
+
+  template<typename func_t, FAN_UNIQUE_CALL>
+  fan::event::task_t do_once(func_t&& f)
+    requires (fan::is_awaitable_v<decltype(f())>)
+  {
+    co_return co_await f();
+  }
 }
 
 export namespace fan::io::file {

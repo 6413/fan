@@ -68,7 +68,7 @@ do {                                                                            
   IF_GL(if (w.renderer == fan::window_t::renderer_t::opengl) { \
     gl.func(); \
   }) \
-  IF_VK(if (w.renderer == fan::window_t::renderer_t::opengl) { \
+  IF_VK(if (w.renderer == fan::window_t::renderer_t::vulkan) { \
     vk.func(); \
   }) \
 }
