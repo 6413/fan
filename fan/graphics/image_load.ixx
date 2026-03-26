@@ -10,6 +10,7 @@ export module fan.graphics.image_load;
   import fan.graphics.stb;
 #endif
 
+import fan.types.compile_time_string;
 import fan.print;
 import fan.utility;
 import fan.types.vector;
@@ -32,7 +33,7 @@ export namespace fan {
     };
 
     bool valid(const std::string& path, const std::source_location& callers_path = std::source_location::current());
-    bool load(const std::string& file, info_t* image_info, const std::source_location& callers_path = std::source_location::current());
+    bool load(fan::str_view_t path, info_t* image_info, const std::source_location& callers_path = std::source_location::current());
     void free(info_t* image_info);
 
     inline constexpr std::uint8_t missing_texture_pixels[16] = {

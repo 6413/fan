@@ -1079,12 +1079,10 @@ export struct fte_t {
 
     texture_packs[0]->iterate_loaded_images([this](auto& image) {
       tile_info_t ii;
-      ii.ti = fan::graphics::texture_pack::ti_t{
-        .unique_id = image.unique_id,
-        .position = image.position,
-        .size = image.size,
-        .image = texture_packs[0]->get_pixel_data(image.unique_id).image
-      };
+      ii.ti.unique_id = image.unique_id;
+      ii.ti.position = image.position;
+      ii.ti.size = image.size;
+      ii.ti.image = texture_packs[0]->get_pixel_data(image.unique_id).image;
 
       auto& img_data = fan::graphics::image_get_data(texture_packs[0]->get_pixel_data(image.unique_id).image);
       fan::vec2 size = img_data.size;
@@ -1098,15 +1096,24 @@ export struct fte_t {
   bool handle_editor_window(fan::vec2& editor_size) {
     if (fan::graphics::gui::begin_main_menu_bar()) {
       static std::string fn;
+
       if (fan::graphics::gui::begin_menu("File")) {
         if (fan::graphics::gui::menu_item("Open..")) {
-          open_file_dialog.load("fte,json", &fn);
+          fan::graphics::open_file("fte,json", [&](std::string_view path) {
+            fn = path;
+            fin(fn);
+            fn.clear();
+          });
         }
         if (fan::graphics::gui::menu_item("Save")) {
           fout(previous_filename);
         }
         if (fan::graphics::gui::menu_item("Save as")) {
-          save_file_dialog.save("fte,json", &fn);
+          fan::graphics::save_file("fte,json", [&](std::string_view path) {
+            fn = path;
+            fout(fn);
+            fn.clear();
+          });
         }
         if (fan::graphics::gui::menu_item("Quit")) {
           fan::graphics::gui::end();
@@ -1116,31 +1123,13 @@ export struct fte_t {
 
       if (fan::graphics::gui::begin_menu("Texture Pack")) {
         if (fan::graphics::gui::menu_item("Open..")) {
-          open_tp_dialog.load("ftp", &fn);
+          fan::graphics::open_file("ftp", [&](std::string_view path) {
+            fn = path;
+            open_texture_pack(fn);
+            fn.clear();
+          });
         }
         fan::graphics::gui::end_menu();
-      }
-
-      if (open_file_dialog.is_finished()) {
-        if (fn.size() != 0) {
-          fin(fn);
-          fn.clear();
-        }
-        open_file_dialog.finished = false;
-      }
-      if (save_file_dialog.is_finished()) {
-        if (fn.size() != 0) {
-          fout(fn);
-          fn.clear();
-        }
-        save_file_dialog.finished = false;
-      }
-      if (open_tp_dialog.is_finished()) {
-        if (fn.size() != 0) {
-          open_texture_pack(fn);
-          fn.clear();
-        }
-        open_tp_dialog.finished = false;
       }
 
       fan::graphics::gui::end_main_menu_bar();
@@ -2715,9 +2704,6 @@ export struct fte_t {
   fan::window_t::keys_handle_t keys_handle;
   fan::window_t::mouse_move_handle_t mouse_move_handle;
   int original_image_width = 2048;
-  inline static fan::graphics::file_save_dialog_t save_file_dialog;
-  inline static fan::graphics::file_open_dialog_t open_file_dialog, open_tp_dialog;
-  inline static fan::graphics::file_open_dialog_t models_open_file_dialog;
   std::vector<fan::graphics::texture_pack_t*> texture_packs;
 };
 

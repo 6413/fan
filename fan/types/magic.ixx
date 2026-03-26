@@ -1,6 +1,8 @@
 module; // slow module to use
 
-#if defined(fan_fmt)
+#define FAN_FMT
+
+#if defined(FAN_FMT)
   #include <fan/utility.h>
   #include <tuple>
   #include <ostream>
@@ -10,7 +12,7 @@ module; // slow module to use
 
 export module fan.types.magic;
 
-#if defined(fan_fmt)
+#if defined(FAN_FMT)
 
 import fan.fmt;
 import fan.print;

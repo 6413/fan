@@ -308,7 +308,7 @@ namespace fan {
       x = std::clamp(x, mx, mx + mode->width - w);
       y = std::clamp(y, my + 31, my + mode->height - h);
     }
-    else if (open_mode == mode::full_screen) {
+    else if (open_mode == mode::fullscreen) {
       x = 0;
       y = 0;
       w = mode->width;
@@ -701,7 +701,7 @@ namespace fan {
   }
 
   void window_t::set_fullscreen() {
-    if (display_mode == (uint8_t)mode::full_screen) {
+    if (display_mode == (uint8_t)mode::fullscreen) {
       return;
     }
 
@@ -720,7 +720,7 @@ namespace fan {
 
     glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, GLFW_FALSE);
 
-    display_mode = (uint8_t)mode::full_screen;
+    display_mode = (uint8_t)mode::fullscreen;
   }
 
   void window_t::set_borderless() {
@@ -769,7 +769,7 @@ namespace fan {
       set_windowed();
       break;
     }
-    case mode::full_screen: {
+    case mode::fullscreen: {
       set_fullscreen();
       break;
     }

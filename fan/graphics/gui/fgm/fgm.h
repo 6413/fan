@@ -7,8 +7,6 @@ struct fgm_t {
   static constexpr int max_id_input = 20;
   static constexpr fan::vec2 default_button_size {100, 30};
 
-  inline static fan::graphics::file_open_dialog_t open_tp_dialog;
-
   struct texturepack_image_t {
     fan::graphics::image_t image;
     fan::vec2 uv0;
@@ -111,9 +109,9 @@ struct fgm_t {
       }
     });
 
-    gloco()->input_action.add_keycombo({fan::input::key_left_control, fan::input::key_space}, "toggle_content_browser");
-    gloco()->input_action.add_keycombo({fan::input::key_left_control, fan::input::key_f}, "set_windowed_fullscreen");
-    gloco()->input_action.add_keycombo({fan::input::key_left_control, fan::input::key_s}, "save_file");
+    gloco()->input.input_action.add_keycombo({fan::input::key_left_control, fan::input::key_space}, "toggle_content_browser");
+    gloco()->input.input_action.add_keycombo({fan::input::key_left_control, fan::input::key_f}, "set_windowed_fullscreen");
+    gloco()->input.input_action.add_keycombo({fan::input::key_left_control, fan::input::key_s}, "save_file");
 
     mouse_move_handle = gloco()->window.add_mouse_move_callback([this](const auto& d) {
       if (viewport_settings.move) {
@@ -546,14 +544,14 @@ struct fgm_t {
       drag_select.set_size(fan::vec2(0));
     }
 
-    if (gloco()->input_action.is_active("set_windowed_fullscreen")) {
+    if (gloco()->input.input_action.is_active("set_windowed_fullscreen")) {
       gloco()->window.set_borderless();
     }
 
-    if (gloco()->input_action.is_active("toggle_content_browser")) {
+    if (gloco()->input.input_action.is_active("toggle_content_browser")) {
       render_content_browser = !render_content_browser;
     }
-    if (gloco()->input_action.is_active("save_file")) {
+    if (gloco()->input.input_action.is_active("save_file")) {
       fout(previous_filename);
     }
 
@@ -689,8 +687,6 @@ struct fgm_t {
       }
     }
 
-    static fan::graphics::file_save_dialog_t save_file_dialog;
-    static fan::graphics::file_open_dialog_t open_file_dialog;
     static std::string fn;
 
     if (fan::graphics::gui::begin_menu_bar()) {
@@ -698,15 +694,35 @@ struct fgm_t {
         if (current_shape) {
           current_shape->move = false;
         }
+
         if (fan::graphics::gui::menu_item("Open..", "Ctrl+O")) {
-          open_file_dialog.load("json;fmm", &fn);
+          fan::graphics::open_file("json;fmm",
+            [&](std::string_view p) {
+              auto it = shape_list.GetNodeFirst();
+              while (it != shape_list.dst) {
+                delete shape_list[it];
+                it = it.Next(&shape_list);
+              }
+              shape_list.Clear();
+              fin(std::string(p));
+            },
+            [] {}
+          );
         }
+
         if (fan::graphics::gui::menu_item("Save", "Ctrl+S")) {
           fout(previous_filename);
         }
+
         if (fan::graphics::gui::menu_item("Save as", "Ctrl+Shift+S")) {
-          save_file_dialog.save("json;fmm", &fn);
+          fan::graphics::save_file("json;fmm",
+            [&](std::string_view p) {
+            fout(std::string(p));
+          },
+            [] {}
+          );
         }
+
         if (fan::graphics::gui::menu_item("Quit")) {
           auto it = shape_list.GetNodeFirst();
           while (it != shape_list.dst) {
@@ -717,38 +733,19 @@ struct fgm_t {
           close_cb();
           fan::graphics::gui::end();
         }
+
         fan::graphics::gui::end_menu();
       }
-      fan::graphics::gui::end_menu_bar();
-    }
 
-    if (open_file_dialog.is_finished()) {
-      if (fn.size() != 0) {
-        auto it = shape_list.GetNodeFirst();
-        while (it != shape_list.dst) {
-          delete shape_list[it];
-          it = it.Next(&shape_list);
-        }
-        shape_list.Clear();
-        fin(fn);
-      }
-      open_file_dialog.finished = false;
-      gui::end();
-      return;
-    }
-    if (save_file_dialog.is_finished()) {
-      if (fn.size() != 0) {
-        fout(fn);
-      }
-      save_file_dialog.finished = false;
+      fan::graphics::gui::end_menu_bar();
     }
 
     gui::end();
 
     if (gui::begin("Settings")) {
-      if (gui::color_edit3("background", &gloco()->clear_color)) {
+      if (gui::color_edit3("background", &gloco()->renderer_state.clear_color)) {
       }
-      if (gui::color_edit3("ambient", &gloco()->lighting.ambient)) {
+      if (gui::color_edit3("ambient", &gloco()->renderer_state.lighting.ambient)) {
       }
       if (gui::drag("grid snap", &fan::graphics::vfi_root_t::snap, 1, 0, FLT_MAX, gui::slider_flags_always_clamp)) {
       }
@@ -847,9 +844,14 @@ struct fgm_t {
     }
 
     static std::string filename;
+
     if (gui::begin("Texture Pack")) {
       if (gui::button("open")) {
-        open_tp_dialog.load("ftp", &fn);
+        fan::graphics::open_file("ftp",
+          [&](std::string_view p) {
+            open_texturepack(std::string(p));
+          }
+        );
       }
 
       f32_t thumbnail_size = 128.0f;
@@ -861,6 +863,7 @@ struct fgm_t {
       gui::push_style_color(gui::col_button, fan::color(0.f, 0.f, 0.f, 0.f));
       gui::push_style_color(gui::col_button_active, fan::color(0.f, 0.f, 0.f, 0.f));
       gui::push_style_color(gui::col_button_hovered, fan::color(0.3f, 0.3f, 0.3f, 0.3f));
+
       int idx = 0;
       for (auto& i : texturepack_images) {
         gui::push_id(idx++);
@@ -869,14 +872,8 @@ struct fgm_t {
         gui::next_column();
         gui::pop_id();
       }
+
       gui::pop_style_color(3);
-    }
-    gui::end();
-    if (open_tp_dialog.is_finished()) {
-      if (fn.size() != 0) {
-        open_texturepack(fn);
-      }
-      open_tp_dialog.finished = false;
     }
     gui::end();
 
@@ -885,7 +882,6 @@ struct fgm_t {
         auto it = shape_sprite_sheets.find(current_shape);
 
         if (it == shape_sprite_sheets.end()) {
-          // Create new animation and set owner immediately
           auto& new_anim = shape_sprite_sheets[current_shape];
           new_anim.owner_shape = current_shape;
           it = shape_sprite_sheets.find(current_shape);
@@ -901,10 +897,12 @@ struct fgm_t {
 
     for (auto& [shape, anim] : shape_sprite_sheets) {
       if (anim.is_playing && anim.owner_shape && !anim.keyframes.empty()) {
-        anim.update(gloco()->delta_time);
+        anim.update(gloco()->get_delta_time());
         anim.apply_to_shape(anim.owner_shape);
       }
     }
+    gui::end();
+
   }
 
   void fout(std::string filename) {
@@ -919,11 +917,11 @@ struct fgm_t {
 
     fan::json ostr;
     ostr["version"] = current_version;
-    if (gloco()->lighting.ambient != fan::graphics::lighting_t().ambient) {
-      ostr["lighting.ambient"] = gloco()->lighting.ambient;
+    if (gloco()->renderer_state.lighting.ambient != fan::graphics::lighting_t().ambient) {
+      ostr["lighting.ambient"] = gloco()->renderer_state.lighting.ambient;
     }
-    if (gloco()->clear_color != fan::colors::black) {
-      ostr["clear_color"] = gloco()->clear_color;
+    if (gloco()->renderer_state.clear_color != fan::colors::black) {
+      ostr["clear_color"] = gloco()->renderer_state.clear_color;
     }
     {
       auto animations_json = fan::graphics::sprite_sheet_serialize();
@@ -1007,10 +1005,10 @@ struct fgm_t {
     fan::io::file::read(filename, &in);
     fan::json json_in = fan::json::parse(in);
     if (json_in.contains("lighting.ambient")) {
-      gloco()->lighting.ambient = json_in["lighting.ambient"];
+      gloco()->renderer_state.lighting.ambient = json_in["lighting.ambient"];
     }
     if (json_in.contains("clear_color")) {
-      gloco()->clear_color = json_in["clear_color"];
+      gloco()->renderer_state.clear_color = json_in["clear_color"];
     }
 
     json_in.find_and_iterate("image_path", [&filename](fan::json& value) {

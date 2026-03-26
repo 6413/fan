@@ -11,6 +11,8 @@ module;
   #include <sstream>
   #include <functional>
   #include <cstdint>
+  #include <span>
+  #include <optional>
 #endif
 
 #if defined(FAN_VULKAN)
@@ -949,38 +951,82 @@ export namespace fan::graphics::gui {
     pop_id();
     return changed;
   }
-
-  bool button_grid(
-    const char* const labels[],
-    int count,
+  std::optional<fan::str_view_t> button_grid(
+    std::initializer_list<fan::str_view_t> labels,
     int columns,
-    const fan::vec2& size = {60, 60},
-    std::function<void(int, const char*)> on_click = nullptr
-  );
-  bool button_grid(
-    std::initializer_list<const char*> labels,
-    int columns,
-    const fan::vec2& size,
-    std::function<void(int, const char*)> on_click,
-    f32_t font_size = 0,
+    fan::vec2 size,
+    f32_t font_size,
     bool bold = false
-  );
-  void button_row(
-    std::initializer_list<const char*> labels,
-    const fan::vec2& size,
-    f32_t font_size,
-    std::function<void(const char*)> on_click
-  );
-  void button_layout(
-    std::initializer_list<std::initializer_list<const char*>> rows,
-    const fan::vec2& size,
-    f32_t font_size,
-    std::function<void(const char*)> on_click
-  );
+  ) {
+    font_scope_t fs(font_size, bold);
+    int i = 0;
+    for (fan::str_view_t label : labels) {
+      if (button(label, size)) {
+        return label;
+      }
+      if (i != (int)labels.size() - 1 && (i + 1) % columns != 0)
+        same_line();
+
+      ++i;
+    }
+    return std::nullopt;
+  }
+
+  template<typename render_button_t, typename get_label_t, typename is_enabled_t, typename on_click_idx_t>
+  void button_row_impl(int count, get_label_t&& get_label, is_enabled_t&& is_enabled, const fan::vec2& size, render_button_t&& render_button, on_click_idx_t&& on_click_idx) {
+    for (int i = 0; i < count; ++i) {
+      if (i) { same_line(); }
+      auto label = get_label(i);
+      bool enabled = is_enabled(i);
+      if (!enabled) { begin_disabled(); }
+      if (render_button(label, size) && enabled) { on_click_idx(i); }
+      if (!enabled) { end_disabled(); }
+    }
+  }
+
+  template <typename T, std::size_t N, typename label_fn_t, typename enabled_fn_t, typename on_click_t>
+  void button_row(std::span<const T, N> data, label_fn_t&& label_fn, enabled_fn_t&& enabled_fn, const fan::vec2& size, on_click_t&& on_click) {
+    button_row_impl((int)data.size(),
+      [&](int i) { return label_fn(data[i]); },
+      [&](int i) { return enabled_fn(data[i]); },
+      size,
+      [](auto lbl, const fan::vec2& s) { return button(lbl, s); },
+      std::forward<on_click_t>(on_click)
+    );
+  }
+  template <typename on_click_t>
+  void button_row(std::initializer_list<const char*> labels, const fan::vec2& size, f32_t font_size, on_click_t&& on_click) {
+    auto data = std::span(labels);
+    button_row_impl((int)data.size(),
+      [&](int i) { return data[i]; },
+      [&](int) { return true; },
+      size,
+      [font_size](const char* lbl, const fan::vec2& s) { return button(lbl, s, font_size); },
+      [on_click = std::forward<on_click_t>(on_click), data](int i) { on_click(i, data[i]); }
+    );
+  }
 
   void healthbar(int value, int max, fan::vec2 size, const fan::color& fill = fan::colors::green, const fan::color& bg = fan::color(0.2f, 0.2f, 0.2f, 1.f));
+  void healthbar_labeled(
+    fan::str_view_t label,
+    int value, int max,
+    fan::vec2 size,
+    const fan::color& label_color = fan::colors::white,
+    const fan::color& fill = fan::colors::green,
+    const fan::color& bg = fan::color(0.2f, 0.2f, 0.2f, 1.f)
+  );
+
   void gold_text(int amount, const fan::color& color = fan::color(1.f, 0.85f, 0.f, 1.f));
   void disabled_button_row(const std::string* labels, const bool* enabled, int count, fan::vec2 size, std::function<void(int)> on_click);
+  void disabled_button_row(
+    std::span<const fan::str_view_t> labels,
+    std::span<const bool> enabled,
+    fan::vec2 size,
+    std::function<void(int)> on_click
+  );
+
+  void anchor_bottom_center(const fan::vec2& offset);
+  fan::vec2 get_display_size();
 } // namespace fan::graphics::gui
 
 export namespace fan::graphics::gui::plot {

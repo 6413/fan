@@ -1876,6 +1876,30 @@ namespace fan::graphics {
     return sprite && sprite->get_current_sprite_sheet_frame() >= (target_frame - 1) &&
       sprite->get_current_sprite_sheet().name == animation_name;
   }
+
+  terrain_t::terrain_t(fan::vec2 position, fan::vec2 size, f32_t tile_size, std::initializer_list<terrain_t::tile_t> tiles) : size(size) {
+    for (int y = 0; y < size.y; y++) {
+      for (int x = 0; x < size.x; x++) {
+        float r = fan::random::value_f32(0, 1);
+        float acc = 0;
+        for (auto& t : tiles) {
+          acc += t.chance;
+          if (r < acc) {
+            spawn_tile(t.sprite, {x, y}, tile_size);
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  void terrain_t::spawn_tile(fan::str_view_t sprite_name, fan::vec2i pos, f32_t tile_size) {
+    tiles.push_back(sprite_t(
+      fan::vec2(pos) * tile_size, /*position*/
+      {tile_size, tile_size}, /*size*/
+      sprite_name /*image path*/
+    ));
+  }
 }
 
 namespace fan {
