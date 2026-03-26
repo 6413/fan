@@ -3,7 +3,7 @@ struct player_t {
     body.enable_default_movement();
   }
 
-  void step() {
+  void update() {
     light.set_position(fan::vec2(body.get_position()));
   }
 
