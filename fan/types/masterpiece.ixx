@@ -1,6 +1,8 @@
 module;
 
-#if defined(fan_fmt)
+#define FAN_FMT
+
+#if defined(FAN_FMT)
   #include <cstdint>
   #include <type_traits>
   #include <variant>
@@ -12,7 +14,7 @@ export module fan.types.masterpiece;
 
 import fan.types.magic;
 
-#if defined(fan_fmt)
+#if defined(FAN_FMT)
 
 export namespace fan {
   #pragma pack(push, 1)

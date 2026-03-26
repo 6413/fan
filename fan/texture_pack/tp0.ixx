@@ -27,6 +27,7 @@ import fan.graphics.opengl.core;
 import fan.io.file;
 import fan.types.fstring;
 import fan.types.vector;
+import fan.types.compile_time_string;
 
 export namespace fan::graphics {
   struct texture_pack {
@@ -50,7 +51,10 @@ export namespace fan::graphics {
     using unique_t = texture_unique_map_NodeReference_t;
 
     struct ti_t {
-
+      ti_t() = default;
+      ti_t(fan::str_view_t name, auto* texture_pack) {
+        texture_pack->qti(name, this);
+      }
       bool qti(auto* texture_pack, const std::string& name) {
         return texture_pack->qti(name, this);
       }

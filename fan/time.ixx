@@ -205,11 +205,7 @@ export namespace fan {
       scope_timer sc;
     };
 
-  #if defined(fan_compiler_msvc) || defined(fan_compiled_clang)
-    template<auto token = +[](){}>
-  #else
-    template<uint64_t line = __builtin_LINE(), auto file = __builtin_FILE()>
-  #endif
+    template<FAN_UNIQUE_CALL>
     bool every(f64_t interval_ms) {
       static uint64_t last_time = 0;  
       uint64_t interval_ns = (uint64_t)(interval_ms * 1e6);

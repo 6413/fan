@@ -1598,31 +1598,21 @@ namespace fan::graphics::gui {
     return *(fan::graphics::shapes::particles_t::ri_t*)particle_shape.GetData(fan::graphics::g_shapes->shaper);
   }
 
-  void particle_editor_t::handle_file_operations() {
-    if (open_file_dialog.is_finished()) {
-      if (filename.size() != 0) {
-        particle_shape = shape_from_json(filename);
-        particle_image_sprite.set_image(particle_shape.get_image());
-      }
-      open_file_dialog.finished = false;
-    }
-
-    if (save_file_dialog.is_finished()) {
-      if (filename.size() != 0) {
-        fout(filename);
-      }
-      save_file_dialog.finished = false;
-    }
-  }
-
   void particle_editor_t::render_menu() {
     if (begin_main_menu_bar()) {
       if (begin_menu("File")) {
         if (menu_item("Open..", "Ctrl+O")) {
-          open_file_dialog.load("json;fmm", &filename);
+          fan::graphics::open_file("json;fmm", [&](std::string_view path) {
+            filename = path;
+            particle_shape = shape_from_json(filename);
+            particle_image_sprite.set_image(particle_shape.get_image());
+          });
         }
         if (menu_item("Save as", "Ctrl+Shift+S")) {
-          save_file_dialog.save("json;fmm", &filename);
+          fan::graphics::save_file("json;fmm", [&](std::string_view path) {
+            filename = path;
+            fout(filename);
+          });
         }
         end_menu();
       }
@@ -1644,7 +1634,6 @@ namespace fan::graphics::gui {
 
   void particle_editor_t::render() {
     render_menu();
-    handle_file_operations();
     render_settings();
   }
 

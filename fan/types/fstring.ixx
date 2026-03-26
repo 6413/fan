@@ -5,6 +5,7 @@ module;
 #include <memory>
 #include <string>
 #include <iomanip> // std::quoted
+#include <charconv>
 
 #include <ios>
 #include <sstream>
@@ -13,6 +14,7 @@ export module fan.types.fstring;
 
 import fan.print; // for throw_error with msg
 import fan.types.vector;
+import fan.types.compile_time_string;
 
 export namespace fan {
 
@@ -337,6 +339,20 @@ export namespace fan {
     }
 
     return result;
+  }
+
+  template <typename T>
+  std::string format_number(T v) {
+    std::string s = std::to_string(v);
+    while (s.back() == '0' && s.contains('.')) s.pop_back();
+    if (s.back() == '.') s.pop_back();
+    return s;
+  }
+
+  f64_t parse_f64(fan::str_view_t str) {
+    f64_t result = 0;
+    auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), result);
+    return ec == std::errc {} ? result : 0;
   }
 
   #define fan_enum_string_runtime(m_name, ...) \

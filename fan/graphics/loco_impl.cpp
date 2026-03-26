@@ -139,6 +139,10 @@ namespace fan::graphics {
   }
 }
 
+fan::window_t& loco_t::get_window() {
+  return window;
+}
+
 std::uint8_t loco_t::get_renderer() {
   return window.renderer;
 }

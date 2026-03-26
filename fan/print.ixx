@@ -33,11 +33,12 @@ export namespace fan {
   struct is_bitset<std::bitset<N>> : std::true_type {};
 
   template <typename T>
-  concept has_subscript_and_size = requires(const T& t) { 
-    t.size(); 
-    t[0]; 
-  } && (!std::is_same_v<T, std::string>) 
+  concept has_subscript_and_size = requires(const T & t) {
+    t.size();
+    t[0];
+  } && (!std::is_same_v<T, std::string>)
     && (!std::is_same_v<T, std::string_view>)
+    && (!std::is_base_of_v<std::string_view, std::remove_cvref_t<T>>)
     && (!is_bitset<std::remove_cvref_t<T>>::value);
 
   template <typename T>
@@ -267,13 +268,7 @@ export namespace fan {
     }
   }
 
-  template<typename... Args,
-    #if defined(fan_compiler_msvc) || defined(fan_compiled_clang)
-      auto token = +[](){}
-    #else
-      uint64_t line = __builtin_LINE(), auto file = __builtin_FILE()
-    #endif
-  >
+  template<typename... Args, FAN_UNIQUE_CALL>
   void print_every(int throttle_ms, const Args&... args) {
     if (fan::time::every<
       #if defined(fan_compiler_msvc) || defined(fan_compiled_clang)
@@ -302,13 +297,6 @@ export namespace fan {
       last = key;
       std::cout << key << std::endl;
     }
-  }
-
-  std::string format_number(f64_t v) {
-    std::string s = std::to_string(v);
-    while (s.back() == '0' && s.find('.') != std::string::npos) s.pop_back();
-    if (s.back() == '.') s.pop_back();
-    return s;
   }
 
   namespace debug {

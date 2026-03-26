@@ -4,10 +4,15 @@ module;
 #include <cmath>
 #include <limits>
 #include <initializer_list>
+#include <string_view>
+#include <charconv>
+#include <expected>
 
 export module fan.math;
 
 export import fan.types;
+
+import fan.types.compile_time_string;
 
 export namespace fan {
   namespace math {
@@ -630,5 +635,82 @@ export namespace fan {
     constexpr const T& clamp(const T& v, const T& lo, const T& hi) {
       return clamp(v, lo, hi, fan::math::less<T>{});
     }
-  }
-}
+
+    enum class error { parse_left, parse_right, bad_op, div_by_zero, overflow };
+
+    struct error_info {
+      error code;
+      fan::str_view_t detail;
+    };
+
+    constexpr bool parse_double(std::string_view s, double& out) noexcept {
+      if (s.empty()) return false;
+      double result = 0;
+      int sign = 1;
+      size_t i = 0;
+      if (i < s.size() && (s[i] == '-' || s[i] == '+')) sign = (s[i++] == '-') ? -1 : 1;
+      if (i >= s.size()) return false;
+      bool any = false;
+      while (i < s.size() && s[i] >= '0' && s[i] <= '9') { result = result * 10 + (s[i++] - '0'); any = true; }
+      if (i < s.size() && s[i] == '.') {
+        ++i;
+        double frac = 0.1;
+        while (i < s.size() && s[i] >= '0' && s[i] <= '9') { result += (s[i++] - '0') * frac; frac *= 0.1; any = true; }
+      }
+      if (!any) return false;
+      out = result * sign;
+      return true;
+    }
+
+    constexpr std::expected<double, error> compute_from_strings(std::string_view lhs, char op, std::string_view rhs) noexcept {
+      double a {}, b {};
+      if (!parse_double(lhs, a)) return std::unexpected(error::parse_left);
+      if (!parse_double(rhs, b)) return std::unexpected(error::parse_right);
+      if (op == '/' && fan::math::abs(b) < 1e-12) return std::unexpected(error::div_by_zero);
+      switch (op) {
+      case '+': return a + b;
+      case '-': return a - b;
+      case '*': return a * b;
+      case '/': return a / b;
+      default:  return std::unexpected(error::bad_op);
+      }
+    }
+
+    constexpr std::expected<double, error_info> compute_from_strings_with_detail(std::string_view lhs, char op, std::string_view rhs) noexcept {
+      double a {}, b {};
+      if (!parse_double(lhs, a)) return std::unexpected(error_info {error::parse_left, fan::str_view_t(lhs)});
+      if (!parse_double(rhs, b)) return std::unexpected(error_info {error::parse_right, fan::str_view_t(rhs)});
+      if (op == '/' && fan::math::abs(b) < 1e-12) return std::unexpected(error_info {error::div_by_zero, fan::str_view_t(rhs)});
+      switch (op) {
+      case '+': return a + b;
+      case '-': return a - b;
+      case '*': return a * b;
+      case '/': return a / b;
+      default:  return std::unexpected(error_info {error::bad_op, fan::str_view_t(&op, 1)});
+      }
+    }
+
+    constexpr std::expected<double, error> eval_simple_expr(std::string_view expr) noexcept {
+      for (size_t i = 1; i < expr.size(); ++i) {
+        char c = expr[i];
+        if (c == '+' || c == '-' || c == '*' || c == '/') {
+          auto lhs = expr.substr(0, i);
+          auto rhs = expr.substr(i + 1);
+          return compute_from_strings(lhs, c, rhs);
+        }
+      }
+      return std::unexpected(error::bad_op);
+    }
+
+    constexpr std::expected<double, error_info> eval_simple_expr_with_detail(std::string_view expr) noexcept {
+      for (size_t i = 1; i < expr.size(); ++i) {
+        char c = expr[i];
+        if (c == '+' || c == '-' || c == '*' || c == '/') {
+          auto lhs = expr.substr(0, i);
+          auto rhs = expr.substr(i + 1);
+          return compute_from_strings_with_detail(lhs, c, rhs);
+        }
+      }
+    }
+  } // namespace fan::math
+} // namespace fan

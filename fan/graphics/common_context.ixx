@@ -480,10 +480,10 @@ export namespace fan::graphics {
     image_t();
     image_t(fan::graphics::image_nr_t image);
     image_t(const fan::color& color);
-    image_t(const char* path, const std::source_location& callers_path = std::source_location::current());
+    image_t(fan::str_view_t path, const std::source_location& callers_path = std::source_location::current());
     image_t(const std::string& path, const std::source_location& callers_path = std::source_location::current());
 
-    image_t(const char* path, const fan::graphics::image_load_properties_t lp, const std::source_location& callers_path = std::source_location::current());
+    image_t(fan::str_view_t path, const fan::graphics::image_load_properties_t lp, const std::source_location& callers_path = std::source_location::current());
     image_t(const std::string& path, const fan::graphics::image_load_properties_t lp, const std::source_location& callers_path = std::source_location::current());
 
     image_t(const fan::image::info_t& info, const std::source_location& callers_path = std::source_location::current());

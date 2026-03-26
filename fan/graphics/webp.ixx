@@ -7,8 +7,8 @@ module;
 
 export module fan.graphics.webp;
 
+import fan.types.compile_time_string;
 import fan.types.vector;
-
 
 export namespace fan {
   namespace webp {
@@ -20,13 +20,13 @@ export namespace fan {
       std::uint8_t type;
     };
 
-    bool get_image_size(const std::string& file, fan::vec2ui* size, const std::source_location& callers_path = std::source_location::current());
+    bool get_image_size(fan::str_view_t path, fan::vec2ui* size, const std::source_location& callers_path = std::source_location::current());
     bool decode(const std::uint8_t* webp_data, std::size_t size, info_t* image_info);
-    bool load(const std::string& file, info_t* image_info, const std::source_location& callers_path = std::source_location::current());
+    bool load(fan::str_view_t path, info_t* image_info, const std::source_location& callers_path = std::source_location::current());
     std::size_t encode_rgba(const std::uint8_t* in, const fan::vec2& size, f32_t quality, std::uint8_t** out);
     std::size_t encode_lossless_rgba(const std::uint8_t* in, const fan::vec2& size, std::uint8_t** out);
     void free_image(void* ptr);
-    bool validate(const std::string& file_path, const std::source_location& callers_path = std::source_location::current());
+    bool validate(fan::str_view_t path, const std::source_location& callers_path = std::source_location::current());
 
   }
 }

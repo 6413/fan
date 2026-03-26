@@ -926,8 +926,12 @@ namespace fan::graphics::gui {
   }
 
   void text_sized(const std::string_view& str, f32_t font_size, bool bold) {
-    font_scope_t _(font_size, bold);
-    text(str);
+    fan::graphics::gui::font_scope_t _(font_size, bold);
+    fan::graphics::gui::text(str);
+  }
+
+  void text_sized_fallback(fan::str_view_t text, int size, fan::str_view_t fallback) {
+    text_sized(text.empty() ? fallback : text, size);
   }
 
   void text_at(std::string_view text, const fan::vec2& position, const fan::color& color) {
@@ -1929,55 +1933,6 @@ namespace fan::graphics::gui {
 
     return gui::window(id, open, extra_flags);
   }
-
-  bool button_grid(
-    const char* const labels[],
-    int count,
-    int columns,
-    const fan::vec2& size,
-    std::function<void(int, const char*)> on_click
-  ) {
-    bool any = false;
-    for (int i = 0; i < count; ++i) {
-      if (gui::button(labels[i], size)) {
-        if (on_click) on_click(i, labels[i]);
-        any = true;
-      }
-      if (i != count - 1 && (i + 1) % columns != 0)
-        gui::same_line();
-    }
-    return any;
-  }
-  bool button_grid(
-    std::initializer_list<const char*> labels,
-    int columns,
-    const fan::vec2& size,
-    std::function<void(int, const char*)> on_click,
-    f32_t font_size,
-    bool bold) 
-  {
-    font_scope_t fs(font_size, bold);
-    bool any = false;
-    int i = 0;
-    for (const char* lbl : labels) {
-      if (button(lbl, size)) {
-        if (on_click) on_click(i, lbl);
-        any = true;
-      }
-      if (i != (int)labels.size() - 1 && (i + 1) % columns != 0) {
-        same_line();
-      }
-
-      ++i;
-    }
-    return any;
-  }
-  void button_row(std::initializer_list<const char*> labels, const fan::vec2& size, f32_t font_size, std::function<void(const char*)> on_click) {
-    for (const char* l : labels) {
-      same_line();
-      if (button(l, size, font_size)) on_click(l);
-    }
-  }
   void button_layout(
     std::initializer_list<std::initializer_list<const char*>> rows,
     const fan::vec2& size,
@@ -2002,6 +1957,26 @@ namespace fan::graphics::gui {
     dl->AddRectFilled(ImVec2(pos.x, pos.y), ImVec2(pos.x + size.x * frac, pos.y + size.y), fill_u32, 3.f);
     dummy(size);
   }
+  void healthbar_labeled(
+    fan::str_view_t label,
+    int value, int max,
+    fan::vec2 size,
+    const fan::color& label_color,
+    const fan::color& fill,
+    const fan::color& bg
+  ) {
+    f32_t text_h = get_text_line_height();
+    f32_t pad = (text_h - size.y) / 2.f;
+    if (pad > 0) { dummy({0, pad}); same_line(); }
+    text(label_color, label);
+    same_line();
+    if (pad > 0) {
+      fan::vec2 pos = get_cursor_screen_pos();
+      pos.y += pad;
+      set_cursor_screen_pos(pos);
+    }
+    healthbar(value, max, size, fill, bg);
+  }
 
   void gold_text(int amount, const fan::color& color) {
     text(color, fan::format_number(amount) + " gold");
@@ -2014,6 +1989,26 @@ namespace fan::graphics::gui {
       if (!enabled[i]) end_disabled();
       if (i < count - 1) same_line();
     }
+  }
+  void disabled_button_row(std::span<const fan::str_view_t> labels, std::span<const bool> enabled, fan::vec2 size, std::function<void(int)> on_click) {
+    int count = (int)labels.size();
+    for (int i = 0; i < count; ++i) {
+      if (!enabled[i]) begin_disabled();
+      if (button(labels[i], size)) { if (on_click) on_click(i); }
+      if (!enabled[i]) end_disabled();
+      if (i < count - 1) same_line();
+    }
+  }
+  void anchor_bottom_center(const fan::vec2& offset) {
+    fan::vec2 vs = get_display_size();
+    fan::vec2 pos = {
+      vs.x * 0.5f + offset.x,
+      vs.y + offset.y
+    };
+    set_cursor_pos(pos);
+  }
+  fan::vec2 get_display_size() {
+    return get_io().DisplaySize;
   }
 } // namespace fan::graphics::gui
 

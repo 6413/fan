@@ -514,17 +514,17 @@ export namespace fan {
     }
   }
 
-	namespace special_lparam {
-		constexpr auto lshift_lparam_down = 0x2a0001;
-		constexpr auto rshift_lparam_down = 0x360001;
-		constexpr auto lctrl_lparam_down = 0x1d0001;
-		constexpr auto rctrl_lparam_down = 0x11d0001;
+  namespace special_lparam {
+    constexpr auto lshift_lparam_down = 0x2a0001;
+    constexpr auto rshift_lparam_down = 0x360001;
+    constexpr auto lctrl_lparam_down = 0x1d0001;
+    constexpr auto rctrl_lparam_down = 0x11d0001;
     
-		constexpr auto lshift_lparam_up = 0xC02A0001;
-		constexpr auto rshift_lparam_up = 0xC0360001;
-		constexpr auto lctrl_lparam_up = 0xC01D0001;
-		constexpr auto rctrl_lparam_up = 0xC11D0001;
-	}
+    constexpr auto lshift_lparam_up = 0xC02A0001;
+    constexpr auto rshift_lparam_up = 0xC0360001;
+    constexpr auto lctrl_lparam_up = 0xC01D0001;
+    constexpr auto rctrl_lparam_up = 0xC11D0001;
+  }
 
   constexpr const char* get_key_name(int key) {
     if (key == -1) {
@@ -799,5 +799,8 @@ export namespace fan {
       if (i + 1 < keys.size()) r += sep;
     }
     return r;
+  }
+  constexpr bool is_any_of(char c, std::string_view set) {
+    return set.find(c) != std::string_view::npos;
   }
 }

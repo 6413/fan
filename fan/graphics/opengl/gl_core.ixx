@@ -15,6 +15,7 @@ import fan.physics.collision.rectangle;
 
 import fan.types.fstring;
 import fan.types.color;
+import fan.types.compile_time_string;
 
 import fan.window;
 import fan.utility;
@@ -303,13 +304,13 @@ export namespace fan::opengl {
     };
 
     fan::graphics::image_nr_t image_load_internal(
-      const std::string& path,
+      fan::str_view_t path,
       const fan::opengl::context_t::image_load_properties_t& p,
       const std::source_location& callers_path = std::source_location::current()
     );
     void image_reload_internal(
       fan::graphics::image_nr_t nr,
-      const std::string& path,
+      fan::str_view_t path,
       const fan::opengl::context_t::image_load_properties_t& p,
       const std::source_location& callers_path
     );
@@ -411,16 +412,16 @@ export namespace fan::opengl {
     fan::graphics::image_nr_t image_load(const fan::image::info_t& image_info, const fan::opengl::context_t::image_load_properties_t& lp);
     fan::graphics::image_nr_t create_missing_texture();
     fan::graphics::image_nr_t create_transparent_texture(fan::opengl::context_t& context);
-    fan::graphics::image_nr_t image_load(const std::string& path, const fan::opengl::context_t::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current());
+    fan::graphics::image_nr_t image_load(fan::str_view_t path, const fan::opengl::context_t::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current());
     fan::graphics::image_nr_t image_load(const fan::image::info_t& image_info);
     fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size_, const fan::opengl::context_t::image_load_properties_t& p);
     fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size_);
-    fan::graphics::image_nr_t image_load(const std::string& path, const std::source_location& callers_path = std::source_location::current());
+    fan::graphics::image_nr_t image_load(fan::str_view_t path, const std::source_location& callers_path = std::source_location::current());
     void image_unload(fan::graphics::image_nr_t nr);
     void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const fan::opengl::context_t::image_load_properties_t& lp);
     void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info);
-    void image_reload(fan::graphics::image_nr_t nr, const std::string& path, const fan::opengl::context_t::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current());
-    void image_reload(fan::graphics::image_nr_t nr, const std::string& path);
+    void image_reload(fan::graphics::image_nr_t nr, fan::str_view_t path, const fan::opengl::context_t::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current());
+    void image_reload(fan::graphics::image_nr_t nr, fan::str_view_t path);
     std::vector<uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, GLenum format, fan::vec2 uvp, fan::vec2 uvs);
     fan::graphics::image_nr_t image_create(const fan::color& color, const fan::opengl::context_t::image_load_properties_t& p);
     fan::graphics::image_nr_t image_create(const fan::color& color);

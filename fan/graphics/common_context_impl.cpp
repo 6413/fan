@@ -88,13 +88,13 @@ namespace fan::graphics {
   image_t::image_t(fan::graphics::image_nr_t image) : fan::graphics::image_nr_t(image) {}
   image_t::image_t(const fan::color& color)
     : fan::graphics::image_nr_t(ctx()->image_create_color(ctx(), color)) {}
-  image_t::image_t(const char* path, const std::source_location& callers_path)
-    : image_t(std::string(path), callers_path) {}
+  image_t::image_t(fan::str_view_t path, const std::source_location& callers_path)
+    : fan::graphics::image_nr_t(ctx()->image_load_path(ctx(), path, callers_path)) {}
   image_t::image_t(const std::string& path, const std::source_location& callers_path)
     : fan::graphics::image_nr_t(ctx()->image_load_path(ctx(), path, callers_path)) {}
 
-  image_t::image_t(const char* path, const fan::graphics::image_load_properties_t lp, const std::source_location& callers_path)
-    : image_t(std::string(path), lp, callers_path) {}
+  image_t::image_t(fan::str_view_t path, const fan::graphics::image_load_properties_t lp, const std::source_location& callers_path)
+    : fan::graphics::image_nr_t(ctx()->image_load_path_props(ctx(), path, lp, callers_path)) {}
 
   image_t::image_t(const std::string& path, const fan::graphics::image_load_properties_t lp, const std::source_location& callers_path) 
     : fan::graphics::image_nr_t(ctx()->image_load_path_props(ctx(), path, lp, callers_path)) {}

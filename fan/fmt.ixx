@@ -24,6 +24,7 @@ export import fan.types.fstring;
 import fan.types.color;
 import fan.types.vector;
 import fan.utility;
+import fan.types.compile_time_string;
 
 export namespace fan {
   std::string format_tabbed_from_string(std::streamsize tab_width, const std::string& formatted) {
@@ -77,22 +78,36 @@ export namespace fan {
     return result.str();
   }
 
-  // Custom format implementation for fan types
-  template <typename... T>
-  constexpr std::string format(std::string_view fmt_str, T&&... args) {
-    auto convert_arg = [](auto&& arg) -> auto {
-      if constexpr (requires { arg.to_string(); }) {
-        return arg.to_string();
-      } else {
-        return arg;
+  template<typename T>
+  std::string format_to_string(const T& v) {
+    std::ostringstream oss;
+    oss << v;
+    return oss.str();
+  }
+  std::string format_to_string(const std::string_view& v) { return std::string(v); }
+  std::string format_to_string(const char* v) { return v ? std::string(v) : std::string(); }
+  template<std::size_t N>
+  std::string format_to_string(const fan::ct_string<N>& v) { return std::string(v.ptr, v.len); }
+  std::string format_to_string(const fan::str_view_t& v) { return std::string(v); }
+
+  template<typename... Args>
+  std::string format(std::string_view fmt, Args&&... args) {
+    std::array<std::string, sizeof...(Args)> parts {format_to_string(std::forward<Args>(args))...};
+    std::string out;
+    out.reserve(fmt.size() + 32);
+    std::size_t pos = 0;
+    std::size_t idx = 0;
+    while (true) {
+      auto p = fmt.find("{}", pos);
+      if (p == std::string_view::npos) {
+        out.append(fmt.substr(pos));
+        break;
       }
-    };
-    
-    auto converted_args = std::make_tuple(convert_arg(args)...);
-    
-    return std::apply([fmt_str](auto&&... converted) {
-      return current_fmt::vformat(fmt_str, current_fmt::make_format_args(converted...));
-    }, converted_args);
+      out.append(fmt.substr(pos, p - pos));
+      if (idx < parts.size()) out.append(parts[idx++]);
+      pos = p + 2;
+    }
+    return out;
   }
 
   template <typename ...Args>

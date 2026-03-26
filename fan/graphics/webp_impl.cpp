@@ -16,9 +16,9 @@ module fan.graphics.webp;
 import fan.io.file;
 import fan.print;
 
-bool fan::webp::get_image_size(const std::string& file, fan::vec2ui* size, const std::source_location& callers_path) {
+bool fan::webp::get_image_size(fan::str_view_t path, fan::vec2ui* size, const std::source_location& callers_path) {
   std::string data;
-  fan::io::file::read(fan::io::file::find_relative_path(file, callers_path), &data);
+  fan::io::file::read(fan::io::file::find_relative_path(path, callers_path), &data);
   return WebPGetInfo((uint8_t*)data.data(), data.size(), (int*)&size->x, (int*)&size->y) != 1;
 }
 
@@ -28,12 +28,12 @@ bool fan::webp::decode(const uint8_t* webp_data, std::size_t size, info_t* image
   return image_info->data == 0;
 }
 
-bool fan::webp::load(const std::string& file, info_t* image_info, const std::source_location& callers_path) {
+bool fan::webp::load(fan::str_view_t path, info_t* image_info, const std::source_location& callers_path) {
   std::string data;
-  fan::io::file::read(fan::io::file::find_relative_path(file, callers_path), &data);
+  fan::io::file::read(fan::io::file::find_relative_path(path, callers_path), &data);
   bool failed = decode((const uint8_t*)data.data(), data.size(), image_info);
   if (failed) {
-    fan::print_warning(std::string("failed to load image:") + std::string(file));
+    fan::print_warning(std::string("failed to load image:") + std::string(path));
     return true;
   }
   return false;
@@ -51,10 +51,10 @@ void fan::webp::free_image(void* ptr) {
   WebPFree(ptr);
 }
 
-bool fan::webp::validate(const std::string& file_path, const std::source_location& callers_path) {
+bool fan::webp::validate(fan::str_view_t path, const std::source_location& callers_path) {
   std::string data;
   static constexpr uint32_t webp_header_size = 32;
-  if (fan::io::file::read(fan::io::file::find_relative_path(file_path, callers_path), &data, webp_header_size)) {
+  if (fan::io::file::read(fan::io::file::find_relative_path(path, callers_path), &data, webp_header_size)) {
     return false;
   }
   int width, height;

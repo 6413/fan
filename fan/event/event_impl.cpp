@@ -160,47 +160,6 @@ namespace fan::event {
 
   void counter_awaitable_t::await_resume() const noexcept {}
 
-  template<typename T>
-  void signal_awaitable_t<T>::signal(T val) {
-    value = std::move(val);
-    ready = true;
-    if (waiting_coroutine) {
-      waiting_coroutine.resume();
-    }
-  }
-
-  template<typename T>
-  bool signal_awaitable_t<T>::await_ready() const {
-    return ready;
-  }
-
-  template<typename T>
-  void signal_awaitable_t<T>::await_suspend(std::coroutine_handle<> h) {
-    waiting_coroutine = h;
-  }
-
-  template<typename T>
-  T signal_awaitable_t<T>::await_resume() const {
-    return value;
-  }
-
-  void signal_awaitable_t<void>::signal() {
-    ready = true;
-    if (waiting_coroutine) {
-      waiting_coroutine.resume();
-    }
-  }
-
-  bool signal_awaitable_t<void>::await_ready() const {
-    return ready;
-  }
-
-  void signal_awaitable_t<void>::await_suspend(std::coroutine_handle<> h) {
-    waiting_coroutine = h;
-  }
-
-  void signal_awaitable_t<void>::await_resume() const {}
-
   uv_fs_awaitable::uv_fs_awaitable() { req.data = this; }
   uv_fs_awaitable::~uv_fs_awaitable() { uv_fs_req_cleanup(&req); closed = true; }
   bool uv_fs_awaitable::await_ready() const noexcept { return false; }

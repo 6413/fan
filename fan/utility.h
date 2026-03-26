@@ -375,6 +375,12 @@ namespace fan {
 	#define __throw_error_impl
 #endif
 
+#if defined(fan_compiler_msvc) || defined(fan_compiled_clang)
+  #define FAN_UNIQUE_CALL auto token = +[](){}
+#else
+  #define FAN_UNIQUE_CALL uint64_t line = __builtin_LINE(), auto file = __builtin_FILE()
+#endif
+
 #pragma pack(push, 1)
   #include <fan/types/bll_types.h>
 #pragma pack(pop)
