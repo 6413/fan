@@ -14,7 +14,7 @@ void close() {}
 
 void update() {
   pile.renderer.update(main_map_id, pile.player.body.get_position());
-  pile.step();
+  pile.update();
 }
 
 tilemap_loader_t::id_t main_map_id;

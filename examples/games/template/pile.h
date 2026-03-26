@@ -10,12 +10,10 @@ struct pile_t {
 
   pile_t();
 
-  void step() {
-    //player updates
+  void update() {
     engine.camera_set_target(engine.orthographic_render_view, player.body.get_position());
-    player.step();
-
-    fan::graphics::gui::set_viewport(engine.orthographic_render_view);
+    //player updates
+    player.update();
   }
 
   player_t player;

@@ -125,7 +125,7 @@ struct scene_manager_t {
 };
 
 int main(int argc, char** argv) {
-  fan::graphics::engine_t engine {{.window_open_mode = fan::window_t::mode::windowed_fullscreen}};
+  fan::graphics::engine_t engine;
   engine.set_culling_enabled(false);
   render_context_t views;
   scene_manager_t scene;

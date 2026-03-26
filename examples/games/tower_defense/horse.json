@@ -1,0 +1,80 @@
+{
+  "animations": [
+    {
+      "fps": 15,
+      "id": 0,
+      "images": [
+        {
+          "hframes": 6,
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "2/S_Run.png"
+        }
+      ],
+      "name": "run",
+      "selected_frames": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "fps": 15,
+      "id": 1,
+      "images": [
+        {
+          "hframes": 6,
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "2/S_Attack.png"
+        }
+      ],
+      "name": "attack",
+      "selected_frames": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    }
+  ],
+  "shapes": [
+    {
+      "animations": [
+        0,
+        1
+      ],
+      "images": [
+        {
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "2/S_Attack.png"
+        }
+      ],
+      "position": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "shape": "sprite",
+      "size": [
+        128.0,
+        128.0
+      ],
+      "tc_position": [
+        0.6666666865348816,
+        0.0
+      ],
+      "tc_size": [
+        0.1666666716337204,
+        1.0
+      ]
+    }
+  ],
+  "version": 1
+}

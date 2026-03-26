@@ -7,7 +7,7 @@ int main() {
 
   engine_t engine;
   engine.set_culling_enabled(false);
-  engine.clear_color = fan::colors::black;
+  engine.set_clear_color(fan::colors::black);
   gui::particle_editor_t editor;
 
   interactive_camera_t ic;
