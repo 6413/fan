@@ -33,7 +33,7 @@ import fan.io.file;
 
 #define shaper_get_key_safe(return_type, kps_type, variable) \
   [key_pack] ()-> auto& { \
-    auto o = g_shapes->shaper.GetKeyOffset( \
+    auto o = fan::graphics::g_shapes->shaper.GetKeyOffset( \
       offsetof(fan::graphics::kps_t::CONCAT(_, kps_type), variable), \
       offsetof(fan::graphics::kps_t::kps_type, variable) \
     );\
@@ -46,6 +46,9 @@ import fan.io.file;
 #define shape_get_ri(shape) (*(fan::graphics::shapes::shape##_t::ri_t*)GetData(fan::graphics::g_shapes->shaper))
 
 #endif
+
+#include "shapes.h"
+#include <fan/graphics/shape_functions.h>
 
 namespace fan::graphics {
 
@@ -533,6 +536,29 @@ namespace fan::graphics{
     delete[] ri;
   }
 
+  shape_functions_t& shapes::get_shape_functions() {
+    static shape_functions_t shape_functions_owner;
+
+    // TODO remove init
+    static bool init = true;
+    if (init) {
+      {
+        auto& vf = shape_functions_owner[fan::graphics::shapes::shape_type_t::vfi];
+        vf.get_position  = +[](const fan::graphics::shapes::shape_t* s) -> fan::vec3 { return fan::graphics::g_shapes->vfi.get_position(*s); };
+        vf.set_position2 = +[](fan::graphics::shapes::shape_t* s, const fan::vec2& p) { fan::graphics::g_shapes->vfi.set_position(*s, fan::vec3(p, fan::graphics::g_shapes->vfi.get_position(*s).z)); };
+        vf.set_position3 = +[](fan::graphics::shapes::shape_t* s, const fan::vec3& p) { fan::graphics::g_shapes->vfi.set_position(*s, p); };
+        vf.get_size      = +[](const fan::graphics::shapes::shape_t* s) -> fan::vec2 { return fan::graphics::g_shapes->vfi.get_size(*s); };
+        vf.set_size      = +[](fan::graphics::shapes::shape_t* s, const fan::vec2& sz) { fan::graphics::g_shapes->vfi.set_size(*s, sz); };
+      }
+      init = false;
+    }
+    return shape_functions_owner;
+  }
+
+  shapes::shape_t shapes::shape_functions_push_back(uint16_t shape_type, void* properties) {
+    return get_shape_functions()[shape_type].push_back(properties);
+  }
+
   shapes::shape_t::shape_t() {
     sic();
   }
@@ -670,11 +696,11 @@ namespace fan::graphics{
   }
 
   bool shapes::shape_t::is_visible() const {
-    return g_shapes->shape_functions[get_shape_type()].get_visible(this);
+    return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_visible(this);
   }
 
   void shapes::shape_t::set_visible(bool flag) {
-    g_shapes->shape_functions[get_shape_type()].set_visible(this, flag);
+    fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_visible(this, flag);
   }
   void shapes::shape_t::set_static(bool update) {
     auto& c = *((fan::graphics::culling::culling_t*)g_shapes->visibility);
@@ -1372,7 +1398,7 @@ namespace fan::graphics{
     if (fan::vec2(get_position()) == position) {
       return;
     }
-    g_shapes->shape_functions[get_shape_type()].set_position2(this, position);
+    fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_position2(this, position);
     set_particle_pos(this, position);
     update_culling();
   }
@@ -1385,7 +1411,7 @@ namespace fan::graphics{
       set_position(fan::vec2(position)); // no need depth key update for nothing
       return;
     }
-    g_shapes->shape_functions[get_shape_type()].set_position3(this, position);
+    fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_position3(this, position);
     set_particle_pos(this, position);
     update_culling();
   }
@@ -1406,7 +1432,7 @@ namespace fan::graphics{
 
   fan::vec3 shapes::shape_t::get_position() const {
     auto shape_type = get_shape_type();
-    return g_shapes->shape_functions[shape_type].get_position(this);
+    return fan::graphics::shapes::get_shape_functions()[shape_type].get_position(this);
   }
 
   f32_t shapes::shape_t::get_x() const {
@@ -1425,32 +1451,32 @@ namespace fan::graphics{
     if (get_size() == size) {
       return;
     }
-    g_shapes->shape_functions[get_shape_type()].set_size(this, size);
+    fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_size(this, size);
     update_culling();
   }
   void shapes::shape_t::set_radius(f32_t radius) {
-    g_shapes->shape_functions[get_shape_type()].set_radius(this, radius);
+    fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_radius(this, radius);
     update_culling();
   }
   void shapes::shape_t::set_size3(const fan::vec3& size) {
-    g_shapes->shape_functions[get_shape_type()].set_size3(this, size);
+    fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_size3(this, size);
     update_culling();
   }
 
   // returns half extents of draw
   fan::vec2 shapes::shape_t::get_size() const {
-    return fan::graphics::g_shapes->shape_functions[get_shape_type()].get_size(this);
+    return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_size(this);
   }
 
   fan::vec3 shapes::shape_t::get_size3() {
-    return fan::graphics::g_shapes->shape_functions[get_shape_type()].get_size3(this);
+    return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_size3(this);
   }
 
   std::array<fan::color, 4> shapes::shape_t::get_colors() const {
-    return g_shapes->shape_functions[get_shape_type()].get_colors(this);
+    return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_colors(this);
   }
   void shapes::shape_t::set_colors(const std::array<fan::color, 4>& colors) {
-    return g_shapes->shape_functions[get_shape_type()].set_colors(this, colors);
+    return fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_colors(this, colors);
   }
 
   fan::basis shapes::shape_t::get_basis() const {
@@ -1603,7 +1629,7 @@ namespace fan::graphics{
     ti.position = get_tc_position() * ti.image.get_size();
     ti.size = get_tc_size() * ti.image.get_size();
     return ti;
-    //return g_shapes->shape_functions[g_shapes->shaper.GetSTI(*this)].get_tp(this);
+    //return fan::graphics::shapes::get_shape_functions()[g_shapes->shaper.GetSTI(*this)].get_tp(this);
   }
 
   bool shapes::shape_t::set_tp(fan::graphics::texture_pack::ti_t* ti) {
@@ -1621,19 +1647,19 @@ namespace fan::graphics{
   }
 
   fan::graphics::camera_t shapes::shape_t::get_camera() const {
-    return g_shapes->shape_functions[get_shape_type()].get_camera(this);
+    return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_camera(this);
   }
 
   void shapes::shape_t::set_camera(fan::graphics::camera_t camera) {
-    g_shapes->shape_functions[get_shape_type()].set_camera(this, camera);
+    fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_camera(this, camera);
   }
 
   fan::graphics::viewport_t shapes::shape_t::get_viewport() const {
-    return g_shapes->shape_functions[get_shape_type()].get_viewport(this);
+    return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_viewport(this);
   }
 
   void shapes::shape_t::set_viewport(fan::graphics::viewport_t viewport) {
-    g_shapes->shape_functions[get_shape_type()].set_viewport(this, viewport);
+    fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_viewport(this, viewport);
   }
 
   render_view_t shapes::shape_t::get_render_view() const {
@@ -1652,7 +1678,7 @@ namespace fan::graphics{
     auto st = get_shape_type();
     if (get_shape_type() == fan::graphics::shape_type_t::universal_image_renderer) {
       if (get_visual_id()) {
-        return g_shapes->shape_functions[st].get_image(this);
+        return fan::graphics::shapes::get_shape_functions()[st].get_image(this);
       }
       shapes::shape_ids_t::nr_t id;
       id.gint() = NRI;
@@ -1661,8 +1687,8 @@ namespace fan::graphics{
       nr.gint() = sd.data_nr;
       return g_shapes->universal_image_renderer_list[nr].images[0];
     }
-    if (g_shapes->shape_functions[st].get_image) {
-      return g_shapes->shape_functions[st].get_image(this);
+    if (fan::graphics::shapes::get_shape_functions()[st].get_image) {
+      return fan::graphics::shapes::get_shape_functions()[st].get_image(this);
     }
     return fan::graphics::ctx().default_texture;
   }
@@ -1671,7 +1697,7 @@ namespace fan::graphics{
     if (get_image() == image) {
       return;
     }
-    g_shapes->shape_functions[get_shape_type()].set_image(this, image);
+    fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_image(this, image);
   }
 
   fan::graphics::image_data_t& shapes::shape_t::get_image_data() {
@@ -1728,14 +1754,14 @@ namespace fan::graphics{
   }
 
   f32_t shapes::shape_t::get_parallax_factor() const {
-    return g_shapes->shape_functions[get_shape_type()].get_parallax_factor(this);
+    return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_parallax_factor(this);
   }
   void shapes::shape_t::set_parallax_factor(f32_t parallax_factor) {
-    g_shapes->shape_functions[get_shape_type()].set_parallax_factor(this, parallax_factor);
+    fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_parallax_factor(this, parallax_factor);
   }
 
   uint32_t shapes::shape_t::get_flags() const {
-    auto f = g_shapes->shape_functions[get_shape_type()].get_flags;
+    auto f = fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_flags;
     if (f) {
       return f(this);
     }
@@ -1744,23 +1770,23 @@ namespace fan::graphics{
 
   void shapes::shape_t::set_flags(uint32_t flag) {
     auto st = get_shape_type();
-    return g_shapes->shape_functions[st].set_flags(this, flag);
+    return fan::graphics::shapes::get_shape_functions()[st].set_flags(this, flag);
   }
 
   f32_t shapes::shape_t::get_radius() const {
-    return g_shapes->shape_functions[get_shape_type()].get_radius(this);
+    return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_radius(this);
   }
 
   fan::vec3 shapes::shape_t::get_src() const {
-    return g_shapes->shape_functions[get_shape_type()].get_src(this);
+    return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_src(this);
   }
 
   fan::vec2 shapes::shape_t::get_dst() const {
-    return g_shapes->shape_functions[get_shape_type()].get_dst(this);
+    return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_dst(this);
   }
 
   f32_t shapes::shape_t::get_outline_size() const {
-    return g_shapes->shape_functions[get_shape_type()].get_outline_size(this);
+    return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_outline_size(this);
   }
 
   void shapes::shape_t::reload(uint8_t format, void** image_data, const fan::vec2& image_size) {
@@ -1936,7 +1962,7 @@ namespace fan::graphics{
   void shapes::shape_t::set_line(const fan::vec2& src, const fan::vec2& dst) {
     auto st = get_shape_type();
     if (st == fan::graphics::shapes::shape_type_t::line) {
-      g_shapes->shape_functions[get_shape_type()].set_line(this, src, dst);
+      fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_line(this, src, dst);
     }
     update_culling();
   #if defined(FAN_3D)
@@ -2571,13 +2597,13 @@ namespace fan::graphics{
   }
 
   fan::graphics::shader_t shapes::shape_t::get_shader() const {
-    return g_shapes->shape_functions[get_shape_type()].get_shader(this);
+    return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_shader(this);
   }
   void shapes::shape_t::set_shader(const fan::graphics::shader_t shader) {
     if (get_shader() == shader) {
       return;
     }
-    g_shapes->shape_functions[get_shape_type()].set_shader(this, shader);
+    fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_shader(this, shader);
   }
 
   fan::graphics::shaper_t::ShapeRenderData_t* shapes::shape_t::GetRenderData(fan::graphics::shaper_t& shaper) const {
