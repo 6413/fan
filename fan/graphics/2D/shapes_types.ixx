@@ -5,7 +5,6 @@ module;
 #include <cstring>
 #include <type_traits>
 #include <algorithm>
-#include <sstream>
 
 #include <fan/graphics/opengl/init.h>
 
