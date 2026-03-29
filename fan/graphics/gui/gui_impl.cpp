@@ -19,7 +19,11 @@ module fan.graphics.gui;
 
 #if defined(FAN_GUI)
 
+import fan.utility;
+
 import fan.types.vector;
+
+import fan.print.error;
 
 import fan.graphics.image_load;
 import fan.graphics.gui.base;
@@ -512,7 +516,7 @@ namespace fan::graphics::gui {
           relative_path = std::filesystem::relative(entry, asset_path);
         }
         catch (const std::exception& e) {
-          fan::print("exception came", e.what());
+          fan::throw_error("exception came", e.what());
         }
 
         file_info.filename = relative_path.filename().generic_string();
@@ -1509,7 +1513,7 @@ namespace fan::graphics::gui {
           sprite_sheet_drag_drop_name = file_path;
         }
         else {
-          fan::print("Warning: drop target not valid (requires image file)");
+          fan::graphics::gui::print("Warning: drop target not valid (requires image file)");
         }
       });
 
@@ -1581,7 +1585,7 @@ namespace fan::graphics::gui {
             }
           }
           else {
-            fan::print("Warning: drop target not valid (requires image file)");
+            fan::graphics::gui::print("Warning: drop target not valid (requires image file)");
           }
         }
       });

@@ -26,8 +26,8 @@ import fan.camera;
 
 import fan.io.file;
 
-import fan.print;
-import fan.utility;
+import fan.print.error;
+import fan.memory;
 
 import fan.window;
 import fan.window.input;

@@ -38,14 +38,13 @@ import fan.audio;
 #endif
 
 import fan.types.fstring;
-import fan.graphics.gui.types;
 import fan.types.vector;
 import fan.types.color;
 import fan.types.matrix;
-import fan.utility;
 import fan.math;
-import fan.print;
+import fan.print.error;
 import fan.graphics.common_context;
+import fan.graphics.gui.types;
 
 namespace fan::graphics::gui {
   namespace detail {
@@ -650,7 +649,7 @@ namespace fan::graphics::gui {
       );
 
       if (fonts[i] == nullptr) {
-        fan::throw_error_impl((std::string("failed to load font:") + std::string(name)).c_str());
+        fan::throw_error("failed to load font:"_str + std::string(name));
       }
     }
   }

@@ -16,8 +16,7 @@ export module fan.graphics.gui;
 #if defined(FAN_GUI)
   import fan.types;
   import fan.time;
-  import fan.print;
-  import fan.utility;
+  import fan.memory;
   import fan.math;
   import fan.types.vector;
   import fan.types.color;
@@ -25,9 +24,7 @@ export module fan.graphics.gui;
   import fan.types.fstring;
   import fan.types.json;
   import fan.types.compile_time_string;
-  import fan.utility;
   import fan.event;
-  import fan.fmt;
 
   import fan.graphics.common_context;
   import fan.graphics.shapes;

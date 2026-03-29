@@ -4,7 +4,9 @@ module;
 // since light uses framebuffer _t01. you could use unlit_sprite, if required
 #define LOCO_FRAMEBUFFER
 
-#include <fan/graphics/opengl/init.h>
+#if defined(FAN_OPENGL)
+  #include <fan/graphics/opengl/init.h>
+#endif
 #if defined(FAN_VULKAN)
   #include <vulkan/vulkan.h>
 #endif
@@ -21,26 +23,21 @@ module;
 #include <source_location>
 #include <deque>
 #include <cstdlib>
-#include <set>
 #include <coroutine>
 #include <map>
-#include <cstring>
 
 export module fan.graphics.loco;
 
 import fan.types;
 import fan.types.color;
 import fan.types.matrix;
-#if defined(FAN_JSON)
-  import fan.types.json;
-#endif
 
-import fan.utility;
+import fan.utility; // engine_functions.h member_offset
+import fan.memory;
+
 import fan.event;
 import fan.time;
-import fan.random;
-
-import fan.io.file;
+import fan.print.error;
 
 import fan.texture_pack.tp0;
 
@@ -570,7 +567,8 @@ public:
 #endif
 
   fan::graphics::image_load_properties_t default_noise_image_properties();
-  fan::graphics::image_t create_noise_image(const fan::vec2& size, int seed = fan::random::value_i64(0, ((std::uint32_t)-1) / 2));
+  fan::graphics::image_t create_noise_image(const fan::vec2& size);
+  fan::graphics::image_t create_noise_image(const fan::vec2& size, int seed);
   fan::graphics::image_t create_noise_image(const fan::vec2& size, const std::vector<std::uint8_t>& data);
   fan::vec2 convert_mouse_to_ndc(const fan::vec2& mouse_position) const;
   fan::vec2 convert_mouse_to_ndc() const;

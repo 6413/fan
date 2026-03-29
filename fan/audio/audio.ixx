@@ -49,7 +49,7 @@ export module fan.audio;
 
 #if defined(FAN_AUDIO)
 
-import fan.print;
+import fan.print.error;
 import fan.utility;
 import fan.io.file;
 import fan.math;
@@ -168,7 +168,7 @@ export namespace fan {
         fan::audio_t::piece_t* piece = &(fan::audio_t::piece_t&)*this;
         sint32_t err = gaudio()->Open(piece, resolved_path, flags);
         if (err != 0) {
-          fan::print("failed to open piece:" + path, "with error:", err);
+          fan::throw_error("failed to open piece:" + path, "with error:", err);
         }
         
         gaudio().cache[path] = *piece;

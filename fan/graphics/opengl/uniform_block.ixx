@@ -14,7 +14,7 @@ export module fan.graphics.opengl.uniform_block;
 
 #if defined(FAN_OPENGL)
 
-import fan.utility;
+import fan.memory;
 import fan.graphics.opengl.core;
 
 namespace detail{

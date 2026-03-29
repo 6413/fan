@@ -14,7 +14,7 @@ module;
 
 module fan.graphics;
 
-import fan.utility;
+import fan.print.error;
 
 #if defined(FAN_JSON)
   import fan.types.json;

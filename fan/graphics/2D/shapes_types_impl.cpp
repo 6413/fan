@@ -4,7 +4,9 @@ module;
 #include <cstring>
 module fan.graphics.shapes.types;
 
-import fan.utility;
+//import fan.utility;
+import fan.print.error;
+import fan.memory;
 
 namespace fan::graphics {
 #if defined(FAN_2D)
@@ -13,7 +15,7 @@ namespace fan::graphics {
       if (size) {
         void* rptr = (void*)__generic_realloc(ptr, size);
         if (rptr == 0) {
-          fan::throw_error_impl();
+          fan::throw_error();
         }
         return (std::uint8_t*)rptr;
       }
@@ -26,7 +28,7 @@ namespace fan::graphics {
       if (size) {
         void* rptr = (void*)__generic_malloc(size);
         if (rptr == 0) {
-          fan::throw_error_impl();
+          fan::throw_error();
         }
         return (std::uint8_t*)rptr;
       }

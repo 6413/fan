@@ -19,7 +19,8 @@ module;
 
 export module fan.fmt;
 
-import fan.print;
+import fan.formatter;
+import fan.print.error;
 import fan.types.fstring;
 import fan.types.color;
 import fan.types.vector;
@@ -134,7 +135,7 @@ export namespace fan {
   template <typename... args_t>
   constexpr auto throw_errorf(current_fmt::format_string<args_t...> fmt, args_t&&... args) {
     std::cout << format_with_newline(fmt, std::forward<args_t>(args)...);
-    fan::throw_error();
+    fan::throw_error_impl();
   }
   template <typename... args_t>
   constexpr auto printf_throttled(current_fmt::format_string<args_t...> fmt, args_t&&... args) {

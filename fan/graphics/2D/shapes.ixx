@@ -19,16 +19,19 @@ import fan.types.color;
 import fan.types.vector;
 import fan.types.matrix;
 
+import fan.utility;
+import fan.memory;
+
+import fan.print.error;
+
 import fan.graphics.shapes.types;
 
 import fan.graphics.opengl.core;
 import fan.texture_pack.tp0;
 import fan.graphics.common_context;
-import fan.io.file;
 import fan.window;
 import fan.window.input;
 import fan.time;
-import fan.utility;
 import fan.physics.collision.rectangle;
 import fan.physics.collision.circle;
 import fan.math;
