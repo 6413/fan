@@ -32,6 +32,7 @@ set_defaultmode("mode_none")
 
 if is_mode("mode_none") then
   add_defines("_DEBUG=3")
+	--- no help add_cxxflags("-O0 -fno-inline-functions", {force = true})
 end
 
 if is_mode("release") then
@@ -169,6 +170,9 @@ local module_files = {
   "fan/math/math.ixx",
   "fan/time.ixx",
   "fan/utility.ixx",
+	"fan/format.ixx",
+	"fan/formatter.ixx",
+	"fan/print_error.ixx",
   "fan/print.ixx",
   "fan/random.ixx",
   "fan/log_dispatcher.ixx",
@@ -281,15 +285,6 @@ if os.isfile("fan/graphics/2D/algorithm/AStar.cpp") then
   table.insert(impl_files, "fan/graphics/2D/algorithm/AStar.cpp")
 end
 
-target("fan_modules")
-  set_kind("static")
-  add_files(module_files)
-  for _, impl in ipairs(impl_files) do
-    add_files(impl)
-  end
-  add_includedirs(".", "third_party/fan/include", {public = true})
-target_end()
-
 if has_config("FAN_GUI") then
   target("imgui")
     set_kind("static")
@@ -384,13 +379,15 @@ end
 
 target("a.exe")
   set_kind("binary")
-  add_deps("fan_modules")
   if has_config("FAN_GUI") then
     add_deps("imgui", "nfd")
   end
   add_files(module_files)
+  for _, impl in ipairs(impl_files) do
+    add_files(impl)
+  end
   add_files(get_config("main"), {module = false})
-  add_includedirs(".", {public = true})
+  add_includedirs(".", "third_party/fan/include", {public = true})
   add_linkdirs("third_party/fan/lib")
 
   if is_plat("linux") then
@@ -418,7 +415,7 @@ target("a.exe")
       add_links("wayland-client", "pipewire-0.3", "dbus-1")
       add_links("avcodec", "avutil", "swscale")
     end
-    add_ldflags("-fuse-ld=gold", {force = true})
+    add_ldflags("-fuse-ld=mold", {force = true})
   elseif is_plat("windows") then
     add_links("opengl32")
     add_linkdirs("lib/GLFW", "lib/GLEW", "lib/libuv", "lib/libwebp", "lib/opus", "lib/openssl")
