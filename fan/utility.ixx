@@ -12,7 +12,7 @@ module;
 #include <cstring>
 #include <chrono>
 #include <fstream>
-
+#include <iomanip>
 
 namespace raii_build {
   #include <fan/types/raii_nr.h>
