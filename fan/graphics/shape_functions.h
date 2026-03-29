@@ -365,7 +365,6 @@ static void set_colors(fan::graphics::shapes::shape_t* s, const std::array<fan::
 template<typename shape_type, typename field_t, typename props_field_ptr_t, typename vi_field_ptr_t>
 static void set_with_sync(fan::graphics::shapes::shape_t* s, const field_t& v, props_field_ptr_t props_field_ptr, vi_field_ptr_t vi_field_ptr, bool updates_keypack = false){
   fan::graphics::g_shapes->visit_shape_draw_data(s->NRI, [&](auto& props) {
-    using props_decayed_t = std::decay_t<decltype(props)>;
     if constexpr (requires { props.*props_field_ptr; }) {
       using actual_field_t = std::remove_reference_t<decltype(props.*props_field_ptr)>;
 

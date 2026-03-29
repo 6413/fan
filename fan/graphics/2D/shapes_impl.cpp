@@ -71,22 +71,6 @@ struct shape_pool_t {
   std::vector<uint32_t> free_ids;
 };
 
-template<typename T>
-static shape_pool_t<T>& get_pool(void*& ptr) {
-  if (!ptr) { ptr = new shape_pool_t<T>(); }
-  return *static_cast<shape_pool_t<T>*>(ptr);
-}
-
-template<typename props_t>
-fan::graphics::shapes::shape_ids_t::nr_t add_shape(uint8_t st, const props_t& props) {
-  auto gnr = fan::graphics::g_shapes->shape_ids.NewNodeLast();
-  fan::graphics::g_shapes->shape_ids[gnr] = {
-    .data_nr = (uint32_t)0,
-    .shape_type = st
-  };
-  return gnr;
-}
-
 template<typename props_t>
 props_t& get_props(uint16_t st, uint32_t data_nr) {
   return *static_cast<props_t*>(
@@ -119,26 +103,10 @@ namespace fan::graphics {
   }
 
   void shapes::shapes_init_pools(shapes* s) {
-    init_shape_pool<shapes::sprite_t::properties_t>        (s, shape_type_t::sprite);
-    init_shape_pool<shapes::text_t::properties_t>          (s, shape_type_t::text);
-    init_shape_pool<shapes::line_t::properties_t>          (s, shape_type_t::line);
-    init_shape_pool<shapes::rectangle_t::properties_t>     (s, shape_type_t::rectangle);
-    init_shape_pool<shapes::light_t::properties_t>         (s, shape_type_t::light);
-    init_shape_pool<shapes::unlit_sprite_t::properties_t>  (s, shape_type_t::unlit_sprite);
-    init_shape_pool<shapes::circle_t::properties_t>        (s, shape_type_t::circle);
-    init_shape_pool<shapes::capsule_t::properties_t>       (s, shape_type_t::capsule);
-    init_shape_pool<shapes::polygon_t::properties_t>       (s, shape_type_t::polygon);
-    init_shape_pool<shapes::grid_t::properties_t>          (s, shape_type_t::grid);
-    init_shape_pool<shapes::vfi_t::properties_t>           (s, shape_type_t::vfi);
-    init_shape_pool<shapes::particles_t::properties_t>     (s, shape_type_t::particles);
-    init_shape_pool<shapes::universal_image_renderer_t::properties_t>(s, shape_type_t::universal_image_renderer);
-    init_shape_pool<shapes::gradient_t::properties_t>      (s, shape_type_t::gradient);
-    init_shape_pool<shapes::shader_shape_t::properties_t>  (s, shape_type_t::shader_shape);
-    init_shape_pool<shapes::shadow_t::properties_t>        (s, shape_type_t::shadow);
-  #if defined(FAN_3D)
-    init_shape_pool<shapes::rectangle3d_t::properties_t>   (s, shape_type_t::rectangle3d);
-    init_shape_pool<shapes::line3d_t::properties_t>        (s, shape_type_t::line3d);
-  #endif
+    #define INIT_POOL(name) init_shape_pool<fan::graphics::shapes::name##_t::properties_t>(s, fan::graphics::shape_type_t::name);
+    #define GEN_SHAPES_EXPAND(name) INIT_POOL(name)
+    #define SKIP(x)
+    GEN_SHAPES(GEN_SHAPES_EXPAND, SKIP)
 
     // sprite and unlit_sprite need post-copy fixup for sprite_sheet_data.frame_update_nr
     s->shape_post_copy_fixups[shape_type_t::sprite] = [](void* p, uint32_t id) {
