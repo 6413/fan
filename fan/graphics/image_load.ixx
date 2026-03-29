@@ -11,7 +11,7 @@ export module fan.graphics.image_load;
 #endif
 
 import fan.types.compile_time_string;
-import fan.print;
+import fan.print.error;
 import fan.utility;
 import fan.types.vector;
 import fan.graphics.webp;

@@ -39,11 +39,12 @@ module;
 
 module fan.graphics.loco;
 
-import fan.print;
 import fan.window.input;
 
 import fan.camera;
 import fan.memory;
+import fan.random;
+import fan.print;
 
 import fan.graphics.common_types;
 
@@ -2218,6 +2219,10 @@ fan::graphics::image_load_properties_t loco_t::default_noise_image_properties() 
   lp.mag_filter = fan::graphics::image_filter_e::linear;
   lp.visual_output = fan::graphics::image_sampler_address_mode_e::mirrored_repeat;
   return lp;
+}
+
+fan::graphics::image_t loco_t::create_noise_image(const fan::vec2& size) {
+  return create_noise_image(size, fan::random::value_i64(0, ((std::uint32_t)-1) / 2));
 }
 
 fan::graphics::image_t loco_t::create_noise_image(const fan::vec2& size, int seed) {

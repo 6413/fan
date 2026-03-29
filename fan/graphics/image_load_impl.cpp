@@ -6,6 +6,8 @@ module;
 
 module fan.graphics.image_load;
 
+import fan.print;
+
 bool fan::image::valid(const std::string& path, const std::source_location& callers_path) {
   if (fan::webp::validate(path, callers_path)) {
     return true;

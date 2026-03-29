@@ -19,7 +19,7 @@ import fan.math;
 import fan.graphics.common_context;
 import fan.graphics.gui.types;
 import fan.graphics.gui.base;
-import fan.print;
+import fan.formatter;
 
 export namespace fan::graphics::gui {
   struct text_logger_t {

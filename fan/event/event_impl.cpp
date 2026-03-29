@@ -13,6 +13,8 @@ module;
 
 module fan.event;
 
+import fan.print;
+
 namespace fan::event {
   loop_t loop_new() {
     return uv_loop_new();

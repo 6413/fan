@@ -6,7 +6,6 @@ module;
 #include <shaderc/shaderc.hpp>
 #include <vector>
 #include <cstring>
-#include <iostream>
 #include <cmath>
 
 

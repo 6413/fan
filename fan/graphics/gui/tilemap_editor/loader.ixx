@@ -26,8 +26,6 @@ export module fan.graphics.gui.tilemap_editor.loader;
 import fan.types;
 import fan.types.vector;
 import fan.types.color;
-import fan.print;
-import fan.utility;
 import fan.texture_pack.tp0;
 import fan.graphics.common_context;
 import fan.graphics.physics_shapes;
@@ -37,6 +35,8 @@ import fan.types.json;
 import fan.physics.types;
 import fan.physics.b2_integration;
 import fan.window.input;
+import fan.print.error;
+import fan.memory;
 
 export struct tilemap_loader_t {
 
@@ -190,7 +190,7 @@ public:
     std::vector<fan::physics::body_id_t> bodies;
     iterate_physics_entities(map_id,
       [&]<typename T>(auto& entity, T& entity_visual) -> bool {
-      fan::print(entity.id);
+    //  fan::print(entity.id);
       if (entity.id == id) {
         bodies.emplace_back(entity_visual);
       }

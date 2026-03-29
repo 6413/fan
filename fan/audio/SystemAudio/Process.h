@@ -148,8 +148,7 @@ void _WarmUpDecoder(_piece_t *_piece, _SegmentID_t SegmentID, OpusDecoder *od){
       0);
 
     if(oerr != _constants::Opus::SegmentFrameAmount20){
-      fan::print("help", oerr);
-      fan::throw_error("a");
+      fan::throw_error("help", oerr);
     }
 
     fsid++;
@@ -224,8 +223,7 @@ void _DecodeSegment(_piece_t *_piece, _SegmentID_t SegmentID){
     0);
 
   if(oerr != _constants::Opus::SegmentFrameAmount20){
-    fan::print("help", oerr);
-    fan::throw_error("a");
+    fan::throw_error("help", oerr);
   }
 
   auto Cache = &this->CacheList[CacheID];

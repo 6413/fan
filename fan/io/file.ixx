@@ -17,7 +17,7 @@ module;
 
 export module fan.io.file;
 
-import fan.print;
+import fan.print.error;
 
 export namespace fan {
   namespace io {
