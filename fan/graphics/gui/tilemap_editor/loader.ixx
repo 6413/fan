@@ -23,14 +23,20 @@ export module fan.graphics.gui.tilemap_editor.loader;
 #if defined(FAN_2D)
 
 #if defined(FAN_PHYSICS_2D)
+import fan.types;
+import fan.types.vector;
+import fan.types.color;
 import fan.print;
 import fan.utility;
-import fan.graphics;
+import fan.texture_pack.tp0;
+import fan.graphics.common_context;
 import fan.graphics.physics_shapes;
+import fan.graphics.shapes;
 import fan.io.file;
 import fan.types.json;
 import fan.physics.types;
 import fan.physics.b2_integration;
+import fan.window.input;
 
 export struct tilemap_loader_t {
 

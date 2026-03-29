@@ -13,15 +13,19 @@ export module fan.graphics.opengl.core;
 
 import fan.physics.collision.rectangle;
 
+import fan.types;
+import fan.types.matrix;
+import fan.time;
+
 import fan.types.fstring;
 import fan.types.color;
 import fan.types.compile_time_string;
 
 import fan.window;
 import fan.utility;
-export import fan.print;
-export import fan.graphics.image_load;
-export import fan.graphics.common_context;
+import fan.print;
+import fan.graphics.image_load;
+import fan.graphics.common_context;
 
 template<typename T>
 concept not_non_arithmethic_types = !std::is_same_v<T, fan::vec2> &&

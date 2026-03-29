@@ -10,8 +10,11 @@ module;
 #include <filesystem>
 #include <cstring>
 #include <span>
+#include <fstream>
 
 module fan.graphics;
+
+import fan.utility;
 
 #if defined(FAN_JSON)
   import fan.types.json;
@@ -21,38 +24,6 @@ module fan.graphics;
 #endif
 
 import fan.types.compile_time_string;
-
-namespace fan::window {
-  void add_input_action(const int* keys, std::size_t count, const std::string_view& action_name) {
-    for (std::size_t i = 0; i < count; ++i) {
-      fan::graphics::ctx().input_action->add(keys[i], action_name);
-    }
-  }
-
-  void add_input_action(std::initializer_list<int> keys, const std::string_view& action_name) {
-    fan::graphics::ctx().input_action->add(keys, action_name);
-  }
-
-  void add_input_action(int key, const std::string_view& action_name) {
-    fan::graphics::ctx().input_action->add(key, action_name);
-  }
-
-  bool is_input_action_active(const std::string_view& action_name, int pstate) {
-    return fan::graphics::ctx().input_action->is_active(action_name);
-  }
-
-  bool is_action_clicked(const std::string_view& action_name) {
-    return fan::graphics::ctx().input_action->is_active(action_name, fan::window::input_action_t::press);
-  }
-
-  bool is_action_down(const std::string_view& action_name) {
-    return fan::graphics::ctx().input_action->is_active(action_name, fan::window::input_action_t::press_or_repeat);
-  }
-
-  bool exists(const std::string_view& action_name) {
-    return fan::graphics::ctx().input_action->input_actions.find(action_name) != fan::graphics::ctx().input_action->input_actions.end();
-  }
-}
 
 namespace fan::graphics {
   fan::graphics::image_t invalid_image = [] {
@@ -74,22 +45,7 @@ namespace fan::graphics {
     return render_view;
   }
 
-  std::vector<uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, int image_format, fan::vec2 uvp, fan::vec2 uvs) {
-    if (0) {}
-  #if defined(FAN_OPENGL)
-    else if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::opengl) {
-      return fan::graphics::ctx()->image_get_pixel_data(fan::graphics::ctx(), nr, fan::opengl::context_t::global_to_opengl_format(image_format), uvp, uvs);
-    }
-  #endif
-    else {
-      fan::throw_error("");
-      return {};
-    }
-  }
-
-  fan::graphics::image_nr_t image_create() {
-    return fan::graphics::ctx()->image_create(fan::graphics::ctx());
-  }
+#if defined(FAN_2D)
 
   fan::graphics::context_image_t image_get(fan::graphics::image_nr_t nr) {
     fan::graphics::context_image_t img;
@@ -107,139 +63,19 @@ namespace fan::graphics {
     return img;
   }
 
-  uint64_t image_get_handle(fan::graphics::image_nr_t nr) {
-    return fan::graphics::ctx()->image_get_handle(fan::graphics::ctx(), nr);
+  std::vector<uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, int image_format, fan::vec2 uvp, fan::vec2 uvs) {
+    if (0) {}
+  #if defined(FAN_OPENGL)
+    else if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::opengl) {
+      return fan::graphics::ctx()->image_get_pixel_data(fan::graphics::ctx(), nr, fan::opengl::context_t::global_to_opengl_format(image_format), uvp, uvs);
+    }
+  #endif
+    else {
+      fan::throw_error_impl("");
+      return {};
+    }
   }
 
-  void image_erase(fan::graphics::image_nr_t nr) {
-    fan::graphics::ctx()->image_erase(fan::graphics::ctx(), nr);
-  }
-
-  void image_bind(fan::graphics::image_nr_t nr) {
-    fan::graphics::ctx()->image_bind(fan::graphics::ctx(), nr);
-  }
-
-  void image_unbind(fan::graphics::image_nr_t nr) {
-    fan::graphics::ctx()->image_unbind(fan::graphics::ctx(), nr);
-  }
-
-  fan::graphics::image_load_properties_t& image_get_settings(fan::graphics::image_nr_t nr) {
-    return fan::graphics::ctx()->image_get_settings(fan::graphics::ctx(), nr);
-  }
-
-  void image_set_settings(fan::graphics::image_nr_t nr, const fan::graphics::image_load_properties_t& settings) {
-    fan::graphics::ctx()->image_set_settings(fan::graphics::ctx(), nr, settings);
-  }
-
-  fan::graphics::image_nr_t image_load(const fan::image::info_t& image_info) {
-    return fan::graphics::ctx()->image_load_info(fan::graphics::ctx(), image_info);
-  }
-
-  fan::graphics::image_nr_t image_load(const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
-    return fan::graphics::ctx()->image_load_info_props(fan::graphics::ctx(), image_info, p);
-  }
-
-  fan::graphics::image_nr_t image_load(const std::string& path, const std::source_location& callers_path) {
-    return fan::graphics::ctx()->image_load_path(fan::graphics::ctx(), path, callers_path);
-  }
-
-  fan::graphics::image_nr_t image_load(const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path) {
-    return fan::graphics::ctx()->image_load_path_props(fan::graphics::ctx(), path, p, callers_path);
-  }
-
-  fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size) {
-    return fan::graphics::ctx()->image_load_colors(fan::graphics::ctx(), colors, size);
-  }
-
-  fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p) {
-    return fan::graphics::ctx()->image_load_colors_props(fan::graphics::ctx(), colors, size, p);
-  }
-
-  fan::graphics::image_nr_t image_load(std::span<const fan::color> colors, const fan::vec2ui& size) {
-    return fan::graphics::ctx()->image_load_colors_props(fan::graphics::ctx(), const_cast<fan::color*>(colors.data()), size, image_presets::pixel_art());
-  }
-
-  void image_unload(fan::graphics::image_nr_t nr) {
-    fan::graphics::ctx()->image_unload(fan::graphics::ctx(), nr);
-  }
-
-  bool is_image_valid(fan::graphics::image_nr_t nr) {
-    return nr != fan::graphics::ctx().default_texture && nr.iic() == false;
-  }
-
-  fan::graphics::image_t image_load_pixel_art(const std::string& path) {
-    return image_load(path, image_presets::pixel_art());
-  }
-
-  fan::graphics::image_t image_load_smooth(const std::string& path) {
-    return image_load(path, image_presets::smooth());
-  }
-
-  fan::graphics::image_nr_t create_missing_texture() {
-    return fan::graphics::ctx()->create_missing_texture(fan::graphics::ctx());
-  }
-
-  fan::graphics::image_nr_t create_transparent_texture() {
-    return fan::graphics::ctx()->create_transparent_texture(fan::graphics::ctx());
-  }
-
-  void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info) {
-    fan::graphics::ctx()->image_reload_image_info(fan::graphics::ctx(), nr, image_info);
-  }
-
-  void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
-    fan::graphics::ctx()->image_reload_image_info_props(fan::graphics::ctx(), nr, image_info, p);
-  }
-
-  void image_reload(fan::graphics::image_nr_t nr, const std::string& path, const std::source_location& callers_path) {
-    fan::graphics::ctx()->image_reload_path(fan::graphics::ctx(), nr, path, callers_path);
-  }
-
-  void image_reload(fan::graphics::image_nr_t nr, const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path) {
-    fan::graphics::ctx()->image_reload_path_props(fan::graphics::ctx(), nr, path, p, callers_path);
-  }
-
-  fan::graphics::image_nr_t image_create(const fan::color& color) {
-    return fan::graphics::ctx()->image_create_color(fan::graphics::ctx(), color);
-  }
-
-  fan::graphics::image_nr_t image_create(const fan::color& color, const fan::graphics::image_load_properties_t& p) {
-    return fan::graphics::ctx()->image_create_color_props(fan::graphics::ctx(), color, p);
-  }
-
-#if defined(FAN_OPENGL)
-  std::vector<uint8_t> read_pixels(const fan::vec2& position, const fan::vec2& size) {
-    std::vector<uint8_t> pixels(size.multiply() * 4);
-    glReadPixels(position.x, position.y, size.x, size.y, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
-    return pixels;
-  }
-#endif
-
-  fan::graphics::shader_nr_t shader_create() {
-    return fan::graphics::ctx()->shader_create(fan::graphics::ctx());
-  }
-
-  void shader_erase(fan::graphics::shader_nr_t nr) {
-    fan::graphics::ctx()->shader_erase(fan::graphics::ctx(), nr);
-  }
-
-  void shader_use(fan::graphics::shader_nr_t nr) {
-    fan::graphics::ctx()->shader_use(fan::graphics::ctx(), nr);
-  }
-
-  void shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string& vertex_code) {
-    fan::graphics::ctx()->shader_set_vertex(fan::graphics::ctx(), nr, vertex_code);
-  }
-
-  void shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string& fragment_code) {
-    fan::graphics::ctx()->shader_set_fragment(fan::graphics::ctx(), nr, fragment_code);
-  }
-
-  bool shader_compile(fan::graphics::shader_nr_t nr) {
-    return fan::graphics::ctx()->shader_compile(fan::graphics::ctx(), nr);
-  }
-
-#if defined(FAN_2D)
   fan::graphics::shader_nr_t shader_get_nr(uint16_t shape_type) {
     return fan::graphics::get_shapes().shaper.GetShader(shape_type);
   }
@@ -255,139 +91,6 @@ namespace fan::graphics {
     shader_set_fragment(shader_nr, fragment);
     return shader_compile(shader_nr);
   }
-#endif
-
-  fan::graphics::camera_nr_t camera_create() {
-    return fan::graphics::ctx()->camera_create(fan::graphics::ctx());
-  }
-
-  fan::graphics::context_camera_t& camera_get(fan::graphics::camera_nr_t nr) {
-    return fan::graphics::ctx()->camera_get(fan::graphics::ctx(), nr);
-  }
-
-  void camera_erase(fan::graphics::camera_nr_t nr) {
-    fan::graphics::ctx()->camera_erase(fan::graphics::ctx(), nr);
-  }
-
-  fan::graphics::camera_nr_t camera_create(const fan::vec2& x, const fan::vec2& y) {
-    return fan::graphics::ctx()->camera_create_params(fan::graphics::ctx(), x, y);
-  }
-
-  fan::vec3 camera_get_position(fan::graphics::camera_nr_t nr) {
-    return fan::graphics::ctx()->camera_get_position(fan::graphics::ctx(), nr);
-  }
-
-  void camera_set_position(fan::graphics::camera_nr_t nr, const fan::vec3& cp) {
-    fan::graphics::ctx()->camera_set_position(fan::graphics::ctx(), nr, cp);
-  }
-
-  fan::vec2 camera_get_size(fan::graphics::camera_nr_t nr) {
-    return fan::graphics::ctx()->camera_get_size(fan::graphics::ctx(), nr);
-  }
-
-  fan::vec2 viewport_get_size(fan::graphics::viewport_nr_t nr) {
-    return fan::graphics::ctx()->viewport_get_size(fan::graphics::ctx(), nr);
-  }
-
-  f32_t camera_get_zoom(fan::graphics::camera_nr_t nr) {
-    return fan::graphics::ctx()->camera_get_zoom(fan::graphics::ctx(), nr);
-  }
-
-  void camera_set_zoom(fan::graphics::camera_nr_t nr, f32_t new_zoom) {
-    fan::graphics::ctx()->camera_set_zoom(fan::graphics::ctx(), nr, new_zoom);
-  }
-
-  void camera_set_ortho(fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y) {
-    fan::graphics::ctx()->camera_set_ortho(fan::graphics::ctx(), nr, x, y);
-  }
-
-  void camera_set_perspective(fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size) {
-    fan::graphics::ctx()->camera_set_perspective(fan::graphics::ctx(), nr, fov, window_size);
-  }
-
-  void camera_rotate(fan::graphics::camera_nr_t nr, const fan::vec2& offset) {
-    fan::graphics::ctx()->camera_rotate(fan::graphics::ctx(), nr, offset);
-  }
-
-  void camera_set_target(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed) {
-    fan::vec2 src = camera_get_position(nr);
-    camera_set_position(
-      nr,
-      move_speed == 0 ? target : src + (target - src) * fan::graphics::get_window().m_delta_time * move_speed
-    );
-  }
-
-  void camera_set_target(const fan::vec2& target, f32_t move_speed) {
-    camera_set_target(fan::graphics::get_orthographic_render_view(), target, move_speed);
-  }
-
-  void camera_look_at(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed) {
-    camera_set_target(nr, target, move_speed);
-  }
-
-  void camera_look_at(const fan::vec2& target, f32_t move_speed) {
-    camera_set_target(fan::graphics::get_orthographic_render_view(), target, move_speed);
-  }
-
-  fan::graphics::viewport_nr_t viewport_create() {
-    return fan::graphics::ctx()->viewport_create(fan::graphics::ctx());
-  }
-
-  fan::graphics::viewport_nr_t viewport_create(const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
-    return fan::graphics::ctx()->viewport_create_params(fan::graphics::ctx(), viewport_position, viewport_size, fan::graphics::get_window().get_size());
-  }
-
-  fan::graphics::context_viewport_t& viewport_get(fan::graphics::viewport_nr_t nr) {
-    return fan::graphics::ctx()->viewport_get(fan::graphics::ctx(), nr);
-  }
-
-  void viewport_erase(fan::graphics::viewport_nr_t nr) {
-    fan::graphics::ctx()->viewport_erase(fan::graphics::ctx(), nr);
-  }
-
-  fan::vec2 viewport_get_position(fan::graphics::viewport_nr_t nr) {
-    return fan::graphics::ctx()->viewport_get_position(fan::graphics::ctx(), nr);
-  }
-
-  void viewport_set(const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
-    fan::graphics::ctx()->viewport_set(fan::graphics::ctx(), viewport_position, viewport_size, fan::graphics::get_window().get_size());
-  }
-
-  void viewport_set(fan::graphics::viewport_nr_t nr, const fan::vec2& viewport_position, const fan::vec2& viewport_size) {
-    fan::graphics::ctx()->viewport_set_nr(fan::graphics::ctx(), nr, viewport_position, viewport_size, fan::graphics::get_window().get_size());
-  }
-
-  void viewport_zero(fan::graphics::viewport_nr_t nr) {
-    fan::graphics::ctx()->viewport_zero(fan::graphics::ctx(), nr);
-  }
-
-  bool inside(fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
-    return fan::graphics::ctx()->viewport_inside(fan::graphics::ctx(), nr, position);
-  }
-
-  bool inside_wir(fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
-    return fan::graphics::ctx()->viewport_inside_wir(fan::graphics::ctx(), nr, position);
-  }
-
-  bool inside(const fan::graphics::render_view_t& rv, const fan::vec2& p) {
-    fan::vec2 tp = fan::graphics::screen_to_world(p, rv.viewport, rv.camera);
-    f32_t z = fan::graphics::camera_get_zoom(rv.camera);
-    auto c = fan::graphics::camera_get(rv.camera);
-    fan::vec2 cp = fan::graphics::camera_get_position(rv.camera);
-
-    f32_t l = cp.x + c.coordinates.left / z;
-    f32_t r = cp.x + c.coordinates.right / z;
-    f32_t t = cp.y + c.coordinates.top / z;
-    f32_t b = cp.y + c.coordinates.bottom / z;
-
-    return tp.x >= l && tp.x <= r && tp.y >= t && tp.y <= b;
-  }
-
-  bool is_mouse_inside(const fan::graphics::render_view_t& render_view) {
-    return inside(render_view, get_mouse_position());
-  }
-
-#if defined(FAN_2D)
 
   light_t::light_t(light_properties_t p) {
     *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
@@ -716,6 +419,26 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
       ), p.enable_culling
     );
   }
+
+  shader_shape_t::shader_shape_t(
+    const fan::str_view_t vertex_shader,
+    const fan::str_view_t fragment_shader,
+    const fan::vec3& position,
+    const fan::vec2& size
+  ) : shader_shape_t(shader_shape_properties_t{
+      .position = position,
+      .size = size,
+      .shader = fan::graphics::shader_create(vertex_shader, fragment_shader)
+    }) {}
+  shader_shape_t::shader_shape_t(
+    const fan::str_view_t fragment_shader, 
+    const fan::vec3& position,
+    const fan::vec2& size
+  ) : shader_shape_t(shader_shape_properties_t{
+    .position = position,
+    .size = size,
+    .shader = fan::graphics::get_sprite_shader(fragment_shader)
+  }) {}
 
   shadow_t::shadow_t(shadow_properties_t p) {
     *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
@@ -1590,7 +1313,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
       highlight_line(shape, color);
       break;
     default:
-      fan::throw_error("method not implemented");
+      fan::throw_error_impl("method not implemented");
       break;
     }
   }

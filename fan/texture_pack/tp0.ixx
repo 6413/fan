@@ -20,14 +20,18 @@ export module fan.texture_pack.tp0;
 
 #if defined(FAN_OPENGL)
 
-import fan.utility;
-import fan.graphics.common_context;
-import fan.graphics.webp;
-import fan.graphics.opengl.core;
-import fan.io.file;
 import fan.types.fstring;
 import fan.types.vector;
 import fan.types.compile_time_string;
+
+import fan.io.file;
+import fan.utility;
+import fan.print;
+
+import fan.graphics.common_context;
+import fan.graphics.webp;
+import fan.graphics.opengl.core;
+import fan.graphics.image_load;
 
 export namespace fan::graphics {
   struct texture_pack {

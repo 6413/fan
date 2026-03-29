@@ -8,7 +8,9 @@ module;
 export module fan.noise;
 
 import fan.types;
-import fan.graphics;
+import fan.types.vector;
+import fan.graphics.common_context;
+import fan.graphics.image_load;
 import fan.random;
 
 #include <fan/graphics/2D/algorithm/FastNoiseLite.h>

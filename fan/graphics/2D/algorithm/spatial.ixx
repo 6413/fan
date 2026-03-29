@@ -12,6 +12,7 @@ export module fan.graphics.spatial;
 
 #if defined(FAN_2D)
 
+import fan.types;
 import fan.types.vector;
 import fan.print;
 import fan.physics.types;
@@ -551,5 +552,23 @@ export namespace fan::graphics::spatial {
     clean_removed(static_grid, dynamic_grid, registry);
   }
 
+  template <typename id_t, typename resolve_pos_fn_t>
+  fan::vec2 separation_force(
+    dynamic_grid_t<id_t>& grid,
+    id_t                  self_id,
+    fan::vec2             pos,
+    f32_t                 radius,
+    resolve_pos_fn_t&& resolve_fn) {
+    fan::vec2 sep {};
+    query_radius(grid, pos, radius, [&](id_t id) {
+      if (id == self_id) return;
+      fan::vec2 other = resolve_fn(id);
+      fan::vec2 d = pos - other;
+      f32_t len = d.length();
+      if (len > 0.001f && len < radius)
+        sep += d / len * (radius - len);
+    });
+    return sep;
+  }
 } // namespace fan::graphics::spatial
 #endif

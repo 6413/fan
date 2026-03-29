@@ -178,18 +178,24 @@ struct library_usage_t {
     struct file_dialog {
       void update() {
         if (fan::graphics::gui::button("Open File")) {
-          dialog.load("png,jpg;pdf", &output_path);
+          fan::graphics::open_file(
+            "png,jpg;pdf",
+            [&](std::string_view p) {
+              output_path = std::string(p);
+              fan::print("Selected file: " + output_path);
+            },
+            [&] {
+              fan::print("Selected file: None");
+            }
+          );
         }
-        if (dialog.is_finished()) {
-          fan::print("Selected file: " + output_path);
-          dialog.finished = false;
-        }
+
         if (!output_path.empty()) {
           fan::graphics::gui::text("Last selected: " + output_path);
         }
       }
+
       std::string output_path;
-      fan::graphics::file_open_dialog_t dialog;
     };
     // Demonstrates file system watching for changes
     struct file_watcher {

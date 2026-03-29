@@ -7,8 +7,9 @@ module;
 export module fan.graphics.physics_subsystem;
 
 #if defined(FAN_PHYSICS_2D)
+  import fan.types;
   export import fan.physics.b2_integration;
-  export import fan.physics.common_context;
+  import fan.physics.common_context;
 #endif
 
 export namespace fan::graphics {

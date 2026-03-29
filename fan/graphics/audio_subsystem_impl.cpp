@@ -6,6 +6,8 @@ module;
 
 module fan.graphics.audio_subsystem;
 
+import fan.utility;
+
 namespace fan::graphics {
   void audio_subsystem_t::init() {
 #if defined(FAN_AUDIO)

@@ -14,6 +14,8 @@ module;
 export module fan.graphics.gui;
 
 #if defined(FAN_GUI)
+  import fan.types;
+  import fan.time;
   import fan.print;
   import fan.utility;
   import fan.math;
@@ -28,14 +30,15 @@ export module fan.graphics.gui;
   import fan.fmt;
 
   import fan.graphics.common_context;
-  import fan.graphics;
+  import fan.graphics.shapes;
   import fan.io.file;
   import fan.io.directory;
   import fan.audio;
 
   import fan.file_dialog;
 
-  export import fan.graphics.gui.base;
+  import fan.graphics.gui.types;
+  import fan.graphics.gui.base;
 #endif
 
 
@@ -345,7 +348,7 @@ export namespace fan::graphics::gui {
     void set_particle_shape(fan::graphics::shape_t&& shape);
 
     // just for gui visualization
-    fan::graphics::sprite_t particle_image_sprite;
+    fan::graphics::shape_t particle_image_sprite;
 
     /*fan::color bg_color = fan::color::from_rgba(0xB8C4BFFF);*/
     fan::color bg_color = fan::colors::black;

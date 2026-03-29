@@ -16,6 +16,7 @@ module;
 module fan.physics.b2_integration;
 
 import fan.utility;
+import fan.memory;
 
 /*
   TODO: create function for converting shape properties to b2BodyDef

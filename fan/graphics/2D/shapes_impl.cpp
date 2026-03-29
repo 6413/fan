@@ -18,7 +18,9 @@ module;
 module fan.graphics.shapes;
 
 import fan.utility;
+import fan.print;
 import fan.graphics.gui.base;
+import fan.graphics.image_load;
 import fan.graphics.culling;
 import fan.random;
 
@@ -2565,6 +2567,16 @@ namespace fan::graphics{
       set_image_sign(sign);
       apply_scaled_delta(*this, target, (speed * dt) / dist);
     }
+  }
+
+  fan::graphics::shader_t shapes::shape_t::get_shader() const {
+    return g_shapes->shape_functions[get_shape_type()].get_shader(this);
+  }
+  void shapes::shape_t::set_shader(const fan::graphics::shader_t shader) {
+    if (get_shader() == shader) {
+      return;
+    }
+    g_shapes->shape_functions[get_shape_type()].set_shader(this, shader);
   }
 
   fan::graphics::shaper_t::ShapeRenderData_t* shapes::shape_t::GetRenderData(fan::graphics::shaper_t& shaper) const {

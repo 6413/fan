@@ -11,12 +11,14 @@ export module fan.graphics.gui.slot_renderer;
 
 #if defined(FAN_GUI)
 
-import fan.graphics;
+import fan.types;
+import fan.types.color;
+import fan.types.vector;
 import fan.graphics.gui.base;
 import fan.graphics.gui.input;
 import fan.graphics.gui.drag_drop;
 import fan.graphics.gameplay.items;
-export import fan.graphics.gameplay.types;
+import fan.graphics.gameplay.types;
 
 using namespace fan::graphics;
 

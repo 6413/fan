@@ -7,6 +7,7 @@ module;
 
 export module fan.graphics.webp;
 
+import fan.types;
 import fan.types.compile_time_string;
 import fan.types.vector;
 

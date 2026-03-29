@@ -7,7 +7,7 @@ export module fan.graphics.event;
 
 import fan.event;
 import fan.types.vector;
-import fan.graphics;
+import fan.graphics.common_context;
 
 export namespace fan::graphics::event {
   void image_to_texture_pack_watcher(

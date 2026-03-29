@@ -5,6 +5,8 @@ module;
 
 module fan.graphics.input_subsystem;
 
+import fan.window.input;
+
 import fan.graphics.shapes;
 import fan.graphics.common_context;
 

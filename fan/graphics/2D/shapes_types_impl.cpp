@@ -4,6 +4,8 @@ module;
 #include <cstring>
 module fan.graphics.shapes.types;
 
+import fan.utility;
+
 namespace fan::graphics {
 #if defined(FAN_2D)
   std::uint8_t* A_resize(void* ptr, std::uintptr_t size) {

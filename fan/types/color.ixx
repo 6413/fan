@@ -10,6 +10,7 @@ module;
 
 export module fan.types.color;
 
+import fan.utility;
 import fan.types;
 import fan.types.vector;
 
@@ -394,6 +395,48 @@ export namespace fan {
   concept is_color = is_color_type_v<std::remove_cvref_t<T>>;
 
   void lerp_pixels(std::vector<uint8_t>& dst, const std::vector<uint8_t>& target, f32_t t, uint8_t channels = 4);
+}
+
+constexpr uint32_t _fan_check_24bit(unsigned long long v) {
+  if (v > 0xFFFFFF) fan::throw_error_impl("literal must be 24-bit (0xRRGGBB)");
+  return static_cast<uint32_t>(v);
+}
+constexpr uint32_t _fan_check_32bit(unsigned long long v) {
+  if (v > 0xFFFFFFFF) fan::throw_error_impl("literal must be 32-bit (0xAARRGGBB etc.)");
+  return static_cast<uint32_t>(v);
+}
+
+export namespace fan::color_literals {
+  constexpr fan::color operator""_rgb(unsigned long long v) {
+    return fan::color::from_rgb(_fan_check_24bit(v));
+  }
+  constexpr fan::color operator""_rgba(unsigned long long v) {
+    return fan::color::from_rgba(_fan_check_32bit(v));
+  }
+  constexpr fan::color operator""_argb(unsigned long long v) {
+    return fan::color::from_argb(_fan_check_32bit(v));
+  }
+  constexpr fan::color operator""_abgr(unsigned long long v) {
+    return fan::color::from_abgr(_fan_check_32bit(v));
+  }
+  constexpr fan::color operator""_bgra(unsigned long long v) {
+    return fan::color::from_bgra(_fan_check_32bit(v));
+  }
+  constexpr fan::color operator""_gray(unsigned long long v) {
+    if (v > 255) fan::throw_error_impl("gray literal must be 0–255");
+    return fan::color::rgb(v, v, v);
+  }
+
+  fan::color operator""_hsl(const char* str, size_t len) {
+    f32_t h = 0, s = 0, l = 0;
+    std::sscanf(str, "%f,%f,%f", &h, &s, &l);
+    return fan::color::hsl(h / 360.f, s / 100.f, l / 100.f);
+  }
+  fan::color operator""_hsv(const char* str, size_t len) {
+    f32_t h = 0, s = 0, v = 0;
+    std::sscanf(str, "%f,%f,%f", &h, &s, &v);
+    return fan::color::hsv(h / 360.f, s / 100.f, v / 100.f);
+  }
 }
 
 #pragma pack(pop)

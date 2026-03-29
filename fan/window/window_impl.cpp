@@ -983,32 +983,27 @@ namespace fan {
 }
 
 bool fan::window_t::is_key_clicked(int key) {
-  if (!this) return false;
   if (key < 0 || key > fan::input_last) return false;
   return key_states[key] == fan::keyboard_state::press &&
     prev_key_states[key] != fan::keyboard_state::press;
 }
 bool fan::window_t::is_key_down(int key) {
-  if (!this) return false;
   if (key < 0 || key > fan::input_last) return false;
   return key_states[key] == fan::keyboard_state::press ||
     key_states[key] == fan::keyboard_state::repeat;
 }
 bool fan::window_t::is_key_released(int key) {
-  if (!this) return false;
   if (key < 0 || key > fan::input_last) return false;
   return key_states[key] != fan::keyboard_state::press &&
     prev_key_states[key] == fan::keyboard_state::press;
 }
 
 bool fan::window_t::is_mouse_clicked(int button) {
-  if (!this) return false;
   if (button < fan::mouse_first || button > fan::mouse_last) return false;
   return key_states[button] == fan::keyboard_state::press &&
          prev_key_states[button] != fan::keyboard_state::press;
 }
 bool fan::window_t::is_mouse_down(int button) {
-  if (!this) return false;
   if (button < fan::mouse_first || button > fan::mouse_last) return false;
   return key_states[button] == fan::keyboard_state::press ||
     key_states[button] == fan::keyboard_state::repeat;
@@ -1034,7 +1029,6 @@ bool fan::window_t::is_gamepad_axis_active(int key) {
   return axis.length() > gamepad_axis_deadzone;
 }
 fan::vec2 fan::window_t::get_current_gamepad_axis(int key) {
-  if (!this) return fan::vec2(0, 0);
   return get_gamepad_axis(key);
 }
 char fan::window_t::get_char_pressed() const {

@@ -20,6 +20,8 @@ module fan.graphics.opengl.core;
 #if defined(FAN_OPENGL)
 
 import fan.print;
+import fan.math;
+import fan.camera;
 
 namespace fan::opengl {
 

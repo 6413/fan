@@ -37,7 +37,7 @@ export module fan.graphics.video.screen_codec;
 
 #if defined(FAN_2D)
 
-export import fan.graphics;
+import fan.graphics;
 import fan.time;
 import fan.print;
 import fan.event;

@@ -13,12 +13,14 @@ export module fan.physics.b2_integration;
 
 #if defined(FAN_PHYSICS_2D)
 
-export import fan.physics.types;
-
+import fan.types;
 import fan.types.vector;
+
 import fan.print;
-import fan.physics.common_context;
 import fan.utility;
+
+import fan.physics.types;
+import fan.physics.common_context;
 
 #define BLL_set_SafeNext 1
 #define BLL_set_AreWeInsideStruct 0

@@ -32,6 +32,7 @@ module;
 #include <cstring>
 #include <source_location>
 #include <type_traits>
+#include <fstream>
 
 
 #if fan_audio_set_backend == 0

@@ -2,6 +2,7 @@ module;
 
 export module fan.physics.collision.circle;
 
+import fan.types;
 import fan.types.vector;
 
 export namespace fan_2d {

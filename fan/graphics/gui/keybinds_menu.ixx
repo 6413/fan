@@ -12,11 +12,15 @@ export module fan.graphics.gui.keybinds_menu;
 
 #if defined(FAN_GUI)
 
-import fan.window.input_action;
-import fan.graphics.gui.base;
+import fan.types;
+import fan.types.vector;
 import fan.types.color;
 import fan.types.json;
 import fan.types.compile_time_string;
+import fan.graphics.gui.types;
+import fan.window.input_action;
+import fan.window.input;
+import fan.graphics.gui.base;
 
 export namespace fan::graphics::gui {
   struct keybind_menu_t {

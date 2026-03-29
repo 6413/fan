@@ -25,12 +25,15 @@ export module fan.graphics.physics_shapes;
 
 #if defined(FAN_PHYSICS_2D)
 
+import fan.types;
 import fan.types.vector;
 import fan.types.color;
 import fan.time;
 import fan.utility;
+import fan.physics.types;
 import fan.physics.b2_integration;
 import fan.physics.common_context;
+import fan.graphics.shapes.types;
 import fan.window.input_action;
 import fan.types.json;
 import fan.math;

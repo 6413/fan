@@ -13,18 +13,18 @@ module;
 
 export module fan.graphics.shapes.types;
 
+import fan.utility;
+import fan.types.color;
+import fan.types.vector;
+
 #if defined(FAN_2D)
   import fan.window;
   import fan.graphics.common_context;
   import fan.graphics.opengl.core;
 
   #if defined(FAN_VULKAN)
-  import fan.graphics.vulkan.core;
+    import fan.graphics.vulkan.core;
   #endif
-
-#else
-  import fan.types.vector;
-  import fan.types.color;
 #endif
 
 #if defined(FAN_2D)
@@ -386,7 +386,7 @@ export namespace fan::graphics::shaper {
       return d.renderer.vk.pipeline.shader_nr;\
     }\
     )\
-    fan::throw_error("");\
+    fan::throw_error_impl("Unsupported renderer type");\
     static fan::graphics::shader_nr_t doesnt_happen;\
     return doesnt_happen;\
   }\
@@ -395,7 +395,7 @@ export namespace fan::graphics::shaper {
     if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {\
       return st.renderer.gl.m_vao;\
     }\
-    fan::throw_error("Unsupported renderer type");\
+    fan::throw_error_impl("Unsupported renderer type");\
     fan::opengl::core::vao_t doesnt_happen;\
     return doesnt_happen;\
   }\
@@ -404,7 +404,7 @@ export namespace fan::graphics::shaper {
     if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {\
       return st.renderer.gl.m_vbo;\
     }\
-    fan::throw_error("Unsupported renderer type");\
+    fan::throw_error_impl("Unsupported renderer type");\
     fan::opengl::core::vbo_t doesnt_happen;\
     return doesnt_happen;\
   }\
@@ -413,7 +413,7 @@ export namespace fan::graphics::shaper {
     if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {\
       return st.renderer.gl.locations;\
     }\
-    fan::throw_error("Unsupported renderer type");\
+    fan::throw_error_impl("Unsupported renderer type");\
     __unreachable();\
     static fan::graphics::shape_gl_init_list_t doesnt_happen;\
     return doesnt_happen;\

@@ -1,6 +1,5 @@
 template <typename modifier_t>
 static void update_shape(shape_t* shape, modifier_t&& modifier_fn) {
-
   if (shape->get_visual_id().iic()) {
     return;
   }
@@ -34,8 +33,12 @@ static void update_shape(shape_t* shape, modifier_t&& modifier_fn) {
 template<typename sti_t, typename key_pack_t>
 static void set_position_impl(sti_t sti, key_pack_t key_pack, const fan::vec3& position) {
 #if FAN_DEBUG >= 3
-  if (position.z > std::numeric_limits<decltype(kps_t::common_t::depth)>::max()) {
-    fan::throw_error("z depth value exceeded. dont give me bigger depth than", std::numeric_limits<decltype(kps_t::common_t::depth)>::max());
+  static constexpr auto max_depth = std::numeric_limits<decltype(kps_t::common_t::depth)>::max();
+  if (position.z > max_depth) {
+    fan::throw_error_impl(
+      ("z depth value exceeded. dont give me bigger depth than " +
+        std::to_string(max_depth)).c_str()
+    );
   }
 #endif
   switch (get_shape_category(sti)) {
@@ -48,7 +51,7 @@ static void set_position_impl(sti_t sti, key_pack_t key_pack, const fan::vec3& p
   case shapes::kp::light:
     break;
   default:
-    fan::print("unimplemented");
+    fan::throw_error_impl("unimplemented");
   }
 }
 
@@ -76,7 +79,7 @@ static fan::graphics::camera_t get_camera(const shape_t* shape) {
   case shapes::kp::texture:
     return shaper_get_key_safe(camera_t, texture_t, camera);
   default:
-    fan::throw_error("get_camera: unsupported shape");
+    fan::throw_error_impl("get_camera: unsupported shape");
   }
 }
 
@@ -97,7 +100,7 @@ static void set_camera_impl(
     shaper_get_key_safe(camera_t, texture_t, camera) = camera;
     break;
   default:
-    fan::throw_error("set_camera: unsupported shape");
+    fan::throw_error_impl("set_camera: unsupported shape");
   }
 }
 
@@ -134,7 +137,7 @@ static void set_viewport_impl(
     shaper_get_key_safe(viewport_t, texture_t, viewport) = viewport;
     break;
   default:
-    fan::throw_error("set_viewport: unsupported shape");
+    fan::throw_error_impl("set_viewport: unsupported shape");
   }
 }
 
@@ -167,7 +170,7 @@ static void set_image_impl(
     shaper_get_key_safe(image_t, texture_t, image) = image;
   }
   else {
-    fan::throw_error("set_image: unsupported shape");
+    fan::throw_error_impl("set_image: unsupported shape");
   }
 }
 
@@ -188,6 +191,39 @@ static void set_position(shape_t* shape, const fan::vec3& position) {
   });
 }
 
+static fan::graphics::shader_t get_shader(const shape_t* shape) {
+  fan::graphics::shader_t result{};
+  g_shapes->visit_shape_draw_data(shape->NRI, [&](auto& props) {
+    if constexpr (requires { props.shader; }) {
+      result = props.shader;
+    }
+  });
+  if (shape->get_visual_id().iic()) {
+    return result;
+  }
+  auto sti = shape->get_shape_type();
+  uint8_t* key_pack = g_shapes->shaper.GetKeys(shape->get_visual_id());
+  if (get_shape_category(sti) == shapes::kp::texture) {
+    result.gint() = shaper_get_key_safe(shader_raw_t, texture_t, shader_raw);
+  }
+  return result;
+}
+template<typename sti_t, typename key_pack_t>
+static void set_shader_impl(sti_t sti, key_pack_t key_pack, fan::graphics::shader_t shader) {
+  switch (get_shape_category(sti)) {
+  case shapes::kp::texture:
+    shaper_get_key_safe(shader_raw_t, texture_t, shader_raw) = shader.gint();
+    break;
+  default:
+    fan::throw_error_impl("set_shader: unsupported shape");
+  }
+}
+
+static void set_shader(shape_t* shape, fan::graphics::shader_t shader) {
+  update_shape(shape, [&](auto sti, auto key_pack) {
+    set_shader_impl(sti, key_pack, shader);
+  });
+}
 
 /*
 TODO REMOVE
@@ -388,7 +424,9 @@ X(set_outline_color, void(*)(shape_t*, const fan::color&)) \
 X(set_line, void(*)(shape_t*, const fan::vec2&, const fan::vec2&)) \
 X(set_line3, void(*)(shape_t*, const fan::vec3&, const fan::vec2&)) \
 X(get_colors, get_colors_fn_t) \
-X(set_colors, set_colors_fn_t)
+X(set_colors, set_colors_fn_t) \
+X(get_shader, fan::graphics::shader_t(*)(const shape_t*)) \
+X(set_shader, void(*)(shape_t*, fan::graphics::shader_t))
 
 
 struct shape_functions_t {
@@ -447,7 +485,9 @@ vtables_storage[shape_type_t::shape_name].get_src = generic_get_src<shape_name##
 vtables_storage[shape_type_t::shape_name].get_dst = generic_get_dst<shape_name##_t>; \
 vtables_storage[shape_type_t::shape_name].get_outline_size = generic_get_outline_size<shape_name##_t>; \
 vtables_storage[shape_type_t::shape_name].get_colors = get_colors; \
-vtables_storage[shape_type_t::shape_name].set_colors = set_colors;
+vtables_storage[shape_type_t::shape_name].set_colors = set_colors; \
+vtables_storage[shape_type_t::shape_name].get_shader = get_shader; \
+vtables_storage[shape_type_t::shape_name].set_shader = generic_set_shader_kp<shape_name##_t>;
 
   /*vtables_storage[shape_type_t::shape_name].get_size3 = generic_get_size3<shape_name##_t>; \
   vtables_storage[shape_type_t::shape_name].set_size3 = generic_set_size3<shape_name##_t>; \*/
@@ -603,6 +643,13 @@ MAKE_ACCESSORS(flags, uint32_t, false)
 MAKE_ACCESSORS(outline_color, fan::color, false)
 MAKE_ACCESSORS(src, fan::vec3, true)
 MAKE_ACCESSORS(dst, fan::vec2, false)
+MAKE_ACCESSORS(shader, fan::graphics::shader_t, true)
+
+template<typename shape_type>
+static void generic_set_shader_kp(shape_t* s, fan::graphics::shader_t sh) {
+  generic_set_shader<shape_type>(s, sh);
+  set_shader(s, sh);
+}
 
 template<typename shape_type>
 static void generic_set_camera_kp(shape_t* s, fan::graphics::camera_t cam){

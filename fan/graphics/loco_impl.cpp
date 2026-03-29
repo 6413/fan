@@ -39,63 +39,21 @@ module;
 
 module fan.graphics.loco;
 
+import fan.print;
+import fan.window.input;
+
+import fan.camera;
+import fan.memory;
+
+import fan.graphics.common_types;
+
 #if defined(FAN_PHYSICS_2D)
   import fan.graphics.physics_shapes;
 #endif
 #if defined(FAN_GUI)
+  import fan.graphics.gui.types;
+  import fan.graphics.gui.text_logger;
   import fan.graphics.gui.settings_menu;
-#endif
-
-#if defined(FAN_JSON)
-namespace fan {
-  std::pair<size_t, size_t> json_stream_parser_t::find_next_json_bounds(std::string_view s, size_t pos) const noexcept {
-    pos = s.find('{', pos);
-    if (pos == std::string::npos) return {pos, pos};
-
-    int depth = 0;
-    bool in_str = false;
-
-    for (size_t i = pos; i < s.length(); i++) {
-      char c = s[i];
-      if (c == '"' && (i == 0 || s[i - 1] != '\\')) in_str = !in_str;
-      else if (!in_str) {
-        if (c == '{') depth++;
-        else if (c == '}' && --depth == 0) return {pos, i + 1};
-      }
-    }
-    return {pos, std::string::npos};
-  }
-
-  std::vector<json_stream_parser_t::parsed_result> json_stream_parser_t::process(std::string_view chunk) {
-    std::vector<parsed_result> results;
-    buf += chunk;
-    size_t pos = 0;
-
-    while (pos < buf.length()) {
-      auto [start, end] = find_next_json_bounds(buf, pos);
-      if (start == std::string::npos) break;
-      if (end == std::string::npos) {
-        buf = buf.substr(start);
-        break;
-      }
-
-      try {
-        results.push_back({true, fan::json::parse(buf.data() + start, buf.data() + end - start), ""});
-      }
-      catch (const fan::json::parse_error& e) {
-        results.push_back({false, fan::json{}, e.what()});
-      }
-
-      pos = buf.find('{', end);
-      if (pos == std::string::npos) pos = end;
-    }
-
-    buf = pos < buf.length() ? buf.substr(pos) : "";
-    return results;
-  }
-
-  void json_stream_parser_t::clear() noexcept { buf.clear(); }
-}
 #endif
 
 #if defined(FAN_GUI)
@@ -133,7 +91,7 @@ namespace fan::graphics {
     #endif
     }
   #if FAN_DEBUG >= fan_debug_medium
-    fan::throw_error("invalid get");
+    fan::throw_error_impl("invalid get");
   #endif
     return -1;
   }
@@ -2236,21 +2194,8 @@ void loco_t::shape_open(
 }
 #endif
 
-fan::graphics::shader_t loco_t::get_sprite_vertex_shader(const std::string& fragment) {
-  if (get_renderer() == fan::window_t::renderer_t::opengl) {
-    fan::graphics::shader_t shader = shader_create();
-    shader_set_vertex(shader, fan::graphics::read_shader("shaders/opengl/2D/objects/sprite.vs"));
-    shader_set_fragment(shader, fragment);
-    if (!shader_compile(shader)) {
-      shader_erase(shader);
-      shader.sic();
-    }
-    return shader;
-  }
-  else {
-    fan::print("todo");
-  }
-  return {};
+fan::graphics::shader_t loco_t::get_sprite_shader(const std::string& fragment) {
+  return fan::graphics::get_sprite_shader(fragment);
 }
 
 #if defined(FAN_GUI)

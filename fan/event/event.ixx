@@ -9,11 +9,11 @@ module;
 #include <thread>
 
 #include <uv.h>
+#undef min
+#undef max
 
 export module fan.event;
 
-#undef min
-#undef max
 
 import fan.print;
 import fan.utility;

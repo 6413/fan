@@ -28,7 +28,7 @@ export module fan.network;
 #if defined(FAN_NETWORK)
 
 import fan.utility;
-export import fan.event;
+import fan.event;
 import fan.print;
 import fan.types.json;
 import fan.types.fstring;

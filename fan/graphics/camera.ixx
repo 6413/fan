@@ -1,8 +1,9 @@
 export module fan.camera;
 
-export import fan.math;
-export import fan.types.vector;
-export import fan.types.matrix;
+import fan.types;
+import fan.math;
+import fan.types.vector;
+import fan.types.matrix;
 
 export namespace fan {
   struct camera {

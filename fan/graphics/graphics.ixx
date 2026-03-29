@@ -10,46 +10,50 @@ module;
 #include <cmath>
 #include <span>
 
+#define POSITION2_WINDOW_CENTER fan::vec2(fan::graphics::ctx().window->get_size() / 2)
+#define POSITION3_WINDOW_CENTER fan::vec3(POSITION2_WINDOW_CENTER, 0)
+
 export module fan.graphics;
 
-#if defined(FAN_GUI)
-  export import fan.console; // include before common_context:. console_t forward decl
-  export import fan.graphics.gui.text_logger;
-#endif
-
-export import fan.graphics.common_context;
-export import fan.graphics.common_types;
-export import fan.graphics.shapes;
-export import fan.io.directory;
-export import fan.io.file;
-export import fan.time;
-export import fan.window;
-export import fan.window.input_action;
-export import fan.texture_pack.tp0;
-export import fan.graphics.algorithm.raycast_grid;
-export import fan.graphics.algorithm.pathfind;
-export import fan.event;
-export import fan.math;
-import fan.log_dispatcher;
+import fan.types;
+import fan.types.color;
+import fan.types.compile_time_string;
 
 #if defined(FAN_JSON)
   import fan.types.json;
 #endif
 
-import fan.random;
+#if defined(FAN_GUI)
+  import fan.console;
+  import fan.graphics.gui.text_logger;
+#endif
+
+import fan.graphics.common_context;
+import fan.graphics.common_types;
+import fan.graphics.shapes.types;
+import fan.graphics.shapes;
+import fan.graphics.algorithm.raycast_grid;
+import fan.graphics.algorithm.pathfind;
 import fan.graphics.opengl.core;
+import fan.graphics.image_load;
+
+import fan.io.directory;
+import fan.io.file;
+
+import fan.time;
+
+import fan.window.input;
+import fan.window.input_action;
+import fan.window;
+
+import fan.texture_pack.tp0;
+
+import fan.event;
+import fan.math;
+import fan.log_dispatcher;
+
+import fan.random;
 import fan.physics.types;
-
-
-export namespace fan::window {
-  void add_input_action(const int* keys, std::size_t count, const std::string_view& action_name);
-  void add_input_action(std::initializer_list<int> keys, const std::string_view& action_name);
-  void add_input_action(int key, const std::string_view& action_name);
-  bool is_input_action_active(const std::string_view& action_name, int pstate = fan::window::input_action_t::press);
-  bool is_action_clicked(const std::string_view& action_name);
-  bool is_action_down(const std::string_view& action_name);
-  bool exists(const std::string_view& action_name);
-}
 
 export namespace fan::graphics {
   using renderer_t = fan::window_t::renderer_t;
@@ -132,81 +136,14 @@ bool init_fan_track_opengl_print = []() {
 }();
 
 export namespace fan::graphics {
-  std::vector<uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, int image_format, fan::vec2 uvp = 0, fan::vec2 uvs = 1);
-  fan::graphics::image_nr_t image_create();
-  fan::graphics::context_image_t image_get(fan::graphics::image_nr_t nr);
-  uint64_t image_get_handle(fan::graphics::image_nr_t nr);
-  void image_erase(fan::graphics::image_nr_t nr);
-  void image_bind(fan::graphics::image_nr_t nr);
-  void image_unbind(fan::graphics::image_nr_t nr);
-  fan::graphics::image_load_properties_t& image_get_settings(fan::graphics::image_nr_t nr);
-  void image_set_settings(fan::graphics::image_nr_t nr, const fan::graphics::image_load_properties_t& settings);
-  fan::graphics::image_nr_t image_load(const fan::image::info_t& image_info);
-  fan::graphics::image_nr_t image_load(const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p);
-  fan::graphics::image_nr_t image_load(const std::string& path, const std::source_location& callers_path = std::source_location::current());
-  fan::graphics::image_nr_t image_load(const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current());
-  fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size);
-  fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p);
-  fan::graphics::image_nr_t image_load(std::span<const fan::color> colors, const fan::vec2ui& size);
-  void image_unload(fan::graphics::image_nr_t nr);
-  bool is_image_valid(fan::graphics::image_nr_t nr);
-  fan::graphics::image_t image_load_pixel_art(const std::string& path);
-  fan::graphics::image_t image_load_smooth(const std::string& path);
-  fan::graphics::image_nr_t create_missing_texture();
-  fan::graphics::image_nr_t create_transparent_texture();
-  void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info);
-  void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p);
-  void image_reload(fan::graphics::image_nr_t nr, const std::string& path, const std::source_location& callers_path = std::source_location::current());
-  void image_reload(fan::graphics::image_nr_t nr, const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current());
-  fan::graphics::image_nr_t image_create(const fan::color& color);
-  fan::graphics::image_nr_t image_create(const fan::color& color, const fan::graphics::image_load_properties_t& p);
-  std::vector<uint8_t> read_pixels(const fan::vec2& position, const fan::vec2& size);
-  std::vector<uint8_t> read_pixels_from_image(fan::graphics::image_nr_t nr, const fan::vec2& uv_position = 0, const fan::vec2& uv_size = 1);
 
-  fan::graphics::shader_nr_t shader_create();
-  void shader_erase(fan::graphics::shader_nr_t nr);
-  void shader_use(fan::graphics::shader_nr_t nr);
-  void shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string& vertex_code);
-  void shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string& fragment_code);
-  bool shader_compile(fan::graphics::shader_nr_t nr);
 #if defined(FAN_2D)
+  fan::graphics::context_image_t image_get(fan::graphics::image_nr_t nr);
+  std::vector<uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, int image_format, fan::vec2 uvp = 0, fan::vec2 uvs = 1);
+
   fan::graphics::shader_nr_t shader_get_nr(uint16_t shape_type);
   fan::graphics::shader_list_t::nd_t& shader_get_data(uint16_t shape_type);
   bool shader_update_fragment(uint16_t shape_type, const std::string& fragment);
-#endif
-
-  fan::graphics::camera_nr_t camera_create();
-  fan::graphics::context_camera_t& camera_get(fan::graphics::camera_nr_t nr = fan::graphics::get_orthographic_render_view().camera);
-  void camera_erase(fan::graphics::camera_nr_t nr);
-  fan::graphics::camera_nr_t camera_create(const fan::vec2& x, const fan::vec2& y);
-  fan::vec3 camera_get_position(fan::graphics::camera_nr_t nr);
-  void camera_set_position(fan::graphics::camera_nr_t nr, const fan::vec3& cp);
-  fan::vec2 camera_get_size(fan::graphics::camera_nr_t nr);
-  fan::vec2 viewport_get_size(fan::graphics::viewport_nr_t nr = fan::graphics::get_orthographic_render_view().viewport);
-  f32_t camera_get_zoom(fan::graphics::camera_nr_t nr);
-  void camera_set_zoom(fan::graphics::camera_nr_t nr, f32_t new_zoom);
-  void camera_set_ortho(fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y);
-  void camera_set_perspective(fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size);
-  void camera_rotate(fan::graphics::camera_nr_t nr, const fan::vec2& offset);
-  void camera_set_target(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed = 10);
-  void camera_set_target(const fan::vec2& target, f32_t move_speed = 10);
-  void camera_look_at(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed = 10.f);
-  void camera_look_at(const fan::vec2& target, f32_t move_speed = 10.f);
-
-  fan::graphics::viewport_nr_t viewport_create();
-  fan::graphics::viewport_nr_t viewport_create(const fan::vec2& viewport_position, const fan::vec2& viewport_size);
-  fan::graphics::context_viewport_t& viewport_get(fan::graphics::viewport_nr_t nr);
-  void viewport_erase(fan::graphics::viewport_nr_t nr);
-  fan::vec2 viewport_get_position(fan::graphics::viewport_nr_t nr);
-  void viewport_set(const fan::vec2& viewport_position, const fan::vec2& viewport_size);
-  void viewport_set(fan::graphics::viewport_nr_t nr, const fan::vec2& viewport_position, const fan::vec2& viewport_size);
-  void viewport_zero(fan::graphics::viewport_nr_t nr);
-  bool inside(fan::graphics::viewport_nr_t nr, const fan::vec2& position);
-  bool inside_wir(fan::graphics::viewport_nr_t nr, const fan::vec2& position);
-  bool inside(const fan::graphics::render_view_t& render_view, const fan::vec2& position);
-  bool is_mouse_inside(const fan::graphics::render_view_t& render_view);
-
-#if defined(FAN_2D)
 
   using sprite_flags_e = fan::graphics::sprite_flags_e;
 
@@ -234,7 +171,7 @@ export namespace fan::graphics {
 
   struct line_properties_t {
     const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
-    fan::vec3 src = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
+    fan::vec3 src = POSITION3_WINDOW_CENTER;
     fan::vec2 dst = fan::vec2(1, 1);
     fan::color color = fan::color(1, 1, 1, 1);
     f32_t thickness = 4.0f;
@@ -254,7 +191,7 @@ export namespace fan::graphics {
 
   struct rectangle_properties_t {
     const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
-    fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
+    fan::vec3 position = POSITION3_WINDOW_CENTER;
     fan::vec2 size = fan::vec2(32, 32);
     fan::color color = fan::color(1, 1, 1, 1);
     fan::color outline_color = color;
@@ -275,7 +212,7 @@ export namespace fan::graphics {
 
   struct sprite_properties_t {
     const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
-    fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
+    fan::vec3 position = POSITION3_WINDOW_CENTER;
     fan::vec2 size = fan::vec2(32, 32);
     fan::vec3 angle = 0;
     fan::color color = fan::color(1, 1, 1, 1);
@@ -317,7 +254,7 @@ export namespace fan::graphics {
 
   struct unlit_sprite_properties_t {
     const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
-    fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
+    fan::vec3 position = POSITION3_WINDOW_CENTER;
     fan::vec2 size = fan::vec2(32, 32);
     fan::vec3 angle = 0;
     fan::color color = fan::color(1, 1, 1, 1);
@@ -354,7 +291,7 @@ export namespace fan::graphics {
 
   struct circle_properties_t {
     const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
-    fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
+    fan::vec3 position = POSITION3_WINDOW_CENTER;
     f32_t radius = 32.f;
     fan::vec3 angle = 0;
     fan::color color = fan::color(1, 1, 1, 1);
@@ -374,7 +311,7 @@ export namespace fan::graphics {
 
   struct capsule_properties_t {
     const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
-    fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
+    fan::vec3 position = POSITION3_WINDOW_CENTER;
     fan::vec2 center0 = 0;
     fan::vec2 center1 {0.f, 128.f};
     f32_t radius = 64.0f;
@@ -485,8 +422,8 @@ export namespace fan::graphics {
 
   struct shader_shape_properties_t {
     render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
-    fan::vec3 position = 0;
-    fan::vec2 size = 0;
+    fan::vec3 position = POSITION3_WINDOW_CENTER;
+    fan::vec2 size = POSITION2_WINDOW_CENTER;
     fan::vec2 rotation_point = 0;
     fan::color color = fan::colors::white;
     fan::vec3 angle = fan::vec3(0);
@@ -494,16 +431,27 @@ export namespace fan::graphics {
     fan::vec2 tc_position = 0;
     fan::vec2 tc_size = 1;
     fan::graphics::shader_t shader;
-    bool blending = true;
     fan::graphics::image_t image = fan::graphics::ctx().default_texture;
     std::array<fan::graphics::image_t, 30> images;
     uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+    bool blending = true;
     bool enable_culling = true;
   };
 
   struct shader_shape_t : fan::graphics::shapes::shape_t {
     shader_shape_t() = default;
     shader_shape_t(const shader_shape_properties_t& p);
+    shader_shape_t(
+      const fan::str_view_t vertex_shader,
+      const fan::str_view_t fragment_shader,
+      const fan::vec3& position = POSITION3_WINDOW_CENTER,
+      const fan::vec2& size = POSITION2_WINDOW_CENTER
+    );
+    shader_shape_t(
+      const fan::str_view_t fragment_shader, 
+      const fan::vec3& position = POSITION3_WINDOW_CENTER,
+      const fan::vec2& size = POSITION2_WINDOW_CENTER
+    );
   };
 
   struct shadow_properties_t {
@@ -762,7 +710,6 @@ export namespace fan::graphics {
             auto c = child.get_color();
             auto i = child.get_image();
             if (c.a != 1.0f) {
-              fan::print("Alpha changed during drag:", c.a);
               c.a = 1.0f;
               child.set_color(c);
             }

@@ -4,6 +4,7 @@ module;
 
 #include <fan/utility.h>
 
+#include <cstdint>
 #include <cstdlib>
 #include <functional>
 

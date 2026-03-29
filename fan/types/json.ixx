@@ -2,6 +2,7 @@ module;
 
 #include <fan/utility.h>
 #include <string>
+#include <fstream>
 
 // With windows clang build there can be msvc and clang both defined
 #if defined(fan_compiler_msvc) && !defined(fan_compiler_clang)
@@ -295,7 +296,66 @@ export {
         j.save(path);
       }
     };
-  }
+
+    struct json_stream_parser_t {
+      struct parsed_result {
+        fan::json value;
+        std::string error;
+        bool success;
+      };
+
+      [[nodiscard]]
+      std::pair<size_t, size_t> find_next_json_bounds(std::string_view s, size_t pos = 0) const noexcept {
+        pos = s.find('{', pos);
+        if (pos == std::string::npos) return {pos, pos};
+
+        int depth = 0;
+        bool in_str = false;
+
+        for (size_t i = pos; i < s.length(); i++) {
+          char c = s[i];
+          if (c == '"' && (i == 0 || s[i - 1] != '\\')) in_str = !in_str;
+          else if (!in_str) {
+            if (c == '{') depth++;
+            else if (c == '}' && --depth == 0) return {pos, i + 1};
+          }
+        }
+        return {pos, std::string::npos};
+      }
+
+      std::vector<parsed_result> process(std::string_view chunk) {
+        std::vector<parsed_result> results;
+        buf += chunk;
+        size_t pos = 0;
+
+        while (pos < buf.length()) {
+          auto [start, end] = find_next_json_bounds(buf, pos);
+          if (start == std::string::npos) break;
+          if (end == std::string::npos) {
+            buf = buf.substr(start);
+            break;
+          }
+
+          try {
+            results.push_back({fan::json::parse(buf.data() + start, buf.data() + end - start), "", true});
+          }
+          catch (const fan::json::parse_error& e) {
+            results.push_back({fan::json{}, e.what(), false});
+          }
+
+          pos = buf.find('{', end);
+          if (pos == std::string::npos) pos = end;
+        }
+
+        buf = pos < buf.length() ? buf.substr(pos) : "";
+        return results;
+      }
+
+      void clear() noexcept { buf.clear(); }
+
+      std::string buf;
+    };
+  } // namespace fan
 
 
 

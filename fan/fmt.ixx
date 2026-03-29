@@ -19,8 +19,8 @@ module;
 
 export module fan.fmt;
 
-export import fan.print;
-export import fan.types.fstring;
+import fan.print;
+import fan.types.fstring;
 import fan.types.color;
 import fan.types.vector;
 import fan.utility;

@@ -6,7 +6,7 @@ module;
 
 #include <fan/graphics/opengl/init.h>
 #if defined(FAN_VULKAN)
-#include <vulkan/vulkan.h>
+  #include <vulkan/vulkan.h>
 #endif
 #include <fan/event/types.h>
 #include <uv.h>
@@ -14,8 +14,8 @@ module;
 #undef max
 // +cuda
 #if __has_include("cuda.h")
-#include <nvcuvid.h>
-//#define loco_cuda
+  #include <nvcuvid.h>
+  //#define loco_cuda
 #endif
 
 #include <source_location>
@@ -31,60 +31,57 @@ module;
 
 export module fan.graphics.loco;
 
-export import fan.event;
-export import fan.window;
-export import fan.types.color;
-export import fan.random;
-export import fan.texture_pack.tp0;
-export import fan.io.file;
-export import fan.window.input_action;
-export import fan.graphics.common_context;
-export import fan.graphics.shapes;
-export import fan.noise;
-export import fan.graphics.opengl.core;
-export import fan.types.json;        // #if FAN_JSON
+import fan.types;
+import fan.types.color;
+import fan.types.matrix;
+#if defined(FAN_JSON)
+  import fan.types.json;
+#endif
 
+import fan.utility;
+import fan.event;
+import fan.time;
+import fan.random;
+
+import fan.io.file;
+
+import fan.texture_pack.tp0;
+
+import fan.graphics.common_context;
+import fan.graphics.shapes;
+import fan.graphics.image_load;
+import fan.graphics.opengl.core;
 import fan.graphics.input_subsystem;
+import fan.graphics.culling;
+
+import fan.noise;
 
 #if defined(FAN_VULKAN)
-  export import fan.graphics.vulkan.core;
+  import fan.graphics.vulkan.core;
 #endif
+
 #if defined(FAN_GUI)
-  export import fan.console;
-  import fan.graphics.gui.base;      // not export — internal
-  import fan.graphics.gui.text_logger; // not export — internal
+  import fan.console;
+  import fan.graphics.shapes.types;
+  import fan.graphics.gui.base;
+  import fan.graphics.gui.text_logger;
   import fan.graphics.gui.settings_menu;
 #endif
+
 #if defined(FAN_AUDIO)
-  export import fan.graphics.audio_subsystem; // re-exports fan.audio
+  import fan.graphics.audio_subsystem;
 #endif
+
 #if defined(FAN_PHYSICS_2D)
-  export import fan.graphics.physics_subsystem; // re-exports b2_integration + common_context
+  import fan.physics.types;
+  import fan.graphics.physics_subsystem;
 #endif
 
-import fan.graphics.culling;         // internal
-export import fan.physics.collision.rectangle; // keep — user uses collision shapes directly
-
-#if defined(FAN_JSON)
-export namespace fan {
-  struct json_stream_parser_t {
-    std::string buf;
-
-    struct parsed_result {
-      bool success;
-      fan::json value;
-      std::string error;
-    };
-
-    [[nodiscard]]
-    std::pair<size_t, size_t> find_next_json_bounds(std::string_view s, size_t pos = 0) const noexcept;
-
-    std::vector<parsed_result> process(std::string_view chunk);
-
-    void clear() noexcept;
-  };
-}
+#if defined(debug_shape_t)
+  import fan.print;
 #endif
+
+import fan.physics.collision.rectangle;
 
 #if defined(loco_cuda)
 export namespace fan {
@@ -94,10 +91,10 @@ export namespace fan {
         if constexpr (std::is_same_v<decltype(result), CUresult>) {
           const char* err_str = nullptr;
           cuGetErrorString(result, &err_str);
-          fan::throw_error("function failed with:" + std::to_string(result) + ", " + err_str);
+          fan::throw_error_impl("function failed with:" + std::to_string(result) + ", " + err_str);
         }
         else {
-          fan::throw_error("function failed with:" + std::to_string(result) + ", ");
+          fan::throw_error_impl("function failed with:" + std::to_string(result) + ", ");
         }
       }
     }
@@ -218,7 +215,7 @@ public:
     }
   #endif
     else if (window.renderer == fan::window_t::renderer_t::vulkan) {
-      fan::throw_error("todo");
+      fan::throw_error_impl("todo");
     }
   }
   void shader_set_camera(shader_t nr, camera_t camera_nr);
@@ -564,7 +561,7 @@ public:
   );
 #endif
 
-  fan::graphics::shader_t get_sprite_vertex_shader(const std::string& fragment);
+  fan::graphics::shader_t get_sprite_shader(const std::string& fragment);
 
 #if defined(FAN_GUI)
   void toggle_console();

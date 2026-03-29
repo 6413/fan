@@ -10,7 +10,7 @@ module;
 
 export module fan.math;
 
-export import fan.types;
+import fan.types;
 
 import fan.types.compile_time_string;
 

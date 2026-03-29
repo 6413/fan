@@ -3,8 +3,8 @@ module;
 #if defined(FAN_2D)
 
   #if defined(FAN_PHYSICS_2D)
-  #include <fan/utility.h>
-  #include <box2d/box2d.h>
+    #include <fan/utility.h>
+    #include <box2d/box2d.h>
   #endif
 
   #include <vector>
@@ -14,6 +14,7 @@ module;
   #include <cstring>
   #include <source_location>
   #include <coroutine>
+  #include <algorithm>
 
 #endif
 
@@ -29,6 +30,7 @@ import fan.physics.b2_integration;
 import fan.graphics.loco;
 
 #if defined(FAN_GUI)
+  import fan.graphics.gui.text_logger;
   import fan.graphics.gui.base;
 #endif
 

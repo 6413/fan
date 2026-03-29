@@ -4,6 +4,7 @@ module;
 
 #include <fan/graphics/common_context_functions_declare.h>
 
+#include <cstdint>
 #include <cstring>
 #include <string>
 #include <unordered_map>
@@ -20,16 +21,22 @@ module;
 
 export module fan.graphics.common_context;
 
-export import fan.types.color;
-export import fan.graphics.image_load;
-export import fan.camera;
+import fan.types;
+import fan.types.color;
+import fan.types.matrix;
+import fan.types.compile_time_string;
+import fan.camera;
 
 import fan.io.file;
-import fan.window;
-import fan.window.input_action;
+
 import fan.print;
 import fan.utility;
-import fan.types.compile_time_string;
+
+import fan.window;
+import fan.window.input;
+import fan.window.input_action;
+import fan.graphics.image_load;
+
 
 
 #if defined(FAN_GUI)
@@ -559,6 +566,9 @@ export namespace fan::graphics {
     std::string_view path,
     const std::source_location& callers_path = std::source_location::current()
   );
+
+  fan::graphics::shader_t shader_create(const fan::str_view_t vertex, const fan::str_view_t fragment);
+  fan::graphics::shader_t get_sprite_shader(const fan::str_view_t fragment);
 }
 
 export namespace fan {
@@ -593,6 +603,14 @@ export namespace fan {
   }
 
   namespace window {
+    void add_input_action(const int* keys, std::size_t count, const std::string_view& action_name);
+    void add_input_action(std::initializer_list<int> keys, const std::string_view& action_name);
+    void add_input_action(int key, const std::string_view& action_name);
+    bool is_input_action_active(const std::string_view& action_name, int pstate = fan::window::input_action_t::press);
+    bool is_action_clicked(const std::string_view& action_name);
+    bool is_action_down(const std::string_view& action_name);
+    bool exists(const std::string_view& action_name);
+
     fan::vec2 get_input_vector(
       const std::string& forward = fan::actions::move_forward,
       const std::string& back = fan::actions::move_back,
@@ -620,7 +638,89 @@ export namespace fan {
   }
 }
 
+///////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
+
 export namespace fan::graphics {
+  fan::graphics::image_nr_t image_create();
+  uint64_t image_get_handle(fan::graphics::image_nr_t nr);
+  void image_erase(fan::graphics::image_nr_t nr);
+  void image_bind(fan::graphics::image_nr_t nr);
+  void image_unbind(fan::graphics::image_nr_t nr);
+  fan::graphics::image_load_properties_t& image_get_settings(fan::graphics::image_nr_t nr);
+  void image_set_settings(fan::graphics::image_nr_t nr, const fan::graphics::image_load_properties_t& settings);
+  fan::graphics::image_nr_t image_load(const fan::image::info_t& image_info);
+  fan::graphics::image_nr_t image_load(const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p);
+  fan::graphics::image_nr_t image_load(const std::string& path, const std::source_location& callers_path = std::source_location::current());
+  fan::graphics::image_nr_t image_load(const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current());
+  fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size);
+  fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p);
+  fan::graphics::image_nr_t image_load(std::span<const fan::color> colors, const fan::vec2ui& size);
+  void image_unload(fan::graphics::image_nr_t nr);
+  bool is_image_valid(fan::graphics::image_nr_t nr);
+  fan::graphics::image_t image_load_pixel_art(const std::string& path);
+  fan::graphics::image_t image_load_smooth(const std::string& path);
+  fan::graphics::image_nr_t create_missing_texture();
+  fan::graphics::image_nr_t create_transparent_texture();
+  void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info);
+  void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p);
+  void image_reload(fan::graphics::image_nr_t nr, const std::string& path, const std::source_location& callers_path = std::source_location::current());
+  void image_reload(fan::graphics::image_nr_t nr, const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current());
+  fan::graphics::image_nr_t image_create(const fan::color& color);
+  fan::graphics::image_nr_t image_create(const fan::color& color, const fan::graphics::image_load_properties_t& p);
+  std::vector<uint8_t> read_pixels(const fan::vec2& position, const fan::vec2& size);
+  std::vector<uint8_t> read_pixels_from_image(fan::graphics::image_nr_t nr, const fan::vec2& uv_position = 0, const fan::vec2& uv_size = 1);
+
+  fan::graphics::shader_nr_t shader_create();
+  void shader_erase(fan::graphics::shader_nr_t nr);
+  void shader_use(fan::graphics::shader_nr_t nr);
+  void shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string& vertex_code);
+  void shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string& fragment_code);
+  bool shader_compile(fan::graphics::shader_nr_t nr);
+
+  fan::graphics::camera_nr_t camera_create();
+  fan::graphics::context_camera_t& camera_get(fan::graphics::camera_nr_t nr = fan::graphics::get_orthographic_render_view().camera);
+  void camera_erase(fan::graphics::camera_nr_t nr);
+  fan::graphics::camera_nr_t camera_create(const fan::vec2& x, const fan::vec2& y);
+  fan::vec3 camera_get_position(fan::graphics::camera_nr_t nr);
+  void camera_set_position(fan::graphics::camera_nr_t nr, const fan::vec3& cp);
+  fan::vec2 camera_get_size(fan::graphics::camera_nr_t nr);
+  fan::vec2 viewport_get_size(fan::graphics::viewport_nr_t nr = fan::graphics::get_orthographic_render_view().viewport);
+  f32_t camera_get_zoom(fan::graphics::camera_nr_t nr);
+  void camera_set_zoom(fan::graphics::camera_nr_t nr, f32_t new_zoom);
+  void camera_set_ortho(fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y);
+  void camera_set_perspective(fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size);
+  void camera_rotate(fan::graphics::camera_nr_t nr, const fan::vec2& offset);
+  void camera_set_target(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed = 10);
+  void camera_set_target(const fan::vec2& target, f32_t move_speed = 10);
+  void camera_look_at(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed = 10.f);
+  void camera_look_at(const fan::vec2& target, f32_t move_speed = 10.f);
+
+  fan::graphics::viewport_nr_t viewport_create();
+  fan::graphics::viewport_nr_t viewport_create(const fan::vec2& viewport_position, const fan::vec2& viewport_size);
+  fan::graphics::context_viewport_t& viewport_get(fan::graphics::viewport_nr_t nr);
+  void viewport_erase(fan::graphics::viewport_nr_t nr);
+  fan::vec2 viewport_get_position(fan::graphics::viewport_nr_t nr);
+  void viewport_set(const fan::vec2& viewport_position, const fan::vec2& viewport_size);
+  void viewport_set(fan::graphics::viewport_nr_t nr, const fan::vec2& viewport_position, const fan::vec2& viewport_size);
+  void viewport_zero(fan::graphics::viewport_nr_t nr);
+  bool inside(fan::graphics::viewport_nr_t nr, const fan::vec2& position);
+  bool inside_wir(fan::graphics::viewport_nr_t nr, const fan::vec2& position);
+  bool inside(const fan::graphics::render_view_t& render_view, const fan::vec2& position);
+  bool is_mouse_inside(const fan::graphics::render_view_t& render_view);
+
+  ///////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////////////////////////
+
+
   struct next_frame_awaiter {
     bool await_ready() const noexcept { return false; }
     void await_suspend(std::coroutine_handle<> handle) {

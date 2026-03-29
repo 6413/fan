@@ -5,6 +5,7 @@ module;
 
 export module fan.graphics.algorithm.raycast_grid;
 
+import fan.types;
 import fan.types.vector;
 import fan.utility;
 import fan.graphics.common_types;

@@ -7,9 +7,8 @@ module;
 
 export module fan.physics.types;
 
-export import fan.types.vector;
-
-
+import fan.types;
+import fan.types.vector;
 
 export namespace fan::physics {
   // allow aabb build without flag
