@@ -90,17 +90,17 @@ do {                                                                            
 
 #define SHAPE_PROP_SIMPLE(ret, name) \
   ret shapes::shape_t::get_##name() const { \
-    return g_shapes->shape_functions[get_shape_type()].get_##name(this); \
+    return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_##name(this); \
   } \
   void shapes::shape_t::set_##name(const ret& v) { \
-    g_shapes->shape_functions[get_shape_type()].set_##name(this, v); \
+    fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_##name(this, v); \
   }
 
 #define SHAPE_PROP_CULLING(ret, name) \
   ret shapes::shape_t::get_##name() const { \
-    return g_shapes->shape_functions[get_shape_type()].get_##name(this); \
+    return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_##name(this); \
   } \
   void shapes::shape_t::set_##name(const ret& v) { \
-    g_shapes->shape_functions[get_shape_type()].set_##name(this, v); \
+    fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_##name(this, v); \
     update_culling(); \
   }
