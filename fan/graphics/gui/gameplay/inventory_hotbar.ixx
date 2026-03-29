@@ -14,9 +14,10 @@ export module fan.graphics.gui.inventory_hotbar;
 
 import fan.types.vector;
 import fan.graphics.gui.base;
-export import fan.graphics.gui.drag_drop;
-export import fan.graphics.gui.hotbar;
-export import fan.graphics.gui.inventory;
+import fan.graphics.gui.drag_drop;
+import fan.graphics.gui.hotbar;
+import fan.graphics.gui.inventory;
+import fan.graphics.gameplay.types;
 import fan.graphics.gameplay.items;
 
 export namespace fan::graphics::gui {

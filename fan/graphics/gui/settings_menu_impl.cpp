@@ -20,6 +20,7 @@ import fan.types.vector;
 import fan.types.json;
 import fan.graphics.gui.keybinds_menu;
 import fan.audio;
+import fan.memory;
 import fan.io.file;
 import fan.graphics.loco;
 import fan.graphics.gui.base;

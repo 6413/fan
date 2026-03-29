@@ -54,9 +54,9 @@ import fan.types.color;
 #endif
 
 import fan.utility;
-export import fan.print;
-export import fan.graphics.image_load;
-export import fan.graphics.common_context;
+import fan.print;
+import fan.graphics.image_load;
+import fan.graphics.common_context;
 
 #define __fan_internal_camera_list (*fan::graphics::ctx().camera_list)
 #define __fan_internal_shader_list (*fan::graphics::ctx().shader_list)

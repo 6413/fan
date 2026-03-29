@@ -10,8 +10,11 @@ export module fan.graphics.gui.input;
 
 #if defined(FAN_GUI)
 
+import fan.types;
 import fan.types.vector;
 import fan.window.input_common;
+import fan.window.input;
+import fan.graphics.gui.types;
 import fan.graphics.gui.base;
 
 using namespace fan::graphics;

@@ -84,7 +84,7 @@ void open() {
 
     GLFWwindow* dummy_window = glfwCreateWindow(640, 400, "dummy", nullptr, nullptr);
     if (dummy_window == nullptr) {
-      fan::throw_error("failed to open dummy window");
+      fan::throw_error_impl("failed to open dummy window");
     }
 
     glfwMakeContextCurrent(dummy_window);
@@ -220,7 +220,7 @@ void init_framebuffer() {
   fan_opengl_call(glDrawBuffers(std::size(attachments), attachments));
 
   if (!loco.gl.m_framebuffer.ready(loco.context.gl)) {
-    fan::throw_error("framebuffer not ready");
+    fan::throw_error_impl("framebuffer not ready");
   }
 
   static constexpr uint32_t mip_count = 6;
@@ -649,7 +649,7 @@ void add_shape_type(fan::graphics::shaper_t::ShapeTypes_NodeData_t& st, const fa
       break;
     }
     default: {
-      fan::throw_error_impl();
+      fan::throw_error_impl("Invalid GL type");
     }
     }
     ptr_offset += location.size * sizeof_type;
@@ -952,7 +952,7 @@ void shapes_draw() {
         fan::graphics::g_shapes->shaper.BlockManager[current_bmid].FirstBlockNR, 0);
 
       auto process_images = [&](auto& ri) {
-        if (int(!ri.images[0].iic() && ri.images[0] != loco.default_texture)) fan::print("v", fan::graphics::shape_names[shape_type], ri.images[0].gint());
+        //if (int(!ri.images[0].iic() && ri.images[0] != loco.default_texture)) fan::print("v", fan::graphics::shape_names[shape_type], ri.images[0].gint());
         loco.shader_set_value(shader, "has_normal_map", int(!ri.images[0].iic() && ri.images[0] != loco.default_texture));
         loco.shader_set_value(shader, "has_specular_map", int(!ri.images[1].iic() && ri.images[1] != loco.default_texture));
         loco.shader_set_value(shader, "has_occlusion_map", int(!ri.images[2].iic() && ri.images[2] != loco.default_texture));

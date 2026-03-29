@@ -5,12 +5,13 @@ module;
 #include <vector>
 #include <functional>
 #include <coroutine>
+#include <sstream>
 
 export module fan.process;
 
 import fan.event;
-export import fan.print;
-export import fan.log_dispatcher;
+import fan.print;
+import fan.log_dispatcher;
 
 export namespace fan::process {
   inline fan::log_dispatcher_t default_logger() {

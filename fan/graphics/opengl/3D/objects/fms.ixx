@@ -25,9 +25,9 @@ export module fan.graphics.fms;
 
 #if defined(FAN_3D)
 
-export import fan.types.matrix;
-export import fan.print;
-export import fan.graphics;
+import fan.types.matrix;
+import fan.print;
+import fan.graphics;
 
 import fan.graphics.gui.base;
 

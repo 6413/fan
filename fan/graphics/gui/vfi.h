@@ -6,7 +6,7 @@ struct vfi_t {
 
   inline static constexpr shape_type_t shape_type = fan::graphics::shapes::shape_type_t::vfi;
 
-  struct shape_t { // using these on msvc gives intenal compiler error
+  struct shape_t { // using these on msvc gives intenal compiler error 👍
     enum shape {
       always = 0,
       rectangle = 1
@@ -23,8 +23,8 @@ struct vfi_t {
     fan::vec2 size;
     fan::vec3 angle;
     fan::vec2 rotation_point;
-    fan::graphics::viewport_t viewport;
-    fan::graphics::camera_t camera;
+    fan::graphics::viewport_t viewport = fan::graphics::ctx().orthographic_render_view->viewport;
+    fan::graphics::camera_t camera = fan::graphics::ctx().orthographic_render_view->camera;
   };
   struct shape_data_rectangle_t {
     fan::vec2 position;
@@ -287,21 +287,8 @@ struct vfi_t {
     }
     case shape_t::rectangle:{
       instance.shape_data->depth = p.shape.rectangle->position.z;
-      if (p.shape.rectangle->camera.iic()) {
-        instance.shape_data->shape.rectangle->camera = fan::graphics::ctx().orthographic_render_view->camera;
-        fan::print("warning using default camera");
-      }
-      else {
-        instance.shape_data->shape.rectangle->camera = p.shape.rectangle->camera;
-      } 
-      if (p.shape.rectangle->viewport.iic()) {
-        instance.shape_data->shape.rectangle->viewport = fan::graphics::ctx().orthographic_render_view->viewport;
-        fan::print("warning using default viewport");
-      }
-      else {
-        instance.shape_data->shape.rectangle->viewport = p.shape.rectangle->viewport;
-      }
-
+      instance.shape_data->shape.rectangle->camera = p.shape.rectangle->camera;
+      instance.shape_data->shape.rectangle->viewport = p.shape.rectangle->viewport;
       instance.shape_data->shape.rectangle->position = *(fan::vec2*)&p.shape.rectangle->position;
       instance.shape_data->shape.rectangle->angle = p.shape.rectangle->angle;
       instance.shape_data->shape.rectangle->rotation_point = p.shape.rectangle->rotation_point;
@@ -369,10 +356,10 @@ struct vfi_t {
 
   #if FAN_DEBUG >= fan_debug_high
     if (viewport.iic()) {
-      fan::throw_error("invalid viewport");
+      fan::throw_error_impl("invalid viewport");
     }
     if (camera.iic()) {
-      fan::throw_error("invalid camera");
+      fan::throw_error_impl("invalid camera");
     }
   #endif
 
@@ -412,7 +399,7 @@ struct vfi_t {
       return in ? mouse_stage_e::viewport_inside : mouse_stage_e::outside;
     }
     default: {
-      fan::throw_error("invalid shape_type");
+      fan::throw_error_impl("invalid shape_type");
       return mouse_stage_e::outside;
     }
     }
@@ -433,7 +420,7 @@ struct vfi_t {
       return p;
     }
     default: {
-      fan::throw_error("invalid shape type");
+      fan::throw_error_impl("invalid shape type");
       return {};
     }
     }
@@ -635,7 +622,7 @@ struct vfi_t {
       );
     }
     }
-    fan::throw_error("invalid get_position for id");
+    fan::throw_error_impl("invalid get_position for id");
     return 0;
   }
 
@@ -648,7 +635,7 @@ struct vfi_t {
       return;
     }
     }
-    fan::throw_error("invalid set_position for id");
+    fan::throw_error_impl("invalid set_position for id");
   }
 
   fan::vec2 get_size(const fan::graphics::shapes::shape_t& in) {
@@ -658,7 +645,7 @@ struct vfi_t {
       return shape.shape_data->shape.rectangle->size;
     }
     }
-    fan::throw_error("invalid get_position for id");
+    fan::throw_error_impl("invalid get_position for id");
     return 0;
   }
 
@@ -670,7 +657,7 @@ struct vfi_t {
       return;
     }
     }
-    fan::throw_error("invalid set_position for id");
+    fan::throw_error_impl("invalid set_position for id");
   }
 
   void set_angle(fan::graphics::shapes::shape_t& in, const fan::vec3& angle) {
@@ -681,7 +668,7 @@ struct vfi_t {
       return;
     }
     }
-    fan::throw_error("invalid set_position for id");
+    fan::throw_error_impl("invalid set_position for id");
   }
 
   void set_rotation_point(fan::graphics::shapes::shape_t& in, const fan::vec2& rotation_point) {
@@ -692,7 +679,7 @@ struct vfi_t {
       return;
     }
     }
-    fan::throw_error("invalid set_position for id");
+    fan::throw_error_impl("invalid set_position for id");
   }
 
 #pragma pack(push, 1)

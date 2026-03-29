@@ -1,9 +1,8 @@
 module;
 
 #include <fan/utility.h>
-#include <cmath>
+#include <cstdint>
 #include <functional>
-#include <source_location>
 
 #include <cstdio>
 

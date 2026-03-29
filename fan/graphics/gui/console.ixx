@@ -12,12 +12,12 @@ export module fan.console;
 
 #if defined(FAN_GUI)
 
-export import fan.types.color;
+import fan.types.color;
 
 import fan.types.fstring;
 import fan.utility;
 import fan.print;
-export import fan.graphics.common_types;
+import fan.graphics.common_types;
 
 export namespace fan {
   struct console_t;

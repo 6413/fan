@@ -24,10 +24,11 @@ export module fan.graphics.gui.base;
 #if defined(FAN_GUI)
 
 #if defined (FAN_AUDIO)
-import fan.audio;
+  import fan.audio;
 #endif
 
-export import fan.graphics.gui.types;
+import fan.types;
+import fan.graphics.gui.types;
 import fan.types.vector;
 import fan.types.color;
 import fan.types.matrix;

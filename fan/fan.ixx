@@ -2,26 +2,39 @@ export module fan;
 
 export import fan.types;
 export import fan.types.vector;
+export import fan.types.color;
+export import fan.types.matrix;
+export import fan.types.fstring;
+#if defined(FAN_JSON)
+  export import fan.types.json;
+#endif
+export import fan.math;
+export import fan.random;
 export import fan.time;
 export import fan.print;
 export import fan.utility;
 //export import fan.types.masterpiece;
-export import fan.types.matrix;
-export import fan.types.fstring;
 export import fan.io.file;
 export import fan.io.directory;
-#if defined(FAN_JSON)
-  export import fan.types.json;
-#endif
-export import fan.random;
+
+export import fan.window.input;
+export import fan.window.input_common;
+export import fan.window;
+
+export import fan.graphics.image_load;
+
+export import fan.graphics.common_context;
 
 export import fan.graphics.loco;
 export import fan.graphics.gui.settings_menu;
 
 #if defined(FAN_2D)
+  export import fan.graphics.shapes.types;
+  export import fan.graphics.shapes;
   export import fan.graphics;
 #endif
 #if defined(FAN_GUI)
+  export import fan.console;
   export import fan.graphics.gui;
 #endif
 export import fan.texture_pack.tp0;
@@ -39,7 +52,8 @@ export import fan.event;
   export import fan.file_dialog;
   //export import fan.graphics.gui.tilemap_editor.renderer;
   //export import fan.graphics.gui.tilemap_editor.editor;
-  //export import fan.graphics.gui;
+  export import fan.graphics.gui.base;
+  export import fan.graphics.gui;
 #endif
 #if defined(FAN_PHYSICS_2D)
   export import fan.physics.collision.rectangle;
@@ -50,3 +64,6 @@ export import fan.event;
 
 export import fan.graphics.spatial;
 export import fan.process;
+
+export import fan.noise;
+export import fan.graphics.algorithm.pathfind;

@@ -10,7 +10,7 @@ module;
 
 export module fan.window.input_common;
 
-export import fan.window.input;
+import fan.window.input;
 
 export namespace fan {
   namespace window {

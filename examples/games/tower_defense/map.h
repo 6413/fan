@@ -16,16 +16,18 @@ struct base_t {
   fan::vec2 pos;
   int   hp = 1000, max_hp = 1000;
   f32_t gold_rate = 20.f, gold_accum = 0.f;
-  fan::time::interval_t spawn_interval{8.f};
 };
 
 struct unit_t {
-  sprite_t    sprite;
-  int         id = -1, def_idx = 0, health, damage, target_id = -1;
-  f32_t       speed, attack_cd = 0.f;
-  bool        dead = false;
+  sprite_t sprite;
+  int      id = -1, def_idx = 0, health, damage, target_id = -1;
+  f32_t    speed, attack_cd = 0.f;
+  bool     dead = false;
   enum struct team_t  { player, enemy } team;
   enum struct state_t { moving, fighting } state = state_t::moving;
+
+  void go_moving()  { if (state == state_t::moving)   return; state = state_t::moving;   sprite.play_sprite_sheet("run"); }
+  void go_fighting(){ if (state == state_t::fighting)  return; state = state_t::fighting; sprite.play_sprite_sheet("attack"); }
 };
 
 // ---- state ----
@@ -49,28 +51,6 @@ unit_t* find_unit(int id) {
   if (it == id_to_idx.end()) return nullptr;
   unit_t& u = units[it->second];
   return u.dead ? nullptr : &u;
-}
-
-fan::physics::aabb_t unit_aabb(const unit_t& u) {
-  fan::vec2 p = u.sprite.get_position(), hs = u.sprite.get_size().abs() / 2.f;
-  return {p - hs, p + hs};
-}
-
-void go_moving(unit_t& u)  { u.state = unit_t::state_t::moving;  u.sprite.play_sprite_sheet("run"); }
-void go_fighting(unit_t& u){ u.state = unit_t::state_t::fighting; u.sprite.play_sprite_sheet_once("attack"); }
-
-fan::vec2 separation_force(int idx) {
-  fan::vec2 sep{}, p = units[idx].sprite.get_position();
-  const f32_t R = 28.f;
-  spatial::query_radius(dynamic_grid, p, R, [&](int id) {
-    if (id == units[idx].id) return;
-    unit_t* o = find_unit(id);
-    if (!o) return;
-    fan::vec2 d = p - o->sprite.get_position();
-    f32_t len = d.length();
-    if (len > 0.001f && len < R) sep += d / len * (R - len);
-  });
-  return sep;
 }
 
 // ---- spawn ----
@@ -97,7 +77,8 @@ void update_unit(int idx, f32_t dt) {
   if (u.dead) return;
 
   fan::vec2 p = u.sprite.get_position();
-  spatial::upsert_object(registry, static_grid, dynamic_grid, u.id, unit_aabb(u), spatial::movement_dynamic);
+  spatial::upsert_object(registry, static_grid, dynamic_grid, u.id,
+                         u.sprite.get_aabb(), spatial::movement_dynamic);
   u.attack_cd = std::max(0.f, u.attack_cd - dt);
 
   if (u.target_id != -1 && !find_unit(u.target_id)) u.target_id = -1;
@@ -107,7 +88,11 @@ void update_unit(int idx, f32_t dt) {
     });
 
   base_t& foe = foe_of(u);
-  fan::vec2 sep = separation_force(idx);
+  fan::vec2 sep = spatial::separation_force(dynamic_grid, u.id, p, 28.f,
+    [&](int id) -> fan::vec2 {
+      unit_t* o = find_unit(id);
+      return o ? fan::vec2(o->sprite.get_position()) : p;
+    });
 
   if (u.state == unit_t::state_t::fighting) {
     if (!u.sprite.is_sprite_sheet_finished()) return;
@@ -116,7 +101,7 @@ void update_unit(int idx, f32_t dt) {
       if ((t->sprite.get_position() - p).length() < 50.f) {
         if (u.attack_cd == 0.f) {
           u.attack_cd = 0.6f;
-          go_fighting(u);
+          u.go_fighting();
           if ((t->health -= u.damage) <= 0) {
             t->dead = true; t->sprite.set_color({0,0,0,0});
             spatial::remove_and_clean(registry, static_grid, dynamic_grid, t->id);
@@ -126,31 +111,32 @@ void update_unit(int idx, f32_t dt) {
         }
         return;
       }
-      go_moving(u); return;
+      u.go_moving(); return;
     }
 
     if (std::abs(foe.pos.x - p.x) < 60.f && u.attack_cd == 0.f) {
-      u.attack_cd = 0.6f; go_fighting(u);
+      u.attack_cd = 0.6f;
+      u.go_fighting();
       foe.hp = std::max(0, foe.hp - u.damage);
       return;
     }
-    go_moving(u); return;
+    u.go_moving(); return;
   }
 
   if (unit_t* t = find_unit(u.target_id)) {
-    if ((t->sprite.get_position() - p).length() < 40.f) { go_fighting(u); return; }
+    if ((t->sprite.get_position() - p).length() < 40.f) { u.go_fighting(); return; }
     u.sprite.move_towards(t->sprite.get_position() + sep * 0.3f, {u.speed, u.speed}, {-1.f, 0.f});
     return;
   }
 
-  if (std::abs(foe.pos.x - p.x) < 60.f) { go_fighting(u); return; }
+  if (std::abs(foe.pos.x - p.x) < 60.f) { u.go_fighting(); return; }
   u.sprite.move_towards(fan::vec2{foe.pos.x, p.y} + sep * 0.3f, {u.speed, u.speed}, {-1.f, 0.f});
 }
 
 // ---- ai / gold / gui ----
 
 void enemy_ai_tick(f32_t dt) {
-  if (!enemy_base.spawn_interval.tick(dt)) return;
+  if (!fan::time::every(8000.f)) return;
   int r = fan::random::value(0, 99);
   spawn_unit(unit_t::team_t::enemy, r < 60 ? 0 : r < 88 ? 1 : 2);
 }
@@ -206,7 +192,6 @@ void open(void* sod) {
     base.sprite = shape_from_json("rat.json");
     base.sprite.set_position(pos);
     base.sprite.set_size(base.sprite.get_size() * 0.5f);
-    base.spawn_interval = fan::time::interval_t{8.f};
   };
   init_base(player_base, {80.f,        vs.y / 2.f});
   init_base(enemy_base,  {vs.x - 80.f, vs.y / 2.f});
@@ -217,7 +202,8 @@ void close() {}
 void update() {
   f32_t dt = pile.engine.get_delta_time();
   if (enemy_base.hp > 0 && player_base.hp > 0) {
-    tick_gold(dt); enemy_ai_tick(dt);
+    tick_gold(dt);
+    enemy_ai_tick(dt);
     for (auto& u : pending_units) { id_to_idx[u.id] = (int)units.size(); units.push_back(std::move(u)); }
     pending_units.clear();
     int n = (int)units.size();

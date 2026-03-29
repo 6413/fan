@@ -1,16 +1,23 @@
 module;
 #if defined(FAN_GUI)
-#include <deque>
-#include <string>
+  #include <deque>
+  #include <string>
 #endif
+
 export module fan.graphics.gui.settings_menu;
+
 #if defined(FAN_GUI)
+
+import fan.types;
 import fan.types.vector;
 import fan.types.color;
 import fan.types.json;
+import fan.time;
 import fan.window;
+import fan.graphics.gui.types;
 import fan.graphics.gui.keybinds_menu;
 import fan.graphics.gui.base;
+
 export namespace fan::graphics::gui {
   struct settings_config_t {
     struct display_settings_t {

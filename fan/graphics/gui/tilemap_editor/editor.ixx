@@ -24,10 +24,10 @@ export module fan.graphics.gui.tilemap_editor.editor;
 
 import fan.graphics.gui;
 
-import fan.graphics.algorithm.raycast_grid;
 import fan.types.color;
 import fan.types.vector;
 import fan.types.json;
+import fan.math;
 import fan.print;
 import fan.file_dialog;
 import fan.io.file;
@@ -36,6 +36,11 @@ import fan.random;
 import fan.physics.b2_integration;
 import fan.physics.collision.rectangle;
 import fan.graphics.physics_shapes;
+import fan.graphics.shapes;
+import fan.graphics.algorithm.raycast_grid;
+import fan.texture_pack.tp0;
+import fan.graphics.gui.base;
+import fan.graphics.gui.text_logger;
 
 export struct fte_t {
   static constexpr int max_id_len = 48;

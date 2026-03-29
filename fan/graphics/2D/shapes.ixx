@@ -14,18 +14,24 @@ module;
 
 export module fan.graphics.shapes;
 
-export import fan.graphics.shapes.types;
+import fan.types;
+import fan.types.color;
+import fan.types.vector;
+import fan.types.matrix;
+
+import fan.graphics.shapes.types;
 
 import fan.graphics.opengl.core;
-import fan.types.vector;
 import fan.texture_pack.tp0;
 import fan.graphics.common_context;
 import fan.io.file;
 import fan.window;
+import fan.window.input;
 import fan.time;
 import fan.utility;
 import fan.physics.collision.rectangle;
 import fan.physics.collision.circle;
+import fan.math;
 
 import fan.types.fstring;
 
@@ -63,6 +69,7 @@ import fan.physics.types; // aabb
 
 export namespace fan::graphics {
 
+  // should be in some common_context.ixx, but backends include it and the types inside here are defined after it
   struct context_shader_t {
     context_shader_t() {}
     ~context_shader_t() {}
@@ -491,6 +498,9 @@ export namespace fan::graphics {
       void move_to_position(const fan::vec2& target, f32_t seconds = 1.f);
       void move_towards(const fan::vec2& target, const fan::vec2& speed, const fan::vec2& image_orientation = {1.f, 1.f});
 
+      fan::graphics::shader_t get_shader() const;
+      void set_shader(const fan::graphics::shader_t shader);
+
       //vram
       //_d = decltype usage decltype(itself)
       template <typename T>
@@ -514,7 +524,6 @@ export namespace fan::graphics {
         auto& vbo = get_shape_type_data().renderer.gl.m_vbo;
         get_shape_type_data().renderer.gl.m_vao.bind(*(fan::opengl::context_t*)ctx().render_context);
         vbo.bind(*(fan::opengl::context_t*)ctx().render_context);
-        fan::print("reading from buffer:", vbo.m_buffer, NRI);
         auto& data = g_shapes->shaper.ShapeList[get_visual_id()];
         uintptr_t instance_offset = g_shapes->shaper.GetRenderDataOffset(data.sti, data.blid);
 
@@ -591,7 +600,7 @@ export namespace fan::graphics {
           }
         });
         if (!result) {
-          fan::throw_error("properties_t not available for this shape");
+          fan::throw_error_impl("properties_t not available for this shape");
         }
         return *result;
       }
@@ -1677,7 +1686,7 @@ export namespace fan::graphics {
         #undef X
         #undef SKIP
       default:
-        fan::throw_error("invalid shape_type");
+        fan::throw_error_impl("invalid shape_type");
       }
     }
 
@@ -1691,7 +1700,7 @@ export namespace fan::graphics {
         auto& typed = *static_cast<CONCAT3(name, _, list_t)*>(list); \
         (*fn)(typed, sd); \
       },
-      #define SKIP(x) +[](void*, shape_list_data_t&, Fn*) { fan::throw_error("unsupported/disabled shape_type in dispatch"); },
+      #define SKIP(x) +[](void*, shape_list_data_t&, Fn*) { fan::throw_error_impl("unsupported/disabled shape_type in dispatch"); },
         GEN_SHAPES(X, SKIP)
       #undef X
       #undef SKIP
@@ -1720,7 +1729,7 @@ export namespace fan::graphics {
 
       auto* list_ptr = get_list_ptr(st);
       if (list_ptr == nullptr) {
-        fan::throw_error("shape_list_table entry is null (skipped shape type)");
+        fan::throw_error_impl("shape_list_table entry is null (skipped shape type)");
       }
       auto* thunk_table = get_thunk_table_ptr<Fn>();
       thunk_table[st](list_ptr, sd, &f);
@@ -1745,7 +1754,7 @@ export namespace fan::graphics {
       switch (sd.shape_type) {
         GEN_SHAPES(CASE, SKIP)
       default:
-        fan::throw_error("invalid shape_type");
+        fan::throw_error_impl("invalid shape_type");
       }
 
     #undef CASE
@@ -1800,7 +1809,7 @@ export namespace fan::graphics {
       switch (sd.shape_type) {
         GEN_SHAPES(CASE, SKIP)
       default:
-        fan::throw_error("invalid shape_type");
+        fan::throw_error_impl("invalid shape_type");
       }
 
     #undef CASE

@@ -8,12 +8,11 @@ module;
 #include <iterator>
 #include <source_location>
 #include <set>
-#include <stacktrace>
-#include <map>
 #include <functional> // raii_nr_t
 #include <cstring>
+#include <chrono>
+#include <fstream>
 
-#include <mutex>
 
 namespace raii_build {
   #include <fan/types/raii_nr.h>
@@ -21,8 +20,8 @@ namespace raii_build {
 
 export module fan.utility;
 
-export import fan.memory;
-export import fan.time;
+import fan.memory;
+import fan.time;
 
 export namespace fan {
   template <typename T, typename = void>
@@ -364,8 +363,38 @@ namespace fan {
     std::int64_t member_offset(U T::* member) {
       return reinterpret_cast<std::int64_t>(
         &(reinterpret_cast<T const volatile*>(0)->*member)
-        );
+      );
     }
+
+    struct log_t {
+    std::string filename = "fan_errors.txt";
+  };
+
+  log_t& get_error_log() {
+    static log_t log;
+    return log;
+  }
+
+  void write_error_to_disk(const std::string& msg) {
+    auto& log = get_error_log();
+
+    auto now = std::chrono::system_clock::now();
+    std::time_t t = std::chrono::system_clock::to_time_t(now);
+
+    // format: YYYY-MM-DD HH:MM:SS ISO‑8601
+    std::tm tm {};
+  #ifdef _WIN32
+    localtime_s(&tm, &t);
+  #else
+    localtime_r(&t, &tm);
+  #endif
+
+    std::ostringstream oss;
+    oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
+
+    std::ofstream out(log.filename, std::ios::binary | std::ios::app);
+    out << oss.str() << " - " << msg << '\n';
+  }
 
   #ifndef __throw_error_impl
   #define __throw_error_impl throw_error_impl
@@ -419,7 +448,6 @@ namespace fan {
 
 
 export namespace fan {
-  using fan::write_error_to_disk;
 
   void* memory_profile_malloc_cb(std::size_t n) {
     return fan::memory::heap_profiler_t::instance().allocate_memory(n);

@@ -12,8 +12,12 @@ export module fan.graphics.gui.drag_drop;
 
 #if defined(FAN_GUI)
 
+import fan.types.vector;
+import fan.types.color;
+import fan.window.input;
+
+import fan.graphics.common_context;
 import fan.graphics.gui.base;
-import fan.graphics;
 import fan.graphics.gui.input;
 import fan.graphics.gameplay.types;
 import fan.graphics.gameplay.items;

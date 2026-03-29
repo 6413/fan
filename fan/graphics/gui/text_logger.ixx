@@ -10,13 +10,16 @@ module;
 export module fan.graphics.gui.text_logger;
 
 #if defined(FAN_GUI)
-import fan.graphics.common_context;
+import fan.types;
 import fan.types.color;
 import fan.types.vector;
 import fan.fmt;
 import fan.time;
 import fan.math;
+import fan.graphics.common_context;
+import fan.graphics.gui.types;
 import fan.graphics.gui.base;
+import fan.print;
 
 export namespace fan::graphics::gui {
   struct text_logger_t {

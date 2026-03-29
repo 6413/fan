@@ -5,7 +5,9 @@ module;
 
 export module fan.random;
 
-export import fan.types.vector;
+import fan.types;
+import fan.math;
+import fan.types.vector;
 
 export namespace fan {
 

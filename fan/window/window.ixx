@@ -17,6 +17,7 @@ module;
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 
+#include <cstdint>
 #include <functional>
 #include <cstdlib>
 #include <string>
@@ -24,10 +25,12 @@ module;
 
 export module fan.window;
 
+import fan.types;
 import fan.print;
-export import fan.utility;
-export import fan.graphics.image_load;
-export import fan.window.input_common;
+import fan.utility;
+import fan.graphics.image_load;
+import fan.window.input_common;
+import fan.window.input;
 
 export import fan.types.vector;
 

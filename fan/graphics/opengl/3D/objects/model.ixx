@@ -9,9 +9,9 @@ export module fan.graphics.opengl3D.objects.model;
 #include <fan/graphics/opengl/init.h>
 
 export module fan.graphics.opengl3D.objects.model;
-export import fan.graphics;
-export import fan.graphics.fms;
-export import fan.graphics.gui;
+import fan.graphics;
+import fan.graphics.fms;
+import fan.graphics.gui;
 import fan.graphics.opengl.core;
 
 namespace fan {

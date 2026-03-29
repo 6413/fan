@@ -9,7 +9,9 @@ module;
 
 export module fan.types.quaternion;
 
-export import fan.types.vector;
+import fan.types;
+import fan.types.vector;
+import fan.math;
 
 export namespace fan {
 

@@ -18,6 +18,20 @@ import fan.event;
 
 namespace fan::graphics {
 
+  struct dialog_t {
+    dialog_t& open_file  (std::string_view filter, file_cb_t  on_done, dismissed_cb_t on_dismissed = {});
+    dialog_t& open_files (std::string_view filter, files_cb_t on_done, dismissed_cb_t on_dismissed = {});
+    dialog_t& save_file  (std::string_view filter, file_cb_t  on_done, dismissed_cb_t on_dismissed = {});
+    dialog_t& open_folder(                         file_cb_t  on_done, dismissed_cb_t on_dismissed = {});
+
+    bool        pending()   const;
+    void        cancel();
+    std::string last_path() const;
+
+    struct state_t;
+    std::shared_ptr<state_t> s;
+  };
+
   struct dialog_t::state_t {
     std::shared_ptr<state_t>  self;
     std::mutex                mtx;

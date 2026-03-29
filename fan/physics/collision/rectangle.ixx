@@ -7,7 +7,9 @@ export module fan.physics.collision.rectangle;
 
 import fan.types;
 import fan.physics.collision.triangle;
+import fan.types.vector;
 import fan.types.matrix;
+import fan.math;
 
 export namespace fan_2d {
 

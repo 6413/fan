@@ -13,8 +13,8 @@ module;
 
 export module fan.window.input_action;
 
-export import fan.window.input;
-export import fan.window;
+import fan.window.input;
+import fan.window;
 import fan.types.compile_time_string;
 
 export namespace fan::window {
