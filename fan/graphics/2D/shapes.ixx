@@ -70,6 +70,14 @@ import fan.physics.types; // aabb
 
 #endif
 
+struct shape_functions_t;
+struct shape_functions_vtable_t;
+
+struct shape_functions_accessor_t {
+  shape_functions_t* ptr = nullptr;
+  shape_functions_vtable_t& operator[](uint16_t shape_type);
+};
+
 export namespace fan::graphics {
 
   // should be in some common_context.ixx, but backends include it and the types inside here are defined after it
@@ -291,7 +299,6 @@ export namespace fan::graphics {
       return fan::graphics::g_shapes->shaper.add(sti, &a, s, &rd, &d);
     }
 
-    #include "shapes.h"
     using shape_type_t = fan::graphics::shape_type_t;
 
     // key pack
@@ -304,9 +311,8 @@ export namespace fan::graphics {
       };
     };
 
-    #include <fan/graphics/shape_functions.h>
-
-    shape_functions_t shape_functions;
+    static shape_functions_t& get_shape_functions();
+    static shape_t shape_functions_push_back(uint16_t shape_type, void* properties);
 
     struct shape_t : public shaper_t::ShapeID_t {
       using shaper_t::ShapeID_t::ShapeID_t;
@@ -315,7 +321,7 @@ export namespace fan::graphics {
         requires requires(T t) { typename T::type_t; }
       shape_t(const T& properties, bool add_to_culling = true) : shape_t() {
         auto shape_type = T::type_t::shape_type;
-        *this = fan::graphics::g_shapes->shape_functions[shape_type].push_back((void*)&properties);
+        *this = fan::graphics::shapes::shape_functions_push_back(shape_type, (void*)&properties);
 
         //fan::print_throttled("setting static");
         if (fan::graphics::g_shapes->culling_enabled() && add_to_culling) {
@@ -1620,64 +1626,67 @@ export namespace fan::graphics {
 
     using shape_nr_t = decltype(shaper_t::ShapeID_t::NRI);
 
-  #define shape sprite
-  #include "build_shape_list.h"
-  #define shape text
-  #include "build_shape_list.h"
-  #define shape line
-  #include "build_shape_list.h"
-  #define shape rectangle
-  #include "build_shape_list.h"
-  #define shape light
-  #include "build_shape_list.h"
-  #define shape unlit_sprite
-  #include "build_shape_list.h"
-  #define shape circle
-  #include "build_shape_list.h"
-  #define shape capsule
-  #include "build_shape_list.h"
-  #define shape polygon
-  #include "build_shape_list.h"
-  #define shape grid
-  #include "build_shape_list.h"
-  #define shape vfi
-  #include "build_shape_list.h"
-  #define shape particles
-  #include "build_shape_list.h"
-  #define shape universal_image_renderer
-  #include "build_shape_list.h"
-  #define shape gradient
-  #include "build_shape_list.h"
-  #define shape shader_shape
-  #include "build_shape_list.h"
-  #if defined(FAN_3D)
-  #define shape rectangle3d
-  #include "build_shape_list.h"
-  #define shape line3d
-  #include "build_shape_list.h"
-  #endif
-  #define shape shadow
-  #include "build_shape_list.h"
+    #include "shapes.h"
 
-  #undef shape
 
-  struct shape_list_data_t {
-    shape_nr_t data_nr;
-    shapes::shape_t visual;
-    uint8_t shape_type;
-  };
+    #define shape sprite
+    #include "build_shape_list.h"
+    #define shape text
+    #include "build_shape_list.h"
+    #define shape line
+    #include "build_shape_list.h"
+    #define shape rectangle
+    #include "build_shape_list.h"
+    #define shape light
+    #include "build_shape_list.h"
+    #define shape unlit_sprite
+    #include "build_shape_list.h"
+    #define shape circle
+    #include "build_shape_list.h"
+    #define shape capsule
+    #include "build_shape_list.h"
+    #define shape polygon
+    #include "build_shape_list.h"
+    #define shape grid
+    #include "build_shape_list.h"
+    #define shape vfi
+    #include "build_shape_list.h"
+    #define shape particles
+    #include "build_shape_list.h"
+    #define shape universal_image_renderer
+    #include "build_shape_list.h"
+    #define shape gradient
+    #include "build_shape_list.h"
+    #define shape shader_shape
+    #include "build_shape_list.h"
+    #if defined(FAN_3D)
+    #define shape rectangle3d
+    #include "build_shape_list.h"
+    #define shape line3d
+    #include "build_shape_list.h"
+    #endif
+    #define shape shadow
+    #include "build_shape_list.h"
 
-  #define BLL_set_AreWeInsideStruct 1 
-  #define BLL_set_prefix shape_ids 
-  #include <fan/fan_bll_preset.h> 
-  #define BLL_set_Link 1 
-  #define BLL_set_type_node shape_nr_t
-  #define BLL_set_NodeDataType shape_list_data_t
-  #include <BLL/BLL.h>
+    #undef shape
+
+    struct shape_list_data_t {
+      shape_nr_t data_nr;
+      shapes::shape_t visual;
+      uint8_t shape_type;
+    };
+
+    #define BLL_set_AreWeInsideStruct 1 
+    #define BLL_set_prefix shape_ids 
+    #include <fan/fan_bll_preset.h> 
+    #define BLL_set_Link 1 
+    #define BLL_set_type_node shape_nr_t
+    #define BLL_set_NodeDataType shape_list_data_t
+    #include <BLL/BLL.h>
   
-  shape_ids_t shape_ids;
+    shape_ids_t shape_ids;
 
-  #define get_shape_list(name) CONCAT3(name, _, list)
+    #define get_shape_list(name) CONCAT3(name, _, list)
 
     using get_list_fn_t = void*(*)(shapes*);
 
