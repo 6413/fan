@@ -50,7 +50,142 @@ import fan.io.file;
 #include "shapes.h"
 #include <fan/graphics/shape_functions.h>
 
+template<typename T>
+struct shape_pool_t {
+  uint32_t alloc(const T& val) {
+    if (!free_ids.empty()) {
+      uint32_t id = free_ids.back();
+      free_ids.pop_back();
+      slots[id] = val;
+      return id;
+    }
+    slots.push_back(val);
+    return (uint32_t)slots.size() - 1;
+  }
+  void free(uint32_t id) {
+    slots[id] = T{};
+    free_ids.push_back(id);
+  }
+  T& get(uint32_t id) { return slots[id]; }
+  std::vector<T> slots;
+  std::vector<uint32_t> free_ids;
+};
+
+template<typename T>
+static shape_pool_t<T>& get_pool(void*& ptr) {
+  if (!ptr) { ptr = new shape_pool_t<T>(); }
+  return *static_cast<shape_pool_t<T>*>(ptr);
+}
+
+template<typename props_t>
+fan::graphics::shapes::shape_ids_t::nr_t add_shape(uint8_t st, const props_t& props) {
+  auto gnr = fan::graphics::g_shapes->shape_ids.NewNodeLast();
+  fan::graphics::g_shapes->shape_ids[gnr] = {
+    .data_nr = (uint32_t)0,
+    .shape_type = st
+  };
+  return gnr;
+}
+
+template<typename props_t>
+props_t& get_props(uint16_t st, uint32_t data_nr) {
+  return *static_cast<props_t*>(
+    fan::graphics::g_shapes->shape_props_getters[st](fan::graphics::g_shapes->shape_pool_storage[st], data_nr)
+  );
+}
+
 namespace fan::graphics {
+
+  template <typename props_t>
+  static void init_shape_pool(shapes* s, uint8_t st) {
+    auto* pool = new shape_pool_t<props_t>();
+    s->shape_pool_storage[st] = pool;
+
+    s->shape_props_getters[st] = [](void* p, uint32_t id) -> void* {
+      return &static_cast<shape_pool_t<props_t>*>(p)->get(id);
+    };
+    s->shape_props_freers[st] = [](void* p, uint32_t id) {
+      static_cast<shape_pool_t<props_t>*>(p)->free(id);
+    };
+    s->shape_props_copiers[st] = [](void* p, uint32_t src_id) -> uint32_t {
+      return static_cast<shape_pool_t<props_t>*>(p)->alloc(
+        static_cast<shape_pool_t<props_t>*>(p)->get(src_id)
+      );
+    };
+    s->shape_props_allocers[st] = [](void* p, const void* src) -> uint32_t {
+      return static_cast<shape_pool_t<props_t>*>(p)->alloc(*static_cast<const props_t*>(src));
+    };
+    s->shape_post_copy_fixups[st] = nullptr;
+  }
+
+  void shapes::shapes_init_pools(shapes* s) {
+    init_shape_pool<shapes::sprite_t::properties_t>        (s, shape_type_t::sprite);
+    init_shape_pool<shapes::text_t::properties_t>          (s, shape_type_t::text);
+    init_shape_pool<shapes::line_t::properties_t>          (s, shape_type_t::line);
+    init_shape_pool<shapes::rectangle_t::properties_t>     (s, shape_type_t::rectangle);
+    init_shape_pool<shapes::light_t::properties_t>         (s, shape_type_t::light);
+    init_shape_pool<shapes::unlit_sprite_t::properties_t>  (s, shape_type_t::unlit_sprite);
+    init_shape_pool<shapes::circle_t::properties_t>        (s, shape_type_t::circle);
+    init_shape_pool<shapes::capsule_t::properties_t>       (s, shape_type_t::capsule);
+    init_shape_pool<shapes::polygon_t::properties_t>       (s, shape_type_t::polygon);
+    init_shape_pool<shapes::grid_t::properties_t>          (s, shape_type_t::grid);
+    init_shape_pool<shapes::vfi_t::properties_t>           (s, shape_type_t::vfi);
+    init_shape_pool<shapes::particles_t::properties_t>     (s, shape_type_t::particles);
+    init_shape_pool<shapes::universal_image_renderer_t::properties_t>(s, shape_type_t::universal_image_renderer);
+    init_shape_pool<shapes::gradient_t::properties_t>      (s, shape_type_t::gradient);
+    init_shape_pool<shapes::shader_shape_t::properties_t>  (s, shape_type_t::shader_shape);
+    init_shape_pool<shapes::shadow_t::properties_t>        (s, shape_type_t::shadow);
+  #if defined(FAN_3D)
+    init_shape_pool<shapes::rectangle3d_t::properties_t>   (s, shape_type_t::rectangle3d);
+    init_shape_pool<shapes::line3d_t::properties_t>        (s, shape_type_t::line3d);
+  #endif
+
+    // sprite and unlit_sprite need post-copy fixup for sprite_sheet_data.frame_update_nr
+    s->shape_post_copy_fixups[shape_type_t::sprite] = [](void* p, uint32_t id) {
+      auto& props = static_cast<shape_pool_t<shapes::sprite_t::properties_t>*>(p)->get(id);
+      if constexpr (requires { props.sprite_sheet_data.frame_update_nr; }) {
+        props.sprite_sheet_data.frame_update_nr.sic();
+      }
+    };
+    s->shape_post_copy_fixups[shape_type_t::unlit_sprite] = [](void* p, uint32_t id) {
+      auto& props = static_cast<shape_pool_t<shapes::unlit_sprite_t::properties_t>*>(p)->get(id);
+      if constexpr (requires { props.sprite_sheet_data.frame_update_nr; }) {
+        props.sprite_sheet_data.frame_update_nr.sic();
+      }
+    };
+  }
+  shapes::shape_ids_t::nr_t shapes::add_shape_impl(uint8_t st, const void* props_ptr) {
+    auto gnr = shape_ids.NewNodeLast();
+    fan::graphics::g_shapes->shape_ids[gnr] = {
+      .data_nr = shape_props_allocers[st](shape_pool_storage[st], props_ptr),
+      .shape_type = st
+    };
+    return gnr;
+  }
+
+  shapes::shape_ids_t::nr_t shapes::clone_shape(shape_nr_t src_id) {
+    shapes::shape_ids_t::nr_t src_gid;
+    src_gid.gint() = src_id;
+    auto& src_sd = fan::graphics::g_shapes->shape_ids[src_gid];
+
+    uint32_t new_data_nr = shape_props_copiers[src_sd.shape_type](
+      shape_pool_storage[src_sd.shape_type], src_sd.data_nr
+    );
+
+    if (shape_post_copy_fixups[src_sd.shape_type]) {
+      shape_post_copy_fixups[src_sd.shape_type](
+        shape_pool_storage[src_sd.shape_type], new_data_nr
+      );
+    }
+
+    auto gnr = fan::graphics::g_shapes->shape_ids.NewNodeLast();
+    fan::graphics::g_shapes->shape_ids[gnr] = {
+      .data_nr = new_data_nr,
+      .shape_type = src_sd.shape_type
+    };
+    return gnr;
+  }
+
 
   // warning does deep copy, addresses can die
   fan::graphics::context_shader_t shader_get(fan::graphics::shader_nr_t nr) {
@@ -568,32 +703,25 @@ namespace fan::graphics{
     s.sic();
   }
   shapes::shape_t::shape_t(const shaper_t::ShapeID_t& s) : shape_t() {
-    if (s.iic()) {
-      return;
-    }
+    if (s.iic()) { return; }
 
-    shape_nr_t new_raw;
-    auto src_move = fan::graphics::culling::get_movement(*((fan::graphics::culling::culling_t*)g_shapes->visibility), *static_cast<const shaper_t::ShapeID_t*>(&s));
+    auto src_move = fan::graphics::culling::get_movement(
+      *((fan::graphics::culling::culling_t*)g_shapes->visibility),
+      *static_cast<const shaper_t::ShapeID_t*>(&s)
+    );
 
-    g_shapes->with_shape_list(s.NRI, [&](auto& list, auto src_nr, auto& src_sd) {
-      auto props = list[src_nr];
+    auto new_gid = g_shapes->clone_shape(s.NRI);
+    this->gint() = new_gid.gint();
 
-      if constexpr (requires { props.sprite_sheet_data; }) {
-        props.sprite_sheet_data.frame_update_nr.sic(); // make new one, dont use shared
-      }
-
-      auto new_gid = g_shapes->add_shape(list, props);
-      new_raw = new_gid.gint();
-    });
-
-    this->gint() = new_raw;
     if (!((fan::graphics::culling::culling_t*)g_shapes->visibility)->enabled) {
       push_shaper();
     }
     else {
       shaper_t::ShapeID_t new_sid;
-      new_sid.NRI = new_raw;
-      fan::graphics::culling::add_shape(*((fan::graphics::culling::culling_t*)g_shapes->visibility), new_sid, src_move);
+      new_sid.NRI = new_gid.gint();
+      fan::graphics::culling::add_shape(
+        *((fan::graphics::culling::culling_t*)g_shapes->visibility), new_sid, src_move
+      );
     }
   }
   shapes::shape_t::shape_t(const shape_t& s) 
@@ -610,36 +738,28 @@ namespace fan::graphics{
     return *this;
   }
   shapes::shape_t& shapes::shape_t::operator=(const shape_t& s) {
-    if (this == &s) return *this;
+    if (this == &s) { return *this; }
+    if (!iic()) { remove(); }
+    if (s.iic()) { return *this; }
 
-    if (!iic()) remove();
-    if (s.iic()) return *this;
+    auto src_move = fan::graphics::culling::get_movement(
+      *((fan::graphics::culling::culling_t*)g_shapes->visibility),
+      *static_cast<const shaper_t::ShapeID_t*>(&s)
+    );
 
-    shape_nr_t new_raw;
-    auto src_move = fan::graphics::culling::get_movement(*((fan::graphics::culling::culling_t*)g_shapes->visibility), *static_cast<const shaper_t::ShapeID_t*>(&s));
-
-    g_shapes->with_shape_list(s.NRI, [&](auto& list, auto src_nr, auto& src_sd) {
-      auto props = list[src_nr];
-
-      if constexpr (requires { props.sprite_sheet_data; }) {
-        props.sprite_sheet_data.frame_update_nr.sic(); // make new one, dont use shared
-      }
-
-      auto new_gid = g_shapes->add_shape(list, props);
-      new_raw = new_gid.gint();
-    });
-
-    this->gint() = new_raw;
+    auto new_gid = g_shapes->clone_shape(s.NRI);
+    this->gint() = new_gid.gint();
 
     if (!g_shapes->culling_enabled()) {
       push_shaper();
     }
     else {
       shaper_t::ShapeID_t new_sid;
-      new_sid.NRI = new_raw;
-      fan::graphics::culling::add_shape(*((fan::graphics::culling::culling_t*)g_shapes->visibility), new_sid, src_move);
+      new_sid.NRI = new_gid.gint();
+      fan::graphics::culling::add_shape(
+        *((fan::graphics::culling::culling_t*)g_shapes->visibility), new_sid, src_move
+      );
     }
-
     return *this;
   }
   shapes::shape_t::shape_t(shaper_t::ShapeID_t&& s) noexcept : shaper_t::ShapeID_t() {
@@ -750,9 +870,10 @@ namespace fan::graphics{
 
     switch (sd.shape_type) {
     case shape_type_t::rectangle: {
-      shapes::rectangle_list_t::nr_t nr;
-      nr.gint() = sd.data_nr;
-      auto& properties = g_shapes->rectangle_list[nr];
+      auto& properties = get_props<shapes::rectangle_t::properties_t>(
+        sd.shape_type,
+        sd.data_nr
+      );
 
       shapes::rectangle_t::vi_t vi;
       vi.position = properties.position;
@@ -777,9 +898,10 @@ namespace fan::graphics{
       break;
     }
     case shape_type_t::sprite: {
-      shapes::sprite_list_t::nr_t nr;
-      nr.gint() = sd.data_nr;
-      auto& properties = g_shapes->sprite_list[nr];
+      auto& properties = get_props<shapes::sprite_t::properties_t>(
+        sd.shape_type,
+        sd.data_nr
+      );
 
       shapes::sprite_t::vi_t vi;
       vi.position = properties.position;
@@ -818,9 +940,10 @@ namespace fan::graphics{
       break;
     }
     case shape_type_t::line: {
-      shapes::line_list_t::nr_t nr;
-      nr.gint() = sd.data_nr;
-      auto& properties = g_shapes->line_list[nr];
+      auto& properties = get_props<shapes::line_t::properties_t>(
+        sd.shape_type,
+        sd.data_nr
+      );
 
       shapes::line_t::vi_t vi;
       vi.src = properties.src;
@@ -844,9 +967,10 @@ namespace fan::graphics{
       break;
     }
     case shape_type_t::circle: {
-      shapes::circle_list_t::nr_t nr;
-      nr.gint() = sd.data_nr;
-      auto& properties = g_shapes->circle_list[nr];
+      auto& properties = get_props<shapes::circle_t::properties_t>(
+        sd.shape_type,
+        sd.data_nr
+      );
 
       shapes::circle_t::vi_t vi;
       vi.position = properties.position;
@@ -872,9 +996,10 @@ namespace fan::graphics{
       break;
     }
     case shape_type_t::light: {
-      shapes::light_list_t::nr_t nr;
-      nr.gint() = sd.data_nr;
-      auto& properties = g_shapes->light_list[nr];
+      auto& properties = get_props<shapes::light_t::properties_t>(
+        sd.shape_type,
+        sd.data_nr
+      );
 
       shapes::light_t::vi_t vi;
       vi.position = properties.position;
@@ -898,9 +1023,10 @@ namespace fan::graphics{
       break;
     }
     case shape_type_t::unlit_sprite: {
-      shapes::unlit_sprite_list_t::nr_t nr;
-      nr.gint() = sd.data_nr;
-      auto& properties = g_shapes->unlit_sprite_list[nr];
+      auto& properties = get_props<shapes::unlit_sprite_t::properties_t>(
+        sd.shape_type,
+        sd.data_nr
+      );
 
       shapes::unlit_sprite_t::vi_t vi;
       vi.position = properties.position;
@@ -935,17 +1061,19 @@ namespace fan::graphics{
       break;
     }
     case shape_type_t::text: {
-      shapes::text_list_t::nr_t nr;
-      nr.gint() = sd.data_nr;
-      auto& properties = g_shapes->text_list[nr];
+      auto& properties = get_props<shapes::text_t::properties_t>(
+        sd.shape_type,
+        sd.data_nr
+      );
 
       sd.visual = g_shapes->shaper.add(shape_type_t::text, nullptr, 0, nullptr, nullptr);
       break;
     }
     case shape_type_t::capsule: {
-      shapes::capsule_list_t::nr_t nr;
-      nr.gint() = sd.data_nr;
-      auto& properties = g_shapes->capsule_list[nr];
+      auto& properties = get_props<shapes::capsule_t::properties_t>(
+        sd.shape_type,
+        sd.data_nr
+      );
 
       shapes::capsule_t::vi_t vi;
       vi.position = properties.position;
@@ -974,9 +1102,10 @@ namespace fan::graphics{
       break;
     }
     case shape_type_t::polygon: {
-      shapes::polygon_list_t::nr_t nr;
-      nr.gint() = sd.data_nr;
-      auto& properties = g_shapes->polygon_list[nr];
+      auto& properties = get_props<shapes::polygon_t::properties_t>(
+        sd.shape_type,
+        sd.data_nr
+      );
 
       if (properties.vertices.empty()) {
         fan::throw_error("invalid vertices");
@@ -1055,9 +1184,10 @@ namespace fan::graphics{
       break;
     }
     case shape_type_t::grid: {
-      shapes::grid_list_t::nr_t nr;
-      nr.gint() = sd.data_nr;
-      auto& properties = g_shapes->grid_list[nr];
+      auto& properties = get_props<shapes::grid_t::properties_t>(
+        sd.shape_type,
+        sd.data_nr
+      );
 
       shapes::grid_t::vi_t vi;
       vi.position = properties.position;
@@ -1083,9 +1213,10 @@ namespace fan::graphics{
       break;
     }
     case shape_type_t::particles: {
-      shapes::particles_list_t::nr_t nr;
-      nr.gint() = sd.data_nr;
-      auto& properties = g_shapes->particles_list[nr];
+      auto& properties = get_props<shapes::particles_t::properties_t>(
+        sd.shape_type,
+        sd.data_nr
+      );
 
       shapes::particles_t::vi_t vi;
       shapes::particles_t::ri_t ri;
@@ -1147,9 +1278,10 @@ namespace fan::graphics{
       break;
     }
     case shape_type_t::universal_image_renderer: {
-      shapes::universal_image_renderer_list_t::nr_t nr;
-      nr.gint() = sd.data_nr;
-      auto& properties = g_shapes->universal_image_renderer_list[nr];
+      auto& properties = get_props<shapes::universal_image_renderer_t::properties_t>(
+        sd.shape_type,
+        sd.data_nr
+      );
 
       shapes::universal_image_renderer_t::vi_t vi;
       vi.position = properties.position;
@@ -1176,9 +1308,10 @@ namespace fan::graphics{
       break;
     }
     case shape_type_t::gradient: {
-      shapes::gradient_list_t::nr_t nr;
-      nr.gint() = sd.data_nr;
-      auto& properties = g_shapes->gradient_list[nr];
+      auto& properties = get_props<shapes::gradient_t::properties_t>(
+        sd.shape_type,
+        sd.data_nr
+      );
 
       shapes::gradient_t::vi_t vi;
       vi.position = properties.position;
@@ -1203,9 +1336,10 @@ namespace fan::graphics{
       break;
     }
     case shape_type_t::shadow: {
-      shapes::shadow_list_t::nr_t nr;
-      nr.gint() = sd.data_nr;
-      auto& properties = g_shapes->shadow_list[nr];
+      auto& properties = get_props<shapes::shadow_t::properties_t>(
+        sd.shape_type,
+        sd.data_nr
+      );
 
       shapes::shadow_t::vi_t vi;
       vi.position = properties.position;
@@ -1233,9 +1367,10 @@ namespace fan::graphics{
       break;
     }
     case shape_type_t::shader_shape: {
-      shapes::shader_shape_list_t::nr_t nr;
-      nr.gint() = sd.data_nr;
-      auto& properties = g_shapes->shader_shape_list[nr];
+      auto& properties = get_props<shapes::shader_shape_t::properties_t>(
+        sd.shape_type,
+        sd.data_nr
+      );
 
       shapes::shader_shape_t::vi_t vi;
       vi.position = properties.position;
@@ -1683,9 +1818,10 @@ namespace fan::graphics{
       shapes::shape_ids_t::nr_t id;
       id.gint() = NRI;
       auto& sd = g_shapes->shape_ids[id];
-      shapes::universal_image_renderer_list_t::nr_t nr;
-      nr.gint() = sd.data_nr;
-      return g_shapes->universal_image_renderer_list[nr].images[0];
+      return get_props<shapes::universal_image_renderer_t::properties_t>(
+        sd.shape_type,
+        sd.data_nr
+      ).images[0];
     }
     if (fan::graphics::shapes::get_shape_functions()[st].get_image) {
       return fan::graphics::shapes::get_shape_functions()[st].get_image(this);
@@ -1716,10 +1852,11 @@ namespace fan::graphics{
       shapes::shape_ids_t::nr_t id;
       id.gint() = NRI;
       auto& sd = g_shapes->shape_ids[id];
-      shapes::universal_image_renderer_list_t::nr_t nr;
-      nr.gint() = sd.data_nr;
+      auto& imgs = get_props<shapes::universal_image_renderer_t::properties_t>(
+        sd.shape_type,
+        sd.data_nr
+      ).images;
 
-      auto& imgs = g_shapes->universal_image_renderer_list[nr].images;
       std::array<fan::graphics::image_t, 30> ret;
       std::copy(imgs.begin(), imgs.end(), ret.data());
       return ret;
@@ -1796,10 +1933,10 @@ namespace fan::graphics{
     shapes::shape_ids_t::nr_t id;
     id.gint() = NRI;
     auto& sd = g_shapes->shape_ids[id];
-    shapes::universal_image_renderer_list_t::nr_t nr;
-    nr.gint() = sd.data_nr;
-
-    universal_image_renderer_t::properties_t& props = g_shapes->universal_image_renderer_list[nr];
+    auto& props = get_props<shapes::universal_image_renderer_t::properties_t>(
+      sd.shape_type,
+      sd.data_nr
+    );
     uint8_t image_count_new = fan::graphics::get_channel_amount(format);
     if (format != props.format) {
       auto sti = get_shape_type();
@@ -2656,7 +2793,7 @@ namespace fan::graphics{
       modified_props.tc_size = ti.size;
     }
 
-    auto new_item = g_shapes->add_shape(g_shapes->sprite_list, modified_props);
+    auto new_item = g_shapes->add_shape(fan::graphics::shape_type_t::sprite, modified_props);
 
     //g_shapes->visit_shape_draw_data(new_item.NRI, [&](auto& draw_data) {
     //  if constexpr (requires { draw_data.texture_pack_unique_id; }) {
@@ -2671,52 +2808,57 @@ namespace fan::graphics{
     return ret;
   }
 
-  shapes::shape_t shapes::unlit_sprite_t::push_back(const properties_t& properties){
-    bool uses_texture_pack = properties.texture_pack_unique_id.iic() == false && g_shapes->texture_pack;
+  shapes::shape_t shapes::unlit_sprite_t::push_back(const properties_t& properties) {
+    bool uses_texture_pack = properties.texture_pack_unique_id.iic() == false &&
+      g_shapes->texture_pack;
+
     fan::graphics::texture_pack::ti_t ti;
-    if(uses_texture_pack){
-      uses_texture_pack = !g_shapes->texture_pack->qti((*g_shapes->texture_pack)[properties.texture_pack_unique_id].name, &ti);
-      if(uses_texture_pack){
-        auto img_size = g_shapes->texture_pack->get_pixel_data(properties.texture_pack_unique_id).image.get_size();
+
+    if (uses_texture_pack) {
+      uses_texture_pack = !g_shapes->texture_pack->qti(
+        (*g_shapes->texture_pack)[properties.texture_pack_unique_id].name, &ti
+      );
+
+      if (uses_texture_pack) {
+        auto img_size = g_shapes->texture_pack->get_pixel_data(
+            properties.texture_pack_unique_id
+        ).image.get_size();
+
         ti.position /= img_size;
         ti.size /= img_size;
       }
     }
 
     properties_t modified_props = properties;
-    if(uses_texture_pack){
+
+    if (uses_texture_pack) {
       modified_props.tc_position = ti.position;
       modified_props.tc_size = ti.size;
     }
 
-    auto new_item = g_shapes->add_shape(g_shapes->unlit_sprite_list, modified_props);
+    auto new_item = g_shapes->add_shape(shape_type_t::unlit_sprite, modified_props);
 
-    g_shapes->dispatch_shape(new_item.NRI, [&](auto& list, auto& sd) {
-      using list_t = std::decay_t<decltype(list)>;
+    auto& stored_props = get_props<properties_t>(
+      shape_type_t::unlit_sprite,
+      g_shapes->shape_ids[new_item].data_nr
+    );
 
-      if constexpr (std::is_same_v<list_t, shapes::unlit_sprite_list_t>) {
-        typename list_t::nr_t nr;
-        nr.gint() = sd.data_nr;
-
-        auto& draw_data = list[nr];
-
-        if (uses_texture_pack) {
-          draw_data.texture_pack_unique_id = properties.texture_pack_unique_id;
-        }
-      }
-    });
+    if (uses_texture_pack) {
+      stored_props.texture_pack_unique_id = properties.texture_pack_unique_id;
+    }
 
     fan::graphics::shaper_t::ShapeID_t ret;
-    ret.gint() = new_item.NRI;
+    ret.gint() = new_item.gint();
     return ret;
   }
+
 
   shapes::shape_t shapes::particles_t::push_back(const properties_t& properties){
     properties_t modified_props = properties;
     modified_props.begin_time = fan::time::now();
     modified_props.loop_enabled_time = fan::time::now() / 1e9;
     modified_props.loop_disabled_time = -1;
-    auto new_item = g_shapes->add_shape(g_shapes->particles_list, modified_props);
+    auto new_item = g_shapes->add_shape(fan::graphics::shape_type_t::particles, modified_props);
     fan::graphics::shaper_t::ShapeID_t ret;
     ret.gint() = new_item.NRI;
     return ret;
@@ -3896,6 +4038,18 @@ namespace fan::graphics {
 
 bool fan::graphics::shapes::culling_enabled() {
   return ((fan::graphics::culling::culling_t*)visibility)->enabled;
+}
+
+void fan::graphics::shapes::remove_shape(shape_nr_t id) {
+  g_shapes->visibility_remove(id);
+
+  shapes::shape_ids_t::nr_t gid;
+  gid.gint() = id;
+  auto& sd = shape_ids[gid];
+
+  shape_props_freers[sd.shape_type](shape_pool_storage[sd.shape_type], sd.data_nr);
+
+  shape_ids.unlrec(gid);
 }
 
 void fan::graphics::shapes::visibility_remove(shape_nr_t id) {

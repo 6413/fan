@@ -190,7 +190,6 @@ public:
     std::vector<fan::physics::body_id_t> bodies;
     iterate_physics_entities(map_id,
       [&]<typename T>(auto& entity, T& entity_visual) -> bool {
-    //  fan::print(entity.id);
       if (entity.id == id) {
         bodies.emplace_back(entity_visual);
       }

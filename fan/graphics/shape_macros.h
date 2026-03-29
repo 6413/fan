@@ -76,7 +76,7 @@ do {                                                                            
 // shape push_back for trivial shapes
 #define DEFINE_PUSH_BACK(name) \
   shapes::shape_t shapes::name##_t::push_back(const properties_t& p) { \
-    return make_shape_ret(g_shapes->add_shape(g_shapes->name##_list, p).NRI); \
+    return make_shape_ret(g_shapes->add_shape(fan::graphics::shape_type_t::name, p).NRI); \
   }
 
 // json field emit/load macros

@@ -51,13 +51,47 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+find_clang() {
+  local min_version=20
+  local best_bin=""
+  local best_version=0
+
+  # Get all clang++ executables in PATH
+  while IFS= read -r path; do
+    bin=$(basename "$path")
+
+    if [[ $bin =~ ^clang\+\+-([0-9]+)$ ]]; then
+      ver="${BASH_REMATCH[1]}"
+
+      if (( ver >= min_version && ver > best_version )); then
+        best_version=$ver
+        best_bin=$path
+      fi
+    fi
+  done < <(command -v -a clang++ 2>/dev/null)
+
+  # Fallback: plain clang++
+  if [[ -z "$best_bin" ]]; then
+    if command -v clang++ >/dev/null 2>&1; then
+      best_bin=$(command -v clang++)
+    fi
+  fi
+
+  if [[ -z "$best_bin" ]]; then
+    printf "\033[0;31mError: No suitable clang++ found (>= %d)\033[0m\n" "$min_version" >&2
+    return 1
+  fi
+
+  echo "$best_bin"
+}
+
 if [[ "$COMPILER" == "gcc" ]]; then
   CC="gcc-15"
   CXX="g++-15"
   TOOLCHAIN="gcc"
 else
-  CC="clang-20"
-  CXX="clang++-20"
+  CXX=$(find_clang)
+	CC="${CXX/clang++/clang}"
   TOOLCHAIN="clang"
 fi
 
@@ -99,12 +133,14 @@ if [[ "$REBUILD" == true ]]; then
 
   echo ""
   echo -e "${BLUE}[4/4]${NC} Building..."
-  if ! xmake "${XMAKE_ARGS[@]}"; then
+	echo -e "${CYAN}Compiler:${NC} $($CXX --version | head -1)"
+  if ! xmake -j$(nproc) "${XMAKE_ARGS[@]}"; then
     echo -e "${RED}✗ XMake build failed!${NC}"
     exit 1
   fi
 else
   echo -e "${BLUE}Building...${NC}"
+	echo -e "${CYAN}Compiler:${NC} $($CXX --version | head -1)"
 
   if [[ -n "$MODE" ]]; then
     if ! xmake f -m "$MODE" --compiler="$COMPILER" "${XMAKE_ARGS[@]}"; then
@@ -113,7 +149,7 @@ else
     fi
   fi
 
-  if ! xmake "${XMAKE_ARGS[@]}"; then
+  if ! xmake -j$(nproc) "${XMAKE_ARGS[@]}"; then
     echo -e "${RED}✗ XMake build failed!${NC}"
     exit 1
   fi

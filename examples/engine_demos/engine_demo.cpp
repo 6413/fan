@@ -1580,7 +1580,7 @@ int main() {////
       (camera.coordinates.bottom - camera.coordinates.top) / 2.f
     );*/
     //fan::graphics::aabb(0, s*2.f, 5.f, &demo.right_column_view);
-    uint32_t v, c;//
+    uint32_t v, c;
     demo.engine.get_culling_stats(v, c);
     //fan::print_throttled(v, c);
     demo.update();
