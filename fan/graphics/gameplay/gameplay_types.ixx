@@ -5,9 +5,9 @@ module;
 
 export module fan.graphics.gameplay.types;
 
-import fan.graphics;
+import fan.types.color;
 
-using namespace fan::graphics;
+import fan.graphics.common_context;
 
 export namespace fan::graphics::gameplay {
 

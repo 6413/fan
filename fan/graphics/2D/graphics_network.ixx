@@ -15,10 +15,10 @@ export module fan.graphics.network;
 
 #if defined(FAN_NETWORK) && defined(FAN_2D)
 
-export import fan.utility;
-export import fan.graphics;
-export import fan.network;
-export import fan.event;
+import fan.utility;
+import fan.graphics;
+import fan.network;
+import fan.event;
 import fan.types;
 import fan.types.json;
 import fan.graphics.shapes;

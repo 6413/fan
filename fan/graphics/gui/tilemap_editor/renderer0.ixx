@@ -29,12 +29,17 @@ export module fan.graphics.gui.tilemap_editor.renderer;
 
 #if defined(FAN_PHYSICS_2D)
 
-export import fan.graphics.gui.tilemap_editor.loader;
+import fan.graphics.gui.tilemap_editor.loader;
 
+import fan.types;
+import fan.types.color;
+import fan.types.vector;
 import fan.utility;
 import fan.print;
-import fan.graphics;
+import fan.graphics.common_context;
+import fan.graphics.shapes;
 import fan.graphics.physics_shapes;
+import fan.graphics;
 import fan.physics.b2_integration;
 
 export struct tilemap_renderer_t : tilemap_loader_t {

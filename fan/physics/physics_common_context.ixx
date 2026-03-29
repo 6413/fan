@@ -2,6 +2,7 @@ module;
 
 #include <fan/utility.h>
 
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <vector>

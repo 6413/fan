@@ -1,28 +1,35 @@
 module;
 
-#include <fan/utility.h>
-#include <fan/event/types.h>
+#if defined(FAN_GUI)
+  #include <fan/utility.h>
+  #include <fan/event/types.h>
 
-#include <string>
-#include <functional>
-#include <filesystem>
-#include <coroutine>
-#include <algorithm>
-#include <cmath>
-#include <cstring>
-#include <array>
+  #include <string>
+  #include <functional>
+  #include <filesystem>
+  #include <coroutine>
+  #include <algorithm>
+  #include <cmath>
+  #include <cstring>
+  #include <array>
+  #include <fstream>
+#endif
 
 module fan.graphics.gui;
 
+#if defined(FAN_GUI)
+
 import fan.types.vector;
 
+import fan.graphics.image_load;
 import fan.graphics.gui.base;
+import fan.graphics.gui.text_logger;
+import fan.graphics; // fan::graphics::shader_get_data
 
 #if defined(FAN_AUDIO)
-import fan.audio;
+  import fan.audio;
 #endif
 
-#if defined(FAN_GUI)
 namespace fan::graphics::gui {
   const char* item_getter1(const std::vector<std::string>& items, int index) {
     if (index >= 0 && index < (int)items.size()) {
@@ -1658,7 +1665,13 @@ namespace fan::graphics::gui {
     particle_shape = std::move(shape);
     g_shapes->visit_shape_draw_data(particle_shape.NRI, [&]<typename T>(T & properties) {
       if constexpr (requires{ properties.image; }) {
-        particle_image_sprite = {{.size = 0, .image = properties.image, .enable_culling=false}};
+        particle_image_sprite = fan::graphics::shape_t(
+          fan::graphics::shapes::sprite_t::properties_t{
+            .size = 0, 
+            .image = properties.image
+          }, 
+          false/*culling*/
+        );
       }
     });
   }

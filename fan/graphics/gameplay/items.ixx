@@ -4,11 +4,12 @@ module;
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <sstream>
 
 export module fan.graphics.gameplay.items;
 
 import fan.print;
-import fan.graphics;
+import fan.graphics.common_context;
 import fan.graphics.gui.base;
 import fan.graphics.gameplay.types;
 

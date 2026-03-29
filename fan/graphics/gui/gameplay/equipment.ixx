@@ -16,8 +16,8 @@ import fan.graphics;
 import fan.graphics.gui.base;
 import fan.graphics.gui.input;
 import fan.graphics.gui.drag_drop;
-export import fan.graphics.gameplay.types;
-export import fan.graphics.gameplay.items;
+import fan.graphics.gameplay.types;
+import fan.graphics.gameplay.items;
 import fan.graphics.gui.hotbar;
 import fan.graphics.gui.inventory;
 

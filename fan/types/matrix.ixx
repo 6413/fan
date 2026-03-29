@@ -15,10 +15,12 @@ module;
 
 export module fan.types.matrix;
 
-export import fan.types.vector;
-export import fan.types.quaternion;
+import fan.types;
+import fan.types.vector;
+import fan.types.quaternion;
 import fan.utility;
 import fan.random;
+import fan.math;
 
 export namespace fan {
 

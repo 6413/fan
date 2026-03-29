@@ -12,16 +12,21 @@ export module fan.graphics.gameplay;
 
 #if defined(FAN_PHYSICS_2D)
 
-import fan.graphics;
-import fan.physics.b2_integration;
-import fan.graphics.physics_shapes;
+import fan.types;
+import fan.types.vector;
+import fan.graphics.common_context;
+import fan.graphics.shapes;
+import fan.physics.types;
 import fan.graphics.gui.tilemap_editor.renderer;
 import fan.graphics.spatial;
+import fan.graphics.physics_shapes;
+
+import fan.physics.b2_integration;
 
 export namespace fan::graphics::gameplay {
   struct checkpoint_system_t {
     struct checkpoint_data_t {
-      fan::graphics::sprite_t visual;
+      fan::graphics::shape_t visual;
       fan::physics::entity_t sensor;
       int index;
     };
