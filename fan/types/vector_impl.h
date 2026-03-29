@@ -291,9 +291,9 @@ constexpr auto begin() { return &operator[](0); }
 constexpr auto end() { return begin() + size(); }
 constexpr auto data() { return begin(); }
 
-constexpr auto plus() const { return std::accumulate(begin(), end(), value_type_t{}, std::plus<value_type_t>()); }
-constexpr auto minus() const { return std::accumulate(begin(), end(), value_type_t{}, std::minus<value_type_t>()); }
-constexpr auto multiply() const { return std::accumulate(begin(), end(), value_type_t{1}, std::multiplies<value_type_t>()); }
+constexpr auto plus() const { value_type_t r{}; for (access_type_t i = 0; i < size(); ++i) r += (*this)[i]; return r; }
+constexpr auto minus() const { value_type_t r{}; for (access_type_t i = 0; i < size(); ++i) r -= (*this)[i]; return r; }
+constexpr auto multiply() const { value_type_t r{1}; for (access_type_t i = 0; i < size(); ++i) r *= (*this)[i]; return r; }
 constexpr auto sign() const { make_for_all(ret[i] = fan::math::sgn((*this)[i])); }
 constexpr auto floor() const { make_for_all(ret[i] = std::floor((*this)[i])); }
 constexpr auto floor(auto value) const { make_for_all(ret[i] = std::floor((*this)[i] / value)); }
@@ -310,8 +310,8 @@ template <typename T>
 requires(std::is_arithmetic_v<T>)
 constexpr auto max(const T& test0) const { make_for_all(ret[i] = std::max((*this)[i], test0)); }
 constexpr auto max(const auto& test0) const { make_for_all_test1(ret[i] = std::max((*this)[i], test0[i])); }
-constexpr auto clamp(value_type mi, value_type ma) const { make_for_all(ret[i] = std::clamp((*this)[i], mi, ma)); }
-constexpr auto clamp(const vec_t& test0, const vec_t& test1) const { make_for_all_test2(ret[i] = std::clamp((*this)[i], test0[i], test1[i])); }
+constexpr auto clamp(value_type mi, value_type ma) const { make_for_all(ret[i] = fan::math::clamp((*this)[i], mi, ma)); }
+constexpr auto clamp(const vec_t& test0, const vec_t& test1) const { make_for_all_test2(ret[i] = fan::math::clamp((*this)[i], test0[i], test1[i])); }
 constexpr auto reflect(const vec_t& normal) { return *this - normal * 2 * dot(normal); }
 constexpr auto tangential_reflect(const vec_t& normal) { return *this - normal * dot(normal); }
 
@@ -374,10 +374,9 @@ constexpr auto fmod(const vec_t& test0) const {
 
 template <typename T>
 static auto val_to_string(const T a_value, const int n = 2) {
-  std::ostringstream out;
-  out.precision(n);
-  out << std::fixed << a_value;
-  return out.str();
+  char buf[64];
+  snprintf(buf, sizeof(buf), "%.*f", n, (double)a_value);
+  return std::string(buf);
 }
 
 constexpr bool in_range(const vec_t& lo, const vec_t& hi) const {
@@ -408,21 +407,21 @@ operator std::string() const {
 }
 
 static vec_t from_string(const std::string& str) {
-  vec_t vec;
+  vec_t vec{};
   std::string s = str;
   // remove braces and spaces
   s.erase(std::remove_if(s.begin(), s.end(),
     [](char c) { return c == '{' || c == '}' || c == ' '; }), s.end());
 
-  std::stringstream ss(s);
-  std::string item;
-  for (access_type_t i = 0; i < size(); ++i) {
-    if (!std::getline(ss, item, ',')) {
-      vec[i] = value_type_t{};
-    }
-    else {
-      vec[i] = static_cast<value_type_t>(std::stof(item));
-    }
+  access_type_t i = 0;
+  std::size_t pos = 0;
+  while (i < size()) {
+    std::size_t comma = s.find(',', pos);
+    std::string item = s.substr(pos, comma == std::string::npos ? comma : comma - pos);
+    vec[i] = item.empty() ? value_type_t{} : static_cast<value_type_t>(std::stof(item));
+    ++i;
+    if (comma == std::string::npos) break;
+    pos = comma + 1;
   }
   return vec;
 }
@@ -433,17 +432,16 @@ static vec_t parse(const std::string& str) {
   s.erase(std::remove_if(s.begin(), s.end(),
     [](char c) { return c == '{' || c == '}' || c == ' '; }), s.end());
 
-  std::stringstream ss(s);
-  std::string item;
-  for (access_type_t i = 0; i < out.size(); ++i) {
-    if (!std::getline(ss, item, ',')) {
-      out[i] = value_type_t{}; // default
-    }
-    else {
-      out[i] = static_cast<value_type_t>(std::stof(item));
-    }
+  access_type_t i = 0;
+  std::size_t pos = 0;
+  while (i < out.size()) {
+    std::size_t comma = s.find(',', pos);
+    std::string item = s.substr(pos, comma == std::string::npos ? comma : comma - pos);
+    out[i] = item.empty() ? value_type_t{} : static_cast<value_type_t>(std::stof(item));
+    ++i;
+    if (comma == std::string::npos) break;
+    pos = comma + 1;
   }
-
   return out;
 }
 

@@ -20,11 +20,9 @@ module;
 #endif
 
 #include <string>
-#include <algorithm>
-#include <numeric>
-#include <sstream>
 #include <cmath>
 #include <initializer_list>
+#include <algorithm>
 
 export module fan.types.vector;
 

@@ -1498,7 +1498,7 @@ void main() {
         demo.cleanup_function(&engine_demo);
       }
       engine_demo.shapes.clear();
-      if (demo.init_function) {
+      if (demo.init_function) {//
         demo.init_function(&engine_demo);
       }
     }

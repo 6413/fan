@@ -4,10 +4,10 @@ module;
 #include <string>
 #include <vector>
 #include <unordered_map>
-#include <sstream>
 
 export module fan.graphics.gameplay.items;
 
+import fan.utility;
 import fan.print;
 import fan.graphics.common_context;
 import fan.graphics.gui.base;
@@ -45,7 +45,7 @@ export namespace fan::graphics::gameplay::items {
     gameplay::item_t create_item(uint32_t id) const {
       auto* def = get_definition(id);
       if (!def) {
-        fan::throw_error("Item not found in registry");
+        fan::throw_error_impl("Item not found in registry");
       }
 
       gameplay::item_t item;

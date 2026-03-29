@@ -5,7 +5,6 @@ module;
 #include <vector>
 #include <functional>
 #include <coroutine>
-#include <sstream>
 
 export module fan.process;
 

@@ -2,7 +2,6 @@ module;
 #if defined(FAN_GUI)
   #include <string>
   #include <algorithm>
-  #include <sstream>
 #endif
 
 export module fan.ascii_renderer;
