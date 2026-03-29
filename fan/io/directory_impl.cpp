@@ -8,6 +8,7 @@ module;
 module fan.io.directory;
 
 import fan.print;
+import fan.print.error;
 
 std::string fan::io::file_to_directory(const std::string& file) {
   return file.substr(0, file.rfind((char)std::filesystem::path::preferred_separator)) +

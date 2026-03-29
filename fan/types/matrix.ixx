@@ -18,7 +18,7 @@ export module fan.types.matrix;
 import fan.types;
 import fan.types.vector;
 import fan.types.quaternion;
-import fan.utility;
+import fan.print.error;
 import fan.random;
 import fan.math;
 

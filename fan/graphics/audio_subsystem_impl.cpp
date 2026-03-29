@@ -7,6 +7,7 @@ module;
 module fan.graphics.audio_subsystem;
 
 import fan.utility;
+import fan.print.error;
 
 namespace fan::graphics {
   void audio_subsystem_t::init() {

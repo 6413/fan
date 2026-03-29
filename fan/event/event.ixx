@@ -15,7 +15,7 @@ module;
 export module fan.event;
 
 
-import fan.print;
+import fan.print.error;
 import fan.utility;
 import fan.types.color;
 export import fan.event.types;

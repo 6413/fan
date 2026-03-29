@@ -2,17 +2,10 @@ module;
 
 #include <fan/utility.h>
 
-#include <iostream>
 #include <type_traits>
 #include <coroutine>
 #include <iterator>
-#include <source_location>
-#include <set>
-#include <functional> // raii_nr_t
-#include <cstring>
-#include <chrono>
-#include <fstream>
-#include <iomanip>
+#include <functional> // raii_nr.h raii_nr_t
 
 namespace raii_build {
   #include <fan/types/raii_nr.h>
@@ -284,9 +277,6 @@ namespace fan {
     container_t& _container;
   };
 
-
-
-
   struct enumerate_fn {
     template <typename container_t>
     auto operator()(container_t& container) const {
@@ -366,67 +356,20 @@ namespace fan {
       );
     }
 
-    struct log_t {
-    std::string filename = "fan_errors.txt";
-  };
-
-  log_t& get_error_log() {
-    static log_t log;
-    return log;
-  }
-
-  void write_error_to_disk(const std::string& msg) {
-    auto& log = get_error_log();
-
-    auto now = std::chrono::system_clock::now();
-    std::time_t t = std::chrono::system_clock::to_time_t(now);
-
-    // format: YYYY-MM-DD HH:MM:SS ISO‑8601
-    std::tm tm {};
-  #ifdef _WIN32
-    localtime_s(&tm, &t);
-  #else
-    localtime_r(&t, &tm);
-  #endif
-
-    std::ostringstream oss;
-    oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
-
-    std::ofstream out(log.filename, std::ios::binary | std::ios::app);
-    out << oss.str() << " - " << msg << '\n';
-  }
-
-  #ifndef __throw_error_impl
-  #define __throw_error_impl throw_error_impl
-
-    struct exception_t {
-      const char* reason;
-    };
-
-    inline void throw_error_impl(const char* reason = "") {
-      std::string res(reason);
-      if (res.size()) {
-        write_error_to_disk(res);
-      }
-    #ifdef fan_compiler_msvc
-      //system("pause");
-    #endif
-    #if __cpp_exceptions
-      throw exception_t{ .reason = reason };
-    #endif
-    }
-  #else
-    using fan::throw_error_impl;
-  #endif
-
+    template<typename T>
+    using component_type_t = std::conditional_t<
+      requires { typename T::value_type; },
+    typename T::value_type,
+      T
+    >;
     template <typename T>
     constexpr bool is_negative(const T& value) {
       if constexpr (std::is_arithmetic_v<T>) {
-        return value < T{ 0 };
+        return value < T {0};
       }
       return false;
     }
-
+  
     template<typename T>
     constexpr int get_component_count() {
       if constexpr (requires { T::size(); }) {
@@ -436,29 +379,8 @@ namespace fan {
         return 1;
       }
     }
-
-    template<typename T>
-    using component_type_t = std::conditional_t<
-      requires { typename T::value_type; },
-    typename T::value_type,
-      T
-    >;
-  }
-}
-
-
-export namespace fan {
-
-  void* memory_profile_malloc_cb(std::size_t n) {
-    return fan::memory::heap_profiler_t::instance().allocate_memory(n);
-  }
-  void* memory_profile_realloc_cb(void* ptr, std::size_t n) {
-    return fan::memory::heap_profiler_t::instance().reallocate_memory(ptr, n);
-  }
-  void memory_profile_free_cb(void* ptr) {
-    fan::memory::heap_profiler_t::instance().deallocate_memory(ptr);
-  }
-}
+  } // export block
+} // namespace fan
 
 export namespace fan{
   template<typename T>

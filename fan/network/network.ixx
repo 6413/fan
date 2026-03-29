@@ -29,9 +29,10 @@ export module fan.network;
 
 import fan.utility;
 import fan.event;
-import fan.print;
+import fan.print.error;
 import fan.types.json;
 import fan.types.fstring;
+import fan.memory;
 
 export namespace fan {
   namespace network {
@@ -786,7 +787,7 @@ export namespace fan {
               delete reinterpret_cast<uv_tcp_t*>(req);
             }
             catch (std::exception e) {
-              fan::print("failed to delete tcp:", e.what());
+              fan::throw_error("failed to delete tcp:", e.what());
             }
           });
         }
@@ -1513,7 +1514,7 @@ export namespace fan {
               co_await send_callback(connection);
             }
             catch (const std::exception& e) {
-              fan::print("Keep alive send failed: ", e.what());
+              fan::throw_error("Keep alive send failed: ", e.what());
             }
           }
 
@@ -1591,7 +1592,7 @@ export namespace fan {
       }
 
       void on_timeout() {
-        fan::print("TCP keep alive timeout");
+        fan::throw_error("TCP keep alive timeout");
       }
 
     public:
@@ -1636,7 +1637,7 @@ export namespace fan {
       }
 
       void on_timeout() {
-        fan::print("UDP keep alive timeout");
+        fan::throw_error("UDP keep alive timeout");
       }
 
     public:

@@ -23,6 +23,7 @@ import fan.graphics.gui.base;
 import fan.graphics.image_load;
 import fan.graphics.culling;
 import fan.random;
+import fan.io.file;
 
 #if defined(FAN_GUI)
   import fan.graphics.gui.text_logger;

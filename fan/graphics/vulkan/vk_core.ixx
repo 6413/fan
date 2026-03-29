@@ -10,7 +10,6 @@ module;
 #include <set>
 #include <functional>
 #include <source_location>
-#include <sstream>
 
 #if defined(fan_platform_windows)
 #define VK_USE_PLATFORM_WIN32_KHR

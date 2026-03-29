@@ -16,8 +16,9 @@ export module fan.physics.b2_integration;
 import fan.types;
 import fan.types.vector;
 
-import fan.print;
+import fan.print.error;
 import fan.utility;
+import fan.memory;
 
 import fan.physics.types;
 import fan.physics.common_context;

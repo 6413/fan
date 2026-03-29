@@ -9,7 +9,6 @@ module;
 #include <source_location>
 #include <memory>
 #include <string>
-#include <sstream>
 
 #include <fan/graphics/opengl/init.h>
 
@@ -23,9 +22,9 @@ import fan.types.fstring;
 import fan.types.vector;
 import fan.types.compile_time_string;
 
+import fan.memory;
 import fan.io.file;
-import fan.utility;
-import fan.print;
+import fan.print.error;
 
 import fan.graphics.common_context;
 import fan.graphics.webp;
@@ -162,7 +161,7 @@ export namespace fan::graphics {
       bool push_texture(const std::string& image_path, const texture_properties_t& texture_properties) {
 
         if (texture_properties.image_name.empty()) {
-          fan::print_warning("texture properties name empty");
+          //fan::print_warning("texture properties name empty");
           return 1;
         }
 
@@ -175,14 +174,14 @@ export namespace fan::graphics {
 
         fan::webp::info_t image_info;
         if (fan::webp::load(image_path, &image_info)) {
-          fan::print_warning("failed to load");
+          //fan::print_warning("failed to load");
           return 1;
         }
 
         if (image_info.size.x % 2 != 0 || image_info.size.y % 2 != 0) {
           fan::webp::free_image(image_info.data);
-          fan::print_warning("failed to load, image size is not divideable by 2");
-          fan::print(texture_properties.image_name, image_info.size);
+          //fan::print_warning("failed to load, image size is not divideable by 2");
+          //fan::print(texture_properties.image_name, image_info.size);
           return 1;
         }
 
@@ -204,7 +203,7 @@ export namespace fan::graphics {
       bool push_texture(fan::graphics::image_t image, const texture_properties_t& texture_properties) {
 
         if (texture_properties.image_name.empty()) {
-          fan::print_warning("texture properties name empty");
+          //fan::print_warning("texture properties name empty");
           return 1;
         }
 
@@ -231,8 +230,8 @@ export namespace fan::graphics {
         };
 
         if ((int)image_size.x % 2 != 0 || (int)image_size.y % 2 != 0) {
-          fan::print_warning("failed to load, image size is not divideable by 2");
-          fan::print(texture_properties.image_name, image_size);
+          //fan::print_warning("failed to load, image size is not divideable by 2");
+          //fan::print(texture_properties.image_name, image_size);
           return 1;
         }
 
@@ -452,7 +451,7 @@ export namespace fan::graphics {
           fan::write_to_file(f, pack_list[i].min_filter);
           fan::write_to_file(f, pack_list[i].mag_filter);
         }
-        fan::print("file written to", filename);
+        //fan::print("file written to", filename);
         fan::io::file::close(f);
       }
 

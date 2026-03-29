@@ -8,7 +8,7 @@ module;
 export module fan.graphics.gameplay.items;
 
 import fan.utility;
-import fan.print;
+import fan.print.error;
 import fan.graphics.common_context;
 import fan.graphics.gui.base;
 import fan.graphics.gameplay.types;

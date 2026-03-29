@@ -8,11 +8,11 @@ module;
   #include <fan/imgui/ImGuizmo.h>
 
   #include <string_view>
-  #include <sstream>
   #include <functional>
   #include <cstdint>
   #include <span>
   #include <optional>
+  #include <string>
 #endif
 
 #if defined(FAN_VULKAN)
@@ -35,6 +35,7 @@ import fan.types.matrix;
 import fan.types.compile_time_string;
 import fan.utility;
 import fan.math;
+import fan.formatter;
 import fan.print;
 import fan.graphics.common_context;
 

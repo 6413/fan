@@ -10,7 +10,7 @@ module;
 
 export module fan.types.color;
 
-import fan.utility;
+import fan.print.error;
 import fan.types;
 import fan.types.vector;
 

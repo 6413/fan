@@ -22,6 +22,7 @@ import fan.event;
 import fan.types;
 import fan.types.json;
 import fan.graphics.shapes;
+import fan.print.error;
 
 export namespace fan::graphics::network {
   template<typename send_type_t, typename receive_type_t>

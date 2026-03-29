@@ -2,46 +2,29 @@ module;
 
 #include <fan/utility.h>
 
-#include <sstream>
-#include <iostream>
 #include <string>
 #include <string_view>
-#include <source_location>
-#if defined(fan_std23)
-  #include <stacktrace>
-#endif
+#include <sstream>
+#include <iostream>
 #include <ostream>
 #include <iomanip>
 #include <unordered_map>
 #include <type_traits>
 #include <bitset>
-
+#include <source_location>
+#if defined(fan_std23)
+  #include <stacktrace>
+#endif
 export module fan.print;
 
 import fan.types;
 import fan.utility;
 import fan.types.color;
 import fan.time;
-
-namespace fan::detail {
-  template <typename T>
-  std::string to_str(const T& v) {
-    if constexpr (std::is_same_v<std::decay_t<T>, std::string>) return v;
-    else if constexpr (std::is_same_v<std::decay_t<T>, std::string_view>) return std::string(v);
-    else if constexpr (std::is_same_v<std::decay_t<T>, const char*>) return v ? v : "";
-    else if constexpr (std::is_same_v<std::decay_t<T>, char>) return std::string(1, v);
-    else if constexpr (std::is_arithmetic_v<std::decay_t<T>>) return std::to_string(v);
-    else if constexpr (std::is_convertible_v<T, std::string>) return std::string(v);
-    else {
-      std::ostringstream oss;
-      oss << v;
-      return oss.str();
-    }
-  }
-}
+import fan.print.error;
+import fan.formatter;
 
 export namespace fan {
-
   template <typename T>
   struct is_bitset : std::false_type {};
   template <size_t N>
@@ -71,36 +54,6 @@ export namespace fan {
       os << '\n';
     }
     return os;
-  }
-
-  template <typename ...Args>
-  std::string format_join(const char* sep, const Args&... args) {
-    std::string result;
-    int idx = 0;
-    ((result += fan::detail::to_str(args) + (++idx == (int)sizeof...(args) ? "" : sep)), ...);
-    return result;
-  }
-
-  template <typename ...Args> std::string format_args(const Args&... args) { return format_join(" ", args...); }
-  template <typename ...Args> std::string format_args_raw(const Args&... args) { return format_join("", args...); }
-  template <typename ...Args> std::string format_args_comma(const Args&... args) { return format_join(", ", args...); }
-  template <typename ...Args> std::string format_args_no_space(const Args&... args) { return format_join("", args...); }
-  template <typename ...Args> std::string format_args_with_space(const Args&... args) { return format_join(" ", args...); }
-  template <typename ...Args> std::string format_error_args(const Args&... args) { return format_join(" ", args...); }
-
-  template<typename T>
-  auto convert_uint8(T value) {
-    if constexpr (std::is_same_v<T, uint8_t>) return static_cast<int>(value);
-    else if constexpr (std::is_same_v<T, std::string_view>) return std::string(value);
-    else return value;
-  }
-
-  template <typename ...Args>
-  std::string format_args_n8(const Args&... args) {
-    std::string result;
-    int idx = 0;
-    ((result += fan::detail::to_str(convert_uint8(args)) + (++idx == (int)sizeof...(args) ? "" : ", ")), ...);
-    return result;
   }
 
   template <typename ...Args>
@@ -202,11 +155,6 @@ export namespace fan {
 #endif
   }
 
-  template <typename ...Args>
-  void throw_error(const Args&... args) {
-    fan::throw_error_impl(format_error_args(args...).c_str());
-  }
-
   template <int throttle_ms = 1000, typename... Args>
   void print_throttled(const Args&... args) {
     static std::unordered_map<std::size_t, fan::time::timer> timers;
@@ -248,8 +196,4 @@ export namespace fan {
 #endif
     }
   }
-}
-
-export std::string operator""_str(const char* str, std::size_t) {
-  return std::string{str};
 }

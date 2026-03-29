@@ -25,7 +25,7 @@ module fan.graphics.physics_shapes;
 #if defined(FAN_PHYSICS_2D)
 
 import fan.types;
-import fan.print;
+import fan.print.error;
 import fan.physics.b2_integration;
 import fan.graphics.loco;
 

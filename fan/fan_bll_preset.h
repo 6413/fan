@@ -14,12 +14,14 @@
   #define BLL_set_Clear 1
 #endif
 
-#ifndef BLL_set_iterator_type
-  #define BLL_set_iterator_type(container_type) fan::bll_iterator_t<container_type>
-#endif
+#if defined(BLL_enable_iterator)
+  #ifndef BLL_set_iterator_type
+    #define BLL_set_iterator_type(container_type) fan::bll_iterator_t<container_type>
+  #endif
 
-#ifndef BLL_set_iterator
-  #define BLL_set_iterator(container_type, nr) BLL_set_iterator_type(container_type){ this, nr }
+  #ifndef BLL_set_iterator
+    #define BLL_set_iterator(container_type, nr) BLL_set_iterator_type(container_type){ this, nr }
+  #endif
 #endif
 
 #ifndef bcontainer_set_alloc_open

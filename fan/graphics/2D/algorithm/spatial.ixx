@@ -5,7 +5,6 @@ module;
 #include <limits>
 #include <cstdint>
 #include <algorithm>
- #include <numeric>
 #endif
 
 export module fan.graphics.spatial;
@@ -14,7 +13,7 @@ export module fan.graphics.spatial;
 
 import fan.types;
 import fan.types.vector;
-import fan.print;
+import fan.print.error;
 import fan.physics.types;
 
 export namespace fan::graphics::spatial {

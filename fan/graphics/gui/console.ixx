@@ -15,8 +15,8 @@ export module fan.console;
 import fan.types.color;
 
 import fan.types.fstring;
-import fan.utility;
-import fan.print;
+import fan.memory;
+import fan.formatter;
 import fan.graphics.common_types;
 
 export namespace fan {

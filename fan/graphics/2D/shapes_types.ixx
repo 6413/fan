@@ -12,7 +12,7 @@ module;
 
 export module fan.graphics.shapes.types;
 
-import fan.utility;
+import fan.print.error;
 import fan.types.color;
 import fan.types.vector;
 

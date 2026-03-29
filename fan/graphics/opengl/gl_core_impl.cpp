@@ -19,7 +19,7 @@ module fan.graphics.opengl.core;
 
 #if defined(FAN_OPENGL)
 
-import fan.print;
+import fan.print.error;
 import fan.math;
 import fan.camera;
 
