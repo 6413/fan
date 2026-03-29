@@ -210,7 +210,7 @@ struct vfi_t {
       break;
     }
 
-    auto new_item = g_shapes->add_shape(g_shapes->vfi_list, p);
+    auto new_item = g_shapes->add_shape(fan::graphics::shape_type_t::vfi, p);
     fan::graphics::shaper_t::ShapeID_t ret;
     ret.gint() = new_item.NRI;
 

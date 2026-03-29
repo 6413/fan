@@ -1628,207 +1628,72 @@ export namespace fan::graphics {
 
     #include "shapes.h"
 
-
-    #define shape sprite
-    #include "build_shape_list.h"
-    #define shape text
-    #include "build_shape_list.h"
-    #define shape line
-    #include "build_shape_list.h"
-    #define shape rectangle
-    #include "build_shape_list.h"
-    #define shape light
-    #include "build_shape_list.h"
-    #define shape unlit_sprite
-    #include "build_shape_list.h"
-    #define shape circle
-    #include "build_shape_list.h"
-    #define shape capsule
-    #include "build_shape_list.h"
-    #define shape polygon
-    #include "build_shape_list.h"
-    #define shape grid
-    #include "build_shape_list.h"
-    #define shape vfi
-    #include "build_shape_list.h"
-    #define shape particles
-    #include "build_shape_list.h"
-    #define shape universal_image_renderer
-    #include "build_shape_list.h"
-    #define shape gradient
-    #include "build_shape_list.h"
-    #define shape shader_shape
-    #include "build_shape_list.h"
-    #if defined(FAN_3D)
-    #define shape rectangle3d
-    #include "build_shape_list.h"
-    #define shape line3d
-    #include "build_shape_list.h"
-    #endif
-    #define shape shadow
-    #include "build_shape_list.h"
-
-    #undef shape
-
     struct shape_list_data_t {
-      shape_nr_t data_nr;
+      uint32_t data_nr;
       shapes::shape_t visual;
       uint8_t shape_type;
     };
 
-    #define BLL_set_AreWeInsideStruct 1 
-    #define BLL_set_prefix shape_ids 
-    #include <fan/fan_bll_preset.h> 
-    #define BLL_set_Link 1 
+    #define BLL_set_AreWeInsideStruct 1
+    #define BLL_set_prefix shape_ids
+    #include <fan/fan_bll_preset.h>
+    #define BLL_set_Link 1
     #define BLL_set_type_node shape_nr_t
     #define BLL_set_NodeDataType shape_list_data_t
     #include <BLL/BLL.h>
-  
     shape_ids_t shape_ids;
+
+    static constexpr uint16_t shape_pool_count = shape_type_t::last;
+    void* shape_pool_storage[shape_pool_count] = {};
+
+    using props_getter_t = void* (*)(void*, uint32_t);
+    using props_freer_t = void(*)(void*, uint32_t);
+    using props_copier_t = uint32_t(*)(void*, uint32_t);
+    using props_allocer_t = uint32_t(*)(void* pool, const void* src_props);
+    using props_post_copy_t = void(*)(void* pool, uint32_t id);
+
+    props_getter_t shape_props_getters[shape_pool_count] = {};
+    props_freer_t shape_props_freers[shape_pool_count] = {};
+    props_copier_t shape_props_copiers[shape_pool_count] = {};
+    props_allocer_t shape_props_allocers[shape_pool_count] = {};
+    props_post_copy_t shape_post_copy_fixups[shape_pool_count] = {};
+
+    void shapes_init_pools(shapes* s);
+
+    shape_ids_t::nr_t add_shape_impl(uint8_t st, const void* props_ptr);
+    template<typename props_t>
+    shape_ids_t::nr_t add_shape(uint8_t st, const props_t& props) {
+      return add_shape_impl(st, &props);
+    }
+
+    shape_ids_t::nr_t clone_shape(shape_nr_t src_id);
 
     #define get_shape_list(name) CONCAT3(name, _, list)
 
     using get_list_fn_t = void*(*)(shapes*);
 
-    void* get_list_ptr(uint16_t st) {
-      switch (st) {
-      #define X(name) case shape_type_t::name: return (void*)&this->CONCAT3(name, _, list);
-      #define SKIP(x)
-        GEN_SHAPES(X, SKIP)
-        #undef X
-        #undef SKIP
-      default:
-        fan::throw_error_impl("invalid shape_type");
-      }
-    }
-
-    template <typename Fn>
-    using thunk_t = void(*)(void*, shape_list_data_t&, Fn*);
-
-    template <typename Fn>
-    static thunk_t<Fn>* get_thunk_table_ptr() {
-      static thunk_t<Fn> table[(size_t)shape_type_t::last] = {
-      #define X(name) +[](void* list, shape_list_data_t& sd, Fn* fn) { \
-        auto& typed = *static_cast<CONCAT3(name, _, list_t)*>(list); \
-        (*fn)(typed, sd); \
-      },
-      #define SKIP(x) +[](void*, shape_list_data_t&, Fn*) { fan::throw_error_impl("unsupported/disabled shape_type in dispatch"); },
-        GEN_SHAPES(X, SKIP)
-      #undef X
-      #undef SKIP
-      };
-      return table;
-    }
-
-    template <typename ListT>
-    static consteval uint8_t shape_type_of() {
-    #define X(name) if constexpr (std::is_same_v<ListT, CONCAT3(name, _, list_t)>) return (uint8_t)shape_type_t::name;
-    #define SKIP(x)
-      GEN_SHAPES(X, SKIP)
-      #undef X
-        return 0;
-    }
-
-    template <typename F>
-    void dispatch_shape(shape_nr_t raw_id, F&& f) {
-      using Fn = std::remove_reference_t<F>;
-
-      shapes::shape_ids_t::nr_t gid;
-      gid.gint() = raw_id;
-
-      auto& sd = shape_ids[gid];
-      const uint8_t st = sd.shape_type;
-
-      auto* list_ptr = get_list_ptr(st);
-      if (list_ptr == nullptr) {
-        fan::throw_error_impl("shape_list_table entry is null (skipped shape type)");
-      }
-      auto* thunk_table = get_thunk_table_ptr<Fn>();
-      thunk_table[st](list_ptr, sd, &f);
-    }
-
-    template <typename F>
-    void with_shape_list(shape_nr_t raw_id, F&& f) {
-      shapes::shape_ids_t::nr_t id;
-      id.gint() = raw_id;
-
-      auto& sd = shape_ids[id];
-
-    #define CASE(name) \
-      case shape_type_t::name: { \
-        auto& list = get_shape_list(name); \
-        typename CONCAT2(name, _list_t)::nr_t nr; \
-        nr.gint() = sd.data_nr; \
-        f(list, nr, sd); \
-        break; \
-      }
-
-      switch (sd.shape_type) {
-        GEN_SHAPES(CASE, SKIP)
-      default:
-        fan::throw_error_impl("invalid shape_type");
-      }
-
-    #undef CASE
-    }
-
-
-    template<typename ShapeList>
-    shape_ids_t::nr_t add_shape(ShapeList& list, const auto& props) {
-      auto lnr = list.NewNodeLast();
-      auto& node = list[lnr];
-      node = props;
-
-      auto gnr = shape_ids.NewNodeLast();
-      shape_ids[gnr] = {
-        .data_nr = lnr.gint(),
-        .shape_type = shape_type_of<ShapeList>()
-      };
-      return gnr;
-    }
-
-    template <typename F>
-      void visit_shape_draw_data(shape_nr_t id, F&& f) {
-      dispatch_shape(id, [&](auto& list, auto& sd) {
-        using list_t = std::decay_t<decltype(list)>;
-        typename list_t::nr_t nr;
-        nr.gint() = sd.data_nr;
-        f(list[nr]);
-      });
-    }
-
-    void visibility_remove(shape_nr_t id);
-
-    void remove_shape(shape_nr_t id) {
-      {
-        g_shapes->visibility_remove(id);
-      }
-
+    template<typename F>
+    void visit_shape_draw_data(shape_nr_t id, F&& f) {
       shapes::shape_ids_t::nr_t gid;
       gid.gint() = id;
-
       auto& sd = shape_ids[gid];
-
-    #define CASE(name) \
-      case shape_type_t::name: { \
-        auto& list = get_shape_list(name); \
-        typename CONCAT2(name, _list_t)::nr_t nr; \
-        nr.gint() = sd.data_nr; \
-        list.unlrec(nr); \
-        break; \
-      }
-
+      void* props_ptr = shape_props_getters[sd.shape_type](shape_pool_storage[sd.shape_type], sd.data_nr);
+      #define CASE(name) \
+        case shape_type_t::name: \
+          f(*static_cast<shapes::name##_t::properties_t*>(props_ptr)); \
+          return;
+      #define SKIP(x)
       switch (sd.shape_type) {
         GEN_SHAPES(CASE, SKIP)
-      default:
-        fan::throw_error_impl("invalid shape_type");
+        default: fan::throw_error_impl("invalid shape_type in visit_shape_draw_data");
       }
-
-    #undef CASE
-
-      shape_ids.unlrec(gid);
+      #undef CASE
+      #undef SKIP
     }
 
+    void remove_shape(shape_nr_t id);
+
+    void visibility_remove(shape_nr_t id);
 
   #undef SKIP_ENTRY
     #undef get_shape_list

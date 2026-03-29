@@ -846,6 +846,7 @@ static void loco_init_shapes_context(loco_t* l) {
     const fan::graphics::shaper_t::BlockProperties_t& bp) {
     gloco()->gl.add_shape_type(nd, bp);
   };
+  l->shapes.shapes_init_pools(&l->shapes);
   fan::graphics::g_shapes = &l->shapes;
   l->shapes.visibility = new fan::graphics::culling::culling_t;
 #endif
