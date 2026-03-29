@@ -26,13 +26,11 @@ module;
 #include <algorithm>
 #include <string>
 #include <cmath>
-#include <chrono>
 #include <functional>
 #include <opus/opus.h>
 #include <cstring>
 #include <source_location>
 #include <type_traits>
-#include <fstream>
 
 
 #if fan_audio_set_backend == 0

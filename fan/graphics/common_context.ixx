@@ -11,12 +11,9 @@ module;
 #include <source_location>
 #include <functional>
 #include <cstdlib>
-#include <chrono>
 #include <type_traits>
 #include <coroutine>
 
-#include <sstream>
-#include <fstream>
 #include <span>
 
 export module fan.graphics.common_context;
@@ -94,7 +91,7 @@ export namespace fan {
         return 2;
       }
       default: {
-        fan::throw_error("invalid format");
+        fan::throw_error_impl("invalid format");
         return image_format_e::undefined;
       }
       }
@@ -289,7 +286,7 @@ export namespace fan {
       case image_format_e::yuv420p: return 3;
 
       default:
-        fan::throw_error("Invalid format");
+        fan::throw_error_impl("Invalid format");
         return 0;
       }
     }
@@ -307,7 +304,7 @@ export namespace fan {
       }
       default:
       {
-        fan::throw_error("invalid format");
+        fan::throw_error_impl("invalid format");
         return std::array<fan::vec2ui, 4>{};
       }
       }
@@ -332,7 +329,7 @@ export namespace fan {
         break;
 
       default:
-        fan::throw_error("invalid format");
+        fan::throw_error_impl("invalid format");
       }
 
       return result;

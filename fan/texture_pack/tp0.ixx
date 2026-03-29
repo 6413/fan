@@ -8,7 +8,6 @@ module;
 #include <cstring>
 #include <source_location>
 #include <memory>
-#include <fstream>
 #include <string>
 #include <sstream>
 
