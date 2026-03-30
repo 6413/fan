@@ -20,7 +20,6 @@ module;
 
 #define WITCH_PRE_is_not_allowed
 
-#include <WITCH/WITCH.h>
 
 // transform todo remove
 #include <algorithm>
@@ -31,6 +30,8 @@ module;
 #include <cstring>
 #include <source_location>
 #include <type_traits>
+
+#include <WITCH/WITCH.h>
 
 
 #if fan_audio_set_backend == 0
