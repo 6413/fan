@@ -60,6 +60,17 @@ option("FAN_FMT") set_default(true) option_end()
 option("FAN_WAYLAND_SCREEN") set_default(false) option_end()
 option("FAN_NETWORK") set_default(false) option_end()
 option("FAN_AUDIO") set_default(true) option_end()
+
+option("FAN_USE_STD_MODULE")
+    set_default(false)
+    set_showmenu(true)
+    add_defines("FAN_USE_STD_MODULE")
+option_end()
+
+if has_config("FAN_USE_STD_MODULE") then
+    set_policy("build.c++.modules.std", true)
+end
+
 option("main") set_default("examples/engine_demos/engine_demo.cpp") option_end()
 
 add_defines("FAN_OPENGL")
@@ -105,8 +116,10 @@ if not is_gcc then
   add_cxxflags("-stdlib=libstdc++", {force = true})
 end
 
-set_values("c++.modules.std", false)
-set_values("c++.modules.compat", false)
+set_policy("build.c++.modules.std", false)
+set_policy("build.c++.modules.compat", false)
+set_policy("build.c++.modules.reuse", true)
+
 
 add_cxxflags("-pthread", {force = true})
 
@@ -170,7 +183,6 @@ local module_files = {
   "fan/math/math.ixx",
   "fan/time.ixx",
   "fan/utility.ixx",
-	"fan/format.ixx",
 	"fan/formatter.ixx",
 	"fan/print_error.ixx",
   "fan/print.ixx",
@@ -288,6 +300,7 @@ end
 if has_config("FAN_GUI") then
   target("imgui")
     set_kind("static")
+    add_rules("c++.unity_build", {batchsize = 16})
     if not is_gcc then
       add_cxxflags("-stdlib=libstdc++", {force = true})
       add_ldflags("-stdlib=libstdc++", "-lstdc++", {force = true})
@@ -320,13 +333,13 @@ if has_config("FAN_GUI") then
       "fan/imgui/imgui_widgets.cpp",
       "fan/imgui/imgui_tables.cpp",
       "fan/imgui/imgui_impl_glfw.cpp",
-      "fan/imgui/imgui_impl_opengl3.cpp",
       "fan/imgui/implot_items.cpp",
       "fan/imgui/implot.cpp",
       "fan/imgui/text_editor.cpp",
       "fan/imgui/misc/freetype/imgui_freetype.cpp",
 			"fan/imgui/ImGuizmo.cpp"
     )
+    add_files("fan/imgui/imgui_impl_opengl3.cpp", {unity_ignored = true})
     if has_config("FAN_VULKAN") then
       add_files("fan/imgui/imgui_impl_vulkan.cpp")
     end
@@ -339,6 +352,7 @@ if has_config("FAN_GUI") then
 
   target("nfd")
     set_kind("static")
+    add_rules("c++.unity_build", {batchsize = 8})
     if is_plat("linux") then
       add_files(
         "fan/nativefiledialog/nfd_common.c",
