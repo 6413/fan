@@ -1501,10 +1501,10 @@ namespace fan::graphics {
       auto size = fan::graphics::image_get_data(nr).size;
       auto img_settings = gl.image_get_settings(nr);
       uint32_t channels = fan::graphics::get_channel_amount(img_settings.format);
-      int px = fan::math::clamp((int)std::round(uv_pos.x * size.x), 0, (int)size.x);
-      int py = fan::math::clamp((int)std::round(uv_pos.y * size.y), 0, (int)size.y);
-      int pw = fan::math::min((int)std::round(uv_size.x * size.x), (int)size.x - px);
-      int ph = fan::math::min((int)std::round(uv_size.y * size.y), (int)size.y - py);
+      int px = fan::math::clamp((int)fan::math::round(uv_pos.x * size.x), 0, (int)size.x);
+      int py = fan::math::clamp((int)fan::math::round(uv_pos.y * size.y), 0, (int)size.y);
+      int pw = fan::math::min((int)fan::math::round(uv_size.x * size.x), (int)size.x - px);
+      int ph = fan::math::min((int)fan::math::round(uv_size.y * size.y), (int)size.y - py);
       std::vector<uint8_t> full(size.x * size.y * channels);
       glBindTexture(GL_TEXTURE_2D, gl.image_get_handle(nr));
       glGetTexImage(GL_TEXTURE_2D, 0,
