@@ -20,6 +20,7 @@ import fan.types.vector;
   import fan.window;
   import fan.graphics.common_context;
   import fan.graphics.opengl.core;
+  import fan.types.json;
 
   #if defined(FAN_VULKAN)
     import fan.graphics.vulkan.core;
@@ -430,7 +431,6 @@ export namespace fan::graphics::shaper {
     bool operator==(const ShapeID_t& other) const noexcept { return gint() == other.gint(); }
 
   #include <fan/graphics/2D/shaper.h>
-
 }
 
 namespace fan {
@@ -445,6 +445,36 @@ namespace fan {
 
 export namespace fan::graphics {
 #if defined(FAN_2D)
+
+  struct sprite_sheet_t {
+    struct image_t {
+      fan::graphics::image_t image = fan::graphics::ctx().default_texture;
+      int hframes = 1, vframes = 1;
+    #if defined(FAN_JSON)
+      operator fan::json() const;
+      sprite_sheet_t::image_t& assign(const fan::json& j, const std::source_location& callers_path = std::source_location::current());
+    #endif
+    };
+    sprite_sheet_t();
+    ~sprite_sheet_t();
+    std::vector<int> selected_frames;
+    std::vector<sprite_sheet_t::image_t> images;
+    std::string name;
+    int fps = 15;
+    bool loop = true;
+  };
+
+
+  struct sprite_sheet_id_t {
+    sprite_sheet_id_t();
+    sprite_sheet_id_t(uint32_t id);
+    operator uint32_t() const;
+    explicit operator bool() const;
+    sprite_sheet_id_t operator++(int);
+    bool operator==(const sprite_sheet_id_t& other) const;
+    bool operator!=(const sprite_sheet_id_t& other) const;
+    uint32_t id = -1;
+  };
 
   using fan::graphics::shaper::MaxElementPerBlock;
 

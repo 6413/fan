@@ -3016,6 +3016,33 @@ void fan::graphics::shapes::shape_t::add_sprite_sheet(const fan::graphics::sprit
   play_sprite_sheet();
 }
 
+void* fan::graphics::shapes::shape_t::get_shape_data_impl(uint16_t shape_type) const {
+  void* result = nullptr;
+  g_shapes->visit_shape_draw_data(NRI, [&]<typename props_t>(props_t& props) {
+    result = &props;
+  });
+  return result;
+}
+
+void fan::graphics::shapes::shape_t::get_gldata_impl(void* dst, size_t size, size_t offset) {
+  glFinish();
+
+  auto& vbo = get_shape_type_data().renderer.gl.m_vbo;
+  auto* ctx_ptr = (fan::opengl::context_t*)ctx().render_context;
+
+  get_shape_type_data().renderer.gl.m_vao.bind(*ctx_ptr);
+  vbo.bind(*ctx_ptr);
+
+  fan::opengl::core::get_glbuffer(
+    *ctx_ptr,
+    dst,
+    vbo.m_buffer,
+    size,
+    offset,
+    vbo.m_target
+  );
+}
+
 #endif
 
 #if defined(FAN_2D)
