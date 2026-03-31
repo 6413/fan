@@ -1,5 +1,7 @@
 module;
 
+#if defined(FAN_FMT)
+
 #if __has_include("format")
   #include <format>
   namespace current_fmt = std;
@@ -17,7 +19,11 @@ module;
 #include <iomanip>
 #include <iostream>
 
+#endif
+
 export module fan.fmt;
+
+#if defined(FAN_FMT)
 
 import fan.formatter;
 import fan.print.error;
@@ -153,3 +159,5 @@ export namespace fan {
   template <typename... T> 
   using format_string = current_fmt::format_string<T...>;
 }
+
+#endif
