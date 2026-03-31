@@ -13,7 +13,6 @@ export module fan.graphics.gui.text_logger;
 import fan.types;
 import fan.types.color;
 import fan.types.vector;
-import fan.fmt;
 import fan.time;
 import fan.math;
 import fan.graphics.common_context;
@@ -216,15 +215,15 @@ export namespace fan::graphics::gui {
     void print(const fan::color& color, const Args&... args) {
       add_floating(fan::format_args(args...) + "\n", color);
     }
-    template <typename... args_t>
-    void printf(std::string_view fmt, args_t&&... args) {
-      add_floating(fan::format(fmt, std::forward<args_t>(args)...) + "\n");
-    }
-    template <typename... args_t>
-    void printf(const fan::color& color, std::string_view fmt, args_t&&... args) {
-      add_floating(fan::format(fmt, std::forward<args_t>(args)...) + "\n", color);
-    }
-    template <typename... args_t>
+    //template <typename... args_t>
+    //void printf(std::string_view fmt, args_t&&... args) {
+    //  add_floating(fan::format(fmt, std::forward<args_t>(args)...) + "\n");
+    //}
+    //template <typename... args_t>
+    //void printf(const fan::color& color, std::string_view fmt, args_t&&... args) {
+    //  add_floating(fan::format(fmt, std::forward<args_t>(args)...) + "\n", color);
+    //}
+    /*template <typename... args_t>
     void printft(std::streamsize tab_width, std::string_view fmt, args_t&&... args) {
       std::string formatted = fan::format(fmt, std::forward<args_t>(args)...);
       queue_floating_formatted(formatted, tab_width);
@@ -233,7 +232,7 @@ export namespace fan::graphics::gui {
     void printft(std::streamsize tab_width, const fan::color& color, std::string_view fmt, args_t&&... args) {
       std::string formatted = fan::format(fmt, std::forward<args_t>(args)...);
       queue_floating_formatted(formatted, tab_width, color);
-    }
+    }*/
     //-------------------------------------Floating text-------------------------------------
 
     // Text that is added (stacked) to bottom left and it never disappears
@@ -246,7 +245,7 @@ export namespace fan::graphics::gui {
     void print_static(const fan::color& color, const Args&... args) {
       add_static(fan::format_args(args...) + "\n", color);
     }
-    template <typename... args_t>
+   /* template <typename... args_t>
     void printf_static(std::string_view fmt, args_t&&... args) {
       add_static(fan::format(fmt, std::forward<args_t>(args)...) + "\n");
     }
@@ -263,7 +262,7 @@ export namespace fan::graphics::gui {
     void printft_static(std::streamsize tab_width, const fan::color& color, std::string_view fmt, args_t&&... args) {
       std::string formatted = fan::format(fmt, std::forward<args_t>(args)...);
       queue_static_formatted(formatted, tab_width, color);
-    }
+    }*/
     void clear_static_text() {
       clear_static();
     }
@@ -358,7 +357,7 @@ export namespace fan::graphics::gui {
   void print(const fan::color& color, const Args&... args) {
     ((text_logger_t*)fan::graphics::ctx().text_logger)->print(color, args...);
   }
-  template <typename... args_t>
+ /* template <typename... args_t>
   void printf(std::string_view fmt, args_t&&... args) {
     ((text_logger_t*)fan::graphics::ctx().text_logger)->printf(fmt, std::forward<args_t>(args)...);
   }
@@ -373,7 +372,7 @@ export namespace fan::graphics::gui {
   template <typename... args_t>
   void printft(std::streamsize tab_width, const fan::color& color, std::string_view fmt, args_t&&... args) {
     ((text_logger_t*)fan::graphics::ctx().text_logger)->printft(tab_width, color, fmt, std::forward<args_t>(args)...);
-  }
+  }*/
   template <typename ...args_t>
   void print_error(args_t&&... args) {
     ((text_logger_t*)fan::graphics::ctx().text_logger)->print(fan::colors::red, std::forward<args_t>(args)...);
@@ -399,7 +398,7 @@ export namespace fan::graphics::gui {
   void print_static(const fan::color& color, const Args&... args) {
     ((text_logger_t*)fan::graphics::ctx().text_logger)->print_static(color, args...);
   }
-  template <typename... args_t>
+ /* template <typename... args_t>
   void printf_static(std::string_view fmt, args_t&&... args) {
     ((text_logger_t*)fan::graphics::ctx().text_logger)->printf_static(fmt, std::forward<args_t>(args)...);
   }
@@ -414,7 +413,7 @@ export namespace fan::graphics::gui {
   template <typename... args_t>
   void printft_static(std::streamsize tab_width, const fan::color& color, std::string_view fmt, args_t&&... args) {
     ((text_logger_t*)fan::graphics::ctx().text_logger)->printft_static(tab_width, color, fmt, std::forward<args_t>(args)...);
-  }
+  }*/
   void clear_static_text();
   //-------------------------------------Static text-------------------------------------
 }

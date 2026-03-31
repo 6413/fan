@@ -56,7 +56,7 @@ option("FAN_JSON") set_default(true) option_end()
 option("FAN_3D") set_default(false) option_end()
 option("FAN_OPENGL") set_default(true) option_end()
 option("FAN_VULKAN") set_default(false) option_end()
-option("FAN_FMT") set_default(true) option_end()
+option("FAN_FMT") set_default(false) option_end()
 option("FAN_WAYLAND_SCREEN") set_default(false) option_end()
 option("FAN_NETWORK") set_default(false) option_end()
 option("FAN_AUDIO") set_default(true) option_end()
@@ -138,6 +138,7 @@ local common_flags = {
   "-Wno-unused-value",
   "-Wno-padded",
   "-fsized-deallocation",
+	"-ftime-trace",
 }
 
 local clang_only_flags = {
@@ -237,7 +238,7 @@ if has_config("FAN_JSON") then
   table.insert(module_files, "fan/types/json.ixx")
 end
 
-if has_config("FAN_FMT") or has_config("FAN_GUI") then
+if has_config("FAN_FMT") then
   table.insert(module_files, "fan/fmt.ixx")
 end
 

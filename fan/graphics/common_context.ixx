@@ -35,7 +35,6 @@ import fan.window.input_action;
 import fan.graphics.image_load;
 
 
-
 #if defined(FAN_GUI)
   import fan.graphics.gui.types;
 #endif
@@ -554,10 +553,10 @@ export namespace fan::graphics {
     image_t pause;
     image_t settings;
   }icons;
-  struct tile_world_images {
-    inline static fan::graphics::image_t dirt;
-    inline static fan::graphics::image_t background;
-  };
+  struct tile_world_images_t {
+    fan::graphics::image_t dirt;
+    fan::graphics::image_t background;
+  }tile_world_images;
 
   std::string read_shader(
     std::string_view path,

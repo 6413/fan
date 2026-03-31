@@ -2523,7 +2523,7 @@ export struct fte_t {
             .render_view = ic,
             .position = fan::vec3(fan::vec2(x, y) * cell_size * 2.f + cell_size, 0xFFFA),
             .size = fan::vec2(cell_size, cell_size),
-            .image = fan::graphics::tile_world_images::dirt
+            .image = fan::graphics::tile_world_images.dirt
           } });
         }
       }
@@ -2546,7 +2546,7 @@ export struct fte_t {
       for (int y = 0; y < tile_world.map_size.y; y++) {
         for (int x = 0; x < tile_world.map_size.x; x++) {
           rects[x + y * tile_world.map_size.x].set_image(
-            tile_world.is_solid(x, y) ? fan::graphics::tile_world_images::dirt : fan::graphics::tile_world_images::background
+            tile_world.is_solid(x, y) ? fan::graphics::tile_world_images.dirt : fan::graphics::tile_world_images.background
           );
         }
       }
@@ -2640,10 +2640,10 @@ export struct fte_t {
           layer.tile.mesh_property = fte_t::mesh_property_t::none;
 
           fan::graphics::image_t img = rects[x + y * map_size.x].get_image();
-          if (img == fan::graphics::tile_world_images::dirt) {
+          if (img == fan::graphics::tile_world_images.dirt) {
             layer.tile.id = "##tile_world_dirt";
           }
-          else if (img == fan::graphics::tile_world_images::background) {
+          else if (img == fan::graphics::tile_world_images.background) {
             layer.tile.id = "##tile_world_background";
           }
 
