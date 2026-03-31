@@ -273,6 +273,28 @@ export {
       bool m_is_ref = false;
     };
 
+    template <> int json::_get_impl<int>() const;
+    template <> uint32_t json::_get_impl<uint32_t>() const;
+    template <> int64_t json::_get_impl<int64_t>() const;
+    template <> uint64_t json::_get_impl<uint64_t>() const;
+    template <> uint16_t json::_get_impl<uint16_t>() const;
+    template <> int16_t json::_get_impl<int16_t>() const;
+    template <> uint8_t json::_get_impl<uint8_t>() const;
+    template <> int8_t json::_get_impl<int8_t>() const;
+    template <> char json::_get_impl<char>() const;
+    template <> f32_t json::_get_impl<f32_t>() const;
+    template <> f64_t json::_get_impl<f64_t>() const;
+    template <> bool json::_get_impl<bool>() const;
+    template <> std::string json::_get_impl<std::string>() const;
+    template <> fan::color json::_get_impl<fan::color>() const;
+    template <> fan::vec2_wrap_t<f32_t> json::_get_impl<fan::vec2_wrap_t<f32_t>>() const;
+    template <> fan::vec2_wrap_t<int> json::_get_impl<fan::vec2_wrap_t<int>>() const;
+    template <> fan::vec3_wrap_t<f32_t> json::_get_impl<fan::vec3_wrap_t<f32_t>>() const;
+    template <> fan::vec3_wrap_t<int> json::_get_impl<fan::vec3_wrap_t<int>>() const;
+    template <> fan::vec4_wrap_t<f32_t> json::_get_impl<fan::vec4_wrap_t<f32_t>>() const;
+    template <> fan::vec4_wrap_t<int> json::_get_impl<fan::vec4_wrap_t<int>>() const;
+    template <> std::vector<std::string> json::_get_impl<std::vector<std::string>>() const;
+
     struct json_stream_parser_t {
       struct parsed_result {
         fan::json value;
