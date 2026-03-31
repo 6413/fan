@@ -26,6 +26,7 @@ module;
 #include <coroutine>
 #include <iostream>
 #include <mutex>
+#include <algorithm>
 
 #if defined(fan_std23)
   #include <stacktrace>
