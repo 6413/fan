@@ -2,11 +2,13 @@ module;
 #include <fan/utility.h>
 #include <cstdint>
 #include <cstring>
+#include <source_location>
 module fan.graphics.shapes.types;
 
 //import fan.utility;
 import fan.print.error;
 import fan.memory;
+import fan.graphics.shapes;
 
 namespace fan::graphics {
 #if defined(FAN_2D)
@@ -39,36 +41,53 @@ namespace fan::graphics {
   }
 #endif
 
-    sprite_sheet_t::sprite_sheet_t() {
+  sprite_sheet_t::sprite_sheet_t() {}
+  sprite_sheet_t::~sprite_sheet_t() {}
+
+#if defined(FAN_JSON)
+  sprite_sheet_t::image_t::operator fan::json() const {
+    fan::json j;
+    image_t defaults;
+    if (hframes != defaults.hframes) {
+      j["hframes"] = hframes;
+    }
+    if (vframes != defaults.vframes) {
+      j["vframes"] = vframes;
+    }
+    j.update(fan::graphics::image_to_json(image), true);
+    return j;
   }
 
-  sprite_sheet_t::~sprite_sheet_t() {
+  sprite_sheet_t::image_t& sprite_sheet_t::image_t::assign(const fan::json& j, const std::source_location& callers_path) {
+    image = fan::graphics::json_to_image(j, callers_path);
+    if (j.contains("hframes")) {
+      hframes = j.at("hframes");
+    }
+    if (j.contains("vframes")) {
+      vframes = j.at("vframes");
+    }
+    return *this;
   }
+#endif
 
   sprite_sheet_id_t::sprite_sheet_id_t() = default;
-
   sprite_sheet_id_t::sprite_sheet_id_t(uint32_t id) {
     this->id = id;
   }
-
   sprite_sheet_id_t::operator uint32_t() const {
     return id;
   }
-
   sprite_sheet_id_t::operator bool() const {
     return id != (decltype(id))-1;
   }
-
   sprite_sheet_id_t sprite_sheet_id_t::operator++(int) {
     sprite_sheet_id_t temp(*this);
     ++id;
     return temp;
   }
-
   bool sprite_sheet_id_t::operator==(const sprite_sheet_id_t& other) const {
     return id == other.id;
   }
-
   bool sprite_sheet_id_t::operator!=(const sprite_sheet_id_t& other) const {
     return id != other.id;
   }
