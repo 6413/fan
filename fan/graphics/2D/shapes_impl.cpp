@@ -3302,7 +3302,8 @@ namespace fan::graphics {
       in.get_if("image_min_filter", lp.min_filter);
       in.get_if("image_mag_filter", lp.mag_filter);
       if (in.contains("images") && in["images"].is_array()) {
-        for (const auto [i, image_json] : fan::enumerate(in["images"])) {
+        int i = 0;
+        for (auto image_json : in["images"]) {
           // leaking (cache taking care of it)
           fan::graphics::image_t image = fan::graphics::json_to_image(image_json, callers_path);
           if (i == 0) {
@@ -3313,6 +3314,7 @@ namespace fan::graphics {
             images[i - 1] = image;
             shape->set_images(images);
           }
+          i++;
         }
       }
 
@@ -3351,7 +3353,9 @@ namespace fan::graphics {
       in.get_if("image_mag_filter", lp.mag_filter);
 
       if (in.contains("images") && in["images"].is_array()) {
-        for (const auto [i, image_json] : fan::enumerate(in["images"])) {
+        auto images_node = in["images"];
+        for (size_t i = 0; i < images_node.size(); ++i) {
+          auto image_json = images_node[i];
           if (!image_json.contains("image_path")) continue;
 
           auto path = image_json["image_path"];
