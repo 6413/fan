@@ -10,6 +10,7 @@ module;
 #include <queue>
 #include <cmath>
 #include <algorithm>
+#include <memory>
 
 export module fan.graphics.gui;
 
@@ -22,7 +23,7 @@ export module fan.graphics.gui;
   import fan.types.color;
   import fan.types.quaternion;
   import fan.types.fstring;
-  import fan.types.json;
+  
   import fan.types.compile_time_string;
   import fan.event;
 
@@ -358,25 +359,18 @@ export namespace fan::graphics::gui {
 
 
   struct dialogue_box_t {
-
-    struct render_type_t;
-
-  #include <fan/fan_bll_preset.h>
-  #define BLL_set_prefix drawables
-  #define BLL_set_type_node uint16_t
-  #define BLL_set_NodeDataType render_type_t*
-  #define BLL_set_Link 1
-  #define BLL_set_AreWeInsideStruct 1
-  #define BLL_set_SafeNext 1
-  #include <BLL/BLL.h>
-    using drawable_nr_t = drawables_NodeReference_t;
-
-    drawables_t drawables;
-
     struct render_type_t {
-      virtual void render(dialogue_box_t* This, drawable_nr_t nr, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing) = 0;
-      virtual ~render_type_t();
+      virtual void render(dialogue_box_t* This, uint16_t nr, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing) = 0;
+      virtual ~render_type_t() = default;
     };
+
+    using drawable_nr_t = uint16_t;
+    struct drawable_node_t {
+      drawable_nr_t id;
+      std::unique_ptr<render_type_t> ptr;
+    };
+    std::vector<drawable_node_t> drawables;
+    drawable_nr_t next_id = 1;
 
     struct text_delayed_t : render_type_t {
       ~text_delayed_t() override;

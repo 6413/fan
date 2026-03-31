@@ -37,6 +37,9 @@ export import fan.graphics.gui.settings_menu;
 #endif
 #if defined(FAN_GUI)
   export import fan.console;
+  export import fan.file_dialog;
+  export import fan.graphics.gui.types;
+  export import fan.graphics.gui.base;
   export import fan.graphics.gui;
 #endif
 export import fan.texture_pack.tp0;
@@ -49,13 +52,6 @@ export import fan.event;
 
 #if defined(FAN_AUDIO)
   export import fan.audio;
-#endif
-#if defined(FAN_GUI)
-  export import fan.file_dialog;
-  //export import fan.graphics.gui.tilemap_editor.renderer;
-  //export import fan.graphics.gui.tilemap_editor.editor;
-  export import fan.graphics.gui.base;
-  export import fan.graphics.gui;
 #endif
 #if defined(FAN_PHYSICS_2D)
   export import fan.physics.collision.rectangle;

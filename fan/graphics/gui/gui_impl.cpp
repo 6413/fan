@@ -21,6 +21,11 @@ module fan.graphics.gui;
 
 import fan.utility;
 
+#if defined(FAN_JSON)
+  import fan.types.json;
+#endif
+
+
 import fan.types.vector;
 
 import fan.print.error;
@@ -1682,8 +1687,6 @@ namespace fan::graphics::gui {
 
 #endif
 
-  dialogue_box_t::render_type_t::~render_type_t() {}
-
   dialogue_box_t::text_delayed_t::~text_delayed_t() {
     dialogue_line_finished = true;
     character_advance_task = {};
@@ -1691,15 +1694,21 @@ namespace fan::graphics::gui {
 
   void dialogue_box_t::text_delayed_t::render(dialogue_box_t* This, dialogue_box_t::drawable_nr_t nr, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing) {
 
-    // initialize advance task but dont restart it after dialog finished
     if (dialogue_line_finished == false && !character_advance_task.owner) {
       character_advance_task = [This, nr]() -> fan::event::task_t {
-        text_delayed_t* text_delayed = dynamic_cast<text_delayed_t*>(This->drawables[nr]);
+        text_delayed_t* text_delayed = nullptr;
+
+        for (auto& node : This->drawables) {
+          if (node.id == nr) {
+            text_delayed = dynamic_cast<text_delayed_t*>(node.ptr.get());
+            break;
+          }
+        }
+
         if (text_delayed == nullptr) {
           co_return;
         }
 
-        // advance text rendering
         while (text_delayed->render_pos < text_delayed->text.size() && !text_delayed->dialogue_line_finished && text_delayed->character_per_s) {
           ++text_delayed->render_pos;
           co_await fan::co_sleep(1000 / text_delayed->character_per_s);
@@ -1746,18 +1755,13 @@ namespace fan::graphics::gui {
       cursor.y += get_style().WindowPadding.y;
       set_cursor_pos(cursor);
 
-
       if (gui::button(std::string_view(text), size == 0 ? button_size : size)) {
         This->button_choice = nr;
-        auto it = This->drawables.GetNodeFirst();
-        while (it != This->drawables.dst) {
-          This->drawables.StartSafeNext(it);
-          if (dynamic_cast<button_t*>(This->drawables[it])) {
-            delete This->drawables[it];
-            This->drawables.unlrec(it);
-          }
-          it = This->drawables.EndSafeNext();
-        }
+
+        std::erase_if(This->drawables, [](const drawable_node_t& node) {
+          return dynamic_cast<button_t*>(node.ptr.get()) != nullptr;
+        });
+
         This->wait_user = false;
       }
     }
@@ -1781,67 +1785,60 @@ namespace fan::graphics::gui {
   }
 
   fan::event::task_value_resume_t<dialogue_box_t::drawable_nr_t> dialogue_box_t::text_delayed(
-    std::string_view character_name, 
-    std::string_view text, 
+    std::string_view character_name,
+    std::string_view text,
     int characters_per_second) {
-    text_delayed_t td;
-    td.character_per_s = characters_per_second;
-    td.text = text;
-    td.render_pos = 0;
-    td.dialogue_line_finished = false;
 
+    auto node_id = next_id++;
 
-    auto it = drawables.NewNodeLast();
-    drawables[it] = new text_delayed_t(std::move(td));
+    auto td = std::make_unique<text_delayed_t>();
+    td->character_per_s = characters_per_second;
+    td->text = text;
+    td->render_pos = 0;
+    td->dialogue_line_finished = false;
 
+    drawables.push_back({node_id, std::move(td)});
 
-    co_return it;
+    co_return node_id;
   }
 
   fan::event::task_value_resume_t<dialogue_box_t::drawable_nr_t> dialogue_box_t::text(const std::string& text) {
-    text_t text_drawable;
-    text_drawable.text = text;
+    auto node_id = next_id++;
 
-    auto it = drawables.NewNodeLast();
-    drawables[it] = new text_t(text_drawable);
+    auto text_drawable = std::make_unique<text_t>();
+    text_drawable->text = text;
 
-    co_return it;
+    drawables.push_back({node_id, std::move(text_drawable)});
+    co_return node_id;
   }
 
   fan::event::task_value_resume_t<dialogue_box_t::drawable_nr_t> dialogue_box_t::button(const std::string& text, const fan::vec2& position, const fan::vec2& size) {
-    button_choice.sic();
-    button_t button;
-    button.position = position;
-    button.size = size;
-    button.text = text;
+    button_choice = 0;
 
-    auto it = drawables.NewNodeLast();
-    drawables[it] = new button_t(button);
-    co_return it;
+    auto node_id = next_id++;
+
+    auto btn = std::make_unique<button_t>();
+    btn->position = position;
+    btn->size = size;
+    btn->text = text;
+
+    drawables.push_back({node_id, std::move(btn)});
+
+    co_return node_id;
   }
 
   // default width 80% of the window
   fan::event::task_value_resume_t<dialogue_box_t::drawable_nr_t> dialogue_box_t::separator(f32_t width) {
-    auto it = drawables.NewNodeLast();
-    drawables[it] = new separator_t;
+    auto node_id = next_id++;
 
-    co_return it;
+    auto sep = std::make_unique<separator_t>();
+    // sep->width = width; ?
+    drawables.push_back({node_id, std::move(sep)});
+    co_return node_id;
   }
 
   int dialogue_box_t::get_button_choice() {
-    int btn_choice = -1;
-
-    auto it = drawables.GetNodeFirst();
-    while (it != drawables.dst) {
-      drawables.StartSafeNext(it);
-      if (dynamic_cast<button_t*>(drawables[it])) {
-        if (button_choice == it) {
-          break;
-        }
-      }
-      it = drawables.EndSafeNext();
-    }
-    return btn_choice;
+    return button_choice;
   }
 
   fan::event::task_t dialogue_box_t::wait_user_input() {
@@ -1878,12 +1875,8 @@ namespace fan::graphics::gui {
     render_content_cb(cursor_position == -1 ? fan::vec2(get_style().WindowPadding) : cursor_position, indent);
     // render objects here
 
-    auto it = drawables.GetNodeFirst();
-    while (it != drawables.dst) {
-      drawables.StartSafeNext(it);
-      // co_await or task vector
-      drawables[it]->render(this, it, window_size, wrap_width, line_spacing);
-      it = drawables.EndSafeNext();
+    for (auto& drawable : drawables) {
+      drawable.ptr->render(this, drawable.id, window_size, wrap_width, line_spacing);
     }
     // end_child();
     set_window_font_scale(1.0f);
@@ -1901,13 +1894,7 @@ namespace fan::graphics::gui {
   }
 
   void dialogue_box_t::clear() {
-    auto it = drawables.GetNodeFirst();
-    while (it != drawables.dst) {
-      drawables.StartSafeNext(it);
-      delete drawables[it];
-      drawables.unlrec(it);
-      it = drawables.EndSafeNext();
-    }
+    drawables.clear();
   }
 
   void dialogue_box_t::default_render_content(const fan::vec2& cursor_pos, f32_t indent) {
