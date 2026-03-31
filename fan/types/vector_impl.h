@@ -95,8 +95,8 @@ vec_t(const std::string& str) {
 
 constexpr vec_t operator-() const { make_for_all(ret[i] = -(*this)[i]); }
 constexpr vec_t operator+() const { make_for_all(ret[i] = +(*this)[i]); }
-make_operators(-);  //make_operator_comparison(==);
-make_operators(+);  //make_operator_comparison(!=);
+make_operators(-);
+make_operators(+);
 make_operators(*);
 make_operators(/);
 
@@ -252,7 +252,6 @@ constexpr value_type_t& operator[](access_type_t idx) {
 #else
   return fan_coordinate(idx);
 #endif
-    // force crash with stackoverflow or gives error if idx is knowable at compiletime
   return operator[](idx);
 }
 constexpr const value_type_t& operator[](access_type_t idx) const {
@@ -267,7 +266,6 @@ constexpr const value_type_t& operator[](access_type_t idx) const {
 #else
   return fan_coordinate(idx);
 #endif
-    // force crash with stackoverflow or gives error if idx is knowable at compiletime
   return operator[](idx);
 }
 #undef __FAN_SWITCH_IDX
@@ -291,12 +289,11 @@ constexpr auto begin() { return &operator[](0); }
 constexpr auto end() { return begin() + size(); }
 constexpr auto data() { return begin(); }
 
-constexpr auto plus() const { value_type_t r{}; for (access_type_t i = 0; i < size(); ++i) r += (*this)[i]; return r; }
-constexpr auto minus() const { value_type_t r{}; for (access_type_t i = 0; i < size(); ++i) r -= (*this)[i]; return r; }
+constexpr auto sum() const { value_type_t r{}; for (access_type_t i = 0; i < size(); ++i) r += (*this)[i]; return r; }
 constexpr auto multiply() const { value_type_t r{1}; for (access_type_t i = 0; i < size(); ++i) r *= (*this)[i]; return r; }
 constexpr auto sign() const { make_for_all(ret[i] = fan::math::sgn((*this)[i])); }
 constexpr auto floor() const { make_for_all(ret[i] = std::floor((*this)[i])); }
-constexpr auto floor(auto value) const { make_for_all(ret[i] = std::floor((*this)[i] / value)); }
+constexpr auto floor_div(auto value) const { make_for_all(ret[i] = std::floor((*this)[i] / value)); }
 constexpr auto ceil() const { make_for_all(ret[i] = std::ceil((*this)[i])); }
 constexpr auto round() const { make_for_all(ret[i] = std::round((*this)[i])); }
 constexpr auto abs() const { make_for_all(ret[i] = std::abs((*this)[i])); }
@@ -313,10 +310,9 @@ constexpr auto max(const auto& test0) const { make_for_all_test1(ret[i] = std::m
 constexpr auto clamp(value_type mi, value_type ma) const { make_for_all(ret[i] = fan::math::clamp((*this)[i], mi, ma)); }
 constexpr auto clamp(const vec_t& test0, const vec_t& test1) const { make_for_all_test2(ret[i] = fan::math::clamp((*this)[i], test0[i], test1[i])); }
 constexpr auto reflect(const vec_t& normal) { return *this - normal * 2 * dot(normal); }
-constexpr auto tangential_reflect(const vec_t& normal) { return *this - normal * dot(normal); }
+constexpr auto reflect_tangent(const vec_t& normal) { return *this - normal * dot(normal); }
 
-// gives number furthest away from 0
-constexpr auto abs_max() const { 
+constexpr auto max_abs() const { 
   auto v0 = min();
   auto v1 = max();
   return std::abs(v0) < std::abs(v1) ? v1 : v0;
@@ -332,7 +328,7 @@ template <typename T>
 requires(!std::is_arithmetic_v<T>)
 constexpr auto distance(const T& other) const { return (*this - other).length(); }
 
-constexpr vec_t square_normalize() const { 
+constexpr vec_t square_normalize () const { 
   auto max_val = abs().max();
   if (max_val == 0) {
     return vec_t{};
@@ -409,7 +405,6 @@ operator std::string() const {
 static vec_t from_string(const std::string& str) {
   vec_t vec{};
   std::string s = str;
-  // remove braces and spaces
   s.erase(std::remove_if(s.begin(), s.end(),
     [](char c) { return c == '{' || c == '}' || c == ' '; }), s.end());
 
@@ -424,25 +419,6 @@ static vec_t from_string(const std::string& str) {
     pos = comma + 1;
   }
   return vec;
-}
-
-static vec_t parse(const std::string& str) {
-  vec_t out{};
-  std::string s = str;
-  s.erase(std::remove_if(s.begin(), s.end(),
-    [](char c) { return c == '{' || c == '}' || c == ' '; }), s.end());
-
-  access_type_t i = 0;
-  std::size_t pos = 0;
-  while (i < out.size()) {
-    std::size_t comma = s.find(',', pos);
-    std::string item = s.substr(pos, comma == std::string::npos ? comma : comma - pos);
-    out[i] = item.empty() ? value_type_t{} : static_cast<value_type_t>(std::stof(item));
-    ++i;
-    if (comma == std::string::npos) break;
-    pos = comma + 1;
-  }
-  return out;
 }
 
 bool is_near(const vec_t& test0, value_type_t epsilon) const { 

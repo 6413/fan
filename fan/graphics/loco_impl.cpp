@@ -625,8 +625,8 @@ void loco_t::generate_commands(loco_t* loco) {
     }
     try {
       fan::graphics::shapes::rectangle_t::properties_t props;
-      props.position = fan::vec3::parse(args[0]);
-      if (args.size() >= 2) props.size = fan::vec2::parse(args[1]);
+      props.position = fan::vec3::from_string(args[0]);
+      if (args.size() >= 2) props.size = fan::vec2::from_string(args[1]);
       props.color = args.size() == 3 ? fan::color::parse(args[2]) : fan::colors::white;
 
       auto NRI = loco->add_shape_to_static_draw(props);
