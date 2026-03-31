@@ -9,6 +9,7 @@ module;
 #include <algorithm>
 #include <cmath>
 #include <span>
+#include <sstream>
 
 #define POSITION2_WINDOW_CENTER fan::vec2(fan::graphics::ctx().window->get_size() / 2)
 #define POSITION3_WINDOW_CENTER fan::vec3(POSITION2_WINDOW_CENTER, 0)
