@@ -25,6 +25,7 @@ import fan.print.error;
 
 import fan.types.compile_time_string;
 import fan.graphics.algorithm.raycast_grid;
+import fan.io.file;
 
 namespace fan::graphics {
   fan::graphics::image_t invalid_image = [] {

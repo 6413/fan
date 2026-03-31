@@ -281,40 +281,6 @@ namespace fan::graphics {
   }
 #endif
 
-  sprite_sheet_t::sprite_sheet_t() {
-  }
-
-  sprite_sheet_t::~sprite_sheet_t() {
-  }
-
-  sprite_sheet_id_t::sprite_sheet_id_t() = default;
-
-  sprite_sheet_id_t::sprite_sheet_id_t(uint32_t id) {
-    this->id = id;
-  }
-
-  sprite_sheet_id_t::operator uint32_t() const {
-    return id;
-  }
-
-  sprite_sheet_id_t::operator bool() const {
-    return id != (decltype(id))-1;
-  }
-
-  sprite_sheet_id_t sprite_sheet_id_t::operator++(int) {
-    sprite_sheet_id_t temp(*this);
-    ++id;
-    return temp;
-  }
-
-  bool sprite_sheet_id_t::operator==(const sprite_sheet_id_t& other) const {
-    return id == other.id;
-  }
-
-  bool sprite_sheet_id_t::operator!=(const sprite_sheet_id_t& other) const {
-    return id != other.id;
-  }
-
   size_t sprite_sheet_id_hash_t::operator()(const sprite_sheet_id_t& sheet_id) const noexcept {
     return std::hash<uint32_t>()(sheet_id.id);
   }
