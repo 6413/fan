@@ -42,7 +42,6 @@ export module fan.graphics.gui;
 
 #if defined(FAN_GUI)
 
-#if defined(FAN_GUI)
 export namespace fan::graphics::gui {
 
 #if !defined(__INTELLISENSE__)
@@ -141,7 +140,6 @@ export namespace fan::graphics::gui {
     const fan::color& tint_col = fan::color(1, 1, 1, 1),
     const fan::color& border_col = fan::color(0, 0, 0, 0)
   );
-#endif // fan graphics gui
 } // namespace fan::graphics::gui
 
 export namespace fan::graphics::gui {

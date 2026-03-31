@@ -1,20 +1,12 @@
 module;
-
 #include <fan/utility.h>
-
 #include <string>
 #include <string_view>
-#include <sstream>
-#include <iostream>
+#include <vector>
 #include <ostream>
-#include <iomanip>
-#include <unordered_map>
 #include <type_traits>
 #include <bitset>
-#include <source_location>
-#if defined(fan_std23)
-  #include <stacktrace>
-#endif
+
 export module fan.print;
 
 import fan.types;
@@ -56,71 +48,78 @@ export namespace fan {
     return os;
   }
 
+  namespace detail {
+    std::string format_tabbed_impl(std::streamsize tab_width, const std::vector<std::string>& str_args, const std::vector<bool>& neg_args);
+    std::wstring format_wargs_impl(const std::vector<std::wstring>& args, bool with_space);
+    void print_impl(const std::string& msg);
+    void printr_impl(const std::string& msg);
+    void wprint_impl(const std::wstring& msg, bool newline);
+    void print_color_impl(const fan::color& c, const std::string& msg);
+    void print_throttled_impl(int throttle_ms, std::size_t hash_key, const std::string& msg);
+    void print_once_impl(const std::string& msg);
+    void print_stacktrace_impl();
+
+    template<typename T> std::wstring to_wstr(const T& v) {
+      if constexpr (std::is_same_v<std::decay_t<T>, std::wstring>) return v;
+      else if constexpr (std::is_same_v<std::decay_t<T>, const wchar_t*>) return v ? v : L"";
+      else if constexpr (std::is_same_v<std::decay_t<T>, wchar_t>) return std::wstring(1, v);
+      else if constexpr (std::is_arithmetic_v<std::decay_t<T>>) return std::to_wstring(v);
+      else {
+         // Fallback using the exported formatter function!
+         std::string s = fan::format_args(v);
+         return std::wstring(s.begin(), s.end());
+      }
+    }
+  }
+
   template <typename ...Args>
   std::string format_args_tabbed(std::streamsize tab_width, const Args&... args) {
-    std::ostringstream oss;
-    std::ios init(nullptr);
-    init.copyfmt(oss);
-    int idx = 0;
-    ((oss << (idx == 0 ? "" : (fan::is_negative(args) ? "" : " "))
-      << std::setw(tab_width) << std::left << args
-      << (++idx == (int)sizeof...(args) ? "" : " ")
-      << (fan::is_negative(args) ? " " : "")), ...);
-    oss.copyfmt(init);
-    return oss.str();
+    return detail::format_tabbed_impl(tab_width, {fan::format_args(args)...}, {fan::is_negative(args)...});
   }
 
   template <typename ...Args>
   std::wstring format_wargs_with_space(const Args&... args) {
-    std::wostringstream oss;
-    ((oss << args << L' '), ...);
-    return oss.str();
+    return detail::format_wargs_impl({detail::to_wstr(args)...}, true);
   }
 
   template <typename ...Args>
   std::wstring format_wargs(const Args&... args) {
-    std::wostringstream oss;
-    ((oss << args << L" "), ...);
-    return oss.str();
+    return detail::format_wargs_impl({detail::to_wstr(args)...}, false);
   }
 
   std::string format_warning(const std::string& message) {
-#ifndef fan_disable_warnings
+  #ifndef fan_disable_warnings
     std::string ret = "fan warning:" + message;
     write_error_to_disk(ret);
     return ret;
-#else
+  #else
     return "";
-#endif
+  #endif
   }
 
   std::string format_warning_no_space(const std::string& message) {
-#ifndef fan_disable_warnings
+  #ifndef fan_disable_warnings
     std::string ret = "fan warning:" + message;
     write_error_to_disk(ret);
     return ret;
-#else
+  #else
     return "";
-#endif
+  #endif
   }
 
-  template <typename ...Args> void print(const Args&... args) { std::cout << format_args(args...) << '\n'; }
-  template <typename ...Args> void printr(const Args&... args) { std::cout << format_args_raw(args...); }
-  template <typename ...Args> void printc(const Args&... args) { std::cout << format_args_comma(args...) << '\n'; }
-  template <typename ...Args> void printt(std::streamsize tab_width, const Args&... args) { std::cout << format_args_tabbed(tab_width, args...) << '\n'; }
-  template <typename ...Args> void printn8(const Args&... args) { std::cout << format_args_n8(args...) << '\n'; }
-  template <typename ...Args> void print_no_space(const Args&... args) { std::cout << format_args_no_space(args...) << '\n'; }
-  template <typename ...Args> void printnln(const Args&... args) { std::cout << format_args_with_space(args...); }
-  template <typename ...Args> void wprint_no_endline(const Args&... args) { std::wcout << format_wargs_with_space(args...); }
-  template <typename ...Args> void wprint(const Args&... args) { std::wcout << format_wargs(args...) << '\n'; }
+  template <typename ...Args> void print(const Args&... args) { detail::print_impl(format_args(args...) + '\n'); }
+  template <typename ...Args> void printr(const Args&... args) { detail::printr_impl(format_args_raw(args...)); }
+  template <typename ...Args> void printc(const Args&... args) { detail::print_impl(format_args_comma(args...) + '\n'); }
+  template <typename ...Args> void printt(std::streamsize tab_width, const Args&... args) { detail::print_impl(format_args_tabbed(tab_width, args...) + '\n'); }
+  template <typename ...Args> void printn8(const Args&... args) { detail::print_impl(format_args_n8(args...) + '\n'); }
+  template <typename ...Args> void print_no_space(const Args&... args) { detail::print_impl(format_args_no_space(args...) + '\n'); }
+  template <typename ...Args> void printnln(const Args&... args) { detail::printr_impl(format_args_with_space(args...)); }
+  template <typename ...Args> void wprint_no_endline(const Args&... args) { detail::wprint_impl(format_wargs_with_space(args...), false); }
+  template <typename ...Args> void wprint(const Args&... args) { detail::wprint_impl(format_wargs(args...), true); }
 
   template <typename ...Args>
   void print_color(const fan::color& c, const Args&... args) {
-    uint32_t rgba = c.get_rgba();
-    uint8_t r = (rgba >> 24) & 0xFF;
-    uint8_t g = (rgba >> 16) & 0xFF;
-    uint8_t b = (rgba >> 8) & 0xFF;
-    std::cout << "\033[38;2;" << (int)r << ";" << (int)g << ";" << (int)b << "m" << format_args(args...) << "\033[0m\n";
+    detail::print_color_impl(c, format_args(args...));
   }
 
   template <typename ...Args>
@@ -132,37 +131,34 @@ export namespace fan {
 
   template <typename ...Args>
   void print_warning(const Args&... args) {
-#ifndef fan_disable_warnings
+  #ifndef fan_disable_warnings
     std::string message = format_args(args...);
     write_error_to_disk(message);
     print_color(fan::colors::yellow, message);
-#endif
+  #endif
   }
 
   template <typename ...Args>
   void print_error(const Args&... args) {
-#ifndef fan_disable_errors
+  #ifndef fan_disable_errors
     std::string message = format_args(args...);
     write_error_to_disk(message);
     print_color(fan::colors::red, message);
-#endif
+  #endif
   }
 
   void print_warning_no_space(const std::string& message) {
-#ifndef fan_disable_warnings
+  #ifndef fan_disable_warnings
     write_error_to_disk(message);
-    std::cout << format_warning_no_space(message) << '\n';
-#endif
+    detail::print_impl(format_warning_no_space(message) + '\n');
+  #endif
   }
 
   template <int throttle_ms = 1000, typename... Args>
   void print_throttled(const Args&... args) {
-    static std::unordered_map<std::size_t, fan::time::timer> timers;
     std::string msg = format_args(args...);
     std::size_t key = std::hash<std::string>{}(msg);
-    auto& t = timers[key];
-    if (!t.started()) { fan::printr(msg, '\n'); t.start_millis(throttle_ms); return; }
-    if (t.finished()) { fan::printr(msg, '\n'); t.start_millis(throttle_ms); }
+    detail::print_throttled_impl(throttle_ms, key, msg);
   }
 
   template<typename... Args, FAN_UNIQUE_CALL>
@@ -174,26 +170,17 @@ export namespace fan {
         line, file
       #endif
     >(throttle_ms)) {
-      fan::printr(fan::format_args(args...), '\n');
+      detail::printr_impl(fan::format_args(args...) + '\n');
     }
   }
 
   void print_once(const auto&... args) {
-    static std::unordered_map<std::string, int> count_map;
-    std::string key = format_args(args...);
-    if (++count_map[key] == 1)
-      std::cout << key << '\n';
+    detail::print_once_impl(format_args(args...));
   }
 
   namespace debug {
     void print_stacktrace() {
-#if defined(fan_std23)
-      std::stacktrace st;
-      fan::print(st.current());
-#elif defined(fan_platform_unix)
-#else
-      fan::print("stacktrace not supported");
-#endif
+      detail::print_stacktrace_impl();
     }
   }
 }

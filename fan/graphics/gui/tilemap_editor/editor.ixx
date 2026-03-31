@@ -30,7 +30,7 @@ import fan.types.color;
 import fan.types.vector;
 import fan.types.json;
 import fan.math;
-import fan.print;
+import fan.print.error;
 import fan.file_dialog;
 import fan.io.file;
 import fan.graphics;

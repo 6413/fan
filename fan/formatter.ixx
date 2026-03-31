@@ -1,7 +1,6 @@
 module;
 #include <string>
 #include <string_view>
-#include <sstream>
 #include <type_traits>
 #include <cstdint>
 
@@ -15,11 +14,12 @@ namespace fan::detail {
     else if constexpr (std::is_same_v<std::decay_t<T>, const char*>) return v ? v : "";
     else if constexpr (std::is_same_v<std::decay_t<T>, char>) return std::string(1, v);
     else if constexpr (std::is_arithmetic_v<std::decay_t<T>>) return std::to_string(v);
-    else if constexpr (std::is_convertible_v<T, std::string>) return std::string(v);
+    else if constexpr (std::is_same_v<std::decay_t<T>, const unsigned char*>) return v ? reinterpret_cast<const char*>(v) : "";
+    else if constexpr (std::is_same_v<std::decay_t<T>, unsigned char*>) return v ? reinterpret_cast<const char*>(v) : "";
+    else if constexpr (std::is_convertible_v<T, std::string_view>) return std::string(static_cast<std::string_view>(v));
+    else if constexpr (std::is_convertible_v<T, std::string>) return static_cast<std::string>(v);
     else {
-      std::ostringstream oss;
-      oss << v;
-      return oss.str();
+      return v.to_string(); 
     }
   }
 }
