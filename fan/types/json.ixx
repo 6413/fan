@@ -5,6 +5,7 @@ module;
 #include <vector>
 #include <unordered_map>
 #include <type_traits>
+#include <cstdint>
 
 export module fan.types.json;
 
