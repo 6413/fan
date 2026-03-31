@@ -39,6 +39,7 @@ export module fan.graphics.gui;
   import fan.formatter; // todo REMOVE
   import fan.graphics.common_types;
   import fan.log_dispatcher;
+  import fan.graphics.shapes.types;
 
   
 #endif
