@@ -255,32 +255,6 @@ namespace fan::graphics {
 
 #if defined(FAN_2D)
 
-#if defined(FAN_JSON)
-  sprite_sheet_t::image_t::operator fan::json() const {
-    fan::json j;
-    image_t defaults;
-    if (hframes != defaults.hframes) {
-      j["hframes"] = hframes;
-    }
-    if (vframes != defaults.vframes) {
-      j["vframes"] = vframes;
-    }
-    j.update(fan::graphics::image_to_json(image), true);
-    return j;
-  }
-
-  sprite_sheet_t::image_t& sprite_sheet_t::image_t::assign(const fan::json& j, const std::source_location& callers_path) {
-    image = fan::graphics::json_to_image(j, callers_path);
-    if (j.contains("hframes")) {
-      hframes = j.at("hframes");
-    }
-    if (j.contains("vframes")) {
-      vframes = j.at("vframes");
-    }
-    return *this;
-  }
-#endif
-
   size_t sprite_sheet_id_hash_t::operator()(const sprite_sheet_id_t& sheet_id) const noexcept {
     return std::hash<uint32_t>()(sheet_id.id);
   }
