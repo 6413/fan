@@ -85,34 +85,36 @@ namespace fan::graphics::gui {
 
   fan::json settings_config_t::to_json() const {
     fan::json j;
-    auto& d = j["display"];
-    d.set("display_mode", display.display_mode);
-    d.set("target_fps", display.target_fps);
-    d.set("resolution_index", display.resolution_index);
-    d.set("renderer", display.renderer);
-    d["window_position"]["x"] = display.window_position.x;
-    d["window_position"]["y"] = display.window_position.y;
-    d["custom_resolution"]["x"] = display.custom_resolution.x;
-    d["custom_resolution"]["y"] = display.custom_resolution.y;
-    auto& p = j["performance"];
-    p.set("vsync", performance.vsync);
-    p.set("show_fps", performance.show_fps);
-    p.set("track_heap", performance.track_heap);
-    p.set("track_opengl_calls", performance.track_opengl_calls);
-    auto& db = j["debug"];
-    db.set("frustum_culling", debug.frustum_culling_enabled);
-    db.set("visualize_culling", debug.visualize_culling);
-    db.set("hide_settings_bg", debug.hide_settings_bg);
-    db.set("fill_mode", debug.fill_mode);
-    db["culling_padding"]["x"] = debug.culling_padding.x;
-    db["culling_padding"]["y"] = debug.culling_padding.y;
-    j["audio"].set("volume", audio.volume);
-    auto& pp = j["post_processing"];
-    pp.set("bloom", gloco()->open_props.enable_bloom);
-    pp.set("bloom_strength", post_processing.bloom_strength);
-    pp.set("gamma", post_processing.gamma);
-    pp.set("exposure", post_processing.exposure);
-    pp.set("contrast", post_processing.contrast);
+
+    j["display"]["display_mode"] = display.display_mode;
+    j["display"]["target_fps"] = display.target_fps;
+    j["display"]["resolution_index"] = display.resolution_index;
+    j["display"]["renderer"] = display.renderer;
+    j["display"]["window_position"]["x"] = display.window_position.x;
+    j["display"]["window_position"]["y"] = display.window_position.y;
+    j["display"]["custom_resolution"]["x"] = display.custom_resolution.x;
+    j["display"]["custom_resolution"]["y"] = display.custom_resolution.y;
+
+    j["performance"]["vsync"] = performance.vsync;
+    j["performance"]["show_fps"] = performance.show_fps;
+    j["performance"]["track_heap"] = performance.track_heap;
+    j["performance"]["track_opengl_calls"] = performance.track_opengl_calls;
+
+    j["debug"]["frustum_culling"] = debug.frustum_culling_enabled;
+    j["debug"]["visualize_culling"] = debug.visualize_culling;
+    j["debug"]["hide_settings_bg"] = debug.hide_settings_bg;
+    j["debug"]["fill_mode"] = debug.fill_mode;
+    j["debug"]["culling_padding"]["x"] = debug.culling_padding.x;
+    j["debug"]["culling_padding"]["y"] = debug.culling_padding.y;
+
+    j["audio"]["volume"] = audio.volume;
+
+    j["post_processing"]["bloom"] = gloco()->open_props.enable_bloom;
+    j["post_processing"]["bloom_strength"] = post_processing.bloom_strength;
+    j["post_processing"]["gamma"] = post_processing.gamma;
+    j["post_processing"]["exposure"] = post_processing.exposure;
+    j["post_processing"]["contrast"] = post_processing.contrast;
+
     return j;
   }
 

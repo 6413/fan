@@ -6,6 +6,11 @@ module;
 
 #include <expected>
 #include <coroutine>
+#include <memory>
+#include <string>
+#include <functional>
+#include <array>
+#include <sstream>
 
 #include <uv.h>
 #undef min
@@ -150,7 +155,7 @@ export namespace fan {
       void await_suspend(std::coroutine_handle<> h) { data->co_handle = h; }
       int await_resume() {
         if (data->status != 0) {
-          throw std::runtime_error(std::string("connection failed with:") + uv_strerror(data->status));
+          fan::throw_error(std::string("connection failed with:") + uv_strerror(data->status));
         }
         return data->status;
       }
@@ -1084,7 +1089,7 @@ export namespace fan {
       void await_suspend(std::coroutine_handle<> h) { data->co_handle = h; }
       int await_resume() {
         if (data->status < 0) {
-          throw std::runtime_error(std::string("UDP send failed: ") + uv_strerror(data->status));
+          fan::throw_error(std::string("UDP send failed: ") + uv_strerror(data->status));
         }
         return data->status;
       }
@@ -1933,7 +1938,7 @@ export namespace fan {
           return *this;
         }
 
-        response_t& ok(const fan::json& data = nullptr) {
+        response_t& ok(const fan::json& data = {}) {
           status_code = status_t::ok;
           if (!data.is_null()) {
             json(data);
@@ -1941,7 +1946,7 @@ export namespace fan {
           return *this;
         }
 
-        response_t& created(const fan::json& data = nullptr) {
+        response_t& created(const fan::json& data = {}) {
           status_code = status_t::created;
           if (!data.is_null()) {
             json(data);

@@ -13,6 +13,8 @@ module;
 #include <source_location>
 #include <sstream>
 #include <fstream>
+#include <algorithm>
+#include <filesystem>
 
 #endif
 
@@ -1149,8 +1151,8 @@ export struct fte_t {
       fan::vec2 frame_padding = style.FramePadding;
       fan::vec2 viewport_pos = fan::graphics::gui::get_window_content_region_min() - frame_padding;
       fan::vec2 real_viewport_size = viewport_size + frame_padding * 2 + fan::vec2(0, style.WindowPadding.y * 2);
-      real_viewport_size.x = std::clamp(real_viewport_size.x, 1.f, real_viewport_size.x);
-      real_viewport_size.y = std::clamp(real_viewport_size.y, 1.f, real_viewport_size.y);
+      real_viewport_size.x = fan::math::clamp(real_viewport_size.x, 1.f, real_viewport_size.x);
+      real_viewport_size.y = fan::math::clamp(real_viewport_size.y, 1.f, real_viewport_size.y);
 
       fan::graphics::camera_set_ortho(
         render_view->camera,
@@ -1866,7 +1868,7 @@ export struct fte_t {
       //fan::graphics::gui::set_window_font_scale(zoomed_font_size / fs_first);
     }
 
-    zoomed_font_size = std::clamp(zoomed_font_size, fs_first, fs_last);
+    zoomed_font_size = fan::math::clamp(zoomed_font_size, fs_first, fs_last);
 
     fan::graphics::gui::push_font(
       fan::graphics::gui::get_font(zoomed_font_size)
@@ -2016,7 +2018,7 @@ export struct fte_t {
     ostr["gravity"] = fan::physics::gphysics()->get_gravity();
 
     fan::json jtps = fan::json::array();
-    jtps.get_ptr<fan::json::array_t*>()->reserve(texture_packs.size());
+    jtps.reserve(texture_packs.size());
     for (auto* tp : texture_packs) {
       jtps.push_back(tp->file_path);
     }
@@ -2044,7 +2046,7 @@ export struct fte_t {
     }
 
     fan::json tiles = fan::json::array();
-    tiles.get_ptr<fan::json::array_t*>()->reserve(total_tiles);
+    tiles.reserve(total_tiles);
 
     static const fte_t::tile_t defaults = fte_t::tile_t();
 
@@ -2219,7 +2221,7 @@ export struct fte_t {
 
     {
       fan::json j = fan::json::array();
-      j.get_ptr<fan::json::array_t*>()->reserve(visual_layers.size());
+      j.reserve(visual_layers.size());
 
       for (auto& [depth, layer] : visual_layers) {
         fan::json l;

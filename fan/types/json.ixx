@@ -1,9 +1,12 @@
 module;
-
 #include <fan/utility.h>
 #include <string>
-
-// With windows clang build there can be msvc and clang both defined
+#include <string_view>
+#include <vector>
+#include <unordered_map>
+#include <algorithm>
+#include <filesystem>
+#include <type_traits>
 #if defined(fan_compiler_msvc) && !defined(fan_compiler_clang)
   import <fan/types/json_impl.h>;
 #else
@@ -12,6 +15,7 @@ module;
 
 export module fan.types.json;
 
+import fan.types;
 import fan.types.vector;
 import fan.types.color;
 import fan.types.compile_time_string;
@@ -19,281 +23,254 @@ import fan.io.file;
 
 export {
   namespace fan {
-    struct json : nlohmann::json {
-      using base = nlohmann::json;
-      using base::base;
-      json() = default;
-      json(const base& j) : base(j) {}
-      json(base&& j) : base(std::move(j)) {}
-      json(std::initializer_list<typename base::value_type> init) 
-        : base(init) {}
+    struct json;
 
-    // nice pain
+    struct json_iterator {
+      json_iterator();
+      ~json_iterator();
+      json_iterator(const json_iterator& other);
+      json_iterator& operator=(const json_iterator& other);
+      json_iterator& operator++();
+      json_iterator operator++(int);
+      bool operator!=(const json_iterator& other) const;
+      bool operator==(const json_iterator& other) const;
+      int operator-(const json_iterator& other) const;
+      json_iterator operator-(int n) const;
+      json_iterator operator+(int n) const;
+      
+      std::string key() const;
+      json& value();
+      json& operator*();
+      json* operator->();
 
-      template<typename... Args>
-      static json parse(Args&&... args) {
-        return json(base::parse(std::forward<Args>(args)...));
-      }
+      void* m_it = nullptr;
+      json* m_current = nullptr;
+    };
 
-      json& operator[](const std::string& key) {
-        return static_cast<json&>(base::operator[](key));
-      }
-      const json& operator[](const std::string& key) const {
-        return static_cast<const json&>(base::operator[](key));
-      }
-      json& operator[](std::string&& key) {
-        return static_cast<json&>(base::operator[](std::move(key)));
-      }
-      json& operator[](const char* key) {
-        return static_cast<json&>(base::operator[](key));
-      }
-      const json& operator[](const char* key) const {
-        return static_cast<const json&>(base::operator[](key));
-      }
-      json& operator[](size_t idx) {
-        return static_cast<json&>(base::operator[](idx));
-      }
-      const json& operator[](size_t idx) const {
-        return static_cast<const json&>(base::operator[](idx));
-      }
-      json& operator[](int idx) {
-        return static_cast<json&>(base::operator[](static_cast<size_t>(idx)));
-      }
-      const json& operator[](int idx) const {
-        return static_cast<const json&>(base::operator[](static_cast<size_t>(idx)));
-      }
+    struct json {
+      using iterator = json_iterator;
+      using const_iterator = json_iterator;
+      using value_type = json;
+      using reference = json&;
+      using const_reference = const json&;
+      using size_type = size_t;
+      using array_t = std::vector<json>;
+      using object_t = std::unordered_map<std::string, json>;
 
-
-      class iterator : public base::iterator {
-      public:
-        using base_iter = base::iterator;
-
-        iterator() = default;
-        iterator(base::iterator it) : base_iter(it) {}
-
-        json& operator*() const {
-          return static_cast<json&>(base_iter::operator*());
-        }
-        json* operator->() const {
-          return static_cast<json*>(&base_iter::operator*());
-        }
-
-        bool operator==(const iterator& other) const {
-          return base_iter::operator==(static_cast<const base_iter&>(other));
-        }
-        bool operator!=(const iterator& other) const {
-          return base_iter::operator!=(static_cast<const base_iter&>(other));
-        }
-        bool operator<(const iterator& other) const {
-          return base_iter::operator<(static_cast<const base_iter&>(other));
-        }
-        bool operator<=(const iterator& other) const {
-          return base_iter::operator<=(static_cast<const base_iter&>(other));
-        }
-        bool operator>(const iterator& other) const {
-          return base_iter::operator>(static_cast<const base_iter&>(other));
-        }
-        bool operator>=(const iterator& other) const {
-          return base_iter::operator>=(static_cast<const base_iter&>(other));
-        }
-
-        iterator& operator++() {
-          base_iter::operator++();
-          return *this;
-        }
-        iterator operator++(int) {
-          iterator tmp = *this;
-          base_iter::operator++();
-          return tmp;
-        }
-        iterator& operator--() {
-          base_iter::operator--();
-          return *this;
-        }
-        iterator operator--(int) {
-          iterator tmp = *this;
-          base_iter::operator--();
-          return tmp;
-        }
-        iterator& operator+=(typename base_iter::difference_type n) {
-          base_iter::operator+=(n);
-          return *this;
-        }
-        iterator operator+(typename base_iter::difference_type n) const {
-          iterator tmp = *this;
-          tmp += n;
-          return tmp;
-        }
-        iterator& operator-=(typename base_iter::difference_type n) {
-          base_iter::operator-=(n);
-          return *this;
-        }
-        iterator operator-(typename base_iter::difference_type n) const {
-          iterator tmp = *this;
-          tmp -= n;
-          return tmp;
-        }
-        typename base_iter::difference_type operator-(const iterator& other) const {
-          return base_iter::operator-(static_cast<const base_iter&>(other));
-        }
+      enum class value_t : uint8_t {
+        null, object, array, string, boolean, number_integer, number_unsigned, number_float, binary, discarded
       };
 
-      class const_iterator : public base::const_iterator {
-      public:
-        using base_iter = base::const_iterator;
+      json();
+      ~json();
+      json(const json& other);
+      json(json&& other) noexcept;
+      
+      json(int v);
+      json(uint32_t v);
+      json(int64_t v);
+      json(uint64_t v);
+      json(f32_t v);
+      json(f64_t v);
+      json(bool v);
+      json(char v);
+      json(const char* v);
+      json(const std::string& v);
 
-        const_iterator() = default;
-        const_iterator(base::const_iterator it) : base_iter(it) {}
+      json& operator=(const json& other);
+      json& operator=(json&& other) noexcept;
+      
+      static json parse(const std::string& raw);
+      static json load_file(fan::str_view_t path);
+      bool save(fan::str_view_t path, int indent = 2) const;
+      static bool save_file(fan::str_view_t path, const json& j, int indent = 2);
+      static json object();
+      static json array();
 
-        const json& operator*() const {
-          return static_cast<const json&>(base_iter::operator*());
+      json& operator=(int v);
+      json& operator=(uint32_t v);
+      json& operator=(int64_t v);
+      json& operator=(uint64_t v);
+      json& operator=(f32_t v);
+      json& operator=(f64_t v);
+      json& operator=(bool v);
+      json& operator=(char v);
+      json& operator=(const char* v);
+      json& operator=(const std::string& v);
+      json& operator=(const fan::color& v);
+      template <typename t_type> json& operator=(const fan::vec2_wrap_t<t_type>& v);
+      template <typename t_type> json& operator=(const fan::vec3_wrap_t<t_type>& v);
+      template <typename t_type> json& operator=(const fan::vec4_wrap_t<t_type>& v);
+      template <typename t_type> json& operator=(const std::vector<t_type>& v) {
+        *this = json::array();
+        for (const auto& item : v) {
+          this->push_back(item);
         }
-        const json* operator->() const {
-          return static_cast<const json*>(&base_iter::operator*());
-        }
-
-        bool operator==(const const_iterator& other) const {
-          return base_iter::operator==(static_cast<const base_iter&>(other));
-        }
-        bool operator!=(const const_iterator& other) const {
-          return base_iter::operator!=(static_cast<const base_iter&>(other));
-        }
-        bool operator<(const const_iterator& other) const {
-          return base_iter::operator<(static_cast<const base_iter&>(other));
-        }
-        bool operator<=(const const_iterator& other) const {
-          return base_iter::operator<=(static_cast<const base_iter&>(other));
-        }
-        bool operator>(const const_iterator& other) const {
-          return base_iter::operator>(static_cast<const base_iter&>(other));
-        }
-        bool operator>=(const const_iterator& other) const {
-          return base_iter::operator>=(static_cast<const base_iter&>(other));
-        }
-
-        const_iterator& operator++() {
-          base_iter::operator++();
-          return *this;
-        }
-        const_iterator operator++(int) {
-          const_iterator tmp = *this;
-          base_iter::operator++();
-          return tmp;
-        }
-        const_iterator& operator--() {
-          base_iter::operator--();
-          return *this;
-        }
-        const_iterator operator--(int) {
-          const_iterator tmp = *this;
-          base_iter::operator--();
-          return tmp;
-        }
-        const_iterator& operator+=(typename base_iter::difference_type n) {
-          base_iter::operator+=(n);
-          return *this;
-        }
-        const_iterator operator+(typename base_iter::difference_type n) const {
-          const_iterator tmp = *this;
-          tmp += n;
-          return tmp;
-        }
-        const_iterator& operator-=(typename base_iter::difference_type n) {
-          base_iter::operator-=(n);
-          return *this;
-        }
-        const_iterator operator-(typename base_iter::difference_type n) const {
-          const_iterator tmp = *this;
-          tmp -= n;
-          return tmp;
-        }
-        typename base_iter::difference_type operator-(const const_iterator& other) const {
-          return base_iter::operator-(static_cast<const base_iter&>(other));
-        }
-      };
-
-      iterator begin() {
-        return iterator(base::begin());
-      }
-      iterator end() {
-        return iterator(base::end());
-      }
-      const_iterator begin() const {
-        return const_iterator(base::begin());
-      }
-      const_iterator end() const {
-        return const_iterator(base::end());
-      }
-      const_iterator cbegin() const {
-        return const_iterator(base::cbegin());
-      }
-      const_iterator cend() const {
-        return const_iterator(base::cend());
+        return *this;
       }
 
-      template<typename func_t>
-      void find_and_iterate(const std::string& search_string, func_t&& callback) {
+      json& operator+=(const json& val);
+
+      template<typename T, typename std::enable_if_t<std::is_enum_v<T>, int> = 0>
+      json& operator=(T v) {
+        return *this = static_cast<std::underlying_type_t<T>>(v);
+      }
+      template<typename T, typename std::enable_if_t<std::is_enum_v<T>, int> = 0>
+      operator T() const {
+        return static_cast<T>(get<std::underlying_type_t<T>>());
+      }
+
+      json operator[](const char* key);
+      json operator[](const std::string& key);
+      json operator[](size_t index);
+      json operator[](int index);
+      const json operator[](const char* key) const;
+      const json operator[](const std::string& key) const;
+      const json operator[](size_t index) const;
+      const json operator[](int index) const;
+
+      json at(const char* key);
+      json at(size_t index);
+      const json at(const char* key) const;
+      const json at(size_t index) const;
+
+      void update(const json& other, bool merge_objects = false);
+
+      bool operator==(int val) const;
+      bool operator!=(int val) const;
+      bool operator==(const json& val) const;
+      bool operator!=(const json& val) const;
+
+      template<typename T, typename std::enable_if_t<std::is_enum_v<T>, int> = 0>
+      bool operator==(T val) const { 
+        if (!m_ptr) return false;
+        return get<std::underlying_type_t<T>>() == static_cast<std::underlying_type_t<T>>(val);
+      }
+      template<typename T, typename std::enable_if_t<std::is_enum_v<T>, int> = 0>
+      bool operator!=(T val) const { 
+        return !(*this == val);
+      }
+
+      value_t type() const;
+      bool is_string() const;
+      bool is_number() const;
+      bool is_boolean() const;
+      bool contains(const char* key) const;
+      bool is_object() const;
+      bool is_array() const;
+      bool is_null() const;
+      size_t size() const;
+      bool empty() const;
+      
+      void push_back(const json& val);
+      void push_back(const std::string& val);
+      void push_back(const char* val);
+      std::string dump(int indent = -1, const char* indent_char = " ", bool ensure_ascii = false) const;
+
+      void reserve(size_t n);
+
+      template <typename t_type> t_type _get_impl() const;
+
+      template <typename t_type> t_type get() const {
+        if constexpr (std::is_enum_v<t_type>) {
+          return static_cast<t_type>(_get_impl<std::underlying_type_t<t_type>>());
+        } else {
+          return _get_impl<t_type>();
+        }
+      }
+      
+      template <typename t_type> t_type value(const char* key, const t_type& default_value) const {
+        if (contains(key)) { return (*this)[key].get<t_type>(); }
+        return default_value;
+      }
+      template <typename t_type> t_type value(const std::string& key, const t_type& default_value) const {
+        return value(key.c_str(), default_value);
+      }
+      std::string value(const char* key, const char* default_value) const {
+        if (contains(key)) { return (*this)[key].get<std::string>(); }
+        return std::string(default_value);
+      }
+      std::string value(const std::string& key, const char* default_value) const {
+        return value(key.c_str(), default_value);
+      }
+
+      operator int() const { return get<int>(); }
+      operator uint32_t() const { return get<uint32_t>(); }
+      operator int64_t() const { return get<int64_t>(); }
+      operator uint64_t() const { return get<uint64_t>(); }
+      operator uint16_t() const { return get<uint16_t>(); }
+      operator int16_t() const { return get<int16_t>(); }
+      operator uint8_t() const { return get<uint8_t>(); }
+      operator int8_t() const { return get<int8_t>(); }
+      operator char() const { return get<char>(); }
+      operator f32_t() const { return get<f32_t>(); }
+      operator f64_t() const { return get<f64_t>(); }
+      operator bool() const { return get<bool>(); }
+      operator std::string() const { return get<std::string>(); }
+      operator std::string_view() const;
+      operator fan::str_view_t() const;
+      operator fan::color() const { return get<fan::color>(); }
+
+      template <typename t_type> operator fan::vec2_wrap_t<t_type>() const { return get<fan::vec2_wrap_t<t_type>>(); }
+      template <typename t_type> operator fan::vec3_wrap_t<t_type>() const { return get<fan::vec3_wrap_t<t_type>>(); }
+      template <typename t_type> operator fan::vec4_wrap_t<t_type>() const { return get<fan::vec4_wrap_t<t_type>>(); }
+
+      template <typename T>
+      operator std::vector<T>() const {
+        std::vector<T> result;
+        for (auto it = begin(); it != end(); ++it) {
+          result.push_back(static_cast<T>(*it));
+        }
+        return result;
+      }
+
+      void* get_internal_ptr() const { return m_ptr; }
+
+      json_iterator begin();
+      json_iterator end();
+      json_iterator begin() const;
+      json_iterator end() const;
+      json_iterator cbegin() const;
+      json_iterator cend() const;
+
+      template<typename func_t> void find_and_iterate(const std::string& search_string, func_t&& callback) {
         if (this->is_object()) {
           for (auto it = this->begin(); it != this->end(); ++it) {
-            if (it.key() == search_string) {
-              callback(static_cast<json&>(it.value()));
-            }
-            static_cast<json&>(it.value()).find_and_iterate(search_string, callback);
+            if (it.key() == search_string) { callback(it.value()); }
+            it.value().find_and_iterate(search_string, callback);
           }
         }
         else if (this->is_array()) {
-          for (auto& item : *this) {
-            item.find_and_iterate(search_string, callback);
+          for (auto& item : *this) { item.find_and_iterate(search_string, callback); }
+        }
+      }
+
+      template<typename t_type> void get_if(const char* key, t_type& out) const {
+        if (contains(key)) {
+          if constexpr (std::is_enum_v<t_type>) {
+            out = static_cast<t_type>((*this)[key].get<std::underlying_type_t<t_type>>());
+          } else {
+            out = (*this)[key].get<t_type>();
           }
         }
       }
-      template<typename T>
-      void get_if(const char* key, T& out) {
-        if (contains(key)) out = (*this)[key].get<T>();
-      }
-      template<typename T>
-      void get_if(const char* key, T& out) const {
-        if (contains(key)) out = (*this)[key].get<T>();
-      }
-      template<typename T>
-      void set(const char* key, const T& val) {
+
+      template<typename t_type> void set(const char* key, const t_type& val) {
         (*this)[key] = val;
       }
-      static json load_file(fan::str_view_t path) {
-        std::string raw;
-
-        if (fan::io::file::read(path, &raw)) {
-          return json::object();
-        }
-
-        try {
-          return json::parse(raw);
-        }
-        catch (...) {
-          return json::object();
-        }
-      }
-      static bool save_file(fan::str_view_t path, const json& j, int indent = 2) {
-        return fan::io::file::write(
-          path,
-          j.dump(indent),
-          std::ios_base::binary
-        ) == 0;
-      }
-      bool save(fan::str_view_t path, int indent = 2) const {
-        return save_file(path, *this, indent);
-      }
-      template<typename T>
-      static void load_struct(fan::str_view_t path, T& obj) {
+      template<typename t_type> static void load_struct(fan::str_view_t path, t_type& obj) {
         auto j = load_file(path);
         obj.json_read(j);
       }
-      template<typename T>
-      static void save_struct(fan::str_view_t path, const T& obj) {
-        fan::json j;
+      template<typename t_type> static void save_struct(fan::str_view_t path, const t_type& obj) {
+        fan::json j = json::object();
         obj.json_write(j);
         j.save(path);
       }
+      json(void* ptr, bool is_ref);
+
+      void* m_ptr = nullptr;
+      bool m_is_ref = false;
     };
 
     struct json_stream_parser_t {
@@ -302,108 +279,11 @@ export {
         std::string error;
         bool success;
       };
-
-      [[nodiscard]]
-      std::pair<size_t, size_t> find_next_json_bounds(std::string_view s, size_t pos = 0) const noexcept {
-        pos = s.find('{', pos);
-        if (pos == std::string::npos) return {pos, pos};
-
-        int depth = 0;
-        bool in_str = false;
-
-        for (size_t i = pos; i < s.length(); i++) {
-          char c = s[i];
-          if (c == '"' && (i == 0 || s[i - 1] != '\\')) in_str = !in_str;
-          else if (!in_str) {
-            if (c == '{') depth++;
-            else if (c == '}' && --depth == 0) return {pos, i + 1};
-          }
-        }
-        return {pos, std::string::npos};
-      }
-
-      std::vector<parsed_result> process(std::string_view chunk) {
-        std::vector<parsed_result> results;
-        buf += chunk;
-        size_t pos = 0;
-
-        while (pos < buf.length()) {
-          auto [start, end] = find_next_json_bounds(buf, pos);
-          if (start == std::string::npos) break;
-          if (end == std::string::npos) {
-            buf = buf.substr(start);
-            break;
-          }
-
-          try {
-            results.push_back({fan::json::parse(buf.data() + start, buf.data() + end - start), "", true});
-          }
-          catch (const fan::json::parse_error& e) {
-            results.push_back({fan::json{}, e.what(), false});
-          }
-
-          pos = buf.find('{', end);
-          if (pos == std::string::npos) pos = end;
-        }
-
-        buf = pos < buf.length() ? buf.substr(pos) : "";
-        return results;
-      }
-
-      void clear() noexcept { buf.clear(); }
+      std::pair<size_t, size_t> find_next_json_bounds(std::string_view s, size_t pos = 0) const noexcept;
+      std::vector<parsed_result> process(std::string_view chunk);
+      void clear() noexcept;
 
       std::string buf;
     };
-  } // namespace fan
-
-
-
-  template <typename T>
-  struct nlohmann::adl_serializer<fan::vec2_wrap_t<T>> {
-    static void to_json(nlohmann::json& j, const fan::vec2_wrap_t<T>& v) {
-      j = nlohmann::json{ v.x, v.y };
-    }
-    static void from_json(const nlohmann::json& j, fan::vec2_wrap_t<T>& v) {
-      v.x = j[0].get<T>();
-      v.y = j[1].get<T>();
-    }
-  };
-
-  template <typename T>
-  struct nlohmann::adl_serializer<fan::vec3_wrap_t<T>> {
-    static void to_json(nlohmann::json& j, const fan::vec3_wrap_t<T>& v) {
-      j = nlohmann::json{ v.x, v.y, v.z };
-    }
-    static void from_json(const nlohmann::json& j, fan::vec3_wrap_t<T>& v) {
-      v.x = j[0].get<T>();
-      v.y = j[1].get<T>();
-      v.z = j[2].get<T>();
-    }
-  };
-
-  template <typename T>
-  struct nlohmann::adl_serializer<fan::vec4_wrap_t<T>> {
-    static void to_json(nlohmann::json& j, const fan::vec4_wrap_t<T>& v) {
-      j = nlohmann::json{ v.x, v.y, v.z, v.w };
-    }
-    static void from_json(const nlohmann::json& j, fan::vec4_wrap_t<T>& v) {
-      v.x = j[0].get<T>();
-      v.y = j[1].get<T>();
-      v.z = j[2].get<T>();
-      v.w = j[3].get<T>();
-    }
-  };
-
-  template <> 
-  struct nlohmann::adl_serializer<fan::color> {
-    static void to_json(nlohmann::json& j, const fan::color& c) {
-      j = nlohmann::json{ c[0], c[1], c[2], c[3]};
-    }
-    static void from_json(const nlohmann::json& j, fan::color& c) {
-      c.r = j[0];
-      c.g = j[1];
-      c.b = j[2];
-      c.a = j[3];
-    }
-  };
+  }
 }

@@ -1051,9 +1051,9 @@ struct fgm_t {
     if (json_in.contains("tiles")) {
       shapes = "tiles";
     }
-    auto& shape_object = json_in;
+    auto shape_object = json_in;
     bool is_object = true;
-    if (json_in.contains(shapes)) {
+    if (json_in.contains(shapes.c_str())) {
       shape_object = json_in[shapes];
       is_object = false;
     }
@@ -1390,8 +1390,11 @@ struct fgm_t {
     void render_gui(shapes_t::global_t* shape) {
       using namespace fan::graphics;
 
-      gui::text(fan::format("Shape ptr: {} | Owner ptr: {} | Keyframes: {}",
-        (void*)shape, (void*)owner_shape, keyframes.size()).c_str());
+      gui::text((
+        "Shape ptr: " + std::to_string((uintptr_t)shape) +
+        " | Owner ptr: " + std::to_string((uintptr_t)owner_shape) +
+        " | Keyframes: " + std::to_string(keyframes.size())).c_str()
+      );
 
       if (owner_shape != shape) {
         gui::text("ERROR: Wrong animation! This belongs to another shape.");
@@ -1455,7 +1458,9 @@ struct fgm_t {
       for (int i = 0; i < keyframes.size(); ++i) {
         gui::push_id(i);
         bool is_selected = (i == selected_keyframe);
-        if (gui::selectable(fan::format("KF {}: {:.2f}s", i, keyframes[i].time).c_str(), is_selected)) {
+        if (gui::selectable(
+          ("KF " + std::to_string(i) + ": " + std::to_string(keyframes[i].time) + "s").c_str(),
+          is_selected)) {
           selected_keyframe = i;
           current_time = keyframes[i].time;
           apply_to_shape(shape);
