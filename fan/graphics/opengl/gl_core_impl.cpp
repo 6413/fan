@@ -8,10 +8,8 @@ module;
 #define __fan_internal_image_list (*fan::graphics::ctx().image_list)
 #define __fan_internal_viewport_list (*fan::graphics::ctx().viewport_list)
 
-  #include <regex>
   #include <source_location>
   #include <sstream>
-  #include <cmath>
   #include <cstring>
 #endif
 
@@ -327,16 +325,40 @@ namespace fan::opengl {
     const std::string& shader_data,
     std::unordered_map<std::string, std::string>& uniform_type_table
   ) {
-    std::string clean = std::regex_replace(shader_data, std::regex(R"(//[^\n]*\n)"), "\n");
-    clean = std::regex_replace(clean, std::regex(R"(/\*[\s\S]*?\*/)"), "");
-    static const std::regex uniformRx(
-      R"(\buniform\b(?:\s+\w+)?\s+(\w+)\s+(\w+)(?:\s*\[[^\]]+\])?(?:\s*=\s*[^;]+)?\s*;)",
-      std::regex::optimize
-    );
-    for (auto it = std::sregex_iterator(clean.begin(), clean.end(), uniformRx);
-      it != std::sregex_iterator(); ++it) {
-      const std::smatch& m = *it;
-      uniform_type_table[m[2].str()] = m[1].str();
+    std::string s = shader_data;
+    size_t i = 0;
+
+    // remove comments
+    while (i < s.size()) {
+      if (s[i] == '/' && i + 1 < s.size()) {
+        if (s[i + 1] == '/') { s.erase(i, s.find('\n', i) - i); continue; }
+        if (s[i + 1] == '*') {
+          size_t end = s.find("*/", i + 2);
+          s.erase(i, (end == std::string::npos ? s.size() : end + 2) - i);
+          continue;
+        }
+      }
+      ++i;
+    }
+
+    // parse uniforms
+    i = 0;
+    while ((i = s.find("uniform", i)) != std::string::npos) {
+      i += 7; // skip "uniform"
+      while (i < s.size() && std::isspace(s[i])) ++i;
+
+      size_t t_end = i; while (t_end < s.size() && (std::isalnum(s[t_end]) || s[t_end] == '_')) ++t_end;
+      std::string type = s.substr(i, t_end - i);
+
+      size_t n_start = t_end; while (n_start < s.size() && std::isspace(s[n_start])) ++n_start;
+      size_t n_end = n_start; while (n_end < s.size() && (std::isalnum(s[n_end]) || s[n_end] == '_')) ++n_end;
+      std::string name = s.substr(n_start, n_end - n_start);
+
+      // skip array brackets and initializer
+      size_t semi = s.find(';', n_end);
+      i = (semi == std::string::npos ? s.size() : semi + 1);
+
+      uniform_type_table[name] = type;
     }
   }
   bool context_t::shader_compile(fan::graphics::shader_nr_t nr) {
@@ -1479,10 +1501,10 @@ namespace fan::graphics {
       auto size = fan::graphics::image_get_data(nr).size;
       auto img_settings = gl.image_get_settings(nr);
       uint32_t channels = fan::graphics::get_channel_amount(img_settings.format);
-      int px = std::clamp((int)std::round(uv_pos.x * size.x), 0, (int)size.x);
-      int py = std::clamp((int)std::round(uv_pos.y * size.y), 0, (int)size.y);
-      int pw = std::min((int)std::round(uv_size.x * size.x), (int)size.x - px);
-      int ph = std::min((int)std::round(uv_size.y * size.y), (int)size.y - py);
+      int px = fan::math::clamp((int)std::round(uv_pos.x * size.x), 0, (int)size.x);
+      int py = fan::math::clamp((int)std::round(uv_pos.y * size.y), 0, (int)size.y);
+      int pw = fan::math::min((int)std::round(uv_size.x * size.x), (int)size.x - px);
+      int ph = fan::math::min((int)std::round(uv_size.y * size.y), (int)size.y - py);
       std::vector<uint8_t> full(size.x * size.y * channels);
       glBindTexture(GL_TEXTURE_2D, gl.image_get_handle(nr));
       glGetTexImage(GL_TEXTURE_2D, 0,
