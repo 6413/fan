@@ -1,15 +1,12 @@
 module;
 
-#include <fan/graphics/opengl/init.h>
-#include <fan/event/types.h>
+#include <fan/utility.h>
 
 #include <coroutine>
 #include <source_location>
 #include <unordered_set>
-#include <algorithm>
 #include <cmath>
 #include <span>
-#include <sstream>
 
 #define POSITION2_WINDOW_CENTER fan::vec2(fan::graphics::ctx().window->get_size() / 2)
 #define POSITION3_WINDOW_CENTER fan::vec3(POSITION2_WINDOW_CENTER, 0)
@@ -24,24 +21,16 @@ import fan.types.compile_time_string;
   import fan.types.json;
 #endif
 
-#if defined(FAN_GUI)
-  import fan.console;
-  import fan.graphics.gui.text_logger;
-#endif
-
 import fan.graphics.common_context;
 import fan.graphics.common_types;
 import fan.graphics.shapes.types;
 import fan.graphics.shapes;
-import fan.graphics.algorithm.raycast_grid;
 import fan.graphics.algorithm.pathfind;
 import fan.graphics.opengl.core;
 import fan.graphics.image_load;
 
-import fan.io.directory;
-import fan.io.file;
-
 import fan.time;
+import fan.formatter;
 
 import fan.window.input;
 import fan.window.input_action;
@@ -51,7 +40,6 @@ import fan.texture_pack.tp0;
 
 import fan.event;
 import fan.math;
-import fan.log_dispatcher;
 
 import fan.random;
 import fan.physics.types;
@@ -62,79 +50,6 @@ export namespace fan::graphics {
   fan::graphics::render_view_t add_render_view();
   fan::graphics::render_view_t add_render_view(const fan::vec2& ortho_x, const fan::vec2& ortho_y, const fan::vec2& viewport_position, const fan::vec2& viewport_size);
 }
-
-export namespace fan {
-
-  inline fan::console_t& g_console() {
-    //static fan::console_t gconsole;
-    return *(fan::console_t*)fan::graphics::ctx().console;
-  }
-
-  void printclnn(auto&&... values) {
-  #if defined(FAN_GUI)
-    ([&](const auto& value) {
-      std::ostringstream oss;
-      oss << value;
-      g_console().print(oss.str() + " ", 0);
-    }(values), ...);
-  #endif
-  }
-
-  void printcl(auto&&... values) {
-  #if defined(FAN_GUI)
-    printclnn(values...);
-    g_console().print("\n", 0);
-  #endif
-  }
-
-  void printclnnh(int highlight, auto&&... values) {
-  #if defined(FAN_GUI)
-    ([&](const auto& value) {
-      std::ostringstream oss;
-      oss << value;
-      g_console().print(oss.str() + " ", highlight);
-    }(values), ...);
-  #endif
-  }
-
-  void printclh(int highlight, auto&&... values) {
-  #if defined(FAN_GUI)
-    printclnnh(highlight, values...);
-    g_console().print("\n", highlight);
-  #endif
-  }
-
-  inline void printcl_err(auto&&... values) {
-  #if defined(FAN_GUI)
-    printclh(fan::graphics::highlight_e::error, values...);
-  #endif
-  }
-
-  inline void printcl_warn(auto&&... values) {
-  #if defined(FAN_GUI)
-    printclh(fan::graphics::highlight_e::warning, values...);
-  #endif
-  }
-}
-
-export namespace fan::graphics::gui {
-  fan::log_dispatcher_t default_logger() {
-    return fan::log_dispatcher_t {}
-      .on("ERROR:", [](std::string_view l) { fan::printcl_err(l); })
-      .on("error:", [](std::string_view l) { fan::printcl_err(l); })
-      .on("WARNING:", [](std::string_view l) { fan::printcl_warn(l); })
-      .on("warning:", [](std::string_view l) { fan::printcl_warn(l); })
-      .otherwise([](std::string_view l) { fan::printcl(l); });
-  }
-}
-
-bool init_fan_track_opengl_print = []() {
-  fan_opengl_track_print() = [](std::string func_name, uint64_t elapsed) {
-    fan::printclnnh(fan::graphics::highlight_e::text, func_name + ":");
-    fan::printclh(fan::graphics::highlight_e::warning, std::to_string(elapsed / 1e+6f) + "ms");
-  };
-  return 1;
-}();
 
 export namespace fan::graphics {
 
