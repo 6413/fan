@@ -636,6 +636,12 @@ export namespace fan {
       return clamp(v, lo, hi, fan::math::less<T>{});
     }
 
+    template <typename T>
+    constexpr T round(const T& v) {
+      return (v >= T(0)) ? static_cast<T>(static_cast<long long>(v + T(0.5)))
+        : static_cast<T>(static_cast<long long>(v - T(0.5)));
+    }
+
     enum class error { parse_left, parse_right, bad_op, div_by_zero, overflow };
 
     struct error_info {
