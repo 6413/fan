@@ -6,7 +6,6 @@ module;
   #include <fan/imgui/text_editor.h>
 #endif
 
-#include <regex>
 #include <functional>
 #include <cstring>
 
@@ -107,13 +106,17 @@ namespace fan {
     return command_errors_e::success;
   }
 
-  int commands_t::insert_to_command_chain(const commands_t::arg_t& args)
-  {
-    if (args[1].find(";") != std::string::npos) {
+  int commands_t::insert_to_command_chain(const commands_t::arg_t& args) {
+    if (args[1].find(';') != std::string::npos) {
       auto& obj = get_func_table()[args[0]];
-      static std::regex pattern(";\\s+");
-      auto removed_spaces_before_semicolon = std::regex_replace(args[1], pattern, ";");
-      obj.command_chain = fan::split(removed_spaces_before_semicolon, ";");
+      std::string cleaned = args[1];
+
+      size_t pos = 0;
+      while ((pos = cleaned.find(" ;", pos)) != std::string::npos) {
+        cleaned.erase(pos, 1);
+      }
+
+      obj.command_chain = fan::split(cleaned, ";");
       obj.func = [](console_t*, const commands_t::arg_t&) {};
       return true;
     }
