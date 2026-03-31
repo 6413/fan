@@ -134,36 +134,7 @@ export namespace fan::graphics {
 
   //-----------------------sprite sheet -----------------------
 
-  struct sprite_sheet_t {
-    struct image_t {
-      fan::graphics::image_t image = fan::graphics::ctx().default_texture;
-      int hframes = 1, vframes = 1;
-    #if defined(FAN_JSON)
-      operator fan::json() const;
-      sprite_sheet_t::image_t& assign(const fan::json& j, const std::source_location& callers_path = std::source_location::current());
-    #endif
-    };
-    sprite_sheet_t();
-    ~sprite_sheet_t();
-    std::vector<int> selected_frames;
-    std::vector<sprite_sheet_t::image_t> images;
-    std::string name;
-    int fps = 15;
-    bool loop = true;
-  };
-
-  struct sprite_sheet_id_t {
-    sprite_sheet_id_t();
-    sprite_sheet_id_t(uint32_t id);
-    operator uint32_t() const;
-    explicit operator bool() const;
-    sprite_sheet_id_t operator++(int);
-    bool operator==(const sprite_sheet_id_t& other) const;
-    bool operator!=(const sprite_sheet_id_t& other) const;
-    uint32_t id = -1;
-  };
-
-  using sprite_sheet_shape_id_t = sprite_sheet_id_t;
+  using sprite_sheet_shape_id_t = fan::graphics::sprite_sheet_id_t;
 
   struct sprite_sheet_id_hash_t {
     size_t operator()(const sprite_sheet_id_t& sprite_sheet_id) const noexcept;
@@ -526,25 +497,19 @@ export namespace fan::graphics {
       shaper_t::ShapeData_t* GetData(shaper_t& shaper) const;
 
       // read from gpu itself
+      void get_gldata_impl(void* dst, size_t size, size_t offset);
+
       template <typename T>
       T get_gldata() {
-        T vi;
-        glFinish();
-        auto& vbo = get_shape_type_data().renderer.gl.m_vbo;
-        get_shape_type_data().renderer.gl.m_vao.bind(*(fan::opengl::context_t*)ctx().render_context);
-        vbo.bind(*(fan::opengl::context_t*)ctx().render_context);
+        T out {};
         auto& data = g_shapes->shaper.ShapeList[get_visual_id()];
         uintptr_t instance_offset = g_shapes->shaper.GetRenderDataOffset(data.sti, data.blid);
-
-        fan::opengl::core::get_glbuffer(
-          *(fan::opengl::context_t*)ctx().render_context,
-          &vi,
-          vbo.m_buffer,
-          sizeof(vi),
-          instance_offset,
-          vbo.m_target
+        get_gldata_impl(
+          &out,
+          sizeof(T),
+          instance_offset
         );
-        return vi;
+        return out;
       }
 
       shaper_t::ShapeTypes_t::nd_t& get_shape_type_data();
@@ -600,18 +565,12 @@ export namespace fan::graphics {
         return *(typename T::ri_t*)GetData(g_shapes->shaper);
       }
 
+      void* get_shape_data_impl(uint16_t shape_type) const;
       template <typename T>
       typename T::properties_t& get_shape_data() {
-        typename T::properties_t* result = nullptr;
-        g_shapes->visit_shape_draw_data(NRI, [&]<typename props_t>(props_t& props) {
-          if constexpr (std::is_same_v<props_t, typename T::properties_t>) {
-            result = &props;
-          }
-        });
-        if (!result) {
-          fan::throw_error_impl("properties_t not available for this shape");
-        }
-        return *result;
+        return *static_cast<typename T::properties_t*>(
+          get_shape_data_impl(T::type_t::shape_type)
+        );
       }
     };
 

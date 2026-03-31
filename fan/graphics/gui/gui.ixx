@@ -1,16 +1,13 @@
 module;
 
 #include <fan/utility.h>
-#include <fan/event/types.h>
 
 #include <string>
-#include <ios>
 #include <functional>
 #include <filesystem>
 #include <queue>
-#include <cmath>
-#include <algorithm>
 #include <memory>
+#include <fan/graphics/opengl/init.h>
 
 export module fan.graphics.gui;
 
@@ -37,10 +34,74 @@ export module fan.graphics.gui;
 
   import fan.graphics.gui.types;
   import fan.graphics.gui.base;
+  import fan.console;
+  
+  import fan.formatter; // todo REMOVE
+  import fan.graphics.common_types;
+  import fan.log_dispatcher;
+
+  
 #endif
 
 
 #if defined(FAN_GUI)
+
+
+export namespace fan {
+
+  inline fan::console_t& g_console() {
+    //static fan::console_t gconsole;
+    return *(fan::console_t*)fan::graphics::ctx().console;
+  }
+
+  void printclnn(auto&&... values) {
+    g_console().print(fan::format_args(values...) + " ", 0);
+  }
+
+  void printcl(auto&&... values) {
+    g_console().print(fan::format_args(values...) + "\n", 0);
+  }
+
+  void printclnnh(int highlight, auto&&... values) {
+    g_console().print(fan::format_args(values...) + " ", highlight);
+  }
+
+  void printclh(int highlight, auto&&... values) {
+    g_console().print(fan::format_args(values...) + "\n", highlight);
+  }
+
+  inline void printcl_err(auto&&... values) {
+  #if defined(FAN_GUI)
+    printclh(fan::graphics::highlight_e::error, values...);
+  #endif
+  }
+
+  inline void printcl_warn(auto&&... values) {
+  #if defined(FAN_GUI)
+    printclh(fan::graphics::highlight_e::warning, values...);
+  #endif
+  }
+}
+
+bool init_fan_track_opengl_print = []() {
+  fan_opengl_track_print() = [](std::string func_name, uint64_t elapsed) {
+    fan::printclnnh(fan::graphics::highlight_e::text, func_name + ":");
+    fan::printclh(fan::graphics::highlight_e::warning, std::to_string(elapsed / 1e+6f) + "ms");
+  };
+  return 1;
+}();
+
+export namespace fan::graphics::gui {
+  fan::log_dispatcher_t default_logger() {
+    return fan::log_dispatcher_t {}
+      .on("ERROR:", [](std::string_view l) { fan::printcl_err(l); })
+      .on("error:", [](std::string_view l) { fan::printcl_err(l); })
+      .on("WARNING:", [](std::string_view l) { fan::printcl_warn(l); })
+      .on("warning:", [](std::string_view l) { fan::printcl_warn(l); })
+      .otherwise([](std::string_view l) { fan::printcl(l); });
+  }
+}
+
 
 export namespace fan::graphics::gui {
 
