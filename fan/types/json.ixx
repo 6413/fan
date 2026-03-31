@@ -4,14 +4,7 @@ module;
 #include <string_view>
 #include <vector>
 #include <unordered_map>
-#include <algorithm>
-#include <filesystem>
 #include <type_traits>
-#if defined(fan_compiler_msvc) && !defined(fan_compiler_clang)
-  import <fan/types/json_impl.h>;
-#else
-  #include <fan/types/json_impl.h>
-#endif
 
 export module fan.types.json;
 
