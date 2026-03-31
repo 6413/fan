@@ -2,9 +2,9 @@ module;
 #if defined(FAN_2D)
 
 #include <fan/utility.h>
-#include <cstring>
 #include <type_traits>
 #include <algorithm>
+#include <source_location>
 
 #include <fan/graphics/opengl/init.h>
 

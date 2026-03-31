@@ -2,11 +2,15 @@ module;
 
 #include <fan/utility.h>
 
+#include <cstdint>
+#include <vector>
 #include <coroutine>
 #include <source_location>
 #include <unordered_set>
 #include <cmath>
 #include <span>
+#include <string_view>
+#include <functional>
 
 #define POSITION2_WINDOW_CENTER fan::vec2(fan::graphics::ctx().window->get_size() / 2)
 #define POSITION3_WINDOW_CENTER fan::vec3(POSITION2_WINDOW_CENTER, 0)
@@ -575,8 +579,18 @@ export namespace fan::graphics {
           }
         }
 
-        if (std::find(selected_objects.begin(), selected_objects.end(), this) == selected_objects.end()) {
-          selected_objects.push_back(this);
+        {
+          bool found = false;
+          for (auto* obj : selected_objects) {
+            if (obj == this) {
+              found = true;
+              break;
+            }
+          }
+
+          if (!found) {
+            selected_objects.push_back(this);
+          }
         }
 
         enable_highlight();
