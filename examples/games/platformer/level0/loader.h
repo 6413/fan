@@ -142,7 +142,7 @@ void load_map() {
 
       portal_sprite = fan::graphics::sprite_t(
         data.position,
-        fan::vec2(256) * image_size.normalized(),
+        fan::vec2(256) * image_size.normalize(),
         image
       );
 

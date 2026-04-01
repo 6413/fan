@@ -1,0 +1,251 @@
+module;
+
+#if defined(FAN_GUI)
+#include <string>
+#include <vector>
+#include <sstream>
+#include <ranges>
+#endif
+
+module fan.graphics.gui.text_logger;
+
+#if defined(FAN_GUI)
+
+import fan.math;
+import fan.graphics.gui.types;
+import fan.graphics.gui.base;
+
+using namespace fan::graphics;
+
+namespace fan::graphics::gui {
+
+  text_logger_t::text_t::text_t(const std::string& t, const fan::color& c, bool static_msg)
+    : text(t), color(c), is_static(static_msg) {
+    if (!is_static) {
+      fade_time = fan::time::timer(4e+9, true);
+    }
+  }
+
+  void text_logger_t::set_text_fade_time(f32_t seconds) {
+    for (auto& msg : floating_texts) {
+      if (!msg.is_static) {
+        msg.fade_time = fan::time::timer(seconds * 1e+9, false);
+      }
+    }
+  }
+
+  void text_logger_t::add_floating(const std::string& text, const fan::color& color) {
+    floating_texts.emplace_back(text, color, false);
+  }
+
+  void text_logger_t::add_static(const std::string& text, const fan::color& color) {
+    static_texts.emplace_back(text, color, true);
+  }
+
+  void text_logger_t::clear_static() {
+    static_texts.clear();
+  }
+
+  void text_logger_t::queue_floating_formatted(const std::string& raw_text, std::streamsize tab_width, const fan::color& color) {
+    text_t entry(raw_text, color, false);
+    entry.needs_formatting = true;
+    entry.tab_width = tab_width;
+
+    std::istringstream iss(raw_text);
+    std::string token;
+    while (iss >> token) {
+      entry.raw_columns.push_back(token);
+    }
+
+    pending_floating.push_back(entry);
+    column_widths_dirty = true;
+  }
+
+  void text_logger_t::queue_static_formatted(const std::string& raw_text, std::streamsize tab_width, const fan::color& color) {
+    text_t entry(raw_text, color, true);
+    entry.needs_formatting = true;
+    entry.tab_width = tab_width;
+
+    std::istringstream iss(raw_text);
+    std::string token;
+    while (iss >> token) {
+      entry.raw_columns.push_back(token);
+    }
+
+    pending_static.push_back(entry);
+    column_widths_dirty = true;
+  }
+
+  void text_logger_t::calculate_max_column_widths() {
+    if (!column_widths_dirty) {
+      return;
+    }
+    max_column_widths.clear();
+
+    auto analyze = [&](const std::vector<text_t>& entries) {
+      for (const auto& entry : entries) {
+        if (!entry.needs_formatting) {
+          continue;
+        }
+        while (max_column_widths.size() < entry.raw_columns.size()) {
+          max_column_widths.push_back(0);
+        }
+        for (size_t i = 0; i < entry.raw_columns.size(); ++i) {
+          fan::vec2 text_size = gui::calc_text_size(entry.raw_columns[i]);
+          max_column_widths[i] = std::max(max_column_widths[i], text_size.x);
+        }
+      }
+    };
+
+    analyze(pending_floating);
+    analyze(pending_static);
+    column_widths_dirty = false;
+  }
+
+  std::string text_logger_t::format_with_max_widths(const std::vector<std::string>& columns, std::streamsize tab_width) {
+    std::ostringstream oss;
+    fan::vec2 space_size = gui::calc_text_size(" ");
+    f32_t min_column_width = tab_width;
+
+    for (size_t i = 0; i < columns.size(); ++i) {
+      std::string s = columns[i];
+
+      size_t num_pos = std::string::npos;
+      for (size_t p = 0; p < s.size(); ++p) {
+        char c = s[p];
+        if (c == '-' || (c >= '0' && c <= '9') || c == '.') { num_pos = p; break; }
+      }
+      if (num_pos != std::string::npos && s[num_pos] != '-') {
+        s.insert(num_pos, " ");
+      }
+
+      if (i > 0) oss << " ";
+      oss << s;
+
+      if (i < columns.size() - 1 && i < max_column_widths.size()) {
+        fan::vec2 text_size = gui::calc_text_size(s);
+        f32_t target_width = std::max(max_column_widths[i], min_column_width);
+        f32_t padding_needed = target_width - text_size.x;
+        if (padding_needed > 0) {
+          int spaces = (int)(padding_needed / space_size.x);
+          for (int j = 0; j < spaces; ++j) oss << " ";
+        }
+        oss << " ";
+      }
+    }
+    return oss.str();
+  }
+
+  void text_logger_t::flush_pending() {
+    calculate_max_column_widths();
+    auto process = [&](std::vector<text_t>& pending, std::vector<text_t>& target) {
+      for (auto& entry : pending) {
+        if (entry.needs_formatting) {
+          entry.text = format_with_max_widths(entry.raw_columns, entry.tab_width) + "\n";
+          entry.needs_formatting = false;
+        }
+        target.push_back(entry);
+      }
+      pending.clear();
+    };
+    process(pending_floating, floating_texts);
+    process(pending_static, static_texts);
+  }
+
+  int text_logger_t::render_text_with_background(gui::draw_list_t* draw_list,
+    const std::string& text,
+    const fan::color& color,
+    fan::vec2 position) {
+    std::vector<std::string> lines;
+    f32_t max_width = 0;
+    size_t pos = 0;
+    while (pos < text.length()) {
+      size_t newline_pos = text.find('\n', pos);
+      if (newline_pos == std::string::npos) newline_pos = text.length();
+      std::string line = text.substr(pos, newline_pos - pos);
+      lines.push_back(line);
+      if (!line.empty()) {
+        fan::vec2 text_size = gui::calc_text_size(line);
+        max_width = std::max(max_width, text_size.x);
+      }
+      pos = newline_pos + 1;
+    }
+
+    if (!lines.empty() && max_width > 0) {
+      f32_t line_height = gui::get_text_line_height();
+      f32_t total_height = lines.size() * line_height;
+      fan::vec2 bg_min = position + fan::vec2(-5, -5);
+      fan::vec2 bg_max = position + fan::vec2(max_width + 5, total_height + 5);
+      draw_list->AddRectFilled(bg_min, bg_max, fan::color(0, 0, 0, (int)(244 * color.a)).get_gui_color(), 3.0f);
+
+      for (int i = 0; i < lines.size(); ++i) {
+        if (!lines[i].empty()) {
+          fan::vec2 line_pos = position + fan::vec2(0, i * line_height);
+          draw_list->AddText(line_pos, color.get_gui_color(), lines[i].c_str());
+        }
+      }
+    }
+
+    return lines.size();
+  }
+
+  void text_logger_t::clear_static_text() {
+    clear_static();
+  }
+
+  void text_logger_t::render() {
+    flush_pending();
+
+    auto* draw_list = gui::get_foreground_draw_list();
+    fan::vec2 window_pos = gui::get_window_pos();
+    fan::vec2 window_size = gui::get_window_size();
+    f32_t line_height = gui::get_text_line_height();
+    f32_t box_spacing = 12.0f;
+    f32_t current_y = window_size.y - 40;
+
+    for (const auto& msg : static_texts | std::ranges::views::reverse) {
+      fan::vec2 position = window_pos + fan::vec2(20, current_y);
+      position.y -= gui::calc_text_size(msg.text).y;
+      int lines_count = render_text_with_background(draw_list, msg.text, msg.color, position);
+      current_y -= lines_count * line_height + box_spacing;
+    }
+
+    for (auto it = floating_texts.rbegin(); it != floating_texts.rend();) {
+      if (it->fade_time.finished()) {
+        it = std::vector<decltype(floating_texts)::value_type>::reverse_iterator(
+          floating_texts.erase((++it).base())
+        );
+        continue;
+      }
+
+      uint64_t elapsed = it->fade_time.elapsed();
+      f32_t progress = (f64_t)elapsed / it->fade_time.duration();
+      fan::color color = it->color;
+      f32_t alpha = 1.0f;
+
+      if (progress > 0.8f) {
+        alpha = (1.0f - progress) / 0.2f;
+      }
+
+      color.a *= fan::math::clamp(alpha, 0.0f, 1.0f);
+
+      fan::vec2 position = window_pos + fan::vec2(20, current_y);
+      position.y -= gui::calc_text_size(it->text).y;
+
+      int lines_count = render_text_with_background(draw_list, it->text, color, position);
+      current_y -= lines_count * line_height + box_spacing;
+
+      ++it;
+    }
+  }
+
+  void set_text_fade_time(f32_t seconds) {
+    ((text_logger_t*)fan::graphics::ctx().text_logger)->set_text_fade_time(seconds);
+  }
+
+  void clear_static_text() {
+    ((text_logger_t*)fan::graphics::ctx().text_logger)->clear_static_text();
+  }
+
+}
+#endif

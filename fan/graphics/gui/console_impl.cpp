@@ -4,13 +4,18 @@ module;
 
 #if defined(FAN_GUI)
   #include <fan/imgui/text_editor.h>
+  #include <fan/imgui/imgui.h>
 #endif
 
 #include <functional>
 #include <cstring>
+#include <unordered_map>
+#include <vector>
+#include <string>
 
 module fan.console;
 
+import fan.memory;
 import fan.types.color;
 import fan.types.fstring;
 import fan.utility;
@@ -21,20 +26,53 @@ import fan.graphics.gui.base;
 
 namespace fan {
 
-  void commands_t::empty_output(const output_t&) {}
+  struct command_internal_t {
+    std::vector<std::string> command_chain;
+    std::string description;
+    commands_t::cmd_cb_t func;
+  };
 
-  void commands_t::empty_output_colored(const std::string&, const fan::color& color) {}
+  using cmd_table_t = std::unordered_map<std::string, command_internal_t>;
 
-  fan::commands_t::command_t& commands_t::add(const std::string& cmd, decltype(command_t::func) func) {
-    command_t command;
+  commands_t::commands_t() {
+    internal_state = new cmd_table_t();
+    output_cb = [](const output_t&){};
+    output_colored_cb = [](const std::string&, const fan::color&){};
+  }
+
+  commands_t::~commands_t() {
+    delete static_cast<cmd_table_t*>(internal_state);
+  }
+
+  commands_t::command_proxy_t commands_t::add(const std::string& cmd, cmd_cb_t func) {
+    auto& command = (*static_cast<cmd_table_t*>(internal_state))[cmd];
     command.func = func;
-    command_t& obj = get_func_table()[cmd];
-    obj = command;
-    return obj;
+    return command_proxy_t(command.description);
   }
 
   void commands_t::remove(const std::string& cmd) {
-    get_func_table().erase(cmd);
+    static_cast<cmd_table_t*>(internal_state)->erase(cmd);
+  }
+
+  std::vector<std::pair<std::string, std::string>> commands_t::get_command_list() const {
+    std::vector<std::pair<std::string, std::string>> list;
+    auto* table = static_cast<cmd_table_t*>(internal_state);
+    for (const auto& [k, v] : *table) {
+      list.push_back({k, v.description});
+    }
+    return list;
+  }
+
+  bool commands_t::has_command(const std::string& cmd) const {
+    auto* table = static_cast<cmd_table_t*>(internal_state);
+    return table->find(cmd) != table->end();
+  }
+
+  std::string commands_t::get_command_description(const std::string& cmd) const {
+    auto* table = static_cast<cmd_table_t*>(internal_state);
+    auto it = table->find(cmd);
+    if (it != table->end()) return it->second.description;
+    return "";
   }
 
   std::vector<std::string> commands_t::split_args(const std::string& input) {
@@ -48,7 +86,6 @@ namespace fan {
         in_quotes = !in_quotes;
         continue;
       }
-
       if (!in_quotes) {
         if (c == '{') {
           in_braces = true;
@@ -66,10 +103,8 @@ namespace fan {
           continue;
         }
       }
-
       current += c;
     }
-
     if (!current.empty())
       args.push_back(current);
 
@@ -82,11 +117,14 @@ namespace fan {
       arg0_off = cmd.size();
     }
     std::string arg0 = cmd.substr(0, arg0_off);
-    auto found = get_func_table().find(arg0);
-    if (found == get_func_table().end()) {
-      commands_t::print_command_not_found(cmd);
+    auto* table = static_cast<cmd_table_t*>(internal_state);
+    auto found = table->find(arg0);
+    
+    if (found == table->end()) {
+      print_command_not_found(cmd);
       return command_errors_e::function_not_found;
     }
+    
     std::string rest;
     if (arg0_off + 2 > cmd.size()) {
       rest = "";
@@ -94,8 +132,29 @@ namespace fan {
     else {
       rest = cmd.substr(arg0_off + 1);
     }
+    
     if (found->second.command_chain.empty()) {
       found->second.func(OFFSETLESS(this, console_t, commands), split_args(rest));
+    }
+    else {
+      for (const auto& i : found->second.command_chain) {
+        call(i);
+      }
+    }
+    return command_errors_e::success;
+  }
+
+  int commands_t::call_args(const std::string& cmd, const std::vector<std::string>& args) {
+    auto* table = static_cast<cmd_table_t*>(internal_state);
+    auto found = table->find(cmd);
+    
+    if (found == table->end()) {
+      print_command_not_found(cmd);
+      return command_errors_e::function_not_found;
+    }
+
+    if (found->second.command_chain.empty()) {
+      found->second.func(OFFSETLESS(this, console_t, commands), args);
     }
     else {
       for (const auto& i : found->second.command_chain) {
@@ -108,7 +167,7 @@ namespace fan {
 
   int commands_t::insert_to_command_chain(const commands_t::arg_t& args) {
     if (args[1].find(';') != std::string::npos) {
-      auto& obj = get_func_table()[args[0]];
+      auto& obj = (*static_cast<cmd_table_t*>(internal_state))[args[0]];
       std::string cleaned = args[1];
 
       size_t pos = 0;
@@ -151,101 +210,131 @@ namespace fan {
     return ret;
   }
 
+  struct console_internal_t {
+    #define BLL_set_SafeNext 1
+    #define BLL_set_AreWeInsideStruct 1
+    #define BLL_set_prefix frame_cb
+    #include <fan/fan_bll_preset.h>
+    #define BLL_set_Link 1
+    #define BLL_set_type_node uint16_t
+    #define BLL_set_NodeDataType std::function<void()>
+    #include <BLL/BLL.h>
+
+    std::vector<std::string> command_history;
+    std::string current_command;
+    int command_history_index = 0;
+    static constexpr int buffer_size = 0xfff;
+    int history_pos = -1;
+    std::vector<std::string> possible_choices;
+    std::vector<std::string> output_buffer;
+
+    TextEditor editor;
+    TextEditor input;
+    frame_cb_t frame_cbs;
+  };
+
+  console_t::console_t() {
+    internal_state = new console_internal_t();
+  }
+
+  console_t::~console_t() {
+    delete static_cast<console_internal_t*>(internal_state);
+  }
+
   void console_t::open() {
-    static auto l = [&](const fan::commands_t::output_t& out) {
-      editor.SetReadOnly(false);
+    auto* state = static_cast<console_internal_t*>(internal_state);
+    
+    auto l = [state](const fan::commands_t::output_t& out) {
+      state->editor.SetReadOnly(false);
       fan::color color = fan::graphics::highlight_color_table[out.highlight];
-      editor.SetCursorPosition(TextEditor::Coordinates(editor.GetTotalLines(), 0));
-      editor.MoveEnd();
-      editor.InsertTextColored(out.text, color);
-      editor.SetReadOnly(true);
-      output_buffer.push_back(out.text);
+      state->editor.SetCursorPosition(TextEditor::Coordinates(state->editor.GetTotalLines(), 0));
+      state->editor.MoveEnd();
+      state->editor.InsertTextColored(out.text, color);
+      state->editor.SetReadOnly(true);
+      state->output_buffer.push_back(out.text);
     };
     commands.output_cb = l;
 
-    static auto lc = [&](const std::string& text, const fan::color& color) {
-      editor.SetReadOnly(false);
-      editor.SetCursorPosition(TextEditor::Coordinates(editor.GetTotalLines(), 0));
-      editor.MoveEnd();
-      editor.InsertTextColored(text, color);
-      editor.SetReadOnly(true);
-      output_buffer.push_back(text);
+    auto lc = [state](const std::string& text, const fan::color& color) {
+      state->editor.SetReadOnly(false);
+      state->editor.SetCursorPosition(TextEditor::Coordinates(state->editor.GetTotalLines(), 0));
+      state->editor.MoveEnd();
+      state->editor.InsertTextColored(text, color);
+      state->editor.SetReadOnly(true);
+      state->output_buffer.push_back(text);
     };
     commands.output_colored_cb = lc;
 
     TextEditor::LanguageDefinition lang = TextEditor::LanguageDefinition::CPlusPlus();
     static const char* ppnames[] = { "NULL" };
-    static const char* ppvalues[] = {
-      "#define NULL ((void*)0)",
-    };
+    static const char* ppvalues[] = { "#define NULL ((void*)0)" };
 
-    for (std::size_t i = 0; i < sizeof(ppnames) / sizeof(ppnames[0]); ++i)
-    {
+    for (std::size_t i = 0; i < sizeof(ppnames) / sizeof(ppnames[0]); ++i) {
       TextEditor::Identifier id;
       id.mDeclaration = ppvalues[i];
       lang.mPreprocIdentifiers.insert(std::make_pair(std::string(ppnames[i]), id));
     }
 
-    editor.SetLanguageDefinition(lang);
+    state->editor.SetLanguageDefinition(lang);
 
-    auto palette = editor.GetPalette();
-    editor.SetPalette(palette);
-    editor.SetTabSize(2);
-    editor.SetReadOnly(true);
-    editor.SetShowWhitespaces(false);
+    auto palette = state->editor.GetPalette();
+    state->editor.SetPalette(palette);
+    state->editor.SetTabSize(2);
+    state->editor.SetReadOnly(true);
+    state->editor.SetShowWhitespaces(false);
 
-    input = editor;
-    input.SetReadOnly(false);
+    state->input = state->editor;
+    state->input.SetReadOnly(false);
     palette[(int)TextEditor::PaletteIndex::Background] = TextEditor::GetDarkPalette()[(int)TextEditor::PaletteIndex::Background];
-    input.SetPalette(palette);
+    state->input.SetPalette(palette);
 
-    editor.SetRenderCursor(false);
+    state->editor.SetRenderCursor(false);
   }
 
   void console_t::close() {
-    frame_cbs.Clear();
+    auto* state = static_cast<console_internal_t*>(internal_state);
+    state->frame_cbs.Clear();
   }
 
   void console_t::render() {
-    possible_choices.clear();
+    auto* state = static_cast<console_internal_t*>(internal_state);
+    
+    state->possible_choices.clear();
 
-    if (current_command.size() == 0) {
-      current_command.resize(buffer_size);
+    if (state->current_command.size() == 0) {
+      state->current_command.resize(console_internal_t::buffer_size);
     }
 
     {
-      auto it = frame_cbs.GetNodeFirst();
-      while (it != frame_cbs.dst) {
-        frame_cbs.StartSafeNext(it);
-        frame_cbs[it]();
-        it = frame_cbs.EndSafeNext();
+      auto it = state->frame_cbs.GetNodeFirst();
+      while (it != state->frame_cbs.dst) {
+        state->frame_cbs.StartSafeNext(it);
+        state->frame_cbs[it]();
+        it = state->frame_cbs.EndSafeNext();
       }
     }
-
 
     fan::graphics::gui::begin("console", 0, fan::graphics::gui::window_flags_topmost);
 
     ImGui::BeginChild("output_buffer", ImVec2(0, ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing() * 1), false);
-    editor.Render("editor");
+    state->editor.Render("editor");
     ImGui::EndChild();
 
-    if (current_command.size()) {
-      for (const auto& i : commands.get_func_table()) {
+    if (state->current_command.size()) {
+      auto* table = static_cast<cmd_table_t*>(commands.internal_state);
+      for (const auto& i : *table) {
         const auto& command = i.first;
-        std::size_t len = std::strlen(current_command.c_str());
-        if (len && command.substr(0, len) == current_command.c_str()) {
-          possible_choices.push_back(command.c_str());
+        std::size_t len = std::strlen(state->current_command.c_str());
+        if (len && command.substr(0, len) == state->current_command.c_str()) {
+          state->possible_choices.push_back(command.c_str());
         }
       }
-      ImGui::SetNextWindowPos(ImVec2(ImGui::GetCursorScreenPos().x, ImGui::GetCursorScreenPos().y - ImGui::GetFrameHeightWithSpacing() * possible_choices.size()));
+      ImGui::SetNextWindowPos(ImVec2(ImGui::GetCursorScreenPos().x, ImGui::GetCursorScreenPos().y - ImGui::GetFrameHeightWithSpacing() * state->possible_choices.size()));
 
-      if (possible_choices.size()) {
+      if (state->possible_choices.size()) {
         ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.24f, 0.27f, 0.28f, 0.8f));
-        ImGui::BeginChild("command_hints_window",
-          ImVec2(ImGui::GetWindowWidth() / 4,
-            ImGui::GetFrameHeightWithSpacing() * possible_choices.size())
-        );
-        for (const auto& i : possible_choices) {
+        ImGui::BeginChild("command_hints_window", ImVec2(ImGui::GetWindowWidth() / 4, ImGui::GetFrameHeightWithSpacing() * state->possible_choices.size()));
+        for (const auto& i : state->possible_choices) {
           ImGui::Text("%s", i.c_str());
         }
         ImGui::EndChild();
@@ -259,79 +348,83 @@ namespace fan {
       ImGui::SetNextWindowFocus();
       init_focus = false;
     }
-    input.Render("input");
+    state->input.Render("input");
 
-    if (input.IsFocused()) {
+    if (state->input.IsFocused()) {
       fan::graphics::gui::force_want_io_for_frame() = true;
     }
 
-    current_command = input.GetText();
-    current_command.pop_back();
+    state->current_command = state->input.GetText();
+    state->current_command.pop_back();
+    
     if (ImGui::IsKeyPressed(ImGuiKey_Enter, false)) {
-      current_command.erase(std::remove(current_command.begin(), current_command.end(), '\n'), current_command.end());
-      current_command += '\n';
+      state->current_command.erase(std::remove(state->current_command.begin(), state->current_command.end(), '\n'), state->current_command.end());
+      state->current_command += '\n';
 
-      command_history.push_back(current_command.substr(0, current_command.size() - 1));
-      output_buffer.push_back(current_command);
-      if (input.IsFocused()) {
-        editor.SetReadOnly(false);
-        editor.InsertTextColored("> " + current_command, fan::color::from_rgba(0x999999FF));
-        editor.SetReadOnly(true);
-        commands.call(current_command.substr(0, current_command.size() - 1));
+      state->command_history.push_back(state->current_command.substr(0, state->current_command.size() - 1));
+      state->output_buffer.push_back(state->current_command);
+      if (state->input.IsFocused()) {
+        state->editor.SetReadOnly(false);
+        state->editor.InsertTextColored("> " + state->current_command, fan::color::from_rgba(0x999999FF));
+        state->editor.SetReadOnly(true);
+        commands.call(state->current_command.substr(0, state->current_command.size() - 1));
       }
-      history_pos = -1;
-      input.SetText("");
-      input.SetCursorPosition(TextEditor::Coordinates{ 0, 0});
+      state->history_pos = -1;
+      state->input.SetText("");
+      state->input.SetCursorPosition(TextEditor::Coordinates{ 0, 0});
     }
+    
     if (ImGui::IsKeyPressed(ImGuiKey_UpArrow, false)) {
-      if (history_pos == -1) {
-        if (command_history.size()) {
-          history_pos = command_history.size() - 1;
+      if (state->history_pos == -1) {
+        if (state->command_history.size()) {
+          state->history_pos = state->command_history.size() - 1;
         }
       }
       else {
-        history_pos = (history_pos - 1) % command_history.size();
+        state->history_pos = (state->history_pos - 1) % state->command_history.size();
       }
-      if (command_history.size() && history_pos != -1) {
-        input.SetText(command_history[history_pos]);
-        input.SetCursorPosition(TextEditor::Coordinates(0, command_history[history_pos].size()));
+      if (state->command_history.size() && state->history_pos != -1) {
+        state->input.SetText(state->command_history[state->history_pos]);
+        state->input.SetCursorPosition(TextEditor::Coordinates(0, state->command_history[state->history_pos].size()));
       }
     }
+    
     if (ImGui::IsKeyPressed(ImGuiKey_DownArrow, false)) {
-      if (history_pos == -1) {
-        if (command_history.size()) {
-          history_pos = command_history.size() - 1;
+      if (state->history_pos == -1) {
+        if (state->command_history.size()) {
+          state->history_pos = state->command_history.size() - 1;
         }
       }
       else {
-        history_pos = (history_pos + 1) % command_history.size();
+        state->history_pos = (state->history_pos + 1) % state->command_history.size();
       }
-      if (command_history.size() && history_pos != -1) {
-        input.SetText(command_history[history_pos]);
-        input.SetCursorPosition(TextEditor::Coordinates(0, command_history[history_pos].size()));
+      if (state->command_history.size() && state->history_pos != -1) {
+        state->input.SetText(state->command_history[state->history_pos]);
+        state->input.SetCursorPosition(TextEditor::Coordinates(0, state->command_history[state->history_pos].size()));
       }
     }
+    
     if (ImGui::IsKeyPressed(ImGuiKey_Tab, false)) {
-      if (possible_choices.size()) {
-        input.SetText(possible_choices.front() + " ");
-        input.SetCursorPosition(TextEditor::Coordinates(0, possible_choices.front().size() + 1));
+      if (state->possible_choices.size()) {
+        state->input.SetText(state->possible_choices.front() + " ");
+        state->input.SetCursorPosition(TextEditor::Coordinates(0, state->possible_choices.front().size() + 1));
       }
-      else if (current_command == "\t") {
-        input.SetText("");
+      else if (state->current_command == "\t") {
+        state->input.SetText("");
       }
     }
 
     ImGui::EndChild();
-
     fan::graphics::gui::end();
   }
 
   void console_t::print(const std::string& msg, int highlight) {
+    auto* state = static_cast<console_internal_t*>(internal_state);
     commands_t::output_t out;
     out.text = msg;
     out.highlight = highlight;
     commands.output_cb(out);
-    input.MoveEnd();
+    state->input.MoveEnd();
   }
 
   void console_t::println(const std::string& msg, int highlight) {
@@ -339,31 +432,42 @@ namespace fan {
   }
 
   void console_t::print_colored(const std::string& msg, const fan::color& color) {
+    auto* state = static_cast<console_internal_t*>(internal_state);
     commands.output_colored_cb(msg, color);
-    input.MoveEnd();
+    state->input.MoveEnd();
   }
 
   void console_t::println_colored(const std::string& msg, const fan::color& color) {
     print_colored(msg + "\n", color);
   }
 
-  void console_t::erase_frame_process(frame_cb_t::nr_t& nr) {
-    frame_cbs.unlrec(nr);
-    nr.sic();
+  void console_t::erase_frame_process(frame_cb_nr_t& nr) {
+    auto* state = static_cast<console_internal_t*>(internal_state);
+    decltype(state->frame_cbs)::nr_t nri;
+    nri.gint() = nr;
+    state->frame_cbs.unlrec(nri);
+    nr = static_cast<frame_cb_nr_t>(-1);
   }
 
-  console_t::frame_cb_t::nr_t console_t::push_frame_process(std::function<void()> func) {
-    auto it = frame_cbs.NewNodeLast();
-    frame_cbs[it] = func;
-    return it;
+  console_t::frame_cb_nr_t console_t::push_frame_process(std::function<void()> func) {
+    auto* state = static_cast<console_internal_t*>(internal_state);
+    auto it = state->frame_cbs.NewNodeLast();
+    state->frame_cbs[it] = func;
+    return it.gint();
   }
 
-  void console_t::add_cmd(const std::string& cmd, decltype(fan::commands_t::command_t::func) func) {
-    commands.add(cmd, func);
-  }
-  void console_t::remove_cmd(const std::string& cmd) {
-    commands.remove(cmd);
+  void console_t::force_focus() {
+    auto* state = static_cast<console_internal_t*>(internal_state);
+    state->input.InsertText("a");
+    state->input.SetText("");
+    init_focus = true;
+    state->input.IsFocused() = false;
   }
 
+  void console_t::clear() {
+    auto* state = static_cast<console_internal_t*>(internal_state);
+    state->output_buffer.clear();
+    state->editor.SetText("");
+  }
 }
 #endif

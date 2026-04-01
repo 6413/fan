@@ -282,7 +282,7 @@ void tilemap_renderer_t::add_tile(node_t& node, fte_t::tile_t& j, int x, int y, 
   if (node.rendered_tiles.count(tile_key)) {
     fan::print("WARNING: Tile already exists at", x, y, depth);
     fan::print("  Old image:", node.rendered_tiles[tile_key].get_image().NRI);
-    fan::print("  New would be:", j.texture_pack_unique_id.NRI);
+    fan::print("  New would be:", j.texture_pack_unique_id.id);
   }
   int additional_depth = 0;
   switch (j.mesh_property) {

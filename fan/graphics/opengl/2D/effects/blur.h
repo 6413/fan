@@ -1,6 +1,6 @@
 struct blur_t {
   loco_t& get_loco() {
-    return (*OFFSETLESS(this, loco_t, gl.blur));
+    return *gloco();
   }
   #define loco get_loco()
 

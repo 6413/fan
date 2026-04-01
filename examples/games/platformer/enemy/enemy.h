@@ -143,7 +143,7 @@ struct enemy_t : enemy_base_t {
     }
     for (int i = 0; i < attack_hitbox.hitbox_count(); ++i) {
       if (attack_hitbox.check_hit(&body, i, &pile->player.body)) {
-        if (auto result = pile->player.on_hit(&body, (pile->player.body.get_position() - body.get_position()).normalized())) {
+        if (auto result = pile->player.on_hit(&body, (pile->player.body.get_position() - body.get_position()).normalize())) {
           if (result == attack_result_e::blocked) {
             attack_blocked();
           }

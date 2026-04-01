@@ -30,7 +30,7 @@ export namespace fan::physics {
       *this = normalized_impl(min, max);
     }
 
-    constexpr aabb_t normalized() const {
+    constexpr aabb_t normalize() const {
       return normalized_impl(min, max);
     }
 

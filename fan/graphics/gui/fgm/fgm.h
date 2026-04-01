@@ -79,7 +79,7 @@ struct fgm_t {
     });
   }
 
-  void open(const std::string& texturepack_name, const std::wstring& asset_path) {
+  void open(const std::string& texturepack_name, const std::string& asset_path) {
     using namespace fan::graphics;
 
     content_browser.init(asset_path);
@@ -633,14 +633,13 @@ struct fgm_t {
 
       gui::set_cursor_pos(gui::get_cursor_start_pos());
 
-      content_browser.receive_drag_drop_target([&](const std::filesystem::path& fs) {
-        auto file = fs.generic_string();
+      content_browser.receive_drag_drop_target([&](const std::string& file) {
         auto extension = fan::io::file::extension(file);
         if (extension == ".json") {
           fin(file);
         }
         else {
-          auto image = gloco()->image_load((fs).generic_string());
+          auto image = gloco()->image_load(file);
           fan::vec2 initial_size = 128.f;
           fan::vec2 original_size = gloco()->image_get_data(image).size;
           initial_size.x *= (original_size.x / original_size.y);
@@ -1136,7 +1135,7 @@ struct fgm_t {
       }
       }
       if (!is_object) {
-        const auto& shape_json = *(iterator.data.it - 1);
+        const auto shape_json = *(iterator.data.it - 1);
         if (shape_json.contains("id")) {
           node->id = shape_json["id"].get<std::string>();
         }

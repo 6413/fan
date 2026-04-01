@@ -174,9 +174,9 @@ struct car_t {
   fan::graphics::physics::character2d_t body{
     fan::graphics::physics::capsule_sprite_t{{
       .position = fan::vec3(1019.7828, 1618.1302, car_draw_depth),
-      .center0 = {0.f, -car_image.get_size().normalized().y * car_size / 2.5f}, // collider size
-      .center1 = {0.f,  car_image.get_size().normalized().y * car_size / 2.5f }, // collider size
-      .size = car_image.get_size().normalized() * car_size,
+      .center0 = {0.f, -car_image.get_size().normalize().y * car_size / 2.5f}, // collider size
+      .center1 = {0.f,  car_image.get_size().normalize().y * car_size / 2.5f }, // collider size
+      .size = car_image.get_size().normalize() * car_size,
       .angle = fan::math::pi / 2,
       .image = car_image,
       .body_type = fan::physics::body_type_e::dynamic_body,

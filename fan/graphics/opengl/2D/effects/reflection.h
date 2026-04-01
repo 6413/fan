@@ -1,6 +1,6 @@
 struct reflection_t {
   loco_t& get_loco() {
-    return (*OFFSETLESS(this, loco_t, gl.reflection));
+    return *gloco();
   }
 #define loco get_loco()
   
@@ -102,11 +102,11 @@ struct reflection_t {
     }
     
     fan_opengl_call(glActiveTexture(GL_TEXTURE0));
-    loco.image_bind(loco.gl.color_buffers[0]);
+    loco.image_bind(loco.gl->color_buffers[0]);
     
     fan_opengl_call(glEnable(GL_BLEND));
     fan_opengl_call(glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA));
-    fan_opengl_call(glBindVertexArray(loco.gl.fb_vao));
+    fan_opengl_call(glBindVertexArray(loco.gl->fb_vao));
     fan_opengl_call(glDrawArrays(GL_TRIANGLE_STRIP, 0, 4));
     fan_opengl_call(glBindVertexArray(0));
   }

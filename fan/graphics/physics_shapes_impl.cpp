@@ -847,7 +847,7 @@ namespace fan::graphics::physics {
     else if (distance.x < -FACING_DEAD_ZONE) {
       desired_facing.x = -1;
     }
-    last_direction = distance.normalized();
+    last_direction = distance.normalize();
   }
 
   void movement_state_t::perform_jump(fan::physics::body_id_t body_id, bool jump_condition, fan::vec2* wall_jump_normal, wall_jump_t* wall_jump) {
@@ -1528,7 +1528,7 @@ namespace fan::graphics::physics {
     }
     case movement_e::top_view:
     {
-      fan::vec2 normalized_input = input_vector.length() > 0 ? input_vector.normalized() : input_vector;
+      fan::vec2 normalized_input = input_vector.length() > 0 ? input_vector.normalize() : input_vector;
       movement_state.move_to_direction_raw(*this, normalized_input);
       break;
     }

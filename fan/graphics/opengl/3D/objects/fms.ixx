@@ -519,7 +519,7 @@ export namespace fan {
           if (mesh->HasNormals()) {
             aiVector3D n = mesh->mNormals[i];
             n = normalMatrix * n;
-            v.normal = fan::vec3(n.x, n.y, n.z).normalized();
+            v.normal = fan::vec3(n.x, n.y, n.z).normalize();
           }
           else {
             v.normal = fan::vec3(0, 1, 0);
@@ -1089,7 +1089,7 @@ export namespace fan {
             }
             else {
               position += pose.position * anim.weight;
-              fan::quat normalized_rotation = pose.rotation.normalized();
+              fan::quat normalized_rotation = pose.rotation.normalize();
               rotation = fan::quat::slerp(rotation, normalized_rotation, anim.weight / (total_weight + anim.weight));
               scale += pose.scale * anim.weight;
               total_weight += anim.weight;
@@ -1098,7 +1098,7 @@ export namespace fan {
         }
 
         if (total_weight > 0) {
-          rotation = rotation.normalized(); local_transform = fan::translation_matrix(position) * fan::rotation_quat_matrix(rotation) * fan::scaling_matrix(scale);
+          rotation = rotation.normalize(); local_transform = fan::translation_matrix(position) * fan::rotation_quat_matrix(rotation) * fan::scaling_matrix(scale);
         }
         else { local_transform = bone.transformation; }
 
@@ -1685,7 +1685,7 @@ export namespace fan {
         }
 
         fan::model::bone_t transform = source_bone;
-        transform.rotation = (animation_rotation * tpose_adjust).normalized();
+        transform.rotation = (animation_rotation * tpose_adjust).normalize();
 
         fan::mat4 local_matrix = source_bone.world_matrix.inverse() * fan::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
         local_matrix = target_bone.world_matrix * local_matrix * target_bone.inverse_parent_matrix;

@@ -66,7 +66,7 @@ do {                                                                            
 #define renderer_call(func) { \
   auto& w = fan::graphics::get_window(); \
   IF_GL(if (w.renderer == fan::window_t::renderer_t::opengl) { \
-    gl.func(); \
+    gl->func(); \
   }) \
   IF_VK(if (w.renderer == fan::window_t::renderer_t::vulkan) { \
     vk.func(); \

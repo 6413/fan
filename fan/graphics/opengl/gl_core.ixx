@@ -134,7 +134,7 @@ export namespace fan::opengl {
     //  };
 
     template <typename T>
-    void shader_set_value(fan::graphics::shader_nr_t nr, const std::string& name, const T& val) {
+    void shader_set_value(fan::graphics::shader_nr_t nr, const std::string_view name, const T& val) {
       static_assert(!std::is_same_v<T, uint8_t>, "only 4 byte supported");
       static_assert(!std::is_same_v<T, uint16_t>, "only 4 byte supported");
       static_assert(std::is_same_v<T, bool> == false || !std::is_same_v<T, int>, "only 4 byte supported");
@@ -146,18 +146,18 @@ export namespace fan::opengl {
       shader_use(nr);
       shader_t& shader = shader_get(nr);
       auto& context = *this;
-      auto found = __fan_internal_shader_list[nr].uniform_type_table.find(name);
+      auto found = __fan_internal_shader_list[nr].uniform_type_table.find(std::string(name));
       if (found == __fan_internal_shader_list[nr].uniform_type_table.end()) {
         //fan::print("failed to set uniform value");
         return;
         //fan::throw_error("failed to set uniform value");
       }
 
-      size_t hash0 = std::hash<std::string>{}(name);
+      size_t hash0 = std::hash<std::string_view>{}(name);
       size_t hash1 = std::hash<decltype(fan::graphics::shader_nr_t::NRI)>{}(nr.NRI);
       auto shader_loc_it = shader_location_cache.find(hash0 ^ hash1);
       if (shader_loc_it == shader_location_cache.end()) {
-        GLint location = fan_opengl_call(glGetUniformLocation(shader.id, name.c_str()));
+        GLint location = fan_opengl_call(glGetUniformLocation(shader.id, std::string(name).c_str()));
         if (location == -1) {
           return;
         }
@@ -222,16 +222,16 @@ export namespace fan::opengl {
       }
     }
     template <typename T>
-    void shader_set_value(fan::graphics::shader_nr_t nr, const std::string& name, const std::vector<T>& val) {
+    void shader_set_value(fan::graphics::shader_nr_t nr, const std::string_view name, const std::vector<T>& val) {
       shader_use(nr);
-      auto found = __fan_internal_shader_list[nr].uniform_type_table.find(name);
+      auto found = __fan_internal_shader_list[nr].uniform_type_table.find(std::string(name));
       if (found == __fan_internal_shader_list[nr].uniform_type_table.end()) return;
 
-      size_t hash0 = std::hash<std::string> {}(name);
+      size_t hash0 = std::hash<std::string_view> {}(name);
       size_t hash1 = std::hash<decltype(fan::graphics::shader_nr_t::NRI)> {}(nr.NRI);
       auto shader_loc_it = shader_location_cache.find(hash0 ^ hash1);
       if (shader_loc_it == shader_location_cache.end()) {
-        GLint location = glGetUniformLocation(shader_get(nr).id, name.c_str());
+        GLint location = glGetUniformLocation(shader_get(nr).id, std::string(name).data());
         if (location == -1) return;
         shader_loc_it = shader_location_cache.emplace(hash0 ^ hash1, location).first;
       }
@@ -508,18 +508,18 @@ export namespace fan::opengl {
   };
 }
 
-template void fan::opengl::context_t::shader_set_value<fan::vec2>(fan::graphics::shader_nr_t nr, const std::string& name, const fan::vec2& val);
-template void fan::opengl::context_t::shader_set_value<fan::vec3>(fan::graphics::shader_nr_t nr, const std::string& name, const fan::vec3& val);
-template void fan::opengl::context_t::shader_set_value<fan::vec4>(fan::graphics::shader_nr_t nr, const std::string& name, const fan::vec4& val);
-template void fan::opengl::context_t::shader_set_value<fan::mat4>(fan::graphics::shader_nr_t nr, const std::string& name, const fan::mat4& val);
-template void fan::opengl::context_t::shader_set_value<fan::color>(fan::graphics::shader_nr_t nr, const std::string& name, const fan::color& val);
-template void fan::opengl::context_t::shader_set_value<uint32_t>(fan::graphics::shader_nr_t nr, const std::string& name, const uint32_t& val);
-template void fan::opengl::context_t::shader_set_value<uint64_t>(fan::graphics::shader_nr_t nr, const std::string& name, const uint64_t& val);
-template void fan::opengl::context_t::shader_set_value<int>(fan::graphics::shader_nr_t nr, const std::string& name, const int& val);
-template void fan::opengl::context_t::shader_set_value<f32_t>(fan::graphics::shader_nr_t nr, const std::string& name, const f32_t& val);
-template void fan::opengl::context_t::shader_set_value<fan::vec1_wrap_t<f32_t>>(fan::graphics::shader_nr_t nr, const std::string& name, const fan::vec1_wrap_t<f32_t>& val);
-template void fan::opengl::context_t::shader_set_value<fan::vec_wrap_t<1, f32_t>>(fan::graphics::shader_nr_t nr, const std::string& name, const fan::vec_wrap_t<1, f32_t>& val);
-template void fan::opengl::context_t::shader_set_value<fan::vec_wrap_t<2, f32_t>>(fan::graphics::shader_nr_t nr, const std::string& name, const fan::vec_wrap_t<2, f32_t>& val);
+template void fan::opengl::context_t::shader_set_value<fan::vec2>(fan::graphics::shader_nr_t nr, const std::string_view name, const fan::vec2& val);
+template void fan::opengl::context_t::shader_set_value<fan::vec3>(fan::graphics::shader_nr_t nr, const std::string_view name, const fan::vec3& val);
+template void fan::opengl::context_t::shader_set_value<fan::vec4>(fan::graphics::shader_nr_t nr, const std::string_view name, const fan::vec4& val);
+template void fan::opengl::context_t::shader_set_value<fan::mat4>(fan::graphics::shader_nr_t nr, const std::string_view name, const fan::mat4& val);
+template void fan::opengl::context_t::shader_set_value<fan::color>(fan::graphics::shader_nr_t nr, const std::string_view name, const fan::color& val);
+template void fan::opengl::context_t::shader_set_value<uint32_t>(fan::graphics::shader_nr_t nr, const std::string_view name, const uint32_t& val);
+template void fan::opengl::context_t::shader_set_value<uint64_t>(fan::graphics::shader_nr_t nr, const std::string_view name, const uint64_t& val);
+template void fan::opengl::context_t::shader_set_value<int>(fan::graphics::shader_nr_t nr, const std::string_view name, const int& val);
+template void fan::opengl::context_t::shader_set_value<f32_t>(fan::graphics::shader_nr_t nr, const std::string_view name, const f32_t& val);
+template void fan::opengl::context_t::shader_set_value<fan::vec1_wrap_t<f32_t>>(fan::graphics::shader_nr_t nr, const std::string_view name, const fan::vec1_wrap_t<f32_t>& val);
+template void fan::opengl::context_t::shader_set_value<fan::vec_wrap_t<1, f32_t>>(fan::graphics::shader_nr_t nr, const std::string_view name, const fan::vec_wrap_t<1, f32_t>& val);
+template void fan::opengl::context_t::shader_set_value<fan::vec_wrap_t<2, f32_t>>(fan::graphics::shader_nr_t nr, const std::string_view name, const fan::vec_wrap_t<2, f32_t>& val);
 
 export namespace fan::opengl::core {
   int get_buffer_size(fan::opengl::context_t& context, GLenum target_buffer, GLuint buffer_object);

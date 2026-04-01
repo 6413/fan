@@ -47,7 +47,7 @@ namespace fan::process {
     st->running = true;
 
     auto loop = fan::event::get_loop();
-    uv_pipe_init(loop, &st->pipe, 0);
+    uv_pipe_init((uv_loop_t*)loop, &st->pipe, 0);
 
     std::vector<char*> argv;
     for (auto& a : args) argv.push_back(const_cast<char*>(a.c_str()));
@@ -81,7 +81,7 @@ namespace fan::process {
     st->process.data = st;
     st->pipe.data = st;
 
-    if (uv_spawn(loop, &st->process, &opts) != 0) {
+    if (uv_spawn((uv_loop_t*)loop, &st->process, &opts) != 0) {
       st->running = false;
       state_ = st;
       return;

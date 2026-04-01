@@ -6,6 +6,9 @@ module;
 #include <filesystem>
 #include <algorithm>
 #include <cstring>
+#include <unordered_map>
+#include <thread>
+#include <vector>
 
 #include <uv.h>
 #undef min
@@ -14,52 +17,164 @@ module;
 module fan.event;
 
 import fan.print;
+import fan.print.error;
 
 namespace fan::event {
-  loop_t loop_new() {
-    return uv_loop_new();
+
+  struct awaitable_internal_t {
+    uv_fs_t req;
+    std::coroutine_handle<> handle;
+  };
+  static_assert(sizeof(awaitable_internal_t) <= 512, "Awaitable Shell buffer too small");
+
+  uv_fs_open_awaitable::uv_fs_open_awaitable(const std::string& path, int flags, int mode) {
+    auto* internal = reinterpret_cast<awaitable_internal_t*>(data);
+    internal->handle = nullptr;
+    internal->req.data = internal;
+    uv_fs_open((uv_loop_t*)get_loop(), &internal->req, path.c_str(), flags, mode, [](uv_fs_t* r) {
+      auto* in = static_cast<awaitable_internal_t*>(r->data);
+      if (in->handle) in->handle.resume();
+    });
   }
+  uv_fs_open_awaitable::~uv_fs_open_awaitable() {
+    uv_fs_req_cleanup(&reinterpret_cast<awaitable_internal_t*>(data)->req);
+  }
+  void uv_fs_open_awaitable::await_suspend(std::coroutine_handle<> h) noexcept {
+    reinterpret_cast<awaitable_internal_t*>(data)->handle = h;
+  }
+  int uv_fs_open_awaitable::result() const noexcept {
+    return reinterpret_cast<const awaitable_internal_t*>(data)->req.result;
+  }
+
+  uv_fs_read_awaitable::uv_fs_read_awaitable(int file, char* buffer, size_t size, int64_t offset) {
+    auto* internal = reinterpret_cast<awaitable_internal_t*>(data);
+    internal->handle = nullptr;
+    internal->req.data = internal;
+    uv_buf_t uv_buf = uv_buf_init(buffer, size);
+    uv_fs_read((uv_loop_t*)get_loop(), &internal->req, file, &uv_buf, 1, offset, [](uv_fs_t* r) {
+      auto* in = static_cast<awaitable_internal_t*>(r->data);
+      if (in->handle) in->handle.resume();
+    });
+  }
+  uv_fs_read_awaitable::~uv_fs_read_awaitable() {
+    uv_fs_req_cleanup(&reinterpret_cast<awaitable_internal_t*>(data)->req);
+  }
+  void uv_fs_read_awaitable::await_suspend(std::coroutine_handle<> h) noexcept {
+    reinterpret_cast<awaitable_internal_t*>(data)->handle = h;
+  }
+  intptr_t uv_fs_read_awaitable::result() const noexcept {
+    return reinterpret_cast<const awaitable_internal_t*>(data)->req.result;
+  }
+
+  uv_fs_write_awaitable::uv_fs_write_awaitable(int fd, const char* buffer, size_t length, int64_t offset) {
+    auto* internal = reinterpret_cast<awaitable_internal_t*>(data);
+    internal->handle = nullptr;
+    internal->req.data = internal;
+    uv_buf_t uv_buf = uv_buf_init(const_cast<char*>(buffer), length);
+    uv_fs_write((uv_loop_t*)get_loop(), &internal->req, fd, &uv_buf, 1, offset, [](uv_fs_t* r) {
+      auto* in = static_cast<awaitable_internal_t*>(r->data);
+      if (in->handle) in->handle.resume();
+    });
+  }
+  uv_fs_write_awaitable::~uv_fs_write_awaitable() {
+    uv_fs_req_cleanup(&reinterpret_cast<awaitable_internal_t*>(data)->req);
+  }
+  void uv_fs_write_awaitable::await_suspend(std::coroutine_handle<> h) noexcept {
+    reinterpret_cast<awaitable_internal_t*>(data)->handle = h;
+  }
+  intptr_t uv_fs_write_awaitable::result() const noexcept {
+    return reinterpret_cast<const awaitable_internal_t*>(data)->req.result;
+  }
+
+  uv_fs_close_awaitable::uv_fs_close_awaitable(int file) {
+    auto* internal = reinterpret_cast<awaitable_internal_t*>(data);
+    internal->handle = nullptr;
+    internal->req.data = internal;
+    uv_fs_close((uv_loop_t*)get_loop(), &internal->req, file, [](uv_fs_t* r) {
+      auto* in = static_cast<awaitable_internal_t*>(r->data);
+      if (in->handle) in->handle.resume();
+    });
+  }
+  uv_fs_close_awaitable::~uv_fs_close_awaitable() {
+    uv_fs_req_cleanup(&reinterpret_cast<awaitable_internal_t*>(data)->req);
+  }
+  void uv_fs_close_awaitable::await_suspend(std::coroutine_handle<> h) noexcept {
+    reinterpret_cast<awaitable_internal_t*>(data)->handle = h;
+  }
+
+  uv_fs_size_awaitable::uv_fs_size_awaitable(int file) {
+    auto* internal = reinterpret_cast<awaitable_internal_t*>(data);
+    internal->handle = nullptr;
+    internal->req.data = internal;
+    uv_fs_fstat((uv_loop_t*)get_loop(), &internal->req, file, [](uv_fs_t* r) {
+      auto* in = static_cast<awaitable_internal_t*>(r->data);
+      if (in->handle) in->handle.resume();
+    });
+  }
+  uv_fs_size_awaitable::uv_fs_size_awaitable(const std::string& path) {
+    auto* internal = reinterpret_cast<awaitable_internal_t*>(data);
+    internal->handle = nullptr;
+    internal->req.data = internal;
+    uv_fs_stat((uv_loop_t*)get_loop(), &internal->req, path.c_str(), [](uv_fs_t* r) {
+      auto* in = static_cast<awaitable_internal_t*>(r->data);
+      if (in->handle) in->handle.resume();
+    });
+  }
+  uv_fs_size_awaitable::~uv_fs_size_awaitable() {
+    uv_fs_req_cleanup(&reinterpret_cast<awaitable_internal_t*>(data)->req);
+  }
+  void uv_fs_size_awaitable::await_suspend(std::coroutine_handle<> h) noexcept {
+    reinterpret_cast<awaitable_internal_t*>(data)->handle = h;
+  }
+  int64_t uv_fs_size_awaitable::result() const noexcept {
+    auto* internal = reinterpret_cast<const awaitable_internal_t*>(data);
+    return internal->req.result < 0 ? -1 : internal->req.statbuf.st_size;
+  }
+
+  loop_t loop_new() { return uv_loop_new(); }
   loop_t& get_loop() {
-    static loop_t event_loop = uv_default_loop();
-    return event_loop;
+    static uv_loop_t* event_loop = uv_default_loop();
+    return (loop_t&)event_loop;
   }
-  void loop_stop(loop_t loop) {
-    uv_stop(loop);
-  }
-  int loop_close(loop_t loop) {
-    return uv_loop_close(loop);
-  }
+  void loop_stop(loop_t loop) { uv_stop((uv_loop_t*)loop); }
+  int loop_close(loop_t loop) { return uv_loop_close((uv_loop_t*)loop); }
 
   void error_code_t::throw_if() const { if (code) throw code; }
   void error_code_t::await_resume() const { throw_if(); }
 
   void print_event_handles(loop_t loop) {
+    uv_loop_t* uvloop = (uv_loop_t*)loop;
     fan::print("========================");
-    fan::print("Active handles:", loop->active_handles);
-    fan::print("Active requests:", loop->active_reqs.count);
-    uv_walk(loop, [](uv_handle_t* handle, void* arg) {
+    fan::print("Active handles:", uvloop->active_handles);
+    fan::print("Active requests:", uvloop->active_reqs.count);
+    uv_walk(uvloop, [](uv_handle_t* handle, void* arg) {
       const char* type_name = uv_handle_type_name(handle->type);
       fan::print("Handle:", type_name, "active:", uv_is_active(handle), "closing:", uv_is_closing(handle));
       }, nullptr);
     fan::print("========================");
   }
 
-  timer_t::timer_data::timer_data() : co_handle(nullptr), ready(0) {}
+  struct timer_t::timer_data {
+    uv_timer_t timer_handle;
+    std::coroutine_handle<> co_handle;
+    int ready;
+    timer_data() : co_handle(nullptr), ready(0) {}
+  };
 
   void timer_t::timer_deleter::operator()(timer_t::timer_data* data) const noexcept {
     uv_close(reinterpret_cast<uv_handle_t*>(&data->timer_handle), [](uv_handle_t* timer_handle) {
       delete static_cast<timer_t::timer_data*>(timer_handle->data);
-      });
+    });
   }
 
   timer_t::timer_t() : data(new timer_data{}, timer_deleter{}) {
-    uv_timer_init(fan::event::get_loop(), &data->timer_handle);
+    uv_timer_init((uv_loop_t*)fan::event::get_loop(), &data->timer_handle);
     data->timer_handle.data = data.get();
   }
 
   timer_t::timer_t(uint64_t timeout, uint64_t repeat)
     : data(new timer_data{}, timer_deleter{}) {
-    uv_timer_init(fan::event::get_loop(), &data->timer_handle);
+    uv_timer_init((uv_loop_t*)fan::event::get_loop(), &data->timer_handle);
     data->timer_handle.data = data.get();
     start(timeout, repeat);
   }
@@ -68,69 +183,47 @@ namespace fan::event {
     return uv_timer_start(&data->timer_handle, [](uv_timer_t* timer_handle) {
       auto data = static_cast<timer_t::timer_data*>(timer_handle->data);
       ++data->ready;
-      if (data->co_handle) {
-        data->co_handle();
-      }
+      if (data->co_handle) data->co_handle();
     }, timeout, repeat);
   }
 
-  error_code_t timer_t::again() noexcept {
-    return uv_timer_again(&data->timer_handle);
-  }
-
-  void timer_t::set_repeat(uint64_t repeat) noexcept {
-    uv_timer_set_repeat(&data->timer_handle, repeat);
-  }
-
-  error_code_t timer_t::stop() noexcept {
-    return uv_timer_stop(&data->timer_handle);
-  }
-
+  error_code_t timer_t::again() noexcept { return uv_timer_again(&data->timer_handle); }
+  void timer_t::set_repeat(uint64_t repeat) noexcept { uv_timer_set_repeat(&data->timer_handle, repeat); }
+  error_code_t timer_t::stop() noexcept { return uv_timer_stop(&data->timer_handle); }
   bool timer_t::await_ready() const noexcept { return data->ready; }
-
   void timer_t::await_suspend(std::coroutine_handle<> h) noexcept { data->co_handle = h; }
+  void timer_t::await_resume() noexcept { data->co_handle = nullptr; --data->ready; }
 
-  void timer_t::await_resume() noexcept {
-    data->co_handle = nullptr;
-    --data->ready;
-  }
   void deferred_resume_t::process_resumes() {
     for (auto& e : resume_queue) {
-      if (e.h) {
-        e.h.resume();
-      }
+      if (e.h) e.h.resume();
     }
     resume_queue.clear();
   }
 
-  idle_task::idle_data::idle_data(std::function<task_t()> cb)
-    : callback(std::move(cb)), has_task(false) {
-  }
-
-  void idle_task::idle_callback(uv_idle_t* handle) {
-    auto* data = static_cast<idle_data*>(handle->data);
-    if (!data->has_task) {
-      data->task = data->callback();
-      data->has_task = true;
-    }
-    if (data->task.await_ready()) {
-      data->task.await_resume();
-      data->has_task = false;
-    }
-  }
-
-  void idle_task::close_callback(uv_handle_t* handle) {
-    auto* idle_handle = reinterpret_cast<uv_idle_t*>(handle);
-    delete static_cast<idle_data*>(idle_handle->data);
-    delete idle_handle;
-  }
+  struct idle_data_t {
+    std::function<task_t()> callback;
+    task_t task;
+    bool has_task;
+    idle_data_t(std::function<task_t()> cb) : callback(std::move(cb)), has_task(false) {}
+  };
 
   idle_id_t idle_task::task_idle(std::function<task_t()> callback) {
     auto* idle_handle = new uv_idle_t;
-    idle_handle->data = new idle_data(std::move(callback));
-    if (uv_idle_init(get_loop(), idle_handle) != 0 ||
-      uv_idle_start(idle_handle, idle_callback) != 0) {
-      delete static_cast<idle_data*>(idle_handle->data);
+    idle_handle->data = new idle_data_t(std::move(callback));
+    if (uv_idle_init((uv_loop_t*)get_loop(), idle_handle) != 0 ||
+        uv_idle_start(idle_handle, [](uv_idle_t* handle) {
+          auto* data = static_cast<idle_data_t*>(handle->data);
+          if (!data->has_task) {
+            data->task = data->callback();
+            data->has_task = true;
+          }
+          if (data->task.await_ready()) {
+            data->task.await_resume();
+            data->has_task = false;
+          }
+        }) != 0) {
+      delete static_cast<idle_data_t*>(idle_handle->data);
       delete idle_handle;
       return nullptr;
     }
@@ -139,182 +232,94 @@ namespace fan::event {
 
   void idle_task::idle_stop(idle_id_t idle_handle) {
     if (idle_handle) {
-      uv_idle_stop(idle_handle);
-      uv_close(reinterpret_cast<uv_handle_t*>(idle_handle), close_callback);
+      uv_idle_stop((uv_idle_t*)idle_handle);
+      uv_close(reinterpret_cast<uv_handle_t*>(idle_handle), [](uv_handle_t* handle) {
+        auto* ih = reinterpret_cast<uv_idle_t*>(handle);
+        delete static_cast<idle_data_t*>(ih->data);
+        delete ih;
+      });
     }
   }
 
-  idle_id_t task_idle(std::function<task_t()> callback) {
-    return idle_task::task_idle(std::move(callback));
-  }
+  idle_id_t task_idle(std::function<task_t()> callback) { return idle_task::task_idle(std::move(callback)); }
+  void idle_stop(idle_id_t idle_handle) { idle_task::idle_stop(idle_handle); }
 
-  void idle_stop(idle_id_t idle_handle) {
-    idle_task::idle_stop(idle_handle);
-  }
-
-  bool counter_awaitable_t::await_ready() const noexcept {
-    return st->remaining == 0;
-  }
-
-  void counter_awaitable_t::await_suspend(std::coroutine_handle<> h) noexcept {
-    st->continuation = h;
-  }
-
+  bool counter_awaitable_t::await_ready() const noexcept { return st->remaining == 0; }
+  void counter_awaitable_t::await_suspend(std::coroutine_handle<> h) noexcept { st->continuation = h; }
   void counter_awaitable_t::await_resume() const noexcept {}
 
-  uv_fs_awaitable::uv_fs_awaitable() { req.data = this; }
-  uv_fs_awaitable::~uv_fs_awaitable() { uv_fs_req_cleanup(&req); closed = true; }
-  bool uv_fs_awaitable::await_ready() const noexcept { return false; }
-  void uv_fs_awaitable::await_suspend(std::coroutine_handle<> h) noexcept { handle = h; }
-  void uv_fs_awaitable::await_resume() noexcept {}
+  struct fs_watcher_internal_t {
+    struct file_event {
+      std::string filename;
+      int events;
+      std::chrono::steady_clock::time_point timestamp;
+    };
+    uv_fs_event_t fs_event;
+    uv_timer_t timer;
+    std::string watch_path;
+    std::function<void(const std::string&, int)> event_callback;
+    std::unordered_map<std::string, file_event> pending_events;
+  };
 
-  uv_fs_open_awaitable::uv_fs_open_awaitable(const std::string& path, int flags, int mode) {
-    req.data = this;
-    uv_fs_open(get_loop(), &req, path.c_str(), flags, mode, on_open_cb);
-  }
-  void uv_fs_open_awaitable::on_open_cb(uv_fs_t* r) {
-    auto self = static_cast<uv_fs_open_awaitable*>(r->data);
-    if (self->closed) {
-      return;
-    }
-    if (self->handle) {
-      self->handle.resume();
-    }
-  }
-  int uv_fs_open_awaitable::result() const noexcept { return req.result; }
-
-  uv_fs_size_awaitable::uv_fs_size_awaitable(int file) {
-    uv_fs_fstat(get_loop(), &req, file, on_size_cb);
-  }
-  uv_fs_size_awaitable::uv_fs_size_awaitable(const std::string& path) {
-    uv_fs_stat(fan::event::get_loop(), &req, path.c_str(), on_size_cb);
-  }
-  void uv_fs_size_awaitable::on_size_cb(uv_fs_t* r) {
-    auto self = static_cast<uv_fs_size_awaitable*>(r->data);
-    if (self->closed) {
-      return;
-    }
-    if (self->handle) {
-      self->handle.resume();
-    }
-  }
-  int64_t uv_fs_size_awaitable::result() const noexcept {
-    return req.result < 0 ? -1 : req.statbuf.st_size;
+  fs_watcher_t::fs_watcher_t(const std::string& path) {
+    internal_state = new fs_watcher_internal_t();
+    auto* state = static_cast<fs_watcher_internal_t*>(internal_state);
+    state->watch_path = path;
+    state->fs_event.data = state;
+    state->timer.data = state;
   }
 
-  uv_fs_read_awaitable::uv_fs_read_awaitable(int file, uv_buf_t buf, int64_t offset) {
-    int ret = uv_fs_read(fan::event::get_loop(), &req, file, &buf, 1, offset, on_read_cb);
-    if (ret < 0) {
-      fan::throw_error("uv_error"_str + uv_strerror(ret));
-    }
-  }
-  void uv_fs_read_awaitable::on_read_cb(uv_fs_t* r) {
-    auto self = static_cast<uv_fs_read_awaitable*>(r->data);
-    if (self->closed) {
-      return;
-    }
-    self->handle.resume();
-  }
-  ssize_t uv_fs_read_awaitable::result() const noexcept { return req.result; }
-
-  uv_fs_write_awaitable::uv_fs_write_awaitable(int fd, const char* buffer, size_t length, int64_t offset) {
-    req.data = this;
-    uv_buf_t buf = uv_buf_init(const_cast<char*>(buffer), length);
-    uv_fs_write(fan::event::get_loop(), &req, fd, &buf, 1, offset, on_write_cb);
-  }
-  void uv_fs_write_awaitable::on_write_cb(uv_fs_t* req) {
-    auto self = static_cast<uv_fs_write_awaitable*>(req->data);
-    if (self->closed) {
-      return;
-    }
-    self->handle.resume();
-  }
-  ssize_t uv_fs_write_awaitable::result() const noexcept { return req.result; }
-
-  uv_fs_close_awaitable::uv_fs_close_awaitable(int file) {
-    req.data = this;
-    uv_fs_close(fan::event::get_loop(), &req, file, on_close_cb);
-  }
-  void uv_fs_close_awaitable::on_close_cb(uv_fs_t* r) {
-    auto self = static_cast<uv_fs_close_awaitable*>(r->data);
-    if (self->closed) {
-      return;
-    }
-    self->handle.resume();
-  }
-
-  void fs_watcher_t::timer_callback(uv_timer_t* handle) {
-    fs_watcher_t* watcher = static_cast<fs_watcher_t*>(handle->data);
-    watcher->process_latest_events();
-  }
-
-  void fs_watcher_t::fs_callback(uv_fs_event_t* handle, const char* filename, int events, int status) {
-    if (status < 0) return;
-    fs_watcher_t* watcher = static_cast<fs_watcher_t*>(handle->data);
-    if (filename) {
-      std::string file_str(filename);
-      auto now = std::chrono::steady_clock::now();
-      watcher->pending_events[file_str] = {
-        file_str,
-        events,
-        now
-      };
-    }
-  }
-
-  void fs_watcher_t::process_latest_events() {
-    for (auto& event_pair : pending_events) {
-      if (event_callback) {
-        event_callback(event_pair.second.filename, event_pair.second.events);
-      }
-    }
-    pending_events.clear();
-  }
-
-  fs_watcher_t::fs_watcher_t(const std::string& path)
-    : loop(fan::event::get_loop()), watch_path(path) {
-    fs_event.data = this;
-    timer.data = this;
+  fs_watcher_t::~fs_watcher_t() {
+    delete static_cast<fs_watcher_internal_t*>(internal_state);
   }
 
   bool fs_watcher_t::start(std::function<void(const std::string&, int)> callback) {
-    event_callback = callback;
-    int result = uv_fs_event_init(loop, &fs_event);
+    auto* state = static_cast<fs_watcher_internal_t*>(internal_state);
+    state->event_callback = callback;
+    int result = uv_fs_event_init((uv_loop_t*)get_loop(), &state->fs_event);
     if (result < 0) return false;
-    result = uv_fs_event_start(&fs_event, fs_callback, watch_path.c_str(), UV_FS_EVENT_RECURSIVE);
+    result = uv_fs_event_start(&state->fs_event, [](uv_fs_event_t* handle, const char* filename, int events, int status) {
+      if (status < 0) return;
+      auto* state = static_cast<fs_watcher_internal_t*>(handle->data);
+      if (filename) {
+        std::string file_str(filename);
+        state->pending_events[file_str] = { file_str, events, std::chrono::steady_clock::now() };
+      }
+    }, state->watch_path.c_str(), UV_FS_EVENT_RECURSIVE);
     if (result < 0) return false;
-    result = uv_timer_init(loop, &timer);
+    result = uv_timer_init((uv_loop_t*)get_loop(), &state->timer);
     if (result < 0) return false;
-    result = uv_timer_start(&timer, timer_callback, 0, 50);
-    if (result < 0) return false;
-    return true;
+    result = uv_timer_start(&state->timer, [](uv_timer_t* handle) {
+      auto* state = static_cast<fs_watcher_internal_t*>(handle->data);
+      for (auto& event_pair : state->pending_events) {
+        if (state->event_callback) state->event_callback(event_pair.second.filename, event_pair.second.events);
+      }
+      state->pending_events.clear();
+    }, 0, 50);
+    return result >= 0;
   }
 
   void fs_watcher_t::stop() {
-    uv_fs_event_stop(&fs_event);
-    uv_timer_stop(&timer);
+    auto* state = static_cast<fs_watcher_internal_t*>(internal_state);
+    uv_fs_event_stop(&state->fs_event);
+    uv_timer_stop(&state->timer);
   }
 
-  void sleep(unsigned int msec) {
-    uv_sleep(msec);
+  std::string fs_watcher_t::get_watch_path() {
+    return static_cast<fs_watcher_internal_t*>(internal_state)->watch_path;
   }
 
-  void loop(fan::event::loop_t loop, bool once) {
-    uv_run(loop, once ? UV_RUN_ONCE : UV_RUN_DEFAULT);
-  }
-
-  uint64_t now() {
-    return uv_now(get_loop()) * 1000000;
-  }
-
-  std::string strerror(int err) {
-    return uv_strerror(err);
-  }
+  void sleep(unsigned int msec) { uv_sleep(msec); }
+  void loop(fan::event::loop_t loop, bool once) { uv_run((uv_loop_t*)loop, once ? UV_RUN_ONCE : UV_RUN_DEFAULT); }
+  uint64_t now() { return uv_now((uv_loop_t*)get_loop()) * 1000000; }
+  std::string strerror(int err) { return uv_strerror(err); }
 
   poll_awaitable_t::poll_awaitable_t(loop_t loop, int fd, int events) {
-    poll_handle.data = this;
-    uv_poll_init(loop, &poll_handle, fd);
-    uv_poll_start(&poll_handle, events, [](uv_poll_t* handle, int, int events) {
+    poll_handle = new uv_poll_t();
+    uv_poll_t* ph = static_cast<uv_poll_t*>(poll_handle);
+    ph->data = this;
+    uv_poll_init((uv_loop_t*)loop, ph, fd);
+    uv_poll_start(ph, events, [](uv_poll_t* handle, int, int events) {
       auto* self = static_cast<poll_awaitable_t*>(handle->data);
       self->events_received = events;
       self->ready = true;
@@ -323,126 +328,224 @@ namespace fan::event {
     });
   }
 
+  poll_awaitable_t::~poll_awaitable_t() {
+    uv_poll_t* ph = static_cast<uv_poll_t*>(poll_handle);
+    if (ph) {
+      uv_close((uv_handle_t*)ph, [](uv_handle_t* h) { delete (uv_poll_t*)h; });
+    }
+  }
+
   bool poll_awaitable_t::await_ready() const noexcept { return ready; }
-
   void poll_awaitable_t::await_suspend(std::coroutine_handle<> h) noexcept { co_handle = h; }
-
   int poll_awaitable_t::await_resume() noexcept { return events_received; }
-
   poll_awaitable_t poll_task(loop_t loop, int fd, int events) { return poll_awaitable_t(loop, fd, events); }
 }
 
-namespace fan::io {
-  bool ev_next_tick_awaiter::await_ready() noexcept { return false; }
+namespace fan::io::file {
 
-  void ev_next_tick_awaiter::await_suspend(std::coroutine_handle<> h) noexcept {
-    coro = h;
-    idle_handle = new uv_idle_t;
-    uv_idle_init(fan::event::get_loop(), idle_handle);
-    idle_handle->data = this;
-    uv_idle_start(idle_handle, [](uv_idle_t* handle) {
-      auto* awaiter = static_cast<ev_next_tick_awaiter*>(handle->data);
-      uv_idle_stop(handle);
-      uv_close(reinterpret_cast<uv_handle_t*>(handle), [](uv_handle_t* h) {
-        delete reinterpret_cast<uv_idle_t*>(h);
-        });
-      awaiter->coro.resume();
-      });
+  fan::event::task_value_resume_t<intptr_t> async_read(int file, std::string* buffer, int64_t offset, std::size_t buffer_size) {
+    buffer->resize(buffer_size);
+    intptr_t r = co_await async_read(file, buffer->data(), buffer_size, offset);
+    if (r < 0) fan::throw_error("error reading file", std::to_string(r));
+    buffer->resize(r);
+    co_return r;
   }
 
-  void ev_next_tick_awaiter::await_resume() noexcept {}
+  fan::event::task_value_resume_t<std::string> async_read(const std::string& path, int buffer_size) {
+    int fd = co_await async_open(path);
+    int offset = 0;
+    std::string buffer;
+    buffer.resize(buffer_size);
+    std::string content;
+
+    while (true) {
+      intptr_t result = co_await async_read(fd, buffer.data(), buffer.size(), offset);
+      if (result <= 0) break;
+      content.append(buffer.data(), result);
+      offset += result;
+    }
+    co_await async_close(fd);
+    co_return content;
+  }
+
+  fan::event::task_t async_write(const std::string& path, const std::string& data) {
+    int fd = co_await async_open(path, fan::fs_out);
+    size_t offset = 0;
+    size_t buffer_size = 4096;
+    size_t total_written = 0;
+
+    while (total_written < data.size()) {
+      size_t remaining = data.size() - total_written;
+      size_t to_write = std::min(remaining, buffer_size);
+      std::string buffer(data.data() + total_written, to_write);
+      intptr_t written = co_await async_write(fd, buffer.data(), buffer.size(), offset + total_written);
+      if (written <= 0) fan::throw_error("write failed");
+      total_written += written;
+    }
+    co_await async_close(fd);
+  }
+
+  fan::event::task_resume_t async_read_t::open(const std::string& file_path) {
+    path = file_path;
+    fd = co_await fan::io::file::async_open(path);
+    size = co_await fan::io::file::async_size(fd);
+  }
+
+  fan::event::task_resume_t async_read_t::close() {
+    co_await fan::io::file::async_close(fd);
+  }
+
+  fan::event::task_value_resume_t<std::string> async_read_t::read() {
+    std::string buffer;
+    intptr_t read_bytes = co_await fan::io::file::async_read(fd, &buffer, offset);
+    if (read_bytes > 0) offset += read_bytes;
+    if (read_bytes < 0) fan::throw_error("fs read error:" + fan::event::strerror((int)read_bytes));
+    co_return buffer;
+  }
+}
+
+namespace fan::io {
+  struct ev_next_tick_awaiter {
+    uv_idle_t* idle_handle = nullptr;
+    std::coroutine_handle<> coro;
+    bool await_ready() noexcept { return false; }
+    void await_suspend(std::coroutine_handle<> h) noexcept {
+      coro = h;
+      idle_handle = new uv_idle_t;
+      uv_idle_init((uv_loop_t*)fan::event::get_loop(), idle_handle);
+      idle_handle->data = this;
+      uv_idle_start(idle_handle, [](uv_idle_t* handle) {
+        auto* awaiter = static_cast<ev_next_tick_awaiter*>(handle->data);
+        uv_idle_stop(handle);
+        uv_close(reinterpret_cast<uv_handle_t*>(handle), [](uv_handle_t* h) { delete reinterpret_cast<uv_idle_t*>(h); });
+        awaiter->coro.resume();
+      });
+    }
+    void await_resume() noexcept {}
+  };
+
+  struct dir_iter_internal {
+    std::vector<std::filesystem::directory_entry> entries;
+    std::string base_path;
+    std::string next_path;
+    size_t current_index = 0;
+    bool stopped = false;
+    bool switch_requested = false;
+    fan::event::task_t iteration_task;
+  };
+
+  async_directory_iterator_t::async_directory_iterator_t() {
+    internal_state = new dir_iter_internal();
+  }
+
+  async_directory_iterator_t::~async_directory_iterator_t() {
+    delete static_cast<dir_iter_internal*>(internal_state);
+  }
 
   void async_directory_iterator_t::stop() {
-    stopped = true;
-    switch_requested = false;
+    auto* s = static_cast<dir_iter_internal*>(internal_state);
+    s->stopped = true;
+    s->switch_requested = false;
   }
 
-  fan::event::task_t iterate_directory(async_directory_iterator_t* state) {
-    while (state->current_index < state->entries.size()) {
-      if (state->stopped) co_return;
-      co_await state->callback(state->entries[state->current_index]);
-      ++state->current_index;
-      if (state->stopped) co_return;
-      co_await ev_next_tick_awaiter{};
+  fan::event::task_t iterate_directory(async_directory_iterator_t* iter) {
+    auto* s = static_cast<dir_iter_internal*>(iter->internal_state);
+    while (s->current_index < s->entries.size()) {
+      if (s->stopped) co_return;
+
+      const auto& entry = s->entries[s->current_index];
+      co_await iter->callback(entry.path().string(), entry.is_directory());
+
+      ++s->current_index;
+      if (s->stopped) co_return;
+      co_await ev_next_tick_awaiter {};
     }
     co_return;
   }
 
-  void async_directory_iterate(async_directory_iterator_t* state, const std::string& path) {
-    if (state->operation_in_progress) {
-      state->stopped = true;
-      state->switch_requested = true;
-      state->next_path = path;
+  void async_directory_iterate(async_directory_iterator_t* iter, const std::string& path) {
+    auto* s = static_cast<dir_iter_internal*>(iter->internal_state);
+    if (iter->operation_in_progress) {
+      s->stopped = true;
+      s->switch_requested = true;
+      s->next_path = path;
       return;
     }
-    state->operation_in_progress = true;
-    state->stopped = false;
-    state->switch_requested = false;
-    state->base_path = path;
-    state->entries.clear();
-    state->current_index = 0;
+    iter->operation_in_progress = true;
+    s->stopped = false;
+    s->switch_requested = false;
+    s->base_path = path;
+    s->entries.clear();
+    s->current_index = 0;
+
     uv_fs_t* req = new uv_fs_t;
     std::memset(req, 0, sizeof(uv_fs_t));
-    req->data = state;
-    int ret = uv_fs_scandir(fan::event::get_loop(), req, path.c_str(), 0, [](uv_fs_t* req) {
-      auto* state = static_cast<async_directory_iterator_t*>(req->data);
+    req->data = iter;
+    int ret = uv_fs_scandir((uv_loop_t*)fan::event::get_loop(), req, path.c_str(), 0, [](uv_fs_t* r) {
+      auto* it = static_cast<async_directory_iterator_t*>(r->data);
+      auto* state = static_cast<dir_iter_internal*>(it->internal_state);
+      
       if (!state->stopped) {
         uv_dirent_t ent;
-        while (uv_fs_scandir_next(req, &ent) != fan::eof) {
-          std::filesystem::path full_path = std::filesystem::path(state->base_path) / ent.name;
-          try {
-            state->entries.emplace_back(full_path);
-          }
-          catch (...) {}
+        while (uv_fs_scandir_next(r, &ent) != fan::eof) {
+          try { state->entries.emplace_back(std::filesystem::path(state->base_path) / ent.name); } catch (...) {}
         }
-        if (state->sort_alphabetically) {
-          std::sort(state->entries.begin(), state->entries.end(),
-            [](const std::filesystem::directory_entry& a, const std::filesystem::directory_entry& b) -> bool {
-              if (a.is_directory() == b.is_directory()) {
-                std::string a_stem = a.path().stem().string();
-                std::string b_stem = b.path().stem().string();
-                std::transform(a_stem.begin(), a_stem.end(), a_stem.begin(),
-                  [](unsigned char c) { return std::tolower(c); });
-                std::transform(b_stem.begin(), b_stem.end(), b_stem.begin(),
-                  [](unsigned char c) { return std::tolower(c); });
-                return a_stem < b_stem;
-              }
-              return a.is_directory() && !b.is_directory();
+        if (it->sort_alphabetically) {
+          std::sort(state->entries.begin(), state->entries.end(), [](const std::filesystem::directory_entry& a, const std::filesystem::directory_entry& b) {
+            if (a.is_directory() == b.is_directory()) {
+              std::string a_stem = a.path().stem().string();
+              std::string b_stem = b.path().stem().string();
+              std::transform(a_stem.begin(), a_stem.end(), a_stem.begin(), ::tolower);
+              std::transform(b_stem.begin(), b_stem.end(), b_stem.begin(), ::tolower);
+              return a_stem < b_stem;
             }
-          );
+            return a.is_directory() && !b.is_directory();
+          });
         }
-        if (!state->stopped) {
-          state->iteration_task = iterate_directory(state);
-        }
+        if (!state->stopped) state->iteration_task = iterate_directory(it);
       }
-      uv_fs_req_cleanup(req);
-      delete req;
-      state->operation_in_progress = false;
+      uv_fs_req_cleanup(r);
+      delete r;
+      it->operation_in_progress = false;
+
       if (state->switch_requested) {
         std::string new_path = state->next_path;
         state->switch_requested = false;
         uv_idle_t* idle = new uv_idle_t;
-        idle->data = state;
-        uv_idle_init(fan::event::get_loop(), idle);
+        idle->data = it;
+        uv_idle_init((uv_loop_t*)fan::event::get_loop(), idle);
         uv_idle_start(idle, [](uv_idle_t* handle) {
-          auto* state = static_cast<async_directory_iterator_t*>(handle->data);
-          std::string path = state->next_path;
+          auto* it = static_cast<async_directory_iterator_t*>(handle->data);
+          std::string path = static_cast<dir_iter_internal*>(it->internal_state)->next_path;
           uv_idle_stop(handle);
-          uv_close(reinterpret_cast<uv_handle_t*>(handle), [](uv_handle_t* h) {
-            delete reinterpret_cast<uv_idle_t*>(h);
-            });
-          async_directory_iterate(state, path);
+          uv_close(reinterpret_cast<uv_handle_t*>(handle), [](uv_handle_t* h) { delete reinterpret_cast<uv_idle_t*>(h); });
+          async_directory_iterate(it, path);
         });
       }
     });
     if (ret < 0) {
       delete req;
-      state->operation_in_progress = false;
-      fan::throw_error("error fs_scandir:"_str + fan::event::strerror(ret));
+      iter->operation_in_progress = false;
+      fan::throw_error("error fs_scandir:" + fan::event::strerror(ret));
     }
+  }
+
+  size_t async_directory_iterator_t::get_current_index() const {
+    return static_cast<dir_iter_internal*>(internal_state)->current_index;
+  }
+
+  size_t async_directory_iterator_t::get_entries_size() const {
+    return static_cast<dir_iter_internal*>(internal_state)->entries.size();
+  }
+
+  bool async_directory_iterator_t::is_finished() const {
+    auto* s = static_cast<dir_iter_internal*>(internal_state);
+    return s->current_index >= s->entries.size();
   }
 }
 
-cleaner_t::~cleaner_t() {
-  uv_loop_close(fan::event::get_loop());
-}
+struct cleaner_t {
+  ~cleaner_t() {
+    uv_loop_close((uv_loop_t*)fan::event::get_loop());
+  }
+} cleaner;

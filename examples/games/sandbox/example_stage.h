@@ -63,7 +63,7 @@ void update_grass() {
 }
 fan::vec2i find_closest_tile(const fan::vec2& player_pos) {
   fan::vec2 mouse_pos = fan::graphics::screen_to_world(gloco()->get_mouse_position());
-  fan::vec2 dir = (mouse_pos - player_pos).normalized();
+  fan::vec2 dir = (mouse_pos - player_pos).normalize();
 
   std::vector<fan::vec2i> cells = fan::graphics::algorithm::grid_raycast(
     {player_pos, player_pos + dir * dig_cfg.dig_range},

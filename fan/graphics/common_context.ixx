@@ -5,14 +5,12 @@ module;
 #include <fan/graphics/common_context_functions_declare.h>
 
 #include <cstdint>
-#include <cstring>
 #include <string>
 #include <unordered_map>
 #include <source_location>
 #include <functional>
-#include <cstdlib>
-#include <type_traits>
 #include <coroutine>
+#include <array>
 
 #include <span>
 

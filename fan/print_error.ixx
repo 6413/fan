@@ -1,6 +1,8 @@
 module;
+
 #include <string>
 #include <type_traits>
+
 export module fan.print.error;
 
 export namespace fan {

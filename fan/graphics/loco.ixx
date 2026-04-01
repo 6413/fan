@@ -3,10 +3,8 @@ module;
 // loco framebuffer is recommended, you cant see sprites without it, 
 // since light uses framebuffer _t01. you could use unlit_sprite, if required
 #define LOCO_FRAMEBUFFER
+#include <fan/utility.h>
 
-#if defined(FAN_OPENGL)
-  #include <fan/graphics/opengl/init.h>
-#endif
 #if defined(FAN_VULKAN)
   #include <vulkan/vulkan.h>
 #endif
@@ -20,11 +18,11 @@ module;
   //#define loco_cuda
 #endif
 
+#include <cstdint>
 #include <source_location>
 #include <deque>
-#include <cstdlib>
-#include <coroutine>
-#include <map>
+#include <functional>
+#include <string_view>
 
 export module fan.graphics.loco;
 
@@ -201,7 +199,7 @@ public:
   void shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string& fragment_code);
   bool shader_compile(fan::graphics::shader_nr_t nr);
   template <typename T>
-  void shader_set_value(fan::graphics::shader_nr_t nr, const std::string& name, const T& val) {
+  void shader_set_value(fan::graphics::shader_nr_t nr, const std::string_view name, const T& val) {
     if (0) {}
   #if defined(FAN_OPENGL)
     else if (window.renderer == fan::window_t::renderer_t::opengl) {
@@ -218,6 +216,10 @@ public:
   fan::graphics::shader_list_t::nd_t& shader_get_data(fan::graphics::shader_t shader);
   void shader_set_paths(fan::graphics::shader_t shader, std::string_view vertex, std::string_view fragment);
   void shader_recompile_all();
+
+  void set_post_process(const std::string_view name, f32_t value);
+  f32_t* get_bloom_filter_radius_ptr();
+  void* get_framebuffer();
 
   fan::graphics::camera_list_t camera_list;
   fan::graphics::shader_list_t shader_list;
@@ -295,33 +297,8 @@ public:
   void camera_move(fan::graphics::context_camera_t& camera, f64_t dt, f32_t movement_speed, f32_t friction = 12);
 
 #if defined(FAN_OPENGL)
-  struct opengl {
-  #include <fan/graphics/opengl/engine_functions.h>
-  #if defined(LOCO_FRAMEBUFFER)
-  #include <fan/graphics/opengl/2D/effects/blur.h>
-    blur_t blur;
-
-  #include <fan/graphics/opengl/2D/effects/reflection.h>
-    reflection_t reflection;
-  #endif
-
-    fan::window_t::resize_handle_t window_resize_handle;
-
-  #if defined(LOCO_FRAMEBUFFER)
-    fan::opengl::core::framebuffer_t m_framebuffer;
-    fan::opengl::core::renderbuffer_t m_rbo;
-    fan::graphics::image_t color_buffers[4];
-    fan::graphics::shader_t m_fbo_final_shader;
-  #endif
-
-    GLenum blend_src_factor = GL_SRC_ALPHA;
-    GLenum blend_dst_factor = GL_ONE_MINUS_SRC_ALPHA;
-
-    std::uint32_t fb_vao;
-    std::uint32_t fb_vbo;
-
-  #undef loco
-  }gl;
+  struct opengl;
+  opengl* gl = nullptr;
 #endif
 
 #if defined(FAN_VULKAN)
@@ -466,7 +443,10 @@ public:
   fan::graphics::update_callback_t m_update_callback;
   std::vector<std::function<void()>> single_queue;
 
-#include "engine_images.h"
+  image_t default_texture;
+
+  void load_engine_images();
+  void unload_engine_images();
 
   fan::graphics::render_view_t orthographic_render_view;
   fan::graphics::render_view_t perspective_render_view;
