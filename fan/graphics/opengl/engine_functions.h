@@ -1,5 +1,5 @@
 loco_t& get_loco() {
-  return (*OFFSETLESS(this, loco_t, gl));
+  return *gloco();
 }
 #define loco get_loco()
 
@@ -129,7 +129,6 @@ void close() {
 #if defined(LOCO_FRAMEBUFFER)
   blur.close();
   reflection.close();
-  loco.shader_erase(loco.gl.m_fbo_final_shader);
 #endif
 }
 
@@ -139,9 +138,9 @@ void init_framebuffer() {
   }
 
 #if defined(LOCO_FRAMEBUFFER)
-  loco.gl.m_framebuffer.open(loco.context.gl);
+  loco.gl->m_framebuffer.open(loco.context.gl);
   // can be GL_RGB16F
-  loco.gl.m_framebuffer.bind(loco.context.gl);
+  loco.gl->m_framebuffer.bind(loco.context.gl);
 #endif
 
 
@@ -171,9 +170,9 @@ void init_framebuffer() {
   image_info.size = loco.window.get_size();
   image_info.channels = 4;
 
-  loco.gl.m_framebuffer.bind(loco.context.gl);
-  for (uint32_t i = 0; i < (uint32_t)std::size(loco.gl.color_buffers); ++i) {
-    load_texture(image_info, loco.gl.color_buffers[i], GL_COLOR_ATTACHMENT0 + i);
+  loco.gl->m_framebuffer.bind(loco.context.gl);
+  for (uint32_t i = 0; i < (uint32_t)std::size(loco.gl->color_buffers); ++i) {
+    load_texture(image_info, loco.gl->color_buffers[i], GL_COLOR_ATTACHMENT0 + i);
   }
 
   window_resize_handle = loco.window.add_resize_callback([&](const auto& d) {
@@ -190,44 +189,44 @@ void init_framebuffer() {
     image_info.data = nullptr;
     image_info.size = loco.window.get_size();
 
-    loco.gl.m_framebuffer.bind(loco.context.gl);
-    for (uint32_t i = 0; i < (uint32_t)std::size(loco.gl.color_buffers); ++i) {
-      load_texture(image_info, loco.gl.color_buffers[i], GL_COLOR_ATTACHMENT0 + i, true);
+    loco.gl->m_framebuffer.bind(loco.context.gl);
+    for (uint32_t i = 0; i < (uint32_t)std::size(loco.gl->color_buffers); ++i) {
+      load_texture(image_info, loco.gl->color_buffers[i], GL_COLOR_ATTACHMENT0 + i, true);
     }
 
     fan::opengl::core::renderbuffer_t::properties_t renderbuffer_properties;
-    loco.gl.m_framebuffer.bind(loco.context.gl);
+    loco.gl->m_framebuffer.bind(loco.context.gl);
     renderbuffer_properties.size = image_info.size;
     renderbuffer_properties.internalformat = GL_DEPTH_COMPONENT;
-    loco.gl.m_rbo.set_storage(loco.context.gl, renderbuffer_properties);
+    loco.gl->m_rbo.set_storage(loco.context.gl, renderbuffer_properties);
   });
 
   fan::opengl::core::renderbuffer_t::properties_t renderbuffer_properties;
-  loco.gl.m_framebuffer.bind(loco.context.gl);
+  loco.gl->m_framebuffer.bind(loco.context.gl);
   renderbuffer_properties.size = image_info.size;
   renderbuffer_properties.internalformat = GL_DEPTH_COMPONENT;
-  loco.gl.m_rbo.open(loco.context.gl);
-  loco.gl.m_rbo.set_storage(loco.context.gl, renderbuffer_properties);
+  loco.gl->m_rbo.open(loco.context.gl);
+  loco.gl->m_rbo.set_storage(loco.context.gl, renderbuffer_properties);
   renderbuffer_properties.internalformat = GL_DEPTH_ATTACHMENT;
-  loco.gl.m_rbo.bind_to_renderbuffer(loco.context.gl, renderbuffer_properties);
+  loco.gl->m_rbo.bind_to_renderbuffer(loco.context.gl, renderbuffer_properties);
 
-  unsigned int attachments[sizeof(loco.gl.color_buffers) / sizeof(loco.gl.color_buffers[0])];
+  unsigned int attachments[sizeof(loco.gl->color_buffers) / sizeof(loco.gl->color_buffers[0])];
 
-  for (uint8_t i = 0; i < std::size(loco.gl.color_buffers); ++i) {
+  for (uint8_t i = 0; i < std::size(loco.gl->color_buffers); ++i) {
     attachments[i] = GL_COLOR_ATTACHMENT0 + i;
   }
 
   fan_opengl_call(glDrawBuffers(std::size(attachments), attachments));
 
-  if (!loco.gl.m_framebuffer.ready(loco.context.gl)) {
+  if (!loco.gl->m_framebuffer.ready(loco.context.gl)) {
     fan::throw_error_impl("framebuffer not ready");
   }
 
   static constexpr uint32_t mip_count = 6;
   // always open. it goes a bit complex to make blur open and close in the middle of frame
-  loco.gl.blur.open(loco.window.get_size(), mip_count);
+  loco.gl->blur.open(loco.window.get_size(), mip_count);
 
-  loco.gl.m_framebuffer.unbind(loco.context.gl);
+  loco.gl->m_framebuffer.unbind(loco.context.gl);
 
 #endif
 }
@@ -771,7 +770,7 @@ void shapes_draw() {
         using_blending = true;
         loco.context.gl.set_depth_test(false);
         fan_opengl_call(glEnable(GL_BLEND));
-        fan_opengl_call(glBlendFunc(loco.gl.blend_src_factor, loco.gl.blend_dst_factor));
+        fan_opengl_call(glBlendFunc(loco.gl->blend_src_factor, loco.gl->blend_dst_factor));
       }
       else {
         using_blending = false;
@@ -821,9 +820,9 @@ void shapes_draw() {
         loco.context.gl.set_depth_test(false);
         fan_opengl_call(glEnable(GL_BLEND));
         fan_opengl_call(glBlendFunc(GL_ONE, GL_ONE));
-        unsigned int attachments[sizeof(loco.gl.color_buffers) / sizeof(loco.gl.color_buffers[0])];
+        unsigned int attachments[sizeof(loco.gl->color_buffers) / sizeof(loco.gl->color_buffers[0])];
 
-        for (uint8_t i = 0; i < std::size(loco.gl.color_buffers); ++i) {
+        for (uint8_t i = 0; i < std::size(loco.gl->color_buffers); ++i) {
           attachments[i] = GL_COLOR_ATTACHMENT0 + i;
         }
 
@@ -839,7 +838,7 @@ void shapes_draw() {
       if (light_buffer_enabled) {
       #if defined(LOCO_FRAMEBUFFER)
         loco.context.gl.set_depth_test(true);
-        unsigned int attachments[sizeof(loco.gl.color_buffers) / sizeof(color_buffers[0])];
+        unsigned int attachments[sizeof(loco.gl->color_buffers) / sizeof(color_buffers[0])];
 
         for (uint8_t i = 0; i < std::size(color_buffers); ++i) {
           attachments[i] = GL_COLOR_ATTACHMENT0 + i;
@@ -1149,10 +1148,10 @@ void shapes_draw() {
   #if defined(LOCO_FRAMEBUFFER)
 
     if ((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) {
-      loco.gl.m_framebuffer.unbind(loco.context.gl);
+      loco.gl->m_framebuffer.unbind(loco.context.gl);
 
       if (loco.window.renderer == fan::window_t::renderer_t::opengl && loco.open_props.enable_bloom) {
-        loco.gl.blur.draw(&loco.gl.color_buffers[0]);
+        loco.gl->blur.draw(&loco.gl->color_buffers[0]);
       }
 
       //blur[1].draw(&color_buffers[3]);
@@ -1162,27 +1161,27 @@ void shapes_draw() {
       fan::vec2 window_size = loco.window.get_size();
       loco.viewport_set(0, window_size);
 
-      loco.gl.m_framebuffer.bind(loco.context.gl);
-      loco.gl.reflection.draw();
-      loco.gl.m_framebuffer.unbind(loco.context.gl);
+      loco.gl->m_framebuffer.bind(loco.context.gl);
+      loco.gl->reflection.draw();
+      loco.gl->m_framebuffer.unbind(loco.context.gl);
 
-      loco.shader_set_value(loco.gl.m_fbo_final_shader, "_t00", 0);
-      loco.shader_set_value(loco.gl.m_fbo_final_shader, "_t01", 1);
-      loco.shader_set_value(loco.gl.m_fbo_final_shader, "framebuffer_alpha", loco.renderer_state.clear_color.a);
-      loco.shader_set_value(loco.gl.m_fbo_final_shader, "enable_bloom", loco.open_props.enable_bloom);
+      loco.shader_set_value(loco.gl->m_fbo_final_shader, "_t00", 0);
+      loco.shader_set_value(loco.gl->m_fbo_final_shader, "_t01", 1);
+      loco.shader_set_value(loco.gl->m_fbo_final_shader, "framebuffer_alpha", loco.renderer_state.clear_color.a);
+      loco.shader_set_value(loco.gl->m_fbo_final_shader, "enable_bloom", loco.open_props.enable_bloom);
 
-      loco.shader_set_value(loco.gl.m_fbo_final_shader, "window_size", window_size);
+      loco.shader_set_value(loco.gl->m_fbo_final_shader, "window_size", window_size);
 
 
       if (loco.window.renderer == fan::window_t::renderer_t::opengl) {
         fan_opengl_call(glActiveTexture(GL_TEXTURE0));
-        loco.image_bind(loco.gl.color_buffers[0]);
+        loco.image_bind(loco.gl->color_buffers[0]);
       }
 
       if (loco.window.renderer == fan::window_t::renderer_t::opengl) {
         if (loco.open_props.enable_bloom) {
           fan_opengl_call(glActiveTexture(GL_TEXTURE1));
-          loco.image_bind(loco.gl.blur.mips.front().image);
+          loco.image_bind(loco.gl->blur.mips.front().image);
         }
 
         render_final_fb();
@@ -1205,16 +1204,16 @@ void begin_process_frame() {
     (loco.context.gl.opengl.major == 3 &&
       loco.context.gl.opengl.minor >= 3)) {
 
-    loco.gl.m_framebuffer.bind(loco.context.gl);
+    loco.gl->m_framebuffer.bind(loco.context.gl);
 
     fan_opengl_call(glClearColor(loco.renderer_state.clear_color.r, loco.renderer_state.clear_color.g, loco.renderer_state.clear_color.b, loco.renderer_state.clear_color.a));
 
-    for (std::size_t i = 0; i < std::size(loco.gl.color_buffers); ++i) {
+    for (std::size_t i = 0; i < std::size(loco.gl->color_buffers); ++i) {
       fan_opengl_call(glActiveTexture(GL_TEXTURE0 + i));
-      loco.image_bind(loco.gl.color_buffers[i]);
+      loco.image_bind(loco.gl->color_buffers[i]);
 
       uint32_t attachment =
-        (uint32_t)std::size(loco.gl.color_buffers) - 1 - i;
+        (uint32_t)std::size(loco.gl->color_buffers) - 1 - i;
 
       fan_opengl_call(glDrawBuffer(GL_COLOR_ATTACHMENT0 + attachment));
 
@@ -1251,7 +1250,7 @@ void initialize_fb_vaos() {
 }
 
 void render_final_fb() {
-  fan_opengl_call(glBindVertexArray(loco.gl.fb_vao));
+  fan_opengl_call(glBindVertexArray(loco.gl->fb_vao));
   fan_opengl_call(glDrawArrays(GL_TRIANGLE_STRIP, 0, 4));
   fan_opengl_call(glBindVertexArray(0));
 }
@@ -1261,21 +1260,21 @@ void init() {
   init_framebuffer();
   reflection.open();
 
-  loco.gl.m_fbo_final_shader = loco.shader_create();
+  loco.gl->m_fbo_final_shader = loco.shader_create();
 
   static constexpr const char* vertex_path = "shaders/opengl/2D/effects/loco_fbo.vs";
   static constexpr const char* fragment_path = "shaders/opengl/2D/effects/loco_fbo.fs";
 
   loco.shader_set_vertex(
-    loco.gl.m_fbo_final_shader,
+    loco.gl->m_fbo_final_shader,
     fan::graphics::read_shader(vertex_path)
   );
   loco.shader_set_fragment(
-    loco.gl.m_fbo_final_shader,
+    loco.gl->m_fbo_final_shader,
     fan::graphics::read_shader(fragment_path)
   );
-  loco.shader_compile(loco.gl.m_fbo_final_shader);
-  loco.shader_set_paths(loco.gl.m_fbo_final_shader, vertex_path, fragment_path);
+  loco.shader_compile(loco.gl->m_fbo_final_shader);
+  loco.shader_set_paths(loco.gl->m_fbo_final_shader, vertex_path, fragment_path);
 #endif
 }
 

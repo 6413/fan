@@ -48,6 +48,7 @@ export import fan.texture_pack.tp0;
   export import fan.network;
 #endif
 
+export import fan.event.types;
 export import fan.event;
 
 #if defined(FAN_AUDIO)

@@ -2614,7 +2614,7 @@ namespace fan::graphics{
       return;
     }
     f32_t dt = fan::graphics::get_window().m_delta_time;
-    apply_delta(*this, direction.normalized() * speed * dt);
+    apply_delta(*this, direction.normalize() * speed * dt);
   }
 
   void shapes::shape_t::move_to_position(const fan::vec2& target, f32_t seconds) {
@@ -3046,7 +3046,7 @@ namespace fan::graphics {
           if constexpr (!std::is_same_v<T, fan::graphics::shapes::sprite_t::properties_t>) {
             return;
           }
-          if (*fan::graphics::g_shapes->texture_pack && properties.texture_pack_unique_id) {
+          if (*fan::graphics::g_shapes->texture_pack && !properties.texture_pack_unique_id.iic()) {
             const auto& t = (*fan::graphics::g_shapes->texture_pack)[properties.texture_pack_unique_id];
             if (t.name.size()) {
               out["texture_pack_name"] = t.name;
@@ -3900,7 +3900,7 @@ namespace fan::graphics {
     auto make_directional_condition = [this](f32_t x_min, f32_t x_max, f32_t y_min, f32_t y_max) {
       return [this, x_min, x_max, y_min, y_max](fan::graphics::shapes::shape_t& s) {
         if (last_direction.length() < idle_threshold) return false;
-        fan::vec2 norm = last_direction.normalized();
+        fan::vec2 norm = last_direction.normalize();
         return norm.x >= x_min && norm.x <= x_max && norm.y >= y_min && norm.y <= y_max;
       };
     };

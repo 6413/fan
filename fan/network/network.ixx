@@ -33,6 +33,7 @@ export module fan.network;
 #if defined(FAN_NETWORK)
 
 import fan.utility;
+import fan.event.types;
 import fan.event;
 import fan.print.error;
 import fan.types.json;
@@ -53,7 +54,7 @@ export namespace fan {
       getaddrinfo_t(const char* node, const char* service, struct addrinfo* hints = nullptr) :
         data(std::make_unique<getaddrinfo_data_t>()) {
         data->getaddrinfo_handle.data = data.get();
-        uv_getaddrinfo(fan::event::get_loop(), &data->getaddrinfo_handle, [](uv_getaddrinfo_t* getaddrinfo_handle, int status, struct addrinfo* res) {
+        uv_getaddrinfo((uv_loop_t*)fan::event::get_loop(), &data->getaddrinfo_handle, [](uv_getaddrinfo_t* getaddrinfo_handle, int status, struct addrinfo* res) {
           auto data = static_cast<getaddrinfo_data_t*>(getaddrinfo_handle->data);
           if (status == UV_ECANCELED) {
             delete data;
@@ -802,7 +803,7 @@ export namespace fan {
         client_handler_t::nr_t nr = get_client_handler().client_list.NewNodeLast();
         get_client_handler().client_list[nr] = this;
         get_client_handler().client_list[nr]->nr = nr;
-        uv_tcp_init(fan::event::get_loop(), socket.get());
+        uv_tcp_init((uv_loop_t*)fan::event::get_loop(), socket.get());
       }
       ~tcp_t() {
         if (nr.iic()) {
@@ -1313,7 +1314,7 @@ export namespace fan {
       };
 
       udp_t() : socket(new uv_udp_t, udp_deleter_t{}) {
-        int result = uv_udp_init(fan::event::get_loop(), socket.get());
+        int result = uv_udp_init((uv_loop_t*)fan::event::get_loop(), socket.get());
         if (result != 0) {
           fan::throw_error("Failed to initialize UDP socket:"_str + uv_strerror(result));
         }
@@ -2383,7 +2384,7 @@ export namespace fan {
             curl_multi_setopt(multi_handle, CURLMOPT_TIMERFUNCTION, &async_context_t::timer_cb);
             curl_multi_setopt(multi_handle, CURLMOPT_TIMERDATA, this);
           }
-          uv_loop_t* loop = fan::event::get_loop();
+          uv_loop_t* loop = (uv_loop_t*)fan::event::get_loop();
           uv_timer_init(loop, &timeout_timer);
           timeout_timer.data = this;
         }
@@ -2506,7 +2507,7 @@ export namespace fan {
           auto* c = new sock_ctx {};
           c->sock = s;
           c->ctx = this;
-          int rc = uv_poll_init_socket(fan::event::get_loop(), &c->poll, s);
+          int rc = uv_poll_init_socket((uv_loop_t*)fan::event::get_loop(), &c->poll, s);
           if (rc != 0) {
             delete c;
             return nullptr;

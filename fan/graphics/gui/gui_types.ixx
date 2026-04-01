@@ -6,7 +6,6 @@ module;
 #if defined(FAN_GUI)
   #include <fan/imgui/imgui.h>
   #include <fan/imgui/imgui_internal.h>
-  #include <fan/imgui/imgui_impl_glfw.h>
   #include <fan/imgui/implot.h>
 #endif
 

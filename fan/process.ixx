@@ -1,6 +1,5 @@
 module;
 
-#include <uv.h>
 #include <string>
 #include <vector>
 #include <functional>

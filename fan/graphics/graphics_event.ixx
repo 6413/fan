@@ -8,6 +8,7 @@ export module fan.graphics.event;
 import fan.event;
 import fan.types.vector;
 import fan.graphics.common_context;
+import fan.event.types;
 
 export namespace fan::graphics::event {
   void image_to_texture_pack_watcher(
@@ -28,7 +29,7 @@ export namespace fan::graphics::event {
         return;
       }
 
-      std::string full_path = fs_watcher.watch_path + file_name;
+      std::string full_path = fs_watcher.get_watch_path() + file_name;
 
       fan::graphics::image_t img = fan::graphics::image_load(full_path);
       auto& img_data = fan::graphics::image_get_data(img);

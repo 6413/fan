@@ -4,89 +4,79 @@ module;
 #include <memory>
 #include <exception>
 
-#include <uv.h>
-#undef min
-#undef max
-
 export module fan.event.types;
 
-export namespace fan{
-  constexpr int fs_o_append      = UV_FS_O_APPEND;
-  constexpr int fs_o_creat       = UV_FS_O_CREAT;
-  constexpr int fs_o_excl        = UV_FS_O_EXCL;
-  constexpr int fs_o_filemap     = UV_FS_O_FILEMAP;
-  constexpr int fs_o_random      = UV_FS_O_RANDOM;
-  constexpr int fs_o_rdonly     = UV_FS_O_RDONLY;
-  constexpr int fs_o_rdwr        = UV_FS_O_RDWR;
-  constexpr int fs_o_sequential  = UV_FS_O_SEQUENTIAL;
-  constexpr int fs_o_short_lived = UV_FS_O_SHORT_LIVED;
-  constexpr int fs_o_temporary   = UV_FS_O_TEMPORARY;
-  constexpr int fs_o_trunc       = UV_FS_O_TRUNC;
-  constexpr int fs_o_wronly      = UV_FS_O_WRONLY;
+export namespace fan {
+  extern const int fs_o_append;
+  extern const int fs_o_creat;
+  extern const int fs_o_excl;
+  extern const int fs_o_filemap;
+  extern const int fs_o_random;
+  extern const int fs_o_rdonly;
+  extern const int fs_o_rdwr;
+  extern const int fs_o_sequential;
+  extern const int fs_o_short_lived;
+  extern const int fs_o_temporary;
+  extern const int fs_o_trunc;
+  extern const int fs_o_wronly;
   
-  constexpr int fs_o_direct      = UV_FS_O_DIRECT;
-  constexpr int fs_o_directory   = UV_FS_O_DIRECTORY;
-  constexpr int fs_o_dsync       = UV_FS_O_DSYNC; 
-  constexpr int fs_o_exlock      = UV_FS_O_EXLOCK; 
-  constexpr int fs_o_noatime     = UV_FS_O_NOATIME;
-  constexpr int fs_o_noctty      = UV_FS_O_NOCTTY;
-  constexpr int fs_o_nofollow    = UV_FS_O_NOFOLLOW;
-  constexpr int fs_o_nonblock    = UV_FS_O_NONBLOCK;
-  constexpr int fs_o_symlink     = UV_FS_O_SYMLINK;
-  constexpr int fs_o_sync        = UV_FS_O_SYNC;
+  extern const int fs_o_direct;
+  extern const int fs_o_directory;
+  extern const int fs_o_dsync; 
+  extern const int fs_o_exlock; 
+  extern const int fs_o_noatime;
+  extern const int fs_o_noctty;
+  extern const int fs_o_nofollow;
+  extern const int fs_o_nonblock;
+  extern const int fs_o_symlink;
+  extern const int fs_o_sync;
   
-  constexpr int fs_in        = UV_FS_O_RDONLY;
-  constexpr int fs_out       = UV_FS_O_WRONLY | UV_FS_O_CREAT | UV_FS_O_TRUNC;
-  constexpr int fs_app       = UV_FS_O_WRONLY | UV_FS_O_APPEND;
-  constexpr int fs_trunc     = UV_FS_O_TRUNC;
-  constexpr int fs_ate       = UV_FS_O_RDWR;
-  constexpr int fs_nocreate  = UV_FS_O_EXCL;
-  constexpr int fs_noreplace = UV_FS_O_EXCL;
-
+  extern const int fs_in;
+  extern const int fs_out;
+  extern const int fs_app;
+  extern const int fs_trunc;
+  extern const int fs_ate;
+  extern const int fs_nocreate;
+  extern const int fs_noreplace;
 
   // User (owner) permissions
-  constexpr int s_irusr = 0400;  // Read permission bit for the owner of the file
-  constexpr int s_iread = 0400;  // Obsolete synonym for BSD compatibility
-
-  constexpr int s_iwusr = 0200;  // Write permission bit for the owner of the file
-  constexpr int s_iwrite = 0200;  // Obsolete synonym for BSD compatibility
-
-  constexpr int s_ixusr = 0100;  // Execute (for ordinary files) or search (for directories) permission bit for the owner
-  constexpr int s_iexec = 0100;  // Obsolete synonym for BSD compatibility
-
-  constexpr int s_irwxu = (s_irusr | s_iwusr | s_ixusr);  // Equivalent to (S_IRUSR | S_IWUSR | S_IXUSR)
+  constexpr int s_irusr = 0400;  
+  constexpr int s_iread = 0400;  
+  constexpr int s_iwusr = 0200;  
+  constexpr int s_iwrite = 0200;  
+  constexpr int s_ixusr = 0100;  
+  constexpr int s_iexec = 0100;  
+  constexpr int s_irwxu = (s_irusr | s_iwusr | s_ixusr);  
 
   // Group permissions
-  constexpr int s_irgrp = 040;   // Read permission bit for the group owner of the file
-  constexpr int s_iwgrp = 020;   // Write permission bit for the group owner of the file
-  constexpr int s_ixgrp = 010;   // Execute or search permission bit for the group owner of the file
-
-  constexpr int s_irwxg = (s_irgrp | s_iwgrp | s_ixgrp);  // Equivalent to (S_IRGRP | S_IWGRP | S_IXGRP)
+  constexpr int s_irgrp = 040;   
+  constexpr int s_iwgrp = 020;   
+  constexpr int s_ixgrp = 010;   
+  constexpr int s_irwxg = (s_irgrp | s_iwgrp | s_ixgrp);  
 
   // Other users' permissions
-  constexpr int s_iroth = 04;    // Read permission bit for other users
-  constexpr int s_iwoth = 02;    // Write permission bit for other users
-  constexpr int s_ixoth = 01;    // Execute or search permission bit for other users
-
-  constexpr int s_irwxo = (s_iroth | s_iwoth | s_ixoth);  // Equivalent to (S_IROTH | S_IWOTH | S_IXOTH)
+  constexpr int s_iroth = 04;    
+  constexpr int s_iwoth = 02;    
+  constexpr int s_ixoth = 01;    
+  constexpr int s_irwxo = (s_iroth | s_iwoth | s_ixoth);  
 
   // Special permission bits
-  constexpr int s_isuid = 04000; // Set-user-ID on execute bit
-  constexpr int s_isgid = 02000; // Set-group-ID on execute bit
-  constexpr int s_isvtx = 01000; // Sticky bit
+  constexpr int s_isuid = 04000; 
+  constexpr int s_isgid = 02000; 
+  constexpr int s_isvtx = 01000; 
 
-  constexpr int s_usr_rw = (s_irusr | s_iwusr);   // User read/write
-  constexpr int s_grp_r = s_irgrp;                 // Group read
-  constexpr int s_oth_r = s_iroth;                 // Other read
+  constexpr int s_usr_rw = (s_irusr | s_iwusr);   
+  constexpr int s_grp_r = s_irgrp;                 
+  constexpr int s_oth_r = s_iroth;                 
 
   constexpr int perm_0644 = s_usr_rw | s_grp_r | s_oth_r;
 
-  constexpr int fs_change = UV_CHANGE;
-  constexpr int fs_rename = UV_RENAME;
-  constexpr int eof = UV_EOF;
+  extern const int fs_change;
+  extern const int fs_rename;
+  extern const int eof;
 }
 
-template <typename promise_type>
+export template <typename promise_type>
 struct coroutine_handle_owner {
   std::coroutine_handle<promise_type> h;
 
@@ -96,12 +86,12 @@ struct coroutine_handle_owner {
   ~coroutine_handle_owner() {
     if (h) {
       h.destroy();
-      h = 0;
+      h = nullptr;
     }
   }
 };
 
-template<typename promise_type_t>
+export template<typename promise_type_t>
 struct final_awaiter {
   bool await_ready() noexcept {
     return false;
@@ -115,10 +105,10 @@ struct final_awaiter {
   void await_resume() noexcept {}
 };
 
-template<typename T, typename suspend_type_t>
+export template<typename T, typename suspend_type_t>
 struct task_value_wrap_t;
 
-template <typename promise_type>
+export template <typename promise_type>
 struct cancel_tag_t {
   bool await_ready() const noexcept {
     return !p->cancelled;
@@ -133,12 +123,17 @@ struct cancel_tag_t {
   promise_type* p;
 };
 
-struct cancel_task_impl {};
+export struct cancel_task_impl {};
+export struct task_cancelled_exception {};
 
-struct task_cancelled_exception {};
-
-template<typename awaitable_t, typename promise_type>
+export template<typename awaitable_t, typename promise_type>
 struct cancellable_awaitable_t {
+  awaitable_t awaitable;
+  promise_type* promise;
+
+  cancellable_awaitable_t(awaitable_t&& a, promise_type* p)
+    : awaitable(std::forward<awaitable_t>(a)), promise(p) {}
+
   auto await_ready() {
     if (promise->cancelled) {
       throw task_cancelled_exception{};
@@ -158,12 +153,9 @@ struct cancellable_awaitable_t {
     }
     return awaitable.await_resume();
   }
-
-  awaitable_t awaitable;
-  promise_type* promise;
 };
 
-template<typename T, typename suspend_type_t>
+export template<typename T, typename suspend_type_t>
 struct task_value_promise_t {
   task_value_wrap_t<T, suspend_type_t> get_return_object();
   suspend_type_t initial_suspend() noexcept { return {}; }
@@ -188,9 +180,11 @@ struct task_value_promise_t {
   }
   template<typename awaitable>
   auto await_transform(awaitable&& a) noexcept {
-    return cancellable_awaitable_t<awaitable, task_value_promise_t<T, suspend_type_t>>{
-      std::forward<awaitable>(a), this
-    };
+    using current_promise_t = task_value_promise_t<T, suspend_type_t>;
+    return cancellable_awaitable_t<awaitable, current_promise_t>(
+      std::forward<awaitable>(a), 
+      this
+    );
   }
 
   T value;
@@ -200,7 +194,7 @@ struct task_value_promise_t {
   bool cancelled = false;
 };
 
-template<typename suspend_type_t>
+export template<typename suspend_type_t>
 struct task_value_promise_t<void, suspend_type_t> {
   task_value_wrap_t<void, suspend_type_t> get_return_object();
   suspend_type_t initial_suspend() noexcept { return {}; }
@@ -224,9 +218,11 @@ struct task_value_promise_t<void, suspend_type_t> {
   }
   template<typename awaitable>
   auto await_transform(awaitable&& a) noexcept {
-    return cancellable_awaitable_t<awaitable, task_value_promise_t<void, suspend_type_t>>{
-      std::forward<awaitable>(a), this
-    };
+    using current_promise_t = task_value_promise_t<void, suspend_type_t>;
+    return cancellable_awaitable_t<awaitable, current_promise_t>(
+      std::forward<awaitable>(a), 
+      this
+    );
   }
 
   std::exception_ptr exception = nullptr;
@@ -235,7 +231,7 @@ struct task_value_promise_t<void, suspend_type_t> {
   bool cancelled = false;
 };
 
-template<typename T, typename suspend_type_t>
+export template<typename T, typename suspend_type_t>
 struct task_value_wrap_t {
   using promise_type = task_value_promise_t<T, suspend_type_t>;
   using owner_t = coroutine_handle_owner<promise_type>;
@@ -261,7 +257,7 @@ struct task_value_wrap_t {
   std::shared_ptr<owner_t> owner;
 };
 
-template<typename suspend_type_t>
+export template<typename suspend_type_t>
 struct task_value_wrap_t<void, suspend_type_t> {
   using promise_type = task_value_promise_t<void, suspend_type_t>;
   using owner_t = coroutine_handle_owner<promise_type>;
@@ -364,8 +360,8 @@ task_value_promise_t<void, suspend_t>::get_return_object() {
 }
 
 export namespace fan::event {
-  using loop_t = uv_loop_t*;
-  using idle_id_t = uv_idle_t*;
+  using loop_t = void*;
+  using idle_id_t = void*;
 
   using task_suspend_t = task_value_wrap_t<void, std::suspend_always>;
   using task_resume_t = task_value_wrap_t<void, std::suspend_never>;

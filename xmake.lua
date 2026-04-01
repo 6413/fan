@@ -117,7 +117,6 @@ if not is_gcc then
 end
 
 set_policy("build.c++.modules.std", false)
-set_policy("build.c++.modules.compat", false)
 set_policy("build.c++.modules.reuse", true)
 
 
@@ -138,7 +137,6 @@ local common_flags = {
   "-Wno-unused-value",
   "-Wno-padded",
   "-fsized-deallocation",
-	"-ftime-trace",
 }
 
 local clang_only_flags = {
@@ -183,6 +181,7 @@ local module_files = {
 	"fan/memory/memory.ixx",
   "fan/math/math.ixx",
   "fan/time.ixx",
+	"fan/mpl.ixx",
   "fan/utility.ixx",
 	"fan/formatter.ixx",
 	"fan/print_error.ixx",

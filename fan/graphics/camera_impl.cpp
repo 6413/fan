@@ -54,9 +54,9 @@ void fan::camera::set_pitch(f32_t angle) {
   }
 }
 void fan::camera::update_view() {
-  this->m_front = (fan::math::direction_vector<fan::vec3>(this->m_yaw, this->m_pitch)).normalized();
-  this->m_right = (fan::math::cross(this->world_up, this->m_front)).normalized();
-  this->m_up = (fan::math::cross(this->m_front, this->m_right)).normalized();
+  this->m_front = (fan::math::direction_vector<fan::vec3>(this->m_yaw, this->m_pitch)).normalize();
+  this->m_right = (fan::math::cross(this->world_up, this->m_front)).normalize();
+  this->m_up = (fan::math::cross(this->m_front, this->m_right)).normalize();
 }
 void fan::camera::rotate_camera(fan::vec2 offset) {
   offset *= sensitivity;

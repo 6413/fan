@@ -8,7 +8,7 @@ module fan.graphics.shapes.types;
 //import fan.utility;
 import fan.print.error;
 import fan.memory;
-import fan.graphics.shapes;
+import fan.graphics.shapes; // TODO remove: only for fan::graphics::image_to_json
 
 namespace fan::graphics {
 #if defined(FAN_2D)

@@ -444,6 +444,12 @@ struct shape_tester_t {
     });
   }
 
+  auto& fb() {
+    return *reinterpret_cast<
+      fan::opengl::core::framebuffer_t*
+    >(engine.get_framebuffer());
+  }
+
   void assert_shape_pixels(const fan::graphics::shapes::shape_t& shape, const fan::color& expected_color) {
     fan::vec2 ws = engine.window.get_size();
     float tol = 0.09f;
@@ -451,13 +457,13 @@ struct shape_tester_t {
     engine.process_frame();
     engine.process_frame([&] {
       try {
-        engine.gl.m_framebuffer.bind(engine.context.gl);
+        fb().bind(engine.context.gl);
         glReadBuffer(GL_COLOR_ATTACHMENT0);
 
         std::vector<uint8_t> px(ws.x * ws.y * 4);
         glReadPixels(0, 0, ws.x, ws.y, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
 
-        engine.gl.m_framebuffer.unbind(engine.context.gl);
+        fb().unbind(engine.context.gl);
 
         fan::color bg = engine.get_clear_color();
         int min_x = ws.x, max_x = 0, min_y = ws.y, max_y = 0;
@@ -578,13 +584,13 @@ struct shape_tester_t {
       engine.process_frame();
       engine.process_frame([&] {
         try {
-          engine.gl.m_framebuffer.bind(engine.context.gl);
+          fb().bind(engine.context.gl);
           glReadBuffer(GL_COLOR_ATTACHMENT0);
 
           std::vector<uint8_t> px(ws.x * ws.y * 4);
           glReadPixels(0, 0, ws.x, ws.y, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
 
-          engine.gl.m_framebuffer.unbind(engine.context.gl);
+          fb().unbind(engine.context.gl);
 
           fan::vec2 overlap_point(center_pos.x, center_pos.y);
           int flipped_y = ws.y - 1 - (int)overlap_point.y;
@@ -606,13 +612,13 @@ struct shape_tester_t {
       engine.process_frame();
       engine.process_frame([&] {
         try {
-          engine.gl.m_framebuffer.bind(engine.context.gl);
+          fb().bind(engine.context.gl);
           glReadBuffer(GL_COLOR_ATTACHMENT0);
 
           std::vector<uint8_t> px(ws.x * ws.y * 4);
           glReadPixels(0, 0, ws.x, ws.y, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
 
-          engine.gl.m_framebuffer.unbind(engine.context.gl);
+          fb().unbind(engine.context.gl);
 
           fan::vec2 overlap_point(center_pos.x, center_pos.y);
           int flipped_y = ws.y - 1 - (int)overlap_point.y;

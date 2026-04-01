@@ -1,9 +1,6 @@
 module;
 
 #include <fan/utility.h>
-
-#include <type_traits>
-#include <coroutine>
 #include <iterator>
 #include <functional> // raii_nr.h raii_nr_t
 
@@ -13,109 +10,56 @@ namespace raii_build {
 
 export module fan.utility;
 
+export import fan.mpl;
 import fan.memory;
 import fan.time;
 
 export namespace fan {
-  template <typename T, typename = void>
-  struct is_awaitable : std::false_type {};
-
-  template <typename T>
-  struct is_awaitable<T, std::void_t<
-    decltype(std::declval<T>().await_ready()),
-    decltype(std::declval<T>().await_suspend(std::declval<std::coroutine_handle<>>())),
-    decltype(std::declval<T>().await_resume())
-    >> : std::true_type {};
-
-  template <typename T>
-  constexpr bool is_awaitable_v = is_awaitable<T>::value;
-}
-
-// think better place for these
-namespace fan {
-
-  template<bool B, typename T, typename F>
-  struct conditional {
-    using type = T;
-  };
-
-  template<typename T, typename F>
-  struct conditional<false, T, F> {
-    using type = F;
-  };
-
-  template<bool B, typename T, typename F>
-  using conditional_t = typename conditional<B, T, F>::type;
-
-  template<typename T>
-  struct is_const {
-    static constexpr bool value = false;
-  };
-
-  template<typename T>
-  struct is_const<const T> {
-    static constexpr bool value = true;
-  };
-
-  template<typename T>
-  constexpr bool is_const_v = is_const<T>::value;
-
-  template<typename T1, typename T2>
-  struct pair {
-    T1 first;
-    T2 second;
-  };
-
-  template <typename T>
-  T&& declval() noexcept;
 
   template<typename It>
   struct iterator_traits {
     using reference = decltype(*(declval<It>()));
   };
 
+  template<typename container_t>
+  struct bll_iterator_t {
+    using node_t      = decltype(std::declval<container_t>().GetNodeFirst());
+    using value_type  = decltype(std::declval<container_t>()[std::declval<node_t>()]);
+    using reference   = value_type&;
+    using index_type  = node_t;
 
-  export {
-    template<typename container_t>
-    struct bll_iterator_t {
-      using node_t      = decltype(std::declval<container_t>().GetNodeFirst());
-      using value_type  = decltype(std::declval<container_t>()[std::declval<node_t>()]);
-      using reference   = value_type&;
-      using index_type  = node_t;
+    bll_iterator_t(container_t* c, node_t n) 
+      : container(c), current(n) {}
 
-      bll_iterator_t(container_t* c, node_t n) 
-        : container(c), current(n) {}
-
-      auto& operator*() const {
-        if constexpr (requires(container_t* c, node_t n) { c->StartSafeNext(n); }) {
-          container->StartSafeNext(current);
-          safe_next_active = true;
-        }
-        return (*container)[current];
+    auto& operator*() const {
+      if constexpr (requires(container_t* c, node_t n) { c->StartSafeNext(n); }) {
+        container->StartSafeNext(current);
+        safe_next_active = true;
       }
-      auto get_index() const {
-        return current;
+      return (*container)[current];
+    }
+    auto get_index() const {
+      return current;
+    }
+    bll_iterator_t& operator++() {
+      if constexpr (requires(container_t* c, node_t n) { c->StartSafeNext(n); }) {
+        current = container->EndSafeNext();
+        safe_next_active = false;
       }
-      bll_iterator_t& operator++() {
-        if constexpr (requires(container_t* c, node_t n) { c->StartSafeNext(n); }) {
-          current = container->EndSafeNext();
-          safe_next_active = false;
-        }
-        else if constexpr (requires(node_t n, container_t* c) { n.Next(c); }) {
-          current = current.Next(container);
-        }
-        return *this;
+      else if constexpr (requires(node_t n, container_t* c) { n.Next(c); }) {
+        current = current.Next(container);
       }
+      return *this;
+    }
 
-      bool operator!=(const bll_iterator_t& other) const {
-        return current != other.current;
-      }
+    bool operator!=(const bll_iterator_t& other) const {
+      return current != other.current;
+    }
 
-      container_t* container;
-      node_t       current;
-      mutable bool safe_next_active = false;
-    };
-  }
+    container_t* container;
+    node_t       current;
+    mutable bool safe_next_active = false;
+  };
 
   namespace fan_detail {
     template<typename T>
@@ -178,9 +122,7 @@ namespace fan {
         return const_cast<base_t&>(container).size();
       }
     }
-
-  } // namespace fan_detail
-
+  }
 
   template <typename T>
   struct enumerate_iterator_t {
@@ -289,139 +231,22 @@ namespace fan {
     return view(container);
   }
 
-  export {
-    constexpr enumerate_fn enumerate{};
+  constexpr enumerate_fn enumerate{};
 
-    template<typename T>
-    using return_type_of_t = decltype((*(T*)nullptr)());
-
-    template <typename Callable>
-    struct return_type_of_membr;
-
-    template <typename R, typename C, typename... Args>
-    struct return_type_of_membr<R(C::*)(Args...)> {
-      using type = R;
-    };
-
-    template <typename R, typename C, typename... Args>
-    struct return_type_of_membr<R(C::*)(Args...) const> {
-      using type = R;
-    };
-
-    template <typename Callable>
-    using return_type_of_membr_t = typename return_type_of_membr<Callable>::type;
-
-    /*template<typename Callable>
-    using return_type_of_t = typename decltype(std::function{ std::declval<Callable>() })::result_type;*/
-
-    constexpr std::uint64_t get_hash(const char* str) {
-      std::uint64_t result = 0xcbf29ce484222325; // FNV offset basis
-
-      std::uint32_t i = 0;
-
-      if (str == nullptr) {
-        return 0;
-      }
-
-      while (str[i] != 0) {
-        result ^= (std::uint64_t)str[i];
-        result *= 1099511628211; // FNV prime
-        i++;
-      }
-
-      return result;
+  constexpr std::uint64_t get_hash(const char* str) {
+    std::uint64_t result = 0xcbf29ce484222325; // FNV offset basis
+    std::uint32_t i = 0;
+    if (str == nullptr) {
+      return 0;
     }
-
-    template <bool _Test, uintptr_t _Ty1, uintptr_t _Ty2>
-    struct conditional_value {
-      static constexpr auto value = _Ty1;
-    };
-
-    template <uintptr_t _Ty1, uintptr_t _Ty2>
-    struct conditional_value<false, _Ty1, _Ty2> {
-      static constexpr auto value = _Ty2;
-    };
-
-    template <bool _Test, uintptr_t _Ty1, uintptr_t _Ty2>
-    struct conditional_value_t {
-      static constexpr auto value = conditional_value<_Test, _Ty1, _Ty2>::value;
-    };
-
-    constexpr auto uninitialized = -1;
-
-    template<class T, typename U>
-    std::int64_t member_offset(U T::* member) {
-      return reinterpret_cast<std::int64_t>(
-        &(reinterpret_cast<T const volatile*>(0)->*member)
-      );
+    while (str[i] != 0) {
+      result ^= (std::uint64_t)str[i];
+      result *= 1099511628211; // FNV prime
+      i++;
     }
+    return result;
+  }
 
-    template<typename T>
-    using component_type_t = std::conditional_t<
-      requires { typename T::value_type; },
-    typename T::value_type,
-      T
-    >;
-    template <typename T>
-    constexpr bool is_negative(const T& value) {
-      if constexpr (std::is_arithmetic_v<T>) {
-        return value < T {0};
-      }
-      return false;
-    }
-  
-    template<typename T>
-    constexpr int get_component_count() {
-      if constexpr (requires { T::size(); }) {
-        return T::size();
-      }
-      else {
-        return 1;
-      }
-    }
-  } // export block
-} // namespace fan
-
-export namespace fan{
-  template<typename T>
-  struct fn_traits : fn_traits<decltype(&T::operator())> {};
-  template<typename C, typename R, typename... Args>
-  struct fn_traits<R (C::*)(Args...) const> {
-    template<template<typename...> typename Z, typename... X>
-    static auto apply(X&&... x) {
-      return Z<X..., Args...>::call(std::forward<X>(x)...);
-    }
-  };
-  template<typename C, typename R, typename... Args>
-  struct fn_traits<R (C::*)(Args...)> : fn_traits<R (C::*)(Args...) const> {};
-  template<typename R, typename... Args>
-  struct fn_traits<R(Args...)> {
-    template<template<typename...> typename Z, typename... X>
-    static auto apply(X&&... x) {
-      return Z<X..., Args...>::call(std::forward<X>(x)...);
-    }
-  };
-  template<typename R, typename... Args>
-  struct fn_traits<R (*)(Args...)> : fn_traits<R(Args...)> {};
-  template<typename... Ts>
-  struct type_pack {};
-  template<typename T>
-  struct lambda_traits : lambda_traits<decltype(&T::operator())> {};
-  template<typename C, typename R, typename... Args>
-  struct lambda_traits<R (C::*)(Args...) const> {
-    using args = type_pack<Args...>;
-  };
-  template<typename C, typename R, typename... Args>
-  struct lambda_traits<R (C::*)(Args...)> : lambda_traits<R (C::*)(Args...) const> {};
-  template<typename R, typename... Args>
-  struct lambda_traits<R(Args...)> {
-    using args = type_pack<Args...>;
-  };
-  template<typename R, typename... Args>
-  struct lambda_traits<R (*)(Args...)> : lambda_traits<R(Args...)> {};
-}
-
-export namespace fan{
   template <
     typename nr_t,
     typename user_t,
@@ -437,7 +262,8 @@ export namespace fan{
     using fn_t = typename handle_t::fn_t;
     using add_fn_t = typename handle_t::add_fn;
     using remove_fn_t = typename handle_t::remove_fn;
-    struct callbacks_t{
+    
+    struct callbacks_t {
       static node_ref_t add_impl(storage_t* s, fn_t cb){
         auto nr = s->NewNodeLast();
         (*s)[nr] = [cb](param_t... d){
@@ -453,6 +279,7 @@ export namespace fan{
       storage_t* s;
       fn_t cb;
     };
+
     return handle_t(
       &bll,
       add_fn_t(callbacks_t::add_impl),
@@ -462,6 +289,7 @@ export namespace fan{
       }
     );
   }
+
   template<typename bll_t, typename user_fn_t>
   auto add_bll_raii_cb(bll_t& bll, user_fn_t&& user_fn){
     using traits = fan::lambda_traits<std::remove_reference_t<user_fn_t>>;
@@ -473,6 +301,7 @@ export namespace fan{
   auto add_bll_raii_struct_impl(owner_t* owner, storage_t owner_t::*storage_member, user_fn_t&& user_fn, fan::type_pack<param_t...>){
     using handle_t = raii_nr_t<node_ref_t, owner_t, param_t...>;
     using fn_t = typename handle_t::fn_t;
+    
     auto add = [storage_member](owner_t* o, fn_t cb){
       auto& s = o->*storage_member;
       auto nr = s.NewNodeLast();
@@ -481,12 +310,14 @@ export namespace fan{
       };
       return nr;
     };
+
     auto remove = [storage_member](owner_t* o, const node_ref_t& nr){
       auto& s = o->*storage_member;
       if (s.NodeList.Current) {
         s.unlrec(nr);
       }
     };
+
     return handle_t(
       owner,
       std::move(add),
@@ -496,6 +327,7 @@ export namespace fan{
       }
     );
   }
+
   template<typename owner_t, typename storage_t, typename user_fn_t>
   auto add_bll_raii_struct_cb(owner_t* owner, storage_t owner_t::*storage_member, user_fn_t&& user_fn){
     using traits = fan::lambda_traits<std::remove_reference_t<user_fn_t>>;
@@ -507,34 +339,4 @@ export namespace fan{
       args_pack{}
     );
   }
-  template <typename T, typename M> 
-  M get_member_type(M T::*);
-
-  template <typename T, typename M> 
-  T get_class_type(M T::*);
-
-  template <typename T, typename R, R T::*M> 
-  std::size_t offset_of() { 
-    return reinterpret_cast<std::size_t>(&(((T*)0)->*M)); 
-  }
 }
-
-//export {
-//  template<typename T>
-//  concept has_bll_methods = requires(T& t) {
-//    { t.GetNodeFirst() };
-//    { t.dst };
-//  };
-//
-//  template<typename T>
-//    requires has_bll_methods<T>
-//  auto begin(T& container) {
-//    return fan::bll_iterator_t<T>{&container, container.GetNodeFirst()};
-//  }
-//
-//  template<typename T>
-//    requires has_bll_methods<T>
-//  auto end(T& container) {
-//    return fan::bll_iterator_t<T>{&container, container.dst};
-//  }
-//}

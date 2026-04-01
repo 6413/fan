@@ -19,6 +19,7 @@ module fan.graphics.gui.keybinds_menu;
 
 import fan.types.compile_time_string;
 import fan.graphics.common_context;
+import fan.graphics.gui.base;
 
 namespace fan::graphics::gui {
   void keybind_menu_t::categorize_combo_into_bindings(device_bindings_t& bindings, const combo_t& combo) {

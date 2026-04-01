@@ -4,7 +4,6 @@ module;
 #include <cmath>
 #include <algorithm>
 #include <utility>
-#include <vector>
 
 module fan.types.color;
 
@@ -164,11 +163,6 @@ namespace fan {
     return out;
   }
 
-  std::ostream& operator<<(std::ostream& os, const color& c) noexcept {
-    os << c.to_string();
-    return os;
-  }
-
   namespace random {
     fan::color color() {
       return fan::color(
@@ -195,8 +189,8 @@ namespace fan {
 
   } // namespace random
 
-  void lerp_pixels(std::vector<uint8_t>& dst, const std::vector<uint8_t>& target, f32_t t, uint8_t channels) {
-    for (uint32_t i = 0; i < dst.size(); i++) {
+  void lerp_pixels(uint8_t* dst, const uint8_t* target, std::size_t size, f32_t t, uint8_t channels) {
+    for (std::size_t i = 0; i < size; i++) {
       int diff = (int)target[i] - (int)dst[i];
       if (diff != 0) {
         int delta = (int)std::round(diff * t);

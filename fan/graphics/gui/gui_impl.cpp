@@ -1,18 +1,18 @@
 module;
 
 #if defined(FAN_GUI)
-  #include <fan/utility.h>
-  #include <fan/event/types.h>
+#include <fan/utility.h>
+#include <fan/event/types.h>
 
-  #include <string>
-  #include <functional>
-  #include <filesystem>
-  #include <coroutine>
-  #include <algorithm>
-  #include <cmath>
-  #include <cstring>
-  #include <array>
-  #include <fstream>
+#include <string>
+#include <functional>
+#include <filesystem>
+#include <coroutine>
+#include <algorithm>
+#include <cmath>
+#include <cstring>
+#include <array>
+#include <fstream>
 #endif
 
 module fan.graphics.gui;
@@ -22,9 +22,10 @@ module fan.graphics.gui;
 import fan.utility;
 
 #if defined(FAN_JSON)
-  import fan.types.json;
+import fan.types.json;
 #endif
 
+import fan.types.fstring;
 
 import fan.types.vector;
 
@@ -35,9 +36,15 @@ import fan.graphics.gui.base;
 import fan.graphics.gui.text_logger;
 import fan.graphics; // fan::graphics::shader_get_data
 
+import fan.file_dialog;
+
+import fan.math;
+
 #if defined(FAN_AUDIO)
   import fan.audio;
 #endif
+
+import fan.io.file;
 
 namespace fan::graphics::gui {
   const char* item_getter1(const std::vector<std::string>& items, int index) {
@@ -111,6 +118,39 @@ namespace fan::graphics::gui {
       fan::vec2(cam.original_coordinates.x * sx, cam.original_coordinates.y * sx),
       fan::vec2(cam.original_coordinates.z * sy, cam.original_coordinates.w * sy)
     );
+  }
+
+  bool toggle_image_button(fan::graphics::image_t* images, uint32_t count, const fan::vec2& size, int* selectedIndex) {
+    f32_t y_pos = get_cursor_pos_y() + get_style().WindowPadding.y - get_style().FramePadding.y / 2;
+
+    bool clicked = false;
+    bool pushed = false;
+
+    for (std::size_t i = 0; i < count; ++i) {
+      fan::color tintColor = fan::color(0.2, 0.2, 0.2, 1.0);
+      if (*selectedIndex == i) {
+        tintColor = fan::color(0.2, 0.2, 0.2, 1.0f);
+        push_style_color(col_button, tintColor);
+        pushed = true;
+      }
+      /*if (ImGui::IsItemHovered()) {
+      tintColor = fan::color(1, 1, 1, 1.0f);
+      }*/
+      set_cursor_pos_y(y_pos);
+
+      std::string button_id = "##toggle_image_button" + std::to_string(i) + std::to_string((uint64_t)&clicked);
+      if (fan::graphics::gui::image_button(std::string_view(button_id), *(images + i), size)) {
+        *selectedIndex = i;
+        clicked = true;
+      }
+      if (pushed) {
+        pop_style_color();
+        pushed = false;
+      }
+      same_line();
+    }
+
+    return clicked;
   }
 
   bool toggle_image_button(fan::str_view_t char_id, fan::graphics::image_t image, const fan::vec2& size, bool* toggle) {
@@ -357,7 +397,7 @@ namespace fan::graphics::gui {
       }
       if (slider("angle", &ri.angle, -fan::math::pi * 2, fan::math::pi * 2)) {
       }
-      g_shapes->visit_shape_draw_data(shape.gint(), [&]<typename T>(T& properties) {
+      g_shapes->visit_shape_draw_data(shape.gint(), [&]<typename T>(T & properties) {
         if constexpr (std::is_same_v<fan::graphics::shapes::particles_t::properties_t, T>) {
           properties.loop = ri.loop;
           properties.shape = ri.shape;
@@ -392,35 +432,62 @@ namespace fan::graphics::gui {
 
 #endif
 
+  // path helpers (file-local)
+  static std::string path_join(std::string_view a, std::string_view b) {
+    if (a.empty()) return std::string(b);
+    if (b.empty()) return std::string(a);
+    std::string r(a);
+    if (r.back() != '/' && r.back() != '\\') r += '/';
+    r += b;
+    return r;
+  }
+
+  static std::string path_filename(std::string_view p) {
+    auto pos = p.find_last_of("/\\");
+    return pos == std::string_view::npos ? std::string(p) : std::string(p.substr(pos + 1));
+  }
+
+  static std::string path_parent(std::string_view p) {
+    // strip trailing slash first
+    auto end = p.size();
+    while (end > 1 && (p[end - 1] == '/' || p[end - 1] == '\\')) --end;
+    auto pos = p.find_last_of("/\\", end - 1);
+    if (pos == std::string_view::npos) return ".";
+    return pos == 0 ? "/" : std::string(p.substr(0, pos));
+  }
+
+  static std::string path_relative(std::string_view path, std::string_view base) {
+    // strip base prefix
+    if (path.substr(0, base.size()) == base) {
+      auto rel = path.substr(base.size());
+      if (!rel.empty() && (rel[0] == '/' || rel[0] == '\\')) rel = rel.substr(1);
+      return std::string(rel);
+    }
+    return std::string(path);
+  }
 
   content_browser_t::content_browser_t() {
     search_buffer.resize(32);
-    current_directory = std::filesystem::path(asset_path);
+    current_directory = asset_path;
     update_directory_cache();
   }
 
-  content_browser_t::content_browser_t(bool no_init) {
+  content_browser_t::content_browser_t(bool no_init) {}
 
-  }
-
-  content_browser_t::content_browser_t(const std::wstring& path) {
+  content_browser_t::content_browser_t(const std::string& path) {
     init(path);
   }
 
-  void content_browser_t::init(const std::wstring& path) {
+  void content_browser_t::init(const std::string& path) {
     search_buffer.resize(32);
-    current_directory = asset_path / std::filesystem::path(path);
+    current_directory = path_join(asset_path, path);
     update_directory_cache();
   }
 
   void content_browser_t::clear_selection() {
     selection_state.selected_indices.clear();
-    for (auto& file : directory_cache) {
-      file.is_selected = false;
-    }
-    for (auto& file : search_state.found_files) {
-      file.is_selected = false;
-    }
+    for (auto& file : directory_cache) file.is_selected = false;
+    for (auto& file : search_state.found_files) file.is_selected = false;
   }
 
   bool content_browser_t::is_point_in_rect(const fan::vec2& point, const fan::vec2& rect_min, const fan::vec2& rect_max) {
@@ -433,39 +500,20 @@ namespace fan::graphics::gui {
     selection_state.ctrl_held = io.KeyCtrl;
 
     if (fan::window::is_mouse_clicked()) {
-      bool can_start_selection = !is_any_item_active() &&
-        is_window_hovered() &&
-        !is_any_item_hovered();
-
+      bool can_start_selection = !is_any_item_active() && is_window_hovered() && !is_any_item_hovered();
       if (can_start_selection) {
         selection_state.is_selecting = true;
         selection_state.selection_start = get_mouse_pos();
         selection_state.selection_end = selection_state.selection_start;
-
         clear_selection();
       }
     }
 
     if (selection_state.is_selecting && fan::window::is_mouse_down()) {
       selection_state.selection_end = get_mouse_pos();
-
       bool showing_search_results = !search_state.found_files.empty() && !search_buffer.empty();
-
-      fan::vec2 rect_min = fan::vec2(
-        std::min(selection_state.selection_start.x, selection_state.selection_end.x),
-        std::min(selection_state.selection_start.y, selection_state.selection_end.y)
-      );
-      fan::vec2 rect_max = fan::vec2(
-        std::max(selection_state.selection_start.x, selection_state.selection_end.x),
-        std::max(selection_state.selection_start.y, selection_state.selection_end.y)
-      );
-
-      if (showing_search_results) {
-        update_search_sorted_cache();
-      }
-      else {
-        update_sorted_cache();
-      }
+      if (showing_search_results) update_search_sorted_cache();
+      else update_sorted_cache();
     }
 
     if (selection_state.is_selecting && fan::window::is_mouse_released()) {
@@ -482,7 +530,6 @@ namespace fan::graphics::gui {
         std::max(selection_state.selection_start.x, selection_state.selection_end.x),
         std::max(selection_state.selection_start.y, selection_state.selection_end.y)
       );
-
       draw_list->AddRect(rect_min, rect_max, fan::color(100, 150, 255, 200).get_gui_color(), 0.0f, 0, 2.0f);
       draw_list->AddRectFilled(rect_min, rect_max, fan::color(100, 150, 255, 50).get_gui_color());
     }
@@ -494,54 +541,40 @@ namespace fan::graphics::gui {
     search_state.found_files.clear();
     search_state.search_cache_dirty = true;
     search_state.cache_dirty = true;
-    while (!search_state.pending_directories.empty()) {
-      search_state.pending_directories.pop();
-    }
+    while (!search_state.pending_directories.empty()) search_state.pending_directories.pop();
 
     std::fill(search_buffer.begin(), search_buffer.end(), '\0');
-
     clear_selection();
-
     invalidate_cache();
 
     for (auto& img : directory_cache) {
       if (fan::graphics::is_image_valid(img.preview_image)) {
         fan::graphics::image_unload(img.preview_image);
+        img.preview_image.sic();
       }
     }
     directory_cache.clear();
 
     if (!directory_iterator.callback) {
       directory_iterator.sort_alphabetically = true;
-      directory_iterator.callback = [this](const std::filesystem::directory_entry& entry) -> fan::event::task_t {
+      directory_iterator.callback = [this](const std::string& path_str, bool is_dir) -> fan::event::task_t {
         file_info_t file_info;
-        std::filesystem::path relative_path;
-        try {
-          // SLOW
-          relative_path = std::filesystem::relative(entry, asset_path);
-        }
-        catch (const std::exception& e) {
-          fan::throw_error("exception came", e.what());
+        file_info.filename = path_filename(path_str);
+        file_info.item_path = path_relative(path_str, asset_path);
+        file_info.is_directory = is_dir;
+        file_info.is_selected = false;
+
+        if (!is_dir && fan::image::valid(path_str)) {
+          file_info.preview_image = fan::graphics::image_load(path_str);
         }
 
-        file_info.filename = relative_path.filename().generic_string();
-        file_info.item_path = relative_path.wstring();
-        file_info.is_directory = entry.is_directory();
-        file_info.is_selected = false;
-        //fan::print(get_file_extension(path.path().string()));
-        if (!file_info.is_directory && fan::image::valid(entry.path().string())) {
-          file_info.preview_image = fan::graphics::image_load(entry.path().generic_string());
-        }
         directory_cache.push_back(file_info);
         invalidate_cache();
         co_return;
       };
     }
 
-    fan::io::async_directory_iterate(
-      &directory_iterator,
-      current_directory.string()
-    );
+    fan::io::async_directory_iterate(&directory_iterator, current_directory);
   }
 
   void content_browser_t::invalidate_cache() {
@@ -586,78 +619,63 @@ namespace fan::graphics::gui {
 
   void content_browser_t::start_search(const std::string& query, bool recursive) {
     search_iterator.stop();
-
     search_state.query = query;
     search_state.is_recursive = recursive;
+
+    for (auto& img : search_state.found_files) {
+      if (fan::graphics::is_image_valid(img.preview_image)) {
+        fan::graphics::image_unload(img.preview_image);
+        img.preview_image.sic();
+      }
+    }
     search_state.found_files.clear();
     search_state.search_cache_dirty = true;
-
-    while (!search_state.pending_directories.empty()) {
-      search_state.pending_directories.pop();
-    }
+    while (!search_state.pending_directories.empty()) search_state.pending_directories.pop();
 
     if (query.empty()) {
       search_state.is_searching = false;
-      search_state.found_files.clear();
       return;
     }
 
     search_state.is_searching = true;
-
     search_iterator.sort_alphabetically = true;
-    search_iterator.callback = [this](const std::filesystem::directory_entry& entry) -> fan::event::task_t {
+    search_iterator.callback = [this](const std::string& path_str, bool is_dir) -> fan::event::task_t {
       try {
-        std::string filename = entry.path().filename().string();
-
+        std::string filename = path_filename(path_str);
         std::string query_lower = search_state.query;
         std::string filename_lower = filename;
         static auto tl = [](unsigned char c) { return std::tolower(c); };
         std::transform(query_lower.begin(), query_lower.end(), query_lower.begin(), tl);
         std::transform(filename_lower.begin(), filename_lower.end(), filename_lower.begin(), tl);
 
-        bool matches = filename_lower.find(query_lower) != std::string::npos;
-
-        if (matches) {
+        if (filename_lower.find(query_lower) != std::string::npos) {
           file_info_t file_info;
-          std::filesystem::path relative_path;
-          try {
-            relative_path = std::filesystem::relative(entry.path(), asset_path);
-          }
-          catch (const std::exception&) {
-            relative_path = entry.path().filename();
-          }
-
           file_info.filename = filename;
-          file_info.item_path = relative_path.wstring();
-          file_info.is_directory = entry.is_directory();
+          file_info.item_path = path_relative(path_str, asset_path);
+          file_info.is_directory = is_dir;
           file_info.is_selected = false;
 
-          if (fan::image::valid(entry.path().string())) {
-            file_info.preview_image = fan::graphics::image_load(entry.path().generic_string());
+          if (fan::image::valid(path_str)) {
+            file_info.preview_image = fan::graphics::image_load(path_str);
           }
 
           search_state.found_files.push_back(file_info);
           search_state.search_cache_dirty = true;
         }
 
-        if (entry.is_directory() && search_state.is_recursive) {
-          search_state.pending_directories.push(entry.path().string());
+        if (is_dir && search_state.is_recursive) {
+          search_state.pending_directories.push(path_str);
         }
       }
-      catch (...) {
-
-      }
-
+      catch (...) {}
       co_return;
     };
 
-    std::string search_root = current_directory.string();
-    fan::io::async_directory_iterate(&search_iterator, search_root);
+    fan::io::async_directory_iterate(&search_iterator, current_directory);
   }
 
   void content_browser_t::update_sorted_cache() {
     if (!search_state.cache_dirty) return;
-
     search_state.sorted_cache.clear();
     for (std::size_t i = 0; i < directory_cache.size(); ++i) {
       auto& file_info = directory_cache[i];
@@ -665,28 +683,19 @@ namespace fan::graphics::gui {
         search_state.sorted_cache.push_back({file_info, i});
       }
     }
-
     std::sort(search_state.sorted_cache.begin(), search_state.sorted_cache.end(),
-      [](const auto& a, const auto& b) {
-      return a.first.is_directory > b.first.is_directory;
-    });
-
+      [](const auto& a, const auto& b) { return a.first.is_directory > b.first.is_directory; });
     search_state.cache_dirty = false;
   }
 
   void content_browser_t::update_search_sorted_cache() {
     if (!search_state.search_cache_dirty) return;
-
     search_state.sorted_search_cache.clear();
     for (std::size_t i = 0; i < search_state.found_files.size(); ++i) {
       search_state.sorted_search_cache.push_back({search_state.found_files[i], i});
     }
-
     std::sort(search_state.sorted_search_cache.begin(), search_state.sorted_search_cache.end(),
-      [](const auto& a, const auto& b) {
-      return a.first.is_directory > b.first.is_directory;
-    });
-
+      [](const auto& a, const auto& b) { return a.first.is_directory > b.first.is_directory; });
     search_state.search_cache_dirty = false;
   }
 
@@ -695,13 +704,9 @@ namespace fan::graphics::gui {
     item_right_clicked_name.clear();
 
     if (search_state.is_searching && !search_iterator.operation_in_progress) {
-      if (search_iterator.current_index >= search_iterator.entries.size()) {
-        if (!search_state.pending_directories.empty()) {
-          process_next_directory();
-        }
-        else {
-          search_state.is_searching = false;
-        }
+      if (search_iterator.is_finished()) {
+        if (!search_state.pending_directories.empty()) process_next_directory();
+        else search_state.is_searching = false;
       }
     }
 
@@ -718,11 +723,8 @@ namespace fan::graphics::gui {
         push_style_color(col_button_hovered, fan::color(0.3f, 0.3f, 0.3f, 0.3f));
 
         if (image_button("##icon_arrow_left", icon_arrow_left, fan::vec2(32))) {
-          auto absolute_path = std::filesystem::canonical(std::filesystem::absolute(current_directory));
-          if (absolute_path.has_parent_path()) {
-            current_directory = std::filesystem::canonical(absolute_path.parent_path());
-            update_directory_cache();
-          }
+          current_directory = path_parent(current_directory);
+          update_directory_cache();
         }
         same_line();
         image_button("##icon_arrow_right", icon_arrow_right, fan::vec2(32));
@@ -763,7 +765,7 @@ namespace fan::graphics::gui {
         }
 
         pop_style_var(2);
-        toggle_image_button(image_list, button_sizes, (int*)&current_view_mode);
+        toggle_image_button(image_list.data(), image_list.size(), button_sizes, (int*)&current_view_mode);
         pop_style_color(3);
         end_menu_bar();
       }
@@ -771,19 +773,90 @@ namespace fan::graphics::gui {
       handle_rectangular_selection();
 
       switch (current_view_mode) {
-      case view_mode_large_thumbnails:
-        render_large_thumbnails_view();
-        break;
-      case view_mode_list:
-        render_list_view();
-        break;
-      default:
-        break;
+      case view_mode_large_thumbnails: render_large_thumbnails_view(); break;
+      case view_mode_list: render_list_view(); break;
+      default: break;
       }
     }
 
     pop_style_var();
     gui::end();
+
+    if (!pending_directory_change.empty()) {
+      current_directory = path_join(asset_path, pending_directory_change);
+      update_directory_cache();
+      pending_directory_change.clear();
+    }
+  }
+  void content_browser_t::handle_item_interaction(const file_info_t& file_info, size_t original_index) {
+    if (!file_info.is_directory) {
+      if (begin_drag_drop_source()) {
+        bool showing_search_results = !search_state.found_files.empty() && !search_buffer.empty();
+
+        if (showing_search_results) {
+          if (!search_state.found_files[original_index].is_selected) {
+            for (auto& f : search_state.found_files) f.is_selected = false;
+            search_state.found_files[original_index].is_selected = true;
+          }
+        }
+        else {
+          if (!directory_cache[original_index].is_selected) {
+            for (auto& f : directory_cache) f.is_selected = false;
+            directory_cache[original_index].is_selected = true;
+          }
+        }
+
+        std::string combined_paths;
+        auto& src = showing_search_results ? search_state.found_files : directory_cache;
+        for (const auto& f : src) {
+          if (f.is_selected && !f.is_directory) {
+            if (!combined_paths.empty()) combined_paths += ';';
+            combined_paths += f.item_path;
+          }
+        }
+        if (combined_paths.empty()) combined_paths = file_info.item_path;
+
+        set_drag_drop_payload("CONTENT_BROWSER_ITEMS", combined_paths.data(), combined_paths.size() + 1);
+
+        auto count = std::count(combined_paths.begin(), combined_paths.end(), ';') + 1;
+        if (count > 1) text(count, " files selected");
+        else text(file_info.filename);
+
+        end_drag_drop_source();
+      }
+    }
+
+    if (is_item_hovered() && is_mouse_double_clicked(0)) {
+      if (file_info.is_directory) {
+        pending_directory_change = file_info.item_path;
+      }
+    }
+  }
+
+  void content_browser_t::receive_drag_drop_target(std::function<void(const std::string&)> receive_func) {
+    dummy(get_content_region_avail());
+
+    if (begin_drag_drop_target()) {
+      if (const payload_t* payload = accept_drag_drop_payload("CONTENT_BROWSER_ITEMS")) {
+        std::string combined_paths(static_cast<const char*>(payload->Data));
+        std::string current_path;
+        for (char c : combined_paths) {
+          if (c == ';') {
+            if (!current_path.empty()) {
+              receive_func(path_join(asset_path, current_path));
+              current_path.clear();
+            }
+          }
+          else {
+            current_path += c;
+          }
+        }
+        if (!current_path.empty()) {
+          receive_func(path_join(asset_path, current_path));
+        }
+      }
+      end_drag_drop_target();
+    }
   }
 
   void content_browser_t::render_large_thumbnails_view() {
@@ -804,12 +877,10 @@ namespace fan::graphics::gui {
         handle_keyboard_navigation(file_info.filename, pressed_key);
 
         std::string unique_id = "search_" + std::to_string(original_index) + "_" + file_info.filename;
-
         push_id(std::string_view(unique_id));
         unique_id.insert(0, "##");
 
         fan::vec2 item_pos = get_cursor_screen_pos();
-
         bool is_currently_selected = search_state.found_files[original_index].is_selected;
 
         if (is_currently_selected) {
@@ -850,24 +921,16 @@ namespace fan::graphics::gui {
             std::max(selection_state.selection_start.x, selection_state.selection_end.x),
             std::max(selection_state.selection_start.y, selection_state.selection_end.y)
           );
-
           fan::vec2 item_min = item_pos;
           fan::vec2 item_max = fan::vec2(item_pos.x + thumbnail_size, item_pos.y + thumbnail_size);
-
           bool overlaps = !(rect_max.x < item_min.x || rect_min.x > item_max.x ||
             rect_max.y < item_min.y || rect_min.y > item_max.y);
-
-          if (overlaps) {
-            search_state.found_files[original_index].is_selected = true;
-          }
-          else if (!selection_state.ctrl_held) {
-            search_state.found_files[original_index].is_selected = false;
-          }
+          if (overlaps) search_state.found_files[original_index].is_selected = true;
+          else if (!selection_state.ctrl_held) search_state.found_files[original_index].is_selected = false;
         }
 
         handle_right_click(file_info.filename);
         handle_item_interaction(file_info, original_index);
-
         pop_style_color(3);
         text_wrapped(file_info.filename);
         next_column();
@@ -880,11 +943,9 @@ namespace fan::graphics::gui {
 
       for (const auto& [file_info, original_index] : sorted_files) {
         handle_keyboard_navigation(file_info.filename, pressed_key);
-
         push_id(std::string_view(file_info.filename));
 
         fan::vec2 item_pos = get_cursor_screen_pos();
-
         bool is_currently_selected = directory_cache[original_index].is_selected;
 
         if (is_currently_selected) {
@@ -899,9 +960,8 @@ namespace fan::graphics::gui {
         }
 
         std::string id = "##" + file_info.filename;
-        std::string_view sv{id};
         bool item_clicked = image_button(
-          sv,
+          std::string_view(id),
           fan::graphics::is_image_valid(file_info.preview_image) ? file_info.preview_image
           : file_info.is_directory ? icon_directory : file_info.filename.ends_with(".json") ? icon_object : icon_file,
           fan::vec2(thumbnail_size, thumbnail_size)
@@ -927,24 +987,16 @@ namespace fan::graphics::gui {
             std::max(selection_state.selection_start.x, selection_state.selection_end.x),
             std::max(selection_state.selection_start.y, selection_state.selection_end.y)
           );
-
           fan::vec2 item_min = item_pos;
           fan::vec2 item_max = fan::vec2(item_pos.x + thumbnail_size, item_pos.y + thumbnail_size);
-
           bool overlaps = !(rect_max.x < item_min.x || rect_min.x > item_max.x ||
             rect_max.y < item_min.y || rect_min.y > item_max.y);
-
-          if (overlaps) {
-            directory_cache[original_index].is_selected = true;
-          }
-          else if (!selection_state.ctrl_held) {
-            directory_cache[original_index].is_selected = false;
-          }
+          if (overlaps) directory_cache[original_index].is_selected = true;
+          else if (!selection_state.ctrl_held) directory_cache[original_index].is_selected = false;
         }
 
         handle_right_click(file_info.filename);
         handle_item_interaction(file_info, original_index);
-
         pop_style_color(3);
         text_wrapped(file_info.filename.c_str());
         next_column();
@@ -979,18 +1031,13 @@ namespace fan::graphics::gui {
 
           fan::vec2 row_pos = get_cursor_screen_pos();
           f32_t row_height = get_text_line_height_with_spacing();
-
           fan::vec2 cursor_pos = fan::vec2(get_window_pos()) + fan::vec2(get_cursor_pos()) +
             fan::vec2(get_scroll_x(), -get_scroll_y());
           fan::vec2 image_size = fan::vec2(thumbnail_size / 4, thumbnail_size / 4);
 
           std::string space;
-          while (calc_text_size(space.c_str()).x < image_size.x) {
-            space += " ";
-          }
-          auto str = space + file_info.filename;
-
-          std::string unique_id = "search_" + std::to_string(original_index) + "_" + str;
+          while (calc_text_size(space.c_str()).x < image_size.x) space += " ";
+          std::string unique_id = "search_" + std::to_string(original_index) + "_" + space + file_info.filename;
 
           bool item_clicked = selectable(unique_id.c_str(), search_state.found_files[original_index].is_selected, selectable_flags_span_all_columns);
 
@@ -1014,34 +1061,21 @@ namespace fan::graphics::gui {
               std::max(selection_state.selection_start.x, selection_state.selection_end.x),
               std::max(selection_state.selection_start.y, selection_state.selection_end.y)
             );
-
             fan::vec2 row_min = row_pos;
             fan::vec2 row_max = fan::vec2(row_pos.x + get_content_region_avail().x, row_pos.y + row_height);
-
             bool overlaps = !(rect_max.x < row_min.x || rect_min.x > row_max.x ||
               rect_max.y < row_min.y || rect_min.y > row_max.y);
-
-            if (overlaps) {
-              search_state.found_files[original_index].is_selected = true;
-            }
-            else if (!selection_state.ctrl_held) {
-              search_state.found_files[original_index].is_selected = false;
-            }
+            if (overlaps) search_state.found_files[original_index].is_selected = true;
+            else if (!selection_state.ctrl_held) search_state.found_files[original_index].is_selected = false;
           }
 
-          handle_right_click(str);
+          handle_right_click(file_info.filename);
 
-          texture_id_t texture_id;
-          if (fan::graphics::is_image_valid(file_info.preview_image)) {
-            texture_id = (texture_id_t)fan::graphics::image_get_handle(file_info.preview_image);
-          }
-          else {
-            texture_id = (texture_id_t)fan::graphics::image_get_handle(
-              file_info.is_directory ? icon_directory : icon_file
-            );
-          }
+          texture_id_t texture_id = (texture_id_t)fan::graphics::image_get_handle(
+            fan::graphics::is_image_valid(file_info.preview_image) ? file_info.preview_image
+            : file_info.is_directory ? icon_directory : icon_file
+          );
           get_window_draw_list()->AddImage(texture_id, cursor_pos, cursor_pos + image_size);
-
           handle_item_interaction(file_info, original_index);
         }
       }
@@ -1057,22 +1091,18 @@ namespace fan::graphics::gui {
 
           fan::vec2 row_pos = get_cursor_screen_pos();
           f32_t row_height = get_text_line_height_with_spacing();
-
           fan::vec2 cursor_pos = fan::vec2(get_window_pos()) + fan::vec2(get_cursor_pos()) +
             fan::vec2(get_scroll_x(), -get_scroll_y());
           fan::vec2 image_size = fan::vec2(thumbnail_size / 4, thumbnail_size / 4);
 
           std::string space;
-          while (calc_text_size(space.c_str()).x < image_size.x) {
-            space += " ";
-          }
+          while (calc_text_size(space.c_str()).x < image_size.x) space += " ";
           std::string str = space + file_info.filename;
 
           bool item_clicked = selectable(std::string_view(str), directory_cache[original_index].is_selected, selectable_flags_span_all_columns);
 
           if (item_clicked) {
             io_t& io = get_io();
-
             if (io.KeyCtrl) {
               directory_cache[original_index].is_selected = !directory_cache[original_index].is_selected;
             }
@@ -1091,144 +1121,25 @@ namespace fan::graphics::gui {
               std::max(selection_state.selection_start.x, selection_state.selection_end.x),
               std::max(selection_state.selection_start.y, selection_state.selection_end.y)
             );
-
             fan::vec2 row_min = row_pos;
             fan::vec2 row_max = fan::vec2(row_pos.x + get_content_region_avail().x, row_pos.y + row_height);
-
             bool overlaps = !(rect_max.x < row_min.x || rect_min.x > row_max.x ||
               rect_max.y < row_min.y || rect_min.y > row_max.y);
-
-            if (overlaps) {
-              directory_cache[original_index].is_selected = true;
-            }
-            else if (!selection_state.ctrl_held) {
-              directory_cache[original_index].is_selected = false;
-            }
+            if (overlaps) directory_cache[original_index].is_selected = true;
+            else if (!selection_state.ctrl_held) directory_cache[original_index].is_selected = false;
           }
 
           handle_right_click(str);
 
-          texture_id_t texture_id;
-          if (fan::graphics::is_image_valid(file_info.preview_image)) {
-            texture_id = (texture_id_t)fan::graphics::image_get_handle(file_info.preview_image);
-          }
-          else {
-            texture_id = (texture_id_t)fan::graphics::image_get_handle(
-              file_info.is_directory ? icon_directory : icon_file
-            );
-          }
+          texture_id_t texture_id = (texture_id_t)fan::graphics::image_get_handle(
+            fan::graphics::is_image_valid(file_info.preview_image) ? file_info.preview_image
+            : file_info.is_directory ? icon_directory : icon_file
+          );
           get_window_draw_list()->AddImage(texture_id, cursor_pos, cursor_pos + image_size);
-
           handle_item_interaction(file_info, original_index);
         }
       }
-
       end_table();
-    }
-  }
-
-  void content_browser_t::handle_item_interaction(const file_info_t& file_info, size_t original_index) {
-    if (file_info.is_directory == false) {
-      if (begin_drag_drop_source()) {
-        bool showing_search_results = !search_state.found_files.empty() && !search_buffer.empty();
-
-        if (showing_search_results) {
-          if (!search_state.found_files[original_index].is_selected) {
-            for (auto& f : search_state.found_files) f.is_selected = false;
-            search_state.found_files[original_index].is_selected = true;
-          }
-        }
-        else {
-          if (!directory_cache[original_index].is_selected) {
-            for (auto& f : directory_cache) f.is_selected = false;
-            directory_cache[original_index].is_selected = true;
-          }
-        }
-
-        std::vector<std::wstring> selected_paths;
-
-        if (showing_search_results) {
-          for (const auto& f : search_state.found_files) {
-            if (f.is_selected && !f.is_directory) {
-              selected_paths.push_back(f.item_path);
-            }
-          }
-        }
-        else {
-          for (const auto& f : directory_cache) {
-            if (f.is_selected && !f.is_directory) {
-              selected_paths.push_back(f.item_path);
-            }
-          }
-        }
-
-        if (selected_paths.empty()) {
-          selected_paths.push_back(file_info.item_path);
-        }
-
-        std::wstring combined_paths;
-        for (size_t i = 0; i < selected_paths.size(); ++i) {
-          if (i > 0) combined_paths += L";";
-          combined_paths += selected_paths[i];
-        }
-        set_drag_drop_payload("CONTENT_BROWSER_ITEMS", combined_paths.data(), (combined_paths.size() + 1) * sizeof(wchar_t));
-
-        if (selected_paths.size() > 1) {
-          text(selected_paths.size(), " files selected");
-        }
-        else {
-          text(file_info.filename);
-        }
-
-        end_drag_drop_source();
-      }
-    }
-
-    if (is_item_hovered() && is_mouse_double_clicked(0)) {
-      if (file_info.is_directory) {
-        current_directory = std::filesystem::path(asset_path) / file_info.item_path;
-        update_directory_cache();
-      }
-    }
-  }
-
-  // [](const std::filesystem::path& path) {}
-  void content_browser_t::receive_drag_drop_target(std::function<void(const std::filesystem::path& fs)> receive_func) {
-    dummy(get_content_region_avail());
-
-    if (begin_drag_drop_target()) {
-      if (const payload_t* payload = accept_drag_drop_payload("CONTENT_BROWSER_ITEMS")) {
-        const wchar_t* paths_data = (const wchar_t*)payload->Data;
-        std::wstring combined_paths(paths_data);
-
-        std::vector<std::filesystem::path> file_paths;
-        std::wstring current_path;
-
-        for (wchar_t c : combined_paths) {
-          if (c == L';') {
-            if (!current_path.empty()) {
-              file_paths.push_back(std::filesystem::path(asset_path) / current_path);
-              current_path.clear();
-            }
-          }
-          else {
-            current_path += c;
-          }
-        }
-
-        if (!current_path.empty()) {
-          file_paths.push_back(std::filesystem::path(asset_path) / current_path);
-        }
-
-        for (const auto& path : file_paths) {
-          receive_func(std::filesystem::absolute(path));
-        }
-      }
-      else if (const payload_t* payload = accept_drag_drop_payload("CONTENT_BROWSER_ITEMS")) {
-        const wchar_t* path = (const wchar_t*)payload->Data;
-        receive_func(std::filesystem::absolute(asset_path) / path);
-      }
-      end_drag_drop_target();
     }
   }
 
@@ -1604,7 +1515,7 @@ namespace fan::graphics::gui {
     gui::columns(1);
     gui::pop_style_var();
     return list_changed;
-}
+  }
 
   particle_editor_t::particle_editor_t() {
     set_particle_shape(std::move(particle_shape));
@@ -1675,10 +1586,10 @@ namespace fan::graphics::gui {
     g_shapes->visit_shape_draw_data(particle_shape.NRI, [&]<typename T>(T & properties) {
       if constexpr (requires{ properties.image; }) {
         particle_image_sprite = fan::graphics::shape_t(
-          fan::graphics::shapes::sprite_t::properties_t{
-            .size = 0, 
+          fan::graphics::shapes::sprite_t::properties_t {
+            .size = 0,
             .image = properties.image
-          }, 
+          },
           false/*culling*/
         );
       }
@@ -1997,10 +1908,10 @@ namespace fan::graphics::gui {
   }
 
   void render_texture_property(
-    fan::graphics::shape_t& shape, 
-    int index, 
+    fan::graphics::shape_t& shape,
+    int index,
     fan::str_view_t label,
-    const std::wstring& asset_path,
+    const std::string& asset_path,
     f32_t image_size,
     const char* receive_drag_drop_target_name
   ) {
@@ -2029,7 +1940,7 @@ namespace fan::graphics::gui {
     gui::text(label);
   }
   void render_image_filter_property(
-    fan::graphics::shape_t& shape, 
+    fan::graphics::shape_t& shape,
     fan::str_view_t label
   ) {
     using namespace fan::graphics;
@@ -2037,7 +1948,7 @@ namespace fan::graphics::gui {
     auto current_image = shape.get_image();
     int current_filter = fan::graphics::image_get_settings(current_image).min_filter;
 
-    static const char* image_filters[] = { "nearest", "linear" };
+    static const char* image_filters[] = {"nearest", "linear"};
 
     if (gui::combo(label, &current_filter, image_filters, std::size(image_filters))) {
       image_load_properties_t ilp;

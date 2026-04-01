@@ -146,6 +146,7 @@ namespace fan::graphics {
   }
   void image_t::unload() {
     ctx()->image_unload(ctx(), *this);
+    sic();
   }
   void image_t::update(const void* data, uint32_t channels) {
     fan::image::info_t info;

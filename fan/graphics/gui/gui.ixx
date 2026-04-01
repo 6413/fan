@@ -4,49 +4,35 @@ module;
 
 #include <string>
 #include <functional>
-#include <filesystem>
 #include <queue>
 #include <memory>
-#include <fan/graphics/opengl/init.h>
 
 export module fan.graphics.gui;
 
 #if defined(FAN_GUI)
   import fan.types;
   import fan.time;
-  import fan.memory;
-  import fan.math;
   import fan.types.vector;
   import fan.types.color;
-  import fan.types.quaternion;
-  import fan.types.fstring;
   
   import fan.types.compile_time_string;
   import fan.event;
 
   import fan.graphics.common_context;
   import fan.graphics.shapes;
-  import fan.io.file;
-  import fan.io.directory;
-  import fan.audio;
-
-  import fan.file_dialog;
 
   import fan.graphics.gui.types;
-  import fan.graphics.gui.base;
   import fan.console;
   
   import fan.formatter; // todo REMOVE
   import fan.graphics.common_types;
   import fan.log_dispatcher;
   import fan.graphics.shapes.types;
-
-  
+  import fan.event.types;
 #endif
 
 
 #if defined(FAN_GUI)
-
 
 export namespace fan {
 
@@ -72,25 +58,13 @@ export namespace fan {
   }
 
   inline void printcl_err(auto&&... values) {
-  #if defined(FAN_GUI)
     printclh(fan::graphics::highlight_e::error, values...);
-  #endif
   }
 
   inline void printcl_warn(auto&&... values) {
-  #if defined(FAN_GUI)
     printclh(fan::graphics::highlight_e::warning, values...);
-  #endif
   }
 }
-
-bool init_fan_track_opengl_print = []() {
-  fan_opengl_track_print() = [](std::string func_name, uint64_t elapsed) {
-    fan::printclnnh(fan::graphics::highlight_e::text, func_name + ":");
-    fan::printclh(fan::graphics::highlight_e::warning, std::to_string(elapsed / 1e+6f) + "ms");
-  };
-  return 1;
-}();
 
 export namespace fan::graphics::gui {
   fan::log_dispatcher_t default_logger() {
@@ -154,43 +128,8 @@ export namespace fan::graphics::gui {
   void set_viewport(fan::graphics::viewport_t viewport);
   void set_viewport(const fan::graphics::render_view_t& render_view = fan::graphics::get_orthographic_render_view());
 
-  
   bool toggle_image_button(fan::str_view_t char_id, fan::graphics::image_t image, const fan::vec2& size, bool* toggle);
-
-  template <std::size_t N>
-  bool toggle_image_button(const std::array<fan::graphics::image_t, N>& images, const fan::vec2& size, int* selectedIndex)
-  {
-    f32_t y_pos = get_cursor_pos_y() + get_style().WindowPadding.y - get_style().FramePadding.y / 2;
-
-    bool clicked = false;
-    bool pushed = false;
-
-    for (std::size_t i = 0; i < images.size(); ++i) {
-      fan::color tintColor = fan::color(0.2, 0.2, 0.2, 1.0);
-      if (*selectedIndex == i) {
-        tintColor = fan::color(0.2, 0.2, 0.2, 1.0f);
-        push_style_color(col_button, tintColor);
-        pushed = true;
-      }
-      /*if (ImGui::IsItemHovered()) {
-      tintColor = fan::color(1, 1, 1, 1.0f);
-      }*/
-      set_cursor_pos_y(y_pos);
-
-      std::string button_id = "##toggle_image_button" + std::to_string(i) + std::to_string((uint64_t)&clicked);
-      if (fan::graphics::gui::image_button(std::string_view(button_id), images[i], size)) {
-        *selectedIndex = i;
-        clicked = true;
-      }
-      if (pushed) {
-        pop_style_color();
-        pushed = false;
-      }
-      same_line();
-    }
-
-    return clicked;
-  }
+  bool toggle_image_button(image_t* images, uint32_t count, const fan::vec2& size, int* selectedIndex);
 
   // untested
   void image_rotated(
@@ -230,11 +169,10 @@ export namespace fan::graphics::gui {
   struct content_browser_t {
     struct file_info_t {
       std::string filename;
-      std::wstring item_path;
+      std::string item_path;
       bool is_directory;
       fan::graphics::image_t preview_image;
       bool is_selected = false;
-      //std::string 
     };
 
     struct selection_state_t {
@@ -245,27 +183,25 @@ export namespace fan::graphics::gui {
       bool ctrl_held = false;
     } selection_state;
 
-
     std::vector<file_info_t> directory_cache;
 
     fan::graphics::image_t icon_arrow_left = fan::graphics::image_load("images/content_browser/arrow_left.webp");
     fan::graphics::image_t icon_arrow_right = fan::graphics::image_load("images/content_browser/arrow_right.webp");
-
     fan::graphics::image_t icon_file = fan::graphics::image_load("images/content_browser/file.webp");
     fan::graphics::image_t icon_object = fan::graphics::image_load("images/content_browser/object.webp");
     fan::graphics::image_t icon_directory = fan::graphics::image_load("images/content_browser/folder.webp");
-
     fan::graphics::image_t icon_files_list = fan::graphics::image_load("images/content_browser/files_list.webp");
     fan::graphics::image_t icon_files_big_thumbnail = fan::graphics::image_load("images/content_browser/files_big_thumbnail.webp");
 
     bool item_right_clicked = false;
     std::string item_right_clicked_name;
+    std::string pending_directory_change;
 
-    std::wstring asset_path = L"./";
+    std::string asset_path = "./";
 
     inline static fan::io::async_directory_iterator_t directory_iterator;
 
-    std::filesystem::path current_directory;
+    std::string current_directory;
     enum viewmode_e {
       view_mode_list,
       view_mode_large_thumbnails,
@@ -275,22 +211,19 @@ export namespace fan::graphics::gui {
     f32_t padding = 16.0f;
     std::string search_buffer;
 
-    // lambda [this] capture
     content_browser_t(const content_browser_t&) = delete;
     content_browser_t(content_browser_t&&) = delete;
 
     content_browser_t();
     content_browser_t(bool no_init);
-    content_browser_t(const std::wstring& path);
-    void init(const std::wstring& path);
+    content_browser_t(const std::string& path);
+    void init(const std::string& path);
 
     void clear_selection();
-
     bool is_point_in_rect(const fan::vec2& point, const fan::vec2& rect_min, const fan::vec2& rect_max);
-
     void handle_rectangular_selection();
-
     void update_directory_cache();
+
     struct search_state_t {
       std::string query;
       bool is_recursive = false;
@@ -307,30 +240,18 @@ export namespace fan::graphics::gui {
     fan::io::async_directory_iterator_t search_iterator;
 
     void invalidate_cache();
-
     int get_pressed_key();
-
     void handle_keyboard_navigation(std::string_view filename, int pressed_key);
-
     void handle_right_click(std::string_view filename);
-
     void process_next_directory();
-
     void start_search(const std::string& query, bool recursive = false);
     void update_sorted_cache();
-
     void update_search_sorted_cache();
-
     void render();
-
     void render_large_thumbnails_view();
-
-
     void render_list_view();
     void handle_item_interaction(const file_info_t& file_info, size_t original_index);
-
-    // [](const std::filesystem::path& path) {}
-    void receive_drag_drop_target(std::function<void(const std::filesystem::path& fs)> receive_func);
+    void receive_drag_drop_target(std::function<void(const std::string&)> receive_func);
   };
 
 #if defined(FAN_2D)
@@ -516,7 +437,7 @@ export namespace fan::graphics::gui {
     fan::graphics::shape_t& shape,
     int index,
     fan::str_view_t label,
-    const std::wstring& asset_path = L"./",
+    const std::string& asset_path = "./",
     f32_t image_size = 64.f,
     const char* receive_drag_drop_target_name = "CONTENT_BROWSER_ITEMS"
   );

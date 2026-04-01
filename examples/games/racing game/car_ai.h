@@ -169,7 +169,7 @@ struct car_ai_t : car_t {
     fan::vec2 world_direction = path_solver.step(body.get_position(), 80.f);
 
     if (world_direction.length() > 0.1f) {
-      world_direction = world_direction.normalized();
+      world_direction = world_direction.normalize();
 
       fan::basis basis = body.get_basis();
       fan::vec2 forward = basis.forward;

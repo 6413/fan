@@ -44,8 +44,8 @@ struct fly_t : enemy_t<fly_t> {
   bool update() override {
     fan::vec2 distance = body.get_position() - pile->player.body.get_position();
     if (body.attack_state.try_attack(&pile->player.body, distance)) {
-      pile->player.body.take_hit(&body, -distance.normalized());
-      //pile->player.body.apply_linear_impulse_center(fan::vec2(-distance.normalized().x * body.attack_state.knockback_force, -
+      pile->player.body.take_hit(&body, -distance.normalize());
+      //pile->player.body.apply_linear_impulse_center(fan::vec2(-distance.normalize().x * body.attack_state.knockback_force, -
 // body.attack_state.knockback_force / 5.f));
       body.attack_state.end_attack();
     }

@@ -51,7 +51,7 @@ export namespace fan::math {
     ray_clip.w = 0.0f;
     fan::mat4 inverted_view = view.inverse();
     fan::vec4 ray_world = inverted_view * ray_clip;
-    fan::vec3 ray_dir = fan::vec3(ray_world.x, ray_world.y, ray_world.z).normalized();
+    fan::vec3 ray_dir = fan::vec3(ray_world.x, ray_world.y, ray_world.z).normalize();
     fan::vec3 ray_origin = camera_position;
     return fan::ray3_t(ray_origin, ray_dir);
   }

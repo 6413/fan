@@ -812,7 +812,7 @@ export namespace fan {
         void handle_attack(fan::graphics::physics::character2d_t& body, enemies_t& enemies) {
           for (auto& enemy : enemies) {
             if (!hitbox.check_hit(&body, 0, &enemy.get_body())) continue;
-            if (enemy.on_hit(&body, (enemy.get_body().get_position() - body.get_position()).normalized())) {
+            if (enemy.on_hit(&body, (enemy.get_body().get_position() - body.get_position()).normalize())) {
               break;
             }
           }
