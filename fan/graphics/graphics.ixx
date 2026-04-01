@@ -42,6 +42,7 @@ import fan.window;
 
 import fan.texture_pack.tp0;
 
+import fan.event.types;
 import fan.event;
 import fan.math;
 

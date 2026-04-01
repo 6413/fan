@@ -593,7 +593,7 @@ void main() {
       if (auto result = fan::physics::raycast(current_src, current_dst)) {
         mirror_data.ray_hit_point[depth].set_position(result.point);
 
-        fan::vec2 direction = (current_dst - current_src).normalized();
+        fan::vec2 direction = (current_dst - current_src).normalize();
         fan::vec2 reflection = direction - result.normal * 2 * direction.dot(result.normal);
         mirror_data.rays[depth].set_line(current_src, result.point);
         mirror_data.rays[depth].set_color(fan::color::hsv(360.f * (depth / (f32_t)(mirror_data.reflect_depth + 1)), 100, 100));

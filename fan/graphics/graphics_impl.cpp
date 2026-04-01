@@ -1497,17 +1497,17 @@ namespace fan::graphics {
     };
 
     if (props.cap_start == polyline_cap_t::square) {
-      fan::vec2 dir = (pts[1] - pts[0]).normalized();
+      fan::vec2 dir = (pts[1] - pts[0]).normalize();
       pts.insert(pts.begin(), pts[0] - dir * half);
       n++;
     }
     else if (props.cap_start == polyline_cap_t::round) {
-      fan::vec2 dir = (pts[1] - pts[0]).normalized();
+      fan::vec2 dir = (pts[1] - pts[0]).normalize();
       emit_round_cap(pts[0], -dir, true);
     }
 
     if (props.cap_end == polyline_cap_t::square) {
-      fan::vec2 dir = (pts[n - 1] - pts[n - 2]).normalized();
+      fan::vec2 dir = (pts[n - 1] - pts[n - 2]).normalize();
       pts.push_back(pts[n - 1] + dir * half);
       n++;
     }
@@ -1574,7 +1574,7 @@ namespace fan::graphics {
     }
 
     if (props.cap_end == polyline_cap_t::round) {
-      fan::vec2 dir = (pts[n - 1] - pts[n - 2]).normalized();
+      fan::vec2 dir = (pts[n - 1] - pts[n - 2]).normalize();
       emit_round_cap(pts[n - 1], dir, false);
     }
   }

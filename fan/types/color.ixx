@@ -5,8 +5,6 @@ module;
 #include <cstdint>
 #include <string>
 #include <cmath>
-#include <algorithm>
-#include <vector>
 
 export module fan.types.color;
 
@@ -21,7 +19,6 @@ import fan.graphics.gui.types;
 #pragma pack(push, 1)
 
 export namespace fan {
-  // internal format 0-1
   struct color {
     constexpr color() = default;
     template <typename T>
@@ -312,7 +309,6 @@ export namespace fan {
       }
     }
 
-
     static constexpr uint32_t size() {
       return 4;
     }
@@ -321,7 +317,6 @@ export namespace fan {
     std::string to_string() const noexcept;
     void from_string(const std::string& str);
     static color parse(const std::string& str);
-    friend std::ostream& operator<<(std::ostream& os, const color& c) noexcept;
 
     constexpr auto begin() const {
       return &r;
@@ -340,8 +335,7 @@ export namespace fan {
     }
 
     constexpr f32_t get_brightest_channel() const {
-      f32_t max_channel = std::max({ r, g, b });
-      return max_channel;
+      return r > g ? (r > b ? r : b) : (g > b ? g : b);
     }
     constexpr f32_t get_brightness() const {
       return 0.299f * r + 0.587f * g + 0.114f * b;
@@ -379,9 +373,7 @@ export namespace fan {
   }
   namespace random {
     fan::color color();
-    // always makes one channel brightest and scales other channels accordingly
     fan::color bright_color();
-
     fan::color color_near(const fan::color& base, f32_t hue_variance = 30.f, f32_t sv_variance = 15.f);
   }
 
@@ -394,7 +386,7 @@ export namespace fan {
   template <typename T>
   concept is_color = is_color_type_v<std::remove_cvref_t<T>>;
 
-  void lerp_pixels(std::vector<uint8_t>& dst, const std::vector<uint8_t>& target, f32_t t, uint8_t channels = 4);
+  void lerp_pixels(uint8_t* dst, const uint8_t* target, std::size_t size, f32_t t, uint8_t channels = 4);
 }
 
 constexpr uint32_t _fan_check_24bit(unsigned long long v) {

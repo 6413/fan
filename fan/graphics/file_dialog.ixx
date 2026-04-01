@@ -8,6 +8,7 @@ module;
 
 export module fan.file_dialog;
 
+import fan.event.types;
 import fan.event;
 
 export namespace fan::graphics {

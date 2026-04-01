@@ -16,7 +16,6 @@ import fan.time;
 import fan.window;
 import fan.graphics.gui.types;
 import fan.graphics.gui.keybinds_menu;
-import fan.graphics.gui.base;
 
 export namespace fan::graphics::gui {
   struct settings_config_t {

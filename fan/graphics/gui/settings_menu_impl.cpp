@@ -174,10 +174,10 @@ namespace fan::graphics::gui {
       }
     }
     );
-    gloco()->shader_set_value(gloco()->gl.m_fbo_final_shader, "bloom_strength", config.post_processing.bloom_strength);
-    gloco()->shader_set_value(gloco()->gl.m_fbo_final_shader, "gamma", config.post_processing.gamma);
-    gloco()->shader_set_value(gloco()->gl.m_fbo_final_shader, "exposure", config.post_processing.exposure);
-    gloco()->shader_set_value(gloco()->gl.m_fbo_final_shader, "contrast", config.post_processing.contrast);
+    gloco()->set_post_process("bloom_strength", config.post_processing.bloom_strength);
+    gloco()->set_post_process("gamma", config.post_processing.gamma);
+    gloco()->set_post_process("exposure", config.post_processing.exposure);
+    gloco()->set_post_process("contrast", config.post_processing.contrast);
     gloco()->set_culling_enabled(config.debug.frustum_culling_enabled);
   }
 
@@ -282,16 +282,14 @@ namespace fan::graphics::gui {
       }
       if (gloco()->open_props.enable_bloom) {
         draw_sub_row("Strength", [&] {
-          if (gui::slider(&menu->config.post_processing.bloom_strength, 0, 1)) {
-            if (gloco()->window.renderer == fan::window_t::renderer_t::opengl) {
-              gloco()->shader_set_value(gloco()->gl.m_fbo_final_shader, "bloom_strength", menu->config.post_processing.bloom_strength);
-            }
+          if (gui::slider(&menu->config.post_processing.bloom_strength, 0.f, 1.f, gui::slider_flags_always_clamp)) {
+            gloco()->set_post_process("bloom_strength", menu->config.post_processing.bloom_strength);
             menu->mark_dirty();
           }
         });
       #if defined(LOCO_FRAMEBUFFER)
         draw_sub_row("Filter radius", [&] {
-          if (gui::slider(&gloco()->gl.blur.bloom_filter_radius, 0, 0.01)) {
+          if (gui::slider(gloco()->get_bloom_filter_radius_ptr(), 0.f, 0.01f, gui::slider_flags_always_clamp)) {
             menu->mark_dirty();
           }
         });
@@ -299,19 +297,19 @@ namespace fan::graphics::gui {
       }
       draw_sub_row("Gamma", [&] {
         if (gui::drag(&menu->config.post_processing.gamma, 0.01f, 0.1f, 5.0f)) {
-          gloco()->shader_set_value(gloco()->gl.m_fbo_final_shader, "gamma", menu->config.post_processing.gamma);
+          gloco()->set_post_process("gamma", menu->config.post_processing.gamma);
           menu->mark_dirty();
         }
       });
       draw_sub_row("Exposure", [&] {
         if (gui::drag(&menu->config.post_processing.exposure, 0.01f, 0.0f, 10.0f)) {
-          gloco()->shader_set_value(gloco()->gl.m_fbo_final_shader, "exposure", menu->config.post_processing.exposure);
+          gloco()->set_post_process("exposure", menu->config.post_processing.exposure);
           menu->mark_dirty();
         }
       });
       draw_sub_row("Contrast", [&] {
         if (gui::drag(&menu->config.post_processing.contrast, 0.01f, 0.0f, 5.0f)) {
-          gloco()->shader_set_value(gloco()->gl.m_fbo_final_shader, "contrast", menu->config.post_processing.contrast);
+          gloco()->set_post_process("contrast", menu->config.post_processing.contrast);
           menu->mark_dirty();
         }
       });

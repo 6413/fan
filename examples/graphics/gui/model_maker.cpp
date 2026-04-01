@@ -23,7 +23,7 @@ int main(int argc, char** argv) {
 
     model_maker_t mm;//// 
 
-    mm.open("", L"");
+    mm.open("", "");
     // mm.fin("normal_map_tests.json");
 
     engine.loop([&] {

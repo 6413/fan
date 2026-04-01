@@ -72,7 +72,7 @@ namespace fan::graphics {
     s->cancelled.store(false);
     s->pending.store(true);
     s->self = s;
-    uv_async_init(fan::event::get_loop(), &s->async_, [](uv_async_t* h) {
+    uv_async_init((uv_loop_t*)fan::event::get_loop(), &s->async_, [](uv_async_t* h) {
       static_cast<dialog_t::state_t*>(h->data)->dispatch();
     });
     s->async_.data = s.get();

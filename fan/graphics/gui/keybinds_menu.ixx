@@ -20,7 +20,6 @@ import fan.types.compile_time_string;
 import fan.graphics.gui.types;
 import fan.window.input_action;
 import fan.window.input;
-import fan.graphics.gui.base;
 
 export namespace fan::graphics::gui {
   struct keybind_menu_t {
