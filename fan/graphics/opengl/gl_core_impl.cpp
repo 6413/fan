@@ -25,12 +25,16 @@ namespace fan::opengl {
 
   void opengl_t::open() {
     static uint8_t init = 1;
+    fan::print("opengl_t::open called, init=", (int)init);
     if (init == 0) {
+      fan::print("returning early");
       return;
     }
     init = 0;
+    fan::print("context before glewInit:", (uint64_t)(void*)glfwGetCurrentContext());
     glewExperimental = GL_TRUE;
-    if (GLenum err = glewInit() != GLEW_OK) {
+    GLenum err = glewInit();
+    if (err != GLEW_OK) {
       fan::throw_error(std::string("glew init error:") + std::string((const char*)glewGetErrorString(err)));
     }
   }

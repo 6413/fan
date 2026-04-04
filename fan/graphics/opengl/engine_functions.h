@@ -68,8 +68,9 @@ static void modify_render_data_element(fan::graphics::shapes::shape_t* shape, fa
 
 void open() {
   if (loco.window.renderer == fan::window_t::renderer_t::opengl) {
-    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+        fan::print("glfwInit check:", (uint64_t)(void*)glfwGetCurrentContext());
 
+    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE);
@@ -83,11 +84,14 @@ void open() {
     }
 
     GLFWwindow* dummy_window = glfwCreateWindow(640, 400, "dummy", nullptr, nullptr);
+    fan::print("dummy_window ptr:", (uint64_t)(void*)dummy_window);
     if (dummy_window == nullptr) {
       fan::throw_error_impl("failed to open dummy window");
     }
 
     glfwMakeContextCurrent(dummy_window);
+        fan::print("context current:", (uint64_t)(void*)glfwGetCurrentContext());
+
 
     loco.context.gl.open();
 

@@ -325,13 +325,14 @@ namespace fan {
 
     glfw_window = glfwCreateWindow(w, h, name.c_str(), use_mon, nullptr);
 
-    if (use_mon == nullptr) {
-      glfwSetWindowPos(glfw_window, x, y);
-    }
 
     if (glfw_window == nullptr) {
       glfwTerminate();
       fan::throw_error("failed to create window");
+    }
+
+    if (use_mon == nullptr) {
+      glfwSetWindowPos(glfw_window, x, y);
     }
 
     glfwSetWindowUserPointer(glfw_window, this);
