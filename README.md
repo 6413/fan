@@ -35,7 +35,7 @@
 - **Requirements:**
   - C++23 (modules)
   - Clang >= 20
-  - CMake >= 2.8.*
+  - xmake >= v3.0.8 (tested)
   - Ninja >= 1.11.1
 
 ### Linux
