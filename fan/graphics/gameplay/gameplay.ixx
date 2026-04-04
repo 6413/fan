@@ -18,7 +18,7 @@ import fan.graphics.common_context;
 import fan.graphics.shapes;
 import fan.physics.types;
 import fan.graphics.gui.tilemap_editor.renderer;
-import fan.graphics.spatial;
+import fan.spatial;
 import fan.graphics.physics_shapes;
 
 import fan.physics.b2_integration;
@@ -97,14 +97,14 @@ export namespace fan::graphics::gameplay {
       fan::physics::body_id_t sensor;
     };
 
-    fan::graphics::spatial::dynamic_grid_t<size_t> grid;
-    fan::graphics::spatial::registry_t<size_t> registry;
+    fan::spatial::dynamic_grid_t<size_t> grid;
+    fan::spatial::registry_t<size_t> registry;
     std::unordered_map<size_t, pickupable_data_t> pickupables;
     size_t next_id = 0;
 
     void init(const fan::vec2& world_min, const fan::vec2& world_size, f32_t cell_size = 128.f) {
       fan::vec2i grid_size = (world_size / cell_size).ceil();
-      fan::graphics::spatial::dynamic_grid_init(grid, world_min, fan::vec2(cell_size), grid_size);
+      fan::spatial::dynamic_grid_init(grid, world_min, fan::vec2(cell_size), grid_size);
     }
 
     size_t add(const std::string& id, fan::physics::body_id_t sensor) {
@@ -114,14 +114,14 @@ export namespace fan::graphics::gameplay {
       fan::vec2 size = sensor.get_size();
       fan::physics::aabb_t aabb {pos - size, pos + size};
 
-      fan::graphics::spatial::static_grid_t<size_t> dummy_static;
-      fan::graphics::spatial::add_object(
+      fan::spatial::static_grid_t<size_t> dummy_static;
+      fan::spatial::add_object(
         registry,
         dummy_static,
         grid,
         idx,
         aabb,
-        fan::graphics::spatial::movement_dynamic
+        fan::spatial::movement_dynamic
       );
 
       pickupables[idx] = {id, sensor};
@@ -134,9 +134,9 @@ export namespace fan::graphics::gameplay {
         return;
       }
 
-      fan::graphics::spatial::static_grid_t<size_t> dummy_static;
+      fan::spatial::static_grid_t<size_t> dummy_static;
 
-      fan::graphics::spatial::remove_object(
+      fan::spatial::remove_object(
         registry,
         dummy_static,
         grid,
@@ -149,7 +149,7 @@ export namespace fan::graphics::gameplay {
 
     std::vector<size_t> query_radius(const fan::vec2& center, f32_t radius) {
       std::vector<size_t> result;
-      fan::graphics::spatial::query_radius(grid, center, radius, [&](size_t idx) {
+      fan::spatial::query_radius(grid, center, radius, [&](size_t idx) {
         result.push_back(idx);
       });
       return result;

@@ -352,13 +352,29 @@ constexpr vec_t rotate(value_type_t angle) const {
   }
 }
 
-constexpr vec_t snap_to_grid(value_type_t grid_size) const {
-  return (*this / grid_size + value_type_t(0.5)).floor() * grid_size;
+constexpr vec_t grid_round(value_type_t grid_size) const {
+  return (*this / grid_size).round() * grid_size;
+}
+constexpr vec_t grid_round(const vec_t& grid_size) const {
+  return (*this / grid_size).round() * grid_size;
 }
 
-constexpr vec_t snap_to_grid(const vec_t& grid_size) const {
-  return (*this / grid_size + value_type_t(0.5)).floor() * grid_size;
+constexpr vec_t grid_floor(value_type_t grid_size, value_type_t offset = 0) const {
+  return (*this / grid_size).floor() * grid_size + offset;
 }
+constexpr vec_t grid_floor(const vec_t& grid_size, const vec_t& offset = vec_t(0)) const {
+  return (*this / grid_size).floor() * grid_size + offset;
+}
+
+#ifndef fan_vector_array
+// Returns cell index
+constexpr vec_t<int> grid_cell(value_type_t grid_size) const {
+  return vec_t<int>((*this / grid_size).floor());
+}
+constexpr vec_t<int> grid_cell(const vec_t& grid_size) const {
+  return vec_t<int>((*this / grid_size).floor());
+}
+#endif
 
 constexpr auto fmod(value_type_t divisor) const { 
   make_for_all(ret[i] = std::fmod((*this)[i], divisor)); 

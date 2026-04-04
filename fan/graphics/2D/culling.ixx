@@ -13,15 +13,15 @@ export module fan.graphics.culling;
 
 import fan.graphics.common_context;
 import fan.graphics.shapes.types;
-import fan.graphics.spatial;
+import fan.spatial;
 import fan.types.vector;
 import fan.physics.types;
 
 export namespace fan::graphics::culling {
 
   enum movement_type_t : uint8_t {
-    movement_static = fan::graphics::spatial::movement_static,
-    movement_dynamic = fan::graphics::spatial::movement_dynamic,
+    movement_static = fan::spatial::movement_static,
+    movement_dynamic = fan::spatial::movement_dynamic,
     movement_sleeping
   };
 
@@ -39,16 +39,16 @@ export namespace fan::graphics::culling {
     uint32_t current_visible = 0;
     uint32_t current_total = 0;
 
-    fan::graphics::spatial::static_grid_t<shaper_t::ShapeID_t> static_grid;
-    fan::graphics::spatial::dynamic_grid_t<shaper_t::ShapeID_t> dynamic_grid;
-    fan::graphics::spatial::registry_t<shaper_t::ShapeID_t> registry;
+    fan::spatial::static_grid_t<shaper_t::ShapeID_t> static_grid;
+    fan::spatial::dynamic_grid_t<shaper_t::ShapeID_t> dynamic_grid;
+    fan::spatial::registry_t<shaper_t::ShapeID_t> registry;
   };
 
   fan::physics::aabb_t get_shape_aabb(shaper_t::ShapeID_t sid);
   void update_shape_vram_if_camera_matches(shaper_t::ShapeID_t sid, const fan::graphics::camera_t& culling_camera, bool push);
 
-  void static_grid_init(fan::graphics::spatial::static_grid_t<shaper_t::ShapeID_t>& grid, const fan::vec2& world_min, const fan::vec2& cell_size, const fan::vec2i& grid_size);
-  void dynamic_grid_init(fan::graphics::spatial::dynamic_grid_t<shaper_t::ShapeID_t>& grid, const fan::vec2& world_min, const fan::vec2& cell_size, const fan::vec2i& grid_size);
+  void static_grid_init(fan::spatial::static_grid_t<shaper_t::ShapeID_t>& grid, const fan::vec2& world_min, const fan::vec2& cell_size, const fan::vec2i& grid_size);
+  void dynamic_grid_init(fan::spatial::dynamic_grid_t<shaper_t::ShapeID_t>& grid, const fan::vec2& world_min, const fan::vec2& cell_size, const fan::vec2i& grid_size);
 
   void add_shape(culling_t& culling, shaper_t::ShapeID_t sid, movement_type_t movement);
   void remove_shape(culling_t& culling, shaper_t::ShapeID_t sid);

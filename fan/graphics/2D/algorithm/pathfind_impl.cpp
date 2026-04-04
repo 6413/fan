@@ -1,7 +1,9 @@
 module;
 
+#include <cstring>
+
 #if defined(FAN_2D)
-#include <fan/graphics/2D/algorithm/AStar.hpp>
+  #include <fan/graphics/2D/algorithm/AStar.hpp>
 #endif
 
 module fan.graphics.algorithm.pathfind;
@@ -31,7 +33,11 @@ void fan::graphics::algorithm::pathfind::generator::set_heuristic(heuristic_func
 
 fan::graphics::algorithm::pathfind::coordinate_list
 fan::graphics::algorithm::pathfind::generator::find_path(vec2i src, vec2i dst) {
-  return impl.findPath(::AStar::Vec2i(src), ::AStar::Vec2i(dst));
+  auto p = impl.findPath(::AStar::Vec2i(src), ::AStar::Vec2i(dst));
+  std::vector<fan::vec2i> res;
+  res.resize(p.size());
+  std::memcpy(res.data(), p.data(), sizeof(fan::vec2i) * res.size());
+  return res;
 }
 
 void fan::graphics::algorithm::pathfind::generator::add_collision(vec2i c) {
@@ -46,7 +52,7 @@ void fan::graphics::algorithm::pathfind::generator::clear_collisions() {
   impl.clearCollisions();
 }
 
-fan::graphics::algorithm::pathfind::coordinate_list&
+std::vector<::AStar::Vec2i>&
 fan::graphics::algorithm::pathfind::generator::get_walls() {
   return impl.getWalls();
 }

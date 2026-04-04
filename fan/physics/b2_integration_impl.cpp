@@ -315,6 +315,20 @@ namespace fan::physics {
     gphysics().set_gravity = [this](const fan::vec2& new_gravity) -> void {
       return set_gravity(new_gravity);
     };
+    fan::physics::debug_draw_cb() = [] (bool enabled, void* render_view) {
+      fan::physics::context_t* ctx = fan::physics::gphysics();
+
+      if (!fan::physics::gphysics()->debug.render_view) {
+        fan::physics::gphysics()->debug.render_view = render_view;
+      }
+
+      ctx->debug.enabled = enabled;
+      ctx->debug.debug_draw = fan::physics::debug_draw_init_cb()(enabled);
+
+      ctx->debug_draw_cb = [ctx]() {
+        b2World_Draw(ctx->world_id, &ctx->debug.debug_draw);
+      };
+    };
   }
 
   void context_t::set_gravity(const fan::vec2& gravity) {

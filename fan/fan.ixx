@@ -57,12 +57,21 @@ export import fan.event;
 #if defined(FAN_PHYSICS_2D)
   export import fan.physics.collision.rectangle;
   export import fan.physics.collision.circle;
+  export import fan.physics.types;
   export import fan.physics.b2_integration;
   export import fan.graphics.physics_shapes;
 #endif
 
-export import fan.graphics.spatial;
+export import fan.spatial;
 export import fan.process;
 
 export import fan.noise;
 export import fan.graphics.algorithm.pathfind;
+
+//export import fan.types.slot_map;
+
+export import fan.types.compile_time_string;
+
+export import fan.formatter;
+
+export import fan.ecs;

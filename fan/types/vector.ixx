@@ -272,6 +272,10 @@ export namespace fan {
       return dir_angle() + (cross(to) > 0 ? 0 : fan::math::half_pi);
     }
 
+    static vec2_wrap_t<value_type_t> from_angle(f32_t angle, f32_t length) {
+      return vec2_wrap_t<value_type_t>(std::cos(angle), std::sin(angle)) * length;
+    }
+
     template <typename T>
     bool is_collinear(const vec2_wrap_t<T>& a) { return a.x == x || a.y == y; }
 

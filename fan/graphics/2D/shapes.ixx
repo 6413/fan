@@ -531,7 +531,19 @@ export namespace fan::graphics {
         return *reinterpret_cast<R*>(&key_pack[o]); 
       }
 
-
+      template<typename vi_t, typename field_t>
+      void mark_dirty(field_t vi_t::* field_ptr) {
+        auto& vid = get_visual_id();
+        if (vid.iic()) return;
+        auto* vdata = get_vdata<vi_t>();
+        if (!vdata) return;
+        auto& sldata = fan::graphics::g_shapes->shaper.ShapeList[vid];
+        fan::graphics::g_shapes->shaper.ElementIsPartiallyEdited(
+          sldata.sti, sldata.blid, sldata.ElementIndex,
+          fan::member_offset(field_ptr),
+          sizeof(field_t)
+        );
+      }
 
       //  
 

@@ -93,6 +93,7 @@ do {                                                                            
     return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_##name(this); \
   } \
   void shapes::shape_t::set_##name(const ret& v) { \
+    if (shapes::shape_t::get_##name() == v) return; \
     fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_##name(this, v); \
   }
 
@@ -101,6 +102,7 @@ do {                                                                            
     return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_##name(this); \
   } \
   void shapes::shape_t::set_##name(const ret& v) { \
+    if (shapes::shape_t::get_##name() == v) return; \
     fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_##name(this, v); \
     update_culling(); \
   }
