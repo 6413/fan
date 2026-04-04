@@ -7,6 +7,7 @@ module;
 #include <string_view>
 #include <charconv>
 #include <expected>
+#include <optional>
 
 export module fan.math;
 
@@ -150,6 +151,14 @@ export namespace fan {
     }
 
     int solve_quadratic(f32_t a, f32_t b, f32_t c, f32_t& root1, f32_t& root2) {
+      if (std::abs(a) < 1e-6f) {
+        if (std::abs(b) < 1e-6f) {
+          return 0;
+        }
+        root1 = root2 = -c / b;
+        return 1;
+      }
+
       f32_t discriminant = b * b - 4 * a * c;
       if (discriminant < 0) {
         root1 = fan::math::inf;
@@ -157,48 +166,45 @@ export namespace fan {
         return 0;
       }
 
-      root1 = (-b + sqrt(discriminant)) / (2 * a);
-      root2 = (-b - sqrt(discriminant)) / (2 * a);
+      f32_t q = -0.5f * (b + std::copysign(std::sqrt(discriminant), b));
+      root1 = q / a;
+      root2 = c / q;
 
       return discriminant > 0 ? 2 : 1;
     }
 
     template <typename T>
     bool interception_direction(const T& a, const T& b, const T& v_a, f32_t s_b, T& result) {
-      T a_to_b = b - a;
-      f32_t d_c = a_to_b.length();
+      T d = a - b;
+      f32_t a_coef = v_a.x * v_a.x + v_a.y * v_a.y - s_b * s_b;
+      f32_t b_coef = 2 * (d.x * v_a.x + d.y * v_a.y);
+      f32_t c_coef = d.x * d.x + d.y * d.y;
 
-      T x = a_to_b;
-      T y = v_a;
+      f32_t t1;
+      f32_t t2;
 
-      f32_t alpha = atan2(y.y, y.x) - atan2(x.y, x.x);
-      f32_t s_a = v_a.length();
-      f32_t r = s_a / s_b;
-
-      f32_t root1;
-      f32_t root2;
-
-      if (solve_quadratic(1 - r * r, 2 * r * d_c * cos(alpha), -(d_c * d_c), root1, root2) == 0) {
-        result = 0;
+      if (solve_quadratic(a_coef, b_coef, c_coef, t1, t2) == 0) {
+        result = T(0);
         return false;
       }
 
-      f32_t d_a = root1 > root2 ? root1 : root2;
-      f32_t t = d_a / s_b;
-      T c = a + v_a * t;
-      result = (c - b).normalize();
-      return true;
+      f32_t t = t1 > 0 && t2 > 0 ? std::min(t1, t2) : std::max(t1, t2);
+      if (t < 0) {
+        result = T(0);
+        return false;
+      }
 
+      result = (d + v_a * t).normalize();
+      return true;
     }
 
-    // no delta
     template <typename T>
-    T aimbot(f32_t bullet_speed, const T& start_position, const T& target_position, const T& target_vel) {
+    std::optional<T> aimbot(f32_t bullet_speed, const T& start_position, const T& target_position, const T& target_vel) {
       T direction;
-      if (interception_direction(target_position, start_position, target_vel, 2 * (bullet_speed / 10), direction)) {
+      if (interception_direction(target_position, start_position, target_vel, bullet_speed, direction)) {
         return direction;
       }
-      return fan::math::inf;
+      return std::nullopt;
     }
 
     inline auto pythagorean(f_t a, f_t b) {

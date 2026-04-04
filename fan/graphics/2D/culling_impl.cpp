@@ -95,13 +95,13 @@ namespace fan::graphics::culling {
     return aabb;
   }
 
-  void static_grid_init(fan::graphics::spatial::static_grid_t<shaper_t::ShapeID_t>& grid, const fan::vec2& world_min, const fan::vec2& cell_size, const fan::vec2i& grid_size) {
-    fan::graphics::spatial::static_grid_init(grid, world_min, cell_size, grid_size);
+  void static_grid_init(fan::spatial::static_grid_t<shaper_t::ShapeID_t>& grid, const fan::vec2& world_min, const fan::vec2& cell_size, const fan::vec2i& grid_size) {
+    fan::spatial::static_grid_init(grid, world_min, cell_size, grid_size);
     dbg("[static_grid_init]", "world_min", world_min.x, world_min.y, "cell_size", cell_size.x, cell_size.y, "grid_size", grid_size.x, grid_size.y, "cells", (uint32_t)grid.cells.size());
   }
 
-  void dynamic_grid_init(fan::graphics::spatial::dynamic_grid_t<shaper_t::ShapeID_t>& grid, const fan::vec2& world_min, const fan::vec2& cell_size, const fan::vec2i& grid_size) {
-    fan::graphics::spatial::dynamic_grid_init(grid, world_min, cell_size, grid_size);
+  void dynamic_grid_init(fan::spatial::dynamic_grid_t<shaper_t::ShapeID_t>& grid, const fan::vec2& world_min, const fan::vec2& cell_size, const fan::vec2i& grid_size) {
+    fan::spatial::dynamic_grid_init(grid, world_min, cell_size, grid_size);
     dbg("[dynamic_grid_init]", "world_min", world_min.x, world_min.y, "cell_size", cell_size.x, cell_size.y, "grid_size", grid_size.x, grid_size.y, "cells", (uint32_t)grid.cells.size());
   }
 
@@ -137,7 +137,7 @@ namespace fan::graphics::culling {
   static inline void check_and_push_shape_to_cameras(culling_t& culling, shaper_t::ShapeID_t sid, const fan::physics::aabb_t& aabb) {
     uint32_t nr = sid.NRI;
     for (auto& [cam_id, cam_state] : culling.camera_states) {
-      if (cam_state.cached_view_min != cam_state.cached_view_max && fan::graphics::spatial::is_aabb_in_view(aabb, cam_state.cached_view_min, cam_state.cached_view_max)) {
+      if (cam_state.cached_view_min != cam_state.cached_view_max && fan::spatial::is_aabb_in_view(aabb, cam_state.cached_view_min, cam_state.cached_view_max)) {
         fan::graphics::camera_t cam;
         cam.NRI = cam_id;
         update_shape_vram_if_camera_matches(sid, cam, true);
@@ -156,13 +156,13 @@ namespace fan::graphics::culling {
 
     auto aabb = get_shape_aabb(sid);
     
-    fan::graphics::spatial::add_object(
+    fan::spatial::add_object(
       culling.registry,
       culling.static_grid,
       culling.dynamic_grid,
       sid,
       aabb,
-      (fan::graphics::spatial::movement_type_t)movement
+      (fan::spatial::movement_type_t)movement
     );
     
     dbg("[add_shape]", "sid", nr, "movement", movement == movement_static ? "static" : "dynamic");
@@ -170,8 +170,8 @@ namespace fan::graphics::culling {
     if (movement == movement_static) {
       dbg("[add_shape]", "static_shapes.size", (uint32_t)culling.registry.static_objects.size());
       dbg_aabb("[add_static_shape_to_grid] AABB", nr, aabb);
-      auto min_cell = fan::graphics::spatial::world_to_cell_clamped(aabb.min, culling.static_grid.world_min, culling.static_grid.cell_size, culling.static_grid.grid_size);
-      auto max_cell = fan::graphics::spatial::world_to_cell_clamped(aabb.max, culling.static_grid.world_min, culling.static_grid.cell_size, culling.static_grid.grid_size);
+      auto min_cell = fan::spatial::world_to_cell_clamped(aabb.min, culling.static_grid.world_min, culling.static_grid.cell_size, culling.static_grid.grid_size);
+      auto max_cell = fan::spatial::world_to_cell_clamped(aabb.max, culling.static_grid.world_min, culling.static_grid.cell_size, culling.static_grid.grid_size);
       dbg_cells("                               span", min_cell, max_cell);
       if (!culling.enabled) {
         sp->push_shaper();
@@ -182,9 +182,9 @@ namespace fan::graphics::culling {
     }
     else {
       auto center = (aabb.min + aabb.max) * 0.5f;
-      auto cell = fan::graphics::spatial::world_to_cell_clamped(center, culling.dynamic_grid.world_min, culling.dynamic_grid.cell_size, culling.dynamic_grid.grid_size);
+      auto cell = fan::spatial::world_to_cell_clamped(center, culling.dynamic_grid.world_min, culling.dynamic_grid.cell_size, culling.dynamic_grid.grid_size);
       uint32_t id = (uint32_t)culling.dynamic_grid.objects.size() - 1;
-      int idx = fan::graphics::spatial::cell_index(cell, culling.dynamic_grid.grid_size);
+      int idx = fan::spatial::cell_index(cell, culling.dynamic_grid.grid_size);
       dbg("[add_shape]", "dynamic id", id, "sid", nr, "center", center.x, center.y, "cell", cell.x, cell.y, "idx", idx);
       dbg_aabb("           dyn AABB", nr, aabb);
       if (!culling.enabled) {
@@ -221,8 +221,8 @@ namespace fan::graphics::culling {
       auto aabb_it = culling.registry.aabb_cache.find(sid);
       if (aabb_it != culling.registry.aabb_cache.end()) {
         dbg_aabb("[remove_static_shape_from_grid] AABB", nr, aabb_it->second);
-        auto min_cell = fan::graphics::spatial::world_to_cell_clamped(aabb_it->second.min, culling.static_grid.world_min, culling.static_grid.cell_size, culling.static_grid.grid_size);
-        auto max_cell = fan::graphics::spatial::world_to_cell_clamped(aabb_it->second.max, culling.static_grid.world_min, culling.static_grid.cell_size, culling.static_grid.grid_size);
+        auto min_cell = fan::spatial::world_to_cell_clamped(aabb_it->second.min, culling.static_grid.world_min, culling.static_grid.cell_size, culling.static_grid.grid_size);
+        auto max_cell = fan::spatial::world_to_cell_clamped(aabb_it->second.max, culling.static_grid.world_min, culling.static_grid.cell_size, culling.static_grid.grid_size);
         dbg_cells("                                      span", min_cell, max_cell);
       }
     }
@@ -234,7 +234,7 @@ namespace fan::graphics::culling {
       }
     }
 
-    fan::graphics::spatial::remove_object(
+    fan::spatial::remove_object(
       culling.registry,
       culling.static_grid,
       culling.dynamic_grid,
@@ -267,7 +267,7 @@ namespace fan::graphics::culling {
     auto aabb = get_shape_aabb(sid);
     dbg_aabb("[update_dynamic] new AABB", nr, aabb);
     
-    fan::graphics::spatial::update_dynamic_object(
+    fan::spatial::update_dynamic_object(
       culling.registry,
       culling.dynamic_grid,
       sid,
@@ -300,13 +300,13 @@ namespace fan::graphics::culling {
     culling.current_total = (uint32_t)culling.registry.static_objects.size() + (uint32_t)culling.dynamic_grid.objects.size();
     dbg("[cull]", "totals static", (uint32_t)culling.registry.static_objects.size(), "dynamic", (uint32_t)culling.dynamic_grid.objects.size(), "total", culling.current_total);
 
-    auto min_cell = fan::graphics::spatial::world_to_cell_clamped(view_min, culling.static_grid.world_min, culling.static_grid.cell_size, culling.static_grid.grid_size);
-    auto max_cell = fan::graphics::spatial::world_to_cell_clamped(view_max, culling.static_grid.world_min, culling.static_grid.cell_size, culling.static_grid.grid_size);
+    auto min_cell = fan::spatial::world_to_cell_clamped(view_min, culling.static_grid.world_min, culling.static_grid.cell_size, culling.static_grid.grid_size);
+    auto max_cell = fan::spatial::world_to_cell_clamped(view_max, culling.static_grid.world_min, culling.static_grid.cell_size, culling.static_grid.grid_size);
     dbg_cells("[cull] curr span", min_cell, max_cell);
 
     std::unordered_map<uint32_t, uint8_t> new_visible;
 
-    fan::graphics::spatial::query_area(
+    fan::spatial::query_area(
       culling.static_grid,
       culling.dynamic_grid,
       view_min,
@@ -318,7 +318,7 @@ namespace fan::graphics::culling {
           return;
         }
 
-        bool overlaps = fan::graphics::spatial::is_aabb_in_view(aabb_it->second, view_min, view_max);
+        bool overlaps = fan::spatial::is_aabb_in_view(aabb_it->second, view_min, view_max);
         dbg("[test]", "sid", nr, "aabb.min", aabb_it->second.min.x, aabb_it->second.min.y, "aabb.max", aabb_it->second.max.x, aabb_it->second.max.y, "overlaps", overlaps ? "yes" : "no");
 
         if (overlaps) {
@@ -390,14 +390,14 @@ namespace fan::graphics::culling {
 
       dbg_aabb("  -> AABB", nr, aabb);
 
-      auto min_cell = fan::graphics::spatial::world_to_cell_clamped(
+      auto min_cell = fan::spatial::world_to_cell_clamped(
         aabb.min,
         culling.static_grid.world_min,
         culling.static_grid.cell_size,
         culling.static_grid.grid_size
       );
 
-      auto max_cell = fan::graphics::spatial::world_to_cell_clamped(
+      auto max_cell = fan::spatial::world_to_cell_clamped(
         aabb.max,
         culling.static_grid.world_min,
         culling.static_grid.cell_size,
@@ -463,20 +463,20 @@ namespace fan::graphics::culling {
     culling.current_visible = 0;
     culling.current_total = 0;
 
-    fan::graphics::spatial::reset(
+    fan::spatial::reset(
       culling.static_grid,
       culling.dynamic_grid,
       culling.registry
     );
 
-    fan::graphics::spatial::static_grid_init(
+    fan::spatial::static_grid_init(
       culling.static_grid,
       culling.static_grid.world_min,
       culling.static_grid.cell_size,
       culling.static_grid.grid_size
     );
 
-    fan::graphics::spatial::dynamic_grid_init(
+    fan::spatial::dynamic_grid_init(
       culling.dynamic_grid,
       culling.dynamic_grid.world_min,
       culling.dynamic_grid.cell_size,

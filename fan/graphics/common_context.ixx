@@ -545,6 +545,7 @@ export namespace fan::graphics {
   fan::vec2 get_mouse_position();
   fan::vec2 get_mouse_position(const camera_t& camera, const viewport_t& viewport);
   fan::vec2 get_mouse_position(const fan::graphics::render_view_t& render_view);
+  fan::vec2 get_mouse_world_pos();
 
   struct icons_t {
     image_t play;

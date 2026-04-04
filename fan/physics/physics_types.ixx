@@ -9,6 +9,7 @@ export module fan.physics.types;
 
 import fan.types;
 import fan.types.vector;
+import fan.math;
 
 export namespace fan::physics {
   // allow aabb build without flag
@@ -57,6 +58,42 @@ export namespace fan::physics {
       return p.x >= min.x && p.x <= max.x &&
         p.y >= min.y && p.y <= max.y;
     }
+
+    constexpr bool segment_intersect(const fan::vec2& start, const fan::vec2& end) const {
+      fan::vec2 dir = end - start;
+      f32_t tmin = 0.f, tmax = 1.f;
+      auto check = [&](f32_t p, f32_t d, f32_t bmin, f32_t bmax) {
+        if (fan::math::abs(d) < 1e-6f) { return p >= bmin && p <= bmax; }
+        f32_t t0 = (bmin - p) / d, t1 = (bmax - p) / d;
+        if (t0 > t1) { std::swap(t0, t1); }
+        tmin = fan::math::max(tmin, t0);
+        tmax = fan::math::min(tmax, t1);
+        return tmax >= tmin;
+      };
+      return check(start.x, dir.x, min.x, max.x) &&
+             check(start.y, dir.y, min.y, max.y);
+    }
+    static constexpr aabb_t from_center(const fan::vec2& center, const fan::vec2& half_size) {
+      return aabb_t {center - half_size, center + half_size};
+    }
+    constexpr auto center() const {
+      return (min + max) * 0.5f;
+    }
+    constexpr auto extents() const {
+      return (max - min) * 0.5f;
+    }
+    bool push_out(fan::vec2& point, f32_t distance) const {
+      fan::vec2 c = center();
+      fan::vec2 e = extents();
+      fan::vec2 d = point - c;
+
+      if (std::abs(d.x) < e.x && std::abs(d.y) < e.y) {
+        if (d.x == 0.f && d.y == 0.f) { d.y = 1.f; }
+        point += d.normalize() * distance;
+        return true;
+      }
+      return false;
+    }
   };
 
 #if defined(FAN_PHYSICS_2D)
@@ -99,4 +136,18 @@ export namespace fan::physics {
 
   using body_type = b2BodyType;
 #endif
+
+  // TODO think some other way to make this, not multi engine safe
+  auto& debug_draw_cb() {
+    static std::function<void(bool enabled, void* render_view)> func;
+    return func;
+  }
+  auto& debug_draw_init_cb() {
+    static std::function<b2DebugDraw(bool enabled)> func;
+    return func;
+  }
+  bool& is_debug_draw_enabled() {
+    static bool enabled = false;
+    return enabled;
+  }
 }

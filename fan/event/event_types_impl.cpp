@@ -1,4 +1,3 @@
-// fan/event/event_types_impl.cpp
 module;
 
 #include <uv.h>

@@ -185,10 +185,8 @@ void DrawString(b2Vec2 p, const char* s, b2HexColor color, void* context) {
 #endif
 }
 
-bool g_debug_draw_enabled = false;
-
 b2DebugDraw initialize_debug(bool enabled) {
-  g_debug_draw_enabled = enabled;
+  fan::physics::is_debug_draw_enabled() = enabled;
   return b2DebugDraw {
     .DrawPolygonFcn = (decltype(b2DebugDraw::DrawPolygonFcn))DrawPolygon,
     .DrawSolidPolygonFcn = DrawSolidPolygon,
@@ -233,27 +231,12 @@ b2DebugDraw initialize_debug(bool enabled) {
   };
 }
 
+bool __init_debug = [] {
+  fan::physics::debug_draw_init_cb() = initialize_debug;
+  return true;
+}();
+
 namespace fan::graphics::physics {
-
-  void debug_draw(bool enabled) {
-    fan::physics::context_t* ctx = fan::physics::gphysics();
-
-    if (!fan::physics::gphysics()->debug.render_view) {
-      fan::physics::gphysics()->debug.render_view = &fan::graphics::get_orthographic_render_view();
-    }
-
-    ctx->debug.enabled = enabled;
-    ctx->debug.debug_draw = initialize_debug(enabled);
-
-    ctx->debug_draw_cb = [ctx]() {
-      b2World_Draw(ctx->world_id, &ctx->debug.debug_draw);
-    };
-  }
-
-  bool get_debug_draw() {
-    return fan::physics::gphysics()->debug.enabled;
-  }
-
   void shape_physics_update(const fan::physics::physics_update_data_t& data) {
     if (!b2Body_IsValid(*(b2BodyId*)&data.body_id)) {
       //   fan::print("invalid body data (corruption)");

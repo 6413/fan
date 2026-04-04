@@ -138,11 +138,14 @@ namespace fan::graphics::gui {
       }*/
       set_cursor_pos_y(y_pos);
 
-      std::string button_id = "##toggle_image_button" + std::to_string(i) + std::to_string((uint64_t)&clicked);
-      if (fan::graphics::gui::image_button(std::string_view(button_id), *(images + i), size)) {
+      gui::push_id(i);
+      gui::push_id(&clicked);
+      if (fan::graphics::gui::image_button("##toggle", *(images + i), size)) {
         *selectedIndex = i;
         clicked = true;
       }
+      gui::pop_id();
+      gui::pop_id();
       if (pushed) {
         pop_style_color();
         pushed = false;
@@ -876,10 +879,8 @@ namespace fan::graphics::gui {
       for (const auto& [file_info, original_index] : sorted_files) {
         handle_keyboard_navigation(file_info.filename, pressed_key);
 
-        std::string unique_id = "search_" + std::to_string(original_index) + "_" + file_info.filename;
-        push_id(std::string_view(unique_id));
-        unique_id.insert(0, "##");
-
+        gui::push_id(original_index);
+        gui::push_id(file_info.filename.c_str());
         fan::vec2 item_pos = get_cursor_screen_pos();
         bool is_currently_selected = search_state.found_files[original_index].is_selected;
 
@@ -895,7 +896,7 @@ namespace fan::graphics::gui {
         }
 
         bool item_clicked = image_button(
-          std::string_view(unique_id),
+          "##",
           fan::graphics::is_image_valid(file_info.preview_image) ? file_info.preview_image
           : file_info.is_directory ? icon_directory : file_info.filename.ends_with(".json") ? icon_object : icon_file,
           fan::vec2(thumbnail_size, thumbnail_size)
@@ -934,6 +935,7 @@ namespace fan::graphics::gui {
         pop_style_color(3);
         text_wrapped(file_info.filename);
         next_column();
+        pop_id();
         pop_id();
       }
     }

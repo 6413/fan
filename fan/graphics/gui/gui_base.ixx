@@ -71,6 +71,12 @@ export namespace fan::graphics::gui {
 
   bool button(str_view_t label, const fan::vec2& size = fan::vec2(0, 0));
   bool button(str_view_t label, const fan::vec2& size, f32_t font_size, bool bold = false);
+  bool button_centered(
+    str_view_t label, 
+    const fan::vec2& size = fan::vec2(0, 0),
+    const fan::vec2i& affects_axis = fan::vec2i(1, 1),
+    const fan::vec2& offset = 0.f
+  );
 
   bool button_fill(str_view_t label);
 
@@ -106,12 +112,20 @@ export namespace fan::graphics::gui {
   }
 
   /// <summary>
+  /// Draws the specified text at a given position on the screen, moving the cursor.
+  /// </summary>
+  /// <param name="text">The text to draw.</param>
+  /// <param name="position">The position of the text (local-space).</param>
+  /// <param name="color">The color of the text (defaults to white).</param>
+  void text_at(std::string_view text, const fan::vec2& position = 0, const fan::color& color = fan::colors::white);
+
+  /// <summary>
   /// Draws the specified text at a given position on the screen.
   /// </summary>
   /// <param name="text">The text to draw.</param>
-  /// <param name="position">The position of the text.</param>
+  /// <param name="position">The position of the text (screen-space).</param>
   /// <param name="color">The color of the text (defaults to white).</param>
-  void text_at(std::string_view text, const fan::vec2& position = 0, const fan::color& color = fan::colors::white);
+  void text_at_abs(std::string_view text, const fan::vec2& position = 0, const fan::color& color = fan::colors::white);
 
   void text_wrapped(std::string_view text, const fan::color& color = fan::colors::white);
 
@@ -119,13 +133,14 @@ export namespace fan::graphics::gui {
 
   void text_disabled(std::string_view text);
 
-  /// <summary>
-  /// Draws text centered horizontally.
-  /// </summary>
-  /// <param name="text">The text to draw.</param>
-  /// <param name="color">The color of the text (defaults to white).</param>
-  /// <param name="offset">Offset from center position.</param>
-  void text_centered(std::string_view text, const fan::color& color = fan::colors::white);
+  // text_offset [-1, 1] 1 being full size of the text
+  // window_offset [-1, 1] 0 being center of window
+  void text_centered(
+    std::string_view text, 
+    const fan::color& color = fan::colors::white, 
+    const fan::vec2& text_offset = 0.5f,
+    const fan::vec2& window_offset = 0.f
+  );
 
   /// <summary>
   /// Draws text centered at a specific position.
@@ -555,6 +570,13 @@ export namespace fan::graphics::gui {
 
   bool button_behavior(const gui::rect_t& bb, gui::id_t id, bool* out_hovered, bool* out_held, int flags = 0);
 
+  void rect_with_border(
+    const fan::vec2& size = 0.f,
+    const fan::color border_color = -1.f,
+    f32_t border_thickness = 1.f,
+    f32_t rounding = 0.f
+  );
+
   gui::table_data_t* get_current_table();
 
   void show_debug_log_window(bool* p_open = nullptr);
@@ -787,9 +809,16 @@ export namespace fan::graphics::gui {
   };
 
   struct hud_interactive {
-    hud_interactive(str_view_t name, bool* p_open = 0);
+    hud_interactive(str_view_t name, f32_t transparency = 0.f, bool* p_open = 0);
     operator bool() const;
   private:
+    window wnd;
+  };
+
+  struct hud_interactive_custom {
+    hud_interactive_custom(str_view_t name, f32_t transparency = 0.f, bool* p_open = 0);
+    operator bool() const;
+    private:
     window wnd;
   };
 
@@ -973,41 +1002,34 @@ export namespace fan::graphics::gui {
     }
     return std::nullopt;
   }
-
-  template<typename render_button_t, typename get_label_t, typename is_enabled_t, typename on_click_idx_t>
-  void button_row_impl(int count, get_label_t&& get_label, is_enabled_t&& is_enabled, const fan::vec2& size, render_button_t&& render_button, on_click_idx_t&& on_click_idx) {
-    for (int i = 0; i < count; ++i) {
+  template <typename label_fn_t, typename enabled_fn_t, typename on_click_t>
+  void button_row(std::ranges::range auto&& data, label_fn_t&& label_fn, enabled_fn_t&& enabled_fn, const fan::vec2& size, on_click_t&& on_click) {
+    int i = 0;
+    for (auto&& item : data) {
       if (i) { same_line(); }
-      auto label = get_label(i);
-      bool enabled = is_enabled(i);
+      bool enabled = enabled_fn(item);
       if (!enabled) { begin_disabled(); }
-      if (render_button(label, size) && enabled) { on_click_idx(i); }
+      auto label = label_fn(item);
+      if (button(label, size) && enabled) { on_click(i); }
       if (!enabled) { end_disabled(); }
+      ++i;
     }
   }
 
-  template <typename T, std::size_t N, typename label_fn_t, typename enabled_fn_t, typename on_click_t>
-  void button_row(std::span<const T, N> data, label_fn_t&& label_fn, enabled_fn_t&& enabled_fn, const fan::vec2& size, on_click_t&& on_click) {
-    button_row_impl((int)data.size(),
-      [&](int i) { return label_fn(data[i]); },
-      [&](int i) { return enabled_fn(data[i]); },
-      size,
-      [](auto lbl, const fan::vec2& s) { return button(lbl, s); },
-      std::forward<on_click_t>(on_click)
-    );
-  }
   template <typename on_click_t>
-  void button_row(std::initializer_list<const char*> labels, const fan::vec2& size, f32_t font_size, on_click_t&& on_click) {
-    auto data = std::span(labels);
-    button_row_impl((int)data.size(),
-      [&](int i) { return data[i]; },
-      [&](int) { return true; },
-      size,
-      [font_size](const char* lbl, const fan::vec2& s) { return button(lbl, s, font_size); },
-      [on_click = std::forward<on_click_t>(on_click), data](int i) { on_click(i, data[i]); }
-    );
+  void button_row(std::ranges::range auto&& labels, const fan::vec2& size, f32_t font_size, on_click_t&& on_click) {
+    int i = 0;
+    for (auto&& lbl : labels) {
+      if (i) { same_line(); }
+      if (button(lbl, size, font_size)) { on_click(i, lbl); }
+      ++i;
+    }
   }
 
+  template <typename on_click_t>
+  void button_row(std::initializer_list<fan::str_view_t> labels, const fan::vec2& size, f32_t font_size, on_click_t&& on_click) {
+    button_row(std::span(labels), size, font_size, std::forward<on_click_t>(on_click));
+  }
   void healthbar(int value, int max, fan::vec2 size, const fan::color& fill = fan::colors::green, const fan::color& bg = fan::color(0.2f, 0.2f, 0.2f, 1.f));
   void healthbar_labeled(
     fan::str_view_t label,
@@ -1018,7 +1040,6 @@ export namespace fan::graphics::gui {
     const fan::color& bg = fan::color(0.2f, 0.2f, 0.2f, 1.f)
   );
 
-  void gold_text(int amount, const fan::color& color = fan::color(1.f, 0.85f, 0.f, 1.f));
   void disabled_button_row(const std::string* labels, const bool* enabled, int count, fan::vec2 size, std::function<void(int)> on_click);
   void disabled_button_row(
     std::span<const fan::str_view_t> labels,
@@ -1027,7 +1048,26 @@ export namespace fan::graphics::gui {
     std::function<void(int)> on_click
   );
 
+  void window_anchor_top_left(const fan::vec2& offset);
+  void window_anchor_top_center(const fan::vec2& offset);
+  void window_anchor_top_right(const fan::vec2& offset);
+  void window_anchor_center_left(const fan::vec2& offset);
+  void window_anchor_center(const fan::vec2& offset);
+  void window_anchor_center_right(const fan::vec2& offset);
+  void window_anchor_bottom_left(const fan::vec2& offset);
+  void window_anchor_bottom_center(const fan::vec2& offset);
+  void window_anchor_bottom_right(const fan::vec2& offset);
+
+  void anchor_top_left(const fan::vec2& offset);
+  void anchor_top_center(const fan::vec2& offset);
+  void anchor_top_right(const fan::vec2& offset);
+  void anchor_center_left(const fan::vec2& offset);
+  void anchor_screen_center(const fan::vec2& offset);
+  void anchor_center_right(const fan::vec2& offset);
+  void anchor_bottom_left(const fan::vec2& offset);
   void anchor_bottom_center(const fan::vec2& offset);
+  void anchor_bottom_right(const fan::vec2& offset);
+  void anchor_center(const fan::vec2& window_size, const fan::vec2& item_size = 0.f, int item_count = 1);
   fan::vec2 get_display_size();
 } // namespace fan::graphics::gui
 

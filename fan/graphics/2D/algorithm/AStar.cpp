@@ -28,6 +28,10 @@ AStar::Generator::Generator()
     };
 }
 
+AStar::Vec2i AStar::Generator::getWorldSize() const {
+    return worldSize;
+}
+
 void AStar::Generator::setWorldSize(Vec2i worldSize_)
 {
     worldSize = worldSize_;

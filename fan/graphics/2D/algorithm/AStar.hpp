@@ -64,6 +64,7 @@ namespace AStar
 
     public:
         Generator();
+        Vec2i getWorldSize() const;
         void setWorldSize(Vec2i worldSize_);
         void setDiagonalMovement(bool enable_);
         void setHeuristic(HeuristicFunction heuristic_);
