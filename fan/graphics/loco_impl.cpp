@@ -930,9 +930,7 @@ static void loco_init_renderer(loco_t* l) {
 #if defined(FAN_OPENGL)
   if (l->window.renderer == fan::window_t::renderer_t::opengl) {
     new (&l->context.gl) fan::opengl::context_t();
-    l->context_functions = fan::graphics::get_gl_context_functions();
     l->gl = new loco_t::opengl;
-    l->gl->open();
   }
 #endif
 }
@@ -972,6 +970,9 @@ static void loco_init_renderer_post_window(loco_t* l) {
 #if defined(FAN_OPENGL)
   if (l->window.renderer == fan::window_t::renderer_t::opengl) {
     l->window.make_context_current();
+    l->context.gl.open();
+    l->context_functions = fan::graphics::get_gl_context_functions();
+    l->gl->open();
 #if FAN_DEBUG >= fan_debug_high
     l->get_context().gl.set_error_callback();
 #endif
@@ -1180,6 +1181,7 @@ void loco_t::switch_renderer(uint8_t renderer) {
     if (window.renderer == fan::window_t::renderer_t::opengl) {
       context_functions = fan::graphics::get_gl_context_functions();
       new (&context.gl) fan::opengl::context_t();
+      context.gl.open();
       gl->open();
     }
   #endif
@@ -1543,7 +1545,7 @@ void loco_t::process_gui() {
 }
 
 void loco_t::get_vram_usage(int* total_mem_MB, int* used_MB) {
-  if (glewIsSupported("GL_NVX_gpu_memory_info")) {
+  if (GLAD_GL_NVX_gpu_memory_info) {
     glGetIntegerv(GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX, (GLint*)total_mem_MB);
 
     GLint currently_available_kb = 0;

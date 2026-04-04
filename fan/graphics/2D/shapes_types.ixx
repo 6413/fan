@@ -2,6 +2,7 @@ module;
 #if defined(FAN_2D)
 
 #include <fan/utility.h>
+#include <cstdint>
 #include <type_traits>
 #include <algorithm>
 #include <source_location>
