@@ -537,6 +537,11 @@ public:
 
   fan::graphics::shader_t get_sprite_shader(const std::string& fragment);
 
+  std::string      get_renderer_string();
+  std::string_view get_platform_string();
+  std::string_view get_build_string();
+  std::string_view get_physics_string();
+
 #if defined(FAN_GUI)
   void toggle_console();
   void toggle_console(bool active);

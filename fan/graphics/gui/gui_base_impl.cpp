@@ -382,6 +382,22 @@ namespace fan::graphics::gui {
     return ImGui::ButtonBehavior(bb, id, out_hovered, out_held, flags);
   }
 
+  void rect_with_border(
+    const fan::vec2& size,
+    const fan::color border_color,
+    f32_t border_thickness,
+    f32_t rounding
+  )
+  {
+    auto dl = get_window_draw_list();
+    fan::vec2 p0 = get_cursor_screen_pos();
+    fan::vec2 p1(p0.x + size.x, p0.y + size.y);
+    dl->AddRectFilled(p0, p1, border_thickness, rounding);
+    dl->AddRect(p0, p1, border_color == fan::color(-1.f) ? get_color(col_border) : border_color, rounding, 0, border_thickness);
+    dummy(size);
+  }
+
+
   gui::table_data_t* get_current_table() {
     return ImGui::GetCurrentTable();
   }
@@ -831,7 +847,6 @@ namespace fan::graphics::gui {
       want_io() = false;
       return;
     }
-
     if (g->HoveredWindow) {
       std::string nav_window_name = g->HoveredWindow->Name;
       if (nav_window_name.rfind("WindowOverViewport_", 0) == 0) {
@@ -844,7 +859,6 @@ namespace fan::graphics::gui {
       want_io() = false;
       return;
     }
-
     want_io() = op_or ? (want_io() | flag) : flag;
   }
 
@@ -910,6 +924,19 @@ namespace fan::graphics::gui {
     return button(label, size);
   }
 
+  bool button_centered(str_view_t label, const fan::vec2& size, const fan::vec2i& affects_axis, const fan::vec2& offset) {
+    ImVec2 s = size.x == 0
+      ? ImGui::CalcTextSize(label.data(), label.data() + label.size()) + ImGui::GetStyle().FramePadding * 2.0f
+      : ImVec2(size.x, size.y);
+
+    ImVec2 pos = ImGui::GetCursorPos();
+    if (affects_axis.x) pos.x = (ImGui::GetWindowSize().x - s.x) * 0.5f;
+    if (affects_axis.y) pos.y = ImGui::GetWindowSize().y * 0.5f - s.y * 0.5f;
+
+    ImGui::SetCursorPos(pos + offset);
+    return ImGui::Button(label.data(), ImVec2(s.x, s.y));
+  }
+
   bool button_fill(str_view_t label) {
     return button(label, {-1.f, 0.f});
   }
@@ -936,6 +963,13 @@ namespace fan::graphics::gui {
   }
 
   void text_at(std::string_view text, const fan::vec2& position, const fan::color& color) {
+    ImGui::SetCursorPos(ImVec2(position.x, position.y));
+    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(color.r, color.g, color.b, color.a));
+    ImGui::TextUnformatted(text.data(), text.data() + text.size());
+    ImGui::PopStyleColor();
+  }
+
+  void text_at_abs(std::string_view text, const fan::vec2& position, const fan::color& color) {
     ImDrawList* dl = ImGui::GetWindowDrawList();
     ImU32 col = ImGui::ColorConvertFloat4ToU32(ImVec4(color.r, color.g, color.b, color.a));
     dl->AddText(ImVec2(position.x, position.y), col, text.data(), text.data() + text.size());
@@ -957,15 +991,37 @@ namespace fan::graphics::gui {
     ImGui::TextDisabled("%.*s", (int)text.size(), text.data());
   }
 
-  void text_centered(std::string_view text, const fan::color& color) {
+  //void text_centered(std::string_view text, const fan::color& color) {
+  //  fan::vec2 text_size_v = calc_text_size(text);
+  //  fan::vec2 current_pos = get_cursor_pos();
+  //  current_pos -= text_size_v;
+  //  //current_pos.x = (window_size.x - text_size_v.x) * 0.5f;
+  //  set_cursor_pos(current_pos);
+  //  ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(color.r, color.g, color.b, color.a));
+  //  ImGui::TextUnformatted(text.data(), text.data() + text.size());
+  //  ImGui::PopStyleColor();
+  //}
+
+  void text_centered(
+    std::string_view text,
+    const fan::color& color,
+    const fan::vec2& text_offset,
+    const fan::vec2& window_offset
+  ) {
     fan::vec2 text_size_v = calc_text_size(text);
     fan::vec2 window_size = get_window_size();
     fan::vec2 current_pos = get_cursor_pos();
-    current_pos.x = (window_size.x - text_size_v.x) * 0.5f;
-    set_cursor_pos(current_pos);
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(color.r, color.g, color.b, color.a));
-    ImGui::TextUnformatted(text.data(), text.data() + text.size());
-    ImGui::PopStyleColor();
+
+    // Apply window offset: [-1,1] where 0 = center
+    fan::vec2 window_center = window_size * 0.5f;
+    fan::vec2 window_offset_px = window_center + (window_size * 0.5f) * window_offset;
+
+    // Apply text offset: [-1,1] relative to text size
+    fan::vec2 text_offset_px = text_size_v * text_offset;
+
+    // Final position
+    current_pos = window_offset_px - text_offset_px;
+    gui::text_at(text, current_pos, color);
   }
 
   void text_centered_at(std::string_view text, const fan::vec2& center_position, const fan::color& color) {
@@ -1866,16 +1922,16 @@ namespace fan::graphics::gui {
     return static_cast<bool>(wnd);
   }
 
-  hud_interactive::hud_interactive(str_view_t name, bool* p_open)
+  hud_interactive::hud_interactive(str_view_t name, f32_t transparency, bool* p_open)
     : wnd(
       (
         gui::set_next_window_pos(gui::get_viewport_rect().position),
         gui::set_next_window_size(gui::get_viewport_rect().size),
-        gui::set_next_window_bg_alpha(0.f),
+        gui::set_next_window_bg_alpha(transparency),
         name
-        ),
+      ),
       p_open,
-      gui::window_flags_no_background |
+      (transparency ? 0ULL : gui::window_flags_no_background) |
       gui::window_flags_no_title_bar |
       gui::window_flags_no_resize |
       gui::window_flags_no_move |
@@ -1889,6 +1945,26 @@ namespace fan::graphics::gui {
     return static_cast<bool>(wnd);
   }
 
+  hud_interactive_custom::hud_interactive_custom(str_view_t name, f32_t transparency, bool* p_open)
+    : wnd(
+      (
+        gui::set_next_window_bg_alpha(transparency),
+        name
+      ),
+      p_open,
+      (transparency ? 0ULL : gui::window_flags_no_background) |
+      gui::window_flags_no_title_bar |
+      gui::window_flags_no_resize |
+      gui::window_flags_no_move |
+      gui::window_flags_no_scrollbar |
+      gui::window_flags_no_saved_settings |
+      gui::window_flags_override_input
+    ) {
+  }
+
+  hud_interactive_custom::operator bool() const {
+    return static_cast<bool>(wnd);
+  }
 
   table::table(str_view_t str_id,
     int columns,
@@ -1979,10 +2055,6 @@ namespace fan::graphics::gui {
     healthbar(value, max, size, fill, bg);
   }
 
-  void gold_text(int amount, const fan::color& color) {
-    text(color, fan::format_number(amount) + " gold");
-  }
-
   void disabled_button_row(const std::string* labels, const bool* enabled, int count, fan::vec2 size, std::function<void(int)> on_click) {
     for (int i = 0; i < count; ++i) {
       if (!enabled[i]) begin_disabled();
@@ -2000,11 +2072,70 @@ namespace fan::graphics::gui {
       if (i < count - 1) same_line();
     }
   }
+  void window_anchor_top_left(const fan::vec2& offset) {
+    set_next_window_pos(offset);
+  }
+  void window_anchor_top_center(const fan::vec2& offset) {
+    set_next_window_pos({get_window_size().x * 0.5f + offset.x, offset.y});
+  }
+  void window_anchor_top_right(const fan::vec2& offset) {
+    set_next_window_pos({get_window_size().x + offset.x, offset.y});
+  }
+  void window_anchor_center_left(const fan::vec2& offset) {
+    set_next_window_pos({offset.x, get_window_size().y * 0.5f + offset.y});
+  }
+  void window_anchor_center(const fan::vec2& offset) {
+    set_next_window_pos(get_window_size() * 0.5f + offset);
+  }
+  void window_anchor_center_right(const fan::vec2& offset) {
+    fan::vec2 vs = get_window_size();
+    set_next_window_pos({vs.x + offset.x, vs.y * 0.5f + offset.y});
+  }
+  void window_anchor_bottom_left(const fan::vec2& offset) {
+    set_next_window_pos({offset.x, get_window_size().y + offset.y});
+  }
+  void window_anchor_bottom_center(const fan::vec2& offset) {
+    fan::vec2 vs = get_window_size();
+    set_next_window_pos({vs.x * 0.5f + offset.x, vs.y + offset.y});
+  }
+  void window_anchor_bottom_right(const fan::vec2& offset) {
+    set_next_window_pos(get_window_size() + offset);
+  }
+
+  void anchor_top_left(const fan::vec2& offset) {
+    set_cursor_pos(offset);
+  }
+  void anchor_top_center(const fan::vec2& offset) {
+    set_cursor_pos({get_window_size().x * 0.5f + offset.x, offset.y});
+  }
+  void anchor_top_right(const fan::vec2& offset) {
+    set_cursor_pos({get_window_size().x + offset.x, offset.y});
+  }
+  void anchor_center_left(const fan::vec2& offset) {
+    set_cursor_pos({offset.x, get_window_size().y * 0.5f + offset.y});
+  }
+  void anchor_screen_center(const fan::vec2& offset) {
+    set_cursor_pos(get_window_size() * 0.5f + offset);
+  }
+  void anchor_center_right(const fan::vec2& offset) {
+    fan::vec2 vs = get_window_size();
+    set_cursor_pos({vs.x + offset.x, vs.y * 0.5f + offset.y});
+  }
+  void anchor_bottom_left(const fan::vec2& offset) {
+    set_cursor_pos({offset.x, get_window_size().y + offset.y});
+  }
   void anchor_bottom_center(const fan::vec2& offset) {
-    fan::vec2 vs = get_display_size();
+    fan::vec2 vs = get_window_size();
+    set_cursor_pos({vs.x * 0.5f + offset.x, vs.y + offset.y});
+  }
+  void anchor_bottom_right(const fan::vec2& offset) {
+    set_cursor_pos(get_window_size() + offset);
+  }
+  void anchor_center(const fan::vec2& window_size, const fan::vec2& item_size, int item_count) {
+    f32_t width = item_count * item_size.x;
     fan::vec2 pos = {
-      vs.x * 0.5f + offset.x,
-      vs.y + offset.y
+      window_size.x * 0.5f - width * 0.5f,
+      window_size.y * 0.5f - item_size.y * 0.5f
     };
     set_cursor_pos(pos);
   }

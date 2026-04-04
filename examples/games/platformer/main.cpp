@@ -27,7 +27,7 @@
 import fan;
 import fan.graphics.gui.tilemap_editor.renderer;
 import fan.graphics.gameplay;
-import fan.graphics.spatial;
+import fan.spatial;
 import fan.graphics.gui.inventory_hotbar;
 import fan.graphics.gameplay.items;
 import fan.graphics.gui.gameplay.equipment;

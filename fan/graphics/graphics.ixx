@@ -49,6 +49,13 @@ import fan.math;
 import fan.random;
 import fan.physics.types;
 
+import fan.ecs;
+
+export namespace fan::ecs {
+  struct c_rectangle { fan::vec2 size; fan::color color; f32_t depth = 0.f; };
+  struct c_line { fan::vec2 offset; fan::color color; f32_t thickness = 1.f; };
+}
+
 export namespace fan::graphics {
   using renderer_t = fan::window_t::renderer_t;
   extern fan::graphics::image_t invalid_image;
@@ -888,6 +895,7 @@ export namespace fan::graphics {
 
     void add_wall(const fan::vec2i& cell, fan::graphics::algorithm::pathfind::generator& gen);
     void remove_wall(const fan::vec2i& cell, fan::graphics::algorithm::pathfind::generator& gen);
+    void fill_colors(const fan::color& c);
     void reset_colors(const fan::color& color);
     void set_source(const fan::vec2i& cell, const fan::color& color);
     void set_destination(const fan::vec2i& cell, const fan::color& color);
@@ -1254,10 +1262,37 @@ export namespace fan::graphics {
     fan::vec2i size;
     std::vector<fan::graphics::sprite_t> tiles;
   };
+
+
+  namespace systems {
+    template <typename registry_t>
+    constexpr void render2d(registry_t& reg, fan::graphics::render_view_t* rv) {
+      reg.template each<fan::ecs::c_pos, fan::ecs::c_rectangle>([rv](uint32_t, auto& pos, auto& rect) {
+        fan::graphics::rectangle(fan::vec3(pos.v, rect.depth), rect.size, rect.color, rv);
+      });
+      reg.template each<fan::ecs::c_pos, fan::ecs::c_line>([rv](uint32_t, auto& pos, auto& line) {
+        fan::graphics::line(fan::vec3(pos.v, 0), fan::vec3(pos.v + line.offset, 0), line.color, line.thickness, rv);
+      });
+    }
+  }
+
+  template <typename registry_t>
+  constexpr void emit_radial(registry_t& reg, fan::vec2 pos, fan::color col, int count, fan::vec2 speed_range, fan::vec2 life_range) {
+    for (int i = 0; i < count; ++i) {
+      f32_t a = fan::random::value(0.f, fan::math::two_pi);
+      f32_t s = fan::random::value(speed_range.x, speed_range.y);
+      f32_t life = fan::random::value(life_range.x, life_range.y);
+      reg.create_with(
+        fan::ecs::c_pos{pos},
+        fan::ecs::c_vel{fan::vec2::from_angle(a, s)},
+        fan::ecs::c_life{life},
+        fan::ecs::c_rectangle{fan::vec2(3), col, 6.f}
+      );
+    }
+  }
 } // namespace fan::graphics
 
 #endif
-
 
 
 

@@ -101,6 +101,13 @@ export namespace fan::graphics::gui {
     window_flags_override_input = 1ULL << 31, // ignores this window from want_io()
     window_flags_topmost = 1ULL << 32,
   };
+  constexpr auto window_flags_overlay = 
+    gui::window_flags_topmost |
+    gui::window_flags_no_title_bar |
+    gui::window_flags_no_resize |
+    gui::window_flags_no_move |
+    gui::window_flags_no_saved_settings 
+  ;
   enum child_flags_e {
     child_flags_none = ImGuiChildFlags_None,
     child_flags_borders = ImGuiChildFlags_Borders,

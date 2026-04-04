@@ -23,6 +23,9 @@ import fan.memory;
 import fan.physics.types;
 import fan.physics.common_context;
 
+import fan.ecs;
+import fan.math;
+
 #define BLL_set_SafeNext 1
 #define BLL_set_AreWeInsideStruct 0
 #define BLL_set_prefix physics_step_callbacks
@@ -392,8 +395,6 @@ export namespace fan {
     body_id_t deep_copy_body(b2WorldId worldId, body_id_t sourceBodyId);
     void set_pre_solve_callback(b2WorldId world_id, b2PreSolveFcn* fcn, void* context);
 
-    void update_physics();
-
     physics_update_cbs_t::nr_t add_physics_update(const physics_update_data_t& cb_data);
     fan::physics::physics_update_cbs_t::nd_t& get_physics_update_data(fan::physics::physics_update_cbs_t::nr_t nr);
     void remove_physics_update(physics_update_cbs_t::nr_t nr);
@@ -414,6 +415,34 @@ export namespace fan {
       std::vector<fan::vec2>& out
     );
     bool is_rectangle(const std::vector<fan::vec2>& v);
+
+    template <typename pos_t, typename tag_t, typename registry_t, typename on_trigger_cb_t>
+    constexpr void proximity_trigger(registry_t& reg, fan::vec2 center, f32_t radius, on_trigger_cb_t&& on_trigger_cb) {
+      f32_t r2 = radius * radius;
+      reg.template each<pos_t, tag_t>([&](uint32_t e, pos_t& pos, tag_t&) {
+        if ((pos.v - center).length_squared() < r2) { on_trigger_cb(e, pos); }
+      });
+    }
+
+    template <typename tag_turret_t, typename registry_t, typename world_t, typename filter_cb_t, typename on_fire_cb_t>
+    constexpr void auto_aim(registry_t& reg, world_t& world, f32_t dt, f32_t range, f32_t speed, f32_t cooldown_time, filter_cb_t&& filter_cb, on_fire_cb_t&& on_fire_cb) {
+      reg.template each<fan::ecs::c_pos, tag_turret_t>([&](uint32_t, fan::ecs::c_pos& pos, tag_turret_t& turret) {
+        turret.cd.tick(dt);
+        if (!turret.cd.is_ready()) { return; }
+
+        auto target = world.query_nearest(pos.v, range, [&](auto id) {
+          return filter_cb(id, pos.v);
+        });
+
+        if (target) {
+          turret.cd.max = cooldown_time;
+          turret.cd.reset();
+          if (auto bdir = fan::math::aimbot(speed, pos.v, reg.template get<fan::ecs::c_pos>(*target).v, reg.template get<fan::ecs::c_vel>(*target).v)) {
+            on_fire_cb(pos.v, bdir->normalize());
+          }
+        }
+      });
+    }
   }
 }
 

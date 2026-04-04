@@ -313,6 +313,10 @@ namespace fan::graphics {
     return get_mouse_position(render_view.camera, render_view.viewport);
   }
 
+  fan::vec2 get_mouse_world_pos() {
+    return screen_to_world(get_mouse_position());
+  }
+
   std::string read_shader(
     std::string_view path,
     const std::source_location& callers_path

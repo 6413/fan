@@ -170,9 +170,9 @@
 #endif
 
 #if defined(_DEBUG) || defined(DEBUG)
-		#define fan_debug_build 1
+		#define FAN_DEBUG_BUILD 1
 #else
-		#define fan_debug_build 0
+		#define FAN_DEBUG_BUILD 0
 #endif
 
 #define fan_debug_none 0
@@ -184,7 +184,7 @@
 #define __ca__ ,
 
 #ifndef FAN_DEBUG
-#if fan_debug_build
+#if FAN_DEBUG_BUILD
 	#define FAN_DEBUG fan_debug_high
 	#define __sanit 1
 #else

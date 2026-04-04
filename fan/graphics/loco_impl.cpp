@@ -49,9 +49,6 @@ import fan.print;
 
 import fan.graphics.common_types;
 
-#if defined(FAN_PHYSICS_2D)
-  import fan.graphics.physics_shapes;
-#endif
 #if defined(FAN_GUI)
   import fan.graphics.gui.types;
   import fan.graphics.gui.text_logger;
@@ -944,9 +941,9 @@ static void loco_load_settings_into_open_props(loco_t* l) {
 #if defined(FAN_GUI)
   auto* sm = new fan::graphics::gui::settings_menu_t;
   l->gui.settings_menu = sm;
-  if (sm->config.display.custom_resolution.x != -1)
+  if (sm->config.display.custom_resolution.x != -1 && l->open_props.window_size.x == -1)
     l->open_props.window_size = sm->config.display.custom_resolution;
-  else if (sm->config.display.resolution_index != -1)
+  else if (sm->config.display.resolution_index != -1 && l->open_props.window_size.x == -1)
     l->open_props.window_size = fan::window_t::resolutions[sm->config.display.resolution_index];
   if (sm->config.display.display_mode != fan::window_t::mode::windowed)
     l->open_props.window_open_mode = sm->config.display.display_mode;
@@ -1781,7 +1778,7 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
   physics.update(get_delta_time());
 
   if (input.input_action.is_active(fan::actions::toggle_debug_physics)) {
-    fan::graphics::physics::debug_draw(!fan::graphics::physics::get_debug_draw());
+    fan::physics::debug_draw_cb()(!fan::physics::is_debug_draw_enabled(), &fan::graphics::get_orthographic_render_view());
   }
 #endif
   if (input.input_action.is_toggled(fan::actions::toggle_debug_light_buffer)) {
@@ -2286,6 +2283,40 @@ void loco_t::shape_open(
 
 fan::graphics::shader_t loco_t::get_sprite_shader(const std::string& fragment) {
   return fan::graphics::get_sprite_shader(fragment);
+}
+
+std::string loco_t::get_renderer_string() {
+  if (window.renderer == fan::window_t::renderer_t::opengl) {
+    return std::string("OpenGL ") + (const char*)glGetString(GL_VERSION)
+      + " | " + (const char*)glGetString(GL_RENDERER);
+  }
+  return "Vulkan";
+}
+
+std::string_view loco_t::get_platform_string() {
+#if defined(fan_platform_windows)
+  return "Windows";
+#elif defined(fan_platform_linux)
+  return "Linux";
+#else
+  return "Unknown";
+#endif
+}
+
+std::string_view loco_t::get_build_string() {
+#if defined(FAN_DEBUG_BUILD)
+  return "Release";
+#else
+  return "Debug";
+#endif
+}
+
+std::string_view loco_t::get_physics_string() {
+#if defined(FAN_PHYSICS_2D)
+  return "Box2D";
+#else
+  return "disabled";
+#endif
 }
 
 #if defined(FAN_GUI)

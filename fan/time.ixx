@@ -164,4 +164,16 @@ export namespace fan {
       f32_t timer = 0.f;
     };
   }
+
+  struct cooldown_t {
+    f32_t max = 0.f;
+    f32_t current = 0.f;
+
+    void tick(f32_t dt) {
+      if (current > 0.f) { current -= dt; }
+    }
+
+    bool is_ready() const { return current <= 0.f; }
+    void reset() { current = max; }
+  };
 }

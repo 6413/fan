@@ -137,5 +137,11 @@ export namespace fan {
       for (auto& p : result) p = value(0.f, 255.f);
       return result;
     }
+    fan::vec2 border_pos(const fan::vec2& bounds, f32_t margin) {
+      bool side = fan::random::value(0, 1);
+      bool edge = fan::random::value(0, 1);
+      if (side) { return {edge ? -margin : bounds.x + margin, fan::random::value(0.f, bounds.y)}; }
+      return {fan::random::value(0.f, bounds.x), edge ? -margin : bounds.y + margin};
+    }
   }
 }

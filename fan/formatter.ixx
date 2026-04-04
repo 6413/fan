@@ -9,18 +9,16 @@ export module fan.formatter;
 namespace fan::detail {
   template <typename T>
   std::string to_str(const T& v) {
-    if constexpr (std::is_same_v<std::decay_t<T>, std::string>) return v;
-    else if constexpr (std::is_same_v<std::decay_t<T>, std::string_view>) return std::string(v);
-    else if constexpr (std::is_same_v<std::decay_t<T>, const char*>) return v ? v : "";
-    else if constexpr (std::is_same_v<std::decay_t<T>, char>) return std::string(1, v);
-    else if constexpr (std::is_arithmetic_v<std::decay_t<T>>) return std::to_string(v);
+    if constexpr (std::is_same_v<std::decay_t<T>, std::string>)               return v;
+    else if constexpr (std::is_same_v<std::decay_t<T>, std::string_view>)     return std::string(v);
+    else if constexpr (std::is_same_v<std::decay_t<T>, const char*>)          return v ? v : "";
+    else if constexpr (std::is_same_v<std::decay_t<T>, char>)                 return std::string(1, v);
+    else if constexpr (std::is_arithmetic_v<std::decay_t<T>>)                 return std::to_string(v);
     else if constexpr (std::is_same_v<std::decay_t<T>, const unsigned char*>) return v ? reinterpret_cast<const char*>(v) : "";
-    else if constexpr (std::is_same_v<std::decay_t<T>, unsigned char*>) return v ? reinterpret_cast<const char*>(v) : "";
-    else if constexpr (std::is_convertible_v<T, std::string_view>) return std::string(static_cast<std::string_view>(v));
-    else if constexpr (std::is_convertible_v<T, std::string>) return static_cast<std::string>(v);
-    else {
-      return v.to_string(); 
-    }
+    else if constexpr (std::is_same_v<std::decay_t<T>, unsigned char*>)       return v ? reinterpret_cast<const char*>(v) : "";
+    else if constexpr (std::is_convertible_v<T, std::string_view>)            return std::string(static_cast<std::string_view>(v));
+    else if constexpr (std::is_convertible_v<T, std::string>)                 return static_cast<std::string>(v);
+    else                                                                      return v.to_string();
   }
 }
 

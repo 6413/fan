@@ -12,8 +12,8 @@ import fan.types.vector;
 
 export namespace fan::graphics::algorithm::pathfind {
   using uint = ::AStar::uint;
-  using heuristic_function = ::AStar::HeuristicFunction;
-  using coordinate_list = ::AStar::CoordinateList;
+  using heuristic_function = std::function<uint(fan::vec2i, fan::vec2i)>;
+  using coordinate_list = std::vector<fan::vec2i>;
 
   struct node {
     uint G;
@@ -36,7 +36,27 @@ export namespace fan::graphics::algorithm::pathfind {
     void add_collision(vec2i c);
     void remove_collision(vec2i c);
     void clear_collisions();
-    coordinate_list& get_walls();
+
+    void init(const fan::vec2i& world_size, bool diagonal = false) {
+      set_world_size(world_size);
+      set_diagonal_movement(diagonal);
+      clear_collisions();
+    }
+
+    // returns false if any border origin can't reach it
+    bool is_fully_connected(const fan::vec2i& goal) {
+      fan::vec2i gc = impl.getWorldSize();
+      const fan::vec2i origins[] = {
+        {0,       0      }, {gc.x / 2,  0      }, {gc.x - 1,  0      },
+        {0,       gc.y / 2 }, {gc.x - 1,  gc.y / 2 },
+        {0,       gc.y - 1 }, {gc.x / 2,  gc.y - 1 }, {gc.x - 1,  gc.y - 1}
+      };
+      for (auto& o : origins) if (find_path(o, goal).empty()) return false;
+      return true;
+    }
+
+
+    std::vector<::AStar::Vec2i>& get_walls();
   };
 
   struct heuristic {

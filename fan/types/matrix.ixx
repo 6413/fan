@@ -73,10 +73,13 @@ export namespace fan {
       m[1][0] = 2 * (xy - wz);     m[1][1] = 1 - 2 * (xx + zz); m[1][2] = 2 * (yz + wx);
       m[2][0] = 2 * (xz + wy);     m[2][1] = 2 * (yz - wx);     m[2][2] = 1 - 2 * (xx + yy);
     }
+
     static constexpr _matrix4x4 identity() { return _matrix4x4(1); }
     constexpr bool is_identity() const {
       return m[0][0] == 1 && m[1][1] == 1 && m[2][2] == 1 && m[0][1] == 0 && m[1][0] == 0 && m[2][1] == 0 && m[0][2] == 0 && m[1][2] == 0 && m[2][0] == 0 && m[0][3] == 0 && m[1][3] == 0 && m[2][3] == 0;
     }
+    static constexpr size_t size() { return 16; }
+
     constexpr _matrix4x4 operator*(const _matrix4x4& rhs) const {
       _matrix4x4 r{};
       for (int i = 0; i < 4; i++) for (int j = 0; j < 4; j++) for (int k = 0; k < 4; k++) r[i][j] += m[k][j] * rhs[i][k];
@@ -87,6 +90,24 @@ export namespace fan {
       for (int i = 0; i < 4; i++) for (int j = 0; j < 4; j++) res[i] += m[j][i] * r[j];
       return res;
     }
+    constexpr _matrix4x4 operator*(T r) const {
+      _matrix4x4 res;
+      for (int i = 0; i < 4; i++) for (int j = 0; j < 4; j++) res[i][j] = m[i][j] * r;
+      return res;
+    }
+    constexpr _matrix4x4& operator+=(const _matrix4x4& r) {
+      for (int i = 0; i < 4; i++) for (int j = 0; j < 4; j++) m[i][j] += r[i][j];
+      return *this;
+    }
+    constexpr fan::vec3 operator*(const fan::vec3& r) const {
+      fan::vec3 res{};
+      for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) res[i] += m[j][i] * r[j];
+        res[i] += m[3][i];
+      }
+      return res;
+    }
+
     constexpr _matrix4x4 inverse() const {
       _matrix4x4 r = *this, id = 1;
       for (int i = 0; i < 4; ++i) {
@@ -113,24 +134,28 @@ export namespace fan {
       for(int i=0; i<3; ++i) for(int j=0; j<3; ++j) r[i][j] *= v[i];
       return r;
     }
-    static fan::quaternion<T> to_quat(const _matrix4x4& m);
-    void compose(const fan::vec3& p, const fan::quat& r, const fan::vec3& s, const fan::vec3& sk, const fan::vec4& pr);
-    void decompose(fan::vec3& p, fan::quat& r, fan::vec3& s, fan::vec3& sk, fan::vec4& pr) const;
+
     constexpr fan::vec4& operator[](uintptr_t i) { return m[i]; }
     constexpr fan::vec4 operator[](uintptr_t i) const { return m[i]; }
-    _matrix4x4 operator*(T r) const;
-    _matrix4x4& operator+=(const _matrix4x4& r);
-    fan::vec3 get_translation() const { return {m[3][0], m[3][1], m[3][2]}; }
-    fan::quat get_rotation() const;
-    fan::vec3 get_scale() const;
+    T* data() { return &m[0][0]; }
+    const T* data() const { return &m[0][0]; }
+
+    constexpr fan::vec3 get_translation() const { return {m[3][0], m[3][1], m[3][2]}; }
+    constexpr fan::quat get_rotation() const { return to_quat(*this); }
+    constexpr fan::vec3 get_scale() const { return {fan::vec3(m[0][0], m[0][1], m[0][2]).length(), fan::vec3(m[1][0], m[1][1], m[1][2]).length(), fan::vec3(m[2][0], m[2][1], m[2][2]).length()}; }
+
+    _matrix4x4 skew(const fan::vec3& s);
+    _matrix4x4 perspective(const fan::vec4& p);
+    void compose(const fan::vec3& p, const fan::quat& r, const fan::vec3& s, const fan::vec3& sk, const fan::vec4& pr);
+    void decompose(fan::vec3& p, fan::quat& r, fan::vec3& s, fan::vec3& sk, fan::vec4& pr) const;
+    
     _matrix4x4 rotation_set(f32_t a, const fan::vec3& v) const;
     _matrix4x4 rotate(f32_t a, const fan::vec3& v) const;
     _matrix4x4 rotate(const fan::vec3& a) const;
     _matrix4x4 rotate(const fan::quat& q) const;
     fan::vec3 get_euler_angles() const;
-    fan::vec3 operator*(const fan::vec3& r) const;
-    T* data() { return &m[0][0]; }
-    const T* data() const { return &m[0][0]; }
+
+    static fan::quaternion<T> to_quat(const _matrix4x4& m);
     template <typename U> operator fan::quaternion<U>() const { return _matrix4x4<U>::to_quat(*(const _matrix4x4<U>*)this); }
   };
 

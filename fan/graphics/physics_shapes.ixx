@@ -90,8 +90,6 @@ export namespace fan {
 
       void step(f32_t dt);
 
-      void debug_draw(bool enabled);
-      bool get_debug_draw();
       // position & aabb & angle
       std::function<void(fan::graphics::shape_t&, const fan::vec3&, const fan::vec2&, f32_t)> physics_update_cb =
         [](fan::graphics::shape_t&, const fan::vec3&, const fan::vec2&, f32_t) {};
