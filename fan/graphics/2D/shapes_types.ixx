@@ -32,7 +32,7 @@ import fan.types.vector;
 export namespace fan::graphics {
 
   #define TO_ENUM(x) x,
-  #define TO_STRING(x) std::string(#x),
+  #define TO_STRING(x) STRINGIFY(x),
 
   // shapes defined here
   #include "shapes.h"
@@ -47,7 +47,7 @@ export namespace fan::graphics {
         last
       };
     };
-    std::string shape_names[] = {
+    std::string_view shape_names[] = {
       GEN_SHAPES(TO_STRING, GEN_SHAPES_SKIP_STRING)
     };
 

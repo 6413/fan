@@ -82,7 +82,8 @@ namespace fan::graphics::culling {
         matched = "start_size";
       }
       else {
-        fan::print_warning("shape aabb not found");
+        auto* shape_ptr = (fan::graphics::shapes::shape_t*)&sid;
+        fan::print_throttled("aabb not found for:" + std::string(shape_ptr->get_name()));
       }
     });
     if (!has_bounds) {
