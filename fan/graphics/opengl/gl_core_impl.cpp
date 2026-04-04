@@ -29,6 +29,7 @@ namespace fan::opengl {
       return;
     }
     init = 0;
+    glewExperimental = GL_TRUE;
     if (GLenum err = glewInit() != GLEW_OK) {
       fan::throw_error(std::string("glew init error:") + std::string((const char*)glewGetErrorString(err)));
     }
