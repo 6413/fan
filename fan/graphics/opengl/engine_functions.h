@@ -68,62 +68,15 @@ static void modify_render_data_element(fan::graphics::shapes::shape_t* shape, fa
 
 void open() {
   if (loco.window.renderer == fan::window_t::renderer_t::opengl) {
-        fan::print("glfwInit check:", (uint64_t)(void*)glfwGetCurrentContext());
-
-    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_FALSE);
-
-    if (loco.window.renderer == fan::window_t::renderer_t::renderer_t::vulkan) {
-      glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    typedef const GLubyte* (*PFNGLGETSTRINGPROC)(GLenum);
+    PFNGLGETSTRINGPROC raw_glGetString = (PFNGLGETSTRINGPROC)glfwGetProcAddress("glGetString");
+    
+    if (raw_glGetString) {
+      const char* gl_version = (const char*)raw_glGetString(GL_VERSION);
+      if (gl_version) {
+        sscanf(gl_version, "%d.%d", &loco.context.gl.opengl.major, &loco.context.gl.opengl.minor);
+      }
     }
-    else if (loco.window.renderer == fan::window_t::renderer_t::opengl) {
-      glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
-    }
-
-    GLFWwindow* dummy_window = glfwCreateWindow(640, 400, "dummy", nullptr, nullptr);
-    fan::print("dummy_window ptr:", (uint64_t)(void*)dummy_window);
-    if (dummy_window == nullptr) {
-      fan::throw_error_impl("failed to open dummy window");
-    }
-
-    glfwMakeContextCurrent(dummy_window);
-        fan::print("context current:", (uint64_t)(void*)glfwGetCurrentContext());
-
-
-    loco.context.gl.open();
-
-    if (loco.context.gl.opengl.major == -1 || loco.context.gl.opengl.minor == -1) {
-      const char* gl_version = (const char*)fan_opengl_call(glGetString(GL_VERSION));
-      sscanf(gl_version, "%d.%d", &loco.context.gl.opengl.major, &loco.context.gl.opengl.minor);
-    }
-    glfwMakeContextCurrent(nullptr);
-    glfwDestroyWindow(dummy_window);
-    glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
-  }
-  {
-    #if 1
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, loco.context.gl.opengl.major);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, loco.context.gl.opengl.minor);
-    glfwWindowHint(GLFW_SAMPLES, 0);
-
-    if ((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor > 2)) {
-      glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    }
-
-    if ((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor > 0)) {
-      glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
-    }
-  #else // renderdoc debug
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_SAMPLES, 0);
-
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
-  #endif
 
     glfwSetErrorCallback(loco.context.gl.error_callback);
   }
@@ -223,7 +176,7 @@ void init_framebuffer() {
   fan_opengl_call(glDrawBuffers(std::size(attachments), attachments));
 
   if (!loco.gl->m_framebuffer.ready(loco.context.gl)) {
-    fan::throw_error_impl("framebuffer not ready");
+    fan::throw_error_impl(("framebuffer not ready" + std::to_string(glGetError())).c_str());
   }
 
   static constexpr uint32_t mip_count = 6;

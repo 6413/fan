@@ -401,6 +401,7 @@ target("a.exe")
   for _, impl in ipairs(impl_files) do
     add_files(impl)
   end
+	add_files("third_party/fan/glad.c")
   add_files(get_config("main"), {module = false})
   add_includedirs(".", "third_party/fan/include", {public = true})
   add_linkdirs("third_party/fan/lib")
@@ -408,7 +409,7 @@ target("a.exe")
   if is_plat("linux") then
     add_links(
       "webp", "glfw", "X11", "opus", "pulse-simple",
-      "uv", "GL", "GLEW", "ssl", "crypto", "png", "z", "curl"
+      "uv", "GL", "ssl", "crypto", "png", "z", "curl"
     )
     if has_config("FAN_FMT") then
       add_links("fmt")
