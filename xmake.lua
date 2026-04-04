@@ -465,25 +465,18 @@ target("a.exe")
   end
 
   on_load(function (target)
-    if target:is_plat("linux") then
+    if target:is_plat("linux") and has_config("FAN_GUI") then
       import("lib.detect.find_tool")
-      if has_config("FAN_GUI") then
-        local pkg_config = find_tool("pkg-config")
-        if pkg_config then
-          local libs = os.iorunv("pkg-config", {"--libs", "gtk+-3.0"})
-          if libs then
-            for _, lib in ipairs(libs:split("%s+")) do
-              if lib:startswith("-l") then
-                target:add("links", lib:sub(3))
-              end
+      local pkg_config = find_tool("pkg-config")
+      if pkg_config then
+        local libs = os.iorunv("pkg-config", {"--libs", "gtk+-3.0"})
+        if libs then
+          for _, lib in ipairs(libs:split("%s+")) do
+            if lib:startswith("-l") then
+              target:add("links", lib:sub(3))
             end
           end
         end
-      end
-      if find_tool("mold") then
-        target:add("ldflags", "-fuse-ld=mold", {force = true})
-      elseif find_tool("gold") then
-        target:add("ldflags", "-fuse-ld=gold", {force = true})
       end
     end
   end)
