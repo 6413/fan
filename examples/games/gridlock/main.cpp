@@ -17,8 +17,7 @@ namespace colors = fan::colors;
 
 static constexpr f32_t cfg_windows_bg_alpha = 0.7f;
 static constexpr f32_t cfg_grid_size = 64.f;
-static constexpr f32_t cfg_build_time = 304.f;
-static constexpr f32_t cfg_action_time = 120.f;
+static constexpr f32_t cfg_build_time = 10.f;
 static constexpr f32_t cfg_player_speed = 400.f;
 static constexpr f32_t cfg_player_fire_cd = 0.1f;
 static constexpr f32_t cfg_bullet_speed = 1200.f;
@@ -27,11 +26,11 @@ static constexpr f32_t cfg_turret_range = 2000.f;
 static constexpr f32_t cfg_turret_fire_cd = 0.2f;
 static constexpr f32_t cfg_turret_bspeed = 1000.f;
 static constexpr f32_t cfg_enemy_sep_r = 24.f;
-static constexpr f32_t cfg_enemy_base_speed = 20.f;
+static constexpr f32_t cfg_enemy_base_speed = 8.f;
 static constexpr f32_t cfg_path_speed_bonus = 0.04f;
 static constexpr int cfg_path_len_thresh = 10;
 static constexpr int cfg_path_bash_thresh = 20;
-static constexpr int cfg_start_money = 1200;
+static constexpr int cfg_start_money = 50;
 static constexpr int cfg_core_health = 100;
 static constexpr int cfg_obstacle_count = 30;
 static constexpr int cfg_wall_hp = 60;
@@ -42,7 +41,7 @@ static f32_t hud_min_height = 0.f;
 static f32_t hud_max_height = 0.f;
 
 struct spawn_config_t {
-  f32_t base_interval = 0.1f;
+  f32_t base_interval = 0.8f;
   f32_t interval_variance = 0.2f;
   int base_hp = 10;
   int hp_per_wave = 5;
@@ -63,38 +62,27 @@ inline static const auto build_defs = std::to_array<build_def_t>({
   {"Turret", 100, "Turret\n[$100]"}
 });
 
-struct tag_wall {
-  color outer_col = color(0, 0.3f, 1.f, 1.f);
-};
-struct tag_obstacle {
-  vec2i cell;
-};
-struct tag_enemy {
-  bool flying;
-  std::vector<vec2i> path;
-};
-struct tag_turret {
-  fan::cooldown_t cd;
-};
-struct tag_bullet {};
+struct tag_wall     { color outer_col = color(0, 0.3f, 1.f, 1.f); };
+struct tag_obstacle { vec2i cell; };
+struct tag_enemy    { bool flying; std::vector<vec2i> path; int initial_path_size = 0; };
+struct tag_turret   { fan::cooldown_t cd; };
+struct tag_bullet   {};
 struct tag_particle {};
 
 struct game_t {
   void recalc_paths() {
     vec2i goal = (engine.viewport_get_size() / 2.f).grid_cell(cfg_grid_size);
     registry.each([&](c_pos& pos, tag_enemy& enemy) {
-      if (!enemy.flying) {
+      if (!enemy.flying)
         enemy.path = pathfinder.find_path(pos.v.grid_cell(cfg_grid_size), goal);
-      }
     });
   }
 
   bool has_los(vec2 p1, vec2 p2) {
     bool hit = false;
     world.raycast(p1, p2, [&](uint32_t id) {
-      if (registry.has<tag_wall>(id) || registry.has<tag_obstacle>(id)) {
+      if (registry.has<tag_wall>(id) || registry.has<tag_obstacle>(id))
         hit = true;
-      }
     });
     return !hit;
   }
@@ -123,24 +111,23 @@ struct game_t {
     player_trail.color = colors::yellow.set_alpha(0.5f);
     player_trail.thickness = 6.f;
 
-    player_shape = rectangle_t{fan::vec3(player_pos, 4), vec2(15), colors::yellow};
-    player_gun = line_t{fan::vec3(player_pos, 4), player_pos + vec2(25, 0), colors::yellow, 4.f};
+    player_shape  = rectangle_t{fan::vec3(player_pos, 4), vec2(15), colors::yellow};
+    player_gun    = line_t{fan::vec3(player_pos, 4), player_pos + vec2(25, 0), colors::yellow, 4.f};
     build_preview = rectangle_t{fan::vec3(0, 0, 2), vec2(cfg_grid_size / 2.f - 2.f), colors::transparent};
-    core_outer = circle_t{fan::vec3(center, 3), 40.f, colors::cyan};
-    core_inner = circle_t{fan::vec3(center, 4), 30.f, colors::black};
+    core_outer    = circle_t{fan::vec3(center, 3), 40.f, colors::cyan};
+    core_inner    = circle_t{fan::vec3(center, 4), 30.f, colors::black};
 
     world.init(vec2(-1000), vec2(cfg_grid_size), vec2i(100));
     world.reset();
 
-    vec2i grid_cells = vs.grid_cell(cfg_grid_size);
+    vec2i grid_cells  = vs.grid_cell(cfg_grid_size);
     vec2i center_cell = grid_cells / 2;
     pathfinder.init(grid_cells, false);
 
     for (int i = 0; i < cfg_obstacle_count; ++i) {
       vec2i c(fan::random::value(0, grid_cells.x - 1), fan::random::value(0, grid_cells.y - 1));
-      if (c == vec2i(0) || (vec2(c) - vec2(center_cell)).length_squared() <= 25.f) {
+      if (c == vec2i(0) || (vec2(c) - vec2(center_cell)).length_squared() <= 25.f)
         continue;
-      }
       vec2 opos = vec2(c) * cfg_grid_size + cfg_grid_size / 2.f;
       pathfinder.add_collision(c);
       uint32_t e = registry.create_with(c_pos{opos}, tag_obstacle{c});
@@ -149,9 +136,9 @@ struct game_t {
 
     bg_grid = grid_t{{
       .position = fan::vec3(-fan::window::get_size() / 2.f, 0),
-      .size = vs.max() * 2.f,
+      .size     = vs.max() * 2.f,
       .grid_size = vs.max() * 2.f / cfg_grid_size,
-      .color = color(0.1f, 0.2f, 0.4f, 0.8f)
+      .color    = color(0.1f, 0.2f, 0.4f, 0.8f)
     }};
   }
 
@@ -166,9 +153,8 @@ struct game_t {
           (vs.x - (gui::calc_text_size("Restart").x + gui::get_style().FramePadding.x * 2.f)) / 2.f,
           vs.y / 2.f + 20.f
         });
-        if (gui::button("Restart")) {
+        if (gui::button("Restart"))
           open();
-        }
       }
       gui::pop_style_color();
       return;
@@ -181,15 +167,18 @@ struct game_t {
     gui::window_anchor_top_left(0.f);
 
     if (auto w = gui::window("##hud_phase", nullptr, gui::window_flags_overlay)) {
-      gui::text_centered(
-        fan::format_args(is_action_phase ? "ACTION" : "BUILD", " PHASE  WAVE:", wave, "  (", (int)phase_timer.current, "s)"),
-        colors::white, {-0.1f, 0.5f}, {-1.f, 0.f}
-      );
+      std::string phase_text;
+      if (is_action_phase && phase_timer.is_ready())
+        phase_text = fan::format_args("ACTION PHASE  WAVE:", wave, "  (CLEARING...)");
+      else
+        phase_text = fan::format_args(is_action_phase ? "ACTION" : "BUILD", " PHASE  WAVE:", wave, "  (", (int)phase_timer.current, "s)");
+
+      gui::text_centered(phase_text, colors::white, {-0.1f, 0.5f}, {-1.f, 0.f});
+
       if (!is_action_phase) {
         gui::same_line();
-        if (gui::button_centered("Skip >>", 0.f, {0, 1}, {10.f, 0.f})) {
+        if (gui::button_centered("Skip >>", 0.f, {0, 1}, {10.f, 0.f}))
           phase_timer.current = 0.f;
-        }
       }
       gui::text_centered(fan::format_args(money, " gold"), colors::yellow, {1.2f, 0.5f}, {0.f, 0.f});
       gui::same_line();
@@ -226,52 +215,75 @@ struct game_t {
       draw_gui();
       return;
     }
-    f32_t dt = engine.get_delta_time();
+    f32_t dt  = engine.get_delta_time();
     vec2 mpos = get_mouse_world_pos();
-    vec2 vs = engine.viewport_get_size();
+    vec2 vs   = engine.viewport_get_size();
 
-    if (phase_timer.tick(dt); phase_timer.is_ready()) {
-      is_action_phase = !is_action_phase;
-      phase_timer.max = is_action_phase ? cfg_action_time : cfg_build_time;
-      phase_timer.reset();
-      if (!is_action_phase) {
+    if (is_action_phase) {
+      phase_timer.tick(dt);
+
+      bool enemies_alive = false;
+      registry.each_breakable<tag_enemy>([&](tag_enemy&) {
+        return !(enemies_alive = true);
+      });
+
+      if (!phase_timer.is_ready()) {
+        if (spawn_timer.tick(dt); spawn_timer.is_ready()) {
+          f32_t interval = cfg_spawn.base_interval / std::sqrt((f32_t)wave);
+          spawn_timer.max = std::max(0.05f, interval + fan::random::value(-cfg_spawn.interval_variance, cfg_spawn.interval_variance));
+          spawn_timer.reset();
+          vec2 sp  = fan::random::border_pos(vs, 50.f);
+          bool fly = fan::random::value(0.f, 100.f) < std::min(cfg_spawn.base_fly_chance + cfg_spawn.fly_chance_per_wave * (wave - 1), cfg_spawn.max_fly_chance);
+          auto path = fly ? std::vector<vec2i>{} : pathfinder.find_path(sp.grid_cell(cfg_grid_size), (vs / 2.f).grid_cell(cfg_grid_size));
+          int initial_size = path.size();
+          registry.create_with(
+            tag_enemy{fly, std::move(path), initial_size},
+            c_pos{sp}, c_vel{vec2(0)},
+            c_hp{cfg_spawn.base_hp + wave * cfg_spawn.hp_per_wave, 0},
+            c_rectangle{vec2(6), fly ? colors::magenta : colors::red, 3.f}
+          );
+        }
+      } else if (!enemies_alive) {
+        is_action_phase = false;
+        phase_timer.max = cfg_build_time;
+        phase_timer.reset();
         wave++;
+        wait_for_mouse_release = true;
+      }
+    } else {
+      if (phase_timer.tick(dt); phase_timer.is_ready()) {
+        is_action_phase = true;
+        phase_timer.max = 10.f + (wave - 1) * 5.f;
+        phase_timer.reset();
       }
     }
 
-    player_pos = (player_pos + fan::window::get_input_vector() * cfg_player_speed * dt).clamp(vec2(0), vs);
+    player_pos   = (player_pos + fan::window::get_input_vector() * cfg_player_speed * dt).clamp(vec2(0), vs);
     player_angle = std::atan2(mpos.y - player_pos.y, mpos.x - player_pos.x);
     player_trail.set_point(player_pos, 0.f);
     player_shape.set_position(player_pos);
     player_gun.set_line(player_pos, player_pos + vec2::from_angle(player_angle, 25.f));
 
     vec2i cell = mpos.grid_cell(cfg_grid_size);
-    vec2 gpos = mpos.grid_floor(cfg_grid_size, cfg_grid_size / 2.f);
+    vec2  gpos = mpos.grid_floor(cfg_grid_size, cfg_grid_size / 2.f);
 
     if (!is_action_phase && !gui::want_io() && !(mpos.y < hud_min_height || mpos.y > hud_max_height)) {
       build_preview.set_position(gpos);
       build_preview.set_color(colors::transparent);
       build_preview.set_outline_color(colors::white);
 
+      if (wait_for_mouse_release && !fan::window::is_mouse_down(fan::mouse_left))
+        wait_for_mouse_release = false;
+
       auto occ = [&] {
         bool o = false;
-        registry.each_breakable<c_pos, tag_wall>([&](c_pos& p, tag_wall&) {
-          return !(o = p.v == gpos);
-        });
-        if (!o) {
-          registry.each_breakable<c_pos, tag_turret>([&](c_pos& p, tag_turret&) {
-            return !(o = p.v == gpos);
-          });
-        }
-        if (!o) {
-          registry.each_breakable<tag_obstacle>([&](tag_obstacle& ob) {
-            return !(o = ob.cell == cell);
-          });
-        }
+        registry.each_breakable<c_pos, tag_wall>([&](c_pos& p, tag_wall&) { return !(o = p.v == gpos); });
+        if (!o) registry.each_breakable<c_pos, tag_turret>([&](c_pos& p, tag_turret&) { return !(o = p.v == gpos); });
+        if (!o) registry.each_breakable<tag_obstacle>([&](tag_obstacle& ob) { return !(o = ob.cell == cell); });
         return o;
       };
 
-      if (fan::window::is_mouse_down(fan::mouse_left) && !occ() && money >= build_defs[selected_build].cost) {
+      if (!wait_for_mouse_release && fan::window::is_mouse_down(fan::mouse_left) && !occ() && money >= build_defs[selected_build].cost) {
         pathfinder.add_collision(cell);
         if (!pathfinder.is_fully_connected((vs / 2.f).grid_cell(cfg_grid_size))) {
           pathfinder.remove_collision(cell);
@@ -289,12 +301,8 @@ struct game_t {
 
       if (fan::window::is_mouse_down(fan::mouse_right)) {
         bool c = false;
-        registry.destroy_if<c_pos, tag_wall>([&](c_pos& p, tag_wall&) {
-          return (c |= p.v == gpos), p.v == gpos;
-        });
-        registry.destroy_if<c_pos, tag_turret>([&](c_pos& p, tag_turret&) {
-          return (c |= p.v == gpos), p.v == gpos;
-        });
+        registry.destroy_if<c_pos, tag_wall>([&](c_pos& p, tag_wall&) { return (c |= p.v == gpos), p.v == gpos; });
+        registry.destroy_if<c_pos, tag_turret>([&](c_pos& p, tag_turret&) { return (c |= p.v == gpos), p.v == gpos; });
         if (c) {
           pathfinder.remove_collision(cell);
           recalc_paths();
@@ -304,45 +312,26 @@ struct game_t {
       build_preview.set_outline_color(colors::transparent);
     }
 
-    if (is_action_phase) {
-      if (spawn_timer.tick(dt); spawn_timer.is_ready()) {
-        f32_t interval = cfg_spawn.base_interval / std::sqrt((f32_t)wave);
-        spawn_timer.max = std::max(0.05f, interval + fan::random::value(-cfg_spawn.interval_variance, cfg_spawn.interval_variance));
-        spawn_timer.reset();
-        vec2 sp = fan::random::border_pos(vs, 50.f);
-        bool fly = fan::random::value(0.f, 100.f) < std::min(cfg_spawn.base_fly_chance + cfg_spawn.fly_chance_per_wave * (wave - 1), cfg_spawn.max_fly_chance);
+    player_shoot_cd.tick(dt);
+    if (is_action_phase && fan::window::is_mouse_down(fan::mouse_left) && !gui::want_io() && player_shoot_cd.is_ready()) {
+      player_shoot_cd.max = cfg_player_fire_cd;
+      player_shoot_cd.reset();
+      vec2 bv = vec2::from_angle(player_angle, cfg_bullet_speed);
+      registry.create_with(tag_bullet{}, c_pos{player_pos}, c_vel{bv}, c_life{cfg_bullet_life}, c_line{bv.normalize() * 15.f, colors::yellow, 3.f});
+    }
+
+    fan::physics::auto_aim<tag_turret>(registry, world, dt, cfg_turret_range, cfg_turret_bspeed, cfg_turret_fire_cd,
+      [&](uint32_t id, vec2 src) {
+        return registry.has<tag_enemy>(id) && has_los(src, registry.get<c_pos>(id).v);
+      },
+      [&](vec2 src, vec2 dir) {
         registry.create_with(
-          tag_enemy{fly, fly ? std::vector<vec2i>{} : pathfinder.find_path(sp.grid_cell(cfg_grid_size), (vs / 2.f).grid_cell(cfg_grid_size))},
-          c_pos{sp},
-          c_vel{vec2(0)},
-          c_hp{cfg_spawn.base_hp + wave * cfg_spawn.hp_per_wave, 0},
-          c_rectangle{vec2(6), fly ? colors::magenta : colors::red, 3.f}
+          tag_bullet{}, c_pos{src + dir * (cfg_grid_size * 0.5f)},
+          c_vel{dir * cfg_turret_bspeed}, c_life{1.f},
+          c_line{dir * 15.f, colors::green, 3.f}
         );
       }
-
-      player_shoot_cd.tick(dt);
-      if (fan::window::is_mouse_down(fan::mouse_left) && !gui::want_io() && player_shoot_cd.is_ready()) {
-        player_shoot_cd.max = cfg_player_fire_cd;
-        player_shoot_cd.reset();
-        vec2 bv = vec2::from_angle(player_angle, cfg_bullet_speed);
-        registry.create_with(tag_bullet{}, c_pos{player_pos}, c_vel{bv}, c_life{cfg_bullet_life}, c_line{bv.normalize() * 15.f, colors::yellow, 3.f});
-      }
-
-      fan::physics::auto_aim<tag_turret>(registry, world, dt, cfg_turret_range, cfg_turret_bspeed, cfg_turret_fire_cd,
-        [&](uint32_t id, vec2 src) {
-          return registry.has<tag_enemy>(id) && has_los(src, registry.get<c_pos>(id).v);
-        },
-        [&](vec2 src, vec2 dir) {
-          registry.create_with(
-            tag_bullet{},
-            c_pos{src + dir * (cfg_grid_size * 0.5f)},
-            c_vel{dir * cfg_turret_bspeed},
-            c_life{1.f},
-            c_line{dir * 15.f, colors::green, 3.f}
-          );
-        }
-      );
-    }
+    );
 
     bool w_dead = false;
     registry.each([&](uint32_t e, c_pos& p, c_vel& v, tag_enemy& en) {
@@ -350,33 +339,36 @@ struct game_t {
         return registry.has<tag_enemy>(id) ? registry.get<c_pos>(id).v : p.v;
       });
       bool bash = false;
-      vec2 tgt = vs / 2.f;
+      vec2 tgt  = vs / 2.f;
       if (!en.flying) {
         if (!en.path.empty()) {
           tgt = vec2(en.path.back()) * cfg_grid_size + (cfg_grid_size / 2.f);
-          if ((p.v - tgt).length_squared() < 900.f) {
+          if ((p.v - tgt).length_squared() < 1600.f)
             en.path.pop_back();
-          }
         }
         if ((int)en.path.size() > cfg_path_bash_thresh) {
-          tgt = vs / 2.f;
+          tgt  = vs / 2.f;
           bash = true;
         }
       }
-      f32_t speed_mul = 1.f + std::max(0, (int)en.path.size() - cfg_path_len_thresh) * cfg_path_speed_bonus;
-      v.v = v.v * 0.9f + ((tgt - p.v).normalize() + sep * 0.5f) * (cfg_enemy_base_speed * speed_mul);
+
+      f32_t speed_mul = 1.f + std::max(0, en.initial_path_size - cfg_path_len_thresh) * cfg_path_speed_bonus;
+      vec2 move_dir   = (tgt - p.v).normalize() + sep * 0.5f;
+      if (move_dir.length_squared() > 0.0001f)
+        move_dir = move_dir.normalize();
+      v.v = v.v * 0.9f + move_dir * (cfg_enemy_base_speed * speed_mul);
 
       if (!en.flying) {
         world.query_radius(p.v, cfg_grid_size * 0.75f, [&](uint32_t id) {
-          if (registry.has<tag_wall>(id) && fan::physics::aabb_t::from_center(registry.get<c_pos>(id).v, vec2(cfg_grid_size / 2.f)).push_out(p.v, 200.f * dt)) {
+          vec2 col_extents = vec2(cfg_grid_size / 2.f - 0.1f);
+          if (registry.has<tag_wall>(id) && fan::physics::aabb_t::from_center(registry.get<c_pos>(id).v, col_extents).push_out(p.v, 200.f * dt)) {
             auto& hp = registry.get<c_hp>(id);
-            if ((hp.current -= bash ? cfg_wall_dmg_bash : cfg_wall_dmg) <= 0) {
+            if ((hp.current -= bash ? cfg_wall_dmg_bash : cfg_wall_dmg) <= 0)
               w_dead = true;
-            } else {
+            else
               registry.get<tag_wall>(id).outer_col = colors::red.lerp(color(0, 0.3f, 1.f, 1.f), (f32_t)hp.current / hp.max);
-            }
           } else if (registry.has<tag_obstacle>(id)) {
-            fan::physics::aabb_t::from_center(registry.get<c_pos>(id).v, vec2(cfg_grid_size / 2.f)).push_out(p.v, 200.f * dt);
+            fan::physics::aabb_t::from_center(registry.get<c_pos>(id).v, col_extents).push_out(p.v, 200.f * dt);
           }
         });
       }
@@ -397,12 +389,8 @@ struct game_t {
       bool d = false;
       world.query_radius(p.v, 12.f, [&](uint32_t id) {
         if (!d) {
-          if (registry.has<tag_enemy>(id)) {
-            registry.get<c_hp>(id).current -= 10;
-            d = true;
-          } else if (registry.has<tag_wall>(id) || registry.has<tag_obstacle>(id)) {
-            d = true;
-          }
+          if (registry.has<tag_enemy>(id)) { registry.get<c_hp>(id).current -= 10; d = true; }
+          else if (registry.has<tag_wall>(id) || registry.has<tag_obstacle>(id)) d = true;
         }
       });
       return d;
@@ -413,7 +401,6 @@ struct game_t {
       registry.destroy(e);
       fan::graphics::emit_radial(registry, p.v, colors::red, 10, {50.f, 200.f}, {0.2f, 0.6f});
     });
-
     fan::physics::proximity_trigger<c_pos, tag_enemy>(registry, player_pos, 20.f, [&](uint32_t e, c_pos& p) {
       core_health -= 5;
       registry.destroy(e);
@@ -468,6 +455,7 @@ struct game_t {
   int core_health = cfg_core_health;
   int selected_build = 0;
   bool is_action_phase = false;
+  bool wait_for_mouse_release = false;
   fan::cooldown_t phase_timer, spawn_timer, player_shoot_cd;
   vec2 player_pos;
   f32_t player_angle = 0.f;
@@ -482,7 +470,5 @@ struct game_t {
 int main() {
   game_t game;
   game.open();
-  game.engine.loop([&] {
-    game.update();
-  });
+  game.engine.loop([&] { game.update(); });
 }
