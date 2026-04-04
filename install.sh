@@ -51,6 +51,21 @@ move_and_pull "https://github.com/7244/bcontainer.git" "bcontainer"
 move_and_pull "https://github.com/7244/pixfconv.git" "pixfconv"
 move_and_pull "https://github.com/6413/PIXF.git" "PIXF"
 
+GLAD_DIR="$INSTALL_DIR/repos/glad"
+if [[ "$FORCE_REBUILD" == "true" ]] || [[ ! -f "$INCLUDE_DIR/glad/gl.h" ]]; then
+    echo "Generating glad..."
+    pip install glad2 --quiet
+    glad --api gl:core --out-path "$GLAD_DIR"
+    mkdir -p "$INCLUDE_DIR/glad"
+    mkdir -p "$INCLUDE_DIR/KHR"
+    cp "$GLAD_DIR/include/glad/gl.h" "$INCLUDE_DIR/glad/gl.h"
+    cp "$GLAD_DIR/include/KHR/khrplatform.h" "$INCLUDE_DIR/KHR/khrplatform.h"
+    cp "$GLAD_DIR/src/gl.c" "$INSTALL_DIR/glad.c"
+    echo "✓ glad generated successfully"
+else
+    echo "✓ glad already exists, skipping"
+fi
+
 # Build Box2D (only if not exists or force rebuild)
 if [[ "$FORCE_REBUILD" == "true" ]] || [[ ! -f "$LIB_DIR/libbox2d.a" ]]; then
     echo "Building Box2D..."
@@ -166,6 +181,13 @@ fi
 echo ""
 echo "All dependencies processed successfully!"
 echo "Built libraries:"
+
+if [[ -f "$INCLUDE_DIR/glad/gl.h" ]]; then
+    echo "✓ glad: $INCLUDE_DIR/glad/gl.h"
+else
+    echo "✗ glad: not found"
+fi
+
 if [[ -f "$LIB_DIR/libfreetype.a" ]]; then
     echo "✓ FreeType: $(ls -la $LIB_DIR/libfreetype.a | awk '{print $5, $9}')"
 else

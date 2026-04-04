@@ -175,10 +175,7 @@
 #endif
 
 #if defined(IMGUI_IMPL_OPENGL_LOADER_CUSTOM)
-#ifndef GLEW_STATIC
-  #define GLEW_STATIC
-#endif
-  #include <GL/glew.h>
+  #include <glad/gl.h>
 #endif
 
 // Vertex arrays are not supported on ES2/WebGL1 unless Emscripten which uses an extension
