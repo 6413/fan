@@ -584,6 +584,8 @@ export namespace fan::graphics {
           get_shape_data_impl(T::type_t::shape_type)
         );
       }
+
+      std::string_view get_name() const;
     };
 
     shaper_t shaper;

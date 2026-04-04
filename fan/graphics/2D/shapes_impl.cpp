@@ -1661,7 +1661,7 @@ namespace fan::graphics{
       }
       return false;
     }
-    fan::throw_error("invalid function call for current shape:"_str + shape_names[st]);
+    fan::throw_error("invalid function call for current shape:"_str + std::string(shape_names[st]));
     return true;
   }
 
@@ -2667,6 +2667,10 @@ namespace fan::graphics{
   }
   shaper_t::KeyPackSize_t shapes::shape_t::get_keys_size() {
     return g_shapes->shaper.GetKeysSize(get_visual_id());
+  }
+
+  std::string_view shapes::shape_t::get_name() const {
+    return fan::graphics::shape_names[get_shape_type()];
   }
 
   static shapes::shape_t make_shape_ret(shapes::shape_nr_t nri) {
