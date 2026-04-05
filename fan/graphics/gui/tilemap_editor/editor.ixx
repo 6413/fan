@@ -1219,9 +1219,13 @@ export struct fte_t {
       fan::vec2i grid_pos;
       if (window_relative_to_grid(cursor_position, &grid_pos)) {
         std::string str = (std::string)(grid_pos / (tile_size * 2.f));
-        fan::graphics::gui::text_bottom_right(str.c_str(), 1);
+        fan::graphics::gui::text(str, {
+          .pos = fan::graphics::gui::get_position_bottom_corner(str, 1)
+        });
         str = grid_pos;
-        fan::graphics::gui::text_bottom_right(str.c_str(), 0);
+        fan::graphics::gui::text(str.c_str(), {
+          .align = fan::graphics::gui::text_style_t::align_t::bottom_right
+        });
       }
 
       if (fan::graphics::gui::begin("Layer window")) {

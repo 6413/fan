@@ -2641,14 +2641,14 @@ namespace fan::graphics::gui {
           pos = end + 1;
         }
 
-        text_unformatted(final_str.c_str());
+        text(final_str);
         end_tooltip();
       }
 
       if (begin_popup("view stack", gui::window_flags_always_horizontal_scrollbar)) {
         std::ostringstream oss;
         oss << stack;
-        text_unformatted(oss.str().c_str());
+        text(oss.str());
         end_popup();
       }
     #endif

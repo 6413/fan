@@ -176,12 +176,11 @@ void DrawString(b2Vec2 p, const char* s, b2HexColor color, void* context) {
 
   zoomed_font_size = std::clamp(zoomed_font_size, fs_first, fs_last);
 
-  fan::graphics::gui::push_font(
-    fan::graphics::gui::get_font(zoomed_font_size)
-  );
-
-  fan::graphics::gui::text_outlined_at(s, fan::graphics::world_to_screen(fan::physics::physics_to_render(p)), fan::color::from_rgb(color));
-  fan::graphics::gui::pop_font();
+  fan::graphics::gui::text_outlined(s, {
+    .color = fan::color::from_rgb(color),
+    .font_size = zoomed_font_size,
+    .pos = fan::graphics::world_to_screen(fan::physics::physics_to_render(p))
+  });
 #endif
 }
 
