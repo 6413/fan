@@ -1066,7 +1066,7 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   loco_fire_engine_init_callbacks(this);
 }
 
-loco_t::loco_t(std::function<void()> loop_fn) : loco_t(properties_t()){
+loco_t::loco_t(std::function<void()> loop_fn, const properties_t& p) : loco_t(p){
   loop(loop_fn);
 }
 
@@ -1819,7 +1819,6 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
 void loco_t::loop(const std::function<void()>& cb) {
   main_loop = cb;
 g_loop:
-  double delay = std::round(1.0 / target_fps * 1000.0);
 
   if (!timer_init) {
     uv_timer_init((uv_loop_t*)fan::event::get_loop(), &timer_handle);
