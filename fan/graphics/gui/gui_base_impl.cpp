@@ -19,11 +19,10 @@ module;
   #include <string_view>
   #include <functional>
   #include <cstdint>
-  #include <cstring>
   #include <limits>
   #include <string>
   #include <span>
-  #include <sstream>
+  #include <optional>
 
   #define GLFW_INCLUDE_NONE
   #include <GLFW/glfw3.h>
@@ -924,16 +923,16 @@ namespace fan::graphics::gui {
     return button(label, size);
   }
 
-  bool button_centered(str_view_t label, const fan::vec2& size, const fan::vec2i& affects_axis, const fan::vec2& offset) {
-    ImVec2 s = size.x == 0
+  bool button_centered(fan::str_view_t label, const fan::graphics::gui::button_centered_args_t& args) {
+    ImVec2 s = args.size.x == 0
       ? ImGui::CalcTextSize(label.data(), label.data() + label.size()) + ImGui::GetStyle().FramePadding * 2.0f
-      : ImVec2(size.x, size.y);
+      : ImVec2(args.size.x, args.size.y);
 
     ImVec2 pos = ImGui::GetCursorPos();
-    if (affects_axis.x) pos.x = (ImGui::GetWindowSize().x - s.x) * 0.5f;
-    if (affects_axis.y) pos.y = ImGui::GetWindowSize().y * 0.5f - s.y * 0.5f;
+    if (args.affects_axis.x) pos.x = (ImGui::GetWindowSize().x - s.x) * 0.5f;
+    if (args.affects_axis.y) pos.y = ImGui::GetWindowSize().y * 0.5f - s.y * 0.5f;
 
-    ImGui::SetCursorPos(pos + offset);
+    ImGui::SetCursorPos(pos + args.offset);
     return ImGui::Button(label.data(), ImVec2(s.x, s.y));
   }
 
@@ -953,125 +952,65 @@ namespace fan::graphics::gui {
     return ImGui::ArrowButton(label, dir);
   }
 
-  void text_sized(const std::string_view& str, f32_t font_size, bool bold) {
-    fan::graphics::gui::font_scope_t _(font_size, bold);
-    fan::graphics::gui::text(str);
-  }
-
-  void text_sized_fallback(fan::str_view_t text, int size, fan::str_view_t fallback) {
-    text_sized(text.empty() ? fallback : text, size);
-  }
-
-  void text_at(std::string_view text, const fan::vec2& position, const fan::color& color) {
-    ImGui::SetCursorPos(ImVec2(position.x, position.y));
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(color.r, color.g, color.b, color.a));
-    ImGui::TextUnformatted(text.data(), text.data() + text.size());
-    ImGui::PopStyleColor();
-  }
-
-  void text_at_abs(std::string_view text, const fan::vec2& position, const fan::color& color) {
-    ImDrawList* dl = ImGui::GetWindowDrawList();
-    ImU32 col = ImGui::ColorConvertFloat4ToU32(ImVec4(color.r, color.g, color.b, color.a));
-    dl->AddText(ImVec2(position.x, position.y), col, text.data(), text.data() + text.size());
-  }
-
-  void text_wrapped(std::string_view text, const fan::color& color) {
-    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(color.r, color.g, color.b, color.a));
-    ImGui::PushTextWrapPos(0.0f);
-    ImGui::TextUnformatted(text.data(), text.data() + text.size());
-    ImGui::PopTextWrapPos();
-    ImGui::PopStyleColor();
-  }
-
-  void text_unformatted(std::string_view text, const char* text_end) {
-    ImGui::TextUnformatted(text.data(), text_end ? text_end : text.data() + text.size());
-  }
-
   void text_disabled(std::string_view text) {
     ImGui::TextDisabled("%.*s", (int)text.size(), text.data());
   }
 
-  //void text_centered(std::string_view text, const fan::color& color) {
-  //  fan::vec2 text_size_v = calc_text_size(text);
-  //  fan::vec2 current_pos = get_cursor_pos();
-  //  current_pos -= text_size_v;
-  //  //current_pos.x = (window_size.x - text_size_v.x) * 0.5f;
-  //  set_cursor_pos(current_pos);
-  //  ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(color.r, color.g, color.b, color.a));
-  //  ImGui::TextUnformatted(text.data(), text.data() + text.size());
-  //  ImGui::PopStyleColor();
-  //}
+  void text(std::string_view str, const text_style_t& style) {
+    bool use_draw_list = style.pos.x != std::numeric_limits<f32_t>::max();
+    bool is_window_relative = style.window_offset.x != std::numeric_limits<f32_t>::max();
 
-  void text_centered(
-    std::string_view text,
-    const fan::color& color,
-    const fan::vec2& text_offset,
-    const fan::vec2& window_offset
-  ) {
-    fan::vec2 text_size_v = calc_text_size(text);
-    fan::vec2 window_size = get_window_size();
-    fan::vec2 current_pos = get_cursor_pos();
+    std::optional<font_scope_t> fs;
+    if (style.font_size > 0.f) fs.emplace(style.font_size);
 
-    // Apply window offset: [-1,1] where 0 = center
-    fan::vec2 window_center = window_size * 0.5f;
-    fan::vec2 window_offset_px = window_center + (window_size * 0.5f) * window_offset;
+    fan::vec2 text_size = calc_text_size(str);
+    fan::vec2 draw_pos;
 
-    // Apply text offset: [-1,1] relative to text size
-    fan::vec2 text_offset_px = text_size_v * text_offset;
+    if (use_draw_list) {
+      draw_pos = style.pos;
+      if (style.align == text_style_t::align_t::center) {
+        draw_pos -= text_size * 0.5f;
+      }
+    } else if (is_window_relative) {
+      fan::vec2 ws = get_window_size();
+      draw_pos = (ws * 0.5f) + (ws * 0.5f * style.window_offset) - (text_size * style.text_offset);
+      use_draw_list = true;
+    } else {
+      draw_pos = style.align == text_style_t::align_t::bottom_right ?
+        get_window_size() - text_size - fan::vec2(get_style().WindowPadding) : get_cursor_pos();
+      if (style.align == text_style_t::align_t::center) {
+        draw_pos.x = (get_window_size().x - text_size.x) * 0.5f;
+      }
+    }
 
-    // Final position
-    current_pos = window_offset_px - text_offset_px;
-    gui::text_at(text, current_pos, color);
+    draw_pos += style.offset;
+
+    if (style.outlined) {
+      detail::text_outlined_at_impl(str.data(), str.data() + str.size(), draw_pos, style.color, style.outline_color);
+      if (!use_draw_list) {
+        ImGui::SetCursorPos(ImVec2(draw_pos.x, draw_pos.y + text_size.y + get_style().ItemSpacing.y));
+      }
+    } else if (use_draw_list) {
+      ImU32 col = ImGui::ColorConvertFloat4ToU32(ImVec4(style.color.r, style.color.g, style.color.b, style.color.a));
+      ImGui::GetWindowDrawList()->AddText(ImVec2(draw_pos.x, draw_pos.y), col, str.data(), str.data() + str.size());
+    } else {
+      set_cursor_pos(draw_pos);
+      if (style.wrapped) { ImGui::PushTextWrapPos(0.0f); }
+      ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(style.color.r, style.color.g, style.color.b, style.color.a));
+      ImGui::TextUnformatted(str.data(), str.data() + str.size());
+      ImGui::PopStyleColor();
+      if (style.wrapped) { ImGui::PopTextWrapPos(); }
+    }
   }
 
-  void text_centered_at(std::string_view text, const fan::vec2& center_position, const fan::color& color) {
-    fan::vec2 text_size_v = calc_text_size(text);
-    fan::vec2 draw_position = center_position;
-    draw_position.x -= text_size_v.x * 0.5f;
-    draw_position.y -= text_size_v.y * 0.5f;
-    text_at(text, draw_position, color);
+  void text_outlined(std::string_view str, text_style_t style) {
+    style.outlined = true;
+    text(str, style);
   }
 
-  void text_bottom_right(std::string_view text, const fan::color& color, const fan::vec2& offset) {
-    fan::vec2 text_size_v = calc_text_size(text);
-    fan::vec2 window_pos = get_window_pos();
-    fan::vec2 window_size = get_window_size();
-    fan::vec2 pos;
-    pos.x = window_pos.x + window_size.x - text_size_v.x - get_style().WindowPadding.x;
-    pos.y = window_pos.y + window_size.y - text_size_v.y - get_style().WindowPadding.y;
-    text_at(text, pos + offset, color);
-  }
-
-  void text_outlined_at(std::string_view text, const fan::vec2& screen_pos, const fan::color& color, const fan::color& outline_color) {
-    detail::text_outlined_at_impl(text.data(), text.data() + text.size(), screen_pos, color, outline_color);
-  }
-
-  void text_outlined(std::string_view text, const fan::color& color, const fan::color& outline_color) {
-    fan::vec2 cursor_pos = get_cursor_pos();
-    text_outlined_at(text, cursor_pos, color, outline_color);
-    fan::vec2 size = calc_text_size(text);
-    ImGui::Dummy(ImVec2(size.x, size.y));
-  }
-
-  void text_centered_outlined_at(std::string_view text, const fan::vec2& center_position, const fan::color& color, const fan::color& outline_color) {
-    fan::vec2 text_size_v = calc_text_size(text);
-    fan::vec2 draw_position = center_position;
-    draw_position.x -= text_size_v.x * 0.5f;
-    draw_position.y -= text_size_v.y * 0.5f;
-    text_outlined_at(text, draw_position, color, outline_color);
-  }
-
-  void text_centered_outlined(std::string_view text, const fan::color& color, const fan::color& outline_color) {
-    fan::vec2 text_size_v = calc_text_size(text);
-    fan::vec2 window_size = get_window_size();
-    fan::vec2 current_pos = get_cursor_pos();
-    current_pos.x = (window_size.x - text_size_v.x) * 0.5f;
-    set_cursor_pos(current_pos);
-    text_outlined(text, color, outline_color);
-  }
-  void text_centered_outlined_big(std::string_view text, f32_t font_size, const fan::color& color, const fan::color& outline_color) {
-    font_scope_t fs(font_size);
-    text_centered_outlined(text, color, outline_color);
+  void text_wrapped(std::string_view str, text_style_t style) {
+    style.wrapped = true;
+    text(str, style);
   }
 
   void text_box(std::string_view text,
@@ -1387,11 +1326,6 @@ namespace fan::graphics::gui {
 
   bool toggle_button(str_view_t str, bool* v) {
     return detail::toggle_button_impl(fan::ct_string(str), v);
-  }
-
-  void text_bottom_right(std::string_view text, uint32_t reverse_yoffset) {
-    fan::vec2 pos = get_position_bottom_corner(text, reverse_yoffset);
-    text_at(text, pos, fan::colors::white);
   }
 
   fan::vec2 get_position_bottom_corner(std::string_view text, uint32_t reverse_yoffset) {
@@ -2010,6 +1944,13 @@ namespace fan::graphics::gui {
 
     return gui::window(id, open, extra_flags);
   }
+
+  gui::window overlay_window(fan::str_view_t id, fan::vec2 size, f32_t alpha) {
+    set_next_window_size(size);
+    set_next_window_bg_alpha(alpha);
+    return gui::window(id, nullptr, window_flags_overlay);
+  }
+
   void button_layout(
     std::initializer_list<std::initializer_list<const char*>> rows,
     const fan::vec2& size,

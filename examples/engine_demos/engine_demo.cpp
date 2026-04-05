@@ -876,7 +876,7 @@ void main() {
   struct demo_algorithm_pathfind_t {
     fan::graphics::grid_t grid_visual;
     fan::graphics::tilemap_t grid;
-    fan::graphics::algorithm::pathfind::generator generator;
+    fan::pathfind::generator generator;
     fan::vec2 tile_size = fan::vec2(64, 64);
     fan::vec2i src = 0;
     fan::vec2i dst = 2;
@@ -906,7 +906,7 @@ void main() {
       &engine_demo->right_column_view
     );
     data.generator.set_world_size({(int)data.grid.size.x, (int)data.grid.size.y});
-    data.generator.set_heuristic(fan::graphics::algorithm::pathfind::heuristic::euclidean);
+    data.generator.set_heuristic(fan::pathfind::heuristic::euclidean);
     data.generator.set_diagonal_movement(false);
 
     auto handle_cell_click = [](engine_demo_t* engine_demo, fan::vec2 mouse_pos, bool is_shift, auto&& action) {
@@ -974,7 +974,7 @@ void main() {
       data.src,
       data.dst,
       data.generator,
-      fan::graphics::algorithm::pathfind::heuristic::euclidean,
+      fan::pathfind::heuristic::euclidean,
       false
     );
 

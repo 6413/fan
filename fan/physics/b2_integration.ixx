@@ -25,6 +25,7 @@ import fan.physics.common_context;
 
 import fan.ecs;
 import fan.math;
+import fan.time;
 
 #define BLL_set_SafeNext 1
 #define BLL_set_AreWeInsideStruct 0
@@ -435,8 +436,7 @@ export namespace fan {
         });
 
         if (target) {
-          turret.cd.max = cooldown_time;
-          turret.cd.reset();
+          turret.cd = fan::cooldown_t::full(cooldown_time);
           if (auto bdir = fan::math::aimbot(speed, pos.v, reg.template get<fan::ecs::c_pos>(*target).v, reg.template get<fan::ecs::c_vel>(*target).v)) {
             on_fire_cb(pos.v, bdir->normalize());
           }

@@ -71,12 +71,13 @@ export namespace fan::graphics::gui {
 
   bool button(str_view_t label, const fan::vec2& size = fan::vec2(0, 0));
   bool button(str_view_t label, const fan::vec2& size, f32_t font_size, bool bold = false);
-  bool button_centered(
-    str_view_t label, 
-    const fan::vec2& size = fan::vec2(0, 0),
-    const fan::vec2i& affects_axis = fan::vec2i(1, 1),
-    const fan::vec2& offset = 0.f
-  );
+  struct button_centered_args_t {
+    fan::vec2 size = fan::vec2(0, 0);
+    fan::vec2i affects_axis = fan::vec2i(1, 1);
+    fan::vec2 offset = 0.f;
+  };
+  bool button_centered(str_view_t label, const button_centered_args_t& args = {});
+
 
   bool button_fill(str_view_t label);
 
@@ -86,18 +87,30 @@ export namespace fan::graphics::gui {
   bool invisible_button(const fan::vec2& size = fan::vec2(0, 0));
 
   bool arrow_button(str_view_t label, dir_t dir);
-
-  void text_sized(const std::string_view& str, f32_t font_size, bool bold = false);
+  
+  struct text_style_t {
+    fan::color color = fan::colors::white;
+    fan::color outline_color = fan::colors::black;
+    f32_t font_size = 0.f;
+    fan::vec2 pos = std::numeric_limits<f32_t>::max();
+    fan::vec2 offset = 0.f;
+    fan::vec2 text_offset = 0.f;
+    fan::vec2 window_offset = std::numeric_limits<f32_t>::max();
+    enum class align_t { left, center, bottom_right } align = align_t::left;
+    bool outlined = false;
+    bool wrapped = false;
+  };
 
   /// <summary>
   /// Draws the specified text, with its position influenced by other GUI elements.
   /// </summary>
   /// <param name="color">The color of the text.</param>
   /// <param name="text">The text args to draw.</param>
-  template <typename ...Args>
-  void text(const fan::color& color, const Args&... args) {
+  template <typename first_t, typename ...args_t>
+  requires (!std::is_same_v<std::decay_t<first_t>, text_style_t>)
+  void text(const fan::color& color, const first_t& first, const args_t&... args) {
     gui::push_style_color(col_text, color);
-    std::string txt = fan::format_args(args...);
+    std::string txt = fan::format_args(first, args...);
     ImGui::TextUnformatted(txt.c_str());
     gui::pop_style_color();
   }
@@ -106,79 +119,29 @@ export namespace fan::graphics::gui {
   /// Draws text constructed from multiple arguments with default white color.
   /// </summary>
   /// <param name="args">Arguments to be concatenated with spaces.</param>
-  template <typename ...Args>
-  void text(const Args&... args) {
-    text(fan::colors::white, args...);
+  template <typename first_t, typename ...args_t>
+  requires (!std::is_same_v<std::decay_t<first_t>, text_style_t> &&
+            !std::is_same_v<std::decay_t<first_t>, fan::color> &&
+            (!std::is_same_v<std::decay_t<args_t>, text_style_t> && ...))
+  void text(const first_t& first, const args_t&... args) {
+    text(fan::colors::white, first, args...);
   }
-
-  /// <summary>
-  /// Draws the specified text at a given position on the screen, moving the cursor.
-  /// </summary>
-  /// <param name="text">The text to draw.</param>
-  /// <param name="position">The position of the text (local-space).</param>
-  /// <param name="color">The color of the text (defaults to white).</param>
-  void text_at(std::string_view text, const fan::vec2& position = 0, const fan::color& color = fan::colors::white);
-
-  /// <summary>
-  /// Draws the specified text at a given position on the screen.
-  /// </summary>
-  /// <param name="text">The text to draw.</param>
-  /// <param name="position">The position of the text (screen-space).</param>
-  /// <param name="color">The color of the text (defaults to white).</param>
-  void text_at_abs(std::string_view text, const fan::vec2& position = 0, const fan::color& color = fan::colors::white);
-
-  void text_wrapped(std::string_view text, const fan::color& color = fan::colors::white);
-
-  void text_unformatted(std::string_view text, const char* text_end = NULL);
 
   void text_disabled(std::string_view text);
 
-  // text_offset [-1, 1] 1 being full size of the text
-  // window_offset [-1, 1] 0 being center of window
-  void text_centered(
-    std::string_view text, 
-    const fan::color& color = fan::colors::white, 
-    const fan::vec2& text_offset = 0.5f,
-    const fan::vec2& window_offset = 0.f
-  );
+  void text(std::string_view str, const text_style_t& style = {});
+  void text_outlined(std::string_view str, text_style_t style = {});
+  void text_wrapped(std::string_view str, text_style_t style = {});
 
-  /// <summary>
-  /// Draws text centered at a specific position.
-  /// </summary>
-  /// <param name="text">The text to draw.</param>
-  /// <param name="center_position">The position where the text should be centered.</param>
-  /// <param name="color">The color of the text (defaults to white).</param>
-  void text_centered_at(std::string_view text, const fan::vec2& center_position, const fan::color& color = fan::colors::white);
-  
-  /// <summary>
-  /// Draws text to bottom right.
-  /// </summary>
-  /// <param name="text">The text to draw.</param>
-  /// <param name="color">The color of the text (defaults to white).</param>
-  /// <param name="offset">Offset from the bottom-right corner.</param>
-  void text_bottom_right(std::string_view text, const fan::color& color = fan::colors::white, const fan::vec2& offset = 0);
+  template <typename... args_t>
+  void text(const text_style_t& style, const args_t&... args) {
+    text(fan::format_args(args...), style);
+  }
 
-  void text_outlined_at(std::string_view text, const fan::vec2& screen_pos, const fan::color& color = fan::colors::white, const fan::color& outline_color = fan::colors::black);
-
-  void text_outlined(std::string_view text, const fan::color& color = fan::colors::white, const fan::color& outline_color = fan::colors::black);
-
-  /// <summary>
-  /// Draws outlined text centered at a specific position.
-  /// </summary>
-  /// <param name="text">The text to draw.</param>
-  /// <param name="center_position">The position where the text should be centered.</param>
-  /// <param name="color">The color of the text (defaults to white).</param>
-  /// <param name="outline_color">The color of the outline (defaults to black).</param>
-  void text_centered_outlined_at(std::string_view text, const fan::vec2& center_position, const fan::color& color = fan::colors::white, const fan::color& outline_color = fan::colors::black);
-
-  /// <summary>
-  /// Draws outlined text centered horizontally within the current window.
-  /// </summary>
-  /// <param name="text">The text to draw.</param>
-  /// <param name="color">The color of the text (defaults to white).</param>
-  /// <param name="outline_color">The color of the outline (defaults to black).</param>
-  void text_centered_outlined(std::string_view text, const fan::color& color = fan::colors::white, const fan::color& outline_color = fan::colors::black);
-  void text_centered_outlined_big(std::string_view text, f32_t font_size, const fan::color& color = fan::colors::white, const fan::color& outline_color = fan::colors::black);
+  template <typename... args_t>
+  void text_outlined(const text_style_t& style, const args_t&... args) {
+    text_outlined(fan::format_args(args...), style);
+  }
 
   void text_box(
     std::string_view text,
@@ -309,8 +272,6 @@ export namespace fan::graphics::gui {
   bool list_box(str_view_t label, int* current_item, const char* (*getter)(void* user_data, int idx), void* user_data, int items_count, int height_in_items = -1);
 
   bool toggle_button(str_view_t label, bool* v);
-
-  void text_bottom_right(std::string_view text, uint32_t reverse_yoffset = 0);
 
   fan::vec2 get_position_bottom_corner(std::string_view text = {}, uint32_t reverse_yoffset = 0);
 
@@ -831,7 +792,7 @@ export namespace fan::graphics::gui {
   private:
     table_t tbl;
   };
-
+  
   gui::window fullscreen_window(str_view_t id, window_flags_t extra_flags = 0);
 
   gui::window centered_window(
@@ -840,6 +801,29 @@ export namespace fan::graphics::gui {
     bool* open = nullptr,
     window_flags_t extra_flags = 0
   );
+
+  gui::window overlay_window(str_view_t id, fan::vec2 size, f32_t alpha = 0.7f);
+
+  struct style_scope_t {
+    int color_count = 0, var_count = 0;
+
+    style_scope_t() = default;
+    style_scope_t(gui::col_t idx, const fan::color& col)       { color(idx, col); }
+    style_scope_t(gui::style_var_t idx, f32_t val)             { var(idx, val); }
+    style_scope_t(gui::style_var_t idx, const fan::vec2& val)  { var(idx, val); }
+
+    style_scope_t& color(gui::col_t idx, const fan::color& col) {
+      ImGui::PushStyleColor(idx, ImVec4(col.r, col.g, col.b, col.a));
+      ++color_count; return *this;
+    }
+    style_scope_t& var(gui::style_var_t idx, f32_t val)            { ImGui::PushStyleVar(idx, val); ++var_count; return *this; }
+    style_scope_t& var(gui::style_var_t idx, const fan::vec2& val) { ImGui::PushStyleVar(idx, val); ++var_count; return *this; }
+
+    ~style_scope_t() {
+      if (color_count) ImGui::PopStyleColor(color_count);
+      if (var_count)   ImGui::PopStyleVar(var_count);
+    }
+  };
 
   template <typename container_t, typename mapper_t>
   bool combo_mapped(str_view_t label, int* current, const container_t& items, mapper_t mapper) {

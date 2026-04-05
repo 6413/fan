@@ -214,7 +214,7 @@ local module_files = {
   "fan/graphics/graphics.ixx",
   "fan/graphics/file_dialog.ixx",
   "fan/graphics/2D/algorithm/raycast_grid.ixx",
-  "fan/graphics/2D/algorithm/pathfind.ixx",
+  "fan/pathfind.ixx",
 	"fan/spatial.ixx",
 	"fan/ecs.ixx",
   "fan/window/window.ixx",

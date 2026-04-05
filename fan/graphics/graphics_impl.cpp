@@ -1130,7 +1130,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     return shapes[v.y][v.x];
   }
 
-  void tilemap_t::add_wall(const fan::vec2i& cell, fan::graphics::algorithm::pathfind::generator& gen) {
+  void tilemap_t::add_wall(const fan::vec2i& cell, fan::pathfind::generator& gen) {
     if (wall_cells.find(cell) == wall_cells.end()) {
       gen.add_collision(cell);
       wall_cells.insert(cell);
@@ -1138,7 +1138,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     }
   }
 
-  void tilemap_t::remove_wall(const fan::vec2i& cell, fan::graphics::algorithm::pathfind::generator& gen) {
+  void tilemap_t::remove_wall(const fan::vec2i& cell, fan::pathfind::generator& gen) {
     if (wall_cells.find(cell) != wall_cells.end()) {
       gen.remove_collision(cell);
       wall_cells.erase(cell);
@@ -1191,7 +1191,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
   }
 
   void tilemap_t::highlight_path(
-    const fan::graphics::algorithm::pathfind::coordinate_list& path,
+    const fan::pathfind::coordinate_list& path,
     const fan::color& color)
   {
     for (const auto& p : path) {
@@ -1203,11 +1203,11 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     }
   }
 
-  fan::graphics::algorithm::pathfind::coordinate_list tilemap_t::find_path(
+  fan::pathfind::coordinate_list tilemap_t::find_path(
     const fan::vec2i& src,
     const fan::vec2i& dst,
-    fan::graphics::algorithm::pathfind::generator& gen,
-    fan::graphics::algorithm::pathfind::heuristic_function heuristic,
+    fan::pathfind::generator& gen,
+    fan::pathfind::heuristic_function heuristic,
     bool diagonal)
   {
     gen.set_heuristic(heuristic);
