@@ -669,7 +669,7 @@ void main() {
     auto& data = *engine_demo->demo_physics_platformer_data;
 
     fan::vec2 mouse_pos = get_mouse_position(engine_demo->right_column_view) - data.grid_size / 2.f;
-    fan::vec2 place_pos = mouse_pos.grid_snap(data.grid_size) + data.grid_size / 2.f;
+    fan::vec2 place_pos = mouse_pos.grid_round(data.grid_size) + data.grid_size / 2.f;
 
     sprite({
       .render_view = &engine_demo->right_column_view,
@@ -912,7 +912,7 @@ void main() {
     auto handle_cell_click = [](engine_demo_t* engine_demo, fan::vec2 mouse_pos, bool is_shift, auto&& action) {
       mouse_pos = fan::graphics::screen_to_world(mouse_pos, engine_demo->right_column_view);
       mouse_pos -= engine_demo->demo_algorithm_pathfind_data->tile_size / 2.f;
-      fan::vec2i cell = (mouse_pos / engine_demo->demo_algorithm_pathfind_data->tile_size).grid_snap(1).floor().clamp(fan::vec2i(0, 0), engine_demo->demo_algorithm_pathfind_data->grid.size - 1);
+      fan::vec2i cell = (mouse_pos / engine_demo->demo_algorithm_pathfind_data->tile_size).grid_round(1).floor().clamp(fan::vec2i(0, 0), engine_demo->demo_algorithm_pathfind_data->grid.size - 1);
       action(cell, is_shift);
     };
 

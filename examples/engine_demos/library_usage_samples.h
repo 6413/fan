@@ -27,7 +27,7 @@ struct library_usage_t {
       void update() {
         fan::graphics::gui::text("Sprites created from: color array, initializer_list, single color, raw uint8 bytes");
         for (auto& s : sprites) {
-          fan::graphics::gui::text_at(s.get_position().to_string(), s.get_position() + fan::vec2(s.get_size().x / 2.f, s.get_size().y));
+          fan::graphics::gui::text({.pos=s.get_position() + fan::vec2(s.get_size().x / 2.f, s.get_size().y)}, s.get_position());
         }
       }
     };
