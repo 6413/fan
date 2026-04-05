@@ -1,5 +1,6 @@
-#include <cmath>
+#include <cstdint>
 #include <string>
+#include <unordered_set>
 
 import fan;
 
