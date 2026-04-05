@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <cmath>
+#include <vector>
 #include <string>
 #include <unordered_set>
 #include <span>
