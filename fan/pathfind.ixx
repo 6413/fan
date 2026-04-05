@@ -8,6 +8,7 @@ export module fan.pathfind;
 
 #if defined(FAN_2D)
 
+import fan.types;
 import fan.types.vector;
 
 export namespace fan::pathfind {
