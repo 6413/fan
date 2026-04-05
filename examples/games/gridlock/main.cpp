@@ -4,6 +4,7 @@
 #include <string>
 #include <unordered_set>
 #include <span>
+#include <array>
 
 import fan;
 
@@ -56,6 +57,8 @@ struct tag_turret   { fan::cooldown_t cd; };
 struct tag_particle {};
 
 struct game_t {
+  game_t() { open(); engine.loop([&]{ update(); }); }
+
   void recalc_paths() {
     vec2i goal = (fan::window::get_size() / 2.f).grid_cell(cfg_grid);
     registry.each([&](c_pos& p, tag_enemy& e) {
@@ -110,7 +113,7 @@ struct game_t {
     vec2i gcells = vs.grid_cell(cfg_grid), gcenter = gcells / 2;
     pathfinder.init(gcells, false);
     for (int i = 0; i < cfg_obstacles; ++i) {
-      vec2i c(fan::random::value(0, gcells.x-1), fan::random::value(0, gcells.y-1));
+      vec2i c = fan::random::vec(vec2i(0), gcells - 1);
       if (c == vec2i(0) || (vec2(c) - vec2(gcenter)).length_squared() <= 25.f) continue;
       vec2 opos = vec2(c) * cfg_grid + cfg_grid / 2.f;
       pathfinder.add_collision(c); occupied.insert(c);
@@ -160,13 +163,12 @@ struct game_t {
   }
 
   void update() {
-    vec2 vs = fan::window::get_size();
-
     if (core_hp <= 0) { draw_gui(); return; }
     if (paths_dirty)  { recalc_paths(); paths_dirty = false; }
 
-    f32_t dt = engine.get_delta_time();
+    vec2 vs = fan::window::get_size();
     vec2 mpos = get_mouse_world_pos();
+    f32_t dt = engine.get_delta_time();
 
     if (is_action) {
       phase_cd.tick(dt);
@@ -196,7 +198,7 @@ struct game_t {
     }
 
     player_pos = (player_pos + fan::window::get_input_vector() * cfg_player_speed * dt).clamp(vec2(0), vs);
-    player_angle = std::atan2(mpos.y - player_pos.y, mpos.x - player_pos.x);
+    player_angle = (mpos - player_pos).angle();
     player_trail.set_point(player_pos, 0.f);
     player_shape.set_position(player_pos);
     player_gun.set_line(player_pos, player_pos + vec2::from_angle(player_angle, 25.f));
@@ -271,7 +273,7 @@ struct game_t {
     draw_gui();
   }
 
-  engine_t engine{{ .vsync = false }};
+  engine_t engine{{.vsync = false }};
   using registry_t = fan::ecs_t<
     c_pos, c_vel, c_hp, c_life, c_rectangle, c_rectangle_bordered, c_line,
     tag_wall, tag_obstacle, tag_enemy, tag_turret, tag_bullet, tag_particle
@@ -294,7 +296,5 @@ struct game_t {
 };
 
 int main() {
-  game_t game;
-  game.open();
-  game.engine.loop([&] { game.update(); });
+  game_t{};
 }
