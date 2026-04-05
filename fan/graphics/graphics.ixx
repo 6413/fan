@@ -54,7 +54,7 @@ import fan.ecs;
 export namespace fan::ecs {
   struct c_rectangle { fan::vec2 size; fan::color color; f32_t depth = 0.f; };
   struct c_line { fan::vec2 offset; fan::color color; f32_t thickness = 1.f; };
-  export struct c_rectangle_bordered {
+  struct c_rectangle_bordered {
     fan::vec2 size;
     fan::color outer_col;
     fan::vec2 inner_size;
