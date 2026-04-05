@@ -90,6 +90,11 @@ export namespace fan {
       return fan::vec3(fan::random::value_f32(min, max), fan::random::value_f32(min, max), fan::random::value_f32(min, max));
     }
 
+    template<typename T_t>
+    inline T_t vec(const T_t& v0, const T_t& v1) {
+      return {fan::random::value(v0.x, v1.x), fan::random::value(v0.y, v1.y)};
+    }
+
     struct percent_output_t {
       f32_t percent;
       uint32_t output;
