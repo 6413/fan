@@ -17,6 +17,15 @@ namespace fan::detail {
   struct fn_traits<R(C::*)(A...)> { using args = std::tuple<std::decay_t<A>...>; };
 }
 
+export namespace fan::ecs {
+  struct c_pos { fan::vec2 v; };
+  struct c_vel { fan::vec2 v; };
+  struct c_hp { int current; int max; };
+  struct c_life { f32_t timer; };
+  struct tag_bullet{};
+  struct c_cost { int32_t value = 0; };
+}
+
 export namespace fan {
   template <typename... comps_t>
   struct ecs_t : std::vector<comps_t>... {
@@ -195,6 +204,35 @@ export namespace fan {
       destroy_if<Ts...>(std::forward<func_t>(pred));
     }
 
+    template <typename... Tags, typename F>
+    constexpr bool destroy_dead(F&& cb) {
+      bool destroyed = false;
+      each<fan::ecs::c_hp, Tags...>([&](uint32_t id, fan::ecs::c_hp& hp, Tags&... args) {
+        if (hp.current <= 0) {
+          cb(args...);
+          destroy(id);
+          destroyed = true;
+        }
+      });
+      return destroyed;
+    }
+
+    template <typename... Tags, typename F>
+    void destroy_at(vec2 pos, F&& cb) {
+      bool hit = false;
+      (destroy_if<fan::ecs::c_pos, Tags>([&](fan::ecs::c_pos& p, Tags&) {
+        return (hit |= p.v == pos), p.v == pos;
+      }), ...);
+      if (hit) cb();
+    }
+
+    template <typename... Tags>
+    bool any() {
+      bool found = false;
+      each_breakable<Tags...>([&](Tags&...) { return !(found = true); });
+      return found;
+    }
+
     std::vector<std::function<void(uint32_t)>> on_destroy_hooks;
   };
 }
@@ -223,11 +261,4 @@ export namespace fan::ecs::systems {
     });
     for (uint32_t id : dead) { reg.destroy(id); }
   }
-}
-
-export namespace fan::ecs {
-  struct c_pos { fan::vec2 v; };
-  struct c_vel { fan::vec2 v; };
-  struct c_hp { int current; int max; };
-  struct c_life { f32_t timer; };
 }

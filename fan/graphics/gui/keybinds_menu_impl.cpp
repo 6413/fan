@@ -407,9 +407,9 @@ namespace fan::graphics::gui {
     gui::text(title_color, label_keybind_info);
     gui::pop_font();
     gui::new_line();
-    gui::text_wrapped(label_click_to_rebind);
-    gui::text_wrapped(label_right_click_remove);
-    gui::text_wrapped(label_esc_to_cancel);
+    gui::text(label_click_to_rebind, {.wrapped=true});
+    gui::text(label_right_click_remove, {.wrapped=true});
+    gui::text(label_esc_to_cancel, {.wrapped=true});
     gui::end();
   }
 

@@ -17,7 +17,7 @@
 #include <functional>
 
 inline int& fan_track_opengl_calls() {
-  static int track = 1;
+  static int track = 0;
   return track;
 }
 inline std::function<void(std::string func_name, uint64_t elapsed)>& fan_opengl_track_print() {

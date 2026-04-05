@@ -29,7 +29,7 @@ import fan.graphics.common_context;
 import fan.graphics.common_types;
 import fan.graphics.shapes.types;
 import fan.graphics.shapes;
-import fan.graphics.algorithm.pathfind;
+import fan.pathfind;
 import fan.graphics.opengl.core;
 import fan.graphics.image_load;
 
@@ -54,6 +54,12 @@ import fan.ecs;
 export namespace fan::ecs {
   struct c_rectangle { fan::vec2 size; fan::color color; f32_t depth = 0.f; };
   struct c_line { fan::vec2 offset; fan::color color; f32_t thickness = 1.f; };
+  export struct c_rectangle_bordered {
+    fan::vec2 size;
+    fan::color outer_col;
+    fan::vec2 inner_size;
+    fan::color inner_col;
+  };
 }
 
 export namespace fan::graphics {
@@ -487,6 +493,11 @@ export namespace fan::graphics {
   void aabb(const fan::vec2& min, const fan::vec2& max, f32_t thickness = line_properties_t().thickness, render_view_t* render_view = &fan::graphics::get_orthographic_render_view());
 #endif
 
+  void rectangle_bordered(fan::vec3 pos, fan::vec2 outer_size, fan::color outer_col, fan::vec2 inner_size, fan::color inner_col, fan::graphics::render_view_t* rv = fan::graphics::ctx().orthographic_render_view) {
+    rectangle(pos, outer_size, outer_col, rv);
+    rectangle(fan::vec3(pos.x, pos.y, pos.z + 1.f), inner_size, inner_col, rv);
+  }
+
   inline constexpr f32_t default_float_value = 100000.1234;
 
   struct sprite_sheet_config_t {
@@ -893,21 +904,21 @@ export namespace fan::graphics {
     template <typename T>
     fan::graphics::shapes::shape_t& operator[](const fan::vec2_wrap_t<T>& v);
 
-    void add_wall(const fan::vec2i& cell, fan::graphics::algorithm::pathfind::generator& gen);
-    void remove_wall(const fan::vec2i& cell, fan::graphics::algorithm::pathfind::generator& gen);
+    void add_wall(const fan::vec2i& cell, fan::pathfind::generator& gen);
+    void remove_wall(const fan::vec2i& cell, fan::pathfind::generator& gen);
     void fill_colors(const fan::color& c);
     void reset_colors(const fan::color& color);
     void set_source(const fan::vec2i& cell, const fan::color& color);
     void set_destination(const fan::vec2i& cell, const fan::color& color);
     void highlight_path(
-      const fan::graphics::algorithm::pathfind::coordinate_list& path,
+      const fan::pathfind::coordinate_list& path,
       const fan::color& color
     );
-    fan::graphics::algorithm::pathfind::coordinate_list find_path(
+    fan::pathfind::coordinate_list find_path(
       const fan::vec2i& src,
       const fan::vec2i& dst,
-      fan::graphics::algorithm::pathfind::generator& gen,
-      fan::graphics::algorithm::pathfind::heuristic_function heuristic,
+      fan::pathfind::generator& gen,
+      fan::pathfind::heuristic_function heuristic,
       bool diagonal
     );
     void create(
@@ -1266,12 +1277,18 @@ export namespace fan::graphics {
 
   namespace systems {
     template <typename registry_t>
-    constexpr void render2d(registry_t& reg, fan::graphics::render_view_t* rv) {
+    constexpr void render2d(registry_t& reg, fan::graphics::render_view_t* rv = fan::graphics::ctx().orthographic_render_view) {
       reg.template each<fan::ecs::c_pos, fan::ecs::c_rectangle>([rv](uint32_t, auto& pos, auto& rect) {
         fan::graphics::rectangle(fan::vec3(pos.v, rect.depth), rect.size, rect.color, rv);
       });
       reg.template each<fan::ecs::c_pos, fan::ecs::c_line>([rv](uint32_t, auto& pos, auto& line) {
         fan::graphics::line(fan::vec3(pos.v, 0), fan::vec3(pos.v + line.offset, 0), line.color, line.thickness, rv);
+      });
+      reg.template each<fan::ecs::c_pos, fan::ecs::c_rectangle_bordered>([](uint32_t, fan::ecs::c_pos& p, fan::ecs::c_rectangle_bordered& r) {
+        fan::graphics::rectangle_bordered(
+          fan::vec3(p.v, 2.f), r.size, r.outer_col,
+          r.inner_size, r.inner_col
+        );
       });
     }
   }

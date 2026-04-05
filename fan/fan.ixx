@@ -66,7 +66,7 @@ export import fan.spatial;
 export import fan.process;
 
 export import fan.noise;
-export import fan.graphics.algorithm.pathfind;
+export import fan.pathfind;
 
 //export import fan.types.slot_map;
 

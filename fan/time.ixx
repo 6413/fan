@@ -173,7 +173,22 @@ export namespace fan {
       if (current > 0.f) { current -= dt; }
     }
 
+    template <typename F>
+    bool tick_and_fire(f32_t dt, F&& cb) {
+      tick(dt);
+      if (!is_ready()) return false;
+      reset();
+      cb();
+      return true;
+    }
+
     bool is_ready() const { return current <= 0.f; }
     void reset() { current = max; }
+    void expire() { current = 0.f; }
+    bool tick_ready(f32_t dt) {
+      tick(dt);
+      return is_ready();
+    }
+    static cooldown_t full(f32_t max) { cooldown_t c{max}; c.current = max; return c; }
   };
 }

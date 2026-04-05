@@ -1363,8 +1363,8 @@ namespace fan::graphics::gui {
             }
           }
           if (is_found) {
-            gui::text_outlined_at(std::to_string(std::distance(sf.begin(), it_found)), cursor_screen_pos);
-            gui::text_at(std::to_string(std::distance(sf.begin(), it_found)), cursor_screen_pos);
+            gui::text_outlined({ .pos = cursor_screen_pos }, std::distance(sf.begin(), it_found));
+            gui::text({ .pos = cursor_screen_pos }, std::distance(sf.begin(), it_found));
           }
           gui::pop_id();
 
@@ -1892,11 +1892,11 @@ namespace fan::graphics::gui {
       std::string render_text = line.substr(empty).c_str();
       set_cursor_screen_pos(pos);
       if (character_offset + render_text.size() >= render_pos) {
-        text_unformatted(render_text.substr(0, render_pos - character_offset));
+        gui::text(render_text.substr(0, render_pos - character_offset));
         break;
       }
       else {
-        text_unformatted(render_text);
+        gui::text(render_text);
         if (render_text.back() != ' ') {
           character_offset += 1;
         }
@@ -1905,7 +1905,7 @@ namespace fan::graphics::gui {
       }
     }
     if (empty_lines) {
-      fan::graphics::gui::text(fan::colors::red, "warning empty lines:", empty_lines);
+      gui::text(fan::colors::red, "warning empty lines:", empty_lines);
     }
   }
 

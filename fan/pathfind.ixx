@@ -4,13 +4,13 @@ module;
   #include <fan/graphics/2D/algorithm/AStar.hpp>
 #endif
 
-export module fan.graphics.algorithm.pathfind;
+export module fan.pathfind;
 
 #if defined(FAN_2D)
 
 import fan.types.vector;
 
-export namespace fan::graphics::algorithm::pathfind {
+export namespace fan::pathfind {
   using uint = ::AStar::uint;
   using heuristic_function = std::function<uint(fan::vec2i, fan::vec2i)>;
   using coordinate_list = std::vector<fan::vec2i>;
@@ -64,6 +64,18 @@ export namespace fan::graphics::algorithm::pathfind {
     static uint euclidean(vec2i a, vec2i b);
     static uint octagonal(vec2i a, vec2i b);
   };
+
+  struct follow_result_t { vec2 target; bool bash; };
+
+  follow_result_t follow(std::vector<vec2i>& path, vec2 pos, vec2 goal, f32_t grid, int bash_thresh, f32_t arrive_r2 = 1600.f) {
+    if (!path.empty()) {
+      vec2 tgt = vec2(path.back()) * grid + grid / 2.f;
+      if ((pos - tgt).length_squared() < arrive_r2) path.pop_back();
+    }
+    if ((int)path.size() > bash_thresh) return {goal, true};
+    if (!path.empty()) return {vec2(path.back()) * grid + grid / 2.f, false};
+    return {goal, false};
+  }
 }
 
 #endif

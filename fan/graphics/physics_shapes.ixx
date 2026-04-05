@@ -13,9 +13,8 @@ module;
 #include <string>
 #include <unordered_set>
 #include <vector>
-#include <algorithm>
+#include <cstdint>
 #include <functional>
-#include <coroutine>
 
 #endif
 
@@ -38,6 +37,7 @@ import fan.window.input_action;
 import fan.types.json;
 import fan.math;
 import fan.random;
+import fan.ecs;
 
 #if (FAN_GUI)
   import fan.graphics;
@@ -1044,6 +1044,76 @@ export namespace fan::graphics::physics {
     void destroy();
   };
 
+  template <typename TargetTag, typename Registry>
+  void proximity_damage(Registry& registry, vec2 pos, f32_t radius, int& hp_pool,
+    int dmg, fan::color col, int particles) {
+    fan::physics::proximity_trigger<fan::ecs::c_pos, TargetTag>(registry, pos, radius, [&](uint32_t e, fan::ecs::c_pos& p) {
+      hp_pool -= dmg;
+      registry.destroy(e);
+      fan::graphics::emit_radial(registry, p.v, col, particles, {50.f,200.f}, {0.2f,0.6f});
+    });
+  }
+}
+
+export namespace fan::physics {
+  struct steer_params_t {
+    f32_t speed     = 1.f;
+    f32_t drag      = 0.9f;
+    f32_t sep_scale = 0.5f;
+    f32_t arrive_r2 = 1600.f; // squared
+  };
+
+  fan::vec2 steer_toward(vec2 pos, vec2 vel, vec2 target, vec2 sep, const steer_params_t& p, f32_t speed_mul = 1.f) {
+    fan::vec2 dir = (target - pos).normalize() + sep * p.sep_scale;
+    if (dir.length_squared() > 0.0001f) dir = dir.normalize();
+    return vel * p.drag + dir * (p.speed * speed_mul);
+  }
+
+  template <typename WallTag, typename ObstacleTag, typename Registry, typename World, typename OnDamage>
+  void push_out_walls(Registry& registry, World& world, vec2& pos, f32_t grid, f32_t dt, bool bash, OnDamage&& on_damage) {
+    world.query_radius(pos, grid * 0.75f, [&](uint32_t id) {
+      vec2 ext = vec2(grid / 2.f - 0.1f);
+      if (registry.template has<WallTag>(id) &&
+          fan::physics::aabb_t::from_center(registry.template get<fan::ecs::c_pos>(id).v, ext).push_out(pos, 200.f * dt))
+        on_damage(id, bash);
+      else if (registry.template has<ObstacleTag>(id))
+        fan::physics::aabb_t::from_center(registry.template get<fan::ecs::c_pos>(id).v, ext).push_out(pos, 200.f * dt);
+    });
+  }
+
+  template <typename TargetTag, typename... BlockTags, typename Registry, typename World>
+  void tick_bullets(Registry& registry, World& world, f32_t radius, int dmg) {
+    registry.template destroy_if<fan::ecs::c_pos, fan::ecs::tag_bullet>([&](fan::ecs::c_pos& p, fan::ecs::tag_bullet&) {
+      bool hit = false;
+      world.query_radius(p.v, radius, [&](uint32_t id) {
+        if (hit) return;
+        if (registry.template has<TargetTag>(id)) {
+          registry.template get<fan::ecs::c_hp>(id).current -= dmg; hit = true;
+        } else if ((registry.template has<BlockTags>(id) || ...)) {
+          hit = true;
+        }
+      });
+      return hit;
+    });
+  }
+
+  template <typename... Tags_t, typename Registry_t, typename World_t>
+  bool has_los(Registry_t& registry, World_t& world, fan::vec2 src, fan::vec2 tgt) {
+    bool hit = false;
+    world.raycast(src, tgt, [&](uint32_t id) {
+      if ((registry.template has<Tags_t>(id) || ...)) {
+        hit = true;
+      }
+    });
+    return !hit;
+  }
+
+  template <typename Tag_t, typename Registry_t, typename World_t>
+  fan::vec2 separation_force(Registry_t& registry, World_t& world, uint32_t entity_id, fan::vec2 pos, f32_t radius) {
+    return world.separation_force(entity_id, pos, radius, [&](uint32_t id) {
+      return registry.template has<Tag_t>(id) ? registry.template get<fan::ecs::c_pos>(id).v : pos;
+    });
+  }
 }
 
 #endif

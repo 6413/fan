@@ -566,5 +566,24 @@ export namespace fan::spatial {
     });
   }
 
-} // namespace fan::graphics::spatial
+  template <typename... BlockTags, typename Registry, typename World>
+  bool has_los(Registry& registry, World& world, vec2 a, vec2 b) {
+    bool hit = false;
+    world.raycast(a, b, [&](uint32_t id) {
+      if ((registry.template has<BlockTags>(id) || ...)) hit = true;
+    });
+    return !hit;
+  }
+
+  template<typename WorldT, typename RegistryT, typename... Components>
+  uint32_t create_static(
+    RegistryT& registry, WorldT& world,
+    fan::vec2 pos, fan::vec2 half_extent,
+    Components&&... comps)
+  {
+    uint32_t e = registry.create_with(std::forward<Components>(comps)...);
+    world.upsert(e, fan::physics::aabb_t::from_center(pos, half_extent), fan::spatial::movement_static);
+    return e;
+  }
+} // namespace fan::spatial
 #endif
