@@ -15,9 +15,6 @@ using fan::vec2i;
 using fan::color;
 namespace colors = fan::colors;
 
-static constexpr gui::text_style_t style_hud_left  = {.text_offset={0.5f, 0.5f}, .window_offset = {-0.9f,0.f}};
-static constexpr gui::text_style_t style_hud_right = {.text_offset={1.2f,0.5f},  .window_offset={0.f,0.f}};
-
 static constexpr f32_t cfg_grid         = 64.f;
 static constexpr f32_t cfg_build_time   = 10.f;
 static constexpr f32_t cfg_player_speed = 400.f;
@@ -60,9 +57,11 @@ struct game_t {
   game_t() { open(); engine.loop([&]{ update(); }); }
 
   void recalc_paths() {
-    vec2i goal = (fan::window::get_size() / 2.f).grid_cell(cfg_grid);
+    vec2 vs = fan::window::get_size();
+    vec2i goal = (vs / 2.f).grid_cell(cfg_grid);
+    vec2i max_cells = vs.grid_cell(cfg_grid) - 1;
     registry.each([&](c_pos& p, tag_enemy& e) {
-      if (!e.flying) e.path = pathfinder.find_path(p.v.grid_cell(cfg_grid), goal);
+      if (!e.flying) e.path = pathfinder.find_path(p.v.grid_cell(cfg_grid).clamp(vec2i(0), max_cells), goal);
     });
   }
 
@@ -121,7 +120,7 @@ struct game_t {
         c_pos{opos}, tag_obstacle{c}, c_rectangle{vec2(cfg_grid/2.f-2.f), color(0.2f,0.2f,0.2f,1.f)});
     }
     bg_grid = grid_t{{
-      .position = fan::vec3(-vs / 2.f, 0),
+      .position = fan::vec3(fan::vec2(0), 0),
       .size = vs.max() * 2.f, .grid_size = vs.max() * 2.f / cfg_grid,
       .color = color(0.1f, 0.2f, 0.4f, 0.8f)
     }};
@@ -132,21 +131,39 @@ struct game_t {
     if (core_hp <= 0) {
       auto _ = gui::style_scope_t{gui::col_window_bg, color(0,0,0,0.95f)};
       if (auto w = gui::fullscreen_window("##end")) {
-        gui::text_outlined("CORE DESTROYED", {.color=colors::red, .font_size=48.f, .offset={0,-60.f}, .window_offset={0.f,0.f}});
+        gui::text_outlined("CORE DESTROYED", {
+          .color = colors::red,
+          .font_size = 48.f,
+          .offset = {0, -60.f},
+          .window_offset = {0.f, 0.f},
+          .align = gui::text_style_t::align_t::center
+        });
         if (gui::button_centered("Restart", {.offset={0,10.f}})) open();
       }
       return;
     }
     gui::window_anchor_top_left(0.f);
     if (auto w = gui::overlay_window("##hud", {vs.x, vs.y / 15.f})) {
+      f32_t th = gui::get_text_line_height();
+      f32_t cy = (vs.y / 15.f) * 0.5f;
+
+      gui::set_cursor_pos(vec2(20.f, cy - th / 2.f));
       std::string pt;
       if (is_action && phase_cd.is_ready()) pt = fan::format_args("ACTION PHASE  WAVE:", wave, "  (CLEARING...)");
       else pt = fan::format_args(is_action ? "ACTION" : "BUILD", " PHASE  WAVE:", wave, "  (", (int)phase_cd.current, "s)");
-      gui::text(pt, style_hud_left);
-      if (!is_action) { gui::same_line(); if (gui::button_centered("Skip >>", {.affects_axis={0,1}, .offset={10.f,0.f}})) phase_cd.expire(); }
-      gui::text(fan::format_args(money, " gold"), style_hud_right);
-      gui::same_line(); gui::text({.text_offset={-0.5f, 0.5f}, .window_offset{0.f}}, "  SCORE: ", score);
-      gui::anchor_center_right(vec2(-vs.x / 5.f, -10.f));
+      gui::text(pt);
+
+      if (!is_action) { 
+        gui::same_line(); 
+        gui::set_cursor_pos_y(cy - gui::get_frame_height() / 2.f);
+        if (gui::button("Skip >>")) phase_cd.expire(); 
+      }
+
+      std::string mstr = fan::format_args(money, " gold       SCORE: ", score);
+      gui::set_cursor_pos(vec2(vs.x / 2.f - gui::calc_text_size(mstr).x / 2.f, cy - th / 2.f));
+      gui::text(mstr);
+
+      gui::set_cursor_pos(vec2(vs.x - 380.f, cy - 10.f));
       gui::healthbar_labeled("CORE HEALTH:", core_hp, cfg_core_hp, {200.f,20.f}, colors::cyan, colors::cyan, color(0.2f,0.2f,0.2f,1.f));
     }
     if (!is_action) {
@@ -179,7 +196,10 @@ struct game_t {
           spawn_cd = fan::cooldown_t::full(std::max(0.05f, iv + fan::random::value(-cfg_spawn.variance, cfg_spawn.variance)));
           vec2 sp = fan::random::border_pos(vs, 50.f);
           bool fly = fan::random::value(0.f,100.f) < std::min(cfg_spawn.fly_base + cfg_spawn.fly_per_wave*(wave-1), cfg_spawn.fly_max);
-          auto path = fly ? std::vector<vec2i>{} : pathfinder.find_path(sp.grid_cell(cfg_grid), (vs/2.f).grid_cell(cfg_grid));
+          
+          vec2i start_cell = sp.grid_cell(cfg_grid).clamp(vec2i(0), vs.grid_cell(cfg_grid) - 1);
+          auto path = fly ? std::vector<vec2i>{} : pathfinder.find_path(start_cell, (vs/2.f).grid_cell(cfg_grid));
+          
           int psz = path.size();
           registry.create_with(tag_enemy{fly, std::move(path), psz}, c_pos{sp}, c_vel{vec2(0)},
             c_hp{cfg_spawn.base_hp + wave*cfg_spawn.hp_per_wave, 0}, c_rectangle{vec2(6), fly ? colors::magenta : colors::red, 3.f});
@@ -215,16 +235,23 @@ struct game_t {
       build_preview.set_outline_color(colors::transparent);
     }
 
-    if (is_action && fan::window::is_mouse_down(fan::mouse_left) && !gui::want_io() && shoot_cd.tick_ready(dt)) {
-      shoot_cd.expire();
+    shoot_cd.tick(dt);
+    if (is_action && fan::window::is_mouse_down(fan::mouse_left) && !gui::want_io() && shoot_cd.is_ready()) {
+      shoot_cd = fan::cooldown_t::full(0.1f);
       vec2 bv = vec2::from_angle(player_angle, cfg_bullet_speed);
       registry.create_with(tag_bullet{}, c_pos{player_pos}, c_vel{bv}, c_life{cfg_bullet_life}, c_line{bv.normalize()*15.f, colors::yellow, 3.f});
     }
 
     fan::physics::auto_aim<tag_turret>(registry, world, dt, cfg_turret_range, cfg_turret_bspd, cfg_turret_cd,
       [&](uint32_t id, vec2 src) { 
-        return registry.has<tag_enemy>(id) && 
-          fan::physics::has_los<tag_wall, tag_obstacle>(registry, world, src, registry.get<c_pos>(id).v); 
+        if (!registry.has<tag_enemy>(id)) return false;
+        
+        vec2 tgt_pos = registry.get<c_pos>(id).v;
+        vec2 tgt_vel = registry.get<c_vel>(id).v;
+        
+        vec2 predicted_pos = tgt_pos + tgt_vel * (src.distance(tgt_pos) / cfg_turret_bspd);
+        
+        return fan::physics::has_los<tag_wall, tag_obstacle>(registry, world, src, predicted_pos); 
       },
       [&](vec2 src, vec2 dir) {
         registry.create_with(tag_bullet{}, c_pos{src + dir*(cfg_grid*0.5f)},
@@ -293,6 +320,7 @@ struct game_t {
   circle_t core_outer, core_inner;
   rectangle_t player_shape, build_preview;
   line_t player_gun;
+  fan::graphics::interactive_camera_t ic;
 };
 
 int main() {

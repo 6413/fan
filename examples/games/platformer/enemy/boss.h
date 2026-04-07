@@ -54,7 +54,7 @@ struct boss_t : enemy_t<derived_t> {
     }
 
     if (delayed_hp > current_hp) {
-      delayed_hp -= anim_remove_hp_s * pile->engine.delta_time;
+      delayed_hp -= anim_remove_hp_s * pile->engine.get_delta_time();
       if (delayed_hp < current_hp) {
         delayed_hp = current_hp;
       }

@@ -212,7 +212,7 @@ struct fgm_t {
   void open_properties(fgm_t::shapes_t::global_t* shape) {
     using namespace fan::graphics;
 
-    std::string shape_str = std::string("Shape name:") + fan::graphics::shape_names[shape->children[0].get_shape_type()];
+    std::string shape_str = std::string("Shape name:") + std::string(fan::graphics::shape_names[shape->children[0].get_shape_type()]);
     gui::text(shape_str);
 
     fan::vec3 pos = shape->get_position();
@@ -621,14 +621,18 @@ struct fgm_t {
       {
         std::string str = fan::to_string(gloco()->camera_get_zoom(render_view.camera) * 100);
         str += " %";
-        gui::text_bottom_right(str, 1);
+        gui::text(str, {
+          .offset = {0.f, -gui::get_text_line_height_with_spacing()},
+          .align = gui::text_style_t::align_t::bottom_right
+        });
       }
 
       {
         fan::vec2 cursor_pos = ((gui::get_mouse_pos() - viewport_settings.start_pos + fan::vec2(style.WindowPadding)) - viewport_settings.size / 2);
         std::string cursor_pos_str = cursor_pos.to_string(1);
         std::string str = cursor_pos_str.substr(1, cursor_pos_str.size() - 2);
-        gui::text_bottom_right(str.c_str(), 0);
+
+        gui::text(str, { .align = gui::text_style_t::align_t::bottom_right });
       }
 
       gui::set_cursor_pos(gui::get_cursor_start_pos());

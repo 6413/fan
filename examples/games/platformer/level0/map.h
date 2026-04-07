@@ -22,6 +22,21 @@ void load_enemies() {
     else if (id.contains("boss_skeleton")) boss_position = d.position;
     return false;
   });
+
+  for (auto& b : bg) {
+    if (b.get_position().z == 3) {
+      continue;
+    }
+    pile->engine.image_set_settings(b.get_image(), fan::graphics::image_presets::pixel_art_repeat());
+    
+    b.set_tc_size(fan::vec2(10, 1));
+    b.set_size(b.get_size().normalize() * 1000.f * b.get_tc_size() * 2.f);
+    b.set_position(fan::vec2(pile->player.body.get_position()).offset_y(-300.f).offset_x(300.f));
+    b.set_parallax_factor(0.8f);
+    b.set_tc_position(fan::vec2(0.5f, 0));
+  }
+  //  .position = fan::vec3(10000, 6010, 0),
+//  .size = fan::vec2(9192, 10000),
 }
 
 template <typename T>
@@ -109,7 +124,7 @@ void start_lights(uint32_t index) {
 }
 
 void enter_boss() {
-  boss_door_collision = pile->engine.physics_context.create_rectangle(boss_door_position, boss_door_size);
+  boss_door_collision = pile->engine.get_physics_context().create_rectangle(boss_door_position, boss_door_size);
   is_entering_door = false;
   boss_nr = pile->spawn_enemy<boss_skeleton_t>(boss_position).gint();
   light_lights.resize(lights_boss.size());
@@ -155,7 +170,7 @@ void enter_portal() {
 
 void update() {
   pile->renderer.update(main_map_id, pile->player.body.get_position());
-  auto keys = pile->engine.input_action.get_all_keys(actions::interact);
+  auto keys = pile->engine.get_input_action().get_all_keys(actions::interact);
   std::string text = "Press '" + fan::join_keys(keys, " / ") + "' to interact";
 
   if (interact_prompt.type != interact_type::none) {
@@ -199,8 +214,8 @@ void update() {
     }
   }
 
-  if (!pile->engine.render_console) {
-    if (pile->engine.input_action.is_clicked(fan::actions::toggle_settings))
+  if (!pile->engine.gui.render_console) {
+    if (pile->engine.get_input_action().is_clicked(fan::actions::toggle_settings))
       pile->pause = !pile->pause;
 
     if (fan::window::is_key_down(fan::key_left_control) &&
@@ -241,18 +256,21 @@ std::vector<fan::graphics::sprite_t> lamp_sprites;
 std::vector<fan::graphics::light_t> lights, lights_boss, static_lights;
 std::vector<fan::auto_color_transition_t> flicker_anims;
 
-fan::graphics::sprite_t background {{
-  .position = fan::vec3(10000, 6010, 0),
-  .size = fan::vec2(9192, 10000),
-  .color = fan::color(0.6, 0.576, 1),
-  .image = fan::graphics::image_t("images/background.webp"),
-  .tc_size = 300.0,
-}};
+//fan::graphics::sprite_t background {{
+//  .position = fan::vec3(10000, 6010, 0),
+//  .size = fan::vec2(9192, 10000),
+//  .color = fan::color(0.6, 0.576, 1),
+//  .image = fan::graphics::image_t("images/background.webp"),
+//  .tc_size = 300.0,
+//}};
+
+std::vector<fan::graphics::shape_t> bg = fan::graphics::shapes_from_json("images/background.json");
 
 fan::audio::sound_t
   audio_pickup_item{"audio/pickup.sac"},
   audio_elevator_chain{"audio/chain.sac"},
-  audio_skeleton_lord{"audio/skeleton_lord_music.sac"};
+  audio_skeleton_lord{"audio/skeleton_lord_music.sac"}
+;
 
 fan::graphics::physics::elevator_t cage_elevator;
 fan::graphics::sprite_t cage_elevator_chain;

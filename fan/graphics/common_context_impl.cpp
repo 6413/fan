@@ -84,20 +84,14 @@ namespace fan::graphics {
     return ctx().default_texture;
   }
 
-  image_t::image_t(bool) : fan::graphics::image_nr_t() {}
+  image_t::image_t(__empty_struct st) : fan::graphics::image_nr_t() {}
   image_t::image_t() : fan::graphics::image_nr_t(ctx().default_texture) {}
   image_t::image_t(fan::graphics::image_nr_t image) : fan::graphics::image_nr_t(image) {}
   image_t::image_t(const fan::color& color)
     : fan::graphics::image_nr_t(ctx()->image_create_color(ctx(), color)) {}
   image_t::image_t(fan::str_view_t path, const std::source_location& callers_path)
     : fan::graphics::image_nr_t(ctx()->image_load_path(ctx(), path, callers_path)) {}
-  image_t::image_t(const std::string& path, const std::source_location& callers_path)
-    : fan::graphics::image_nr_t(ctx()->image_load_path(ctx(), path, callers_path)) {}
-
   image_t::image_t(fan::str_view_t path, const fan::graphics::image_load_properties_t lp, const std::source_location& callers_path)
-    : fan::graphics::image_nr_t(ctx()->image_load_path_props(ctx(), path, lp, callers_path)) {}
-
-  image_t::image_t(const std::string& path, const fan::graphics::image_load_properties_t lp, const std::source_location& callers_path) 
     : fan::graphics::image_nr_t(ctx()->image_load_path_props(ctx(), path, lp, callers_path)) {}
 
   image_t::image_t(const fan::image::info_t& info, const std::source_location&)
@@ -117,6 +111,12 @@ namespace fan::graphics {
     info.channels = channels;
     info.data = blank.data();
     *(fan::graphics::image_nr_t*)this = ctx()->image_load_info_props(ctx(), info, lp);
+  }
+
+  // for no gloco access
+  image_t image_t::invalid() {
+    image_t mg{__empty_struct()};
+    return mg;
   }
 
   fan::vec2 image_t::get_size() const {

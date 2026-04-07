@@ -27,12 +27,12 @@ struct spike_spatial_t {
 
   void add(fan::physics::entity_t spike) {
     auto aabb = spike.get_aabb();
-    auto minc = fan::graphics::spatial::world_to_cell_clamped(aabb.min, world_min, cell_size, grid_size);
-    auto maxc = fan::graphics::spatial::world_to_cell_clamped(aabb.max, world_min, cell_size, grid_size);
+    auto minc = fan::spatial::world_to_cell_clamped(aabb.min, world_min, cell_size, grid_size);
+    auto maxc = fan::spatial::world_to_cell_clamped(aabb.max, world_min, cell_size, grid_size);
 
     for (int y = minc.y; y <= maxc.y; ++y) {
       for (int x = minc.x; x <= maxc.x; ++x) {
-        uint32_t idx = fan::graphics::spatial::cell_index({x, y}, grid_size);
+        uint32_t idx = fan::spatial::cell_index({x, y}, grid_size);
         cells[idx].push_back(spike);
       }
     }
@@ -40,12 +40,12 @@ struct spike_spatial_t {
 
   fan::physics::entity_t* query(fan::physics::entity_t& entity) {
     auto aabb = entity.get_aabb();
-    auto minc = fan::graphics::spatial::world_to_cell_clamped(aabb.min, world_min, cell_size, grid_size);
-    auto maxc = fan::graphics::spatial::world_to_cell_clamped(aabb.max, world_min, cell_size, grid_size);
+    auto minc = fan::spatial::world_to_cell_clamped(aabb.min, world_min, cell_size, grid_size);
+    auto maxc = fan::spatial::world_to_cell_clamped(aabb.max, world_min, cell_size, grid_size);
 
     for (int y = minc.y; y <= maxc.y; ++y) {
       for (int x = minc.x; x <= maxc.x; ++x) {
-        uint32_t idx = fan::graphics::spatial::cell_index({x, y}, grid_size);
+        uint32_t idx = fan::spatial::cell_index({x, y}, grid_size);
         auto it = cells.find(idx);
         if (it == cells.end()) continue;
 

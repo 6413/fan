@@ -38,7 +38,7 @@ struct boss_skeleton_t : boss_t<boss_skeleton_t> {
         {
           .frame = attack_hitbox_frames[1],
           .create_hitbox = [](const fan::vec2& center, f32_t direction) {
-            return pile->engine.physics_context.create_box(
+            return pile->engine.get_physics_context().create_box(
               center + fan::vec2((40.f + 190.f) * direction, 0.f),
               fan::vec2(190.f, 20.f), 0.f,
               fan::physics::body_type_e::static_body,

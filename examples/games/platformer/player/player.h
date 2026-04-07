@@ -63,7 +63,7 @@ struct player_t {
         .frame = attack_hitbox_frame,
         .create_hitbox = [](const fan::vec2& center, f32_t direction) {
           auto points = get_hitbox_points(direction);
-          return pile->engine.physics_context.create_polygon(
+          return pile->engine.get_physics_context().create_polygon(
             center, 0.0f, points.data(), points.size(),
             fan::physics::body_type_e::static_body, {.is_sensor = true}
           );
@@ -208,7 +208,6 @@ struct player_t {
   }
 
   void update() {
-    fan::print(body.get_flags());
     combat.hitbox.process_destruction();
 
     process_hotbar();

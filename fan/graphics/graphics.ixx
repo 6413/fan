@@ -166,9 +166,12 @@ export namespace fan::graphics {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
 
+    sprite_t(const fan::json&) = delete;
+
     sprite_t() = default;
     sprite_t(sprite_properties_t p);
     sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+    sprite_t(const char* image_path);
     // for single color texture
     sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::color& single_color);
     sprite_t(const fan::vec3& position, const fan::vec2& size, std::initializer_list<fan::color> colors, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
@@ -791,6 +794,12 @@ export namespace fan::graphics {
     );
     void create(const fan::graphics::render_view_t& render_view, f32_t new_zoom = 1.f);
     void create_default(f32_t zoom = 1.f);
+    explicit interactive_camera_t(bool) :
+      interactive_camera_t(
+        fan::graphics::get_orthographic_render_view().camera,
+        fan::graphics::get_orthographic_render_view().viewport,
+        1, fan::vec2(0)
+      ){}
     interactive_camera_t(f32_t zoom);
     interactive_camera_t(
       fan::graphics::camera_t camera_nr = fan::graphics::get_orthographic_render_view().camera,

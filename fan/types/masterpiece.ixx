@@ -1,4 +1,4 @@
-module;
+/**/module;
 
 //#define FAN_FMT
 

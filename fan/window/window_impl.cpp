@@ -242,14 +242,17 @@ namespace fan::window {
 namespace fan {
 
   void window_t::open(std::uint64_t flags) {
-    fan::window_t::open(default_window_size, -1, default_window_name, flags, mode::windowed);
+    properties_t props;
+    props.flags = flags;
+    open(props);
   }
 
-  void window_t::open(fan::vec2i window_size, fan::vec2i window_pos, const std::string& name, std::uint64_t flags, int open_mode) {
-    this->flags = flags;
+  void window_t::open(const properties_t& props) {
+    this->flags = props.flags;
     std::fill(key_states, key_states + std::size(key_states), -1);
     std::fill(prev_key_states, prev_key_states + std::size(prev_key_states), -1);
 
+    fan::vec2i window_size = props.size;
     if (window_size.x == -1 && window_size.y == -1) {
       const GLFWvidmode* mode0 = glfwGetVideoMode(glfwGetPrimaryMonitor());
       window_size = resolutions[current_resolution];
@@ -275,6 +278,39 @@ namespace fan {
     }
     else if (renderer == renderer_t::opengl) {
       glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
+
+      int target_major = props.opengl_major;
+      int target_minor = props.opengl_minor;
+
+      // auto-detect using dummy window if versions aren't explicitly passed
+      if (target_major == 0) {
+        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
+        if (GLFWwindow* dummy = glfwCreateWindow(1, 1, "", nullptr, nullptr)) {
+          glfwMakeContextCurrent(dummy);
+          using gl_get_string_t = const unsigned char* (*)(unsigned int);
+          if (auto gl_get_string = (gl_get_string_t)glfwGetProcAddress("glGetString")) {
+            if (const char* ver = (const char*)gl_get_string(0x1F02 /* GL_VERSION */)) {
+              sscanf(ver, "%d.%d", &target_major, &target_minor);
+            }
+          }
+          glfwMakeContextCurrent(nullptr);
+          glfwDestroyWindow(dummy);
+        }
+        glfwWindowHint(GLFW_VISIBLE, !(flags & flags::hidden));
+      }
+
+      // apply chosen version + core profile if applicable
+      if (target_major > 3 || (target_major == 3 && target_minor >= 3)) {
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, target_major);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, target_minor);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+      }
+      else if (target_major > 0) {
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, target_major);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, target_minor);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE);
+      }
     }
 
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
@@ -289,11 +325,10 @@ namespace fan {
     int y = my;
     GLFWmonitor* use_mon = nullptr;
 
-    if (open_mode == mode::windowed) {
-
-      if (window_pos.x != -1 && window_pos.y != -1) {
-        x = window_pos.x;
-        y = window_pos.y;
+    if (props.open_mode == mode::windowed) {
+      if (props.position.x != -1 && props.position.y != -1) {
+        x = props.position.x;
+        y = props.position.y;
       }
       else {
         x = mx + (mode->width - w) / 2;
@@ -308,14 +343,14 @@ namespace fan {
       x = std::clamp(x, mx, mx + mode->width - w);
       y = std::clamp(y, my + 31, my + mode->height - h);
     }
-    else if (open_mode == mode::fullscreen) {
+    else if (props.open_mode == mode::fullscreen) {
       x = 0;
       y = 0;
       w = mode->width;
       h = mode->height;
       use_mon = monitor;
     }
-    else if (open_mode == mode::borderless) {
+    else if (props.open_mode == mode::borderless) {
       glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
       w = mode->width;
       h = mode->height;
@@ -323,12 +358,11 @@ namespace fan {
       y = my;
     }
 
-    glfw_window = glfwCreateWindow(w, h, name.c_str(), use_mon, nullptr);
-
+    glfw_window = glfwCreateWindow(w, h, props.name.c_str(), use_mon, nullptr);
 
     if (glfw_window == nullptr) {
       glfwTerminate();
-      fan::throw_error("failed to create window");
+      fan::throw_error("failed to create window:", glfwGetError(NULL));
     }
 
     if (use_mon == nullptr) {
@@ -347,8 +381,6 @@ namespace fan {
     }
   #endif
 
-    GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
-    fan::vec2 screen_size = fan::vec2(mode->width, mode->height);
     if (renderer == renderer_t::opengl) {
       glfwMakeContextCurrent(glfw_window);
     }
@@ -361,7 +393,7 @@ namespace fan {
     glfwSetCursorPosCallback(glfw_window, fan::window::mouse_position_callback);
     glfwSetScrollCallback(glfw_window, fan::window::scroll_callback);
     glfwInitHint(GLFW_JOYSTICK_HAT_BUTTONS, GLFW_TRUE);
-    display_mode = open_mode;
+    display_mode = props.open_mode;
   }
 
   void window_t::close() {

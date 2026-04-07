@@ -29,7 +29,7 @@ void load_map() {
   TIMER_PRINT(renderer_add);
   
   TIMER_START(lighting_set_target);
-  pile->engine.lighting.set_target(pile->tilemaps_compiled[stage_name].lighting.ambient, 0.01);
+  pile->engine.get_lighting().set_target(pile->tilemaps_compiled[stage_name].lighting.ambient, 0.01);
   TIMER_PRINT(lighting_set_target);
 
   TIMER_START(static_animations_setup);
@@ -178,7 +178,7 @@ void load_map() {
       portal_particles.set_position(pos.offset_z(1).offset_y(size.y / 4.f));
       portal_particles.start_particles();
 
-      portal_sensor = pile->engine.physics_context.create_sensor_rectangle(
+      portal_sensor = pile->engine.get_physics_context().create_sensor_rectangle(
         pos,
         fan::vec2(size.x / 2.5f, size.y)
       );
@@ -207,7 +207,7 @@ void load_map() {
     else if (id.contains("spikes")) {
       auto pts = spike_spatial_t::get_spike_points(id.substr(std::strlen("spikes_")));
       spike_sensors.emplace_back(
-        pile->engine.physics_context.create_polygon(
+        pile->engine.get_physics_context().create_polygon(
           tile.position,
           0.0f,
           pts.data(),
@@ -223,7 +223,7 @@ void load_map() {
     }
     else if (tile.mesh_property == tilemap_loader_t::fte_t::mesh_property_t::none) {
       tile_collisions.emplace_back(
-        pile->engine.physics_context.create_rectangle(
+        pile->engine.get_physics_context().create_rectangle(
           tile.position,
           tile.size,
           0.0f,
@@ -264,7 +264,7 @@ void open(void* sod) {
   TIMER_PRINT(load_map);
   
   TIMER_START(lighting);
-  pile->engine.lighting.set_target(0, 0);
+  pile->engine.get_lighting().set_target(0, 0);
   is_entering_door = false;
   TIMER_PRINT(lighting);
 
@@ -272,7 +272,7 @@ void open(void* sod) {
   physics_step_nr = fan::physics::add_physics_step_callback([this]() {
 
     std::string enter_text;
-    auto keys = pile->engine.input_action.get_all_keys(actions::interact);
+    auto keys = pile->engine.get_input_action().get_all_keys(actions::interact);
 
     enter_text = "Press '";
 
@@ -349,7 +349,7 @@ void close() {
   TIMER_START(enemy_clear);
   pile->enemy_list.clear();
   TIMER_PRINT(enemy_clear);
-  pile->engine.shapes.visibility.camera_states.clear();
+  fan::print("TODO"); //pile->engine.shapes.visibility.camera_states.clear();
   
   TIMER_START(cage_elevator);
   cage_elevator.destroy();

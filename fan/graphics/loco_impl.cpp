@@ -86,7 +86,34 @@ static void for_each_list(list_t& list, fn_t&& fn) {
   nrtra.Close(&list);
 }
 
+#if defined(FAN_OPENGL)
+struct loco_t::opengl {
+  #if defined(LOCO_FRAMEBUFFER)
+    fan::opengl::core::framebuffer_t m_framebuffer;
+    fan::opengl::core::renderbuffer_t m_rbo;
+    fan::graphics::image_t color_buffers[4];
+    fan::graphics::shader_t m_fbo_final_shader;
+  #endif
+
+  fan::window_t::resize_handle_t window_resize_handle;
+  GLenum blend_src_factor = GL_SRC_ALPHA;
+  GLenum blend_dst_factor = GL_ONE_MINUS_SRC_ALPHA;
+  std::uint32_t fb_vao;
+  std::uint32_t fb_vbo;
+
+  #include <fan/graphics/opengl/engine_functions.h>
+  #if defined(LOCO_FRAMEBUFFER)
+  #include <fan/graphics/opengl/2D/effects/blur.h>
+    blur_t blur;
+
+  #include <fan/graphics/opengl/2D/effects/reflection.h>
+    reflection_t reflection;
+  #endif
+};
+#endif
+
 namespace fan::graphics {
+
   std::uint32_t get_draw_mode(std::uint8_t internal_draw_mode) {
     if (gloco()->get_renderer() == fan::window_t::renderer_t::opengl) {
     #if defined(FAN_OPENGL)
@@ -138,6 +165,10 @@ void loco_t::shader_set_fragment(fan::graphics::shader_nr_t nr, const std::strin
 
 bool loco_t::shader_compile(fan::graphics::shader_nr_t nr) {
   return context_functions.shader_compile(&context, nr);
+}
+
+fan::graphics::shader_nr_t loco_t::get_post_process_shader() {
+  return gl->m_fbo_final_shader;
 }
 
 void loco_t::shader_set_camera(fan::graphics::shader_nr_t nr, camera_t camera_nr) {
@@ -192,42 +223,6 @@ void loco_t::shader_recompile_all() {
   set_post_process("bloom_strength", gui.settings_menu->config.post_processing.bloom_strength);
 }
 
-#if defined(FAN_OPENGL)
-struct loco_t::opengl {
-  #if defined(LOCO_FRAMEBUFFER)
-    fan::opengl::core::framebuffer_t m_framebuffer;
-    fan::opengl::core::renderbuffer_t m_rbo;
-    fan::graphics::image_t color_buffers[4];
-    fan::graphics::shader_t m_fbo_final_shader;
-  #endif
-
-  fan::window_t::resize_handle_t window_resize_handle;
-  GLenum blend_src_factor = GL_SRC_ALPHA;
-  GLenum blend_dst_factor = GL_ONE_MINUS_SRC_ALPHA;
-  std::uint32_t fb_vao;
-  std::uint32_t fb_vbo;
-
-#include <fan/graphics/opengl/engine_functions.h>
-#if defined(LOCO_FRAMEBUFFER)
-#include <fan/graphics/opengl/2D/effects/blur.h>
-  blur_t blur;
-
-#include <fan/graphics/opengl/2D/effects/reflection.h>
-  reflection_t reflection;
-#endif
-
-
-};
-#endif
-
-void loco_t::set_post_process(const std::string_view name, f32_t value) {
-#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
-  if (window.renderer == fan::window_t::renderer_t::opengl && gl) {
-    shader_set_value(gl->m_fbo_final_shader, name, value);
-  }
-#endif
-}
-
 f32_t* loco_t::get_bloom_filter_radius_ptr() {
 #if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
   if (gl) return &gl->blur.bloom_filter_radius;
@@ -235,6 +230,28 @@ f32_t* loco_t::get_bloom_filter_radius_ptr() {
   static f32_t dummy = 0; 
   return &dummy;
 }
+
+f32_t* loco_t::get_bloom_threshold_ptr() {
+#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
+  if (gl) return &gl->blur.threshold;
+#endif
+  static f32_t dummy = 0; 
+  return &dummy;
+}
+
+f32_t* loco_t::get_bloom_knee_ptr() {
+#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
+  if (gl) return &gl->blur.knee;
+#endif
+  static f32_t dummy = 0; 
+  return &dummy;
+}
+
+fan::vec3* loco_t::get_bloom_tint_ptr() {
+  static fan::vec3 dummy = 0; 
+  return &dummy;
+}
+
 #endif
 
 #if defined(LOCO_FRAMEBUFFER)
@@ -952,8 +969,12 @@ static void loco_load_settings_into_open_props(loco_t* l) {
 
 static void loco_open_window(loco_t* l) {
   l->window.set_antialiasing(l->open_props.samples);
-  l->window.open(l->open_props.window_size, l->open_props.window_position,
-    fan::window_t::default_window_name, l->open_props.window_flags, l->open_props.window_open_mode);
+  l->window.open(fan::window_t::properties_t{
+    .size = l->open_props.window_size,
+    .position = l->open_props.window_position,
+    .flags = l->open_props.window_flags,
+    .open_mode = l->open_props.window_open_mode
+  });
 #if defined(FAN_VULKAN)
   if (l->window.renderer == fan::window_t::renderer_t::vulkan) {
     l->context_functions = fan::graphics::get_vk_context_functions();
@@ -1186,8 +1207,12 @@ void loco_t::switch_renderer(uint8_t renderer) {
     }
   #endif
 
-    window.open(window_size, open_props.window_position, fan::window_t::default_window_name, flags | fan::window_t::flags::hidden);
-    window.set_position(window_position);
+    window.open(fan::window_t::properties_t{
+      .size = window_size,
+      .position = open_props.window_position,
+      .flags = flags | fan::window_t::flags::hidden,
+      .open_mode = open_props.window_open_mode
+    });
     window.set_position(window_position);
     glfwShowWindow(window);
     window.flags = flags;

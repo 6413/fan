@@ -299,8 +299,18 @@ export namespace fan {
     using key_up_data_t = key_data_t;
     using key_click_data_t = key_data_t;
 
+    struct properties_t {
+      fan::vec2i size = default_window_size;
+      fan::vec2i position = fan::vec2i(-1, -1);
+      std::string name = default_window_name;
+      std::uint64_t flags = 0;
+      int open_mode = mode::windowed;
+      int opengl_major = 0; // 0 = auto-detect max supported via dummy window
+      int opengl_minor = 0;
+    };
+
     void open(std::uint64_t flags);
-    void open(fan::vec2i window_size, fan::vec2i window_pos, const std::string& name, std::uint64_t flags = 0, int open_mode = mode::windowed);
+    void open(const properties_t& props = properties_t());
     void close();
     void make_context_current();
     void handle_key_states(); // can be 1 or 2 aka press or repeat

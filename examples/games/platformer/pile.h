@@ -99,7 +99,7 @@ pile_t::pile_t() {
   //ic.ignore_input = true;
   update_camera_zoom();
   //engine.window.set_size(engine.window.get_current_monitor_resolution());
-  engine.clear_color = 0;
+  //engine.clear_color = 0;
   engine.texture_pack.open_compiled("texture_pack.ftp", fan::graphics::image_presets::pixel_art());
   renderer.open();
 

@@ -57,7 +57,7 @@ struct enemy_t : enemy_base_t {
           .frame = attack_hitbox_frames[i],
           .create_hitbox = [](const fan::vec2& center, f32_t direction){
             fan::vec2 offset = fan::vec2(50.f * direction, 0);
-            return pile->engine.physics_context.create_box(
+            return pile->engine.get_physics_context().create_box(
               center + offset, fan::vec2(60, 40), 0,
               fan::physics::body_type_e::static_body, {.is_sensor = true}
             );

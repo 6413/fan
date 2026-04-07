@@ -45,6 +45,10 @@ export namespace fan::graphics::gui {
     };
     struct post_processing_t {
       f32_t bloom_strength = 0.0445f;
+      f32_t bloom_threshold = 1.0f;
+      f32_t bloom_knee = 0.1f;
+      f32_t bloom_filter_radius = 0.1f;
+      fan::vec3 bloom_tint{1.f, 1.f, 1.f};
       f32_t gamma = 1.0f;
       f32_t exposure = 1.0f;
       f32_t contrast = 1.0f;
