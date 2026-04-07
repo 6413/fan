@@ -1,0 +1,63 @@
+{
+  "shapes": [
+    {
+      "color": [
+        0.16470588743686676,
+        0.38823530077934265,
+        0.0,
+        1.0
+      ],
+      "images": [
+        {
+          "image_path": "back-walls.png"
+        }
+      ],
+      "position": [
+        224.0,
+        0.0,
+        1.0
+      ],
+      "shape": "sprite",
+      "size": [
+        227.55555725097656,
+        128.0
+      ]
+    },
+    {
+      "images": [
+        {
+          "image_path": "tiles.png"
+        }
+      ],
+      "position": [
+        224.0,
+        -256.0,
+        3.0
+      ],
+      "shape": "sprite",
+      "size": [
+        227.55555725097656,
+        128.0
+      ]
+    },
+    {
+      "images": [
+        {
+          "image_format": 4,
+          "image_path": "background.png"
+        }
+      ],
+      "position": [
+        224.0,
+        0.0,
+        0.0
+      ],
+      "shape": "sprite",
+      "size": [
+        227.63299560546875,
+        128.0
+      ]
+    }
+  ],
+  "version": 1
+}

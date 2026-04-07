@@ -1,64 +1,65 @@
 #version 330 core
-
 layout (location = 0) out vec3 o_color;
-
 in vec2 texture_coordinate;
 
 uniform sampler2D _t00;
 uniform vec2 resolution;
 uniform int mipLevel = 1;
+uniform float threshold = 1.0;
+uniform float knee = 0.1;
 
-vec3 PowVec3(vec3 v, float p) {
-  return vec3(pow(v.x, p), pow(v.y, p), pow(v.z, p));
-}
-
-const float invGamma = 1.0 / 2.2;
-vec3 ToSRGB(vec3 v) { return PowVec3(v, invGamma); }
-
-float sRGBToLuma(vec3 col) {
-  return dot(col, vec3(0.2126, 0.7152, 0.0722));
-}
-
-float KarisAverage(vec3 col) {
-  float luma = sRGBToLuma(ToSRGB(col)) * 0.25;
-  return 1.0 / (1.0 + luma);
+// Helper function to isolate the bright pixels
+vec3 apply_threshold(vec3 col) {
+    float brightness = max(col.r, max(col.g, col.b));
+    float rq = clamp(brightness - threshold + knee, 0.0, 2.0 * knee);
+    rq = (rq * rq) / (4.0 * knee + 0.0001);
+    float mask = max(rq, brightness - threshold) / max(brightness, 0.0001);
+    return col * mask;
 }
 
 void main() {
-  vec2 texelSize = 1.0 / resolution;
-    
-  if (mipLevel == 0) {
-    vec3 s0 = texture(_t00, texture_coordinate + vec2(-1, -1) * texelSize).rgb;
-    vec3 s1 = texture(_t00, texture_coordinate + vec2(1, -1) * texelSize).rgb;
-    vec3 s2 = texture(_t00, texture_coordinate + vec2(-1, 1) * texelSize).rgb;
-    vec3 s3 = texture(_t00, texture_coordinate + vec2(1, 1) * texelSize).rgb;
-        
-    float w0 = KarisAverage(s0);
-    float w1 = KarisAverage(s1);
-    float w2 = KarisAverage(s2);
-    float w3 = KarisAverage(s3);
-        
-    float totalWeight = w0 + w1 + w2 + w3;
-    vec3 col = (s0 * w0 + s1 * w1 + s2 * w2 + s3 * w3) / totalWeight;
+    vec2 srcTexelSize = 1.0 / resolution;
+    float x = srcTexelSize.x;
+    float y = srcTexelSize.y;
 
-    float brightness = dot(col, vec3(0.2126, 0.7152, 0.0722));
-    
-    // Non-HDR settings
-    float bloom_threshold = 0.5;  // Bloom anything brighter than 50%
-    float bloom_softness = 0.2;
-    
-    float mask = smoothstep(bloom_threshold - bloom_softness, bloom_threshold + bloom_softness, brightness);
-    
-    o_color = col * mask;
-  } 
-  else {
-    vec3 s0 = texture(_t00, texture_coordinate + vec2(-0.5, -0.5) * texelSize).rgb;
-    vec3 s1 = texture(_t00, texture_coordinate + vec2(0.5, -0.5) * texelSize).rgb;
-    vec3 s2 = texture(_t00, texture_coordinate + vec2(-0.5, 0.5) * texelSize).rgb;
-    vec3 s3 = texture(_t00, texture_coordinate + vec2(0.5, 0.5) * texelSize).rgb;
+   if (mipLevel == 0) {
+        vec3 center = texture(_t00, texture_coordinate).rgb;
+        vec3 a = texture(_t00, vec2(texture_coordinate.x - x, texture_coordinate.y + y)).rgb;
+        vec3 b = texture(_t00, vec2(texture_coordinate.x + x, texture_coordinate.y + y)).rgb;
+        vec3 c = texture(_t00, vec2(texture_coordinate.x - x, texture_coordinate.y - y)).rgb;
+        vec3 d = texture(_t00, vec2(texture_coordinate.x + x, texture_coordinate.y - y)).rgb;
+
+        center = apply_threshold(center);
+        a = apply_threshold(a);
+        b = apply_threshold(b);
+        c = apply_threshold(c);
+        d = apply_threshold(d);
+
+        o_color = max(center, max(max(a, b), max(c, d)));
+    }
+    else {
+        vec3 a = texture(_t00, vec2(texture_coordinate.x - 2.0*x, texture_coordinate.y + 2.0*y)).rgb;
+        vec3 b = texture(_t00, vec2(texture_coordinate.x,         texture_coordinate.y + 2.0*y)).rgb;
+        vec3 c = texture(_t00, vec2(texture_coordinate.x + 2.0*x, texture_coordinate.y + 2.0*y)).rgb;
+
+        vec3 d = texture(_t00, vec2(texture_coordinate.x - 2.0*x, texture_coordinate.y)).rgb;
+        vec3 e = texture(_t00, vec2(texture_coordinate.x,         texture_coordinate.y)).rgb;
+        vec3 f = texture(_t00, vec2(texture_coordinate.x + 2.0*x, texture_coordinate.y)).rgb;
+
+        vec3 g = texture(_t00, vec2(texture_coordinate.x - 2.0*x, texture_coordinate.y - 2.0*y)).rgb;
+        vec3 h = texture(_t00, vec2(texture_coordinate.x,         texture_coordinate.y - 2.0*y)).rgb;
+        vec3 i = texture(_t00, vec2(texture_coordinate.x + 2.0*x, texture_coordinate.y - 2.0*y)).rgb;
+
+        vec3 j = texture(_t00, vec2(texture_coordinate.x - x, texture_coordinate.y + y)).rgb;
+        vec3 k = texture(_t00, vec2(texture_coordinate.x + x, texture_coordinate.y + y)).rgb;
+        vec3 l = texture(_t00, vec2(texture_coordinate.x - x, texture_coordinate.y - y)).rgb;
+        vec3 m = texture(_t00, vec2(texture_coordinate.x + x, texture_coordinate.y - y)).rgb;
+
+        vec3 col = e*0.125;
+        col += (a+c+g+i)*0.03125;
+        col += (b+d+f+h)*0.0625;
+        col += (j+k+l+m)*0.125;
         
-    o_color = (s0 + s1 + s2 + s3) * 0.25;
-  }
-    
-  o_color = max(o_color, 0.0001);
+        o_color = max(col, 0.0001);
+    }
 }

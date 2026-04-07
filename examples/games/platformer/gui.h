@@ -57,7 +57,7 @@ void close() {
 void handle_inventory_hotbar() {
   gui::render_theme_editor(inventory.style.theme, inventory, hotbar);
   hotbar.handle_input();
-  if (pile->engine.is_input_clicked(actions::toggle_inventory)) {
+  if (pile->engine.get_input_action().is_clicked(actions::toggle_inventory)) {
     inventory.visible = !inventory.visible;
   }
   if (inventory.visible) {

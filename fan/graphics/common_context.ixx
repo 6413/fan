@@ -476,16 +476,12 @@ export namespace fan::graphics {
 
   struct image_t : fan::graphics::image_nr_t {
     using fan::graphics::image_nr_t::image_nr_t;
-    // for no gloco access
-    explicit image_t(bool);
+    explicit image_t(__empty_struct st);
     image_t();
     image_t(fan::graphics::image_nr_t image);
     image_t(const fan::color& color);
     image_t(fan::str_view_t path, const std::source_location& callers_path = std::source_location::current());
-    image_t(const std::string& path, const std::source_location& callers_path = std::source_location::current());
-
     image_t(fan::str_view_t path, const fan::graphics::image_load_properties_t lp, const std::source_location& callers_path = std::source_location::current());
-    image_t(const std::string& path, const fan::graphics::image_load_properties_t lp, const std::source_location& callers_path = std::source_location::current());
 
     image_t(const fan::image::info_t& info, const std::source_location& callers_path = std::source_location::current());
     image_t(const fan::image::info_t& info, const fan::graphics::image_load_properties_t& lp, const std::source_location& callers_path = std::source_location::current());
@@ -493,6 +489,9 @@ export namespace fan::graphics {
     image_t(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& lp);
     image_t(std::span<const fan::color> colors, const fan::vec2ui& size);
     image_t(const fan::vec2& size, uint32_t channels = 4, const image_load_properties_t& lp = image_presets::pixel_art());
+
+    // for no gloco access
+    static image_t invalid();
 
     fan::vec2 get_size() const;
     image_load_properties_t get_load_properties() const;

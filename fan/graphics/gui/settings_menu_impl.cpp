@@ -77,6 +77,10 @@ namespace fan::graphics::gui {
       const auto& pp = j["post_processing"];
       pp.get_if("bloom", gloco()->open_props.enable_bloom);
       pp.get_if("bloom_strength", post_processing.bloom_strength);
+      pp.get_if("bloom_threshold", post_processing.bloom_threshold);
+      pp.get_if("bloom_knee", post_processing.bloom_knee);
+      pp.get_if("bloom_tint", post_processing.bloom_tint);
+      pp.get_if("bloom_filter_radius", post_processing.bloom_filter_radius);
       pp.get_if("gamma", post_processing.gamma);
       pp.get_if("exposure", post_processing.exposure);
       pp.get_if("contrast", post_processing.contrast);
@@ -111,7 +115,11 @@ namespace fan::graphics::gui {
 
     j["post_processing"]["bloom"] = gloco()->open_props.enable_bloom;
     j["post_processing"]["bloom_strength"] = post_processing.bloom_strength;
+    j["post_processing"]["bloom_threshold"] = post_processing.bloom_threshold;
+    j["post_processing"]["bloom_knee"] = post_processing.bloom_knee;
+    j["post_processing"]["bloom_tint"] = post_processing.bloom_tint;
     j["post_processing"]["gamma"] = post_processing.gamma;
+    j["post_processing"]["bloom_filter_radius"] = post_processing.bloom_filter_radius;
     j["post_processing"]["exposure"] = post_processing.exposure;
     j["post_processing"]["contrast"] = post_processing.contrast;
 
@@ -175,9 +183,14 @@ namespace fan::graphics::gui {
     }
     );
     gloco()->set_post_process("bloom_strength", config.post_processing.bloom_strength);
+    *gloco()->get_bloom_threshold_ptr() = config.post_processing.bloom_threshold;
+    *gloco()->get_bloom_knee_ptr() = config.post_processing.bloom_knee;
+    *gloco()->get_bloom_tint_ptr() = config.post_processing.bloom_tint;
+    *gloco()->get_bloom_filter_radius_ptr() = config.post_processing.bloom_filter_radius;
     gloco()->set_post_process("gamma", config.post_processing.gamma);
     gloco()->set_post_process("exposure", config.post_processing.exposure);
     gloco()->set_post_process("contrast", config.post_processing.contrast);
+    gloco()->set_post_process("bloom_tint", *gloco()->get_bloom_tint_ptr());
     gloco()->set_culling_enabled(config.debug.frustum_culling_enabled);
   }
 
@@ -288,8 +301,30 @@ namespace fan::graphics::gui {
           }
         });
       #if defined(LOCO_FRAMEBUFFER)
+
+        draw_sub_row("Threshold", [&] {
+          if (gui::slider(&menu->config.post_processing.bloom_threshold, 0.0f, 5.0f, gui::slider_flags_always_clamp)) {
+            *gloco()->get_bloom_threshold_ptr() = menu->config.post_processing.bloom_threshold;
+            menu->mark_dirty();
+          }
+        });
+        draw_sub_row("Knee (Softness)", [&] {
+          if (gui::slider(&menu->config.post_processing.bloom_knee, 0.0f, 1.0f, gui::slider_flags_always_clamp)) {
+            *gloco()->get_bloom_knee_ptr() = menu->config.post_processing.bloom_knee;
+            menu->mark_dirty();
+          }
+        });
+        draw_sub_row("Tint", [&] {
+          if (gui::color_edit3(&menu->config.post_processing.bloom_tint)) {
+            *gloco()->get_bloom_tint_ptr() = menu->config.post_processing.bloom_tint;
+            gloco()->set_post_process("bloom_tint", *gloco()->get_bloom_tint_ptr());
+            menu->mark_dirty();
+          }
+        });
+
         draw_sub_row("Filter radius", [&] {
-          if (gui::slider(gloco()->get_bloom_filter_radius_ptr(), 0.f, 0.01f, gui::slider_flags_always_clamp)) {
+          if (gui::slider(&menu->config.post_processing.bloom_filter_radius, 0.f, 1.f, gui::slider_flags_always_clamp)) {
+            *gloco()->get_bloom_filter_radius_ptr() = menu->config.post_processing.bloom_filter_radius;
             menu->mark_dirty();
           }
         });
@@ -353,8 +388,6 @@ namespace fan::graphics::gui {
       gui::text(title_color, "DEBUG");
       gui::begin_table("settings_left_table_debug", 2, gui::table_flags_borders_inner_h | gui::table_flags_borders_outer_h);
 
-      static bool hide_gui_settings = false;
-      bool did_hide_bg = hide_gui_settings;
     #if defined(FAN_2D)
       {
         gui::table_next_row();
@@ -380,11 +413,8 @@ namespace fan::graphics::gui {
               menu->config.debug.culling_padding = ((fan::graphics::culling::culling_t*)gloco()->shapes.visibility)->padding;
               menu->mark_dirty();
             }
-            if (!hide_gui_settings) {
-              hide_bg = gui::is_item_active();
-              if (hide_bg != did_hide_bg) {
-                did_hide_bg = true;
-              }
+            if (!menu->config.debug.hide_settings_bg && gui::is_item_active()) {
+              hide_bg = true;
             }
           });
         }
@@ -395,12 +425,8 @@ namespace fan::graphics::gui {
         gui::table_next_column();
         gui::text("Hide settings background");
         gui::table_next_column();
-        if (gui::checkbox(&hide_gui_settings)) {
-          menu->config.debug.hide_settings_bg = hide_gui_settings;
+        if (gui::checkbox(&menu->config.debug.hide_settings_bg)) {
           menu->mark_dirty();
-        }
-        if (!did_hide_bg) {
-          hide_bg = hide_gui_settings;
         }
       }
     #if defined(FAN_2D)
@@ -694,6 +720,9 @@ namespace fan::graphics::gui {
   }
 
   void settings_menu_t::render() {
+
+    hide_bg = config.debug.hide_settings_bg;
+
     render_settings_top(min_x);
     fan::vec2 size = gloco()->window.get_size();
     f32_t ratio = pages[current_page].split_ratio;
