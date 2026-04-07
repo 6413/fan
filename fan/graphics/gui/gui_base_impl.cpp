@@ -230,6 +230,27 @@ namespace fan::graphics::gui {
       return fonts[best_index];
     }
 
+    template <auto EditFunc, typename L, typename T>
+    bool color_edit_impl(L label, T* color, gui::color_edit_flags_t flags) {
+      bool ret = EditFunc(label, color->data(), (ImGuiColorEditFlags)(flags & ~gui::color_edit_flags_init_once));
+      if (flags & gui::color_edit_flags_init_once) {
+        ImGuiID id = ImGui::GetID(label);
+        if (!ImGui::GetStateStorage()->GetBool(id)) {
+          ImGui::GetStateStorage()->SetBool(id, true);
+          ret = true;
+        }
+      }
+      return ret;
+    }
+
+    template <auto EditFunc, typename T>
+    bool color_edit_impl(T* color, gui::color_edit_flags_t flags) {
+      push_id(color);
+      bool ret = color_edit_impl<EditFunc>("##", color, flags);
+      pop_id();
+      return ret;
+    }
+
   } // namespace detail
 
   topmost_window_data_t& topmost_data() {
@@ -974,6 +995,13 @@ namespace fan::graphics::gui {
     } else if (is_window_relative) {
       fan::vec2 ws = get_window_size();
       draw_pos = (ws * 0.5f) + (ws * 0.5f * style.window_offset) - (text_size * style.text_offset);
+      
+      if (style.align == text_style_t::align_t::center) {
+        draw_pos.x -= text_size.x * 0.5f; 
+      } else if (style.align == text_style_t::align_t::bottom_right) {
+        draw_pos -= text_size;
+      }
+
       use_draw_list = true;
     } else {
       draw_pos = style.align == text_style_t::align_t::bottom_right ?
@@ -1132,49 +1160,12 @@ namespace fan::graphics::gui {
     return ImGui::InputInt4(label, v->data(), flags);
   }
 
-  bool color_edit3(str_view_t label, fan::color* color, color_edit_flags_t flags) {
-    return ImGui::ColorEdit3(label, color->data(), flags);
-  }
+  bool color_edit3(str_view_t label, fan::color* color, gui::color_edit_flags_t flags) { return detail::color_edit_impl<ImGui::ColorEdit3>(label, color, flags); }
+  bool color_edit3(str_view_t label, fan::vec3* color, gui::color_edit_flags_t flags)  { return detail::color_edit_impl<ImGui::ColorEdit3>(label, color, flags); }
+  bool color_edit3(fan::vec3* color, gui::color_edit_flags_t flags)                    { return detail::color_edit_impl<ImGui::ColorEdit3>(color, flags); }
 
-  bool color_edit3(str_view_t label, fan::vec3* color, color_edit_flags_t flags) {
-    return ImGui::ColorEdit3(label, color->data(), flags);
-  }
-
-  bool color_edit4(str_view_t label, fan::color* color, gui::color_edit_flags_t flags) {
-    bool init_once = flags & gui::color_edit_flags_init_once;
-    auto imgui_flags = (ImGuiColorEditFlags)(flags & ~gui::color_edit_flags_init_once);
-
-    ImGuiID id = ImGui::GetID(label);
-    bool initialized = ImGui::GetStateStorage()->GetBool(id, false);
-
-    bool ret = ImGui::ColorEdit4(label, color->data(), imgui_flags);
-
-    if (init_once && !initialized) {
-      ImGui::GetStateStorage()->SetBool(id, true);
-      ret = true;
-    }
-
-    return ret;
-  }
-  bool color_edit4(fan::color* color, gui::color_edit_flags_t flags) {
-    push_id(color);
-
-    bool init_once = flags & gui::color_edit_flags_init_once;
-    auto imgui_flags = (ImGuiColorEditFlags)(flags & ~gui::color_edit_flags_init_once);
-
-    ImGuiID id = ImGui::GetID("init_once");
-    bool initialized = ImGui::GetStateStorage()->GetBool(id, false);
-
-    bool ret = ImGui::ColorEdit4("##", color->data(), imgui_flags);
-
-    if (init_once && !initialized) {
-      ImGui::GetStateStorage()->SetBool(id, true);
-      ret = true;
-    }
-
-    pop_id();
-    return ret;
-  }
+  bool color_edit4(str_view_t label, fan::color* color, gui::color_edit_flags_t flags) { return detail::color_edit_impl<ImGui::ColorEdit4>(label, color, flags); }
+  bool color_edit4(fan::color* color, gui::color_edit_flags_t flags)                   { return detail::color_edit_impl<ImGui::ColorEdit4>(color, flags); }
 
   fan::vec2 get_window_pos() {
     ImVec2 p = ImGui::GetWindowPos();

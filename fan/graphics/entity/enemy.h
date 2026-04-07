@@ -16,7 +16,8 @@ namespace fan::graphics::entity {
     //#define BLL_set_CPP_Node_ConstructDestruct 1
     #define BLL_set_SafeNext 1
     #define BLL_set_Usage 1
-    #define BLL_set_AreWeInsideStruct 1 
+    #define BLL_set_AreWeInsideStruct 1
+    #define BLL_enable_iterator
     #define BLL_set_prefix enemies
     #define BLL_set_NodeDataType enemy_t
     #include <fan/fan_bll_preset.h>

@@ -730,8 +730,27 @@ namespace fan::graphics::gui {
           update_directory_cache();
         }
         same_line();
-        image_button("##icon_arrow_right", icon_arrow_right, fan::vec2(32));
+        
+        if (button("Open..")) {
+          fan::graphics::open_folder([this](std::string_view path) {
+             current_directory = std::string(path);
+             update_directory_cache();
+          });
+        }
         same_line();
+
+        push_style_var(style_var_frame_padding, fan::vec2(10.0f, 7.0f));
+        set_cursor_pos_y(get_cursor_pos_y() + get_style().WindowPadding.y);
+        
+        fan::vec2 button_sizes = 32;
+        f32_t right_aligned_elements_width = 300.0f + (button_sizes.x * 2 + style.ItemSpacing.x * 2); 
+        set_next_item_width(get_content_region_avail().x - right_aligned_elements_width);
+        
+        if (input_text("##current_directory_input", &current_directory, input_text_flags_enter_returns_true)) {
+           update_directory_cache();
+        }
+        pop_style_var();
+
         pop_style_color(3);
 
         push_style_color(col_button, fan::color(0.f, 0.f, 0.f, 0.f));
@@ -741,10 +760,10 @@ namespace fan::graphics::gui {
         auto image_list = std::to_array({icon_files_list, icon_files_big_thumbnail});
         fan::vec2 bc = get_position_bottom_corner();
         bc.x -= get_window_pos().x;
-        set_cursor_pos_x(bc.x / 2);
+        
+        set_cursor_pos_x(get_window_size().x - right_aligned_elements_width);
 
-        fan::vec2 button_sizes = 32;
-        set_next_item_width(get_content_region_avail().x - (button_sizes.x * 2 + style.ItemSpacing.x) * image_list.size());
+        set_next_item_width(300.0f);
 
         push_style_var(style_var_frame_rounding, 20.0f);
         push_style_var(style_var_frame_padding, fan::vec2(10.0f, 7.0f));
@@ -768,7 +787,10 @@ namespace fan::graphics::gui {
         }
 
         pop_style_var(2);
+        
+        same_line();
         toggle_image_button(image_list.data(), image_list.size(), button_sizes, (int*)&current_view_mode);
+        
         pop_style_color(3);
         end_menu_bar();
       }

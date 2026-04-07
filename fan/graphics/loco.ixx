@@ -210,6 +210,15 @@ public:
       fan::throw_error_impl("todo");
     }
   }
+  shader_t get_post_process_shader();
+  template <typename T>
+  void set_post_process(const std::string_view name, T value) {
+  #if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
+    if (window.renderer == fan::window_t::renderer_t::opengl) {
+      shader_set_value(get_post_process_shader(), name, value);
+    }
+  #endif
+  }
   void shader_set_camera(shader_t nr, camera_t camera_nr);
   fan::graphics::shader_nr_t shader_get_nr(uint16_t shape_type);
   fan::graphics::shader_list_t::nd_t& shader_get_data(uint16_t shape_type);
@@ -217,8 +226,10 @@ public:
   void shader_set_paths(fan::graphics::shader_t shader, std::string_view vertex, std::string_view fragment);
   void shader_recompile_all();
 
-  void set_post_process(const std::string_view name, f32_t value);
   f32_t* get_bloom_filter_radius_ptr();
+  f32_t* get_bloom_threshold_ptr();
+  f32_t* get_bloom_knee_ptr();
+  fan::vec3* get_bloom_tint_ptr();
   void* get_framebuffer();
 
   fan::graphics::camera_list_t camera_list;

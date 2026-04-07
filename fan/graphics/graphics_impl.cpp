@@ -27,13 +27,10 @@ import fan.types.compile_time_string;
 import fan.graphics.algorithm.raycast_grid;
 import fan.io.file;
 
-namespace fan::graphics {
-  fan::graphics::image_t invalid_image = [] {
-    image_t image {false};
-    image.sic();
-    return image;
-  }();
+#define POSITION2_WINDOW_CENTER fan::vec2(fan::graphics::ctx().window->get_size() / 2)
+#define POSITION3_WINDOW_CENTER fan::vec3(POSITION2_WINDOW_CENTER, 0)
 
+namespace fan::graphics {
   fan::graphics::render_view_t add_render_view() {
     fan::graphics::render_view_t render_view;
     render_view.create();
@@ -191,6 +188,9 @@ namespace fan::graphics {
       ), p.enable_culling
     );
   }
+
+  sprite_t::sprite_t(const char* path)
+    : sprite_t(POSITION3_WINDOW_CENTER, POSITION2_WINDOW_CENTER, fan::graphics::image_t(path)) { }
 
   sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view)
     : sprite_t(sprite_properties_t {
