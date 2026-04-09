@@ -83,11 +83,11 @@ namespace fan::graphics {
     return (*fan::graphics::ctx().shader_list)[shader_get_nr(shape_type)];
   }
 
-  bool shader_update_fragment(uint16_t shape_type, const std::string& fragment) {
+  bool shader_update_fragment(uint16_t shape_type, const std::string_view fragment_file_path, const std::string& fragment) {
     auto shader_nr = shader_get_nr(shape_type);
     auto shader_data = shader_get_data(shape_type);
-    shader_set_vertex(shader_nr, shader_data.svertex);
-    shader_set_fragment(shader_nr, fragment);
+    shader_set_vertex(shader_nr, shader_data.path_vertex, shader_data.svertex);
+    shader_set_fragment(shader_nr, fragment_file_path, fragment);
     return shader_compile(shader_nr);
   }
 
@@ -399,6 +399,17 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     );
   }
 
+  gradient_t::gradient_t(
+    const fan::color& top, 
+    const fan::color& bottom,
+    const fan::vec3& position,
+    const fan::vec2& size) 
+      : gradient_t(gradient_properties_t{
+          .position = position,
+          .size = size,
+          .color{top, top, bottom, bottom},
+        }){}
+
   shader_shape_t::shader_shape_t(const shader_shape_properties_t& p) {
     *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
       fan_init_struct(
@@ -430,7 +441,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
   ) : shader_shape_t(shader_shape_properties_t{
       .position = position,
       .size = size,
-      .shader = fan::graphics::shader_create(vertex_shader, fragment_shader)
+      .shader = fan::graphics::shader_create("", vertex_shader, "", fragment_shader)
     }) {}
   shader_shape_t::shader_shape_t(
     const fan::str_view_t fragment_shader, 
@@ -439,7 +450,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
   ) : shader_shape_t(shader_shape_properties_t{
     .position = position,
     .size = size,
-    .shader = fan::graphics::get_sprite_shader(fragment_shader)
+    .shader = fan::graphics::get_sprite_shader("", fragment_shader)
   }) {}
 
   shadow_t::shadow_t(shadow_properties_t p) {

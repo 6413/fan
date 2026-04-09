@@ -20,8 +20,8 @@
   build_function(shader_get, void*, fan::graphics::shader_nr_t nr) \
   build_function(shader_erase, void, fan::graphics::shader_nr_t nr) \
   build_function(shader_use, void, fan::graphics::shader_nr_t nr) \
-  build_function(shader_set_vertex, void, fan::graphics::shader_nr_t nr, const std::string& vertex_code) \
-  build_function(shader_set_fragment, void, fan::graphics::shader_nr_t nr, const std::string& fragment_code) \
+  build_function(shader_set_vertex, void, fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& vertex_code) \
+  build_function(shader_set_fragment, void, fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& fragment_code) \
   build_function(shader_compile, bool, fan::graphics::shader_nr_t nr)
 
 #define context_build_image_functions(build_function) \

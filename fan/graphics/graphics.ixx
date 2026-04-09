@@ -77,7 +77,7 @@ export namespace fan::graphics {
 
   fan::graphics::shader_nr_t shader_get_nr(uint16_t shape_type);
   fan::graphics::shader_list_t::nd_t& shader_get_data(uint16_t shape_type);
-  bool shader_update_fragment(uint16_t shape_type, const std::string& fragment);
+  bool shader_update_fragment(uint16_t shape_type, const std::string_view fragment_file_path, const std::string& fragment);
 
   using sprite_flags_e = fan::graphics::sprite_flags_e;
 
@@ -334,8 +334,8 @@ export namespace fan::graphics {
 
   struct gradient_properties_t {
     const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
-    fan::vec3 position = 0;
-    fan::vec2 size = 0;
+    fan::vec3 position = POSITION3_WINDOW_CENTER;
+    fan::vec2 size = POSITION2_WINDOW_CENTER;
     std::array<fan::color, 4> color = {
       fan::random::color(),
       fan::random::color(),
@@ -355,6 +355,12 @@ export namespace fan::graphics {
 
     gradient_t() = default;
     gradient_t(const gradient_properties_t& p);
+    gradient_t(
+      const fan::color& top, 
+      const fan::color& bottom,
+      const fan::vec3& position = POSITION3_WINDOW_CENTER,
+      const fan::vec2& size = POSITION2_WINDOW_CENTER
+    );
   };
 
   struct shader_shape_properties_t {
@@ -1314,6 +1320,32 @@ export namespace fan::graphics {
         fan::ecs::c_life{life},
         fan::ecs::c_rectangle{fan::vec2(3), col, 6.f}
       );
+    }
+  }
+
+  template <typename T>
+  void shader_get_value(fan::graphics::shader_nr_t nr, const std::string_view name, T& val) {
+    if (0) {}
+  #if defined(FAN_OPENGL)
+    else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
+      fan::graphics::get_gl_context().shader_get_value(nr, name, val);
+    }
+  #endif
+    else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {
+      throw "todo";
+    }
+  }
+
+  template <typename T>
+  void shader_set_value(fan::graphics::shader_nr_t nr, const std::string_view name, const T& val) {
+    if (0) {}
+  #if defined(FAN_OPENGL)
+    else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
+      fan::graphics::get_gl_context().shader_set_value(nr, name, val);
+    }
+  #endif
+    else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {
+      throw "todo";
     }
   }
 } // namespace fan::graphics

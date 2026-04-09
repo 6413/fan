@@ -93,7 +93,8 @@ namespace fan::graphics {
     : fan::graphics::image_nr_t(ctx()->image_load_path(ctx(), path, callers_path)) {}
   image_t::image_t(fan::str_view_t path, const fan::graphics::image_load_properties_t lp, const std::source_location& callers_path)
     : fan::graphics::image_nr_t(ctx()->image_load_path_props(ctx(), path, lp, callers_path)) {}
-
+  image_t::image_t(const char* path, const std::source_location& callers_path) : 
+      image_t(fan::str_view_t(path), callers_path) { }
   image_t::image_t(const fan::image::info_t& info, const std::source_location&)
     : fan::graphics::image_nr_t(ctx()->image_load_info(ctx(), info)) {}
   image_t::image_t(const fan::image::info_t& info, const fan::graphics::image_load_properties_t& lp, const std::source_location&)
@@ -315,50 +316,6 @@ namespace fan::graphics {
 
   fan::vec2 get_mouse_world_pos() {
     return screen_to_world(get_mouse_position());
-  }
-
-  std::string read_shader(
-    std::string_view path,
-    const std::source_location& callers_path
-  ) {
-    std::string code;
-    auto found = fan::io::file::find_relative_path(path, callers_path);
-    if (found.empty()) {
-      return code;
-    }
-    fan::io::file::read(found, &code);
-    return code;
-  }
-
-  fan::graphics::shader_t shader_create(const fan::str_view_t vertex, const fan::str_view_t fragment) {
-    if (ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
-      fan::graphics::shader_t shader = ctx()->shader_create(ctx());
-      ctx()->shader_set_vertex(ctx(), shader, std::string(vertex));
-      ctx()->shader_set_fragment(ctx(), shader, std::string(fragment));
-      if (!ctx()->shader_compile(ctx(), shader)) {
-        ctx()->shader_erase(ctx(), shader);
-        shader.sic();
-      }
-      return shader;
-    }
-    else {
-      fan::print("todo");
-    }
-    return {};
-  }
-  
-  fan::graphics::shader_t get_sprite_shader(const fan::str_view_t fragment) {
-    if (ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
-      auto str = fan::graphics::read_shader("shaders/opengl/2D/objects/sprite.vs");
-      return fan::graphics::shader_create(
-        str, 
-        fragment
-      );
-    }
-    else {
-      fan::print("todo");
-    }
-    return {};
   }
 }
 namespace fan::window {
@@ -605,8 +562,29 @@ namespace fan::graphics {
   }
 #endif
 
-  fan::graphics::shader_nr_t shader_create() {
+  fan::graphics::shader_t shader_create() {
     return fan::graphics::ctx()->shader_create(fan::graphics::ctx());
+  }
+  fan::graphics::shader_t shader_create(
+    const std::string_view vertex_file_path,
+    const fan::str_view_t vertex, 
+    const std::string_view fragment_file_path,
+    const fan::str_view_t fragment) 
+  {
+    if (ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
+      fan::graphics::shader_t shader = ctx()->shader_create(ctx());
+      ctx()->shader_set_vertex(ctx(), shader, vertex_file_path, std::string(vertex));
+      ctx()->shader_set_fragment(ctx(), shader, fragment_file_path, std::string(fragment));
+      if (!ctx()->shader_compile(ctx(), shader)) {
+        ctx()->shader_erase(ctx(), shader);
+        shader.sic();
+      }
+      return shader;
+    }
+    else {
+      fan::print("todo");
+    }
+    return {};
   }
 
   void shader_erase(fan::graphics::shader_nr_t nr) {
@@ -617,17 +595,47 @@ namespace fan::graphics {
     fan::graphics::ctx()->shader_use(fan::graphics::ctx(), nr);
   }
 
-  void shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string& vertex_code) {
-    fan::graphics::ctx()->shader_set_vertex(fan::graphics::ctx(), nr, vertex_code);
+  void shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& vertex_code) {
+    fan::graphics::ctx()->shader_set_vertex(fan::graphics::ctx(), nr, file_path, vertex_code);
   }
 
-  void shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string& fragment_code) {
-    fan::graphics::ctx()->shader_set_fragment(fan::graphics::ctx(), nr, fragment_code);
+  void shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& fragment_code) {
+    fan::graphics::ctx()->shader_set_fragment(fan::graphics::ctx(), nr, file_path, fragment_code);
   }
 
   bool shader_compile(fan::graphics::shader_nr_t nr) {
     return fan::graphics::ctx()->shader_compile(fan::graphics::ctx(), nr);
   }
+
+  fan::graphics::shader_t get_sprite_shader(const std::string_view fragment_file_path, const fan::str_view_t fragment) {
+    if (ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
+      auto str = fan::graphics::read_shader("shaders/opengl/2D/objects/sprite.vs");
+      return fan::graphics::shader_create(
+        "shaders/opengl/2D/objects/sprite.vs",
+        str, 
+        fragment_file_path,
+        fragment
+      );
+    }
+    else {
+      fan::print("todo");
+    }
+    return {};
+  }
+
+  std::string read_shader(
+    std::string_view path,
+    const std::source_location& callers_path
+  ) {
+    std::string code;
+    auto found = fan::io::file::find_relative_path(path, callers_path);
+    if (found.empty()) {
+      return code;
+    }
+    fan::io::file::read(found, &code);
+    return code;
+  }
+
 
   fan::graphics::camera_nr_t camera_create() {
     return fan::graphics::ctx()->camera_create(fan::graphics::ctx());

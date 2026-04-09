@@ -155,12 +155,12 @@ void loco_t::shader_use(fan::graphics::shader_nr_t nr) {
   context_functions.shader_use(&context, nr);
 }
 
-void loco_t::shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string& vertex_code) {
-  context_functions.shader_set_vertex(&context, nr, vertex_code);
+void loco_t::shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& vertex_code) {
+  context_functions.shader_set_vertex(&context, nr, file_path, vertex_code);
 }
 
-void loco_t::shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string& fragment_code) {
-  context_functions.shader_set_fragment(&context, nr, fragment_code);
+void loco_t::shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& fragment_code) {
+  context_functions.shader_set_fragment(&context, nr, file_path, fragment_code);
 }
 
 bool loco_t::shader_compile(fan::graphics::shader_nr_t nr) {
@@ -196,30 +196,31 @@ void loco_t::shader_set_paths(fan::graphics::shader_t shader, std::string_view v
 
 void loco_t::shader_recompile_all() {
 #if defined(FAN_OPENGL)
-  glFlush();
   glFinish();
 #endif
   for_each_list(shader_list, [&](auto& list, auto nr) {
-    auto& shader_data = list[nr];
-    if (shader_data.svertex.empty() || shader_data.sfragment.empty()) {
-      return;
-    }
-    std::string svertex = fan::graphics::read_shader(shader_data.path_vertex);
-    std::string sfragment = fan::graphics::read_shader(shader_data.path_fragment);
-    if (svertex.empty() && !shader_data.svertex.empty()) {
-      fan::print_warning("failed to recompile shader:" + std::string(shader_data.path_vertex) + ", assigning old compiled shader.");
-    }
-    if (sfragment.empty() && !shader_data.sfragment.empty()) {
-      fan::print_warning("failed to recompile shader:" + std::string(shader_data.path_fragment) + ", assigning old compiled shader.");
-    }
-    shader_set_vertex(nr, svertex);
-    shader_set_fragment(nr, sfragment);
-    if (!shader_compile(nr)) {
-      fan::print_warning("failed to recompile shader. vertex shader:" + std::string(shader_data.path_vertex) + ", fragment shader:" + std::string(shader_data.path_fragment));
-    }
+    auto& sd = list[nr];
+    if (sd.svertex.empty() || sd.sfragment.empty()) return;
+
+    auto read = [](const auto& path, const auto& fallback) {
+      std::string src = fan::graphics::read_shader(path);
+      if (src.empty() && !fallback.empty()) {
+        std::string spath(path);
+        fan::print_warning("failed to read shader file path:" +
+          (spath.empty() ? "FILE PATH NOT FOUND" : spath) + ", assigning old compiled shader.");
+      }
+      return src.empty() ? fallback : src;
+    };
+
+    auto sv = read(sd.path_vertex, sd.svertex);
+    auto sf = read(sd.path_fragment, sd.sfragment);
+    if (sv == sd.svertex && sf == sd.sfragment) return;
+
+    if (sv != sd.svertex)   shader_set_vertex(nr, sd.path_vertex, sv);
+    if (sf != sd.sfragment) shader_set_fragment(nr, sd.path_fragment, sf);
+    if (!shader_compile(nr))
+      fan::print_warning("failed to recompile shader. vertex shader:" + std::string(sd.path_vertex) + ", fragment shader:" + std::string(sd.path_fragment));
   });
-  glFlush();
-  glFinish();
   set_post_process("bloom_strength", gui.settings_menu->config.post_processing.bloom_strength);
 }
 
@@ -959,7 +960,7 @@ static void loco_load_settings_into_open_props(loco_t* l) {
   if (sm->config.display.custom_resolution.x != -1 && l->open_props.window_size.x == -1)
     l->open_props.window_size = sm->config.display.custom_resolution;
   else if (sm->config.display.resolution_index != -1 && l->open_props.window_size.x == -1)
-    l->open_props.window_size = fan::window_t::resolutions[sm->config.display.resolution_index];
+    l->open_props.window_size = fan::resolutions[sm->config.display.resolution_index].size;
   if (sm->config.display.display_mode != fan::window_t::mode::windowed)
     l->open_props.window_open_mode = sm->config.display.display_mode;
   if (sm->config.display.window_position.x != -1)
@@ -2216,17 +2217,16 @@ void loco_t::shape_open(
   std::size_t sizeof_vi,
   std::size_t sizeof_ri,
   fan::graphics::shape_gl_init_list_t shape_shader_locations,
-  const std::string& vertex,
-  const std::string& fragment,
+  const std::string_view vertex_file_path,
+  const std::string_view fragment_file_path,
   fan::graphics::shaper_t::ShapeRenderDataSize_t instance_count,
   bool instanced
 ) {
   fan::graphics::shader_t shader = shader_create();
 
-  shader_set_vertex(shader, fan::graphics::read_shader(vertex));
-  shader_set_fragment(shader, fan::graphics::read_shader(fragment));
+  shader_set_vertex(shader, vertex_file_path, fan::graphics::read_shader(vertex_file_path));
+  shader_set_fragment(shader, fragment_file_path, fan::graphics::read_shader(fragment_file_path));
   shader_compile(shader);
-  shader_set_paths(shader, vertex, fragment);
 
   fan::graphics::shaper_t::BlockProperties_t bp;
   bp.MaxElementPerBlock = (fan::graphics::shaper_t::MaxElementPerBlock_t)fan::graphics::MaxElementPerBlock;
@@ -2307,8 +2307,8 @@ void loco_t::shape_open(
 }
 #endif
 
-fan::graphics::shader_t loco_t::get_sprite_shader(const std::string& fragment) {
-  return fan::graphics::get_sprite_shader(fragment);
+fan::graphics::shader_t loco_t::get_sprite_shader(const std::string_view fragment_file_path, const std::string& fragment) {
+  return fan::graphics::get_sprite_shader(fragment_file_path, fragment);
 }
 
 std::string loco_t::get_renderer_string() {
@@ -2485,6 +2485,10 @@ void loco_t::cuda_textures_t::graphics_resource_t::unmap() {
 }
 #endif
 
+fan::graphics::image_t loco_t::get_color_buffer(int idx) {
+  return gl->color_buffers[idx];
+}
+
 #if defined(FAN_2D)
 
 void loco_t::camera_move_to(const fan::graphics::shapes::shape_t& shape, const fan::graphics::render_view_t& render_view) {
@@ -2505,11 +2509,11 @@ void loco_t::camera_move_to_smooth(const fan::graphics::shapes::shape_t& shape) 
   camera_move_to_smooth(shape, orthographic_render_view);
 }
 
-bool loco_t::shader_update_fragment(uint16_t shape_type, const std::string& fragment) {
+bool loco_t::shader_update_fragment(uint16_t shape_type, const std::string_view fragment_file_path, const std::string& fragment) {
   auto shader_nr = shader_get_nr(shape_type);
-  auto shader_data = shader_get_data(shape_type);
-  shader_set_vertex(shader_nr, shader_data.svertex);
-  shader_set_fragment(shader_nr, fragment);
+  auto& shader_data = shader_get_data(shape_type);
+  shader_set_vertex(shader_nr, shader_data.path_vertex, shader_data.svertex);
+  shader_set_fragment(shader_nr, fragment_file_path, fragment);
   return shader_compile(shader_nr);
 }
 #endif

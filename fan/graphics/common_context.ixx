@@ -482,7 +482,7 @@ export namespace fan::graphics {
     image_t(const fan::color& color);
     image_t(fan::str_view_t path, const std::source_location& callers_path = std::source_location::current());
     image_t(fan::str_view_t path, const fan::graphics::image_load_properties_t lp, const std::source_location& callers_path = std::source_location::current());
-
+    image_t(const char* path, const std::source_location& callers_path = std::source_location::current());
     image_t(const fan::image::info_t& info, const std::source_location& callers_path = std::source_location::current());
     image_t(const fan::image::info_t& info, const fan::graphics::image_load_properties_t& lp, const std::source_location& callers_path = std::source_location::current());
     image_t(fan::color* colors, const fan::vec2ui& size);
@@ -555,14 +555,6 @@ export namespace fan::graphics {
     fan::graphics::image_t dirt;
     fan::graphics::image_t background;
   }tile_world_images;
-
-  std::string read_shader(
-    std::string_view path,
-    const std::source_location& callers_path = std::source_location::current()
-  );
-
-  fan::graphics::shader_t shader_create(const fan::str_view_t vertex, const fan::str_view_t fragment);
-  fan::graphics::shader_t get_sprite_shader(const fan::str_view_t fragment);
 }
 
 export namespace fan {
@@ -669,12 +661,23 @@ export namespace fan::graphics {
   std::vector<uint8_t> read_pixels(const fan::vec2& position, const fan::vec2& size);
   std::vector<uint8_t> read_pixels_from_image(fan::graphics::image_nr_t nr, const fan::vec2& uv_position = 0, const fan::vec2& uv_size = 1);
 
-  fan::graphics::shader_nr_t shader_create();
+  fan::graphics::shader_t shader_create();
+  fan::graphics::shader_t shader_create(
+    const std::string_view vertex_file_path,
+    const fan::str_view_t vertex, 
+    const std::string_view fragment_file_path,
+    const fan::str_view_t fragment
+  );
   void shader_erase(fan::graphics::shader_nr_t nr);
   void shader_use(fan::graphics::shader_nr_t nr);
-  void shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string& vertex_code);
-  void shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string& fragment_code);
+  void shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& vertex_code);
+  void shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& fragment_code);
   bool shader_compile(fan::graphics::shader_nr_t nr);
+  std::string read_shader(
+    std::string_view path,
+    const std::source_location& callers_path = std::source_location::current()
+  );
+  fan::graphics::shader_t get_sprite_shader(const std::string_view fragment_file_path, const fan::str_view_t fragment);
 
   fan::graphics::camera_nr_t camera_create();
   fan::graphics::context_camera_t& camera_get(fan::graphics::camera_nr_t nr = fan::graphics::get_orthographic_render_view().camera);
@@ -729,6 +732,58 @@ export namespace fan::graphics {
   };
   next_frame_awaiter co_next_frame() {
     return {};
+  }
+}
+
+export namespace fan::shader_paths {
+  namespace gl {
+    constexpr const char* downsample_vs =            "shaders/opengl/2D/effects/downsample.vs";
+    constexpr const char* downsample_fs =            "shaders/opengl/2D/effects/downsample.fs";
+    constexpr const char* capsule_fs =               "shaders/opengl/2D/objects/capsule.fs";
+    constexpr const char* capsule_vs =               "shaders/opengl/2D/objects/capsule.vs";
+    constexpr const char* circle_fs =                "shaders/opengl/2D/objects/circle.fs";
+    constexpr const char* circle_vs =                "shaders/opengl/2D/objects/circle.vs";
+    constexpr const char* empty_fs =                 "shaders/empty.fs";
+    constexpr const char* empty_vs =                 "shaders/empty.vs";
+    constexpr const char* final_vs =                 "shaders/opengl/2D/effects/loco_fbo.vs";
+    constexpr const char* final_fs =                 "shaders/opengl/2D/effects/loco_fbo.fs";
+    constexpr const char* gradient_fs =              "shaders/opengl/2D/effects/gradient.fs";
+    constexpr const char* gradient_vs =              "shaders/opengl/2D/effects/gradient.vs";
+    constexpr const char* grid_fs =                  "shaders/opengl/2D/objects/grid.fs";
+    constexpr const char* grid_vs =                  "shaders/opengl/2D/objects/grid.vs";
+    constexpr const char* light_fs =                 "shaders/opengl/2D/objects/light.fs";
+    constexpr const char* light_vs =                 "shaders/opengl/2D/objects/light.vs";
+    constexpr const char* line_fs =                  "shaders/opengl/2D/objects/line.fs";
+    constexpr const char* line_vs =                  "shaders/opengl/2D/objects/line.vs";
+    constexpr const char* nv12_fs =                  "shaders/opengl/2D/objects/nv12.fs";
+    constexpr const char* particles_fs =             "shaders/opengl/2D/effects/particles.fs";
+    constexpr const char* particles_vs =             "shaders/opengl/2D/effects/particles.vs";
+    constexpr const char* pixel_format_renderer_vs = "shaders/opengl/2D/objects/pixel_format_renderer.vs";
+    constexpr const char* polygon_fs =               "shaders/opengl/2D/objects/polygon.fs";
+    constexpr const char* polygon_vs =               "shaders/opengl/2D/objects/polygon.vs";
+    constexpr const char* rectangle_fs =             "shaders/opengl/2D/objects/rectangle.fs";
+    constexpr const char* rectangle_vs =             "shaders/opengl/2D/objects/rectangle.vs";
+    constexpr const char* reflection_vs =            "shaders/opengl/2D/effects/reflection.vs";
+    constexpr const char* reflection_fs =            "shaders/opengl/2D/effects/reflection.fs";
+    constexpr const char* shadow_fs =                "shaders/opengl/2D/objects/shadow.fs";
+    constexpr const char* shadow_vs =                "shaders/opengl/2D/objects/shadow.vs";
+    constexpr const char* sprite_2_1_fs =            "shaders/opengl/2D/objects/sprite_2_1.fs";
+    constexpr const char* sprite_2_1_vs =            "shaders/opengl/2D/objects/sprite_2_1.vs";
+    constexpr const char* sprite_fs =                "shaders/opengl/2D/objects/sprite.fs";
+    constexpr const char* sprite_vs =                "shaders/opengl/2D/objects/sprite.vs";
+    constexpr const char* unlit_sprite_fs =          "shaders/opengl/2D/objects/unlit_sprite.fs";
+    constexpr const char* upsample_fs =              "shaders/opengl/2D/effects/upsample.fs";
+    constexpr const char* yuv420p_fs =               "shaders/opengl/2D/objects/yuv420p.fs";
+
+
+  #if defined(FAN_3D)
+    constexpr const char* line3d_fs =                "shaders/opengl/3D/objects/line.fs";
+    constexpr const char* line3d_vs =                "shaders/opengl/3D/objects/line.vs";
+    constexpr const char* model3d_vs =               "shaders/opengl/3D/objects/model.vs";
+    constexpr const char* model3d_fs =               "shaders/opengl/3D/objects/model.fs";
+    constexpr const char* rectangle3d_fs =           "shaders/opengl/3D/objects/rectangle.fs";
+    constexpr const char* rectangle3d_vs =           "shaders/opengl/3D/objects/rectangle.vs";
+  #endif
   }
 }
 
