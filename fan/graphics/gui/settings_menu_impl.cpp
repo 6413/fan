@@ -63,7 +63,7 @@ namespace fan::graphics::gui {
       const auto& d = j["debug"];
       d.get_if("frustum_culling", debug.frustum_culling_enabled);
       d.get_if("visualize_culling", debug.visualize_culling);
-      d.get_if("hide_settings_bg", debug.hide_settings_bg);
+      d.get_if("settings_bg_alpha", debug.settings_bg_alpha);
       d.get_if("fill_mode", debug.fill_mode);
       if (d.contains("culling_padding")) {
         debug.culling_padding.x = d["culling_padding"]["x"];
@@ -106,7 +106,7 @@ namespace fan::graphics::gui {
 
     j["debug"]["frustum_culling"] = debug.frustum_culling_enabled;
     j["debug"]["visualize_culling"] = debug.visualize_culling;
-    j["debug"]["hide_settings_bg"] = debug.hide_settings_bg;
+    j["debug"]["settings_bg_alpha"] = debug.settings_bg_alpha;
     j["debug"]["fill_mode"] = debug.fill_mode;
     j["debug"]["culling_padding"]["x"] = debug.culling_padding.x;
     j["debug"]["culling_padding"]["y"] = debug.culling_padding.y;
@@ -216,7 +216,7 @@ namespace fan::graphics::gui {
     gui::push_font(gui::get_font(24));
     gui::set_next_window_pos(next_window_position);
     gui::set_next_window_size(next_window_size);
-    gui::set_next_window_bg_alpha(hide_bg ? 0 : 0.99);
+    gui::set_next_window_bg_alpha(bg_alpha);
     gui::begin(name, nullptr, wnd_flags);
   }
   void settings_menu_t::end_menu_left() {
@@ -413,8 +413,8 @@ namespace fan::graphics::gui {
               menu->config.debug.culling_padding = ((fan::graphics::culling::culling_t*)gloco()->shapes.visibility)->padding;
               menu->mark_dirty();
             }
-            if (!menu->config.debug.hide_settings_bg && gui::is_item_active()) {
-              hide_bg = true;
+            if (menu->config.debug.settings_bg_alpha > 0.0f && gui::is_item_active()) {
+              settings_menu_t::bg_alpha = 0.0f;
             }
           });
         }
@@ -423,9 +423,9 @@ namespace fan::graphics::gui {
       {
         gui::table_next_row();
         gui::table_next_column();
-        gui::text("Hide settings background");
+        gui::text("Background Alpha");
         gui::table_next_column();
-        if (gui::checkbox(&menu->config.debug.hide_settings_bg)) {
+        if (gui::slider(&menu->config.debug.settings_bg_alpha, 0.0f, 1.0f, gui::slider_flags_always_clamp)) {
           menu->mark_dirty();
         }
       }
@@ -460,7 +460,7 @@ namespace fan::graphics::gui {
   void settings_menu_t::menu_graphics_right(settings_menu_t* menu, const fan::vec2& next_window_position, const fan::vec2& next_window_size) {
     gui::set_next_window_pos(next_window_position);
     gui::set_next_window_size(next_window_size);
-    gui::set_next_window_bg_alpha(hide_bg ? 0 : 0.99);
+    gui::set_next_window_bg_alpha(bg_alpha);
     gui::begin("##Menu Graphics Right", nullptr, wnd_flags);
     gui::push_font(gui::get_font(32, true));
     gui::text(title_color, "Setting Info");
@@ -507,8 +507,8 @@ namespace fan::graphics::gui {
       return;
     }
     fan::vec2i current = gloco()->window.get_size();
-    for (int i = 0; i < std::size(fan::window_t::resolutions); ++i) {
-      if (fan::window_t::resolutions[i] == current) {
+    for (int i = 0; i < std::size(fan::resolutions); ++i) {
+      if (fan::resolutions[i].size == current) {
         config.display.resolution_index = i;
         return;
       }
@@ -518,8 +518,8 @@ namespace fan::graphics::gui {
 
   void settings_menu_t::on_window_resize(const fan::vec2i& new_size) {
     bool matched = false;
-    for (int i = 0; i < std::size(fan::window_t::resolutions); ++i) {
-      if (fan::window_t::resolutions[i] == new_size) {
+    for (int i = 0; i < std::size(fan::resolutions); ++i) {
+      if (fan::resolutions[i].size == new_size) {
         config.display.resolution_index = i;
         config.display.custom_resolution = {-1, -1};
         matched = true;
@@ -540,11 +540,11 @@ namespace fan::graphics::gui {
         gloco()->open_props.window_position = config.display.window_position;
       }
       gloco()->open_props.renderer = config.display.renderer;
-      if (config.display.custom_resolution.x != -1) {
+      if (config.display.custom_resolution.x != -1 && gloco()->open_props.window_size.x == -1) {
         gloco()->open_props.window_size = config.display.custom_resolution;
       }
-      else if (config.display.resolution_index != -1) {
-        gloco()->open_props.window_size = fan::window_t::resolutions[config.display.resolution_index];
+      else if (config.display.resolution_index != -1 && gloco()->open_props.window_size.x == -1) {
+        gloco()->open_props.window_size = fan::resolutions[config.display.resolution_index].size;
       }
       return;
     }
@@ -613,36 +613,36 @@ namespace fan::graphics::gui {
   void settings_menu_t::render_resolution_dropdown() {
     fan::vec2i current_size = gloco()->window.get_size();
     int current_resolution = -1;
-    for (int i = 0; i < std::size(fan::window_t::resolutions); ++i) {
-      if (fan::window_t::resolutions[i] == fan::vec2i(current_size)) {
+    for (int i = 0; i < std::size(fan::resolutions); ++i) {
+      if (fan::resolutions[i].size == fan::vec2i(current_size)) {
         current_resolution = i;
         break;
       }
     }
-    if (current_resolution == -1) current_resolution = std::size(fan::window_t::resolutions);
+    if (current_resolution == -1) current_resolution = std::size(fan::resolutions);
 
     gui::table_next_column();
     gui::text("Resolution");
     gui::table_next_column();
     fan::vec2i window_size = gloco()->window.get_size();
     std::string custom_res = std::to_string(window_size.x) + "x" + std::to_string(window_size.y);
-    const char* current_label = (current_resolution == std::size(fan::window_t::resolutions))
+    const char* current_label = (current_resolution == std::size(fan::resolutions))
       ? custom_res.c_str()
-      : fan::window_t::resolution_labels[current_resolution];
+      : fan::resolutions[current_resolution];
 
     if (gui::begin_combo("##ResolutionCombo", current_label)) {
-      for (int i = 0; i < std::size(fan::window_t::resolution_labels); ++i) {
+      for (int i = 0; i < std::size(fan::resolutions); ++i) {
         bool is_selected = (current_resolution == i);
-        if (gui::selectable(fan::window_t::resolution_labels[i], is_selected)) {
+        if (gui::selectable(fan::resolutions[i].label, is_selected)) {
           current_resolution = i;
-          gloco()->window.set_size(fan::window_t::resolutions[i]);
+          gloco()->window.set_size(fan::resolutions[i]);
           config.display.resolution_index = i;
           config.display.custom_resolution = fan::vec2i(-1, -1);
           mark_dirty();
         }
         if (is_selected) gui::set_item_default_focus();
       }
-      if (current_resolution == std::size(fan::window_t::resolutions) && gui::selectable(custom_res.c_str(), true)) {
+      if (current_resolution == std::size(fan::resolutions) && gui::selectable(custom_res.c_str(), true)) {
         config.display.resolution_index = -1;
         config.display.custom_resolution = window_size;
       }
@@ -674,7 +674,7 @@ namespace fan::graphics::gui {
     fan::vec2 main_window_size = gloco()->window.get_size();
     gui::set_next_window_pos(fan::vec2(0, 0));
     gui::set_next_window_size(fan::vec2(main_window_size.x, main_window_size.y / 5));
-    gui::set_next_window_bg_alpha(hide_bg ? 0 : 0.99);
+    gui::set_next_window_bg_alpha(bg_alpha);
     gui::begin("##Fan Settings Nav", nullptr,
       gui::window_flags_no_move | gui::window_flags_no_collapse |
       gui::window_flags_no_resize | gui::window_flags_no_title_bar |
@@ -721,7 +721,7 @@ namespace fan::graphics::gui {
 
   void settings_menu_t::render() {
 
-    hide_bg = config.debug.hide_settings_bg;
+    bg_alpha = config.debug.settings_bg_alpha;
 
     render_settings_top(min_x);
     fan::vec2 size = gloco()->window.get_size();

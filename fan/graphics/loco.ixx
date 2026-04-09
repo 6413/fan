@@ -195,8 +195,8 @@ public:
   fan::graphics::context_shader_t shader_get(fan::graphics::shader_nr_t nr);
   void shader_erase(fan::graphics::shader_nr_t nr);
   void shader_use(fan::graphics::shader_nr_t nr);
-  void shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string& vertex_code);
-  void shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string& fragment_code);
+  void shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& vertex_code);
+  void shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& fragment_code);
   bool shader_compile(fan::graphics::shader_nr_t nr);
   template <typename T>
   void shader_set_value(fan::graphics::shader_nr_t nr, const std::string_view name, const T& val) {
@@ -539,14 +539,14 @@ public:
     std::size_t sizeof_vi,
     std::size_t sizeof_ri,
     fan::graphics::shape_gl_init_list_t shape_shader_locations,
-    const std::string& vertex,
-    const std::string& fragment,
+    const std::string_view vertex_file_path, 
+    const std::string_view fragment_file_path,
     fan::graphics::shaper_t::ShapeRenderDataSize_t instance_count = 1,
     bool instanced = true
   );
 #endif
 
-  fan::graphics::shader_t get_sprite_shader(const std::string& fragment);
+  fan::graphics::shader_t get_sprite_shader(const std::string_view fragment_file_path, const std::string& fragment);
 
   std::string      get_renderer_string();
   std::string_view get_platform_string();
@@ -663,12 +663,14 @@ public:
     fan::physics::context_t& get_physics_context() { return physics.context; }
   #endif
 
+  fan::graphics::image_t get_color_buffer(int idx);
+
 #if defined(FAN_2D)
   void camera_move_to(const fan::graphics::shapes::shape_t& shape, const fan::graphics::render_view_t& render_view);
   void camera_move_to(const fan::graphics::shapes::shape_t& shape);
   void camera_move_to_smooth(const fan::graphics::shapes::shape_t& shape, const fan::graphics::render_view_t& render_view);
   void camera_move_to_smooth(const fan::graphics::shapes::shape_t& shape);
-  bool shader_update_fragment(uint16_t shape_type, const std::string& fragment);
+  bool shader_update_fragment(uint16_t shape_type, const std::string_view fragment_file_path, const std::string& fragment);
 #endif
 };
 
@@ -691,7 +693,7 @@ export namespace fan::graphics {
   void shader_set_camera(fan::graphics::shader_t nr, fan::graphics::camera_t camera_nr);
 
   template <typename T>
-  void shader_set_value(fan::graphics::shader_nr_t nr, const std::string& name, const T& val) {
+  void shader_set_value(fan::graphics::shader_nr_t nr, const std::string_view name, const T& val) {
     gloco()->shader_set_value<T>(nr, name, val);
   }
 }

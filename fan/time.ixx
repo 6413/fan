@@ -30,24 +30,6 @@ export namespace fan {
           start();
         }
       }
-      static timer seconds_timer(f64_t s) {
-        timer t;
-        t.start_seconds(s);
-        return t;
-      }
-
-      static timer millis_timer(f64_t ms) {
-        timer t;
-        t.start_millis(ms);
-        return t;
-      }
-
-      static timer micros_timer(f64_t us) {
-        timer t;
-        t.start_micros(us);
-        return t;
-      }
-
       constexpr uint64_t count() const {
         return m_time;
       }
@@ -116,6 +98,24 @@ export namespace fan {
       uint64_t m_timer = 0;
       uint64_t m_time = (uint64_t)-1;
     };
+
+    timer seconds_timer(f64_t s) {
+      timer t;
+      t.start_seconds(s);
+      return t;
+    }
+
+    timer millis_timer(f64_t ms) {
+      timer t;
+      t.start_millis(ms);
+      return t;
+    }
+
+    timer micros_timer(f64_t us) {
+      timer t;
+      t.start_micros(us);
+      return t;
+    }
 
     template <typename F>
     struct scope_timer {

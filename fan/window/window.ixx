@@ -68,6 +68,39 @@ namespace fan {
 }
 
 export namespace fan {
+  struct resolutions_t {
+    struct res_t {
+      constexpr operator fan::vec2() const { return size; }
+      constexpr operator fan::vec2i() const { return size; }
+      constexpr operator const char*() const { return label; }
+      fan::vec2i size; const char* label; 
+    };
+    static constexpr res_t r800x600   = {{800,  600},  "800x600"};
+    static constexpr res_t r1024x768  = {{1024, 768},  "1024x768"};
+    static constexpr res_t r1280x720  = {{1280, 720},  "1280x720"};
+    static constexpr res_t r1280x800  = {{1280, 800},  "1280x800"};
+    static constexpr res_t r1280x900  = {{1280, 900},  "1280x900"};
+    static constexpr res_t r1280x1024 = {{1280, 1024}, "1280x1024"};
+    static constexpr res_t r1360x768  = {{1360, 768},  "1360x768"};
+    static constexpr res_t r1440x900  = {{1440, 900},  "1440x900"};
+    static constexpr res_t r1600x900  = {{1600, 900},  "1600x900"};
+    static constexpr res_t r1600x1024 = {{1600, 1024}, "1600x1024"};
+    static constexpr res_t r1680x1050 = {{1680, 1050}, "1680x1050"};
+    static constexpr res_t r1920x1080 = {{1920, 1080}, "1920x1080"};
+    static constexpr res_t r2560x1440 = {{2560, 1440}, "2560x1440"};
+
+    static constexpr const res_t& r720p  = r1280x720;
+    static constexpr const res_t& r1080p = r1920x1080;
+    static constexpr const res_t& r1440p = r2560x1440;
+
+    static constexpr res_t all[] = {
+      r800x600, r1024x768, r1280x720, r1280x800, r1280x900, r1280x1024,
+      r1360x768, r1440x900, r1600x900, r1600x1024, r1680x1050, r1920x1080, r2560x1440
+    };
+    constexpr const res_t& operator[](std::size_t i) const { return all[i]; }
+    static constexpr std::size_t size() { return std::size(all); }
+  }constexpr resolutions;
+
   struct window_t {
 
     struct mode{
@@ -84,36 +117,6 @@ export namespace fan {
     static constexpr fan::vec2i default_window_size = fan::vec2i(800, 600);
     static constexpr int default_size_mode = mode::windowed;
 
-    static constexpr fan::vec2i resolutions[] = {
-      {800, 600},
-      {1024, 768},
-      {1280, 720},
-      {1280, 800},
-      {1280, 900},
-      {1280, 1024},
-      {1360, 768},
-      {1440, 900},
-      {1600, 900},
-      {1600, 1024},
-      {1680, 1050},
-      {1920, 1080},
-      {2560, 1440}
-    };
-    static constexpr const char* resolution_labels[] = {
-      "800x600",
-      "1024x768",
-      "1280x720",
-      "1280x800",
-      "1280x900",
-      "1280x1024",
-      "1360x768",
-      "1440x900",
-      "1600x900",
-      "1600x1024",
-      "1680x1050",
-      "1920x1080",
-      "2560x1440"
-    };
     int current_resolution = 8;
 
     struct flags {

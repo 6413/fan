@@ -1,3 +1,4 @@
+#if 0
 #include <fan/utility.h>
 
 #include <string>
@@ -33,3 +34,5 @@ int main(int argc, char** argv) {
 
   return 0;
 }
+
+#endif

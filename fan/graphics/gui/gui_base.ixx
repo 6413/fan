@@ -896,7 +896,7 @@ export namespace fan::graphics::gui {
   }
 
   template<typename T>
-  bool drag(str_view_t label, T* v, f32_t v_speed = 1.f, f32_t v_min = 0, f32_t v_max = 0, slider_flags_t flags = 0) {
+  bool drag(str_view_t label, T* v, f32_t v_speed = 0.1f, f32_t v_min = 0, f32_t v_max = 0, slider_flags_t flags = 0) {
     if constexpr (get_component_count<T>() == 1) {
       T min_val;
       T max_val;
@@ -960,7 +960,7 @@ export namespace fan::graphics::gui {
     }
   }
   template<typename T>
-  bool drag(T* v, f32_t v_speed = 1.f, f32_t v_min = 0, f32_t v_max = 0, slider_flags_t flags = 0) {
+  bool drag(T* v, f32_t v_speed = 0.1f, f32_t v_min = 0, f32_t v_max = 0, slider_flags_t flags = 0) {
     push_id(v);
     bool changed = drag("##", v, v_speed, v_min, v_max, flags);
     pop_id();

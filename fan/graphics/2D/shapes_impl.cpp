@@ -1854,24 +1854,19 @@ namespace fan::graphics{
       fan::graphics::ctx()->shader_set_vertex(
         fan::graphics::ctx(),
         shader,
-        read_shader("shaders/opengl/2D/objects/pixel_format_renderer.vs")
+        fan::shader_paths::gl::pixel_format_renderer_vs,
+        read_shader(fan::shader_paths::gl::pixel_format_renderer_vs)
       );
+      std::string_view fs_path;
       {
         std::string fs;
         switch (format) {
-        case fan::graphics::image_format_e::yuv420p: {
-          fs = read_shader("shaders/opengl/2D/objects/yuv420p.fs");
-          break;
+          case fan::graphics::image_format_e::yuv420p: fs_path = fan::shader_paths::gl::yuv420p_fs; break;
+          case fan::graphics::image_format_e::nv12:    fs_path = fan::shader_paths::gl::nv12_fs;    break;
+          default:                                     fan::throw_error("unimplemented format");
         }
-        case fan::graphics::image_format_e::nv12: {
-          fs = read_shader("shaders/opengl/2D/objects/nv12.fs");
-          break;
-        }
-        default: {
-          fan::throw_error("unimplemented format");
-        }
-        }
-        fan::graphics::ctx()->shader_set_fragment(fan::graphics::ctx(), shader, fs);
+        fs = read_shader(fs_path);
+        fan::graphics::ctx()->shader_set_fragment(fan::graphics::ctx(), shader, fs_path, fs);
         fan::graphics::ctx()->shader_compile(fan::graphics::ctx(), shader);
       }
 
@@ -1977,25 +1972,21 @@ namespace fan::graphics{
           
       fan::graphics::ctx()->shader_set_vertex(fan::graphics::ctx(), 
         shader,
+        "shaders/opengl/2D/objects/pixel_format_renderer.vs",
         read_shader("shaders/opengl/2D/objects/pixel_format_renderer.vs")
       );
       {
+        std::string_view fs_path;
         std::string fs;
+
         switch (format) {
-        case fan::graphics::image_format_e::yuv420p: {
-          fs = read_shader("shaders/opengl/2D/objects/yuv420p.fs");
-          break;
+        case fan::graphics::image_format_e::yuv420p: fs_path = "shaders/opengl/2D/objects/yuv420p.fs"; break;
+        case fan::graphics::image_format_e::nv12:    fs_path = "shaders/opengl/2D/objects/nv12.fs";    break;
+        default:                                     fan::throw_error("unimplemented format");
         }
-        case fan::graphics::image_format_e::nv12: {
-          fs = read_shader("shaders/opengl/2D/objects/nv12.fs");
-          break;
-        }
-        default: {
-          fan::throw_error("unimplemented format");
-        }
-        }
-        fan::graphics::ctx()->shader_set_fragment(fan::graphics::ctx(), shader, fs);
-            
+        fs = read_shader(fs_path);
+        fan::graphics::ctx()->shader_set_fragment(fan::graphics::ctx(), shader, fs_path, fs);
+
         fan::graphics::ctx()->shader_compile(fan::graphics::ctx(), shader);
       }
       set_image(images[0]);

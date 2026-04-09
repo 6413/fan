@@ -3,10 +3,18 @@ module;
 #include <string_view>
 #include <type_traits>
 #include <cstdint>
+#include <vector>
 
 export module fan.formatter;
 
 namespace fan::detail {
+
+  template<typename>
+  struct is_std_vector : std::false_type {};
+
+  template<typename T, typename A>
+  struct is_std_vector<std::vector<T, A>> : std::true_type {};
+
   template <typename T>
   std::string to_str(const T& v) {
     if constexpr (std::is_same_v<std::decay_t<T>, std::string>)               return v;
@@ -18,6 +26,10 @@ namespace fan::detail {
     else if constexpr (std::is_same_v<std::decay_t<T>, unsigned char*>)       return v ? reinterpret_cast<const char*>(v) : "";
     else if constexpr (std::is_convertible_v<T, std::string_view>)            return std::string(static_cast<std::string_view>(v));
     else if constexpr (std::is_convertible_v<T, std::string>)                 return static_cast<std::string>(v);
+    else if constexpr (is_std_vector<T>::value) { 
+      std::string str; for (int i = 0; i < v.size(); ++i) str += std::to_string(v[i]) + (i + 1 < v.size() ? ", " : "");
+                                                                              return str;
+    }
     else                                                                      return v.to_string();
   }
 }

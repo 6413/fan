@@ -37,7 +37,7 @@ export namespace fan::graphics::gui {
       bool frustum_culling_enabled = true;
       bool visualize_culling = false;
       fan::vec2 culling_padding = 0.0f;
-      bool hide_settings_bg = false;
+      f32_t settings_bg_alpha = 0.99f;
       int fill_mode = 0;
     };
     struct audio_settings_t {
@@ -106,7 +106,8 @@ export namespace fan::graphics::gui {
       fan::graphics::gui::window_flags_no_title_bar;
     static constexpr fan::color title_color = fan::color::from_rgba(0x948c80ff) * 1.5f;
     static constexpr int fps_values[] = {0, 30, 60, 144, 165, 240};
-    static constexpr int64_t save_delay_ms = 1000;
+    static constexpr int64_t save_delay_ms = 250;
+    inline static f32_t bg_alpha = 0.99f;
     inline static bool hide_bg = false;
     fan::graphics::gui::keybind_menu_t keybind_menu;
     settings_config_t config;

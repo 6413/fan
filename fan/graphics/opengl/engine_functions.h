@@ -201,10 +201,11 @@ void shapes_open() {
           .ptr=fan::graphics::g_shapes->sprite.get_locations().data(),
           .count=static_cast<int>(fan::graphics::g_shapes->sprite.get_locations().size())
         },
-        "shaders/opengl/2D/objects/sprite_2_1.vs",
-        "shaders/opengl/2D/objects/sprite_2_1.fs",
-        6 // set instance count to 6 vertices, in opengl 2.1 there is no instancing,
-          // so sending same 6 elements per shape
+        fan::shader_paths::gl::sprite_2_1_vs,
+        fan::shader_paths::gl::sprite_2_1_fs,
+        6, // set instance count to 6 vertices, in opengl 2.1 there is no instancing,
+           // so sending same 6 elements per shape
+        false
       );
     }
     else {
@@ -216,8 +217,10 @@ void shapes_open() {
           .ptr=fan::graphics::g_shapes->sprite.get_locations().data(),
           .count=static_cast<int>(fan::graphics::g_shapes->sprite.get_locations().size())
         },
-        "shaders/opengl/2D/objects/sprite.vs",
-        "shaders/opengl/2D/objects/sprite.fs"
+        fan::shader_paths::gl::sprite_vs,
+        fan::shader_paths::gl::sprite_fs,
+        1,
+        true
       );
     }
   }
@@ -234,8 +237,10 @@ void shapes_open() {
           .ptr=fan::graphics::g_shapes->line.get_locations().data(),
           .count=static_cast<int>(fan::graphics::g_shapes->line.get_locations().size())
         },
-        "shaders/opengl/2D/objects/line.vs",
-        "shaders/opengl/2D/objects/line.fs"
+        fan::shader_paths::gl::line_vs,
+        fan::shader_paths::gl::line_fs,
+        1,
+        true
       );
     }
   }
@@ -253,8 +258,10 @@ void shapes_open() {
           .ptr=fan::graphics::g_shapes->rectangle.get_locations().data(),
           .count=static_cast<int>(fan::graphics::g_shapes->rectangle.get_locations().size())
         },
-        "shaders/opengl/2D/objects/rectangle.vs",
-        "shaders/opengl/2D/objects/rectangle.fs"
+        fan::shader_paths::gl::rectangle_vs,
+        fan::shader_paths::gl::rectangle_fs,
+        1,
+        true
       );
     }
   }
@@ -272,8 +279,10 @@ void shapes_open() {
           .ptr=fan::graphics::g_shapes->light.get_locations().data(),
           .count=static_cast<int>(fan::graphics::g_shapes->light.get_locations().size())
         },
-        "shaders/opengl/2D/objects/light.vs",
-        "shaders/opengl/2D/objects/light.fs"
+        fan::shader_paths::gl::light_vs,
+        fan::shader_paths::gl::light_fs,
+        1,
+        true
       );
     }
   }
@@ -290,8 +299,10 @@ void shapes_open() {
           .ptr=fan::graphics::g_shapes->unlit_sprite.get_locations().data(),
           .count=static_cast<int>(fan::graphics::g_shapes->unlit_sprite.get_locations().size())
         },
-        "shaders/opengl/2D/objects/sprite.vs",
-        "shaders/opengl/2D/objects/unlit_sprite.fs"
+        fan::shader_paths::gl::sprite_vs,
+        fan::shader_paths::gl::unlit_sprite_fs,
+        1,
+        true
       );
     }
   }
@@ -309,8 +320,10 @@ void shapes_open() {
           .ptr=fan::graphics::g_shapes->circle.get_locations().data(),
           .count=static_cast<int>(fan::graphics::g_shapes->circle.get_locations().size())
         },
-        "shaders/opengl/2D/objects/circle.vs",
-        "shaders/opengl/2D/objects/circle.fs"
+        fan::shader_paths::gl::circle_vs,
+        fan::shader_paths::gl::circle_fs,
+        1,
+        true
       );
     }
   }
@@ -327,8 +340,10 @@ void shapes_open() {
           .ptr=fan::graphics::g_shapes->capsule.get_locations().data(),
           .count=static_cast<int>(fan::graphics::g_shapes->capsule.get_locations().size())
         },
-        "shaders/opengl/2D/objects/capsule.vs",
-        "shaders/opengl/2D/objects/capsule.fs"
+        fan::shader_paths::gl::capsule_vs,
+        fan::shader_paths::gl::capsule_fs,
+        1,
+        true
       );
     }
   }
@@ -345,8 +360,8 @@ void shapes_open() {
           .ptr=fan::graphics::g_shapes->polygon.get_locations().data(),
           .count=static_cast<int>(fan::graphics::g_shapes->polygon.get_locations().size())
         },
-        "shaders/opengl/2D/objects/polygon.vs",
-        "shaders/opengl/2D/objects/polygon.fs",
+        fan::shader_paths::gl::polygon_vs,
+        fan::shader_paths::gl::polygon_fs,
         1,
         false
       );
@@ -366,8 +381,10 @@ void shapes_open() {
           .ptr=fan::graphics::g_shapes->grid.get_locations().data(),
           .count=static_cast<int>(fan::graphics::g_shapes->grid.get_locations().size())
         },
-        "shaders/opengl/2D/objects/grid.vs",
-        "shaders/opengl/2D/objects/grid.fs"
+        fan::shader_paths::gl::grid_vs,
+        fan::shader_paths::gl::grid_fs,
+        1,
+        true
       );
     }
   }
@@ -388,8 +405,10 @@ void shapes_open() {
           .ptr=fan::graphics::g_shapes->particles.get_locations().data(),
           .count=static_cast<int>(fan::graphics::g_shapes->particles.get_locations().size())
         },
-        "shaders/opengl/2D/effects/particles.vs",
-        "shaders/opengl/2D/effects/particles.fs"
+        fan::shader_paths::gl::particles_vs,
+        fan::shader_paths::gl::particles_fs,
+        1,
+        true
       );
     }
   }
@@ -407,8 +426,10 @@ void shapes_open() {
           .ptr=fan::graphics::g_shapes->universal_image_renderer.get_locations().data(),
           .count=static_cast<int>(fan::graphics::g_shapes->universal_image_renderer.get_locations().size())
         },
-        "shaders/opengl/2D/objects/pixel_format_renderer.vs",
-        "shaders/opengl/2D/objects/yuv420p.fs"
+        fan::shader_paths::gl::pixel_format_renderer_vs,
+        fan::shader_paths::gl::yuv420p_fs,
+        1,
+        true
       );
     }
   }
@@ -426,8 +447,10 @@ void shapes_open() {
           .ptr=fan::graphics::g_shapes->gradient.get_locations().data(),
           .count=static_cast<int>(fan::graphics::g_shapes->gradient.get_locations().size())
         },
-        "shaders/opengl/2D/effects/gradient.vs",
-        "shaders/opengl/2D/effects/gradient.fs"
+        fan::shader_paths::gl::gradient_vs,
+        fan::shader_paths::gl::gradient_fs,
+        1,
+        true
       );
     }
   }
@@ -445,8 +468,10 @@ void shapes_open() {
           .ptr=fan::graphics::g_shapes->shader_shape.get_locations().data(),
           .count=static_cast<int>(fan::graphics::g_shapes->shader_shape.get_locations().size())
         },
-        "shaders/opengl/2D/objects/sprite.vs",
-        "shaders/opengl/2D/objects/sprite.fs"
+        fan::shader_paths::gl::sprite_vs,
+        fan::shader_paths::gl::sprite_fs,
+        1,
+        true
       );
     }
   }
@@ -461,9 +486,10 @@ void shapes_open() {
         .ptr=fan::graphics::g_shapes->rectangle3d.get_locations().data(),
         .count=static_cast<int>(fan::graphics::g_shapes->rectangle3d.get_locations().size())
       },
-      "shaders/opengl/3D/objects/rectangle.vs",
-      "shaders/opengl/3D/objects/rectangle.fs",
-      (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) ? 36 : 1
+      fan::shader_paths::gl::rectangle3d_vs,
+      fan::shader_paths::gl::rectangle3d_fs,
+      (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) ? 36 : 1,
+      true
     );
 #endif
   }
@@ -481,8 +507,10 @@ void shapes_open() {
           .ptr=fan::graphics::g_shapes->line3d.get_locations().data(),
           .count=static_cast<int>(fan::graphics::g_shapes->line3d.get_locations().size())
         },
-        "shaders/opengl/3D/objects/line.vs",
-        "shaders/opengl/3D/objects/line.fs"
+        fan::shader_paths::gl::line3d_vs,
+        fan::shader_paths::gl::line3d_fs,
+        1,
+        true
       );
     }
   }
@@ -501,27 +529,25 @@ void shapes_open() {
           .ptr=fan::graphics::g_shapes->shadow.get_locations().data(),
           .count=static_cast<int>(fan::graphics::g_shapes->shadow.get_locations().size())
         },
-        "shaders/opengl/2D/objects/shadow.vs",
-        "shaders/opengl/2D/objects/shadow.fs"
+        fan::shader_paths::gl::shadow_vs,
+        fan::shader_paths::gl::shadow_fs,
+        1,
+        true
       );
     }
   }
 
   fan::graphics::shader_t shader = loco.shader_create();
 
-  static constexpr const char* vert_path = "shaders/empty.vs";
-  static constexpr const char* frag_path = "shaders/empty.fs";
-
   loco.shader_set_vertex(shader,
-    fan::graphics::read_shader(vert_path)
+    fan::shader_paths::gl::empty_vs,
+    fan::graphics::read_shader(fan::shader_paths::gl::empty_vs)
   );
-
   loco.shader_set_fragment(shader,
-    fan::graphics::read_shader(frag_path)
+    fan::shader_paths::gl::empty_fs,
+    fan::graphics::read_shader(fan::shader_paths::gl::empty_fs)
   );
-
   loco.shader_compile(shader);
-  loco.shader_set_paths(shader, vert_path, frag_path);
 
   fan::graphics::shaper_t::BlockProperties_t::gl_t st_gl;
   st_gl.locations = {};
@@ -1218,20 +1244,17 @@ void init() {
   reflection.open();
 
   loco.gl->m_fbo_final_shader = loco.shader_create();
-
-  static constexpr const char* vertex_path = "shaders/opengl/2D/effects/loco_fbo.vs";
-  static constexpr const char* fragment_path = "shaders/opengl/2D/effects/loco_fbo.fs";
-
   loco.shader_set_vertex(
     loco.gl->m_fbo_final_shader,
-    fan::graphics::read_shader(vertex_path)
+    fan::shader_paths::gl::final_vs,
+    fan::graphics::read_shader(fan::shader_paths::gl::final_vs)
   );
   loco.shader_set_fragment(
     loco.gl->m_fbo_final_shader,
-    fan::graphics::read_shader(fragment_path)
+    fan::shader_paths::gl::final_fs,
+    fan::graphics::read_shader(fan::shader_paths::gl::final_fs)
   );
   loco.shader_compile(loco.gl->m_fbo_final_shader);
-  loco.shader_set_paths(loco.gl->m_fbo_final_shader, vertex_path, fragment_path);
 #endif
 }
 

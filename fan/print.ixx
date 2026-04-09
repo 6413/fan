@@ -178,6 +178,30 @@ export namespace fan {
     detail::print_once_impl(format_args(args...));
   }
 
+  void print_results(const auto& result, const auto& expected) {
+  if (result != expected) {
+    std::string a = result;
+    std::string b = expected;
+    char failed_char_pos = 0;
+    for (int i = 0; i < a.size() && i < b.size(); ++i) {
+      if (a[i] != b[i]) {
+        failed_char_pos = i;
+        break;
+      }
+    }
+    fan::print_error("FAIL");
+    fan::print_error(result);
+    fan::print_success(expected);
+    for (int spaces = 0; spaces < failed_char_pos; ++spaces) fan::printr(" ");
+    fan::print_error("^");
+  }
+  else {
+    fan::print_success("SUCCESS");
+    fan::print_success(result);
+    fan::print_success(expected);
+  }
+}
+
   namespace debug {
     void print_stacktrace() {
       detail::print_stacktrace_impl();

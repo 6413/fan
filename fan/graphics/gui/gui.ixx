@@ -199,7 +199,7 @@ export namespace fan::graphics::gui {
 
     std::string asset_path = "./";
 
-    inline static fan::io::async_directory_iterator_t directory_iterator;
+    fan::io::async_directory_iterator_t directory_iterator;
 
     std::string current_directory;
     enum viewmode_e {
@@ -445,6 +445,13 @@ export namespace fan::graphics::gui {
     fan::graphics::shape_t& shape,
     fan::str_view_t label
   );
+
+  struct shader_contols_t {
+    bool vec3_as_color = false;
+    bool vec4_as_color = true;
+  };
+
+  void shader_controls(fan::graphics::shader_t shader_id, const shader_contols_t& controls = {});
 }
 /*
 template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(
