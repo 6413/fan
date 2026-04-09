@@ -216,12 +216,16 @@ struct fgm_t {
     gui::text(shape_str);
 
     fan::vec3 pos = shape->get_position();
+    if (gui::button("R##pos")) pos = 0;
+    gui::same_line();
     if (gui::drag("shape position", &pos, 0.1f)) {
       pos.z = (int)pos.z;
       shape->set_position(pos);
     }
 
     fan::vec2 size = shape->get_size();
+    if (gui::button("R##size")) size = 128;
+    gui::same_line();
     if (gui::drag("shape size", &size, 0.1f)) {
       shape->set_size(size);
     }
@@ -232,6 +236,8 @@ struct fgm_t {
     }
     else {
       fan::color c = shape->get_color();
+      if (gui::button("R##col")) c = fan::colors::white;
+      gui::same_line();
       if (gui::color_edit4("color", &c)) {
         shape->set_color(c);
       }
@@ -240,18 +246,24 @@ struct fgm_t {
       angle.x = fan::math::degrees(angle.x);
       angle.y = fan::math::degrees(angle.y);
       angle.z = fan::math::degrees(angle.z);
-      if (gui::slider("shape angle", &angle, 0, 360)) {
+      if (gui::button("R##ang")) angle = 0;
+      gui::same_line();
+      if (gui::drag("shape angle", &angle)) {
         angle = fan::math::radians(angle);
         shape->children[0].set_angle(angle);
       }
     }
 
     fan::vec2 tc_position = shape->children[0].get_tc_position();
+    if (gui::button("R##tcpos")) tc_position = 0;
+    gui::same_line();
     if (gui::drag("tc position", &tc_position, 0.1f)) {
       shape->children[0].set_tc_position(tc_position);
     }
 
     fan::vec2 tc_size = shape->children[0].get_tc_size();
+    if (gui::button("R##tcsize")) tc_size = 1;
+    gui::same_line();
     if (gui::drag("tc size", &tc_size, 0.1f)) {
       shape->children[0].set_tc_size(tc_size);
     }
@@ -409,15 +421,28 @@ struct fgm_t {
         node_flags |= fan::graphics::gui::tree_node_flags_selected;
       }
 
+      if (shape_instance->children.size() <= 1) {
+        node_flags |= fan::graphics::gui::tree_node_flags_leaf;
+      }
+
+      std::string_view shape_name = shape_instance->children.empty() ? std::string_view("Node") : fan::graphics::shape_names[shape_instance->children[0].get_shape_type()];
+
       bool node_open = fan::graphics::gui::tree_node_ex(
-        (void*)(intptr_t)it.NRI, node_flags, "Node %ld", (intptr_t)it.NRI);
+        (void*)(intptr_t)it.NRI, node_flags, "%s %ld", static_cast<int>(shape_name.length()), shape_name.data(), (intptr_t)it.NRI);
 
       if (fan::graphics::gui::is_item_clicked() && !fan::graphics::gui::is_item_toggled_open()) {
         node_clicked = (intptr_t)it.NRI;
+        if (current_shape) {
+          current_shape->disable_highlight();
+        }
+        current_shape = shape_instance;
+        current_shape->enable_highlight();
       }
 
       if (node_open) {
-        render_child_nodes(node_clicked, shape_instance->children, selection_mask, base_flags);
+        if (shape_instance->children.size() > 1) {
+          render_child_nodes(node_clicked, shape_instance->children, selection_mask, base_flags);
+        }
         fan::graphics::gui::tree_pop();
       }
       it = it.Next(&shape_list);
@@ -647,7 +672,7 @@ struct fgm_t {
           fan::vec2 initial_size = 128.f;
           fan::vec2 original_size = gloco()->image_get_data(image).size;
           initial_size.x *= (original_size.x / original_size.y);
-          auto nr = push_shape(fan::graphics::shapes::shape_type_t::sprite, get_mouse_position(), initial_size);
+          auto nr = push_shape(fan::graphics::shapes::shape_type_t::sprite, 0, initial_size);
           shape_list[nr]->children[0].set_image(image);
         }
       });
@@ -669,7 +694,7 @@ struct fgm_t {
             return;
           }
           initial_size.x *= found->aspect_ratio;
-          auto nr = push_shape(fan::graphics::shapes::shape_type_t::sprite, get_mouse_position(), initial_size);
+          auto nr = push_shape(fan::graphics::shapes::shape_type_t::sprite, 0, initial_size);
           auto& node = shape_list[nr];
           node->children[0].load_tp(&ti);
           node->children[0].get_image_data().image_path = path;

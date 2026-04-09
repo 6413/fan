@@ -31,8 +31,8 @@ export namespace fan {
       model_t(const properties_t& p) : fms_t(p) {
         camera_nr = p.camera;
         viewport_nr = p.viewport;
-        std::string vs = fan::graphics::read_shader("shaders/opengl/3D/objects/model.vs");
-        std::string fs = fan::graphics::read_shader("shaders/opengl/3D/objects/model.fs");
+        std::string vs = fan::graphics::read_shader(fan::shader_paths::gl::model3d_vs);
+        std::string fs = fan::graphics::read_shader(fan::shader_paths::gl::model3d_fs);
         m_shader = fan::graphics::shader_create();
         fan::graphics::shader_set_vertex(m_shader, vs);
         fan::graphics::shader_set_fragment(m_shader, fs);

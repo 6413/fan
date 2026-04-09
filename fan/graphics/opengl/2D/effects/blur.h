@@ -8,17 +8,15 @@ struct blur_t {
     brightness_fbo.bind(gl);
 
     shader_downsample = loco.shader_create();
-    static constexpr const char* vert_path = "shaders/opengl/2D/effects/downsample.vs";
-    loco.shader_set_vertex(shader_downsample, fan::graphics::read_shader(vert_path));
-    loco.shader_set_fragment(shader_downsample, fan::graphics::read_shader("shaders/opengl/2D/effects/downsample.fs"));
-    loco.shader_set_paths(shader_downsample, vert_path, "shaders/opengl/2D/effects/downsample.fs");
+
+    loco.shader_set_vertex(shader_downsample, fan::shader_paths::gl::downsample_vs, fan::graphics::read_shader(fan::shader_paths::gl::downsample_vs));
+    loco.shader_set_fragment(shader_downsample, fan::shader_paths::gl::downsample_fs, fan::graphics::read_shader(fan::shader_paths::gl::downsample_fs));
     loco.shader_compile(shader_downsample);
     loco.shader_set_value(shader_downsample, "_t00", 0);
 
     shader_upsample = loco.shader_create();
-    loco.shader_set_paths(shader_upsample, vert_path, "shaders/opengl/2D/effects/upsample.fs");
-    loco.shader_set_vertex(shader_upsample, fan::graphics::read_shader(vert_path));
-    loco.shader_set_fragment(shader_upsample, fan::graphics::read_shader("shaders/opengl/2D/effects/upsample.fs"));
+    loco.shader_set_vertex(shader_upsample, fan::shader_paths::gl::downsample_vs, fan::graphics::read_shader(fan::shader_paths::gl::downsample_vs)); /*reuse downsample_vs*/
+    loco.shader_set_fragment(shader_upsample, fan::shader_paths::gl::upsample_fs, fan::graphics::read_shader(fan::shader_paths::gl::upsample_fs));
     loco.shader_compile(shader_upsample);
     loco.shader_set_value(shader_upsample, "_t00", 0);
 
@@ -129,7 +127,7 @@ struct blur_t {
       brightness_fbo.bind_to_texture(context, loco.image_get_handle(next_mip.image), GL_COLOR_ATTACHMENT0);
       
       fan::vec2 texel_size = fan::vec2(1.0f / mip.size.x, 1.0f / mip.size.y) * filter_radius;
-      loco.shader_set_value(shader_upsample, "filter_radius", texel_size*10.f);
+      loco.shader_set_value(shader_upsample, "filter_radius", texel_size * 10.f);
 
       render_quad();
     }
@@ -152,7 +150,7 @@ struct blur_t {
 
   std::vector<mip_t> mips;
   f32_t bloom_filter_radius = 0.1f;
-  f32_t threshold = 1.0f;
+  f32_t threshold = 0.0f;
   f32_t knee = 0.1f;
   fan::graphics::shader_t shader_downsample;
   fan::graphics::shader_t shader_upsample;

@@ -212,11 +212,11 @@ namespace fan::opengl {
         fan_opengl_call(glDeleteProgram(shader.id));
       }
       shader.id = fan::uninitialized;
-      });
+    });
     operator delete(static_cast<fan::opengl::context_t::shader_t*>(__fan_internal_shader_list[nr].internal));
     __fan_internal_shader_list.Recycle(nr);
   }
-  bool context_t::shader_check_compile_errors(GLuint shader, const std::string& type) {
+  bool context_t::shader_check_compile_errors(GLuint shader, const std::string_view file_path, const std::string& type) {
     GLint success;
     bool program = type == "PROGRAM";
     if (program == false) {
@@ -243,12 +243,13 @@ namespace fan::opengl {
       else {
         fan_opengl_call(glGetShaderInfoLog(shader, buffer_size, &test, buffer.data()));
       }
-      fan::print("failed to compile: " + type, buffer);
+      std::string fpath = std::string(file_path);
+      fan::print("failed to compile: " + type, buffer, "file_path:", fpath.empty() ? "PATH FILE NOT FOUND" : fpath);
       return false;
     }
     return true;
   }
-  bool context_t::shader_check_compile_errors(fan::graphics::shader_data_t& common_shader, const std::string& type) {
+  bool context_t::shader_check_compile_errors(fan::graphics::shader_data_t& common_shader, const std::string_view file_path, const std::string& type) {
     fan::opengl::context_t::shader_t& shader = *(fan::opengl::context_t::shader_t*)common_shader.internal;
     GLint success;
     bool vertex = type == "VERTEX";
@@ -282,7 +283,8 @@ namespace fan::opengl {
       else {
         fan_opengl_call(glGetShaderInfoLog(vertex ? shader.vertex : shader.fragment, buffer_size, &test, buffer.data()));
       }
-      fan::print("failed to compile: " + type, buffer, "filenames", common_shader.svertex, common_shader.sfragment);
+      std::string fpath = std::string(file_path);
+      fan::print("failed to compile: " + type, buffer, "file_path:", fpath.empty() ? "PATH FILE NOT FOUND" : fpath);
       return false;
     }
     return true;
@@ -295,31 +297,35 @@ namespace fan::opengl {
     fan_opengl_call(glUseProgram(shader.id));
     current_program = shader.id;
   }
-  void context_t::shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string& vertex_code) {
+  void context_t::shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& vertex_code) {
     auto& shader = shader_get(nr);
     if (shader.vertex != (uint32_t)fan::uninitialized) {
       fan_opengl_call(glDeleteShader(shader.vertex));
     }
+    auto& internal_shader = __fan_internal_shader_list[nr];
     shader.vertex = fan_opengl_call(glCreateShader(GL_VERTEX_SHADER));
-    __fan_internal_shader_list[nr].svertex = vertex_code;
+    internal_shader.path_vertex = file_path;
+    internal_shader.svertex = vertex_code;
     char* ptr = (char*)vertex_code.c_str();
     GLint length = vertex_code.size();
     fan_opengl_call(glShaderSource(shader.vertex, 1, &ptr, &length));
     fan_opengl_call(glCompileShader(shader.vertex));
-    shader_check_compile_errors(__fan_internal_shader_list[nr], "VERTEX");
+    shader_check_compile_errors(internal_shader, file_path, "VERTEX");
   }
-  void context_t::shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string& fragment_code) {
+  void context_t::shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& fragment_code) {
     auto& shader = shader_get(nr);
     if (shader.fragment != (uint32_t)-1) {
       fan_opengl_call(glDeleteShader(shader.fragment));
     }
+    auto& internal_shader = __fan_internal_shader_list[nr];
     shader.fragment = fan_opengl_call(glCreateShader(GL_FRAGMENT_SHADER));
-    __fan_internal_shader_list[nr].sfragment = fragment_code;
+    internal_shader.sfragment = fragment_code;
+    internal_shader.path_fragment = file_path;
     char* ptr = (char*)fragment_code.c_str();
     GLint length = fragment_code.size();
     fan_opengl_call(glShaderSource(shader.fragment, 1, &ptr, &length));
     fan_opengl_call(glCompileShader(shader.fragment));
-    shader_check_compile_errors(__fan_internal_shader_list[nr], "FRAGMENT");
+    shader_check_compile_errors(internal_shader, file_path, "FRAGMENT");
   }
   void context_t::parse_uniforms(
     const std::string& shader_data,
@@ -1340,11 +1346,11 @@ namespace fan::graphics {
     cf.shader_use = [](void* context, fan::graphics::shader_nr_t nr) {
       ((fan::opengl::context_t*)context)->shader_use(nr);
     };
-    cf.shader_set_vertex = [](void* context, fan::graphics::shader_nr_t nr, const std::string& vertex_code) {
-      ((fan::opengl::context_t*)context)->shader_set_vertex(nr, vertex_code);
+    cf.shader_set_vertex = [](void* context, fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& vertex_code) {
+      ((fan::opengl::context_t*)context)->shader_set_vertex(nr, file_path, vertex_code);
     };
-    cf.shader_set_fragment = [](void* context, fan::graphics::shader_nr_t nr, const std::string& fragment_code) {
-      ((fan::opengl::context_t*)context)->shader_set_fragment(nr, fragment_code);
+    cf.shader_set_fragment = [](void* context, fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& fragment_code) {
+      ((fan::opengl::context_t*)context)->shader_set_fragment(nr, file_path, fragment_code);
     };
     cf.shader_compile = [](void* context, fan::graphics::shader_nr_t nr) {
       return ((fan::opengl::context_t*)context)->shader_compile(nr);

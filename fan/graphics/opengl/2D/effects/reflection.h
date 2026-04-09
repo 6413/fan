@@ -6,14 +6,9 @@ struct reflection_t {
   
   void open() {
     shader = loco.shader_create();
-    loco.shader_set_vertex(shader, fan::graphics::read_shader("shaders/opengl/2D/effects/reflection.vs"));
-    loco.shader_set_fragment(shader, fan::graphics::read_shader("shaders/opengl/2D/effects/reflection.fs"));
+    loco.shader_set_vertex(shader, fan::shader_paths::gl::reflection_vs, fan::graphics::read_shader(fan::shader_paths::gl::reflection_vs));
+    loco.shader_set_fragment(shader, fan::shader_paths::gl::reflection_fs, fan::graphics::read_shader(fan::shader_paths::gl::reflection_fs));
     loco.shader_compile(shader);
-    loco.shader_set_paths(
-      shader,
-      "shaders/opengl/2D/effects/reflection.vs", 
-      "shaders/opengl/2D/effects/reflection.fs"
-    );
   }
   
   void close() {

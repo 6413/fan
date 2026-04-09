@@ -10,7 +10,7 @@ static constexpr fan::vec2 tile_count = {16, 16};
 struct snake_t {
   void init(fan::vec2 origin, fan::vec2 size, fan::vec2 tile) {
     grid_origin = origin;
-    fan::vec2 start = origin + fan::vec2(tile.x * 3, size.y * 0.5).snap_to_grid(tile) + tile * 0.5f;
+    fan::vec2 start = origin + fan::vec2(tile.x * 3, size.y * 0.5).grid_round(tile) + tile * 0.5f;
     
     head = circle_t(fan::vec3(start, 0xf + 1), tile.x * 0.5f, fan::color::from_rgb(0x8AA90E));
     dir = {1, 0};
@@ -232,7 +232,7 @@ struct app_t {
         gui::text(score);
       }
 
-      snake.update(engine.delta_time, engine.get_input_vector(), tile);
+      snake.update(engine.get_delta_time(), engine.get_input_vector(), tile);
       
       if (snake.collided(size)) {
         score = 0;

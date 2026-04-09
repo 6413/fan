@@ -32,7 +32,6 @@ inline std::function<void(std::string func_name, uint64_t elapsed)>& fan_opengl_
       }\
       ~measure_func_t() { \
         if (fan_track_opengl_calls()) { \
-          glFlush(); \
           glFinish(); \
           if (c.finished()) {\
             std::string func_call = #func; \

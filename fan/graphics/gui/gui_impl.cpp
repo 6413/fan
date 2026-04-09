@@ -1,18 +1,16 @@
 module;
 
 #if defined(FAN_GUI)
-#include <fan/utility.h>
-#include <fan/event/types.h>
+  #include <fan/utility.h>
 
-#include <string>
-#include <functional>
-#include <filesystem>
-#include <coroutine>
-#include <algorithm>
-#include <cmath>
-#include <cstring>
-#include <array>
-#include <fstream>
+  #include <filesystem>
+  #include <string>
+  #include <functional>
+  #include <coroutine>
+  #include <cmath>
+  #include <array>
+  #include <vector>
+  #include <unordered_map>
 #endif
 
 module fan.graphics.gui;
@@ -469,6 +467,12 @@ namespace fan::graphics::gui {
     return std::string(path);
   }
 
+  static bool is_absolute(std::string_view p) {
+    if (p.size() >= 2 && p[1] == ':') return true;
+    if (!p.empty() && (p[0] == '/' || p[0] == '\\')) return true;
+    return false;
+  }
+
   content_browser_t::content_browser_t() {
     search_buffer.resize(32);
     current_directory = asset_path;
@@ -601,11 +605,12 @@ namespace fan::graphics::gui {
     if (is_item_hovered() && fan::window::is_mouse_clicked(fan::mouse_right)) {
       item_right_clicked = true;
       item_right_clicked_name = filename;
-      item_right_clicked_name.erase(
-        std::remove_if(item_right_clicked_name.begin(), item_right_clicked_name.end(),
-          [](unsigned char c) { return std::isspace(c); }),
-        item_right_clicked_name.end()
-      );
+      // trim leading
+      auto start = item_right_clicked_name.find_first_not_of(" \t\r\n");
+      if (start != std::string::npos) item_right_clicked_name = item_right_clicked_name.substr(start);
+      // trim trailing
+      auto end = item_right_clicked_name.find_last_not_of(" \t\r\n");
+      if (end != std::string::npos) item_right_clicked_name = item_right_clicked_name.substr(0, end + 1);
     }
   }
 
@@ -770,14 +775,7 @@ namespace fan::graphics::gui {
         f32_t y_pos = get_cursor_pos_y() + get_style().WindowPadding.y;
         set_cursor_pos_y(y_pos);
 
-        static char old_search[256] = {0};
-        bool search_changed = false;
         if (input_text("##content_browser_search", &search_buffer)) {
-          search_changed = true;
-        }
-
-        if (search_changed || std::strcmp(old_search, search_buffer.data()) != 0) {
-          strcpy(old_search, search_buffer.data());
           start_search(search_buffer.data(), true);
         }
 
@@ -808,7 +806,7 @@ namespace fan::graphics::gui {
     gui::end();
 
     if (!pending_directory_change.empty()) {
-      current_directory = path_join(asset_path, pending_directory_change);
+      current_directory = pending_directory_change;
       update_directory_cache();
       pending_directory_change.clear();
     }
@@ -816,7 +814,7 @@ namespace fan::graphics::gui {
   void content_browser_t::handle_item_interaction(const file_info_t& file_info, size_t original_index) {
     if (!file_info.is_directory) {
       if (begin_drag_drop_source()) {
-        bool showing_search_results = !search_state.found_files.empty() && !search_buffer.empty();
+        bool showing_search_results = !search_state.found_files.empty() && search_buffer[0] != '\0';
 
         if (showing_search_results) {
           if (!search_state.found_files[original_index].is_selected) {
@@ -853,7 +851,7 @@ namespace fan::graphics::gui {
 
     if (is_item_hovered() && is_mouse_double_clicked(0)) {
       if (file_info.is_directory) {
-        pending_directory_change = file_info.item_path;
+        pending_directory_change = path_join(asset_path, file_info.item_path);
       }
     }
   }
@@ -868,7 +866,7 @@ namespace fan::graphics::gui {
         for (char c : combined_paths) {
           if (c == ';') {
             if (!current_path.empty()) {
-              receive_func(path_join(asset_path, current_path));
+              receive_func(is_absolute(current_path) ? current_path : path_join(asset_path, current_path));
               current_path.clear();
             }
           }
@@ -877,7 +875,7 @@ namespace fan::graphics::gui {
           }
         }
         if (!current_path.empty()) {
-          receive_func(path_join(asset_path, current_path));
+          receive_func(is_absolute(current_path) ? current_path : path_join(asset_path, current_path));
         }
       }
       end_drag_drop_target();
@@ -1153,7 +1151,7 @@ namespace fan::graphics::gui {
             else if (!selection_state.ctrl_held) directory_cache[original_index].is_selected = false;
           }
 
-          handle_right_click(str);
+          handle_right_click(file_info.filename);
 
           texture_id_t texture_id = (texture_id_t)fan::graphics::image_get_handle(
             fan::graphics::is_image_valid(file_info.preview_image) ? file_info.preview_image
@@ -1169,8 +1167,9 @@ namespace fan::graphics::gui {
 
 #if defined(FAN_2D)
   void fragment_shader_editor(uint16_t shape_type, std::string* fragment, bool* shader_compiled) {
+    auto& shader = fan::graphics::shader_get_data(shape_type);
     if (fragment->empty()) {
-      *fragment = fan::graphics::shader_get_data(shape_type).sfragment;
+      *fragment = shader.sfragment;
     }
     if (begin("shader editor", 0, window_flags_no_saved_settings)) {
       if (!*shader_compiled) {
@@ -1178,7 +1177,7 @@ namespace fan::graphics::gui {
       }
 
       if (gui::input_text_multiline("##Shader Code", fragment, gui::get_content_region_avail(), gui::input_text_flags_allow_tab_input)) {
-        *shader_compiled = fan::graphics::shader_update_fragment(shape_type, *fragment);
+        *shader_compiled = fan::graphics::shader_update_fragment(shape_type, shader.path_fragment, *fragment);
       }
       end();
     }
@@ -1989,5 +1988,83 @@ namespace fan::graphics::gui {
       }
     }
   }
+
+  void shader_controls(fan::graphics::shader_t shader_id, const shader_contols_t& controls) {
+  static std::unordered_map<
+    std::remove_cvref_t<decltype(shader_id.gint())>,
+    std::vector<std::array<uint8_t, sizeof(fan::vec4)>>
+  > map;
+
+  auto& shader_list = *fan::graphics::ctx().shader_list;
+  auto& shader_data = shader_list[shader_id];
+  auto& table = shader_data.uniform_type_table;
+
+  auto [it, inserted] = map.try_emplace(shader_id.gint());
+  auto& table_data = it->second;
+
+  if (inserted) {
+    table_data.resize(table.size());
+    uint32_t table_idx = 0;
+
+    #define create_get_case(shader_var_type, type) \
+      case fan::get_hash(std::string_view(shader_var_type)): { \
+        fan::graphics::shader_get_value(shader_id, var.first, *(type*)var_data); \
+        break; \
+      }
+
+    for (auto& var : table) {
+      uint8_t* var_data = table_data[table_idx++].data();
+      switch (fan::get_hash(var.second)) {
+        create_get_case("bool",  bool)
+        create_get_case("int",   int)
+        create_get_case("uint",  uint32_t)
+        create_get_case("float", f32_t)
+        create_get_case("vec2",  fan::vec2)
+        create_get_case("vec3",  fan::vec3)
+        create_get_case("vec4",  fan::vec4)
+      }
+    }
+    #undef create_get_case
+  }
+
+  #define create_case(shader_var_type, type, gui_expr) \
+    case fan::get_hash(std::string_view(shader_var_type)): { \
+      if (gui_expr) { \
+        fan::graphics::shader_set_value(shader_id, var.first, *(type*)var_data); \
+      } \
+      break; \
+    }
+
+  uint32_t table_idx = 0;
+  std::string_view name = shader_data.path_fragment;
+  gui::begin(name.empty() ? "##" : name);
+
+  for (auto& var : table) {
+    uint8_t* var_data = table_data[table_idx++].data();
+    switch (fan::get_hash(var.second)) {
+      create_case("bool",  bool,      gui::checkbox(var.first, (bool*)var_data))
+      create_case("int",   int,       gui::drag(var.first, (int*)var_data))
+      create_case("uint",  uint32_t,  gui::drag(var.first, (uint32_t*)var_data))
+      create_case("float", f32_t,     gui::drag(var.first, (f32_t*)var_data))
+      create_case("vec2",  fan::vec2, gui::drag(var.first, (fan::vec2*)var_data))
+      create_case("vec3",  fan::vec3, controls.vec3_as_color ? gui::color_edit3(var.first, (fan::vec3*)var_data) : gui::drag(var.first, (fan::vec3*)var_data))
+      case fan::get_hash(std::string_view("vec4")): {
+        if (controls.vec4_as_color) {
+          if (gui::color_edit4(var.first, (fan::color*)var_data)) {
+            fan::graphics::shader_set_value(shader_id, var.first, *(fan::color*)var_data);
+          }
+        } else {
+          if (gui::drag(var.first, (fan::vec4*)var_data)) {
+            fan::graphics::shader_set_value(shader_id, var.first, *(fan::vec4*)var_data);
+          }
+        }
+        break;
+      }
+    }
+  }
+  gui::end();
+
+  #undef create_case
+}
 }
 #endif
