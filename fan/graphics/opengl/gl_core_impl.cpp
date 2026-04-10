@@ -888,6 +888,23 @@ namespace fan::opengl {
     constexpr fan::vec3 front(0, 0, 1);
     camera.m_view = fan::math::look_at_left<fan::mat4, fan::vec3>(position, position + front, fan::camera::world_up);
   }
+  fan::vec3 context_t::camera_get_center(fan::graphics::camera_nr_t nr) {
+    auto& c = camera_get(nr);
+    fan::vec2 center_offset = fan::vec2(
+      c.coordinates.left + c.coordinates.right,
+      c.coordinates.top + c.coordinates.bottom
+    ) / (2.f * c.zoom);
+    return fan::vec2(c.position.x, c.position.y) + center_offset;
+  }
+  void context_t::camera_set_center(fan::graphics::camera_nr_t nr, const fan::vec3& cp) {
+    auto& c = camera_get(nr);
+    fan::vec2 center_offset = fan::vec2(
+      c.coordinates.left + c.coordinates.right,
+      c.coordinates.top + c.coordinates.bottom
+    ) / (2.f * c.zoom);
+
+    camera_set_position(nr, fan::vec3(cp.xy() - center_offset, cp.z));
+  }
   fan::vec2 context_t::camera_get_size(fan::graphics::camera_nr_t nr) {
     auto& camera = camera_get(nr);
     return fan::vec2(std::abs(camera.coordinates.right - camera.coordinates.left), std::abs(camera.coordinates.bottom - camera.coordinates.top));
@@ -1443,6 +1460,12 @@ namespace fan::graphics {
     };
     cf.camera_set_position = [](void* context, fan::graphics::camera_nr_t nr, const fan::vec3& cp) {
       ((fan::opengl::context_t*)context)->camera_set_position(nr, cp);
+    };
+    cf.camera_get_center = [](void* context, fan::graphics::camera_nr_t nr) {
+      return ((fan::opengl::context_t*)context)->camera_get_center(nr);
+    };
+    cf.camera_set_center = [](void* context, fan::graphics::camera_nr_t nr, const fan::vec3& cp) {
+      ((fan::opengl::context_t*)context)->camera_set_center(nr, cp);
     };
     cf.camera_get_size = [](void* context, fan::graphics::camera_nr_t nr) {
       return ((fan::opengl::context_t*)context)->camera_get_size(nr);

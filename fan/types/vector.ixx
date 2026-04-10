@@ -329,6 +329,10 @@ export namespace fan {
     constexpr vec3_wrap_t(const vec4_wrap_t<T>& test0)
       : vec3_wrap_t(test0.x, test0.y, test0.z) { }
 
+    template <typename T>
+    constexpr vec3_wrap_t(const vec3_wrap_t<T>& test0, auto value)
+      : vec3_wrap_t(test0.x, test0.y, value) { }
+
   #if defined(FAN_3D)
     vec3_wrap_t(const aiVector3D& v) { x = v.x; y = v.y; z = v.z; }
     operator aiVector3D() { return {x, y, z}; }

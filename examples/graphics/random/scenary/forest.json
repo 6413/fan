@@ -1,0 +1,98 @@
+{
+  "shapes": [
+    {
+      "images": [
+        {
+          "image_path": "images/forest_mountain.png"
+        }
+      ],
+      "position": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "shape": "sprite",
+      "size": [
+        202.66700744628906,
+        128.0
+      ]
+    },
+    {
+      "images": [
+        {
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "images/forest_back.png"
+        }
+      ],
+      "position": [
+        0.0,
+        0.0,
+        2.0
+      ],
+      "shape": "sprite",
+      "size": [
+        202.6666717529297,
+        128.0
+      ]
+    },
+    {
+      "images": [
+        {
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "images/forest_mid.png"
+        }
+      ],
+      "position": [
+        0.0,
+        0.0,
+        3.0
+      ],
+      "shape": "sprite",
+      "size": [
+        202.6666717529297,
+        128.0
+      ]
+    },
+    {
+      "images": [
+        {
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "images/forest_short.png"
+        }
+      ],
+      "position": [
+        0.0,
+        0.0,
+        5.0
+      ],
+      "shape": "sprite",
+      "size": [
+        202.6666717529297,
+        128.0
+      ]
+    },
+    {
+      "images": [
+        {
+          "image_mag_filter": 0,
+          "image_min_filter": 0,
+          "image_path": "images/forest_long.png"
+        }
+      ],
+      "position": [
+        0.0,
+        64.0,
+        4.0
+      ],
+      "shape": "sprite",
+      "size": [
+        208.0,
+        65.68421173095703
+      ]
+    }
+  ],
+  "version": 1
+}

@@ -190,386 +190,132 @@ void init_framebuffer() {
 
 #if defined(FAN_2D)
 
+void shaders_compile() {
+  using namespace fan::shader_paths::gl;
+  auto& sh = loco.shaders;
+
+  auto compile = [&](fan::graphics::shader_t& out, const char* vs, const char* fs) {
+    out = loco.shader_create();
+    loco.shader_set_vertex(out, vs, fan::graphics::read_shader(vs));
+    loco.shader_set_fragment(out, fs, fan::graphics::read_shader(fs));
+    loco.shader_compile(out);
+  };
+
+#define C(n) compile(sh.n, n##_vs, n##_fs)
+
+  if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
+    compile(sh.sprite, sprite_2_1_vs, sprite_2_1_fs);
+  } 
+  else {
+    // objects
+    C(capsule);    C(circle);    C(grid);       C(light);  C(line);
+    C(polygon);    C(rectangle); C(shadow);     C(sprite);
+
+    compile(sh.unlit_sprite,             sprite_vs,                unlit_sprite_fs);
+    compile(sh.universal_image_renderer, pixel_format_renderer_vs, yuv420p_fs);
+    
+    // effects
+    C(gradient);   C(particles);
+    compile(sh.shader_shape,             sprite_vs,                sprite_fs);
+    
+#if defined(LOCO_FRAMEBUFFER)
+    C(downsample); C(final); C(reflection);
+    compile(sh.clouds,                   sprite_vs,                clouds_fs);
+    compile(sh.upsample,                 downsample_vs,            upsample_fs);
+    loco.gl->m_fbo_final_shader = sh.final;
+#endif
+#if defined(FAN_3D)
+    C(line3d);     C(rectangle3d);
+#endif
+  }
+  compile(sh.empty_shader, empty_vs, empty_fs);
+#undef C
+}
+
+#define SHAPE_DESC(ShapeType, count, inst, shader) { \
+  fan::graphics::shapes::ShapeType##_t::shape_type, \
+  sizeof(fan::graphics::shapes::ShapeType##_t::vi_t), \
+  sizeof(fan::graphics::shapes::ShapeType##_t::ri_t), \
+  []() -> fan::graphics::shape_gl_init_list_t { \
+    auto& s = fan::graphics::g_shapes->ShapeType; \
+    return {s.get_locations().data(), (int)s.get_locations().size()}; \
+  }, \
+  shader, count, inst \
+}
+
 void shapes_open() {
-  {
-    if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
-      loco.shape_open(
-        fan::graphics::shapes::sprite_t::shape_type,
-        sizeof(fan::graphics::shapes::sprite_t::vi_t),
-        sizeof(fan::graphics::shapes::sprite_t::ri_t),
-        fan::graphics::shape_gl_init_list_t{
-          .ptr=fan::graphics::g_shapes->sprite.get_locations().data(),
-          .count=static_cast<int>(fan::graphics::g_shapes->sprite.get_locations().size())
-        },
-        fan::shader_paths::gl::sprite_2_1_vs,
-        fan::shader_paths::gl::sprite_2_1_fs,
-        6, // set instance count to 6 vertices, in opengl 2.1 there is no instancing,
-           // so sending same 6 elements per shape
-        false
-      );
-    }
-    else {
-      loco.shape_open(
-        fan::graphics::shapes::sprite_t::shape_type,
-        sizeof(fan::graphics::shapes::sprite_t::vi_t),
-        sizeof(fan::graphics::shapes::sprite_t::ri_t),
-        fan::graphics::shape_gl_init_list_t{
-          .ptr=fan::graphics::g_shapes->sprite.get_locations().data(),
-          .count=static_cast<int>(fan::graphics::g_shapes->sprite.get_locations().size())
-        },
-        fan::shader_paths::gl::sprite_vs,
-        fan::shader_paths::gl::sprite_fs,
-        1,
-        true
-      );
-    }
-  }
-  {
-    if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
-      // todo implement line
-    }
-    else {
-      loco.shape_open(
-        fan::graphics::shapes::line_t::shape_type,
-        sizeof(fan::graphics::shapes::line_t::vi_t),
-        sizeof(fan::graphics::shapes::line_t::ri_t),
-        fan::graphics::shape_gl_init_list_t{
-          .ptr=fan::graphics::g_shapes->line.get_locations().data(),
-          .count=static_cast<int>(fan::graphics::g_shapes->line.get_locations().size())
-        },
-        fan::shader_paths::gl::line_vs,
-        fan::shader_paths::gl::line_fs,
-        1,
-        true
-      );
-    }
+  bool is_21 = loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1;
+  auto& sh = loco.shaders;
+
+  struct shape_descriptor_t {
+    uint16_t shape_type;
+    std::size_t sizeof_vi;
+    std::size_t sizeof_ri;
+    std::function<fan::graphics::shape_gl_init_list_t()> get_locations;
+    fan::graphics::shader_t shader;
+    fan::graphics::shaper_t::ShapeRenderDataSize_t instance_count;
+    bool instanced;
+  };
+
+  int sprite_count = is_21 ? 6 : 1;
+  bool sprite_instanced = !is_21;
+#if defined(FAN_3D)
+  int rect3d_count = is_21 ? 36 : 1;
+#endif
+
+  const shape_descriptor_t descriptors[] = {
+    SHAPE_DESC(sprite,                   sprite_count,  sprite_instanced, sh.sprite),
+    SHAPE_DESC(line,                     1, true,  sh.line),
+    SHAPE_DESC(rectangle,                1, true,  sh.rectangle),
+    SHAPE_DESC(light,                    1, true,  sh.light),
+    SHAPE_DESC(unlit_sprite,             1, true,  sh.unlit_sprite),
+    SHAPE_DESC(circle,                   1, true,  sh.circle),
+    SHAPE_DESC(capsule,                  1, true,  sh.capsule),
+    SHAPE_DESC(polygon,                  1, false, sh.polygon),
+    SHAPE_DESC(grid,                     1, true,  sh.grid),
+    SHAPE_DESC(particles,                1, true,  sh.particles),
+    SHAPE_DESC(universal_image_renderer, 1, true,  sh.universal_image_renderer),
+    SHAPE_DESC(gradient,                 1, true,  sh.gradient),
+    SHAPE_DESC(shader_shape,             1, true,  sh.shader_shape),
+    SHAPE_DESC(shadow,                   1, true,  sh.shadow),
+  };
+
+  for (auto& d : descriptors) {
+    if (is_21 && d.shape_type != fan::graphics::shapes::sprite_t::shape_type) continue;
+    loco.shape_open(d.shape_type, d.sizeof_vi, d.sizeof_ri, d.get_locations(), d.shader, d.instance_count, d.instanced);
   }
 
-  {
-    if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
-      // todo
-    }
-    else {
-      loco.shape_open(
-        fan::graphics::shapes::rectangle_t::shape_type,
-        sizeof(fan::graphics::shapes::rectangle_t::vi_t),
-        sizeof(fan::graphics::shapes::rectangle_t::ri_t),
-        fan::graphics::shape_gl_init_list_t{
-          .ptr=fan::graphics::g_shapes->rectangle.get_locations().data(),
-          .count=static_cast<int>(fan::graphics::g_shapes->rectangle.get_locations().size())
-        },
-        fan::shader_paths::gl::rectangle_vs,
-        fan::shader_paths::gl::rectangle_fs,
-        1,
-        true
-      );
-    }
+#if defined(FAN_3D)
+  if (!is_21) {
+    int rect3d_count = is_21 ? 36 : 1;
+    auto d3d = SHAPE_DESC(rectangle3d, rect3d_count, true, sh.rectangle3d);
+    loco.shape_open(d3d.shape_type, d3d.sizeof_vi, d3d.sizeof_ri, d3d.get_locations(), d3d.shader, d3d.instance_count, d3d.instanced);
+    auto l3d = SHAPE_DESC(line3d, 1, true, sh.line3d);
+    loco.shape_open(l3d.shape_type, l3d.sizeof_vi, l3d.sizeof_ri, l3d.get_locations(), l3d.shader, l3d.instance_count, l3d.instanced);
   }
+#endif
 
-  {
-    if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
-      // todo
-    }
-    else {
-      loco.shape_open(
-        fan::graphics::shapes::light_t::shape_type,
-        sizeof(fan::graphics::shapes::light_t::vi_t),
-        sizeof(fan::graphics::shapes::light_t::ri_t),
-        fan::graphics::shape_gl_init_list_t{
-          .ptr=fan::graphics::g_shapes->light.get_locations().data(),
-          .count=static_cast<int>(fan::graphics::g_shapes->light.get_locations().size())
-        },
-        fan::shader_paths::gl::light_vs,
-        fan::shader_paths::gl::light_fs,
-        1,
-        true
-      );
-    }
-  }
-  {
-    if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
-      // todo
-    }
-    else {
-      loco.shape_open(
-        fan::graphics::shapes::unlit_sprite_t::shape_type,
-        sizeof(fan::graphics::shapes::unlit_sprite_t::vi_t),
-        sizeof(fan::graphics::shapes::unlit_sprite_t::ri_t),
-        fan::graphics::shape_gl_init_list_t{
-          .ptr=fan::graphics::g_shapes->unlit_sprite.get_locations().data(),
-          .count=static_cast<int>(fan::graphics::g_shapes->unlit_sprite.get_locations().size())
-        },
-        fan::shader_paths::gl::sprite_vs,
-        fan::shader_paths::gl::unlit_sprite_fs,
-        1,
-        true
-      );
-    }
-  }
-
-  {
-    if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
-
-    }
-    else {
-      loco.shape_open(
-        fan::graphics::shapes::circle_t::shape_type,
-        sizeof(fan::graphics::shapes::circle_t::vi_t),
-        sizeof(fan::graphics::shapes::circle_t::ri_t),
-        fan::graphics::shape_gl_init_list_t{
-          .ptr=fan::graphics::g_shapes->circle.get_locations().data(),
-          .count=static_cast<int>(fan::graphics::g_shapes->circle.get_locations().size())
-        },
-        fan::shader_paths::gl::circle_vs,
-        fan::shader_paths::gl::circle_fs,
-        1,
-        true
-      );
-    }
-  }
-  {
-    if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
-
-    }
-    else {
-      loco.shape_open(
-        fan::graphics::shapes::capsule_t::shape_type,
-        sizeof(fan::graphics::shapes::capsule_t::vi_t),
-        sizeof(fan::graphics::shapes::capsule_t::ri_t),
-        fan::graphics::shape_gl_init_list_t{
-          .ptr=fan::graphics::g_shapes->capsule.get_locations().data(),
-          .count=static_cast<int>(fan::graphics::g_shapes->capsule.get_locations().size())
-        },
-        fan::shader_paths::gl::capsule_vs,
-        fan::shader_paths::gl::capsule_fs,
-        1,
-        true
-      );
-    }
-  }
-  {
-    if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
-
-    }
-    else {
-      loco.shape_open(
-        fan::graphics::shapes::polygon_t::shape_type,
-        sizeof(fan::graphics::shapes::polygon_t::vi_t),
-        sizeof(fan::graphics::shapes::polygon_t::ri_t),
-        fan::graphics::shape_gl_init_list_t{
-          .ptr=fan::graphics::g_shapes->polygon.get_locations().data(),
-          .count=static_cast<int>(fan::graphics::g_shapes->polygon.get_locations().size())
-        },
-        fan::shader_paths::gl::polygon_vs,
-        fan::shader_paths::gl::polygon_fs,
-        1,
-        false
-      );
-    }
-  }
-
-  {
-    if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
-
-    }
-    else {
-      loco.shape_open(
-        fan::graphics::shapes::grid_t::shape_type,
-        sizeof(fan::graphics::shapes::grid_t::vi_t),
-        sizeof(fan::graphics::shapes::grid_t::ri_t),
-        fan::graphics::shape_gl_init_list_t{
-          .ptr=fan::graphics::g_shapes->grid.get_locations().data(),
-          .count=static_cast<int>(fan::graphics::g_shapes->grid.get_locations().size())
-        },
-        fan::shader_paths::gl::grid_vs,
-        fan::shader_paths::gl::grid_fs,
-        1,
-        true
-      );
-    }
-  }
-
-  // vfi must be in this order
   fan::graphics::g_shapes->vfi.open();
 
   {
-    if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
+    fan::graphics::shaper_t::BlockProperties_t::gl_t st_gl;
+    st_gl.locations = {};
+    st_gl.shader = sh.empty_shader;
 
-    }
-    else {
-      loco.shape_open(
-        fan::graphics::shapes::particles_t::shape_type,
-        sizeof(fan::graphics::shapes::particles_t::vi_t),
-        sizeof(fan::graphics::shapes::particles_t::ri_t),
-        fan::graphics::shape_gl_init_list_t{
-          .ptr=fan::graphics::g_shapes->particles.get_locations().data(),
-          .count=static_cast<int>(fan::graphics::g_shapes->particles.get_locations().size())
-        },
-        fan::shader_paths::gl::particles_vs,
-        fan::shader_paths::gl::particles_fs,
-        1,
-        true
-      );
-    }
-  }
+    fan::graphics::shaper_t::BlockProperties_t bp;
+    bp.MaxElementPerBlock = (fan::graphics::shaper_t::MaxElementPerBlock_t)fan::graphics::MaxElementPerBlock;
+    bp.RenderDataSize = 0;
+    bp.DataSize = 0;
+    bp.renderer.gl = st_gl;
 
-  {
-    if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
-
-    }
-    else {
-      loco.shape_open(
-        fan::graphics::shapes::universal_image_renderer_t::shape_type,
-        sizeof(fan::graphics::shapes::universal_image_renderer_t::vi_t),
-        sizeof(fan::graphics::shapes::universal_image_renderer_t::ri_t),
-        fan::graphics::shape_gl_init_list_t{
-          .ptr=fan::graphics::g_shapes->universal_image_renderer.get_locations().data(),
-          .count=static_cast<int>(fan::graphics::g_shapes->universal_image_renderer.get_locations().size())
-        },
-        fan::shader_paths::gl::pixel_format_renderer_vs,
-        fan::shader_paths::gl::yuv420p_fs,
-        1,
-        true
-      );
-    }
-  }
-
-  {
-    if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
-
-    }
-    else {
-      loco.shape_open(
-        fan::graphics::shapes::gradient_t::shape_type,
-        sizeof(fan::graphics::shapes::gradient_t::vi_t),
-        sizeof(fan::graphics::shapes::gradient_t::ri_t),
-        fan::graphics::shape_gl_init_list_t{
-          .ptr=fan::graphics::g_shapes->gradient.get_locations().data(),
-          .count=static_cast<int>(fan::graphics::g_shapes->gradient.get_locations().size())
-        },
-        fan::shader_paths::gl::gradient_vs,
-        fan::shader_paths::gl::gradient_fs,
-        1,
-        true
-      );
-    }
-  }
-
-  {
-    if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
-
-    }
-    else {
-      loco.shape_open(
-        fan::graphics::shapes::shader_shape_t::shape_type,
-        sizeof(fan::graphics::shapes::shader_shape_t::vi_t),
-        sizeof(fan::graphics::shapes::shader_shape_t::ri_t),
-        fan::graphics::shape_gl_init_list_t{
-          .ptr=fan::graphics::g_shapes->shader_shape.get_locations().data(),
-          .count=static_cast<int>(fan::graphics::g_shapes->shader_shape.get_locations().size())
-        },
-        fan::shader_paths::gl::sprite_vs,
-        fan::shader_paths::gl::sprite_fs,
-        1,
-        true
-      );
-    }
-  }
-
-  {
-#if defined(FAN_3D)
-    loco.shape_open(
-      fan::graphics::shapes::rectangle3d_t::shape_type,
-      sizeof(fan::graphics::shapes::rectangle3d_t::vi_t),
-      sizeof(fan::graphics::shapes::rectangle3d_t::ri_t),
-      fan::graphics::shape_gl_init_list_t{
-        .ptr=fan::graphics::g_shapes->rectangle3d.get_locations().data(),
-        .count=static_cast<int>(fan::graphics::g_shapes->rectangle3d.get_locations().size())
-      },
-      fan::shader_paths::gl::rectangle3d_vs,
-      fan::shader_paths::gl::rectangle3d_fs,
-      (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) ? 36 : 1,
-      true
+    fan::graphics::g_shapes->shaper.SetShapeType(fan::graphics::shapes::shape_type_t::light_end, bp);
+    fan::graphics::g_shapes->shape_add(
+      fan::graphics::shapes::shape_type_t::light_end,
+      0, 0,
+      fan::graphics::Key_e::light_end, (uint8_t)0,
+      fan::graphics::Key_e::ShapeType, (fan::graphics::shaper_t::ShapeTypeIndex_t)fan::graphics::shapes::shape_type_t::light_end
     );
-#endif
   }
-  #if defined(FAN_3D)
-  {
-    if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
-      // todo implement line
-    }
-    else {
-      loco.shape_open(
-        fan::graphics::shapes::line3d_t::shape_type,
-        sizeof(fan::graphics::shapes::line3d_t::vi_t),
-        sizeof(fan::graphics::shapes::line3d_t::ri_t),
-        fan::graphics::shape_gl_init_list_t{
-          .ptr=fan::graphics::g_shapes->line3d.get_locations().data(),
-          .count=static_cast<int>(fan::graphics::g_shapes->line3d.get_locations().size())
-        },
-        fan::shader_paths::gl::line3d_vs,
-        fan::shader_paths::gl::line3d_fs,
-        1,
-        true
-      );
-    }
-  }
-  #endif
-
-  { // shadow
-    if (loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1) {
-      // todo
-    }
-    else {
-      loco.shape_open(
-        fan::graphics::shapes::shadow_t::shape_type,
-        sizeof(fan::graphics::shapes::shadow_t::vi_t),
-        sizeof(fan::graphics::shapes::shadow_t::ri_t),
-        fan::graphics::shape_gl_init_list_t{
-          .ptr=fan::graphics::g_shapes->shadow.get_locations().data(),
-          .count=static_cast<int>(fan::graphics::g_shapes->shadow.get_locations().size())
-        },
-        fan::shader_paths::gl::shadow_vs,
-        fan::shader_paths::gl::shadow_fs,
-        1,
-        true
-      );
-    }
-  }
-
-  fan::graphics::shader_t shader = loco.shader_create();
-
-  loco.shader_set_vertex(shader,
-    fan::shader_paths::gl::empty_vs,
-    fan::graphics::read_shader(fan::shader_paths::gl::empty_vs)
-  );
-  loco.shader_set_fragment(shader,
-    fan::shader_paths::gl::empty_fs,
-    fan::graphics::read_shader(fan::shader_paths::gl::empty_fs)
-  );
-  loco.shader_compile(shader);
-
-  fan::graphics::shaper_t::BlockProperties_t::gl_t st_gl;
-  st_gl.locations = {};
-  st_gl.shader = shader;
-
-  fan::graphics::shaper_t::BlockProperties_t bp;
-  bp.MaxElementPerBlock = (fan::graphics::shaper_t::MaxElementPerBlock_t)fan::graphics::MaxElementPerBlock,
-  bp.RenderDataSize = 0,
-  bp.DataSize = 0,
-  bp.renderer.gl = st_gl;
-
-  fan::graphics::g_shapes->shaper.SetShapeType(
-    fan::graphics::shapes::shape_type_t::light_end,
-    bp
-  );
-  fan::graphics::g_shapes->shape_add(
-    fan::graphics::shapes::shape_type_t::light_end,
-    0,
-    0,
-    fan::graphics::Key_e::light_end, (uint8_t)0,
-    fan::graphics::Key_e::ShapeType, (fan::graphics::shaper_t::ShapeTypeIndex_t)fan::graphics::shapes::shape_type_t::light_end
-  );
 }
 
 void add_shape_type(fan::graphics::shaper_t::ShapeTypes_NodeData_t& st, const fan::graphics::shaper_t::BlockProperties_t& bp) {

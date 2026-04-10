@@ -165,7 +165,7 @@ export namespace fan {
           fan::vec2 rotation_point = 0;
           fan::graphics::image_t image = fan::graphics::get_default_texture();
           std::array<fan::graphics::image_t, 30> images;
-          f32_t parallax_factor = 0;
+          fan::vec2 parallax_factor = 0;
           bool blending = true;
           uint32_t flags = sprite_flags_e::circle | sprite_flags_e::multiplicative;
           operator fan::graphics::sprite_properties_t() const {
@@ -313,7 +313,7 @@ export namespace fan {
           fan::vec2 rotation_point = 0;
           fan::graphics::image_t image = fan::graphics::get_default_texture();
           std::array<fan::graphics::image_t, 30> images;
-          f32_t parallax_factor = 0;
+          fan::vec2 parallax_factor = 0;
           bool blending = true;
           uint32_t flags = sprite_flags_e::circle | sprite_flags_e::multiplicative;
 

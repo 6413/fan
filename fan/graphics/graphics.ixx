@@ -84,7 +84,7 @@ export namespace fan::graphics {
   struct light_properties_t {
     const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
     fan::vec3 position = fan::vec3(0, 0, 0);
-    f32_t parallax_factor = 0;
+    fan::vec2 parallax_factor = 0;
     fan::vec2 size = 128.f;
     fan::vec2 rotation_point = fan::vec2(0, 0);
     fan::color color = fan::color(1, 1, 1, 1);
@@ -155,7 +155,7 @@ export namespace fan::graphics {
     fan::vec2 tc_position = 0;
     fan::vec2 tc_size = 1;
     std::array<fan::graphics::image_t, 30> images;
-    f32_t parallax_factor = 0;
+    fan::vec2 parallax_factor = 0;
     bool blending = true;
     uint32_t flags = sprite_flags_e::circle | sprite_flags_e::multiplicative;
     fan::graphics::texture_pack::unique_t texture_pack_unique_id;
@@ -392,6 +392,11 @@ export namespace fan::graphics {
     );
     shader_shape_t(
       const fan::str_view_t fragment_shader, 
+      const fan::vec3& position = POSITION3_WINDOW_CENTER,
+      const fan::vec2& size = POSITION2_WINDOW_CENTER
+    );
+    shader_shape_t(
+      fan::graphics::shader_t shader, 
       const fan::vec3& position = POSITION3_WINDOW_CENTER,
       const fan::vec2& size = POSITION2_WINDOW_CENTER
     );

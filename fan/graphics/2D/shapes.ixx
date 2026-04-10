@@ -400,8 +400,8 @@ export namespace fan::graphics {
       fan::graphics::image_data_t& get_image_data();
       std::array<fan::graphics::image_t, 30> get_images() const;
       void set_images(const std::array<fan::graphics::image_t, 30>& images);
-      f32_t get_parallax_factor() const;
-      void set_parallax_factor(f32_t parallax_factor);
+      fan::vec2 get_parallax_factor() const;
+      void set_parallax_factor(fan::vec2 parallax_factor);
       uint32_t get_flags() const;
       void set_flags(uint32_t flag);
       f32_t get_radius() const;
@@ -607,7 +607,7 @@ export namespace fan::graphics {
 
       struct vi_t {
         fan::vec3 position;
-        f32_t parallax_factor;
+        fan::vec2 parallax_factor;
         fan::vec2 size;
         fan::vec2 rotation_point;
         fan::color color;
@@ -625,7 +625,7 @@ export namespace fan::graphics {
       static std::array<shape_gl_init_t, 7>& get_locations() {
         static std::array<shape_gl_init_t, 7> locs{{
           shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
-          shape_gl_init_t{{1, "in_parallax_factor"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, parallax_factor)},
+          shape_gl_init_t{{1, "in_parallax_factor"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, parallax_factor)},
           shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, size)},
           shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
           shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)},
@@ -638,9 +638,8 @@ export namespace fan::graphics {
       struct properties_t {
         using type_t = light_t;
 
-
         fan::vec3 position = 0;
-        f32_t parallax_factor = 0;
+        fan::vec2 parallax_factor = 0;
         fan::vec2 size = 128;
         fan::vec2 rotation_point = 0;
         fan::color color = fan::colors::white;
@@ -761,7 +760,7 @@ export namespace fan::graphics {
 
       struct vi_t {
         fan::vec3 position;
-        f32_t parallax_factor;
+        fan::vec2 parallax_factor;
         fan::vec2 size;
         fan::vec2 rotation_point;
         fan::color color;
@@ -786,7 +785,7 @@ export namespace fan::graphics {
       static std::array<shape_gl_init_t, 10>& get_locations() {
         static std::array<shape_gl_init_t, 10> locs{{
           shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
-          shape_gl_init_t{{1, "in_parallax_factor"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, parallax_factor)},
+          shape_gl_init_t{{1, "in_parallax_factor"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, parallax_factor)},
           shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, size)},
           shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
           shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)},
@@ -803,7 +802,7 @@ export namespace fan::graphics {
         using type_t = sprite_t;
 
         fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
-        f32_t parallax_factor = 0;
+        fan::vec2 parallax_factor = 0;
         fan::vec2 size = fan::vec2(32, 32);
         fan::vec2 rotation_point = 0;
         fan::color color = fan::colors::white;
@@ -844,7 +843,7 @@ export namespace fan::graphics {
 
       struct vi_t {
         fan::vec3 position;
-        f32_t parallax_factor;
+        fan::vec2 parallax_factor;
         fan::vec2 size;
         fan::vec2 rotation_point;
         fan::color color;
@@ -867,7 +866,7 @@ export namespace fan::graphics {
       static std::array<shape_gl_init_t, 10>& get_locations() {
         static std::array<shape_gl_init_t, 10> locs{{
           shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
-          shape_gl_init_t{{1, "in_parallax_factor"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, parallax_factor)},
+          shape_gl_init_t{{1, "in_parallax_factor"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, parallax_factor)},
           shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, size)},
           shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
           shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)},
@@ -884,7 +883,7 @@ export namespace fan::graphics {
         using type_t = unlit_sprite_t;
 
         fan::vec3 position = fan::vec3(fan::vec2(fan::graphics::ctx().window->get_size() / 2), 0);
-        f32_t parallax_factor = 0;
+        fan::vec2 parallax_factor = 0;
         fan::vec2 size = 32;
         fan::vec2 rotation_point = 0;
         fan::color color = fan::colors::white;
@@ -1452,7 +1451,7 @@ export namespace fan::graphics {
     #pragma pack(push, 1)
       struct vi_t {
         fan::vec3 position;
-        f32_t parallax_factor;
+        fan::vec2 parallax_factor;
         fan::vec2 size;
         fan::vec2 rotation_point;
         fan::color color;
@@ -1470,7 +1469,7 @@ export namespace fan::graphics {
       static std::array<shape_gl_init_t, 10>& get_locations() {
         static std::array<shape_gl_init_t, 10> locs{{
           shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
-          shape_gl_init_t{{1, "in_parallax_factor"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, parallax_factor)},
+          shape_gl_init_t{{1, "in_parallax_factor"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, parallax_factor)},
           shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, size)},
           shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
           shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)},
@@ -1487,7 +1486,7 @@ export namespace fan::graphics {
         using type_t = shader_shape_t;
 
         fan::vec3 position = 0;
-        f32_t parallax_factor = 0;
+        fan::vec2 parallax_factor = 0;
         fan::vec2 size = 0;
         fan::vec2 rotation_point = 0;
         fan::color color = fan::colors::white;

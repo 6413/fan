@@ -522,8 +522,15 @@ export namespace fan::opengl {
     void camera_update_projection(fan::graphics::camera_nr_t nr);
     void camera_update_view(fan::graphics::camera_nr_t nr);
     fan::graphics::camera_nr_t camera_create(const fan::vec2& x, const fan::vec2& y);
+    // Returns the raw translation offset of the camera matrix.
+    // For an orthographic projection starting at (0,0), this represents the top-left corner.
+    // For a symmetric projection (e.g., -width/2 to width/2), this represents the center.
     fan::vec3 camera_get_position(fan::graphics::camera_nr_t nr);
     void camera_set_position(fan::graphics::camera_nr_t nr, const fan::vec3& cp);
+    // Returns the true world-space center of the camera's view,
+    // regardless of how the projection matrix was initialized.
+    fan::vec3 camera_get_center(fan::graphics::camera_nr_t nr);
+    void camera_set_center(fan::graphics::camera_nr_t nr, const fan::vec3& cp);
     fan::vec2 camera_get_size(fan::graphics::camera_nr_t nr);
     f32_t camera_get_zoom(fan::graphics::camera_nr_t nr);
     void camera_set_zoom(fan::graphics::camera_nr_t nr, f32_t new_zoom);

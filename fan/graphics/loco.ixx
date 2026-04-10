@@ -268,8 +268,17 @@ public:
   fan::graphics::context_camera_t& camera_get(fan::graphics::camera_nr_t nr = fan::graphics::get_orthographic_render_view().camera);
   void camera_erase(fan::graphics::camera_nr_t nr);
   fan::graphics::camera_nr_t camera_create(const fan::vec2& x, const fan::vec2& y);
+  // Returns the raw translation offset of the camera matrix.
+  // For an orthographic projection starting at (0,0), this represents the top-left corner.
+  // For a symmetric projection (e.g., -width/2 to width/2), this represents the center.
   fan::vec3 camera_get_position(fan::graphics::camera_nr_t nr = fan::graphics::get_orthographic_render_view().camera);
   void camera_set_position(fan::graphics::camera_nr_t nr, const fan::vec3& cp);
+  void camera_set_position(const fan::vec3& cp);
+  // Returns the true world-space center of the camera's view,
+  // regardless of how the projection matrix was initialized.
+  fan::vec3 camera_get_center(fan::graphics::camera_nr_t nr = fan::graphics::get_orthographic_render_view().camera);
+  void camera_set_center(fan::graphics::camera_nr_t nr, const fan::vec3& cp);
+  void camera_set_center(const fan::vec3& cp);
   fan::vec2 camera_get_size(fan::graphics::camera_nr_t nr);
   f32_t camera_get_zoom(fan::graphics::camera_nr_t nr = fan::graphics::get_orthographic_render_view().camera);
   void camera_set_zoom(fan::graphics::camera_nr_t nr, f32_t new_zoom);
@@ -306,6 +315,9 @@ public:
 
   void use();
   void camera_move(fan::graphics::context_camera_t& camera, f64_t dt, f32_t movement_speed, f32_t friction = 12);
+
+  #include "shaders.h"
+  shaders_t shaders;
 
 #if defined(FAN_OPENGL)
   struct opengl;
@@ -539,8 +551,7 @@ public:
     std::size_t sizeof_vi,
     std::size_t sizeof_ri,
     fan::graphics::shape_gl_init_list_t shape_shader_locations,
-    const std::string_view vertex_file_path, 
-    const std::string_view fragment_file_path,
+    fan::graphics::shader_t shader,
     fan::graphics::shaper_t::ShapeRenderDataSize_t instance_count = 1,
     bool instanced = true
   );

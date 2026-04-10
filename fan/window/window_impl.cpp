@@ -282,21 +282,9 @@ namespace fan {
       int target_major = props.opengl_major;
       int target_minor = props.opengl_minor;
 
-      // auto-detect using dummy window if versions aren't explicitly passed
       if (target_major == 0) {
-        glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
-        if (GLFWwindow* dummy = glfwCreateWindow(1, 1, "", nullptr, nullptr)) {
-          glfwMakeContextCurrent(dummy);
-          using gl_get_string_t = const unsigned char* (*)(unsigned int);
-          if (auto gl_get_string = (gl_get_string_t)glfwGetProcAddress("glGetString")) {
-            if (const char* ver = (const char*)gl_get_string(0x1F02 /* GL_VERSION */)) {
-              sscanf(ver, "%d.%d", &target_major, &target_minor);
-            }
-          }
-          glfwMakeContextCurrent(nullptr);
-          glfwDestroyWindow(dummy);
-        }
-        glfwWindowHint(GLFW_VISIBLE, !(flags & flags::hidden));
+        target_major = 4;
+        target_minor = 6;
       }
 
       // apply chosen version + core profile if applicable
