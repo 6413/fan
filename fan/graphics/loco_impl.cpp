@@ -454,10 +454,14 @@ void loco_t::camera_rotate(fan::graphics::camera_nr_t nr, const fan::vec2& offse
 }
 
 void loco_t::camera_set_target(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed) {
-  fan::vec2 src = camera_get_position(nr);
-  camera_set_position(
-    nr,
-    move_speed == 0 ? target : src + (target - src) * get_delta_time() * move_speed
+  auto& c = context_functions.camera_get(&context, nr);
+  fan::vec2 offset = fan::vec2(c.coordinates.left + c.coordinates.right, c.coordinates.top + c.coordinates.bottom) / (2.f * c.zoom);
+  
+  fan::vec2 src_center = camera_get_position(nr) + offset;
+  
+  camera_set_center(
+    nr, 
+    fan::vec3(move_speed == 0 ? target : src_center + (target - src_center) * get_delta_time() * move_speed, 0.f)
   );
 }
 
