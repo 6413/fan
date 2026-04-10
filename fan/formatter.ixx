@@ -39,7 +39,7 @@ export namespace fan {
   std::string format_join(const char* sep, const Args&... args) {
     std::string result;
     int idx = 0;
-    ((result += fan::detail::to_str(args) + (++idx == (int)sizeof...(args) ? "" : sep)), ...);
+    ((result += fan::detail::to_str(args), result += (++idx == (int)sizeof...(args) ? "" : sep)), ...);
     return result;
   }
 
