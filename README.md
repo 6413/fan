@@ -105,7 +105,10 @@ If the output folder isn't empty it will ask to clear it first, or pass `--force
 ## Demos
 
 [Engine demo](examples/engine_demos/engine_demo.cpp)
-![image](https://github.com/user-attachments/assets/32d41e02-09a0-4202-a932-f06f4f319620)
+![image](https://github.com/user-attachments/assets/f37fbf05-5f37-426a-add7-cedfeb869b62)
+
+[Scenery](examples/graphics/random/scenery/main.cpp)
+![image](https://github.com/user-attachments/assets/083bf9d6-396e-4d5e-9a5b-e73623984376)
 
 Game
 ![image](https://github.com/6413/fan/assets/56801084/973f2fa6-fcd7-4b6a-b66b-b92eefae9bba)
