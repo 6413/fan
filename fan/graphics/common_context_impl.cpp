@@ -713,11 +713,15 @@ namespace fan::graphics {
   }
 
   void camera_set_target(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed) {
-    fan::vec2 src = camera_get_position(nr);
-    camera_set_position(
-      nr,
-      move_speed == 0 ? target : src + (target - src) * fan::graphics::get_window().m_delta_time * move_speed
-    );
+    auto& c = camera_get(nr);
+    fan::vec2 offset = fan::vec2(c.coordinates.left + c.coordinates.right, c.coordinates.top + c.coordinates.bottom) / (2.f * c.zoom);
+    
+    fan::vec2 src_center = camera_get_position(nr) + offset;
+    fan::vec2 new_center = move_speed == 0 
+      ? target 
+      : src_center + (target - src_center) * fan::graphics::get_window().m_delta_time * move_speed;
+
+    camera_set_center(nr, fan::vec3(new_center, 0.f));
   }
 
   void camera_set_target(const fan::vec2& target, f32_t move_speed) {
