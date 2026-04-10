@@ -350,7 +350,7 @@ void main() {
   o_attachment0 = tex_color;
 })";
 
-  fan::graphics::shader_t demo_shader_shape_shader {engine.get_sprite_shader(demo_shader_shape_fragment_shader)};
+  fan::graphics::shader_t demo_shader_shape_shader {engine.get_sprite_shader("", demo_shader_shape_fragment_shader)};
   fan::color custom_color = fan::colors::red;
   static void demo_shapes_init_shader_shape(engine_demo_t* engine_demo) {
     if (engine_demo->demo_shader_shape_shader.iic()) {
@@ -459,7 +459,7 @@ void main() {
     engine_demo->demo_shader_live_editor_data = new demo_shader_live_editor_t();
     auto& data = *engine_demo->demo_shader_live_editor_data;
 
-    data.shader = engine_demo->engine.get_sprite_shader(data.shader_code);
+    data.shader = engine_demo->engine.get_sprite_shader("", data.shader_code);
     fan::graphics::image_t image = engine_demo->engine.image_load("images/lava_seamless.webp");
 
     fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
@@ -482,8 +482,8 @@ void main() {
 
     fan::vec2 editor_size(gui::get_content_region_avail().x, engine_demo->panel_right_window_size.y / 2.f);
     if (gui::input_text_multiline("##Shader Code", &data.shader_code, editor_size, gui::input_text_flags_allow_tab_input)) {
-      engine_demo->engine.shader_set_vertex(data.shader, engine_demo->engine.shader_list[engine_demo->engine.shapes.shaper.GetShader(fan::graphics::shape_type_t::shader_shape)].svertex);
-      engine_demo->engine.shader_set_fragment(data.shader, data.shader_code);
+      engine_demo->engine.shader_set_vertex(data.shader, "", engine_demo->engine.shader_list[engine_demo->engine.shapes.shaper.GetShader(fan::graphics::shape_type_t::shader_shape)].svertex);
+      engine_demo->engine.shader_set_fragment(data.shader, "", data.shader_code);
       data.shader_compiled = engine_demo->engine.shader_compile(data.shader);
     }
   }
