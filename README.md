@@ -85,7 +85,7 @@
     fan::vec2 pos = engine.viewport_get_size() / 2.f;
   
     engine.loop([&] {
-      pos += fan::window::get_input_vector() * 400.f * engine.get_delta_time();
+      pos += engine.get_input_vector() * 400.f * engine.get_delta_time();
       
       // immediate shapes auto-manage lifetime and draw for one frame
       // args: position(x, y, z), radius, color
@@ -97,7 +97,7 @@
 - 2D Physics Synchronization
   ```cpp
   import fan;
-  
+
   int main() {
     fan::graphics::engine_t engine;
     engine.update_physics(true);
@@ -108,7 +108,7 @@
       fan::vec2(400.f, 700.f), 
       fan::vec2(400.f, 20.f)
     );
-
+  
     // visual rectangle natively synced to a dynamic box2d body
     fan::graphics::physics::rectangle_t box{{
       .position = fan::vec3(400.f, 100.f, 0.f),
@@ -118,7 +118,7 @@
     }};
     
     engine.loop([&] {
-      if (fan::window::is_mouse_clicked()) {
+      if (engine.is_mouse_clicked()) {
         box.apply_linear_impulse_center(fan::vec2(0.f, -800.f));
       }
     });
@@ -131,7 +131,11 @@
 
   int main() {
     fan::graphics::engine_t engine;
-    fan::graphics::sprite_t player{fan::vec3(0.f), fan::vec2(32.f), fan::graphics::image_t{"player.png"}};
+    fan::graphics::sprite_t player{
+      fan::vec3(0.f), 
+      fan::vec2(32.f), 
+      fan::graphics::image_t{"player.png"}
+    };
     
     engine.loop([&] {
       if (auto gui_wnd = fan::graphics::gui::window("Settings")) {
@@ -139,8 +143,9 @@
       }
       
       fan::vec2 player_pos = player.get_position();
-      fan::vec2 new_player_pos = player_pos + fan::window::get_input_vector() * 300.f * engine.get_delta_time();
+      fan::vec2 new_player_pos = player_pos + engine.get_input_vector() * 300.f * engine.get_delta_time();
       player.set_position(new_player_pos);
+      // args: pos, dt
       engine.camera_set_target(new_player_pos, 5.f);
     });
   }
