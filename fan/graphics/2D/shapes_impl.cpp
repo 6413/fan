@@ -1798,10 +1798,10 @@ namespace fan::graphics{
   #endif
   }
 
-  f32_t shapes::shape_t::get_parallax_factor() const {
+  fan::vec2 shapes::shape_t::get_parallax_factor() const {
     return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_parallax_factor(this);
   }
-  void shapes::shape_t::set_parallax_factor(f32_t parallax_factor) {
+  void shapes::shape_t::set_parallax_factor(fan::vec2 parallax_factor) {
     fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_parallax_factor(this, parallax_factor);
   }
 

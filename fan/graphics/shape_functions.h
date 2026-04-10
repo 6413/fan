@@ -489,7 +489,7 @@ MAKE_ACCESSORS(angle, fan::vec3, false)
 MAKE_ACCESSORS(rotation_point, fan::vec2, false)
 MAKE_ACCESSORS(tc_position, fan::vec2, false)
 MAKE_ACCESSORS(tc_size, fan::vec2, false)
-MAKE_ACCESSORS(parallax_factor, f32_t, false)
+MAKE_ACCESSORS(parallax_factor, fan::vec2, false)
 MAKE_ACCESSORS(flags, uint32_t, false)
 MAKE_ACCESSORS(outline_color, fan::color, false)
 MAKE_ACCESSORS(src, fan::vec3, true)
@@ -581,8 +581,8 @@ X(get_image, fan::graphics::image_t(*)(const fan::graphics::shapes::shape_t*)) \
 X(set_image, void(*)(fan::graphics::shapes::shape_t*, fan::graphics::image_t)) \
 X(get_visible, bool(*)(const fan::graphics::shapes::shape_t*)) \
 X(set_visible, void(*)(fan::graphics::shapes::shape_t*, bool)) \
-X(get_parallax_factor, f32_t(*)(const fan::graphics::shapes::shape_t*)) \
-X(set_parallax_factor, void(*)(fan::graphics::shapes::shape_t*, f32_t)) \
+X(get_parallax_factor, fan::vec2(*)(const fan::graphics::shapes::shape_t*)) \
+X(set_parallax_factor, void(*)(fan::graphics::shapes::shape_t*, const fan::vec2&)) \
 X(get_flags, uint32_t(*)(const fan::graphics::shapes::shape_t*)) \
 X(set_flags, void(*)(fan::graphics::shapes::shape_t*, uint32_t)) \
 X(get_radius, f32_t(*)(const fan::graphics::shapes::shape_t*)) \

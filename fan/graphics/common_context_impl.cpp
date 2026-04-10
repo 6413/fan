@@ -251,6 +251,13 @@ namespace fan::graphics {
     return viewport;
   }
 
+  fan::vec3 render_view_t::get_camera_position() const {
+    return camera_get_position(camera);
+  }
+  void render_view_t::set_camera_position(fan::vec3 pos) {
+    camera_set_position(camera, pos);
+  }
+
   fan::vec2 translate_position(const fan::vec2& p, viewport_t viewport, camera_t camera) {
     auto v = ctx()->viewport_get(ctx(), viewport);
     auto c = ctx()->camera_get(ctx(), camera);
@@ -659,6 +666,22 @@ namespace fan::graphics {
 
   void camera_set_position(fan::graphics::camera_nr_t nr, const fan::vec3& cp) {
     fan::graphics::ctx()->camera_set_position(fan::graphics::ctx(), nr, cp);
+  }
+
+  void camera_set_position(const fan::vec3& cp) {
+    camera_set_position(*fan::graphics::ctx().orthographic_render_view, cp);
+  }
+
+  fan::vec3 camera_get_center(fan::graphics::camera_nr_t nr) {
+    return fan::graphics::ctx()->camera_get_center(fan::graphics::ctx(), nr);
+  }
+
+  void camera_set_center(fan::graphics::camera_nr_t nr, const fan::vec3& cp) {
+    fan::graphics::ctx()->camera_set_center(fan::graphics::ctx(), nr, cp);
+  }
+
+  void camera_set_center(const fan::vec3& cp) {
+    camera_set_center(*fan::graphics::ctx().orthographic_render_view, cp);
   }
 
   fan::vec2 camera_get_size(fan::graphics::camera_nr_t nr) {

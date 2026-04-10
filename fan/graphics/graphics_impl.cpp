@@ -452,6 +452,15 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     .size = size,
     .shader = fan::graphics::get_sprite_shader("", fragment_shader)
   }) {}
+  shader_shape_t::shader_shape_t(
+    fan::graphics::shader_t shader, 
+    const fan::vec3& position,
+    const fan::vec2& size
+  ) : shader_shape_t(shader_shape_properties_t{
+    .position = position,
+    .size = size,
+    .shader = shader
+  }) {}
 
   shadow_t::shadow_t(shadow_properties_t p) {
     *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(

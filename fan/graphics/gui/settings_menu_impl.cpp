@@ -288,6 +288,22 @@ namespace fan::graphics::gui {
 
       gui::table_next_row();
       gui::table_next_column();
+
+      draw_sub_row("Clear color", [&] {
+        fan::color& c = gloco()->get_clear_color();
+        if (gui::color_edit4(&c)) {
+          
+        }
+      });
+
+      draw_sub_row("Lighting ambient", [&] {
+        static fan::color c = gloco()->get_lighting().ambient;
+        if (gui::color_edit4(&c)) {
+          gloco()->get_lighting().set_target(c);
+        }
+      });
+
+      gui::table_next_column();
       gui::text("Enable bloom");
       gui::table_next_column();
       if (gui::checkbox(&gloco()->open_props.enable_bloom)) {

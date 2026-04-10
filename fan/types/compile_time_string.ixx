@@ -244,7 +244,7 @@ export namespace fan {
     constexpr str_view_t(const std::string& s) : std::string_view(s) {}
     //str_view_t(const std::string&) = delete;
     //str_view_t(std::string&) = delete;
-    str_view_t(std::string&&) = delete;
+    //str_view_t(std::string&&) = delete;
 
     operator const char* () const {
       return data();

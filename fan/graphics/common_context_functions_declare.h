@@ -8,6 +8,8 @@
   build_function(camera_create_params, fan::graphics::camera_nr_t, const fan::vec2& x, const fan::vec2& y) \
   build_function(camera_get_position, fan::vec3, fan::graphics::camera_nr_t nr) \
   build_function(camera_set_position, void, fan::graphics::camera_nr_t nr, const fan::vec3& cp) \
+  build_function(camera_get_center, fan::vec3, fan::graphics::camera_nr_t nr) \
+  build_function(camera_set_center, void, fan::graphics::camera_nr_t nr, const fan::vec3& cp) \
   build_function(camera_get_size, fan::vec2, fan::graphics::camera_nr_t nr) \
   build_function(camera_get_zoom, f32_t, fan::graphics::camera_nr_t nr) \
   build_function(camera_set_zoom, void, fan::graphics::camera_nr_t nr, f32_t new_zoom) \
