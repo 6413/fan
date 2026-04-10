@@ -45,11 +45,10 @@ export namespace fan {
         ++ptr;
       }
     }
-    constexpr color(f32_t value) : r(0), g(0), b(0), a(0) {
+    constexpr color(f32_t value) : r(0), g(0), b(0), a(1) {
       this->r = value;
       this->g = value;
       this->b = value;
-      this->a = value;
     }
     constexpr color& operator&=(const color& c) {
       r = (unsigned int)r & (unsigned int)c.r;
@@ -348,6 +347,9 @@ export namespace fan {
         b + (other.b - b) * t,
         a + (other.a - a) * t
       );
+    }
+    constexpr color mix(const color& other, f32_t t) const {
+      return this->lerp(other, t);
     }
     f32_t r = 0, g = 0, b = 0, a = 1;
   };

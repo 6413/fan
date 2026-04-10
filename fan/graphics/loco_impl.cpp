@@ -413,6 +413,22 @@ void loco_t::camera_set_position(fan::graphics::camera_nr_t nr, const fan::vec3&
   context_functions.camera_set_position(&context, nr, cp);
 }
 
+void loco_t::camera_set_position(const fan::vec3& cp) {
+  camera_set_position(orthographic_render_view, cp);
+}
+
+fan::vec3 loco_t::camera_get_center(fan::graphics::camera_nr_t nr) {
+  return context_functions.camera_get_center(&context, nr);
+}
+
+void loco_t::camera_set_center(fan::graphics::camera_nr_t nr, const fan::vec3& cp) {
+  context_functions.camera_set_center(&context, nr, cp);
+}
+
+void loco_t::camera_set_center(const fan::vec3& cp) {
+  camera_set_center(orthographic_render_view, cp);
+}
+
 fan::vec2 loco_t::camera_get_size(fan::graphics::camera_nr_t nr) {
   return context_functions.camera_get_size(&context, nr);
 }
@@ -1066,6 +1082,7 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   load_engine_images();
   loco_init_shapes_system(this);
   loco_init_render_views(this);
+  renderer_call(shaders_compile); 
   renderer_call(init);
 #if defined(FAN_2D)
   renderer_call(shapes_open);
@@ -2217,17 +2234,10 @@ void loco_t::shape_open(
   std::size_t sizeof_vi,
   std::size_t sizeof_ri,
   fan::graphics::shape_gl_init_list_t shape_shader_locations,
-  const std::string_view vertex_file_path,
-  const std::string_view fragment_file_path,
+  fan::graphics::shader_t shader,
   fan::graphics::shaper_t::ShapeRenderDataSize_t instance_count,
   bool instanced
 ) {
-  fan::graphics::shader_t shader = shader_create();
-
-  shader_set_vertex(shader, vertex_file_path, fan::graphics::read_shader(vertex_file_path));
-  shader_set_fragment(shader, fragment_file_path, fan::graphics::read_shader(fragment_file_path));
-  shader_compile(shader);
-
   fan::graphics::shaper_t::BlockProperties_t bp;
   bp.MaxElementPerBlock = (fan::graphics::shaper_t::MaxElementPerBlock_t)fan::graphics::MaxElementPerBlock;
   bp.RenderDataSize = (decltype(fan::graphics::shaper_t::BlockProperties_t::RenderDataSize))(sizeof_vi * instance_count);
