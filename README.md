@@ -56,37 +56,92 @@
 
 ## Basic Usage Examples
 
-- Hello world rectangle:
-    ```cpp
-    // Creates graphics engine that opens a window and draws:
-    // red rectangle at the position (400, 400), size 200x200 in pixels.
-    import fan;
-
-    int main() {
-      fan::graphics::engine_t engine;
-    
-      fan::graphics::rectangle_t rect{{
-        .position = 400,
-        .size = 200,
-        .color = fan::colors::red
-      }};
-      
-      engine.loop();
-    }
-    ```
-- Text rendering:
+- Hello World Rectangle:
   ```cpp
-  // Creates graphics engine that opens a window and draws:
-  // red text at the top-left of window (0, 0) and
-  // green text at the bottom-right using immediate-mode GUI.
+  import fan;
+
+  int main() {
+    fan::graphics::engine_t engine;
+    
+    // args: position(x,y,z), half_size(w,h), color
+    fan::graphics::rectangle_t rect{
+      fan::vec3(400.f, 400.f, 0.f), 
+      fan::vec2(200.f), 
+      fan::colors::red
+    };
+    
+    engine.loop([&] {
+      // per-frame logic
+    });
+  }
+  ```
+
+- Input & Immediate Mode Rendering:
+  ```cpp
+  import fan;
+
+  int main() {
+    fan::graphics::engine_t engine;
+    fan::vec2 pos = engine.viewport_get_size() / 2.f;
+  
+    engine.loop([&] {
+      pos += fan::window::get_input_vector() * 400.f * engine.get_delta_time();
+      
+      // immediate shapes auto-manage lifetime and draw for one frame
+      // args: position(x, y, z), radius, color
+      fan::graphics::circle(pos, 30.f, fan::colors::aqua);
+    });
+  }
+  ```
+
+- 2D Physics Synchronization
+  ```cpp
   import fan;
   
   int main() {
     fan::graphics::engine_t engine;
-  
-    engine.loop([]{
-      fan::graphics::gui::text("top left", fan::vec2(0, 0), fan::colors::red);
-      fan::graphics::gui::text_bottom_right("bottom right", fan::colors::green);
+    engine.update_physics(true);
+    auto& physics_ctx = engine.get_physics_context();
+    
+    // static ground body
+    fan::physics::body_id_t ground_body_id = physics_ctx.create_rectangle(
+      fan::vec2(400.f, 700.f), 
+      fan::vec2(400.f, 20.f)
+    );
+
+    // visual rectangle natively synced to a dynamic box2d body
+    fan::graphics::physics::rectangle_t box{{
+      .position = fan::vec3(400.f, 100.f, 0.f),
+      .size = fan::vec2(30.f),
+      .color = fan::colors::orange,
+      .body_type = fan::physics::body_type_e::dynamic_body
+    }};
+    
+    engine.loop([&] {
+      if (fan::window::is_mouse_clicked()) {
+        box.apply_linear_impulse_center(fan::vec2(0.f, -800.f));
+      }
+    });
+  }
+  ```
+
+- UI & Camera Tracking
+  ```cpp
+  import fan;
+
+  int main() {
+    fan::graphics::engine_t engine;
+    fan::graphics::sprite_t player{fan::vec3(0.f), fan::vec2(32.f), fan::graphics::image_t{"player.png"}};
+    
+    engine.loop([&] {
+      if (auto gui_wnd = fan::graphics::gui::window("Settings")) {
+        fan::graphics::gui::text("Use WASD to move.");
+      }
+      
+      fan::vec2 player_pos = player.get_position();
+      fan::vec2 new_player_pos = player_pos + fan::window::get_input_vector() * 300.f * engine.get_delta_time();
+      player.set_position(new_player_pos);
+      engine.camera_set_target(new_player_pos, 5.f);
     });
   }
   ```
