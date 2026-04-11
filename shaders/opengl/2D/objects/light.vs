@@ -1,7 +1,7 @@
 #version 330
 
 layout (location = 0) in vec3 in_position;
-layout (location = 1) in float in_parallax_factor;
+layout (location = 1) in vec2 in_parallax_factor;
 layout (location = 2) in vec2 in_size;
 layout (location = 3) in vec2 in_rotation_point;
 layout (location = 4) in vec4 in_color;
@@ -49,9 +49,9 @@ void main() {
 
 	mat4 view_mat = view;
 
-	view_mat[3].xy *= 1 - in_parallax_factor;
+	view_mat[3].xy *= vec2(1.0f) - in_parallax_factor;
 
-	vec2 p = in_position.xy * (1 - in_parallax_factor);
+	vec2 p = in_position.xy * (vec2(1.0f) - in_parallax_factor);
 
 	vec4 fs = vec4(vec4(vec2(x, y) * in_size + in_position.xy, in_position.z, 1));
 	vec4 fs2 = vec4(vec4(vec2(x, y) * in_size + p, in_position.z, 1));

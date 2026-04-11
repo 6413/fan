@@ -80,7 +80,6 @@ void main() {
 
   vec4 selected_color;
 
-  // Map the vertex ID to the corresponding corner color
 if (id == 0u || id == 5u) {
     // Top left corner (y inverted)
     selected_color = in_color[0]; // Assuming index 0 is now top left
