@@ -19,6 +19,8 @@ import fan.types.compile_time_string;
 
 export namespace fan {
 
+  using bytes_t = std::vector<uint8_t>;
+
   template <typename T>
   auto to_string(const T a_value, const int n = 2) {
     std::ostringstream out;
@@ -168,7 +170,7 @@ export namespace fan {
     }
   }
   template <typename T>
-  T vector_read_data(const std::vector<uint8_t>& vec, size_t& off) {
+  T vector_read_data(const bytes_t& vec, size_t& off) {
     if constexpr (std::is_same<std::string, T>::value) {
       uint64_t len = vector_read_data<uint64_t>(vec, off);
       std::string str(len, '\0');
@@ -237,7 +239,7 @@ export namespace fan {
 
 
   template <typename T>
-  void write_to_vector(std::vector<uint8_t>& vec, const T& o) {
+  void write_to_vector(bytes_t& vec, const T& o) {
     if constexpr (std::is_same<std::string, T>::value) {
       uint64_t len = o.size();
       vec.insert(vec.end(), reinterpret_cast<const uint8_t*>(&len), reinterpret_cast<const uint8_t*>(&len + 1));
@@ -254,7 +256,7 @@ export namespace fan {
   }
 
   template <typename T>
-  void read_from_vector(const std::vector<uint8_t>& vec, size_t& off, T& data) {
+  void read_from_vector(const bytes_t& vec, size_t& off, T& data) {
     data = vector_read_data<T>(vec, off);
   }
 
@@ -321,8 +323,7 @@ export namespace fan {
     return result;
   }
 
-
-  std::string base64_encode(const std::vector<uint8_t>& data) {
+  std::string base64_encode(const bytes_t& data) {
     static constexpr char chars[] =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     std::string result;
@@ -354,6 +355,47 @@ export namespace fan {
     f64_t result = 0;
     auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), result);
     return ec == std::errc {} ? result : 0;
+  }
+
+  inline std::string as_chars(const bytes_t& v) { return std::string(v.begin(), v.end()); }
+  inline std::string as_chars(std::string_view v) { return std::string(v); }
+
+  inline std::string as_bytes(const bytes_t& v) {
+    std::string s;
+    for (int i = 0; i < (int)v.size(); ++i)
+      s += std::to_string(v[i]) + (i + 1 < (int)v.size() ? ", " : "");
+    return s;
+  }
+  inline std::string as_bytes(std::string_view v) {
+    std::string s;
+    for (int i = 0; i < (int)v.size(); ++i)
+      s += std::to_string((uint8_t)v[i]) + (i + 1 < (int)v.size() ? ", " : "");
+    return s;
+  }
+
+  std::string xor2hex(const bytes_t& a, const bytes_t& b) {
+    std::ostringstream result;
+    for (int i = 0; i < a.size(); ++i) result << std::hex << (a[i] ^ b[i]);
+    return result.str();
+  }
+
+  std::string xor_bytes(const bytes_t& a, const bytes_t& b) {
+    std::string r;
+    for (int i = 0; i < a.size(); ++i) r += a[i] ^ b[i];
+    return r;
+  }
+
+  bytes_t hex2bytes(const std::string& s) {
+    bytes_t r(s.size() / 2);
+    for (int i = 0; i < r.size(); ++i)
+      r[i] = std::strtol(s.substr(i * 2, 2).c_str(), 0, 16);
+    return r;
+  }
+
+  std::string xor_key(const bytes_t& a, uint8_t key) {
+    std::string r(a.size(), 0);
+    for (int i = 0; i < a.size(); ++i) r[i] = a[i] ^ key;
+    return r;
   }
 
   #define fan_enum_string_runtime(m_name, ...) \
