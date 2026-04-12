@@ -57,7 +57,7 @@ namespace fan::detail {
     uint8_t r = (rgba >> 24) & 0xFF;
     uint8_t g = (rgba >> 16) & 0xFF;
     uint8_t b = (rgba >> 8) & 0xFF;
-    std::cout << "\033[38;2;" << (int)r << ";" << (int)g << ";" << (int)b << "m" << msg << "\033[0m\n";
+    std::cout << "\033[38;2;" << (int)r << ";" << (int)g << ";" << (int)b << "m" << msg << "\033[0m";
   }
 
   void print_throttled_impl(int throttle_ms, std::size_t hash_key, const std::string& msg) {

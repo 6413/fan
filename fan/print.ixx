@@ -65,7 +65,6 @@ export namespace fan {
       else if constexpr (std::is_same_v<std::decay_t<T>, wchar_t>) return std::wstring(1, v);
       else if constexpr (std::is_arithmetic_v<std::decay_t<T>>) return std::to_wstring(v);
       else {
-         // Fallback using the exported formatter function!
          std::string s = fan::format_args(v);
          return std::wstring(s.begin(), s.end());
       }
@@ -123,14 +122,19 @@ export namespace fan {
   }
 
   template <typename ...Args>
-  void print_success(const Args&... args) {
+  void printr_ok(const Args&... args) {
     std::string message = format_args(args...);
     write_error_to_disk(message);
     print_color(fan::colors::green, message);
   }
 
   template <typename ...Args>
-  void print_warning(const Args&... args) {
+  void printr_success(const Args&... args) {
+    printr_ok(args...);
+  }
+
+  template <typename ...Args>
+  void printr_warning(const Args&... args) {
   #ifndef fan_disable_warnings
     std::string message = format_args(args...);
     write_error_to_disk(message);
@@ -139,11 +143,35 @@ export namespace fan {
   }
 
   template <typename ...Args>
-  void print_error(const Args&... args) {
+  void printr_error(const Args&... args) {
   #ifndef fan_disable_errors
     std::string message = format_args(args...);
     write_error_to_disk(message);
     print_color(fan::colors::red, message);
+  #endif
+  }
+
+  template <typename ...Args>
+  void print_ok(const Args&... args) {
+    printr_ok(args..., "\n");
+  }
+
+  template <typename ...Args>
+  void print_success(const Args&... args) {
+    print_ok(args...);
+  }
+
+  template <typename ...Args>
+  void print_warning(const Args&... args) {
+  #ifndef fan_disable_warnings
+    printr_warning(args..., "\n");
+  #endif
+  }
+
+  template <typename ...Args>
+  void print_error(const Args&... args) {
+  #ifndef fan_disable_errors
+    printr_error(args..., "\n");
   #endif
   }
 
@@ -179,28 +207,38 @@ export namespace fan {
   }
 
   void print_results(const auto& result, const auto& expected) {
-  if (result != expected) {
-    std::string a = result;
-    std::string b = expected;
-    char failed_char_pos = 0;
-    for (int i = 0; i < a.size() && i < b.size(); ++i) {
-      if (a[i] != b[i]) {
-        failed_char_pos = i;
-        break;
+    if (result != expected) {
+      std::string a = result;
+      std::string b = expected;
+      char failed_char_pos = 0;
+      for (int i = 0; i < a.size() && i < b.size(); ++i) {
+        if (a[i] != b[i]) {
+          failed_char_pos = i;
+          break;
+        }
       }
+      fan::print_error("FAIL");
+      fan::print_error(result);
+      fan::print_success(expected);
+      for (int spaces = 0; spaces < failed_char_pos; ++spaces) fan::printr(" ");
+      fan::print_error("^");
     }
-    fan::print_error("FAIL");
-    fan::print_error(result);
-    fan::print_success(expected);
-    for (int spaces = 0; spaces < failed_char_pos; ++spaces) fan::printr(" ");
-    fan::print_error("^");
+    else {
+      fan::print_success("SUCCESS");
+      fan::print_success(result);
+      fan::print_success(expected);
+    }
   }
-  else {
-    fan::print_success("SUCCESS");
-    fan::print_success(result);
-    fan::print_success(expected);
+
+  std::string paint(const fan::color& c, const auto&... args) {
+    std::string msg = fan::format_args(args...);
+    uint32_t rgba = c.get_rgba();
+    uint8_t r = (rgba >> 24) & 0xFF, g = (rgba >> 16) & 0xFF, b = (rgba >> 8) & 0xFF;
+    return "\033[38;2;" + std::to_string(r) + ";" + std::to_string(g) + ";" + std::to_string(b) + "m" + msg + "\033[0m";
   }
-}
+  std::string paint_ok(const auto&... args)   { return paint(fan::colors::green,  args...); }
+  std::string paint_warn(const auto&... args) { return paint(fan::colors::yellow, args...); }
+  std::string paint_err(const auto&... args)  { return paint(fan::colors::red,    args...); }
 
   namespace debug {
     void print_stacktrace() {

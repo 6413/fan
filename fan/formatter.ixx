@@ -27,8 +27,8 @@ namespace fan::detail {
     else if constexpr (std::is_convertible_v<T, std::string_view>)            return std::string(static_cast<std::string_view>(v));
     else if constexpr (std::is_convertible_v<T, std::string>)                 return static_cast<std::string>(v);
     else if constexpr (is_std_vector<T>::value) { 
-      std::string str; for (int i = 0; i < v.size(); ++i) str += std::to_string(v[i]) + (i + 1 < v.size() ? ", " : "");
-                                                                              return str;
+      std::string s; for (int i = 0; i < v.size(); ++i) s += std::to_string(v[i]) + (i + 1 < v.size() ? ", " : "");
+                                                                              return s;
     }
     else                                                                      return v.to_string();
   }
