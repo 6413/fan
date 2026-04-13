@@ -368,6 +368,7 @@ export namespace fan::graphics {
       std::array<fan::color, 4> get_colors() const;
       void set_colors(const std::array<fan::color, 4>& colors);
       void set_angle(const fan::vec3& angle);
+      void set_angle(f32_t angle_z);
       fan::vec3 get_angle() const;
       fan::basis get_basis() const;
       fan::vec3 get_forward() const;
@@ -594,9 +595,11 @@ export namespace fan::graphics {
       void remove_children(std::span<const shape_t> children);
       void remove_all_children();
 
-      std::vector<fan::graphics::shapes::shape_t> get_children() const;
+      std::vector<fan::graphics::shapes::shape_t*> get_children() const;
       void for_each_child(std::function<void(shape_t&)> callback) const;
     };
+
+    void update_children();
 
     shaper_t shaper;
 
