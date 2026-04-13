@@ -8,7 +8,7 @@ struct player_t {
   player_t() {
     body.set_draw_offset(fan::vec2(0, body.get_size().y / 1.5f));
     body.set_size(fan::vec2(8, 16));
-    body.set_linear_damping(2000.f);
+    body.set_linear_damping(1500.f);
     light = fan::graphics::light_t(fan::graphics::light_properties_t{
       .position = body.get_position(), .size = 200.f, .color = fan::colors::white / 4.f
     });
@@ -23,8 +23,12 @@ struct player_t {
     fan::vec3 pos = body.get_position();
     light.set_position(pos);
     gloco()->camera_move_to_smooth(body);
-
-    pos.z = fan::graphics::get_depth_from_y(pos.xy(), 64.f);
+    if (auto w = gui::window("A")){
+      static f32_t v = 0.f;
+      gui::drag(&v);
+    float feet_y = pos.y + body.get_size().y / 2.f;
+    pos.z = fan::graphics::get_depth_from_y(fan::vec2(pos.x, feet_y), 32.f * 3.f) + v;
+    }
     body.set_position(pos);
   }
 };

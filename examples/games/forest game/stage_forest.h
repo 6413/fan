@@ -1,21 +1,21 @@
-//void create_manual_collisions(std::vector<fan::physics::entity_t>& collisions, fan::algorithm::path_solver_t& path_solver) {
-//  for (auto& x : main_compiled_map->compiled_shapes) {
-//    for (auto& y : x) {
-//      for (auto& z : y) {
-//        if (gloco()->texture_pack[z.texture_pack_unique_id].name == "tile0" || gloco()->texture_pack[z.texture_pack_unique_id].name == "tile1" || gloco()->texture_pack[z.texture_pack_unique_id].name == "tile2") {
-//          collisions.push_back(pile.loco.physics_context.create_circle(
-//            fan::vec2(z.position) + fan::vec2(0, z.size.y / 2),
-//            z.size.y / 2.f,
-//            0,
-//            fan::physics::body_type_e::static_body,
-//            fan::physics::shape_properties_t{ .friction = 0 }
-//          ));
-//          path_solver.add_collision(fan::vec3(fan::vec2(z.position) + fan::vec2(0, z.size.y / 2), 50000));
-//        }
-//      }
-//    }
-//  }
-//}
+void create_manual_collisions(std::vector<fan::physics::entity_t>& collisions) {
+  for (auto& x : main_compiled_map->compiled_shapes) {
+    for (auto& y : x) {
+      for (auto& z : y) {
+        if (gloco()->texture_pack[z.texture_pack_unique_id].name == "tile0" || gloco()->texture_pack[z.texture_pack_unique_id].name == "tile1" || gloco()->texture_pack[z.texture_pack_unique_id].name == "tile2") {
+          collisions.push_back(pile.loco.get_physics_context().create_circle(
+            fan::vec2(z.position) + fan::vec2(0, z.size.y / 2),
+            z.size.y / 2.f,
+            0,
+            fan::physics::body_type_e::static_body,
+            fan::physics::shape_properties_t{ .friction = 0 }
+          ));
+          //path_solver.add_collision(fan::vec3(fan::vec2(z.position) + fan::vec2(0, z.size.y / 2), 50000));
+        }
+      }
+    }
+  }
+}
 
 void open(void* sod) {
   fan::time::timer t{ true };
@@ -28,7 +28,7 @@ void open(void* sod) {
   p.position = pile.player.body.get_position();
   main_map_id = pile.renderer.add(main_compiled_map, p);
   //pile.path_solver = fan::algorithm::path_solver_t(main_compiled_map->map_size * 2, main_compiled_map->tile_size * 2);
-  //create_manual_collisions(collisions, pile.path_solver);
+  create_manual_collisions(collisions);
 
   player_sensor_door = pile.renderer.get_physics_body(main_map_id, "player_sensor_door");
   if (player_sensor_door.is_valid() == false) {
