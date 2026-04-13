@@ -85,7 +85,7 @@
     fan::vec2 pos = engine.viewport_get_size() / 2.f;
   
     engine.loop([&] {
-      pos += engine.get_input_vector() * 400.f * engine.get_delta_time();
+      pos += engine.get_input_vector(400.f) * engine.get_delta_time();
       
       // immediate shapes auto-manage lifetime and draw for one frame
       // args: position(x, y, z), radius, color
@@ -143,7 +143,7 @@
       }
       
       fan::vec2 player_pos = player.get_position();
-      fan::vec2 new_player_pos = player_pos + engine.get_input_vector() * 300.f * engine.get_delta_time();
+      fan::vec2 new_player_pos = player_pos + engine.get_input_vector(300.f) * engine.get_delta_time();
       player.set_position(new_player_pos);
       // args: pos, dt
       engine.camera_set_target(new_player_pos, 5.f);
