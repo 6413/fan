@@ -134,7 +134,7 @@
     fan::graphics::sprite_t player{
       fan::vec3(0.f), 
       fan::vec2(32.f), 
-      fan::graphics::image_t{"player.png"}
+      "player.png"
     };
     
     engine.loop([&] {
