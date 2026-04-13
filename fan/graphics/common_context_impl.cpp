@@ -367,6 +367,9 @@ namespace fan::window {
     }
     return v;
   }
+  fan::vec2 get_input_vector(fan::vec2 scalar) {
+    return get_input_vector() * scalar;
+  }
   fan::vec2 get_size() {
     return fan::graphics::ctx().window->get_size();
   }
@@ -457,67 +460,67 @@ namespace fan::window {
 
 
 namespace fan::graphics {
-  fan::graphics::image_nr_t image_create() {
+  fan::graphics::image_t image_create() {
     return fan::graphics::ctx()->image_create(fan::graphics::ctx());
   }
 
-  uint64_t image_get_handle(fan::graphics::image_nr_t nr) {
+  uint64_t image_get_handle(fan::graphics::image_t nr) {
     return fan::graphics::ctx()->image_get_handle(fan::graphics::ctx(), nr);
   }
 
-  void image_erase(fan::graphics::image_nr_t nr) {
+  void image_erase(fan::graphics::image_t nr) {
     fan::graphics::ctx()->image_erase(fan::graphics::ctx(), nr);
   }
 
-  void image_bind(fan::graphics::image_nr_t nr) {
+  void image_bind(fan::graphics::image_t nr) {
     fan::graphics::ctx()->image_bind(fan::graphics::ctx(), nr);
   }
 
-  void image_unbind(fan::graphics::image_nr_t nr) {
+  void image_unbind(fan::graphics::image_t nr) {
     fan::graphics::ctx()->image_unbind(fan::graphics::ctx(), nr);
   }
 
-  fan::graphics::image_load_properties_t& image_get_settings(fan::graphics::image_nr_t nr) {
+  fan::graphics::image_load_properties_t& image_get_settings(fan::graphics::image_t nr) {
     return fan::graphics::ctx()->image_get_settings(fan::graphics::ctx(), nr);
   }
 
-  void image_set_settings(fan::graphics::image_nr_t nr, const fan::graphics::image_load_properties_t& settings) {
+  void image_set_settings(fan::graphics::image_t nr, const fan::graphics::image_load_properties_t& settings) {
     fan::graphics::ctx()->image_set_settings(fan::graphics::ctx(), nr, settings);
   }
 
-  fan::graphics::image_nr_t image_load(const fan::image::info_t& image_info) {
+  fan::graphics::image_t image_load(const fan::image::info_t& image_info) {
     return fan::graphics::ctx()->image_load_info(fan::graphics::ctx(), image_info);
   }
 
-  fan::graphics::image_nr_t image_load(const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
+  fan::graphics::image_t image_load(const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
     return fan::graphics::ctx()->image_load_info_props(fan::graphics::ctx(), image_info, p);
   }
 
-  fan::graphics::image_nr_t image_load(const std::string& path, const std::source_location& callers_path) {
+  fan::graphics::image_t image_load(const std::string& path, const std::source_location& callers_path) {
     return fan::graphics::ctx()->image_load_path(fan::graphics::ctx(), path, callers_path);
   }
 
-  fan::graphics::image_nr_t image_load(const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path) {
+  fan::graphics::image_t image_load(const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path) {
     return fan::graphics::ctx()->image_load_path_props(fan::graphics::ctx(), path, p, callers_path);
   }
 
-  fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size) {
+  fan::graphics::image_t image_load(fan::color* colors, const fan::vec2ui& size) {
     return fan::graphics::ctx()->image_load_colors(fan::graphics::ctx(), colors, size);
   }
 
-  fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p) {
+  fan::graphics::image_t image_load(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p) {
     return fan::graphics::ctx()->image_load_colors_props(fan::graphics::ctx(), colors, size, p);
   }
 
-  fan::graphics::image_nr_t image_load(std::span<const fan::color> colors, const fan::vec2ui& size) {
+  fan::graphics::image_t image_load(std::span<const fan::color> colors, const fan::vec2ui& size) {
     return fan::graphics::ctx()->image_load_colors_props(fan::graphics::ctx(), const_cast<fan::color*>(colors.data()), size, image_presets::pixel_art());
   }
 
-  void image_unload(fan::graphics::image_nr_t nr) {
+  void image_unload(fan::graphics::image_t nr) {
     fan::graphics::ctx()->image_unload(fan::graphics::ctx(), nr);
   }
 
-  bool is_image_valid(fan::graphics::image_nr_t nr) {
+  bool is_image_valid(fan::graphics::image_t nr) {
     return nr != fan::graphics::ctx().default_texture && nr.iic() == false;
   }
 
@@ -529,35 +532,35 @@ namespace fan::graphics {
     return image_load(path, image_presets::smooth());
   }
 
-  fan::graphics::image_nr_t create_missing_texture() {
+  fan::graphics::image_t create_missing_texture() {
     return fan::graphics::ctx()->create_missing_texture(fan::graphics::ctx());
   }
 
-  fan::graphics::image_nr_t create_transparent_texture() {
+  fan::graphics::image_t create_transparent_texture() {
     return fan::graphics::ctx()->create_transparent_texture(fan::graphics::ctx());
   }
 
-  void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info) {
+  void image_reload(fan::graphics::image_t nr, const fan::image::info_t& image_info) {
     fan::graphics::ctx()->image_reload_image_info(fan::graphics::ctx(), nr, image_info);
   }
 
-  void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
+  void image_reload(fan::graphics::image_t nr, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
     fan::graphics::ctx()->image_reload_image_info_props(fan::graphics::ctx(), nr, image_info, p);
   }
 
-  void image_reload(fan::graphics::image_nr_t nr, const std::string& path, const std::source_location& callers_path) {
+  void image_reload(fan::graphics::image_t nr, const std::string& path, const std::source_location& callers_path) {
     fan::graphics::ctx()->image_reload_path(fan::graphics::ctx(), nr, path, callers_path);
   }
 
-  void image_reload(fan::graphics::image_nr_t nr, const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path) {
+  void image_reload(fan::graphics::image_t nr, const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path) {
     fan::graphics::ctx()->image_reload_path_props(fan::graphics::ctx(), nr, path, p, callers_path);
   }
 
-  fan::graphics::image_nr_t image_create(const fan::color& color) {
+  fan::graphics::image_t image_create(const fan::color& color) {
     return fan::graphics::ctx()->image_create_color(fan::graphics::ctx(), color);
   }
 
-  fan::graphics::image_nr_t image_create(const fan::color& color, const fan::graphics::image_load_properties_t& p) {
+  fan::graphics::image_t image_create(const fan::color& color, const fan::graphics::image_load_properties_t& p) {
     return fan::graphics::ctx()->image_create_color_props(fan::graphics::ctx(), color, p);
   }
 

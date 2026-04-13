@@ -605,6 +605,7 @@ export namespace fan {
       const std::string& left = fan::actions::move_left,
       const std::string& right = fan::actions::move_right
     );
+    fan::vec2 get_input_vector(fan::vec2 scalar);
     fan::vec2 get_size();
     void set_size(const fan::vec2& size);
     fan::vec2 get_mouse_position();
@@ -634,34 +635,34 @@ export namespace fan {
 ///////////////////////////////////////////////////////////////////////////////////////
 
 export namespace fan::graphics {
-  fan::graphics::image_nr_t image_create();
-  uint64_t image_get_handle(fan::graphics::image_nr_t nr);
-  void image_erase(fan::graphics::image_nr_t nr);
-  void image_bind(fan::graphics::image_nr_t nr);
-  void image_unbind(fan::graphics::image_nr_t nr);
-  fan::graphics::image_load_properties_t& image_get_settings(fan::graphics::image_nr_t nr);
-  void image_set_settings(fan::graphics::image_nr_t nr, const fan::graphics::image_load_properties_t& settings);
-  fan::graphics::image_nr_t image_load(const fan::image::info_t& image_info);
-  fan::graphics::image_nr_t image_load(const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p);
-  fan::graphics::image_nr_t image_load(const std::string& path, const std::source_location& callers_path = std::source_location::current());
-  fan::graphics::image_nr_t image_load(const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current());
-  fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size);
-  fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p);
-  fan::graphics::image_nr_t image_load(std::span<const fan::color> colors, const fan::vec2ui& size);
-  void image_unload(fan::graphics::image_nr_t nr);
-  bool is_image_valid(fan::graphics::image_nr_t nr);
+  fan::graphics::image_t image_create();
+  uint64_t image_get_handle(fan::graphics::image_t nr);
+  void image_erase(fan::graphics::image_t nr);
+  void image_bind(fan::graphics::image_t nr);
+  void image_unbind(fan::graphics::image_t nr);
+  fan::graphics::image_load_properties_t& image_get_settings(fan::graphics::image_t nr);
+  void image_set_settings(fan::graphics::image_t nr, const fan::graphics::image_load_properties_t& settings);
+  fan::graphics::image_t image_load(const fan::image::info_t& image_info);
+  fan::graphics::image_t image_load(const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p);
+  fan::graphics::image_t image_load(const std::string& path, const std::source_location& callers_path = std::source_location::current());
+  fan::graphics::image_t image_load(const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current());
+  fan::graphics::image_t image_load(fan::color* colors, const fan::vec2ui& size);
+  fan::graphics::image_t image_load(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p);
+  fan::graphics::image_t image_load(std::span<const fan::color> colors, const fan::vec2ui& size);
+  void image_unload(fan::graphics::image_t nr);
+  bool is_image_valid(fan::graphics::image_t nr);
   fan::graphics::image_t image_load_pixel_art(const std::string& path);
   fan::graphics::image_t image_load_smooth(const std::string& path);
-  fan::graphics::image_nr_t create_missing_texture();
-  fan::graphics::image_nr_t create_transparent_texture();
-  void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info);
-  void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p);
-  void image_reload(fan::graphics::image_nr_t nr, const std::string& path, const std::source_location& callers_path = std::source_location::current());
-  void image_reload(fan::graphics::image_nr_t nr, const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current());
-  fan::graphics::image_nr_t image_create(const fan::color& color);
-  fan::graphics::image_nr_t image_create(const fan::color& color, const fan::graphics::image_load_properties_t& p);
+  fan::graphics::image_t create_missing_texture();
+  fan::graphics::image_t create_transparent_texture();
+  void image_reload(fan::graphics::image_t nr, const fan::image::info_t& image_info);
+  void image_reload(fan::graphics::image_t nr, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p);
+  void image_reload(fan::graphics::image_t nr, const std::string& path, const std::source_location& callers_path = std::source_location::current());
+  void image_reload(fan::graphics::image_t nr, const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current());
+  fan::graphics::image_t image_create(const fan::color& color);
+  fan::graphics::image_t image_create(const fan::color& color, const fan::graphics::image_load_properties_t& p);
   std::vector<uint8_t> read_pixels(const fan::vec2& position, const fan::vec2& size);
-  std::vector<uint8_t> read_pixels_from_image(fan::graphics::image_nr_t nr, const fan::vec2& uv_position = 0, const fan::vec2& uv_size = 1);
+  std::vector<uint8_t> read_pixels_from_image(fan::graphics::image_t nr, const fan::vec2& uv_position = 0, const fan::vec2& uv_size = 1);
 
   fan::graphics::shader_t shader_create();
   fan::graphics::shader_t shader_create(

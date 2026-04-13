@@ -339,4 +339,10 @@ export namespace fan {
       args_pack{}
     );
   }
+
+  template<FAN_UNIQUE_CALL, typename T = f32_t>
+  auto& static_var() {
+    static T var{};
+    return var;
+  }
 }

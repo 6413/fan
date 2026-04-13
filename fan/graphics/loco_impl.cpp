@@ -1844,6 +1844,8 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
       m_update_callback[it](this);
       it = m_update_callback.EndSafeNext();
     }
+
+    shapes.update_children();
   }
 
   cb();
@@ -1930,6 +1932,10 @@ fan::vec2 loco_t::get_input_vector(
     return v2;
   }
   return v;
+}
+
+fan::vec2 loco_t::get_input_vector(fan::vec2 scalar) {
+  return get_input_vector() * scalar;
 }
 
 fan::vec2 loco_t::transform_matrix(const fan::vec2& position) {
