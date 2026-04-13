@@ -4,7 +4,6 @@
 #include <coroutine>
 #include <string>
 #include <fstream>
-#include <fan/graphics/2D/algorithm/astar.h>
 
 import fan;
 import fan.graphics.gui.tilemap_editor.renderer;
@@ -44,16 +43,13 @@ struct pile_t {
     fan::graphics::gui::set_viewport(loco.orthographic_render_view.viewport);
 
     //pile.weather.rain_particles.set_position(fan::vec3(1200, -900, 50000));
-
-    // physics step
-    loco.physics_context.step(loco.delta_time);
   }
 
   loco_t loco;
   player_t player;
   tilemap_renderer_t renderer;
 
-  fan::algorithm::path_solver_t path_solver;
+  //fan::pathfind::path_solver_t path_solver;
 
   weather_t weather;
 
@@ -84,9 +80,9 @@ lstd_defstruct(stage_forest_t)
 pile_t::pile_t() {
 
   fan::graphics::image_load_properties_t lp;
-  lp.visual_output = fan::graphics::image_sampler_address_mode::clamp_to_border;
-  lp.min_filter = fan::graphics::image_filter::nearest;
-  lp.mag_filter = fan::graphics::image_filter::nearest;
+  lp.visual_output = fan::graphics::image_sampler_address_mode_e::clamp_to_border;
+  lp.min_filter = fan::graphics::image_filter_e::nearest;
+  lp.mag_filter = fan::graphics::image_filter_e::nearest;
 
   gloco()->texture_pack.open_compiled("examples/games/forest game/tileset.ftp", lp);
 
@@ -101,14 +97,16 @@ pile_t::pile_t() {
   maps_compiled[stage_shop_t::stage_name] = renderer.compile("examples/games/forest game/shop/shop.fte");
 
   current_stage = stage_loader.open_stage<stage_forest_t>().NRI;
+
+  loco.update_physics(true);
 }
 
 void weather_t::lightning() {
   fan_ev_timer_loop(4000, { on = !on; });
   if (on) {
   //  pile.loco.lighting.ambient = fan::color::hsv(224.0, std::max(sin(sin_var * 2), 0.f) * 100.f, std::max(sin(sin_var), 0.f) * 100.f);
-    sin_var += pile.loco.delta_time * 10;
-    lightning_duration += pile.loco.delta_time;
+    sin_var += pile.loco.get_delta_time() * 10;
+    lightning_duration += pile.loco.get_delta_time();
     
     if (lightning_duration >= 1.0f) {
       lightning_duration = 0;
@@ -132,11 +130,11 @@ void weather_t::load_rain(fan::graphics::shape_t& rain_particles) {
 }
 
 int main() {
-  pile.loco.clear_color = 0;
+  pile.loco.get_clear_color() = 0;
   pile.player.body.movement_state.acceleration_force = 50;
   pile.player.body.movement_state.max_speed = 1000;
 
-  fan::graphics::physics::debug_draw(true);
+  //fan::graphics::physics::debug_draw(true);
 
   fan::graphics::interactive_camera_t ic(
     pile.loco.orthographic_render_view.camera, 

@@ -586,6 +586,16 @@ export namespace fan::graphics {
       }
 
       std::string_view get_name() const;
+
+      void add_child(const shape_t& child);
+      void add_children(std::span<const shape_t> children);
+
+      void remove_child(const shape_t& child);
+      void remove_children(std::span<const shape_t> children);
+      void remove_all_children();
+
+      std::vector<fan::graphics::shapes::shape_t> get_children() const;
+      void for_each_child(std::function<void(shape_t&)> callback) const;
     };
 
     shaper_t shaper;
@@ -1784,12 +1794,18 @@ export namespace fan::graphics {
     void cancel_current();
     animation_state_t& get_state(const std::string& name);
     void update_image_sign(fan::graphics::shapes::shape_t& shape, const fan::vec2& direction);
-    void enable_directional(const directional_config_t& config);
+    void enable_directional(const directional_config_t& config = {});
     void add_directional_state(const std::string& animation_name, uint8_t direction);
     void set_idle_animation(const std::string& name, f32_t threshold);
     void override_animation(uint8_t direction, const std::string& name);
     sprite_sheet_controller_t& set_direction_animation(uint8_t direction, const std::string& name);
     void use_preset_2d();
+
+    void load_animations(
+      fan::graphics::shapes::shape_t& body, 
+      const std::string& base_path, 
+      const std::source_location& callers_path = std::source_location::current()
+    );
 
     std::vector<animation_state_t> states;
     std::unordered_map<uint8_t, std::string> direction_map;

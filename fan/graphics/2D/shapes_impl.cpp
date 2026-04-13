@@ -12,6 +12,7 @@ module;
 #include <filesystem>
 #include <fstream>
 #include <utility>
+#include <unordered_set>
 
 #include <fan/graphics/shape_macros.h>
 
@@ -2978,9 +2979,185 @@ void fan::graphics::shapes::shape_t::get_gldata_impl(void* dst, size_t size, siz
   );
 }
 
-#endif
+namespace {
+  struct child_node_t {
+    fan::graphics::shapes::shape_t shape;
+    fan::vec3 local_pos;
+    fan::vec2 local_size;
+    fan::vec3 local_angle;
+  };
 
-#if defined(FAN_2D)
+  std::unordered_map<decltype(fan::graphics::shapes::shape_t::NRI), std::vector<child_node_t>> shape_hierarchy;
+  std::unordered_set<decltype(fan::graphics::shapes::shape_t::NRI)> has_parent;
+
+  void update_node_recursive(
+    decltype(fan::graphics::shapes::shape_t::NRI) nri, 
+    const fan::vec3& p_pos, 
+    const fan::vec2& p_size, 
+    const fan::vec3& p_angle, 
+    const fan::vec2& p_rot_point
+  ) {
+    auto it = shape_hierarchy.find(nri);
+    if (it == shape_hierarchy.end()) {
+      return;
+    }
+
+    f32_t c = std::cos(p_angle.z);
+    f32_t s = std::sin(p_angle.z);
+
+    std::erase_if(it->second, [](const child_node_t& child) {
+      if (!child.shape) {
+        has_parent.erase(child.shape.NRI);
+        return true;
+      }
+      return false;
+    });
+
+    for (auto& child : it->second) {
+      fan::vec3 offset{
+        child.local_pos.x * c - child.local_pos.y * s,
+        child.local_pos.x * s + child.local_pos.y * c,
+        child.local_pos.z
+      };
+
+      child.shape.set_position(p_pos + offset);
+      child.shape.set_size(p_size * child.local_size);
+      child.shape.set_angle(p_angle + child.local_angle);
+      child.shape.set_rotation_point(p_rot_point);
+
+      update_node_recursive(
+        child.shape.NRI, 
+        child.shape.get_position(), 
+        child.shape.get_size(), 
+        child.shape.get_angle(), 
+        p_rot_point
+      );
+    }
+  }
+}
+
+namespace fan::graphics {
+
+  void shapes::shape_t::add_child(const shape_t& child) {
+    if (!*this || !child) {
+      return;
+    }
+
+    fan::vec3 local_pos = child.get_position() - get_position();
+    f32_t c = std::cos(-get_angle().z);
+    f32_t s = std::sin(-get_angle().z);
+
+    fan::vec3 neutral_pos{
+      local_pos.x * c - local_pos.y * s,
+      local_pos.x * s + local_pos.y * c,
+      local_pos.z
+    };
+
+    shape_hierarchy[NRI].push_back({
+      child, 
+      neutral_pos, 
+      child.get_size() / get_size(), 
+      child.get_angle() - get_angle()
+    });
+    has_parent.insert(child.NRI);
+  }
+
+  void shapes::shape_t::add_children(std::span<const shape_t> children) {
+    for (const auto& child : children) {
+      add_child(child);
+    }
+  }
+
+  void shapes::shape_t::remove_child(const shape_t& child) {
+    auto it = shape_hierarchy.find(NRI);
+    if (it != shape_hierarchy.end()) {
+      std::erase_if(it->second, [&](const child_node_t& c) { 
+        if (c.shape.NRI == child.NRI) {
+          has_parent.erase(c.shape.NRI);
+          return true;
+        }
+        return false;
+      });
+    }
+  }
+
+  void shapes::shape_t::remove_children(std::span<const shape_t> children) {
+    auto it = shape_hierarchy.find(NRI);
+    if (it != shape_hierarchy.end()) {
+      std::erase_if(it->second, [&](const child_node_t& c) {
+        for (const auto& target : children) {
+          if (c.shape.NRI == target.NRI) {
+            has_parent.erase(c.shape.NRI);
+            return true;
+          }
+        }
+        return false;
+      });
+    }
+  }
+
+  void shapes::shape_t::remove_all_children() {
+    auto it = shape_hierarchy.find(NRI);
+    if (it != shape_hierarchy.end()) {
+      for (const auto& c : it->second) {
+        has_parent.erase(c.shape.NRI);
+      }
+      shape_hierarchy.erase(it);
+    }
+  }
+
+  std::vector<fan::graphics::shapes::shape_t> shapes::shape_t::get_children() const {
+    std::vector<shape_t> result;
+    auto it = shape_hierarchy.find(NRI);
+    if (it != shape_hierarchy.end()) {
+      result.reserve(it->second.size());
+      for (const auto& c : it->second) {
+        if (c.shape) {
+          result.push_back(c.shape);
+        }
+      }
+    }
+    return result;
+  }
+
+  void shapes::shape_t::for_each_child(std::function<void(shape_t&)> callback) const {
+    auto it = shape_hierarchy.find(NRI);
+    if (it != shape_hierarchy.end()) {
+      for (auto& c : it->second) {
+        if (c.shape) {
+          callback(c.shape);
+        }
+      }
+    }
+  }
+
+  void update_children() {
+    for (auto it = shape_hierarchy.begin(); it != shape_hierarchy.end(); ) {
+      shape_t parent;
+      parent.gint() = it->first;
+
+      if (!parent) {
+        for (const auto& c : it->second) {
+          has_parent.erase(c.shape.NRI);
+        }
+        it = shape_hierarchy.erase(it);
+        continue;
+      }
+
+      if (!has_parent.contains(parent.NRI)) {
+        update_node_recursive(
+          parent.NRI, 
+          parent.get_position(), 
+          parent.get_size(), 
+          parent.get_angle(), 
+          parent.get_rotation_point()
+        );
+      }
+      ++it;
+    }
+  }
+
+}
 
 #if defined(FAN_JSON)
 namespace fan::graphics {
@@ -3758,10 +3935,11 @@ namespace fan::graphics {
   }
 
   void sprite_sheet_controller_t::update(fan::graphics::shapes::shape_t& shape, const fan::vec2& velocity) {
-    last_direction = velocity;
-    if (auto_flip_sprite) {
-      update_image_sign(shape, velocity);
+    f32_t len = velocity.length();
+    if (len > 0.01f) {
+      desired_facing = velocity / len;
     }
+    last_direction = velocity;
 
     g_shapes->visit_shape_draw_data(shape.NRI, [&](auto& props) {
       if constexpr (requires { props.sprite_sheet_data; }) {
@@ -3777,49 +3955,22 @@ namespace fan::graphics {
     });
 
     for (auto& state : states) {
-      bool triggered = state.condition(shape);
+      if (!state.condition(shape)) continue;
 
-      if (state.trigger_type == animation_state_t::one_shot) {
-        if (triggered && !state.is_playing) {
-          for (auto& other : states) {
-            other.is_playing = false;
-          }
-          state.is_playing = true;
-          if (prev_animation_id != state.animation_id) {
-            shape.set_current_sprite_sheet_id(state.animation_id);
-            shape.reset_current_sprite_sheet();
-            current_animation_requires_velocity_fps = state.velocity_based_fps;
-            if (!state.velocity_based_fps) {
-              shape.set_sprite_sheet_fps(state.fps);
-            }
-            prev_animation_id = state.animation_id;
-          }
+      if (prev_animation_id != state.animation_id) {
+        shape.set_current_sprite_sheet_id(state.animation_id);
+        shape.reset_current_sprite_sheet();
+        shape.play_sprite_sheet();
+        if (!state.velocity_based_fps) {
+          shape.set_sprite_sheet_fps(state.fps);
         }
-        if (state.is_playing && shape.is_sprite_sheet_finished(state.animation_id)) {
-          state.is_playing = false;
-          continue;
-        }
-        if (state.is_playing) {
-          return;
-        }
+        prev_animation_id = state.animation_id;
       }
-      else if (triggered) {
-        if (prev_animation_id != state.animation_id) {
-          shape.set_current_sprite_sheet_id(state.animation_id);
-          shape.reset_current_sprite_sheet();
-          current_animation_requires_velocity_fps = state.velocity_based_fps;
-          if (!state.velocity_based_fps) {
-            shape.set_sprite_sheet_fps(state.fps);
-          }
-          prev_animation_id = state.animation_id;
-        }
 
-        if (state.velocity_based_fps) {
-          f32_t speed = fan::math::clamp((f32_t)velocity.length() / 100.f + 0.35f, 0.f, 1.f);
-          shape.set_sprite_sheet_fps(state.fps * speed);
-        }
-        return;
+      if (state.velocity_based_fps) {
+        shape.set_sprite_sheet_fps(state.fps * fan::math::clamp(len / 100.f + 0.35f, 0.f, 1.f));
       }
+      return;
     }
   }
 
@@ -3967,6 +4118,35 @@ namespace fan::graphics {
 
   void sprite_sheet_controller_t::use_preset_2d() {
     enable_directional({});
+  }
+
+  void sprite_sheet_controller_t::load_animations(fan::graphics::shapes::shape_t& body, const std::string& base_path, const std::source_location& callers_path) {
+    auto lp = fan::graphics::image_presets::pixel_art();
+    for (const std::string dir : {"down", "up", "left", "right"}) {
+      fan::graphics::image_t idle {base_path + "/static_" + dir + ".png", lp, callers_path};
+      body.add_sprite_sheet(fan::graphics::sprite_sheet_t("idle_" + dir, 1, {idle}));
+      body.add_sprite_sheet(fan::graphics::sprite_sheet_t("move_" + dir, 6, {
+        {base_path + "/" + dir + "_left_hand_forward.png", lp, callers_path}, idle,
+        {base_path + "/" + dir + "_right_hand_forward.png", lp, callers_path}, idle
+      }));
+    }
+
+    auto get_dir = [this] {
+      if (std::abs(desired_facing.x) > std::abs(desired_facing.y)) return desired_facing.x > 0 ? "right" : "left";
+      return desired_facing.y > 0 ? "down" : "up";
+    };
+
+    for (const std::string dir : {"down", "up", "left", "right"}) {
+      add_state({.name = "idle_" + dir, .condition = [this, dir, get_dir](auto&) {
+        return last_direction.length() < idle_threshold && get_dir() == dir;
+      }});
+    }
+
+    auto has_speed = [this](auto&) { return last_direction.length() >= idle_threshold; };
+    add_state({.name = "move_up", .velocity_based_fps = true, .condition = [this, has_speed](auto& s) { return has_speed(s) && desired_facing.y < -0.5f; }});
+    add_state({.name = "move_down", .velocity_based_fps = true, .condition = [this, has_speed](auto& s) { return has_speed(s) && desired_facing.y > 0.5f; }});
+    add_state({.name = "move_left", .velocity_based_fps = true, .condition = [this, has_speed](auto& s) { return has_speed(s) && desired_facing.x < -0.5f; }});
+    add_state({.name = "move_right", .velocity_based_fps = true, .condition = [this, has_speed](auto& s) { return has_speed(s) && desired_facing.x > 0.5f; }});
   }
 }
 

@@ -456,8 +456,8 @@ export namespace fan::graphics {
       sprite_sheet_t::image_t& assign(const fan::json& j, const std::source_location& callers_path = std::source_location::current());
     #endif
     };
-    sprite_sheet_t();
-    ~sprite_sheet_t();
+    sprite_sheet_t() = default;
+    sprite_sheet_t(const std::string& name, int fps, const std::vector<fan::graphics::image_t>& frame_images);
     std::vector<int> selected_frames;
     std::vector<sprite_sheet_t::image_t> images;
     std::string name;
