@@ -41,8 +41,19 @@ namespace fan::graphics {
   }
 #endif
 
-  sprite_sheet_t::sprite_sheet_t() {}
-  sprite_sheet_t::~sprite_sheet_t() {}
+  sprite_sheet_t::sprite_sheet_t(const std::string& name, int fps, const std::vector<fan::graphics::image_t>& frame_images) {
+    this->name = name;
+    this->fps = fps;
+    this->loop = true;
+    for (int i = 0; i < frame_images.size(); ++i) {
+      sprite_sheet_t::image_t frame;
+      frame.image = frame_images[i];
+      frame.hframes = 1;
+      frame.vframes = 1;
+      this->images.push_back(frame);
+      this->selected_frames.push_back(i);
+    }
+  }
 
 #if defined(FAN_JSON)
   sprite_sheet_t::image_t::operator fan::json() const {
