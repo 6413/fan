@@ -95,9 +95,9 @@ namespace fan::graphics {
     : fan::graphics::image_nr_t(ctx()->image_load_path_props(ctx(), path, lp, callers_path)) {}
   image_t::image_t(const char* path, const std::source_location& callers_path) : 
       image_t(fan::str_view_t(path), callers_path) { }
-  image_t::image_t(const fan::image::info_t& info, const std::source_location&)
+  image_t::image_t(const fan::image::info_t& info)
     : fan::graphics::image_nr_t(ctx()->image_load_info(ctx(), info)) {}
-  image_t::image_t(const fan::image::info_t& info, const fan::graphics::image_load_properties_t& lp, const std::source_location&)
+  image_t::image_t(const fan::image::info_t& info, const fan::graphics::image_load_properties_t& lp)
     : fan::graphics::image_nr_t(ctx()->image_load_info_props(ctx(), info, lp)) {}
   image_t::image_t(fan::color* colors, const fan::vec2ui& size)
     : fan::graphics::image_nr_t(ctx()->image_load_colors(ctx(), colors, size)) {}
