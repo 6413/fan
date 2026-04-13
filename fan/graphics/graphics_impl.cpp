@@ -189,8 +189,10 @@ namespace fan::graphics {
     );
   }
 
-  sprite_t::sprite_t(const char* path)
-    : sprite_t(POSITION3_WINDOW_CENTER, POSITION2_WINDOW_CENTER, fan::graphics::image_t(path)) { }
+  sprite_t::sprite_t(
+    const fan::graphics::image_t& image,
+    const fan::vec3& position, 
+    const fan::vec2& size) : sprite_t(position, size, image) {}
 
   sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view)
     : sprite_t(sprite_properties_t {

@@ -442,6 +442,7 @@ public:
     const std::string& left = fan::actions::move_left,
     const std::string& right = fan::actions::move_right
   );
+  fan::vec2 get_input_vector(fan::vec2 scalar);
   fan::vec2 transform_matrix(const fan::vec2& position);
   fan::vec2 screen_to_ndc(const fan::vec2& screen_pos);
   fan::vec2 ndc_to_screen(const fan::vec2& ndc_position);

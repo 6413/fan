@@ -1416,6 +1416,9 @@ namespace fan::graphics{
 
   SHAPE_PROP_SIMPLE(fan::color, color);
   SHAPE_PROP_SIMPLE(fan::vec3,  angle);
+  void shapes::shape_t::set_angle(f32_t angle_z) {
+    set_angle(fan::vec3(fan::vec2(get_angle().xy()), angle_z));
+  }
   SHAPE_PROP_SIMPLE(fan::vec2,  rotation_point);
   SHAPE_PROP_SIMPLE(fan::vec2,  tc_position);
   SHAPE_PROP_SIMPLE(fan::vec2,  tc_size);
@@ -2980,58 +2983,56 @@ void fan::graphics::shapes::shape_t::get_gldata_impl(void* dst, size_t size, siz
 }
 
 namespace {
+  using shape_nr_t = decltype(fan::graphics::shapes::shape_t::NRI);
+
   struct child_node_t {
-    fan::graphics::shapes::shape_t shape;
+    shape_nr_t shape;
     fan::vec3 local_pos;
     fan::vec2 local_size;
     fan::vec3 local_angle;
   };
 
-  std::unordered_map<decltype(fan::graphics::shapes::shape_t::NRI), std::vector<child_node_t>> shape_hierarchy;
-  std::unordered_set<decltype(fan::graphics::shapes::shape_t::NRI)> has_parent;
+  std::unordered_map<shape_nr_t, std::vector<child_node_t>> shape_hierarchy;
+  std::unordered_set<shape_nr_t> has_parent;
 
-  void update_node_recursive(
-    decltype(fan::graphics::shapes::shape_t::NRI) nri, 
-    const fan::vec3& p_pos, 
-    const fan::vec2& p_size, 
-    const fan::vec3& p_angle, 
-    const fan::vec2& p_rot_point
-  ) {
-    auto it = shape_hierarchy.find(nri);
-    if (it == shape_hierarchy.end()) {
-      return;
-    }
+  auto& get_static_list() {
+    return *fan::graphics::get_shapes().static_render_list;
+  }
+
+  void update_node_recursive(shape_nr_t p_nri, const fan::vec3& p_pos, const fan::vec2& p_size, const fan::vec3& p_angle) {
+    auto it = shape_hierarchy.find(p_nri);
+    if (it == shape_hierarchy.end()) return;
 
     f32_t c = std::cos(p_angle.z);
     f32_t s = std::sin(p_angle.z);
 
-    std::erase_if(it->second, [](const child_node_t& child) {
-      if (!child.shape) {
-        has_parent.erase(child.shape.NRI);
-        return true;
-      }
-      return false;
-    });
+    auto& all_funcs = fan::graphics::shapes::get_shape_functions();
 
     for (auto& child : it->second) {
+      fan::graphics::shaper_t::ShapeID_t c_id;
+      c_id.NRI = child.shape;
+      auto* c_handle = (fan::graphics::shapes::shape_t*)&c_id;
+
+      fan::graphics::shapes::shape_ids_t::nr_t gid;
+      gid.gint() = child.shape;
+      auto& sd = fan::graphics::g_shapes->shape_ids[gid];
+      auto& funcs = all_funcs[sd.shape_type];
+
       fan::vec3 offset{
         child.local_pos.x * c - child.local_pos.y * s,
         child.local_pos.x * s + child.local_pos.y * c,
         child.local_pos.z
       };
 
-      child.shape.set_position(p_pos + offset);
-      child.shape.set_size(p_size * child.local_size);
-      child.shape.set_angle(p_angle + child.local_angle);
-      child.shape.set_rotation_point(p_rot_point);
+      fan::vec3 n_pos = p_pos + offset;
+      fan::vec2 n_size = p_size * child.local_size;
+      fan::vec3 n_angle = p_angle + child.local_angle;
 
-      update_node_recursive(
-        child.shape.NRI, 
-        child.shape.get_position(), 
-        child.shape.get_size(), 
-        child.shape.get_angle(), 
-        p_rot_point
-      );
+      funcs.set_position3(c_handle, n_pos);
+      funcs.set_size(c_handle, n_size);
+      funcs.set_angle(c_handle, n_angle);
+
+      update_node_recursive(child.shape, n_pos, n_size, n_angle);
     }
   }
 }
@@ -3054,12 +3055,12 @@ namespace fan::graphics {
     };
 
     shape_hierarchy[NRI].push_back({
-      child, 
+      child.gint(),
       neutral_pos, 
       child.get_size() / get_size(), 
       child.get_angle() - get_angle()
     });
-    has_parent.insert(child.NRI);
+    has_parent.insert(child.gint());
   }
 
   void shapes::shape_t::add_children(std::span<const shape_t> children) {
@@ -3072,8 +3073,8 @@ namespace fan::graphics {
     auto it = shape_hierarchy.find(NRI);
     if (it != shape_hierarchy.end()) {
       std::erase_if(it->second, [&](const child_node_t& c) { 
-        if (c.shape.NRI == child.NRI) {
-          has_parent.erase(c.shape.NRI);
+        if (c.shape == child.gint()) {
+          has_parent.erase(c.shape);
           return true;
         }
         return false;
@@ -3086,8 +3087,8 @@ namespace fan::graphics {
     if (it != shape_hierarchy.end()) {
       std::erase_if(it->second, [&](const child_node_t& c) {
         for (const auto& target : children) {
-          if (c.shape.NRI == target.NRI) {
-            has_parent.erase(c.shape.NRI);
+          if (c.shape == target.NRI) {
+            has_parent.erase(c.shape);
             return true;
           }
         }
@@ -3100,20 +3101,20 @@ namespace fan::graphics {
     auto it = shape_hierarchy.find(NRI);
     if (it != shape_hierarchy.end()) {
       for (const auto& c : it->second) {
-        has_parent.erase(c.shape.NRI);
+        has_parent.erase(c.shape);
       }
       shape_hierarchy.erase(it);
     }
   }
 
-  std::vector<fan::graphics::shapes::shape_t> shapes::shape_t::get_children() const {
-    std::vector<shape_t> result;
+  std::vector<fan::graphics::shapes::shape_t*> shapes::shape_t::get_children() const {
+    std::vector<shape_t*> result;
     auto it = shape_hierarchy.find(NRI);
     if (it != shape_hierarchy.end()) {
       result.reserve(it->second.size());
       for (const auto& c : it->second) {
         if (c.shape) {
-          result.push_back(c.shape);
+          result.push_back((fan::graphics::shapes::shape_t*)&c.shape);
         }
       }
     }
@@ -3122,41 +3123,41 @@ namespace fan::graphics {
 
   void shapes::shape_t::for_each_child(std::function<void(shape_t&)> callback) const {
     auto it = shape_hierarchy.find(NRI);
-    if (it != shape_hierarchy.end()) {
-      for (auto& c : it->second) {
-        if (c.shape) {
-          callback(c.shape);
-        }
+    if (it == shape_hierarchy.end()) return;
+
+    auto& static_list = get_static_list();
+    for (auto& child_node : it->second) {
+      auto child_it = static_list.find(child_node.shape);
+      if (child_it != static_list.end()) {
+        callback(child_it->second);
       }
     }
   }
 
-  void update_children() {
-    for (auto it = shape_hierarchy.begin(); it != shape_hierarchy.end(); ) {
-      shape_t parent;
-      parent.gint() = it->first;
+  void fan::graphics::shapes::update_children() {
+    auto& all_funcs = get_shape_functions();
+  
+    for (auto& [p_nri, children] : shape_hierarchy) {
+      if (has_parent.contains(p_nri)) continue;
 
-      if (!parent) {
-        for (const auto& c : it->second) {
-          has_parent.erase(c.shape.NRI);
-        }
-        it = shape_hierarchy.erase(it);
-        continue;
-      }
+      fan::graphics::shaper_t::ShapeID_t p_id;
+      p_id.NRI = p_nri;
+      auto* p_handle = (shape_t*)&p_id;
 
-      if (!has_parent.contains(parent.NRI)) {
-        update_node_recursive(
-          parent.NRI, 
-          parent.get_position(), 
-          parent.get_size(), 
-          parent.get_angle(), 
-          parent.get_rotation_point()
-        );
-      }
-      ++it;
+      fan::graphics::shapes::shape_ids_t::nr_t gid;
+      gid.gint() = p_nri;
+
+      auto& sd = shape_ids[gid];
+      auto& funcs = all_funcs[sd.shape_type];
+
+      update_node_recursive(
+        p_nri, 
+        funcs.get_position(p_handle), 
+        funcs.get_size(p_handle), 
+        funcs.get_angle(p_handle)
+      );
     }
   }
-
 }
 
 #if defined(FAN_JSON)
