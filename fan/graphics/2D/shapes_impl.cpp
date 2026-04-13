@@ -2995,10 +2995,6 @@ namespace {
   std::unordered_map<shape_nr_t, std::vector<child_node_t>> shape_hierarchy;
   std::unordered_set<shape_nr_t> has_parent;
 
-  auto& get_static_list() {
-    return *fan::graphics::get_shapes().static_render_list;
-  }
-
   void update_node_recursive(shape_nr_t p_nri, const fan::vec3& p_pos, const fan::vec2& p_size, const fan::vec3& p_angle) {
     auto it = shape_hierarchy.find(p_nri);
     if (it == shape_hierarchy.end()) return;
@@ -3122,7 +3118,7 @@ namespace fan::graphics {
   }
 
   void shapes::shape_t::for_each_child(std::function<void(shape_t&)> callback) const {
-    auto it = shape_hierarchy.find(NRI);
+ /*   auto it = shape_hierarchy.find(NRI);
     if (it == shape_hierarchy.end()) return;
 
     auto& static_list = get_static_list();
@@ -3131,7 +3127,7 @@ namespace fan::graphics {
       if (child_it != static_list.end()) {
         callback(child_it->second);
       }
-    }
+    }*/
   }
 
   void fan::graphics::shapes::update_children() {

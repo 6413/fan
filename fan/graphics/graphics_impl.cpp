@@ -1129,7 +1129,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
   }
 
   f32_t get_depth_from_y(const fan::vec2& position, f32_t tile_size_y) {
-    return std::floor((position.y) / tile_size_y) + (0xFAAA - 2) / 2 + 18.f;
+    return std::floor((position.y) / tile_size_y) + (0xFAAA - 2) / 2;
   }
 
   tilemap_t::tilemap_t(const fan::vec2& tile_size,

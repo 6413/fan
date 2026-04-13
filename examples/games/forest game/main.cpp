@@ -8,18 +8,20 @@
 import fan;
 import fan.graphics.gui.tilemap_editor.renderer;
 
+using namespace fan::graphics;
+
 struct weather_t {
   weather_t() {
     load_rain(rain_particles);
   }
   void lightning();
-  void load_rain(fan::graphics::shape_t& rain_particles);
+  void load_rain(shape_t& rain_particles);
 
 
   bool on = false;
   f32_t sin_var = 0;
   uint16_t repeat_count = 0;
-  fan::graphics::shape_t rain_particles;
+  shape_t rain_particles;
 
   f32_t lightning_duration = 0;
 };
@@ -40,7 +42,7 @@ struct pile_t {
     using namespace fan::graphics;
     player.step();
     
-    fan::graphics::gui::set_viewport(loco.orthographic_render_view.viewport);
+    gui::set_viewport(loco.orthographic_render_view.viewport);
 
     //pile.weather.rain_particles.set_position(fan::vec3(1200, -900, 50000));
   }
@@ -79,10 +81,10 @@ lstd_defstruct(stage_forest_t)
 
 pile_t::pile_t() {
 
-  fan::graphics::image_load_properties_t lp;
-  lp.visual_output = fan::graphics::image_sampler_address_mode_e::clamp_to_border;
-  lp.min_filter = fan::graphics::image_filter_e::nearest;
-  lp.mag_filter = fan::graphics::image_filter_e::nearest;
+  image_load_properties_t lp;
+  lp.visual_output = image_sampler_address_mode_e::clamp_to_border;
+  lp.min_filter = image_filter_e::nearest;
+  lp.mag_filter = image_filter_e::nearest;
 
   gloco()->texture_pack.open_compiled("examples/games/forest game/tileset.ftp", lp);
 
@@ -118,11 +120,11 @@ void weather_t::lightning() {
   }
 }
 
-void weather_t::load_rain(fan::graphics::shape_t& rain_particles) {
+void weather_t::load_rain(shape_t& rain_particles) {
   //std::string data;
   //fan::io::file::read("raindrops.json", &data);
   //fan::json in = fan::json::parse(data);
-  //fan::graphics::shape_deserialize_t it;
+  //shape_deserialize_t it;
   //while (it.iterate(in, &rain_particles)) {
   //}
   //auto image_star = pile.loco.image_load("images/waterdrop.webp");
@@ -131,19 +133,18 @@ void weather_t::load_rain(fan::graphics::shape_t& rain_particles) {
 
 int main() {
   pile.loco.get_clear_color() = 0;
-  pile.player.body.movement_state.acceleration_force = 50;
-  pile.player.body.movement_state.max_speed = 1000;
+  pile.loco.get_lighting().set_target(0.1f);
 
-  //fan::graphics::physics::debug_draw(true);
+  //physics::debug_draw(true);
 
-  fan::graphics::interactive_camera_t ic(
+  interactive_camera_t ic(
     pile.loco.orthographic_render_view.camera, 
     pile.loco.orthographic_render_view.viewport,
     5.5 /*zoom*/
   );
 
  // auto shape = pile.loco.grid.push_back(loco_t::grid_t::properties_t{.position= fan::vec3(fan::vec2(32*32+32-32*6), 50000),.size = 32 * 32, .grid_size = 32});
-  pile.player.body.enable_default_movement(fan::graphics::physics::movement_e::top_view);
+  pile.player.body.enable_default_movement(physics::movement_e::top_view);
   pile.loco.loop([&] {
     //pile.player.body.move_to_direction(pile.path_solver.step(pile.player.body.get_position()));
   });
