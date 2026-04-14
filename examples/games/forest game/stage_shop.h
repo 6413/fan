@@ -60,7 +60,6 @@ fan::event::task_t dialogue() {
 }
 
 void render_dialogue() {
-  #define gui fan::graphics::gui
   fan::vec2 window_size = gui::get_window_size();
   window_size.x /= 1.2;
   window_size.y /= 5;
@@ -89,7 +88,6 @@ void render_dialogue() {
 
   gui::pop_style_var(3);
   gui::pop_style_color(2);
-  #undef gui
 }
 
 void update() {
@@ -105,7 +103,7 @@ void update() {
   if (!pile.is_map_changing && fan::physics::is_on_sensor(pile.player.body, player_sensor_door)) {
     pile.is_map_changing = true;
 
-    fan::vec3 fadein_color = pile.renderer.get_compiled("stage_forest")->lighting.ambient;
+    fan::vec3 fadein_color = pile.renderer.get_compiled(stage_forest_t::stage_name)->lighting.ambient;
     
     pile.map_transition_task = pile.stage_loader.change_stage<stage_forest_t>(
       pile.loco.get_lighting(),

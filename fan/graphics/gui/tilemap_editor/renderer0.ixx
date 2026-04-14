@@ -87,14 +87,12 @@ export namespace fan::graphics {
 
     f32_t get_dynamic_depth(id_t map_id, const fan::vec2& position, f32_t body_height);
 
-    void iterate_tiles_by_property(id_t map_id, fte_t::mesh_property_t prop, auto cb) {
+    void iterate_tiles(id_t map_id, auto cb) {
       auto& node = get_map_node(map_id);
       for (const auto& row : node.compiled_map->compiled_shapes) {
         for (const auto& col : row) {
           for (const auto& tile : col) {
-            if (tile.mesh_property == prop) {
-              cb(tile);
-            }
+            cb(tile);
           }
         }
       }

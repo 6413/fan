@@ -1,7 +1,7 @@
 struct player_t {
   player_t() {
-    body.set_draw_offset(fan::vec2(0, body.get_size().y / 1.5f));
     body.set_size(fan::vec2(8, 16));
+    body.set_draw_offset(fan::vec2(0, -body.get_size().y));
     body.set_linear_damping(1500.f);
     body.add_child(light);
     animator.load_animations(body, "npc/player");
@@ -17,7 +17,7 @@ struct player_t {
     fan::vec3 pos = body.get_position();
     gloco()->camera_move_to_smooth(body);
   
-    pos.z = pile.renderer.get_dynamic_depth(pile.active_map_id, pos.xy(), body.get_size().y);
+    pos.z = pile.renderer.get_dynamic_depth(pile.active_map_id, pos, body.get_size().y) + 0.7f;
     body.set_position(pos);
   }
 
