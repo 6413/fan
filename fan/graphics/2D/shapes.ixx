@@ -2,6 +2,7 @@ module;
 
 #include <fan/utility.h>
 
+#include <span>
 #include <source_location>
 #include <cstdlib>
 #include <utility>
