@@ -192,7 +192,7 @@ export namespace fan {
   template<typename... Args, FAN_UNIQUE_CALL>
   void print_every(int throttle_ms, const Args&... args) {
     if (fan::time::every<
-      #if defined(fan_compiler_msvc) || defined(fan_compiled_clang)
+      #if defined(fan_compiler_msvc) || defined(fan_compiler_clang)
         token
       #else
         line, file
