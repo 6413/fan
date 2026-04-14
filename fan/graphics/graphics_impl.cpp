@@ -48,14 +48,13 @@ namespace fan::graphics {
 
   fan::graphics::context_image_t image_get(fan::graphics::image_nr_t nr) {
     fan::graphics::context_image_t img;
-    if (0) {}
   #if defined(FAN_OPENGL)
-    else if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::opengl) {
+    if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::opengl) {
       img.gl = *(fan::opengl::context_t::image_t*)fan::graphics::ctx()->image_get(fan::graphics::ctx(), nr);
     }
   #endif
   #if defined(FAN_VULKAN)
-    else if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::vulkan) {
+    if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::vulkan) {
       img.vk = *(fan::vulkan::context_t::image_t*)fan::graphics::ctx()->image_get(fan::graphics::ctx(), nr);
     }
   #endif
@@ -63,16 +62,13 @@ namespace fan::graphics {
   }
 
   std::vector<uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, int image_format, fan::vec2 uvp, fan::vec2 uvs) {
-    if (0) {}
   #if defined(FAN_OPENGL)
-    else if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::opengl) {
+    if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::opengl) {
       return fan::graphics::ctx()->image_get_pixel_data(fan::graphics::ctx(), nr, fan::opengl::context_t::global_to_opengl_format(image_format), uvp, uvs);
     }
   #endif
-    else {
-      fan::throw_error_impl("");
-      return {};
-    }
+    fan::throw_error_impl("");
+    return {};
   }
 
   fan::graphics::shader_nr_t shader_get_nr(uint16_t shape_type) {
@@ -736,30 +732,16 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     return pp;
   }
 
-  fan::line3 get_highlight_positions(const fan::vec3& op_, const fan::vec2& os, int index) {
-    fan::line3 positions;
-    fan::vec2 op = op_;
+  fan::line3 get_highlight_positions(const fan::vec3& op, const fan::vec2& os, int index) {
+    fan::line3 p;
+    f32_t z = op.z + 1;
     switch (index) {
-    case 0:
-      positions[0] = fan::vec3(op - os, op_.z + 1);
-      positions[1] = fan::vec3(op + fan::vec2(os.x, -os.y), op_.z + 1);
-      break;
-    case 1:
-      positions[0] = fan::vec3(op + fan::vec2(os.x, -os.y), op_.z + 1);
-      positions[1] = fan::vec3(op + os, op_.z + 1);
-      break;
-    case 2:
-      positions[0] = fan::vec3(op + os, op_.z + 1);
-      positions[1] = fan::vec3(op + fan::vec2(-os.x, os.y), op_.z + 1);
-      break;
-    case 3:
-      positions[0] = fan::vec3(op + fan::vec2(-os.x, os.y), op_.z + 1);
-      positions[1] = fan::vec3(op - os, op_.z + 1);
-      break;
-    default:
-      break;
+      case 0: p[0] = fan::vec3(op.xy() - os, z); p[1] = fan::vec3(op.x + os.x, op.y - os.y, z); break;
+      case 1: p[0] = fan::vec3(op.x + os.x, op.y - os.y, z); p[1] = fan::vec3(op.xy() + os, z); break;
+      case 2: p[0] = fan::vec3(op.xy() + os, z); p[1] = fan::vec3(op.x - os.x, op.y + os.y, z); break;
+      case 3: p[0] = fan::vec3(op.x - os.x, op.y + os.y, z); p[1] = fan::vec3(op.xy() - os, z); break;
     }
-    return positions;
+    return p;
   }
 
 #endif
@@ -1129,7 +1111,10 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
   }
 
   f32_t get_depth_from_y(const fan::vec2& position, f32_t tile_size_y) {
-    return std::floor((position.y) / tile_size_y) + (0xFAAA - 2) / 2;
+    return (position.y / tile_size_y) + (0xFAAA - 2) / 2.f;
+  }
+  f32_t get_player_depth_from_y(const fan::vec2& position, f32_t size_y, f32_t tile_size_y) {    
+    return fan::graphics::get_depth_from_y(fan::vec2(position.x, position.y + size_y), tile_size_y);
   }
 
   tilemap_t::tilemap_t(const fan::vec2& tile_size,
@@ -1643,11 +1628,10 @@ namespace fan::graphics {
   terrain_t::terrain_t(fan::vec2 position, fan::vec2 size, f32_t tile_size, std::initializer_list<terrain_t::tile_t> tiles) : size(size) {
     for (int y = 0; y < size.y; y++) {
       for (int x = 0; x < size.x; x++) {
-        float r = fan::random::value_f32(0, 1);
-        float acc = 0;
+        f32_t r = fan::random::value_f32(0, 1);
+        f32_t acc = 0;
         for (auto& t : tiles) {
-          acc += t.chance;
-          if (r < acc) {
+          if (r < (acc += t.chance)) {
             spawn_tile(t.sprite, {x, y}, tile_size);
             break;
           }
@@ -1721,6 +1705,30 @@ namespace fan {
     t.easing = ease_e::pulse;
     t.lerp = [](const fan::vec2& a, const fan::vec2& b, f32_t u) { return a + (b - a) * u; };
     return t;
+  }
+
+  fan::event::task_t fade_transition(
+    fan::graphics::lighting_t& lighting,
+    bool& is_changing_flag,
+    const fan::vec3& fadeout_color,
+    const fan::vec3& fadein_color,
+    std::function<void()> swap_cb
+  ) {
+    is_changing_flag = true;
+
+    lighting.set_target(fadeout_color);
+    while (!lighting.is_near_target()) {
+      co_await fan::graphics::co_next_frame();
+    }
+
+    swap_cb();
+
+    lighting.set_target(fadein_color);
+    while (!lighting.is_near_target()) {
+      co_await fan::graphics::co_next_frame();
+    }
+
+    is_changing_flag = false;
   }
 }
 
