@@ -812,6 +812,11 @@ export namespace fan::graphics::gui {
     style_scope_t(gui::style_var_t idx, f32_t val)             { var(idx, val); }
     style_scope_t(gui::style_var_t idx, const fan::vec2& val)  { var(idx, val); }
 
+    style_scope_t(const style_scope_t&) = delete;
+    style_scope_t& operator=(const style_scope_t&) = delete;
+    style_scope_t(style_scope_t&&) = delete;
+    style_scope_t& operator=(style_scope_t&&) = delete;
+
     style_scope_t& color(gui::col_t idx, const fan::color& col) {
       ImGui::PushStyleColor(idx, ImVec4(col.r, col.g, col.b, col.a));
       ++color_count; return *this;
