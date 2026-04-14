@@ -8,6 +8,7 @@ import fan;
 import fan.graphics.gui.tilemap_editor.renderer;
 
 using namespace fan::graphics;
+using namespace fan::window;
 using namespace fan::color_literals;
 
 struct weather_t {

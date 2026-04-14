@@ -1647,7 +1647,7 @@ namespace fan::graphics {
       sprite_name /*image path*/
     ));
   }
-}
+} // namespace fan::graphics
 
 namespace fan {
   f32_t apply_ease(ease_e easing, f32_t t) {

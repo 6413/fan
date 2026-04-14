@@ -3160,7 +3160,18 @@ namespace fan::graphics {
       );
     }
   }
-}
+
+  void fan::graphics::shapes::shape_t::set_attachment(
+    const fan::graphics::shapes::shape_t& parent, 
+    fan::vec2 facing, 
+    f32_t depth_offset, 
+    f32_t angle_offset) 
+  {
+    set_angle(fan::vec3(get_angle(), parent.get_angle().z + angle_offset));
+    set_position((parent.get_position() + facing * (get_size() + parent.get_size()))
+      .offset_z(depth_offset));
+  }
+} // namespace fan::graphics
 
 #if defined(FAN_JSON)
 namespace fan::graphics {

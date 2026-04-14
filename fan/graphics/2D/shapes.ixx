@@ -597,6 +597,8 @@ export namespace fan::graphics {
 
       std::vector<fan::graphics::shapes::shape_t*> get_children() const;
       void for_each_child(std::function<void(shape_t&)> callback) const;
+
+      void set_attachment(const fan::graphics::shapes::shape_t& parent, fan::vec2 facing, f32_t depth_offset, f32_t angle_offset = 0.f);
     };
 
     void update_children();

@@ -595,6 +595,18 @@ export namespace fan::graphics::gui {
     ImGuiInputTextCallback  ChainCallback;
     void* ChainCallbackUserData;
   };
+
+  template <typename T>
+  struct ret_t {
+    T& val;
+    bool changed;
+    operator T&() {
+      return val;
+    }
+    explicit operator bool() {
+      return changed;
+    }
+  };
 }
 
 export namespace fan::graphics::gui::plot {
