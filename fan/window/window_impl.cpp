@@ -277,34 +277,6 @@ namespace fan {
       glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
     }
 
-    if (renderer == renderer_t::vulkan) {
-      glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    }
-    else if (renderer == renderer_t::opengl) {
-      glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
-
-      int target_major = props.opengl_major;
-      int target_minor = props.opengl_minor;
-
-      if (target_major == 0) {
-        target_major = 4;
-        target_minor = 6;
-      }
-
-      // apply chosen version + core profile if applicable
-      if (target_major > 3 || (target_major == 3 && target_minor >= 3)) {
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, target_major);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, target_minor);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
-      }
-      else if (target_major > 0) {
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, target_major);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, target_minor);
-        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE);
-      }
-    }
-
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
 
@@ -350,7 +322,44 @@ namespace fan {
       y = my;
     }
 
-    glfw_window = glfwCreateWindow(w, h, props.name.c_str(), use_mon, nullptr);
+    if (renderer == renderer_t::vulkan) {
+      glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+      glfw_window = glfwCreateWindow(w, h, props.name.c_str(), use_mon, nullptr);
+    }
+    else if (renderer == renderer_t::opengl) {
+      glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
+
+      if (props.opengl_major > 0) {
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, props.opengl_major);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, props.opengl_minor);
+        if (props.opengl_major > 3 || (props.opengl_major == 3 && props.opengl_minor >= 3)) {
+          glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+          glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+        }
+        else {
+          glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE);
+        }
+        glfw_window = glfwCreateWindow(w, h, props.name.c_str(), use_mon, nullptr);
+      }
+      else {
+        const std::pair<int, int> gl_versions[] = {
+          {4, 6}, {4, 5}, {4, 4}, {4, 3}, {4, 2}, {4, 1}, {4, 0}, {3, 3}
+        };
+
+        for (auto [major, minor] : gl_versions) {
+          glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, major);
+          glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, minor);
+          glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+          glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
+
+          glfw_window = glfwCreateWindow(w, h, props.name.c_str(), use_mon, nullptr);
+          
+          if (glfw_window != nullptr) {
+            break; 
+          }
+        }
+      }
+    }
 
     if (glfw_window == nullptr) {
       glfwTerminate();
