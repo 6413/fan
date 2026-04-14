@@ -241,6 +241,10 @@ namespace fan::window {
 
 namespace fan {
 
+  void window_t::open() {
+    open(properties_t());
+  }
+
   void window_t::open(std::uint64_t flags) {
     properties_t props;
     props.flags = flags;

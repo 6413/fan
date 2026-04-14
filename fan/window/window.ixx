@@ -312,8 +312,9 @@ export namespace fan {
       int opengl_minor = 0;
     };
 
+    void open();
     void open(std::uint64_t flags);
-    void open(const properties_t& props = properties_t());
+    void open(const properties_t& props);
     void close();
     void make_context_current();
     void handle_key_states(); // can be 1 or 2 aka press or repeat
