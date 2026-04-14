@@ -3,6 +3,7 @@
 #include <coroutine>
 #include <string>
 #include <fstream>
+#include <unordered_map>
 
 import fan;
 import fan.graphics.gui.tilemap_editor.renderer;
