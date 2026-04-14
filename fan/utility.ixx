@@ -11,6 +11,7 @@ namespace raii_build {
 export module fan.utility;
 
 export import fan.mpl;
+import fan.types;
 import fan.memory;
 import fan.time;
 
