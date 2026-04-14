@@ -1691,11 +1691,6 @@ namespace fan::graphics::gui {
 
       if (gui::button(std::string_view(text), size == 0 ? button_size : size)) {
         This->button_choice = nr;
-
-        std::erase_if(This->drawables, [](const drawable_node_t& node) {
-          return dynamic_cast<button_t*>(node.ptr.get()) != nullptr;
-        });
-
         This->wait_user = false;
       }
     }
@@ -1747,8 +1742,6 @@ namespace fan::graphics::gui {
   }
 
   fan::event::task_value_resume_t<dialogue_box_t::drawable_nr_t> dialogue_box_t::button(const std::string& text, const fan::vec2& position, const fan::vec2& size) {
-    button_choice = 0;
-
     auto node_id = next_id++;
 
     auto btn = std::make_unique<button_t>();
@@ -1807,15 +1800,23 @@ namespace fan::graphics::gui {
     inside_window_cb();
 
     render_content_cb(cursor_position == -1 ? fan::vec2(get_style().WindowPadding) : cursor_position, indent);
-    // render objects here
 
     for (auto& drawable : drawables) {
       drawable.ptr->render(this, drawable.id, window_size, wrap_width, line_spacing);
     }
-    // end_child();
     set_window_font_scale(1.0f);
 
-    bool dialogue_line_finished = fan::window::is_input_action_active("skip or continue dialog") && is_window_hovered(hovered_flags_child_windows | hovered_flags_allow_when_blocked_by_popup | hovered_flags_allow_when_blocked_by_active_item);
+    bool has_buttons = false;
+    for (auto& drawable : drawables) {
+      if (dynamic_cast<button_t*>(drawable.ptr.get()) != nullptr) {
+        has_buttons = true;
+        break;
+      }
+    }
+
+    bool dialogue_line_finished = fan::window::is_input_action_active("skip or continue dialog") && 
+      is_window_hovered(hovered_flags_child_windows | hovered_flags_allow_when_blocked_by_popup | hovered_flags_allow_when_blocked_by_active_item) &&
+      !has_buttons;
 
     if (dialogue_line_finished) {
       wait_user = false;
@@ -1825,6 +1826,43 @@ namespace fan::graphics::gui {
     end();
     pop_font();
 
+  }
+
+  fan::event::task_value_resume_t<int> dialogue_box_t::choice(
+    std::string_view character_name,
+    std::string_view question_text,
+    std::span<const std::string_view> options,
+    const fan::vec2& start,
+    f32_t y_step) {
+    button_choice = -1;
+
+    auto text_id = co_await text_delayed(character_name, question_text);
+
+    std::vector<drawable_nr_t> ids;
+    ids.reserve(options.size());
+
+    for (size_t i = 0; i < options.size(); ++i) {
+      fan::vec2 pos = start;
+      pos.y += i * y_step;
+      ids.push_back(co_await button(std::string(options[i]), pos));
+    }
+
+    co_await wait_user_input();
+
+    int result = -1;
+    auto it = std::find(ids.begin(), ids.end(), button_choice);
+    if (it != ids.end()) {
+      result = std::distance(ids.begin(), it);
+    }
+
+    ids.push_back(text_id);
+    std::erase_if(drawables, [&](const drawable_node_t& node) {
+      return std::find(ids.begin(), ids.end(), node.id) != ids.end();
+    });
+
+    wait_user = false;
+
+    co_return result;
   }
 
   void dialogue_box_t::clear() {
