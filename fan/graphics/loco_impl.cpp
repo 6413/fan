@@ -1109,9 +1109,12 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   loco_fire_engine_init_callbacks(this);
 }
 
+loco_t::loco_t(std::function<void()> loop_fn) : loco_t(loop_fn, properties_t()) {}
+
 loco_t::loco_t(std::function<void()> loop_fn, const properties_t& p) : loco_t(p){
   loop(loop_fn);
 }
+
 
 loco_t::~loco_t() {
   destroy();
