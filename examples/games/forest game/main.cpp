@@ -31,7 +31,20 @@ struct equipable_t {
 #include <fan/graphics/gui/stage_maker/loader.h>
 
 struct pile_t {
-#include "player.h"
+
+  lstd_defstruct(stage_shop_t)
+    #include <fan/graphics/gui/stage_maker/preset.h>
+    static constexpr auto stage_name = "stage_shop";
+    #include "stage_shop.h"
+  };
+
+  lstd_defstruct(stage_forest_t)
+    #include <fan/graphics/gui/stage_maker/preset.h>
+    static constexpr auto stage_name = "stage_forest";
+    #include "stage_forest.h"
+  };
+
+  #include "player.h"
 
   pile_t();
 
@@ -53,21 +66,6 @@ struct pile_t {
   fan::vec3 fadeout_target_color = -1.0f;
   fan::event::task_t map_transition_task;
 } pile;
-
-struct stage_shop_t;
-struct stage_forest_t;
-
-lstd_defstruct(stage_shop_t)
-#include <fan/graphics/gui/stage_maker/preset.h>
-  static constexpr auto stage_name = "stage_shop";
-#include "stage_shop.h"
-};
-
-lstd_defstruct(stage_forest_t)
-#include <fan/graphics/gui/stage_maker/preset.h>
-  static constexpr auto stage_name = "stage_forest";
-#include "stage_forest.h"
-};
 
 pile_t::pile_t() {
   gloco()->texture_pack.open_compiled("examples/games/forest game/tileset.ftp", image_presets::pixel_art());

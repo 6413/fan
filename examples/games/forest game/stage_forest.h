@@ -1,11 +1,11 @@
 void create_manual_collisions(std::vector<fan::physics::entity_t>& collisions) {
-  pile.renderer.iterate_tiles_by_property(main_map_id, tilemap_loader_t::fte_t::mesh_property_t::physics_shape, [&](const auto& t) {
+  pile.renderer.iterate_tiles(main_map_id, [&](const auto& t) {
     const auto& name = gloco()->texture_pack[t.texture_pack_unique_id].name;
     if (!(name == "tile0" || name == "tile1" || name == "tile2")) {
       return;
     }
     collisions.push_back(pile.loco.get_physics_context().create_circle(
-      fan::vec2(t.position),
+      fan::vec2(t.position).offset_y(t.size.y/2.f),
       t.size.y / 3.f,
       0,
       fan::physics::body_type_e::static_body,
