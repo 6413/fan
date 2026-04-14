@@ -379,7 +379,8 @@ public:
 
   loco_t();
   loco_t(const properties_t& p);
-  loco_t(std::function<void()> loop_fn, const properties_t& p = properties_t());
+  loco_t(std::function<void()> loop_fn);
+  loco_t(std::function<void()> loop_fn, const properties_t& p);
   ~loco_t();
 
   void destroy();
