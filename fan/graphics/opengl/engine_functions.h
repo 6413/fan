@@ -240,7 +240,7 @@ void shaders_compile() {
     auto& s = fan::graphics::g_shapes->ShapeType; \
     return {s.get_locations().data(), (int)s.get_locations().size()}; \
   }, \
-  shader, count, inst \
+  shader, static_cast<fan::graphics::shaper_t::ShapeRenderDataSize_t>(count), inst \
 }
 
 void shapes_open() {
