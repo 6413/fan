@@ -4,7 +4,7 @@ void create_manual_collisions(std::vector<fan::physics::entity_t>& collisions) {
     if (!(name == "tile0" || name == "tile1" || name == "tile2")) {
       return;
     }
-    collisions.push_back(pile.loco.get_physics_context().create_circle(
+    collisions.push_back(pile.engine.get_physics_context().create_circle(
       fan::vec2(t.position).offset_y(t.size.y/2.f),
       t.size.y / 3.f,
       0,
@@ -44,12 +44,13 @@ void open(void* sod) {
     .blending = true
   }};
 
-  if (pile.stage_loader.previous_stage_name == "stage_shop") {
+  if (pile.stage_loader.previous_stage_name == stage_shop_t::stage_name) {
     pile.player.body.set_physics_position(player_sensor_door.get_physics_position() + fan::vec2(0, player_sensor_door.get_size().y * 2.f));
-  } else {
+  }
+  else {
     pile.player.body.set_physics_position(fan::vec2(1019.59076, 400.117065));
   }
-  pile.loco.camera_set_position(pile.loco.orthographic_render_view.camera, pile.player.body.get_position());
+  pile.engine.camera_set_position(pile.engine.orthographic_render_view.camera, pile.player.body.get_position());
   
   gui::print("The map was in: ", t.seconds(), " seconds.");
 }
@@ -79,7 +80,7 @@ void update() {
     fan::vec3 fadein_color = pile.renderer.get_compiled("stage_shop")->lighting.ambient;
     
     pile.map_transition_task = pile.stage_loader.change_stage<stage_shop_t>(
-      pile.loco.get_lighting(),
+      pile.engine.get_lighting(),
       pile.fadeout_target_color,
       fadein_color,
       stage_common.stage_id,

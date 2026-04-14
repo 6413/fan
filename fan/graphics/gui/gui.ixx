@@ -405,13 +405,21 @@ export namespace fan::graphics::gui {
     fan::event::task_t wait_user_input();
     void render(fan::str_view_t window_name, font_t* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing, const std::function<void()>& inside_window_cb = []{});
 
+    fan::event::task_value_resume_t<int> choice(
+      std::string_view character_name,
+      std::string_view question_text,
+      std::span<const std::string_view> options,
+      const fan::vec2& start = {0.5f, 0.3f},
+      f32_t y_step = 0.15f
+    );
+
     void clear();
 
     fan::vec2 cursor_position = -1;
     f32_t indent = -1;
 
     bool wait_user = false;
-    drawable_nr_t button_choice;
+    int button_choice = -1;
 
     static void default_render_content(const fan::vec2& cursor_pos, f32_t indent);
 

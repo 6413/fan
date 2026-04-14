@@ -23,6 +23,7 @@ struct player_t {
 
   fan::vec2 velocity = 0;
   fan::graphics::physics::character2d_t body = fan::graphics::physics::character_circle_sprite(fan::vec3(1019.59f, 500.f, 10.f), 4.f);
-  fan::graphics::light_t light{{}, 200.f, fan::colors::white / 4.f};
+  static constexpr fan::vec2 light_size;
+  fan::graphics::light_t light{{}, light_size, fan::colors::white / 4.f};
   fan::graphics::sprite_sheet_controller_t animator;
 };
