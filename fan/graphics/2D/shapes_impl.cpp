@@ -4033,6 +4033,10 @@ namespace fan::graphics {
     //}
   }
 
+  void sprite_sheet_controller_t::enable_directional() {
+    enable_directional(directional_config_t{});
+  }
+
   void sprite_sheet_controller_t::enable_directional(const directional_config_t& config) {
     idle_threshold = config.idle_threshold;
     use_8_directions = config.use_8_directions;
