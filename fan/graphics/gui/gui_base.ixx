@@ -1,5 +1,7 @@
 module;
 
+#include <fan/utility.h>
+
 #if defined(FAN_GUI)
   #include <fan/imgui/imgui.h>
   #include <fan/imgui/imgui_impl_glfw.h>
@@ -970,6 +972,11 @@ export namespace fan::graphics::gui {
     bool changed = drag("##", v, v_speed, v_min, v_max, flags);
     pop_id();
     return changed;
+  }
+  template <typename T = f32_t, FAN_UNIQUE_CALL>
+  gui::ret_t<T> drag(f32_t v_speed = 0.1f, f32_t v_min = 0, f32_t v_max = 0, slider_flags_t flags = 0) {
+    static T val{};
+    return gui::ret_t{val, drag(&val, v_speed, v_min, v_max, flags)};
   }
   std::optional<fan::str_view_t> button_grid(
     std::initializer_list<fan::str_view_t> labels,
