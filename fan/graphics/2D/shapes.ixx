@@ -2,7 +2,7 @@ module;
 
 #include <fan/utility.h>
 
-#include <span>
+#include <span> 
 #include <source_location>
 #include <cstdlib>
 #include <utility>
@@ -1800,7 +1800,8 @@ export namespace fan::graphics {
     void cancel_current();
     animation_state_t& get_state(const std::string& name);
     void update_image_sign(fan::graphics::shapes::shape_t& shape, const fan::vec2& direction);
-    void enable_directional(const directional_config_t& config = {});
+    void enable_directional();
+    void enable_directional(const directional_config_t& config);
     void add_directional_state(const std::string& animation_name, uint8_t direction);
     void set_idle_animation(const std::string& name, f32_t threshold);
     void override_animation(uint8_t direction, const std::string& name);
