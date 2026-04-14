@@ -3,6 +3,7 @@ module;
 #include <cstdint>
 #include <cstring>
 #include <source_location>
+#include <string>
 module fan.graphics.shapes.types;
 
 //import fan.utility;
