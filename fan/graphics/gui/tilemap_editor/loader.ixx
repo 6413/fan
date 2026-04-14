@@ -312,7 +312,7 @@ export namespace fan::graphics {
   };
 
   static inline auto default_depth_fn = [](const tilemap_loader_t::fte_t::tile_t& t, const fan::vec2& world_pos, const fan::vec2& world_size, f32_t tile_size_y) -> f32_t {
-    return (t.position.z -  (0xFAAA) / 2.f) + fan::graphics::get_depth_from_y(fan::vec2(world_pos.x, world_pos.y), tile_size_y);
+    return (t.position.z -  (0xFAAA) / 2.f) + (world_pos.y / tile_size_y) + (0xFAAA - 2) / 2.f;
   };
 
   using physics_entities_t = map_list_data_t::physics_entities_t;
