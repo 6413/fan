@@ -910,6 +910,7 @@ export namespace fan::graphics {
   };
 
   f32_t get_depth_from_y(const fan::vec2& position, f32_t tile_size_y);
+  f32_t get_player_depth_from_y(const fan::vec2& position, f32_t size_y, f32_t tile_size_y);
 
   struct tilemap_t {
     tilemap_t() = default;
@@ -917,7 +918,8 @@ export namespace fan::graphics {
       const fan::color& color,
       const fan::vec2& area = fan::window::get_size(),
       const fan::vec3& offset = fan::vec3(0),
-      render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+      render_view_t* render_view = fan::graphics::ctx().orthographic_render_view
+    );
 
     fan::vec2i get_cell_count();
 
@@ -1561,6 +1563,14 @@ export namespace fan::graphics {
     std::string animation_name;
     int target_frame = 0;
   };
+
+  fan::event::task_t fade_transition(
+    fan::graphics::lighting_t& lighting,
+    bool& is_changing_flag,
+    const fan::vec3& fadeout_color,
+    const fan::vec3& fadein_color,
+    std::function<void()> swap_cb
+  );
 }
 
 #endif

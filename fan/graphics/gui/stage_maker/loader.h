@@ -193,5 +193,27 @@ public:
     sc->close(stage_list[id].stage);
     stage_list.unlrec(id);
   }
+
+  template <typename NextStageT>
+  fan::event::task_t change_stage(
+    fan::graphics::lighting_t& lighting,
+    fan::vec3 fadeout_color,
+    fan::vec3 fadein_color, 
+    nr_t old_stage_id,
+    nr_t& out_new_stage_id
+  ) {
+    lighting.set_target(fadeout_color);
+    while (!lighting.is_near_target()) {
+      co_await fan::graphics::co_next_frame();
+    }
+
+    erase_stage(old_stage_id);
+    out_new_stage_id = open_stage<NextStageT>();
+
+    lighting.set_target(fadein_color);
+    while (!lighting.is_near_target()) {
+      co_await fan::graphics::co_next_frame();
+    }
+  }
 };
 #undef stage_loader_path

@@ -32,7 +32,8 @@ import fan.window.input;
 import fan.print.error;
 import fan.memory;
 
-export struct tilemap_loader_t {
+export namespace fan::graphics {
+  struct tilemap_loader_t {
 
   struct fte_t {
   #include "common2.h"
@@ -115,10 +116,12 @@ export struct tilemap_loader_t {
     fan::vec3 position = 0;
     fan::vec2 size = 1;
     fan::vec2i prev_render = 10000000;
+    std::function<f32_t(const fte_t::tile_t&, const fan::vec2&, const fan::vec2&, f32_t)> depth_fn = nullptr;
   };
 
   struct map_list_impl_t;
   map_list_impl_t* impl = nullptr;
+  std::unordered_map<std::string, compiled_map_t> compiled_maps;
 
   using id_t = uint16_t;
   using node_t = map_list_data_t;
@@ -282,7 +285,8 @@ export struct tilemap_loader_t {
 
   void open() {}
 
-  compiled_map_t compile(const std::string& filename, const std::source_location& callers_path = std::source_location::current());
+  compiled_map_t* compile(const std::string& name, const std::string& filename, const std::source_location& callers_path = std::source_location::current());
+  compiled_map_t* get_compiled(const std::string& name);
 
   fan::vec2 convert_to_grid(const fan::vec2& p, const node_t& node) {
     return ((p / node.size) / (node.compiled_map->tile_size)).floor();
@@ -304,10 +308,17 @@ export struct tilemap_loader_t {
     fan::vec3 offset = 0;
     fan::vec2 scale = 1;
     fan::graphics::render_view_t* render_view = nullptr;
+    std::function<f32_t(const fte_t::tile_t&, const fan::vec2&, const fan::vec2&, f32_t)> depth_fn = nullptr;
+  };
+
+  static inline auto default_depth_fn = [](const tilemap_loader_t::fte_t::tile_t& t, const fan::vec2& world_pos, const fan::vec2& world_size, f32_t tile_size_y) -> f32_t {
+    return (t.position.z -  (0xFAAA) / 2.f) + fan::graphics::get_depth_from_y(fan::vec2(world_pos.x, world_pos.y), tile_size_y);
   };
 
   using physics_entities_t = map_list_data_t::physics_entities_t;
   using physics_data_t = compiled_map_t::physics_data_t;
 };
+}
+
 #endif
 #endif  
