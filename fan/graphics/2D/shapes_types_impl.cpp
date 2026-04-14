@@ -4,6 +4,8 @@ module;
 #include <cstring>
 #include <source_location>
 #include <string>
+#include <vector>
+
 module fan.graphics.shapes.types;
 
 //import fan.utility;
