@@ -33,8 +33,10 @@ struct equipable_t {
 #define stage_loader_path .
 #include <fan/graphics/gui/stage_maker/loader.h>
 
-struct pile_t {
+struct pile_t;
+extern pile_t pile;
 
+struct pile_t {
   lstd_defstruct(stage_shop_t)
     #include <fan/graphics/gui/stage_maker/preset.h>
     static constexpr auto stage_name = "stage_shop";
@@ -49,7 +51,18 @@ struct pile_t {
 
   #include "player.h"
 
-  pile_t();
+  pile_t() {
+    gloco()->texture_pack.open_compiled("examples/games/forest game/tileset.ftp", image_presets::pixel_art());
+
+    renderer.open();
+    engine.camera_set_position(engine.orthographic_render_view.camera, player.body.get_position());
+  
+    renderer.compile(stage_forest_t::stage_name, "examples/games/forest game/forest.fte");
+    renderer.compile(stage_shop_t::stage_name,   "examples/games/forest game/shop/shop.fte");
+
+    current_stage = stage_loader.open_stage<stage_forest_t>();
+    engine.update_physics(true);
+  }
 
   void step() {
     player.step();
@@ -68,20 +81,9 @@ struct pile_t {
   bool is_map_changing = true;
   fan::vec3 fadeout_target_color = -1.0f;
   fan::event::task_t map_transition_task;
-} pile;
+};
 
-pile_t::pile_t() {
-  gloco()->texture_pack.open_compiled("examples/games/forest game/tileset.ftp", image_presets::pixel_art());
-
-  renderer.open();
-  engine.camera_set_position(engine.orthographic_render_view.camera, player.body.get_position());
-  
-  renderer.compile(stage_forest_t::stage_name, "examples/games/forest game/forest.fte");
-  renderer.compile(stage_shop_t::stage_name,   "examples/games/forest game/shop/shop.fte");
-
-  current_stage = stage_loader.open_stage<stage_forest_t>();
-  engine.update_physics(true);
-}
+pile_t pile;
 
 void weather_t::lightning() {
   if (fan::time::every(4000)) {
