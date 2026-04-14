@@ -41,6 +41,7 @@ export import fan.graphics.gui.settings_menu;
   export import fan.graphics.gui.types;
   export import fan.graphics.gui.base;
   export import fan.graphics.gui;
+  export import fan.graphics.gui.text_logger;
 #endif
 export import fan.texture_pack.tp0;
 
