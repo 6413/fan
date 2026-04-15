@@ -42,3 +42,30 @@ struct player_t {
   sprite_sheet_controller_t animator;
   sprite_t sword{image_t("npc/player/sword.png", image_presets::pixel_art())};
 };
+
+struct pet_t {
+  fan::graphics::sprite_t sprite;
+  fan::vec2 pos;
+  std::vector<fan::vec2i> path;
+  
+  void open(fan::vec2 start_pos, fan::graphics::image_t img) {
+    pos = start_pos;
+    sprite = fan::graphics::sprite_t{{
+      .position = fan::vec3(pos, 0xfffA), 
+      .size = fan::vec2(16), 
+      .image = img 
+    }};
+  }
+
+  void step(fan::vec2 target_pos, fan::pathfind::generator& pf, f32_t grid_size, f32_t dt) {
+    if (fan::time::every(250)) { /*ms*/
+      path = pf.find_path(pos.grid_cell(grid_size), target_pos.grid_cell(grid_size));
+    }
+
+    if (pos.distance(target_pos) > grid_size * 0.5f) {
+      auto [tgt, bash] = fan::pathfind::follow(path, pos, target_pos, grid_size, 10);
+      pos += (tgt - pos).normalize() * 50.f * dt;
+      sprite.set_position(fan::vec3(pos, 0xfffA));
+    }
+  }
+};

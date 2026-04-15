@@ -70,6 +70,9 @@ struct pile_t {
   }
 
   engine_t engine;
+  fan::pathfind::generator pathfinder;
+  f32_t path_grid_size = 32.f; 
+  pet_t pet;
   player_t player;
   tilemap_renderer_t renderer;
   weather_t weather;
