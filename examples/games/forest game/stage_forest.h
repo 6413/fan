@@ -11,6 +11,7 @@ void create_manual_collisions(std::vector<fan::physics::entity_t>& collisions) {
       fan::physics::body_type_e::static_body,
       fan::physics::shape_properties_t{ .friction = 0 }
     ));
+    pile.pathfinder.add_collision(collisions.back().get_position());
   });
 }
 
@@ -53,6 +54,13 @@ void open(void* sod) {
   pile.engine.camera_set_position(pile.engine.orthographic_render_view.camera, pile.player.body.get_position());
   
   gui::print("The map was in: ", t.seconds(), " seconds.");
+
+  auto& map = *pile.renderer.get_map_node(main_map_id).compiled_map;
+  pile.path_grid_size = map.tile_size.x * 2.f;
+  pile.pathfinder.init(map.map_size, false);
+
+  static fan::graphics::image_t pet_img{"images/duck.webp", image_presets::pixel_art()};
+  pile.pet.open(pile.player.body.get_position(), pet_img);
 }
 
 void close() {
@@ -64,6 +72,7 @@ void close() {
 }
 
 void update() {
+  pile.pet.step(pile.player.body.get_position(), pile.pathfinder, pile.path_grid_size, pile.engine.get_delta_time());
   gui::begin("A");
   static bool enable_lightning = 0;
   gui::toggle_button("enable_lightning", &enable_lightning);
