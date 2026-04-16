@@ -54,6 +54,7 @@ void fan::webp::free_image(void* ptr) {
 bool fan::webp::validate(fan::str_view_t path, const std::source_location& callers_path) {
   std::string data;
   static constexpr uint32_t webp_header_size = 32;
+  data.reserve(webp_header_size);
   auto rpath = fan::io::file::find_relative_path(path, callers_path);
   if (fan::io::file::read(rpath.string(), &data, webp_header_size)) {
     return false;
