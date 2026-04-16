@@ -6,6 +6,7 @@ module;
 #include <string>
 #include <iomanip> // std::quoted
 #include <charconv>
+#include <ranges>
 
 #include <ios>
 #include <sstream>
@@ -357,45 +358,86 @@ export namespace fan {
     return ec == std::errc {} ? result : 0;
   }
 
-  inline std::string as_chars(const bytes_t& v) { return std::string(v.begin(), v.end()); }
-  inline std::string as_chars(std::string_view v) { return std::string(v); }
-
-  inline std::string as_bytes(const bytes_t& v) {
-    std::string s;
-    for (int i = 0; i < (int)v.size(); ++i)
-      s += std::to_string(v[i]) + (i + 1 < (int)v.size() ? ", " : "");
-    return s;
+  inline std::string as_chars(const bytes_t& v) {
+    return std::string(v.begin(), v.end());
   }
-  inline std::string as_bytes(std::string_view v) {
+
+  inline std::string as_chars(std::string_view v) {
+    return std::string(v);
+  }
+
+  template <typename range_t>
+  inline std::string as_bytes(const range_t& v) {
     std::string s;
-    for (int i = 0; i < (int)v.size(); ++i)
+    for (int i = 0; i < (int)v.size(); ++i) {
       s += std::to_string((uint8_t)v[i]) + (i + 1 < (int)v.size() ? ", " : "");
+    }
     return s;
   }
 
   std::string xor2hex(const bytes_t& a, const bytes_t& b) {
-    std::ostringstream result;
-    for (int i = 0; i < a.size(); ++i) result << std::hex << (a[i] ^ b[i]);
-    return result.str();
+    std::ostringstream r;
+    r << std::hex << std::setfill('0');
+    for (size_t i = 0; i < std::min(a.size(), b.size()); ++i) {
+      r << std::setw(2) << static_cast<int>(a[i] ^ b[i]);
+    }
+    return r.str();
   }
 
   std::string xor_bytes(const bytes_t& a, const bytes_t& b) {
     std::string r;
-    for (int i = 0; i < a.size(); ++i) r += a[i] ^ b[i];
+    for (size_t i = 0; i < std::min(a.size(), b.size()); ++i) {
+      r += static_cast<char>(a[i] ^ b[i]);
+    }
     return r;
   }
 
-  bytes_t hex2bytes(const std::string& s) {
+  bytes_t hex2bytes(std::string_view s) {
     bytes_t r(s.size() / 2);
-    for (int i = 0; i < r.size(); ++i)
-      r[i] = std::strtol(s.substr(i * 2, 2).c_str(), 0, 16);
+    for (int i = 0; i < (int)r.size(); ++i) {
+      std::from_chars(s.data() + i * 2, s.data() + i * 2 + 2, r[i], 16);
+    }
     return r;
   }
 
-  std::string xor_key(const bytes_t& a, uint8_t key) {
-    std::string r(a.size(), 0);
-    for (int i = 0; i < a.size(); ++i) r[i] = a[i] ^ key;
+  bytes_t xor_key(const bytes_t& a, uint8_t key) {
+    bytes_t r(a.size());
+    for (int i = 0; i < (int)a.size(); ++i) {
+      r[i] = a[i] ^ key;
+    }
     return r;
+  }
+
+  std::vector<std::string_view> split_every_n(std::string_view s, size_t n) {
+    if (n == 0) return {};
+    return s | std::views::chunk(n)
+      | std::views::transform([](auto c) { return std::string_view(c.begin(), c.end()); })
+      | std::ranges::to<std::vector>();
+  }
+
+  inline std::size_t strip_newlines(std::string& str) {
+    std::size_t pos = str.find_first_of("\n\r");
+    if (pos == std::string::npos) {
+      return str.size();
+    }
+    std::erase_if(str, [](char c) { return c == '\n' || c == '\r'; });
+    return pos;
+  }
+
+  inline std::vector<std::string_view> split_lines(std::string_view str) {
+    std::vector<std::string_view> lines;
+    std::size_t start = 0;
+    while (start < str.size()) {
+      std::size_t end = str.find_first_of("\r\n", start);
+      if (end > start) {
+        lines.push_back(str.substr(start, end - start));
+      }
+      if (end == std::string_view::npos) {
+        break;
+      }
+      start = end + 1;
+    }
+    return lines;
   }
 
   #define fan_enum_string_runtime(m_name, ...) \

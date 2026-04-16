@@ -43,7 +43,6 @@ export namespace fan {
         bool read(std::string* str);
         bool write(std::string* str);
         std::string file_name;
-        // fstream member stored as void* to avoid fstream in interface
         void* file_ptr = nullptr;
       };
 
@@ -73,9 +72,12 @@ export namespace fan {
       std::uint64_t file_size(std::string_view path);
       bool read_bytes(std::string_view path, void* dst, std::size_t size);
 
-      bool read(std::string_view path, std::string* str, std::size_t length);
-      std::string read(std::string_view path, bool* success = nullptr);
-      bool read(std::string_view path, std::string* str);
+      bool read(std::string_view path, std::string* str, std::size_t length,
+        std::source_location loc = std::source_location::current());
+      bool read(std::string_view path, std::string* str,
+        std::source_location loc = std::source_location::current());
+      std::string read(std::string_view path, bool* success = nullptr,
+        std::source_location loc = std::source_location::current());
 
       template <typename T>
       std::vector<T> read(std::string_view path) {
@@ -86,62 +88,47 @@ export namespace fan {
         return v;
       }
 
-      // path_t overloads that forward to string_view versions
+      // path_t overloads
+      template <path_t P>
+      std::string to_sv(P&& p) {
+        if constexpr (std::is_same_v<std::remove_cvref_t<P>, std::filesystem::path>)
+          return p.string();
+        else
+          return std::string(std::string_view(p));
+      }
+
       template <path_t P>
       bool write(P&& path, const std::string& data, fs_mode mode) {
-        if constexpr (std::is_same_v<std::remove_cvref_t<P>, std::filesystem::path>)
-          return write(std::string_view(path.string()), data, mode);
-        else
-          return write(std::string_view(path), data, mode);
+        return write(std::string_view(to_sv(std::forward<P>(path))), data, mode);
       }
 
       template <path_t P>
-      bool exists(P&& p) {
-        if constexpr (std::is_same_v<std::remove_cvref_t<P>, std::filesystem::path>)
-          return exists(std::string_view(p.string()));
-        else
-          return exists(std::string_view(p));
-      }
+      bool exists(P&& p) { return exists(std::string_view(to_sv(std::forward<P>(p)))); }
 
       template <path_t P>
-      std::uint64_t file_size(P&& p) {
-        if constexpr (std::is_same_v<std::remove_cvref_t<P>, std::filesystem::path>)
-          return file_size(std::string_view(p.string()));
-        else
-          return file_size(std::string_view(p));
-      }
+      std::uint64_t file_size(P&& p) { return file_size(std::string_view(to_sv(std::forward<P>(p)))); }
 
       template <path_t P>
       bool read_bytes(P&& p, void* dst, std::size_t sz) {
-        if constexpr (std::is_same_v<std::remove_cvref_t<P>, std::filesystem::path>)
-          return read_bytes(std::string_view(p.string()), dst, sz);
-        else
-          return read_bytes(std::string_view(p), dst, sz);
+        return read_bytes(std::string_view(to_sv(std::forward<P>(p))), dst, sz);
       }
 
       template <path_t P>
-      bool read(P&& p, std::string* str) {
-        if constexpr (std::is_same_v<std::remove_cvref_t<P>, std::filesystem::path>)
-          return read(std::string_view(p.string()), str);
-        else
-          return read(std::string_view(p), str);
+      bool read(P&& p, std::string* str,
+        std::source_location loc = std::source_location::current()) {
+        return read(std::string_view(to_sv(std::forward<P>(p))), str, loc);
       }
 
       template <path_t P>
-      std::string read(P&& p, bool* success = nullptr) {
-        if constexpr (std::is_same_v<std::remove_cvref_t<P>, std::filesystem::path>)
-          return read(std::string_view(p.string()), success);
-        else
-          return read(std::string_view(p), success);
+      std::string read(P&& p, bool* success = nullptr,
+        std::source_location loc = std::source_location::current()) {
+        return read(std::string_view(to_sv(std::forward<P>(p))), success, loc);
       }
 
       template <path_t P>
       std::filesystem::path find_relative_path(P&& p,
         const std::source_location& loc = std::source_location::current()) {
-        if constexpr (std::is_same_v<std::remove_cvref_t<P>, std::filesystem::path>)
-          return find_relative_path(std::string_view(p.string()), loc);
-        else
-          return find_relative_path(std::string_view(p), loc);
+        return find_relative_path(std::string_view(to_sv(std::forward<P>(p))), loc);
       }
 
       template <path_t P>
