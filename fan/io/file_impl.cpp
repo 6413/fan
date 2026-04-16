@@ -21,7 +21,6 @@ module fan.io.file;
 import fan.print;
 import fan.utility;
 
-// fs_mode constants
 static constexpr fan::io::file::fs_mode FS_BINARY = std::ios_base::binary;
 static constexpr fan::io::file::fs_mode FS_APP = std::ios_base::app;
 
@@ -60,8 +59,12 @@ fan::io::file::fstream::fstream(const std::string& path, std::string* str) {
 bool fan::io::file::fstream::open(const std::string& path) {
   file_name = path;
   auto flags = std::ios::in | std::ios::out | std::ios::binary;
-  if (!exists(path)) flags |= std::ios::trunc;
-  auto* f = new std::fstream(path, flags);
+  if (!exists(path)) {
+    auto resolved = find_relative_path(path);
+    if (!resolved.empty()) file_name = resolved.generic_string();
+    else flags |= std::ios::trunc;
+  }
+  auto* f = new std::fstream(file_name, flags);
   delete static_cast<std::fstream*>(file_ptr);
   file_ptr = f;
   return !f->good();
@@ -79,6 +82,17 @@ bool fan::io::file::fstream::read(std::string* str) {
     f->seekg(0, std::ios::beg);
     f->read(&(*str)[0], str->size());
     return 0;
+  }
+  auto resolved = find_relative_path(file_name);
+  if (!resolved.empty()) {
+    std::fstream f2(resolved, std::ios::in | std::ios::binary);
+    if (f2.is_open()) {
+      f2.seekg(0, std::ios::end);
+      str->resize(f2.tellg());
+      f2.seekg(0, std::ios::beg);
+      f2.read(&(*str)[0], str->size());
+      return 0;
+    }
   }
   fan::print_warning("file is not opened:");
   return 1;
@@ -187,23 +201,45 @@ bool fan::io::file::read_bytes(std::string_view path, void* dst, std::size_t siz
   return f.good();
 }
 
-bool fan::io::file::read(std::string_view path, std::string* str, std::size_t length) {
+// shared fallback helper
+static std::string resolve(std::string_view path, const std::source_location& loc) {
+  auto r = fan::io::file::find_relative_path(path, loc);
+  return r.empty() ? std::string{} : r.generic_string();
+}
+
+bool fan::io::file::read(std::string_view path, std::string* str, std::size_t length,
+  std::source_location loc)
+{
+  if (read_bytes(path, str->data(), length)) return false;
+  auto r = resolve(path, loc);
+  if (r.empty()) return true;
   str->resize(length);
-  return !read_bytes(path, str->data(), length);
+  return !read_bytes(r, str->data(), length);
 }
 
-std::string fan::io::file::read(std::string_view path, bool* success) {
-  std::string data;
-  bool ret = fan::io::file::read(path, &data);
-  if (success) *success = ret;
-  return data;
-}
-
-bool fan::io::file::read(std::string_view path, std::string* str) {
+bool fan::io::file::read(std::string_view path, std::string* str,
+  std::source_location loc)
+{
   auto sz = file_size(path);
-  if (!sz) return true;
+  if (!sz) {
+    auto r = resolve(path, loc);
+    if (r.empty()) return true;
+    sz = file_size(r);
+    if (!sz) return true;
+    str->resize(sz);
+    return !read_bytes(r, str->data(), sz);
+  }
   str->resize(sz);
   return !read_bytes(path, str->data(), sz);
+}
+
+std::string fan::io::file::read(std::string_view path, bool* success,
+  std::source_location loc)
+{
+  std::string data;
+  bool ret = read(path, &data, loc);
+  if (success) *success = ret;
+  return data;
 }
 
 std::filesystem::path fan::io::file::find_relative_path(std::string_view file_path,
