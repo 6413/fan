@@ -295,13 +295,6 @@ export namespace fan {
     return args;
   }
 
-  /// <summary>
-  /// Formats a number with thousands separators for improved readability.
-  /// </summary>
-  /// <param name="number">The numeric value to format (any numeric type).</param>
-  /// <param name="separator">The string to use as separator (defaults to comma).</param>
-  /// <param name="group_size">Number of digits between separators (defaults to 3).</param>
-  /// <returns>Formatted string with separators inserted at specified intervals.</returns>
   std::string number_separator(auto number, const std::string& separator = ",", uint32_t group_size = 3) {
     std::string result = std::to_string(number);
 
@@ -319,26 +312,6 @@ export namespace fan {
       insert_pos > static_cast<int64_t>(digit_start);
       insert_pos -= group_size) {
       result.insert(static_cast<size_t>(insert_pos), separator);
-    }
-
-    return result;
-  }
-
-  std::string base64_encode(const bytes_t& data) {
-    static constexpr char chars[] =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    std::string result;
-    result.reserve(((data.size() + 2) / 3) * 4);
-
-    for (size_t i = 0; i < data.size(); i += 3) {
-      uint32_t val = static_cast<uint32_t>(data[i]) << 16;
-      if (i + 1 < data.size()) val |= static_cast<uint32_t>(data[i + 1]) << 8;
-      if (i + 2 < data.size()) val |= static_cast<uint32_t>(data[i + 2]);
-
-      result.push_back(chars[(val >> 18) & 0x3F]);
-      result.push_back(chars[(val >> 12) & 0x3F]);
-      result.push_back((i + 1 < data.size()) ? chars[(val >> 6) & 0x3F] : '=');
-      result.push_back((i + 2 < data.size()) ? chars[val & 0x3F] : '=');
     }
 
     return result;
@@ -367,45 +340,8 @@ export namespace fan {
   }
 
   template <typename range_t>
-  inline std::string as_bytes(const range_t& v) {
-    std::string s;
-    for (int i = 0; i < (int)v.size(); ++i) {
-      s += std::to_string((uint8_t)v[i]) + (i + 1 < (int)v.size() ? ", " : "");
-    }
-    return s;
-  }
-
-  std::string xor2hex(const bytes_t& a, const bytes_t& b) {
-    std::ostringstream r;
-    r << std::hex << std::setfill('0');
-    for (size_t i = 0; i < std::min(a.size(), b.size()); ++i) {
-      r << std::setw(2) << static_cast<int>(a[i] ^ b[i]);
-    }
-    return r.str();
-  }
-
-  std::string xor_bytes(const bytes_t& a, const bytes_t& b) {
-    std::string r;
-    for (size_t i = 0; i < std::min(a.size(), b.size()); ++i) {
-      r += static_cast<char>(a[i] ^ b[i]);
-    }
-    return r;
-  }
-
-  bytes_t hex2bytes(std::string_view s) {
-    bytes_t r(s.size() / 2);
-    for (int i = 0; i < (int)r.size(); ++i) {
-      std::from_chars(s.data() + i * 2, s.data() + i * 2 + 2, r[i], 16);
-    }
-    return r;
-  }
-
-  bytes_t xor_key(const bytes_t& a, uint8_t key) {
-    bytes_t r(a.size());
-    for (int i = 0; i < (int)a.size(); ++i) {
-      r[i] = a[i] ^ key;
-    }
-    return r;
+  inline bytes_t as_bytes(const range_t& v) {
+    return bytes_t(v.begin(), v.end());
   }
 
   std::vector<std::string_view> split_every_n(std::string_view s, size_t n) {

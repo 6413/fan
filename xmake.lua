@@ -228,6 +228,7 @@ local module_files = {
 	"fan/graphics/gameplay/gameplay_types.ixx",
 	"fan/graphics/gameplay/gameplay.ixx",
 	"fan/graphics/gameplay/items.ixx",
+  "fan/crypto.ixx",
 }
 
 if has_config("FAN_WAYLAND_SCREEN") then

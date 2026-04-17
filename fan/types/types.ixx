@@ -1,6 +1,7 @@
 module;
 
 #include <cstdint>
+#include <vector>
 
 export module fan.types;
 
@@ -19,4 +20,6 @@ export {
   typedef double f_t;
 
   typedef f32_t cf_t;
+
+  using bytes_t = std::vector<uint8_t>;
 }
