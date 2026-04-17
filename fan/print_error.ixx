@@ -25,6 +25,12 @@ export namespace fan {
     if (!msg.empty()) msg.pop_back();
     throw_error_impl(msg.c_str());
   }
+
+  void assert(bool test) {
+    if (!test) {
+      fan::throw_error_impl("assert failed");
+    }
+  }
 }
 
 export std::string operator""_str(const char* str, std::size_t) {

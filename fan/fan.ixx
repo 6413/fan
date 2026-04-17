@@ -76,3 +76,13 @@ export import fan.types.compile_time_string;
 export import fan.formatter;
 
 export import fan.ecs;
+
+export import fan.graphics.gui.tilemap_editor.renderer;
+export import fan.graphics.gameplay;
+export import fan.graphics.gui.inventory_hotbar;
+export import fan.graphics.gameplay.items;
+export import fan.graphics.gui.gameplay.equipment;
+export import fan.graphics.gui.input;
+export import fan.graphics.gui.inventory;
+
+export import fan.crypto;
