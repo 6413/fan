@@ -70,6 +70,10 @@ namespace fan::graphics {
     return it != compiled_maps.end() ? &it->second : nullptr;
   }
 
+  tilemap_loader_t::compiled_map_t* tilemap_loader_t::compile(const std::string& name, const std::source_location& callers_path) {
+    return compile(name, fan::io::file::strip_extension(name), callers_path);
+  }
+
   tilemap_loader_t::compiled_map_t* tilemap_loader_t::compile(const std::string& name, const std::string& filename, const std::source_location& callers_path) {
     if (compiled_maps.count(name)) {
       return &compiled_maps[name];

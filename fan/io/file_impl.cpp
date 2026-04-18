@@ -25,14 +25,15 @@ static constexpr fan::io::file::fs_mode FS_BINARY = std::ios_base::binary;
 static constexpr fan::io::file::fs_mode FS_APP = std::ios_base::app;
 
 std::string fan::io::file::extension(const std::string& file_path) {
-  size_t dotPosition = file_path.find_last_of('.');
-  size_t sepPosition = file_path.find_last_of("/\\");
-  if (dotPosition != std::string::npos && (sepPosition == std::string::npos || dotPosition > sepPosition))
-    return file_path.substr(dotPosition);
+  size_t dot_pos = file_path.find_last_of('.');
+  size_t sep_pos = file_path.find_last_of("/\\");
+  if (dot_pos != std::string::npos && (sep_pos == std::string::npos || dot_pos > sep_pos))
+    return file_path.substr(dot_pos);
   return "";
 }
 
 bool fan::io::file::exists(std::string_view name) {
+  if (name.empty()) return false;
   std::ifstream file(std::string(name), std::ios::binary);
   return file.good();
 }
