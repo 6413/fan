@@ -932,20 +932,28 @@ export struct fte_t {
     for (auto* tp : texture_packs) {
       jtps.push_back(tp->file_path);
     }
-    ostr["texture_packs"] = std::move(jtps);
+    ostr["texture_packs"] = jtps;
 
     size_t total_tiles = 0;
-    for (auto& [depth, vec] : physics_shapes) total_tiles += vec.size();
-    for (auto& [depth, marks] : spawn_marks) total_tiles += marks.size();
+    for (auto& [depth, vec] : physics_shapes) {
+      total_tiles += vec.size();
+    }
+    for (auto& [depth, marks] : spawn_marks) {
+      total_tiles += marks.size();
+    }
 
     std::unordered_map<uint16_t, std::unordered_map<fan::vec2i, fte_t::shapes_t::global_t::layer_t*>> depth_tiles;
     depth_tiles.reserve(visual_layers.size());
 
     for (auto& [gp, cell] : map_tiles) {
-      for (auto& layer : cell.layers) depth_tiles[layer.tile.position.z][gp] = &layer;
+      for (auto& layer : cell.layers) {
+        depth_tiles[layer.tile.position.z][gp] = &layer;
+      }
     }
 
-    for (auto& [depth, tilemap] : depth_tiles) total_tiles += tilemap.size() / 2 + 1;
+    for (auto& [depth, tilemap] : depth_tiles) {
+      total_tiles += tilemap.size() / 2 + 1;
+    }
 
     fan::json tiles = fan::json::array();
     tiles.reserve(total_tiles);
@@ -958,14 +966,19 @@ export struct fte_t {
 
       std::vector<std::pair<fan::vec2i, fte_t::shapes_t::global_t::layer_t*>> sorted_tiles;
       sorted_tiles.reserve(tilemap.size());
-      for (auto& pair : tilemap) sorted_tiles.push_back(pair);
+      for (auto& pair : tilemap) {
+        sorted_tiles.push_back(pair);
+      }
 
-      std::sort(sorted_tiles.begin(), sorted_tiles.end(), [](const auto& a, const auto& b) {
+      std::sort(sorted_tiles.begin(), sorted_tiles.end(), 
+        [](const auto& a, const auto& b) {
         return a.first.y < b.first.y || (a.first.y == b.first.y && a.first.x < b.first.x);
       });
 
       for (auto& [gp, base] : sorted_tiles) {
-        if (visited.contains(gp)) continue;
+        if (visited.contains(gp)) {
+          continue;
+        }
 
         int max_x = gp.x;
         {
@@ -975,7 +988,9 @@ export struct fte_t {
             if (visited.contains(test_pos)) break;
 
             auto it = tilemap.find(test_pos);
-            if (it == tilemap.end() || !same_visual(*base, *it->second)) break;
+            if (it == tilemap.end() || !same_visual(*base, *it->second)) {
+              break;
+            }
             max_x++;
           }
         }
@@ -997,7 +1012,9 @@ export struct fte_t {
                 break;
               }
             }
-            if (can_extend) max_y = test_y;
+            if (can_extend) {
+              max_y = test_y;
+            }
           }
         }
 
@@ -1005,19 +1022,33 @@ export struct fte_t {
         int rect_size = (max_x - gp.x + 1) * (max_y - gp.y + 1);
         to_visit.reserve(rect_size);
         for (int y = gp.y; y <= max_y; ++y) {
-          for (int x = gp.x; x <= max_x; ++x) to_visit.emplace_back(x, y);
+          for (int x = gp.x; x <= max_x; ++x) {
+            to_visit.emplace_back(x, y);
+          }
         }
         visited.insert(to_visit.begin(), to_visit.end());
 
         fan::json tile_json;
         fan::graphics::shape_serialize(base->shape, &tile_json);
 
-        if (base->tile.mesh_property != defaults.mesh_property) tile_json["mesh_property"] = base->tile.mesh_property;
-        if (!base->tile.id.empty() && base->tile.id != defaults.id) tile_json["id"] = base->tile.id;
-        if (base->tile.action != defaults.action) tile_json["action"] = base->tile.action;
-        if (base->tile.key != defaults.key) tile_json["key"] = base->tile.key;
-        if (base->tile.key_state != defaults.key_state) tile_json["key_state"] = base->tile.key_state;
-        if (!base->tile.object_names.empty() && base->tile.object_names != defaults.object_names) tile_json["object_names"] = base->tile.object_names;
+        if (base->tile.mesh_property != defaults.mesh_property) {
+          tile_json["mesh_property"] = static_cast<uint32_t>(base->tile.mesh_property);
+        }
+        if (!base->tile.id.empty() && base->tile.id != defaults.id) {
+          tile_json["id"] = base->tile.id;
+        }
+        if (base->tile.action != defaults.action) {
+          tile_json["action"] = base->tile.action;
+        }
+        if (base->tile.key != defaults.key) {
+          tile_json["key"] = base->tile.key;
+        }
+        if (base->tile.key_state != defaults.key_state) {
+          tile_json["key_state"] = base->tile.key_state;
+        }
+        if (!base->tile.object_names.empty() && base->tile.object_names != defaults.object_names) {
+          tile_json["object_names"] = base->tile.object_names;
+        }
 
         int count_x = max_x - gp.x + 1;
         int count_y = max_y - gp.y + 1;
@@ -1028,41 +1059,58 @@ export struct fte_t {
           inst["count_y"] = count_y;
           inst["delta_x"] = fan::vec3((f32_t)tile_size.x * 2.f, 0.f, 0.f);
           inst["delta_y"] = fan::vec3(0.f, (f32_t)tile_size.y * 2.f, 0.f);
-          tile_json["instance"] = std::move(inst);
+          tile_json["instance"] = inst;
         }
 
-        tiles.push_back(std::move(tile_json));
+        tiles.push_back(tile_json);
       }
     }
 
     {
       std::unordered_set<fan::vec3> seen;
       seen.reserve(physics_shapes.size() * 10);
+
       static const fan::physics::shape_properties_t default_props;
 
       for (auto& [depth, vec] : physics_shapes) {
         for (auto& j : vec) {
-          if (!seen.insert(j.visual.get_position()).second) continue;
+          if (!seen.insert(j.visual.get_position()).second) {
+            continue;
+          }
 
           fan::json tile;
           fan::graphics::shape_serialize(j.visual, &tile);
-          tile["mesh_property"] = mesh_property_t::physics_shape;
+          tile["mesh_property"] = static_cast<uint32_t>(mesh_property_t::physics_shape);
 
-          if (!j.id.empty()) tile["id"] = j.id;
+          if (!j.id.empty()) {
+            tile["id"] = j.id;
+          }
 
           fan::json ps;
           if (j.type != 0) ps["type"] = j.type;
           if (j.body_type != 0) ps["body_type"] = j.body_type;
           if (j.draw != false) ps["draw"] = j.draw;
-          if (j.shape_properties.friction != default_props.friction) ps["friction"] = j.shape_properties.friction;
-          if (j.shape_properties.density != default_props.density) ps["density"] = j.shape_properties.density;
-          if (j.shape_properties.fixed_rotation != default_props.fixed_rotation) ps["fixed_rotation"] = j.shape_properties.fixed_rotation;
-          if (j.shape_properties.presolve_events != default_props.presolve_events) ps["presolve_events"] = j.shape_properties.presolve_events;
-          if (j.shape_properties.is_sensor != default_props.is_sensor) ps["is_sensor"] = j.shape_properties.is_sensor;
+          if (j.shape_properties.friction != default_props.friction) {
+            ps["friction"] = j.shape_properties.friction;
+          }
+          if (j.shape_properties.density != default_props.density) {
+            ps["density"] = j.shape_properties.density;
+          }
+          if (j.shape_properties.fixed_rotation != default_props.fixed_rotation) {
+            ps["fixed_rotation"] = j.shape_properties.fixed_rotation;
+          }
+          if (j.shape_properties.presolve_events != default_props.presolve_events) {
+            ps["presolve_events"] = j.shape_properties.presolve_events;
+          }
+          if (j.shape_properties.is_sensor != default_props.is_sensor) {
+            ps["is_sensor"] = j.shape_properties.is_sensor;
+          }
 
-          if (!ps.empty()) tile["physics_shape_data"] = std::move(ps);
+          if (!ps.empty()) {
+            tile["physics_shape_data"] = ps;
+          }
 
-          tiles.push_back(std::move(tile));
+          tiles.push_back(tile);
         }
       }
     }
@@ -1070,8 +1118,17 @@ export struct fte_t {
     for (auto& [depth, marks] : spawn_marks) {
       for (auto& m : marks) {
         fan::json tile;
-        m.json_write(tile);
-        tiles.push_back(std::move(tile));
+        tile["shape"] = "sprite";
+        
+        tile["position"] = m.position;
+        tile["size"] = m.size;
+        tile["color"] = m.color;
+        
+        tile["mesh_property"] = static_cast<uint32_t>(m.type);
+        if (!m.id.empty()) {
+          tile["id"] = m.id;
+        }
+        tiles.push_back(tile);
       }
     }
 
@@ -1083,22 +1140,21 @@ export struct fte_t {
         fan::json l;
         l["layer_name"] = layer.text;
         l["depth"] = depth;
-        j.push_back(std::move(l));
+        j.push_back(l);
       }
-      ostr["layer_info"] = std::move(j);
+      ostr["layer_info"] = j;
     }
 
-    ostr["tiles"] = std::move(tiles);
+    ostr["tiles"] = tiles;
 
     std::string json_str = ostr.dump(2);
+
     std::ofstream file(filename, std::ios::binary);
     if (!file) {
       fan::throw_error("Failed to open file for writing: " + filename);
       return;
     }
 
-    constexpr size_t BUFFER_SIZE = 1024 * 1024; 
-    file.rdbuf()->pubsetbuf(nullptr, BUFFER_SIZE);
     file.write(json_str.c_str(), json_str.size());
     file.close();
 
@@ -1112,6 +1168,7 @@ export struct fte_t {
 
   void fin(const std::string& filename, const std::source_location& callers_path = std::source_location::current()) {
   #if defined(FAN_JSON)
+
     std::ifstream file(fan::io::file::find_relative_path(filename, callers_path), std::ios::binary | std::ios::ate);
     if (!file) {
       fan::throw_error("Failed to open file: " + filename);
@@ -1134,11 +1191,15 @@ export struct fte_t {
     buffer.clear(); 
     buffer.shrink_to_fit();
 
-    if (json["version"] != 1) fan::throw_error("version mismatch");
+    if (json["version"] != 1) {
+      fan::throw_error("version mismatch");
+    }
 
     if (json.contains("texture_packs")) {
       std::vector<std::string> tp_paths = json["texture_packs"];
-      for (auto& path : tp_paths) open_texture_pack(path);
+      for (auto& path : tp_paths) {
+        open_texture_pack(path);
+      }
     }
     else if (texture_packs.empty() || texture_packs[0]->size() == 0) {
       fan::graphics::gui::print("open valid texturepack");
@@ -1151,9 +1212,15 @@ export struct fte_t {
     map_size = json["map_size"];
     tile_size = json["tile_size"];
 
-    if (json.contains("camera_position")) fan::graphics::camera_set_position(render_view->camera, json["camera_position"]);
-    if (json.contains("camera_zoom")) fan::graphics::camera_set_zoom(render_view->camera, json["camera_zoom"]);
-    if (json.contains("gravity")) fan::physics::gphysics()->set_gravity(json["gravity"]);
+    if (json.contains("camera_position")) {
+      fan::graphics::camera_set_position(render_view->camera, json["camera_position"]);
+    }
+    if (json.contains("camera_zoom")) {
+      fan::graphics::camera_set_zoom(render_view->camera, json["camera_zoom"]);
+    }
+    if (json.contains("gravity")) {
+      fan::physics::gphysics()->set_gravity(json["gravity"]);
+    }
     fan::graphics::get_lighting().set_target(json["lighting.ambient"]);
 
     map_tiles.clear();
@@ -1164,7 +1231,12 @@ export struct fte_t {
 
     size_t estimated_tiles = map_size.x * map_size.y / 4;
     map_tiles.reserve(estimated_tiles);
+
     resize_map();
+
+    static fan::graphics::image_t player_marker_image = fan::graphics::image_create(fan::color(0, 1, 0, 0.5));
+    static fan::graphics::image_t enemy_marker_image = fan::graphics::image_create(fan::color(1, 0, 0, 0.5));
+    static fan::graphics::image_t mark_marker_image = fan::graphics::image_create(fan::color(1, 1, 0, 0.5));
 
     static const fte_t::physics_shapes_t physics_defaults;
     static const fte_t::tile_t tile_defaults = fte_t::tile_t();
@@ -1174,20 +1246,29 @@ export struct fte_t {
         emit_one(fan::vec3(0, 0, 0));
         return;
       }
+
       const auto& inst = shape_json["instance"];
+
       if (inst.contains("count_x")) {
         int cx = inst.value("count_x", 1);
         int cy = inst.value("count_y", 1);
+
         fan::vec3 dx = inst.value("delta_x", fan::vec3(0, 0, 0));
         fan::vec3 dy = inst.value("delta_y", fan::vec3(0, 0, 0));
+
         for (int y = 0; y < cy; y++) {
-          for (int x = 0; x < cx; x++) emit_one(dx * (f32_t)x + dy * (f32_t)y);
+          for (int x = 0; x < cx; x++) {
+            emit_one(dx * (f32_t)x + dy * (f32_t)y);
+          }
         }
         return;
       }
+
       int count = inst.value("count", 1);
       fan::vec3 delta = inst.value("delta", fan::vec3(0, 0, 0));
-      for (int i = 0; i < count; i++) emit_one(delta * (f32_t)i);
+      for (int i = 0; i < count; i++) {
+        emit_one(delta * (f32_t)i);
+      }
     };
 
     fan::graphics::shape_deserialize_t it;
@@ -1203,7 +1284,7 @@ export struct fte_t {
         shape.set_position(shape.get_position() + offs);
 
         if (shape_json.contains("mesh_property")) {
-          auto mesh_prop = shape_json["mesh_property"].get<mesh_property_t>();
+          auto mesh_prop = static_cast<fte_t::mesh_property_t>(shape_json["mesh_property"].get<uint32_t>());
 
           if (mesh_prop == fte_t::mesh_property_t::physics_shape) {
             uint16_t depth = shape.get_position().z;
@@ -1232,19 +1313,42 @@ export struct fte_t {
             return;
           }
           else if (mesh_prop == mesh_property_t::player_spawn ||
-                   mesh_prop == mesh_property_t::enemy_spawn ||
-                   mesh_prop == mesh_property_t::mark) {
+            mesh_prop == mesh_property_t::enemy_spawn ||
+            mesh_prop == mesh_property_t::mark) {
 
             spawn_mark_t mark;
-            mark.json_read(shape_json);
+            mark.position = shape_json.contains("position") ? shape_json["position"].get<fan::vec3>() : fan::vec3(0);
             mark.position += offs;
+            mark.size = shape_json.contains("size") ? shape_json["size"].get<fan::vec2>() : fan::vec2(0);
+            
+            if (shape_json.contains("color")) {
+              auto col_array = shape_json["color"];
+              mark.color = fan::color(col_array[0], col_array[1], col_array[2], col_array[3]);
+            } else {
+              mark.color = fan::colors::white;
+            }
+
+            mark.type = mesh_prop;
+            mark.id = shape_json.value("id", "");
+
             uint16_t depth = mark.position.z;
             spawn_marks[depth].push_back(std::move(mark));
             auto& inserted_mark = spawn_marks[depth].back();
 
+            fan::graphics::image_t marker_image;
+            if (mesh_prop == mesh_property_t::player_spawn) {
+              marker_image = player_marker_image;
+            }
+            else if (mesh_prop == mesh_property_t::enemy_spawn) {
+              marker_image = enemy_marker_image;
+            }
+            else {
+              marker_image = mark_marker_image;
+            }
+
             visual_shapes[inserted_mark.position].shape = 
               make_sprite(inserted_mark.position, inserted_mark.size, 
-                fan::color(1), render_view, get_marker_image(mesh_prop));
+                fan::color(1), render_view, marker_image);
             return;
           }
         }
@@ -1254,6 +1358,7 @@ export struct fte_t {
 
         convert_draw_to_grid(gp);
         gp /= tile_size * 2;
+
         visual_layers[depth].positions[gp];
 
         auto& cell = map_tiles[gp];
@@ -1265,7 +1370,9 @@ export struct fte_t {
         layer->tile.angle = shape.get_angle();
         layer->tile.color = shape.get_color();
         layer->tile.id = shape_json.value("id", tile_defaults.id);
-        layer->tile.mesh_property = shape_json.value("mesh_property", tile_defaults.mesh_property);
+        layer->tile.mesh_property = shape_json.contains("mesh_property") 
+            ? static_cast<fte_t::mesh_property_t>(shape_json["mesh_property"].get<uint32_t>()) 
+            : tile_defaults.mesh_property;
 
         layer->shape = std::move(shape);
 
