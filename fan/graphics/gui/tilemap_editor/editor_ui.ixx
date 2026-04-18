@@ -180,10 +180,14 @@ namespace fan::graphics::gui::tilemap_editor::ui {
       fan::vec2 cursor_position = fan::window::get_mouse_position();
       fan::vec2i grid_pos;
       if (editor.window_relative_to_grid(cursor_position, &grid_pos)) {
-        std::string str = (std::string)(grid_pos / (editor.tile_size * 2.f));
-        fan::graphics::gui::text(str, {.pos = fan::graphics::gui::get_position_bottom_corner(str, 1)});
-        str = grid_pos;
-        fan::graphics::gui::text(str.c_str(), {.align = fan::graphics::gui::text_style_t::align_t::bottom_right});
+        std::string grid_str = (std::string)(grid_pos / (editor.tile_size * 2.f));
+        std::string world_str = (std::string)grid_pos;
+        
+        std::string combined = "Grid: " + grid_str + "\nWorld: " + world_str;
+        
+        fan::graphics::gui::text(combined.c_str(), {
+          .align = fan::graphics::gui::text_style_t::align_t::bottom_right
+        });
       }
 
       if (fan::graphics::gui::begin("Layer window")) {
