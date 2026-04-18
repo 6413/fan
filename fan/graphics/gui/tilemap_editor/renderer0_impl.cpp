@@ -32,8 +32,12 @@ namespace fan::graphics {
 
   tilemap_renderer_t::id_t tilemap_renderer_t::open_map(std::string_view map_name, const properties_t& p, const std::source_location& callers_path) {
     std::string smap_name(map_name);
-    compiled_map_t* compiled = compile(smap_name, smap_name, callers_path);
+    compiled_map_t* compiled = compile(smap_name, fan::io::file::strip_extension(smap_name), callers_path);
     return add(compiled, p);
+  }
+
+  void tilemap_renderer_t::close_map(id_t& id) {
+    clear(id);
   }
 
   tilemap_renderer_t::id_t tilemap_renderer_t::add(compiled_map_t* compiled_map) {

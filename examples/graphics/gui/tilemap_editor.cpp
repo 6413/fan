@@ -1,33 +1,33 @@
+// Update your main file to use the new module split for the tilemap editor:
+
 #include <string>
+#include <memory>
 
 import fan;
-import fan.graphics.gui.tilemap_editor.renderer;
-import fan.graphics.gui.tilemap_editor.editor;
+import fan.graphics.gui.tilemap_editor.core;
+import fan.graphics.gui.tilemap_editor.ui;
 import fan.graphics.event;
 
+using namespace fan::graphics;
+
 struct render_context_t {
-  fan::graphics::render_view_t editor;
-  fan::graphics::render_view_t program;
+  render_view_t editor;
+  render_view_t program;
 };
 
 std::string add_temp_before_ext(const std::string& filename) {
   size_t pos = filename.find_last_of('.');
-  if (pos == std::string::npos || pos == 0)
-      return filename + "temp";
+  if (pos == std::string::npos || pos == 0) return filename + "temp";
   return filename.substr(0, pos) + "temp" + filename.substr(pos);
 }
 
 struct player_t {
-  player_t(const fan::vec2& spawn_position, fan::graphics::render_view_t* view) : 
-    character(spawn_position, view) 
-  {
+  player_t(const fan::vec2& spawn_position, render_view_t* view) : character(spawn_position, view) {
     character.player.enable_default_movement();
   }
 
   void update_light() {
-    character.light.set_position(
-      character.player.get_position() - character.player.get_size()
-    );
+    character.light.set_position(character.player.get_position() - character.player.get_size());
   }
 
   void set_position(const fan::vec3& pos) {
@@ -36,31 +36,26 @@ struct player_t {
   }
 
   struct character_wrapper_t {
-    character_wrapper_t(const fan::vec2& spawn_position, fan::graphics::render_view_t* view) :
-      player(fan::graphics::physics::character_capsule({
+    character_wrapper_t(const fan::vec2& spawn_position, render_view_t* view) :
+      player(physics::character_capsule({
         .render_view = view,
         .position = fan::vec3(spawn_position, 0xfffA),
-        },
-        {.fixed_rotation=true}
-      )),
-      light(fan::graphics::light_t{ {
+        }, {.fixed_rotation=true})),
+      light(light_t{{
         .render_view = view,
         .position = player.get_position(),
         .size = player.get_size() * 8,
-        .color = fan::color::from_rgba(0xe8c170ff)
-      } })
-    {
-    }
-
-    fan::graphics::physics::character2d_t player;
-    fan::graphics::shape_t light;
+        .color = fan::color::from_rgba(0xe8c170ff),
+      }})
+    {}
+    physics::character2d_t player;
+    shape_t light;
   };
-
   character_wrapper_t character;
 };
 
 struct scene_manager_t {
-  void setup_camera(fan::graphics::engine_t& engine, fan::graphics::render_view_t& view) {
+  void setup_camera(engine_t& engine, render_view_t& view) {
     fan::vec2 window_size = engine.window.get_size();
     view.camera = engine.camera_create();
     engine.camera_set_ortho(
@@ -71,46 +66,32 @@ struct scene_manager_t {
     view.viewport = engine.open_viewport(0, { 1, 1 });
   }
 
-  void reload_scene(fte_t& fte, fan::graphics::render_view_t* view) {
+  void reload_scene(fte_t& fte, render_view_t* view) {
     renderer = std::make_unique<tilemap_renderer_t>();
     renderer->open();
-
-    static tilemap_loader_t::compiled_map_t compiled_map;
-    compiled_map = renderer->compile(add_temp_before_ext(fte.file_name));
 
     tilemap_loader_t::properties_t p;
     p.position = fan::vec3(0, 0, 0);
     p.size = fan::vec2i(16, 9);
     p.render_view = view;
-    map_id = std::make_unique<tilemap_renderer_t::id_t>(renderer->add(&compiled_map, p));
+    map_id = renderer->open_map(add_temp_before_ext(fte.file_name), p);
   }
 
   void clear_scene() {
-    if (map_id) {
-      renderer->clear(renderer->map_list[*map_id]);
-    }
-    map_id.reset();
+    if (map_id) renderer->close_map(map_id);
+    map_id = 0;
     renderer.reset();
     player.reset();
   }
 
-  void toggle_scene(fte_t& fte, fan::graphics::engine_t& engine, scene_manager_t& scene, fan::graphics::render_view_t* view) {
+  void toggle_scene(fte_t& fte, engine_t& engine, render_view_t* view) {
     render_scene = !render_scene;
     engine.update_physics(render_scene);
     if (render_scene) {
       fte.fout(add_temp_before_ext(fte.file_name));
       reload_scene(fte, view);
       fan::vec3 pos = 0;
-     /* if (!scene.renderer->get_player_spawn_position(*scene.map_id, &pos)) {
-        fan::gprint("failed to find player spawn position, using fte.map_size * fte.tile_size");
-        pos = fte.map_size * fte.tile_size;
-      }*/
-      player = std::make_unique<player_t>(
-        pos,
-        /*fan::vec2(fte.map_size.x * fte.tile_size.x / 2.f, 0),*/
-        //fte.map_size * fte.tile_size,
-        view
-      );
+      player = std::make_unique<player_t>(pos, view);
       engine.set_vsync(0);
     }
     else {
@@ -120,12 +101,12 @@ struct scene_manager_t {
 
   std::unique_ptr<player_t> player;
   std::unique_ptr<tilemap_renderer_t> renderer;
-  std::unique_ptr<tilemap_renderer_t::id_t> map_id;
+  tilemap_renderer_t::id_t map_id{};
   bool render_scene = false;
 };
 
-int main(int argc, char** argv) {
-  fan::graphics::engine_t engine;
+int main() {
+  engine_t engine;
   engine.set_culling_enabled(false);
   render_context_t views;
   scene_manager_t scene;
@@ -133,7 +114,7 @@ int main(int argc, char** argv) {
   scene.setup_camera(engine, views.editor);
   scene.setup_camera(engine, views.program);
 
-  fan::graphics::interactive_camera_t ic(views.program.camera, views.program.viewport);
+  interactive_camera_t ic(views.program.camera, views.program.viewport);
   ic.set_zoom(1);
 
   fte_t fte;
@@ -143,12 +124,8 @@ int main(int argc, char** argv) {
   fte.open(p);
 
   auto keys_handle = engine.window.add_keys_callback([&](const auto& d) {
-    if (d.state != fan::keyboard_state::press) {
-      return;
-    }
-    if (d.key == fan::key_f5) {
-      scene.toggle_scene(fte, engine, scene, &views.program);
-    }
+    if (d.state != fan::keyboard_state::press) return;
+    if (d.key == fan::key_f5) scene.toggle_scene(fte, engine, &views.program);
   });
 
   fte.modify_cb = [&](int mode) {
@@ -163,25 +140,21 @@ int main(int argc, char** argv) {
     fte.render();
 
     if (scene.render_scene && scene.player) {
-      if (fan::graphics::gui::begin("Program", 0, fan::graphics::gui::window_flags_no_background)) {
-        fan::graphics::gui::set_viewport(views.program.viewport);
+      if (gui::begin("Program", 0, gui::window_flags_no_background)) {
+        gui::set_viewport(views.program.viewport);
         engine.viewport_zero(views.editor.viewport);
 
         fan::vec2 position = scene.player->character.player.get_position();
-        scene.renderer->update(*scene.map_id, position);
-        /*scene.player->set_position( // can be problematic for player shapes that are longer than 1-2 tiles 
-          fan::vec3(position, floor(position.y / (fte.tile_size.y * 2.f)) + (0xFAAA - 2) / 2) + z
-        );*/
+        scene.renderer->update(scene.map_id, position);
         scene.player->set_position(
           fan::vec3(position, floor(position.y / (fte.tile_size.y * 2.f)) + (0xFAAA - 2) / 2) + z + 1
         );
         ic.set_position(position);
-
       }
       else {
         engine.viewport_zero(views.program.viewport);
       }
-      fan::graphics::gui::end();
+      gui::end();
     }
   });
 

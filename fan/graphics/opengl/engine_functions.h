@@ -120,7 +120,7 @@ void init_framebuffer() {
     fan_opengl_call(glGenerateMipmap(GL_TEXTURE_2D));
     loco.image_bind(color_buffer);
     fan::opengl::core::framebuffer_t::bind_to_texture(loco.context.gl, loco.image_get_handle(color_buffer), attachment);
-    };
+  };
 
   fan::image::info_t image_info;
   image_info.data = nullptr;

@@ -47,6 +47,8 @@ export namespace fan::graphics {
     id_t open_map(compiled_map_t& out_compiled, const char* path, const properties_t& p = {}, const std::source_location& callers_path = std::source_location::current());
     // compiles map also
     id_t open_map(std::string_view map_name, const properties_t& p = {}, const std::source_location& callers_path = std::source_location::current());
+    // closes map, but keeps the compiled map cached
+    void close_map(id_t& id);
 
     id_t add(compiled_map_t* compiled_map);
     id_t add(compiled_map_t* compiled_map, const properties_t& p);

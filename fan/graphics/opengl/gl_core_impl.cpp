@@ -793,28 +793,24 @@ namespace fan::opengl {
     auto& image = image_get(nr);
     image_bind(nr);
     auto& image_data = __fan_internal_image_list[nr];
-    fan::vec2ui uv_size = {
-        (uint32_t)(image_data.size.x * uvs.x),
-        (uint32_t)(image_data.size.y * uvs.y)
-    };
-    std::vector<uint8_t> full_data(image_data.size.x * image_data.size.y * 4); // assuming rgba
-    fan_opengl_call(glGetTexImage(GL_TEXTURE_2D,
-      0,
-      format,
-      GL_UNSIGNED_BYTE,
-      full_data.data())
-    );
-    std::vector<uint8_t> result_data(uv_size.x * uv_size.y * 4); // assuming rgba
-    for (uint32_t y = 0; y < uv_size.y; ++y) {
-      for (uint32_t x = 0; x < uv_size.x; ++x) {
-        uint32_t full_index = ((y + uvp.y * image_data.size.y) * image_data.size.x + (x + uvp.x * image_data.size.x)) * 4;
-        uint32_t index = (y * uv_size.x + x) * 4;
-        result_data[index + 0] = full_data[full_index + 0];
-        result_data[index + 1] = full_data[full_index + 1];
-        result_data[index + 2] = full_data[full_index + 2];
-        result_data[index + 3] = full_data[full_index + 3];
-      }
+    
+    uint32_t channels = fan::graphics::get_channel_amount(opengl_to_global_format(format));
+    
+    int px = fan::math::clamp((int)fan::math::round(uvp.x * image_data.size.x), 0, (int)image_data.size.x);
+    int py = fan::math::clamp((int)fan::math::round(uvp.y * image_data.size.y), 0, (int)image_data.size.y);
+    int pw = fan::math::min((int)fan::math::round(uvs.x * image_data.size.x), (int)image_data.size.x - px);
+    int ph = fan::math::min((int)fan::math::round(uvs.y * image_data.size.y), (int)image_data.size.y - py);
+
+    std::vector<uint8_t> full_data(image_data.size.x * image_data.size.y * channels);
+    fan_opengl_call(glGetTexImage(GL_TEXTURE_2D, 0, format, GL_UNSIGNED_BYTE, full_data.data()));
+
+    std::vector<uint8_t> result_data(pw * ph * channels);
+    for (int row = 0; row < ph; ++row) {
+      std::memcpy(&result_data[row * pw * channels],
+                  &full_data[((py + row) * (int)image_data.size.x + px) * channels],
+                  pw * channels);
     }
+    
     return result_data;
   }
   fan::graphics::image_nr_t context_t::image_create(const fan::color& color, const fan::opengl::context_t::image_load_properties_t& p) {

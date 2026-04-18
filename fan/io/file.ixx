@@ -29,6 +29,24 @@ export namespace fan {
         std::is_convertible_v<T, const char*> ||
         std::is_same_v<std::remove_cvref_t<T>, std::filesystem::path>;
 
+      template <path_t P>
+      std::string to_str(P&& p) {
+        if constexpr (std::is_same_v<std::remove_cvref_t<P>, std::filesystem::path>)
+          return p.string();
+        else
+          return std::string(std::string_view(p));
+      }
+
+
+      template <path_t P>
+      inline std::string strip_extension(P&& file_path) {
+        std::string path = to_str(std::forward<P>(file_path));
+        size_t dot_pos = path.find_last_of('.');
+        size_t sep_pos = path.find_last_of("/\\");
+        if (dot_pos != std::string::npos && (sep_pos == std::string::npos || dot_pos > sep_pos))
+          return path.substr(0, dot_pos);
+        return path;
+      }
       std::string extension(const std::string& file_path);
       bool exists(std::string_view path);
       bool rename(const std::string& from, const std::string& to);
@@ -88,47 +106,38 @@ export namespace fan {
         return v;
       }
 
-      // path_t overloads
-      template <path_t P>
-      std::string to_sv(P&& p) {
-        if constexpr (std::is_same_v<std::remove_cvref_t<P>, std::filesystem::path>)
-          return p.string();
-        else
-          return std::string(std::string_view(p));
-      }
-
       template <path_t P>
       bool write(P&& path, const std::string& data, fs_mode mode) {
-        return write(std::string_view(to_sv(std::forward<P>(path))), data, mode);
+        return write(std::string_view(to_str(std::forward<P>(path))), data, mode);
       }
 
       template <path_t P>
-      bool exists(P&& p) { return exists(std::string_view(to_sv(std::forward<P>(p)))); }
+      bool exists(P&& p) { return exists(std::string_view(to_str(std::forward<P>(p)))); }
 
       template <path_t P>
-      std::uint64_t file_size(P&& p) { return file_size(std::string_view(to_sv(std::forward<P>(p)))); }
+      std::uint64_t file_size(P&& p) { return file_size(std::string_view(to_str(std::forward<P>(p)))); }
 
       template <path_t P>
       bool read_bytes(P&& p, void* dst, std::size_t sz) {
-        return read_bytes(std::string_view(to_sv(std::forward<P>(p))), dst, sz);
+        return read_bytes(std::string_view(to_str(std::forward<P>(p))), dst, sz);
       }
 
       template <path_t P>
       bool read(P&& p, std::string* str,
         std::source_location loc = std::source_location::current()) {
-        return read(std::string_view(to_sv(std::forward<P>(p))), str, loc);
+        return read(std::string_view(to_str(std::forward<P>(p))), str, loc);
       }
 
       template <path_t P>
       std::string read(P&& p, bool* success = nullptr,
         std::source_location loc = std::source_location::current()) {
-        return read(std::string_view(to_sv(std::forward<P>(p))), success, loc);
+        return read(std::string_view(to_str(std::forward<P>(p))), success, loc);
       }
 
       template <path_t P>
       std::filesystem::path find_relative_path(P&& p,
         const std::source_location& loc = std::source_location::current()) {
-        return find_relative_path(std::string_view(to_sv(std::forward<P>(p))), loc);
+        return find_relative_path(std::string_view(to_str(std::forward<P>(p))), loc);
       }
 
       template <path_t P>
