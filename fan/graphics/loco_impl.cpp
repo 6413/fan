@@ -1962,33 +1962,34 @@ void loco_t::set_vsync(bool flag) {
 }
 
 void loco_t::start_timer() {
-  double delay;
-  if (target_fps <= 0) {
-    delay = 0;
-  }
-  else {
-    delay = std::floor(1.0 / target_fps * 1000.0 * 0.9);
-    if (delay < 1) delay = 1;
-  }
+  if (target_fps <= 0) return;
 
-  if (delay > 0) {
-    uv_timer_start(&timer_handle, [](uv_timer_t* handle) {
-      loco_t* loco = static_cast<loco_t*>(handle->data);
+  uint64_t delay = target_fps > 60 ? 1 : std::max(1.0, std::floor(1.0 / target_fps * 1000.0 * 0.5));
 
-      f64_t elapsed = loco->timing.frame_timer.seconds();
-      loco->timing.frame_timer.restart();
-      loco->timing.accumulated_time += elapsed;
+  uv_timer_start(&timer_handle, [](uv_timer_t* handle) {
+    loco_t* loco = static_cast<loco_t*>(handle->data);
 
-      if (loco->timing.accumulated_time >= loco->timing.target_frame_time) {
-        loco->timing.accumulated_time -= loco->timing.target_frame_time;
+    f64_t elapsed = loco->timing.frame_timer.seconds();
+    loco->timing.frame_timer.restart();
 
-        if (loco->process_frame(loco->main_loop)) {
-          uv_timer_stop(handle);
-          uv_stop((uv_loop_t*)fan::event::get_loop());
-        }
+    if (elapsed > 0.1) elapsed = 0.1;
+
+    loco->timing.accumulated_time += elapsed;
+
+    if (loco->timing.accumulated_time > 0.05) {
+      loco->timing.accumulated_time = 0.05;
+    }
+
+    if (loco->timing.accumulated_time >= loco->timing.target_frame_time) {
+      
+      loco->timing.accumulated_time -= loco->timing.target_frame_time;
+
+      if (loco->process_frame(loco->main_loop)) {
+        uv_timer_stop(handle);
+        uv_stop((uv_loop_t*)fan::event::get_loop());
       }
-    }, 0, delay);
-  }
+    }
+  }, 0, delay);
 }
 
 void loco_t::idle_cb(uv_idle_t* handle) {
@@ -2007,17 +2008,10 @@ void loco_t::start_idle(bool start_idle) {
 }
 
 void loco_t::update_timer_interval(bool idle) {
-  double delay;
-  if (target_fps <= 0) {
-    delay = 0;
-  }
-  else {
-    delay = std::floor(1.0 / target_fps * 1000.0 * 0.9);
-    if (delay < 1) delay = 1;
+  if (target_fps > 0) {
     timing.target_frame_time = 1.0 / target_fps;
-  }
+    uint64_t delay = target_fps > 60 ? 1 : std::max(1.0, std::floor(1.0 / target_fps * 1000.0 * 0.5));
 
-  if (delay > 0) {
     if (idle_init) {
       uv_idle_stop(&idle_handle);
     }
@@ -2027,8 +2021,10 @@ void loco_t::update_timer_interval(bool idle) {
       start_timer();
       timing.timer_enabled = true;
     }
-    uv_timer_set_repeat(&timer_handle, delay);
-    uv_timer_again(&timer_handle);
+    else {
+      uv_timer_set_repeat(&timer_handle, delay);
+      uv_timer_again(&timer_handle);
+    }
   }
   else {
     if (timer_init) {
