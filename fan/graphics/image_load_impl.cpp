@@ -8,43 +8,58 @@ module fan.graphics.image_load;
 
 import fan.print;
 
-bool fan::image::valid(const std::string& path, const std::source_location& callers_path) {
-  if (fan::webp::validate(path, callers_path)) {
-    return true;
-  }
-  else if (fan::stb::validate(path, callers_path)) {
-    return true;
-  }
-  return false;
-}
+namespace fan::image {
 
-bool fan::image::load(fan::str_view_t path, info_t* image_info, const std::source_location& callers_path) {
-  bool ret;
-  if (fan::webp::validate(path, callers_path)) {
-    ret = fan::webp::load(path, (fan::webp::info_t*)image_info, callers_path);
-    image_info->type = image_type_e::webp;
+  bool valid(const std::string& path, const std::source_location& callers_path) {
+    if (fan::webp::validate(path, callers_path)) {
+      return true;
+    }
+    else if (fan::stb::validate(path, callers_path)) {
+      return true;
+    }
+    return false;
   }
-  else {
-    #if !defined(loco_no_stb)
-      ret = fan::stb::load(path, (fan::stb::info_t*)image_info, callers_path);
-      image_info->type = image_type_e::stb;
-    #endif
-  }
-#if FAN_DEBUG >= fan_debug_low
-  if (ret) {
-    fan::print_warning("failed to load image data from path:", path);
-  }
-#endif
-  return ret;
-}
 
-void fan::image::free(info_t* image_info) {
-  if (image_info->type == image_type_e::webp) {
-    fan::webp::free_image(image_info->data);
+  bool load(fan::str_view_t path, info_t* image_info, const std::source_location& callers_path) {
+    bool ret;
+    if (fan::webp::validate(path, callers_path)) {
+      ret = fan::webp::load(path, (fan::webp::info_t*)image_info, callers_path);
+      image_info->type = image_type_e::webp;
+    }
+    else {
+      #if !defined(loco_no_stb)
+        ret = fan::stb::load(path, (fan::stb::info_t*)image_info, callers_path);
+        image_info->type = image_type_e::stb;
+      #endif
+    }
+  #if FAN_DEBUG >= fan_debug_low
+    if (ret) {
+      fan::print_warning("failed to load image data from path:", path);
+    }
+  #endif
+    return ret;
   }
-  else if (image_info->type == image_type_e::stb) {
-    #if !defined(loco_no_stb)
-    fan::stb::free_image(image_info->data);
-    #endif
+
+  void free(info_t* image_info) {
+    if (image_info->type == image_type_e::webp) {
+      fan::webp::free_image(image_info->data);
+    }
+    else if (image_info->type == image_type_e::stb) {
+      #if !defined(loco_no_stb)
+      fan::stb::free_image(image_info->data);
+      #endif
+    }
+  }
+
+  void convert_channels(const uint8_t* src, uint8_t* dst, std::size_t pixels, int src_channels, int dst_channels, uint8_t default_alpha) {
+    if (src_channels == dst_channels) {
+      std::memcpy(dst, src, pixels * src_channels);
+      return;
+    }
+    for (std::size_t i = 0; i < pixels; ++i) {
+      for (int c = 0; c < dst_channels; ++c) {
+        dst[i * dst_channels + c] = (c < src_channels) ? src[i * src_channels + c] : (c == 3 ? default_alpha : 0);
+      }
+    }
   }
 }

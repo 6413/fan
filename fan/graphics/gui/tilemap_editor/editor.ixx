@@ -1389,6 +1389,42 @@ export struct fte_t {
     fan::graphics::gui::push_style_color(fan::graphics::gui::col_window_bg, fan::color::rgb(31, 31, 31));
 
     if (fan::graphics::gui::begin("tiles", nullptr, fan::graphics::gui::window_flags_no_scroll_with_mouse)) {
+      if (!texture_packs.empty()) {
+        if (fan::graphics::gui::button("Add Image(s)")) {
+          fan::graphics::open_files("webp,png,jpg", [this](std::vector<std::string_view> paths) {
+            fan::graphics::texture_pack::internal_t builder;
+            builder.open();
+            builder.load_compiled(texture_packs[0]->file_path.c_str());
+
+            for (const auto& path : paths) {
+              fan::graphics::texture_pack::internal_t::texture_properties_t props;
+              props.image_name = std::string(path);
+              builder.push_texture(std::string(path), props);
+            }
+
+            builder.process();
+            builder.save_compiled(texture_packs[0]->file_path);
+            open_texture_pack(texture_packs[0]->file_path);
+          });
+        }
+
+        fan::graphics::gui::receive_drag_drop_target("##add_images_drag", [this](std::string path) {
+          fan::graphics::texture_pack::internal_t builder;
+          builder.open();
+          builder.load_compiled(texture_packs[0]->file_path.c_str());
+
+          fan::graphics::texture_pack::internal_t::texture_properties_t props;
+          props.image_name = path;
+          builder.push_texture(path, props);
+
+          builder.process();
+          builder.save_compiled(texture_packs[0]->file_path);
+          open_texture_pack(texture_packs[0]->file_path);
+        });
+
+        fan::graphics::gui::separator();
+      }
+
       if (fan::graphics::gui::is_window_hovered()) {
         zoom += fan::graphics::gui::get_io().MouseWheel / 3.f;
       }

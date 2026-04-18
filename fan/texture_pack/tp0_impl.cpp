@@ -172,33 +172,37 @@ namespace fan::graphics {
     auto* s = static_cast<internal_state_t*>(internal_state);
     if (texture_properties.image_name.empty()) return 1;
 
-    for (uint32_t gti = 0; gti < s->texture_list.size(); gti++) {
-      if (s->texture_list[gti].image_name == texture_properties.image_name) {
-        s->texture_list.erase(s->texture_list.begin() + gti);
-        break;
-      }
-    }
-
-    fan::webp::info_t image_info;
-    if (fan::webp::load(image_path, &image_info)) return 1;
+    fan::image::info_t image_info;
+    if (fan::image::load(image_path, &image_info)) return 1;
 
     if (image_info.size.x % 2 != 0 || image_info.size.y % 2 != 0) {
-      fan::webp::free_image(image_info.data);
+      fan::image::free(&image_info);
       return 1;
     }
+
+    std::erase_if(s->texture_list, [&](const auto& t) { return t.image_name == texture_properties.image_name; });
 
     internal_state_t::texture_t t;
     t.size = image_info.size;
     t.decoded_data.resize(t.size.multiply() * 4);
-    std::memcpy(t.decoded_data.data(), image_info.data, t.size.multiply() * 4);
-    fan::webp::free_image(image_info.data);
+
+    fan::image::convert_channels(
+      static_cast<const uint8_t*>(image_info.data), 
+      t.decoded_data.data(), 
+      t.size.multiply(), 
+      image_info.channels, 
+      4
+    );
+
+    fan::image::free(&image_info);
+    
     t.image_name = texture_properties.image_name;
     t.visual_output = texture_properties.visual_output;
     t.min_filter = texture_properties.min_filter;
     t.mag_filter = texture_properties.mag_filter;
     t.group_id = texture_properties.group_id;
 
-    s->texture_list.push_back(t);
+    s->texture_list.push_back(std::move(t));
     return 0;
   }
 
@@ -216,7 +220,7 @@ namespace fan::graphics {
     auto data = fan::graphics::ctx()->image_get_pixel_data(
       fan::graphics::ctx(), 
       image, 
-      0x1908, // GL_RGBA
+      fan::graphics::image_format_e::rgba_unorm,
       texture_properties.uv_pos, 
       texture_properties.uv_size
     );
