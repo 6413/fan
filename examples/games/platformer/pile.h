@@ -23,6 +23,9 @@ struct pile_t {
   #include "enemy/boss_skeleton/boss_skeleton.h"
   pile_t();
   bool pause = false;
+  auto& get_compiled(const std::string& name) {
+    return *this->renderer.get_compiled(name);
+  }
   void update_camera_zoom() {
     fan::vec2 r = engine.window.get_current_monitor_resolution() / fan::vec2(2560, 1440);
     ic.set_zoom(1.6f * r.max());
@@ -77,8 +80,6 @@ struct pile_t {
   player_t player;
   fan::graphics::rectangle_t stage_transition;
 
-  std::unordered_map<std::string, tilemap_loader_t::compiled_map_t> tilemaps_compiled;
-
   using enemy_list_t = fan::graphics::entity::enemy_container_t<skeleton_t, fly_t, boss_skeleton_t>;
   enemy_list_t enemy_list;
   enemy_list_t& enemies() { return enemy_list; }
@@ -109,7 +110,7 @@ pile_t::pile_t() {
   items::init();
 
   gui_stage = stage_loader.open_stage<gui_t>();
-  tilemaps_compiled[level0_t::stage_name] = pile->renderer.compile("sample_level.fte");
+  pile->renderer.open_map(level0_t::stage_name, "sample_level.fte");
   level_stage = stage_loader.open_stage<level0_t>();
   audio_background = fan::audio::piece_t("audio/background.sac");
   //audio_background_play_id = fan::audio::play(audio_background, 0, true);

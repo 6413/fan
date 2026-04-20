@@ -16,9 +16,15 @@ namespace fan::graphics {
   void physics_subsystem_t::update(f32_t dt) {
 #if defined(FAN_PHYSICS_2D)
     if (!is_updating) { return; }
-    context.debug_draw_cb();
     context.step(dt);
 #endif
+  }
+
+  void physics_subsystem_t::draw() {
+    if (!(context.debug.enabled && context.debug_draw_cb)) {
+      return;
+    }
+    context.debug_draw_cb();
   }
 
   void physics_subsystem_t::set_enabled(bool flag) {

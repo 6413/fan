@@ -30,18 +30,10 @@ struct player_t {
         if (is_blocking()) {
             return false;
         }
-
-        const bool attack_input =
-          fan::window::is_input_action_active(fan::actions::light_attack) ||
-          fan::window::is_key_clicked(fan::gamepad_right_bumper)
-        ;
-
-        bool attack_pressed = attack_input;
-
+        bool attack_pressed = pile->engine.is_clicked(fan::actions::light_attack);
         if (!attack_pressed || gui::want_io()) {
-            return false;
+          return false;
         }
-
         return c.attack_state.try_attack(&c);
       },
     });
@@ -71,7 +63,7 @@ struct player_t {
       }},
       .attack_animation = "attack0",
       .track_hit_targets = true
-      });
+    });
 
     body.setup_attack_properties({
       .max_health = 50.f,
@@ -284,7 +276,7 @@ struct player_t {
       checkpoint_position = pile->checkpoint_system.get_respawn_position(pile->renderer, pile->get_level().main_map_id);
     });
 
-    auto& map_compiled = pile->tilemaps_compiled[pile->get_level().stage_name];
+    auto& map_compiled = pile->get_compiled(pile->get_level().stage_name);
     if (get_physics_pos().y > map_compiled.map_size.y * (map_compiled.tile_size.y * 2.f)) {
       respawn();
     }

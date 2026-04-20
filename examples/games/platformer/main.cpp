@@ -27,14 +27,8 @@
 #include <iostream>
 
 import fan;
-import fan.graphics.gui.tilemap_editor.renderer;
-import fan.graphics.gameplay;
-import fan.spatial;
-import fan.graphics.gui.inventory_hotbar;
-import fan.graphics.gameplay.items;
-import fan.graphics.gui.gameplay.equipment;
-import fan.graphics.gui.input;
-import fan.graphics.gui.inventory;
+
+using namespace fan::graphics;
 
 #include <fan/graphics/tilemap_helpers.h>
 #include <fan/graphics/entity/enemy.h>

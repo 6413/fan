@@ -202,7 +202,7 @@ struct enemy_t : enemy_base_t {
       static constexpr f32_t drop_chance = 1.0f;
 
       if (fan::random::value(0.0f, 1.0f) < drop_chance) {
-        fan::vec2 tile_size = pile->tilemaps_compiled[pile->get_level().stage_name].tile_size;
+        fan::vec2 tile_size = pile->get_compiled(pile->get_level().stage_name).tile_size;
         fan::vec3i drop_pos = (body.get_center() / tile_size).floor() * tile_size;
 
         struct drop_t { const char* name; const char* texture; };
