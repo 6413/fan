@@ -30,9 +30,15 @@ namespace fan::graphics {
     return add(&out_compiled, p);
   }
 
-  tilemap_renderer_t::id_t tilemap_renderer_t::open_map(std::string_view map_name, const properties_t& p, const std::source_location& callers_path) {
-    std::string smap_name(map_name);
+  tilemap_renderer_t::id_t tilemap_renderer_t::open_map(std::string_view file_name, const properties_t& p, const std::source_location& callers_path) {
+    std::string smap_name(file_name);
     compiled_map_t* compiled = compile(fan::io::file::strip_extension(smap_name), smap_name, callers_path);
+    return add(compiled, p);
+  }
+
+  tilemap_renderer_t::id_t tilemap_renderer_t::open_map(std::string_view map_name, std::string_view file_name, const properties_t& p, const std::source_location& callers_path) {
+    std::string smap_name(file_name);
+    compiled_map_t* compiled = compile(std::string(map_name), smap_name, callers_path);
     return add(compiled, p);
   }
 

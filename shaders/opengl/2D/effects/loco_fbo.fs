@@ -35,7 +35,8 @@ void main() {
 
   color *= exposure;
   color = (color - 0.5) * contrast + 0.5;
-  color = pow(max(color, vec3(0.0)), vec3(1.0 / gamma));
+  // already srgb
+  //color = pow(max(color, vec3(0.0)), vec3(1.0 / gamma));
 
   o_attachment0 = vec4(color, framebuffer_alpha);
 }

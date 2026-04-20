@@ -1209,7 +1209,7 @@ namespace fan::graphics::physics {
       cache.character.set_body_type(fan::physics::body_type_e::static_body);
       cache.original_pos = character.get_position();
       // for box2d 3.1.1 it is stated that #define B2_HUGE(100000.0f * b2_lengthUnitsPerMeter)
-      fan::vec2 b2_huge = fan::vec2(99000.0f * (1.f / fan::physics::length_units_per_meter));
+      fan::vec2 b2_huge = fan::vec2(99000.0f * fan::physics::length_units_per_meter) / 1.5f; /*1.5 for safe*/
       cache.character.set_physics_position(-b2_huge);
       return character;
     }
@@ -1404,46 +1404,46 @@ namespace fan::graphics::physics {
         });
     }
 
-   std::function<bool(fan::graphics::shape_t&)> cond;
+     std::function<bool(fan::graphics::shape_t&)> cond;
 
-   if (config.attack_cb) {
-     cond = [cb = config.attack_cb](fan::graphics::shape_t& s) {
-       auto* c = static_cast<character2d_t*>(&s);
-       return cb(*c);
-     };
-   }
-   else {
-     cond = [](fan::graphics::shape_t& s) {
-       auto* c = static_cast<character2d_t*>(&s);
+     if (config.attack_cb) {
+       cond = [cb = config.attack_cb](fan::graphics::shape_t& s) {
+         auto* c = static_cast<character2d_t*>(&s);
+         return cb(*c);
+       };
+     }
+     else {
+       cond = [](fan::graphics::shape_t& s) {
+         auto* c = static_cast<character2d_t*>(&s);
 
-       if (c->attack_state.is_attacking) {
-         return false;
-       }
+         if (c->attack_state.is_attacking) {
+           return false;
+         }
 
-       if (
-         !(
-           fan::window::is_input_action_active(fan::actions::light_attack) ||
-           fan::window::is_key_clicked(fan::gamepad_right_bumper)
-           )
-       #if defined(FAN_GUI)
-         || fan::graphics::gui::want_io()
-       #endif
-         ) {
-         return false;
-       }
+         if (
+           !(
+             fan::window::is_input_action_active(fan::actions::light_attack) ||
+             fan::window::is_key_clicked(fan::gamepad_right_bumper)
+             )
+         #if defined(FAN_GUI)
+           || fan::graphics::gui::want_io()
+         #endif
+           ) {
+           return false;
+         }
 
-       return c->attack_state.try_attack(c);
-     };
-   }
+         return c->attack_state.try_attack(c);
+       };
+     }
 
-   anim_controller.add_state({
-     .name = "attack0",
-     .animation_id = attack.id,
-     .fps = attack.fps,
-     .trigger_type = fan::graphics::sprite_sheet_controller_t::animation_state_t::one_shot,
-     .condition = cond
+    anim_controller.add_state({
+      .name = "attack0",
+      .animation_id = attack.id,
+      .fps = attack.fps,
+      .trigger_type = fan::graphics::sprite_sheet_controller_t::animation_state_t::one_shot,
+      .condition = cond
     });
-
+    set_sprite_sheet_loop(attack.id, false);
 
     if (idle.fps) {
       anim_controller.add_state({

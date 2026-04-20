@@ -157,6 +157,7 @@ export namespace fan::graphics {
     sprite_sheet_id_t current_sprite_sheet;
     fan::vec2i8 last_sign = 1;
     bool start_sprite_sheet = false;
+    bool just_finished = false;
   };
 
   using ss_cache_t = std::unordered_map<std::pair<sprite_sheet_id_t, std::string>, sprite_sheet_id_t, sprite_sheet_pair_hash_t>;
@@ -1779,6 +1780,9 @@ export namespace fan::graphics {
       bool velocity_based_fps = false;
       trigger_type_e trigger_type = continuous;
       std::function<bool(fan::graphics::shapes::shape_t&)> condition;
+      int total_frames_target = 0;
+      int frames_played = 0;
+      f32_t start_time = 0;
       bool is_playing = false;
     };
     struct directional_config_t {

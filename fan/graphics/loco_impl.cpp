@@ -459,9 +459,11 @@ void loco_t::camera_set_target(fan::graphics::camera_nr_t nr, const fan::vec2& t
   
   fan::vec2 src_center = camera_get_position(nr) + offset;
   
+  f32_t t = 1.0f - std::exp(-move_speed * get_delta_time());
+  
   camera_set_center(
     nr, 
-    fan::vec3(move_speed == 0 ? target : src_center + (target - src_center) * get_delta_time() * move_speed, 0.f)
+    fan::vec3(move_speed == 0 ? target : src_center + (target - src_center) * t, 0.f)
   );
 }
 
@@ -1503,12 +1505,13 @@ void loco_t::process_gui() {
 
     if (gui::button(gui.frame_monitor.paused ? "Continue" : "Pause")) {
       gui.frame_monitor.paused = !gui.frame_monitor.paused;
+      gui.shape_monitor.paused = gui.frame_monitor.paused;
       gui.gui_monitor.paused = gui.frame_monitor.paused;
     }
 
     if (gui::button("Reset data")) {
       gui.frame_monitor.reset();
-      gui.frame_monitor.reset();
+      gui.shape_monitor.reset();
       gui.gui_monitor.reset();
     }
 
@@ -1524,7 +1527,7 @@ void loco_t::process_gui() {
 
       if (gui.frame_monitor.buffer.size() > gui.time_plot_scroll.view_size) {
         int max_offset = static_cast<int>(gui.frame_monitor.buffer.size()) - gui.time_plot_scroll.view_size;
-        gui::drag("Scroll", &gui.time_plot_scroll.scroll_offset);
+        gui::drag("Scroll", &gui.time_plot_scroll.scroll_offset, 1.f, 0.f, max_offset, gui::slider_flags_always_clamp);
       }
       gui::plot::end_plot();
     }
@@ -1853,6 +1856,10 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
 
   cb();
 
+#if defined(FAN_PHYSICS_2D)
+  physics.draw();
+#endif
+
 #if defined(FAN_2D)
   if (renderer_state.force_line_draw) {
     gl->draw_all_shape_aabbs();
@@ -2007,6 +2014,7 @@ void loco_t::start_idle(bool start_idle) {
   uv_idle_start(&idle_handle, idle_cb);
 }
 
+// if target fps does not seem to be accurate/updating, use timeBeginPeriod to request the correct hz for libuv
 void loco_t::update_timer_interval(bool idle) {
   if (target_fps > 0) {
     timing.target_frame_time = 1.0 / target_fps;
@@ -2521,7 +2529,7 @@ void loco_t::camera_move_to(const fan::graphics::shapes::shape_t& shape) {
 void loco_t::camera_move_to_smooth(const fan::graphics::shapes::shape_t& shape, const fan::graphics::render_view_t& render_view) {
   fan::vec2 current = camera_get_position(render_view.camera);
   fan::vec2 target = shape.get_position();
-  camera_set_position(orthographic_render_view.camera, current.lerp(target, 0.1f));
+  camera_set_position(orthographic_render_view.camera, current.lerp(target, f32_t(1.f - std::exp(-15.f * get_delta_time()))));
 }
 
 void loco_t::camera_move_to_smooth(const fan::graphics::shapes::shape_t& shape) {

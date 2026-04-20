@@ -8,7 +8,7 @@ void load_map() {
   TIMER_START(pickupable_spatial_init);
   pickupable_spatial.init(
     fan::vec2(0),
-    pile->tilemaps_compiled[stage_name].map_size * pile->tilemaps_compiled[stage_name].tile_size * 2.f
+    pile->get_compiled(stage_name).map_size * pile->get_compiled(stage_name).tile_size * 2.f
   );
   TIMER_PRINT(pickupable_spatial_init);
 
@@ -25,11 +25,11 @@ void load_map() {
   TIMER_PRINT(engine_setup);
 
   TIMER_START(renderer_add);
-  main_map_id = pile->renderer.add(&pile->tilemaps_compiled[stage_name], p);
+  main_map_id = pile->renderer.add(&pile->get_compiled(stage_name), p);
   TIMER_PRINT(renderer_add);
   
   TIMER_START(lighting_set_target);
-  pile->engine.get_lighting().set_target(pile->tilemaps_compiled[stage_name].lighting.ambient, 0.01);
+  pile->engine.get_lighting().set_target(pile->get_compiled(stage_name).lighting.ambient, 0.01);
   TIMER_PRINT(lighting_set_target);
 
   TIMER_START(static_animations_setup);

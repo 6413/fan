@@ -11,7 +11,7 @@ in vec2 texture_coordinate;
 in vec4 instance_outline_color;
 flat in uint flags;
 
-float smoothing = 2.0;
+float smoothing = 0.8;
 
 uniform float camera_zoom;
 
