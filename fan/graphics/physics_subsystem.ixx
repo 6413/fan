@@ -17,6 +17,7 @@ export namespace fan::graphics {
     void init();
     void destroy();
     void update(f32_t dt);
+    void draw();
     void set_enabled(bool flag);
 
 #if defined(FAN_PHYSICS_2D)

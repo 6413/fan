@@ -2817,6 +2817,9 @@ void fan::graphics::shapes::shape_t::sprite_sheet_frame_update_cb(
           sheet_data.frame_accumulator -= frame_duration;
           shape->set_sprite_sheet_next_frame();
         }
+        if (!sprite_sheet.loop && sheet_data.current_frame == (int)sprite_sheet.selected_frames.size() - 1) {
+          sheet_data.just_finished = true;
+        }
 
         if (shape->get_visual_id()) {
           auto& ri = *(sprite_t::ri_t*)shape->GetData(shaper);
@@ -3969,6 +3972,36 @@ namespace fan::graphics {
     });
 
     for (auto& state : states) {
+      if (state.trigger_type == animation_state_t::one_shot) {
+        if (state.is_playing) {
+          auto& sheet_data = shape.get_sprite_sheet_data();
+
+          if (sheet_data.just_finished) {
+            sheet_data.just_finished = false;
+
+            state.is_playing = false;
+            prev_animation_id = {};
+          }
+          return;
+        }
+
+        if (!state.condition(shape)) continue;
+
+        shape.set_current_sprite_sheet_id(state.animation_id);
+        shape.reset_current_sprite_sheet();
+
+        fan::graphics::all_sprite_sheets()[state.animation_id].loop = false;
+
+        shape.play_sprite_sheet();
+        shape.set_sprite_sheet_fps(state.fps);
+
+        shape.get_sprite_sheet_data().just_finished = false;
+
+        prev_animation_id = state.animation_id;
+        state.is_playing = true;
+        return;
+      }
+
       if (!state.condition(shape)) continue;
 
       if (prev_animation_id != state.animation_id) {
