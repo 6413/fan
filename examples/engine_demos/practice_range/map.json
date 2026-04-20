@@ -1,10 +1,10 @@
 {
   "camera_position": [
-    1816.6171875,
-    3001.4453125,
+    1166.468994140625,
+    3899.84814453125,
     0.0
   ],
-  "camera_zoom": 0.4018774926662445,
+  "camera_zoom": 0.33489790558815,
   "gravity": [
     0.0,
     2508.800048828125
@@ -124,6 +124,85 @@
         0.5
       ],
       "texture_pack_name": "tile0"
+    },
+    {
+      "mesh_property": 1,
+      "physics_shape_data": {
+        "fixed_rotation": true
+      },
+      "position": [
+        0.0,
+        3296.0,
+        32094.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        768.0
+      ]
+    },
+    {
+      "mesh_property": 1,
+      "physics_shape_data": {
+        "fixed_rotation": true
+      },
+      "position": [
+        2016.0,
+        4032.0,
+        32094.0
+      ],
+      "shape": "sprite",
+      "size": [
+        1984.0,
+        32.0
+      ]
+    },
+    {
+      "mesh_property": 1,
+      "physics_shape_data": {
+        "fixed_rotation": true
+      },
+      "position": [
+        4032.0,
+        3296.0,
+        32094.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        704.0
+      ]
+    },
+    {
+      "mesh_property": 1,
+      "physics_shape_data": {
+        "fixed_rotation": true
+      },
+      "position": [
+        4032.0,
+        4032.0,
+        32094.0
+      ],
+      "shape": "sprite"
+    },
+    {
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "mesh_property": 4,
+      "position": [
+        1856.0,
+        3776.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ]
     }
   ],
   "version": 1
