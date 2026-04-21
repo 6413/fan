@@ -3,6 +3,7 @@ module;
 #include <fan/utility.h>
 #include <iterator>
 #include <functional> // raii_nr.h raii_nr_t
+#include <span>
 
 namespace raii_build {
   #include <fan/types/raii_nr.h>
@@ -345,5 +346,10 @@ export namespace fan {
   auto& static_var() {
     static T var{};
     return var;
+  }
+
+  template <std::ranges::contiguous_range R>
+  auto subspan(R&& v, size_t start, size_t length) {
+    return std::span(v).subspan(start, length);
   }
 }
