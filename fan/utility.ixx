@@ -176,15 +176,16 @@ export namespace fan {
 
   template <typename container_t>
   struct enumerate_view_t {
+    using base_t = std::remove_reference_t<container_t>;
     using iterator = enumerate_iterator_t<
       conditional_t<
-      is_const_v<container_t>,
-      decltype(fan_detail::get_begin(declval<const container_t&>())),
-      decltype(fan_detail::get_begin(declval<container_t&>()))
+      is_const_v<base_t>,
+      decltype(fan_detail::get_begin(declval<const base_t&>())),
+      decltype(fan_detail::get_begin(declval<base_t&>()))
       >
     >;
 
-    enumerate_view_t(container_t& container) : _container(container) {}
+    enumerate_view_t(container_t&& container) : _container(std::forward<container_t>(container)) {}
 
     iterator begin() {
       auto it = fan_detail::get_begin(_container);
@@ -218,19 +219,19 @@ export namespace fan {
       return const_cast<enumerate_view_t*>(this)->end();
     }
 
-    container_t& _container;
+    container_t _container;
   };
 
   struct enumerate_fn {
     template <typename container_t>
-    auto operator()(container_t& container) const {
-      return enumerate_view_t<container_t>{container};
+    auto operator()(container_t&& container) const {
+      return enumerate_view_t<container_t>{std::forward<container_t>(container)};
     }
   };
 
   template <typename container_t>
-  auto operator|(container_t& container, const fan::enumerate_fn& view) {
-    return view(container);
+  auto operator|(container_t&& container, const fan::enumerate_fn& view) {
+    return view(std::forward<container_t>(container));
   }
 
   constexpr enumerate_fn enumerate{};
