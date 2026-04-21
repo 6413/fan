@@ -148,25 +148,20 @@ export namespace fan {
       8.7f, 6.7f, 3.3f, 1.0f, 0.91f, 0.27f, 1.6f, 0.44f
     };
   #endif
-  struct letter_freq_t {
-    uint8_t letter;
-    f32_t texts;
-    f32_t dicts;
 
-    struct best_t {
-      void update(int ascii_char, f32_t s, const std::string& t) {
-        if (s > score) { ascii_character = ascii_char, score = s; decrypted_text = t; }
-      }
-      int ascii_character = -1;
-      f32_t score = 0.f;
-      std::string decrypted_text;
-    };
+  struct single_byte_xor_t {
+    void update(int ascii_char, f32_t s, const std::string& t) {
+      if (s > score) { ascii_character = ascii_char, score = s; decrypted_text = t; }
+    }
+    int ascii_character = -1;
+    f32_t score = 0.f;
+    std::string decrypted_text;
   };
 
   void crack_single_byte_xor(
     const bytes_t& a_bytes,
-    letter_freq_t::best_t& tbest,
-    letter_freq_t::best_t& dbest)
+    single_byte_xor_t& tbest,
+    single_byte_xor_t& dbest)
   {
     constexpr int n = 256;
     f32_t st[n]{}, sd[n]{};
@@ -185,11 +180,16 @@ export namespace fan {
       }
     }
 
-    auto pick = [&](f32_t* s, letter_freq_t::best_t& best) {
+    auto pick = [&](f32_t* s, single_byte_xor_t& best) {
       int d = std::max_element(s, s + n) - s;
       best.update(d, s[d], texts[d]);
     };
     pick(st, tbest);
     pick(sd, dbest);
+  }
+  single_byte_xor_t crack_single_byte_xor(const bytes_t& a_bytes) {
+    single_byte_xor_t text, dict;
+    crack_single_byte_xor(a_bytes, text, dict);
+    return text.score > dict.score ? text : dict;
   }
 }
