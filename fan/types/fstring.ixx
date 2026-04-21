@@ -331,17 +331,24 @@ export namespace fan {
     return ec == std::errc {} ? result : 0;
   }
 
-  inline std::string as_chars(const bytes_t& v) {
-    return std::string(v.begin(), v.end());
-  }
-
-  inline std::string as_chars(std::string_view v) {
-    return std::string(v);
+  template <std::ranges::contiguous_range R>
+  requires std::same_as<std::ranges::range_value_t<R>, uint8_t>
+        || std::same_as<std::ranges::range_value_t<R>, char>
+  inline std::string as_chars(R&& v) {
+    return std::string(std::ranges::begin(v), std::ranges::end(v));
   }
 
   template <typename range_t>
   inline bytes_t as_bytes(const range_t& v) {
     return bytes_t(v.begin(), v.end());
+  }
+  template <typename range_t>
+  inline std::vector<bytes_t> as_bytes(const std::vector<range_t>& v) {
+    std::vector<bytes_t> bytes(v.size());
+    for (std::size_t i = 0; i < v.size(); ++i) {
+      bytes[i] = bytes_t(v[i].begin(), v[i].end());
+    }
+    return bytes;
   }
 
   std::vector<std::string_view> split_every_n(std::string_view s, size_t n) {
@@ -358,6 +365,11 @@ export namespace fan {
     }
     std::erase_if(str, [](char c) { return c == '\n' || c == '\r'; });
     return pos;
+  }
+  inline std::string strip_newlines(const std::string& str) {
+    std::string result = str;
+    strip_newlines(result);
+    return result;
   }
 
   inline std::vector<std::string_view> split_lines(std::string_view str) {
