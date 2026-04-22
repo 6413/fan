@@ -6,6 +6,7 @@ module;
 #include <functional>
 #include <queue>
 #include <memory>
+#include <optional>
 
 export module fan.graphics.gui;
 
@@ -460,6 +461,38 @@ export namespace fan::graphics::gui {
   };
 
   void shader_controls(fan::graphics::shader_t shader_id, const shader_contols_t& controls = {});
+
+  struct memory_editor_t {
+    void render(std::vector<uint8_t>& data, int cols = default_cols);
+    std::vector<uint8_t> get_selected_bytes(std::span<const uint8_t> data) const;
+
+    static constexpr int default_cols = 16;
+    static constexpr int ascii_id_offset = 0x10000;
+    static constexpr int group_size = 4;
+    static constexpr f32_t group_spacing = 8.f;
+
+    int sel_anchor = -1;
+    int sel_current = -1;
+
+  private:
+    enum class active_panel_t { hex, ascii } active_panel = active_panel_t::hex;
+
+    void render_hex_cell(std::vector<uint8_t>& data, int idx, f32_t cell_w, bool dragging);
+    void render_ascii_cell(std::vector<uint8_t>& data, int idx, f32_t ascii_w, bool dragging);
+    void process_clipboard(std::vector<uint8_t>& data);
+
+    bool has_selection() const;
+    std::pair<int, int> get_selection_bounds() const;
+    bool is_selected(int idx) const;
+    void update_selection(int idx);
+    uint32_t get_cell_flags(bool dragging, bool is_hex) const;
+    f32_t hex_spacing(int idx, int row_end) const;
+    f32_t ascii_spacing(int idx, int row_end) const;
+
+    int focus_ascii_idx = -1;
+    int focus_hex_idx = -1;
+    bool was_dragging = false;
+  };
 }
 /*
 template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(
