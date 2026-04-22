@@ -8,9 +8,12 @@ module;
 #include <bit>
 #include <array>
 #include <cctype>
+#include <span>
+#include <algorithm>
 
 export module fan.crypto;
 
+import fan.utility;
 import fan.types;
 import fan.types.fstring;
 import fan.print.error;
@@ -191,5 +194,72 @@ export namespace fan {
     single_byte_xor_t text, dict;
     crack_single_byte_xor(a_bytes, text, dict);
     return text.score > dict.score ? text : dict;
+  }
+
+  namespace repeating_key_xor {
+    struct key_size_candidate_t {
+      std::vector<std::string> spans;
+      f32_t result;
+      bool operator<(const key_size_candidate_t& d) const {
+        return result < d.result;
+      }
+      void add(std::span<const uint8_t> key_x) {
+        spans.emplace_back(fan::as_chars(key_x));
+        if (spans.size() % 2 == 0) {
+          calc_distance();
+        }
+      }
+      void calc_distance() {
+        if (!(spans.size() % 2 == 0) || spans.empty()) {
+          fan::throw_error_impl();
+        }
+        f32_t distance = 0.f;
+        for (int i = 0; i < spans.size() - 1; i += 2) {
+          distance += fan::hamming_distance(spans[i], spans[i + 1]);
+        }
+        result = distance / (spans.front().size() * (spans.size() / 2));
+      }
+    };
+
+    struct score_t {
+      std::string text;
+      f32_t value;
+      bool operator<(const score_t& s) const {
+        return value < s.value;
+      }
+    };
+
+    void crack(fan::bytes_t& bytes, int key_size, std::vector<score_t>& scores) {
+      std::string key;
+      f32_t overall_score = 0.f;
+      for (int x = 0; x < key_size; ++x) {
+        fan::bytes_t block(bytes.size() / key_size);
+        for (int y = 0; y < block.size(); y++) {
+          block[y] = bytes[x + y * key_size];
+        }
+        auto result = fan::crack_single_byte_xor(block);
+        key += result.ascii_character;
+        overall_score += result.score;
+      }
+      scores.push_back({
+        .text = fan::as_chars(fan::xor_key(bytes, fan::as_bytes(key))),
+        .value = overall_score
+      });
+    }
+
+    std::vector<key_size_candidate_t> get_key_size_candidates(const fan::bytes_t& bytes) {
+      constexpr int key_size_min = 2;
+      constexpr int key_size_max = 40;
+      std::vector<key_size_candidate_t> distances(key_size_max - key_size_min + 1);
+      for (int key_size = key_size_min; key_size <= key_size_max; ++key_size) {
+        for (int i = 0; i < 4; ++i) {
+          distances[key_size - key_size_min].add(
+            fan::subspan(bytes, key_size * i, key_size)
+          );
+        }
+      }
+      std::sort(distances.begin(), distances.end());
+      return distances;
+    }
   }
 }
