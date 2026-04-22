@@ -197,6 +197,7 @@ namespace fan::graphics::gui {
   bool settings_menu_t::draw_toggle_row(const char* label, bool* enabled) {
     gui::table_next_row();
     gui::table_next_column();
+    gui::align_text_to_frame_padding();
     gui::text(label);
     gui::table_next_column();
     return gui::checkbox(enabled);
@@ -205,6 +206,7 @@ namespace fan::graphics::gui {
   void settings_menu_t::draw_sub_row(const char* sublabel, auto widget_fn, f32_t sublabel_indent, f32_t subwidget_indent) {
     gui::table_next_row();
     gui::table_next_column();
+    gui::align_text_to_frame_padding();
     gui::set_cursor_pos_x(gui::get_cursor_pos_x() + sublabel_indent);
     gui::text(sublabel);
     gui::table_next_column();
@@ -245,6 +247,7 @@ namespace fan::graphics::gui {
           #endif
           };
           gui::table_next_column();
+          gui::align_text_to_frame_padding();
           gui::text("Renderer");
           gui::table_next_column();
           if (gui::begin_combo("##Renderer", renderers[gloco()->window.renderer])) {
@@ -595,8 +598,9 @@ namespace fan::graphics::gui {
   }
 
   void settings_menu_t::render_display_mode() {
-    static constexpr const char* display_mode_names[] = { "Windowed", "Borderless", "Fullscreen" };
+    static constexpr const char* display_mode_names[] = {"Windowed", "Borderless", "Fullscreen"};
     gui::table_next_column();
+    gui::align_text_to_frame_padding();
     gui::text("Display Mode");
     gui::table_next_column();
     if (gui::begin_combo("##Display Mode", display_mode_names[gloco()->open_props.window_open_mode - 1])) {
@@ -616,6 +620,7 @@ namespace fan::graphics::gui {
 
   void settings_menu_t::render_target_fps() {
     gui::table_next_column();
+    gui::align_text_to_frame_padding();
     gui::text("Target Framerate");
     gui::table_next_column();
     gui::same_line();
@@ -638,6 +643,7 @@ namespace fan::graphics::gui {
     if (current_resolution == -1) current_resolution = std::size(fan::resolutions);
 
     gui::table_next_column();
+    gui::align_text_to_frame_padding();
     gui::text("Resolution");
     gui::table_next_column();
     fan::vec2i window_size = gloco()->window.get_size();

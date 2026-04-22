@@ -7,6 +7,7 @@ module;
 #include <iomanip> // std::quoted
 #include <charconv>
 #include <ranges>
+#include <optional>
 
 #include <ios>
 #include <sstream>
@@ -261,14 +262,6 @@ export namespace fan {
     data = vector_read_data<T>(vec, off);
   }
 
-  std::string trim(const std::string& str) {
-    size_t first = str.find_first_not_of(' ');
-    if (std::string::npos == first) {
-      return str;
-    }
-    size_t last = str.find_last_not_of(' ');
-    return str.substr(first, (last - first + 1));
-  }
   std::vector<std::string> split(const std::string& str, std::string_view token = "\n") {
     std::vector<std::string> result;
     std::size_t start = 0;
@@ -295,7 +288,7 @@ export namespace fan {
     return args;
   }
 
-  std::string number_separator(auto number, const std::string& separator = ",", uint32_t group_size = 3) {
+  std::string format_thousands(auto number, const std::string& separator = ",", uint32_t group_size = 3) {
     std::string result = std::to_string(number);
 
     if (result.length() <= group_size || group_size == 0) {
@@ -351,7 +344,7 @@ export namespace fan {
     return bytes;
   }
 
-  std::vector<std::string_view> split_every_n(std::string_view s, size_t n) {
+  std::vector<std::string_view> chunks(std::string_view s, size_t n) {
     if (n == 0) return {};
     return s | std::views::chunk(n)
       | std::views::transform([](auto c) { return std::string_view(c.begin(), c.end()); })
@@ -386,6 +379,74 @@ export namespace fan {
       start = end + 1;
     }
     return lines;
+  }
+
+  inline std::string to_hex(uint64_t v, int width = 0) {
+    char buf[32];
+    auto [ptr, ec] = std::to_chars(buf, buf + sizeof(buf), v, 16);
+    for (char* p = buf; p != ptr; ++p) { if (*p >= 'a') *p &= ~0x20; }
+
+    int len = (int)(ptr - buf);
+    if (width <= len) return std::string(buf, ptr);
+    return std::string(width - len, '0').append(buf, ptr);
+  }
+  inline constexpr uint64_t from_hex(std::string_view s) {
+    uint64_t v = 0;
+    std::from_chars(s.data(), s.data() + s.size(), v, 16);
+    return v;
+  }
+  inline uint8_t parse_hex_byte(std::string_view s) {
+    if (s.empty()) return 0;
+    if (s.size() > 2) s = s.substr(s.size() - 2);
+    return (uint8_t)fan::from_hex(s);
+  }
+
+  inline std::string to_ascii(uint8_t b) {
+    return (b >= 0x20 && b <= 0x7E) ? std::string(1, (char)b) : ".";
+  }
+
+  inline void strip_whitespace(std::string& str) {
+    while (!str.empty() && std::isspace((uint8_t)str.front())) str.erase(str.begin());
+    while (!str.empty() && std::isspace((uint8_t)str.back())) str.pop_back();
+  }
+  inline std::string strip_whitespace(const std::string& str) {
+    std::string r = str;
+    strip_whitespace(r);
+    return r;
+  }
+
+  inline std::string_view trim(std::string_view s) {
+    s.remove_prefix(std::min(s.find_first_not_of(" \t\n\r\f\v"), s.size()));
+    auto last = s.find_last_not_of(" \t\n\r\f\v");
+    if (last != std::string_view::npos) s.remove_suffix(s.size() - last - 1);
+    return s;
+  }
+
+  std::vector<uint8_t> parse_hex_buffer(std::string_view hex_str) {
+    std::vector<uint8_t> bytes;
+    bytes.reserve(hex_str.size() / 2);
+  
+    std::string clean;
+    clean.reserve(hex_str.size());
+  
+    for (std::size_t i = 0; i < hex_str.size(); ++i) {
+      if (hex_str[i] == '0' && i + 1 < hex_str.size() && (hex_str[i+1] | 0x20) == 'x') {
+        ++i; continue;
+      }
+      if (std::isxdigit((uint8_t)hex_str[i])) clean.push_back(hex_str[i]);
+    }
+
+    for (std::size_t i = 0; i + 1 < clean.size(); i += 2) {
+      bytes.push_back(parse_hex_byte({clean.data() + i, 2}));
+    }
+    return bytes;
+  }
+
+  inline std::optional<uint8_t> extract_typed_char(std::string_view buf, std::string_view old_buf) {
+    if (buf.empty()) return std::nullopt;
+    if (buf.size() == 1) return (uint8_t)buf[0];
+    if (buf.size() == 2) return (uint8_t)((buf[0] == old_buf[0]) ? buf[1] : buf[0]);
+    return std::nullopt;
   }
 
   #define fan_enum_string_runtime(m_name, ...) \

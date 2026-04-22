@@ -164,6 +164,7 @@ export namespace fan::graphics::gui {
   f32_t get_item_width();
 
   bool input_text(str_view_t label, std::string* buf, input_text_flags_t flags = 0, input_text_callback_t callback = nullptr, void* user_data = nullptr);
+  bool input_text(std::string* buf, input_text_flags_t flags = 0, input_text_callback_t callback = nullptr, void* user_data = nullptr);
 
   bool input_text_multiline(str_view_t label, std::string* buf, const fan::vec2& size = fan::vec2(0, 0), input_text_flags_t flags = 0, input_text_callback_t callback = nullptr, void* user_data = nullptr);
   bool input_text_multiline(std::string* buf, const fan::vec2& size = fan::vec2(0, 0), input_text_flags_t flags = 0, input_text_callback_t callback = nullptr, void* user_data = nullptr);
@@ -210,6 +211,7 @@ export namespace fan::graphics::gui {
   void set_mouse_cursor(cursor_t type);
 
   style_t& get_style();
+  fan::vec2 get_frame_padding();
 
   fan::color get_color(col_t idx);
   uint32_t get_color_u32(col_t idx);
@@ -302,6 +304,14 @@ export namespace fan::graphics::gui {
   );
 
   font_t* get_font(f32_t font_size, bool bold = false);
+
+  struct mono_font_scope_t {
+    mono_font_scope_t(f32_t size);
+    ~mono_font_scope_t();
+    bool active = false;
+  };
+
+  font_t* get_mono_font(f32_t font_size);
 
   struct font_scope_t {
     font_scope_t(f32_t size, bool bold = false);
@@ -593,6 +603,7 @@ export namespace fan::graphics::gui {
 
   void same_line(f32_t offset_from_start_x = 0.f, f32_t spacing_w = -1.f);
   void new_line();
+  void align_text_to_frame_padding();
 
   struct viewport_rect_t {
     fan::vec2 position;
@@ -660,6 +671,8 @@ export namespace fan::graphics::gui {
 
   void next_column();
 
+  void clear_active_id();
+
   inline auto& get_font_main() {
     static fan::graphics::gui::font_t* fonts[std::size(font_sizes)] {};
     return fonts;
@@ -668,6 +681,11 @@ export namespace fan::graphics::gui {
   inline auto& get_font_bold() {
     static fan::graphics::gui::font_t* fonts_bold[std::size(font_sizes)] {};
     return fonts_bold;
+  }
+
+  inline auto& get_font_mono() {
+    static fan::graphics::gui::font_t* fonts_mono[std::size(font_sizes)] {};
+    return fonts_mono;
   }
 
   void build_fonts();
@@ -693,6 +711,7 @@ export namespace fan::graphics::gui {
 
   fan::vec2 text_size(std::string_view text, const char* text_end = NULL, bool hide_text_after_double_hash = false, f32_t wrap_width = -1.0f);
 
+  fan::vec2 calc_input_size(std::string_view text);
 
   void set_cursor_pos_x(f32_t pos);
   void set_cursor_pos_y(f32_t pos);
@@ -732,7 +751,7 @@ export namespace fan::graphics::gui {
     bool op_or = false
   );
 
-  void set_keyboard_focus_here();
+  void set_keyboard_focus_here(int offset = 0);
 
   fan::vec2 get_mouse_drag_delta(int button = 0, f32_t lock_threshold = -1.0f);
   void reset_mouse_drag_delta(int button = 0);
@@ -807,30 +826,26 @@ export namespace fan::graphics::gui {
   gui::window overlay_window(str_view_t id, fan::vec2 size, f32_t alpha = 0.7f);
 
   struct style_scope_t {
-    int color_count = 0, var_count = 0;
-
     style_scope_t() = default;
-    style_scope_t(gui::col_t idx, const fan::color& col)       { color(idx, col); }
-    style_scope_t(gui::style_var_t idx, f32_t val)             { var(idx, val); }
-    style_scope_t(gui::style_var_t idx, const fan::vec2& val)  { var(idx, val); }
+    style_scope_t(gui::col_t idx, const fan::color& col);
+    style_scope_t(gui::style_var_t idx, f32_t val);
+    style_scope_t(gui::style_var_t idx, const fan::vec2& val);
 
     style_scope_t(const style_scope_t&) = delete;
     style_scope_t& operator=(const style_scope_t&) = delete;
-    style_scope_t(style_scope_t&&) = delete;
-    style_scope_t& operator=(style_scope_t&&) = delete;
+    style_scope_t(style_scope_t&&) noexcept;
+    style_scope_t& operator=(style_scope_t&&) noexcept;
 
-    style_scope_t& color(gui::col_t idx, const fan::color& col) {
-      ImGui::PushStyleColor(idx, ImVec4(col.r, col.g, col.b, col.a));
-      ++color_count; return *this;
-    }
-    style_scope_t& var(gui::style_var_t idx, f32_t val)            { ImGui::PushStyleVar(idx, val); ++var_count; return *this; }
-    style_scope_t& var(gui::style_var_t idx, const fan::vec2& val) { ImGui::PushStyleVar(idx, val); ++var_count; return *this; }
+    style_scope_t& color(gui::col_t idx, const fan::color& col);
+    style_scope_t& var(gui::style_var_t idx, f32_t val);
+    style_scope_t& var(gui::style_var_t idx, const fan::vec2& val);
 
-    ~style_scope_t() {
-      if (color_count) ImGui::PopStyleColor(color_count);
-      if (var_count)   ImGui::PopStyleVar(var_count);
-    }
+    ~style_scope_t();
+
+    int color_count = 0, var_count = 0;
   };
+
+  style_scope_t make_invisible_input_style();
 
   template <typename container_t, typename mapper_t>
   bool combo_mapped(str_view_t label, int* current, const container_t& items, mapper_t mapper) {
@@ -1065,6 +1080,8 @@ export namespace fan::graphics::gui {
   void anchor_bottom_right(const fan::vec2& offset);
   void anchor_center(const fan::vec2& window_size, const fan::vec2& item_size = 0.f, int item_count = 1);
   fan::vec2 get_display_size();
+
+  void align_center_x(f32_t item_width);
 } // namespace fan::graphics::gui
 
 export namespace fan::graphics::gui::plot {
