@@ -396,6 +396,9 @@ export namespace fan {
 
     char get_char_pressed() const;
 
+    std::string get_clipboard() const;
+    void set_clipboard(const std::string& text);
+
     uint8_t renderer = renderer_t::opengl;
     double last_frame_time = glfwGetTime();
     f64_t m_delta_time = 1.0 / 256.0;

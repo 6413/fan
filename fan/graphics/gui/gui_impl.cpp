@@ -44,6 +44,8 @@ import fan.math;
 
 import fan.io.file;
 
+import fan.crypto;
+
 namespace fan::graphics::gui {
   const char* item_getter1(const std::vector<std::string>& items, int index) {
     if (index >= 0 && index < (int)items.size()) {
@@ -2028,81 +2030,256 @@ namespace fan::graphics::gui {
   }
 
   void shader_controls(fan::graphics::shader_t shader_id, const shader_contols_t& controls) {
-  static std::unordered_map<
-    std::remove_cvref_t<decltype(shader_id.gint())>,
-    std::vector<std::array<uint8_t, sizeof(fan::vec4)>>
-  > map;
+    static std::unordered_map<
+      std::remove_cvref_t<decltype(shader_id.gint())>,
+      std::vector<std::array<uint8_t, sizeof(fan::vec4)>>
+    > map;
 
-  auto& shader_list = *fan::graphics::ctx().shader_list;
-  auto& shader_data = shader_list[shader_id];
-  auto& table = shader_data.uniform_type_table;
+    auto& shader_list = *fan::graphics::ctx().shader_list;
+    auto& shader_data = shader_list[shader_id];
+    auto& table = shader_data.uniform_type_table;
 
-  auto [it, inserted] = map.try_emplace(shader_id.gint());
-  auto& table_data = it->second;
+    auto [it, inserted] = map.try_emplace(shader_id.gint());
+    auto& table_data = it->second;
 
-  if (inserted) {
-    table_data.resize(table.size());
-    uint32_t table_idx = 0;
+    if (inserted) {
+      table_data.resize(table.size());
+      uint32_t table_idx = 0;
 
-    #define create_get_case(shader_var_type, type) \
+      #define create_get_case(shader_var_type, type) \
+        case fan::get_hash(std::string_view(shader_var_type)): { \
+          fan::graphics::shader_get_value(shader_id, var.first, *(type*)var_data); \
+          break; \
+        }
+
+      for (auto& var : table) {
+        uint8_t* var_data = table_data[table_idx++].data();
+        switch (fan::get_hash(var.second)) {
+          create_get_case("bool",  bool)
+          create_get_case("int",   int)
+          create_get_case("uint",  uint32_t)
+          create_get_case("float", f32_t)
+          create_get_case("vec2",  fan::vec2)
+          create_get_case("vec3",  fan::vec3)
+          create_get_case("vec4",  fan::vec4)
+        }
+      }
+      #undef create_get_case
+    }
+
+    #define create_case(shader_var_type, type, gui_expr) \
       case fan::get_hash(std::string_view(shader_var_type)): { \
-        fan::graphics::shader_get_value(shader_id, var.first, *(type*)var_data); \
+        if (gui_expr) { \
+          fan::graphics::shader_set_value(shader_id, var.first, *(type*)var_data); \
+        } \
         break; \
       }
+
+    uint32_t table_idx = 0;
+    std::string_view name = shader_data.path_fragment;
+    gui::begin(name.empty() ? "##" : name);
 
     for (auto& var : table) {
       uint8_t* var_data = table_data[table_idx++].data();
       switch (fan::get_hash(var.second)) {
-        create_get_case("bool",  bool)
-        create_get_case("int",   int)
-        create_get_case("uint",  uint32_t)
-        create_get_case("float", f32_t)
-        create_get_case("vec2",  fan::vec2)
-        create_get_case("vec3",  fan::vec3)
-        create_get_case("vec4",  fan::vec4)
-      }
-    }
-    #undef create_get_case
-  }
-
-  #define create_case(shader_var_type, type, gui_expr) \
-    case fan::get_hash(std::string_view(shader_var_type)): { \
-      if (gui_expr) { \
-        fan::graphics::shader_set_value(shader_id, var.first, *(type*)var_data); \
-      } \
-      break; \
-    }
-
-  uint32_t table_idx = 0;
-  std::string_view name = shader_data.path_fragment;
-  gui::begin(name.empty() ? "##" : name);
-
-  for (auto& var : table) {
-    uint8_t* var_data = table_data[table_idx++].data();
-    switch (fan::get_hash(var.second)) {
-      create_case("bool",  bool,      gui::checkbox(var.first, (bool*)var_data))
-      create_case("int",   int,       gui::drag(var.first, (int*)var_data))
-      create_case("uint",  uint32_t,  gui::drag(var.first, (uint32_t*)var_data))
-      create_case("float", f32_t,     gui::drag(var.first, (f32_t*)var_data))
-      create_case("vec2",  fan::vec2, gui::drag(var.first, (fan::vec2*)var_data))
-      create_case("vec3",  fan::vec3, controls.vec3_as_color ? gui::color_edit3(var.first, (fan::vec3*)var_data) : gui::drag(var.first, (fan::vec3*)var_data))
-      case fan::get_hash(std::string_view("vec4")): {
-        if (controls.vec4_as_color) {
-          if (gui::color_edit4(var.first, (fan::color*)var_data)) {
-            fan::graphics::shader_set_value(shader_id, var.first, *(fan::color*)var_data);
+        create_case("bool",  bool,      gui::checkbox(var.first, (bool*)var_data))
+        create_case("int",   int,       gui::drag(var.first, (int*)var_data))
+        create_case("uint",  uint32_t,  gui::drag(var.first, (uint32_t*)var_data))
+        create_case("float", f32_t,     gui::drag(var.first, (f32_t*)var_data))
+        create_case("vec2",  fan::vec2, gui::drag(var.first, (fan::vec2*)var_data))
+        create_case("vec3",  fan::vec3, controls.vec3_as_color ? gui::color_edit3(var.first, (fan::vec3*)var_data) : gui::drag(var.first, (fan::vec3*)var_data))
+        case fan::get_hash(std::string_view("vec4")): {
+          if (controls.vec4_as_color) {
+            if (gui::color_edit4(var.first, (fan::color*)var_data)) {
+              fan::graphics::shader_set_value(shader_id, var.first, *(fan::color*)var_data);
+            }
+          } else {
+            if (gui::drag(var.first, (fan::vec4*)var_data)) {
+              fan::graphics::shader_set_value(shader_id, var.first, *(fan::vec4*)var_data);
+            }
           }
-        } else {
-          if (gui::drag(var.first, (fan::vec4*)var_data)) {
-            fan::graphics::shader_set_value(shader_id, var.first, *(fan::vec4*)var_data);
-          }
+          break;
         }
-        break;
       }
     }
-  }
-  gui::end();
+    gui::end();
 
-  #undef create_case
-}
+    #undef create_case
+  }
+
+  f32_t memory_editor_t::hex_spacing(int idx, int row_end) const {
+    if (idx + 1 == row_end) return 15.f;
+    return (idx + 1) % group_size == 0 ? group_spacing : 2.f;
+  }
+
+  f32_t memory_editor_t::ascii_spacing(int idx, int row_end) const {
+    if (idx + 1 == row_end) return 0.f;
+    return (idx + 1) % group_size == 0 ? 4.f : 0.f;
+  }
+
+  bool memory_editor_t::has_selection() const {
+    return sel_anchor != -1;
+  }
+
+  std::pair<int, int> memory_editor_t::get_selection_bounds() const {
+    return std::minmax(sel_anchor, sel_current);
+  }
+
+  bool memory_editor_t::is_selected(int idx) const {
+    if (!has_selection() || sel_anchor == sel_current) return false;
+    auto [lo, hi] = get_selection_bounds();
+    return idx >= lo && idx <= hi;
+  }
+
+  void memory_editor_t::update_selection(int idx) {
+    if (!is_item_hovered(hovered_flags_allow_when_blocked_by_active_item)) return;
+    if (fan::window::is_mouse_clicked(fan::mouse_left)) sel_anchor = sel_current = idx;
+    else if (fan::window::is_mouse_down(fan::mouse_left) && has_selection()) sel_current = idx;
+  }
+
+  uint32_t memory_editor_t::get_cell_flags(bool dragging, bool is_hex) const {
+    uint32_t flags = is_hex ? input_text_flags_chars_hexadecimal | input_text_flags_chars_uppercase : 0;
+    if (!dragging) flags |= input_text_flags_auto_select_all;
+    bool ctrl_cv = fan::window::is_key_down(fan::key_left_control) &&
+      (fan::window::is_key_down(fan::key_v) || fan::window::is_key_down(fan::key_c));
+    if (dragging || ctrl_cv) flags |= input_text_flags_read_only;
+    return flags;
+  }
+
+  void memory_editor_t::render_hex_cell(std::vector<uint8_t>& data, int idx, f32_t cell_w, bool dragging) {
+    style_scope_t sel_style;
+    if (is_selected(idx)) sel_style.color(col_frame_bg, fan::color(0.5f, 0.1f, 0.1f, 1.f));
+    push_id(idx);
+    auto buf = fan::to_hex(data[idx], 2);
+    set_next_item_width(cell_w);
+    if (focus_hex_idx == idx) { set_keyboard_focus_here(); focus_hex_idx = -1; }
+    if (input_text(&buf, get_cell_flags(dragging, true))) {
+      data[idx] = fan::parse_hex_byte(buf);
+      if (buf.size() == 2) {
+        if (idx + 1 < (int)data.size()) focus_hex_idx = idx + 1;
+        clear_active_id();
+      }
+      else if (buf.size() > 2) {
+        clear_active_id();
+      }
+    }
+    if (is_item_active()) active_panel = active_panel_t::hex;
+    update_selection(idx);
+    pop_id();
+  }
+
+  void memory_editor_t::render_ascii_cell(std::vector<uint8_t>& data, int idx, f32_t ascii_w, bool dragging) {
+    fan::color col = is_selected(idx) ? fan::color(1.f, 0.3f, 0.3f, 1.f) : fan::color(0.7f, 0.7f, 0.7f, 1.f);
+    push_id(ascii_id_offset + idx);
+    style_scope_t s;
+    s.color(col_text, col);
+    auto invisible = make_invisible_input_style();
+    if (focus_ascii_idx == idx) { set_keyboard_focus_here(); focus_ascii_idx = -1; }
+    std::string old_buf = fan::to_ascii(data[idx]);
+    std::string buf = old_buf;
+    set_next_item_width(ascii_w);
+    if (input_text(&buf, get_cell_flags(dragging, false))) {
+      if (auto c = fan::extract_typed_char(buf, old_buf)) {
+        data[idx] = *c;
+        if (idx + 1 < (int)data.size()) focus_ascii_idx = idx + 1;
+        clear_active_id();
+      }
+      else {
+        data[idx] = buf.empty() ? 0 : data[idx];
+        if (!buf.empty()) clear_active_id();
+      }
+    }
+    if (is_item_active()) active_panel = active_panel_t::ascii;
+    if (is_item_active() && buf.empty() && fan::window::is_key_clicked(fan::key_backspace))
+      if (idx > 0) { focus_ascii_idx = idx - 1; data[idx - 1] = 0; }
+    update_selection(idx);
+    pop_id();
+  }
+
+  void memory_editor_t::render(std::vector<uint8_t>& data, int cols) {
+    gui::mono_font_scope_t mono_font(gui::get_font_size());
+    f32_t cell_w = calc_input_size("FF").x;
+    f32_t ascii_w = calc_text_size("F").x + 4.f;
+    int size = (int)data.size();
+    int rows = (size + cols - 1) / cols;
+
+    bool dragging = fan::window::is_mouse_down(fan::mouse_left) && has_selection() && sel_anchor != sel_current;
+    if (dragging && !was_dragging) clear_active_id();
+    was_dragging = dragging;
+
+    list_clipper_t clipper;
+    clipper.Begin(rows);
+    while (clipper.Step()) {
+      for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
+        int row_start = i * cols;
+        int row_end = std::min(row_start + cols, size);
+
+        align_text_to_frame_padding();
+        text(fan::to_hex(row_start, 8));
+        same_line(0.f, 15.f);
+
+        for (int idx = row_start; idx < row_end; ++idx) {
+          render_hex_cell(data, idx, cell_w, dragging);
+          same_line(0.f, hex_spacing(idx, row_end));
+        }
+
+        style_scope_t ss(style_var_item_spacing, fan::vec2(0.f, 0.f));
+        style_scope_t ss_pad(style_var_frame_padding, fan::vec2(0.f, 0.f));
+        for (int idx = row_start; idx < row_end; ++idx) {
+          render_ascii_cell(data, idx, ascii_w, dragging);
+          if (idx + 1 < row_end) same_line(0.f, ascii_spacing(idx, row_end));
+        }
+      }
+    }
+    clipper.End();
+
+    if (is_window_hovered() && !is_any_item_hovered() && fan::window::is_mouse_clicked(fan::mouse_left))
+      sel_anchor = sel_current = -1;
+
+    process_clipboard(data);
+  }
+
+  std::vector<uint8_t> memory_editor_t::get_selected_bytes(std::span<const uint8_t> data) const {
+    if (!has_selection()) return {};
+    auto [lo, hi] = get_selection_bounds();
+    return std::vector<uint8_t>(
+      data.begin() + std::max(0, lo),
+      data.begin() + std::min((int)data.size(), hi + 1)
+    );
+  }
+
+  void memory_editor_t::process_clipboard(std::vector<uint8_t>& data) {
+    bool ctrl = fan::window::is_key_down(fan::key_left_control);
+    if (ctrl && fan::window::is_key_clicked(fan::key_c)) {
+      fan::graphics::get_window().set_clipboard(fan::bytes2hex(get_selected_bytes(data)));
+      return;
+    }
+    if (!ctrl || !fan::window::is_key_clicked(fan::key_v) || !has_selection()) return;
+
+    auto [lo, hi] = get_selection_bounds();
+    std::string clip = fan::graphics::get_window().get_clipboard();
+    int next_idx = lo;
+
+    if (active_panel == active_panel_t::ascii) {
+      for (int i = 0; i < (int)clip.size(); ++i) {
+        int idx = lo + i;
+        if (idx >= (int)data.size()) data.resize(idx + 1, 0);
+        data[idx] = (uint8_t)clip[i];
+        next_idx = idx + 1;
+      }
+      focus_ascii_idx = next_idx;
+    }
+    else {
+      auto bytes = fan::parse_hex_buffer(fan::trim(clip));
+      for (int i = 0; i < (int)bytes.size(); ++i) {
+        int idx = lo + i;
+        if (idx >= (int)data.size()) data.resize(idx + 1, 0);
+        data[idx] = bytes[i];
+        next_idx = idx + 1;
+      }
+      focus_hex_idx = next_idx;
+    }
+    sel_anchor = sel_current = next_idx;
+  }
 }
 #endif

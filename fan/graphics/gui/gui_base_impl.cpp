@@ -484,6 +484,10 @@ namespace fan::graphics::gui {
     ImGui::NewLine();
   }
 
+  void align_text_to_frame_padding() {
+    ImGui::AlignTextToFramePadding();
+  }
+
   viewport_rect_t get_viewport_rect() {
     viewport_rect_t vr;
     ImGuiViewport* vp = ImGui::GetMainViewport();
@@ -657,6 +661,10 @@ namespace fan::graphics::gui {
     ImGui::NextColumn();
   }
 
+  void clear_active_id() {
+    ImGui::ClearActiveID();
+  }
+
   void build_fonts() {
     auto& io = get_io();
     io.Fonts->Build();
@@ -758,6 +766,10 @@ namespace fan::graphics::gui {
 
   fan::vec2 text_size(std::string_view text, const char* text_end, bool hide_text_after_double_hash, f32_t wrap_width) {
     return calc_text_size(text, text_end, hide_text_after_double_hash, wrap_width);
+  }
+
+  fan::vec2 calc_input_size(std::string_view text) {
+    return gui::calc_text_size(text.data(), text.data() + text.size()) + gui::get_frame_padding() * 2.f + 2.f;
   }
 
   void set_cursor_pos_x(f32_t pos) {
@@ -882,8 +894,8 @@ namespace fan::graphics::gui {
     want_io() = op_or ? (want_io() | flag) : flag;
   }
 
-  void set_keyboard_focus_here() {
-    ImGui::SetKeyboardFocusHere();
+  void set_keyboard_focus_here(int offset) {
+    ImGui::SetKeyboardFocusHere(offset);
   }
 
   fan::vec2 get_mouse_drag_delta(int button, f32_t lock_threshold) {
@@ -1097,7 +1109,13 @@ namespace fan::graphics::gui {
     return calc_item_width();
   }
 
-  bool input_text(str_view_t label, std::string* buf, input_text_flags_t flags, input_text_callback_t callback, void* user_data) {
+  bool input_text(
+    str_view_t label, 
+    std::string* buf, 
+    input_text_flags_t flags, 
+    input_text_callback_t callback, 
+    void* user_data) 
+  {
     IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
     flags |= ImGuiInputTextFlags_CallbackResize;
     detail::input_text_callback_user_data_t cb_user_data;
@@ -1110,6 +1128,14 @@ namespace fan::graphics::gui {
       flags,
       detail::input_text_callback,
       &cb_user_data);
+  }
+  bool input_text(
+    std::string* buf,
+    input_text_flags_t flags,
+    input_text_callback_t callback,
+    void* user_data)
+  {
+    return input_text("##", buf, flags, callback, user_data);
   }
 
   bool input_text_multiline(str_view_t label, std::string* buf, const fan::vec2& size, input_text_flags_t flags, input_text_callback_t callback, void* user_data) {
@@ -1207,6 +1233,10 @@ namespace fan::graphics::gui {
 
   style_t& get_style() {
     return ImGui::GetStyle();
+  }
+
+  fan::vec2 get_frame_padding() {
+    return get_style().FramePadding;
   }
 
   fan::color get_color(col_t idx) {
@@ -1369,6 +1399,19 @@ namespace fan::graphics::gui {
 
   font_t* get_font(f32_t font_size, bool bold) {
     return get_font_impl(font_size, bold);
+  }
+
+  font_t* get_mono_font(f32_t font_size) {
+    return detail::get_font_from_array(get_font_mono(), font_size);
+  }
+
+  mono_font_scope_t::mono_font_scope_t(f32_t size) {
+    active = size > 0;
+    if (active) gui::push_font(gui::get_mono_font(size));
+  }
+
+  mono_font_scope_t::~mono_font_scope_t() {
+    if (active) gui::pop_font();
   }
 
   font_scope_t::font_scope_t(f32_t size, bool bold) {
@@ -1664,59 +1707,61 @@ namespace fan::graphics::gui {
   #endif
   }
 
-  void init_fonts() {
-    ImGuiIO& io = ImGui::GetIO();
-    io.Fonts->FontBuilderIO = ImGuiFreeType::GetBuilderForFreeType();
-    io.Fonts->FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
+  struct font_load_info_t {
+    font_t** dest;
+    const char* path;
+  };
 
-    load_fonts(fan::graphics::gui::get_font_main(), "fonts/SourceCodePro-Regular.ttf");
-    load_fonts(fan::graphics::gui::get_font_bold(), "fonts/SourceCodePro-Bold.ttf");
+  auto get_base_font_targets() {
+    static font_load_info_t targets[] = {
+      //{ get_font_main(), "fonts/SourceCodePro/SourceCodePro-Regular.ttf" },
+      //{ get_font_bold(), "fonts/SourceCodePro/SourceCodePro-Bold.ttf" },
+      { get_font_main(), "fonts/Inter/Inter_18pt-Regular.ttf" },
+      { get_font_bold(), "fonts/Inter/Inter_18pt-Bold.ttf" },
+      { get_font_mono(), "fonts/JetBrainsMono/JetBrainsMono-Regular.ttf" }
+    };
+    return std::span<const font_load_info_t>(targets);
+  }
+
+  void load_font_family(std::span<const font_load_info_t> targets, void (*custom_font_cb)(f32_t) = [](f32_t) {}) {
+    auto& io = get_io();
+    io.Fonts->Clear();
+    io.Fonts->FontBuilderIO = ImGuiFreeType::GetBuilderForFreeType();
+    io.Fonts->FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor | ImGuiFreeTypeBuilderFlags_LightHinting;
+
+    for (std::size_t i = 0; i < std::size(font_sizes); ++i) {
+      f32_t font_size = font_sizes[i] * 2.f;
+
+      ImFontConfig cfg;
+      cfg.OversampleH = 3;
+      cfg.OversampleV = 1;
+      cfg.PixelSnapH = true;
+
+      for (const auto& target : targets) {
+        target.dest[i] = io.Fonts->AddFontFromFileTTF(target.path, font_size, &cfg);
+      }
+      custom_font_cb(font_size);
+    }
 
     build_fonts();
+    io.FontDefault = get_font_main()[default_font_size_index];
+  }
 
-    io.FontDefault = fan::graphics::gui::get_font_main()[default_font_size_index];
+  void init_fonts() {
+    load_font_family(get_base_font_targets());
   }
 
   void load_emojis() {
-    ImFontConfig emoji_cfg;
-    emoji_cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor | ImGuiFreeTypeBuilderFlags_Bitmap;
-
-    // TODO: expand ranges if needed
-    static const ImWchar emoji_ranges[] = {
-      0x2600, 0x26FF,
-      0x2B00, 0x2BFF,
-      0x1F600, 0x1F64F,
-      0
-    };
-
-    ImGuiIO& io = ImGui::GetIO();
-    io.Fonts->Clear();
-    io.Fonts->FontBuilderIO = ImGuiFreeType::GetBuilderForFreeType();
-    io.Fonts->FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
-
-    for (std::size_t i = 0; i < std::size(fan::graphics::gui::get_font_main()); ++i) {
-      f32_t font_size = fan::graphics::gui::font_sizes[i] * 2;
-
-      ImFontConfig main_cfg;
-      fan::graphics::gui::get_font_main()[i] = io.Fonts->AddFontFromFileTTF(
-        "fonts/SourceCodePro-Regular.ttf", font_size, &main_cfg
-      );
-
-      ImFontConfig emoji_cfg2;
-      emoji_cfg2.MergeMode = true;
-      emoji_cfg2.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor;
-      emoji_cfg2.SizePixels = 0;
-      emoji_cfg2.RasterizerDensity = 1.0f;
-      emoji_cfg2.GlyphMinAdvanceX = font_size;
-
-      io.Fonts->AddFontFromFileTTF(
-        "fonts/seguiemj.ttf", font_size, &emoji_cfg2, emoji_ranges
-      );
-    }
-
-    load_fonts(fan::graphics::gui::get_font_bold(), "fonts/SourceCodePro-Bold.ttf");
-    build_fonts();
-    io.FontDefault = fan::graphics::gui::get_font_main()[9];
+    load_font_family(get_base_font_targets(), [](f32_t font_size) {
+      static constexpr ImWchar emoji_ranges[] = { 0x2600, 0x26FF, 0x2B00, 0x2BFF, 0x1F600, 0x1F64F, 0 };
+      ImFontConfig emoji_cfg;
+      emoji_cfg.MergeMode = true;
+      emoji_cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor | ImGuiFreeTypeBuilderFlags_Bitmap;
+      emoji_cfg.SizePixels = 0;
+      emoji_cfg.RasterizerDensity = 1.0f;
+      emoji_cfg.GlyphMinAdvanceX = font_size;
+      get_io().Fonts->AddFontFromFileTTF("fonts/seguiemj.ttf", font_size, &emoji_cfg, emoji_ranges);
+    });
   }
 
   void shutdown_graphics_context(
@@ -1942,6 +1987,48 @@ namespace fan::graphics::gui {
     return gui::window(id, nullptr, window_flags_overlay);
   }
 
+  style_scope_t::style_scope_t(gui::col_t idx, const fan::color& col)      { color(idx, col); }
+  style_scope_t::style_scope_t(gui::style_var_t idx, f32_t val)             { var(idx, val); }
+  style_scope_t::style_scope_t(gui::style_var_t idx, const fan::vec2& val)  { var(idx, val); }
+
+  style_scope_t::style_scope_t(style_scope_t&& o) noexcept
+    : color_count(o.color_count), var_count(o.var_count) {
+    o.color_count = 0;
+    o.var_count = 0;
+  }
+  style_scope_t& style_scope_t::operator=(style_scope_t&& o) noexcept {
+    color_count = o.color_count;
+    var_count = o.var_count;
+    o.color_count = 0;
+    o.var_count = 0;
+    return *this;
+  }
+
+  style_scope_t& style_scope_t::color(gui::col_t idx, const fan::color& col) {
+    push_style_color(idx, col);
+    ++color_count; return *this;
+  }
+  style_scope_t& style_scope_t::var(gui::style_var_t idx, f32_t val) {
+    push_style_var(idx, val); ++var_count; return *this;
+  }
+  style_scope_t& style_scope_t::var(gui::style_var_t idx, const fan::vec2& val) {
+    push_style_var(idx, val); ++var_count; return *this;
+  }
+
+  style_scope_t::~style_scope_t() {
+    if (color_count) pop_style_color(color_count);
+    if (var_count)   pop_style_var(var_count);
+  }
+
+  style_scope_t make_invisible_input_style() {
+    style_scope_t s;
+    s.color(col_frame_bg,        fan::color(0.f, 0.f, 0.f, 0.f))
+     .color(col_frame_bg_hovered,fan::color(0.f, 0.f, 0.f, 0.f))
+     .color(col_frame_bg_active, fan::color(0.f, 0.f, 0.f, 0.f))
+     .color(col_text_selected_bg,fan::color(0.f, 0.f, 0.f, 0.f));
+    return s;
+  }
+
   void button_layout(
     std::initializer_list<std::initializer_list<const char*>> rows,
     const fan::vec2& size,
@@ -2073,6 +2160,10 @@ namespace fan::graphics::gui {
   }
   fan::vec2 get_display_size() {
     return get_io().DisplaySize;
+  }
+  void align_center_x(f32_t item_width) {
+    f32_t avail = fan::graphics::gui::get_content_region_avail().x;
+    fan::graphics::gui::set_cursor_pos_x((avail - item_width) * 0.5f);
   }
 } // namespace fan::graphics::gui
 

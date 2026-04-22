@@ -1068,3 +1068,12 @@ fan::vec2 fan::window_t::get_current_gamepad_axis(int key) {
 char fan::window_t::get_char_pressed() const {
   return char_pressed < 128 ? static_cast<char>(char_pressed) : 0;
 }
+
+std::string fan::window_t::get_clipboard() const {
+  const char* text = glfwGetClipboardString(glfw_window);
+  return text ? text : "";
+}
+
+void fan::window_t::set_clipboard(const std::string& text) {
+  glfwSetClipboardString(glfw_window, text.c_str());
+}

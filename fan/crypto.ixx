@@ -100,20 +100,21 @@ export namespace fan {
       std::from_chars(s.data() + i * 2, s.data() + i * 2 + 2, r[i], 16);
     return r;
   }
-  std::string bytes2hex(const bytes_t& b, bool pad = false) {
-    std::string r(pad ? b.size() * 2 : 0, '0');
-    for (int i = 0; i < (int)b.size(); ++i) {
-      char buf[2];
-      auto [ptr, ec] = std::to_chars(buf, buf + 2, b[i], 16);
-      if (pad) {
-        r[i * 2 + (ptr == buf + 1)] = buf[0];
-        r[i * 2 + 1] = *(ptr - 1);
-      }
-      else {
-        r.append(buf, ptr);
-      }
+  template <typename It>
+  std::string bytes2hex(It begin, It end) {
+    static const char* hex = "0123456789abcdef";
+    std::string r;
+    r.reserve(std::distance(begin, end) * 2);
+    for (; begin != end; ++begin) {
+      uint8_t b = *begin;
+      r.push_back(hex[b >> 4]);
+      r.push_back(hex[b & 0xF]);
     }
     return r;
+  }
+
+  std::string bytes2hex(const bytes_t& b) {
+    return bytes2hex(b.begin(), b.end());
   }
 
   bytes_t xor_key(const bytes_t& a, const bytes_t& b) {
