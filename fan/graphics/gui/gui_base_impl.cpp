@@ -216,20 +216,6 @@ namespace fan::graphics::gui {
       gui::end_tooltip();
     }
 
-    font_t* get_font_from_array(font_t* (&fonts)[std::size(fan::graphics::gui::font_sizes)], f32_t font_size) {
-      font_size /= 2;
-      std::size_t best_index = 0;
-      f32_t best_diff = std::numeric_limits<f32_t>::max();
-      for (std::size_t i = 0; i < std::size(font_sizes); ++i) {
-        f32_t diff = fan::math::abs(font_sizes[i] - font_size);
-        if (diff < best_diff) {
-          best_diff = diff;
-          best_index = i;
-        }
-      }
-      return fonts[best_index];
-    }
-
     template <auto EditFunc, typename L, typename T>
     bool color_edit_impl(L label, T* color, gui::color_edit_flags_t flags) {
       bool ret = EditFunc(label, color->data(), (ImGuiColorEditFlags)(flags & ~gui::color_edit_flags_init_once));
@@ -729,7 +715,7 @@ namespace fan::graphics::gui {
   }
 
   void set_font(f32_t size) {
-    push_font(get_font(size, false));
+    push_font(get_font(size));
   }
 
   font_t* get_font() {
@@ -951,14 +937,14 @@ namespace fan::graphics::gui {
     return ImGui::Button(label, ImVec2(size.x, size.y));
   }
 
-  bool button(str_view_t label, const fan::vec2& size, f32_t font_size, bool bold) {
-    font_scope_t _(font_size, bold);
+  bool button(str_view_t label, const fan::vec2& size, f32_t font_size, font::type_t font_type) {
+    font_scope_t _(font_size, font_type);
     return button(label, size);
   }
 
   bool button_centered(fan::str_view_t label, const fan::graphics::gui::button_centered_args_t& args) {
     ImVec2 s = args.size.x == 0
-      ? ImGui::CalcTextSize(label.data(), label.data() + label.size()) + ImGui::GetStyle().FramePadding * 2.0f
+      ? ImGui::CalcTextSize(label.data(), label.data() + label.size()) + get_frame_padding() * 2.0f
       : ImVec2(args.size.x, args.size.y);
 
     ImVec2 pos = ImGui::GetCursorPos();
@@ -1389,37 +1375,34 @@ namespace fan::graphics::gui {
     return ImGui::DragScalarN(label, data_type, p_data, components, v_speed, p_min, p_max, format, flags);
   }
 
-  font_t* get_font_impl(f32_t font_size, bool bold) {
-    return detail::get_font_from_array(bold ? get_font_bold() : get_font_main(), font_size);
+  font_scope_t::font_scope_t(f32_t size, font::type_t type) {
+    active = size > 0.f;
+    if (active) gui::push_font(gui::get_font(size, type));
   }
 
-  font_t* get_font(font_t* (&fonts)[std::size(fan::graphics::gui::font_sizes)], f32_t font_size) {
-    return detail::get_font_from_array(fonts, font_size);
-  }
-
-  font_t* get_font(f32_t font_size, bool bold) {
-    return get_font_impl(font_size, bold);
-  }
-
-  font_t* get_mono_font(f32_t font_size) {
-    return detail::get_font_from_array(get_font_mono(), font_size);
-  }
-
-  mono_font_scope_t::mono_font_scope_t(f32_t size) {
-    active = size > 0;
-    if (active) gui::push_font(gui::get_mono_font(size));
-  }
-
-  mono_font_scope_t::~mono_font_scope_t() {
+  font_scope_t& font_scope_t::operator=(font_scope_t&& o) noexcept {
     if (active) gui::pop_font();
+    active = o.active;
+    o.active = false;
+    return *this;
   }
 
-  font_scope_t::font_scope_t(f32_t size, bool bold) {
-    active = size > 0;
-    if (active) gui::push_font(gui::get_font(size, bold));
-  }
   font_scope_t::~font_scope_t() {
     if (active) gui::pop_font();
+  }
+
+  crisp_font_scope_t::crisp_font_scope_t(f32_t base_size, f32_t ideal_scale, font::type_t type) {
+    f32_t target_pixel_size = base_size * ideal_scale;
+    font_t* crisp_font = get_font(target_pixel_size, type);
+    
+    actual_scale = crisp_font->FontSize / base_size;
+
+    push_font(crisp_font);
+    set_window_font_scale(1.0f); 
+  }
+
+  crisp_font_scope_t::~crisp_font_scope_t() {
+    pop_font();
   }
 
   void image(texture_id_t texture,
@@ -1653,7 +1636,7 @@ namespace fan::graphics::gui {
 
     imgui_themes::dark();
 
-    fan::graphics::gui::init_fonts();
+    init_fonts();
 
     is_gui_initialized() = true;
   }
@@ -1712,22 +1695,33 @@ namespace fan::graphics::gui {
     const char* path;
   };
 
-  auto get_base_font_targets() {
-    static font_load_info_t targets[] = {
-      //{ get_font_main(), "fonts/SourceCodePro/SourceCodePro-Regular.ttf" },
-      //{ get_font_bold(), "fonts/SourceCodePro/SourceCodePro-Bold.ttf" },
-      { get_font_main(), "fonts/Inter/Inter_18pt-Regular.ttf" },
-      { get_font_bold(), "fonts/Inter/Inter_18pt-Bold.ttf" },
-      { get_font_mono(), "fonts/JetBrainsMono/JetBrainsMono-Regular.ttf" }
-    };
-    return std::span<const font_load_info_t>(targets);
+  auto& get_font_array() {
+    static font_t* fonts[font::count][std::size(font_sizes)]{};
+    return fonts;
   }
 
-  void load_font_family(std::span<const font_load_info_t> targets, void (*custom_font_cb)(f32_t) = [](f32_t) {}) {
+  font_t* get_font(f32_t font_size, font::type_t type) {
+    font_size /= 2.f;
+    std::size_t best_index = 0;
+    f32_t best_diff = std::numeric_limits<f32_t>::max();
+    for (std::size_t i = 0; i < std::size(font_sizes); ++i) {
+      f32_t diff = fan::math::abs(font_sizes[i] - font_size);
+      if (diff < best_diff) {
+        best_diff = diff;
+        best_index = i;
+      }
+    }
+    return get_font_array()[type][best_index];
+  }
+
+  void load_font_family(void (*custom_font_cb)(f32_t) = [](f32_t) {}) {
     auto& io = get_io();
     io.Fonts->Clear();
     io.Fonts->FontBuilderIO = ImGuiFreeType::GetBuilderForFreeType();
     io.Fonts->FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor | ImGuiFreeTypeBuilderFlags_LightHinting;
+
+    auto& paths = get_font_paths();
+    auto& fonts = get_font_array();
 
     for (std::size_t i = 0; i < std::size(font_sizes); ++i) {
       f32_t font_size = font_sizes[i] * 2.f;
@@ -1737,31 +1731,20 @@ namespace fan::graphics::gui {
       cfg.OversampleV = 1;
       cfg.PixelSnapH = true;
 
-      for (const auto& target : targets) {
-        target.dest[i] = io.Fonts->AddFontFromFileTTF(target.path, font_size, &cfg);
+      for (int t = 0; t < font::count; ++t) {
+        if (paths[t] && paths[t][0] != '\0') {
+          fonts[t][i] = io.Fonts->AddFontFromFileTTF(paths[t], font_size, &cfg);
+        }
       }
       custom_font_cb(font_size);
     }
 
     build_fonts();
-    io.FontDefault = get_font_main()[default_font_size_index];
+    io.FontDefault = fonts[font::regular][default_font_size_index];
   }
 
   void init_fonts() {
-    load_font_family(get_base_font_targets());
-  }
-
-  void load_emojis() {
-    load_font_family(get_base_font_targets(), [](f32_t font_size) {
-      static constexpr ImWchar emoji_ranges[] = { 0x2600, 0x26FF, 0x2B00, 0x2BFF, 0x1F600, 0x1F64F, 0 };
-      ImFontConfig emoji_cfg;
-      emoji_cfg.MergeMode = true;
-      emoji_cfg.FontBuilderFlags |= ImGuiFreeTypeBuilderFlags_LoadColor | ImGuiFreeTypeBuilderFlags_Bitmap;
-      emoji_cfg.SizePixels = 0;
-      emoji_cfg.RasterizerDensity = 1.0f;
-      emoji_cfg.GlyphMinAdvanceX = font_size;
-      get_io().Fonts->AddFontFromFileTTF("fonts/seguiemj.ttf", font_size, &emoji_cfg, emoji_ranges);
-    });
+    load_font_family();
   }
 
   void shutdown_graphics_context(
@@ -1987,6 +1970,44 @@ namespace fan::graphics::gui {
     return gui::window(id, nullptr, window_flags_overlay);
   }
 
+  scale_window_t::scale_window_t(str_view_t title, window_flags_t flags)
+    : wnd(title, nullptr, flags) {
+    if (wnd) {
+      scale_context_t sc;
+      auto& s = get_style();
+
+      style_scope.var(style_var_window_padding, sc.scale(s.WindowPadding));
+      style_scope.var(style_var_frame_padding, sc.scale(s.FramePadding));
+      style_scope.var(style_var_item_spacing, sc.scale(s.ItemSpacing));
+      style_scope.var(style_var_cell_padding, sc.scale(s.CellPadding));
+
+      gui::set_window_font_scale(sc.factor);
+    }
+  }
+
+  scale_window_t::~scale_window_t() {
+    if (wnd) {
+      gui::set_window_font_scale(1.f);
+    }
+  }
+
+  scale_window_t::operator bool() const {
+    return (bool)wnd;
+  }
+
+  scale_context_t::scale_context_t(const fan::vec2& current_size, const fan::vec2& design_size) {
+    factor = std::min(current_size.x / design_size.x, current_size.y / design_size.y);
+    factor = std::max(factor, 0.01f);
+  }
+
+  f32_t scale_context_t::scale(f32_t val) const {
+    return val * factor;
+  }
+
+  fan::vec2 scale_context_t::scale(const fan::vec2& val) const {
+    return val * factor;
+  }
+
   style_scope_t::style_scope_t(gui::col_t idx, const fan::color& col)      { color(idx, col); }
   style_scope_t::style_scope_t(gui::style_var_t idx, f32_t val)             { var(idx, val); }
   style_scope_t::style_scope_t(gui::style_var_t idx, const fan::vec2& val)  { var(idx, val); }
@@ -1997,6 +2018,8 @@ namespace fan::graphics::gui {
     o.var_count = 0;
   }
   style_scope_t& style_scope_t::operator=(style_scope_t&& o) noexcept {
+    if (color_count) pop_style_color(color_count);
+    if (var_count) pop_style_var(var_count);
     color_count = o.color_count;
     var_count = o.var_count;
     o.color_count = 0;
@@ -2027,6 +2050,33 @@ namespace fan::graphics::gui {
      .color(col_frame_bg_active, fan::color(0.f, 0.f, 0.f, 0.f))
      .color(col_text_selected_bg,fan::color(0.f, 0.f, 0.f, 0.f));
     return s;
+  }
+
+  fit_window_t::fit_window_t(str_view_t title, const fan::vec2& design_size, window_flags_t flags)
+    : wnd(title, nullptr, flags) {
+    if (wnd) {
+      fan::vec2 current_size = gui::get_window_size();
+      scale_context_t sc(current_size, design_size);
+
+      auto& s = get_style();
+
+      style_scope.var(style_var_window_padding, sc.scale(s.WindowPadding));
+      style_scope.var(style_var_frame_padding, sc.scale(s.FramePadding));
+      style_scope.var(style_var_item_spacing, sc.scale(s.ItemSpacing));
+      style_scope.var(style_var_cell_padding, sc.scale(s.CellPadding));
+
+      gui::set_window_font_scale(sc.factor);
+    }
+  }
+
+  fit_window_t::~fit_window_t() {
+    if (wnd) {
+      gui::set_window_font_scale(1.f);
+    }
+  }
+
+  fit_window_t::operator bool() const {
+    return (bool)wnd;
   }
 
   void button_layout(

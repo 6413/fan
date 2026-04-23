@@ -351,6 +351,18 @@ export namespace fan {
     constexpr color mix(const color& other, f32_t t) const {
       return this->lerp(other, t);
     }
+
+    static constexpr fan::color nibble(uint8_t byte) {
+      if (byte == 0x00)                 return fan::color(0.4f, 0.4f, 0.4f, 1.f);
+      if (byte == 0xFF)                 return fan::color(1.0f, 1.0f, 1.0f, 1.f);
+      if (byte == 0x0A || byte == 0x0D) return fan::color(1.0f, 0.0f, 0.0f, 1.f);
+      int n = (byte >> 4) & 0xF;
+      f32_t h = n / 16.f; // 0..1
+      f32_t r, g, b;
+      hsl_to_rgb(h, 0.75f, 0.65f, r, g, b);
+      return fan::color(r, g, b, 1.f);
+    }
+
     f32_t r = 0, g = 0, b = 0, a = 1;
   };
 

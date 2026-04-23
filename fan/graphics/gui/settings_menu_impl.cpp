@@ -481,7 +481,7 @@ namespace fan::graphics::gui {
     gui::set_next_window_size(next_window_size);
     gui::set_next_window_bg_alpha(bg_alpha);
     gui::begin("##Menu Graphics Right", nullptr, wnd_flags);
-    gui::push_font(gui::get_font(32, true));
+    gui::push_font(gui::get_font(32, gui::font::bold));
     gui::text(title_color, "Setting Info");
     gui::pop_font();
     fan::vec2 cursor_pos = gui::get_cursor_pos();
@@ -702,7 +702,7 @@ namespace fan::graphics::gui {
       gui::window_flags_no_resize | gui::window_flags_no_title_bar |
       gui::window_flags_always_vertical_scrollbar
     );
-    gui::push_font(gui::get_font(48, true));
+    gui::push_font(gui::get_font(48, gui::font::bold));
     gui::indent(min_x);
     gui::text("Settings");
     gui::pop_font();
@@ -710,7 +710,7 @@ namespace fan::graphics::gui {
     render_separator_full_width();
     f32_t options_x = 256.f;
     gui::indent(options_x);
-    gui::push_font(gui::get_font(32, true));
+    gui::push_font(gui::get_font(32, gui::font::bold));
     gui::push_style_var(gui::style_var_frame_padding, fan::vec2(64, 5.f));
     gui::begin_table("##settings_top_table", pages.size());
     gui::table_next_row();
