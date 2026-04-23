@@ -42,6 +42,27 @@ import fan.print;
 import fan.graphics.common_context;
 
 export namespace fan::graphics::gui {
+
+  inline constexpr std::size_t default_font_size_index = 9;
+  inline constexpr f32_t font_sizes[] = {
+    4, 5, 6, 7, 8, 9, 10, 11, 12, 14,
+    16, 18, 20, 22, 24, 28,
+    32, 36, 48, 60, 72
+  };
+
+  namespace font {
+    enum type_t { regular, bold, mono, count };
+  }
+
+  inline auto& get_font_paths() {
+    static const char* paths[font::count] = {
+      "fonts/Inter/Inter_18pt-Regular.ttf",
+      "fonts/Inter/Inter_18pt-Bold.ttf",
+      "fonts/JetBrainsMono/JetBrainsMono-Regular.ttf"
+    };
+    return paths;
+  }
+
   topmost_window_data_t& topmost_data();
   void enforce_topmost();
 
@@ -72,7 +93,7 @@ export namespace fan::graphics::gui {
   void pop_style_var(int n = 1);
 
   bool button(str_view_t label, const fan::vec2& size = fan::vec2(0, 0));
-  bool button(str_view_t label, const fan::vec2& size, f32_t font_size, bool bold = false);
+  bool button(str_view_t label, const fan::vec2& size, f32_t font_size, font::type_t type = font::regular);
   struct button_centered_args_t {
     fan::vec2 size = fan::vec2(0, 0);
     fan::vec2i affects_axis = fan::vec2i(1, 1);
@@ -289,34 +310,18 @@ export namespace fan::graphics::gui {
   bool drag_scalar(str_view_t label, data_type_t data_type, void* p_data, f32_t v_speed = 1.0f, const void* p_min = NULL, const void* p_max = NULL, const char* format = NULL, slider_flags_t flags = 0);
   bool drag_scalar_n(str_view_t label, data_type_t data_type, void* p_data, int components, f32_t v_speed = 1.0f, const void* p_min = NULL, const void* p_max = NULL, const char* format = NULL, slider_flags_t flags = 0);
 
-  inline constexpr std::size_t default_font_size_index = 9;
-  inline constexpr f32_t font_sizes[] = {
-    4, 5, 6, 7, 8, 9, 10, 11, 12, 14,
-    16, 18, 20, 22, 24, 28,
-    32, 36, 48, 60, 72
-  };
-
-  font_t* get_font_impl(f32_t font_size, bool bold = false);
-
-  font_t* get_font(
-    font_t* (&fonts)[std::size(fan::graphics::gui::font_sizes)],
-    f32_t font_size
-  );
-
-  font_t* get_font(f32_t font_size, bool bold = false);
-
-  struct mono_font_scope_t {
-    mono_font_scope_t(f32_t size);
-    ~mono_font_scope_t();
-    bool active = false;
-  };
-
-  font_t* get_mono_font(f32_t font_size);
-
   struct font_scope_t {
-    font_scope_t(f32_t size, bool bold = false);
+    font_scope_t() = default;
+    font_scope_t(f32_t size, font::type_t type = font::regular);
+    font_scope_t& operator=(font_scope_t&& o) noexcept;
     ~font_scope_t();
     bool active = false;
+  };
+  
+  struct crisp_font_scope_t {
+    crisp_font_scope_t(f32_t base_size, f32_t ideal_scale, font::type_t type = font::regular);
+    ~crisp_font_scope_t();
+    f32_t actual_scale = 1.0f;
   };
 
   void image(
@@ -673,25 +678,8 @@ export namespace fan::graphics::gui {
 
   void clear_active_id();
 
-  inline auto& get_font_main() {
-    static fan::graphics::gui::font_t* fonts[std::size(font_sizes)] {};
-    return fonts;
-  }
-
-  inline auto& get_font_bold() {
-    static fan::graphics::gui::font_t* fonts_bold[std::size(font_sizes)] {};
-    return fonts_bold;
-  }
-
-  inline auto& get_font_mono() {
-    static fan::graphics::gui::font_t* fonts_mono[std::size(font_sizes)] {};
-    return fonts_mono;
-  }
-
   void build_fonts();
   void rebuild_fonts();
-
-  void load_fonts(font_t* (&fonts)[std::size(fan::graphics::gui::font_sizes)], std::string_view name, font_config_t* cfg = nullptr);
 
   void push_font(font_t* font);
   void pop_font();
@@ -699,6 +687,7 @@ export namespace fan::graphics::gui {
   void set_font(f32_t size);
 
   font_t* get_font();
+  font_t* get_font(f32_t font_size, font::type_t type = font::regular);
   f32_t get_font_size();
   f32_t get_text_line_height();
 
@@ -825,6 +814,16 @@ export namespace fan::graphics::gui {
 
   gui::window overlay_window(str_view_t id, fan::vec2 size, f32_t alpha = 0.7f);
 
+  struct scale_context_t {
+    scale_context_t() = default;
+    scale_context_t(const fan::vec2& current_size, const fan::vec2& design_size);
+
+    f32_t scale(f32_t val) const;
+    fan::vec2 scale(const fan::vec2& val) const;
+
+    f32_t factor = 1.f;
+  };
+
   struct style_scope_t {
     style_scope_t() = default;
     style_scope_t(gui::col_t idx, const fan::color& col);
@@ -846,6 +845,26 @@ export namespace fan::graphics::gui {
   };
 
   style_scope_t make_invisible_input_style();
+
+  struct scale_window_t {
+    scale_window_t(str_view_t title, window_flags_t flags = 0);
+    ~scale_window_t();
+
+    explicit operator bool() const;
+
+    window_t wnd;
+    style_scope_t style_scope;
+  };
+
+  struct fit_window_t {
+    fit_window_t(str_view_t title, const fan::vec2& design_size, window_flags_t flags = 0);
+    ~fit_window_t();
+
+    explicit operator bool() const;
+
+    window_t wnd;
+    style_scope_t style_scope;
+  };
 
   template <typename container_t, typename mapper_t>
   bool combo_mapped(str_view_t label, int* current, const container_t& items, mapper_t mapper) {
@@ -998,9 +1017,9 @@ export namespace fan::graphics::gui {
     int columns,
     fan::vec2 size,
     f32_t font_size,
-    bool bold = false
+    font::type_t font_type = font::regular
   ) {
-    font_scope_t fs(font_size, bold);
+    font_scope_t fs(font_size, font_type);
     int i = 0;
     for (fan::str_view_t label : labels) {
       if (button(label, size)) {

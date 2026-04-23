@@ -313,7 +313,7 @@ namespace fan::graphics::gui {
         gui::dummy(fan::vec2(0.f, 20.f));
       }
 
-      gui::push_font(gui::get_font(28, true));
+    gui::push_font(gui::get_font(28, gui::font::bold));
       std::string display_name = group_name.empty() ? label_other : group_name;
       gui::text(title_color, display_name.c_str());
 
@@ -403,7 +403,7 @@ namespace fan::graphics::gui {
     gui::set_next_window_size(next_window_size);
     gui::set_next_window_bg_alpha(0.99);
     gui::begin("##Keybinds Right", nullptr, wnd_flags);
-    gui::push_font(gui::get_font(32, true));
+    gui::push_font(gui::get_font(32, gui::font::bold));
     gui::text(title_color, label_keybind_info);
     gui::pop_font();
     gui::new_line();
