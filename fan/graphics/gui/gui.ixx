@@ -463,10 +463,9 @@ export namespace fan::graphics::gui {
   void shader_controls(fan::graphics::shader_t shader_id, const shader_contols_t& controls = {});
 
   struct memory_editor_t {
-    void render(std::vector<uint8_t>& data, int cols = default_cols);
+    void render(std::vector<uint8_t>& data);
     std::vector<uint8_t> get_selected_bytes(std::span<const uint8_t> data) const;
 
-    static constexpr int default_cols = 16;
     static constexpr int ascii_id_offset = 0x10000;
     static constexpr int group_size = 4;
     static constexpr f32_t group_spacing = 8.f;
@@ -491,6 +490,13 @@ export namespace fan::graphics::gui {
 
     int focus_ascii_idx = -1;
     int focus_hex_idx = -1;
+
+    int hovered_idx = -1;
+    int prev_hovered_idx = -1;
+
+    int hovered_ascii_idx = -1;
+    int prev_hovered_ascii_idx = -1;
+
     bool was_dragging = false;
   };
 }

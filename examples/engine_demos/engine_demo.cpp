@@ -1578,10 +1578,6 @@ int main() {////
     );
 
   demo.engine.loop([&] {
-    if (auto w = gui::window("wnd")) {
-      fan::graphics::gui::text("Use WASD to move.");
-    }
-
     auto camera = fan::graphics::camera_get(demo.right_column_view.camera);
 
     /*fan::vec2 s(

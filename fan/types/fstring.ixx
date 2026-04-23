@@ -402,7 +402,10 @@ export namespace fan {
   }
 
   inline std::string to_ascii(uint8_t b) {
-    return (b >= 0x20 && b <= 0x7E) ? std::string(1, (char)b) : ".";
+    if (b >= 0x20 && b <= 0x7E) return std::string(1, (char)b);
+    //if (b == 0x0A) return "";
+    //if (b == 0x0D) return "";
+    return "·";
   }
 
   inline void strip_whitespace(std::string& str) {
