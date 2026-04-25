@@ -2101,36 +2101,36 @@ namespace fan::graphics::gui {
     #undef create_case
   }
 
-  f32_t memory_editor_t::hex_spacing(int idx, int row_end) const {
-    f32_t sp = gui::get_style().ItemSpacing.x;
-    return (idx + 1) % group_size == 0 ? (sp * 3.f) : sp;
+  f32_t hex_editor_t::hex_spacing(int idx, int row_end) const {
+    f32_t char_w = calc_text_size("0").x;
+    return (idx + 1) % group_size == 0 ? char_w : (char_w * 0.5f);
   }
 
-  f32_t memory_editor_t::ascii_spacing(int idx, int row_end) const {
+  f32_t hex_editor_t::ascii_spacing(int idx, int row_end) const {
     return 0.f;
   }
 
-  bool memory_editor_t::has_selection() const {
+  bool hex_editor_t::has_selection() const {
     return sel_anchor != -1;
   }
 
-  std::pair<int, int> memory_editor_t::get_selection_bounds() const {
+  std::pair<int, int> hex_editor_t::get_selection_bounds() const {
     return std::minmax(sel_anchor, sel_current);
   }
 
-  bool memory_editor_t::is_selected(int idx) const {
+  bool hex_editor_t::is_selected(int idx) const {
     if (!has_selection() || sel_anchor == sel_current) return false;
     auto [lo, hi] = get_selection_bounds();
     return idx >= lo && idx <= hi;
   }
 
-  void memory_editor_t::update_selection(int idx) {
+  void hex_editor_t::update_selection(int idx) {
     if (!is_item_hovered(hovered_flags_allow_when_blocked_by_active_item)) return;
     if (fan::window::is_mouse_clicked(fan::mouse_left)) sel_anchor = sel_current = idx;
     else if (fan::window::is_mouse_down(fan::mouse_left) && has_selection()) sel_current = idx;
   }
 
-  uint32_t memory_editor_t::get_cell_flags(bool dragging, bool is_hex) const {
+  uint32_t hex_editor_t::get_cell_flags(bool dragging, bool is_hex) const {
     uint32_t flags = is_hex ? input_text_flags_chars_hexadecimal | input_text_flags_chars_uppercase : 0;
     if (!dragging) flags |= input_text_flags_auto_select_all;
     bool ctrl_cv = fan::window::is_key_down(fan::key_left_control) &&
@@ -2139,7 +2139,7 @@ namespace fan::graphics::gui {
     return flags;
   }
 
-  void memory_editor_t::render_hex_cell(std::vector<uint8_t>& data, int idx, f32_t cell_w, bool dragging) {
+  void hex_editor_t::render_hex_cell(std::vector<uint8_t>& data, int idx, f32_t cell_w, bool dragging) {
     style_scope_t sel_style;
     sel_style.color(col_frame_bg, fan::color(0.f, 0.f, 0.f, 0.f));
     sel_style.color(col_frame_bg_hovered, fan::color(0.f, 0.f, 0.f, 0.f));
@@ -2163,12 +2163,10 @@ namespace fan::graphics::gui {
 
     if (focus_hex_idx == idx) { set_keyboard_focus_here(); focus_hex_idx = -1; }
     if (input_text(&buf, get_cell_flags(dragging, true))) {
+      if (buf.size() > 2) buf = buf.substr(buf.size() - 2);
       data[idx] = fan::parse_hex_byte(buf);
-      if (buf.size() == 2) {
+      if (buf.size() >= 2) {
         if (idx + 1 < (int)data.size()) focus_hex_idx = idx + 1;
-        clear_active_id();
-      }
-      else if (buf.size() > 2) {
         clear_active_id();
       }
     }
@@ -2181,7 +2179,7 @@ namespace fan::graphics::gui {
     pop_id();
   }
 
-  void memory_editor_t::render_ascii_cell(std::vector<uint8_t>& data, int idx, f32_t ascii_w, bool dragging) {
+  void hex_editor_t::render_ascii_cell(std::vector<uint8_t>& data, int idx, f32_t ascii_w, bool dragging) {
     fan::color col;
     if (is_selected(idx)) col = fan::color(1.f, 0.3f, 0.3f, 1.f);
     else                  col = fan::color::nibble(data[idx]);
@@ -2225,38 +2223,64 @@ namespace fan::graphics::gui {
     pop_id();
   }
 
-  void memory_editor_t::render(std::vector<uint8_t>& data) {
+  void hex_editor_t::render_data_inspector(std::span<const uint8_t> data, bool little_endian) {
+
+  }
+
+  void hex_editor_t::render(const std::string_view window_name, std::vector<uint8_t>& data) {
+    char buf[64];
+    uint64_t flags = 0;
+    if (window_name.empty()) {
+      snprintf(buf, sizeof(buf), "hex_editor##%p", this);
+      flags = gui::window_flags_no_saved_settings;
+    }
+    else {
+      snprintf(buf, sizeof(buf), "%.*s", (int)window_name.size(), window_name.data());
+    }
+    auto window = gui::window(buf, 0, flags);
+    if (!window) return;
+
     gui::set_window_font_scale(1.0f);
-    f32_t base_font_size = gui::get_font_size(); 
-    f32_t base_cell_w = calc_input_size("FF").x;
-    f32_t base_ascii_w = calc_text_size("F").x; 
+    f32_t base_font_size = gui::get_font_size();
+    f32_t base_cell_w = calc_text_size("FF").x;
+    f32_t base_ascii_w = calc_text_size("F").x;
     f32_t base_sp = gui::get_style().ItemSpacing.x;
     f32_t base_pad = gui::get_style().CellPadding.x;
 
     int cols = 16;
     f32_t addr_w = calc_text_size("00000000").x;
-    
+
     f32_t hex_area_w = (cols * base_cell_w) + (21.f * base_sp);
     f32_t ascii_area_w = cols * base_ascii_w;
     f32_t total_base_w = addr_w + hex_area_w + ascii_area_w + (base_pad * 6.f) + 5.f;
 
     f32_t avail_w = gui::get_content_region_avail().x;
-    f32_t ideal_scale = std::max(avail_w / total_base_w, 0.1f);
+    f32_t auto_scale = std::max(avail_w / total_base_w, 0.1f);
 
+    if (gui::is_window_hovered()) {
+      f32_t wheel = gui::get_io().MouseWheel;
+      if (wheel != 0.f && fan::window::is_key_down(fan::key_left_control)) {
+        user_zoom += wheel * 0.1f;
+        user_zoom = std::max(user_zoom, 0.1f);
+      }
+    }
+
+    f32_t ideal_scale = auto_scale * user_zoom;
     f32_t target_pixel_size = base_font_size * ideal_scale;
     gui::font_t* crisp_font = gui::get_font(target_pixel_size, gui::font::mono);
-    
+
     f32_t actual_scale = crisp_font->FontSize / base_font_size;
 
     gui::push_font(crisp_font);
-    
-    gui::set_window_font_scale(1.0f); 
+
+    gui::set_window_font_scale(1.0f);
 
     auto& s = gui::get_style();
     style_scope_t scaled_style;
-    scaled_style.var(gui::style_var_item_spacing,   fan::vec2(s.ItemSpacing) * actual_scale);
-    scaled_style.var(gui::style_var_cell_padding,   fan::vec2(s.CellPadding) * actual_scale);
-    scaled_style.var(gui::style_var_frame_padding,  fan::vec2(s.FramePadding) * actual_scale); 
+    f32_t y_spacing = 0.2f;
+    scaled_style.var(gui::style_var_item_spacing, fan::vec2(s.ItemSpacing) * actual_scale);
+    scaled_style.var(gui::style_var_cell_padding, fan::vec2(s.CellPadding.x, s.CellPadding.y * y_spacing) * actual_scale);
+    scaled_style.var(gui::style_var_frame_padding, fan::vec2(0.f, s.FramePadding.y * y_spacing * actual_scale));
     scaled_style.var(gui::style_var_window_padding, fan::vec2(s.WindowPadding) * actual_scale);
 
     f32_t cell_w = base_cell_w * actual_scale;
@@ -2277,19 +2301,17 @@ namespace fan::graphics::gui {
     if (gui::begin_table("##hex_table", 3, gui::table_flags_sizing_fixed_fit)) {
       list_clipper_t clipper;
       clipper.Begin(rows);
-      
+
       while (clipper.Step()) {
         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
           gui::table_next_row();
-          
+
           int row_start = i * cols;
           int row_end = std::min(row_start + cols, size);
 
           gui::table_next_column();
           align_text_to_frame_padding();
-          style_scope_t addr_style;
-          addr_style.color(col_text, fan::color(0.4f, 0.8f, 0.8f, 1.f));
-          text(fan::to_hex(row_start, 8));
+          text(fan::color(0.4f, 0.8f, 0.8f, 1.f), fan::to_hex(row_start, 8));
 
           gui::table_next_column();
           for (int idx = row_start; idx < row_end; ++idx) {
@@ -2302,12 +2324,6 @@ namespace fan::graphics::gui {
             style_scope_t ss;
             ss.var(gui::style_var_item_spacing, fan::vec2(0.f, 0.f));
             ss.var(gui::style_var_frame_padding, fan::vec2(0.f, gui::get_frame_padding().y));
-
-            //gui::align_text_to_frame_padding();
-
-            //f32_t row_top = gui::get_cursor_pos_y();
-            //f32_t ascii_text_h = gui::get_font_size();
-            //gui::set_cursor_pos_y(row_top + gui::get_frame_height() - ascii_text_h);
 
             align_text_to_frame_padding();
 
@@ -2326,13 +2342,19 @@ namespace fan::graphics::gui {
       sel_anchor = sel_current = -1;
     }
 
+    render_data_inspector(data, true);
+
     process_clipboard(data);
 
     gui::pop_font();
     gui::set_window_font_scale(1.0f);
   }
 
-  std::vector<uint8_t> memory_editor_t::get_selected_bytes(std::span<const uint8_t> data) const {
+  void hex_editor_t::render(std::vector<uint8_t>& data) {
+    render("", data);
+  }
+
+  std::vector<uint8_t> hex_editor_t::get_selected_bytes(std::span<const uint8_t> data) const {
     if (!has_selection()) return {};
     auto [lo, hi] = get_selection_bounds();
     return std::vector<uint8_t>(
@@ -2341,7 +2363,16 @@ namespace fan::graphics::gui {
     );
   }
 
-  void memory_editor_t::process_clipboard(std::vector<uint8_t>& data) {
+  std::optional<uint8_t> hex_editor_t::get_active_cell(std::span<const uint8_t> data) const {
+    int idx = -1;
+    if (active_panel == active_panel_t::hex) idx = prev_hovered_idx;
+    else if (active_panel == active_panel_t::ascii) idx = prev_hovered_ascii_idx;
+    else idx = sel_anchor;
+    if (idx < 0 || idx >= (int)data.size()) return std::nullopt;
+    return data[idx];
+  }
+
+  void hex_editor_t::process_clipboard(std::vector<uint8_t>& data) {
     bool ctrl = fan::window::is_key_down(fan::key_left_control);
     if (ctrl && fan::window::is_key_clicked(fan::key_c)) {
       fan::graphics::get_window().set_clipboard(fan::bytes2hex(get_selected_bytes(data)));
