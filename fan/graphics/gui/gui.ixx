@@ -463,46 +463,76 @@ export namespace fan::graphics::gui {
   void shader_controls(fan::graphics::shader_t shader_id, const shader_contols_t& controls = {});
 
   struct hex_editor_t {
+    struct config_t {
+      int cols = 16;
+      int group_size = 4;
+      f32_t auto_scale_min = 0.1f;
+      f32_t zoom_speed = 0.1f;
+
+      fan::color col_bg_sel = fan::color(0.5f, 0.1f, 0.1f, 1.f);
+      fan::color col_bg_hover = fan::color(0.25f, 0.25f, 0.25f, 0.7f);
+      fan::color col_text_addr = fan::color(0.4f, 0.8f, 0.8f, 1.f);
+      fan::color col_text_sel = fan::color(1.f, 0.3f, 0.3f, 1.f);
+
+      f32_t spacing_hex_group_mult = 0.5f;
+      f32_t spacing_hex_item_mult = 0.0f;
+      f32_t spacing_ascii_mult = 0.0f;
+
+      f32_t inner_pad = 2.0f;
+      f32_t y_spacing_mult = 0.0f;
+    };
+
+    struct metrics_t {
+      f32_t scale;
+      f32_t cell_w;
+      f32_t ascii_w;
+      f32_t char_w;
+      int size;
+      int rows;
+    };
+
     void render(const std::string_view window_name, std::vector<uint8_t>& data);
     void render(std::vector<uint8_t>& data);
     std::vector<uint8_t> get_selected_bytes(std::span<const uint8_t> data) const;
     std::optional<uint8_t> get_active_cell(std::span<const uint8_t> data) const;
 
-    static constexpr int ascii_id_offset = 0x10000;
-    static constexpr int group_size = 4;
-    static constexpr f32_t group_spacing = 8.f;
-
-    int sel_anchor = -1;
-    int sel_current = -1;
-
   private:
-    enum class active_panel_t { hex, ascii } active_panel = active_panel_t::hex;
+    enum class active_panel_t { hex, ascii };
 
-    void render_hex_cell(std::vector<uint8_t>& data, int idx, f32_t cell_w, bool dragging);
-    void render_ascii_cell(std::vector<uint8_t>& data, int idx, f32_t ascii_w, bool dragging);
+    void render_cell(std::vector<uint8_t>& data, int idx, f32_t w, f32_t pad, bool dragging, bool is_hex);
     void render_data_inspector(std::span<const uint8_t> data, bool little_endian = true);
     void process_clipboard(std::vector<uint8_t>& data);
 
     bool has_selection() const;
     std::pair<int, int> get_selection_bounds() const;
     bool is_selected(int idx) const;
-    void update_selection(int idx);
+    void update_selection(int idx, bool cell_hovered);
     uint32_t get_cell_flags(bool dragging, bool is_hex) const;
-    f32_t hex_spacing(int idx, int row_end) const;
-    f32_t ascii_spacing(int idx, int row_end) const;
+    f32_t get_spacing(int idx, int row_end, bool is_hex) const;
 
+  public:
+    config_t cfg;
+
+  private:
+    static constexpr int ascii_id_offset = 0x10000;
+
+    active_panel_t active_panel = active_panel_t::hex;
+    metrics_t m {};
+
+    int sel_anchor = -1;
+    int sel_current = -1;
+    int active_idx = -1;
     int focus_ascii_idx = -1;
     int focus_hex_idx = -1;
-
     int hovered_idx = -1;
     int prev_hovered_idx = -1;
-
     int hovered_ascii_idx = -1;
     int prev_hovered_ascii_idx = -1;
 
     f32_t user_zoom = 1.0f;
-
     bool was_dragging = false;
+
+    std::vector<std::string> cell_bufs;
   };
 
   template <FAN_UNIQUE_CALL>
