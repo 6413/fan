@@ -353,4 +353,11 @@ export namespace fan {
   auto subspan(R&& v, size_t start, size_t length) {
     return std::span(v).subspan(start, length);
   }
+
+  struct restore_flag_t {
+    bool& flag;
+    bool prev;
+    restore_flag_t(bool& f, bool val) : flag(f), prev(f) { f = val; }
+    ~restore_flag_t() { flag = prev; }
+  };
 }

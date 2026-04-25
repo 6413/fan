@@ -412,6 +412,7 @@ export namespace fan::graphics::gui {
   void end_disabled();
 
   id_t get_id(str_view_t str_id);
+  id_t get_id(int id);
 
   storage_t* get_state_storage();
 
@@ -420,6 +421,8 @@ export namespace fan::graphics::gui {
   void seperator();
 
   void dock_space_over_viewport(id_t dockspace_id = 0, const gui::viewport_t* viewport = NULL, int flags = 0, const void* window_class = NULL);
+
+  bool is_mouse_hovering_rect(const fan::vec2& min, const fan::vec2& max, bool clip = true);
 
   context_t* get_context();
 
@@ -1101,6 +1104,8 @@ export namespace fan::graphics::gui {
   fan::vec2 get_display_size();
 
   void align_center_x(f32_t item_width);
+
+  void window_move_title_bar_only();
 } // namespace fan::graphics::gui
 
 export namespace fan::graphics::gui::plot {
