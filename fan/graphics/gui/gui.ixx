@@ -468,18 +468,15 @@ export namespace fan::graphics::gui {
       fan::vec2i group_size = {4, 4};
       f32_t auto_scale_min = 0.1f;
       f32_t zoom_speed = 0.1f;
-
       fan::color col_bg_sel = fan::color(0.5f, 0.1f, 0.1f, 1.f);
       fan::color col_bg_hover = fan::color(0.25f, 0.25f, 0.25f, 0.7f);
       fan::color col_text_addr = fan::color(0.4f, 0.8f, 0.8f, 1.f);
       fan::color col_text_sel = fan::color(1.f, 0.3f, 0.3f, 1.f);
-
       f32_t spacing_hex_group_mult = 0.5f;
       f32_t spacing_hex_item_mult = 0.0f;
       f32_t spacing_ascii_mult = 0.0f;
-
       f32_t inner_pad = 2.0f;
-      f32_t y_spacing_mult = 0.0f;
+      f32_t y_spacing_mult = 0.1f;
     };
 
     struct metrics_t {
@@ -487,62 +484,77 @@ export namespace fan::graphics::gui {
       f32_t cell_w;
       f32_t ascii_w;
       f32_t char_w;
-      int size;
-      int rows;
+      uint64_t size;
+      uint64_t rows;
     };
 
-    void render(const std::string_view window_name, std::vector<uint8_t>& data);
-    void render(std::vector<uint8_t>& data);
-    std::vector<uint8_t> get_selected_bytes(std::span<const uint8_t> data) const;
-    std::optional<uint8_t> get_active_cell(std::span<const uint8_t> data) const;
-
-  private:
     enum class active_panel_t { hex, ascii };
 
-    void render_cell(std::vector<uint8_t>& data, int idx, f32_t w, f32_t pad, bool is_dragging, bool is_hex);
-    void render_data_inspector(std::span<const uint8_t> data, bool little_endian = true);
-    void process_clipboard(std::vector<uint8_t>& data);
+    void render(const std::string_view window_name, fan::io::data_provider_t& data);
+    void render(fan::io::data_provider_t& data);
+    std::vector<uint8_t> get_selected_bytes(fan::io::data_provider_t& data) const;
+    std::optional<uint64_t> get_active_cell(fan::io::data_provider_t& data) const;
 
+  private:
+    void render_cell(fan::io::data_provider_t& data, uint64_t idx, f32_t w, f32_t pad, bool is_dragging, bool is_hex);
+    void render_data_inspector(fan::io::data_provider_t& data, bool little_endian = true);
+    void process_clipboard(fan::io::data_provider_t& data);
     bool has_selection() const;
-    std::pair<int, int> get_selection_bounds() const;
-    bool is_selected(int idx) const;
-    void update_selection(int idx, bool cell_hovered);
+    std::pair<uint64_t, uint64_t> get_selection_bounds() const;
+    bool is_selected(uint64_t idx) const;
+    void update_selection(uint64_t idx, bool cell_hovered);
     uint32_t get_cell_flags(bool is_dragging, bool is_hex) const;
-    f32_t get_spacing(int idx, int row_end, bool is_hex) const;
+    f32_t get_spacing(uint64_t idx, uint64_t row_end, bool is_hex) const;
 
   public:
     config_t config;
 
   private:
-    static constexpr int ascii_id_offset = 0x10000;
+    static constexpr uint64_t ascii_id_offset = 0x1000000000000000ULL;
 
     active_panel_t active_panel = active_panel_t::hex;
     metrics_t metrics {};
 
-    int sel_start = -1;
-    int sel_end = -1;
-    int active_idx = -1;
-    int pending_focus_ascii = -1;
-    int pending_focus_hex = -1;
-    int hovered_hex_idx = -1;
-    int prev_hex_hover_idx = -1;
-    int hovered_ascii_idx = -1;
-    int prev_ascii_hover_idx = -1;
+    std::optional<uint64_t> sel_start;
+    std::optional<uint64_t> sel_end;
+    std::optional<uint64_t> active_idx;
+    std::optional<uint64_t> pending_focus_ascii;
+    std::optional<uint64_t> pending_focus_hex;
+    std::optional<uint64_t> hovered_hex_idx;
+    std::optional<uint64_t> prev_hex_hover_idx;
+    std::optional<uint64_t> hovered_ascii_idx;
+    std::optional<uint64_t> prev_ascii_hover_idx;
 
     f32_t user_zoom = 1.0f;
     bool is_dragging = false;
 
-    std::vector<std::string> cell_bufs;
+    std::string active_edit_buf;
+    std::optional<uint64_t> active_edit_initialized_idx;
   };
 
   template <FAN_UNIQUE_CALL>
-  void hex_editor(const std::string_view window_name, std::vector<uint8_t>& data) {
+  void hex_editor(const std::string_view window_name, fan::io::data_provider_t& data) {
     static hex_editor_t he;
     he.render(window_name, data);
   }
+
+  template <FAN_UNIQUE_CALL>
+  void hex_editor(fan::io::data_provider_t& data) {
+    gui::hex_editor<FAN_UNIQUE_CALL_PASS>("", data);
+  }
+
+  template <FAN_UNIQUE_CALL>
+  void hex_editor(const std::string_view window_name, std::vector<uint8_t>& data) {
+    fan::io::memory_provider_t provider(data);
+    fan::io::data_provider_t& p = provider;
+    gui::hex_editor<FAN_UNIQUE_CALL_PASS>(window_name, p);
+  }
+
   template <FAN_UNIQUE_CALL>
   void hex_editor(std::vector<uint8_t>& data) {
-    gui::hex_editor<FAN_UNIQUE_CALL_PASS>("", data);
+    fan::io::memory_provider_t provider(data);
+    fan::io::data_provider_t& p = provider;
+    gui::hex_editor<FAN_UNIQUE_CALL_PASS>("", p);
   }
 }
 /*
