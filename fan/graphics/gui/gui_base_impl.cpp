@@ -1664,8 +1664,6 @@ namespace fan::graphics::gui {
 
     imgui_themes::dark();
 
-    init_fonts();
-
     is_gui_initialized() = true;
   }
 

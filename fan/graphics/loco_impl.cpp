@@ -27,6 +27,7 @@ module;
 #include <iostream>
 #include <mutex>
 #include <algorithm>
+#include <future>
 
 #if defined(fan_std23)
   #include <stacktrace>
@@ -890,6 +891,9 @@ void loco_t::init_gui() {
     check_vk_result
   #endif
   );
+  gui.font_future = std::async(std::launch::async, []() {
+    fan::graphics::gui::init_fonts();
+  });
   gui.gui_initialized = true;
 }
 
@@ -1163,7 +1167,7 @@ void loco_t::destroy() {
 }
 
 void loco_t::close() {
-  destroy();
+  window.set_should_close(true);
 }
 
 void loco_t::switch_renderer(uint8_t renderer) {
@@ -1241,7 +1245,7 @@ void loco_t::switch_renderer(uint8_t renderer) {
       .open_mode = open_props.window_open_mode
     });
     window.set_position(window_position);
-    glfwShowWindow(window);
+    window.show();
     window.flags = flags;
 
   #if defined(FAN_VULKAN)
@@ -1752,7 +1756,7 @@ bool loco_t::should_close() {
   if (window == nullptr) {
     return true;
   }
-  return glfwWindowShouldClose(window);
+  return window.should_close();
 }
 
 bool loco_t::process_frame(const std::function<void()>& cb) {
@@ -1770,12 +1774,16 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
   physics.context.begin_frame(get_delta_time());
 #endif
 
-#if defined(FAN_GUI)
-  if (renderer_state.reload_renderer_to != (decltype(renderer_state.reload_renderer_to))-1) {
-    switch_renderer(renderer_state.reload_renderer_to);
-  }
+if (renderer_state.reload_renderer_to != (decltype(renderer_state.reload_renderer_to))-1) {
+  switch_renderer(renderer_state.reload_renderer_to);
+}
+renderer_state.lighting.update(get_delta_time());
 
-  renderer_state.lighting.update(get_delta_time());
+#if defined(FAN_GUI)
+  if (gui.font_future.valid()) {
+    gui.font_future.get();
+    gui.font_future = {};
+  }
 
   fan::graphics::gui::new_frame(
     window.renderer,

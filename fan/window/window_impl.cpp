@@ -384,6 +384,7 @@ namespace fan {
 
     if (renderer == renderer_t::opengl) {
       glfwMakeContextCurrent(glfw_window);
+      glfwSwapBuffers(glfw_window);
     }
     glfwSetMouseButtonCallback(glfw_window, fan::window::mouse_button_callback);
     glfwSetKeyCallback(glfw_window, fan::window::keyboard_keys_callback);
@@ -911,6 +912,25 @@ namespace fan {
 
   void window_t::swap_buffers() {
     glfwSwapBuffers(glfw_window);
+  }
+
+  void window_t::set_should_close(bool flag) {
+    glfwSetWindowShouldClose(*this, flag);
+  }
+  bool window_t::should_close() const {
+    return glfwWindowShouldClose(*this);
+  }
+
+  GLFWglproc window_t::get_proc_address(const std::string_view func_name) {
+    return glfwGetProcAddress(func_name.data());
+  }
+
+  void window_t::set_error_callback(GLFWerrorfun callback) {
+    glfwSetErrorCallback(callback);
+  }
+
+  void window_t::show() {
+    glfwShowWindow(*this);
   }
 
 #if defined(fan_platform_windows)

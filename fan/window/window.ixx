@@ -353,6 +353,15 @@ export namespace fan {
     void set_icon(const fan::image::info_t& icon_info);
     void swap_buffers();
 
+    void set_should_close(bool flag);
+    bool should_close() const;
+
+    GLFWglproc get_proc_address(const std::string_view func_name);
+
+    void set_error_callback(GLFWerrorfun callback);
+
+    void show();
+
 #if defined(fan_platform_windows)
     //---------------------------Windows specific code---------------------------
 
