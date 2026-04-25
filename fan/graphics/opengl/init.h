@@ -2,15 +2,7 @@
 
 #include <fan/utility.h>
 
-#if defined(fan_platform_windows)
-#define GLFW_EXPOSE_NATIVE_WIN32
-#define GLFW_EXPOSE_NATIVE_WGL
-#define GLFW_NATIVE_INCLUDE_NONE
-#endif
-
 #include <glad/gl.h>
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
 
 #include <utility>
 #include <string>

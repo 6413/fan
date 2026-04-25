@@ -1,5 +1,6 @@
 #include <vector>
 #include <numeric>
+#include <string>
 
 import fan;
 using namespace fan::graphics;
@@ -17,8 +18,7 @@ int main() {
 
   std::string markers = "DEBUG_MARKER_9999\n\r\t!@#$%^&*()";
   std::copy(markers.begin(), markers.end(), data.begin() + 300);
-  gui::hex_editor_t he;
   engine.loop([&] {
-    he.render("hex_editor", data);
+    gui::hex_editor("hex_editor", data);
   });
 }

@@ -69,7 +69,7 @@ static void modify_render_data_element(fan::graphics::shapes::shape_t* shape, fa
 void open() {
   if (loco.window.renderer == fan::window_t::renderer_t::opengl) {
     typedef const GLubyte* (*PFNGLGETSTRINGPROC)(GLenum);
-    PFNGLGETSTRINGPROC raw_glGetString = (PFNGLGETSTRINGPROC)glfwGetProcAddress("glGetString");
+    PFNGLGETSTRINGPROC raw_glGetString = (PFNGLGETSTRINGPROC)loco.window.get_proc_address("glGetString");
     
     if (raw_glGetString) {
       const char* gl_version = (const char*)raw_glGetString(GL_VERSION);
@@ -78,7 +78,7 @@ void open() {
       }
     }
 
-    glfwSetErrorCallback(loco.context.gl.error_callback);
+    loco.window.set_error_callback(loco.context.gl.error_callback);
   }
 }
 

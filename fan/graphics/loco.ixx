@@ -23,6 +23,7 @@ module;
 #include <deque>
 #include <functional>
 #include <string_view>
+#include <future>
 
 export module fan.graphics.loco;
 
@@ -637,6 +638,7 @@ public:
 #if defined(FAN_GUI)
   struct gui_state_t {
     fan::graphics::gui::settings_menu_t* settings_menu = nullptr;
+    std::future<void> font_future;
     fan::console_t console;
     fan::time::timer fps_timer;
     uint32_t frame_count = 0;
