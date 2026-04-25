@@ -3,6 +3,7 @@ module;
 #include <string>
 #include <source_location>
 #include <sstream>
+#include <cstring>
 
 module fan.graphics.image_load;
 
