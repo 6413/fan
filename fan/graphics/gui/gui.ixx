@@ -462,9 +462,11 @@ export namespace fan::graphics::gui {
 
   void shader_controls(fan::graphics::shader_t shader_id, const shader_contols_t& controls = {});
 
-  struct memory_editor_t {
+  struct hex_editor_t {
+    void render(const std::string_view window_name, std::vector<uint8_t>& data);
     void render(std::vector<uint8_t>& data);
     std::vector<uint8_t> get_selected_bytes(std::span<const uint8_t> data) const;
+    std::optional<uint8_t> get_active_cell(std::span<const uint8_t> data) const;
 
     static constexpr int ascii_id_offset = 0x10000;
     static constexpr int group_size = 4;
@@ -478,6 +480,7 @@ export namespace fan::graphics::gui {
 
     void render_hex_cell(std::vector<uint8_t>& data, int idx, f32_t cell_w, bool dragging);
     void render_ascii_cell(std::vector<uint8_t>& data, int idx, f32_t ascii_w, bool dragging);
+    void render_data_inspector(std::span<const uint8_t> data, bool little_endian = true);
     void process_clipboard(std::vector<uint8_t>& data);
 
     bool has_selection() const;
@@ -497,8 +500,20 @@ export namespace fan::graphics::gui {
     int hovered_ascii_idx = -1;
     int prev_hovered_ascii_idx = -1;
 
+    f32_t user_zoom = 1.0f;
+
     bool was_dragging = false;
   };
+
+  template <FAN_UNIQUE_CALL>
+  void hex_editor(const std::string_view window_name, std::vector<uint8_t>& data) {
+    static hex_editor_t he;
+    he.render(window_name, data);
+  }
+  template <FAN_UNIQUE_CALL>
+  void hex_editor(std::vector<uint8_t>& data) {
+    gui::hex_editor<FAN_UNIQUE_CALL_PASS>("", data);
+  }
 }
 /*
 template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(
