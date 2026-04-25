@@ -202,7 +202,6 @@ bool fan::io::file::read_bytes(std::string_view path, void* dst, std::size_t siz
   return f.good();
 }
 
-// shared fallback helper
 static std::string resolve(std::string_view path, const std::source_location& loc) {
   auto r = fan::io::file::find_relative_path(path, loc);
   return r.empty() ? std::string{} : r.generic_string();
