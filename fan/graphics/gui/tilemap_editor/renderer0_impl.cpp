@@ -24,6 +24,8 @@ module fan.graphics.gui.tilemap_editor.renderer;
 #if defined(FAN_2D)
 #if defined(FAN_PHYSICS_2D)
 
+import fan.io.file;
+
 namespace fan::graphics {
   tilemap_renderer_t::id_t tilemap_renderer_t::open_map(compiled_map_t& out_compiled, const char* path, const properties_t& p, const std::source_location& callers_path) {
     out_compiled = *compile(path, path, callers_path);
