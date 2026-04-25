@@ -465,7 +465,7 @@ export namespace fan::graphics::gui {
   struct hex_editor_t {
     struct config_t {
       int cols = 16;
-      int group_size = 4;
+      fan::vec2i group_size = {4, 4};
       f32_t auto_scale_min = 0.1f;
       f32_t zoom_speed = 0.1f;
 
@@ -499,7 +499,7 @@ export namespace fan::graphics::gui {
   private:
     enum class active_panel_t { hex, ascii };
 
-    void render_cell(std::vector<uint8_t>& data, int idx, f32_t w, f32_t pad, bool dragging, bool is_hex);
+    void render_cell(std::vector<uint8_t>& data, int idx, f32_t w, f32_t pad, bool is_dragging, bool is_hex);
     void render_data_inspector(std::span<const uint8_t> data, bool little_endian = true);
     void process_clipboard(std::vector<uint8_t>& data);
 
@@ -507,30 +507,30 @@ export namespace fan::graphics::gui {
     std::pair<int, int> get_selection_bounds() const;
     bool is_selected(int idx) const;
     void update_selection(int idx, bool cell_hovered);
-    uint32_t get_cell_flags(bool dragging, bool is_hex) const;
+    uint32_t get_cell_flags(bool is_dragging, bool is_hex) const;
     f32_t get_spacing(int idx, int row_end, bool is_hex) const;
 
   public:
-    config_t cfg;
+    config_t config;
 
   private:
     static constexpr int ascii_id_offset = 0x10000;
 
     active_panel_t active_panel = active_panel_t::hex;
-    metrics_t m {};
+    metrics_t metrics {};
 
-    int sel_anchor = -1;
-    int sel_current = -1;
+    int sel_start = -1;
+    int sel_end = -1;
     int active_idx = -1;
-    int focus_ascii_idx = -1;
-    int focus_hex_idx = -1;
-    int hovered_idx = -1;
-    int prev_hovered_idx = -1;
+    int pending_focus_ascii = -1;
+    int pending_focus_hex = -1;
+    int hovered_hex_idx = -1;
+    int prev_hex_hover_idx = -1;
     int hovered_ascii_idx = -1;
-    int prev_hovered_ascii_idx = -1;
+    int prev_ascii_hover_idx = -1;
 
     f32_t user_zoom = 1.0f;
-    bool was_dragging = false;
+    bool is_dragging = false;
 
     std::vector<std::string> cell_bufs;
   };

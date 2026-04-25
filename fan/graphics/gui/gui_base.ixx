@@ -324,6 +324,10 @@ export namespace fan::graphics::gui {
     f32_t actual_scale = 1.0f;
   };
 
+  struct zoom_scope_t {
+    zoom_scope_t(f32_t& zoom_factor, f32_t base_font_size, f32_t auto_scale, f32_t speed = 0.1f, f32_t user_max = 5.f);
+  };
+
   void image(
     texture_id_t texture,
     const fan::vec2& size,

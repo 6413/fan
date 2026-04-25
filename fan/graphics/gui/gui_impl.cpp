@@ -2108,44 +2108,44 @@ namespace fan::graphics::gui {
   }
 
   bool hex_editor_t::has_selection() const {
-    return sel_anchor != -1;
+    return sel_start != -1;
   }
 
   std::pair<int, int> hex_editor_t::get_selection_bounds() const {
-    return std::minmax(sel_anchor, sel_current);
+    return std::minmax(sel_start, sel_end);
   }
 
   bool hex_editor_t::is_selected(int idx) const {
-    if (!has_selection() || sel_anchor == sel_current) return false;
+    if (!has_selection() || sel_start == sel_end) return false;
     auto [lo, hi] = get_selection_bounds();
     return idx >= lo && idx <= hi;
   }
 
   void hex_editor_t::update_selection(int idx, bool cell_hovered) {
     if (!cell_hovered) return;
-    if (fan::window::is_mouse_clicked(fan::mouse_left)) sel_anchor = sel_current = idx;
-    else if (fan::window::is_mouse_down(fan::mouse_left) && has_selection()) sel_current = idx;
+    if (fan::window::is_mouse_clicked(fan::mouse_left)) sel_start = sel_end = idx;
+    else if (fan::window::is_mouse_down(fan::mouse_left) && has_selection()) sel_end = idx;
   }
 
-  uint32_t hex_editor_t::get_cell_flags(bool dragging, bool is_hex) const {
+  uint32_t hex_editor_t::get_cell_flags(bool is_dragging, bool is_hex) const {
     uint32_t flags = is_hex ? input_text_flags_chars_hexadecimal | input_text_flags_chars_uppercase : 0;
     flags |= input_text_flags_auto_select_all;
-    flags |= input_text_flags_no_horizontal_scroll; 
+    flags |= input_text_flags_no_horizontal_scroll;
     return flags;
   }
 
   f32_t hex_editor_t::get_spacing(int idx, int row_end, bool is_hex) const {
-    if (!is_hex) return m.char_w * cfg.spacing_ascii_mult;
-    return (idx + 1) % cfg.group_size == 0
-      ? m.char_w * cfg.spacing_hex_group_mult
-      : m.char_w * cfg.spacing_hex_item_mult;
+    if (!is_hex) return metrics.char_w * config.spacing_ascii_mult;
+    return (idx + 1) % config.group_size.x == 0
+      ? (metrics.char_w * config.spacing_hex_group_mult)
+      : (metrics.char_w * config.spacing_hex_item_mult);
   }
 
   void hex_editor_t::render_data_inspector(std::span<const uint8_t> data, bool little_endian) {
   }
 
-void hex_editor_t::render_cell(std::vector<uint8_t>& data, int idx, f32_t w, f32_t pad, bool dragging, bool is_hex) {
-    fan::color col = is_selected(idx) ? cfg.col_text_sel : fan::color::nibble(data[idx]);
+  void hex_editor_t::render_cell(std::vector<uint8_t>& data, int idx, f32_t w, f32_t pad, bool is_dragging, bool is_hex) {
+    fan::color col = is_selected(idx) ? config.col_text_sel : fan::color::nibble(data[idx]);
     style_scope_t s;
     s.color(col_text, col);
 
@@ -2160,11 +2160,11 @@ void hex_editor_t::render_cell(std::vector<uint8_t>& data, int idx, f32_t w, f32
 
       bool is_active_cell = (active_idx == idx);
 
-      if (is_selected(idx)) dl->AddRectFilled(rmin, rmax, cfg.col_bg_sel);
-      else if (is_active_cell) dl->AddRectFilled(rmin, rmax, fan::color(0.4f, 0.4f, 0.1f, 0.7f)); 
-      else if (prev_hovered_idx == idx || prev_hovered_ascii_idx == idx) dl->AddRectFilled(rmin, rmax, cfg.col_bg_hover);
+      if (is_selected(idx)) dl->AddRectFilled(rmin, rmax, config.col_bg_sel);
+      else if (is_active_cell) dl->AddRectFilled(rmin, rmax, fan::color(0.4f, 0.4f, 0.1f, 0.7f));
+      else if (prev_hex_hover_idx == idx || prev_ascii_hover_idx == idx) dl->AddRectFilled(rmin, rmax, config.col_bg_hover);
 
-      int& focus_idx = is_hex ? focus_hex_idx : focus_ascii_idx;
+      int& focus_idx = is_hex ? pending_focus_hex : pending_focus_ascii;
       if (focus_idx == idx) { set_keyboard_focus_here(); focus_idx = -1; }
 
       std::string old_buf = is_hex ? fan::to_hex(data[idx], 2) : fan::to_ascii(data[idx]);
@@ -2183,9 +2183,9 @@ void hex_editor_t::render_cell(std::vector<uint8_t>& data, int idx, f32_t w, f32
         }
       }
 
-      bool changed = input_text("##v", &buf, get_cell_flags(dragging, is_hex));
+      bool changed = input_text("##v", &buf, get_cell_flags(is_dragging, is_hex));
       bool active = is_item_active();
-      
+
       bool backspace = active && fan::window::is_key_clicked(fan::key_backspace);
 
       if (active) {
@@ -2194,14 +2194,17 @@ void hex_editor_t::render_cell(std::vector<uint8_t>& data, int idx, f32_t w, f32
 
         if (fan::window::is_key_down(fan::key_left_control)) {
           gui::clear_active_id();
-        } else if (backspace && idx > 0) {
+        }
+        else if (backspace && idx > 0) {
           data[idx - 1] = 0;
           focus_idx = idx - 1;
           gui::clear_active_id();
-        } else if (fan::window::is_key_clicked(fan::key_left) && idx > 0) {
+        }
+        else if (fan::window::is_key_clicked(fan::key_left) && idx > 0) {
           focus_idx = idx - 1;
           gui::clear_active_id();
-        } else if (fan::window::is_key_clicked(fan::key_right) && idx + 1 < m.size) {
+        }
+        else if (fan::window::is_key_clicked(fan::key_right) && idx + 1 < metrics.size) {
           focus_idx = idx + 1;
           gui::clear_active_id();
         }
@@ -2211,16 +2214,18 @@ void hex_editor_t::render_cell(std::vector<uint8_t>& data, int idx, f32_t w, f32
         if (is_hex) {
           if (buf.size() > 2) buf = buf.substr(buf.size() - 2);
           data[idx] = fan::parse_hex_byte(buf);
-          if (buf.size() >= 2 && idx + 1 < m.size) {
+          if (buf.size() >= 2 && idx + 1 < metrics.size) {
             focus_idx = idx + 1;
             gui::clear_active_id();
           }
-        } else {
+        }
+        else {
           if (identical_char_typed || !buf.empty()) {
             data[idx] = identical_char_typed ? data[idx] : (uint8_t)buf.back();
-            if (idx + 1 < m.size) focus_idx = idx + 1;
+            if (idx + 1 < metrics.size) focus_idx = idx + 1;
             gui::clear_active_id();
-          } else {
+          }
+          else {
             data[idx] = 0;
             gui::clear_active_id();
           }
@@ -2228,7 +2233,7 @@ void hex_editor_t::render_cell(std::vector<uint8_t>& data, int idx, f32_t w, f32
       }
 
       if (cell_hovered) {
-        if (is_hex) hovered_idx = idx;
+        if (is_hex) hovered_hex_idx = idx;
         else hovered_ascii_idx = idx;
       }
 
@@ -2242,7 +2247,8 @@ void hex_editor_t::render_cell(std::vector<uint8_t>& data, int idx, f32_t w, f32
       hex_style.color(col_frame_bg_hovered, fan::color(0.f, 0.f, 0.f, 0.f));
       hex_style.color(col_frame_bg_active, fan::color(0.f, 0.f, 0.f, 0.f));
       do_render();
-    } else {
+    }
+    else {
       auto invisible = make_invisible_input_style();
       do_render();
     }
@@ -2254,74 +2260,77 @@ void hex_editor_t::render_cell(std::vector<uint8_t>& data, int idx, f32_t w, f32
     if (window_name.empty()) snprintf(buf, sizeof(buf), "hex_editor##%p", this);
     else snprintf(buf, sizeof(buf), "%.*s", (int)window_name.size(), window_name.data());
 
+    gui::set_next_window_size(fan::vec2(1280.f, 720.f), gui::cond_first_use_ever);
+
     auto window = gui::window(buf, 0, flags);
     gui::window_move_title_bar_only();
     if (!window) return;
 
     gui::set_window_font_scale(1.0f);
     f32_t base_font_size = gui::get_font_size();
-    m.char_w = calc_text_size("0").x;
-    f32_t base_cell_w = calc_text_size("FF").x + (cfg.inner_pad * 2.f);
-    f32_t base_ascii_w = calc_text_size("F").x + (cfg.inner_pad * 2.f);
+    metrics.char_w = calc_text_size("0").x;
+    f32_t base_cell_w = calc_text_size("FF").x + (config.inner_pad * 2.f);
+    f32_t base_ascii_w = calc_text_size("F").x + (config.inner_pad * 2.f);
 
-    f32_t hex_area_w = cfg.cols * base_cell_w + cfg.cols * m.char_w * cfg.spacing_hex_item_mult;
-    f32_t total_base_w = calc_text_size("00000000").x + hex_area_w + cfg.cols * base_ascii_w
+    f32_t hex_area_w = config.cols * base_cell_w + config.cols * metrics.char_w * config.spacing_hex_item_mult;
+    f32_t total_base_w = calc_text_size("00000000").x + hex_area_w + config.cols * base_ascii_w
       + gui::get_style().CellPadding.x * 6.f + 5.f;
 
-    f32_t auto_scale = std::max(gui::get_content_region_avail().x / total_base_w, cfg.auto_scale_min);
+    f32_t auto_scale = std::max(gui::get_content_region_avail().x / total_base_w, config.auto_scale_min);
 
-    if (gui::is_window_hovered()) {
-      f32_t wheel = gui::get_io().MouseWheel;
-      if (wheel != 0.f && fan::window::is_key_down(fan::key_left_control)) {
-        user_zoom = std::max(user_zoom + wheel * cfg.zoom_speed, cfg.auto_scale_min);
-      }
-    }
+    gui::zoom_scope_t _(user_zoom, base_font_size, auto_scale, config.zoom_speed, 5.f);
 
     gui::font_t* crisp_font = gui::get_font(base_font_size * auto_scale * user_zoom, gui::font::mono);
-    m.scale = crisp_font->FontSize / base_font_size;
-    m.cell_w = base_cell_w * m.scale;
-    m.ascii_w = base_ascii_w * m.scale;
-    m.char_w *= m.scale;
-    m.size = (int)data.size();
-    m.rows = (m.size + cfg.cols - 1) / cfg.cols;
+    metrics.scale = crisp_font->FontSize / base_font_size;
+    metrics.cell_w = base_cell_w * metrics.scale;
+    metrics.ascii_w = base_ascii_w * metrics.scale;
+    metrics.char_w *= metrics.scale;
+    metrics.size = (int)data.size();
+    metrics.rows = (metrics.size + config.cols - 1) / config.cols;
 
-    if ((int)cell_bufs.size() != m.size * 2) cell_bufs.resize(m.size * 2);
+    if ((int)cell_bufs.size() != metrics.size * 2) cell_bufs.resize(metrics.size * 2);
 
     gui::push_font(crisp_font);
     gui::set_window_font_scale(1.0f);
 
     auto& st = gui::get_style();
     style_scope_t scaled_style;
-    f32_t ys = cfg.y_spacing_mult;
-    scaled_style.var(gui::style_var_item_spacing, fan::vec2(0.f, st.ItemSpacing.y) * m.scale);
-    scaled_style.var(gui::style_var_cell_padding, fan::vec2(st.CellPadding.x, st.CellPadding.y * ys) * m.scale);
-    scaled_style.var(gui::style_var_frame_padding, fan::vec2(cfg.inner_pad, st.FramePadding.y * ys) * m.scale);
-    scaled_style.var(gui::style_var_window_padding, fan::vec2(st.WindowPadding) * m.scale);
+    f32_t ys = config.y_spacing_mult;
+    scaled_style.var(gui::style_var_item_spacing, fan::vec2(0.f, st.ItemSpacing.y) * metrics.scale);
+    scaled_style.var(gui::style_var_cell_padding, fan::vec2(st.CellPadding.x, st.CellPadding.y * ys) * metrics.scale);
+    scaled_style.var(gui::style_var_frame_padding, fan::vec2(config.inner_pad, st.FramePadding.y * ys) * metrics.scale);
+    scaled_style.var(gui::style_var_window_padding, fan::vec2(st.WindowPadding) * metrics.scale);
 
-    bool dragging = fan::window::is_mouse_down(fan::mouse_left) && has_selection() && sel_anchor != sel_current;
-    if (dragging && !was_dragging) clear_active_id();
-    was_dragging = dragging;
+    bool dragging = fan::window::is_mouse_down(fan::mouse_left) && has_selection() && sel_start != sel_end;
+    if (dragging && !is_dragging) clear_active_id();
+    is_dragging = dragging;
 
-    prev_hovered_idx = hovered_idx; hovered_idx = -1;
-    prev_hovered_ascii_idx = hovered_ascii_idx; hovered_ascii_idx = -1;
+    prev_hex_hover_idx = hovered_hex_idx; hovered_hex_idx = -1;
+    prev_ascii_hover_idx = hovered_ascii_idx; hovered_ascii_idx = -1;
 
     if (gui::begin_table("##hex_table", 3, gui::table_flags_sizing_fixed_fit)) {
       list_clipper_t clipper;
-      clipper.Begin(m.rows);
+      clipper.Begin(metrics.rows);
       while (clipper.Step()) {
         for (int i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
+          if (config.group_size.y > 1 && i % config.group_size.y == 0 && i > clipper.DisplayStart) {
+            gui::table_next_row();
+            f32_t gap_height = gui::get_text_line_height();
+            gui::dummy({0, gap_height});
+          }
+
           gui::table_next_row();
-          int row_start = i * cfg.cols;
-          int row_end = std::min(row_start + cfg.cols, m.size);
+          int row_start = i * config.cols;
+          int row_end = std::min(row_start + config.cols, metrics.size);
 
           gui::table_next_column();
           align_text_to_frame_padding();
-          text(cfg.col_text_addr, fan::to_hex(row_start, 8));
+          text(config.col_text_addr, fan::to_hex(row_start, 8));
 
           gui::table_next_column();
           for (int idx = row_start; idx < row_end; ++idx) {
             f32_t pad = idx + 1 < row_end ? get_spacing(idx, row_end, true) : 0.f;
-            render_cell(data, idx, m.cell_w, pad, dragging, true);
+            render_cell(data, idx, metrics.cell_w, pad, dragging, true);
             if (idx + 1 < row_end) same_line(0.f, 0.f);
           }
 
@@ -2333,7 +2342,7 @@ void hex_editor_t::render_cell(std::vector<uint8_t>& data, int idx, f32_t w, f32
             align_text_to_frame_padding();
             for (int idx = row_start; idx < row_end; ++idx) {
               f32_t pad = idx + 1 < row_end ? get_spacing(idx, row_end, false) : 0.f;
-              render_cell(data, idx, m.ascii_w, pad, dragging, false);
+              render_cell(data, idx, metrics.ascii_w, pad, dragging, false);
               if (idx + 1 < row_end) same_line(0.f, 0.f);
             }
           }
@@ -2343,8 +2352,8 @@ void hex_editor_t::render_cell(std::vector<uint8_t>& data, int idx, f32_t w, f32
       gui::end_table();
     }
 
-    if (is_window_hovered() && hovered_idx == -1 && hovered_ascii_idx == -1 && fan::window::is_mouse_clicked(fan::mouse_left)) {
-      sel_anchor = sel_current = -1;
+    if (is_window_hovered() && hovered_hex_idx == -1 && hovered_ascii_idx == -1 && fan::window::is_mouse_clicked(fan::mouse_left)) {
+      sel_start = sel_end = -1;
     }
 
     render_data_inspector(data, true);
@@ -2380,23 +2389,23 @@ void hex_editor_t::render_cell(std::vector<uint8_t>& data, int idx, f32_t w, f32
     if (active_panel == active_panel_t::ascii) {
       for (int i = 0; i < (int)clip.size(); ++i) {
         int idx = lo + i;
-        if (idx >= m.size) data.resize(idx + 1, 0);
+        if (idx >= metrics.size) data.resize(idx + 1, 0);
         data[idx] = (uint8_t)clip[i];
         next_idx = idx + 1;
       }
-      focus_ascii_idx = next_idx;
+      pending_focus_ascii = next_idx;
     }
     else {
       auto bytes = fan::parse_hex_buffer(fan::trim(clip));
       for (int i = 0; i < (int)bytes.size(); ++i) {
         int idx = lo + i;
-        if (idx >= m.size) data.resize(idx + 1, 0);
+        if (idx >= metrics.size) data.resize(idx + 1, 0);
         data[idx] = bytes[i];
         next_idx = idx + 1;
       }
-      focus_hex_idx = next_idx;
+      pending_focus_hex = next_idx;
     }
-    sel_anchor = sel_current = next_idx;
+    sel_start = sel_end = next_idx;
   }
 }
 #endif
