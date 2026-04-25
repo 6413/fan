@@ -1096,12 +1096,11 @@ namespace fan::graphics::gui {
   }
 
   bool input_text(
-    str_view_t label, 
-    std::string* buf, 
-    input_text_flags_t flags, 
-    input_text_callback_t callback, 
-    void* user_data) 
-  {
+    str_view_t label,
+    std::string* buf,
+    input_text_flags_t flags,
+    input_text_callback_t callback,
+    void* user_data) {
     IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
     flags |= ImGuiInputTextFlags_CallbackResize;
     detail::input_text_callback_user_data_t cb_user_data;
@@ -1109,12 +1108,12 @@ namespace fan::graphics::gui {
     cb_user_data.chain_callback = callback;
     cb_user_data.chain_callback_user_data = user_data;
     return ImGui::InputText(label,
-      buf->data(),
-      buf->capacity() + 1,
-      flags,
-      detail::input_text_callback,
-      &cb_user_data);
-  }
+        (char*)buf->c_str(),
+        buf->capacity() + 1,
+        flags,
+        detail::input_text_callback,
+        &cb_user_data);
+}
   bool input_text(
     std::string* buf,
     input_text_flags_t flags,
@@ -1555,6 +1554,10 @@ namespace fan::graphics::gui {
     return ImGui::GetID(fan::ct_string(str_id));
   }
 
+  id_t get_id(int id) {
+    return ImGui::GetID(id);
+  }
+
   storage_t* get_state_storage() {
     return ImGui::GetStateStorage();
   }
@@ -1569,6 +1572,10 @@ namespace fan::graphics::gui {
 
   void dock_space_over_viewport(id_t dockspace_id, const gui::viewport_t* viewport, int flags, const void* window_class) {
     ImGui::DockSpaceOverViewport(dockspace_id, viewport, flags, static_cast<const ImGuiWindowClass*>(window_class));
+  }
+
+  bool is_mouse_hovering_rect(const fan::vec2& min, const fan::vec2& max, bool clip) {
+    return ImGui::IsMouseHoveringRect(min, max, clip);
   }
 
   context_t* get_context() {
@@ -2214,6 +2221,16 @@ namespace fan::graphics::gui {
   void align_center_x(f32_t item_width) {
     f32_t avail = fan::graphics::gui::get_content_region_avail().x;
     fan::graphics::gui::set_cursor_pos_x((avail - item_width) * 0.5f);
+  }
+
+  void window_move_title_bar_only() {
+    ImGuiContext& g = *GImGui;
+    if (!g.MovingWindow || g.MovingWindow != ImGui::GetCurrentWindow()) return;
+    if (g.ActiveIdClickOffset.y > g.MovingWindow->TitleBarHeight) {
+      g.MovingWindow->Pos -= g.IO.MouseDelta;
+      g.MovingWindow = nullptr;
+      g.ActiveId = 0;
+    }
   }
 } // namespace fan::graphics::gui
 
