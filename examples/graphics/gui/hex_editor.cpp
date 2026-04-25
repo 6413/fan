@@ -3,10 +3,11 @@
 #include <string>
 
 import fan;
+
 using namespace fan::graphics;
 
 int main() {
-  fan::graphics::engine_t engine;
+  engine_t engine;
 
   std::vector<uint8_t> data(0x200); 
 

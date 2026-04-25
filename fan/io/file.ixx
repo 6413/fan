@@ -1,33 +1,24 @@
 module;
-
 #include <fan/utility.h>
-
 #if defined(fan_platform_windows)
   #include <Windows.h>
 #elif defined(fan_platform_unix)
   #include <unistd.h>
   #include <limits.h>
 #endif
-
 #include <string>
 #include <filesystem>
 #include <source_location>
 #include <vector>
 #include <string_view>
-
 export module fan.io.file;
 
 import fan.print.error;
+export import fan.io.types;
 
 export namespace fan {
   namespace io {
     namespace file {
-
-      template <typename T>
-      concept path_t =
-        std::is_convertible_v<T, std::string_view> ||
-        std::is_convertible_v<T, const char*> ||
-        std::is_same_v<std::remove_cvref_t<T>, std::filesystem::path>;
 
       template <path_t P>
       std::string to_str(P&& p) {
@@ -36,7 +27,6 @@ export namespace fan {
         else
           return std::string(std::string_view(p));
       }
-
 
       template <path_t P>
       inline std::string strip_extension(P&& file_path) {
@@ -64,16 +54,11 @@ export namespace fan {
         void* file_ptr = nullptr;
       };
 
-      using file_t = FILE;
-      struct properties_t { const char* mode; };
-
       bool open(file_t** f, const std::string& path, const properties_t& p);
       bool close(file_t* f);
       bool read(file_t* f, void* data, std::uint64_t size, std::uint64_t elements);
       bool write(file_t* f, void* data, std::uint64_t size, std::uint64_t elements);
       std::uint64_t size(const std::string& filename);
-
-      using fs_mode = decltype(std::ios_base::binary);
 
       bool write(std::string_view path, const std::string& data, fs_mode mode);
 
@@ -144,16 +129,7 @@ export namespace fan {
       std::uint64_t file_size_p(P&& p) { return file_size(std::forward<P>(p)); }
     }
   }
-}
 
-export namespace fan {
-  namespace tmpl {
-    template<typename> struct is_std_vector : std::false_type {};
-    template<typename T, typename A> struct is_std_vector<std::vector<T, A>> : std::true_type {};
-  }
-}
-
-export namespace fan {
   template <typename T>
   void write_to_file(fan::io::file::file_t* f, const T& o) {
     if constexpr (std::is_same<std::string, T>::value) {
