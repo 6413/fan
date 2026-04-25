@@ -1,24 +1,24 @@
 #include <vector>
-#include <string>
+#include <numeric>
 
 import fan;
-
 using namespace fan::graphics;
 
-struct app_t : engine_t {
-  app_t() : data(rows * columns) {}
-  void run() {
-    engine_t::loop([&] {
-      gui::hex_editor("hex_viewer", data);
-    });
-  }
-  uint32_t rows = 0x10;
-  uint32_t max_table = 0x400;
-  uint32_t columns = (max_table + 0x10) / 0x10;
-  std::vector<uint8_t> data;
-};
-
 int main() {
-  app_t app;
-  app.run();
+  fan::graphics::engine_t engine;
+
+  std::vector<uint8_t> data(0x200); 
+
+  // fill gradient
+  std::iota(data.begin(), data.begin() + 256, 0);
+
+  std::string duplicate_test = "AAAAAABBBBBBCCCCCC      ";
+  std::copy(duplicate_test.begin(), duplicate_test.end(), data.begin() + 256);
+
+  std::string markers = "DEBUG_MARKER_9999\n\r\t!@#$%^&*()";
+  std::copy(markers.begin(), markers.end(), data.begin() + 300);
+  gui::hex_editor_t he;
+  engine.loop([&] {
+    he.render("hex_editor", data);
+  });
 }

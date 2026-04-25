@@ -44,6 +44,7 @@ import fan.math;
 import fan.print.error;
 import fan.graphics.common_context;
 import fan.graphics.gui.types;
+import fan.window.input;
 
 namespace fan::graphics::gui {
   namespace detail {
@@ -1403,6 +1404,26 @@ namespace fan::graphics::gui {
   crisp_font_scope_t::~crisp_font_scope_t() {
     pop_font();
   }
+
+  zoom_scope_t::zoom_scope_t(f32_t& zoom_factor, f32_t base_font_size, f32_t auto_scale, f32_t speed, f32_t user_max) {
+      if (gui::is_window_hovered(gui::hovered_flags_child_windows)) {
+        f32_t wheel = gui::get_io().MouseWheel;
+        if (wheel != 0.f && fan::window::is_key_down(fan::key_left_control)) {
+          f32_t min_pixel = font_sizes[0] * 2.f;
+          f32_t max_pixel = font_sizes[std::size(font_sizes) - 1] * 2.f;
+          f32_t current_base = base_font_size * auto_scale;
+
+          f32_t abs_min = min_pixel / current_base;
+          f32_t abs_max = max_pixel / current_base;
+
+          zoom_factor = fan::math::clamp(
+            zoom_factor * (1.0f + (wheel * speed)),
+            fan::math::max(0.1f, abs_min),
+            fan::math::min(user_max, abs_max)
+          );
+        }
+      }
+    }
 
   void image(texture_id_t texture,
     const fan::vec2& size,
