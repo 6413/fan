@@ -2,6 +2,7 @@
 module;
 #include <cstdint>
 #include <vector>
+#include <algorithm>
 #include <ios>
 #include <cstdio>
 #include <filesystem>
@@ -25,6 +26,17 @@ export namespace fan {
 
       // Fills existing buffer. Returns actual bytes read. Prevents overflow.
       virtual uint64_t read_range(uint64_t offset, uint64_t length, std::vector<uint8_t>& out_buffer) const = 0;
+
+      virtual void write_range(uint64_t offset, std::span<const uint8_t> bytes) {
+        for (uint64_t i = 0; i < bytes.size(); ++i)
+          write(offset + i, bytes[i]);
+      }
+
+      uint64_t read_range_padded(uint64_t offset, uint64_t length, std::vector<uint8_t>& out) const {
+        auto r = read_range(offset, length, out);
+        while (out.size() < length) out.push_back(0);
+        return r;
+      }
     };
 
     struct memory_provider_t : public data_provider_t {
@@ -62,9 +74,21 @@ export namespace fan {
         return actual_length;
       }
 
+      void write_range(uint64_t offset, std::span<const uint8_t> bytes) override {
+        if (offset >= data.size()) return;
+        uint64_t len = std::min((uint64_t)bytes.size(), data.size() - offset);
+        std::copy_n(bytes.begin(), len, data.begin() + offset);
+      }
+
     private:
       std::span<uint8_t> data;
     };
+
+    template <typename T>
+    void inspector_write(data_provider_t& data, uint64_t offset, T val) {
+      auto bytes = std::bit_cast<std::array<uint8_t, sizeof(T)>>(val);
+      data.write_range(offset, bytes);
+    }
 
     namespace file {
       using file_t = FILE;
