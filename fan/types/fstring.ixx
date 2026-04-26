@@ -452,6 +452,12 @@ export namespace fan {
     return std::nullopt;
   }
 
+  inline std::string format_scientific(double v) {
+    char b[64];
+    snprintf(b, sizeof(b), "%.6e", v);
+    return b;
+  }
+
   #define fan_enum_string_runtime(m_name, ...) \
     enum m_name { __VA_ARGS__ }; \
     inline std::vector<std::string> m_name##_strings = fan::split(#__VA_ARGS__)

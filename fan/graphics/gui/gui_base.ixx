@@ -683,6 +683,20 @@ export namespace fan::graphics::gui {
 
   void next_column();
 
+  template <typename T>
+  void table_cell(T&& v) {
+    if constexpr (std::is_arithmetic_v<std::remove_cvref_t<T>>)
+      gui::text(std::to_string(v));
+    else
+      gui::text(std::forward<T>(v));
+  }
+
+  template <typename... Columns>
+  void table_row(Columns&&... cols) {
+    gui::table_next_row();
+    (( gui::table_next_column(), table_cell(std::forward<Columns>(cols)) ), ...);
+  }
+
   void clear_active_id();
 
   void build_fonts();
@@ -1084,6 +1098,32 @@ export namespace fan::graphics::gui {
     fan::vec2 size,
     std::function<void(int)> on_click
   );
+
+  void table_row_edit(const char* label, std::string& buf, auto on_enter) {
+    gui::table_next_row();
+    gui::table_next_column(); gui::text(label);
+    gui::table_next_column(); gui::set_next_item_width(-1);
+    gui::push_id(label);
+    if (gui::input_text("##v", &buf, gui::input_text_flags_enter_returns_true))
+      try { on_enter(); }
+    catch (...) {}
+    gui::pop_id();
+  }
+
+  void table_row_edit(const char* label, std::string& bufu, std::string& bufs, auto on_u, auto on_s) {
+    gui::table_next_row();
+    gui::table_next_column(); gui::text(label);
+    gui::push_id(label);
+    gui::table_next_column(); gui::set_next_item_width(-1);
+    if (gui::input_text("##u", &bufu, gui::input_text_flags_enter_returns_true))
+      try { on_u(); }
+    catch (...) {}
+    gui::table_next_column(); gui::set_next_item_width(-1);
+    if (gui::input_text("##s", &bufs, gui::input_text_flags_enter_returns_true))
+      try { on_s(); }
+    catch (...) {}
+    gui::pop_id();
+  }
 
   void window_anchor_top_left(const fan::vec2& offset);
   void window_anchor_top_center(const fan::vec2& offset);
