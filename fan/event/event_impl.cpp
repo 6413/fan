@@ -310,7 +310,8 @@ namespace fan::event {
   }
 
   void sleep(unsigned int msec) { uv_sleep(msec); }
-  void loop(fan::event::loop_t loop, bool once) { uv_run((uv_loop_t*)loop, once ? UV_RUN_ONCE : UV_RUN_DEFAULT); }
+  void loop(fan::event::loop_t l, bool once) { uv_run((uv_loop_t*)l, once ? UV_RUN_ONCE : UV_RUN_DEFAULT); }
+  void run_once(fan::event::loop_t l) { loop(l, true); }
   uint64_t now() { return uv_now((uv_loop_t*)get_loop()) * 1000000; }
   std::string strerror(int err) { return uv_strerror(err); }
 
@@ -343,7 +344,7 @@ namespace fan::event {
 
 namespace fan::io::file {
 
-  fan::event::task_value_resume_t<intptr_t> async_read(int file, std::string* buffer, int64_t offset, std::size_t buffer_size) {
+  fan::event::runv_t<intptr_t> async_read(int file, std::string* buffer, int64_t offset, std::size_t buffer_size) {
     buffer->resize(buffer_size);
     intptr_t r = co_await async_read(file, buffer->data(), buffer_size, offset);
     if (r < 0) fan::throw_error("error reading file", std::to_string(r));
@@ -351,7 +352,7 @@ namespace fan::io::file {
     co_return r;
   }
 
-  fan::event::task_value_resume_t<std::string> async_read(const std::string& path, int buffer_size) {
+  fan::event::runv_t<std::string> async_read(const std::string& path, int buffer_size) {
     int fd = co_await async_open(path);
     int offset = 0;
     std::string buffer;
@@ -385,17 +386,17 @@ namespace fan::io::file {
     co_await async_close(fd);
   }
 
-  fan::event::task_resume_t async_read_t::open(const std::string& file_path) {
+  fan::event::run_t async_read_t::open(const std::string& file_path) {
     path = file_path;
     fd = co_await fan::io::file::async_open(path);
     size = co_await fan::io::file::async_size(fd);
   }
 
-  fan::event::task_resume_t async_read_t::close() {
+  fan::event::run_t async_read_t::close() {
     co_await fan::io::file::async_close(fd);
   }
 
-  fan::event::task_value_resume_t<std::string> async_read_t::read() {
+  fan::event::runv_t<std::string> async_read_t::read() {
     std::string buffer;
     intptr_t read_bytes = co_await fan::io::file::async_read(fd, &buffer, offset);
     if (read_bytes > 0) offset += read_bytes;
