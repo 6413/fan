@@ -37,14 +37,14 @@ end
 
 if is_mode("release") then
   set_optimize("fastest")
-  add_cxxflags("-O3", {force = true})
+  add_cxflags("-O3", {force = true})
   add_ldflags("-s", {force = true})
   add_defines("NDEBUG")
 	add_defines("_DEBUG=0")
 elseif is_mode("debug") then
   set_optimize("none")
   set_symbols("debug")
-  add_cxxflags("-g", "-gdwarf-4", "-fno-inline", "-fno-inline-functions", {force = true})
+  add_cxflags("-g", "-gdwarf-4", "-fno-inline", "-fno-inline-functions", {force = true})
   add_defines("_DEBUG=3")
 end
 
