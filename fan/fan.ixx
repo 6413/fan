@@ -77,6 +77,7 @@ export import fan.formatter;
 
 export import fan.ecs;
 
+#if defined(FAN_GUI)
 export import fan.graphics.gui.tilemap_editor.renderer;
 export import fan.graphics.gameplay;
 export import fan.graphics.gui.inventory_hotbar;
@@ -84,5 +85,6 @@ export import fan.graphics.gameplay.items;
 export import fan.graphics.gui.gameplay.equipment;
 export import fan.graphics.gui.input;
 export import fan.graphics.gui.inventory;
+#endif
 
 export import fan.crypto;
