@@ -1,4 +1,3 @@
-#!/bin/bash
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
@@ -14,7 +13,8 @@ MAIN_FILE=""
 COMPILER="clang"
 XMAKE_ARGS=()
 
-while [[ $# -gt 0 ]]; do
+while [[ $
+
   case $1 in
     --debug)
       MODE="debug"
@@ -56,7 +56,6 @@ find_clang() {
   local best_bin=""
   local best_version=0
 
-  # Get all clang++ executables in PATH
   while IFS= read -r path; do
     bin=$(basename "$path")
 
@@ -70,7 +69,6 @@ find_clang() {
     fi
   done < <(command -v -a clang++ 2>/dev/null)
 
-  # Fallback: plain clang++
   if [[ -z "$best_bin" ]]; then
     if command -v clang++ >/dev/null 2>&1; then
       best_bin=$(command -v clang++)
@@ -91,68 +89,45 @@ if [[ "$COMPILER" == "gcc" ]]; then
   TOOLCHAIN="gcc"
 else
   CXX=$(find_clang)
-	CC="${CXX/clang++/clang}"
+  CC="${CXX/clang++/clang}"
   TOOLCHAIN="clang"
 fi
 
+CONFIG_ARGS=("--compiler=$COMPILER" "--toolchain=$TOOLCHAIN" "--cc=$CC" "--cxx=$CXX")
+
 if [[ -n "$MAIN_FILE" ]]; then
-  echo -e "${CYAN}Setting main file:${NC} ${MAIN_FILE}"
-  if ! xmake f --main="$MAIN_FILE" --compiler="$COMPILER" "${XMAKE_ARGS[@]}"; then
+  CONFIG_ARGS+=("--main=$MAIN_FILE")
+fi
+
+if [[ -n "$MODE" ]]; then
+  CONFIG_ARGS+=("-m" "$MODE")
+fi
+
+if [[ "$REBUILD" == true ]]; then
+  echo -e "${BLUE}[1/3]${NC} Cleaning build directory..."
+  rm -rf build .xmake
+
+  echo ""
+  echo -e "${BLUE}[2/3]${NC} Configuring..."
+  if ! xmake f -c "${CONFIG_ARGS[@]}" "${XMAKE_ARGS[@]}"; then
+    echo -e "${RED}✗ XMake configuration failed!${NC}"
+    exit 1
+  fi
+
+  echo ""
+  echo -e "${BLUE}[3/3]${NC} Building..."
+else
+  echo -e "${BLUE}Configuring & Building...${NC}"
+  if ! xmake f "${CONFIG_ARGS[@]}" "${XMAKE_ARGS[@]}"; then
     echo -e "${RED}✗ XMake configuration failed!${NC}"
     exit 1
   fi
 fi
 
-if [[ "$REBUILD" == true ]]; then
-  echo -e "${BLUE}[1/4]${NC} Cleaning build directory..."
-  rm -rf build .xmake
-
-  echo ""
-  echo -e "${BLUE}[2/4]${NC} Initial configuration..."
-  CONFIG_ARGS=("${XMAKE_ARGS[@]}")
-  if [[ -n "$MAIN_FILE" ]]; then
-    CONFIG_ARGS+=("--main=$MAIN_FILE")
-  fi
-  CONFIG_ARGS+=("--compiler=$COMPILER")
-  if ! xmake f -c "${CONFIG_ARGS[@]}"; then
-    echo -e "${RED}✗ XMake clean configuration failed!${NC}"
-    exit 1
-  fi
-
-  echo ""
-  echo -e "${BLUE}[3/4]${NC} Configuring toolchain..."
-  EXTRA_FLAGS=()
-  if [[ -n "$MODE" ]]; then
-    EXTRA_FLAGS+=("-m" "$MODE")
-  fi
-
-  if ! xmake f --toolchain="$TOOLCHAIN" --cc="$CC" --cxx="$CXX" "${EXTRA_FLAGS[@]}" "${CONFIG_ARGS[@]}"; then
-    echo -e "${RED}✗ XMake configuration failed!${NC}"
-    exit 1
-  fi
-
-  echo ""
-  echo -e "${BLUE}[4/4]${NC} Building..."
-	echo -e "${CYAN}Compiler:${NC} $($CXX --version | head -1)"
-  if ! xmake -j$(nproc) "${XMAKE_ARGS[@]}"; then
-    echo -e "${RED}✗ XMake build failed!${NC}"
-    exit 1
-  fi
-else
-  echo -e "${BLUE}Building...${NC}"
-	echo -e "${CYAN}Compiler:${NC} $($CXX --version | head -1)"
-
-  if [[ -n "$MODE" ]]; then
-    if ! xmake f -m "$MODE" --compiler="$COMPILER" "${XMAKE_ARGS[@]}"; then
-      echo -e "${RED}✗ XMake mode configuration failed!${NC}"
-      exit 1
-    fi
-  fi
-
-  if ! xmake -j$(nproc) "${XMAKE_ARGS[@]}"; then
-    echo -e "${RED}✗ XMake build failed!${NC}"
-    exit 1
-  fi
+echo -e "${CYAN}Compiler:${NC} $($CXX --version | head -1)"
+if ! xmake -j$(nproc) "${XMAKE_ARGS[@]}"; then
+  echo -e "${RED}✗ XMake build failed!${NC}"
+  exit 1
 fi
 
 target_name=$(grep -E 'target\("([^"]+\.exe)"' xmake.lua | sed -E 's/target\("([^"]+\.exe)".*/\1/' | head -n1)
