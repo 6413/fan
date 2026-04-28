@@ -20,7 +20,9 @@ module fan.graphics.shapes;
 
 import fan.utility;
 import fan.print;
+#if defined(FAN_GUI)
 import fan.graphics.gui.base;
+#endif
 import fan.graphics.image_load;
 import fan.graphics.culling;
 import fan.random;
