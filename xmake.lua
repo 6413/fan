@@ -228,9 +228,7 @@ local module_files = {
   "fan/noise.ixx",
 	"fan/graphics/gameplay/gameplay_types.ixx",
 	"fan/graphics/gameplay/gameplay.ixx",
-	"fan/graphics/gameplay/items.ixx",
   "fan/crypto.ixx",
-  "fan/graphics/gui/console.ixx"
 }
 
 if has_config("FAN_WAYLAND_SCREEN") then
@@ -245,9 +243,10 @@ if has_config("FAN_FMT") then
   table.insert(module_files, "fan/fmt.ixx")
 end
 
-if has_config("FAN_GUI") then
+if has_config("FAN_GUI") then  
   table.insert(module_files, "fan/graphics/gui/gui_base.ixx")
 	table.insert(module_files, "fan/graphics/gui/gui_input.ixx")
+  table.insert(module_files, "fan/graphics/gameplay/items.ixx")
 	table.insert(module_files, "fan/graphics/gui/gameplay/equipment.ixx")
 	table.insert(module_files, "fan/graphics/gui/gameplay/hotbar.ixx")
 	table.insert(module_files, "fan/graphics/gui/gameplay/inventory.ixx")
@@ -259,6 +258,7 @@ if has_config("FAN_GUI") then
   table.insert(module_files, "fan/graphics/gui/gui.ixx")
 	table.insert(module_files, "fan/graphics/gui/settings_menu.ixx")
 	table.insert(module_files, "fan/graphics/gui/keybinds_menu.ixx")
+  table.insert(module_files, "fan/graphics/gui/console.ixx")
   table.insert(module_files, "fan/graphics/gui/tilemap_editor/loader.ixx")
   table.insert(module_files, "fan/graphics/gui/tilemap_editor/renderer0.ixx")
 end
