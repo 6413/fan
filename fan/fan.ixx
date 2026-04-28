@@ -28,7 +28,6 @@ export import fan.graphics.image_load;
 export import fan.graphics.common_context;
 
 export import fan.graphics.loco;
-export import fan.graphics.gui.settings_menu;
 
 #if defined(FAN_2D)
   export import fan.graphics.shapes.types;
@@ -42,6 +41,7 @@ export import fan.graphics.gui.settings_menu;
   export import fan.graphics.gui.base;
   export import fan.graphics.gui;
   export import fan.graphics.gui.text_logger;
+  export import fan.graphics.gui.settings_menu;
 #endif
 export import fan.texture_pack.tp0;
 
