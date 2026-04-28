@@ -7,6 +7,7 @@ module;
   #include <fan/imgui/imgui.h>
 #endif
 
+#include <cstdint>
 #include <functional>
 #include <cstring>
 #include <unordered_map>

@@ -49,17 +49,17 @@ elseif is_mode("debug") then
 end
 
 
-option("FAN_2D") set_default(true) option_end()
-option("FAN_GUI") set_default(true) option_end()
-option("FAN_PHYSICS_2D") set_default(true) option_end()
-option("FAN_JSON") set_default(true) option_end()
+option("FAN_2D") set_default(false) option_end()
+option("FAN_GUI") set_default(false) option_end()
+option("FAN_PHYSICS_2D") set_default(false) option_end()
+option("FAN_JSON") set_default(false) option_end()
 option("FAN_3D") set_default(false) option_end()
-option("FAN_OPENGL") set_default(true) option_end()
+option("FAN_OPENGL") set_default(false) option_end()
 option("FAN_VULKAN") set_default(false) option_end()
 option("FAN_FMT") set_default(false) option_end()
 option("FAN_WAYLAND_SCREEN") set_default(false) option_end()
 option("FAN_NETWORK") set_default(false) option_end()
-option("FAN_AUDIO") set_default(true) option_end()
+option("FAN_AUDIO") set_default(false) option_end()
 
 option("FAN_USE_STD_MODULE")
     set_default(false)
@@ -354,53 +354,54 @@ if has_config("FAN_GUI") then
     add_linkdirs("third_party/fan/lib")
     add_links("freetype", "lunasvg")
   target_end()
+end
 
-  target("nfd")
-    set_kind("static")
-    add_rules("c++.unity_build", {batchsize = 8})
-    if is_plat("linux") then
-      add_files(
-        "fan/nativefiledialog/nfd_common.c",
-        "fan/nativefiledialog/nfd_gtk.c"
-      )
-    elseif is_plat("windows") then
-      add_files(
-        "fan/nativefiledialog/nfd_common.c",
-        "fan/nativefiledialog/nfd_win.cpp"
-      )
-    end
-    on_load(function (target)
-      if target:is_plat("linux") then
-        import("lib.detect.find_tool")
-        local pkg_config = find_tool("pkg-config")
-        if pkg_config then
-          local cflags = os.iorunv("pkg-config", {"--cflags-only-I", "gtk+-3.0"})
-          if cflags then
-            for _, path in ipairs(cflags:split("%s+")) do
-              if path:startswith("-I") then
-                target:add("includedirs", path:sub(3))
-              end
+target("nfd")
+  set_kind("static")
+  add_rules("c++.unity_build", {batchsize = 8})
+  if is_plat("linux") then
+    add_files(
+      "fan/nativefiledialog/nfd_common.c",
+      "fan/nativefiledialog/nfd_gtk.c"
+    )
+  elseif is_plat("windows") then
+    add_files(
+      "fan/nativefiledialog/nfd_common.c",
+      "fan/nativefiledialog/nfd_win.cpp"
+    )
+  end
+  on_load(function (target)
+    if target:is_plat("linux") then
+      import("lib.detect.find_tool")
+      local pkg_config = find_tool("pkg-config")
+      if pkg_config then
+        local cflags = os.iorunv("pkg-config", {"--cflags-only-I", "gtk+-3.0"})
+        if cflags then
+          for _, path in ipairs(cflags:split("%s+")) do
+            if path:startswith("-I") then
+              target:add("includedirs", path:sub(3))
             end
           end
-          local libs = os.iorunv("pkg-config", {"--libs", "gtk+-3.0"})
-          if libs then
-            for _, lib in ipairs(libs:split("%s+")) do
-              if lib:startswith("-l") then
-                target:add("links", lib:sub(3))
-              end
+        end
+        local libs = os.iorunv("pkg-config", {"--libs", "gtk+-3.0"})
+        if libs then
+          for _, lib in ipairs(libs:split("%s+")) do
+            if lib:startswith("-l") then
+              target:add("links", lib:sub(3))
             end
           end
         end
       end
-    end)
-  target_end()
-end
+    end
+  end)
+target_end()
 
 target("a.exe")
   set_kind("binary")
   if has_config("FAN_GUI") then
-    add_deps("imgui", "nfd")
+    add_deps("imgui")
   end
+  add_deps("nfd")
   add_files(module_files)
   for _, impl in ipairs(impl_files) do
     add_files(impl)

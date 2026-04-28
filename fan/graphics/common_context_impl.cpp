@@ -1,5 +1,7 @@
 module;
 
+#include <fan/utility.h>
+
 #include <vector>
 #include <string>
 #include <source_location>
