@@ -22,8 +22,6 @@ import fan.utility;
 import fan.graphics.common_types;
 import fan.graphics.gui.base;
 
-#if defined(FAN_GUI)
-
 namespace fan {
 
   struct command_internal_t {
@@ -228,8 +226,10 @@ namespace fan {
     std::vector<std::string> possible_choices;
     std::vector<std::string> output_buffer;
 
+#if defined(FAN_GUI)
     TextEditor editor;
     TextEditor input;
+#endif
     frame_cb_t frame_cbs;
   };
 
@@ -245,50 +245,56 @@ namespace fan {
     auto* state = static_cast<console_internal_t*>(internal_state);
     
     auto l = [state](const fan::commands_t::output_t& out) {
-      state->editor.SetReadOnly(false);
-      fan::color color = fan::graphics::highlight_color_table[out.highlight];
-      state->editor.SetCursorPosition(TextEditor::Coordinates(state->editor.GetTotalLines(), 0));
-      state->editor.MoveEnd();
-      state->editor.InsertTextColored(out.text, color);
-      state->editor.SetReadOnly(true);
+      #if defined(FAN_GUI)
+        state->editor.SetReadOnly(false);
+        fan::color color = fan::graphics::highlight_color_table[out.highlight];
+        state->editor.SetCursorPosition(TextEditor::Coordinates(state->editor.GetTotalLines(), 0));
+        state->editor.MoveEnd();
+        state->editor.InsertTextColored(out.text, color);
+        state->editor.SetReadOnly(true);
+      #endif
       state->output_buffer.push_back(out.text);
     };
     commands.output_cb = l;
 
     auto lc = [state](const std::string& text, const fan::color& color) {
-      state->editor.SetReadOnly(false);
-      state->editor.SetCursorPosition(TextEditor::Coordinates(state->editor.GetTotalLines(), 0));
-      state->editor.MoveEnd();
-      state->editor.InsertTextColored(text, color);
-      state->editor.SetReadOnly(true);
+      #if defined(FAN_GUI)
+        state->editor.SetReadOnly(false);
+        state->editor.SetCursorPosition(TextEditor::Coordinates(state->editor.GetTotalLines(), 0));
+        state->editor.MoveEnd();
+        state->editor.InsertTextColored(text, color);
+        state->editor.SetReadOnly(true);
+      #endif
       state->output_buffer.push_back(text);
     };
     commands.output_colored_cb = lc;
 
-    TextEditor::LanguageDefinition lang = TextEditor::LanguageDefinition::CPlusPlus();
-    static const char* ppnames[] = { "NULL" };
-    static const char* ppvalues[] = { "#define NULL ((void*)0)" };
+    #if defined(FAN_GUI)
+      TextEditor::LanguageDefinition lang = TextEditor::LanguageDefinition::CPlusPlus();
+      static const char* ppnames[] = { "NULL" };
+      static const char* ppvalues[] = { "#define NULL ((void*)0)" };
 
-    for (std::size_t i = 0; i < sizeof(ppnames) / sizeof(ppnames[0]); ++i) {
-      TextEditor::Identifier id;
-      id.mDeclaration = ppvalues[i];
-      lang.mPreprocIdentifiers.insert(std::make_pair(std::string(ppnames[i]), id));
-    }
+      for (std::size_t i = 0; i < sizeof(ppnames) / sizeof(ppnames[0]); ++i) {
+        TextEditor::Identifier id;
+        id.mDeclaration = ppvalues[i];
+        lang.mPreprocIdentifiers.insert(std::make_pair(std::string(ppnames[i]), id));
+      }
 
-    state->editor.SetLanguageDefinition(lang);
+      state->editor.SetLanguageDefinition(lang);
 
-    auto palette = state->editor.GetPalette();
-    state->editor.SetPalette(palette);
-    state->editor.SetTabSize(2);
-    state->editor.SetReadOnly(true);
-    state->editor.SetShowWhitespaces(false);
+      auto palette = state->editor.GetPalette();
+      state->editor.SetPalette(palette);
+      state->editor.SetTabSize(2);
+      state->editor.SetReadOnly(true);
+      state->editor.SetShowWhitespaces(false);
 
-    state->input = state->editor;
-    state->input.SetReadOnly(false);
-    palette[(int)TextEditor::PaletteIndex::Background] = TextEditor::GetDarkPalette()[(int)TextEditor::PaletteIndex::Background];
-    state->input.SetPalette(palette);
+      state->input = state->editor;
+      state->input.SetReadOnly(false);
+      palette[(int)TextEditor::PaletteIndex::Background] = TextEditor::GetDarkPalette()[(int)TextEditor::PaletteIndex::Background];
+      state->input.SetPalette(palette);
 
-    state->editor.SetRenderCursor(false);
+      state->editor.SetRenderCursor(false);
+    #endif
   }
 
   void console_t::close() {
@@ -296,6 +302,7 @@ namespace fan {
     state->frame_cbs.Clear();
   }
 
+#if defined(FAN_GUI)
   void console_t::render() {
     auto* state = static_cast<console_internal_t*>(internal_state);
     
@@ -417,6 +424,7 @@ namespace fan {
     ImGui::EndChild();
     fan::graphics::gui::end();
   }
+#endif
 
   void console_t::print(const std::string& msg, int highlight) {
     auto* state = static_cast<console_internal_t*>(internal_state);
@@ -424,7 +432,9 @@ namespace fan {
     out.text = msg;
     out.highlight = highlight;
     commands.output_cb(out);
+  #if defined(FAN_GUI)
     state->input.MoveEnd();
+  #endif
   }
 
   void console_t::println(const std::string& msg, int highlight) {
@@ -434,7 +444,9 @@ namespace fan {
   void console_t::print_colored(const std::string& msg, const fan::color& color) {
     auto* state = static_cast<console_internal_t*>(internal_state);
     commands.output_colored_cb(msg, color);
+  #if defined(FAN_GUI)
     state->input.MoveEnd();
+  #endif
   }
 
   void console_t::println_colored(const std::string& msg, const fan::color& color) {
@@ -457,17 +469,20 @@ namespace fan {
   }
 
   void console_t::force_focus() {
+    #if defined(FAN_GUI)
     auto* state = static_cast<console_internal_t*>(internal_state);
     state->input.InsertText("a");
     state->input.SetText("");
     init_focus = true;
     state->input.IsFocused() = false;
+    #endif
   }
 
   void console_t::clear() {
     auto* state = static_cast<console_internal_t*>(internal_state);
     state->output_buffer.clear();
-    state->editor.SetText("");
+    #if defined(FAN_GUI)
+      state->editor.SetText("");
+    #endif
   }
 }
-#endif

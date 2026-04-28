@@ -53,6 +53,7 @@ struct reflection_t {
     loco.shader_set_value(shader, "shallow_color", shallow_color);
     loco.shader_set_value(shader, "deep_color", deep_color);
     
+  #if defined(FAN_GUI)
     using namespace fan::graphics::gui;
     
     if (show_controls) {
@@ -95,6 +96,7 @@ struct reflection_t {
       color_edit4("Shallow Color", &shallow_color);
       color_edit4("Deep Color", &deep_color);
     }
+  #endif
     
     fan_opengl_call(glActiveTexture(GL_TEXTURE0));
     loco.image_bind(loco.gl->color_buffers[0]);

@@ -578,6 +578,7 @@ export namespace fan {
         using physics::base_shape_t::base_shape_t;
         using movement_callback_handle_t = fan::physics::step_callback_nr_t;
 
+        #if defined(FAN_JSON)
         struct character_config_t {
           std::string json_path;
           f32_t aabb_scale = 1.0f;
@@ -586,6 +587,7 @@ export namespace fan {
           fan::physics::shape_properties_t physics_properties = {.fixed_rotation = true};
         };
         static character2d_t from_json(const character_config_t& config, const std::source_location& callers_path = std::source_location::current());
+        #endif
 
         character2d_t() {}
         template <typename T>
@@ -639,7 +641,9 @@ export namespace fan {
         movement_callback_handle_t add_movement_callback(std::function<void()> fn);
         void enable_default_movement(uint8_t movement = movement_e::side_view);
 
+        #if defined(FAN_JSON)
         void setup_default_animations(const fan::graphics::physics::character2d_t::character_config_t& config);
+        #endif
 
         void process_keyboard_movement(uint8_t movement = movement_e::side_view, f32_t friction = 12.f);
         bool is_on_ground() const;

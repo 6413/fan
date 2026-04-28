@@ -141,6 +141,8 @@ std::uint8_t loco_t::get_renderer() {
   return window.renderer;
 }
 
+#if defined(FAN_OPENGL) || defined(FAN_VULKAN)
+
 fan::graphics::shader_nr_t loco_t::shader_create() {
   return context_functions.shader_create(&context);
 }
@@ -172,11 +174,14 @@ fan::graphics::shader_nr_t loco_t::get_post_process_shader() {
   return gl->m_fbo_final_shader;
 }
 
+#endif
+
+#if defined(FAN_2D)
+
 void loco_t::shader_set_camera(fan::graphics::shader_nr_t nr, camera_t camera_nr) {
   renderer_set(shader_set_camera, nr, camera_nr);
 }
 
-#if defined(FAN_2D)
 fan::graphics::shader_nr_t loco_t::shader_get_nr(uint16_t shape_type) {
   return fan::graphics::g_shapes->shaper.GetShader(shape_type);
 }
@@ -222,7 +227,9 @@ void loco_t::shader_recompile_all() {
     if (!shader_compile(nr))
       fan::print_warning("failed to recompile shader. vertex shader:" + std::string(sd.path_vertex) + ", fragment shader:" + std::string(sd.path_fragment));
   });
+  #if defined(FAN_GUI)
   set_post_process("bloom_strength", gui.settings_menu->config.post_processing.bloom_strength);
+  #endif
 }
 
 f32_t* loco_t::get_bloom_filter_radius_ptr() {
@@ -256,7 +263,7 @@ fan::vec3* loco_t::get_bloom_tint_ptr() {
 
 #endif
 
-#if defined(LOCO_FRAMEBUFFER)
+#if defined(LOCO_FRAMEBUFFER) && (defined(FAN_OPENGL) || defined(FAN_VULKAN))
 
 void* loco_t::get_framebuffer() {
   return reinterpret_cast<void*>(&gl->m_framebuffer);
@@ -1089,10 +1096,16 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   loco_load_settings_into_open_props(this);
   loco_open_window(this);
   loco_init_renderer_post_window(this);
+  #if defined(FAN_OPENGL) || defined(FAN_VULKAN)
   load_engine_images();
+  #endif
   loco_init_shapes_system(this);
+  #if defined(FAN_OPENGL) || defined(FAN_VULKAN)
   loco_init_render_views(this);
+  #endif
+#if defined(FAN_2D)
   renderer_call(shaders_compile); 
+#endif
   renderer_call(init);
 #if defined(FAN_2D)
   renderer_call(shapes_open);
@@ -1102,13 +1115,17 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   generate_commands(this);
 #endif
   input.init(window);
+  #if defined(FAN_AUDIO)
   audio.init();
+  #endif
   fan::graphics::ctx().default_texture = default_texture;
 #if defined(FAN_GUI)
   gui.console.commands.call("debug_memory " + std::to_string((int)fan::memory::heap_profiler_t::instance().enabled));
 #endif
   loco_init_culling(this);
+  #if defined(FAN_OPENGL) || defined(FAN_VULKAN)
   set_vsync(false);
+  #endif
 #if defined(FAN_GUI)
   gui.settings_menu->init_runtime();
 #endif
@@ -1163,7 +1180,9 @@ void loco_t::destroy() {
   destroy_gui();
 #endif
   window.close();
+  #if defined(FAN_AUDIO)
   audio.destroy();
+  #endif
 }
 
 void loco_t::close() {
@@ -1368,8 +1387,10 @@ void loco_t::switch_renderer(uint8_t renderer) {
     fan::graphics::g_shapes->shaper._BlockListCapacityChange(fan::graphics::shapes::shape_type_t::rectangle, 0, 1);
     fan::graphics::g_shapes->shaper._BlockListCapacityChange(fan::graphics::shapes::shape_type_t::sprite, 0, 1);
   #endif
+    #if defined(FAN_AUDIO)
     audio.destroy();
     audio.init();
+    #endif
   }
   renderer_state.reload_renderer_to = -1;
 }
@@ -1702,7 +1723,7 @@ void loco_t::process_render() {
   fan::graphics::gui::end();
 #endif
 
-#if defined(FAN_OPENGL)
+#if defined(FAN_OPENGL) && defined(FAN_2D)
   if (window.renderer == fan::window_t::renderer_t::opengl) {
     run_culling();
   }
@@ -1718,7 +1739,9 @@ void loco_t::process_render() {
   }
 #endif
 
+  #if defined(FAN_OPENGL) || defined(FAN_VULKAN)
   viewport_set(0, window.get_size());
+  #endif
 
   if (get_render_shapes_top() == false) {
     process_shapes();
@@ -1844,12 +1867,14 @@ renderer_state.lighting.update(get_delta_time());
     fan::physics::debug_draw_cb()(!fan::physics::is_debug_draw_enabled(), &fan::graphics::get_orthographic_render_view());
   }
 #endif
+  #if defined(FAN_2D)
   if (input.input_action.is_toggled(fan::actions::toggle_debug_light_buffer)) {
     debug_draw_light_buffer();
   }
   if (input.input_action.is_clicked(fan::actions::recompile_shaders)) {
     shader_recompile_all();
   }
+  #endif
 
   {
     auto it = m_update_callback.GetNodeFirst();
@@ -1859,7 +1884,9 @@ renderer_state.lighting.update(get_delta_time());
       it = m_update_callback.EndSafeNext();
     }
 
+  #if defined(FAN_2D)
     shapes.update_children();
+  #endif
   }
 
   cb();
@@ -2136,6 +2163,7 @@ void loco_t::set_window_icon(const fan::graphics::image_t& image) {
   window.set_icon(info);
 }
 
+#if defined(FAN_2D)
 void loco_t::debug_draw_light_buffer() {
   fan::vec2 window_size = window.get_size();
   fan::vec2 cam_pos = camera_get_position();
@@ -2157,6 +2185,7 @@ void loco_t::debug_draw_light_buffer() {
     add_shape_to_immediate_draw(fan::graphics::shape_t(p, false));
   }
 }
+#endif
 
 #if defined(FAN_PHYSICS_2D)
 void loco_t::update_physics(bool flag) {
@@ -2520,9 +2549,11 @@ void loco_t::cuda_textures_t::graphics_resource_t::unmap() {
 }
 #endif
 
+#if defined(FAN_OPENGL) || defined(FAN_VULKAN)
 fan::graphics::image_t loco_t::get_color_buffer(int idx) {
   return gl->color_buffers[idx];
 }
+#endif
 
 #if defined(FAN_2D)
 

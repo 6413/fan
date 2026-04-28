@@ -53,9 +53,13 @@ import fan.noise;
   import fan.graphics.vulkan.core;
 #endif
 
-#if defined(FAN_GUI)
-  import fan.console;
+#if defined(FAN_2D)
   import fan.graphics.shapes.types;
+#endif
+
+import fan.console;
+
+#if defined(FAN_GUI)
   import fan.graphics.gui.base;
   import fan.graphics.gui.text_logger;
   import fan.graphics.gui.settings_menu;
@@ -220,12 +224,14 @@ public:
     }
   #endif
   }
+  #if defined(FAN_2D)
   void shader_set_camera(shader_t nr, camera_t camera_nr);
   fan::graphics::shader_nr_t shader_get_nr(uint16_t shape_type);
   fan::graphics::shader_list_t::nd_t& shader_get_data(uint16_t shape_type);
   fan::graphics::shader_list_t::nd_t& shader_get_data(fan::graphics::shader_t shader);
   void shader_set_paths(fan::graphics::shader_t shader, std::string_view vertex, std::string_view fragment);
   void shader_recompile_all();
+  #endif
 
   f32_t* get_bloom_filter_radius_ptr();
   f32_t* get_bloom_threshold_ptr();
@@ -517,9 +523,9 @@ public:
   FORWARD_CB_TO_WINDOW_NOARG(mouse_move, mouse_move_handle_t, mouse_move_cb_t);
   FORWARD_CB_TO_WINDOW_NOARG(resize, resize_handle_t, resize_cb_t);
 
+#if defined(FAN_2D)
   void debug_draw_light_buffer();
 
-#if defined(FAN_2D)
   // clears shapes after drawing, good for debug draw, not best for performance
   std::vector<fan::graphics::shapes::shape_t> immediate_render_list;
   std::unordered_map<std::uint32_t, fan::graphics::shapes::shape_t> static_render_list;
@@ -635,11 +641,13 @@ public:
   bool&  get_vsync()       { return timing.vsync; }
   f64_t& get_delta_time()  { return window.m_delta_time; }
 
-#if defined(FAN_GUI)
   struct gui_state_t {
+#if defined(FAN_GUI)
     fan::graphics::gui::settings_menu_t* settings_menu = nullptr;
     std::future<void> font_future;
+#endif
     fan::console_t console;
+  #if defined(FAN_GUI)
     fan::time::timer fps_timer;
     uint32_t frame_count = 0;
     uint32_t last_fps = 0;
@@ -656,21 +664,25 @@ public:
     time_monitor_t gui_monitor;
     time_plot_scroll_t time_plot_scroll;
     bool enable_overlay = true;
+  #endif
   } gui;
 
+#if defined(FAN_GUI)
   fan::graphics::gui::settings_menu_t*& get_settings_menu()       { return gui.settings_menu; }
   bool&                                 get_render_settings_menu() { return gui.render_settings_menu; }
   bool&                                 get_show_fps()             { return gui.show_fps; }
   bool&                                 get_allow_docking()        { return gui.allow_docking; }
   bool&                                 get_enable_overlay()       { return gui.enable_overlay; }
-  fan::console_t&                       get_console()              { return gui.console; }
 #endif
+  fan::console_t&                       get_console()              { return gui.console; }
 
   // input
   fan::graphics::input_subsystem_t input;
   fan::window::input_action_t& get_input_action() { return input.input_action; }
 
+#if defined(FAN_AUDIO)
   fan::graphics::audio_subsystem_t audio;
+#endif
 
   #if defined(FAN_PHYSICS_2D)
     fan::graphics::physics_subsystem_t physics;

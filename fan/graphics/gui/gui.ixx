@@ -298,7 +298,9 @@ export namespace fan::graphics::gui {
     void render_settings();
     void render();
 
+    #if defined(FAN_JSON)
     void fout(std::string_view filename);
+    #endif
 
   private:
     fan::graphics::shape_t particle_shape = fan::graphics::shapes::particles_t::properties_t{

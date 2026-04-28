@@ -168,6 +168,7 @@ namespace fan::graphics::gui {
       return changed;
     }
 
+    #if defined(FAN_AUDIO)
     bool audio_button_impl(const char* label, fan::audio::piece_t piece_hover, fan::audio::piece_t piece_click, const fan::vec2& size) {
       ImGui::PushID(label);
       ImGuiStorage* storage = ImGui::GetStateStorage();
@@ -190,6 +191,7 @@ namespace fan::graphics::gui {
       ImGui::PopID();
       return pressed;
     }
+    #endif
 
     void text_outlined_at_impl(const char* text, const char* text_end, const fan::vec2& screen_pos, const fan::color& color, const fan::color& outline_color) {
       constexpr f32_t outline_thickness = 1.5f;
