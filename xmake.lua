@@ -73,7 +73,9 @@ end
 
 option("main") set_default("examples/engine_demos/engine_demo.cpp") option_end()
 
-add_defines("FAN_OPENGL")
+if has_config("FAN_OPENGL") then
+  add_defines("FAN_OPENGL")
+end
 if has_config("FAN_2D") then
   add_defines("FAN_2D")
 end
