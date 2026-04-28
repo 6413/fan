@@ -6,6 +6,7 @@ module;
 
 #include <functional>
 #include <utility>
+#include <cmath>
 
 export module fan.physics.types;
 
