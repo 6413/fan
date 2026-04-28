@@ -182,7 +182,8 @@ export namespace fan::event {
   }
 
   void sleep(unsigned int msec);
-  void loop(fan::event::loop_t loop = fan::event::get_loop(), bool once = false);
+  void loop(fan::event::loop_t l = fan::event::get_loop(), bool once = false);
+  void run_once(fan::event::loop_t l = fan::event::get_loop());
   uint64_t now();
   std::string strerror(int err);
 
@@ -270,19 +271,19 @@ export namespace fan {
 }
 
 export namespace fan::io::file {
-  inline fan::event::task_value_resume_t<int> async_open(const std::string& path, int flags = fan::fs_in, int mode = fan::perm_0644) {
+  inline fan::event::runv_t<int> async_open(const std::string& path, int flags = fan::fs_in, int mode = fan::perm_0644) {
     fan::event::uv_fs_open_awaitable req(path, flags, mode);
     co_await req;
     co_return req.result();
   }
 
-  inline fan::event::task_value_resume_t<intptr_t> async_read(int file, char* buffer, size_t buffer_size, int64_t offset) {
+  inline fan::event::runv_t<intptr_t> async_read(int file, char* buffer, size_t buffer_size, int64_t offset) {
     fan::event::uv_fs_read_awaitable req(file, buffer, buffer_size, offset);
     co_await req;
     co_return req.result();
   }
 
-  inline fan::event::task_value_resume_t<intptr_t> async_write(int fd, const char* buffer, size_t length, int64_t offset) {
+  inline fan::event::runv_t<intptr_t> async_write(int fd, const char* buffer, size_t length, int64_t offset) {
     fan::event::uv_fs_write_awaitable req(fd, buffer, length, offset);
     co_await req;
     co_return req.result();
@@ -293,19 +294,19 @@ export namespace fan::io::file {
     co_await req;
   }
 
-  inline fan::event::task_value_resume_t<intptr_t> async_size(int file) {
+  inline fan::event::runv_t<intptr_t> async_size(int file) {
     fan::event::uv_fs_size_awaitable req(file);
     co_await req;
     co_return req.result();
   }
 
-  inline fan::event::task_value_resume_t<intptr_t> async_size(const std::string& path) {
+  inline fan::event::runv_t<intptr_t> async_size(const std::string& path) {
     fan::event::uv_fs_size_awaitable req(path);
     co_await req;
     co_return req.result();
   }
 
-  fan::event::task_value_resume_t<intptr_t> async_read(int file, std::string* buffer, int64_t offset, std::size_t buffer_size = 4096);
+  fan::event::runv_t<intptr_t> async_read(int file, std::string* buffer, int64_t offset, std::size_t buffer_size = 4096);
   
   template <typename lambda_t>
   fan::event::task_t async_read_cb(const std::string& path, lambda_t&& lambda, int buffer_size = 64) {
@@ -328,7 +329,7 @@ export namespace fan::io::file {
     co_await fan::io::file::async_close(fd);
   }
 
-  fan::event::task_value_resume_t<std::string> async_read(const std::string& path, int buffer_size = 4096);
+  fan::event::runv_t<std::string> async_read(const std::string& path, int buffer_size = 4096);
   fan::event::task_t async_write(const std::string& path, const std::string& data);
 
   struct async_read_t {
@@ -337,9 +338,9 @@ export namespace fan::io::file {
     intptr_t offset = 0;
     intptr_t size = 0;
 
-    fan::event::task_resume_t open(const std::string& file_path);
-    fan::event::task_resume_t close();
-    fan::event::task_value_resume_t<std::string> read();
+    fan::event::run_t open(const std::string& file_path);
+    fan::event::run_t close();
+    fan::event::runv_t<std::string> read();
   };
 
   struct async_write_t {
@@ -347,14 +348,14 @@ export namespace fan::io::file {
     int fd = -1;
     intptr_t offset = 0;
 
-    fan::event::task_resume_t open(const std::string& file_path) {
+    fan::event::run_t open(const std::string& file_path) {
       path = file_path;
       fd = co_await fan::io::file::async_open(path, fan::fs_out);
     }
-    fan::event::task_resume_t close() const {
+    fan::event::run_t close() const {
       co_await fan::io::file::async_close(fd);
     }
-    fan::event::task_value_resume_t<intptr_t> write(const std::string& data, std::size_t buffer_size = 4096) {
+    fan::event::runv_t<intptr_t> write(const std::string& data, std::size_t buffer_size = 4096) {
       intptr_t result = co_await fan::io::file::async_write(fd, data.data() + offset, std::min(data.size() - offset, buffer_size), offset);
       if (result > 0) offset += result;
       co_return result;

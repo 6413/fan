@@ -43,7 +43,7 @@ struct midi_player {
 static constexpr const char* key_names[] = { "Cb", "Gb", "Db", "Ab", "Eb", "Bb", "F", "C", "G", "D", "A", "E", "B", "F#", "C#" };
 static constexpr const char* scales[] = {"Major", "Minor"};
 
-fan::event::task_value_resume_t<midi_player> create_midi_player(
+fan::event::runv_t<midi_player> create_midi_player(
   const std::string& path,
   midi_player::on_midi_event_cb_t midi_callback,
   midi_player::on_meta_event_cb_t meta_callback = nullptr,
@@ -68,7 +68,7 @@ fan::event::task_value_resume_t<midi_player> create_midi_player(
   co_return player;
 }
 
-fan::event::task_value_resume_t<bool> fill_buffer(midi_player& player) {
+fan::event::runv_t<bool> fill_buffer(midi_player& player) {
   // If we've reached EOF, return false
   if (player.eof_reached) {
     co_return false;
@@ -117,7 +117,7 @@ fan::event::task_value_resume_t<bool> fill_buffer(midi_player& player) {
   co_return true;
 }
 
-fan::event::task_value_resume_t<bool> process_midi_events(midi_player& player) {
+fan::event::runv_t<bool> process_midi_events(midi_player& player) {
   bool ret = false;
 
   // First ensure we have data to process
