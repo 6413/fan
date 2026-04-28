@@ -960,6 +960,7 @@ export namespace fan::graphics::gui {
   template<typename T>
   bool drag(str_view_t label, T* v, f32_t v_speed = 0.1f, f32_t v_min = 0, f32_t v_max = 0, slider_flags_t flags = 0) {
     if constexpr (get_component_count<T>() == 1) {
+      if (std::is_integral<T>::value) { v_speed = std::max(v_speed, 1.f); }
       T min_val;
       T max_val;
 
@@ -991,9 +992,11 @@ export namespace fan::graphics::gui {
     else {
       using component_type = component_type_t<T>;
 
+      if (std::is_integral<component_type>::value) { v_speed = std::max(v_speed, 1.f); }
       component_type speed_val = static_cast<component_type>(v_speed);
       component_type min_val;
       component_type max_val;
+
 
       if constexpr (std::is_floating_point_v<component_type>) {
         min_val = static_cast<component_type>(v_min);

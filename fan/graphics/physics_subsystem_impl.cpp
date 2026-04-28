@@ -6,6 +6,8 @@ module;
 
 module fan.graphics.physics_subsystem;
 
+#if defined(FAN_PHYSICS_2D)
+
 namespace fan::graphics {
   void physics_subsystem_t::init() {
   }
@@ -14,10 +16,8 @@ namespace fan::graphics {
   }
 
   void physics_subsystem_t::update(f32_t dt) {
-#if defined(FAN_PHYSICS_2D)
     if (!is_updating) { return; }
     context.step(dt);
-#endif
   }
 
   void physics_subsystem_t::draw() {
@@ -28,8 +28,7 @@ namespace fan::graphics {
   }
 
   void physics_subsystem_t::set_enabled(bool flag) {
-#if defined(FAN_PHYSICS_2D)
     is_updating = flag;
-#endif
   }
 }
+#endif

@@ -45,11 +45,8 @@ import fan.io.file;
 
 #define shape_get_vi(shape) (*(fan::graphics::shapes::shape##_t::vi_t*)GetRenderData(fan::graphics::g_shapes->shaper))
 #define shape_get_ri(shape) (*(fan::graphics::shapes::shape##_t::ri_t*)GetData(fan::graphics::g_shapes->shaper))
-
-#endif
-
-#include "shapes.h"
-#include <fan/graphics/shape_functions.h>
+  #include "shapes.h"
+  #include <fan/graphics/shape_functions.h>
 
 template<typename T>
 struct shape_pool_t {
@@ -3610,6 +3607,7 @@ namespace fan::graphics {
 }
 #endif
 
+#if defined(FAN_JSON)
 static void write_sprite_fields(std::vector<uint8_t>& out, fan::graphics::shapes::shape_t& shape) {
   fan::write_to_vector(out, shape.get_position());
   fan::write_to_vector(out, shape.get_parallax_factor());
@@ -3653,8 +3651,10 @@ static auto read_sprite_fields(const std::vector<uint8_t>& in, uint64_t& offset,
   p.tc_size           = fan::vector_read_data<decltype(p.tc_size)>(in, offset);
   return std::make_pair(p, image_path);
 }
+#endif
 
 namespace fan::graphics {
+  #if defined(FAN_JSON)
   bool shape_to_bin(fan::graphics::shapes::shape_t& shape, std::vector<uint8_t>* data) {
     std::vector<uint8_t>& out = *data;
     fan::write_to_vector(out, shape.get_shape_type());
@@ -3946,6 +3946,7 @@ namespace fan::graphics {
     fan::io::file::read(fan::io::file::find_relative_path(path, callers_path), &json_bytes);
     return fan::json::parse(json_bytes);
   }
+  #endif
 
   void sprite_sheet_controller_t::add_state(const animation_state_t& state) {
     states.emplace_back(state);
@@ -4271,5 +4272,6 @@ void fan::graphics::shapes::visibility_remove(shape_nr_t id) {
   fan::graphics::shapes::shape_t& fan::graphics::shapes::shape_t::operator=(const std::string& json_string) {
     return fan::graphics::shapes::shape_t::operator=(fan::json::parse(json_string));
   }
+#endif
 #endif
 #endif

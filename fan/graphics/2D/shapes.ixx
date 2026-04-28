@@ -2,6 +2,8 @@ module;
 
 #include <fan/utility.h>
 
+#if defined(FAN_2D)
+
 #include <span> 
 #include <source_location>
 #include <cstdlib>
@@ -11,9 +13,14 @@ module;
 #include <memory>
 #include <cstring>
 
+#endif
+
 #include <fan/graphics/opengl/init.h>
 
+
 export module fan.graphics.shapes;
+
+#if defined(FAN_2D)
 
 import fan.types;
 import fan.types.color;
@@ -27,7 +34,6 @@ import fan.print.error;
 
 import fan.graphics.shapes.types;
 
-import fan.graphics.opengl.core;
 import fan.texture_pack.tp0;
 import fan.graphics.common_context;
 import fan.window;
@@ -38,6 +44,7 @@ import fan.physics.collision.circle;
 import fan.math;
 
 import fan.types.fstring;
+#endif
 
 #if defined(FAN_JSON)
   import fan.types.json;
@@ -119,8 +126,10 @@ export namespace fan::graphics {
     };
   };
 
+  #if defined(FAN_OPENGL) || defined(FAN_VULKAN)
   // warning does deep copy, addresses can die
   fan::graphics::context_shader_t shader_get(fan::graphics::shader_nr_t nr);
+  #endif
 
 #if defined(FAN_2D)
 
@@ -1732,10 +1741,14 @@ export namespace fan::graphics {
   bool json_to_shape(const fan::json& in, fan::graphics::shapes::shape_t* shape, const std::source_location& callers_path = std::source_location::current());
   bool shape_serialize(fan::graphics::shapes::shape_t& shape, fan::json* out);
 }
+#endif
+
 
 export namespace fan::graphics {
+  #if defined(FAN_JSON)
   fan::graphics::shapes::shape_t extract_single_shape(const fan::json& json_data, const std::source_location& callers_path = std::source_location::current());
   fan::json read_json(std::string_view path, const std::source_location& callers_path = std::source_location::current());
+  #endif
   struct sprite_sheet_map_t {
     fan::graphics::sprite_sheet_id_t nr;
   };
@@ -1836,7 +1849,5 @@ export namespace fan::graphics {
   using shape_type_t = fan::graphics::shapes::shape_type_t;
 #endif
 } // namespace fan::graphics
-
-#endif
 
 #endif

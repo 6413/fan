@@ -166,7 +166,9 @@ export namespace fan::graphics {
     using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
 
+  #if defined (FAN_JSON)
     sprite_t(const fan::json&) = delete;
+  #endif
 
     sprite_t() = default;
     sprite_t(sprite_properties_t p);
@@ -1050,6 +1052,7 @@ export namespace fan::graphics {
     struct particle_pool_t {
       template<size_t N>
       struct pool_t {
+      #if defined (FAN_JSON)
         void from_json(
           const std::string& path,
           const std::source_location& callers_path = std::source_location::current()
@@ -1059,6 +1062,7 @@ export namespace fan::graphics {
           base.set_dynamic();
           std::fill(std::begin(particles), std::end(particles), base);
         }
+      #endif
 
         void spawn_at(const fan::vec3& position) {
           particles[current_index].start_particles();

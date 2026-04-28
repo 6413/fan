@@ -1,12 +1,16 @@
 module;
+#if defined(FAN_2D)
 #include <fan/utility.h>
 #include <cstdint>
 #include <cstring>
 #include <source_location>
 #include <string>
 #include <vector>
+#endif
 
 module fan.graphics.shapes.types;
+
+#if defined(FAN_2D)
 
 //import fan.utility;
 import fan.print.error;
@@ -14,7 +18,6 @@ import fan.memory;
 import fan.graphics.shapes; // TODO remove: only for fan::graphics::image_to_json
 
 namespace fan::graphics {
-#if defined(FAN_2D)
   std::uint8_t* A_resize(void* ptr, std::uintptr_t size) {
     if (ptr) {
       if (size) {
@@ -42,7 +45,6 @@ namespace fan::graphics {
       }
     }
   }
-#endif
 
   sprite_sheet_t::sprite_sheet_t(const std::string& name, int fps, const std::vector<fan::graphics::image_t>& frame_images) {
     this->name = name;
@@ -106,3 +108,4 @@ namespace fan::graphics {
     return id != other.id;
   }
 }
+#endif

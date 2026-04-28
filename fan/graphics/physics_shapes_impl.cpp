@@ -1180,6 +1180,7 @@ namespace fan::graphics::physics {
     return json_cache;
   }
 
+  #if defined(FAN_JSON)
   fan::graphics::physics::character2d_t fan::graphics::physics::character2d_t::from_json(
     const fan::graphics::physics::character2d_t::character_config_t& config,
     const std::source_location& callers_path
@@ -1219,6 +1220,7 @@ namespace fan::graphics::physics {
     character.set_physics_position(cache.original_pos);
     return character;
   }
+  #endif
 
   //character2d_t::character2d_t(const character2d_t& o)
   //  : base_shape_t(o),
@@ -1364,6 +1366,7 @@ namespace fan::graphics::physics {
       process_keyboard_movement(movement);
     });
   }
+  #if defined(FAN_JSON)
   void character2d_t::setup_default_animations(const fan::graphics::physics::character2d_t::character_config_t& config) {
     auto anims = get_sprite_sheets();
     struct anim_t {
@@ -1480,6 +1483,7 @@ namespace fan::graphics::physics {
 
     anim_controller.auto_update_animations = true;
   }
+  #endif
   void character2d_t::process_keyboard_movement(uint8_t movement, f32_t friction) {
     movement_state.is_wall_sliding = false;
     fan::vec2 velocity = get_linear_velocity();

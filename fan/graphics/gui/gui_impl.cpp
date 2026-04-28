@@ -1548,6 +1548,7 @@ namespace fan::graphics::gui {
   }
 
   void particle_editor_t::render_menu() {
+    #if defined(FAN_JSON)
     if (begin_main_menu_bar()) {
       if (begin_menu("File")) {
         if (menu_item("Open..", "Ctrl+O")) {
@@ -1567,6 +1568,7 @@ namespace fan::graphics::gui {
       }
       end_main_menu_bar();
     }
+    #endif
   }
 
   void particle_editor_t::render_settings() {
@@ -1576,9 +1578,11 @@ namespace fan::graphics::gui {
     particle_shape.set_image(particle_image_sprite.get_image());
     shape_properties(particle_shape);
 
+    #if defined(FAN_JSON)
     if (fan::window::is_key_clicked(fan::key_s) && fan::window::is_key_down(fan::key_left_control)) {
       fout(filename);
     }
+    #endif
   }
 
   void particle_editor_t::render() {
@@ -1586,6 +1590,7 @@ namespace fan::graphics::gui {
     render_settings();
   }
 
+  #if defined(FAN_JSON)
   void particle_editor_t::fout(std::string_view f) {
     filename = f;
     fan::json json_data;
@@ -1602,6 +1607,7 @@ namespace fan::graphics::gui {
     fan::graphics::gui::print_success("File saved to " + std::filesystem::absolute(filename).generic_string());
     fan::io::file::write(filename, json_data.dump(2), std::ios_base::binary);
   }
+#endif
 
   void particle_editor_t::set_particle_shape(fan::graphics::shape_t&& shape) {
     particle_shape = std::move(shape);

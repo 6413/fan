@@ -570,7 +570,9 @@ namespace fan::graphics::gui {
     gloco()->set_target_fps(config.display.target_fps);
     gloco()->set_vsync(config.performance.vsync);
     gloco()->gui.show_fps = config.performance.show_fps;
+  #if defined(FAN_AUDIO)
     fan::audio::set_volume(config.audio.volume);
+  #endif
   }
 
   void settings_menu_t::mark_dirty() {

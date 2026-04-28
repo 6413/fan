@@ -1,8 +1,6 @@
 module;
 
-#if defined(FAN_GUI)
-  #include <fan/utility.h>
-#endif
+#include <fan/utility.h>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -10,7 +8,6 @@ module;
 
 export module fan.console;
 
-#if defined(FAN_GUI)
 import fan.types.color;
 import fan.types.fstring;
 import fan.formatter;
@@ -87,7 +84,9 @@ export namespace fan {
 
     void open();
     void close();
+    #if defined(FAN_GUI)
     void render();
+    #endif
     void print(const std::string& msg, int highlight);
     void println(const std::string& msg, int highlight);
     void print_colored(const std::string& msg, const fan::color& color);
@@ -121,4 +120,3 @@ export namespace fan {
     void clear();
   };
 }
-#endif
