@@ -24,7 +24,6 @@ module;
 #include <cmath>
 #include <initializer_list>
 #include <algorithm>
-#include <cmath>
 
 export module fan.types.vector;
 
