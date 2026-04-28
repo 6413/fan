@@ -2,8 +2,10 @@ module;
 
 #if defined(FAN_PHYSICS_2D)
   #include <box2d/box2d.h>
-  #include <functional>
 #endif
+
+#include <functional>
+#include <utility>
 
 export module fan.physics.types;
 
@@ -135,7 +137,6 @@ export namespace fan::physics {
   };
 
   using body_type = b2BodyType;
-#endif
 
   // TODO think some other way to make this, not multi engine safe
   auto& debug_draw_cb() {
@@ -150,4 +151,5 @@ export namespace fan::physics {
     static bool enabled = false;
     return enabled;
   }
+  #endif
 }
