@@ -9,6 +9,7 @@ module;
 #include <algorithm>
 #include <expected>
 #include <unordered_map>
+#include <atomic>
 
 #define DEBUG_PRINTS 0
 
@@ -19,6 +20,8 @@ module;
 #endif
 
 module fan.process;
+
+import fan.print.error;
 
 namespace fan::process {
   struct spawn_state_t {
