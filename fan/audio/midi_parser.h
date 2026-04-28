@@ -463,7 +463,7 @@ struct track_event {
   std::vector<uint8_t> meta_data;
 };
 
-fan::event::task_value_resume_t<midi_file_data> parse_midi(const std::string& path) {
+fan::event::runv_t<midi_file_data> parse_midi(const std::string& path) {
   // Result structure
   midi_file_data result;
 

@@ -1350,12 +1350,12 @@ export namespace fan {
       udp_recvfrom_t recvfrom() {
         return udp_recvfrom_t{ *this };
       }
-      fan::event::task_value_resume_t<udp_datagram_t> recvfrom(const std::string& ip, int port) {
+      fan::event::runv_t<udp_datagram_t> recvfrom(const std::string& ip, int port) {
         auto recvfrom = udp_recvfrom_t{ *this };
         recvfrom.set_expected_sender(ip, port);
         co_return co_await recvfrom;
       }
-      fan::event::task_value_resume_t<udp_datagram_t> recvfrom(const socket_address_t& addr) {
+      fan::event::runv_t<udp_datagram_t> recvfrom(const socket_address_t& addr) {
         auto recvfrom = udp_recvfrom_t{ *this };
         recvfrom.set_expected_sender(addr);
         co_return co_await recvfrom;
@@ -2108,7 +2108,7 @@ export namespace fan {
           add_route(method_t::delete_, pattern, std::forward<Handler>(handler));
         }
 
-        fan::event::task_value_resume_t<response_t> handle(const request_t& req) {
+        fan::event::runv_t<response_t> handle(const request_t& req) {
           for (const auto& route : routes) {
             request_t modified_req = req;
             if (route.matches(req.method, req.path, modified_req.params)) {
@@ -2603,12 +2603,12 @@ export namespace fan {
         async_context_t::instance().add_request(shared_from_this());
       }
 
-      fan::event::task_value_resume_t<std::expected<response_t, std::string>>
+      fan::event::runv_t<std::expected<response_t, std::string>>
         get(const std::string& url, const config_t& cfg = {}) {
         co_return co_await *std::make_shared<async_request_t>(url, cfg);
       }
 
-      fan::event::task_value_resume_t<std::expected<response_t, std::string>>
+      fan::event::runv_t<std::expected<response_t, std::string>>
         post(const std::string& url,
           const std::string& body,
           const std::unordered_map<std::string, std::string>& headers = {},
@@ -2632,24 +2632,24 @@ export namespace fan {
         client_t(const std::string& url, const config_t& cfg = {})
           : base_url(url), config(cfg) {}
 
-        fan::event::task_value_resume_t<std::expected<response_t, std::string>>
+        fan::event::runv_t<std::expected<response_t, std::string>>
           get(const std::string& path) {
           co_return co_await http::get(base_url + path, config);
         }
 
-        fan::event::task_value_resume_t<std::expected<response_t, std::string>>
+        fan::event::runv_t<std::expected<response_t, std::string>>
           post(const std::string& path, const fan::json& body) {
           co_return co_await http::post(base_url + path, body.dump(),
             {{"Content-Type", "application/json"}}, config);
         }
 
-        fan::event::task_value_resume_t<std::expected<response_t, std::string>>
+        fan::event::runv_t<std::expected<response_t, std::string>>
           post(const std::string& path, const std::string& body,
             const std::unordered_map<std::string, std::string>& headers = {}) {
           co_return co_await http::post(base_url + path, body, headers, config);
         }
 
-        fan::event::task_value_resume_t<std::expected<response_t, std::string>>
+        fan::event::runv_t<std::expected<response_t, std::string>>
           put(const std::string& path, const fan::json& body) {
           auto req = std::make_shared<async_request_t>(base_url + path, config);
           req->headers_map = {{"Content-Type", "application/json"}};
@@ -2660,7 +2660,7 @@ export namespace fan {
           co_return co_await *req;
         }
 
-        fan::event::task_value_resume_t<std::expected<response_t, std::string>>
+        fan::event::runv_t<std::expected<response_t, std::string>>
           delete_(const std::string& path) {
           auto req = std::make_shared<async_request_t>(base_url + path, config);
           curl_easy_setopt(req->easy_handle, CURLOPT_CUSTOMREQUEST, "DELETE");

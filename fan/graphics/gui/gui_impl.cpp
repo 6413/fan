@@ -1712,7 +1712,7 @@ namespace fan::graphics::gui {
     this->indent = indent;
   }
 
-  fan::event::task_value_resume_t<dialogue_box_t::drawable_nr_t> dialogue_box_t::text_delayed(
+  fan::event::runv_t<dialogue_box_t::drawable_nr_t> dialogue_box_t::text_delayed(
     std::string_view character_name,
     std::string_view text,
     int characters_per_second) {
@@ -1730,7 +1730,7 @@ namespace fan::graphics::gui {
     co_return node_id;
   }
 
-  fan::event::task_value_resume_t<dialogue_box_t::drawable_nr_t> dialogue_box_t::text(const std::string& text) {
+  fan::event::runv_t<dialogue_box_t::drawable_nr_t> dialogue_box_t::text(const std::string& text) {
     auto node_id = next_id++;
 
     auto text_drawable = std::make_unique<text_t>();
@@ -1740,7 +1740,7 @@ namespace fan::graphics::gui {
     co_return node_id;
   }
 
-  fan::event::task_value_resume_t<dialogue_box_t::drawable_nr_t> dialogue_box_t::button(const std::string& text, const fan::vec2& position, const fan::vec2& size) {
+  fan::event::runv_t<dialogue_box_t::drawable_nr_t> dialogue_box_t::button(const std::string& text, const fan::vec2& position, const fan::vec2& size) {
     auto node_id = next_id++;
 
     auto btn = std::make_unique<button_t>();
@@ -1754,7 +1754,7 @@ namespace fan::graphics::gui {
   }
 
   // default width 80% of the window
-  fan::event::task_value_resume_t<dialogue_box_t::drawable_nr_t> dialogue_box_t::separator(f32_t width) {
+  fan::event::runv_t<dialogue_box_t::drawable_nr_t> dialogue_box_t::separator(f32_t width) {
     auto node_id = next_id++;
 
     auto sep = std::make_unique<separator_t>();
@@ -1827,7 +1827,7 @@ namespace fan::graphics::gui {
 
   }
 
-  fan::event::task_value_resume_t<int> dialogue_box_t::choice(
+  fan::event::runv_t<int> dialogue_box_t::choice(
     std::string_view character_name,
     std::string_view question_text,
     std::span<const std::string_view> options,

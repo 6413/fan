@@ -1,13 +1,14 @@
 module;
-
 #include <fan/utility.h>
 #include <uv.h>
 #include <string>
+#include <string_view>
 #include <vector>
 #include <functional>
-#include <memory>
 #include <coroutine>
-#include <sstream>
+#include <algorithm>
+#include <expected>
+#include <unordered_map>
 
 #define DEBUG_PRINTS 0
 
@@ -20,8 +21,15 @@ module;
 module fan.process;
 
 namespace fan::process {
-
   struct spawn_state_t {
+    void try_resume() {
+      if (process_exited && pipe_closed && co_handle) {
+        auto h = co_handle;
+        co_handle = {};
+        h();
+      }
+    }
+
     uv_process_t process {};
     uv_pipe_t pipe {};
     std::string line_buf;
@@ -32,14 +40,6 @@ namespace fan::process {
     bool pipe_closed = false;
     std::function<void(std::string_view)> on_line;
     std::coroutine_handle<> co_handle {};
-
-    void try_resume() {
-      if (process_exited && pipe_closed && co_handle) {
-        auto h = co_handle;
-        co_handle = {};
-        h();
-      }
-    }
   };
 
   void spawn_t::start(const std::vector<std::string>& args, std::function<void(std::string_view)> on_line) {
@@ -47,11 +47,11 @@ namespace fan::process {
     st->on_line = std::move(on_line);
     st->running = true;
 
-    auto loop = fan::event::get_loop();
-    uv_pipe_init((uv_loop_t*)loop, &st->pipe, 0);
+    auto* loop = (uv_loop_t*)fan::event::get_loop();
+    uv_pipe_init(loop, &st->pipe, 0);
 
     std::vector<char*> argv;
-    for (auto& a : args) argv.push_back(const_cast<char*>(a.c_str()));
+    for (auto& a : args) { argv.push_back(const_cast<char*>(a.c_str())); }
     argv.push_back(nullptr);
 
     uv_stdio_container_t stdio[3];
@@ -82,7 +82,7 @@ namespace fan::process {
     st->process.data = st;
     st->pipe.data = st;
 
-    if (uv_spawn((uv_loop_t*)loop, &st->process, &opts) != 0) {
+    if (uv_spawn(loop, &st->process, &opts) != 0) {
       st->running = false;
       state_ = st;
       return;
@@ -92,7 +92,7 @@ namespace fan::process {
     DPRINT("[process] st=", (void*)st);
     DPRINT("[process] pid=", st->process.pid);
 
-    int r = uv_read_start(reinterpret_cast<uv_stream_t*>(&st->pipe),
+    uv_read_start(reinterpret_cast<uv_stream_t*>(&st->pipe),
       [](uv_handle_t*, size_t n, uv_buf_t* buf) {
         buf->base = new char[n];
         buf->len = (unsigned long)n;
@@ -105,12 +105,12 @@ namespace fan::process {
           while ((pos = st->line_buf.find_first_of("\n\r")) != std::string::npos) {
             std::string line = st->line_buf.substr(0, pos);
             st->line_buf.erase(0, pos + 1);
-            if (line.empty()) continue;
+            if (line.empty()) { continue; }
             st->last_line = line;
             st->on_line(line);
           }
         }
-        if (buf->base) delete[] buf->base;
+        if (buf->base) { delete[] buf->base; }
         if (nread == UV_EOF || nread < 0) {
           DPRINT("[process] pipe EOF: nread=", nread, " last_line=", st->last_line);
           if (!st->line_buf.empty()) {
@@ -127,7 +127,6 @@ namespace fan::process {
         }
       }
     );
-    DPRINT("[process] uv_read_start result:", r);
   }
 
   bool spawn_t::is_running() const { return state_ && static_cast<spawn_state_t*>(state_)->running; }
@@ -144,14 +143,16 @@ namespace fan::process {
 
   void run_awaitable::await_suspend(std::coroutine_handle<> handle) {
     DPRINT("[process] suspend st=", (void*)proc_.state_);
-    if (proc_.state_)
+    if (proc_.state_) {
       static_cast<spawn_state_t*>(proc_.state_)->co_handle = handle;
+    }
   }
 
   run_result_t run_awaitable::await_resume() const noexcept {
     DPRINT("[process] coroutine resumed");
-    if (result_.spawned && proc_.state_)
+    if (result_.spawned && proc_.state_) {
       const_cast<run_result_t&>(result_).exit_code = static_cast<spawn_state_t*>(proc_.state_)->exit_code;
+    }
     return result_;
   }
 
@@ -159,7 +160,32 @@ namespace fan::process {
     return run_awaitable(args, std::move(on_line));
   }
 
-   static void ipc_alloc_cb(uv_handle_t*, size_t n, uv_buf_t* buf) {
+  struct ipc_conn_t {
+    uv_pipe_t   pipe {};
+    std::string linebuf;
+    std::vector<std::string> message_queue;
+    std::coroutine_handle<> read_handle {};
+    bool connected = false;
+    std::string error_msg = "pipe disconnected";
+  };
+
+  struct ipc_server_state_t {
+    uv_pipe_t server {};
+    std::function<fan::event::task_t(ipc_server_conn_t)> on_connect;
+    std::vector<fan::event::task_t> active_tasks;
+  };
+
+  struct ipc_client_state_t {
+    uv_pipe_t   pipe {};
+    std::string linebuf;
+    std::string error_msg = "pipe disconnected";
+    bool connected = false;
+    std::vector<std::string> message_queue;
+    std::coroutine_handle<> connect_handle {};
+    std::coroutine_handle<> read_handle {};
+  };
+
+  static void ipc_alloc_cb(uv_handle_t*, size_t n, uv_buf_t* buf) {
     buf->base = new char[n];
     buf->len  = (unsigned long)n;
   }
@@ -176,138 +202,176 @@ namespace fan::process {
     });
   }
 
-  struct ipc_conn_t {
-    uv_pipe_t  pipe {};
-    std::string linebuf;
-  };
-
-  struct ipc_server_state_t {
-    uv_pipe_t server {};
-    std::vector<ipc_conn_t*> conns;
-    std::function<void(std::string_view)> on_message;
-  };
-
-  void ipc_server_t::listen(std::string_view path, std::function<void(std::string_view)> on_message) {
+  ipc_server_t::ipc_server_t(std::string_view path, std::function<fan::event::task_t(ipc_server_conn_t)> on_connect) {
     auto* st = new ipc_server_state_t;
-    st->on_message = std::move(on_message);
+    st->on_connect = std::move(on_connect);
     state_ = st;
     st->server.data = st;
-
     auto* loop = (uv_loop_t*)fan::event::get_loop();
     uv_pipe_init(loop, &st->server, 0);
+#if !defined(fan_platform_windows)
     uv_fs_t fs;
     uv_fs_unlink(loop, &fs, path.data(), nullptr);
+#endif
     uv_pipe_bind(&st->server, path.data());
     uv_listen((uv_stream_t*)&st->server, 128, [](uv_stream_t* srv, int status) {
       if (status < 0) { return; }
       auto* st   = static_cast<ipc_server_state_t*>(srv->data);
       auto* conn = new ipc_conn_t;
+      conn->connected = true;
       uv_pipe_init(srv->loop, &conn->pipe, 0);
       uv_accept(srv, (uv_stream_t*)&conn->pipe);
-      st->conns.push_back(conn);
-
-      struct ctx_t { ipc_server_state_t* st; ipc_conn_t* conn; };
-      auto* ctx = new ctx_t{st, conn};
-      conn->pipe.data = ctx;
-
-      uv_read_start((uv_stream_t*)&conn->pipe, ipc_alloc_cb,
-        [](uv_stream_t* s, ssize_t nread, const uv_buf_t* b) {
-          auto* ctx = static_cast<ctx_t*>(s->data);
-          if (nread > 0) {
-            ctx->conn->linebuf.append(b->base, nread);
-            size_t pos;
-            while ((pos = ctx->conn->linebuf.find('\n')) != std::string::npos) {
-              std::string msg = ctx->conn->linebuf.substr(0, pos);
-              ctx->conn->linebuf.erase(0, pos + 1);
-              if (!msg.empty()) { ctx->st->on_message(msg); }
+      conn->pipe.data = conn;
+      uv_read_start((uv_stream_t*)&conn->pipe, ipc_alloc_cb, [](uv_stream_t* s, ssize_t nread, const uv_buf_t* b) {
+        auto* conn = static_cast<ipc_conn_t*>(s->data);
+        if (nread > 0) {
+          conn->linebuf.append(b->base, nread);
+          size_t pos;
+          while ((pos = conn->linebuf.find('\n')) != std::string::npos) {
+            std::string msg = conn->linebuf.substr(0, pos);
+            conn->linebuf.erase(0, pos + 1);
+            if (!msg.empty()) {
+              conn->message_queue.push_back(msg);
+              if (conn->read_handle) { auto h = conn->read_handle; conn->read_handle = {}; h(); }
             }
           }
-          if (b->base) { delete[] b->base; }
-          if (nread == UV_EOF || nread < 0) {
-            uv_read_stop(s);
-            uv_close((uv_handle_t*)s, [](uv_handle_t* h) {
-              auto* ctx = static_cast<ctx_t*>(h->data);
-              auto& c = ctx->st->conns;
-              c.erase(std::remove(c.begin(), c.end(), ctx->conn), c.end());
-              delete ctx->conn;
-              delete ctx;
-            });
+        }
+        if (b->base) { delete[] b->base; }
+        if (nread == UV_EOF || nread < 0) {
+          conn->connected = false;
+          uv_read_stop(s);
+          if (!uv_is_closing((uv_handle_t*)s)) {
+            uv_close((uv_handle_t*)s, [](uv_handle_t* h) { delete static_cast<ipc_conn_t*>(h->data); });
           }
-        });
+          if (conn->read_handle) { auto h = conn->read_handle; conn->read_handle = {}; h(); }
+        }
+      });
+      st->active_tasks.push_back(st->on_connect(ipc_server_conn_t{conn}));
     });
-  }
-
-  void ipc_server_t::send(std::string_view msg) {
-    auto* st = static_cast<ipc_server_state_t*>(state_);
-    if (!st) { return; }
-    for (auto* conn : st->conns) { ipc_write_msg((uv_stream_t*)&conn->pipe, msg); }
   }
 
   void ipc_server_t::close() {
     auto* st = static_cast<ipc_server_state_t*>(state_);
     if (!st) { return; }
-    st->server.data = st;
-    uv_close((uv_handle_t*)&st->server, [](uv_handle_t* h) {
-      delete static_cast<ipc_server_state_t*>(h->data);
-    });
+    uv_close((uv_handle_t*)&st->server, [](uv_handle_t* h) { delete static_cast<ipc_server_state_t*>(h->data); });
     state_ = nullptr;
   }
 
-  struct ipc_client_state_t {
-    uv_pipe_t  pipe {};
-    std::string linebuf;
-    bool connected = false;
-    std::function<void(std::string_view)> on_message;
-    std::coroutine_handle<> co_handle {};
-  };
+  ipc_server_conn_t::read_awaitable ipc_server_conn_t::read() { return {this}; }
+  bool ipc_server_conn_t::read_awaitable::await_ready() const noexcept {
+    auto* conn = static_cast<ipc_conn_t*>(conn_->state_);
+    return !conn->connected || !conn->message_queue.empty();
+  }
+  void ipc_server_conn_t::read_awaitable::await_suspend(std::coroutine_handle<> handle) {
+    static_cast<ipc_conn_t*>(conn_->state_)->read_handle = handle;
+  }
+  std::string ipc_server_conn_t::read_awaitable::await_resume() const {
+    auto* conn = static_cast<ipc_conn_t*>(conn_->state_);
+    if (!conn->message_queue.empty()) {
+      auto msg = std::move(conn->message_queue.front());
+      conn->message_queue.erase(conn->message_queue.begin());
+      return msg;
+    }
+    throw fan::task_cancelled_exception{conn->error_msg};
+  }
 
-  void ipc_client_t::connect(std::string_view path, std::function<void(std::string_view)> on_message) {
+  void ipc_server_conn_t::send(std::string_view msg) {
+    auto* conn = static_cast<ipc_conn_t*>(state_);
+    if (conn && conn->connected) { ipc_write_msg((uv_stream_t*)&conn->pipe, msg); }
+  }
+
+  bool ipc_server_conn_t::is_connected() const {
+    auto* conn = static_cast<ipc_conn_t*>(state_);
+    return conn && conn->connected;
+  }
+
+  void ipc_server_conn_t::close() {
+    auto* conn = static_cast<ipc_conn_t*>(state_);
+    if (!conn) { return; }
+    if (conn->connected) {
+      conn->connected = false;
+      if (!uv_is_closing((uv_handle_t*)&conn->pipe)) {
+        uv_close((uv_handle_t*)&conn->pipe, [](uv_handle_t* h) { delete static_cast<ipc_conn_t*>(h->data); });
+      }
+    }
+    state_ = nullptr;
+  }
+
+  ipc_client_t::connect_awaitable ipc_client_t::connect(std::string_view path) { return {std::string(path), nullptr}; }
+  bool ipc_client_t::connect_awaitable::await_ready() const noexcept { return false; }
+  void ipc_client_t::connect_awaitable::await_suspend(std::coroutine_handle<> handle) {
     auto* st = new ipc_client_state_t;
-    st->on_message = std::move(on_message);
-    state_ = st;
-    st->pipe.data = st;
-
+    st_ = st; st->connect_handle = handle; st->pipe.data = st;
     auto* loop = (uv_loop_t*)fan::event::get_loop();
     uv_pipe_init(loop, &st->pipe, 0);
-
     auto* req = new uv_connect_t;
     req->data = st;
-    uv_pipe_connect(req, &st->pipe, path.data(), [](uv_connect_t* req, int status) {
+    uv_pipe_connect(req, &st->pipe, path_.c_str(), [](uv_connect_t* req, int status) {
       auto* st = static_cast<ipc_client_state_t*>(req->data);
       delete req;
       if (status < 0) {
-        if (st->co_handle) { auto h = st->co_handle; st->co_handle = {}; h(); }
+        st->error_msg = uv_strerror(status);
+        if (st->connect_handle) { auto h = st->connect_handle; st->connect_handle = {}; h(); }
         return;
       }
       st->connected = true;
-      if (st->co_handle) { auto h = st->co_handle; st->co_handle = {}; h(); }
-      uv_read_start((uv_stream_t*)&st->pipe, ipc_alloc_cb,
-        [](uv_stream_t* s, ssize_t nread, const uv_buf_t* b) {
-          auto* st = static_cast<ipc_client_state_t*>(s->data);
-          if (nread > 0) {
-            st->linebuf.append(b->base, nread);
-            size_t pos;
-            while ((pos = st->linebuf.find('\n')) != std::string::npos) {
-              std::string msg = st->linebuf.substr(0, pos);
-              st->linebuf.erase(0, pos + 1);
-              if (!msg.empty()) { st->on_message(msg); }
+      uv_read_start((uv_stream_t*)&st->pipe, ipc_alloc_cb, [](uv_stream_t* s, ssize_t nread, const uv_buf_t* b) {
+        auto* st = static_cast<ipc_client_state_t*>(s->data);
+        if (nread > 0) {
+          st->linebuf.append(b->base, nread);
+          size_t pos;
+          while ((pos = st->linebuf.find('\n')) != std::string::npos) {
+            std::string msg = st->linebuf.substr(0, pos);
+            st->linebuf.erase(0, pos + 1);
+            if (!msg.empty()) {
+              st->message_queue.push_back(msg);
+              if (st->read_handle) { auto h = st->read_handle; st->read_handle = {}; h(); }
             }
           }
-          if (b->base) { delete[] b->base; }
-          if (nread == UV_EOF || nread < 0) {
-            auto* st = static_cast<ipc_client_state_t*>(s->data);
-            st->connected = false;
-            uv_read_stop(s);
-            uv_close((uv_handle_t*)s, nullptr);
-          }
-        });
+        }
+        if (b->base) { delete[] b->base; }
+        if (nread == UV_EOF || nread < 0) {
+          st->connected = false;
+          uv_read_stop(s);
+          if (!uv_is_closing((uv_handle_t*)s)) { uv_close((uv_handle_t*)s, nullptr); }
+          if (st->read_handle) { auto h = st->read_handle; st->read_handle = {}; h(); }
+        }
+      });
+      if (st->connect_handle) { auto h = st->connect_handle; st->connect_handle = {}; h(); }
     });
+  }
+
+  ipc_client_t ipc_client_t::connect_awaitable::await_resume() const {
+    auto* st = static_cast<ipc_client_state_t*>(st_);
+    if (st->connected) { ipc_client_t c; c.state_ = st; return c; }
+    std::string err = st->error_msg;
+    if (!uv_is_closing((uv_handle_t*)&st->pipe)) {
+      uv_close((uv_handle_t*)&st->pipe, [](uv_handle_t* h) { delete static_cast<ipc_client_state_t*>(h->data); });
+    }
+    throw fan::task_cancelled_exception{err};
+  }
+
+  ipc_client_t::read_awaitable ipc_client_t::read() { return {this}; }
+  bool ipc_client_t::read_awaitable::await_ready() const noexcept {
+    auto* st = static_cast<ipc_client_state_t*>(client_->state_);
+    return !st->connected || !st->message_queue.empty();
+  }
+  void ipc_client_t::read_awaitable::await_suspend(std::coroutine_handle<> handle) {
+    static_cast<ipc_client_state_t*>(client_->state_)->read_handle = handle;
+  }
+  std::string ipc_client_t::read_awaitable::await_resume() const {
+    auto* st = static_cast<ipc_client_state_t*>(client_->state_);
+    if (!st->message_queue.empty()) {
+      auto msg = std::move(st->message_queue.front());
+      st->message_queue.erase(st->message_queue.begin());
+      return msg;
+    }
+    throw fan::task_cancelled_exception{st->error_msg};
   }
 
   void ipc_client_t::send(std::string_view msg) {
     auto* st = static_cast<ipc_client_state_t*>(state_);
-    if (!st || !st->connected) { return; }
-    ipc_write_msg((uv_stream_t*)&st->pipe, msg);
+    if (st && st->connected) { ipc_write_msg((uv_stream_t*)&st->pipe, msg); }
   }
 
   bool ipc_client_t::is_connected() const {
@@ -318,40 +382,66 @@ namespace fan::process {
   void ipc_client_t::close() {
     auto* st = static_cast<ipc_client_state_t*>(state_);
     if (!st) { return; }
-    st->pipe.data = st;
-    uv_close((uv_handle_t*)&st->pipe, [](uv_handle_t* h) {
-      delete static_cast<ipc_client_state_t*>(h->data);
-    });
+    if (st->connected) {
+      st->connected = false;
+      if (!uv_is_closing((uv_handle_t*)&st->pipe)) {
+        uv_close((uv_handle_t*)&st->pipe, [](uv_handle_t* h) { delete static_cast<ipc_client_state_t*>(h->data); });
+      }
+    }
     state_ = nullptr;
   }
 
-  connect_awaitable::connect_awaitable(std::string_view path,
-                                       std::function<void(std::string_view)> on_message) {
-    client_.connect(path, std::move(on_message));
+  static std::unordered_map<std::string, std::function<void()>>& child_registry() {
+    static std::unordered_map<std::string, std::function<void()>> r;
+    return r;
   }
 
-  bool connect_awaitable::await_ready() const noexcept { return false; }
-
-  void connect_awaitable::await_suspend(std::coroutine_handle<> handle) {
-    if (client_.state_) {
-      static_cast<ipc_client_state_t*>(client_.state_)->co_handle = handle;
-    }
-  }
-
-  connect_result_t connect_awaitable::await_resume() const noexcept {
-    return {client_.is_connected()};
-  }
-
-  connect_awaitable connect_async(std::string_view path,
-                                  std::function<void(std::string_view)> on_message) {
-    return {path, std::move(on_message)};
-  }
-
-  inline std::string ipc_default_path(std::string_view name) {
+  static std::string get_self_path() {
   #if defined(fan_platform_windows)
-    return std::string("\\\\.\\pipe\\") + std::string(name);
+    char buf[4096];
+    GetModuleFileNameA(nullptr, buf, sizeof(buf));
+    return buf;
   #else
-    return std::string("/tmp/") + std::string(name) + ".sock";
+    char buf[4096];
+    ssize_t n = readlink("/proc/self/exe", buf, sizeof(buf) - 1);
+    if (n < 0) { fan::throw_error_impl("spawn_self: readlink failed"); }
+    buf[n] = '\0';
+    return buf;
   #endif
   }
+
+  fan::event::task_t spawn_self_impl(std::function<void()> child_fn) {
+    static std::atomic<uint32_t> counter {0};
+    std::string id = std::to_string(++counter);
+
+    child_registry()[id] = std::move(child_fn);
+
+  #if defined(fan_platform_windows)
+    ::SetEnvironmentVariableA(spawn_self_env.c_str(), id.c_str());
+    std::vector<std::string> args = {get_self_path()};
+    auto result = co_await run_async(args, [](std::string_view line) { fan::print("[child]", line); });
+    ::SetEnvironmentVariableA(spawn_self_env.c_str(), nullptr);
+  #else
+    std::vector<std::string> args = {get_self_path()};
+    setenv(spawn_self_env.c_str(), id.c_str(), 1);
+    auto result = co_await run_async(args, [](std::string_view line) { fan::print("[child]", line); });
+    unsetenv(spawn_self_env.c_str());
+  #endif
+
+    child_registry().erase(id);
+    co_return;
+  }
+
+  struct spawn_self_child_checker_t {
+    spawn_self_child_checker_t() {
+      const char* id = ::getenv(fan::process::spawn_self_env.c_str());
+      if (!id) { return; }
+      auto& reg = child_registry();
+      auto it = reg.find(id);
+      if (it != reg.end()) {
+        it->second();
+      }
+      ::exit(0);
+    }
+  } spawn_self_child_checker;
 }

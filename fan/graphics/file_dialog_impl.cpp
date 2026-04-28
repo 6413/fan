@@ -162,7 +162,7 @@ namespace fan::graphics {
     static dialog_t d; return d.open_folder(std::move(on_done), std::move(on_dismissed));
   }
 
-  fan::event::task_value_t<std::optional<std::string>> co_open_file(std::string_view filter) {
+  fan::event::waitv_t<std::optional<std::string>> co_open_file(std::string_view filter) {
     fan::event::signal_awaitable_t<std::optional<std::string>> sig;
     open_file(filter,
       [&](std::string_view p) { sig.signal(std::string{p}); },
@@ -170,7 +170,7 @@ namespace fan::graphics {
     co_return co_await sig;
   }
 
-  fan::event::task_value_t<std::vector<std::string>> co_open_files(std::string_view filter) {
+  fan::event::waitv_t<std::vector<std::string>> co_open_files(std::string_view filter) {
     fan::event::signal_awaitable_t<std::vector<std::string>> sig;
     open_files(filter,
       [&](std::vector<std::string_view> paths) {
@@ -183,7 +183,7 @@ namespace fan::graphics {
     co_return co_await sig;
   }
 
-  fan::event::task_value_t<std::optional<std::string>> co_save_file(std::string_view filter) {
+  fan::event::waitv_t<std::optional<std::string>> co_save_file(std::string_view filter) {
     fan::event::signal_awaitable_t<std::optional<std::string>> sig;
     save_file(filter,
       [&](std::string_view p) { sig.signal(std::string{p}); },
@@ -191,7 +191,7 @@ namespace fan::graphics {
     co_return co_await sig;
   }
 
-  fan::event::task_value_t<std::optional<std::string>> co_open_folder() {
+  fan::event::waitv_t<std::optional<std::string>> co_open_folder() {
     fan::event::signal_awaitable_t<std::optional<std::string>> sig;
     open_folder(
       [&](std::string_view p) { sig.signal(std::string{p}); },

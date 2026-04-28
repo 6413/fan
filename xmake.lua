@@ -189,6 +189,7 @@ local module_files = {
   "fan/random.ixx",
   "fan/log_dispatcher.ixx",
 	"fan/process.ixx",
+  "fan/io/io_types.ixx",
   "fan/io/directory.ixx",
   "fan/io/file.ixx",
   "fan/physics/collision/rectangle.ixx",

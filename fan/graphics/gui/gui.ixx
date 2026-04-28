@@ -388,17 +388,17 @@ export namespace fan::graphics::gui {
     void set_cursor_position(const fan::vec2& pos);
     void set_indent(f32_t indent);
 
-    fan::event::task_value_resume_t<drawable_nr_t> text_delayed(
+    fan::event::runv_t<drawable_nr_t> text_delayed(
       std::string_view character_name, 
       std::string_view text, 
       int characters_per_second = 20
     );
-    fan::event::task_value_resume_t<drawable_nr_t> text(const std::string& text);
+    fan::event::runv_t<drawable_nr_t> text(const std::string& text);
 
-    fan::event::task_value_resume_t<drawable_nr_t> button(const std::string& text, const fan::vec2& position, const fan::vec2& size = { 0, 0 });
+    fan::event::runv_t<drawable_nr_t> button(const std::string& text, const fan::vec2& position, const fan::vec2& size = { 0, 0 });
 
     // default width 80% of the window
-    fan::event::task_value_resume_t<drawable_nr_t> separator(f32_t width = 0.8);
+    fan::event::runv_t<drawable_nr_t> separator(f32_t width = 0.8);
 
 
     int get_button_choice();
@@ -406,7 +406,7 @@ export namespace fan::graphics::gui {
     fan::event::task_t wait_user_input();
     void render(fan::str_view_t window_name, font_t* font, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing, const std::function<void()>& inside_window_cb = []{});
 
-    fan::event::task_value_resume_t<int> choice(
+    fan::event::runv_t<int> choice(
       std::string_view character_name,
       std::string_view question_text,
       std::span<const std::string_view> options,
