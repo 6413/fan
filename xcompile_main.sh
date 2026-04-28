@@ -1,3 +1,4 @@
+#!/bin/bash
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
@@ -13,8 +14,7 @@ MAIN_FILE=""
 COMPILER="clang"
 XMAKE_ARGS=()
 
-while [[ $
-
+while [[ $# -gt 0 ]]; do
   case $1 in
     --debug)
       MODE="debug"
@@ -56,6 +56,7 @@ find_clang() {
   local best_bin=""
   local best_version=0
 
+  # Get all clang++ executables in PATH
   while IFS= read -r path; do
     bin=$(basename "$path")
 
@@ -69,6 +70,7 @@ find_clang() {
     fi
   done < <(command -v -a clang++ 2>/dev/null)
 
+  # Fallback: plain clang++
   if [[ -z "$best_bin" ]]; then
     if command -v clang++ >/dev/null 2>&1; then
       best_bin=$(command -v clang++)
