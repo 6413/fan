@@ -20,7 +20,9 @@ import fan.types.color;
 import fan.types.fstring;
 import fan.utility;
 import fan.graphics.common_types;
-import fan.graphics.gui.base;
+#if defined(FAN_GUI)
+  import fan.graphics.gui.base;
+#endif
 
 namespace fan {
 
