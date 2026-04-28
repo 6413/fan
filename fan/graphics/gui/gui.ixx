@@ -30,6 +30,7 @@ export module fan.graphics.gui;
   import fan.log_dispatcher;
   import fan.graphics.shapes.types;
   import fan.event.types;
+  import fan.io.types;
 #endif
 
 
