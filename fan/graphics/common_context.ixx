@@ -1,11 +1,12 @@
 module;
 
+#include <fan/utility.h>
+
 #include <cstdint>
 #include <cstddef>
 #include <coroutine>
 #include <fan/graphics/common_context_functions_declare.h>
 
-#include <fan/utility.h>
 
 export module fan.graphics.common_context;
 
