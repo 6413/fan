@@ -4,14 +4,9 @@ module;
 #include <webp/encode.h>
 #include <webp/decode.h>
 
-#include <source_location>
-#include <string>
-#include <cstddef>
-#include <sstream>
-#include <fstream>
-#include <filesystem>
-
 module fan.graphics.webp;
+
+import std;
 
 import fan.io.file;
 import fan.print;

@@ -1,12 +1,8 @@
 module;
 
-#include <fstream>
-#include <string>
-#include <sstream>
-#include <source_location>
-#include <fan/utility.h>
-
 module fan.graphics.gui.tilemap_editor.loader;
+
+import std;
 
 #if defined(FAN_2D)
 #if defined(FAN_PHYSICS_2D)

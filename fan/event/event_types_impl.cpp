@@ -1,9 +1,10 @@
 module;
 
-#include <cmath>
 #include <uv.h>
 
 module fan.event.types;
+
+import std;
 
 namespace fan {
   extern const int fs_o_append      = UV_FS_O_APPEND;

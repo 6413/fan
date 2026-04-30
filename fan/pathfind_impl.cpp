@@ -1,12 +1,12 @@
 module;
 
-#include <cstring>
-
 #if defined(FAN_2D)
   #include <fan/graphics/2D/algorithm/AStar.hpp>
 #endif
 
 module fan.pathfind;
+
+import std;
 
 #if defined(FAN_2D)
 

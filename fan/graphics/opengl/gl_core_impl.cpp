@@ -2,7 +2,6 @@ module;
 
 #if defined(FAN_OPENGL)
 #include <fan/graphics/opengl/init.h>
-
 #if defined(fan_platform_windows)
   #define GLFW_EXPOSE_NATIVE_WIN32
   #define GLFW_EXPOSE_NATIVE_WGL
@@ -10,18 +9,15 @@ module;
 #endif
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
-
 #define __fan_internal_camera_list (*fan::graphics::ctx().camera_list)
 #define __fan_internal_shader_list (*fan::graphics::ctx().shader_list)
 #define __fan_internal_image_list (*fan::graphics::ctx().image_list)
 #define __fan_internal_viewport_list (*fan::graphics::ctx().viewport_list)
-
-  #include <source_location>
-  #include <sstream>
-  #include <cstring>
 #endif
 
 module fan.graphics.opengl.core;
+
+import std;
 
 #if defined(FAN_OPENGL)
 

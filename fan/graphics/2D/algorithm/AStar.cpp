@@ -1,6 +1,7 @@
+
+import std;
 #if defined(FAN_2D)
 
-#include <algorithm>
 #include <math.h>
 #include "AStar.hpp"
 

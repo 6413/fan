@@ -1,13 +1,8 @@
 module;
 
-#include <cstdio>
-#include <cstring>
-#include <vector>
-#include <algorithm>
-#include <string>
-#include <mutex>
-
 module fan.memory;
+
+import std;
 
 import fan.time;
 

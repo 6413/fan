@@ -1,13 +1,11 @@
 module;
 
 #if defined(FAN_GUI)
-#include <string>
-#include <vector>
-#include <sstream>
-#include <ranges>
 #endif
 
 module fan.graphics.gui.text_logger;
+
+import std;
 
 #if defined(FAN_GUI)
 

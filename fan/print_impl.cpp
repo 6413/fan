@@ -1,13 +1,11 @@
 module;
-#include <iostream>
-#include <sstream>
-#include <iomanip>
-#include <unordered_map>
+
 #if defined(fan_std23)
-  #include <stacktrace>
 #endif
 
 module fan.print;
+
+import std;
 
 import fan.time;
 

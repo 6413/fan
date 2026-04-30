@@ -3,44 +3,25 @@ module;
 // loco framebuffer is recommended, you cant see sprites without it, 
 // since light uses framebuffer _t01. you could use unlit_sprite, if required
 #define LOCO_FRAMEBUFFER
-
-#include <source_location>
-#include <cstdlib>
-#include <cmath>
-#include <fstream>
-#include <sstream>
-#include <utility>
 #include <coroutine>
-#include <iostream>
-#include <mutex>
-#include <algorithm>
-#include <future>
-
-
 #if defined(FAN_GUI)
-  #include <iomanip>
 #endif
-
 #include <fan/graphics/opengl/init.h>
-
 #if defined(fan_std23)
-  #include <stacktrace>
 #endif
-
-
 // TODO REMOVE
 #if defined(FAN_VULKAN)
   // TODO REMOVE
   #include <vulkan/vulkan.h>
 #endif
-
 #include <uv.h>
 #undef min
 #undef max
-
 #include <fan/graphics/shape_macros.h>
 
 module fan.graphics.loco;
+
+import std;
 
 import fan.window.input;
 
