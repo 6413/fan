@@ -1,19 +1,12 @@
 module;
 
-#include <utility>
-#include <functional>
-#include <algorithm>
-#include <cmath>
-#include <cstdlib>
-#include <array>
-#include <sstream>
-
 #if defined(FAN_PHYSICS_2D)
-  #include <fan/utility.h>
   #include <box2d/box2d.h>
 #endif
 
 module fan.physics.b2_integration;
+
+import std;
 
 import fan.utility;
 import fan.memory;

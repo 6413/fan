@@ -1,13 +1,11 @@
 module;
 
 #if defined(FAN_OPENGL)
-
-#include <cstdint>
-#include <algorithm>
-
 #endif
 
 module fan.graphics.opengl.uniform_block;
+
+import std;
 
 #if defined(FAN_OPENGL)
 

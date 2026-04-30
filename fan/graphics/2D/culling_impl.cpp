@@ -1,13 +1,11 @@
 module;
 
 #if defined(FAN_2D)
-  #include <cstdint>
-  #include <algorithm>
-  #include <string>
-  #include <unordered_map>
 #endif
 
 module fan.graphics.culling;
+
+import std;
 
 #if defined(FAN_2D)
 

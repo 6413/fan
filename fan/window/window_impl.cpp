@@ -1,14 +1,5 @@
 module;
 
-#include <functional>
-#include <string>
-#include <algorithm>
-#include <cstring>
-#include <sstream>
-#include <chrono>
-
-#include <fan/utility.h>
-
 #if defined(FAN_VULKAN)
 #include <vulkan/vulkan.h>
 #endif
@@ -25,6 +16,8 @@ module;
 #include <GLFW/glfw3native.h>
 
 module fan.window;
+
+import std;
 
 namespace fan {
 

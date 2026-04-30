@@ -1,5 +1,7 @@
 module fan.camera;
 
+import std;
+
 fan::camera::camera() {
   this->update_view();
 }

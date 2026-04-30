@@ -1,14 +1,11 @@
 module;
 
-#include <string>
-#include <source_location>
-#include <fstream>
-#include <filesystem>
-
 #define STB_IMAGE_IMPLEMENTATION
 #include <fan/stb/stb_image.h>
 
 module fan.graphics.stb;
+
+import std;
 
 import fan.io.file;
 import fan.print;

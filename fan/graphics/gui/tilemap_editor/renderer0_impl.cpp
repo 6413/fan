@@ -1,16 +1,8 @@
 module;
 
 #if defined(FAN_2D)
-#include <cmath>
-#include <algorithm>
-#include <variant>
-#include <source_location>
-#include <cstdint>
-#include <string>
 #endif
-
 #define MEASURE_LOAD_TIMES 0
-
 #if MEASURE_LOAD_TIMES
 #define TIMER_START(name) fan::time::timer timer_##name{true}; fan::print(#name " start")
 #define TIMER_END(name) fan::print(#name " end", timer_##name.millis())
@@ -20,6 +12,8 @@ module;
 #endif
 
 module fan.graphics.gui.tilemap_editor.renderer;
+
+import std;
 
 #if defined(FAN_2D)
 #if defined(FAN_PHYSICS_2D)

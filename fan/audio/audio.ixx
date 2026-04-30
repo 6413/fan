@@ -1,5 +1,7 @@
 module;
 
+#include <fan/utility.h> // abort
+
 #if defined(FAN_AUDIO)
 #ifndef fan_audio_set_backend
   #if defined(fan_platform_unix)

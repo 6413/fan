@@ -1,11 +1,8 @@
 module;
 
-#include <string>
-#include <filesystem>
-#include <algorithm>
-#include <functional>
-
 module fan.io.directory;
+
+import std;
 
 import fan.print;
 import fan.print.error;

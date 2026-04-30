@@ -1,17 +1,11 @@
 module;
 
-#include <cstdint>
-#include <cstdio>
-#include <fan/utility.h>
-
 #ifdef fan_platform_windows
   #define WIN32_LEAN_AND_MEAN
   #define NOMINMAX
   #include <Windows.h>
-
   typedef long(*NtDelayExecution_t)(int Alertable, PLARGE_INTEGER DelayInterval);
   typedef long(* ZwSetTimerResolution_t)(IN ULONG RequestedResolution, IN BOOLEAN Set, OUT PULONG ActualResolution);
-
   static NtDelayExecution_t NtDelayExecution = (NtDelayExecution_t)(long(__stdcall*)(BOOL, PLARGE_INTEGER)) GetProcAddress(GetModuleHandle("ntdll.dll"), "NtDelayExecution");
   static ZwSetTimerResolution_t ZwSetTimerResolution = (ZwSetTimerResolution_t)(long(__stdcall*)(ULONG, BOOLEAN, PULONG)) GetProcAddress(GetModuleHandle("ntdll.dll"), "ZwSetTimerResolution");
   static void delay_w(float us) {
@@ -21,7 +15,6 @@ module;
       ZwSetTimerResolution(1, true, &actualResolution);
       once = false;
     }
-
     LARGE_INTEGER interval;
     interval.QuadPart = (LONGLONG)(-10.f * us);
     NtDelayExecution(false, &interval);
@@ -31,6 +24,8 @@ module;
 #endif
 
 module fan.time;
+
+import std;
 
 namespace fan {
   namespace time {

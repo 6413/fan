@@ -1,12 +1,11 @@
 module;
 
 #if defined(FAN_GUI)
-
-#include <cstdint>
-
 #endif
 
 module fan.graphics.gui.input;
+
+import std;
 
 #if defined(FAN_GUI)
 

@@ -6,7 +6,6 @@ module;
   #include <fan/imgui/implot.h>
   #include <fan/imgui/imgui_internal.h>
   #include <fan/imgui/ImGuizmo.h>
-
   #include <fan/graphics/gui/imgui_themes.h>
   #include <fan/imgui/misc/freetype/imgui_freetype.h>
   #if defined(FAN_OPENGL)
@@ -15,20 +14,13 @@ module;
   #if defined(FAN_VULKAN)
     #include <vulkan/vulkan.h>
   #endif
-
-  #include <string_view>
-  #include <functional>
-  #include <cstdint>
-  #include <limits>
-  #include <string>
-  #include <span>
-  #include <optional>
-
   #define GLFW_INCLUDE_NONE
   #include <GLFW/glfw3.h>
 #endif
 
 module fan.graphics.gui.base;
+
+import std;
 
 #if defined(FAN_GUI)
 

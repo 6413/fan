@@ -1,20 +1,13 @@
 module;
 
 #include <coroutine>
-#include <functional>
-#include <chrono>
-#include <filesystem>
-#include <algorithm>
-#include <cstring>
-#include <unordered_map>
-#include <thread>
-#include <vector>
-
 #include <uv.h>
 #undef min
 #undef max
 
 module fan.event;
+
+import std;
 
 import fan.print;
 import fan.print.error;

@@ -1,11 +1,7 @@
 module;
-#include <string>
-#include <chrono>
-#include <fstream>
-#include <sstream>
-#include <iomanip>
-#include <ctime>
 module fan.print.error;
+
+import std;
 
 namespace fan {
   log_t& get_error_log() {

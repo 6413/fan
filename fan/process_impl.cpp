@@ -1,24 +1,11 @@
 module;
-#include <string>
-#include <string_view>
-#include <vector>
-#include <functional>
+
 #include <coroutine>
-#include <algorithm>
-#include <expected>
-#include <unordered_map>
-#include <atomic>
-
 #include <uv.h>
-
-#include <fan/utility.h>
-
 #if defined(fan_platform_unix) || defined(__wasm__)
   #include <unistd.h>
 #endif
-
 #define DEBUG_PRINTS 0
-
 #if DEBUG_PRINTS
   #define DPRINT(...) fan::print(__VA_ARGS__)
 #else
@@ -26,6 +13,8 @@ module;
 #endif
 
 module fan.process;
+
+import std;
 
 import fan.print.error;
 

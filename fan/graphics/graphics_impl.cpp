@@ -2,17 +2,11 @@ module;
 
 #include <fan/graphics/opengl/init.h>
 #include <fan/event/types.h>
-
-#include <source_location>
-#include <cmath>
 #include <coroutine>
-#include <algorithm>
-#include <filesystem>
-#include <cstring>
-#include <span>
-#include <fstream>
 
 module fan.graphics;
+
+import std;
 
 import fan.print.error;
 

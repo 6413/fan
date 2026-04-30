@@ -1,5 +1,6 @@
 // fan.io.types.ixx
 module;
+
 export module fan.io.types;
 
 import std;

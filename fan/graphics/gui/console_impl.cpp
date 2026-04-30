@@ -1,21 +1,13 @@
 module;
 
-
 #if defined(FAN_GUI)
   #include <fan/imgui/text_editor.h>
   #include <fan/imgui/imgui.h>
 #endif
 
-#include <cstdint>
-#include <functional>
-#include <cstring>
-#include <unordered_map>
-#include <vector>
-#include <string>
-
-#include <fan/utility.h>
-
 module fan.console;
+
+import std;
 
 import fan.memory;
 import fan.types.color;
