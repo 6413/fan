@@ -1,12 +1,18 @@
 module;
 
-#if defined(FAN_2D)
-#include <fan/graphics/opengl/init.h>
+#include <fan/utility.h>
+
+#if defined(FAN_OPENGL)
+  #include <fan/graphics/gl_api.h>
 #endif
 
 export module fan.graphics.shapes.types;
 
 import std;
+
+#if defined(FAN_2D)
+  #include <fan/graphics/opengl/init.h>
+#endif
 
 import fan.print.error;
 import fan.types.color;

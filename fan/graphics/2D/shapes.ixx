@@ -1,8 +1,7 @@
 module;
 
-#if defined(FAN_2D)
-#endif
-#include <fan/graphics/opengl/init.h>
+#include <fan/utility.h>
+#include <fan/graphics/gl_api.h>
 
 export module fan.graphics.shapes;
 
