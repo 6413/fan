@@ -1,13 +1,8 @@
 module;
-#include <string>
-#include <string_view>
-#include <vector>
-#include <ostream>
-#include <type_traits>
-#include <bitset>
-#include <fan/utility.h>
 
 export module fan.print;
+
+import std;
 
 import fan.types;
 import fan.utility;

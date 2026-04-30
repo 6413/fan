@@ -1,13 +1,5 @@
 module;
 
-#include <cstdint>
-#include <functional>
-#include <cstdlib>
-#include <string>
-#include <type_traits>
-
-#include <fan/utility.h>
-
 #if defined(FAN_VULKAN)
 #include <vulkan/vulkan.h>
 #endif
@@ -24,6 +16,8 @@ module;
 #include <GLFW/glfw3native.h>
 
 export module fan.window;
+
+import std;
 
 import fan.types;
 import fan.print.error;

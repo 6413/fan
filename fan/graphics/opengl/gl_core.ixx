@@ -1,13 +1,12 @@
 module;
 
 #if defined(FAN_OPENGL)
-
 #include <fan/graphics/opengl/init.h>
-#include <source_location>
-
 #endif
 
 export module fan.graphics.opengl.core;
+
+import std;
 
 #if defined(FAN_OPENGL)
 

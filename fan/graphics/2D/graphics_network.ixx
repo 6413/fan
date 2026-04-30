@@ -1,17 +1,11 @@
 module;
 
-
 #if defined(FAN_NETWORK) && defined(FAN_2D)
-
-#include <functional>
-#include <string>
-#include <string_view>
-
-#include <fan/utility.h>
-
 #endif
 
 export module fan.graphics.network;
+
+import std;
 
 #if defined(FAN_NETWORK) && defined(FAN_2D)
 

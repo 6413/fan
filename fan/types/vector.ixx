@@ -1,31 +1,22 @@
 module;
 
-#include <cstdint>
-#include <string>
-#include <cmath>
-#include <initializer_list>
-#include <algorithm>
-
-#include <fan/utility.h>
-
 #if defined(FAN_VULKAN)
   #include <vulkan/vulkan.h>
 #endif
-
 #if defined(FAN_GUI)
   #include <fan/imgui/imgui.h>
   #include <fan/imgui/implot.h>
 #endif
-
 #if defined(FAN_3D)
   #include <assimp/vector3.h>
 #endif
-
 #if defined(FAN_PHYSICS_2D)
   #include <box2d/math_functions.h>
 #endif
 
 export module fan.types.vector;
+
+import std;
 
 import fan.types;
 import fan.math;

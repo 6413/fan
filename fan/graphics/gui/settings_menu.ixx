@@ -1,10 +1,11 @@
 module;
+
 #if defined(FAN_GUI)
-  #include <deque>
-  #include <string>
 #endif
 
 export module fan.graphics.gui.settings_menu;
+
+import std;
 
 #if defined(FAN_GUI)
 

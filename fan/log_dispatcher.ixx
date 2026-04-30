@@ -1,10 +1,8 @@
 module;
 
-#include <string>
-#include <vector>
-#include <functional>
-
 export module fan.log_dispatcher;
+
+import std;
 
 export namespace fan {
   struct log_dispatcher_t {

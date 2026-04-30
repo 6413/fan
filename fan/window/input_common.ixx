@@ -1,14 +1,12 @@
 module;
 
-#include <fan/utility.h>
-
-#include <cstdint>
-
 #if defined(FAN_GUI)
   #include <fan/imgui/imgui.h>
 #endif
 
 export module fan.window.input_common;
+
+import std;
 
 import fan.window.input;
 

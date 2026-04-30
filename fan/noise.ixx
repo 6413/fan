@@ -1,11 +1,8 @@
 module;
 
-#include <vector>
-#include <cstdint>
-#include <algorithm>
-#include <cmath>
-
 export module fan.noise;
+
+import std;
 
 import fan.types;
 import fan.types.vector;

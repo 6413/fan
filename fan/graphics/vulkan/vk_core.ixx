@@ -1,31 +1,17 @@
 module;
 
-
-#include <fan/utility.h>
-
 #if defined(FAN_VULKAN)
-
-#include <optional>
-#include <vector>
-#include <set>
-#include <functional>
-#include <source_location>
-
 #if defined(fan_platform_windows)
 #define VK_USE_PLATFORM_WIN32_KHR
 #elif defined(fan_platform_unix)
 #define VK_USE_PLATFORM_XLIB_KHR
 #endif
-
 #if defined(FAN_GUI)
   #include <fan/imgui/imgui_impl_vulkan.h>
 #endif
-
 #define loco_window
-
 #include <vulkan/vulkan.h>
 #include <shaderc/shaderc.hpp>
-
 #if defined(fan_platform_windows)
   #define WIN32_LEAN_AND_MEAN
   #define NOMINMAX
@@ -37,9 +23,11 @@ module;
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
-
 #endif
+
 export module fan.graphics.vulkan.core;
+
+import std;
 
 #if defined(FAN_VULKAN)
 
@@ -518,7 +506,6 @@ export namespace fan {
         VkDescriptorSet m_descriptor_set[fan::vulkan::max_frames_in_flight];
       };
 
-      #include "memory.h"
       #include "uniform_block.h"
       #include "ssbo.h"
 

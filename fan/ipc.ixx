@@ -1,10 +1,10 @@
 module;
-#include <atomic>
-#include <cstdint>
+
 #include <coroutine>
-#include <fan/utility.h>
 
 export module fan.ipc;
+
+import std;
 import fan.event.types;
 
 export namespace fan::ipc {

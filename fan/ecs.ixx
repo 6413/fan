@@ -1,10 +1,7 @@
 module;
-#include <cstdint>
-#include <vector>
-#include <functional>
-#include <tuple>
-#include <type_traits>
 export module fan.ecs;
+
+import std;
 
 import fan.types;
 import fan.types.vector;

@@ -1,12 +1,8 @@
 module;
 
-#include <vector>
-#include <limits>
-#include <cstdint>
-#include <utility>
-#include <optional>
-
 export module fan.types.slot_map;
+
+import std;
 
 export namespace fan {
   template <typename T>

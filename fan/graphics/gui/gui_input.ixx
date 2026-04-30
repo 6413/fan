@@ -1,8 +1,8 @@
 module;
 
-#include <cstdint>
-
 export module fan.graphics.gui.input;
+
+import std;
 
 #if defined(FAN_GUI)
 

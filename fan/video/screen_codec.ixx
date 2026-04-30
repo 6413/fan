@@ -1,9 +1,7 @@
 module;
 
 #if defined(FAN_2D)
-
 #include <WITCH/WITCH.h>
-
 extern "C" {
   #include <libavcodec/avcodec.h>
   #include <libavformat/avformat.h>
@@ -13,27 +11,13 @@ extern "C" {
   #include <libavutil/log.h>
   #include <libswscale/swscale.h>
 }
-
-#include <string>
-#include <mutex>
-#include <array>
-#include <cstring>
-#include <atomic>
-#include <functional>
-#include <thread>
-#include <chrono>
-#include <vector>
-#include <memory>
-#include <unordered_map>
-#include <map>
-#include <algorithm>
-
 #include <WITCH/PR/PR.h>
 #include <WITCH/MD/SCR/SCR.h>
-
 #endif
 
 export module fan.graphics.video.screen_codec;
+
+import std;
 
 #if defined(FAN_2D)
 

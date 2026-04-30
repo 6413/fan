@@ -6,6 +6,8 @@ module;
 
 export module fan.pathfind;
 
+import std;
+
 #if defined(FAN_2D)
 
 import fan.types;

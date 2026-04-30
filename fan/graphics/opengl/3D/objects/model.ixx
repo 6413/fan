@@ -1,10 +1,12 @@
 module;
 
 #ifndef FAN_3D
+
 export module fan.graphics.opengl3D.objects.model;
+
+import std;
 #else
 
-#include <iomanip>
 
 #include <fan/graphics/opengl/init.h>
 

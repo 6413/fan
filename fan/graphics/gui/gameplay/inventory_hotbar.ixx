@@ -1,14 +1,11 @@
 module;
 
 #if defined(FAN_GUI)
-
-#include <cstdint>
-#include <algorithm>
-#include <string>
-
 #endif
 
 export module fan.graphics.gui.inventory_hotbar;
+
+import std;
 
 #if defined(FAN_GUI)
 

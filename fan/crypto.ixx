@@ -1,17 +1,8 @@
 module;
 
-#include <vector>
-#include <string>
-#include <sstream>
-#include <iomanip>
-#include <charconv>
-#include <bit>
-#include <array>
-#include <cctype>
-#include <span>
-#include <algorithm>
-
 export module fan.crypto;
+
+import std;
 
 import fan.utility;
 import fan.types;

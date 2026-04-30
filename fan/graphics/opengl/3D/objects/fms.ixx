@@ -1,27 +1,18 @@
 module;
 
-#include <fan/utility.h>
-
 #if defined(FAN_3D)
-
 #include <fan/types/dme.h>
-
-#include <vector>
-#include <cassert>
-#include <locale>
-#include <set>
-
 #include <assimp/Exporter.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include <assimp/Importer.hpp>
-
 //#define STB_IMAGE_IMPLEMENTATION
 #include <fan/stb/stb_image.h>
-
 #endif
 
 export module fan.graphics.fms;
+
+import std;
 
 #if defined(FAN_3D)
 

@@ -4,10 +4,9 @@ module;
   #include <assimp/quaternion.h>
 #endif
 
-#include <cmath>
-#include <limits>
-
 export module fan.types.quaternion;
+
+import std;
 
 import fan.types;
 import fan.types.vector;

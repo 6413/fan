@@ -1,27 +1,18 @@
 module;
 
 //std::format doesnt exist for clang in linux without libc++
-
-
 #if __has_include("format")
-  #include <format>
   namespace current_fmt = std;
 #else
 #define FMT_HEADER_ONLY
-#include <fmt/format.h>
 #include <fmt/xchar.h>
   namespace current_fmt = fmt;
 #endif
-
-#include <vector>
-#include <sstream>
-#include <string_view>
 // std::quoted
-#include <iomanip>
-
-#include <fan/utility.h>
 
 export module fan.fmt;
+
+import std;
 
 import fan.print.error;
 import fan.print;

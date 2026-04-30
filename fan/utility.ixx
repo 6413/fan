@@ -1,16 +1,12 @@
 module;
 
-#include <iterator>
-#include <functional> // raii_nr.h raii_nr_t
-#include <span>
-
-#include <fan/utility.h>
-
 namespace raii_build {
   #include <fan/types/raii_nr.h>
 }
 
 export module fan.utility;
+
+import std;
 
 export import fan.mpl;
 import fan.types;
