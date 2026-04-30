@@ -1,11 +1,11 @@
 module;
 
 #if defined(FAN_GUI)
-  #include <cstdint>
-  #include <vector>
 #endif
 
 module fan.graphics.gui.hotbar;
+
+import std;
 
 #if defined(FAN_GUI)
 

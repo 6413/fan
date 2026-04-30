@@ -1,12 +1,11 @@
 module;
 
 #if defined(FAN_GUI)
-#include <cstdint>
-#include <algorithm>
-#include <string>
 #endif
 
 module fan.graphics.gui.drag_drop;
+
+import std;
 
 #if defined(FAN_GUI)
 import fan.types.vector;

@@ -1,21 +1,13 @@
 module;
 
 #if defined(FAN_GUI)
-
-  #include <filesystem>
-  #include <string>
-  #include <functional>
   #include <coroutine>
-  #include <cmath>
-  #include <array>
-  #include <vector>
-  #include <unordered_map>
-
   #include <fan/imgui/imgui_internal.h>
-  #include <fan/utility.h>
 #endif
 
 module fan.graphics.gui;
+
+import std;
 
 #if defined(FAN_GUI)
 

@@ -1,10 +1,11 @@
 module;
 
 #if defined(FAN_AUDIO)
-  #include <fan/utility.h>
 #endif
 
 module fan.graphics.audio_subsystem;
+
+import std;
 
 #if defined(FAN_AUDIO)
   import fan.utility;

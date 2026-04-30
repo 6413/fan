@@ -1,21 +1,12 @@
 module;
 
-
-#include <vector>
-#include <string>
-#include <source_location>
-#include <cstdint>
-#include <fstream>
-#include <sstream>
-#include <filesystem>
-
 #if defined (FAN_OPENGL)
   #include <fan/graphics/opengl/init.h>
 #endif
 
-#include <fan/utility.h>
-
 module fan.graphics.common_context;
+
+import std;
 
 import fan.print;
 import fan.math;

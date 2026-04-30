@@ -1,17 +1,13 @@
 module;
 
 #if defined(FAN_GUI)
-
-#include <deque>
-#include <string>
-#include <fstream>
 #include <fan/graphics/opengl/init.h>
-
 #define LOCO_FRAMEBUFFER
-
 #endif
 
 module fan.graphics.gui.settings_menu;
+
+import std;
 
 #if defined(FAN_GUI)
 

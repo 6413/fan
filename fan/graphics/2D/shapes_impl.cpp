@@ -3,20 +3,11 @@ module;
 #if defined(FAN_OPENGL)
   #include <fan/graphics/opengl/init.h>
 #endif
-
-#include <source_location>
-#include <cmath>
-#include <string>
-#include <cstring>
-#include <cstdlib>
-#include <filesystem>
-#include <fstream>
-#include <utility>
-#include <unordered_set>
-
 #include <fan/graphics/shape_macros.h>
 
 module fan.graphics.shapes;
+
+import std;
 
 import fan.utility;
 import fan.print;
