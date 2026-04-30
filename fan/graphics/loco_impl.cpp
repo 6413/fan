@@ -25,6 +25,8 @@ module fan.graphics.loco;
 
 import fan.window.input;
 
+import fan.event.types;
+
 import fan.camera;
 import fan.memory;
 import fan.random;
@@ -1073,6 +1075,9 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   open_props(props),
   init_gloco([this] { gloco() = this; return true; }())
 {
+  idle_handle = new uv_idle_t;
+  timer_handle = new uv_timer_t;
+
   bind_global_context();
   loco_init_shapes_context(this);
   loco_init_platform(this);
@@ -1128,6 +1133,15 @@ loco_t::~loco_t() {
 }
 
 void loco_t::destroy() {
+  if (idle_handle) {
+    delete idle_handle;
+    idle_handle = nullptr;
+  }
+  if (timer_handle) {
+    delete timer_handle;
+    timer_handle = nullptr;
+  }
+
 #if defined(FAN_2D)
   // TODO fix destruct order to not do manually, because shaper closes before them?
   static_render_list.clear();
@@ -1903,16 +1917,16 @@ void loco_t::loop(const std::function<void()>& cb) {
 g_loop:
 
   if (!timer_init) {
-    uv_timer_init((uv_loop_t*)fan::event::get_loop(), &timer_handle);
+    uv_timer_init((uv_loop_t*)fan::event::get_loop(), (uv_timer_t*)timer_handle);
     timer_init = true;
   }
   if (!idle_init) {
-    uv_idle_init((uv_loop_t*)fan::event::get_loop(), &idle_handle);
+    uv_idle_init((uv_loop_t*)fan::event::get_loop(), (uv_idle_t*)idle_handle);
     idle_init = true;
   }
 
-  timer_handle.data = this;
-  idle_handle.data = this;
+  ((uv_timer_t*)timer_handle)->data = this;
+  ((uv_idle_t*)idle_handle)->data = this;
 
   if (target_fps > 0) {
     start_timer();
@@ -1921,7 +1935,7 @@ g_loop:
     start_idle();
   }
 
-  uv_run((uv_loop_t*)fan::event::get_loop(), UV_RUN_DEFAULT);
+  fan::event::loop();
   if (should_close() == false) {
     goto g_loop;
   }
@@ -1996,7 +2010,7 @@ void loco_t::start_timer() {
 
   std::uint64_t delay = target_fps > 60 ? 1 : std::max(1.0, std::floor(1.0 / target_fps * 1000.0 * 0.5));
 
-  uv_timer_start(&timer_handle, [](uv_timer_t* handle) {
+  uv_timer_start((uv_timer_t*)timer_handle, [](uv_timer_t* handle) {
     loco_t* loco = static_cast<loco_t*>(handle->data);
 
     f64_t elapsed = loco->timing.frame_timer.seconds();
@@ -2015,17 +2029,17 @@ void loco_t::start_timer() {
       loco->timing.accumulated_time -= loco->timing.target_frame_time;
 
       if (loco->process_frame(loco->main_loop)) {
-        uv_timer_stop(handle);
+        uv_timer_stop((uv_timer_t*)handle);
         uv_stop((uv_loop_t*)fan::event::get_loop());
       }
     }
   }, 0, delay);
 }
 
-void loco_t::idle_cb(uv_idle_t* handle) {
-  loco_t* loco = static_cast<loco_t*>(handle->data);
+void loco_t::idle_cb(void* handle) {
+  loco_t* loco = static_cast<loco_t*>(((uv_idle_t*)handle)->data);
   if (loco->process_frame(loco->main_loop)) {
-    uv_idle_stop(handle);
+    uv_idle_stop((uv_idle_t*)handle);
     uv_stop((uv_loop_t*)fan::event::get_loop());
   }
 }
@@ -2034,7 +2048,7 @@ void loco_t::start_idle(bool start_idle) {
   if (!start_idle) {
     return;
   }
-  uv_idle_start(&idle_handle, idle_cb);
+  uv_idle_start((uv_idle_t*)idle_handle, (uv_idle_cb)idle_cb);
 }
 
 // if target fps does not seem to be accurate/updating, use timeBeginPeriod to request the correct hz for libuv
@@ -2044,7 +2058,7 @@ void loco_t::update_timer_interval(bool idle) {
     std::uint64_t delay = target_fps > 60 ? 1 : std::max(1.0, std::floor(1.0 / target_fps * 1000.0 * 0.5));
 
     if (idle_init) {
-      uv_idle_stop(&idle_handle);
+      uv_idle_stop((uv_idle_t*)idle_handle);
     }
     if (!timing.timer_enabled) {
       timing.frame_timer.start();
@@ -2053,17 +2067,17 @@ void loco_t::update_timer_interval(bool idle) {
       timing.timer_enabled = true;
     }
     else {
-      uv_timer_set_repeat(&timer_handle, delay);
-      uv_timer_again(&timer_handle);
+      uv_timer_set_repeat((uv_timer_t*)timer_handle, delay);
+      uv_timer_again((uv_timer_t*)timer_handle);
     }
   }
   else {
     if (timer_init) {
-      uv_timer_stop(&timer_handle);
+      uv_timer_stop((uv_timer_t*)timer_handle);
       timing.timer_enabled = false;
     }
     if (idle_init && idle) {
-      uv_idle_start(&idle_handle, idle_cb);
+      uv_idle_start((uv_idle_t*)idle_handle, (uv_idle_cb)idle_cb);
     }
   }
 }
