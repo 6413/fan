@@ -1,24 +1,15 @@
 module;
 
 // for shapes
-
 #if defined(FAN_2D)
-
 #if defined(FAN_PHYSICS_2D)
-  #include <fan/utility.h>
   #include <box2d/box2d.h>
 #endif
-
-#include <source_location>
-#include <string>
-#include <unordered_set>
-#include <vector>
-#include <cstdint>
-#include <functional>
-
 #endif
 
 export module fan.graphics.physics_shapes;
+
+import std;
 
 #if defined(FAN_2D)
 

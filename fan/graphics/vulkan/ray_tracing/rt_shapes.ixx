@@ -1,16 +1,12 @@
 module;
 
 #if defined(FAN_3D) && defined(FAN_VULKAN)
-
 #include <vulkan/vulkan.h>
-
-#include <vector>
-#include <cmath>
-#include <cstring>
-
 #endif
 
 export module fan.graphics.vulkan.ray_tracing.shapes;
+
+import std;
 
 #if defined(FAN_3D) && defined(FAN_VULKAN)
 

@@ -1,8 +1,8 @@
 module;
 
-#include <fan/utility.h>
-
 export module fan.graphics.input_subsystem;
+
+import std;
 
 export import fan.window;
 export import fan.window.input_action;

@@ -1,9 +1,8 @@
 module;
 
-#include <cstdint>
-#include <optional>
-
 export module fan.graphics.gameplay.types;
+
+import std;
 
 import fan.types.color;
 

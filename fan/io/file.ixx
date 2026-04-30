@@ -1,20 +1,14 @@
 module;
 
-#include <string>
-#include <filesystem>
-#include <source_location>
-#include <vector>
-#include <string_view>
-
-#include <fan/utility.h>
 #if defined(fan_platform_windows)
   #include <Windows.h>
 #elif defined(fan_platform_unix)
   #include <unistd.h>
-  #include <limits.h>
 #endif
 
 export module fan.io.file;
+
+import std;
 
 import fan.print.error;
 export import fan.io.types;

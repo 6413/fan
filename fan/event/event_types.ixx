@@ -1,12 +1,10 @@
 module;
 
 #include <coroutine>
-#include <memory>
-#include <exception>
-#include <string>
-#include <any>
 
 export module fan.event.types;
+
+import std;
 
 export namespace fan {
   extern const int fs_o_append;

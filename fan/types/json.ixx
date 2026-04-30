@@ -1,13 +1,8 @@
 module;
-#include <string>
-#include <string_view>
-#include <vector>
-#include <unordered_map>
-#include <type_traits>
-#include <cstdint>
-#include <fan/utility.h>
 
 export module fan.types.json;
+
+import std;
 
 import fan.types;
 import fan.types.vector;

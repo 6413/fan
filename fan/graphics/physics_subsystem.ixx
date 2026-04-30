@@ -1,10 +1,11 @@
 module;
 
 #if defined(FAN_PHYSICS_2D)
-  #include <fan/utility.h>
 #endif
 
 export module fan.graphics.physics_subsystem;
+
+import std;
 
 #if defined(FAN_PHYSICS_2D)
   import fan.types;

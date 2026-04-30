@@ -1,20 +1,11 @@
 module;
 
-#include <string>
-#include <vector>
-#include <string_view>
-#include <cstring>
-
-#include <fan/utility.h>
-
 #ifdef fan_platform_windows
   #define NOMINMAX
   #define WIN32_LEAN_AND_MEAN
   #include <Windows.h>
-
   #pragma comment(lib, "user32.lib")
 #endif
-
 #if defined(FAN_VULKAN)
 #include <vulkan/vulkan.h>
 #endif
@@ -28,6 +19,8 @@ module;
 #include <GLFW/glfw3native.h>
 
 export module fan.window.input;
+
+import std;
 
 export namespace fan {
   using key_code_t = int;

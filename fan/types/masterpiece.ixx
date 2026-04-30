@@ -3,14 +3,11 @@
 //#define FAN_FMT
 
 #if defined(FAN_FMT)
-  #include <cstdint>
-  #include <type_traits>
-  #include <variant>
-  #include <ostream>
-  #include <tuple>
 #endif
 
 export module fan.types.masterpiece;
+
+import std;
 
 import fan.types.magic;
 

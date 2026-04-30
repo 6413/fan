@@ -1,10 +1,11 @@
 module;
+
 #if defined(FAN_GUI)
-  #include <string>
-  #include <algorithm>
 #endif
 
 export module fan.ascii_renderer;
+
+import std;
 
 #if defined(FAN_GUI)
 

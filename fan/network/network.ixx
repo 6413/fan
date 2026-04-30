@@ -1,34 +1,22 @@
 module;
 
 #if defined(FAN_NETWORK)
-
-#include <fan/utility.h>
-
-#include <expected>
 #include <coroutine>
-#include <memory>
-#include <string>
-#include <functional>
-#include <array>
-#include <sstream>
-
 #include <uv.h>
 #undef min
 #undef max
 #undef NO_ERROR
-
 #define __use_curl
-
 #ifdef __use_curl
   #include <curl/curl.h>
   #include <curl/multi.h>
 #endif
-
 #include <openssl/sha.h>
-
 #endif
 
 export module fan.network;
+
+import std;
 
 #if defined(FAN_NETWORK)
 

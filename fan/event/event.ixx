@@ -1,16 +1,10 @@
 module;
 
 #include <coroutine>
-#include <cstdint>
-#include <string>
-#include <memory>
-#include <vector>
-#include <functional>
-#include <thread>
-
-#include <fan/utility.h>
 
 export module fan.event;
+
+import std;
 
 import fan.mpl;
 

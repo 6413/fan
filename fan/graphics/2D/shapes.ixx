@@ -1,20 +1,12 @@
 module;
 
 #if defined(FAN_2D)
-  #include <span> 
-  #include <source_location>
-  #include <cstdlib>
-  #include <utility>
-  #include <vector>
-  #include <functional>
-  #include <memory>
-  #include <cstring>
 #endif
-
 #include <fan/graphics/opengl/init.h>
 
-
 export module fan.graphics.shapes;
+
+import std;
 
 #if defined(FAN_2D)
 

@@ -4,6 +4,8 @@ module;
 
 export module fan.graphics.common_types;
 
+import std;
+
 import fan.types.color;
 import fan.types.vector;
 

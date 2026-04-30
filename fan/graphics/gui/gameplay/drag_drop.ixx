@@ -1,10 +1,11 @@
 module;
 
 #if defined(FAN_GUI)
-#include <cstdint>
 #endif
 
 export module fan.graphics.gui.drag_drop;
+
+import std;
 
 #if defined(FAN_GUI)
 import fan.graphics.gameplay.types;
