@@ -13,7 +13,7 @@
       #define __empty_struct __empty_struct
     #endif
 
-    template<typename T, const char* str, uintptr_t dt_size>
+    template<typename T, const char* str, std::uintptr_t dt_size>
     struct __dme_t : T {
       __dme_t& operator=(const T v) requires (!std::is_same_v<T, __empty_struct>) {
         T::operator=(v);
@@ -31,26 +31,26 @@
         __VA_ARGS__ \
       }; \
       struct varname##_t : varname##structed_dt{ \
-        constexpr operator uintptr_t() const { return __COUNTER__ - DME_INTERNAL__BEG - 1; } \
-        static inline constexpr uintptr_t dss = (sizeof(#__VA_ARGS__) > 1) * sizeof(varname##structed_dt); \
+        constexpr operator std::uintptr_t() const { return __COUNTER__ - DME_INTERNAL__BEG - 1; } \
+        static inline constexpr std::uintptr_t dss = (sizeof(#__VA_ARGS__) > 1) * sizeof(varname##structed_dt); \
       }; \
       inline static struct varname##_t varname; \
       static inline constexpr char varname##_str[] = #varname; \
       __dme_t<value_type, varname##_str, varname##_t::dss> varname##_ram
 
 
-    template <typename main_t, uintptr_t index, typename T = __empty_struct>
+    template <typename main_t, std::uintptr_t index, typename T = __empty_struct>
     struct __dme_inherit_t{
       constexpr static main_t& items() { static main_t m; return m; }
       using value_type = T;
       using dme_type_t = __dme_t<value_type, __dme_empty_string, 0>;
-      constexpr const dme_type_t* NA(uintptr_t I) const { return &reinterpret_cast<const dme_type_t*>(this)[I]; }
-      constexpr dme_type_t* NA(uintptr_t I) { return const_cast<dme_type_t*>(static_cast<const __dme_inherit_t*>(this)->NA(I)); }
-      constexpr auto& operator[](uintptr_t I) { return *NA(I); }
-      constexpr const auto& operator[](uintptr_t I) const { return *NA(I); }
-      static constexpr uintptr_t size() { return sizeof(main_t) / sizeof(dme_type_t); }
+      constexpr const dme_type_t* NA(std::uintptr_t I) const { return &reinterpret_cast<const dme_type_t*>(this)[I]; }
+      constexpr dme_type_t* NA(std::uintptr_t I) { return const_cast<dme_type_t*>(static_cast<const __dme_inherit_t*>(this)->NA(I)); }
+      constexpr auto& operator[](std::uintptr_t I) { return *NA(I); }
+      constexpr const auto& operator[](std::uintptr_t I) const { return *NA(I); }
+      static constexpr std::uintptr_t size() { return sizeof(main_t) / sizeof(dme_type_t); }
       static constexpr auto DME_INTERNAL__BEG = index;
-      static constexpr const char* name(uintptr_t i) { return items().NA(i)->sn; }
+      static constexpr const char* name(std::uintptr_t i) { return items().NA(i)->sn; }
       // these are read only since constexpr static main_t
       static constexpr auto* begin() { return items().NA(0); }
       static constexpr auto* end() { return items().NA(size()); }
