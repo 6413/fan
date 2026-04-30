@@ -1,5 +1,7 @@
 module;
 
+#include <fan/utility.h>
+
 #if defined(fan_compiler_gcc)
   #define _GCC_MAX_ALIGN_T
   #define __MBSTATE_T_H
@@ -21,8 +23,6 @@ module;
   #include <nvcuvid.h>
   //#define loco_cuda
 #endif
-
-#include <fan/utility.h>
 
 export module fan.graphics.loco;
 
