@@ -9,10 +9,6 @@
   #define FAN_USE_GLAD
 #endif
 
-#include <utility>
-#include <string>
-#include <functional>
-
 #include <fan/utility.h>
 
 inline int& fan_track_opengl_calls() {

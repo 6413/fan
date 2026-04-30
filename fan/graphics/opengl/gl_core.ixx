@@ -1,7 +1,7 @@
 module;
 
 #if defined(FAN_OPENGL)
-#include <fan/graphics/opengl/init.h>
+  #include <fan/graphics/opengl/init.h>
 #endif
 
 export module fan.graphics.opengl.core;
