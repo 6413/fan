@@ -21,7 +21,7 @@
       }
       operator const char* () const { return sn; }
       const char *sn = str;
-      uint32_t m_DSS = dt_size;
+      std::uint32_t m_DSS = dt_size;
     };
 
     inline constexpr char __dme_empty_string[] = "";
