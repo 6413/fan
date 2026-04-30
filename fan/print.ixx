@@ -117,15 +117,20 @@ export namespace fan {
   template <typename ...Args> void wprint(const Args&... args) { detail::wprint_impl(format_wargs(args...), true); }
 
   template <typename ...Args>
-  void print_color(const fan::color& c, const Args&... args) {
+  void print_color_raw(const fan::color& c, const Args&... args) {
     detail::print_color_impl(c, format_args(args...));
+  }
+
+  template <typename ...Args>
+  void print_color(const fan::color& c, const Args&... args) {
+    print_color_raw(c, args..., '\n');
   }
 
   template <typename ...Args>
   void printr_ok(const Args&... args) {
     std::string message = format_args(args...);
     write_error_to_disk(message);
-    print_color(fan::colors::green, message);
+    print_color_raw(fan::colors::green, message);
   }
 
   template <typename ...Args>
@@ -138,7 +143,7 @@ export namespace fan {
   #ifndef fan_disable_warnings
     std::string message = format_args(args...);
     write_error_to_disk(message);
-    print_color(fan::colors::yellow, message);
+    print_color_raw(fan::colors::yellow, message);
   #endif
   }
 
@@ -147,7 +152,7 @@ export namespace fan {
   #ifndef fan_disable_errors
     std::string message = format_args(args...);
     write_error_to_disk(message);
-    print_color(fan::colors::red, message);
+    print_color_raw(fan::colors::red, message);
   #endif
   }
 
