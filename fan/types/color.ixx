@@ -366,24 +366,91 @@ export namespace fan {
     f32_t r = 0, g = 0, b = 0, a = 1;
   };
 
+  
+  constexpr uint32_t _fan_check_24bit(unsigned long long v) {
+    if (v > 0xFFFFFF) fan::throw_error_impl("literal must be 24-bit (0xRRGGBB)");
+    return static_cast<uint32_t>(v);
+  }
+  constexpr uint32_t _fan_check_32bit(unsigned long long v) {
+    if (v > 0xFFFFFFFF) fan::throw_error_impl("literal must be 32-bit (0xAARRGGBB etc.)");
+    return static_cast<uint32_t>(v);
+  }
+
+  namespace color_literals {
+    constexpr fan::color operator""_rgb(unsigned long long v) {
+      return fan::color::from_rgb(_fan_check_24bit(v));
+    }
+    constexpr fan::color operator""_rgba(unsigned long long v) {
+      return fan::color::from_rgba(_fan_check_32bit(v));
+    }
+    constexpr fan::color operator""_argb(unsigned long long v) {
+      return fan::color::from_argb(_fan_check_32bit(v));
+    }
+    constexpr fan::color operator""_abgr(unsigned long long v) {
+      return fan::color::from_abgr(_fan_check_32bit(v));
+    }
+    constexpr fan::color operator""_bgra(unsigned long long v) {
+      return fan::color::from_bgra(_fan_check_32bit(v));
+    }
+    constexpr fan::color operator""_gray(unsigned long long v) {
+      if (v > 255) fan::throw_error_impl("gray literal must be 0–255");
+      return fan::color::rgb(v, v, v);
+    }
+
+    fan::color operator""_hsl(const char* str, size_t len) {
+      f32_t h = 0, s = 0, l = 0;
+      std::sscanf(str, "%f,%f,%f", &h, &s, &l);
+      return fan::color::hsl(h / 360.f, s / 100.f, l / 100.f);
+    }
+    fan::color operator""_hsv(const char* str, size_t len) {
+      f32_t h = 0, s = 0, v = 0;
+      std::sscanf(str, "%f,%f,%f", &h, &s, &v);
+      return fan::color::hsv(h / 360.f, s / 100.f, v / 100.f);
+    }
+  }
+
+  using namespace fan::color_literals;
+
   namespace colors {
-    inline constexpr fan::color black = fan::color::from_rgba(0x000000FF);
-    inline constexpr fan::color gray = fan::color::from_rgba(0x808080FF);
-    inline constexpr fan::color red = fan::color::from_rgba(0xFF0000FF);
-    inline constexpr fan::color green = fan::color::from_rgba(0x00FF00FF);
-    inline constexpr fan::color blue = fan::color::from_rgba(0x0000FFFF);
-    inline constexpr fan::color white = fan::color::from_rgba(0xFFFFFFFF);
-    inline constexpr fan::color aqua = fan::color::from_rgba(0x00FFFFFF);
-    inline constexpr fan::color purple = fan::color::from_rgba(0x800080FF);
-    inline constexpr fan::color orange = fan::color::from_rgba(0xFFA500FF);
-    inline constexpr fan::color pink = fan::color::from_rgba(0xFF35B8FF);
-    inline constexpr fan::color yellow = fan::color::from_rgba(0xFFFF00FF);
-    inline constexpr fan::color gold = fan::color::from_rgba(0xFFD700FF);
-    inline constexpr fan::color cyan = fan::color::from_rgba(0x00FFFFFF);
-    inline constexpr fan::color magenta = fan::color::from_rgba(0xFF00FFFF);
-    inline constexpr fan::color transparent = fan::color::from_rgba(0x00000000);
-    inline constexpr fan::color lime = fan::color(0.2f, 0.8f, 0.2f, 1.0f);
-    inline constexpr fan::color brown = fan::color::from_rgb(0x8B6A3E);
+    inline constexpr fan::color aqua = 0x00FFFFFF_rgba;
+    inline constexpr fan::color black = 0x000000FF_rgba;
+    inline constexpr fan::color blue = 0x0000FFFF_rgba;
+    inline constexpr fan::color brown = 0x8B6A3EFF_rgba;
+    inline constexpr fan::color coral = 0xFF7F50FF_rgba;
+    inline constexpr fan::color crimson = 0xDC143CFF_rgba;
+    inline constexpr fan::color cyan = 0x00FFFFFF_rgba;
+    inline constexpr fan::color dark_blue = 0x00008BFF_rgba;
+    inline constexpr fan::color dark_cyan = 0x008B8BFF_rgba;
+    inline constexpr fan::color dark_gray = 0x505050FF_rgba;
+    inline constexpr fan::color dark_green = 0x006400FF_rgba;
+    inline constexpr fan::color dark_orange = 0xFF8C00FF_rgba;
+    inline constexpr fan::color dark_red = 0x8B0000FF_rgba;
+    inline constexpr fan::color gold = 0xFFD700FF_rgba;
+    inline constexpr fan::color gray = 0x808080FF_rgba;
+    inline constexpr fan::color green = 0x00FF00FF_rgba;
+    inline constexpr fan::color indigo = 0x4B0082FF_rgba;
+    inline constexpr fan::color ivory = 0xFFFFF0FF_rgba;
+    inline constexpr fan::color khaki = 0xF0E68CFF_rgba;
+    inline constexpr fan::color lavender = 0xE6E6FAFF_rgba;
+    inline constexpr fan::color lime = 0x32CD32FF_rgba;
+    inline constexpr fan::color magenta = 0xFF00FFFF_rgba;
+    inline constexpr fan::color maroon = 0x800000FF_rgba;
+    inline constexpr fan::color navy = 0x000080FF_rgba;
+    inline constexpr fan::color olive = 0x808000FF_rgba;
+    inline constexpr fan::color orange = 0xFFA500FF_rgba;
+    inline constexpr fan::color pink = 0xFF35B8FF_rgba;
+    inline constexpr fan::color plum = 0xDDA0DDFF_rgba;
+    inline constexpr fan::color purple = 0x800080FF_rgba;
+    inline constexpr fan::color red = 0xFF0000FF_rgba;
+    inline constexpr fan::color salmon = 0xFA8072FF_rgba;
+    inline constexpr fan::color silver = 0xC0C0C0FF_rgba;
+    inline constexpr fan::color tan = 0xD2B48CFF_rgba;
+    inline constexpr fan::color teal = 0x008080FF_rgba;
+    inline constexpr fan::color transparent = 0x00000000_rgba;
+    inline constexpr fan::color turquoise = 0x40E0D0FF_rgba;
+    inline constexpr fan::color violet = 0xEE82EEFF_rgba;
+    inline constexpr fan::color white = 0xFFFFFFFF_rgba;
+    inline constexpr fan::color yellow = 0xFFFF00FF_rgba;
   }
   namespace random {
     fan::color color();
@@ -401,48 +468,6 @@ export namespace fan {
   concept is_color = is_color_type_v<std::remove_cvref_t<T>>;
 
   void lerp_pixels(uint8_t* dst, const uint8_t* target, std::size_t size, f32_t t, uint8_t channels = 4);
-}
-
-constexpr uint32_t _fan_check_24bit(unsigned long long v) {
-  if (v > 0xFFFFFF) fan::throw_error_impl("literal must be 24-bit (0xRRGGBB)");
-  return static_cast<uint32_t>(v);
-}
-constexpr uint32_t _fan_check_32bit(unsigned long long v) {
-  if (v > 0xFFFFFFFF) fan::throw_error_impl("literal must be 32-bit (0xAARRGGBB etc.)");
-  return static_cast<uint32_t>(v);
-}
-
-export namespace fan::color_literals {
-  constexpr fan::color operator""_rgb(unsigned long long v) {
-    return fan::color::from_rgb(_fan_check_24bit(v));
-  }
-  constexpr fan::color operator""_rgba(unsigned long long v) {
-    return fan::color::from_rgba(_fan_check_32bit(v));
-  }
-  constexpr fan::color operator""_argb(unsigned long long v) {
-    return fan::color::from_argb(_fan_check_32bit(v));
-  }
-  constexpr fan::color operator""_abgr(unsigned long long v) {
-    return fan::color::from_abgr(_fan_check_32bit(v));
-  }
-  constexpr fan::color operator""_bgra(unsigned long long v) {
-    return fan::color::from_bgra(_fan_check_32bit(v));
-  }
-  constexpr fan::color operator""_gray(unsigned long long v) {
-    if (v > 255) fan::throw_error_impl("gray literal must be 0–255");
-    return fan::color::rgb(v, v, v);
-  }
-
-  fan::color operator""_hsl(const char* str, size_t len) {
-    f32_t h = 0, s = 0, l = 0;
-    std::sscanf(str, "%f,%f,%f", &h, &s, &l);
-    return fan::color::hsl(h / 360.f, s / 100.f, l / 100.f);
-  }
-  fan::color operator""_hsv(const char* str, size_t len) {
-    f32_t h = 0, s = 0, v = 0;
-    std::sscanf(str, "%f,%f,%f", &h, &s, &v);
-    return fan::color::hsv(h / 360.f, s / 100.f, v / 100.f);
-  }
 }
 
 #pragma pack(pop)
