@@ -72,7 +72,7 @@ export namespace fan {
         auto elapsed = this->elapsed();
         return elapsed >= m_time;
       }
-      explicit operator bool const() {
+      explicit operator bool() const {
         return finished();
       }
       bool started() const {
