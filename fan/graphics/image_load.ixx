@@ -1,10 +1,8 @@
 module;
 
-#include <cstdint>
-#include <source_location>
-#include <string>
-
 export module fan.graphics.image_load;
+
+import std;
 
 #if !defined(loco_no_stb)
   import fan.graphics.stb;

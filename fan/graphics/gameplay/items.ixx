@@ -1,11 +1,8 @@
 module;
 
-#include <cstdint>
-#include <string>
-#include <vector>
-#include <unordered_map>
-
 export module fan.graphics.gameplay.items;
+
+import std;
 
 import fan.utility;
 import fan.print.error;

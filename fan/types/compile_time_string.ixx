@@ -1,11 +1,8 @@
 module;
-#include <cstdint>
-#include <string_view>
-#include <cstring>
-#include <string>
-#include <functional>
 
 export module fan.types.compile_time_string;
+
+import std;
 
 export namespace fan {
 

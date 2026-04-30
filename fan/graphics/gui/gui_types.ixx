@@ -1,18 +1,14 @@
 module;
 
-#include <cstdint>
-#include <vector>
-
 #if defined(FAN_GUI)
   #include <fan/imgui/imgui.h>
   #include <fan/imgui/imgui_internal.h>
   #include <fan/imgui/implot.h>
 #endif
 
-#include <string>
-#include <algorithm> // topmost find
-
 export module fan.graphics.gui.types;
+
+import std;
 
 import fan.types.compile_time_string;
 

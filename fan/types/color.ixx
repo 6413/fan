@@ -2,11 +2,9 @@ module;
 
 //#undef FAN_GUI
 
-#include <cstdint>
-#include <string>
-#include <cmath>
-
 export module fan.types.color;
+
+import std;
 
 import fan.print.error;
 import fan.types;

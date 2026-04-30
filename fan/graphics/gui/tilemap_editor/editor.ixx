@@ -1,25 +1,11 @@
 module;
 
 #if defined(FAN_2D)
-
-#include <cstring>
-#include <functional>
-#include <map>
-#include <unordered_map>
-#include <unordered_set>
-#include <string>
-#include <vector>
-#include <source_location>
-#include <sstream>
-#include <fstream>
-#include <algorithm>
-#include <filesystem>
-
-#include <fan/utility.h>
-
 #endif
 
 export module fan.graphics.gui.tilemap_editor.editor;
+
+import std;
 
 #if defined(FAN_2D)
 

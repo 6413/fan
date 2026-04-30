@@ -1,14 +1,11 @@
 module;
+
 #if defined(FAN_2D)
-#include <vector>
-#include <unordered_map>
-#include <limits>
-#include <cstdint>
-#include <algorithm>
-#include <optional>
 #endif
 
 export module fan.spatial;
+
+import std;
 
 #if defined(FAN_2D)
 

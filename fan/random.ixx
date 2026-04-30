@@ -1,10 +1,8 @@
 module;
 
-#include <cmath>
-#include <random>
-#include <cstdlib>
-
 export module fan.random;
+
+import std;
 
 import fan.types;
 import fan.math;

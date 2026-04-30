@@ -1,5 +1,7 @@
 export module fan;
 
+import std;
+
 export import fan.types;
 export import fan.types.vector;
 export import fan.types.color;

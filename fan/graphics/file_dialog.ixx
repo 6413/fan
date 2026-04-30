@@ -1,12 +1,8 @@
 module;
 
-#include <string>
-#include <vector>
-#include <functional>
-#include <optional>
-#include <memory>
-
 export module fan.file_dialog;
+
+import std;
 
 import fan.event.types;
 import fan.event;

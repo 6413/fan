@@ -1,11 +1,10 @@
 module;
 
-#include <type_traits>
 #include <coroutine>
-#include <cstdint>
-#include <utility>
 
 export module fan.mpl;
+
+import std;
 
 export namespace fan {
   template <typename T, typename = void>

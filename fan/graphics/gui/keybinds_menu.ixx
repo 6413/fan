@@ -1,14 +1,11 @@
 module;
 
 #if defined(FAN_GUI)
-  #include <vector>
-  #include <string>
-  #include <unordered_map>
-  #include <set>
-  #include <functional>
 #endif
 
 export module fan.graphics.gui.keybinds_menu;
+
+import std;
 
 #if defined(FAN_GUI)
 

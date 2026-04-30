@@ -1,9 +1,8 @@
 module;
 
-#include <string>
-#include <type_traits>
-
 export module fan.print.error;
+
+import std;
 
 export namespace fan {
   struct log_t { std::string filename = "fan_errors.txt"; };

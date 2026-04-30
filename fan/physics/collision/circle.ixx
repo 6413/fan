@@ -2,6 +2,8 @@ module;
 
 export module fan.physics.collision.circle;
 
+import std;
+
 import fan.types;
 import fan.types.vector;
 

@@ -1,11 +1,8 @@
 module;
-#include <string>
-#include <string_view>
-#include <type_traits>
-#include <cstdint>
-#include <vector>
 
 export module fan.formatter;
+
+import std;
 
 namespace fan::detail {
 

@@ -2,18 +2,12 @@ module;
 
 #if defined(FAN_2D)
 #if defined(FAN_PHYSICS_2D)
-#include <fan/utility.h>
-#include <unordered_map>
-#include <vector>
-#include <string>
-#include <variant>
-#include <source_location>
-#include <functional>
-#include <cstdint>
 #endif
 #endif
 
 export module fan.graphics.gui.tilemap_editor.loader;
+
+import std;
 
 #if defined(FAN_2D)
 

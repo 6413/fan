@@ -1,18 +1,8 @@
 module;
 
-#include <vector>
-#include <cstring>
-#include <memory>
-#include <string>
-#include <iomanip> // std::quoted
-#include <charconv>
-#include <ranges>
-#include <optional>
-
-#include <ios>
-#include <sstream>
-
 export module fan.types.fstring;
+
+import std;
 
 import fan.types;
 import fan.print.error; // for throw_error with msg

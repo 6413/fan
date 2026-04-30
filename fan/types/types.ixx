@@ -1,10 +1,8 @@
 module;
 
-#include <cwchar>
-#include <cstdint>
-#include <vector>
-
 export module fan.types;
+
+import std;
 
 export {
   using si_t = std::intptr_t;

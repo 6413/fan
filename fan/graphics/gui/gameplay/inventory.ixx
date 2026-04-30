@@ -1,14 +1,11 @@
 module;
 
 #if defined(FAN_GUI)
-
-#include <cstdint>
-#include <optional>
-#include <vector>
-
 #endif
 
 export module fan.graphics.gui.inventory;
+
+import std;
 
 #if defined(FAN_GUI)
 

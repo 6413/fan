@@ -2,6 +2,8 @@ module;
 
 export module fan.physics.collision.triangle;
 
+import std;
+
 import fan.types.vector;
 import fan.math;
 

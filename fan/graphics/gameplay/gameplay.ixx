@@ -1,14 +1,11 @@
 module;
 
 #if defined(FAN_PHYSICS_2D)
-
-#include <vector>
-#include <string>
-#include <unordered_map>
-
 #endif
 
 export module fan.graphics.gameplay;
+
+import std;
 
 #if defined(FAN_PHYSICS_2D)
 

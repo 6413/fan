@@ -1,20 +1,11 @@
 module;
 
-#include <cstdint>
-#include <string>
-#include <type_traits>
-#include <unordered_map>
-#include <source_location>
-#include <functional>
 #include <coroutine>
-#include <array>
-#include <span>
-
-#include <fan/utility.h>
-
 #include <fan/graphics/common_context_functions_declare.h>
 
 export module fan.graphics.common_context;
+
+import std;
 
 import fan.types;
 import fan.types.color;

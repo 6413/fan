@@ -1,13 +1,10 @@
 module;
-#include <string>
-#include <string_view>
-#include <vector>
-#include <functional>
+
 #include <coroutine>
-#include <expected>
-#include <fan/utility.h>
 
 export module fan.process;
+
+import std;
 import fan.event;
 import fan.event.types;
 import fan.print;

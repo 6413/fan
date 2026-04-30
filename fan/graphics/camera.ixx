@@ -1,5 +1,7 @@
 export module fan.camera;
 
+import std;
+
 import fan.types;
 import fan.math;
 import fan.types.vector;

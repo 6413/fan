@@ -1,22 +1,12 @@
 // fan.graphics.gui.tilemap_editor.core.ixx
 module;
+
 #if defined(FAN_2D)
-#include <cstring>
-#include <functional>
-#include <map>
-#include <unordered_map>
-#include <unordered_set>
-#include <string>
-#include <vector>
-#include <source_location>
-#include <sstream>
-#include <fstream>
-#include <algorithm>
-#include <filesystem>
-#include <cstdint>
-#include <fan/utility.h>
 #endif
+
 export module fan.graphics.gui.tilemap_editor.core;
+
+import std;
 
 #if defined(FAN_2D)
 #if defined(FAN_GUI) && defined(FAN_PHYSICS_2D)

@@ -1,10 +1,8 @@
 module;
 
-#include <cstdint>
-#include <string>
-#include <vector>
-
 export module fan.graphics.gui.text_logger;
+
+import std;
 
 #if defined(FAN_GUI)
 

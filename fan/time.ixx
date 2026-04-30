@@ -1,9 +1,8 @@
 module;
 
-#include <cstdint>
-#include <fan/utility.h>
-
 export module fan.time;
+
+import std;
 
 import fan.types;
 

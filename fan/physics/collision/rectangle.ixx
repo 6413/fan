@@ -1,9 +1,8 @@
 module;
 
-#include <cstdint>
-#include <algorithm>
-
 export module fan.physics.collision.rectangle;
+
+import std;
 
 import fan.types;
 import fan.physics.collision.triangle;

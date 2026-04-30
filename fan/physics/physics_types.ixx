@@ -4,11 +4,9 @@ module;
   #include <box2d/box2d.h>
 #endif
 
-#include <functional>
-#include <utility>
-#include <cmath>
-
 export module fan.physics.types;
+
+import std;
 
 import fan.types;
 import fan.types.vector;

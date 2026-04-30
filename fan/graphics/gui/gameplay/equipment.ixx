@@ -1,11 +1,11 @@
 module;
 
 #if defined(FAN_GUI)
-#include <cstdint>
-#include <array>
 #endif
 
 export module fan.graphics.gui.gameplay.equipment;
+
+import std;
 
 #if defined(FAN_GUI)
 import fan.types.vector;

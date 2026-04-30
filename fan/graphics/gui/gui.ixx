@@ -1,14 +1,8 @@
 module;
 
-#include <string>
-#include <functional>
-#include <queue>
-#include <memory>
-#include <optional>
-
-#include <fan/utility.h>
-
 export module fan.graphics.gui;
+
+import std;
 
 #if defined(FAN_GUI)
   import fan.types;

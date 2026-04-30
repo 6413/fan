@@ -1,14 +1,8 @@
 module;
 
-#include <fan/utility.h>
-
-#include <cstdint>
-#include <cstdlib>
-#include <cstring>
-#include <vector>
-#include <type_traits>
-
 export module fan.physics.common_context;
+
+import std;
 
 #if defined(FAN_PHYSICS_2D)
 

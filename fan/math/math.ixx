@@ -1,15 +1,8 @@
 module;
 
-#include <cstdint>
-#include <cmath>
-#include <limits>
-#include <initializer_list>
-#include <string_view>
-#include <charconv>
-#include <expected>
-#include <optional>
-
 export module fan.math;
+
+import std;
 
 import fan.types;
 

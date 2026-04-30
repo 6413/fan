@@ -1,17 +1,8 @@
 module;
 
-#include <cstdint>
-#include <string>
-#include <string_view>
-#include <unordered_map>
-#include <cstring>
-#include <functional>
-#include <vector>
-#include <algorithm>
-
-#include <fan/utility.h>
-
 export module fan.window.input_action;
+
+import std;
 
 import fan.window.input;
 import fan.window;

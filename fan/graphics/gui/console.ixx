@@ -1,12 +1,8 @@
 module;
 
-#include <cstdint>
-#include <string>
-#include <vector>
-#include <functional>
-#include <fan/utility.h>
-
 export module fan.console;
+
+import std;
 
 import fan.types.color;
 import fan.types.fstring;

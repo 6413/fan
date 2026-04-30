@@ -6,22 +6,14 @@ module;
   #include <fan/imgui/implot.h>
   #include <fan/imgui/imgui_internal.h>
   #include <fan/imgui/ImGuizmo.h>
-
-  #include <string_view>
-  #include <functional>
-  #include <cstdint>
-  #include <span>
-  #include <optional>
-  #include <string>
 #endif
-
 #if defined(FAN_VULKAN)
   #include <vulkan/vulkan.h>
 #endif
 
-#include <fan/utility.h>
-
 export module fan.graphics.gui.base;
+
+import std;
 
 #if defined(FAN_GUI)
 

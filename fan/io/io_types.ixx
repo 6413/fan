@@ -1,14 +1,8 @@
 // fan.io.types.ixx
 module;
-#include <cstdint>
-#include <vector>
-#include <algorithm>
-#include <ios>
-#include <cstdio>
-#include <filesystem>
-#include <string_view>
-#include <span>
 export module fan.io.types;
+
+import std;
 
 export namespace fan {
   namespace tmpl {
