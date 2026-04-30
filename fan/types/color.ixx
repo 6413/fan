@@ -412,6 +412,7 @@ export namespace fan {
   using namespace fan::color_literals;
 
   namespace colors {
+    inline constexpr fan::color amber = 0xFFBF00FF_rgba;
     inline constexpr fan::color aqua = 0x00FFFFFF_rgba;
     inline constexpr fan::color black = 0x000000FF_rgba;
     inline constexpr fan::color blue = 0x0000FFFF_rgba;
