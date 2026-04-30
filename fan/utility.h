@@ -164,6 +164,10 @@
 	// prints warning if value is -1
 #define fan_validate_value(value, text) if (value == (decltype(value))fan::uninitialized) { fan::throw_error(text); }
 
+#ifndef offsetof
+	#define offsetof(type, member) ((std::size_t)(&((type*)0)->member))
+#endif
+
 #ifndef OFFSETLESS
 	#define OFFSETLESS(ptr_m, t_m, d_m) \
 		((t_m *)((uint8_t *)(ptr_m) - offsetof(t_m, d_m)))
