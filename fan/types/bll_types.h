@@ -241,7 +241,7 @@ inline unsigned char __clz64(unsigned long long p0) {
 #if defined(__x86_64__) || defined(_M_AMD64)
   #define SYSTEM_BIT 64
   #define SYSTEM_BYTE 8
-#elif defined(__i386__) || defined(_WIN32)
+#elif defined(__i386__) || defined(_WIN32) || defined(__wasm__)
   #define SYSTEM_BIT 32
   #define SYSTEM_BYTE 4
 #else 

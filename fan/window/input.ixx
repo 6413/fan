@@ -1,15 +1,18 @@
 module;
 
+#include <string>
+#include <vector>
+#include <string_view>
+#include <cstring>
+
 #include <fan/utility.h>
 
 #ifdef fan_platform_windows
+  #define NOMINMAX
+  #define WIN32_LEAN_AND_MEAN
+  #include <Windows.h>
 
-#define NOMINMAX
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
-
-#pragma comment(lib, "user32.lib")
-
+  #pragma comment(lib, "user32.lib")
 #endif
 
 #if defined(FAN_VULKAN)
@@ -23,10 +26,6 @@ module;
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
-#include <string>
-#include <vector>
-#include <string_view>
-#include <cstring>
 
 export module fan.window.input;
 

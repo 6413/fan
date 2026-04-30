@@ -1,7 +1,6 @@
 module;
 
 #if defined(FAN_GUI)
-  #include <fan/utility.h>
 
   #include <filesystem>
   #include <string>
@@ -13,6 +12,7 @@ module;
   #include <unordered_map>
 
   #include <fan/imgui/imgui_internal.h>
+  #include <fan/utility.h>
 #endif
 
 module fan.graphics.gui;

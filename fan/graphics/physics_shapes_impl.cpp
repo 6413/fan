@@ -2,10 +2,6 @@ module;
 
 #if defined(FAN_2D)
 
-  #if defined(FAN_PHYSICS_2D)
-    #include <fan/utility.h>
-    #include <box2d/box2d.h>
-  #endif
 
   #include <vector>
   #include <utility>
@@ -16,6 +12,10 @@ module;
   #include <coroutine>
   #include <algorithm>
 
+  #if defined(FAN_PHYSICS_2D)
+    #include <fan/utility.h>
+    #include <box2d/box2d.h>
+  #endif
 #endif
 
 module fan.graphics.physics_shapes;

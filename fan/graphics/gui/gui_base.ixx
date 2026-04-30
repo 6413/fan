@@ -1,7 +1,5 @@
 module;
 
-#include <fan/utility.h>
-
 #if defined(FAN_GUI)
   #include <fan/imgui/imgui.h>
   #include <fan/imgui/imgui_impl_glfw.h>
@@ -20,6 +18,8 @@ module;
 #if defined(FAN_VULKAN)
   #include <vulkan/vulkan.h>
 #endif
+
+#include <fan/utility.h>
 
 export module fan.graphics.gui.base;
 

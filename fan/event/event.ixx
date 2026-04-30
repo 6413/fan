@@ -1,7 +1,5 @@
 module;
 
-#include <fan/utility.h>
-
 #include <coroutine>
 #include <cstdint>
 #include <string>
@@ -9,6 +7,8 @@ module;
 #include <vector>
 #include <functional>
 #include <thread>
+
+#include <fan/utility.h>
 
 export module fan.event;
 

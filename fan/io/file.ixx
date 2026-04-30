@@ -1,4 +1,11 @@
 module;
+
+#include <string>
+#include <filesystem>
+#include <source_location>
+#include <vector>
+#include <string_view>
+
 #include <fan/utility.h>
 #if defined(fan_platform_windows)
   #include <Windows.h>
@@ -6,11 +13,7 @@ module;
   #include <unistd.h>
   #include <limits.h>
 #endif
-#include <string>
-#include <filesystem>
-#include <source_location>
-#include <vector>
-#include <string_view>
+
 export module fan.io.file;
 
 import fan.print.error;

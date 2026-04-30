@@ -1,9 +1,11 @@
 #pragma once
 
-#if !defined(__dme)
-
+/*
   #include <cstdint>
   #include <type_traits>
+*/
+
+#if !defined(__dme)
 
   #pragma pack(push, 1)
     #ifndef __empty_struct

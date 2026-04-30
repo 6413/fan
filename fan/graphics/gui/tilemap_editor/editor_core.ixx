@@ -1,7 +1,6 @@
 // fan.graphics.gui.tilemap_editor.core.ixx
 module;
 #if defined(FAN_2D)
-#include <fan/utility.h>
 #include <cstring>
 #include <functional>
 #include <map>
@@ -15,6 +14,7 @@ module;
 #include <algorithm>
 #include <filesystem>
 #include <cstdint>
+#include <fan/utility.h>
 #endif
 export module fan.graphics.gui.tilemap_editor.core;
 
