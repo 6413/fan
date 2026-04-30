@@ -110,7 +110,7 @@ export namespace fan {
         AVFrame* frame = nullptr;
         AVPacket* packet = nullptr;
         SwsContext* sws_ctx = nullptr;
-        uint8_t* converted_data[4] = { nullptr };
+        std::uint8_t* converted_data[4] = { nullptr };
         int converted_linesize[4] = { 0 };
         std::string codec_name;
         bool initialized = false;
@@ -249,7 +249,7 @@ export namespace fan {
             av_opt_set_int(encoder->codec_ctx->priv_data, "async_depth", 8, 0);
             av_opt_set_int(encoder->codec_ctx->priv_data, "zerolatency", 0, 0);
 
-            uint32_t surfaces = config.frame_rate >= 144 ? 48 :
+            std::uint32_t surfaces = config.frame_rate >= 144 ? 48 :
               config.frame_rate >= 120 ? 40 : 32;
             av_opt_set_int(encoder->codec_ctx->priv_data, "surfaces", surfaces, 0);
             av_opt_set_int(encoder->codec_ctx->priv_data, "bf", 0, 0);
@@ -471,10 +471,10 @@ export namespace fan {
       }
 
       struct encode_result_t {
-        std::vector<uint8_t> data;
+        std::vector<std::uint8_t> data;
         bool is_keyframe = false;
-        int64_t pts = 0;
-        int64_t dts = 0;
+        std::int64_t pts = 0;
+        std::int64_t dts = 0;
 
         encode_result_t() = default;
         encode_result_t(const encode_result_t&) = delete;
@@ -483,11 +483,11 @@ export namespace fan {
         encode_result_t& operator=(encode_result_t&&) = default;
       };
 
-      std::vector<encode_result_t> encode_frame(uint8_t* bgra_data, int stride, int64_t pts, bool force_keyframe = false) {
+      std::vector<encode_result_t> encode_frame(std::uint8_t* bgra_data, int stride, std::int64_t pts, bool force_keyframe = false) {
         std::vector<encode_result_t> results;
-        static uint64_t frame_count = 0;
-        static uint64_t total_encode_time = 0;
-        static uint64_t total_output_bytes = 0;
+        static std::uint64_t frame_count = 0;
+        static std::uint64_t total_encode_time = 0;
+        static std::uint64_t total_output_bytes = 0;
         static auto last_stats_time = std::chrono::steady_clock::now();
 
         auto encode_start = std::chrono::high_resolution_clock::now();
@@ -511,7 +511,7 @@ export namespace fan {
 
         if (!bgra_data || stride <= 0) return results;
 
-        const uint8_t* src_data[4] = { bgra_data, nullptr, nullptr, nullptr };
+        const std::uint8_t* src_data[4] = { bgra_data, nullptr, nullptr, nullptr };
         int src_linesize[4] = { stride, 0, 0, 0 };
 
         if (sws_scale(encoder->sws_ctx, src_data, src_linesize, 0, encoder->screencap_res.y,
@@ -522,11 +522,11 @@ export namespace fan {
         encoder->frame->pts = pts;
         encoder->frame->pict_type = force_keyframe ? AV_PICTURE_TYPE_I : AV_PICTURE_TYPE_NONE;
 
-        static uint64_t last_forced_keyframe_pts = 0;
-        static uint64_t keyframe_request_count = 0;
+        static std::uint64_t last_forced_keyframe_pts = 0;
+        static std::uint64_t keyframe_request_count = 0;
 
         if (force_keyframe) {
-          uint64_t frames_since_last = pts - last_forced_keyframe_pts;
+          std::uint64_t frames_since_last = pts - last_forced_keyframe_pts;
           keyframe_request_count++;
 #if __debug_prints
           fan::print_throttled("encoder_forced_keyframe: #" + std::to_string(keyframe_request_count) +
@@ -582,8 +582,8 @@ export namespace fan {
           double avg_bitrate = (double)total_output_bytes * 8 * config_.frame_rate / frame_count;
           double target_bitrate = config_.bitrate;
 
-          static uint64_t total_keyframes = 0;
-          static uint64_t total_frames_counted = 0;
+          static std::uint64_t total_keyframes = 0;
+          static std::uint64_t total_frames_counted = 0;
           for (const auto& result : results) {
             total_frames_counted++;
             if (result.is_keyframe) total_keyframes++;
@@ -611,7 +611,7 @@ export namespace fan {
         return results;
       }
 
-      bool update_config(const codec_config_t& new_config, uint8_t update_flags) {
+      bool update_config(const codec_config_t& new_config, std::uint8_t update_flags) {
         if (update_flags & codec_update_e::codec) {
           pending_config_ = new_config;
           needs_codec_reinit_.store(true);
@@ -877,7 +877,7 @@ export namespace fan {
         char buffer[2048];
         vsnprintf(buffer, sizeof(buffer), fmt, vl);
 
-        size_t len = strlen(buffer);
+        std::size_t len = strlen(buffer);
         if (len && buffer[len - 1] == '\n')
           buffer[len - 1] = '\0';
 
@@ -925,24 +925,24 @@ export namespace fan {
         return false;
       }
 
-      std::string detect_codec_from_data(const uint8_t* data, size_t size) {
+      std::string detect_codec_from_data(const std::uint8_t* data, std::size_t size) {
         if (size < 4) return "h264";
 
         if (data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x01) {
           if (size >= 5) {
-            uint8_t nal_type = data[4] & 0x1F;
+            std::uint8_t nal_type = data[4] & 0x1F;
             if (nal_type <= 23) return "h264";
           }
           return "h264";
         }
 
         if (size >= 5 && data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x01) {
-          uint8_t nal_type = (data[4] & 0x7E) >> 1;
+          std::uint8_t nal_type = (data[4] & 0x7E) >> 1;
           if (nal_type >= 32 && nal_type <= 63) return "hevc";
         }
 
         if (size >= 2) {
-          uint8_t obu_type = (data[0] >> 3) & 0x0F;
+          std::uint8_t obu_type = (data[0] >> 3) & 0x0F;
           if (obu_type >= 1 && obu_type <= 8) return "av1";
         }
 
@@ -1023,16 +1023,16 @@ export namespace fan {
       }
 
       struct decode_result_t {
-        std::vector<std::vector<uint8_t>> plane_data;
+        std::vector<std::vector<std::uint8_t>> plane_data;
         std::vector<int> linesize;
         fan::vec2ui image_size{ 0, 0 };
         AVPixelFormat pixel_format = AV_PIX_FMT_NONE;
         bool success = false;
         bool was_hardware_decoded = false;
-        int64_t pts = 0;
+        std::int64_t pts = 0;
       };
 
-      std::vector<decode_result_t> decode_packet(const uint8_t* data, size_t size, const std::string& forced_codec) {
+      std::vector<decode_result_t> decode_packet(const std::uint8_t* data, std::size_t size, const std::string& forced_codec) {
         std::vector<decode_result_t> results;
 
         if (!initialized_) {
@@ -1083,7 +1083,7 @@ export namespace fan {
         packet_count++;
 
         if (size >= 5 && data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x01) {
-          uint8_t nal_type = data[4] & 0x1F;
+          std::uint8_t nal_type = data[4] & 0x1F;
 
           if (nal_type == 7) {
             has_seen_sps = true;
@@ -1093,7 +1093,7 @@ export namespace fan {
           }
         }
 
-        packet_->data = const_cast<uint8_t*>(data);
+        packet_->data = const_cast<std::uint8_t*>(data);
         packet_->size = size;
 
         int ret = avcodec_send_packet(codec_ctx_, packet_);
@@ -1113,7 +1113,7 @@ export namespace fan {
               std::string detected_codec = detect_codec_from_data(data, size);
               if (find_and_init_sw_decoder(detected_codec)) {
                 eagain_count = 0;
-                packet_->data = const_cast<uint8_t*>(data);
+                packet_->data = const_cast<std::uint8_t*>(data);
                 packet_->size = size;
                 ret = avcodec_send_packet(codec_ctx_, packet_);
               }
@@ -1168,8 +1168,8 @@ export namespace fan {
           result.was_hardware_decoded = using_hardware_;
           result.pts = target_frame->pts;
 
-          uint32_t actual_width = target_frame->width;
-          uint32_t actual_height = target_frame->height;
+          std::uint32_t actual_width = target_frame->width;
+          std::uint32_t actual_height = target_frame->height;
 
           if (using_hardware_ && target_frame->format == hw_pixel_format_) {
 
@@ -1293,7 +1293,7 @@ export namespace fan {
 
     struct resolution_system_t {
       struct resolution_t {
-        uint32_t width, height;
+        std::uint32_t width, height;
         std::string name;
         std::string category;
         f32_t aspect_ratio() const { return static_cast<f32_t>(width) / height; }
@@ -1405,7 +1405,7 @@ export namespace fan {
         };
       }
 
-      static resolution_t get_optimal_resolution(uint32_t screen_width, uint32_t screen_height) {
+      static resolution_t get_optimal_resolution(std::uint32_t screen_width, std::uint32_t screen_height) {
         f32_t screen_aspect = static_cast<f32_t>(screen_width) / screen_height;
 
         auto matching_aspect = get_resolutions_by_aspect(screen_aspect, 0.02f);
@@ -1427,7 +1427,7 @@ export namespace fan {
 
     struct resolution_manager_t {
       struct detected_info_t {
-        uint32_t screen_width, screen_height;
+        std::uint32_t screen_width, screen_height;
         f32_t screen_aspect;
         resolution_system_t::resolution_t optimal_resolution;
         std::vector<resolution_system_t::resolution_t> matching_aspect_resolutions;
@@ -1516,9 +1516,9 @@ export namespace fan {
       }
 
       struct encode_data_t {
-        std::vector<uint8_t> data;
+        std::vector<std::uint8_t> data;
         bool is_keyframe = false;
-        int64_t timestamp = 0;
+        std::int64_t timestamp = 0;
       };
 
       bool encode_write() {
@@ -1576,7 +1576,7 @@ export namespace fan {
           return false;
         }
 
-        size_t expected_buffer_size = mdscr.Geometry.LineSize * mdscr.Geometry.Resolution.y;
+        std::size_t expected_buffer_size = mdscr.Geometry.LineSize * mdscr.Geometry.Resolution.y;
 
         int min_line_size = mdscr.Geometry.Resolution.x * 4;
         if (mdscr.Geometry.LineSize < min_line_size) {
@@ -1613,7 +1613,7 @@ export namespace fan {
         return !results.empty();
       }
 
-      size_t encode_read(uint8_t** data) {
+      std::size_t encode_read(std::uint8_t** data) {
         std::lock_guard<std::mutex> lock(data_mutex);
 
         if (encoded_packets_.empty()) {
@@ -1628,15 +1628,15 @@ export namespace fan {
       }
 
       void sleep_thread() {
-        uint64_t target_frame_time_ns = 1000000000ULL / config_.frame_rate;
-        uint64_t current_time = fan::time::now();
-        uint64_t time_diff = current_time - frame_process_start_time_;
+        std::uint64_t target_frame_time_ns = 1000000000ULL / config_.frame_rate;
+        std::uint64_t current_time = fan::time::now();
+        std::uint64_t time_diff = current_time - frame_process_start_time_;
 
         if (time_diff > target_frame_time_ns) {
           frame_process_start_time_ = current_time;
         }
         else {
-          uint64_t sleep_time = target_frame_time_ns - time_diff;
+          std::uint64_t sleep_time = target_frame_time_ns - time_diff;
           frame_process_start_time_ = current_time + sleep_time;
 
           if (config_.frame_rate >= 120) {
@@ -1676,7 +1676,7 @@ export namespace fan {
         user_height = 0;
       }
 
-      void set_user_resolution(uint32_t width, uint32_t height) {
+      void set_user_resolution(std::uint32_t width, std::uint32_t height) {
 
         config_.width = width;
         config_.height = height;
@@ -1690,27 +1690,27 @@ export namespace fan {
 
       codec_config_t config_;
       std::string name = "libx264";
-      uintptr_t new_codec = 0;
-      uint8_t update_flags = 0;
-      uint8_t encode_write_flags = 0;
+      std::uintptr_t new_codec = 0;
+      std::uint8_t update_flags = 0;
+      std::uint8_t encode_write_flags = 0;
       bool user_set_resolution = false;
-      uint32_t user_width = 0, user_height = 0;
+      std::uint32_t user_width = 0, user_height = 0;
       bool mdscr_initialized_ = false;
 
       resolution_manager_t resolution_manager;
 
       libav_encoder_t encoder_;
       MD_SCR_t mdscr;
-      uint8_t* screen_buffer = nullptr;
+      std::uint8_t* screen_buffer = nullptr;
 
       std::vector<encode_data_t> encoded_packets_;
       encode_data_t current_packet_;
       std::mutex data_mutex;
       std::mutex mutex;
 
-      int64_t frame_timestamp_ = 0;
-      uint64_t encoder_start_time_ = fan::time::now();
-      uint64_t frame_process_start_time_ = encoder_start_time_;
+      std::int64_t frame_timestamp_ = 0;
+      std::uint64_t encoder_start_time_ = fan::time::now();
+      std::uint64_t frame_process_start_time_ = encoder_start_time_;
     };
 
     struct screen_decode_t {
@@ -1754,14 +1754,14 @@ export namespace fan {
       }
 
       struct decode_data_t {
-        std::array<std::vector<uint8_t>, 4> data;
+        std::array<std::vector<std::uint8_t>, 4> data;
         std::array<fan::vec2ui, 4> stride;
         fan::vec2ui image_size = { 0, 0 };
-        uint8_t pixel_format = 0;
-        uint8_t type = 0;  // 0 = success, >250 = error codes
+        std::uint8_t pixel_format = 0;
+        std::uint8_t type = 0;  // 0 = success, >250 = error codes
       };
 
-      decode_data_t decode(void* data, uintptr_t length, fan::graphics::shape_t& universal_image_renderer) {
+      decode_data_t decode(void* data, std::uintptr_t length, fan::graphics::shape_t& universal_image_renderer) {
         decode_data_t ret;
 
         if (update_flags & codec_update_e::codec) {
@@ -1777,7 +1777,7 @@ export namespace fan {
           reload_codec_cb();
         }
 
-        auto results = decoder_.decode_packet(static_cast<const uint8_t*>(data), length, name);
+        auto results = decoder_.decode_packet(static_cast<const std::uint8_t*>(data), length, name);
 
         if (results.empty()) {
           ret.type = 252;
@@ -1805,9 +1805,9 @@ export namespace fan {
           return ret;
         }
 
-        for (size_t i = 0; i < frame.plane_data.size() && i < 4; i++) {
+        for (std::size_t i = 0; i < frame.plane_data.size() && i < 4; i++) {
           ret.data[i] = frame.plane_data[i];
-          ret.stride[i] = { static_cast<uint32_t>(frame.linesize[i]), 0 };
+          ret.stride[i] = { static_cast<std::uint32_t>(frame.linesize[i]), 0 };
         }
 
         frame_size_ = frame.image_size;
@@ -1818,8 +1818,8 @@ export namespace fan {
 
 
       std::string name = "auto-detect";
-      uintptr_t new_codec = 0;
-      uint8_t update_flags = 0;
+      std::uintptr_t new_codec = 0;
+      std::uint8_t update_flags = 0;
       fan::vec2ui frame_size_ = { 1, 1 };
       fan::vec2ui decoded_size;
 
@@ -1829,7 +1829,7 @@ export namespace fan {
       std::function<void()> reload_codec_cb = [] {};
     };
 
-    uint8_t convert_pixel_format(::AVPixelFormat fmt) {
+    std::uint8_t convert_pixel_format(::AVPixelFormat fmt) {
       switch (fmt) {
       case AV_PIX_FMT_YUV420P: return fan::graphics::image_format_e::yuv420p;
       case AV_PIX_FMT_NV12: return fan::graphics::image_format_e::nv12;

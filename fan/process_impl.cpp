@@ -12,9 +12,9 @@ module;
   #define DPRINT(...) ((void)0)
 #endif
 
-module fan.process;
+#include <fan/utility.h>
 
-import std;
+module fan.process;
 
 import fan.print.error;
 
@@ -65,7 +65,7 @@ namespace fan::process {
     opts.stdio = stdio;
     opts.stdio_count = 3;
     opts.flags = UV_PROCESS_WINDOWS_HIDE;
-    opts.exit_cb = [](uv_process_t* proc, int64_t exit_status, int) {
+    opts.exit_cb = [](uv_process_t* proc, std::int64_t exit_status, int) {
       auto* st = static_cast<spawn_state_t*>(proc->data);
       DPRINT("[process] exit_cb: exit_status=", exit_status, " last_line=", st->last_line);
       st->exit_code = (int)exit_status;
@@ -91,7 +91,7 @@ namespace fan::process {
     DPRINT("[process] pid=", st->process.pid);
 
     uv_read_start(reinterpret_cast<uv_stream_t*>(&st->pipe),
-      [](uv_handle_t*, size_t n, uv_buf_t* buf) {
+      [](uv_handle_t*, std::size_t n, uv_buf_t* buf) {
         buf->base = new char[n];
         buf->len = (unsigned long)n;
       },
@@ -99,7 +99,7 @@ namespace fan::process {
         auto* st = static_cast<spawn_state_t*>(stream->data);
         if (nread > 0) {
           st->line_buf.append(buf->base, nread);
-          size_t pos;
+          std::size_t pos;
           while ((pos = st->line_buf.find_first_of("\n\r")) != std::string::npos) {
             std::string line = st->line_buf.substr(0, pos);
             st->line_buf.erase(0, pos + 1);
@@ -183,7 +183,7 @@ namespace fan::process {
     std::coroutine_handle<> read_handle {};
   };
 
-  static void ipc_alloc_cb(uv_handle_t*, size_t n, uv_buf_t* buf) {
+  static void ipc_alloc_cb(uv_handle_t*, std::size_t n, uv_buf_t* buf) {
     buf->base = new char[n];
     buf->len  = (unsigned long)n;
   }
@@ -224,7 +224,7 @@ namespace fan::process {
         auto* conn = static_cast<ipc_conn_t*>(s->data);
         if (nread > 0) {
           conn->linebuf.append(b->base, nread);
-          size_t pos;
+          std::size_t pos;
           while ((pos = conn->linebuf.find('\n')) != std::string::npos) {
             std::string msg = conn->linebuf.substr(0, pos);
             conn->linebuf.erase(0, pos + 1);
@@ -317,7 +317,7 @@ namespace fan::process {
         auto* st = static_cast<ipc_client_state_t*>(s->data);
         if (nread > 0) {
           st->linebuf.append(b->base, nread);
-          size_t pos;
+          std::size_t pos;
           while ((pos = st->linebuf.find('\n')) != std::string::npos) {
             std::string msg = st->linebuf.substr(0, pos);
             st->linebuf.erase(0, pos + 1);
@@ -409,7 +409,7 @@ namespace fan::process {
   }
 
   fan::event::task_t spawn_self_impl(std::function<void()> child_fn) {
-    static std::atomic<uint32_t> counter {0};
+    static std::atomic<std::uint32_t> counter {0};
     std::string id = std::to_string(++counter);
 
     child_registry()[id] = std::move(child_fn);

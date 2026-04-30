@@ -1,5 +1,7 @@
 module;
 
+#include <fan/utility.h>
+
 #if defined(fan_platform_windows)
   #include <Windows.h>
 #elif defined(fan_platform_unix)
@@ -8,8 +10,6 @@ module;
 
 module fan.io.file;
 
-import std;
-
 import fan.print;
 import fan.utility;
 
@@ -17,8 +17,8 @@ static constexpr fan::io::file::fs_mode FS_BINARY = std::ios_base::binary;
 static constexpr fan::io::file::fs_mode FS_APP = std::ios_base::app;
 
 std::string fan::io::file::extension(const std::string& file_path) {
-  size_t dot_pos = file_path.find_last_of('.');
-  size_t sep_pos = file_path.find_last_of("/\\");
+  std::size_t dot_pos = file_path.find_last_of('.');
+  std::size_t sep_pos = file_path.find_last_of("/\\");
   if (dot_pos != std::string::npos && (sep_pos == std::string::npos || dot_pos > sep_pos))
     return file_path.substr(dot_pos);
   return "";
@@ -110,12 +110,12 @@ bool fan::io::file::fstream::write(std::string* str) {
 }
 
 bool fan::io::file::open(file_t** f, const std::string& path, const properties_t& p) {
-  *f = fopen(path.c_str(), p.mode);
+  *f = std::fopen(path.c_str(), p.mode);
   return *f == nullptr;
 }
 
 bool fan::io::file::close(file_t* f) {
-  int ret = fclose(f);
+  int ret = std::fclose(f);
 #if FAN_DEBUG >= fan_debug_low
   if (ret != 0) { fan::print_warning("failed to close file stream"); return 1; }
 #endif
@@ -123,7 +123,7 @@ bool fan::io::file::close(file_t* f) {
 }
 
 bool fan::io::file::read(file_t* f, void* data, std::uint64_t size, std::uint64_t elements) {
-  std::uint64_t ret = fread(data, size, elements, f);
+  std::uint64_t ret = std::fread(data, size, elements, f);
 #if FAN_DEBUG >= fan_debug_low
   if (ret != elements && size != 0) { fan::print_warning("failed to read from file stream"); return 1; }
 #endif
@@ -131,7 +131,7 @@ bool fan::io::file::read(file_t* f, void* data, std::uint64_t size, std::uint64_
 }
 
 bool fan::io::file::write(file_t* f, void* data, std::uint64_t size, std::uint64_t elements) {
-  std::uint64_t ret = fwrite(data, size, elements, f);
+  std::uint64_t ret = std::fwrite(data, size, elements, f);
 #if FAN_DEBUG >= fan_debug_low
   if (ret != elements && size != 0) { fan::print_warning("failed to write from file stream"); return 1; }
 #endif

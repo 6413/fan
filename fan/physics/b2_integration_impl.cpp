@@ -249,11 +249,11 @@ namespace fan::physics {
     return size;
   }
 
-  uint8_t body_id_t::get_body_type() const {
+  std::uint8_t body_id_t::get_body_type() const {
     return b2Body_GetType(*this);
   }
 
-  void body_id_t::set_body_type(uint8_t body_type) {
+  void body_id_t::set_body_type(std::uint8_t body_type) {
     b2Body_SetType(*this, (b2BodyType)body_type);
   }
 
@@ -279,8 +279,8 @@ namespace fan::physics {
   polygon_t::polygon_t(const b2Polygon& polygon) : b2Polygon(polygon) {}
 
   std::size_t b2_body_id_hash_t::operator()(const b2BodyId& id) const {
-    return std::hash<uint64_t>{}(
-      (uint64_t(id.index1) << 32) | (uint64_t(id.world0) << 16) | id.generation
+    return std::hash<std::uint64_t>{}(
+      (std::uint64_t(id.index1) << 32) | (std::uint64_t(id.world0) << 16) | id.generation
       );
   }
 
@@ -336,7 +336,7 @@ namespace fan::physics {
     delta_time = dt;
   }
 
-  entity_t context_t::create_box(const fan::vec2& position, const fan::vec2& size, f32_t angle, uint8_t body_type, const shape_properties_t& shape_properties) {
+  entity_t context_t::create_box(const fan::vec2& position, const fan::vec2& size, f32_t angle, std::uint8_t body_type, const shape_properties_t& shape_properties) {
     polygon_t shape = b2MakeBox(size.x / length_units_per_meter * shape_properties.collision_multiplier.x, size.y / length_units_per_meter * shape_properties.collision_multiplier.y);
     entity_t entity;
     b2BodyDef body_def = b2DefaultBodyDef();
@@ -369,11 +369,11 @@ namespace fan::physics {
     return entity;
   }
 
-  entity_t context_t::create_rectangle(const fan::vec2& position, const fan::vec2& size, f32_t angle, uint8_t body_type, const shape_properties_t& shape_properties) {
+  entity_t context_t::create_rectangle(const fan::vec2& position, const fan::vec2& size, f32_t angle, std::uint8_t body_type, const shape_properties_t& shape_properties) {
     return create_box(position, size, angle, body_type, shape_properties);
   }
 
-  entity_t context_t::create_circle(const fan::vec2& position, f32_t radius, f32_t angle, uint8_t body_type, const shape_properties_t& shape_properties) {
+  entity_t context_t::create_circle(const fan::vec2& position, f32_t radius, f32_t angle, std::uint8_t body_type, const shape_properties_t& shape_properties) {
     circle_t shape;
     shape.center = fan::vec2(0);
     shape.radius = radius / length_units_per_meter * shape_properties.collision_multiplier.x;
@@ -411,7 +411,7 @@ namespace fan::physics {
     return entity;
   }
 
-  entity_t context_t::create_capsule(const fan::vec2& position, f32_t angle, const capsule_t& info, uint8_t body_type, const shape_properties_t& shape_properties) {
+  entity_t context_t::create_capsule(const fan::vec2& position, f32_t angle, const capsule_t& info, std::uint8_t body_type, const shape_properties_t& shape_properties) {
     capsule_t shape = info;
     shape.center1.x /= length_units_per_meter / shape_properties.collision_multiplier.x;
     shape.center1.y /= length_units_per_meter / shape_properties.collision_multiplier.y;
@@ -450,7 +450,7 @@ namespace fan::physics {
     return entity;
   }
 
-  entity_t context_t::create_segment(const fan::vec2& position, const std::vector<fan::vec2>& points, uint8_t body_type, const shape_properties_t& shape_properties) {
+  entity_t context_t::create_segment(const fan::vec2& position, const std::vector<fan::vec2>& points, std::uint8_t body_type, const shape_properties_t& shape_properties) {
     entity_t entity;
     b2BodyDef body_def = b2DefaultBodyDef();
     body_def.position = position / length_units_per_meter;
@@ -492,7 +492,7 @@ namespace fan::physics {
     return entity;
   }
 
-  entity_t context_t::create_polygon(const fan::vec2& position, f32_t radius, const fan::vec2* points, int count, uint8_t body_type, const shape_properties_t& shape_properties) {
+  entity_t context_t::create_polygon(const fan::vec2& position, f32_t radius, const fan::vec2* points, int count, std::uint8_t body_type, const shape_properties_t& shape_properties) {
     entity_t entity;
     b2BodyDef body_def = b2DefaultBodyDef();
     body_def.position = position / length_units_per_meter;
@@ -536,7 +536,7 @@ namespace fan::physics {
 
 
   // a, b and c are local offsets from 'position' (center)
-  entity_t context_t::create_triangle(const fan::vec2& position, const fan::vec2& a, const fan::vec2& b, const fan::vec2& c, uint8_t body_type, const shape_properties_t& shape_properties) {
+  entity_t context_t::create_triangle(const fan::vec2& position, const fan::vec2& a, const fan::vec2& b, const fan::vec2& c, std::uint8_t body_type, const shape_properties_t& shape_properties) {
     fan::vec2 pts[] = {a, b, c};
     return create_polygon(position, 0.0f, pts, std::size(pts), body_type, shape_properties);
   }
@@ -611,8 +611,8 @@ namespace fan::physics {
 
   void context_t::on_hit(b2ShapeId shape_a, b2ShapeId shape_b, f32_t approach_speed) {}
 
-  uint64_t context_t::get_shape_key(b2ShapeId shape) const {
-    return (uint64_t(shape.index1) << 32) | (uint64_t(shape.world0) << 16) | uint64_t(shape.generation);
+  std::uint64_t context_t::get_shape_key(b2ShapeId shape) const {
+    return (std::uint64_t(shape.index1) << 32) | (std::uint64_t(shape.world0) << 16) | std::uint64_t(shape.generation);
   }
 
   void context_t::add_collision(b2ShapeId a, b2ShapeId b) {
@@ -746,8 +746,8 @@ namespace fan::physics {
 
   context_t::properties_t::properties_t() {}
 
-  size_t context_t::pair_hash_t::operator()(const std::pair<uint64_t, uint64_t>& p) const {
-    return std::hash<uint64_t>{}(p.first) ^ (std::hash<uint64_t>{}(p.second) << 1);
+  std::size_t context_t::pair_hash_t::operator()(const std::pair<std::uint64_t, std::uint64_t>& p) const {
+    return std::hash<std::uint64_t>{}(p.first) ^ (std::hash<std::uint64_t>{}(p.second) << 1);
   }
 
   void fill_shape_proxy(b2ShapeProxy& proxy, b2ShapeId shape_id, body_id_t body_id) {
@@ -1103,7 +1103,7 @@ namespace fan::physics {
     const fan::vec2& center_position,
     const fan::vec2& half_size,
     f32_t thickness,
-    uint8_t body_type,
+    std::uint8_t body_type,
     std::array<fan::physics::shape_properties_t, 4> shape_properties
   ){
     std::array<fan::physics::entity_t, 4> walls;
@@ -1122,7 +1122,7 @@ namespace fan::physics {
         fan::vec2(thickness, half_size.y)
       }};
 
-    for (uint32_t i = 0; i < 4; i++) {
+    for (std::uint32_t i = 0; i < 4; i++) {
       walls[i] = fan::physics::gphysics()->create_rectangle(
         positions[i],
         sizes[i],

@@ -42,21 +42,21 @@ export namespace fan::spatial {
     fan::vec2 world_min = fan::vec2(-10000);
     fan::vec2 cell_size = fan::vec2(256);
     fan::vec2i grid_size = fan::vec2i(256);
-    std::vector<std::vector<uint32_t>> cells;
+    std::vector<std::vector<std::uint32_t>> cells;
     std::vector<object_t<id_t>> objects;
-    std::unordered_map<id_t, uint32_t> id_to_object;
+    std::unordered_map<id_t, std::uint32_t> id_to_object;
   };
 
   template<typename id_t>
   struct registry_t {
     std::vector<id_t> static_objects;
     std::unordered_map<id_t, std::vector<int>> static_object_cells;
-    std::unordered_map<id_t, uint32_t> id_to_dynamic;
-    std::unordered_map<id_t, uint8_t> id_to_movement;
+    std::unordered_map<id_t, std::uint32_t> id_to_dynamic;
+    std::unordered_map<id_t, std::uint8_t> id_to_movement;
     std::unordered_map<id_t, fan::physics::aabb_t> aabb_cache;
   };
 
-  enum movement_type_t : uint8_t {
+  enum movement_type_t : std::uint8_t {
     movement_static,
     movement_dynamic
   };
@@ -121,7 +121,7 @@ export namespace fan::spatial {
     else {
       auto center = (aabb.min + aabb.max) * 0.5f;
       auto cell = world_to_cell_clamped(center, dynamic_grid.world_min, dynamic_grid.cell_size, dynamic_grid.grid_size);
-      uint32_t obj_index = (uint32_t)dynamic_grid.objects.size();
+      std::uint32_t obj_index = (std::uint32_t)dynamic_grid.objects.size();
       registry.id_to_dynamic[id] = obj_index;
       int idx = cell_index(cell, dynamic_grid.grid_size);
       dynamic_grid.objects.push_back({id, aabb.min, aabb.max, idx});
@@ -149,7 +149,7 @@ export namespace fan::spatial {
       if (cells_it != registry.static_object_cells.end()) {
         for (int cell_idx : cells_it->second) {
           auto& v = static_grid.cells[cell_idx].objects;
-          for (size_t i = 0; i < v.size(); ++i) {
+          for (std::size_t i = 0; i < v.size(); ++i) {
             if (v[i] == id) {
               v[i] = v.back();
               v.pop_back();
@@ -161,7 +161,7 @@ export namespace fan::spatial {
       }
 
       auto& v = registry.static_objects;
-      for (size_t i = 0; i < v.size(); ++i) {
+      for (std::size_t i = 0; i < v.size(); ++i) {
         if (v[i] == id) {
           v[i] = v.back();
           v.pop_back();
@@ -172,13 +172,13 @@ export namespace fan::spatial {
     else {
       auto dyn_it = registry.id_to_dynamic.find(id);
       if (dyn_it != registry.id_to_dynamic.end()) {
-        uint32_t obj_idx = dyn_it->second;
-        uint32_t last_idx = (uint32_t)dynamic_grid.objects.size() - 1;
+        std::uint32_t obj_idx = dyn_it->second;
+        std::uint32_t last_idx = (std::uint32_t)dynamic_grid.objects.size() - 1;
 
         auto& obj = dynamic_grid.objects[obj_idx];
         auto& cell_vec = dynamic_grid.cells[obj.cell];
 
-        for (size_t i = 0; i < cell_vec.size(); ++i) {
+        for (std::size_t i = 0; i < cell_vec.size(); ++i) {
           if (cell_vec[i] == obj_idx) {
             cell_vec[i] = cell_vec.back();
             cell_vec.pop_back();
@@ -194,7 +194,7 @@ export namespace fan::spatial {
           dynamic_grid.id_to_object[last_obj.id] = obj_idx;
 
           auto& last_cell_vec = dynamic_grid.cells[last_obj.cell];
-          for (size_t i = 0; i < last_cell_vec.size(); ++i) {
+          for (std::size_t i = 0; i < last_cell_vec.size(); ++i) {
             if (last_cell_vec[i] == last_idx) {
               last_cell_vec[i] = obj_idx;
               break;
@@ -221,7 +221,7 @@ export namespace fan::spatial {
       return;
     }
 
-    uint32_t obj_idx = dyn_it->second;
+    std::uint32_t obj_idx = dyn_it->second;
     auto& obj = dynamic_grid.objects[obj_idx];
     auto center = (new_aabb.min + new_aabb.max) * 0.5f;
     auto cell = world_to_cell_clamped(center, dynamic_grid.world_min, dynamic_grid.cell_size, dynamic_grid.grid_size);
@@ -229,7 +229,7 @@ export namespace fan::spatial {
 
     if (new_cell != obj.cell) {
       auto& old = dynamic_grid.cells[obj.cell];
-      for (size_t i = 0; i < old.size(); ++i) {
+      for (std::size_t i = 0; i < old.size(); ++i) {
         if (old[i] == obj_idx) {
           old[i] = old.back();
           old.pop_back();
@@ -551,14 +551,14 @@ export namespace fan::spatial {
 
   template <typename id_t, typename registry_t>
   void auto_clean(world_t<id_t>& world, registry_t& reg) {
-    reg.on_destroy_hooks.push_back([&world](uint32_t id) {
+    reg.on_destroy_hooks.push_back([&world](std::uint32_t id) {
       world.remove(id);
     });
   }
 
   template <typename pos_t, typename tag_t, typename world_t, typename registry_t>
   constexpr void sync_grid(registry_t& reg, world_t& world, fan::vec2 half_size) {
-    reg.template each<pos_t, tag_t>([&](uint32_t e, pos_t& pos, tag_t&) {
+    reg.template each<pos_t, tag_t>([&](std::uint32_t e, pos_t& pos, tag_t&) {
       world.upsert(e, fan::physics::aabb_t::from_center(pos.v, half_size), spatial::movement_dynamic);
     });
   }
@@ -566,19 +566,19 @@ export namespace fan::spatial {
   template <typename... BlockTags, typename Registry, typename World>
   bool has_los(Registry& registry, World& world, vec2 a, vec2 b) {
     bool hit = false;
-    world.raycast(a, b, [&](uint32_t id) {
+    world.raycast(a, b, [&](std::uint32_t id) {
       if ((registry.template has<BlockTags>(id) || ...)) hit = true;
     });
     return !hit;
   }
 
   template<typename WorldT, typename RegistryT, typename... Components>
-  uint32_t create_static(
+  std::uint32_t create_static(
     RegistryT& registry, WorldT& world,
     fan::vec2 pos, fan::vec2 half_extent,
     Components&&... comps)
   {
-    uint32_t e = registry.create_with(std::forward<Components>(comps)...);
+    std::uint32_t e = registry.create_with(std::forward<Components>(comps)...);
     world.upsert(e, fan::physics::aabb_t::from_center(pos, half_extent), fan::spatial::movement_static);
     return e;
   }

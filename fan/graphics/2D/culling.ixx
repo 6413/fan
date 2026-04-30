@@ -17,25 +17,25 @@ import fan.physics.types;
 
 export namespace fan::graphics::culling {
 
-  enum movement_type_t : uint8_t {
+  enum movement_type_t : std::uint8_t {
     movement_static = fan::spatial::movement_static,
     movement_dynamic = fan::spatial::movement_dynamic,
     movement_sleeping
   };
 
   struct per_camera_state_t {
-    std::unordered_map<uint32_t, uint8_t> visible;
+    std::unordered_map<std::uint32_t, std::uint8_t> visible;
     fan::vec2 cached_view_min;
     fan::vec2 cached_view_max;
     bool view_dirty = true;
   };
 
   struct culling_t {
-    std::unordered_map<uint32_t, per_camera_state_t> camera_states;
+    std::unordered_map<std::uint32_t, per_camera_state_t> camera_states;
     fan::vec2 padding = 0;
     bool enabled = false;
-    uint32_t current_visible = 0;
-    uint32_t current_total = 0;
+    std::uint32_t current_visible = 0;
+    std::uint32_t current_total = 0;
 
     fan::spatial::static_grid_t<shaper_t::ShapeID_t> static_grid;
     fan::spatial::dynamic_grid_t<shaper_t::ShapeID_t> dynamic_grid;
@@ -63,7 +63,7 @@ export namespace fan::graphics::culling {
     auto& reg = culling.registry;
 
     for (auto& [cam_id, cam_state] : culling.camera_states) {
-      std::vector<uint32_t> dead;
+      std::vector<std::uint32_t> dead;
 
       for (auto& [nr, vis] : cam_state.visible) {
         shaper_t::ShapeID_t sid;

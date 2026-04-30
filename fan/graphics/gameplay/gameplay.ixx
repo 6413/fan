@@ -94,24 +94,24 @@ export namespace fan::graphics::gameplay {
       fan::physics::body_id_t sensor;
     };
 
-    fan::spatial::dynamic_grid_t<size_t> grid;
-    fan::spatial::registry_t<size_t> registry;
-    std::unordered_map<size_t, pickupable_data_t> pickupables;
-    size_t next_id = 0;
+    fan::spatial::dynamic_grid_t<std::size_t> grid;
+    fan::spatial::registry_t<std::size_t> registry;
+    std::unordered_map<std::size_t, pickupable_data_t> pickupables;
+    std::size_t next_id = 0;
 
     void init(const fan::vec2& world_min, const fan::vec2& world_size, f32_t cell_size = 128.f) {
       fan::vec2i grid_size = (world_size / cell_size).ceil();
       fan::spatial::dynamic_grid_init(grid, world_min, fan::vec2(cell_size), grid_size);
     }
 
-    size_t add(const std::string& id, fan::physics::body_id_t sensor) {
-      size_t idx = next_id++;
+    std::size_t add(const std::string& id, fan::physics::body_id_t sensor) {
+      std::size_t idx = next_id++;
 
       fan::vec2 pos = sensor.get_position();
       fan::vec2 size = sensor.get_size();
       fan::physics::aabb_t aabb {pos - size, pos + size};
 
-      fan::spatial::static_grid_t<size_t> dummy_static;
+      fan::spatial::static_grid_t<std::size_t> dummy_static;
       fan::spatial::add_object(
         registry,
         dummy_static,
@@ -125,13 +125,13 @@ export namespace fan::graphics::gameplay {
       return idx;
     }
 
-    void remove(size_t id) {
+    void remove(std::size_t id) {
       auto it = pickupables.find(id);
       if (it == pickupables.end()) {
         return;
       }
 
-      fan::spatial::static_grid_t<size_t> dummy_static;
+      fan::spatial::static_grid_t<std::size_t> dummy_static;
 
       fan::spatial::remove_object(
         registry,
@@ -144,15 +144,15 @@ export namespace fan::graphics::gameplay {
       pickupables.erase(it);
     }
 
-    std::vector<size_t> query_radius(const fan::vec2& center, f32_t radius) {
-      std::vector<size_t> result;
-      fan::spatial::query_radius(grid, center, radius, [&](size_t idx) {
+    std::vector<std::size_t> query_radius(const fan::vec2& center, f32_t radius) {
+      std::vector<std::size_t> result;
+      fan::spatial::query_radius(grid, center, radius, [&](std::size_t idx) {
         result.push_back(idx);
       });
       return result;
     }
 
-    pickupable_data_t* get(size_t id) {
+    pickupable_data_t* get(std::size_t id) {
       auto it = pickupables.find(id);
       if (it == pickupables.end()) {
         return nullptr;

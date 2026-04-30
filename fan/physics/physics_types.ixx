@@ -127,7 +127,7 @@ export namespace fan::physics {
   };
 
   struct body_type_e {
-    enum : uint8_t {
+    enum : std::uint8_t {
       static_body = b2_staticBody,
       kinematic_body = b2_kinematicBody,
       dynamic_body = b2_dynamicBody,

@@ -49,7 +49,7 @@ namespace fan::image {
     }
   }
 
-  void convert_channels(const uint8_t* src, uint8_t* dst, std::size_t pixels, int src_channels, int dst_channels, uint8_t default_alpha) {
+  void convert_channels(const std::uint8_t* src, std::uint8_t* dst, std::size_t pixels, int src_channels, int dst_channels, std::uint8_t default_alpha) {
     if (src_channels == dst_channels) {
       std::memcpy(dst, src, pixels * src_channels);
       return;

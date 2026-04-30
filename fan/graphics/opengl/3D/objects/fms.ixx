@@ -97,7 +97,7 @@ export namespace fan {
           custom
         };
       };
-      uint32_t type = type_e::invalid;
+      std::uint32_t type = type_e::invalid;
       std::vector<bone_pose_t> bone_poses;
       std::vector<bone_transform_track_t> bone_transform_tracks;
       std::string name;
@@ -129,15 +129,15 @@ export namespace fan {
     inline constexpr auto texture_max = AI_TEXTURE_TYPE_MAX + 1;
     struct mesh_t {
       std::vector<fan::model::vertex_t> vertices;
-      std::vector<uint32_t> indices;
-      uint32_t indices_len = 0;
+      std::vector<std::uint32_t> indices;
+      std::uint32_t indices_len = 0;
 
       std::string texture_names[texture_max]{};
     };
     // pm -- parsed model
     struct pm_texture_data_t {
       fan::vec2ui size = 0;
-      std::vector<uint8_t> data;
+      std::vector<std::uint8_t> data;
       int channels = 0;
     };
     std::unordered_map<std::string, pm_texture_data_t> cached_texture_data;
@@ -190,8 +190,8 @@ export namespace fan {
       }
 
       struct edge_key {
-        uint32_t a;
-        uint32_t b;
+        std::uint32_t a;
+        std::uint32_t b;
 
         bool operator==(const edge_key &o) const {
           return a == o.a && b == o.b;
@@ -199,17 +199,17 @@ export namespace fan {
       };
 
       struct edge_key_hash {
-        size_t operator()(const edge_key &k) const {
-          return (size_t(k.a) << 32) ^ size_t(k.b);
+        std::size_t operator()(const edge_key &k) const {
+          return (std::size_t(k.a) << 32) ^ std::size_t(k.b);
         }
       };
 
       struct tri_edge_ref {
-        uint32_t tri_index;
-        uint8_t edge_slot;
+        std::uint32_t tri_index;
+        std::uint8_t edge_slot;
       };
 
-      static f32_t tri_uv_error(const mesh_t &mesh, uint32_t i0, uint32_t i1, uint32_t i2) {
+      static f32_t tri_uv_error(const mesh_t &mesh, std::uint32_t i0, std::uint32_t i1, std::uint32_t i2) {
         const auto &v0 = mesh.vertices[i0];
         const auto &v1 = mesh.vertices[i1];
         const auto &v2 = mesh.vertices[i2];
@@ -222,8 +222,8 @@ export namespace fan {
       }
 
       static bool triangles_coplanar(const mesh_t &mesh,
-        uint32_t i0, uint32_t i1, uint32_t i2,
-        uint32_t j0, uint32_t j1, uint32_t j2,
+        std::uint32_t i0, std::uint32_t i1, std::uint32_t i2,
+        std::uint32_t j0, std::uint32_t j1, std::uint32_t j2,
         f32_t cos_threshold = 0.99f
       ) {
         const auto &a0 = mesh.vertices[i0];
@@ -276,7 +276,7 @@ export namespace fan {
       }
 
 
-      bool is_valid_quad(const mesh_t& mesh, uint32_t q[4]) {
+      bool is_valid_quad(const mesh_t& mesh, std::uint32_t q[4]) {
         const vec3& p0 = mesh.vertices[q[0]].position;
         const vec3& p1 = mesh.vertices[q[1]].position;
         const vec3& p2 = mesh.vertices[q[2]].position;
@@ -304,18 +304,18 @@ export namespace fan {
         std::unordered_map<edge_key, tri_edge_ref, edge_key_hash> edge_map;
         edge_map.reserve(indices.size());
 
-        size_t tri_count = indices.size() / 3;
+        std::size_t tri_count = indices.size() / 3;
 
-        for (uint32_t t = 0; t < tri_count; t++) {
-          uint32_t i0 = indices[t * 3 + 0];
-          uint32_t i1 = indices[t * 3 + 1];
-          uint32_t i2 = indices[t * 3 + 2];
+        for (std::uint32_t t = 0; t < tri_count; t++) {
+          std::uint32_t i0 = indices[t * 3 + 0];
+          std::uint32_t i1 = indices[t * 3 + 1];
+          std::uint32_t i2 = indices[t * 3 + 2];
 
-          uint32_t tri_idx[3] = { i0, i1, i2 };
+          std::uint32_t tri_idx[3] = { i0, i1, i2 };
 
-          for (uint8_t e = 0; e < 3; e++) {
-            uint32_t a = tri_idx[e];
-            uint32_t b = tri_idx[(e + 1) % 3];
+          for (std::uint8_t e = 0; e < 3; e++) {
+            std::uint32_t a = tri_idx[e];
+            std::uint32_t b = tri_idx[(e + 1) % 3];
 
             edge_key key;
             key.a = fan::math::min(a, b);
@@ -329,23 +329,23 @@ export namespace fan {
               edge_map.insert({ key, ref });
             }
             else {
-              uint32_t t2 = it->second.tri_index;
+              std::uint32_t t2 = it->second.tri_index;
               if (t2 == t) {
                 continue;
               }
 
-              uint32_t j0 = indices[t2 * 3 + 0];
-              uint32_t j1 = indices[t2 * 3 + 1];
-              uint32_t j2 = indices[t2 * 3 + 2];
+              std::uint32_t j0 = indices[t2 * 3 + 0];
+              std::uint32_t j1 = indices[t2 * 3 + 1];
+              std::uint32_t j2 = indices[t2 * 3 + 2];
 
-              uint32_t u[6] = { i0, i1, i2, j0, j1, j2 };
-              uint32_t quad[4];
-              uint32_t qc = 0;
+              std::uint32_t u[6] = { i0, i1, i2, j0, j1, j2 };
+              std::uint32_t quad[4];
+              std::uint32_t qc = 0;
 
-              for (uint32_t k = 0; k < 6; k++) {
-                uint32_t v = u[k];
+              for (std::uint32_t k = 0; k < 6; k++) {
+                std::uint32_t v = u[k];
                 bool found = false;
-                for (uint32_t m = 0; m < qc; m++) {
+                for (std::uint32_t m = 0; m < qc; m++) {
                   if (quad[m] == v) {
                     found = true;
                     break;
@@ -377,31 +377,31 @@ export namespace fan {
                 verts[quad[3]].position) * 0.25f;
 
               f32_t ang[4];
-              for (uint32_t k = 0; k < 4; k++) {
+              for (std::uint32_t k = 0; k < 4; k++) {
                 fan::vec3 d = verts[quad[k]].position - c;
                 ang[k] = std::atan2(d.y, d.x);
               }
 
-              for (uint32_t a0 = 0; a0 < 4; a0++) {
-                for (uint32_t b0 = a0 + 1; b0 < 4; b0++) {
+              for (std::uint32_t a0 = 0; a0 < 4; a0++) {
+                for (std::uint32_t b0 = a0 + 1; b0 < 4; b0++) {
                   if (ang[b0] < ang[a0]) {
                     f32_t ta = ang[a0];
                     ang[a0] = ang[b0];
                     ang[b0] = ta;
-                    uint32_t tv = quad[a0];
+                    std::uint32_t tv = quad[a0];
                     quad[a0] = quad[b0];
                     quad[b0] = tv;
                   }
                 }
               }
 
-              uint32_t q0 = quad[0];
-              uint32_t q1 = quad[1];
-              uint32_t q2 = quad[2];
-              uint32_t q3 = quad[3];
+              std::uint32_t q0 = quad[0];
+              std::uint32_t q1 = quad[1];
+              std::uint32_t q2 = quad[2];
+              std::uint32_t q3 = quad[3];
 
-              uint32_t c0 = i0, c1 = i1, c2 = i2;
-              uint32_t c3 = j0, c4 = j1, c5 = j2;
+              std::uint32_t c0 = i0, c1 = i1, c2 = i2;
+              std::uint32_t c3 = j0, c4 = j1, c5 = j2;
 
               f32_t uv_current =
                 tri_uv_error(mesh, c0, c1, c2) +
@@ -455,8 +455,8 @@ export namespace fan {
               f32_t total_b = uv_b + geom_b * 0.000001f;
 
               f32_t best = total_current;
-              uint32_t bt0[3] = { c0, c1, c2 };
-              uint32_t bt1[3] = { c3, c4, c5 };
+              std::uint32_t bt0[3] = { c0, c1, c2 };
+              std::uint32_t bt1[3] = { c3, c4, c5 };
 
               if (total_a + 1e-7f < best) {
                 best = total_a;
@@ -492,7 +492,7 @@ export namespace fan {
         aiMatrix3x3 normalMatrix = aiMatrix3x3(transform);
         normalMatrix = normalMatrix.Transpose().Inverse();
 
-        for (uint32_t i = 0; i < mesh->mNumVertices; i++) {
+        for (std::uint32_t i = 0; i < mesh->mNumVertices; i++) {
           vertex_t v;
 
           aiVector3D p = mesh->mVertices[i];
@@ -540,7 +540,7 @@ export namespace fan {
           new_mesh.vertices[i] = v;
         }
 
-        for (uint32_t i = 0; i < mesh->mNumBones; i++) {
+        for (std::uint32_t i = 0; i < mesh->mNumBones; i++) {
           aiBone* bone = mesh->mBones[i];
           std::string bone_name = bone->mName.C_Str();
 
@@ -550,8 +550,8 @@ export namespace fan {
           }
           int boneId = it->second->id;
 
-          for (uint32_t j = 0; j < bone->mNumWeights; j++) {
-            uint32_t vertexId = bone->mWeights[j].mVertexId;
+          for (std::uint32_t j = 0; j < bone->mNumWeights; j++) {
+            std::uint32_t vertexId = bone->mWeights[j].mVertexId;
             float weight = bone->mWeights[j].mWeight;
 
             int min_index = 0;
@@ -579,9 +579,9 @@ export namespace fan {
           }
         }
 
-        for (uint32_t i = 0; i < mesh->mNumFaces; i++) {
+        for (std::uint32_t i = 0; i < mesh->mNumFaces; i++) {
           aiFace& face = mesh->mFaces[i];
-          for (uint32_t j = 0; j < face.mNumIndices; j++) {
+          for (std::uint32_t j = 0; j < face.mNumIndices; j++) {
             new_mesh.indices.push_back(face.mIndices[j]);
           }
         }
@@ -597,7 +597,7 @@ export namespace fan {
           return;
         }
         aiMaterial* material = scene->mMaterials[ai_mesh->mMaterialIndex];
-        for (uint32_t texture_type = 0; texture_type < AI_TEXTURE_TYPE_MAX + 1; ++texture_type) {
+        for (std::uint32_t texture_type = 0; texture_type < AI_TEXTURE_TYPE_MAX + 1; ++texture_type) {
           aiString path;
           if (material->GetTexture((aiTextureType)texture_type, 0, &path) != AI_SUCCESS) {
             continue;
@@ -633,7 +633,7 @@ export namespace fan {
               }
               auto& td = cached_texture_data[file_path];
               td.size = ii.size;
-              td.data.insert(td.data.end(), (uint8_t*)ii.data, (uint8_t*)ii.data + ii.size.multiply() * ii.channels);
+              td.data.insert(td.data.end(), (std::uint8_t*)ii.data, (std::uint8_t*)ii.data + ii.size.multiply() * ii.channels);
               td.channels = ii.channels;
               fan::image::free(&ii);
             }
@@ -642,7 +642,7 @@ export namespace fan {
       }
       pm_material_data_t load_materials(aiMesh* ai_mesh) {
         pm_material_data_t material_data;
-        for (uint32_t i = 0; i <= AI_TEXTURE_TYPE_MAX; i++) {
+        for (std::uint32_t i = 0; i <= AI_TEXTURE_TYPE_MAX; i++) {
           material_data.color[i] = fan::vec4(1, 1, 1, 1);
         }
 
@@ -746,12 +746,12 @@ export namespace fan {
         else {
           parent->children.push_back(bone);
         }
-        for (uint32_t i = 0; i < node->mNumChildren; i++) {
+        for (std::uint32_t i = 0; i < node->mNumChildren; i++) {
           process_skeleton(node->mChildren[i], bone, largest_scale);
         }
       }
       void process_bone_offsets(aiMesh* mesh) {
-        for (uint32_t i = 0; i < mesh->mNumBones; i++) {
+        for (std::uint32_t i = 0; i < mesh->mNumBones; i++) {
           aiBone* bone = mesh->mBones[i];
           std::string bone_name = bone->mName.C_Str();
 
@@ -801,7 +801,7 @@ export namespace fan {
           iterate_bones(*child, lambda);
         }
       }
-      fan::vec4 calculate_bone_transform(const std::vector<fan::mat4>& bt, uint32_t mesh_id, uint32_t vertex_id) {
+      fan::vec4 calculate_bone_transform(const std::vector<fan::mat4>& bt, std::uint32_t mesh_id, std::uint32_t vertex_id) {
         auto& vertex = meshes[mesh_id].vertices[vertex_id];
 
         fan::vec4 totalPosition(0.0);
@@ -867,9 +867,9 @@ export namespace fan {
         update_bone_transforms();
         return true;
       }
-      void calculate_vertices(const std::vector<fan::mat4>& bt, uint32_t mesh_id, const fan::mat4& model) {
+      void calculate_vertices(const std::vector<fan::mat4>& bt, std::uint32_t mesh_id, const fan::mat4& model) {
         for (int i = 0; i < meshes[mesh_id].indices.size(); ++i) {
-          uint32_t vertex_index = meshes[mesh_id].indices[i];
+          std::uint32_t vertex_index = meshes[mesh_id].indices[i];
           fan::vec3 v = meshes[mesh_id].vertices[vertex_index].position;
           if (bt.empty()) {
             fan::vec4 vertex_position = m_transform * model * fan::vec4(v, 1.0);
@@ -885,7 +885,7 @@ export namespace fan {
       }
       // flag default, ik, fk?
       void calculate_modified_vertices(const fan::mat4& model = fan::mat4(1)) {
-        for (uint32_t i = 0; i < meshes.size(); ++i) {
+        for (std::uint32_t i = 0; i < meshes.size(); ++i) {
           update_bone_transforms();
           calculate_vertices(bone_transforms, i, model);
         }
@@ -895,20 +895,20 @@ export namespace fan {
         fan::vec3 position[3]{};
         fan::vec3 normal[3]{};
         fan::vec2 uv[3]{};
-        uint32_t vertex_indices[3];
+        std::uint32_t vertex_indices[3];
       };
 
-      std::vector<one_triangle_t> get_triangles(uint32_t mesh_id) {
+      std::vector<one_triangle_t> get_triangles(std::uint32_t mesh_id) {
         std::vector<one_triangle_t> triangles;
         static constexpr int edge_count = 3;
         const auto& mesh = calculated_meshes[mesh_id];
 
-        size_t triangle_count = mesh.indices.size() / edge_count;
+        std::size_t triangle_count = mesh.indices.size() / edge_count;
         triangles.resize(triangle_count);
 
-        for (size_t i = 0; i < triangle_count; ++i) {
+        for (std::size_t i = 0; i < triangle_count; ++i) {
           for (int j = 0; j < edge_count; ++j) {
-            uint32_t vertex_index = mesh.indices[i * edge_count + j];
+            std::uint32_t vertex_index = mesh.indices[i * edge_count + j];
             triangles[i].position[j] = mesh.vertices[vertex_index].position;
             triangles[i].normal[j] = mesh.vertices[vertex_index].normal;
             triangles[i].uv[j] = mesh.vertices[vertex_index].uv;
@@ -926,7 +926,7 @@ export namespace fan {
 
       using anim_key_t = std::string;
 
-      uint32_t fk_set_rot(const anim_key_t& key, const uint32_t bone_id,
+      std::uint32_t fk_set_rot(const anim_key_t& key, const std::uint32_t bone_id,
         f32_t dt,
         const fan::quat& quat
       ) {
@@ -936,7 +936,7 @@ export namespace fan {
         return fk_set_rot(key, bone_id, dt, axis, angle);
       }
 
-      uint32_t fk_set_rot(const anim_key_t& key, uint32_t bone_id,
+      std::uint32_t fk_set_rot(const anim_key_t& key, std::uint32_t bone_id,
         f32_t dt,
         const fan::vec3& axis,
         f32_t angle
@@ -960,12 +960,12 @@ export namespace fan {
         return insert_pos;
       }
 
-      static bool fk_get_time_fraction(const std::vector<f32_t>& times, f32_t dt, std::pair<uint32_t, f32_t>& fp) {
+      static bool fk_get_time_fraction(const std::vector<f32_t>& times, f32_t dt, std::pair<std::uint32_t, f32_t>& fp) {
         if (times.empty()) {
           return true;
         }
         auto it = std::upper_bound(times.begin(), times.end(), dt);
-        uint32_t segment = std::distance(times.begin(), it);
+        std::uint32_t segment = std::distance(times.begin(), it);
         if (times.size() == 1) {
           if (times[0] == 0) {
             fp = { 0, 1.f };
@@ -979,7 +979,7 @@ export namespace fan {
           segment++;
         }
 
-        segment = std::clamp(segment, uint32_t(0), uint32_t(times.size() - 1));
+        segment = std::clamp(segment, std::uint32_t(0), std::uint32_t(times.size() - 1));
 
         f32_t start = times[segment - 1];
         f32_t end = times[segment];
@@ -987,14 +987,14 @@ export namespace fan {
         fp = { segment, std::clamp((dt - start) / (end - start), 0.0f, 1.0f) };
         return false;
       }
-      uint8_t interpolate_bone_transform(const bone_transform_track_t& btt, fan::vec3& position, fan::quat& rotation, fan::vec3& scale) {
-        std::pair<uint32_t, f32_t> fp;
-        uint8_t ret = false;
+      std::uint8_t interpolate_bone_transform(const bone_transform_track_t& btt, fan::vec3& position, fan::quat& rotation, fan::vec3& scale) {
+        std::pair<std::uint32_t, f32_t> fp;
+        std::uint8_t ret = false;
         {// position
           position = btt.positions[0];
           bool tr = fk_get_time_fraction(btt.position_timestamps, dt, fp);
-          ret |= ((uint8_t)tr << 0);
-          if (!tr && fp.first != (uint32_t)-1) {
+          ret |= ((std::uint8_t)tr << 0);
+          if (!tr && fp.first != (std::uint32_t)-1) {
             if (fp.first == 0) {
               position = fan::mix(fan::vec3(0), btt.positions[0], fp.second);
             }
@@ -1008,8 +1008,8 @@ export namespace fan {
         {// rotation
           rotation = btt.rotations[0];
           bool tr = fk_get_time_fraction(btt.rotation_timestamps, dt, fp);
-          ret |= ((uint8_t)tr << 1);
-          if (!tr && fp.first != (uint32_t)-1) {
+          ret |= ((std::uint8_t)tr << 1);
+          if (!tr && fp.first != (std::uint32_t)-1) {
             if (fp.first == 0) {
               rotation = fan::quat::slerp(fan::quat(), btt.rotations[0], fp.second);
             }
@@ -1023,8 +1023,8 @@ export namespace fan {
         { // size
           scale = btt.scales[0];
           bool tr = fk_get_time_fraction(btt.scale_timestamps, dt, fp);
-          ret |= ((uint8_t)tr << 2);
-          if (!tr && fp.first != (uint32_t)-1) {
+          ret |= ((std::uint8_t)tr << 2);
+          if (!tr && fp.first != (std::uint32_t)-1) {
             if (fp.first == 0) {
               scale = fan::mix(fan::vec3(1), btt.scales[0], fp.second);
             }
@@ -1060,7 +1060,7 @@ export namespace fan {
           return;
         }
         // returns bit for successsion for position, rotation, scale
-        uint8_t r = interpolate_bone_transform(bt, position, rotation, scale);
+        std::uint8_t r = interpolate_bone_transform(bt, position, rotation, scale);
         animation.bone_poses[bone.id].position = position;
         animation.bone_poses[bone.id].rotation = rotation;
         animation.bone_poses[bone.id].scale = scale;
@@ -1110,7 +1110,7 @@ export namespace fan {
         fk_interpolate_animations(fk_transformations, *root_bone, m_transform);
 
         if (p.use_cpu) {
-          for (uint32_t i = 0; i < meshes.size(); ++i) {
+          for (std::uint32_t i = 0; i < meshes.size(); ++i) {
             calculate_vertices(fk_transformations, i, fan::mat4(1));
           }
         }
@@ -1132,7 +1132,7 @@ export namespace fan {
       // ---------------------animation---------------------
 
       void load_animations() {
-        for (uint32_t k = 0; k < scene->mNumAnimations; ++k) {
+        for (std::uint32_t k = 0; k < scene->mNumAnimations; ++k) {
           aiAnimation* anim = scene->mAnimations[k];
           auto& animation = animation_list[anim->mName.C_Str()];
           animation.name = anim->mName.C_Str();
@@ -1198,7 +1198,7 @@ export namespace fan {
         );
         return key;
       }
-      uint32_t get_active_animation_id() {
+      std::uint32_t get_active_animation_id() {
         if (active_anim.empty()) {
           return -1;
         }
@@ -1210,7 +1210,7 @@ export namespace fan {
         return std::distance(animation_list.begin(), found);
       }
       animation_data_t& get_active_animation() {
-        uint32_t id = get_active_animation_id();
+        std::uint32_t id = get_active_animation_id();
         if (id == -1) {
           fan::throw_error("no active animation");
         }
@@ -1228,8 +1228,8 @@ export namespace fan {
           fan::print("model has no animations");
           return 0;
         }
-        uint32_t animation_index = -1;
-        for (uint32_t i = 0; i < scene->mNumAnimations; ++i) {
+        std::uint32_t animation_index = -1;
+        for (std::uint32_t i = 0; i < scene->mNumAnimations; ++i) {
           if (scene->mAnimations[i]->mName.C_Str() == animation_name_to_export) {
             animation_index = i;
             break;
@@ -1344,10 +1344,10 @@ export namespace fan {
         d(left_toe_end);
         #undef d
 
-        uintptr_t size() {
+        std::uintptr_t size() {
           return this->GetMemberAmount();
         }
-        dme_type_t& operator[](uintptr_t i) {
+        dme_type_t& operator[](std::uintptr_t i) {
           return *this->NA(i);
         }
       };
@@ -1356,22 +1356,22 @@ export namespace fan {
       bone_names_default_t bone_names_anim;
       bone_names_default_t bone_names_model;
       void fancy_iterator(auto& iteration, auto func) {
-        for (uintptr_t i = 0; i < iteration.size(); i++) {
+        for (std::uintptr_t i = 0; i < iteration.size(); i++) {
           func(iteration[i]);
         }
       }
-      uintptr_t get_bone_name_index(auto& iteration, std::string from) {
-        uintptr_t longest_name_id = (uintptr_t)-1;
-        uintptr_t longest_length = 0;
-        uintptr_t shortest_length_from = (uintptr_t)-1;
+      std::uintptr_t get_bone_name_index(auto& iteration, std::string from) {
+        std::uintptr_t longest_name_id = (std::uintptr_t)-1;
+        std::uintptr_t longest_length = 0;
+        std::uintptr_t shortest_length_from = (std::uintptr_t)-1;
 
-        for (uintptr_t i = 0; i < iteration.size(); i++) {
-          for (uintptr_t bni1 = 0; bni1 < iteration[i].size(); bni1++) {
+        for (std::uintptr_t i = 0; i < iteration.size(); i++) {
+          for (std::uintptr_t bni1 = 0; bni1 < iteration[i].size(); bni1++) {
             std::string bn = iteration[i][bni1];
-            for (uintptr_t ip = 0; ip < from.size(); ip++) {
-              uintptr_t bni = 0;
+            for (std::uintptr_t ip = 0; ip < from.size(); ip++) {
+              std::uintptr_t bni = 0;
               auto nfrom = from.substr(ip);
-              uintptr_t nfromi = 0;
+              std::uintptr_t nfromi = 0;
               while (1) {
                 if (bni == bn.size()) {
                   if (
@@ -1407,20 +1407,20 @@ export namespace fan {
 
         return longest_name_id;
       }
-      std::string get_model_bone_name(uintptr_t name_index, auto& model) {
+      std::string get_model_bone_name(std::uintptr_t name_index, auto& model) {
         std::string longest_name;
-        uintptr_t longest_length = 0;
-        uintptr_t shortest_length_from = (uintptr_t)-1;
+        std::uintptr_t longest_length = 0;
+        std::uintptr_t shortest_length_from = (std::uintptr_t)-1;
 
         model.iterate_bones(*model.root_bone, [&](fan::model::bone_t& bone) {
           std::string from = bone.name;
 
-          for (uintptr_t bni1 = 0; bni1 < bone_names_model[name_index].size(); bni1++) {
+          for (std::uintptr_t bni1 = 0; bni1 < bone_names_model[name_index].size(); bni1++) {
             std::string bn = bone_names_model[name_index][bni1];
-            for (uintptr_t ip = 0; ip < from.size(); ip++) {
-              uintptr_t bni = 0;
+            for (std::uintptr_t ip = 0; ip < from.size(); ip++) {
+              std::uintptr_t bni = 0;
               auto nfrom = from.substr(ip);
-              uintptr_t nfromi = 0;
+              std::uintptr_t nfromi = 0;
               while (1) {
                 if (bni == bn.size()) {
                   if (
@@ -1456,9 +1456,9 @@ export namespace fan {
 
         return longest_name;
       }
-      std::string get_bone_name_by_index(auto& model, uintptr_t index) {
+      std::string get_bone_name_by_index(auto& model, std::uintptr_t index) {
         std::string ret;
-        uintptr_t i = 0;
+        std::uintptr_t i = 0;
         model.iterate_bones(*model.root_bone, [&](fan::model::bone_t& bone) {
           if (i == index) {
             ret = bone.name;
@@ -1468,7 +1468,7 @@ export namespace fan {
         return ret;
       }
       void solve_legs(auto& iterator, auto& vector) {
-        uint8_t left_leg_meaning = (uint8_t)-1;
+        std::uint8_t left_leg_meaning = (std::uint8_t)-1;
         std::vector<std::vector<std::string>> left_leg_vector = {
           {"Left_leg"}
         };
@@ -1488,7 +1488,7 @@ export namespace fan {
           };
           iterator.iterate_bones(*iterator.root_bone, [&](fan::model::bone_t& bone) {
             if (get_bone_name_index(left_down_leg_vector, bone.name) == 0) {
-              if (left_leg_meaning != (uint8_t)-1) {
+              if (left_leg_meaning != (std::uint8_t)-1) {
                 /* multiple left leg meaning? */
                 assert(0);
               }
@@ -1500,7 +1500,7 @@ export namespace fan {
           };
           iterator.iterate_bones(*iterator.root_bone, [&](fan::model::bone_t& bone) {
             if (get_bone_name_index(left_up_leg_vector, bone.name) == 0) {
-              if (left_leg_meaning != (uint8_t)-1) {
+              if (left_leg_meaning != (std::uint8_t)-1) {
                 /* multiple left leg meaning? */
                 assert(0);
               }
@@ -1508,8 +1508,8 @@ export namespace fan {
             }
             });
         }
-        if (left_leg_meaning != (uint8_t)-1) {
-          uintptr_t index;
+        if (left_leg_meaning != (std::uint8_t)-1) {
+          std::uintptr_t index;
           if (left_leg_meaning == 0) {
             index = get_bone_name_index(bone_names_default, "Left_Up_Leg");
           }
@@ -1517,9 +1517,9 @@ export namespace fan {
             index = get_bone_name_index(bone_names_default, "Lower_Leg_L");
           }
           else {
-            index = (uintptr_t)-1;
+            index = (std::uintptr_t)-1;
           }
-          if (index == (uintptr_t)-1) {
+          if (index == (std::uintptr_t)-1) {
             /* internal error */
             assert(0);
           }
@@ -1527,7 +1527,7 @@ export namespace fan {
           vector[index].push_back("Left_leg");
         }
 
-        uint8_t right_leg_meaning = (uint8_t)-1;
+        std::uint8_t right_leg_meaning = (std::uint8_t)-1;
         std::vector<std::vector<std::string>> right_leg_vector = {
           {"Right_leg"}
         };
@@ -1547,7 +1547,7 @@ export namespace fan {
           };
           iterator.iterate_bones(*iterator.root_bone, [&](fan::model::bone_t& bone) {
             if (get_bone_name_index(right_down_leg_vector, bone.name) == 0) {
-              if (right_leg_meaning != (uint8_t)-1) {
+              if (right_leg_meaning != (std::uint8_t)-1) {
                 /* multiple right leg meaning? */
                 assert(0);
               }
@@ -1559,7 +1559,7 @@ export namespace fan {
           };
           iterator.iterate_bones(*iterator.root_bone, [&](fan::model::bone_t& bone) {
             if (get_bone_name_index(right_up_leg_vector, bone.name) == 0) {
-              if (right_leg_meaning != (uint8_t)-1) {
+              if (right_leg_meaning != (std::uint8_t)-1) {
                 /* multiple right leg meaning? */
                 assert(0);
               }
@@ -1567,8 +1567,8 @@ export namespace fan {
             }
             });
         }
-        if (right_leg_meaning != (uint8_t)-1) {
-          uintptr_t index;
+        if (right_leg_meaning != (std::uint8_t)-1) {
+          std::uintptr_t index;
           if (right_leg_meaning == 0) {
             index = get_bone_name_index(bone_names_default, "Right_Up_Leg");
           }
@@ -1576,9 +1576,9 @@ export namespace fan {
             index = get_bone_name_index(bone_names_default, "Lower_Leg_R");
           }
           else {
-            index = (uintptr_t)-1;
+            index = (std::uintptr_t)-1;
           }
-          if (index == (uintptr_t)-1) {
+          if (index == (std::uintptr_t)-1) {
             /* internal error */
             assert(0);
           }
@@ -1587,7 +1587,7 @@ export namespace fan {
         }
       }
       // returns animation index from current scene
-      uint32_t init_animation_import(std::string& animation_name, aiAnimation* newAnim) {
+      std::uint32_t init_animation_import(std::string& animation_name, aiAnimation* newAnim) {
         bool animation_exists = false;
         for (unsigned int i = 0; i < scene->mNumAnimations; ++i) {
           if (scene->mAnimations[i]->mName.C_Str() == animation_name) {
@@ -1706,14 +1706,14 @@ export namespace fan {
         const aiAnimation* srcAnim = anim.scene->mAnimations[0];
         std::string animation_name = custom_name.empty() ? srcAnim->mName.C_Str() : custom_name;
 
-        uint32_t animation_index = init_animation_import(animation_name, new aiAnimation(*srcAnim));
+        std::uint32_t animation_index = init_animation_import(animation_name, new aiAnimation(*srcAnim));
         aiAnimation* anim_ptr = scene->mAnimations[animation_index];
         solve_legs(anim, bone_names_anim);
         solve_legs(*this, bone_names_model);
 
         anim.iterate_bones(*anim.root_bone, [&](fan::model::bone_t& bone) {
           auto bone_name_index = get_bone_name_index(bone_names_anim, bone.name);
-          if (bone_name_index == (uintptr_t)-1) {
+          if (bone_name_index == (std::uintptr_t)-1) {
             printf("f \"%s\"\n", bone.name.c_str());
           }
           else {
@@ -1860,7 +1860,7 @@ export namespace fan {
             if (time_stamps_open) {
               iterate_bones(*root_bone, [&](fan::model::bone_t& bone) {
                 auto& bt = anim.bone_transform_tracks[bone.id];
-                uint32_t data_count = bt.rotation_timestamps.size();
+                std::uint32_t data_count = bt.rotation_timestamps.size();
                 if (data_count) {
                   bool node_open = gui::tree_node(std::string_view(bone.name));
                   if (node_open) {
@@ -1880,7 +1880,7 @@ export namespace fan {
             if (properties_open) {
               iterate_bones(*root_bone, [&](fan::model::bone_t& bone) {
                 auto& bt = anim.bone_transform_tracks[bone.id];
-                uint32_t data_count = bt.rotations.size();
+                std::uint32_t data_count = bt.rotations.size();
                 if (data_count) {
                   bool node_open = gui::tree_node(std::string_view(bone.name));
                   if (node_open) {
@@ -1934,7 +1934,7 @@ export namespace fan {
             gui::drag(std::string_view(str), bt.rotations[i].data(), 0.01);
           }
 
-          static int32_t current_frame = 0;
+          static std::int32_t current_frame = 0;
           if (!play_animation) {
             dt = current_frame;
           }
@@ -1948,8 +1948,8 @@ export namespace fan {
             prev_frame = dt;
           }
 
-          int32_t start_frame = 0;
-          int32_t end_frame = std::ceil(anim.duration);
+          std::int32_t start_frame = 0;
+          std::int32_t end_frame = std::ceil(anim.duration);
           if (end_frame <= start_frame) {
             gui::text("No bones in current animation");
             return;
@@ -2001,7 +2001,7 @@ export namespace fan {
       std::vector<bone_t*> bones;
       properties_t p;
       fan::mat4 m_transform{ 1 };
-      uint32_t bone_count = 0;
+      std::uint32_t bone_count = 0;
       f32_t dt = 0;
       f32_t scale_divider = 1;
       fan::vec3 aabbmin = 0;

@@ -1,5 +1,7 @@
 module;
 
+#include <fan/utility.h>
+
 #ifdef fan_platform_windows
   #define WIN32_LEAN_AND_MEAN
   #define NOMINMAX
@@ -25,11 +27,9 @@ module;
 
 module fan.time;
 
-import std;
-
 namespace fan {
   namespace time {
-    uint64_t now() {
+    std::uint64_t now() {
     #if defined(fan_platform_windows)
       LARGE_INTEGER freq;
       QueryPerformanceFrequency(&freq);
@@ -37,12 +37,12 @@ namespace fan {
 
       LARGE_INTEGER time;
       QueryPerformanceCounter(&time);
-      return (uint64_t)((double)time.QuadPart * nanoseconds_per_count);
+      return (std::uint64_t)((double)time.QuadPart * nanoseconds_per_count);
     #elif defined(fan_platform_unix)
       struct timespec t;
       clock_gettime(CLOCK_MONOTONIC, &t);
 
-      return (uint64_t)t.tv_sec * 1000000000 + t.tv_nsec;
+      return (std::uint64_t)t.tv_sec * 1000000000 + t.tv_nsec;
     #endif
     }
 
@@ -50,7 +50,7 @@ namespace fan {
       return fan::time::now() / 1e9;
     }
 
-    void delay(uint64_t time) {
+    void delay(std::uint64_t time) {
     #ifdef fan_platform_windows
       delay_w((float)(time / 1000));
     #elif defined(fan_platform_unix)
@@ -66,7 +66,7 @@ namespace fan {
     }
 
     scope_timer_print::~scope_timer_print() {
-      printf("elapsed: %.2fms\n", t.millis());
+      std::printf("elapsed: %.2fms\n", t.millis());
     }
   }
 }

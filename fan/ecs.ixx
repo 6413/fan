@@ -20,7 +20,7 @@ export namespace fan::ecs {
   struct c_hp { int current; int max; };
   struct c_life { f32_t timer; };
   struct tag_bullet{};
-  struct c_cost { int32_t value = 0; };
+  struct c_cost { std::int32_t value = 0; };
 }
 
 export namespace fan {
@@ -29,41 +29,41 @@ export namespace fan {
     static_assert(sizeof...(comps_t) <= 64, "Max 64 components per ECS");
 
     template <typename T>
-    static consteval uint64_t bit() {
+    static consteval std::uint64_t bit() {
       constexpr std::array<bool, sizeof...(comps_t)> matches = { std::is_same_v<T, comps_t>... };
-      for (size_t i = 0; i < matches.size(); ++i) {
+      for (std::size_t i = 0; i < matches.size(); ++i) {
         if (matches[i]) { return 1ULL << i; }
       }
       return 0;
     }
 
     template <typename... Ts>
-    static consteval uint64_t mask_of() {
+    static consteval std::uint64_t mask_of() {
       return (bit<Ts>() | ...);
     }
 
     template <typename T>
     std::vector<T>& pool() { return *this; }
 
-    std::vector<uint64_t> mask;
-    std::vector<uint32_t> gen;
-    std::vector<uint32_t> free_list;
+    std::vector<std::uint64_t> mask;
+    std::vector<std::uint32_t> gen;
+    std::vector<std::uint32_t> free_list;
 
-    uint32_t create() {
+    std::uint32_t create() {
       if (!free_list.empty()) {
-        uint32_t id = free_list.back();
+        std::uint32_t id = free_list.back();
         free_list.pop_back();
         this->mask[id] = 0;
         return id;
       }
-      uint32_t id = (uint32_t)this->mask.size();
+      std::uint32_t id = (std::uint32_t)this->mask.size();
       this->mask.push_back(0);
       gen.push_back(0);
       (std::vector<comps_t>::emplace_back(), ...);
       return id;
     }
 
-    void destroy(uint32_t id) {
+    void destroy(std::uint32_t id) {
       if (this->mask[id] == 0) { return; }
       for (auto& hook : on_destroy_hooks) { hook(id); }
       ((pool<comps_t>()[id] = comps_t{}), ...);
@@ -73,34 +73,34 @@ export namespace fan {
     }
 
     template <typename T, typename... args_t>
-    void add(uint32_t id, args_t&&... args) {
+    void add(std::uint32_t id, args_t&&... args) {
       this->mask[id] |= bit<T>();
       pool<T>()[id] = T{std::forward<args_t>(args)...};
     }
 
     template <typename T>
-    void remove(uint32_t id) {
+    void remove(std::uint32_t id) {
       this->mask[id] &= ~bit<T>();
     }
 
     template <typename... Ts>
-    bool has(uint32_t id) {
-      uint64_t m = mask_of<Ts...>();
+    bool has(std::uint32_t id) {
+      std::uint64_t m = mask_of<Ts...>();
       return (this->mask[id] & m) == m;
     }
 
     template <typename T>
-    T& get(uint32_t id) {
+    T& get(std::uint32_t id) {
       return pool<T>()[id];
     }
 
     template <typename... Ts, typename func_t>
     requires (sizeof...(Ts) > 0)
     void each(func_t&& func) {
-      uint64_t m = mask_of<Ts...>();
-      for (uint32_t i = 0; i < this->mask.size(); ++i) {
+      std::uint64_t m = mask_of<Ts...>();
+      for (std::uint32_t i = 0; i < this->mask.size(); ++i) {
         if ((this->mask[i] & m) == m) {
-          if constexpr (std::is_invocable_v<func_t, uint32_t, Ts&...>) {
+          if constexpr (std::is_invocable_v<func_t, std::uint32_t, Ts&...>) {
             func(i, pool<Ts>()[i]...);
           } else {
             func(pool<Ts>()[i]...);
@@ -116,7 +116,7 @@ export namespace fan {
     }
 
     template <typename func_t, typename... Ts>
-    void _each(func_t&& func, std::tuple<uint32_t, Ts...>) {
+    void _each(func_t&& func, std::tuple<std::uint32_t, Ts...>) {
       each<Ts...>(std::forward<func_t>(func));
     }
 
@@ -126,8 +126,8 @@ export namespace fan {
     }
 
     template <typename... Ts>
-    uint32_t create_with(Ts&&... comps) {
-      uint32_t id = this->create();
+    std::uint32_t create_with(Ts&&... comps) {
+      std::uint32_t id = this->create();
       (this->template add<std::decay_t<Ts>>(id, std::forward<Ts>(comps)), ...);
       return id;
     }
@@ -135,10 +135,10 @@ export namespace fan {
     template <typename... Ts, typename func_t>
     requires (sizeof...(Ts) > 0)
     bool each_breakable(func_t&& func) {
-      uint64_t m = mask_of<Ts...>();
-      for (uint32_t i = 0; i < this->mask.size(); ++i) {
+      std::uint64_t m = mask_of<Ts...>();
+      for (std::uint32_t i = 0; i < this->mask.size(); ++i) {
         if ((this->mask[i] & m) == m) {
-          if constexpr (std::is_invocable_v<func_t, uint32_t, Ts&...>) {
+          if constexpr (std::is_invocable_v<func_t, std::uint32_t, Ts&...>) {
             if (!func(i, pool<Ts>()[i]...)) return false;
           } else {
             if (!func(pool<Ts>()[i]...)) return false;
@@ -155,7 +155,7 @@ export namespace fan {
     }
 
     template <typename func_t, typename... Ts>
-    bool _each_breakable(func_t&& func, std::tuple<uint32_t, Ts...>) {
+    bool _each_breakable(func_t&& func, std::tuple<std::uint32_t, Ts...>) {
       return each_breakable<Ts...>(std::forward<func_t>(func));
     }
 
@@ -174,15 +174,15 @@ export namespace fan {
     template <typename... Ts, typename func_t>
     requires (sizeof...(Ts) > 0)
     constexpr void destroy_if(func_t&& pred) {
-      std::vector<uint32_t> dead;
-      each<Ts...>([&](uint32_t i, Ts&... args) {
-        if constexpr (std::is_invocable_v<func_t, uint32_t, Ts&...>) {
+      std::vector<std::uint32_t> dead;
+      each<Ts...>([&](std::uint32_t i, Ts&... args) {
+        if constexpr (std::is_invocable_v<func_t, std::uint32_t, Ts&...>) {
           if (pred(i, args...)) dead.push_back(i);
         } else {
           if (pred(args...)) dead.push_back(i);
         }
       });
-      for (uint32_t id : dead) destroy(id);
+      for (std::uint32_t id : dead) destroy(id);
     }
 
     template <typename func_t>
@@ -192,7 +192,7 @@ export namespace fan {
     }
 
     template <typename func_t, typename... Ts>
-    constexpr void _destroy_if(func_t&& pred, std::tuple<uint32_t, Ts...>) {
+    constexpr void _destroy_if(func_t&& pred, std::tuple<std::uint32_t, Ts...>) {
       destroy_if<Ts...>(std::forward<func_t>(pred));
     }
 
@@ -204,7 +204,7 @@ export namespace fan {
     template <typename... Tags, typename F>
     constexpr bool destroy_dead(F&& cb) {
       bool destroyed = false;
-      each<fan::ecs::c_hp, Tags...>([&](uint32_t id, fan::ecs::c_hp& hp, Tags&... args) {
+      each<fan::ecs::c_hp, Tags...>([&](std::uint32_t id, fan::ecs::c_hp& hp, Tags&... args) {
         if (hp.current <= 0) {
           cb(args...);
           destroy(id);
@@ -230,7 +230,7 @@ export namespace fan {
       return found;
     }
 
-    std::vector<std::function<void(uint32_t)>> on_destroy_hooks;
+    std::vector<std::function<void(std::uint32_t)>> on_destroy_hooks;
   };
 }
 
@@ -251,11 +251,11 @@ export namespace fan::ecs::systems {
 
   template <typename life_t, typename registry_t>
   constexpr void lifetimes(registry_t& reg, f32_t dt) {
-    std::vector<uint32_t> dead;
-    reg.template each<life_t>([&](uint32_t e, life_t& life) {
+    std::vector<std::uint32_t> dead;
+    reg.template each<life_t>([&](std::uint32_t e, life_t& life) {
       life.timer -= dt;
       if (life.timer <= 0.f) { dead.push_back(e); }
     });
-    for (uint32_t id : dead) { reg.destroy(id); }
+    for (std::uint32_t id : dead) { reg.destroy(id); }
   }
 }

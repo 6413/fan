@@ -58,7 +58,7 @@ export namespace fan {
             ii.channels = td.channels;
             fan::graphics::image_load_properties_t ilp;
             // other implementations i saw, only used these channels
-            constexpr uint32_t gl_formats[] = {
+            constexpr std::uint32_t gl_formats[] = {
               0,                      // index 0 unused
               fan::graphics::image_format::r8_unorm,    // index 1 for 1 channel
               0,                      // index 2 unused

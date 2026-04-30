@@ -21,13 +21,13 @@ export namespace fan::graphics {
     struct ti_t;
 
     struct unique_data_t {
-      uint32_t major;
-      uint32_t minor;
+      std::uint32_t major;
+      std::uint32_t minor;
     };
 
     struct unique_t {
-      uint32_t id = static_cast<uint32_t>(-1);
-      constexpr bool iic() const { return id == static_cast<uint32_t>(-1); }
+      std::uint32_t id = static_cast<std::uint32_t>(-1);
+      constexpr bool iic() const { return id == static_cast<std::uint32_t>(-1); }
       constexpr bool operator==(const unique_t& o) const { return id == o.id; }
     };
 
@@ -35,7 +35,7 @@ export namespace fan::graphics {
       ti_t() = default;
       ti_t(std::string_view name, texture_pack_t* tp);
       bool qti(texture_pack_t* tp, const std::string& name);
-      bool qti(texture_pack_t* tp, uint64_t hash);
+      bool qti(texture_pack_t* tp, std::uint64_t hash);
 
       bool valid() const {
         return image.iic() == false;
@@ -50,27 +50,27 @@ export namespace fan::graphics {
     struct internal_t {
       struct open_properties_t {
         fan::vec2ui preferred_pack_size = 1024;
-        uint32_t visual_output = fan::opengl::context_t::image_load_properties_defaults::visual_output;
-        uint32_t min_filter = 0x2703; // GL_LINEAR_MIPMAP_LINEAR
-        uint32_t mag_filter = fan::opengl::context_t::image_load_properties_defaults::mag_filter;
+        std::uint32_t visual_output = fan::opengl::context_t::image_load_properties_defaults::visual_output;
+        std::uint32_t min_filter = 0x2703; // GL_LINEAR_MIPMAP_LINEAR
+        std::uint32_t mag_filter = fan::opengl::context_t::image_load_properties_defaults::mag_filter;
       };
 
       struct pack_properties_t {
         fan::vec2ui pack_size;
-        uint32_t visual_output;
-        uint32_t min_filter;
-        uint32_t mag_filter;
-        uint32_t group_id;
+        std::uint32_t visual_output;
+        std::uint32_t min_filter;
+        std::uint32_t mag_filter;
+        std::uint32_t group_id;
       };
 
       struct texture_properties_t {
         fan::vec2 uv_pos = 0;
         fan::vec2 uv_size = 1;
         std::string image_name;
-        uint32_t visual_output = -1;
-        uint32_t min_filter = -1;
-        uint32_t mag_filter = -1;
-        uint32_t group_id = -1;
+        std::uint32_t visual_output = -1;
+        std::uint32_t min_filter = -1;
+        std::uint32_t mag_filter = -1;
+        std::uint32_t group_id = -1;
       };
 
       void* internal_state = nullptr;
@@ -94,7 +94,7 @@ export namespace fan::graphics {
 
       std::size_t size() const;
       
-      void* get_pixel_data_raw(uint32_t pack_id); 
+      void* get_pixel_data_raw(std::uint32_t pack_id); 
     };
   };
 
@@ -107,7 +107,7 @@ export namespace fan::graphics {
       fan::vec2i size;
     };
 
-    inline static constexpr uint16_t MAX_TEXTURE_MINOR = 1024;
+    inline static constexpr std::uint16_t MAX_TEXTURE_MINOR = 1024;
 
     struct texture_minor_decoded_t {
       fan::graphics::texture_pack::unique_t unique_id;
@@ -151,7 +151,7 @@ export namespace fan::graphics {
     fan::graphics::texture_pack::unique_t operator[](const std::string& name);
 
     bool qti(const std::string& name, ti_t* ti);
-    bool qti(uint64_t hash, ti_t* ti);
+    bool qti(std::uint64_t hash, ti_t* ti);
   };
 
   inline texture_pack::ti_t::ti_t(std::string_view name, texture_pack_t* tp) {
@@ -160,7 +160,7 @@ export namespace fan::graphics {
   inline bool texture_pack::ti_t::qti(texture_pack_t* tp, const std::string& name) {
     return tp->qti(name, this);
   }
-  inline bool texture_pack::ti_t::qti(texture_pack_t* tp, uint64_t hash) {
+  inline bool texture_pack::ti_t::qti(texture_pack_t* tp, std::uint64_t hash) {
     return tp->qti(hash, this);
   }
 }

@@ -1,5 +1,7 @@
 module;
 
+#include <fan/utility.h>
+
 export module fan.graphics.gui;
 
 import std;
@@ -125,7 +127,7 @@ export namespace fan::graphics::gui {
   void set_viewport(const fan::graphics::render_view_t& render_view = fan::graphics::get_orthographic_render_view());
 
   bool toggle_image_button(fan::str_view_t char_id, fan::graphics::image_t image, const fan::vec2& size, bool* toggle);
-  bool toggle_image_button(image_t* images, uint32_t count, const fan::vec2& size, int* selectedIndex);
+  bool toggle_image_button(image_t* images, std::uint32_t count, const fan::vec2& size, int* selectedIndex);
 
   // untested
   void image_rotated(
@@ -175,7 +177,7 @@ export namespace fan::graphics::gui {
       bool is_selecting = false;
       fan::vec2 selection_start;
       fan::vec2 selection_end;
-      std::vector<size_t> selected_indices;
+      std::vector<std::size_t> selected_indices;
       bool ctrl_held = false;
     } selection_state;
 
@@ -226,8 +228,8 @@ export namespace fan::graphics::gui {
       bool is_searching = false;
       std::vector<file_info_t> found_files;
       std::queue<std::string> pending_directories;
-      std::vector<std::pair<file_info_t, size_t>> sorted_cache;
-      std::vector<std::pair<file_info_t, size_t>> sorted_search_cache;
+      std::vector<std::pair<file_info_t, std::size_t>> sorted_cache;
+      std::vector<std::pair<file_info_t, std::size_t>> sorted_search_cache;
       bool cache_dirty = true;
       bool search_cache_dirty = true;
     };
@@ -246,7 +248,7 @@ export namespace fan::graphics::gui {
     void render();
     void render_large_thumbnails_view();
     void render_list_view();
-    void handle_item_interaction(const file_info_t& file_info, size_t original_index);
+    void handle_item_interaction(const file_info_t& file_info, std::size_t original_index);
     void receive_drag_drop_target(std::function<void(const std::string&)> receive_func);
   };
 
@@ -278,7 +280,7 @@ export namespace fan::graphics::gui {
     bool render(std::string_view drag_drop_id, fan::graphics::sprite_sheet_id_t& shape_sprite_sheet_id);
   };
 
-  void fragment_shader_editor(uint16_t shape_type, std::string* fragment, bool* shader_compiled);
+  void fragment_shader_editor(std::uint16_t shape_type, std::string* fragment, bool* shader_compiled);
 #endif
 
 #if defined(FAN_2D)
@@ -339,11 +341,11 @@ export namespace fan::graphics::gui {
 
   struct dialogue_box_t {
     struct render_type_t {
-      virtual void render(dialogue_box_t* This, uint16_t nr, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing) = 0;
+      virtual void render(dialogue_box_t* This, std::uint16_t nr, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing) = 0;
       virtual ~render_type_t() = default;
     };
 
-    using drawable_nr_t = uint16_t;
+    using drawable_nr_t = std::uint16_t;
     struct drawable_node_t {
       drawable_nr_t id;
       std::unique_ptr<render_type_t> ptr;
@@ -357,10 +359,10 @@ export namespace fan::graphics::gui {
       void render(dialogue_box_t* This, drawable_nr_t nr, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing) override;
       bool dialogue_line_finished = false; // for skipping
       std::string text;
-      uint64_t character_per_s = 20;
+      std::uint64_t character_per_s = 20;
       std::size_t render_pos = 0;
-      fan::time::timer blink_timer{ (uint64_t)0.5e9, true };
-      uint8_t render_cursor = false;
+      fan::time::timer blink_timer{ (std::uint64_t)0.5e9, true };
+      std::uint8_t render_cursor = false;
       fan::event::task_t character_advance_task;
     };
     struct text_t : render_type_t {
@@ -437,7 +439,7 @@ export namespace fan::graphics::gui {
     const f32_t hide_delay = 0.5f
   );
 
-  void text_partial_render(const std::string& text, size_t render_pos, f32_t wrap_width, f32_t line_spacing = 0);
+  void text_partial_render(const std::string& text, std::size_t render_pos, f32_t wrap_width, f32_t line_spacing = 0);
 
   void render_texture_property(
     fan::graphics::shape_t& shape,
@@ -481,52 +483,52 @@ export namespace fan::graphics::gui {
       f32_t cell_w;
       f32_t ascii_w;
       f32_t char_w;
-      uint64_t size;
-      uint64_t rows;
+      std::uint64_t size;
+      std::uint64_t rows;
     };
 
     enum class active_panel_t { hex, ascii };
 
     void render(const std::string_view window_name, fan::io::data_provider_t& data);
     void render(fan::io::data_provider_t& data);
-    std::vector<uint8_t> get_selected_bytes(fan::io::data_provider_t& data) const;
-    std::optional<uint64_t> get_active_cell(fan::io::data_provider_t& data) const;
+    std::vector<std::uint8_t> get_selected_bytes(fan::io::data_provider_t& data) const;
+    std::optional<std::uint64_t> get_active_cell(fan::io::data_provider_t& data) const;
 
   private:
-    void render_cell(fan::io::data_provider_t& data, uint64_t idx, f32_t w, f32_t pad, bool is_dragging, bool is_hex);
+    void render_cell(fan::io::data_provider_t& data, std::uint64_t idx, f32_t w, f32_t pad, bool is_dragging, bool is_hex);
     void render_data_inspector(fan::io::data_provider_t& data, bool little_endian = true);
     void process_clipboard(fan::io::data_provider_t& data);
     bool has_selection() const;
-    std::pair<uint64_t, uint64_t> get_selection_bounds() const;
-    bool is_selected(uint64_t idx) const;
-    void update_selection(uint64_t idx, bool cell_hovered);
-    uint32_t get_cell_flags(bool is_dragging, bool is_hex) const;
-    f32_t get_spacing(uint64_t idx, uint64_t row_end, bool is_hex) const;
+    std::pair<std::uint64_t, std::uint64_t> get_selection_bounds() const;
+    bool is_selected(std::uint64_t idx) const;
+    void update_selection(std::uint64_t idx, bool cell_hovered);
+    std::uint32_t get_cell_flags(bool is_dragging, bool is_hex) const;
+    f32_t get_spacing(std::uint64_t idx, std::uint64_t row_end, bool is_hex) const;
 
   public:
     config_t config;
 
   private:
-    static constexpr uint64_t ascii_id_offset = 0x1000000000000000ULL;
+    static constexpr std::uint64_t ascii_id_offset = 0x1000000000000000ULL;
 
     active_panel_t active_panel = active_panel_t::hex;
     metrics_t metrics {};
 
-    std::optional<uint64_t> sel_start;
-    std::optional<uint64_t> sel_end;
-    std::optional<uint64_t> active_idx;
-    std::optional<uint64_t> pending_focus_ascii;
-    std::optional<uint64_t> pending_focus_hex;
-    std::optional<uint64_t> hovered_hex_idx;
-    std::optional<uint64_t> prev_hex_hover_idx;
-    std::optional<uint64_t> hovered_ascii_idx;
-    std::optional<uint64_t> prev_ascii_hover_idx;
+    std::optional<std::uint64_t> sel_start;
+    std::optional<std::uint64_t> sel_end;
+    std::optional<std::uint64_t> active_idx;
+    std::optional<std::uint64_t> pending_focus_ascii;
+    std::optional<std::uint64_t> pending_focus_hex;
+    std::optional<std::uint64_t> hovered_hex_idx;
+    std::optional<std::uint64_t> prev_hex_hover_idx;
+    std::optional<std::uint64_t> hovered_ascii_idx;
+    std::optional<std::uint64_t> prev_ascii_hover_idx;
 
     f32_t user_zoom = 1.0f;
     bool is_dragging = false;
 
     std::string active_edit_buf;
-    std::optional<uint64_t> active_edit_initialized_idx;
+    std::optional<std::uint64_t> active_edit_initialized_idx;
   };
 
   template <FAN_UNIQUE_CALL>
@@ -541,14 +543,14 @@ export namespace fan::graphics::gui {
   }
 
   template <FAN_UNIQUE_CALL>
-  void hex_editor(const std::string_view window_name, std::vector<uint8_t>& data) {
+  void hex_editor(const std::string_view window_name, std::vector<std::uint8_t>& data) {
     fan::io::memory_provider_t provider(data);
     fan::io::data_provider_t& p = provider;
     gui::hex_editor<FAN_UNIQUE_CALL_PASS>(window_name, p);
   }
 
   template <FAN_UNIQUE_CALL>
-  void hex_editor(std::vector<uint8_t>& data) {
+  void hex_editor(std::vector<std::uint8_t>& data) {
     fan::io::memory_provider_t provider(data);
     fan::io::data_provider_t& p = provider;
     gui::hex_editor<FAN_UNIQUE_CALL_PASS>("", p);

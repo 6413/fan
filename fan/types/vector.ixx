@@ -1,5 +1,7 @@
 module;
 
+#include <fan/utility.h>
+
 #if defined(FAN_VULKAN)
   #include <vulkan/vulkan.h>
 #endif
@@ -198,7 +200,7 @@ export namespace fan {
 
 export namespace fan {
 
-  using access_type_t = uint16_t;
+  using access_type_t = std::uint16_t;
 
   template <typename value_type_t>
   struct vec0_wrap_t {
@@ -246,7 +248,7 @@ export namespace fan {
   #endif
 
   #if defined(FAN_VULKAN)
-    constexpr operator VkExtent2D() const { return VkExtent2D{(uint32_t)x, (uint32_t)y}; }
+    constexpr operator VkExtent2D() const { return VkExtent2D{(std::uint32_t)x, (std::uint32_t)y}; }
     constexpr vec2_wrap_t(const VkExtent2D& v) { x = v.width; y = v.height; }
   #endif
 
@@ -410,9 +412,9 @@ export namespace fan {
 
 #define fan_vector_types(X) \
   X(b,   bool) \
-  X(i8,  int8_t) \
+  X(i8,  std::int8_t) \
   X(i,   int) \
-  X(ui,  uint32_t) \
+  X(ui,  std::uint32_t) \
   X(ull, unsigned long long) \
   X(f,   f32_t) \
   X(d,   f64_t) \
@@ -520,15 +522,15 @@ export namespace fan {
 
 #define fan_hash_vec1(type) \
 template <> struct hash<fan::vec1_wrap_t<type>> { \
-  size_t operator()(const fan::vec1_wrap_t<type>& v) const noexcept { \
+  std::size_t operator()(const fan::vec1_wrap_t<type>& v) const noexcept { \
     return hash<type>{}(v.x); \
   } \
 };
 
 #define fan_hash_vec2(type) \
 template <> struct hash<fan::vec2_wrap_t<type>> { \
-  size_t operator()(const fan::vec2_wrap_t<type>& v) const noexcept { \
-    size_t s = 0; \
+  std::size_t operator()(const fan::vec2_wrap_t<type>& v) const noexcept { \
+    std::size_t s = 0; \
     s = hash_combine(s, hash<type>{}(v.x)); \
     s = hash_combine(s, hash<type>{}(v.y)); \
     return s; \
@@ -537,8 +539,8 @@ template <> struct hash<fan::vec2_wrap_t<type>> { \
 
 #define fan_hash_vec3(type) \
 template <> struct hash<fan::vec3_wrap_t<type>> { \
-  size_t operator()(const fan::vec3_wrap_t<type>& v) const noexcept { \
-    size_t s = 0; \
+  std::size_t operator()(const fan::vec3_wrap_t<type>& v) const noexcept { \
+    std::size_t s = 0; \
     s = hash_combine(s, hash<type>{}(v.x)); \
     s = hash_combine(s, hash<type>{}(v.y)); \
     s = hash_combine(s, hash<type>{}(v.z)); \
@@ -548,8 +550,8 @@ template <> struct hash<fan::vec3_wrap_t<type>> { \
 
 #define fan_hash_vec4(type) \
 template <> struct hash<fan::vec4_wrap_t<type>> { \
-  size_t operator()(const fan::vec4_wrap_t<type>& v) const noexcept { \
-    size_t s = 0; \
+  std::size_t operator()(const fan::vec4_wrap_t<type>& v) const noexcept { \
+    std::size_t s = 0; \
     s = hash_combine(s, hash<type>{}(v.x)); \
     s = hash_combine(s, hash<type>{}(v.y)); \
     s = hash_combine(s, hash<type>{}(v.z)); \
@@ -560,7 +562,7 @@ template <> struct hash<fan::vec4_wrap_t<type>> { \
 
 
 namespace std {
-  constexpr size_t hash_combine(size_t seed, size_t h) {
+  constexpr std::size_t hash_combine(std::size_t seed, std::size_t h) {
     return seed ^ (h + 0x9e3779b9 + (seed << 6) + (seed >> 2));
   }
 

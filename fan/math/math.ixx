@@ -17,7 +17,7 @@ export namespace fan {
     template <typename vector_t>
     constexpr typename vector_t::value_type dot(const vector_t& x, const vector_t& y) {
       typename vector_t::value_type ret = 0;
-      for (uintptr_t i = 0; i < vector_t::size(); ++i) {
+      for (std::uintptr_t i = 0; i < vector_t::size(); ++i) {
         ret += x[i] * y[i];
       }
       return ret;
@@ -91,12 +91,12 @@ export namespace fan {
         HI_MANTISSA_BITS = 20,
         EXP_BIAS = 0x3FF,
         INF_NAN_BASE = 0x7FF;
-      uint32_t constexpr EXP_MASK = (uint32_t)0x7FFu << HI_MANTISSA_BITS,
-        SIGN_MASK = (uint32_t)0x800u << HI_MANTISSA_BITS,
-        MIN_INTEGRAL_DIGITS_EXP = (uint32_t)EXP_BIAS << HI_MANTISSA_BITS,
-        MAX_INTEGRAL32_EXP = (uint32_t)(EXP_BIAS + HI_MANTISSA_BITS) << HI_MANTISSA_BITS,
-        MIN_INTEGRAL_ONLY_EXP = (uint32_t)(EXP_BIAS + MANTISSA_BITS) << HI_MANTISSA_BITS,
-        INF_NAN_EXP = (uint32_t)INF_NAN_BASE << HI_MANTISSA_BITS,
+      std::uint32_t constexpr EXP_MASK = (std::uint32_t)0x7FFu << HI_MANTISSA_BITS,
+        SIGN_MASK = (std::uint32_t)0x800u << HI_MANTISSA_BITS,
+        MIN_INTEGRAL_DIGITS_EXP = (std::uint32_t)EXP_BIAS << HI_MANTISSA_BITS,
+        MAX_INTEGRAL32_EXP = (std::uint32_t)(EXP_BIAS + HI_MANTISSA_BITS) << HI_MANTISSA_BITS,
+        MIN_INTEGRAL_ONLY_EXP = (std::uint32_t)(EXP_BIAS + MANTISSA_BITS) << HI_MANTISSA_BITS,
+        INF_NAN_EXP = (std::uint32_t)INF_NAN_BASE << HI_MANTISSA_BITS,
         NEG_HI_MANTISSA_MASK = 0x000FFFFFu,
         NEG_LO_MANTISSA_MASK = 0xFFFFFFFFu;
       union
@@ -104,12 +104,12 @@ export namespace fan {
         double du;
         struct
         {
-          uint32_t dxLo;
-          uint32_t dxHi;
+          std::uint32_t dxLo;
+          std::uint32_t dxHi;
         }dx;
       };
       du = d;
-      uint32_t exp = dx.dxHi & EXP_MASK;
+      std::uint32_t exp = dx.dxHi & EXP_MASK;
       if (exp >= MIN_INTEGRAL_DIGITS_EXP)
         if (exp < MIN_INTEGRAL_ONLY_EXP)
           if (exp <= MAX_INTEGRAL32_EXP)
@@ -279,15 +279,15 @@ export namespace fan {
 
     template <typename vec_t, typename... vecs_t>
     constexpr auto cross(const vec_t& first, const vecs_t&... rest) {
-      constexpr size_t n = sizeof...(vecs_t) + 1;
+      constexpr std::size_t n = sizeof...(vecs_t) + 1;
       using value_type = typename vec_t::value_type;
       vec_t result;
       const vec_t* vectors[] = { &first, &rest... };
-      for (size_t i = 0; i < vec_t::size(); ++i) {
+      for (std::size_t i = 0; i < vec_t::size(); ++i) {
         value_type submat[n][n];
-        for (size_t row = 0; row < n; ++row) {
-          size_t colIdx = 0;
-          for (size_t col = 0; col < vec_t::size(); ++col) {
+        for (std::size_t row = 0; row < n; ++row) {
+          std::size_t colIdx = 0;
+          for (std::size_t col = 0; col < vec_t::size(); ++col) {
             if (col != i) {
               submat[row][colIdx++] = (*vectors[row])[col];
             }
@@ -498,7 +498,7 @@ export namespace fan {
 
     template <typename matrix_t>
     constexpr matrix_t perspective(f_t fovy, f_t aspect, f_t zNear, f_t zFar) {
-      f_t const tanHalfFovy = tan(fovy / static_cast<f_t>(2));
+      f_t const tanHalfFovy = std::tan(fovy / static_cast<f_t>(2));
       matrix_t matrix{};
       matrix[0][0] = static_cast<f_t>(1) / (aspect * tanHalfFovy);
       matrix[1][1] = static_cast<f_t>(1) / (tanHalfFovy);
@@ -652,7 +652,7 @@ export namespace fan {
       if (s.empty()) return false;
       double result = 0;
       int sign = 1;
-      size_t i = 0;
+      std::size_t i = 0;
       if (i < s.size() && (s[i] == '-' || s[i] == '+')) sign = (s[i++] == '-') ? -1 : 1;
       if (i >= s.size()) return false;
       bool any = false;
@@ -696,7 +696,7 @@ export namespace fan {
     }
 
     constexpr std::expected<double, error> eval_simple_expr(std::string_view expr) noexcept {
-      for (size_t i = 1; i < expr.size(); ++i) {
+      for (std::size_t i = 1; i < expr.size(); ++i) {
         char c = expr[i];
         if (c == '+' || c == '-' || c == '*' || c == '/') {
           auto lhs = expr.substr(0, i);
@@ -708,7 +708,7 @@ export namespace fan {
     }
 
     constexpr std::expected<double, error_info> eval_simple_expr_with_detail(std::string_view expr) noexcept {
-      for (size_t i = 1; i < expr.size(); ++i) {
+      for (std::size_t i = 1; i < expr.size(); ++i) {
         char c = expr[i];
         if (c == '+' || c == '-' || c == '*' || c == '/') {
           auto lhs = expr.substr(0, i);

@@ -1,8 +1,9 @@
 module;
 
 #if defined(FAN_2D)
-#if defined(FAN_PHYSICS_2D)
-#endif
+  #if defined(FAN_PHYSICS_2D)
+    #include <fan/utility.h>
+  #endif
 #endif
 
 export module fan.graphics.gui.tilemap_editor.loader;
@@ -116,7 +117,7 @@ export namespace fan::graphics {
     map_list_impl_t* impl = nullptr;
     std::unordered_map<std::string, compiled_map_t> compiled_maps;
 
-    using id_t = uint16_t;
+    using id_t = std::uint16_t;
     using node_t = map_list_data_t;
 
     tilemap_loader_t();

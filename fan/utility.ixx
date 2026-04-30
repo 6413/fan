@@ -1,8 +1,6 @@
 module;
 
-namespace raii_build {
-  #include <fan/types/raii_nr.h>
-}
+#include <fan/utility.h>
 
 export module fan.utility;
 
@@ -12,6 +10,10 @@ export import fan.mpl;
 import fan.types;
 import fan.memory;
 import fan.time;
+
+namespace raii_build {
+  #include <fan/types/raii_nr.h>
+}
 
 export namespace fan {
 
@@ -347,7 +349,7 @@ export namespace fan {
   }
 
   template <std::ranges::contiguous_range R>
-  auto subspan(R&& v, size_t start, size_t length) {
+  auto subspan(R&& v, std::size_t start, std::size_t length) {
     return std::span(v).subspan(start, length);
   }
 

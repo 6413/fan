@@ -74,17 +74,17 @@ export namespace fan {
   template <typename Callable>
   using return_type_of_membr_t = typename return_type_of_membr<Callable>::type;
 
-  template <bool _Test, uintptr_t _Ty1, uintptr_t _Ty2>
+  template <bool _Test, std::uintptr_t _Ty1, std::uintptr_t _Ty2>
   struct conditional_value {
     static constexpr auto value = _Ty1;
   };
 
-  template <uintptr_t _Ty1, uintptr_t _Ty2>
+  template <std::uintptr_t _Ty1, std::uintptr_t _Ty2>
   struct conditional_value<false, _Ty1, _Ty2> {
     static constexpr auto value = _Ty2;
   };
 
-  template <bool _Test, uintptr_t _Ty1, uintptr_t _Ty2>
+  template <bool _Test, std::uintptr_t _Ty1, std::uintptr_t _Ty2>
   struct conditional_value_t {
     static constexpr auto value = conditional_value<_Test, _Ty1, _Ty2>::value;
   };

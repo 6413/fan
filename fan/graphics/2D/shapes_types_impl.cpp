@@ -1,11 +1,10 @@
 module;
 
 #if defined(FAN_2D)
+  #include <fan/utility.h>
 #endif
 
 module fan.graphics.shapes.types;
-
-import std;
 
 #if defined(FAN_2D)
 
@@ -84,10 +83,10 @@ namespace fan::graphics {
 #endif
 
   sprite_sheet_id_t::sprite_sheet_id_t() = default;
-  sprite_sheet_id_t::sprite_sheet_id_t(uint32_t id) {
+  sprite_sheet_id_t::sprite_sheet_id_t(std::uint32_t id) {
     this->id = id;
   }
-  sprite_sheet_id_t::operator uint32_t() const {
+  sprite_sheet_id_t::operator std::uint32_t() const {
     return id;
   }
   sprite_sheet_id_t::operator bool() const {

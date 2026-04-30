@@ -5,9 +5,9 @@ module;
   #include <fan/imgui/imgui.h>
 #endif
 
-module fan.console;
+#include <fan/utility.h>
 
-import std;
+module fan.console;
 
 import fan.memory;
 import fan.types.color;
@@ -164,7 +164,7 @@ namespace fan {
       auto& obj = (*static_cast<cmd_table_t*>(internal_state))[args[0]];
       std::string cleaned = args[1];
 
-      size_t pos = 0;
+      std::size_t pos = 0;
       while ((pos = cleaned.find(" ;", pos)) != std::string::npos) {
         cleaned.erase(pos, 1);
       }
@@ -190,10 +190,10 @@ namespace fan {
     output_cb(out);
   }
 
-  std::string append_args(const std::vector<std::string>& args, uint64_t offset, uint64_t end) {
+  std::string append_args(const std::vector<std::string>& args, std::uint64_t offset, std::uint64_t end) {
     std::string ret;
-    uint64_t n = end == (uint64_t)-1 ? args.size() : end > args.size() ? args.size() : end;
-    for (uint64_t i = offset; i < n; ++i) {
+    std::uint64_t n = end == (std::uint64_t)-1 ? args.size() : end > args.size() ? args.size() : end;
+    for (std::uint64_t i = offset; i < n; ++i) {
       if (i == 0) {
         ret += args[i];
       }

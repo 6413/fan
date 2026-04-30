@@ -14,7 +14,7 @@ namespace fan::detail {
     std::ostringstream oss;
     std::ios init(nullptr);
     init.copyfmt(oss);
-    for (size_t i = 0; i < str_args.size(); ++i) {
+    for (std::size_t i = 0; i < str_args.size(); ++i) {
       oss << (i == 0 ? "" : (neg_args[i] ? "" : " "))
           << std::setw(tab_width) << std::left << str_args[i]
           << (i == str_args.size() - 1 ? "" : " ")
@@ -26,7 +26,7 @@ namespace fan::detail {
 
   std::wstring format_wargs_impl(const std::vector<std::wstring>& args, bool with_space) {
     std::wostringstream oss;
-    for (size_t i = 0; i < args.size(); ++i) {
+    for (std::size_t i = 0; i < args.size(); ++i) {
       oss << args[i];
       if (with_space || i < args.size() - 1) {
         oss << L" ";
@@ -51,10 +51,10 @@ namespace fan::detail {
   }
 
   void print_color_impl(const fan::color& c, const std::string& msg) {
-    uint32_t rgba = c.get_rgba();
-    uint8_t r = (rgba >> 24) & 0xFF;
-    uint8_t g = (rgba >> 16) & 0xFF;
-    uint8_t b = (rgba >> 8) & 0xFF;
+    std::uint32_t rgba = c.get_rgba();
+    std::uint8_t r = (rgba >> 24) & 0xFF;
+    std::uint8_t g = (rgba >> 16) & 0xFF;
+    std::uint8_t b = (rgba >> 8) & 0xFF;
     std::cout << "\033[38;2;" << (int)r << ";" << (int)g << ";" << (int)b << "m" << msg << "\033[0m";
   }
 

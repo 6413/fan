@@ -1,6 +1,10 @@
 module;
 
+#include <cstddef>
+#include <cstdint>
+
 #if defined(FAN_OPENGL)
+  #include <fan/utility.h>
 #endif
 
 export module fan.graphics.opengl.uniform_block;
@@ -34,18 +38,18 @@ export namespace fan::opengl::core {
   };
 
   struct memory_common_t {
-    void open(fan::opengl::context_t& context, uint32_t target, const memory_write_queue_t::memory_edit_cb_t& cb);
+    void open(fan::opengl::context_t& context, std::uint32_t target, const memory_write_queue_t::memory_edit_cb_t& cb);
     void close(fan::opengl::context_t& context, memory_write_queue_t* queue);
     bool is_queued() const;
-    void edit(fan::opengl::context_t& context, memory_write_queue_t* queue, uint32_t begin, uint32_t end);
+    void edit(fan::opengl::context_t& context, memory_write_queue_t* queue, std::uint32_t begin, std::uint32_t end);
     void on_edit(fan::opengl::context_t& context);
     void reset_edit();
 
     bool queued;
     memory_write_queue_t::nr_t m_edit_index;
 
-    uint64_t m_min_edit;
-    uint64_t m_max_edit;
+    std::uint64_t m_min_edit;
+    std::uint64_t m_max_edit;
 
     fan::opengl::core::vao_t m_vao;
     fan::opengl::core::vbo_t m_vbo;

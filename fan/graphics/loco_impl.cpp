@@ -19,9 +19,9 @@ module;
 #undef max
 #include <fan/graphics/shape_macros.h>
 
-module fan.graphics.loco;
+#include <fan/utility.h>
 
-import std;
+module fan.graphics.loco;
 
 import fan.window.input;
 
@@ -41,7 +41,7 @@ import fan.graphics.common_types;
 #if defined(FAN_GUI)
 
 bool init_fan_track_opengl_print = []() {
-  fan_opengl_track_print() = [](std::string func_name, uint64_t elapsed) {
+  fan_opengl_track_print() = [](std::string func_name, std::uint64_t elapsed) {
     gloco()->gui.console.print(func_name + ":", fan::graphics::highlight_e::text);
     gloco()->gui.console.print(std::to_string(elapsed / 1e+6f) + "ms", fan::graphics::highlight_e::warning);
   };
@@ -164,11 +164,11 @@ void loco_t::shader_set_camera(fan::graphics::shader_nr_t nr, camera_t camera_nr
   renderer_set(shader_set_camera, nr, camera_nr);
 }
 
-fan::graphics::shader_nr_t loco_t::shader_get_nr(uint16_t shape_type) {
+fan::graphics::shader_nr_t loco_t::shader_get_nr(std::uint16_t shape_type) {
   return fan::graphics::g_shapes->shaper.GetShader(shape_type);
 }
 
-fan::graphics::shader_list_t::nd_t& loco_t::shader_get_data(uint16_t shape_type) {
+fan::graphics::shader_list_t::nd_t& loco_t::shader_get_data(std::uint16_t shape_type) {
   return loco_t::shader_list[shader_get_nr(shape_type)];
 }
 
@@ -253,13 +253,13 @@ void* loco_t::get_framebuffer() {
 
 #endif
 
-std::vector<uint8_t> loco_t::image_get_pixel_data(
+std::vector<std::uint8_t> loco_t::image_get_pixel_data(
   fan::graphics::image_nr_t nr,
   int image_format,
   fan::vec2 uvp,
   fan::vec2 uvs
 ) {
-  std::vector<uint8_t> result;
+  std::vector<std::uint8_t> result;
 
   render_context_call_raw(
     result = fan::graphics::get_gl_context().image_get_pixel_data(
@@ -287,7 +287,7 @@ fan::graphics::context_image_t loco_t::image_get(fan::graphics::image_nr_t nr) {
   return renderer_get(fan::graphics::context_image_t,  gl, vk, image_get,  nr);
 }
 
-uint64_t loco_t::image_get_handle(fan::graphics::image_nr_t nr) {
+std::uint64_t loco_t::image_get_handle(fan::graphics::image_nr_t nr) {
   return context_functions.image_get_handle(&context, nr);
 }
 
@@ -573,8 +573,8 @@ void loco_t::add_shape_to_immediate_draw(fan::graphics::shapes::shape_t&& s) {
   immediate_render_list.emplace_back(std::move(s));
 }
 
-uint32_t loco_t::add_shape_to_static_draw(fan::graphics::shapes::shape_t&& s) {
-  uint32_t ret = s.NRI;
+std::uint32_t loco_t::add_shape_to_static_draw(fan::graphics::shapes::shape_t&& s) {
+  std::uint32_t ret = s.NRI;
   static_render_list[ret] = std::move(s);
   return ret;
 }
@@ -745,7 +745,7 @@ void loco_t::generate_commands(loco_t* loco) {
       return;
     }
     try {
-      uint32_t shape_id = std::stoull(args[0]);
+      std::uint32_t shape_id = std::stoull(args[0]);
       fan::graphics::shapes::shape_t* s = reinterpret_cast<fan::graphics::shapes::shape_t*>(&shape_id);
       loco->remove_static_shape_draw(*s);
       loco->gui.console.println_colored(
@@ -788,16 +788,16 @@ void loco_t::set_culling_enabled(bool enabled) {
   fan::graphics::culling::set_enabled(*((fan::graphics::culling::culling_t*)shapes.visibility), enabled);
 }
 
-void loco_t::get_culling_stats(uint32_t& visible, uint32_t& culled) const {
+void loco_t::get_culling_stats(std::uint32_t& visible, std::uint32_t& culled) const {
   visible = 0;
-  uint32_t total = 0;
+  std::uint32_t total = 0;
   for (auto const& [cam_id, cam_state] : ((fan::graphics::culling::culling_t*)shapes.visibility)->camera_states) {
     visible += std::count_if(
       cam_state.visible.begin(),
       cam_state.visible.end(),
       [](const auto& pair) { return pair.second == 1; }
     );
-    total = std::max<uint32_t>(total, cam_state.visible.size());
+    total = std::max<std::uint32_t>(total, cam_state.visible.size());
   }
   culled = (total >= visible) ? (total - visible) : 0;
 }
@@ -1026,9 +1026,9 @@ static void loco_init_renderer_post_window(loco_t* l) {
 static void loco_init_shapes_system(loco_t* l) {
 #if defined(FAN_2D)
   l->shapes.shaper.Open();
-  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::light,        sizeof(uint8_t),                                   fan::graphics::shaper_t::KeyBitOrderAny);
-  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::light_end,    sizeof(uint8_t),                                   fan::graphics::shaper_t::KeyBitOrderAny);
-  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::visible,      sizeof(uint8_t),                                   fan::graphics::shaper_t::KeyBitOrderAny);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::light,        sizeof(std::uint8_t),                                   fan::graphics::shaper_t::KeyBitOrderAny);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::light_end,    sizeof(std::uint8_t),                                   fan::graphics::shaper_t::KeyBitOrderAny);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::visible,      sizeof(std::uint8_t),                                   fan::graphics::shaper_t::KeyBitOrderAny);
   fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::depth,        sizeof(fan::graphics::depth_t),                    fan::graphics::shaper_t::KeyBitOrderLow);
   fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::shader,       sizeof(fan::graphics::shader_raw_t),               fan::graphics::shaper_t::KeyBitOrderLow);
   fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::blending,     sizeof(fan::graphics::blending_t),                 fan::graphics::shaper_t::KeyBitOrderLow);
@@ -1036,10 +1036,10 @@ static void loco_init_shapes_system(loco_t* l) {
   fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::viewport,     sizeof(fan::graphics::viewport_t),                 fan::graphics::shaper_t::KeyBitOrderAny);
   fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::camera,       sizeof(fan::graphics::camera_t),                          fan::graphics::shaper_t::KeyBitOrderAny);
   fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::ShapeType,    sizeof(fan::graphics::shaper_t::ShapeTypeIndex_t), fan::graphics::shaper_t::KeyBitOrderAny);
-  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::filler,       sizeof(uint8_t),                                   fan::graphics::shaper_t::KeyBitOrderAny);
-  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::draw_mode,    sizeof(uint8_t),                                   fan::graphics::shaper_t::KeyBitOrderAny);
-  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::vertex_count, sizeof(uint32_t),                                  fan::graphics::shaper_t::KeyBitOrderAny);
-  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::shadow,       sizeof(uint8_t),                                   fan::graphics::shaper_t::KeyBitOrderAny);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::filler,       sizeof(std::uint8_t),                                   fan::graphics::shaper_t::KeyBitOrderAny);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::draw_mode,    sizeof(std::uint8_t),                                   fan::graphics::shaper_t::KeyBitOrderAny);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::vertex_count, sizeof(std::uint32_t),                                  fan::graphics::shaper_t::KeyBitOrderAny);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::shadow,       sizeof(std::uint8_t),                                   fan::graphics::shaper_t::KeyBitOrderAny);
 #endif
 }
 
@@ -1173,10 +1173,10 @@ void loco_t::close() {
   window.set_should_close(true);
 }
 
-void loco_t::switch_renderer(uint8_t renderer) {
+void loco_t::switch_renderer(std::uint8_t renderer) {
   fan::vec2 window_size = window.get_size();
   fan::vec2 window_position = window.get_position();
-  uint64_t flags = window.flags;
+  std::uint64_t flags = window.flags;
 
 #if defined(FAN_GUI)
   bool was_imgui_init = gui.gui_initialized;
@@ -1431,7 +1431,7 @@ void loco_t::process_shapes() {
 
       context.vk.viewport_set(0, window.get_size(), window.get_size());
 
-      VkRect2D sc {}; sc.offset = {0, 0}; sc.extent = {(uint32_t)window.get_size().x, (uint32_t)window.get_size().y};
+      VkRect2D sc {}; sc.offset = {0, 0}; sc.extent = {(std::uint32_t)window.get_size().x, (std::uint32_t)window.get_size().y};
       vkCmdSetScissor(cmd_buffer, 0, 1, &sc);
 
       // render post process
@@ -1994,7 +1994,7 @@ void loco_t::set_vsync(bool flag) {
 void loco_t::start_timer() {
   if (target_fps <= 0) return;
 
-  uint64_t delay = target_fps > 60 ? 1 : std::max(1.0, std::floor(1.0 / target_fps * 1000.0 * 0.5));
+  std::uint64_t delay = target_fps > 60 ? 1 : std::max(1.0, std::floor(1.0 / target_fps * 1000.0 * 0.5));
 
   uv_timer_start(&timer_handle, [](uv_timer_t* handle) {
     loco_t* loco = static_cast<loco_t*>(handle->data);
@@ -2041,7 +2041,7 @@ void loco_t::start_idle(bool start_idle) {
 void loco_t::update_timer_interval(bool idle) {
   if (target_fps > 0) {
     timing.target_frame_time = 1.0 / target_fps;
-    uint64_t delay = target_fps > 60 ? 1 : std::max(1.0, std::floor(1.0 / target_fps * 1000.0 * 0.5));
+    std::uint64_t delay = target_fps > 60 ? 1 : std::max(1.0, std::floor(1.0 / target_fps * 1000.0 * 0.5));
 
     if (idle_init) {
       uv_idle_stop(&idle_handle);
@@ -2068,7 +2068,7 @@ void loco_t::update_timer_interval(bool idle) {
   }
 }
 
-void loco_t::set_target_fps(int32_t new_target_fps, bool idle) {
+void loco_t::set_target_fps(std::int32_t new_target_fps, bool idle) {
   target_fps = new_target_fps;
   update_timer_interval(idle);
 }
@@ -2272,7 +2272,7 @@ bool loco_t::is_released(std::string_view action_name) {
 
 #if defined(FAN_2D)
 void loco_t::shape_open(
-  uint16_t shape_type,
+  std::uint16_t shape_type,
   std::size_t sizeof_vi,
   std::size_t sizeof_ri,
   fan::graphics::shape_gl_init_list_t shape_shader_locations,
@@ -2302,7 +2302,7 @@ void loco_t::shape_open(
     static constexpr auto vulkan_buffer_count = 3;
     decltype(vk.shape_data.m_descriptor)::properties_t rectp;
     auto& shaderd = *(fan::vulkan::context_t::shader_t*)gloco()->context_functions.shader_get(&gloco()->context.vk, shader);
-    uint32_t ds_offset = 2;
+    std::uint32_t ds_offset = 2;
     vk.shape_data.open(gloco()->context.vk, 1);
     vk.shape_data.allocate(gloco()->context.vk, 0xffffff);
 
@@ -2333,7 +2333,7 @@ void loco_t::shape_open(
       ds_properties[2].dst_binding = 2;
       ds_properties[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
       ds_properties[2].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
-      for (uint32_t i = 0; i < fan::vulkan::max_textures; ++i) {
+      for (std::uint32_t i = 0; i < fan::vulkan::max_textures; ++i) {
         ds_properties[ds_offset].image_infos[i] = imageInfo;
       }
     }
@@ -2431,7 +2431,7 @@ fan::graphics::image_t loco_t::create_noise_image(const fan::vec2& size, int see
   return image_load(ii, lp);
 }
 
-fan::graphics::image_t loco_t::create_noise_image(const fan::vec2& size, const std::vector<uint8_t>& data) {
+fan::graphics::image_t loco_t::create_noise_image(const fan::vec2& size, const std::vector<std::uint8_t>& data) {
   auto lp = default_noise_image_properties();
   fan::image::info_t ii {(void*)data.data(), size, 3};
   return image_load(ii, lp);
@@ -2456,8 +2456,8 @@ fan::ray3_t loco_t::convert_mouse_to_ray(const fan::mat4& projection, const fan:
 #if defined(loco_cuda)
 void loco_t::cuda_textures_t::close(loco_t* loco, fan::graphics::shapes::shape_t& cid) {
   loco_t::universal_image_renderer_t::ri_t& ri = *(loco_t::universal_image_renderer_t::ri_t*)cid.GetData(fan::graphics::g_shapes->shaper);
-  uint8_t image_amount = fan::graphics::get_channel_amount(ri.format);
-  for (uint32_t i = 0; i < image_amount; ++i) {
+  std::uint8_t image_amount = fan::graphics::get_channel_amount(ri.format);
+  for (std::uint32_t i = 0; i < image_amount; ++i) {
     wresources[i].close();
     if (ri.images_rest[i] != loco->default_texture) {
       gloco()->image_unload(ri.images_rest[i]);
@@ -2467,7 +2467,7 @@ void loco_t::cuda_textures_t::close(loco_t* loco, fan::graphics::shapes::shape_t
   inited = false;
 }
 
-void loco_t::cuda_textures_t::resize(loco_t* loco, fan::graphics::shapes::shape_t& id, uint8_t format, fan::vec2ui size) {
+void loco_t::cuda_textures_t::resize(loco_t* loco, fan::graphics::shapes::shape_t& id, std::uint8_t format, fan::vec2ui size) {
   auto vi_image = id.get_image();
   if (vi_image.iic() || vi_image == loco->default_texture) {
     id.reload(format, size);
@@ -2476,8 +2476,8 @@ void loco_t::cuda_textures_t::resize(loco_t* loco, fan::graphics::shapes::shape_
   if (inited == false) {
     id.reload(format, size);
     vi_image = id.get_image();
-    uint8_t image_amount = fan::graphics::get_channel_amount(format);
-    for (uint32_t i = 0; i < image_amount; ++i) {
+    std::uint8_t image_amount = fan::graphics::get_channel_amount(format);
+    for (std::uint32_t i = 0; i < image_amount; ++i) {
       if (i == 0) {
         wresources[i].open(gloco()->image_get_handle(vi_image));
       }
@@ -2491,14 +2491,14 @@ void loco_t::cuda_textures_t::resize(loco_t* loco, fan::graphics::shapes::shape_
     if (gloco()->image_get_data(vi_image).size == size) {
       return;
     }
-    for (uint32_t i = 0; i < fan::graphics::get_channel_amount(ri.format); ++i) {
+    for (std::uint32_t i = 0; i < fan::graphics::get_channel_amount(ri.format); ++i) {
       wresources[i].close();
     }
     id.reload(format, size);
     vi_image = id.get_image();
     ri = *(universal_image_renderer_t::ri_t*)id.GetData(loco->shaper);
-    uint8_t image_amount = fan::graphics::get_channel_amount(format);
-    for (uint32_t i = 0; i < image_amount; ++i) {
+    std::uint8_t image_amount = fan::graphics::get_channel_amount(format);
+    for (std::uint32_t i = 0; i < image_amount; ++i) {
       if (i == 0) {
         wresources[i].open(gloco()->image_get_handle(vi_image));
       }
@@ -2509,7 +2509,7 @@ void loco_t::cuda_textures_t::resize(loco_t* loco, fan::graphics::shapes::shape_
   }
 }
 
-loco_t::cudaArray_t& loco_t::cuda_textures_t::get_array(uint32_t index_t) {
+loco_t::cudaArray_t& loco_t::cuda_textures_t::get_array(std::uint32_t index_t) {
   return wresources[index_t].cuda_array;
 }
 
@@ -2563,7 +2563,7 @@ void loco_t::camera_move_to_smooth(const fan::graphics::shapes::shape_t& shape) 
   camera_move_to_smooth(shape, orthographic_render_view);
 }
 
-bool loco_t::shader_update_fragment(uint16_t shape_type, const std::string_view fragment_file_path, const std::string& fragment) {
+bool loco_t::shader_update_fragment(std::uint16_t shape_type, const std::string_view fragment_file_path, const std::string& fragment) {
   auto shader_nr = shader_get_nr(shape_type);
   auto& shader_data = shader_get_data(shape_type);
   shader_set_vertex(shader_nr, shader_data.path_vertex, shader_data.svertex);
@@ -2632,7 +2632,7 @@ namespace fan::graphics::gui {
 
       std::sort(sorted_allocs.begin(), sorted_allocs.end(),
         [](auto const& a, auto const& b) {
-        return (uintptr_t)a.p < (uintptr_t)b.p;
+        return (std::uintptr_t)a.p < (std::uintptr_t)b.p;
       });
 
       for (auto const& av : sorted_allocs) {

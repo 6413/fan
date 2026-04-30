@@ -16,7 +16,7 @@ export namespace fan {
     }
     std::size_t n = 0;
     for (std::size_t i = 0; i < a.size(); ++i) {
-      n += std::popcount(uint8_t(a[i] ^ b[i]));
+      n += std::popcount(std::uint8_t(a[i] ^ b[i]));
     }
     return n;
   }
@@ -29,10 +29,10 @@ export namespace fan {
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
   inline constexpr auto dec_table = [] {
-    std::array<uint8_t, 256> t {};
-    for (uint8_t i = 0; i < 26; i++) t['A' + i] = i;
-    for (uint8_t i = 0; i < 26; i++) t['a' + i] = 26 + i;
-    for (uint8_t i = 0; i < 10; i++) t['0' + i] = 52 + i;
+    std::array<std::uint8_t, 256> t {};
+    for (std::uint8_t i = 0; i < 26; i++) t['A' + i] = i;
+    for (std::uint8_t i = 0; i < 26; i++) t['a' + i] = 26 + i;
+    for (std::uint8_t i = 0; i < 10; i++) t['0' + i] = 52 + i;
     t['+'] = 62; t['/'] = 63;
     return t;
   }();
@@ -41,10 +41,10 @@ export namespace fan {
     std::string result;
     result.reserve(((data.size() + 2) / 3) * 4);
 
-    for (size_t i = 0; i < data.size(); i += 3) {
-      uint32_t val = static_cast<uint32_t>(data[i]) << 16;
-      if (i + 1 < data.size()) val |= static_cast<uint32_t>(data[i + 1]) << 8;
-      if (i + 2 < data.size()) val |= static_cast<uint32_t>(data[i + 2]);
+    for (std::size_t i = 0; i < data.size(); i += 3) {
+      std::uint32_t val = static_cast<std::uint32_t>(data[i]) << 16;
+      if (i + 1 < data.size()) val |= static_cast<std::uint32_t>(data[i + 1]) << 8;
+      if (i + 2 < data.size()) val |= static_cast<std::uint32_t>(data[i + 2]);
 
       result.push_back(enc_table[(val >> 18) & 0x3F]);
       result.push_back(enc_table[(val >> 12) & 0x3F]);
@@ -60,15 +60,15 @@ export namespace fan {
     bytes_t result;
     result.reserve((data.size() / 4) * 3);
 
-    for (size_t i = 0; i < data.size(); i += 4) {
-      uint32_t val = static_cast<uint32_t>(dec_table[(uint8_t)data[i]]) << 18
-        | static_cast<uint32_t>(dec_table[(uint8_t)data[i + 1]]) << 12
-        | static_cast<uint32_t>(dec_table[(uint8_t)data[i + 2]]) << 6
-        | static_cast<uint32_t>(dec_table[(uint8_t)data[i + 3]]);
+    for (std::size_t i = 0; i < data.size(); i += 4) {
+      std::uint32_t val = static_cast<std::uint32_t>(dec_table[(std::uint8_t)data[i]]) << 18
+        | static_cast<std::uint32_t>(dec_table[(std::uint8_t)data[i + 1]]) << 12
+        | static_cast<std::uint32_t>(dec_table[(std::uint8_t)data[i + 2]]) << 6
+        | static_cast<std::uint32_t>(dec_table[(std::uint8_t)data[i + 3]]);
 
-      result.push_back(static_cast<uint8_t>((val >> 16) & 0xFF));
-      if (data[i + 2] != '=') result.push_back(static_cast<uint8_t>((val >> 8) & 0xFF));
-      if (data[i + 3] != '=') result.push_back(static_cast<uint8_t>(val & 0xFF));
+      result.push_back(static_cast<std::uint8_t>((val >> 16) & 0xFF));
+      if (data[i + 2] != '=') result.push_back(static_cast<std::uint8_t>((val >> 8) & 0xFF));
+      if (data[i + 3] != '=') result.push_back(static_cast<std::uint8_t>(val & 0xFF));
     }
 
     return result;
@@ -80,7 +80,7 @@ export namespace fan {
     std::ostringstream r;
     r << std::hex << std::setfill('0');
     for (std::size_t i = 0; i < a.size(); ++i) {
-      r << std::setw(2) << +uint8_t(a[i] ^ b[i % b.size()]);
+      r << std::setw(2) << +std::uint8_t(a[i] ^ b[i % b.size()]);
     }
     return r.str();
   }
@@ -97,7 +97,7 @@ export namespace fan {
     std::string r;
     r.reserve(std::distance(begin, end) * 2);
     for (; begin != end; ++begin) {
-      uint8_t b = *begin;
+      std::uint8_t b = *begin;
       r.push_back(hex[b >> 4]);
       r.push_back(hex[b & 0xF]);
     }
@@ -115,7 +115,7 @@ export namespace fan {
     return r;
   }
 
-  bytes_t xor_key(const bytes_t& a, uint8_t key) {
+  bytes_t xor_key(const bytes_t& a, std::uint8_t key) {
     return xor_key(a, bytes_t{key});
   }
 
@@ -163,13 +163,13 @@ export namespace fan {
     std::string texts[n]{};
 
     for (int i = 0; i < n; ++i) {
-      auto keyd = xor_key(a_bytes, uint8_t(i));
+      auto keyd = xor_key(a_bytes, std::uint8_t(i));
       texts[i] = as_chars(keyd);
       for (auto c : keyd) {
         if (std::isblank(c)) { st[i] += 10.f; sd[i] += 10.f; continue; }
         if (!std::isprint(c)) { st[i] -= 10.f; sd[i] -= 10.f; continue; }
         if (!std::isalpha(c)) continue;
-        uint8_t p = (std::toupper(c) - 'A') % std::size(freq_d);
+        std::uint8_t p = (std::toupper(c) - 'A') % std::size(freq_d);
         st[i] += freq_t[p];
         sd[i] += freq_d[p];
       }
@@ -195,7 +195,7 @@ export namespace fan {
       bool operator<(const key_size_candidate_t& d) const {
         return result < d.result;
       }
-      void add(std::span<const uint8_t> key_x) {
+      void add(std::span<const std::uint8_t> key_x) {
         spans.emplace_back(fan::as_chars(key_x));
         if (spans.size() % 2 == 0) {
           calc_distance();

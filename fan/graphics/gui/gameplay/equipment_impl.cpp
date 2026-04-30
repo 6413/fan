@@ -26,13 +26,13 @@ namespace fan::graphics::gui::gameplay {
     );
   }
 
-  bool equipment_t::can_equip(uint32_t slot_index, uint32_t id) const {
+  bool equipment_t::can_equip(std::uint32_t slot_index, std::uint32_t id) const {
     //if (slot_index == 0) return id == items::id_e::sword;
     //if (slot_index == 1) return id == items::id_e::shield;
     return false;
   }
 
-  bool equipment_t::try_place_item(uint32_t slot_index, const fan::graphics::gameplay::item_t& item) {
+  bool equipment_t::try_place_item(std::uint32_t slot_index, const fan::graphics::gameplay::item_t& item) {
     if (!can_equip(slot_index, item.id)) {
       return false;
     }
@@ -71,7 +71,7 @@ namespace fan::graphics::gui::gameplay {
 
     gui::set_cursor_pos(fan::vec2(8, 8));
 
-    for (uint32_t i = 0; i < slots.size(); ++i) {
+    for (std::uint32_t i = 0; i < slots.size(); ++i) {
       gui::push_id(static_cast<int>(i));
 
       fan::vec2 local_min = gui::get_cursor_pos();
@@ -112,17 +112,17 @@ namespace fan::graphics::gui::gameplay {
     gui::end_child();
   }
 
-  bool equipment_t::try_drop_here(uint32_t index, gui::drag_drop::drag_state_t& drag_state) {
+  bool equipment_t::try_drop_here(std::uint32_t index, gui::drag_drop::drag_state_t& drag_state) {
     auto& slot = slots[index];
     gui::drag_drop::apply_to_slot(drag_state, slot);
     return true;
   }
 
-  uint32_t equipment_t::get_hovered_slot() const {
+  std::uint32_t equipment_t::get_hovered_slot() const {
     return hovered_slot;
   }
 
-  bool equipment_t::has_item(uint32_t id) const {
+  bool equipment_t::has_item(std::uint32_t id) const {
     for (auto& slot : slots) {
       if (!slot.is_empty() && *slot.id == id) {
         return true;
@@ -131,7 +131,7 @@ namespace fan::graphics::gui::gameplay {
     return false;
   }
 
-  bool equipment_t::equip_item(uint32_t inv_slot, inventory_t& inv, uint32_t idx) {
+  bool equipment_t::equip_item(std::uint32_t inv_slot, inventory_t& inv, std::uint32_t idx) {
     auto& src = inv.slots[inv_slot];
     auto& dst = slots[idx];
 

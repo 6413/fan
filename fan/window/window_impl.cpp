@@ -510,7 +510,7 @@ namespace fan {
   }
 
 
-  uint32_t window_t::handle_events() {
+  std::uint32_t window_t::handle_events() {
     f64_t current_frame_time = glfwGetTime();
     m_delta_time = current_frame_time - last_frame_time;
     /*if (m_delta_time >= 0.3) {
@@ -556,7 +556,7 @@ namespace fan {
     );
   }
 
-  window_t::buttons_handle_t window_t::on_mouse_click(uint16_t button, buttons_cb_t fn) {
+  window_t::buttons_handle_t window_t::on_mouse_click(std::uint16_t button, buttons_cb_t fn) {
     return add_buttons_callback([=](const buttons_data_t& d) {
       if (d.button == button && d.state == fan::mouse_state::press) {
         fn(d);
@@ -564,7 +564,7 @@ namespace fan {
     });
   }
 
-  window_t::mouse_down_handle_t window_t::on_mouse_down(uint16_t button, buttons_cb_t fn) {
+  window_t::mouse_down_handle_t window_t::on_mouse_down(std::uint16_t button, buttons_cb_t fn) {
     using handle_t = window_t::mouse_down_handle_t;
     using fn_t = typename handle_t::fn_t;
     using add_fn = typename handle_t::add_fn;
@@ -591,7 +591,7 @@ namespace fan {
     );
   }
 
-  window_t::buttons_handle_t window_t::on_mouse_up(uint16_t button, buttons_cb_t fn) {
+  window_t::buttons_handle_t window_t::on_mouse_up(std::uint16_t button, buttons_cb_t fn) {
     return add_buttons_callback([=](const buttons_data_t& d) {
       if (d.button == button && d.state == fan::mouse_state::release) {
         fn(d);
@@ -733,7 +733,7 @@ namespace fan {
   }
 
   void window_t::set_fullscreen() {
-    if (display_mode == (uint8_t)mode::fullscreen) {
+    if (display_mode == (std::uint8_t)mode::fullscreen) {
       return;
     }
 
@@ -752,11 +752,11 @@ namespace fan {
 
     glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, GLFW_FALSE);
 
-    display_mode = (uint8_t)mode::fullscreen;
+    display_mode = (std::uint8_t)mode::fullscreen;
   }
 
   void window_t::set_borderless() {
-    if (display_mode == (uint8_t)mode::borderless) {
+    if (display_mode == (std::uint8_t)mode::borderless) {
       return;
     }
 
@@ -782,7 +782,7 @@ namespace fan {
     );
 
 
-    display_mode = (uint8_t)mode::borderless;
+    display_mode = (std::uint8_t)mode::borderless;
   }
 
 
@@ -882,7 +882,7 @@ namespace fan {
     return axis;
   }
 
-  uint8_t window_t::get_antialiasing() const {
+  std::uint8_t window_t::get_antialiasing() const {
     return m_antialiasing_samples;
   }
   void window_t::set_antialiasing(int samples) {

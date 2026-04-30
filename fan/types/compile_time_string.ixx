@@ -186,7 +186,7 @@ export namespace fan {
   };
 
   // Converts snake_case to Title Case in compile time
-  template<size_t N = 256>
+  template<std::size_t N = 256>
   constexpr ct_string<N> snake_to_title(const char* s) {
     ct_string<N> o {};
     for (bool c = 1; *s && o.len < N - 1; c = *s == '_', ++s)
@@ -196,7 +196,7 @@ export namespace fan {
 
   template <std::size_t N>
   struct xor_string_t : fan::ct_string<N> {
-    static constexpr uint8_t xor_key = 0x55;
+    static constexpr std::uint8_t xor_key = 0x55;
 
     constexpr xor_string_t() = default;
     template <std::size_t M>

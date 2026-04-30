@@ -39,15 +39,15 @@ export namespace fan::graphics::gui {
   };
 
   struct inventory_t {
-    using slot_click_cb_t = void(*)(uint32_t, const gameplay::item_slot_t&);
-    using item_use_cb_t = void(*)(uint32_t, const gameplay::item_t&);
+    using slot_click_cb_t = void(*)(std::uint32_t, const gameplay::item_slot_t&);
+    using item_use_cb_t = void(*)(std::uint32_t, const gameplay::item_t&);
 
-    void create(uint32_t slot_count, uint32_t cols = 8) {
+    void create(std::uint32_t slot_count, std::uint32_t cols = 8) {
       slots.resize(slot_count);
       columns = cols;
     }
 
-    bool add_item(const gameplay::item_t& item, uint32_t amount = 1) {
+    bool add_item(const gameplay::item_t& item, std::uint32_t amount = 1) {
       if (amount == 0) {
         return false;
       }
@@ -64,7 +64,7 @@ export namespace fan::graphics::gui {
       return false;
     }
 
-    bool remove_item(uint32_t id, uint32_t amount = 1) {
+    bool remove_item(std::uint32_t id, std::uint32_t amount = 1) {
       if (amount == 0) {
         return false;
       }
@@ -76,8 +76,8 @@ export namespace fan::graphics::gui {
       return false;
     }
 
-    std::optional<uint32_t> find_item(uint32_t id) const {
-      for (uint32_t i = 0; i < slots.size(); ++i) {
+    std::optional<std::uint32_t> find_item(std::uint32_t id) const {
+      for (std::uint32_t i = 0; i < slots.size(); ++i) {
         if (!slots[i].is_empty() && *slots[i].id == id) {
           return i;
         }
@@ -86,7 +86,7 @@ export namespace fan::graphics::gui {
     }
 
     fan::vec2 get_content_size() const {
-      uint32_t rows = (slots.size() + columns - 1) / columns;
+      std::uint32_t rows = (slots.size() + columns - 1) / columns;
       return fan::vec2(
         columns * (style.slot_size.x + style.slot_padding.x) - style.slot_padding.x,
         rows * (style.slot_size.y + style.slot_padding.y) - style.slot_padding.y
@@ -114,8 +114,8 @@ export namespace fan::graphics::gui {
       auto& io = gui::get_io();
 
       if (!drag_state.active) {
-        hovered_inventory_slot = UINT32_MAX;
-        hovered_secondary_slot = UINT32_MAX;
+        hovered_inventory_slot = std::numeric_limits<std::uint32_t>::max();
+        hovered_secondary_slot = std::numeric_limits<std::uint32_t>::max();
       }
 
       fan::vec2 window_size = io.DisplaySize;
@@ -161,13 +161,13 @@ export namespace fan::graphics::gui {
         };
 
         hovered_inventory_slot = render_slot_grid(
-          slots, 0, static_cast<uint32_t>(slots.size()),
+          slots, 0, static_cast<std::uint32_t>(slots.size()),
           layout, style.theme, drag_state, callbacks
         );
 
-        if (hovered_inventory_slot != UINT32_MAX && secondary && !drag_state.active &&
+        if (hovered_inventory_slot != std::numeric_limits<std::uint32_t>::max() && secondary && !drag_state.active &&
           !slots[hovered_inventory_slot].is_empty() && gui::input::ctrl()) {
-          uint32_t n;
+          std::uint32_t n;
           if (gui::input::number(n)) {
             transfer_to_secondary_exact(hovered_inventory_slot, n);
           }
@@ -185,8 +185,8 @@ export namespace fan::graphics::gui {
       gui::pop_style_var(2);
 
       if (drag_state.active && gui::input::left_released()) {
-        uint32_t src = drag_state.slot_index;
-        uint32_t dst = hovered_inventory_slot;
+        std::uint32_t src = drag_state.slot_index;
+        std::uint32_t dst = hovered_inventory_slot;
 
         if (dst == src) {
           auto& slot = slots[src];
@@ -196,10 +196,10 @@ export namespace fan::graphics::gui {
           return;
         }
 
-        if (hovered_inventory_slot != UINT32_MAX) {
+        if (hovered_inventory_slot != std::numeric_limits<std::uint32_t>::max()) {
           drop_to_inventory_slot(hovered_inventory_slot);
         }
-        else if (secondary && hovered_secondary_slot != UINT32_MAX) {
+        else if (secondary && hovered_secondary_slot != std::numeric_limits<std::uint32_t>::max()) {
           drop_to_secondary_slot(hovered_secondary_slot);
         }
         else {
@@ -213,7 +213,7 @@ export namespace fan::graphics::gui {
       }
     }
 
-    void drop_to_inventory_slot(uint32_t slot_index) {
+    void drop_to_inventory_slot(std::uint32_t slot_index) {
       if (!drag_state.active || slot_index >= slots.size()) {
         return;
       }
@@ -221,7 +221,7 @@ export namespace fan::graphics::gui {
       drag_drop::apply_to_slot(drag_state, dst_slot);
     }
 
-    void drop_to_secondary_slot(uint32_t slot_index) {
+    void drop_to_secondary_slot(std::uint32_t slot_index) {
       if (!drag_state.active || !secondary || slot_index >= secondary->slots.size()) {
         return;
       }
@@ -264,7 +264,7 @@ export namespace fan::graphics::gui {
         drag_state.active = false;
       }
     }
-    void transfer_to_secondary_exact(uint32_t inventory_slot_index, uint32_t secondary_slot_index) {
+    void transfer_to_secondary_exact(std::uint32_t inventory_slot_index, std::uint32_t secondary_slot_index) {
       if (!secondary) {
         return;
       }
@@ -292,20 +292,20 @@ export namespace fan::graphics::gui {
         return;
       }
       if (*dst_slot.id == *src_slot.id) {
-        uint32_t free_space = 0;
+        std::uint32_t free_space = 0;
         if (*dst_slot.stack_size < def->max_stack) {
           free_space = def->max_stack - *dst_slot.stack_size;
         }
         if (free_space == 0) {
-          uint32_t tmp_id = *dst_slot.id;
-          uint32_t tmp_stack = *dst_slot.stack_size;
+          std::uint32_t tmp_id = *dst_slot.id;
+          std::uint32_t tmp_stack = *dst_slot.stack_size;
           dst_slot.id = *src_slot.id;
           dst_slot.stack_size = *src_slot.stack_size;
           src_slot.id = tmp_id;
           src_slot.stack_size = tmp_stack;
           return;
         }
-        uint32_t to_add = std::min(free_space, *src_slot.stack_size);
+        std::uint32_t to_add = std::min(free_space, *src_slot.stack_size);
         *dst_slot.stack_size += to_add;
         *src_slot.stack_size -= to_add;
         if (*src_slot.stack_size == 0) {
@@ -314,32 +314,32 @@ export namespace fan::graphics::gui {
         }
         return;
       }
-      uint32_t tmp_id = *dst_slot.id;
-      uint32_t tmp_stack = *dst_slot.stack_size;
+      std::uint32_t tmp_id = *dst_slot.id;
+      std::uint32_t tmp_stack = *dst_slot.stack_size;
       dst_slot.id = *src_slot.id;
       dst_slot.stack_size = *src_slot.stack_size;
       src_slot.id = tmp_id;
       src_slot.stack_size = tmp_stack;
     }
 
-    bool try_drop_here(uint32_t slot_index, gui::drag_drop::drag_state_t& drag_state) {
+    bool try_drop_here(std::uint32_t slot_index, gui::drag_drop::drag_state_t& drag_state) {
       drop_to_inventory_slot(slot_index);
       return true;
     }
 
-    uint32_t get_hovered_slot() const {
+    std::uint32_t get_hovered_slot() const {
       return hovered_inventory_slot;
     }
 
     std::vector<gameplay::item_slot_t> slots;
     inventory_style_t style;
-    uint32_t columns = 8;
+    std::uint32_t columns = 8;
     bool visible = false;
     slot_click_cb_t on_slot_click = nullptr;
     item_use_cb_t on_item_use = nullptr;
     gui::drag_drop::drag_state_t drag_state;
-    uint32_t hovered_inventory_slot = UINT32_MAX;
-    uint32_t hovered_secondary_slot = UINT32_MAX;
+    std::uint32_t hovered_inventory_slot = std::numeric_limits<std::uint32_t>::max();
+    std::uint32_t hovered_secondary_slot = std::numeric_limits<std::uint32_t>::max();
     bool destroy_on_drop_outside = false;
     hotbar_t* secondary = nullptr;
   };

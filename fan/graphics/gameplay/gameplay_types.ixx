@@ -11,10 +11,10 @@ import fan.graphics.common_context;
 export namespace fan::graphics::gameplay {
 
   struct item_t {
-    uint32_t id;
+    std::uint32_t id;
     fan::graphics::image_t icon;
-    uint32_t stack_size = 1;
-    uint32_t max_stack = 99;
+    std::uint32_t stack_size = 1;
+    std::uint32_t max_stack = 99;
     void* user_data = nullptr;
   };
 
@@ -33,7 +33,7 @@ export namespace fan::graphics::gameplay {
       return !id.has_value();
     }
 
-    bool can_add(uint32_t new_id, uint32_t max_stack, uint32_t amount = 1) const {
+    bool can_add(std::uint32_t new_id, std::uint32_t max_stack, std::uint32_t amount = 1) const {
       if (amount == 0) {
         return false;
       }
@@ -49,7 +49,7 @@ export namespace fan::graphics::gameplay {
       return true;
     }
 
-    bool add(uint32_t new_id, uint32_t max_stack, uint32_t amount = 1) {
+    bool add(std::uint32_t new_id, std::uint32_t max_stack, std::uint32_t amount = 1) {
       if (!can_add(new_id, max_stack, amount)) {
         return false;
       }
@@ -62,7 +62,7 @@ export namespace fan::graphics::gameplay {
       return true;
     }
 
-    bool remove(uint32_t amount = 1) {
+    bool remove(std::uint32_t amount = 1) {
       if (is_empty()) {
         return false;
       }
@@ -81,7 +81,7 @@ export namespace fan::graphics::gameplay {
       return true;
     }
 
-    std::optional<uint32_t> id;
-    std::optional<uint32_t> stack_size;
+    std::optional<std::uint32_t> id;
+    std::optional<std::uint32_t> stack_size;
   };
 }

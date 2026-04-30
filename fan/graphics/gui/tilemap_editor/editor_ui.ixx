@@ -29,7 +29,7 @@ import fan.io.file;
 
 namespace fan::graphics::gui::tilemap_editor::ui {
 
-  template <typename enum_t, size_t N>
+  template <typename enum_t, std::size_t N>
   bool combo_enum(const char* label, enum_t& val, const char* const (&names)[N]) {
     int idx = static_cast<int>(val);
     if (fan::graphics::gui::combo(label, &idx, N, [&](int i) -> const char* { return names[i]; })) {
@@ -143,7 +143,7 @@ namespace fan::graphics::gui::tilemap_editor::ui {
       editor.viewport_settings.window_related_mouse_pos = fan::vec2(fan::vec2(fan::graphics::gui::get_window_pos()) + fan::vec2(fan::graphics::gui::get_window_size() / 2) + fan::vec2(0, style.WindowPadding.y * 2 - frame_padding.y * 2));
 
       fan::graphics::gui::set_font(fan::graphics::gui::get_font_size() * 1.5);
-      fan::graphics::gui::text("brush type: "_str + editor.brush.type_names[(uint8_t)editor.brush.type]);
+      fan::graphics::gui::text("brush type: "_str + editor.brush.type_names[(std::uint8_t)editor.brush.type]);
       fan::graphics::gui::text("brush depth: " + std::to_string((int)editor.brush.depth - fte_t::shape_depths_t::max_layer_depth / 2));
       fan::graphics::gui::pop_font();
 
@@ -194,7 +194,7 @@ namespace fan::graphics::gui::tilemap_editor::ui {
         for (auto& layer_pair : editor.visual_layers) {
           auto& layer = layer_pair.second; 
           layer.text.resize(32);
-          uint16_t depth = layer_pair.first;
+          std::uint16_t depth = layer_pair.first;
           auto fmt = ("Layer " + std::to_string(depth - fte_t::shape_depths_t::max_layer_depth / 2));
 
           if (fan::graphics::gui::toggle_button(("Visible " + fmt).c_str(), &layer.visible)) {
@@ -430,9 +430,9 @@ namespace fan::graphics::gui::tilemap_editor::ui {
 
       static fan::vec2 selection_start(-1, -1);
       static fan::vec2 selection_end(-1, -1);
-      static fan::vec2 min_rect = (uint32_t)~0;
+      static fan::vec2 min_rect = (std::uint32_t)~0;
       static fan::vec2 max_rect = -1;
-      static fan::vec2 min_rect_draw = (uint32_t)~0;
+      static fan::vec2 min_rect_draw = (std::uint32_t)~0;
       static fan::vec2 max_rect_draw = -1;
       static bool is_selecting = false;
 
@@ -447,7 +447,7 @@ namespace fan::graphics::gui::tilemap_editor::ui {
       fan::vec2 initial_pos = fan::graphics::gui::get_cursor_screen_pos();
       auto* draw_list = fan::graphics::gui::get_window_draw_list();
 
-      for (uint32_t i = 0; i < editor.texture_pack_images.size(); i++) {
+      for (std::uint32_t i = 0; i < editor.texture_pack_images.size(); i++) {
         auto& node = editor.texture_pack_images[i];
         fan::vec2i grid_index(i % images_per_row, i / images_per_row);
 
@@ -497,16 +497,16 @@ namespace fan::graphics::gui::tilemap_editor::ui {
         selection_end = fan::graphics::gui::get_mouse_pos();
         fan::vec2 max_rect_draw_adjusted = max_rect_draw + sprite_size;
         max_rect_draw_adjusted = max_rect_draw_adjusted.min(initial_pos + cursor_grid * sprite_size + sprite_size);
-        if (min_rect != (uint32_t)~0 && max_rect != -1) draw_list->AddRect(min_rect_draw, max_rect_draw_adjusted, 0xff0077ff);
+        if (min_rect != (std::uint32_t)~0 && max_rect != -1) draw_list->AddRect(min_rect_draw, max_rect_draw_adjusted, 0xff0077ff);
 
         if (is_left_mouse_button_released) {
           is_selecting = false;
-          min_rect = (uint32_t)~0; max_rect = -1;
-          min_rect_draw = (uint32_t)~0; max_rect_draw = -1;
+          min_rect = (std::uint32_t)~0; max_rect = -1;
+          min_rect_draw = (std::uint32_t)~0; max_rect_draw = -1;
         }
       }
 
-      if (min_rect != (uint32_t)~0 && max_rect != -1) {
+      if (min_rect != (std::uint32_t)~0 && max_rect != -1) {
         for (int y = min_rect.y; y <= std::min(max_rect.y, cursor_grid.y); ++y) {
           for (int x = min_rect.x; x <= std::min(max_rect.x, cursor_grid.x); ++x) {
             editor.current_image_indices[fan::vec2i(x, y)] = y * images_per_row + x;
@@ -611,7 +611,7 @@ namespace fan::graphics::gui::tilemap_editor::ui {
         fan::vec2 rotation_point = layer.shape.get_rotation_point();
         if (fan::graphics::gui::drag("rotation_point", &rotation_point, 0.1, -tile_size.max() * 2, tile_size.max() * 2)) layer.shape.set_rotation_point(rotation_point);
 
-        uint32_t flags = layer.shape.get_flags();
+        std::uint32_t flags = layer.shape.get_flags();
         if (fan::graphics::gui::input_int("special flags", (int*)&flags, 1, 1)) layer.shape.set_flags(flags);
 
         fan::color color = layer.shape.get_color();
@@ -704,7 +704,7 @@ namespace fan::graphics::gui::tilemap_editor::ui {
     if (fan::graphics::gui::begin("Custom Tools", nullptr, fan::graphics::gui::window_flags_no_focus_on_appearing)) {
       fan::graphics::gui::text("Map Stats:");
       fan::graphics::gui::text("Grid Size: " + std::to_string(editor.map_size.x) + "x" + std::to_string(editor.map_size.y));
-      size_t total_tiles = 0;
+      std::size_t total_tiles = 0;
       for (const auto& [pos, cell] : editor.map_tiles) total_tiles += cell.layers.size();
       fan::graphics::gui::text("Total Tiles: " + std::to_string(total_tiles));
       fan::graphics::gui::text("Active Layers: " + std::to_string(editor.visual_layers.size()));

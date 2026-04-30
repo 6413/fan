@@ -38,7 +38,7 @@ namespace fan::opengl::core {
     write_queue.Clear();
   }
 
-  void memory_common_t::open(fan::opengl::context_t& context, uint32_t target, const memory_write_queue_t::memory_edit_cb_t& cb) {
+  void memory_common_t::open(fan::opengl::context_t& context, std::uint32_t target, const memory_write_queue_t::memory_edit_cb_t& cb) {
     m_vao.open(context);
     m_vbo.open(context, target);
     write_cb = cb;
@@ -58,9 +58,9 @@ namespace fan::opengl::core {
     return queued;
   }
 
-  void memory_common_t::edit(fan::opengl::context_t& context, memory_write_queue_t* queue, uint32_t begin, uint32_t end) {
-    m_min_edit = std::min(m_min_edit, (uint64_t)begin);
-    m_max_edit = std::max(m_max_edit, (uint64_t)end);
+  void memory_common_t::edit(fan::opengl::context_t& context, memory_write_queue_t* queue, std::uint32_t begin, std::uint32_t end) {
+    m_min_edit = std::min(m_min_edit, (std::uint64_t)begin);
+    m_max_edit = std::max(m_max_edit, (std::uint64_t)end);
     if (is_queued()) {
       return;
     }

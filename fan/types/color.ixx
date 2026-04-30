@@ -2,6 +2,8 @@ module;
 
 //#undef FAN_GUI
 
+#include <fan/utility.h>
+
 export module fan.types.color;
 
 import std;
@@ -35,8 +37,8 @@ export namespace fan {
       this->b = b;
       this->a = a;
     }
-    constexpr color(const uint8_t* begin, const uint8_t* end) {
-      const uint8_t* ptr = begin;
+    constexpr color(const std::uint8_t* begin, const std::uint8_t* end) {
+      const std::uint8_t* ptr = begin;
       int i = 0;
       while (ptr != end) {
         (*this)[i++] = *ptr / f32_t(255);
@@ -67,10 +69,10 @@ export namespace fan {
     constexpr bool operator!=(const color& c) const {
       return !(*this == c);
     }
-    constexpr f32_t& operator[](size_t x) {
+    constexpr f32_t& operator[](std::size_t x) {
       return !x ? this->r : x == 1 ? this->g : x == 2 ? this->b : x == 3 ? this->a : this->a;
     }
-    constexpr f32_t operator[](size_t x) const {
+    constexpr f32_t operator[](std::size_t x) const {
       return !x ? this->r : x == 1 ? this->g : x == 2 ? this->b : x == 3 ? this->a : this->a;
     }
     constexpr color operator-=(const color& c) {
@@ -145,54 +147,54 @@ export namespace fan {
       return value < min ? min : (value > max ? max : value);
     }
 
-    static constexpr uint32_t to_byte(f32_t value) {
-      return static_cast<uint32_t>(color::clamp(value, 0.0f, 1.0f) * 255);
+    static constexpr std::uint32_t to_byte(f32_t value) {
+      return static_cast<std::uint32_t>(color::clamp(value, 0.0f, 1.0f) * 255);
     }
 
-    static constexpr uint32_t pack_color(f32_t c1, f32_t c2, f32_t c3, f32_t c4) {
+    static constexpr std::uint32_t pack_color(f32_t c1, f32_t c2, f32_t c3, f32_t c4) {
       return (to_byte(c1) << 24) | (to_byte(c2) << 16) | (to_byte(c3) << 8) | to_byte(c4);
     }
-    static constexpr void unpack_color(uint32_t color_, f32_t& c1, f32_t& c2, f32_t& c3, f32_t& c4) {
+    static constexpr void unpack_color(std::uint32_t color_, f32_t& c1, f32_t& c2, f32_t& c3, f32_t& c4) {
       c1 = ((color_ >> 24) & 0xFF) / 255.0f;
       c2 = ((color_ >> 16) & 0xFF) / 255.0f;
       c3 = ((color_ >> 8) & 0xFF) / 255.0f;
       c4 = (color_ & 0xFF) / 255.0f;
     }
 
-    constexpr uint32_t get_rgba() const { return pack_color(r, g, b, a); }
-    constexpr uint32_t get_abgr() const { return pack_color(a, b, g, r); }
-    constexpr uint32_t get_argb() const { return pack_color(a, r, g, b); }
-    constexpr uint32_t get_bgra() const { return pack_color(b, g, r, a); }
+    constexpr std::uint32_t get_rgba() const { return pack_color(r, g, b, a); }
+    constexpr std::uint32_t get_abgr() const { return pack_color(a, b, g, r); }
+    constexpr std::uint32_t get_argb() const { return pack_color(a, r, g, b); }
+    constexpr std::uint32_t get_bgra() const { return pack_color(b, g, r, a); }
 
-    constexpr void set_rgba(uint32_t color_) { unpack_color(color_, r, g, b, a); }
-    constexpr void set_abgr(uint32_t color_) { unpack_color(color_, a, b, g, r); }
-    constexpr void set_argb(uint32_t color_) { unpack_color(color_, a, r, g, b); }
-    constexpr void set_bgra(uint32_t color_) { unpack_color(color_, b, g, r, a); }
+    constexpr void set_rgba(std::uint32_t color_) { unpack_color(color_, r, g, b, a); }
+    constexpr void set_abgr(std::uint32_t color_) { unpack_color(color_, a, b, g, r); }
+    constexpr void set_argb(std::uint32_t color_) { unpack_color(color_, a, r, g, b); }
+    constexpr void set_bgra(std::uint32_t color_) { unpack_color(color_, b, g, r, a); }
 
-    static constexpr fan::color from_rgba(uint32_t color_) {
+    static constexpr fan::color from_rgba(std::uint32_t color_) {
       fan::color c;
       c.set_rgba(color_);
       return c;
     }
-    static constexpr fan::color from_abgr(uint32_t color_) {
+    static constexpr fan::color from_abgr(std::uint32_t color_) {
       fan::color c;
       c.set_abgr(color_);
       return c;
     }
-    static constexpr fan::color from_argb(uint32_t color_) {
+    static constexpr fan::color from_argb(std::uint32_t color_) {
       fan::color c;
       c.set_argb(color_);
       return c;
     }
-    static constexpr fan::color from_bgra(uint32_t color_) {
+    static constexpr fan::color from_bgra(std::uint32_t color_) {
       fan::color c;
       c.set_bgra(color_);
       return c;
     }
 
-    static constexpr fan::color from_rgb(uint32_t color_) {
+    static constexpr fan::color from_rgb(std::uint32_t color_) {
       fan::color c;
-      uint32_t rgba_color = (color_ << 8) | 0xFF;
+      std::uint32_t rgba_color = (color_ << 8) | 0xFF;
       c.set_rgba(rgba_color);
       return c;
     }
@@ -306,7 +308,7 @@ export namespace fan {
       }
     }
 
-    static constexpr uint32_t size() {
+    static constexpr std::uint32_t size() {
       return 4;
     }
     void randomize();
@@ -350,7 +352,7 @@ export namespace fan {
       return this->lerp(other, t);
     }
 
-    static constexpr fan::color nibble(uint8_t byte) {
+    static constexpr fan::color nibble(std::uint8_t byte) {
       if (byte == 0x00)                 return fan::color(0.4f, 0.4f, 0.4f, 1.f);
       if (byte == 0xFF)                 return fan::color(1.0f, 1.0f, 1.0f, 1.f);
       if (byte == 0x0A || byte == 0x0D) return fan::color(1.0f, 0.0f, 0.0f, 1.f);
@@ -365,13 +367,13 @@ export namespace fan {
   };
 
   
-  constexpr uint32_t _fan_check_24bit(unsigned long long v) {
+  constexpr std::uint32_t _fan_check_24bit(unsigned long long v) {
     if (v > 0xFFFFFF) fan::throw_error_impl("literal must be 24-bit (0xRRGGBB)");
-    return static_cast<uint32_t>(v);
+    return static_cast<std::uint32_t>(v);
   }
-  constexpr uint32_t _fan_check_32bit(unsigned long long v) {
+  constexpr std::uint32_t _fan_check_32bit(unsigned long long v) {
     if (v > 0xFFFFFFFF) fan::throw_error_impl("literal must be 32-bit (0xAARRGGBB etc.)");
-    return static_cast<uint32_t>(v);
+    return static_cast<std::uint32_t>(v);
   }
 
   namespace color_literals {
@@ -395,12 +397,12 @@ export namespace fan {
       return fan::color::rgb(v, v, v);
     }
 
-    fan::color operator""_hsl(const char* str, size_t len) {
+    fan::color operator""_hsl(const char* str, std::size_t len) {
       f32_t h = 0, s = 0, l = 0;
       std::sscanf(str, "%f,%f,%f", &h, &s, &l);
       return fan::color::hsl(h / 360.f, s / 100.f, l / 100.f);
     }
-    fan::color operator""_hsv(const char* str, size_t len) {
+    fan::color operator""_hsv(const char* str, std::size_t len) {
       f32_t h = 0, s = 0, v = 0;
       std::sscanf(str, "%f,%f,%f", &h, &s, &v);
       return fan::color::hsv(h / 360.f, s / 100.f, v / 100.f);
@@ -466,7 +468,7 @@ export namespace fan {
   template <typename T>
   concept is_color = is_color_type_v<std::remove_cvref_t<T>>;
 
-  void lerp_pixels(uint8_t* dst, const uint8_t* target, std::size_t size, f32_t t, uint8_t channels = 4);
+  void lerp_pixels(std::uint8_t* dst, const std::uint8_t* target, std::size_t size, f32_t t, std::uint8_t channels = 4);
 }
 
 #pragma pack(pop)

@@ -1,5 +1,7 @@
 module;
 
+#include <fan/utility.h>
+
 #if defined(FAN_VULKAN)
 #include <vulkan/vulkan.h>
 #endif
@@ -127,13 +129,13 @@ export namespace fan {
     };
 
     struct renderer_t {
-      static constexpr uint8_t opengl = 0;
-      static constexpr uint8_t vulkan = 1;
+      static constexpr std::uint8_t opengl = 0;
+      static constexpr std::uint8_t vulkan = 1;
     };
 
     struct buttons_data_t {
       fan::window_t* window;
-      uint16_t button;
+      std::uint16_t button;
       fan::vec2 position;
       int state;
     };
@@ -143,7 +145,7 @@ export namespace fan {
       fan::window_t* window;
       int key;
       fan::keyboard_state_t state;
-      uint16_t scancode;
+      std::uint16_t scancode;
     };
     using keys_cb_t = std::function<void(const keys_data_t&)>;
 
@@ -154,7 +156,7 @@ export namespace fan {
 
     struct text_data_t {
       fan::window_t* window;
-      uint32_t character;
+      std::uint32_t character;
       fan::keyboard_state_t state;
     };
     using text_cb_t = std::function<void(const text_data_t&)>;
@@ -312,13 +314,13 @@ export namespace fan {
     void close();
     void make_context_current();
     void handle_key_states(); // can be 1 or 2 aka press or repeat
-    uint32_t handle_events();
+    std::uint32_t handle_events();
 
     // Note key state in this cb will give keyboard repeat delay, if you want instant call on key down, use on_key_down
     key_handle_t add_key_callback(int key, keyboard_state_t st, std::function<void(const key_data_t&)> fn);
-    buttons_handle_t on_mouse_click(uint16_t button, buttons_cb_t fn);
-    mouse_down_handle_t on_mouse_down(uint16_t button, buttons_cb_t fn);
-    buttons_handle_t on_mouse_up(uint16_t button, buttons_cb_t fn);
+    buttons_handle_t on_mouse_click(std::uint16_t button, buttons_cb_t fn);
+    mouse_down_handle_t on_mouse_down(std::uint16_t button, buttons_cb_t fn);
+    buttons_handle_t on_mouse_up(std::uint16_t button, buttons_cb_t fn);
     key_handle_t on_key_click(int key, key_cb_t fn);
     key_handle_t on_key_down(int key, key_cb_t fn);
     key_handle_t on_key_up(int key, key_cb_t fn);
@@ -341,7 +343,7 @@ export namespace fan {
     int key_state(int key) const;
     bool key_pressed(int key, int press = fan::keyboard_state::press) const;
     fan::vec2 get_gamepad_axis(int key) const;
-    uint8_t get_antialiasing() const;
+    std::uint8_t get_antialiasing() const;
     void set_antialiasing(int samples);
     void set_name(const std::string& name);
     void set_icon(const fan::image::info_t& icon_info);
@@ -402,10 +404,10 @@ export namespace fan {
     std::string get_clipboard() const;
     void set_clipboard(const std::string& text);
 
-    uint8_t renderer = renderer_t::opengl;
+    std::uint8_t renderer = renderer_t::opengl;
     double last_frame_time = glfwGetTime();
     f64_t m_delta_time = 1.0 / 256.0;
-    uint32_t m_frame_counter = 0;
+    std::uint32_t m_frame_counter = 0;
 
     buttons_callback_t m_buttons_callback;
     keys_callback_t m_keys_callback;
@@ -420,7 +422,7 @@ export namespace fan {
     key_down_callbacks_t m_key_down_callbacks;
 
     std::uint64_t flags = 0;
-    uint8_t m_antialiasing_samples = 0;
+    std::uint8_t m_antialiasing_samples = 0;
 
     operator GLFWwindow* () {
       return glfw_window;
@@ -437,8 +439,8 @@ export namespace fan {
     fan::vec2d previous_mouse_position = -0xfff;
 
     fan::vec2 drag_delta_start = -1;
-    uint8_t display_mode = (uint8_t)mode::windowed;
+    std::uint8_t display_mode = (std::uint8_t)mode::windowed;
 
-    uint32_t char_pressed = 0;
+    std::uint32_t char_pressed = 0;
   };
 }

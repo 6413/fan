@@ -14,6 +14,8 @@ module;
 #include <openssl/sha.h>
 #endif
 
+#include <fan/utility.h>
+
 export module fan.network;
 
 import std;
@@ -244,7 +246,7 @@ export namespace fan {
       }
       int start() noexcept {
         return uv_read_start(stream.get(),
-          [](uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
+          [](uv_handle_t* handle, std::size_t suggested_size, uv_buf_t* buf) {
             auto self = static_cast<raw_reader_t*>(handle->data);
             self->buf.resize(suggested_size);
             *buf = uv_buf_init(self->buf.data(), suggested_size);
@@ -362,59 +364,59 @@ export namespace fan {
     class ring_buffer_t {
     private:
       std::vector<char> buffer_;
-      size_t head_ = 0;
-      size_t tail_ = 0;
-      size_t size_ = 0;
-      size_t capacity_;
+      std::size_t head_ = 0;
+      std::size_t tail_ = 0;
+      std::size_t size_ = 0;
+      std::size_t capacity_;
 
     public:
-      explicit ring_buffer_t(size_t capacity = 64 * 1024)
+      explicit ring_buffer_t(std::size_t capacity = 64 * 1024)
         : buffer_(capacity), capacity_(capacity) {
       }
 
-      void push_back(const char* data, size_t len) {
+      void push_back(const char* data, std::size_t len) {
         if (size_ + len > capacity_) {
           grow(size_ + len);
         }
 
-        for (size_t i = 0; i < len; ++i) {
+        for (std::size_t i = 0; i < len; ++i) {
           buffer_[tail_] = data[i];
           tail_ = (tail_ + 1) % capacity_;
         }
         size_ += len;
       }
 
-      void consume(size_t len) {
+      void consume(std::size_t len) {
         if (len > size_) len = size_;
         head_ = (head_ + len) % capacity_;
         size_ -= len;
       }
 
-      size_t size() const { return size_; }
+      std::size_t size() const { return size_; }
       bool empty() const { return size_ == 0; }
 
-      void peek(char* dest, size_t len) const {
-        size_t actual_len = std::min(len, size_);
-        size_t h = head_;
-        for (size_t i = 0; i < actual_len; ++i) {
+      void peek(char* dest, std::size_t len) const {
+        std::size_t actual_len = std::min(len, size_);
+        std::size_t h = head_;
+        for (std::size_t i = 0; i < actual_len; ++i) {
           dest[i] = buffer_[h];
           h = (h + 1) % capacity_;
         }
       }
 
-      std::pair<const char*, size_t> get_contiguous() const {
+      std::pair<const char*, std::size_t> get_contiguous() const {
         if (size_ == 0) return { nullptr, 0 };
 
-        size_t available = std::min(size_, capacity_ - head_);
+        std::size_t available = std::min(size_, capacity_ - head_);
         return { &buffer_[head_], available };
       }
 
     private:
-      void grow(size_t new_capacity) {
+      void grow(std::size_t new_capacity) {
         std::vector<char> new_buffer(new_capacity * 2);
 
-        size_t h = head_;
-        for (size_t i = 0; i < size_; ++i) {
+        std::size_t h = head_;
+        for (std::size_t i = 0; i < size_; ++i) {
           new_buffer[i] = buffer_[h];
           h = (h + 1) % capacity_;
         }
@@ -435,14 +437,14 @@ export namespace fan {
 
       bool is_reading = false;
 
-      uint64_t expected_size{ 0 };
-      uint64_t bytes_read{ 0 };
+      std::uint64_t expected_size{ 0 };
+      std::uint64_t bytes_read{ 0 };
       bool reading_header{ true };
       bool is_raw_read{ false };
       bool is_fixed_size_read{ false };
-      static constexpr size_t header_size = sizeof(uint64_t);
+      static constexpr std::size_t header_size = sizeof(std::uint64_t);
 
-      static constexpr size_t default_buffer_size = 64 * 1024;
+      static constexpr std::size_t default_buffer_size = 64 * 1024;
 
       template <typename T>
         requires (std::is_same_v<T, tcp_t>)
@@ -496,9 +498,9 @@ export namespace fan {
       int start() noexcept {
         is_reading = true;
         return uv_read_start(stream.get(),
-          [](uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
+          [](uv_handle_t* handle, std::size_t suggested_size, uv_buf_t* buf) {
             auto self = static_cast<reader_t*>(handle->data);
-            size_t buf_size = std::min(suggested_size, self->temp_buf.size());
+            std::size_t buf_size = std::min(suggested_size, self->temp_buf.size());
             *buf = uv_buf_init(self->temp_buf.data(), buf_size);
           },
           [](uv_stream_t* req, ssize_t nread, const uv_buf_t* buf) {
@@ -558,7 +560,7 @@ export namespace fan {
             }
             else {
               buffer.reserve(accumulated_buf.size());
-              size_t total_size = accumulated_buf.size();
+              std::size_t total_size = accumulated_buf.size();
               buffer.resize(total_size);
               accumulated_buf.peek(buffer.data(), total_size);
               accumulated_buf.consume(total_size);
@@ -686,14 +688,14 @@ export namespace fan {
       writer_t& operator=(writer_t&&) = default;
 
       int write(const buffer_t& user_data) {
-        uint64_t data_size = user_data.size();
+        std::uint64_t data_size = user_data.size();
         buffer_t message_data;
-        message_data.reserve(sizeof(uint64_t) + data_size);
+        message_data.reserve(sizeof(std::uint64_t) + data_size);
 
         message_data.insert(
           message_data.end(), 
           reinterpret_cast<const char*>(&data_size), 
-          reinterpret_cast<const char*>(&data_size) + sizeof(uint64_t)
+          reinterpret_cast<const char*>(&data_size) + sizeof(std::uint64_t)
         );
         message_data.insert(message_data.end(), user_data.begin(), user_data.end());
 
@@ -719,7 +721,7 @@ export namespace fan {
 
     struct listen_address_t {
       std::string ip = "0.0.0.0";
-      uint16_t port = 0;
+      std::uint16_t port = 0;
     };
 
     struct client_handler_t {
@@ -754,7 +756,7 @@ export namespace fan {
       const tcp_t& operator[](nr_t id) const {
         return get_client(id);
       }
-      uint32_t amount_of_connections = 128;
+      std::uint32_t amount_of_connections = 128;
     };
     client_handler_t& get_client_handler() {
       static client_handler_t client_handler;
@@ -1044,7 +1046,7 @@ export namespace fan {
       int sender_port() const { return sender.get_port(); }
       bool is_error() const { return status < 0; }
       bool is_empty() const { return data.empty(); }
-      size_t size() const { return data.size(); }
+      std::size_t size() const { return data.size(); }
     };
 
     struct udp_send_t {
@@ -1120,7 +1122,7 @@ export namespace fan {
         receiving = true;
         socket->data = this;
         return uv_udp_recv_start(socket.get(),
-          [](uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
+          [](uv_handle_t* handle, std::size_t suggested_size, uv_buf_t* buf) {
             auto self = static_cast<udp_recv_t*>(handle->data);
             self->datagram.data.resize(2000);
             *buf = uv_buf_init(self->datagram.data.data(), 2000);
@@ -1220,7 +1222,7 @@ export namespace fan {
         socket->data = this;
 
         return uv_udp_recv_start(socket.get(),
-          [](uv_handle_t* handle, size_t suggested_size, uv_buf_t* buf) {
+          [](uv_handle_t* handle, std::size_t suggested_size, uv_buf_t* buf) {
             auto self = static_cast<udp_recvfrom_t*>(handle->data);
             self->datagram.data.resize(2000);
             *buf = uv_buf_init(self->datagram.data.data(), 2000);
@@ -1479,9 +1481,9 @@ export namespace fan {
 
 
     struct keep_alive_config_t {
-      static constexpr size_t timer_step_limit = 7;
+      static constexpr std::size_t timer_step_limit = 7;
       std::array<int, timer_step_limit> timer_steps{ 1, 1, 2, 2, 4, 4, 4 };
-      size_t current_step = 0;
+      std::size_t current_step = 0;
       bool is_running = false;
     };
 
@@ -1565,7 +1567,7 @@ export namespace fan {
         return config.is_running;
       }
 
-      size_t get_current_step() const {
+      std::size_t get_current_step() const {
         return config.current_step;
       }
     };
@@ -2016,7 +2018,7 @@ export namespace fan {
           if (pattern_parts.size() != path_parts.size()) return false;
 
           params.clear();
-          for (size_t i = 0; i < pattern_parts.size(); ++i) {
+          for (std::size_t i = 0; i < pattern_parts.size(); ++i) {
             if (pattern_parts[i].starts_with('{') && pattern_parts[i].ends_with('}')) {
               std::string param_name = pattern_parts[i].substr(1, pattern_parts[i].length() - 2);
               params[param_name] = path_parts[i];
@@ -2137,7 +2139,7 @@ export namespace fan {
         else if (method_str == "DELETE") req.method = method_t::delete_;
 
         req.raw_path = full_path;
-        size_t query_pos = full_path.find('?');
+        std::size_t query_pos = full_path.find('?');
         if (query_pos != std::string::npos) {
           req.path = full_path.substr(0, query_pos);
           std::string query_string = full_path.substr(query_pos + 1);
@@ -2149,7 +2151,7 @@ export namespace fan {
 
         while (std::getline(stream, line) && !line.empty() && line != "\r") {
           line.erase(line.find_last_not_of("\r\n") + 1);
-          size_t colon_pos = line.find(':');
+          std::size_t colon_pos = line.find(':');
           if (colon_pos != std::string::npos) {
             std::string key = line.substr(0, colon_pos);
             std::string value = line.substr(colon_pos + 1);
@@ -2199,7 +2201,7 @@ export namespace fan {
             while (keep_alive) {
               std::string request_data;
               bool headers_complete = false;
-              size_t content_length = 0;
+              std::size_t content_length = 0;
               response_t error_response;
               bool has_error = false;
 
@@ -2213,20 +2215,20 @@ export namespace fan {
                   std::string chunk(msg.buffer.begin(), msg.buffer.end());
                   request_data += chunk;
 
-                  size_t header_end = request_data.find("\r\n\r\n");
+                  std::size_t header_end = request_data.find("\r\n\r\n");
                   if (header_end != std::string::npos) {
                     headers_complete = true;
 
-                    size_t cl_pos = request_data.find("Content-Length:");
+                    std::size_t cl_pos = request_data.find("Content-Length:");
                     if (cl_pos != std::string::npos) {
-                      size_t cl_start = cl_pos + 15;
-                      size_t cl_end = request_data.find("\r\n", cl_start);
+                      std::size_t cl_start = cl_pos + 15;
+                      std::size_t cl_end = request_data.find("\r\n", cl_start);
                       std::string cl_str = request_data.substr(cl_start, cl_end - cl_start);
                       cl_str.erase(0, cl_str.find_first_not_of(" \t"));
                       content_length = std::stoull(cl_str);
                     }
 
-                    size_t current_body_length = request_data.length() - (header_end + 4);
+                    std::size_t current_body_length = request_data.length() - (header_end + 4);
                     while (current_body_length < content_length) {
                       auto body_msg = co_await client.read_raw();
                       if (body_msg.status < 0) {
@@ -2340,9 +2342,9 @@ export namespace fan {
           return std::move(response);
         }
 
-        static size_t write_cb(char* ptr, size_t size, size_t nmemb, void* userdata) {
+        static std::size_t write_cb(char* ptr, std::size_t size, std::size_t nmemb, void* userdata) {
           auto* self = static_cast<async_request_t*>(userdata);
-          size_t total = size * nmemb;
+          std::size_t total = size * nmemb;
           if (total) {
             self->response.body.append(ptr, total);
           }
@@ -2461,7 +2463,7 @@ export namespace fan {
           if (timeout_ms == 0) {
             timeout_ms = 1;
           }
-          uv_timer_start(&ctx->timeout_timer, &async_context_t::timeout_cb, static_cast<uint64_t>(timeout_ms), 0);
+          uv_timer_start(&ctx->timeout_timer, &async_context_t::timeout_cb, static_cast<std::uint64_t>(timeout_ms), 0);
           return 0;
         }
 

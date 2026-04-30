@@ -1,8 +1,10 @@
 module;
 
-module fan.memory;
+#include <cstdio>
 
-import std;
+#include <fan/utility.h>
+
+module fan.memory;
 
 import fan.time;
 
@@ -17,11 +19,11 @@ namespace fan::memory {
       return;
     }
 
-    printf("=== Memory Leak Report ===\n");
+    std::printf("=== Memory Leak Report ===\n");
 
-    size_t real_leaks = 0;
-    size_t real_leak_bytes = 0;
-    size_t static_ignored = 0;
+    std::size_t real_leaks = 0;
+    std::size_t real_leak_bytes = 0;
+    std::size_t static_ignored = 0;
 
     for (const auto& pair : memory_map) {
       bool is_from_main = false;
@@ -43,11 +45,11 @@ namespace fan::memory {
       }
     }
 
-    printf("Total leaked memory: %llu bytes\n", (unsigned long long)real_leak_bytes);
-    printf("Number of leaked allocations: %zu\n", real_leaks);
+    std::printf("Total leaked memory: %llu bytes\n", (unsigned long long)real_leak_bytes);
+    std::printf("Number of leaked allocations: %zu\n", real_leaks);
 
     if (real_leaks > 0) {
-      printf("\nLeak details:\n");
+      std::printf("\nLeak details:\n");
       for (auto it = memory_set.rbegin(); it != memory_set.rend(); ++it) {
         const auto& leak = *it;
 
@@ -64,34 +66,34 @@ namespace fan::memory {
           continue;
         }
 
-        printf("Leaked %zu bytes at address %p\n", leak.n, leak.p);
-        printf("Stack trace:\n");
+        std::printf("Leaked %zu bytes at address %p\n", leak.n, leak.p);
+        std::printf("Stack trace:\n");
         for (const auto& frame : leak.line_data) {
           const char* file = frame.source_file().c_str();
           const char* func = frame.description().c_str();
           auto line = frame.source_line();
           if (file && func) {
-            printf("  %s:%u in %s\n", file, line, func);
+            std::printf("  %s:%u in %s\n", file, line, func);
           }
           else if (func) {
-            printf("  %s\n", func);
+            std::printf("  %s\n", func);
           }
           else {
-            printf("  [unknown frame]\n");
+            std::printf("  [unknown frame]\n");
           }
         }
-        printf("\n");
+        std::printf("\n");
       }
     }
     else {
-      printf("No memory leaks detected!\n");
+      std::printf("No memory leaks detected!\n");
     }
 
     if (static_ignored > 0) {
-      printf("Note: %zu static/global allocations ignored\n", static_ignored);
+      std::printf("Note: %zu static/global allocations ignored\n", static_ignored);
     }
 
-    fflush(stdout);
+    std::fflush(stdout);
   #endif
   }
 
@@ -116,7 +118,7 @@ namespace fan::memory {
 
     void* p = std::malloc(n);
 
-    uint64_t elapsed = timer.elapsed();
+    std::uint64_t elapsed = timer.elapsed();
 
     if (!p) {
       enabled = was_enabled;
@@ -175,7 +177,7 @@ namespace fan::memory {
       }
 
       new_ptr = std::realloc(ptr, n);
-      uint64_t elapsed = timer.elapsed();
+      std::uint64_t elapsed = timer.elapsed();
 
       if (!new_ptr) {
         enabled = was_enabled;
@@ -257,20 +259,20 @@ namespace fan::memory {
     }
     );
 
-    size_t count = std::min<size_t>(top_count, entries.size());
+    std::size_t count = std::min<std::size_t>(top_count, entries.size());
 
-    printf("=== Top %zu Slowest Allocations ===\n", count);
+    std::printf("=== Top %zu Slowest Allocations ===\n", count);
 
-    for (size_t i = 0; i < count; ++i) {
+    for (std::size_t i = 0; i < count; ++i) {
       const auto& e = entries[i];
 
-      printf("---- #%zu ----\n", i + 1);
-      printf("Time: %llu ns\n", (unsigned long long)e.alloc_ns);
-      printf("Size: %zu bytes\n", e.n);
-      printf("Pointer: %p\n", e.p);
+      std::printf("---- #%zu ----\n", i + 1);
+      std::printf("Time: %llu ns\n", (unsigned long long)e.alloc_ns);
+      std::printf("Size: %zu bytes\n", e.n);
+      std::printf("Pointer: %p\n", e.p);
 
     #if defined(fan_std23)
-      printf("Stack trace:\n");
+      std::printf("Stack trace:\n");
 
       for (const auto& frame : e.line_data) {
         std::string file = frame.source_file();
@@ -278,19 +280,19 @@ namespace fan::memory {
         auto line = frame.source_line();
 
         if (!file.empty() && !func.empty()) {
-          printf("  %s:%u in %s\n", file.c_str(), line, func.c_str());
+          std::printf("  %s:%u in %s\n", file.c_str(), line, func.c_str());
         }
         else if (!func.empty()) {
-          printf("  %s\n", func.c_str());
+          std::printf("  %s\n", func.c_str());
         }
         else {
-          printf("  [unknown frame]\n");
+          std::printf("  [unknown frame]\n");
         }
       }
     #else
-      printf("  [stacktrace disabled]\n");
+      std::printf("  [stacktrace disabled]\n");
     #endif
-      printf("\n");
+      std::printf("\n");
     }
   }
 

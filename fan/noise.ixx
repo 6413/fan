@@ -17,7 +17,7 @@ export namespace fan {
   struct noise_t {
     FastNoiseLite fn;
 
-    int seed = fan::random::value((uint32_t)0, ((uint32_t)-1) / 2);
+    int seed = fan::random::value((std::uint32_t)0, ((std::uint32_t)-1) / 2);
     f32_t frequency = 0.01f;
     f32_t gain = 0.5f;
     f32_t lacunarity = 2.0f;
@@ -38,12 +38,12 @@ export namespace fan {
       return fn.GetNoise(x, y);
     }
 
-    std::vector<uint8_t> generate_data(
+    std::vector<std::uint8_t> generate_data(
       const vec2& size,
       f32_t tex_min = -1.0f,
       f32_t tex_max = 1.0f
     ) const {
-      std::vector<uint8_t> data(size.multiply() * 3);
+      std::vector<std::uint8_t> data(size.multiply() * 3);
       f32_t scale = 255.0f / (tex_max - tex_min);
 
       int idx = 0;
@@ -68,7 +68,7 @@ export namespace fan {
     }
 
     static graphics::image_t from_data(const vec2& size,
-                                       const std::vector<uint8_t>& data) {
+                                       const std::vector<std::uint8_t>& data) {
       graphics::image_load_properties_t lp;
       image::info_t ii;
       ii.data = (void*)data.data();
