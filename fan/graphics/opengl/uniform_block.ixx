@@ -1,6 +1,5 @@
 module;
 
-#include <cstddef>
 #include <cstdint>
 
 #if defined(FAN_OPENGL)
