@@ -8,9 +8,6 @@ export module fan.graphics.opengl.core;
 
 import std;
 
-#include <fan/graphics/opengl/init.h>
-
-
 #if defined(FAN_OPENGL)
 
 import fan.physics.collision.rectangle;
@@ -28,6 +25,8 @@ import fan.utility;
 import fan.print;
 import fan.graphics.image_load;
 import fan.graphics.common_context;
+
+#include <fan/graphics/opengl/init.h>
 
 template<typename T>
 concept not_non_arithmethic_types = 
