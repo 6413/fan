@@ -1,25 +1,22 @@
 module;
 
+#include <cwchar>
 #include <cstdint>
 #include <vector>
 
 export module fan.types;
 
 export {
-  typedef std::intptr_t si_t;
-  //typedef uintptr_t uint_t;
-  typedef std::intptr_t sint_t;
-  typedef std::int8_t sint8_t;
-  typedef std::int16_t sint16_t;
-  typedef std::int32_t sint32_t;
-  //typedef int64_t sint64_t;
+  using si_t = std::intptr_t;
+  using sint_t = std::intptr_t;
+  using sint8_t = std::int8_t;
+  using sint16_t = std::int16_t;
+  using sint32_t = std::int32_t;
 
-  typedef float f32_t;
-  typedef double f64_t;
+  using f32_t = float;
+  using f64_t = double;
+  using f_t = double;
+  using cf_t = f32_t;
 
-  typedef double f_t;
-
-  typedef f32_t cf_t;
-
-  using bytes_t = std::vector<uint8_t>;
+  using bytes_t = std::vector<std::uint8_t>;
 }
