@@ -1,5 +1,14 @@
 module;
 
+#if defined(fan_compiler_gcc)
+  // fixes collision with GLFW3 headers while doing import std;
+	#ifndef _GCC_MAX_ALIGN_T
+		#define _GCC_MAX_ALIGN_T
+	#endif
+#endif
+
+#include <functional>
+
 #if defined(FAN_OPENGL)
   #include <fan/graphics/opengl/init.h>
 #endif
