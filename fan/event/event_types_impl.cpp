@@ -1,10 +1,16 @@
 module;
 
+#include <fan/utility.h>
+
+#if defined(fan_compiler_gcc)
+  #define _GCC_MAX_ALIGN_T
+  #define ____mbstate_t_defined
+  #define _BITS_PTHREADTYPES_COMMON_H
+#endif
+
 #include <uv.h>
 
 module fan.event.types;
-
-import std;
 
 namespace fan {
   extern const int fs_o_append      = UV_FS_O_APPEND;
