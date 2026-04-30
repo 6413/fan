@@ -1,5 +1,11 @@
 module;
 
+#if defined(fan_compiler_gcc)
+  #define _GCC_MAX_ALIGN_T
+  #define __MBSTATE_T_H
+  #define __pthread_mutex_t_defined
+#endif
+
 // loco framebuffer is recommended, you cant see sprites without it, 
 // since light uses framebuffer _t01. you could use unlit_sprite, if required
 #define LOCO_FRAMEBUFFER
