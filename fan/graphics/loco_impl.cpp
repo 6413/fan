@@ -4,17 +4,6 @@ module;
 // since light uses framebuffer _t01. you could use unlit_sprite, if required
 #define LOCO_FRAMEBUFFER
 
-
-// TODO REMOVE
-#if defined(FAN_VULKAN)
-  // TODO REMOVE
-  #include <vulkan/vulkan.h>
-#endif
-
-#include <uv.h>
-#undef min
-#undef max
-
 #include <source_location>
 #include <cstdlib>
 #include <cmath>
@@ -37,6 +26,17 @@ module;
 #if defined(fan_std23)
   #include <stacktrace>
 #endif
+
+
+// TODO REMOVE
+#if defined(FAN_VULKAN)
+  // TODO REMOVE
+  #include <vulkan/vulkan.h>
+#endif
+
+#include <uv.h>
+#undef min
+#undef max
 
 #include <fan/graphics/shape_macros.h>
 

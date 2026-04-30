@@ -1,5 +1,8 @@
 module;
 
+// soe random gcc bugs
+#include <typeinfo>
+
 #include <fan/utility.h>
 #include <fan/graphics/shape_macros.h>
 

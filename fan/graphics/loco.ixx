@@ -2,6 +2,14 @@ module;
 
 // loco framebuffer is recommended, you cant see sprites without it, 
 // since light uses framebuffer _t01. you could use unlit_sprite, if required
+
+#include <cstdint>
+#include <source_location>
+#include <deque>
+#include <functional>
+#include <string_view>
+#include <future>
+
 #define LOCO_FRAMEBUFFER
 
 #if defined(FAN_VULKAN)
@@ -17,13 +25,6 @@ module;
   //#define loco_cuda
 #endif
 
-#include <cstdint>
-#include <source_location>
-#include <deque>
-#include <functional>
-#include <string_view>
-#include <future>
-
 #include <fan/utility.h>
 
 export module fan.graphics.loco;
@@ -38,6 +39,8 @@ import fan.memory;
 import fan.event;
 import fan.time;
 import fan.print.error;
+
+import fan.window.input;
 
 import fan.texture_pack.tp0;
 

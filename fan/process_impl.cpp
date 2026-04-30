@@ -1,5 +1,4 @@
 module;
-#include <uv.h>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -9,6 +8,8 @@ module;
 #include <expected>
 #include <unordered_map>
 #include <atomic>
+
+#include <uv.h>
 
 #include <fan/utility.h>
 

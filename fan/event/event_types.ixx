@@ -185,7 +185,7 @@ struct task_value_promise_t {
   bool cancelled = false;
 };
 
-export template<typename suspend_type_t>
+template<typename suspend_type_t>
 struct task_value_promise_t<void, suspend_type_t> {
   task_value_wrap_t<void, suspend_type_t> get_return_object();
   suspend_type_t initial_suspend() noexcept { return {}; }
@@ -277,7 +277,7 @@ struct task_value_wrap_t {
   std::shared_ptr<owner_t> owner;
 };
 
-export template<typename suspend_type_t>
+template<typename suspend_type_t>
 struct task_value_wrap_t<void, suspend_type_t> {
   using promise_type = task_value_promise_t<void, suspend_type_t>;
   using owner_t = coroutine_handle_owner<promise_type>;

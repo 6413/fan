@@ -18,9 +18,6 @@ import fan.event.types;
 
 export namespace fan::event {
 
-  using loop_t = void*;
-  using idle_id_t = void*;
-
   loop_t loop_new();
   loop_t& get_loop();
   void loop_stop(loop_t loop = fan::event::get_loop());

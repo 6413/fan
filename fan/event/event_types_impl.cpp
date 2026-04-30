@@ -1,5 +1,6 @@
 module;
 
+#include <cmath>
 #include <uv.h>
 
 module fan.event.types;
