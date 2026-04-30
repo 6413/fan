@@ -341,7 +341,7 @@ export namespace fan {
       }
       f32_t atan = 0;
       f32_t z = y / x;
-      if (fabs(z) < 1.0f)
+      if (std::abs(z) < 1.0f)
       {
         atan = z / (1.0f + 0.28f * z * z);
         if (x < 0.0f)
@@ -401,7 +401,7 @@ export namespace fan {
       p = 0;
       s = 1.0;
       t = 1.0;
-      while (fabs(t / s) > .0001f)
+      while (std::abs(t / s) > .0001f)
       {
         p++;
         t = f32_t((f32_t)(-t * x * x) / (f32_t)((2 * p - 1) * (2 * p)));
