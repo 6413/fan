@@ -20,7 +20,7 @@ export namespace fan::graphics::gui::input {
   bool right_down();
   bool right_released();
   f32_t scroll();
-  bool number(uint32_t& out_number);
+  bool number(std::uint32_t& out_number);
   bool hover(const fan::vec2& p_min, const fan::vec2& p_max);
   bool drag_start(bool drag_active, bool clicked, bool slot_empty);
 }

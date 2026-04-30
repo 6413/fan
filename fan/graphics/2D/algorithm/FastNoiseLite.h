@@ -442,7 +442,7 @@ private:
 
     static float FastAbs(float f) { return f < 0 ? -f : f; }
 
-    static float FastSqrt(float f) { return sqrtf(f); }
+    static float FastSqrt(float f) { return std::sqrtf(f); }
 
     template <typename FNfloat>
     static int FastFloor(FNfloat f) { return f >= 0 ? (int)f : (int)f - 1; }

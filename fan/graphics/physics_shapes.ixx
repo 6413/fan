@@ -134,7 +134,7 @@ export namespace fan {
           fan::vec2 rotation_point = 0;
           bool blending = false;
           operator fan::graphics::rectangle_properties_t() const;
-          uint8_t body_type = fan::physics::body_type_e::static_body;
+          std::uint8_t body_type = fan::physics::body_type_e::static_body;
           mass_data_t mass_data;
           fan::physics::shape_properties_t shape_properties;
         };
@@ -158,7 +158,7 @@ export namespace fan {
           std::array<fan::graphics::image_t, 30> images;
           fan::vec2 parallax_factor = 0;
           bool blending = true;
-          uint32_t flags = sprite_flags_e::circle | sprite_flags_e::multiplicative;
+          std::uint32_t flags = sprite_flags_e::circle | sprite_flags_e::multiplicative;
           operator fan::graphics::sprite_properties_t() const {
             return fan::graphics::sprite_properties_t{
               .render_view = render_view,
@@ -174,7 +174,7 @@ export namespace fan {
               .flags = flags
             };
           }
-          uint8_t body_type = fan::physics::body_type_e::static_body;
+          std::uint8_t body_type = fan::physics::body_type_e::static_body;
           mass_data_t mass_data;
           fan::physics::shape_properties_t shape_properties;
         };
@@ -194,7 +194,7 @@ export namespace fan {
           fan::vec3 angle = 0;
           fan::color color = fan::color(1, 1, 1, 1);
           bool blending = true;
-          uint32_t flags = 0;
+          std::uint32_t flags = 0;
           operator fan::graphics::circle_properties_t() const {
             return fan::graphics::circle_properties_t{
               .render_view = render_view,
@@ -206,7 +206,7 @@ export namespace fan {
               .flags = flags
             };
           }
-          uint8_t body_type = fan::physics::body_type_e::static_body;
+          std::uint8_t body_type = fan::physics::body_type_e::static_body;
           mass_data_t mass_data;
           fan::physics::shape_properties_t shape_properties;
         };
@@ -228,7 +228,7 @@ export namespace fan {
           fan::graphics::image_t image = fan::graphics::get_default_texture();
           fan::color color = fan::color(1, 1, 1, 1);
           bool blending = true;
-          uint32_t flags = sprite_flags_e::circle | sprite_flags_e::multiplicative;
+          std::uint32_t flags = sprite_flags_e::circle | sprite_flags_e::multiplicative;
           operator fan::graphics::sprite_properties_t() const {
             return fan::graphics::sprite_properties_t{
               .render_view = render_view,
@@ -241,7 +241,7 @@ export namespace fan {
               .flags = flags
             };
           }
-          uint8_t body_type = fan::physics::body_type_e::static_body;
+          std::uint8_t body_type = fan::physics::body_type_e::static_body;
           mass_data_t mass_data;
           fan::physics::shape_properties_t shape_properties;
         };
@@ -264,7 +264,7 @@ export namespace fan {
           fan::color color = fan::color(1, 1, 1, 1);
           fan::color outline_color = color;
           bool blending = true;
-          uint32_t flags = 0;
+          std::uint32_t flags = 0;
           operator fan::graphics::capsule_properties_t() const {
             return fan::graphics::capsule_properties_t{
               .render_view = render_view,
@@ -279,7 +279,7 @@ export namespace fan {
               .flags = flags
             };
           }
-          uint8_t body_type = fan::physics::body_type_e::static_body;
+          std::uint8_t body_type = fan::physics::body_type_e::static_body;
           mass_data_t mass_data;
           fan::physics::shape_properties_t shape_properties;
         };
@@ -306,9 +306,9 @@ export namespace fan {
           std::array<fan::graphics::image_t, 30> images;
           fan::vec2 parallax_factor = 0;
           bool blending = true;
-          uint32_t flags = sprite_flags_e::circle | sprite_flags_e::multiplicative;
+          std::uint32_t flags = sprite_flags_e::circle | sprite_flags_e::multiplicative;
 
-          uint8_t body_type = fan::physics::body_type_e::static_body;
+          std::uint8_t body_type = fan::physics::body_type_e::static_body;
           mass_data_t mass_data;
           fan::physics::shape_properties_t shape_properties;
 
@@ -345,7 +345,7 @@ export namespace fan {
           fan::vec2 rotation_point = 0;
           std::vector<vertex_t> vertices;
           bool blending = true;
-          uint8_t draw_mode = fan::graphics::primitive_topology_t::triangle_fan;
+          std::uint8_t draw_mode = fan::graphics::primitive_topology_t::triangle_fan;
           operator fan::graphics::polygon_properties_t() const {
             return fan::graphics::polygon_properties_t{
               .render_view = render_view,
@@ -357,7 +357,7 @@ export namespace fan {
               .draw_mode = draw_mode
             };
           }
-          uint8_t body_type = fan::physics::body_type_e::static_body;
+          std::uint8_t body_type = fan::physics::body_type_e::static_body;
           mass_data_t mass_data;
           fan::physics::shape_properties_t shape_properties;
         };
@@ -377,7 +377,7 @@ export namespace fan {
           fan::vec2 rotation_point = 0;
           std::vector<vertex_t> vertices;
           bool blending = true;
-          uint8_t draw_mode = fan::graphics::primitive_topology_t::triangle_strip;
+          std::uint8_t draw_mode = fan::graphics::primitive_topology_t::triangle_strip;
           operator fan::graphics::polygon_properties_t() const {
             return fan::graphics::polygon_properties_t{
               .render_view = render_view,
@@ -389,7 +389,7 @@ export namespace fan {
               .draw_mode = draw_mode
             };
           }
-          uint8_t body_type = fan::physics::body_type_e::static_body;
+          std::uint8_t body_type = fan::physics::body_type_e::static_body;
           mass_data_t mass_data;
           fan::physics::shape_properties_t shape_properties;
         };
@@ -406,7 +406,7 @@ export namespace fan {
         const fan::vec2& half_size,
         f32_t thickness,
         const fan::color& wall_color = fan::color::from_rgba(0x6e8d6eff),
-        uint8_t body_type = fan::physics::body_type_e::static_body,
+        std::uint8_t body_type = fan::physics::body_type_e::static_body,
         std::array<fan::physics::shape_properties_t, 4> shape_properties = { {
           {.friction = 0  },
           {.friction = 0.6},
@@ -418,7 +418,7 @@ export namespace fan {
         const fan::vec2& bounds,
         f32_t thickness,
         const fan::color& wall_color = fan::color::from_rgba(0x6e8d6eff),
-        uint8_t body_type = fan::physics::body_type_e::static_body,
+        std::uint8_t body_type = fan::physics::body_type_e::static_body,
         std::array<fan::physics::shape_properties_t, 4> shape_properties = { {
           {.friction = 0  },  // top
           {.friction = 0.6},  // bottom
@@ -478,7 +478,7 @@ export namespace fan {
         f32_t acceleration_force = 120.f;
         f32_t deceleration_force = 300.f;
         f32_t max_speed = 600.f;
-        uint8_t type = movement_e::side_view;
+        std::uint8_t type = movement_e::side_view;
         jump_state_t jump_state;
         fan::vec2 last_direction = 0;
         fan::vec2 desired_facing = {1, 0};
@@ -561,7 +561,7 @@ export namespace fan {
         bool auto_jump_obstacles = true;
         f32_t obstacle_lookahead = 1.5f;
         std::vector<fan::vec2> patrol_points;
-        size_t current_patrol_index = 0;
+        std::size_t current_patrol_index = 0;
         wall_jump_t wall_jump;
       };
 
@@ -630,13 +630,13 @@ export namespace fan {
         void set_physics_body(fan::physics::entity_t&& entity);
 
         movement_callback_handle_t add_movement_callback(std::function<void()> fn);
-        void enable_default_movement(uint8_t movement = movement_e::side_view);
+        void enable_default_movement(std::uint8_t movement = movement_e::side_view);
 
         #if defined(FAN_JSON)
         void setup_default_animations(const fan::graphics::physics::character2d_t::character_config_t& config);
         #endif
 
-        void process_keyboard_movement(uint8_t movement = movement_e::side_view, f32_t friction = 12.f);
+        void process_keyboard_movement(std::uint8_t movement = movement_e::side_view, f32_t friction = 12.f);
         bool is_on_ground() const;
 
         f32_t get_max_health() const;
@@ -695,12 +695,12 @@ export namespace fan {
         bool spawned() const;
         bool check_hit(character2d_t* character, int index, character2d_t* target);
         void cleanup(character2d_t* character);
-        size_t hitbox_count() const;
+        std::size_t hitbox_count() const;
 
         hitbox_config_t config;
         std::vector<hitbox_instance_t> instances;
         std::vector<bool> hitbox_spawned;
-        std::unordered_set<uint64_t> hit_enemies;
+        std::unordered_set<std::uint64_t> hit_enemies;
       };
 
       struct boss_behavior_t {
@@ -710,9 +710,9 @@ export namespace fan {
           f32_t backstep_duration = 0.6e9;
           f32_t backstep_cooldown = 5.0e9;
           f32_t idle_movement_chance = 0.6f;
-          std::pair<uint64_t, uint64_t> idle_timer_range = {
-            static_cast<uint64_t>(3.0e9),
-            static_cast<uint64_t>(6.0e9)
+          std::pair<std::uint64_t, std::uint64_t> idle_timer_range = {
+            static_cast<std::uint64_t>(3.0e9),
+            static_cast<std::uint64_t>(6.0e9)
           };
         };
 
@@ -952,7 +952,7 @@ export namespace fan::graphics::physics {
     f32_t shape_size_multiplier = 1.0,
     const fan::physics::shape_properties_t& physics_properties = { 
       .fixed_rotation = true
-    }, uint8_t body_type = fan::physics::body_type_e::dynamic_body);
+    }, std::uint8_t body_type = fan::physics::body_type_e::dynamic_body);
   fan::graphics::physics::character2d_t character_capsule(
     const fan::graphics::physics::capsule_t::properties_t& visual_properties,
     const fan::physics::shape_properties_t& physics_properties = {.fixed_rotation = true}
@@ -1042,7 +1042,7 @@ export namespace fan::graphics::physics {
   template <typename TargetTag, typename Registry>
   void proximity_damage(Registry& registry, vec2 pos, f32_t radius, int& hp_pool,
     int dmg, fan::color col, int particles) {
-    fan::physics::proximity_trigger<fan::ecs::c_pos, TargetTag>(registry, pos, radius, [&](uint32_t e, fan::ecs::c_pos& p) {
+    fan::physics::proximity_trigger<fan::ecs::c_pos, TargetTag>(registry, pos, radius, [&](std::uint32_t e, fan::ecs::c_pos& p) {
       hp_pool -= dmg;
       registry.destroy(e);
       fan::graphics::emit_radial(registry, p.v, col, particles, {50.f,200.f}, {0.2f,0.6f});
@@ -1066,7 +1066,7 @@ export namespace fan::physics {
 
   template <typename WallTag, typename ObstacleTag, typename Registry, typename World, typename OnDamage>
   void push_out_walls(Registry& registry, World& world, vec2& pos, f32_t grid, f32_t dt, bool bash, OnDamage&& on_damage) {
-    world.query_radius(pos, grid * 0.75f, [&](uint32_t id) {
+    world.query_radius(pos, grid * 0.75f, [&](std::uint32_t id) {
       vec2 ext = vec2(grid / 2.f - 0.1f);
       if (registry.template has<WallTag>(id) &&
           fan::physics::aabb_t::from_center(registry.template get<fan::ecs::c_pos>(id).v, ext).push_out(pos, 200.f * dt))
@@ -1080,7 +1080,7 @@ export namespace fan::physics {
   void tick_bullets(Registry& registry, World& world, f32_t radius, int dmg) {
     registry.template destroy_if<fan::ecs::c_pos, fan::ecs::tag_bullet>([&](fan::ecs::c_pos& p, fan::ecs::tag_bullet&) {
       bool hit = false;
-      world.query_radius(p.v, radius, [&](uint32_t id) {
+      world.query_radius(p.v, radius, [&](std::uint32_t id) {
         if (hit) return;
         if (registry.template has<TargetTag>(id)) {
           registry.template get<fan::ecs::c_hp>(id).current -= dmg; hit = true;
@@ -1095,7 +1095,7 @@ export namespace fan::physics {
   template <typename... Tags_t, typename Registry_t, typename World_t>
   bool has_los(Registry_t& registry, World_t& world, fan::vec2 src, fan::vec2 tgt) {
     bool hit = false;
-    world.raycast(src, tgt, [&](uint32_t id) {
+    world.raycast(src, tgt, [&](std::uint32_t id) {
       if ((registry.template has<Tags_t>(id) || ...)) {
         hit = true;
       }
@@ -1104,8 +1104,8 @@ export namespace fan::physics {
   }
 
   template <typename Tag_t, typename Registry_t, typename World_t>
-  fan::vec2 separation_force(Registry_t& registry, World_t& world, uint32_t entity_id, fan::vec2 pos, f32_t radius) {
-    return world.separation_force(entity_id, pos, radius, [&](uint32_t id) {
+  fan::vec2 separation_force(Registry_t& registry, World_t& world, std::uint32_t entity_id, fan::vec2 pos, f32_t radius) {
+    return world.separation_force(entity_id, pos, radius, [&](std::uint32_t id) {
       return registry.template has<Tag_t>(id) ? registry.template get<fan::ecs::c_pos>(id).v : pos;
     });
   }

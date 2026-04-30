@@ -42,11 +42,11 @@ export {
       using value_type = json;
       using reference = json&;
       using const_reference = const json&;
-      using size_type = size_t;
+      using size_type = std::size_t;
       using array_t = std::vector<json>;
       using object_t = std::unordered_map<std::string, json>;
 
-      enum class value_t : uint8_t {
+      enum class value_t : std::uint8_t {
         null, object, array, string, boolean, number_integer, number_unsigned, number_float, binary, discarded
       };
 
@@ -56,9 +56,9 @@ export {
       json(json&& other) noexcept;
       
       json(int v);
-      json(uint32_t v);
-      json(int64_t v);
-      json(uint64_t v);
+      json(std::uint32_t v);
+      json(std::int64_t v);
+      json(std::uint64_t v);
       json(f32_t v);
       json(f64_t v);
       json(bool v);
@@ -77,9 +77,9 @@ export {
       static json array();
 
       json& operator=(int v);
-      json& operator=(uint32_t v);
-      json& operator=(int64_t v);
-      json& operator=(uint64_t v);
+      json& operator=(std::uint32_t v);
+      json& operator=(std::int64_t v);
+      json& operator=(std::uint64_t v);
       json& operator=(f32_t v);
       json& operator=(f64_t v);
       json& operator=(bool v);
@@ -111,17 +111,17 @@ export {
 
       json operator[](const char* key);
       json operator[](const std::string& key);
-      json operator[](size_t index);
+      json operator[](std::size_t index);
       json operator[](int index);
       const json operator[](const char* key) const;
       const json operator[](const std::string& key) const;
-      const json operator[](size_t index) const;
+      const json operator[](std::size_t index) const;
       const json operator[](int index) const;
 
       json at(const char* key);
-      json at(size_t index);
+      json at(std::size_t index);
       const json at(const char* key) const;
-      const json at(size_t index) const;
+      const json at(std::size_t index) const;
 
       void update(const json& other, bool merge_objects = false);
 
@@ -148,7 +148,7 @@ export {
       bool is_object() const;
       bool is_array() const;
       bool is_null() const;
-      size_t size() const;
+      std::size_t size() const;
       bool empty() const;
       
       void push_back(const json& val);
@@ -156,7 +156,7 @@ export {
       void push_back(const char* val);
       std::string dump(int indent = -1, const char* indent_char = " ", bool ensure_ascii = false) const;
 
-      void reserve(size_t n);
+      void reserve(std::size_t n);
 
       template <typename t_type> t_type _get_impl() const;
 
@@ -184,13 +184,13 @@ export {
       }
 
       operator int() const { return get<int>(); }
-      operator uint32_t() const { return get<uint32_t>(); }
-      operator int64_t() const { return get<int64_t>(); }
-      operator uint64_t() const { return get<uint64_t>(); }
-      operator uint16_t() const { return get<uint16_t>(); }
-      operator int16_t() const { return get<int16_t>(); }
-      operator uint8_t() const { return get<uint8_t>(); }
-      operator int8_t() const { return get<int8_t>(); }
+      operator std::uint32_t() const { return get<std::uint32_t>(); }
+      operator std::int64_t() const { return get<std::int64_t>(); }
+      operator std::uint64_t() const { return get<std::uint64_t>(); }
+      operator std::uint16_t() const { return get<std::uint16_t>(); }
+      operator std::int16_t() const { return get<std::int16_t>(); }
+      operator std::uint8_t() const { return get<std::uint8_t>(); }
+      operator std::int8_t() const { return get<std::int8_t>(); }
       operator char() const { return get<char>(); }
       operator f32_t() const { return get<f32_t>(); }
       operator f64_t() const { return get<f64_t>(); }
@@ -263,13 +263,13 @@ export {
     };
 
     template <> int json::_get_impl<int>() const;
-    template <> uint32_t json::_get_impl<uint32_t>() const;
-    template <> int64_t json::_get_impl<int64_t>() const;
-    template <> uint64_t json::_get_impl<uint64_t>() const;
-    template <> uint16_t json::_get_impl<uint16_t>() const;
-    template <> int16_t json::_get_impl<int16_t>() const;
-    template <> uint8_t json::_get_impl<uint8_t>() const;
-    template <> int8_t json::_get_impl<int8_t>() const;
+    template <> std::uint32_t json::_get_impl<std::uint32_t>() const;
+    template <> std::int64_t json::_get_impl<std::int64_t>() const;
+    template <> std::uint64_t json::_get_impl<std::uint64_t>() const;
+    template <> std::uint16_t json::_get_impl<std::uint16_t>() const;
+    template <> std::int16_t json::_get_impl<std::int16_t>() const;
+    template <> std::uint8_t json::_get_impl<std::uint8_t>() const;
+    template <> std::int8_t json::_get_impl<std::int8_t>() const;
     template <> char json::_get_impl<char>() const;
     template <> f32_t json::_get_impl<f32_t>() const;
     template <> f64_t json::_get_impl<f64_t>() const;
@@ -290,7 +290,7 @@ export {
         std::string error;
         bool success;
       };
-      std::pair<size_t, size_t> find_next_json_bounds(std::string_view s, size_t pos = 0) const noexcept;
+      std::pair<std::size_t, std::size_t> find_next_json_bounds(std::string_view s, std::size_t pos = 0) const noexcept;
       std::vector<parsed_result> process(std::string_view chunk);
       void clear() noexcept;
 

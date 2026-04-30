@@ -22,7 +22,7 @@ export namespace fan::graphics::gui {
       fan::time::timer fade_time;
       bool is_static;
       bool needs_formatting = false;
-      int32_t tab_width = 0;
+      std::int32_t tab_width = 0;
       std::vector<std::string> raw_columns;
 
       text_t(const std::string& t, const fan::color& c, bool static_msg = false);

@@ -650,7 +650,7 @@ export namespace fan {
     if (button == -1) return "None";
 
     thread_local char buffer[32];
-    snprintf(buffer, sizeof(buffer), "Button %d", button);
+    std::snprintf(buffer, sizeof(buffer), "Button %d", button);
     return buffer;
   }
 
@@ -702,14 +702,14 @@ export namespace fan {
     return r;
   }
   std::string trim_ws(const std::string& s) {
-    size_t b = 0, e = s.size();
+    std::size_t b = 0, e = s.size();
     while (b < e && std::isspace((unsigned char)s[b])) ++b;
     while (e > b && std::isspace((unsigned char)s[e - 1])) --e;
     return s.substr(b, e - b);
   }
   bool iequals(const std::string& a, const std::string& b) {
     if (a.size() != b.size()) return false;
-    for (size_t i = 0; i < a.size(); ++i) {
+    for (std::size_t i = 0; i < a.size(); ++i) {
       if (std::tolower((unsigned char)a[i]) != std::tolower((unsigned char)b[i]))
         return false;
     }

@@ -131,7 +131,7 @@ namespace fan {
     std::stringstream ss(s);
     std::string item;
     f32_t values[4] = { 0, 0, 0, 1 };
-    size_t i = 0;
+    std::size_t i = 0;
 
     while (std::getline(ss, item, ',') && i < 4) {
       try {
@@ -186,13 +186,13 @@ namespace fan {
 
   } // namespace random
 
-  void lerp_pixels(uint8_t* dst, const uint8_t* target, std::size_t size, f32_t t, uint8_t channels) {
+  void lerp_pixels(std::uint8_t* dst, const std::uint8_t* target, std::size_t size, f32_t t, std::uint8_t channels) {
     for (std::size_t i = 0; i < size; i++) {
       int diff = (int)target[i] - (int)dst[i];
       if (diff != 0) {
         int delta = (int)std::round(diff * t);
         if (delta == 0) delta = diff > 0 ? 1 : -1;
-        dst[i] = (uint8_t)std::clamp((int)dst[i] + delta, 0, 255);
+        dst[i] = (std::uint8_t)std::clamp((int)dst[i] + delta, 0, 255);
       }
     }
   }

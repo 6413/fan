@@ -34,7 +34,7 @@ export namespace fan {
     bool load(fan::str_view_t path, info_t* image_info, const std::source_location& callers_path = std::source_location::current());
     void free(info_t* image_info);
     
-    void convert_channels(const uint8_t* src, uint8_t* dst, std::size_t pixels, int src_channels, int dst_channels, uint8_t default_alpha = 255);
+    void convert_channels(const std::uint8_t* src, std::uint8_t* dst, std::size_t pixels, int src_channels, int dst_channels, std::uint8_t default_alpha = 255);
 
     inline constexpr std::uint8_t missing_texture_pixels[16] = {
       0, 0, 0, 255,

@@ -15,7 +15,7 @@ using namespace fan::graphics;
 
 namespace fan::graphics::gui {
 
-  void hotbar_t::create(uint32_t slot_count) {
+  void hotbar_t::create(std::uint32_t slot_count) {
     slots.resize(slot_count);
     if (selected_slot >= slots.size()) {
       selected_slot = 0;
@@ -24,7 +24,7 @@ namespace fan::graphics::gui {
 
   void hotbar_t::handle_input() {
     if (!gui::input::ctrl()) {
-      uint32_t n;
+      std::uint32_t n;
       if (gui::input::number(n)) {
         if (n < slots.size()) {
           select_slot(n);
@@ -34,16 +34,16 @@ namespace fan::graphics::gui {
 
     f32_t scroll = gui::input::scroll();
     if (scroll > 0 && !slots.empty()) {
-      uint32_t new_slot = (selected_slot + slots.size() - 1) % slots.size();
+      std::uint32_t new_slot = (selected_slot + slots.size() - 1) % slots.size();
       select_slot(new_slot);
     }
     else if (scroll < 0 && !slots.empty()) {
-      uint32_t new_slot = (selected_slot + 1) % slots.size();
+      std::uint32_t new_slot = (selected_slot + 1) % slots.size();
       select_slot(new_slot);
     }
   }
 
-  void hotbar_t::select_slot(uint32_t idx) {
+  void hotbar_t::select_slot(std::uint32_t idx) {
     if (idx >= slots.size()) {
       return;
     }
@@ -53,12 +53,12 @@ namespace fan::graphics::gui {
     }
   }
 
-  bool hotbar_t::add_item(const gameplay::item_t& item, uint32_t amount, int32_t preferred_slot) {
+  bool hotbar_t::add_item(const gameplay::item_t& item, std::uint32_t amount, std::int32_t preferred_slot) {
     if (amount == 0) {
       return false;
     }
 
-    if (preferred_slot >= 0 && preferred_slot < static_cast<int32_t>(slots.size())) {
+    if (preferred_slot >= 0 && preferred_slot < static_cast<std::int32_t>(slots.size())) {
       auto& slot = slots[preferred_slot];
       if (slot.can_add(item.id, item.max_stack, amount)) {
         return slot.add(item.id, item.max_stack, amount);
@@ -80,7 +80,7 @@ namespace fan::graphics::gui {
     return false;
   }
 
-  void hotbar_t::render(const gameplay::gui_theme_t& theme, gui::drag_drop::drag_state_t& drag_state, uint32_t& hovered_secondary_slot) {
+  void hotbar_t::render(const gameplay::gui_theme_t& theme, gui::drag_drop::drag_state_t& drag_state, std::uint32_t& hovered_secondary_slot) {
     if (slots.empty()) {
       return;
     }
@@ -114,7 +114,7 @@ namespace fan::graphics::gui {
       gui::window_flags_no_scroll_with_mouse
     )) {
       if (!drag_state.active) {
-        hovered_secondary_slot = UINT32_MAX;
+        hovered_secondary_slot = std::numeric_limits<std::uint32_t>::max();
       }
 
       gui::set_cursor_pos(fan::vec2(padding_x, padding_y));
@@ -124,7 +124,7 @@ namespace fan::graphics::gui {
         .slot_padding = slot_padding,
         .border_thickness = 2.0f,
         .corner_rounding = 0.0f,
-        .columns = static_cast<uint32_t>(slots.size()),
+        .columns = static_cast<std::uint32_t>(slots.size()),
         .horizontal = true
       };
 
@@ -139,7 +139,7 @@ namespace fan::graphics::gui {
       };
 
       hovered_slot = render_slot_grid(
-        slots, 0, static_cast<uint32_t>(slots.size()),
+        slots, 0, static_cast<std::uint32_t>(slots.size()),
         layout, theme, drag_state, callbacks, visual
       );
 
@@ -153,7 +153,7 @@ namespace fan::graphics::gui {
     gui::pop_style_var(2);
   }
 
-  bool hotbar_t::consume_slot(uint32_t slot_index, item_use_cb_t use_cb) {
+  bool hotbar_t::consume_slot(std::uint32_t slot_index, item_use_cb_t use_cb) {
     auto& slot = slots[slot_index];
     if (slot.is_empty()) {
       return false;
@@ -181,13 +181,13 @@ namespace fan::graphics::gui {
     return true;
   }
 
-  bool hotbar_t::try_drop_here(uint32_t index, gui::drag_drop::drag_state_t& drag_state) {
+  bool hotbar_t::try_drop_here(std::uint32_t index, gui::drag_drop::drag_state_t& drag_state) {
     auto& dst = slots[index];
     gui::drag_drop::apply_to_slot(drag_state, dst);
     return true;
   }
 
-  uint32_t hotbar_t::get_hovered_slot() const {
+  std::uint32_t hotbar_t::get_hovered_slot() const {
     return hovered_slot;
   }
 

@@ -538,7 +538,7 @@ export namespace fan::graphics::gui {
   using slider_flags_t = int;
   using input_text_flags_t = int;
   using input_flags_t = int;
-  using color_edit_flags_t = uint64_t;
+  using color_edit_flags_t = std::uint64_t;
   using cond_t = int;
   using col_t = int;
   using cursor_t = int;
@@ -547,7 +547,7 @@ export namespace fan::graphics::gui {
   using font_t = ImFont;
   using font_config_t = ImFontConfig;
   using dock_flag_t = int;
-  using window_flags_t = uint64_t;
+  using window_flags_t = std::uint64_t;
   using child_window_flags_t = int;
   using tab_item_flags_t = int;
   using hovered_flag_t = int;

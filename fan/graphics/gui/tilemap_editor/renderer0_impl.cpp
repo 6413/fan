@@ -79,8 +79,8 @@ namespace fan::graphics {
     node.lights.clear();
 
     auto& compiled_map = *node.compiled_map;
-    size_t light_count = 0;
-    size_t physics_count = compiled_map.physics_shapes.size();
+    std::size_t light_count = 0;
+    std::size_t physics_count = compiled_map.physics_shapes.size();
 
     TIMER_START(light_count_scan);
     for (int y = 0; y < compiled_map.map_size.y; ++y) {
@@ -179,7 +179,7 @@ namespace fan::graphics {
 
     auto& map_tiles = node.compiled_map->compiled_shapes;
 
-    size_t tile_estimate = 0;
+    std::size_t tile_estimate = 0;
     TIMER_START(tile_estimate_scan);
     for (int y = 0; y < view_size.y; ++y) {
       for (int x = 0; x < view_size.x; ++x) {

@@ -88,7 +88,7 @@ namespace fan::graphics::gui {
         while (max_column_widths.size() < entry.raw_columns.size()) {
           max_column_widths.push_back(0);
         }
-        for (size_t i = 0; i < entry.raw_columns.size(); ++i) {
+        for (std::size_t i = 0; i < entry.raw_columns.size(); ++i) {
           fan::vec2 text_size = gui::calc_text_size(entry.raw_columns[i]);
           max_column_widths[i] = std::max(max_column_widths[i], text_size.x);
         }
@@ -105,11 +105,11 @@ namespace fan::graphics::gui {
     fan::vec2 space_size = gui::calc_text_size(" ");
     f32_t min_column_width = tab_width;
 
-    for (size_t i = 0; i < columns.size(); ++i) {
+    for (std::size_t i = 0; i < columns.size(); ++i) {
       std::string s = columns[i];
 
-      size_t num_pos = std::string::npos;
-      for (size_t p = 0; p < s.size(); ++p) {
+      std::size_t num_pos = std::string::npos;
+      for (std::size_t p = 0; p < s.size(); ++p) {
         char c = s[p];
         if (c == '-' || (c >= '0' && c <= '9') || c == '.') { num_pos = p; break; }
       }
@@ -156,9 +156,9 @@ namespace fan::graphics::gui {
     fan::vec2 position) {
     std::vector<std::string> lines;
     f32_t max_width = 0;
-    size_t pos = 0;
+    std::size_t pos = 0;
     while (pos < text.length()) {
-      size_t newline_pos = text.find('\n', pos);
+      std::size_t newline_pos = text.find('\n', pos);
       if (newline_pos == std::string::npos) newline_pos = text.length();
       std::string line = text.substr(pos, newline_pos - pos);
       lines.push_back(line);
@@ -216,7 +216,7 @@ namespace fan::graphics::gui {
         continue;
       }
 
-      uint64_t elapsed = it->fade_time.elapsed();
+      std::uint64_t elapsed = it->fade_time.elapsed();
       f32_t progress = (f64_t)elapsed / it->fade_time.duration();
       fan::color color = it->color;
       f32_t alpha = 1.0f;

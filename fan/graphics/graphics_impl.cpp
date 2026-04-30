@@ -55,7 +55,7 @@ namespace fan::graphics {
     return img;
   }
 
-  std::vector<uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, int image_format, fan::vec2 uvp, fan::vec2 uvs) {
+  std::vector<std::uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, int image_format, fan::vec2 uvp, fan::vec2 uvs) {
   #if defined(FAN_OPENGL)
     if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::opengl) {
       return fan::graphics::ctx()->image_get_pixel_data(fan::graphics::ctx(), nr, fan::opengl::context_t::global_to_opengl_format(image_format), uvp, uvs);
@@ -65,15 +65,15 @@ namespace fan::graphics {
     return {};
   }
 
-  fan::graphics::shader_nr_t shader_get_nr(uint16_t shape_type) {
+  fan::graphics::shader_nr_t shader_get_nr(std::uint16_t shape_type) {
     return fan::graphics::get_shapes().shaper.GetShader(shape_type);
   }
 
-  fan::graphics::shader_list_t::nd_t& shader_get_data(uint16_t shape_type) {
+  fan::graphics::shader_list_t::nd_t& shader_get_data(std::uint16_t shape_type) {
     return (*fan::graphics::ctx().shader_list)[shader_get_nr(shape_type)];
   }
 
-  bool shader_update_fragment(uint16_t shape_type, const std::string_view fragment_file_path, const std::string& fragment) {
+  bool shader_update_fragment(std::uint16_t shape_type, const std::string_view fragment_file_path, const std::string& fragment) {
     auto shader_nr = shader_get_nr(shape_type);
     auto shader_data = shader_get_data(shape_type);
     shader_set_vertex(shader_nr, shader_data.path_vertex, shader_data.svertex);
@@ -206,7 +206,7 @@ namespace fan::graphics {
     .size = size,
     .image = fan::graphics::image_load(std::span<const fan::color>(colors.begin(), colors.size()), fan::vec2ui(colors.size(), 1))
   }) {}
-sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const std::vector<uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view)
+sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view)
   : sprite_t(sprite_properties_t {
     .render_view = render_view,
     .position = position,
@@ -263,7 +263,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
         .size = size,
         .image = fan::graphics::image_load(std::span<const fan::color>(colors.begin(), colors.size()), fan::vec2ui(colors.size(), 1))
       }) {}
-  unlit_sprite_t::unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, const std::vector<uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view)
+  unlit_sprite_t::unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view)
   : unlit_sprite_t(unlit_sprite_properties_t {
     .render_view = render_view,
     .position = position,
@@ -477,7 +477,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     return fan::graphics::get_shapes().immediate_render_list->back();
   }
 
-  uint32_t add_shape_to_static_draw(fan::graphics::shapes::shape_t&& s) {
+  std::uint32_t add_shape_to_static_draw(fan::graphics::shapes::shape_t&& s) {
     auto ret = s.NRI;
     (*fan::graphics::get_shapes().static_render_list)[ret] = std::move(s);
     return ret;
@@ -509,7 +509,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
   fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, std::initializer_list<fan::color> colors, render_view_t* render_view) {
     return add_shape_to_immediate_draw(sprite_t(position, size, colors, render_view));
   }
-  fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, const std::vector<uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view) {
+  fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view) {
     return add_shape_to_immediate_draw(sprite_t(position, size, data, tex_size, render_view));
   }
   fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, const fan::image::info_t& info, const fan::graphics::image_load_properties_t& p, render_view_t* render_view) {
@@ -528,7 +528,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
   fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, std::initializer_list<fan::color> colors, render_view_t* render_view) {
     return add_shape_to_immediate_draw(unlit_sprite_t(position, size, colors, render_view));
   }
-  fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const std::vector<uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view) {
+  fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view) {
     return add_shape_to_immediate_draw(unlit_sprite_t(position, size, data, tex_size, render_view));
   }
   fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const fan::image::info_t& info, const fan::graphics::image_load_properties_t& p, render_view_t* render_view) {
@@ -647,7 +647,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     cache.shapes = shapes;
     cache.original_pos.resize(shapes.size());
 
-    for (size_t i = 0; i < shapes.size(); ++i) {
+    for (std::size_t i = 0; i < shapes.size(); ++i) {
       cache.original_pos[i] = shapes[i].get_position();
       cache.shapes[i].set_position(fan::vec2(-0xfffff));
     }
@@ -680,7 +680,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     auto& cache = cache_map[json_path];
     std::vector<fan::graphics::shape_t> out(cache.shapes.size());
 
-    for (size_t i = 0; i < cache.shapes.size(); ++i) {
+    for (std::size_t i = 0; i < cache.shapes.size(); ++i) {
       fan::graphics::shape_t s = cache.shapes[i];
       s.set_position(cache.original_pos[i]);
       out[i] = std::move(s);
@@ -1070,10 +1070,10 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
   }
 
   void trail_t::update() {
-    uint64_t current_time = fan::time::now();
+    std::uint64_t current_time = fan::time::now();
 
     for (auto& trail : trails) {
-      uint64_t age = current_time - trail.creation_time;
+      std::uint64_t age = current_time - trail.creation_time;
       f32_t fade_factor = 1.0f;
 
       if (age > fade_duration) {
@@ -1081,7 +1081,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
       }
       f32_t current_alpha = trail.base_alpha * fade_factor;
 
-      for (size_t i = 0; i < trail.vertices.size(); i += 2) {
+      for (std::size_t i = 0; i < trail.vertices.size(); i += 2) {
         f32_t position_factor = static_cast<f32_t>(i) / static_cast<f32_t>(trail.vertices.size() - 2);
         f32_t vertex_alpha = current_alpha * (0.2f + 0.8f * position_factor);
         trail.vertices[i].color.a = vertex_alpha;
@@ -1097,7 +1097,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
 
     trails.erase(
       std::remove_if(trails.begin(), trails.end(), [&](const trail_segment_t& trail) {
-        uint64_t age = current_time - trail.creation_time;
+        std::uint64_t age = current_time - trail.creation_time;
         return age > max_trail_lifetime;
       }),
       trails.end()
@@ -1270,7 +1270,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     f32_t r = circle.get_radius();
     auto gi = fan::cast<sint32_t>(decltype(wp){});
 
-    constexpr auto recurse = []<uint32_t d>(const auto& self,
+    constexpr auto recurse = []<std::uint32_t d>(const auto& self,
       tilemap_t& tilemap,
       auto& gi,
       fan::vec2 wp,
@@ -1357,7 +1357,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     if (value <= stops.front().first) return stops.front().second;
     if (value >= stops.back().first) return stops.back().second;
 
-    for (size_t i = 0; i < stops.size() - 1; ++i) {
+    for (std::size_t i = 0; i < stops.size() - 1; ++i) {
       if (value >= stops[i].first && value <= stops[i + 1].first) {
         int v1 = stops[i].first;
         int v2 = stops[i + 1].first;
@@ -1372,7 +1372,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
 
   void generate_mesh(
     const vec2& noise_size,
-    const std::vector<uint8_t>& noise_data,
+    const std::vector<std::uint8_t>& noise_data,
     const fan::graphics::image_t& texture,
     std::vector<fan::graphics::shape_t>& out_mesh,
     const terrain_palette_t& palette,
@@ -1397,7 +1397,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
 
   fan::event::task_t async_generate_mesh(
     const vec2& noise_size,
-    const std::vector<uint8_t>& noise_data,
+    const std::vector<std::uint8_t>& noise_data,
     const fan::graphics::image_t& texture,
     std::vector<fan::graphics::shape_t>& out_mesh,
     const terrain_palette_t& palette,
@@ -1426,13 +1426,13 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
 
 #if defined(FAN_2D)
 namespace fan::image {
-  plane_split_t plane_split(void* pixel_data, const fan::vec2ui& size, uint32_t format) {
+  plane_split_t plane_split(void* pixel_data, const fan::vec2ui& size, std::uint32_t format) {
     plane_split_t result;
-    uint64_t offset = 0;
+    std::uint64_t offset = 0;
     if (format == fan::graphics::image_format_e::yuv420p) {
       result.planes[0] = pixel_data;
-      result.planes[1] = (uint8_t*)pixel_data + (offset += size.multiply());
-      result.planes[2] = (uint8_t*)pixel_data + (offset += size.multiply() / 4);
+      result.planes[1] = (std::uint8_t*)pixel_data + (offset += size.multiply());
+      result.planes[2] = (std::uint8_t*)pixel_data + (offset += size.multiply() / 4);
     }
     else {
       fan::throw_error_impl("undefined");

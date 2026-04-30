@@ -65,14 +65,14 @@ export namespace fan {
     std::string get_command_description(const std::string& cmd) const;
   };
 
-  std::string append_args(const std::vector<std::string>& args, uint64_t offset = 0, uint64_t end = -1);
+  std::string append_args(const std::vector<std::string>& args, std::uint64_t offset = 0, std::uint64_t end = -1);
 
   struct console_t {
-    using frame_cb_nr_t = uint16_t;
+    using frame_cb_nr_t = std::uint16_t;
 
     void* internal_state = nullptr;
     commands_t commands;
-    uint32_t transparency = 255;
+    std::uint32_t transparency = 255;
     bool init_focus = false;
 
     console_t();

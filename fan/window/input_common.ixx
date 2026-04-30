@@ -13,7 +13,7 @@ import fan.window.input;
 export namespace fan {
   namespace window {
     namespace input {
-      uint16_t convert_scancode_to_fan(int key) {
+      std::uint16_t convert_scancode_to_fan(int key) {
         switch (key) {
           //shifts and ctrls require lparam check for which side the button is pressed this is usually checked before converting
   #ifdef fan_platform_windows
@@ -243,7 +243,7 @@ export namespace fan {
         }
       }
 
-      uint16_t convert_fan_to_scancode(int key) {
+      std::uint16_t convert_fan_to_scancode(int key) {
         // non us less/greater than sign
         /* if (key == fan::input::key_less_than) {
         return 0x56;

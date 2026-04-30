@@ -1,7 +1,10 @@
 // fan.graphics.gui.tilemap_editor.core.ixx
 module;
 
+#include <cstddef>
+
 #if defined(FAN_2D)
+  #include <fan/utility.h>
 #endif
 
 export module fan.graphics.gui.tilemap_editor.core;
@@ -37,7 +40,7 @@ export struct fte_t {
   static constexpr fan::color highlighted_tile_color = fan::color(0.5, 0.5, 1);
   static constexpr fan::color highlighted_selected_tile_color = fan::color(0.5, 0, 0, 0.1);
   static constexpr f32_t scroll_speed = 1.2;
-  static constexpr uint32_t invalid = -1;
+  static constexpr std::uint32_t invalid = -1;
 
   struct shape_depths_t {
     static constexpr int max_layer_depth = 0xFAAA - 2;
@@ -86,7 +89,7 @@ export struct fte_t {
   struct current_tile_t {
     fan::vec2i position = 0;
     shapes_t::global_t::layer_t* layer = nullptr;
-    uint32_t layer_index;
+    std::uint32_t layer_index;
   };
 
   struct visual_layer_t {
@@ -100,14 +103,14 @@ export struct fte_t {
   };
 
   struct brush_t {
-    enum class mode_e : uint8_t { draw, copy };
+    enum class mode_e : std::uint8_t { draw, copy };
     mode_e mode = mode_e::draw;
     fan::vec2 line_src = -9999999;
     static constexpr const char* mode_names[] = {"Draw", "Copy"};
 
-    enum class type_e : uint8_t {
+    enum class type_e : std::uint8_t {
       texture,
-      physics_shape = (uint8_t)fte_t::mesh_property_t::physics_shape,
+      physics_shape = (std::uint8_t)fte_t::mesh_property_t::physics_shape,
       light,
       player_spawn,
       enemy_spawn,
@@ -116,7 +119,7 @@ export struct fte_t {
     static constexpr const char* type_names[] = {"Texture", "Physics shape", "Light", "Player spawn", "Enemy spawn", "Mark"};
     type_e type = type_e::texture;
 
-    enum class dynamics_e : uint8_t { original, randomize };
+    enum class dynamics_e : std::uint8_t { original, randomize };
     static constexpr const char* dynamics_names[] = {"Original", "Randomize"};
     dynamics_e dynamics_angle = dynamics_e::original;
     dynamics_e dynamics_color = dynamics_e::original;
@@ -130,10 +133,10 @@ export struct fte_t {
     std::string id;
     fan::color color = fan::color(1);
     fan::vec2 offset = 0;
-    uint32_t flags = 0;
-    uint8_t physics_type = physics_shapes_t::type_e::box;
+    std::uint32_t flags = 0;
+    std::uint8_t physics_type = physics_shapes_t::type_e::box;
     static constexpr const char* physics_type_names[] = {"Box", "Circle"};
-    uint8_t physics_body_type = fan::physics::body_type_e::static_body;
+    std::uint8_t physics_body_type = fan::physics::body_type_e::static_body;
     static constexpr const char* physics_body_type_names[] = {"Static", "Kinematic", "Dynamic"};
     bool physics_draw = false;
     fan::physics::shape_properties_t physics_shape_properties;
@@ -168,7 +171,7 @@ export struct fte_t {
 
   struct layer_info_t {
     std::string layer_name;
-    uint16_t depth;
+    std::uint16_t depth;
   };
 
   struct spawn_mark_t {
@@ -194,9 +197,9 @@ export struct fte_t {
     }
   };
 
-  uint32_t find_layer_shape(const auto& vec, bool top = false) {
-    uint32_t found = invalid;
-    int64_t depth = -1;
+  std::uint32_t find_layer_shape(const auto& vec, bool top = false) {
+    std::uint32_t found = invalid;
+    std::int64_t depth = -1;
     for (std::size_t i = 0; i < vec.size(); ++i) {
       if (top) {
         if (vec[i].tile.position.z > depth) {
@@ -326,7 +329,7 @@ export struct fte_t {
         case fan::mouse_scroll_down: {
           if (fan::graphics::get_window().key_pressed(fan::key_left_control)) {
             brush.depth -= 1;
-            brush.depth = std::max((uint32_t)brush.depth, (uint32_t)1);
+            brush.depth = std::max((std::uint32_t)brush.depth, (std::uint32_t)1);
           }
           else if (fan::graphics::get_window().key_pressed(fan::key_left_shift)) {
             brush.size = (brush.size - 1).max(fan::vec2i(1));
@@ -513,7 +516,7 @@ export struct fte_t {
 
     auto& layers = map_tiles[grid_position].layers;
     visual_layers[brush.depth].positions[grid_position] = 1;
-    uint32_t idx = find_layer_shape(layers);
+    std::uint32_t idx = find_layer_shape(layers);
 
     if (idx == invalid && (brush.type == brush_t::type_e::light)) {
       layers.resize(layers.size() + 1);
@@ -598,7 +601,7 @@ export struct fte_t {
 
           if (brush.type == brush_t::type_e::texture) {
             if (layers.back().shape.set_tp(&tile.ti)) {
-              fan::print("failed to load image");
+              fan::graphics::gui::print("failed to load image");
             }
           }
           
@@ -632,7 +635,7 @@ export struct fte_t {
                   .color = layer.shape.get_color()
                 }};
 
-                if (layer.shape.set_tp(&tile.ti)) fan::print("failed to load image");
+                if (layer.shape.set_tp(&tile.ti)) fan::graphics::gui::print("failed to load image");
                 layer.tile.mesh_property = mesh_property_t::none;
               }
             }
@@ -684,7 +687,7 @@ export struct fte_t {
     auto found_tile = map_tiles.find(grid_position);
     if (found_tile != map_tiles.end()) {
       auto& layers = found_tile->second.layers;
-      uint32_t idx = find_layer_shape(layers);
+      std::uint32_t idx = find_layer_shape(layers);
 
       if (idx != invalid || idx < layers.size()) {
         if (layers[idx].tile.mesh_property == mesh_property_t::light) {
@@ -840,15 +843,15 @@ export struct fte_t {
     if (found == map_tiles.end()) return;
 
     auto& layers = found->second.layers;
-    uint32_t idx = find_layer_shape(layers);
+    std::uint32_t idx = find_layer_shape(layers);
     if (idx == invalid) idx = find_layer_shape(layers, true);
     if (idx == invalid || idx >= layers.size()) return;
 
     auto& layer = layers[idx];
     apply_brush_settings(layer.tile.id, layer.tile.position.z, layer.tile.size, layer.shape.get_color(), layer.shape.get_angle());
 
-    uint16_t st = layer.shape.get_shape_type();
-    if (st == (uint16_t)fan::graphics::shape_type_t::sprite || st == (uint16_t)fan::graphics::shape_type_t::unlit_sprite) {
+    std::uint16_t st = layer.shape.get_shape_type();
+    if (st == (std::uint16_t)fan::graphics::shape_type_t::sprite || st == (std::uint16_t)fan::graphics::shape_type_t::unlit_sprite) {
       current_image_indices.clear();
       current_tile_images.clear();
       current_tile_images.resize(1);
@@ -876,7 +879,7 @@ export struct fte_t {
       auto found = map_tiles.find(fan::vec2i(grid_position.x, grid_position.y));
       if (found != map_tiles.end()) {
         auto& layers = found->second.layers;
-        uint32_t idx = find_layer_shape(layers);
+        std::uint32_t idx = find_layer_shape(layers);
         if ((idx != invalid || idx < brush.depth)) {
           current_tile.position = position;
           current_tile.layer = layers.data();
@@ -924,7 +927,7 @@ export struct fte_t {
     }
     ostr["texture_packs"] = jtps;
 
-    size_t total_tiles = 0;
+    std::size_t total_tiles = 0;
     for (auto& [depth, vec] : physics_shapes) {
       total_tiles += vec.size();
     }
@@ -932,7 +935,7 @@ export struct fte_t {
       total_tiles += marks.size();
     }
 
-    std::unordered_map<uint16_t, std::unordered_map<fan::vec2i, fte_t::shapes_t::global_t::layer_t*>> depth_tiles;
+    std::unordered_map<std::uint16_t, std::unordered_map<fan::vec2i, fte_t::shapes_t::global_t::layer_t*>> depth_tiles;
     depth_tiles.reserve(visual_layers.size());
 
     for (auto& [gp, cell] : map_tiles) {
@@ -1022,7 +1025,7 @@ export struct fte_t {
         fan::graphics::shape_serialize(base->shape, &tile_json);
 
         if (base->tile.mesh_property != defaults.mesh_property) {
-          tile_json["mesh_property"] = static_cast<uint32_t>(base->tile.mesh_property);
+          tile_json["mesh_property"] = static_cast<std::uint32_t>(base->tile.mesh_property);
         }
         if (!base->tile.id.empty() && base->tile.id != defaults.id) {
           tile_json["id"] = base->tile.id;
@@ -1070,7 +1073,7 @@ export struct fte_t {
 
           fan::json tile;
           fan::graphics::shape_serialize(j.visual, &tile);
-          tile["mesh_property"] = static_cast<uint32_t>(mesh_property_t::physics_shape);
+          tile["mesh_property"] = static_cast<std::uint32_t>(mesh_property_t::physics_shape);
 
           if (!j.id.empty()) {
             tile["id"] = j.id;
@@ -1114,7 +1117,7 @@ export struct fte_t {
         tile["size"] = m.size;
         tile["color"] = m.color;
         
-        tile["mesh_property"] = static_cast<uint32_t>(m.type);
+        tile["mesh_property"] = static_cast<std::uint32_t>(m.type);
         if (!m.id.empty()) {
           tile["id"] = m.id;
         }
@@ -1219,7 +1222,7 @@ export struct fte_t {
     physics_shapes.clear();
     spawn_marks.clear();
 
-    size_t estimated_tiles = map_size.x * map_size.y / 4;
+    std::size_t estimated_tiles = map_size.x * map_size.y / 4;
     map_tiles.reserve(estimated_tiles);
 
     resize_map();
@@ -1274,10 +1277,10 @@ export struct fte_t {
         shape.set_position(shape.get_position() + offs);
 
         if (shape_json.contains("mesh_property")) {
-          auto mesh_prop = static_cast<fte_t::mesh_property_t>(shape_json["mesh_property"].get<uint32_t>());
+          auto mesh_prop = static_cast<fte_t::mesh_property_t>(shape_json["mesh_property"].get<std::uint32_t>());
 
           if (mesh_prop == fte_t::mesh_property_t::physics_shape) {
-            uint16_t depth = shape.get_position().z;
+            std::uint16_t depth = shape.get_position().z;
             auto& physics_shape = physics_shapes[depth];
             physics_shape.emplace_back();
             auto& physics_element = physics_shape.back();
@@ -1321,7 +1324,7 @@ export struct fte_t {
             mark.type = mesh_prop;
             mark.id = shape_json.value("id", "");
 
-            uint16_t depth = mark.position.z;
+            std::uint16_t depth = mark.position.z;
             spawn_marks[depth].push_back(std::move(mark));
             auto& inserted_mark = spawn_marks[depth].back();
 
@@ -1344,7 +1347,7 @@ export struct fte_t {
         }
 
         fan::vec2i gp = shape.get_position();
-        uint16_t depth = shape.get_position().z;
+        std::uint16_t depth = shape.get_position().z;
 
         convert_draw_to_grid(gp);
         gp /= tile_size * 2;
@@ -1361,7 +1364,7 @@ export struct fte_t {
         layer->tile.color = shape.get_color();
         layer->tile.id = shape_json.value("id", tile_defaults.id);
         layer->tile.mesh_property = shape_json.contains("mesh_property") 
-            ? static_cast<fte_t::mesh_property_t>(shape_json["mesh_property"].get<uint32_t>()) 
+            ? static_cast<fte_t::mesh_property_t>(shape_json["mesh_property"].get<std::uint32_t>()) 
             : tile_defaults.mesh_property;
 
         layer->shape = std::move(shape);
@@ -1526,7 +1529,7 @@ export struct fte_t {
           fan::vec2i grid_pos(x, y);
           auto& layers = editor->map_tiles[grid_pos].layers;
 
-          uint32_t idx = editor->find_layer_shape(layers);
+          std::uint32_t idx = editor->find_layer_shape(layers);
           if (idx == fte_t::invalid) {
             layers.resize(layers.size() + 1);
             idx = layers.size() - 1;
@@ -1576,7 +1579,7 @@ export struct fte_t {
   std::unordered_map<f32_t, std::vector<fte_t::physics_shapes_t>> physics_shapes;
   std::unordered_map<fan::vec3, visualize_t> visual_shapes;
   std::unordered_map<f32_t, std::vector<spawn_mark_t>> spawn_marks;
-  std::map<uint16_t, visual_layer_t> visual_layers;
+  std::map<std::uint16_t, visual_layer_t> visual_layers;
   fan::vec2 texturepack_size{};
   fan::vec2 texturepack_single_image_size{};
   std::vector<tile_info_t> texture_pack_images;

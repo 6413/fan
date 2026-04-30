@@ -297,7 +297,7 @@ namespace fan::graphics::gui {
 
     int base_index = 0;
 
-    for (size_t group_idx = 0; group_idx < group_order.size(); ++group_idx) {
+    for (std::size_t group_idx = 0; group_idx < group_order.size(); ++group_idx) {
       const auto& group_name = group_order[group_idx];
       const auto& actions = grouped[group_name];
 

@@ -131,12 +131,12 @@ export namespace fan {
       return &x_;
     }
 
-    template<size_t ...Is>
-    constexpr void internal_get_runtime_value(std::index_sequence<Is...>, size_t i, const auto& lambda) {
+    template<std::size_t ...Is>
+    constexpr void internal_get_runtime_value(std::index_sequence<Is...>, std::size_t i, const auto& lambda) {
       ((void)(Is == i && (lambda(get_value<Is>()), true)), ...);
     }
     
-    constexpr void get_value(size_t idx, const auto& lambda)
+    constexpr void get_value(std::size_t idx, const auto& lambda)
     {
       internal_get_runtime_value(std::make_index_sequence<size()>{}, idx, lambda);
     }
@@ -200,7 +200,7 @@ export namespace fan {
         return reverse_iterate<depth - 1>(lambda);
       }
     }
-    static constexpr size_t size() {
+    static constexpr std::size_t size() {
       return count + 1;
     }
   };
@@ -224,16 +224,16 @@ export namespace fan {
       return &x_;
     }
 
-    static constexpr size_t size() {
+    static constexpr std::size_t size() {
       return count;
     }
 
-    template<size_t ...Is>
-    constexpr void internal_get_runtime_value(std::index_sequence<Is...>, size_t i, const auto& lambda) {
+    template<std::size_t ...Is>
+    constexpr void internal_get_runtime_value(std::index_sequence<Is...>, std::size_t i, const auto& lambda) {
       ((void)(Is == i && (lambda(get_value<Is>()), true)), ...);
     }
 
-    constexpr void get_value(size_t idx, const auto& lambda)
+    constexpr void get_value(std::size_t idx, const auto& lambda)
     {
       internal_get_runtime_value(std::make_index_sequence<size()>{}, idx, lambda);
     }
@@ -486,8 +486,8 @@ export namespace fan {
       return fan::count_struct_members<T>();
     }
 
-    template<size_t... Is>
-    constexpr auto internal_get_runtime_value(std::index_sequence<Is...>, size_t i, const auto& lambda) {
+    template<std::size_t... Is>
+    constexpr auto internal_get_runtime_value(std::index_sequence<Is...>, std::size_t i, const auto& lambda) {
       using return_type = decltype(lambda(std::declval<decltype(get<0>())>()));  // Determine the return type
 
       return ([&]() -> return_type {
@@ -499,7 +499,7 @@ export namespace fan {
     }
 
 
-    constexpr auto get_value(size_t idx, const auto& lambda)
+    constexpr auto get_value(std::size_t idx, const auto& lambda)
     {
       constexpr std::size_t n = std::tuple_size_v<decltype(get_tuple())>;
       return internal_get_runtime_value(std::make_index_sequence<n>{}, idx, lambda);

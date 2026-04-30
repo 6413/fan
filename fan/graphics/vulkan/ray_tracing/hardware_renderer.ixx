@@ -37,10 +37,10 @@ export namespace fan::graphics::vulkan::ray_tracing {
   };
 #pragma pack(push, 1)
   struct material_info_t {
-    int32_t albedo_texture_id = -1;
-    int32_t normal_texture_id = -1;
-    int32_t metallic_texture_id = -1;
-    int32_t roughness_texture_id = -1;
+    std::int32_t albedo_texture_id = -1;
+    std::int32_t normal_texture_id = -1;
+    std::int32_t metallic_texture_id = -1;
+    std::int32_t roughness_texture_id = -1;
     fan::vec3 base_color = fan::vec3(1.0f, 1.0f, 1.0f);
     f32_t pad1;
   };
@@ -59,19 +59,19 @@ export namespace fan::graphics::vulkan::ray_tracing {
   };
   struct context_t {
     struct submesh_t {
-      uint32_t first_vertex;
-      uint32_t vertex_count;
-      uint32_t first_index;
-      uint32_t index_count;
+      std::uint32_t first_vertex;
+      std::uint32_t vertex_count;
+      std::uint32_t first_index;
+      std::uint32_t index_count;
     };
     struct model_t {
-      uint32_t first_index;
-      uint32_t index_count;
-      uint32_t material_index;
-      uint32_t first_primitive;
+      std::uint32_t first_index;
+      std::uint32_t index_count;
+      std::uint32_t material_index;
+      std::uint32_t first_primitive;
     };
     struct instance_t {
-      uint32_t model_index;
+      std::uint32_t model_index;
       fan::mat4 transform;
     };
     std::vector<submesh_t> submeshes;
@@ -104,17 +104,17 @@ export namespace fan::graphics::vulkan::ray_tracing {
       vkCmdTraceRaysKHR = (PFN_vkCmdTraceRaysKHR)
         vkGetDeviceProcAddr(ctx->device, "vkCmdTraceRaysKHR");
     }
-    void create_blas_for_model(uint32_t model_index) {
+    void create_blas_for_model(std::uint32_t model_index) {
       const model_t& model = models[model_index];
-      uint32_t first_index     = model.first_index;
-      uint32_t index_count     = model.index_count;
-      uint32_t primitive_count = index_count / 3;
+      std::uint32_t first_index     = model.first_index;
+      std::uint32_t index_count     = model.index_count;
+      std::uint32_t primitive_count = index_count / 3;
       VkAccelerationStructureGeometryTrianglesDataKHR triangles{};
       triangles.sType       = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
       triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
       triangles.vertexData.deviceAddress = get_buffer_address(vertex_buffer);
       triangles.vertexStride             = sizeof(vertex_t);
-      triangles.maxVertex                = static_cast<uint32_t>(vertex_data.size()) - 1;
+      triangles.maxVertex                = static_cast<std::uint32_t>(vertex_data.size()) - 1;
       triangles.indexType                = VK_INDEX_TYPE_UINT32;
       triangles.indexData.deviceAddress = get_buffer_address(index_buffer);
       VkAccelerationStructureGeometryKHR geometry{};
@@ -168,7 +168,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       build_info.scratchData.deviceAddress = get_buffer_address(scratch_buffer);
       VkAccelerationStructureBuildRangeInfoKHR range_info{};
       range_info.primitiveCount  = primitive_count;
-      range_info.primitiveOffset = first_index * sizeof(uint32_t);
+      range_info.primitiveOffset = first_index * sizeof(std::uint32_t);
       range_info.firstVertex     = 0;
       range_info.transformOffset = 0;
       const VkAccelerationStructureBuildRangeInfoKHR* range_infos = &range_info;
@@ -184,12 +184,12 @@ export namespace fan::graphics::vulkan::ray_tracing {
       blas_list.push_back(blas);
     }
     void create_tlas() {
-      tlas_instance_count = (uint32_t)instances.size();
+      tlas_instance_count = (std::uint32_t)instances.size();
       if (tlas_instance_count == 0) {
         return;
       }
       std::vector<VkAccelerationStructureInstanceKHR> vk_instances(tlas_instance_count);
-      for (uint32_t i = 0; i < tlas_instance_count; ++i) {
+      for (std::uint32_t i = 0; i < tlas_instance_count; ++i) {
         const instance_t& inst = instances[i];
         const model_t& model = models[inst.model_index];
         VkTransformMatrixKHR t{};
@@ -216,7 +216,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       );
       void* data;
       vkMapMemory(ctx->device, staging_mem, 0, instance_size, 0, &data);
-      std::memcpy(data, vk_instances.data(), (size_t)instance_size);
+      std::memcpy(data, vk_instances.data(), (std::size_t)instance_size);
       vkUnmapMemory(ctx->device, staging_mem);
       ctx->create_buffer(
         instance_size,
@@ -493,14 +493,14 @@ export namespace fan::graphics::vulkan::ray_tracing {
       props.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
       props.pNext = &rt_props;
       vkGetPhysicalDeviceProperties2(ctx->physical_device, &props);
-      const uint32_t handle_size  = rt_props.shaderGroupHandleSize;
-      const uint32_t handle_align = rt_props.shaderGroupHandleAlignment;
-      const uint32_t base_align   = rt_props.shaderGroupBaseAlignment;
+      const std::uint32_t handle_size  = rt_props.shaderGroupHandleSize;
+      const std::uint32_t handle_align = rt_props.shaderGroupHandleAlignment;
+      const std::uint32_t base_align   = rt_props.shaderGroupBaseAlignment;
       handle_size_aligned = (handle_size + handle_align - 1) & ~(handle_align - 1);
-      const uint32_t group_count      = 4;
-      const uint32_t aligned_group_sz = (handle_size_aligned + base_align - 1) & ~(base_align - 1);
-      const uint32_t sbt_size         = group_count * aligned_group_sz;
-      std::vector<uint8_t> handles(group_count * handle_size);
+      const std::uint32_t group_count      = 4;
+      const std::uint32_t aligned_group_sz = (handle_size_aligned + base_align - 1) & ~(base_align - 1);
+      const std::uint32_t sbt_size         = group_count * aligned_group_sz;
+      std::vector<std::uint8_t> handles(group_count * handle_size);
       fan::vulkan::validate(
         vkGetRayTracingShaderGroupHandlesKHR(
           ctx->device,
@@ -529,7 +529,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       );
       void* data;
       vkMapMemory(ctx->device, sbt_staging_memory, 0, sbt_size, 0, &data);
-      uint8_t* sbt_ptr = static_cast<uint8_t*>(data);
+      std::uint8_t* sbt_ptr = static_cast<std::uint8_t*>(data);
       std::memset(sbt_ptr, 0, sbt_size);
       group_stride = aligned_group_sz;
       rgen_offset        = 0;
@@ -593,7 +593,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       index_info.range = VK_WHOLE_SIZE;
       std::vector<VkDescriptorImageInfo> texture_infos(max_textures);
       auto& dummy_img = ctx->image_get(fan::graphics::ctx().default_texture);
-      for (uint32_t i = 0; i < max_textures; i++) {
+      for (std::uint32_t i = 0; i < max_textures; i++) {
         if (i < rt_texture_infos.size()) {
           texture_infos[i] = rt_texture_infos[i];
         }
@@ -670,7 +670,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       writes[9].descriptorCount = 1;
       writes[9].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
       writes[9].pBufferInfo = &mat_idx_info;
-      vkUpdateDescriptorSets(ctx->device, (uint32_t)std::size(writes), writes, 0, nullptr);
+      vkUpdateDescriptorSets(ctx->device, (std::uint32_t)std::size(writes), writes, 0, nullptr);
       {
         VkDescriptorBufferInfo exposure_info{};
         exposure_info.buffer = exposure_ubo;
@@ -688,7 +688,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     void update_rt_textures_descriptor() {
       std::vector<VkDescriptorImageInfo> infos(max_textures);
       auto& dummy = ctx->image_get(fan::graphics::ctx().default_texture);
-      for (uint32_t i = 0; i < max_textures; i++) {
+      for (std::uint32_t i = 0; i < max_textures; i++) {
         if (i < rt_texture_infos.size()) {
           infos[i] = rt_texture_infos[i];
         }
@@ -720,7 +720,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       );
       void* data;
       vkMapMemory(ctx->device, staging_mem, 0, size, 0, &data);
-      memcpy(data, vertex_data.data(), (size_t)size);
+      memcpy(data, vertex_data.data(), (std::size_t)size);
       vkUnmapMemory(ctx->device, staging_mem);
       ctx->create_buffer(
         size,
@@ -737,7 +737,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       vkFreeMemory(ctx->device, staging_mem, nullptr);
     }
     void create_index_buffer() {
-      VkDeviceSize size = sizeof(uint32_t) * index_data.size();
+      VkDeviceSize size = sizeof(std::uint32_t) * index_data.size();
       VkBuffer staging;
       VkDeviceMemory staging_mem;
       ctx->create_buffer(
@@ -749,7 +749,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       );
       void* data;
       vkMapMemory(ctx->device, staging_mem, 0, size, 0, &data);
-      memcpy(data, index_data.data(), (size_t)size);
+      memcpy(data, index_data.data(), (std::size_t)size);
       vkUnmapMemory(ctx->device, staging_mem);
       ctx->create_buffer(
         size,
@@ -778,7 +778,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       );
       void* data;
       vkMapMemory(ctx->device, staging_mem, 0, size, 0, &data);
-      memcpy(data, materials.data(), (size_t)size);
+      memcpy(data, materials.data(), (std::size_t)size);
       vkUnmapMemory(ctx->device, staging_mem);
       ctx->create_buffer(
         size,
@@ -797,7 +797,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       if (material_indices_per_primitive.empty()) {
         return;
       }
-      VkDeviceSize size = sizeof(uint32_t) * material_indices_per_primitive.size();
+      VkDeviceSize size = sizeof(std::uint32_t) * material_indices_per_primitive.size();
       VkBuffer staging;
       VkDeviceMemory staging_mem;
       ctx->create_buffer(
@@ -809,7 +809,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       );
       void* data;
       vkMapMemory(ctx->device, staging_mem, 0, size, 0, &data);
-      std::memcpy(data, material_indices_per_primitive.data(), (size_t)size);
+      std::memcpy(data, material_indices_per_primitive.data(), (std::size_t)size);
       vkUnmapMemory(ctx->device, staging_mem);
       if (material_index_buffer) {
         vkDestroyBuffer(ctx->device, material_index_buffer, nullptr);
@@ -829,12 +829,12 @@ export namespace fan::graphics::vulkan::ray_tracing {
       vkFreeMemory(ctx->device, staging_mem, nullptr);
     }
     void load_model_from_fms(fan::model::fms_t& fms) {
-      for (uint32_t mesh_idx = 0; mesh_idx < fms.meshes.size(); mesh_idx++) {
+      for (std::uint32_t mesh_idx = 0; mesh_idx < fms.meshes.size(); mesh_idx++) {
         const auto& src_mesh = fms.meshes[mesh_idx];
         model_t model{};
-        model.first_index = (uint32_t)index_data.size();
-        model.index_count = (uint32_t)src_mesh.indices.size();
-        uint32_t first_vertex = (uint32_t)vertex_data.size();
+        model.first_index = (std::uint32_t)index_data.size();
+        model.index_count = (std::uint32_t)src_mesh.indices.size();
+        std::uint32_t first_vertex = (std::uint32_t)vertex_data.size();
         for (const auto& v : src_mesh.vertices) {
           vertex_t out{};
           out.position = v.position;
@@ -842,7 +842,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
           out.texcoord = v.uv;
           vertex_data.push_back(out);
         }
-        for (uint32_t idx : src_mesh.indices) {
+        for (std::uint32_t idx : src_mesh.indices) {
           index_data.push_back(idx + first_vertex);
         }
         material_info_t mat;
@@ -855,7 +855,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
           }
           mat.base_color = fan::vec3(c.x, c.y, c.z);
         }
-        auto load_rt_texture = [&](const std::string& name) -> int32_t {
+        auto load_rt_texture = [&](const std::string& name) -> std::int32_t {
           if (name.empty()) return -1;
           auto it = fan::model::cached_texture_data.find(name);
           if (it == fan::model::cached_texture_data.end()) return -1;
@@ -873,12 +873,12 @@ export namespace fan::graphics::vulkan::ray_tracing {
           di.imageView   = img.image_view;
           di.sampler     = img.sampler;
           rt_texture_infos.push_back(di);
-          return (int32_t)rt_texture_infos.size() - 1;
+          return (std::int32_t)rt_texture_infos.size() - 1;
         };
         {
           const std::string& tn = src_mesh.texture_names[fan::texture_type::diffuse];
           if (!tn.empty()) {
-            int32_t slot = load_rt_texture(tn);
+            std::int32_t slot = load_rt_texture(tn);
             if (slot >= 0) {
               mat.albedo_texture_id = slot;
             }
@@ -887,7 +887,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
         {
           const std::string& tn = src_mesh.texture_names[fan::texture_type::normals];
           if (!tn.empty()) {
-            int32_t slot = load_rt_texture(tn);
+            std::int32_t slot = load_rt_texture(tn);
             if (slot >= 0) {
               mat.normal_texture_id = slot;
             }
@@ -896,7 +896,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
         {
           const std::string& tn = src_mesh.texture_names[fan::texture_type::metalness];
           if (!tn.empty()) {
-            int32_t slot = load_rt_texture(tn);
+            std::int32_t slot = load_rt_texture(tn);
             if (slot >= 0) {
               mat.metallic_texture_id = slot;
             }
@@ -905,29 +905,29 @@ export namespace fan::graphics::vulkan::ray_tracing {
         {
           const std::string& tn = src_mesh.texture_names[fan::texture_type::diffuse_roughness];
           if (!tn.empty()) {
-            int32_t slot = load_rt_texture(tn);
+            std::int32_t slot = load_rt_texture(tn);
             if (slot >= 0) {
               mat.roughness_texture_id = slot;
             }
           }
         }
-        model.material_index = (uint32_t)materials.size();
+        model.material_index = (std::uint32_t)materials.size();
         materials.push_back(mat);
-        uint32_t mesh_first_index   = model.first_index;
-        uint32_t mesh_index_count   = model.index_count;
-        uint32_t mesh_primitive_cnt = mesh_index_count / 3;
+        std::uint32_t mesh_first_index   = model.first_index;
+        std::uint32_t mesh_index_count   = model.index_count;
+        std::uint32_t mesh_primitive_cnt = mesh_index_count / 3;
         model.first_primitive       = mesh_first_index / 3;
-        uint32_t needed_prim = model.first_primitive + mesh_primitive_cnt;
+        std::uint32_t needed_prim = model.first_primitive + mesh_primitive_cnt;
         if (material_indices_per_primitive.size() < needed_prim) {
           material_indices_per_primitive.resize(needed_prim);
         }
-        for (uint32_t p = 0; p < mesh_primitive_cnt; ++p) {
+        for (std::uint32_t p = 0; p < mesh_primitive_cnt; ++p) {
           material_indices_per_primitive[model.first_primitive + p] = model.material_index;
         }
         models.push_back(model);
       }
     }
-    void add_instance(uint32_t model_index, const fan::mat4& transform) {
+    void add_instance(std::uint32_t model_index, const fan::mat4& transform) {
       instance_t inst{};
       inst.model_index = model_index;
       inst.transform = transform;
@@ -935,10 +935,10 @@ export namespace fan::graphics::vulkan::ray_tracing {
     }
     void add_model(const std::string& path, const fan::mat4& transform) {
       fan::model::fms_t fms({ .path = path });
-      uint32_t first_model = (uint32_t)models.size();
+      std::uint32_t first_model = (std::uint32_t)models.size();
       load_model_from_fms(fms);
-      uint32_t last_model  = (uint32_t)models.size();
-      for (uint32_t i = first_model; i < last_model; ++i) {
+      std::uint32_t last_model  = (std::uint32_t)models.size();
+      for (std::uint32_t i = first_model; i < last_model; ++i) {
         instance_t inst{};
         inst.model_index = i;
         inst.transform   = transform;
@@ -1012,10 +1012,10 @@ export namespace fan::graphics::vulkan::ray_tracing {
       create_index_buffer();
       create_material_buffer();
       create_material_index_buffer();
-      for (uint32_t i = 0; i < models.size(); i++) {
+      for (std::uint32_t i = 0; i < models.size(); i++) {
         create_blas_for_model(i);
       }
-      for (size_t i = 0; i < materials.size(); i++) {
+      for (std::size_t i = 0; i < materials.size(); i++) {
         const auto& m = materials[i];
         fan::print("material", i,
           "albedo_texture_id", m.albedo_texture_id,
@@ -1174,11 +1174,11 @@ export namespace fan::graphics::vulkan::ray_tracing {
         accum_pipeline_layout,
         VK_SHADER_STAGE_COMPUTE_BIT,
         0,
-        sizeof(uint32_t),
+        sizeof(std::uint32_t),
         &frame_index
       );
-      uint32_t gx = (size.x + 7) / 8;
-      uint32_t gy = (size.y + 7) / 8;
+      std::uint32_t gx = (size.x + 7) / 8;
+      std::uint32_t gy = (size.y + 7) / 8;
       vkCmdDispatch(cmd, gx, gy, 1);
       {
         VkImageMemoryBarrier acc_to_sample{};
@@ -1325,7 +1325,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       VkPushConstantRange pcr{};
       pcr.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
       pcr.offset = 0;
-      pcr.size = sizeof(uint32_t);
+      pcr.size = sizeof(std::uint32_t);
       VkPipelineLayoutCreateInfo pl_info{};
       pl_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
       pl_info.setLayoutCount = 1;
@@ -1493,9 +1493,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
       writes[1].pBufferInfo     = &lum_info;
       vkUpdateDescriptorSets(ctx->device, 2, writes, 0, nullptr);
     }
-    void create_luminance_buffer(uint32_t width, uint32_t height) {
-      uint32_t groupsX = (width  + 15) / 16;
-      uint32_t groupsY = (height + 15) / 16;
+    void create_luminance_buffer(std::uint32_t width, std::uint32_t height) {
+      std::uint32_t groupsX = (width  + 15) / 16;
+      std::uint32_t groupsY = (height + 15) / 16;
       luminance_group_count = groupsX * groupsY;
       VkDeviceSize size = sizeof(float) * luminance_group_count;
       ctx->create_buffer(
@@ -1507,10 +1507,10 @@ export namespace fan::graphics::vulkan::ray_tracing {
       );
     }
     void dispatch_luminance_compute(VkCommandBuffer cmd, VkDescriptorSet luminance_set,
-      uint32_t width, uint32_t height) 
+      std::uint32_t width, std::uint32_t height) 
     {
-      uint32_t groupsX = (width  + 15) / 16;
-      uint32_t groupsY = (height + 15) / 16;
+      std::uint32_t groupsX = (width  + 15) / 16;
+      std::uint32_t groupsY = (height + 15) / 16;
       vkCmdFillBuffer(cmd, luminance_buffer, 0, sizeof(float) * luminance_group_count, 0);
       VkBufferMemoryBarrier clearBarrier{};
       clearBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
@@ -1617,8 +1617,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
       fan::vec3 color; f32_t pad3;
     };
   #pragma pack(pop)
-    static constexpr uint32_t instance_count = 1;
-    static constexpr uint32_t max_textures = 512;
+    static constexpr std::uint32_t instance_count = 1;
+    static constexpr std::uint32_t max_textures = 512;
     fan::vulkan::context_t* ctx = nullptr;
     fan::vec2ui size{};
     std::vector<acceleration_structure_t> blas_list;
@@ -1633,13 +1633,13 @@ export namespace fan::graphics::vulkan::ray_tracing {
     VkDeviceMemory sbt_memory = VK_NULL_HANDLE;
     VkBuffer sbt_staging = VK_NULL_HANDLE;
     VkDeviceMemory sbt_staging_memory = VK_NULL_HANDLE;
-    uint32_t rgen_offset = 0;
-    uint32_t miss_offset = 0;
-    uint32_t hit_offset = 0;
-    uint32_t shadow_miss_offset = 0;
-    uint32_t shadow_hit_offset = 0;
-    uint32_t handle_size_aligned = 0;
-    uint32_t group_stride = 0;
+    std::uint32_t rgen_offset = 0;
+    std::uint32_t miss_offset = 0;
+    std::uint32_t hit_offset = 0;
+    std::uint32_t shadow_miss_offset = 0;
+    std::uint32_t shadow_hit_offset = 0;
+    std::uint32_t handle_size_aligned = 0;
+    std::uint32_t group_stride = 0;
     fan::graphics::image_t accum_image;
     VkImageLayout accum_layout = VK_IMAGE_LAYOUT_UNDEFINED;
     VkPipeline accum_pipeline = VK_NULL_HANDLE;
@@ -1647,7 +1647,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     VkDescriptorSetLayout accum_descriptor_layout = VK_NULL_HANDLE;
     VkDescriptorPool accum_descriptor_pool = VK_NULL_HANDLE;
     VkDescriptorSet accum_descriptor_set = VK_NULL_HANDLE;
-    uint32_t frame_index = 0;
+    std::uint32_t frame_index = 0;
     fan::graphics::image_t output_image;
     VkImageLayout current_layout = VK_IMAGE_LAYOUT_UNDEFINED;
     VkBuffer camera_buffer = VK_NULL_HANDLE;
@@ -1656,7 +1656,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     VkDeviceMemory time_memory = VK_NULL_HANDLE;
     VkBuffer tlas_instance_buffer = VK_NULL_HANDLE;
     VkDeviceMemory tlas_instance_memory = VK_NULL_HANDLE;
-    uint32_t tlas_instance_count = 0;
+    std::uint32_t tlas_instance_count = 0;
     VkBuffer tlas_scratch_buffer = VK_NULL_HANDLE;
     VkDeviceMemory tlas_scratch_memory = VK_NULL_HANDLE;
     VkBuffer vertex_buffer = VK_NULL_HANDLE;
@@ -1667,20 +1667,20 @@ export namespace fan::graphics::vulkan::ray_tracing {
     VkDeviceMemory material_memory = VK_NULL_HANDLE;
     std::vector<material_info_t> materials;
     std::vector<vertex_t> vertex_data;
-    std::vector<uint32_t> index_data;
+    std::vector<std::uint32_t> index_data;
     std::vector<fan::graphics::image_nr_t> texture_ids;
     std::vector<VkDescriptorImageInfo> rt_texture_infos;
     VkBuffer material_index_buffer = VK_NULL_HANDLE;
     VkDeviceMemory material_index_memory = VK_NULL_HANDLE;
-    std::vector<uint32_t> material_indices_per_primitive;
-    size_t current_material_index = 0;
-    uint32_t vertex_offset = 0;
+    std::vector<std::uint32_t> material_indices_per_primitive;
+    std::size_t current_material_index = 0;
+    std::uint32_t vertex_offset = 0;
     f32_t exposure = 1.f;
     f32_t target_exposure = 1.f;
     f32_t adaptation_speed = 4.f;
     VkBuffer luminance_buffer;
     VkDeviceMemory luminance_memory;
-    uint32_t luminance_group_count;
+    std::uint32_t luminance_group_count;
     VkBuffer exposure_ubo;
     VkDeviceMemory exposure_ubo_memory;
     VkDescriptorSetLayout luminance_descriptor_layout = VK_NULL_HANDLE;

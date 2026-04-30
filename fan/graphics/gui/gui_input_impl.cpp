@@ -48,8 +48,8 @@ namespace fan::graphics::gui::input {
   f32_t scroll() {
     return gui::get_io().MouseWheel;
   }
-  bool number(uint32_t& out_number) {
-    for (uint32_t i = 0; i < 9; ++i) {
+  bool number(std::uint32_t& out_number) {
+    for (std::uint32_t i = 0; i < 9; ++i) {
       if (gui::is_key_clicked((gui::key_t)fan::window::input::to_imgui_key(fan::key_1 + i), false)) {
         out_number = i;
         return true;
