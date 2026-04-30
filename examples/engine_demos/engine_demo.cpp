@@ -572,15 +572,6 @@ void main() {
     fan::vec2 dst = mirror_data.user_ray.get_dst();
     mirror_data.user_ray.set_line(src, dst);
 
-    if (fan::window::is_mouse_down(fan::mouse_right) && engine_demo->mouse_inside_demo_view) {
-      mirror_data.user_ray.set_line(get_mouse_position(engine_demo->right_column_view), dst);
-      mirror_data.user_ray_tips[0].set_position(mirror_data.user_ray.get_src());
-    }
-    if (fan::window::is_mouse_down() && engine_demo->mouse_inside_demo_view) {
-      mirror_data.user_ray.set_line(src, get_mouse_position(engine_demo->right_column_view));
-      mirror_data.user_ray_tips[1].set_position(mirror_data.user_ray.get_dst());
-    }
-
     for (auto [i, d] : fan::enumerate(mirror_data.ray_hit_point)) {
       d.set_position(fan::vec3(-99999));
       mirror_data.rays[i].set_line(fan::vec3(-99999), fan::vec3(-99999));
@@ -615,6 +606,16 @@ void main() {
     if (fan::graphics::gui::input_int("Max reflections", &engine_demo->demo_physics_mirrors_data->reflect_depth)) {
       engine_demo->demo_physics_mirrors_data->reflect_depth = std::max(0, engine_demo->demo_physics_mirrors_data->reflect_depth);
       on_reflect_depth_resize(engine_demo);
+    }
+    if (!fan::graphics::gui::is_item_active()) {
+      if (fan::window::is_mouse_down(fan::mouse_right) && engine_demo->mouse_inside_demo_view) {
+        mirror_data.user_ray.set_line(get_mouse_position(engine_demo->right_column_view), dst);
+        mirror_data.user_ray_tips[0].set_position(mirror_data.user_ray.get_src());
+      }
+      if (fan::window::is_mouse_down() && engine_demo->mouse_inside_demo_view) {
+        mirror_data.user_ray.set_line(src, get_mouse_position(engine_demo->right_column_view));
+        mirror_data.user_ray_tips[1].set_position(mirror_data.user_ray.get_dst());
+      }
     }
   }
   static void demo_physics_cleanup_mirrors(engine_demo_t* engine_demo) {
