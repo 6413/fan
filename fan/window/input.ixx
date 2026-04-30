@@ -666,7 +666,7 @@ export namespace fan {
       case 5: return "Right Trigger";
       default: {
         static char buffer[32];
-        snprintf(buffer, sizeof(buffer), "Axis %d", axis);
+        std::snprintf(buffer, sizeof(buffer), "Axis %d", axis);
         return buffer;
       }
     }
