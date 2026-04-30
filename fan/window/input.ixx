@@ -1,5 +1,12 @@
 module;
 
+#include <fan/utility.h>
+
+#if defined(fan_compiler_gcc)
+  // fixes collision with GLFW3 headers while doing import std;
+  #define _GCC_MAX_ALIGN_T
+#endif
+
 #ifdef fan_platform_windows
   #define NOMINMAX
   #define WIN32_LEAN_AND_MEAN
