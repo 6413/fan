@@ -37,9 +37,11 @@ namespace fan::opengl {
       return;
     }
     init = 0;
+  #if !defined(__wasm__)
     if (!gladLoadGL((GLADloadfunc)glfwGetProcAddress)) {
       fan::throw_error("glad init error");
     }
+  #endif
   }
 
   void context_t::print_version() {
@@ -173,13 +175,17 @@ namespace fan::opengl {
     if (type == 33361 || type == 33360) {
       return;
     }
+  #if !defined(__wasm__)
     fan::print_no_space(type == GL_DEBUG_TYPE_ERROR ? "opengl error:" : "", type, ", severity:", severity, ", message:", message);
+  #endif
     fan::debug::print_stacktrace();
   }
 
   void context_t::set_error_callback() {
+  #if !defined(__wasm__)
     fan_opengl_call(glEnable(GL_DEBUG_OUTPUT));
     fan_opengl_call(glDebugMessageCallback(message_callback, (void*)0));
+  #endif
   }
 
   void context_t::set_current(fan::window_t* window) {
@@ -798,6 +804,10 @@ namespace fan::opengl {
     image_reload(nr, path, fan::opengl::context_t::image_load_properties_t());
   }
   std::vector<uint8_t> context_t::image_get_pixel_data(fan::graphics::image_nr_t nr, GLenum format, fan::vec2 uvp, fan::vec2 uvs) {
+#if defined(__wasm__)
+    fan::print("glGetTexImage is not supported in WebGL. Use a Framebuffer + glReadPixels instead.");
+    return {}; 
+#else
     auto& image = image_get(nr);
     image_bind(nr);
     auto& image_data = __fan_internal_image_list[nr];
@@ -820,6 +830,7 @@ namespace fan::opengl {
     }
     
     return result_data;
+#endif
   }
   fan::graphics::image_nr_t context_t::image_create(const fan::color& color, const fan::opengl::context_t::image_load_properties_t& p) {
 
@@ -966,19 +977,28 @@ namespace fan::opengl {
   }
 
   uint32_t context_t::global_to_opengl_format(uintptr_t format) {
+  #if defined(__wasm__)
+    // WebGL/GLES does not support BGRA or BGR natively
+    if (format == fan::graphics::image_format_e::b8g8r8a8_unorm) return GL_RGBA;
+    if (format == fan::graphics::image_format_e::bgr_unorm) return GL_RGB;
+  #else
     if (format == fan::graphics::image_format_e::b8g8r8a8_unorm) return GL_BGRA;
+    if (format == fan::graphics::image_format_e::bgr_unorm) return GL_BGR;
+  #endif
+
     if (format == fan::graphics::image_format_e::r8b8g8a8_unorm) return GL_RGBA;
     if (format == fan::graphics::image_format_e::r8_unorm) return GL_RED;
     if (format == fan::graphics::image_format_e::rg8_unorm) return GL_RG;
     if (format == fan::graphics::image_format_e::rgb_unorm) return GL_RGB;
     if (format == fan::graphics::image_format_e::rgba_unorm) return GL_RGBA;
-    if (format == fan::graphics::image_format_e::bgr_unorm) return GL_BGR;
     if (format == fan::graphics::image_format_e::r8_uint) return GL_RED_INTEGER;
     if (format == fan::graphics::image_format_e::r8g8b8a8_srgb) return GL_SRGB8_ALPHA8;
     if (format == fan::graphics::image_format_e::r11f_g11f_b10f) return GL_R11F_G11F_B10F;
+
   #if FAN_DEBUG >= fan_debug_high
     fan::throw_error("invalid format");
   #endif
+
     return GL_RGBA;
   }
 
@@ -996,11 +1016,20 @@ namespace fan::opengl {
     if (mode == fan::graphics::image_sampler_address_mode_e::repeat) return GL_REPEAT;
     if (mode == fan::graphics::image_sampler_address_mode_e::mirrored_repeat) return GL_MIRRORED_REPEAT;
     if (mode == fan::graphics::image_sampler_address_mode_e::clamp_to_edge) return GL_CLAMP_TO_EDGE;
+
+  #if defined(__wasm__)
+    // Fallback for modes not supported in standard WebGL 2 / GLES 3.0
+    if (mode == fan::graphics::image_sampler_address_mode_e::clamp_to_border) return GL_CLAMP_TO_EDGE;
+    if (mode == fan::graphics::image_sampler_address_mode_e::mirrored_clamp_to_edge) return GL_CLAMP_TO_EDGE;
+  #else
     if (mode == fan::graphics::image_sampler_address_mode_e::clamp_to_border) return GL_CLAMP_TO_BORDER;
     if (mode == fan::graphics::image_sampler_address_mode_e::mirrored_clamp_to_edge) return GL_MIRROR_CLAMP_TO_EDGE;
+  #endif
+
   #if FAN_DEBUG >= fan_debug_high
     fan::throw_error("invalid format");
   #endif
+
     return GL_REPEAT;
   }
 
@@ -1022,15 +1051,18 @@ namespace fan::opengl {
   }
 
   uint32_t context_t::opengl_to_global_format(uintptr_t format) {
+  #if !defined(__wasm__)
     if (format == GL_BGRA) return fan::graphics::image_format_e::b8g8r8a8_unorm;
+    if (format == GL_BGR) return fan::graphics::image_format_e::bgr_unorm;
+  #endif
     if (format == GL_RGBA) return fan::graphics::image_format_e::r8b8g8a8_unorm;
     if (format == GL_RED) return fan::graphics::image_format_e::r8_unorm;
     if (format == GL_RG) return fan::graphics::image_format_e::rg8_unorm;
     if (format == GL_RGB) return fan::graphics::image_format_e::rgb_unorm;
-    if (format == GL_BGR) return fan::graphics::image_format_e::bgr_unorm;
     if (format == GL_RED_INTEGER) return fan::graphics::image_format_e::r8_uint;
     if (format == GL_SRGB8_ALPHA8) return fan::graphics::image_format_e::r8g8b8a8_srgb;
     if (format == GL_R11F_G11F_B10F) return fan::graphics::image_format_e::r11f_g11f_b10f;
+
   #if FAN_DEBUG >= fan_debug_high
     fan::throw_error("invalid format");
   #endif
@@ -1041,6 +1073,7 @@ namespace fan::opengl {
     if (type == GL_UNSIGNED_BYTE) return fan::graphics::fan_unsigned_byte;
     if (type == GL_UNSIGNED_INT) return fan::graphics::fan_unsigned_int;
     if (type == GL_FLOAT) return fan::graphics::fan_float;
+
   #if FAN_DEBUG >= fan_debug_high
     fan::throw_error("invalid format");
   #endif
@@ -1051,8 +1084,12 @@ namespace fan::opengl {
     if (mode == GL_REPEAT) return fan::graphics::image_sampler_address_mode_e::repeat;
     if (mode == GL_MIRRORED_REPEAT) return fan::graphics::image_sampler_address_mode_e::mirrored_repeat;
     if (mode == GL_CLAMP_TO_EDGE) return fan::graphics::image_sampler_address_mode_e::clamp_to_edge;
+
+  #if !defined(__wasm__)
     if (mode == GL_CLAMP_TO_BORDER) return fan::graphics::image_sampler_address_mode_e::clamp_to_border;
     if (mode == GL_MIRROR_CLAMP_TO_EDGE) return fan::graphics::image_sampler_address_mode_e::mirrored_clamp_to_edge;
+  #endif
+
   #if FAN_DEBUG >= fan_debug_high
     fan::throw_error("invalid format");
   #endif
@@ -1060,13 +1097,13 @@ namespace fan::opengl {
   }
 
   uint32_t context_t::opengl_to_global_filter(uintptr_t filter) {
-    using namespace fan::graphics;
     if (filter == GL_NEAREST) return fan::graphics::image_filter_e::nearest;
     if (filter == GL_LINEAR) return fan::graphics::image_filter_e::linear;
     if (filter == GL_NEAREST_MIPMAP_NEAREST) return fan::graphics::image_filter_e::nearest_mipmap_nearest;
     if (filter == GL_LINEAR_MIPMAP_NEAREST) return fan::graphics::image_filter_e::linear_mipmap_nearest;
     if (filter == GL_NEAREST_MIPMAP_LINEAR) return fan::graphics::image_filter_e::nearest_mipmap_linear;
     if (filter == GL_LINEAR_MIPMAP_LINEAR) return fan::graphics::image_filter_e::linear_mipmap_linear;
+
   #if FAN_DEBUG >= fan_debug_high
     fan::throw_error("Invalid OpenGL filter value.");
   #endif
@@ -1140,8 +1177,12 @@ namespace fan::opengl::core {
   }
 
   void get_glbuffer(fan::opengl::context_t& context, void* data, GLuint buffer_id, uintptr_t size, uintptr_t offset, GLenum target) {
+  #if defined(__wasm__)
+    fan::throw_error("unsupported func.");
+  #else
     fan_opengl_call(glBindBuffer(target, buffer_id));
     fan_opengl_call(glGetBufferSubData(target, offset, size, data));
+  #endif
   }
 
   void edit_glbuffer(fan::opengl::context_t& context, GLuint buffer, const void* data, uintptr_t offset, uintptr_t size, uintptr_t target) {
@@ -1157,9 +1198,14 @@ namespace fan::opengl::core {
   }
 
   int get_bound_buffer(fan::opengl::context_t& context) {
+  #if defined(__wasm__)
+    fan::throw_error("unsupported func.");
+    return -1;
+  #else
     int buffer_id;
     fan_opengl_call(glGetIntegerv(GL_VERTEX_BINDING_BUFFER, &buffer_id));
     return buffer_id;
+  #endif
   }
 
    void reserve_glbuffer(
@@ -1337,6 +1383,7 @@ namespace fan::opengl::core {
       return fan::opengl::context_t::primitive_topology_t::triangle_strip;
     case fan::graphics::primitive_topology_t::triangle_fan:
       return fan::opengl::context_t::primitive_topology_t::triangle_fan;
+#if !defined(__wasm__)
     case fan::graphics::primitive_topology_t::lines_with_adjacency:
       return fan::opengl::context_t::primitive_topology_t::lines_with_adjacency;
     case fan::graphics::primitive_topology_t::line_strip_with_adjacency:
@@ -1345,6 +1392,7 @@ namespace fan::opengl::core {
       return fan::opengl::context_t::primitive_topology_t::triangles_with_adjacency;
     case fan::graphics::primitive_topology_t::triangle_strip_with_adjacency:
       return fan::opengl::context_t::primitive_topology_t::triangle_strip_with_adjacency;
+#endif
     default:
       fan::throw_error("invalid draw mode");
       return -1;
@@ -1530,6 +1578,10 @@ namespace fan::graphics {
       return ((fan::opengl::context_t*)context)->image_get_pixel_data(nr, format, uvp, uvs);
     };
     cf.image_read_pixels = [](void* context, fan::graphics::image_nr_t nr, fan::vec2 uv_pos, fan::vec2 uv_size) {
+    #if defined(__wasm__)
+      fan::throw_error("unsupported func.");
+      return std::vector<uint8_t>{};
+    #else
       auto& gl = *(fan::opengl::context_t*)context;
       auto size = fan::graphics::image_get_data(nr).size;
       auto img_settings = gl.image_get_settings(nr);
@@ -1550,6 +1602,7 @@ namespace fan::graphics {
           pw * channels);
       }
       return out;
+    #endif
     };
     cf.image_get_pixel_data = [](void* context, fan::graphics::image_nr_t nr, uint32_t format, fan::vec2 uvp, fan::vec2 uvs) {
       return ((fan::opengl::context_t*)context)->image_get_pixel_data(nr,

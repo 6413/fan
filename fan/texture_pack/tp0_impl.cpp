@@ -1,13 +1,13 @@
 module;
 
 #if defined(FAN_OPENGL)
-  #include <fan/utility.h>
   #include <vector>
   #include <unordered_map>
   #include <cstring>
   #include <memory>
   #include <string>
   #include <source_location>
+  #include <fan/utility.h>
 #endif
 
 module fan.texture_pack.tp0;

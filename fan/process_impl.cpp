@@ -1,5 +1,4 @@
 module;
-#include <fan/utility.h>
 #include <uv.h>
 #include <string>
 #include <string_view>
@@ -10,6 +9,12 @@ module;
 #include <expected>
 #include <unordered_map>
 #include <atomic>
+
+#include <fan/utility.h>
+
+#if defined(fan_platform_unix) || defined(__wasm__)
+  #include <unistd.h>
+#endif
 
 #define DEBUG_PRINTS 0
 

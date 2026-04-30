@@ -298,7 +298,13 @@ enum name { __VA_ARGS__ }
 static constexpr const char* name##_strings[] = {__FAN__FOREACH_NS(__FAN_PRINT_EACH, __VA_ARGS__)}; \
 enum class name { __VA_ARGS__ }
 
-#if __cplusplus >= 202004L && defined(fan_compiler_msvc) && !defined(fan_compiler_clang) && __has_include("stacktrace") // wsl
+#if defined(__EMSCRIPTEN__)
+	#ifndef FAN_WASM
+		#define FAN_WASM
+	#endif
+#endif
+
+#if __cplusplus >= 202004L && defined(fan_compiler_msvc) && !defined(fan_compiler_clang) && __has_include("stacktrace") && !defined(FAN_WASM) // wsl
 	#define fan_std23
 #endif
 

@@ -1,10 +1,10 @@
 module;
 
-#include <fan/utility.h>
 #include <cstdint>
 #include <string>
 #include <vector>
 #include <functional>
+#include <fan/utility.h>
 
 export module fan.console;
 

@@ -1,7 +1,7 @@
 module;
 
-#include <fan/utility.h>
 #include <cstdint>
+#include <fan/utility.h>
 
 export module fan.time;
 

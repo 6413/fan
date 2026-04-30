@@ -313,30 +313,6 @@ export namespace fan::opengl {
       GLuint texture_id;
     };
 
-    struct image_format {
-      static constexpr auto b8g8r8a8_unorm = GL_BGRA;
-      static constexpr auto bgr_unorm = GL_BGR;
-      static constexpr auto r8_unorm = GL_RED;
-      static constexpr auto rg8_unorm = GL_RG;
-    };
-
-    struct image_sampler_address_mode {
-      static constexpr auto repeat = GL_REPEAT;
-      static constexpr auto mirrored_repeat = GL_MIRRORED_REPEAT;
-      static constexpr auto clamp_to_edge = GL_CLAMP_TO_EDGE;
-      static constexpr auto clamp_to_border = GL_CLAMP_TO_BORDER;
-      static constexpr auto mirrored_clamp_to_edge = GL_MIRROR_CLAMP_TO_EDGE;
-    };
-
-    struct image_filter {
-      static constexpr auto nearest = GL_NEAREST;
-      static constexpr auto linear = GL_LINEAR;
-      static constexpr auto nearest_mipmap_nearest = GL_NEAREST_MIPMAP_NEAREST;
-      static constexpr auto linear_mipmap_nearest = GL_LINEAR_MIPMAP_NEAREST;
-      static constexpr auto nearest_mipmap_linear = GL_NEAREST_MIPMAP_LINEAR;
-      static constexpr auto linear_mipmap_linear = GL_LINEAR_MIPMAP_LINEAR;
-    };
-
     struct image_load_properties_defaults {
       static constexpr uint32_t visual_output = GL_REPEAT;
       static constexpr uint32_t internal_format = GL_RGBA;
@@ -398,10 +374,12 @@ export namespace fan::opengl {
       static constexpr uint32_t triangles = GL_TRIANGLES;
       static constexpr uint32_t triangle_strip = GL_TRIANGLE_STRIP;
       static constexpr uint32_t triangle_fan = GL_TRIANGLE_FAN;
+    #if !defined(__wasm__)
       static constexpr uint32_t lines_with_adjacency = GL_LINES_ADJACENCY;
       static constexpr uint32_t line_strip_with_adjacency = GL_LINE_STRIP_ADJACENCY;
       static constexpr uint32_t triangles_with_adjacency = GL_TRIANGLES_ADJACENCY;
       static constexpr uint32_t triangle_strip_with_adjacency = GL_TRIANGLE_STRIP_ADJACENCY;
+    #endif
     };
 
 

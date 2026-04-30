@@ -1,7 +1,5 @@
 module;
 
-#include <fan/utility.h>
-
 //std::format doesnt exist for clang in linux without libc++
 
 
@@ -20,6 +18,8 @@ module;
 #include <string_view>
 // std::quoted
 #include <iomanip>
+
+#include <fan/utility.h>
 
 export module fan.fmt;
 

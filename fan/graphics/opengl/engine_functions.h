@@ -944,7 +944,12 @@ void begin_process_frame() {
       uint32_t attachment =
         (uint32_t)std::size(loco.gl->color_buffers) - 1 - i;
 
+    #if defined(__wasm)
+      GLenum buffers[] = {(GLenum)(GL_COLOR_ATTACHMENT0 + attachment)};
+      fan_opengl_call(glDrawBuffers(1, buffers));
+    #else
       fan_opengl_call(glDrawBuffer(GL_COLOR_ATTACHMENT0 + attachment));
+    #endif
 
       fan_opengl_call(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
     }

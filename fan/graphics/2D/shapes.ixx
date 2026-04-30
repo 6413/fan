@@ -1,18 +1,14 @@
 module;
 
-#include <fan/utility.h>
-
 #if defined(FAN_2D)
-
-#include <span> 
-#include <source_location>
-#include <cstdlib>
-#include <utility>
-#include <vector>
-#include <functional>
-#include <memory>
-#include <cstring>
-
+  #include <span> 
+  #include <source_location>
+  #include <cstdlib>
+  #include <utility>
+  #include <vector>
+  #include <functional>
+  #include <memory>
+  #include <cstring>
 #endif
 
 #include <fan/graphics/opengl/init.h>
@@ -35,7 +31,6 @@ import fan.print.error;
 import fan.graphics.shapes.types;
 
 import fan.texture_pack.tp0;
-import fan.graphics.common_context;
 import fan.window;
 import fan.window.input;
 import fan.time;
@@ -51,10 +46,12 @@ import fan.types.fstring;
 #endif
 
 #if defined(FAN_OPENGL)
+  import fan.graphics.common_context;
   import fan.graphics.opengl.core;
 #endif
 
 #if defined(FAN_VULKAN)
+  import fan.graphics.common_context;
   import fan.graphics.vulkan.core;
 #endif
 

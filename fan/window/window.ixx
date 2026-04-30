@@ -1,5 +1,11 @@
 module;
 
+#include <cstdint>
+#include <functional>
+#include <cstdlib>
+#include <string>
+#include <type_traits>
+
 #include <fan/utility.h>
 
 #if defined(FAN_VULKAN)
@@ -16,12 +22,6 @@ module;
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
-
-#include <cstdint>
-#include <functional>
-#include <cstdlib>
-#include <string>
-#include <type_traits>
 
 export module fan.window;
 

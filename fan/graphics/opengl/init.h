@@ -1,12 +1,19 @@
 #pragma once
 
-#include <fan/utility.h>
-
-#include <glad/gl.h>
+#ifdef FAN_WASM
+  #include <emscripten.h>
+  #include <GLES3/gl3.h>
+  #include <GLES2/gl2ext.h>
+#else
+  #include <glad/gl.h>
+  #define FAN_USE_GLAD
+#endif
 
 #include <utility>
 #include <string>
 #include <functional>
+
+#include <fan/utility.h>
 
 inline int& fan_track_opengl_calls() {
   static int track = 0;

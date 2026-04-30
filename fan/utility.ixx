@@ -1,9 +1,10 @@
 module;
 
-#include <fan/utility.h>
 #include <iterator>
 #include <functional> // raii_nr.h raii_nr_t
 #include <span>
+
+#include <fan/utility.h>
 
 namespace raii_build {
   #include <fan/types/raii_nr.h>

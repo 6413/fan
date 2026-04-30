@@ -188,7 +188,7 @@ export namespace fan {
         return false;
       }
 
-      f32_t t = t1 > 0 && t2 > 0 ? std::min(t1, t2) : std::max(t1, t2);
+      f32_t t = t1 > 0 && t2 > 0 ? fan::math::min(t1, t2) : fan::math::max(t1, t2);
       if (t < 0) {
         result = T(0);
         return false;

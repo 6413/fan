@@ -1,6 +1,5 @@
 module;
 
-#include <fan/utility.h>
 
 #include <vector>
 #include <string>
@@ -13,6 +12,8 @@ module;
 #if defined (FAN_OPENGL)
   #include <fan/graphics/opengl/init.h>
 #endif
+
+#include <fan/utility.h>
 
 module fan.graphics.common_context;
 

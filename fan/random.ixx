@@ -2,6 +2,7 @@ module;
 
 #include <cmath>
 #include <random>
+#include <cstdlib>
 
 export module fan.random;
 

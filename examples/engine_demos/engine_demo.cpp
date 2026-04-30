@@ -1,7 +1,5 @@
 // This file is meant to stay up-to-date. More library usage will be implemented and showcased over time
 
-#include <fan/utility.h> // OFFSETLESS
-
 #include <vector>
 #include <string>
 #include <array>////
@@ -12,6 +10,9 @@
 #include <cmath>
 #include <filesystem>
 #include <condition_variable>
+
+#include <fan/utility.h> // OFFSETLESS
+
 //
 import fan;
 //

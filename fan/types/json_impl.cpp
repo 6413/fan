@@ -1,9 +1,9 @@
 module;
-#include <fan/utility.h>
 #include <string>
 #include <string_view>
 #include <vector>
 #include <unordered_map>
+#include <fan/utility.h>
 #include <fan/types/json_impl.h>
 
 module fan.types.json;
