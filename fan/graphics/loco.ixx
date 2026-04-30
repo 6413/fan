@@ -4,8 +4,8 @@ module;
 
 #if defined(fan_compiler_gcc)
   #define _GCC_MAX_ALIGN_T
-  #define __MBSTATE_T_H
-  #define __pthread_mutex_t_defined
+  #define ____mbstate_t_defined
+  #define _BITS_PTHREADTYPES_COMMON_H
 #endif
 
 // loco framebuffer is recommended, you cant see sprites without it, 
