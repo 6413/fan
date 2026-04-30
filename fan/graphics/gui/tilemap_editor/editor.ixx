@@ -2,7 +2,6 @@ module;
 
 #if defined(FAN_2D)
 
-#include <fan/utility.h>
 #include <cstring>
 #include <functional>
 #include <map>
@@ -15,6 +14,8 @@ module;
 #include <fstream>
 #include <algorithm>
 #include <filesystem>
+
+#include <fan/utility.h>
 
 #endif
 

@@ -2,7 +2,6 @@ module;
 
 #if defined(FAN_GUI)
 
-#include <fan/utility.h>
 #include <deque>
 #include <string>
 #include <fstream>

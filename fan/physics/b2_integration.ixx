@@ -1,13 +1,14 @@
 module;
 
-#if defined(FAN_PHYSICS_2D)
-  #include <fan/utility.h>
-  #include <box2d/box2d.h>
-#endif
-
 #include <functional>
 #include <cstdlib>
 #include <unordered_set>
+
+#if defined(FAN_PHYSICS_2D)
+  #include <box2d/box2d.h>
+#endif
+
+#include <fan/utility.h>
 
 export module fan.physics.b2_integration;
 

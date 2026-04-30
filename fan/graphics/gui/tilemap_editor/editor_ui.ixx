@@ -1,10 +1,10 @@
 // fan.graphics.gui.tilemap_editor.ui.ixx
 module;
 #if defined(FAN_2D)
-#include <fan/utility.h>
 #include <string>
 #include <vector>
 #include <cstdint>
+#include <fan/utility.h>
 #endif
 export module fan.graphics.gui.tilemap_editor.ui;
 

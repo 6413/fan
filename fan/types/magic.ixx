@@ -3,11 +3,11 @@ module; // slow module to use
 //#define FAN_FMT
 
 #if defined(FAN_FMT)
-  #include <fan/utility.h>
   #include <tuple>
   #include <ostream>
   #include <string>
   #include <functional>
+  #include <fan/utility.h>
 #endif
 
 export module fan.types.magic;

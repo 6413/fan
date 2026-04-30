@@ -1,7 +1,5 @@
 module;
 
-#include <fan/utility.h>
-
 #include <cstdint>
 #include <vector>
 #include <coroutine>
@@ -11,6 +9,8 @@ module;
 #include <span>
 #include <string_view>
 #include <functional>
+
+#include <fan/utility.h>
 
 #define POSITION2_WINDOW_CENTER fan::vec2(fan::graphics::ctx().window->get_size() / 2)
 #define POSITION3_WINDOW_CENTER fan::vec3(POSITION2_WINDOW_CENTER, 0)

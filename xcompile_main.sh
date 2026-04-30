@@ -5,15 +5,13 @@ CYAN='\033[0;36m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
-
 set -e
-
 MODE=""
 REBUILD=false
 MAIN_FILE=""
 COMPILER="clang"
+WASM=false
 XMAKE_ARGS=()
-
 while [[ $# -gt 0 ]]; do
   case $1 in
     --debug)
@@ -44,6 +42,10 @@ while [[ $# -gt 0 ]]; do
       COMPILER="clang"
       shift
       ;;
+    --wasm)
+      WASM=true
+      shift
+      ;;
     *)
       XMAKE_ARGS+=("$1")
       shift
@@ -55,67 +57,72 @@ find_clang() {
   local min_version=20
   local best_bin=""
   local best_version=0
-
-  # Get all clang++ executables in PATH
   while IFS= read -r path; do
     bin=$(basename "$path")
-
     if [[ $bin =~ ^clang\+\+-([0-9]+)$ ]]; then
       ver="${BASH_REMATCH[1]}"
-
       if (( ver >= min_version && ver > best_version )); then
         best_version=$ver
         best_bin=$path
       fi
     fi
   done < <(command -v -a clang++ 2>/dev/null)
-
-  # Fallback: plain clang++
   if [[ -z "$best_bin" ]]; then
     if command -v clang++ >/dev/null 2>&1; then
       best_bin=$(command -v clang++)
     fi
   fi
-
   if [[ -z "$best_bin" ]]; then
     printf "\033[0;31mError: No suitable clang++ found (>= %d)\033[0m\n" "$min_version" >&2
     return 1
   fi
-
   echo "$best_bin"
 }
 
-if [[ "$COMPILER" == "gcc" ]]; then
-  CC="gcc-15"
-  CXX="g++-15"
-  TOOLCHAIN="gcc"
+if [[ "$WASM" == true ]]; then
+  # Verify emscripten is available
+  if ! command -v emcc &> /dev/null; then
+    echo -e "${RED}Error: emcc not found. Source your emsdk_env.sh first:${NC}"
+    echo "  source /path/to/emsdk/emsdk_env.sh"
+    exit 1
+  fi
+  EMSDK_ROOT=$(dirname $(dirname $(which emcc)))
+  CONFIG_ARGS=("-p" "wasm" "--sdk=${EMSDK_ROOT}/upstream/emscripten")
+  if [[ -n "$MAIN_FILE" ]]; then
+    CONFIG_ARGS+=("--main=$MAIN_FILE")
+  fi
+  if [[ -n "$MODE" ]]; then
+    CONFIG_ARGS+=("-m" "$MODE")
+  fi
+  echo -e "${CYAN}Wasm build using:${NC} $(emcc --version | head -1)"
 else
-  CXX=$(find_clang)
-  CC="${CXX/clang++/clang}"
-  TOOLCHAIN="clang"
-fi
-
-CONFIG_ARGS=("--compiler=$COMPILER" "--toolchain=$TOOLCHAIN" "--cc=$CC" "--cxx=$CXX")
-
-if [[ -n "$MAIN_FILE" ]]; then
-  CONFIG_ARGS+=("--main=$MAIN_FILE")
-fi
-
-if [[ -n "$MODE" ]]; then
-  CONFIG_ARGS+=("-m" "$MODE")
+  if [[ "$COMPILER" == "gcc" ]]; then
+    CC="gcc-15"
+    CXX="g++-15"
+    TOOLCHAIN="gcc"
+  else
+    CXX=$(find_clang)
+    CC="${CXX/clang++/clang}"
+    TOOLCHAIN="clang"
+  fi
+  CONFIG_ARGS=("--compiler=$COMPILER" "--toolchain=$TOOLCHAIN" "--cc=$CC" "--cxx=$CXX")
+  if [[ -n "$MAIN_FILE" ]]; then
+    CONFIG_ARGS+=("--main=$MAIN_FILE")
+  fi
+  if [[ -n "$MODE" ]]; then
+    CONFIG_ARGS+=("-m" "$MODE")
+  fi
 fi
 
 if [[ "$REBUILD" == true ]]; then
   echo -e "${BLUE}[1/3]${NC} Cleaning build directory..."
   rm -rf build .xmake
-
   echo ""
   echo -e "${BLUE}[2/3]${NC} Configuring..."
   if ! xmake f -c "${CONFIG_ARGS[@]}" "${XMAKE_ARGS[@]}"; then
     echo -e "${RED}✗ XMake configuration failed!${NC}"
     exit 1
   fi
-
   echo ""
   echo -e "${BLUE}[3/3]${NC} Building..."
 else
@@ -126,23 +133,43 @@ else
   fi
 fi
 
-echo -e "${CYAN}Compiler:${NC} $($CXX --version | head -1)"
+if [[ "$WASM" == false ]]; then
+  echo -e "${CYAN}Compiler:${NC} $($CXX --version | head -1)"
+fi
+
 if ! xmake -j$(nproc) "${XMAKE_ARGS[@]}"; then
   echo -e "${RED}✗ XMake build failed!${NC}"
   exit 1
 fi
 
-target_name=$(grep -E 'target\("([^"]+\.exe)"' xmake.lua | sed -E 's/target\("([^"]+\.exe)".*/\1/' | head -n1)
-if [ -z "$target_name" ]; then
-  echo -e "${RED}Error:${NC} Could not find target name ending with .exe in xmake.lua"
-  exit 1
+if [[ "$WASM" == true ]]; then
+  # Find the .html output
+  html_path=$(find build -type f -name "*.html" | head -n1)
+  if [ -z "$html_path" ]; then
+    echo -e "${RED}Error:${NC} Built .html not found in build/"
+    exit 1
+  fi
+  # Copy html + wasm + js together
+  base=$(basename "$html_path" .html)
+  dir=$(dirname "$html_path")
+  for ext in html wasm js; do
+    f="$dir/$base.$ext"
+    if [ -f "$f" ]; then
+      cp "$f" .
+      echo -e "${GREEN}✓ Copied:${NC} $f → ./$base.$ext"
+    fi
+  done
+else
+  target_name=$(grep -E 'target\("([^"]+\.exe)"' xmake.lua | sed -E 's/target\("([^"]+\.exe)".*/\1/' | head -n1)
+  if [ -z "$target_name" ]; then
+    echo -e "${RED}Error:${NC} Could not find target name ending with .exe in xmake.lua"
+    exit 1
+  fi
+  exe_path=$(find build -type f -name "${target_name}" | head -n1)
+  if [ -z "$exe_path" ]; then
+    echo -e "${RED}Error:${NC} Built executable for target '${target_name}' not found"
+    exit 1
+  fi
+  cp "$exe_path" .
+  echo -e "${GREEN}✓ Copied:${NC} ${exe_path} → ./$(basename "$exe_path")"
 fi
-
-exe_path=$(find build -type f -name "${target_name}" | head -n1)
-if [ -z "$exe_path" ]; then
-  echo -e "${RED}Error:${NC} Built executable for target '${target_name}' not found"
-  exit 1
-fi
-
-cp "$exe_path" .
-echo -e "${GREEN}✓ Copied:${NC} ${exe_path} → ./$(basename "$exe_path")"

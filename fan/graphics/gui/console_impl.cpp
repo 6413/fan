@@ -1,6 +1,5 @@
 module;
 
-#include <fan/utility.h>
 
 #if defined(FAN_GUI)
   #include <fan/imgui/text_editor.h>
@@ -13,6 +12,8 @@ module;
 #include <unordered_map>
 #include <vector>
 #include <string>
+
+#include <fan/utility.h>
 
 module fan.console;
 

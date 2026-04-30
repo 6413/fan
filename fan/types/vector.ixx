@@ -1,5 +1,11 @@
 module;
 
+#include <cstdint>
+#include <string>
+#include <cmath>
+#include <initializer_list>
+#include <algorithm>
+
 #include <fan/utility.h>
 
 #if defined(FAN_VULKAN)
@@ -18,12 +24,6 @@ module;
 #if defined(FAN_PHYSICS_2D)
   #include <box2d/math_functions.h>
 #endif
-
-#include <cstdint>
-#include <string>
-#include <cmath>
-#include <initializer_list>
-#include <algorithm>
 
 export module fan.types.vector;
 

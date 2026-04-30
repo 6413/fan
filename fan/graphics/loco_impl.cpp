@@ -4,10 +4,8 @@ module;
 // since light uses framebuffer _t01. you could use unlit_sprite, if required
 #define LOCO_FRAMEBUFFER
 
-#include <fan/utility.h>
 
 // TODO REMOVE
-#include <fan/graphics/opengl/init.h>
 #if defined(FAN_VULKAN)
   // TODO REMOVE
   #include <vulkan/vulkan.h>
@@ -29,12 +27,15 @@ module;
 #include <algorithm>
 #include <future>
 
-#if defined(fan_std23)
-  #include <stacktrace>
-#endif
 
 #if defined(FAN_GUI)
   #include <iomanip>
+#endif
+
+#include <fan/graphics/opengl/init.h>
+
+#if defined(fan_std23)
+  #include <stacktrace>
 #endif
 
 #include <fan/graphics/shape_macros.h>
@@ -1032,7 +1033,9 @@ static void loco_init_renderer_post_window(loco_t* l) {
     l->get_context().gl.set_error_callback();
 #endif
     if (l->window.get_antialiasing() > 0) {
+    #if !defined(__wasm__)
       glEnable(GL_MULTISAMPLE);
+    #endif
     }
     l->gl->initialize_fb_vaos();
   }
@@ -1344,7 +1347,9 @@ void loco_t::switch_renderer(uint8_t renderer) {
     #if defined(FAN_OPENGL)
       gl->initialize_fb_vaos();
       if (window.get_antialiasing() > 0) {
+      #if !defined(__wasm__)
         glEnable(GL_MULTISAMPLE);
+      #endif
       }
     #endif
     }
@@ -1623,6 +1628,7 @@ void loco_t::process_gui() {
 }
 
 void loco_t::get_vram_usage(int* total_mem_MB, int* used_MB) {
+#ifdef FAN_USE_GLAD
   if (GLAD_GL_NVX_gpu_memory_info) {
     glGetIntegerv(GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX, (GLint*)total_mem_MB);
 
@@ -1631,11 +1637,12 @@ void loco_t::get_vram_usage(int* total_mem_MB, int* used_MB) {
 
     *used_MB = (*total_mem_MB - currently_available_kb) / 1024.0;
     *total_mem_MB = *total_mem_MB / 1024.0;
+    return;
   }
-  else {
-    *total_mem_MB = -1;
-    *used_MB = -1;
-  }
+#else
+  *total_mem_MB = -1;
+  *used_MB = -1;
+#endif
 }
 
 void loco_t::time_monitor_t::update(f32_t v) {

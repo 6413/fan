@@ -1,7 +1,5 @@
 module;
 
-#include <fan/utility.h>
-
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -10,6 +8,8 @@ module;
 #include <functional>
 #include <vector>
 #include <algorithm>
+
+#include <fan/utility.h>
 
 export module fan.window.input_action;
 

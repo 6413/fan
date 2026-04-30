@@ -1,6 +1,5 @@
 module;
 
-#include <fan/utility.h>
 #include <cstdio>
 #include <fstream>
 #include <filesystem>
@@ -8,6 +7,7 @@ module;
 #include <vector>
 #include <string_view>
 #include <source_location>
+#include <fan/utility.h>
 
 #if defined(fan_platform_windows)
   #include <Windows.h>

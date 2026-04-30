@@ -2,11 +2,11 @@ module;
 
 #if defined(FAN_OPENGL)
 
-#include <fan/utility.h>
-
 #include <cstdint>
 #include <cstdlib>
 #include <functional>
+
+#include <fan/utility.h>
 
 #endif
 

@@ -1,11 +1,10 @@
 module;
 
-#include <fan/utility.h>
-
 #if defined(FAN_OPENGL)
   #include <cstdint>
   #include <string>
   #include <source_location>
+  #include <fan/utility.h>
 #endif
 
 export module fan.texture_pack.tp0;

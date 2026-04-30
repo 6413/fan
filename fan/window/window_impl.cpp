@@ -1,5 +1,12 @@
 module;
 
+#include <functional>
+#include <string>
+#include <algorithm>
+#include <cstring>
+#include <sstream>
+#include <chrono>
+
 #include <fan/utility.h>
 
 #if defined(FAN_VULKAN)
@@ -16,13 +23,6 @@ module;
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
-
-#include <functional>
-#include <string>
-#include <algorithm>
-#include <cstring>
-#include <sstream>
-#include <chrono>
 
 module fan.window;
 
@@ -363,7 +363,9 @@ namespace fan {
 
     if (glfw_window == nullptr) {
       glfwTerminate();
+    #if !defined(__wasm__)
       fan::throw_error("failed to create window:", glfwGetError(NULL));
+    #endif
     }
 
     if (use_mon == nullptr) {
@@ -394,7 +396,9 @@ namespace fan {
     glfwSetWindowCloseCallback(glfw_window, fan::window::close_callback);
     glfwSetCursorPosCallback(glfw_window, fan::window::mouse_position_callback);
     glfwSetScrollCallback(glfw_window, fan::window::scroll_callback);
+  #if !defined(__wasm__)
     glfwInitHint(GLFW_JOYSTICK_HAT_BUTTONS, GLFW_TRUE);
+  #endif
     display_mode = props.open_mode;
   }
 

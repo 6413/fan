@@ -346,9 +346,11 @@ export namespace fan {
 
   std::vector<std::string_view> chunks(std::string_view s, size_t n) {
     if (n == 0) return {};
-    return s | std::views::chunk(n)
-      | std::views::transform([](auto c) { return std::string_view(c.begin(), c.end()); })
-      | std::ranges::to<std::vector>();
+    std::vector<std::string_view> out;
+    for (size_t i = 0; i < s.size(); i += n) {
+      out.emplace_back(s.data() + i, std::min(n, s.size() - i));
+    }
+    return out;
   }
 
   inline std::size_t strip_newlines(std::string& str) {

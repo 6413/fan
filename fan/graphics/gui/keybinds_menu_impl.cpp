@@ -2,7 +2,6 @@ module;
 
 #if defined(FAN_GUI)
 
-#include <fan/utility.h>
 
 #include <vector>
 #include <string>
@@ -10,6 +9,8 @@ module;
 #include <cmath>
 #include <algorithm>
 #include <set>
+
+#include <fan/utility.h>
 
 #endif
 

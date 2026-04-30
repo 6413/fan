@@ -1,9 +1,9 @@
 module;
-#include <fan/utility.h>
 #include <cstdint>
 #include <cstring>
 #include <cmath>
 #include <algorithm>
+#include <fan/utility.h>
 
 module fan.types.matrix;
 

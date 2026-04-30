@@ -1,13 +1,16 @@
 module;
 
-#include <fan/utility.h>
-
 #include <cstddef>
 #include <map>
 #include <set>
 #include <mutex>
 #include <memory>
-#include <stacktrace>
+#include <cstdlib>
+
+#include <fan/utility.h>
+#if defined(fan_std23)
+  #include <stacktrace>
+#endif
 
 export module fan.memory;
 

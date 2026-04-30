@@ -3,11 +3,11 @@ module;
 
 #if defined(FAN_NETWORK) && defined(FAN_2D)
 
-#include <fan/utility.h>
-
 #include <functional>
 #include <string>
 #include <string_view>
+
+#include <fan/utility.h>
 
 #endif
 

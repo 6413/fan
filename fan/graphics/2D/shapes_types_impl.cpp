@@ -1,11 +1,11 @@
 module;
 #if defined(FAN_2D)
-#include <fan/utility.h>
 #include <cstdint>
 #include <cstring>
 #include <source_location>
 #include <string>
 #include <vector>
+#include <fan/utility.h>
 #endif
 
 module fan.graphics.shapes.types;

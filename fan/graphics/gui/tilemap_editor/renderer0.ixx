@@ -2,8 +2,6 @@ module;
 
 #if defined(FAN_2D)
 
-#include <fan/utility.h>
-
 #include <cstdint>
 #include <string>
 #include <unordered_map>
@@ -13,6 +11,7 @@ module;
 #include <source_location>
 #include <algorithm>
 #include <coroutine>
+#include <fan/utility.h>
 
 #endif
 
