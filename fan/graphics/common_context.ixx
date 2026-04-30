@@ -1,5 +1,6 @@
 module;
 
+#include <cstdint>
 #include <coroutine>
 #include <fan/graphics/common_context_functions_declare.h>
 
@@ -210,7 +211,7 @@ namespace bll_builds {
 
 #include <fan/fan_bll_preset.h>
 #define BLL_set_prefix image_list
-#define BLL_set_type_node uint16_t
+#define BLL_set_type_node std::uint16_t
 #define BLL_set_NodeDataType fan::graphics::image_data_t
 #define BLL_set_Link 0
 #define BLL_set_nrtra 1
@@ -222,7 +223,7 @@ namespace bll_builds {
 
 #include <fan/fan_bll_preset.h>
 #define BLL_set_prefix viewport_list
-#define BLL_set_type_node uint8_t
+#define BLL_set_type_node std::uint8_t
 #define BLL_set_NodeDataType fan::graphics::context_viewport_t
 #define BLL_set_Link 0
 #define BLL_set_nrtra 1
