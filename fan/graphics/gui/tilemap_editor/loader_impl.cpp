@@ -1,8 +1,10 @@
 module;
 
-module fan.graphics.gui.tilemap_editor.loader;
+#include <cstddef>
 
-import std;
+#include <fan/utility.h>
+
+module fan.graphics.gui.tilemap_editor.loader;
 
 #if defined(FAN_2D)
 #if defined(FAN_PHYSICS_2D)

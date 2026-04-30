@@ -98,9 +98,9 @@ namespace fan::graphics {
       nfdpathset_t ps;
       if (NFD_OpenDialogMultiple(f.c_str(), nullptr, &ps) == NFD_OKAY) {
         std::lock_guard lock(st.mtx);
-        size_t n = NFD_PathSet_GetCount(&ps);
+        std::size_t n = NFD_PathSet_GetCount(&ps);
         st.results.reserve(n);
-        for (size_t i = 0; i < n; ++i)
+        for (std::size_t i = 0; i < n; ++i)
           st.results.emplace_back(NFD_PathSet_GetPath(&ps, i));
         NFD_PathSet_Free(&ps);
       }

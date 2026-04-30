@@ -17,7 +17,7 @@ export namespace fan::graphics::vulkan::ray_tracing::shapes {
 
   struct triangle_mesh_t { 
     std::vector<fan::vec3> vertices; 
-    std::vector<uint32_t> indices; 
+    std::vector<std::uint32_t> indices; 
 
     triangle_mesh_t() = default;
     triangle_mesh_t(const fan::model::mesh_t& m) {
@@ -38,19 +38,19 @@ export namespace fan::graphics::vulkan::ray_tracing::shapes {
     VkDeviceMemory vertex_memory = VK_NULL_HANDLE;
     VkBuffer index_buffer = VK_NULL_HANDLE;
     VkDeviceMemory index_memory = VK_NULL_HANDLE;
-    uint32_t vertex_count = 0;
-    uint32_t index_count = 0;
+    std::uint32_t vertex_count = 0;
+    std::uint32_t index_count = 0;
 
     void upload(fan::vulkan::context_t& ctx, const triangle_mesh_t& mesh) {
-      vertex_count = (uint32_t)mesh.vertices.size();
-      index_count = (uint32_t)mesh.indices.size();
+      vertex_count = (std::uint32_t)mesh.vertices.size();
+      index_count = (std::uint32_t)mesh.indices.size();
 
       if (vertex_count == 0 || index_count == 0) {
         return;
       }
 
       VkDeviceSize vertex_size = sizeof(fan::vec3) * (VkDeviceSize)vertex_count;
-      VkDeviceSize index_size = sizeof(uint32_t) * (VkDeviceSize)index_count;
+      VkDeviceSize index_size = sizeof(std::uint32_t) * (VkDeviceSize)index_count;
 
       VkBuffer staging_vertex = VK_NULL_HANDLE;
       VkDeviceMemory staging_vertex_mem = VK_NULL_HANDLE;
@@ -67,7 +67,7 @@ export namespace fan::graphics::vulkan::ray_tracing::shapes {
 
       void* data = nullptr;
       vkMapMemory(ctx.device, staging_vertex_mem, 0, vertex_size, 0, &data);
-      std::memcpy(data, mesh.vertices.data(), (size_t)vertex_size);
+      std::memcpy(data, mesh.vertices.data(), (std::size_t)vertex_size);
       vkUnmapMemory(ctx.device, staging_vertex_mem);
 
       ctx.create_buffer(
@@ -79,7 +79,7 @@ export namespace fan::graphics::vulkan::ray_tracing::shapes {
       );
 
       vkMapMemory(ctx.device, staging_index_mem, 0, index_size, 0, &data);
-      std::memcpy(data, mesh.indices.data(), (size_t)index_size);
+      std::memcpy(data, mesh.indices.data(), (std::size_t)index_size);
       vkUnmapMemory(ctx.device, staging_index_mem);
 
       ctx.create_buffer(
@@ -132,19 +132,19 @@ export namespace fan::graphics::vulkan::ray_tracing::shapes {
   triangle_mesh_t make_sphere(
     const fan::vec3& center,
     f32_t radius,
-    uint32_t stacks = 20,
-    uint32_t slices = 20
+    std::uint32_t stacks = 20,
+    std::uint32_t slices = 20
   ) {
     triangle_mesh_t mesh;
 
     mesh.vertices.reserve((stacks + 1) * (slices + 1));
     mesh.indices.reserve(stacks * slices * 6);
 
-    for (uint32_t i = 0; i <= stacks; ++i) {
+    for (std::uint32_t i = 0; i <= stacks; ++i) {
       f32_t v = (f32_t)i / (f32_t)stacks;
       f32_t phi = v * 3.1415926535f;
 
-      for (uint32_t j = 0; j <= slices; ++j) {
+      for (std::uint32_t j = 0; j <= slices; ++j) {
         f32_t u = (f32_t)j / (f32_t)slices;
         f32_t theta = u * 2.0f * 3.1415926535f;
 
@@ -158,10 +158,10 @@ export namespace fan::graphics::vulkan::ray_tracing::shapes {
       }
     }
 
-    for (uint32_t i = 0; i < stacks; ++i) {
-      for (uint32_t j = 0; j < slices; ++j) {
-        uint32_t first = i * (slices + 1) + j;
-        uint32_t second = first + slices + 1;
+    for (std::uint32_t i = 0; i < stacks; ++i) {
+      for (std::uint32_t j = 0; j < slices; ++j) {
+        std::uint32_t first = i * (slices + 1) + j;
+        std::uint32_t second = first + slices + 1;
 
         mesh.indices.push_back(first);
         mesh.indices.push_back(second);

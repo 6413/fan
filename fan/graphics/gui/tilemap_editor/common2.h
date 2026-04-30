@@ -1,5 +1,5 @@
 // can have like sensor, etc
-enum struct mesh_property_t : uint8_t {
+enum struct mesh_property_t : std::uint8_t {
   none = 0,
   physics_shape,
   sensor,
@@ -24,7 +24,7 @@ struct tile_t {
   fan::color color;
   mesh_property_t mesh_property = mesh_property_t::none;
   std::string id;
-  uint32_t flags = 0;
+  std::uint32_t flags = 0;
   fan::graphics::texture_pack::unique_t texture_pack_unique_id;
 
   // actions
@@ -42,8 +42,8 @@ struct physics_shapes_t {
     };
   };
   fan::graphics::shape_t visual;
-  uint8_t type = type_e::box;
-  uint8_t body_type = fan::physics::body_type_e::static_body;
+  std::uint8_t type = type_e::box;
+  std::uint8_t body_type = fan::physics::body_type_e::static_body;
   bool draw = false;
   fan::physics::shape_properties_t shape_properties;
   std::string id;

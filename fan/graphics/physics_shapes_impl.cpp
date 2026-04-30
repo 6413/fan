@@ -27,7 +27,7 @@ import fan.graphics.loco;
 
 // higher the draw depth, less debug draws will be if maximum depth is 2^16
 // so make sure your game objects do not pass this depth
-static constexpr uint16_t draw_depth = 0xF000;
+static constexpr std::uint16_t draw_depth = 0xF000;
 
 int z_depth = 0;
 
@@ -113,7 +113,7 @@ void DrawSolidCircle(b2Transform transform, f32_t radius, b2HexColor color, void
 
 /// Draw a capsule.
 void DrawCapsule(b2Vec2 p1, b2Vec2 p2, f32_t radius, b2HexColor color, void* context) {
-  printf("DrawCapsule\n");
+  std::printf("DrawCapsule\n");
 }
 
 /// Draw a solid capsule.
@@ -304,10 +304,10 @@ namespace fan::graphics::physics {
       fan::physics::remove_physics_update(physics_update_nr);
     }
     *dynamic_cast<fan::graphics::shape_t*>(this) = std::move(shape);
-    static_assert(sizeof(fan::graphics::shaper_t::ShapeID_t) < sizeof(uint64_t), "physics update shape_id too small");
-    uint64_t body_id_data = *reinterpret_cast<uint64_t*>(dynamic_cast<body_id_t*>(this));
+    static_assert(sizeof(fan::graphics::shaper_t::ShapeID_t) < sizeof(std::uint64_t), "physics update shape_id too small");
+    std::uint64_t body_id_data = *reinterpret_cast<std::uint64_t*>(dynamic_cast<body_id_t*>(this));
     physics_update_nr = fan::physics::add_physics_update({
-      .shape_id = *(uint64_t*)this,
+      .shape_id = *(std::uint64_t*)this,
       .draw_offset = draw_offset,
       .body_id = body_id_data,
       .cb = (void*)shape_physics_update
@@ -323,9 +323,9 @@ namespace fan::graphics::physics {
     if (physics_update_nr.iic() == false) {
       fan::physics::remove_physics_update(physics_update_nr);
     }
-    uint64_t body_id_data = *reinterpret_cast<uint64_t*>(dynamic_cast<body_id_t*>(this));
+    std::uint64_t body_id_data = *reinterpret_cast<std::uint64_t*>(dynamic_cast<body_id_t*>(this));
     physics_update_nr = fan::physics::add_physics_update({
-      .shape_id = *(uint64_t*)this,
+      .shape_id = *(std::uint64_t*)this,
       .draw_offset = draw_offset,
       .body_id = body_id_data,
       .cb = (void*)shape_physics_update
@@ -359,9 +359,9 @@ namespace fan::graphics::physics {
     if (!fan::physics::entity_t::is_valid()) {
       return;
     }
-    uint64_t body_id_data = *reinterpret_cast<uint64_t*>(dynamic_cast<body_id_t*>(this));
+    std::uint64_t body_id_data = *reinterpret_cast<std::uint64_t*>(dynamic_cast<body_id_t*>(this));
     physics_update_nr = fan::physics::add_physics_update({
-      .shape_id = *(uint64_t*)this,
+      .shape_id = *(std::uint64_t*)this,
       .draw_offset = draw_offset,
       .body_id = body_id_data,
       .cb = (void*)shape_physics_update
@@ -398,9 +398,9 @@ namespace fan::graphics::physics {
       if (!fan::physics::entity_t::is_valid()) {
         return *this;
       }
-      uint64_t body_id_data = *reinterpret_cast<uint64_t*>(dynamic_cast<body_id_t*>(this));
+      std::uint64_t body_id_data = *reinterpret_cast<std::uint64_t*>(dynamic_cast<body_id_t*>(this));
       physics_update_nr = fan::physics::add_physics_update({
-        .shape_id = *(uint64_t*)this,
+        .shape_id = *(std::uint64_t*)this,
         .draw_offset = draw_offset,
         .body_id = body_id_data,
         .cb = (void*)shape_physics_update
@@ -660,7 +660,7 @@ namespace fan::graphics::physics {
     const fan::vec2& half_size,
     f32_t thickness,
     const fan::color& wall_color,
-    uint8_t body_type,
+    std::uint8_t body_type,
     std::array<fan::physics::shape_properties_t, 4> shape_properties
   ){
     std::array<fan::graphics::physics::rectangle_t, 4> walls;
@@ -680,7 +680,7 @@ namespace fan::graphics::physics {
         fan::vec2(thickness, half_size.y)
       }};
 
-    for (uint32_t i = 0; i < 4; i++) {
+    for (std::uint32_t i = 0; i < 4; i++) {
       walls[i] = fan::graphics::physics::rectangle_t {{
         .position = positions[i],
         .size = sizes[i],
@@ -700,7 +700,7 @@ namespace fan::graphics::physics {
     const fan::vec2& bounds,
     f32_t thickness,
     const fan::color& wall_color,
-    uint8_t body_type,
+    std::uint8_t body_type,
     std::array<fan::physics::shape_properties_t, 4> shape_properties
   ) {
     return create_stroked_rectangle(
@@ -916,8 +916,8 @@ namespace fan::graphics::physics {
       return true;
     }
     fan::vec2 sign = character->get_image_sign();
-    int8_t facing = (int8_t)fan::math::sgn(sign.x);
-    int8_t desired = (int8_t)fan::math::sgn(target_distance.x);
+    std::int8_t facing = (std::int8_t)fan::math::sgn(sign.x);
+    std::int8_t desired = (std::int8_t)fan::math::sgn(target_distance.x);
 
     if (attack_requires_facing_target && !is_attacking && desired != 0 && facing != desired) {
       return false;
@@ -1331,9 +1331,9 @@ namespace fan::graphics::physics {
 
     *static_cast<fan::physics::entity_t*>(this) = std::move(entity);
 
-    uint64_t body_id_data = *reinterpret_cast<uint64_t*>(static_cast<fan::physics::body_id_t*>(this));
+    std::uint64_t body_id_data = *reinterpret_cast<std::uint64_t*>(static_cast<fan::physics::body_id_t*>(this));
     physics_update_nr = fan::physics::add_physics_update({
-      .shape_id = *(uint64_t*)static_cast<fan::graphics::shape_t*>(this),
+      .shape_id = *(std::uint64_t*)static_cast<fan::graphics::shape_t*>(this),
       .draw_offset = draw_offset,
       .body_id = body_id_data,
       .cb = (void*)shape_physics_update
@@ -1342,7 +1342,7 @@ namespace fan::graphics::physics {
   character2d_t::movement_callback_handle_t character2d_t::add_movement_callback(std::function<void()> fn) {
     return fan::physics::add_physics_step_callback(fn);
   }
-  void character2d_t::enable_default_movement(uint8_t movement) {
+  void character2d_t::enable_default_movement(std::uint8_t movement) {
   #if FAN_DEBUG >= 3
     if (get_body_type() == fan::physics::body_type_e::static_body) {
       fan::graphics::gui::print_warning("trying to enable default movement for static body");
@@ -1475,7 +1475,7 @@ namespace fan::graphics::physics {
     anim_controller.auto_update_animations = true;
   }
   #endif
-  void character2d_t::process_keyboard_movement(uint8_t movement, f32_t friction) {
+  void character2d_t::process_keyboard_movement(std::uint8_t movement, f32_t friction) {
     movement_state.is_wall_sliding = false;
     fan::vec2 velocity = get_linear_velocity();
     fan::physics::shape_id_t colliding_wall_id;
@@ -1612,7 +1612,7 @@ namespace fan::graphics::physics {
     int curr = character->get_current_sprite_sheet_frame();
 
 
-    for (size_t i = 0; i < config.spawns.size(); ++i) {
+    for (std::size_t i = 0; i < config.spawns.size(); ++i) {
       auto& inst = instances[i];
       int target = config.spawns[i].frame;
       if (!hitbox_spawned[i] && curr >= target) {
@@ -1687,7 +1687,7 @@ namespace fan::graphics::physics {
       hit_enemies.clear();
     }
   }
-  size_t attack_hitbox_t::hitbox_count() const {
+  std::size_t attack_hitbox_t::hitbox_count() const {
     return instances.size();
   }
 
@@ -2276,7 +2276,7 @@ namespace fan::graphics::physics {
   }
 
   // creates physics body for visual shape
-  fan::physics::entity_t character_capsule(const fan::graphics::shape_t& shape, f32_t shape_size_multiplier, const fan::physics::shape_properties_t& physics_properties, uint8_t body_type) {
+  fan::physics::entity_t character_capsule(const fan::graphics::shape_t& shape, f32_t shape_size_multiplier, const fan::physics::shape_properties_t& physics_properties, std::uint8_t body_type) {
     f32_t half_height = shape.get_size().y * shape_size_multiplier;
     return fan::physics::gphysics()->create_capsule(
       shape.get_position(),
@@ -2444,7 +2444,7 @@ namespace fan::graphics::physics {
       }}
     );
 
-    for (uint32_t i = 0; i < 4; i++) {
+    for (std::uint32_t i = 0; i < 4; i++) {
       if (walls[i]) {
         walls[i].destroy();
       }

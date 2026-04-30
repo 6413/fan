@@ -2,6 +2,8 @@ module;
 
 #include <fan/utility.h> // abort
 
+#include <cstring>
+
 #if defined(FAN_AUDIO)
 #ifndef fan_audio_set_backend
   #if defined(fan_platform_unix)
@@ -55,10 +57,10 @@ extern "C" {
   volatile void* __cdecl RtlSetVolatileMemory(
     volatile void* Destination,
     int Fill,
-    size_t Length
+    std::size_t Length
   ) {
     volatile unsigned char* dest = (volatile unsigned char*)Destination;
-    for (size_t i = 0; i < Length; ++i) {
+    for (std::size_t i = 0; i < Length; ++i) {
       dest[i] = (unsigned char)Fill;
     }
     return Destination;
@@ -168,7 +170,7 @@ export namespace fan {
         return memcmp(&(fan::audio_t::piece_t&)*this, test_block, sizeof(fan::audio_t::piece_t));
       }
 
-      sound_play_id_t play(uint32_t group_id = 0, bool loop = false){
+      sound_play_id_t play(std::uint32_t group_id = 0, bool loop = false){
         fan::audio_t::PropertiesSoundPlay_t p{};
         p.Flags.Loop = loop;
         p.GroupID = 0;
@@ -181,11 +183,11 @@ export namespace fan {
         gaudio()->SoundStop(id, &p);
       }
 
-      void resume(uint32_t group_id = 0){
+      void resume(std::uint32_t group_id = 0){
         gaudio()->Resume();
       }
 
-      void pause(uint32_t group_id = 0){
+      void pause(std::uint32_t group_id = 0){
         gaudio()->Pause();
       }
 
@@ -212,7 +214,7 @@ export namespace fan {
       return piece.is_valid();
     }
 
-    inline sound_play_id_t play(piece_t piece, uint32_t group_id = 0, bool loop = false){
+    inline sound_play_id_t play(piece_t piece, std::uint32_t group_id = 0, bool loop = false){
       return piece.play(group_id, loop);
     }
 
@@ -222,11 +224,11 @@ export namespace fan {
       gaudio()->SoundStop(id, &p);
     }
 
-    inline void resume(uint32_t group_id = 0){
+    inline void resume(std::uint32_t group_id = 0){
       gaudio()->Resume();
     }
 
-    inline void pause(uint32_t group_id = 0){
+    inline void pause(std::uint32_t group_id = 0){
       gaudio()->Pause();
     }
 
@@ -270,7 +272,7 @@ export namespace fan {
       return fan::audio::play(piece);
     }
 
-    sound_play_id_t play_looped(fan::audio::piece_t piece, uint32_t group_id = 0){
+    sound_play_id_t play_looped(fan::audio::piece_t piece, std::uint32_t group_id = 0){
       return fan::audio::play(piece, group_id, true);
     }
   }

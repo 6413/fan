@@ -49,7 +49,7 @@ export namespace fan {
 
   template<typename T>
   auto convert_uint8(T value) {
-    if constexpr (std::is_same_v<T, uint8_t>) return static_cast<int>(value);
+    if constexpr (std::is_same_v<T, std::uint8_t>) return static_cast<int>(value);
     else if constexpr (std::is_same_v<T, std::string_view>) return std::string(value);
     else return value;
   }

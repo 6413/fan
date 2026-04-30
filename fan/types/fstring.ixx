@@ -1,5 +1,7 @@
 module;
 
+#include <fan/utility.h>
+
 export module fan.types.fstring;
 
 import std;
@@ -11,7 +13,7 @@ import fan.types.compile_time_string;
 
 export namespace fan {
 
-  using bytes_t = std::vector<uint8_t>;
+  using bytes_t = std::vector<std::uint8_t>;
 
   template <typename T>
   auto to_string(const T a_value, const int n = 2) {
@@ -21,13 +23,13 @@ export namespace fan {
     return out.str();
   }
 
-  inline constexpr uint64_t get_hash(const std::string_view& str) {
-    uint64_t result = 0xcbf29ce484222325; // FNV offset basis
+  inline constexpr std::uint64_t get_hash(const std::string_view& str) {
+    std::uint64_t result = 0xcbf29ce484222325; // FNV offset basis
 
-    uint32_t i = 0;
+    std::uint32_t i = 0;
 
     while (i < str.size()) {
-      result ^= (uint64_t)str[i];
+      result ^= (std::uint64_t)str[i];
       result *= 1099511628211; // FNV prime
       i++;
     }
@@ -61,14 +63,14 @@ export namespace fan {
     string(const std::string& str) : type_t(str) {}
     template <typename T>
     string(const std::vector<T>& vector) {
-      for (uint32_t i = 0; i < vector.size() * sizeof(T); ++i) {
-        append((uint8_t*)&vector[i], (uint8_t*)&vector[i] + sizeof(T));
+      for (std::uint32_t i = 0; i < vector.size() * sizeof(T); ++i) {
+        append((std::uint8_t*)&vector[i], (std::uint8_t*)&vector[i] + sizeof(T));
       }
     }
 
     using char_type = std::string::value_type;
 
-    static constexpr uint8_t UTF8_SizeOfCharacter(uint8_t byte) {
+    static constexpr std::uint8_t UTF8_SizeOfCharacter(std::uint8_t byte) {
       if (byte < 0x80) {
         return 1;
       }
@@ -91,8 +93,8 @@ export namespace fan {
       return 1;
     }
 
-    uint32_t get_utf8_character(uintptr_t offset, uint8_t size) const {
-      uint32_t code = 0;
+    std::uint32_t get_utf8_character(std::uintptr_t offset, std::uint8_t size) const {
+      std::uint32_t code = 0;
       for (int j = 0; j < size; j++) {
         code <<= 8;
         code |= (*this)[offset + j];
@@ -102,7 +104,7 @@ export namespace fan {
     void replace_all(const std::string& from, const std::string& to) {
       if(from.empty())
           return;
-      size_t start_pos = 0;
+      std::size_t start_pos = 0;
       while((start_pos = find(from, start_pos)) != std::string::npos) {
           replace(start_pos, from.length(), to);
           start_pos += to.length();
@@ -121,18 +123,18 @@ export namespace fan {
   inline T string_read_data(auto& f, auto& off) {
     if constexpr (std::is_same<std::string, T>::value || 
       std::is_same<std::string, T>::value) {
-      uint64_t len = string_read_data<uint64_t>(f, off);
+      std::uint64_t len = string_read_data<std::uint64_t>(f, off);
       std::string str;
       str.resize(len);
-      memcpy(str.data(), &f[off], len);
+      std::memcpy(str.data(), &f[off], len);
       off += len;
       return str;
     }
     else if constexpr (is_std_vector<T>::value) {
-      uint64_t len = string_read_data<uint64_t>(f, off);
+      std::uint64_t len = string_read_data<std::uint64_t>(f, off);
       std::vector<typename T::value_type> vec(len);
       if (len > 0) {
-        memcpy(vec.data(), &f[off], len * sizeof(typename T::value_type));
+        std::memcpy(vec.data(), &f[off], len * sizeof(typename T::value_type));
         off += len * sizeof(typename T::value_type);
       }
       return vec;
@@ -148,12 +150,12 @@ export namespace fan {
   void write_to_string(auto& f, const T& o) {
     if constexpr (std::is_same<std::string, T>::value ||
       std::is_same<std::string, T>::value) {
-      uint64_t len = o.size();
+      std::uint64_t len = o.size();
       f.append((char*)&len, sizeof(len));
       f.append(o.data(), len);
     }
     else if constexpr (is_std_vector<T>::value) {
-      uint64_t len = o.size();
+      std::uint64_t len = o.size();
       f.append((char*)&len, sizeof(len));
       f.append((char*)o.data(), len * sizeof(T));
     }
@@ -162,16 +164,16 @@ export namespace fan {
     }
   }
   template <typename T>
-  T vector_read_data(const bytes_t& vec, size_t& off) {
+  T vector_read_data(const bytes_t& vec, std::size_t& off) {
     if constexpr (std::is_same<std::string, T>::value) {
-      uint64_t len = vector_read_data<uint64_t>(vec, off);
+      std::uint64_t len = vector_read_data<std::uint64_t>(vec, off);
       std::string str(len, '\0');
       std::memcpy(str.data(), vec.data() + off, len);
       off += len;
       return str;
     }
     else if constexpr (is_std_vector<T>::value) {
-      uint64_t len = vector_read_data<uint64_t>(vec, off);
+      std::uint64_t len = vector_read_data<std::uint64_t>(vec, off);
       std::vector<typename T::value_type> vec(len);
       if (len > 0) {
         std::memcpy(vec.data(), vec.data() + off, len * sizeof(typename T::value_type));
@@ -192,7 +194,7 @@ export namespace fan {
     out.reserve(w.size());
 
     for (wchar_t wc : w) {
-      uint32_t c = (uint32_t)wc;
+      std::uint32_t c = (std::uint32_t)wc;
 
       if (c <= 0x7F) {
         out.push_back((char)c);
@@ -233,22 +235,22 @@ export namespace fan {
   template <typename T>
   void write_to_vector(bytes_t& vec, const T& o) {
     if constexpr (std::is_same<std::string, T>::value) {
-      uint64_t len = o.size();
-      vec.insert(vec.end(), reinterpret_cast<const uint8_t*>(&len), reinterpret_cast<const uint8_t*>(&len + 1));
+      std::uint64_t len = o.size();
+      vec.insert(vec.end(), reinterpret_cast<const std::uint8_t*>(&len), reinterpret_cast<const std::uint8_t*>(&len + 1));
       vec.insert(vec.end(), o.begin(), o.end());
     }
     else if constexpr (is_std_vector<T>::value) {
-      uint64_t len = o.size();
-      vec.insert(vec.end(), reinterpret_cast<const uint8_t*>(&len), reinterpret_cast<const uint8_t*>(&len + 1));
-      vec.insert(vec.end(), reinterpret_cast<const uint8_t*>(o.data()), reinterpret_cast<const uint8_t*>(o.data() + len));
+      std::uint64_t len = o.size();
+      vec.insert(vec.end(), reinterpret_cast<const std::uint8_t*>(&len), reinterpret_cast<const std::uint8_t*>(&len + 1));
+      vec.insert(vec.end(), reinterpret_cast<const std::uint8_t*>(o.data()), reinterpret_cast<const std::uint8_t*>(o.data() + len));
     }
     else {
-      vec.insert(vec.end(), reinterpret_cast<const uint8_t*>(&o), reinterpret_cast<const uint8_t*>(&o + 1));
+      vec.insert(vec.end(), reinterpret_cast<const std::uint8_t*>(&o), reinterpret_cast<const std::uint8_t*>(&o + 1));
     }
   }
 
   template <typename T>
-  void read_from_vector(const bytes_t& vec, size_t& off, T& data) {
+  void read_from_vector(const bytes_t& vec, std::size_t& off, T& data) {
     data = vector_read_data<T>(vec, off);
   }
 
@@ -278,23 +280,23 @@ export namespace fan {
     return args;
   }
 
-  std::string format_thousands(auto number, const std::string& separator = ",", uint32_t group_size = 3) {
+  std::string format_thousands(auto number, const std::string& separator = ",", std::uint32_t group_size = 3) {
     std::string result = std::to_string(number);
 
     if (result.length() <= group_size || group_size == 0) {
       return result;
     }
 
-    size_t digit_start = (result[0] == '-') ? 1 : 0;
-    size_t digit_count = result.length() - digit_start;
+    std::size_t digit_start = (result[0] == '-') ? 1 : 0;
+    std::size_t digit_count = result.length() - digit_start;
 
-    size_t separator_count = (digit_count - 1) / group_size;
+    std::size_t separator_count = (digit_count - 1) / group_size;
     result.reserve(result.length() + separator_count * separator.length());
 
-    for (int64_t insert_pos = static_cast<int64_t>(result.length() - group_size);
-      insert_pos > static_cast<int64_t>(digit_start);
+    for (std::int64_t insert_pos = static_cast<std::int64_t>(result.length() - group_size);
+      insert_pos > static_cast<std::int64_t>(digit_start);
       insert_pos -= group_size) {
-      result.insert(static_cast<size_t>(insert_pos), separator);
+      result.insert(static_cast<std::size_t>(insert_pos), separator);
     }
 
     return result;
@@ -315,7 +317,7 @@ export namespace fan {
   }
 
   template <std::ranges::contiguous_range R>
-  requires std::same_as<std::ranges::range_value_t<R>, uint8_t>
+  requires std::same_as<std::ranges::range_value_t<R>, std::uint8_t>
         || std::same_as<std::ranges::range_value_t<R>, char>
   inline std::string as_chars(R&& v) {
     return std::string(std::ranges::begin(v), std::ranges::end(v));
@@ -334,10 +336,10 @@ export namespace fan {
     return bytes;
   }
 
-  std::vector<std::string_view> chunks(std::string_view s, size_t n) {
+  std::vector<std::string_view> chunks(std::string_view s, std::size_t n) {
     if (n == 0) return {};
     std::vector<std::string_view> out;
-    for (size_t i = 0; i < s.size(); i += n) {
+    for (std::size_t i = 0; i < s.size(); i += n) {
       out.emplace_back(s.data() + i, std::min(n, s.size() - i));
     }
     return out;
@@ -373,7 +375,7 @@ export namespace fan {
     return lines;
   }
 
-  inline std::string to_hex(uint64_t v, int width = 0) {
+  inline std::string to_hex(std::uint64_t v, int width = 0) {
     char buf[32];
     auto [ptr, ec] = std::to_chars(buf, buf + sizeof(buf), v, 16);
     for (char* p = buf; p != ptr; ++p) { if (*p >= 'a') *p &= ~0x20; }
@@ -382,18 +384,18 @@ export namespace fan {
     if (width <= len) return std::string(buf, ptr);
     return std::string(width - len, '0').append(buf, ptr);
   }
-  inline constexpr uint64_t from_hex(std::string_view s) {
-    uint64_t v = 0;
+  inline constexpr std::uint64_t from_hex(std::string_view s) {
+    std::uint64_t v = 0;
     std::from_chars(s.data(), s.data() + s.size(), v, 16);
     return v;
   }
-  inline uint8_t parse_hex_byte(std::string_view s) {
+  inline std::uint8_t parse_hex_byte(std::string_view s) {
     if (s.empty()) return 0;
     if (s.size() > 2) s = s.substr(s.size() - 2);
-    return (uint8_t)fan::from_hex(s);
+    return (std::uint8_t)fan::from_hex(s);
   }
 
-  inline std::string to_ascii(uint8_t b) {
+  inline std::string to_ascii(std::uint8_t b) {
     if (b >= 0x20 && b <= 0x7E) return std::string(1, (char)b);
     //if (b == 0x0A) return "";
     //if (b == 0x0D) return "";
@@ -401,8 +403,8 @@ export namespace fan {
   }
 
   inline void strip_whitespace(std::string& str) {
-    while (!str.empty() && std::isspace((uint8_t)str.front())) str.erase(str.begin());
-    while (!str.empty() && std::isspace((uint8_t)str.back())) str.pop_back();
+    while (!str.empty() && std::isspace((std::uint8_t)str.front())) str.erase(str.begin());
+    while (!str.empty() && std::isspace((std::uint8_t)str.back())) str.pop_back();
   }
   inline std::string strip_whitespace(const std::string& str) {
     std::string r = str;
@@ -417,8 +419,8 @@ export namespace fan {
     return s;
   }
 
-  std::vector<uint8_t> parse_hex_buffer(std::string_view hex_str) {
-    std::vector<uint8_t> bytes;
+  std::vector<std::uint8_t> parse_hex_buffer(std::string_view hex_str) {
+    std::vector<std::uint8_t> bytes;
     bytes.reserve(hex_str.size() / 2);
   
     std::string clean;
@@ -428,7 +430,7 @@ export namespace fan {
       if (hex_str[i] == '0' && i + 1 < hex_str.size() && (hex_str[i+1] | 0x20) == 'x') {
         ++i; continue;
       }
-      if (std::isxdigit((uint8_t)hex_str[i])) clean.push_back(hex_str[i]);
+      if (std::isxdigit((std::uint8_t)hex_str[i])) clean.push_back(hex_str[i]);
     }
 
     for (std::size_t i = 0; i + 1 < clean.size(); i += 2) {
@@ -437,16 +439,16 @@ export namespace fan {
     return bytes;
   }
 
-  inline std::optional<uint8_t> extract_typed_char(std::string_view buf, std::string_view old_buf) {
+  inline std::optional<std::uint8_t> extract_typed_char(std::string_view buf, std::string_view old_buf) {
     if (buf.empty()) return std::nullopt;
-    if (buf.size() == 1) return (uint8_t)buf[0];
-    if (buf.size() == 2) return (uint8_t)((buf[0] == old_buf[0]) ? buf[1] : buf[0]);
+    if (buf.size() == 1) return (std::uint8_t)buf[0];
+    if (buf.size() == 2) return (std::uint8_t)((buf[0] == old_buf[0]) ? buf[1] : buf[0]);
     return std::nullopt;
   }
 
   inline std::string format_scientific(double v) {
     char b[64];
-    snprintf(b, sizeof(b), "%.6e", v);
+    std::snprintf(b, sizeof(b), "%.6e", v);
     return b;
   }
 

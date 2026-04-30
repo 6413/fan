@@ -11,6 +11,8 @@ module;
   #include <vulkan/vulkan.h>
 #endif
 
+#include <fan/utility.h>
+
 export module fan.graphics.gui.base;
 
 import std;
@@ -227,7 +229,7 @@ export namespace fan::graphics::gui {
   fan::vec2 get_frame_padding();
 
   fan::color get_color(col_t idx);
-  uint32_t get_color_u32(col_t idx);
+  std::uint32_t get_color_u32(col_t idx);
 
   void separator();
   void spacing();
@@ -290,7 +292,7 @@ export namespace fan::graphics::gui {
 
   bool toggle_button(str_view_t label, bool* v);
 
-  fan::vec2 get_position_bottom_corner(std::string_view text = {}, uint32_t reverse_yoffset = 0);
+  fan::vec2 get_position_bottom_corner(std::string_view text = {}, std::uint32_t reverse_yoffset = 0);
 
   void send_drag_drop_item(str_view_t id, const std::wstring& path, str_view_t popup = "");
 
@@ -380,7 +382,7 @@ export namespace fan::graphics::gui {
   void set_next_window_class(const class_t* c);
 
   bool begin_drag_drop_source();
-  bool set_drag_drop_payload(str_view_t type, const void* data, size_t sz, cond_t cond = cond_none);
+  bool set_drag_drop_payload(str_view_t type, const void* data, std::size_t sz, cond_t cond = cond_none);
 
   void end_drag_drop_source();
 
@@ -436,12 +438,12 @@ export namespace fan::graphics::gui {
     , VkInstance instance,
     VkPhysicalDevice physical_device,
     VkDevice device,
-    uint32_t queue_family,
+    std::uint32_t queue_family,
     VkQueue graphics_queue,
     VkDescriptorPool descriptor_pool,
     VkRenderPass render_pass,
-    uint32_t image_count,
-    uint32_t min_image_count,
+    std::uint32_t image_count,
+    std::uint32_t min_image_count,
     VkSampleCountFlagBits msaa_samples,
     void (*check_vk_result)(VkResult)
   #endif
@@ -456,12 +458,12 @@ export namespace fan::graphics::gui {
     , VkInstance instance,
     VkPhysicalDevice physical_device,
     VkDevice device,
-    uint32_t queue_family,
+    std::uint32_t queue_family,
     VkQueue graphics_queue,
     VkDescriptorPool descriptor_pool,
     VkRenderPass render_pass,
-    uint32_t image_count,
-    uint32_t min_image_count,
+    std::uint32_t image_count,
+    std::uint32_t min_image_count,
     VkSampleCountFlagBits msaa_samples,
     void (*check_vk_result)(VkResult)
   #endif
@@ -507,7 +509,7 @@ export namespace fan::graphics::gui {
   #endif
   );
 
-  void profile_heap(void* (*dynamic_malloc)(size_t, void*), void (*dynamic_free)(void*, void*));
+  void profile_heap(void* (*dynamic_malloc)(std::size_t, void*), void (*dynamic_free)(void*, void*));
 
   bool begin(str_view_t window_name, bool* p_open = 0, window_flags_t window_flags = 0);
   void end();
@@ -1427,7 +1429,7 @@ export namespace fan::graphics::gui::slot {
   );
 
   void stack_count(
-    uint32_t count,
+    std::uint32_t count,
     const fan::vec2& p_min,
     const fan::vec2& p_max
   );

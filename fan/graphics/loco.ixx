@@ -16,6 +16,8 @@ module;
   //#define loco_cuda
 #endif
 
+#include <fan/utility.h>
+
 export module fan.graphics.loco;
 
 import std;
@@ -168,13 +170,13 @@ export struct loco_t {
     bool vsync = true;
     fan::vec2 window_position = -1;
     fan::vec2 window_size = -1;
-    uint64_t window_flags = 0;
+    std::uint64_t window_flags = 0;
     int window_open_mode = fan::window_t::mode::windowed;
     std::uint8_t renderer = fan::window_t::renderer_t::opengl;
     std::uint8_t samples = 0;
     bool enable_bloom = true;
   }open_props;
-  int32_t target_fps = 165; // must be changed from function
+  std::int32_t target_fps = 165; // must be changed from function
   bool init_gloco;
   fan::window_t& get_window();
   fan::window_t window; // destruct last
@@ -221,8 +223,8 @@ public:
   }
   #if defined(FAN_2D)
   void shader_set_camera(shader_t nr, camera_t camera_nr);
-  fan::graphics::shader_nr_t shader_get_nr(uint16_t shape_type);
-  fan::graphics::shader_list_t::nd_t& shader_get_data(uint16_t shape_type);
+  fan::graphics::shader_nr_t shader_get_nr(std::uint16_t shape_type);
+  fan::graphics::shader_list_t::nd_t& shader_get_data(std::uint16_t shape_type);
   fan::graphics::shader_list_t::nd_t& shader_get_data(fan::graphics::shader_t shader);
   void shader_set_paths(fan::graphics::shader_t shader, std::string_view vertex, std::string_view fragment);
   void shader_recompile_all();
@@ -242,7 +244,7 @@ public:
   std::vector<std::uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, int image_format, fan::vec2 uvp = 0, fan::vec2 uvs = 1);
   fan::graphics::image_nr_t image_create();
   fan::graphics::context_image_t image_get(fan::graphics::image_nr_t nr);
-  uint64_t image_get_handle(fan::graphics::image_nr_t nr);
+  std::uint64_t image_get_handle(fan::graphics::image_nr_t nr);
   fan::graphics::image_data_t& image_get_data(fan::graphics::image_nr_t nr);
   void image_erase(fan::graphics::image_nr_t nr);
   void image_bind(fan::graphics::image_nr_t nr);
@@ -345,7 +347,7 @@ public:
 
 #if defined(FAN_2D)
   void add_shape_to_immediate_draw(fan::graphics::shapes::shape_t&& s);
-  uint32_t add_shape_to_static_draw(fan::graphics::shapes::shape_t&& s);
+  std::uint32_t add_shape_to_static_draw(fan::graphics::shapes::shape_t&& s);
   void remove_static_shape_draw(const fan::graphics::shapes::shape_t& s);
 #endif
 
@@ -361,7 +363,7 @@ public:
   void rebuild_static_culling();
   bool culling_enabled() const;
   void set_culling_enabled(bool enabled);
-  void get_culling_stats(uint32_t& visible, uint32_t& culled) const;
+  void get_culling_stats(std::uint32_t& visible, std::uint32_t& culled) const;
   void run_culling();
   void set_cull_padding(const fan::vec2& padding);
   bool is_visualizing_culling = false;
@@ -454,7 +456,7 @@ public:
   static void idle_cb(uv_idle_t* handle);
   void start_idle(bool start_idle = true);
   void update_timer_interval(bool idle = true);
-  void set_target_fps(int32_t new_target_fps, bool idle = true);
+  void set_target_fps(std::int32_t new_target_fps, bool idle = true);
   fan::graphics::context_t& get_context();
   fan::graphics::render_view_t render_view_create();
   fan::graphics::render_view_t render_view_create(
@@ -551,7 +553,7 @@ public:
 
 #if defined(FAN_2D)
   void shape_open(
-    uint16_t shape_type,
+    std::uint16_t shape_type,
     std::size_t sizeof_vi,
     std::size_t sizeof_ri,
     fan::graphics::shape_gl_init_list_t shape_shader_locations,
@@ -644,8 +646,8 @@ public:
     fan::console_t console;
   #if defined(FAN_GUI)
     fan::time::timer fps_timer;
-    uint32_t frame_count = 0;
-    uint32_t last_fps = 0;
+    std::uint32_t frame_count = 0;
+    std::uint32_t last_fps = 0;
     bool render_console = false;
     bool render_debug_memory = false;
     bool show_fps = false;
@@ -692,7 +694,7 @@ public:
   void camera_move_to(const fan::graphics::shapes::shape_t& shape);
   void camera_move_to_smooth(const fan::graphics::shapes::shape_t& shape, const fan::graphics::render_view_t& render_view);
   void camera_move_to_smooth(const fan::graphics::shapes::shape_t& shape);
-  bool shader_update_fragment(uint16_t shape_type, const std::string_view fragment_file_path, const std::string& fragment);
+  bool shader_update_fragment(std::uint16_t shape_type, const std::string_view fragment_file_path, const std::string& fragment);
 #endif
 };
 

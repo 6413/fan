@@ -1,7 +1,6 @@
 module;
 
-#if defined(fan_std23)
-#endif
+#include <fan/utility.h>
 
 export module fan.memory;
 
@@ -35,7 +34,7 @@ export namespace fan::memory {
     struct memory_data_t {
       std::size_t n = 0;
       void* p = 0;
-      uint64_t alloc_ns = 0;
+      std::uint64_t alloc_ns = 0;
 #if defined(fan_std23)
       std::stacktrace line_data;
 #endif
@@ -73,7 +72,7 @@ export namespace fan::memory {
     std::mutex memory_mutex;
     map_t memory_map;
     set_t memory_set;
-    uint64_t current_allocation_size = 0;
+    std::uint64_t current_allocation_size = 0;
     bool enabled = false;
     bool print_leaks = true;
   };

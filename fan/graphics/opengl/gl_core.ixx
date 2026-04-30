@@ -67,18 +67,18 @@ export namespace fan::opengl {
 
     struct pbo_t {
       GLuint id = 0;
-      size_t size = 0;
+      std::size_t size = 0;
     };
 
-    pbo_t pbo_create(size_t size);
+    pbo_t pbo_create(std::size_t size);
     void pbo_destroy(pbo_t& p);
-    uint8_t* pbo_map_write(const pbo_t& p);
+    std::uint8_t* pbo_map_write(const pbo_t& p);
     void pbo_unmap();
     void pbo_upload_to_texture(
       fan::graphics::image_nr_t nr,
       const pbo_t& p,
       fan::vec2ui size,
-      uintptr_t global_format,
+      std::uintptr_t global_format,
       GLenum type = GL_UNSIGNED_BYTE
     );
 
@@ -88,11 +88,11 @@ export namespace fan::opengl {
       const pbo_t& read_pbo,
       fan::graphics::image_nr_t nr,
       fan::vec2ui size,
-      uintptr_t global_format,  // fan::graphics::image_format_e
+      std::uintptr_t global_format,  // fan::graphics::image_format_e
       fill_fn_t&& fill,
       GLenum type = GL_UNSIGNED_BYTE
     ) {
-      uint8_t* ptr = pbo_map_write(write_pbo);
+      std::uint8_t* ptr = pbo_map_write(write_pbo);
       if (ptr) {
         fill(ptr, write_pbo.size);
         pbo_unmap();
@@ -123,7 +123,7 @@ export namespace fan::opengl {
     struct shader_t {
       GLuint id = -1;
       int projection_view[2]{ -1, -1 };
-      uint32_t vertex = -1, fragment = -1;
+      std::uint32_t vertex = -1, fragment = -1;
     };
 
     //static constexpr auto shader_validate_error_message = [](const std::string& str) {
@@ -144,8 +144,8 @@ export namespace fan::opengl {
         return;
       }
 
-      size_t hash0 = std::hash<std::string_view>{}(name);
-      size_t hash1 = std::hash<decltype(fan::graphics::shader_nr_t::NRI)>{}(nr.NRI);
+      std::size_t hash0 = std::hash<std::string_view>{}(name);
+      std::size_t hash1 = std::hash<decltype(fan::graphics::shader_nr_t::NRI)>{}(nr.NRI);
       auto shader_loc_it = shader_location_cache.find(hash0 ^ hash1);
       if (shader_loc_it == shader_location_cache.end()) {
         GLint location = fan_opengl_call(glGetUniformLocation(shader.id, std::string(name).c_str()));
@@ -187,13 +187,13 @@ export namespace fan::opengl {
 
     template <typename T>
     void shader_set_value(fan::graphics::shader_nr_t nr, const std::string_view name, const T& val) {
-      static_assert(!std::is_same_v<T, uint8_t>, "only 4 byte supported");
-      static_assert(!std::is_same_v<T, uint16_t>, "only 4 byte supported");
-      static_assert(std::is_same_v<T, bool> == false || !std::is_same_v<T, int>, "only 4 byte supported");
-      static_assert(std::is_same_v<T, double> == false, "only 4 byte supported");
-      uint8_t value[sizeof(T)];
-      for (uint32_t i = 0; i < sizeof(T); ++i) {
-        value[i] = ((uint8_t*)&val)[i];
+      static_assert(!std::is_same_v<T, std::uint8_t>, "only 4 std::byte supported");
+      static_assert(!std::is_same_v<T, std::uint16_t>, "only 4 std::byte supported");
+      static_assert(std::is_same_v<T, bool> == false || !std::is_same_v<T, int>, "only 4 std::byte supported");
+      static_assert(std::is_same_v<T, double> == false, "only 4 std::byte supported");
+      std::uint8_t value[sizeof(T)];
+      for (std::uint32_t i = 0; i < sizeof(T); ++i) {
+        value[i] = ((std::uint8_t*)&val)[i];
       }
       shader_use(nr);
       shader_t& shader = shader_get(nr);
@@ -205,8 +205,8 @@ export namespace fan::opengl {
         //fan::throw_error("failed to set uniform value");
       }
 
-      size_t hash0 = std::hash<std::string_view>{}(name);
-      size_t hash1 = std::hash<decltype(fan::graphics::shader_nr_t::NRI)>{}(nr.NRI);
+      std::size_t hash0 = std::hash<std::string_view>{}(name);
+      std::size_t hash1 = std::hash<decltype(fan::graphics::shader_nr_t::NRI)>{}(nr.NRI);
       auto shader_loc_it = shader_location_cache.find(hash0 ^ hash1);
       if (shader_loc_it == shader_location_cache.end()) {
         GLint location = fan_opengl_call(glGetUniformLocation(shader.id, std::string(name).c_str()));
@@ -238,7 +238,7 @@ export namespace fan::opengl {
       }
       case fan::get_hash(std::string_view("uint")): {
         if constexpr (not_non_arithmethic_types<T>) {
-          fan_opengl_call(glUniform1ui(location, *(uint32_t*)value));
+          fan_opengl_call(glUniform1ui(location, *(std::uint32_t*)value));
         }
         break;
       }
@@ -279,8 +279,8 @@ export namespace fan::opengl {
       auto found = __fan_internal_shader_list[nr].uniform_type_table.find(std::string(name));
       if (found == __fan_internal_shader_list[nr].uniform_type_table.end()) return;
 
-      size_t hash0 = std::hash<std::string_view> {}(name);
-      size_t hash1 = std::hash<decltype(fan::graphics::shader_nr_t::NRI)> {}(nr.NRI);
+      std::size_t hash0 = std::hash<std::string_view> {}(name);
+      std::size_t hash1 = std::hash<decltype(fan::graphics::shader_nr_t::NRI)> {}(nr.NRI);
       auto shader_loc_it = shader_location_cache.find(hash0 ^ hash1);
       if (shader_loc_it == shader_location_cache.end()) {
         GLint location = glGetUniformLocation(shader_get(nr).id, std::string(name).data());
@@ -313,26 +313,26 @@ export namespace fan::opengl {
     };
 
     struct image_load_properties_defaults {
-      static constexpr uint32_t visual_output = GL_REPEAT;
-      static constexpr uint32_t internal_format = GL_RGBA;
-      static constexpr uint32_t format = GL_RGBA;
-      static constexpr uint32_t type = GL_UNSIGNED_BYTE;
-      static constexpr uint32_t min_filter = GL_LINEAR;
-      static constexpr uint32_t mag_filter = GL_LINEAR;
+      static constexpr std::uint32_t visual_output = GL_REPEAT;
+      static constexpr std::uint32_t internal_format = GL_RGBA;
+      static constexpr std::uint32_t format = GL_RGBA;
+      static constexpr std::uint32_t type = GL_UNSIGNED_BYTE;
+      static constexpr std::uint32_t min_filter = GL_LINEAR;
+      static constexpr std::uint32_t mag_filter = GL_LINEAR;
     };
 
     struct image_load_properties_t {
-      uint32_t            visual_output = image_load_properties_defaults::visual_output;
-      uintptr_t           internal_format = image_load_properties_defaults::internal_format;
-      uintptr_t           format = image_load_properties_defaults::format;
-      uintptr_t           type = image_load_properties_defaults::type;
-      uintptr_t           min_filter = image_load_properties_defaults::min_filter;
-      uintptr_t           mag_filter = image_load_properties_defaults::mag_filter;
+      std::uint32_t            visual_output = image_load_properties_defaults::visual_output;
+      std::uintptr_t           internal_format = image_load_properties_defaults::internal_format;
+      std::uintptr_t           format = image_load_properties_defaults::format;
+      std::uintptr_t           type = image_load_properties_defaults::type;
+      std::uintptr_t           min_filter = image_load_properties_defaults::min_filter;
+      std::uintptr_t           mag_filter = image_load_properties_defaults::mag_filter;
     };
 
     struct image_cache_entry_t {
       fan::graphics::image_nr_t nr;
-      uint32_t ref_count;
+      std::uint32_t ref_count;
     };
 
     fan::graphics::image_nr_t image_load_internal(
@@ -366,18 +366,18 @@ export namespace fan::opengl {
 
     // draw modes
     struct primitive_topology_t {
-      static constexpr uint32_t points = GL_POINTS;
-      static constexpr uint32_t lines = GL_LINES;
-      static constexpr uint32_t line_strip = GL_LINE_STRIP;
-      static constexpr uint32_t line_loop = GL_LINE_LOOP;
-      static constexpr uint32_t triangles = GL_TRIANGLES;
-      static constexpr uint32_t triangle_strip = GL_TRIANGLE_STRIP;
-      static constexpr uint32_t triangle_fan = GL_TRIANGLE_FAN;
+      static constexpr std::uint32_t points = GL_POINTS;
+      static constexpr std::uint32_t lines = GL_LINES;
+      static constexpr std::uint32_t line_strip = GL_LINE_STRIP;
+      static constexpr std::uint32_t line_loop = GL_LINE_LOOP;
+      static constexpr std::uint32_t triangles = GL_TRIANGLES;
+      static constexpr std::uint32_t triangle_strip = GL_TRIANGLE_STRIP;
+      static constexpr std::uint32_t triangle_fan = GL_TRIANGLE_FAN;
     #if !defined(__wasm__)
-      static constexpr uint32_t lines_with_adjacency = GL_LINES_ADJACENCY;
-      static constexpr uint32_t line_strip_with_adjacency = GL_LINE_STRIP_ADJACENCY;
-      static constexpr uint32_t triangles_with_adjacency = GL_TRIANGLES_ADJACENCY;
-      static constexpr uint32_t triangle_strip_with_adjacency = GL_TRIANGLE_STRIP_ADJACENCY;
+      static constexpr std::uint32_t lines_with_adjacency = GL_LINES_ADJACENCY;
+      static constexpr std::uint32_t line_strip_with_adjacency = GL_LINE_STRIP_ADJACENCY;
+      static constexpr std::uint32_t triangles_with_adjacency = GL_TRIANGLES_ADJACENCY;
+      static constexpr std::uint32_t triangle_strip_with_adjacency = GL_TRIANGLE_STRIP_ADJACENCY;
     #endif
     };
 
@@ -456,7 +456,7 @@ export namespace fan::opengl {
     void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info);
     void image_reload(fan::graphics::image_nr_t nr, fan::str_view_t path, const fan::opengl::context_t::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current());
     void image_reload(fan::graphics::image_nr_t nr, fan::str_view_t path);
-    std::vector<uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, GLenum format, fan::vec2 uvp, fan::vec2 uvs);
+    std::vector<std::uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, GLenum format, fan::vec2 uvp, fan::vec2 uvs);
     fan::graphics::image_nr_t image_create(const fan::color& color, const fan::opengl::context_t::image_load_properties_t& p);
     fan::graphics::image_nr_t image_create(const fan::color& color);
 
@@ -525,21 +525,21 @@ export namespace fan::opengl {
     bool viewport_inside(fan::graphics::viewport_nr_t nr, const fan::vec2& position);
     bool viewport_inside_wir(fan::graphics::viewport_nr_t nr, const fan::vec2& position);
 
-    static uint32_t global_to_opengl_format(uintptr_t format);
-    static uint32_t global_to_opengl_type(uintptr_t type);
-    static uint32_t global_to_opengl_address_mode(uint32_t mode);
-    static uint32_t global_to_opengl_filter(uintptr_t filter);
-    static uint32_t opengl_to_global_format(uintptr_t format);
-    static uint32_t opengl_to_global_type(uintptr_t type);
-    static uint32_t opengl_to_global_address_mode(uint32_t mode);
-    static uint32_t opengl_to_global_filter(uintptr_t filter);
+    static std::uint32_t global_to_opengl_format(std::uintptr_t format);
+    static std::uint32_t global_to_opengl_type(std::uintptr_t type);
+    static std::uint32_t global_to_opengl_address_mode(std::uint32_t mode);
+    static std::uint32_t global_to_opengl_filter(std::uintptr_t filter);
+    static std::uint32_t opengl_to_global_format(std::uintptr_t format);
+    static std::uint32_t opengl_to_global_type(std::uintptr_t type);
+    static std::uint32_t opengl_to_global_address_mode(std::uint32_t mode);
+    static std::uint32_t opengl_to_global_filter(std::uintptr_t filter);
 
     void close(fan::opengl::context_t& context);
 
     static fan::opengl::context_t::image_load_properties_t image_global_to_opengl(const fan::graphics::image_load_properties_t& p);
     static fan::graphics::image_load_properties_t image_opengl_to_global(const fan::opengl::context_t::image_load_properties_t& p);
 
-    std::unordered_map<size_t, int> shader_location_cache;
+    std::unordered_map<std::size_t, int> shader_location_cache;
     fan::opengl::opengl_t opengl;
     GLuint current_program = -1;
   };
@@ -551,8 +551,8 @@ template void fan::opengl::context_t::shader_get_value<fan::vec3>(fan::graphics:
 template void fan::opengl::context_t::shader_get_value<fan::vec4>(fan::graphics::shader_nr_t nr, const std::string_view name, fan::vec4& val);
 template void fan::opengl::context_t::shader_get_value<fan::mat4>(fan::graphics::shader_nr_t nr, const std::string_view name, fan::mat4& val);
 template void fan::opengl::context_t::shader_get_value<fan::color>(fan::graphics::shader_nr_t nr, const std::string_view name, fan::color& val);
-template void fan::opengl::context_t::shader_get_value<uint32_t>(fan::graphics::shader_nr_t nr, const std::string_view name, uint32_t& val);
-template void fan::opengl::context_t::shader_get_value<uint64_t>(fan::graphics::shader_nr_t nr, const std::string_view name, uint64_t& val);
+template void fan::opengl::context_t::shader_get_value<std::uint32_t>(fan::graphics::shader_nr_t nr, const std::string_view name, std::uint32_t& val);
+template void fan::opengl::context_t::shader_get_value<std::uint64_t>(fan::graphics::shader_nr_t nr, const std::string_view name, std::uint64_t& val);
 template void fan::opengl::context_t::shader_get_value<int>(fan::graphics::shader_nr_t nr, const std::string_view name, int& val);
 template void fan::opengl::context_t::shader_get_value<f32_t>(fan::graphics::shader_nr_t nr, const std::string_view name, f32_t& val);
 
@@ -561,8 +561,8 @@ template void fan::opengl::context_t::shader_set_value<fan::vec3>(fan::graphics:
 template void fan::opengl::context_t::shader_set_value<fan::vec4>(fan::graphics::shader_nr_t nr, const std::string_view name, const fan::vec4& val);
 template void fan::opengl::context_t::shader_set_value<fan::mat4>(fan::graphics::shader_nr_t nr, const std::string_view name, const fan::mat4& val);
 template void fan::opengl::context_t::shader_set_value<fan::color>(fan::graphics::shader_nr_t nr, const std::string_view name, const fan::color& val);
-template void fan::opengl::context_t::shader_set_value<uint32_t>(fan::graphics::shader_nr_t nr, const std::string_view name, const uint32_t& val);
-template void fan::opengl::context_t::shader_set_value<uint64_t>(fan::graphics::shader_nr_t nr, const std::string_view name, const uint64_t& val);
+template void fan::opengl::context_t::shader_set_value<std::uint32_t>(fan::graphics::shader_nr_t nr, const std::string_view name, const std::uint32_t& val);
+template void fan::opengl::context_t::shader_set_value<std::uint64_t>(fan::graphics::shader_nr_t nr, const std::string_view name, const std::uint64_t& val);
 template void fan::opengl::context_t::shader_set_value<int>(fan::graphics::shader_nr_t nr, const std::string_view name, const int& val);
 template void fan::opengl::context_t::shader_set_value<f32_t>(fan::graphics::shader_nr_t nr, const std::string_view name, const f32_t& val);
 template void fan::opengl::context_t::shader_set_value<fan::vec1_wrap_t<f32_t>>(fan::graphics::shader_nr_t nr, const std::string_view name, const fan::vec1_wrap_t<f32_t>& val);
@@ -572,28 +572,28 @@ template void fan::opengl::context_t::shader_set_value<fan::vec_wrap_t<2, f32_t>
 
 export namespace fan::opengl::core {
   int get_buffer_size(fan::opengl::context_t& context, GLenum target_buffer, GLuint buffer_object);
-  void write_glbuffer(fan::opengl::context_t& context, GLuint buffer, const void* data, uintptr_t size, uint32_t usage, GLenum target);
-  void get_glbuffer(fan::opengl::context_t& context, void* data, GLuint buffer_id, uintptr_t size, uintptr_t offset, GLenum target);
-  void edit_glbuffer(fan::opengl::context_t& context, GLuint buffer, const void* data, uintptr_t offset, uintptr_t size, uintptr_t target);
+  void write_glbuffer(fan::opengl::context_t& context, GLuint buffer, const void* data, std::uintptr_t size, std::uint32_t usage, GLenum target);
+  void get_glbuffer(fan::opengl::context_t& context, void* data, GLuint buffer_id, std::uintptr_t size, std::uintptr_t offset, GLenum target);
+  void edit_glbuffer(fan::opengl::context_t& context, GLuint buffer, const void* data, std::uintptr_t offset, std::uintptr_t size, std::uintptr_t target);
 
   // not tested
   int get_bound_buffer(fan::opengl::context_t& context);
   void reserve_glbuffer(
     fan::opengl::context_t& ctx,
     GLuint buffer,
-    uint32_t& capacity,
-    uint32_t needed,
-    uint32_t usage,
+    std::uint32_t& capacity,
+    std::uint32_t needed,
+    std::uint32_t usage,
     GLenum target
   );
   void append_glbuffer(
     fan::opengl::context_t& ctx,
     GLuint buffer,
-    uintptr_t& size_bytes,
-    uintptr_t& capacity_bytes,
+    std::uintptr_t& size_bytes,
+    std::uintptr_t& capacity_bytes,
     const void* data,
-    uintptr_t data_size,
-    uint32_t usage,
+    std::uintptr_t data_size,
+    std::uint32_t usage,
     GLenum target
   );
   //#pragma pack(push, 1)
@@ -621,18 +621,18 @@ export namespace fan::opengl::core {
 
     void bind(fan::opengl::context_t& context) const;
 
-    void get_vram_instance(fan::opengl::context_t& context, void* data, uintptr_t size, uintptr_t offset);
+    void get_vram_instance(fan::opengl::context_t& context, void* data, std::uintptr_t size, std::uintptr_t offset);
 
     // only for target GL_UNIFORM_BUFFER
-    void bind_buffer_range(fan::opengl::context_t& context, uint32_t total_size);
+    void bind_buffer_range(fan::opengl::context_t& context, std::uint32_t total_size);
 
-    void edit_buffer(fan::opengl::context_t& context, const void* data, uintptr_t offset, uintptr_t size);
+    void edit_buffer(fan::opengl::context_t& context, const void* data, std::uintptr_t offset, std::uintptr_t size);
 
-    void write_buffer(fan::opengl::context_t& context, const void* data, uintptr_t size);
+    void write_buffer(fan::opengl::context_t& context, const void* data, std::uintptr_t size);
 
     GLuint m_buffer = (GLuint)-1;
     GLenum m_target = (GLuint)-1;
-    uint32_t m_usage = GL_DYNAMIC_DRAW;
+    std::uint32_t m_usage = GL_DYNAMIC_DRAW;
   };
 
   struct framebuffer_t {
@@ -669,7 +669,7 @@ export namespace fan::opengl::core {
     GLuint renderbuffer;
   };
 
-  uint32_t get_draw_mode(uint8_t draw_mode);
+  std::uint32_t get_draw_mode(std::uint8_t draw_mode);
 }
 
 namespace fan::graphics {

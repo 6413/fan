@@ -249,6 +249,6 @@ struct raii_nr_debug_t : raii_nr_t<nr_t, user_t, params...> {
 
   static void verify() {
     for (auto& i : alive_map)
-      if (i.second) printf("DBG FAIL %p\n", i.first);
+      if (i.second) std::printf("DBG FAIL %p\n", i.first);
   }
 };

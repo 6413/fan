@@ -33,11 +33,11 @@ export struct ascii_renderer_t {
   ascii_renderer_t(const properties_t& p) : properties(p) {}
 
   void render(
-    const uint8_t* pixel_data,
-    uint32_t width,
-    uint32_t height,
-    uint32_t bytes_per_pixel = 4,
-    uint32_t stride = 0
+    const std::uint8_t* pixel_data,
+    std::uint32_t width,
+    std::uint32_t height,
+    std::uint32_t bytes_per_pixel = 4,
+    std::uint32_t stride = 0
   ) {
     using namespace fan::graphics;
     if (!properties.enabled || !pixel_data) return;
@@ -103,8 +103,8 @@ export struct ascii_renderer_t {
   }
 
   char brightness_to_ascii(f32_t b) const {
-    int i = static_cast<int>(b * (strlen(properties.ascii_gradient) - 1));
-    return properties.ascii_gradient[std::clamp(i, 0, (int)strlen(properties.ascii_gradient) - 1)];
+    int i = static_cast<int>(b * (std::strlen(properties.ascii_gradient) - 1));
+    return properties.ascii_gradient[std::clamp(i, 0, (int)std::strlen(properties.ascii_gradient) - 1)];
   }
 
   properties_t properties;

@@ -38,7 +38,7 @@ export struct fte_t {
   static constexpr fan::color highlighted_tile_color = fan::color(0.5, 0.5, 1);
   static constexpr fan::color highlighted_selected_tile_color = fan::color(0.5, 0, 0, 0.1);
   static constexpr f32_t scroll_speed = 1.2;
-  static constexpr uint32_t invalid = -1;
+  static constexpr std::uint32_t invalid = -1;
 
   struct shape_depths_t {
     static constexpr int max_layer_depth = 0xFAAA - 2;
@@ -89,7 +89,7 @@ export struct fte_t {
   struct current_tile_t {
     fan::vec2i position = 0;
     shapes_t::global_t::layer_t* layer = nullptr;
-    uint32_t layer_index;
+    std::uint32_t layer_index;
   };
 
   struct visual_layer_t {
@@ -103,7 +103,7 @@ export struct fte_t {
   };
 
   struct brush_t {
-    enum class mode_e : uint8_t {
+    enum class mode_e : std::uint8_t {
       draw,
       copy
     };
@@ -111,9 +111,9 @@ export struct fte_t {
     fan::vec2 line_src = -9999999;
     static constexpr const char* mode_names[] = {"Draw", "Copy"};
 
-    enum class type_e : uint8_t {
+    enum class type_e : std::uint8_t {
       texture,
-      physics_shape = (uint8_t)fte_t::mesh_property_t::physics_shape,
+      physics_shape = (std::uint8_t)fte_t::mesh_property_t::physics_shape,
       light,
       player_spawn,
       enemy_spawn,
@@ -124,7 +124,7 @@ export struct fte_t {
     };
     type_e type = type_e::texture;
 
-    enum class dynamics_e : uint8_t {
+    enum class dynamics_e : std::uint8_t {
       original,
       randomize
     };
@@ -141,10 +141,10 @@ export struct fte_t {
     std::string id;
     fan::color color = fan::color(1);
     fan::vec2 offset = 0;
-    uint32_t flags = 0;
-    uint8_t physics_type = physics_shapes_t::type_e::box;
+    std::uint32_t flags = 0;
+    std::uint8_t physics_type = physics_shapes_t::type_e::box;
     static constexpr const char* physics_type_names[] = {"Box", "Circle"};
-    uint8_t physics_body_type = fan::physics::body_type_e::static_body;
+    std::uint8_t physics_body_type = fan::physics::body_type_e::static_body;
     static constexpr const char* physics_body_type_names[] = {"Static", "Kinematic", "Dynamic"};
     bool physics_draw = false;
     fan::physics::shape_properties_t physics_shape_properties;
@@ -179,12 +179,12 @@ export struct fte_t {
 
   struct layer_info_t {
     std::string layer_name;
-    uint16_t depth;
+    std::uint16_t depth;
   };
 
-  uint32_t find_layer_shape(const auto& vec, bool top = false) {
-    uint32_t found = invalid;
-    int64_t depth = -1;
+  std::uint32_t find_layer_shape(const auto& vec, bool top = false) {
+    std::uint32_t found = invalid;
+    std::int64_t depth = -1;
     for (std::size_t i = 0; i < vec.size(); ++i) {
       if (top) {
         if (vec[i].tile.position.z > depth) {
@@ -314,7 +314,7 @@ export struct fte_t {
         case fan::mouse_scroll_down: {
           if (fan::graphics::get_window().key_pressed(fan::key_left_control)) {
             brush.depth -= 1;
-            brush.depth = std::max((uint32_t)brush.depth, (uint32_t)1);
+            brush.depth = std::max((std::uint32_t)brush.depth, (std::uint32_t)1);
           }
           else if (fan::graphics::get_window().key_pressed(fan::key_left_shift)) {
             brush.size = (brush.size - 1).max(fan::vec2i(1));
@@ -537,7 +537,7 @@ export struct fte_t {
 
     auto& layers = map_tiles[grid_position].layers;
     visual_layers[brush.depth].positions[grid_position] = 1;
-    uint32_t idx = find_layer_shape(layers);
+    std::uint32_t idx = find_layer_shape(layers);
 
     if (idx == invalid && (brush.type == brush_t::type_e::light)) {
       layers.resize(layers.size() + 1);
@@ -758,7 +758,7 @@ export struct fte_t {
     auto found_tile = map_tiles.find(grid_position);
     if (found_tile != map_tiles.end()) {
       auto& layers = found_tile->second.layers;
-      uint32_t idx = find_layer_shape(layers);
+      std::uint32_t idx = find_layer_shape(layers);
 
       if (idx != invalid || idx < layers.size()) {
         switch (layers[idx].tile.mesh_property) {
@@ -1159,7 +1159,7 @@ export struct fte_t {
       viewport_settings.window_related_mouse_pos = fan::vec2(fan::vec2(fan::graphics::gui::get_window_pos()) + fan::vec2(fan::graphics::gui::get_window_size() / 2) + fan::vec2(0, style.WindowPadding.y * 2 - frame_padding.y * 2));
 
       fan::graphics::gui::set_font(fan::graphics::gui::get_font_size() * 1.5);
-      fan::graphics::gui::text("brush type: "_str + brush.type_names[(uint8_t)brush.type]);
+      fan::graphics::gui::text("brush type: "_str + brush.type_names[(std::uint8_t)brush.type]);
       fan::graphics::gui::text("brush depth: " + std::to_string((int)brush.depth - shape_depths_t::max_layer_depth / 2));
       fan::graphics::gui::pop_font();
 
@@ -1219,7 +1219,7 @@ export struct fte_t {
         for (auto& layer_pair : visual_layers) {
           auto& layer = layer_pair.second; 
           layer.text.resize(32);
-          uint16_t depth = layer_pair.first;
+          std::uint16_t depth = layer_pair.first;
           auto fmt = ("Layer " + std::to_string(depth - shape_depths_t::max_layer_depth / 2));
 
           if (fan::graphics::gui::toggle_button(("Visible " + fmt).c_str(), &layer.visible)) {
@@ -1448,9 +1448,9 @@ export struct fte_t {
 
       static fan::vec2 selection_start(-1, -1);
       static fan::vec2 selection_end(-1, -1);
-      static fan::vec2 min_rect = (uint32_t)~0;
+      static fan::vec2 min_rect = (std::uint32_t)~0;
       static fan::vec2 max_rect = -1;
-      static fan::vec2 min_rect_draw = (uint32_t)~0;
+      static fan::vec2 min_rect_draw = (std::uint32_t)~0;
       static fan::vec2 max_rect_draw = -1;
       static bool is_selecting = false;
 
@@ -1465,7 +1465,7 @@ export struct fte_t {
       fan::vec2 initial_pos = fan::graphics::gui::get_cursor_screen_pos();
       auto* draw_list = fan::graphics::gui::get_window_draw_list();
 
-      for (uint32_t i = 0; i < texture_pack_images.size(); i++) {
+      for (std::uint32_t i = 0; i < texture_pack_images.size(); i++) {
         auto& node = texture_pack_images[i];
         fan::vec2i grid_index(i % images_per_row, i / images_per_row);
 
@@ -1538,20 +1538,20 @@ export struct fte_t {
         selection_end = fan::graphics::gui::get_mouse_pos();
         fan::vec2 max_rect_draw_adjusted = max_rect_draw + sprite_size;
         max_rect_draw_adjusted = max_rect_draw_adjusted.min(initial_pos + cursor_grid * sprite_size + sprite_size);
-        if (min_rect != (uint32_t)~0 && max_rect != -1) {
+        if (min_rect != (std::uint32_t)~0 && max_rect != -1) {
           draw_list->AddRect(min_rect_draw, max_rect_draw_adjusted, 0xff0077ff);
         }
 
         if (is_left_mouse_button_released) {
           is_selecting = false;
-          min_rect = (uint32_t)~0;
+          min_rect = (std::uint32_t)~0;
           max_rect = -1;
-          min_rect_draw = (uint32_t)~0;
+          min_rect_draw = (std::uint32_t)~0;
           max_rect_draw = -1;
         }
       }
 
-      if (min_rect != (uint32_t)~0 && max_rect != -1) {
+      if (min_rect != (std::uint32_t)~0 && max_rect != -1) {
         for (int y = min_rect.y; y <= std::min(max_rect.y, cursor_grid.y); ++y) {
           for (int x = min_rect.x; x <= std::min(max_rect.x, cursor_grid.x); ++x) {
             current_image_indices[fan::vec2i(x, y)] = y * images_per_row + x;
@@ -1617,7 +1617,7 @@ export struct fte_t {
           layer.shape.set_rotation_point(rotation_point);
         }
 
-        uint32_t flags = layer.shape.get_flags();
+        std::uint32_t flags = layer.shape.get_flags();
         if (fan::graphics::gui::input_int("special flags", (int*)&flags, 1, 1)) {
           layer.shape.set_flags(flags);
         }
@@ -1817,7 +1817,7 @@ export struct fte_t {
     }
 
     auto& layers = found->second.layers;
-    uint32_t idx = find_layer_shape(layers);
+    std::uint32_t idx = find_layer_shape(layers);
     if (idx == invalid) {
       idx = find_layer_shape(layers, true);
     }
@@ -1828,8 +1828,8 @@ export struct fte_t {
     auto& layer = layers[idx];
     apply_brush_settings(layer.tile.id, layer.tile.position.z, layer.tile.size, layer.shape.get_color(), layer.shape.get_angle());
 
-    uint16_t st = layer.shape.get_shape_type();
-    if (st == (uint16_t)fan::graphics::shape_type_t::sprite || st == (uint16_t)fan::graphics::shape_type_t::unlit_sprite) {
+    std::uint16_t st = layer.shape.get_shape_type();
+    if (st == (std::uint16_t)fan::graphics::shape_type_t::sprite || st == (std::uint16_t)fan::graphics::shape_type_t::unlit_sprite) {
       current_image_indices.clear();
       current_tile_images.clear();
       current_tile_images.resize(1);
@@ -1857,7 +1857,7 @@ export struct fte_t {
       auto found = map_tiles.find(fan::vec2i(grid_position.x, grid_position.y));
       if (found != map_tiles.end()) {
         auto& layers = found->second.layers;
-        uint32_t idx = find_layer_shape(layers);
+        std::uint32_t idx = find_layer_shape(layers);
         if ((idx != invalid || idx < brush.depth)) {
           current_tile.position = position;
           current_tile.layer = layers.data();
@@ -2051,7 +2051,7 @@ export struct fte_t {
     }
     ostr["texture_packs"] = std::move(jtps);
 
-    size_t total_tiles = 0;
+    std::size_t total_tiles = 0;
     for (auto& [depth, vec] : physics_shapes) {
       total_tiles += vec.size();
     }
@@ -2059,7 +2059,7 @@ export struct fte_t {
       total_tiles += marks.size();
     }
 
-    std::unordered_map<uint16_t, std::unordered_map<fan::vec2i, fte_t::shapes_t::global_t::layer_t*>> depth_tiles;
+    std::unordered_map<std::uint16_t, std::unordered_map<fan::vec2i, fte_t::shapes_t::global_t::layer_t*>> depth_tiles;
     depth_tiles.reserve(visual_layers.size());
 
     for (auto& [gp, cell] : map_tiles) {
@@ -2269,7 +2269,7 @@ export struct fte_t {
       return;
     }
 
-    constexpr size_t BUFFER_SIZE = 1024 * 1024; 
+    constexpr std::size_t BUFFER_SIZE = 1024 * 1024; 
 
     file.rdbuf()->pubsetbuf(nullptr, BUFFER_SIZE);
     file.write(json_str.c_str(), json_str.size());
@@ -2347,7 +2347,7 @@ export struct fte_t {
     physics_shapes.clear();
     spawn_marks.clear();
 
-    size_t estimated_tiles = map_size.x * map_size.y / 4;
+    std::size_t estimated_tiles = map_size.x * map_size.y / 4;
     map_tiles.reserve(estimated_tiles);
 
     resize_map();
@@ -2405,7 +2405,7 @@ export struct fte_t {
           auto mesh_prop = shape_json["mesh_property"].get<mesh_property_t>();
 
           if (mesh_prop == fte_t::mesh_property_t::physics_shape) {
-            uint16_t depth = shape.get_position().z;
+            std::uint16_t depth = shape.get_position().z;
             auto& physics_shape = physics_shapes[depth];
             physics_shape.emplace_back();
             auto& physics_element = physics_shape.back();
@@ -2442,7 +2442,7 @@ export struct fte_t {
             mark.type = mesh_prop;
             mark.id = shape_json.value("id", "");
 
-            uint16_t depth = mark.position.z;
+            std::uint16_t depth = mark.position.z;
             spawn_marks[depth].push_back(std::move(mark));
             auto& inserted_mark = spawn_marks[depth].back();
 
@@ -2465,7 +2465,7 @@ export struct fte_t {
         }
 
         fan::vec2i gp = shape.get_position();
-        uint16_t depth = shape.get_position().z;
+        std::uint16_t depth = shape.get_position().z;
 
         convert_draw_to_grid(gp);
         gp /= tile_size * 2;
@@ -2657,7 +2657,7 @@ export struct fte_t {
           fan::vec2i grid_pos(x, y);
           auto& layers = editor->map_tiles[grid_pos].layers;
 
-          uint32_t idx = editor->find_layer_shape(layers);
+          std::uint32_t idx = editor->find_layer_shape(layers);
           if (idx == fte_t::invalid) {
             layers.resize(layers.size() + 1);
             idx = layers.size() - 1;
@@ -2718,7 +2718,7 @@ export struct fte_t {
     fan::color color = fan::colors::white;
   };
   std::unordered_map<f32_t, std::vector<spawn_mark_t>> spawn_marks;
-  std::map<uint16_t, visual_layer_t> visual_layers;
+  std::map<std::uint16_t, visual_layer_t> visual_layers;
   fan::vec2 texturepack_size{};
   fan::vec2 texturepack_single_image_size{};
   std::vector<tile_info_t> texture_pack_images;

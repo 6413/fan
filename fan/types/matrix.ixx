@@ -31,8 +31,8 @@ export namespace fan {
       f32_t c = std::cos(a), s = std::sin(a);
       return {v.x * c - v.y * s, v.x * s + v.y * c};
     }
-    constexpr fan::vec2& operator[](uintptr_t i) { return m[i]; }
-    constexpr fan::vec2 operator[](uintptr_t i) const { return m[i]; }
+    constexpr fan::vec2& operator[](std::uintptr_t i) { return m[i]; }
+    constexpr fan::vec2 operator[](std::uintptr_t i) const { return m[i]; }
   };
 
   template <typename T>
@@ -52,8 +52,8 @@ export namespace fan {
       f32_t c = std::cos(a), s = std::sin(a);
       return {v.x * c - v.y * s, v.x * s + v.y * c, v.z};
     }
-    constexpr fan::vec3& operator[](uintptr_t i) { return m[i]; }
-    constexpr fan::vec3 operator[](uintptr_t i) const { return m[i]; }
+    constexpr fan::vec3& operator[](std::uintptr_t i) { return m[i]; }
+    constexpr fan::vec3 operator[](std::uintptr_t i) const { return m[i]; }
   };
 
   template <typename T>
@@ -75,7 +75,7 @@ export namespace fan {
     constexpr bool is_identity() const {
       return m[0][0] == 1 && m[1][1] == 1 && m[2][2] == 1 && m[0][1] == 0 && m[1][0] == 0 && m[2][1] == 0 && m[0][2] == 0 && m[1][2] == 0 && m[2][0] == 0 && m[0][3] == 0 && m[1][3] == 0 && m[2][3] == 0;
     }
-    static constexpr size_t size() { return 16; }
+    static constexpr std::size_t size() { return 16; }
 
     constexpr _matrix4x4 operator*(const _matrix4x4& rhs) const {
       _matrix4x4 r{};
@@ -132,8 +132,8 @@ export namespace fan {
       return r;
     }
 
-    constexpr fan::vec4& operator[](uintptr_t i) { return m[i]; }
-    constexpr fan::vec4 operator[](uintptr_t i) const { return m[i]; }
+    constexpr fan::vec4& operator[](std::uintptr_t i) { return m[i]; }
+    constexpr fan::vec4 operator[](std::uintptr_t i) const { return m[i]; }
     T* data() { return &m[0][0]; }
     const T* data() const { return &m[0][0]; }
 
@@ -156,28 +156,28 @@ export namespace fan {
     template <typename U> operator fan::quaternion<U>() const { return _matrix4x4<U>::to_quat(*(const _matrix4x4<U>*)this); }
   };
 
-  template <uint32_t R, uint32_t C, typename T = f32_t>
+  template <std::uint32_t R, std::uint32_t C, typename T = f32_t>
   struct matrix2d {
     T m[R][C];
     constexpr matrix2d() : m{} {}
     template <typename... Args> requires (sizeof...(Args) > 1)
     constexpr matrix2d(Args&&... a) : m{ static_cast<T>(a)... } {}
-    constexpr matrix2d(T v) : matrix2d() { for (uint32_t i = 0; i < R; ++i) m[i][i] = v; }
-    constexpr T* operator[](uintptr_t i) { return m[i]; }
-    constexpr const T* operator[](uintptr_t i) const { return m[i]; }
-    constexpr matrix2d operator+(const matrix2d& o) const { matrix2d r; for (uint32_t i = 0; i < R * C; ++i) r.data()[i] = data()[i] + o.data()[i]; return r; }
+    constexpr matrix2d(T v) : matrix2d() { for (std::uint32_t i = 0; i < R; ++i) m[i][i] = v; }
+    constexpr T* operator[](std::uintptr_t i) { return m[i]; }
+    constexpr const T* operator[](std::uintptr_t i) const { return m[i]; }
+    constexpr matrix2d operator+(const matrix2d& o) const { matrix2d r; for (std::uint32_t i = 0; i < R * C; ++i) r.data()[i] = data()[i] + o.data()[i]; return r; }
     constexpr void operator+=(const matrix2d& o) { *this = *this + o; }
-    constexpr matrix2d operator-(const matrix2d& o) const { matrix2d r; for (uint32_t i = 0; i < R * C; ++i) r.data()[i] = data()[i] - o.data()[i]; return r; }
-    template <uint32_t C2> constexpr matrix2d<R, C2, T> operator*(const matrix2d<C, C2, T>& o) const {
+    constexpr matrix2d operator-(const matrix2d& o) const { matrix2d r; for (std::uint32_t i = 0; i < R * C; ++i) r.data()[i] = data()[i] - o.data()[i]; return r; }
+    template <std::uint32_t C2> constexpr matrix2d<R, C2, T> operator*(const matrix2d<C, C2, T>& o) const {
       matrix2d<R, C2, T> r;
-      for (uint32_t i = 0; i < R; ++i) for (uint32_t j = 0; j < C2; ++j) for (uint32_t k = 0; k < C; ++k) r[i][j] += m[i][k] * o[k][j];
+      for (std::uint32_t i = 0; i < R; ++i) for (std::uint32_t j = 0; j < C2; ++j) for (std::uint32_t k = 0; k < C; ++k) r[i][j] += m[i][k] * o[k][j];
       return r;
     }
-    constexpr matrix2d<C, R, T> transpose() const { matrix2d<C, R, T> r; for (uint32_t i = 0; i < R; ++i) for (uint32_t j = 0; j < C; ++j) r[j][i] = m[i][j]; return r; }
-    void randomize() { for (uint32_t i = 0; i < R * C; ++i) data()[i] = fan::random::value_f32(-1, 1); }
-    constexpr matrix2d hadamard(const matrix2d& o) const { matrix2d r; for (uint32_t i = 0; i < R * C; ++i) r.data()[i] = data()[i] * o.data()[i]; return r; }
-    constexpr matrix2d sigmoid() const { matrix2d r; for (uint32_t i = 0; i < R * C; ++i) r.data()[i] = fan::math::sigmoid(data()[i]); return r; }
-    constexpr matrix2d sigmoid_derivative() const { matrix2d r; for (uint32_t i = 0; i < R * C; ++i) r.data()[i] = fan::math::sigmoid_derivative(data()[i]); return r; }
+    constexpr matrix2d<C, R, T> transpose() const { matrix2d<C, R, T> r; for (std::uint32_t i = 0; i < R; ++i) for (std::uint32_t j = 0; j < C; ++j) r[j][i] = m[i][j]; return r; }
+    void randomize() { for (std::uint32_t i = 0; i < R * C; ++i) data()[i] = fan::random::value_f32(-1, 1); }
+    constexpr matrix2d hadamard(const matrix2d& o) const { matrix2d r; for (std::uint32_t i = 0; i < R * C; ++i) r.data()[i] = data()[i] * o.data()[i]; return r; }
+    constexpr matrix2d sigmoid() const { matrix2d r; for (std::uint32_t i = 0; i < R * C; ++i) r.data()[i] = fan::math::sigmoid(data()[i]); return r; }
+    constexpr matrix2d sigmoid_derivative() const { matrix2d r; for (std::uint32_t i = 0; i < R * C; ++i) r.data()[i] = fan::math::sigmoid_derivative(data()[i]); return r; }
     void zero() { std::memset(m, 0, sizeof(m)); }
     T* data() { return &m[0][0]; }
     const T* data() const { return &m[0][0]; }
@@ -185,14 +185,14 @@ export namespace fan {
 
   template <typename T = f32_t>
   struct runtime_matrix2d {
-    uint32_t rows, columns;
+    std::uint32_t rows, columns;
     T** m = nullptr;
-    runtime_matrix2d(uint32_t r, uint32_t c);
+    runtime_matrix2d(std::uint32_t r, std::uint32_t c);
     runtime_matrix2d(const runtime_matrix2d& o);
     runtime_matrix2d& operator=(const runtime_matrix2d& o);
     ~runtime_matrix2d();
-    T*& operator[](uint32_t i) { return m[i]; }
-    const T* operator[](uint32_t i) const { return m[i]; }
+    T*& operator[](std::uint32_t i) { return m[i]; }
+    const T* operator[](std::uint32_t i) const { return m[i]; }
     runtime_matrix2d operator+(const runtime_matrix2d& o) const;
     runtime_matrix2d operator-(const runtime_matrix2d& o) const;
     runtime_matrix2d operator*(const runtime_matrix2d& o) const;

@@ -93,9 +93,9 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 }
 
 struct queue_family_indices_t {
-  std::optional<uint32_t> graphics_family;
+  std::optional<std::uint32_t> graphics_family;
 #if defined(loco_window)
-  std::optional<uint32_t> present_family;
+  std::optional<std::uint32_t> present_family;
 #endif
   bool is_complete() {
     return graphics_family.has_value()
@@ -126,7 +126,7 @@ export namespace fan {
 }
 
 namespace fan::graphics::format_converter {
-  VkFormat global_to_vulkan_format(uintptr_t format) {
+  VkFormat global_to_vulkan_format(std::uintptr_t format) {
     if (format == image_format::b8g8r8a8_unorm) return VK_FORMAT_B8G8R8A8_UNORM;
     if (format == image_format::r8b8g8a8_unorm) return VK_FORMAT_R8G8B8A8_UNORM;
     if (format == image_format::r8_unorm) return VK_FORMAT_R8_UNORM;
@@ -138,7 +138,7 @@ namespace fan::graphics::format_converter {
   #endif
     return VK_FORMAT_R8G8B8A8_UNORM;
   }
-  VkSamplerAddressMode global_to_vulkan_address_mode(uintptr_t mode) {
+  VkSamplerAddressMode global_to_vulkan_address_mode(std::uintptr_t mode) {
     if (mode == image_sampler_address_mode::repeat) return VK_SAMPLER_ADDRESS_MODE_REPEAT;
     if (mode == image_sampler_address_mode::mirrored_repeat) return VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
     if (mode == image_sampler_address_mode::clamp_to_edge) return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
@@ -149,7 +149,7 @@ namespace fan::graphics::format_converter {
   #endif
     return VK_SAMPLER_ADDRESS_MODE_REPEAT;
   }
-  VkFilter global_to_vulkan_filter(uintptr_t filter) {
+  VkFilter global_to_vulkan_filter(std::uintptr_t filter) {
     if (filter == image_filter::nearest) return VK_FILTER_NEAREST;
     if (filter == image_filter::linear) return VK_FILTER_LINEAR;
   #if FAN_DEBUG >= fan_debug_high
@@ -158,7 +158,7 @@ namespace fan::graphics::format_converter {
     return VK_FILTER_NEAREST;
   }
 
-  uint32_t vulkan_to_global_format(VkFormat format) {
+  std::uint32_t vulkan_to_global_format(VkFormat format) {
     if (format == VK_FORMAT_B8G8R8A8_UNORM) return fan::graphics::image_format::b8g8r8a8_unorm;
     if (format == VK_FORMAT_R8G8B8A8_UNORM) return fan::graphics::image_format::r8b8g8a8_unorm;
     if (format == VK_FORMAT_R8_UNORM) return fan::graphics::image_format::r8_unorm;
@@ -169,7 +169,7 @@ namespace fan::graphics::format_converter {
 #endif
     return fan::graphics::image_format::rgba_unorm;
   }
-  uint32_t vulkan_to_global_address_mode(VkSamplerAddressMode mode) {
+  std::uint32_t vulkan_to_global_address_mode(VkSamplerAddressMode mode) {
     if (mode == VK_SAMPLER_ADDRESS_MODE_REPEAT) return fan::graphics::image_sampler_address_mode::repeat;
     if (mode == VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT) return fan::graphics::image_sampler_address_mode::mirrored_repeat;
     if (mode == VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE) return fan::graphics::image_sampler_address_mode::clamp_to_edge;
@@ -180,7 +180,7 @@ namespace fan::graphics::format_converter {
 #endif
     return fan::graphics::image_sampler_address_mode::repeat;
   }
-  uint32_t vulkan_to_global_filter(VkFilter filter) {
+  std::uint32_t vulkan_to_global_filter(VkFilter filter) {
     if (filter == VK_FILTER_NEAREST) return fan::graphics::image_filter::nearest;
     if (filter == VK_FILTER_LINEAR) return fan::graphics::image_filter::linear;
 #if FAN_DEBUG >= fan_debug_high
@@ -201,7 +201,7 @@ namespace fan::graphics::format_converter {
   }
 }
 
-constexpr static uint32_t get_image_multiplier(VkFormat format);
+constexpr static std::uint32_t get_image_multiplier(VkFormat format);
 
 export namespace fan {
   namespace vulkan {
@@ -212,13 +212,13 @@ export namespace fan {
       }
     }
 
-    inline constexpr uint16_t max_camera = 16;
-    inline constexpr uint16_t max_textures = 0xffff;
+    inline constexpr std::uint16_t max_camera = 16;
+    inline constexpr std::uint16_t max_textures = 0xffff;
 
     struct write_descriptor_set_t {
       // glsl layout binding
-      uint32_t binding;
-      uint32_t dst_binding = 0;
+      std::uint32_t binding;
+      std::uint32_t dst_binding = 0;
 
       // VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
       // VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
@@ -231,7 +231,7 @@ export namespace fan {
 
       VkBuffer buffer = nullptr;
 
-      uint64_t range;
+      std::uint64_t range;
 
       // for only VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
       // imageLayout can be VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
@@ -239,10 +239,10 @@ export namespace fan {
       std::vector<VkDescriptorImageInfo> image_infos{max_textures};
     };
 
-    inline constexpr uint32_t max_frames_in_flight = 1;
+    inline constexpr std::uint32_t max_frames_in_flight = 1;
 
-    inline uint32_t makeAccessMaskPipelineStageFlags(uint32_t accessMask) {
-      static constexpr uint32_t accessPipes[] = {
+    inline std::uint32_t makeAccessMaskPipelineStageFlags(std::uint32_t accessMask) {
+      static constexpr std::uint32_t accessPipes[] = {
         VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
         VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT,
         VK_ACCESS_INDEX_READ_BIT,
@@ -295,9 +295,9 @@ export namespace fan {
         return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
       }
 
-      uint32_t pipes = 0;
+      std::uint32_t pipes = 0;
 
-      for (uint32_t i = 0; i < std::size(accessPipes); i += 2)
+      for (std::uint32_t i = 0; i < std::size(accessPipes); i += 2)
       {
         if (accessPipes[i] & accessMask)
         {
@@ -417,8 +417,8 @@ export namespace fan {
     struct context_t {
 
       struct push_constants_t {
-        uint32_t texture_id;
-        uint32_t camera_id;
+        std::uint32_t texture_id;
+        std::uint32_t camera_id;
       };
 
       struct descriptor_t {
@@ -429,7 +429,7 @@ export namespace fan {
           m_properties = properties;
 
           std::vector<VkDescriptorSetLayoutBinding> uboLayoutBinding(properties.size());
-          for (uint16_t i = 0; i < properties.size(); ++i) {
+          for (std::uint16_t i = 0; i < properties.size(); ++i) {
             uboLayoutBinding[i].binding = properties[i].binding;
             uboLayoutBinding[i].descriptorCount = 1;
             if (m_properties[i].use_image) {
@@ -447,7 +447,7 @@ export namespace fan {
           validate(vkCreateDescriptorSetLayout(context.device, &layoutInfo, nullptr, &m_layout));
 
           std::array<VkDescriptorSetLayout, max_frames_in_flight> layouts;
-          for (uint32_t i = 0; i < max_frames_in_flight; ++i) {
+          for (std::uint32_t i = 0; i < max_frames_in_flight; ++i) {
             layouts[i] = m_layout;
           }
           VkDescriptorSetAllocateInfo allocInfo{};
@@ -466,18 +466,18 @@ export namespace fan {
         // for buffer update, need to manually call .m_properties.common
         void update(
           fan::vulkan::context_t& context,
-          uint32_t n,
-          uint32_t begin = 0,
-          uint32_t texture_n = max_textures,
-          uint32_t texture_begin = 0
+          std::uint32_t n,
+          std::uint32_t begin = 0,
+          std::uint32_t texture_n = max_textures,
+          std::uint32_t texture_begin = 0
         ) {
-          uint32_t frame = context.current_frame;
+          std::uint32_t frame = context.current_frame;
 
           std::vector<VkDescriptorBufferInfo> bufferInfo(n);
 
           std::vector<VkWriteDescriptorSet> descriptorWrites(begin + n);
 
-          for (uint32_t j = begin; j < begin + n; ++j) {
+          for (std::uint32_t j = begin; j < begin + n; ++j) {
 
             if (m_properties[j].buffer) {
               bufferInfo[j].buffer = m_properties[j].buffer;
@@ -529,7 +529,7 @@ export namespace fan {
           pool_info.maxSets = 0;
           for (VkDescriptorPoolSize& pool_size : pool_sizes)
             pool_info.maxSets += max_frames_in_flight * pool_size.descriptorCount;
-          pool_info.poolSizeCount = (uint32_t)std::size(pool_sizes);
+          pool_info.poolSizeCount = (std::uint32_t)std::size(pool_sizes);
           pool_info.pPoolSizes = pool_sizes;
           ;
           fan::vulkan::validate(vkCreateDescriptorPool(context.device, &pool_info, nullptr, &m_descriptor_pool));
@@ -561,7 +561,7 @@ export namespace fan {
         return *(fan::vulkan::context_t::shader_t*)__fan_internal_shader_list[nr].internal;
       }
 
-      static std::vector<uint32_t> compile_file(const std::string& source_name,
+      static std::vector<std::uint32_t> compile_file(const std::string& source_name,
         shaderc_shader_kind kind,
         const std::string& source) {
         shaderc::Compiler compiler;
@@ -594,7 +594,7 @@ export namespace fan {
         shader.projection_view_block = new std::remove_pointer_t<decltype(shader.projection_view_block)>;
         //TODO
         shader.projection_view_block->open(*this);
-        for (uint32_t i = 0; i < fan::vulkan::max_camera; ++i) {
+        for (std::uint32_t i = 0; i < fan::vulkan::max_camera; ++i) {
           shader.projection_view_block->push_ram_instance(*this, {});
         }
         return nr;
@@ -621,7 +621,7 @@ export namespace fan {
         // TODO - required?
       }
 
-      VkShaderModule create_shader_module(const std::vector<uint32_t>& code) {
+      VkShaderModule create_shader_module(const std::vector<std::uint32_t>& code) {
         VkShaderModuleCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
         createInfo.codeSize = code.size() * sizeof(typename std::remove_reference_t<decltype(code)>::value_type);
@@ -653,24 +653,24 @@ export namespace fan {
       }
 
       static void parse_uniforms(std::string& shaderData, std::unordered_map<std::string, std::string>& uniform_type_table) {
-        size_t pos = 0;
+        std::size_t pos = 0;
 
         while ((pos = shaderData.find("uniform", pos)) != std::string::npos) {
-          size_t endLine = shaderData.find(';', pos);
+          std::size_t endLine = shaderData.find(';', pos);
           if (endLine == std::string::npos) break;
 
           std::string line = shaderData.substr(pos, endLine - pos + 1);
 
           line = line.substr(7);
 
-          size_t start = line.find_first_not_of(" \t");
+          std::size_t start = line.find_first_not_of(" \t");
           if (start == std::string::npos) {
             pos = endLine + 1;
             continue;
           }
           line = line.substr(start);
 
-          size_t space1 = line.find_first_of(" \t");
+          std::size_t space1 = line.find_first_of(" \t");
           if (space1 == std::string::npos) {
             pos = endLine + 1;
             continue;
@@ -680,7 +680,7 @@ export namespace fan {
           line = line.substr(space1);
           line = line.substr(line.find_first_not_of(" \t"));
 
-          size_t varEnd = line.find_first_of("=;");
+          std::size_t varEnd = line.find_first_of("=;");
           std::string name = line.substr(0, varEnd);
 
           name.erase(0, name.find_first_not_of(" \t"));
@@ -769,7 +769,7 @@ export namespace fan {
           //: visual_output(a), internal_format(b), format(c), type(d), filter(e) {}
         VkSamplerAddressMode visual_output = image_load_properties_defaults::visual_output;
         // unused opengl filler
-        uint8_t internal_format = 0;
+        std::uint8_t internal_format = 0;
         //uintptr_t           internal_format = load_properties_defaults::internal_format;
         //uintptr_t           format = load_properties_defaults::format;
         //uintptr_t           type = load_properties_defaults::type;
@@ -779,16 +779,16 @@ export namespace fan {
       };
 
       struct primitive_topology_t {
-        static constexpr uint32_t points = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-        static constexpr uint32_t lines = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-        static constexpr uint32_t line_strip = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
-        static constexpr uint32_t triangles = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        static constexpr uint32_t triangle_strip = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-        static constexpr uint32_t triangle_fan = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
-        static constexpr uint32_t lines_with_adjacency = VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY;
-        static constexpr uint32_t line_strip_with_adjacency = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY;
-        static constexpr uint32_t triangles_with_adjacency = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY;
-        static constexpr uint32_t triangle_strip_with_adjacency = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY;
+        static constexpr std::uint32_t points = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+        static constexpr std::uint32_t lines = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+        static constexpr std::uint32_t line_strip = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+        static constexpr std::uint32_t triangles = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        static constexpr std::uint32_t triangle_strip = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+        static constexpr std::uint32_t triangle_fan = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
+        static constexpr std::uint32_t lines_with_adjacency = VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY;
+        static constexpr std::uint32_t line_strip_with_adjacency = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY;
+        static constexpr std::uint32_t triangles_with_adjacency = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY;
+        static constexpr std::uint32_t triangle_strip_with_adjacency = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY;
       };
 
       void transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
@@ -927,7 +927,7 @@ export namespace fan {
         return nr;
       }
 
-      uint64_t image_get_handle(fan::graphics::image_nr_t nr) {
+      std::uint64_t image_get_handle(fan::graphics::image_nr_t nr) {
         fan::throw_error("invalid call");
         return 0;
       }
@@ -1036,15 +1036,15 @@ export namespace fan {
 
         vkMapMemory(device, image.staging_buffer_memory, 0, image_size_bytes, 0, &image.data);
 
-        const uint8_t* src = static_cast<const uint8_t*>(image_info.data);
-        uint8_t* dst = static_cast<uint8_t*>(image.data);
-        uint64_t pixel_count = image_info.size.multiply();
+        const std::uint8_t* src = static_cast<const std::uint8_t*>(image_info.data);
+        std::uint8_t* dst = static_cast<std::uint8_t*>(image.data);
+        std::uint64_t pixel_count = image_info.size.multiply();
 
         if (src_channels == format_channels) {
           memcpy(dst, src, image_size_bytes);
         }
         else if (src_channels == 3 && format_channels == 4) {
-          for (uint64_t i = 0; i < pixel_count; ++i) {
+          for (std::uint64_t i = 0; i < pixel_count; ++i) {
             dst[0] = src[0];
             dst[1] = src[1];
             dst[2] = src[2];
@@ -1227,8 +1227,8 @@ export namespace fan {
       // creates single colored text size.x*size.y sized
       fan::graphics::image_nr_t image_create(const fan::color& color, const fan::vulkan::context_t::image_load_properties_t& p) {
 
-        uint8_t pixels[4];
-        for (uint32_t p = 0; p < fan::color::size(); p++) {
+        std::uint8_t pixels[4];
+        for (std::uint32_t p = 0; p < fan::color::size(); p++) {
           pixels[p] = color[p] * 255;
         }
 
@@ -1266,7 +1266,7 @@ export namespace fan {
         return img_nr;
       }
 
-      constexpr uint32_t get_image_multiplier(VkFormat format) {
+      constexpr std::uint32_t get_image_multiplier(VkFormat format) {
         switch (format) {
         case fan::vulkan::context_t::image_format::b8g8r8a8_unorm: {
           return 4;
@@ -1510,13 +1510,13 @@ export namespace fan {
       struct pipeline_t {
 
         struct properties_t {
-          uint32_t descriptor_layout_count = 0;
+          std::uint32_t descriptor_layout_count = 0;
           VkDescriptorSetLayout* descriptor_layout;
           fan::graphics::shader_nr_t shader;
-          uint32_t push_constants_size = 0;
-          uint32_t subpass = 0;
+          std::uint32_t push_constants_size = 0;
+          std::uint32_t subpass = 0;
 
-          uint32_t color_blend_attachment_count = 0;
+          std::uint32_t color_blend_attachment_count = 0;
           VkPipelineColorBlendAttachmentState* color_blend_attachment = 0;
 
           bool enable_depth_test = VK_TRUE;
@@ -1740,7 +1740,7 @@ export namespace fan {
         close_vais(upscaleImageViews1);
         close_vais(vai_depth);
 
-        for (size_t i = 0; i < max_frames_in_flight; i++) {
+        for (std::size_t i = 0; i < max_frames_in_flight; i++) {
           if (render_finished_semaphores.size())
             vkDestroySemaphore(device, render_finished_semaphores[i], nullptr);
           if (image_available_semaphores.size())
@@ -1851,7 +1851,7 @@ export namespace fan {
 
       // if swapchain changes, reque
       void update_swapchain_dependencies() {
-        uint32_t imageCount =
+        std::uint32_t imageCount =
         #if defined(FAN_GUI)
           MinImageCount + 1
         #else 
@@ -1949,7 +1949,7 @@ export namespace fan {
         createInfo.enabledExtensionCount = extensions.size();
         std::vector<char*> extension_names(extensions.size() + 1);
 
-        for (uint32_t i = 0; i < extensions.size(); ++i) {
+        for (std::uint32_t i = 0; i < extensions.size(); ++i) {
           extension_names[i] = new char[extensions[i].size() + 1];
           memcpy(extension_names[i], extensions[i].data(), extensions[i].size() + 1);
         }
@@ -2006,7 +2006,7 @@ export namespace fan {
 #endif
 
       void pick_physical_device() {
-        uint32_t deviceCount = 0;
+        std::uint32_t deviceCount = 0;
         vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
 
         if (deviceCount == 0) {
@@ -2035,7 +2035,7 @@ export namespace fan {
         // Queue creation
         // -----------------------------
         std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-        std::set<uint32_t> uniqueQueueFamilies = {
+        std::set<std::uint32_t> uniqueQueueFamilies = {
           indices.graphics_family.value(),
         #if defined(loco_window)
           indices.present_family.value()
@@ -2043,7 +2043,7 @@ export namespace fan {
         };
 
         float queuePriority = 1.0f;
-        for (uint32_t queueFamily : uniqueQueueFamilies) {
+        for (std::uint32_t queueFamily : uniqueQueueFamilies) {
           VkDeviceQueueCreateInfo queueCreateInfo{};
           queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
           queueCreateInfo.queueFamilyIndex = queueFamily;
@@ -2075,7 +2075,7 @@ export namespace fan {
         // Explicit RT extension check
         bool rt_ok = true;
         {
-          uint32_t extCount = 0;
+          std::uint32_t extCount = 0;
           vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extCount, nullptr);
           std::vector<VkExtensionProperties> exts(extCount);
           vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extCount, exts.data());
@@ -2144,17 +2144,17 @@ export namespace fan {
         // -----------------------------
         VkDeviceCreateInfo createInfo{};
         createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        createInfo.queueCreateInfoCount = (uint32_t)queueCreateInfos.size();
+        createInfo.queueCreateInfoCount = (std::uint32_t)queueCreateInfos.size();
         createInfo.pQueueCreateInfos = queueCreateInfos.data();
         createInfo.pNext = &features2;
         createInfo.pEnabledFeatures = nullptr;
 
-        createInfo.enabledExtensionCount = (uint32_t)deviceExtensions.size();
+        createInfo.enabledExtensionCount = (std::uint32_t)deviceExtensions.size();
         createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
       #if FAN_DEBUG >= fan_debug_high
         if (supports_validation_layers) {
-          createInfo.enabledLayerCount = (uint32_t)validationLayers.size();
+          createInfo.enabledLayerCount = (std::uint32_t)validationLayers.size();
           createInfo.ppEnabledLayerNames = validationLayers.data();
         }
       #endif
@@ -2186,7 +2186,7 @@ export namespace fan {
         present_mode = choose_swap_present_mode(swapChainSupport.present_modes);
         VkExtent2D extent = choose_swap_extent(framebuffer_size, swapChainSupport.capabilities);
 
-        uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
+        std::uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
         min_image_count = swapChainSupport.capabilities.minImageCount;
         image_count = imageCount;
         if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
@@ -2206,7 +2206,7 @@ export namespace fan {
 
         queue_family_indices_t indices = find_queue_families(physical_device);
         queue_family = indices.graphics_family.value();
-        uint32_t queueFamilyIndices[] = { indices.graphics_family.value(), indices.present_family.value() };
+        std::uint32_t queueFamilyIndices[] = { indices.graphics_family.value(), indices.present_family.value() };
 
         if (indices.graphics_family != indices.present_family) {
           createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -2273,7 +2273,7 @@ export namespace fan {
         downscaleImageViews1.resize(swap_chain_image_views.size());
         upscaleImageViews1.resize(swap_chain_image_views.size());
 
-        for (size_t i = 0; i < swap_chain_image_views.size(); i++) {
+        for (std::size_t i = 0; i < swap_chain_image_views.size(); i++) {
           mainColorImageViews[i].open(*this, vp);
           mainColorImageViews[i].transition_image_layout(*this, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
 
@@ -2294,7 +2294,7 @@ export namespace fan {
           upscaleImageViews1[i].transition_image_layout(*this, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
         }
 
-        for (uint32_t i = 0; i < swap_chain_images.size(); i++) {
+        for (std::uint32_t i = 0; i < swap_chain_images.size(); i++) {
           swap_chain_image_views[i] = create_image_view(swap_chain_images[i], swap_chain_image_format, VK_IMAGE_ASPECT_COLOR_BIT);
         }
       }
@@ -2427,7 +2427,7 @@ export namespace fan {
       void create_framebuffers() {
         swap_chain_framebuffers.resize(swap_chain_image_views.size());
 
-        for (size_t i = 0; i < swap_chain_image_views.size(); i++) {
+        for (std::size_t i = 0; i < swap_chain_image_views.size(); i++) {
           VkImageView attachments[] = {
             mainColorImageViews[i].image_view,
             swap_chain_image_views[i],
@@ -2560,11 +2560,11 @@ export namespace fan {
         end_single_time_commands(commandBuffer);
       }
 
-      uint32_t find_memory_type(uint32_t type_filter, VkMemoryPropertyFlags properties) const {
+      std::uint32_t find_memory_type(std::uint32_t type_filter, VkMemoryPropertyFlags properties) const {
         VkPhysicalDeviceMemoryProperties memProperties;
         vkGetPhysicalDeviceMemoryProperties(physical_device, &memProperties);
 
-        for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+        for (std::uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
           if ((type_filter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
             return i;
           }
@@ -2581,7 +2581,7 @@ export namespace fan {
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         allocInfo.commandPool = command_pool;
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        allocInfo.commandBufferCount = (uint32_t)command_buffers.size();
+        allocInfo.commandBufferCount = (std::uint32_t)command_buffers.size();
 
         if (vkAllocateCommandBuffers(device, &allocInfo, command_buffers.data()) != VK_SUCCESS) {
           fan::throw_error("failed to allocate command buffers!");
@@ -2591,7 +2591,7 @@ export namespace fan {
 
       void bind_draw(
         const fan::vulkan::context_t::pipeline_t& pipeline,
-        uint32_t descriptor_count,
+        std::uint32_t descriptor_count,
         VkDescriptorSet* descriptor_sets) {
         vkCmdBindPipeline(command_buffers[current_frame], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.m_pipeline);
 
@@ -2615,18 +2615,18 @@ export namespace fan {
 
       // assumes things are already bound
       void bindless_draw(
-        uint32_t vertex_count,
-        uint32_t instance_count,
-        uint32_t first_instance) {
+        std::uint32_t vertex_count,
+        std::uint32_t instance_count,
+        std::uint32_t first_instance) {
         vkCmdDraw(command_buffers[current_frame], vertex_count, instance_count, 0, first_instance);
       }
 
       void draw(
-        uint32_t vertex_count,
-        uint32_t instance_count,
-        uint32_t first_instance,
+        std::uint32_t vertex_count,
+        std::uint32_t instance_count,
+        std::uint32_t first_instance,
         const fan::vulkan::context_t::pipeline_t& pipeline,
-        uint32_t descriptor_count,
+        std::uint32_t descriptor_count,
         VkDescriptorSet* descriptor_sets
       ) {
         bind_draw(pipeline, descriptor_count, descriptor_sets);
@@ -2645,7 +2645,7 @@ export namespace fan {
         fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-        for (size_t i = 0; i < max_frames_in_flight; i++) {
+        for (std::size_t i = 0; i < max_frames_in_flight; i++) {
           if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &image_available_semaphores[i]) != VK_SUCCESS ||
             vkCreateSemaphore(device, &semaphoreInfo, nullptr, &render_finished_semaphores[i]) != VK_SUCCESS ||
             vkCreateFence(device, &fenceInfo, nullptr, &in_flight_fences[i]) != VK_SUCCESS) {
@@ -2658,7 +2658,7 @@ export namespace fan {
       bool                     SwapChainRebuild = false;
       #if defined(FAN_GUI)
       ImGui_ImplVulkanH_Window MainWindowData;
-      uint32_t                 MinImageCount = 2;
+      std::uint32_t                 MinImageCount = 2;
 
       void ImGuiSetupVulkanWindow() {
         MainWindowData.Surface = surface;
@@ -2780,7 +2780,7 @@ export namespace fan {
 
 
       VkExtent2D choose_swap_extent(const fan::vec2ui& framebuffer_size, const VkSurfaceCapabilitiesKHR& capabilities) {
-        if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) {
+        if (capabilities.currentExtent.width != std::numeric_limits<std::uint32_t>::max()) {
           return capabilities.currentExtent;
         }
         else {
@@ -2801,7 +2801,7 @@ export namespace fan {
 
         vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
 
-        uint32_t formatCount;
+        std::uint32_t formatCount;
         vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
 
         if (formatCount != 0) {
@@ -2809,7 +2809,7 @@ export namespace fan {
           vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, details.formats.data());
         }
 
-        uint32_t presentModeCount;
+        std::uint32_t presentModeCount;
         vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
 
         if (presentModeCount != 0) {
@@ -2843,7 +2843,7 @@ export namespace fan {
       }
 
       bool check_device_extension_support(VkPhysicalDevice device) {
-        uint32_t extensionCount;
+        std::uint32_t extensionCount;
         vkEnumerateDeviceExtensionProperties(device, nullptr, &extensionCount, nullptr);
 
         std::vector<VkExtensionProperties> availableExtensions(extensionCount);
@@ -2861,7 +2861,7 @@ export namespace fan {
       queue_family_indices_t find_queue_families(VkPhysicalDevice device) {
         queue_family_indices_t indices;
 
-        uint32_t queueFamilyCount = 0;
+        std::uint32_t queueFamilyCount = 0;
         vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
 
         std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
@@ -2895,7 +2895,7 @@ export namespace fan {
 
       std::vector<std::string> get_required_extensions() {
 
-        uint32_t extensions_count = 0;
+        std::uint32_t extensions_count = 0;
         vkEnumerateInstanceExtensionProperties(nullptr, &extensions_count, nullptr);
         if (extensions_count == 0) {
           fan::throw_error("Could not get the number of Instance extensions.");
@@ -2928,7 +2928,7 @@ export namespace fan {
 
 
       bool check_validation_layer_support() {
-        uint32_t layerCount;
+        std::uint32_t layerCount;
         vkEnumerateInstanceLayerProperties(&layerCount, nullptr);
 
         std::vector<VkLayerProperties> availableLayers(layerCount);
@@ -3008,9 +3008,9 @@ export namespace fan {
       VkRenderPass render_pass;
 
       VkCommandPool command_pool;
-      uint32_t queue_family = -1;
-      uint32_t min_image_count = 0;
-      uint32_t image_count = 0;
+      std::uint32_t queue_family = -1;
+      std::uint32_t min_image_count = 0;
+      std::uint32_t image_count = 0;
       
       std::vector<VkCommandBuffer> command_buffers;
 
@@ -3019,7 +3019,7 @@ export namespace fan {
       std::vector<VkSemaphore> image_available_semaphores;
       std::vector<VkSemaphore> render_finished_semaphores;
       std::vector<VkFence> in_flight_fences;
-      uint32_t current_frame = 0;
+      std::uint32_t current_frame = 0;
 
       fan::window_t::resize_handle_t window_resize_handle;
 
@@ -3027,7 +3027,7 @@ export namespace fan {
       bool shapes_top = false;
 
       bool vsync = true;
-      uint32_t image_index;
+      std::uint32_t image_index;
 
       fan::vulkan::context_t::pipeline_t render_fullscreen_pl;
 
@@ -3043,7 +3043,7 @@ export namespace fan {
 export namespace fan {
   namespace vulkan {
     namespace core {
-      uint32_t get_draw_mode(uint8_t draw_mode) {
+      std::uint32_t get_draw_mode(std::uint8_t draw_mode) {
         switch (draw_mode) {
         case fan::graphics::primitive_topology_t::points:
           return fan::vulkan::context_t::primitive_topology_t::points;
@@ -3175,7 +3175,7 @@ fan::graphics::context_functions_t fan::graphics::get_vk_context_functions() {
     return ((fan::vulkan::context_t*)context)->image_create();
   }; 
   cf.image_get_handle = [](void* context, fan::graphics::image_nr_t nr) { 
-    return (uint64_t)((fan::vulkan::context_t*)context)->image_get_handle(nr); 
+    return (std::uint64_t)((fan::vulkan::context_t*)context)->image_get_handle(nr); 
   }; 
   cf.image_get = [](void* context, fan::graphics::image_nr_t nr) {
     return (void*)&((fan::vulkan::context_t*)context)->image_get(nr);

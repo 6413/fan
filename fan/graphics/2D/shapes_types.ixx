@@ -54,10 +54,10 @@ export namespace fan::graphics {
 
   struct shape_gl_init_t {
     std::pair<int, const char*> index;
-    uint32_t size;
-    uint32_t type; // for example GL_FLOAT
-    uint32_t stride;
-    uint32_t offset;
+    std::uint32_t size;
+    std::uint32_t type; // for example GL_FLOAT
+    std::uint32_t stride;
+    std::uint32_t offset;
   };
   struct shape_gl_init_list_t {
     fan::graphics::shape_gl_init_t* ptr = nullptr;
@@ -70,7 +70,7 @@ export namespace fan::graphics {
 export namespace fan::graphics::shaper {
   #define shaper_set_fan 1
   #define shaper_set_MaxMaxElementPerBlock 0x100
-    inline constexpr uint32_t MaxElementPerBlock = shaper_set_MaxMaxElementPerBlock;
+    inline constexpr std::uint32_t MaxElementPerBlock = shaper_set_MaxMaxElementPerBlock;
 
     // sizeof(image_t) == 2
     static_assert(sizeof(fan::graphics::image_t) == 2, "update shaper_set_MaxKeySize");
@@ -134,7 +134,7 @@ export namespace fan::graphics::shaper {
   \
     fan::vulkan::context_t::pipeline_t pipeline;\
     fan::vulkan::context_t::ssbo_t shape_data;\
-    uint32_t vertex_count = 6;\
+    std::uint32_t vertex_count = 6;\
   };\
   )\
   \
@@ -174,7 +174,7 @@ export namespace fan::graphics::shaper {
   \
     fan::vulkan::context_t::pipeline_t pipeline;\
     fan::vulkan::context_t::ssbo_t shape_data;\
-    uint32_t vertex_count = 6;\
+    std::uint32_t vertex_count = 6;\
   };\
   )\
   \
@@ -304,7 +304,7 @@ export namespace fan::graphics::shaper {
   else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {\
     auto& vk = st.renderer.vk;\
     auto wrote = bu.MaxEdit - bu.MinEdit;\
-    for (uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {\
+    for (std::uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {\
       memcpy(\
         vk.shape_data.data[frame] + (GetRenderDataOffset(be.sti, be.blid) + bu.MinEdit),\
         GetRenderData(be.sti, be.blid, 0) + bu.MinEdit,\
@@ -340,7 +340,7 @@ export namespace fan::graphics::shaper {
   else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan){\
     auto& vk = st.renderer.vk;\
     while (traverse.Loop(&st.BlockList, &node_id)) {\
-      for (uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {\
+      for (std::uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {\
         memcpy(vk.shape_data.data[frame], GetRenderData(sti, node_id, 0), st.RenderDataSize * st.MaxElementPerBlock());\
       }\
     }\
@@ -433,7 +433,7 @@ namespace fan {
   template <bool cond>
   struct type_or_uint8_t {
     template <typename T>
-    using d = std::conditional_t<cond, T, uint8_t>;
+    using d = std::conditional_t<cond, T, std::uint8_t>;
   };
 }
 
@@ -463,13 +463,13 @@ export namespace fan::graphics {
 
   struct sprite_sheet_id_t {
     sprite_sheet_id_t();
-    sprite_sheet_id_t(uint32_t id);
-    operator uint32_t() const;
+    sprite_sheet_id_t(std::uint32_t id);
+    operator std::uint32_t() const;
     explicit operator bool() const;
     sprite_sheet_id_t operator++(int);
     bool operator==(const sprite_sheet_id_t& other) const;
     bool operator!=(const sprite_sheet_id_t& other) const;
-    uint32_t id = -1;
+    std::uint32_t id = -1;
   };
 
   using fan::graphics::shaper::MaxElementPerBlock;
@@ -478,9 +478,9 @@ export namespace fan::graphics {
 
 #pragma pack(push, 1)
 
-  using blending_t = uint8_t;
-  using depth_t = uint16_t;
-  using visible_t = uint8_t;
+  using blending_t = std::uint8_t;
+  using depth_t = std::uint16_t;
+  using visible_t = std::uint8_t;
   using shader_raw_t = decltype(fan::graphics::shader_t::NRI);
 
 #define st(name, viewport_inside) \
@@ -500,12 +500,12 @@ export namespace fan::graphics {
   struct kps_t {
     st(light_t,
       d<visible_t> visible;
-      d<uint8_t> genre;
+      d<std::uint8_t> genre;
       d<fan::graphics::viewport_t> viewport;
       d<fan::graphics::camera_t> camera;
       d<shaper_t::ShapeTypeIndex_t> ShapeType;
-      d<uint8_t> draw_mode;
-      d<uint32_t> vertex_count;
+      d<std::uint8_t> draw_mode;
+      d<std::uint32_t> vertex_count;
     );
     st(common_t,
       d<visible_t> visible;
@@ -514,11 +514,11 @@ export namespace fan::graphics {
       d<fan::graphics::viewport_t> viewport;
       d<fan::graphics::camera_t> camera;
       d<shaper_t::ShapeTypeIndex_t> ShapeType;
-      d<uint8_t> draw_mode;
-      d<uint32_t> vertex_count;
+      d<std::uint8_t> draw_mode;
+      d<std::uint32_t> vertex_count;
     );
     st(vfi_t,
-      d<uint8_t> filler = 0;
+      d<std::uint8_t> filler = 0;
     );
     st(texture_t,
       d<visible_t> visible;
@@ -529,8 +529,8 @@ export namespace fan::graphics {
       d<fan::graphics::viewport_t> viewport;
       d<fan::graphics::camera_t> camera;
       d<shaper_t::ShapeTypeIndex_t> ShapeType;
-      d<uint8_t> draw_mode;
-      d<uint32_t> vertex_count;
+      d<std::uint8_t> draw_mode;
+      d<std::uint32_t> vertex_count;
     );
   };
 
@@ -577,8 +577,8 @@ export namespace fan::graphics {
 export namespace std {
   template<>
   struct hash<fan::graphics::shaper::shaper_t::ShapeID_t> {
-    size_t operator()(const fan::graphics::shaper::shaper_t::ShapeID_t& s) const noexcept {
-      return std::hash<uint32_t>()(s.NRI);
+    std::size_t operator()(const fan::graphics::shaper::shaper_t::ShapeID_t& s) const noexcept {
+      return std::hash<std::uint32_t>()(s.NRI);
     }
   };
 }

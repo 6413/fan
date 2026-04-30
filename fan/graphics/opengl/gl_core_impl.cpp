@@ -28,7 +28,7 @@ import fan.camera;
 namespace fan::opengl {
 
   void opengl_t::open() {
-    static uint8_t init = 1;
+    static std::uint8_t init = 1;
     if (init == 0) {
       return;
     }
@@ -121,7 +121,7 @@ namespace fan::opengl {
     glfwSwapInterval(flag);
   }
 
-  context_t::pbo_t context_t::pbo_create(size_t size) {
+  context_t::pbo_t context_t::pbo_create(std::size_t size) {
     pbo_t p;
     p.size = size;
     glGenBuffers(1, &p.id);
@@ -133,9 +133,9 @@ namespace fan::opengl {
   void context_t::pbo_destroy(context_t::pbo_t& p) {
     if (p.id) { glDeleteBuffers(1, &p.id); p.id = 0; }
   }
-  uint8_t* context_t::pbo_map_write(const context_t::pbo_t& p) {
+  std::uint8_t* context_t::pbo_map_write(const context_t::pbo_t& p) {
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, p.id);
-    return (uint8_t*)glMapBufferRange(
+    return (std::uint8_t*)glMapBufferRange(
       GL_PIXEL_UNPACK_BUFFER, 0, p.size,
       GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT | GL_MAP_UNSYNCHRONIZED_BIT
     );
@@ -148,7 +148,7 @@ namespace fan::opengl {
     fan::graphics::image_nr_t nr,
     const context_t::pbo_t& p,
     fan::vec2ui size,
-    uintptr_t global_format,
+    std::uintptr_t global_format,
     GLenum type
   ) {
     GLenum gl_format = global_to_opengl_format(global_format);
@@ -309,7 +309,7 @@ namespace fan::opengl {
   }
   void context_t::shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& vertex_code) {
     auto& shader = shader_get(nr);
-    if (shader.vertex != (uint32_t)fan::uninitialized) {
+    if (shader.vertex != (std::uint32_t)fan::uninitialized) {
       fan_opengl_call(glDeleteShader(shader.vertex));
     }
     auto& internal_shader = __fan_internal_shader_list[nr];
@@ -324,7 +324,7 @@ namespace fan::opengl {
   }
   void context_t::shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& fragment_code) {
     auto& shader = shader_get(nr);
-    if (shader.fragment != (uint32_t)-1) {
+    if (shader.fragment != (std::uint32_t)-1) {
       fan_opengl_call(glDeleteShader(shader.fragment));
     }
     auto& internal_shader = __fan_internal_shader_list[nr];
@@ -342,14 +342,14 @@ namespace fan::opengl {
     std::unordered_map<std::string, std::string>& uniform_type_table
   ) {
     std::string s = shader_data;
-    size_t i = 0;
+    std::size_t i = 0;
 
     // remove comments
     while (i < s.size()) {
       if (s[i] == '/' && i + 1 < s.size()) {
         if (s[i + 1] == '/') { s.erase(i, s.find('\n', i) - i); continue; }
         if (s[i + 1] == '*') {
-          size_t end = s.find("*/", i + 2);
+          std::size_t end = s.find("*/", i + 2);
           s.erase(i, (end == std::string::npos ? s.size() : end + 2) - i);
           continue;
         }
@@ -363,15 +363,15 @@ namespace fan::opengl {
       i += 7; // skip "uniform"
       while (i < s.size() && std::isspace(s[i])) ++i;
 
-      size_t t_end = i; while (t_end < s.size() && (std::isalnum(s[t_end]) || s[t_end] == '_')) ++t_end;
+      std::size_t t_end = i; while (t_end < s.size() && (std::isalnum(s[t_end]) || s[t_end] == '_')) ++t_end;
       std::string type = s.substr(i, t_end - i);
 
-      size_t n_start = t_end; while (n_start < s.size() && std::isspace(s[n_start])) ++n_start;
-      size_t n_end = n_start; while (n_end < s.size() && (std::isalnum(s[n_end]) || s[n_end] == '_')) ++n_end;
+      std::size_t n_start = t_end; while (n_start < s.size() && std::isspace(s[n_start])) ++n_start;
+      std::size_t n_end = n_start; while (n_end < s.size() && (std::isalnum(s[n_end]) || s[n_end] == '_')) ++n_end;
       std::string name = s.substr(n_start, n_end - n_start);
 
       // skip array brackets and initializer
-      size_t semi = s.find(';', n_end);
+      std::size_t semi = s.find(';', n_end);
       i = (semi == std::string::npos ? s.size() : semi + 1);
 
       uniform_type_table[name] = type;
@@ -380,7 +380,7 @@ namespace fan::opengl {
   bool context_t::shader_compile(fan::graphics::shader_nr_t nr) {
     auto& shader = shader_get(nr);
     auto temp_id = fan_opengl_call(glCreateProgram());
-    if (shader.vertex != (uint32_t)-1) {
+    if (shader.vertex != (std::uint32_t)-1) {
       GLint compiled = 0;
       fan_opengl_call(glGetShaderiv(shader.vertex, GL_COMPILE_STATUS, &compiled));
       if (!compiled) {
@@ -393,7 +393,7 @@ namespace fan::opengl {
     else {
       fan::print("Warning: No vertex shader attached");
     }
-    if (shader.fragment != (uint32_t)-1) {
+    if (shader.fragment != (std::uint32_t)-1) {
       GLint compiled = 0;
       fan_opengl_call(glGetShaderiv(shader.fragment, GL_COMPILE_STATUS, &compiled));
       if (!compiled) {
@@ -451,17 +451,17 @@ namespace fan::opengl {
       fan_opengl_call(glDeleteProgram(temp_id));
       return false;
     }
-    if (shader.vertex != (uint32_t)-1) {
+    if (shader.vertex != (std::uint32_t)-1) {
       fan_opengl_call(glDetachShader(temp_id, shader.vertex));
       fan_opengl_call(glDeleteShader(shader.vertex));
       shader.vertex = -1;
     }
-    if (shader.fragment != (uint32_t)-1) {
+    if (shader.fragment != (std::uint32_t)-1) {
       fan_opengl_call(glDetachShader(temp_id, shader.fragment));
       fan_opengl_call(glDeleteShader(shader.fragment));
       shader.fragment = -1;
     }
-    if (shader.id != (uint32_t)-1) {
+    if (shader.id != (std::uint32_t)-1) {
       fan_opengl_call(glDeleteProgram(shader.id));
     }
     shader.id = temp_id;
@@ -619,7 +619,7 @@ namespace fan::opengl {
     image_data.size = image_info.size;
     image_data.image_path = "";
 
-    uint32_t bytes_per_row = (int)(image_data.size.x * fan::graphics::get_channel_amount(opengl_to_global_format(p.format)));
+    std::uint32_t bytes_per_row = (int)(image_data.size.x * fan::graphics::get_channel_amount(opengl_to_global_format(p.format)));
     if ((bytes_per_row % 8) == 0) {
       glPixelStorei(GL_UNPACK_ALIGNMENT, 8);
     }
@@ -726,7 +726,7 @@ namespace fan::opengl {
 
     image_data.size = size_;
 
-    fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, image_data.size.x, image_data.size.y, 0, p.format, GL_FLOAT, (uint8_t*)colors));
+    fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, image_data.size.x, image_data.size.y, 0, p.format, GL_FLOAT, (std::uint8_t*)colors));
 
     return nr;
   }
@@ -765,7 +765,7 @@ namespace fan::opengl {
 
     image_set_settings(nr, p);
 
-    uint32_t bytes_per_row = (int)(image_info.size.x * fan::graphics::get_channel_amount(opengl_to_global_format(p.format)));
+    std::uint32_t bytes_per_row = (int)(image_info.size.x * fan::graphics::get_channel_amount(opengl_to_global_format(p.format)));
     if ((bytes_per_row % 8) == 0) {
       glPixelStorei(GL_UNPACK_ALIGNMENT, 8);
     }
@@ -799,7 +799,7 @@ namespace fan::opengl {
   void context_t::image_reload(fan::graphics::image_nr_t nr, fan::str_view_t path) {
     image_reload(nr, path, fan::opengl::context_t::image_load_properties_t());
   }
-  std::vector<uint8_t> context_t::image_get_pixel_data(fan::graphics::image_nr_t nr, GLenum format, fan::vec2 uvp, fan::vec2 uvs) {
+  std::vector<std::uint8_t> context_t::image_get_pixel_data(fan::graphics::image_nr_t nr, GLenum format, fan::vec2 uvp, fan::vec2 uvs) {
 #if defined(__wasm__)
     fan::print("glGetTexImage is not supported in WebGL. Use a Framebuffer + glReadPixels instead.");
     return {}; 
@@ -808,17 +808,17 @@ namespace fan::opengl {
     image_bind(nr);
     auto& image_data = __fan_internal_image_list[nr];
     
-    uint32_t channels = fan::graphics::get_channel_amount(opengl_to_global_format(format));
+    std::uint32_t channels = fan::graphics::get_channel_amount(opengl_to_global_format(format));
     
     int px = fan::math::clamp((int)fan::math::round(uvp.x * image_data.size.x), 0, (int)image_data.size.x);
     int py = fan::math::clamp((int)fan::math::round(uvp.y * image_data.size.y), 0, (int)image_data.size.y);
     int pw = fan::math::min((int)fan::math::round(uvs.x * image_data.size.x), (int)image_data.size.x - px);
     int ph = fan::math::min((int)fan::math::round(uvs.y * image_data.size.y), (int)image_data.size.y - py);
 
-    std::vector<uint8_t> full_data(image_data.size.x * image_data.size.y * channels);
+    std::vector<std::uint8_t> full_data(image_data.size.x * image_data.size.y * channels);
     fan_opengl_call(glGetTexImage(GL_TEXTURE_2D, 0, format, GL_UNSIGNED_BYTE, full_data.data()));
 
-    std::vector<uint8_t> result_data(pw * ph * channels);
+    std::vector<std::uint8_t> result_data(pw * ph * channels);
     for (int row = 0; row < ph; ++row) {
       std::memcpy(&result_data[row * pw * channels],
                   &full_data[((py + row) * (int)image_data.size.x + px) * channels],
@@ -830,8 +830,8 @@ namespace fan::opengl {
   }
   fan::graphics::image_nr_t context_t::image_create(const fan::color& color, const fan::opengl::context_t::image_load_properties_t& p) {
 
-    uint8_t pixels[4];
-    for (uint32_t p = 0; p < fan::color::size(); p++) {
+    std::uint8_t pixels[4];
+    for (std::uint32_t p = 0; p < fan::color::size(); p++) {
       pixels[p] = color[p] * 255;
     }
 
@@ -972,7 +972,7 @@ namespace fan::opengl {
     return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport.size / 2, viewport.size / 2);
   }
 
-  uint32_t context_t::global_to_opengl_format(uintptr_t format) {
+  std::uint32_t context_t::global_to_opengl_format(std::uintptr_t format) {
   #if defined(__wasm__)
     // WebGL/GLES does not support BGRA or BGR natively
     if (format == fan::graphics::image_format_e::b8g8r8a8_unorm) return GL_RGBA;
@@ -998,7 +998,7 @@ namespace fan::opengl {
     return GL_RGBA;
   }
 
-  uint32_t context_t::global_to_opengl_type(uintptr_t type) {
+  std::uint32_t context_t::global_to_opengl_type(std::uintptr_t type) {
     if (type == fan::graphics::fan_unsigned_byte) return GL_UNSIGNED_BYTE;
     if (type == fan::graphics::fan_unsigned_int) return GL_UNSIGNED_INT;
     if (type == fan::graphics::fan_float) return GL_FLOAT;
@@ -1008,7 +1008,7 @@ namespace fan::opengl {
     return 0;
   }
 
-  uint32_t context_t::global_to_opengl_address_mode(uint32_t mode) {
+  std::uint32_t context_t::global_to_opengl_address_mode(std::uint32_t mode) {
     if (mode == fan::graphics::image_sampler_address_mode_e::repeat) return GL_REPEAT;
     if (mode == fan::graphics::image_sampler_address_mode_e::mirrored_repeat) return GL_MIRRORED_REPEAT;
     if (mode == fan::graphics::image_sampler_address_mode_e::clamp_to_edge) return GL_CLAMP_TO_EDGE;
@@ -1029,7 +1029,7 @@ namespace fan::opengl {
     return GL_REPEAT;
   }
 
-  uint32_t context_t::global_to_opengl_filter(uintptr_t filter) {
+  std::uint32_t context_t::global_to_opengl_filter(std::uintptr_t filter) {
     using filter_t = fan::graphics::image_filter_e;
     switch (filter) {
     case filter_t::nearest: return GL_NEAREST;
@@ -1046,7 +1046,7 @@ namespace fan::opengl {
     }
   }
 
-  uint32_t context_t::opengl_to_global_format(uintptr_t format) {
+  std::uint32_t context_t::opengl_to_global_format(std::uintptr_t format) {
   #if !defined(__wasm__)
     if (format == GL_BGRA) return fan::graphics::image_format_e::b8g8r8a8_unorm;
     if (format == GL_BGR) return fan::graphics::image_format_e::bgr_unorm;
@@ -1065,7 +1065,7 @@ namespace fan::opengl {
     return fan::graphics::image_format_e::rgba_unorm;
   }
 
-  uint32_t context_t::opengl_to_global_type(uintptr_t type) {
+  std::uint32_t context_t::opengl_to_global_type(std::uintptr_t type) {
     if (type == GL_UNSIGNED_BYTE) return fan::graphics::fan_unsigned_byte;
     if (type == GL_UNSIGNED_INT) return fan::graphics::fan_unsigned_int;
     if (type == GL_FLOAT) return fan::graphics::fan_float;
@@ -1076,7 +1076,7 @@ namespace fan::opengl {
     return 0;
   }
 
-  uint32_t context_t::opengl_to_global_address_mode(uint32_t mode) {
+  std::uint32_t context_t::opengl_to_global_address_mode(std::uint32_t mode) {
     if (mode == GL_REPEAT) return fan::graphics::image_sampler_address_mode_e::repeat;
     if (mode == GL_MIRRORED_REPEAT) return fan::graphics::image_sampler_address_mode_e::mirrored_repeat;
     if (mode == GL_CLAMP_TO_EDGE) return fan::graphics::image_sampler_address_mode_e::clamp_to_edge;
@@ -1092,7 +1092,7 @@ namespace fan::opengl {
     return fan::graphics::image_sampler_address_mode_e::repeat;
   }
 
-  uint32_t context_t::opengl_to_global_filter(uintptr_t filter) {
+  std::uint32_t context_t::opengl_to_global_filter(std::uintptr_t filter) {
     if (filter == GL_NEAREST) return fan::graphics::image_filter_e::nearest;
     if (filter == GL_LINEAR) return fan::graphics::image_filter_e::linear;
     if (filter == GL_NEAREST_MIPMAP_NEAREST) return fan::graphics::image_filter_e::nearest_mipmap_nearest;
@@ -1166,13 +1166,13 @@ namespace fan::opengl::core {
     return size;
   }
 
-  void write_glbuffer(fan::opengl::context_t& context, GLuint buffer, const void* data, uintptr_t size, uint32_t usage, GLenum target) {
+  void write_glbuffer(fan::opengl::context_t& context, GLuint buffer, const void* data, std::uintptr_t size, std::uint32_t usage, GLenum target) {
     //fan::print("write_glbuffer", buffer);
     fan_opengl_call(glBindBuffer(target, buffer));
     fan_opengl_call(glBufferData(target, size, data, usage));
   }
 
-  void get_glbuffer(fan::opengl::context_t& context, void* data, GLuint buffer_id, uintptr_t size, uintptr_t offset, GLenum target) {
+  void get_glbuffer(fan::opengl::context_t& context, void* data, GLuint buffer_id, std::uintptr_t size, std::uintptr_t offset, GLenum target) {
   #if defined(__wasm__)
     fan::throw_error("unsupported func.");
   #else
@@ -1181,7 +1181,7 @@ namespace fan::opengl::core {
   #endif
   }
 
-  void edit_glbuffer(fan::opengl::context_t& context, GLuint buffer, const void* data, uintptr_t offset, uintptr_t size, uintptr_t target) {
+  void edit_glbuffer(fan::opengl::context_t& context, GLuint buffer, const void* data, std::uintptr_t offset, std::uintptr_t size, std::uintptr_t target) {
     fan_opengl_call(glBindBuffer(target, buffer));
     //fan::print("edit_glbuffer", buffer);
 #if FAN_DEBUG >= fan_debug_high
@@ -1207,16 +1207,16 @@ namespace fan::opengl::core {
    void reserve_glbuffer(
     fan::opengl::context_t& ctx,
     GLuint buffer,
-    uintptr_t& capacity,
-    uintptr_t needed,
-    uint32_t usage,
+    std::uintptr_t& capacity,
+    std::uintptr_t needed,
+    std::uint32_t usage,
     GLenum target
   ){
     if (needed <= capacity) {
       return;
     }
 
-    uintptr_t new_capacity = capacity ? capacity * 2 : 4096;
+    std::uintptr_t new_capacity = capacity ? capacity * 2 : 4096;
     if (new_capacity < needed) {
       new_capacity = needed;
     }
@@ -1228,11 +1228,11 @@ namespace fan::opengl::core {
   void append_glbuffer(
     fan::opengl::context_t& ctx,
     GLuint buffer,
-    uintptr_t& size_bytes,
-    uintptr_t& capacity_bytes,
+    std::uintptr_t& size_bytes,
+    std::uintptr_t& capacity_bytes,
     const void* data,
-    uintptr_t data_size,
-    uint32_t usage,
+    std::uintptr_t data_size,
+    std::uint32_t usage,
     GLenum target
   ){
     reserve_glbuffer(ctx, buffer, capacity_bytes, size_bytes + data_size, usage, target);
@@ -1297,19 +1297,19 @@ namespace fan::opengl::core {
     fan_opengl_call(glBindBuffer(m_target, m_buffer));
   }
 
-  void vbo_t::get_vram_instance(fan::opengl::context_t& context, void* data, uintptr_t size, uintptr_t offset) {
+  void vbo_t::get_vram_instance(fan::opengl::context_t& context, void* data, std::uintptr_t size, std::uintptr_t offset) {
     fan::opengl::core::get_glbuffer(context, data, m_buffer, size, offset, m_target);
   }
 
-  void vbo_t::bind_buffer_range(fan::opengl::context_t& context, uint32_t total_size) {
+  void vbo_t::bind_buffer_range(fan::opengl::context_t& context, std::uint32_t total_size) {
     fan_opengl_call(glBindBufferRange(GL_UNIFORM_BUFFER, 0, m_buffer, 0, total_size));
   }
 
-  void vbo_t::edit_buffer(fan::opengl::context_t& context, const void* data, uintptr_t offset, uintptr_t size) {
+  void vbo_t::edit_buffer(fan::opengl::context_t& context, const void* data, std::uintptr_t offset, std::uintptr_t size) {
     fan::opengl::core::edit_glbuffer(context, m_buffer, data, offset, size, m_target);
   }
 
-  void vbo_t::write_buffer(fan::opengl::context_t& context, const void* data, uintptr_t size) {
+  void vbo_t::write_buffer(fan::opengl::context_t& context, const void* data, std::uintptr_t size) {
     fan::opengl::core::write_glbuffer(context, m_buffer, data, size, m_usage, m_target);
   }
 
@@ -1363,7 +1363,7 @@ namespace fan::opengl::core {
     fan_opengl_call(glFramebufferRenderbuffer(GL_FRAMEBUFFER, p.internalformat, GL_RENDERBUFFER, renderbuffer));
   }
 
-  uint32_t get_draw_mode(uint8_t draw_mode) {
+  std::uint32_t get_draw_mode(std::uint8_t draw_mode) {
     switch (draw_mode) {
     case fan::graphics::primitive_topology_t::points:
       return fan::opengl::context_t::primitive_topology_t::points;
@@ -1425,7 +1425,7 @@ namespace fan::graphics {
       return ((fan::opengl::context_t*)context)->image_create();
     };
     cf.image_get_handle = [](void* context, fan::graphics::image_nr_t nr) {
-      return (uint64_t)((fan::opengl::context_t*)context)->image_get_handle(nr);
+      return (std::uint64_t)((fan::opengl::context_t*)context)->image_get_handle(nr);
     };
     cf.image_get = [](void* context, fan::graphics::image_nr_t nr) {
       return (void*)&((fan::opengl::context_t*)context)->image_get(nr);
@@ -1576,22 +1576,22 @@ namespace fan::graphics {
     cf.image_read_pixels = [](void* context, fan::graphics::image_nr_t nr, fan::vec2 uv_pos, fan::vec2 uv_size) {
     #if defined(__wasm__)
       fan::throw_error("unsupported func.");
-      return std::vector<uint8_t>{};
+      return std::vector<std::uint8_t>{};
     #else
       auto& gl = *(fan::opengl::context_t*)context;
       auto size = fan::graphics::image_get_data(nr).size;
       auto img_settings = gl.image_get_settings(nr);
-      uint32_t channels = fan::graphics::get_channel_amount(img_settings.format);
+      std::uint32_t channels = fan::graphics::get_channel_amount(img_settings.format);
       int px = fan::math::clamp((int)fan::math::round(uv_pos.x * size.x), 0, (int)size.x);
       int py = fan::math::clamp((int)fan::math::round(uv_pos.y * size.y), 0, (int)size.y);
       int pw = fan::math::min((int)fan::math::round(uv_size.x * size.x), (int)size.x - px);
       int ph = fan::math::min((int)fan::math::round(uv_size.y * size.y), (int)size.y - py);
-      std::vector<uint8_t> full(size.x * size.y * channels);
+      std::vector<std::uint8_t> full(size.x * size.y * channels);
       glBindTexture(GL_TEXTURE_2D, gl.image_get_handle(nr));
       glGetTexImage(GL_TEXTURE_2D, 0,
         fan::opengl::context_t::global_to_opengl_format(img_settings.format),
         GL_UNSIGNED_BYTE, full.data());
-      std::vector<uint8_t> out(pw * ph * channels);
+      std::vector<std::uint8_t> out(pw * ph * channels);
       for (int row = 0; row < ph; ++row) {
         std::memcpy(&out[row * pw * channels],
           &full[((py + row) * (int)size.x + px) * channels],
@@ -1600,7 +1600,7 @@ namespace fan::graphics {
       return out;
     #endif
     };
-    cf.image_get_pixel_data = [](void* context, fan::graphics::image_nr_t nr, uint32_t format, fan::vec2 uvp, fan::vec2 uvs) {
+    cf.image_get_pixel_data = [](void* context, fan::graphics::image_nr_t nr, std::uint32_t format, fan::vec2 uvp, fan::vec2 uvs) {
       return ((fan::opengl::context_t*)context)->image_get_pixel_data(nr,
         fan::opengl::context_t::global_to_opengl_format(format), uvp, uvs);
     };

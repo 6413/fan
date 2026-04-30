@@ -1,4 +1,7 @@
 module;
+
+#include <ctime>
+
 module fan.print.error;
 
 import std;

@@ -2,6 +2,8 @@ module;
 
 #include <coroutine>
 
+#include <fan/utility.h>
+
 export module fan.event;
 
 import std;
@@ -36,7 +38,7 @@ export namespace fan::event {
     };
 
     timer_t();
-    timer_t(uint64_t timeout, uint64_t repeat = 0);
+    timer_t(std::uint64_t timeout, std::uint64_t repeat = 0);
     ~timer_t() = default;
 
     timer_t(timer_t&&) = default;
@@ -44,9 +46,9 @@ export namespace fan::event {
     timer_t(const timer_t&) = delete;
     timer_t& operator=(const timer_t&) = delete;
 
-    error_code_t start(uint64_t timeout, uint64_t repeat = 0) noexcept;
+    error_code_t start(std::uint64_t timeout, std::uint64_t repeat = 0) noexcept;
     error_code_t again() noexcept;
-    void set_repeat(uint64_t repeat) noexcept;
+    void set_repeat(std::uint64_t repeat) noexcept;
     error_code_t stop() noexcept;
     bool await_ready() const noexcept;
     void await_suspend(std::coroutine_handle<> h) noexcept;
@@ -95,7 +97,7 @@ export namespace fan::event {
 
   struct counter_awaitable_t {
     struct state_t {
-      size_t remaining;
+      std::size_t remaining;
       std::coroutine_handle<> continuation;
     };
     state_t* st;
@@ -156,12 +158,12 @@ export namespace fan::event {
     std::string get_watch_path();
   };
 
-  fan::event::task_t after(uint64_t time, auto l) {
+  fan::event::task_t after(std::uint64_t time, auto l) {
     co_await fan::event::timer_t(time);
     if constexpr (fan::is_awaitable_v<decltype(l())>) { co_await l(); } else { l(); }
   }
   
-  fan::event::task_t every(uint64_t time, auto l) {
+  fan::event::task_t every(std::uint64_t time, auto l) {
     while (true) {
       if constexpr (fan::is_awaitable_v<decltype(l())>) {
         if (co_await l()) break;
@@ -175,7 +177,7 @@ export namespace fan::event {
   void sleep(unsigned int msec);
   void loop(fan::event::loop_t l = fan::event::get_loop(), bool once = false);
   void run_once(fan::event::loop_t l = fan::event::get_loop());
-  uint64_t now();
+  std::uint64_t now();
   std::string strerror(int err);
 
   template <typename cb_t, typename ...args_t>
@@ -201,7 +203,7 @@ export namespace fan::event {
   poll_awaitable_t poll_task(loop_t loop, int fd, int events);
   
   struct uv_fs_open_awaitable {
-    alignas(8) uint8_t data[512]; 
+    alignas(8) std::uint8_t data[512]; 
     uv_fs_open_awaitable(const std::string& path, int flags, int mode);
     ~uv_fs_open_awaitable();
     bool await_ready() const noexcept { return false; }
@@ -211,27 +213,27 @@ export namespace fan::event {
   };
 
   struct uv_fs_read_awaitable {
-    alignas(8) uint8_t data[512];
-    uv_fs_read_awaitable(int file, char* buffer, size_t size, int64_t offset);
+    alignas(8) std::uint8_t data[512];
+    uv_fs_read_awaitable(int file, char* buffer, std::size_t size, std::int64_t offset);
     ~uv_fs_read_awaitable();
     bool await_ready() const noexcept { return false; }
     void await_suspend(std::coroutine_handle<> h) noexcept;
-    intptr_t result() const noexcept;
+    std::intptr_t result() const noexcept;
     void await_resume() noexcept {}
   };
   
   struct uv_fs_write_awaitable {
-    alignas(8) uint8_t data[512];
-    uv_fs_write_awaitable(int fd, const char* buffer, size_t length, int64_t offset);
+    alignas(8) std::uint8_t data[512];
+    uv_fs_write_awaitable(int fd, const char* buffer, std::size_t length, std::int64_t offset);
     ~uv_fs_write_awaitable();
     bool await_ready() const noexcept { return false; }
     void await_suspend(std::coroutine_handle<> h) noexcept;
-    intptr_t result() const noexcept;
+    std::intptr_t result() const noexcept;
     void await_resume() noexcept {}
   };
 
   struct uv_fs_close_awaitable {
-    alignas(8) uint8_t data[512];
+    alignas(8) std::uint8_t data[512];
     uv_fs_close_awaitable(int file);
     ~uv_fs_close_awaitable();
     bool await_ready() const noexcept { return false; }
@@ -240,13 +242,13 @@ export namespace fan::event {
   };
 
   struct uv_fs_size_awaitable {
-    alignas(8) uint8_t data[512];
+    alignas(8) std::uint8_t data[512];
     uv_fs_size_awaitable(int file);
     uv_fs_size_awaitable(const std::string& path);
     ~uv_fs_size_awaitable();
     bool await_ready() const noexcept { return false; }
     void await_suspend(std::coroutine_handle<> h) noexcept;
-    int64_t result() const noexcept;
+    std::int64_t result() const noexcept;
     void await_resume() noexcept {}
   };
 }
@@ -268,13 +270,13 @@ export namespace fan::io::file {
     co_return req.result();
   }
 
-  inline fan::event::runv_t<intptr_t> async_read(int file, char* buffer, size_t buffer_size, int64_t offset) {
+  inline fan::event::runv_t<std::intptr_t> async_read(int file, char* buffer, std::size_t buffer_size, std::int64_t offset) {
     fan::event::uv_fs_read_awaitable req(file, buffer, buffer_size, offset);
     co_await req;
     co_return req.result();
   }
 
-  inline fan::event::runv_t<intptr_t> async_write(int fd, const char* buffer, size_t length, int64_t offset) {
+  inline fan::event::runv_t<std::intptr_t> async_write(int fd, const char* buffer, std::size_t length, std::int64_t offset) {
     fan::event::uv_fs_write_awaitable req(fd, buffer, length, offset);
     co_await req;
     co_return req.result();
@@ -285,19 +287,19 @@ export namespace fan::io::file {
     co_await req;
   }
 
-  inline fan::event::runv_t<intptr_t> async_size(int file) {
+  inline fan::event::runv_t<std::intptr_t> async_size(int file) {
     fan::event::uv_fs_size_awaitable req(file);
     co_await req;
     co_return req.result();
   }
 
-  inline fan::event::runv_t<intptr_t> async_size(const std::string& path) {
+  inline fan::event::runv_t<std::intptr_t> async_size(const std::string& path) {
     fan::event::uv_fs_size_awaitable req(path);
     co_await req;
     co_return req.result();
   }
 
-  fan::event::runv_t<intptr_t> async_read(int file, std::string* buffer, int64_t offset, std::size_t buffer_size = 4096);
+  fan::event::runv_t<std::intptr_t> async_read(int file, std::string* buffer, std::int64_t offset, std::size_t buffer_size = 4096);
   
   template <typename lambda_t>
   fan::event::task_t async_read_cb(const std::string& path, lambda_t&& lambda, int buffer_size = 64) {
@@ -306,7 +308,7 @@ export namespace fan::io::file {
     std::string buffer;
     buffer.resize(buffer_size);
     while (true) {
-      intptr_t result = co_await fan::io::file::async_read(fd, buffer.data(), buffer.size(), offset);
+      std::intptr_t result = co_await fan::io::file::async_read(fd, buffer.data(), buffer.size(), offset);
       if (result <= 0) break;
       std::string chunk(buffer.data(), result);
       if constexpr (fan::is_awaitable_v<decltype(lambda(chunk))>) {
@@ -326,8 +328,8 @@ export namespace fan::io::file {
   struct async_read_t {
     std::string path;
     int fd = -1;
-    intptr_t offset = 0;
-    intptr_t size = 0;
+    std::intptr_t offset = 0;
+    std::intptr_t size = 0;
 
     fan::event::run_t open(const std::string& file_path);
     fan::event::run_t close();
@@ -337,7 +339,7 @@ export namespace fan::io::file {
   struct async_write_t {
     std::string path;
     int fd = -1;
-    intptr_t offset = 0;
+    std::intptr_t offset = 0;
 
     fan::event::run_t open(const std::string& file_path) {
       path = file_path;
@@ -346,8 +348,8 @@ export namespace fan::io::file {
     fan::event::run_t close() const {
       co_await fan::io::file::async_close(fd);
     }
-    fan::event::runv_t<intptr_t> write(const std::string& data, std::size_t buffer_size = 4096) {
-      intptr_t result = co_await fan::io::file::async_write(fd, data.data() + offset, std::min(data.size() - offset, buffer_size), offset);
+    fan::event::runv_t<std::intptr_t> write(const std::string& data, std::size_t buffer_size = 4096) {
+      std::intptr_t result = co_await fan::io::file::async_write(fd, data.data() + offset, std::min(data.size() - offset, buffer_size), offset);
       if (result > 0) offset += result;
       co_return result;
     }
@@ -365,8 +367,8 @@ export namespace fan::io {
     ~async_directory_iterator_t();
     void stop();
 
-    size_t get_current_index() const;
-    size_t get_entries_size() const;
+    std::size_t get_current_index() const;
+    std::size_t get_entries_size() const;
     bool is_finished() const;
   };
 

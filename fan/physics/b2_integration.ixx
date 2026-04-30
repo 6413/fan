@@ -1,8 +1,12 @@
 module;
 
+#include <cstddef>
+
 #if defined(FAN_PHYSICS_2D)
   #include <box2d/box2d.h>
 #endif
+
+#include <fan/utility.h>
 
 export module fan.physics.b2_integration;
 
@@ -200,8 +204,8 @@ export namespace fan {
       void set_restitution(f32_t restitution);
       fan::physics::aabb_t get_aabb() const;
       fan::vec2 get_size() const;
-      uint8_t get_body_type() const;
-      void set_body_type(uint8_t body_type);
+      std::uint8_t get_body_type() const;
+      void set_body_type(std::uint8_t body_type);
 
       bool test_overlap(const body_id_t& other) const;
       void on_overlap(const body_id_t& other, std::function<void()> callback);
@@ -275,22 +279,22 @@ export namespace fan {
 
       void begin_frame(f32_t dt);
 
-      entity_t create_box(const fan::vec2& position, const fan::vec2& size, f32_t angle = 0, uint8_t body_type = body_type_e::static_body, const shape_properties_t& shape_properties = {});
+      entity_t create_box(const fan::vec2& position, const fan::vec2& size, f32_t angle = 0, std::uint8_t body_type = body_type_e::static_body, const shape_properties_t& shape_properties = {});
 
-      entity_t create_rectangle(const fan::vec2& position, const fan::vec2& size, f32_t angle = 0, uint8_t body_type = body_type_e::static_body, const shape_properties_t& shape_properties = {});
+      entity_t create_rectangle(const fan::vec2& position, const fan::vec2& size, f32_t angle = 0, std::uint8_t body_type = body_type_e::static_body, const shape_properties_t& shape_properties = {});
 
-      entity_t create_circle(const fan::vec2& position, f32_t radius, f32_t angle = 0, uint8_t body_type = body_type_e::static_body, const shape_properties_t& shape_properties = {});
+      entity_t create_circle(const fan::vec2& position, f32_t radius, f32_t angle = 0, std::uint8_t body_type = body_type_e::static_body, const shape_properties_t& shape_properties = {});
 
-      fan::physics::entity_t create_capsule(const fan::vec2& position, f32_t angle, const fan::physics::capsule_t& info, uint8_t body_type, const shape_properties_t& shape_properties);
+      fan::physics::entity_t create_capsule(const fan::vec2& position, f32_t angle, const fan::physics::capsule_t& info, std::uint8_t body_type, const shape_properties_t& shape_properties);
 
-      fan::physics::entity_t create_segment(const fan::vec2& position, const std::vector<fan::vec2>& points, uint8_t body_type, const shape_properties_t& shape_properties);
+      fan::physics::entity_t create_segment(const fan::vec2& position, const std::vector<fan::vec2>& points, std::uint8_t body_type, const shape_properties_t& shape_properties);
 
       fan::physics::entity_t create_polygon(
         const fan::vec2& position,
         f32_t radius,
         const fan::vec2* points,
         int count,
-        uint8_t body_type,
+        std::uint8_t body_type,
         const shape_properties_t& shape_properties
       );
       // a, b and c are local offsets from 'position' (center)
@@ -299,7 +303,7 @@ export namespace fan {
         const fan::vec2& a,
         const fan::vec2& b,
         const fan::vec2& c,
-        uint8_t body_type,
+        std::uint8_t body_type,
         const shape_properties_t& shape_properties
       );
 
@@ -315,7 +319,7 @@ export namespace fan {
 
       void on_hit(b2ShapeId shape_a, b2ShapeId shape_b, f32_t approach_speed);
 
-      uint64_t get_shape_key(b2ShapeId shape) const;
+      std::uint64_t get_shape_key(b2ShapeId shape) const;
 
       void add_collision(b2ShapeId a, b2ShapeId b);
 
@@ -338,7 +342,7 @@ export namespace fan {
       f32_t delta_time = 0;
 
       struct pair_hash_t {
-        size_t operator()(const std::pair<uint64_t, uint64_t>& p) const;
+        std::size_t operator()(const std::pair<std::uint64_t, std::uint64_t>& p) const;
       };
 
       struct debug_state_t {
@@ -349,7 +353,7 @@ export namespace fan {
 
       debug_state_t debug;
 
-      std::unordered_set<std::pair<uint64_t, uint64_t>, pair_hash_t> active_collisions;
+      std::unordered_set<std::pair<std::uint64_t, std::uint64_t>, pair_hash_t> active_collisions;
       fan::physics::physics_update_cbs_t physics_updates;
       physics_step_callbacks_t physics_step_callbacks;
       std::function<void()> debug_draw_cb = [] {};
@@ -402,7 +406,7 @@ export namespace fan {
       const fan::vec2& center_position,
       const fan::vec2& half_size,
       f32_t thickness,
-      uint8_t body_type,
+      std::uint8_t body_type,
       std::array<fan::physics::shape_properties_t, 4> shape_properties
     );
 
@@ -417,14 +421,14 @@ export namespace fan {
     template <typename pos_t, typename tag_t, typename registry_t, typename on_trigger_cb_t>
     constexpr void proximity_trigger(registry_t& reg, fan::vec2 center, f32_t radius, on_trigger_cb_t&& on_trigger_cb) {
       f32_t r2 = radius * radius;
-      reg.template each<pos_t, tag_t>([&](uint32_t e, pos_t& pos, tag_t&) {
+      reg.template each<pos_t, tag_t>([&](std::uint32_t e, pos_t& pos, tag_t&) {
         if ((pos.v - center).length_squared() < r2) { on_trigger_cb(e, pos); }
       });
     }
 
     template <typename tag_turret_t, typename registry_t, typename world_t, typename filter_cb_t, typename on_fire_cb_t>
     constexpr void auto_aim(registry_t& reg, world_t& world, f32_t dt, f32_t range, f32_t speed, f32_t cooldown_time, filter_cb_t&& filter_cb, on_fire_cb_t&& on_fire_cb) {
-      reg.template each<fan::ecs::c_pos, tag_turret_t>([&](uint32_t, fan::ecs::c_pos& pos, tag_turret_t& turret) {
+      reg.template each<fan::ecs::c_pos, tag_turret_t>([&](std::uint32_t, fan::ecs::c_pos& pos, tag_turret_t& turret) {
         turret.cd.tick(dt);
         if (!turret.cd.is_ready()) { return; }
 

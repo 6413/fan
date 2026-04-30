@@ -1,5 +1,7 @@
 module;
 
+#include <fan/utility.h>
+
 #include <uv.h>
 #include <coroutine>
 #if defined(fan_platform_windows)
@@ -13,7 +15,6 @@ module;
 
 module fan.ipc;
 
-import std;
 import fan.event;
 import fan.print.error;
 
@@ -23,7 +24,7 @@ namespace fan::ipc {
 
   struct shm_impl_t { HANDLE h; bool owner; };
 
-  shared_memory_t::shared_memory_t(const char* name, size_t size, bool owner) : size_(size) {
+  shared_memory_t::shared_memory_t(const char* name, std::size_t size, bool owner) : size_(size) {
     auto* im = new shm_impl_t;
     im->owner = owner;
     im->h = CreateFileMappingA(INVALID_HANDLE_VALUE, nullptr, PAGE_READWRITE,
@@ -57,7 +58,7 @@ namespace fan::ipc {
 
   struct shm_impl_t { int fd; char name[256]; bool owner; };
 
-  shared_memory_t::shared_memory_t(const char* name, size_t size, bool owner) : size_(size) {
+  shared_memory_t::shared_memory_t(const char* name, std::size_t size, bool owner) : size_(size) {
     auto* im = new shm_impl_t;
     im->owner = owner;
     snprintf(im->name, 256, "/%s", name);

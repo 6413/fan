@@ -16,7 +16,7 @@ import fan.graphics.gameplay.items;
 namespace fan::graphics::gui {
 
   void handle_slot_click(
-    uint32_t slot_index,
+    std::uint32_t slot_index,
     gameplay::item_slot_t& slot,
     bool hovered,
     bool left_pressed,
@@ -52,10 +52,10 @@ namespace fan::graphics::gui {
     }
   }
 
-  uint32_t render_slot_grid(
+  std::uint32_t render_slot_grid(
     std::vector<gameplay::item_slot_t>& slots,
-    uint32_t start_idx,
-    uint32_t count,
+    std::uint32_t start_idx,
+    std::uint32_t count,
     const slot_layout_t& layout,
     const gameplay::gui_theme_t& theme,
     gui::drag_drop::drag_state_t& drag_state,
@@ -63,11 +63,11 @@ namespace fan::graphics::gui {
     const slot_visual_state_t& visual
   ) {
     fan::vec2 origin = gui::get_cursor_screen_pos();
-    uint32_t hovered_slot = UINT32_MAX;
+    std::uint32_t hovered_slot = std::numeric_limits<std::uint32_t>::max();
 
-    for (uint32_t i = start_idx; i < start_idx + count && i < slots.size(); ++i) {
-      uint32_t local = i - start_idx;
-      uint32_t col, row;
+    for (std::uint32_t i = start_idx; i < start_idx + count && i < slots.size(); ++i) {
+      std::uint32_t local = i - start_idx;
+      std::uint32_t col, row;
       
       if (layout.horizontal) {
         col = local;

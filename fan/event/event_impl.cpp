@@ -39,7 +39,7 @@ namespace fan::event {
     return reinterpret_cast<const awaitable_internal_t*>(data)->req.result;
   }
 
-  uv_fs_read_awaitable::uv_fs_read_awaitable(int file, char* buffer, size_t size, int64_t offset) {
+  uv_fs_read_awaitable::uv_fs_read_awaitable(int file, char* buffer, std::size_t size, std::int64_t offset) {
     auto* internal = reinterpret_cast<awaitable_internal_t*>(data);
     internal->handle = nullptr;
     internal->req.data = internal;
@@ -55,11 +55,11 @@ namespace fan::event {
   void uv_fs_read_awaitable::await_suspend(std::coroutine_handle<> h) noexcept {
     reinterpret_cast<awaitable_internal_t*>(data)->handle = h;
   }
-  intptr_t uv_fs_read_awaitable::result() const noexcept {
+  std::intptr_t uv_fs_read_awaitable::result() const noexcept {
     return reinterpret_cast<const awaitable_internal_t*>(data)->req.result;
   }
 
-  uv_fs_write_awaitable::uv_fs_write_awaitable(int fd, const char* buffer, size_t length, int64_t offset) {
+  uv_fs_write_awaitable::uv_fs_write_awaitable(int fd, const char* buffer, std::size_t length, std::int64_t offset) {
     auto* internal = reinterpret_cast<awaitable_internal_t*>(data);
     internal->handle = nullptr;
     internal->req.data = internal;
@@ -75,7 +75,7 @@ namespace fan::event {
   void uv_fs_write_awaitable::await_suspend(std::coroutine_handle<> h) noexcept {
     reinterpret_cast<awaitable_internal_t*>(data)->handle = h;
   }
-  intptr_t uv_fs_write_awaitable::result() const noexcept {
+  std::intptr_t uv_fs_write_awaitable::result() const noexcept {
     return reinterpret_cast<const awaitable_internal_t*>(data)->req.result;
   }
 
@@ -119,7 +119,7 @@ namespace fan::event {
   void uv_fs_size_awaitable::await_suspend(std::coroutine_handle<> h) noexcept {
     reinterpret_cast<awaitable_internal_t*>(data)->handle = h;
   }
-  int64_t uv_fs_size_awaitable::result() const noexcept {
+  std::int64_t uv_fs_size_awaitable::result() const noexcept {
     auto* internal = reinterpret_cast<const awaitable_internal_t*>(data);
     return internal->req.result < 0 ? -1 : internal->req.statbuf.st_size;
   }
@@ -165,14 +165,14 @@ namespace fan::event {
     data->timer_handle.data = data.get();
   }
 
-  timer_t::timer_t(uint64_t timeout, uint64_t repeat)
+  timer_t::timer_t(std::uint64_t timeout, std::uint64_t repeat)
     : data(new timer_data{}, timer_deleter{}) {
     uv_timer_init((uv_loop_t*)fan::event::get_loop(), &data->timer_handle);
     data->timer_handle.data = data.get();
     start(timeout, repeat);
   }
 
-  error_code_t timer_t::start(uint64_t timeout, uint64_t repeat) noexcept {
+  error_code_t timer_t::start(std::uint64_t timeout, std::uint64_t repeat) noexcept {
     return uv_timer_start(&data->timer_handle, [](uv_timer_t* timer_handle) {
       auto data = static_cast<timer_t::timer_data*>(timer_handle->data);
       ++data->ready;
@@ -181,7 +181,7 @@ namespace fan::event {
   }
 
   error_code_t timer_t::again() noexcept { return uv_timer_again(&data->timer_handle); }
-  void timer_t::set_repeat(uint64_t repeat) noexcept { uv_timer_set_repeat(&data->timer_handle, repeat); }
+  void timer_t::set_repeat(std::uint64_t repeat) noexcept { uv_timer_set_repeat(&data->timer_handle, repeat); }
   error_code_t timer_t::stop() noexcept { return uv_timer_stop(&data->timer_handle); }
   bool timer_t::await_ready() const noexcept { return data->ready; }
   void timer_t::await_suspend(std::coroutine_handle<> h) noexcept { data->co_handle = h; }
@@ -305,7 +305,7 @@ namespace fan::event {
   void sleep(unsigned int msec) { uv_sleep(msec); }
   void loop(fan::event::loop_t l, bool once) { uv_run((uv_loop_t*)l, once ? UV_RUN_ONCE : UV_RUN_DEFAULT); }
   void run_once(fan::event::loop_t l) { loop(l, true); }
-  uint64_t now() { return uv_now((uv_loop_t*)get_loop()) * 1000000; }
+  std::uint64_t now() { return uv_now((uv_loop_t*)get_loop()) * 1000000; }
   std::string strerror(int err) { return uv_strerror(err); }
 
   poll_awaitable_t::poll_awaitable_t(loop_t loop, int fd, int events) {
@@ -337,9 +337,9 @@ namespace fan::event {
 
 namespace fan::io::file {
 
-  fan::event::runv_t<intptr_t> async_read(int file, std::string* buffer, int64_t offset, std::size_t buffer_size) {
+  fan::event::runv_t<std::intptr_t> async_read(int file, std::string* buffer, std::int64_t offset, std::size_t buffer_size) {
     buffer->resize(buffer_size);
-    intptr_t r = co_await async_read(file, buffer->data(), buffer_size, offset);
+    std::intptr_t r = co_await async_read(file, buffer->data(), buffer_size, offset);
     if (r < 0) fan::throw_error("error reading file", std::to_string(r));
     buffer->resize(r);
     co_return r;
@@ -353,7 +353,7 @@ namespace fan::io::file {
     std::string content;
 
     while (true) {
-      intptr_t result = co_await async_read(fd, buffer.data(), buffer.size(), offset);
+      std::intptr_t result = co_await async_read(fd, buffer.data(), buffer.size(), offset);
       if (result <= 0) break;
       content.append(buffer.data(), result);
       offset += result;
@@ -364,15 +364,15 @@ namespace fan::io::file {
 
   fan::event::task_t async_write(const std::string& path, const std::string& data) {
     int fd = co_await async_open(path, fan::fs_out);
-    size_t offset = 0;
-    size_t buffer_size = 4096;
-    size_t total_written = 0;
+    std::size_t offset = 0;
+    std::size_t buffer_size = 4096;
+    std::size_t total_written = 0;
 
     while (total_written < data.size()) {
-      size_t remaining = data.size() - total_written;
-      size_t to_write = std::min(remaining, buffer_size);
+      std::size_t remaining = data.size() - total_written;
+      std::size_t to_write = std::min(remaining, buffer_size);
       std::string buffer(data.data() + total_written, to_write);
-      intptr_t written = co_await async_write(fd, buffer.data(), buffer.size(), offset + total_written);
+      std::intptr_t written = co_await async_write(fd, buffer.data(), buffer.size(), offset + total_written);
       if (written <= 0) fan::throw_error("write failed");
       total_written += written;
     }
@@ -391,7 +391,7 @@ namespace fan::io::file {
 
   fan::event::runv_t<std::string> async_read_t::read() {
     std::string buffer;
-    intptr_t read_bytes = co_await fan::io::file::async_read(fd, &buffer, offset);
+    std::intptr_t read_bytes = co_await fan::io::file::async_read(fd, &buffer, offset);
     if (read_bytes > 0) offset += read_bytes;
     if (read_bytes < 0) fan::throw_error("fs read error:" + fan::event::strerror((int)read_bytes));
     co_return buffer;
@@ -422,7 +422,7 @@ namespace fan::io {
     std::vector<std::filesystem::directory_entry> entries;
     std::string base_path;
     std::string next_path;
-    size_t current_index = 0;
+    std::size_t current_index = 0;
     bool stopped = false;
     bool switch_requested = false;
     fan::event::task_t iteration_task;
@@ -524,11 +524,11 @@ namespace fan::io {
     }
   }
 
-  size_t async_directory_iterator_t::get_current_index() const {
+  std::size_t async_directory_iterator_t::get_current_index() const {
     return static_cast<dir_iter_internal*>(internal_state)->current_index;
   }
 
-  size_t async_directory_iterator_t::get_entries_size() const {
+  std::size_t async_directory_iterator_t::get_entries_size() const {
     return static_cast<dir_iter_internal*>(internal_state)->entries.size();
   }
 

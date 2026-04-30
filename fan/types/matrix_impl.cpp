@@ -125,60 +125,60 @@ namespace fan {
     return r;
   }
 
-  template <typename T> runtime_matrix2d<T>::runtime_matrix2d(uint32_t r, uint32_t c) : rows(r), columns(c) {
+  template <typename T> runtime_matrix2d<T>::runtime_matrix2d(std::uint32_t r, std::uint32_t c) : rows(r), columns(c) {
     m = new T*[r];
-    for (uint32_t i = 0; i < r; ++i) { m[i] = new T[c]; std::memset(m[i], 0, c * sizeof(T)); }
+    for (std::uint32_t i = 0; i < r; ++i) { m[i] = new T[c]; std::memset(m[i], 0, c * sizeof(T)); }
   }
 
   template <typename T> runtime_matrix2d<T>::runtime_matrix2d(const runtime_matrix2d& o) : rows(o.rows), columns(o.columns) {
     m = new T*[rows];
-    for (uint32_t i = 0; i < rows; ++i) { m[i] = new T[columns]; std::copy(o.m[i], o.m[i] + columns, m[i]); }
+    for (std::uint32_t i = 0; i < rows; ++i) { m[i] = new T[columns]; std::copy(o.m[i], o.m[i] + columns, m[i]); }
   }
 
   template <typename T> runtime_matrix2d<T>& runtime_matrix2d<T>::operator=(const runtime_matrix2d& o) {
     if (this != &o) {
-      if (m) { for (uint32_t i = 0; i < rows; ++i) delete[] m[i]; delete[] m; }
+      if (m) { for (std::uint32_t i = 0; i < rows; ++i) delete[] m[i]; delete[] m; }
       rows = o.rows; columns = o.columns;
       m = new T*[rows];
-      for (uint32_t i = 0; i < rows; ++i) { m[i] = new T[columns]; std::copy(o.m[i], o.m[i] + columns, m[i]); }
+      for (std::uint32_t i = 0; i < rows; ++i) { m[i] = new T[columns]; std::copy(o.m[i], o.m[i] + columns, m[i]); }
     }
     return *this;
   }
 
   template <typename T> runtime_matrix2d<T>::~runtime_matrix2d() {
-    if (m) { for (uint32_t i = 0; i < rows; ++i) delete[] m[i]; delete[] m; }
+    if (m) { for (std::uint32_t i = 0; i < rows; ++i) delete[] m[i]; delete[] m; }
   }
 
   template <typename T> runtime_matrix2d<T> runtime_matrix2d<T>::operator+(const runtime_matrix2d& o) const {
     runtime_matrix2d r(rows, columns);
-    for (uint32_t i=0; i<rows; ++i) for (uint32_t j=0; j<columns; ++j) r[i][j] = m[i][j] + o[i][j];
+    for (std::uint32_t i=0; i<rows; ++i) for (std::uint32_t j=0; j<columns; ++j) r[i][j] = m[i][j] + o[i][j];
     return r;
   }
 
   template <typename T> runtime_matrix2d<T> runtime_matrix2d<T>::operator-(const runtime_matrix2d& o) const {
     runtime_matrix2d r(rows, columns);
-    for (uint32_t i=0; i<rows; ++i) for (uint32_t j=0; j<columns; ++j) r[i][j] = m[i][j] - o[i][j];
+    for (std::uint32_t i=0; i<rows; ++i) for (std::uint32_t j=0; j<columns; ++j) r[i][j] = m[i][j] - o[i][j];
     return r;
   }
 
   template <typename T> runtime_matrix2d<T> runtime_matrix2d<T>::operator*(const runtime_matrix2d& o) const {
     runtime_matrix2d r(rows, o.columns);
-    for (uint32_t i=0; i<rows; ++i) for (uint32_t j=0; j<o.columns; ++j) for (uint32_t k=0; k<columns; ++k) r[i][j] += m[i][k] * o[k][j];
+    for (std::uint32_t i=0; i<rows; ++i) for (std::uint32_t j=0; j<o.columns; ++j) for (std::uint32_t k=0; k<columns; ++k) r[i][j] += m[i][k] * o[k][j];
     return r;
   }
 
   template <typename T> runtime_matrix2d<T> runtime_matrix2d<T>::transpose() const {
     runtime_matrix2d r(columns, rows);
-    for (uint32_t i=0; i<rows; ++i) for (uint32_t j=0; j<columns; ++j) r[j][i] = m[i][j];
+    for (std::uint32_t i=0; i<rows; ++i) for (std::uint32_t j=0; j<columns; ++j) r[j][i] = m[i][j];
     return r;
   }
 
   template <typename T> void runtime_matrix2d<T>::randomize() {
-    for (uint32_t i=0; i<rows; ++i) for (uint32_t j=0; j<columns; ++j) m[i][j] = fan::random::value_f32(-1, 1);
+    for (std::uint32_t i=0; i<rows; ++i) for (std::uint32_t j=0; j<columns; ++j) m[i][j] = fan::random::value_f32(-1, 1);
   }
 
   template <typename T> void runtime_matrix2d<T>::zero() {
-    for (uint32_t i=0; i<rows; ++i) std::memset(m[i], 0, columns * sizeof(T));
+    for (std::uint32_t i=0; i<rows; ++i) std::memset(m[i], 0, columns * sizeof(T));
   }
 
   template struct _matrix4x4<f32_t>;

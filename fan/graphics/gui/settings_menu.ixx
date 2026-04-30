@@ -107,7 +107,7 @@ export namespace fan::graphics::gui {
       fan::graphics::gui::window_flags_no_title_bar;
     static constexpr fan::color title_color = fan::color::from_rgba(0x948c80ff) * 1.5f;
     static constexpr int fps_values[] = {0, 30, 60, 144, 165, 240};
-    static constexpr int64_t save_delay_ms = 250;
+    static constexpr std::int64_t save_delay_ms = 250;
     inline static f32_t bg_alpha = 0.99f;
     inline static bool hide_bg = false;
     fan::graphics::gui::keybind_menu_t keybind_menu;

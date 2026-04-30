@@ -387,7 +387,7 @@ constexpr auto fmod(const vec_t& test0) const {
 template <typename T>
 static auto val_to_string(const T a_value, const int n = 2) {
   char buf[64];
-  snprintf(buf, sizeof(buf), "%.*f", n, (double)a_value);
+  std::snprintf(buf, sizeof(buf), "%.*f", n, (double)a_value);
   return std::string(buf);
 }
 

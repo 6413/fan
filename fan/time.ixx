@@ -1,5 +1,7 @@
 module;
 
+#include <fan/utility.h>
+
 export module fan.time;
 
 import std;
@@ -8,13 +10,13 @@ import fan.types;
 
 export namespace fan {
   namespace time {
-    uint64_t now();
+    std::uint64_t now();
     f64_t seconds();
-    void delay(uint64_t time);
+    void delay(std::uint64_t time);
 
     struct timer {
       timer() = default;
-      explicit timer(uint64_t time, bool start_timer) {
+      explicit timer(std::uint64_t time, bool start_timer) {
         if (start_timer) {
           start(time);
         }
@@ -29,10 +31,10 @@ export namespace fan {
           start();
         }
       }
-      constexpr uint64_t count() const {
+      constexpr std::uint64_t count() const {
         return m_time;
       }
-      constexpr uint64_t duration() const {
+      constexpr std::uint64_t duration() const {
         return count();
       }
       constexpr f64_t duration_seconds() const {
@@ -42,24 +44,24 @@ export namespace fan {
         m_timer = fan::time::now();
         m_time = -2;
       }
-      void start(uint64_t time) {
+      void start(std::uint64_t time) {
         this->start();
         m_time = time;
       }
       void start_seconds(f64_t s) {
         start();
-        m_time = (uint64_t)(s * 1e9);
+        m_time = (std::uint64_t)(s * 1e9);
       }
       void start_millis(f64_t ms) {
         start();
-        m_time = (uint64_t)(ms * 1e6);
+        m_time = (std::uint64_t)(ms * 1e6);
       }
       void start_micros(f64_t us) {
         start();
-        m_time = (uint64_t)(us * 1e3);
+        m_time = (std::uint64_t)(us * 1e3);
       }
 
-      void set_time(uint64_t time) {
+      void set_time(std::uint64_t time) {
         m_time = time;
       }
       void restart() {
@@ -75,9 +77,9 @@ export namespace fan {
         return finished();
       }
       bool started() const {
-        return m_time != (uint64_t)-1;
+        return m_time != (std::uint64_t)-1;
       }
-      uint64_t elapsed() const {
+      std::uint64_t elapsed() const {
         return m_timer == 0 ? 0 : fan::time::now() - m_timer;
       }
       double seconds() const {
@@ -87,15 +89,15 @@ export namespace fan {
         return elapsed() / 1e6;
       }
 
-      uint64_t start_time() const {
+      std::uint64_t start_time() const {
         return m_timer;
       }
-      uint64_t start_time_seconds() const {
+      std::uint64_t start_time_seconds() const {
         return m_timer / 1e9;
       }
 
-      uint64_t m_timer = 0;
-      uint64_t m_time = (uint64_t)-1;
+      std::uint64_t m_timer = 0;
+      std::uint64_t m_time = (std::uint64_t)-1;
     };
 
     timer seconds_timer(f64_t s) {
@@ -138,11 +140,11 @@ export namespace fan {
 
     template<FAN_UNIQUE_CALL>
     bool every(f64_t interval_ms) {
-      static uint64_t last_time = 0;  
-      uint64_t interval_ns = (uint64_t)(interval_ms * 1e6);
-      uint64_t current = fan::time::now();
-      uint64_t elapsed = current - last_time;
-      uint64_t finished = (last_time == 0) | (elapsed >= interval_ns);
+      static std::uint64_t last_time = 0;  
+      std::uint64_t interval_ns = (std::uint64_t)(interval_ms * 1e6);
+      std::uint64_t current = fan::time::now();
+      std::uint64_t elapsed = current - last_time;
+      std::uint64_t finished = (last_time == 0) | (elapsed >= interval_ns);
       last_time = last_time * (finished ^ 1) + current * finished;
       return finished;
     }

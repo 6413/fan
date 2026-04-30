@@ -30,7 +30,7 @@ export namespace fan::graphics::network {
     f32_t update_fps = 60.f;
 
   private:
-    fan::event::task_t connect_loop(const std::string& ip, uint16_t port) {
+    fan::event::task_t connect_loop(const std::string& ip, std::uint16_t port) {
       while (true) {
         try {
           if (!connected) {
@@ -93,7 +93,7 @@ export namespace fan::graphics::network {
 
   public:
 
-    game_client_t(const std::string& ip, uint16_t port,
+    game_client_t(const std::string& ip, std::uint16_t port,
       std::function<send_type_t()> sender,
       std::function<void(const std::vector<receive_type_t>&, const std::string& payload)> receiver)
       : get_data(sender), on_receive(receiver) {

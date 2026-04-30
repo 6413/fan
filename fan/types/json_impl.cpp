@@ -88,9 +88,9 @@ namespace fan {
   json::json(void* ptr, bool is_ref) : m_ptr(ptr), m_is_ref(is_ref) {}
   
   json::json(int v) : json() { *this = v; }
-  json::json(uint32_t v) : json() { *this = v; }
-  json::json(int64_t v) : json() { *this = v; }
-  json::json(uint64_t v) : json() { *this = v; }
+  json::json(std::uint32_t v) : json() { *this = v; }
+  json::json(std::int64_t v) : json() { *this = v; }
+  json::json(std::uint64_t v) : json() { *this = v; }
   json::json(f32_t v) : json() { *this = v; }
   json::json(f64_t v) : json() { *this = v; }
   json::json(bool v) : json() { *this = v; }
@@ -155,9 +155,9 @@ namespace fan {
   }
 
   json& json::operator=(int v) { *static_cast<nlohmann::json*>(m_ptr) = v; return *this; }
-  json& json::operator=(uint32_t v) { *static_cast<nlohmann::json*>(m_ptr) = v; return *this; }
-  json& json::operator=(int64_t v) { *static_cast<nlohmann::json*>(m_ptr) = v; return *this; }
-  json& json::operator=(uint64_t v) { *static_cast<nlohmann::json*>(m_ptr) = v; return *this; }
+  json& json::operator=(std::uint32_t v) { *static_cast<nlohmann::json*>(m_ptr) = v; return *this; }
+  json& json::operator=(std::int64_t v) { *static_cast<nlohmann::json*>(m_ptr) = v; return *this; }
+  json& json::operator=(std::uint64_t v) { *static_cast<nlohmann::json*>(m_ptr) = v; return *this; }
   json& json::operator=(f32_t v) { *static_cast<nlohmann::json*>(m_ptr) = v; return *this; }
   json& json::operator=(f64_t v) { *static_cast<nlohmann::json*>(m_ptr) = v; return *this; }
   json& json::operator=(bool v) { *static_cast<nlohmann::json*>(m_ptr) = v; return *this; }
@@ -185,12 +185,12 @@ namespace fan {
     nlohmann::json& node = (*static_cast<nlohmann::json*>(m_ptr))[key];
     return json(&node, true);
   }
-  json json::operator[](size_t index) {
+  json json::operator[](std::size_t index) {
     nlohmann::json& node = (*static_cast<nlohmann::json*>(m_ptr))[index];
     return json(&node, true);
   }
   json json::operator[](int index) {
-    nlohmann::json& node = (*static_cast<nlohmann::json*>(m_ptr))[static_cast<size_t>(index)];
+    nlohmann::json& node = (*static_cast<nlohmann::json*>(m_ptr))[static_cast<std::size_t>(index)];
     return json(&node, true);
   }
   const json json::operator[](const char* key) const {
@@ -201,12 +201,12 @@ namespace fan {
     nlohmann::json& node = (*static_cast<nlohmann::json*>(m_ptr))[key];
     return json(&node, true);
   }
-  const json json::operator[](size_t index) const {
+  const json json::operator[](std::size_t index) const {
     nlohmann::json& node = (*static_cast<nlohmann::json*>(m_ptr))[index];
     return json(&node, true);
   }
   const json json::operator[](int index) const {
-    nlohmann::json& node = (*static_cast<nlohmann::json*>(m_ptr))[static_cast<size_t>(index)];
+    nlohmann::json& node = (*static_cast<nlohmann::json*>(m_ptr))[static_cast<std::size_t>(index)];
     return json(&node, true);
   }
 
@@ -214,7 +214,7 @@ namespace fan {
     nlohmann::json& node = static_cast<nlohmann::json*>(m_ptr)->at(key);
     return json(&node, true);
   }
-  json json::at(size_t index) {
+  json json::at(std::size_t index) {
     nlohmann::json& node = static_cast<nlohmann::json*>(m_ptr)->at(index);
     return json(&node, true);
   }
@@ -222,7 +222,7 @@ namespace fan {
     nlohmann::json& node = static_cast<nlohmann::json*>(m_ptr)->at(key);
     return json(&node, true);
   }
-  const json json::at(size_t index) const {
+  const json json::at(std::size_t index) const {
     nlohmann::json& node = static_cast<nlohmann::json*>(m_ptr)->at(index);
     return json(&node, true);
   }
@@ -262,7 +262,7 @@ namespace fan {
   bool json::is_object() const { return static_cast<nlohmann::json*>(m_ptr)->is_object(); }
   bool json::is_array() const { return static_cast<nlohmann::json*>(m_ptr)->is_array(); }
   bool json::is_null() const { return static_cast<nlohmann::json*>(m_ptr)->is_null(); }
-  size_t json::size() const { return static_cast<nlohmann::json*>(m_ptr)->size(); }
+  std::size_t json::size() const { return static_cast<nlohmann::json*>(m_ptr)->size(); }
   bool json::empty() const {
     if (!m_ptr) { return true; }
     return static_cast<nlohmann::json*>(m_ptr)->empty();
@@ -286,7 +286,7 @@ namespace fan {
     return static_cast<nlohmann::json*>(m_ptr)->dump(indent, indent_char[0], ensure_ascii);
   }
 
-  void json::reserve(size_t n) {
+  void json::reserve(std::size_t n) {
     if (!m_ptr) *this = json::array();
     auto* internal_json = static_cast<nlohmann::json*>(m_ptr);
     if (internal_json->is_array()) {
@@ -335,12 +335,12 @@ namespace fan {
     return it;
   }
 
-  std::pair<size_t, size_t> json_stream_parser_t::find_next_json_bounds(std::string_view s, size_t pos) const noexcept {
+  std::pair<std::size_t, std::size_t> json_stream_parser_t::find_next_json_bounds(std::string_view s, std::size_t pos) const noexcept {
     pos = s.find('{', pos);
     if (pos == std::string::npos) { return {pos, pos}; }
     int depth = 0;
     bool in_str = false;
-    for (size_t i = pos; i < s.length(); i++) {
+    for (std::size_t i = pos; i < s.length(); i++) {
       char c = s[i];
       if (c == '"' && (i == 0 || s[i - 1] != '\\')) { in_str = !in_str; }
       else if (!in_str) {
@@ -353,7 +353,7 @@ namespace fan {
   std::vector<json_stream_parser_t::parsed_result> json_stream_parser_t::process(std::string_view chunk) {
     std::vector<parsed_result> results;
     buf += chunk;
-    size_t pos = 0;
+    std::size_t pos = 0;
     while (pos < buf.length()) {
       auto [start, end] = find_next_json_bounds(buf, pos);
       if (start == std::string::npos) { break; }
@@ -371,13 +371,13 @@ namespace fan {
   #define EXPLICIT_GET(T) template <> T json::_get_impl<T>() const { return static_cast<nlohmann::json*>(m_ptr)->get<T>(); }
   
   EXPLICIT_GET(int)
-  EXPLICIT_GET(uint32_t)
-  EXPLICIT_GET(int64_t)
-  EXPLICIT_GET(uint64_t)
-  EXPLICIT_GET(uint16_t)
-  EXPLICIT_GET(int16_t)
-  EXPLICIT_GET(uint8_t)
-  EXPLICIT_GET(int8_t)
+  EXPLICIT_GET(std::uint32_t)
+  EXPLICIT_GET(std::int64_t)
+  EXPLICIT_GET(std::uint64_t)
+  EXPLICIT_GET(std::uint16_t)
+  EXPLICIT_GET(std::int16_t)
+  EXPLICIT_GET(std::uint8_t)
+  EXPLICIT_GET(std::int8_t)
   EXPLICIT_GET(char)
   EXPLICIT_GET(f32_t)
   EXPLICIT_GET(f64_t)

@@ -302,3 +302,8 @@ static unsigned char __clz(unsigned long long p0) {
 #ifndef __return_type_of
   #define __return_type_of fan::return_type_of_t
 #endif
+
+// import std;
+#ifndef NULL
+  #define NULL 0
+#endif

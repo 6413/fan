@@ -72,7 +72,7 @@ struct shape_functions_vtable_t;
 
 struct shape_functions_accessor_t {
   shape_functions_t* ptr = nullptr;
-  shape_functions_vtable_t& operator[](uint16_t shape_type);
+  shape_functions_vtable_t& operator[](std::uint16_t shape_type);
 };
 
 export namespace fan::graphics {
@@ -136,7 +136,7 @@ export namespace fan::graphics {
   using sprite_sheet_shape_id_t = fan::graphics::sprite_sheet_id_t;
 
   struct sprite_sheet_id_hash_t {
-    size_t operator()(const sprite_sheet_id_t& sprite_sheet_id) const noexcept;
+    std::size_t operator()(const sprite_sheet_id_t& sprite_sheet_id) const noexcept;
   };
 
   struct sprite_sheet_pair_hash_t {
@@ -188,7 +188,7 @@ export namespace fan::graphics {
     int vframes,
     int fps = 10,
     bool loop = true,
-    uint32_t filter = fan::graphics::image_filter_e::nearest,
+    std::uint32_t filter = fan::graphics::image_filter_e::nearest,
     const std::vector<int>& frames = {},
     const std::source_location& callers_path = std::source_location::current()
   );
@@ -226,12 +226,12 @@ export namespace fan::graphics {
 
   template <typename T>
   struct last_sizeof<T> {
-    static constexpr uintptr_t value = sizeof(T);
+    static constexpr std::uintptr_t value = sizeof(T);
   };
 
   template <typename T, typename... Rest>
   struct last_sizeof<T, Rest...> {
-    static constexpr uintptr_t value = last_sizeof<Rest...>::value;
+    static constexpr std::uintptr_t value = last_sizeof<Rest...>::value;
   };
 
   struct shapes {
@@ -241,7 +241,7 @@ export namespace fan::graphics {
 
     template<
       typename... Ts,
-      uintptr_t s = (sizeof(Ts) + ...)
+      std::uintptr_t s = (sizeof(Ts) + ...)
     >static constexpr shaper_t::ShapeID_t shape_add(
       shaper_t::ShapeTypeIndex_t sti,
       const auto& rd,
@@ -249,23 +249,23 @@ export namespace fan::graphics {
       Ts... args
     ) {
       struct structarr_t {
-        uint8_t p[s];
-        uint8_t& operator[](uintptr_t i) {
+        std::uint8_t p[s];
+        std::uint8_t& operator[](std::uintptr_t i) {
           return p[i];
         }
       };
       structarr_t a;
-      uintptr_t i = 0;
+      std::uintptr_t i = 0;
       ([&](auto arg) {
         __builtin_memcpy(&a[i], &arg, sizeof(arg));
         i += sizeof(arg);
         }(args), ...);
 
-      constexpr uintptr_t count = (!!(sizeof(Ts) + 1) + ...);
+      constexpr std::uintptr_t count = (!!(sizeof(Ts) + 1) + ...);
       static_assert(count % 2 == 0);
-      constexpr uintptr_t last_sizeof_v = last_sizeof<Ts...>::value;
+      constexpr std::uintptr_t last_sizeof_v = last_sizeof<Ts...>::value;
 
-      uintptr_t LastKeyOffset = s - last_sizeof_v - 1;
+      std::uintptr_t LastKeyOffset = s - last_sizeof_v - 1;
       fan::graphics::g_shapes->shaper.PrepareKeysForAdd(&a, LastKeyOffset);
       return fan::graphics::g_shapes->shaper.add(sti, &a, s, &rd, &d);
     }
@@ -283,7 +283,7 @@ export namespace fan::graphics {
     };
 
     static shape_functions_t& get_shape_functions();
-    static shape_t shape_functions_push_back(uint16_t shape_type, void* properties);
+    static shape_t shape_functions_push_back(std::uint16_t shape_type, void* properties);
 
     struct shape_t : public shaper_t::ShapeID_t {
       using shaper_t::ShapeID_t::ShapeID_t;
@@ -333,7 +333,7 @@ export namespace fan::graphics {
       void set_dynamic();
       void remove_culling();
 
-      uint8_t get_movement() const;
+      std::uint8_t get_movement() const;
       void update_dynamic();
       void update_culling();
 
@@ -345,7 +345,7 @@ export namespace fan::graphics {
 
 
       // many things assume uint16_t so thats why not shaper_t::ShapeTypeIndex_t
-      uint16_t get_shape_type() const;
+      std::uint16_t get_shape_type() const;
       void set_position(const fan::vec2& position);
       void set_position(const fan::vec3& position);
       void set_x(f32_t x);
@@ -403,18 +403,18 @@ export namespace fan::graphics {
       void set_images(const std::array<fan::graphics::image_t, 30>& images);
       fan::vec2 get_parallax_factor() const;
       void set_parallax_factor(fan::vec2 parallax_factor);
-      uint32_t get_flags() const;
-      void set_flags(uint32_t flag);
+      std::uint32_t get_flags() const;
+      void set_flags(std::uint32_t flag);
       f32_t get_radius() const;
       fan::vec3 get_src() const;
       fan::vec2 get_dst() const;
       f32_t get_outline_size() const;
       fan::color get_outline_color() const;
       void set_outline_color(const fan::color& color);
-      void reload(uint8_t format, void** image_data, const fan::vec2& image_size);
-      void reload(uint8_t format, const fan::vec2& image_size);
+      void reload(std::uint8_t format, void** image_data, const fan::vec2& image_size);
+      void reload(std::uint8_t format, const fan::vec2& image_size);
       // universal image specific
-      void reload(uint8_t format, fan::graphics::image_t images[4]);
+      void reload(std::uint8_t format, fan::graphics::image_t images[4]);
       void set_line(const fan::vec2& src, const fan::vec2& dst);
       bool is_mouse_inside();
     #if defined(FAN_PHYSICS_2D)
@@ -452,7 +452,7 @@ export namespace fan::graphics {
       void set_sprite_sheet(const std::string& name);
       void set_sprite_sheet(const sprite_sheet_t& sprite_sheet);
       void add_sprite_sheet(const sprite_sheet_t& sprite_sheet);
-      void set_sprite_sheet_frames(uint32_t image_index, int horizontal_frames, int vertical_frames);
+      void set_sprite_sheet_frames(std::uint32_t image_index, int horizontal_frames, int vertical_frames);
       sprite_sheet_id_t& get_current_sprite_sheet_id() const;
       bool sprite_sheet_on(const std::string& name, int frame_index);
       bool sprite_sheet_on(const std::string& name, const std::initializer_list<int>& arr);
@@ -498,13 +498,13 @@ export namespace fan::graphics {
       shaper_t::ShapeData_t* GetData(shaper_t& shaper) const;
 
       // read from gpu itself
-      void get_gldata_impl(void* dst, size_t size, size_t offset);
+      void get_gldata_impl(void* dst, std::size_t size, std::size_t offset);
 
       template <typename T>
       T get_gldata() {
         T out {};
         auto& data = g_shapes->shaper.ShapeList[get_visual_id()];
-        uintptr_t instance_offset = g_shapes->shaper.GetRenderDataOffset(data.sti, data.blid);
+        std::uintptr_t instance_offset = g_shapes->shaper.GetRenderDataOffset(data.sti, data.blid);
         get_gldata_impl(
           &out,
           sizeof(T),
@@ -515,7 +515,7 @@ export namespace fan::graphics {
 
       shaper_t::ShapeTypes_t::nd_t& get_shape_type_data();
 
-      uint8_t* get_keys();
+      std::uint8_t* get_keys();
       shaper_t::KeyPackSize_t get_keys_size();
 
       template<typename T, typename R, R T::*M>
@@ -526,7 +526,7 @@ export namespace fan::graphics {
         }
 
         auto key_pack_size = g_shapes->shaper.GetKeysSize(vid);
-        std::unique_ptr<uint8_t[]> key_pack(new uint8_t[key_pack_size]);
+        std::unique_ptr<std::uint8_t[]> key_pack(new std::uint8_t[key_pack_size]);
         g_shapes->shaper.WriteKeys(get_visual_id(), key_pack.get());
         auto o = fan::offset_of<T, R, M>();
         return *reinterpret_cast<R*>(&key_pack[o]); 
@@ -578,7 +578,7 @@ export namespace fan::graphics {
         return *(typename T::ri_t*)GetData(g_shapes->shaper);
       }
 
-      void* get_shape_data_impl(uint16_t shape_type) const;
+      void* get_shape_data_impl(std::uint16_t shape_type) const;
       template <typename T>
       typename T::properties_t& get_shape_data() {
         return *static_cast<typename T::properties_t*>(
@@ -626,7 +626,7 @@ export namespace fan::graphics {
         fan::vec2 size;
         fan::vec2 rotation_point;
         fan::color color;
-        uint32_t flags = 0;
+        std::uint32_t flags = 0;
         fan::vec3 angle;
       };;
 
@@ -658,7 +658,7 @@ export namespace fan::graphics {
         fan::vec2 size = 128;
         fan::vec2 rotation_point = 0;
         fan::color color = fan::colors::white;
-        uint32_t flags = 0;
+        std::uint32_t flags = 0;
         fan::vec3 angle = 0;
 
         #include <fan/graphics/base_props.inl>
@@ -780,7 +780,7 @@ export namespace fan::graphics {
         fan::vec2 rotation_point;
         fan::color color;
         fan::vec3 angle;
-        uint32_t flags;
+        std::uint32_t flags;
         fan::vec2 tc_position;
         fan::vec2 tc_size;
         f32_t seed;
@@ -822,7 +822,7 @@ export namespace fan::graphics {
         fan::vec2 rotation_point = 0;
         fan::color color = fan::colors::white;
         fan::vec3 angle = fan::vec3(0);
-        uint32_t flags = sprite_flags_e::circle | sprite_flags_e::multiplicative;
+        std::uint32_t flags = sprite_flags_e::circle | sprite_flags_e::multiplicative;
         fan::vec2 tc_position = 0;
         fan::vec2 tc_size = 1;
         f32_t seed = 0;
@@ -863,7 +863,7 @@ export namespace fan::graphics {
         fan::vec2 rotation_point;
         fan::color color;
         fan::vec3 angle;
-        uint32_t flags;
+        std::uint32_t flags;
         fan::vec2 tc_position;
         fan::vec2 tc_size;
         f32_t seed = 0;
@@ -957,8 +957,8 @@ export namespace fan::graphics {
 
         std::string text;
 
-        uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
-        uint32_t vertex_count = 6;
+        std::uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+        std::uint32_t vertex_count = 6;
       };
 
       shape_t push_back(const properties_t& properties);
@@ -977,7 +977,7 @@ export namespace fan::graphics {
         fan::vec2 rotation_point;
         fan::color color;
         fan::vec3 angle;
-        uint32_t flags;
+        std::uint32_t flags;
       };
     #pragma pack(pop)
 
@@ -1006,7 +1006,7 @@ export namespace fan::graphics {
         fan::vec2 rotation_point = 0;
         fan::color color = fan::colors::white;
         fan::vec3 angle = 0;
-        uint32_t flags = 0;
+        std::uint32_t flags = 0;
 
         #include <fan/graphics/base_props.inl>
       };
@@ -1031,7 +1031,7 @@ export namespace fan::graphics {
         fan::vec2 rotation_point;
         fan::color color;
         fan::vec3 angle;
-        uint32_t flags;
+        std::uint32_t flags;
         fan::color outline_color;
       };
 
@@ -1068,7 +1068,7 @@ export namespace fan::graphics {
         fan::color color = fan::colors::white;
         fan::color outline_color = color;
         fan::vec3 angle = 0;
-        uint32_t flags = 0;
+        std::uint32_t flags = 0;
 
         #include <fan/graphics/base_props.inl>
       };
@@ -1090,7 +1090,7 @@ export namespace fan::graphics {
       #pragma pack(pop)
 
       struct ri_t {
-        uint32_t buffer_size = 0;
+        std::uint32_t buffer_size = 0;
         fan::opengl::core::vao_t vao;
         fan::opengl::core::vbo_t vbo;
       };
@@ -1116,8 +1116,8 @@ export namespace fan::graphics {
         fan::graphics::camera_t camera = fan::graphics::get_orthographic_render_view().camera;
         fan::graphics::viewport_t viewport = fan::graphics::get_orthographic_render_view().viewport;
 
-        uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
-        uint32_t vertex_count = 3;
+        std::uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+        std::uint32_t vertex_count = 3;
       };
 
       fan::graphics::shapes::shape_t push_back(const properties_t& properties);
@@ -1213,10 +1213,10 @@ export namespace fan::graphics {
         fan::color begin_color;
         fan::color end_color;
 
-        uint64_t begin_time;
+        std::uint64_t begin_time;
         f32_t alive_time;
         f32_t respawn_time;
-        uint32_t count;
+        std::uint32_t count;
 
         fan::vec2 start_velocity;
         fan::vec2 end_velocity;
@@ -1243,7 +1243,7 @@ export namespace fan::graphics {
         fan::vec4 color_random_range = 0;
         fan::vec3 angle_random_range = 0;
 
-        uint32_t shape;
+        std::uint32_t shape;
 
         bool blending;
       };
@@ -1263,10 +1263,10 @@ export namespace fan::graphics {
         fan::color begin_color = fan::colors::white;
         fan::color end_color = fan::colors::white;
 
-        uint64_t begin_time = fan::time::now();
+        std::uint64_t begin_time = fan::time::now();
         f32_t alive_time = 1;
         f32_t respawn_time = 0;
-        uint32_t count = 10;
+        std::uint32_t count = 10;
 
         fan::vec2 start_velocity = 130;
         fan::vec2 end_velocity = 130;
@@ -1293,7 +1293,7 @@ export namespace fan::graphics {
         fan::vec4 color_random_range = 0;
         fan::vec3 angle_random_range = 0;
 
-        uint32_t shape = shapes_e::circle;
+        std::uint32_t shape = shapes_e::circle;
 
         fan::graphics::image_t image = fan::graphics::ctx().default_texture;
 
@@ -1316,7 +1316,7 @@ export namespace fan::graphics {
     #pragma pack(pop)
       struct ri_t {
         std::array<fan::graphics::image_t, 3> images_rest;
-        uint8_t format = fan::graphics::image_format_e::undefined;
+        std::uint8_t format = fan::graphics::image_format_e::undefined;
       };
       static std::array<shape_gl_init_t, 4>& get_locations() {
         static std::array<shape_gl_init_t, 4> locs{{
@@ -1346,7 +1346,7 @@ export namespace fan::graphics {
         #include <fan/graphics/base_props.inl>
 
         //internals
-        uint8_t format = fan::graphics::image_format_e::undefined;
+        std::uint8_t format = fan::graphics::image_format_e::undefined;
       };
 
       shape_t push_back(const properties_t& properties);
@@ -1415,7 +1415,7 @@ export namespace fan::graphics {
         fan::vec2 size;
         fan::vec2 rotation_point;
         fan::color color;
-        uint32_t flags = 0;
+        std::uint32_t flags = 0;
         fan::vec3 angle;
         fan::vec2 light_position;
         f32_t light_radius;
@@ -1450,7 +1450,7 @@ export namespace fan::graphics {
         fan::vec2 size = 0;
         fan::vec2 rotation_point = 0;
         fan::color color = fan::colors::white;
-        uint32_t flags = 0;
+        std::uint32_t flags = 0;
         fan::vec3 angle = 0;
         fan::vec2 light_position = 0;
         f32_t light_radius = 100.f;
@@ -1471,7 +1471,7 @@ export namespace fan::graphics {
         fan::vec2 rotation_point;
         fan::color color;
         fan::vec3 angle;
-        uint32_t flags;
+        std::uint32_t flags;
         fan::vec2 tc_position;
         fan::vec2 tc_size;
         f32_t seed;
@@ -1506,7 +1506,7 @@ export namespace fan::graphics {
         fan::vec2 rotation_point = 0;
         fan::color color = fan::colors::white;
         fan::vec3 angle = fan::vec3(0);
-        uint32_t flags = 0;
+        std::uint32_t flags = 0;
         fan::vec2 tc_position = 0;
         fan::vec2 tc_size = 1;
         f32_t seed = 0;
@@ -1553,11 +1553,11 @@ export namespace fan::graphics {
         fan::color color = fan::colors::white;
         fan::vec3 angle = 0;
 
-        uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+        std::uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
 
         #include <fan/graphics/base_props.inl>
 
-        uint32_t vertex_count = 36;
+        std::uint32_t vertex_count = 36;
       };
 
 
@@ -1595,8 +1595,8 @@ export namespace fan::graphics {
 
         #include <fan/graphics/base_props.inl>
 
-        uint8_t draw_mode = fan::graphics::primitive_topology_t::lines;
-        uint32_t vertex_count = 2;
+        std::uint8_t draw_mode = fan::graphics::primitive_topology_t::lines;
+        std::uint32_t vertex_count = 2;
       };
 
       shape_t push_back(const properties_t& properties);
@@ -1604,7 +1604,7 @@ export namespace fan::graphics {
   #endif
 
     std::vector<fan::graphics::shapes::shape_t>* immediate_render_list = nullptr;
-    std::unordered_map<uint32_t, fan::graphics::shapes::shape_t>* static_render_list = nullptr;
+    std::unordered_map<std::uint32_t, fan::graphics::shapes::shape_t>* static_render_list = nullptr;
 
 
     // dont look here
@@ -1616,9 +1616,9 @@ export namespace fan::graphics {
     #include "shapes.h"
 
     struct shape_list_data_t {
-      uint32_t data_nr;
+      std::uint32_t data_nr;
       shapes::shape_t visual;
-      uint8_t shape_type;
+      std::uint8_t shape_type;
     };
 
     #define BLL_set_AreWeInsideStruct 1
@@ -1630,14 +1630,14 @@ export namespace fan::graphics {
     #include <BLL/BLL.h>
     shape_ids_t shape_ids;
 
-    static constexpr uint16_t shape_pool_count = shape_type_t::last;
+    static constexpr std::uint16_t shape_pool_count = shape_type_t::last;
     void* shape_pool_storage[shape_pool_count] = {};
 
-    using props_getter_t = void* (*)(void*, uint32_t);
-    using props_freer_t = void(*)(void*, uint32_t);
-    using props_copier_t = uint32_t(*)(void*, uint32_t);
-    using props_allocer_t = uint32_t(*)(void* pool, const void* src_props);
-    using props_post_copy_t = void(*)(void* pool, uint32_t id);
+    using props_getter_t = void* (*)(void*, std::uint32_t);
+    using props_freer_t = void(*)(void*, std::uint32_t);
+    using props_copier_t = std::uint32_t(*)(void*, std::uint32_t);
+    using props_allocer_t = std::uint32_t(*)(void* pool, const void* src_props);
+    using props_post_copy_t = void(*)(void* pool, std::uint32_t id);
 
     props_getter_t shape_props_getters[shape_pool_count] = {};
     props_freer_t shape_props_freers[shape_pool_count] = {};
@@ -1647,9 +1647,9 @@ export namespace fan::graphics {
 
     void shapes_init_pools(shapes* s);
 
-    shape_ids_t::nr_t add_shape_impl(uint8_t st, const void* props_ptr);
+    shape_ids_t::nr_t add_shape_impl(std::uint8_t st, const void* props_ptr);
     template<typename props_t>
-    shape_ids_t::nr_t add_shape(uint8_t st, const props_t& props) {
+    shape_ids_t::nr_t add_shape(std::uint8_t st, const props_t& props) {
       return add_shape_impl(st, &props);
     }
 
@@ -1709,19 +1709,19 @@ export namespace fan::graphics {
     #if defined(FAN_JSON)
       json::const_iterator it;
     #endif
-      uint64_t offset = 0;
+      std::uint64_t offset = 0;
     }data;
     bool init = false;
     bool was_object = false;
   #if defined(FAN_JSON)
     bool iterate(const fan::json& json, fan::graphics::shapes::shape_t* shape, const std::source_location& callers_path = std::source_location::current());
   #endif
-    bool iterate(const std::vector<uint8_t>& bin_data, fan::graphics::shapes::shape_t* shape);
+    bool iterate(const std::vector<std::uint8_t>& bin_data, fan::graphics::shapes::shape_t* shape);
   };
 
-  bool shape_to_bin(fan::graphics::shapes::shape_t& shape, std::vector<uint8_t>* data);
-  bool bin_to_shape(const std::vector<uint8_t>& in, fan::graphics::shapes::shape_t* shape, uint64_t& offset, const std::source_location& callers_path = std::source_location::current());
-  bool shape_serialize(fan::graphics::shapes::shape_t& shape, std::vector<uint8_t>* out);
+  bool shape_to_bin(fan::graphics::shapes::shape_t& shape, std::vector<std::uint8_t>* data);
+  bool bin_to_shape(const std::vector<std::uint8_t>& in, fan::graphics::shapes::shape_t* shape, std::uint64_t& offset, const std::source_location& callers_path = std::source_location::current());
+  bool shape_serialize(fan::graphics::shapes::shape_t& shape, std::vector<std::uint8_t>* out);
 }
 
 #if defined(FAN_JSON)
@@ -1808,10 +1808,10 @@ export namespace fan::graphics {
     void update_image_sign(fan::graphics::shapes::shape_t& shape, const fan::vec2& direction);
     void enable_directional();
     void enable_directional(const directional_config_t& config);
-    void add_directional_state(const std::string& animation_name, uint8_t direction);
+    void add_directional_state(const std::string& animation_name, std::uint8_t direction);
     void set_idle_animation(const std::string& name, f32_t threshold);
-    void override_animation(uint8_t direction, const std::string& name);
-    sprite_sheet_controller_t& set_direction_animation(uint8_t direction, const std::string& name);
+    void override_animation(std::uint8_t direction, const std::string& name);
+    sprite_sheet_controller_t& set_direction_animation(std::uint8_t direction, const std::string& name);
     void use_preset_2d();
 
     void load_animations(
@@ -1821,7 +1821,7 @@ export namespace fan::graphics {
     );
 
     std::vector<animation_state_t> states;
-    std::unordered_map<uint8_t, std::string> direction_map;
+    std::unordered_map<std::uint8_t, std::string> direction_map;
     fan::vec2 last_direction = 0;
     fan::vec2 desired_facing = {1, 0};
     fan::graphics::sprite_sheet_id_t prev_animation_id;

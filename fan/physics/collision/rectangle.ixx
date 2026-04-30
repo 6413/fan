@@ -64,10 +64,10 @@ export namespace fan_2d {
       }
 
 			struct sides_e {
-				static constexpr uint8_t top_left = 0;
-				static constexpr uint8_t top_right = 1;
-				static constexpr uint8_t bottom_right = 2;
-				static constexpr uint8_t bottom_left = 3;
+				static constexpr std::uint8_t top_left = 0;
+				static constexpr std::uint8_t top_right = 1;
+				static constexpr std::uint8_t bottom_right = 2;
+				static constexpr std::uint8_t bottom_left = 3;
 			};
 
 			/* returns position of point
@@ -77,7 +77,7 @@ export namespace fan_2d {
 					 | x | x |
 			     |---|---|
 			*/
-      uint8_t get_side_collision(const fan::vec2& point, const fan::vec2& p, const fan::vec2& s) {
+      std::uint8_t get_side_collision(const fan::vec2& point, const fan::vec2& p, const fan::vec2& s) {
 				if (point.x <= p.x && point.y <= p.y) {
 					return sides_e::top_left;
 				}

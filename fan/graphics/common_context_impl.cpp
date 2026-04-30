@@ -99,8 +99,8 @@ namespace fan::graphics {
     : fan::graphics::image_nr_t(ctx()->image_load_colors_props(ctx(), colors, size, lp)) {}
   image_t::image_t(std::span<const fan::color> colors, const fan::vec2ui& size)
     : fan::graphics::image_nr_t(ctx()->image_load_colors_props(ctx(), const_cast<fan::color*>(colors.data()), size, image_presets::pixel_art())) {}
-  image_t::image_t(const fan::vec2& size, uint32_t channels, const image_load_properties_t& lp) {
-    std::vector<uint8_t> blank(size.multiply() * channels, 0);
+  image_t::image_t(const fan::vec2& size, std::uint32_t channels, const image_load_properties_t& lp) {
+    std::vector<std::uint8_t> blank(size.multiply() * channels, 0);
     fan::image::info_t info;
     info.size = size;
     info.channels = channels;
@@ -143,20 +143,20 @@ namespace fan::graphics {
     ctx()->image_unload(ctx(), *this);
     sic();
   }
-  void image_t::update(const void* data, uint32_t channels) {
+  void image_t::update(const void* data, std::uint32_t channels) {
     fan::image::info_t info;
     info.size = get_size();
     info.channels = channels;
     info.data = const_cast<void*>(data);
     reload(info);
   }
-  void image_t::update(const std::vector<uint8_t>& data, uint32_t channels) {
+  void image_t::update(const std::vector<std::uint8_t>& data, std::uint32_t channels) {
     update(data.data(), channels);
   }
-  std::vector<uint8_t> image_t::get_pixel_data(int image_format, fan::vec2 uvp, fan::vec2 uvs) const {
+  std::vector<std::uint8_t> image_t::get_pixel_data(int image_format, fan::vec2 uvp, fan::vec2 uvs) const {
     return ctx()->image_get_pixel_data(ctx(), *this, image_format, uvp, uvs);
   }
-  std::vector<uint8_t> image_t::read_pixels(const fan::vec2& uv_pos, const fan::vec2& uv_size) const {
+  std::vector<std::uint8_t> image_t::read_pixels(const fan::vec2& uv_pos, const fan::vec2& uv_size) const {
     return ctx()->image_read_pixels(ctx(), *this, uv_pos, uv_size);
   }
   void image_t::bind() const {
@@ -165,7 +165,7 @@ namespace fan::graphics {
   void image_t::unbind() const {
     ctx()->image_unbind(ctx(), *this);
   }
-  uint64_t image_t::get_handle() const {
+  std::uint64_t image_t::get_handle() const {
     return ctx()->image_get_handle(ctx(), *this);
   }
   image_load_properties_t& image_t::get_settings() {
@@ -458,7 +458,7 @@ namespace fan::graphics {
     return fan::graphics::ctx()->image_create(fan::graphics::ctx());
   }
 
-  uint64_t image_get_handle(fan::graphics::image_t nr) {
+  std::uint64_t image_get_handle(fan::graphics::image_t nr) {
     return fan::graphics::ctx()->image_get_handle(fan::graphics::ctx(), nr);
   }
 
@@ -559,8 +559,8 @@ namespace fan::graphics {
   }
 
 #if defined(FAN_OPENGL)
-  std::vector<uint8_t> read_pixels(const fan::vec2& position, const fan::vec2& size) {
-    std::vector<uint8_t> pixels(size.multiply() * 4);
+  std::vector<std::uint8_t> read_pixels(const fan::vec2& position, const fan::vec2& size) {
+    std::vector<std::uint8_t> pixels(size.multiply() * 4);
     glReadPixels(position.x, position.y, size.x, size.y, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
     return pixels;
   }

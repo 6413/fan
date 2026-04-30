@@ -346,9 +346,9 @@ export namespace fan::window {
       std::string trimmed = fan::trim_ws(combo_str);
       if (trimmed.empty()) return combo;
 
-      size_t start = 0;
+      std::size_t start = 0;
       while (start <= trimmed.size()) {
-        size_t end = trimmed.find('+', start);
+        std::size_t end = trimmed.find('+', start);
         std::string token = (end == std::string::npos)
           ? trimmed.substr(start)
           : trimmed.substr(start, end - start);

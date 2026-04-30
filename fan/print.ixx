@@ -1,5 +1,7 @@
 module;
 
+#include <fan/utility.h>
+
 export module fan.print;
 
 import std;
@@ -14,7 +16,7 @@ import fan.formatter;
 export namespace fan {
   template <typename T>
   struct is_bitset : std::false_type {};
-  template <size_t N>
+  template <std::size_t N>
   struct is_bitset<std::bitset<N>> : std::true_type {};
 
   template <typename T>
@@ -28,15 +30,15 @@ export namespace fan {
   template <typename T>
   requires has_subscript_and_size<T>
   std::ostream& operator<<(std::ostream& os, const T& container) noexcept {
-    for (uintptr_t i = 0; i < container.size(); i++) os << container[i] << ' ';
+    for (std::uintptr_t i = 0; i < container.size(); i++) os << container[i] << ' ';
     return os;
   }
 
   template <typename T>
   requires requires(const T& t) { t.size.size(); }
   std::ostream& operator<<(std::ostream& os, const T& container_within) noexcept {
-    for (uintptr_t i = 0; i < container_within.size(); i++) {
-      for (uintptr_t j = 0; j < container_within[i].size(); j++)
+    for (std::uintptr_t i = 0; i < container_within.size(); i++) {
+      for (std::uintptr_t j = 0; j < container_within[i].size(); j++)
         os << container_within[i][j] << ' ';
       os << '\n';
     }
@@ -226,8 +228,8 @@ export namespace fan {
 
   std::string paint(const fan::color& c, const auto&... args) {
     std::string msg = fan::format_args(args...);
-    uint32_t rgba = c.get_rgba();
-    uint8_t r = (rgba >> 24) & 0xFF, g = (rgba >> 16) & 0xFF, b = (rgba >> 8) & 0xFF;
+    std::uint32_t rgba = c.get_rgba();
+    std::uint8_t r = (rgba >> 24) & 0xFF, g = (rgba >> 16) & 0xFF, b = (rgba >> 8) & 0xFF;
     return "\033[38;2;" + std::to_string(r) + ";" + std::to_string(g) + ";" + std::to_string(b) + "m" + msg + "\033[0m";
   }
   std::string paint_ok(const auto&... args)   { return paint(fan::colors::green,  args...); }

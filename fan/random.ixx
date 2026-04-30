@@ -12,11 +12,11 @@ export namespace fan {
 
   namespace random {
 
-    inline int c_i(uint32_t min, uint32_t max) {
+    inline int c_i(std::uint32_t min, std::uint32_t max) {
       if (max == 0) {
         return 0;
       }
-      return rand() % max + min;
+      return std::rand() % max + min;
     }
 
     template <typename T>
@@ -37,10 +37,10 @@ export namespace fan {
       }
     }
     // legacy
-    inline int64_t value_i64(int64_t min, int64_t max) {
-      return value<int64_t>(min, max);
+    inline std::int64_t value_i64(std::int64_t min, std::int64_t max) {
+      return value<std::int64_t>(min, max);
     }
-    inline int64_t i64(int64_t min, int64_t max) {
+    inline std::int64_t i64(std::int64_t min, std::int64_t max) {
       return value_i64(min, max);
     }
     inline f32_t value_f32(f32_t min, f32_t max) {
@@ -50,7 +50,7 @@ export namespace fan {
       return value_f32(min, max);
     }
 
-    std::string string(uint32_t len) {
+    std::string string(std::uint32_t len) {
       std::string str = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
       std::string newstr;
       std::size_t pos;
@@ -73,7 +73,7 @@ export namespace fan {
     //   return newstr;
     // }
 
-    fan::vec2i vec2i(int64_t min, int64_t max) {
+    fan::vec2i vec2i(std::int64_t min, std::int64_t max) {
       return fan::vec2i(fan::random::value_i64(min, max), fan::random::value_i64(min, max));
     }
 
@@ -96,13 +96,13 @@ export namespace fan {
 
     struct percent_output_t {
       f32_t percent;
-      uint32_t output;
+      std::uint32_t output;
     };
 
-    uint32_t get_output_with_percent(const std::vector<percent_output_t>& po) {
+    std::uint32_t get_output_with_percent(const std::vector<percent_output_t>& po) {
 
       for (std::size_t i = 0; i < po.size(); i++) {
-        if (!(1.0 / fan::random::value_i64(0, (uint32_t)~0) < 1.0 / (po[i].percent * (f32_t)~(uint32_t)0))) {
+        if (!(1.0 / fan::random::value_i64(0, (std::uint32_t)~0) < 1.0 / (po[i].percent * (f32_t)~(std::uint32_t)0))) {
           return po[i].output;
         }
       }
@@ -136,8 +136,8 @@ export namespace fan {
     f32_t angle() {
       return fan::random::value_f32(-fan::math::pi, fan::math::pi);
     }
-    std::vector<uint8_t> pixels(size_t count) {
-      std::vector<uint8_t> result(count);
+    std::vector<std::uint8_t> pixels(std::size_t count) {
+      std::vector<std::uint8_t> result(count);
       for (auto& p : result) p = value(0.f, 255.f);
       return result;
     }

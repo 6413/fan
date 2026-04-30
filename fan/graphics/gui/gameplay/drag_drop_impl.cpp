@@ -18,7 +18,7 @@ import fan.graphics.gameplay.items;
 
 namespace fan::graphics::gui::drag_drop {
 
-  void begin_from_slot(drag_state_t& drag_state, gameplay::item_slot_t& slot, bool from_secondary, uint32_t slot_index) {
+  void begin_from_slot(drag_state_t& drag_state, gameplay::item_slot_t& slot, bool from_secondary, std::uint32_t slot_index) {
     if (slot.is_empty()) {
       return;
     }
@@ -31,7 +31,7 @@ namespace fan::graphics::gui::drag_drop {
 
     bool split = gui::input::shift() && drag_state.stack_size > 1;
     if (split) {
-      uint32_t half = drag_state.stack_size / 2;
+      std::uint32_t half = drag_state.stack_size / 2;
       if (half == 0) {
         half = 1;
       }
@@ -68,14 +68,14 @@ namespace fan::graphics::gui::drag_drop {
     }
 
     if (*dst_slot.id == drag_state.id) {
-      uint32_t free_space = 0;
+      std::uint32_t free_space = 0;
       if (*dst_slot.stack_size < def->max_stack) {
         free_space = def->max_stack - *dst_slot.stack_size;
       }
 
       if (free_space == 0) {
-        uint32_t tmp_id = *dst_slot.id;
-        uint32_t tmp_stack = *dst_slot.stack_size;
+        std::uint32_t tmp_id = *dst_slot.id;
+        std::uint32_t tmp_stack = *dst_slot.stack_size;
         dst_slot.id = drag_state.id;
         dst_slot.stack_size = drag_state.stack_size;
         drag_state.id = tmp_id;
@@ -83,7 +83,7 @@ namespace fan::graphics::gui::drag_drop {
         return;
       }
 
-      uint32_t to_add = std::min(free_space, drag_state.stack_size);
+      std::uint32_t to_add = std::min(free_space, drag_state.stack_size);
       *dst_slot.stack_size += to_add;
       drag_state.stack_size -= to_add;
 
@@ -93,8 +93,8 @@ namespace fan::graphics::gui::drag_drop {
       return;
     }
 
-    uint32_t tmp_id = *dst_slot.id;
-    uint32_t tmp_stack = *dst_slot.stack_size;
+    std::uint32_t tmp_id = *dst_slot.id;
+    std::uint32_t tmp_stack = *dst_slot.stack_size;
     dst_slot.id = drag_state.id;
     dst_slot.stack_size = drag_state.stack_size;
     drag_state.id = tmp_id;

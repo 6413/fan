@@ -20,12 +20,12 @@ export namespace fan::graphics::gui {
     fan::vec2 slot_padding;
     f32_t border_thickness = 2.0f;
     f32_t corner_rounding = 0.0f;
-    uint32_t columns = 1;
+    std::uint32_t columns = 1;
     bool horizontal = false;
   };
 
   struct slot_callbacks_t {
-    using use_cb_t = void(*)(uint32_t slot_index, const gameplay::item_t&);
+    using use_cb_t = void(*)(std::uint32_t slot_index, const gameplay::item_t&);
     
     use_cb_t on_use = nullptr;
     bool is_secondary = false;
@@ -33,12 +33,12 @@ export namespace fan::graphics::gui {
   };
 
   struct slot_visual_state_t {
-    uint32_t selected_slot = UINT32_MAX;
+    std::uint32_t selected_slot = std::numeric_limits<std::uint32_t>::max();
     bool show_selection = false;
   };
 
   void handle_slot_click(
-    uint32_t slot_index,
+    std::uint32_t slot_index,
     gameplay::item_slot_t& slot,
     bool hovered,
     bool left_pressed,
@@ -47,10 +47,10 @@ export namespace fan::graphics::gui {
     const slot_callbacks_t& callbacks
   );
 
-  uint32_t render_slot_grid(
+  std::uint32_t render_slot_grid(
     std::vector<gameplay::item_slot_t>& slots,
-    uint32_t start_idx,
-    uint32_t count,
+    std::uint32_t start_idx,
+    std::uint32_t count,
     const slot_layout_t& layout,
     const gameplay::gui_theme_t& theme,
     gui::drag_drop::drag_state_t& drag_state,

@@ -28,8 +28,8 @@ export namespace fan {
       template <path_t P>
       inline std::string strip_extension(P&& file_path) {
         std::string path = to_str(std::forward<P>(file_path));
-        size_t dot_pos = path.find_last_of('.');
-        size_t sep_pos = path.find_last_of("/\\");
+        std::size_t dot_pos = path.find_last_of('.');
+        std::size_t sep_pos = path.find_last_of("/\\");
         if (dot_pos != std::string::npos && (sep_pos == std::string::npos || dot_pos > sep_pos))
           return path.substr(0, dot_pos);
         return path;
@@ -131,16 +131,16 @@ export namespace fan {
   void write_to_file(fan::io::file::file_t* f, const T& o) {
     if constexpr (std::is_same<std::string, T>::value) {
       std::uint64_t len = o.size();
-      fan::io::file::write(f, (uint8_t*)&len, sizeof(len), 1);
-      fan::io::file::write(f, (uint8_t*)o.data(), len, 1);
+      fan::io::file::write(f, (std::uint8_t*)&len, sizeof(len), 1);
+      fan::io::file::write(f, (std::uint8_t*)o.data(), len, 1);
     }
     else if constexpr (tmpl::is_std_vector<T>::value) {
       std::uint64_t len = o.size();
-      fan::io::file::write(f, (uint8_t*)&len, sizeof(len), 1);
-      fan::io::file::write(f, (uint8_t*)o.data(), len * sizeof(typename T::value_type), 1);
+      fan::io::file::write(f, (std::uint8_t*)&len, sizeof(len), 1);
+      fan::io::file::write(f, (std::uint8_t*)o.data(), len * sizeof(typename T::value_type), 1);
     }
     else {
-      fan::io::file::write(f, (uint8_t*)&o, sizeof(o), 1);
+      fan::io::file::write(f, (std::uint8_t*)&o, sizeof(o), 1);
     }
   }
 }

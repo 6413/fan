@@ -4,6 +4,8 @@ module;
 #define POSITION2_WINDOW_CENTER fan::vec2(fan::graphics::ctx().window->get_size() / 2)
 #define POSITION3_WINDOW_CENTER fan::vec3(POSITION2_WINDOW_CENTER, 0)
 
+#include <fan/utility.h>
+
 export module fan.graphics;
 
 import std;
@@ -64,11 +66,11 @@ export namespace fan::graphics {
 
 #if defined(FAN_2D)
   fan::graphics::context_image_t image_get(fan::graphics::image_nr_t nr);
-  std::vector<uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, int image_format, fan::vec2 uvp = 0, fan::vec2 uvs = 1);
+  std::vector<std::uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, int image_format, fan::vec2 uvp = 0, fan::vec2 uvs = 1);
 
-  fan::graphics::shader_nr_t shader_get_nr(uint16_t shape_type);
-  fan::graphics::shader_list_t::nd_t& shader_get_data(uint16_t shape_type);
-  bool shader_update_fragment(uint16_t shape_type, const std::string_view fragment_file_path, const std::string& fragment);
+  fan::graphics::shader_nr_t shader_get_nr(std::uint16_t shape_type);
+  fan::graphics::shader_list_t::nd_t& shader_get_data(std::uint16_t shape_type);
+  bool shader_update_fragment(std::uint16_t shape_type, const std::string_view fragment_file_path, const std::string& fragment);
 
   using sprite_flags_e = fan::graphics::sprite_flags_e;
 
@@ -80,7 +82,7 @@ export namespace fan::graphics {
     fan::vec2 rotation_point = fan::vec2(0, 0);
     fan::color color = fan::color(1, 1, 1, 1);
     fan::vec3 rotation_vector = fan::vec3(0, 0, 1);
-    uint32_t flags = 0;
+    std::uint32_t flags = 0;
     fan::vec3 angle = fan::vec3(0, 0, 0);
     bool enable_culling = true;
   };
@@ -101,7 +103,7 @@ export namespace fan::graphics {
     fan::color color = fan::color(1, 1, 1, 1);
     f32_t thickness = 4.0f;
     bool blending = true;
-    uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+    std::uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
     bool enable_culling = true;
   };
 
@@ -148,7 +150,7 @@ export namespace fan::graphics {
     std::array<fan::graphics::image_t, 30> images;
     fan::vec2 parallax_factor = 0;
     bool blending = true;
-    uint32_t flags = sprite_flags_e::circle | sprite_flags_e::multiplicative;
+    std::uint32_t flags = sprite_flags_e::circle | sprite_flags_e::multiplicative;
     fan::graphics::texture_pack::unique_t texture_pack_unique_id;
     bool enable_culling = true;
   };
@@ -168,7 +170,7 @@ export namespace fan::graphics {
     // for single color texture
     sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::color& single_color);
     sprite_t(const fan::vec3& position, const fan::vec2& size, std::initializer_list<fan::color> colors, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
-    sprite_t(const fan::vec3& position, const fan::vec2& size, const std::vector<uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+    sprite_t(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
     template <std::size_t N>
     sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::color(&colors)[N], render_view_t* render_view = fan::graphics::ctx().orthographic_render_view)
       : sprite_t(sprite_properties_t {
@@ -205,7 +207,7 @@ export namespace fan::graphics {
     unlit_sprite_t(unlit_sprite_properties_t p);
     unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
     unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, std::initializer_list<fan::color> colors, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
-    unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, const std::vector<uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+    unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
     template <std::size_t N>
     unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::color(&colors)[N], render_view_t* render_view = fan::graphics::ctx().orthographic_render_view)
       : unlit_sprite_t(unlit_sprite_properties_t {
@@ -226,7 +228,7 @@ export namespace fan::graphics {
     fan::vec3 angle = 0;
     fan::color color = fan::color(1, 1, 1, 1);
     bool blending = true;
-    uint32_t flags = 0;
+    std::uint32_t flags = 0;
     bool enable_culling = true;
   };
 
@@ -249,7 +251,7 @@ export namespace fan::graphics {
     fan::color color = fan::color(1, 1, 1, 1);
     fan::color outline_color = color;
     bool blending = true;
-    uint32_t flags = 0;
+    std::uint32_t flags = 0;
     bool enable_culling = true;
   };
 
@@ -268,8 +270,8 @@ export namespace fan::graphics {
     fan::vec3 angle = 0;
     fan::vec2 rotation_point = 0;
     bool blending = true;
-    uint8_t draw_mode = fan::graphics::primitive_topology_t::triangle_strip;
-    uint32_t vertex_count = 3;
+    std::uint8_t draw_mode = fan::graphics::primitive_topology_t::triangle_strip;
+    std::uint32_t vertex_count = 3;
     bool enable_culling = true;
   };
 
@@ -313,7 +315,7 @@ export namespace fan::graphics {
       fan::graphics::ctx().default_texture,
       fan::graphics::ctx().default_texture
     };
-    uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+    std::uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
     bool enable_culling = true;
   };
 
@@ -338,7 +340,7 @@ export namespace fan::graphics {
     bool blending = true;
     fan::vec3 angle = 0;
     fan::vec2 rotation_point = 0;
-    uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+    std::uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
     bool enable_culling = true;
   };
 
@@ -363,13 +365,13 @@ export namespace fan::graphics {
     fan::vec2 rotation_point = 0;
     fan::color color = fan::colors::white;
     fan::vec3 angle = fan::vec3(0);
-    uint32_t flags = 0;
+    std::uint32_t flags = 0;
     fan::vec2 tc_position = 0;
     fan::vec2 tc_size = 1;
     fan::graphics::shader_t shader;
     fan::graphics::image_t image = fan::graphics::ctx().default_texture;
     std::array<fan::graphics::image_t, 30> images;
-    uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
+    std::uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
     bool blending = true;
     bool enable_culling = true;
   };
@@ -402,7 +404,7 @@ export namespace fan::graphics {
     fan::vec2 size = 128.f;
     fan::vec2 rotation_point = fan::vec2(0, 0);
     fan::color color = fan::color(1, 1, 1, 1);
-    uint32_t flags = 0;
+    std::uint32_t flags = 0;
     fan::vec3 angle = fan::vec3(0, 0, 0);
     fan::vec2 light_position = fan::vec2(0, 0);
     f32_t light_radius = 100.f;
@@ -467,7 +469,7 @@ export namespace fan::graphics {
   };
 
   fan::graphics::shapes::shape_t& add_shape_to_immediate_draw(fan::graphics::shapes::shape_t&& s);
-  uint32_t add_shape_to_static_draw(fan::graphics::shapes::shape_t&& s);
+  std::uint32_t add_shape_to_static_draw(fan::graphics::shapes::shape_t&& s);
   void remove_static_shape_draw(const fan::graphics::shapes::shape_t& s);
   fan::graphics::shapes::shape_t& rectangle(const rectangle_properties_t& props = {});
   fan::graphics::shapes::shape_t& rectangle(const fan::vec3& position, const fan::vec2& size, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
@@ -476,12 +478,12 @@ export namespace fan::graphics {
   fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, const fan::color& single_color);
   fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, std::initializer_list<fan::color> colors, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, const fan::image::info_t& info, const fan::graphics::image_load_properties_t& p = image_presets::pixel_art(), render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
-  fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, const std::vector<uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+  fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   fan::graphics::shapes::shape_t& unlit_sprite(const unlit_sprite_properties_t& props = {});
   fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const fan::color& single_color);
   fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, std::initializer_list<fan::color> colors, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
-  fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const std::vector<uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+  fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const fan::image::info_t& info, const fan::graphics::image_load_properties_t& p = image_presets::pixel_art(), render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
 
   fan::graphics::shapes::shape_t& line(const line_properties_t& props = {});
@@ -750,8 +752,8 @@ export namespace fan::graphics {
       fan::graphics::render_view_t rv;
       rv.camera = children[0].get_camera();
       rv.viewport = children[0].get_viewport();
-      for (size_t j = 0; j < highlight.size(); ++j) {
-        for (size_t i = 0; i < highlight[0].size(); ++i) {
+      for (std::size_t j = 0; j < highlight.size(); ++j) {
+        for (std::size_t i = 0; i < highlight[0].size(); ++i) {
           func(highlight[j][i], get_highlight_positions(op, os, i), rv);
         }
       }
@@ -883,7 +885,7 @@ export namespace fan::graphics {
   struct trail_segment_t {
     fan::graphics::polygon_t polygon;
     std::vector<fan::graphics::vertex_t> vertices;
-    uint64_t creation_time;
+    std::uint64_t creation_time;
     f32_t base_alpha;
   };
 
@@ -897,8 +899,8 @@ export namespace fan::graphics {
     std::vector<trail_segment_t> trails;
     fan::color color = fan::colors::black.set_alpha(0.5);
     f32_t thickness = 2.f;
-    uint64_t fade_duration = 2e9;
-    uint64_t max_trail_lifetime = 5e9;
+    std::uint64_t fade_duration = 2e9;
+    std::uint64_t max_trail_lifetime = 5e9;
     fan::graphics::update_callback_nr_t update_callback_nr;
   };
 
@@ -982,7 +984,7 @@ export namespace fan::graphics {
 
   void generate_mesh(
     const vec2& noise_size,
-    const std::vector<uint8_t>& noise_data,
+    const std::vector<std::uint8_t>& noise_data,
     const fan::graphics::image_t& texture,
     std::vector<fan::graphics::shape_t>& out_mesh,
     const terrain_palette_t& palette,
@@ -991,7 +993,7 @@ export namespace fan::graphics {
 
   fan::event::task_t async_generate_mesh(
     const vec2& noise_size,
-    const std::vector<uint8_t>& noise_data,
+    const std::vector<std::uint8_t>& noise_data,
     const fan::graphics::image_t& texture,
     std::vector<fan::graphics::shape_t>& out_mesh,
     const terrain_palette_t& palette,
@@ -1020,7 +1022,7 @@ export namespace fan::image {
     operator const void* const* () const { return planes; }
   };
 
-  plane_split_t plane_split(void* pixel_data, const fan::vec2ui& size, uint32_t format);
+  plane_split_t plane_split(void* pixel_data, const fan::vec2ui& size, std::uint32_t format);
 }
 
 #if defined(FAN_2D)
@@ -1041,7 +1043,7 @@ export namespace fan::graphics {
 
   namespace effects {
     struct particle_pool_t {
-      template<size_t N>
+      template<std::size_t N>
       struct pool_t {
       #if defined (FAN_JSON)
         void from_json(
@@ -1062,7 +1064,7 @@ export namespace fan::graphics {
         }
 
         fan::graphics::shape_t particles[N];
-        size_t current_index = 0;
+        std::size_t current_index = 0;
       };
     };
   }
@@ -1295,13 +1297,13 @@ export namespace fan::graphics {
   namespace systems {
     template <typename registry_t>
     constexpr void render2d(registry_t& reg, fan::graphics::render_view_t* rv = fan::graphics::ctx().orthographic_render_view) {
-      reg.template each<fan::ecs::c_pos, fan::ecs::c_rectangle>([rv](uint32_t, auto& pos, auto& rect) {
+      reg.template each<fan::ecs::c_pos, fan::ecs::c_rectangle>([rv](std::uint32_t, auto& pos, auto& rect) {
         fan::graphics::rectangle(fan::vec3(pos.v, rect.depth), rect.size, rect.color, rv);
       });
-      reg.template each<fan::ecs::c_pos, fan::ecs::c_line>([rv](uint32_t, auto& pos, auto& line) {
+      reg.template each<fan::ecs::c_pos, fan::ecs::c_line>([rv](std::uint32_t, auto& pos, auto& line) {
         fan::graphics::line(fan::vec3(pos.v, 0), fan::vec3(pos.v + line.offset, 0), line.color, line.thickness, rv);
       });
-      reg.template each<fan::ecs::c_pos, fan::ecs::c_rectangle_bordered>([](uint32_t, fan::ecs::c_pos& p, fan::ecs::c_rectangle_bordered& r) {
+      reg.template each<fan::ecs::c_pos, fan::ecs::c_rectangle_bordered>([](std::uint32_t, fan::ecs::c_pos& p, fan::ecs::c_rectangle_bordered& r) {
         fan::graphics::rectangle_bordered(
           fan::vec3(p.v, 2.f), r.size, r.outer_col,
           r.inner_size, r.inner_col

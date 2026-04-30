@@ -2,7 +2,8 @@
 import std;
 #if defined(FAN_2D)
 
-#include <math.h>
+#include <fan/utility.h>
+
 #include "AStar.hpp"
 
 using namespace std::placeholders;
@@ -163,10 +164,10 @@ bool AStar::Generator::detectCollision(Vec2i coordinates_)
 
 AStar::Vec2i AStar::Heuristic::getDelta(Vec2i source_, Vec2i target_)
 {
-    return{ abs(source_.x - target_.x),  abs(source_.y - target_.y) };
+    return{ std::abs(source_.x - target_.x),  std::abs(source_.y - target_.y) };
 }
 
-AStar::uint AStar::Heuristic::manhattan(Vec2i source_, Vec2i target_)
+AStar::uint AStar::Heuristic::manhattan(Vec2i source_, Vec2i target_)/**/
 {
     auto delta = getDelta(source_, target_);
     return static_cast<uint>(10 * (delta.x + delta.y));
@@ -175,7 +176,7 @@ AStar::uint AStar::Heuristic::manhattan(Vec2i source_, Vec2i target_)
 AStar::uint AStar::Heuristic::euclidean(Vec2i source_, Vec2i target_)
 {
     auto delta = getDelta(source_, target_);
-    return static_cast<uint>(10 * sqrt(pow(delta.x, 2) + pow(delta.y, 2)));
+    return static_cast<uint>(10 * std::sqrt(std::pow(delta.x, 2) + pow(delta.y, 2)));
 }
 
 AStar::uint AStar::Heuristic::octagonal(Vec2i source_, Vec2i target_)

@@ -1,11 +1,12 @@
 module;
 
+#include <cstddef>
+
 #if defined(FAN_OPENGL)
+  #include <fan/utility.h>
 #endif
 
 module fan.texture_pack.tp0;
-
-import std;
 
 #if defined(FAN_OPENGL)
 
@@ -41,21 +42,21 @@ namespace fan::graphics {
         std::string image_name;
       };
       std::vector<texture_t> texture_list;
-      uint32_t visual_output;
-      uint32_t min_filter;
-      uint32_t mag_filter;
-      uint32_t group_id;
-      std::vector<uint8_t> pixel_data;
+      std::uint32_t visual_output;
+      std::uint32_t min_filter;
+      std::uint32_t mag_filter;
+      std::uint32_t group_id;
+      std::vector<std::uint8_t> pixel_data;
     };
 
     struct texture_t {
       fan::vec2ui size;
-      std::vector<uint8_t> decoded_data;
+      std::vector<std::uint8_t> decoded_data;
       std::string image_name;
-      uint32_t visual_output;
-      uint32_t min_filter;
-      uint32_t mag_filter;
-      uint32_t group_id;
+      std::uint32_t visual_output;
+      std::uint32_t min_filter;
+      std::uint32_t mag_filter;
+      std::uint32_t group_id;
     };
 
     std::vector<texture_t> texture_list;
@@ -63,9 +64,9 @@ namespace fan::graphics {
     std::vector<pack_t> loaded_pack;
 
     fan::vec2ui preferred_pack_size;
-    uint32_t visual_output;
-    uint32_t min_filter;
-    uint32_t mag_filter;
+    std::uint32_t visual_output;
+    std::uint32_t min_filter;
+    std::uint32_t mag_filter;
 
     pack_t::internal_texture_t* push(pack_t::internal_texture_t* node, const fan::vec2ui& size) {
       if (node->d[0] || node->d[1]) {
@@ -182,7 +183,7 @@ namespace fan::graphics {
     t.decoded_data.resize(t.size.multiply() * 4);
 
     fan::image::convert_channels(
-      static_cast<const uint8_t*>(image_info.data), 
+      static_cast<const std::uint8_t*>(image_info.data), 
       t.decoded_data.data(), 
       t.size.multiply(), 
       image_info.channels, 
@@ -205,7 +206,7 @@ namespace fan::graphics {
     auto* s = static_cast<internal_state_t*>(internal_state);
     if (texture_properties.image_name.empty()) return 1;
 
-    for (uint32_t gti = 0; gti < s->texture_list.size(); gti++) {
+    for (std::uint32_t gti = 0; gti < s->texture_list.size(); gti++) {
       if (s->texture_list[gti].image_name == texture_properties.image_name) {
         s->texture_list.erase(s->texture_list.begin() + gti);
         break;
@@ -222,8 +223,8 @@ namespace fan::graphics {
 
     fan::vec2ui image_size = image.get_size();
     image_size = {
-      (uint32_t)(image_size.x * texture_properties.uv_size.x),
-      (uint32_t)(image_size.y * texture_properties.uv_size.y)
+      (std::uint32_t)(image_size.x * texture_properties.uv_size.x),
+      (std::uint32_t)(image_size.y * texture_properties.uv_size.y)
     };
 
     if ((int)image_size.x % 2 != 0 || (int)image_size.y % 2 != 0) return 1;
@@ -245,9 +246,9 @@ namespace fan::graphics {
   void texture_pack::internal_t::process() {
     auto* s = static_cast<internal_state_t*>(internal_state);
     s->pack_list.clear();
-    const uint32_t PadPixel = 8;
+    const std::uint32_t PadPixel = 8;
 
-    for (uint32_t ci = 0; ci < s->texture_list.size(); ci++) {
+    for (std::uint32_t ci = 0; ci < s->texture_list.size(); ci++) {
       fan::vec2ui size = s->texture_list[ci].size;
       texture_properties_t texture_properties;
       texture_properties.image_name = s->texture_list[ci].image_name;
@@ -260,28 +261,28 @@ namespace fan::graphics {
       std::size_t pack_start = 0;
   gt_pack_search:
       for (std::size_t i = pack_start; i < s->pack_list.size(); i++) {
-        uint32_t score = 0;
-        if (texture_properties.visual_output != (uint32_t)-1) {
+        std::uint32_t score = 0;
+        if (texture_properties.visual_output != (std::uint32_t)-1) {
           if (s->pack_list[i].visual_output == texture_properties.visual_output) score++;
         }
-        if (texture_properties.min_filter != (uint32_t)-1) {
+        if (texture_properties.min_filter != (std::uint32_t)-1) {
           if (s->pack_list[i].min_filter == texture_properties.min_filter) score++;
         }
-        if (texture_properties.mag_filter != (uint32_t)-1) {
+        if (texture_properties.mag_filter != (std::uint32_t)-1) {
           if (s->pack_list[i].mag_filter == texture_properties.mag_filter) score++;
         }
-        if (texture_properties.group_id != (uint32_t)-1) {
+        if (texture_properties.group_id != (std::uint32_t)-1) {
           if (s->pack_list[i].group_id == texture_properties.group_id) score++;
         }
         if (size.x < s->pack_list[i].pack_size.x && size.y < s->pack_list[i].pack_size.y) {
           score++;
         }
 
-        uint32_t needed_score = 1;
-        needed_score += texture_properties.visual_output != (uint32_t)-1;
-        needed_score += texture_properties.min_filter != (uint32_t)-1;
-        needed_score += texture_properties.mag_filter != (uint32_t)-1;
-        needed_score += texture_properties.group_id != (uint32_t)-1;
+        std::uint32_t needed_score = 1;
+        needed_score += texture_properties.visual_output != (std::uint32_t)-1;
+        needed_score += texture_properties.min_filter != (std::uint32_t)-1;
+        needed_score += texture_properties.mag_filter != (std::uint32_t)-1;
+        needed_score += texture_properties.group_id != (std::uint32_t)-1;
 
         if (score >= needed_score) {
           selected_pack = i;
@@ -295,9 +296,9 @@ namespace fan::graphics {
         }
         pack_properties_t p;
         p.pack_size = s->preferred_pack_size;
-        p.visual_output = texture_properties.visual_output != (uint32_t)-1 ? texture_properties.visual_output : s->visual_output;
-        p.min_filter = texture_properties.min_filter != (uint32_t)-1 ? texture_properties.min_filter : s->min_filter;
-        p.mag_filter = texture_properties.mag_filter != (uint32_t)-1 ? texture_properties.mag_filter : s->mag_filter;
+        p.visual_output = texture_properties.visual_output != (std::uint32_t)-1 ? texture_properties.visual_output : s->visual_output;
+        p.min_filter = texture_properties.min_filter != (std::uint32_t)-1 ? texture_properties.min_filter : s->min_filter;
+        p.mag_filter = texture_properties.mag_filter != (std::uint32_t)-1 ? texture_properties.mag_filter : s->mag_filter;
         p.group_id = texture_properties.group_id;
         selected_pack = push_pack(p);
       }
@@ -319,7 +320,7 @@ namespace fan::graphics {
       s->pack_list[selected_pack].texture_list.push_back(texture);
     }
 
-    for (uint32_t i = 0; i < s->pack_list.size(); i++) {
+    for (std::uint32_t i = 0; i < s->pack_list.size(); i++) {
       std::size_t count = s->pack_list[i].texture_list.size();
       s->pack_list[i].pixel_data.resize(s->pack_list[i].pack_size.x * s->pack_list[i].pack_size.y * 4);
       memset(s->pack_list[i].pixel_data.data(), 0, s->pack_list[i].pack_size.x * s->pack_list[i].pack_size.y * 4);
@@ -335,7 +336,7 @@ namespace fan::graphics {
         }
         if (gt == nullptr) fan::throw_error("gt nullptr");
 
-        for (uint32_t y = t->position.y; y < t->position.y + t->size.y; y++) {
+        for (std::uint32_t y = t->position.y; y < t->position.y + t->size.y; y++) {
           memcpy(
             s->pack_list[i].pixel_data.data() + (y * s->pack_list[i].pack_size.x + t->position.x) * 4,
             &gt->decoded_data[(y - t->position.y) * t->size.x * 4],
@@ -349,8 +350,8 @@ namespace fan::graphics {
         fan::vec2ui ps = t->size + Pad;
         fan::vec2ui center = t->position + t->size / 2;
 
-        for (uint32_t y = pp.y; y != pp.y + ps.y; y++) {
-          for (uint32_t x = pp.x; x != pp.x + ps.x; x++) {
+        for (std::uint32_t y = pp.y; y != pp.y + ps.y; y++) {
+          for (std::uint32_t x = pp.x; x != pp.x + ps.x; x++) {
             if (y >= t->position.y && y < t->position.y + t->size.y &&
                 x >= t->position.x && x < t->position.x + t->size.x) continue;
 
@@ -390,9 +391,9 @@ namespace fan::graphics {
         fan::write_to_file(f, t.position);
         fan::write_to_file(f, t.size);
       }
-      uint8_t* ptr;
-      uint32_t ptr_size = (uint32_t)fan::webp::encode_lossless_rgba(s->pack_list[i].pixel_data.data(), s->pack_list[i].pack_size, &ptr);
-      fan::write_to_file(f, std::vector<uint8_t>(ptr, ptr + ptr_size));
+      std::uint8_t* ptr;
+      std::uint32_t ptr_size = (std::uint32_t)fan::webp::encode_lossless_rgba(s->pack_list[i].pixel_data.data(), s->pack_list[i].pack_size, &ptr);
+      fan::write_to_file(f, std::vector<std::uint8_t>(ptr, ptr + ptr_size));
       fan::webp::free_image(ptr);
       fan::write_to_file(f, s->pack_list[i].visual_output);
       fan::write_to_file(f, s->pack_list[i].min_filter);
@@ -413,15 +414,15 @@ namespace fan::graphics {
 
   struct tp_runtime_state_t {
     struct single_texturepack_decoded_t {
-      uint32_t minor_count;
+      std::uint32_t minor_count;
       texture_pack_t::texture_minor_decoded_t texture_minor_list[texture_pack_t::MAX_TEXTURE_MINOR];
-      uint32_t image_list_id;
+      std::uint32_t image_list_id;
     };
     std::vector<single_texturepack_decoded_t> texture_major_list;
     std::vector<texture_pack_t::pixel_data_t> image_list;
     texture_unique_map_t unique_map;
     std::unordered_map<std::string, fan::graphics::texture_pack::unique_t> name_to_unique;
-    std::unordered_map<uint64_t, fan::graphics::texture_pack::unique_t> hash_to_unique;
+    std::unordered_map<std::uint64_t, fan::graphics::texture_pack::unique_t> hash_to_unique;
   };
 
   texture_pack_t::texture_pack_t() {
@@ -474,13 +475,13 @@ namespace fan::graphics {
         s->unique_map[it].major = i;
         s->unique_map[it].minor = k;
         
-        texture.unique_id.id = *(uint32_t*)&it;
+        texture.unique_id.id = *(std::uint32_t*)&it;
         s->texture_major_list[i].texture_minor_list[k] = texture;
         s->name_to_unique[texture.name] = texture.unique_id;
         s->hash_to_unique[fan::get_hash(texture.name.c_str())] = texture.unique_id;
       }
 
-      std::vector<uint8_t> pixel_data = fan::string_read_data<std::vector<uint8_t>>(in, offset);
+      std::vector<std::uint8_t> pixel_data = fan::string_read_data<std::vector<std::uint8_t>>(in, offset);
       fan::webp::info_t image_info;
       if (fan::webp::decode(pixel_data.data(), pixel_data.size(), &image_info)) {
         fan::throw_error_impl();
@@ -492,9 +493,9 @@ namespace fan::graphics {
       );
       fan::webp::free_image(image_info.data);
 
-      fan::string_read_data<uint32_t>(in, offset);
-      fan::string_read_data<uint32_t>(in, offset);
-      fan::string_read_data<uint32_t>(in, offset);
+      fan::string_read_data<std::uint32_t>(in, offset);
+      fan::string_read_data<std::uint32_t>(in, offset);
+      fan::string_read_data<std::uint32_t>(in, offset);
     }
   }
 
@@ -505,8 +506,8 @@ namespace fan::graphics {
 
   void texture_pack_t::iterate_loaded_images_raw(void* user_data, void(*cb)(const texture_minor_decoded_t&, void*)) {
     auto* s = static_cast<tp_runtime_state_t*>(internal_state);
-    for (uint32_t i = 0; i < s->texture_major_list.size(); i++) {
-      for (uint32_t j = 0; j < s->texture_major_list[i].minor_count; j++) {
+    for (std::uint32_t i = 0; i < s->texture_major_list.size(); i++) {
+      for (std::uint32_t j = 0; j < s->texture_major_list[i].minor_count; j++) {
         cb(s->texture_major_list[i].texture_minor_list[j], user_data);
       }
     }
@@ -549,7 +550,7 @@ namespace fan::graphics {
     return 0;
   }
 
-  bool texture_pack_t::qti(uint64_t hash, ti_t* ti) {
+  bool texture_pack_t::qti(std::uint64_t hash, ti_t* ti) {
     auto* s = static_cast<tp_runtime_state_t*>(internal_state);
     auto it = s->hash_to_unique.find(hash);
     if (it == s->hash_to_unique.end()) return 1;

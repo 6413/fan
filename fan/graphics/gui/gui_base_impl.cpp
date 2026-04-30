@@ -104,7 +104,7 @@ namespace fan::graphics::gui {
       const fan::color& bg_col,
       const fan::color& tint_col
     ) {
-      texture_id_t tex = (texture_id_t)(uintptr_t)
+      texture_id_t tex = (texture_id_t)(std::uintptr_t)
         fan::graphics::ctx()->image_get_handle(fan::graphics::ctx(), img);
 
       char id_buf[64];
@@ -1224,7 +1224,7 @@ namespace fan::graphics::gui {
     return fan::color(c.x, c.y, c.z, c.w);
   }
 
-  uint32_t get_color_u32(col_t idx) {
+  std::uint32_t get_color_u32(col_t idx) {
     return ImGui::GetColorU32(idx);
   }
 
@@ -1329,7 +1329,7 @@ namespace fan::graphics::gui {
     return detail::toggle_button_impl(fan::ct_string(str), v);
   }
 
-  fan::vec2 get_position_bottom_corner(std::string_view text, uint32_t reverse_yoffset) {
+  fan::vec2 get_position_bottom_corner(std::string_view text, std::uint32_t reverse_yoffset) {
     fan::vec2 text_size_v = calc_text_size(text);
     fan::vec2 window_pos = get_window_pos();
     fan::vec2 window_size = get_window_size();
@@ -1514,7 +1514,7 @@ namespace fan::graphics::gui {
     return ImGui::BeginDragDropSource();
   }
 
-  bool set_drag_drop_payload(str_view_t type, const void* data, size_t sz, cond_t cond) {
+  bool set_drag_drop_payload(str_view_t type, const void* data, std::size_t sz, cond_t cond) {
     return ImGui::SetDragDropPayload(fan::ct_string(type), data, sz, cond);
   }
 
@@ -1606,12 +1606,12 @@ namespace fan::graphics::gui {
     , VkInstance instance,
     VkPhysicalDevice physical_device,
     VkDevice device,
-    uint32_t queue_family,
+    std::uint32_t queue_family,
     VkQueue graphics_queue,
     VkDescriptorPool descriptor_pool,
     VkRenderPass render_pass,
-    uint32_t image_count,
-    uint32_t min_image_count,
+    std::uint32_t image_count,
+    std::uint32_t min_image_count,
     VkSampleCountFlagBits msaa_samples,
     void (*check_vk_result)(VkResult)
   #endif
@@ -1670,12 +1670,12 @@ namespace fan::graphics::gui {
     , VkInstance instance,
     VkPhysicalDevice physical_device,
     VkDevice device,
-    uint32_t queue_family,
+    std::uint32_t queue_family,
     VkQueue graphics_queue,
     VkDescriptorPool descriptor_pool,
     VkRenderPass render_pass,
-    uint32_t image_count,
-    uint32_t min_image_count,
+    std::uint32_t image_count,
+    std::uint32_t min_image_count,
     VkSampleCountFlagBits msaa_samples,
     void (*check_vk_result)(VkResult)
   #endif
@@ -1854,7 +1854,7 @@ namespace fan::graphics::gui {
     }
   }
 
-  void profile_heap(void* (*dynamic_malloc)(size_t, void*), void (*dynamic_free)(void*, void*)) {
+  void profile_heap(void* (*dynamic_malloc)(std::size_t, void*), void (*dynamic_free)(void*, void*)) {
     ImGui::SetAllocatorFunctions(dynamic_malloc, dynamic_free);
   }
 
@@ -2565,7 +2565,7 @@ namespace fan::graphics::gui::slot {
       ImVec2(pos.x + size.x, pos.y + size.y));
   }
 
-  void stack_count(uint32_t count,
+  void stack_count(std::uint32_t count,
     const fan::vec2& p_min,
     const fan::vec2& p_max) {
     if (count <= 1) return;

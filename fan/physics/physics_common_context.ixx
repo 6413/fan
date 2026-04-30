@@ -1,5 +1,10 @@
 module;
 
+#include <fan/utility.h>
+
+#include <cstdint>
+#include <cstddef>
+
 export module fan.physics.common_context;
 
 import std;
@@ -12,10 +17,10 @@ import fan.types.vector;
 
 export namespace fan::physics {
   struct physics_update_data_t {
-    uint64_t shape_id;
+    std::uint64_t shape_id;
     fan::vec2 draw_offset = 0;
     bool sync_visual_angle = true;
-    uint64_t body_id;
+    std::uint64_t body_id;
     void* cb;
   };
   using shape_physics_update_cb = void(*)(const physics_update_data_t& data);

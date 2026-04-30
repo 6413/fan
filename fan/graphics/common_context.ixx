@@ -3,6 +3,8 @@ module;
 #include <coroutine>
 #include <fan/graphics/common_context_functions_declare.h>
 
+#include <fan/utility.h>
+
 export module fan.graphics.common_context;
 
 import std;
@@ -31,7 +33,7 @@ import fan.graphics.image_load;
 #define __dme_extend \
   static auto get_names_impl() { \
     std::array<fan::ct_string<256>, size()> a{}; \
-    for (size_t i = 0; i < size(); i++) { \
+    for (std::size_t i = 0; i < size(); i++) { \
       a[i] = fan::snake_to_title(items()[i]); \
     } \
     return a; \
@@ -39,7 +41,7 @@ import fan.graphics.image_load;
   static auto get_names() { \
     static auto names = get_names_impl(); \
     std::array<const char*, size()> p{}; \
-    for (size_t i = 0; i < size(); i++) \
+    for (std::size_t i = 0; i < size(); i++) \
       p[i] = names[i].c_str(); \
     return p; \
   }
@@ -64,10 +66,10 @@ export namespace fan {
       __dme(yuv420p);
       __dme(nv12);
 
-      static constexpr uint8_t undefined = 255;
+      static constexpr std::uint8_t undefined = 255;
     }image_format;
 
-    constexpr uint8_t get_texture_amount(uint8_t format) {
+    constexpr std::uint8_t get_texture_amount(std::uint8_t format) {
       switch (format) {
       case image_format_e::undefined: {
         return 0;
@@ -106,12 +108,12 @@ export namespace fan {
       fan_float,
     };
     struct image_load_properties_defaults {
-      static constexpr uint32_t visual_output = image_sampler_address_mode_e::repeat;
-      static constexpr uint32_t internal_format = image_format_e::r8b8g8a8_unorm;
-      static constexpr uint32_t format = image_format_e::r8b8g8a8_unorm;
-      static constexpr uint32_t type = fan_unsigned_byte; // internal
-      static constexpr uint32_t min_filter = image_filter_e::linear;
-      static constexpr uint32_t mag_filter = image_filter_e::linear;
+      static constexpr std::uint32_t visual_output = image_sampler_address_mode_e::repeat;
+      static constexpr std::uint32_t internal_format = image_format_e::r8b8g8a8_unorm;
+      static constexpr std::uint32_t format = image_format_e::r8b8g8a8_unorm;
+      static constexpr std::uint32_t type = fan_unsigned_byte; // internal
+      static constexpr std::uint32_t min_filter = image_filter_e::linear;
+      static constexpr std::uint32_t mag_filter = image_filter_e::linear;
     };
 
     struct context_camera_t : fan::camera {
@@ -139,12 +141,12 @@ export namespace fan {
     };
 
     struct image_load_properties_t {
-      uint32_t visual_output = image_load_properties_defaults::visual_output;
-      uintptr_t internal_format = image_load_properties_defaults::internal_format;
-      uintptr_t format = image_load_properties_defaults::format;
-      uintptr_t type = image_load_properties_defaults::type;
-      uintptr_t min_filter = image_load_properties_defaults::min_filter;
-      uintptr_t mag_filter = image_load_properties_defaults::mag_filter;
+      std::uint32_t visual_output = image_load_properties_defaults::visual_output;
+      std::uintptr_t internal_format = image_load_properties_defaults::internal_format;
+      std::uintptr_t format = image_load_properties_defaults::format;
+      std::uintptr_t type = image_load_properties_defaults::type;
+      std::uintptr_t min_filter = image_load_properties_defaults::min_filter;
+      std::uintptr_t mag_filter = image_load_properties_defaults::mag_filter;
     };
 
     struct image_data_t {
@@ -250,7 +252,7 @@ export namespace fan {
     };
     context_functions_t get_vk_context_functions();
 
-    constexpr uint8_t get_channel_amount(uint32_t format) {
+    constexpr std::uint8_t get_channel_amount(std::uint32_t format) {
       switch (format) {
       case image_format_e::undefined: return 0;
 
@@ -279,7 +281,7 @@ export namespace fan {
       }
     }
 
-    constexpr std::array<fan::vec2ui, 4> get_image_sizes(uint8_t format, const fan::vec2ui& image_size) {
+    constexpr std::array<fan::vec2ui, 4> get_image_sizes(std::uint8_t format, const fan::vec2ui& image_size) {
       using namespace fan::graphics;
       switch (format) {
       case image_format_e::yuv420p:
@@ -299,7 +301,7 @@ export namespace fan {
     }
 
     template <typename T>
-    constexpr std::array<T, 4> get_image_properties(uint8_t format) {
+    constexpr std::array<T, 4> get_image_properties(std::uint8_t format) {
       using namespace fan::graphics;
       std::array<T, 4> result {};
 
@@ -391,7 +393,7 @@ export namespace fan::graphics {
     void set_context(context_functions_t& ctx, void* context);
     context_functions_t* operator->();
     operator void* ();
-    uint8_t get_renderer();
+    std::uint8_t get_renderer();
 
     context_functions_t* context_functions = nullptr;
     void* render_context = nullptr;
@@ -479,7 +481,7 @@ export namespace fan::graphics {
     image_t(fan::color* colors, const fan::vec2ui& size);
     image_t(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& lp);
     image_t(std::span<const fan::color> colors, const fan::vec2ui& size);
-    image_t(const fan::vec2& size, uint32_t channels = 4, const image_load_properties_t& lp = image_presets::pixel_art());
+    image_t(const fan::vec2& size, std::uint32_t channels = 4, const image_load_properties_t& lp = image_presets::pixel_art());
 
     // for no gloco access
     static image_t invalid();
@@ -495,13 +497,13 @@ export namespace fan::graphics {
     void reload(const std::string& path, const std::source_location& callers_path = std::source_location::current());
     void reload(const std::string& path, const fan::graphics::image_load_properties_t& lp, const std::source_location& callers_path = std::source_location::current());
     void unload();
-    void update(const void* data, uint32_t channels = 4);
-    void update(const std::vector<uint8_t>& data, uint32_t channels = 4);
-    std::vector<uint8_t> get_pixel_data(int image_format, fan::vec2 uvp = 0, fan::vec2 uvs = 1) const;
-    std::vector<uint8_t> read_pixels(const fan::vec2& uv_position = 0, const fan::vec2& uv_size = 1) const;
+    void update(const void* data, std::uint32_t channels = 4);
+    void update(const std::vector<std::uint8_t>& data, std::uint32_t channels = 4);
+    std::vector<std::uint8_t> get_pixel_data(int image_format, fan::vec2 uvp = 0, fan::vec2 uvs = 1) const;
+    std::vector<std::uint8_t> read_pixels(const fan::vec2& uv_position = 0, const fan::vec2& uv_size = 1) const;
     void bind() const;
     void unbind() const;
-    uint64_t get_handle() const;
+    std::uint64_t get_handle() const;
     image_load_properties_t& get_settings();
     void set_settings(const fan::graphics::image_load_properties_t& settings);
   };
@@ -627,7 +629,7 @@ export namespace fan {
 
 export namespace fan::graphics {
   fan::graphics::image_t image_create();
-  uint64_t image_get_handle(fan::graphics::image_t nr);
+  std::uint64_t image_get_handle(fan::graphics::image_t nr);
   void image_erase(fan::graphics::image_t nr);
   void image_bind(fan::graphics::image_t nr);
   void image_unbind(fan::graphics::image_t nr);
@@ -652,8 +654,8 @@ export namespace fan::graphics {
   void image_reload(fan::graphics::image_t nr, const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current());
   fan::graphics::image_t image_create(const fan::color& color);
   fan::graphics::image_t image_create(const fan::color& color, const fan::graphics::image_load_properties_t& p);
-  std::vector<uint8_t> read_pixels(const fan::vec2& position, const fan::vec2& size);
-  std::vector<uint8_t> read_pixels_from_image(fan::graphics::image_t nr, const fan::vec2& uv_position = 0, const fan::vec2& uv_size = 1);
+  std::vector<std::uint8_t> read_pixels(const fan::vec2& position, const fan::vec2& size);
+  std::vector<std::uint8_t> read_pixels_from_image(fan::graphics::image_t nr, const fan::vec2& uv_position = 0, const fan::vec2& uv_size = 1);
 
   fan::graphics::shader_t shader_create();
   fan::graphics::shader_t shader_create(

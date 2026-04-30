@@ -20,12 +20,12 @@ export namespace fan {
   template<typename ...Args>
 constexpr std::size_t va_count(Args&&...) { return sizeof...(Args); }
 
-template<size_t a, size_t b> struct assert_equality {
+template<std::size_t a, std::size_t b> struct assert_equality {
   static_assert(a == b, "Not equal");
   static constexpr bool result = (a == b);
 };
 
-template <size_t a, size_t b>
+template <std::size_t a, std::size_t b>
 constexpr bool assert_equality_v = assert_equality<a, b>::result;
 
 namespace impl {
