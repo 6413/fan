@@ -229,12 +229,12 @@ export namespace fan {
         return quaternion<T>(v0 + (v1 - v0) * t);
       }
 
-      f_t theta_0 = acos(dot);
+      f_t theta_0 = std::acos(dot);
       f_t theta = theta_0 * t;
-      f_t sin_theta = sin(theta);
-      f_t sin_theta_0 = sin(theta_0);
+      f_t sin_theta = std::sin(theta);
+      f_t sin_theta_0 = std::sin(theta_0);
 
-      f_t s0 = cos(theta) - dot * sin_theta / sin_theta_0;
+      f_t s0 = std::cos(theta) - dot * sin_theta / sin_theta_0;
       f_t s1 = sin_theta / sin_theta_0;
 
       return (v0 * s0) + (v1 * s1);
@@ -243,17 +243,17 @@ export namespace fan {
     // radians
     static quaternion<T> from_axis_angle(const fan::vec3& axis, float angle) {
       quaternion<T> q;
-      float sinHalfAngle = sin(angle / 2.0f);
+      float sinHalfAngle = std::sin(angle / 2.0f);
       q.x = axis.x * sinHalfAngle;
       q.y = axis.y * sinHalfAngle;
       q.z = axis.z * sinHalfAngle;
-      q.w = cos(angle / 2.0f);
+      q.w = std::cos(angle / 2.0f);
       return q;
     }
 
     void to_axis_angle(fan::vec3& axis, value_type& angle) const {
       quaternion<T> qn = normalize();
-      angle = 2.0f * acos(qn.w);
+      angle = 2.0f * std::acos(qn.w);
 
       float s = sqrt(1.0f - qn.w * qn.w);
       if (s < 0.001f) {
@@ -286,12 +286,12 @@ export namespace fan {
     }
 
     static quaternion<T> from_angles(const fan::vec3& angles) {
-      f32_t cx = cos(-angles.x * 0.5f);
-      f32_t sx = sin(-angles.x * 0.5f);
-      f32_t cy = cos(-angles.y * 0.5f);
-      f32_t sy = sin(-angles.y * 0.5f);
-      f32_t cz = cos(-angles.z * 0.5f);
-      f32_t sz = sin(-angles.z * 0.5f);
+      f32_t cx = std::cos(-angles.x * 0.5f);
+      f32_t sx = std::sin(-angles.x * 0.5f);
+      f32_t cy = std::cos(-angles.y * 0.5f);
+      f32_t sy = std::sin(-angles.y * 0.5f);
+      f32_t cz = std::cos(-angles.z * 0.5f);
+      f32_t sz = std::sin(-angles.z * 0.5f);
 
       quaternion<T> q;
       q.w = cx * cy * cz + sx * sy * sz;
