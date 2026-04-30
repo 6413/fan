@@ -359,3 +359,10 @@ enum class name { __VA_ARGS__ }
 #pragma pack(push, 1)
   #include <fan/types/bll_types.h>
 #pragma pack(pop)
+
+#if defined(fan_compiler_gcc)
+  // fixes collision with GLFW3 headers while doing import std;
+	#ifndef _GCC_MAX_ALIGN_T
+		#define _GCC_MAX_ALIGN_T
+	#endif
+#endif
