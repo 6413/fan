@@ -2,6 +2,23 @@ module;
 
 #include <coroutine>
 
+extern "C" {
+  struct uv_buf_t;
+  struct uv_connect_t;
+  struct uv_getaddrinfo_t;
+  struct uv_handle_t;
+  struct uv_idle_t;
+  struct uv_loop_t;
+  struct uv_poll_t;
+  struct uv_req_t;
+  struct uv_stream_t;
+  struct uv_tcp_t;
+  struct uv_timer_t;
+  struct uv_udp_send_t;
+  struct uv_udp_t;
+  struct uv_write_t;
+}
+
 export module fan.event.types;
 
 import std;
@@ -458,4 +475,21 @@ export namespace fan::event {
   // auto
   using runa_t = task_auto_wrap_t<std::suspend_never>;
   using cancel_task = cancel_task_impl;
+}
+
+export namespace fan {
+  using ev_idle_t    = uv_idle_t;
+  using ev_timer_t   = uv_timer_t;
+  using ev_loop_t    = uv_loop_t;
+  using ev_handle_t  = uv_handle_t;
+  using ev_stream_t  = uv_stream_t;
+  using ev_tcp_t     = uv_tcp_t;
+  using ev_udp_t     = uv_udp_t;
+  using ev_poll_t    = uv_poll_t;
+  using ev_buf_t     = uv_buf_t;
+  using ev_write_t   = uv_write_t;
+  using ev_connect_t = uv_connect_t;
+  using ev_req_t     = uv_req_t;
+  using ev_udp_send_t = uv_udp_send_t;
+  using ev_getaddrinfo_t = uv_getaddrinfo_t;
 }

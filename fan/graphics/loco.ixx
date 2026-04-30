@@ -2,6 +2,8 @@ module;
 
 #include <fan/utility.h>
 
+#include <cstdint>
+
 #if defined(fan_compiler_gcc)
   #define _GCC_MAX_ALIGN_T
   #define ____mbstate_t_defined
@@ -15,9 +17,7 @@ module;
   #include <vulkan/vulkan.h>
 #endif
 #include <fan/event/types.h>
-#include <uv.h>
-#undef min
-#undef max
+
 // +cuda
 #if __has_include("cuda.h")
   #include <nvcuvid.h>
@@ -132,7 +132,7 @@ export namespace fan::graphics {
   #define BLL_set_prefix init_callback
   #include <fan/fan_bll_preset.h>
   #define BLL_set_Link 1
-  #define BLL_set_type_node uint16_t
+  #define BLL_set_type_node std::uint16_t
   #define BLL_set_NodeDataType std::function<void(loco_t*)>
   #define BLL_set_CPP_CopyAtPointerChange 1
   #include <BLL/BLL.h>
@@ -459,7 +459,7 @@ public:
   fan::vec2 ndc_to_screen(const fan::vec2& ndc_position);
   void set_vsync(bool flag);
   void start_timer();
-  static void idle_cb(uv_idle_t* handle);
+  static void idle_cb(void* idle_handle);
   void start_idle(bool start_idle = true);
   void update_timer_interval(bool idle = true);
   void set_target_fps(std::int32_t new_target_fps, bool idle = true);
@@ -498,9 +498,9 @@ public:
   f32_t time = 0;
 
   bool idle_init = false;
-  uv_idle_t idle_handle;
+  void* idle_handle = nullptr;
   bool timer_init = false;
-  uv_timer_t timer_handle {};
+  void* timer_handle = nullptr;
 
   std::function<void()> main_loop; // bad, but forced
 
