@@ -352,7 +352,7 @@ enum class name { __VA_ARGS__ }
   #define FAN_UNIQUE_CALL auto token = +[]{}
   #define FAN_UNIQUE_CALL_PASS token
 #else
-  #define FAN_UNIQUE_CALL uint64_t line = __builtin_LINE()
+  #define FAN_UNIQUE_CALL std::uint64_t line = __builtin_LINE()
   #define FAN_UNIQUE_CALL_PASS line
 #endif
 
