@@ -1,13 +1,15 @@
 module;
 
+#include <fan/utility.h>
+
 #if defined(FAN_OPENGL)
-  #include <fan/graphics/opengl/init.h>
+  #include <fan/graphics/gl_api.h>
 #endif
 #include <fan/graphics/shape_macros.h>
 
 module fan.graphics.shapes;
 
-import std;
+#include <fan/graphics/opengl/init.h>
 
 import fan.utility;
 import fan.print;

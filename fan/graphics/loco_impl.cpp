@@ -4,11 +4,7 @@ module;
 // since light uses framebuffer _t01. you could use unlit_sprite, if required
 #define LOCO_FRAMEBUFFER
 #include <coroutine>
-#if defined(FAN_GUI)
-#endif
-#include <fan/graphics/opengl/init.h>
-#if defined(fan_std23)
-#endif
+
 // TODO REMOVE
 #if defined(FAN_VULKAN)
   // TODO REMOVE
@@ -21,7 +17,11 @@ module;
 
 #include <fan/utility.h>
 
+#include <fan/graphics/gl_api.h>
+
 module fan.graphics.loco;
+
+#include <fan/graphics/opengl/init.h>
 
 import fan.window.input;
 

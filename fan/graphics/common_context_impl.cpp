@@ -1,12 +1,8 @@
 module;
 
-#if defined (FAN_OPENGL)
-  #include <fan/graphics/opengl/init.h>
-#endif
+#include <fan/graphics/gl_api.h>
 
 module fan.graphics.common_context;
-
-import std;
 
 import fan.print;
 import fan.math;

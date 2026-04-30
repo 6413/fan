@@ -1,12 +1,13 @@
 module;
 
-#include <fan/graphics/opengl/init.h>
+#include <fan/utility.h>
+
 #include <fan/event/types.h>
 #include <coroutine>
 
-module fan.graphics;
+#include <fan/graphics/gl_api.h>
 
-import std;
+module fan.graphics;
 
 import fan.print.error;
 

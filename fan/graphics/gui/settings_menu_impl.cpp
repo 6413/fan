@@ -1,15 +1,17 @@
 module;
 
+#include <fan/utility.h>
+
 #if defined(FAN_GUI)
-#include <fan/graphics/opengl/init.h>
-#define LOCO_FRAMEBUFFER
+  #include <fan/graphics/gl_api.h>
+  #define LOCO_FRAMEBUFFER
 #endif
 
 module fan.graphics.gui.settings_menu;
 
-import std;
-
 #if defined(FAN_GUI)
+
+#include <fan/graphics/opengl/init.h>
 
 import fan.types.vector;
 import fan.types.json;
