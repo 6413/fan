@@ -2,7 +2,7 @@ module;
 
 #include <fan/utility.h>
 
-#if defined(fan_compiler_gcc)
+#if !defined(fan_compiler_gcc)
 
   #include <coroutine>
   #include <uv.h>
@@ -22,7 +22,7 @@ module;
 
 module fan.process;
 
-#if defined(fan_compiler_gcc)
+#if !defined(fan_compiler_gcc)
 
 import fan.print.error;
 
