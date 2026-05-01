@@ -1,5 +1,7 @@
 module;
 
+#include <cstdint>
+
 #if defined(FAN_2D)
   #if defined(FAN_PHYSICS_2D)
     #include <fan/utility.h>

@@ -52,10 +52,10 @@ elseif is_mode("debug") then
     add_defines("_DEBUG=3")
 end
 
-option("FAN_2D") set_default(false) option_end()
-option("FAN_GUI") set_default(false) option_end()
-option("FAN_PHYSICS_2D") set_default(false) option_end()
-option("FAN_JSON") set_default(false) option_end()
+option("FAN_2D") set_default(true) option_end()
+option("FAN_GUI") set_default(true) option_end()
+option("FAN_PHYSICS_2D") set_default(true) option_end()
+option("FAN_JSON") set_default(true) option_end()
 option("FAN_3D") set_default(false) option_end()
 option("FAN_OPENGL") set_default(true) option_end()
 option("FAN_VULKAN") set_default(false) option_end()
