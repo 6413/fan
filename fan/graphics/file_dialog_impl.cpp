@@ -3,10 +3,9 @@ module;
 #include <fan/utility.h>
 
 #if defined(fan_compiler_gcc)
-  // fixes collision with GLFW3 headers while doing import std;
-	#ifndef _GCC_MAX_ALIGN_T
-		#define _GCC_MAX_ALIGN_T
-	#endif
+  #ifndef _GCC_MAX_ALIGN_T
+    #define _GCC_MAX_ALIGN_T
+  #endif
 #endif
 
 #include <coroutine>
@@ -43,7 +42,7 @@ namespace fan::graphics {
     file_cb_t                 on_done;
     files_cb_t                on_done_multi;
     dismissed_cb_t            on_dismissed;
-    fan::uv::uv_async_t       async_;
+    fan::uv::async_t          async_;
 
     void dispatch() {
       bool got = !result.empty() || !results.empty();
@@ -60,11 +59,10 @@ namespace fan::graphics {
       on_done = {}; on_done_multi = {}; on_dismissed = {};
       pending.store(false);
       fan::uv::close(
-        reinterpret_cast<fan::uv::uv_handle_t*>(&async_),
-        [](fan::uv::uv_handle_t* h) {
-        auto* st = static_cast<state_t*>(h->data);
-        st->self.reset();
-      }
+        reinterpret_cast<fan::uv::handle_t*>(&async_),
+        [](fan::uv::handle_t* h) {
+          static_cast<state_t*>(h->data)->self.reset();
+        }
       );
     }
   };
@@ -77,12 +75,12 @@ namespace fan::graphics {
     s->pending.store(true);
     s->self = s;
     fan::uv::async_init(
-      (fan::uv::uv_loop_t*)fan::event::get_loop(),
+      (fan::uv::loop_t*)fan::event::get_loop(),
       &s->async_,
-      s.get(),
-      [](fan::uv::uv_async_t* h) {
-      static_cast<dialog_t::state_t*>(h->data)->dispatch();
-    });
+      [](fan::uv::async_t* h) {
+        static_cast<dialog_t::state_t*>(h->data)->dispatch();
+      }
+    );
     s->async_.data = s.get();
     fan::event::thread_create([s, nfd_fn = std::move(nfd_fn)] {
       if (!s->cancelled) nfd_fn(*s);

@@ -10,12 +10,17 @@ module;
   // TODO REMOVE
   #include <vulkan/vulkan.h>
 #endif
-#include <uv.h>
-#undef min
-#undef max
+
 #include <fan/graphics/shape_macros.h>
 
 #include <fan/utility.h>
+
+#if defined(fan_platform_windows)
+  #include <Windows.h>
+#endif
+
+#undef min
+#undef max
 
 #include <fan/graphics/gl_api.h>
 
@@ -31,6 +36,8 @@ import fan.camera;
 import fan.memory;
 import fan.random;
 import fan.print;
+
+import fan.event.uv_raw;
 
 import fan.graphics.common_types;
 
@@ -1075,8 +1082,8 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   open_props(props),
   init_gloco([this] { gloco() = this; return true; }())
 {
-  idle_handle = new uv_idle_t;
-  timer_handle = new uv_timer_t;
+  idle_handle  = new fan::uv::idle_t;
+  timer_handle = new fan::uv::timer_t;
 
   bind_global_context();
   loco_init_shapes_context(this);
@@ -1917,16 +1924,16 @@ void loco_t::loop(const std::function<void()>& cb) {
 g_loop:
 
   if (!timer_init) {
-    uv_timer_init((uv_loop_t*)fan::event::get_loop(), (uv_timer_t*)timer_handle);
+    fan::uv::timer_init((fan::uv::loop_t*)fan::event::get_loop(), (fan::uv::timer_t*)timer_handle);
     timer_init = true;
   }
   if (!idle_init) {
-    uv_idle_init((uv_loop_t*)fan::event::get_loop(), (uv_idle_t*)idle_handle);
+    fan::uv::idle_init ((fan::uv::loop_t*)fan::event::get_loop(), (fan::uv::idle_t*)idle_handle);
     idle_init = true;
   }
 
-  ((uv_timer_t*)timer_handle)->data = this;
-  ((uv_idle_t*)idle_handle)->data = this;
+  ((fan::uv::timer_t*)timer_handle)->data = this;
+  ((fan::uv::idle_t*)idle_handle)->data   = this;
 
   if (target_fps > 0) {
     start_timer();
@@ -2010,7 +2017,7 @@ void loco_t::start_timer() {
 
   std::uint64_t delay = target_fps > 60 ? 1 : std::max(1.0, std::floor(1.0 / target_fps * 1000.0 * 0.5));
 
-  uv_timer_start((uv_timer_t*)timer_handle, [](uv_timer_t* handle) {
+  fan::uv::timer_start((fan::uv::timer_t*)timer_handle, [](fan::uv::timer_t* handle) {
     loco_t* loco = static_cast<loco_t*>(handle->data);
 
     f64_t elapsed = loco->timing.frame_timer.seconds();
@@ -2029,18 +2036,18 @@ void loco_t::start_timer() {
       loco->timing.accumulated_time -= loco->timing.target_frame_time;
 
       if (loco->process_frame(loco->main_loop)) {
-        uv_timer_stop((uv_timer_t*)handle);
-        uv_stop((uv_loop_t*)fan::event::get_loop());
+        fan::uv::timer_stop((fan::uv::timer_t*)handle);
+        fan::uv::stop((fan::uv::loop_t*)fan::event::get_loop());
       }
     }
   }, 0, delay);
 }
 
 void loco_t::idle_cb(void* handle) {
-  loco_t* loco = static_cast<loco_t*>(((uv_idle_t*)handle)->data);
+  loco_t* loco = static_cast<loco_t*>(((fan::uv::idle_t*)handle)->data);
   if (loco->process_frame(loco->main_loop)) {
-    uv_idle_stop((uv_idle_t*)handle);
-    uv_stop((uv_loop_t*)fan::event::get_loop());
+    fan::uv::idle_stop((fan::uv::idle_t*)handle);
+    fan::uv::stop((fan::uv::loop_t*)fan::event::get_loop());
   }
 }
 
@@ -2048,7 +2055,7 @@ void loco_t::start_idle(bool start_idle) {
   if (!start_idle) {
     return;
   }
-  uv_idle_start((uv_idle_t*)idle_handle, (uv_idle_cb)idle_cb);
+  fan::uv::idle_start((fan::uv::idle_t*)idle_handle, (fan::uv::idle_cb)idle_cb);
 }
 
 // if target fps does not seem to be accurate/updating, use timeBeginPeriod to request the correct hz for libuv
@@ -2058,7 +2065,7 @@ void loco_t::update_timer_interval(bool idle) {
     std::uint64_t delay = target_fps > 60 ? 1 : std::max(1.0, std::floor(1.0 / target_fps * 1000.0 * 0.5));
 
     if (idle_init) {
-      uv_idle_stop((uv_idle_t*)idle_handle);
+      fan::uv::idle_stop((fan::uv::idle_t*)idle_handle);
     }
     if (!timing.timer_enabled) {
       timing.frame_timer.start();
@@ -2067,17 +2074,17 @@ void loco_t::update_timer_interval(bool idle) {
       timing.timer_enabled = true;
     }
     else {
-      uv_timer_set_repeat((uv_timer_t*)timer_handle, delay);
-      uv_timer_again((uv_timer_t*)timer_handle);
+      fan::uv::timer_set_repeat((fan::uv::timer_t*)timer_handle, delay);
+      fan::uv::timer_again((fan::uv::timer_t*)timer_handle);
     }
   }
   else {
     if (timer_init) {
-      uv_timer_stop((uv_timer_t*)timer_handle);
+      fan::uv::timer_stop((fan::uv::timer_t*)timer_handle);
       timing.timer_enabled = false;
     }
     if (idle_init && idle) {
-      uv_idle_start((uv_idle_t*)idle_handle, (uv_idle_cb)idle_cb);
+      fan::uv::idle_start((fan::uv::idle_t*)idle_handle, (fan::uv::idle_cb)idle_cb);
     }
   }
 }
