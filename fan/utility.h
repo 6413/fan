@@ -170,7 +170,7 @@
 
 #ifndef OFFSETLESS
 	#define OFFSETLESS(ptr_m, t_m, d_m) \
-		((t_m *)((uint8_t *)(ptr_m) - offsetof(t_m, d_m)))
+		((t_m *)((std::uint8_t *)(ptr_m) - offsetof(t_m, d_m)))
 #endif
 
 #if defined(_DEBUG) || defined(DEBUG)
