@@ -2,6 +2,13 @@ module;
 
 #include <fan/utility.h>
 
+#if defined(fan_compiler_gcc)
+  // fixes collision with GLFW3 headers while doing import std;
+	#ifndef _GCC_MAX_ALIGN_T
+		#define _GCC_MAX_ALIGN_T
+	#endif
+#endif
+
 #if defined(FAN_OPENGL)
   #if defined(fan_platform_windows)
     #define GLFW_EXPOSE_NATIVE_WIN32
@@ -21,11 +28,12 @@ module fan.graphics.opengl.core;
 
 #if defined(FAN_OPENGL)
 
-#include <fan/graphics/opengl/init.h>
-
 import fan.print.error;
 import fan.math;
 import fan.camera;
+
+#define NO_FUNCS
+#include <fan/graphics/opengl/init.h>
 
 namespace fan::opengl {
 
