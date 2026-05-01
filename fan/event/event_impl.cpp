@@ -1,20 +1,18 @@
 module;
 
 #include <coroutine>
-
-#include <uv.h>
-#undef min
-#undef max
+#include <ctype.h>
 
 module fan.event;
 
 import fan.print;
 import fan.print.error;
+import fan.event.uv_raw;
 
 namespace fan::event {
 
   struct awaitable_internal_t {
-    uv_fs_t req;
+    fan::uv::fs_t req;
     std::coroutine_handle<> handle;
   };
   static_assert(sizeof(awaitable_internal_t) <= 512, "Awaitable Shell buffer too small");
@@ -23,13 +21,13 @@ namespace fan::event {
     auto* internal = reinterpret_cast<awaitable_internal_t*>(data);
     internal->handle = nullptr;
     internal->req.data = internal;
-    uv_fs_open((uv_loop_t*)get_loop(), &internal->req, path.c_str(), flags, mode, [](uv_fs_t* r) {
+    fan::uv::fs_open((fan::uv::loop_t*)get_loop(), &internal->req, path.c_str(), flags, mode, [](fan::uv::fs_t* r) {
       auto* in = static_cast<awaitable_internal_t*>(r->data);
       if (in->handle) in->handle.resume();
     });
   }
   uv_fs_open_awaitable::~uv_fs_open_awaitable() {
-    uv_fs_req_cleanup(&reinterpret_cast<awaitable_internal_t*>(data)->req);
+    fan::uv::fs_req_cleanup(&reinterpret_cast<awaitable_internal_t*>(data)->req);
   }
   void uv_fs_open_awaitable::await_suspend(std::coroutine_handle<> h) noexcept {
     reinterpret_cast<awaitable_internal_t*>(data)->handle = h;
@@ -42,14 +40,14 @@ namespace fan::event {
     auto* internal = reinterpret_cast<awaitable_internal_t*>(data);
     internal->handle = nullptr;
     internal->req.data = internal;
-    uv_buf_t uv_buf = uv_buf_init(buffer, size);
-    uv_fs_read((uv_loop_t*)get_loop(), &internal->req, file, &uv_buf, 1, offset, [](uv_fs_t* r) {
+    fan::uv::buf_t uv_buf = fan::uv::buf_init(buffer, size);
+    fan::uv::fs_read((fan::uv::loop_t*)get_loop(), &internal->req, file, &uv_buf, 1, offset, [](fan::uv::fs_t* r) {
       auto* in = static_cast<awaitable_internal_t*>(r->data);
       if (in->handle) in->handle.resume();
     });
   }
   uv_fs_read_awaitable::~uv_fs_read_awaitable() {
-    uv_fs_req_cleanup(&reinterpret_cast<awaitable_internal_t*>(data)->req);
+    fan::uv::fs_req_cleanup(&reinterpret_cast<awaitable_internal_t*>(data)->req);
   }
   void uv_fs_read_awaitable::await_suspend(std::coroutine_handle<> h) noexcept {
     reinterpret_cast<awaitable_internal_t*>(data)->handle = h;
@@ -62,14 +60,14 @@ namespace fan::event {
     auto* internal = reinterpret_cast<awaitable_internal_t*>(data);
     internal->handle = nullptr;
     internal->req.data = internal;
-    uv_buf_t uv_buf = uv_buf_init(const_cast<char*>(buffer), length);
-    uv_fs_write((uv_loop_t*)get_loop(), &internal->req, fd, &uv_buf, 1, offset, [](uv_fs_t* r) {
+    fan::uv::buf_t uv_buf = fan::uv::buf_init(const_cast<char*>(buffer), length);
+    fan::uv::fs_write((fan::uv::loop_t*)get_loop(), &internal->req, fd, &uv_buf, 1, offset, [](fan::uv::fs_t* r) {
       auto* in = static_cast<awaitable_internal_t*>(r->data);
       if (in->handle) in->handle.resume();
     });
   }
   uv_fs_write_awaitable::~uv_fs_write_awaitable() {
-    uv_fs_req_cleanup(&reinterpret_cast<awaitable_internal_t*>(data)->req);
+    fan::uv::fs_req_cleanup(&reinterpret_cast<awaitable_internal_t*>(data)->req);
   }
   void uv_fs_write_awaitable::await_suspend(std::coroutine_handle<> h) noexcept {
     reinterpret_cast<awaitable_internal_t*>(data)->handle = h;
@@ -82,13 +80,13 @@ namespace fan::event {
     auto* internal = reinterpret_cast<awaitable_internal_t*>(data);
     internal->handle = nullptr;
     internal->req.data = internal;
-    uv_fs_close((uv_loop_t*)get_loop(), &internal->req, file, [](uv_fs_t* r) {
+    fan::uv::fs_close((fan::uv::loop_t*)get_loop(), &internal->req, file, [](fan::uv::fs_t* r) {
       auto* in = static_cast<awaitable_internal_t*>(r->data);
       if (in->handle) in->handle.resume();
     });
   }
   uv_fs_close_awaitable::~uv_fs_close_awaitable() {
-    uv_fs_req_cleanup(&reinterpret_cast<awaitable_internal_t*>(data)->req);
+    fan::uv::fs_req_cleanup(&reinterpret_cast<awaitable_internal_t*>(data)->req);
   }
   void uv_fs_close_awaitable::await_suspend(std::coroutine_handle<> h) noexcept {
     reinterpret_cast<awaitable_internal_t*>(data)->handle = h;
@@ -98,7 +96,7 @@ namespace fan::event {
     auto* internal = reinterpret_cast<awaitable_internal_t*>(data);
     internal->handle = nullptr;
     internal->req.data = internal;
-    uv_fs_fstat((uv_loop_t*)get_loop(), &internal->req, file, [](uv_fs_t* r) {
+    fan::uv::fs_fstat((fan::uv::loop_t*)get_loop(), &internal->req, file, [](fan::uv::fs_t* r) {
       auto* in = static_cast<awaitable_internal_t*>(r->data);
       if (in->handle) in->handle.resume();
     });
@@ -107,13 +105,13 @@ namespace fan::event {
     auto* internal = reinterpret_cast<awaitable_internal_t*>(data);
     internal->handle = nullptr;
     internal->req.data = internal;
-    uv_fs_stat((uv_loop_t*)get_loop(), &internal->req, path.c_str(), [](uv_fs_t* r) {
+    fan::uv::fs_stat((fan::uv::loop_t*)get_loop(), &internal->req, path.c_str(), [](fan::uv::fs_t* r) {
       auto* in = static_cast<awaitable_internal_t*>(r->data);
       if (in->handle) in->handle.resume();
     });
   }
   uv_fs_size_awaitable::~uv_fs_size_awaitable() {
-    uv_fs_req_cleanup(&reinterpret_cast<awaitable_internal_t*>(data)->req);
+    fan::uv::fs_req_cleanup(&reinterpret_cast<awaitable_internal_t*>(data)->req);
   }
   void uv_fs_size_awaitable::await_suspend(std::coroutine_handle<> h) noexcept {
     reinterpret_cast<awaitable_internal_t*>(data)->handle = h;
@@ -123,65 +121,69 @@ namespace fan::event {
     return internal->req.result < 0 ? -1 : internal->req.statbuf.st_size;
   }
 
-  loop_t loop_new() { return uv_loop_new(); }
+  loop_t loop_new() {
+    auto* l = new fan::uv::loop_t;
+    fan::uv::loop_init(l);
+    return (loop_t)l;
+  }
   loop_t& get_loop() {
-    static uv_loop_t* event_loop = uv_default_loop();
+    static fan::uv::loop_t* event_loop = fan::uv::default_loop();
     return (loop_t&)event_loop;
   }
-  void loop_stop(loop_t loop) { uv_stop((uv_loop_t*)loop); }
-  int loop_close(loop_t loop) { return uv_loop_close((uv_loop_t*)loop); }
+  void loop_stop(loop_t loop) { fan::uv::stop((fan::uv::loop_t*)loop); }
+  int loop_close(loop_t loop) { return fan::uv::loop_close((fan::uv::loop_t*)loop); }
 
   void error_code_t::throw_if() const { if (code) throw code; }
   void error_code_t::await_resume() const { throw_if(); }
 
   void print_event_handles(loop_t loop) {
-    uv_loop_t* uvloop = (uv_loop_t*)loop;
+    fan::uv::loop_t* uvloop = (fan::uv::loop_t*)loop;
     fan::print("========================");
     fan::print("Active handles:", uvloop->active_handles);
     fan::print("Active requests:", uvloop->active_reqs.count);
-    uv_walk(uvloop, [](uv_handle_t* handle, void* arg) {
-      const char* type_name = uv_handle_type_name(handle->type);
-      fan::print("Handle:", type_name, "active:", uv_is_active(handle), "closing:", uv_is_closing(handle));
-      }, nullptr);
+    fan::uv::walk(uvloop, [](fan::uv::handle_t* handle, void*) {
+      const char* type_name = fan::uv::handle_type_name(handle->type);
+      fan::print("Handle:", type_name, "active:", fan::uv::is_active(handle), "closing:", fan::uv::is_closing(handle));
+    }, nullptr);
     fan::print("========================");
   }
 
   struct timer_t::timer_data {
-    uv_timer_t timer_handle;
+    fan::uv::timer_t timer_handle;
     std::coroutine_handle<> co_handle;
     int ready;
     timer_data() : co_handle(nullptr), ready(0) {}
   };
 
   void timer_t::timer_deleter::operator()(timer_t::timer_data* data) const noexcept {
-    uv_close(reinterpret_cast<uv_handle_t*>(&data->timer_handle), [](uv_handle_t* timer_handle) {
-      delete static_cast<timer_t::timer_data*>(timer_handle->data);
+    fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(&data->timer_handle), [](fan::uv::handle_t* h) {
+      delete static_cast<timer_t::timer_data*>(h->data);
     });
   }
 
   timer_t::timer_t() : data(new timer_data{}, timer_deleter{}) {
-    uv_timer_init((uv_loop_t*)fan::event::get_loop(), &data->timer_handle);
+    fan::uv::timer_init((fan::uv::loop_t*)fan::event::get_loop(), &data->timer_handle);
     data->timer_handle.data = data.get();
   }
 
   timer_t::timer_t(std::uint64_t timeout, std::uint64_t repeat)
     : data(new timer_data{}, timer_deleter{}) {
-    uv_timer_init((uv_loop_t*)fan::event::get_loop(), &data->timer_handle);
+    fan::uv::timer_init((fan::uv::loop_t*)fan::event::get_loop(), &data->timer_handle);
     data->timer_handle.data = data.get();
     start(timeout, repeat);
   }
 
   error_code_t timer_t::start(std::uint64_t timeout, std::uint64_t repeat) noexcept {
-    return uv_timer_start(&data->timer_handle, [](uv_timer_t* timer_handle) {
-      auto data = static_cast<timer_t::timer_data*>(timer_handle->data);
-      ++data->ready;
-      if (data->co_handle) data->co_handle();
+    return fan::uv::timer_start(&data->timer_handle, [](fan::uv::timer_t* h) {
+      auto* d = static_cast<timer_t::timer_data*>(h->data);
+      ++d->ready;
+      if (d->co_handle) d->co_handle();
     }, timeout, repeat);
   }
 
-  error_code_t timer_t::again() noexcept { return uv_timer_again(&data->timer_handle); }
-  void timer_t::set_repeat(std::uint64_t repeat) noexcept { uv_timer_set_repeat(&data->timer_handle, repeat); }
-  error_code_t timer_t::stop() noexcept { return uv_timer_stop(&data->timer_handle); }
+  error_code_t timer_t::again() noexcept { return fan::uv::timer_again(&data->timer_handle); }
+  void timer_t::set_repeat(std::uint64_t repeat) noexcept { fan::uv::timer_set_repeat(&data->timer_handle, repeat); }
+  error_code_t timer_t::stop() noexcept { return fan::uv::timer_stop(&data->timer_handle); }
   bool timer_t::await_ready() const noexcept { return data->ready; }
   void timer_t::await_suspend(std::coroutine_handle<> h) noexcept { data->co_handle = h; }
   void timer_t::await_resume() noexcept { data->co_handle = nullptr; --data->ready; }
@@ -201,10 +203,10 @@ namespace fan::event {
   };
 
   idle_id_t idle_task::task_idle(std::function<task_t()> callback) {
-    auto* idle_handle = new uv_idle_t;
+    auto* idle_handle = new fan::uv::idle_t;
     idle_handle->data = new idle_data_t(std::move(callback));
-    if (uv_idle_init((uv_loop_t*)get_loop(), idle_handle) != 0 ||
-        uv_idle_start(idle_handle, [](uv_idle_t* handle) {
+    if (fan::uv::idle_init((fan::uv::loop_t*)get_loop(), idle_handle) != 0 ||
+        fan::uv::idle_start(idle_handle, [](fan::uv::idle_t* handle) {
           auto* data = static_cast<idle_data_t*>(handle->data);
           if (!data->has_task) {
             data->task = data->callback();
@@ -224,9 +226,9 @@ namespace fan::event {
 
   void idle_task::idle_stop(idle_id_t idle_handle) {
     if (idle_handle) {
-      uv_idle_stop((uv_idle_t*)idle_handle);
-      uv_close(reinterpret_cast<uv_handle_t*>(idle_handle), [](uv_handle_t* handle) {
-        auto* ih = reinterpret_cast<uv_idle_t*>(handle);
+      fan::uv::idle_stop((fan::uv::idle_t*)idle_handle);
+      fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(idle_handle), [](fan::uv::handle_t* handle) {
+        auto* ih = reinterpret_cast<fan::uv::idle_t*>(handle);
         delete static_cast<idle_data_t*>(ih->data);
         delete ih;
       });
@@ -246,8 +248,8 @@ namespace fan::event {
       int events;
       std::chrono::steady_clock::time_point timestamp;
     };
-    uv_fs_event_t fs_event;
-    uv_timer_t timer;
+    fan::uv::fs_event_t fs_event;
+    fan::uv::timer_t    timer;
     std::string watch_path;
     std::function<void(const std::string&, int)> event_callback;
     std::unordered_map<std::string, file_event> pending_events;
@@ -268,20 +270,20 @@ namespace fan::event {
   bool fs_watcher_t::start(std::function<void(const std::string&, int)> callback) {
     auto* state = static_cast<fs_watcher_internal_t*>(internal_state);
     state->event_callback = callback;
-    int result = uv_fs_event_init((uv_loop_t*)get_loop(), &state->fs_event);
+    int result = fan::uv::fs_event_init((fan::uv::loop_t*)get_loop(), &state->fs_event);
     if (result < 0) return false;
-    result = uv_fs_event_start(&state->fs_event, [](uv_fs_event_t* handle, const char* filename, int events, int status) {
+    result = fan::uv::fs_event_start(&state->fs_event, [](fan::uv::fs_event_t* handle, const char* filename, int events, int status) {
       if (status < 0) return;
       auto* state = static_cast<fs_watcher_internal_t*>(handle->data);
       if (filename) {
         std::string file_str(filename);
         state->pending_events[file_str] = { file_str, events, std::chrono::steady_clock::now() };
       }
-    }, state->watch_path.c_str(), UV_FS_EVENT_RECURSIVE);
+    }, state->watch_path.c_str(), fan::uv::fs_event_recursive);
     if (result < 0) return false;
-    result = uv_timer_init((uv_loop_t*)get_loop(), &state->timer);
+    result = fan::uv::timer_init((fan::uv::loop_t*)get_loop(), &state->timer);
     if (result < 0) return false;
-    result = uv_timer_start(&state->timer, [](uv_timer_t* handle) {
+    result = fan::uv::timer_start(&state->timer, [](fan::uv::timer_t* handle) {
       auto* state = static_cast<fs_watcher_internal_t*>(handle->data);
       for (auto& event_pair : state->pending_events) {
         if (state->event_callback) state->event_callback(event_pair.second.filename, event_pair.second.events);
@@ -293,38 +295,38 @@ namespace fan::event {
 
   void fs_watcher_t::stop() {
     auto* state = static_cast<fs_watcher_internal_t*>(internal_state);
-    uv_fs_event_stop(&state->fs_event);
-    uv_timer_stop(&state->timer);
+    fan::uv::fs_event_stop(&state->fs_event);
+    fan::uv::timer_stop(&state->timer);
   }
 
   std::string fs_watcher_t::get_watch_path() {
     return static_cast<fs_watcher_internal_t*>(internal_state)->watch_path;
   }
 
-  void sleep(unsigned int msec) { uv_sleep(msec); }
-  void loop(fan::event::loop_t l, bool once) { uv_run((uv_loop_t*)l, once ? UV_RUN_ONCE : UV_RUN_DEFAULT); }
+  void sleep(unsigned int msec) { fan::uv::sleep(msec); }
+  void loop(fan::event::loop_t l, bool once) { fan::uv::run((fan::uv::loop_t*)l, once ? fan::uv::run_once : fan::uv::run_default); }
   void run_once(fan::event::loop_t l) { loop(l, true); }
-  std::uint64_t now() { return uv_now((uv_loop_t*)get_loop()) * 1000000; }
-  std::string strerror(int err) { return uv_strerror(err); }
+  std::uint64_t now() { return fan::uv::now((fan::uv::loop_t*)get_loop()) * 1000000; }
+  std::string strerror(int err) { return fan::uv::strerror(err); }
 
   poll_awaitable_t::poll_awaitable_t(loop_t loop, int fd, int events) {
-    poll_handle = new uv_poll_t();
-    uv_poll_t* ph = static_cast<uv_poll_t*>(poll_handle);
+    poll_handle = new fan::uv::poll_t();
+    fan::uv::poll_t* ph = static_cast<fan::uv::poll_t*>(poll_handle);
     ph->data = this;
-    uv_poll_init((uv_loop_t*)loop, ph, fd);
-    uv_poll_start(ph, events, [](uv_poll_t* handle, int, int events) {
+    fan::uv::poll_init((fan::uv::loop_t*)loop, ph, fd);
+    fan::uv::poll_start(ph, events, [](fan::uv::poll_t* handle, int, int events) {
       auto* self = static_cast<poll_awaitable_t*>(handle->data);
       self->events_received = events;
       self->ready = true;
-      uv_poll_stop(handle);
+      fan::uv::poll_stop(handle);
       if (self->co_handle) self->co_handle();
     });
   }
 
   poll_awaitable_t::~poll_awaitable_t() {
-    uv_poll_t* ph = static_cast<uv_poll_t*>(poll_handle);
+    fan::uv::poll_t* ph = static_cast<fan::uv::poll_t*>(poll_handle);
     if (ph) {
-      uv_close((uv_handle_t*)ph, [](uv_handle_t* h) { delete (uv_poll_t*)h; });
+      fan::uv::close((fan::uv::handle_t*)ph, [](fan::uv::handle_t* h) { delete (fan::uv::poll_t*)h; });
     }
   }
 
@@ -399,18 +401,20 @@ namespace fan::io::file {
 
 namespace fan::io {
   struct ev_next_tick_awaiter {
-    uv_idle_t* idle_handle = nullptr;
+    fan::uv::idle_t* idle_handle = nullptr;
     std::coroutine_handle<> coro;
     bool await_ready() noexcept { return false; }
     void await_suspend(std::coroutine_handle<> h) noexcept {
       coro = h;
-      idle_handle = new uv_idle_t;
-      uv_idle_init((uv_loop_t*)fan::event::get_loop(), idle_handle);
+      idle_handle = new fan::uv::idle_t;
+      fan::uv::idle_init((fan::uv::loop_t*)fan::event::get_loop(), idle_handle);
       idle_handle->data = this;
-      uv_idle_start(idle_handle, [](uv_idle_t* handle) {
+      fan::uv::idle_start(idle_handle, [](fan::uv::idle_t* handle) {
         auto* awaiter = static_cast<ev_next_tick_awaiter*>(handle->data);
-        uv_idle_stop(handle);
-        uv_close(reinterpret_cast<uv_handle_t*>(handle), [](uv_handle_t* h) { delete reinterpret_cast<uv_idle_t*>(h); });
+        fan::uv::idle_stop(handle);
+        fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(handle), [](fan::uv::handle_t* h) {
+          delete reinterpret_cast<fan::uv::idle_t*>(h);
+        });
         awaiter->coro.resume();
       });
     }
@@ -445,10 +449,8 @@ namespace fan::io {
     auto* s = static_cast<dir_iter_internal*>(iter->internal_state);
     while (s->current_index < s->entries.size()) {
       if (s->stopped) co_return;
-
       const auto& entry = s->entries[s->current_index];
       co_await iter->callback(entry.path().string(), entry.is_directory());
-
       ++s->current_index;
       if (s->stopped) co_return;
       co_await ev_next_tick_awaiter {};
@@ -471,16 +473,16 @@ namespace fan::io {
     s->entries.clear();
     s->current_index = 0;
 
-    uv_fs_t* req = new uv_fs_t;
-    std::memset(req, 0, sizeof(uv_fs_t));
+    fan::uv::fs_t* req = new fan::uv::fs_t;
+    std::memset(req, 0, sizeof(fan::uv::fs_t));
     req->data = iter;
-    int ret = uv_fs_scandir((uv_loop_t*)fan::event::get_loop(), req, path.c_str(), 0, [](uv_fs_t* r) {
+    int ret = fan::uv::fs_scandir((fan::uv::loop_t*)fan::event::get_loop(), req, path.c_str(), 0, [](fan::uv::fs_t* r) {
       auto* it = static_cast<async_directory_iterator_t*>(r->data);
       auto* state = static_cast<dir_iter_internal*>(it->internal_state);
-      
+
       if (!state->stopped) {
-        uv_dirent_t ent;
-        while (uv_fs_scandir_next(r, &ent) != fan::eof) {
+        fan::uv::dirent_t ent;
+        while (fan::uv::fs_scandir_next(r, &ent) != fan::eof) {
           try { state->entries.emplace_back(std::filesystem::path(state->base_path) / ent.name); } catch (...) {}
         }
         if (it->sort_alphabetically) {
@@ -497,21 +499,22 @@ namespace fan::io {
         }
         if (!state->stopped) state->iteration_task = iterate_directory(it);
       }
-      uv_fs_req_cleanup(r);
+      fan::uv::fs_req_cleanup(r);
       delete r;
       it->operation_in_progress = false;
 
       if (state->switch_requested) {
-        std::string new_path = state->next_path;
         state->switch_requested = false;
-        uv_idle_t* idle = new uv_idle_t;
+        fan::uv::idle_t* idle = new fan::uv::idle_t;
         idle->data = it;
-        uv_idle_init((uv_loop_t*)fan::event::get_loop(), idle);
-        uv_idle_start(idle, [](uv_idle_t* handle) {
+        fan::uv::idle_init((fan::uv::loop_t*)fan::event::get_loop(), idle);
+        fan::uv::idle_start(idle, [](fan::uv::idle_t* handle) {
           auto* it = static_cast<async_directory_iterator_t*>(handle->data);
           std::string path = static_cast<dir_iter_internal*>(it->internal_state)->next_path;
-          uv_idle_stop(handle);
-          uv_close(reinterpret_cast<uv_handle_t*>(handle), [](uv_handle_t* h) { delete reinterpret_cast<uv_idle_t*>(h); });
+          fan::uv::idle_stop(handle);
+          fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(handle), [](fan::uv::handle_t* h) {
+            delete reinterpret_cast<fan::uv::idle_t*>(h);
+          });
           async_directory_iterate(it, path);
         });
       }
@@ -539,6 +542,6 @@ namespace fan::io {
 
 struct cleaner_t {
   ~cleaner_t() {
-    uv_loop_close((uv_loop_t*)fan::event::get_loop());
+    fan::uv::loop_close((fan::uv::loop_t*)fan::event::get_loop());
   }
 } cleaner;

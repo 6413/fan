@@ -260,4 +260,61 @@ export namespace fan::uv {
     return ::uv_err_name(err);
   }
 
+  // ─── sleep ───────────────────────────────────────────────────────────────
+
+  inline void sleep(unsigned int msec) {
+    ::uv_sleep(msec);
+  }
+
+  // ─── walk / introspection ────────────────────────────────────────────────
+
+  using walk_cb = ::uv_walk_cb;
+
+  inline void walk(loop_t* loop, walk_cb cb, void* arg) {
+    ::uv_walk(loop, cb, arg);
+  }
+
+  inline const char* handle_type_name(::uv_handle_type type) {
+    return ::uv_handle_type_name(type);
+  }
+
+  // ─── fs_event ────────────────────────────────────────────────────────────
+
+  using fs_event_t = ::uv_fs_event_t;
+  using fs_event_cb = ::uv_fs_event_cb;
+
+  inline int fs_event_init(loop_t* loop, fs_event_t* handle) {
+    return ::uv_fs_event_init(loop, handle);
+  }
+
+  inline int fs_event_start(fs_event_t* handle, fs_event_cb cb, const char* path, unsigned int flags) {
+    return ::uv_fs_event_start(handle, cb, path, flags);
+  }
+
+  inline int fs_event_stop(fs_event_t* handle) {
+    return ::uv_fs_event_stop(handle);
+  }
+
+  // ─── poll ────────────────────────────────────────────────────────────────
+
+  using poll_t = ::uv_poll_t;
+  using poll_cb = ::uv_poll_cb;
+
+  inline int poll_init(loop_t* loop, poll_t* handle, int fd) {
+    return ::uv_poll_init(loop, handle, fd);
+  }
+
+  inline int poll_start(poll_t* handle, int events, poll_cb cb) {
+    return ::uv_poll_start(handle, events, cb);
+  }
+
+  inline int poll_stop(poll_t* handle) {
+    return ::uv_poll_stop(handle);
+  }
+
+  // ─── dirent ──────────────────────────────────────────────────────────────
+
+  using dirent_t = ::uv_dirent_t;
+
+  inline constexpr unsigned int fs_event_recursive = UV_FS_EVENT_RECURSIVE;
 }
