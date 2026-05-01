@@ -1149,29 +1149,17 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
   }
 
   void tilemap_t::fill_colors(const fan::color& c) {
-    for (int y = 0; y < size.y; ++y) {
-      for (int x = 0; x < size.x; ++x) {
-        auto& shape = shapes[y][x];
-        if (auto* vdata = shape.get_vdata<fan::graphics::shapes::sprite_t::vi_t>()) {
-          vdata->color = c;
-          shape.mark_dirty(&fan::graphics::shapes::sprite_t::vi_t::color);
-        }
-      }
-    }
+    for (int y = 0; y < size.y; ++y)
+      for (int x = 0; x < size.x; ++x)
+        shapes[y][x].set_color(c);
   }
 
   void tilemap_t::reset_colors(const fan::color& color) {
     for (int i = 0; i < size.y; i++) {
       for (int j = 0; j < size.x; j++) {
         fan::vec2i cell(j, i);
-        if (wall_cells.contains(cell)) {
-          continue;
-        }
-        auto& shape = shapes[i][j];
-        if (auto* vdata = shape.get_vdata<fan::graphics::shapes::sprite_t::vi_t>()) {
-          vdata->color = color;
-          shape.mark_dirty(&fan::graphics::shapes::sprite_t::vi_t::color);
-        }
+        if (wall_cells.contains(cell)) continue;
+        shapes[i][j].set_color(color);
       }
     }
   }
