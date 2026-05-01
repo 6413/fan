@@ -1,5 +1,9 @@
 module;
 
+#if defined(fan_compiler_gcc)
+  #define ____mbstate_t_defined
+#endif
+
 #include <cstdio>
 
 #include <fan/utility.h>

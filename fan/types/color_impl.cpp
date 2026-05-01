@@ -11,7 +11,7 @@ namespace fan {
   color color::hsv(f32_t H, f32_t S, f32_t V) {
     f32_t s = S / 100, v = V / 100;
     f32_t C = s * v;
-    f32_t X = C * (1 - std::abs(fmod(H / 60.0, 2) - 1));
+    f32_t X = C * (1 - std::abs(std::fmod(H / 60.0, 2) - 1));
     f32_t m = v - C;
 
     int i = static_cast<int>(H / 60) % 6;
