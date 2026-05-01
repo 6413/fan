@@ -1,56 +1,40 @@
 module;
 
-#if !defined(fan_compiler_gcc)
-  #include <uv.h>
-  #undef min
-  #undef max
-#endif
-
 module fan.event.types;
 
-#if defined(fan_compiler_gcc)
-  #define _GCC_MAX_ALIGN_T
-  #define ____mbstate_t_defined
-  #define _BITS_PTHREADTYPES_COMMON_H
-  #include <uv.h>
-#endif
-
-#undef min
-#undef max
-
 namespace fan {
-  extern const int fs_o_append      = UV_FS_O_APPEND;
-  extern const int fs_o_creat       = UV_FS_O_CREAT;
-  extern const int fs_o_excl        = UV_FS_O_EXCL;
-  extern const int fs_o_filemap     = UV_FS_O_FILEMAP;
-  extern const int fs_o_random      = UV_FS_O_RANDOM;
-  extern const int fs_o_rdonly      = UV_FS_O_RDONLY;
-  extern const int fs_o_rdwr        = UV_FS_O_RDWR;
-  extern const int fs_o_sequential  = UV_FS_O_SEQUENTIAL;
-  extern const int fs_o_short_lived = UV_FS_O_SHORT_LIVED;
-  extern const int fs_o_temporary   = UV_FS_O_TEMPORARY;
-  extern const int fs_o_trunc       = UV_FS_O_TRUNC;
-  extern const int fs_o_wronly      = UV_FS_O_WRONLY;
-  extern const int fs_o_direct      = UV_FS_O_DIRECT;
-  extern const int fs_o_directory   = UV_FS_O_DIRECTORY;
-  extern const int fs_o_dsync       = UV_FS_O_DSYNC; 
-  extern const int fs_o_exlock      = UV_FS_O_EXLOCK; 
-  extern const int fs_o_noatime     = UV_FS_O_NOATIME;
-  extern const int fs_o_noctty      = UV_FS_O_NOCTTY;
-  extern const int fs_o_nofollow    = UV_FS_O_NOFOLLOW;
-  extern const int fs_o_nonblock    = UV_FS_O_NONBLOCK;
-  extern const int fs_o_symlink     = UV_FS_O_SYMLINK;
-  extern const int fs_o_sync        = UV_FS_O_SYNC;
+  extern const int fs_o_append      = 1024;        // O_APPEND
+  extern const int fs_o_creat       = 64;          // O_CREAT
+  extern const int fs_o_excl        = 128;         // O_EXCL
+  extern const int fs_o_filemap     = 0;
+  extern const int fs_o_random      = 0;
+  extern const int fs_o_rdonly      = 0;           // O_RDONLY
+  extern const int fs_o_rdwr        = 2;           // O_RDWR
+  extern const int fs_o_sequential  = 0;
+  extern const int fs_o_short_lived = 0;
+  extern const int fs_o_temporary   = 0;
+  extern const int fs_o_trunc       = 512;         // O_TRUNC
+  extern const int fs_o_wronly      = 1;           // O_WRONLY
+  extern const int fs_o_direct      = 0;           // platform-specific
+  extern const int fs_o_directory   = 65536;       // O_DIRECTORY
+  extern const int fs_o_dsync       = 4096;        // O_DSYNC (platform-dependent)
+  extern const int fs_o_exlock      = 0;
+  extern const int fs_o_noatime     = 262144;      // O_NOATIME (Linux-specific)
+  extern const int fs_o_noctty      = 256;         // O_NOCTTY
+  extern const int fs_o_nofollow    = 131072;      // O_NOFOLLOW
+  extern const int fs_o_nonblock    = 2048;        // O_NONBLOCK
+  extern const int fs_o_symlink     = 0;
+  extern const int fs_o_sync        = 1052672;     // O_SYNC (platform-dependent)
   
-  extern const int fs_in        = UV_FS_O_RDONLY;
-  extern const int fs_out       = UV_FS_O_WRONLY | UV_FS_O_CREAT | UV_FS_O_TRUNC;
-  extern const int fs_app       = UV_FS_O_WRONLY | UV_FS_O_APPEND;
-  extern const int fs_trunc     = UV_FS_O_TRUNC;
-  extern const int fs_ate       = UV_FS_O_RDWR;
-  extern const int fs_nocreate  = UV_FS_O_EXCL;
-  extern const int fs_noreplace = UV_FS_O_EXCL;
+  extern const int fs_in        = 0;               // O_RDONLY
+  extern const int fs_out       = 64 | 1 | 512;    // O_CREAT | O_WRONLY | O_TRUNC
+  extern const int fs_app       = 1 | 1024;        // O_WRONLY | O_APPEND
+  extern const int fs_trunc     = 512;             // O_TRUNC
+  extern const int fs_ate       = 2;               // O_RDWR
+  extern const int fs_nocreate  = 128;             // O_EXCL
+  extern const int fs_noreplace = 128;             // O_EXCL
 
-  extern const int fs_change = UV_CHANGE;
-  extern const int fs_rename = UV_RENAME;
-  extern const int eof = UV_EOF;
+  extern const int fs_change = 0;
+  extern const int fs_rename = 0;
+  extern const int eof = 0;
 }
