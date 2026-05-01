@@ -5,12 +5,11 @@ module;
 export module fan.event.uv_raw;
 
 export namespace fan::uv {
-
-  export using uv_loop_t = ::uv_loop_t;
-  export using uv_fs_t = ::uv_fs_t;
-  export using uv_async_t = ::uv_async_t;
-  export using uv_buf_t = ::uv_buf_t;
-  export using uv_handle_t = ::uv_handle_t;
+  using uv_loop_t = ::uv_loop_t;
+  using uv_fs_t = ::uv_fs_t;
+  using uv_async_t = ::uv_async_t;
+  using uv_buf_t = ::uv_buf_t;
+  using uv_handle_t = ::uv_handle_t;
 
   inline int fs_open(
     uv_loop_t* loop,
