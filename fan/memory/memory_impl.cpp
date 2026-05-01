@@ -4,8 +4,6 @@ module;
   #define ____mbstate_t_defined
 #endif
 
-#include <cstdio>
-
 #include <fan/utility.h>
 
 module fan.memory;
@@ -97,7 +95,7 @@ namespace fan::memory {
       std::printf("Note: %zu static/global allocations ignored\n", static_ignored);
     }
 
-    std::fflush(stdout);
+    //std::fflush(stdout);
   #endif
   }
 
