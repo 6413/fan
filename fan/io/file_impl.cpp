@@ -2,6 +2,8 @@ module;
 
 #include <fan/utility.h>
 
+#include <climits>
+
 #if defined(fan_platform_windows)
   #include <Windows.h>
 #elif defined(fan_platform_unix)
