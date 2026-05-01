@@ -1,13 +1,18 @@
 module;
 
+#if defined(fan_compiler_gcc)
+  // fixes collision with GLFW3 headers while doing import std;
+	#ifndef _GCC_MAX_ALIGN_T
+		#define _GCC_MAX_ALIGN_T
+	#endif
+#endif
+
 #include <coroutine>
 #include <fan/nativefiledialog/nfd.h>
-#include <uv.h>
 
 module fan.file_dialog;
 
-import std;
-
+import fan.event.uv_raw;
 import fan.event;
 
 namespace fan::graphics {
@@ -36,7 +41,7 @@ namespace fan::graphics {
     file_cb_t                 on_done;
     files_cb_t                on_done_multi;
     dismissed_cb_t            on_dismissed;
-    uv_async_t                async_  {};
+    fan::uv::uv_async_t       async_;
 
     void dispatch() {
       bool got = !result.empty() || !results.empty();
@@ -52,10 +57,13 @@ namespace fan::graphics {
       }
       on_done = {}; on_done_multi = {}; on_dismissed = {};
       pending.store(false);
-      uv_close(reinterpret_cast<uv_handle_t*>(&async_), [](uv_handle_t* h) {
+      fan::uv::close(
+        reinterpret_cast<fan::uv::uv_handle_t*>(&async_),
+        [](fan::uv::uv_handle_t* h) {
         auto* st = static_cast<state_t*>(h->data);
         st->self.reset();
-      });
+      }
+      );
     }
   };
 
@@ -66,13 +74,17 @@ namespace fan::graphics {
     s->cancelled.store(false);
     s->pending.store(true);
     s->self = s;
-    uv_async_init((uv_loop_t*)fan::event::get_loop(), &s->async_, [](uv_async_t* h) {
+    fan::uv::async_init(
+      (fan::uv::uv_loop_t*)fan::event::get_loop(),
+      &s->async_,
+      s.get(),
+      [](fan::uv::uv_async_t* h) {
       static_cast<dialog_t::state_t*>(h->data)->dispatch();
     });
     s->async_.data = s.get();
     fan::event::thread_create([s, nfd_fn = std::move(nfd_fn)] {
       if (!s->cancelled) nfd_fn(*s);
-      uv_async_send(&s->async_);
+      fan::uv::async_send(&s->async_);
     });
   }
 
@@ -84,7 +96,7 @@ namespace fan::graphics {
       nfdchar_t* p = nullptr;
       if (NFD_OpenDialog(f.c_str(), nullptr, &p) == NFD_OKAY && p) {
         std::lock_guard lock(st.mtx);
-        st.result = p; free(p);
+        st.result = p; std::free(p);
       }
     });
     return *this;
@@ -116,7 +128,7 @@ namespace fan::graphics {
       nfdchar_t* p = nullptr;
       if (NFD_SaveDialog(f.c_str(), nullptr, &p) == NFD_OKAY && p) {
         std::lock_guard lock(st.mtx);
-        st.result = p; free(p);
+        st.result = p; std::free(p);
       }
     });
     return *this;
@@ -129,7 +141,7 @@ namespace fan::graphics {
       nfdchar_t* p = nullptr;
       if (NFD_PickFolder(nullptr, &p) == NFD_OKAY && p) {
         std::lock_guard lock(st.mtx);
-        st.result = p; free(p);
+        st.result = p; std::free(p);
       }
     });
     return *this;
