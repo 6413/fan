@@ -10,10 +10,6 @@ export module fan.graphics.shapes.types;
 
 import std;
 
-#if defined(FAN_2D)
-  #include <fan/graphics/opengl/init.h>
-#endif
-
 import fan.print.error;
 import fan.types.color;
 import fan.types.vector;
@@ -32,6 +28,8 @@ import fan.types.vector;
 #endif
 
 #if defined(FAN_2D)
+
+#include <fan/graphics/opengl/init.h>
 
 export namespace fan::graphics {
 
