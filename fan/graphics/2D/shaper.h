@@ -205,6 +205,15 @@ struct shaper_t{
 
   bool _InformCapacity;
 
+  #ifndef bcontainer_set_alloc_open
+    #define bcontainer_set_alloc_open(n) std::malloc(n)
+  #endif
+  #ifndef bcontainer_set_alloc_resize
+    #define bcontainer_set_alloc_resize(ptr, n) std::realloc(ptr, n)
+  #endif
+  #ifndef bcontainer_set_alloc_close
+    #define bcontainer_set_alloc_close(ptr) std::free(ptr)
+  #endif
   #define BLL_set_prefix BlockList
   #define BLL_set_nrtra 1
   #define BLL_set_CapacityUpdateInfo \
