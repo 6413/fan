@@ -250,6 +250,15 @@ struct shaper_t{
       return (MaxElementPerBlock_t)MaxElementPerBlock_m1 + 1;
     }
   };
+  #ifndef bcontainer_set_alloc_open
+    #define bcontainer_set_alloc_open(n) std::malloc(n)
+  #endif
+  #ifndef bcontainer_set_alloc_resize
+    #define bcontainer_set_alloc_resize(ptr, n) std::realloc(ptr, n)
+  #endif
+  #ifndef bcontainer_set_alloc_close
+    #define bcontainer_set_alloc_close(ptr) std::free(ptr)
+  #endif
   #define BLL_set_prefix ShapeTypes
   #define BLL_set_Link 0
   #define BLL_set_Recycle 0
