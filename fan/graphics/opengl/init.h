@@ -1,11 +1,14 @@
-inline int& fan_track_opengl_calls() {
-  static int track = 0;
-  return track;
-}
-inline std::function<void(std::string func_name, std::uint64_t elapsed)>& fan_opengl_track_print() {
-  static std::function<void(std::string func_name, std::uint64_t elapsed)> cb = [](std::string func_name, std::uint64_t elapsed){ };
-  return cb;
-}
+#if !defined(NO_FUNCS)
+  inline int& fan_track_opengl_calls() {
+    static int track = 0;
+    return track;
+  }
+  inline std::function<void(std::string func_name, std::uint64_t elapsed)>& fan_opengl_track_print() {
+    static std::function<void(std::string func_name, std::uint64_t elapsed)> cb = [](std::string func_name, std::uint64_t elapsed){ };
+    return cb;
+  }
+#endif
+#undef NO_FUNCS
 #define fan_opengl_call(func) \
   [&]() { \
     struct measure_func_t { \
