@@ -15,16 +15,6 @@ import std;
 import fan.memory;
 import fan.graphics.opengl.core;
 
-#ifndef bcontainer_set_alloc_open
-  #define bcontainer_set_alloc_open(n) std::malloc(n)
-#endif
-#ifndef bcontainer_set_alloc_resize
-  #define bcontainer_set_alloc_resize(ptr, n) std::realloc(ptr, n)
-#endif
-#ifndef bcontainer_set_alloc_close
-  #define bcontainer_set_alloc_close(ptr) std::free(ptr)
-#endif
-
 namespace detail{
   using memory_edit_cb_t = std::function<void()>;
   #define BLL_API inline

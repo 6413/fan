@@ -2,6 +2,8 @@ module;
 
 #include <fan/utility.h>
 
+#include <cstdlib>
+
 #if defined(FAN_OPENGL)
   #include <fan/graphics/gl_api.h>
 #endif
