@@ -2073,7 +2073,7 @@ void loco_t::update_timer_interval(bool idle) {
       start_timer();
       timing.timer_enabled = true;
     }
-    else {
+    else if (timer_init) {
       fan::uv::timer_set_repeat((fan::uv::timer_t*)timer_handle, delay);
       fan::uv::timer_again((fan::uv::timer_t*)timer_handle);
     }
