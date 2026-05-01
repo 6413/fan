@@ -26,8 +26,6 @@ module;
 
 module fan.graphics.loco;
 
-#include <fan/graphics/opengl/init.h>
-
 import fan.window.input;
 
 import fan.event.types;
@@ -46,6 +44,8 @@ import fan.graphics.common_types;
   import fan.graphics.gui.text_logger;
   import fan.graphics.gui.settings_menu;
 #endif
+
+#include <fan/graphics/opengl/init.h>
 
 #if defined(FAN_GUI)
 
