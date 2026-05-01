@@ -1,5 +1,7 @@
 module;
 
+#include <cstdint>
+
 #if defined(FAN_GUI)
   #include <fan/imgui/text_editor.h>
   #include <fan/imgui/imgui.h>
