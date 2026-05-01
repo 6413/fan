@@ -73,9 +73,9 @@ mkdir -p "$INCLUDE_DIR/glad" "$INCLUDE_DIR/KHR"
 
 if $FORCE_REBUILD || [[ ! -f "$INCLUDE_DIR/glad/gl_native.h" ]]; then
     echo "Generating glad (native)..."
-    pip install glad2 --quiet
+    pipx install glad2 --quiet || true
     GLAD_DIR="$INSTALL_DIR/repos/glad"
-    glad --api gl:core --out-path "$GLAD_DIR"
+    pipx run glad --api gl:core --out-path "$GLAD_DIR"
     cp "$GLAD_DIR/include/glad/gl.h"         "$INCLUDE_DIR/glad/gl_native.h"
     cp "$GLAD_DIR/include/KHR/khrplatform.h" "$INCLUDE_DIR/KHR/khrplatform.h"
     cp "$GLAD_DIR/src/gl.c"                  "$INSTALL_DIR/glad.c"
