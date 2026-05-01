@@ -1,7 +1,5 @@
 module;
 
-#include <cstddef>
-
 #if defined(FAN_OPENGL)
   #include <fan/utility.h>
 #endif
@@ -24,7 +22,7 @@ namespace fan::graphics {
   #define BLL_set_Language 1
   #define BLL_set_Usage 1
   #define BLL_set_NodeDataType texture_pack::unique_data_t
-  #define BLL_set_type_node uint32_t
+  #define BLL_set_type_node std::uint32_t
   #include <BLL/BLL.h>
 
   struct internal_state_t {
