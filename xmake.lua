@@ -102,7 +102,7 @@ if not is_gcc and not is_plat("wasm") then
     add_cxxflags("-stdlib=libstdc++", {force = true})
 end
 
-set_policy("build.c++.modules.std", false)
+set_policy("build.c++.modules.std", true)
 set_policy("build.c++.modules.reuse", true)
 
 add_cxxflags("-pthread", {force = true})
@@ -176,7 +176,8 @@ local module_files = {
     "fan/window/input_common.ixx", "fan/window/input.ixx", "fan/window/input_action.ixx",
     "fan/audio/audio.ixx", "fan/event/event_types.ixx", "fan/event/event.ixx",
     "fan/noise.ixx", "fan/graphics/gameplay/gameplay_types.ixx",
-    "fan/graphics/gameplay/gameplay.ixx", "fan/crypto.ixx", "fan/graphics/gui/console.ixx"
+    "fan/graphics/gameplay/gameplay.ixx", "fan/crypto.ixx", "fan/graphics/gui/console.ixx",
+    "fan/graphics/stb_raw.ixx", "fan/graphics/webp_raw.ixx", "fan/event/uv_raw.ixx"
 }
 
 if has_config("FAN_WAYLAND_SCREEN") then table.insert(module_files, "fan/video/screen_codec.ixx") end

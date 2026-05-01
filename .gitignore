@@ -55,5 +55,7 @@ include/softcamcore
 include/imgui
 lib/
 ignore/
-thirdparty/
+third_party/
 *.d
+build/
+.xmake/
