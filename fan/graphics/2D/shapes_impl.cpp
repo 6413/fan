@@ -9,8 +9,6 @@ module;
 
 module fan.graphics.shapes;
 
-#include <fan/graphics/opengl/init.h>
-
 import fan.utility;
 import fan.print;
 #if defined(FAN_GUI)
@@ -24,6 +22,8 @@ import fan.io.file;
 #if defined(FAN_GUI)
   import fan.graphics.gui.text_logger;
 #endif
+
+#include <fan/graphics/opengl/init.h>
 
 #if defined(FAN_2D)
 

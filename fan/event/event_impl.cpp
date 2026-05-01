@@ -8,8 +8,6 @@ module;
 
 module fan.event;
 
-import std;
-
 import fan.print;
 import fan.print.error;
 

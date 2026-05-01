@@ -1,5 +1,7 @@
 module;
 
+#include <fan/utility.h>
+
 #if defined(fan_compiler_gcc)
   // fixes collision with GLFW3 headers while doing import std;
 	#ifndef _GCC_MAX_ALIGN_T
