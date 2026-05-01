@@ -164,14 +164,6 @@
 	// prints warning if value is -1
 #define fan_validate_value(value, text) if (value == (decltype(value))fan::uninitialized) { fan::throw_error(text); }
 
-#ifndef offsetof
-	#define offsetof(type, member) ((std::size_t)(&((type*)0)->member))
-#endif
-
-#ifndef OFFSETLESS
-	#define OFFSETLESS(ptr_m, t_m, d_m) \
-		((t_m *)((std::uint8_t *)(ptr_m) - offsetof(t_m, d_m)))
-#endif
 
 #if defined(_DEBUG) || defined(DEBUG)
 		#define FAN_DEBUG_BUILD 1
@@ -363,3 +355,17 @@ enum class name { __VA_ARGS__ }
 #pragma pack(push, 1)
   #include <fan/types/bll_types.h>
 #pragma pack(pop)
+
+#ifndef offsetof
+  #if defined(fan_compiler_msvc)
+  	#define offsetof(type, member) ((std::size_t)(&((type*)0)->member))
+  #else
+    // for auto narrowing cast
+    #define offsetof(type, member) __builtin_offsetof(type, member)
+  #endif
+#endif
+
+#ifndef OFFSETLESS
+	#define OFFSETLESS(ptr_m, t_m, d_m) \
+		((t_m *)((std::uint8_t *)(ptr_m) - offsetof(t_m, d_m)))
+#endif

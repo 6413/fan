@@ -11,8 +11,6 @@ module fan.graphics.gui.settings_menu;
 
 #if defined(FAN_GUI)
 
-#include <fan/graphics/opengl/init.h>
-
 import fan.types.vector;
 import fan.types.json;
 import fan.graphics.gui.keybinds_menu;
@@ -22,6 +20,8 @@ import fan.io.file;
 import fan.graphics.loco;
 import fan.graphics.gui.base;
 import fan.graphics.culling;
+
+#include <fan/graphics/opengl/init.h>
 
 namespace fan::graphics::gui {
   struct keybind_settings_bridge_t {

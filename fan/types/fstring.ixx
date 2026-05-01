@@ -1,5 +1,7 @@
 module;
 
+#include <iomanip>
+
 #include <fan/utility.h>
 
 export module fan.types.fstring;

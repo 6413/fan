@@ -711,7 +711,7 @@ void loco_t::generate_commands(loco_t* loco) {
   }).description = "can create alias commands - usage alias [cmd name] [cmd]";
 
   loco->gui.console.commands.add("quit", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
-    exit(0);
+    std::exit(0);
   }).description = "quits program - usage quit";
 
   loco->gui.console.commands.add("clear", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
@@ -1141,11 +1141,11 @@ loco_t::~loco_t() {
 
 void loco_t::destroy() {
   if (idle_handle) {
-    delete idle_handle;
+    delete (fan::uv::idle_t*)idle_handle;
     idle_handle = nullptr;
   }
   if (timer_handle) {
-    delete timer_handle;
+    delete (fan::uv::timer_t*)timer_handle;
     timer_handle = nullptr;
   }
 

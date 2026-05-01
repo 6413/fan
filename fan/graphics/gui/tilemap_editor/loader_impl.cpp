@@ -1,6 +1,7 @@
 module;
 
 #include <cstddef>
+#include <cstdint>
 
 #include <fan/utility.h>
 
@@ -15,7 +16,7 @@ namespace fan::graphics {
 
   struct tilemap_loader_t::map_list_impl_t {
   #define BLL_set_prefix map_list
-  #define BLL_set_type_node uint16_t
+  #define BLL_set_type_node std::uint16_t
   #define bcontainer_set_StoreFormat 1
   #define BLL_set_NodeDataType tilemap_loader_t::map_list_data_t
   #define BLL_set_Link 1
