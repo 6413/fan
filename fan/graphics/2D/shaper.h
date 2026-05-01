@@ -328,6 +328,15 @@ struct shaper_t{
   #include <BLL/BLL.h>
   ShapeList_t ShapeList;
 
+  #ifndef bcontainer_set_alloc_open
+    #define bcontainer_set_alloc_open(n) std::malloc(n)
+  #endif
+  #ifndef bcontainer_set_alloc_resize
+    #define bcontainer_set_alloc_resize(ptr, n) std::realloc(ptr, n)
+  #endif
+  #ifndef bcontainer_set_alloc_close
+    #define bcontainer_set_alloc_close(ptr) std::free(ptr)
+  #endif
   #define BLL_set_prefix BlockEditQueue
   #define BLL_set_Clear 1
   #define BLL_set_Link 1
