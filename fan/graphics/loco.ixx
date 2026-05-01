@@ -72,8 +72,8 @@ import fan.console;
   import fan.graphics.audio_subsystem;
 #endif
 
+import fan.physics.types;
 #if defined(FAN_PHYSICS_2D)
-  import fan.physics.types;
   import fan.graphics.physics_subsystem;
 #endif
 
