@@ -22,7 +22,9 @@ import fan.types.vector;
   import fan.window;
   import fan.graphics.common_context;
   import fan.graphics.opengl.core;
-  import fan.types.json;
+  #if defined(FAN_JSON)
+    import fan.types.json;
+  #endif
 
   #if defined(FAN_VULKAN)
     import fan.graphics.vulkan.core;
