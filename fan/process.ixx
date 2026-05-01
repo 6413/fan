@@ -1,6 +1,6 @@
 module;
 
-#if defined(fan_compiler_gcc)
+#if !defined(fan_compiler_gcc)
 
 #include <coroutine>
 
@@ -8,7 +8,7 @@ module;
 
 export module fan.process;
 
-#if defined(fan_compiler_gcc)
+#if !defined(fan_compiler_gcc)
 
 import std;
 import fan.event;
