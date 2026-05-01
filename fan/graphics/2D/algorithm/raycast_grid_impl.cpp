@@ -1,4 +1,4 @@
-module;
+  module;
 
 module fan.graphics.algorithm.raycast_grid;
 
@@ -49,8 +49,8 @@ namespace fan::graphics::algorithm {
       f32_t min_multipler = multiplers.min();
       for (std::uint32_t i = 0; i < fan::vec2::size(); i++) {
         if (multiplers[i] == min_multipler) {
-          grid_result.gi[i] += copysign((sint32_t)1, direction[i]);
-          r[i] -= copysign((f32_t)1, direction[i]);
+          grid_result.gi[i] += std::copysign((sint32_t)1, direction[i]);
+          r[i] -= std::copysign((f32_t)1, direction[i]);
         }
       }
       fan::vec2 min_dir = direction * min_multipler;
