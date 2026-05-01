@@ -13,8 +13,6 @@ module;
 
 module fan.graphics.webp;
 
-import std;
-
 import fan.io.file;
 import fan.print;
 
