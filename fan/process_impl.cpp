@@ -1,20 +1,28 @@
 module;
 
-#include <coroutine>
-#include <uv.h>
-#if defined(fan_platform_unix) || defined(__wasm__)
-  #include <unistd.h>
-#endif
-#define DEBUG_PRINTS 0
-#if DEBUG_PRINTS
-  #define DPRINT(...) fan::print(__VA_ARGS__)
-#else
-  #define DPRINT(...) ((void)0)
-#endif
-
 #include <fan/utility.h>
 
+#if defined(fan_compiler_gcc)
+
+  #include <coroutine>
+  #include <uv.h>
+  #if defined(fan_platform_unix) || defined(__wasm__)
+    #include <unistd.h>
+  #endif
+  #define DEBUG_PRINTS 0
+  #if DEBUG_PRINTS
+    #define DPRINT(...) fan::print(__VA_ARGS__)
+  #else
+    #define DPRINT(...) ((void)0)
+  #endif
+
+  #include <fan/utility.h>
+
+#endif
+
 module fan.process;
+
+#if defined(fan_compiler_gcc)
 
 import fan.print.error;
 
@@ -443,3 +451,5 @@ namespace fan::process {
     }
   } spawn_self_child_checker;
 }
+
+#endif

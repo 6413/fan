@@ -1,12 +1,18 @@
 module;
 
+#if defined(fan_compiler_gcc)
+  #define _GCC_MAX_ALIGN_T
+  #define ____mbstate_t_defined
+  #define _BITS_PTHREADTYPES_COMMON_H
+#endif
+
 #include <coroutine>
 #include <cstdint>
-#include <string>
 #include <memory>
 #include <vector>
 #include <functional>
 #include <thread>
+#include <string>
 
 #include <fan/utility.h>
 

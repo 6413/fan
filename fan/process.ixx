@@ -1,8 +1,14 @@
 module;
 
+#if defined(fan_compiler_gcc)
+
 #include <coroutine>
 
+#endif
+
 export module fan.process;
+
+#if defined(fan_compiler_gcc)
 
 import std;
 import fan.event;
@@ -102,3 +108,5 @@ export namespace fan::process {
 #endif
   }
 }
+
+#endif
