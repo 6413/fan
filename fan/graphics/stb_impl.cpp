@@ -5,8 +5,6 @@ module;
 
 module fan.graphics.stb;
 
-import std;
-
 import fan.io.file;
 import fan.print;
 

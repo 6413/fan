@@ -1,5 +1,7 @@
 module;
 
+#include <cstdint>
+
 #if defined(FAN_OPENGL)
   #include <fan/utility.h>
 #endif
