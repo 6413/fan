@@ -74,7 +74,7 @@ void open() {
     if (raw_glGetString) {
       const char* gl_version = (const char*)raw_glGetString(GL_VERSION);
       if (gl_version) {
-        sscanf(gl_version, "%d.%d", &loco.context.gl.opengl.major, &loco.context.gl.opengl.minor);
+        std::sscanf(gl_version, "%d.%d", &loco.context.gl.opengl.major, &loco.context.gl.opengl.minor);
       }
     }
 
