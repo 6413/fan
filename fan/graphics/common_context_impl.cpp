@@ -1,5 +1,7 @@
 module;
 
+#include <fan/utility.h>
+
 #include <fan/graphics/gl_api.h>
 
 module fan.graphics.common_context;

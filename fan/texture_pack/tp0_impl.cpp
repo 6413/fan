@@ -323,7 +323,7 @@ namespace fan::graphics {
     for (std::uint32_t i = 0; i < s->pack_list.size(); i++) {
       std::size_t count = s->pack_list[i].texture_list.size();
       s->pack_list[i].pixel_data.resize(s->pack_list[i].pack_size.x * s->pack_list[i].pack_size.y * 4);
-      memset(s->pack_list[i].pixel_data.data(), 0, s->pack_list[i].pack_size.x * s->pack_list[i].pack_size.y * 4);
+      std::memset(s->pack_list[i].pixel_data.data(), 0, s->pack_list[i].pack_size.x * s->pack_list[i].pack_size.y * 4);
 
       for (std::size_t j = 0; j < count; j++) {
         internal_state_t::pack_t::texture_t* t = &s->pack_list[i].texture_list[j];
@@ -337,7 +337,7 @@ namespace fan::graphics {
         if (gt == nullptr) fan::throw_error("gt nullptr");
 
         for (std::uint32_t y = t->position.y; y < t->position.y + t->size.y; y++) {
-          memcpy(
+          std::memcpy(
             s->pack_list[i].pixel_data.data() + (y * s->pack_list[i].pack_size.x + t->position.x) * 4,
             &gt->decoded_data[(y - t->position.y) * t->size.x * 4],
             t->size.x * 4
