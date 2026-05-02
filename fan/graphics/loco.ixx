@@ -65,7 +65,7 @@ import fan.console;
 #if defined(FAN_GUI)
   import fan.graphics.gui.base;
   import fan.graphics.gui.text_logger;
-  import fan.graphics.gui.settings_menu;
+  //import fan.graphics.gui.settings_menu;
 #endif
 
 #if defined(FAN_AUDIO)
@@ -644,9 +644,13 @@ public:
   bool&  get_vsync()       { return timing.vsync; }
   f64_t& get_delta_time()  { return window.m_delta_time; }
 
+  // input
+  fan::graphics::input_subsystem_t input;
+  fan::window::input_action_t& get_input_action() { return input.input_action; }
+
   struct gui_state_t {
 #if defined(FAN_GUI)
-    fan::graphics::gui::settings_menu_t* settings_menu = nullptr;
+    void* settings_menu = nullptr;
     std::future<void> font_future;
 #endif
     fan::console_t console;
@@ -671,17 +675,13 @@ public:
   } gui;
 
 #if defined(FAN_GUI)
-  fan::graphics::gui::settings_menu_t*& get_settings_menu()       { return gui.settings_menu; }
+  void*                                 get_settings_menu()        { return gui.settings_menu; }
   bool&                                 get_render_settings_menu() { return gui.render_settings_menu; }
   bool&                                 get_show_fps()             { return gui.show_fps; }
   bool&                                 get_allow_docking()        { return gui.allow_docking; }
   bool&                                 get_enable_overlay()       { return gui.enable_overlay; }
 #endif
   fan::console_t&                       get_console()              { return gui.console; }
-
-  // input
-  fan::graphics::input_subsystem_t input;
-  fan::window::input_action_t& get_input_action() { return input.input_action; }
 
 #if defined(FAN_AUDIO)
   fan::graphics::audio_subsystem_t audio;

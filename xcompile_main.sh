@@ -53,27 +53,33 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-find_clang() {
-  local min_version=20
+find_compiler() {
+  local binary="$1"
+  local min_version="${2:-0}"
   local best_bin=""
   local best_version=0
-  while IFS= read -r path; do
-    bin=$(basename "$path")
-    if [[ $bin =~ ^clang\+\+-([0-9]+)$ ]]; then
-      ver="${BASH_REMATCH[1]}"
-      if (( ver >= min_version && ver > best_version )); then
-        best_version=$ver
-        best_bin=$path
+
+  IFS=':' read -ra path_dirs <<< "$PATH"
+  for dir in "${path_dirs[@]}"; do
+    for bin in "$dir"/${binary}-*; do
+      [[ -x "$bin" ]] || continue
+      local name=$(basename "$bin")
+      if [[ $name =~ ^${binary}-([0-9]+)$ ]]; then
+        local ver="${BASH_REMATCH[1]}"
+        if (( ver >= min_version && ver > best_version )); then
+          best_version=$ver
+          best_bin=$bin
+        fi
       fi
-    fi
-  done < <(command -v -a clang++ 2>/dev/null)
-  if [[ -z "$best_bin" ]]; then
-    if command -v clang++ >/dev/null 2>&1; then
-      best_bin=$(command -v clang++)
-    fi
+    done
+  done
+
+  if [[ -z "$best_bin" ]] && command -v "$binary" >/dev/null 2>&1; then
+    best_bin=$(command -v "$binary")
   fi
+
   if [[ -z "$best_bin" ]]; then
-    printf "\033[0;31mError: No suitable clang++ found (>= %d)\033[0m\n" "$min_version" >&2
+    printf "\033[0;31mError: No suitable %s found (>= %d)\033[0m\n" "$binary" "$min_version" >&2
     return 1
   fi
   echo "$best_bin"
@@ -97,12 +103,12 @@ if [[ "$WASM" == true ]]; then
   echo -e "${CYAN}Wasm build using:${NC} $(emcc --version | head -1)"
 else
   if [[ "$COMPILER" == "gcc" ]]; then
-    CC="gcc-15"
-    CXX="g++-15"
+    CXX=$(find_compiler "g++" 0)
+    CC=$(find_compiler "gcc" 0)
     TOOLCHAIN="gcc"
   else
-    CXX=$(find_clang)
-    CC="${CXX/clang++/clang}"
+    CXX=$(find_compiler "clang++" 20)
+    CC=$(find_compiler "clang" 20)
     TOOLCHAIN="clang"
   fi
   CONFIG_ARGS=("--compiler=$COMPILER" "--toolchain=$TOOLCHAIN" "--cc=$CC" "--cxx=$CXX")

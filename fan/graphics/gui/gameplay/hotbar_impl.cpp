@@ -9,6 +9,7 @@ import std;
 
 #if defined(FAN_GUI)
 
+import fan.graphics.gui.types;
 import fan.graphics.gui.base;
 
 using namespace fan::graphics;

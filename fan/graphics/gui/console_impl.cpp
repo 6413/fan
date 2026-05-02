@@ -17,6 +17,7 @@ import fan.types.fstring;
 import fan.utility;
 import fan.graphics.common_types;
 #if defined(FAN_GUI)
+  import fan.graphics.gui.types;
   import fan.graphics.gui.base;
 #endif
 
