@@ -1,5 +1,9 @@
 module;
 
+#include <coroutine>
+#define POSITION2_WINDOW_CENTER fan::vec2(fan::graphics::ctx().window->get_size() / 2)
+#define POSITION3_WINDOW_CENTER fan::vec3(POSITION2_WINDOW_CENTER, 0)
+
 #include <fan/utility.h>
 
 export module fan.event;
@@ -112,16 +116,16 @@ export namespace fan::event {
       if (--state.remaining == 0 && state.continuation) {
         state.continuation.resume();
       }
-      };
+    };
     (fan::event::task_idle([&]() -> fan::event::task_t {
       co_await run_task(std::forward<tasks_t>(tasks));
-      }), ...);
+    }), ...);
     co_await counter_awaitable_t{ &state };
   }
 
   template<typename T = void>
   struct signal_awaitable_t {
-    void signal(T val = T {}) {
+    void signal(T val = T{}) {
       value = std::move(val);
       ready = true;
       if (waiting_coroutine) waiting_coroutine.resume();
@@ -130,8 +134,8 @@ export namespace fan::event {
     void await_suspend(std::coroutine_handle<> h) { waiting_coroutine = h; }
     T await_resume() const { return value; }
     bool ready = false;
-    std::coroutine_handle<> waiting_coroutine {};
-    T value {};
+    std::coroutine_handle<> waiting_coroutine{};
+    T value{};
   };
 
   template<>
@@ -144,7 +148,7 @@ export namespace fan::event {
     void await_suspend(std::coroutine_handle<> h) { waiting_coroutine = h; }
     void await_resume() const {}
     bool ready = false;
-    std::coroutine_handle<> waiting_coroutine {};
+    std::coroutine_handle<> waiting_coroutine{};
   };
 
   struct fs_watcher_t {
@@ -160,7 +164,7 @@ export namespace fan::event {
     co_await fan::event::timer_t(time);
     if constexpr (fan::is_awaitable_v<decltype(l())>) { co_await l(); } else { l(); }
   }
-  
+
   fan::event::task_t every(std::uint64_t time, auto l) {
     while (true) {
       if constexpr (fan::is_awaitable_v<decltype(l())>) {
@@ -199,9 +203,9 @@ export namespace fan::event {
   };
 
   poll_awaitable_t poll_task(loop_t loop, int fd, int events);
-  
+
   struct uv_fs_open_awaitable {
-    alignas(8) std::uint8_t data[512]; 
+    alignas(8) std::uint8_t data[512];
     uv_fs_open_awaitable(const std::string& path, int flags, int mode);
     ~uv_fs_open_awaitable();
     bool await_ready() const noexcept { return false; }
@@ -219,7 +223,7 @@ export namespace fan::event {
     std::intptr_t result() const noexcept;
     void await_resume() noexcept {}
   };
-  
+
   struct uv_fs_write_awaitable {
     alignas(8) std::uint8_t data[512];
     uv_fs_write_awaitable(int fd, const char* buffer, std::size_t length, std::int64_t offset);
@@ -262,43 +266,14 @@ export namespace fan {
 }
 
 export namespace fan::io::file {
-  inline fan::event::runv_t<int> async_open(const std::string& path, int flags = fan::fs_in, int mode = fan::perm_0644) {
-    fan::event::uv_fs_open_awaitable req(path, flags, mode);
-    co_await req;
-    co_return req.result();
-  }
-
-  inline fan::event::runv_t<std::intptr_t> async_read(int file, char* buffer, std::size_t buffer_size, std::int64_t offset) {
-    fan::event::uv_fs_read_awaitable req(file, buffer, buffer_size, offset);
-    co_await req;
-    co_return req.result();
-  }
-
-  inline fan::event::runv_t<std::intptr_t> async_write(int fd, const char* buffer, std::size_t length, std::int64_t offset) {
-    fan::event::uv_fs_write_awaitable req(fd, buffer, length, offset);
-    co_await req;
-    co_return req.result();
-  }
-
-  inline fan::event::task_t async_close(int file) {
-    fan::event::uv_fs_close_awaitable req(file);
-    co_await req;
-  }
-
-  inline fan::event::runv_t<std::intptr_t> async_size(int file) {
-    fan::event::uv_fs_size_awaitable req(file);
-    co_await req;
-    co_return req.result();
-  }
-
-  inline fan::event::runv_t<std::intptr_t> async_size(const std::string& path) {
-    fan::event::uv_fs_size_awaitable req(path);
-    co_await req;
-    co_return req.result();
-  }
-
+  fan::event::runv_t<int> async_open(const std::string& path, int flags = fan::fs_in, int mode = fan::perm_0644);
+  fan::event::runv_t<std::intptr_t> async_read(int file, char* buffer, std::size_t buffer_size, std::int64_t offset);
+  fan::event::runv_t<std::intptr_t> async_write(int fd, const char* buffer, std::size_t length, std::int64_t offset);
+  fan::event::task_t async_close(int file);
+  fan::event::runv_t<std::intptr_t> async_size(int file);
+  fan::event::runv_t<std::intptr_t> async_size(const std::string& path);
   fan::event::runv_t<std::intptr_t> async_read(int file, std::string* buffer, std::int64_t offset, std::size_t buffer_size = 4096);
-  
+
   template <typename lambda_t>
   fan::event::task_t async_read_cb(const std::string& path, lambda_t&& lambda, int buffer_size = 64) {
     int fd = co_await fan::io::file::async_open(path);
@@ -311,8 +286,7 @@ export namespace fan::io::file {
       std::string chunk(buffer.data(), result);
       if constexpr (fan::is_awaitable_v<decltype(lambda(chunk))>) {
         co_await lambda(chunk);
-      }
-      else {
+      } else {
         lambda(chunk);
       }
       offset += result;
@@ -339,18 +313,9 @@ export namespace fan::io::file {
     int fd = -1;
     std::intptr_t offset = 0;
 
-    fan::event::run_t open(const std::string& file_path) {
-      path = file_path;
-      fd = co_await fan::io::file::async_open(path, fan::fs_out);
-    }
-    fan::event::run_t close() const {
-      co_await fan::io::file::async_close(fd);
-    }
-    fan::event::runv_t<std::intptr_t> write(const std::string& data, std::size_t buffer_size = 4096) {
-      std::intptr_t result = co_await fan::io::file::async_write(fd, data.data() + offset, std::min(data.size() - offset, buffer_size), offset);
-      if (result > 0) offset += result;
-      co_return result;
-    }
+    fan::event::run_t open(const std::string& file_path);
+    fan::event::run_t close() const;
+    fan::event::runv_t<std::intptr_t> write(const std::string& data, std::size_t buffer_size = 4096);
   };
 }
 
