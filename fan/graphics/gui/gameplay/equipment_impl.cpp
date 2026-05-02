@@ -9,6 +9,7 @@ import std;
 
 #if defined(FAN_GUI)
 import fan.graphics;
+import fan.graphics.gui.types;
 import fan.graphics.gui.base;
 import fan.graphics.gui.input;
 import fan.graphics.gameplay.items;

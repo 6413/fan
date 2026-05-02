@@ -23,6 +23,8 @@ import fan.types.vector;
 
 import fan.print.error;
 
+import fan.window.input;
+
 import fan.graphics.image_load;
 import fan.graphics.gui.base;
 import fan.graphics.gui.text_logger;

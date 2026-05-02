@@ -49,6 +49,10 @@ import fan.graphics.common_types;
 
 #if defined(FAN_GUI)
 
+fan::graphics::gui::settings_menu_t* get_smenu(loco_t* loco) {
+  return static_cast<fan::graphics::gui::settings_menu_t*>(loco->gui.settings_menu);
+}
+
 bool init_fan_track_opengl_print = []() {
   fan_opengl_track_print() = [](std::string func_name, std::uint64_t elapsed) {
     gloco()->gui.console.print(func_name + ":", fan::graphics::highlight_e::text);
@@ -219,7 +223,7 @@ void loco_t::shader_recompile_all() {
       fan::print_warning("failed to recompile shader. vertex shader:" + std::string(sd.path_vertex) + ", fragment shader:" + std::string(sd.path_fragment));
   });
   #if defined(FAN_GUI)
-  set_post_process("bloom_strength", gui.settings_menu->config.post_processing.bloom_strength);
+  set_post_process("bloom_strength", get_smenu(this)->config.post_processing.bloom_strength);
   #endif
 }
 
@@ -635,7 +639,7 @@ void loco_t::generate_commands(loco_t* loco) {
     [](loco_t* l, const std::string& v) { l->set_post_process("exposure", std::stof(v)); });
   add_simple_command(loco->gui.console, "set_bloom_strength", "sets bloom strength", 1,
     [](loco_t* l, const std::string& v) {
-    auto* sm = l->gui.settings_menu;
+    auto* sm = get_smenu(l);
     sm->config.post_processing.bloom_strength = std::stof(v);
     l->set_post_process("bloom_strength", sm->config.post_processing.bloom_strength);
   });
@@ -935,7 +939,6 @@ void loco_t::bind_global_context() {
   ctx.orthographic_render_view = &orthographic_render_view;
   ctx.perspective_render_view = &perspective_render_view;
   ctx.update_callback = &m_update_callback;
-  ctx.input_action = &input.input_action;
   ctx.lighting = &renderer_state.lighting;
   IF_GUI(ctx.console = &gui.console;)
   IF_GUI(ctx.text_logger = &gui.text_logger;)
@@ -979,8 +982,7 @@ static void loco_init_renderer(loco_t* l) {
 
 static void loco_load_settings_into_open_props(loco_t* l) {
 #if defined(FAN_GUI)
-  auto* sm = new fan::graphics::gui::settings_menu_t;
-  l->gui.settings_menu = sm;
+  auto* sm = get_smenu(l);
   if (sm->config.display.custom_resolution.x != -1 && l->open_props.window_size.x == -1)
     l->open_props.window_size = sm->config.display.custom_resolution;
   else if (sm->config.display.resolution_index != -1 && l->open_props.window_size.x == -1)
@@ -1084,6 +1086,14 @@ loco_t::loco_t(const loco_t::properties_t& props) :
 {
   idle_handle  = new fan::uv::idle_t;
   timer_handle = new fan::uv::timer_t;
+  
+  #if defined(FAN_GUI)
+  {
+    auto& ctx = fan::graphics::ctx();
+    ctx.input_action = &input.input_action;
+    gui.settings_menu = new fan::graphics::gui::settings_menu_t;
+  }
+  #endif
 
   bind_global_context();
   loco_init_shapes_context(this);
@@ -1123,7 +1133,7 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   set_vsync(false);
   #endif
 #if defined(FAN_GUI)
-  gui.settings_menu->init_runtime();
+  get_smenu(this)->init_runtime();
 #endif
   loco_fire_engine_init_callbacks(this);
 }
@@ -1140,6 +1150,9 @@ loco_t::~loco_t() {
 }
 
 void loco_t::destroy() {
+
+  delete (fan::graphics::gui::settings_menu_t*)gui.settings_menu;
+
   if (idle_handle) {
     delete (fan::uv::idle_t*)idle_handle;
     idle_handle = nullptr;
@@ -1386,7 +1399,7 @@ void loco_t::switch_renderer(std::uint8_t renderer) {
       #endif
       );
       gui.gui_initialized = true;
-      gui.settings_menu->set_settings_theme();
+      get_smenu(this)->set_settings_theme();
     }
   #endif
 
@@ -1482,9 +1495,9 @@ void loco_t::process_gui() {
   if (gui.render_console) {
     gui.console.render();
   }
-  if (!gui.settings_menu->keybind_menu.is_capturing() &&
+  if (!get_smenu(this)->keybind_menu.is_capturing() &&
     input.input_action.is_clicked(fan::actions::toggle_settings) &&
-    !gui.settings_menu->keybind_menu.should_suppress_input()) {
+    !get_smenu(this)->keybind_menu.should_suppress_input()) {
     if (gui.render_console) {
       gui.render_console = false;
     }
@@ -1492,9 +1505,9 @@ void loco_t::process_gui() {
       gui.render_settings_menu = !gui.render_settings_menu;
     }
   }
-  gui.settings_menu->update();
+  get_smenu(this)->update();
   if (gui.render_settings_menu) {
-    gui.settings_menu->render();
+    get_smenu(this)->render();
   }
 
   if (gui.render_debug_memory) {

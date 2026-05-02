@@ -338,6 +338,41 @@ namespace fan::event {
 
 namespace fan::io::file {
 
+  fan::event::runv_t<int> async_open(const std::string& path, int flags, int mode) {
+    fan::event::uv_fs_open_awaitable req(path, flags, mode);
+    co_await req;
+    co_return req.result();
+  }
+
+  fan::event::runv_t<std::intptr_t> async_read(int file, char* buffer, std::size_t buffer_size, std::int64_t offset) {
+    fan::event::uv_fs_read_awaitable req(file, buffer, buffer_size, offset);
+    co_await req;
+    co_return req.result();
+  }
+
+  fan::event::runv_t<std::intptr_t> async_write(int fd, const char* buffer, std::size_t length, std::int64_t offset) {
+    fan::event::uv_fs_write_awaitable req(fd, buffer, length, offset);
+    co_await req;
+    co_return req.result();
+  }
+
+  fan::event::task_t async_close(int file) {
+    fan::event::uv_fs_close_awaitable req(file);
+    co_await req;
+  }
+
+  fan::event::runv_t<std::intptr_t> async_size(int file) {
+    fan::event::uv_fs_size_awaitable req(file);
+    co_await req;
+    co_return req.result();
+  }
+
+  fan::event::runv_t<std::intptr_t> async_size(const std::string& path) {
+    fan::event::uv_fs_size_awaitable req(path);
+    co_await req;
+    co_return req.result();
+  }
+
   fan::event::runv_t<std::intptr_t> async_read(int file, std::string* buffer, std::int64_t offset, std::size_t buffer_size) {
     buffer->resize(buffer_size);
     std::intptr_t r = co_await async_read(file, buffer->data(), buffer_size, offset);
@@ -352,7 +387,6 @@ namespace fan::io::file {
     std::string buffer;
     buffer.resize(buffer_size);
     std::string content;
-
     while (true) {
       std::intptr_t result = co_await async_read(fd, buffer.data(), buffer.size(), offset);
       if (result <= 0) break;
@@ -368,7 +402,6 @@ namespace fan::io::file {
     std::size_t offset = 0;
     std::size_t buffer_size = 4096;
     std::size_t total_written = 0;
-
     while (total_written < data.size()) {
       std::size_t remaining = data.size() - total_written;
       std::size_t to_write = std::min(remaining, buffer_size);
@@ -396,6 +429,21 @@ namespace fan::io::file {
     if (read_bytes > 0) offset += read_bytes;
     if (read_bytes < 0) fan::throw_error("fs read error:" + fan::event::strerror((int)read_bytes));
     co_return buffer;
+  }
+
+  fan::event::run_t async_write_t::open(const std::string& file_path) {
+    path = file_path;
+    fd = co_await fan::io::file::async_open(path, fan::fs_out);
+  }
+
+  fan::event::run_t async_write_t::close() const {
+    co_await fan::io::file::async_close(fd);
+  }
+
+  fan::event::runv_t<std::intptr_t> async_write_t::write(const std::string& data, std::size_t buffer_size) {
+    std::intptr_t result = co_await fan::io::file::async_write(fd, data.data() + offset, std::min(data.size() - offset, buffer_size), offset);
+    if (result > 0) offset += result;
+    co_return result;
   }
 }
 
@@ -453,7 +501,7 @@ namespace fan::io {
       co_await iter->callback(entry.path().string(), entry.is_directory());
       ++s->current_index;
       if (s->stopped) co_return;
-      co_await ev_next_tick_awaiter {};
+      co_await ev_next_tick_awaiter{};
     }
     co_return;
   }

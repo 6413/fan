@@ -12,6 +12,7 @@ import std;
 import fan.types;
 import fan.types.vector;
 import fan.graphics.common_context;
+import fan.graphics.gui.types;
 import fan.graphics.gui.base;
 import fan.graphics.gui.input;
 import fan.graphics.gui.drag_drop;
@@ -24,6 +25,7 @@ using namespace fan::graphics;
 
 export namespace fan::graphics::gui {
 
+  
   struct inventory_style_t {
     fan::vec2 slot_size = fan::vec2(81, 81);
     fan::vec2 slot_padding = fan::vec2(12, 12);

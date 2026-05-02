@@ -62,3 +62,5 @@ build/
 fan_tests/
 fan_errors.txt
 fan_settings.txt
+.vscode/
+vgcore*.*

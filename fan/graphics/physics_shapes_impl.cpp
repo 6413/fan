@@ -18,6 +18,7 @@ import std;
 import fan.types;
 import fan.print.error;
 import fan.physics.b2_integration;
+import fan.window.input;
 import fan.graphics.loco;
 
 #if defined(FAN_GUI)
