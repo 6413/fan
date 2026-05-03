@@ -6,7 +6,7 @@
 
 import fan;
 import fan.graphics.network;
-import fan.graphics.gui.tilemap_editor.renderer;
+import fan.graphics.tilemap_editor.renderer;
 
 #include <fan/graphics/types.h>
 

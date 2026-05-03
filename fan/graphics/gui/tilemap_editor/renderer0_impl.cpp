@@ -11,7 +11,7 @@ module;
 #define TIMER_END(name)
 #endif
 
-module fan.graphics.gui.tilemap_editor.renderer;
+module fan.graphics.tilemap_editor.renderer;
 
 import std;
 

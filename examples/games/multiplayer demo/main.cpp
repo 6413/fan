@@ -8,7 +8,7 @@
 #include <coroutine>
 
 import fan;
-import fan.graphics.gui.tilemap_editor.renderer;
+import fan.graphics.tilemap_editor.renderer;
 import fan.graphics.network;
 
 //fan_track_allocations();

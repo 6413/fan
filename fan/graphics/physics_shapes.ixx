@@ -30,13 +30,9 @@ import fan.math;
 import fan.random;
 import fan.ecs;
 
-#if (FAN_GUI)
-  import fan.graphics;
-  import fan.graphics.common_context;
-  import fan.graphics.shapes;
-#else
-  import fan.graphics;
-#endif
+import fan.graphics;
+import fan.graphics.common_context;
+import fan.graphics.shapes;
 
 // could add debug_draw_render_view for custom view
 

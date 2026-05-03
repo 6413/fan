@@ -6,7 +6,7 @@
 #include <vector>
 
 import fan;
-import fan.graphics.gui.tilemap_editor.renderer;
+import fan.graphics.tilemap_editor.renderer;
 
 #include "pile.h"
 

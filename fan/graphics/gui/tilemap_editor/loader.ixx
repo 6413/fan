@@ -8,7 +8,7 @@ module;
   #endif
 #endif
 
-export module fan.graphics.gui.tilemap_editor.loader;
+export module fan.graphics.tilemap_editor.loader;
 
 import std;
 
