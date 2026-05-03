@@ -14,7 +14,9 @@ import fan.types.vector;
 import fan.graphics.common_context;
 import fan.graphics.shapes;
 import fan.physics.types;
-import fan.graphics.gui.tilemap_editor.renderer;
+#if defined(FAN_GUI)
+  import fan.graphics.gui.tilemap_editor.renderer;
+#endif
 import fan.spatial;
 import fan.graphics.physics_shapes;
 
