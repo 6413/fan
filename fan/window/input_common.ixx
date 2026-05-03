@@ -1,5 +1,13 @@
 module;
 
+#include <fan/utility.h>
+
+#if defined(fan_compiler_gcc)
+	#ifndef _GCC_MAX_ALIGN_T
+		#define _GCC_MAX_ALIGN_T
+	#endif
+#endif
+
 #if defined(FAN_GUI)
   #include <fan/imgui/imgui.h>
 #endif

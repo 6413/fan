@@ -61,6 +61,6 @@ build/
 .xmake/
 fan_tests/
 fan_errors.txt
-fan_settings.txt
+fan_settings.json
 .vscode/
 vgcore*.*
