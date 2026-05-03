@@ -1,7 +1,5 @@
 export module fan;
 
-import std;
-
 export import fan.types;
 export import fan.types.vector;
 export import fan.types.color;
@@ -80,7 +78,7 @@ export import fan.formatter;
 export import fan.ecs;
 
 #if defined(FAN_GUI)
-export import fan.graphics.gui.tilemap_editor.renderer;
+export import fan.graphics.tilemap_editor.renderer;
 export import fan.graphics.gameplay;
 export import fan.graphics.gui.inventory_hotbar;
 export import fan.graphics.gameplay.items;

@@ -133,7 +133,7 @@ if [[ "$REBUILD" == true ]]; then
   echo -e "${BLUE}[3/3]${NC} Building..."
 else
   echo -e "${BLUE}Configuring & Building...${NC}"
-  if ! xmake f "${CONFIG_ARGS[@]}" "${XMAKE_ARGS[@]}"; then
+  if ! xmake f -c "${CONFIG_ARGS[@]}" "${XMAKE_ARGS[@]}"; then
     echo -e "${RED}✗ XMake configuration failed!${NC}"
     exit 1
   fi

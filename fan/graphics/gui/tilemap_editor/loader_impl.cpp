@@ -5,7 +5,7 @@ module;
 
 #include <fan/utility.h>
 
-module fan.graphics.gui.tilemap_editor.loader;
+module fan.graphics.tilemap_editor.loader;
 
 #if defined(FAN_2D)
 #if defined(FAN_PHYSICS_2D)

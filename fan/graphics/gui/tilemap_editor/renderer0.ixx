@@ -4,7 +4,7 @@ module;
 #include <coroutine>
 #endif
 
-export module fan.graphics.gui.tilemap_editor.renderer;
+export module fan.graphics.tilemap_editor.renderer;
 
 import std;
 
@@ -12,7 +12,7 @@ import std;
 
 #if defined(FAN_PHYSICS_2D)
 
-export import fan.graphics.gui.tilemap_editor.loader;
+export import fan.graphics.tilemap_editor.loader;
 
 import fan.types;
 import fan.types.color;

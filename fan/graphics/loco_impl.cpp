@@ -1151,7 +1151,9 @@ loco_t::~loco_t() {
 
 void loco_t::destroy() {
 
+#if defined(FAN_GUI)
   delete (fan::graphics::gui::settings_menu_t*)gui.settings_menu;
+#endif
 
   if (idle_handle) {
     delete (fan::uv::idle_t*)idle_handle;
