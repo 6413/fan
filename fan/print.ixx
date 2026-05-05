@@ -20,9 +20,13 @@ export namespace fan {
   struct is_bitset<std::bitset<N>> : std::true_type {};
 
   template <typename T>
-  concept has_subscript_and_size = requires(const T& t) {
-    t.size(); t[0];
-  } && (!std::is_same_v<T, std::string>)
+  concept has_subscript_and_size =
+    requires(const T& t) {
+      t.size();
+      t[0];
+    }
+    && fan::streamable<decltype(std::declval<const T&>()[0])>
+    && (!std::is_same_v<T, std::string>)
     && (!std::is_same_v<T, std::string_view>)
     && (!std::is_base_of_v<std::string_view, std::remove_cvref_t<T>>)
     && (!is_bitset<std::remove_cvref_t<T>>::value);
