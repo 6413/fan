@@ -65,3 +65,4 @@ fan_settings.json
 .vscode/
 vgcore*.*
 fan/reflection/gcc_private.h
+temp/

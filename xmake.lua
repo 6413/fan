@@ -396,7 +396,8 @@ end
 local main_file = get_config("main")
 set_policy("check.auto_ignore_flags", false)
 
-add_files("main.cpp", { cxxflags = "-freflection" })
+local main_file = get_config("main")
+add_files(main_file, { cxxflags = "-freflection" })
 
 add_includedirs(".", "third_party/fan/include", {public = true})
 add_linkdirs("third_party/fan/lib")
