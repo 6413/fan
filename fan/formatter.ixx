@@ -12,6 +12,11 @@ namespace fan::detail {
   template<typename T, typename A>
   struct is_std_vector<std::vector<T, A>> : std::true_type {};
 
+  template<typename T>
+  concept streamable = requires(std::ostream& os, T v) {
+    os << v;
+  };
+
   template <typename T>
   std::string to_str(const T& v) {
     if constexpr (std::is_same_v<std::decay_t<T>, std::string>)               return v;
@@ -23,6 +28,7 @@ namespace fan::detail {
     else if constexpr (std::is_same_v<std::decay_t<T>, unsigned char*>)       return v ? reinterpret_cast<const char*>(v) : "";
     else if constexpr (std::is_convertible_v<T, std::string_view>)            return std::string(static_cast<std::string_view>(v));
     else if constexpr (std::is_convertible_v<T, std::string>)                 return static_cast<std::string>(v);
+    else if constexpr (streamable<T>) { std::ostringstream ss; ss << v; return ss.str(); }
     else if constexpr (is_std_vector<T>::value) { 
       std::string s; for (int i = 0; i < v.size(); ++i) s += std::to_string(v[i]) + (i + 1 < v.size() ? ", " : "");
                                                                               return s;
