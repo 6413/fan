@@ -39,7 +39,6 @@ namespace fan {
     if (initialized()) {
       return;
     }
-     glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
     glfwSetErrorCallback([](int error, const char* description) {
       if (error == GLFW_FEATURE_UNAVAILABLE) {
         return; // ignore unsupported Wayland features
