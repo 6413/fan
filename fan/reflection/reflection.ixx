@@ -44,14 +44,21 @@ export namespace fan::refl {
     });
   }
 
-  template <typename T>
-  constexpr auto& at_index(auto&& obj, std::size_t i) {
-    using obj_t  = std::remove_reference_t<decltype(obj)>;
-    using cast_t = std::conditional_t<std::is_const_v<obj_t>, const T, T>;
-    using M0     = decltype(std::declval<T>().*(&[:members<T>()[0]:]));
-    void* ptr    = nullptr;
-    member_visit<T>(i, [&]<std::meta::info m> { ptr = std::addressof(static_cast<cast_t&>(obj).*(&[:m:])); });
-    return *static_cast<std::remove_reference_t<M0>*>(ptr);
+  template <typename T, typename Obj>
+  constexpr decltype(auto) at_index(Obj&& obj, std::size_t i) {
+    using obj_t             = std::remove_reference_t<Obj>;
+    using M0                = decltype(std::declval<T>().*(&[:members<T>()[0]:]));
+    using base_t            = std::remove_reference_t<M0>;
+    constexpr bool is_const = std::is_const_v<obj_t>;
+    using ptr_t             = std::conditional_t<is_const, const base_t*, base_t*>;
+
+    ptr_t ptr = nullptr;
+    member_visit<T>(i, [&]<std::meta::info m> {
+      if constexpr (is_const) ptr = std::addressof(static_cast<const T&>(obj).*(&[:m:]));
+      else ptr = std::addressof(static_cast<T&>(obj).*(&[:m:]));
+    });
+
+    return *ptr;
   }
 
   template <typename T, typename F>
@@ -72,6 +79,20 @@ export namespace fan::refl {
     return std::meta::info{};
   }
 
+  consteval std::string_view name_of(std::meta::info t) {
+    t = std::meta::dealias(t);
+    if (std::meta::has_template_arguments(t))
+      return std::meta::identifier_of(std::meta::template_of(t));
+    if (std::meta::has_identifier(t))
+      return std::meta::identifier_of(t);
+    return std::meta::display_string_of(t);
+  }
+
+  template <typename T>
+  consteval std::string_view name_of() {
+    return name_of(^^T);
+  }
+
   template <typename TAttr, std::meta::info M>
   consteval TAttr annotation() {
     template for (constexpr auto ann : std::define_static_array(std::meta::annotations_of(M))) {
@@ -82,31 +103,35 @@ export namespace fan::refl {
 
   template <typename T>
   consteval std::string_view member_name(std::size_t i) {
-    return member_at<T>(i, []<std::meta::info m> { return std::meta::identifier_of(m); });
-  }
-
-  template <typename T>
-  consteval std::string_view type_name() {
-    return std::meta::identifier_of(^^T);
-  }
-
-  consteval std::string_view type_name(std::meta::info t) {
-    return std::meta::identifier_of(t);
+    return member_at<T>(i, []<std::meta::info m> { return name_of(m); });
   }
 
   template <typename T>
   consteval std::size_t offset_of(std::size_t i) {
-    return member_at<T>(i, []<std::meta::info m> { return std::meta::offset_of(m); });
+    return member_at<T>(i, []<std::meta::info m> { return name_of(m); });
   }
 
   template <typename T>
   consteval std::size_t index_of(std::string_view name) {
     std::size_t cur = 0;
     template for (constexpr auto m : members<T>()) {
-      if (std::meta::identifier_of(m) == name) return cur;
+      if (name_of(m) == name) return cur;
       ++cur;
     }
     return ~std::size_t{0};
+  }
+
+  consteval std::meta::info dealias(std::meta::info t) {
+    return std::meta::dealias(t);
+  }
+  consteval std::meta::info type_of(std::meta::info t) {
+    return std::meta::type_of(t);
+  }
+  consteval bool is_same_name(std::meta::info a, std::meta::info b) {
+    return name_of(a) == name_of(b);
+  }
+  consteval bool is_same_type(std::meta::info a, std::meta::info b) {
+    return std::meta::dealias(a) == std::meta::dealias(b);
   }
 }  // namespace fan::refl
 
@@ -116,14 +141,14 @@ export namespace fan {
     if constexpr (requires { std::declval<std::ostream&>() << obj; }) {
       std::ostringstream val;
       val << obj;
-      std::string t{std::meta::display_string_of(^^T)};
+      std::string t{fan::refl::name_of(^^T)};
       if (t.starts_with("member_t {aka ")) t = t.substr(14, t.size() - 15);
       return fan::paint(fan::colors::white, val.str()) + fan::paint(fan::colors::gray, " [") +
              fan::paint(fan::colors::teal, t) + fan::paint(fan::colors::gray, "]");
     }
     else {
       std::string ind(indent_level * 2, ' ');
-      std::string out = fan::paint(fan::colors::cyan, std::string{std::meta::display_string_of(^^T)}) +
+      std::string out = fan::paint(fan::colors::cyan, std::string{fan::refl::name_of(^^T)}) +
                         fan::paint(fan::colors::gray, " {\n");
       fan::refl::iterate_members<T>(obj, [&](auto name, auto& value) {
         out += fan::paint(fan::colors::amber, ind + "  ." + std::string{name} + " = ") +
