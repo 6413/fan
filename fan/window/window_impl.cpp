@@ -531,7 +531,7 @@ namespace fan {
     m_delta_time = current_frame_time - last_frame_time;
     /*if (m_delta_time >= 0.3) {
     #if FAN_DEBUG >= 4
-        fan::print("framerate too low, overriding delta time");
+        fan::print_impl("framerate too low, overriding delta time");
     #endif
         m_delta_time = 1.0 / 256.0;
     }*/

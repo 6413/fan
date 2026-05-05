@@ -564,7 +564,7 @@ namespace fan::graphics{
     );
 
   #if defined(debug_shape_t)
-    fan::print("+", dst->NRI);
+    fan::print_impl("+", dst->NRI);
   #endif
 
     delete[] KeyPack;
@@ -1357,7 +1357,7 @@ namespace fan::graphics{
     }
     #endif
     default:
-      fan::print("unsupported shape type in push_shaper");
+      fan::print_impl("unsupported shape type in push_shaper");
     }
   }
 

@@ -301,7 +301,7 @@ export namespace fan::graphics {
           push_shaper();
         }
       #if defined(debug_shape_t)
-        fan::print("+", NRI);
+        fan::print_impl("+", NRI);
       #endif
       }
       shape_t(shape_t&& s) noexcept;

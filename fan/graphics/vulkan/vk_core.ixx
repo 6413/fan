@@ -637,7 +637,7 @@ export namespace fan {
 
       void shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string& vertex_code) {
         __fan_internal_shader_list[nr].svertex = vertex_code;
-        // fan::print(
+        // fan::print_impl(
         //   "processed vertex shader:", path, "resulted in:",
         // preprocess_shader(shader_name.c_str(), shaderc_glsl_vertex_shader, shader_code);
         // );
@@ -646,7 +646,7 @@ export namespace fan {
       void shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string& fragment_code) {
         auto& shader = shader_get(nr);
         __fan_internal_shader_list[nr].sfragment = fragment_code;
-        //fan::print(
+        //fan::print_impl(
           // "processed vertex shader:", path, "resulted in:",
         //preprocess_shader(shader_name.c_str(), shaderc_glsl_fragment_shader, shader_code);
         //);
@@ -2164,7 +2164,7 @@ export namespace fan {
         // -----------------------------
         VkResult r = vkCreateDevice(physical_device, &createInfo, nullptr, &device);
         if (r != VK_SUCCESS) {
-          fan::print("vkCreateDevice failed with code:", (int)r);
+          fan::print_impl("vkCreateDevice failed with code:", (int)r);
           fan::throw_error("failed to create logical device");
         }
 
@@ -2732,7 +2732,7 @@ export namespace fan {
 
         VkResult submit_result = vkQueueSubmit(graphics_queue, 1, &submitInfo, in_flight_fences[current_frame]);
         if (submit_result != VK_SUCCESS) {
-          fan::print("vkQueueSubmit error:", (int)submit_result);
+          fan::print_impl("vkQueueSubmit error:", (int)submit_result);
           fan::throw_error("failed to submit draw command buffer!");
         }
 
@@ -2961,7 +2961,7 @@ export namespace fan {
         if (pCallbackData->pMessageIdName && std::string(pCallbackData->pMessageIdName) == "Loader Message") {
           return VK_FALSE;
         }
-        fan::print("validation layer:", pCallbackData->pMessage);
+        fan::print_impl("validation layer:", pCallbackData->pMessage);
         // system("pause");
       //  exit(0);
 

@@ -4,6 +4,7 @@ export module fan.types.dme;
 
 import std;
 import fan.reflection;
+import fan.print;
 
 export namespace fan {
   struct required_case {
@@ -23,9 +24,9 @@ export namespace fan {
     consteval std::size_t operator[](std::string_view name) const        { return fan::refl::index_of<derived_t>(name); }
     constexpr member_t* begin()                                          { return &(*this)[0]; }
     constexpr member_t* end()                                            { return &(*this)[0] + size(); }
-    static constexpr std::string_view name(std::size_t i)               { return fan::refl::member_name<derived_t>(i); }
-    void print()                                                         { fan::print_reflect(static_cast<derived_t&>(*this)); }
-    static consteval std::meta::info attr_type(std::size_t i)           { return fan::refl::member_annotation_type<derived_t>(i); }
+    static constexpr std::string_view name(std::size_t i)                { return fan::refl::member_name<derived_t>(i); }
+    void print()                                                         { fan::print(static_cast<derived_t&>(*this)); }
+    static consteval std::meta::info attr_type(std::size_t i)            { return fan::refl::member_annotation_type<derived_t>(i); }
 
     template <std::size_t I>
     static consteval auto attr()                                         { return fan::refl::member_annotation<I, derived_t>(); }
