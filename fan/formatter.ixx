@@ -4,7 +4,7 @@ export module fan.formatter;
 
 import std;
 
-namespace fan::detail {
+export namespace fan {
 
   template<typename>
   struct is_std_vector : std::false_type {};
@@ -35,14 +35,12 @@ namespace fan::detail {
     }
     else                                                                      return v.to_string();
   }
-}
 
-export namespace fan {
   template <typename ...Args>
   std::string format_join(const char* sep, const Args&... args) {
     std::string result;
     int idx = 0;
-    ((result += fan::detail::to_str(args), result += (++idx == (int)sizeof...(args) ? "" : sep)), ...);
+    ((result += fan::to_str(args), result += (++idx == (int)sizeof...(args) ? "" : sep)), ...);
     return result;
   }
 
@@ -64,7 +62,7 @@ export namespace fan {
   std::string format_args_n8(const Args&... args) {
     std::string result;
     int idx = 0;
-    ((result += fan::detail::to_str(convert_uint8(args)) + (++idx == (int)sizeof...(args) ? "" : ", ")), ...);
+    ((result += fan::to_str(convert_uint8(args)) + (++idx == (int)sizeof...(args) ? "" : ", ")), ...);
     return result;
   }
 }
