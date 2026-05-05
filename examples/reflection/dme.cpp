@@ -3,17 +3,19 @@ import std;
 import fan.reflection;
 import fan.types.dme;
 
-struct weighted_t {
+using a_t = fan::vec2;
+struct b_t {
   fan::vec2 pos;
   f64_t weight;
 };
+
 struct item_t {
   int number;
 };
 
-struct st_t : fan::dme_t<st_t> {
-  [[= fan::vec2{1, 3.6}]] item_t a;
-  [[= weighted_t{{2}, 3.2}]] item_t b;
+struct st_t : fan::dme_t<st_t, item_t> {
+  [[= a_t{1,   3.6}]] item_t a;
+  [[= b_t{{2}, 3.2}]] item_t b;
 };
 
 constexpr st_t gst{.a{.number=32},.b{.number=64}};
@@ -39,10 +41,10 @@ static_assert(gst.b.number == 64);
 constexpr auto attr_type_a  = gst.attr_type(0);
 constexpr auto attr_type_b = gst.attr_type(1);
 static_assert(fan::refl::is_same_name(attr_type_a, fan::refl::dealias(^^fan::vec2)));
-static_assert(fan::refl::is_same_name(attr_type_b, ^^weighted_t));
+static_assert(fan::refl::is_same_name(attr_type_b, ^^b_t));
 
 static_assert(fan::refl::is_same_type(attr_type_a, ^^fan::vec2));
-static_assert(fan::refl::is_same_type(attr_type_b, ^^weighted_t));
+static_assert(fan::refl::is_same_type(attr_type_b, ^^b_t));
 
 int main() {
   st_t st{
@@ -61,4 +63,12 @@ int main() {
   constexpr auto a1 = st.attr<1>();
   fan::print_reflect(a0);
   fan::print_reflect(a1);
+
+  for (int i = 0; i < 100; ++i) {
+    int idx = fan::random::value(0, 1);
+    st.match(idx)({
+      .a = [&]{ fan::assert(idx == 0); },
+      .b = [&]{ fan::assert(idx == 1); }
+    });
+  }
 }
