@@ -61,8 +61,8 @@ int main() {
 
   constexpr auto a0 = st.attr<0>();
   constexpr auto a1 = st.attr<1>();
-  fan::print_reflect(a0);
-  fan::print_reflect(a1);
+  fan::print(a0);
+  fan::print(a1);
 
   for (int i = 0; i < 100; ++i) {
     int idx = fan::random::value(0, 1);
