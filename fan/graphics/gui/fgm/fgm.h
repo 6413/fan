@@ -690,7 +690,7 @@ struct fgm_t {
             return wpath == img.image_name;
           });
           if (found == texturepack_images.end()) {
-            fan::print("some bug");
+            fan::print_impl("some bug");
             return;
           }
           initial_size.x *= found->aspect_ratio;

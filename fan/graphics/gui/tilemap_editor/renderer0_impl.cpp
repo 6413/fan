@@ -4,8 +4,8 @@ module;
 #endif
 #define MEASURE_LOAD_TIMES 0
 #if MEASURE_LOAD_TIMES
-#define TIMER_START(name) fan::time::timer timer_##name{true}; fan::print(#name " start")
-#define TIMER_END(name) fan::print(#name " end", timer_##name.millis())
+#define TIMER_START(name) fan::time::timer timer_##name{true}; fan::print_impl(#name " start")
+#define TIMER_END(name) fan::print_impl(#name " end", timer_##name.millis())
 #else
 #define TIMER_START(name)
 #define TIMER_END(name)
@@ -294,9 +294,9 @@ namespace fan::graphics {
 
     fan::vec3i tile_key(x, y, depth);
     if (node.rendered_tiles.count(tile_key)) {
-      fan::print("WARNING: Tile already exists at", x, y, depth);
-      fan::print("  Old image:", node.rendered_tiles[tile_key].get_image().NRI);
-      fan::print("  New would be:", j.texture_pack_unique_id.id);
+      fan::print_impl("WARNING: Tile already exists at", x, y, depth);
+      fan::print_impl("  Old image:", node.rendered_tiles[tile_key].get_image().NRI);
+      fan::print_impl("  New would be:", j.texture_pack_unique_id.id);
     }
     int additional_depth = 0;
   

@@ -584,7 +584,7 @@ namespace fan::graphics {
       return shader;
     }
     else {
-      fan::print("todo");
+      fan::print_impl("todo");
     }
     return {};
   }
@@ -620,7 +620,7 @@ namespace fan::graphics {
       );
     }
     else {
-      fan::print("todo");
+      fan::print_impl("todo");
     }
     return {};
   }

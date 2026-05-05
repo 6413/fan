@@ -138,14 +138,14 @@ namespace fan::event {
 
   void print_event_handles(loop_t loop) {
     fan::uv::loop_t* uvloop = (fan::uv::loop_t*)loop;
-    fan::print("========================");
-    fan::print("Active handles:", uvloop->active_handles);
-    fan::print("Active requests:", uvloop->active_reqs.count);
+    fan::print_impl("========================");
+    fan::print_impl("Active handles:", uvloop->active_handles);
+    fan::print_impl("Active requests:", uvloop->active_reqs.count);
     fan::uv::walk(uvloop, [](fan::uv::handle_t* handle, void*) {
       const char* type_name = fan::uv::handle_type_name(handle->type);
-      fan::print("Handle:", type_name, "active:", fan::uv::is_active(handle), "closing:", fan::uv::is_closing(handle));
+      fan::print_impl("Handle:", type_name, "active:", fan::uv::is_active(handle), "closing:", fan::uv::is_closing(handle));
     }, nullptr);
-    fan::print("========================");
+    fan::print_impl("========================");
   }
 
   struct timer_t::timer_data {

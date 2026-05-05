@@ -371,6 +371,9 @@ if not is_plat("wasm") then
   add_deps("nfd")
 end
 
+for _, file in ipairs(module_files) do
+  add_files(file)
+end
 
 if has_config("FAN_REFLECTION") then
   for _, file in ipairs(os.files("fan/reflection/*.ixx")) do
@@ -380,10 +383,6 @@ if has_config("FAN_REFLECTION") then
       add_files(impl, {cxxflags = "-freflection"})
     end
   end
-end
-
-for _, file in ipairs(module_files) do
-  add_files(file)
 end
 
 for _, impl in ipairs(impl_files) do

@@ -609,7 +609,7 @@ export namespace fan {
             int width, height, nr_channels;
             unsigned char* data = stbi_load_from_memory(reinterpret_cast<const unsigned char*>(embedded_texture->pcData), embedded_texture->mWidth, &width, &height, &nr_channels, 0);
             if (data == nullptr) {
-              fan::print("failed to load texture");
+              fan::print_impl("failed to load texture");
               continue;
             }
 
@@ -659,7 +659,7 @@ export namespace fan {
         // Method 1: Try AI_MATKEY_BASE_COLOR (newer Assimp)
         if (cmaterial->Get(AI_MATKEY_BASE_COLOR, base_color) == AI_SUCCESS) {
           material_data.color[aiTextureType_DIFFUSE] = fan::vec4(base_color.r, base_color.g, base_color.b, base_color.a);
-          fan::print("Found base color via AI_MATKEY_BASE_COLOR:", base_color.r, base_color.g, base_color.b, base_color.a);
+          fan::print_impl("Found base color via AI_MATKEY_BASE_COLOR:", base_color.r, base_color.g, base_color.b, base_color.a);
           found_color = true;
         }
 
@@ -667,7 +667,7 @@ export namespace fan {
         if (!found_color) {
           if (cmaterial->Get("$clr.base", 0, 0, base_color) == AI_SUCCESS) {
             material_data.color[aiTextureType_DIFFUSE] = fan::vec4(base_color.r, base_color.g, base_color.b, base_color.a);
-            fan::print("Found base color via $clr.base:", base_color.r, base_color.g, base_color.b, base_color.a);
+            fan::print_impl("Found base color via $clr.base:", base_color.r, base_color.g, base_color.b, base_color.a);
             found_color = true;
           }
         }
@@ -679,7 +679,7 @@ export namespace fan {
             std::string key = prop->mKey.C_Str();
 
             // Debug: print all properties
-            fan::print("Material property [", i, "]:", key, "type:", prop->mType, "dataLen:", prop->mDataLength);
+            fan::print_impl("Material property [", i, "]:", key, "type:", prop->mType, "dataLen:", prop->mDataLength);
 
             // Look for base color property
             if (key.find("base") != std::string::npos || 
@@ -695,7 +695,7 @@ export namespace fan {
                 base_color.a = color_data[3];
 
                 material_data.color[aiTextureType_DIFFUSE] = fan::vec4(base_color.r, base_color.g, base_color.b, base_color.a);
-                fan::print("Found base color via property search:", base_color.r, base_color.g, base_color.b, base_color.a);
+                fan::print_impl("Found base color via property search:", base_color.r, base_color.g, base_color.b, base_color.a);
                 found_color = true;
                 break;
               }
@@ -707,7 +707,7 @@ export namespace fan {
         if (!found_color) {
           if (cmaterial->Get(AI_MATKEY_COLOR_DIFFUSE, base_color) == AI_SUCCESS) {
             material_data.color[aiTextureType_DIFFUSE] = fan::vec4(base_color.r, base_color.g, base_color.b, base_color.a);
-            fan::print("Found diffuse color:", base_color.r, base_color.g, base_color.b, base_color.a);
+            fan::print_impl("Found diffuse color:", base_color.r, base_color.g, base_color.b, base_color.a);
           }
         }
 
@@ -841,7 +841,7 @@ export namespace fan {
         
         scene = importer.GetOrphanedScene();
         if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-          fan::print(importer.GetErrorString());
+          fan::print_impl(importer.GetErrorString());
           return false;
         }
 
@@ -1156,7 +1156,7 @@ export namespace fan {
             aiNodeAnim* channel = anim->mChannels[i];
             auto found = bone_map.find(channel->mNodeName.C_Str());
             if (found == bone_map.end()) {
-              fan::print("unmapped bone, skipping...");
+              fan::print_impl("unmapped bone, skipping...");
               continue;
             }
             fan::model::bone_transform_track_t track;
@@ -1225,7 +1225,7 @@ export namespace fan {
         const std::string& format = "gltf2"
       ) {
         if (scene->mNumAnimations == 0) {
-          fan::print("model has no animations");
+          fan::print_impl("model has no animations");
           return 0;
         }
         std::uint32_t animation_index = -1;
@@ -1237,7 +1237,7 @@ export namespace fan {
         }
 
         if (animation_index == -1) {
-          fan::print("failed to find animation:" + animation_name_to_export);
+          fan::print_impl("failed to find animation:" + animation_name_to_export);
           return 0;
         }
         aiScene* new_scene = new aiScene();
@@ -1253,7 +1253,7 @@ export namespace fan {
         }
 
         for (int i = 0; i < new_scene->mAnimations[0]->mNumChannels; ++i) {
-          fan::print("exporting:", new_scene->mAnimations[0]->mChannels[i]->mNodeName.C_Str());
+          fan::print_impl("exporting:", new_scene->mAnimations[0]->mChannels[i]->mNodeName.C_Str());
         }
 
         Assimp::Exporter exporter;
@@ -1267,7 +1267,7 @@ export namespace fan {
         delete new_scene;
 
         if (result != aiReturn_SUCCESS) {
-          fan::print(std::string("failed to export animation:") + exporter.GetErrorString());
+          fan::print_impl(std::string("failed to export animation:") + exporter.GetErrorString());
           return 0;
         }
 
@@ -1698,7 +1698,7 @@ export namespace fan {
         bone_names_anim = bone_names_default;
         bone_names_model = bone_names_default;
         if (anim.scene->mNumAnimations == 0) {
-          fan::print("No animations in given animation.");
+          fan::print_impl("No animations in given animation.");
           return;
         }
         bone_mapper.clear();

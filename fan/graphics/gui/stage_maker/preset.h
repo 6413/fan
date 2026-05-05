@@ -41,7 +41,7 @@ struct structor_t {
       outside->update();
     };
     gstage->stage_list[outside->stage_common.stage_id].resize_id = gloco()->window.add_resize_callback([outside](const auto& d) {
-      fan::print("todo -- stage common window resize (if_has_function)");
+      fan::print_impl("todo -- stage common window resize (if_has_function)");
        // fan_if_has_function(outside, window_resize, ());
     });
   }

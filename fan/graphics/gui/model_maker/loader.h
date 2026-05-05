@@ -121,7 +121,7 @@ struct model_list_t {
         if (s.id.size()) {
           auto [it, emplaced] = mark_positions.try_emplace(s.id);
           if (!emplaced) {
-            fan::print("error: duplicate model id - undefined behaviour");
+            fan::print_impl("error: duplicate model id - undefined behaviour");
           }
           else {
             it->second = s.get_position() - node.position;

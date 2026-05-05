@@ -23,7 +23,7 @@ export namespace fan::process {
       .on("error:", [](std::string_view l) { fan::print_error(l); })
       .on("WARNING:", [](std::string_view l) { fan::print_warning(l); })
       .on("warning:", [](std::string_view l) { fan::print_warning(l); })
-      .otherwise([](std::string_view l) { fan::print(l); });
+      .otherwise([](std::string_view l) { fan::print_impl(l); });
   }
 
   struct spawn_t {

@@ -334,6 +334,6 @@ std::filesystem::path fan::io::file::find_relative_path(std::string_view file_pa
     }
   }
 
-  fan::print("failed to find path for:", std::string{file_path}, ". called from", src_dir.generic_string());
+  fan::print_impl("failed to find path for:", std::string{file_path}, ". called from", src_dir.generic_string());
   return {};
 }

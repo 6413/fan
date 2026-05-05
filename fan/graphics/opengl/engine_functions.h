@@ -417,7 +417,7 @@ void draw_all_shape_aabbs() {
         if (sid.iic()) {
           continue;
         }
-        //fan::print(fan::graphics::shapes::shape_names[sti]);
+        //fan::print_impl(fan::graphics::shapes::shape_names[sti]);
 
         auto* shape = ((fan::graphics::shapes::shape_t*)&sid);
 
@@ -617,7 +617,7 @@ void shapes_draw() {
     auto current_bmid = KeyTraverse.bmid();
    /* static int frame = 0;
     if (frame++ < 10) {
-      fan::print("Drawing bmid:", current_bmid.gint(), "shape_type:", shape_type);
+      fan::print_impl("Drawing bmid:", current_bmid.gint(), "shape_type:", shape_type);
     }*/
 
 
@@ -680,7 +680,7 @@ void shapes_draw() {
         fan::graphics::g_shapes->shaper.BlockManager[current_bmid].FirstBlockNR, 0);
 
       auto process_images = [&](auto& ri) {
-        //if (int(!ri.images[0].iic() && ri.images[0] != loco.default_texture)) fan::print("v", fan::graphics::shape_names[shape_type], ri.images[0].gint());
+        //if (int(!ri.images[0].iic() && ri.images[0] != loco.default_texture)) fan::print_impl("v", fan::graphics::shape_names[shape_type], ri.images[0].gint());
         loco.shader_set_value(shader, "has_normal_map", int(!ri.images[0].iic() && ri.images[0] != loco.default_texture));
         loco.shader_set_value(shader, "has_specular_map", int(!ri.images[1].iic() && ri.images[1] != loco.default_texture));
         loco.shader_set_value(shader, "has_occlusion_map", int(!ri.images[2].iic() && ri.images[2] != loco.default_texture));

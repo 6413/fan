@@ -862,7 +862,7 @@ void loco_t::visualize_culling() {
 #if defined(FAN_VULKAN)
 void loco_t::check_vk_result(VkResult err) {
   if (err != VK_SUCCESS) {
-    fan::print("vkerr", (int)err);
+    fan::print_impl("vkerr", (int)err);
   }
 }
 #endif

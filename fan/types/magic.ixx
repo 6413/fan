@@ -205,7 +205,7 @@ constexpr auto generate_variable_list_nref(const T& struct_value) { \
   template <typename T>
   constexpr void print_struct(const T& st) {
     static_assert(count_struct_members<T>() <= 30, "limited to 30 members");
-    fan::print(struct_to_string(st));
+    fan::print_impl(struct_to_string(st));
   }
 }
 
