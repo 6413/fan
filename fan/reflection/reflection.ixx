@@ -151,29 +151,37 @@ export namespace fan::refl {
   }
 
   template <typename T>
-  consteval auto make_match_type_impl(auto target) {
+  consteval auto make_match_type_impl(auto target, std::meta::info case_type) {
     std::vector<std::meta::info> specs;
     for (auto m : std::meta::nonstatic_data_members_of(^^T, std::meta::access_context::unchecked())) {
       specs.push_back(std::meta::data_member_spec(
-        ^^std::function<void()>,
+        case_type,
         { .name = std::string(std::meta::identifier_of(m)) }
       ));
     }
     return std::meta::define_aggregate(target, specs);
   }
 
-  template <typename T>
+  template <typename T, typename CaseType = std::function<void()>>
   struct match_type {
     struct type;
-    consteval { make_match_type_impl<T>(^^type); }
+    consteval { make_match_type_impl<T>(^^type, ^^CaseType); }
   };
 
-  template <typename T>
-  using match_t = match_type<T>::type;
+  template <typename T, typename CaseType = std::function<void()>>
+  using match_t = match_type<T, CaseType>::type;
 
   template <typename T>
   constexpr void match_visit(std::size_t i, match_t<T> cases) {
     member_visit<match_t<T>>(i, [&]<std::meta::info m> {
+      cases.[:m:]();
+    });
+  }
+
+
+  template <typename T, typename CaseType>
+  constexpr void match_visit(std::size_t i, typename match_type<T, CaseType>::type cases) {
+    member_visit<typename match_type<T, CaseType>::type>(i, [&]<std::meta::info m> {
       cases.[:m:]();
     });
   }
