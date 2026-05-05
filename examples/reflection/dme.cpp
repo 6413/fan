@@ -66,6 +66,7 @@ int main() {
 
   for (int i = 0; i < 100; ++i) {
     int idx = fan::random::value(0, 1);
+    // missing any match will result in compile error
     st.match(idx)({
       .a = [&]{ fan::assert(idx == 0); },
       .b = [&]{ fan::assert(idx == 1); }
