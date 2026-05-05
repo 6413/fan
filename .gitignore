@@ -64,3 +64,4 @@ fan_errors.txt
 fan_settings.json
 .vscode/
 vgcore*.*
+fan/reflection/gcc_private.h
