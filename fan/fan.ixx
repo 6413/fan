@@ -88,3 +88,8 @@ export import fan.graphics.gui.inventory;
 #endif
 
 export import fan.crypto;
+
+#if defined(FAN_REFLECTION)
+  //export import fan.reflection;
+  //export import fan.rjson;
+#endif

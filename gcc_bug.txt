@@ -1,0 +1,60 @@
+Summary:
+[modules][reflection] conflicting type for __mbstate_t when combining import std,  in global module fragment, and -freflection
+
+Product: gcc
+Component: c++
+Version: 16.1.1 (x86_64-pc-linux-gnu)
+Target: x86_64-pc-linux-gnu
+
+Description:
+When including <cmath> (or <math.h>) in the global module fragment and importing the std module, compilation fails with a conflicting type error for __mbstate_t if and only if -freflection is enabled. The compiler fails to merge the identical declarations from the textually included header and the imported module metadata.
+
+Without -freflection, the compilation succeeds.
+
+Minimal Reproducer (test.ixx):
+
+C++
+module;
+#include <cmath>
+export module test;
+import std;
+Steps to Reproduce:
+
+Bash
+mkdir -p gcm.cache
+g++ -std=c++26 -fmodules-ts -fmodule-only -c /usr/include/c++/16.1.1/bits/std.cc -o gcm.cache/std.gcm
+g++ -c -std=c++26 -freflection -fmodules-ts test.ixx
+Expected Results:
+Clean compilation. The compiler should deduplicate/merge the __mbstate_t declarations successfully, exactly as it does when the -freflection flag is omitted.
+
+Actual Results:
+
+Plaintext
+In file included from /usr/include/bits/types/mbstate_t.h:4,
+                 from /usr/include/wchar.h:53,
+                 from /usr/include/c++/16.1.1/cwchar:49,
+                 from /usr/include/c++/16.1.1/bits/postypes.h:42,
+                 from /usr/include/c++/16.1.1/bits/char_traits.h:44,
+                 from /usr/include/c++/16.1.1/string:45,
+                 from /usr/include/c++/16.1.1/bits/stdexcept_throw.h:57,
+                 from /usr/include/c++/16.1.1/bitset:49,
+                 from /usr/include/c++/16.1.1/x86_64-pc-linux-gnu/bits/stdc++.h:52,
+                 from /usr/include/c++/16.1.1/bits/std.cc:26,
+of module std, imported at test.ixx:4:
+/usr/include/bits/types/__mbstate_t.h:21:3: error: conflicting type for imported declaration ‘typedef struct __mbstate_t __mbstate_t’
+   21 | } __mbstate_t;
+      |   ^~~~~~~~~~~
+In file included from /usr/include/bits/types/mbstate_t.h:4,
+                 from /usr/include/wchar.h:53,
+                 from /usr/include/c++/16.1.1/cwchar:49,
+                 from /usr/include/c++/16.1.1/bits/postypes.h:42,
+                 from /usr/include/c++/16.1.1/bits/char_traits.h:44,
+                 from /usr/include/c++/16.1.1/string:45,
+                 from /usr/include/c++/16.1.1/bits/stdexcept_throw.h:57,
+                 from /usr/include/c++/16.1.1/bits/specfun.h:43,
+                 from /usr/include/c++/16.1.1/cmath:3913,
+                 from test.ixx:2:
+/usr/include/bits/types/__mbstate_t.h:21:3: note: existing declaration ‘typedef struct __mbstate_t __mbstate_t’
+   21 | } __mbstate_t;
+      |   ^~~~~~~~~~~
+/usr/include/c++/16.1.1/cmath:3784: confused by earlier errors, bailing out
