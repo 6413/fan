@@ -202,7 +202,7 @@ export namespace fan::opengl {
       auto& context = *this;
       auto found = __fan_internal_shader_list[nr].uniform_type_table.find(std::string(name));
       if (found == __fan_internal_shader_list[nr].uniform_type_table.end()) {
-        //fan::print("failed to set uniform value");
+        //fan::print_impl("failed to set uniform value");
         return;
         //fan::throw_error("failed to set uniform value");
       }

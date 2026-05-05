@@ -11,7 +11,7 @@ module;
   #endif
   #define DEBUG_PRINTS 0
   #if DEBUG_PRINTS
-    #define DPRINT(...) fan::print(__VA_ARGS__)
+    #define DPRINT(...) fan::print_impl(__VA_ARGS__)
   #else
     #define DPRINT(...) ((void)0)
   #endif
@@ -425,12 +425,12 @@ namespace fan::process {
   #if defined(fan_platform_windows)
     ::SetEnvironmentVariableA(spawn_self_env.c_str(), id.c_str());
     std::vector<std::string> args = {get_self_path()};
-    auto result = co_await run_async(args, [](std::string_view line) { fan::print("[child]", line); });
+    auto result = co_await run_async(args, [](std::string_view line) { fan::print_impl("[child]", line); });
     ::SetEnvironmentVariableA(spawn_self_env.c_str(), nullptr);
   #else
     std::vector<std::string> args = {get_self_path()};
     setenv(spawn_self_env.c_str(), id.c_str(), 1);
-    auto result = co_await run_async(args, [](std::string_view line) { fan::print("[child]", line); });
+    auto result = co_await run_async(args, [](std::string_view line) { fan::print_impl("[child]", line); });
     unsetenv(spawn_self_env.c_str());
   #endif
 

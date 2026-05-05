@@ -220,7 +220,7 @@ void update(){
 
 
     fan::io::file::write(filename, ostr, std::ios_base::binary);
-    fan::print("file saved to:" + filename);
+    fan::print_impl("file saved to:" + filename);
   }
 
   void fin(const fan::string& filename, const std::source_location& callers_path = std::source_location::current()) {
@@ -263,7 +263,7 @@ void update(){
             !std::regex_match(new_name, unix_filename_regex)
           #endif
           ) {
-          fan::print("invalid stage name");
+          fan::print_impl("invalid stage name");
           break;
         }
 
@@ -284,7 +284,7 @@ void update(){
       } while (0);
     }
     else {
-      fan::print("stage name already exists");
+      fan::print_impl("stage name already exists");
     }
     return 0;
   }

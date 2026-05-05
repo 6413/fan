@@ -264,7 +264,7 @@ export namespace fan {
             av_opt_set_int(encoder->codec_ctx->priv_data, "no-scenecut", 1, 0);
 
 #if __debug_prints
-            fan::print("encoder_nvenc_init: " + name +
+            fan::print_impl("encoder_nvenc_init: " + name +
               " | " + std::to_string(config.width) + "x" + std::to_string(config.height) +
               " | " + std::to_string(config.frame_rate) + "fps" +
               " | " + std::to_string(config.bitrate / 1000) + "kbps" +
@@ -299,14 +299,14 @@ export namespace fan {
             av_opt_set(encoder->codec_ctx->priv_data, "rc", "vbr_latency", 0);
             av_opt_set_int(encoder->codec_ctx->priv_data, "preanalysis", 0, 0);
 #if __debug_prints
-            fan::print("encoder_amf_init: " + name);
+            fan::print_impl("encoder_amf_init: " + name);
 #endif
           }
           else if (name.find("vaapi") != std::string::npos) {
             encoder->codec_ctx->bit_rate = config.bitrate;
             av_opt_set(encoder->codec_ctx->priv_data, "low_power", "1", 0);
 #if __debug_prints
-            fan::print("encoder_vaapi_init: " + name);
+            fan::print_impl("encoder_vaapi_init: " + name);
 #endif
           }
           else if (name == "libx264") {
@@ -314,7 +314,7 @@ export namespace fan {
             av_opt_set(encoder->codec_ctx->priv_data, "preset", "ultrafast", 0);
             av_opt_set(encoder->codec_ctx->priv_data, "tune", "zerolatency", 0);
 #if __debug_prints
-            fan::print("encoder_x264_init: software_fallback");
+            fan::print_impl("encoder_x264_init: software_fallback");
 #endif
           }
           else if (name == "libx265") {
@@ -322,19 +322,19 @@ export namespace fan {
             av_opt_set(encoder->codec_ctx->priv_data, "preset", "ultrafast", 0);
             av_opt_set(encoder->codec_ctx->priv_data, "tune", "zerolatency", 0);
 #if __debug_prints
-            fan::print("encoder_x265_init: software_fallback");
+            fan::print_impl("encoder_x265_init: software_fallback");
 #endif
           }
           else {
             encoder->codec_ctx->bit_rate = config.bitrate;
 #if __debug_prints
-            fan::print("encoder_generic_init: " + name);
+            fan::print_impl("encoder_generic_init: " + name);
 #endif
           }
 
           if (avcodec_open2(encoder->codec_ctx, encoder->codec, nullptr) == 0) {
 #if __debug_prints
-            fan::print("encoder_success: " + name);
+            fan::print_impl("encoder_success: " + name);
 #endif
             return true;
           }
@@ -347,7 +347,7 @@ export namespace fan {
         }
 
 #if __debug_prints
-        fan::print("encoder_error: no_suitable_codec");
+        fan::print_impl("encoder_error: no_suitable_codec");
 #endif
         return false;
       }
@@ -593,7 +593,7 @@ export namespace fan {
             (double)total_keyframes * 100.0 / total_frames_counted : 0.0;
 
 #if __debug_prints
-          fan::print("encoder_stats: " + codec_name_ +
+          fan::print_impl("encoder_stats: " + codec_name_ +
             " fps_" + std::to_string((int)avg_fps) +
             " time_" + std::to_string((int)avg_encode_time) + "us" +
             " bitrate_" + std::to_string((int)(avg_bitrate / 1000)) + "k/" + std::to_string((int)(target_bitrate / 1000)) + "k" +
@@ -710,7 +710,7 @@ export namespace fan {
         }
 
 #if __debug_prints
-        fan::print("decoder_hw_surface_format_failed");
+        fan::print_impl("decoder_hw_surface_format_failed");
 #endif
         return AV_PIX_FMT_NONE;
       }
@@ -730,14 +730,14 @@ export namespace fan {
             hw_type_ = type;
             hw_pixel_format_ = get_hw_pixel_format(type);
 #if __debug_prints
-            fan::print("decoder_hw_device_init: " + std::string(name));
+            fan::print_impl("decoder_hw_device_init: " + std::string(name));
 #endif
             return true;
           }
         }
 
 #if __debug_prints
-        fan::print("decoder_hw_device_unavailable");
+        fan::print_impl("decoder_hw_device_unavailable");
 #endif
         return false;
       }
@@ -849,7 +849,7 @@ export namespace fan {
             codec_name_ = decoder_name;
             using_hardware_ = true;
 #if __debug_prints
-            fan::print("decoder_hw_success: " + decoder_name);
+            fan::print_impl("decoder_hw_success: " + decoder_name);
 #endif
             return true;
           }
@@ -865,7 +865,7 @@ export namespace fan {
         }
 
 #if __debug_prints
-        fan::print("decoder_hw_error: no_suitable_decoder");
+        fan::print_impl("decoder_hw_error: no_suitable_decoder");
 #endif
         return false;
       }
@@ -912,7 +912,7 @@ export namespace fan {
           codec_name_ = it->second;
           using_hardware_ = false;
 #if __debug_prints
-          fan::print("decoder_sw_success: " + it->second);
+          fan::print_impl("decoder_sw_success: " + it->second);
 #endif
           return true;
         }
@@ -982,7 +982,7 @@ export namespace fan {
 
         initialized_ = true;
 #if __debug_prints
-        fan::print("decoder_open_success");
+        fan::print_impl("decoder_open_success");
 #endif
         return true;
       }
@@ -1018,7 +1018,7 @@ export namespace fan {
         hw_type_ = AV_HWDEVICE_TYPE_NONE;
         hw_pixel_format_ = AV_PIX_FMT_NONE;
 #if __debug_prints
-        fan::print("decoder_closed");
+        fan::print_impl("decoder_closed");
 #endif
       }
 
@@ -1269,7 +1269,7 @@ export namespace fan {
 
         using_hardware_ = false;
 #if __debug_prints
-        fan::print("decoder_force_software");
+        fan::print_impl("decoder_force_software");
 #endif
         return find_and_init_sw_decoder(codec_type);
       }
@@ -1470,7 +1470,7 @@ export namespace fan {
         config_.height = 720;
 
         if (!encoder_.open(config_, fan::vec2(config_.width, config_.height))) {
-          fan::print("Failed to open encoder");
+          fan::print_impl("Failed to open encoder");
           return false;
         }
 
@@ -1489,14 +1489,14 @@ export namespace fan {
 
         std::memset(&mdscr, 0, sizeof(mdscr));
         if (int ret = MD_SCR_open(&mdscr); ret != 0) {
-          fan::print("failed to open screen:" + std::to_string(ret));
+          fan::print_impl("failed to open screen:" + std::to_string(ret));
           return false;
         }
 
         resolution_manager.detect_and_set_optimal(*this);
 
         if (!encoder_.open(config_, fan::vec2(mdscr.Geometry.Resolution.x, mdscr.Geometry.Resolution.y))) {
-          fan::print("Failed to reopen encoder with screen resolution");
+          fan::print_impl("Failed to reopen encoder with screen resolution");
           return false;
         }
 
@@ -1549,7 +1549,7 @@ export namespace fan {
 
           if (update_flags & codec_update_e::scaling_quality) {
             if (!encoder_.update_scaling_quality(config_.scaling_quality)) {
-              fan::print("Failed to update scaling quality");
+              fan::print_impl("Failed to update scaling quality");
             }
           }
           if (update_flags & ~codec_update_e::scaling_quality) {
@@ -1560,19 +1560,19 @@ export namespace fan {
         }
 
         if (!screen_buffer) {
-          fan::print("Error: screen_buffer is null");
+          fan::print_impl("Error: screen_buffer is null");
           return false;
         }
 
         if (mdscr.Geometry.Resolution.x <= 0 || mdscr.Geometry.Resolution.y <= 0) {
-          fan::print("Error: invalid screen resolution: " +
+          fan::print_impl("Error: invalid screen resolution: " +
             std::to_string(mdscr.Geometry.Resolution.x) + "x" +
             std::to_string(mdscr.Geometry.Resolution.y));
           return false;
         }
 
         if (mdscr.Geometry.LineSize <= 0) {
-          fan::print("Error: invalid line size: " + std::to_string(mdscr.Geometry.LineSize));
+          fan::print_impl("Error: invalid line size: " + std::to_string(mdscr.Geometry.LineSize));
           return false;
         }
 
@@ -1580,7 +1580,7 @@ export namespace fan {
 
         int min_line_size = mdscr.Geometry.Resolution.x * 4;
         if (mdscr.Geometry.LineSize < min_line_size) {
-          fan::print("Error: LineSize too small for BGRA. Expected at least: " +
+          fan::print_impl("Error: LineSize too small for BGRA. Expected at least: " +
             std::to_string(min_line_size) + ", got: " +
             std::to_string(mdscr.Geometry.LineSize));
           return false;
@@ -1716,7 +1716,7 @@ export namespace fan {
     struct screen_decode_t {
       bool open() {
         if (!decoder_.open()) {
-          fan::print("Failed to open decoder");
+          fan::print_impl("Failed to open decoder");
           return false;
         }
         return true;

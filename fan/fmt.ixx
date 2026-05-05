@@ -30,7 +30,7 @@ export namespace fan {
 
   template <typename... args_t>
   constexpr auto print_format(current_fmt::format_string<args_t...> fmt, args_t&&... args) {
-    fan::print(current_fmt::format(fmt, std::forward<args_t>(args)...));
+    fan::print_impl(current_fmt::format(fmt, std::forward<args_t>(args)...));
   }
 
   template <typename... args_t>
@@ -40,7 +40,7 @@ export namespace fan {
 
   template <typename... args_t>
   constexpr auto throw_error_format(current_fmt::format_string<args_t...> fmt, args_t&&... args) {
-    fan::print(current_fmt::format(fmt, std::forward<args_t>(args)...));
+    fan::print_impl(current_fmt::format(fmt, std::forward<args_t>(args)...));
     throw_error_impl();
   }
 

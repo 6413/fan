@@ -73,7 +73,7 @@ export namespace fan {
               continue;
             }
             else {
-              fan::print("unimplemented channel", ii.channels);
+              fan::print_impl("unimplemented channel", ii.channels);
               fan::model::cached_images[name] = fan::graphics::get_default_texture(); // insert default (missing) texture, since old doesnt exist
             }
           }

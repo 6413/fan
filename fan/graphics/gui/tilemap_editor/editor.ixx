@@ -646,7 +646,7 @@ export struct fte_t {
           switch (brush.type) {
             case brush_t::type_e::texture: {
               if (layers.back().shape.set_tp(&tile.ti)) {
-                fan::print("failed to load image");
+                fan::print_impl("failed to load image");
               }
               break;
             }
@@ -696,7 +696,7 @@ export struct fte_t {
                   }};
 
                   if (layer.shape.set_tp(&tile.ti)) {
-                    fan::print("failed to load image");
+                    fan::print_impl("failed to load image");
                   }
                   layer.tile.mesh_property = mesh_property_t::none;
                   break;

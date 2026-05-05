@@ -107,15 +107,6 @@ export namespace fan {
   #endif
   }
 
-  template <typename ...Args> void print(const Args&... args) { detail::print_impl(format_args(args...) + '\n'); }
-  template <typename ...Args> void printr(const Args&... args) { detail::printr_impl(format_args_raw(args...)); }
-  template <typename ...Args> void printc(const Args&... args) { detail::print_impl(format_args_comma(args...) + '\n'); }
-  template <typename ...Args> void printt(std::streamsize tab_width, const Args&... args) { detail::print_impl(format_args_tabbed(tab_width, args...) + '\n'); }
-  template <typename ...Args> void printn8(const Args&... args) { detail::print_impl(format_args_n8(args...) + '\n'); }
-  template <typename ...Args> void print_no_space(const Args&... args) { detail::print_impl(format_args_no_space(args...) + '\n'); }
-  template <typename ...Args> void printnln(const Args&... args) { detail::printr_impl(format_args_with_space(args...)); }
-  template <typename ...Args> void wprint_no_endline(const Args&... args) { detail::wprint_impl(format_wargs_with_space(args...), false); }
-  template <typename ...Args> void wprint(const Args&... args) { detail::wprint_impl(format_wargs(args...), true); }
 
   template <typename ...Args>
   void print_color_raw(const fan::color& c, const Args&... args) {
@@ -126,6 +117,32 @@ export namespace fan {
   void print_color(const fan::color& c, const Args&... args) {
     print_color_raw(c, args..., '\n');
   }
+
+  std::string paint(const fan::color& c, const auto&... args) {
+    std::string msg = fan::format_args(args...);
+    std::uint32_t rgba = c.get_rgba();
+    std::uint8_t r = (rgba >> 24) & 0xFF, g = (rgba >> 16) & 0xFF, b = (rgba >> 8) & 0xFF;
+    return "\033[38;2;" + std::to_string(r) + ";" + std::to_string(g) + ";" + std::to_string(b) + "m" + msg + "\033[0m";
+  }
+  std::string paint_ok(const auto&... args)   { return paint(fan::colors::green,  args...); }
+  std::string paint_warn(const auto&... args) { return paint(fan::colors::yellow, args...); }
+  std::string paint_err(const auto&... args)  { return paint(fan::colors::red,    args...); }
+
+  template <typename ...Args> void print_impl(const Args&... args) { detail::print_impl(format_args(args...) + '\n'); }
+  
+#if !defined(FAN_REFLECTION)
+  template <typename ...Args> void print(const Args&... args) { fan::print_impl(args...); }
+#endif
+
+
+  template <typename ...Args> void printr(const Args&... args) { detail::printr_impl(format_args_raw(args...)); }
+  template <typename ...Args> void printc(const Args&... args) { detail::print_impl(format_args_comma(args...) + '\n'); }
+  template <typename ...Args> void printt(std::streamsize tab_width, const Args&... args) { detail::print_impl(format_args_tabbed(tab_width, args...) + '\n'); }
+  template <typename ...Args> void printn8(const Args&... args) { detail::print_impl(format_args_n8(args...) + '\n'); }
+  template <typename ...Args> void print_no_space(const Args&... args) { detail::print_impl(format_args_no_space(args...) + '\n'); }
+  template <typename ...Args> void printnln(const Args&... args) { detail::printr_impl(format_args_with_space(args...)); }
+  template <typename ...Args> void wprint_no_endline(const Args&... args) { detail::wprint_impl(format_wargs_with_space(args...), false); }
+  template <typename ...Args> void wprint(const Args&... args) { detail::wprint_impl(format_wargs(args...), true); }
 
   template <typename ...Args>
   void printr_ok(const Args&... args) {
@@ -229,16 +246,6 @@ export namespace fan {
       fan::print_success(expected);
     }
   }
-
-  std::string paint(const fan::color& c, const auto&... args) {
-    std::string msg = fan::format_args(args...);
-    std::uint32_t rgba = c.get_rgba();
-    std::uint8_t r = (rgba >> 24) & 0xFF, g = (rgba >> 16) & 0xFF, b = (rgba >> 8) & 0xFF;
-    return "\033[38;2;" + std::to_string(r) + ";" + std::to_string(g) + ";" + std::to_string(b) + "m" + msg + "\033[0m";
-  }
-  std::string paint_ok(const auto&... args)   { return paint(fan::colors::green,  args...); }
-  std::string paint_warn(const auto&... args) { return paint(fan::colors::yellow, args...); }
-  std::string paint_err(const auto&... args)  { return paint(fan::colors::red,    args...); }
 
   namespace debug {
     void print_stacktrace() {

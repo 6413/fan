@@ -3,12 +3,31 @@ module;
 export module fan.reflection;
 
 import std;
-import fan.print;
 import fan.types.color;
+import fan.print;
 
 #if defined(FAN_REFLECTION)
   #include "gcc_private.h"
 #endif
+
+export namespace fan {
+  consteval std::string_view make_name(std::size_t i) {
+    char buf[32] = {};
+    std::size_t pos = 31;
+
+    if (i == 0) {
+      buf[--pos] = '0';
+    } else {
+      while (i > 0) {
+        buf[--pos] = char('0' + (i % 10));
+        i /= 10;
+      }
+    }
+    buf[--pos] = 'v';
+
+    return std::define_static_string(std::string_view(&buf[pos]));
+  }
+}
 
 export namespace fan::refl {
   template <typename T>
@@ -212,23 +231,6 @@ export namespace fan::refl {
   template <class T>
   using dynamic_t = dynamic<T>::type;
 
-  consteval std::string_view make_name(std::size_t i) {
-    char buf[32] = {};
-    std::size_t pos = 31;
-
-    if (i == 0) {
-      buf[--pos] = '0';
-    } else {
-      while (i > 0) {
-        buf[--pos] = char('0' + (i % 10));
-        i /= 10;
-      }
-    }
-    buf[--pos] = 'v';
-
-    return std::define_static_string(std::string_view(&buf[pos]));
-  }
-
   template <typename TO, typename T, std::size_t N>
   consteval auto gen_types_impl() {
     std::vector<std::meta::info> specs;
@@ -252,9 +254,22 @@ export namespace fan::refl {
   template <typename T, std::size_t N>
   using gen_types_t = gen_types<T, N>::type;
 
+  template <typename... Ts>
+  auto make_struct(Ts&&... args) {
+    struct result;
+    consteval {
+      std::vector<std::meta::info> specs;
+      std::size_t i = 0;
+      ((specs.push_back(std::meta::data_member_spec(^^Ts, {.name = fan::make_name(i++)}))), ...);
+      std::meta::define_aggregate(^^result, specs);
+    }
+    return result{std::forward<Ts>(args)...};
+  }
+
 }  // namespace fan::refl
 
-export namespace fan {
+
+namespace fan::detail {
   template <typename T>
   std::string format_reflect(const T& obj, int indent_level = 0) {
     if constexpr (requires { std::declval<std::ostream&>() << obj; }) {
@@ -263,7 +278,7 @@ export namespace fan {
       std::string t{fan::refl::name_of(^^T)};
       if (t.starts_with("member_t {aka ")) t = t.substr(14, t.size() - 15);
       return fan::paint(fan::colors::white, val.str()) + fan::paint(fan::colors::gray, " [") +
-             fan::paint(fan::colors::teal, t) + fan::paint(fan::colors::gray, "]");
+            fan::paint(fan::colors::teal, t) + fan::paint(fan::colors::gray, "]");
     }
     else {
       std::string ind(indent_level * 2, ' ');
@@ -271,14 +286,16 @@ export namespace fan {
                         fan::paint(fan::colors::gray, " {\n");
       fan::refl::iterate_members<T>(obj, [&](auto name, auto& value) {
         out += fan::paint(fan::colors::amber, ind + "  ." + std::string{name} + " = ") +
-               format_reflect(value, indent_level + 1) + "\n";
+              format_reflect(value, indent_level + 1) + "\n";
       });
       return out + fan::paint(fan::colors::gray, ind + "}");
     }
   }
+}
 
+export namespace fan {
   template <typename... T>
-  void print_reflect(const T&... args) {
-    (fan::print_color_raw(fan::colors::white, format_reflect(args) + "\n"), ...);
+  void print(const T&... args) {
+    (fan::print_color_raw(fan::colors::white, fan::detail::format_reflect(args) + "\n"), ...);
   }
-}  // namespace fan
+}

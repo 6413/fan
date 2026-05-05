@@ -51,14 +51,14 @@ namespace fan::opengl {
   }
 
   void context_t::print_version() {
-    fan::print("opengl version supported:", fan_opengl_call(glGetString(GL_VERSION)));
+    fan::print_impl("opengl version supported:", fan_opengl_call(glGetString(GL_VERSION)));
   }
 
   void context_t::error_callback(int error, const char* description) {
     if (error == GLFW_NOT_INITIALIZED) {
       return;
     }
-    fan::print("window error " + std::to_string(error) + ": " + description);
+    fan::print_impl("window error " + std::to_string(error) + ": " + description);
     //__abort();
   }
 
@@ -264,7 +264,7 @@ namespace fan::opengl {
         fan_opengl_call(glGetShaderInfoLog(shader, buffer_size, &test, buffer.data()));
       }
       std::string fpath = std::string(file_path);
-      fan::print("failed to compile: " + type, buffer, "file_path:", fpath.empty() ? "PATH FILE NOT FOUND" : fpath);
+      fan::print_impl("failed to compile: " + type, buffer, "file_path:", fpath.empty() ? "PATH FILE NOT FOUND" : fpath);
       return false;
     }
     return true;
@@ -304,7 +304,7 @@ namespace fan::opengl {
         fan_opengl_call(glGetShaderInfoLog(vertex ? shader.vertex : shader.fragment, buffer_size, &test, buffer.data()));
       }
       std::string fpath = std::string(file_path);
-      fan::print("failed to compile: " + type, buffer, "file_path:", fpath.empty() ? "PATH FILE NOT FOUND" : fpath);
+      fan::print_impl("failed to compile: " + type, buffer, "file_path:", fpath.empty() ? "PATH FILE NOT FOUND" : fpath);
       return false;
     }
     return true;
@@ -394,66 +394,66 @@ namespace fan::opengl {
       GLint compiled = 0;
       fan_opengl_call(glGetShaderiv(shader.vertex, GL_COMPILE_STATUS, &compiled));
       if (!compiled) {
-        fan::print("Vertex shader not compiled successfully before linking");
+        fan::print_impl("Vertex shader not compiled successfully before linking");
         fan_opengl_call(glDeleteProgram(temp_id));
         return false;
       }
       fan_opengl_call(glAttachShader(temp_id, shader.vertex));
     }
     else {
-      fan::print("Warning: No vertex shader attached");
+      fan::print_impl("Warning: No vertex shader attached");
     }
     if (shader.fragment != (std::uint32_t)-1) {
       GLint compiled = 0;
       fan_opengl_call(glGetShaderiv(shader.fragment, GL_COMPILE_STATUS, &compiled));
       if (!compiled) {
-        fan::print("Fragment shader not compiled successfully before linking");
+        fan::print_impl("Fragment shader not compiled successfully before linking");
         fan_opengl_call(glDeleteProgram(temp_id));
         return false;
       }
       fan_opengl_call(glAttachShader(temp_id, shader.fragment));
     }
     else {
-      fan::print("Warning: No fragment shader attached");
+      fan::print_impl("Warning: No fragment shader attached");
     }
     fan_opengl_call(glLinkProgram(temp_id));
     GLint success;
     fan_opengl_call(glGetProgramiv(temp_id, GL_LINK_STATUS, &success));
     bool ret = true;
     if (!success) {
-      fan::print("PROGRAM LINK FAILED - Dumping shader source:");
-      fan::print("=== VERTEX SHADER SOURCE ===");
-      fan::print(__fan_internal_shader_list[nr].svertex);
-      fan::print("=== END VERTEX SHADER ===");
-      fan::print("=== FRAGMENT SHADER SOURCE ===");
-      fan::print(__fan_internal_shader_list[nr].sfragment);
-      fan::print("=== END FRAGMENT SHADER ===");
+      fan::print_impl("PROGRAM LINK FAILED - Dumping shader source:");
+      fan::print_impl("=== VERTEX SHADER SOURCE ===");
+      fan::print_impl(__fan_internal_shader_list[nr].svertex);
+      fan::print_impl("=== END VERTEX SHADER ===");
+      fan::print_impl("=== FRAGMENT SHADER SOURCE ===");
+      fan::print_impl(__fan_internal_shader_list[nr].sfragment);
+      fan::print_impl("=== END FRAGMENT SHADER ===");
       int buffer_size = 0;
       fan_opengl_call(glGetProgramiv(temp_id, GL_INFO_LOG_LENGTH, &buffer_size));
-      fan::print("Program link failed. Info log length:", buffer_size);
+      fan::print_impl("Program link failed. Info log length:", buffer_size);
       if (buffer_size > 1) {
         std::string buffer;
         buffer.resize(buffer_size);
         fan_opengl_call(glGetProgramInfoLog(temp_id, buffer_size, nullptr, buffer.data()));
-        fan::print("Program link error:", buffer);
+        fan::print_impl("Program link error:", buffer);
       }
       else {
-        fan::print("Program link failed but no error message available");
+        fan::print_impl("Program link failed but no error message available");
         fan_opengl_call(glValidateProgram(temp_id));
         GLint validate_status;
         fan_opengl_call(glGetProgramiv(temp_id, GL_VALIDATE_STATUS, &validate_status));
-        fan::print("Program validation status:", validate_status);
+        fan::print_impl("Program validation status:", validate_status);
         GLint validate_log_length;
         fan_opengl_call(glGetProgramiv(temp_id, GL_INFO_LOG_LENGTH, &validate_log_length));
         if (validate_log_length > 1) {
           std::string validate_buffer;
           validate_buffer.resize(validate_log_length);
           fan_opengl_call(glGetProgramInfoLog(temp_id, validate_log_length, nullptr, validate_buffer.data()));
-          fan::print("Program validation info:", validate_buffer);
+          fan::print_impl("Program validation info:", validate_buffer);
         }
         GLint attached_shader_count;
         fan_opengl_call(glGetProgramiv(temp_id, GL_ATTACHED_SHADERS, &attached_shader_count));
-        fan::print("Number of attached shaders:", attached_shader_count);
+        fan::print_impl("Number of attached shaders:", attached_shader_count);
       }
       ret = false;
     }
@@ -614,7 +614,7 @@ namespace fan::opengl {
       // Check if there's a mismatch
       int format_channels = fan::graphics::get_channel_amount(opengl_to_global_format(p.format));
       if (format_channels != image_info.channels) {
-        fan::print("Warning: Format/channels mismatch. Format specifies",
+        fan::print_impl("Warning: Format/channels mismatch. Format specifies",
           format_channels, "channels but image_info specifies",
           image_info.channels, "channels. Using format specification.");
       }
@@ -765,7 +765,7 @@ namespace fan::opengl {
       // Check if there's a mismatch
       int format_channels = get_format_from_channels(p.format);
       if (format_channels != image_info.channels) {
-        fan::print("Warning: Format/channels mismatch. Format specifies",
+        fan::print_impl("Warning: Format/channels mismatch. Format specifies",
           format_channels, "channels but image_info specifies",
           image_info.channels, "channels. Using format specification.");
       }
@@ -811,7 +811,7 @@ namespace fan::opengl {
   }
   std::vector<std::uint8_t> context_t::image_get_pixel_data(fan::graphics::image_nr_t nr, GLenum format, fan::vec2 uvp, fan::vec2 uvs) {
 #if defined(__wasm__)
-    fan::print("glGetTexImage is not supported in WebGL. Use a Framebuffer + glReadPixels instead.");
+    fan::print_impl("glGetTexImage is not supported in WebGL. Use a Framebuffer + glReadPixels instead.");
     return {}; 
 #else
     auto& image = image_get(nr);
@@ -1177,7 +1177,7 @@ namespace fan::opengl::core {
   }
 
   void write_glbuffer(fan::opengl::context_t& context, GLuint buffer, const void* data, std::uintptr_t size, std::uint32_t usage, GLenum target) {
-    //fan::print("write_glbuffer", buffer);
+    //fan::print_impl("write_glbuffer", buffer);
     fan_opengl_call(glBindBuffer(target, buffer));
     fan_opengl_call(glBufferData(target, size, data, usage));
   }
@@ -1193,7 +1193,7 @@ namespace fan::opengl::core {
 
   void edit_glbuffer(fan::opengl::context_t& context, GLuint buffer, const void* data, std::uintptr_t offset, std::uintptr_t size, std::uintptr_t target) {
     fan_opengl_call(glBindBuffer(target, buffer));
-    //fan::print("edit_glbuffer", buffer);
+    //fan::print_impl("edit_glbuffer", buffer);
 #if FAN_DEBUG >= fan_debug_high
     int buffer_size = get_buffer_size(context, target, buffer);
     if ((buffer_size < (int)size) || (int)(offset + size) > buffer_size) {

@@ -992,7 +992,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       }
       add_model("models/floor.fbx", fan::mat4(1).scale(0.001f).translate(fan::vec3(0.1, -0.1, 0.1)));
       add_model("models/wall.fbx", fan::mat4(1).scale(0.001f).translate(fan::vec3(0.1, -0.1, 0.1)));
-      fan::print("models:", models.size(), "instances:", instances.size(),
+      fan::print_impl("models:", models.size(), "instances:", instances.size(),
         "materials:", materials.size(),
         "material_indices_per_primitive:", material_indices_per_primitive.size());*/
 
@@ -1017,7 +1017,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       }
       for (std::size_t i = 0; i < materials.size(); i++) {
         const auto& m = materials[i];
-        fan::print("material", i,
+        fan::print_impl("material", i,
           "albedo_texture_id", m.albedo_texture_id,
           "base_color", m.base_color.x, m.base_color.y, m.base_color.z);
       }

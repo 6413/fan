@@ -55,7 +55,7 @@ static void update_shape(fan::graphics::shapes::shape_t* shape, modifier_t&& mod
   shape->get_visual_id() = fan::graphics::g_shapes->shaper.add(sti, key_pack.get(), key_pack_size, vi.get(), ri.get());
 
 #if defined(debug_shape_t)
-  fan::print("+", shape->NRI);
+  fan::print_impl("+", shape->NRI);
 #endif
 }
 
