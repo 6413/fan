@@ -247,4 +247,17 @@ export namespace fan {
       return data();
     }
   };
+
+  template <std::size_t N>
+  struct fixed_string {
+    char data[N]{};
+    consteval fixed_string(const char (&s)[N]) {
+      for (std::size_t i = 0; i < N; ++i) data[i] = s[i];
+    }
+    consteval std::string_view view() const { return {data, N - 1}; }
+    auto operator<=>(const fixed_string&) const = default;
+  };
+
+  template <std::size_t N>
+  fixed_string(const char (&)[N]) -> fixed_string<N>;
 }
