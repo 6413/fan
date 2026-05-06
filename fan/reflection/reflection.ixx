@@ -11,7 +11,7 @@ import fan.print;
 #endif
 
 export namespace fan {
-  consteval std::string_view make_name(std::size_t i) {
+  consteval std::string_view make_name(std::size_t i, char prefix = 'v') {
     char buf[32] = {};
     std::size_t pos = 31;
 
@@ -23,7 +23,7 @@ export namespace fan {
         i /= 10;
       }
     }
-    buf[--pos] = 'v';
+    buf[--pos] = prefix;
 
     return std::define_static_string(std::string_view(&buf[pos]));
   }
