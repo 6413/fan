@@ -266,6 +266,133 @@ export namespace fan::refl {
     return result{std::forward<Ts>(args)...};
   }
 
+   template <std::meta::reflection_range _Rg = std::initializer_list<std::meta::info>>
+  consteval std::meta::info define_aggregate(std::meta::info target, _Rg&& members) {
+    return std::meta::define_aggregate(target, std::forward<_Rg>(members));
+  }
+
+  template <typename T>
+  consteval bool has_member(std::string_view name) {
+    template for (constexpr auto m : members<T>()) {
+      if (std::meta::identifier_of(m) == name) return true;
+    }
+    return false;
+  }
+
+  template <typename T>
+  consteval std::meta::info member_type(std::string_view name) {
+    template for (constexpr auto m : members<T>()) {
+      if (std::meta::identifier_of(m) == name)
+        return std::meta::type_of(m);
+    }
+    return std::meta::info{};
+  }
+
+  template <typename T>
+  consteval bool has_same_members(std::meta::info a, std::meta::info b) {
+    auto ma = std::meta::nonstatic_data_members_of(a, std::meta::access_context::unchecked());
+    auto mb = std::meta::nonstatic_data_members_of(b, std::meta::access_context::unchecked());
+    if (ma.size() != mb.size()) return false;
+    for (std::size_t i = 0; i < ma.size(); ++i)
+      if (std::meta::type_of(ma[i]) != std::meta::type_of(mb[i])) return false;
+    return true;
+  }
+
+  template <typename To, typename From>
+  constexpr To struct_cast(const From& from) {
+    To result{};
+    template for (constexpr auto m : members<To>()) {
+      constexpr auto name = std::meta::identifier_of(m);
+      if constexpr (has_member<From>(name)) {
+        constexpr auto src = []<std::meta::info fm>(){ return fm; }
+          .template operator()<*std::ranges::find_if(
+            std::meta::nonstatic_data_members_of(^^From, std::meta::access_context::unchecked()),
+            [](auto x){ return std::meta::identifier_of(x) == name; }
+          )>();
+        result.[:m:] = from.[:src:];
+      }
+    }
+    return result;
+  }
+
+  template <typename A, typename B>
+  consteval bool is_layout_compatible() {
+    auto ma = std::meta::nonstatic_data_members_of(^^A, std::meta::access_context::unchecked());
+    auto mb = std::meta::nonstatic_data_members_of(^^B, std::meta::access_context::unchecked());
+    if (ma.size() != mb.size()) return false;
+    for (std::size_t i = 0; i < ma.size(); ++i)
+      if (std::meta::type_of(ma[i]) != std::meta::type_of(mb[i])) return false;
+    return true;
+  }
+
+  template <typename T>
+  constexpr auto to_tuple(T&& obj) {
+    using U = std::remove_cvref_t<T>;
+    return [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+      constexpr auto ms = std::define_static_array(
+        std::meta::nonstatic_data_members_of(^^U, std::meta::access_context::unchecked())
+      );
+      return std::make_tuple(obj.[:ms[Is]:]...);
+    }(std::make_index_sequence<members<U>().size()>{});
+  }
+
+  template <typename T>
+  constexpr auto to_tie(T& obj) {
+    using U = std::remove_cvref_t<T>;
+    return [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+      constexpr auto ms = std::define_static_array(
+        std::meta::nonstatic_data_members_of(^^U, std::meta::access_context::unchecked())
+      );
+      return std::tie(obj.[:ms[Is]:]...);
+    }(std::make_index_sequence<members<U>().size()>{});
+  }
+
+  template <typename T>
+  constexpr bool equal(const T& a, const T& b) {
+    bool result = true;
+    template for (constexpr auto m : members<T>()) {
+      if (a.[:m:] != b.[:m:]) { result = false; break; }
+    }
+    return result;
+  }
+
+  template <typename T>
+  constexpr std::size_t hash(const T& obj) {
+    std::size_t seed = 0;
+    template for (constexpr auto m : members<T>()) {
+      seed ^= std::hash<std::remove_cvref_t<decltype(obj.[:m:])>>{}(obj.[:m:])
+              + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    }
+    return seed;
+  }
+
+  template <typename T>
+  constexpr T zero() {
+    T result{};
+    template for (constexpr auto m : members<T>()) {
+      result.[:m:] = {};
+    }
+    return result;
+  }
+
+  template <typename TAttr, std::meta::info M>
+  consteval bool has_annotation() {
+    template for (constexpr auto ann : std::define_static_array(std::meta::annotations_of(M))) {
+      if constexpr (std::meta::remove_cv(std::meta::type_of(ann)) == ^^TAttr) return true;
+    }
+    return false;
+  }
+
+  // iterate only members that have a specific annotation
+  template <typename T, typename TAttr, typename F>
+  constexpr void for_each_annotated(F&& func) {
+    template for (constexpr auto m : members<T>()) {
+      if constexpr (has_annotation<TAttr, m>()) {
+        func.template operator()<m>();
+      }
+    }
+  }
+
 }  // namespace fan::refl
 
 

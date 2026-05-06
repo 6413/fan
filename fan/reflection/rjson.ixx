@@ -5,6 +5,7 @@ export module fan.rjson;
 import std;
 
 import fan.reflection;
+import fan.types.compile_time_string;
 
 export namespace fan {
   struct rjson_t {
@@ -324,4 +325,46 @@ export namespace fan {
   inline std::ostream& operator<<(std::ostream& os, const rjson_t& j) {
     return os << rjson_dump(j, 2);
   }
+
+  consteval std::meta::info json_schema_to_struct(std::meta::info target, std::string_view schema) {
+    std::vector<std::meta::info> specs;
+    std::size_t i = 0;
+
+    auto skip  = [&] { while (i < schema.size() && (schema[i]==' '||schema[i]=='\n'||schema[i]=='\t')) ++i; };
+    auto str   = [&] {
+      ++i; // "
+      std::size_t s = i;
+      while (schema[i] != '"') ++i;
+      return schema.substr(s, i++ - s);
+    };
+    auto type  = [&](std::string_view t) -> std::meta::info {
+      if (t == "int")    return ^^int;
+      if (t == "float")  return ^^float;
+      if (t == "double") return ^^double;
+      if (t == "bool")   return ^^bool;
+      if (t == "string") return ^^std::string;
+      return ^^int;
+    };
+
+    skip(); ++i; // {
+    while (true) {
+      skip(); if (schema[i]=='}') break; if (schema[i]==',') { ++i; continue; }
+      auto name = str(); skip(); ++i; // :
+      skip();
+      specs.push_back(std::meta::data_member_spec(type(str()), {.name = std::string(name)}));
+    }
+
+    return std::meta::define_aggregate(target, specs);
+  }
+
+  template <fan::fixed_string Schema>
+  struct json_schema {
+    struct type;
+    consteval {
+      json_schema_to_struct(^^type, Schema.view());
+    }
+  };
+
+  template <fan::fixed_string Schema>
+  using json_schema_t = json_schema<Schema>::type;
 }
