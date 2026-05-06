@@ -40,9 +40,11 @@ namespace fan {
       return;
     }
     glfwSetErrorCallback([](int error, const char* description) {
+    #if defined(GLFW_FEATURE_UNAVAILABLE)
       if (error == GLFW_FEATURE_UNAVAILABLE) {
         return; // ignore unsupported Wayland features
       }
+    #endif
       fan::throw_error("GLFW error " + std::to_string(error) + ": " + description);
     });
     if (!glfwInit()) {
