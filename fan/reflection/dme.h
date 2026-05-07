@@ -28,18 +28,18 @@
 #define dme_8(name, body, ...) \
   dme_pair(name, body), dme_6(__VA_ARGS__)
 
-#define dme_get( \
+#define __dme_get( \
   _1,_2,_3,_4,_5,_6,_7,_8, \
   NAME, ...) NAME
 
 #define dme_select(...) \
-  dme_get(__VA_ARGS__, \
+  __dme_get(__VA_ARGS__, \
     dme_8, dme_8, \
     dme_6, dme_6, \
     dme_4, dme_4, \
     dme_2)
 
-#define dme(shared_type, ...) \
+#define __dme(shared_type, ...) \
   typename fan::dme_builder< \
     shared_type, \
     void, \
