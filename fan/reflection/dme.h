@@ -40,7 +40,7 @@
     dme_2)
 
 #define dme(shared_type, ...) \
-  typename dme_builder< \
+  typename fan::dme_builder< \
     shared_type, \
     void, \
     dme_select(__VA_ARGS__)(__VA_ARGS__) \

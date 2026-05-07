@@ -47,49 +47,10 @@ static_assert(fan::refl::is_same_name(attr_type_b, ^^b_t));
 static_assert(fan::refl::is_same_type(attr_type_a, ^^a_t));
 static_assert(fan::refl::is_same_type(attr_type_b, ^^b_t));
 
-
-template <typename member_t, auto... Params>
-struct storage_gen {
-  struct type;
-  consteval {
-    auto target = ^^type;
-    constexpr auto params = std::make_tuple(Params...);
-    std::vector<std::meta::info> specs;
-
-    fan::_for<sizeof...(Params), 2>([&](auto j) {
-      constexpr auto idx = decltype(j)::value;
-      using annotation_t = [:std::get<idx>(params):];
-      constexpr auto name_obj = std::get<idx + 1>(params);
-
-      std::vector<std::meta::info> member_annotations;
-      
-      if constexpr (!std::is_void_v<annotation_t>) {
-        member_annotations.push_back(std::meta::reflect_constant(annotation_t{}));
-      }
-
-      specs.push_back(std::meta::data_member_spec(^^member_t, {
-        .name = std::string(name_obj.data),
-        .annotations = member_annotations
-      }));
-    });
-
-    std::meta::define_aggregate(target, specs);
-  }
-};
-
-template <typename member_t, typename derived_t, auto... Params>
-struct dme_builder {
-  using base_t = typename storage_gen<member_t, Params...>::type;
-
-  struct type : base_t, fan::dme_t<type, member_t> {
-    using base_t::base_t;
-  };
-};
-
 struct a_ann_t { int x; f32_t y; };
 struct b_ann_t { int x; };
 
-using st2_t = dme_builder<item_t, void,
+using st2_t = fan::dme_builder<item_t, void,
   ^^a_ann_t, fan::fixed_string{"a"},
   ^^b_ann_t, fan::fixed_string{"b"}
 >::type;

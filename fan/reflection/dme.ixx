@@ -5,6 +5,38 @@ export module fan.types.dme;
 import std;
 import fan.reflection;
 import fan.print;
+import fan.utility;
+
+namespace fan {
+  template <typename member_t, auto... Params>
+  struct storage_gen {
+    struct type;
+    consteval {
+      auto target = ^^type;
+      constexpr auto params = std::make_tuple(Params...);
+      std::vector<std::meta::info> specs;
+
+      fan::_for<sizeof...(Params), 2>([&](auto j) {
+        constexpr auto idx = decltype(j)::value;
+        using annotation_t = [:std::get<idx>(params):];
+        constexpr auto name_obj = std::get<idx + 1>(params);
+
+        std::vector<std::meta::info> member_annotations;
+        
+        if constexpr (!std::is_void_v<annotation_t>) {
+          member_annotations.push_back(std::meta::reflect_constant(annotation_t{}));
+        }
+
+        specs.push_back(std::meta::data_member_spec(^^member_t, {
+          .name = std::string(name_obj.data),
+          .annotations = member_annotations
+        }));
+      });
+
+      std::meta::define_aggregate(target, specs);
+    }
+  };
+}
 
 export namespace fan {
   struct required_case {
@@ -47,5 +79,15 @@ export namespace fan {
     };
 
     constexpr match_proxy match(std::size_t i) { return { static_cast<derived_t*>(this), i }; }
+  };
+
+
+  template <typename member_t, typename derived_t, auto... Params>
+  struct dme_builder {
+    using base_t = typename fan::storage_gen<member_t, Params...>::type;
+
+    struct type : base_t, fan::dme_t<type, member_t> {
+      using base_t::base_t;
+    };
   };
 }
