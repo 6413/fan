@@ -254,7 +254,8 @@ export namespace fan {
     consteval fixed_string(const char (&s)[N]) {
       for (std::size_t i = 0; i < N; ++i) data[i] = s[i];
     }
-    consteval std::string_view view() const { return {data, N - 1}; }
+    constexpr bool starts_with(char c) const { return N > 1 && data[0] == c; }
+    constexpr char operator[](std::size_t i) const { return data[i]; }
     auto operator<=>(const fixed_string&) const = default;
   };
 
