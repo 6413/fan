@@ -1,12 +1,15 @@
 module;
 
+#include <fan/utility.h>
+
 export module fan.reflection;
 
 import std;
+import fan.utility;
 import fan.types.color;
 import fan.print;
 
-#if defined(FAN_REFLECTION)
+#if defined(FAN_REFLECTION) && defined(fan_compiler_gcc)
   #include "gcc_private.h"
 #endif
 
@@ -30,10 +33,23 @@ export namespace fan {
 }
 
 export namespace fan::refl {
-  template <typename T>
-  consteval auto members() {
-    return std::define_static_array(std::meta::nonstatic_data_members_of(^^T, std::meta::access_context::unchecked()));
-  }
+  // fan/reflection/reflection.ixx
+
+template <typename T>
+consteval auto members() {
+  std::vector<std::meta::info> all_members;
+  constexpr auto ctx = std::meta::access_context::unchecked();
+  auto collect = [&](auto&& self, std::meta::info type_refl) -> void {
+    for (auto m : std::meta::nonstatic_data_members_of(type_refl, ctx)) {
+      all_members.push_back(m);
+    }
+    for (auto base : std::meta::bases_of(type_refl, ctx)) {
+      self(self, std::meta::type_of(base));
+    }
+  };
+  collect(collect, ^^T);
+  return std::define_static_array(all_members);
+}
 
   template <typename T>
   inline constexpr auto members_v = members<T>();
@@ -392,29 +408,55 @@ export namespace fan::refl {
       }
     }
   }
-
 }  // namespace fan::refl
 
 
 namespace fan::detail {
   template <typename T>
   std::string format_reflect(const T& obj, int indent_level = 0) {
+    using U = std::remove_cvref_t<T>;
+
     if constexpr (requires { std::declval<std::ostream&>() << obj; }) {
       std::ostringstream val;
       val << obj;
-      std::string t{fan::refl::name_of(^^T)};
+      static constexpr auto raw_t_name = fan::refl::name_of<U>();
+      std::string t{raw_t_name};
       if (t.starts_with("member_t {aka ")) t = t.substr(14, t.size() - 15);
-      return fan::paint(fan::colors::white, val.str()) + fan::paint(fan::colors::gray, " [") +
-            fan::paint(fan::colors::teal, t) + fan::paint(fan::colors::gray, "]");
-    }
+
+      return fan::paint(fan::colors::white, val.str()) + 
+             fan::paint(fan::colors::gray, " [") +
+             fan::paint(fan::colors::teal, t) + 
+             fan::paint(fan::colors::gray, "]");
+    } 
     else {
       std::string ind(indent_level * 2, ' ');
-      std::string out = fan::paint(fan::colors::cyan, std::string{fan::refl::name_of(^^T)}) +
+      static constexpr auto type_name = fan::refl::name_of<U>();
+      
+      std::string out = fan::paint(fan::colors::cyan, std::string{type_name}) +
                         fan::paint(fan::colors::gray, " {\n");
-      fan::refl::iterate_members<T>(obj, [&](auto name, auto& value) {
-        out += fan::paint(fan::colors::amber, ind + "  ." + std::string{name} + " = ") +
-              format_reflect(value, indent_level + 1) + "\n";
-      });
+
+      static constexpr auto members = fan::refl::members<U>();
+
+      template for (constexpr auto m : members) {
+        static constexpr auto m_name = fan::refl::name_of(m);
+        out += fan::paint(fan::colors::amber, ind + "  ." + std::string{m_name} + " = ");
+        out += format_reflect(obj.[:m:], indent_level + 1) + "\n";
+
+        static constexpr auto anns = std::define_static_array(std::meta::annotations_of(m));
+        if constexpr (anns.size() > 0) {
+          out += ind + "  " + fan::paint(fan::colors::gray, "[[");
+          
+          std::size_t j = 0;
+          template for (constexpr auto ann : anns) {
+            using ann_t = typename [:std::meta::type_of(ann):];
+            // Recursion
+            out += format_reflect(std::meta::extract<ann_t>(ann), indent_level + 1);
+            if (j++ < anns.size() - 1) out += ", ";
+          }
+          
+          out += fan::paint(fan::colors::gray, "]]\n");
+        }
+      }
       return out + fan::paint(fan::colors::gray, ind + "}");
     }
   }

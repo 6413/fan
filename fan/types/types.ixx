@@ -15,6 +15,8 @@ export {
   using f64_t = double;
   using f_t = double;
   using cf_t = f32_t;
+}
 
+export namespace fan {
   using bytes_t = std::vector<std::uint8_t>;
 }
