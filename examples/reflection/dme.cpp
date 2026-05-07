@@ -49,48 +49,42 @@ static_assert(fan::refl::is_same_type(attr_type_b, ^^b_t));
 
 struct a_ann_t { int x; f32_t y; };
 struct b_ann_t { int x; };
-
-using st2_t = fan::dme_builder<item_t, void,
+using dme_built_t  = fan::dme_builder<item_t, void,
   ^^a_ann_t, fan::fixed_string{"a"},
   ^^b_ann_t, fan::fixed_string{"b"}
 >::type;
 
-struct testt_t {
-  int y;
-};
-
 // dme macro extension for reflection
 #include <fan/reflection/dme.h>
 
-using st3_t = dme(
+struct inside_t {
+  int y;
+};
+using macro_dme_t = dme(
   item_t,
-  a, { int x; testt_t testt;},
+  a, { int x; inside_t inside;},
   b, { int x; int y; },
   c, {},
   d, {}
 );
 
-
 int main() {
-  st3_t st3;
-  fan::print(st3);
-
   st_t st{
     .a{.number = 1},
     .b{.number = 2}
   };
   st.print();
 
+  // modify numbers through operator[]
   st[0].number = 12;
   st[1].number = 15;
   st.print();
 
   for (auto& member : st) (void)member.number;
 
-  constexpr auto a0 = st.attr<0>();
-  constexpr auto a1 = st.attr<1>();
-  fan::print(a0);
-  fan::print(a1);
+  // query custom attributes
+  fan::print(st.attr<0>());
+  fan::print(st.attr<1>());
 
   for (int i = 0; i < 100; ++i) {
     int idx = fan::random::value(0, 1);
@@ -100,4 +94,5 @@ int main() {
       .b = [&]{ fan::assert(idx == 1); }
     });
   }
+  fan::print(macro_dme_t{});
 }
