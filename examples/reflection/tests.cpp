@@ -101,7 +101,7 @@ consteval std::size_t time_seed() {
          (t[6]-'0')*10    + (t[7]-'0');
 }
 
-using v = gen_types_t<int, 5, time_seed() ^ (__COUNTER__ * 2654435761ULL)>;
+using type_t = gen_types_t<int, 5, time_seed() ^ (__COUNTER__ * 2654435761ULL)>;
 
 
 struct MyTypeBase;  // incomplete - declared but not defined
@@ -119,7 +119,7 @@ consteval std::meta::info make_struct(
 struct MyType;
 consteval { make_struct(^^MyType, {{"x", ^^int}, {"y", ^^float}}); }
 
-using Player = fan::json_schema_t<R"({"x":"float","y":"float","hp":"int"})">;
+using Player = fan::json_schema_t<R"({"x":"int","y":"float","hp":"int"})">;
 
 
 static constexpr char schema_data[] = {
@@ -132,7 +132,7 @@ struct entity_t;
 consteval { fan::json_schema_to_struct(^^entity_t, entity_schema); }
 
 int main() {
-  Player p{.x = 1.0f, .y = 2.0f, .hp = 100};
+  Player p{.x = 1, .y = 2.0f, .hp = 100};
   fan::print(p);
 
   {

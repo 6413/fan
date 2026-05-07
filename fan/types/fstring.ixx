@@ -15,8 +15,6 @@ import fan.types.compile_time_string;
 
 export namespace fan {
 
-  using bytes_t = std::vector<std::uint8_t>;
-
   template <typename T>
   auto to_string(const T a_value, const int n = 2) {
     std::ostringstream out;
@@ -268,6 +266,10 @@ export namespace fan {
     result.push_back(str.substr(start));
 
     return result;
+  }
+  
+  std::vector<std::string> lines(const std::string& str)  {
+    return split(str, "\n");
   }
 
   std::vector<std::string> split_quoted(const std::string& input) {

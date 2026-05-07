@@ -348,9 +348,44 @@ export namespace fan {
     return var;
   }
 
+  template <std::size_t N, std::ranges::contiguous_range R>
+  auto subspan(R&& v, std::size_t start) {
+    return std::span<std::ranges::range_value_t<R>, N>(std::span(v).data() + start, N);
+  }
+
   template <std::ranges::contiguous_range R>
   auto subspan(R&& v, std::size_t start, std::size_t length) {
     return std::span(v).subspan(start, length);
+  }
+
+  template <typename T, std::size_t N, std::size_t M = N>
+  struct span_cmp {
+    bool operator()(std::span<T, N> a, std::span<T, M> b) const {
+      return std::lexicographical_compare(a.begin(), a.end(), b.begin(), b.end());
+    }
+  };
+
+  template <std::size_t N>
+  struct array_hash {
+    constexpr std::size_t operator()(const std::array<unsigned char, N>& a) const {
+      std::size_t seed = N;
+      for (std::size_t i = 0; i + sizeof(std::size_t) <= N; i += sizeof(std::size_t)) {
+        std::size_t word = 0;
+        for (std::size_t j = 0; j < sizeof(std::size_t); ++j)
+          word |= std::size_t(a[i + j]) << (j * 8);
+        seed ^= word + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      }
+      for (std::size_t i = N & ~(sizeof(std::size_t) - 1); i < N; ++i)
+        seed ^= std::size_t(a[i]) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+      return seed;
+    }
+  };
+
+  template <std::size_t N>
+  std::array<unsigned char, N> subspan_array(const fan::bytes_t& data, std::size_t offset) {
+    std::array<unsigned char, N> arr;
+    std::memcpy(arr.data(), data.data() + offset, N);
+    return arr;
   }
 
   struct restore_flag_t {
@@ -359,4 +394,17 @@ export namespace fan {
     restore_flag_t(bool& f, bool val) : flag(f), prev(f) { f = val; }
     ~restore_flag_t() { flag = prev; }
   };
+
+  template<std::size_t I>
+  struct num { static constexpr std::size_t value = I; };
+
+  template<std::size_t N, std::size_t Step, class F>
+  constexpr void _for(F&& f) {
+    static_assert(Step > 0, "Step must be > 0");
+    static_assert(N % Step == 0, "N must be divisible by Step");
+
+    [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+      (std::forward<F>(f)(num<Is * Step>{}), ...);
+    }(std::make_index_sequence<N / Step>{});
+  }
 }

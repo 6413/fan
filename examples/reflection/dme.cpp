@@ -1,3 +1,5 @@
+#include <fan/utility.h>
+
 import fan;
 import std;
 import fan.reflection;
@@ -14,10 +16,9 @@ struct item_t {
 };
 
 struct st_t : fan::dme_t<st_t, item_t> {
-  [[= a_t{1,   3.6}]] item_t a;
+  [[= a_t{1.f, 1.2f}]] item_t a;
   [[= b_t{{2}, 3.2}]] item_t b;
 };
-
 constexpr st_t gst{.a{.number=32},.b{.number=64}};
 
 static_assert(gst.size() == 2);
@@ -40,13 +41,79 @@ static_assert(gst.b.number == 64);
 // verify queried attribute name and type [= type]
 constexpr auto attr_type_a  = gst.attr_type(0);
 constexpr auto attr_type_b = gst.attr_type(1);
-static_assert(fan::refl::is_same_name(attr_type_a, fan::refl::dealias(^^fan::vec2)));
+static_assert(fan::refl::is_same_name(attr_type_a, fan::refl::dealias(^^a_t)));
 static_assert(fan::refl::is_same_name(attr_type_b, ^^b_t));
 
-static_assert(fan::refl::is_same_type(attr_type_a, ^^fan::vec2));
+static_assert(fan::refl::is_same_type(attr_type_a, ^^a_t));
 static_assert(fan::refl::is_same_type(attr_type_b, ^^b_t));
 
+
+template <typename member_t, auto... Params>
+struct storage_gen {
+  struct type;
+  consteval {
+    auto target = ^^type;
+    constexpr auto params = std::make_tuple(Params...);
+    std::vector<std::meta::info> specs;
+
+    fan::_for<sizeof...(Params), 2>([&](auto j) {
+      constexpr auto idx = decltype(j)::value;
+      using annotation_t = [:std::get<idx>(params):];
+      constexpr auto name_obj = std::get<idx + 1>(params);
+
+      std::vector<std::meta::info> member_annotations;
+      
+      if constexpr (!std::is_void_v<annotation_t>) {
+        member_annotations.push_back(std::meta::reflect_constant(annotation_t{}));
+      }
+
+      specs.push_back(std::meta::data_member_spec(^^member_t, {
+        .name = std::string(name_obj.data),
+        .annotations = member_annotations
+      }));
+    });
+
+    std::meta::define_aggregate(target, specs);
+  }
+};
+
+template <typename member_t, typename derived_t, auto... Params>
+struct dme_builder {
+  using base_t = typename storage_gen<member_t, Params...>::type;
+
+  struct type : base_t, fan::dme_t<type, member_t> {
+    using base_t::base_t;
+  };
+};
+
+struct a_ann_t { int x; f32_t y; };
+struct b_ann_t { int x; };
+
+using st2_t = dme_builder<item_t, void,
+  ^^a_ann_t, fan::fixed_string{"a"},
+  ^^b_ann_t, fan::fixed_string{"b"}
+>::type;
+
+struct testt_t {
+  int y;
+};
+
+// dme macro extension for reflection
+#include <fan/reflection/dme.h>
+
+using st3_t = dme(
+  item_t,
+  a, { int x; testt_t testt;},
+  b, { int x; int y; },
+  c, {},
+  d, {}
+);
+
+
 int main() {
+  st3_t st3;
+  fan::print(st3);
+
   st_t st{
     .a{.number = 1},
     .b{.number = 2}

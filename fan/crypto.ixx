@@ -119,6 +119,15 @@ export namespace fan {
     return xor_key(a, bytes_t{key});
   }
 
+  template <std::size_t N>
+  bool has_duplicate_blocks(const fan::bytes_t& data) {
+    std::unordered_set<std::array<unsigned char, N>, fan::array_hash<N>> seen;
+    for (std::size_t i = 0; i + N <= data.size(); i += N) {
+      if (!seen.insert(fan::subspan_array<N>(data, i)).second) return true;
+    }
+    return false;
+  }
+
   // https://en.wikipedia.org/wiki/Letter_frequency
   #if 1
     constexpr f32_t freq_t[] = { 

@@ -249,7 +249,18 @@ using DWORD = unsigned long;
 			using lstd_current_type = type_name;
 #endif
 
-#define fan_temporary_struct_maker(data) __return_type_of<decltype([]{ struct {data}v; return v; })>
+namespace fan {
+  template<auto F>
+  using invoke_t = decltype(F());
+}
+
+#define fan_temporary_struct_maker(...) fan::invoke_t<+[](){ struct { __VA_ARGS__ } s{}; return s; }>
+
+#define st(...) \
+  fan::invoke_t<+[](){ struct { __VA_ARGS__ } s{}; return s; }>
+
+#define st_raw(body) \
+  fan::invoke_t<+[](){ struct body s{}; return s; }>
 
 #define EXPAND(p0) p0
 
