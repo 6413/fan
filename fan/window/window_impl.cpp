@@ -268,7 +268,6 @@ namespace fan {
 
     fan::vec2i window_size = props.size;
     if (window_size.x == -1 && window_size.y == -1) {
-      const GLFWvidmode* mode0 = glfwGetVideoMode(glfwGetPrimaryMonitor());
       window_size = resolutions[current_resolution];
     }
 
@@ -778,9 +777,6 @@ namespace fan {
     }
 
     glfwSetWindowAttrib(glfw_window, GLFW_DECORATED, GLFW_FALSE);
-
-    fan::vec2i size = get_size();
-    fan::vec2 pos = get_position();
 
     GLFWmonitor* monitor = get_current_monitor();
     const GLFWvidmode* vm = glfwGetVideoMode(monitor);

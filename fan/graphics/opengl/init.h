@@ -10,6 +10,7 @@
 #endif
 #undef NO_FUNCS
 #define fan_opengl_call(func) \
+\
   [&]() { \
     struct measure_func_t { \
       measure_func_t() { \

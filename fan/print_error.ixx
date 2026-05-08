@@ -16,7 +16,7 @@ export namespace fan {
     std::string msg;
     ((msg += [&]() -> std::string {
       if constexpr (std::is_same_v<std::decay_t<decltype(args)>, std::string>) return args;
-      else if constexpr (std::is_same_v<std::decay_t<decltype(args)>, const char*>) return args ? args : "";
+      else if constexpr (std::is_same_v<std::decay_t<decltype(args)>, const char*>) return args;
       else if constexpr (std::is_arithmetic_v<std::decay_t<decltype(args)>>) return std::to_string(args);
       else if constexpr (std::is_convertible_v<decltype(args), std::string>) return std::string(args);
       else return "?";

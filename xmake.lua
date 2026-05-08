@@ -137,6 +137,9 @@ local common_flags = {
   "-Wno-unused-but-set-parameter",
   "-Wno-unused-value",
   "-Wno-padded",
+  "-Wno-unused-function",
+  "-Wno-parentheses",
+  "-Wno-unused-static-function",
   "-fsized-deallocation",
 }
 

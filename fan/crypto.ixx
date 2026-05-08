@@ -215,7 +215,7 @@ export namespace fan {
           fan::throw_error_impl();
         }
         f32_t distance = 0.f;
-        for (int i = 0; i < spans.size() - 1; i += 2) {
+        for (std::size_t i = 0; i < spans.size() - 1; i += 2) {
           distance += fan::hamming_distance(spans[i], spans[i + 1]);
         }
         result = distance / (spans.front().size() * (spans.size() / 2));
@@ -235,7 +235,7 @@ export namespace fan {
       f32_t overall_score = 0.f;
       for (int x = 0; x < key_size; ++x) {
         fan::bytes_t block(bytes.size() / key_size);
-        for (int y = 0; y < block.size(); y++) {
+        for (std::size_t y = 0; y < block.size(); y++) {
           block[y] = bytes[x + y * key_size];
         }
         auto result = fan::crack_single_byte_xor(block);
