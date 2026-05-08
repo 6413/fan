@@ -13,6 +13,18 @@ import fan.print;
   #include "gcc_private.h"
 #endif
 
+
+// types
+export namespace fan::refl {
+   struct member_info {
+    const char* name;
+    std::size_t size;
+    std::size_t offset;
+    const std::type_info* type;
+  };
+}
+
+// free functions
 export namespace fan {
   consteval std::string_view make_name(std::size_t i, char prefix = 'v') {
     char buf[32] = {};
@@ -282,7 +294,7 @@ consteval auto members() {
     return result{std::forward<Ts>(args)...};
   }
 
-   template <std::meta::reflection_range _Rg = std::initializer_list<std::meta::info>>
+  template <std::meta::reflection_range _Rg = std::initializer_list<std::meta::info>>
   consteval std::meta::info define_aggregate(std::meta::info target, _Rg&& members) {
     return std::meta::define_aggregate(target, std::forward<_Rg>(members));
   }
@@ -407,6 +419,47 @@ consteval auto members() {
         func.template operator()<m>();
       }
     }
+  }
+
+  template <std::meta::info M>
+  consteval auto member_ptr_of() {
+    using C = typename [:std::meta::parent_of(M):];
+    using T = typename [:std::meta::type_of(M):];
+
+    return std::meta::substitute(
+      ^^T C::*,
+      {}
+    );
+  }
+
+  template <typename T>
+  consteval auto member_ptrs_of() {
+    constexpr auto ms = members<T>();
+
+    return [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+      return std::array{ member_ptr_of<ms[Is]>()... };
+    }(std::make_index_sequence<ms.size()>{});
+  }
+
+  template <typename T>
+  consteval auto runtime_table() {
+    constexpr auto ms = members<T>();
+    constexpr std::size_t N = ms.size();
+
+    std::array<fan::refl::member_info, N> table{};
+
+    fan::_for<N>([&](auto I) {
+      constexpr std::size_t Is = decltype(I)::value;
+
+      table[Is] = fan::refl::member_info{
+        .name   = std::meta::identifier_of(ms[Is]).data(),
+        .size   = std::meta::size_of(ms[Is]),
+        .offset = std::meta::offset_of(ms[Is]).bytes,
+        .type   = &typeid(std::meta::type_of(ms[Is]))
+      };
+    });
+
+    return table;
   }
 }  // namespace fan::refl
 

@@ -398,7 +398,7 @@ export namespace fan {
   template<std::size_t I>
   struct num { static constexpr std::size_t value = I; };
 
-  template<std::size_t N, std::size_t Step, class F>
+  template<std::size_t N, std::size_t Step = 1, class F>
   constexpr void _for(F&& f) {
     static_assert(Step > 0, "Step must be > 0");
     static_assert(N % Step == 0, "N must be divisible by Step");

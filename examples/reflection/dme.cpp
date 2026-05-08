@@ -95,6 +95,9 @@ int main() {
     });
   }
   fan::print(macro_dme_t{});
+  for (auto i : st.runtime_table()) {
+    fan::print(i);
+  }
 }
 
 // -------OUTPUT-------
