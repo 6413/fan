@@ -102,8 +102,13 @@ int main() {
     fan::print(i);
   }
 
-  fan::print(macro_dme_t{});
+  macro_dme_t md;
+  fan::print(md);
   macro_dme_t::ann<"b"> v; // calls ann constructor prints "b constructed"
+
+  md.visit_ann(1, [](auto& ann) {
+    fan::print_impl("index =", ann.index, "name =", ann.member_name.data());
+  });
 }
 
 // -------OUTPUT-------

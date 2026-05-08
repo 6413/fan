@@ -92,25 +92,34 @@ export namespace fan {
       using value      = member_t;
     };
 
-    template <typename Base>
+    template <typename Base, std::size_t I>
     struct ann_wrapper : Base {
-      ann_wrapper() : Base{} {
-        if constexpr (requires(Base& a) { a.init(); }) {
-          Base::init();
+      static constexpr std::size_t index = I;
+      static constexpr std::string_view member_name = fan::refl::member_name<derived_t>(I);
+
+      bool silent = false;
+
+      ann_wrapper(bool silent = false) : Base{}, silent(silent) {
+        if (!silent) {
+          if constexpr (requires(Base& a) { a.init(); }) {
+            Base::init();
+          }
         }
       }
       ~ann_wrapper() {
-        if constexpr (requires(Base& a) { a.destroy(); }) {
-          Base::destroy();
+        if (!silent) {
+          if constexpr (requires(Base& a) { a.destroy(); }) {
+            Base::destroy();
+          }
         }
       }
     };
 
     template <fan::fixed_string Name>
-    using ann = ann_wrapper<typename named_member_type<Name>::annotation>;
+    using ann = ann_wrapper<typename named_member_type<Name>::annotation, named_member_type<Name>::I>;
 
     template <std::size_t I>
-    using ann_i = ann_wrapper<typename member_type<I>::annotation>;
+    using ann_i = ann_wrapper<typename member_type<I>::annotation, I>;
 
     constexpr match_proxy match(std::size_t i) { return { static_cast<derived_t*>(this), i }; }
 
@@ -127,6 +136,38 @@ export namespace fan {
 
     static consteval auto runtime_table() {
       return fan::refl::runtime_table<derived_t>();
+    }
+
+    template <std::size_t i, std::meta::info m, typename F>
+    void visit_impl(F&& f) {
+      constexpr auto ann_type = fan::refl::member_annotation_type<derived_t>(i);
+      if constexpr (ann_type != std::meta::info{}) {
+        using ann_t = [:ann_type:];
+        auto ann = fan::refl::member_annotation<i, derived_t>();
+        f(static_cast<derived_t*>(this)->*(&[:m:]), ann);
+      } else {
+        f(static_cast<derived_t*>(this)->*(&[:m:]));
+      }
+    }
+
+    template <typename F>
+    void visit_ann(std::size_t idx, F&& f) {
+      fan::refl::for_each_member_indexed<derived_t>([&]<std::size_t i, std::meta::info m>() {
+        if (i == idx) {
+          constexpr auto ann_type = fan::refl::member_annotation_type<derived_t>(i);
+          if constexpr (ann_type != std::meta::info{}) {
+            ann_i<i> wrapped{true};
+            f(wrapped);
+          }
+        }
+      });
+    }
+
+    template <typename F>
+    void visit(std::size_t idx, F&& f) {
+      fan::refl::for_each_member_indexed<derived_t>([&]<std::size_t i, std::meta::info m>() {
+        if (i == idx) visit_impl<i, m>(f);
+      });
     }
   };
 
