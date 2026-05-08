@@ -29,8 +29,8 @@ static_assert(gst.name(0) == "a");
 static_assert(gst.name(1) == "b");
 
 // verify variable indices like in enum starting from top: 0, 1 ....
-static_assert(gst["a"] == 0);
-static_assert(gst["b"] == 1);
+static_assert(gst["a"].gint() == 0);
+static_assert(gst["b"].gint() == 1);
 
 // verify actual values of variables
 static_assert(gst[0].number == 32);
@@ -104,15 +104,17 @@ int main() {
 
   macro_dme_t md;
   fan::print(md);
-  macro_dme_t::ann<"b"> v; // calls ann constructor prints "b constructed"
 
-  md.visit_ann(1, [](auto& ann) {
-    fan::print_impl("index =", ann.index, "name =", ann.member_name.data());
+  // constructs and destructs member, do not store this reference.
+  // type is given annotation
+  macro_dme_t::visit(macro_dme_t()["b"], [](auto& member) {
+    fan::print_impl("index =", member.index, "name =", member.member_name.data());
   });
 }
 
 // -------OUTPUT-------
 /*
+
 st_t {
   .a = item_t {
     .number = 1 [int]
@@ -148,13 +150,13 @@ member_info {
   .name = a [const char*]
   .size = 4 [long unsigned int]
   .offset = 0 [long unsigned int]
-  .type = 0x555555b01da0 [const std::type_info*]
+  .type = 0x555555b02da0 [const std::type_info*]
 }
 member_info {
   .name = b [const char*]
   .size = 4 [long unsigned int]
   .offset = 4 [long unsigned int]
-  .type = 0x555555b01da0 [const std::type_info*]
+  .type = 0x555555b02da0 [const std::type_info*]
 }
 macro_dme_t {
   .a = item_t {
@@ -181,5 +183,6 @@ macro_dme_t {
   }]]
 }
 b constructed [char [14]]
+index = 1 name = b
 b destructed [char [13]]
 */

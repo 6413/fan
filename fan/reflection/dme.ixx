@@ -52,9 +52,18 @@ export namespace fan {
 
   template <typename derived_t, typename member_t>
   struct dme_t {
+
+    struct id_t {
+      constexpr id_t() = default;
+      explicit constexpr id_t(std::size_t id_) : id(id_) {}
+      constexpr std::size_t gint() const { return id; }
+    private:
+      std::size_t id;
+    };
+
     static consteval std::size_t size()                                  { return fan::refl::member_count<derived_t>(); }
     constexpr decltype(auto) operator[](this auto&& self, std::size_t i) { return fan::refl::at_index<derived_t>(self, i); }
-    consteval std::size_t operator[](std::string_view name) const        { return fan::refl::index_of<derived_t>(name); }
+    consteval id_t operator[](std::string_view name) const               { return id_t(fan::refl::index_of<derived_t>(name));}
     constexpr member_t* begin()                                          { return &(*this)[0]; }
     constexpr member_t* end()                                            { return &(*this)[0] + size(); }
     static constexpr std::string_view name(std::size_t i)                { return fan::refl::member_name<derived_t>(i); }
@@ -96,22 +105,11 @@ export namespace fan {
     struct ann_wrapper : Base {
       static constexpr std::size_t index = I;
       static constexpr std::string_view member_name = fan::refl::member_name<derived_t>(I);
-
-      bool silent = false;
-
-      ann_wrapper(bool silent = false) : Base{}, silent(silent) {
-        if (!silent) {
-          if constexpr (requires(Base& a) { a.init(); }) {
-            Base::init();
-          }
-        }
+      ann_wrapper() : Base{} {
+        if constexpr (requires(Base& a) { a.init(); }) { Base::init(); }
       }
       ~ann_wrapper() {
-        if (!silent) {
-          if constexpr (requires(Base& a) { a.destroy(); }) {
-            Base::destroy();
-          }
-        }
+        if constexpr (requires(Base& a) { a.destroy(); }) { Base::destroy(); }
       }
     };
 
@@ -138,35 +136,16 @@ export namespace fan {
       return fan::refl::runtime_table<derived_t>();
     }
 
-    template <std::size_t i, std::meta::info m, typename F>
-    void visit_impl(F&& f) {
-      constexpr auto ann_type = fan::refl::member_annotation_type<derived_t>(i);
-      if constexpr (ann_type != std::meta::info{}) {
-        using ann_t = [:ann_type:];
-        auto ann = fan::refl::member_annotation<i, derived_t>();
-        f(static_cast<derived_t*>(this)->*(&[:m:]), ann);
-      } else {
-        f(static_cast<derived_t*>(this)->*(&[:m:]));
-      }
-    }
-
     template <typename F>
-    void visit_ann(std::size_t idx, F&& f) {
+    static void visit(id_t idx, F&& f) {
       fan::refl::for_each_member_indexed<derived_t>([&]<std::size_t i, std::meta::info m>() {
-        if (i == idx) {
+        if (i == idx.gint()) {
           constexpr auto ann_type = fan::refl::member_annotation_type<derived_t>(i);
           if constexpr (ann_type != std::meta::info{}) {
-            ann_i<i> wrapped{true};
+            ann_i<i> wrapped;
             f(wrapped);
           }
         }
-      });
-    }
-
-    template <typename F>
-    void visit(std::size_t idx, F&& f) {
-      fan::refl::for_each_member_indexed<derived_t>([&]<std::size_t i, std::meta::info m>() {
-        if (i == idx) visit_impl<i, m>(f);
       });
     }
   };
