@@ -79,8 +79,22 @@ export namespace fan {
     };
 
     constexpr match_proxy match(std::size_t i) { return { static_cast<derived_t*>(this), i }; }
-  };
 
+    static consteval auto members() { return fan::refl::members<derived_t>(); }
+
+    static consteval auto member_ptrs() {
+      constexpr auto ms       = members();
+      constexpr std::size_t N = ms.size();
+
+      return [&]<std::size_t... Is>(std::index_sequence<Is...>) {
+        return std::array{std::meta::substitute(^^std::add_pointer_t, {std::meta::type_of(ms[Is])})...};
+      }(std::make_index_sequence<N>{});
+    }
+
+    static consteval auto runtime_table() {
+      return fan::refl::runtime_table<derived_t>();
+    }
+  };
 
   template <typename member_t, typename derived_t, auto... Params>
   struct dme_builder {
