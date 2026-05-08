@@ -313,8 +313,8 @@ namespace fan {
         y = my + 31;
       }
     #endif
-      x = std::clamp(x, mx, mx + mode->width - w);
-      y = std::clamp(y, my + 31, my + mode->height - h);
+      x = std::min(std::max(x, mx), mx + mode->width - w);
+      y = std::min(std::max(y, my + 31), my + mode->height - h);
     }
     else if (props.open_mode == mode::fullscreen) {
       x = 0;

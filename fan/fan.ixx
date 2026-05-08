@@ -29,6 +29,10 @@ export import fan.graphics.common_context;
 
 export import fan.graphics.loco;
 
+#if defined(FAN_OPENGL)
+  export import fan.graphics.opengl.core;
+#endif
+
 #if defined(FAN_2D)
   export import fan.graphics.shapes.types;
   export import fan.graphics.shapes;
