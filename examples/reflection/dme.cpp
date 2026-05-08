@@ -21,6 +21,7 @@ struct st_t : fan::dme_t<st_t, item_t> {
 };
 constexpr st_t gst{.a{.number=32},.b{.number=64}};
 
+static_assert(sizeof(st_t::id_t) == sizeof(std::uint8_t));
 static_assert(gst.size() == 2);
 static_assert(sizeof(st_t) == sizeof(item_t) * 2);
 

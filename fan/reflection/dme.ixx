@@ -40,6 +40,14 @@ namespace fan {
 }
 
 export namespace fan {
+
+  template <std::size_t N>
+  using dme_index_t =
+    std::conditional_t<(N <= 0xFF),       std::uint8_t,
+    std::conditional_t<(N <= 0xFFFF),     std::uint16_t,
+    std::conditional_t<(N <= 0xFFFFFFFF), std::uint32_t,
+                                          std::uint64_t>>>;
+
   struct required_case {
     std::function<void()> fn;
     template <typename F>
@@ -54,16 +62,17 @@ export namespace fan {
   struct dme_t {
 
     struct id_t {
+      using underlying_t = dme_index_t<fan::refl::member_count<derived_t>()>;
       constexpr id_t() = default;
-      explicit constexpr id_t(std::size_t id_) : id(id_) {}
-      constexpr std::size_t gint() const { return id; }
+      explicit constexpr id_t(underlying_t id_) : id(id_) {}
+      constexpr underlying_t gint() const { return id; }
     private:
-      std::size_t id;
+      underlying_t id;
     };
 
     static consteval std::size_t size()                                  { return fan::refl::member_count<derived_t>(); }
     constexpr decltype(auto) operator[](this auto&& self, std::size_t i) { return fan::refl::at_index<derived_t>(self, i); }
-    consteval id_t operator[](std::string_view name) const               { return id_t(fan::refl::index_of<derived_t>(name));}
+    consteval id_t operator[](std::string_view name) const               { return id_t(dme_index_t<fan::refl::member_count<derived_t>()>(fan::refl::index_of<derived_t>(name))); }
     constexpr member_t* begin()                                          { return &(*this)[0]; }
     constexpr member_t* end()                                            { return &(*this)[0] + size(); }
     static constexpr std::string_view name(std::size_t i)                { return fan::refl::member_name<derived_t>(i); }
