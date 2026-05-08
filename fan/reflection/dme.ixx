@@ -42,11 +42,7 @@ namespace fan {
 export namespace fan {
 
   template <std::size_t N>
-  using dme_index_t =
-    std::conditional_t<(N <= 0xFF),       std::uint8_t,
-    std::conditional_t<(N <= 0xFFFF),     std::uint16_t,
-    std::conditional_t<(N <= 0xFFFFFFFF), std::uint32_t,
-                                          std::uint64_t>>>;
+  using dme_index_t = fan::smallest_index_t<N>;
 
   struct required_case {
     std::function<void()> fn;
