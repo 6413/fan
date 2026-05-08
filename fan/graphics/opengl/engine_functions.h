@@ -456,7 +456,6 @@ void shapes_draw() {
   fan::graphics::shaper_t::KeyTraverse_t KeyTraverse;
   KeyTraverse.Init(fan::graphics::g_shapes->shaper);
 
-  uint32_t texture_count = 0;
   viewport_t viewport;
   camera_t camera;
   shader_t shader;
@@ -476,8 +475,6 @@ void shapes_draw() {
   uint32_t vertex_count = -1;
   bool visible = true;
   bool using_blending = false;
-
-  fan::graphics::shapes& shapes = loco.shapes;
 
   while (KeyTraverse.Loop(fan::graphics::g_shapes->shaper)) {
 

@@ -197,7 +197,6 @@
 #define __platform_libc
 
 #ifndef __clz
-#define __clz __clz
 #ifndef __clz32
   inline unsigned char __clz32(unsigned long p0)
   {
@@ -248,7 +247,7 @@ inline unsigned char __clz64(unsigned long long p0) {
   #error failed to find platform
 #endif
 
-static unsigned char __clz(unsigned long long p0) {
+inline unsigned char __clz(unsigned long long p0) {
   #if SYSTEM_BIT == 32
     return __clz32(p0);
   #elif SYSTEM_BIT == 64
@@ -257,6 +256,10 @@ static unsigned char __clz(unsigned long long p0) {
     #error ?
   #endif
 }
+#ifndef __clz
+  #define __clz __clz
+#endif
+
 #endif
 
 

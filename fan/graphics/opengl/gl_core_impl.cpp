@@ -70,7 +70,6 @@ namespace fan::opengl {
   }
 
   void context_t::internal_close() {
-    fan::opengl::context_t& context = *this;
     {
       fan::graphics::shader_list_t::nrtra_t nrtra;
       fan::graphics::shader_nr_t nr;
@@ -624,7 +623,6 @@ namespace fan::opengl {
     image_bind(nr);
     image_set_settings(nr, p);
 
-    auto& image = image_get(nr);
     auto& image_data = __fan_internal_image_list[nr];
     image_data.size = image_info.size;
     image_data.image_path = "";
@@ -666,7 +664,6 @@ namespace fan::opengl {
     image_bind(nr);
 
     image_set_settings(nr, p);
-    auto& image = image_get(nr);
     auto& image_data = __fan_internal_image_list[nr];
     image_data.size = fan::vec2i(2, 2);
 
@@ -700,7 +697,6 @@ namespace fan::opengl {
     fan::graphics::image_nr_t nr = image_create();
     image_bind(nr);
 
-    auto& img = image_get(nr);
     auto& image_data = __fan_internal_image_list[nr];
 
     image_set_settings(nr, p);
@@ -814,7 +810,6 @@ namespace fan::opengl {
     fan::print_impl("glGetTexImage is not supported in WebGL. Use a Framebuffer + glReadPixels instead.");
     return {}; 
 #else
-    auto& image = image_get(nr);
     image_bind(nr);
     auto& image_data = __fan_internal_image_list[nr];
     

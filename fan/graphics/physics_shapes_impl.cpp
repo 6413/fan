@@ -296,7 +296,6 @@ namespace fan::graphics::physics {
   }
 
   void base_shape_t::set_shape(fan::graphics::shape_t&& shape) {
-    bool is_valid = iic() == false;
     /*fan::vec3 prev_pos;
     if (is_valid) {
     prev_pos = fan::graphics::shape_t::get_position();
@@ -1609,7 +1608,6 @@ namespace fan::graphics::physics {
       return;
     }
 
-    int prev = character->get_previous_sprite_sheet_frame();
     int curr = character->get_current_sprite_sheet_frame();
 
 
@@ -1695,7 +1693,7 @@ namespace fan::graphics::physics {
   //------------------------------------------------------------------------------------------------
   //------------------------------------------------------------------------------------------------
 
-  std::string bone_to_string(int bone) {
+  std::string bone_to_string(std::size_t bone) {
     if (bone >= std::size(bone_names)) {
       return "N/A";
     }
@@ -1897,7 +1895,7 @@ namespace fan::graphics::physics {
         }
     };
 
-    for (int i = 0; i < std::size(bone_data); ++i) {
+    for (std::size_t i = 0; i < std::size(bone_data); ++i) {
       bones[i].parent_index = bone_data[i].parent_index;
       bones[i].position = fan::vec2(bone_data[i].position) * scale;
       bones[i].position.z = bone_data[i].position.z;
@@ -1930,96 +1928,95 @@ namespace fan::graphics::physics {
 
   void human_t::animate_walk(f32_t force, f32_t dt) {
 
-    fan::physics::body_id_t torso_id = bones[bone_e::torso].visual;
-    b2Vec2 force_ = {force, 0};
+    // fan::physics::body_id_t torso_id = bones[bone_e::torso].visual;
 
-    bone_t& blower_left_arm = bones[bone_e::lower_left_arm];
-    bone_t& blower_right_arm = bones[bone_e::lower_right_arm];
-    bone_t& bupper_left_leg = bones[bone_e::upper_left_leg];
-    bone_t& bupper_right_leg = bones[bone_e::upper_right_leg];
-    bone_t& blower_left_leg = bones[bone_e::lower_left_leg];
-    bone_t& blower_right_leg = bones[bone_e::lower_right_leg];
+    // bone_t& blower_left_arm = bones[bone_e::lower_left_arm];
+    // bone_t& blower_right_arm = bones[bone_e::lower_right_arm];
+    // bone_t& bupper_left_leg = bones[bone_e::upper_left_leg];
+    // bone_t& bupper_right_leg = bones[bone_e::upper_right_leg];
+    // bone_t& blower_left_leg = bones[bone_e::lower_left_leg];
+    // bone_t& blower_right_leg = bones[bone_e::lower_right_leg];
 
-    f32_t torso_vel_x = torso_id.get_linear_velocity().x;
-    f32_t torso_vel_y = torso_id.get_linear_velocity().y;
-    int vel_sgn = fan::math::sgn(torso_vel_x);
+    // f32_t torso_vel_x = torso_id.get_linear_velocity().x;
+    // f32_t torso_vel_y = torso_id.get_linear_velocity().y;
+    // int vel_sgn = fan::math::sgn(torso_vel_x);
 
-    int force_sgn = fan::math::sgn(force);
-    f32_t swing_speed = torso_vel_x ? (vel_sgn * 0.f + torso_vel_x / 15.f) : 0;
+    // int force_sgn = fan::math::sgn(force);
+    // f32_t swing_speed = torso_vel_x ? (vel_sgn * 0.f + torso_vel_x / 15.f) : 0;
 
-    f32_t ttransform = b2Rot_GetAngle(b2Body_GetRotation(bones[bone_e::torso].visual));
-    f32_t lutransform = b2Rot_GetAngle(b2Body_GetRotation(bupper_left_leg.visual));
-    f32_t rutransform = b2Rot_GetAngle(b2Body_GetRotation(bupper_right_leg.visual));
+    // f32_t ttransform = b2Rot_GetAngle(b2Body_GetRotation(bones[bone_e::torso].visual));
+    // f32_t lutransform = b2Rot_GetAngle(b2Body_GetRotation(bupper_left_leg.visual));
+    // f32_t rutransform = b2Rot_GetAngle(b2Body_GetRotation(bupper_right_leg.visual));
 
-    f32_t lltransform = b2Rot_GetAngle(b2Body_GetRotation(blower_left_leg.visual));
-    f32_t rltransform = b2Rot_GetAngle(b2Body_GetRotation(blower_right_leg.visual));
+    // f32_t lltransform = b2Rot_GetAngle(b2Body_GetRotation(blower_left_leg.visual));
+    // f32_t rltransform = b2Rot_GetAngle(b2Body_GetRotation(blower_right_leg.visual));
 
-    if (std::abs(torso_vel_x) / 130.f > 1.f && torso_vel_x) {
-      for (int i = 0; i < bone_e::bone_count; ++i) {
-        bones[i].visual.set_tc_size(fan::vec2(vel_sgn, 1));
-        if (torso_vel_x < 0) {
-          //b2Body_SetTransform(bones[i].visual,  bones[i].visual.get_physics_position() + fan::vec2(bones[bone_e::torso].visual.get_position().x - bones[i].visual.get_position().x, 0) / fan::physics::length_units_per_meter/2, b2Body_GetRotation(bones[i].visual));
-          if (bones[i].joint_id.is_valid() == false) {
-            continue;
-          }
-          static int x = 0;
-          if (!x) {
-            fan::vec2 pivot = fan::vec2(500, 300.f) / fan::physics::length_units_per_meter + bones[i].pivot * scale;
-            //     update_position(fan::physics::gphysics()->world_id, bones[i].joint_id, pivot);
-            x++;
-          }
+    // if (std::abs(torso_vel_x) / 130.f > 1.f && torso_vel_x) {
+    //   for (int i = 0; i < bone_e::bone_count; ++i) {
+    //     bones[i].visual.set_tc_size(fan::vec2(vel_sgn, 1));
+    //     if (torso_vel_x < 0) {
+    //       //b2Body_SetTransform(bones[i].visual,  bones[i].visual.get_physics_position() + fan::vec2(bones[bone_e::torso].visual.get_position().x - bones[i].visual.get_position().x, 0) / fan::physics::length_units_per_meter/2, b2Body_GetRotation(bones[i].visual));
+    //       if (bones[i].joint_id.is_valid() == false) {
+    //         continue;
+    //       }
+    //       static int x = 0;
+    //       if (!x) {
+    //         //fan::vec2 pivot = fan::vec2(500, 300.f) / fan::physics::length_units_per_meter + bones[i].pivot * scale;
+    //         //     update_position(fan::physics::gphysics()->world_id, bones[i].joint_id, pivot);
+    //         x++;
+    //       }
 
-        }
-      }
-    }
+    //     }
+    //   }
+    // }
 
-    if (torso_vel_x) {
-      if (!force) {
-        //   torsoId.apply_force_center(fan::vec2(-torso_vel_x, 0));
-      }
+    // if (torso_vel_x) {
+    //   if (!force) {
+    //     //   torsoId.apply_force_center(fan::vec2(-torso_vel_x, 0));
+    //   }
 
-      f32_t quarter_pi = -0.25f * fan::math::pi;
-      //quarter_pi *= 3; // why this is required?
-      //quarter_pi += fan::math::pi;
-      if (std::abs(torso_vel_x) / 130.f > 1.f && torso_vel_x) {
-        //   update_reference_angle(fan::physics::gphysics()->world_id, blower_left_arm.joint_id, vel_sgn == 1 ? quarter_pi : -quarter_pi);
-        //    update_reference_angle(fan::physics::gphysics()->world_id, blower_right_arm.joint_id, vel_sgn == 1 ? quarter_pi : -quarter_pi);
-        look_direction = vel_sgn;
-      }
+    //   //f32_t quarter_pi = -0.25f * fan::math::pi;
+    //   //quarter_pi *= 3; // why this is required?
+    //   //quarter_pi += fan::math::pi;
+    //   if (std::abs(torso_vel_x) / 130.f > 1.f && torso_vel_x) {
+    //     //   update_reference_angle(fan::physics::gphysics()->world_id, blower_left_arm.joint_id, vel_sgn == 1 ? quarter_pi : -quarter_pi);
+    //     //    update_reference_angle(fan::physics::gphysics()->world_id, blower_right_arm.joint_id, vel_sgn == 1 ? quarter_pi : -quarter_pi);
+    //     look_direction = vel_sgn;
+    //   }
 
-      if (force || std::abs(torso_vel_x / 10.f) > 1.f) {
-        f32_t leg_turn = 0.4;
+    //   if (force || std::abs(torso_vel_x / 10.f) > 1.f) {
+    //     f32_t leg_turn = 0.4;
 
-        if (rutransform < (look_direction == 1 ? -leg_turn / 2 : -leg_turn)) {
-          direction = 0;
-        }
-        if (rutransform > (look_direction == -1 ? leg_turn / 2 : leg_turn)) {
-          direction = 1;
-        }
+    //     if (rutransform < (look_direction == 1 ? -leg_turn / 2 : -leg_turn)) {
+    //       direction = 0;
+    //     }
+    //     if (rutransform > (look_direction == -1 ? leg_turn / 2 : leg_turn)) {
+    //       direction = 1;
+    //     }
 
-        f32_t rotate_speed = 1.3 * std::abs(torso_vel_x) / 200.f;
+    //     f32_t rotate_speed = 1.3 * std::abs(torso_vel_x) / 200.f;
 
-        if (direction == 1) {
-          bupper_right_leg.joint_id.revolute_joint_set_motor_speed(-rotate_speed);
-          bupper_left_leg.joint_id.revolute_joint_set_motor_speed(rotate_speed);
+    //     if (direction == 1) {
+    //       bupper_right_leg.joint_id.revolute_joint_set_motor_speed(-rotate_speed);
+    //       bupper_left_leg.joint_id.revolute_joint_set_motor_speed(rotate_speed);
 
-        }
-        else {
-          bupper_right_leg.joint_id.revolute_joint_set_motor_speed(rotate_speed);
-          bupper_left_leg.joint_id.revolute_joint_set_motor_speed(-rotate_speed);
+    //     }
+    //     else {
+    //       bupper_right_leg.joint_id.revolute_joint_set_motor_speed(rotate_speed);
+    //       bupper_left_leg.joint_id.revolute_joint_set_motor_speed(-rotate_speed);
 
-        }
-        blower_right_leg.joint_id.revolute_joint_set_motor_speed(look_direction * leg_turn / 4 - rltransform);
-        blower_left_leg.joint_id.revolute_joint_set_motor_speed(look_direction * leg_turn / 4 - lltransform);
-      }
-      else {
-        bupper_left_leg.joint_id.revolute_joint_set_motor_speed((ttransform - lutransform) * 5);
-        bupper_right_leg.joint_id.revolute_joint_set_motor_speed((ttransform - rutransform) * 5);
+    //     }
+    //     blower_right_leg.joint_id.revolute_joint_set_motor_speed(look_direction * leg_turn / 4 - rltransform);
+    //     blower_left_leg.joint_id.revolute_joint_set_motor_speed(look_direction * leg_turn / 4 - lltransform);
+    //   }
+    //   else {
+    //     bupper_left_leg.joint_id.revolute_joint_set_motor_speed((ttransform - lutransform) * 5);
+    //     bupper_right_leg.joint_id.revolute_joint_set_motor_speed((ttransform - rutransform) * 5);
 
-        blower_left_leg.joint_id.revolute_joint_set_motor_speed((ttransform - lltransform) * 5);
-        blower_right_leg.joint_id.revolute_joint_set_motor_speed((ttransform - rltransform) * 5);
-      }
-    }
+    //     blower_left_leg.joint_id.revolute_joint_set_motor_speed((ttransform - lltransform) * 5);
+    //     blower_right_leg.joint_id.revolute_joint_set_motor_speed((ttransform - rltransform) * 5);
+    //   }
+    // }
 
   }
 
@@ -2041,7 +2038,7 @@ namespace fan::graphics::physics {
     bool enableMotor = true;
     bool enableLimit = true;
 
-    for (int i = 0; i < std::size(bones); ++i) {
+    for (std::size_t i = 0; i < std::size(bones); ++i) {
       auto& bone = bones[i];
       bone.visual = capsule_sprite_t {{
           .position = fan::vec3(position + (fan::vec2(bone.position) * fan::physics::length_units_per_meter + bone.offset) * scale, bone.position.z),
@@ -2066,7 +2063,7 @@ namespace fan::graphics::physics {
       if (bone.parent_index == -1) {
         continue;
       }
-      fan::vec2 physics_position = bone.visual.get_physics_position();
+      //fan::vec2 physics_position = bone.visual.get_physics_position();
       fan::vec2 pivot = (position / fan::physics::length_units_per_meter) + bone.pivot * scale;
       //  hitbox_visualize[&bones[i]] = fan::graphics::rectangle_t{{
       //  .position = fan::vec3(position + bone.pivot * scale * fan::physics::length_units_per_meter, 60001),
@@ -2101,34 +2098,34 @@ namespace fan::graphics::physics {
   }
 
   void human_t::animate_jump(f32_t jump_impulse, f32_t dt, bool is_jumping) {
-    bone_t& bupper_left_leg = bones[bone_e::upper_left_leg];
-    bone_t& bupper_right_leg = bones[bone_e::upper_right_leg];
-    bone_t& blower_left_leg = bones[bone_e::lower_left_leg];
-    bone_t& blower_right_leg = bones[bone_e::lower_right_leg];
-    if (is_jumping) {
-      go_up = 0;
-    }
-    if (go_up == 1 && !jump_animation_timer.finished()) {
-      bones[bone_e::torso].visual.apply_linear_impulse_center(fan::vec2(0, jump_impulse / 4));
-    }
-    else if (go_up == 1 && jump_animation_timer.finished()) {
-      bones[bone_e::torso].visual.apply_linear_impulse_center(fan::vec2(0, -jump_impulse));
-      go_up = 0;
-    }
-    if (go_up == 0 && is_jumping) {
-      //f32_t torso_vel_x = b2Body_GetLinearVelocity(bones[bone_e::torso].visual).x;
-      //b2RevoluteJoint_SetSpringHertz(blower_left_leg.joint_id, 1);
-      //b2RevoluteJoint_SetSpringHertz(blower_right_leg.joint_id, 1);
+    // bone_t& bupper_left_leg = bones[bone_e::upper_left_leg];
+    // bone_t& bupper_right_leg = bones[bone_e::upper_right_leg];
+    // bone_t& blower_left_leg = bones[bone_e::lower_left_leg];
+    // bone_t& blower_right_leg = bones[bone_e::lower_right_leg];
+    // if (is_jumping) {
+    //   go_up = 0;
+    // }
+    // if (go_up == 1 && !jump_animation_timer.finished()) {
+    //   bones[bone_e::torso].visual.apply_linear_impulse_center(fan::vec2(0, jump_impulse / 4));
+    // }
+    // else if (go_up == 1 && jump_animation_timer.finished()) {
+    //   bones[bone_e::torso].visual.apply_linear_impulse_center(fan::vec2(0, -jump_impulse));
+    //   go_up = 0;
+    // }
+    // if (go_up == 0 && is_jumping) {
+    //   //f32_t torso_vel_x = b2Body_GetLinearVelocity(bones[bone_e::torso].visual).x;
+    //   //b2RevoluteJoint_SetSpringHertz(blower_left_leg.joint_id, 1);
+    //   //b2RevoluteJoint_SetSpringHertz(blower_right_leg.joint_id, 1);
 
-      //b2RevoluteJoint_SetMotorSpeed(blower_left_leg.joint_id, fan::math::sgn(torso_vel_x) * 10.2 );
-      //b2RevoluteJoint_SetMotorSpeed(blower_left_leg.joint_id, fan::math::sgn(torso_vel_x) * 10.2 );
+    //   //b2RevoluteJoint_SetMotorSpeed(blower_left_leg.joint_id, fan::math::sgn(torso_vel_x) * 10.2 );
+    //   //b2RevoluteJoint_SetMotorSpeed(blower_left_leg.joint_id, fan::math::sgn(torso_vel_x) * 10.2 );
 
-      //b2RevoluteJoint_SetMotorSpeed(bupper_left_leg.joint_id,  fan::math::sgn(torso_vel_x) *  -10.2 );
-      //b2RevoluteJoint_SetMotorSpeed(bupper_right_leg.joint_id, fan::math::sgn(torso_vel_x) *  -10.2);
+    //   //b2RevoluteJoint_SetMotorSpeed(bupper_left_leg.joint_id,  fan::math::sgn(torso_vel_x) *  -10.2 );
+    //   //b2RevoluteJoint_SetMotorSpeed(bupper_right_leg.joint_id, fan::math::sgn(torso_vel_x) *  -10.2);
 
-      go_up = 1;
-      jump_animation_timer.start(0.09e9);
-    }
+    //   go_up = 1;
+    //   jump_animation_timer.start(0.09e9);
+    // }
   }
 
   void human_t::erase() {
