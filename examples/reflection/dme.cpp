@@ -63,7 +63,7 @@ struct inside_t {
 
 __dme(macro_dme_t, item_t,
   a,
-  b, (int x; inside_t inside;),
+  b, (int x; inside_t inside; void init() { std::printf("hi\n"); }),
   c,
   d, (int x; int y;)
 );
@@ -94,10 +94,13 @@ int main() {
       .b = [&]{ fan::assert(idx == 1); }
     });
   }
-  fan::print(macro_dme_t{});
+
   for (auto i : st.runtime_table()) {
     fan::print(i);
   }
+
+  fan::print(macro_dme_t{});
+  macro_dme_t::ann<"b"> v; // calls ann constructor prints "hi"
 }
 
 // -------OUTPUT-------
@@ -133,14 +136,27 @@ b_t {
   .pos = {2.0000, 0.0000} [vec2_wrap_t]
   .weight = 3.2 [double]
 }
-_dme_impl_macro_dme_t {
+member_info {
+  .name = a [const char*]
+  .size = 4 [long unsigned int]
+  .offset = 0 [long unsigned int]
+  .type = 0x555555b01da0 [const std::type_info*]
+}
+member_info {
+  .name = b [const char*]
+  .size = 4 [long unsigned int]
+  .offset = 4 [long unsigned int]
+  .type = 0x555555b01da0 [const std::type_info*]
+}
+hi
+macro_dme_t {
   .a = item_t {
     .number = 0 [int]
   }
   .b = item_t {
     .number = 0 [int]
   }
-  [[<lambda()> static::<lambda()>::<unnamed struct> {
+  [[_ann_t {
     .x = 0 [int]
     .inside = inside_t {
       .y = 0 [int]
@@ -152,7 +168,7 @@ _dme_impl_macro_dme_t {
   .d = item_t {
     .number = 0 [int]
   }
-  [[<lambda()> static::<lambda()>::<unnamed struct> {
+  [[_ann_t {
     .x = 0 [int]
     .y = 0 [int]
   }]]

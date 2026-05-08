@@ -79,6 +79,15 @@ consteval auto members() {
   }
 
   template <typename T, typename F>
+  constexpr void for_each_member_indexed(F&& f) {
+    fan::_for<member_count<T>()>([&](auto I) {
+      constexpr std::size_t i = decltype(I)::value;
+      constexpr auto m = members<T>()[i];
+      f.template operator()<i, m>();
+    });
+  }
+
+  template <typename T, typename F>
   consteval auto member_at(std::size_t i, F&& func) {
     std::size_t cur = 0;
     template for (constexpr auto m : members<T>()) {
@@ -234,11 +243,12 @@ consteval auto members() {
   }
 
   template <typename T, typename... Fs>
-  constexpr void match_visit(std::size_t i, Fs&&... fs) {
+  constexpr void match_visit(std::size_t idx, Fs&&... fs) {
     static_assert(sizeof...(Fs) == member_count<T>(), "wrong number of cases");
-    [&]<std::size_t... Is>(std::index_sequence<Is...>) {
-      ((Is == i ? (void)std::get<Is>(std::forward_as_tuple(fs...))() : void()), ...);
-    }(std::make_index_sequence<sizeof...(Fs)>{});
+    fan::_for<sizeof...(Fs)>([&](auto I) {
+      constexpr std::size_t i = decltype(I)::value;
+      if (i == idx) std::get<i>(std::forward_as_tuple(fs...))();
+    });
   }
 
   template <class insert_t, class from_t>
