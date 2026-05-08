@@ -99,6 +99,11 @@ export namespace fan {
           Base::init();
         }
       }
+      ~ann_wrapper() {
+        if constexpr (requires(Base& a) { a.destroy(); }) {
+          Base::destroy();
+        }
+      }
     };
 
     template <fan::fixed_string Name>
