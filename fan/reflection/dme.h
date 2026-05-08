@@ -76,10 +76,4 @@
   } \
   struct type_name : _dme_impl_##type_name, fan::dme_t<type_name, shared_type> { \
     using _dme_impl_##type_name::_dme_impl_##type_name; \
-    template <typename _impl_t = _dme_impl_##type_name> \
-    void init() { \
-      if constexpr (requires(_impl_t& s) { s.init(); }) { \
-        static_cast<_impl_t*>(this)->init(); \
-      } \
-    } \
   };

@@ -52,24 +52,6 @@ export namespace fan {
 
   template <typename derived_t, typename member_t>
   struct dme_t {
-
-    constexpr dme_t() {
-      if !consteval {
-        if constexpr (requires { static_cast<derived_t*>(this)->init(); }) {
-          static_cast<derived_t*>(this)->init();
-        }
-        fan::refl::for_each_member_indexed<derived_t>([&]<std::size_t i, std::meta::info m>() {
-          constexpr auto ann_type = fan::refl::member_annotation_type<derived_t>(i);
-          if constexpr (ann_type != std::meta::info{}) {
-            using ann_t = [:ann_type:];
-            if constexpr (requires(ann_t& a) { a.init(); }) {
-              auto ann = fan::refl::member_annotation<i, derived_t>();
-              ann.init();
-            }
-          }
-        });
-      }
-    }
     static consteval std::size_t size()                                  { return fan::refl::member_count<derived_t>(); }
     constexpr decltype(auto) operator[](this auto&& self, std::size_t i) { return fan::refl::at_index<derived_t>(self, i); }
     consteval std::size_t operator[](std::string_view name) const        { return fan::refl::index_of<derived_t>(name); }
@@ -110,11 +92,20 @@ export namespace fan {
       using value      = member_t;
     };
 
+    template <typename Base>
+    struct ann_wrapper : Base {
+      ann_wrapper() : Base{} {
+        if constexpr (requires(Base& a) { a.init(); }) {
+          Base::init();
+        }
+      }
+    };
+
     template <fan::fixed_string Name>
-    using ann = typename named_member_type<Name>::annotation;
+    using ann = ann_wrapper<typename named_member_type<Name>::annotation>;
 
     template <std::size_t I>
-    using ann_i = typename member_type<I>::annotation;
+    using ann_i = ann_wrapper<typename member_type<I>::annotation>;
 
     constexpr match_proxy match(std::size_t i) { return { static_cast<derived_t*>(this), i }; }
 

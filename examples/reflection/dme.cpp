@@ -63,7 +63,7 @@ struct inside_t {
 
 __dme(macro_dme_t, item_t,
   a,
-  b, (int x; inside_t inside; void init() { std::printf("hi\n"); }),
+  b, (int x; inside_t inside; void init() { fan::print_impl("b constructed"); }),
   c,
   d, (int x; int y;)
 );
@@ -100,7 +100,7 @@ int main() {
   }
 
   fan::print(macro_dme_t{});
-  macro_dme_t::ann<"b"> v; // calls ann constructor prints "hi"
+  macro_dme_t::ann<"b"> v; // calls ann constructor prints "b constructed"
 }
 
 // -------OUTPUT-------
@@ -148,7 +148,6 @@ member_info {
   .offset = 4 [long unsigned int]
   .type = 0x555555b01da0 [const std::type_info*]
 }
-hi
 macro_dme_t {
   .a = item_t {
     .number = 0 [int]
@@ -173,4 +172,5 @@ macro_dme_t {
     .y = 0 [int]
   }]]
 }
+b constructed
 */
