@@ -407,4 +407,11 @@ export namespace fan {
       (std::forward<F>(f)(num<Is * Step>{}), ...);
     }(std::make_index_sequence<N / Step>{});
   }
+
+  template <std::size_t N>
+  using smallest_index_t =
+    std::conditional_t<(N <= 0xFFu),         std::uint8_t,
+    std::conditional_t<(N <= 0xFFFFu),       std::uint16_t,
+    std::conditional_t<(N <= 0xFFFFFFFFull), std::uint32_t,
+                                            std::uint64_t>>>;
 }
