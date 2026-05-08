@@ -64,13 +64,15 @@ struct inside_t {
 
 __dme(macro_dme_t, item_t,
   a,
-  b, (int x; inside_t inside; 
-    void init() { fan::print("b constructed"); } 
+  b, (int x; inside_t inside;
+    void init() { fan::print("b constructed"); }
     void destroy() { fan::print("b destructed"); }
   ),
   c,
-  d, (int x; int y;)
+  d, (int x; int y;),
+
 );
+
 
 int main() {
   st_t st{
