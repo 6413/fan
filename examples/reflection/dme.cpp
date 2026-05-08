@@ -96,3 +96,62 @@ int main() {
   }
   fan::print(macro_dme_t{});
 }
+
+// -------OUTPUT-------
+/*
+st_t {
+  .a = item_t {
+    .number = 1 [int]
+  }
+  [[{1.0000, 1.2000} [vec2_wrap_t]]]
+  .b = item_t {
+    .number = 2 [int]
+  }
+  [[b_t {
+    .pos = {2.0000, 0.0000} [vec2_wrap_t]
+    .weight = 3.2 [double]
+  }]]
+}
+st_t {
+  .a = item_t {
+    .number = 12 [int]
+  }
+  [[{1.0000, 1.2000} [vec2_wrap_t]]]
+  .b = item_t {
+    .number = 15 [int]
+  }
+  [[b_t {
+    .pos = {2.0000, 0.0000} [vec2_wrap_t]
+    .weight = 3.2 [double]
+  }]]
+}
+{1.0000, 1.2000} [vec2_wrap_t]
+b_t {
+  .pos = {2.0000, 0.0000} [vec2_wrap_t]
+  .weight = 3.2 [double]
+}
+_dme_impl_macro_dme_t {
+  .a = item_t {
+    .number = 0 [int]
+  }
+  .b = item_t {
+    .number = 0 [int]
+  }
+  [[<lambda()> static::<lambda()>::<unnamed struct> {
+    .x = 0 [int]
+    .inside = inside_t {
+      .y = 0 [int]
+    }
+  }]]
+  .c = item_t {
+    .number = 0 [int]
+  }
+  .d = item_t {
+    .number = 0 [int]
+  }
+  [[<lambda()> static::<lambda()>::<unnamed struct> {
+    .x = 0 [int]
+    .y = 0 [int]
+  }]]
+}
+*/
