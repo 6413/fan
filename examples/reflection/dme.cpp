@@ -60,12 +60,12 @@ using dme_built_t  = fan::dme_builder<item_t, void,
 struct inside_t {
   int y;
 };
-using macro_dme_t = __dme(
-  item_t,
-  a, { int x; inside_t inside;},
-  b, { int x; int y; },
-  c, {},
-  d, {}
+
+__dme(macro_dme_t, item_t,
+  a,
+  b, (int x; inside_t inside;),
+  c,
+  d, (int x; int y;)
 );
 
 int main() {
