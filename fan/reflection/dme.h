@@ -36,7 +36,7 @@
       .name = std::string(sname), \
       .annotations = { \
         std::meta::reflect_constant([]{ \
-          struct { _dme_strip_parens(body) } s{}; \
+          struct _ann_t{ _dme_strip_parens(body) } s{}; \
           return s; \
         }()) \
       } \
@@ -68,11 +68,18 @@
   )
 
 #define __dme(type_name, shared_type, ...) \
-  struct type_name; \
+  struct _dme_impl_##type_name; \
   consteval { \
     std::vector<std::meta::info> _dme_specs; \
-    _dme_expand( \
-      _dme_helper(shared_type, __VA_ARGS__) \
-    ) \
-    std::meta::define_aggregate(^^type_name, _dme_specs); \
-  }
+    _dme_expand(_dme_helper(shared_type, __VA_ARGS__)) \
+    std::meta::define_aggregate(^^_dme_impl_##type_name, _dme_specs); \
+  } \
+  struct type_name : _dme_impl_##type_name, fan::dme_t<type_name, shared_type> { \
+    using _dme_impl_##type_name::_dme_impl_##type_name; \
+    template <typename _impl_t = _dme_impl_##type_name> \
+    void init() { \
+      if constexpr (requires(_impl_t& s) { s.init(); }) { \
+        static_cast<_impl_t*>(this)->init(); \
+      } \
+    } \
+  };

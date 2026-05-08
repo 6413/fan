@@ -1,14 +1,16 @@
 #include <fan/utility.h>
-#include <fan/graphics/opengl/init.h>
-
-#include <vector>
-#include <string>
-#include <functional>
-#include <iomanip>
-#include <fstream>
-#include <cmath>
 
 import fan;
+import std;
+
+#include <fan/graphics/opengl/init.h>
+
+#if defined(FAN_REFLECTION)
+  import fan.reflection;
+#endif
+
+#include <fan/graphics/gl_api.h>
+
 
 using namespace fan::graphics;
 
@@ -26,7 +28,7 @@ struct test_result_t {
 //
 struct benchmark_result_t {
   std::string name;
-  uint64_t iterations;
+  std::uint64_t iterations;
   double total_time_ms;
   double avg_time_us;
   double ops_per_sec;
@@ -66,7 +68,7 @@ struct shape_tester_t {
 
     fan::time::timer timer(true);
 
-    for (uint64_t i = 0; i < iterations; ++i) {
+    for (std::uint64_t i = 0; i < iterations; ++i) {
       bench_func();
     }
 
@@ -125,7 +127,7 @@ struct shape_tester_t {
       auto keypack_size = rect.get_keys_size();
       assert_true(keypack_size > 0, "Keypack size should be > 0");
 
-      uint8_t* keypack = rect.get_keys();
+      std::uint8_t* keypack = rect.get_keys();
       assert_true(keypack != nullptr, "Keypack should not be null");
     });
     run_test("Keypack Integrity - Sprite", [&]() {
@@ -880,7 +882,6 @@ struct shape_tester_t {
     });
 
     run_test("Round-trip Coordinate Transform", [&]() {
-      fan::vec2 ws = engine.window.get_size();
       fan::vec2 original(123, 456);
 
       fan::vec2 ndc = engine.screen_to_ndc(original);
