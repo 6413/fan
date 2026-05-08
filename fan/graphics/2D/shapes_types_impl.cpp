@@ -130,7 +130,7 @@ namespace fan::graphics {
     this->name = name;
     this->fps = fps;
     this->loop = true;
-    for (int i = 0; i < frame_images.size(); ++i) {
+    for (std::size_t i = 0; i < frame_images.size(); ++i) {
       sprite_sheet_t::image_t frame;
       frame.image = frame_images[i];
       frame.hframes = 1;

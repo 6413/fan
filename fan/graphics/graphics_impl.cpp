@@ -1166,16 +1166,16 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
 
   void tilemap_t::set_source(const fan::vec2i& cell, const fan::color& color) {
     if (!wall_cells.contains(cell) &&
-      cell.x >= 0 && cell.x < shapes[0].size() &&
-      cell.y >= 0 && cell.y < shapes.size()) {
+      cell.x >= 0 && cell.x < (int)shapes[0].size() &&
+      cell.y >= 0 && cell.y < (int)shapes.size()) {
       shapes[cell.y][cell.x].set_color(color);
     }
   }
 
   void tilemap_t::set_destination(const fan::vec2i& cell, const fan::color& color) {
     if (!wall_cells.contains(cell) &&
-      cell.x >= 0 && cell.x < shapes[0].size() &&
-      cell.y >= 0 && cell.y < shapes.size()) {
+      cell.x >= 0 && cell.x < (int)shapes[0].size() &&
+      cell.y >= 0 && cell.y < (int)shapes.size()) {
       shapes[cell.y][cell.x].set_color(color);
     }
   }
@@ -1186,8 +1186,8 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
   {
     for (const auto& p : path) {
       if (!wall_cells.contains(p) &&
-        p.x >= 0 && p.x < shapes[0].size() &&
-        p.y >= 0 && p.y < shapes.size()) {
+        p.x >= 0 && p.x < (int)shapes[0].size() &&
+        p.y >= 0 && p.y < (int)shapes.size()) {
         shapes[p.y][p.x].set_color(color);
       }
     }

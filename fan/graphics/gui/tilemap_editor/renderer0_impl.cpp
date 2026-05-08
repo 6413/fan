@@ -533,7 +533,6 @@ namespace fan::graphics {
     }
 
     auto& node = get_map_node(map_id);
-    auto& compiled_map = *node.compiled_map;
 
     for (auto it = node.physics_entities.begin(); it != node.physics_entities.end();) {
       if (it->id == id) {

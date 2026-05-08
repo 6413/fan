@@ -370,7 +370,7 @@ namespace fan::graphics {
 
   bool is_sprite_sheet_finished(sprite_sheet_id_t nr, const fan::graphics::sprite_sheet_data_t& sd) {
     auto& sprite_sheet = fan::graphics::get_sprite_sheet(nr);
-    return sd.current_frame == sprite_sheet.selected_frames.size() - 1;
+    return sd.current_frame == (int)sprite_sheet.selected_frames.size() - 1;
   }
 
   fan::graphics::sprite_sheet_t create_sprite_sheet(
@@ -961,15 +961,15 @@ namespace fan::graphics{
       );
       break;
     }
-    case shape_type_t::text: {
-      auto& properties = get_props<shapes::text_t::properties_t>(
-        sd.shape_type,
-        sd.data_nr
-      );
+    // case shape_type_t::text: {
+    //   auto& properties = get_props<shapes::text_t::properties_t>(
+    //     sd.shape_type,
+    //     sd.data_nr
+    //   );
 
-      sd.visual = g_shapes->shaper.add(shape_type_t::text, nullptr, 0, nullptr, nullptr);
-      break;
-    }
+    //   sd.visual = g_shapes->shaper.add(shape_type_t::text, nullptr, 0, nullptr, nullptr);
+    //   break;
+    // }
     case shape_type_t::capsule: {
       auto& properties = get_props<shapes::capsule_t::properties_t>(
         sd.shape_type,
@@ -1949,7 +1949,6 @@ namespace fan::graphics{
 
   void shapes::shape_t::reload(std::uint8_t format, const fan::vec2& image_size) {
         
-    auto& settings = fan::graphics::ctx()->image_get_settings(fan::graphics::ctx(), get_image());
     void* data[4]{};
     reload(format, data, image_size);
   }
@@ -1957,12 +1956,8 @@ namespace fan::graphics{
   // universal image specific
   void shapes::shape_t::reload(std::uint8_t format, fan::graphics::image_t images[4]) {
     universal_image_renderer_t::ri_t& ri = *(universal_image_renderer_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
-    std::uint8_t image_count_new = fan::graphics::get_channel_amount(format);
     if (format != ri.format) {
       auto sti = g_shapes->shaper.ShapeList[get_visual_id()].sti;
-      std::uint8_t* key_pack = g_shapes->shaper.GetKeys(*this);
-      fan::graphics::image_t vi_image = shaper_get_key_safe(image_t, texture_t, image);
-
 
       auto shader = g_shapes->shaper.GetShader(sti);
           
@@ -2128,7 +2123,7 @@ namespace fan::graphics{
     auto& sprite_sheet = fan::graphics::get_sprite_sheet(nr);
     auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
     fan::graphics::sprite_sheet_data_t& sheet_data = ri.sprite_sheet_data;
-    return sheet_data.current_frame == sprite_sheet.selected_frames.size() - 1;
+    return sheet_data.current_frame == (int)sprite_sheet.selected_frames.size() - 1;
   }
   
   int shapes::shape_t::get_current_sprite_sheet_last_frame_index() const {
@@ -4041,7 +4036,7 @@ namespace fan::graphics {
     }
   #endif
 
-    fan::vec2 sign = shape.get_image_sign();
+    //fan::vec2 sign = shape.get_image_sign();
 
     //if (direction.x > 0) {
     //  if (sign.x < 0) shape.set_image_sign({1, sign.y});
