@@ -361,7 +361,7 @@ export namespace fan {
   struct json_schema {
     struct type;
     consteval {
-      json_schema_to_struct(^^type, Schema.view());
+      json_schema_to_struct(^^type, Schema.data);
     }
   };
 
