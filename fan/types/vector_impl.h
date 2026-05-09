@@ -238,7 +238,7 @@ explicit constexpr operator bool() const {
   return false;
 }
                     
-#define __FAN_SWITCH_IDX(x, idx) case size() - (idx + 1): return x
+#define __FAN_SWITCH_IDX(x, idx) case idx: return x
 
 constexpr value_type_t& operator[](access_type_t idx) { 
 #ifndef fan_vector_array

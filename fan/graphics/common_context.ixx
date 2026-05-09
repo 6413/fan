@@ -132,7 +132,7 @@ export namespace fan {
           f32_t bottom;
         };
         fan::vec4 v;
-      }coordinates;
+      }coordinates{};
       fan::vec4 original_coordinates = fan::vec4(0, 0, 0, 0);
     };
 
