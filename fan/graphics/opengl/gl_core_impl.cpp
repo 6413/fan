@@ -67,6 +67,10 @@ namespace fan::opengl {
   }
 
   void context_t::close() {
+     internal_close();
+     __fan_internal_shader_list.Clear();
+     __fan_internal_image_list.Clear();
+    // std::printf("%p", __fan_internal_image_list);
   }
 
   void context_t::internal_close() {
@@ -1109,37 +1113,6 @@ namespace fan::opengl {
     fan::throw_error("Invalid OpenGL filter value.");
   #endif
     return fan::graphics::image_filter_e::nearest;
-  }
-
-  void context_t::close(fan::opengl::context_t& context) {
-    {
-      fan::graphics::camera_list_t::nrtra_t nrtra;
-      fan::graphics::camera_nr_t nr;
-      nrtra.Open(&__fan_internal_camera_list, &nr);
-      while (nrtra.Loop(&__fan_internal_camera_list, &nr)) { camera_erase(nr); }
-      nrtra.Close(&__fan_internal_camera_list);
-    }
-    {
-      fan::graphics::shader_list_t::nrtra_t nrtra;
-      fan::graphics::shader_nr_t nr;
-      nrtra.Open(&__fan_internal_shader_list, &nr);
-      while (nrtra.Loop(&__fan_internal_shader_list, &nr)) { shader_erase(nr); }
-      nrtra.Close(&__fan_internal_shader_list);
-    }
-    {
-      fan::graphics::image_list_t::nrtra_t nrtra;
-      fan::graphics::image_nr_t nr;
-      nrtra.Open(&__fan_internal_image_list, &nr);
-      while (nrtra.Loop(&__fan_internal_image_list, &nr)) { image_erase(nr); }
-      nrtra.Close(&__fan_internal_image_list);
-    }
-    {
-      fan::graphics::viewport_list_t::nrtra_t nrtra;
-      fan::graphics::viewport_nr_t nr;
-      nrtra.Open(&__fan_internal_viewport_list, &nr);
-      while (nrtra.Loop(&__fan_internal_viewport_list, &nr)) { viewport_erase(nr); }
-      nrtra.Close(&__fan_internal_viewport_list);
-    }
   }
   fan::opengl::context_t::image_load_properties_t context_t::image_global_to_opengl(const fan::graphics::image_load_properties_t& p) {
     return {

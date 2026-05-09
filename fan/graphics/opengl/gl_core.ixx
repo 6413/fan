@@ -536,8 +536,6 @@ export namespace fan::opengl {
     static std::uint32_t opengl_to_global_address_mode(std::uint32_t mode);
     static std::uint32_t opengl_to_global_filter(std::uintptr_t filter);
 
-    void close(fan::opengl::context_t& context);
-
     static fan::opengl::context_t::image_load_properties_t image_global_to_opengl(const fan::graphics::image_load_properties_t& p);
     static fan::graphics::image_load_properties_t image_opengl_to_global(const fan::opengl::context_t::image_load_properties_t& p);
 
