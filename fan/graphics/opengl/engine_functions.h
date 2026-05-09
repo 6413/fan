@@ -87,6 +87,7 @@ void close() {
   blur.close();
   reflection.close();
 #endif
+  loco.context.gl.close();
 }
 
 void init_framebuffer() {

@@ -218,6 +218,7 @@ namespace bll_builds {
 #define BLL_set_IsNodeRecycled 0
 #define BLL_set_AreWeInsideStruct 0
 #define BLL_set_Usage 1
+#define bcontainer_set_StoreFormat 1
 #include <BLL/BLL.h>
   using image_nr_t = image_list_NodeReference_t;
 

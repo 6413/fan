@@ -1165,6 +1165,7 @@ void loco_t::destroy() {
   }
 
 #if defined(FAN_2D)
+  shapes.shapes_destroy_pools(&shapes);
   // TODO fix destruct order to not do manually, because shaper closes before them?
   static_render_list.clear();
   immediate_render_list.clear();

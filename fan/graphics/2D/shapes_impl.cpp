@@ -115,6 +115,33 @@ namespace fan::graphics {
       }
     };
   }
+
+  template <typename props_t>
+  static void destroy_shape_pool(shapes* s, std::uint8_t st) {
+    auto* pool = static_cast<shape_pool_t<props_t>*>(s->shape_pool_storage[st]);
+    if (!pool) return;
+
+    delete pool;
+    s->shape_pool_storage[st] = nullptr;
+
+    s->shape_props_getters[st] = nullptr;
+    s->shape_props_freers[st] = nullptr;
+    s->shape_props_copiers[st] = nullptr;
+    s->shape_props_allocers[st] = nullptr;
+    s->shape_post_copy_fixups[st] = nullptr;
+  }
+
+  void shapes::shapes_destroy_pools(shapes* s) {
+    #define DESTROY_POOL(name) \
+      destroy_shape_pool<fan::graphics::shapes::name##_t::properties_t>( \
+        s, fan::graphics::shape_type_t::name);
+
+    #define GEN_SHAPES_EXPAND(name) DESTROY_POOL(name)
+    #define SKIP(x)
+
+    GEN_SHAPES(GEN_SHAPES_EXPAND, SKIP)
+  }
+
   shapes::shape_ids_t::nr_t shapes::add_shape_impl(std::uint8_t st, const void* props_ptr) {
     auto gnr = shape_ids.NewNodeLast();
     fan::graphics::g_shapes->shape_ids[gnr] = {

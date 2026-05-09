@@ -1645,6 +1645,7 @@ export namespace fan::graphics {
     props_post_copy_t shape_post_copy_fixups[shape_pool_count] = {};
 
     void shapes_init_pools(shapes* s);
+    void shapes_destroy_pools(shapes* s);
 
     shape_ids_t::nr_t add_shape_impl(std::uint8_t st, const void* props_ptr);
     template<typename props_t>
