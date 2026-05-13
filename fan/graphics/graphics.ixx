@@ -225,8 +225,10 @@ export namespace fan::graphics {
     const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
     fan::vec3 position = POSITION3_WINDOW_CENTER;
     f32_t radius = 32.f;
-    fan::vec3 angle = 0;
     fan::color color = fan::color(1, 1, 1, 1);
+    fan::color outline_color = color;
+    f32_t outline_width = 2.f;
+    fan::vec3 angle = 0;
     bool blending = true;
     std::uint32_t flags = 0;
     bool enable_culling = true;
@@ -238,7 +240,7 @@ export namespace fan::graphics {
 
     circle_t() = default;
     circle_t(circle_properties_t p);
-    circle_t(const fan::vec3& position, f32_t radius, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+    circle_t(const fan::vec3& position, f32_t radius = circle_properties_t{}.radius, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   };
 
   struct capsule_properties_t {
@@ -490,7 +492,7 @@ export namespace fan::graphics {
   fan::graphics::shapes::shape_t& line(const fan::vec3& src, const fan::vec3& dst, const fan::color& color = fan::colors::white, f32_t thickness = line_properties_t().thickness, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   fan::graphics::shapes::shape_t& light(const light_properties_t& props = {});
   fan::graphics::shapes::shape_t& circle(const circle_properties_t& props = {});
-  fan::graphics::shapes::shape_t& circle(const fan::vec3& position, f32_t radius, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+  fan::graphics::shapes::shape_t& circle(const fan::vec3& position, f32_t radius = circle_properties_t{}.radius, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   fan::graphics::shapes::shape_t& capsule(const capsule_properties_t& props = {});
   fan::graphics::shapes::shape_t& polygon(const polygon_properties_t& props = {});
   fan::graphics::shapes::shape_t& grid(const grid_properties_t& props = {});
