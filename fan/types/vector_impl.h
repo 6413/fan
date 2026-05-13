@@ -414,7 +414,7 @@ std::string to_string() const {
   return to_string(*this);
 }
 
-operator std::string() const {
+explicit operator std::string() const {
   return to_string(*this);
 }
 
