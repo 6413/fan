@@ -5,6 +5,8 @@ layout (location = 2) in vec2 in_rotation_point;
 layout (location = 3) in vec4 in_color;
 layout (location = 4) in vec3 in_angle;
 layout (location = 5) in uint in_flags;
+layout (location = 6) in vec4 in_outline_color;
+layout (location = 7) in float in_outline_width;
 
 out vec4 instance_color;
 out vec3 instance_position;
@@ -12,6 +14,8 @@ out float instance_radius;
 out vec3 frag_position;
 out vec2 texture_coordinate;
 flat out uint flags;
+out vec4 instance_outline_color;
+out float instance_outline_width;
 
 uniform mat4 view;
 uniform mat4 projection;
@@ -48,6 +52,8 @@ void main() {
   instance_radius = in_radius;
   frag_position = vec4(vec2(x, y) * vec2(instance_radius) + instance_position.xy, instance_position.z, 1).xyz;
   flags = in_flags;
+  instance_outline_color = in_outline_color;
+  instance_outline_width = in_outline_width;
 
   gl_Position = projection * view * vec4(vec2(x, y) * vec2(instance_radius) + instance_position.xy, instance_position.z, 1);
 }

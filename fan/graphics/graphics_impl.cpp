@@ -293,8 +293,10 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
         .viewport = p.render_view->viewport,
         .position = p.position,
         .radius = p.radius,
-        .angle = p.angle,
         .color = p.color,
+        .outline_color = p.outline_color,
+        .outline_width = p.outline_width,
+        .angle = p.angle,
         .blending = p.blending,
         .flags = p.flags
       ), p.enable_culling

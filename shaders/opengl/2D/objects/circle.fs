@@ -8,20 +8,37 @@ in float instance_radius;
 in vec3 frag_position;
 in vec2 texture_coordinate;
 flat in uint flags;
+in vec4 instance_outline_color;
+in float instance_outline_width;
 
 uniform float camera_zoom;
 
 out vec4 color;
 
 void main() {
-  float distance = length(frag_position - instance_position);
-  float radius = instance_radius;
-
+  float distance = length(frag_position.xy - instance_position.xy);
   float smooth_edge = 2.0 / camera_zoom;
 
-  float intensity = clamp(1.0 - smoothstep(radius - smooth_edge, radius, distance), 0.0, 1.0);
-  vec3 base_color = instance_color.rgb;
-  vec4 color = vec4(base_color, instance_color.a * intensity);
+  float outer = instance_radius;
+  float inner = instance_radius - instance_outline_width;
 
-  o_attachment0 = color;
+  float outer_alpha = 1.0 - smoothstep(
+    outer - smooth_edge, 
+    outer, 
+    distance
+  );
+
+  float inner_alpha = 1.0 - smoothstep(
+    inner - smooth_edge, 
+    inner, 
+    distance
+  );
+
+  vec4 result = mix(
+    instance_outline_color,
+    instance_color,
+    inner_alpha
+  );
+  result.a *= outer_alpha;
+  o_attachment0 = result;
 }
