@@ -187,8 +187,10 @@ export namespace fan {
           render_view_t* render_view = &fan::graphics::get_orthographic_render_view();
           fan::vec3 position = fan::vec3(0, 0, 0);
           f32_t radius = 0.1f;
-          fan::vec3 angle = 0;
           fan::color color = fan::color(1, 1, 1, 1);
+          fan::color outline_color = color;
+          f32_t outline_width = shapes::circle_t::properties_t().outline_width;
+          fan::vec3 angle = 0;
           bool blending = true;
           std::uint32_t flags = 0;
           operator fan::graphics::circle_properties_t() const {
@@ -196,8 +198,10 @@ export namespace fan {
               .render_view = render_view,
               .position = position,
               .radius = radius,
-              .angle = angle,
               .color = color,
+              .outline_color = outline_color,
+              .outline_width = outline_width,
+              .angle = angle,
               .blending = blending,
               .flags = flags
             };

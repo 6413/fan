@@ -977,6 +977,8 @@ export namespace fan::graphics {
         fan::color color;
         fan::vec3 angle;
         std::uint32_t flags;
+        fan::color outline_color;
+        f32_t outline_width;
       };
     #pragma pack(pop)
 
@@ -984,15 +986,16 @@ export namespace fan::graphics {
 
       };
 
-
-      static std::array<shape_gl_init_t, 6>& get_locations() {
-        static std::array<shape_gl_init_t, 6> locs{{
+      static auto& get_locations() {
+        static std::array<shape_gl_init_t, 8> locs{{
           shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position) },
           shape_gl_init_t{{1, "in_radius"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, radius)},
           shape_gl_init_t{{2, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
           shape_gl_init_t{{3, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)},
-          shape_gl_init_t{{5, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, angle)},
-          shape_gl_init_t{{6, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), offsetof(vi_t, flags)}
+          shape_gl_init_t{{4, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, angle)},
+          shape_gl_init_t{{5, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), offsetof(vi_t, flags)},
+          shape_gl_init_t{{6, "in_outline_color"}, 4, GL_FLOAT , sizeof(vi_t), offsetof(vi_t, outline_color)},
+          shape_gl_init_t{{7, "in_outline_width"}, 1, GL_FLOAT , sizeof(vi_t), offsetof(vi_t, outline_width)}
         }};
         return locs;
       }
@@ -1002,14 +1005,15 @@ export namespace fan::graphics {
 
         fan::vec3 position = 0;
         f32_t radius = 32;
-        fan::vec2 rotation_point = 0;
         fan::color color = fan::colors::white;
+        fan::color outline_color = color;
+        f32_t outline_width = 10.f;
         fan::vec3 angle = 0;
+        fan::vec2 rotation_point = 0;
         std::uint32_t flags = 0;
 
         #include <fan/graphics/base_props.inl>
       };
-
 
       fan::graphics::shapes::shape_t push_back(const circle_t::properties_t& properties);
 

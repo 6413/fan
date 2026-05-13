@@ -905,6 +905,8 @@ namespace fan::graphics{
       vi.radius = properties.radius;
       vi.rotation_point = properties.rotation_point;
       vi.color = properties.color;
+      vi.outline_color = properties.outline_color;
+      vi.outline_width = properties.outline_width;
       vi.angle = properties.angle;
       vi.flags = properties.flags;
 
