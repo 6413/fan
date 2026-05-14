@@ -1,25 +1,35 @@
 module;
 
+#include <fan/utility.h>
+
 #if defined(FAN_3D)
-#include <fan/types/dme.h>
-#include <assimp/Exporter.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
-#include <assimp/Importer.hpp>
-//#define STB_IMAGE_IMPLEMENTATION
-#include <fan/stb/stb_image.h>
+  #include <assimp/Exporter.hpp>
+  #include <assimp/scene.h>
+  #include <assimp/postprocess.h>
+  #include <assimp/Importer.hpp>
+  //#define STB_IMAGE_IMPLEMENTATION
+  #include <fan/stb/stb_image.h>
 #endif
 
 export module fan.graphics.fms;
 
 import std;
 
+#include <fan/types/dme.h>
+
+
 #if defined(FAN_3D)
 
+import fan.utility;
+import fan.graphics.image_load;
+import fan.print.error;
 import fan.types.matrix;
+import fan.types.vector;
+import fan.types.quaternion;
 import fan.print;
 import fan.graphics;
 
+import fan.graphics.gui.types;
 import fan.graphics.gui.base;
 
 
@@ -1345,7 +1355,7 @@ export namespace fan {
         #undef d
 
         std::uintptr_t size() {
-          return this->GetMemberAmount();
+          return self_t::size();
         }
         dme_type_t& operator[](std::uintptr_t i) {
           return *this->NA(i);
@@ -1477,7 +1487,7 @@ export namespace fan {
           if (get_bone_name_index(left_leg_vector, bone.name) == 0) {
             if (left_leg) {
               /* multiple left leg? */
-              assert(0);
+              fan::assert(0);
             }
             left_leg = true;
           }

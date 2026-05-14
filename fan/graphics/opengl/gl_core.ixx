@@ -442,6 +442,7 @@ export namespace fan::opengl {
     fan::graphics::image_nr_t image_create();
     void image_erase(fan::graphics::image_nr_t nr);
     void image_bind(fan::graphics::image_nr_t nr);
+    void image_bind(fan::graphics::image_nr_t nr, std::uint32_t unit);
     void image_unbind(fan::graphics::image_nr_t nr);
     fan::graphics::image_load_properties_t& image_get_settings(fan::graphics::image_nr_t nr);
     void image_set_settings(fan::graphics::image_nr_t nr, const fan::opengl::context_t::image_load_properties_t& p);
@@ -461,6 +462,17 @@ export namespace fan::opengl {
     std::vector<std::uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, GLenum format, fan::vec2 uvp, fan::vec2 uvs);
     fan::graphics::image_nr_t image_create(const fan::color& color, const fan::opengl::context_t::image_load_properties_t& p);
     fan::graphics::image_nr_t image_create(const fan::color& color);
+
+    fan::graphics::image_nr_t image_create_r32f(
+      void* data, 
+      const fan::vec2ui& size
+    );
+
+    // Creates an 8-bit per channel RGB texture
+    fan::graphics::image_nr_t image_create_rgb(
+      void* data, 
+      const fan::vec2ui& size
+    );
 
     //-----------------------------image-----------------------------
     //-----------------------------image-----------------------------

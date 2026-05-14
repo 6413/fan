@@ -57,6 +57,7 @@ export namespace fan {
       __dme(r8b8g8a8_unorm);
       __dme(b8g8r8a8_unorm);
       __dme(r8_unorm);
+      __dme(r32_float);
       __dme(rg8_unorm);
       __dme(rgb_unorm);
       __dme(rgba_unorm);
@@ -118,8 +119,8 @@ export namespace fan {
     };
 
     struct context_camera_t : fan::camera {
-      fan::mat4 m_projection = fan::mat4(1);
-      fan::mat4 m_view = fan::mat4(1);
+      fan::mat4 projection = fan::mat4(1);
+      fan::mat4 view = fan::mat4(1);
       f32_t zfar = 1000.f;
       f32_t znear = 0.1f;
       f32_t zoom = 1.0f;

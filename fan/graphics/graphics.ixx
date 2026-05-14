@@ -447,6 +447,38 @@ export namespace fan::graphics {
         ));
     }
   };
+
+  struct rectangle3d_properties_t {
+    const render_view_t* render_view = fan::graphics::ctx().perspective_render_view;
+    fan::vec3 position = 0;
+    fan::vec3 size = 1.f;
+    fan::color color = fan::colors::white;
+    bool blending = true;
+  };
+
+  struct rectangle3d_t : fan::graphics::shapes::shape_t {
+    using fan::graphics::shapes::shape_t::shape_t;
+    using fan::graphics::shapes::shape_t::operator=;
+
+    rectangle3d_t() = default;
+    rectangle3d_t(rectangle3d_properties_t p) {
+      *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
+        fan_init_struct(
+          typename fan::graphics::shapes::rectangle3d_t::properties_t,
+          .camera = p.render_view->camera,
+          .viewport = p.render_view->viewport,
+          .position = p.position,
+          .size = p.size,
+          .color = p.color,
+          .blending = p.blending
+        ));
+    }
+    rectangle3d_t(const fan::vec3& position, const fan::vec3& size, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().perspective_render_view):
+      rectangle3d_t(rectangle3d_properties_t{.render_view = render_view, .position = position, .size = size, .color = color})
+    {
+
+    }
+  };
 #endif
 
   struct aabb_t {
@@ -994,12 +1026,12 @@ export namespace fan::graphics {
   );
 
   fan::event::task_t async_generate_mesh(
-    const vec2& noise_size,
+    vec2 noise_size,
     const std::vector<std::uint8_t>& noise_data,
     const fan::graphics::image_t& texture,
     std::vector<fan::graphics::shape_t>& out_mesh,
     const terrain_palette_t& palette,
-    const sprite_properties_t& cp = {}
+    sprite_properties_t cp = {}
   );
 
 #endif

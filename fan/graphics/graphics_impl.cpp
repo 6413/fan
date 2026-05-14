@@ -10,6 +10,7 @@ module;
 module fan.graphics;
 
 import fan.print.error;
+import fan.print;
 
 #if defined(FAN_JSON)
   import fan.types.json;
@@ -1387,17 +1388,17 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
   }
 
   fan::event::task_t async_generate_mesh(
-    const vec2& noise_size,
+    vec2 noise_size,
     const std::vector<std::uint8_t>& noise_data,
     const fan::graphics::image_t& texture,
     std::vector<fan::graphics::shape_t>& out_mesh,
     const terrain_palette_t& palette,
-    const sprite_properties_t& cp)
+    sprite_properties_t cp)
   {
     sprite_properties_t sp = cp;
     sp.size = fan::graphics::viewport_get_size(sp.render_view->viewport) / noise_size / 2;
     out_mesh.resize(noise_size.multiply());
-
+    fan::print(&noise_size, noise_size);
     for (int i = 0; i < noise_size.y; ++i) {
       for (int j = 0; j < noise_size.x; ++j) {
         int index = (i * noise_size.x + j) * 3;
@@ -1410,8 +1411,8 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
       }
       co_await fan::co_sleep(1);
     }
+    fan::print(&noise_size, noise_size);
   }
-
 #endif
 }
 

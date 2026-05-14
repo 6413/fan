@@ -950,8 +950,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
       auto camera_data = ctx->camera_get(camera_handle);
       void* data;
       fan::vulkan::context_t::view_projection_t vp{};
-      vp.projection = camera_data.m_projection;
-      vp.view = camera_data.m_view;
+      vp.projection = camera_data.projection;
+      vp.view = camera_data.view;
       vkMapMemory(ctx->device, camera_memory, 0, sizeof(vp), 0, &data);
       memcpy(data, &vp, sizeof(vp));
       vkUnmapMemory(ctx->device, camera_memory);

@@ -10,6 +10,7 @@ static constexpr int get_shape_category(uint16_t sti) {
   case fan::graphics::shapes::shape_type_t::rectangle:
   #if defined(FAN_3D)
   case fan::graphics::shapes::shape_type_t::rectangle3d:
+  case fan::graphics::shapes::shape_type_t::line3d:
   #endif
   case fan::graphics::shapes::shape_type_t::line:
     return fan::graphics::shapes::kp::common;

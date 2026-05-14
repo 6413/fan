@@ -518,6 +518,22 @@ export namespace fan {
   inline constexpr bool is_vector_type_v<vec_wrap_t<N, T>> = true;
   template <typename T>
   concept is_vector = is_vector_type_v<std::remove_cvref_t<T>>;
+  
+  template <class K>
+  std::uint32_t get_hash_fast(const K& v) noexcept {
+    if constexpr (requires { v.x; v.y; v.z; }) {
+      return static_cast<std::uint32_t>(v.x) * 73856093u
+        ^ static_cast<std::uint32_t>(v.y) * 19349663u
+        ^ static_cast<std::uint32_t>(v.z) * 83492791u;
+    }
+    else if constexpr (requires { v.x; v.y; }) {
+      return static_cast<std::uint32_t>(v.x) * 73856093u
+        ^ static_cast<std::uint32_t>(v.y) * 19349663u;
+    }
+    else {
+      return static_cast<std::uint32_t>(v);
+    }
+  }
 }
 
 #define fan_hash_vec1(type) \
@@ -581,5 +597,26 @@ export namespace fan::math {
     f32_t vy = -std::sqrt(std::max(0.f, 2.f * gravity * std::abs(dy)));
     f32_t t = -vy / gravity;
     return {t > 0.f ? (target.x - start.x) / t : 0.f, vy};
+  }
+}
+
+export namespace fan {
+  void rect_diff(
+    const fan::vec2i& old_min,
+    const fan::vec2i& old_max,
+    const fan::vec2i& new_min,
+    const fan::vec2i& new_max,
+    auto&& add_fn,
+    auto&& remove_fn
+  ) {
+    new_min.rect({old_min.x - 1, new_max.y}, add_fn);
+    fan::vec2i(old_max.x + 1, new_min.y).rect({new_max.x, new_max.y}, add_fn);
+    new_min.rect({new_max.x, old_min.y - 1}, add_fn);
+    fan::vec2i(new_min.x, old_max.y + 1).rect({new_max.x, new_max.y}, add_fn);
+
+    old_min.rect({new_min.x - 1, old_max.y}, remove_fn);
+    fan::vec2i(new_max.x + 1, old_min.y).rect({old_max.x, old_max.y}, remove_fn);
+    old_min.rect({old_max.x, new_min.y - 1}, remove_fn);
+    fan::vec2i(old_min.x, new_max.y + 1).rect({old_max.x, old_max.y}, remove_fn);
   }
 }

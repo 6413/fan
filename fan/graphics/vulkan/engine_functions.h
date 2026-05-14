@@ -245,13 +245,13 @@ void shapes_draw() {
           loco.context.vk, 
           0, 
           &fan::vulkan::context_t::view_projection_t::view, 
-          camera_data.m_view
+          camera_data.view
         );
         shader.projection_view_block->edit_instance(
           loco.context.vk,
           0, 
           &fan::vulkan::context_t::view_projection_t::projection,
-          camera_data.m_projection
+          camera_data.projection
         );
 
         auto& st = fan::graphics::g_shapes->shaper.GetShapeTypes(shape_type);

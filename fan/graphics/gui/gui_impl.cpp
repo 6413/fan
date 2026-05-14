@@ -2498,5 +2498,28 @@ void hex_editor_t::render(const std::string_view window_name, fan::io::data_prov
     sel_start = next_idx;
     sel_end = next_idx;
   }
+
+
+#if defined(FAN_3D)
+  bool terrain_noise_debug(
+    fan::graphics::terrain_noise_t& noise,
+    f32_t& block_size,
+    int& view_dist,
+    f32_t& move_speed
+  ) {
+    bool dirty = false;
+    dirty |= gui::drag("seed",         &noise.seed);
+    dirty |= gui::drag("frequency",    &noise.frequency,    0.001f, 0.001f, 1.f);
+    dirty |= gui::drag("height scale", &noise.height_scale, 0.1f,   0.1f,   50.f);
+    dirty |= gui::drag("height offset",&noise.height_offset,0.1f,  -20.f,   20.f);
+    dirty |= gui::drag("block size",   &block_size,         0.1f,   0.1f,   100.f);
+    gui::drag("view dist",  &view_dist,  1,    4,      128);
+    gui::drag("move speed", &move_speed, 10.f, 10.f,   100000.f);
+    if (dirty || gui::button("Regenerate")) {
+      noise.apply();
+    }
+    return dirty;
+  }
+#endif // FAN_3D
 }
 #endif

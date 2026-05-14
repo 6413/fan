@@ -233,16 +233,22 @@ void shaders_compile() {
 #undef C
 }
 
-#define SHAPE_DESC(ShapeType, count, inst, shader) { \
-  fan::graphics::shapes::ShapeType##_t::shape_type, \
-  sizeof(fan::graphics::shapes::ShapeType##_t::vi_t), \
-  sizeof(fan::graphics::shapes::ShapeType##_t::ri_t), \
-  []() -> fan::graphics::shape_gl_init_list_t { \
-    auto& s = fan::graphics::g_shapes->ShapeType; \
-    return {s.get_locations().data(), (int)s.get_locations().size()}; \
-  }, \
-  shader, static_cast<fan::graphics::shaper_t::ShapeRenderDataSize_t>(count), inst \
-}
+#define SHAPE_DESC(ShapeType, count, inst, shader) \
+  shape_descriptor_t{ \
+    fan::graphics::shapes::ShapeType##_t::shape_type, \
+    sizeof(fan::graphics::shapes::ShapeType##_t::vi_t), \
+    sizeof(fan::graphics::shapes::ShapeType##_t::ri_t), \
+    std::function<fan::graphics::shape_gl_init_list_t()>([]() { \
+      auto& s = fan::graphics::g_shapes->ShapeType; \
+      return fan::graphics::shape_gl_init_list_t{ \
+        s.get_locations().data(), \
+        (int)s.get_locations().size() \
+      }; \
+    }), \
+    shader, \
+    static_cast<fan::graphics::shaper_t::ShapeRenderDataSize_t>(count), \
+    inst \
+  }
 
 void shapes_open() {
   bool is_21 = loco.context.gl.opengl.major == 2 && loco.context.gl.opengl.minor == 1;
@@ -469,7 +475,7 @@ void shapes_draw() {
   {
     auto& camera_perspective = loco.camera_get(loco.perspective_render_view.camera);
     camera_perspective.update_view();
-    camera_perspective.m_view = camera_perspective.get_view_matrix();
+    camera_perspective.view = camera_perspective.get_view_matrix();
   }
 
   uint64_t draw_mode = -1;
@@ -743,8 +749,6 @@ void shapes_draw() {
     switch (shape_type) {
     #if defined(FAN_3D)
     case fan::graphics::shapes::shape_type_t::rectangle3d:
-      loco.context.gl.set_depth_test(false);
-      break;
     case fan::graphics::shapes::shape_type_t::line3d:
       loco.context.gl.set_depth_test(false);
       break;
@@ -831,9 +835,20 @@ void shapes_draw() {
     }
     }
 
+    switch (shape_type) {
+    case fan::graphics::shapes::shape_type_t::rectangle3d:
+    case fan::graphics::shapes::shape_type_t::line3d:
+      // illegal xd
+      loco.context.gl.set_depth_test(true);
+      break;
+    }
+
     fan::graphics::shaper_t::BlockTraverse_t BlockTraverse;
     BlockTraverse.Init(shaper, current_bmid);
-
+    
+  for (const auto& i : loco.m_post_draw) {
+    i();
+  }
     do {
       if (((loco.context.gl.opengl.major > 4) ||
         (loco.context.gl.opengl.major == 4 && loco.context.gl.opengl.minor >= 2)) &&

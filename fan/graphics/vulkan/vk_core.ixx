@@ -1317,7 +1317,7 @@ export namespace fan {
       void camera_update_projection(fan::graphics::camera_nr_t nr) {
         auto& camera = camera_get(nr);
 
-        camera.m_projection = fan::math::ortho<fan::mat4>(
+        camera.projection = fan::math::ortho<fan::mat4>(
           camera.coordinates.left,
           camera.coordinates.right,
           camera.coordinates.top,
@@ -1326,14 +1326,14 @@ export namespace fan {
           fan::graphics::znearfar / 2
         );
 
-        camera.m_view[3][0] = 0;
-        camera.m_view[3][1] = 0;
-        camera.m_view[3][2] = 0;
-        camera.m_view = camera.m_view.translate(camera.position);
-        fan::vec3 position = camera.m_view.get_translation();
+        camera.view[3][0] = 0;
+        camera.view[3][1] = 0;
+        camera.view[3][2] = 0;
+        camera.view = camera.view.translate(camera.position);
+        fan::vec3 position = camera.view.get_translation();
         constexpr fan::vec3 front(0, 0, 1);
 
-        camera.m_view = fan::math::look_at_left<fan::mat4, fan::vec3>(position, position + front, fan::camera::world_up);
+        camera.view = fan::math::look_at_left<fan::mat4, fan::vec3>(position, position + front, fan::camera::world_up);
       }
 
       fan::graphics::camera_nr_t camera_create(const fan::vec2& x, const fan::vec2& y) {
@@ -1351,14 +1351,14 @@ export namespace fan {
         camera.position = cp;
 
 
-        camera.m_view[3][0] = 0;
-        camera.m_view[3][1] = 0;
-        camera.m_view[3][2] = 0;
-        camera.m_view = camera.m_view.translate(camera.position);
-        fan::vec3 position = camera.m_view.get_translation();
+        camera.view[3][0] = 0;
+        camera.view[3][1] = 0;
+        camera.view[3][2] = 0;
+        camera.view = camera.view.translate(camera.position);
+        fan::vec3 position = camera.view.get_translation();
         constexpr fan::vec3 front(0, 0, 1);
 
-        camera.m_view = fan::math::look_at_left<fan::mat4, fan::vec3>(position, position + front, fan::camera::world_up);
+        camera.view = fan::math::look_at_left<fan::mat4, fan::vec3>(position, position + front, fan::camera::world_up);
       }
 
       fan::vec2 camera_get_size(fan::graphics::camera_nr_t nr) {
@@ -1392,11 +1392,11 @@ export namespace fan {
       void camera_set_perspective(fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size) {
         fan::graphics::context_camera_t& camera = camera_get(nr);
 
-        camera.m_projection = fan::math::perspective<fan::mat4>(fan::math::radians(fov), (f32_t)window_size.x / (f32_t)window_size.y, camera.znear, camera.zfar);
+        camera.projection = fan::math::perspective<fan::mat4>(fan::math::radians(fov), (f32_t)window_size.x / (f32_t)window_size.y, camera.znear, camera.zfar);
 
         camera.update_view();
 
-        camera.m_view = camera.get_view_matrix();
+        camera.view = camera.get_view_matrix();
 
         //auto it = gloco()->m_viewport_resize_callback.GetNodeFirst();
 
@@ -1417,7 +1417,7 @@ export namespace fan {
       void camera_rotate(fan::graphics::camera_nr_t nr, const fan::vec2& offset) {
         fan::graphics::context_camera_t& camera = camera_get(nr);
         camera.rotate_camera(offset);
-        camera.m_view = camera.get_view_matrix();
+        camera.view = camera.get_view_matrix();
       }
 
       //-----------------------------camera-----------------------------

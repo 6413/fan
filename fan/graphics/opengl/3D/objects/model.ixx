@@ -4,17 +4,27 @@ module;
 
 export module fan.graphics.opengl3D.objects.model;
 
-import std;
 #else
 
+#include <fan/graphics/gl_api.h>
+
+export module fan.graphics.opengl3D.objects.model;
+
+#include <fan/utility.h>
+
+import std;
 
 #include <fan/graphics/opengl/init.h>
 
-export module fan.graphics.opengl3D.objects.model;
-import fan.graphics;
+import fan.time;
+import fan.print.error;
+import fan.print;
+import fan.graphics.common_context;
+import fan.graphics.image_load;
 import fan.graphics.fms;
-import fan.graphics.gui;
+import fan.graphics.gui.base;
 import fan.graphics.opengl.core;
+import fan.graphics.loco;
 
 namespace fan {
   namespace model {
@@ -36,8 +46,8 @@ export namespace fan {
         std::string vs = fan::graphics::read_shader(fan::shader_paths::gl::model3d_vs);
         std::string fs = fan::graphics::read_shader(fan::shader_paths::gl::model3d_fs);
         m_shader = fan::graphics::shader_create();
-        fan::graphics::shader_set_vertex(m_shader, vs);
-        fan::graphics::shader_set_fragment(m_shader, fs);
+        fan::graphics::shader_set_vertex(m_shader, fan::shader_paths::gl::model3d_vs, vs);
+        fan::graphics::shader_set_fragment(m_shader, fan::shader_paths::gl::model3d_fs, fs);
         fan::graphics::shader_compile(m_shader);
         
         // load textures
@@ -60,10 +70,10 @@ export namespace fan {
             // other implementations i saw, only used these channels
             constexpr std::uint32_t gl_formats[] = {
               0,                      // index 0 unused
-              fan::graphics::image_format::r8_unorm,    // index 1 for 1 channel
+              fan::graphics::image_format_e::r8_unorm,    // index 1 for 1 channel
               0,                      // index 2 unused
-              fan::graphics::image_format::rg8_unorm,    // index 3 for 3 channels
-              fan::graphics::image_format::rgba_unorm    // index 4 for 4 channels
+              fan::graphics::image_format_e::rg8_unorm,    // index 3 for 3 channels
+              fan::graphics::image_format_e::rgba_unorm    // index 4 for 4 channels
             };
             if (ii.channels < std::size(gl_formats) && gl_formats[ii.channels]) {
               ilp.format = ilp.internal_format = gl_formats[ii.channels];
@@ -101,7 +111,7 @@ export namespace fan {
         fan_opengl_call(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gl.ebo));
         fan_opengl_call(glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh.indices.size() * sizeof(unsigned int), &mesh.indices[0], GL_STATIC_DRAW));
 
-        fan::opengl::context_t::shader_t shader = fan::graphics::shader_get(m_shader).gl;
+        fan::opengl::context_t::shader_t shader = gloco()->shader_get(m_shader).gl;
 
         int location = (fan::graphics::get_gl_context().opengl.major == 2 && fan::graphics::get_gl_context().opengl.minor == 1) ?
           fan_opengl_call(glGetAttribLocation(shader.id, "in_position")) : 0;

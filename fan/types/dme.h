@@ -41,6 +41,7 @@
 
     template <typename main_t, std::uintptr_t index, typename T = __empty_struct>
     struct __dme_inherit_t{
+      using self_t = __dme_inherit_t<main_t, index, T>;
       constexpr static main_t& items() { static main_t m; return m; }
       using value_type = T;
       using dme_type_t = __dme_t<value_type, __dme_empty_string, 0>;
