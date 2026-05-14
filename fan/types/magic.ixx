@@ -2,6 +2,8 @@ module; // slow module to use
 
 //#define FAN_FMT
 
+#include <fan/utility.h>
+
 #if defined(FAN_FMT)
 #endif
 

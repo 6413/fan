@@ -444,6 +444,32 @@ bool is_near(const vec_t& test0, value_type_t epsilon) const {
 
 friend std::ostream& operator<<(std::ostream& os, const vec_t& test0) { os << (std::string)test0; return os; }
 
+inline void iterate_to(const vec_t& max_, auto&& fn) const {
+  for (int yy = this->y; yy <= max_.y; ++yy) {
+    for (int xx = this->x; xx <= max_.x; ++xx) {
+      fn(xx, yy);
+    }
+  }
+}
+
+inline void rect(const vec_t& max_, auto&& fn) const {
+  if (this->x <= max_.x && this->y <= max_.y) {
+    iterate_to(max_, fn);
+  }
+}
+
+inline void iterate_col(int col_x, int y0, int y1, auto&& fn) const {
+  for (int yy = y0; yy <= y1; ++yy) {
+    fn(col_x, yy);
+  }
+}
+
+inline void iterate_row(access_type_t y, access_type_t x0, access_type_t x1, auto&& fn) {
+  for (access_type_t xx = x0; xx <= x1; ++xx) {
+    fn(xx, y);
+  }
+}
+
 #if !defined(fan_vector_array) && vec_n
 value_type_t fan_coordinate(vec_n);
 #elif defined(fan_vector_array)

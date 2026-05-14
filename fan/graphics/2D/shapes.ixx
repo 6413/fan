@@ -354,6 +354,8 @@ export namespace fan::graphics {
       f32_t get_x() const;
       f32_t get_y() const;
       f32_t get_z() const;
+      // moves by offset from current position
+      void offset(fan::vec2 offset);
       void set_size(const fan::vec2& size);
       void set_radius(f32_t radius);
       void set_size3(const fan::vec3& size);
@@ -613,9 +615,7 @@ export namespace fan::graphics {
     fan::graphics::texture_pack_t* texture_pack = nullptr;
 
     struct light_t {
-
       static inline fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::light;
-      static constexpr int kpi = kp::light;
 
     #pragma pack(push, 1)
 
@@ -667,9 +667,7 @@ export namespace fan::graphics {
     }light;
 
     struct line_t {
-
       static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::line;
-      static constexpr int kpi = kp::common;
 
     #pragma pack(push, 1)
 
@@ -713,9 +711,7 @@ export namespace fan::graphics {
     }line;
 
     struct rectangle_t {
-
       static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::rectangle;
-      static constexpr int kpi = kp::common;
 
     #pragma pack(push, 1)
 
@@ -766,9 +762,7 @@ export namespace fan::graphics {
     }rectangle;
 
     struct sprite_t {
-
       static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::sprite;
-      static constexpr int kpi = kp::texture;
 
     #pragma pack(push, 1)
 
@@ -849,9 +843,7 @@ export namespace fan::graphics {
     }sprite;
 
     struct unlit_sprite_t {
-
       static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::unlit_sprite;
-      static constexpr int kpi = kp::texture;
 
     #pragma pack(push, 1)
 
@@ -964,9 +956,7 @@ export namespace fan::graphics {
     }text;
 
     struct circle_t {
-
       static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::circle;
-      static constexpr int kpi = kp::common;
 
     #pragma pack(push, 1)
 
@@ -1020,9 +1010,7 @@ export namespace fan::graphics {
     }circle;
 
     struct capsule_t {
-
       static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::capsule;
-      static constexpr int kpi = kp::common;
 
     #pragma pack(push, 1)
 
@@ -1082,7 +1070,6 @@ export namespace fan::graphics {
 
     struct polygon_t {
       static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::polygon;
-      static constexpr int kpi = kp::common;
 
       #pragma pack(push, 1)
 
@@ -1127,9 +1114,7 @@ export namespace fan::graphics {
     }polygon;
 
     struct grid_t {
-
       static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::grid;
-      static constexpr int kpi = kp::common;
 
     #pragma pack(push, 1)
 
@@ -1178,9 +1163,7 @@ export namespace fan::graphics {
 
 
     struct particles_t {
-
       static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::particles;
-      static constexpr int kpi = kp::texture;
 
       static std::array<shape_gl_init_t, 0>& get_locations() {
         static std::array<shape_gl_init_t, 0> locs = {};
@@ -1305,9 +1288,9 @@ export namespace fan::graphics {
 
       shape_t push_back(const properties_t& properties);
     }particles;
+
     struct universal_image_renderer_t {
       static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::universal_image_renderer;
-      static constexpr int kpi = kp::texture;
     #pragma pack(push, 1)
       struct vi_t {
         fan::vec3 position = 0;
@@ -1354,9 +1337,9 @@ export namespace fan::graphics {
 
       shape_t push_back(const properties_t& properties);
     }universal_image_renderer;
+
     struct gradient_t {
       static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::gradient;
-      static constexpr int kpi = kp::common;
     #pragma pack(push, 1)
       struct vi_t {
         fan::vec3 position;
@@ -1403,9 +1386,9 @@ export namespace fan::graphics {
 
       shape_t push_back(const properties_t& properties);
     }gradient;
+
     struct shadow_t {
       static inline fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::shadow;
-      static constexpr int kpi = kp::light;
     #pragma pack(push, 1)
       enum shape_e {
         rectangle,
@@ -1463,9 +1446,9 @@ export namespace fan::graphics {
 
       shape_t push_back(const properties_t& properties);
     }shadow;
+
     struct shader_shape_t {
       static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::shader_shape;
-      static constexpr int kpi = kp::texture;
     #pragma pack(push, 1)
       struct vi_t {
         fan::vec3 position;
@@ -1523,16 +1506,15 @@ export namespace fan::graphics {
 
       shape_t push_back(const properties_t& properties);
     }shader_shape;
+
   #if defined(FAN_3D)
     struct rectangle3d_t {
       static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::rectangle3d;
-      static constexpr int kpi = kp::common;
     #pragma pack(push, 1)
       struct vi_t {
         fan::vec3 position;
         fan::vec3 size;
         fan::color color;
-        fan::vec3 angle;
       };
 
     #pragma pack(pop)
@@ -1549,7 +1531,7 @@ export namespace fan::graphics {
       }
 
       struct properties_t {
-        using type_t = rectangle_t;
+        using type_t = rectangle3d_t;
 
         fan::vec3 position = 0;
         fan::vec3 size = 0;
@@ -1558,17 +1540,20 @@ export namespace fan::graphics {
 
         std::uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
 
-        #include <fan/graphics/base_props.inl>
+        fan::graphics::camera_t camera = fan::graphics::get_perspective_render_view();
+        fan::graphics::viewport_t viewport = fan::graphics::get_perspective_render_view();
 
         std::uint32_t vertex_count = 36;
+
+        bool blending = true;
       };
 
 
       shape_t push_back(const properties_t& properties);
     }rectangle3d;
+
     struct line3d_t {
       static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::line3d;
-      static constexpr int kpi = kp::common;
     #pragma pack(push, 1)
       struct vi_t {
         fan::color color;
@@ -1596,10 +1581,13 @@ export namespace fan::graphics {
         fan::vec3 src;
         fan::vec3 dst;
 
-        #include <fan/graphics/base_props.inl>
+        fan::graphics::camera_t camera = fan::graphics::get_perspective_render_view();
+        fan::graphics::viewport_t viewport = fan::graphics::get_perspective_render_view();
 
         std::uint8_t draw_mode = fan::graphics::primitive_topology_t::lines;
         std::uint32_t vertex_count = 2;
+
+        bool blending = true;
       };
 
       shape_t push_back(const properties_t& properties);

@@ -491,8 +491,8 @@ namespace fan::opengl {
   }
   void context_t::shader_set_camera(fan::graphics::shader_nr_t nr, fan::graphics::camera_nr_t camera_nr) {
     auto& camera = camera_get(camera_nr);
-    fan_opengl_call(glUniformMatrix4fv(shader_get(nr).projection_view[0], 1, GL_FALSE, &camera.m_projection[0][0]));
-    fan_opengl_call(glUniformMatrix4fv(shader_get(nr).projection_view[1], 1, GL_FALSE, &camera.m_view[0][0]));
+    fan_opengl_call(glUniformMatrix4fv(shader_get(nr).projection_view[0], 1, GL_FALSE, &camera.projection[0][0]));
+    fan_opengl_call(glUniformMatrix4fv(shader_get(nr).projection_view[1], 1, GL_FALSE, &camera.view[0][0]));
   }
 
   fan::graphics::image_nr_t context_t::image_load_internal(
@@ -574,6 +574,10 @@ namespace fan::opengl {
     __fan_internal_image_list.Recycle(nr);
   }
   void context_t::image_bind(fan::graphics::image_nr_t nr) {
+    fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_get_handle(nr)));
+  }
+  void context_t::image_bind(fan::graphics::image_nr_t nr, std::uint32_t unit) {
+    fan_opengl_call(glActiveTexture(GL_TEXTURE0 + unit));
     fan_opengl_call(glBindTexture(GL_TEXTURE_2D, image_get_handle(nr)));
   }
   void context_t::image_unbind(fan::graphics::image_nr_t nr) {
@@ -796,7 +800,7 @@ namespace fan::opengl {
     fan_opengl_call(glGenerateMipmap(GL_TEXTURE_2D));
   }
   void context_t::image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info) {
-    image_reload(nr, image_info, fan::opengl::context_t::image_load_properties_t());
+    image_reload(nr, image_info, image_global_to_opengl(image_get_settings(nr)));
   }
   void context_t::image_reload(fan::graphics::image_nr_t nr, fan::str_view_t path, const fan::opengl::context_t::image_load_properties_t& p, const std::source_location& callers_path) {
     auto& image_data = __fan_internal_image_list[nr];
@@ -862,6 +866,49 @@ namespace fan::opengl {
     return image_create(color, fan::opengl::context_t::image_load_properties_t());
   }
 
+
+  fan::graphics::image_nr_t context_t::image_create_r32f(void* data, const fan::vec2ui& size) {
+    fan::opengl::context_t::image_load_properties_t p;
+    p.internal_format = GL_R32F;
+    p.format = GL_RED;
+    p.type = GL_FLOAT;
+    p.min_filter = GL_NEAREST;
+    p.mag_filter = GL_NEAREST;
+
+    fan::graphics::image_nr_t nr = image_create();
+    image_bind(nr);
+    image_set_settings(nr, p);
+
+    auto& image_data = __fan_internal_image_list[nr];
+    image_data.size = size;
+
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, p.internal_format, size.x, size.y, 0, p.format, p.type, data));
+
+    return nr;
+  }
+
+  fan::graphics::image_nr_t context_t::image_create_rgb(void* data, const fan::vec2ui& size) {
+    fan::opengl::context_t::image_load_properties_t p;
+    p.internal_format = GL_RGB;
+    p.format = GL_RGB;
+    p.type = GL_UNSIGNED_BYTE;
+
+    fan::graphics::image_nr_t nr = image_create();
+    image_bind(nr);
+    image_set_settings(nr, p);
+
+    auto& image_data = __fan_internal_image_list[nr];
+    image_data.size = size;
+
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    fan_opengl_call(glTexImage2D(GL_TEXTURE_2D, 0, p.internal_format, size.x, size.y, 0, p.format, p.type, data));
+
+    fan_opengl_call(glGenerateMipmap(GL_TEXTURE_2D));
+
+    return nr;
+  }
+
   fan::graphics::camera_nr_t context_t::camera_create() { return __fan_internal_camera_list.NewNode(); }
   void context_t::camera_erase(fan::graphics::camera_nr_t nr) { __fan_internal_camera_list.Recycle(nr); }
   void context_t::camera_set_ortho(fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y) {
@@ -872,7 +919,7 @@ namespace fan::opengl {
   void context_t::camera_update_projection(fan::graphics::camera_nr_t nr) {
     auto& camera = camera_get(nr);
 
-    camera.m_projection = fan::math::ortho<fan::mat4>(
+    camera.projection = fan::math::ortho<fan::mat4>(
       camera.coordinates.left / camera.zoom,
       camera.coordinates.right / camera.zoom,
       camera.coordinates.bottom / camera.zoom,
@@ -883,13 +930,13 @@ namespace fan::opengl {
   }
   void context_t::camera_update_view(fan::graphics::camera_nr_t nr) {
     auto& camera = camera_get(nr);
-    camera.m_view[3][0] = 0;
-    camera.m_view[3][1] = 0;
-    camera.m_view[3][2] = 0;
-    camera.m_view = camera.m_view.translate(camera.position);
-    fan::vec3 position = camera.m_view.get_translation();
+    camera.view[3][0] = 0;
+    camera.view[3][1] = 0;
+    camera.view[3][2] = 0;
+    camera.view = camera.view.translate(camera.position);
+    fan::vec3 position = camera.view.get_translation();
     constexpr fan::vec3 front(0, 0, 1);
-    camera.m_view = fan::math::look_at_left<fan::mat4, fan::vec3>(position, position + front, fan::camera::world_up);
+    camera.view = fan::math::look_at_left<fan::mat4, fan::vec3>(position, position + front, fan::camera::world_up);
   }
   fan::graphics::camera_nr_t context_t::camera_create(const fan::vec2& x, const fan::vec2& y) {
     fan::graphics::camera_nr_t nr = camera_create();
@@ -900,13 +947,13 @@ namespace fan::opengl {
   void context_t::camera_set_position(fan::graphics::camera_nr_t nr, const fan::vec3& cp) {
     auto& camera = camera_get(nr);
     camera.position = cp;
-    camera.m_view[3][0] = 0;
-    camera.m_view[3][1] = 0;
-    camera.m_view[3][2] = 0;
-    camera.m_view = camera.m_view.translate(camera.position);
-    fan::vec3 position = camera.m_view.get_translation();
+    camera.view[3][0] = 0;
+    camera.view[3][1] = 0;
+    camera.view[3][2] = 0;
+    camera.view = camera.view.translate(camera.position);
+    fan::vec3 position = camera.view.get_translation();
     constexpr fan::vec3 front(0, 0, 1);
-    camera.m_view = fan::math::look_at_left<fan::mat4, fan::vec3>(position, position + front, fan::camera::world_up);
+    camera.view = fan::math::look_at_left<fan::mat4, fan::vec3>(position, position + front, fan::camera::world_up);
   }
   fan::vec3 context_t::camera_get_center(fan::graphics::camera_nr_t nr) {
     auto& c = camera_get(nr);
@@ -939,14 +986,14 @@ namespace fan::opengl {
   }
   void context_t::camera_set_perspective(fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size) {
     auto& camera = camera_get(nr);
-    camera.m_projection = fan::math::perspective<fan::mat4>(fan::math::radians(fov), (f32_t)window_size.x / (f32_t)window_size.y, camera.znear, camera.zfar);
+    camera.projection = fan::math::perspective<fan::mat4>(fan::math::radians(fov), (f32_t)window_size.x / (f32_t)window_size.y, camera.znear, camera.zfar);
     camera.update_view();
-    camera.m_view = camera.get_view_matrix();
+    camera.view = camera.get_view_matrix();
   }
   void context_t::camera_rotate(fan::graphics::camera_nr_t nr, const fan::vec2& offset) {
     auto& camera = camera_get(nr);
     camera.rotate_camera(offset);
-    camera.m_view = camera.get_view_matrix();
+    camera.view = camera.get_view_matrix();
   }
   void context_t::viewport_set(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
     fan_opengl_call(glViewport(viewport_position_.x, window_size.y - viewport_size_.y - viewport_position_.y, viewport_size_.x, viewport_size_.y));
@@ -993,6 +1040,7 @@ namespace fan::opengl {
 
     if (format == fan::graphics::image_format_e::r8b8g8a8_unorm) return GL_RGBA;
     if (format == fan::graphics::image_format_e::r8_unorm) return GL_RED;
+    if (format == fan::graphics::image_format_e::r32_float) return GL_R32F;
     if (format == fan::graphics::image_format_e::rg8_unorm) return GL_RG;
     if (format == fan::graphics::image_format_e::rgb_unorm) return GL_RGB;
     if (format == fan::graphics::image_format_e::rgba_unorm) return GL_RGBA;
@@ -1062,6 +1110,7 @@ namespace fan::opengl {
   #endif
     if (format == GL_RGBA) return fan::graphics::image_format_e::r8b8g8a8_unorm;
     if (format == GL_RED) return fan::graphics::image_format_e::r8_unorm;
+    if (format == GL_R32F) return fan::graphics::image_format_e::r32_float;
     if (format == GL_RG) return fan::graphics::image_format_e::rg8_unorm;
     if (format == GL_RGB) return fan::graphics::image_format_e::rgb_unorm;
     if (format == GL_RED_INTEGER) return fan::graphics::image_format_e::r8_uint;

@@ -76,6 +76,7 @@ export import fan.pathfind;
 //export import fan.types.slot_map;
 
 export import fan.types.compile_time_string;
+export import fan.types.flat_hash_map;
 
 export import fan.formatter;
 
@@ -96,4 +97,8 @@ export import fan.crypto;
 #if defined(FAN_REFLECTION)
   //export import fan.reflection;
   //export import fan.rjson;
+#endif
+
+#if defined(FAN_3D)
+  export import fan.graphics.voxel;
 #endif

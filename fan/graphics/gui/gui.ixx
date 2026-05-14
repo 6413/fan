@@ -29,6 +29,10 @@ import std;
   import fan.io.types;
 #endif
 
+#if defined(FAN_3D)
+  import fan.graphics.voxel;
+#endif
+
 
 #if defined(FAN_GUI)
 
@@ -555,6 +559,16 @@ export namespace fan::graphics::gui {
     fan::io::data_provider_t& p = provider;
     gui::hex_editor<FAN_UNIQUE_CALL_PASS>("", p);
   }
+
+
+#if defined(FAN_3D)
+  bool terrain_noise_debug(
+    fan::graphics::terrain_noise_t& noise,
+    f32_t& block_size,
+    int& view_dist,
+    f32_t& move_speed
+  );
+#endif
 }
 /*
 template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(

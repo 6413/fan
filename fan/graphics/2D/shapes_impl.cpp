@@ -143,11 +143,12 @@ namespace fan::graphics {
   }
 
   shapes::shape_ids_t::nr_t shapes::add_shape_impl(std::uint8_t st, const void* props_ptr) {
-    auto gnr = shape_ids.NewNodeLast();
-    fan::graphics::g_shapes->shape_ids[gnr] = {
+    shape_list_data_t sd{
       .data_nr = shape_props_allocers[st](shape_pool_storage[st], props_ptr),
       .shape_type = st
     };
+    auto gnr = shape_ids.NewNodeLast();
+    fan::graphics::g_shapes->shape_ids[gnr] = std::move(sd);
     return gnr;
   }
 
@@ -165,12 +166,15 @@ namespace fan::graphics {
         shape_pool_storage[src_sd.shape_type], new_data_nr
       );
     }
-
-    auto gnr = fan::graphics::g_shapes->shape_ids.NewNodeLast();
-    fan::graphics::g_shapes->shape_ids[gnr] = {
+    auto& sids = fan::graphics::g_shapes->shape_ids;
+    // read from src_sd before newnodelast to not corrupt src_sd memory
+    shape_list_data_t sd{
       .data_nr = new_data_nr,
       .shape_type = src_sd.shape_type
     };
+    auto gnr = sids.NewNodeLast();
+    sids.SetNodeData(gnr, std::move(sd));
+    //sids[gnr] = std::move(sd);
     return gnr;
   }
 
@@ -1335,9 +1339,10 @@ namespace fan::graphics{
     }
     #if defined(FAN_3D)
     case shape_type_t::rectangle3d: {
-      shapes::rectangle3d_list_t::nr_t nr;
-      nr.gint() = sd.data_nr;
-      auto& properties = g_shapes->rectangle3d_list[nr];
+      auto& properties = get_props<shapes::rectangle3d_t::properties_t>(
+        sd.shape_type,
+        sd.data_nr
+      );
 
       shapes::rectangle3d_t::vi_t vi;
       vi.position = properties.position;
@@ -1345,11 +1350,10 @@ namespace fan::graphics{
       vi.color = properties.color;
 
       shapes::rectangle3d_t::ri_t ri;
-
       sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::rectangle3d, vi, ri,
         Key_e::visible, (std::uint8_t)true,
-        Key_e::depth, (std::uint16_t)properties.position.z,
+        //Key_e::depth, (std::uint16_t)properties.position.z,
         Key_e::blending, (std::uint8_t)properties.blending,
         Key_e::viewport, properties.viewport,
         Key_e::camera, properties.camera,
@@ -1360,9 +1364,10 @@ namespace fan::graphics{
       break;
     }
     case shape_type_t::line3d: {
-      shapes::line3d_list_t::nr_t nr;
-      nr.gint() = sd.data_nr;
-      auto& properties = g_shapes->line3d_list[nr];
+      auto& properties = get_props<shapes::line3d_t::properties_t>(
+        sd.shape_type,
+        sd.data_nr
+      );
 
       shapes::line3d_t::vi_t vi;
       vi.src = properties.src;
@@ -1374,7 +1379,7 @@ namespace fan::graphics{
       sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::line3d, vi, ri,
         Key_e::visible, (std::uint8_t)true,
-        Key_e::depth, (std::uint16_t)properties.src.z,
+        //Key_e::depth, (std::uint16_t)properties.src.z,
         Key_e::blending, (std::uint8_t)properties.blending,
         Key_e::viewport, properties.viewport,
         Key_e::camera, properties.camera,
@@ -1513,6 +1518,10 @@ namespace fan::graphics{
 
   f32_t shapes::shape_t::get_z() const {
     return get_position().z;
+  }
+
+  void shapes::shape_t::offset(fan::vec2 offset) {
+    set_position(get_position() + offset);
   }
 
   void shapes::shape_t::set_size(const fan::vec2& size) {

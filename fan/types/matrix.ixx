@@ -1,5 +1,9 @@
 module;
 
+#if defined(FAN_3D)
+  #include <assimp/matrix4x4.h>
+#endif
+
 export module fan.types.matrix;
 
 import std;
@@ -71,6 +75,24 @@ export namespace fan {
       m[2][0] = 2 * (xz + wy);     m[2][1] = 2 * (yz - wx);     m[2][2] = 1 - 2 * (xx + yy);
     }
 
+    #if defined(FAN_3D)
+      _matrix4x4(const aiMatrix4x4& m) {
+        (*this)[0][0] = m.a1;  (*this)[0][1] = m.b1;  (*this)[0][2] = m.c1;  (*this)[0][3] = m.d1;
+        (*this)[1][0] = m.a2;  (*this)[1][1] = m.b2;  (*this)[1][2] = m.c2;  (*this)[1][3] = m.d2;
+        (*this)[2][0] = m.a3;  (*this)[2][1] = m.b3;  (*this)[2][2] = m.c3;  (*this)[2][3] = m.d3;
+        (*this)[3][0] = m.a4;  (*this)[3][1] = m.b4;  (*this)[3][2] = m.c4;  (*this)[3][3] = m.d4;
+      }
+
+      operator aiMatrix4x4() const {
+        aiMatrix4x4 m;
+        m.a1 = (*this)[0][0];  m.b1 = (*this)[0][1];  m.c1 = (*this)[0][2];  m.d1 = (*this)[0][3];
+        m.a2 = (*this)[1][0];  m.b2 = (*this)[1][1];  m.c2 = (*this)[1][2];  m.d2 = (*this)[1][3];
+        m.a3 = (*this)[2][0];  m.b3 = (*this)[2][1];  m.c3 = (*this)[2][2];  m.d3 = (*this)[2][3];
+        m.a4 = (*this)[3][0];  m.b4 = (*this)[3][1];  m.c4 = (*this)[3][2];  m.d4 = (*this)[3][3];
+        return m;
+      }
+    #endif
+
     static constexpr _matrix4x4 identity() { return _matrix4x4(1); }
     constexpr bool is_identity() const {
       return m[0][0] == 1 && m[1][1] == 1 && m[2][2] == 1 && m[0][1] == 0 && m[1][0] == 0 && m[2][1] == 0 && m[0][2] == 0 && m[1][2] == 0 && m[2][0] == 0 && m[0][3] == 0 && m[1][3] == 0 && m[2][3] == 0;
@@ -129,6 +151,15 @@ export namespace fan {
     constexpr _matrix4x4 scale(const fan::vec3& v) const {
       _matrix4x4 r(*this);
       for(int i=0; i<3; ++i) for(int j=0; j<3; ++j) r[i][j] *= v[i];
+      return r;
+    }
+    constexpr _matrix4x4 transpose() const {
+      _matrix4x4 r;
+      for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+          r[i][j] = m[j][i];
+        }
+      }
       return r;
     }
 
@@ -205,6 +236,11 @@ export namespace fan {
   template <typename T> constexpr _matrix4x4<T> translation_matrix(const fan::vec3_wrap_t<T>& v) { return _matrix4x4<T>(1).translate(v); }
   template <typename T> constexpr _matrix4x4<T> scaling_matrix(const fan::vec3_wrap_t<T>& v) { return _matrix4x4<T>(1).scale(v); }
   template <typename T> constexpr _matrix4x4<T> inverse(const _matrix4x4<T>& m) { return m.inverse(); }
+
+  template <typename T>
+  inline _matrix4x4<T> rotation_quat_matrix(const fan::quaternion<T>& rotation) {
+    return rotation;
+  }
 
   using mat2 = _matrix2x2<cf_t>;
   using mat3 = _matrix3x3<cf_t>;
