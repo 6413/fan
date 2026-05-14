@@ -456,6 +456,10 @@ void loco_t::camera_rotate(fan::graphics::camera_nr_t nr, const fan::vec2& offse
   context_functions.camera_rotate(&context, nr, offset);
 }
 
+void loco_t::camera_rotate(const fan::vec2& offset) {
+  camera_rotate(perspective_render_view, offset);
+}
+
 void loco_t::camera_set_target(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed) {
   auto& c = context_functions.camera_get(&context, nr);
   fan::vec2 offset = fan::vec2(c.coordinates.left + c.coordinates.right, c.coordinates.top + c.coordinates.bottom) / (2.f * c.zoom);
@@ -547,7 +551,12 @@ void loco_t::use() {
   window.make_context_current();
 }
 
-void loco_t::camera_move(fan::graphics::context_camera_t& camera, f64_t dt, f32_t movement_speed, f32_t friction) {
+void loco_t::camera_move(f32_t movement_speed, f32_t friction) {
+  camera_move(camera_get(perspective_render_view), movement_speed, friction);
+}
+
+void loco_t::camera_move(fan::graphics::context_camera_t& camera, f32_t movement_speed, f32_t friction) {
+  auto dt = get_delta_time();
   camera.velocity /= friction * dt + 1;
   static constexpr auto minimum_velocity = 0.001;
   static constexpr f32_t camera_rotate_speed = 100;
@@ -562,22 +571,22 @@ void loco_t::camera_move(fan::graphics::context_camera_t& camera, f64_t dt, f32_
   }
 
   f64_t msd = movement_speed * dt;
-  if (window.key_pressed(fan::input::key_w)) { camera.velocity += camera.m_front * msd; }
-  if (window.key_pressed(fan::input::key_s)) { camera.velocity -= camera.m_front * msd; }
-  if (window.key_pressed(fan::input::key_a)) { camera.velocity -= camera.m_right * msd; }
-  if (window.key_pressed(fan::input::key_d)) { camera.velocity += camera.m_right * msd; }
-  if (window.key_pressed(fan::input::key_space)) { camera.velocity.y += msd; }
-  if (window.key_pressed(fan::input::key_left_shift)) { camera.velocity.y -= msd; }
+  if (is_key_down(fan::input::key_w)) { camera.velocity += camera.m_front * msd; }
+  if (is_key_down(fan::input::key_s)) { camera.velocity -= camera.m_front * msd; }
+  if (is_key_down(fan::input::key_a)) { camera.velocity -= camera.m_right * msd; }
+  if (is_key_down(fan::input::key_d)) { camera.velocity += camera.m_right * msd; }
+  if (is_key_down(fan::input::key_space)) { camera.velocity.y += msd; }
+  if (is_key_down(fan::input::key_left_shift)) { camera.velocity.y -= msd; }
 
   f64_t rotate = camera.sensitivity * camera_rotate_speed * get_delta_time();
-  if (window.key_pressed(fan::input::key_left)) { camera.set_yaw(camera.get_yaw() - rotate); }
-  if (window.key_pressed(fan::input::key_right)) { camera.set_yaw(camera.get_yaw() + rotate); }
-  if (window.key_pressed(fan::input::key_up)) { camera.set_pitch(camera.get_pitch() + rotate); }
-  if (window.key_pressed(fan::input::key_down)) { camera.set_pitch(camera.get_pitch() - rotate); }
+  if (is_key_down(fan::input::key_left)) { camera.set_yaw(camera.get_yaw() - rotate); }
+  if (is_key_down(fan::input::key_right)) { camera.set_yaw(camera.get_yaw() + rotate); }
+  if (is_key_down(fan::input::key_up)) { camera.set_pitch(camera.get_pitch() + rotate); }
+  if (is_key_down(fan::input::key_down)) { camera.set_pitch(camera.get_pitch() - rotate); }
 
   camera.position += camera.velocity * get_delta_time();
   camera.update_view();
-  camera.m_view = camera.get_view_matrix();
+  camera.view = camera.get_view_matrix();
 }
 
 #if defined(FAN_2D)
@@ -1445,9 +1454,6 @@ void loco_t::process_shapes() {
 
   shapes_draw();
 
-  for (const auto& i : m_post_draw) {
-    i();
-  }
 
 #if defined(FAN_VULKAN)
   if (window.renderer == fan::window_t::renderer_t::vulkan) {
@@ -1807,8 +1813,16 @@ bool loco_t::should_close() {
   return window.should_close();
 }
 
-bool loco_t::process_frame(const std::function<void()>& cb) {
 
+bool loco_t::process_frame() {
+  return process_frame([](f32_t) { });
+}
+
+bool loco_t::process_frame(const std::function<void()>& cb) {
+  return process_frame([cb](f32_t) { cb(); });
+}
+
+bool loco_t::process_frame(const std::function<void(f32_t delta_time)>& cb) {
   window.handle_events();
   time = start_time.seconds();
 
@@ -1914,7 +1928,7 @@ renderer_state.lighting.update(get_delta_time());
   #endif
   }
 
-  cb();
+  cb(get_delta_time());
 
 #if defined(FAN_PHYSICS_2D)
   physics.draw();
@@ -1935,7 +1949,15 @@ renderer_state.lighting.update(get_delta_time());
   return 0;
 }
 
+void loco_t::loop() {
+  loop([&](f32_t) { });
+}
+
 void loco_t::loop(const std::function<void()>& cb) {
+  loop([&](f32_t) { cb(); });
+}
+
+void loco_t::loop(const std::function<void(f32_t delta_time)>& cb) {
   main_loop = cb;
 g_loop:
 
@@ -1970,8 +1992,11 @@ loco_t::camera_t loco_t::open_camera(const fan::vec2& x, const fan::vec2& y) {
   return camera;
 }
 
-loco_t::camera_t loco_t::open_camera_perspective(f32_t fov) {
+loco_t::camera_t loco_t::open_camera_perspective(f32_t fov, f32_t znear, f32_t zfar) {
   loco_t::camera_t camera = camera_create();
+  auto& cam = camera_get(camera);
+  cam.znear = znear;
+  cam.zfar = zfar;
   camera_set_perspective(camera, fov, window.get_size());
   return camera;
 }
@@ -2219,14 +2244,14 @@ void loco_t::update_physics(bool flag) {
 #endif
 
 fan::vec2 loco_t::get_mouse_position(const camera_t& camera, const viewport_t& viewport) const {
-  return fan::graphics::screen_to_world(get_mouse_position(), viewport, camera);
+  return fan::graphics::screen_to_world(get_raw_mouse_position(), viewport, camera);
 }
 
 fan::vec2 loco_t::get_mouse_position(const fan::graphics::render_view_t& render_view) const {
   return get_mouse_position(render_view.camera, render_view.viewport);
 }
 
-fan::vec2 loco_t::get_mouse_position() const {
+fan::vec2 loco_t::get_raw_mouse_position() const {
   return window.get_mouse_position();
 }
 

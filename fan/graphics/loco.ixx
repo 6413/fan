@@ -295,6 +295,7 @@ public:
   void camera_set_ortho(fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y);
   void camera_set_perspective(fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size);
   void camera_rotate(fan::graphics::camera_nr_t nr, const fan::vec2& offset);
+  void camera_rotate(const fan::vec2& offset);
   void camera_set_target(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed = 10);
   void camera_set_target(const fan::vec2& target, f32_t move_speed = 10);
 
@@ -324,7 +325,8 @@ public:
   loco_t& operator=(loco_t&&) = delete;
 
   void use();
-  void camera_move(fan::graphics::context_camera_t& camera, f64_t dt, f32_t movement_speed, f32_t friction = 12);
+  void camera_move(f32_t movement_speed = 1000.f, f32_t friction = 12);
+  void camera_move(fan::graphics::context_camera_t& camera, f32_t movement_speed = 1000.f, f32_t friction = 12);
 
   #include "shaders.h"
   shaders_t shaders;
@@ -441,10 +443,14 @@ public:
   void process_render();
   bool should_close();
 
-  bool process_frame(const std::function<void()>& cb = [] {});
-  void loop(const std::function<void()>& cb = [] {});
+  bool process_frame();
+  bool process_frame(const std::function<void()>& cb);
+  bool process_frame(const std::function<void(f32_t delta_time)>& cb);
+  void loop();
+  void loop(const std::function<void()>& cb);
+  void loop(const std::function<void(f32_t delta_time)>& cb);
   camera_t open_camera(const fan::vec2& x, const fan::vec2& y);
-  camera_t open_camera_perspective(f32_t fov = 90.0f);
+  camera_t open_camera_perspective(f32_t fov = 90.0f, f32_t zmin = 0.1f, f32_t zfar = 10000.f);
   fan::graphics::viewport_t open_viewport(const fan::vec2& viewport_position, const fan::vec2& viewport_size);
   void set_viewport(fan::graphics::viewport_t viewport, const fan::vec2& viewport_position, const fan::vec2& viewport_size);
   fan::vec2 get_input_vector(
@@ -502,7 +508,7 @@ public:
   bool timer_init = false;
   void* timer_handle = nullptr;
 
-  std::function<void()> main_loop; // bad, but forced
+  std::function<void(f32_t delta_time)> main_loop; // bad, but forced
 
 #define FORWARD_CB_TO_WINDOW(NAME, HANDLE, CBDATA_NAME) \
     HANDLE on_##NAME(int arg, CBDATA_NAME cb) { \
@@ -535,8 +541,8 @@ public:
 #endif
 
   fan::vec2 get_mouse_position(const camera_t& camera, const viewport_t& viewport) const;
-  fan::vec2 get_mouse_position(const fan::graphics::render_view_t& render_view) const;
-  fan::vec2 get_mouse_position() const;
+  fan::vec2 get_mouse_position(const fan::graphics::render_view_t& render_view = fan::graphics::get_orthographic_render_view()) const;
+  fan::vec2 get_raw_mouse_position() const;
   fan::vec2 translate_position(const fan::vec2& p, viewport_t viewport, camera_t camera);
   fan::vec2 translate_position(const fan::vec2& p);
 

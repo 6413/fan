@@ -179,7 +179,7 @@ end
 local module_files = {
   "fan/types/types.ixx", "fan/types/color.ixx", "fan/types/vector.ixx",
   "fan/types/quaternion.ixx", "fan/types/matrix.ixx", "fan/types/fstring.ixx",
-  "fan/types/compile_time_string.ixx", "fan/memory/memory.ixx", "fan/math/math.ixx",
+  "fan/types/compile_time_string.ixx", "fan/types/flat_hash_map.ixx", "fan/memory/memory.ixx", "fan/math/math.ixx",
   "fan/time.ixx", "fan/mpl.ixx", "fan/utility.ixx", "fan/formatter.ixx",
   "fan/print_error.ixx", "fan/print.ixx", "fan/random.ixx", "fan/log_dispatcher.ixx",
   "fan/process.ixx", "fan/io/io_types.ixx", "fan/io/directory.ixx", "fan/io/file.ixx",
@@ -237,6 +237,7 @@ end
 if has_config("FAN_3D") then
   table.insert(module_files, "fan/graphics/opengl/3D/objects/fms.ixx")
   table.insert(module_files, "fan/graphics/opengl/3D/objects/model.ixx")
+  table.insert(module_files, "fan/graphics/voxel.ixx")
 end
 
 table.insert(module_files, "fan/fan.ixx")
