@@ -846,9 +846,6 @@ void shapes_draw() {
     fan::graphics::shaper_t::BlockTraverse_t BlockTraverse;
     BlockTraverse.Init(shaper, current_bmid);
     
-  for (const auto& i : loco.m_post_draw) {
-    i();
-  }
     do {
       if (((loco.context.gl.opengl.major > 4) ||
         (loco.context.gl.opengl.major == 4 && loco.context.gl.opengl.minor >= 2)) &&
@@ -887,6 +884,10 @@ void shapes_draw() {
 #endif
 
   {
+   for (const auto& func : loco.m_mid_draw) {
+      func();
+    }
+
   #if defined(LOCO_FRAMEBUFFER)
 
     if ((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) {

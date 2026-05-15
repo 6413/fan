@@ -468,6 +468,21 @@ namespace fan::graphics {
     fan::graphics::ctx()->image_bind(fan::graphics::ctx(), nr);
   }
 
+  void image_bind_image(
+    fan::graphics::image_t nr,
+    uint32_t unit,
+    GLenum access,
+    GLenum format
+  ) {
+    fan::graphics::ctx()->image_bind_params(
+      fan::graphics::ctx(),
+      nr,
+      unit,
+      access,
+      format
+    );
+  }
+
   void image_unbind(fan::graphics::image_t nr) {
     fan::graphics::ctx()->image_unbind(fan::graphics::ctx(), nr);
   }
@@ -507,7 +522,6 @@ namespace fan::graphics {
   fan::graphics::image_t image_load(std::span<const fan::color> colors, const fan::vec2ui& size) {
     return fan::graphics::ctx()->image_load_colors_props(fan::graphics::ctx(), const_cast<fan::color*>(colors.data()), size, image_presets::pixel_art());
   }
-
   void image_unload(fan::graphics::image_t nr) {
     fan::graphics::ctx()->image_unload(fan::graphics::ctx(), nr);
   }
@@ -554,6 +568,10 @@ namespace fan::graphics {
 
   fan::graphics::image_t image_create(const fan::color& color, const fan::graphics::image_load_properties_t& p) {
     return fan::graphics::ctx()->image_create_color_props(fan::graphics::ctx(), color, p);
+  }
+
+  fan::graphics::image_t image_create(void* data, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p) {
+    return fan::graphics::ctx()->image_create_data(fan::graphics::ctx(), data, size, p);
   }
 
 #if defined(FAN_OPENGL)
@@ -603,6 +621,69 @@ namespace fan::graphics {
 
   void shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& fragment_code) {
     fan::graphics::ctx()->shader_set_fragment(fan::graphics::ctx(), nr, file_path, fragment_code);
+  }
+
+  fan::graphics::shader_t compute_shader_create() {
+    return fan::graphics::ctx()->shader_create(fan::graphics::ctx());
+  }
+
+  fan::graphics::shader_t compute_shader_create(
+    const std::string_view compute_file_path,
+    const fan::str_view_t compute
+  ) {
+    if (ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
+
+      fan::graphics::shader_t shader =
+        ctx()->shader_create(ctx());
+
+      ctx()->shader_set_compute(
+        ctx(),
+        shader,
+        compute_file_path,
+        std::string(compute)
+      );
+
+      if (!ctx()->shader_compile(ctx(), shader)) {
+
+        ctx()->shader_erase(ctx(), shader);
+
+        shader.sic();
+      }
+
+      return shader;
+    }
+
+    fan::print_impl("todo");
+
+    return {};
+  }
+
+  void shader_set_compute(
+    fan::graphics::shader_nr_t nr,
+    const std::string_view file_path,
+    const std::string& compute_code
+  ) {
+    fan::graphics::ctx()->shader_set_compute(
+      fan::graphics::ctx(),
+      nr,
+      file_path,
+      compute_code
+    );
+  }
+
+  void shader_dispatch_compute(
+    fan::graphics::shader_nr_t nr,
+    uint32_t x,
+    uint32_t y,
+    uint32_t z
+  ) {
+    fan::graphics::ctx()->shader_dispatch_compute(
+      fan::graphics::ctx(),
+      nr,
+      x,
+      y,
+      z
+    );
   }
 
   bool shader_compile(fan::graphics::shader_nr_t nr) {

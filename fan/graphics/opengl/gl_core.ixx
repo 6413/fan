@@ -125,7 +125,7 @@ export namespace fan::opengl {
     struct shader_t {
       GLuint id = -1;
       int projection_view[2]{ -1, -1 };
-      std::uint32_t vertex = -1, fragment = -1;
+      std::uint32_t vertex = -1, fragment = -1, compute = -1;
     };
 
     //static constexpr auto shader_validate_error_message = [](const std::string& str) {
@@ -303,6 +303,16 @@ export namespace fan::opengl {
         glUniform4fv(location, count, (f32_t*)val.data()); break;
       case fan::get_hash(std::string_view("int")):
         glUniform1iv(location, count, (GLint*)val.data()); break;
+      case fan::get_hash(std::string_view("float[]")):
+        glUniform1fv(location, count, (f32_t*)val.data()); break;
+      case fan::get_hash(std::string_view("vec2[]")):
+        glUniform2fv(location, count, (f32_t*)val.data()); break;
+      case fan::get_hash(std::string_view("vec3[]")):
+        glUniform3fv(location, count, (f32_t*)val.data()); break;
+      case fan::get_hash(std::string_view("vec4[]")):
+        glUniform4fv(location, count, (f32_t*)val.data()); break;
+      case fan::get_hash(std::string_view("int[]")):
+        glUniform1iv(location, count, (GLint*)val.data()); break;
       }
     }
 
@@ -394,7 +404,17 @@ export namespace fan::opengl {
     void shader_use(fan::graphics::shader_nr_t nr);
     void shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& vertex_code);
     void shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& fragment_code);
-
+    void shader_set_compute(
+      fan::graphics::shader_nr_t nr,
+      const std::string_view file_path,
+      const std::string& compute_code
+    );
+    void shader_dispatch_compute(
+      fan::graphics::shader_nr_t nr,
+      std::uint32_t x,
+      std::uint32_t y,
+      std::uint32_t z
+    );
     static void parse_uniforms(
       const std::string& shaderData,
       std::unordered_map<std::string, std::string>& uniform_type_table
@@ -443,6 +463,12 @@ export namespace fan::opengl {
     void image_erase(fan::graphics::image_nr_t nr);
     void image_bind(fan::graphics::image_nr_t nr);
     void image_bind(fan::graphics::image_nr_t nr, std::uint32_t unit);
+    void image_bind(
+      fan::graphics::image_t nr,
+      uint32_t unit,
+      GLenum access,
+      GLenum format
+    );
     void image_unbind(fan::graphics::image_nr_t nr);
     fan::graphics::image_load_properties_t& image_get_settings(fan::graphics::image_nr_t nr);
     void image_set_settings(fan::graphics::image_nr_t nr, const fan::opengl::context_t::image_load_properties_t& p);
@@ -462,17 +488,7 @@ export namespace fan::opengl {
     std::vector<std::uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, GLenum format, fan::vec2 uvp, fan::vec2 uvs);
     fan::graphics::image_nr_t image_create(const fan::color& color, const fan::opengl::context_t::image_load_properties_t& p);
     fan::graphics::image_nr_t image_create(const fan::color& color);
-
-    fan::graphics::image_nr_t image_create_r32f(
-      void* data, 
-      const fan::vec2ui& size
-    );
-
-    // Creates an 8-bit per channel RGB texture
-    fan::graphics::image_nr_t image_create_rgb(
-      void* data, 
-      const fan::vec2ui& size
-    );
+    fan::graphics::image_nr_t image_create(void* data, const fan::vec2ui& size, const fan::opengl::context_t::image_load_properties_t& p);
 
     //-----------------------------image-----------------------------
     //-----------------------------image-----------------------------

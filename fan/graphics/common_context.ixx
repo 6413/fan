@@ -159,8 +159,8 @@ export namespace fan {
     };
 
     struct shader_data_t {
-      fan::ct_string<256> path_vertex, path_fragment;
-      std::string svertex, sfragment;
+      fan::ct_string<256> path_vertex, path_fragment, path_compute;
+      std::string svertex, sfragment, scompute;
       std::unordered_map<std::string, std::string> uniform_type_table;
       void* internal;
     };
@@ -258,7 +258,7 @@ export namespace fan {
     constexpr std::uint8_t get_channel_amount(std::uint32_t format) {
       switch (format) {
       case image_format_e::undefined: return 0;
-
+      case image_format_e::r32_float:
       case image_format_e::r8_unorm:
       case image_format_e::r8_uint: return 1;
 
@@ -500,6 +500,9 @@ export namespace fan::graphics {
     void reload(const std::string& path, const std::source_location& callers_path = std::source_location::current());
     void reload(const std::string& path, const fan::graphics::image_load_properties_t& lp, const std::source_location& callers_path = std::source_location::current());
     void unload();
+    void remove() {
+      unload();
+    }
     void update(const void* data, std::uint32_t channels = 4);
     void update(const std::vector<std::uint8_t>& data, std::uint32_t channels = 4);
     std::vector<std::uint8_t> get_pixel_data(int image_format, fan::vec2 uvp = 0, fan::vec2 uvs = 1) const;
@@ -657,6 +660,7 @@ export namespace fan::graphics {
   void image_reload(fan::graphics::image_t nr, const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current());
   fan::graphics::image_t image_create(const fan::color& color);
   fan::graphics::image_t image_create(const fan::color& color, const fan::graphics::image_load_properties_t& p);
+  fan::graphics::image_t image_create(void* data, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p);
   std::vector<std::uint8_t> read_pixels(const fan::vec2& position, const fan::vec2& size);
   std::vector<std::uint8_t> read_pixels_from_image(fan::graphics::image_t nr, const fan::vec2& uv_position = 0, const fan::vec2& uv_size = 1);
 
@@ -671,6 +675,25 @@ export namespace fan::graphics {
   void shader_use(fan::graphics::shader_nr_t nr);
   void shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& vertex_code);
   void shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& fragment_code);
+  fan::graphics::shader_t compute_shader_create();
+
+  fan::graphics::shader_t compute_shader_create(
+    const std::string_view compute_file_path,
+    const fan::str_view_t compute
+  );
+
+  void shader_set_compute(
+    fan::graphics::shader_nr_t nr,
+    const std::string_view file_path,
+    const std::string& compute_code
+  );
+
+  void shader_dispatch_compute(
+    fan::graphics::shader_nr_t nr,
+    uint32_t x,
+    uint32_t y,
+    uint32_t z
+  );
   bool shader_compile(fan::graphics::shader_nr_t nr);
   std::string read_shader(
     std::string_view path,
