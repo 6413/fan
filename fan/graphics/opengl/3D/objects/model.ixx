@@ -269,7 +269,7 @@ export namespace fan {
       f32_t light_intensity{1.f};
       struct gl_t {
         fan::opengl::core::vao_t vao;
-        fan::opengl::core::vbo_t vbo;
+        fan::opengl::core::gpu_buffer_t vbo;
         GLuint ebo;
       };
       std::vector<gl_t> gl_datas;

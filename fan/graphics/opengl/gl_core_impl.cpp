@@ -1410,42 +1410,46 @@ namespace fan::opengl::core {
     return m_buffer != (GLuint)-1;
   }
 
-  void vbo_t::open(fan::opengl::context_t& context, GLenum target_) {
+  void gpu_buffer_t::open(fan::opengl::context_t& context, GLenum target) {
     fan_opengl_call(glGenBuffers(1, &m_buffer));
-    m_target = target_;
+    m_target = target;
   }
 
-  void vbo_t::close(fan::opengl::context_t& context) {
-#if FAN_DEBUG >= fan_debug_medium
-    if (m_buffer == (GLuint)-1) {
+  void gpu_buffer_t::close(fan::opengl::context_t& context) {
+    if (m_buffer == 0) {
       return;
     }
-#endif
     fan_opengl_call(glDeleteBuffers(1, &m_buffer));
-    m_buffer = -1;
+    m_buffer = 0;
   }
 
-  bool vbo_t::is_valid() const {
-    return m_buffer != (GLuint)-1;
+  bool gpu_buffer_t::is_valid() const {
+    return m_buffer != 0;
   }
 
-  void vbo_t::bind(fan::opengl::context_t& context) const {
+  void gpu_buffer_t::bind(fan::opengl::context_t& context) const {
     fan_opengl_call(glBindBuffer(m_target, m_buffer));
   }
 
-  void vbo_t::get_vram_instance(fan::opengl::context_t& context, void* data, std::uintptr_t size, std::uintptr_t offset) {
+  void gpu_buffer_t::bind_base(fan::opengl::context_t& context, std::uint32_t index) const {
+    fan_opengl_call(glBindBufferBase(m_target, index, m_buffer));
+  }
+
+  void gpu_buffer_t::bind_as(fan::opengl::context_t& context, GLenum target) const {
+    fan_opengl_call(glBindBuffer(target, m_buffer));
+  }
+
+  void gpu_buffer_t::get_vram_instance(fan::opengl::context_t& context, void* data, std::uintptr_t size, std::uintptr_t offset) {
     fan::opengl::core::get_glbuffer(context, data, m_buffer, size, offset, m_target);
   }
 
-  void vbo_t::bind_buffer_range(fan::opengl::context_t& context, std::uint32_t total_size) {
-    fan_opengl_call(glBindBufferRange(GL_UNIFORM_BUFFER, 0, m_buffer, 0, total_size));
-  }
-
-  void vbo_t::edit_buffer(fan::opengl::context_t& context, const void* data, std::uintptr_t offset, std::uintptr_t size) {
+  void gpu_buffer_t::edit_buffer(fan::opengl::context_t& context, const void* data, std::uintptr_t offset, std::uintptr_t size) {
+    bind(context);
     fan::opengl::core::edit_glbuffer(context, m_buffer, data, offset, size, m_target);
   }
 
-  void vbo_t::write_buffer(fan::opengl::context_t& context, const void* data, std::uintptr_t size) {
+  void gpu_buffer_t::write_buffer(fan::opengl::context_t& context, const void* data, std::uintptr_t size) {
+    bind(context);
     fan::opengl::core::write_glbuffer(context, m_buffer, data, size, m_usage, m_target);
   }
 
