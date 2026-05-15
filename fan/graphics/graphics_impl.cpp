@@ -1398,7 +1398,6 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     sprite_properties_t sp = cp;
     sp.size = fan::graphics::viewport_get_size(sp.render_view->viewport) / noise_size / 2;
     out_mesh.resize(noise_size.multiply());
-    fan::print(&noise_size, noise_size);
     for (int i = 0; i < noise_size.y; ++i) {
       for (int j = 0; j < noise_size.x; ++j) {
         int index = (i * noise_size.x + j) * 3;
@@ -1411,7 +1410,6 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
       }
       co_await fan::co_sleep(1);
     }
-    fan::print(&noise_size, noise_size);
   }
 #endif
 }

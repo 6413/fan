@@ -53,10 +53,10 @@ elseif is_mode("debug") then
 end
 
 option("FAN_2D") set_default(true) option_end()
-option("FAN_GUI") set_default(false) option_end()
+option("FAN_GUI") set_default(true) option_end()
 option("FAN_PHYSICS_2D") set_default(true) option_end()
 option("FAN_JSON") set_default(true) option_end()
-option("FAN_3D") set_default(false) option_end()
+option("FAN_3D") set_default(true) option_end()
 option("FAN_OPENGL") set_default(true) option_end()
 option("FAN_VULKAN") set_default(false) option_end()
 option("FAN_FMT") set_default(false) option_end()
@@ -100,7 +100,7 @@ if has_config("FAN_OPENGL") then add_defines("FAN_OPENGL") end
 if has_config("FAN_2D") then add_defines("FAN_2D") end
 if has_config("FAN_GUI") then add_defines("FAN_GUI") end
 if has_config("FAN_JSON") then add_defines("FAN_JSON") end
-if has_config("FAN_3D") then add_defines("fan_3D") end
+if has_config("FAN_3D") then add_defines("FAN_3D") end
 if has_config("FAN_PHYSICS_2D") then add_defines("FAN_PHYSICS_2D") end
 if has_config("FAN_VULKAN") then add_defines("FAN_VULKAN") end
 if has_config("FAN_NETWORK") then add_defines("FAN_NETWORK") end

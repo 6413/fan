@@ -62,7 +62,7 @@ export namespace fan {
 		constexpr quaternion<value_type> operator+(const quaternion<_Ty>& quat) const
 		{
       quaternion<value_type> result(this->w + quat.w, this->x + quat.x, this->y + quat.y, this->z + quat.z);
-      double magnitude = sqrt(result.w * result.w + result.x * result.x + result.y * result.y + result.z * result.z);
+      double magnitude = std::sqrt(result.w * result.w + result.x * result.x + result.y * result.y + result.z * result.z);
       return quaternion<value_type>(result.w / magnitude, result.x / magnitude, result.y / magnitude, result.z / magnitude);
      // return inherited_type::operator+(inherited_type(quat.x, quat.y, quat.z, quat.w));
 		}
@@ -255,7 +255,7 @@ export namespace fan {
       quaternion<T> qn = normalize();
       angle = 2.0f * std::acos(qn.w);
 
-      float s = sqrt(1.0f - qn.w * qn.w);
+      float s = std::sqrt(1.0f - qn.w * qn.w);
       if (s < 0.001f) {
         axis.x = qn.x;
         axis.y = qn.y;
