@@ -166,7 +166,7 @@ export namespace fan::graphics::shaper {
     gl_t() = default;\
   \
     fan::opengl::core::vao_t m_vao;\
-    fan::opengl::core::vbo_t m_vbo;\
+    fan::opengl::core::gpu_buffer_t m_vbo;\
     shape_gl_init_list_t locations;\
     fan::graphics::shader_nr_t shader;\
     bool instanced = true;\
@@ -401,13 +401,13 @@ export namespace fan::graphics::shaper {
     fan::opengl::core::vao_t doesnt_happen;\
     return doesnt_happen;\
   }\
-  fan::opengl::core::vbo_t GetVBO(ShapeTypeIndex_t sti) {\
+  fan::opengl::core::gpu_buffer_t GetVBO(ShapeTypeIndex_t sti) {\
     auto& st = ShapeTypes[sti];\
     if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {\
       return st.renderer.gl.m_vbo;\
     }\
     fan::throw_error_impl("Unsupported renderer type");\
-    fan::opengl::core::vbo_t doesnt_happen;\
+    fan::opengl::core::gpu_buffer_t doesnt_happen;\
     return doesnt_happen;\
   }\
   fan::graphics::shape_gl_init_list_t& GetLocations(ShapeTypeIndex_t sti) {\

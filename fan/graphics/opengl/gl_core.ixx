@@ -640,26 +640,25 @@ export namespace fan::opengl::core {
     GLuint m_buffer = (GLuint)-1;
   };
 
-  struct vbo_t {
+  struct gpu_buffer_t {
+    gpu_buffer_t() = default;
 
-    void open(fan::opengl::context_t& context, GLenum target_);
+    void open(fan::opengl::context_t& context, GLenum target);
     void close(fan::opengl::context_t& context);
 
     bool is_valid() const;
 
     void bind(fan::opengl::context_t& context) const;
+    void bind_base(fan::opengl::context_t& context, std::uint32_t index) const;
+    void bind_as(fan::opengl::context_t& context, GLenum target) const;
 
     void get_vram_instance(fan::opengl::context_t& context, void* data, std::uintptr_t size, std::uintptr_t offset);
 
-    // only for target GL_UNIFORM_BUFFER
-    void bind_buffer_range(fan::opengl::context_t& context, std::uint32_t total_size);
-
     void edit_buffer(fan::opengl::context_t& context, const void* data, std::uintptr_t offset, std::uintptr_t size);
-
     void write_buffer(fan::opengl::context_t& context, const void* data, std::uintptr_t size);
 
-    GLuint m_buffer = (GLuint)-1;
-    GLenum m_target = (GLuint)-1;
+    GLuint m_buffer = 0;
+    GLenum m_target = 0;
     std::uint32_t m_usage = GL_DYNAMIC_DRAW;
   };
 

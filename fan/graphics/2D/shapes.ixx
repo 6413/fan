@@ -1082,7 +1082,7 @@ export namespace fan::graphics {
       struct ri_t {
         std::uint32_t buffer_size = 0;
         fan::opengl::core::vao_t vao;
-        fan::opengl::core::vbo_t vbo;
+        fan::opengl::core::gpu_buffer_t vbo;
       };
 
       static std::array<shape_gl_init_t, 5>& get_locations() {

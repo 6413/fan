@@ -51,7 +51,7 @@ export namespace fan::opengl::core {
     std::uint64_t m_max_edit;
 
     fan::opengl::core::vao_t m_vao;
-    fan::opengl::core::vbo_t m_vbo;
+    fan::opengl::core::gpu_buffer_t m_vbo;
 
     memory_write_queue_t::memory_edit_cb_t write_cb;
   };
