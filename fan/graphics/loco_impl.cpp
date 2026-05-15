@@ -1454,6 +1454,9 @@ void loco_t::process_shapes() {
 
   shapes_draw();
 
+  for (const auto& func : m_post_draw) {
+    func();
+  }
 
 #if defined(FAN_VULKAN)
   if (window.renderer == fan::window_t::renderer_t::vulkan) {

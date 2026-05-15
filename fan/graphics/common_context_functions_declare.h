@@ -24,6 +24,8 @@
   build_function(shader_use, void, fan::graphics::shader_nr_t nr) \
   build_function(shader_set_vertex, void, fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& vertex_code) \
   build_function(shader_set_fragment, void, fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& fragment_code) \
+  build_function(shader_set_compute, void, fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& compute_code) \
+  build_function(shader_dispatch_compute, void, fan::graphics::shader_nr_t nr, std::uint32_t x, std::uint32_t y, std::uint32_t z) \
   build_function(shader_compile, bool, fan::graphics::shader_nr_t nr)
 
 #define context_build_image_functions(build_function) \
@@ -32,6 +34,7 @@
   build_function(image_get, void*, fan::graphics::image_nr_t nr) \
   build_function(image_erase, void, fan::graphics::image_nr_t nr) \
   build_function(image_bind, void, fan::graphics::image_nr_t nr) \
+  build_function(image_bind_params, void, fan::graphics::image_nr_t nr, std::uint32_t unit, std::uint32_t access, std::uint32_t format) \
   build_function(image_unbind, void, fan::graphics::image_nr_t nr) \
   build_function(image_get_settings, image_load_properties_t&,  fan::graphics::image_nr_t nr) \
   build_function(image_set_settings, void,  fan::graphics::image_nr_t nr, const image_load_properties_t& p) \
@@ -51,6 +54,7 @@
   build_function(image_get_pixel_data, std::vector<uint8_t>, fan::graphics::image_nr_t nr, uint32_t format, fan::vec2 uvp, fan::vec2 uvs) \
   build_function(image_create_color, fan::graphics::image_nr_t, const fan::color& color) \
   build_function(image_create_color_props, fan::graphics::image_nr_t, const fan::color& color, const fan::graphics::image_load_properties_t& p) \
+  build_function(image_create_data, fan::graphics::image_nr_t, void* data, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p) \
   build_function(image_read_pixels, std::vector<uint8_t>, fan::graphics::image_nr_t nr, fan::vec2 uv_pos, fan::vec2 uv_size)
 
 #define context_build_viewport_functions(build_function) \

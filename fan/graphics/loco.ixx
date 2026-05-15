@@ -351,6 +351,11 @@ public:
 public:
 
   std::vector<std::function<void()>> m_pre_draw;
+  std::vector<std::function<void()>> m_mid_draw;
+  template <typename T>
+  void add_custom_draw(T&& cb) {
+    m_mid_draw.emplace_back(std::forward<T>(cb));
+  }
   std::vector<std::function<void()>> m_post_draw;
 
 #if defined(FAN_2D)
