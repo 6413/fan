@@ -7,8 +7,9 @@ export module fan.graphics.voxel;
 import std;
 import fan.noise;
 import fan.types;
-import fan.graphics.shapes;
+import fan.types.vector;
 import fan.types.flat_hash_map;
+import fan.graphics.shapes;
 
 export namespace fan::graphics {
 

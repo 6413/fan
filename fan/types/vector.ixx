@@ -299,8 +299,19 @@ export namespace fan {
       return { x + dx, y + dy };
     }
 
+    constexpr void iterate_to(const vec2_wrap_t& max_, auto&& fn) const {
+      for (int yy = this->y; yy <= max_.y; ++yy) {
+        for (int xx = this->x; xx <= max_.x; ++xx) { fn(xx, yy); }
+      }
+    }
+    constexpr void rect(const vec2_wrap_t& max_, auto&& fn) const {
+      if (this->x <= max_.x && this->y <= max_.y) { iterate_to(max_, fn); }
+    }
+    constexpr void iterate_col(int col_x, int y0, int y1, auto&& fn) const {
+      for (int yy = y0; yy <= y1; ++yy) { fn(col_x, yy); }
+    }
 
-  #if defined(fan_compile_component_functions)
+#if defined(fan_compile_component_functions)
     generate_vec_component_functions(2);
   #endif
   };

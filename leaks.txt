@@ -1,0 +1,537 @@
+==49531== Memcheck, a memory error detector
+==49531== Copyright (C) 2002-2024, and GNU GPL'd, by Julian Seward et al.
+==49531== Using Valgrind-3.25.1 and LibVEX; rerun with -h for copyright info
+==49531== Command: ./a.exe
+==49531== 
+==49531== realloc() with size 0
+==49531==    at 0x4E4FF4F: realloc (vg_replace_malloc.c:1801)
+==49531==    by 0x120F3E69: ??? (in /usr/lib/libnvidia-eglcore.so.595.71.05)
+==49531==    by 0x120FB67B: ??? (in /usr/lib/libnvidia-eglcore.so.595.71.05)
+==49531==    by 0x1211362E: ??? (in /usr/lib/libnvidia-eglcore.so.595.71.05)
+==49531==    by 0x12113A8C: ??? (in /usr/lib/libnvidia-eglcore.so.595.71.05)
+==49531==    by 0x1210AA6E: NvGlEglApiInit (in /usr/lib/libnvidia-eglcore.so.595.71.05)
+==49531==    by 0x11607DA0: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x11607E84: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x11686AF5: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x11606066: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x1160EEF8: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0xE7B281C: UnknownInlinedFun (platform-base.c:119)
+==49531==    by 0xE7B281C: loadEGLExternalPlatform (wayland-platform.c:94)
+==49531==    by 0x1167F041: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x116804CC: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x11679E03: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x70F28FB: __pthread_once_slow.isra.0 (pthread_once.c:116)
+==49531==    by 0x70F2978: pthread_once@@GLIBC_2.34 (pthread_once.c:143)
+==49531==    by 0x11679AC2: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x1167B321: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x11606051: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x1162208C: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0xDB33A63: UnknownInlinedFun (libeglvendor.c:201)
+==49531==    by 0xDB33A63: UnknownInlinedFun (libeglvendor.c:562)
+==49531==    by 0xDB33A63: LoadVendorFromConfigFile.isra.0 (libeglvendor.c:334)
+==49531==    by 0xDB3412B: UnknownInlinedFun (libeglvendor.c:121)
+==49531==    by 0xDB3412B: LoadVendors (libeglvendor.c:68)
+==49531==    by 0x70F28FB: __pthread_once_slow.isra.0 (pthread_once.c:116)
+==49531==    by 0x70F2978: pthread_once@@GLIBC_2.34 (pthread_once.c:143)
+==49531==    by 0xDB31E13: UnknownInlinedFun (libeglvendor.c:139)
+==49531==    by 0xDB31E13: eglQueryString (libegl.c:928)
+==49531==    by 0x4F24F7E: _glfwInitEGL (egl_context.c:458)
+==49531==    by 0x4F3BD85: _glfwCreateWindowWayland (wl_window.c:2149)
+==49531==    by 0x4F234CF: glfwCreateWindow (window.c:247)
+==49531==    by 0x42AA4DA: fan::window_t@fan.window::open(fan::window_t@fan.window::properties_t const&) (window_impl.cpp:364)
+==49531==    by 0x41DC2CB: loco_open_window(loco_t@fan.graphics.loco*) (loco_impl.cpp:999)
+==49531==    by 0x41DCC77: loco_t@fan.graphics.loco::loco_t(loco_t@fan.graphics.loco::properties_t const&) (loco_impl.cpp:1103)
+==49531==    by 0x41DC8C4: loco_t@fan.graphics.loco::loco_t() (loco_impl.cpp:1081)
+==49531==    by 0x401261A: main (tests.cpp:135)
+==49531==  Address 0xf748830 is 0 bytes after a block of size 0 alloc'd
+==49531==    at 0x4E488A8: malloc (vg_replace_malloc.c:446)
+==49531==    by 0x120F3E56: ??? (in /usr/lib/libnvidia-eglcore.so.595.71.05)
+==49531==    by 0x120FB67B: ??? (in /usr/lib/libnvidia-eglcore.so.595.71.05)
+==49531==    by 0x1211362E: ??? (in /usr/lib/libnvidia-eglcore.so.595.71.05)
+==49531==    by 0x12113A8C: ??? (in /usr/lib/libnvidia-eglcore.so.595.71.05)
+==49531==    by 0x1210AA6E: NvGlEglApiInit (in /usr/lib/libnvidia-eglcore.so.595.71.05)
+==49531==    by 0x11607DA0: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x11607E84: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x11686AF5: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x11606066: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x1160EEF8: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0xE7B281C: UnknownInlinedFun (platform-base.c:119)
+==49531==    by 0xE7B281C: loadEGLExternalPlatform (wayland-platform.c:94)
+==49531==    by 0x1167F041: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x116804CC: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x11679E03: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x70F28FB: __pthread_once_slow.isra.0 (pthread_once.c:116)
+==49531==    by 0x70F2978: pthread_once@@GLIBC_2.34 (pthread_once.c:143)
+==49531==    by 0x11679AC2: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x1167B321: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x11606051: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x1162208C: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0xDB33A63: UnknownInlinedFun (libeglvendor.c:201)
+==49531==    by 0xDB33A63: UnknownInlinedFun (libeglvendor.c:562)
+==49531==    by 0xDB33A63: LoadVendorFromConfigFile.isra.0 (libeglvendor.c:334)
+==49531==    by 0xDB3412B: UnknownInlinedFun (libeglvendor.c:121)
+==49531==    by 0xDB3412B: LoadVendors (libeglvendor.c:68)
+==49531==    by 0x70F28FB: __pthread_once_slow.isra.0 (pthread_once.c:116)
+==49531==    by 0x70F2978: pthread_once@@GLIBC_2.34 (pthread_once.c:143)
+==49531==    by 0xDB31E13: UnknownInlinedFun (libeglvendor.c:139)
+==49531==    by 0xDB31E13: eglQueryString (libegl.c:928)
+==49531==    by 0x4F24F7E: _glfwInitEGL (egl_context.c:458)
+==49531==    by 0x4F3BD85: _glfwCreateWindowWayland (wl_window.c:2149)
+==49531==    by 0x4F234CF: glfwCreateWindow (window.c:247)
+==49531==    by 0x42AA4DA: fan::window_t@fan.window::open(fan::window_t@fan.window::properties_t const&) (window_impl.cpp:364)
+==49531==    by 0x41DC2CB: loco_open_window(loco_t@fan.graphics.loco*) (loco_impl.cpp:999)
+==49531==    by 0x41DCC77: loco_t@fan.graphics.loco::loco_t(loco_t@fan.graphics.loco::properties_t const&) (loco_impl.cpp:1103)
+==49531==    by 0x41DC8C4: loco_t@fan.graphics.loco::loco_t() (loco_impl.cpp:1081)
+==49531==    by 0x401261A: main (tests.cpp:135)
+==49531== 
+==49531== posix_memalign() invalid size value: 0
+==49531==    at 0x4E50B58: posix_memalign (vg_replace_malloc.c:2226)
+==49531==    by 0x120F3E99: ??? (in /usr/lib/libnvidia-eglcore.so.595.71.05)
+==49531==    by 0x120FB67B: ??? (in /usr/lib/libnvidia-eglcore.so.595.71.05)
+==49531==    by 0x1211362E: ??? (in /usr/lib/libnvidia-eglcore.so.595.71.05)
+==49531==    by 0x12113A8C: ??? (in /usr/lib/libnvidia-eglcore.so.595.71.05)
+==49531==    by 0x1210AA6E: NvGlEglApiInit (in /usr/lib/libnvidia-eglcore.so.595.71.05)
+==49531==    by 0x11607DA0: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x11607E84: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x11686AF5: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x11606066: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x1160EEF8: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0xE7B281C: UnknownInlinedFun (platform-base.c:119)
+==49531==    by 0xE7B281C: loadEGLExternalPlatform (wayland-platform.c:94)
+==49531==    by 0x1167F041: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x116804CC: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x11679E03: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x70F28FB: __pthread_once_slow.isra.0 (pthread_once.c:116)
+==49531==    by 0x70F2978: pthread_once@@GLIBC_2.34 (pthread_once.c:143)
+==49531==    by 0x11679AC2: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x1167B321: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x11606051: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0x1162208C: ??? (in /usr/lib/libEGL_nvidia.so.595.71.05)
+==49531==    by 0xDB33A63: UnknownInlinedFun (libeglvendor.c:201)
+==49531==    by 0xDB33A63: UnknownInlinedFun (libeglvendor.c:562)
+==49531==    by 0xDB33A63: LoadVendorFromConfigFile.isra.0 (libeglvendor.c:334)
+==49531==    by 0xDB3412B: UnknownInlinedFun (libeglvendor.c:121)
+==49531==    by 0xDB3412B: LoadVendors (libeglvendor.c:68)
+==49531==    by 0x70F28FB: __pthread_once_slow.isra.0 (pthread_once.c:116)
+==49531==    by 0x70F2978: pthread_once@@GLIBC_2.34 (pthread_once.c:143)
+==49531==    by 0xDB31E13: UnknownInlinedFun (libeglvendor.c:139)
+==49531==    by 0xDB31E13: eglQueryString (libegl.c:928)
+==49531==    by 0x4F24F7E: _glfwInitEGL (egl_context.c:458)
+==49531==    by 0x4F3BD85: _glfwCreateWindowWayland (wl_window.c:2149)
+==49531==    by 0x4F234CF: glfwCreateWindow (window.c:247)
+==49531==    by 0x42AA4DA: fan::window_t@fan.window::open(fan::window_t@fan.window::properties_t const&) (window_impl.cpp:364)
+==49531==    by 0x41DC2CB: loco_open_window(loco_t@fan.graphics.loco*) (loco_impl.cpp:999)
+==49531==    by 0x41DCC77: loco_t@fan.graphics.loco::loco_t(loco_t@fan.graphics.loco::properties_t const&) (loco_impl.cpp:1103)
+==49531==    by 0x41DC8C4: loco_t@fan.graphics.loco::loco_t() (loco_impl.cpp:1081)
+==49531==    by 0x401261A: main (tests.cpp:135)
+==49531== 
+==49531== 
+==49531== HEAP SUMMARY:
+==49531==     in use at exit: 3,471,563 bytes in 42,860 blocks
+==49531==   total heap usage: 500,279 allocs, 457,419 frees, 164,560,839 bytes allocated
+==49531== 
+==49531== 96 bytes in 1 blocks are definitely lost in loss record 6,695 of 7,974
+==49531==    at 0x4E4FD13: calloc (vg_replace_malloc.c:1675)
+==49531==    by 0x7AA4EED: UnknownInlinedFun (wayland-private.h:265)
+==49531==    by 0x7AA4EED: proxy_create (wayland-client.c:486)
+==49531==    by 0x7AA53CD: UnknownInlinedFun (wayland-client.c:752)
+==49531==    by 0x7AA53CD: wl_proxy_marshal_array_flags (wayland-client.c:917)
+==49531==    by 0x7AA6402: wl_proxy_marshal_flags (wayland-client.c:870)
+==49531==    by 0x4F3BC4A: UnknownInlinedFun (viewporter-client-protocol.h:271)
+==49531==    by 0x4F3BC4A: UnknownInlinedFun (wl_window.c:1058)
+==49531==    by 0x4F3BC4A: _glfwCreateWindowWayland (wl_window.c:2131)
+==49531==    by 0x4F234CF: glfwCreateWindow (window.c:247)
+==49531==    by 0x42AA4DA: fan::window_t@fan.window::open(fan::window_t@fan.window::properties_t const&) (window_impl.cpp:364)
+==49531==    by 0x41DC2CB: loco_open_window(loco_t@fan.graphics.loco*) (loco_impl.cpp:999)
+==49531==    by 0x41DCC77: loco_t@fan.graphics.loco::loco_t(loco_t@fan.graphics.loco::properties_t const&) (loco_impl.cpp:1103)
+==49531==    by 0x41DC8C4: loco_t@fan.graphics.loco::loco_t() (loco_impl.cpp:1081)
+==49531==    by 0x401261A: main (tests.cpp:135)
+==49531== 
+
+==49531== 96 bytes in 1 blocks are definitely lost in loss record 6,696 of 7,974
+==49531==    at 0x4E4FD13: calloc (vg_replace_malloc.c:1675)
+==49531==    by 0x7AA4EED: UnknownInlinedFun (wayland-private.h:265)
+==49531==    by 0x7AA4EED: proxy_create (wayland-client.c:486)
+==49531==    by 0x7AA53CD: UnknownInlinedFun (wayland-client.c:752)
+==49531==    by 0x7AA53CD: wl_proxy_marshal_array_flags (wayland-client.c:917)
+==49531==    by 0x7AA6402: wl_proxy_marshal_flags (wayland-client.c:870)
+==49531==    by 0x4F3BCED: UnknownInlinedFun (fractional-scale-v1-client-protocol.h:178)
+==49531==    by 0x4F3BCED: UnknownInlinedFun (wl_window.c:1065)
+==49531==    by 0x4F3BCED: _glfwCreateWindowWayland (wl_window.c:2131)
+==49531==    by 0x4F234CF: glfwCreateWindow (window.c:247)
+==49531==    by 0x42AA4DA: fan::window_t@fan.window::open(fan::window_t@fan.window::properties_t const&) (window_impl.cpp:364)
+==49531==    by 0x41DC2CB: loco_open_window(loco_t@fan.graphics.loco*) (loco_impl.cpp:999)
+==49531==    by 0x41DCC77: loco_t@fan.graphics.loco::loco_t(loco_t@fan.graphics.loco::properties_t const&) (loco_impl.cpp:1103)
+==49531==    by 0x41DC8C4: loco_t@fan.graphics.loco::loco_t() (loco_impl.cpp:1081)
+==49531==    by 0x401261A: main (tests.cpp:135)
+==49531== 
+
+==49531== 96 bytes in 1 blocks are definitely lost in loss record 6,697 of 7,974
+==49531==    at 0x4E4FD13: calloc (vg_replace_malloc.c:1675)
+==49531==    by 0x7AA4EED: UnknownInlinedFun (wayland-private.h:265)
+==49531==    by 0x7AA4EED: proxy_create (wayland-client.c:486)
+==49531==    by 0x7AA53CD: UnknownInlinedFun (wayland-client.c:752)
+==49531==    by 0x7AA53CD: wl_proxy_marshal_array_flags (wayland-client.c:917)
+==49531==    by 0x7AA6402: wl_proxy_marshal_flags (wayland-client.c:870)
+==49531==    by 0xE7A9409: ???
+==49531==    by 0xE7AFEFA: ???
+==49531==    by 0xE7B26F4: ???
+==49531==    by 0xE7AB2EA: ???
+==49531==    by 0x116816A2: ???
+==49531==    by 0x1161B847: ???
+==49531==    by 0x4F25054: _glfwInitEGL (egl_context.c:513)
+==49531==    by 0x4F3BD85: _glfwCreateWindowWayland (wl_window.c:2149)
+==49531==    by 0x4F234CF: glfwCreateWindow (window.c:247)
+==49531==    by 0x42AA4DA: fan::window_t@fan.window::open(fan::window_t@fan.window::properties_t const&) (window_impl.cpp:364)
+==49531==    by 0x41DC2CB: loco_open_window(loco_t@fan.graphics.loco*) (loco_impl.cpp:999)
+==49531==    by 0x41DCC77: loco_t@fan.graphics.loco::loco_t(loco_t@fan.graphics.loco::properties_t const&) (loco_impl.cpp:1103)
+==49531==    by 0x41DC8C4: loco_t@fan.graphics.loco::loco_t() (loco_impl.cpp:1081)
+==49531==    by 0x401261A: main (tests.cpp:135)
+==49531== 
+
+==49531== 96 bytes in 1 blocks are definitely lost in loss record 6,698 of 7,974
+==49531==    at 0x4E4FD13: calloc (vg_replace_malloc.c:1675)
+==49531==    by 0x7AA4EED: UnknownInlinedFun (wayland-private.h:265)
+==49531==    by 0x7AA4EED: proxy_create (wayland-client.c:486)
+==49531==    by 0x7AA53CD: UnknownInlinedFun (wayland-client.c:752)
+==49531==    by 0x7AA53CD: wl_proxy_marshal_array_flags (wayland-client.c:917)
+==49531==    by 0x7AA6402: wl_proxy_marshal_flags (wayland-client.c:870)
+==49531==    by 0xE7A9409: ???
+==49531==    by 0xE7B1D95: ???
+==49531==    by 0xE7B26F4: ???
+==49531==    by 0xE7AB2EA: ???
+==49531==    by 0x116816A2: ???
+==49531==    by 0x1161B847: ???
+==49531==    by 0x4F25054: _glfwInitEGL (egl_context.c:513)
+==49531==    by 0x4F3BD85: _glfwCreateWindowWayland (wl_window.c:2149)
+==49531==    by 0x4F234CF: glfwCreateWindow (window.c:247)
+==49531==    by 0x42AA4DA: fan::window_t@fan.window::open(fan::window_t@fan.window::properties_t const&) (window_impl.cpp:364)
+==49531==    by 0x41DC2CB: loco_open_window(loco_t@fan.graphics.loco*) (loco_impl.cpp:999)
+==49531==    by 0x41DCC77: loco_t@fan.graphics.loco::loco_t(loco_t@fan.graphics.loco::properties_t const&) (loco_impl.cpp:1103)
+==49531==    by 0x41DC8C4: loco_t@fan.graphics.loco::loco_t() (loco_impl.cpp:1081)
+==49531==    by 0x401261A: main (tests.cpp:135)
+==49531== 
+
+==49531== 96 bytes in 1 blocks are definitely lost in loss record 6,699 of 7,974
+==49531==    at 0x4E4FD13: calloc (vg_replace_malloc.c:1675)
+==49531==    by 0x7AA74E9: UnknownInlinedFun (wayland-private.h:265)
+==49531==    by 0x7AA74E9: UnknownInlinedFun (wayland-client.c:550)
+==49531==    by 0x7AA74E9: UnknownInlinedFun (wayland-client.c:1533)
+==49531==    by 0x7AA74E9: UnknownInlinedFun (wayland-client.c:1655)
+==49531==    by 0x7AA74E9: UnknownInlinedFun (wayland-client.c:1770)
+==49531==    by 0x7AA74E9: wl_display_read_events (wayland-client.c:1853)
+==49531==    by 0x7AA856E: wl_display_dispatch_queue_timeout (wayland-client.c:2144)
+==49531==    by 0x7AA865F: wl_display_dispatch_queue (wayland-client.c:2215)
+==49531==    by 0x7AA874B: wl_display_roundtrip_queue (wayland-client.c:1479)
+==49531==    by 0xE7A9C3C: ???
+==49531==    by 0xE7AC340: ???
+==49531==    by 0xE7ADB9B: ???
+==49531==    by 0xE7AF12E: ???
+==49531==    by 0x11681A2A: ???
+==49531==    by 0x1162156F: ???
+==49531==    by 0x42AA5DE: fan::window_t@fan.window::open(fan::window_t@fan.window::properties_t const&) (window_impl.cpp:398)
+==49531==    by 0x41DC2CB: loco_open_window(loco_t@fan.graphics.loco*) (loco_impl.cpp:999)
+==49531==    by 0x41DCC77: loco_t@fan.graphics.loco::loco_t(loco_t@fan.graphics.loco::properties_t const&) (loco_impl.cpp:1103)
+==49531==    by 0x41DC8C4: loco_t@fan.graphics.loco::loco_t() (loco_impl.cpp:1081)
+==49531==    by 0x401261A: main (tests.cpp:135)
+==49531== 
+
+==49531== 112 bytes in 1 blocks are definitely lost in loss record 6,838 of 7,974
+==49531==    at 0x4E4FD13: calloc (vg_replace_malloc.c:1675)
+==49531==    by 0xE791C7C: ???
+==49531==    by 0xE7923F9: ???
+==49531==    by 0xE791EA7: ???
+==49531==    by 0xE790909: ???
+==49531==    by 0xDB151F1: backend_create_device (backend.c:96)
+==49531==    by 0xDB151F1: load_backend_by_name (backend.c:136)
+==49531==    by 0xDB152CD: _gbm_create_device (backend.c:161)
+==49531==    by 0xDB15376: gbm_create_device (gbm.c:138)
+==49531==    by 0xE7B02E6: ???
+==49531==    by 0xE7B24B4: ???
+==49531==    by 0xE7AB853: ???
+==49531==    by 0x11685BC8: ???
+==49531==    by 0x1162050E: ???
+==49531==    by 0xDB2F25D: ???
+==49531==    by 0x4F25016: _glfwInitEGL (egl_context.c:494)
+==49531==    by 0x4F3BD85: _glfwCreateWindowWayland (wl_window.c:2149)
+==49531==    by 0x4F234CF: glfwCreateWindow (window.c:247)
+==49531==    by 0x42AA4DA: fan::window_t@fan.window::open(fan::window_t@fan.window::properties_t const&) (window_impl.cpp:364)
+==49531==    by 0x41DC2CB: loco_open_window(loco_t@fan.graphics.loco*) (loco_impl.cpp:999)
+==49531==    by 0x41DCC77: loco_t@fan.graphics.loco::loco_t(loco_t@fan.graphics.loco::properties_t const&) (loco_impl.cpp:1103)
+==49531==    by 0x41DC8C4: loco_t@fan.graphics.loco::loco_t() (loco_impl.cpp:1081)
+==49531==    by 0x401261A: main (tests.cpp:135)
+==49531== 
+
+==49531== 112 bytes in 1 blocks are definitely lost in loss record 6,839 of 7,974
+==49531==    at 0x4E4FD13: calloc (vg_replace_malloc.c:1675)
+==49531==    by 0x26CD7C7C: ???
+==49531==    by 0x26CD83F9: ???
+==49531==    by 0x26CD7EA7: ???
+==49531==    by 0x26CD6909: ???
+==49531==    by 0xDB151F1: backend_create_device (backend.c:96)
+==49531==    by 0xDB151F1: load_backend_by_name (backend.c:136)
+==49531==    by 0xDB152CD: _gbm_create_device (backend.c:161)
+==49531==    by 0xDB15376: gbm_create_device (gbm.c:138)
+==49531==    by 0xE7B02E6: ???
+==49531==    by 0xE7B26F4: ???
+==49531==    by 0xE7AB2EA: ???
+==49531==    by 0x116816A2: ???
+==49531==    by 0x1161B847: ???
+==49531==    by 0x4F25054: _glfwInitEGL (egl_context.c:513)
+==49531==    by 0x4F3BD85: _glfwCreateWindowWayland (wl_window.c:2149)
+==49531==    by 0x4F234CF: glfwCreateWindow (window.c:247)
+==49531==    by 0x42AA4DA: fan::window_t@fan.window::open(fan::window_t@fan.window::properties_t const&) (window_impl.cpp:364)
+==49531==    by 0x41DC2CB: loco_open_window(loco_t@fan.graphics.loco*) (loco_impl.cpp:999)
+==49531==    by 0x41DCC77: loco_t@fan.graphics.loco::loco_t(loco_t@fan.graphics.loco::properties_t const&) (loco_impl.cpp:1103)
+==49531==    by 0x41DC8C4: loco_t@fan.graphics.loco::loco_t() (loco_impl.cpp:1081)
+==49531==    by 0x401261A: main (tests.cpp:135)
+==49531== 
+
+==49531== 152 (104 direct, 48 indirect) bytes in 1 blocks are definitely lost in loss record 7,020 of 7,974
+==49531==    at 0x4E49093: operator new(unsigned long) (vg_replace_malloc.c:487)
+==49531==    by 0x402CC30: std::__new_allocator<std::__detail::_Hash_node_base*>::allocate(unsigned long, void const*) (new_allocator.h:162)
+==49531==    by 0x41EA5F3: allocate (allocator.h:206)
+==49531==    by 0x41EA5F3: allocate (alloc_traits.h:638)
+==49531==    by 0x41EA5F3: std::__detail::_Hashtable_alloc<std::allocator<std::__detail::_Hash_node<std::pair<unsigned long const, int>, false> > >::_M_allocate_buckets(unsigned long) (hashtable_policy.h:1624)
+==49531==    by 0x41EB354: std::_Hashtable<unsigned long, std::pair<unsigned long const, int>, std::allocator<std::pair<unsigned long const, int> >, std::__detail::_Select1st, std::equal_to<unsigned long>, std::hash<unsigned long>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true> >::_M_allocate_buckets(unsigned long) (hashtable.h:413)
+==49531==    by 0x41EAD1A: std::_Hashtable<unsigned long, std::pair<unsigned long const, int>, std::allocator<std::pair<unsigned long const, int> >, std::__detail::_Select1st, std::equal_to<unsigned long>, std::hash<unsigned long>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true> >::_M_rehash(unsigned long, std::integral_constant<bool, true>) (hashtable.h:2819)
+==49531==    by 0x41EAF2D: std::_Hashtable<unsigned long, std::pair<unsigned long const, int>, std::allocator<std::pair<unsigned long const, int> >, std::__detail::_Select1st, std::equal_to<unsigned long>, std::hash<unsigned long>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true> >::_M_insert_unique_node(unsigned long, unsigned long, std::__detail::_Hash_node<std::pair<unsigned long const, int>, false>*, unsigned long) (hashtable.h:2503)
+==49531==    by 0x41F5DB7: std::pair<std::__detail::_Node_iterator<std::pair<unsigned long const, int>, false, false>, bool> std::_Hashtable<unsigned long, std::pair<unsigned long const, int>, std::allocator<std::pair<unsigned long const, int> >, std::__detail::_Select1st, std::equal_to<unsigned long>, std::hash<unsigned long>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true> >::_M_emplace_uniq<unsigned long, int&>(unsigned long&&, int&) (hashtable.h:2388)
+==49531==    by 0x41F4FFE: std::pair<std::__detail::_Node_iterator<std::pair<unsigned long const, int>, false, false>, bool> std::_Hashtable<unsigned long, std::pair<unsigned long const, int>, std::allocator<std::pair<unsigned long const, int> >, std::__detail::_Select1st, std::equal_to<unsigned long>, std::hash<unsigned long>, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<false, false, true> >::emplace<unsigned long, int&>(unsigned long&&, int&) (hashtable.h:1050)
+==49531==    by 0x41F4058: std::pair<std::__detail::_Node_iterator<std::pair<unsigned long const, int>, false, false>, bool> std::unordered_map<unsigned long, int, std::hash<unsigned long>, std::equal_to<unsigned long>, std::allocator<std::pair<unsigned long const, int> > >::emplace<unsigned long, int&>(unsigned long&&, int&) (unordered_map.h:457)
+==49531==    by 0x4363340: void fan::opengl::context_t@fan.graphics.opengl.core::shader_set_value<int>(bll_builds::shader_list_NodeReference_t@fan.graphics.common_context, std::basic_string_view<char, std::char_traits<char> >, int const&) (gl_core.ixx:218)
+==49531==    by 0x41EE8EE: void loco_t@fan.graphics.loco::shader_set_value<int>(bll_builds::shader_list_NodeReference_t@fan.graphics.common_context, std::basic_string_view<char, std::char_traits<char> >, int const&) (loco.ixx:214)
+==49531==    by 0x41D2E52: loco_t@fan.graphics.loco::opengl::blur_t::open(fan::vec2_wrap_t@fan.types.vector<float> const&, unsigned int) (blur.h:15)
+==49531==    by 0x41C461F: loco_t@fan.graphics.loco::opengl::init_framebuffer() (engine_functions.h:185)
+==49531==    by 0x41D28F7: loco_t@fan.graphics.loco::opengl::init() (engine_functions.h:992)
+==49531==    by 0x41DCD07: loco_t@fan.graphics.loco::loco_t(loco_t@fan.graphics.loco::properties_t const&) (loco_impl.cpp:1115)
+==49531==    by 0x41DC8C4: loco_t@fan.graphics.loco::loco_t() (loco_impl.cpp:1081)
+==49531==    by 0x401261A: main (tests.cpp:135)
+==49531== 
+
+==49531== 291 (104 direct, 187 indirect) bytes in 1 blocks are definitely lost in loss record 7,312 of 7,974
+==49531==    at 0x4E49093: operator new(unsigned long) (vg_replace_malloc.c:487)
+==49531==    by 0x402CC30: std::__new_allocator<std::__detail::_Hash_node_base*>::allocate(unsigned long, void const*) (new_allocator.h:162)
+==49531==    by 0x42178EF: allocate (allocator.h:206)
+==49531==    by 0x42178EF: allocate (alloc_traits.h:638)
+==49531==    by 0x42178EF: std::__detail::_Hashtable_alloc<std::allocator<std::__detail::_Hash_node<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, fan::opengl::context_t@fan.graphics.opengl.core::image_cache_entry_t>, true> > >::_M_allocate_buckets(unsigned long) (hashtable_policy.h:1624)
+==49531==    by 0x421752C: std::_Hashtable<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, fan::opengl::context_t@fan.graphics.opengl.core::image_cache_entry_t>, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, fan::opengl::context_t@fan.graphics.opengl.core::image_cache_entry_t> >, std::__detail::_Select1st, std::equal_to<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::hash<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true> >::_M_allocate_buckets(unsigned long) (hashtable.h:413)
+==49531==    by 0x4216F08: std::_Hashtable<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, fan::opengl::context_t@fan.graphics.opengl.core::image_cache_entry_t>, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, fan::opengl::context_t@fan.graphics.opengl.core::image_cache_entry_t> >, std::__detail::_Select1st, std::equal_to<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::hash<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true> >::_M_rehash(unsigned long, std::integral_constant<bool, true>) (hashtable.h:2819)
+==49531==    by 0x42157A0: std::_Hashtable<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, fan::opengl::context_t@fan.graphics.opengl.core::image_cache_entry_t>, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, fan::opengl::context_t@fan.graphics.opengl.core::image_cache_entry_t> >, std::__detail::_Select1st, std::equal_to<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::hash<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true> >::_M_insert_unique_node(unsigned long, unsigned long, std::__detail::_Hash_node<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, fan::opengl::context_t@fan.graphics.opengl.core::image_cache_entry_t>, true>*, unsigned long) (hashtable.h:2503)
+==49531==    by 0x42132A9: std::__detail::_Map_base<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, fan::opengl::context_t@fan.graphics.opengl.core::image_cache_entry_t>, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, fan::opengl::context_t@fan.graphics.opengl.core::image_cache_entry_t> >, std::__detail::_Select1st, std::equal_to<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::hash<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::__detail::_Mod_range_hashing, std::__detail::_Default_ranged_hash, std::__detail::_Prime_rehash_policy, std::__detail::_Hashtable_traits<true, false, true>, true>::operator[](std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&) (hashtable_policy.h:946)
+==49531==    by 0x4211CA0: std::unordered_map<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, fan::opengl::context_t@fan.graphics.opengl.core::image_cache_entry_t, std::hash<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::equal_to<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > >, std::allocator<std::pair<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const, fan::opengl::context_t@fan.graphics.opengl.core::image_cache_entry_t> > >::operator[](std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >&&) (unordered_map.h:1147)
+==49531==    by 0x4204EB9: fan::opengl::context_t@fan.graphics.opengl.core::image_load(fan::str_view_t@fan.types.compile_time_string, fan::opengl::context_t@fan.graphics.opengl.core::image_load_properties_t const&, std::source_location const&) (gl_core_impl.cpp:722)
+==49531==    by 0x420545B: fan::opengl::context_t@fan.graphics.opengl.core::image_load(fan::str_view_t@fan.types.compile_time_string, std::source_location const&) (gl_core_impl.cpp:747)
+==49531==    by 0x420E16F: fan::graphics::get_gl_context_functions@fan.graphics.opengl.core()::{lambda(void*, fan::str_view_t@fan.types.compile_time_string, std::source_location const&)#1}::operator()(void*, fan::str_view_t@fan.types.compile_time_string, std::source_location const&) const (gl_core_impl.cpp:1433)
+==49531==    by 0x420E1BD: fan::graphics::get_gl_context_functions@fan.graphics.opengl.core()::{lambda(void*, fan::str_view_t@fan.types.compile_time_string, std::source_location const&)#1}::_FUN(void*, fan::str_view_t@fan.types.compile_time_string, std::source_location const&) (gl_core_impl.cpp:1434)
+==49531==    by 0x41D9AD3: loco_t@fan.graphics.loco::image_load(std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > const&, std::source_location const&) (loco_impl.cpp:340)
+==49531==    by 0x41DFA2C: loco_t@fan.graphics.loco::load_engine_images() (loco_impl.cpp:2152)
+==49531==    by 0x41DCC8F: loco_t@fan.graphics.loco::loco_t(loco_t@fan.graphics.loco::properties_t const&) (loco_impl.cpp:1106)
+==49531==    by 0x41DC8C4: loco_t@fan.graphics.loco::loco_t() (loco_impl.cpp:1081)
+==49531==    by 0x401261A: main (tests.cpp:135)
+==49531== 
+
+==49531== 1,490 (184 direct, 1,306 indirect) bytes in 1 blocks are definitely lost in loss record 7,759 of 7,974
+==49531==    at 0x4E4FD13: calloc (vg_replace_malloc.c:1675)
+==49531==    by 0x8210AC3: dbus_message_new_empty_header (dbus-message.c:1263)
+==49531==    by 0x8212BBD: _dbus_message_loader_queue_messages (dbus-message.c:4713)
+==49531==    by 0x821D8AE: _dbus_transport_get_dispatch_status (dbus-transport.c:1148)
+==49531==    by 0x821DAA7: _dbus_transport_queue_messages (dbus-transport.c:1175)
+==49531==    by 0x821DE00: do_reading (dbus-transport-socket.c:912)
+==49531==    by 0x821E38C: socket_do_iteration (dbus-transport-socket.c:1225)
+==49531==    by 0x8201E92: UnknownInlinedFun (dbus-transport.c:1019)
+==49531==    by 0x8201E92: UnknownInlinedFun (dbus-transport.c:1002)
+==49531==    by 0x8201E92: _dbus_connection_do_iteration_unlocked (dbus-connection.c:1231)
+==49531==    by 0x8216B9F: UnknownInlinedFun (dbus-connection.c:2449)
+==49531==    by 0x8216B9F: dbus_pending_call_block (dbus-pending-call.c:770)
+==49531==    by 0x8203D46: dbus_connection_send_with_reply_and_block (dbus-connection.c:3591)
+==49531==    by 0x8203FED: dbus_bus_register (dbus-bus.c:698)
+==49531==    by 0x82042DA: internal_bus_get (dbus-bus.c:486)
+==49531==    by 0x12118556: ???
+==49531==    by 0x12118BF9: ???
+==49531==    by 0x12118CB9: ???
+==49531==    by 0x1217DA4C: ???
+==49531==    by 0x121763DC: ???
+==49531==    by 0x12176528: ???
+==49531==    by 0x120EACC8: ???
+==49531==    by 0x120EB0D6: ???
+==49531==    by 0x120EB306: ???
+==49531==    by 0x1210B51C: ???
+==49531==    by 0x1210B6C4: ???
+==49531==    by 0x11616F25: ???
+==49531==    by 0x1161C013: ???
+==49531==    by 0x4F25469: _glfwCreateContextEGL (egl_context.c:682)
+==49531==    by 0x4F3BD9C: _glfwCreateWindowWayland (wl_window.c:2151)
+==49531==    by 0x4F234CF: glfwCreateWindow (window.c:247)
+==49531==    by 0x42AA4DA: fan::window_t@fan.window::open(fan::window_t@fan.window::properties_t const&) (window_impl.cpp:364)
+==49531==    by 0x41DC2CB: loco_open_window(loco_t@fan.graphics.loco*) (loco_impl.cpp:999)
+==49531==    by 0x41DCC77: loco_t@fan.graphics.loco::loco_t(loco_t@fan.graphics.loco::properties_t const&) (loco_impl.cpp:1103)
+==49531==    by 0x41DC8C4: loco_t@fan.graphics.loco::loco_t() (loco_impl.cpp:1081)
+==49531==    by 0x401261A: main (tests.cpp:135)
+==49531== 
+
+==49531== 1,711 bytes in 1 blocks are definitely lost in loss record 7,781 of 7,974
+==49531==    at 0x4E488A8: malloc (vg_replace_malloc.c:446)
+==49531==    by 0xE7B1B51: ???
+==49531==    by 0xE7B24B4: ???
+==49531==    by 0xE7AB853: ???
+==49531==    by 0x11685BC8: ???
+==49531==    by 0x1162050E: ???
+==49531==    by 0xDB2F25D: ???
+==49531==    by 0x4F25016: _glfwInitEGL (egl_context.c:494)
+==49531==    by 0x4F3BD85: _glfwCreateWindowWayland (wl_window.c:2149)
+==49531==    by 0x4F234CF: glfwCreateWindow (window.c:247)
+==49531==    by 0x42AA4DA: fan::window_t@fan.window::open(fan::window_t@fan.window::properties_t const&) (window_impl.cpp:364)
+==49531==    by 0x41DC2CB: loco_open_window(loco_t@fan.graphics.loco*) (loco_impl.cpp:999)
+==49531==    by 0x41DCC77: loco_t@fan.graphics.loco::loco_t(loco_t@fan.graphics.loco::properties_t const&) (loco_impl.cpp:1103)
+==49531==    by 0x41DC8C4: loco_t@fan.graphics.loco::loco_t() (loco_impl.cpp:1081)
+==49531==    by 0x401261A: main (tests.cpp:135)
+==49531== 
+
+==49531== 1,711 bytes in 1 blocks are definitely lost in loss record 7,782 of 7,974
+==49531==    at 0x4E488A8: malloc (vg_replace_malloc.c:446)
+==49531==    by 0xE7B1B51: ???
+==49531==    by 0xE7B26F4: ???
+==49531==    by 0xE7AB2EA: ???
+==49531==    by 0x116816A2: ???
+==49531==    by 0x1161B847: ???
+==49531==    by 0x4F25054: _glfwInitEGL (egl_context.c:513)
+==49531==    by 0x4F3BD85: _glfwCreateWindowWayland (wl_window.c:2149)
+==49531==    by 0x4F234CF: glfwCreateWindow (window.c:247)
+==49531==    by 0x42AA4DA: fan::window_t@fan.window::open(fan::window_t@fan.window::properties_t const&) (window_impl.cpp:364)
+==49531==    by 0x41DC2CB: loco_open_window(loco_t@fan.graphics.loco*) (loco_impl.cpp:999)
+==49531==    by 0x41DCC77: loco_t@fan.graphics.loco::loco_t(loco_t@fan.graphics.loco::properties_t const&) (loco_impl.cpp:1103)
+==49531==    by 0x41DC8C4: loco_t@fan.graphics.loco::loco_t() (loco_impl.cpp:1081)
+==49531==    by 0x401261A: main (tests.cpp:135)
+==49531== 
+
+==49531== 2,366 (768 direct, 1,598 indirect) bytes in 1 blocks are definitely lost in loss record 7,822 of 7,974
+==49531==    at 0x4E4FF4F: realloc (vg_replace_malloc.c:1801)
+==49531==    by 0x77B276C: FcPatternObjectInsertElt (fcpat.c:498)
+==49531==    by 0x77B30DA: FcPatternObjectListAdd.isra.0 (fcpat.c:623)
+==49531==    by 0x77AA3A5: FcFontRenderPrepare (fcmatch.c:787)
+==49531==    by 0x77AAA08: FcFontSetMatch (fcmatch.c:976)
+==49531==    by 0x776D57C: UnknownInlinedFun (pangofc-fontmap.c:970)
+==49531==    by 0x776D57C: fc_thread_func (pangofc-fontmap.c:1007)
+==49531==    by 0x6B3CAD3: g_thread_proxy (gthread.c:893)
+==49531==    by 0x70ED1B8: start_thread (pthread_create.c:454)
+==49531==    by 0x7172043: clone (clone.S:100)
+==49531== 
+
+==49531== 5,398 (512 direct, 4,886 indirect) bytes in 1 blocks are definitely lost in loss record 7,896 of 7,974
+==49531==    at 0x4E4FF4F: realloc (vg_replace_malloc.c:1801)
+==49531==    by 0x77B276C: FcPatternObjectInsertElt (fcpat.c:498)
+==49531==    by 0x7792032: UnknownInlinedFun (fccfg.c:1899)
+==49531==    by 0x7792032: UnknownInlinedFun (fccfg.c:1892)
+==49531==    by 0x7792032: IA__FcConfigSubstituteWithPat.part.0 (fccfg.c:2186)
+==49531==    by 0x6502C5D: pango_cairo_fc_font_map_fontset_key_substitute (pangocairo-fcfontmap.c:106)
+==49531==    by 0x77721D4: UnknownInlinedFun (pangofc-fontmap.c:2391)
+==49531==    by 0x77721D4: UnknownInlinedFun (pangofc-fontmap.c:2471)
+==49531==    by 0x77721D4: pango_fc_font_map_load_fontset (pangofc-fontmap.c:2573)
+==49531==    by 0x65A0761: pango_context_get_metrics (pango-context.c:713)
+==49531==    by 0x5EE8C3F: UnknownInlinedFun (gtklabel.c:3671)
+==49531==    by 0x5EE8C3F: UnknownInlinedFun (gtklabel.c:3710)
+==49531==    by 0x5EE8C3F: UnknownInlinedFun (gtklabel.c:3769)
+==49531==    by 0x5EE8C3F: gtk_label_measure.lto_priv.0 (gtklabel.c:3928)
+==49531==    by 0x5E0B9D5: gtk_css_custom_gadget_get_preferred_size (gtkcsscustomgadget.c:124)
+==49531==    by 0x5E1909D: gtk_css_gadget_get_preferred_size (gtkcssgadget.c:683)
+==49531==    by 0x5EE54BA: gtk_label_get_preferred_width.lto_priv.0 (gtklabel.c:3932)
+==49531==    by 0x5FADF16: gtk_widget_query_size_for_orientation (gtksizerequest.c:181)
+==49531==    by 0x5FAEBC7: gtk_widget_get_preferred_width (gtksizerequest.c:492)
+==49531==    by 0x5DBB7ED: UnknownInlinedFun (gtkbox.c:1611)
+==49531==    by 0x5DBB7ED: gtk_box_get_content_size (gtkbox.c:2071)
+==49531==    by 0x5E0B9D5: gtk_css_custom_gadget_get_preferred_size (gtkcsscustomgadget.c:124)
+==49531==    by 0x5E1909D: gtk_css_gadget_get_preferred_size (gtkcssgadget.c:683)
+==49531==    by 0x5DB1CAA: gtk_box_get_preferred_width.lto_priv.0 (gtkbox.c:1725)
+==49531==    by 0x5FADF16: gtk_widget_query_size_for_orientation (gtksizerequest.c:181)
+==49531==    by 0x5FAEBC7: gtk_widget_get_preferred_width (gtksizerequest.c:492)
+==49531==    by 0x5EBB3F1: UnknownInlinedFun (gtkheaderbar.c:624)
+==49531==    by 0x5EBB3F1: UnknownInlinedFun (gtkheaderbar.c:613)
+==49531==    by 0x5EBB3F1: UnknownInlinedFun (gtkheaderbar.c:670)
+==49531==    by 0x5EBB3F1: gtk_header_bar_get_content_size.lto_priv.0 (gtkheaderbar.c:923)
+==49531==    by 0x5E0B9D5: gtk_css_custom_gadget_get_preferred_size (gtkcsscustomgadget.c:124)
+==49531==    by 0x5E1909D: gtk_css_gadget_get_preferred_size (gtkcssgadget.c:683)
+==49531==    by 0x5EB2461: gtk_header_bar_get_preferred_width (gtkheaderbar.c:937)
+==49531==    by 0x5FADF16: gtk_widget_query_size_for_orientation (gtksizerequest.c:181)
+==49531==    by 0x5FAEBC7: gtk_widget_get_preferred_width (gtksizerequest.c:492)
+==49531==    by 0x4E75C10: draw_title_bar (libdecor-gtk.c:1399)
+==49531==    by 0x4E77345: draw_decoration (libdecor-gtk.c:1458)
+==49531==    by 0x4E7747E: libdecor_plugin_gtk_frame_commit (libdecor-gtk.c:1522)
+==49531==    by 0xB2EB9CE: libdecor_frame_commit (libdecor.c:1169)
+==49531==    by 0x4F3B827: createLibdecorFrame (wl_window.c:819)
+==49531==    by 0x4F3BB93: UnknownInlinedFun (wl_window.c:991)
+==49531==    by 0x4F3BB93: _glfwCreateWindowWayland (wl_window.c:2171)
+==49531==    by 0x4F234CF: glfwCreateWindow (window.c:247)
+==49531==    by 0x42AA4DA: fan::window_t@fan.window::open(fan::window_t@fan.window::properties_t const&) (window_impl.cpp:364)
+==49531==    by 0x41DC2CB: loco_open_window(loco_t@fan.graphics.loco*) (loco_impl.cpp:999)
+==49531==    by 0x41DCC77: loco_t@fan.graphics.loco::loco_t(loco_t@fan.graphics.loco::properties_t const&) (loco_impl.cpp:1103)
+==49531==    by 0x41DC8C4: loco_t@fan.graphics.loco::loco_t() (loco_impl.cpp:1081)
+==49531==    by 0x401261A: main (tests.cpp:135)
+==49531== 
+
+==49531== 440,607 (195,584 direct, 245,023 indirect) bytes in 764 blocks are definitely lost in loss record 7,974 of 7,974
+==49531==    at 0x4E488A8: malloc (vg_replace_malloc.c:446)
+==49531==    by 0x77B2697: FcPatternObjectInsertElt (fcpat.c:506)
+==49531==    by 0x77B320B: FcPatternObjectAddWithBinding (fcpat.c:680)
+==49531==    by 0x77A3251: UnknownInlinedFun (fclist.c:429)
+==49531==    by 0x77A3251: FcFontSetList (fclist.c:496)
+==49531==    by 0x776D9A1: ensure_families (pangofc-fontmap.c:1932)
+==49531==    by 0x776DE30: pango_fc_font_map_get_family (pangofc-fontmap.c:2030)
+==49531==    by 0x776DEDA: pango_fc_font_map_get_face (pangofc-fontmap.c:2370)
+==49531==    by 0x77714FE: UnknownInlinedFun (pangofc-fontmap.c:2342)
+==49531==    by 0x77714FE: UnknownInlinedFun (pangofc-fontmap.c:1331)
+==49531==    by 0x77714FE: pango_fc_fontset_get_font_at (pangofc-fontmap.c:1347)
+==49531==    by 0x7771ACC: pango_fc_fontset_foreach (pangofc-fontmap.c:1470)
+==49531==    by 0x65A0784: UnknownInlinedFun (pango-context.c:609)
+==49531==    by 0x65A0784: pango_context_get_metrics (pango-context.c:714)
+==49531==    by 0x5EE8C3F: UnknownInlinedFun (gtklabel.c:3671)
+==49531==    by 0x5EE8C3F: UnknownInlinedFun (gtklabel.c:3710)
+==49531==    by 0x5EE8C3F: UnknownInlinedFun (gtklabel.c:3769)
+==49531==    by 0x5EE8C3F: gtk_label_measure.lto_priv.0 (gtklabel.c:3928)
+==49531==    by 0x5E0B9D5: gtk_css_custom_gadget_get_preferred_size (gtkcsscustomgadget.c:124)
+==49531==    by 0x5E1909D: gtk_css_gadget_get_preferred_size (gtkcssgadget.c:683)
+==49531==    by 0x5EE54BA: gtk_label_get_preferred_width.lto_priv.0 (gtklabel.c:3932)
+==49531==    by 0x5FADF16: gtk_widget_query_size_for_orientation (gtksizerequest.c:181)
+==49531==    by 0x5FAEBC7: gtk_widget_get_preferred_width (gtksizerequest.c:492)
+==49531==    by 0x5DBB7ED: UnknownInlinedFun (gtkbox.c:1611)
+==49531==    by 0x5DBB7ED: gtk_box_get_content_size (gtkbox.c:2071)
+==49531==    by 0x5E0B9D5: gtk_css_custom_gadget_get_preferred_size (gtkcsscustomgadget.c:124)
+==49531==    by 0x5E1909D: gtk_css_gadget_get_preferred_size (gtkcssgadget.c:683)
+==49531==    by 0x5DB1CAA: gtk_box_get_preferred_width.lto_priv.0 (gtkbox.c:1725)
+==49531==    by 0x5FADF16: gtk_widget_query_size_for_orientation (gtksizerequest.c:181)
+==49531==    by 0x5FAEBC7: gtk_widget_get_preferred_width (gtksizerequest.c:492)
+==49531==    by 0x5EBB3F1: UnknownInlinedFun (gtkheaderbar.c:624)
+==49531==    by 0x5EBB3F1: UnknownInlinedFun (gtkheaderbar.c:613)
+==49531==    by 0x5EBB3F1: UnknownInlinedFun (gtkheaderbar.c:670)
+==49531==    by 0x5EBB3F1: gtk_header_bar_get_content_size.lto_priv.0 (gtkheaderbar.c:923)
+==49531==    by 0x5E0B9D5: gtk_css_custom_gadget_get_preferred_size (gtkcsscustomgadget.c:124)
+==49531==    by 0x5E1909D: gtk_css_gadget_get_preferred_size (gtkcssgadget.c:683)
+==49531==    by 0x5EB2461: gtk_header_bar_get_preferred_width (gtkheaderbar.c:937)
+==49531==    by 0x5FADF16: gtk_widget_query_size_for_orientation (gtksizerequest.c:181)
+==49531==    by 0x5FAEBC7: gtk_widget_get_preferred_width (gtksizerequest.c:492)
+==49531==    by 0x4E75C10: draw_title_bar (libdecor-gtk.c:1399)
+==49531==    by 0x4E77345: draw_decoration (libdecor-gtk.c:1458)
+==49531==    by 0x4E7747E: libdecor_plugin_gtk_frame_commit (libdecor-gtk.c:1522)
+==49531==    by 0xB2EB9CE: libdecor_frame_commit (libdecor.c:1169)
+==49531==    by 0x4F3B827: createLibdecorFrame (wl_window.c:819)
+==49531==    by 0x4F3BB93: UnknownInlinedFun (wl_window.c:991)
+==49531==    by 0x4F3BB93: _glfwCreateWindowWayland (wl_window.c:2171)
+==49531==    by 0x4F234CF: glfwCreateWindow (window.c:247)
+==49531==    by 0x42AA4DA: fan::window_t@fan.window::open(fan::window_t@fan.window::properties_t const&) (window_impl.cpp:364)
+==49531==    by 0x41DC2CB: loco_open_window(loco_t@fan.graphics.loco*) (loco_impl.cpp:999)
+==49531==    by 0x41DCC77: loco_t@fan.graphics.loco::loco_t(loco_t@fan.graphics.loco::properties_t const&) (loco_impl.cpp:1103)
+==49531==    by 0x41DC8C4: loco_t@fan.graphics.loco::loco_t() (loco_impl.cpp:1081)
+==49531==    by 0x401261A: main (tests.cpp:135)
+==49531== 
+==49531== LEAK SUMMARY:
+
+==49531==    definitely lost: 201,382 bytes in 778 blocks
+==49531==    indirectly lost: 253,048 bytes in 9,948 blocks
+==49531==      possibly lost: 44,830 bytes in 69 blocks
+==49531==    still reachable: 2,872,767 bytes in 31,176 blocks
+==49531==         suppressed: 0 bytes in 0 blocks
+==49531== Reachable blocks (those to which a pointer was found) are not shown.
+==49531== To see them, rerun with: --leak-check=full --show-leak-kinds=all
+==49531== 
+==49531== For lists of detected and suppressed errors, rerun with: -s
+==49531== ERROR SUMMARY: 59 errors from 59 contexts (suppressed: 0 from 0)
