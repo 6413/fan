@@ -15,22 +15,25 @@ export module fan.graphics.fms;
 
 import std;
 
-#include <fan/types/dme.h>
-
-
 #if defined(FAN_3D)
 
 import fan.utility;
 import fan.graphics.image_load;
 import fan.print.error;
+import fan.types;
 import fan.types.matrix;
 import fan.types.vector;
 import fan.types.quaternion;
 import fan.print;
+import fan.math;
 import fan.graphics;
 
-import fan.graphics.gui.types;
-import fan.graphics.gui.base;
+#if defined(FAN_GUI)
+  import fan.graphics.gui.types;
+  import fan.graphics.gui.base;
+#endif
+
+#include <fan/types/dme.h>
 
 
 export namespace fan {
@@ -178,7 +181,7 @@ export namespace fan {
         for (unsigned int i = 0; i < node->mNumMeshes; i++) {
           aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
 
-          fan::vec3 mesh_min(FLT_MAX), mesh_max(-FLT_MAX);
+          fan::vec3 mesh_min(std::numeric_limits<f32_t>::max()), mesh_max(-std::numeric_limits<f32_t>::max());
 
           mesh_t m = process_mesh(mesh, global, mesh_min, mesh_max);
 
@@ -328,8 +331,8 @@ export namespace fan {
             std::uint32_t b = tri_idx[(e + 1) % 3];
 
             edge_key key;
-            key.a = fan::math::min(a, b);
-            key.b = fan::math::max(a, b);
+            key.a = std::min(a, b);
+            key.b = std::max(a, b);
 
             auto it = edge_map.find(key);
             if (it == edge_map.end()) {
@@ -866,8 +869,8 @@ export namespace fan {
 
         meshes.clear();
 
-        fan::vec3 global_min(FLT_MAX);
-        fan::vec3 global_max(-FLT_MAX);
+        fan::vec3 global_min(std::numeric_limits<f32_t>::max());
+        fan::vec3 global_max(-std::numeric_limits<f32_t>::max());
 
         process_node(scene->mRootNode, aiMatrix4x4(), global_min, global_max);
 
@@ -1799,7 +1802,7 @@ export namespace fan {
 
       // ---------------------gui---------------------
 
-
+#if defined(FAN_GUI)
       void print_bone_recursive(bone_t* bone, int depth = 0) {
         using namespace fan::graphics;
 
@@ -1980,6 +1983,8 @@ export namespace fan {
       bool toggle_rotate = false;
       bool showing_temp_rot = false;
       bool play_animation = false;
+
+#endif // GUI
 
       // ---------------------gui---------------------
 

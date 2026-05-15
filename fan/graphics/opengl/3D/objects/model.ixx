@@ -6,25 +6,30 @@ export module fan.graphics.opengl3D.objects.model;
 
 #else
 
+#include <fan/utility.h>
 #include <fan/graphics/gl_api.h>
 
 export module fan.graphics.opengl3D.objects.model;
 
-#include <fan/utility.h>
-
 import std;
 
-#include <fan/graphics/opengl/init.h>
-
+import fan.types;
+import fan.types.vector;
+import fan.types.matrix;
 import fan.time;
 import fan.print.error;
 import fan.print;
 import fan.graphics.common_context;
 import fan.graphics.image_load;
 import fan.graphics.fms;
-import fan.graphics.gui.base;
+#if defined(FAN_GUI)
+  import fan.graphics.gui.base;
+#endif
 import fan.graphics.opengl.core;
 import fan.graphics.loco;
+
+#include <fan/graphics/opengl/init.h>
+
 
 namespace fan {
   namespace model {
@@ -172,7 +177,7 @@ export namespace fan {
         fan::graphics::get_gl_context().set_depth_test(true);
         fan_opengl_call(glDisable(GL_BLEND));
         for (int mesh_index = 0; mesh_index < meshes.size(); ++mesh_index) {
-          fan::opengl::context_t::shader_t shader = fan::graphics::shader_get(m_shader).gl;
+          fan::opengl::context_t::shader_t shader = gloco()->shader_get(m_shader).gl;
           {
             auto location = fan_opengl_call(
               glGetUniformLocation(
@@ -238,7 +243,7 @@ export namespace fan {
         f32_t cursor_pos_x = 64 + style.ItemSpacing.x;
 
         for (auto& i : fan::model::cached_images) {
-          ImVec2 imageSize(64, 64);
+          fan::vec2 imageSize(64, 64);
           fan::graphics::gui::image(i.second, imageSize);
 
           if (cursor_pos_x + imageSize.x > gui::get_content_region_avail().x) {

@@ -731,9 +731,4 @@ namespace fan {
 export namespace fan::graphics {
   using engine_t = loco_t;
   void shader_set_camera(fan::graphics::shader_t nr, fan::graphics::camera_t camera_nr);
-
-  template <typename T>
-  void shader_set_value(fan::graphics::shader_nr_t nr, const std::string_view name, const T& val) {
-    gloco()->shader_set_value<T>(nr, name, val);
-  }
 }
