@@ -500,6 +500,8 @@ export namespace fan {
     constexpr ray3_t(const fan::vec3& origin_, fan::vec3& direction_) : origin(origin_), direction(direction_){}
   };
 
+  struct triangle_t { fan::vec3 v0, v1, v2; };
+
 #undef fan_coordinate_letters0
 #undef fan_coordinate_letters1
 #undef fan_coordinate_letters2

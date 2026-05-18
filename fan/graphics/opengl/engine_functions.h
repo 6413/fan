@@ -107,8 +107,8 @@ void init_framebuffer() {
   static auto load_texture = [&](fan::image::info_t& image_info, fan::graphics::image_t& color_buffer, GLenum attachment, bool reload = false) {
     fan::graphics::image_load_properties_t load_properties;
     load_properties.visual_output = fan::graphics::image_sampler_address_mode_e::repeat;
-    load_properties.internal_format = fan::graphics::image_format_e::r8b8g8a8_unorm;
-    load_properties.format = fan::graphics::image_format_e::r8b8g8a8_unorm;
+    load_properties.internal_format = fan::graphics::image_format_e::rgba;
+    load_properties.format = fan::graphics::image_format_e::rgba;
     load_properties.type = fan::graphics::fan_float;
     load_properties.min_filter = fan::graphics::image_filter_e::linear;
     load_properties.mag_filter = fan::graphics::image_filter_e::linear;

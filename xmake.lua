@@ -183,8 +183,7 @@ local module_files = {
   "fan/time.ixx", "fan/mpl.ixx", "fan/utility.ixx", "fan/formatter.ixx",
   "fan/print_error.ixx", "fan/print.ixx", "fan/random.ixx", "fan/log_dispatcher.ixx",
   "fan/process.ixx", "fan/io/io_types.ixx", "fan/io/directory.ixx", "fan/io/file.ixx",
-  "fan/physics/collision/rectangle.ixx", "fan/physics/collision/triangle.ixx",
-  "fan/physics/collision/circle.ixx", "fan/physics/physics_types.ixx",
+  "fan/math/intersection.ixx", "fan/physics/physics_types.ixx",
   "fan/graphics/common_types.ixx", "fan/graphics/camera.ixx", "fan/graphics/image_load.ixx",
   "fan/graphics/webp.ixx", "fan/graphics/stb.ixx", "fan/graphics/common_context.ixx",
   "fan/graphics/opengl/gl_core.ixx", "fan/graphics/opengl/uniform_block.ixx",
@@ -198,8 +197,8 @@ local module_files = {
   "fan/audio/audio.ixx", "fan/event/event_types.ixx", "fan/event/event.ixx",
   "fan/noise.ixx", "fan/graphics/gameplay/gameplay_types.ixx",
   "fan/graphics/gameplay/gameplay.ixx", "fan/crypto.ixx", "fan/graphics/gui/console.ixx",
-  "fan/graphics/stb_raw.ixx", "fan/graphics/webp_raw.ixx", "fan/event/uv_raw.ixx",
-  "fan/graphics/gui/tilemap_editor/loader.ixx", "fan/graphics/gui/tilemap_editor/renderer0.ixx"
+  "fan/event/uv_raw.ixx", "fan/graphics/gui/tilemap_editor/loader.ixx", 
+  "fan/graphics/gui/tilemap_editor/renderer0.ixx"
 }
 
 if has_config("FAN_WAYLAND_SCREEN") then table.insert(module_files, "fan/video/screen_codec.ixx") end

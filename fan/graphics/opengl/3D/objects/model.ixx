@@ -37,67 +37,72 @@ namespace fan {
   }
 }
 
+using namespace fan::opengl;
+
 export namespace fan {
   namespace graphics {
-    using namespace opengl;
+    std::vector<fan::model::mesh_t> load_meshes(const fan::model::fms_t::properties_t& p) {
+      fan::model::fms_t fms(p);
+      std::vector<fan::model::mesh_t> meshes = std::move(fms.meshes);
+      for (auto& mesh : meshes) {
+        for (const std::string& name : mesh.texture_names) {
+          if (name.empty()) {
+            continue;
+          }
+          auto found = fan::model::cached_images.find(name);
+          if (found != fan::model::cached_images.end()) {
+            continue;
+          }
+          fan::image::info_t ii;
+          auto& td = fan::model::cached_texture_data[name];
+          ii.data = td.data.data();
+          ii.size = td.size;
+          ii.channels = td.channels;
+          static constexpr std::uint32_t gl_formats[] = {
+            0,
+            fan::graphics::image_format_e::r8_unorm,
+            0,
+            fan::graphics::image_format_e::rg8_unorm,
+            fan::graphics::image_format_e::rgba_unorm
+          };
+          if (ii.channels < std::size(gl_formats) && gl_formats[ii.channels]) {
+            fan::graphics::image_load_properties_t ilp;
+            ilp.format = ilp.internal_format = gl_formats[ii.channels];
+            fan::model::cached_images[name] = fan::graphics::image_load(ii, ilp);
+          } else if (ii.data == nullptr) {
+            continue;
+          } else {
+            fan::print_impl("unimplemented channel", ii.channels);
+            fan::model::cached_images[name] = fan::graphics::get_default_texture();
+          }
+        }
+      }
+      return meshes;
+    }
+
     struct model_t : fan::model::fms_t{
       struct properties_t : fan::model::fms_t::properties_t {
         fan::graphics::camera_t camera = fan::graphics::get_perspective_render_view().camera;
         fan::graphics::viewport_t viewport = fan::graphics::get_perspective_render_view().viewport;
       };
+
       model_t(const properties_t& p) : fms_t(p) {
         camera_nr = p.camera;
         viewport_nr = p.viewport;
+        meshes = load_meshes(p);
         std::string vs = fan::graphics::read_shader(fan::shader_paths::gl::model3d_vs);
         std::string fs = fan::graphics::read_shader(fan::shader_paths::gl::model3d_fs);
         m_shader = fan::graphics::shader_create();
         fan::graphics::shader_set_vertex(m_shader, fan::shader_paths::gl::model3d_vs, vs);
         fan::graphics::shader_set_fragment(m_shader, fan::shader_paths::gl::model3d_fs, fs);
         fan::graphics::shader_compile(m_shader);
-        
-        // load textures
-        int mesh_index = 0;
-        for (fan::model::mesh_t& mesh : meshes) {
-          for (const std::string& name : mesh.texture_names) {
-            if (name.empty()) {
-              continue;
-            }
-            auto found = fan::model::cached_images.find(name);
-            if (found != fan::model::cached_images.end()) { // check if texture has already been loaded for this cahce
-             continue;
-            }
-            fan::image::info_t ii;
-            auto& td = fan::model::cached_texture_data[name];
-            ii.data = td.data.data();
-            ii.size = td.size;
-            ii.channels = td.channels;
-            fan::graphics::image_load_properties_t ilp;
-            // other implementations i saw, only used these channels
-            constexpr std::uint32_t gl_formats[] = {
-              0,                      // index 0 unused
-              fan::graphics::image_format_e::r8_unorm,    // index 1 for 1 channel
-              0,                      // index 2 unused
-              fan::graphics::image_format_e::rg8_unorm,    // index 3 for 3 channels
-              fan::graphics::image_format_e::rgba_unorm    // index 4 for 4 channels
-            };
-            if (ii.channels < std::size(gl_formats) && gl_formats[ii.channels]) {
-              ilp.format = ilp.internal_format = gl_formats[ii.channels];
-              fan::model::cached_images[name] = fan::graphics::image_load(ii, ilp); // insert new texture, since old doesnt exist
-            }
-            else if (ii.data == nullptr) {
-              continue;
-            }
-            else {
-              fan::print_impl("unimplemented channel", ii.channels);
-              fan::model::cached_images[name] = fan::graphics::get_default_texture(); // insert default (missing) texture, since old doesnt exist
-            }
-          }
-          setup_mesh_buffers(mesh, mesh_index);
-          mesh.vertices.clear();
-          mesh.indices.clear();
-          ++mesh_index;
+        for (int i = 0; i < meshes.size(); ++i) {
+          setup_mesh_buffers(meshes[i], i);
+          meshes[i].vertices.clear();
+          meshes[i].indices.clear();
         }
       }
+
       void setup_mesh_buffers(fan::model::mesh_t& mesh, int mesh_index) {
         if (gl_datas.size() <= mesh_index) {
           gl_datas.resize(mesh_index + 1);

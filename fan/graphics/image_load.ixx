@@ -32,6 +32,9 @@ export namespace fan {
 
     bool valid(const std::string& path, const std::source_location& callers_path = std::source_location::current());
     bool load(fan::str_view_t path, info_t* image_info, const std::source_location& callers_path = std::source_location::current());
+    bool write(fan::str_view_t path, const info_t& image_info, f32_t quality = 80.f);
+    bool write(fan::str_view_t path, void* data, fan::vec2i size, int channels, f32_t quality = 80.f);
+    bool write(fan::str_view_t path, std::span<const std::uint8_t> data, fan::vec2i size, int channels, f32_t quality = 80.f);
     void free(info_t* image_info);
     
     void convert_channels(const std::uint8_t* src, std::uint8_t* dst, std::size_t pixels, int src_channels, int dst_channels, std::uint8_t default_alpha = 255);
