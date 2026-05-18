@@ -171,6 +171,18 @@ export namespace fan {
     constexpr void set_argb(std::uint32_t color_) { unpack_color(color_, a, r, g, b); }
     constexpr void set_bgra(std::uint32_t color_) { unpack_color(color_, b, g, r, a); }
 
+    constexpr std::uint16_t get_rgb565() const {
+      std::uint32_t r = std::uint32_t(color::clamp(r, 0.f, 1.f) * 31.f + 0.5f);
+      std::uint32_t g = std::uint32_t(color::clamp(g, 0.f, 1.f) * 63.f + 0.5f);
+      std::uint32_t b = std::uint32_t(color::clamp(b, 0.f, 1.f) * 31.f + 0.5f);
+      return std::uint16_t((r << 11) | (g << 5) | b);
+    }
+    constexpr void set_rgb565(std::uint16_t v) {
+      r = ((v >> 11) & 0x1F) / 31.f;
+      g = ((v >> 5) & 0x3F) / 63.f;
+      b = (v & 0x1F) / 31.f;
+      a = 1.0f;
+    }
     static constexpr fan::color from_rgba(std::uint32_t color_) {
       fan::color c;
       c.set_rgba(color_);
@@ -198,6 +210,13 @@ export namespace fan {
       c.set_rgba(rgba_color);
       return c;
     }
+
+    static constexpr fan::color from_rgb565(std::uint16_t v) {
+      fan::color c;
+      c.set_rgb565(v);
+      return c;
+    }
+
 
     static inline f32_t srgb_to_linear_channel(f32_t c) {
       if (c <= 0.04045f) {
@@ -366,6 +385,13 @@ export namespace fan {
     f32_t r = 0, g = 0, b = 0, a = 1;
   };
 
+  constexpr uint16_t pack_rgb565(const fan::vec3& color) {
+    fan::vec3 c = color.clamp(0.f, 1.f);
+    uint32_t r = uint32_t(c.x * 31.f + 0.5f);
+    uint32_t g = uint32_t(c.y * 63.f + 0.5f);
+    uint32_t b = uint32_t(c.z * 31.f + 0.5f);
+    return uint16_t((r << 11) | (g << 5) | b);
+  }
   
   constexpr std::uint32_t _fan_check_24bit(unsigned long long v) {
     if (v > 0xFFFFFF) fan::throw_error_impl("literal must be 24-bit (0xRRGGBB)");

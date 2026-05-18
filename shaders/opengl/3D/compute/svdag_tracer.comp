@@ -1,25 +1,33 @@
 #version 430 core
-layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
 layout(rgba8, binding = 0) uniform writeonly image2D u_output_image;
-layout(std430, binding = 1) readonly buffer SVDAGPool { uint u_nodes[]; };
+layout(std430, binding = 1) readonly buffer SVDAGNodes { uint u_nodes[]; };
+layout(std430, binding = 2) readonly buffer SVDAGPtrs  { uint u_ptrs[];  };
 
-uniform mat4 u_inv_view_proj;
-uniform vec3 u_cam_pos;
-uniform vec2 u_resolution;
+uniform mat4  u_inv_view_proj;
+uniform vec3  u_cam_pos;
+uniform vec2  u_resolution;
 uniform float u_voxel_scale;
-uniform int u_voxel_res;
-uniform vec3 u_sun_dir;
-uniform int u_max_loop_guard;
-
-const bool draw_voxel_outline = false;
+uniform int   u_voxel_res;
+uniform vec3  u_sun_dir;
+uniform int   u_max_depth;
 
 struct Ray { vec3 o, d, inv_d; };
 
 bool intersect_aabb(Ray r, vec3 bmin, vec3 bmax, out float tmin, out float tmax) {
-  vec3 t1 = (bmin - r.o) * r.inv_d, t2 = (bmax - r.o) * r.inv_d, lo = min(t1, t2), hi = max(t1, t2);
-  tmin = max(max(lo.x, lo.y), lo.z); tmax = min(min(hi.x, hi.y), hi.z);
+  vec3 t1 = (bmin - r.o) * r.inv_d, t2 = (bmax - r.o) * r.inv_d;
+  vec3 lo = min(t1, t2), hi = max(t1, t2);
+  tmin = max(max(lo.x, lo.y), lo.z);
+  tmax = min(min(hi.x, hi.y), hi.z);
   return tmin <= tmax && tmax > 0.0;
+}
+
+vec3 unpack_rgb565(uint hdr) {
+  uint c = hdr >> 16;
+  return vec3(float((c >> 11) & 31u) / 31.0,
+              float((c >>  5) & 63u) / 63.0,
+              float( c        & 31u) / 31.0);
 }
 
 void main() {
@@ -27,71 +35,112 @@ void main() {
   if (any(greaterThanEqual(px, ivec2(u_resolution)))) { return; }
 
   vec2 ndc = (vec2(px) + 0.5) / u_resolution * 2.0 - 1.0;
-  vec4 pn = u_inv_view_proj * vec4(ndc, 0.0, 1.0), pf = u_inv_view_proj * vec4(ndc, 1.0, 1.0);
-  float vox_s = float(u_voxel_res) / u_voxel_scale, root = float(u_voxel_res), t_min, t_max;
-  
-  Ray r = Ray(u_cam_pos * vox_s, normalize(pf.xyz / pf.w - pn.xyz / pn.w), vec3(0));
-  r.inv_d = 1.0 / mix(r.d, vec3(1e-7), lessThan(abs(r.d), vec3(1e-7)));
+  vec4 pn = u_inv_view_proj * vec4(ndc, 0.0, 1.0);
+  vec4 pf = u_inv_view_proj * vec4(ndc, 1.0, 1.0);
+
+  float vox_s = float(u_voxel_res) / u_voxel_scale;
+  float root  = float(u_voxel_res);
+
+  Ray r;
+  r.o = u_cam_pos * vox_s;
+  r.d = normalize(pf.xyz / pf.w - pn.xyz / pn.w);
+  r.inv_d = 1.0 / (sign(r.d) * max(abs(r.d), vec3(1e-9)));
 
   vec3 sky = vec3(0.08, 0.10, 0.18);
   vec4 col = vec4(sky, 1.0);
 
-  if (intersect_aabb(r, vec3(0.0), vec3(root), t_min, t_max)) {
-    uint s_ptr[32]; vec3 s_pos[32]; float s_tmax[32];
-    int sp = 0; s_ptr[0] = 0u; s_pos[0] = vec3(0.0); s_tmax[0] = t_max;
-    float t = max(t_min, 0.0);
-    
-    for (int lg = 0; sp >= 0 && t < t_max && lg < u_max_loop_guard; ++lg) {
-      uint cp = s_ptr[sp]; vec3 cpos = s_pos[sp]; float csz = root / float(1 << sp);
-      float hsz = csz * 0.5;
-      
-      float p_eps = max(1e-4, csz * 1e-4);
-      float step_eps = max(1e-3, csz * 1e-3);
-      
-      vec3 p = r.o + r.d * t + r.d * p_eps, mid = cpos + vec3(hsz);
-      
-      uint cidx = (p.x >= mid.x ? 1u : 0u) | (p.y >= mid.y ? 2u : 0u) | (p.z >= mid.z ? 4u : 0u);
-      uint hdr = u_nodes[cp], vmsk = hdr & 0xFFu, lmsk = (hdr >> 8) & 0xFFu;
-      vec3 cmin = cpos + vec3(cidx & 1u, (cidx >> 1u) & 1u, (cidx >> 2u) & 1u) * hsz, cmax = cmin + vec3(hsz);
-      
-      float st0, st1;
-      bool hit = intersect_aabb(r, cmin, cmax, st0, st1);
-      if (hit && (vmsk & (1u << cidx)) != 0u) {
-        float pixel_size = t * (2.0 / u_resolution.y);
-        
-        if ((lmsk & (1u << cidx)) != 0u || csz <= pixel_size) {
-          t = max(t, st0);
-          vec3 hit_pos = r.o + r.d * t, c = cmin + hsz * 0.5, q = abs(hit_pos - c) / (hsz * 0.5 + 1e-5), n = vec3(0);
-          if (q.x > q.y && q.x > q.z) { n.x = sign(hit_pos.x - c.x); }
-          else if (q.y > q.z) { n.y = sign(hit_pos.y - c.y); }
-          else { n.z = sign(hit_pos.z - c.z); }
+  float t_min, t_max;
+  if (!intersect_aabb(r, vec3(0.0), vec3(root), t_min, t_max)) {
+    imageStore(u_output_image, px, col);
+    return;
+  }
 
-          vec3 tint = mix(mix(vec3(0.55, 0.72, 1.0), vec3(0.85, 0.65, 0.45), clamp(n.y * 0.5 + 0.5, 0.0, 1.0)), vec3(0.60, 0.68, 0.75), abs(n.x) + abs(n.z));
-          vec3 amb = mix(vec3(0.06, 0.05, 0.05), vec3(0.15, 0.20, 0.30), n.y * 0.5 + 0.5);
-           
-          vec3 lit = tint * (amb + vec3(clamp(dot(n, u_sun_dir), 0.0, 1.0) * 0.85));
-          if (draw_voxel_outline) {
-            float max_coord = abs(n.x) > 0.5 ? max(q.y, q.z) : (abs(n.y) > 0.5 ? max(q.x, q.z) : max(q.x, q.y));
-            float outline = max_coord > 0.94 ? 1.0 : 0.0;
-            float ao = max_coord > 0.80 ? 0.6 : 1.0; 
-            lit *= ao;
-            lit = mix(lit, vec3(0.02), outline * 0.6);
-          }
+  float abs_eps = root * 5e-5;
 
-          lit += vec3(pow(1.0 - clamp(dot(n, -r.d), 0.0, 1.0), 4.0) * 0.25) * sky;
-          
-          float ft = clamp(t / (root * 2.5), 0.0, 1.0);
-          col = vec4(mix(lit, sky, ft * ft), 1.0);
-          break;
-        } else {
-          uint off = bitCount(vmsk & ~lmsk & ((1u << cidx) - 1u));
-          sp++; s_pos[sp] = cmin; s_ptr[sp] = u_nodes[cp + 1u + off]; s_tmax[sp] = st1;
-        }
+  // stack stores the node ptr, the node's own AABB min, and tmax of the node
+  uint  s_ptr [32];
+  vec3  s_min [32];  // node AABB min (needed to clamp p for cidx)
+  float s_tmax[32];
+
+  int sp = 0;
+  s_ptr [0] = 0u;
+  s_min [0] = vec3(0.0);
+  s_tmax[0] = t_max;
+
+  float t = max(t_min, 0.0) + abs_eps;
+  int max_iter = u_max_depth * 64;
+
+  for (int lg = 0; sp >= 0 && lg < max_iter; ++lg) {
+    uint  cp   = s_ptr[sp];
+    vec3  cpos = s_min[sp];
+    float csz  = root / float(1 << sp);
+    float hsz  = csz * 0.5;
+
+    vec3 p = r.o + r.d * t;
+    // clamp p strictly inside this node's AABB before computing child index
+    // this prevents midplane ambiguity and cross-boundary cidx after stack pop
+    p = clamp(p, cpos + abs_eps, cpos + vec3(csz) - abs_eps);
+    vec3 mid = cpos + vec3(hsz);
+
+    uint cidx = (p.x >= mid.x ? 1u : 0u)
+              | (p.y >= mid.y ? 2u : 0u)
+              | (p.z >= mid.z ? 4u : 0u);
+
+    uint hdr  = u_nodes[cp];
+    uint vmsk = hdr & 0xFFu;
+    uint lmsk = (hdr >> 8) & 0xFFu;
+
+    vec3 cmin = cpos + vec3(float(cidx & 1u), float((cidx >> 1u) & 1u), float((cidx >> 2u) & 1u)) * hsz;
+    vec3 cmax = cmin + vec3(hsz);
+
+    float st0, st1;
+    bool in_child = intersect_aabb(r, cmin, cmax, st0, st1);
+
+    if (in_child && (vmsk & (1u << cidx)) != 0u) {
+      bool is_leaf   = (lmsk & (1u << cidx)) != 0u;
+      float pixel_sz = t * (2.0 / u_resolution.y);
+
+      if (is_leaf || csz <= pixel_sz) {
+        t = max(t, st0);
+        vec3 hit = r.o + r.d * t;
+        vec3 c   = cmin + vec3(hsz * 0.5);
+        vec3 q   = abs(hit - c) / (hsz * 0.5 + 1e-5);
+        vec3 n   = vec3(0.0);
+        if (q.x > q.y && q.x > q.z)      { n.x = sign(hit.x - c.x); }
+        else if (q.y > q.z)               { n.y = sign(hit.y - c.y); }
+        else                              { n.z = sign(hit.z - c.z); }
+
+        bool has_color = (hdr >> 16) != 0u;
+        vec3 tint = has_color
+          ? unpack_rgb565(hdr)
+          : mix(mix(vec3(0.55, 0.72, 1.0), vec3(0.85, 0.65, 0.45),
+                    clamp(n.y * 0.5 + 0.5, 0.0, 1.0)),
+                vec3(0.60, 0.68, 0.75), abs(n.x) + abs(n.z));
+
+        float ndotl = max(0.0, dot(n, u_sun_dir));
+        vec3  amb   = mix(vec3(0.06, 0.05, 0.05), vec3(0.15, 0.20, 0.30), n.y * 0.5 + 0.5);
+        vec3  lit   = tint * (amb + vec3(ndotl * 0.85));
+        lit += vec3(pow(1.0 - clamp(dot(n, -r.d), 0.0, 1.0), 4.0) * 0.18) * sky;
+
+        float ft = clamp(t / (root * 2.5), 0.0, 1.0);
+        col = vec4(mix(lit, sky, ft * ft), 1.0);
+        break;
       } else {
-        t = hit ? st1 + step_eps : s_tmax[sp] + step_eps;
-        while (sp >= 0 && t >= s_tmax[sp]) { sp--; }
+        uint off = bitCount(vmsk & ~lmsk & ((1u << cidx) - 1u));
+        sp++;
+        s_min [sp] = cmin;
+        s_ptr [sp] = u_ptrs[cp] + off;
+        s_tmax[sp] = st1;
       }
+    } else {
+      // advance past this child's exit face
+      float t_next = in_child ? st1 : s_tmax[sp];
+      t = t_next + max(abs_eps, t_next * 1e-6);
+
+      // pop levels whose tmax we've passed; use strict comparison with abs_eps margin
+      while (sp >= 0 && t >= s_tmax[sp] - abs_eps * 0.5) { sp--; }
     }
   }
+
   imageStore(u_output_image, px, col);
 }
