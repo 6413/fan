@@ -99,6 +99,7 @@ export import fan.crypto;
 #endif
 
 #if defined(FAN_3D)
+  export import fan.graphics.fms;
   export import fan.graphics.opengl3D.objects.model;
   export import fan.graphics.voxel;
 #endif
