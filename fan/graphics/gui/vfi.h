@@ -164,7 +164,7 @@ struct vfi_t {
     case shape_t::always:
       return mouse_stage_e::viewport_inside;
     case shape_t::rectangle: {
-      bool in = fan_2d::collision::rectangle::point_inside_no_rotation(
+      bool in = fan::math::d2::aabb_point_inside(
         p, data->shape.rectangle->position, data->shape.rectangle->size
       );
       return in ? mouse_stage_e::viewport_inside : mouse_stage_e::outside;

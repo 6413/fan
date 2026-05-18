@@ -81,7 +81,7 @@ import fan.physics.types;
   import fan.print;
 #endif
 
-import fan.physics.collision.rectangle;
+import fan.math.intersection;
 
 #if defined(loco_cuda)
 export namespace fan {
@@ -205,6 +205,11 @@ public:
   void shader_use(fan::graphics::shader_nr_t nr);
   void shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& vertex_code);
   void shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& fragment_code);
+  void shader_set_compute(
+    fan::graphics::shader_nr_t nr,
+    const std::string_view file_path,
+    const std::string& compute_code
+  );
   bool shader_compile(fan::graphics::shader_nr_t nr);
   template <typename T>
   void shader_set_value(fan::graphics::shader_nr_t nr, const std::string_view name, const T& val) {

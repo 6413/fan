@@ -54,13 +54,14 @@ namespace fan {
 export namespace fan {
   namespace graphics {
     struct image_format_e : __dme_inherit(image_format_e) {
-      __dme(r8b8g8a8_unorm);
-      __dme(b8g8r8a8_unorm);
+      __dme(bgra);
       __dme(r8_unorm);
       __dme(r32_float);
       __dme(rg8_unorm);
       __dme(rgb_unorm);
       __dme(rgba_unorm);
+      __dme(rgba);
+      __dme(rgba8);
       __dme(bgr_unorm);
       __dme(r8_uint);
       __dme(r8g8b8a8_srgb);
@@ -103,7 +104,7 @@ export namespace fan {
       __dme(nearest_mipmap_linear);
       __dme(linear_mipmap_linear);
     } image_filter;
-    enum data_types {
+    enum data_type_e {
       fan_unsigned_byte,
       fan_byte,
       fan_unsigned_int,
@@ -111,8 +112,8 @@ export namespace fan {
     };
     struct image_load_properties_defaults {
       static constexpr std::uint32_t visual_output = image_sampler_address_mode_e::repeat;
-      static constexpr std::uint32_t internal_format = image_format_e::r8b8g8a8_unorm;
-      static constexpr std::uint32_t format = image_format_e::r8b8g8a8_unorm;
+      static constexpr std::uint32_t internal_format = image_format_e::rgba;
+      static constexpr std::uint32_t format = image_format_e::rgba;
       static constexpr std::uint32_t type = fan_unsigned_byte; // internal
       static constexpr std::uint32_t min_filter = image_filter_e::linear;
       static constexpr std::uint32_t mag_filter = image_filter_e::linear;
@@ -267,8 +268,8 @@ export namespace fan {
       case image_format_e::rgb_unorm:
       case image_format_e::bgr_unorm: return 3;
 
-      case image_format_e::r8b8g8a8_unorm:
-      case image_format_e::b8g8r8a8_unorm:
+      case image_format_e::rgba:
+      case image_format_e::bgra:
       case image_format_e::rgba_unorm:
       case image_format_e::r8g8b8a8_srgb: return 4;
 
@@ -472,6 +473,7 @@ export namespace fan::graphics {
 
   struct image_t : fan::graphics::image_nr_t {
     using fan::graphics::image_nr_t::image_nr_t;
+
     explicit image_t(__empty_struct st);
     image_t();
     image_t(fan::graphics::image_nr_t image);

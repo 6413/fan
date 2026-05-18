@@ -18,6 +18,7 @@ import fan.graphics.image_load;
 import fan.graphics.culling;
 import fan.random;
 import fan.io.file;
+import fan.math.intersection;
 
 #if defined(FAN_GUI)
   import fan.graphics.gui.text_logger;
@@ -2059,7 +2060,7 @@ namespace fan::graphics{
   bool shapes::shape_t::is_mouse_inside() {
     switch (get_shape_type()) {
     case shape_type_t::rectangle: {
-      return fan_2d::collision::rectangle::point_inside_no_rotation(
+      return fan::math::d2::aabb_point_inside(
         get_mouse_position(get_camera(), get_viewport()),
         get_position(),
         get_size()
@@ -2082,7 +2083,7 @@ namespace fan::graphics{
     case shape_type_t::rectangle: {
       fan::physics::aabb_t aabb = get_aabb();
       fan::physics::aabb_t aabb2 = shape.get_aabb();
-      return fan_2d::collision::rectangle::check_collision(
+      return fan::math::d2::aabb_intersects_aabb(
         aabb.min + (aabb.max - aabb.min) / 2.f,
         (aabb.max - aabb.min) / 2.f,
         aabb2.min + (aabb2.max - aabb2.min) / 2.f,
@@ -2107,7 +2108,7 @@ namespace fan::graphics{
     case shape_type_t::rectangle: {
       fan::physics::aabb_t aabb = get_aabb();
       fan::vec2 size = aabb.max - aabb.min;
-      return fan_2d::collision::rectangle::point_inside(
+      return fan::math::d2::rectangle_point_inside(
         aabb.min,
         fan::vec2(aabb.min.x + size.x, aabb.min.y),
         aabb.max,
@@ -2116,7 +2117,7 @@ namespace fan::graphics{
       );
     }
     case shape_type_t::circle: {
-      return fan_2d::collision::circle::point_inside(point, get_position(), get_radius());
+      return fan::math::d2::circle_point_inside(point, get_position(), get_radius());
     }
     }
     fan::throw_error("todo");

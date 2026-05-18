@@ -161,6 +161,19 @@ void loco_t::shader_set_fragment(fan::graphics::shader_nr_t nr, const std::strin
   context_functions.shader_set_fragment(&context, nr, file_path, fragment_code);
 }
 
+void loco_t::shader_set_compute(
+  fan::graphics::shader_nr_t nr,
+  const std::string_view file_path,
+  const std::string& compute_code
+) {
+  context_functions.shader_set_compute(
+    &context,
+    nr,
+    file_path,
+    compute_code
+  );
+}
+
 bool loco_t::shader_compile(fan::graphics::shader_nr_t nr) {
   return context_functions.shader_compile(&context, nr);
 }
@@ -201,17 +214,27 @@ void loco_t::shader_recompile_all() {
 #endif
   for_each_list(shader_list, [&](auto& list, auto nr) {
     auto& sd = list[nr];
-    if (sd.svertex.empty() || sd.sfragment.empty()) return;
+    if ((sd.svertex.empty() || sd.sfragment.empty()) && sd.scompute.empty()) return;
 
     auto read = [](const auto& path, const auto& fallback) {
       std::string src = fan::graphics::read_shader(path);
-      if (src.empty() && !fallback.empty()) {
+      if (src.empty() && !fallback.empty() && !std::string_view(path).empty()) {
         std::string spath(path);
         fan::print_warning("failed to read shader file path:" +
           (spath.empty() ? "FILE PATH NOT FOUND" : spath) + ", assigning old compiled shader.");
       }
       return src.empty() ? fallback : src;
     };
+
+    if (!sd.scompute.empty()) {
+      auto sc = read(sd.path_compute, sd.scompute);
+      if (sc == sd.scompute) return;
+      shader_set_compute(nr, sd.path_compute, sc);
+      if (!shader_compile(nr)) {
+        fan::print_warning("failed to recompile compute shader. compute shader:" + std::string(sd.path_compute));
+      }
+      return;
+    }
 
     auto sv = read(sd.path_vertex, sd.svertex);
     auto sf = read(sd.path_fragment, sd.sfragment);
@@ -571,10 +594,10 @@ void loco_t::camera_move(fan::graphics::context_camera_t& camera, f32_t movement
   }
 
   f64_t msd = movement_speed * dt;
-  if (is_key_down(fan::input::key_w)) { camera.velocity += camera.m_front * msd; }
-  if (is_key_down(fan::input::key_s)) { camera.velocity -= camera.m_front * msd; }
-  if (is_key_down(fan::input::key_a)) { camera.velocity -= camera.m_right * msd; }
-  if (is_key_down(fan::input::key_d)) { camera.velocity += camera.m_right * msd; }
+  if (is_key_down(fan::input::key_w)) { camera.velocity += camera.front * msd; }
+  if (is_key_down(fan::input::key_s)) { camera.velocity -= camera.front * msd; }
+  if (is_key_down(fan::input::key_a)) { camera.velocity -= camera.right * msd; }
+  if (is_key_down(fan::input::key_d)) { camera.velocity += camera.right * msd; }
   if (is_key_down(fan::input::key_space)) { camera.velocity.y += msd; }
   if (is_key_down(fan::input::key_left_shift)) { camera.velocity.y -= msd; }
 

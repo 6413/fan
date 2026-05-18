@@ -25,8 +25,7 @@ import fan.texture_pack.tp0;
 import fan.window;
 import fan.window.input;
 import fan.time;
-import fan.physics.collision.rectangle;
-import fan.physics.collision.circle;
+import fan.math.intersection;
 import fan.math;
 
 import fan.types.fstring;

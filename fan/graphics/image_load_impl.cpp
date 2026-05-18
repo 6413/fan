@@ -38,6 +38,27 @@ namespace fan::image {
     return ret;
   }
 
+  bool write(fan::str_view_t path, const info_t& image_info, f32_t quality) {
+    return fan::image::write(path, image_info.data, image_info.size, image_info.channels, quality);
+  }
+
+  bool write(fan::str_view_t path, void* data, fan::vec2i size, int channels, f32_t quality) {
+    std::string_view p(path.data(), path.size());
+    if (p.ends_with(".webp")) {
+      return fan::webp::write(path, data, size, channels, quality);
+    }
+#if !defined(loco_no_stb)
+    return fan::stb::write(path, data, size, channels, quality);
+#else
+    fan::print_warning("unsupported image format for writing:", path);
+    return true;
+#endif
+  }
+
+  bool write(fan::str_view_t path, std::span<const std::uint8_t> data, fan::vec2i size, int channels, f32_t quality) {
+    return fan::image::write(path, (void*)data.data(), size, channels, quality);
+  }
+
   void free(info_t* image_info) {
     if (image_info->type == image_type_e::webp) {
       fan::webp::free_image(image_info->data);

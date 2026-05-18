@@ -60,8 +60,7 @@ export import fan.event;
   export import fan.audio;
 #endif
 #if defined(FAN_PHYSICS_2D)
-  export import fan.physics.collision.rectangle;
-  export import fan.physics.collision.circle;
+  export import fan.math.intersection;
   export import fan.physics.types;
   export import fan.physics.b2_integration;
   export import fan.graphics.physics_shapes;
@@ -100,5 +99,6 @@ export import fan.crypto;
 #endif
 
 #if defined(FAN_3D)
+  export import fan.graphics.opengl3D.objects.model;
   export import fan.graphics.voxel;
 #endif
