@@ -1,10 +1,12 @@
 module;
-
+#include <cstdint>
+#include <cstdlib>
+#include <webp/encode.h>
+#include <webp/decode.h>
 module fan.graphics.webp;
 
 import fan.io.file;
 import fan.print;
-import fan.graphics.webp_raw;
 
 bool fan::webp::get_image_size(
   fan::str_view_t path,
@@ -17,7 +19,7 @@ bool fan::webp::get_image_size(
     &data
   );
 
-  return fan::webp_raw::get_info(
+  return ::WebPGetInfo(
     (const std::uint8_t*)data.data(),
     data.size(),
     (int*)&size->x,
@@ -30,7 +32,7 @@ bool fan::webp::decode(
   std::size_t size,
   info_t* image_info
 ) {
-  image_info->data = fan::webp_raw::decode_rgba(
+  image_info->data = ::WebPDecodeRGBA(
     webp_data,
     size,
     &image_info->size.x,
@@ -69,13 +71,32 @@ bool fan::webp::load(
   return false;
 }
 
+bool fan::webp::write(fan::str_view_t path, const info_t& image_info, f32_t quality) {
+  return fan::webp::write(path, image_info.data, image_info.size, image_info.channels, quality);
+}
+
+bool fan::webp::write(fan::str_view_t path, void* data, fan::vec2i size, int channels, f32_t quality) {
+  std::uint8_t* out = nullptr;
+  std::size_t out_size = ::WebPEncodeRGBA((const std::uint8_t*)data, size.x, size.y, size.x * channels, quality, &out);
+  if (!out_size) {
+    return true;
+  }
+  bool ret = fan::io::file::write(std::string(path.data(), path.size()), std::string((char*)out, out_size), 0);
+  ::WebPFree(out);
+  return ret;
+}
+
+bool fan::webp::write(fan::str_view_t path, std::span<const std::uint8_t> data, fan::vec2i size, int channels, f32_t quality) {
+  return fan::webp::write(path, (void*)data.data(), size, channels, quality);
+}
+
 std::size_t fan::webp::encode_rgba(
   const std::uint8_t* in,
   const fan::vec2& size,
   f32_t quality,
   std::uint8_t** out
 ) {
-  return fan::webp_raw::encode_rgba(
+  return ::WebPEncodeRGBA(
     in,
     size.x,
     size.y,
@@ -90,7 +111,7 @@ std::size_t fan::webp::encode_lossless_rgba(
   const fan::vec2& size,
   std::uint8_t** out
 ) {
-  return fan::webp_raw::encode_lossless_rgba(
+  return ::WebPEncodeLosslessRGBA(
     in,
     size.x,
     size.y,
@@ -100,7 +121,7 @@ std::size_t fan::webp::encode_lossless_rgba(
 }
 
 void fan::webp::free_image(void* ptr) {
-  fan::webp_raw::free_image(ptr);
+  ::WebPFree(ptr);
 }
 
 bool fan::webp::validate(
@@ -121,7 +142,7 @@ bool fan::webp::validate(
   int width = 0;
   int height = 0;
 
-  return fan::webp_raw::get_info(
+  return ::WebPGetInfo(
     (const std::uint8_t*)data.c_str(),
     webp_header_size,
     &width,

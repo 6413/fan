@@ -138,6 +138,7 @@ namespace fan::graphics {
     ctx()->image_reload_path_props(ctx(), *this, path, lp, callers_path);
   }
   void image_t::unload() {
+    if (iic()) return;
     ctx()->image_unload(ctx(), *this);
     sic();
   }

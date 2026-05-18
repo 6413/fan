@@ -31,11 +31,11 @@ export namespace fan {
     static constexpr f32_t jump_force = 100;
     static constexpr fan::vec3 world_up = fan::vec3(0, 1, 0);
 
-    f32_t m_yaw = 0;
-    f32_t m_pitch = 0;
-    fan::vec3 m_right;
-    fan::vec3 m_up;
-    fan::vec3 m_front;
+    f32_t yaw = 0;
+    f32_t pitch = 0;
+    fan::vec3 right;
+    fan::vec3 up;
+    fan::vec3 front;
     fan::vec3 position = 0;
     fan::vec3 velocity = 0;
   };

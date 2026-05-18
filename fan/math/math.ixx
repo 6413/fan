@@ -39,37 +39,38 @@ export namespace fan {
 
 export namespace fan {
   namespace math {
-
-    template<typename T>
-    const T& min(const T& a, const T& b) {
-      return (b < a) ? b : a;
+    template<typename T, typename... Ts>
+    constexpr T min(T a, Ts... args) {
+      ((a = args < a ? args : a), ...);
+      return a;
     }
-    template<typename T> 
-    const T& max(const T& a, const T& b) {
-      return (a < b) ? b : a;
+    template<typename T, typename... Ts>
+    constexpr T max(T a, Ts... args) {
+      ((a = a < args ? args : a), ...);
+      return a;
     }
 
     template <typename T>
-    T lerp(T src, T dst, double t) {
+    constexpr T lerp(T src, T dst, double t) {
       return T{ (T)(src + (dst - src) * t) };
     }
 
     template <typename T>
     requires (std::is_arithmetic_v<T>)
-    T normalize(T val, T min, T max) {
+    constexpr T normalize(T val, T min, T max) {
       return (val - min) / (max - min);
     }
 
     double sigmoid(double x) {
       return 1.0 / (1 + std::exp(-x));
     }
-    constexpr double sigmoid_derivative(double x) {
+    constexpr constexpr double sigmoid_derivative(double x) {
       return x * (1 - x);
     }
 
     template <typename T>
     T tanh_activation(T x) {
-      return tanh(x);
+      return std::tanh(x);
     }
     template <typename T>
     T tanh_derivative(T x) {

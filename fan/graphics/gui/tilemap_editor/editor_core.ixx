@@ -25,7 +25,7 @@ import fan.io.file;
 import fan.graphics;
 import fan.random;
 import fan.physics.b2_integration;
-import fan.physics.collision.rectangle;
+import fan.math.intersection;
 import fan.graphics.physics_shapes;
 import fan.graphics.shapes;
 import fan.graphics.algorithm.raycast_grid;
@@ -256,7 +256,7 @@ export struct fte_t {
     auto camera_position = fan::graphics::camera_get_position(render_view->camera);
     fan::vec2 p = fan::graphics::translate_position(window_relative_position, render_view->viewport, render_view->camera) + camera_position;
     *in = ((p + tile_size) / (tile_size * 2)).floor() * (tile_size * 2);
-    return fan_2d::collision::rectangle::point_inside_no_rotation(*in - map_size * tile_size / 2, map_size / 2 * tile_size - tile_size, map_size * tile_size);
+    return fan::math::d2::aabb_point_inside(*in - map_size * tile_size / 2, map_size / 2 * tile_size - tile_size, map_size * tile_size);
   }
 
   void convert_draw_to_grid(fan::vec2i& p) {}
@@ -660,7 +660,7 @@ export struct fte_t {
     auto found_marks = spawn_marks.find(brush.depth);
     if (found_marks != spawn_marks.end()) {
       for (auto it = found_marks->second.begin(); it != found_marks->second.end(); ++it) {
-        if (fan_2d::collision::rectangle::point_inside_no_rotation(position, it->position, it->size)) {
+        if (fan::math::d2::aabb_point_inside(position, it->position, it->size)) {
           auto visual_found = visual_shapes.find(it->position);
           if (visual_found != visual_shapes.end()) {
             visual_shapes.erase(visual_found);
@@ -675,7 +675,7 @@ export struct fte_t {
     auto found = physics_shapes.find(brush.depth);
     if (found != physics_shapes.end()) {
       for (auto it = found->second.begin(); it != found->second.end(); ++it) {
-        if (fan_2d::collision::rectangle::point_inside_no_rotation(position, it->visual.get_position(), it->visual.get_size())) {
+        if (fan::math::d2::aabb_point_inside(position, it->visual.get_position(), it->visual.get_size())) {
           found->second.erase(it);
           return false;
         }
@@ -809,7 +809,7 @@ export struct fte_t {
 
     for (auto& depth_pair : spawn_marks) {
       for (auto& mark : depth_pair.second) {
-        if (fan_2d::collision::rectangle::point_inside_no_rotation(position, mark.position, mark.size)) {
+        if (fan::math::d2::aabb_point_inside(position, mark.position, mark.size)) {
           current_image_indices.clear();
           current_tile_images.clear();
           apply_brush_settings(mark.id, mark.position.z, mark.size, mark.color);
@@ -824,7 +824,7 @@ export struct fte_t {
 
     for (auto& depth_pair : physics_shapes) {
       for (auto& physics_shape : depth_pair.second) {
-        if (fan_2d::collision::rectangle::point_inside_no_rotation(position, physics_shape.visual.get_position(), physics_shape.visual.get_size())) {
+        if (fan::math::d2::aabb_point_inside(position, physics_shape.visual.get_position(), physics_shape.visual.get_size())) {
           current_image_indices.clear();
           current_tile_images.clear();
           auto& visual = physics_shape.visual;

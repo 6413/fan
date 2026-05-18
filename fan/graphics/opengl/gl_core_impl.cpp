@@ -267,7 +267,7 @@ namespace fan::opengl {
         fan_opengl_call(glGetShaderInfoLog(shader, buffer_size, &test, buffer.data()));
       }
       std::string fpath = std::string(file_path);
-      fan::print_impl("failed to compile: " + type, buffer, "file_path:", fpath.empty() ? "PATH FILE NOT FOUND" : fpath);
+      fan::print_error("failed to compile: " + type, buffer, "file_path:", fpath.empty() ? "PATH FILE NOT FOUND" : fpath);
       return false;
     }
     return true;
@@ -355,7 +355,7 @@ namespace fan::opengl {
 
       std::string fpath = std::string(file_path);
 
-      fan::print_impl(
+      fan::print_error(
         "failed to compile/link:",
         type,
         "but no error log was provided by OpenGL",
@@ -396,7 +396,7 @@ namespace fan::opengl {
 
     std::string fpath = std::string(file_path);
 
-    fan::print_impl(
+    fan::print_error(
       "failed to compile/link:",
       type,
       buffer,
@@ -862,6 +862,23 @@ namespace fan::opengl {
     return image_create(image_info.data, image_info.size, p);
   }
 
+  void context_t::blit_image_to_screen(fan::graphics::image_nr_t nr, fan::vec2i size) {
+    GLuint fbo = 0;
+    fan_opengl_call(glGenFramebuffers(1, &fbo));
+    fan_opengl_call(glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo));
+    fan_opengl_call(glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, image_get_handle(nr), 0));
+    
+    fan_opengl_call(glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0));
+    fan_opengl_call(glBlitFramebuffer(
+      0, 0, size.x, size.y,
+      0, 0, size.x, size.y,
+      GL_COLOR_BUFFER_BIT, GL_NEAREST
+    ));
+    
+    fan_opengl_call(glBindFramebuffer(GL_READ_FRAMEBUFFER, 0));
+    fan_opengl_call(glDeleteFramebuffers(1, &fbo));
+  }
+
   fan::graphics::image_nr_t context_t::create_missing_texture() {
     fan::opengl::context_t::image_load_properties_t p;
     p.visual_output = GL_REPEAT;
@@ -1130,29 +1147,30 @@ namespace fan::opengl {
   }
   bool context_t::viewport_inside(fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
     auto& viewport = viewport_get(nr);
-    return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport.position + viewport.size / 2, viewport.size / 2);
+    return fan::math::d2::aabb_point_inside(position, viewport.position + viewport.size / 2, viewport.size / 2);
   }
   bool context_t::viewport_inside_wir(fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
     auto& viewport = viewport_get(nr);
-    return fan_2d::collision::rectangle::point_inside_no_rotation(position, viewport.size / 2, viewport.size / 2);
+    return fan::math::d2::aabb_point_inside(position, viewport.size / 2, viewport.size / 2);
   }
 
   std::uint32_t context_t::global_to_opengl_format(std::uintptr_t format) {
   #if defined(__wasm__)
     // WebGL/GLES does not support BGRA or BGR natively
-    if (format == fan::graphics::image_format_e::b8g8r8a8_unorm) return GL_RGBA;
+    if (format == fan::graphics::image_format_e::brra) return GL_RGBA;
     if (format == fan::graphics::image_format_e::bgr_unorm) return GL_RGB;
   #else
-    if (format == fan::graphics::image_format_e::b8g8r8a8_unorm) return GL_BGRA;
+    if (format == fan::graphics::image_format_e::bgra) return GL_BGRA;
     if (format == fan::graphics::image_format_e::bgr_unorm) return GL_BGR;
   #endif
 
-    if (format == fan::graphics::image_format_e::r8b8g8a8_unorm) return GL_RGBA;
+    if (format == fan::graphics::image_format_e::rgba) return GL_RGBA;
     if (format == fan::graphics::image_format_e::r8_unorm) return GL_RED;
     if (format == fan::graphics::image_format_e::r32_float) return GL_R32F;
     if (format == fan::graphics::image_format_e::rg8_unorm) return GL_RG;
     if (format == fan::graphics::image_format_e::rgb_unorm) return GL_RGB;
     if (format == fan::graphics::image_format_e::rgba_unorm) return GL_RGBA;
+    if (format == fan::graphics::image_format_e::rgba8) return GL_RGBA8;
     if (format == fan::graphics::image_format_e::r8_uint) return GL_RED_INTEGER;
     if (format == fan::graphics::image_format_e::r8g8b8a8_srgb) return GL_SRGB8_ALPHA8;
     if (format == fan::graphics::image_format_e::r11f_g11f_b10f) return GL_R11F_G11F_B10F;
@@ -1214,10 +1232,11 @@ namespace fan::opengl {
 
   std::uint32_t context_t::opengl_to_global_format(std::uintptr_t format) {
   #if !defined(__wasm__)
-    if (format == GL_BGRA) return fan::graphics::image_format_e::b8g8r8a8_unorm;
+    if (format == GL_BGRA) return fan::graphics::image_format_e::bgra;
     if (format == GL_BGR) return fan::graphics::image_format_e::bgr_unorm;
   #endif
-    if (format == GL_RGBA) return fan::graphics::image_format_e::r8b8g8a8_unorm;
+    if (format == GL_RGBA) return fan::graphics::image_format_e::rgba;
+    if (format == GL_RGBA8) return fan::graphics::image_format_e::rgba8;
     if (format == GL_RED) return fan::graphics::image_format_e::r8_unorm;
     if (format == GL_R32F) return fan::graphics::image_format_e::r32_float;
     if (format == GL_RG) return fan::graphics::image_format_e::rg8_unorm;

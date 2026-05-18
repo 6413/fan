@@ -10,7 +10,7 @@ import std;
 
 #if defined(FAN_OPENGL)
 
-import fan.physics.collision.rectangle;
+import fan.math.intersection;
 
 import fan.types;
 import fan.types.matrix;
@@ -490,6 +490,8 @@ export namespace fan::opengl {
     fan::graphics::image_nr_t image_create(const fan::color& color);
     fan::graphics::image_nr_t image_create(void* data, const fan::vec2ui& size, const fan::opengl::context_t::image_load_properties_t& p);
 
+    void blit_image_to_screen(fan::graphics::image_nr_t nr, fan::vec2i size);
+
     //-----------------------------image-----------------------------
     //-----------------------------image-----------------------------
     //-----------------------------image-----------------------------
@@ -659,7 +661,7 @@ export namespace fan::opengl::core {
 
     GLuint m_buffer = 0;
     GLenum m_target = 0;
-    std::uint32_t m_usage = GL_DYNAMIC_DRAW;
+    std::uint32_t m_usage = GL_STATIC_DRAW;
   };
 
   struct framebuffer_t {

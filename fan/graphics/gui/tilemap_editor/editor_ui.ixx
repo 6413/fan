@@ -23,7 +23,7 @@ import fan.math;
 import fan.file_dialog;
 import fan.print.error;
 import fan.graphics.algorithm.raycast_grid;
-import fan.physics.collision.rectangle;
+import fan.math.intersection;
 import fan.physics.b2_integration;
 import fan.io.file;
 
@@ -462,7 +462,7 @@ namespace fan::graphics::gui::tilemap_editor::ui {
           draw_list->AddRect(cursor_pos_global, cursor_pos_global + sprite_size, 0xff0077ff, 0, 0, 1);
         }
 
-        if (!is_selecting && fan_2d::collision::rectangle::point_inside_no_rotation(cursor_pos_global, fan::graphics::gui::get_mouse_pos() - sprite_size / 2, sprite_size / 2)) {
+        if (!is_selecting && fan::math::d2::aabb_point_inside(cursor_pos_global, fan::graphics::gui::get_mouse_pos() - sprite_size / 2, sprite_size / 2)) {
           draw_list->AddRect(cursor_pos_global, cursor_pos_global + sprite_size, 0xff0077ff, 0, 0, 3);
         }
 

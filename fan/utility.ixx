@@ -389,11 +389,32 @@ export namespace fan {
   }
 
   struct restore_flag_t {
-    bool& flag;
-    bool prev;
     restore_flag_t(bool& f, bool val) : flag(f), prev(f) { f = val; }
     ~restore_flag_t() { flag = prev; }
+    bool& flag;
+    bool prev;
   };
+  struct restore_flag_cb_t {
+    template <typename F>
+    restore_flag_cb_t(bool flag, F&& cb)
+      : func(std::forward<F>(cb)), f(flag) {
+      func(flag);
+    }
+    ~restore_flag_cb_t() {
+      func(!f);
+    }
+
+    std::function<void(bool)> func;
+    bool f;
+  };
+
+  restore_flag_t make_restore_flag(bool& f, bool val) {
+    return {f, val};
+  }
+  template <typename F>
+  restore_flag_cb_t make_restore_flag(bool flag, F&& cb) {
+    return {flag, std::forward<F>(cb)};
+  }
 
   template<std::size_t I>
   struct num { static constexpr std::size_t value = I; };
