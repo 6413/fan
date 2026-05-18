@@ -517,7 +517,11 @@ export namespace fan {
     constexpr fan::vec2_wrap_t<T> angle_to_vector(const T& angle_radians) {
       return fan::vec2_wrap_t<T>(std::cos(angle_radians), std::sin(angle_radians));
     }
-  }
+
+    constexpr fan::vec3 centroid(const fan::vec3& v0, const fan::vec3& v1, const fan::vec3& v2) {
+      return (v0 + v1 + v2) / 3.f;
+    }
+  } // namespace math
   template <typename>
   inline constexpr bool is_vector_type_v = false;
   template <template <typename> typename V, typename T>

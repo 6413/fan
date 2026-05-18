@@ -9,101 +9,158 @@ namespace fm = fan::math;
 
 static constexpr f32_t world_size = 512.f;
 
-// for shorter usage
 #define gl (gloco()->get_context().gl)
 
 struct svdag_t {
-  struct child_t { int x, y, z; std::vector<std::size_t> tri_indices; };
+  struct build_tri_t { fan::vec3 v0, v1, v2, color; };
 
-  void build_from_mesh(const std::vector<fan::triangle_t>& tris, int res) {
-    nodes.clear();
-    if (tris.empty()) { return; }
-    std::vector<std::size_t> root_indices(tris.size());
-    std::iota(root_indices.begin(), root_indices.end(), 0);
-    build_node(tris, root_indices, 0, 0, 0, res);
-  }
-
-  std::uint32_t build_node(const std::vector<fan::triangle_t>& tris, const std::vector<std::size_t>& tri_indices, int ox, int oy, int oz, int size) {
-    std::uint32_t idx = nodes.size();
+  std::uint32_t build_node(const std::vector<build_tri_t>& tris,
+    const std::vector<std::uint32_t>& tri_idx, int ox, int oy, int oz, int size)
+  {
+    std::uint32_t node_idx = nodes.size();
     nodes.push_back(0);
+    child_ptrs.push_back(0);
+
     int hs = size / 2;
-    std::uint8_t vm = 0, lm = 0;
-    std::vector<child_t> non_leaves;
-    non_leaves.reserve(8);
-    f32_t hs_val = hs * 0.5f + 0.001f;
-    fan::vec3 hsv(hs_val, hs_val, hs_val);
+    std::uint32_t vm = 0, lm = 0;
+    std::uint16_t leaf_color = 0;
+
+    struct child_info_t { int cx, cy, cz; std::vector<std::uint32_t> tris; };
+    child_info_t children[8];
+
+    f32_t hsv = hs * 0.5f + 0.001f;
+    fan::vec3 hsv3(hsv);
+
     for (int i = 0; i < 8; ++i) {
       int cx = ox + ((i & 1) ? hs : 0), cy = oy + ((i >> 1 & 1) ? hs : 0), cz = oz + ((i >> 2 & 1) ? hs : 0);
-      std::vector<std::size_t> over;
       fan::vec3 center(cx + hs * 0.5f, cy + hs * 0.5f, cz + hs * 0.5f);
-      for (std::size_t idx : tri_indices) {
-        if (fm::d3::triangle_intersects_aabb(tris[idx].v0, tris[idx].v1, tris[idx].v2, center, hsv)) {
-          over.push_back(idx);
+      for (std::uint32_t ti : tri_idx) {
+        if (fm::d3::triangle_intersects_aabb(tris[ti].v0, tris[ti].v1, tris[ti].v2, center, hsv3)) {
+          children[i].tris.push_back(ti);
         }
       }
-      if (over.empty()) { continue; }
-      vm |= (1 << i);
-      if (hs == 1) { lm |= (1 << i); }
-      else { non_leaves.push_back({cx, cy, cz, std::move(over)}); }
-    }
-    nodes[idx] = vm | (lm << 8);
-    std::uint32_t ptr_idx = nodes.size();
-    nodes.resize(nodes.size() + non_leaves.size(), 0);
-    for (std::size_t i = 0; i < non_leaves.size(); ++i) {
-      nodes[ptr_idx + i] = build_node(tris, non_leaves[i].tri_indices, non_leaves[i].x, non_leaves[i].y, non_leaves[i].z, hs);
-    }
-    return idx;
-  }
-
-  std::uint32_t count_voxels() const { return nodes.empty() ? 0 : count_node_voxels(0); }
-
-  std::uint32_t count_node_voxels(std::uint32_t n_idx) const {
-    std::uint32_t n = nodes[n_idx], total = std::popcount((std::uint32_t)((n >> 8) & 0xFF)), ptr = n_idx + 1;
-    for (int i = 0; i < 8; ++i) {
-      if ((n & (1 << i)) && !((n >> 8) & (1 << i))) {
-        total += count_node_voxels(nodes[ptr++]);
+      if (children[i].tris.empty()) { continue; }
+      vm |= (1u << i);
+      children[i].cx = cx; children[i].cy = cy; children[i].cz = cz;
+      if (hs == 1) {
+        lm |= (1u << i);
+        if (!leaf_color) { leaf_color = fan::pack_rgb565(tris[children[i].tris[0]].color); }
       }
     }
-    return total;
+
+    nodes[node_idx] = vm | (lm << 8) | (std::uint32_t(leaf_color) << 16);
+
+    int non_leaf_count = 0;
+    for (int i = 0; i < 8; ++i) {
+      if (!children[i].tris.empty() && !(lm & (1u << i))) { ++non_leaf_count; }
+    }
+    if (!non_leaf_count) { return node_idx; }
+
+    std::uint32_t first_child = nodes.size();
+    child_ptrs[node_idx] = first_child;
+    nodes.resize(nodes.size() + non_leaf_count, 0);
+    child_ptrs.resize(child_ptrs.size() + non_leaf_count, 0);
+
+    int slot = 0;
+    for (int i = 0; i < 8; ++i) {
+      if (!children[i].tris.empty() && !(lm & (1u << i))) {
+        std::uint32_t cr = build_node(tris, children[i].tris, children[i].cx, children[i].cy, children[i].cz, hs);
+        nodes[first_child + slot] = nodes[cr];
+        child_ptrs[first_child + slot] = child_ptrs[cr];
+        ++slot;
+      }
+    }
+    return node_idx;
   }
 
-  std::vector<std::uint32_t> nodes;
+  void build_from_mesh(const std::vector<build_tri_t>& tris, int res) {
+    nodes.clear(); child_ptrs.clear();
+    if (tris.empty()) { return; }
+    nodes.reserve(1 << 20); child_ptrs.reserve(1 << 20);
+    std::vector<std::uint32_t> root_idx(tris.size());
+    std::iota(root_idx.begin(), root_idx.end(), 0);
+    build_node(tris, root_idx, 0, 0, 0, res);
+  }
+
+  bool save(const std::string& path) const {
+    std::uint32_t n = nodes.size();
+    std::string buf(4 + n * 8, '\0');
+    std::memcpy(buf.data(), &n, 4);
+    std::memcpy(buf.data() + 4, nodes.data(), n * 4);
+    std::memcpy(buf.data() + 4 + n * 4, child_ptrs.data(), n * 4);
+    return fan::io::file::write(path, buf, std::ios::binary);
+  }
+
+  bool load(const std::string& path) {
+    std::string buf;
+    if (fan::io::file::read(path, &buf) || buf.size() < 4) { return false; }
+    std::uint32_t n = 0;
+    std::memcpy(&n, buf.data(), 4);
+    if (buf.size() < 4 + n * 8) { return false; }
+    nodes.resize(n); child_ptrs.resize(n);
+    std::memcpy(nodes.data(), buf.data() + 4, n * 4);
+    std::memcpy(child_ptrs.data(), buf.data() + 4 + n * 4, n * 4);
+    return true;
+  }
+
+  std::uint32_t count_voxels() const {
+    if (nodes.empty()) { return 0; }
+    std::function<std::uint32_t(std::uint32_t)> count = [&](std::uint32_t ni) -> std::uint32_t {
+      std::uint32_t hdr = nodes[ni], vm = hdr & 0xFF, lm = (hdr >> 8) & 0xFF;
+      std::uint32_t total = std::popcount(lm), ptr = child_ptrs[ni], slot = 0;
+      for (int i = 0; i < 8; ++i) {
+        if ((vm & (1u << i)) && !(lm & (1u << i))) { total += count(ptr + slot++); }
+      }
+      return total;
+    };
+    return count(0);
+  }
+
+  std::vector<std::uint32_t> nodes, child_ptrs;
 };
 
 struct svdag_renderer_t {
-  svdag_renderer_t(const std::vector<fan::triangle_t>& geo, int current_res) : voxel_res(current_res) {
+  svdag_renderer_t(const std::vector<svdag_t::build_tri_t>& geo, int res, const std::string& cache_path)
+    : voxel_res(res)
+  {
     blit_nr = gloco()->shader_create();
     gloco()->shader_set_vertex(blit_nr, "", R"(#version 430 core
 out vec2 v_uv; void main() { v_uv = vec2((gl_VertexID<<1)&2, gl_VertexID&2); gl_Position = vec4(v_uv*2.0-1.0, 0.0, 1.0); })");
     gloco()->shader_set_fragment(blit_nr, "", R"(#version 430 core
 uniform sampler2D u_tex; in vec2 v_uv; out vec4 out_color; void main() { out_color = texture(u_tex, v_uv); })");
     gloco()->shader_compile(blit_nr);
-    
+
     std::string_view comp_path = "shaders/opengl/3D/compute/svdag_tracer.comp";
     std::string comp_src; fan::io::file::read(comp_path, &comp_src);
     trace_nr = gloco()->shader_create();
     gloco()->shader_set_compute(trace_nr, comp_path, comp_src);
     gloco()->shader_compile(trace_nr);
 
-    dag.build_from_mesh(geo, voxel_res);
-    fan::print("SVDAG Nodes:", dag.nodes.size(), "Voxels:", dag.count_voxels());
+    if (!dag.load(cache_path)) {
+      fan::print("Building SVDAG...");
+      fan::time::scope_timer_print sp{};
+      dag.build_from_mesh(geo, voxel_res);
+      dag.save(cache_path);
+    } else {
+      fan::print("Loaded SVDAG from cache.");
+    }
+    fan::print("SVDAG nodes:", dag.nodes.size(), "voxels:", dag.count_voxels());
 
-    ssbo.open(gl, GL_SHADER_STORAGE_BUFFER);
-    ssbo.write_buffer(gl, dag.nodes.data(), dag.nodes.size() * sizeof(std::uint32_t));
+    ssbo_nodes.open(gl, GL_SHADER_STORAGE_BUFFER);
+    ssbo_nodes.write_buffer(gl, dag.nodes.data(), dag.nodes.size() * 4);
+    ssbo_ptrs.open(gl, GL_SHADER_STORAGE_BUFFER);
+    ssbo_ptrs.write_buffer(gl, dag.child_ptrs.data(), dag.child_ptrs.size() * 4);
     vao.open(gl);
   }
 
-  ~svdag_renderer_t() {
-    ssbo.close(gl);
-    vao.close(gl);
-  }
+  ~svdag_renderer_t() { ssbo_nodes.close(gl); ssbo_ptrs.close(gl); vao.close(gl); }
 
   void rebuild_texture() {
     fan::vec2i s = fan::window::get_size();
     if (s == res) { return; }
     res = s;
     img_screen.remove();
-    img_screen = image_t({.data=nullptr, .size= res }, {
+    img_screen = image_t({.data=nullptr, .size=res}, {
       .internal_format = image_format_e::rgba8,
       .format          = image_format_e::rgba,
       .type            = data_type_e::fan_unsigned_byte,
@@ -113,10 +170,8 @@ uniform sampler2D u_tex; in vec2 v_uv; out vec4 out_color; void main() { out_col
   void render(fan::vec3 cam_pos, const fan::mat4& inv_view_proj, const fan::vec3& sun_dir) {
     rebuild_texture();
     gl.image_bind(img_screen, 0, GL_WRITE_ONLY, GL_RGBA8);
-    ssbo.bind_base(gl, 1);
-
-    int max_layers = std::max(1, static_cast<int>(std::round(std::log2(voxel_res))));
-    int dynamic_loop_guard = max_layers * 32;
+    ssbo_nodes.bind_base(gl, 1);
+    ssbo_ptrs.bind_base(gl, 2);
 
     gloco()->shader_set_value(trace_nr, "u_inv_view_proj", inv_view_proj);
     gloco()->shader_set_value(trace_nr, "u_cam_pos", cam_pos);
@@ -124,14 +179,12 @@ uniform sampler2D u_tex; in vec2 v_uv; out vec4 out_color; void main() { out_col
     gloco()->shader_set_value(trace_nr, "u_voxel_scale", world_size);
     gloco()->shader_set_value(trace_nr, "u_voxel_res", voxel_res);
     gloco()->shader_set_value(trace_nr, "u_sun_dir", sun_dir.normalize());
-    gloco()->shader_set_value(trace_nr, "u_max_loop_guard", dynamic_loop_guard);
+    gloco()->shader_set_value(trace_nr, "u_max_depth", fm::max(1, (int)std::round(std::log2(voxel_res))));
 
-    glDispatchCompute((res.x + 15) / 16, (res.y + 15) / 16, 1);
+    glDispatchCompute((res.x + 7) / 8, (res.y + 7) / 8, 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 
-    auto set_blend = fan::make_restore_flag(false, [&] (bool f) {
-      gl.set_depth_test(f); gl.set_blending(f);
-    });
+    auto set_blend = fan::make_restore_flag(false, [&](bool f) { gl.set_depth_test(f); gl.set_blending(f); });
     vao.bind(gl);
     glActiveTexture(GL_TEXTURE0);
     img_screen.bind();
@@ -140,33 +193,39 @@ uniform sampler2D u_tex; in vec2 v_uv; out vec4 out_color; void main() { out_col
   }
 
   shader_t trace_nr, blit_nr;
-  fan::opengl::core::gpu_buffer_t ssbo;
+  fan::opengl::core::gpu_buffer_t ssbo_nodes, ssbo_ptrs;
   fan::opengl::core::vao_t vao;
   image_t img_screen;
-  fan::vec2i res {0, 0};
+  fan::vec2i res{0, 0};
   svdag_t dag;
   int voxel_res;
 };
 
-std::vector<fan::triangle_t> extract_and_scale_mesh_triangles(const std::string& path, int voxel_res) {
-  auto meshes = fan::graphics::load_meshes({.path = path});
-  std::vector<fan::triangle_t> out;
-  f32_t fmax = std::numeric_limits<f32_t>::max(), fmin = -fmax;
-  fan::vec3 bmin(fmax, fmax, fmax), bmax(fmin, fmin, fmin);
+static std::vector<svdag_t::build_tri_t> extract_build_tris(const std::string& path, int voxel_res) {
+  auto meshes = load_meshes({.path = path});
+  fan::vec3 bmin(std::numeric_limits<f32_t>::max()), bmax(-std::numeric_limits<f32_t>::max());
   for (const auto& m : meshes) {
     for (const auto& v : m.vertices) {
-      bmin = fan::vec3(std::min(bmin.x, v.position.x), std::min(bmin.y, v.position.y), std::min(bmin.z, v.position.z));
-      bmax = fan::vec3(std::max(bmax.x, v.position.x), std::max(bmax.y, v.position.y), std::max(bmax.z, v.position.z));
+      bmin = fan::vec3(fm::min(bmin.x, v.position.x), fm::min(bmin.y, v.position.y), fm::min(bmin.z, v.position.z));
+      bmax = fan::vec3(fm::max(bmax.x, v.position.x), fm::max(bmax.y, v.position.y), fm::max(bmax.z, v.position.z));
     }
   }
-  f32_t gv = voxel_res * 0.075f;
-  fan::vec3 sz = bmax - bmin, go(gv, gv, gv);
-  f32_t sf = (voxel_res * 0.85f) / std::max({sz.x, sz.y, sz.z, 1.0f});
+  fan::vec3 sz = bmax - bmin;
+  f32_t gv = voxel_res * 0.075f, sf = (voxel_res * 0.85f) / fm::max(sz.x, sz.y, sz.z, 1.f);
+  fan::vec3 go(gv);
+
+  std::vector<svdag_t::build_tri_t> out;
   for (const auto& m : meshes) {
-    for (std::size_t i = 0; i < m.indices.size(); i += 3) {
-      out.push_back({(m.vertices[m.indices[i]].position - bmin) * sf + go,
-                     (m.vertices[m.indices[i + 1]].position - bmin) * sf + go,
-                     (m.vertices[m.indices[i + 2]].position - bmin) * sf + go});
+    for (std::size_t i = 0; i + 2 < m.indices.size(); i += 3) {
+      auto xf = [&](const fan::model::vertex_t& v) { return (v.position - bmin) * sf + go; };
+      auto& v0 = m.vertices[m.indices[i]], &v1 = m.vertices[m.indices[i+1]], &v2 = m.vertices[m.indices[i+2]];
+      fan::vec3 p0 = xf(v0), p1 = xf(v1), p2 = xf(v2), c = (p0+p1+p2)/3.f;
+      fan::vec3 col = fm::centroid(
+        fan::vec3(v0.color.x, v0.color.y, v0.color.z),
+        fan::vec3(v1.color.x, v1.color.y, v1.color.z),
+        fan::vec3(v2.color.x, v2.color.y, v2.color.z)
+      );
+      out.push_back({p0, p1, p2, col});
     }
   }
   return out;
@@ -174,21 +233,18 @@ std::vector<fan::triangle_t> extract_and_scale_mesh_triangles(const std::string&
 
 struct game_t {
   game_t() : engine({.window_size = {1280, 720}}) {
-    {
-      fan::time::scope_timer_print sp{};
-      renderer = std::make_unique<svdag_renderer_t>(extract_and_scale_mesh_triangles("models/monkey_head.fbx", voxel_res), voxel_res);
-    }
+    renderer = std::make_unique<svdag_renderer_t>(
+      extract_build_tris("models/objworld.obj", voxel_res), voxel_res, "svdag_cache.bin");
+
     engine.camera_set_position(engine.perspective_render_view, {564.9f, 438.4f, 597.9f});
     auto& cam = engine.camera_get(engine.perspective_render_view);
     cam.yaw = -139.10f; cam.pitch = -18.00f;
 
-    auto cb = engine.window.add_mouse_motion_callback([&](const auto& d) {
+    engine.window.add_mouse_motion_callback([&](const auto& d) {
       if (gui::is_any_item_active() || !engine.is_mouse_down(fan::mouse_right)) { return; }
       engine.camera_rotate(engine.perspective_render_view, d.motion);
       engine.camera_get(engine.perspective_render_view).update_view();
     });
-
-    dump_svdag_occupancy(renderer->dag, voxel_res);
 
     gloco()->add_custom_draw([&] {
       auto& c = engine.camera_get(engine.perspective_render_view);
@@ -196,58 +252,22 @@ struct game_t {
     });
 
     engine.loop([&](f32_t dt) {
-      if (fan::time::every(5000)) { gui::print(fan::format_thousands(renderer->dag.count_voxels())); }
       engine.camera_move(move_speed);
       auto& c = engine.camera_get(engine.perspective_render_view);
       if (auto h = gui::hud_interactive("##ctrl", 0.f)) {
-        gui::text(std::format("pos: {:.1f} {:.1f} {:.1f}\nyaw: {:.2f}  pitch: {:.2f}", c.position.x, c.position.y, c.position.z, c.yaw,   c.pitch));
+        gui::text(std::format("pos: {:.1f} {:.1f} {:.1f}\nyaw: {:.2f}  pitch: {:.2f}",
+          c.position.x, c.position.y, c.position.z, c.yaw, c.pitch));
         gui::drag("sun", &sun_direction);
         gui::drag("speed", &move_speed);
       }
     });
   }
 
-  void dump_svdag_occupancy(svdag_t& dag, int res) {
-    int target_z = res / 2;
-    std::vector<std::uint8_t> occ(res * res, 0);
-    auto mark = [&](this auto& self, std::uint32_t ptr, int ox, int oy, int oz, int sz) -> void {
-      std::uint32_t v = dag.nodes[ptr] & 0xFF, l = (dag.nodes[ptr] >> 8) & 0xFF, csz = std::max(1, sz / 2), cptr = ptr + 1;
-      for (int b = 0; b < 8; ++b) {
-        if (v & (1 << b)) {
-          int cx = ox + (b & 1) * csz, cy = oy + (b >> 1 & 1) * csz, cz = oz + (b >> 2 & 1) * csz;
-          bool is_leaf = (sz == 1 || (l & (1 << b)));
-          std::uint32_t child_node = is_leaf ? 0u : dag.nodes[cptr++];
-
-          if (target_z >= cz && target_z < cz + csz) {
-            if (is_leaf) {
-              for (int y = cy; y < cy + csz; ++y) {
-                for (int x = cx; x < cx + csz; ++x) {
-                  if (x >= 0 && x < res && y >= 0 && y < res) {
-                    occ[(res - 1 - y) * res + x] = 255;
-                  }
-                }
-              }
-            }
-            else {
-              self(child_node, cx, cy, cz, csz);
-            }
-          }
-        }
-      }
-    };
-    if (!dag.nodes.empty()) { mark(0, 0, 0, 0, res); }
-
-    std::vector<uint8_t> dat(res * res);
-    fan::image::write("svdag_slice_z_mid.png", 
-      {.data = occ.data(), .size = fan::vec2ui(res, res), .channels = 1}
-    );
-  }
-
   engine_t engine;
   std::unique_ptr<svdag_renderer_t> renderer;
   f32_t move_speed = 4000.f;
   fan::vec3 sun_direction{0.6f, 0.9f, 0.4f};
-  int voxel_res = 2048;
+  int voxel_res = 4096;
 };
 
 int main() {
