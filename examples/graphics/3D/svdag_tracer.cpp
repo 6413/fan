@@ -240,7 +240,7 @@ struct game_t {
     auto& cam = engine.camera_get(engine.perspective_render_view);
     cam.yaw = -139.10f; cam.pitch = -18.00f;
 
-    engine.window.add_mouse_motion_callback([&](const auto& d) {
+    auto motion_handle = engine.window.add_mouse_motion_callback([&](const auto& d) {
       if (gui::is_any_item_active() || !engine.is_mouse_down(fan::mouse_right)) { return; }
       engine.camera_rotate(engine.perspective_render_view, d.motion);
       engine.camera_get(engine.perspective_render_view).update_view();
