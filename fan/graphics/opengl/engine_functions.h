@@ -884,9 +884,14 @@ void shapes_draw() {
 #endif
 
   {
-   for (const auto& func : loco.m_mid_draw) {
+    for (const auto& func : loco.m_mid_draw) {
       func();
     }
+    for (const auto& func : loco.m_mid_single_draw) {
+      func();
+    }
+    
+    loco.m_mid_single_draw.clear();
 
   #if defined(LOCO_FRAMEBUFFER)
 

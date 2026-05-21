@@ -1562,7 +1562,7 @@ namespace fan::graphics::gui {
     return ImGui::IsPopupOpen(fan::ct_string(id));
   }
 
-  void begin_disabled() { ImGui::BeginDisabled(); }
+  void begin_disabled(bool disabled) { ImGui::BeginDisabled(disabled); }
   void end_disabled() { ImGui::EndDisabled(); }
 
   id_t get_id(str_view_t str_id) {
