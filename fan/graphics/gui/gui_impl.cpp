@@ -2325,7 +2325,9 @@ namespace fan::graphics::gui {
     if (window_name.empty()) snprintf(buf, sizeof(buf), "hex_editor##%p", this);
     else snprintf(buf, sizeof(buf), "%.*s", (int)window_name.size(), window_name.data());
 
-    gui::set_next_window_size(fan::vec2(1280.f, 720.f), gui::cond_first_use_ever);
+    if (window_name.empty()) {
+      gui::set_next_window_size(fan::vec2(1280.f, 720.f), gui::cond_first_use_ever);
+    }
 
     auto window = gui::window(buf, nullptr, flags);
     gui::window_move_title_bar_only();
@@ -2398,8 +2400,9 @@ namespace fan::graphics::gui {
         if (top_padding > 0.f) {
           gui::dummy(fan::vec2(0.f, top_padding));
         }
-         // comment table_flags_scroll_x to remove double vertical scroll, but how to keep horizontal as well?
-        if (gui::begin_table("##hex_table", 3, gui::table_flags_sizing_fixed_fit | gui::table_flags_scroll_x)) {
+        // comment table_flags_scroll_x to remove double vertical scroll, but how to keep horizontal as well?
+        // adding table_flags_scroll_x will break content visibility
+        if (gui::begin_table("##hex_table", 3, gui::table_flags_sizing_fixed_fit)) {
           for (std::uint64_t r = first_visible_row; r < end_row; ++r) {
             if (config.group_size.y > 1 && r % config.group_size.y == 0 && r > first_visible_row) {
               gui::table_next_row();

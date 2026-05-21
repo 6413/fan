@@ -459,4 +459,21 @@ export namespace fan {
   #define fan_enum_string_runtime(m_name, ...) \
     enum m_name { __VA_ARGS__ }; \
     inline std::vector<std::string> m_name##_strings = fan::split(#__VA_ARGS__)
-}
+
+  struct args_t {
+    args_t(int argc, char** argv) {
+      data.reserve(argc);
+      for (int i = 0; i < argc; ++i) {
+        data.emplace_back(argv[i]);
+      }
+    }
+    auto operator[](size_t i) const {
+      return data[i];
+    }
+    auto size() const {
+      return data.size();
+    }
+
+    std::vector<std::string_view> data;
+  };
+} // namespace fan
