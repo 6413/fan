@@ -835,6 +835,7 @@ void shapes_draw() {
     }
     }
 
+  #if defined(FAN_3D)
     switch (shape_type) {
     case fan::graphics::shapes::shape_type_t::rectangle3d:
     case fan::graphics::shapes::shape_type_t::line3d:
@@ -842,6 +843,7 @@ void shapes_draw() {
       loco.context.gl.set_depth_test(true);
       break;
     }
+  #endif
 
     fan::graphics::shaper_t::BlockTraverse_t BlockTraverse;
     BlockTraverse.Init(shaper, current_bmid);

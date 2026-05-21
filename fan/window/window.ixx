@@ -1,5 +1,7 @@
 module;
 
+// /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup for no console in windows
+
 #include <fan/utility.h>
 
 #if defined(fan_compiler_gcc)
