@@ -497,6 +497,7 @@ export namespace fan::graphics::gui {
     void render(fan::io::data_provider_t& data);
     std::vector<std::uint8_t> get_selected_bytes(fan::io::data_provider_t& data) const;
     std::optional<std::uint64_t> get_active_cell(fan::io::data_provider_t& data) const;
+    void set_file_drop_callback(const std::function<void(const fan::bytes_t& data)>& func);
 
   private:
     void render_cell(fan::io::data_provider_t& data, std::uint64_t idx, f32_t w, f32_t pad, bool is_dragging, bool is_hex);
@@ -511,6 +512,7 @@ export namespace fan::graphics::gui {
 
   public:
     config_t config;
+    fan::window_t::drop_handle_t file_drop_handle;
 
   private:
     static constexpr std::uint64_t ascii_id_offset = 0x1000000000000000ULL;

@@ -247,6 +247,25 @@ namespace fan::window {
       }
     }
   }
+
+  void drop_callback(GLFWwindow* wnd, int count, const char** paths) {
+    fan::window_t* window = (fan::window_t*)glfwGetWindowUserPointer(wnd);
+    auto it = window->m_drop_callback.GetNodeFirst();
+
+    std::vector<std::string> file_paths;
+    for (int i = 0; i < count; ++i) {
+      file_paths.push_back(paths[i]);
+    }
+
+    while (it != window->m_drop_callback.dst) {
+      fan::window_t::drop_data_t cbd;
+      cbd.window = window;
+      cbd.paths = file_paths;
+      window->m_drop_callback[it](cbd);
+
+      it = it.Next(&window->m_drop_callback);
+    }
+  }
 }
 
 namespace fan {
@@ -405,6 +424,7 @@ namespace fan {
     glfwSetWindowCloseCallback(glfw_window, fan::window::close_callback);
     glfwSetCursorPosCallback(glfw_window, fan::window::mouse_position_callback);
     glfwSetScrollCallback(glfw_window, fan::window::scroll_callback);
+    glfwSetDropCallback(glfw_window, fan::window::drop_callback);
   #if !defined(__wasm__)
     glfwInitHint(GLFW_JOYSTICK_HAT_BUTTONS, GLFW_TRUE);
   #endif
@@ -423,7 +443,7 @@ namespace fan {
     glfwMakeContextCurrent(*this);
   }
 
-  void window_t::handle_key_states(){
+  void window_t::handle_key_states() {
     if (key_states[fan::mouse_scroll_up] == GLFW_PRESS) {
       key_states[fan::mouse_scroll_up] = GLFW_RELEASE;
     }
@@ -545,8 +565,7 @@ namespace fan {
   }
 
   window_t::key_handle_t window_t::add_key_callback(int key, keyboard_state_t st,
-    std::function<void(const key_data_t&)> fn)
-  {
+    std::function<void(const key_data_t&)> fn) {
     using handle_t = window_t::key_handle_t;
     using fn_t = typename handle_t::fn_t;
     using add_fn = typename handle_t::add_fn;
@@ -593,12 +612,12 @@ namespace fan {
         if (ks == fan::mouse_state::press || ks == fan::mouse_state::repeat) {
           cb(d.window, d);
         }
-        };
-      return nr;
       };
+      return nr;
+    };
     rem_fn remove = [](window_t* w, mouse_down_callbacks_NodeReference_t nr) {
       w->m_mouse_down_callbacks.unlrec(nr);
-      };
+    };
     return handle_t(
       this,
       std::move(add),
@@ -612,7 +631,7 @@ namespace fan {
       if (d.button == button && d.state == fan::mouse_state::release) {
         fn(d);
       }
-      });
+    });
   }
 
   window_t::key_handle_t window_t::on_key_click(int key, key_cb_t fn) {
@@ -633,6 +652,29 @@ namespace fan {
 
   window_t::resize_handle_t window_t::on_resize(resize_cb_t fn) {
     return add_resize_callback(fn);
+  }
+
+  window_t::drop_handle_t window_t::on_drop(drop_cb_t fn) {
+    using handle_t = window_t::drop_handle_t;
+    using fn_t = typename handle_t::fn_t;
+    using add_fn = typename handle_t::add_fn;
+    using rem_fn = typename handle_t::remove_fn;
+
+    add_fn add = [fn](window_t* w, fn_t cb) {
+      auto nr = w->m_drop_callback.NewNodeLast();
+      w->m_drop_callback[nr] = fn;
+      return nr;
+    };
+    rem_fn remove = [](window_t* w, drop_callback_NodeReference_t nr) {
+      w->m_drop_callback.unlrec(nr);
+    };
+
+    return handle_t(
+      this,
+      std::move(add),
+      std::move(remove),
+      [fn](window_t*, const drop_data_t& d) { fn(d); }
+    );
   }
 
   fan::vec2i window_t::get_size() const {

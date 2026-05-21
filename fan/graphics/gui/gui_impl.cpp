@@ -29,6 +29,7 @@ import fan.graphics.image_load;
 import fan.graphics.gui.base;
 import fan.graphics.gui.text_logger;
 import fan.graphics; // fan::graphics::shader_get_data
+import fan.graphics.loco;
 
 import fan.file_dialog;
 
@@ -196,7 +197,7 @@ namespace fan::graphics::gui {
       break;
     }
 
-    window_handle_t* window = get_current_window();
+    window_data_t* window = get_current_window();
     if (window->SkipItems)
       return;
 
@@ -2318,135 +2319,146 @@ namespace fan::graphics::gui {
     }
   }
 
-void hex_editor_t::render(const std::string_view window_name, fan::io::data_provider_t& data) {
-  char buf[64];
-  std::uint64_t flags = window_name.empty() ? gui::window_flags_no_saved_settings : 0;
-  if (window_name.empty()) snprintf(buf, sizeof(buf), "hex_editor##%p", this);
-  else snprintf(buf, sizeof(buf), "%.*s", (int)window_name.size(), window_name.data());
+  void hex_editor_t::render(const std::string_view window_name, fan::io::data_provider_t& data) {
+    char buf[64];
+    std::uint64_t flags = window_name.empty() ? gui::window_flags_no_saved_settings : 0;
+    if (window_name.empty()) snprintf(buf, sizeof(buf), "hex_editor##%p", this);
+    else snprintf(buf, sizeof(buf), "%.*s", (int)window_name.size(), window_name.data());
 
-  gui::set_next_window_size(fan::vec2(1280.f, 720.f), gui::cond_first_use_ever);
+    gui::set_next_window_size(fan::vec2(1280.f, 720.f), gui::cond_first_use_ever);
 
-  auto window = gui::window(buf, nullptr, flags);
-  gui::window_move_title_bar_only();
-  if (!window) return;
+    auto window = gui::window(buf, nullptr, flags);
+    gui::window_move_title_bar_only();
+    if (!window) return;
 
-  gui::set_window_font_scale(1.0f);
-  f32_t base_font_size = gui::get_font_size();
-  metrics.char_w = gui::calc_text_size("0").x;
-  f32_t base_cell_w = gui::calc_text_size("FF").x + (config.inner_pad * 2.f);
-  f32_t base_ascii_w = gui::calc_text_size("F").x + (config.inner_pad * 2.f);
+    gui::set_window_font_scale(1.0f);
+    f32_t base_font_size = gui::get_font_size();
+    metrics.char_w = gui::calc_text_size("0").x;
+    f32_t base_cell_w = gui::calc_text_size("FF").x + (config.inner_pad * 2.f);
+    f32_t base_ascii_w = gui::calc_text_size("F").x + (config.inner_pad * 2.f);
 
-  f32_t hex_area_w = config.cols * base_cell_w + config.cols * metrics.char_w * config.spacing_hex_item_mult;
-  f32_t total_base_w = gui::calc_text_size("00000000").x + hex_area_w + config.cols * base_ascii_w
-    + gui::get_style().CellPadding.x * 6.f + 5.f;
+    f32_t hex_area_w = config.cols * base_cell_w + config.cols * metrics.char_w * config.spacing_hex_item_mult;
+    f32_t total_base_w = gui::calc_text_size("00000000").x + hex_area_w + config.cols * base_ascii_w
+      + gui::get_style().CellPadding.x * 6.f + 5.f;
 
-  f32_t auto_scale = 1.0f;
+    f32_t auto_scale = 1.0f;
 
-  gui::zoom_scope_t _(user_zoom, base_font_size, auto_scale, config.zoom_speed, 5.f);
+    gui::zoom_scope_t _(user_zoom, base_font_size, auto_scale, config.zoom_speed, 5.f);
 
-  gui::font_t* crisp_font = gui::get_font(base_font_size * auto_scale * user_zoom, gui::font::mono);
-  metrics.scale = crisp_font->FontSize / base_font_size;
-  metrics.cell_w = base_cell_w * metrics.scale;
-  metrics.ascii_w = base_ascii_w * metrics.scale;
-  metrics.char_w *= metrics.scale;
-  metrics.size = data.size();
-  metrics.rows = (metrics.size + config.cols - 1) / config.cols;
+    gui::font_t* crisp_font = gui::get_font(base_font_size * auto_scale * user_zoom, gui::font::mono);
+    metrics.scale = crisp_font->FontSize / base_font_size;
+    metrics.cell_w = base_cell_w * metrics.scale;
+    metrics.ascii_w = base_ascii_w * metrics.scale;
+    metrics.char_w *= metrics.scale;
+    metrics.size = data.size();
+    metrics.rows = (metrics.size + config.cols - 1) / config.cols;
 
-  gui::push_font(crisp_font);
-  gui::set_window_font_scale(1.0f);
+    gui::push_font(crisp_font);
+    gui::set_window_font_scale(1.0f);
 
-  auto& st = gui::get_style();
-  gui::style_scope_t scaled_style;
-  f32_t ys = config.y_spacing_mult;
-  scaled_style.var(gui::style_var_item_spacing, fan::vec2(0.f, st.ItemSpacing.y) * metrics.scale);
-  scaled_style.var(gui::style_var_cell_padding, fan::vec2(st.CellPadding.x, st.CellPadding.y * ys) * metrics.scale);
-  scaled_style.var(gui::style_var_frame_padding, fan::vec2(config.inner_pad, st.FramePadding.y * ys) * metrics.scale);
-  scaled_style.var(gui::style_var_window_padding, fan::vec2(st.WindowPadding.x, st.WindowPadding.y) * metrics.scale);
+    auto& st = gui::get_style();
+    gui::style_scope_t scaled_style;
+    f32_t ys = config.y_spacing_mult;
+    scaled_style.var(gui::style_var_item_spacing, fan::vec2(0.f, st.ItemSpacing.y) * metrics.scale);
+    scaled_style.var(gui::style_var_cell_padding, fan::vec2(st.CellPadding.x, st.CellPadding.y * ys) * metrics.scale);
+    scaled_style.var(gui::style_var_frame_padding, fan::vec2(config.inner_pad, st.FramePadding.y * ys) * metrics.scale);
+    scaled_style.var(gui::style_var_window_padding, fan::vec2(st.WindowPadding.x, st.WindowPadding.y) * metrics.scale);
 
-  bool dragging = ImGui::IsMouseDown(0) && has_selection() && sel_start != sel_end;
+    bool dragging = ImGui::IsMouseDown(0) && has_selection() && sel_start != sel_end;
 
-  if (dragging && !is_dragging) gui::clear_active_id();
-  is_dragging = dragging;
+    if (dragging && !is_dragging) gui::clear_active_id();
+    is_dragging = dragging;
 
-  prev_hex_hover_idx = hovered_hex_idx; hovered_hex_idx = std::nullopt;
-  prev_ascii_hover_idx = hovered_ascii_idx; hovered_ascii_idx = std::nullopt;
+    prev_hex_hover_idx = hovered_hex_idx; hovered_hex_idx = std::nullopt;
+    prev_ascii_hover_idx = hovered_ascii_idx; hovered_ascii_idx = std::nullopt;
 
-  if (gui::begin_table("##outer_split", 2, gui::table_flags_no_borders_in_body)) {
-    gui::table_setup_column("##hex", gui::table_column_flags_width_fixed, (total_base_w - 15.f) * metrics.scale);
-    gui::table_setup_column("##inspector", gui::table_column_flags_width_stretch);
-    gui::table_next_row();
-    gui::table_next_column();
-    {
-      auto& st = gui::get_style();
-      gui::style_scope_t scaled_style;
-      f32_t ys = config.y_spacing_mult;
-      scaled_style.var(gui::style_var_item_spacing, fan::vec2(0.f, st.ItemSpacing.y) * metrics.scale);
-      scaled_style.var(gui::style_var_cell_padding, fan::vec2(st.CellPadding.x, st.CellPadding.y * ys) * metrics.scale);
-      scaled_style.var(gui::style_var_frame_padding, fan::vec2(config.inner_pad, st.FramePadding.y * ys) * metrics.scale);
-      scaled_style.var(gui::style_var_window_padding, fan::vec2(st.WindowPadding.x, st.WindowPadding.y) * metrics.scale);
-      f32_t row_height = gui::get_text_line_height() + gui::get_style().ItemSpacing.y;
-      std::uint64_t first_visible_row = static_cast<std::uint64_t>(std::max(0.0f, gui::get_scroll_y() / row_height));
-      std::uint64_t visible_row_count = static_cast<std::uint64_t>(gui::get_window_size().y / row_height) + 2;
+    if (gui::begin_table("##outer_split", 2, gui::table_flags_no_borders_in_body)) {
+      gui::table_setup_column("##hex", gui::table_column_flags_width_fixed, (total_base_w - 15.f) * metrics.scale);
+      gui::table_setup_column("##inspector", gui::table_column_flags_width_stretch);
+      gui::table_next_row();
+      gui::table_next_column();
+      {
+        auto& st = gui::get_style();
+        gui::style_scope_t scaled_style;
+        f32_t ys = config.y_spacing_mult;
+        scaled_style.var(gui::style_var_item_spacing, fan::vec2(0.f, st.ItemSpacing.y) * metrics.scale);
+        scaled_style.var(gui::style_var_cell_padding, fan::vec2(st.CellPadding.x, st.CellPadding.y * ys) * metrics.scale);
+        scaled_style.var(gui::style_var_frame_padding, fan::vec2(config.inner_pad, st.FramePadding.y * ys) * metrics.scale);
+        scaled_style.var(gui::style_var_window_padding, fan::vec2(st.WindowPadding.x, st.WindowPadding.y) * metrics.scale);
+      
+        f32_t row_height = gui::get_text_line_height() + gui::get_style().ItemSpacing.y;
+      
+        std::uint64_t first_visible_row = static_cast<std::uint64_t>(std::max(0.0f, gui::get_scroll_y() / row_height));
+        std::uint64_t visible_row_count = static_cast<std::uint64_t>(gui::get_window_size().y / row_height) + 2;
 
-      gui::dummy(fan::vec2(0, std::min<std::uint64_t>(metrics.rows, 0x1FFFFFFF) * row_height));
-      gui::set_cursor_pos(fan::vec2(gui::get_cursor_pos().x, first_visible_row * row_height + gui::get_style().WindowPadding.y));
-
-      if (gui::begin_table("##hex_table", 3, gui::table_flags_sizing_fixed_fit | gui::table_flags_scroll_x)) {
+        first_visible_row = std::min(first_visible_row, metrics.rows);
         std::uint64_t end_row = std::min(first_visible_row + visible_row_count, metrics.rows);
-        for (std::uint64_t r = first_visible_row; r < end_row; ++r) {
-          if (config.group_size.y > 1 && r % config.group_size.y == 0 && r > first_visible_row) {
+
+        f32_t top_padding = first_visible_row * row_height;
+        if (top_padding > 0.f) {
+          gui::dummy(fan::vec2(0.f, top_padding));
+        }
+         // comment table_flags_scroll_x to remove double vertical scroll, but how to keep horizontal as well?
+        if (gui::begin_table("##hex_table", 3, gui::table_flags_sizing_fixed_fit | gui::table_flags_scroll_x)) {
+          for (std::uint64_t r = first_visible_row; r < end_row; ++r) {
+            if (config.group_size.y > 1 && r % config.group_size.y == 0 && r > first_visible_row) {
+              gui::table_next_row();
+              gui::dummy(fan::vec2(0, gui::get_text_line_height()));
+            }
+
             gui::table_next_row();
-            gui::dummy(fan::vec2(0, gui::get_text_line_height()));
-          }
+            std::uint64_t row_start = r * config.cols;
+            std::uint64_t row_end = std::min(row_start + config.cols, metrics.size);
 
-          gui::table_next_row();
-          std::uint64_t row_start = r * config.cols;
-          std::uint64_t row_end = std::min(row_start + config.cols, metrics.size);
-
-          gui::table_next_column();
-          gui::align_text_to_frame_padding();
-          gui::text(config.col_text_addr, fan::to_hex(row_start, 8));
-
-          gui::table_next_column();
-          for (std::uint64_t idx = row_start; idx < row_end; ++idx) {
-            f32_t pad = (idx + 1 < row_end) ? get_spacing(idx, row_end, true) : 0.f;
-            render_cell(data, idx, metrics.cell_w, 0.f, dragging, true);
-            if (idx + 1 < row_end) gui::same_line(0.f, pad);
-          }
-
-          gui::table_next_column();
-          {
-            gui::style_scope_t ss;
-            ss.var(gui::style_var_item_spacing, fan::vec2(0.f, 0.f));
-            ss.var(gui::style_var_frame_padding, fan::vec2(0.f, gui::get_frame_padding().y));
+            gui::table_next_column();
             gui::align_text_to_frame_padding();
+            gui::text(config.col_text_addr, fan::to_hex(row_start, 8));
+
+            gui::table_next_column();
             for (std::uint64_t idx = row_start; idx < row_end; ++idx) {
-              f32_t pad = (idx + 1 < row_end) ? get_spacing(idx, row_end, false) : 0.f;
-              render_cell(data, idx, metrics.ascii_w, 0.f, dragging, false);
+              f32_t pad = (idx + 1 < row_end) ? get_spacing(idx, row_end, true) : 0.f;
+              render_cell(data, idx, metrics.cell_w, 0.f, dragging, true);
               if (idx + 1 < row_end) gui::same_line(0.f, pad);
             }
+
+            gui::table_next_column();
+            {
+              gui::style_scope_t ss;
+              ss.var(gui::style_var_item_spacing, fan::vec2(0.f, 0.f));
+              ss.var(gui::style_var_frame_padding, fan::vec2(0.f, gui::get_frame_padding().y));
+              gui::align_text_to_frame_padding();
+              for (std::uint64_t idx = row_start; idx < row_end; ++idx) {
+                f32_t pad = (idx + 1 < row_end) ? get_spacing(idx, row_end, false) : 0.f;
+                render_cell(data, idx, metrics.ascii_w, 0.f, dragging, false);
+                if (idx + 1 < row_end) gui::same_line(0.f, pad);
+              }
+            }
           }
+          gui::end_table();
         }
-        gui::end_table();
+
+        if (metrics.rows > end_row) {
+          f32_t bottom_padding = (metrics.rows - end_row) * row_height;
+          gui::dummy(fan::vec2(0.f, bottom_padding));
+        }
       }
+
+      gui::table_next_column();
+      render_data_inspector(data, true);
+
+      gui::end_table();
     }
 
-    gui::table_next_column();
-    render_data_inspector(data, true);
+    if (gui::is_window_hovered(0) && !prev_hex_hover_idx && !prev_ascii_hover_idx && fan::window::is_mouse_clicked(fan::mouse_left)) {
+      sel_start = std::nullopt;
+      sel_end = std::nullopt;
+    }
 
-    gui::end_table();
+    process_clipboard(data);
+
+    gui::pop_font();
+    gui::set_window_font_scale(1.0f);
   }
-
-  if (gui::is_window_hovered(0) && !prev_hex_hover_idx && !prev_ascii_hover_idx && fan::window::is_mouse_clicked(fan::mouse_left)) {
-    sel_start = std::nullopt;
-    sel_end = std::nullopt;
-  }
-
-  process_clipboard(data);
-
-  gui::pop_font();
-  gui::set_window_font_scale(1.0f);
-}
 
   std::vector<std::uint8_t> hex_editor_t::get_selected_bytes(fan::io::data_provider_t& data) const {
     if (!has_selection()) return {};
@@ -2461,6 +2473,14 @@ void hex_editor_t::render(const std::string_view window_name, fan::io::data_prov
   std::optional<std::uint64_t> hex_editor_t::get_active_cell(fan::io::data_provider_t& data) const {
     if (!active_idx || active_idx.value() >= data.size()) return std::nullopt;
     return active_idx;
+  }
+
+  void hex_editor_t::set_file_drop_callback(const std::function<void(const fan::bytes_t& data)>& func) {
+    file_drop_handle = gloco()->window.on_drop([func](const fan::window_t::drop_data_t& d) {
+      if (fan::io::file::exists(d.paths[0])) {
+        func(fan::io::file::read_binary(d.paths[0]));
+      }
+    });
   }
 
   void hex_editor_t::process_clipboard(fan::io::data_provider_t& data) {

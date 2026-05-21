@@ -113,9 +113,10 @@ export namespace fan::graphics::gui {
     fan::vec2 offset = 0.f;
     fan::vec2 text_offset = 0.f;
     fan::vec2 window_offset = std::numeric_limits<f32_t>::max();
-    enum class align_t { left, center, bottom_right } align = align_t::left;
+    enum class align_e { left, center, bottom_right } align = align_e::left;
     bool outlined = false;
     bool wrapped = false;
+    bool overlay = false;
   };
 
   /// <summary>
@@ -261,7 +262,9 @@ export namespace fan::graphics::gui {
   draw_list_t* get_foreground_draw_list();
   draw_list_t* get_background_draw_list();
 
-  window_handle_t* get_current_window();
+  window_data_t* get_current_window();
+  // finds window by name
+  window_data_t* find_window(const fan::str_view_t name);
 
   bool combo(str_view_t label, int* current_item, const char* const items[], int items_count, int popup_max_height_in_items = -1);
 
