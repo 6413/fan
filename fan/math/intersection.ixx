@@ -109,4 +109,12 @@ export namespace fan::math::d3 {
 
     return t_near <= t_far && t_far >= 0.0f;
   }
+  fan::vec3 barycentric(const fan::vec3& p, const fan::vec3& a, const fan::vec3& b, const fan::vec3& c) {
+    fan::vec3 v0 = b - a, v1 = c - a, v2 = p - a;
+    f32_t d00 = v0.dot(v0), d01 = v0.dot(v1), d11 = v1.dot(v1), d20 = v2.dot(v0), d21 = v2.dot(v1);
+    f32_t denom = d00 * d11 - d01 * d01;
+    f32_t v = (d11 * d20 - d01 * d21) / denom;
+    f32_t w = (d00 * d21 - d01 * d20) / denom;
+    return {1.0f - v - w, v, w};
+  }
 }

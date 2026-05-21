@@ -535,14 +535,21 @@ namespace fan::io {
         }
         if (it->sort_alphabetically) {
           std::sort(state->entries.begin(), state->entries.end(), [](const std::filesystem::directory_entry& a, const std::filesystem::directory_entry& b) {
-            if (a.is_directory() == b.is_directory()) {
+            std::error_code ec;
+            bool a_is_dir = a.is_directory(ec);
+            if (ec) a_is_dir = false;
+
+            bool b_is_dir = b.is_directory(ec);
+            if (ec) b_is_dir = false;
+
+            if (a_is_dir == b_is_dir) {
               std::string a_stem = a.path().stem().string();
               std::string b_stem = b.path().stem().string();
               std::transform(a_stem.begin(), a_stem.end(), a_stem.begin(), ::tolower);
               std::transform(b_stem.begin(), b_stem.end(), b_stem.begin(), ::tolower);
               return a_stem < b_stem;
             }
-            return a.is_directory() && !b.is_directory();
+            return a_is_dir && !b_is_dir;
           });
         }
         if (!state->stopped) state->iteration_task = iterate_directory(it);

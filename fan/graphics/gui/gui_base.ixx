@@ -406,7 +406,7 @@ export namespace fan::graphics::gui {
 
   bool is_popup_open(str_view_t id);
 
-  void begin_disabled();
+  void begin_disabled(bool disabled = true);
   void end_disabled();
 
   id_t get_id(str_view_t str_id);
