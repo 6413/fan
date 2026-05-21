@@ -434,5 +434,5 @@ export namespace fan {
     std::conditional_t<(N <= 0xFFu),         std::uint8_t,
     std::conditional_t<(N <= 0xFFFFu),       std::uint16_t,
     std::conditional_t<(N <= 0xFFFFFFFFull), std::uint32_t,
-                                            std::uint64_t>>>;
+                                             std::uint64_t>>>;
 }
