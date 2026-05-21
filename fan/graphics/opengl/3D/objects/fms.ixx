@@ -299,16 +299,13 @@ export namespace fan {
         if (n.dot((p2 - p1).cross(p3 - p1)) < 0) return false;
         if (n.dot((p3 - p2).cross(p0 - p2)) < 0) return false;
 
-        if (segments_intersect(p0, p1, p2, p3)) return false;
-        if (segments_intersect(p1, p2, p3, p0)) return false;
-
         return true;
       }
 
 
-      void fix_uv_diagonals(mesh_t &mesh) {
-        auto &indices = mesh.indices;
-        auto &verts = mesh.vertices;
+      void fix_uv_diagonals(mesh_t& mesh) {
+        auto& indices = mesh.indices;
+        auto& verts = mesh.vertices;
 
         if (indices.size() % 3 != 0 || verts.empty()) {
           return;
@@ -324,7 +321,7 @@ export namespace fan {
           std::uint32_t i1 = indices[t * 3 + 1];
           std::uint32_t i2 = indices[t * 3 + 2];
 
-          std::uint32_t tri_idx[3] = { i0, i1, i2 };
+          std::uint32_t tri_idx[3] = {i0, i1, i2};
 
           for (std::uint8_t e = 0; e < 3; e++) {
             std::uint32_t a = tri_idx[e];
@@ -339,7 +336,7 @@ export namespace fan {
               tri_edge_ref ref;
               ref.tri_index = t;
               ref.edge_slot = e;
-              edge_map.insert({ key, ref });
+              edge_map.insert({key, ref});
             }
             else {
               std::uint32_t t2 = it->second.tri_index;
@@ -351,61 +348,33 @@ export namespace fan {
               std::uint32_t j1 = indices[t2 * 3 + 1];
               std::uint32_t j2 = indices[t2 * 3 + 2];
 
-              std::uint32_t u[6] = { i0, i1, i2, j0, j1, j2 };
-              std::uint32_t quad[4];
-              std::uint32_t qc = 0;
+              std::uint32_t ea = key.a;
+              std::uint32_t eb = key.b;
+              std::uint32_t v_opp1 = (i0 != ea && i0 != eb) ? i0 : ((i1 != ea && i1 != eb) ? i1 : i2);
+              std::uint32_t v_opp2 = (j0 != ea && j0 != eb) ? j0 : ((j1 != ea && j1 != eb) ? j1 : j2);
 
-              for (std::uint32_t k = 0; k < 6; k++) {
-                std::uint32_t v = u[k];
-                bool found = false;
-                for (std::uint32_t m = 0; m < qc; m++) {
-                  if (quad[m] == v) {
-                    found = true;
-                    break;
-                  }
-                }
-                if (!found) {
-                  quad[qc++] = v;
-                  if (qc > 4) {
-                    break;
-                  }
-                }
+              std::uint32_t v_next = 0, v_prev = 0;
+              if (i0 == v_opp1) {
+                v_next = i1;
+                v_prev = i2;
               }
+              else if (i1 == v_opp1) {
+                v_next = i2;
+                v_prev = i0;
+              }
+              else {
+                v_next = i0;
+                v_prev = i1;
+              }
+
+              std::uint32_t quad[4] = {v_opp1, v_next, v_opp2, v_prev};
 
               if (!is_valid_quad(mesh, quad)) {
                 continue;
               }
 
-              if (qc != 4) {
-                continue;
-              }
-
               if (!triangles_coplanar(mesh, i0, i1, i2, j0, j1, j2, 0.99f)) {
                 continue;
-              }
-
-              fan::vec3 c = (verts[quad[0]].position +
-                verts[quad[1]].position +
-                verts[quad[2]].position +
-                verts[quad[3]].position) * 0.25f;
-
-              f32_t ang[4];
-              for (std::uint32_t k = 0; k < 4; k++) {
-                fan::vec3 d = verts[quad[k]].position - c;
-                ang[k] = std::atan2(d.y, d.x);
-              }
-
-              for (std::uint32_t a0 = 0; a0 < 4; a0++) {
-                for (std::uint32_t b0 = a0 + 1; b0 < 4; b0++) {
-                  if (ang[b0] < ang[a0]) {
-                    f32_t ta = ang[a0];
-                    ang[a0] = ang[b0];
-                    ang[b0] = ta;
-                    std::uint32_t tv = quad[a0];
-                    quad[a0] = quad[b0];
-                    quad[b0] = tv;
-                  }
-                }
               }
 
               std::uint32_t q0 = quad[0];
@@ -468,8 +437,8 @@ export namespace fan {
               f32_t total_b = uv_b + geom_b * 0.000001f;
 
               f32_t best = total_current;
-              std::uint32_t bt0[3] = { c0, c1, c2 };
-              std::uint32_t bt1[3] = { c3, c4, c5 };
+              std::uint32_t bt0[3] = {c0, c1, c2};
+              std::uint32_t bt1[3] = {c3, c4, c5};
 
               if (total_a + 1e-7f < best) {
                 best = total_a;
@@ -615,6 +584,10 @@ export namespace fan {
           if (material->GetTexture((aiTextureType)texture_type, 0, &path) != AI_SUCCESS) {
             continue;
           }
+          std::string path_str = path.C_Str();
+          if (path_str.size() > 4 && path_str.compare(path_str.size() - 4, 4, ".psd") == 0) {
+            path_str = path_str.substr(0, path_str.size() - 4) + ".png";
+          }
 
           auto embedded_texture = scene->GetEmbeddedTexture(path.C_Str());
 
@@ -627,7 +600,7 @@ export namespace fan {
             }
 
             // must not collide with other names
-            std::string generated_str = path.C_Str() + std::to_string(texture_type);
+            std::string generated_str = path_str + std::to_string(texture_type);
             mesh.texture_names[texture_type] = generated_str;
             auto& td = fan::model::cached_texture_data[generated_str];
             td.size = fan::vec2(width, height);
@@ -636,7 +609,7 @@ export namespace fan {
             stbi_image_free(data);
           }
           else {
-            std::string file_path = p.texture_path + "/" + scene->GetShortFilename(path.C_Str());
+            std::string file_path = p.texture_path + "/" + scene->GetShortFilename(path_str.c_str());
             mesh.texture_names[texture_type] = file_path;
             auto found = cached_texture_data.find(file_path);
             if (found == cached_texture_data.end()) {
@@ -1660,41 +1633,25 @@ export namespace fan {
         fan::model::bone_t transform = source_bone;
         transform.position = position;
 
-        fan::mat4 local_matrix = source_bone.world_matrix.inverse() * fan::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
-        local_matrix = target_bone.world_matrix * local_matrix * target_bone.inverse_parent_matrix;
-        return target_bone.position;
+        fan::mat4 source_local_delta = source_bone.world_matrix.inverse() * fan::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
+        fan::mat4 target_local_matrix = target_bone.world_matrix * source_local_delta * target_bone.inverse_parent_matrix;
+        return target_local_matrix.get_translation();
       }
+
       static fan::quat transformRotation(
         fan::quat animation_rotation,
         bone_t& source_bone,
         bone_t& target_bone
-      )
-      {
-        fan::quat tpose_adjust;
-        fan::vec3 sangs, tangs;
-        source_bone.rotation.to_angles(sangs);
-        target_bone.rotation.to_angles(tangs);
-        sangs.x = fan::math::degrees(sangs.x);
-        sangs.y = fan::math::degrees(sangs.x);
-        sangs.z = fan::math::degrees(sangs.z);
-
-        tangs.x = fan::math::degrees(tangs.x);
-        tangs.y = fan::math::degrees(tangs.y);
-        tangs.z = fan::math::degrees(tangs.z);
-        if (target_bone.name == "Left_arm") {
-          tpose_adjust = fan::quat::from_angles(fan::vec3(-fan::math::radians(45), 0, 0));
-        }
-        if (target_bone.name == "Right_arm") {
-          tpose_adjust = fan::quat::from_angles(fan::vec3(-fan::math::radians(45), 0, 0));
-        }
-
+      ) {
         fan::model::bone_t transform = source_bone;
-        transform.rotation = (animation_rotation * tpose_adjust).normalize();
+        transform.rotation = animation_rotation.normalize();
 
-        fan::mat4 local_matrix = source_bone.world_matrix.inverse() * fan::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
-        local_matrix = target_bone.world_matrix * local_matrix * target_bone.inverse_parent_matrix;
-        return fan::quat(local_matrix).inverse();
+        fan::mat4 source_local_delta = source_bone.world_matrix.inverse() * fan::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
+        
+        fan::mat4 target_local_matrix = target_bone.inverse_parent_matrix * (target_bone.world_matrix * source_local_delta);
+        return fan::quat(target_local_matrix).normalize();
       }
+
       static fan::vec3 transformScale(
         const fan::vec3& scale,
         bone_t& source_bone,
@@ -1703,9 +1660,9 @@ export namespace fan {
         fan::model::bone_t transform = source_bone;
         transform.scale = scale;
 
-        fan::mat4 local_matrix = source_bone.world_matrix.inverse() * fan::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
-        local_matrix = target_bone.world_matrix * local_matrix * target_bone.inverse_parent_matrix;
-        return local_matrix.get_scale();
+        fan::mat4 source_local_delta = source_bone.world_matrix.inverse() * fan::model::fms_t::get_world_matrix(&source_bone, transform.get_local_matrix());
+        fan::mat4 target_local_matrix = target_bone.world_matrix * source_local_delta * target_bone.inverse_parent_matrix;
+        return target_local_matrix.get_scale();
       }
       void import_animation(fms_t& anim, const std::string& custom_name = "") {
         bone_names_anim = bone_names_default;

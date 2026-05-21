@@ -66,9 +66,7 @@ export namespace fan {
             fan::graphics::image_format_e::rgba_unorm
           };
           if (ii.channels < std::size(gl_formats) && gl_formats[ii.channels]) {
-            fan::graphics::image_load_properties_t ilp;
-            ilp.format = ilp.internal_format = gl_formats[ii.channels];
-            fan::model::cached_images[name] = fan::graphics::image_load(ii, ilp);
+            fan::model::cached_images[name] = fan::graphics::image_load(ii);
           } else if (ii.data == nullptr) {
             continue;
           } else {
