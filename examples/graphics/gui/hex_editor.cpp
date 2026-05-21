@@ -47,11 +47,11 @@ int main(int argc, char** argv) {
     editor.render(editor_name, provider);
     if (user_data.empty()) {
       auto* wnd_data = gui::find_window(editor_name);
-      /*gui::text("Drop a file here to inspect it", {
+      gui::text("Drop a file here to inspect it", {
         .pos     = fan::vec2(wnd_data->Pos) + fan::vec2(wnd_data->Size) / 2.f,
         .align   = gui::text_style_t::align_e::center,
         .overlay = true
-      });*/
+      });
     }
   });
 }
