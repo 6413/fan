@@ -67,6 +67,7 @@ namespace fan {
     void mouse_position_callback(GLFWwindow* wnd, double xpos, double ypos);
     void scroll_callback(GLFWwindow* wnd, double xoffset, double yoffset);
     void window_focus_callback(GLFWwindow* wnd, int focused);
+    void drop_callback(GLFWwindow* wnd, int count, const char** paths);
   }
 }
 
@@ -197,6 +198,12 @@ export namespace fan {
     };
     using move_cb_t = std::function<void(const move_data_t&)>;
 
+    struct drop_data_t {
+      fan::window_t* window;
+      std::vector<std::string> paths;
+    };
+    using drop_cb_t = std::function<void(const drop_data_t&)>;
+
     #define BLL_set_prefix buttons_callback
     #define BLL_set_NodeDataType buttons_cb_t
     #include "cb_list_builder_settings.h"
@@ -252,6 +259,11 @@ export namespace fan {
     #include "cb_list_builder_settings.h"
     #include <BLL/BLL.h>
 
+    #define BLL_set_prefix drop_callback
+    #define BLL_set_NodeDataType drop_cb_t
+    #include "cb_list_builder_settings.h"
+    #include <BLL/BLL.h>
+
     #define FAN_DEFINE_CB_RAII(NAME, STORAGE, NODE_REF, PARAM_TYPE)                         \
       using NAME##_handle_t = raii_nr_t<NODE_REF, window_t, const PARAM_TYPE&>;              \
                                                                                             \
@@ -294,6 +306,8 @@ export namespace fan {
     FAN_DEFINE_CB_RAII(key_down, m_key_down_callbacks, key_down_callbacks_NodeReference_t, keys_data_t);
     FAN_DEFINE_CB_RAII(mouse_down, m_mouse_down_callbacks, mouse_down_callbacks_NodeReference_t, buttons_data_t);
 
+    FAN_DEFINE_CB_RAII(drop, m_drop_callback, drop_callback_NodeReference_t, drop_data_t);
+
     using key_handle_t = raii_nr_t<key_callback_NodeReference_t, window_t, const key_data_t&>;
     using text_callback_handle_t = raii_nr_t<text_callback_NodeReference_t, window_t, const text_data_t&>;
 
@@ -333,6 +347,7 @@ export namespace fan {
     key_handle_t on_key_up(int key, key_cb_t fn);
     mouse_move_handle_t on_mouse_move(mouse_move_cb_t fn);
     resize_handle_t on_resize(resize_cb_t fn);
+    window_t::drop_handle_t on_drop(std::function<void(const drop_data_t&)> fn);
     fan::vec2i get_size() const;
     void set_size(const fan::vec2i& window_size);
     fan::vec2 get_position() const;
@@ -427,6 +442,7 @@ export namespace fan {
     mouse_motion_callback_t m_mouse_motion_callback;
     mouse_down_callbacks_t m_mouse_down_callbacks;
     key_down_callbacks_t m_key_down_callbacks;
+    drop_callback_t m_drop_callback;
 
     std::uint64_t flags = 0;
     std::uint8_t m_antialiasing_samples = 0;

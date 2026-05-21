@@ -648,7 +648,7 @@ struct fgm_t {
         str += " %";
         gui::text(str, {
           .offset = {0.f, -gui::get_text_line_height_with_spacing()},
-          .align = gui::text_style_t::align_t::bottom_right
+          .align = gui::text_style_t::align_e::bottom_right
         });
       }
 
@@ -657,7 +657,7 @@ struct fgm_t {
         std::string cursor_pos_str = cursor_pos.to_string(1);
         std::string str = cursor_pos_str.substr(1, cursor_pos_str.size() - 2);
 
-        gui::text(str, { .align = gui::text_style_t::align_t::bottom_right });
+        gui::text(str, { .align = gui::text_style_t::align_e::bottom_right });
       }
 
       gui::set_cursor_pos(gui::get_cursor_start_pos());

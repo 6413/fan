@@ -971,7 +971,7 @@ namespace fan::graphics::gui {
   }
 
   void text(std::string_view str, const text_style_t& style) {
-    bool use_draw_list = style.pos.x != std::numeric_limits<f32_t>::max();
+    bool use_draw_list = style.pos.x != std::numeric_limits<f32_t>::max() || style.overlay;
     bool is_window_relative = style.window_offset.x != std::numeric_limits<f32_t>::max();
 
     std::optional<font_scope_t> fs;
@@ -982,24 +982,24 @@ namespace fan::graphics::gui {
 
     if (use_draw_list) {
       draw_pos = style.pos;
-      if (style.align == text_style_t::align_t::center) {
+      if (style.align == text_style_t::align_e::center) {
         draw_pos -= text_size * 0.5f;
       }
     } else if (is_window_relative) {
       fan::vec2 ws = get_window_size();
       draw_pos = (ws * 0.5f) + (ws * 0.5f * style.window_offset) - (text_size * style.text_offset);
       
-      if (style.align == text_style_t::align_t::center) {
+      if (style.align == text_style_t::align_e::center) {
         draw_pos.x -= text_size.x * 0.5f; 
-      } else if (style.align == text_style_t::align_t::bottom_right) {
+      } else if (style.align == text_style_t::align_e::bottom_right) {
         draw_pos -= text_size;
       }
 
       use_draw_list = true;
     } else {
-      draw_pos = style.align == text_style_t::align_t::bottom_right ?
+      draw_pos = style.align == text_style_t::align_e::bottom_right ?
         get_window_size() - text_size - fan::vec2(get_style().WindowPadding) : get_cursor_pos();
-      if (style.align == text_style_t::align_t::center) {
+      if (style.align == text_style_t::align_e::center) {
         draw_pos.x = (get_window_size().x - text_size.x) * 0.5f;
       }
     }
@@ -1013,7 +1013,10 @@ namespace fan::graphics::gui {
       }
     } else if (use_draw_list) {
       ImU32 col = ImGui::ColorConvertFloat4ToU32(ImVec4(style.color.r, style.color.g, style.color.b, style.color.a));
-      ImGui::GetWindowDrawList()->AddText(ImVec2(draw_pos.x, draw_pos.y), col, str.data(), str.data() + str.size());
+      ImDrawList* dl = style.overlay
+        ? ImGui::GetForegroundDrawList()
+        : ImGui::GetWindowDrawList();
+      dl->AddText(ImVec2(draw_pos.x, draw_pos.y), col, str.data(), str.data() + str.size());
     } else {
       set_cursor_pos(draw_pos);
       if (style.wrapped) { ImGui::PushTextWrapPos(0.0f); }
@@ -1286,8 +1289,12 @@ namespace fan::graphics::gui {
     return ImGui::GetBackgroundDrawList();
   }
 
-  window_handle_t* get_current_window() {
+  window_data_t* get_current_window() {
     return ImGui::GetCurrentWindow();
+  }
+
+  window_data_t* find_window(const fan::str_view_t name) {
+    return ImGui::FindWindowByName(name);
   }
 
   bool combo(str_view_t label, int* current_item, const char* const items[], int items_count, int popup_max_height_in_items) {

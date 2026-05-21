@@ -186,7 +186,7 @@ namespace fan::graphics::gui::tilemap_editor::ui {
         std::string combined = "Grid: " + grid_str + "\nWorld: " + world_str;
         
         fan::graphics::gui::text(combined.c_str(), {
-          .align = fan::graphics::gui::text_style_t::align_t::bottom_right
+          .align = fan::graphics::gui::text_style_t::align_e::bottom_right
         });
       }
 
