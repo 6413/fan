@@ -3,15 +3,14 @@
 #define stage_loader_path .
 #include <fan/graphics/gui/stage_maker/loader.h>
 
-struct pile_t {
-  fan::graphics::engine_t engine;
+struct pile_t : fan::graphics::engine_t {
 
   #include "player.h"
 
   pile_t();
 
   void update() {
-    engine.camera_set_target(engine.orthographic_render_view, player.body.get_position());
+    camera_set_target(orthographic_render_view, player.body.get_position());
     //player updates
     player.update();
   }
@@ -22,7 +21,7 @@ struct pile_t {
   stage_loader_t stage_loader;
   stage_loader_t::nr_t level_stage;
 
-  fan::graphics::interactive_camera_t ic{engine.orthographic_render_view};
+  interactive_camera_t ic{orthographic_render_view};
 }pile;
 
 lstd_defstruct(example_stage_t)
@@ -32,9 +31,9 @@ lstd_defstruct(example_stage_t)
 };
 
 pile_t::pile_t() {
-  engine.texture_pack.open_compiled("sample_texture_pack.ftp");
-  engine.camera_set_target(engine.orthographic_render_view, player.body.get_position(), 0);/*0 for insta snap*/
-  engine.update_physics(true);
+  texture_pack.open_compiled("sample_texture_pack.ftp");
+  camera_set_target(orthographic_render_view, player.body.get_position(), 0);/*0 for insta snap*/
+  update_physics(true);
 
   level_stage = pile.stage_loader.open_stage<example_stage_t>();
 }

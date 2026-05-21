@@ -5,6 +5,9 @@
 
 import fan;
 import fan.graphics.tilemap_editor.renderer;
+
+using namespace fan::graphics;
+
 #include "pile.h"
 
-int main() { pile.engine.loop(); }
+int main() { pile.loop(); }
