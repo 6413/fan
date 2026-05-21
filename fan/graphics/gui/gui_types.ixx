@@ -530,7 +530,7 @@ export namespace fan::graphics::gui {
   };
 
   using context_t = ImGuiContext;
-  using window_handle_t = ImGuiWindow;
+  using window_data_t = ImGuiWindow;
   using io_t = ImGuiIO;
   using input_text_callback_t = ImGuiInputTextCallback;
   using draw_list_t = ImDrawList;

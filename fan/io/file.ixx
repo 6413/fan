@@ -79,8 +79,8 @@ export namespace fan {
       std::string read(std::string_view path, bool* success = nullptr,
         std::source_location loc = std::source_location::current());
 
-      template <typename T>
-      std::vector<T> read(std::string_view path) {
+      template <typename T = std::uint8_t>
+      std::vector<T> read_binary(std::string_view path) {
         auto sz = file_size(path);
         if (!sz || sz % sizeof(T)) return {};
         std::vector<T> v(sz / sizeof(T));
