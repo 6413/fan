@@ -122,6 +122,26 @@ export namespace fan::graphics {
       fan::physics::shape_properties_t props = {}
     );
 
+    fan::vec2 get_tile_size() const {
+      return renderer->get_tile_size(id);
+    }
+
+    fan::vec2 get_map_size() const {
+      return renderer->get_map_size(id);
+    }
+
+    void setup_view(auto& body, auto& ic, f32_t scale) {
+      renderer->setup_view(id, body, ic, scale);
+    }
+
+    void iterate_marks(std::initializer_list<std::pair<std::string_view, std::function<void(tilemap_loader_t::fte_t::spawn_mark_data_t&)>>> dispatch) {
+      renderer->iterate_marks(id, dispatch);
+    }
+
+    void iterate_marks(std::function<bool(tilemap_loader_t::fte_t::spawn_mark_data_t&)> cb) {
+      renderer->iterate_marks(id, cb);
+    }
+
     tilemap_renderer_t* renderer = nullptr;
     tilemap_renderer_t::id_t id;
     std::vector<fan::physics::entity_t> collisions;

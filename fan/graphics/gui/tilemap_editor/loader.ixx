@@ -313,6 +313,7 @@ export namespace fan::graphics {
       fan::vec2 size = 512;
       fan::vec3 offset = 0;
       fan::vec2 scale = 1;
+      bool build_collisions = false;
       fan::graphics::render_view_t* render_view = nullptr;
       std::function<f32_t(const fte_t::tile_t&, const fan::vec2&, const fan::vec2&, f32_t)> depth_fn = nullptr;
     };
