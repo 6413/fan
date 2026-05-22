@@ -160,6 +160,15 @@ export namespace fan::graphics {
       }
     }
 
+    void iterate_marks(id_t map_id, std::initializer_list<std::pair<std::string_view, std::function<void(fte_t::spawn_mark_data_t&)>>> dispatch) {
+      iterate_marks(map_id, [&](fte_t::spawn_mark_data_t& mark) -> bool {
+        for (auto& [key, fn] : dispatch) {
+          if (mark.id == key) { fn(mark); break; }
+        }
+        return false;
+      });
+    }
+
     fan::physics::body_id_t get_physics_body(id_t map_id, const std::string& id) {
       fan::physics::body_id_t body;
       iterate_physics_entities(map_id, [&]<typename T>(auto& entity, T & entity_visual) -> bool {

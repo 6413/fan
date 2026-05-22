@@ -365,7 +365,7 @@ namespace fan::graphics::physics {
       .draw_offset = draw_offset,
       .body_id = body_id_data,
       .cb = (void*)shape_physics_update
-      });
+    });
   }
 
   base_shape_t::base_shape_t(base_shape_t&& r) : fan::graphics::shape_t(std::move(r)), fan::physics::entity_t(std::move(r)) {
@@ -462,6 +462,15 @@ namespace fan::graphics::physics {
   }
   fan::physics::aabb_t base_shape_t::get_aabb() const {
     return entity_t::get_aabb();
+  }
+  void base_shape_t::on_sensor_enter(fan::physics::entity_t& target, std::function<void()> callback) {
+    std::uint64_t body_a = *reinterpret_cast<std::uint64_t*>(&static_cast<body_id_t&>(*this));
+    std::uint64_t body_b = *reinterpret_cast<std::uint64_t*>(&static_cast<body_id_t&>(target));
+    trigger_update_nr = fan::physics::add_physics_step_callback([body_a, body_b, callback]{
+      if (fan::physics::gphysics()->is_on_sensor(*(fan::physics::body_id_t*)&body_b, *(fan::physics::body_id_t*)&body_a)) {
+        callback();
+      }
+    });
   }
   rectangle_t::properties_t::operator fan::graphics::rectangle_properties_t() const {
     return fan::graphics::rectangle_properties_t {
