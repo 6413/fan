@@ -2380,7 +2380,7 @@ namespace fan::physics {
 
 namespace fan::graphics {
   void camera_look_at(fan::graphics::camera_nr_t nr, const fan::graphics::physics::character2d_t& target, f32_t move_speed) {
-    camera_set_target(nr, target.get_position(), move_speed);
+    camera_follow(nr, target.get_position(), move_speed);
   }
   void camera_look_at(const fan::graphics::physics::character2d_t& target, f32_t move_speed) {
     camera_look_at(fan::graphics::get_orthographic_render_view().camera, target, move_speed);

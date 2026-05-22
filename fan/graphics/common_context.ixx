@@ -725,8 +725,8 @@ export namespace fan::graphics {
   void camera_set_ortho(fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y);
   void camera_set_perspective(fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size);
   void camera_rotate(fan::graphics::camera_nr_t nr, const fan::vec2& offset);
-  void camera_set_target(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed = 10);
-  void camera_set_target(const fan::vec2& target, f32_t move_speed = 10);
+  void camera_follow(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed = 10);
+  void camera_follow(const fan::vec2& target, f32_t move_speed = 10);
   void camera_look_at(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed = 10.f);
   void camera_look_at(const fan::vec2& target, f32_t move_speed = 10.f);
 
