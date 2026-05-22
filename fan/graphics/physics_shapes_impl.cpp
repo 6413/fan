@@ -466,9 +466,16 @@ namespace fan::graphics::physics {
   void base_shape_t::on_sensor_enter(fan::physics::entity_t& target, std::function<void()> callback) {
     std::uint64_t body_a = *reinterpret_cast<std::uint64_t*>(&static_cast<body_id_t&>(*this));
     std::uint64_t body_b = *reinterpret_cast<std::uint64_t*>(&static_cast<body_id_t&>(target));
-    trigger_update_nr = fan::physics::add_physics_step_callback([body_a, body_b, callback]{
+    trigger_update_nr = fan::physics::add_physics_step_callback(
+    [body_a, body_b, callback, sensor_triggered = false]() mutable {
       if (fan::physics::gphysics()->is_on_sensor(*(fan::physics::body_id_t*)&body_b, *(fan::physics::body_id_t*)&body_a)) {
-        callback();
+        if (!sensor_triggered) {
+          callback();
+          sensor_triggered = true;
+        }
+      }
+      else {
+        sensor_triggered = false;
       }
     });
   }
@@ -1312,6 +1319,9 @@ namespace fan::graphics::physics {
     if (!movement_cb_handle.iic()) {
       movement_cb_handle.remove();
       movement_cb_handle.sic();
+    }
+    if (oneway_enabled) {
+      fan::physics::gphysics()->remove_presolve_handler(static_cast<fan::physics::body_id_t*>(this));
     }
   }
 
