@@ -19,4 +19,6 @@ export {
 
 export namespace fan {
   using bytes_t = std::vector<std::uint8_t>;
+  using bytes_span_t = std::span<std::uint8_t>;
+  using bytes_cspan_t = std::span<const std::uint8_t>;
 }

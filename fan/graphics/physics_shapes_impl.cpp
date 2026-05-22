@@ -1545,6 +1545,9 @@ namespace fan::graphics::physics {
   void character2d_t::enable_double_jump() {
     movement_state.jump_state.allow_double_jump = true;
   }
+  void character2d_t::set_movement_speed(f32_t max_speed) {
+    movement_state.max_speed = max_speed;
+  }
   void character2d_t::setup_attack_properties(attack_state_t&& attack_state) {
     this->attack_state = std::move(attack_state);
   }
