@@ -48,17 +48,12 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
     bool door_open = false;
   };
 
-  struct player_t : fan::frame_task_t<player_t> {
+  struct player_t {
     player_t() {
       body.enable_default_movement();
       body.set_jump_height(32.f);
       body.set_movement_speed(300.f);
       body.add_child(light);
-    }
-
-    void update() {
-      if (auto h = gui::hud_interactive{"test"}) {
-      }
     }
 
     physics::character2d_t body = physics::character_capsule({
