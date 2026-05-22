@@ -73,6 +73,8 @@ b2DebugDraw initialize_debug(bool enabled);
 export namespace fan {
   namespace graphics {
     namespace physics {
+      struct character2d_t;
+
       void init();
 
       void step(f32_t dt);
@@ -115,8 +117,11 @@ export namespace fan {
         fan::vec2 get_size() const;
         fan::physics::aabb_t get_aabb() const;
 
+        void on_sensor_enter(fan::physics::entity_t& target, std::function<void()> callback);
+
         fan::vec2 draw_offset = 0;
         fan::physics::physics_update_cbs_t::nr_t physics_update_nr;
+        fan::physics::step_callback_nr_t trigger_update_nr; // does this need manual handling in move/copy?
       };
 
       struct rectangle_t : base_shape_t {
