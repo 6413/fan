@@ -64,7 +64,7 @@ export namespace fan {
     double sigmoid(double x) {
       return 1.0 / (1 + std::exp(-x));
     }
-    constexpr constexpr double sigmoid_derivative(double x) {
+    constexpr double sigmoid_derivative(double x) {
       return x * (1 - x);
     }
 

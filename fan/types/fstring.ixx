@@ -121,8 +121,7 @@ export namespace fan {
 
   template <typename T>
   inline T string_read_data(auto& f, auto& off) {
-    if constexpr (std::is_same<std::string, T>::value || 
-      std::is_same<std::string, T>::value) {
+    if constexpr (std::is_same<std::string, T>::value) {
       std::uint64_t len = string_read_data<std::uint64_t>(f, off);
       std::string str;
       str.resize(len);
@@ -132,7 +131,7 @@ export namespace fan {
     }
     else if constexpr (is_std_vector<T>::value) {
       std::uint64_t len = string_read_data<std::uint64_t>(f, off);
-      std::vector<typename T::value_type> vec(len);
+      T vec(len);
       if (len > 0) {
         std::memcpy(vec.data(), &f[off], len * sizeof(typename T::value_type));
         off += len * sizeof(typename T::value_type);
@@ -140,9 +139,10 @@ export namespace fan {
       return vec;
     }
     else {
-      auto obj = &f[off];
+      T obj;
+      std::memcpy(&obj, &f[off], sizeof(T));
       off += sizeof(T);
-      return *(T*)obj;
+      return obj;
     }
   }
 
@@ -174,12 +174,12 @@ export namespace fan {
     }
     else if constexpr (is_std_vector<T>::value) {
       std::uint64_t len = vector_read_data<std::uint64_t>(vec, off);
-      std::vector<typename T::value_type> vec(len);
+      T res(len);
       if (len > 0) {
-        std::memcpy(vec.data(), vec.data() + off, len * sizeof(typename T::value_type));
+        std::memcpy(res.data(), vec.data() + off, len * sizeof(typename T::value_type));
         off += len * sizeof(typename T::value_type);
       }
-      return vec;
+      return res;
     }
     else {
       T obj;
@@ -407,8 +407,18 @@ export namespace fan {
   }
 
   inline void strip_whitespace(std::string& str) {
-    while (!str.empty() && std::isspace((std::uint8_t)str.front())) str.erase(str.begin());
-    while (!str.empty() && std::isspace((std::uint8_t)str.back())) str.pop_back();
+    std::string_view sv(str);
+
+    while (!sv.empty() && std::isspace(static_cast<std::uint8_t>(sv.front()))) {
+      sv.remove_prefix(1);
+    }
+    while (!sv.empty() && std::isspace(static_cast<std::uint8_t>(sv.back()))) {
+      sv.remove_suffix(1);
+    }
+
+    if (sv.data() != str.data() || sv.size() != str.size()) {
+      str.assign(sv);
+    }
   }
   inline std::string strip_whitespace(const std::string& str) {
     std::string r = str;

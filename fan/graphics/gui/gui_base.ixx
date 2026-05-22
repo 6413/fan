@@ -419,8 +419,6 @@ export namespace fan::graphics::gui {
 
   f32_t get_line_height_with_spacing();
 
-  void seperator();
-
   void dock_space_over_viewport(id_t dockspace_id = 0, const gui::viewport_t* viewport = NULL, int flags = 0, const void* window_class = NULL);
 
   bool is_mouse_hovering_rect(const fan::vec2& min, const fan::vec2& max, bool clip = true);

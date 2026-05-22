@@ -667,6 +667,18 @@ export namespace fan {
         bool raycast(
           const character2d_t& target
         );
+
+        void enable_oneway_platforms() {
+  fan::physics::gphysics()->add_presolve_handler(
+    [](fan::physics::shape_id_t a, fan::physics::shape_id_t b, fan::physics::manifold_t* m, void* ctx) -> bool {
+      return fan::physics::presolve_oneway_collision(a, b, m,
+        *static_cast<fan::physics::body_id_t*>(ctx));
+    },
+    static_cast<fan::physics::body_id_t*>(this)
+  );
+  oneway_enabled = true;
+}
+
         fan::graphics::sprite_sheet_controller_t anim_controller;
         attack_state_t attack_state;
         
@@ -675,6 +687,7 @@ export namespace fan {
         movement_callback_handle_t movement_cb_handle;
         fan::physics::body_id_t feet[2];
         int combat_frame = 0;
+        bool oneway_enabled = false;
       };
 
       struct attack_hitbox_t {
@@ -928,8 +941,6 @@ export namespace fan {
         shape = physics::sprite_t {p};
 
         shape.on_sensor_enter(trigger_to, [this, on_enter = std::move(on_enter)] {
-          if (fired) return;
-          fired = true;
           on_enter(shape);
         });
       }

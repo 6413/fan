@@ -575,7 +575,7 @@ namespace fan::graphics {
     const tilemap_renderer_t::properties_t& p,
     const std::source_location& loc) : renderer(&r), id(r.open_map(path, p, loc)) {
     if (p.build_collisions) {
-      build_collisions();
+      build_collisions(p.collision_body_type, p.collision_props);
     }
   }
 

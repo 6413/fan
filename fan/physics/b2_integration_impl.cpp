@@ -322,6 +322,7 @@ namespace fan::physics {
         b2World_Draw(ctx->world_id, &ctx->debug.debug_draw);
       };
     };
+    b2World_SetPreSolveCallback(world_id, (b2PreSolveFcn*)global_presolve, this);
   }
 
   void context_t::set_gravity(const fan::vec2& gravity) {
@@ -936,7 +937,7 @@ namespace fan::physics {
     }
     return true;
   }
-  bool is_colliding(const b2ShapeId& a, const b2ShapeId& b) {
+  bool is_colliding(const shape_id_t& a, const shape_id_t& b) {
     return gphysics()->is_colliding(a, b);
   }
   fan::physics::entity_t create_sensor_circle(const fan::vec2& position, f32_t radius) {
@@ -953,7 +954,7 @@ namespace fan::physics {
   void remove_physics_step_callback(step_callback_nr_t nr) {
     gphysics()->physics_step_callbacks.unlrec(nr);
   }
-  bool presolve_oneway_collision(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, fan::physics::body_id_t character_body) {
+  bool presolve_oneway_collision(shape_id_t shapeIdA, shape_id_t shapeIdB, manifold_t* manifold, fan::physics::body_id_t character_body) {
     if (!b2Shape_IsValid(shapeIdA)) {
       fan::throw_error("Shape invalid");
     }
@@ -1077,8 +1078,8 @@ namespace fan::physics {
     return newBodyId;
   }
 
-  void set_pre_solve_callback(b2WorldId world_id, b2PreSolveFcn* fcn, void* context) {
-    b2World_SetPreSolveCallback(world_id, fcn, context);
+  void set_pre_solve_callback(b2WorldId world_id, pre_solve_fn_t* fcn, void* context) {
+    b2World_SetPreSolveCallback(world_id, (b2PreSolveFcn*)fcn, context);
   }
 
   // for drawing physics shapes

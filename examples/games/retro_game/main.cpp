@@ -10,11 +10,12 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
       map = tilemap_instance_t(pile.renderer, "sample_level.fte", {
         .position = pile.player.body.get_position(),
         .size = fan::vec2i(16, 9) * 5.f,
+        .collision_props{.presolve_events = true},
         .build_collisions = true
       });
 
       fan::vec2 ts = map.get_tile_size();
-      map.setup_view(pile.player.body, pile.ic, 2.08f);
+      map.setup_view(pile.player.body, pile.ic, 1.20370352);
 
       map.iterate_marks({
         {"key", [&](auto& m) {
@@ -25,11 +26,13 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
         }},
         {"door", [&](auto& m) {
           fan::vec2 size{32.f / 6.f, 64.f};
+          fan::vec2 pos = m.position.offset_y(-size.y + ts.y);
           door.open(pile.player.body, {
-            .position = m.position.offset_y(-size.y + ts.y), .size = size,
+            .position = pos, .size = size,
             .image = {"images/door_closed.png", image_presets::pixel_art()}
-          }, [](physics::sprite_t& s) {
-            s.set_position(s.get_position().offset_x(-32.f));
+          }, [&, door_pos = pos](physics::sprite_t& s) {
+            if (key.shape.is_valid()) return;
+            s.set_position(door_pos.offset_x(-32.f));
             s.set_size({32.f, 64.f});
             s.set_image({"images/door.png", image_presets::pixel_art()});
           });
@@ -44,12 +47,23 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
   };
 
   struct player_t {
-    player_t() { body.enable_default_movement(300.f, 32.f); }
+    static inline constexpr fan::vec2 draw_offset {0.f, -42.5f};
+    static inline constexpr f32_t aabb_scale = 0.17f;
 
-    physics::character2d_t body = physics::character_capsule({
-      .center0 = {0.f, -24.f}, .center1 = {0.f, 24.f},
-      .radius = 12,
-    });
+    player_t() { 
+      body.enable_oneway_platforms();
+      body.enable_default_movement(300.f, 64.f);
+      body.set_draw_offset(draw_offset);
+      body.set_flags(sprite_flags_e::use_hsl);
+      body.set_color(fan::color::hsl(56.7f, 18.3f, -58.4f));
+    }
+
+    physics::character2d_t body {
+      physics::character2d_t::from_json({
+        .json_path = "examples/games/platformer/player/player.json",
+        .aabb_scale = aabb_scale,
+      })
+    };
     light_t light{body, 200, fan::colors::white};
   };
 
@@ -63,6 +77,7 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
     if (is_key_clicked(fan::key_r)) {
       stage_loader.restart_stage<level1_t>(level_stage);
     }
+    player.body.update_animations();
   }
 
   player_t player;

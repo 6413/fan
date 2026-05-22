@@ -1697,7 +1697,7 @@ namespace fan::graphics::gui {
   }
 
   void dialogue_box_t::separator_t::render(dialogue_box_t* This, dialogue_box_t::drawable_nr_t nr, const fan::vec2& window_size, f32_t wrap_width, f32_t line_spacing) {
-    seperator();
+    gui::separator();
   }
 
   dialogue_box_t::dialogue_box_t() {

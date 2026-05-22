@@ -226,7 +226,6 @@ export namespace fan::graphics {
         }) {}
     unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, const fan::graphics::image_load_properties_t& p, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
     unlit_sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::image::info_t& info, const fan::graphics::image_load_properties_t& p = image_presets::pixel_art(), render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
-
   };
 
   struct circle_properties_t {
@@ -862,6 +861,7 @@ export namespace fan::graphics {
     void set_initial_position(const fan::vec2& position);
     fan::vec2 get_position() const;
     void set_position(const fan::vec2& position);
+    void set_center(const fan::vec2& center);
     f32_t get_zoom() const;
     void set_zoom(f32_t new_zoom);
     fan::vec2 get_size() const;
