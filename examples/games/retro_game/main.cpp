@@ -19,19 +19,17 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
 
       pile.renderer.iterate_marks(map.id, {
         {"key", [&](auto& m) {
-          key.open(pile.player.body, {{
+          key.open(pile.player.body, {
             .position = m.position, .size = 32.f,
-            .image = {"images/key.webp", image_presets::pixel_art()},
-            .shape_properties{.is_sensor = true}
-          }}, [](physics::sprite_t& s) { s.erase(); });
+            .image = {"images/key.webp", image_presets::pixel_art()}
+          }, [](physics::sprite_t& s) { s.erase(); });
         }},
         {"door", [&](auto& m) {
           fan::vec2 size{32.f / 6.f, 64.f};
-          door.open(pile.player.body, {{
+          door.open(pile.player.body, {
             .position = m.position.offset_y(-size.y + ts.y), .size = size,
-            .image = {"images/door_closed.png", image_presets::pixel_art()},
-            .shape_properties{.is_sensor = true}
-          }}, [](physics::sprite_t& s) {
+            .image = {"images/door_closed.png", image_presets::pixel_art()}
+          }, [](physics::sprite_t& s) {
             s.set_position(s.get_position().offset_x(-32.f));
             s.set_size({32.f, 64.f});
             s.set_image({"images/door.png", image_presets::pixel_art()});
@@ -48,9 +46,7 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
 
   struct player_t {
     player_t() {
-      body.enable_default_movement();
-      body.set_jump_height(32.f);
-      body.set_movement_speed(300.f);
+      body.enable_default_movement(300.f, 32.f);
       body.add_child(light);
     }
 

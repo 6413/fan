@@ -1351,7 +1351,7 @@ namespace fan::graphics::physics {
   character2d_t::movement_callback_handle_t character2d_t::add_movement_callback(std::function<void()> fn) {
     return fan::physics::add_physics_step_callback(fn);
   }
-  void character2d_t::enable_default_movement(std::uint8_t movement) {
+  void character2d_t::enable_default_movement(f32_t max_speed, f32_t jump_height, std::uint8_t movement) {
   #if FAN_DEBUG >= 3
     if (get_body_type() == fan::physics::body_type_e::static_body) {
       fan::graphics::gui::print_warning("trying to enable default movement for static body");
@@ -1365,6 +1365,8 @@ namespace fan::graphics::physics {
       }
       process_keyboard_movement(movement);
     });
+    set_movement_speed(max_speed);
+    set_jump_height(jump_height);
   }
   #if defined(FAN_JSON)
   void character2d_t::setup_default_animations(const fan::graphics::physics::character2d_t::character_config_t& config) {
