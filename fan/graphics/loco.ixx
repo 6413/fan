@@ -751,7 +751,9 @@ export namespace fan {
     frame_task_t() {
       update_nr = gloco()->m_update_callback.NewNodeFirst();
       gloco()->m_update_callback[update_nr] = [this](void*) {
-        static_cast<Derived*>(this)->update();
+        if constexpr (requires{static_cast<Derived*>(this)->update(); }) {
+          static_cast<Derived*>(this)->update();
+        }
       };
     }
 
