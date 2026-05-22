@@ -32,10 +32,7 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
   struct player_t : fan::frame_task_t<player_t> {
     player_t() {
       body.enable_default_movement();
-    }
-
-    void update() {
-      light.set_position(fan::vec2(body.get_position()));
+      body.add_child(light);
     }
 
     physics::character2d_t body = physics::character_capsule({
@@ -70,10 +67,5 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
 } pile;
 
 int main() {
-  pile.loop([&] {
-    if (fan::window::is_mouse_clicked() && pile.level_stage) {
-      pile.stage_loader.close_stage(pile.level_stage);
-      pile.level_stage = {};
-    }
-  });
+  pile.loop();
 }

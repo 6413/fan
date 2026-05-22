@@ -160,6 +160,10 @@ export namespace fan {
 
     template <typename T>
     stage_list_NodeReference_t open_stage(const stage_open_properties_t& op) {
+      if (!T::engine)  T::engine = gloco();
+      if (!T::window)  T::window = &gloco()->window;
+      if (!T::physics) T::physics = &gloco()->get_physics_context();
+
       previous_stage_name = current_stage_name;
       if constexpr (requires { T::stage_name; }) {
         current_stage_name = T::stage_name;
@@ -202,6 +206,14 @@ export namespace fan {
       gloco()->m_update_callback.unlrec(stage_list[id].update_nr);
       sc->close(stage_list[id].stage);
       stage_list.unlrec(id);
+    }
+
+    template <typename T>
+    void restart_stage(nr_t& id) {
+      if (id) {
+        close_stage(id);
+      }
+      id = open_stage<T>();
     }
 
     template <typename NextStageT>
@@ -287,8 +299,9 @@ export namespace fan {
       }
     }
 
-    inline static auto& engine = *gloco();
-    inline static auto& window = gloco()->window;
+    inline static loco_t* engine = nullptr;
+    inline static fan::window_t* window = nullptr;
+    inline static fan::physics::context_t* physics = nullptr;
     stage_loader_t::stage_common_t stage_common;
   };
 }

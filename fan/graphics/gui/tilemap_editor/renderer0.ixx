@@ -82,6 +82,13 @@ export namespace fan::graphics {
 
     f32_t get_dynamic_depth(id_t map_id, const fan::vec2& position, f32_t body_height);
 
+    // could be something else than auto?
+    void setup_view(id_t id, auto& body, auto& camera, f32_t zoom) {
+      body.set_physics_position(get_spawn_position(id));
+      camera.set_zoom(zoom);
+      camera.set_position(get_spawn_position(id).offset_y(-get_map_size(id).y / 2.f * get_tile_size(id).y));
+    }
+
     void iterate_tiles(id_t map_id, auto cb) {
       auto& node = get_map_node(map_id);
       for (const auto& row : node.compiled_map->compiled_shapes) {

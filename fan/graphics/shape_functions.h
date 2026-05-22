@@ -484,7 +484,6 @@ MAKE_ACCESSORS(camera, fan::graphics::camera_t, true)
 MAKE_ACCESSORS(viewport, fan::graphics::viewport_t, true)
 MAKE_ACCESSORS(image, fan::graphics::image_t, true)
 MAKE_ACCESSORS(position, fan::vec3, true)
-MAKE_ACCESSORS(size, fan::vec2, false)
 MAKE_ACCESSORS(color, fan::color, false)
 MAKE_ACCESSORS(angle, fan::vec3, false)
 MAKE_ACCESSORS(rotation_point, fan::vec2, false)
@@ -533,6 +532,29 @@ template<typename shape_type>
 static void generic_set_position3(fan::graphics::shapes::shape_t* s, const fan::vec3& v){
   set_position(s, v);
   generic_set_position<shape_type>(s, v);
+}
+
+template<typename shape_type>
+static fan::vec2 generic_get_size(const fan::graphics::shapes::shape_t* s) {
+  fan::vec2 r{};
+  fan::graphics::g_shapes->visit_shape_draw_data(s->NRI, [&](auto& p) {
+    if constexpr (requires { p.size; }) r = p.size;
+    else if constexpr (requires { p.radius; }) r = fan::vec2{p.radius, p.radius};
+  });
+  return r;
+}
+
+template<typename shape_type>
+static void generic_set_size(fan::graphics::shapes::shape_t* s, const fan::vec2& v) {
+  if constexpr (requires { &shape_type::properties_t::size; }) {
+    if constexpr (requires { &shape_type::vi_t::size; }) {
+      set_with_sync<shape_type>(s, v, &shape_type::properties_t::size, &shape_type::vi_t::size);
+    } else {
+      set_with_sync<shape_type>(s, v, &shape_type::properties_t::size, nullptr);
+    }
+  } else {
+    generic_set_radius<shape_type>(s, v.x);
+  }
 }
 
 static void generic_set_line(fan::graphics::shapes::shape_t* shape, const fan::vec2& src, const fan::vec2& dst) {
@@ -665,7 +687,7 @@ vtables_storage[fan::graphics::shape_type_t::shape_name].set_shader = generic_se
   vtables_storage[shape_type_t::shape_name].set_size3 = generic_set_size3<shape_name##_t>; \*/
 
   shape_functions_t() {
-    GEN_SHAPES(REGISTER_SHAPE_FUNCS, SKIP)
+    GEN_SHAPES(REGISTER_SHAPE_FUNCS, SKIP);
   }
 
   vtable_t& operator[](uint16_t shape){
@@ -684,15 +706,4 @@ auto get_field(const T* props, auto field_ptr){
     using ret_t = std::remove_cvref_t<decltype(props->*field_ptr)>;
     return ret_t{};
   }
-}
-
-template<typename T>
-fan::vec2 get_size_from_radius(const T* props){
-  if constexpr (requires { props->radius; }) {
-    return fan::vec2{props->radius, props->radius};
-  }
-  else if constexpr (requires { props->size; }) {
-    return props->size;
-  }
-  return fan::vec2{};
 }

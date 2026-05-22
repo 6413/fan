@@ -3411,7 +3411,7 @@ namespace fan::graphics {
     }
     default:
     {
-      fan::throw_error("unimplemented shape");
+      fan::throw_error("unimplemented shape. got:" + std::string(shape_names[shape.get_shape_type()]));
     }
     }
     return false;
