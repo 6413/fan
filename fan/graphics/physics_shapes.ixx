@@ -438,7 +438,7 @@ export namespace fan {
         std::function<void(int jump_state)> on_jump = [](int) {};
         f32_t last_ground_time = 0.f;
         f32_t coyote_time = 0.1f;
-        f32_t impulse = 40.f;
+        f32_t impulse = 32.f;
         bool prev_jump_button = false;
         bool jumping = false;
         bool consumed = false;
@@ -482,7 +482,7 @@ export namespace fan {
 
         f32_t acceleration_force = 120.f;
         f32_t deceleration_force = 300.f;
-        f32_t max_speed = 600.f;
+        f32_t max_speed = 300.f;
         std::uint8_t type = movement_e::side_view;
         jump_state_t jump_state;
         fan::vec2 last_direction = 0;
@@ -635,7 +635,7 @@ export namespace fan {
         void set_physics_body(fan::physics::entity_t&& entity);
 
         movement_callback_handle_t add_movement_callback(std::function<void()> fn);
-        void enable_default_movement(std::uint8_t movement = movement_e::side_view);
+        void enable_default_movement(f32_t max_speed = movement_state_t{}.max_speed, f32_t jump_height = movement_state_t{}.jump_state.impulse, std::uint8_t movement = movement_e::side_view);
 
         #if defined(FAN_JSON)
         void setup_default_animations(const fan::graphics::physics::character2d_t::character_config_t& config);
@@ -918,11 +918,15 @@ export namespace fan {
 
     struct trigger_t {
       trigger_t() = default;
+
       void open(
         auto& trigger_to,
-        physics::sprite_t&& s,
+        physics::sprite_t::properties_t p,
         std::function<void(physics::sprite_t&)> on_enter) {
-        shape = std::move(s);
+
+        p.shape_properties.is_sensor = true;
+        shape = physics::sprite_t {p};
+
         shape.on_sensor_enter(trigger_to, [this, on_enter = std::move(on_enter)] {
           if (fired) return;
           fired = true;
