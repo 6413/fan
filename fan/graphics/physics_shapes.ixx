@@ -914,9 +914,30 @@ export namespace fan {
         fan::physics::body_id_t target_body;
         fan::physics::joint_id_t mouse_joint = fan::physics::joint_get_null();
       };
-    }
-  }
-}
+    } // namespace fan::graphics::physics
+
+    struct trigger_t {
+      trigger_t() = default;
+      void open(
+        auto& trigger_to,
+        physics::sprite_t&& s,
+        std::function<void(physics::sprite_t&)> on_enter) {
+        shape = std::move(s);
+        shape.on_sensor_enter(trigger_to, [this, on_enter = std::move(on_enter)] {
+          if (fired) return;
+          fired = true;
+          on_enter(shape);
+        });
+      }
+
+      trigger_t(const trigger_t&) = delete;
+      trigger_t& operator=(const trigger_t&) = delete;
+
+      physics::sprite_t shape;
+      bool fired = false;
+    };
+  } // namespace fan::graphics
+} // namespace fan
 
 export namespace fan::physics {
   using mouse_joint_t = fan::graphics::physics::mouse_joint_t;

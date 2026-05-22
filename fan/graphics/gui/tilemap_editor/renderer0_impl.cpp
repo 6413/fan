@@ -568,6 +568,46 @@ namespace fan::graphics {
     f32_t tile_size_y = node.compiled_map->tile_size.y * 2.f;
     return fan::graphics::get_player_depth_from_y(position, body_height, tile_size_y);
   }
+
+
+  tilemap_instance_t::tilemap_instance_t(
+    tilemap_renderer_t& r, std::string_view path,
+    const tilemap_renderer_t::properties_t& p,
+    const std::source_location& loc) : renderer(&r), id(r.open_map(path, p, loc)) {}
+
+  tilemap_instance_t::tilemap_instance_t(tilemap_instance_t&& o) noexcept
+    : renderer(o.renderer), id(o.id), collisions(std::move(o.collisions)) {
+    o.renderer = nullptr;
+  }
+
+  tilemap_instance_t& tilemap_instance_t::operator=(tilemap_instance_t&& o) noexcept {
+    if (this != &o) {
+      close();
+      renderer = o.renderer;
+      id = o.id;
+      collisions = std::move(o.collisions);
+      o.renderer = nullptr;
+    }
+    return *this;
+  }
+
+  tilemap_instance_t::~tilemap_instance_t() { close(); }
+
+  void tilemap_instance_t::update(const fan::vec2& pos) {
+    if (renderer) renderer->update(id, pos);
+  }
+
+  void tilemap_instance_t::close() {
+    for (auto& c : collisions) { c.destroy(); }
+    collisions.clear();
+    if (renderer) { renderer->close_map(id); renderer = nullptr; }
+  }
+
+  void tilemap_instance_t::build_collisions(std::uint8_t bt, fan::physics::shape_properties_t props)  {
+    renderer->iterate_tiles(id, [&](const auto& tile) {
+      collisions.emplace_back(fan::physics::gphysics()->create_box(tile.position, tile.size, 0, bt, props));
+    });
+  }
 }
 #endif
 #endif
