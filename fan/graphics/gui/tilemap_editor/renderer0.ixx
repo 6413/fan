@@ -100,6 +100,32 @@ export namespace fan::graphics {
       }
     }
   };
+
+  struct tilemap_instance_t {
+    tilemap_instance_t() = default;
+    tilemap_instance_t(tilemap_renderer_t& r, std::string_view path, const tilemap_renderer_t::properties_t& p = {},
+                       const std::source_location& loc = std::source_location::current());
+
+    tilemap_instance_t(const tilemap_instance_t&) = delete;
+    tilemap_instance_t& operator=(const tilemap_instance_t&) = delete;
+
+    tilemap_instance_t(tilemap_instance_t&& o) noexcept;
+    tilemap_instance_t& operator=(tilemap_instance_t&& o) noexcept;
+
+    ~tilemap_instance_t();
+
+    void update(const fan::vec2& pos);
+    void close();
+
+    void build_collisions(
+      std::uint8_t bt = fan::physics::body_type_e::static_body,
+      fan::physics::shape_properties_t props = {}
+    );
+
+    tilemap_renderer_t* renderer = nullptr;
+    tilemap_renderer_t::id_t id;
+    std::vector<fan::physics::entity_t> collisions;
+  };
 }
 #undef tilemap_renderer
 #endif
