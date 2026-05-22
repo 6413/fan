@@ -60,14 +60,13 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
       .center0 = {0.f, -24.f},
       .center1 = {0.f, 24.f},
       .radius = 12,
-    }, { .fixed_rotation = true });
+    });
     light_t light{body.get_position(), 200, fan::colors::white};
   };
 
   pile_t() {
     texture_pack.open_compiled("sample_texture_pack.ftp");
     update_physics(true);
-
     stage_loader.restart_stage<level1_t>(level_stage);
   }
 
