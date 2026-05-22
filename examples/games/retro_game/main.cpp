@@ -20,18 +20,18 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
         {"key", [&](auto& m) {
           key.open(pile.player.body, {
             .position = m.position, .size = 32.f,
-            .image = "images/key.webp"
+            .image = {"images/key.webp", image_presets::pixel_art()}
           }, [](physics::sprite_t& s) { s.erase(); });
         }},
         {"door", [&](auto& m) {
           fan::vec2 size{32.f / 6.f, 64.f};
           door.open(pile.player.body, {
             .position = m.position.offset_y(-size.y + ts.y), .size = size,
-            .image = "images/door_closed.png"
+            .image = {"images/door_closed.png", image_presets::pixel_art()}
           }, [](physics::sprite_t& s) {
             s.set_position(s.get_position().offset_x(-32.f));
             s.set_size({32.f, 64.f});
-            s.set_image("images/door.png");
+            s.set_image({"images/door.png", image_presets::pixel_art()});
           });
         }},
       });
@@ -72,7 +72,7 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
   tilemap_renderer_t renderer;
   fan::stage_loader_t stage_loader;
   fan::stage_loader_t::nr_t level_stage;
-  interactive_camera_t ic{orthographic_render_view};
+  interactive_camera_t ic;
 } pile;
 
 int main() {
