@@ -44,8 +44,6 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
 
     tilemap_instance_t map;
     trigger_t key, door;
-    fan::vec2 door_pos = 0;
-    bool door_open = false;
   };
 
   struct player_t {
