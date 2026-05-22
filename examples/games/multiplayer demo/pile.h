@@ -18,7 +18,7 @@ struct pile_t {
 
   void step() {
     //player updates
-    engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position());
+    engine.camera_follow(engine.orthographic_render_view.camera, player.body.get_position());
     player.step();
     peers.step();
     

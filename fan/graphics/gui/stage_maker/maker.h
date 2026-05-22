@@ -116,15 +116,15 @@ void update(){
   struct stage_t : fan::graphics::imgui_element_t {
     stage_t(fsm_t* fsm, const fan::string& stage_name_)
       : fan::graphics::imgui_element_t([fsm, this] {
-      if (!fsm->render_fsm) {
-        return;
-      }
-      ImGui::Begin(stages_str, nullptr, ImGuiWindowFlags_DockNodeHost);
-      if (ImGui::Button(stage_name.c_str())) {
-        fsm->current_stage = stage_name;
-      }
-      ImGui::End();
-      })
+          if (!fsm->render_fsm) {
+            return;
+          }
+          ImGui::Begin(stages_str, nullptr, ImGuiWindowFlags_DockNodeHost);
+          if (ImGui::Button(stage_name.c_str())) {
+            fsm->current_stage = stage_name;
+          }
+          ImGui::End();
+        })
     {
       stage_name = stage_name_;
     }
