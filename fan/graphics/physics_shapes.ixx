@@ -972,7 +972,7 @@ export namespace fan::graphics::physics {
     const fan::vec2& center0 = { 0.f, -32.f },
     const fan::vec2& center1 = { 0.f, 32.f },
     f32_t radius = 16.f,
-    const fan::physics::shape_properties_t& shape_properties = {}
+    const fan::physics::shape_properties_t& shape_properties = {.fixed_rotation = true}
   );
   // creates physics body for visual shape
   fan::physics::entity_t character_capsule(
