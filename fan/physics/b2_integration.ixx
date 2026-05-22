@@ -146,6 +146,10 @@ export namespace fan {
       explicit operator bool() const;
     };
 
+    struct manifold_t : b2Manifold {
+      using b2Manifold::b2Manifold;
+    };
+
     struct ray_result_t : b2RayResult {
       shape_id_t shapeId;
       fan::vec2 point;
@@ -262,6 +266,13 @@ export namespace fan {
       std::vector<sensor_contact_t> contacts;
     };
 
+    using pre_solve_fn_t = bool(
+      fan::physics::shape_id_t shapeIdA, 
+      fan::physics::shape_id_t shapeIdB, 
+      fan::physics::manifold_t* manifold, 
+      void* context
+    );
+
     struct context_t {
 
       operator b2WorldId& ();
@@ -337,6 +348,21 @@ export namespace fan {
       fan::physics::physics_update_cbs_t::nd_t& get_physics_update_data(fan::physics::physics_update_cbs_t::nr_t nr);
       void remove_physics_update(physics_update_cbs_t::nr_t nr);
 
+      static bool global_presolve(fan::physics::shape_id_t a, fan::physics::shape_id_t b, fan::physics::manifold_t* m, void* ctx) {
+        bool result = true;
+        for (auto& [fn, user_ctx] : static_cast<context_t*>(ctx)->presolve_handlers) {
+          if (!fn(a, b, m, user_ctx)) { result = false; }
+        }
+        return result;
+      }
+      void add_presolve_handler(pre_solve_fn_t* fn, void* ctx) {
+        presolve_handlers.emplace_back(fn, ctx);
+      }
+      void remove_presolve_handler(void* ctx) {
+        std::erase_if(presolve_handlers, [ctx](auto& p) { return p.second == ctx; });
+      }
+      std::vector<std::pair<pre_solve_fn_t*, void*>> presolve_handlers;
+
       b2WorldId world_id;
       sensor_events_t sensor_events;
       f32_t delta_time = 0;
@@ -359,13 +385,13 @@ export namespace fan {
       std::function<void()> debug_draw_cb = [] {};
     };
 
-    bool presolve_oneway_collision(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, fan::physics::body_id_t character_body);
+    bool presolve_oneway_collision(shape_id_t shapeIdA, shape_id_t shapeIdB, manifold_t* manifold, fan::physics::body_id_t character_body);
 
     fan::physics::body_id_t deep_copy_body(b2WorldId worldId, fan::physics::body_id_t sourceBodyId);
 
-    void set_pre_solve_callback(b2WorldId world_id, b2PreSolveFcn* fcn, void* context);
+    void set_pre_solve_callback(b2WorldId world_id, pre_solve_fn_t* fcn, void* context);
 
-    bool is_colliding(const b2ShapeId& a, const b2ShapeId& b);
+    bool is_colliding(const shape_id_t& a, const shape_id_t& b);
 
     fan::physics::entity_t create_sensor_circle(const fan::vec2& position, f32_t radius);
 

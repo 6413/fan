@@ -1588,10 +1588,6 @@ namespace fan::graphics::gui {
     return ImGui::GetTextLineHeightWithSpacing();
   }
 
-  void seperator() {
-    ImGui::Separator();
-  }
-
   void dock_space_over_viewport(id_t dockspace_id, const gui::viewport_t* viewport, int flags, const void* window_class) {
     ImGui::DockSpaceOverViewport(dockspace_id, viewport, flags, static_cast<const ImGuiWindowClass*>(window_class));
   }

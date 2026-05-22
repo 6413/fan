@@ -918,6 +918,13 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     update();
   }
 
+  void interactive_camera_t::set_center(const fan::vec2& center) {
+    fan::graphics::camera_set_center(render_view, center);
+    camera_offset = camera_get_position(render_view);
+    update();
+  }
+  void set_center(const fan::vec2& center);
+
   f32_t interactive_camera_t::get_zoom() const {
     return fan::graphics::camera_get_zoom(render_view.camera);
   }
@@ -1016,6 +1023,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
   }
 
   void trail_t::set_point(const fan::vec3& point, f32_t drift_intensity) {
+    // uses static for all trails?
     static fan::time::timer timer {(double)300000000ULL, true};
     bool should_reset = trails.empty() || timer;
 

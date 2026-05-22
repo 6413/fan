@@ -86,7 +86,10 @@ export namespace fan::graphics {
     void setup_view(id_t id, auto& body, auto& camera, f32_t zoom) {
       body.set_physics_position(get_spawn_position(id));
       camera.set_zoom(zoom);
-      camera.set_position(get_spawn_position(id).offset_y(-get_map_size(id).y / 2.f * get_tile_size(id).y));
+      fan::vec2 map_size = get_map_size(id);
+      fan::vec2 tile_size = get_tile_size(id);
+      fan::vec2 map_center = get_map_node(id).position + (map_size * tile_size) - tile_size;
+      camera.set_center(map_center);
     }
 
     void iterate_tiles(id_t map_id, auto cb) {
