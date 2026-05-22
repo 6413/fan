@@ -44,13 +44,10 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
   };
 
   struct player_t {
-    player_t() {
-      body.enable_default_movement(300.f, 32.f);
-    }
+    player_t() { body.enable_default_movement(300.f, 32.f); }
 
     physics::character2d_t body = physics::character_capsule({
-      .center0 = {0.f, -24.f},
-      .center1 = {0.f, 24.f},
+      .center0 = {0.f, -24.f}, .center1 = {0.f, 24.f},
       .radius = 12,
     });
     light_t light{body, 200, fan::colors::white};
