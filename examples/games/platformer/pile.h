@@ -45,7 +45,7 @@ struct pile_t {
     engine.update_physics(!pause);
     if (!engine.is_key_down(fan::mouse_middle)) {
       fan::vec2 target_pos = player.get_physics_pos() - fan::vec2(0, 50);
-      engine.camera_set_target(engine.orthographic_render_view.camera, target_pos, 0);
+      engine.camera_follow(engine.orthographic_render_view.camera, target_pos, 0);
       ic.camera_offset = target_pos;
     }
     if (!pause) {
@@ -105,7 +105,7 @@ pile_t::pile_t() {
   renderer.open();
 
   player.body.set_physics_position(player.body.get_position());
-  engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position(), 0);
+  engine.camera_follow(engine.orthographic_render_view.camera, player.body.get_position(), 0);
 
   items::init();
 

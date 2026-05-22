@@ -789,7 +789,7 @@ namespace fan::graphics {
     fan::graphics::ctx()->camera_rotate(fan::graphics::ctx(), nr, offset);
   }
 
-  void camera_set_target(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed) {
+  void camera_follow(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed) {
     auto& c = camera_get(nr);
     fan::vec2 offset = fan::vec2(c.coordinates.left + c.coordinates.right, c.coordinates.top + c.coordinates.bottom) / (2.f * c.zoom);
     
@@ -801,16 +801,16 @@ namespace fan::graphics {
     camera_set_center(nr, fan::vec3(new_center, 0.f));
   }
 
-  void camera_set_target(const fan::vec2& target, f32_t move_speed) {
-    camera_set_target(fan::graphics::get_orthographic_render_view(), target, move_speed);
+  void camera_follow(const fan::vec2& target, f32_t move_speed) {
+    camera_follow(fan::graphics::get_orthographic_render_view(), target, move_speed);
   }
 
   void camera_look_at(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed) {
-    camera_set_target(nr, target, move_speed);
+    camera_follow(nr, target, move_speed);
   }
 
   void camera_look_at(const fan::vec2& target, f32_t move_speed) {
-    camera_set_target(fan::graphics::get_orthographic_render_view(), target, move_speed);
+    camera_follow(fan::graphics::get_orthographic_render_view(), target, move_speed);
   }
 
   fan::graphics::viewport_nr_t viewport_create() {

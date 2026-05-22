@@ -11,7 +11,7 @@ struct pile_t {
   void step() {
     //player updates
     if (!ic.clicked_inside_viewport) {
-      engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position(), 0);
+      engine.camera_follow(engine.orthographic_render_view.camera, player.body.get_position(), 0);
       ic.camera_offset = engine.camera_get_position();
     }
     player.step();
@@ -55,7 +55,7 @@ pile_t::pile_t() {
   renderer.open();
   
   player.body.set_physics_position(player.body.get_position());
-  engine.camera_set_target(engine.orthographic_render_view.camera, player.body.get_position(), 0);
+  engine.camera_follow(engine.orthographic_render_view.camera, player.body.get_position(), 0);
 
   level_stage = pile.stage_loader.open_stage<example_stage_t>();
 }

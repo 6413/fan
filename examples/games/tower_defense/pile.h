@@ -28,6 +28,6 @@ lstd_defstruct(example_stage_t)
 
 pile_t::pile_t() {
   //engine.texture_pack.open_compiled("sample_texture_pack.ftp");
-  engine.camera_set_target(fan::vec2{0.f, 0.f}, 0);/*0 for insta snap*/
+  engine.camera_follow(fan::vec2{0.f, 0.f}, 0);/*0 for insta snap*/
   level_stage = pile.stage_loader.open_stage<example_stage_t>();
 }

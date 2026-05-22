@@ -483,7 +483,7 @@ void loco_t::camera_rotate(const fan::vec2& offset) {
   camera_rotate(perspective_render_view, offset);
 }
 
-void loco_t::camera_set_target(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed) {
+void loco_t::camera_follow(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed) {
   auto& c = context_functions.camera_get(&context, nr);
   fan::vec2 offset = fan::vec2(c.coordinates.left + c.coordinates.right, c.coordinates.top + c.coordinates.bottom) / (2.f * c.zoom);
   
@@ -497,8 +497,8 @@ void loco_t::camera_set_target(fan::graphics::camera_nr_t nr, const fan::vec2& t
   );
 }
 
-void loco_t::camera_set_target(const fan::vec2& target, f32_t move_speed) {
-  camera_set_target(orthographic_render_view, target, move_speed);
+void loco_t::camera_follow(const fan::vec2& target, f32_t move_speed) {
+  camera_follow(orthographic_render_view, target, move_speed);
 }
 
 fan::graphics::viewport_nr_t loco_t::viewport_create() {

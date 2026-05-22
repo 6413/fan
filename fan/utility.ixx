@@ -435,4 +435,22 @@ export namespace fan {
     std::conditional_t<(N <= 0xFFFFu),       std::uint16_t,
     std::conditional_t<(N <= 0xFFFFFFFFull), std::uint32_t,
                                              std::uint64_t>>>;
+
+  template <typename T>
+  consteval std::string_view get_type_name() {
+  #if defined(fan_compiler_clang)
+    constexpr std::string_view n = __PRETTY_FUNCTION__;
+    constexpr std::string_view p = "[T = ", s = "]";
+  #elif defined(fan_compiler_gcc)
+    constexpr std::string_view n = __PRETTY_FUNCTION__;
+    constexpr std::string_view p = "[with T = ", s = "]";
+  #elif defined(fan_compiler_msvc)
+    constexpr std::string_view n = __FUNCSIG__;
+    constexpr std::string_view p = "get_type_name<", s = ">(void)";
+  #else
+    return "";
+  #endif
+    const auto b = n.find(p) + p.size();
+    return n.substr(b, n.rfind(s) - b);
+  }
 }

@@ -301,8 +301,8 @@ public:
   void camera_set_perspective(fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size);
   void camera_rotate(fan::graphics::camera_nr_t nr, const fan::vec2& offset);
   void camera_rotate(const fan::vec2& offset);
-  void camera_set_target(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed = 10);
-  void camera_set_target(const fan::vec2& target, f32_t move_speed = 10);
+  void camera_follow(fan::graphics::camera_nr_t nr, const fan::vec2& target, f32_t move_speed = 10);
+  void camera_follow(const fan::vec2& target, f32_t move_speed = 10);
 
   fan::graphics::viewport_nr_t viewport_create();
   fan::graphics::viewport_nr_t viewport_create(const fan::vec2& viewport_position, const fan::vec2& viewport_size);
@@ -741,4 +741,27 @@ namespace fan {
 export namespace fan::graphics {
   using engine_t = loco_t;
   void shader_set_camera(fan::graphics::shader_t nr, fan::graphics::camera_t camera_nr);
+}
+
+export namespace fan {
+  template <typename Derived>
+  struct frame_task_t {
+    using self_t = Derived;
+
+    frame_task_t() {
+      update_nr = gloco()->m_update_callback.NewNodeFirst();
+      gloco()->m_update_callback[update_nr] = [this](void*) {
+        static_cast<Derived*>(this)->update();
+      };
+    }
+
+    ~frame_task_t() {
+      if (update_nr) {
+        gloco()->m_update_callback.unlrec(update_nr);
+        update_nr.sic();
+      }
+    }
+
+    fan::graphics::update_callback_nr_t update_nr;
+  };
 }
