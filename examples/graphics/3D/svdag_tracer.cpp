@@ -1,13 +1,3 @@
-#include <cstdint>
-#include <vector>
-#include <numeric>
-#include <filesystem>
-#include <algorithm>
-#include <string>
-#include <string_view>
-#include <memory>
-#include <limits>
-
 #include <fan/graphics/gl_api.h>
 #include <fan/utility.h>
 
@@ -332,7 +322,7 @@ uniform sampler2D u_tex; in vec2 v_uv; out vec4 out_color; void main() { out_col
 
 struct game_t {
   game_t() : engine({.window_size = {1280, 720}}) {
-    renderer = std::make_unique<svdag_renderer_t>(extract_build_tris("models/stanford_dragon_pbr.glb", voxel_res), voxel_res, "");
+    renderer = std::make_unique<svdag_renderer_t>(extract_build_tris("models/oldman.gltf", voxel_res), voxel_res, "");
     engine.camera_set_position(engine.perspective_render_view, {209.4, -9.7, 122.5});
     auto& cam = engine.camera_get(engine.perspective_render_view);
     cam.yaw = -118.1; cam.pitch = 0.3;
@@ -360,7 +350,7 @@ struct game_t {
   }
 
   engine_t engine;
-  int voxel_res = 4096;
+  int voxel_res = 64;
   std::unique_ptr<svdag_renderer_t> renderer;
   fan::vec3 sun_direction{0.6f, 0.9f, 0.4f};
   f32_t move_speed = 1000.f;

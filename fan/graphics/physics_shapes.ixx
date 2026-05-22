@@ -650,6 +650,8 @@ export namespace fan {
         void set_jump_height(f32_t v);
         void enable_double_jump();
 
+        void set_movement_speed(f32_t max_speed);
+
         void setup_attack_properties(attack_state_t&& attack_state);
         void take_knockback(character2d_t* source, const fan::vec2& hit_direction, f32_t knockback_multiplier = 1.0f);
         void take_hit(character2d_t* source, const fan::vec2& hit_direction, f32_t knockback_multiplier = 1.0f);
