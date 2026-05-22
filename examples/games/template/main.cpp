@@ -6,7 +6,7 @@ using namespace fan::graphics;
 struct pile_t : engine_t, fan::frame_task_t<pile_t> {
 
   struct example_stage_t : fan::stage_t<example_stage_t> {
-    void open(void* sod) {
+    void open() {
       id = pile.renderer.open_map("sample_level.fte", {
         .position = pile.player.body.get_position(),
         .size = fan::vec2i(16, 9),
