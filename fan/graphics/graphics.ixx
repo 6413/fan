@@ -94,6 +94,14 @@ export namespace fan::graphics {
     light_t() = default;
     light_t(light_properties_t p);
     light_t(const fan::vec3& position, const fan::vec2& size, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+    // auto to support physics bodies
+    light_t(auto& parent, const fan::vec2& size, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view) : 
+      light_t(light_properties_t {
+        .render_view = render_view,
+        .position = parent.get_position(),
+        .size = size,
+        .color = color
+      }) { parent.add_child(*this); }
   };
 
   struct line_properties_t {

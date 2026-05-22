@@ -287,7 +287,7 @@ export namespace fan::graphics {
       using shaper_t::ShapeID_t::ShapeID_t;
       shape_t();
       template <typename T>
-        requires requires(T t) { typename T::type_t; }
+      requires requires(T t) { typename T::type_t; }
       shape_t(const T& properties, bool add_to_culling = true) : shape_t() {
         auto shape_type = T::type_t::shape_type;
         *this = fan::graphics::shapes::shape_functions_push_back(shape_type, (void*)&properties);
@@ -303,6 +303,14 @@ export namespace fan::graphics {
         fan::print_impl("+", NRI);
       #endif
       }
+
+      template <typename T, typename P>
+        requires requires(T t) { typename T::type_t; } && 
+                 requires(P p, shape_t& s) { p.add_child(s); }
+      shape_t(P& parent, const T& properties, bool add_to_culling = true) : shape_t(properties, add_to_culling) {
+        parent.add_child(*this);
+      }
+
       shape_t(shape_t&& s) noexcept;
       shape_t(const shaper_t::ShapeID_t& s);
       shape_t(const shape_t& s);

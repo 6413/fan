@@ -573,7 +573,11 @@ namespace fan::graphics {
   tilemap_instance_t::tilemap_instance_t(
     tilemap_renderer_t& r, std::string_view path,
     const tilemap_renderer_t::properties_t& p,
-    const std::source_location& loc) : renderer(&r), id(r.open_map(path, p, loc)) {}
+    const std::source_location& loc) : renderer(&r), id(r.open_map(path, p, loc)) {
+    if (p.build_collisions) {
+      build_collisions();
+    }
+  }
 
   tilemap_instance_t::tilemap_instance_t(tilemap_instance_t&& o) noexcept
     : renderer(o.renderer), id(o.id), collisions(std::move(o.collisions)) {

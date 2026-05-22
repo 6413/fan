@@ -6,33 +6,32 @@ using namespace fan::graphics;
 struct pile_t : engine_t, fan::frame_task_t<pile_t> {
 
   struct level1_t : fan::stage_t<level1_t> {
-    void open(void* sod) {
+    void open(void*) {
       map = tilemap_instance_t(pile.renderer, "sample_level.fte", {
         .position = pile.player.body.get_position(),
         .size = fan::vec2i(16, 9) * 5.f,
+        .build_collisions = true
       });
 
-      map.build_collisions();
+      fan::vec2 ts = map.get_tile_size();
+      map.setup_view(pile.player.body, pile.ic, 2.08f);
 
-      fan::vec2 ts = pile.renderer.get_tile_size(map.id);
-      pile.renderer.setup_view(map.id, pile.player.body, pile.ic, 2.08f);
-
-      pile.renderer.iterate_marks(map.id, {
+      map.iterate_marks({
         {"key", [&](auto& m) {
           key.open(pile.player.body, {
             .position = m.position, .size = 32.f,
-            .image = {"images/key.webp", image_presets::pixel_art()}
+            .image = "images/key.webp"
           }, [](physics::sprite_t& s) { s.erase(); });
         }},
         {"door", [&](auto& m) {
           fan::vec2 size{32.f / 6.f, 64.f};
           door.open(pile.player.body, {
             .position = m.position.offset_y(-size.y + ts.y), .size = size,
-            .image = {"images/door_closed.png", image_presets::pixel_art()}
+            .image = "images/door_closed.png"
           }, [](physics::sprite_t& s) {
             s.set_position(s.get_position().offset_x(-32.f));
             s.set_size({32.f, 64.f});
-            s.set_image({"images/door.png", image_presets::pixel_art()});
+            s.set_image("images/door.png");
           });
         }},
       });
@@ -47,7 +46,6 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
   struct player_t {
     player_t() {
       body.enable_default_movement(300.f, 32.f);
-      body.add_child(light);
     }
 
     physics::character2d_t body = physics::character_capsule({
@@ -55,7 +53,7 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
       .center1 = {0.f, 24.f},
       .radius = 12,
     });
-    light_t light{body.get_position(), 200, fan::colors::white};
+    light_t light{body, 200, fan::colors::white};
   };
 
   pile_t() {
