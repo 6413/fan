@@ -12,6 +12,7 @@ import fan.types;
 import fan.print.error; // for throw_error with msg
 import fan.types.compile_time_string;
 import fan.types.fstring;
+import fan.formatter;
 
 export namespace fan {
 
@@ -112,12 +113,6 @@ export namespace fan {
     }
 
   };
-
-  template<typename>
-  struct is_std_vector : std::false_type {};
-
-  template<typename T, typename A>
-  struct is_std_vector<std::vector<T, A>> : std::true_type {};
 
   template <typename T>
   inline T string_read_data(auto& f, auto& off) {
