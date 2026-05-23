@@ -104,6 +104,12 @@ export namespace fan::graphics {
     }
   };
 
+  struct collision_tile_info_t {
+    fan::vec2i cell;
+    tilemap_loader_t::fte_t::mesh_property_t type = tilemap_loader_t::fte_t::mesh_property_t::none;
+    std::string id;
+  };
+
   struct tilemap_instance_t {
     tilemap_instance_t() = default;
     tilemap_instance_t(tilemap_renderer_t& r, std::string_view path, const tilemap_renderer_t::properties_t& p = {},
@@ -148,6 +154,24 @@ export namespace fan::graphics {
     tilemap_renderer_t* renderer = nullptr;
     tilemap_renderer_t::id_t id;
     std::vector<fan::physics::entity_t> collisions;
+    std::deque<collision_tile_info_t> collision_datas;
+    const collision_tile_info_t* get_collision_info(fan::physics::entity_t& body) const {
+      return body.get_user_data_as<collision_tile_info_t>();
+    }
+    fan::graphics::shape_t* get_shape(fan::physics::entity_t body) const {
+      auto* info = get_collision_info(body);
+      if (!info) { return nullptr; }
+      
+      fan::vec2i cell = info->cell / (fan::vec2i(get_tile_size()) * 2);
+      
+      auto& node = renderer->get_map_node(id);
+
+      for (int depth = 0; depth < 4; ++depth) {
+        auto it = node.rendered_tiles.find(fan::vec3i(cell.x, cell.y, depth));
+        if (it != node.rendered_tiles.end()) { return &it->second; }
+      }
+      return nullptr;
+    }
   };
 }
 #undef tilemap_renderer

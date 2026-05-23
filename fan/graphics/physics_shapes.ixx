@@ -117,11 +117,12 @@ export namespace fan {
         fan::vec2 get_size() const;
         fan::physics::aabb_t get_aabb() const;
 
-        void on_sensor_enter(fan::physics::entity_t& target, std::function<void()> callback);
+        void on_collision_enter(std::function<void(fan::physics::entity_t other)> cb);
+        void on_collision_exit(std::function<void(fan::physics::entity_t other)> cb);
+        void on_sensor_enter(fan::physics::entity_t& target, std::function<void()> callback); // backward compat
 
         fan::vec2 draw_offset = 0;
         fan::physics::physics_update_cbs_t::nr_t physics_update_nr;
-        fan::physics::step_callback_nr_t trigger_update_nr; // does this need manual handling in move/copy?
       };
 
       struct rectangle_t : base_shape_t {
