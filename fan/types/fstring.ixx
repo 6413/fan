@@ -11,7 +11,6 @@ import std;
 import fan.types;
 import fan.print.error; // for throw_error with msg
 import fan.types.compile_time_string;
-import fan.types.fstring;
 
 template<typename>
 struct is_std_vector : std::false_type {};
