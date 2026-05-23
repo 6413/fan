@@ -1,3 +1,4 @@
+#if 0
 import std;
 import fan;
 
@@ -118,3 +119,5 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
 int main() {
   pile.loop();
 }
+
+#endif
