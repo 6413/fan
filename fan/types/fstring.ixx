@@ -12,6 +12,7 @@ import fan.types;
 import fan.print.error; // for throw_error with msg
 import fan.types.vector;
 import fan.types.compile_time_string;
+import fan.types.fstring;
 
 export namespace fan {
 
