@@ -580,7 +580,7 @@ namespace fan::graphics {
   }
 
   tilemap_instance_t::tilemap_instance_t(tilemap_instance_t&& o) noexcept
-    : renderer(o.renderer), id(o.id), collisions(std::move(o.collisions)) {
+    : renderer(o.renderer), id(o.id), collisions(std::move(o.collisions)), collision_datas(std::move(o.collision_datas)) {
     o.renderer = nullptr;
   }
 
@@ -590,6 +590,7 @@ namespace fan::graphics {
       renderer = o.renderer;
       id = o.id;
       collisions = std::move(o.collisions);
+      collision_datas = std::move(o.collision_datas);
       o.renderer = nullptr;
     }
     return *this;
@@ -604,12 +605,21 @@ namespace fan::graphics {
   void tilemap_instance_t::close() {
     for (auto& c : collisions) { c.destroy(); }
     collisions.clear();
+    collision_datas.clear();
     if (renderer) { renderer->close_map(id); renderer = nullptr; }
   }
 
-  void tilemap_instance_t::build_collisions(std::uint8_t bt, fan::physics::shape_properties_t props)  {
+  void tilemap_instance_t::build_collisions(std::uint8_t bt, fan::physics::shape_properties_t props) {
+    props.contact_events = true;
     renderer->iterate_tiles(id, [&](const auto& tile) {
-      collisions.emplace_back(fan::physics::gphysics()->create_box(tile.position, tile.size, 0, bt, props));
+      auto body = fan::physics::gphysics()->create_box(tile.position, tile.size, 0, bt, props);
+      collision_datas.push_back({
+        .cell = fan::vec2i(tile.position.x, tile.position.y),
+        .type = tile.mesh_property,
+        .id = tile.id
+      });
+      body.set_user_data(&collision_datas.back());
+      collisions.emplace_back(body);
     });
   }
 }

@@ -174,6 +174,11 @@ export namespace fan {
 
       operator b2ShapeId() const;
 
+      void set_user_data(void* data) { b2Body_SetUserData(*this, data); }
+      void* get_user_data() const { return b2Body_GetUserData(*this); }
+      template<typename T>
+      T* get_user_data_as() const { return static_cast<T*>(get_user_data()); }
+
       bool is_valid() const;
 
       void invalidate();
@@ -265,6 +270,18 @@ export namespace fan {
 
       std::vector<sensor_contact_t> contacts;
     };
+
+    struct collision_listener_pair_t {
+      std::function<void(entity_t other)> on_enter = [](auto){};
+      std::function<void(entity_t other)> on_exit = [](auto){};
+    };
+    using collision_listeners_t = std::unordered_map<body_id_t,
+      std::vector<collision_listener_pair_t>,
+      b2_body_id_hash_t,
+      b2_body_id_equal_t
+    >;
+    void add_collision_listeners(body_id_t sensor, collision_listener_pair_t callbacks);
+    void remove_collision_listeners(body_id_t sensor);
 
     using pre_solve_fn_t = bool(
       fan::physics::shape_id_t shapeIdA, 
@@ -383,6 +400,8 @@ export namespace fan {
       fan::physics::physics_update_cbs_t physics_updates;
       physics_step_callbacks_t physics_step_callbacks;
       std::function<void()> debug_draw_cb = [] {};
+
+      collision_listeners_t collision_listeners;
     };
 
     bool presolve_oneway_collision(shape_id_t shapeIdA, shape_id_t shapeIdB, manifold_t* manifold, fan::physics::body_id_t character_body);

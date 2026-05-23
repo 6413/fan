@@ -429,6 +429,7 @@ namespace fan::graphics::physics {
 
   void base_shape_t::erase() {
     fan::graphics::shape_t::erase();
+    fan::physics::remove_collision_listeners(*this);
     fan::physics::entity_t::destroy();
     if (physics_update_nr.iic() == false) {
       fan::physics::remove_physics_update(physics_update_nr);
@@ -463,20 +464,17 @@ namespace fan::graphics::physics {
   fan::physics::aabb_t base_shape_t::get_aabb() const {
     return entity_t::get_aabb();
   }
+  void base_shape_t::on_collision_enter(std::function<void(fan::physics::entity_t)> cb) {
+    fan::physics::add_collision_listeners(*this, fan::physics::collision_listener_pair_t{.on_enter = std::move(cb)});
+  }
+  void base_shape_t::on_collision_exit(std::function<void(fan::physics::entity_t)> cb) {
+    fan::physics::add_collision_listeners(*this, fan::physics::collision_listener_pair_t{.on_exit = std::move(cb)});
+  }
   void base_shape_t::on_sensor_enter(fan::physics::entity_t& target, std::function<void()> callback) {
-    std::uint64_t body_a = *reinterpret_cast<std::uint64_t*>(&static_cast<body_id_t&>(*this));
-    std::uint64_t body_b = *reinterpret_cast<std::uint64_t*>(&static_cast<body_id_t&>(target));
-    trigger_update_nr = fan::physics::add_physics_step_callback(
-    [body_a, body_b, callback, sensor_triggered = false]() mutable {
-      if (fan::physics::gphysics()->is_on_sensor(*(fan::physics::body_id_t*)&body_b, *(fan::physics::body_id_t*)&body_a)) {
-        if (!sensor_triggered) {
-          callback();
-          sensor_triggered = true;
-        }
-      }
-      else {
-        sensor_triggered = false;
-      }
+    std::uint64_t target_id = *reinterpret_cast<std::uint64_t*>(&static_cast<body_id_t&>(target));
+    on_collision_enter([target_id, cb = std::move(callback)](fan::physics::entity_t other) {
+      std::uint64_t other_id = *reinterpret_cast<std::uint64_t*>(&other);
+      if (other_id == target_id) cb();
     });
   }
   rectangle_t::properties_t::operator fan::graphics::rectangle_properties_t() const {

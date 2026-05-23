@@ -45,6 +45,20 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
           spikes.add(m.position, m.size, "up");
         }},
       });
+
+      pile.player.body.on_collision_enter([&](fan::physics::entity_t other) {
+        auto* info = map.get_collision_info(other);
+        if (info && info->id == "platform") {
+          if (auto* shape = map.get_shape(other)) { shape->set_color(fan::colors::green); }
+        }
+      });
+
+      /*pile.player.body.on_collision_exit([&](fan::physics::entity_t other) {
+        auto* info = map.get_collision_info(other);
+        if (info && info->id == "platform") {
+          if (auto* shape = map.get_shape(other)) { shape->set_color(fan::colors::white); }
+        }
+      });*/
     }
 
     void update() { 
