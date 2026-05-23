@@ -618,8 +618,20 @@ namespace fan::physics {
     }
   }
 
-  void add_collision_listeners(body_id_t sensor, collision_listener_pair_t cb) {
-    fan::physics::gphysics()->collision_listeners[sensor].push_back(std::move(cb));
+  collision_listener_handle_t add_collision_listeners(body_id_t sensor, collision_listener_pair_t cb) {
+    auto& vec = fan::physics::gphysics()->collision_listeners[sensor];
+    vec.push_back(std::move(cb));
+    return {sensor, (std::uint32_t)(vec.size() - 1)};
+  }
+  void remove_collision_listener(collision_listener_handle_t handle) {
+    if (!handle.valid()) return;
+    auto it = fan::physics::gphysics()->collision_listeners.find(handle.body);
+    if (it == fan::physics::gphysics()->collision_listeners.end()) return;
+    auto& vec = it->second;
+    if (handle.index >= vec.size()) return;
+    vec[handle.index] = std::move(vec.back());
+    vec.pop_back();
+    if (vec.empty()) fan::physics::gphysics()->collision_listeners.erase(it);
   }
   void remove_collision_listeners(body_id_t sensor) {
     if (!sensor) return;
