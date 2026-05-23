@@ -203,10 +203,8 @@ else
     if $FORCE_REBUILD || [[ ! -f "$LIB_DIR/libfreetype.a" ]]; then
         echo "Building FreeType..."
         FREETYPE_DIR="$INSTALL_DIR/freetype"
-        rm -rf "$FREETYPE_DIR" freetype-2.13.2.tar.xz
-        wget -O freetype-2.13.2.tar.xz https://download.savannah.gnu.org/releases/freetype/freetype-2.13.2.tar.xz
-        tar -xf freetype-2.13.2.tar.xz
-        mv freetype-2.13.2 "$FREETYPE_DIR"
+        rm -rf "$FREETYPE_DIR"
+        git clone --depth 1 --branch VER-2-13-2 https://github.com/freetype/freetype.git "$FREETYPE_DIR"
         cd "$FREETYPE_DIR" && mkdir build && cd build
         cmake $(cmake_flags) \
               -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
