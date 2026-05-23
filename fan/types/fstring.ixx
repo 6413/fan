@@ -12,7 +12,12 @@ import fan.types;
 import fan.print.error; // for throw_error with msg
 import fan.types.compile_time_string;
 import fan.types.fstring;
-import fan.formatter;
+
+template<typename>
+struct is_std_vector : std::false_type {};
+
+template<typename T, typename A>
+struct is_std_vector<std::vector<T, A>> : std::true_type {};
 
 export namespace fan {
 
