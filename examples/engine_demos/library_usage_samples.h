@@ -1,9 +1,3 @@
-// Library usage includes
-//-------------------------------------------------------------------
-#define stage_loader_path .
-#include <fan/graphics/gui/stage_maker/loader.h>
-//-------------------------------------------------------------------
-
 
 // Library usage samples, these structs expect there is an instance of a fan::graphics::engine_t.
 // They use "gloco()" to access global engine pointer
@@ -311,40 +305,40 @@ struct library_usage_t {
   struct system {
     //-------------------------------------------------------------------
     // Demonstrates creating and loading custom stages
-    struct custom_stage {
-      // make custom stage
-      lstd_defstruct(custom_t)
-      #include <fan/graphics/gui/stage_maker/preset.h>
-        static constexpr auto stage_name = "";
-      fan::graphics::rectangle_t r;
-      void open(void* sod) {
-        fan::print("opened");
-      }
-      void close() {
-        fan::print("closed");
-      }
-      void window_resize() {////
-        fan::print("resized");
-      }
-      void update() {
-        fan::print("update");
-      }
-    };
-    stage_loader_t* stage_loader;
-    stage_loader_t::nr_t stage_handle;
-    custom_stage() {
-      stage_loader = new stage_loader_t;
-      stage_loader_t::stage_open_properties_t op;
-      stage_handle = stage_loader->open_stage<custom_t>(op);
-    }
-    void close() {
-      stage_loader->erase_stage(stage_handle);
-      delete stage_loader;
-    }
-    void update() {
-      fan::graphics::gui::text("Custom stage running");
-    }
-  };//
-};
+    //struct custom_stage {
+    //  // make custom stage
+    //  lstd_defstruct(custom_t)
+    //    #include <fan/graphics/gui/stage_maker/preset.h>
+    //    static constexpr auto stage_name = "";
+    //    fan::graphics::rectangle_t r;
+    //    void open(void* sod) {
+    //      fan::print("opened");
+    //    }
+    //    void close() {
+    //      fan::print("closed");
+    //    }
+    //    void window_resize() {////
+    //      fan::print("resized");
+    //    }
+    //    void update() {
+    //      fan::print("update");
+    //    }
+    //  };
+    //  stage_loader_t* stage_loader;
+    //  stage_loader_t::nr_t stage_handle;
+    //  custom_stage() {
+    //    stage_loader = new stage_loader_t;
+    //    stage_loader_t::stage_open_properties_t op;
+    //    stage_handle = stage_loader->open_stage<custom_t>(op);
+    //  }
+    //  void close() {
+    //    stage_loader->erase_stage(stage_handle);
+    //    delete stage_loader;
+    //  }
+    //  void update() {
+    //    fan::graphics::gui::text("Custom stage running");
+    //  }
+    //};//
+  };
 //-------------------------------------------------------------------
 };//
