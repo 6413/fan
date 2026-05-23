@@ -214,7 +214,7 @@ export namespace fan::graphics::gameplay {
     fan::vec2 cell_size = 256;
     fan::vec2i grid_size = {4096, 4096};
 
-    std::unordered_map<uint32_t, std::vector<fan::physics::entity_t>> cells;
+    std::unordered_map<std::uint32_t, std::vector<fan::physics::entity_t>> cells;
     std::vector<spike_t> spikes;
     fan::graphics::image_t img {"images/gameplay/spike.webp"};
 
@@ -225,7 +225,7 @@ export namespace fan::graphics::gameplay {
 
       for (int y = minc.y; y <= maxc.y; ++y) {
         for (int x = minc.x; x <= maxc.x; ++x) {
-          uint32_t idx = fan::spatial::cell_index({x, y}, grid_size);
+          std::uint32_t idx = fan::spatial::cell_index({x, y}, grid_size);
           cells[idx].push_back(spike);
         }
       }
@@ -261,7 +261,7 @@ export namespace fan::graphics::gameplay {
 
       for (int y = minc.y; y <= maxc.y; ++y) {
         for (int x = minc.x; x <= maxc.x; ++x) {
-          uint32_t idx = fan::spatial::cell_index({x, y}, grid_size);
+          std::uint32_t idx = fan::spatial::cell_index({x, y}, grid_size);
           auto it = cells.find(idx);
           if (it == cells.end()) continue;
 
