@@ -25,15 +25,17 @@ namespace fan {
   const int fs_o_trunc       = O_TRUNC;
   const int fs_o_wronly      = O_WRONLY;
 
-  const int fs_o_directory   = 0;
-  const int fs_o_nonblock    = 0;
 #ifdef O_DIRECTORY
   #undef fs_o_directory
   const int fs_o_directory   = O_DIRECTORY;
+#else
+  const int fs_o_directory   = 0;
 #endif
 #ifdef O_NONBLOCK
   #undef fs_o_nonblock
   const int fs_o_nonblock    = O_NONBLOCK;
+#else
+  const int fs_o_nonblock    = 0;
 #endif
 
   const int eof = UV_EOF; 
