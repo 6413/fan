@@ -14,6 +14,7 @@ import fan.graphics.loco;
 import fan.event.types;
 import fan.print.error;
 import fan.memory;
+import fan.graphics.common_context;
 
 #include <fan/graphics/gui/fgm/common.h>
 
