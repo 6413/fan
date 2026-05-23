@@ -201,7 +201,7 @@ namespace fan::graphics::gui {
     f32_t box_spacing = 12.0f;
     f32_t current_y = window_size.y - 40;
 
-    for (const auto& msg : static_texts | std::ranges::views::reverse) {
+    for (const auto& msg : std::ranges::reverse_view(static_texts)) {
       fan::vec2 position = window_pos + fan::vec2(20, current_y);
       position.y -= gui::calc_text_size(msg.text).y;
       int lines_count = render_text_with_background(draw_list, msg.text, msg.color, position);
