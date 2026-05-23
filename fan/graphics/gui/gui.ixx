@@ -27,6 +27,7 @@ import std;
   import fan.graphics.shapes.types;
   import fan.event.types;
   import fan.io.types;
+  import fan.window;
 #endif
 
 #if defined(FAN_3D)
