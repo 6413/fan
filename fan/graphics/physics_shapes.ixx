@@ -117,12 +117,32 @@ export namespace fan {
         fan::vec2 get_size() const;
         fan::physics::aabb_t get_aabb() const;
 
-        void on_collision_enter(std::function<void(fan::physics::entity_t other)> cb);
-        void on_collision_exit(std::function<void(fan::physics::entity_t other)> cb);
+        fan::physics::collision_listener_handle_t on_collision_enter(std::function<void(fan::physics::entity_t other)> cb);
+        fan::physics::collision_listener_handle_t on_collision_exit(std::function<void(fan::physics::entity_t other)> cb);
         void on_sensor_enter(fan::physics::entity_t& target, std::function<void()> callback); // backward compat
 
         fan::vec2 draw_offset = 0;
         fan::physics::physics_update_cbs_t::nr_t physics_update_nr;
+      };
+
+      struct collision_scope_t {
+        collision_scope_t() = default;
+        ~collision_scope_t() {
+          for (auto& h : handles) fan::physics::remove_collision_listener(h);
+        }
+        collision_scope_t(const collision_scope_t&) = delete;
+        collision_scope_t& operator=(const collision_scope_t&) = delete;
+        fan::physics::collision_listener_handle_t on_enter(fan::physics::body_id_t body, auto cb) {
+          auto h = fan::physics::add_collision_listeners(body, {.on_enter = std::move(cb)});
+          handles.push_back(h);
+          return h;
+        }
+        fan::physics::collision_listener_handle_t on_exit(fan::physics::body_id_t body, auto cb) {
+          auto h = fan::physics::add_collision_listeners(body, {.on_exit = std::move(cb)});
+          handles.push_back(h);
+          return h;
+        }
+        std::vector<fan::physics::collision_listener_handle_t> handles;
       };
 
       struct rectangle_t : base_shape_t {

@@ -275,12 +275,18 @@ export namespace fan {
       std::function<void(entity_t other)> on_enter = [](auto){};
       std::function<void(entity_t other)> on_exit = [](auto){};
     };
+    struct collision_listener_handle_t {
+      b2BodyId body = b2_nullBodyId;
+      std::uint32_t index = UINT32_MAX;
+      bool valid() const { return index != UINT32_MAX; }
+    };
     using collision_listeners_t = std::unordered_map<body_id_t,
       std::vector<collision_listener_pair_t>,
       b2_body_id_hash_t,
       b2_body_id_equal_t
     >;
-    void add_collision_listeners(body_id_t sensor, collision_listener_pair_t callbacks);
+    collision_listener_handle_t add_collision_listeners(body_id_t sensor, collision_listener_pair_t callbacks);
+    void remove_collision_listener(collision_listener_handle_t handle);
     void remove_collision_listeners(body_id_t sensor);
 
     using pre_solve_fn_t = bool(

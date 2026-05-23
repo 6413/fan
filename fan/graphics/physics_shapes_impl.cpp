@@ -464,11 +464,11 @@ namespace fan::graphics::physics {
   fan::physics::aabb_t base_shape_t::get_aabb() const {
     return entity_t::get_aabb();
   }
-  void base_shape_t::on_collision_enter(std::function<void(fan::physics::entity_t)> cb) {
-    fan::physics::add_collision_listeners(*this, fan::physics::collision_listener_pair_t{.on_enter = std::move(cb)});
+  fan::physics::collision_listener_handle_t base_shape_t::on_collision_enter(std::function<void(fan::physics::entity_t)> cb) {
+    return fan::physics::add_collision_listeners(*this, fan::physics::collision_listener_pair_t{.on_enter = std::move(cb)});
   }
-  void base_shape_t::on_collision_exit(std::function<void(fan::physics::entity_t)> cb) {
-    fan::physics::add_collision_listeners(*this, fan::physics::collision_listener_pair_t{.on_exit = std::move(cb)});
+  fan::physics::collision_listener_handle_t base_shape_t::on_collision_exit(std::function<void(fan::physics::entity_t)> cb) {
+    return fan::physics::add_collision_listeners(*this, fan::physics::collision_listener_pair_t{.on_exit = std::move(cb)});
   }
   void base_shape_t::on_sensor_enter(fan::physics::entity_t& target, std::function<void()> callback) {
     std::uint64_t target_id = *reinterpret_cast<std::uint64_t*>(&static_cast<body_id_t&>(target));

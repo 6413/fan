@@ -46,7 +46,7 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
         }},
       });
 
-      pile.player.body.on_collision_enter([&](fan::physics::entity_t other) {
+      collision_scope.on_enter(pile.player.body, [&](fan::physics::entity_t other) {
         auto* info = map.get_collision_info(other);
         if (info && info->id == "platform") {
           if (auto* shape = map.get_shape(other)) { shape->set_color(fan::colors::green); }
@@ -71,6 +71,7 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
     tilemap_instance_t map;
     trigger_t key, door;
     gameplay::spikes_t spikes;
+    physics::collision_scope_t collision_scope;
   };
 
   struct player_t {
