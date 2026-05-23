@@ -4,6 +4,7 @@ export module fan.graphics.stb;
 
 import std;
 
+import fan.types;
 import fan.types.vector;
 
 import fan.types.compile_time_string;
