@@ -174,6 +174,7 @@ export namespace fan::graphics {
     sprite_t() = default;
     sprite_t(sprite_properties_t p);
     sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
+    sprite_t(const fan::vec3& position, const fan::vec2& size,  fan::vec3 angle, const fan::graphics::image_t& image, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
     sprite_t(const fan::graphics::image_t& image, const fan::vec3& position = POSITION3_WINDOW_CENTER, const fan::vec2& size = POSITION2_WINDOW_CENTER);
     // for single color texture
     sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::color& single_color);

@@ -13,6 +13,10 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
         .collision_props{.presolve_events = true},
         .build_collisions = true
       });
+      pile.renderer.iterate_physics_entities(map.id, [&](auto& a, auto& t) {
+        t.set_friction(0.f);
+        return false;
+      });
 
       fan::vec2 ts = map.get_tile_size();
       map.setup_view(pile.player.body, pile.ic, 1.20370352);
@@ -37,13 +41,22 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
             s.set_image({"images/door.png", image_presets::pixel_art()});
           });
         }},
+        {"spikes_up", [&](auto& m) {
+          spikes.add(m.position, m.size, "up");
+        }},
       });
     }
 
-    void update() { map.update(pile.player.body.get_position()); }
+    void update() { 
+      map.update(pile.player.body.get_position());
+      if (spikes.query(pile.player.body)) {
+        pile.stage_loader.restart_stage<level1_t>(pile.level_stage);
+      }
+    }
 
     tilemap_instance_t map;
     trigger_t key, door;
+    gameplay::spikes_t spikes;
   };
 
   struct player_t {
@@ -52,10 +65,10 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
 
     player_t() { 
       body.enable_oneway_platforms();
-      body.enable_default_movement(300.f, 64.f);
+      body.enable_default_movement(300.f, 52.f);
       body.set_draw_offset(draw_offset);
       body.set_flags(sprite_flags_e::use_hsl);
-      body.set_color(fan::color::hsl(56.7f, 18.3f, -58.4f));
+      body.set_color(fan::color::hsl(20.7f, 18.3f, -58.4f));
     }
 
     physics::character2d_t body {
