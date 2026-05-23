@@ -1537,6 +1537,11 @@ namespace fan::graphics::physics {
   bool character2d_t::is_on_ground() const {
     return fan::physics::is_on_ground(*this, movement_state.jump_state.jumping, (fan::physics::body_id_t*)feet);
   }
+  void character2d_t::request_drop_through() {
+    if (!is_on_ground() || drop_through_requested) return;
+    drop_through_requested = true;
+    drop_through_timer.start(300'000'000ULL); // 300ms
+  }
   f32_t character2d_t::get_max_health() const {
     return attack_state.max_health;
   }

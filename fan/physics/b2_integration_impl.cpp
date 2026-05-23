@@ -982,7 +982,7 @@ namespace fan::physics {
   void remove_physics_step_callback(step_callback_nr_t nr) {
     gphysics()->physics_step_callbacks.unlrec(nr);
   }
-  bool presolve_oneway_collision(shape_id_t shapeIdA, shape_id_t shapeIdB, manifold_t* manifold, fan::physics::body_id_t character_body) {
+  bool presolve_oneway_collision(shape_id_t shapeIdA, shape_id_t shapeIdB, manifold_t* manifold, fan::physics::body_id_t character_body, bool drop_through_requested) {
     if (!b2Shape_IsValid(shapeIdA)) {
       fan::throw_error("Shape invalid");
     }
@@ -1003,6 +1003,7 @@ namespace fan::physics {
 
     b2Vec2 normal = manifold->normal;
     if (sign * normal.y > 0.95f) {
+      if (drop_through_requested) return false;
       return true;
     }
 

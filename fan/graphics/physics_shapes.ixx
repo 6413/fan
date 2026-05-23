@@ -644,6 +644,7 @@ export namespace fan {
 
         void process_keyboard_movement(std::uint8_t movement = movement_e::side_view, f32_t friction = 12.f);
         bool is_on_ground() const;
+        void request_drop_through();
 
         f32_t get_max_health() const;
         f32_t get_health() const;
@@ -672,10 +673,17 @@ export namespace fan {
         void enable_oneway_platforms() {
           fan::physics::gphysics()->add_presolve_handler(
             [](fan::physics::shape_id_t a, fan::physics::shape_id_t b, fan::physics::manifold_t* m, void* ctx) -> bool {
+              auto* character = static_cast<character2d_t*>(ctx);
+              bool drop = character->drop_through_requested;
+              if (drop && character->drop_through_timer.finished()) {
+                character->drop_through_requested = false;
+                drop = false;
+              }
               return fan::physics::presolve_oneway_collision(a, b, m,
-                *static_cast<fan::physics::body_id_t*>(ctx));
+                *static_cast<fan::physics::body_id_t*>(static_cast<base_shape_t*>(character)),
+                drop);
             },
-            static_cast<fan::physics::body_id_t*>(this)
+            static_cast<void*>(this)
           );
           oneway_enabled = true;
         }
@@ -688,6 +696,8 @@ export namespace fan {
         movement_callback_handle_t movement_cb_handle;
         fan::physics::body_id_t feet[2];
         int combat_frame = 0;
+        bool drop_through_requested = false;
+        fan::time::timer drop_through_timer;
         bool oneway_enabled = false;
       };
 
