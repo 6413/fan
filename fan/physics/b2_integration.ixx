@@ -404,7 +404,7 @@ export namespace fan {
       collision_listeners_t collision_listeners;
     };
 
-    bool presolve_oneway_collision(shape_id_t shapeIdA, shape_id_t shapeIdB, manifold_t* manifold, fan::physics::body_id_t character_body);
+    bool presolve_oneway_collision(shape_id_t shapeIdA, shape_id_t shapeIdB, manifold_t* manifold, fan::physics::body_id_t character_body, bool drop_through_requested);
 
     fan::physics::body_id_t deep_copy_body(b2WorldId worldId, fan::physics::body_id_t sourceBodyId);
 
@@ -438,7 +438,7 @@ export namespace fan {
     
     entity_t create_sensor_circle(const fan::vec2& position, f32_t radius);
     entity_t create_sensor_rectangle(const fan::vec2& position, const fan::vec2& size);
-    bool presolve_oneway_collision(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, body_id_t character_body);
+    bool presolve_oneway_collision(b2ShapeId shapeIdA, b2ShapeId shapeIdB, b2Manifold* manifold, body_id_t character_body, bool drop_through_requested);
     body_id_t deep_copy_body(b2WorldId worldId, body_id_t sourceBodyId);
     void set_pre_solve_callback(b2WorldId world_id, b2PreSolveFcn* fcn, void* context);
 
