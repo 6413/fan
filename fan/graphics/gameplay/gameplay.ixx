@@ -18,6 +18,7 @@ import fan.physics.types;
 import fan.graphics.tilemap_editor.renderer;
 import fan.spatial;
 import fan.graphics.physics_shapes;
+import fan.graphics;
 
 import fan.physics.b2_integration;
 
