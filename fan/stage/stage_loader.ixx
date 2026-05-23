@@ -15,6 +15,7 @@ import fan.event.types;
 import fan.print.error;
 import fan.memory;
 import fan.graphics.common_context;
+import fan.physics.b2_integration;
 
 #include <fan/graphics/gui/fgm/common.h>
 
@@ -246,7 +247,7 @@ export namespace fan {
     std::string previous_stage_name;
   };
 
-  export template <typename Derived>
+  template <typename Derived>
   struct stage_t {
     using self_t = Derived;
 
