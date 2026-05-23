@@ -24,6 +24,7 @@ import fan.graphics.shapes;
 import fan.graphics.physics_shapes;
 import fan.graphics;
 import fan.physics.b2_integration;
+import fan.physics.types;
 
 export namespace fan::graphics {
   struct tilemap_renderer_t : fan::graphics::tilemap_loader_t {
