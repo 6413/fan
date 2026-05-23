@@ -81,7 +81,7 @@ bool fan::webp::write(fan::str_view_t path, void* data, fan::vec2i size, int cha
   if (!out_size) {
     return true;
   }
-  bool ret = fan::io::file::write(std::string(path.data(), path.size()), std::string((char*)out, out_size), 0);
+  bool ret = fan::io::file::write(std::string(path.data(), path.size()), std::string((char*)out, out_size), std::ios_base::binary);
   ::WebPFree(out);
   return ret;
 }
