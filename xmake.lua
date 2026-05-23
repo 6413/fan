@@ -378,15 +378,15 @@ for _, file in ipairs(module_files) do
   add_files(file)
 end
 
-if has_config("FAN_REFLECTION") then
-  for _, file in ipairs(os.files("fan/reflection/*.ixx")) do
-    add_files(file, {cxxflags = "-freflection"})
-    local impl = path.join(path.directory(file), path.basename(file) .. "_impl.cpp")
-    if os.isfile(impl) then
-      add_files(impl, {cxxflags = "-freflection"})
-    end
-  end
-end
+-- if has_config("FAN_REFLECTION") then
+  -- for _, file in ipairs(os.files("fan/reflection/*.ixx")) do
+    -- add_files(file, {cxxflags = "-freflection"})
+    -- local impl = path.join(path.directory(file), path.basename(file) .. "_impl.cpp")
+    -- if os.isfile(impl) then
+      -- add_files(impl, {cxxflags = "-freflection"})
+    -- end
+  -- end
+-- end
 
 for _, impl in ipairs(impl_files) do
   add_files(impl)
