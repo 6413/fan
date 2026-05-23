@@ -1955,18 +1955,20 @@ export namespace fan {
       std::vector<mesh_t> calculated_meshes;
 
       struct ci_less {
-        // case-independent (ci) compare_less binary function
-        struct nocase_compare
-        {
-          bool operator() (const unsigned char& c1, const unsigned char& c2) const {
-            return tolower(c1) < tolower(c2);
-          }
-        };
-        bool operator() (const std::string& s1, const std::string& s2) const {
-          return std::lexicographical_compare
-          (s1.begin(), s1.end(),   // source range
-            s2.begin(), s2.end(),   // dest range
-            nocase_compare());  // comparison
+        using is_transparent = void;
+
+        static bool icmp(unsigned char a, unsigned char b) {
+          return std::tolower(a) < std::tolower(b);
+        }
+
+        bool operator()(std::string_view s1, std::string_view s2) const {
+          return std::lexicographical_compare(
+            s1.begin(), s1.end(),
+            s2.begin(), s2.end(),
+            [](unsigned char a, unsigned char b) {
+              return std::tolower(a) < std::tolower(b);
+            }
+          );
         }
       };
       std::map<std::string, bone_t*, ci_less> bone_map;
