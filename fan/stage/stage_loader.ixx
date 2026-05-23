@@ -6,8 +6,6 @@ export module fan.stage.loader;
 
 import std;
 
-#include <fan/graphics/gui/fgm/common.h>
-
 import fan.window;
 import fan.graphics.shapes;
 import fan.graphics;
@@ -15,6 +13,8 @@ import fan.graphics.loco;
 import fan.event.types;
 import fan.print.error;
 import fan.memory;
+
+#include <fan/graphics/gui/fgm/common.h>
 
 export namespace fan {
   struct stage_loader_t;
