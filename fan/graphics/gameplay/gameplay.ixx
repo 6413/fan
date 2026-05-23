@@ -11,6 +11,7 @@ import std;
 
 import fan.types;
 import fan.types.vector;
+import fan.math;
 import fan.graphics.common_context;
 import fan.graphics.shapes;
 import fan.physics.types;
@@ -184,6 +185,101 @@ export namespace fan::graphics::gameplay {
       next_id = 0;
     }
   };
+
+  struct spikes_t {
+    static inline constexpr std::array<fan::vec2, 3> get_spike_points(fan::vec2 size, std::string_view dir) {
+      f32_t w = size.x;
+      f32_t h = size.y;
+
+      fan::vec2 a {0, -h}, b {-w, h}, c {w, h};
+      if (dir == "down") {
+        a.y = -a.y; b.y = -b.y; c.y = -c.y;
+      }
+      else if (dir == "left") {
+        a = {h, 0}; b = {-h, -w}; c = {-h, w};
+      }
+      else if (dir == "right") {
+        a = {-h, 0}; b = {h, -w}; c = {h, w};
+      }
+      return {{a, b, c}};
+    }
+
+    struct spike_t {
+      fan::graphics::sprite_t visual;
+      fan::physics::entity_t sensor;
+    };
+
+    fan::vec2 world_min = 0;
+    fan::vec2 cell_size = 256;
+    fan::vec2i grid_size = {4096, 4096};
+
+    std::unordered_map<uint32_t, std::vector<fan::physics::entity_t>> cells;
+    std::vector<spike_t> spikes;
+    fan::graphics::image_t img {"images/gameplay/spike.webp"};
+
+    void add_to_spatial(fan::physics::entity_t spike) {
+      auto aabb = spike.get_aabb();
+      auto minc = fan::spatial::world_to_cell_clamped(aabb.min, world_min, cell_size, grid_size);
+      auto maxc = fan::spatial::world_to_cell_clamped(aabb.max, world_min, cell_size, grid_size);
+
+      for (int y = minc.y; y <= maxc.y; ++y) {
+        for (int x = minc.x; x <= maxc.x; ++x) {
+          uint32_t idx = fan::spatial::cell_index({x, y}, grid_size);
+          cells[idx].push_back(spike);
+        }
+      }
+    }
+
+    void add(fan::vec2 position, fan::vec2 size, std::string_view direction) {
+      static constexpr f32_t dir_to_angle[] = {0.f, fan::math::pi, fan::math::pi * 1.5f, fan::math::pi * 0.5f};
+      static constexpr std::string_view dirs[] = {"up", "down", "left", "right"};
+      int di = 0;
+      for (int i = 0; i < 4; ++i) if (dirs[i] == direction) { di = i; break; }
+
+      auto pts = get_spike_points(size, direction);
+      spikes.push_back({
+        fan::graphics::sprite_t(
+          fan::vec3(position, 0),
+          size,
+          fan::vec3(0, 0, dir_to_angle[di]),
+          img
+        ),
+        fan::physics::gphysics()->create_polygon(
+          position, dir_to_angle[di], pts.data(), pts.size(),
+          fan::physics::body_type_e::static_body,
+          {.is_sensor = true}
+        )
+      });
+      add_to_spatial(spikes.back().sensor);
+    }
+
+    fan::physics::entity_t* query(fan::physics::entity_t& entity) {
+      auto aabb = entity.get_aabb();
+      auto minc = fan::spatial::world_to_cell_clamped(aabb.min, world_min, cell_size, grid_size);
+      auto maxc = fan::spatial::world_to_cell_clamped(aabb.max, world_min, cell_size, grid_size);
+
+      for (int y = minc.y; y <= maxc.y; ++y) {
+        for (int x = minc.x; x <= maxc.x; ++x) {
+          uint32_t idx = fan::spatial::cell_index({x, y}, grid_size);
+          auto it = cells.find(idx);
+          if (it == cells.end()) continue;
+
+          for (auto& spike : it->second) {
+            if (fan::physics::is_on_sensor(entity, spike)) {
+              return &spike;
+            }
+          }
+        }
+      }
+      return nullptr;
+    }
+
+    void clear() {
+      spikes.clear();
+      cells.clear();
+    }
+  };
+
 }
 
 #endif

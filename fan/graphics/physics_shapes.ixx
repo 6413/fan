@@ -669,15 +669,15 @@ export namespace fan {
         );
 
         void enable_oneway_platforms() {
-  fan::physics::gphysics()->add_presolve_handler(
-    [](fan::physics::shape_id_t a, fan::physics::shape_id_t b, fan::physics::manifold_t* m, void* ctx) -> bool {
-      return fan::physics::presolve_oneway_collision(a, b, m,
-        *static_cast<fan::physics::body_id_t*>(ctx));
-    },
-    static_cast<fan::physics::body_id_t*>(this)
-  );
-  oneway_enabled = true;
-}
+          fan::physics::gphysics()->add_presolve_handler(
+            [](fan::physics::shape_id_t a, fan::physics::shape_id_t b, fan::physics::manifold_t* m, void* ctx) -> bool {
+              return fan::physics::presolve_oneway_collision(a, b, m,
+                *static_cast<fan::physics::body_id_t*>(ctx));
+            },
+            static_cast<fan::physics::body_id_t*>(this)
+          );
+          oneway_enabled = true;
+        }
 
         fan::graphics::sprite_sheet_controller_t anim_controller;
         attack_state_t attack_state;
