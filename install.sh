@@ -221,15 +221,13 @@ else
     if $FORCE_REBUILD || [[ ! -f "$LIB_DIR/liblunasvg.a" ]]; then
         echo "Building LunaSVG..."
         LUNASVG_DIR="$INSTALL_DIR/lunasvg"
-        rm -rf "$LUNASVG_DIR" lunasvg-2.4.1.tar.gz
-        wget -O lunasvg-2.4.1.tar.gz https://github.com/sammycage/lunasvg/archive/refs/tags/v2.4.1.tar.gz
-        tar -xf lunasvg-2.4.1.tar.gz
-        mv lunasvg-2.4.1 "$LUNASVG_DIR"
+        rm -rf "$LUNASVG_DIR"
+        git clone --depth 1 --branch v2.4.1 https://github.com/sammycage/lunasvg.git "$LUNASVG_DIR"
         cd "$LUNASVG_DIR" && mkdir build && cd build
         cmake $(cmake_flags) \
               -DBUILD_SHARED_LIBS=OFF -DLUNASVG_BUILD_EXAMPLES=OFF ..
         make -j$(nproc) && make install
-        cd ../.. && rm -rf "$LUNASVG_DIR" lunasvg-2.4.1.tar.gz
+        cd ../..
         echo "✓ LunaSVG built successfully"
     else
         echo "✓ LunaSVG already exists, skipping build"
