@@ -1,6 +1,7 @@
 module;
 
 #include <fan/utility.h>
+#include <cstdint> //bll
 
 export module fan.stage.loader;
 
