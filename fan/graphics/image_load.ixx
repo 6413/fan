@@ -8,6 +8,7 @@ import std;
   import fan.graphics.stb;
 #endif
 
+import fan.types;
 import fan.types.compile_time_string;
 import fan.print.error;
 import fan.utility;
