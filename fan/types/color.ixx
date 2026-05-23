@@ -385,12 +385,12 @@ export namespace fan {
     f32_t r = 0, g = 0, b = 0, a = 1;
   };
 
-  constexpr uint16_t pack_rgb565(const fan::vec3& color) {
+  constexpr std::uint16_t pack_rgb565(const fan::vec3& color) {
     fan::vec3 c = color.clamp(0.f, 1.f);
-    uint32_t r = uint32_t(c.x * 31.f + 0.5f);
-    uint32_t g = uint32_t(c.y * 63.f + 0.5f);
-    uint32_t b = uint32_t(c.z * 31.f + 0.5f);
-    return uint16_t((r << 11) | (g << 5) | b);
+    std::uint32_t r = std::uint32_t(c.x * 31.f + 0.5f);
+    std::uint32_t g = std::uint32_t(c.y * 63.f + 0.5f);
+    std::uint32_t b = std::uint32_t(c.z * 31.f + 0.5f);
+    return std::uint16_t((r << 11) | (g << 5) | b);
   }
   
   constexpr std::uint32_t _fan_check_24bit(unsigned long long v) {
