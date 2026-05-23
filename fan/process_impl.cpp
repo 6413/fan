@@ -20,6 +20,8 @@ module;
 
 #endif
 
+#include <stdlib.h>
+
 module fan.process;
 
 #if !defined(fan_compiler_gcc)
