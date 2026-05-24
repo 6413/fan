@@ -1,6 +1,8 @@
 module;
-#include <uv.h>
 #include <fcntl.h>
+#if !defined(__linux__)
+  #include <uv.h>
+#endif
 
 module fan.event.types;
 
@@ -38,7 +40,15 @@ namespace fan {
   const int fs_o_nonblock    = 0;
 #endif
 
-  const int eof = UV_EOF; 
+#if defined(__linux__)
+  const int eof       = -4095;  // UV_EOF
+  const int fs_change = 1;      // UV_CHANGE
+  const int fs_rename = 2;      // UV_RENAME
+#else
+  const int eof       = UV_EOF;
+  const int fs_change = UV_CHANGE;
+  const int fs_rename = UV_RENAME;
+#endif
 
   const int fs_in        = O_RDONLY;
   const int fs_out       = O_CREAT | O_WRONLY | O_TRUNC;
@@ -47,7 +57,4 @@ namespace fan {
   const int fs_ate       = O_RDWR;
   const int fs_nocreate  = O_EXCL;
   const int fs_noreplace = O_EXCL;
-
-  const int fs_change = UV_CHANGE;
-  const int fs_rename = UV_RENAME;
 }
