@@ -1,4 +1,3 @@
-#if 0
 import std;
 import fan;
 
@@ -53,13 +52,6 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
           if (auto* shape = map.get_shape(other)) { shape->set_color(fan::colors::green); }
         }
       });
-
-      /*pile.player.body.on_collision_exit([&](fan::physics::entity_t other) {
-        auto* info = map.get_collision_info(other);
-        if (info && info->id == "platform") {
-          if (auto* shape = map.get_shape(other)) { shape->set_color(fan::colors::white); }
-        }
-      });*/
     }
 
     void update() { 
@@ -119,5 +111,3 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
 int main() {
   pile.loop();
 }
-
-#endif
