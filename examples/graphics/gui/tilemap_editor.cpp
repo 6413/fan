@@ -1,11 +1,6 @@
-// Update your main file to use the new module split for the tilemap editor:
-
-#include <string>
-#include <memory>
-
+import std;
 import fan;
 import fan.graphics.gui.tilemap_editor.core;
-import fan.graphics.gui.tilemap_editor.ui;
 import fan.graphics.event;
 
 using namespace fan::graphics;
@@ -16,7 +11,7 @@ struct render_context_t {
 };
 
 std::string add_temp_before_ext(const std::string& filename) {
-  size_t pos = filename.find_last_of('.');
+  std::size_t pos = filename.find_last_of('.');
   if (pos == std::string::npos || pos == 0) return filename + "temp";
   return filename.substr(0, pos) + "temp" + filename.substr(pos);
 }
@@ -147,7 +142,7 @@ int main() {
         fan::vec2 position = scene.player->character.player.get_position();
         scene.renderer->update(scene.map_id, position);
         scene.player->set_position(
-          fan::vec3(position, floor(position.y / (fte.tile_size.y * 2.f)) + (0xFAAA - 2) / 2) + z + 1
+          fan::vec3(position, std::floor(position.y / (fte.tile_size.y * 2.f)) + (0xFAAA - 2) / 2) + z + 1
         );
         ic.set_position(position);
       }

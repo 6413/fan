@@ -82,10 +82,15 @@ namespace fan::graphics {
       }
     );
     s->async_.data = s.get();
+#if defined(_WIN32)
     fan::event::thread_create([s, nfd_fn = std::move(nfd_fn)] {
       if (!s->cancelled) nfd_fn(*s);
       fan::uv::async_send(&s->async_);
     });
+#else
+    if (!s->cancelled) nfd_fn(*s);
+    fan::uv::async_send(&s->async_);
+#endif
   }
 
   dialog_t& dialog_t::open_file(std::string_view filter, file_cb_t on_done, dismissed_cb_t on_dismissed) {

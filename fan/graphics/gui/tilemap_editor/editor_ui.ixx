@@ -4,13 +4,19 @@ module;
 #if defined(FAN_2D)
 #endif
 
-export module fan.graphics.gui.tilemap_editor.ui;
+export module fan.graphics.gui.tilemap_editor.core:ui;
 
 import std;
 
 #if defined(FAN_2D)
 #if defined(FAN_GUI) && defined(FAN_PHYSICS_2D)
 
+import fan.physics.types;
+import fan.texture_pack.tp0;
+import fan.window.input;
+import fan.types;
+import fan.graphics.shapes;
+import fan.graphics;
 import fan.graphics.common_context;
 import fan.graphics.gui.types;
 import fan.graphics.gui.base;
@@ -63,7 +69,7 @@ namespace fan::graphics::gui::tilemap_editor::ui {
     screen_pos.y -= text_size.y * 0.5f;
     screen_pos = screen_pos.floor();
 
-    draw_list->AddText(ImVec2(screen_pos.x, screen_pos.y), fan::color(255, 255, 255, 200).get_gui_color(), display_id.c_str());
+    draw_list->AddText(screen_pos, fan::color(255, 255, 255, 200).get_gui_color(), display_id.c_str());
     fan::graphics::gui::pop_font();
   }
 
@@ -653,7 +659,7 @@ namespace fan::graphics::gui::tilemap_editor::ui {
 
       std::string temp = editor.brush.id;
       temp.resize(fte_t::max_id_len);
-      if (fan::graphics::gui::input_text("id", &temp)) editor.brush.id = temp.substr(0, strlen(temp.c_str()));
+      if (fan::graphics::gui::input_text("id", &temp)) editor.brush.id = temp.substr(0, std::strlen(temp.c_str()));
 
       fan::graphics::gui::color_edit4("color", &editor.brush.color);
 
