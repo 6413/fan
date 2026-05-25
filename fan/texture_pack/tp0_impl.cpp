@@ -450,9 +450,17 @@ namespace fan::graphics {
     s->name_to_unique.clear();
     s->hash_to_unique.clear();
 
-    file_path = filename;
+    std::filesystem::path resolved;
+    if (std::filesystem::path(filename).is_absolute()) {
+      resolved = filename;
+    }
+    else {
+      resolved = fan::io::file::find_relative_path(filename, callers_path);
+    }
+    file_path = std::filesystem::absolute(resolved).generic_string();
+
     std::string in;
-    fan::io::file::read(fan::io::file::find_relative_path(filename, callers_path), &in);
+    fan::io::file::read(resolved, &in);
 
     std::size_t offset = 0;
     std::size_t pack_list_size = fan::string_read_data<std::size_t>(in, offset);
@@ -470,11 +478,11 @@ namespace fan::graphics {
         texture.name = fan::string_read_data<std::string>(in, offset);
         texture.position = fan::string_read_data<fan::vec2ui>(in, offset);
         texture.size = fan::string_read_data<fan::vec2ui>(in, offset);
-        
+
         auto it = s->unique_map.NewNodeLast();
         s->unique_map[it].major = i;
         s->unique_map[it].minor = k;
-        
+
         texture.unique_id.id = *(std::uint32_t*)&it;
         s->texture_major_list[i].texture_minor_list[k] = texture;
         s->name_to_unique[texture.name] = texture.unique_id;
