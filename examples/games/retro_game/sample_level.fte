@@ -1429,22 +1429,6 @@
         "fixed_rotation": true
       },
       "position": [
-        448.0,
-        32.0,
-        32094.0
-      ],
-      "shape": "sprite",
-      "size": [
-        32.0,
-        0.0
-      ]
-    },
-    {
-      "mesh_property": 1,
-      "physics_shape_data": {
-        "fixed_rotation": true
-      },
-      "position": [
         1056.0,
         960.0,
         32094.0
