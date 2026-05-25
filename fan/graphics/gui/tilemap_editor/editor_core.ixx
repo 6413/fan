@@ -14,6 +14,11 @@ import std;
 #if defined(FAN_2D)
 #if defined(FAN_GUI) && defined(FAN_PHYSICS_2D)
 
+import fan.types;
+import fan.window;
+import fan.window.input;
+import fan.graphics.common_context;
+import fan.graphics.gui.types;
 import fan.graphics.gui;
 import fan.types.color;
 import fan.types.vector;
@@ -24,6 +29,7 @@ import fan.file_dialog;
 import fan.io.file;
 import fan.graphics;
 import fan.random;
+import fan.physics.types;
 import fan.physics.b2_integration;
 import fan.math.intersection;
 import fan.graphics.physics_shapes;
@@ -349,7 +355,7 @@ export struct fte_t {
       }
       switch (d.key) {
         case fan::key_r: {
-          brush.angle.z = fmod(brush.angle.z + fan::math::pi / 2, fan::math::pi * 2);
+          brush.angle.z = std::fmod(brush.angle.z + fan::math::pi / 2, fan::math::pi * 2);
           break;
         }
         case fan::key_delete: {
@@ -1270,7 +1276,7 @@ export struct fte_t {
     const auto& tiles_array = json["tiles"];
 
     while (it.iterate(tiles_array, &base_shape)) {
-      const auto& shape_json = *(it.data.it - 1);
+      const auto shape_json = *(it.data.it - 1);
 
       expand_instance(shape_json, [&](const fan::vec3& offs) {
         fan::graphics::shape_t shape = base_shape;

@@ -15,7 +15,7 @@ export namespace fan::graphics::event {
     const std::string& file_name,
     const fan::vec2& tile_size,
     const std::string& texture_pack_path, // path and name
-    std::function<void()> fs_event_cb = [] {},
+    std::function<void()> fs_event_cb = {},
     const std::string& exe_path = "image2texturepack.exe" // todo: use real code
   ) {
     fs_watcher.start([=, &fs_watcher](const std::string& filename, int events) {
@@ -41,9 +41,9 @@ export namespace fan::graphics::event {
         " \"" + full_path + "\"" +
         " \"" + texture_pack_path + "\"";
 
-      system(cmd.c_str());
+      std::system(cmd.c_str());
 
-      fs_event_cb();
+      if (fs_event_cb) fs_event_cb();
     });
   }
 }

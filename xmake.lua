@@ -198,7 +198,8 @@ local module_files = {
   "fan/noise.ixx", "fan/graphics/gameplay/gameplay_types.ixx",
   "fan/graphics/gameplay/gameplay.ixx", "fan/crypto.ixx", "fan/graphics/gui/console.ixx",
   "fan/event/uv_raw.ixx", "fan/graphics/gui/tilemap_editor/loader.ixx", 
-  "fan/graphics/gui/tilemap_editor/renderer0.ixx", "fan/stage/stage_loader.ixx"
+  "fan/graphics/gui/tilemap_editor/renderer0.ixx", "fan/stage/stage_loader.ixx",
+  "fan/graphics/graphics_event.ixx"
 }
 
 if has_config("FAN_WAYLAND_SCREEN") then table.insert(module_files, "fan/video/screen_codec.ixx") end
@@ -220,6 +221,8 @@ if has_config("FAN_GUI") then
   table.insert(module_files, "fan/graphics/gui/gui.ixx")
   table.insert(module_files, "fan/graphics/gui/settings_menu.ixx")
   table.insert(module_files, "fan/graphics/gui/keybinds_menu.ixx")
+  table.insert(module_files, "fan/graphics/gui/tilemap_editor/editor_core.ixx")
+  table.insert(module_files, "fan/graphics/gui/tilemap_editor/editor_ui.ixx")
 end
 
 if has_config("FAN_NETWORK") then

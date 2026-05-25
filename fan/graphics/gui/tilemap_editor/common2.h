@@ -29,7 +29,7 @@ struct tile_t {
 
   // actions
   actions_e action = actions_e::none;
-  uint16_t key = fan::key_invalid;
+  std::uint16_t key = fan::key_invalid;
   int key_state = (int)fan::keyboard_state::press;
   std::vector<std::string> object_names;
 };

@@ -25,7 +25,7 @@
     16
   ],
   "texture_packs": [
-    "C:\\libs\\fan\\examples\\games\\retro_game\\sample_texture_pack.ftp"
+    "examples/games/retro_game/sample_texture_pack.ftp"
   ],
   "tile_size": [
     32,
