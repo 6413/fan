@@ -3,6 +3,9 @@ import fan;
 
 using namespace fan::graphics;
 
+struct pile_t;
+extern pile_t pile;
+
 struct pile_t : engine_t, fan::frame_task_t<pile_t> {
 
   struct level1_t : fan::stage_t<level1_t> {
