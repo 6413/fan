@@ -929,7 +929,9 @@ export struct fte_t {
     fan::json jtps = fan::json::array();
     jtps.reserve(texture_packs.size());
     for (auto* tp : texture_packs) {
-      jtps.push_back(tp->file_path);
+      std::filesystem::path tp_path = std::filesystem::absolute(tp->file_path);
+      std::filesystem::path file_dir = std::filesystem::absolute(filename).parent_path();
+      jtps.push_back(std::filesystem::relative(tp_path, file_dir).generic_string());
     }
     ostr["texture_packs"] = jtps;
 
@@ -1196,8 +1198,12 @@ export struct fte_t {
 
     if (json.contains("texture_packs")) {
       std::vector<std::string> tp_paths = json["texture_packs"];
+      std::filesystem::path file_dir = std::filesystem::absolute(
+        fan::io::file::find_relative_path(filename, callers_path)
+      ).parent_path();
       for (auto& path : tp_paths) {
-        open_texture_pack(path);
+        std::string resolved = (file_dir / path).lexically_normal().generic_string();
+        open_texture_pack(resolved);
       }
     }
     else if (texture_packs.empty() || texture_packs[0]->size() == 0) {
