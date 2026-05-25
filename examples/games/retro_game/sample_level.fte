@@ -1,10 +1,10 @@
 {
   "camera_position": [
-    285.8736267089844,
-    359.46026611328125,
+    690.3456420898438,
+    513.0282592773438,
     0.0
   ],
-  "camera_zoom": 1.2000001668930054,
+  "camera_zoom": 1.0000001192092896,
   "gravity": [
     0.0,
     3813.3759765625
@@ -25,7 +25,7 @@
     16
   ],
   "texture_packs": [
-    "examples/games/retro_game/sample_texture_pack.ftp"
+    "sample_texture_pack.ftp"
   ],
   "tile_size": [
     32,
@@ -1551,66 +1551,6 @@
         1.0,
         1.0
       ],
-      "id": "lever",
-      "mesh_property": 6,
-      "position": [
-        384.0,
-        896.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "size": [
-        32.0,
-        32.0
-      ]
-    },
-    {
-      "color": [
-        1.0,
-        1.0,
-        1.0,
-        1.0
-      ],
-      "id": "door",
-      "mesh_property": 6,
-      "position": [
-        320.0,
-        256.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "size": [
-        32.0,
-        32.0
-      ]
-    },
-    {
-      "color": [
-        1.0,
-        1.0,
-        1.0,
-        1.0
-      ],
-      "id": "key",
-      "mesh_property": 6,
-      "position": [
-        192.0,
-        320.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "size": [
-        32.0,
-        32.0
-      ]
-    },
-    {
-      "color": [
-        1.0,
-        1.0,
-        1.0,
-        1.0
-      ],
       "mesh_property": 4,
       "position": [
         1088.0,
@@ -1834,6 +1774,46 @@
       "mesh_property": 6,
       "position": [
         1408.0,
+        896.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ]
+    },
+    {
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "id": "door",
+      "mesh_property": 6,
+      "position": [
+        1088.0,
+        192.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        32.0
+      ]
+    },
+    {
+      "color": [
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ],
+      "id": "key",
+      "mesh_property": 6,
+      "position": [
+        384.0,
         896.0,
         32084.0
       ],

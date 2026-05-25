@@ -97,9 +97,10 @@ namespace fan::graphics {
     if (!s) s = std::make_shared<state_t>();
     s->on_done = std::move(on_done); s->on_done_multi = {}; s->on_dismissed = std::move(on_dismissed);
     std::string f{filter};
-    launch(s, [f = std::move(f)](state_t& st) {
+    std::string cwd = std::filesystem::current_path().generic_string();
+    launch(s, [f = std::move(f), cwd = std::move(cwd)](state_t& st) {
       nfdchar_t* p = nullptr;
-      if (NFD_OpenDialog(f.c_str(), nullptr, &p) == NFD_OKAY && p) {
+      if (NFD_OpenDialog(f.c_str(), cwd.c_str(), &p) == NFD_OKAY && p) {
         std::lock_guard lock(st.mtx);
         st.result = p; std::free(p);
       }
@@ -111,9 +112,10 @@ namespace fan::graphics {
     if (!s) s = std::make_shared<state_t>();
     s->on_done = {}; s->on_done_multi = std::move(on_done); s->on_dismissed = std::move(on_dismissed);
     std::string f{filter};
-    launch(s, [f = std::move(f)](state_t& st) {
+    std::string cwd = std::filesystem::current_path().generic_string();
+    launch(s, [f = std::move(f), cwd = std::move(cwd)](state_t& st) {
       nfdpathset_t ps;
-      if (NFD_OpenDialogMultiple(f.c_str(), nullptr, &ps) == NFD_OKAY) {
+      if (NFD_OpenDialogMultiple(f.c_str(), cwd.c_str(), &ps) == NFD_OKAY) {
         std::lock_guard lock(st.mtx);
         std::size_t n = NFD_PathSet_GetCount(&ps);
         st.results.reserve(n);
@@ -129,9 +131,10 @@ namespace fan::graphics {
     if (!s) s = std::make_shared<state_t>();
     s->on_done = std::move(on_done); s->on_done_multi = {}; s->on_dismissed = std::move(on_dismissed);
     std::string f{filter};
-    launch(s, [f = std::move(f)](state_t& st) {
+    std::string cwd = std::filesystem::current_path().generic_string();
+    launch(s, [f = std::move(f), cwd = std::move(cwd)](state_t& st) {
       nfdchar_t* p = nullptr;
-      if (NFD_SaveDialog(f.c_str(), nullptr, &p) == NFD_OKAY && p) {
+      if (NFD_SaveDialog(f.c_str(), cwd.c_str(), &p) == NFD_OKAY && p) {
         std::lock_guard lock(st.mtx);
         st.result = p; std::free(p);
       }
@@ -142,9 +145,10 @@ namespace fan::graphics {
   dialog_t& dialog_t::open_folder(file_cb_t on_done, dismissed_cb_t on_dismissed) {
     if (!s) s = std::make_shared<state_t>();
     s->on_done = std::move(on_done); s->on_done_multi = {}; s->on_dismissed = std::move(on_dismissed);
-    launch(s, [](state_t& st) {
+    std::string cwd = std::filesystem::current_path().generic_string();
+    launch(s, [cwd = std::move(cwd)](state_t& st) {
       nfdchar_t* p = nullptr;
-      if (NFD_PickFolder(nullptr, &p) == NFD_OKAY && p) {
+      if (NFD_PickFolder(cwd.c_str(), &p) == NFD_OKAY && p) {
         std::lock_guard lock(st.mtx);
         st.result = p; std::free(p);
       }
