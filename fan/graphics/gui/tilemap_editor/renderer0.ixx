@@ -157,7 +157,9 @@ export namespace fan::graphics {
     std::vector<fan::physics::entity_t> collisions;
     std::deque<collision_tile_info_t> collision_datas;
     const collision_tile_info_t* get_collision_info(fan::physics::entity_t& body) const {
-      return body.get_user_data_as<collision_tile_info_t>();
+      auto* info = body.get_user_data_as<collision_tile_info_t>();
+      if (!info) { return nullptr; }
+      return info;
     }
     fan::graphics::shape_t* get_shape(fan::physics::entity_t body) const {
       auto* info = get_collision_info(body);

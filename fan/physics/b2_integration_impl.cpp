@@ -602,17 +602,21 @@ namespace fan::physics {
   }
 
   static void dispatch_collision_enter(b2BodyId body_a, b2BodyId body_b) {
+    if (!b2Body_IsValid(body_a) || !b2Body_IsValid(body_b)) { return; }
     if (auto it = fan::physics::gphysics()->collision_listeners.find(body_a); it != fan::physics::gphysics()->collision_listeners.end()) {
       for (auto& l : it->second) if (l.on_enter) l.on_enter(entity_t(body_b));
     }
+    if (!b2Body_IsValid(body_a) || !b2Body_IsValid(body_b)) { return; }
     if (auto it = fan::physics::gphysics()->collision_listeners.find(body_b); it != fan::physics::gphysics()->collision_listeners.end()) {
       for (auto& l : it->second) if (l.on_enter) l.on_enter(entity_t(body_a));
     }
   }
   static void dispatch_collision_exit(b2BodyId body_a, b2BodyId body_b) {
+    if (!b2Body_IsValid(body_a) || !b2Body_IsValid(body_b)) { return; }
     if (auto it = fan::physics::gphysics()->collision_listeners.find(body_a); it != fan::physics::gphysics()->collision_listeners.end()) {
       for (auto& l : it->second) if (l.on_exit) l.on_exit(entity_t(body_b));
     }
+    if (!b2Body_IsValid(body_a) || !b2Body_IsValid(body_b)) { return; }
     if (auto it = fan::physics::gphysics()->collision_listeners.find(body_b); it != fan::physics::gphysics()->collision_listeners.end()) {
       for (auto& l : it->second) if (l.on_exit) l.on_exit(entity_t(body_a));
     }
