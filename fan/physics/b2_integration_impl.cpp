@@ -270,6 +270,9 @@ namespace fan::physics {
   void body_id_t::set_gravity_scale(f32_t scale) {
     b2Body_SetGravityScale(*this, scale);
   }
+  bool body_id_t::is_sensor() const {
+    return b2Shape_IsSensor(*this);
+  }
 
   capsule_t::capsule_t(const b2Capsule& capsule) : b2Capsule(capsule) {}
 

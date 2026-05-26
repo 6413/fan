@@ -120,7 +120,11 @@ namespace fan {
   }
   json& json::operator=(json&& other) noexcept {
     if (this == &other) { return *this; }
-    if (!m_is_ref && m_ptr) { delete static_cast<nlohmann::json*>(m_ptr); }
+    if (m_is_ref) {
+      if (other.m_ptr) { *static_cast<nlohmann::json*>(m_ptr) = std::move(*static_cast<nlohmann::json*>(other.m_ptr)); }
+      return *this;
+    }
+    if (m_ptr) { delete static_cast<nlohmann::json*>(m_ptr); }
     m_ptr = other.m_ptr;
     m_is_ref = other.m_is_ref;
     other.m_ptr = nullptr;

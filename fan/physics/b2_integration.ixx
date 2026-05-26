@@ -220,6 +220,7 @@ export namespace fan {
       void on_overlap(const body_id_t& other, std::function<void()> callback);
       f32_t get_gravity_scale() const;
       void set_gravity_scale(f32_t scale);
+      bool is_sensor() const;
     };
 
     struct joint_id_t : b2JointId {
