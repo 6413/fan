@@ -684,6 +684,7 @@ export namespace fan {
         void setup_attack_properties(attack_state_t&& attack_state);
         void take_knockback(character2d_t* source, const fan::vec2& hit_direction, f32_t knockback_multiplier = 1.0f);
         void take_hit(character2d_t* source, const fan::vec2& hit_direction, f32_t knockback_multiplier = 1.0f);
+        void take_hit(character2d_t* source);
 
         void update_animations();
         void cancel_animation();
@@ -863,6 +864,20 @@ export namespace fan {
             }
           }
           hitbox.update(&body);
+        }
+      };
+
+      struct ai_character2d_t {
+        character2d_t body;
+        ai_behavior_t behavior;
+        navigation_helper_t navigation;
+
+        void open(const character2d_t::character_config_t& properties, fan::vec2 initial_pos) {
+          body = character2d_t::from_json(properties);
+          body.set_physics_position(initial_pos);
+        }
+        void update(fan::vec2 tile_size) {
+          behavior.update_ai(&body, navigation, behavior.target->get_position(), tile_size);
         }
       };
 

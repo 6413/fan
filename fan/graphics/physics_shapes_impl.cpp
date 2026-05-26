@@ -1168,7 +1168,43 @@ namespace fan::graphics::physics {
 
       break;
     }
+    case ai_behavior_t::flee_from_target:
+    {
+      if (!target) break;
 
+      fan::vec2 distance = get_target_distance(character->get_physics_position());
+
+      movement_direction.x = -distance.sign().x;
+
+      if (should_move(distance)) {
+        character->movement_state.move_to_direction(*character, movement_direction);
+      }
+
+      break;
+    }
+
+    case ai_behavior_t::patrol:
+    {
+      if (patrol_points.empty()) break;
+
+      fan::vec2 pos = character->get_physics_position();
+      fan::vec2 target_point = patrol_points[current_patrol_index];
+
+      fan::vec2 diff = target_point - pos;
+      static constexpr f32_t patrol_reach_threshold = 20.f;
+      if (diff.length() < patrol_reach_threshold) {
+        current_patrol_index = (current_patrol_index + 1) % patrol_points.size();
+      }
+      else {
+        movement_direction.x = diff.sign().x;
+        character->movement_state.move_to_direction(*character, movement_direction);
+      }
+      if (std::abs(movement_direction.x) > 0.01f) {
+        character->movement_state.desired_facing.x = fan::math::sgn(movement_direction.x);
+        character->set_image_sign({character->movement_state.desired_facing.x, 1.f});
+      }
+      break;
+    }
     default:
       break;
     }
@@ -1607,6 +1643,14 @@ namespace fan::graphics::physics {
       attack_state.end_attack();
       anim_controller.cancel_current();
     }
+  }
+  void character2d_t::take_hit(character2d_t* source) {
+    attack_state.health -= source->attack_state.damage;
+    attack_state.health = std::max(attack_state.health, 0.f);
+
+    take_knockback(source, (get_position() - source->get_position()), 0.f);
+
+    attack_state.took_damage = true;
   }
 
   void character2d_t::update_animations() {

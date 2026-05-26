@@ -65,15 +65,21 @@ export namespace fan::event {
       std::coroutine_handle<> h;
     };
 
+    using resume_handle = std::list<queued_resume_t>::iterator;
+
     template<typename promise_t>
-    static void schedule_resume(std::coroutine_handle<promise_t> h) {
+    static resume_handle schedule_resume(std::coroutine_handle<promise_t> h) {
       auto& p = h.promise();
       std::shared_ptr<void> keepalive(p.self_keepalive, p.self_keepalive.get());
-      resume_queue.push_back(queued_resume_t{ keepalive, h });
+      get_queue().emplace_back(queued_resume_t {keepalive, h});
+      return std::prev(get_queue().end());
     }
 
     static void process_resumes();
-    static inline std::vector<queued_resume_t> resume_queue;
+    static auto& get_queue() {
+      static std::list<queued_resume_t> resume_queue;
+      return resume_queue;
+    }
   };
 
   template<typename promise_t>
@@ -160,6 +166,8 @@ export namespace fan::event {
     std::string get_watch_path();
   };
 
+  std::uint64_t now();
+
   fan::event::task_t after(std::uint64_t time, auto l) {
     co_await fan::event::timer_t(time);
     if constexpr (fan::is_awaitable_v<decltype(l())>) { co_await l(); } else { l(); }
@@ -169,17 +177,32 @@ export namespace fan::event {
     while (true) {
       if constexpr (fan::is_awaitable_v<decltype(l())>) {
         if (co_await l()) break;
-      } else {
+      }
+      else {
         if (l()) break;
       }
       co_await event::timer_t(time);
+    }
+  }
+  fan::event::task_t every(std::uint64_t period_ms,
+    std::uint64_t duration_ms,
+    auto fn) {
+    auto start = now();
+
+    while ((now() - start) / 1e6 < duration_ms) {
+      if constexpr (fan::is_awaitable_v<decltype(fn())>) {
+        if (co_await fn()) break;
+      } 
+      else {
+        if (fn()) break;
+      }
+      co_await timer_t(period_ms);
     }
   }
 
   void sleep(unsigned int msec);
   void loop(fan::event::loop_t l = fan::event::get_loop(), bool once = false);
   void run_once(fan::event::loop_t l = fan::event::get_loop());
-  std::uint64_t now();
   std::string strerror(int err);
 
   template <typename cb_t, typename ...args_t>
