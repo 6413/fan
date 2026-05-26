@@ -32,16 +32,16 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
           }, [](physics::sprite_t& s) { s.erase(); });
         }},
         {"door", [&](auto& m) {
-          fan::vec2 size{32.f / 6.f, 64.f};
+          fan::vec2 size{64.f, 64.f};
           fan::vec2 pos = m.position.offset_y(-size.y + ts.y);
-          door.open(pile.player.body, {
-            .position = pos, .size = size,
-            .image = {"images/door_closed.png", image_presets::pixel_art()}
-          }, [&, door_pos = pos](physics::sprite_t& s) {
+          auto shape = shape_from_json("images/gate.json");
+          shape.set_position(pos);
+          shape.set_size(size);
+          shape.set_sprite_sheet_start();
+          door.open(pile.player.body, std::move(shape), [&, door_pos = pos](physics::sprite_t& s) {
             if (key.shape.is_valid()) return;
-            s.set_position(door_pos.offset_x(-32.f));
-            s.set_size({32.f, 64.f});
-            s.set_image({"images/door.png", image_presets::pixel_art()});
+            s.set_position(door_pos);
+            s.play_sprite_sheet_once("open");
           });
         }},
         {"spikes_up", [&](auto& m) {

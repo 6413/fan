@@ -1,0 +1,46 @@
+{
+  "animations": [
+    {
+      "fps": 2,
+      "id": 0,
+      "images": [
+        {
+          "hframes": 2,
+          "image_path": "gate.webp"
+        }
+      ],
+      "name": "open",
+      "selected_frames": [
+        1,
+        0
+      ]
+    }
+  ],
+  "shapes": [
+    {
+      "animations": [
+        0
+      ],
+      "images": [
+        {
+          "image_path": "gate.webp"
+        }
+      ],
+      "position": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "shape": "sprite",
+      "size": [
+        129.75341796875,
+        128.0
+      ],
+      "tc_size": [
+        0.5,
+        1.0
+      ]
+    }
+  ],
+  "version": 1
+}
