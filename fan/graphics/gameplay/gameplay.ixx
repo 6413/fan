@@ -62,7 +62,7 @@ export namespace fan::graphics::gameplay {
     fan::vec3 get_respawn_position(tilemap_renderer_t& renderer, tilemap_renderer_t::id_t map_id, int checkpoint) const {
       if (checkpoint == -1 || checkpoints.empty()) {
         fan::vec3 p = 0;
-        p = renderer.get_spawn_position(map_id);
+        p = renderer.get_spawn(map_id);
         return p;
       }
       return checkpoints[checkpoint].visual.get_position();

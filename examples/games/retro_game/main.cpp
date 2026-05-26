@@ -8,6 +8,33 @@ extern pile_t pile;
 
 struct pile_t : engine_t, fan::frame_task_t<pile_t> {
 
+  void enter_portal() {
+    static fan::auto_color_transition_t anim;
+    pile.stage_transition = fan::graphics::rectangle_t(
+      fan::vec3(camera_get_position() - 500, 0xfffB),
+      100000,
+      fan::colors::red.set_alpha(0)
+    );
+    anim.on_end = [this] {
+      fan::print("end");
+      pile.stage_transition.remove();
+      stage_loader.close_stage(level_stage);
+      level_stage.sic();
+    };
+    anim.start_once(
+      fan::colors::red.set_alpha(0),
+      fan::colors::red,
+      1.f,
+      [](fan::color c) { 
+      if (c.a > 0.1) {
+        fan::print(c.a);
+
+      }
+      pile.stage_transition.set_color(c);
+      fan::print(pile.stage_transition.get_color(), c);
+    }
+    );
+  }
   struct level1_t : fan::stage_t<level1_t> {
     void open(void*) {
       map = tilemap_instance_t(pile.renderer, "sample_level.fte", {
@@ -17,17 +44,9 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
         .build_collisions = true,
         .default_friction = 0.f,
       });
-
       map.setup_view(pile.player.body, pile.ic, 1.20370352);
-
       fan::vec2 ts = map.get_tile_size();
       map.iterate_marks({
-        {"key", [&](auto& m) {
-          key.open(pile.player.body, {
-            .position = m.position, .size = 32.f,
-            .image = {"images/key.webp", image_presets::pixel_art()}
-          }, [](physics::sprite_t& s) { s.erase(); });
-        }},
         {"door", [&](auto& m) {
           fan::vec2 size{64.f, 64.f};
           fan::vec2 pos = m.position.offset_y(-size.y + ts.y);
@@ -36,9 +55,9 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
           shape.set_size(size);
           shape.set_sprite_sheet_start();
           door.open(pile.player.body, std::move(shape), [&, door_pos = pos](physics::sprite_t& s) {
-            if (key.shape.is_valid()) { return; }
-            s.set_position(door_pos);
-            s.play_sprite_sheet_once("open");
+            pile.enter_portal();
+            if (platforms_activated != -1) return;
+
           });
         }},
         {"spikes_up", [&](auto& m) { spikes.add(m.position, m.size, "up"); }},
@@ -47,11 +66,20 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
       collision_handle = pile.player.body.on_collision_enter([&](fan::physics::entity_t other) {
         auto* info = map.get_collision_info(other);
         if (info && info->id == "platform") {
-          if (auto* shape = map.get_shape(other)) { shape->set_color(fan::colors::green); }
+          if (auto* shape = map.get_shape(other)) {
+            if (shape->get_color() != fan::colors::green) {
+              ++platforms_activated;
+            }
+            shape->set_color(fan::colors::green); 
+            if (platforms_activated == map.count("platform")) {
+              door.shape.play_sprite_sheet_once("open");
+              platforms_activated = -1;
+            }
+          }
         }
       });
 
-      fan::vec2 enemy_pos = key.shape.get_position();
+      fan::vec2 enemy_pos = map.get_enemy_spawn("enemy_skeleton");
       enemy.open({
         .json_path = "examples/games/platformer/enemy/skeleton/skeleton.json",
         .aabb_scale = 0.14f * 1.5f,
@@ -68,6 +96,7 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
 
     void update() {
       map.update(pile.player.body.get_position());
+
       if (spikes.query(pile.player.body)) {
         pile.stage_loader.restart_stage<level1_t>(pile.level_stage);
       }
@@ -82,10 +111,13 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
     }
 
     tilemap_instance_t map;
-    trigger_t key, door;
+    trigger_t door;
     gameplay::spikes_t spikes;
     physics::ai_character2d_t enemy;
     fan::physics::collision_listener_handle_t collision_handle;
+    bool finished = false;
+    int platforms_activated = 0;
+
   };
 
   struct ui_t : fan::stage_t<ui_t> {
@@ -142,6 +174,8 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
   fan::stage_loader_t stage_loader;
   fan::stage_loader_t::nr_t level_stage, ui_stage;
   interactive_camera_t ic;
+  fan::graphics::rectangle_t stage_transition;
+
 } pile;
 
 int main() {

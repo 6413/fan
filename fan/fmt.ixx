@@ -24,7 +24,7 @@ import fan.types.vector;
 export namespace fan {
 
   template <typename... T>
-  constexpr std::string format(const std::string_view& fmt, T&&... args) {
+  constexpr std::string format(const std::string_view fmt, T&&... args) {
     return current_fmt::vformat(fmt, current_fmt::make_format_args(args...));
   }
 

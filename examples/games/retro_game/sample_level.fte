@@ -1,10 +1,10 @@
 {
   "camera_position": [
-    712.8456420898438,
-    379.6949462890625,
+    510.84564208984375,
+    543.6949462890625,
     0.0
   ],
-  "camera_zoom": 1.0000001192092896,
+  "camera_zoom": 1.2000001668930054,
   "gravity": [
     0.0,
     3813.3759765625
@@ -1212,6 +1212,7 @@
       "texture_pack_name": "tile427"
     },
     {
+      "id": "platform",
       "instance": {
         "count_x": 6,
         "count_y": 1,
@@ -1233,14 +1234,14 @@
       ],
       "shape": "sprite",
       "tc_position": [
-        0.7109375,
+        0.7578125,
         0.6640625
       ],
       "tc_size": [
         0.03125,
         0.03125
       ],
-      "texture_pack_name": "tile393"
+      "texture_pack_name": "tile394"
     },
     {
       "position": [
@@ -1427,38 +1428,6 @@
         "fixed_rotation": true
       },
       "position": [
-        448.0,
-        672.0,
-        32094.0
-      ],
-      "shape": "sprite",
-      "size": [
-        32.0,
-        320.0
-      ]
-    },
-    {
-      "mesh_property": 1,
-      "physics_shape_data": {
-        "fixed_rotation": true
-      },
-      "position": [
-        192.0,
-        960.0,
-        32094.0
-      ],
-      "shape": "sprite",
-      "size": [
-        224.0,
-        32.0
-      ]
-    },
-    {
-      "mesh_property": 1,
-      "physics_shape_data": {
-        "fixed_rotation": true
-      },
-      "position": [
         0.0,
         448.0,
         32094.0
@@ -1540,6 +1509,22 @@
       "size": [
         160.0,
         32.0
+      ]
+    },
+    {
+      "mesh_property": 1,
+      "physics_shape_data": {
+        "fixed_rotation": true
+      },
+      "position": [
+        448.0,
+        640.0,
+        32094.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        288.0
       ]
     },
     {
@@ -1808,12 +1793,12 @@
         1.0,
         1.0
       ],
-      "id": "key",
-      "mesh_property": 6,
+      "id": "enemy_skeleton",
+      "mesh_property": 5,
       "position": [
         384.0,
         896.0,
-        32084.0
+        32094.0
       ],
       "shape": "sprite",
       "size": [
