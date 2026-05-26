@@ -576,6 +576,12 @@ namespace fan::graphics {
     const std::source_location& loc) : renderer(&r), id(r.open_map(path, p, loc)) {
     if (p.build_collisions) {
       build_collisions(p.collision_body_type, p.collision_props);
+      if (p.default_friction >= 0.f) {
+        r.iterate_physics_entities(id, [&](auto& a, auto& t) {
+          t.set_friction(p.default_friction);
+          return false;
+        });
+      }
     }
   }
 
