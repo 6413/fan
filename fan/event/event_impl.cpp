@@ -189,10 +189,10 @@ namespace fan::event {
   void timer_t::await_resume() noexcept { data->co_handle = nullptr; --data->ready; }
 
   void deferred_resume_t::process_resumes() {
-    for (auto& e : resume_queue) {
+    for (auto& e : get_queue()) {
       if (e.h) e.h.resume();
     }
-    resume_queue.clear();
+    get_queue().clear();
   }
 
   struct idle_data_t {
