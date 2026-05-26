@@ -149,6 +149,59 @@ export namespace fan {
       return finished;
     }
 
+    template<FAN_UNIQUE_CALL>
+    bool every(f64_t interval_ms, f64_t duration_ms) {
+      static std::uint64_t start_time = 0;
+      static std::uint64_t last_time = 0;  
+      std::uint64_t current = fan::time::now();
+
+      if (start_time == 0) {
+        start_time = current;
+      }
+
+      if (current - start_time >= (std::uint64_t)(duration_ms * 1e6)) {
+        return false;
+      }
+
+      std::uint64_t interval_ns = (std::uint64_t)(interval_ms * 1e6);
+      std::uint64_t elapsed = current - last_time;
+      std::uint64_t finished = (last_time == 0) | (elapsed >= interval_ns);
+      last_time = last_time * (finished ^ 1) + current * finished;
+      return finished;
+    }
+
+    struct task_queue_t {
+      std::function<bool()> timer_cb;
+      fan::time::timer interval;
+      fan::time::timer duration;
+    };
+    using task_handle_t = std::list<task_queue_t>::iterator;
+    auto& get_task_queue() {
+      static std::list<task_queue_t> queue;
+      return queue;
+    }
+    task_handle_t task_every(f64_t interval_ms, f64_t duration_ms, auto f) {
+      task_queue_t tq;
+      tq.timer_cb = f;
+      tq.interval.start_millis(interval_ms);
+      tq.duration.start_millis(duration_ms);
+      get_task_queue().emplace_back(std::move(tq));
+      return std::prev(get_task_queue().end());
+    }
+    void process_tasks() {
+      auto& queue = get_task_queue();
+      auto it = queue.begin();
+      while (it != queue.end()) {
+        if (it->interval.finished()) {
+          if (it->timer_cb() || it->duration.finished()) {
+            it = queue.erase(it);
+            continue;
+          }
+        }
+        ++it;
+      }
+    }
+
     struct interval_t {
       interval_t() = default;
       interval_t(f32_t interval) : interval(interval) {}

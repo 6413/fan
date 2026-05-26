@@ -1913,6 +1913,7 @@ renderer_state.lighting.update(get_delta_time());
 #endif
 
   fan::event::deferred_resume_t::process_resumes();
+  fan::time::process_tasks();
 
   for (const auto& i : single_queue) {
     i();

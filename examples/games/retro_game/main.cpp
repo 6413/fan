@@ -55,6 +55,18 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
           if (auto* shape = map.get_shape(other)) { shape->set_color(fan::colors::green); }
         }
       });
+
+      fan::vec2 draw_offset{0, -18};
+      f32_t aabb_scale = 0.19f;
+      auto player_pos = pile.player.body.get_position();
+      enemy.open({
+        .json_path = "examples/games/platformer/enemy/skeleton/skeleton.json",
+        .aabb_scale = 0.19f,
+        .physics_properties={.fixed_rotation=true, .linear_damping=2.0f}
+      }, player_pos);
+      enemy.body.set_draw_offset(draw_offset);
+      enemy.behavior.target = &pile.player.body;
+      enemy.behavior.enable_ai_patrol({player_pos.offset_x(-100), player_pos.offset_x(100)});
     }
 
     void update() { 
@@ -62,12 +74,20 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
       if (spikes.query(pile.player.body)) {
         pile.stage_loader.restart_stage<level1_t>(pile.level_stage);
       }
+      fan::vec2 ts = map.get_tile_size();
+      fan::vec2 target_pos = pile.player.body.get_position();
+      enemy.update(ts);
+      if (enemy.body.test_overlap(pile.player.body)) {
+        pile.player.body.take_hit(&enemy.body);
+      }
     }
 
     tilemap_instance_t map;
     trigger_t key, door;
     gameplay::spikes_t spikes;
     physics::collision_scope_t collision_scope;
+
+    fan::graphics::physics::ai_character2d_t enemy;
   };
 
   struct player_t {
