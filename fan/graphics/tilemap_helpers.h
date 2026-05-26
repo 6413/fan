@@ -5,7 +5,7 @@ namespace fan::graphics {
       const std::string& id = "",
       const fan::vec3& default_pos = 0) {
       try {
-        return renderer.get_spawn_position(map_id, id);
+        return renderer.get_spawn(map_id, id);
       }
       catch (...) {
         return default_pos;

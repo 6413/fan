@@ -222,9 +222,10 @@ namespace fan::graphics {
         tile.flags = base_shape.get_flags();
 
         compiled_map.compiled_shapes[gp.y][gp.x].push_back(std::move(tile));
+        auto& inserted_tile = compiled_map.compiled_shapes[gp.y][gp.x].back();
 
-        if (!tile.id.empty()) {
-          compiled_map.id_lookup[tile.id].push_back(&compiled_map.compiled_shapes[gp.y][gp.x].back());
+        if (!inserted_tile.id.empty()) {
+          compiled_map.id_lookup[inserted_tile.id].push_back(&inserted_tile);
         }
       });
     }

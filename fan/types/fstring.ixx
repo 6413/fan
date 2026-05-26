@@ -28,7 +28,7 @@ export namespace fan {
     return out.str();
   }
 
-  inline constexpr std::uint64_t get_hash(const std::string_view& str) {
+  inline constexpr std::uint64_t get_hash(const std::string_view str) {
     std::uint64_t result = 0xcbf29ce484222325; // FNV offset basis
 
     std::uint32_t i = 0;
