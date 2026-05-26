@@ -85,7 +85,7 @@ export namespace fan::graphics {
 
     // could be something else than auto?
     void setup_view(id_t id, auto& body, auto& camera, f32_t zoom) {
-      body.set_physics_position(get_spawn_position(id));
+      body.set_physics_position(get_spawn(id));
       camera.set_zoom(zoom);
       fan::vec2 map_size = get_map_size(id);
       fan::vec2 tile_size = get_tile_size(id);
@@ -174,6 +174,15 @@ export namespace fan::graphics {
         if (it != node.rendered_tiles.end()) { return &it->second; }
       }
       return nullptr;
+    }
+    fan::vec3 get_spawn(const std::string_view str_id = "") {
+      return renderer->get_spawn(id, str_id);
+    }
+    fan::vec3 get_enemy_spawn(const std::string_view str_id = "") {
+      return renderer->get_enemy_spawn(id, str_id);
+    }
+    std::size_t count(const std::string_view str_id) {
+      return renderer->count(id, std::string(str_id));
     }
   };
 }

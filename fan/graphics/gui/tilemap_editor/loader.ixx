@@ -261,7 +261,7 @@ export namespace fan::graphics {
       return {};
     }
 
-    fan::vec3 get_spawn_position(id_t map_id, const std::string& id = "") {
+    fan::vec3 get_spawn(id_t map_id, const std::string_view id = "") {
       auto& node = get_map_node(map_id);
       auto& marks = node.compiled_map->spawn_marks;
 
@@ -271,7 +271,21 @@ export namespace fan::graphics {
         }
         return mark.position;
       }
-      fan::throw_error("spawn position not found: " + id);
+      fan::throw_error("spawn position not found: " + std::string(id));
+      return {};
+    }
+
+    fan::vec3 get_enemy_spawn(id_t map_id, const std::string_view id = "") {
+      auto& node = get_map_node(map_id);
+      auto& marks = node.compiled_map->spawn_marks;
+
+      for (auto& mark : marks) {
+        if ((id.size() ? (mark.id != id) : (mark.type != fte_t::mesh_property_t::enemy_spawn))) {
+          continue;
+        }
+        return mark.position;
+      }
+      fan::throw_error("spawn position not found: " + std::string(id));
       return {};
     }
 
@@ -306,6 +320,23 @@ export namespace fan::graphics {
     fan::vec2 get_map_size(id_t id) {
       const auto& node = get_map_node(id);
       return node.compiled_map->map_size;
+    }
+
+    std::size_t count(id_t id, const std::string& str_id) {
+      auto& map = *get_map_node(id).compiled_map;
+      std::size_t c = 0;
+
+      if (auto it = map.id_lookup.find(str_id); it != map.id_lookup.end()) {
+        c += it->second.size();
+      }
+      for (auto& s : map.physics_shapes) {
+        c += s.physics_shapes.id == str_id;
+      }
+      for (auto& m : map.spawn_marks) {
+        c += m.id == str_id;
+      }
+
+      return c;
     }
 
     struct properties_t {
