@@ -97,6 +97,7 @@ export namespace fan {
         base_shape_t() = default;
 
         void set_shape(fan::graphics::shape_t&& shape);
+        base_shape_t(fan::graphics::shape_t&& shape, fan::physics::entity_t&& entity);
         base_shape_t(fan::graphics::shape_t&& shape, fan::physics::entity_t&& entity, const mass_data_t& mass_data);
         base_shape_t(const base_shape_t& r);
         base_shape_t(base_shape_t&& r);
@@ -200,6 +201,7 @@ export namespace fan {
           mass_data_t mass_data;
           fan::physics::shape_properties_t shape_properties;
         };
+        using base_shape_t::base_shape_t;
         sprite_t() = default;
         sprite_t(const properties_t& p);
         sprite_t(const sprite_t& r);
@@ -971,6 +973,19 @@ export namespace fan {
         p.shape_properties.is_sensor = true;
         shape = physics::sprite_t {p};
 
+        shape.on_sensor_enter(trigger_to, [this, on_enter = std::move(on_enter)] {
+          on_enter(shape);
+        });
+      }
+      void open(
+        auto& trigger_to,
+        fan::graphics::sprite_t&& graphics_shape,
+        std::function<void(physics::sprite_t&)> on_enter) {
+
+        physics::sprite_t::properties_t sprops;
+        sprops.shape_properties.is_sensor = true;
+        auto sensor = fan::physics::create_sensor_rectangle(graphics_shape.get_position(), graphics_shape.get_size());
+        shape = physics::sprite_t(std::move(graphics_shape), std::move(sensor));
         shape.on_sensor_enter(trigger_to, [this, on_enter = std::move(on_enter)] {
           on_enter(shape);
         });

@@ -428,7 +428,8 @@ struct fgm_t {
       std::string_view shape_name = shape_instance->children.empty() ? std::string_view("Node") : fan::graphics::shape_names[shape_instance->children[0].get_shape_type()];
 
       bool node_open = fan::graphics::gui::tree_node_ex(
-        (void*)(intptr_t)it.NRI, node_flags, "%s %ld", static_cast<int>(shape_name.length()), shape_name.data(), (intptr_t)it.NRI);
+        (void*)(intptr_t)it.NRI, node_flags, "%.*s %ld",
+        static_cast<int>(shape_name.length()), shape_name.data(), (intptr_t)it.NRI);
 
       if (fan::graphics::gui::is_item_clicked() && !fan::graphics::gui::is_item_toggled_open()) {
         node_clicked = (intptr_t)it.NRI;
@@ -544,7 +545,7 @@ struct fgm_t {
             fan::graphics::vfi_root_t::selected_objects.push_back(shape);
           }
         }
-        if (fan_2d::collision::rectangle::point_inside_no_rotation(
+        if (fan::math::d2::aabb_point_inside(
           get_mouse_position(), shape->children[0].get_position(),
           shape->children[0].get_size()
         )) {

@@ -443,6 +443,7 @@ export namespace fan::graphics {
       void reset_current_sprite_sheet();
       // sprite sheet - sprite specific
       void set_sprite_sheet_next_frame(int advance = 1);
+      void set_sprite_sheet_start();
       sprite_sheet_shape_id_t get_shape_sprite_sheet_id() const;
       std::unordered_map<std::string, fan::graphics::sprite_sheet_id_t> get_sprite_sheets() const;
       // Takes in seconds
@@ -591,6 +592,18 @@ export namespace fan::graphics {
       typename T::properties_t& get_shape_data() {
         return *static_cast<typename T::properties_t*>(
           get_shape_data_impl(T::type_t::shape_type)
+        );
+      }
+
+      template<typename props_t>
+      props_t& get_properties() const {
+        shapes::shape_ids_t::nr_t id;
+        id.gint() = NRI;
+        const auto& sd = g_shapes->shape_ids[id];
+        std::uint16_t st = sd.shape_type;
+        std::uint32_t data_nr = sd.data_nr;
+        return *static_cast<props_t*>(
+          fan::graphics::g_shapes->shape_props_getters[st](fan::graphics::g_shapes->shape_pool_storage[st], data_nr)
         );
       }
 

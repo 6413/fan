@@ -317,6 +317,9 @@ namespace fan::graphics::physics {
     }*/
   }
 
+  base_shape_t::base_shape_t(fan::graphics::shape_t&& shape, fan::physics::entity_t&& entity) :
+    base_shape_t(std::move(shape), std::move(entity), {}) {}
+
   base_shape_t::base_shape_t(fan::graphics::shape_t&& shape, fan::physics::entity_t&& entity, const mass_data_t& mass_data) :
     fan::graphics::shape_t(std::move(shape)),
     fan::physics::entity_t(std::move(entity)) {

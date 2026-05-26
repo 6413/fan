@@ -530,7 +530,9 @@ namespace fan::io {
 
       if (!state->stopped) {
         fan::uv::dirent_t ent;
-        while (fan::uv::fs_scandir_next(r, &ent) != fan::eof) {
+        while (1) {
+          auto res = fan::uv::fs_scandir_next(r, &ent);
+          if (res < 0) break;
           try { state->entries.emplace_back(std::filesystem::path(state->base_path) / ent.name); } catch (...) {}
         }
         if (it->sort_alphabetically) {

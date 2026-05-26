@@ -432,9 +432,15 @@ namespace fan::graphics::gui {
 
 #endif
 
+  static bool is_absolute(std::string_view p) {
+    if (p.size() >= 2 && p[1] == ':') return true;
+    if (!p.empty() && (p[0] == '/' || p[0] == '\\')) return true;
+    return false;
+  }
+
   static std::string path_join(std::string_view a, std::string_view b) {
-    if (a.empty()) return std::string(b);
     if (b.empty()) return std::string(a);
+    if (a.empty() || is_absolute(b)) return std::string(b);
     std::string r(a);
     if (r.back() != '/' && r.back() != '\\') r += '/';
     r += b;
@@ -455,18 +461,12 @@ namespace fan::graphics::gui {
   }
 
   static std::string path_relative(std::string_view path, std::string_view base) {
-    if (path.substr(0, base.size()) == base) {
+    if (base.size() <= path.size() && path.substr(0, base.size()) == base) {
       auto rel = path.substr(base.size());
       if (!rel.empty() && (rel[0] == '/' || rel[0] == '\\')) rel = rel.substr(1);
-      return std::string(rel);
+      return rel.empty() ? "." : std::string(rel);
     }
     return std::string(path);
-  }
-
-  static bool is_absolute(std::string_view p) {
-    if (p.size() >= 2 && p[1] == ':') return true;
-    if (!p.empty() && (p[0] == '/' || p[0] == '\\')) return true;
-    return false;
   }
 
   content_browser_t::content_browser_t() {

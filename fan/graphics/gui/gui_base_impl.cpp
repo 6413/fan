@@ -70,8 +70,7 @@ namespace fan::graphics::gui {
     inline void receive_drag_drop_target_impl(const char* id, std::function<void(std::string)> receive_func) {
       if (ImGui::BeginDragDropTarget()) {
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(id)) {
-          const wchar_t* wpath = static_cast<const wchar_t*>(payload->Data);
-          std::string utf8 = fan::wstring_to_utf8(wpath);
+          std::string utf8(static_cast<const char*>(payload->Data), payload->DataSize - 1);
           receive_func(std::move(utf8));
         }
         ImGui::EndDragDropTarget();
@@ -1348,7 +1347,8 @@ namespace fan::graphics::gui {
 
   void send_drag_drop_item(str_view_t id, const std::wstring& path, str_view_t popup) {
     if (ImGui::BeginDragDropSource()) {
-      ImGui::SetDragDropPayload(fan::ct_string(id), path.c_str(), (path.size() + 1) * sizeof(wchar_t));
+      std::string utf8 = fan::wstring_to_utf8(path);
+      ImGui::SetDragDropPayload(fan::ct_string(id), utf8.c_str(), utf8.size() + 1);
       if (!popup.empty()) {
         ImGui::TextUnformatted(popup.data(), popup.data() + popup.size());
       }
