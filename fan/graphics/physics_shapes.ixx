@@ -601,6 +601,8 @@ export namespace fan {
         struct character_config_t {
           std::string json_path;
           f32_t aabb_scale = 1.0f;
+          fan::vec2 draw_offset{0, 0};
+          physics::character2d_t* target = nullptr;
           bool auto_animations = true;
           std::function<bool(character2d_t&)> attack_cb;
           fan::physics::shape_properties_t physics_properties = {.fixed_rotation = true};
@@ -875,6 +877,8 @@ export namespace fan {
         void open(const character2d_t::character_config_t& properties, fan::vec2 initial_pos) {
           body = character2d_t::from_json(properties);
           body.set_physics_position(initial_pos);
+          if (properties.draw_offset != fan::vec2 {0, 0}) { body.set_draw_offset(properties.draw_offset); }
+          if (properties.target) { behavior.target = properties.target; }
         }
         void update(fan::vec2 tile_size) {
           behavior.update_ai(&body, navigation, behavior.target->get_position(), tile_size);

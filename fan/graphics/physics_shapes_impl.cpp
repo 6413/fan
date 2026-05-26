@@ -1087,7 +1087,7 @@ namespace fan::graphics::physics {
     const fan::vec2& target_position,
     fan::vec2 tile_size
   ) {
-    character->raycast(*target);
+    if (target) { character->raycast(*target); }
 
     fan::vec2 movement_direction(0);
     fan::physics::shape_id_t colliding_wall_id;
@@ -1191,13 +1191,18 @@ namespace fan::graphics::physics {
       fan::vec2 target_point = patrol_points[current_patrol_index];
 
       fan::vec2 diff = target_point - pos;
-      static constexpr f32_t patrol_reach_threshold = 20.f;
-      if (diff.length() < patrol_reach_threshold) {
+      f32_t patrol_reach_threshold = character->get_size().max() / 100.f;
+      //if (diff.length() < patrol_reach_threshold) {
+      if (std::abs(diff.x) < patrol_reach_threshold) {
         current_patrol_index = (current_patrol_index + 1) % patrol_points.size();
       }
       else {
         movement_direction.x = diff.sign().x;
         character->movement_state.move_to_direction(*character, movement_direction);
+      }
+      if (wall_jump.normal.x && navigation.stuck_timer.finished()) { // collides with wall, change direction
+        current_patrol_index = (current_patrol_index + 1) % patrol_points.size();
+        navigation.stuck_timer.restart();
       }
       if (std::abs(movement_direction.x) > 0.01f) {
         character->movement_state.desired_facing.x = fan::math::sgn(movement_direction.x);
@@ -1645,12 +1650,16 @@ namespace fan::graphics::physics {
     }
   }
   void character2d_t::take_hit(character2d_t* source) {
+    if (!attack_state.cooldown_timer.finished()) {
+      return;
+    }
     attack_state.health -= source->attack_state.damage;
     attack_state.health = std::max(attack_state.health, 0.f);
 
     take_knockback(source, (get_position() - source->get_position()), 0.f);
 
     attack_state.took_damage = true;
+    attack_state.cooldown_timer.restart();
   }
 
   void character2d_t::update_animations() {

@@ -316,6 +316,7 @@ export namespace fan::graphics {
       std::uint8_t collision_body_type = fan::physics::body_type_e::static_body;
       fan::physics::shape_properties_t collision_props;
       bool build_collisions = false;
+      f32_t default_friction = -1.f;
       fan::graphics::render_view_t* render_view = nullptr;
       std::function<f32_t(const fte_t::tile_t&, const fan::vec2&, const fan::vec2&, f32_t)> depth_fn = nullptr;
     };
