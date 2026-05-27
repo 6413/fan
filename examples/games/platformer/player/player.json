@@ -134,7 +134,14 @@
       "tc_size": [
         0.1428571492433548,
         1.0
-      ]
+      ],
+      "draw_offset": [0.0, -42.5],
+      "health": 3,
+      "movement_speed": 300.0,
+      "jump_height": 52.0,
+      "hsl": [20.7, 18.3, -58.4],
+      "damage_cooldown": 1.0,
+      "aabb_scale": 0.17
     }
   ],
   "version": 1

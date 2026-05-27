@@ -258,6 +258,8 @@ export {
       }
       json(void* ptr, bool is_ref);
 
+      void preserve_unknown(const fan::json& source);
+
       void* m_ptr = nullptr;
       bool m_is_ref = false;
     };

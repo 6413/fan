@@ -181,6 +181,7 @@ struct fgm_t {
     shape_list.Clear();
     close_cb();
     background.erase();
+    shape_original_json.clear();
   }
 
   void update_line_thickness() {
@@ -999,10 +1000,14 @@ struct fgm_t {
       if (shape_instance->group_id != defaults.group_id) {
         shape_json["group_id"] = shape_instance->group_id;
       }
+
+      if (auto found = shape_original_json.find(shape_instance); found != shape_original_json.end()) {
+        shape_json.preserve_unknown(found->second);
+      }
+
       shapes.push_back(shape_json);
       it = it.Next(&shape_list);
     }
-
 
     ostr["shapes"] = shapes;
 
@@ -1172,6 +1177,7 @@ struct fgm_t {
         if (shape_json.contains("group_id")) {
           node->group_id = shape_json["group_id"].get<uint32_t>();
         }
+        shape_original_json[node] = shape_json;
       }
     }
     ++current_z;
@@ -1190,6 +1196,7 @@ struct fgm_t {
     while (it != shape_list.dst) {
       if (current_shape == shape_list[it]) {
         auto& selected_objs = fan::graphics::vfi_root_t::selected_objects;
+        shape_original_json.erase(current_shape);
         if (auto it = std::find(selected_objs.begin(), selected_objs.end(), current_shape); it != selected_objs.end()) {
           selected_objs.erase(it);
         }
@@ -1607,6 +1614,8 @@ struct fgm_t {
   fan::graphics::engine_t::mouse_move_handle_t mouse_move_handle;
   fan::graphics::engine_t::buttons_handle_t button_handle;
   
+  std::unordered_map<shapes_t::global_t*, fan::json> shape_original_json;
+
   static constexpr fan::color axis_x_color = (fan::colors::red / 2.f).set_alpha(0.8f);
   static constexpr fan::color axis_y_color = (fan::colors::green / 2.f).set_alpha(0.8f);
   bool render_axis_lines = true;
