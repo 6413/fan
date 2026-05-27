@@ -54,7 +54,7 @@ fan::json image_to_json(const fan::graphics::image_t& image) {
 
 fan::graphics::image_t json_to_image(const fan::json& image_json, const std::source_location& callers_path) {
   if (!image_json.contains("image_path")) {
-    return fan::graphics::ctx().default_texture;
+    return fan::graphics::image_t{fan::graphics::ctx().default_texture};
   }
 
   std::string path = image_json["image_path"];
@@ -64,7 +64,7 @@ fan::graphics::image_t json_to_image(const fan::json& image_json, const std::sou
   ).generic_string();
   if (!fan::io::file::exists(relative_path))
   {
-    return fan::graphics::ctx().default_texture;
+    return fan::graphics::image_t{fan::graphics::ctx().default_texture};
   }
   path = std::filesystem::absolute(relative_path).generic_string();
 
@@ -92,7 +92,7 @@ fan::graphics::image_t json_to_image(const fan::json& image_json, const std::sou
     callers_path
   );
   (*fan::graphics::ctx().image_list)[image].image_path = path;
-  return image;
+  return fan::graphics::image_t{image};
 }
 
 #endif

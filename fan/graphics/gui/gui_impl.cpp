@@ -1978,7 +1978,7 @@ namespace fan::graphics::gui {
     using namespace fan::graphics;
     auto current_image = index > 0 ? shape.get_images()[index - 1] : shape.get_image();
     if (current_image.iic()) {
-      current_image = fan::graphics::ctx().default_texture;
+      current_image = fan::graphics::image_t{fan::graphics::ctx().default_texture};
     }
     fan::vec2 uv0 = shape.get_tc_position(), uv1 = shape.get_tc_size();
     uv1 += uv0;

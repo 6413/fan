@@ -9,7 +9,8 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
   struct main_menu_t : fan::stage_t<main_menu_t> {
     void update() {
       if (auto h = gui::hud_interactive{"##mainmenu"}) {
-        if (gui::button("Play")) {
+        gui::image(image_t("images/main_menu.webp"), gui::get_window_size());
+        if (gui::button_centered("Play")) {
           pile.stage_change<main_menu_t, ingame_t>(fan::stage_fade_mode_t::fade_in);
         }
       }

@@ -496,9 +496,9 @@ namespace fan::graphics {
       }
       image_info.type = fan::image::image_type_e::webp;
       image_info.channels = 4;
-      s->image_list[i].image = fan::graphics::ctx()->image_load_info_props(
+      s->image_list[i].image = fan::graphics::image_t{fan::graphics::ctx()->image_load_info_props(
         fan::graphics::ctx(), *(fan::image::info_t*)&image_info, lp
-      );
+      )};
       fan::webp::free_image(image_info.data);
 
       fan::string_read_data<std::uint32_t>(in, offset);

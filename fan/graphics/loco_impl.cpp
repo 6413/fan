@@ -290,7 +290,7 @@ void* loco_t::get_framebuffer() {
 #endif
 
 std::vector<std::uint8_t> loco_t::image_get_pixel_data(
-  fan::graphics::image_nr_t nr,
+  fan::graphics::image_t nr,
   int image_format,
   fan::vec2 uvp,
   fan::vec2 uvs
@@ -315,103 +315,103 @@ std::vector<std::uint8_t> loco_t::image_get_pixel_data(
   return result;
 }
 
-fan::graphics::image_nr_t loco_t::image_create() {
+fan::graphics::image_t loco_t::image_create() {
   return context_functions.image_create(&context);
 }
 
-fan::graphics::context_image_t loco_t::image_get(fan::graphics::image_nr_t nr) {
+fan::graphics::context_image_t loco_t::image_get(fan::graphics::image_t nr) {
   return renderer_get(fan::graphics::context_image_t,  gl, vk, image_get,  nr);
 }
 
-std::uint64_t loco_t::image_get_handle(fan::graphics::image_nr_t nr) {
+std::uint64_t loco_t::image_get_handle(fan::graphics::image_t nr) {
   return context_functions.image_get_handle(&context, nr);
 }
 
-fan::graphics::image_data_t& loco_t::image_get_data(fan::graphics::image_nr_t nr) {
+fan::graphics::image_data_t& loco_t::image_get_data(fan::graphics::image_t nr) {
   return image_list[nr];
 }
 
-void loco_t::image_erase(fan::graphics::image_nr_t nr) {
+void loco_t::image_erase(fan::graphics::image_t nr) {
   context_functions.image_erase(&context, nr);
 }
 
-void loco_t::image_bind(fan::graphics::image_nr_t nr) {
+void loco_t::image_bind(fan::graphics::image_t nr) {
   context_functions.image_bind(&context, nr);
 }
 
-void loco_t::image_unbind(fan::graphics::image_nr_t nr) {
+void loco_t::image_unbind(fan::graphics::image_t nr) {
   context_functions.image_unbind(&context, nr);
 }
 
-fan::graphics::image_load_properties_t& loco_t::image_get_settings(fan::graphics::image_nr_t nr) {
+fan::graphics::image_load_properties_t& loco_t::image_get_settings(fan::graphics::image_t nr) {
   return context_functions.image_get_settings(&context, nr);
 }
 
-void loco_t::image_set_settings(fan::graphics::image_nr_t nr, const fan::graphics::image_load_properties_t& settings) {
+void loco_t::image_set_settings(fan::graphics::image_t nr, const fan::graphics::image_load_properties_t& settings) {
   context_functions.image_set_settings(&context, nr, settings);
 }
 
-fan::graphics::image_nr_t loco_t::image_load(const fan::image::info_t& image_info) {
-  return context_functions.image_load_info(&context, image_info);
+fan::graphics::image_t loco_t::image_load(const fan::image::info_t& image_info) {
+  return fan::graphics::image_t{context_functions.image_load_info(&context, image_info)};
 }
 
-fan::graphics::image_nr_t loco_t::image_load(const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
+fan::graphics::image_t loco_t::image_load(const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
   return context_functions.image_load_info_props(&context, image_info, p);
 }
 
-fan::graphics::image_nr_t loco_t::image_load(const std::string& path, const std::source_location& callers_path) {
+fan::graphics::image_t loco_t::image_load(const std::string& path, const std::source_location& callers_path) {
   return context_functions.image_load_path(&context, path, callers_path);
 }
 
-fan::graphics::image_nr_t loco_t::image_load(const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path) {
+fan::graphics::image_t loco_t::image_load(const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path) {
   return context_functions.image_load_path_props(&context, path, p, callers_path);
 }
 
-fan::graphics::image_nr_t loco_t::image_load(fan::color* colors, const fan::vec2ui& size) {
+fan::graphics::image_t loco_t::image_load(fan::color* colors, const fan::vec2ui& size) {
   return context_functions.image_load_colors(&context, colors, size);
 }
 
-fan::graphics::image_nr_t loco_t::image_load(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p) {
+fan::graphics::image_t loco_t::image_load(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p) {
   return context_functions.image_load_colors_props(&context, colors, size, p);
 }
 
-void loco_t::image_unload(fan::graphics::image_nr_t nr) {
+void loco_t::image_unload(fan::graphics::image_t nr) {
   context_functions.image_unload(&context, nr);
 }
 
-bool loco_t::is_image_valid(fan::graphics::image_nr_t nr) {
+bool loco_t::is_image_valid(fan::graphics::image_t nr) {
   return nr != default_texture && nr.iic() == false;
 }
 
-fan::graphics::image_nr_t loco_t::create_missing_texture() {
+fan::graphics::image_t loco_t::create_missing_texture() {
   return context_functions.create_missing_texture(&context);
 }
 
-fan::graphics::image_nr_t loco_t::create_transparent_texture() {
+fan::graphics::image_t loco_t::create_transparent_texture() {
   return context_functions.create_transparent_texture(&context);
 }
 
-void loco_t::image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info) {
+void loco_t::image_reload(fan::graphics::image_t nr, const fan::image::info_t& image_info) {
   context_functions.image_reload_image_info(&context, nr, image_info);
 }
 
-void loco_t::image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
+void loco_t::image_reload(fan::graphics::image_t nr, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
   context_functions.image_reload_image_info_props(&context, nr, image_info, p);
 }
 
-void loco_t::image_reload(fan::graphics::image_nr_t nr, const std::string& path, const std::source_location& callers_path) {
+void loco_t::image_reload(fan::graphics::image_t nr, const std::string& path, const std::source_location& callers_path) {
   context_functions.image_reload_path(&context, nr, path, callers_path);
 }
 
-void loco_t::image_reload(fan::graphics::image_nr_t nr, const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path) {
+void loco_t::image_reload(fan::graphics::image_t nr, const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path) {
   context_functions.image_reload_path_props(&context, nr, path, p, callers_path);
 }
 
-fan::graphics::image_nr_t loco_t::image_create(const fan::color& color) {
+fan::graphics::image_t loco_t::image_create(const fan::color& color) {
   return context_functions.image_create_color(&context, color);
 }
 
-fan::graphics::image_nr_t loco_t::image_create(const fan::color& color, const fan::graphics::image_load_properties_t& p) {
+fan::graphics::image_t loco_t::image_create(const fan::color& color, const fan::graphics::image_load_properties_t& p) {
   return context_functions.image_create_color_props(&context, color, p);
 }
 

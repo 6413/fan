@@ -450,7 +450,7 @@ export namespace fan::graphics {
 
   struct sprite_sheet_t {
     struct image_t {
-      fan::graphics::image_t image = fan::graphics::ctx().default_texture;
+      fan::graphics::image_t image{fan::graphics::ctx().default_texture};
       int hframes = 1, vframes = 1;
     #if defined(FAN_JSON)
       operator fan::json() const;
