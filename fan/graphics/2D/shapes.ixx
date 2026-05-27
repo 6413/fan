@@ -1343,10 +1343,10 @@ export namespace fan::graphics {
         fan::vec2 tc_size = 1;
 
         std::array<fan::graphics::image_t, 4> images = {
-          fan::graphics::image_t{fan::graphics::ctx().default_texture},
-          fan::graphics::image_t{fan::graphics::ctx().default_texture},
-          fan::graphics::image_t{fan::graphics::ctx().default_texture},
-          fan::graphics::image_t{fan::graphics::ctx().default_texture}
+          fan::graphics::ctx().default_texture,
+          fan::graphics::ctx().default_texture,
+          fan::graphics::ctx().default_texture,
+          fan::graphics::ctx().default_texture
         };
 
         #include <fan/graphics/base_props.inl>

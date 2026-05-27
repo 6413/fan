@@ -73,7 +73,7 @@ namespace fan::graphics {
 #endif
 
   fan::graphics::image_t get_default_texture() {
-    return fan::graphics::image_t{ctx().default_texture};
+    return ctx().default_texture;
   }
 
   image_t::image_t(__empty_struct st) : fan::graphics::image_nr_t() {}
@@ -454,7 +454,7 @@ namespace fan::window {
 
 namespace fan::graphics {
   fan::graphics::image_t image_create() {
-    return fan::graphics::image_t{fan::graphics::ctx()->image_create(fan::graphics::ctx())};
+    return fan::graphics::ctx()->image_create(fan::graphics::ctx());
   }
 
   std::uint64_t image_get_handle(fan::graphics::image_t nr) {
@@ -497,43 +497,31 @@ namespace fan::graphics {
   }
 
   fan::graphics::image_t image_load(const fan::image::info_t& image_info) {
-    return fan::graphics::image_t{fan::graphics::ctx()->image_load_info(fan::graphics::ctx(), image_info)};
+    return fan::graphics::ctx()->image_load_info(fan::graphics::ctx(), image_info);
   }
 
   fan::graphics::image_t image_load(const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
-    return fan::graphics::image_t{
-      fan::graphics::ctx()->image_load_info_props(fan::graphics::ctx(), image_info, p)
-    };
+    return fan::graphics::ctx()->image_load_info_props(fan::graphics::ctx(), image_info, p);
   }
 
   fan::graphics::image_t image_load(const std::string& path, const std::source_location& callers_path) {
-    return fan::graphics::image_t{
-      fan::graphics::ctx()->image_load_path(fan::graphics::ctx(), path, callers_path)
-    };
+    return fan::graphics::ctx()->image_load_path(fan::graphics::ctx(), path, callers_path);
   }
 
   fan::graphics::image_t image_load(const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path) {
-    return fan::graphics::image_t{
-      fan::graphics::ctx()->image_load_path_props(fan::graphics::ctx(), path, p, callers_path)
-    };
+    return fan::graphics::ctx()->image_load_path_props(fan::graphics::ctx(), path, p, callers_path);
   }
 
   fan::graphics::image_t image_load(fan::color* colors, const fan::vec2ui& size) {
-    return fan::graphics::image_t{
-      fan::graphics::ctx()->image_load_colors(fan::graphics::ctx(), colors, size)
-    };
+    return fan::graphics::ctx()->image_load_colors(fan::graphics::ctx(), colors, size);
   }
 
   fan::graphics::image_t image_load(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p) {
-    return fan::graphics::image_t{
-      fan::graphics::ctx()->image_load_colors_props(fan::graphics::ctx(), colors, size, p)
-    };
+    return fan::graphics::ctx()->image_load_colors_props(fan::graphics::ctx(), colors, size, p);
   }
 
   fan::graphics::image_t image_load(std::span<const fan::color> colors, const fan::vec2ui& size) {
-    return fan::graphics::image_t{
-      fan::graphics::ctx()->image_load_colors_props(fan::graphics::ctx(), const_cast<fan::color*>(colors.data()), size, image_presets::pixel_art())
-    };
+    return fan::graphics::ctx()->image_load_colors_props(fan::graphics::ctx(), const_cast<fan::color*>(colors.data()), size, image_presets::pixel_art());
   }
   void image_unload(fan::graphics::image_t nr) {
     fan::graphics::ctx()->image_unload(fan::graphics::ctx(), nr);
@@ -552,15 +540,11 @@ namespace fan::graphics {
   }
 
   fan::graphics::image_t create_missing_texture() {
-    return fan::graphics::image_t{
-      fan::graphics::ctx()->create_missing_texture(fan::graphics::ctx())
-    };
+    return fan::graphics::ctx()->create_missing_texture(fan::graphics::ctx());
   }
 
   fan::graphics::image_t create_transparent_texture() {
-    return fan::graphics::image_t{
-      fan::graphics::ctx()->create_transparent_texture(fan::graphics::ctx())
-    };
+    return fan::graphics::ctx()->create_transparent_texture(fan::graphics::ctx());
   }
 
   void image_reload(fan::graphics::image_t nr, const fan::image::info_t& image_info) {
@@ -580,21 +564,15 @@ namespace fan::graphics {
   }
 
   fan::graphics::image_t image_create(const fan::color& color) {
-    return fan::graphics::image_t{
-      fan::graphics::ctx()->image_create_color(fan::graphics::ctx(), color)
-    };
+    return fan::graphics::ctx()->image_create_color(fan::graphics::ctx(), color);
   }
 
   fan::graphics::image_t image_create(const fan::color& color, const fan::graphics::image_load_properties_t& p) {
-    return fan::graphics::image_t{
-      fan::graphics::ctx()->image_create_color_props(fan::graphics::ctx(), color, p)
-    };
+    return fan::graphics::ctx()->image_create_color_props(fan::graphics::ctx(), color, p);
   }
 
   fan::graphics::image_t image_create(void* data, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p) {
-    return fan::graphics::image_t{
-      fan::graphics::ctx()->image_create_data(fan::graphics::ctx(), data, size, p)
-    };
+    return fan::graphics::ctx()->image_create_data(fan::graphics::ctx(), data, size, p);
   }
 
 #if defined(FAN_OPENGL)

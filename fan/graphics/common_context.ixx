@@ -474,7 +474,7 @@ export namespace fan::graphics {
   struct image_t : fan::graphics::image_nr_t {
     explicit image_t(__empty_struct st);
     image_t();
-    explicit image_t(fan::graphics::image_nr_t image);
+    image_t(fan::graphics::image_nr_t image);
     image_t(const fan::color& color);
     image_t(fan::str_view_t path, const std::source_location& callers_path = std::source_location::current());
     image_t(fan::str_view_t path, const fan::graphics::image_load_properties_t lp, const std::source_location& callers_path = std::source_location::current());
