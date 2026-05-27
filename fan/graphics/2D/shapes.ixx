@@ -853,7 +853,7 @@ export namespace fan::graphics {
           return 0;
         }
 
-        fan::graphics::image_t image = fan::graphics::ctx().default_texture;
+        fan::graphics::image_t image{fan::graphics::ctx().default_texture};
         std::array<fan::graphics::image_t, 30> images;
 
         #include <fan/graphics/base_props.inl>
@@ -919,7 +919,7 @@ export namespace fan::graphics {
         fan::vec2 tc_size = 1;
         f32_t seed = 0;
 
-        fan::graphics::image_t image = fan::graphics::ctx().default_texture;
+        fan::graphics::image_t image{fan::graphics::ctx().default_texture};
         std::array<fan::graphics::image_t, 30> images;
 
         #include <fan/graphics/base_props.inl>
@@ -1301,7 +1301,7 @@ export namespace fan::graphics {
 
         std::uint32_t shape = shapes_e::circle;
 
-        fan::graphics::image_t image = fan::graphics::ctx().default_texture;
+        fan::graphics::image_t image{fan::graphics::ctx().default_texture};
 
         #include <fan/graphics/base_props.inl>
       };
@@ -1343,10 +1343,10 @@ export namespace fan::graphics {
         fan::vec2 tc_size = 1;
 
         std::array<fan::graphics::image_t, 4> images = {
-          fan::graphics::ctx().default_texture,
-          fan::graphics::ctx().default_texture,
-          fan::graphics::ctx().default_texture,
-          fan::graphics::ctx().default_texture
+          fan::graphics::image_t{fan::graphics::ctx().default_texture},
+          fan::graphics::image_t{fan::graphics::ctx().default_texture},
+          fan::graphics::image_t{fan::graphics::ctx().default_texture},
+          fan::graphics::image_t{fan::graphics::ctx().default_texture}
         };
 
         #include <fan/graphics/base_props.inl>
@@ -1518,7 +1518,7 @@ export namespace fan::graphics {
         f32_t seed = 0;
         fan::graphics::shader_t shader;
 
-        fan::graphics::image_t image = fan::graphics::ctx().default_texture;
+        fan::graphics::image_t image{fan::graphics::ctx().default_texture};
         std::array<fan::graphics::image_t, 30> images;
 
         #include <fan/graphics/base_props.inl>
