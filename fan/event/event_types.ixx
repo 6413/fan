@@ -272,6 +272,8 @@ struct task_value_wrap_t {
     return std::move(p.value);
   }
 
+  bool done() const { return !owner || owner->h.done(); }
+  
   std::shared_ptr<owner_t> owner;
 };
 
@@ -336,6 +338,8 @@ struct task_value_wrap_t<void, suspend_type_t> {
     if (valid()) { request_stop(); join(); }
   }
   void destroy() { *this = {}; }
+
+  bool done() const { return !owner || owner->h.done(); }
 
   std::shared_ptr<owner_t> owner;
 };
@@ -405,6 +409,8 @@ struct task_auto_wrap_t {
     if (valid()) { request_stop(); join(); }
   }
   void destroy() { *this = {}; }
+
+  bool done() const { return !owner || owner->h.done(); }
 
   std::shared_ptr<owner_t> owner;
 };
