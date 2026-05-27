@@ -652,6 +652,7 @@ namespace fan::physics {
 
   void context_t::on_end_touch(b2ShapeId shape_a, b2ShapeId shape_b) {
     remove_collision(shape_a, shape_b);
+    if (!b2Shape_IsValid(shape_a) || !b2Shape_IsValid(shape_b)) return; // if shape was erased mid-frame
     dispatch_collision_exit(b2Shape_GetBody(shape_a), b2Shape_GetBody(shape_b));
   }
 

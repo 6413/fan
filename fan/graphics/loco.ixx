@@ -150,6 +150,14 @@ export namespace fan::graphics {
 }
 
 export namespace fan {
+  enum class stage_fade_mode_t {
+    instant,
+    crossfade,
+    fade_in
+  };
+}
+
+export namespace fan {
   struct stage_loader_t;
 
   inline struct gstage_t {
@@ -371,12 +379,6 @@ export namespace fan {
       return type_stage_map.contains(std::type_index(typeid(T)));
     }
 
-    enum class stage_fade_mode_t {
-      instant,
-      crossfade,
-      fade_in
-    };
-
     fan::event::task_t change_stage_impl(
       std::function<void()> close_cb,
       std::function<void()> open_cb,
@@ -481,6 +483,10 @@ export namespace fan {
     inline static fan::physics::context_t* physics = nullptr;
     stage_loader_t::stage_common_t stage_common;
   };
+}
+
+export namespace fan {
+  using stage_handle_t = stage_loader_t::nr_t;
 }
 
 export struct loco_t {
@@ -1007,7 +1013,7 @@ public:
   fan::stage_loader_t stage_loader;
 
   template <typename T>
-  auto stage_open() { return stage_loader.open<T>(); }
+  fan::stage_handle_t stage_open() { return stage_loader.open<T>(); }
 
   template <typename T>
   void stage_close() { stage_loader.close<T>(); }
@@ -1016,9 +1022,25 @@ public:
   void stage_restart() { stage_loader.restart<T>(); }
 
   template <typename CurrentStageT, typename NextStageT>
-  auto stage_change() { return stage_loader.change_stage<CurrentStageT, NextStageT>(); }
+  void stage_change( 
+    fan::stage_fade_mode_t mode = fan::stage_fade_mode_t::crossfade,
+    f32_t duration = 1.f,
+    fan::color color = fan::colors::black) 
+  { 
+    fan::event::add_awaitable(stage_loader.change_stage<CurrentStageT, NextStageT>(mode, duration, color)); 
+  }
+
   template <typename CurrentStageT, typename NextStageT>
-  auto stage_change_instant() { return stage_loader.change_stage<CurrentStageT, NextStageT>(); }
+  void stage_change( 
+    fan::stage_handle_t old_stage_id,
+    fan::stage_handle_t& out_new_stage_id,
+    fan::stage_fade_mode_t mode = fan::stage_fade_mode_t::crossfade,
+    f32_t duration = 1.f,
+    fan::color color = fan::colors::black)
+  { 
+    fan::event::add_awaitable(stage_loader.change_stage<CurrentStageT, NextStageT>(
+      old_stage_id, out_new_stage_id, mode, duration, color)); 
+  }
 
   template <typename T>
   T& stage_get() { return stage_loader.get_data<T>(); }
@@ -1103,11 +1125,11 @@ inline fan::stage_loader_t::nr_t fan::stage_loader_t::open_stage(const stage_ope
 fan::event::task_t fan::stage_loader_t::change_stage_impl(
   std::function<void()> close_cb,
   std::function<void()> open_cb,
-  fan::stage_loader_t::stage_fade_mode_t mode,
+  fan::stage_fade_mode_t mode,
   f32_t duration,
   fan::color color
 ) {
-  if (mode == fan::stage_loader_t::stage_fade_mode_t::instant || duration <= 0.f) {
+  if (mode == fan::stage_fade_mode_t::instant || duration <= 0.f) {
     close_cb();
     open_cb();
     co_return;
@@ -1115,11 +1137,11 @@ fan::event::task_t fan::stage_loader_t::change_stage_impl(
   fan::graphics::shape_t overlay{fan::graphics::shapes::rectangle_t::properties_t{
     .position = fan::vec3(0, 0, 0xfffe),
     .size = fan::vec2(99999),
-    .color = color.set_alpha(mode == fan::stage_loader_t::stage_fade_mode_t::fade_in ? 1.f : 0.f),
+    .color = color.set_alpha(mode == fan::stage_fade_mode_t::fade_in ? 1.f : 0.f),
     .blending = true,
   }};
-  f32_t half = (mode == fan::stage_loader_t::stage_fade_mode_t::crossfade) ? duration / 2.f : duration;
-  if (mode == fan::stage_loader_t::stage_fade_mode_t::crossfade) {
+  f32_t half = (mode == fan::stage_fade_mode_t::crossfade) ? duration / 2.f : duration;
+  if (mode == fan::stage_fade_mode_t::crossfade) {
     for (f32_t t = 0.f; t < half; t += gloco()->get_delta_time()) {
       overlay.set_color(color.set_alpha(t / half));
       co_await fan::graphics::co_next_frame();

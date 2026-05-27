@@ -1259,7 +1259,7 @@ namespace fan::graphics::physics {
       cache.character.set_body_type(fan::physics::body_type_e::static_body);
       cache.original_pos = character.get_position();
       // for box2d 3.1.1 it is stated that #define B2_HUGE(100000.0f * b2_lengthUnitsPerMeter)
-      fan::vec2 b2_huge = fan::vec2(99000.0f * fan::physics::length_units_per_meter) / 1.5f; /*1.5 for safe*/
+      fan::vec2 b2_huge = 99000.0f / 1.5f; /*1.5 for safe*/
       cache.character.set_physics_position(-b2_huge);
       return character;
     }

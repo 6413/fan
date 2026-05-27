@@ -277,6 +277,24 @@ export namespace fan::event {
     std::int64_t result() const noexcept;
     void await_resume() noexcept {}
   };
+
+  auto& get_awaitable_queue() {
+    static std::list<fan::event::task_t> queue;
+    return queue;
+  }
+
+  void add_awaitable(fan::event::task_t&& task) {
+    get_awaitable_queue().push_back(std::move(task));
+  }
+
+  void process() {
+    auto& queue = get_awaitable_queue();
+    for (auto it = queue.begin(); it != queue.end();) {
+      if (it->done()) it = queue.erase(it);
+      else ++it;
+    }
+    fan::event::deferred_resume_t::process_resumes();
+  }
 }
 
 export namespace fan {
