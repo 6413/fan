@@ -352,7 +352,7 @@ void loco_t::image_set_settings(fan::graphics::image_t nr, const fan::graphics::
 }
 
 fan::graphics::image_t loco_t::image_load(const fan::image::info_t& image_info) {
-  return fan::graphics::image_t{context_functions.image_load_info(&context, image_info)};
+  return context_functions.image_load_info(&context, image_info);
 }
 
 fan::graphics::image_t loco_t::image_load(const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {

@@ -1602,7 +1602,7 @@ namespace fan::graphics {
       ((fan::opengl::context_t*)context)->image_bind(nr);
     };
     cf.image_bind_params = [](void* context, fan::graphics::image_nr_t nr, std::uint32_t unit, std::uint32_t access, std::uint32_t format) {
-      ((fan::opengl::context_t*)context)->image_bind(fan::graphics::image_t{nr}, unit, access, format);
+      ((fan::opengl::context_t*)context)->image_bind(nr, unit, access, format);
     };
     cf.image_unbind = [](void* context, fan::graphics::image_nr_t nr) {
       ((fan::opengl::context_t*)context)->image_unbind(nr);
