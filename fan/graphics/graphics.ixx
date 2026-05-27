@@ -152,7 +152,7 @@ export namespace fan::graphics {
     fan::vec3 angle = 0;
     fan::color color = fan::color(1, 1, 1, 1);
     fan::vec2 rotation_point = 0;
-    fan::graphics::image_t image = fan::graphics::ctx().default_texture;
+    fan::graphics::image_t image{fan::graphics::ctx().default_texture};
     fan::vec2 tc_position = 0;
     fan::vec2 tc_size = 1;
     std::array<fan::graphics::image_t, 30> images;
@@ -200,7 +200,7 @@ export namespace fan::graphics {
     fan::vec3 angle = 0;
     fan::color color = fan::color(1, 1, 1, 1);
     fan::vec2 rotation_point = 0;
-    fan::graphics::image_t image = fan::graphics::ctx().default_texture;
+    fan::graphics::image_t image{fan::graphics::ctx().default_texture};
     std::array<fan::graphics::image_t, 30> images;
     fan::vec2 tc_position = 0;
     fan::vec2 tc_size = 1;
@@ -320,10 +320,10 @@ export namespace fan::graphics {
     fan::vec2 tc_size = 1;
     bool blending = true;
     std::array<fan::graphics::image_t, 4> images = {
-      fan::graphics::ctx().default_texture,
-      fan::graphics::ctx().default_texture,
-      fan::graphics::ctx().default_texture,
-      fan::graphics::ctx().default_texture
+      fan::graphics::image_t{fan::graphics::ctx().default_texture},
+      fan::graphics::image_t{fan::graphics::ctx().default_texture},
+      fan::graphics::image_t{fan::graphics::ctx().default_texture},
+      fan::graphics::image_t{fan::graphics::ctx().default_texture}
     };
     std::uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
     bool enable_culling = true;
@@ -379,7 +379,7 @@ export namespace fan::graphics {
     fan::vec2 tc_position = 0;
     fan::vec2 tc_size = 1;
     fan::graphics::shader_t shader;
-    fan::graphics::image_t image = fan::graphics::ctx().default_texture;
+    fan::graphics::image_t image{fan::graphics::ctx().default_texture};
     std::array<fan::graphics::image_t, 30> images;
     std::uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
     bool blending = true;
@@ -914,7 +914,7 @@ export namespace fan::graphics {
     fan::graphics::texture_pack::internal_t::texture_properties_t texture_properties;
   #endif
 
-    fan::graphics::image_t root_image = fan::graphics::ctx().default_texture;
+    fan::graphics::image_t root_image{fan::graphics::ctx().default_texture};
     std::vector<std::vector<image_t>> images;
 
     image_divider_t();
