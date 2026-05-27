@@ -3,14 +3,14 @@ import fan;
 
 using namespace fan::graphics;
 
-struct pile_t : engine_t, fan::frame_task_t<pile_t> {
+extern struct pile_t pile;
 
+struct pile_t : engine_t, fan::frame_task_t<pile_t> {
   struct main_menu_t : fan::stage_t<main_menu_t> {
     void update() {
       if (auto h = gui::hud_interactive{"##mainmenu"}) {
         if (gui::button("Play")) {
-          static fan::event::task_t task;
-          task = pile.stage_change<main_menu_t, ingame_t>();
+          pile.stage_change<main_menu_t, ingame_t>(fan::stage_fade_mode_t::fade_in);
         }
       }
     }
@@ -60,8 +60,7 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
             shape.set_sprite_sheet_start();
             door.open(ig.player.body, std::move(shape), [&](physics::sprite_t&) {
               if (platforms_activated != -1) return;
-              static fan::event::task_t task;
-              task = pile.stage_change<level1_t, level1_t>();
+              pile.stage_change<level1_t, level1_t>();
             });
           }},
           {"spikes_up", [&](auto& m) { spikes.add(m.position, m.size, "up"); }},
@@ -93,7 +92,7 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
       void update() {
         auto& ig = pile.stage_get<ingame_t>();
         map.update(ig.player.body.get_position());
-        spikes.query_and_kill(ig.player.body);
+        if (spikes.query_and_kill(ig.player.body)) return;
         enemy.update(map.get_tile_size());
         if (enemy.body.test_overlap(ig.player.body)) { ig.player.body.take_hit(&enemy.body); }
       }
