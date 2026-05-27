@@ -17,12 +17,11 @@ float sd_box(vec2 p, vec2 half_size) {
 void main() {
   vec2 size = abs(instance_size);
   vec2 half_size = size * 0.5;
-  vec2 p = (texture_coordinate - 0.5) * size;
-
+  vec2 p = (texture_coordinate - 0.5) * size * 2.0;
   float dist = sd_box(p, half_size);
 
-  float border = smoothstep(-outline_pixels + 0.5, -outline_pixels - 0.5, dist);
-  float outer  = smoothstep(-0.5, 0.5, dist);
+  float border = smoothstep(-outline_pixels - 0.5, -outline_pixels + 0.5, dist);
+  float outer = smoothstep(-0.5, 0.5, dist);
 
   vec4 col = mix(instance_color, instance_outline_color, border);
   col.a *= 1.0 - outer;

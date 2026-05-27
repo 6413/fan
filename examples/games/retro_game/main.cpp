@@ -7,34 +7,6 @@ struct pile_t;
 extern pile_t pile;
 
 struct pile_t : engine_t, fan::frame_task_t<pile_t> {
-
-  void enter_portal() {
-    static fan::auto_color_transition_t anim;
-    pile.stage_transition = fan::graphics::rectangle_t(
-      fan::vec3(camera_get_position() - 500, 0xfffB),
-      100000,
-      fan::colors::red.set_alpha(0)
-    );
-    anim.on_end = [this] {
-      fan::print("end");
-      pile.stage_transition.remove();
-      stage_loader.close_stage(level_stage);
-      level_stage.sic();
-    };
-    anim.start_once(
-      fan::colors::red.set_alpha(0),
-      fan::colors::red,
-      1.f,
-      [](fan::color c) { 
-      if (c.a > 0.1) {
-        fan::print(c.a);
-
-      }
-      pile.stage_transition.set_color(c);
-      fan::print(pile.stage_transition.get_color(), c);
-    }
-    );
-  }
   struct level1_t : fan::stage_t<level1_t> {
     void open(void*) {
       map = tilemap_instance_t(pile.renderer, "sample_level.fte", {
@@ -55,15 +27,15 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
           shape.set_size(size);
           shape.set_sprite_sheet_start();
           door.open(pile.player.body, std::move(shape), [&, door_pos = pos](physics::sprite_t& s) {
-            pile.enter_portal();
             if (platforms_activated != -1) return;
-
+            static fan::event::task_t task;
+            task = pile.stage_loader.change_stage<level1_t>(pile.level_stage, pile.level_stage);
           });
         }},
         {"spikes_up", [&](auto& m) { spikes.add(m.position, m.size, "up"); }},
       });
 
-      collision_handle = pile.player.body.on_collision_enter([&](fan::physics::entity_t other) {
+      collision_scope.on_enter(pile.player.body, [&](fan::physics::entity_t other) {
         auto* info = map.get_collision_info(other);
         if (info && info->id == "platform") {
           if (auto* shape = map.get_shape(other)) {
@@ -90,23 +62,14 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
       enemy.body.attack_state.damage = 1.f;
       enemy.behavior.enable_ai_patrol({enemy_pos.offset_x(-300), enemy_pos.offset_x(0)});
     }
-    void close() {
-      fan::physics::remove_collision_listener(collision_handle);
-    }
 
     void update() {
       map.update(pile.player.body.get_position());
 
-      if (spikes.query(pile.player.body)) {
-        pile.stage_loader.restart_stage<level1_t>(pile.level_stage);
-      }
+      spikes.query_and_kill(pile.player.body);
       enemy.update(map.get_tile_size());
       if (enemy.body.test_overlap(pile.player.body)) {
         pile.player.body.take_hit(&enemy.body);
-        if (pile.player.body.get_health() <= 0) {
-          pile.reset_player();
-          pile.stage_loader.restart_stage<level1_t>(pile.level_stage);
-        }
       }
     }
 
@@ -114,10 +77,9 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
     trigger_t door;
     gameplay::spikes_t spikes;
     physics::ai_character2d_t enemy;
-    fan::physics::collision_listener_handle_t collision_handle;
+    physics::collision_scope_t collision_scope;
     bool finished = false;
     int platforms_activated = 0;
-
   };
 
   struct ui_t : fan::stage_t<ui_t> {
@@ -138,11 +100,14 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
       body.set_draw_offset(draw_offset);
       body.set_flags(sprite_flags_e::use_hsl);
       body.set_color(fan::color::hsl(20.7f, 18.3f, -58.4f));
-      body.set_health(3);
+      body.set_max_health(3.f);
+      body.reset_health();
       body.attack_state.cooldown_timer.start_seconds(1.f);
+      body.attack_state.on_death = [&] {
+        body.reset_health();
+        pile.stage_loader.restart_stage<level1_t>(pile.level_stage);
+      };
     }
-
-    void reset() { body.set_health(3.f); }
 
     physics::character2d_t body{
       physics::character2d_t::from_json({
@@ -160,8 +125,6 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
     stage_loader.restart_stage<ui_t>(ui_stage);
   }
 
-  void reset_player() { player.reset(); }
-
   void update() {
     if (is_key_clicked(fan::key_r)) {
       stage_loader.restart_stage<level1_t>(level_stage);
@@ -174,8 +137,6 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
   fan::stage_loader_t stage_loader;
   fan::stage_loader_t::nr_t level_stage, ui_stage;
   interactive_camera_t ic;
-  fan::graphics::rectangle_t stage_transition;
-
 } pile;
 
 int main() {
