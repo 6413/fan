@@ -339,6 +339,14 @@ namespace fan {
     return it;
   }
 
+  void json::preserve_unknown(const fan::json& source) {
+    for (auto it = source.begin(); it != source.end(); ++it) {
+      if (!contains(it.key().c_str())) {
+        (*this)[it.key()] = it.value();
+      }
+    }
+  }
+
   std::pair<std::size_t, std::size_t> json_stream_parser_t::find_next_json_bounds(std::string_view s, std::size_t pos) const noexcept {
     pos = s.find('{', pos);
     if (pos == std::string::npos) { return {pos, pos}; }

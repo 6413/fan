@@ -642,7 +642,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
   {
     fan::json json_data = fan::graphics::read_json(json_path, callers_path);
     resolve_json_image_paths(json_data, json_path, callers_path);
-    fan::graphics::sprite_sheets_parse(json_path, json_data, callers_path);
+    bool has_anim = fan::graphics::sprite_sheets_parse(json_path, json_data, callers_path);
 
     std::vector<fan::graphics::shape_t> shapes;
 
@@ -651,10 +651,12 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
       fan::graphics::shape_t s;
       while (it.iterate(json_data["shapes"], &s, callers_path)) {
         shapes.emplace_back(std::move(s));
+        if (has_anim) shapes.back(). set_sprite_sheet_start();
       }
     }
     else if (json_data.contains("shape")) {
       shapes.emplace_back(fan::graphics::extract_single_shape(json_data, callers_path));
+      if (has_anim) shapes.back(). set_sprite_sheet_start();
     }
 
     auto& cache = get_json_cache()[json_path];
