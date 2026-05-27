@@ -203,7 +203,7 @@ export namespace fan::graphics {
 
 #if defined(FAN_JSON)
   fan::json sprite_sheet_serialize();
-  void sprite_sheets_parse(std::string_view json_path, fan::json& json, const std::source_location& callers_path = std::source_location::current());
+  bool sprite_sheets_parse(std::string_view json_path, fan::json& json, const std::source_location& callers_path = std::source_location::current());
 #endif
 
   //-----------------------sprite sheet-----------------------
@@ -352,8 +352,8 @@ export namespace fan::graphics {
 
       // many things assume uint16_t so thats why not shaper_t::ShapeTypeIndex_t
       std::uint16_t get_shape_type() const;
-      void set_position(const fan::vec2& position);
-      void set_position(const fan::vec3& position);
+      shape_t& set_position(const fan::vec2& position);
+      shape_t& set_position(const fan::vec3& position);
       void set_x(f32_t x);
       void set_y(f32_t y);
       void set_z(f32_t z);
@@ -363,7 +363,7 @@ export namespace fan::graphics {
       f32_t get_z() const;
       // moves by offset from current position
       void offset(fan::vec2 offset);
-      void set_size(const fan::vec2& size);
+      shape_t& set_size(const fan::vec2& size);
       void set_radius(f32_t radius);
       void set_size3(const fan::vec3& size);
       // returns half extents of draw

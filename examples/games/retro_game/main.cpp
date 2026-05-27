@@ -10,7 +10,7 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
     void update() {
       if (auto h = gui::hud_interactive{"##mainmenu"}) {
         gui::image(image_t("images/main_menu.webp", image_presets::pixel_art()), gui::get_window_size());
-        if (gui::button_centered("Play")) {
+        if (gui::button_centered("Play", {.size={256, 128}})) {
           pile.stage_change<main_menu_t, ingame_t>(fan::stage_fade_mode_t::fade_in);
         }
       }
@@ -21,21 +21,14 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
     struct player_t {
       player_t() {
         body.enable_oneway_platforms();
-        body.enable_default_movement(300.f, 52.f);
-        body.set_draw_offset({0.f, -42.5f});
-        body.set_flags(sprite_flags_e::use_hsl);
-        body.set_color(fan::color::hsl(20.7f, 18.3f, -58.4f));
-        body.set_max_health(3.f);
-        body.reset_health();
-        body.attack_state.cooldown_timer.start_seconds(1.f);
+        body.enable_default_movement();
         body.attack_state.on_death = [&] {
           body.reset_health();
           pile.stage_restart<level1_t>();
         };
       }
-      physics::character2d_t body{physics::character2d_t::from_json({
-        .json_path = "examples/games/platformer/player/player.json",
-        .aabb_scale = 0.17f,
+      physics::character2d_t body{physics::from_json({
+        "player/player.json"
       })};
       light_t light{body, 200, fan::colors::white};
     };
@@ -51,14 +44,11 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
           .default_friction = 0.f,
         });
         map.setup_view(ig.player.body, ig.ic, 1.20370352);
-        fan::vec2 ts = map.get_tile_size();
         map.iterate_marks({
           {"door", [&](auto& m) {
             fan::vec2 size{64.f, 64.f};
             auto shape = shape_from_json("images/gate.json");
-            shape.set_position(m.position.offset_y(-size.y + ts.y));
-            shape.set_size(size);
-            shape.set_sprite_sheet_start();
+            shape.set_position(m.position.offset_y(-size.y + map.get_tile_size().y)).set_size(size);
             door.open(ig.player.body, std::move(shape), [&](physics::sprite_t&) {
               if (platforms_activated != -1) return;
               pile.stage_change<level1_t, level1_t>();
@@ -81,13 +71,9 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
         });
         fan::vec2 enemy_pos = map.get_enemy_spawn("enemy_skeleton");
         enemy.open({
-          .json_path = "examples/games/platformer/enemy/skeleton/skeleton.json",
-          .aabb_scale = 0.14f * 1.5f,
-          .draw_offset = {0.f, -06.f / 1.5f},
+          .json_path = "enemies/skeleton/skeleton.json",
           .target = &ig.player.body,
-          .physics_properties = {.fixed_rotation = true, .linear_damping = 2.0f},
         }, enemy_pos);
-        enemy.body.attack_state.damage = 1.f;
         enemy.behavior.enable_ai_patrol({enemy_pos.offset_x(-300), enemy_pos.offset_x(0)});
       }
       void update() {
@@ -104,6 +90,10 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
       physics::ai_character2d_t enemy;
       physics::collision_scope_t collision_scope;
       int platforms_activated = 0;
+    };
+
+    struct level2_t : fan::stage_t<level2_t> {
+      
     };
 
     struct hud_t : fan::stage_t<hud_t> {
@@ -137,7 +127,6 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
     update_physics(true);
     stage_open<main_menu_t>();
   }
-
 } pile;
 
 int main() {

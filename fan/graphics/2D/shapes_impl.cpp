@@ -498,9 +498,11 @@ namespace fan::graphics {
     return result;
   }
 
-  void sprite_sheets_parse(std::string_view json_path, fan::json& json, const std::source_location& callers_path) {
+  bool sprite_sheets_parse(std::string_view json_path, fan::json& json, const std::source_location& callers_path) {
+    bool parsed = false;
     auto current_global_id = ss_counter().id;
     if (json.contains("animations")) {
+      parsed = !json["animations"].empty();
       for (const auto& item : json["animations"]) {
         sprite_sheet_t sheet;
         sheet.name = item.value("name", std::string{});
@@ -556,9 +558,9 @@ namespace fan::graphics {
         }
       }
     }
+    return parsed;
   }
-#endif // FAN_JSON
-
+  #endif // FAN_JSON
 #endif
 }
 
@@ -1413,26 +1415,28 @@ namespace fan::graphics{
     }
   }
 
-  void shapes::shape_t::set_position(const fan::vec2& position) {
+  shape_t& shapes::shape_t::set_position(const fan::vec2& position) {
     if (fan::vec2(get_position()) == position) {
-      return;
+      return *this;
     }
     fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_position2(this, position);
     set_particle_pos(this, position);
     update_culling();
+    return *this;
   }
 
-  void shapes::shape_t::set_position(const fan::vec3& position) {
+  shape_t& shapes::shape_t::set_position(const fan::vec3& position) {
     if (get_position() == position) {
-      return;
+      return *this;
     }
     if (get_position().z == position.z) {
       set_position(fan::vec2(position)); // no need depth key update for nothing
-      return;
+      return *this;
     }
     fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_position3(this, position);
     set_particle_pos(this, position);
     update_culling();
+    return *this;
   }
 
   void shapes::shape_t::set_x(f32_t x) {
@@ -1470,12 +1474,13 @@ namespace fan::graphics{
     set_position(get_position() + offset);
   }
 
-  void shapes::shape_t::set_size(const fan::vec2& size) {
+  shape_t& shapes::shape_t::set_size(const fan::vec2& size) {
     if (get_size() == size) {
-      return;
+      return *this;
     }
     fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_size(this, size);
     update_culling();
+    return *this;
   }
   void shapes::shape_t::set_radius(f32_t radius) {
     fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_radius(this, radius);

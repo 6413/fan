@@ -594,22 +594,21 @@ export namespace fan {
         wall_jump_t wall_jump;
       };
 
+    #if defined(FAN_JSON)
+      struct character_config_t {
+        std::string json_path;
+        f32_t aabb_scale = 1.0f;
+        fan::vec2 draw_offset{0, 0};
+        physics::character2d_t* target = nullptr;
+        bool auto_animations = true;
+        std::function<bool(character2d_t&)> attack_cb;
+        fan::physics::shape_properties_t physics_properties = {.fixed_rotation = true};
+      };
+    #endif
+
       struct character2d_t : physics::base_shape_t {
         using physics::base_shape_t::base_shape_t;
         using movement_callback_handle_t = fan::physics::step_callback_nr_t;
-
-        #if defined(FAN_JSON)
-        struct character_config_t {
-          std::string json_path;
-          f32_t aabb_scale = 1.0f;
-          fan::vec2 draw_offset{0, 0};
-          physics::character2d_t* target = nullptr;
-          bool auto_animations = true;
-          std::function<bool(character2d_t&)> attack_cb;
-          fan::physics::shape_properties_t physics_properties = {.fixed_rotation = true};
-        };
-        static character2d_t from_json(const character_config_t& config, const std::source_location& callers_path = std::source_location::current());
-        #endif
 
         character2d_t() {}
         template <typename T>
@@ -642,13 +641,15 @@ export namespace fan {
           wall_jump(std::move(o.wall_jump)),
           movement_cb_handle(),
           feet {std::move(o.feet[0]), std::move(o.feet[1])} {
+          if (!o.movement_cb_handle.iic()) {
+            o.movement_cb_handle.remove();
+            o.movement_cb_handle.sic();
+          }
           if (movement_state.enabled) {
             movement_cb_handle = add_movement_callback([this]() {
               process_keyboard_movement(movement_state.type);
             });
           }
-
-          o.movement_cb_handle.sic();
         }
         character2d_t& operator=(const character2d_t& o);
         character2d_t& operator=(character2d_t&& o) noexcept;
@@ -661,10 +662,11 @@ export namespace fan {
         void set_physics_body(fan::physics::entity_t&& entity);
 
         movement_callback_handle_t add_movement_callback(std::function<void()> fn);
-        void enable_default_movement(f32_t max_speed = movement_state_t{}.max_speed, f32_t jump_height = movement_state_t{}.jump_state.impulse, std::uint8_t movement = movement_e::side_view);
+        void enable_default_movement(std::uint8_t movement = movement_e::side_view);
+        void enable_default_movement(f32_t max_speed, f32_t jump_height, std::uint8_t movement = movement_e::side_view);
 
         #if defined(FAN_JSON)
-        void setup_default_animations(const fan::graphics::physics::character2d_t::character_config_t& config);
+        void setup_default_animations(const character_config_t& config);
         #endif
 
         void process_keyboard_movement(std::uint8_t movement = movement_e::side_view, f32_t friction = 12.f);
@@ -677,7 +679,7 @@ export namespace fan {
         void set_health(f32_t v);
         void instant_kill();
         bool is_dead() const;
-        void reset_health();
+        void reset_health(f32_t max_health = -1.f);
 
         f32_t get_jump_height() const;
         void set_jump_height(f32_t v);
@@ -727,6 +729,8 @@ export namespace fan {
         fan::time::timer drop_through_timer;
         bool oneway_enabled = false;
       };
+
+      character2d_t from_json(const character_config_t& config, const std::source_location& callers_path = std::source_location::current());
 
       struct attack_hitbox_t {
         struct hitbox_spawn_t {
@@ -876,10 +880,10 @@ export namespace fan {
         ai_behavior_t behavior;
         navigation_helper_t navigation;
 
-        void open(const character2d_t::character_config_t& properties, fan::vec2 initial_pos) {
-          body = character2d_t::from_json(properties);
+        void open(const character_config_t& properties, fan::vec2 initial_pos, const std::source_location& callers_path = std::source_location::current()) {
+          body = physics::from_json(properties, callers_path);
           body.set_physics_position(initial_pos);
-          if (properties.draw_offset != fan::vec2 {0, 0}) { body.set_draw_offset(properties.draw_offset); }
+          if (properties.draw_offset != fan::vec2{0, 0}) { body.set_draw_offset(properties.draw_offset); }
           if (properties.target) { behavior.target = properties.target; }
         }
         void update(fan::vec2 tile_size) {

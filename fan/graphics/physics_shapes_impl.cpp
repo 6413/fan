@@ -63,7 +63,7 @@ void DrawSolidPolygon(
       fan::graphics::add_shape_to_immediate_draw(fan::graphics::rectangle_t {{
         .render_view = (fan::graphics::render_view_t*)fan::physics::gphysics()->debug.render_view,
         .position = fan::vec3(center, draw_depth + z_depth),
-        .size = size,
+        .size = size, // TODO FIX: size depends on left, right, top, bottom gaps
         .color = fan::color::from_rgb(color).set_alpha(0.5),
         .angle = fan::vec3(0, 0, std::atan2(transform.q.s, transform.q.c)),
         .enable_culling = false
@@ -1191,7 +1191,7 @@ namespace fan::graphics::physics {
       fan::vec2 target_point = patrol_points[current_patrol_index];
 
       fan::vec2 diff = target_point - pos;
-      f32_t patrol_reach_threshold = character->get_size().max() / 100.f;
+      f32_t patrol_reach_threshold = character->movement_state.max_speed * fan::physics::default_physics_timestep * 2.f;
       //if (diff.length() < patrol_reach_threshold) {
       if (std::abs(diff.x) < patrol_reach_threshold) {
         current_patrol_index = (current_patrol_index + 1) % patrol_points.size();
@@ -1230,8 +1230,8 @@ namespace fan::graphics::physics {
   }
 
   #if defined(FAN_JSON)
-  fan::graphics::physics::character2d_t fan::graphics::physics::character2d_t::from_json(
-    const fan::graphics::physics::character2d_t::character_config_t& config,
+  fan::graphics::physics::character2d_t fan::graphics::physics::from_json(
+    const fan::graphics::physics::character_config_t& config,
     const std::source_location& callers_path
   ) {
     if (json_cache().find(config.json_path) == json_cache().end()) {
@@ -1241,15 +1241,41 @@ namespace fan::graphics::physics {
       auto shape = fan::graphics::extract_single_shape(json_data, callers_path);
       fan::graphics::physics::character2d_t character;
       character.set_shape(std::move(shape));
+
+      auto s = json_data["shapes"][0];
+
       character.set_physics_body(
         fan::graphics::physics::character_capsule(
           character,
-          config.aabb_scale,
+          s.value("aabb_scale", config.aabb_scale),
           config.physics_properties
         )
       );
 
+      if (s.contains("draw_offset")) {
+        character.set_draw_offset({s["draw_offset"][0].get<f32_t>(), s["draw_offset"][1].get<f32_t>()});
+      }
+      if (s.contains("hsl")) {
+        character.set_flags(sprite_flags_e::use_hsl);
+        character.set_color(fan::color::hsl(s["hsl"][0].get<f32_t>(), s["hsl"][1].get<f32_t>(), s["hsl"][2].get<f32_t>()));
+      }
+
+      f32_t health          = s.value("health",          -1.f);
+      f32_t movement_speed  = s.value("movement_speed",  -1.f);
+      f32_t jump_height     = s.value("jump_height",     -1.f);
+      f32_t damage_cooldown = s.value("damage_cooldown", -1.f);
+      f32_t damage          = s.value("damage",          -1.f);
+      f32_t linear_damping  = s.value("linear_damping",  -1.f);
+
+      if (health > 0)          { character.reset_health(health); }
+      if (damage_cooldown > 0) { character.attack_state.cooldown_timer.start_seconds(damage_cooldown); }
+      if (damage > 0)          { character.attack_state.damage = damage; }
+      if (linear_damping >= 0) { character.set_linear_damping(linear_damping); }
+
+
       if (config.auto_animations) {
+        character.set_movement_speed(movement_speed > 0 ? movement_speed : movement_state_t{}.max_speed);
+        character.set_jump_height(jump_height > 0 ? jump_height : movement_state_t{}.jump_state.impulse);
         character.setup_default_animations(config);
       }
 
@@ -1330,7 +1356,6 @@ namespace fan::graphics::physics {
     return *this;
   }
 
-
   character2d_t& character2d_t::operator=(character2d_t&& o) noexcept {
     if (this != &o) {
       if (!movement_cb_handle.iic()) {
@@ -1346,13 +1371,16 @@ namespace fan::graphics::physics {
       feet[0] = std::move(o.feet[0]);
       feet[1] = std::move(o.feet[1]);
 
+      if (!o.movement_cb_handle.iic()) {
+        o.movement_cb_handle.remove();
+        o.movement_cb_handle.sic();
+      }
+
       if (movement_state.enabled) {
         movement_cb_handle = add_movement_callback([this]() {
           process_keyboard_movement(movement_state.type);
         });
       }
-
-      o.movement_cb_handle.sic();
     }
     return *this;
   }
@@ -1403,25 +1431,26 @@ namespace fan::graphics::physics {
   character2d_t::movement_callback_handle_t character2d_t::add_movement_callback(std::function<void()> fn) {
     return fan::physics::add_physics_step_callback(fn);
   }
+  void character2d_t::enable_default_movement(std::uint8_t movement) {
+    enable_default_movement(movement_state.max_speed, movement_state.jump_state.impulse, movement);
+  }
   void character2d_t::enable_default_movement(f32_t max_speed, f32_t jump_height, std::uint8_t movement) {
-  #if FAN_DEBUG >= 3
-    if (get_body_type() == fan::physics::body_type_e::static_body) {
-      fan::graphics::gui::print_warning("trying to enable default movement for static body");
-    }
-  #endif
+    #if FAN_DEBUG >= 3
+      if (get_body_type() == fan::physics::body_type_e::static_body) {
+        fan::graphics::gui::print_warning("trying to enable default movement for static body");
+      }
+    #endif
     movement_state.enabled = true;
     movement_state.type = movement;
     movement_cb_handle = add_movement_callback([this, movement]() {
-      if (movement_state.ignore_input) {
-        return;
-      }
+      if (movement_state.ignore_input) { return; }
       process_keyboard_movement(movement);
     });
     set_movement_speed(max_speed);
     set_jump_height(jump_height);
   }
   #if defined(FAN_JSON)
-  void character2d_t::setup_default_animations(const fan::graphics::physics::character2d_t::character_config_t& config) {
+  void character2d_t::setup_default_animations(const fan::graphics::physics::character_config_t& config) {
     auto anims = get_sprite_sheets();
     struct anim_t {
       int fps = 0;
@@ -1458,7 +1487,7 @@ namespace fan::graphics::physics {
           }
           return false;
         }
-        });
+      });
     }
 
      std::function<bool(fan::graphics::shape_t&)> cond;
@@ -1608,7 +1637,8 @@ namespace fan::graphics::physics {
   bool character2d_t::is_dead() const {
     return get_health() <= 0.f;
   }
-  void character2d_t::reset_health() {
+  void character2d_t::reset_health(f32_t max_health) {
+    if (max_health != -1.f) set_max_health(max_health);
     set_health(get_max_health());
   }
   f32_t character2d_t::get_jump_height() const {
@@ -2364,7 +2394,7 @@ namespace fan::graphics::physics {
 
   // creates physics body for visual shape
   fan::physics::entity_t character_capsule(const fan::graphics::shape_t& shape, f32_t shape_size_multiplier, const fan::physics::shape_properties_t& physics_properties, std::uint8_t body_type) {
-    f32_t half_height = shape.get_size().y * shape_size_multiplier;
+    f32_t half_height = static_cast<const fan::graphics::shape_t&>(shape).get_size().y * shape_size_multiplier;
     return fan::physics::gphysics()->create_capsule(
       shape.get_position(),
       shape.get_angle().z,
