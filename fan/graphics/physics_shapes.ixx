@@ -546,6 +546,7 @@ export namespace fan {
 
         std::function<void()> on_attack_start;
         std::function<void()> on_attack_end;
+        std::function<void()> on_death;
       };
 
       struct ai_behavior_t;
@@ -674,6 +675,7 @@ export namespace fan {
         f32_t get_health() const;
         void set_max_health(f32_t v);
         void set_health(f32_t v);
+        void instant_kill();
         bool is_dead() const;
         void reset_health();
 

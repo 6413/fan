@@ -1598,6 +1598,13 @@ namespace fan::graphics::physics {
   void character2d_t::set_health(f32_t v) {
     attack_state.health = v;
   }
+  void character2d_t::instant_kill() {
+    attack_state.health = 0.f;
+    attack_state.took_damage = true;
+    if (attack_state.on_death) {
+      attack_state.on_death();
+    }
+  }
   bool character2d_t::is_dead() const {
     return get_health() <= 0.f;
   }
@@ -1639,27 +1646,26 @@ namespace fan::graphics::physics {
   {
     attack_state.health -= source->attack_state.damage;
     attack_state.health = std::max(attack_state.health, 0.f);
-
     take_knockback(source, hit_direction, knockback_multiplier);
-
     attack_state.took_damage = true;
-
     if (attack_state.stun) {
       attack_state.end_attack();
       anim_controller.cancel_current();
     }
+    if (attack_state.health <= 0.f && attack_state.on_death) {
+      attack_state.on_death();
+    }
   }
   void character2d_t::take_hit(character2d_t* source) {
-    if (!attack_state.cooldown_timer.finished()) {
-      return;
-    }
+    if (!attack_state.cooldown_timer.finished()) return;
     attack_state.health -= source->attack_state.damage;
     attack_state.health = std::max(attack_state.health, 0.f);
-
     take_knockback(source, (get_position() - source->get_position()), 0.f);
-
     attack_state.took_damage = true;
     attack_state.cooldown_timer.restart();
+    if (attack_state.health <= 0.f && attack_state.on_death) {
+      attack_state.on_death();
+    }
   }
 
   void character2d_t::update_animations() {

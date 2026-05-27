@@ -221,22 +221,29 @@ export namespace fan {
 
     template <typename NextStageT>
     fan::event::task_t change_stage(
-      fan::graphics::lighting_t& lighting,
-      fan::vec3 fadeout_color,
-      fan::vec3 fadein_color, 
       nr_t old_stage_id,
-      nr_t& out_new_stage_id
+      nr_t& out_new_stage_id,
+      f32_t duration = 1.f,
+      fan::color color = fan::colors::black
     ) {
-      lighting.set_target(fadeout_color);
-      while (!lighting.is_near_target()) {
+      fan::graphics::rectangle_t overlay {{
+        .position = fan::vec3(0, 0, 0xfffe),
+        .size = fan::vec2(99999),
+        .color = color.set_alpha(0),
+        .blending = true,
+      }};
+
+      f32_t half = duration / 2.f;
+      for (f32_t t = 0.f; t < half; t += gloco()->get_delta_time()) {
+        overlay.set_color(color.set_alpha(t / half));
         co_await fan::graphics::co_next_frame();
       }
 
       close_stage(old_stage_id);
       out_new_stage_id = open_stage<NextStageT>();
 
-      lighting.set_target(fadein_color);
-      while (!lighting.is_near_target()) {
+      for (f32_t t = 0.f; t < half; t += gloco()->get_delta_time()) {
+        overlay.set_color(color.set_alpha(1.f - t / half));
         co_await fan::graphics::co_next_frame();
       }
     }

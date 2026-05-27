@@ -275,6 +275,12 @@ export namespace fan::graphics::gameplay {
       return nullptr;
     }
 
+    bool query_and_kill(physics::character2d_t& character) {
+      if (!query(character)) { return false; }
+      character.instant_kill();
+      return true;
+    }
+
     void clear() {
       spikes.clear();
       cells.clear();
