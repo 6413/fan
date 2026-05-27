@@ -67,6 +67,11 @@ export namespace fan::event {
 
     using resume_handle = std::list<queued_resume_t>::iterator;
 
+    static auto& get_queue() {
+      static std::list<queued_resume_t> resume_queue;
+      return resume_queue;
+    }
+
     template<typename promise_t>
     static resume_handle schedule_resume(std::coroutine_handle<promise_t> h) {
       auto& p = h.promise();
@@ -76,10 +81,6 @@ export namespace fan::event {
     }
 
     static void process_resumes();
-    static auto& get_queue() {
-      static std::list<queued_resume_t> resume_queue;
-      return resume_queue;
-    }
   };
 
   template<typename promise_t>
