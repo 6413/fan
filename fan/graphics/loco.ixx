@@ -336,25 +336,25 @@ export namespace fan {
     }
 
     template <typename T>
-    nr_t open() {
+    nr_t open(void* sod = nullptr) {
       auto key = std::type_index(typeid(T));
       auto it = type_stage_map.find(key);
       nr_t old_nr;
       if (it != type_stage_map.end()) { old_nr = it->second; type_stage_map.erase(it); }
-      nr_t nr = open_stage<T>();
+      nr_t nr = open_stage<T>(stage_open_properties_t{.sod = sod});
       type_stage_map[key] = nr;
       if (old_nr) close_stage(old_nr);
       return nr;
     }
 
     template <typename T>
-    void restart() {
+    void restart(void* sod) {
       auto key = std::type_index(typeid(T));
       auto it = type_stage_map.find(key);
       if (it != type_stage_map.end()) {
         close_stage(it->second);
       }
-      type_stage_map[key] = open_stage<T>();
+      type_stage_map[key] = open_stage<T>(stage_open_properties_t{.sod = sod});
     }
 
     template <typename T>
@@ -389,28 +389,30 @@ export namespace fan {
 
     template <typename CurrentStageT, typename NextStageT>
     fan::event::task_t change_stage(
+      void* sod = nullptr,
       stage_fade_mode_t mode = stage_fade_mode_t::crossfade,
       f32_t duration = 1.f,
-      fan::color color = fan::colors::black
-    ) {
+      fan::color color = fan::colors::black) 
+    {
       return change_stage_impl(
         [this] { close<CurrentStageT>(); },
-        [this] { open<NextStageT>(); },
+        [this, sod] { open<NextStageT>(sod); },
         mode, duration, color
       );
     }
 
     template <typename NextStageT>
     fan::event::task_t change_stage(
+      void* sod,
       nr_t old_stage_id,
       nr_t& out_new_stage_id,
       stage_fade_mode_t mode = stage_fade_mode_t::crossfade,
       f32_t duration = 1.f,
-      fan::color color = fan::colors::black
-    ) {
+      fan::color color = fan::colors::black) 
+    {
       return change_stage_impl(
         [this, old_stage_id] { close_stage(old_stage_id); },
-        [this, &out_new_stage_id] { out_new_stage_id = open_stage<NextStageT>(); },
+        [this, &out_new_stage_id, sod] { out_new_stage_id = open_stage<NextStageT>(stage_open_properties_t{.sod = sod}); },
         mode, duration, color
       );
     }
@@ -1012,25 +1014,34 @@ public:
   fan::stage_loader_t stage_loader;
 
   template <typename T>
-  fan::stage_handle_t stage_open() { return stage_loader.open<T>(); }
+  fan::stage_handle_t stage_open(void* sod = nullptr) { return stage_loader.open<T>(sod); }
 
   template <typename T>
   void stage_close() { stage_loader.close<T>(); }
 
   template <typename T>
-  void stage_restart() { stage_loader.restart<T>(); }
-
-  template <typename CurrentStageT, typename NextStageT>
-  void stage_change( 
+  void stage_restart(
+    void* sod = nullptr,
     fan::stage_fade_mode_t mode = fan::stage_fade_mode_t::crossfade,
     f32_t duration = 1.f,
     fan::color color = fan::colors::black) 
-  { 
-    fan::event::add_awaitable(stage_loader.change_stage<CurrentStageT, NextStageT>(mode, duration, color)); 
+  {
+    stage_change<T, T>(sod, mode, duration, color);
   }
 
   template <typename CurrentStageT, typename NextStageT>
   void stage_change( 
+    void* sod,
+    fan::stage_fade_mode_t mode = fan::stage_fade_mode_t::crossfade,
+    f32_t duration = 1.f,
+    fan::color color = fan::colors::black) 
+  { 
+    fan::event::add_awaitable(stage_loader.change_stage<CurrentStageT, NextStageT>(sod, mode, duration, color)); 
+  }
+
+  template <typename CurrentStageT, typename NextStageT>
+  void stage_change(
+    void* sod,
     fan::stage_handle_t old_stage_id,
     fan::stage_handle_t& out_new_stage_id,
     fan::stage_fade_mode_t mode = fan::stage_fade_mode_t::crossfade,
@@ -1038,7 +1049,27 @@ public:
     fan::color color = fan::colors::black)
   { 
     fan::event::add_awaitable(stage_loader.change_stage<CurrentStageT, NextStageT>(
-      old_stage_id, out_new_stage_id, mode, duration, color)); 
+      sod, old_stage_id, out_new_stage_id, mode, duration, color)); 
+  }
+
+  template <typename CurrentStageT, typename NextStageT>
+  void stage_change(
+    fan::stage_fade_mode_t mode = fan::stage_fade_mode_t::crossfade,
+    f32_t duration = 1.f,
+    fan::color color = fan::colors::black) 
+  { 
+    stage_change<CurrentStageT, NextStageT>(nullptr, mode, duration, color); 
+  }
+
+  template <typename CurrentStageT, typename NextStageT>
+  void stage_change(
+    fan::stage_handle_t old_stage_id,
+    fan::stage_handle_t& out_new_stage_id,
+    fan::stage_fade_mode_t mode = fan::stage_fade_mode_t::crossfade,
+    f32_t duration = 1.f,
+    fan::color color = fan::colors::black)
+  { 
+    stage_change<CurrentStageT, NextStageT>(nullptr, old_stage_id, out_new_stage_id, mode, duration, color); 
   }
 
   template <typename T>

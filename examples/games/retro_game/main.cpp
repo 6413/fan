@@ -24,19 +24,24 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
         body.enable_default_movement();
         body.attack_state.on_death = [&] {
           body.reset_health();
-          pile.stage_restart<level1_t>();
+          pile.stage_restart<level_t>(&pile.stage_get<ingame_t>().level_props);
         };
       }
-      physics::character2d_t body{physics::from_json({
-        "player/player.json"
-      })};
+      physics::character2d_t body{physics::from_json({"player/player.json"})};
       light_t light{body, 200, fan::colors::white};
     };
 
-    struct level1_t : fan::stage_t<level1_t> {
-      void open(void*) {
+    struct level_t : fan::stage_t<level_t> {
+      struct props_t {
+        const char* fte;
+        const char* enemy_spawn;
+        const char* next_fte = nullptr;
+      };
+
+      void open(void* raw) {
+        auto& p = *static_cast<props_t*>(raw);
         auto& ig = pile.stage_get<ingame_t>();
-        map = tilemap_instance_t(ig.renderer, "sample_level.fte", {
+        map = tilemap_instance_t(ig.renderer, p.fte, {
           .position = ig.player.body.get_position(),
           .size = fan::vec2i(16, 9) * 5.f,
           .collision_props{.friction=0.f, .presolve_events = true},
@@ -44,13 +49,16 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
         });
         map.setup_view(ig.player.body, ig.ic, 1.20370352);
         map.iterate_marks({
-          {"door", [&](auto& m) {
+          {"door", [&, next = p.next_fte](auto& m) {
             fan::vec2 size{64.f, 64.f};
             auto shape = shape_from_json("images/gate.json");
             shape.set_position(m.position.offset_y(-size.y + map.get_tile_size().y)).set_size(size);
-            door.open(ig.player.body, std::move(shape), [&](physics::sprite_t&) {
+            door.open(ig.player.body, std::move(shape), [&, next](physics::sprite_t&) {
               if (platforms_activated != -1) return;
-              pile.stage_change<level1_t, level2_t>();
+              if (next) {
+                pile.stage_get<ingame_t>().level_props = {next, "enemy_skeleton"};
+                pile.stage_restart<level_t>(&pile.stage_get<ingame_t>().level_props);
+              }
             });
           }},
           {"spike_up", [&](auto& m) { spikes.add(m.position, m.size, "up"); }},
@@ -68,87 +76,25 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
             }
           }
         });
-        fan::vec2 enemy_pos = map.get_enemy_spawn("enemy_skeleton");
-        enemy.open({
-          .json_path = "enemies/skeleton/skeleton.json",
-          .target = &ig.player.body,
-        }, enemy_pos);
-        enemy.navigation.add_obstacle([&](fan::vec2 p){ return spikes.is_at(p); });
-        enemy.behavior.enable_ai_patrol({enemy_pos.offset_x(-300), enemy_pos.offset_x(0)});
-      }
-      void update() {
-        auto& ig = pile.stage_get<ingame_t>();
-        map.update(ig.player.body.get_position());
-        if (spikes.query_and_kill(ig.player.body)) return;
-        enemy.update(map.get_tile_size());
-        if (enemy.body.test_overlap(ig.player.body)) { ig.player.body.take_hit(&enemy.body); }
-      }
-
-      tilemap_instance_t map;
-      trigger_t door;
-      gameplay::spikes_t spikes;
-      physics::ai_character2d_t enemy;
-      physics::collision_scope_t collision_scope;
-      int platforms_activated = 0;
-    };
-
-    struct level2_t : fan::stage_t<level2_t> {
-       void open(void*) {
-        auto& ig = pile.stage_get<ingame_t>();
-        map = tilemap_instance_t(ig.renderer, "level2.fte", {
-          .position = ig.player.body.get_position(),
-          .size = fan::vec2i(16, 9) * 5.f,
-          .collision_props{.friction=0.f, .presolve_events = true},
-          .build_collisions = true,
-        });
-        map.setup_view(ig.player.body, ig.ic, 1.20370352);
-        map.iterate_marks({
-          {"door", [&](auto& m) {
-            fan::vec2 size{64.f, 64.f};
-            auto shape = shape_from_json("images/gate.json");
-            shape.set_position(m.position.offset_y(-size.y + map.get_tile_size().y)).set_size(size);
-            door.open(ig.player.body, std::move(shape), [&](physics::sprite_t&) {
-              if (platforms_activated != -1) return;
-              pile.stage_change<level1_t, level2_t>();
-            });
-          }},
-          {"spike_up", [&](auto& m) { spikes.add(m.position, m.size, "up"); }},
-        });
-        collision_scope.on_enter(ig.player.body, [&](fan::physics::entity_t other) {
-          auto* info = map.get_collision_info(other);
-          if (info && info->id == "platform") {
-            if (auto* shape = map.get_shape(other)) {
-              if (shape->get_color() != fan::colors::green) { ++platforms_activated; }
-              shape->set_color(fan::colors::green);
-              if (platforms_activated == map.count("platform")) {
-                door.shape.play_sprite_sheet_once("open");
-                platforms_activated = -1;
-              }
-            }
-          }
-        });
-        auto poss = map.get_enemy_spawns("enemy_skeleton");
+        auto poss = map.get_enemy_spawns(p.enemy_spawn);
         enemies.resize(poss.size());
-        int i = 0;
-        for (auto& pos : poss) {
+        for (auto [i, pos] : fan::enumerate(poss)) {
           enemies[i].open({
             .json_path = "enemies/skeleton/skeleton.json",
             .target = &ig.player.body,
           }, pos);
           enemies[i].body.enable_oneway_platforms();
-          enemies[i].navigation.add_obstacle([&](fan::vec2 p){ return spikes.is_at(p); });
+          enemies[i].navigation.add_obstacle([&](fan::vec2 wp){ return spikes.is_at(wp); });
           enemies[i].behavior.enable_ai_patrol({pos.offset_x(-300), pos.offset_x(300)});
-          ++i;
         }
       }
       void update() {
         auto& ig = pile.stage_get<ingame_t>();
         map.update(ig.player.body.get_position());
-        if (spikes.query_and_kill(ig.player.body)) return;
+        if (spikes.query_and_kill(ig.player.body)) { return; }
         for (auto& e : enemies) {
           e.update(map.get_tile_size());
-        if (e.body.test_overlap(ig.player.body)) { ig.player.body.take_hit(&e.body); }
-
+          if (e.body.test_overlap(ig.player.body)) { ig.player.body.take_hit(&e.body); }
         }
       }
 
@@ -169,21 +115,23 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
     };
 
     void open(void*) {
-      pile.stage_open<level1_t>();
+      level_props = {"sample_level.fte", "enemy_skeleton", "level2.fte"};
+      pile.stage_open<level_t>(&level_props);
       pile.stage_open<hud_t>();
     }
     void close() {
-      pile.stage_close<level1_t>();
+      pile.stage_close<level_t>();
       pile.stage_close<hud_t>();
     }
     void update() {
       player.body.update_animations();
-      if (pile.is_key_clicked(fan::key_r)) { pile.stage_restart<level1_t>(); }
+      if (pile.is_key_clicked(fan::key_r)) { pile.stage_restart<level_t>(&level_props); }
     }
 
     player_t player;
     tilemap_renderer_t renderer;
     interactive_camera_t ic;
+    level_t::props_t level_props;
   };
 
   pile_t() {
