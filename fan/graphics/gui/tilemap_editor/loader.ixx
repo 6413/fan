@@ -288,6 +288,19 @@ export namespace fan::graphics {
       fan::throw_error("spawn position not found: " + std::string(id));
       return {};
     }
+    std::vector<fan::vec3> get_enemy_spawns(id_t map_id, const std::string_view id = "") {
+      auto& node = get_map_node(map_id);
+      auto& marks = node.compiled_map->spawn_marks;
+      std::vector<fan::vec3> pos;
+
+      for (auto& mark : marks) {
+        if ((id.size() ? (mark.id != id) : (mark.type != fte_t::mesh_property_t::enemy_spawn))) {
+          continue;
+        }
+        pos.emplace_back(mark.position);
+      }
+      return pos;
+    }
 
     std::vector<fan::vec3> get_all_spawn_positions(id_t map_id, fte_t::mesh_property_t type) {
       std::vector<fan::vec3> positions;
