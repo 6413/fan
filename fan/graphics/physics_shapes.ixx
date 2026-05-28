@@ -552,9 +552,10 @@ export namespace fan {
       struct ai_behavior_t;
       struct navigation_helper_t {
         bool detect_and_handle_obstacles(character2d_t* character, const ai_behavior_t& ai_behavior, const fan::vec2& direction, fan::vec2 tile_size);
+        void add_obstacle(std::function<bool(fan::vec2)> cb);
 
         bool auto_jump_obstacles = true;
-        f32_t jump_lookahead_tiles = 1.5f;
+        f32_t jump_lookahead_tiles = 1.0f;
         f32_t stuck_threshold = 0.5f;
         fan::time::timer stuck_timer{0.1e9, true};
         fan::time::timer wall_hit_timer {0.3e9, true};
@@ -563,6 +564,7 @@ export namespace fan {
         bool was_jumping = false;
         bool is_stuck_state = false;
         std::function<bool(const fan::vec2& position)> on_check_obstacle = [](const fan::vec2&) { return false; };
+        std::vector<std::function<bool(fan::vec2)>> obstacle_sources;
       };
       
       struct ai_behavior_t {

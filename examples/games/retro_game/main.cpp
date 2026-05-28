@@ -50,10 +50,10 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
             shape.set_position(m.position.offset_y(-size.y + map.get_tile_size().y)).set_size(size);
             door.open(ig.player.body, std::move(shape), [&](physics::sprite_t&) {
               if (platforms_activated != -1) return;
-              pile.stage_change<level1_t, level1_t>();
+              pile.stage_change<level1_t, level2_t>();
             });
           }},
-          {"spikes_up", [&](auto& m) { spikes.add(m.position, m.size, "up"); }},
+          {"spike_up", [&](auto& m) { spikes.add(m.position, m.size, "up"); }},
         });
         collision_scope.on_enter(ig.player.body, [&](fan::physics::entity_t other) {
           auto* info = map.get_collision_info(other);
@@ -73,6 +73,7 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
           .json_path = "enemies/skeleton/skeleton.json",
           .target = &ig.player.body,
         }, enemy_pos);
+        enemy.navigation.add_obstacle([&](fan::vec2 p){ return spikes.is_at(p); });
         enemy.behavior.enable_ai_patrol({enemy_pos.offset_x(-300), enemy_pos.offset_x(0)});
       }
       void update() {
@@ -92,7 +93,71 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
     };
 
     struct level2_t : fan::stage_t<level2_t> {
-      
+       void open(void*) {
+        auto& ig = pile.stage_get<ingame_t>();
+        map = tilemap_instance_t(ig.renderer, "level2.fte", {
+          .position = ig.player.body.get_position(),
+          .size = fan::vec2i(16, 9) * 5.f,
+          .collision_props{.friction=0.f, .presolve_events = true},
+          .build_collisions = true,
+        });
+        map.setup_view(ig.player.body, ig.ic, 1.20370352);
+        map.iterate_marks({
+          {"door", [&](auto& m) {
+            fan::vec2 size{64.f, 64.f};
+            auto shape = shape_from_json("images/gate.json");
+            shape.set_position(m.position.offset_y(-size.y + map.get_tile_size().y)).set_size(size);
+            door.open(ig.player.body, std::move(shape), [&](physics::sprite_t&) {
+              if (platforms_activated != -1) return;
+              pile.stage_change<level1_t, level2_t>();
+            });
+          }},
+          {"spike_up", [&](auto& m) { spikes.add(m.position, m.size, "up"); }},
+        });
+        collision_scope.on_enter(ig.player.body, [&](fan::physics::entity_t other) {
+          auto* info = map.get_collision_info(other);
+          if (info && info->id == "platform") {
+            if (auto* shape = map.get_shape(other)) {
+              if (shape->get_color() != fan::colors::green) { ++platforms_activated; }
+              shape->set_color(fan::colors::green);
+              if (platforms_activated == map.count("platform")) {
+                door.shape.play_sprite_sheet_once("open");
+                platforms_activated = -1;
+              }
+            }
+          }
+        });
+        auto poss = map.get_enemy_spawns("enemy_skeleton");
+        enemies.resize(poss.size());
+        int i = 0;
+        for (auto& pos : poss) {
+          enemies[i].open({
+            .json_path = "enemies/skeleton/skeleton.json",
+            .target = &ig.player.body,
+          }, pos);
+          enemies[i].body.enable_oneway_platforms();
+          enemies[i].navigation.add_obstacle([&](fan::vec2 p){ return spikes.is_at(p); });
+          enemies[i].behavior.enable_ai_patrol({pos.offset_x(-300), pos.offset_x(300)});
+          ++i;
+        }
+      }
+      void update() {
+        auto& ig = pile.stage_get<ingame_t>();
+        map.update(ig.player.body.get_position());
+        if (spikes.query_and_kill(ig.player.body)) return;
+        for (auto& e : enemies) {
+          e.update(map.get_tile_size());
+        if (e.body.test_overlap(ig.player.body)) { ig.player.body.take_hit(&e.body); }
+
+        }
+      }
+
+      tilemap_instance_t map;
+      trigger_t door;
+      gameplay::spikes_t spikes;
+      std::vector<physics::ai_character2d_t> enemies;
+      physics::collision_scope_t collision_scope;
+      int platforms_activated = 0;
     };
 
     struct hud_t : fan::stage_t<hud_t> {
