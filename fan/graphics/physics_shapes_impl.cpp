@@ -1036,6 +1036,16 @@ namespace fan::graphics::physics {
     return is_stuck_state;
   }
 
+  void navigation_helper_t::add_obstacle(std::function<bool(fan::vec2)> cb) {
+    obstacle_sources.push_back(std::move(cb));
+    on_check_obstacle = [this](const fan::vec2& pos) {
+      for (auto& src : obstacle_sources) {
+        if (src(pos)) return true;
+      }
+      return false;
+    };
+  }
+
   //------------------------------------------------------------------------------------------------
   //------------------------------------------------------------------------------------------------
 
@@ -1182,34 +1192,53 @@ namespace fan::graphics::physics {
 
       break;
     }
-
     case ai_behavior_t::patrol:
     {
       if (patrol_points.empty()) break;
 
       fan::vec2 pos = character->get_physics_position();
       fan::vec2 target_point = patrol_points[current_patrol_index];
-
       fan::vec2 diff = target_point - pos;
       f32_t patrol_reach_threshold = character->movement_state.max_speed * fan::physics::default_physics_timestep * 2.f;
-      //if (diff.length() < patrol_reach_threshold) {
-      if (std::abs(diff.x) < patrol_reach_threshold) {
-        current_patrol_index = (current_patrol_index + 1) % patrol_points.size();
-      }
-      else {
-        movement_direction.x = diff.sign().x;
-        character->movement_state.move_to_direction(*character, movement_direction);
-      }
-      if (wall_jump.normal.x && navigation.stuck_timer.finished()) { // collides with wall, change direction
+
+      auto reverse = [&] {
         current_patrol_index = (current_patrol_index + 1) % patrol_points.size();
         navigation.stuck_timer.restart();
+      };
+
+      if (wall_jump.normal.x && navigation.stuck_timer.finished()) {
+        reverse();
+        break;
       }
+      if (std::abs(diff.x) < patrol_reach_threshold) {
+        reverse();
+        break;
+      }
+      if (navigation.stuck_timer.finished()) {
+        f32_t step = tile_size.x * navigation.jump_lookahead_tiles;
+        f32_t dir = diff.sign().x;
+        fan::vec2 foot_pos = pos + fan::vec2(0, character->get_size().y * 0.5f);
+        fan::vec2 floor_check = foot_pos + fan::vec2(step * dir, tile_size.y * 1.5f);
+        fan::vec2 diag_check  = foot_pos + fan::vec2(step * dir * 2.f, tile_size.y * 2.f);
+        bool drop = !fan::physics::is_point_overlapping(floor_check) &&
+          !fan::physics::is_point_overlapping(diag_check);
+        bool hazard = navigation.on_check_obstacle(floor_check) ||
+          navigation.on_check_obstacle(pos + fan::vec2(step * dir, 0));
+        if (drop || hazard) {
+          reverse();
+          break;
+        }
+      }
+
+      movement_direction.x = diff.sign().x;
+      character->movement_state.move_to_direction(*character, movement_direction);
+
       if (std::abs(movement_direction.x) > 0.01f) {
         character->movement_state.desired_facing.x = fan::math::sgn(movement_direction.x);
         character->set_image_sign({character->movement_state.desired_facing.x, 1.f});
       }
       break;
-    }
+}
     default:
       break;
     }

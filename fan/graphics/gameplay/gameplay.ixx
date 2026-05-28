@@ -281,6 +281,21 @@ export namespace fan::graphics::gameplay {
       return true;
     }
 
+    bool is_at(fan::vec2 world_pos) const {
+      auto minc = fan::spatial::world_to_cell_clamped(world_pos, world_min, cell_size, grid_size);
+      std::uint32_t idx = fan::spatial::cell_index(minc, grid_size);
+      auto it = cells.find(idx);
+      if (it == cells.end()) return false;
+      for (auto& spike : it->second) {
+        auto aabb = spike.get_aabb();
+        if (world_pos.x >= aabb.min.x && world_pos.x <= aabb.max.x &&
+          world_pos.y >= aabb.min.y && world_pos.y <= aabb.max.y) {
+          return true;
+        }
+      }
+      return false;
+    }
+
     void clear() {
       spikes.clear();
       cells.clear();

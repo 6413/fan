@@ -181,6 +181,9 @@ export namespace fan::graphics {
     fan::vec3 get_enemy_spawn(const std::string_view str_id = "") {
       return renderer->get_enemy_spawn(id, str_id);
     }
+    std::vector<fan::vec3> get_enemy_spawns(const std::string_view str_id = "") {
+      return renderer->get_enemy_spawns(id, str_id);
+    }
     std::size_t count(const std::string_view str_id) {
       return renderer->count(id, std::string(str_id));
     }

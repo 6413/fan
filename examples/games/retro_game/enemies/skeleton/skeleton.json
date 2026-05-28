@@ -113,12 +113,12 @@
       "position": [
         0.0,
         0.0,
-        1.0
+        65534.0
       ],
       "shape": "sprite",
       "size": [
-        128.0,
-        128.0
+        84.0,
+        84.0
       ],
       "tc_position": [
         0.1538461595773697,
@@ -128,10 +128,10 @@
         0.07692307978868484,
         1.0
       ],
-      "draw_offset": [0.0, -4.0],
+      "draw_offset": [0.0, -11.0],
       "movement_speed": 150.0,
       "jump_height": 32.0,
-      "aabb_scale": 0.21,
+      "aabb_scale": 0.17,
       "damage": 1.0,
       "linear_damping": 2.0
     }
