@@ -103,5 +103,3 @@ export import fan.crypto;
   export import fan.graphics.opengl3D.objects.model;
   export import fan.graphics.voxel;
 #endif
-
-export import fan.stage.loader;
