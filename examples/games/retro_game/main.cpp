@@ -39,9 +39,8 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
         map = tilemap_instance_t(ig.renderer, "sample_level.fte", {
           .position = ig.player.body.get_position(),
           .size = fan::vec2i(16, 9) * 5.f,
-          .collision_props{.presolve_events = true},
+          .collision_props{.friction=0.f, .presolve_events = true},
           .build_collisions = true,
-          .default_friction = 0.f,
         });
         map.setup_view(ig.player.body, ig.ic, 1.20370352);
         map.iterate_marks({
