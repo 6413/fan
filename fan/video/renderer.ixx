@@ -43,23 +43,31 @@ export namespace fan {
       };
 
       struct player_t {
+        f32_t current_time = 0.f;
+        f32_t duration = 0.f;
+        f64_t time_base = 0.0;
+        std::int64_t packet_pts = std::numeric_limits<std::int64_t>::min();
+        f32_t seek_target_time = 0.f;
+        bool dropping_seek_frames = false;
+
         bool open(const std::string& path, const fan::vec2& position, const fan::vec2& size) {
-          if (!demuxer.open(path.c_str())) {
-            return false;
-          }
+          if (!demuxer.open(path.c_str())) return false;
           decoder.open();
-          f32_t fps = demuxer.get_fps();
-          frame_timer = fan::time::seconds_timer(1.f / fps);
+          duration = demuxer.get_duration();
+          time_base = demuxer.get_time_base();
+          current_time = 0.f;
+          frame_timer = fan::time::seconds_timer(1.f / demuxer.get_fps());
           renderer.open(position, size);
           return true;
         }
+
         bool open(const std::string& path, const fan::vec2& size) {
-          if (!demuxer.open(path.c_str())) {
-            return false;
-          }
+          if (!demuxer.open(path.c_str())) return false;
           decoder.open();
-          f32_t fps = demuxer.get_fps();
-          frame_timer = fan::time::seconds_timer(1.f / fps);
+          duration = demuxer.get_duration();
+          time_base = demuxer.get_time_base();
+          current_time = 0.f;
+          frame_timer = fan::time::seconds_timer(1.f / demuxer.get_fps());
           renderer.open(size);
           return true;
         }
@@ -67,9 +75,10 @@ export namespace fan {
         bool open(const std::string& path) {
           if (!demuxer.open(path.c_str())) return false;
           decoder.open();
-          f32_t fps = demuxer.get_fps();
-          frame_timer = fan::time::seconds_timer(1.f / fps);
-          // no renderer.open() — first frame will allocate via renderer.update()
+          duration = demuxer.get_duration();
+          time_base = demuxer.get_time_base();
+          current_time = 0.f;
+          frame_timer = fan::time::seconds_timer(1.f / demuxer.get_fps());
           return true;
         }
 
@@ -80,26 +89,57 @@ export namespace fan {
           frames.clear();
         }
 
+        bool seek(f32_t seconds) {
+          seconds = std::clamp(seconds, 0.f, duration);
+          if (!demuxer.seek(seconds)) return false;
+          decoder.flush();
+          frames.clear();
+          buf.clear();
+          packet_pts = std::numeric_limits<std::int64_t>::min();
+          seek_target_time = seconds;
+          dropping_seek_frames = true;
+          current_time = seconds;
+          frame_timer.restart();
+          return true;
+        }
+
         void update() {
-          if (frames.size() < 8) {
-            AVCodecID cid = demuxer.get_codec_id();
-            bool is_h264 = (cid == AV_CODEC_ID_H264);
-            std::string codec_name = (cid == AV_CODEC_ID_VP9) ? "vp9" :
-              (cid == AV_CODEC_ID_AV1) ? "av1" : "h264";
-            bool ok = is_h264 ? demuxer.read_annexb_packet(buf)
-              : demuxer.read_raw_packet(buf);
-            if (ok) {
-              auto out = decoder.decode_packet(buf.data(), buf.size(), codec_name, true);
-              if (!out.empty()) {
-                frames.insert(frames.end(), std::make_move_iterator(out.begin()), std::make_move_iterator(out.end()));
+          if (dropping_seek_frames) {
+            for (int i = 0; i < 16; i++) {
+              if (demuxer.read_annexb_packet(buf, packet_pts)) {
+                auto out = decoder.decode_packet(buf.data(), buf.size(), "h264", true);
+                if (!out.empty())
+                  frames.insert(frames.end(), std::make_move_iterator(out.begin()), std::make_move_iterator(out.end()));
               }
+              while (!frames.empty()) {
+                f32_t frame_time = static_cast<f32_t>(packet_pts * time_base);
+                if (frame_time >= seek_target_time) {
+                  dropping_seek_frames = false;
+                  break;
+                }
+                frames.erase(frames.begin());
+              }
+              if (!dropping_seek_frames) break;
+            }
+            frame_timer.restart();
+            return;
+          }
+
+          if (frames.size() < 8) {
+            if (demuxer.read_annexb_packet(buf, packet_pts)) {
+              auto out = decoder.decode_packet(buf.data(), buf.size(), "h264", true);
+              if (!out.empty())
+                frames.insert(frames.end(), std::make_move_iterator(out.begin()), std::make_move_iterator(out.end()));
             }
           }
+
           if (frame_timer && !frames.empty()) {
             frame_timer.restart();
             auto& frame = frames.front();
             if (frame.success && !frame.plane_data.empty()) {
               renderer.update(frame.image_size, frame.plane_data[0].data());
+              if (packet_pts != std::numeric_limits<std::int64_t>::min())
+                current_time = static_cast<f32_t>(packet_pts * time_base);
             }
             frames.erase(frames.begin());
           }
