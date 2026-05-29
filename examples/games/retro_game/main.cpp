@@ -46,11 +46,10 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
             auto shape = shape_from_json("images/gate.json");
             shape.set_position(m.position.offset_y(-64.f + map.get_tile_size().y)).set_size({64.f, 64.f});
             door.open(ig.player.body, std::move(shape), [&, next](physics::sprite_t&) {
-              if (platforms_activated != -1) { return; }
-              if (next) {
-                pile.stage_get<ingame_t>().level_props = {next, "enemy_skeleton"};
-                pile.stage_restart<level_t>(&pile.stage_get<ingame_t>().level_props);
-              }
+              if (platforms_activated != -1 || !next) return;
+
+              pile.stage_get<ingame_t>().level_props = {next, "enemy_skeleton"};
+              pile.stage_restart<level_t>(&pile.stage_get<ingame_t>().level_props);
             });
           }},
           {"spike_up", [&](auto& m) { spikes.add(m.position, m.size, "up"); }},
