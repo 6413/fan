@@ -46,8 +46,7 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
             auto shape = shape_from_json("images/gate.json");
             shape.set_position(m.position.offset_y(-64.f + map.get_tile_size().y)).set_size({64.f, 64.f});
             door.open(ig.player.body, std::move(shape), [&, next](physics::sprite_t&) {
-              if (platforms_activated != -1 || !next) return;
-
+              if (platforms_activated != -1 || !next) { return; }
               pile.stage_get<ingame_t>().level_props = {next, "enemy_skeleton"};
               pile.stage_restart<level_t>(&pile.stage_get<ingame_t>().level_props);
             });
@@ -66,8 +65,10 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
             }
           }
         });
-        for (auto [i, pos] : fan::enumerate(map.get_enemy_spawns(p.enemy_spawn))) {
-          auto& e = enemies.emplace_back();
+        auto poss = map.get_enemy_spawns(p.enemy_spawn);
+        enemies.resize(poss.size());
+        for (auto [i, pos] : fan::enumerate(poss)) {
+          auto& e = enemies[i];
           e.open({.json_path = "enemies/skeleton/skeleton.json", .target = &ig.player.body}, pos);
           e.body.enable_oneway_platforms();
           e.navigation.add_obstacle([&](fan::vec2 wp) { return spikes.is_at(wp); });
@@ -98,7 +99,7 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
       }
     };
     void open(void*) {
-      level_props = {"sample_level.fte", "enemy_skeleton", "level2.fte"};
+      level_props = {"level2.fte", "enemy_skeleton", "level2.fte"};
       pile.stage_open<level_t>(&level_props);
       pile.stage_open<hud_t>();
     }
