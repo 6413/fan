@@ -99,7 +99,7 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
       }
     };
     void open(void*) {
-      level_props = {"level2.fte", "enemy_skeleton", "level2.fte"};
+      level_props = {"level1.fte", "enemy_skeleton", "level2.fte"};
       pile.stage_open<level_t>(&level_props);
       pile.stage_open<hud_t>();
     }
