@@ -745,6 +745,7 @@ export namespace fan::graphics::gui {
   void set_column_width(int index, f32_t width);
 
   bool is_item_active();
+  bool is_item_edited();
 
   bool& want_io();
   bool& force_want_io_for_frame();

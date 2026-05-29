@@ -886,13 +886,12 @@ export namespace fan {
       };
 
       std::vector<decode_result_t> decode_packet(
-        const std::uint8_t* data, 
-        std::size_t size, 
-        const std::string& forced_codec, 
+        const std::uint8_t* data,
+        std::size_t size,
+        const std::string& forced_codec,
         bool to_rgba = true,
         fan::vec2ui target_size = {0, 0},
-        codec_config_t::scaling_quality_e quality = codec_config_t::SCALING_FAST) 
-      {
+        codec_config_t::scaling_quality_e quality = codec_config_t::SCALING_FAST) {
         std::vector<decode_result_t> results;
 
         if (!initialized_) return results;
@@ -1044,8 +1043,8 @@ export namespace fan {
               result.linesize[0] = dst_w * 4;
               result.plane_data[0].resize(dst_h * result.linesize[0]);
 
-              std::uint8_t* dst[4] = { result.plane_data[0].data(), nullptr, nullptr, nullptr };
-              int dst_stride[4] = { result.linesize[0], 0, 0, 0 };
+              std::uint8_t* dst[4] = {result.plane_data[0].data(), nullptr, nullptr, nullptr};
+              int dst_stride[4] = {result.linesize[0], 0, 0, 0};
               sws_scale(sws_ctx_, target_frame->data, target_frame->linesize, 0, actual_height, dst, dst_stride);
               result.pixel_format = AV_PIX_FMT_RGBA;
             }
@@ -1122,6 +1121,12 @@ export namespace fan {
         using_hardware_ = false;
         return find_and_init_sw_decoder(codec_type);
 
+      }
+
+      void flush() {
+        if (codec_ctx_) {
+          avcodec_flush_buffers(codec_ctx_);
+        }
       }
 
       static std::vector<std::string> get_available_hw_decoders() {
@@ -1289,6 +1294,33 @@ export namespace fan {
       return static_cast<f32_t>(rate.num) / static_cast<f32_t>(rate.den);
     }
 
+    f64_t get_stream_time_base() {
+      return static_cast<f64_t>(fmt->streams[video_stream]->time_base.num) /
+        fmt->streams[video_stream]->time_base.den;
+    }
+
+    f32_t get_duration() const {
+      if (!fmt) return 0.f;
+      return static_cast<f32_t>(fmt->duration) / AV_TIME_BASE;
+    }
+
+    f64_t get_time_base() const {
+      if (!fmt || video_stream < 0) return 0.0;
+      return av_q2d(fmt->streams[video_stream]->time_base);
+    }
+
+    bool seek(f32_t target_seconds) {
+      if (!fmt || video_stream < 0) return false;
+      AVRational tb = fmt->streams[video_stream]->time_base;
+      std::int64_t target_ts = av_rescale_q(
+        static_cast<std::int64_t>(target_seconds * AV_TIME_BASE),
+        AV_TIME_BASE_Q,
+        tb
+      );
+      sps_pps_sent_ = false;
+      return av_seek_frame(fmt, video_stream, target_ts, AVSEEK_FLAG_BACKWARD) >= 0;
+    }
+
     void close() {
       if (fmt) {
         avformat_close_input(&fmt);
@@ -1320,8 +1352,9 @@ export namespace fan {
       return fmt->streams[video_stream]->codecpar->codec_id;
     }
 
-    bool read_annexb_packet(std::vector<std::uint8_t>& out) {
+    bool read_annexb_packet(std::vector<std::uint8_t>& out, std::int64_t& pts) {
       out.clear();
+      pts = std::numeric_limits<std::int64_t>::min();
 
       if (!sps_pps_sent_ && !sps_pps_.empty()) {
         out = sps_pps_;
@@ -1334,6 +1367,7 @@ export namespace fan {
 
       while (av_read_frame(fmt, &pkt) >= 0) {
         if (pkt.stream_index == video_stream) {
+          pts = pkt.pts != AV_NOPTS_VALUE ? pkt.pts : pkt.dts;
           avcc_to_annexb_(pkt.data, pkt.size, out);
           av_packet_unref(&pkt);
           return !out.empty();
