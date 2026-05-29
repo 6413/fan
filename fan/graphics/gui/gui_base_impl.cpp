@@ -829,6 +829,10 @@ namespace fan::graphics::gui {
     return ImGui::IsItemActive();
   }
 
+  bool is_item_edited() {
+    return ImGui::IsItemEdited();
+  }
+
   bool& want_io() {
     static bool g_want_io = false;
     return g_want_io;
