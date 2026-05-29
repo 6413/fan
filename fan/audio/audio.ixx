@@ -116,6 +116,7 @@ export namespace fan {
 
       fan::audio_t* audio = nullptr;
       std::unordered_map<std::string, fan::audio_t::piece_t> cache;
+      std::unordered_map<std::string, fan::audio_t::SoundPlayID_t> active;
     };
 
     g_audio_t& gaudio(){
@@ -218,10 +219,25 @@ export namespace fan {
       return piece.play(group_id, loop);
     }
 
+    inline sound_play_id_t play(const std::string& path, std::uint32_t group_id = 0, bool loop = false,
+      const std::source_location& callers_path = std::source_location::current()) 
+    {
+      auto id = piece_t(path, 0, callers_path).play(group_id, loop);
+      gaudio().active[path] = id;
+      return id;
+    }
+
     inline void stop(sound_play_id_t id){
       fan::audio_t::PropertiesSoundStop_t p{};
       p.FadeOutTo = 0;
       gaudio()->SoundStop(id, &p);
+    }
+
+    inline void stop(const std::string& path) {
+      auto it = gaudio().active.find(path);
+      if (it == gaudio().active.end()) { return; }
+      stop(it->second);
+      gaudio().active.erase(it);
     }
 
     inline void resume(std::uint32_t group_id = 0){

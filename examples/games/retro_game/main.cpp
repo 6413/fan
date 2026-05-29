@@ -56,7 +56,10 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
         collision_scope.on_enter(ig.player.body, [&](fan::physics::entity_t other) {
           if (auto* info = map.get_collision_info(other); info && info->id == "platform") {
             if (auto* shape = map.get_shape(other)) {
-              platforms_activated += (shape->get_color() != fan::colors::green);
+              if (shape->get_color() != fan::colors::green) {
+                ++platforms_activated;
+                fan::audio::play("audio/select_002.sac");
+              }
               shape->set_color(fan::colors::green);
               if (platforms_activated == map.count("platform")) {
                 door.shape.play_sprite_sheet_once("open");
