@@ -586,7 +586,8 @@ export namespace fan {
         return {
           {"h264", {"h264_cuvid", "h264_qsv", "h264_videotoolbox", "h264_vaapi", "h264_dxva2", "h264_d3d11va"}},
           {"hevc", {"hevc_cuvid", "hevc_qsv", "hevc_videotoolbox", "hevc_vaapi", "hevc_dxva2", "hevc_d3d11va"}},
-          {"av1", {"av1_cuvid", "av1_qsv", "av1_videotoolbox", "av1_vaapi"}}
+          {"av1", {"av1_cuvid", "av1_qsv", "av1_videotoolbox", "av1_vaapi"}},
+          {"vp9", {"vp9_cuvid", "vp9_qsv", "vp9_vaapi"}}
         };
 
       }
@@ -764,7 +765,7 @@ export namespace fan {
 
       bool find_and_init_sw_decoder(const std::string& codec_type) {
         std::unordered_map<std::string, std::string> sw_decoders = {
-          {"h264", "h264"}, {"hevc", "hevc"}, {"av1", "av1"}
+          {"h264", "h264"}, {"hevc", "hevc"}, {"av1", "av1"}, {"vp9", "vp9"}
         };
 
         auto it = sw_decoders.find(codec_type);
@@ -1264,6 +1265,7 @@ export namespace fan {
     int nal_length_size_ = 4;
 
     bool open(const char* path) {
+      close();
       if (avformat_open_input(&fmt, path, nullptr, nullptr) < 0) return false;
       if (avformat_find_stream_info(fmt, nullptr) < 0) return false;
 
@@ -1298,13 +1300,31 @@ export namespace fan {
     }
 
     // Returns false on EOF or error
+    bool read_raw_packet(std::vector<std::uint8_t>& out) {
+      out.clear();
+      AVPacket pkt;
+      av_init_packet(&pkt);
+      while (av_read_frame(fmt, &pkt) >= 0) {
+        if (pkt.stream_index == video_stream) {
+          out.assign(pkt.data, pkt.data + pkt.size);
+          av_packet_unref(&pkt);
+          return true;
+        }
+        av_packet_unref(&pkt);
+      }
+      return false;
+    }
+
+    AVCodecID get_codec_id() const {
+      if (!fmt || video_stream < 0) return AV_CODEC_ID_NONE;
+      return fmt->streams[video_stream]->codecpar->codec_id;
+    }
+
     bool read_annexb_packet(std::vector<std::uint8_t>& out) {
       out.clear();
 
-      // First call: emit SPS/PPS if available
       if (!sps_pps_sent_ && !sps_pps_.empty()) {
         out = sps_pps_;
-
         sps_pps_sent_ = true;
         return true;
       }
@@ -1315,14 +1335,12 @@ export namespace fan {
       while (av_read_frame(fmt, &pkt) >= 0) {
         if (pkt.stream_index == video_stream) {
           avcc_to_annexb_(pkt.data, pkt.size, out);
-
           av_packet_unref(&pkt);
           return !out.empty();
         }
         av_packet_unref(&pkt);
       }
       return false;
-
     }
 
   private:
