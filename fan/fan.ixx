@@ -103,3 +103,8 @@ export import fan.crypto;
   export import fan.graphics.opengl3D.objects.model;
   export import fan.graphics.voxel;
 #endif
+
+
+#if defined(FAN_VIDEO)
+  export import fan.graphics.video;
+#endif
