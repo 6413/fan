@@ -63,6 +63,7 @@ option("FAN_FMT") set_default(false) option_end()
 option("FAN_WAYLAND_SCREEN") set_default(false) option_end()
 option("FAN_NETWORK") set_default(false) option_end()
 option("FAN_AUDIO") set_default(false) option_end()
+option("FAN_VIDEO") set_default(false) option_end()
 
 
 -- option("FAN_REFLECTION")
@@ -106,6 +107,7 @@ if has_config("FAN_VULKAN") then add_defines("FAN_VULKAN") end
 if has_config("FAN_NETWORK") then add_defines("FAN_NETWORK") end
 if has_config("FAN_FMT") then add_defines("FAN_FMT") end
 if has_config("FAN_AUDIO") then add_defines("FAN_AUDIO") end
+if has_config("FAN_VIDEO") then add_defines("FAN_VIDEO") end
 
 add_includedirs(".", {public = true})
 
@@ -239,6 +241,13 @@ if has_config("FAN_3D") then
   table.insert(module_files, "fan/graphics/opengl/3D/objects/fms.ixx")
   table.insert(module_files, "fan/graphics/opengl/3D/objects/model.ixx")
   table.insert(module_files, "fan/graphics/voxel.ixx")
+end
+
+if has_config("FAN_VIDEO") then
+  table.insert(module_files, "fan/video/codec.ixx")
+  table.insert(module_files, "fan/video/screen.ixx")
+  table.insert(module_files, "fan/video/renderer.ixx")
+  table.insert(module_files, "fan/video/video.ixx")
 end
 
 table.insert(module_files, "fan/fan.ixx")
