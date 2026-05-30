@@ -30,6 +30,18 @@
   _dme_specs.push_back(std::meta::data_member_spec( \
     ^^shared_t, {.name = std::string(sname)}));
 
+
+/* newer gcc
+#define _dme_push_1(shared_t, sname, body)                    \
+  _dme_specs.push_back(                                       \
+    std::meta::data_member_spec(                              \
+      ^^shared_t,                                             \
+      std::meta::data_member_options{                         \
+        .name = std::string(sname)                            \
+      }                                                       \
+    )                                                         \
+  )
+*/
 #define _dme_push_1(shared_t, sname, body) \
   _dme_specs.push_back(std::meta::data_member_spec( \
     ^^shared_t, { \

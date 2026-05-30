@@ -306,6 +306,9 @@ static f32_t get_radius(const fan::graphics::shapes::shape_t* s) {
     if constexpr (requires { props.radius; }) {
       r = props.radius;
     }
+    else if constexpr (requires { props.size; }) {
+      r = props.size.x;
+    }
   });
   return r;
 }

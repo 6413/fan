@@ -422,11 +422,8 @@ export namespace fan::graphics {
   };
 
   struct shadow_t : fan::graphics::shapes::shape_t {
-    using fan::graphics::shapes::shape_t::shape_t;
-    using fan::graphics::shapes::shape_t::operator=;
-
     shadow_t() = default;
-    shadow_t(shadow_properties_t p = shadow_properties_t());
+    shadow_t(shadow_properties_t p);
   };
 
 #if defined(FAN_3D)
