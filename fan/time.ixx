@@ -217,7 +217,20 @@ export namespace fan {
       f32_t interval = 0.f;
       f32_t timer = 0.f;
     };
-  }
+
+    std::string format_seconds(f32_t t) {
+      int total = static_cast<int>(t);
+
+      int h = total / 3600;
+      int m = (total % 3600) / 60;
+      int s = total % 60;
+
+      char buf[16];
+      std::snprintf(buf, sizeof(buf), "%02d:%02d:%02d", h, m, s);
+      return buf;
+    }
+
+  } // fan::time
 
   struct cooldown_t {
     f32_t max = 0.f;
