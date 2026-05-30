@@ -27,7 +27,16 @@ namespace fan {
         if constexpr (!std::is_void_v<annotation_t>) {
           member_annotations.push_back(std::meta::reflect_constant(annotation_t{}));
         }
-
+      /* newer gcc
+        specs.push_back(
+          std::meta::data_member_spec(
+            ^^member_t,
+            std::meta::data_member_options{
+              .name = std::string(name_obj.data)
+            }
+          )
+        );
+      */
         specs.push_back(std::meta::data_member_spec(^^member_t, {
           .name = std::string(name_obj.data),
           .annotations = member_annotations
