@@ -63,7 +63,9 @@ export namespace fan {
           return true;
         }
         bool open(const std::string& path) {
-          return open_common(path);
+          if (!open_common(path)) return false;
+          renderer.open(demuxer.get_video_size());
+          return true;
         }
         bool reopen(const std::string& path) {
           close();
@@ -160,8 +162,8 @@ export namespace fan {
             gui::set_cursor_pos_y(gui::get_cursor_pos_y() + padding);
             { // times + slider
               f32_t width = gui::get_content_region_avail().x;
-              std::string cur = format_time_impl(current_time);
-              std::string dur = format_time_impl(duration);
+              std::string cur = fan::time::format_seconds(current_time);
+              std::string dur = fan::time::format_seconds(duration);
               fan::vec2 cur_size = gui::get_text_size(cur);
               fan::vec2 dur_size = gui::get_text_size(dur);
               gui::text(cur);
@@ -193,7 +195,9 @@ export namespace fan {
             if (gui::button("-" + std::to_string(int(seek_time_skip)) + "s")) { skip(-seek_time_skip); }
             gui::same_line();
             if (gui::button("+" + std::to_string(int(seek_time_skip)) + "s")) { skip(seek_time_skip); }
+
             //show_debug();
+
           } // cw controls
         }
         void show_debug() {
@@ -205,15 +209,8 @@ export namespace fan {
           gui::text("fps: ", demuxer.get_fps());
         }
 
-        std::string format_time_impl(f32_t t) const {
-          int h = static_cast<int>(t) / 3600;
-          int m = (static_cast<int>(t) % 3600) / 60;
-          int s = static_cast<int>(t) % 60;
-          return std::format("{:02}:{:02}:{:02}", h, m, s);
-        };
-
         std::string format_time() const {
-          return format_time_impl(current_time) + " / " + format_time_impl(duration);
+          return fan::time::format_seconds(current_time) + " / " + fan::time::format_seconds(duration);
         }
 
         f32_t current_time = 0.f;
