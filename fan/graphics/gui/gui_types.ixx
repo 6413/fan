@@ -9,7 +9,7 @@ module;
 export module fan.graphics.gui.types;
 
 import std;
-
+import fan.types.vector;
 import fan.types.compile_time_string;
 
 #if defined(FAN_GUI)
@@ -603,8 +603,12 @@ export namespace fan::graphics::gui {
     explicit operator bool() {
       return changed;
     }
+  };  
+  struct viewport_rect_t {
+    fan::vec2 position;
+    fan::vec2 size;
   };
-}
+} // fan::graphics::gui
 
 export namespace fan::graphics::gui::plot {
   using flags_t = int;

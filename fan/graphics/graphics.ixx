@@ -314,8 +314,8 @@ export namespace fan::graphics {
 
   struct universal_image_renderer_properties_t {
     const render_view_t* render_view = fan::graphics::ctx().orthographic_render_view;
-    fan::vec3 position = 0;
-    fan::vec2 size = 0;
+    fan::vec3 position = POSITION3_WINDOW_CENTER;
+    fan::vec2 size = 32;
     fan::vec2 tc_position = 0;
     fan::vec2 tc_size = 1;
     bool blending = true;
@@ -1066,6 +1066,7 @@ export namespace fan::image {
   };
 
   plane_split_t plane_split(void* pixel_data, const fan::vec2ui& size, std::uint32_t format);
+  plane_split_t plane_split(const std::vector<std::vector<std::uint8_t>>& planes);
 }
 
 #if defined(FAN_2D)

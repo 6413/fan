@@ -1449,6 +1449,13 @@ namespace fan::image {
     }
     return result;
   }
+  plane_split_t plane_split(const std::vector<std::vector<std::uint8_t>>& planes) {
+    plane_split_t result;
+    for (std::size_t i = 0; i < planes.size() && i < 4; i++) {
+      result.planes[i] = const_cast<std::uint8_t*>(planes[i].data());
+    }
+    return result;
+  }
 }
 
 namespace fan::graphics {
