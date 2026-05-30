@@ -346,7 +346,16 @@ export namespace fan::graphics::gui {
   bool image_button(
     str_view_t str_id,
     fan::graphics::image_t img,
-    const fan::vec2& size,
+    const fan::vec2& size = fan::vec2{0.f, 0.f},
+    const fan::vec2& uv0 = fan::vec2(0, 0),
+    const fan::vec2& uv1 = fan::vec2(1, 1),
+    int frame_padding = -1,
+    const fan::color& bg_col = fan::color(0, 0, 0, 0),
+    const fan::color& tint_col = fan::color(1, 1, 1, 1)
+  );
+  bool image_button(
+    fan::graphics::image_t img,
+    const fan::vec2& size = fan::vec2{0.f, 0.f},
     const fan::vec2& uv0 = fan::vec2(0, 0),
     const fan::vec2& uv1 = fan::vec2(1, 1),
     int frame_padding = -1,
@@ -612,13 +621,12 @@ export namespace fan::graphics::gui {
   void new_line();
   void align_text_to_frame_padding();
 
-  struct viewport_rect_t {
-    fan::vec2 position;
-    fan::vec2 size;
-  };
-
   viewport_rect_t get_viewport_rect();
   viewport_t* get_main_viewport();
+
+  void set_viewport(fan::graphics::viewport_t viewport);
+  void set_viewport(const fan::graphics::render_view_t& render_view = fan::graphics::get_orthographic_render_view());
+  void set_viewport_fit(const fan::graphics::render_view_t& render_view = fan::graphics::get_orthographic_render_view());
 
   f32_t get_frame_height();
   f32_t get_text_line_height_with_spacing();
@@ -773,6 +781,7 @@ export namespace fan::graphics::gui {
   struct window {
     window(str_view_t title, fan::graphics::gui::window_flags_t flags = 0);
     window(str_view_t title, bool* p_open, fan::graphics::gui::window_flags_t flags = 0);
+    window(str_view_t title, f32_t alpha = 0.98f);
 
     explicit operator bool() const;
 
@@ -1124,31 +1133,34 @@ export namespace fan::graphics::gui {
     gui::pop_id();
   }
 
-  void window_anchor_top_left(const fan::vec2& offset);
-  void window_anchor_top_center(const fan::vec2& offset);
-  void window_anchor_top_right(const fan::vec2& offset);
-  void window_anchor_center_left(const fan::vec2& offset);
-  void window_anchor_center(const fan::vec2& offset);
-  void window_anchor_center_right(const fan::vec2& offset);
-  void window_anchor_bottom_left(const fan::vec2& offset);
-  void window_anchor_bottom_center(const fan::vec2& offset);
-  void window_anchor_bottom_right(const fan::vec2& offset);
+  void window_anchor_top_left(const fan::vec2& offset = 0.f);
+  void window_anchor_top_center(const fan::vec2& offset = 0.f);
+  void window_anchor_top_right(const fan::vec2& offset = 0.f);
+  void window_anchor_center_left(const fan::vec2& offset = 0.f);
+  void window_anchor_center(const fan::vec2& offset = 0.f);
+  void window_anchor_center_right(const fan::vec2& offset = 0.f);
+  void window_anchor_bottom_left(const fan::vec2& offset = 0.f);
+  void window_anchor_bottom_center(const fan::vec2& offset = 0.f);
+  void window_anchor_bottom_right(const fan::vec2& offset = 0.f);
 
-  void anchor_top_left(const fan::vec2& offset);
-  void anchor_top_center(const fan::vec2& offset);
-  void anchor_top_right(const fan::vec2& offset);
-  void anchor_center_left(const fan::vec2& offset);
-  void anchor_screen_center(const fan::vec2& offset);
-  void anchor_center_right(const fan::vec2& offset);
-  void anchor_bottom_left(const fan::vec2& offset);
-  void anchor_bottom_center(const fan::vec2& offset);
-  void anchor_bottom_right(const fan::vec2& offset);
+  void anchor_top_left(const fan::vec2& offset = 0.f);
+  void anchor_top_center(const fan::vec2& offset = 0.f);
+  void anchor_top_right(const fan::vec2& offset = 0.f);
+  void anchor_center_left(const fan::vec2& offset = 0.f);
+  void anchor_screen_center(const fan::vec2& offset = 0.f);
+  void anchor_center_right(const fan::vec2& offset = 0.f);
+  void anchor_bottom_left(const fan::vec2& offset = 0.f);
+  void anchor_bottom_center(const fan::vec2& offset = 0.f);
+  void anchor_bottom_right(const fan::vec2& offset = 0.f);
   void anchor_center(const fan::vec2& window_size, const fan::vec2& item_size = 0.f, int item_count = 1);
   fan::vec2 get_display_size();
 
   void align_center_x(f32_t item_width);
 
   void window_move_title_bar_only();
+
+  fan::vec2 image_fit(fan::graphics::image_t img, fan::vec2 avail);
+  void image_centered_fit(fan::graphics::image_t img, f32_t reserved_height = 0.f);
 } // namespace fan::graphics::gui
 
 export namespace fan::graphics::gui::plot {

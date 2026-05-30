@@ -311,6 +311,14 @@ export namespace fan {
       for (int yy = y0; yy <= y1; ++yy) { fn(col_x, yy); }
     }
 
+    f32_t fit_scale(const vec2_wrap_t& container) const {
+      return std::min(container.x / x, container.y / y);
+    }
+
+    vec2_wrap_t fit(const vec2_wrap_t& container) const {
+      return *this * fit_scale(container);
+    }
+
 #if defined(fan_compile_component_functions)
     generate_vec_component_functions(2);
   #endif

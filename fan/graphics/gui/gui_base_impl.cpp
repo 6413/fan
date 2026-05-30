@@ -480,6 +480,88 @@ namespace fan::graphics::gui {
     return ImGui::GetMainViewport();
   }
 
+  
+  void set_viewport(fan::graphics::viewport_t viewport) {
+    auto* current = get_current_window();
+    viewport_rect_t main_viewport = get_viewport_rect();
+    fan::vec2 wnd_pos = get_window_pos();
+    fan::vec2 wnd_size = get_window_size();
+
+    fan::vec2 windowPosRelativeToMainViewport;
+    windowPosRelativeToMainViewport.x = wnd_pos.x - main_viewport.position.x;
+    windowPosRelativeToMainViewport.y = wnd_pos.y - main_viewport.position.y;
+
+    fan::vec2 viewport_size = fan::vec2(wnd_size.x, wnd_size.y);
+    fan::vec2 viewport_pos = windowPosRelativeToMainViewport;
+
+    fan::vec2 window_size = fan::graphics::get_window().get_size();
+    fan::graphics::viewport_set(
+      viewport,
+      viewport_pos,
+      viewport_size
+    );
+  }
+  void set_viewport_full(fan::graphics::viewport_t viewport) {
+    auto* current = get_current_window();
+    viewport_rect_t main_viewport = get_viewport_rect();
+    fan::vec2 wnd_pos = main_viewport.position;
+    fan::vec2 wnd_size = main_viewport.size;
+    if (current->ParentWindow) {
+      wnd_pos = get_window_pos();
+      wnd_size = get_window_size();
+    }
+
+    fan::vec2 windowPosRelativeToMainViewport;
+    windowPosRelativeToMainViewport.x = wnd_pos.x - main_viewport.position.x;
+    windowPosRelativeToMainViewport.y = wnd_pos.y - main_viewport.position.y;
+
+    fan::vec2 viewport_size = fan::vec2(wnd_size.x, wnd_size.y);
+    fan::vec2 viewport_pos = windowPosRelativeToMainViewport;
+
+    fan::vec2 window_size = fan::graphics::get_window().get_size();
+    fan::graphics::viewport_set(
+      viewport,
+      viewport_pos,
+      viewport_size
+    );
+  }
+
+  void set_viewport_impl(const fan::graphics::render_view_t& render_view, f32_t sx, f32_t sy) {
+    set_viewport(render_view.viewport);
+    auto& cam = fan::graphics::camera_get(render_view.camera);
+    if (!cam.original_coordinates[0] && !cam.original_coordinates[1] && !cam.original_coordinates[2] && !cam.original_coordinates[3]) {
+      cam.original_coordinates = cam.coordinates.v;
+    }
+    fan::graphics::camera_set_ortho(
+      render_view.camera,
+      fan::vec2(cam.original_coordinates.x * sx, cam.original_coordinates.y * sx),
+      fan::vec2(cam.original_coordinates.z * sy, cam.original_coordinates.w * sy)
+    );
+  }
+
+  void set_viewport(const fan::graphics::render_view_t& render_view) {
+    fan::vec2 win = get_window_size();
+    auto& cam = fan::graphics::camera_get(render_view.camera);
+    if (!cam.original_coordinates[0] && !cam.original_coordinates[1] && !cam.original_coordinates[2] && !cam.original_coordinates[3]) {
+      cam.original_coordinates = cam.coordinates.v;
+    }
+    f32_t orig_w = cam.original_coordinates.y - cam.original_coordinates.x;
+    f32_t orig_h = cam.original_coordinates.w - cam.original_coordinates.z;
+    set_viewport_impl(render_view, win.x / orig_w, win.y / orig_h);
+  }
+
+  void set_viewport_fit(const fan::graphics::render_view_t& render_view) {
+    fan::vec2 win = get_window_size();
+    auto& cam = fan::graphics::camera_get(render_view.camera);
+    if (!cam.original_coordinates[0] && !cam.original_coordinates[1] && !cam.original_coordinates[2] && !cam.original_coordinates[3]) {
+      cam.original_coordinates = cam.coordinates.v;
+    }
+    f32_t orig_w = cam.original_coordinates.y - cam.original_coordinates.x;
+    f32_t orig_h = cam.original_coordinates.w - cam.original_coordinates.z;
+    f32_t scale = std::min(win.x / orig_w, win.y / orig_h);
+    set_viewport_impl(render_view, scale, scale);
+  }
+
   f32_t get_frame_height() {
     return ImGui::GetFrameHeight();
   }
@@ -1190,7 +1272,7 @@ namespace fan::graphics::gui {
   }
 
   void set_next_window_pos(const fan::vec2& position, cond_t cond, const fan::vec2& pivot) {
-    ImGui::SetNextWindowPos(ImVec2(position.x, position.y), cond, ImVec2(pivot.x, pivot.y));
+    ImGui::SetNextWindowPos(ImVec2(position.x, position.y), cond, pivot);
   }
 
   void set_next_window_size(const fan::vec2& size, cond_t cond) {
@@ -1444,25 +1526,40 @@ namespace fan::graphics::gui {
       ImVec4(border_col.r, border_col.g, border_col.b, border_col.a));
   }
 
-  void image(fan::graphics::image_t img,
+  void image(
+    fan::graphics::image_t img,
     const fan::vec2& size,
     const fan::vec2& uv0,
     const fan::vec2& uv1,
     const fan::color& tint_col,
-    const fan::color& border_col) {
+    const fan::color& border_col) 
+  {
     texture_id_t tex = static_cast<texture_id_t>(fan::graphics::ctx()->image_get_handle(fan::graphics::ctx(), img));
     image(tex, size, uv0, uv1, tint_col, border_col);
   }
 
-  bool image_button(str_view_t str_id,
+  bool image_button(
+    str_view_t str_id,
     fan::graphics::image_t img,
     const fan::vec2& size,
     const fan::vec2& uv0,
     const fan::vec2& uv1,
     int frame_padding,
     const fan::color& bg_col,
-    const fan::color& tint_col) {
+    const fan::color& tint_col) 
+  {
     return detail::image_button_img_impl(fan::ct_string(str_id), img, size, uv0, uv1, frame_padding, bg_col, tint_col);
+  }
+    bool image_button(
+    fan::graphics::image_t img,
+    const fan::vec2& size,
+    const fan::vec2& uv0,
+    const fan::vec2& uv1,
+    int frame_padding,
+    const fan::color& bg_col,
+    const fan::color& tint_col) 
+    {
+    return detail::image_button_img_impl(fan::ct_string("##" + std::to_string(img.NRI)), img, size, uv0, uv1, frame_padding, bg_col, tint_col);
   }
 
   bool image_text_button(fan::graphics::image_t img,
@@ -1871,6 +1968,9 @@ namespace fan::graphics::gui {
   window::window(str_view_t title, bool* p_open, window_flags_t flags)
     : wnd(title, p_open, flags) {}
 
+  window::window(str_view_t title, f32_t alpha)
+    : wnd(title, nullptr, [alpha]{gui::set_next_window_bg_alpha(alpha); return 0;}()) { }
+
   window::operator bool() const {
     return static_cast<bool>(wnd);
   }
@@ -2251,6 +2351,15 @@ namespace fan::graphics::gui {
       g.MovingWindow = nullptr;
       g.ActiveId = 0;
     }
+  }
+  fan::vec2 image_fit(fan::graphics::image_t img, fan::vec2 avail) {
+    return img.get_size().fit(avail);
+  }
+  void image_centered_fit(fan::graphics::image_t img, f32_t reserved_height) {
+    fan::vec2 ws = get_window_size();
+    fan::vec2 render_size = img.get_size().fit(fan::vec2(ws.x, ws.y - reserved_height));
+    set_cursor_pos((ws - fan::vec2(render_size.x, render_size.y + reserved_height)) / 2.f);
+    image(img, render_size);
   }
 } // namespace fan::graphics::gui
 
