@@ -1309,6 +1309,12 @@ export namespace fan {
       return av_q2d(fmt->streams[video_stream]->time_base);
     }
 
+    fan::vec2ui get_video_size() const {
+      if (!fmt || video_stream < 0) return {1920, 1080};
+      auto* par = fmt->streams[video_stream]->codecpar;
+      return {(std::uint32_t)par->width, (std::uint32_t)par->height};
+    }
+
     bool seek(f32_t target_seconds) {
       if (!fmt || video_stream < 0) return false;
       AVRational tb = fmt->streams[video_stream]->time_base;
@@ -1332,12 +1338,14 @@ export namespace fan {
     }
 
     // Returns false on EOF or error
-    bool read_raw_packet(std::vector<std::uint8_t>& out) {
+    bool read_raw_packet(std::vector<std::uint8_t>& out, std::int64_t& pts) {
       out.clear();
+      pts = std::numeric_limits<std::int64_t>::min();
       AVPacket pkt;
       av_init_packet(&pkt);
       while (av_read_frame(fmt, &pkt) >= 0) {
         if (pkt.stream_index == video_stream) {
+          pts = pkt.pts != AV_NOPTS_VALUE ? pkt.pts : pkt.dts;
           out.assign(pkt.data, pkt.data + pkt.size);
           av_packet_unref(&pkt);
           return true;
@@ -1375,6 +1383,22 @@ export namespace fan {
         av_packet_unref(&pkt);
       }
       return false;
+    }
+
+    bool needs_annexb() const {
+      auto id = get_codec_id();
+      return id == AV_CODEC_ID_H264 || id == AV_CODEC_ID_HEVC;
+    }
+
+    std::string get_codec_name() const {
+      switch (get_codec_id()) {
+      case AV_CODEC_ID_H264: return "h264";
+      case AV_CODEC_ID_HEVC: return "hevc";
+      case AV_CODEC_ID_VP8:  return "vp8";
+      case AV_CODEC_ID_VP9:  return "vp9";
+      case AV_CODEC_ID_AV1:  return "av1";
+      default:               return "h264";
+      }
     }
 
   private:

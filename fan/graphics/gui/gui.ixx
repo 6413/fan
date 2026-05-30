@@ -128,8 +128,6 @@ export namespace fan::graphics::gui {
   };
 
   const char* item_getter1(const std::vector<std::string>& items, int index);
-  void set_viewport(fan::graphics::viewport_t viewport);
-  void set_viewport(const fan::graphics::render_view_t& render_view = fan::graphics::get_orthographic_render_view());
 
   bool toggle_image_button(fan::str_view_t char_id, fan::graphics::image_t image, const fan::vec2& size, bool* toggle);
   bool toggle_image_button(image_t* images, std::uint32_t count, const fan::vec2& size, int* selectedIndex);
