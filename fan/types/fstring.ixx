@@ -491,7 +491,7 @@ export namespace fan {
         data.emplace_back(argv[i]);
       }
     }
-    auto operator[](size_t i) const {
+    auto operator[](std::size_t i) const {
       return data[i];
     }
     auto size() const {
