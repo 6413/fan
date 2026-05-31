@@ -12,6 +12,26 @@ MAIN_FILE=""
 COMPILER="clang"
 WASM=false
 XMAKE_ARGS=()
+
+declare -A FEATURE_DEFAULTS=(
+  [FAN_WINDOW]=false [FAN_2D]=false [FAN_GUI]=false
+  [FAN_PHYSICS_2D]=false [FAN_JSON]=false [FAN_OPENGL]=false
+  [FAN_3D]=false [FAN_VULKAN]=false [FAN_FMT]=false
+  [FAN_WAYLAND_SCREEN]=false [FAN_NETWORK]=false [FAN_AUDIO]=false
+  [FAN_VIDEO]=false [FAN_REFLECTION]=false
+)
+declare -A FEATURES=()
+PRESET_USED=false
+
+enable_features() {
+  for f in "$@"; do FEATURES[$f]=true; done
+}
+
+apply_preset_core()     { : ; }
+apply_preset_headless() { enable_features FAN_JSON; }
+apply_preset_window()   { apply_preset_headless; enable_features FAN_WINDOW FAN_OPENGL; }
+apply_preset_2d()       { apply_preset_window;  enable_features FAN_2D FAN_GUI FAN_PHYSICS_2D; }
+
 while [[ $# -gt 0 ]]; do
   case $1 in
     --debug)
@@ -46,12 +66,39 @@ while [[ $# -gt 0 ]]; do
       WASM=true
       shift
       ;;
+    --core)        PRESET_USED=true; apply_preset_core;     shift ;;
+    --headless)    PRESET_USED=true; apply_preset_headless; shift ;;
+    --window)      PRESET_USED=true; apply_preset_window;   shift ;;
+    --2d)          PRESET_USED=true; apply_preset_2d;       shift ;;
+    --audio)       enable_features FAN_AUDIO;               shift ;;
+    --network)     enable_features FAN_NETWORK;             shift ;;
+    --3d)          enable_features FAN_3D;                  shift ;;
+    --video)       enable_features FAN_VIDEO;               shift ;;
+    --fmt)         enable_features FAN_FMT;                 shift ;;
+    --reflection)  enable_features FAN_REFLECTION;          shift ;;
+    --wayland-screen) enable_features FAN_WAYLAND_SCREEN;   shift ;;
+    --vulkan)      enable_features FAN_VULKAN;              shift ;;
     *)
       XMAKE_ARGS+=("$1")
       shift
       ;;
   esac
 done
+
+if [[ "$PRESET_USED" == true ]]; then
+  for flag in "${!FEATURE_DEFAULTS[@]}"; do
+    val=${FEATURES[$flag]:-false}
+    if [[ "$val" == true ]]; then
+      XMAKE_ARGS+=("--${flag}=y")
+    else
+      XMAKE_ARGS+=("--${flag}=n")
+    fi
+  done
+elif [[ ${#FEATURES[@]} -gt 0 ]]; then
+  for flag in "${!FEATURES[@]}"; do
+    XMAKE_ARGS+=("--${flag}=y")
+  done
+fi
 
 find_compiler() {
   local binary="$1"
