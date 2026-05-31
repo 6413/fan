@@ -493,7 +493,7 @@ export namespace fan {
 
     inline static loco_t* engine = nullptr;
     inline static fan::window_t* window = nullptr;
-  #if defined(FAN_PHYSICS)
+  #if defined(FAN_PHYSICS_2D)
     inline static fan::physics::context_t* physics = nullptr;
   #endif
     stage_loader_t::stage_common_t stage_common;
