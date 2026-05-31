@@ -176,27 +176,37 @@ export namespace fan {
       fan::time::timer duration;
     };
     using task_handle_t = std::list<task_queue_t>::iterator;
+
+    inline std::list<task_queue_t> g_task_queue;
+
     std::list<task_queue_t>& get_task_queue() {
-      static std::list<task_queue_t> queue;
-      return queue;
+      return g_task_queue;
     }
+
     template <typename F>
     task_handle_t task_every(f64_t interval_ms, f64_t duration_ms, F&& f) {
-      task_queue_t tq;
-      tq.timer_cb = std::forward<F>(f);
-      tq.interval.start_millis(interval_ms);
-      tq.duration.start_millis(duration_ms);
-      get_task_queue().emplace_back(std::move(tq));
+      get_task_queue().push_back({
+        std::function<bool()>(std::forward<F>(f)),
+        millis_timer(interval_ms),
+        millis_timer(duration_ms)
+      });
       return std::prev(get_task_queue().end());
     }
+
     void process_tasks() {
       auto& queue = get_task_queue();
       for (auto it = queue.begin(); it != queue.end();) {
-        if (it->interval.finished() && ((it->timer_cb && it->timer_cb()) || it->duration.finished())) {
-          it = queue.erase(it);
-        } else {
-          ++it;
+        if (it->interval.finished()) {
+          bool done = false;
+          if (it->timer_cb) {
+            done = it->timer_cb();
+          }
+          if (done || it->duration.finished()) {
+            it = queue.erase(it);
+            continue;
+          }
         }
+        ++it;
       }
     }
 
