@@ -1174,6 +1174,7 @@ fan::event::task_t fan::stage_loader_t::change_stage_impl(
   f32_t duration,
   fan::color color
 ) {
+#if defined(FAN_2D)
   if (mode == fan::stage_fade_mode_t::instant || duration <= 0.f) {
     close_cb();
     open_cb();
@@ -1198,6 +1199,9 @@ fan::event::task_t fan::stage_loader_t::change_stage_impl(
     overlay.set_color(color.set_alpha(1.f - t / half));
     co_await fan::graphics::co_next_frame();
   }
+#else
+  co_return;
+#endif
 }
 
 void fan::stage_loader_t::close_stage(nr_t id) {
