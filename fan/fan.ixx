@@ -76,9 +76,11 @@ export import fan.spatial;
 export import fan.process;
 
 export import fan.noise;
-#endif
-
+export import fan.ecs;
 export import fan.pathfind;
+
+
+#endif
 
 //export import fan.types.slot_map;
 
@@ -86,8 +88,6 @@ export import fan.types.compile_time_string;
 export import fan.types.flat_hash_map;
 
 export import fan.formatter;
-
-export import fan.ecs;
 
 #if defined(FAN_GUI)
 export import fan.graphics.tilemap_editor.renderer;
