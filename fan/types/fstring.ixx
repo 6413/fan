@@ -1,7 +1,5 @@
 module;
 
-#include <iomanip>
-
 #include <fan/utility.h>
 
 export module fan.types.fstring;
@@ -273,11 +271,28 @@ export namespace fan {
 
   std::vector<std::string> split_quoted(const std::string& input) {
     std::vector<std::string> args;
-    std::istringstream stream(input);
-    std::string arg;
+    std::string current;
+    bool in_quotes = false;
 
-    while (stream >> std::quoted(arg)) {
-      args.push_back(arg);
+    for (char c : input) {
+      if (c == '"') {
+        in_quotes = !in_quotes;
+        continue;
+      }
+
+      if (std::isspace((unsigned char)c) && !in_quotes) {
+        if (!current.empty()) {
+          args.push_back(std::move(current));
+          current.clear();
+        }
+        continue;
+      }
+
+      current += c;
+    }
+
+    if (!current.empty()) {
+      args.push_back(std::move(current));
     }
 
     return args;
