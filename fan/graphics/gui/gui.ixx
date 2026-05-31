@@ -1,8 +1,14 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #include <fan/utility.h>
 
+#endif
+
 export module fan.graphics.gui;
+
+#if defined (FAN_WINDOW)
 
 import std;
 
@@ -589,4 +595,6 @@ template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(
   f32_t max
 );
 */
+#endif
+
 #endif

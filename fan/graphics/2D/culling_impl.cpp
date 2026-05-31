@@ -5,6 +5,8 @@ module;
 
 module fan.graphics.culling;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 #if defined(FAN_2D)
@@ -483,5 +485,7 @@ namespace fan::graphics::culling {
     );
   }
 }
+
+#endif
 
 #endif

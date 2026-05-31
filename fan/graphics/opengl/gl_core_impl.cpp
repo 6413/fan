@@ -1,5 +1,7 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #include <fan/utility.h>
 
 #if defined(fan_compiler_gcc)
@@ -24,7 +26,11 @@ module;
   #include <fan/graphics/gl_api.h>
 #endif
 
+#endif
+
 module fan.graphics.opengl.core;
+
+#if defined (FAN_WINDOW)
 
 #if defined(FAN_OPENGL)
 
@@ -1782,4 +1788,6 @@ namespace fan::graphics {
 fan::opengl::context_t& fan::graphics::get_gl_context() {
   return (*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx())));
 }
+#endif
+
 #endif

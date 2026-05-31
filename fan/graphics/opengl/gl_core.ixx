@@ -1,10 +1,16 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #include <fan/utility.h>
 
 #include <fan/graphics/gl_api.h>
 
+#endif
+
 export module fan.graphics.opengl.core;
+
+#if defined (FAN_WINDOW)
 
 import std;
 
@@ -708,5 +714,7 @@ namespace fan::graphics {
 export namespace fan::graphics {
   fan::opengl::context_t& get_gl_context();
 }
+
+#endif
 
 #endif

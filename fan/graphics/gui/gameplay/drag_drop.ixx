@@ -5,6 +5,8 @@ module;
 
 export module fan.graphics.gui.drag_drop;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 #if defined(FAN_GUI)
@@ -31,4 +33,6 @@ export namespace fan::graphics::gui::drag_drop {
     virtual ~drop_target_t() {}
   };
 }
+#endif
+
 #endif

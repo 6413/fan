@@ -1,15 +1,21 @@
 module;
 
-#ifndef FAN_3D
+#if defined (FAN_WINDOW)
 
-export module fan.graphics.opengl3D.objects.model;
-
-#else
+#if defined(FAN_3D)
 
 #include <fan/utility.h>
 #include <fan/graphics/gl_api.h>
 
+#endif
+
+#endif
+
 export module fan.graphics.opengl3D.objects.model;
+
+#if defined (FAN_WINDOW)
+
+#if defined(FAN_3D)
 
 import std;
 
@@ -283,4 +289,6 @@ export namespace fan {
     };
   }
 }
+#endif
+
 #endif

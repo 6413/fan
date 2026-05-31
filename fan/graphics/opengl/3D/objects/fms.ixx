@@ -1,5 +1,7 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #include <fan/utility.h>
 
 #if defined(FAN_3D)
@@ -11,7 +13,11 @@ module;
   #include <fan/stb/stb_image.h>
 #endif
 
+#endif
+
 export module fan.graphics.fms;
+
+#if defined (FAN_WINDOW)
 
 import std;
 
@@ -1989,3 +1995,5 @@ export namespace fan {
 #endif
 
 #endif 
+
+#endif

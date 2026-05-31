@@ -1,5 +1,7 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #include <cstring>
 
 #if defined(FAN_2D)
@@ -9,7 +11,12 @@ module;
 #include <WITCH/MD/SCR/SCR.h>
 #endif
 
+#endif
+
 export module fan.graphics.video.screen;
+
+#if defined (FAN_WINDOW)
+
 import std;
 import fan.graphics.video.codec;
 
@@ -442,4 +449,6 @@ export namespace fan {
 
   }
 }
+#endif
+
 #endif

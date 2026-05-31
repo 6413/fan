@@ -2,6 +2,8 @@ module;
 
 export module fan.console;
 
+#if defined(FAN_WINDOW)
+
 import std;
 
 import fan.types.color;
@@ -116,3 +118,5 @@ export namespace fan {
     void clear();
   };
 }
+
+#endif

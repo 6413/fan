@@ -5,6 +5,8 @@ module;
 
 module fan.graphics.gui.text_logger;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 #if defined(FAN_GUI)
@@ -246,4 +248,6 @@ namespace fan::graphics::gui {
   }
 
 }
+#endif
+
 #endif

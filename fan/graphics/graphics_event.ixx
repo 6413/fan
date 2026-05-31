@@ -2,6 +2,8 @@ module;
 
 export module fan.graphics.event;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 import fan.event;
@@ -47,3 +49,5 @@ export namespace fan::graphics::event {
     });
   }
 }
+
+#endif

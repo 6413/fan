@@ -2,6 +2,8 @@ module;
 
 export module fan.graphics.input_subsystem;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 export import fan.window;
@@ -20,3 +22,5 @@ export namespace fan::graphics {
     fan::window_t::text_callback_handle_t text_callback_handle;
   };
 }
+
+#endif

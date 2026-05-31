@@ -2,6 +2,8 @@ module;
 
 export module fan.graphics.gameplay.types;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 import fan.types.color;
@@ -85,3 +87,5 @@ export namespace fan::graphics::gameplay {
     std::optional<std::uint32_t> stack_size;
   };
 }
+
+#endif

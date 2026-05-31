@@ -1,12 +1,18 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #include <fan/utility.h>
 
 #include <cstdint>
 #include <coroutine>
 #include <fan/graphics/common_context_functions_declare.h>
 
+#endif
+
 export module fan.graphics.common_context;
+
+#if defined (FAN_WINDOW)
 
 import std;
 
@@ -836,3 +842,5 @@ export namespace fan::shader_paths {
 #undef context_build_image_functions
 #undef context_build_camera_functions
 #undef context_build_viewport_functions
+
+#endif
