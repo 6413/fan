@@ -539,3 +539,7 @@ export namespace fan {
     (fan::print_color_raw(fan::colors::white, fan::detail::format_reflect(args) + "\n"), ...);
   }
 }
+
+export namespace fan::refl {
+  namespace meta = std::meta;
+}
