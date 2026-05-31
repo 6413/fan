@@ -318,6 +318,7 @@ export namespace fan {
       return *static_cast<T*>(stage_list[get<T>()].stage);
     }
 
+  #if defined(FAN_2D)
     fan::graphics::shape_t& get_id(auto* stage_ptr, const std::string id) {
       auto found = cid_map.find(std::make_pair(stage_ptr, id));
       if (found == cid_map.end()) {
@@ -325,6 +326,7 @@ export namespace fan {
       }
       return stage_ptr->stage_common.cid_list[found->second];
     }
+  #endif
 
     void load_fgm(auto* stage, const stage_open_properties_t& op, const char* stage_name) {
       std::string filename = std::string("stages_runtime/") + stage_name + ".fgm";
