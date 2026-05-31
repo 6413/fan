@@ -595,17 +595,31 @@ target("fan")
   
   after_build(function (target)
     if has_config("buildlib") then
+      local objs = os.files("build/.objs/**.o")
+
+      local obj_list = {}
+      for _, file in ipairs(objs) do
+        table.insert(obj_list, file)
+      end
+
+      -- rebuild static library manually
+      os.execv("ar", {
+        "rcs",
+        target:targetfile(),
+        table.unpack(obj_list)
+      })
+
+      os.execv("ranlib", { target:targetfile() })
+
+      print("Static library rebuilt:", target:targetfile())
+
+      -- copy gcm cache
       local gcm_dir = "gcm.cache"
       os.mkdir(gcm_dir)
-      
-      local gcm_files = os.files("build/**.gcm")
-      for _, file in ipairs(gcm_files) do
+
+      for _, file in ipairs(os.files("build/**.gcm")) do
         os.cp(file, gcm_dir)
       end
-      
-      os.cp(target:targetfile(), ".")
-      
-      print("Library artifacts copied to current directory.")
     end
   end)
 target_end()
