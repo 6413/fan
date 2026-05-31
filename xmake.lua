@@ -378,7 +378,7 @@ end
 
 local impl_files = find_impl_files(module_files)
 
-if os.isfile("fan/graphics/2D/algorithm/AStar.cpp") then
+if has_config("FAN_WINDOW") and os.isfile("fan/graphics/2D/algorithm/AStar.cpp") then
   table.insert(impl_files, "fan/graphics/2D/algorithm/AStar.cpp")
 end
 
@@ -513,7 +513,7 @@ end
 for _, impl in ipairs(impl_files) do
   add_files(impl)
 end
-if not is_plat("wasm") then
+if not is_plat("wasm") and has_config("FAN_WINDOW") then
   add_files("third_party/fan/glad.c")
 end
 
