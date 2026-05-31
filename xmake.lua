@@ -610,7 +610,7 @@ target("fan")
   
   after_build(function (target)
     if has_config("buildlib") then
-      local gcm_dir = "gcm_cache"
+      local gcm_dir = "gcm.cache"
       os.mkdir(gcm_dir)
       
       local gcm_files = os.files(path.join(target:autogendir(), "rules/c++/modules/**/*.gcm"))
