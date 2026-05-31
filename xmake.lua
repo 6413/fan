@@ -83,11 +83,11 @@ for name, _ in pairs(fan_features) do
 end
 
 if not has_config("FAN_WINDOW") then
-  assert(not has_config("FAN_GUI"))
-  assert(not has_config("FAN_2D"))
-  assert(not has_config("FAN_OPENGL"))
-  assert(not has_config("FAN_3D"))
-  assert(not has_config("FAN_VIDEO"))
+  if has_config("FAN_GUI") then os.raise("FAN_GUI requires FAN_WINDOW") end
+  if has_config("FAN_2D") then os.raise("FAN_2D requires FAN_WINDOW") end
+  if has_config("FAN_OPENGL") then os.raise("FAN_OPENGL requires FAN_WINDOW") end
+  if has_config("FAN_3D") then os.raise("FAN_3D requires FAN_WINDOW") end
+  if has_config("FAN_VIDEO") then os.raise("FAN_VIDEO requires FAN_WINDOW") end
 end
 
 
