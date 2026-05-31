@@ -176,7 +176,7 @@ export namespace fan {
       fan::time::timer duration;
     };
     using task_handle_t = std::list<task_queue_t>::iterator;
-    auto& get_task_queue() {
+    std::list<task_queue_t>& get_task_queue() {
       static std::list<task_queue_t> queue;
       return queue;
     }
@@ -191,15 +191,12 @@ export namespace fan {
     }
     void process_tasks() {
       auto& queue = get_task_queue();
-      auto it = queue.begin();
-      while (it != queue.end()) {
-        if (it->interval.finished()) {
-          if (it->timer_cb() || it->duration.finished()) {
-            it = queue.erase(it);
-            continue;
-          }
+      for (auto it = queue.begin(); it != queue.end();) {
+        if (it->interval.finished() && ((it->timer_cb && it->timer_cb()) || it->duration.finished())) {
+          it = queue.erase(it);
+        } else {
+          ++it;
         }
-        ++it;
       }
     }
 
