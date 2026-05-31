@@ -67,7 +67,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --buildlib)
-      XMAKE_ARGS+=("--buildlib=y")
+      FEATURE_ARGS+=("--buildlib=y")
       shift
       ;;
     --core)        PRESET_USED=true; apply_preset_core;     shift ;;
