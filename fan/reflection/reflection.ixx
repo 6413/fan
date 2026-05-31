@@ -9,11 +9,6 @@ import fan.utility;
 import fan.types.color;
 import fan.print;
 
-#if defined(FAN_REFLECTION) && defined(fan_compiler_gcc)
-  #include "gcc_private.h"
-#endif
-
-
 // types
 export namespace fan::refl {
    struct member_info {
