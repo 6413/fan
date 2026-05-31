@@ -66,6 +66,10 @@ while [[ $# -gt 0 ]]; do
       WASM=true
       shift
       ;;
+    --buildlib)
+      XMAKE_ARGS+=("--buildlib=y")
+      shift
+      ;;
     --core)        PRESET_USED=true; apply_preset_core;     shift ;;
     --headless)    PRESET_USED=true; apply_preset_headless; shift ;;
     --window)      PRESET_USED=true; apply_preset_window;   shift ;;
