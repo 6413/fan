@@ -478,129 +478,151 @@ if not is_plat("wasm") and has_config("FAN_WINDOW") then
   target_end()
 end
 
-target("a.exe")
-set_kind("binary")
-add_rules("c++.build.modules")
+option("buildlib") set_default(false) option_end()
 
-if is_plat("wasm") then
-  set_extension(".html")
-  add_ldflags("--preload-file shaders -s MAX_WEBGL_VERSION=2", "-s MIN_WEBGL_VERSION=2", {force = true})
-  add_linkdirs("third_party/fan/lib/wasm")
-  add_links("uv_wasm", "webp_wasm")
-end
+target("fan")
+  if has_config("buildlib") then
+    set_kind("static")
+  else
+    set_kind("binary")
+  end
+  add_rules("c++.build.modules")
 
-if has_config("FAN_GUI") then
-  add_deps("imgui")
-end
-if not is_plat("wasm") and has_config("FAN_WINDOW") then
-  add_deps("nfd")
-end
+  if is_plat("wasm") then
+    set_extension(".html")
+    add_ldflags("--preload-file shaders -s MAX_WEBGL_VERSION=2", "-s MIN_WEBGL_VERSION=2", {force = true})
+    add_linkdirs("third_party/fan/lib/wasm")
+    add_links("uv_wasm", "webp_wasm")
+  end
 
-for _, file in ipairs(module_files) do
-  add_files(file)
-end
+  if has_config("FAN_GUI") then
+    add_deps("imgui")
+  end
+  if not is_plat("wasm") and has_config("FAN_WINDOW") then
+    add_deps("nfd")
+  end
 
--- if has_config("FAN_REFLECTION") then
-  -- for _, file in ipairs(os.files("fan/reflection/*.ixx")) do
-    -- add_files(file, {cxxflags = "-freflection"})
-    -- local impl = path.join(path.directory(file), path.basename(file) .. "_impl.cpp")
-    -- if os.isfile(impl) then
-      -- add_files(impl, {cxxflags = "-freflection"})
+  for _, file in ipairs(module_files) do
+    add_files(file)
+  end
+
+  -- if has_config("FAN_REFLECTION") then
+    -- for _, file in ipairs(os.files("fan/reflection/*.ixx")) do
+      -- add_files(file, {cxxflags = "-freflection"})
+      -- local impl = path.join(path.directory(file), path.basename(file) .. "_impl.cpp")
+      -- if os.isfile(impl) then
+        -- add_files(impl, {cxxflags = "-freflection"})
+      -- end
     -- end
   -- end
--- end
 
-for _, impl in ipairs(impl_files) do
-  add_files(impl)
-end
-if not is_plat("wasm") and has_config("FAN_WINDOW") then
-  add_files("third_party/fan/glad.c")
-end
+  for _, impl in ipairs(impl_files) do
+    add_files(impl)
+  end
+  if not is_plat("wasm") and has_config("FAN_WINDOW") then
+    add_files("third_party/fan/glad.c")
+  end
 
-local main_file = get_config("main")
-set_policy("check.auto_ignore_flags", false)
+  local main_file = get_config("main")
+  set_policy("check.auto_ignore_flags", false)
 
-local main_file = get_config("main")
-add_files(main_file)
+  local main_file = get_config("main")
+  add_files(main_file)
 
-add_includedirs(".", "third_party/fan/include", {public = true})
-add_linkdirs("third_party/fan/lib")
+  add_includedirs(".", "third_party/fan/include", {public = true})
+  add_linkdirs("third_party/fan/lib")
 
-if is_plat("linux") then
-  add_links(
-  "webp", "glfw", "X11", "opus", "pulse-simple",
-  "uv", "GL", "ssl", "crypto", "png", "z", "curl"
-  )
-  if has_config("FAN_FMT") then add_links("fmt") end
-  if has_config("FAN_GUI") then add_links("freetype", "lunasvg") end
-  if has_config("FAN_PHYSICS_2D") then
-    add_ldflags("-Wl,--whole-archive", "third_party/fan/lib/libbox2d.a", "-Wl,--no-whole-archive", {force = true})
-  end
-  if has_config("FAN_3D") then add_links("assimp") end
-  if has_config("FAN_VULKAN") then
-    add_packages("vulkansdk")
-    add_links("shaderc_shared")
-  end
-  if has_config("FAN_WAYLAND_SCREEN") then
-    add_links("wayland-client", "pipewire-0.3", "dbus-1")
-    add_links("avcodec", "avutil", "swscale")
-  end
-elseif is_plat("windows") then
-  add_links("opengl32")
-  add_linkdirs("lib/GLFW", "lib/GLEW", "lib/libuv", "lib/libwebp", "lib/opus", "lib/openssl")
-  add_links(
-  "glfw3_mt", "glew32s", "uv_a", "libwebp",
-  "opus", "libssl", "libcrypto"
-  )
-  if has_config("FAN_GUI") then
-    add_linkdirs("lib/freetype", "lib/lunasvg")
-    add_links("freetype", "lunasvg")
-  end
-  if has_config("FAN_PHYSICS_2D") then
-    add_linkdirs("lib/box2d")
-    add_links("box2d")
-  end
-  if has_config("FAN_3D") then
-    add_linkdirs("C:/Program Files/Assimp/lib/x64")
-    add_links("assimp-vc143-mt")
-  end
-  if has_config("FAN_VULKAN") then
-    add_packages("vulkansdk")
-    add_links("shaderc_shared")
-  end
-  if has_config("FAN_WAYLAND_SCREEN") then
-    add_linkdirs("lib/libx264", "lib/openh264")
+  if is_plat("linux") then
     add_links(
-    "DXGI", "D3D11", "libx264",
-    "welsdcore", "welsecore", "WelsDecPlus",
-    "WelsEncPlus", "WelsVP"
+    "webp", "glfw", "X11", "opus", "pulse-simple",
+    "uv", "GL", "ssl", "crypto", "png", "z", "curl"
     )
+    if has_config("FAN_FMT") then add_links("fmt") end
+    if has_config("FAN_GUI") then add_links("freetype", "lunasvg") end
+    if has_config("FAN_PHYSICS_2D") then
+      add_ldflags("-Wl,--whole-archive", "third_party/fan/lib/libbox2d.a", "-Wl,--no-whole-archive", {force = true})
+    end
+    if has_config("FAN_3D") then add_links("assimp") end
+    if has_config("FAN_VULKAN") then
+      add_packages("vulkansdk")
+      add_links("shaderc_shared")
+    end
+    if has_config("FAN_WAYLAND_SCREEN") then
+      add_links("wayland-client", "pipewire-0.3", "dbus-1")
+      add_links("avcodec", "avutil", "swscale")
+    end
+  elseif is_plat("windows") then
+    add_links("opengl32")
+    add_linkdirs("lib/GLFW", "lib/GLEW", "lib/libuv", "lib/libwebp", "lib/opus", "lib/openssl")
+    add_links(
+    "glfw3_mt", "glew32s", "uv_a", "libwebp",
+    "opus", "libssl", "libcrypto"
+    )
+    if has_config("FAN_GUI") then
+      add_linkdirs("lib/freetype", "lib/lunasvg")
+      add_links("freetype", "lunasvg")
+    end
+    if has_config("FAN_PHYSICS_2D") then
+      add_linkdirs("lib/box2d")
+      add_links("box2d")
+    end
+    if has_config("FAN_3D") then
+      add_linkdirs("C:/Program Files/Assimp/lib/x64")
+      add_links("assimp-vc143-mt")
+    end
+    if has_config("FAN_VULKAN") then
+      add_packages("vulkansdk")
+      add_links("shaderc_shared")
+    end
+    if has_config("FAN_WAYLAND_SCREEN") then
+      add_linkdirs("lib/libx264", "lib/openh264")
+      add_links(
+      "DXGI", "D3D11", "libx264",
+      "welsdcore", "welsecore", "WelsDecPlus",
+      "WelsEncPlus", "WelsVP"
+      )
+    end
   end
-end
 
-on_load(function (target)
-if target:is_plat("linux") then
-  import("lib.detect.find_tool")
-  if has_config("FAN_GUI") then
-      local pkg_config = find_tool("pkg-config")
-      if pkg_config then
-      local libs = os.iorunv("pkg-config", {"--libs", "gtk+-3.0"})
-      if libs then
-          for _, lib in ipairs(libs:split("%s+")) do
-          if lib:startswith("-l") then
-              target:add("links", lib:sub(3))
-          end
-          end
-      end
-      end
+  on_load(function (target)
+  if target:is_plat("linux") then
+    import("lib.detect.find_tool")
+    if has_config("FAN_GUI") then
+        local pkg_config = find_tool("pkg-config")
+        if pkg_config then
+        local libs = os.iorunv("pkg-config", {"--libs", "gtk+-3.0"})
+        if libs then
+            for _, lib in ipairs(libs:split("%s+")) do
+            if lib:startswith("-l") then
+                target:add("links", lib:sub(3))
+            end
+            end
+        end
+        end
+    end
+    if find_tool("mold") then
+        target:add("ldflags", "-fuse-ld=mold", {force = true})
+    elseif find_tool("gold") then
+        target:add("ldflags", "-fuse-ld=gold", {force = true})
+    end
   end
-  if find_tool("mold") then
-      target:add("ldflags", "-fuse-ld=mold", {force = true})
-  elseif find_tool("gold") then
-      target:add("ldflags", "-fuse-ld=gold", {force = true})
-  end
-end
-end)
+  end)
+  
+  after_build(function (target)
+    if has_config("buildlib") then
+      local gcm_dir = "gcm_cache"
+      os.mkdir(gcm_dir)
+      
+      local gcm_files = os.files(path.join(target:autogendir(), "rules/c++/modules/**/*.gcm"))
+      for _, file in ipairs(gcm_files) do
+        os.cp(file, gcm_dir)
+      end
+      
+      os.cp(target:targetfile(), ".")
+      
+      print("Library artifacts copied to current directory.")
+    end
+  end)
 target_end()
 
 local marker = "fan_modules_info_printed.flag"
