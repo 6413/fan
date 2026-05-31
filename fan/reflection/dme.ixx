@@ -27,7 +27,7 @@ namespace fan {
         if constexpr (!std::is_void_v<annotation_t>) {
           member_annotations.push_back(std::meta::reflect_constant(annotation_t{}));
         }
-      /* newer gcc
+
         specs.push_back(
           std::meta::data_member_spec(
             ^^member_t,
@@ -36,11 +36,11 @@ namespace fan {
             }
           )
         );
-      */
-        specs.push_back(std::meta::data_member_spec(^^member_t, {
-          .name = std::string(name_obj.data),
-          .annotations = member_annotations
-        }));
+      
+        //specs.push_back(std::meta::data_member_spec(^^member_t, {
+        //  .name = std::string(name_obj.data),
+        //  .annotations = member_annotations
+        //}));
       });
 
       std::meta::define_aggregate(target, specs);

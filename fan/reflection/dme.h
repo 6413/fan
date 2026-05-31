@@ -31,7 +31,6 @@
     ^^shared_t, {.name = std::string(sname)}));
 
 
-/* newer gcc
 #define _dme_push_1(shared_t, sname, body)                    \
   _dme_specs.push_back(                                       \
     std::meta::data_member_spec(                              \
@@ -41,18 +40,18 @@
       }                                                       \
     )                                                         \
   )
-*/
-#define _dme_push_1(shared_t, sname, body) \
-  _dme_specs.push_back(std::meta::data_member_spec( \
-    ^^shared_t, { \
-      .name = std::string(sname), \
-      .annotations = { \
-        std::meta::reflect_constant([]{ \
-          struct _ann_t{ _dme_strip_parens(body) } s{}; \
-          return s; \
-        }()) \
-      } \
-    }));
+
+//#define _dme_push_1(shared_t, sname, body) \
+//  _dme_specs.push_back(std::meta::data_member_spec( \
+//    ^^shared_t, { \
+//      .name = std::string(sname), \
+//      .annotations = { \
+//        std::meta::reflect_constant([]{ \
+//          struct _ann_t{ _dme_strip_parens(body) } s{}; \
+//          return s; \
+//        }()) \
+//      } \
+//    }));
 
 #define _dme_next() _dme_helper
 
