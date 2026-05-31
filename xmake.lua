@@ -218,6 +218,8 @@ local module_files = {
   "fan/random.ixx",
   "fan/log_dispatcher.ixx",
 
+  "fan/crypto.ixx",
+
   "fan/process.ixx",
 
   "fan/io/io_types.ixx",
@@ -267,7 +269,6 @@ local feature_modules = {
     "fan/physics/physics_types.ixx",
     
     "fan/noise.ixx",
-    "fan/crypto.ixx",
     "fan/pathfind.ixx",
     "fan/spatial.ixx",
     "fan/ecs.ixx",
