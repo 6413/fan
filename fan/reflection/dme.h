@@ -80,13 +80,15 @@
     _dme_obstruct(_dme_next) () (shared_t, __VA_ARGS__) \
   )
 
-#define __dme(type_name, shared_type, ...) \
-  struct _dme_impl_##type_name; \
-  consteval { \
-    std::vector<fan::refl::info> _dme_specs; \
-    _dme_expand(_dme_helper(shared_type, __VA_ARGS__)) \
-    fan::refl::define_aggregate(^^_dme_impl_##type_name, _dme_specs); \
-  } \
-  struct type_name : _dme_impl_##type_name, fan::dme_t<type_name, shared_type> { \
-    using _dme_impl_##type_name::_dme_impl_##type_name; \
-  };
+#define __dme(type_name, shared_type, ...)                                         \
+  struct _dme_impl_##type_name {};                                                 \
+  namespace {                                                                      \
+    consteval void _dme_init_##type_name() {                                       \
+      std::vector<fan::refl::info> _dme_specs;                                     \
+      _dme_expand(_dme_helper(shared_type, __VA_ARGS__))                           \
+      fan::refl::define_aggregate(^^_dme_impl_##type_name, _dme_specs);            \
+    }                                                                              \
+    inline constexpr int _dme_init_##type_name##_once =                            \
+      (_dme_init_##type_name(), 0);                                                \
+  }                                                                                \
+  struct type_name : _dme_impl_##type_name, fan::dme_t<type_name, shared_type> {};
