@@ -76,7 +76,7 @@ export namespace fan {
     };
 
     static consteval std::size_t size()                                  { return fan::refl::member_count<derived_t>(); }
-    constexpr decltype(auto) operator[](this auto&& self, std::size_t i) { return fan::refl::at_index<derived_t>(self, i); }
+    constexpr decltype(auto) operator[](this auto&& self, std::size_t i) { return fan::refl::at_index<derived_t, member_t>(self, i); }
     consteval id_t operator[](std::string_view name) const               { return id_t(dme_index_t<fan::refl::member_count<derived_t>()>(fan::refl::index_of<derived_t>(name))); }
     constexpr member_t* begin()                                          { return &(*this)[0]; }
     constexpr member_t* end()                                            { return &(*this)[0] + size(); }
