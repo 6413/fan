@@ -98,13 +98,11 @@ consteval auto members() {
     });
   }
 
-  template <typename T, typename Obj>
+  template <typename T, typename Member, typename Obj>
   constexpr decltype(auto) at_index(Obj&& obj, std::size_t i) {
-    using obj_t             = std::remove_reference_t<Obj>;
-    using M0                = decltype(std::declval<T>().*(&[:members<T>()[0]:]));
-    using base_t            = std::remove_reference_t<M0>;
+    using obj_t = std::remove_reference_t<Obj>;
     constexpr bool is_const = std::is_const_v<obj_t>;
-    using ptr_t             = std::conditional_t<is_const, const base_t*, base_t*>;
+    using ptr_t = std::conditional_t<is_const, const Member*, Member*>;
 
     ptr_t ptr = nullptr;
     member_visit<T>(i, [&]<std::meta::info m> {
