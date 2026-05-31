@@ -475,6 +475,10 @@ consteval auto members() {
   consteval info reflect_constant(auto v) {
     return std::meta::reflect_constant(v);
   }
+  template <class T, std::meta::reflection_range R>
+  consteval void define_aggregate2(R&& members) {
+    std::meta::define_aggregate(^^T, std::forward<R>(members));
+  }
 }  // namespace fan::refl
 
 
