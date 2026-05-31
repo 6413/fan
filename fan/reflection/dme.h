@@ -27,18 +27,20 @@
 #define _dme_strip_parens_i(...) __VA_ARGS__
 
 #define _dme_push_0(shared_t, sname) \
-  _dme_specs.push_back(std::meta::data_member_spec( \
-    ^^shared_t, {.name = std::string(sname)}));
+  _dme_specs.push_back( \
+    fan::refl::data_member_spec( \
+      ^^shared_t, {.name = std::string(sname)} \
+    ) \
+  );
 
-
-#define _dme_push_1(shared_t, sname, body)                    \
-  _dme_specs.push_back(                                       \
-    std::meta::data_member_spec(                              \
-      ^^shared_t,                                             \
-      std::meta::data_member_options{                         \
-        .name = std::string(sname)                            \
-      }                                                       \
-    )                                                         \
+#define _dme_push_1(shared_t, sname, body) \
+  _dme_specs.push_back( \
+    fan::refl::data_member_spec( \
+      ^^shared_t, \
+      fan::refl::data_member_options{ \
+        .name = std::string(sname) \
+      } \
+    ) \
   )
 
 //#define _dme_push_1(shared_t, sname, body) \
@@ -81,9 +83,9 @@
 #define __dme(type_name, shared_type, ...) \
   struct _dme_impl_##type_name; \
   consteval { \
-    std::vector<std::meta::info> _dme_specs; \
+    std::vector<fan::refl::info> _dme_specs; \
     _dme_expand(_dme_helper(shared_type, __VA_ARGS__)) \
-    std::meta::define_aggregate(^^_dme_impl_##type_name, _dme_specs); \
+    fan::refl::define_aggregate(^^_dme_impl_##type_name, _dme_specs); \
   } \
   struct type_name : _dme_impl_##type_name, fan::dme_t<type_name, shared_type> { \
     using _dme_impl_##type_name::_dme_impl_##type_name; \

@@ -521,6 +521,24 @@ namespace fan::detail {
 }
 
 export namespace fan {
+
+  template <typename... Args>
+  consteval auto data_member_spec(Args&&... args) {
+    return std::meta::data_member_spec(
+      std::forward<Args>(args)...
+    );
+  }
+
+  template <typename T>
+  consteval auto reflect_constant(T&& value) {
+    return std::meta::reflect_constant(
+      std::forward<T>(value)
+    );
+  }
+
+  using data_member_options = std::meta::data_member_options;
+  using info = std::meta::info;
+
   template <typename... T>
   void print(const T&... args) {
     (fan::print_color_raw(fan::colors::white, fan::detail::format_reflect(args) + "\n"), ...);
