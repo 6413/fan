@@ -507,11 +507,12 @@ target("fan")
     add_files("third_party/fan/glad.c")
   end
 
-  local main_file = get_config("main")
   set_policy("check.auto_ignore_flags", false)
 
-  local main_file = get_config("main")
-  add_files(main_file)
+  if not has_config("buildlib") then
+    local main_file = get_config("main")
+    add_files(main_file)
+  end
 
   add_includedirs(".", "third_party/fan/include", {public = true})
   add_linkdirs("third_party/fan/lib")
