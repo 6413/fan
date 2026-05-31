@@ -427,7 +427,9 @@ export namespace fan {
     }
 
     stage_list_t stage_list;
+  #if defined(FAN_2D)
     cid_map_t cid_map;
+  #endif
     std::unordered_map<std::type_index, nr_t> type_stage_map;
     std::string current_stage_name;
     std::string previous_stage_name;
