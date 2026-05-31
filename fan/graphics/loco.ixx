@@ -277,7 +277,9 @@ export namespace fan {
       }
     };
 
+  #if defined(FAN_2D)
     using cid_map_t = std::unordered_map<key_t, cid_nr_t, pair_hasher_t, pair_equal_t>;
+  #endif
 
     stage_loader_t() {
       gstage = this;
