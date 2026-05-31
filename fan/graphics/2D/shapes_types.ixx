@@ -1,12 +1,18 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #include <fan/utility.h>
 
 #if defined(FAN_OPENGL)
   #include <fan/graphics/gl_api.h>
 #endif
 
+#endif
+
 export module fan.graphics.shapes.types;
+
+#if defined (FAN_WINDOW)
 
 import std;
 
@@ -588,4 +594,6 @@ export namespace std {
     }
   };
 }
+#endif
+
 #endif

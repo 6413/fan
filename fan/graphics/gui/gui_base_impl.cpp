@@ -1,5 +1,7 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #if defined(FAN_GUI)
   #include <fan/imgui/imgui.h>
   #include <fan/imgui/imgui_impl_glfw.h>
@@ -18,7 +20,11 @@ module;
   #include <GLFW/glfw3.h>
 #endif
 
+#endif
+
 module fan.graphics.gui.base;
+
+#if defined (FAN_WINDOW)
 
 import std;
 
@@ -2696,5 +2702,7 @@ namespace fan::graphics::gui::slot {
   }
 
 } // namespace fan::graphics::gui::slot
+
+#endif
 
 #endif

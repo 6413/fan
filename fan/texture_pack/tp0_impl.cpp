@@ -1,12 +1,18 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #include <cstdint>
 
 #if defined(FAN_OPENGL)
   #include <fan/utility.h>
 #endif
 
+#endif
+
 module fan.texture_pack.tp0;
+
+#if defined (FAN_WINDOW)
 
 #if defined(FAN_OPENGL)
 
@@ -573,4 +579,6 @@ namespace fan::graphics {
     return 0;
   }
 }
+#endif
+
 #endif

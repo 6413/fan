@@ -1,5 +1,7 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #if defined(FAN_2D)
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -12,7 +14,12 @@ extern "C" {
 }
 #endif
 
+#endif
+
 export module fan.graphics.video.codec;
+
+#if defined (FAN_WINDOW)
+
 import std;
 
 #if defined(FAN_2D)
@@ -1513,4 +1520,6 @@ export namespace fan {
   };
 
 }
+#endif
+
 #endif

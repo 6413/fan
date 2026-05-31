@@ -1,5 +1,7 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #include <fan/utility.h>
 
 #include <fan/event/types.h>
@@ -7,7 +9,11 @@ module;
 
 #include <fan/graphics/gl_api.h>
 
+#endif
+
 module fan.graphics;
+
+#if defined (FAN_WINDOW)
 
 import fan.print.error;
 import fan.print;
@@ -1742,5 +1748,7 @@ namespace fan {
     is_changing_flag = false;
   }
 }
+
+#endif
 
 #endif

@@ -1,11 +1,17 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #include <cstddef>
 #include <cstdint>
 
 #include <fan/utility.h>
 
+#endif
+
 module fan.graphics.tilemap_editor.loader;
+
+#if defined (FAN_WINDOW)
 
 #if defined(FAN_2D)
 #if defined(FAN_PHYSICS_2D)
@@ -239,4 +245,6 @@ namespace fan::graphics {
   }
 }
 #endif
+#endif
+
 #endif

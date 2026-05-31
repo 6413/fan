@@ -1,5 +1,7 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #include <cstdint>
   
 #if defined(FAN_GUI)
@@ -9,7 +11,11 @@ module;
 
 #include <fan/utility.h>
 
+#endif
+
 module fan.console;
+
+#if defined (FAN_WINDOW)
 
 import fan.memory;
 import fan.types.color;
@@ -485,3 +491,5 @@ namespace fan {
     #endif
   }
 }
+
+#endif

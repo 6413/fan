@@ -1,5 +1,7 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #if defined(FAN_2D)
 #endif
 #define MEASURE_LOAD_TIMES 0
@@ -11,7 +13,11 @@ module;
 #define TIMER_END(name)
 #endif
 
+#endif
+
 module fan.graphics.tilemap_editor.renderer;
+
+#if defined (FAN_WINDOW)
 
 import std;
 
@@ -630,4 +636,6 @@ namespace fan::graphics {
   }
 }
 #endif
+#endif
+
 #endif

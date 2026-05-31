@@ -1,6 +1,6 @@
 module;
 
-#if defined(FAN_3D)
+#if defined(FAN_3D) && defined(FAN_WINDOW)
   #include <assimp/matrix4x4.h>
 #endif
 
@@ -75,7 +75,7 @@ export namespace fan {
       m[2][0] = 2 * (xz + wy);     m[2][1] = 2 * (yz - wx);     m[2][2] = 1 - 2 * (xx + yy);
     }
 
-    #if defined(FAN_3D)
+    #if defined(FAN_3D) && defined(FAN_WINDOW)
       _matrix4x4(const aiMatrix4x4& m) {
         (*this)[0][0] = m.a1;  (*this)[0][1] = m.b1;  (*this)[0][2] = m.c1;  (*this)[0][3] = m.d1;
         (*this)[1][0] = m.a2;  (*this)[1][1] = m.b2;  (*this)[1][2] = m.c2;  (*this)[1][3] = m.d2;

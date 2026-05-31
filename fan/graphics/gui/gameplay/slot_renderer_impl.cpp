@@ -5,6 +5,8 @@ module;
 
 module fan.graphics.gui.slot_renderer;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 #if defined(FAN_GUI)
@@ -128,4 +130,6 @@ namespace fan::graphics::gui {
     return hovered_slot;
   }
 }
+#endif
+
 #endif

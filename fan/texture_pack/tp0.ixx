@@ -5,6 +5,8 @@ module;
 
 export module fan.texture_pack.tp0;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 #if defined(FAN_OPENGL)
@@ -164,4 +166,6 @@ export namespace fan::graphics {
     return tp->qti(hash, this);
   }
 }
+#endif
+
 #endif

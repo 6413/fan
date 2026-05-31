@@ -2,6 +2,8 @@ module;
 
 export module fan.noise;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 import fan.types;
@@ -79,3 +81,5 @@ export namespace fan {
   };
 
 }
+
+#endif

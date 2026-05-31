@@ -5,6 +5,8 @@ module;
 
 export module fan.ascii_renderer;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 #if defined(FAN_GUI)
@@ -110,4 +112,6 @@ export struct ascii_renderer_t {
   properties_t properties;
   std::string line_buffer;
 };
+#endif
+
 #endif

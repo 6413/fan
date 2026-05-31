@@ -1,5 +1,7 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #include <fan/utility.h>
 
 #if defined(fan_compiler_gcc)
@@ -12,7 +14,11 @@ module;
   #include <fan/imgui/imgui.h>
 #endif
 
+#endif
+
 export module fan.window.input_common;
+
+#if defined (FAN_WINDOW)
 
 import std;
 
@@ -617,3 +623,5 @@ export namespace fan {
     }
   }
 }
+
+#endif

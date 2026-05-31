@@ -5,6 +5,8 @@ module;
 
 export module fan.graphics.gui.gameplay.equipment;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 #if defined(FAN_GUI)
@@ -38,4 +40,6 @@ export namespace fan::graphics::gui::gameplay {
   };
 
 }
+#endif
+
 #endif

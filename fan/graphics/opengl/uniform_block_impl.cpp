@@ -5,6 +5,8 @@ module;
 
 module fan.graphics.opengl.uniform_block;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 #if defined(FAN_OPENGL)
@@ -78,5 +80,7 @@ namespace fan::opengl::core {
     queued = false;
   }
 }
+
+#endif
 
 #endif

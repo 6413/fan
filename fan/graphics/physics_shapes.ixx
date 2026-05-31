@@ -1,5 +1,7 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 // for shapes
 #if defined(FAN_2D)
 #if defined(FAN_PHYSICS_2D)
@@ -7,7 +9,11 @@ module;
 #endif
 #endif
 
+#endif
+
 export module fan.graphics.physics_shapes;
+
+#if defined (FAN_WINDOW)
 
 import std;
 
@@ -1226,6 +1232,8 @@ export namespace fan::physics {
     });
   }
 }
+
+#endif
 
 #endif
 

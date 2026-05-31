@@ -52,18 +52,43 @@ elseif is_mode("debug") then
   add_defines("_DEBUG=3")
 end
 
-option("FAN_2D") set_default(true) option_end()
-option("FAN_GUI") set_default(true) option_end()
-option("FAN_PHYSICS_2D") set_default(true) option_end()
-option("FAN_JSON") set_default(true) option_end()
-option("FAN_3D") set_default(false) option_end()
-option("FAN_OPENGL") set_default(true) option_end()
-option("FAN_VULKAN") set_default(false) option_end()
-option("FAN_FMT") set_default(false) option_end()
-option("FAN_WAYLAND_SCREEN") set_default(false) option_end()
-option("FAN_NETWORK") set_default(false) option_end()
-option("FAN_AUDIO") set_default(false) option_end()
-option("FAN_VIDEO") set_default(false) option_end()
+local fan_features = {
+  FAN_WINDOW = true,
+  FAN_2D = true,
+  FAN_GUI = true,
+  FAN_PHYSICS_2D = true,
+  FAN_JSON = true,
+
+  FAN_3D = false,
+  FAN_OPENGL = true,
+  FAN_VULKAN = false,
+  FAN_FMT = false,
+  FAN_WAYLAND_SCREEN = false,
+  FAN_NETWORK = false,
+  FAN_AUDIO = false,
+  FAN_VIDEO = false,
+  FAN_REFLECTION = false
+}
+
+for name, enabled in pairs(fan_features) do
+  option(name)
+    set_default(enabled)
+  option_end()
+end
+
+for name, _ in pairs(fan_features) do
+  if has_config(name) then
+    add_defines(name)
+  end
+end
+
+if not has_config("FAN_WINDOW") then
+  assert(not has_config("FAN_GUI"))
+  assert(not has_config("FAN_2D"))
+  assert(not has_config("FAN_OPENGL"))
+  assert(not has_config("FAN_3D"))
+  assert(not has_config("FAN_VIDEO"))
+end
 
 
 -- option("FAN_REFLECTION")
@@ -96,18 +121,6 @@ if has_config("FAN_USE_STD_MODULE") then
 end
 
 option("main") set_default("examples/engine_demos/engine_demo.cpp") option_end()
-
-if has_config("FAN_OPENGL") then add_defines("FAN_OPENGL") end
-if has_config("FAN_2D") then add_defines("FAN_2D") end
-if has_config("FAN_GUI") then add_defines("FAN_GUI") end
-if has_config("FAN_JSON") then add_defines("FAN_JSON") end
-if has_config("FAN_3D") then add_defines("FAN_3D") end
-if has_config("FAN_PHYSICS_2D") then add_defines("FAN_PHYSICS_2D") end
-if has_config("FAN_VULKAN") then add_defines("FAN_VULKAN") end
-if has_config("FAN_NETWORK") then add_defines("FAN_NETWORK") end
-if has_config("FAN_FMT") then add_defines("FAN_FMT") end
-if has_config("FAN_AUDIO") then add_defines("FAN_AUDIO") end
-if has_config("FAN_VIDEO") then add_defines("FAN_VIDEO") end
 
 add_includedirs(".", {public = true})
 
@@ -179,75 +192,172 @@ if has_config("FAN_GUI") then
 end
 
 local module_files = {
-  "fan/types/types.ixx", "fan/types/color.ixx", "fan/types/vector.ixx",
-  "fan/types/quaternion.ixx", "fan/types/matrix.ixx", "fan/types/fstring.ixx",
-  "fan/types/compile_time_string.ixx", "fan/types/flat_hash_map.ixx", "fan/memory/memory.ixx", "fan/math/math.ixx",
-  "fan/time.ixx", "fan/mpl.ixx", "fan/utility.ixx", "fan/formatter.ixx",
-  "fan/print_error.ixx", "fan/print.ixx", "fan/random.ixx", "fan/log_dispatcher.ixx",
-  "fan/process.ixx", "fan/io/io_types.ixx", "fan/io/directory.ixx", "fan/io/file.ixx",
-  "fan/math/intersection.ixx", "fan/physics/physics_types.ixx",
-  "fan/graphics/common_types.ixx", "fan/graphics/camera.ixx", "fan/graphics/image_load.ixx",
-  "fan/graphics/webp.ixx", "fan/graphics/stb.ixx", "fan/graphics/common_context.ixx",
-  "fan/graphics/opengl/gl_core.ixx", "fan/graphics/opengl/uniform_block.ixx",
-  "fan/texture_pack/tp0.ixx", "fan/graphics/2D/shapes_types.ixx",
-  "fan/graphics/2D/culling.ixx", "fan/graphics/2D/shapes.ixx",
-  "fan/graphics/audio_subsystem.ixx", "fan/graphics/physics_subsystem.ixx",
-  "fan/graphics/input_subsystem.ixx", "fan/graphics/loco.ixx", "fan/graphics/graphics.ixx",
-  "fan/graphics/file_dialog.ixx", "fan/graphics/2D/algorithm/raycast_grid.ixx",
-  "fan/pathfind.ixx", "fan/spatial.ixx", "fan/ecs.ixx", "fan/window/window.ixx",
-  "fan/window/input_common.ixx", "fan/window/input.ixx", "fan/window/input_action.ixx",
-  "fan/audio/audio.ixx", "fan/event/event_types.ixx", "fan/event/event.ixx",
-  "fan/noise.ixx", "fan/graphics/gameplay/gameplay_types.ixx",
-  "fan/graphics/gameplay/gameplay.ixx", "fan/crypto.ixx", "fan/graphics/gui/console.ixx",
-  "fan/event/uv_raw.ixx", "fan/graphics/gui/tilemap_editor/loader.ixx", 
-  "fan/graphics/gui/tilemap_editor/renderer0.ixx", "fan/graphics/graphics_event.ixx"
+  -- Core
+  "fan/types/types.ixx",
+  "fan/types/color.ixx",
+  "fan/types/vector.ixx",
+  "fan/types/quaternion.ixx",
+  "fan/types/matrix.ixx",
+  "fan/types/fstring.ixx",
+  "fan/types/compile_time_string.ixx",
+  "fan/types/flat_hash_map.ixx",
+
+  "fan/memory/memory.ixx",
+
+  "fan/math/math.ixx",
+  "fan/math/intersection.ixx",
+
+  "fan/time.ixx",
+  "fan/mpl.ixx",
+  "fan/utility.ixx",
+  "fan/formatter.ixx",
+
+  "fan/print_error.ixx",
+  "fan/print.ixx",
+
+  "fan/random.ixx",
+  "fan/log_dispatcher.ixx",
+
+  "fan/process.ixx",
+
+  "fan/io/io_types.ixx",
+  "fan/io/directory.ixx",
+  "fan/io/file.ixx",
+
+  "fan/event/event_types.ixx",
+  "fan/event/event.ixx",
+  "fan/event/uv_raw.ixx",
 }
 
-if has_config("FAN_WAYLAND_SCREEN") then table.insert(module_files, "fan/video/screen_codec.ixx") end
-if has_config("FAN_JSON") then table.insert(module_files, "fan/types/json.ixx") end
-if has_config("FAN_FMT") then table.insert(module_files, "fan/fmt.ixx") end
+local feature_modules = {
 
-if has_config("FAN_GUI") then
-  table.insert(module_files, "fan/graphics/gui/gui_base.ixx")
-  table.insert(module_files, "fan/graphics/gui/gui_input.ixx")
-  table.insert(module_files, "fan/graphics/gameplay/items.ixx")
-  table.insert(module_files, "fan/graphics/gui/gameplay/equipment.ixx")
-  table.insert(module_files, "fan/graphics/gui/gameplay/hotbar.ixx")
-  table.insert(module_files, "fan/graphics/gui/gameplay/inventory.ixx")
-  table.insert(module_files, "fan/graphics/gui/gameplay/inventory_hotbar.ixx")
-  table.insert(module_files, "fan/graphics/gui/gameplay/drag_drop.ixx")
-  table.insert(module_files, "fan/graphics/gui/gameplay/slot_renderer.ixx")
-  table.insert(module_files, "fan/graphics/gui/text_logger.ixx")
-  table.insert(module_files, "fan/graphics/gui/gui_types.ixx")
-  table.insert(module_files, "fan/graphics/gui/gui.ixx")
-  table.insert(module_files, "fan/graphics/gui/settings_menu.ixx")
-  table.insert(module_files, "fan/graphics/gui/keybinds_menu.ixx")
-  table.insert(module_files, "fan/graphics/gui/tilemap_editor/editor_core.ixx")
-  table.insert(module_files, "fan/graphics/gui/tilemap_editor/editor_ui.ixx")
-end
+  FAN_WINDOW = {
+    "fan/window/window.ixx",
+    "fan/window/input_common.ixx",
+    "fan/window/input.ixx",
+    "fan/window/input_action.ixx",
 
-if has_config("FAN_NETWORK") then
-  table.insert(module_files, "fan/network/network.ixx")
-  table.insert(module_files, "fan/graphics/graphics_network.ixx")
-end
+    "fan/graphics/common_types.ixx",
+    "fan/graphics/camera.ixx",
+    "fan/graphics/image_load.ixx",
 
-if has_config("FAN_PHYSICS_2D") then
-  table.insert(module_files, "fan/physics/b2_integration.ixx")
-  table.insert(module_files, "fan/physics/physics_common_context.ixx")
-  table.insert(module_files, "fan/graphics/physics_shapes.ixx")
-end
+    "fan/graphics/webp.ixx",
+    "fan/graphics/stb.ixx",
 
-if has_config("FAN_3D") then
-  table.insert(module_files, "fan/graphics/opengl/3D/objects/fms.ixx")
-  table.insert(module_files, "fan/graphics/opengl/3D/objects/model.ixx")
-  table.insert(module_files, "fan/graphics/voxel.ixx")
-end
+    "fan/graphics/common_context.ixx",
 
-if has_config("FAN_VIDEO") then
-  table.insert(module_files, "fan/video/codec.ixx")
-  table.insert(module_files, "fan/video/screen.ixx")
-  table.insert(module_files, "fan/video/renderer.ixx")
-  table.insert(module_files, "fan/video/video.ixx")
+    "fan/graphics/audio_subsystem.ixx",
+    "fan/graphics/physics_subsystem.ixx",
+    "fan/graphics/input_subsystem.ixx",
+
+    "fan/graphics/loco.ixx",
+    "fan/graphics/graphics.ixx",
+
+    "fan/graphics/file_dialog.ixx",
+
+    "fan/graphics/2D/algorithm/raycast_grid.ixx",
+
+    "fan/graphics/gameplay/gameplay_types.ixx",
+    "fan/graphics/gameplay/gameplay.ixx",
+
+    "fan/graphics/graphics_event.ixx",
+
+    "fan/texture_pack/tp0.ixx",
+    
+    "fan/physics/physics_types.ixx",
+    
+    "fan/noise.ixx",
+    "fan/crypto.ixx",
+    "fan/pathfind.ixx",
+    "fan/spatial.ixx",
+    "fan/ecs.ixx",
+  },
+
+  FAN_OPENGL = {
+    "fan/graphics/opengl/gl_core.ixx",
+    "fan/graphics/opengl/uniform_block.ixx"
+  },
+
+  FAN_2D = {
+    "fan/graphics/2D/shapes_types.ixx",
+    "fan/graphics/2D/culling.ixx",
+    "fan/graphics/2D/shapes.ixx"
+  },
+
+  FAN_JSON = {
+    "fan/types/json.ixx"
+  },
+
+  FAN_FMT = {
+    "fan/fmt.ixx"
+  },
+
+  FAN_NETWORK = {
+    "fan/network/network.ixx",
+    "fan/graphics/graphics_network.ixx"
+  },
+
+  FAN_AUDIO = {
+    "fan/audio/audio.ixx"
+  },
+
+  FAN_PHYSICS_2D = {
+    "fan/physics/b2_integration.ixx",
+    "fan/physics/physics_common_context.ixx",
+    "fan/graphics/physics_shapes.ixx"
+  },
+
+  FAN_GUI = {
+    "fan/graphics/gui/console.ixx",
+
+    "fan/graphics/gui/gui_base.ixx",
+    "fan/graphics/gui/gui_input.ixx",
+    "fan/graphics/gui/gui_types.ixx",
+    "fan/graphics/gui/gui.ixx",
+
+    "fan/graphics/gui/text_logger.ixx",
+    "fan/graphics/gui/settings_menu.ixx",
+    "fan/graphics/gui/keybinds_menu.ixx",
+
+    "fan/graphics/gameplay/items.ixx",
+
+    "fan/graphics/gui/gameplay/equipment.ixx",
+    "fan/graphics/gui/gameplay/hotbar.ixx",
+    "fan/graphics/gui/gameplay/inventory.ixx",
+    "fan/graphics/gui/gameplay/inventory_hotbar.ixx",
+    "fan/graphics/gui/gameplay/drag_drop.ixx",
+    "fan/graphics/gui/gameplay/slot_renderer.ixx",
+
+    "fan/graphics/gui/tilemap_editor/loader.ixx",
+    "fan/graphics/gui/tilemap_editor/editor_core.ixx",
+    "fan/graphics/gui/tilemap_editor/editor_ui.ixx",
+    "fan/graphics/gui/tilemap_editor/renderer0.ixx"
+  },
+
+  FAN_3D = {
+    "fan/graphics/opengl/3D/objects/fms.ixx",
+    "fan/graphics/opengl/3D/objects/model.ixx",
+    "fan/graphics/voxel.ixx"
+  },
+
+  FAN_VIDEO = {
+    "fan/video/codec.ixx",
+    "fan/video/screen.ixx",
+    "fan/video/renderer.ixx",
+    "fan/video/video.ixx"
+  },
+
+  FAN_WAYLAND_SCREEN = {
+    "fan/video/screen_codec.ixx"
+  }
+}
+
+for feature, files in pairs(feature_modules) do
+  if has_config(feature) then
+    for _, file in ipairs(files) do
+      table.insert(module_files, file)
+    end
+  end
 end
 
 table.insert(module_files, "fan/fan.ixx")

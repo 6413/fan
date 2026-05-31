@@ -5,6 +5,8 @@ module;
 
 export module fan.graphics.gameplay;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 #if defined(FAN_PHYSICS_2D)
@@ -303,5 +305,7 @@ export namespace fan::graphics::gameplay {
   };
 
 }
+
+#endif
 
 #endif

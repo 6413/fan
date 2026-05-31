@@ -1,9 +1,15 @@
 module;
 
-// soe random gcc bugs
+#if defined (FAN_WINDOW)
+
+// some random gcc bugs
 #include <fan/graphics/shape_macros.h>
 
+#endif
+
 module fan.graphics.input_subsystem;
+
+#if defined (FAN_WINDOW)
 
 import std;
 
@@ -107,3 +113,5 @@ namespace fan::graphics {
     // handles are RAII — destruct automatically
   }
 }
+
+#endif

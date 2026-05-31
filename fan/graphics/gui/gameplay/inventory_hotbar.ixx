@@ -5,6 +5,8 @@ module;
 
 export module fan.graphics.gui.inventory_hotbar;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 #if defined(FAN_GUI)
@@ -60,5 +62,7 @@ export namespace fan::graphics::gui {
 
 
 }
+
+#endif
 
 #endif

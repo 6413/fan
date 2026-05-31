@@ -5,6 +5,8 @@ module;
 
 export module fan.graphics.gui.settings_menu;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 #if defined(FAN_GUI)
@@ -122,4 +124,6 @@ export namespace fan::graphics::gui {
     bool is_dirty = false;
   };
 }
+#endif
+
 #endif

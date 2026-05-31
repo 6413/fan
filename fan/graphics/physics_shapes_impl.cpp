@@ -1,5 +1,7 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #if defined(FAN_2D)
   #include <coroutine>
   #if defined(FAN_PHYSICS_2D)
@@ -7,7 +9,11 @@ module;
   #endif
 #endif
 
+#endif
+
 module fan.graphics.physics_shapes;
+
+#if defined (FAN_WINDOW)
 
 import std;
 
@@ -2713,6 +2719,8 @@ namespace fan::graphics::physics {
     is_active = false;
   }
 }
+
+#endif
 
 #endif
 

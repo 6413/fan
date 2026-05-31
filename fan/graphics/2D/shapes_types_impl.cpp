@@ -1,10 +1,16 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #if defined(FAN_2D)
   #include <fan/utility.h>
 #endif
 
+#endif
+
 module fan.graphics.shapes.types;
+
+#if defined (FAN_WINDOW)
 
 #if defined(FAN_2D)
 
@@ -188,4 +194,6 @@ namespace fan::graphics {
     return id != other.id;
   }
 }
+#endif
+
 #endif

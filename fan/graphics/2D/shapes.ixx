@@ -1,9 +1,15 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #include <fan/utility.h>
 #include <fan/graphics/gl_api.h>
 
+#endif
+
 export module fan.graphics.shapes;
+
+#if defined (FAN_WINDOW)
 
 import std;
 
@@ -1850,5 +1856,7 @@ export namespace fan::graphics {
   using shape_type_t = fan::graphics::shapes::shape_type_t;
 #endif
 } // namespace fan::graphics
+
+#endif
 
 #endif

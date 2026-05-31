@@ -1,9 +1,15 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #if defined(FAN_NETWORK) && defined(FAN_2D)
 #endif
 
+#endif
+
 export module fan.graphics.network;
+
+#if defined (FAN_WINDOW)
 
 import std;
 
@@ -110,5 +116,7 @@ export namespace fan::graphics::network {
     }
   };
 }
+
+#endif
 
 #endif

@@ -1,11 +1,17 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #if defined(FAN_GUI)
   #include <coroutine>
   #include <fan/imgui/imgui_internal.h>
 #endif
 
+#endif
+
 module fan.graphics.gui;
+
+#if defined (FAN_WINDOW)
 
 import std;
 
@@ -2479,4 +2485,6 @@ namespace fan::graphics::gui {
   }
 #endif // FAN_3D
 }
+#endif
+
 #endif

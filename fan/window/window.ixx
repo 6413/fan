@@ -1,5 +1,5 @@
 module;
-
+#if defined (FAN_WINDOW)
 // /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup for no console in windows
 
 #include <fan/utility.h>
@@ -26,7 +26,11 @@ module;
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 
+#endif
+
 export module fan.window;
+
+#if defined (FAN_WINDOW)
 
 import std;
 
@@ -469,3 +473,5 @@ export namespace fan {
     std::uint32_t char_pressed = 0;
   };
 }
+
+#endif

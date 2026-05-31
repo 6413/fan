@@ -6,6 +6,8 @@ module;
 
 export module fan.graphics.gui.tilemap_editor.core:ui;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 #if defined(FAN_2D)
@@ -924,4 +926,6 @@ void fte_t::render() {
 }
 
 #endif
+#endif
+
 #endif

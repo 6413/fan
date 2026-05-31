@@ -5,6 +5,8 @@ module;
 
 export module fan.graphics.culling;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 #if defined(FAN_2D)
@@ -80,5 +82,7 @@ export namespace fan::graphics::culling {
     }
   }
 }
+
+#endif
 
 #endif

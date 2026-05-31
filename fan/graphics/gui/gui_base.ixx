@@ -1,5 +1,7 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #if defined(FAN_GUI)
   #include <fan/imgui/imgui.h>
   #include <fan/imgui/imgui_impl_glfw.h>
@@ -13,7 +15,11 @@ module;
 
 #include <fan/utility.h>
 
+#endif
+
 export module fan.graphics.gui.base;
+
+#if defined (FAN_WINDOW)
 
 import std;
 
@@ -1451,5 +1457,7 @@ export namespace fan::graphics::gui::slot {
   void tooltip(std::string_view text, bool show);
 
 } // namespace fan::graphics::gui::slot
+
+#endif
 
 #endif
