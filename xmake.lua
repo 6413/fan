@@ -90,25 +90,9 @@ if not has_config("FAN_WINDOW") then
   if has_config("FAN_VIDEO") then os.raise("FAN_VIDEO requires FAN_WINDOW") end
 end
 
-
--- option("FAN_REFLECTION")
-  -- set_default(false)
-  -- set_showmenu(true)
-  -- before_check(function(option)
-    -- import("lib.detect.find_tool")
-    -- local gcc = find_tool("gcc", {version = true})
-    -- if gcc and gcc.version then
-      -- local major = tonumber(gcc.version:match("^(%d+)"))
-      -- if major and major >= 16 then
-        -- option:enable(true)
-      -- end
-    -- end
-  -- end)
--- option_end()
-
--- if has_config("FAN_REFLECTION") then
-  -- add_defines("FAN_REFLECTION")
--- end
+if has_config("FAN_REFLECTION") then
+  add_cxxflags("-freflection", {force = true})
+end
 
 option("FAN_USE_STD_MODULE")
 set_default(false)
@@ -506,15 +490,15 @@ target("fan")
     add_files(file)
   end
 
-  -- if has_config("FAN_REFLECTION") then
-    -- for _, file in ipairs(os.files("fan/reflection/*.ixx")) do
-      -- add_files(file, {cxxflags = "-freflection"})
-      -- local impl = path.join(path.directory(file), path.basename(file) .. "_impl.cpp")
-      -- if os.isfile(impl) then
-        -- add_files(impl, {cxxflags = "-freflection"})
-      -- end
-    -- end
-  -- end
+  if has_config("FAN_REFLECTION") then
+    for _, file in ipairs(os.files("fan/reflection/*.ixx")) do
+      add_files(file, {cxxflags = "-freflection"})
+      local impl = path.join(path.directory(file), path.basename(file) .. "_impl.cpp")
+      if os.isfile(impl) then
+        add_files(impl, {cxxflags = "-freflection"})
+      end
+    end
+  end
 
   for _, impl in ipairs(impl_files) do
     add_files(impl)
