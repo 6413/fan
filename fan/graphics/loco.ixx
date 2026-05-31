@@ -156,7 +156,6 @@ export namespace fan {
     fade_in
   };
 }
-
 export namespace fan {
   struct stage_loader_t;
 
@@ -190,6 +189,7 @@ export namespace fan {
     void *stage;
     #include <BLL/BLL.h>
 
+#if defined(FAN_2D)
     #define bcontainer_set_StoreFormat 1
     #include <fan/fan_bll_preset.h>
     #define BLL_set_prefix cid_list
@@ -198,6 +198,7 @@ export namespace fan {
     #define BLL_set_Link 1
     #define BLL_set_AreWeInsideStruct 1
     #include <BLL/BLL.h>
+#endif
 
     #define BLL_set_declare_NodeReference 0
     #define BLL_set_declare_rest 1
@@ -212,7 +213,9 @@ export namespace fan {
     #define BLL_set_AreWeInsideStruct 1
     #include <BLL/BLL.h>
 
+  #if defined(FAN_2D)
     using cid_nr_t = cid_list_NodeReference_t;
+  #endif
 
     struct nr_t : stage_list_NodeReference_t {
       using base_nr_t = stage_list_NodeReference_t;
@@ -253,7 +256,9 @@ export namespace fan {
       update_t update;
       stage_list_NodeReference_t stage_id;
       std::uint32_t it;
+    #if defined(FAN_2D)
       cid_list_t cid_list;
+    #endif
       stage_loader_t::stage_list_NodeReference_t parent_id;
       fan::graphics::update_callback_nr_t update_nr;
     };
