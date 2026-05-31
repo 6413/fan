@@ -436,7 +436,7 @@ if has_config("FAN_GUI") then
   target_end()
 end
 
-if not is_plat("wasm") then
+if not is_plat("wasm") and has_config("FAN_WINDOW") then
   target("nfd")
   set_kind("static")
   add_rules("c++.unity_build", {batchsize = 8})
@@ -492,7 +492,7 @@ end
 if has_config("FAN_GUI") then
   add_deps("imgui")
 end
-if not is_plat("wasm") then
+if not is_plat("wasm") and has_config("FAN_WINDOW") then
   add_deps("nfd")
 end
 
