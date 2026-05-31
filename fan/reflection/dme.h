@@ -86,7 +86,7 @@
     consteval void _dme_init_##type_name() {                                       \
       std::vector<fan::refl::info> _dme_specs;                                     \
       _dme_expand(_dme_helper(shared_type, __VA_ARGS__));                          \
-      fan::refl::define_aggregate2(^^_dme_impl_##type_name, _dme_specs);            \
+      fan::refl::define_aggregate2<_dme_impl_##type_name>(_dme_specs);             \
     }                                                                              \
     inline constexpr int _dme_init_##type_name##_once =                            \
       (_dme_init_##type_name(), 0);                                                \
