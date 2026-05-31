@@ -613,7 +613,7 @@ target("fan")
       local gcm_dir = "gcm.cache"
       os.mkdir(gcm_dir)
       
-      local gcm_files = os.files(path.join(target:autogendir(), "rules/c++/modules/**/*.gcm"))
+      local gcm_files = os.files("build/**.gcm")
       for _, file in ipairs(gcm_files) do
         os.cp(file, gcm_dir)
       end
