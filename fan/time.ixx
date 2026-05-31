@@ -180,9 +180,10 @@ export namespace fan {
       static std::list<task_queue_t> queue;
       return queue;
     }
-    task_handle_t task_every(f64_t interval_ms, f64_t duration_ms, auto f) {
+    template <typename F>
+    task_handle_t task_every(f64_t interval_ms, f64_t duration_ms, F&& f) {
       task_queue_t tq;
-      tq.timer_cb = f;
+      tq.timer_cb = std::forward<F>(f);
       tq.interval.start_millis(interval_ms);
       tq.duration.start_millis(duration_ms);
       get_task_queue().emplace_back(std::move(tq));
