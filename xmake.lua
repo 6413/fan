@@ -1,5 +1,5 @@
 set_project("fan")
-set_languages("cxx23")
+set_languages("cxx26")
 
 
 if is_plat("wasm") then
