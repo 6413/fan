@@ -13,6 +13,7 @@ COMPILER="clang"
 WASM=false
 XMAKE_ARGS=()
 FEATURE_ARGS=()
+BUILDLIB=false
 
 declare -A FEATURE_DEFAULTS=(
   [FAN_WINDOW]=false [FAN_2D]=false [FAN_GUI]=false
@@ -67,6 +68,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --buildlib)
+      BUILDLIB=true
       FEATURE_ARGS+=("--buildlib=y")
       shift
       ;;
@@ -217,6 +219,10 @@ if [[ "$WASM" == true ]]; then
     fi
   done
 else
+  if [[ "$BUILDLIB" == true ]]; then
+    exit 0
+  fi
+
   target_name=$(grep -E 'target\("([^"]+\.exe)"' xmake.lua | sed -E 's/target\("([^"]+\.exe)".*/\1/' | head -n1)
   if [ -z "$target_name" ]; then
     echo -e "${RED}Error:${NC} Could not find target name ending with .exe in xmake.lua"
