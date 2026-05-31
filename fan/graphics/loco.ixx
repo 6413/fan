@@ -1,5 +1,7 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #include <fan/utility.h>
 
 #include <cstdint>
@@ -24,7 +26,11 @@ module;
   //#define loco_cuda
 #endif
 
+#endif
+
 export module fan.graphics.loco;
+
+#if defined (FAN_WINDOW)
 
 import std;
 
@@ -1254,3 +1260,5 @@ export namespace fan {
     fan::graphics::update_callback_nr_t update_nr;
   };
 }
+
+#endif

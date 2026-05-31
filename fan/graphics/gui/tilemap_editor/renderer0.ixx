@@ -1,10 +1,16 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #if defined(FAN_2D)
 #include <coroutine>
 #endif
 
+#endif
+
 export module fan.graphics.tilemap_editor.renderer;
+
+#if defined (FAN_WINDOW)
 
 import std;
 
@@ -190,6 +196,8 @@ export namespace fan::graphics {
   };
 }
 #undef tilemap_renderer
+#endif
+
 #endif
 
 #endif

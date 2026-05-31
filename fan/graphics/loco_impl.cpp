@@ -1,5 +1,7 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 // loco framebuffer is recommended, you cant see sprites without it, 
 // since light uses framebuffer _t01. you could use unlit_sprite, if required
 #define LOCO_FRAMEBUFFER
@@ -24,7 +26,11 @@ module;
 
 #include <fan/graphics/gl_api.h>
 
+#endif
+
 module fan.graphics.loco;
+
+#if defined (FAN_WINDOW)
 
 import fan.window.input;
 
@@ -2833,3 +2839,5 @@ namespace fan::graphics::gui {
 void fan::graphics::shader_set_camera(fan::graphics::shader_t nr, fan::graphics::camera_t camera_nr) {
   renderer_set(shader_set_camera, nr, camera_nr);
 }
+
+#endif

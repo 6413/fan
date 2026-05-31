@@ -2,6 +2,8 @@ module;
 
 export module fan.graphics.voxel;
 
+#if defined (FAN_WINDOW)
+
 #if defined(FAN_3D)
 
 import std;
@@ -46,5 +48,7 @@ export namespace fan::graphics {
   };
 
 } // namespace fan::graphics
+
+#endif
 
 #endif

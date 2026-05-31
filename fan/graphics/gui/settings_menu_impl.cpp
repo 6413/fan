@@ -1,5 +1,7 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #include <fan/utility.h>
 
 #if defined(FAN_GUI)
@@ -7,7 +9,11 @@ module;
   #define LOCO_FRAMEBUFFER
 #endif
 
+#endif
+
 module fan.graphics.gui.settings_menu;
+
+#if defined (FAN_WINDOW)
 
 #if defined(FAN_GUI)
 
@@ -866,5 +872,7 @@ namespace fan::graphics::gui {
     fan::io::file::write(config.config_save_path, j.dump(2), std::ios_base::binary);
   }
 } // namespace fan::graphics::gui
+
+#endif
 
 #endif

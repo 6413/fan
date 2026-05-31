@@ -1,13 +1,19 @@
 // fan.graphics.gui.tilemap_editor.core.ixx
 module;
 
+#if defined (FAN_WINDOW)
+
 #include <cstddef>
 
 #if defined(FAN_2D)
   #include <fan/utility.h>
 #endif
 
+#endif
+
 export module fan.graphics.gui.tilemap_editor.core;
+
+#if defined (FAN_WINDOW)
 
 import std;
 
@@ -1614,4 +1620,6 @@ export struct fte_t {
   std::vector<fan::graphics::texture_pack_t*> texture_packs;
 };
 #endif
+#endif
+
 #endif

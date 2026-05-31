@@ -2,6 +2,8 @@ module;
 
 export module fan.window.input_action;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 import fan.window.input;
@@ -392,3 +394,5 @@ export namespace fan::window {
   inline constexpr auto device_mouse = fan::device_mouse;
   inline constexpr auto device_gamepad = fan::device_gamepad;
 }
+
+#endif

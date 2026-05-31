@@ -1,5 +1,7 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #include <fan/utility.h>
 
 #if defined(FAN_OPENGL)
@@ -7,7 +9,11 @@ module;
 #endif
 #include <fan/graphics/shape_macros.h>
 
+#endif
+
 module fan.graphics.shapes;
+
+#if defined (FAN_WINDOW)
 
 import fan.utility;
 import fan.print;
@@ -4244,4 +4250,6 @@ void fan::graphics::shapes::visibility_remove(shape_nr_t id) {
   }
 #endif
 #endif
+#endif
+
 #endif

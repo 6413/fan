@@ -1,12 +1,18 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #include <coroutine>
 #define POSITION2_WINDOW_CENTER fan::vec2(fan::graphics::ctx().window->get_size() / 2)
 #define POSITION3_WINDOW_CENTER fan::vec3(POSITION2_WINDOW_CENTER, 0)
 
 #include <fan/utility.h>
 
+#endif
+
 export module fan.graphics;
+
+#if defined (FAN_WINDOW)
 
 import std;
 
@@ -1610,5 +1616,7 @@ export namespace fan::graphics {
     std::function<void()> swap_cb
   );
 }
+
+#endif
 
 #endif

@@ -5,6 +5,8 @@ module;
 
 module fan.graphics.gui.drag_drop;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 #if defined(FAN_GUI)
@@ -148,4 +150,6 @@ namespace fan::graphics::gui::drag_drop {
     }
   }
 }
+#endif
+
 #endif

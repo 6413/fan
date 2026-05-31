@@ -1,12 +1,19 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #if defined(FAN_2D)
   extern "C" {
     #include <libavformat/avformat.h>
   }
 #endif
 
+#endif
+
 export module fan.graphics.video.renderer;
+
+#if defined (FAN_WINDOW)
+
 import std;
 import fan.time;
 import fan.formatter;
@@ -252,3 +259,6 @@ export namespace fan {
     }
   }
 }
+
+
+#endif

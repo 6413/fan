@@ -5,6 +5,8 @@ module;
 
 export module fan.graphics.gui.slot_renderer;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 #if defined(FAN_GUI)
@@ -58,4 +60,6 @@ export namespace fan::graphics::gui {
     const slot_visual_state_t& visual = {}
   );
 }
+#endif
+
 #endif

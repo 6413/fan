@@ -2,6 +2,8 @@ module;
 
 export module fan.graphics.gui.hotbar;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 #if defined(FAN_GUI)
@@ -39,5 +41,7 @@ export namespace fan::graphics::gui {
     item_use_cb_t on_item_use = nullptr;
   };
 }
+
+#endif
 
 #endif

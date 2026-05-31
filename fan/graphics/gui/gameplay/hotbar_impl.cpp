@@ -5,6 +5,8 @@ module;
 
 module fan.graphics.gui.hotbar;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 #if defined(FAN_GUI)
@@ -193,4 +195,6 @@ namespace fan::graphics::gui {
   }
 
 }
+#endif
+
 #endif

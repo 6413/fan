@@ -2,6 +2,8 @@ module;
 
 export module fan.graphics.gameplay.items;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 import fan.utility;
@@ -66,3 +68,5 @@ export namespace fan::graphics::gameplay::items {
     return get_registry().create_item(id);
   }
 }
+
+#endif

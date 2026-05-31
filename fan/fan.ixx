@@ -19,6 +19,8 @@ export import fan.memory;
 export import fan.io.file;
 export import fan.io.directory;
 
+#if defined(FAN_WINDOW)
+
 export import fan.window.input;
 export import fan.window.input_common;
 export import fan.window;
@@ -49,6 +51,9 @@ export import fan.graphics.loco;
 #endif
 export import fan.texture_pack.tp0;
 
+#endif
+
+
 #if defined(FAN_NETWORK)
   export import fan.network;
 #endif
@@ -66,10 +71,13 @@ export import fan.event;
   export import fan.graphics.physics_shapes;
 #endif
 
+#if defined(FAN_WINDOW)
 export import fan.spatial;
 export import fan.process;
 
 export import fan.noise;
+#endif
+
 export import fan.pathfind;
 
 //export import fan.types.slot_map;

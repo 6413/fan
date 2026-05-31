@@ -5,6 +5,8 @@ module;
 
 module fan.graphics.gui.input;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 #if defined(FAN_GUI)
@@ -66,5 +68,7 @@ namespace fan::graphics::gui::input {
     return !drag_active && clicked && !slot_empty;
   }
 }
+
+#endif
 
 #endif

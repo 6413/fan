@@ -1,5 +1,7 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #include <cstdint>
 
 #if defined(FAN_2D)
@@ -8,7 +10,11 @@ module;
   #endif
 #endif
 
+#endif
+
 export module fan.graphics.tilemap_editor.loader;
+
+#if defined (FAN_WINDOW)
 
 import std;
 
@@ -375,3 +381,5 @@ export namespace fan::graphics {
 
 #endif
 #endif  
+
+#endif

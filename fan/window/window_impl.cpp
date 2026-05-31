@@ -1,5 +1,7 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #include <fan/utility.h>
 
 #if defined(fan_compiler_gcc)
@@ -24,7 +26,11 @@ module;
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 
+#endif
+
 module fan.window;
+
+#if defined (FAN_WINDOW)
 
 import fan.print;
 
@@ -1149,3 +1155,5 @@ std::string fan::window_t::get_clipboard() const {
 void fan::window_t::set_clipboard(const std::string& text) {
   glfwSetClipboardString(glfw_window, text.c_str());
 }
+
+#endif

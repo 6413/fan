@@ -1,10 +1,16 @@
 module;
 
+#if defined (FAN_WINDOW)
+
 #include <fan/utility.h>
 
 #include <fan/graphics/gl_api.h>
 
+#endif
+
 module fan.graphics.common_context;
+
+#if defined (FAN_WINDOW)
 
 import fan.print;
 import fan.math;
@@ -871,3 +877,5 @@ namespace fan::graphics {
     return inside(render_view, get_mouse_position());
   }
 }
+
+#endif

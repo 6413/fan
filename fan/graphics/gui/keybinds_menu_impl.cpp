@@ -5,6 +5,8 @@ module;
 
 module fan.graphics.gui.keybinds_menu;
 
+#if defined (FAN_WINDOW)
+
 import std;
 
 #if defined(FAN_GUI)
@@ -552,5 +554,7 @@ namespace fan::graphics::gui {
     listening_states.resize(num_actions * 3, false);
   }
 }
+
+#endif
 
 #endif
