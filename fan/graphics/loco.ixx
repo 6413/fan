@@ -1151,7 +1151,9 @@ template <typename T>
 inline fan::stage_loader_t::nr_t fan::stage_loader_t::open_stage(const stage_open_properties_t& op) {
   if (!T::engine)  T::engine = gloco();
   if (!T::window)  T::window = &gloco()->window;
+#if defined(FAN_PHYSICS_2D)
   if (!T::physics) T::physics = &gloco()->get_physics_context();
+#endif
 
   previous_stage_name = current_stage_name;
   if constexpr (requires { T::stage_name; }) {
