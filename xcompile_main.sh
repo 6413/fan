@@ -12,6 +12,7 @@ MAIN_FILE=""
 COMPILER="clang"
 WASM=false
 XMAKE_ARGS=()
+FEATURE_ARGS=()
 
 declare -A FEATURE_DEFAULTS=(
   [FAN_WINDOW]=false [FAN_2D]=false [FAN_GUI]=false
@@ -31,7 +32,6 @@ apply_preset_core()     { : ; }
 apply_preset_headless() { enable_features FAN_JSON; }
 apply_preset_window()   { apply_preset_headless; enable_features FAN_WINDOW FAN_OPENGL; }
 apply_preset_2d()       { apply_preset_window;  enable_features FAN_2D FAN_GUI FAN_PHYSICS_2D; }
-
 while [[ $# -gt 0 ]]; do
   case $1 in
     --debug)
@@ -89,14 +89,14 @@ if [[ "$PRESET_USED" == true ]]; then
   for flag in "${!FEATURE_DEFAULTS[@]}"; do
     val=${FEATURES[$flag]:-false}
     if [[ "$val" == true ]]; then
-      XMAKE_ARGS+=("--${flag}=y")
+      FEATURE_ARGS+=("--${flag}=y")
     else
-      XMAKE_ARGS+=("--${flag}=n")
+      FEATURE_ARGS+=("--${flag}=n")
     fi
   done
 elif [[ ${#FEATURES[@]} -gt 0 ]]; then
   for flag in "${!FEATURES[@]}"; do
-    XMAKE_ARGS+=("--${flag}=y")
+    FEATURE_ARGS+=("--${flag}=y")
   done
 fi
 
@@ -172,7 +172,7 @@ if [[ "$REBUILD" == true ]]; then
   rm -rf build .xmake
   echo ""
   echo -e "${BLUE}[2/3]${NC} Configuring..."
-  if ! xmake f -c "${CONFIG_ARGS[@]}" "${XMAKE_ARGS[@]}"; then
+  if ! xmake f -c "${CONFIG_ARGS[@]}" "${FEATURE_ARGS[@]}" "${XMAKE_ARGS[@]}"; then
     echo -e "${RED}✗ XMake configuration failed!${NC}"
     exit 1
   fi
@@ -180,7 +180,7 @@ if [[ "$REBUILD" == true ]]; then
   echo -e "${BLUE}[3/3]${NC} Building..."
 else
   echo -e "${BLUE}Configuring & Building...${NC}"
-  if ! xmake f -c "${CONFIG_ARGS[@]}" "${XMAKE_ARGS[@]}"; then
+  if ! xmake f -c "${CONFIG_ARGS[@]}" "${FEATURE_ARGS[@]}" "${XMAKE_ARGS[@]}"; then
     echo -e "${RED}✗ XMake configuration failed!${NC}"
     exit 1
   fi
