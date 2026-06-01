@@ -69,7 +69,7 @@ struct alpha_shadow_renderer_t {
     *this = {};
   }
 
-  void render_overlay(std::span<const caster_t> casters, std::span<const light_t> lights, f32_t darkness = 0.78f) {
+  void render_overlay(std::span<const caster_t> casters, std::span<const light_t> lights) {
     if (occluder_shader.iic()) { open(); }
 
     GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
@@ -182,7 +182,7 @@ struct alpha_shadow_renderer_t {
     glClear(GL_COLOR_BUFFER_BIT);
     glEnable(GL_BLEND);
     glBlendEquation(GL_FUNC_ADD);
-    glBlendFunc(GL_ONE, GL_ONE);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
 
     loco.shader_use(occluder_shader);
     loco.shader_set_value(occluder_shader, "sprite_texture", 0);
@@ -260,7 +260,7 @@ struct alpha_shadow_renderer_t {
     glViewport(vp[0], vp[1], vp[2], vp[3]);
     glEnable(GL_BLEND);
     glBlendEquation(GL_FUNC_ADD);
-    glBlendFunc(GL_ONE, GL_ONE);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
 
     loco.shader_use(light_shader);
     loco.shader_set_value(light_shader, "shadow_texture",  0);
