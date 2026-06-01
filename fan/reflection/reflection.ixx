@@ -176,14 +176,14 @@ consteval auto members() {
     return member_at<T>(i, []<std::meta::info m> { return std::meta::offset_of(m); });
   }
 
-  template <typename T>
+    template <typename T>
   consteval std::size_t index_of(std::string_view name) {
     std::size_t cur = 0;
     template for (constexpr auto m : members<T>()) {
       if (name_of(m) == name) return cur;
       ++cur;
     }
-    return ~std::size_t{0};
+    throw "fan::refl::index_of: member not found";
   }
 
   consteval std::meta::info dealias(std::meta::info t) {
