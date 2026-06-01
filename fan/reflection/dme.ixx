@@ -66,24 +66,37 @@ export namespace fan {
   template <typename derived_t, typename member_t>
   struct dme_t {
 
-    struct id_t {
-      using underlying_t = dme_index_t<fan::refl::member_count<derived_t>()>;
-      constexpr id_t() = default;
+        struct id_t {
+      using underlying_t = dme_index_t<fan::refl::member_count<derived_t>() + 1>;
+      static constexpr underlying_t invalid_value = static_cast<underlying_t>(-1);
+
+      constexpr id_t() : id(invalid_value) {}
       explicit constexpr id_t(underlying_t id_) : id(id_) {}
-      constexpr underlying_t gint() const { return id; }
+
+      static constexpr id_t invalid() { return id_t(invalid_value); }
+      constexpr bool is_valid() const { return id != invalid_value; }
+      constexpr std::ptrdiff_t gint() const {
+        return is_valid() ? static_cast<std::ptrdiff_t>(id) : -1;
+      }
+      constexpr underlying_t raw() const { return id; }
+
     private:
       underlying_t id;
     };
 
     static consteval std::size_t size()                                  { return fan::refl::member_count<derived_t>(); }
     constexpr decltype(auto) operator[](this auto&& self, std::size_t i) { return fan::refl::at_index<derived_t, member_t>(self, i); }
-    consteval id_t operator[](std::string_view name) const               { return id_t(dme_index_t<fan::refl::member_count<derived_t>()>(fan::refl::index_of<derived_t>(name))); }
+    consteval id_t operator[](std::string_view name) const               { return id_t(static_cast<typename id_t::underlying_t>(fan::refl::index_of<derived_t>(name))); }
     constexpr member_t* begin()                                          { return &(*this)[0]; }
     constexpr member_t* end()                                            { return &(*this)[0] + size(); }
     static constexpr std::string_view name(std::size_t i) {
       static constexpr auto tbl = []<std::size_t... Is>(std::index_sequence<Is...>) consteval {
         return std::array<std::string_view, size()>{fan::refl::member_name<derived_t>(Is)...};
       }(std::make_index_sequence<size()>{});
+
+      if (i >= size()) {
+        return {};
+      }
       return tbl[i];
     }
     void print()                                                         { fan::print(static_cast<derived_t&>(*this)); }
@@ -139,6 +152,7 @@ export namespace fan {
     using ann_i = ann_wrapper<typename member_type<I>::annotation, I>;
 
     constexpr match_proxy match(std::size_t i) { return { static_cast<derived_t*>(this), i }; }
+    constexpr match_proxy match(id_t i) { return { static_cast<derived_t*>(this), static_cast<std::size_t>(i.raw()) }; }
 
     static consteval auto members() { return fan::refl::members<derived_t>(); }
 
@@ -155,10 +169,14 @@ export namespace fan {
       return fan::refl::runtime_table<derived_t>();
     }
 
-    template <typename F>
+        template <typename F>
     static void visit(id_t idx, F&& f) {
+      if (!idx.is_valid()) {
+        return;
+      }
+
       fan::refl::for_each_member_indexed<derived_t>([&]<std::size_t i, std::meta::info m>() {
-        if (i == idx.gint()) {
+        if (i == static_cast<std::size_t>(idx.gint())) {
           constexpr auto ann_type = fan::refl::member_annotation_type<derived_t>(i);
           if constexpr (ann_type != std::meta::info{}) {
             ann_i<i> wrapped;
