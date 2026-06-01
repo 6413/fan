@@ -48,6 +48,8 @@ static_assert(fan::refl::is_same_name(attr_type_b, ^^b_t));
 static_assert(fan::refl::is_same_type(attr_type_a, ^^a_t));
 static_assert(fan::refl::is_same_type(attr_type_b, ^^b_t));
 
+static_assert(gst["salsaaaaaa"].gint() == 0);
+
 struct a_ann_t { int x; f32_t y; };
 struct b_ann_t { int x; };
 using dme_built_t  = fan::dme_builder<item_t, void,
