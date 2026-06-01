@@ -233,11 +233,7 @@ else
     exit 1
   fi
 
-  out_path="./$(basename "$exe_path")"
-  if [ -d "$out_path" ]; then
-    out_path="./${target_name}.bin"
-  fi
-
+  out_path="./${target_name}.exe"
   cp "$exe_path" "$out_path"
   echo -e "${GREEN}✓ Copied:${NC} ${exe_path} → ${out_path}"
 fi
