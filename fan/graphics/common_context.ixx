@@ -798,7 +798,16 @@ export namespace fan::shader_paths {
     constexpr const char* sprite_2_1_vs =            "shaders/opengl/2D/objects/sprite_2_1.vs";
     constexpr const char* unlit_sprite_fs =          "shaders/opengl/2D/objects/unlit_sprite.fs";
 
+
     // 2D effects
+    
+    // 2D alpha shadow
+    constexpr const char* alpha_shadow_quad_vs =     "shaders/opengl/2D/effects/alpha_shadow/quad.vs";
+    constexpr const char* alpha_shadow_solid_fs =    "shaders/opengl/2D/effects/alpha_shadow/solid.fs";
+    constexpr const char* alpha_shadow_occluder_fs = "shaders/opengl/2D/effects/alpha_shadow/occluder.fs";
+    constexpr const char* alpha_shadow_radial_fs =   "shaders/opengl/2D/effects/alpha_shadow/radial.fs";
+    constexpr const char* alpha_shadow_light_fs =    "shaders/opengl/2D/effects/alpha_shadow/light.fs";
+
     constexpr const char* clouds_fs =                "shaders/opengl/2D/effects/clouds.fs";
     constexpr const char* downsample_fs =            "shaders/opengl/2D/effects/downsample.fs";
     constexpr const char* downsample_vs =            "shaders/opengl/2D/effects/downsample.vs";

@@ -35,6 +35,11 @@ export namespace fan {
         return path;
       }
       std::string extension(const std::string& file_path);
+      inline void ensure_extension(std::string& path, std::string_view ext) {
+        if (extension(path) != ext) {
+          path += ext;
+        }
+      }
       bool exists(std::string_view path);
       bool rename(const std::string& from, const std::string& to);
       std::filesystem::path relative_path(const std::filesystem::path& path, const std::filesystem::path& base);
