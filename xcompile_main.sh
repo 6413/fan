@@ -232,6 +232,12 @@ else
     echo -e "${RED}Error:${NC} Built executable for target '${target_name}' not found"
     exit 1
   fi
-  cp "$exe_path" .
-  echo -e "${GREEN}✓ Copied:${NC} ${exe_path} → ./$(basename "$exe_path")"
+
+  out_path="./$(basename "$exe_path")"
+  if [ -d "$out_path" ]; then
+    out_path="./${target_name}.bin"
+  fi
+
+  cp "$exe_path" "$out_path"
+  echo -e "${GREEN}✓ Copied:${NC} ${exe_path} → ${out_path}"
 fi
