@@ -95,6 +95,10 @@ struct loco_t::opengl {
     fan::opengl::core::renderbuffer_t m_rbo;
     fan::graphics::image_t color_buffers[4];
     fan::graphics::shader_t m_fbo_final_shader;
+    fan::graphics::shader_t alpha_shadow_solid;
+    fan::graphics::shader_t alpha_shadow_occluder;
+    fan::graphics::shader_t alpha_shadow_radial;
+    fan::graphics::shader_t alpha_shadow_light;
   #endif
 
   fan::window_t::resize_handle_t window_resize_handle;
@@ -106,10 +110,13 @@ struct loco_t::opengl {
   #include <fan/graphics/opengl/engine_functions.h>
   #if defined(LOCO_FRAMEBUFFER)
   #include <fan/graphics/opengl/2D/effects/blur.h>
-    blur_t blur;
+  blur_t blur;
 
   #include <fan/graphics/opengl/2D/effects/reflection.h>
-    reflection_t reflection;
+  reflection_t reflection;
+
+  #include <fan/graphics/opengl/2D/effects/alpha_shadow_renderer.h>
+  alpha_shadow_renderer_t alpha_shadow_renderer;
   #endif
 };
 #endif
@@ -294,6 +301,66 @@ void* loco_t::get_framebuffer() {
 }
 
 #endif
+
+void loco_t::shadow_add_caster(fan::graphics::shape_t* shape, f32_t alpha_threshold) {
+#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
+  if (gl) gl->alpha_shadow_renderer.casters.push_back({shape, alpha_threshold});
+#endif
+}
+
+void loco_t::shadow_remove_caster(fan::graphics::shape_t* shape) {
+#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
+  if (!gl) return;
+  auto& c = gl->alpha_shadow_renderer.casters;
+  c.erase(std::remove_if(c.begin(), c.end(), [shape](const auto& x){ return x.shape == shape; }), c.end());
+#endif
+}
+
+void loco_t::shadow_clear_casters() {
+#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
+  if (gl) gl->alpha_shadow_renderer.casters.clear();
+#endif
+}
+
+void loco_t::shadow_add_light(fan::vec2 position, f32_t radius, fan::color color, f32_t softness, f32_t falloff_power) {
+#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
+  if (!gl) return;
+  gl->alpha_shadow_renderer.lights.push_back({
+    .position      = position,
+    .radius        = radius,
+    .color         = color,
+    .render_view   = &fan::graphics::get_orthographic_render_view(),
+    .softness      = softness,
+    .falloff_power = falloff_power,
+  });
+#endif
+}
+
+void loco_t::shadow_set_light_position(std::size_t index, fan::vec2 position) {
+#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
+  if (gl && index < gl->alpha_shadow_renderer.lights.size())
+    gl->alpha_shadow_renderer.lights[index].position = position;
+#endif
+}
+
+void loco_t::shadow_clear_lights() {
+#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
+  if (gl) gl->alpha_shadow_renderer.lights.clear();
+#endif
+}
+
+void loco_t::shadow_set_darkness(f32_t darkness) {
+#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
+  if (gl) gl->alpha_shadow_renderer.darkness = darkness;
+#endif
+}
+
+std::size_t loco_t::shadow_light_count() {
+#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
+  if (gl) return gl->alpha_shadow_renderer.lights.size();
+#endif
+  return 0;
+}
 
 std::vector<std::uint8_t> loco_t::image_get_pixel_data(
   fan::graphics::image_t nr,

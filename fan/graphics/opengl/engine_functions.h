@@ -86,6 +86,7 @@ void close() {
 #if defined(LOCO_FRAMEBUFFER)
   blur.close();
   reflection.close();
+  alpha_shadow_renderer.close();
 #endif
   loco.context.gl.close();
 }
@@ -183,6 +184,7 @@ void init_framebuffer() {
   static constexpr uint32_t mip_count = 6;
   // always open. it goes a bit complex to make blur open and close in the middle of frame
   loco.gl->blur.open(loco.window.get_size(), mip_count);
+  loco.gl->alpha_shadow_renderer.open(2048, 4096, 512);
 
   loco.gl->m_framebuffer.unbind(loco.context.gl);
 
@@ -231,6 +233,11 @@ void shaders_compile() {
   }
   compile(sh.empty_shader, empty_vs, empty_fs);
 #undef C
+
+  compile(loco.gl->alpha_shadow_solid,    alpha_shadow_quad_vs, alpha_shadow_solid_fs);
+  compile(loco.gl->alpha_shadow_occluder, alpha_shadow_quad_vs, alpha_shadow_occluder_fs);
+  compile(loco.gl->alpha_shadow_radial,   alpha_shadow_quad_vs, alpha_shadow_radial_fs);
+  compile(loco.gl->alpha_shadow_light,    alpha_shadow_quad_vs, alpha_shadow_light_fs);
 }
 
 #define SHAPE_DESC(ShapeType, count, inst, shader) \
@@ -898,7 +905,17 @@ void shapes_draw() {
   #if defined(LOCO_FRAMEBUFFER)
 
     if ((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) {
+      
+      loco.gl->alpha_shadow_renderer.render_overlay(
+        loco.gl->alpha_shadow_renderer.casters,
+        loco.gl->alpha_shadow_renderer.lights
+      );
+
       loco.gl->m_framebuffer.unbind(loco.context.gl);
+
+      if (loco.window.renderer == fan::window_t::renderer_t::opengl && loco.open_props.enable_bloom) {
+        loco.gl->blur.draw(&loco.gl->color_buffers[0]);
+      }
 
       if (loco.window.renderer == fan::window_t::renderer_t::opengl && loco.open_props.enable_bloom) {
         loco.gl->blur.draw(&loco.gl->color_buffers[0]);

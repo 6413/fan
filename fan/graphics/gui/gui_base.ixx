@@ -306,6 +306,7 @@ export namespace fan::graphics::gui {
   void send_drag_drop_item(str_view_t id, const std::wstring& path, str_view_t popup = "");
 
   void receive_drag_drop_target(str_view_t id, std::function<void(std::string)> receive_func);
+  void receive_drag_drop_target(str_view_t id, std::function<void(const std::vector<std::string>&)> receive_func, char separator = ';');
 
   bool slider_scalar(str_view_t label, data_type_t data_type, void* p_data, const void* p_min, const void* p_max, const char* format = NULL, slider_flags_t flags = 0);
   bool slider_scalar_n(str_view_t label, data_type_t data_type, void* p_data, int components, const void* p_min, const void* p_max, const char* format = NULL, slider_flags_t flags = 0);

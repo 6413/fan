@@ -1,4 +1,3 @@
-// fan.graphics.gui.tilemap_editor.ui.ixx
 module;
 
 #if defined(FAN_2D)
@@ -17,6 +16,7 @@ import fan.physics.types;
 import fan.texture_pack.tp0;
 import fan.window.input;
 import fan.types;
+import fan.graphics.loco;
 import fan.graphics.shapes;
 import fan.graphics;
 import fan.graphics.common_context;
@@ -329,83 +329,88 @@ namespace fan::graphics::gui::tilemap_editor::ui {
     fan::graphics::gui::push_style_color(fan::graphics::gui::col_button, fan::color::rgb(31, 31, 31));
     fan::graphics::gui::push_style_color(fan::graphics::gui::col_window_bg, fan::color::rgb(31, 31, 31));
 
-    if (fan::graphics::gui::begin("tiles", nullptr, fan::graphics::gui::window_flags_no_scroll_with_mouse)) {
-      if (!editor.texture_packs.empty()) {
-        if (fan::graphics::gui::button("Add Image(s)")) {
-          fan::graphics::open_files("webp,png,jpg", [&editor](std::vector<std::string_view> paths) {
-            std::vector<std::string> safe_paths;
-            safe_paths.reserve(paths.size());
-            for (auto p : paths) safe_paths.emplace_back(p);
+    if (fan::graphics::gui::begin("tiles", nullptr)) {
+      
+      fan::graphics::gui::dummy(fan::vec2(0, 24));
 
-            auto build_and_save = [&editor, safe_paths](const std::string& target_path, bool load_existing) {
-              fan::graphics::texture_pack::internal_t builder;
-              builder.open();
-              
-              if (load_existing && !editor.texture_packs.empty()) {
-                fan::graphics::texture_pack_t* tp = editor.texture_packs[0];
-                tp->iterate_loaded_images([&](const fan::graphics::texture_pack_t::texture_minor_decoded_t& minor) {
-                  fan::graphics::texture_pack::internal_t::texture_properties_t props;
-                  props.image_name = minor.name;
-                  fan::vec2 img_size = tp->get_pixel_data(minor.unique_id).image.get_size();
-                  props.uv_pos = fan::vec2(minor.position) / img_size;
-                  props.uv_size = fan::vec2(minor.size) / img_size;
-                  builder.push_texture(tp->get_pixel_data(minor.unique_id).image, props);
-                });
-              }
-
-              for (const auto& path : safe_paths) {
-                fan::graphics::texture_pack::internal_t::texture_properties_t props;
-                props.image_name = path;
-                builder.push_texture(path, props);
-              }
-
-              builder.process();
-              builder.save_compiled(target_path);
-              editor.open_texture_pack(target_path);
-            };
-
-            if (editor.texture_packs.empty() || editor.texture_packs[0]->file_path.empty() || !fan::io::file::exists(editor.texture_packs[0]->file_path)) {
-              fan::graphics::gui::print_error("No texture pack open. Select save location for new pack...");
-              fan::graphics::save_file("ftp", [build_and_save](std::string_view save_path) {
-                build_and_save(std::string(save_path), false);
-              });
-            } 
-            else {
-              build_and_save(editor.texture_packs[0]->file_path, true); 
-            }
+      auto build_and_save = [&editor](const std::string& target_path, bool load_existing, const std::vector<std::string>& paths) {
+        fan::graphics::texture_pack::internal_t builder;
+        builder.open();
+        
+        if (load_existing && !editor.texture_packs.empty()) {
+          fan::graphics::texture_pack_t* tp = editor.texture_packs[0];
+          tp->iterate_loaded_images([&](const fan::graphics::texture_pack_t::texture_minor_decoded_t& minor) {
+            fan::graphics::texture_pack::internal_t::texture_properties_t props;
+            props.image_name = minor.name;
+            fan::vec2 img_size = tp->get_pixel_data(minor.unique_id).image.get_size();
+            props.uv_pos = fan::vec2(minor.position) / img_size;
+            props.uv_size = fan::vec2(minor.size) / img_size;
+            builder.push_texture(tp->get_pixel_data(minor.unique_id).image, props);
           });
         }
 
-        fan::graphics::gui::receive_drag_drop_target("##add_images_drag", [&editor](std::string path) {
-          fan::graphics::texture_pack::internal_t builder;
-          builder.open();
-
-          if (!editor.texture_packs.empty()) {
-            fan::graphics::texture_pack_t* tp = editor.texture_packs[0];
-            tp->iterate_loaded_images([&](const fan::graphics::texture_pack_t::texture_minor_decoded_t& minor) {
-              fan::graphics::texture_pack::internal_t::texture_properties_t props;
-              props.image_name = minor.name;
-              fan::vec2 img_size = tp->get_pixel_data(minor.unique_id).image.get_size();
-              props.uv_pos = fan::vec2(minor.position) / img_size;
-              props.uv_size = fan::vec2(minor.size) / img_size;
-              builder.push_texture(tp->get_pixel_data(minor.unique_id).image, props);
-            });
-          }
-
+        for (const auto& path : paths) {
           fan::graphics::texture_pack::internal_t::texture_properties_t props;
           props.image_name = path;
           builder.push_texture(path, props);
+        }
 
-          builder.process();
-          builder.save_compiled(editor.texture_packs[0]->file_path);
-          editor.open_texture_pack(editor.texture_packs[0]->file_path);
+        builder.process();
+        builder.save_compiled(target_path);
+        editor.open_texture_pack(target_path);
+      };
+      
+      auto handle_add_images = [&editor, build_and_save](const std::vector<std::string>& paths) {
+        if (editor.texture_packs.empty() || editor.texture_packs[0]->file_path.empty() || !fan::io::file::exists(editor.texture_packs[0]->file_path)) {
+          fan::graphics::gui::print_error("No texture pack open. Select save location for new pack...");
+          fan::graphics::save_file("ftp", [build_and_save, paths](std::string_view save_path) {
+            auto fn = std::string(save_path);
+            fan::io::file::ensure_extension(fn, ".ftp");
+            build_and_save(std::string(save_path), false, paths);
+          });
+        } 
+        else {
+          build_and_save(editor.texture_packs[0]->file_path, true, paths);
+        }
+      };
+
+      auto handle_content_browser_items = [&editor, handle_add_images](const std::vector<std::string>& payloads) {
+        std::vector<std::string> paths;
+        paths.reserve(payloads.size());
+        for (const auto& payload : payloads) {
+          std::filesystem::path p(payload);
+          paths.push_back(p.is_absolute() ? payload : (std::filesystem::path(editor.content_browser.asset_path) / p).generic_string());
+        }
+
+        if (!paths.empty()) {
+          handle_add_images(paths);
+        }
+      };
+
+      fan::vec2 drop_min = fan::graphics::gui::get_window_pos();
+      fan::vec2 drop_max = drop_min + fan::graphics::gui::get_window_size();
+      fan::graphics::gui::item_add(fan::graphics::gui::rect_t(drop_min, drop_max), fan::graphics::gui::get_id("##tiles_drop_target"));
+      fan::graphics::gui::receive_drag_drop_target("CONTENT_BROWSER_ITEMS", handle_content_browser_items);
+
+      if (fan::graphics::gui::button("Add Image(s)")) {
+        fan::graphics::open_files("webp,png,jpg", [handle_add_images](std::vector<std::string_view> paths) {
+          std::vector<std::string> safe_paths;
+          safe_paths.reserve(paths.size());
+          for (auto p : paths) safe_paths.emplace_back(p);
+          handle_add_images(safe_paths);
         });
-
-        fan::graphics::gui::separator();
       }
 
-      if (fan::graphics::gui::is_window_hovered()) zoom += fan::graphics::gui::get_io().MouseWheel / 3.f;
+      fan::graphics::gui::receive_drag_drop_target("CONTENT_BROWSER_ITEMS", handle_content_browser_items);
+      fan::graphics::gui::dummy(fan::vec2(0, 10));
+      // ---------------------------------------------------------
 
+      fan::graphics::gui::separator();
+
+      if (fan::graphics::gui::is_window_hovered() && fan::window::is_key_down(fan::key_left_control)) {
+        zoom *= 1.f + fan::graphics::gui::get_io().MouseWheel * 0.08f;
+        zoom = fan::math::clamp(zoom, 0.01f, 8.f);
+      }
       if (fan::graphics::gui::is_window_hovered() && fan::graphics::gui::is_mouse_dragging(fan::mouse_middle)) {
         fan::vec2 mouse_delta = fan::graphics::gui::get_mouse_drag_delta(fan::mouse_middle);
         fan::graphics::gui::reset_mouse_drag_delta(fan::mouse_middle);
@@ -415,7 +420,7 @@ namespace fan::graphics::gui::tilemap_editor::ui {
 
       f32_t x_size = fan::graphics::gui::get_content_region_avail().x;
       f32_t y_size = fan::graphics::gui::get_content_region_avail().y;
-      fan::graphics::gui::drag("original image width", &editor.original_image_width, 1, 0, 1000);
+      fan::graphics::gui::drag("original image width", &editor.original_image_width, 1, 0, 10000);
 
       auto& style = fan::graphics::gui::get_style();
       fan::vec2 prev_item_spacing = style.ItemSpacing;
@@ -423,18 +428,19 @@ namespace fan::graphics::gui::tilemap_editor::ui {
       editor.current_tile_brush_count = 0;
 
       int total_images = editor.texture_pack_images.size();
-      int images_per_row = (editor.original_image_width / (editor.texturepack_single_image_size.x));
+      int images_per_row = editor.texturepack_single_image_size.x <= 0 ? 0 : (editor.original_image_width / editor.texturepack_single_image_size.x);
 
       if (images_per_row == 0) {
+        style.ItemSpacing = prev_item_spacing;
+        fan::graphics::gui::end();
         fan::graphics::gui::pop_style_color(5);
         fan::graphics::gui::pop_style_var();
         return;
       }
 
-      int rows_needed = (total_images + images_per_row - 1) / images_per_row == 0 ? 1 : images_per_row;
-      f32_t image_width = x_size / images_per_row;
-      f32_t image_height = y_size / rows_needed;
-      f32_t final_image_size = std::max(image_width, image_height);
+      int rows_needed = std::max((total_images + images_per_row - 1) / images_per_row, 1);
+      f32_t final_image_size = x_size / images_per_row;
+      f32_t cell_size = std::max(final_image_size * zoom, 1.f);
 
       static fan::vec2 selection_start(-1, -1);
       static fan::vec2 selection_end(-1, -1);
@@ -451,20 +457,38 @@ namespace fan::graphics::gui::tilemap_editor::ui {
       bool is_left_ctrl_key_pressed = fan::window::is_key_down(fan::key_left_control);
       bool is_left_mouse_button_released = fan::window::is_mouse_released(0);
 
-      fan::vec2 sprite_size;
+      fan::vec2 sprite_size = fan::vec2(cell_size);
       fan::vec2 initial_pos = fan::graphics::gui::get_cursor_screen_pos();
       auto* draw_list = fan::graphics::gui::get_window_draw_list();
 
       for (std::uint32_t i = 0; i < editor.texture_pack_images.size(); i++) {
         auto& node = editor.texture_pack_images[i];
         fan::vec2i grid_index(i % images_per_row, i / images_per_row);
-
-        fan::vec2 cursor_pos_global = fan::graphics::gui::get_cursor_screen_pos();
-        sprite_size = fan::vec2(final_image_size * zoom);
+        fan::vec2 cursor_pos_global = initial_pos + fan::vec2(grid_index) * cell_size;
         auto& img_data = fan::graphics::image_get_data(node.ti.image);
         fan::vec2 size = img_data.size;
+        fan::vec2 node_position = fan::vec2(node.ti.position);
+        fan::vec2 node_size = fan::vec2(node.ti.size);
+        fan::vec2 uv0 = 0;
+        fan::vec2 uv1 = 1;
+        bool image_is_atlas = (size.x > node_size.x || size.y > node_size.y) &&
+          (node_position + node_size).x <= size.x &&
+          (node_position + node_size).y <= size.y;
+        if (image_is_atlas) {
+          uv0 = node_position / size;
+          uv1 = (node_position + node_size) / size;
+        }
 
-        fan::graphics::gui::image_button((std::string("##ibutton") + std::to_string(i)).c_str(), node.ti.image, sprite_size, node.ti.position / size, node.ti.position / size + node.ti.size / size);
+        fan::graphics::gui::set_cursor_screen_pos(cursor_pos_global);
+        fan::graphics::gui::invisible_button((std::string("##ibutton") + std::to_string(i)).c_str(), sprite_size);
+
+        fan::vec2 image_size = sprite_size;
+        f32_t max_node_size = std::max(node_size.x, node_size.y);
+        if (max_node_size > 0) {
+          image_size = node_size / max_node_size * cell_size;
+        }
+        fan::vec2 image_pos = cursor_pos_global + (sprite_size - image_size) / 2.f;
+        draw_list->AddImage((fan::graphics::gui::texture_id_t)fan::graphics::image_get_handle(node.ti.image), image_pos, image_pos + image_size, uv0, uv1);
 
         if (editor.current_image_indices.find(grid_index) != editor.current_image_indices.end()) {
           draw_list->AddRect(cursor_pos_global, cursor_pos_global + sprite_size, 0xff0077ff, 0, 0, 1);
@@ -488,13 +512,17 @@ namespace fan::graphics::gui::tilemap_editor::ui {
           editor.current_tile_images.clear();
           editor.current_image_indices[grid_index] = i;
         }
+        else if (is_mouse_hovered && is_left_mouse_button_clicked && is_left_ctrl_key_pressed) {
+          auto found = editor.current_image_indices.find(grid_index);
+          if (found != editor.current_image_indices.end()) editor.current_image_indices.erase(found);
+          else editor.current_image_indices[grid_index] = i;
+        }
         else if (is_mouse_hovered && is_left_mouse_drag) is_selecting = true;
         else if ((is_right_mouse_button_clicked || is_right_mouse_drag) && is_mouse_hovered) {
           auto found = editor.current_image_indices.find(grid_index);
           if (found != editor.current_image_indices.end()) editor.current_image_indices.erase(found);
           if (editor.current_image_indices.empty()) editor.current_tile_images.clear();
         }
-        if ((i + 1) % images_per_row != 0) fan::graphics::gui::same_line();
       }
 
       fan::vec2 cursor_grid = fan::graphics::gui::get_mouse_pos() - initial_pos;
@@ -517,10 +545,16 @@ namespace fan::graphics::gui::tilemap_editor::ui {
       if (min_rect != (std::uint32_t)~0 && max_rect != -1) {
         for (int y = min_rect.y; y <= std::min(max_rect.y, cursor_grid.y); ++y) {
           for (int x = min_rect.x; x <= std::min(max_rect.x, cursor_grid.x); ++x) {
-            editor.current_image_indices[fan::vec2i(x, y)] = y * images_per_row + x;
+            int idx = y * images_per_row + x;
+            if (idx >= 0 && idx < total_images) {
+              editor.current_image_indices[fan::vec2i(x, y)] = idx;
+            }
           }
         }
       }
+
+      fan::graphics::gui::set_cursor_screen_pos(initial_pos);
+      fan::graphics::gui::dummy(fan::vec2(images_per_row * cell_size, rows_needed * cell_size));
 
       style.ItemSpacing = prev_item_spacing;
       if (editor.current_image_indices.size()) editor.current_tile_images.clear();
@@ -571,7 +605,6 @@ namespace fan::graphics::gui::tilemap_editor::ui {
               builder.push_texture(tp.get_pixel_data(minor.unique_id).image, props);
             }
           });
-
           builder.process();
           builder.save_compiled(editor.texture_packs[0]->file_path);
           editor.open_texture_pack(editor.texture_packs[0]->file_path);
@@ -583,7 +616,6 @@ namespace fan::graphics::gui::tilemap_editor::ui {
         }
         
         fan::graphics::gui::same_line();
-        
         if (fan::graphics::gui::button("No", fan::vec2(120, 0))) {
           fan::graphics::gui::close_current_popup();
         }
@@ -594,6 +626,7 @@ namespace fan::graphics::gui::tilemap_editor::ui {
       editor.current_tile_brush_count.x = std::max(editor.current_tile_brush_count.x, x);
       editor.current_tile_brush_count.y = y;
     }
+    fan::graphics::gui::end();
     fan::graphics::gui::pop_style_color(5);
     fan::graphics::gui::pop_style_var();
   }
@@ -913,10 +946,17 @@ namespace fan::graphics::gui::tilemap_editor::ui {
 
       handle_tile_brush(editor);
     }
-    fan::graphics::gui::end();
 
     editor.terrain_generator.render();
     draw_id_labels(editor);
+
+    static bool render_content_browser = true;
+    if (gloco()->input.input_action.is_active("toggle_content_browser")) {
+      render_content_browser = !render_content_browser;
+    }
+    if (render_content_browser) {
+      editor.content_browser.render();
+    }
   }
 
 }

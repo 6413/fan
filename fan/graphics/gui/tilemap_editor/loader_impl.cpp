@@ -17,6 +17,7 @@ module fan.graphics.tilemap_editor.loader;
 #if defined(FAN_PHYSICS_2D)
 
 import fan.types.json;
+import fan.graphics.loco;
 
 namespace fan::graphics {
 
@@ -107,6 +108,20 @@ namespace fan::graphics {
     compiled_map.lighting.ambient = json["lighting.ambient"];
     compiled_map.map_size = json["map_size"];
     compiled_map.tile_size = json["tile_size"];
+    if (json.contains("texture_packs")) {
+      std::filesystem::path map_dir = std::filesystem::path(filename).parent_path();
+
+      for (const auto& tp_path : json["texture_packs"]) {
+        std::filesystem::path p = tp_path.get<std::string>();
+        if (p.is_relative()) {
+          p = map_dir / p;
+        }
+
+        //compiled_map.texture_packs.emplace_back();
+        //compiled_map.texture_packs.back().open_compiled(p.generic_string());
+        gloco()->texture_pack.open_compiled(p.generic_string()); // images query from here
+      }
+    }
 
     if (json.contains("gravity")) {
       fan::physics::gphysics()->set_gravity(json["gravity"]);
