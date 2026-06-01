@@ -80,7 +80,12 @@ export namespace fan {
     consteval id_t operator[](std::string_view name) const               { return id_t(dme_index_t<fan::refl::member_count<derived_t>()>(fan::refl::index_of<derived_t>(name))); }
     constexpr member_t* begin()                                          { return &(*this)[0]; }
     constexpr member_t* end()                                            { return &(*this)[0] + size(); }
-    static constexpr std::string_view name(std::size_t i)                { return fan::refl::member_name<derived_t>(i); }
+    static constexpr std::string_view name(std::size_t i) {
+      static constexpr auto tbl = []<std::size_t... Is>(std::index_sequence<Is...>) consteval {
+        return std::array<std::string_view, size()>{fan::refl::member_name<derived_t>(Is)...};
+      }(std::make_index_sequence<size()>{});
+      return tbl[i];
+    }
     void print()                                                         { fan::print(static_cast<derived_t&>(*this)); }
     static consteval std::meta::info attr_type(std::size_t i)            { return fan::refl::member_annotation_type<derived_t>(i); }
 
