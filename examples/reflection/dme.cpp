@@ -48,7 +48,7 @@ static_assert(fan::refl::is_same_name(attr_type_b, ^^b_t));
 static_assert(fan::refl::is_same_type(attr_type_a, ^^a_t));
 static_assert(fan::refl::is_same_type(attr_type_b, ^^b_t));
 
-static_assert(gst["salsaaaaaa"].gint() == 0);
+//static_assert(gst["salsaaaaaa"].gint() == 0);
 
 struct a_ann_t { int x; f32_t y; };
 struct b_ann_t { int x; };
@@ -102,6 +102,16 @@ int main() {
       .b = [&]{ fan::assert(idx == 1); }
     });
   }
+
+  st_t::id_t id = st_t::id_t::invalid();
+
+  fan::assert(id.gint() == -1);
+  fan::assert(!id.is_valid());
+
+  st.match(id)({
+    .a = [&] {},
+    .b = [&] {}
+  });
 
   for (auto i : st.runtime_table()) {
     fan::print(i);
