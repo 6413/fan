@@ -329,7 +329,6 @@ void loco_t::shadow_add_light(fan::vec2 position, f32_t radius, fan::color color
     .position      = position,
     .radius        = radius,
     .color         = color,
-    .render_view   = &fan::graphics::get_orthographic_render_view(),
     .softness      = softness,
     .falloff_power = falloff_power,
   });
@@ -1860,6 +1859,11 @@ void loco_t::process_render() {
 #endif
 
 #if defined(FAN_2D)
+
+  for (auto& light : gl->alpha_shadow_renderer.lights) {
+    add_shape_to_immediate_draw(fan::graphics::shapes::light_t::properties_t{.position=light.position, .size=light.radius, .color=light.color});
+  }
+
   fan::graphics::g_shapes->shaper.ProcessBlockEditQueue();
 #endif
 
