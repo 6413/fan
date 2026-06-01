@@ -73,6 +73,26 @@ namespace fan::graphics::gui {
       return list;
     }
 
+    inline std::vector<std::string> split_drag_drop_payload(std::string_view payload, char separator) {
+      std::vector<std::string> values;
+      std::string current;
+      for (char c : payload) {
+        if (c == separator) {
+          if (!current.empty()) {
+            values.push_back(std::move(current));
+            current.clear();
+          }
+        }
+        else {
+          current += c;
+        }
+      }
+      if (!current.empty()) {
+        values.push_back(std::move(current));
+      }
+      return values;
+    }
+
     inline void receive_drag_drop_target_impl(const char* id, std::function<void(std::string)> receive_func) {
       if (ImGui::BeginDragDropTarget()) {
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(id)) {
@@ -1450,6 +1470,13 @@ namespace fan::graphics::gui {
 
   void receive_drag_drop_target(str_view_t id, std::function<void(std::string)> receive_func) {
     detail::receive_drag_drop_target_impl(fan::ct_string(id), std::move(receive_func));
+  }
+
+  void receive_drag_drop_target(str_view_t id, std::function<void(const std::vector<std::string>&)> receive_func, char separator) {
+    detail::receive_drag_drop_target_impl(fan::ct_string(id), [receive_func = std::move(receive_func), separator](std::string payload) {
+      auto values = detail::split_drag_drop_payload(payload, separator);
+      receive_func(values);
+    });
   }
 
   bool slider_scalar(str_view_t label, data_type_t data_type, void* p_data, const void* p_min, const void* p_max, const char* format, slider_flags_t flags) {

@@ -89,6 +89,7 @@ export namespace fan::graphics {
     #elif tilemap_renderer == 1
       std::unordered_map<fan::vec2i, fan::mp_t<current_version_t::shapes_t>, vec2i_hasher> compiled_shapes;
     #endif
+      std::vector<fan::graphics::texture_pack_t> texture_packs;
     };
 
     struct tile_draw_data_t : fan::graphics::shape_t {

@@ -608,6 +608,16 @@ public:
   fan::vec3* get_bloom_tint_ptr();
   void* get_framebuffer();
 
+
+  void shadow_add_caster(fan::graphics::shape_t* shape, f32_t alpha_threshold = 0.05f);
+  void shadow_remove_caster(fan::graphics::shape_t* shape);
+  void shadow_clear_casters();
+  void shadow_add_light(fan::vec2 position, f32_t radius, fan::color color, f32_t softness = 0.02f, f32_t falloff_power = 2.f);
+  void shadow_set_light_position(std::size_t index, fan::vec2 position);
+  void shadow_clear_lights();
+  void shadow_set_darkness(f32_t darkness);
+  std::size_t shadow_light_count();
+
   fan::graphics::camera_list_t camera_list;
   fan::graphics::shader_list_t shader_list;
   fan::graphics::image_list_t image_list;
@@ -726,6 +736,9 @@ public:
   template <typename T>
   void add_custom_single_draw(T&& cb) {
     m_mid_single_draw.emplace_back(std::forward<T>(cb));
+  }
+  void add_post_draw(std::function<void()> fn) {
+    m_post_draw.push_back(std::move(fn));
   }
   std::vector<std::function<void()>> m_post_draw;
 
