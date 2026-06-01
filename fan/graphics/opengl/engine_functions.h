@@ -184,7 +184,7 @@ void init_framebuffer() {
   static constexpr uint32_t mip_count = 6;
   // always open. it goes a bit complex to make blur open and close in the middle of frame
   loco.gl->blur.open(loco.window.get_size(), mip_count);
-  loco.gl->alpha_shadow_renderer.open(2048, 4096, 512);
+  loco.gl->alpha_shadow_renderer.open(2048, 4096, 2048);
 
   loco.gl->m_framebuffer.unbind(loco.context.gl);
 
