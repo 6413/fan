@@ -223,18 +223,15 @@ else
     exit 0
   fi
 
-  target_name=$(grep -E 'target\("([^"]+)"' xmake.lua | sed -E 's/target\("([^"]+)".*/\1/' | head -n1)
-  if [ -z "$target_name" ]; then
-    echo -e "${RED}Error:${NC} Could not find target name in xmake.lua"
-    exit 1
+  target_name="fan"
+  exe_path=$(find build -type f \( -name "$target_name" -o -name "$target_name.exe" \) -perm -111 | head -n1)
+  if [ -z "$exe_path" ]; then
+    exe_path=$(find build -type f \( -name "$target_name" -o -name "$target_name.exe" \) | head -n1)
   fi
-
-  exe_path=$(find build -type f \( -name "$target_name" -o -name "$target_name.exe" \) | head -n1)
   if [ -z "$exe_path" ]; then
     echo -e "${RED}Error:${NC} Built executable for target '${target_name}' not found"
     exit 1
   fi
-
   cp "$exe_path" .
   echo -e "${GREEN}✓ Copied:${NC} ${exe_path} → ./$(basename "$exe_path")"
 fi
