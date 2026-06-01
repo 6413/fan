@@ -1,0 +1,132 @@
+{
+  "camera_position": [
+    789.88623046875,
+    1332.7872314453125,
+    0.0
+  ],
+  "camera_zoom": 1.7280001640319824,
+  "gravity": [
+    0.0,
+    2508.800048828125
+  ],
+  "layer_info": [
+    {
+      "depth": 32084,
+      "layer_name": "default\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+    },
+    {
+      "depth": 32085,
+      "layer_name": "default\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+    }
+  ],
+  "lighting.ambient": [
+    1.0,
+    1.0,
+    1.0
+  ],
+  "map_size": [
+    32,
+    32
+  ],
+  "texture_packs": [
+    "playground.ftp"
+  ],
+  "tile_size": [
+    32,
+    32
+  ],
+  "tiles": [
+    {
+      "instance": {
+        "count_x": 32,
+        "count_y": 32,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        0.0,
+        0.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "texture_pack_name": "C:/libs/fan_release\\images\\grass1.jpg"
+    },
+    {
+      "id": "shadow",
+      "instance": {
+        "count_x": 1,
+        "count_y": 2,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        576.0,
+        1344.0,
+        32085.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0078125,
+        0.0078125
+      ],
+      "tc_size": [
+        0.5,
+        0.5
+      ],
+      "texture_pack_name": "C:/libs/fan_release\\tests\\images\\images_out\\rock2.webp"
+    },
+    {
+      "id": "shadow",
+      "position": [
+        896.0,
+        1344.0,
+        32085.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0078125,
+        0.0078125
+      ],
+      "tc_size": [
+        0.5,
+        0.5
+      ],
+      "texture_pack_name": "C:/libs/fan_release\\tests\\images\\images_out\\rock2.webp"
+    },
+    {
+      "id": "shadow",
+      "position": [
+        960.0,
+        1472.0,
+        32085.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0078125,
+        0.0078125
+      ],
+      "tc_size": [
+        0.5,
+        0.5
+      ],
+      "texture_pack_name": "C:/libs/fan_release\\tests\\images\\images_out\\rock0.webp"
+    }
+  ],
+  "version": 1
+}
