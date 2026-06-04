@@ -9,6 +9,9 @@ struct alpha_shadow_renderer_t {
     fan::graphics::render_view_t* render_view = &fan::graphics::get_orthographic_render_view();
     f32_t softness = 0.02f;
     f32_t falloff_power = 2.f;
+    f32_t angle = 0.f;
+    f32_t cone_inner = 6.28318530718f;
+    f32_t cone_outer = 6.28318530718f;
   };
 
   struct caster_t {
@@ -53,7 +56,7 @@ struct alpha_shadow_renderer_t {
     glBindVertexArray(0);
 
     create_target(occluder_fbo, occluder_texture, occluder_resolution, occluder_resolution, GL_R16F,    GL_RED,  GL_FLOAT, GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_EDGE);
-    create_target(shadow_fbo,   shadow_texture,   angle_resolution,    1,                   GL_RGBA16F, GL_RGBA, GL_FLOAT, GL_NEAREST, GL_NEAREST, GL_REPEAT);
+    create_target(shadow_fbo, shadow_texture, angle_resolution, 1, GL_RGBA16F, GL_RGBA, GL_FLOAT, GL_LINEAR, GL_LINEAR, GL_REPEAT);
   }
 
   void close() {
@@ -268,6 +271,9 @@ struct alpha_shadow_renderer_t {
     loco.shader_set_value(light_shader, "softness",        light.softness);
     loco.shader_set_value(light_shader, "falloff_power",   light.falloff_power);
     loco.shader_set_value(light_shader, "angle_texel",     1.f / f32_t(angle_resolution));
+    loco.shader_set_value(light_shader, "cone_angle",     light.angle);
+    loco.shader_set_value(light_shader, "cone_inner",     light.cone_inner);
+    loco.shader_set_value(light_shader, "cone_outer",     light.cone_outer);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, shadow_texture);
     draw(verts);

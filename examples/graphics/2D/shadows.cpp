@@ -10,7 +10,7 @@ int main() {
 
   interactive_camera_t ic;
   tilemap_renderer_t map_renderer;
-  auto map_id = map_renderer.open_map("tests/playground.json", {
+  auto map_id = map_renderer.open_map("playground.json", {
     .position = fan::vec3(engine.viewport_get_size() / 2.f, 0),
     .size = fan::vec2i(30, 18),
   });
