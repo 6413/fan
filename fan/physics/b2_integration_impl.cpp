@@ -74,6 +74,13 @@ namespace fan::physics {
     return hit;
   }
 
+  fan::physics::body_id_t ray_result_t::get_body() const {
+    if (hit == false || b2Shape_IsValid(shapeId) == false) {
+      return {};
+    }
+    return b2Shape_GetBody(shapeId);
+  }
+
   shape_id_t::shape_id_t() : b2ShapeId(b2_nullShapeId) {}
 
   shape_id_t::shape_id_t(const b2ShapeId& shape_id) : b2ShapeId(shape_id) {}
@@ -172,6 +179,15 @@ namespace fan::physics {
 
   void body_id_t::apply_linear_impulse_center(const fan::vec2& v) {
     b2Body_ApplyLinearImpulseToCenter(*this, v / length_units_per_meter, true);
+  }
+
+  void body_id_t::apply_linear_impulse(const fan::vec2& impulse, const fan::vec2& world_point) {
+    b2Body_ApplyLinearImpulse(
+      *this,
+      impulse / length_units_per_meter,
+      world_point / length_units_per_meter,
+      true
+    );
   }
 
   void body_id_t::zero_linear_impulse_center() {
@@ -730,6 +746,49 @@ namespace fan::physics {
     gphysics()->physics_updates.unlrec(nr);
   }
 
+   joint_id_t context_t::create_revolute_joint(
+    body_id_t body_a,
+    body_id_t body_b,
+    const fan::vec2& world_anchor,
+    bool collide_connected
+  ) {
+    fan::vec2 anchor = world_anchor / length_units_per_meter;
+
+    b2RevoluteJointDef def = b2DefaultRevoluteJointDef();
+    def.bodyIdA = body_a;
+    def.bodyIdB = body_b;
+    def.localAnchorA = b2Body_GetLocalPoint(body_a, anchor);
+    def.localAnchorB = b2Body_GetLocalPoint(body_b, anchor);
+    def.referenceAngle = b2Rot_GetAngle(b2Body_GetRotation(body_b)) - b2Rot_GetAngle(b2Body_GetRotation(body_a));
+    def.collideConnected = collide_connected;
+
+    return b2CreateRevoluteJoint(world_id, &def);
+  }
+
+  joint_id_t context_t::create_distance_joint(
+    body_id_t body_a,
+    body_id_t body_b,
+    const fan::vec2& world_anchor_a,
+    const fan::vec2& world_anchor_b,
+    f32_t length,
+    bool collide_connected
+  ) {
+    fan::vec2 anchor_a = world_anchor_a / length_units_per_meter;
+    fan::vec2 anchor_b = world_anchor_b / length_units_per_meter;
+
+    b2DistanceJointDef def = b2DefaultDistanceJointDef();
+    def.bodyIdA = body_a;
+    def.bodyIdB = body_b;
+    def.localAnchorA = b2Body_GetLocalPoint(body_a, anchor_a);
+    def.localAnchorB = b2Body_GetLocalPoint(body_b, anchor_b);
+    def.length = (length < 0.f ? (world_anchor_b - world_anchor_a).length() : length) / length_units_per_meter;
+    def.minLength = def.length;
+    def.maxLength = def.length;
+    def.collideConnected = collide_connected;
+
+    return b2CreateDistanceJoint(world_id, &def);
+  }
+
   void sensor_events_t::update(b2WorldId world_id) {
     b2SensorEvents sensor_events = b2World_GetSensorEvents(world_id);
 
@@ -787,6 +846,26 @@ namespace fan::physics {
       }
     }
     return false;
+  }
+
+  fan::physics::joint_id_t create_revolute_joint(
+    body_id_t body_a,
+    body_id_t body_b,
+    const fan::vec2& world_anchor,
+    bool collide_connected
+  ) {
+    return gphysics()->create_revolute_joint(body_a, body_b, world_anchor, collide_connected);
+  }
+
+  fan::physics::joint_id_t create_distance_joint(
+    body_id_t body_a,
+    body_id_t body_b,
+    const fan::vec2& world_anchor_a,
+    const fan::vec2& world_anchor_b,
+    f32_t length,
+    bool collide_connected
+  ) {
+    return gphysics()->create_distance_joint(body_a, body_b, world_anchor_a, world_anchor_b, length, collide_connected);
   }
 
   bool b2_body_id_equal_t::operator()(const b2BodyId& a, const b2BodyId& b) const {

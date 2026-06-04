@@ -612,8 +612,19 @@ public:
   void shadow_add_caster(fan::graphics::shape_t* shape, f32_t alpha_threshold = 0.05f);
   void shadow_remove_caster(fan::graphics::shape_t* shape);
   void shadow_clear_casters();
-  void shadow_add_light(fan::vec2 position, f32_t radius, fan::color color, f32_t softness = 0.02f, f32_t falloff_power = 2.f);
+  void shadow_add_light(
+    fan::vec2 position,
+    f32_t radius,
+    fan::color color,
+    f32_t softness = 0.02f,
+    f32_t falloff_power = 2.f,
+    f32_t angle = 0.f,
+    f32_t cone_inner = 6.28318530718f,
+    f32_t cone_outer = 6.28318530718f
+  );
   void shadow_set_light_position(std::size_t index, fan::vec2 position);
+  void shadow_set_light_angle(std::size_t index, f32_t angle);
+  void shadow_set_light_cone(std::size_t index, f32_t cone_inner, f32_t cone_outer);
   void shadow_clear_lights();
   void shadow_set_darkness(f32_t darkness);
   std::size_t shadow_light_count();

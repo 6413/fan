@@ -157,6 +157,7 @@ export namespace fan {
       f32_t fraction;
       bool hit;
       explicit operator bool();
+      body_id_t get_body() const;
     };
 
     struct body_id_t : b2BodyId {
@@ -198,6 +199,7 @@ export namespace fan {
 
       void apply_force_center(const fan::vec2& v);
       void apply_linear_impulse_center(const fan::vec2& v);
+      void apply_linear_impulse(const fan::vec2& impulse, const fan::vec2& world_point);
       void zero_linear_impulse_center();
       void apply_angular_impulse(f32_t v);
       fan::vec2 get_physics_position() const;
@@ -385,6 +387,23 @@ export namespace fan {
       void remove_presolve_handler(void* ctx) {
         std::erase_if(presolve_handlers, [ctx](auto& p) { return p.second == ctx; });
       }
+
+      joint_id_t create_revolute_joint(
+        body_id_t body_a,
+        body_id_t body_b,
+        const fan::vec2& world_anchor,
+        bool collide_connected = false
+      );
+
+      joint_id_t create_distance_joint(
+        body_id_t body_a,
+        body_id_t body_b,
+        const fan::vec2& world_anchor_a,
+        const fan::vec2& world_anchor_b,
+        f32_t length = -1.f,
+        bool collide_connected = false
+      );
+
       std::vector<std::pair<pre_solve_fn_t*, void*>> presolve_handlers;
 
       b2WorldId world_id;
@@ -410,6 +429,21 @@ export namespace fan {
 
       collision_listeners_t collision_listeners;
     };
+    joint_id_t create_revolute_joint(
+      body_id_t body_a,
+      body_id_t body_b,
+      const fan::vec2& world_anchor,
+      bool collide_connected = false
+    );
+
+    joint_id_t create_distance_joint(
+      body_id_t body_a,
+      body_id_t body_b,
+      const fan::vec2& world_anchor_a,
+      const fan::vec2& world_anchor_b,
+      f32_t length = -1.f,
+      bool collide_connected = false
+    );
 
     bool presolve_oneway_collision(shape_id_t shapeIdA, shape_id_t shapeIdB, manifold_t* manifold, fan::physics::body_id_t character_body, bool drop_through_requested);
 

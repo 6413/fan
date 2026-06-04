@@ -322,7 +322,16 @@ void loco_t::shadow_clear_casters() {
 #endif
 }
 
-void loco_t::shadow_add_light(fan::vec2 position, f32_t radius, fan::color color, f32_t softness, f32_t falloff_power) {
+void loco_t::shadow_add_light(
+  fan::vec2 position,
+  f32_t radius,
+  fan::color color,
+  f32_t softness,
+  f32_t falloff_power,
+  f32_t angle,
+  f32_t cone_inner,
+  f32_t cone_outer
+) {
 #if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
   if (!gl) return;
   gl->alpha_shadow_renderer.lights.push_back({
@@ -331,10 +340,29 @@ void loco_t::shadow_add_light(fan::vec2 position, f32_t radius, fan::color color
     .color         = color,
     .softness      = softness,
     .falloff_power = falloff_power,
+    .angle         = angle,
+    .cone_inner    = cone_inner,
+    .cone_outer    = cone_outer,
   });
 #endif
 }
 
+void loco_t::shadow_set_light_angle(std::size_t index, f32_t angle) {
+#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
+  if (gl && index < gl->alpha_shadow_renderer.lights.size()) {
+    gl->alpha_shadow_renderer.lights[index].angle = angle;
+  }
+#endif
+}
+
+void loco_t::shadow_set_light_cone(std::size_t index, f32_t cone_inner, f32_t cone_outer) {
+#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
+  if (gl && index < gl->alpha_shadow_renderer.lights.size()) {
+    gl->alpha_shadow_renderer.lights[index].cone_inner = cone_inner;
+    gl->alpha_shadow_renderer.lights[index].cone_outer = cone_outer;
+  }
+#endif
+}
 void loco_t::shadow_set_light_position(std::size_t index, fan::vec2 position) {
 #if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
   if (gl && index < gl->alpha_shadow_renderer.lights.size())

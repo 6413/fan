@@ -119,7 +119,7 @@ namespace fan::graphics {
 
         //compiled_map.texture_packs.emplace_back();
         //compiled_map.texture_packs.back().open_compiled(p.generic_string());
-        gloco()->texture_pack.open_compiled(p.generic_string()); // images query from here
+        gloco()->texture_pack.open_compiled(p.generic_string(), callers_path); // images query from here
       }
     }
 
