@@ -74,6 +74,7 @@ export namespace fan {
       __dme(r11f_g11f_b10f);
       __dme(yuv420p);
       __dme(nv12);
+      __dme(rgba32f);
 
       static constexpr std::uint8_t undefined = 255;
     }image_format;
@@ -277,7 +278,8 @@ export namespace fan {
       case image_format_e::rgba:
       case image_format_e::bgra:
       case image_format_e::rgba_unorm:
-      case image_format_e::r8g8b8a8_srgb: return 4;
+      case image_format_e::r8g8b8a8_srgb: 
+      case image_format_e::rgba32f:return 4;
 
       case image_format_e::r11f_g11f_b10f: return 3;
 

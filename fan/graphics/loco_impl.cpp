@@ -111,6 +111,7 @@ struct loco_t::opengl {
   #if defined(LOCO_FRAMEBUFFER)
   #include <fan/graphics/opengl/2D/effects/blur.h>
   blur_t blur;
+  blur_t raw_blur;
 
   #include <fan/graphics/opengl/2D/effects/reflection.h>
   reflection_t reflection;
@@ -260,6 +261,11 @@ void loco_t::shader_recompile_all() {
   });
   #if defined(FAN_GUI)
   set_post_process("bloom_strength", get_smenu(this)->config.post_processing.bloom_strength);
+  set_post_process("blur_amount", get_smenu(this)->config.post_processing.blur_amount);
+  set_post_process("blur_focus_enabled", open_props.blur_focus_enabled);
+  set_post_process("blur_focus_position", open_props.blur_focus_position);
+  set_post_process("blur_focus_radius", open_props.blur_focus_radius);
+  set_post_process("blur_focus_falloff", open_props.blur_focus_falloff);
   #endif
 }
 
@@ -774,6 +780,13 @@ void loco_t::generate_commands(loco_t* loco) {
     auto* sm = get_smenu(l);
     sm->config.post_processing.bloom_strength = std::stof(v);
     l->set_post_process("bloom_strength", sm->config.post_processing.bloom_strength);
+  });
+  add_simple_command(loco->gui.console, "set_blur_amount", "sets blur amount", 1,
+    [](loco_t* l, const std::string& v) {
+    auto* sm = get_smenu(l);
+    sm->config.post_processing.blur_amount = std::stof(v);
+    l->open_props.blur_amount = sm->config.post_processing.blur_amount;
+    l->set_post_process("blur_amount", sm->config.post_processing.blur_amount);
   });
 #endif
 

@@ -78,15 +78,53 @@ namespace fan::graphics::gui {
     }
     if (j.contains("post_processing")) {
       const auto& pp = j["post_processing"];
-      pp.get_if("bloom", gloco()->open_props.enable_bloom);
+      pp.get_if("mode", post_processing.mode);
+      if (pp.contains("clear_color")) {
+        pp.get_if("clear_color", post_processing.clear_color);
+      }
+      else {
+        post_processing.clear_color = gloco()->get_clear_color();
+      }
+      if (pp.contains("ambient_color")) {
+        pp.get_if("ambient_color", post_processing.ambient_color);
+      }
+      else {
+        post_processing.ambient_color = gloco()->get_lighting().ambient;
+      }
+      if (!pp.contains("mode")) {
+        bool bloom = false;
+        pp.get_if("bloom", bloom);
+        post_processing.mode = bloom ? 1 : 0;
+      }
+      if (post_processing.mode < 0 || post_processing.mode > 3) {
+        post_processing.mode = 0;
+      }
+      gloco()->open_props.post_process_mode = (loco_t::post_process_mode_e)post_processing.mode;
       pp.get_if("bloom_strength", post_processing.bloom_strength);
       pp.get_if("bloom_threshold", post_processing.bloom_threshold);
       pp.get_if("bloom_knee", post_processing.bloom_knee);
       pp.get_if("bloom_tint", post_processing.bloom_tint);
       pp.get_if("bloom_filter_radius", post_processing.bloom_filter_radius);
+      pp.get_if("blur_amount", post_processing.blur_amount);
+      pp.get_if("blur_filter_radius", post_processing.blur_filter_radius);
+      pp.get_if("blur_focus_enabled", post_processing.blur_focus_enabled);
+      pp.get_if("blur_focus_follow_mouse", post_processing.blur_focus_follow_mouse);
+      if (pp.contains("blur_focus_position")) {
+        post_processing.blur_focus_position.x = pp["blur_focus_position"]["x"];
+        post_processing.blur_focus_position.y = pp["blur_focus_position"]["y"];
+      }
+      pp.get_if("blur_focus_radius", post_processing.blur_focus_radius);
+      pp.get_if("blur_focus_falloff", post_processing.blur_focus_falloff);
       pp.get_if("gamma", post_processing.gamma);
       pp.get_if("exposure", post_processing.exposure);
       pp.get_if("contrast", post_processing.contrast);
+      gloco()->open_props.blur_amount = std::clamp(post_processing.blur_amount, 0.f, 1.f);
+      gloco()->open_props.blur_filter_radius = post_processing.blur_filter_radius;
+      gloco()->open_props.blur_focus_enabled = post_processing.blur_focus_enabled;
+      gloco()->open_props.blur_focus_follow_mouse = post_processing.blur_focus_follow_mouse;
+      gloco()->open_props.blur_focus_position = post_processing.blur_focus_position;
+      gloco()->open_props.blur_focus_radius = post_processing.blur_focus_radius;
+      gloco()->open_props.blur_focus_falloff = post_processing.blur_focus_falloff;
     }
   }
 
@@ -116,13 +154,23 @@ namespace fan::graphics::gui {
 
     j["audio"]["volume"] = audio.volume;
 
-    j["post_processing"]["bloom"] = gloco()->open_props.enable_bloom;
+    j["post_processing"]["mode"] = (int)gloco()->open_props.post_process_mode;
+    j["post_processing"]["clear_color"] = post_processing.clear_color;
+    j["post_processing"]["ambient_color"] = post_processing.ambient_color;
     j["post_processing"]["bloom_strength"] = post_processing.bloom_strength;
     j["post_processing"]["bloom_threshold"] = post_processing.bloom_threshold;
     j["post_processing"]["bloom_knee"] = post_processing.bloom_knee;
     j["post_processing"]["bloom_tint"] = post_processing.bloom_tint;
     j["post_processing"]["gamma"] = post_processing.gamma;
     j["post_processing"]["bloom_filter_radius"] = post_processing.bloom_filter_radius;
+    j["post_processing"]["blur_amount"] = post_processing.blur_amount;
+    j["post_processing"]["blur_filter_radius"] = post_processing.blur_filter_radius;
+    j["post_processing"]["blur_focus_enabled"] = post_processing.blur_focus_enabled;
+    j["post_processing"]["blur_focus_follow_mouse"] = post_processing.blur_focus_follow_mouse;
+    j["post_processing"]["blur_focus_position"]["x"] = post_processing.blur_focus_position.x;
+    j["post_processing"]["blur_focus_position"]["y"] = post_processing.blur_focus_position.y;
+    j["post_processing"]["blur_focus_radius"] = post_processing.blur_focus_radius;
+    j["post_processing"]["blur_focus_falloff"] = post_processing.blur_focus_falloff;
     j["post_processing"]["exposure"] = post_processing.exposure;
     j["post_processing"]["contrast"] = post_processing.contrast;
 
@@ -185,7 +233,22 @@ namespace fan::graphics::gui {
       }
     }
     );
+    gloco()->open_props.post_process_mode = (loco_t::post_process_mode_e)config.post_processing.mode;
+    gloco()->set_clear_color(config.post_processing.clear_color);
+    gloco()->get_lighting().set_target(config.post_processing.ambient_color);
+    gloco()->open_props.blur_amount = std::clamp(config.post_processing.blur_amount, 0.f, 1.f);
+    gloco()->open_props.blur_filter_radius = config.post_processing.blur_filter_radius;
+    gloco()->open_props.blur_focus_enabled = config.post_processing.blur_focus_enabled;
+    gloco()->open_props.blur_focus_follow_mouse = config.post_processing.blur_focus_follow_mouse;
+    gloco()->open_props.blur_focus_position = config.post_processing.blur_focus_position;
+    gloco()->open_props.blur_focus_radius = config.post_processing.blur_focus_radius;
+    gloco()->open_props.blur_focus_falloff = config.post_processing.blur_focus_falloff;
     gloco()->set_post_process("bloom_strength", config.post_processing.bloom_strength);
+    gloco()->set_post_process("blur_amount", gloco()->open_props.blur_amount);
+    gloco()->set_post_process("blur_focus_enabled", gloco()->open_props.blur_focus_enabled);
+    gloco()->set_post_process("blur_focus_position", gloco()->open_props.blur_focus_position);
+    gloco()->set_post_process("blur_focus_radius", gloco()->open_props.blur_focus_radius);
+    gloco()->set_post_process("blur_focus_falloff", gloco()->open_props.blur_focus_falloff);
     *gloco()->get_bloom_threshold_ptr() = config.post_processing.bloom_threshold;
     *gloco()->get_bloom_knee_ptr() = config.post_processing.bloom_knee;
     *gloco()->get_bloom_tint_ptr() = config.post_processing.bloom_tint;
@@ -296,26 +359,51 @@ namespace fan::graphics::gui {
       gui::table_next_column();
 
       draw_sub_row("Clear color", [&] {
-        fan::color& c = gloco()->get_clear_color();
+        fan::color& c = menu->config.post_processing.clear_color;
         if (gui::color_edit4(&c)) {
-          
+          gloco()->set_clear_color(c);
+          menu->mark_dirty();
+          menu->save();
+          menu->is_dirty = false;
         }
       });
 
       draw_sub_row("Lighting ambient", [&] {
-        static fan::color c = gloco()->get_lighting().ambient;
+        fan::color& c = menu->config.post_processing.ambient_color;
         if (gui::color_edit4(&c)) {
           gloco()->get_lighting().set_target(c);
+          menu->mark_dirty();
+          menu->save();
+          menu->is_dirty = false;
         }
       });
 
+      static const char* post_process_modes[] = {"None", "Bloom", "Blur", "Bloom + Blur"};
+
       gui::table_next_column();
-      gui::text("Enable bloom");
+      gui::text("Post process");
       gui::table_next_column();
-      if (gui::checkbox(&gloco()->open_props.enable_bloom)) {
-        menu->mark_dirty();
+      int mode = menu->config.post_processing.mode;
+      if (mode < 0 || mode >= (int)std::size(post_process_modes)) {
+        mode = 0;
       }
-      if (gloco()->open_props.enable_bloom) {
+      if (gui::begin_combo("##PostProcessMode", post_process_modes[mode])) {
+        for (int i = 0; i < std::size(post_process_modes); ++i) {
+          bool is_selected = mode == i;
+          if (gui::selectable(post_process_modes[i], is_selected)) {
+            mode = i;
+            menu->config.post_processing.mode = mode;
+            gloco()->open_props.post_process_mode = (loco_t::post_process_mode_e)mode;
+            menu->mark_dirty();
+          }
+          if (is_selected) {
+            gui::set_item_default_focus();
+          }
+        }
+        gui::end_combo();
+      }
+
+      if (mode == (int)loco_t::post_process_mode_e::bloom || mode == (int)loco_t::post_process_mode_e::bloom_blur) {
         draw_sub_row("Strength", [&] {
           if (gui::slider(&menu->config.post_processing.bloom_strength, 0.f, 1.f, gui::slider_flags_always_clamp)) {
             gloco()->set_post_process("bloom_strength", menu->config.post_processing.bloom_strength);
@@ -351,6 +439,88 @@ namespace fan::graphics::gui {
           }
         });
       #endif
+      }
+      if (mode == (int)loco_t::post_process_mode_e::blur || mode == (int)loco_t::post_process_mode_e::bloom_blur) {
+        draw_sub_row("Amount", [&] {
+          if (gui::slider(&menu->config.post_processing.blur_amount, 0.f, 1.0f, gui::slider_flags_always_clamp)) {
+            menu->config.post_processing.blur_amount = std::clamp(menu->config.post_processing.blur_amount, 0.f, 1.f);
+            gloco()->open_props.blur_amount = menu->config.post_processing.blur_amount;
+            gloco()->set_post_process("blur_amount", menu->config.post_processing.blur_amount);
+            menu->mark_dirty();
+          }
+        });
+        draw_sub_row("Filter radius", [&] {
+          if (gui::slider(&menu->config.post_processing.blur_filter_radius, 0.f, 0.08f, gui::slider_flags_always_clamp)) {
+            gloco()->open_props.blur_filter_radius = menu->config.post_processing.blur_filter_radius;
+            menu->mark_dirty();
+          }
+        });
+        draw_sub_row("Circle focus", [&] {
+          if (gui::checkbox(&menu->config.post_processing.blur_focus_enabled)) {
+            gloco()->open_props.blur_focus_enabled = menu->config.post_processing.blur_focus_enabled;
+            menu->mark_dirty();
+          }
+        });
+        if (menu->config.post_processing.blur_focus_enabled) {
+          auto sync_focus_position = [&] {
+            menu->config.post_processing.blur_focus_position.x = std::clamp(menu->config.post_processing.blur_focus_position.x, 0.f, 1.f);
+            menu->config.post_processing.blur_focus_position.y = std::clamp(menu->config.post_processing.blur_focus_position.y, 0.f, 1.f);
+            gloco()->open_props.blur_focus_position = menu->config.post_processing.blur_focus_position;
+            gloco()->set_post_process("blur_focus_position", gloco()->open_props.blur_focus_position);
+            menu->mark_dirty();
+          };
+
+          draw_sub_row("Follow mouse", [&] {
+            if (gui::checkbox(&menu->config.post_processing.blur_focus_follow_mouse)) {
+              gloco()->open_props.blur_focus_follow_mouse = menu->config.post_processing.blur_focus_follow_mouse;
+              menu->mark_dirty();
+            }
+          });
+
+          if (!menu->config.post_processing.blur_focus_follow_mouse) {
+            draw_sub_row("Focus X", [&] {
+              if (gui::slider(&menu->config.post_processing.blur_focus_position.x, 0.f, 1.f, gui::slider_flags_always_clamp)) {
+                sync_focus_position();
+              }
+            });
+            draw_sub_row("Focus Y", [&] {
+              if (gui::slider(&menu->config.post_processing.blur_focus_position.y, 0.f, 1.f, gui::slider_flags_always_clamp)) {
+                sync_focus_position();
+              }
+            });
+            draw_sub_row("Focus presets", [&] {
+              if (gui::button("Center")) {
+                menu->config.post_processing.blur_focus_position = fan::vec2(0.5f, 0.5f);
+                sync_focus_position();
+              }
+              gui::same_line();
+              if (gui::button("Mouse")) {
+                fan::vec2 mouse_position = gloco()->get_raw_mouse_position();
+                fan::vec2 window_size = gloco()->window.get_size();
+                menu->config.post_processing.blur_focus_position = fan::vec2(
+                  window_size.x == 0.f ? 0.f : mouse_position.x / window_size.x,
+                  window_size.y == 0.f ? 0.f : mouse_position.y / window_size.y
+                );
+                sync_focus_position();
+              }
+            });
+          }
+
+          draw_sub_row("Focus radius", [&] {
+            if (gui::slider(&menu->config.post_processing.blur_focus_radius, 0.f, 1.f, gui::slider_flags_always_clamp)) {
+              gloco()->open_props.blur_focus_radius = menu->config.post_processing.blur_focus_radius;
+              gloco()->set_post_process("blur_focus_radius", gloco()->open_props.blur_focus_radius);
+              menu->mark_dirty();
+            }
+          });
+          draw_sub_row("Focus falloff", [&] {
+            if (gui::slider(&menu->config.post_processing.blur_focus_falloff, 0.001f, 1.f, gui::slider_flags_always_clamp)) {
+              gloco()->open_props.blur_focus_falloff = menu->config.post_processing.blur_focus_falloff;
+              gloco()->set_post_process("blur_focus_falloff", gloco()->open_props.blur_focus_falloff);
+              menu->mark_dirty();
+            }
+          });
+        }
       }
       draw_sub_row("Gamma", [&] {
         if (gui::drag(&menu->config.post_processing.gamma, 0.01f, 0.1f, 5.0f)) {
