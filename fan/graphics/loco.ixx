@@ -533,6 +533,13 @@ export struct loco_t {
 
   using buttons_cb_t = fan::window_t::buttons_cb_t;
 
+  enum class post_process_mode_e {
+    none,
+    bloom,
+    blur,
+    bloom_blur
+  };
+
   struct properties_t {
     bool render_shapes_top = false;
     bool vsync = true;
@@ -542,12 +549,26 @@ export struct loco_t {
     int window_open_mode = fan::window_t::mode::windowed;
     std::uint8_t renderer = fan::window_t::renderer_t::opengl;
     std::uint8_t samples = 0;
-    bool enable_bloom = true;
+    post_process_mode_e post_process_mode = post_process_mode_e::bloom;
+    f32_t blur_amount = 0.08f;
+    f32_t blur_filter_radius = 0.02f;
+    bool blur_focus_enabled = false;
+    bool blur_focus_follow_mouse = false;
+    fan::vec2 blur_focus_position = fan::vec2(0.5f, 0.5f);
+    f32_t blur_focus_radius = 0.25f;
+    f32_t blur_focus_falloff = 0.15f;
   }open_props;
   std::int32_t target_fps = 165; // must be changed from function
   bool init_gloco;
   fan::window_t& get_window();
   fan::window_t window; // destruct last
+
+  fan::vec2 ws() const {
+    return window.get_size();
+  }
+  fan::vec2 whs() const {
+    return ws() / 2.f;
+  }
 
 private:
   using shader_t = fan::graphics::shader_nr_t;

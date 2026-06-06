@@ -47,11 +47,21 @@ export namespace fan::graphics::gui {
       f32_t volume = 1.0f;
     };
     struct post_processing_t {
+      int mode = 1;
+      fan::color clear_color = fan::color(0.f, 0.f, 0.f, 1.f);
+      fan::color ambient_color = fan::color(0.1f, 0.1f, 0.1f, 1.f);
       f32_t bloom_strength = 0.0445f;
       f32_t bloom_threshold = 1.0f;
       f32_t bloom_knee = 0.1f;
       f32_t bloom_filter_radius = 0.1f;
       fan::vec3 bloom_tint{1.f, 1.f, 1.f};
+      f32_t blur_amount = 0.08f;
+      f32_t blur_filter_radius = 0.02f;
+      bool blur_focus_enabled = false;
+      bool blur_focus_follow_mouse = false;
+      fan::vec2 blur_focus_position = fan::vec2(0.5f, 0.5f);
+      f32_t blur_focus_radius = 0.25f;
+      f32_t blur_focus_falloff = 0.15f;
       f32_t gamma = 1.0f;
       f32_t exposure = 1.0f;
       f32_t contrast = 1.0f;

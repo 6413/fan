@@ -85,6 +85,7 @@ void open() {
 void close() {
 #if defined(LOCO_FRAMEBUFFER)
   blur.close();
+  raw_blur.close();
   reflection.close();
   alpha_shadow_renderer.close();
 #endif
@@ -184,6 +185,7 @@ void init_framebuffer() {
   static constexpr uint32_t mip_count = 6;
   // always open. it goes a bit complex to make blur open and close in the middle of frame
   loco.gl->blur.open(loco.window.get_size(), mip_count);
+  loco.gl->raw_blur.open(loco.window.get_size(), mip_count);
   loco.gl->alpha_shadow_renderer.open(2048, 4096, 2048);
 
   loco.gl->m_framebuffer.unbind(loco.context.gl);
@@ -906,19 +908,26 @@ void shapes_draw() {
 
     if ((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) {
       
-      loco.gl->alpha_shadow_renderer.render_overlay(
-        loco.gl->alpha_shadow_renderer.casters,
-        loco.gl->alpha_shadow_renderer.lights
-      );
+      //loco.gl->alpha_shadow_renderer.render_overlay(
+      //  loco.gl->alpha_shadow_renderer.casters,
+      //  loco.gl->alpha_shadow_renderer.lights
+      //);
 
       loco.gl->m_framebuffer.unbind(loco.context.gl);
 
-      if (loco.window.renderer == fan::window_t::renderer_t::opengl && loco.open_props.enable_bloom) {
-        loco.gl->blur.draw(&loco.gl->color_buffers[0]);
-      }
-
-      if (loco.window.renderer == fan::window_t::renderer_t::opengl && loco.open_props.enable_bloom) {
-        loco.gl->blur.draw(&loco.gl->color_buffers[0]);
+      if (loco.window.renderer == fan::window_t::renderer_t::opengl) {
+        const bool bloom_enabled =
+          loco.open_props.post_process_mode == loco_t::post_process_mode_e::bloom ||
+          loco.open_props.post_process_mode == loco_t::post_process_mode_e::bloom_blur;
+        const bool blur_enabled =
+          loco.open_props.post_process_mode == loco_t::post_process_mode_e::blur ||
+          loco.open_props.post_process_mode == loco_t::post_process_mode_e::bloom_blur;
+        if (bloom_enabled) {
+          loco.gl->blur.draw(&loco.gl->color_buffers[0]);
+        }
+        if (blur_enabled) {
+          loco.gl->raw_blur.draw_raw(&loco.gl->color_buffers[0], loco.open_props.blur_filter_radius);
+        }
       }
 
       //blur[1].draw(&color_buffers[3]);
@@ -926,6 +935,15 @@ void shapes_draw() {
       fan_opengl_call(glClearColor(loco.renderer_state.clear_color.r, loco.renderer_state.clear_color.g, loco.renderer_state.clear_color.b, loco.renderer_state.clear_color.a));
       fan_opengl_call(glClear(GL_COLOR_BUFFER_BIT));
       fan::vec2 window_size = loco.window.get_size();
+      if (loco.open_props.blur_focus_follow_mouse) {
+        fan::vec2 mouse_position = loco.get_raw_mouse_position();
+        auto clamp01 = [](f32_t v) {
+          return v < 0.f ? 0.f : (v > 1.f ? 1.f : v);
+        };
+        f32_t x = window_size.x == 0.f ? 0.f : mouse_position.x / window_size.x;
+        f32_t y = window_size.y == 0.f ? 0.f : mouse_position.y / window_size.y;
+        loco.open_props.blur_focus_position = fan::vec2(clamp01(x), clamp01(y));
+      }
       loco.viewport_set(0, window_size);
 
       loco.gl->m_framebuffer.bind(loco.context.gl);
@@ -934,8 +952,14 @@ void shapes_draw() {
 
       loco.shader_set_value(loco.gl->m_fbo_final_shader, "_t00", 0);
       loco.shader_set_value(loco.gl->m_fbo_final_shader, "_t01", 1);
+      loco.shader_set_value(loco.gl->m_fbo_final_shader, "_t03", 3);
       loco.shader_set_value(loco.gl->m_fbo_final_shader, "framebuffer_alpha", loco.renderer_state.clear_color.a);
-      loco.shader_set_value(loco.gl->m_fbo_final_shader, "enable_bloom", loco.open_props.enable_bloom);
+      loco.shader_set_value(loco.gl->m_fbo_final_shader, "post_process_mode", (int)loco.open_props.post_process_mode);
+      loco.shader_set_value(loco.gl->m_fbo_final_shader, "blur_amount", loco.open_props.blur_amount);
+      loco.shader_set_value(loco.gl->m_fbo_final_shader, "blur_focus_enabled", loco.open_props.blur_focus_enabled);
+      loco.shader_set_value(loco.gl->m_fbo_final_shader, "blur_focus_position", loco.open_props.blur_focus_position);
+      loco.shader_set_value(loco.gl->m_fbo_final_shader, "blur_focus_radius", loco.open_props.blur_focus_radius);
+      loco.shader_set_value(loco.gl->m_fbo_final_shader, "blur_focus_falloff", loco.open_props.blur_focus_falloff);
 
       loco.shader_set_value(loco.gl->m_fbo_final_shader, "window_size", window_size);
 
@@ -946,9 +970,19 @@ void shapes_draw() {
       }
 
       if (loco.window.renderer == fan::window_t::renderer_t::opengl) {
-        if (loco.open_props.enable_bloom) {
+        const bool bloom_enabled =
+          loco.open_props.post_process_mode == loco_t::post_process_mode_e::bloom ||
+          loco.open_props.post_process_mode == loco_t::post_process_mode_e::bloom_blur;
+        const bool blur_enabled =
+          loco.open_props.post_process_mode == loco_t::post_process_mode_e::blur ||
+          loco.open_props.post_process_mode == loco_t::post_process_mode_e::bloom_blur;
+        if (bloom_enabled) {
           fan_opengl_call(glActiveTexture(GL_TEXTURE1));
           loco.image_bind(loco.gl->blur.mips.front().image);
+        }
+        if (blur_enabled) {
+          fan_opengl_call(glActiveTexture(GL_TEXTURE3));
+          loco.image_bind(loco.gl->raw_blur.mips.front().image);
         }
 
         render_final_fb();

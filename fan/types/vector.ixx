@@ -543,6 +543,8 @@ export namespace fan {
   inline constexpr bool is_vector_type_v<vec_wrap_t<N, T>> = true;
   template <typename T>
   concept is_vector = is_vector_type_v<std::remove_cvref_t<T>>;
+  template <typename T>
+  concept is_not_vector = !is_vector_type_v<std::remove_cvref_t<T>>;
   
   template <class K>
   std::uint32_t get_hash_fast(const K& v) noexcept {

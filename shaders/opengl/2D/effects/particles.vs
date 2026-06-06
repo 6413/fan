@@ -111,12 +111,6 @@ mat4 scale(mat4 m, vec3 v){
   return matrix;
 }
 
-vec2 vec2_direction(uint r, uint r2, float min, float max){
-  float rr = mod(2.0 * 3.141 * floatConstruct(r), -max) - min;
-  float rr2 = mod(2.0 * 3.141 * floatConstruct(r2), -max) - min;
-  return vec2(cos(rr), sin(rr2));
-}
-
 void main() {
   int modded_index = gl_VertexID % (int(count) * 6);
   uint id = uint(gl_VertexID) / vertex_count + 1u;
@@ -223,11 +217,13 @@ void main() {
                      sin(ang) * spread_max.y * r);
   }
 
-  vec2 dir = vec2_direction(RAND(seed + 2u), RAND(seed + 3u), begin_angle, end_angle);
-  dir = normalize(dir);
-
   vec2 vel_mag = mix(start_velocity, end_velocity, t);
-  vec2 velocity = dir * vel_mag;
+  float spread = mix(begin_angle, end_angle, floatConstruct(RAND(seed + 2u)));
+  float ca = cos(spread), sa = sin(spread);
+  vec2 velocity = vec2(
+    vel_mag.x * ca - vel_mag.y * sa,
+    vel_mag.x * sa + vel_mag.y * ca
+  );
 
   float expansion = pow(time_mod, expansion_power);
   base_pos += velocity * expansion;

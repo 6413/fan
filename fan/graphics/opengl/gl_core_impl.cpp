@@ -1180,6 +1180,7 @@ namespace fan::opengl {
     if (format == fan::graphics::image_format_e::r8_uint) return GL_RED_INTEGER;
     if (format == fan::graphics::image_format_e::r8g8b8a8_srgb) return GL_SRGB8_ALPHA8;
     if (format == fan::graphics::image_format_e::r11f_g11f_b10f) return GL_R11F_G11F_B10F;
+    if (format == fan::graphics::image_format_e::rgba32f) return GL_RGBA32F;
 
   #if FAN_DEBUG >= fan_debug_high
     fan::throw_error("invalid format");
@@ -1250,6 +1251,7 @@ namespace fan::opengl {
     if (format == GL_RED_INTEGER) return fan::graphics::image_format_e::r8_uint;
     if (format == GL_SRGB8_ALPHA8) return fan::graphics::image_format_e::r8g8b8a8_srgb;
     if (format == GL_R11F_G11F_B10F) return fan::graphics::image_format_e::r11f_g11f_b10f;
+    if (format == GL_RGBA32F) return fan::graphics::image_format_e::rgba32f;
 
   #if FAN_DEBUG >= fan_debug_high
     fan::throw_error("invalid format");
