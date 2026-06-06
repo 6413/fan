@@ -2,6 +2,11 @@ struct blur_t {
   loco_t& get_loco() { return *gloco(); }
   #define loco get_loco()
 
+  enum class blur_mode_e {
+    bloom,
+    raw
+  };
+
   void open(const fan::vec2& resolution, uint32_t mip_count) {
     auto& gl = loco.context.gl;
     brightness_fbo.open(gl);
@@ -78,7 +83,7 @@ struct blur_t {
     fan_opengl_call(glBindVertexArray(0));
   }
 
-  void draw(fan::graphics::image_t* color_texture, f32_t filter_radius) {
+  void draw(fan::graphics::image_t* color_texture, f32_t filter_radius, blur_mode_e mode) {
     auto& context = loco.context.gl;
 
     fan_opengl_call(glDisable(GL_DEPTH_TEST));
@@ -95,6 +100,7 @@ struct blur_t {
     loco.shader_set_value(shader_downsample, "_t00", 0);
     loco.shader_set_value(shader_downsample, "threshold", threshold);
     loco.shader_set_value(shader_downsample, "knee", knee);
+    loco.shader_set_value(shader_downsample, "blur_mode", (int)mode);
 
     fan_opengl_call(glActiveTexture(GL_TEXTURE0));
     loco.image_bind(*color_texture);
@@ -112,10 +118,11 @@ struct blur_t {
     loco.shader_use(shader_upsample);
     loco.shader_set_value(shader_upsample, "_t00", 0);
 
-    fan_opengl_call(glEnable(GL_BLEND));
-    fan_opengl_call(glBlendFunc(GL_ONE, GL_ONE));
-    //fan_opengl_call(glBlendEquation(GL_FUNC_ADD));
-    fan_opengl_call(glBlendEquation(GL_MAX));
+    if (mode == blur_mode_e::bloom) {
+      fan_opengl_call(glEnable(GL_BLEND));
+      fan_opengl_call(glBlendFunc(GL_ONE, GL_ONE));
+      fan_opengl_call(glBlendEquation(GL_FUNC_ADD));
+    }
 
     for (int i = (int)mips.size() - 1; i > 0; i--) {
       mip_t& mip = mips[i];
@@ -125,20 +132,26 @@ struct blur_t {
       loco.image_bind(mip.image);
       fan_opengl_call(glViewport(0, 0, next_mip.int_size.x, next_mip.int_size.y));
       brightness_fbo.bind_to_texture(context, loco.image_get_handle(next_mip.image), GL_COLOR_ATTACHMENT0);
-      
+
       fan::vec2 texel_size = fan::vec2(1.0f / mip.size.x, 1.0f / mip.size.y) * filter_radius;
-      loco.shader_set_value(shader_upsample, "filter_radius", texel_size * 10.f);
+      loco.shader_set_value(shader_upsample, "filter_radius", texel_size * 3.f);
 
       render_quad();
     }
 
-    fan_opengl_call(glBlendEquation(GL_FUNC_ADD));
-    fan_opengl_call(glDisable(GL_BLEND));
+    if (mode == blur_mode_e::bloom) {
+      fan_opengl_call(glDisable(GL_BLEND));
+    }
     brightness_fbo.unbind(context);
     fan_opengl_call(glViewport(0, 0, window_size.x, window_size.y));
   }
 
-  void draw(fan::graphics::image_t* color_texture) { draw(color_texture, bloom_filter_radius); }
+  void draw(fan::graphics::image_t* color_texture) {
+    draw(color_texture, bloom_filter_radius, blur_mode_e::bloom);
+  }
+  void draw_raw(fan::graphics::image_t* color_texture, f32_t filter_radius) {
+    draw(color_texture, filter_radius, blur_mode_e::raw);
+  }
 
   fan::opengl::core::framebuffer_t brightness_fbo;
 
