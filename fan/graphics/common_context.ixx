@@ -379,13 +379,19 @@ export namespace fan::graphics{
 
 export namespace fan::graphics {
   using camera_t = fan::graphics::camera_nr_t;
-  using shader_t = fan::graphics::shader_nr_t;
+  struct shader_t : fan::graphics::shader_nr_t {
+    using shader_nr_t::shader_nr_t;
+    shader_t(shader_nr_t nr) : shader_nr_t(nr) {}
+    template <typename T>
+    void set_value(auto& engine, const std::string_view name, const T& val) {
+      engine.shader_set_value(*this, name, val);
+    }
+  };
   using viewport_t = fan::graphics::viewport_nr_t;
   // image_t defined after render_context_handle_t
 
   struct render_view_t;
 
-  
   struct lighting_t {
     static constexpr const char* ambient_name = "lighting_ambient";
     fan::vec3 ambient = fan::vec3(1, 1, 1);
@@ -776,6 +782,9 @@ export namespace fan::graphics {
 
 export namespace fan::shader_paths {
   namespace gl {
+
+    constexpr const char* blit_fs =               "shaders/opengl/2D/blit.fs";
+    constexpr const char* blit_vs =               "shaders/opengl/2D/blit.vs";
 
     // 2D shapes
     constexpr const char* capsule_fs =               "shaders/opengl/2D/objects/capsule.fs";

@@ -36,52 +36,45 @@ import fan.graphics.loco;
 
 #include <fan/graphics/opengl/init.h>
 
+using namespace fan::opengl;
 
-namespace fan {
-  namespace model {
-    inline static std::unordered_map<std::string, fan::graphics::image_t> cached_images;
+export namespace fan::model {
+  inline int get_texture_index(
+    const std::string_view path,
+    std::vector<const pm_texture_data_t*>& active_textures
+  ) {
+    if (path.empty()) {
+      return -1;
+    }
+
+    const auto fname = std::filesystem::path(path).filename();
+
+    for (const auto& [k, v] : cached_texture_data) {
+      if (
+        std::filesystem::path(k).filename() == fname &&
+        !v.data.empty() &&
+        v.channels >= 3
+        ) {
+        auto it = std::find(active_textures.begin(), active_textures.end(), &v);
+
+        if (it != active_textures.end()) {
+          return std::distance(active_textures.begin(), it);
+        }
+
+        active_textures.push_back(&v);
+        return active_textures.size() - 1;
+      }
+    }
+
+    return -1;
   }
 }
-
-using namespace fan::opengl;
 
 export namespace fan {
   namespace graphics {
     std::vector<fan::model::mesh_t> load_meshes(const fan::model::fms_t::properties_t& p) {
       fan::model::fms_t fms(p);
-      std::vector<fan::model::mesh_t> meshes = std::move(fms.meshes);
-      for (auto& mesh : meshes) {
-        for (const std::string& name : mesh.texture_names) {
-          if (name.empty()) {
-            continue;
-          }
-          auto found = fan::model::cached_images.find(name);
-          if (found != fan::model::cached_images.end()) {
-            continue;
-          }
-          fan::image::info_t ii;
-          auto& td = fan::model::cached_texture_data[name];
-          ii.data = td.data.data();
-          ii.size = td.size;
-          ii.channels = td.channels;
-          static constexpr std::uint32_t gl_formats[] = {
-            0,
-            fan::graphics::image_format_e::r8_unorm,
-            0,
-            fan::graphics::image_format_e::rg8_unorm,
-            fan::graphics::image_format_e::rgba_unorm
-          };
-          if (ii.channels < std::size(gl_formats) && gl_formats[ii.channels]) {
-            fan::model::cached_images[name] = fan::graphics::image_load(ii);
-          } else if (ii.data == nullptr) {
-            continue;
-          } else {
-            fan::print_impl("unimplemented channel", ii.channels);
-            fan::model::cached_images[name] = fan::graphics::get_default_texture();
-          }
-        }
-      }
-      return meshes;
+      return std::move(fms.meshes);
     }
 
     struct model_t : fan::model::fms_t{
@@ -94,6 +87,13 @@ export namespace fan {
         camera_nr = p.camera;
         viewport_nr = p.viewport;
         meshes = load_meshes(p);
+        mesh_images.resize(meshes.size());
+        for (std::size_t mi = 0; mi < meshes.size(); ++mi) {
+          for (std::size_t ti = 0; ti < fan::model::texture_max; ++ti) {
+            const auto& name = meshes[mi].texture_names[ti];
+            mesh_images[mi][ti] = name.empty() ? fan::graphics::get_default_texture() : fan::graphics::image_load(name);
+          }
+        }
         std::string vs = fan::graphics::read_shader(fan::shader_paths::gl::model3d_vs);
         std::string fs = fan::graphics::read_shader(fan::shader_paths::gl::model3d_fs);
         m_shader = fan::graphics::shader_create();
@@ -174,6 +174,10 @@ export namespace fan {
           fan::throw_error("implement calculated_meshes here");
         }
       }
+      fan::graphics::image_t get_tex_id(std::size_t mesh_index, std::size_t tex_index) const {
+        auto image = mesh_images[mesh_index][tex_index];
+        return image.iic() ? fan::graphics::get_default_texture() : image;
+      }
       void draw(const fan::mat4& model_transform = fan::mat4(1), const std::vector<fan::mat4>& bone_transforms = {}) {
         auto viewport = fan::graphics::viewport_get(viewport_nr);
         fan::graphics::viewport_set(viewport.position, viewport.size);
@@ -208,21 +212,11 @@ export namespace fan {
             for (auto& tex : meshes[mesh_index].texture_names) {
               std::ostringstream oss;
               oss << "_t" << std::setw(2) << std::setfill('0') << (int)tex_index;
-              if (tex.empty()) {
-                fan_opengl_call(glActiveTexture(GL_TEXTURE0 + tex_index));
-                fan::graphics::get_gl_context().shader_set_value(m_shader, oss.str(), tex_index);
-                fan::graphics::image_bind(fan::graphics::get_default_texture());
-                ++tex_index;
-                continue;
-              }
 
-              //tex.second.texture_datas
               fan_opengl_call(glActiveTexture(GL_TEXTURE0 + tex_index));
               fan::graphics::get_gl_context().shader_set_value(m_shader, oss.str(), tex_index);
-              if (fan::model::cached_images[tex].iic()) {
-                fan::model::cached_images[tex] = fan::graphics::get_default_texture();
-              }
-              fan::graphics::image_bind(fan::model::cached_images[tex]);
+              fan::graphics::image_bind(mesh_images[mesh_index][tex_index]);
+
               ++tex_index;
             }
           }
@@ -251,17 +245,23 @@ export namespace fan {
         auto& style = gui::get_style();
         f32_t cursor_pos_x = 64 + style.ItemSpacing.x;
 
-        for (auto& i : fan::model::cached_images) {
-          fan::vec2 imageSize(64, 64);
-          fan::graphics::gui::image(i.second, imageSize);
+        for (auto& mesh : mesh_images) {
+          for (auto image : mesh) {
+            if (image.iic()) {
+              continue;
+            }
 
-          if (cursor_pos_x + imageSize.x > gui::get_content_region_avail().x) {
-            gui::new_line();
-            cursor_pos_x = imageSize.x + style.ItemSpacing.x;
-          }
-          else {
-            gui::new_line();
-            cursor_pos_x += imageSize.x + style.ItemSpacing.x;
+            fan::vec2 image_size(64, 64);
+            fan::graphics::gui::image(image, image_size);
+
+            if (cursor_pos_x + image_size.x > gui::get_content_region_avail().x) {
+              gui::new_line();
+              cursor_pos_x = image_size.x + style.ItemSpacing.x;
+            }
+            else {
+              gui::same_line();
+              cursor_pos_x += image_size.x + style.ItemSpacing.x;
+            }
           }
         }
         gui::end();
@@ -286,6 +286,7 @@ export namespace fan {
       GLuint envMapTexture;
       fan::graphics::camera_t camera_nr;
       fan::graphics::viewport_t viewport_nr;
+      std::vector<std::array<fan::graphics::image_t, fan::model::texture_max>> mesh_images;
     };
   }
 }

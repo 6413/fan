@@ -212,6 +212,8 @@ void shaders_compile() {
     compile(sh.sprite, sprite_2_1_vs, sprite_2_1_fs);
   } 
   else {
+    compile(sh.blit,                     blit_vs,                  blit_fs);
+
     // objects
     C(capsule);    C(circle);    C(grid);       C(light);  C(line);
     C(polygon);    C(rectangle); C(shadow);     C(sprite);
