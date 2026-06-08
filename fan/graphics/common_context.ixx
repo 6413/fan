@@ -142,6 +142,14 @@ export namespace fan {
         };
         fan::vec4 v;
       }coordinates{};
+
+      friend std::ostream& operator<<(std::ostream& os, const context_camera_t& c) {
+        return os << std::format(
+          "pos: {:.1f} {:.1f} {:.1f}\nyaw: {:.2f}  pitch: {:.2f}\nnear: {:.2f}  far: {:.1f}  zoom: {:.2f}",
+          c.position.x, c.position.y, c.position.z, c.yaw, c.pitch, c.znear, c.zfar, c.zoom
+        );
+      }
+
       fan::vec4 original_coordinates = fan::vec4(0, 0, 0, 0);
     };
 
@@ -522,6 +530,8 @@ export namespace fan::graphics {
     std::vector<std::uint8_t> get_pixel_data(int image_format, fan::vec2 uvp = 0, fan::vec2 uvs = 1) const;
     std::vector<std::uint8_t> read_pixels(const fan::vec2& uv_position = 0, const fan::vec2& uv_size = 1) const;
     void bind() const;
+    void bind(std::uint32_t unit) const;
+    void bind(std::uint32_t unit, std::uint32_t access, std::uint32_t format) const;
     void unbind() const;
     std::uint64_t get_handle() const;
     image_load_properties_t& get_settings();
@@ -549,6 +559,8 @@ export namespace fan::graphics {
     operator fan::graphics::viewport_t&();
     fan::vec3 get_camera_position() const;
     void set_camera_position(fan::vec3 pos);
+    context_camera_t& get_camera();
+    context_viewport_t& get_viewport();
   };
 
   fan::vec2 translate_position(const fan::vec2& p, viewport_t viewport, camera_t camera);
