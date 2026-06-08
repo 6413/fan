@@ -24,6 +24,7 @@ import std;
 #if defined(FAN_3D)
 
 import fan.utility;
+import fan.types.color;
 import fan.graphics.image_load;
 import fan.print.error;
 import fan.types;
@@ -161,7 +162,7 @@ export namespace fan {
     };
     std::unordered_map<std::string, pm_texture_data_t> cached_texture_data;
     struct pm_material_data_t {
-      fan::vec4 color[AI_TEXTURE_TYPE_MAX + 1];
+      fan::color color[AI_TEXTURE_TYPE_MAX + 1];
     };
     // fan model stuff
     struct fms_t {
