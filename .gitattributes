@@ -1,6 +1,40 @@
-*.cpp linguist-detectable=true
-*.c linguist-detectable=true
-*.fs linguist-detectable=true
-*.vs linguist-detectable=true
-*.cu linguist-detectable=true
-*. linguist-detectable=true
+* text=auto
+
+*.c text eol=lf
+*.cc text eol=lf
+*.cpp text eol=lf
+*.cxx text eol=lf
+*.h text eol=lf
+*.hh text eol=lf
+*.hpp text eol=lf
+*.hxx text eol=lf
+*.ixx text eol=lf
+
+*.vs text eol=lf
+*.fs text eol=lf
+*.vert text eol=lf
+*.frag text eol=lf
+*.geom text eol=lf
+*.tesc text eol=lf
+*.tese text eol=lf
+*.comp text eol=lf
+*.glsl text eol=lf
+
+*.lua text eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+
+*.sln text eol=crlf
+*.vcxproj text eol=crlf
+*.filters text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+*.spv binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
