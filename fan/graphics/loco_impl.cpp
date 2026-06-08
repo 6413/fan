@@ -152,6 +152,18 @@ std::uint8_t loco_t::get_renderer() {
 
 #if defined(FAN_OPENGL) || defined(FAN_VULKAN)
 
+fan::graphics::shader_t loco_t::shader_make_compute(
+  const std::string_view file_path,
+  const std::source_location& callers_path) 
+{
+  shader_t nr;
+  std::string comp_src = fan::graphics::read_shader(file_path);
+  nr = gloco()->shader_create();
+  gloco()->shader_set_compute(nr, file_path, comp_src);
+  gloco()->shader_compile(nr);
+  return nr;
+}
+
 fan::graphics::shader_nr_t loco_t::shader_create() {
   return context_functions.shader_create(&context);
 }

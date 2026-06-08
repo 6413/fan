@@ -1987,6 +1987,33 @@ export namespace fan {
       fan::vec3 aabbmin = 0;
       fan::vec3 aabbmax = 0;
     };
+
+    int get_texture_index(
+      const std::string& path,
+      std::vector<const pm_texture_data_t*>& active_textures) 
+    {
+      if (path.empty()) {
+        return -1;
+      }
+
+      auto found = cached_texture_data.find(path);
+      if (found == cached_texture_data.end()) {
+        return -1;
+      }
+
+      const auto& td = found->second;
+      if (td.data.empty() || td.channels < 3) {
+        return -1;
+      }
+
+      auto it = std::find(active_textures.begin(), active_textures.end(), &td);
+      if (it != active_textures.end()) {
+        return std::distance(active_textures.begin(), it);
+      }
+
+      active_textures.push_back(&td);
+      return active_textures.size() - 1;
+    }
   }
 }
 

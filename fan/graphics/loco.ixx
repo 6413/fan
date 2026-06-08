@@ -581,6 +581,11 @@ private:
 public:
 
   std::uint8_t get_renderer();
+
+  fan::graphics::shader_t shader_make_compute(
+    const std::string_view file_path,
+    const std::source_location& callers_path = std::source_location::current()
+  );
   fan::graphics::shader_nr_t shader_create();
   fan::graphics::context_shader_t shader_get(fan::graphics::shader_nr_t nr);
   void shader_erase(fan::graphics::shader_nr_t nr);

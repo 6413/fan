@@ -1,4 +1,6 @@
 struct shaders_t {
+  fan::graphics::shader_t blit;
+
   // 2D objects
   fan::graphics::shader_t capsule;
   fan::graphics::shader_t circle;
