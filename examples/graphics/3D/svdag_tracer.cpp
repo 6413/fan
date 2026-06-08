@@ -7,8 +7,6 @@ import fan;
 using namespace fan::graphics;
 namespace fm = fan::math;
 
-static constexpr f32_t world_size = 512.f;
-
 #define gl (gloco()->get_context().gl)
 
 struct gpu_mat_t {
@@ -147,21 +145,6 @@ static build_data_t extract_build_tris(const std::string& path, int voxel_res) {
   fan::model::fms_t fms({.path = path});
   build_data_t out_data;
   std::vector<const fan::model::pm_texture_data_t*> active_textures;
-
-  auto get_tex_idx = [&](const std::string& tex_path) -> int {
-    if (tex_path.empty()) { return -1; }
-    std::string fname = std::filesystem::path(tex_path).filename().string();
-    for (const auto& [k, v] : fan::model::cached_texture_data) {
-      if (std::filesystem::path(k).filename().string() == fname && !v.data.empty() && v.channels >= 3) {
-        auto it = std::find(active_textures.begin(), active_textures.end(), &v);
-        if (it != active_textures.end()) { return std::distance(active_textures.begin(), it); }
-        active_textures.push_back(&v);
-        return active_textures.size() - 1;
-      }
-    }
-    return -1;
-  };
-
   for (std::size_t mi = 0; mi < fms.meshes.size(); ++mi) {
     const auto& m = fms.meshes[mi];
     gpu_mat_t mat;
@@ -171,8 +154,8 @@ static build_data_t extract_build_tris(const std::string& path, int voxel_res) {
       auto not_white = [](const fan::vec4& c) { return c.x != 1.f || c.y != 1.f || c.z != 1.f; };
       mat.base_color = not_white(bc) ? bc : (not_white(dc) ? dc : mat.base_color);
     }
-    if (1 < std::size(m.texture_names)) { mat.diffuse_tex = get_tex_idx(m.texture_names[1]); }
-    if (6 < std::size(m.texture_names)) { mat.normal_tex = get_tex_idx(m.texture_names[6]); }
+    if (1 < std::size(m.texture_names)) { mat.diffuse_tex = fan::model::get_texture_index(m.texture_names[1], active_textures); }
+    if (6 < std::size(m.texture_names)) { mat.normal_tex = fan::model::get_texture_index(m.texture_names[6], active_textures); }
     out_data.mats.push_back(mat);
   }
   if (out_data.mats.empty()) { out_data.mats.push_back({}); }
@@ -230,18 +213,8 @@ struct svdag_renderer_t {
   svdag_renderer_t(const build_data_t& bdata, int res, const std::string& cache_path)
     : bmin(bdata.bmin), bmax(bdata.bmax), go(bdata.go), sf(bdata.sf), tex_array(bdata.tex_array), voxel_res(res)
   {
-    blit_nr = gloco()->shader_create();
-    gloco()->shader_set_vertex(blit_nr, "", R"(#version 430 core
-out vec2 v_uv; void main() { v_uv = vec2((gl_VertexID<<1)&2, gl_VertexID&2); gl_Position = vec4(v_uv*2.0-1.0, 0.0, 1.0); })");
-    gloco()->shader_set_fragment(blit_nr, "", R"(#version 430 core
-uniform sampler2D u_tex; in vec2 v_uv; out vec4 out_color; void main() { out_color = texture(u_tex, v_uv); })");
-    gloco()->shader_compile(blit_nr);
-
     std::string_view comp_path = "shaders/opengl/3D/compute/svdag_tracer.comp";
-    std::string comp_src; fan::io::file::read(comp_path, &comp_src);
-    trace_nr = gloco()->shader_create();
-    gloco()->shader_set_compute(trace_nr, comp_path, comp_src);
-    gloco()->shader_compile(trace_nr);
+    trace_nr = gloco()->shader_make_compute(comp_path);
 
     if (cache_path.empty() || !dag.load(cache_path)) {
       fan::print("Building SVDAG...");
@@ -289,26 +262,23 @@ uniform sampler2D u_tex; in vec2 v_uv; out vec4 out_color; void main() { out_col
       gloco()->shader_set_value(trace_nr, "u_tex_array", 1);
     }
 
-    gloco()->shader_set_value(trace_nr, "u_inv_view_proj", inv_view_proj);
-    gloco()->shader_set_value(trace_nr, "u_cam_pos", (cam_pos - bmin) * sf + go);
-    gloco()->shader_set_value(trace_nr, "u_resolution", fan::vec2(res.x, res.y));
-    gloco()->shader_set_value(trace_nr, "u_voxel_scale", world_size);
-    gloco()->shader_set_value(trace_nr, "u_voxel_res", voxel_res);
-    gloco()->shader_set_value(trace_nr, "u_sun_dir", sun_dir.normalize());
-    gloco()->shader_set_value(trace_nr, "u_max_depth", fm::max(1, (int)std::round(std::log2(voxel_res))));
-    gloco()->shader_set_value(trace_nr, "u_mesh_min", go);
-    gloco()->shader_set_value(trace_nr, "u_mesh_max", (bmax - bmin) * sf + go);
+    trace_nr.set_value(gl, "u_inv_view_proj", inv_view_proj);
+    trace_nr.set_value(gl, "u_cam_pos", (cam_pos - bmin) * sf + go);
+    trace_nr.set_value(gl, "u_resolution", fan::vec2(res.x, res.y));
+    trace_nr.set_value(gl, "u_voxel_res", voxel_res);
+    trace_nr.set_value(gl, "u_sun_dir", sun_dir.normalize());
+    trace_nr.set_value(gl, "u_max_depth", fm::max(1, (int)std::round(std::log2(voxel_res))));
 
     glDispatchCompute((res.x + 7) / 8, (res.y + 7) / 8, 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 
     auto set_blend = fan::make_restore_flag(false, [&](bool f) { gl.set_depth_test(f); gl.set_blending(f); });
     vao.bind(gl); glActiveTexture(GL_TEXTURE0); img_screen.bind();
-    gloco()->shader_set_value(blit_nr, "u_tex", 0);
+    gloco()->shader_set_value(gloco()->shaders.blit, "u_tex", 0);
     glDrawArrays(GL_TRIANGLES, 0, 3);
   }
 
-  shader_t trace_nr, blit_nr;
+  shader_t trace_nr;
   fan::opengl::core::gpu_buffer_t ssbo_nodes, ssbo_ptrs, ssbo_mats, ssbo_leaf_base, ssbo_leaf_data;
   fan::opengl::core::vao_t vao;
   image_t img_screen;
@@ -321,7 +291,7 @@ uniform sampler2D u_tex; in vec2 v_uv; out vec4 out_color; void main() { out_col
 };
 
 struct game_t {
-  game_t() : engine({.window_size = {1280, 720}}) {
+  game_t() {
     renderer = std::make_unique<svdag_renderer_t>(extract_build_tris("models/oldman.gltf", voxel_res), voxel_res, "");
     engine.camera_set_position(engine.perspective_render_view, {209.4, -9.7, 122.5});
     auto& cam = engine.camera_get(engine.perspective_render_view);
