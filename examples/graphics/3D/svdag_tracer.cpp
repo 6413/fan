@@ -10,7 +10,7 @@ namespace fm = fan::math;
 #define gl (gloco()->get_context().gl)
 
 struct gpu_mat_t {
-  fan::vec4 base_color{1.f, 1.f, 1.f, 1.f};
+  fan::color base_color{1.f};
   int diffuse_tex = -1;
   int normal_tex = -1;
   f32_t tex_scale = 1.f;
@@ -27,11 +27,12 @@ static_assert(sizeof(gpu_leaf_data_t) == 96);
 
 struct svdag_t {
   struct build_tri_t { fan::vec3 v0, v1, v2; fan::vec2 uv0, uv1, uv2; std::uint16_t mat_id; };
-  struct child_info_t { int cx, cy, cz; std::vector<std::uint32_t> tris; };
+  struct child_info_t { fan::vec3i c; std::vector<std::uint32_t> tris; };
 
-  std::uint32_t build_node(const std::vector<build_tri_t>& tris, const std::vector<std::uint32_t>& tri_idx, int ox, int oy, int oz, int size) {
+  std::uint32_t build_node(const std::vector<build_tri_t>& tris, const std::vector<std::uint32_t>& tri_idx, fan::vec3i o, int size) {
     std::uint32_t node_idx = nodes.size();
     nodes.push_back(0); child_ptrs.push_back(0); leaf_base.push_back(0);
+    leaf_base[node_idx] = leaf_data.size();
 
     int hs = size / 2;
     std::uint32_t vm = 0, lm = 0;
@@ -41,12 +42,14 @@ struct svdag_t {
     bool mat_set = false;
     std::uint16_t leaf_mat = 0;
 
+    int non_leaf_count = 0;
+
     for (int i = 0; i < 8; ++i) {
       auto& c = children[i];
-      c.cx = ox + ((i & 1) ? hs : 0);
-      c.cy = oy + ((i >> 1 & 1) ? hs : 0);
-      c.cz = oz + ((i >> 2 & 1) ? hs : 0);
-      fan::vec3 center(c.cx + hs * 0.5f, c.cy + hs * 0.5f, c.cz + hs * 0.5f);
+      c.c[0] = o[0] + ((i & 1) ? hs : 0);
+      c.c[1] = o[1] + ((i >> 1 & 1) ? hs : 0);
+      c.c[2] = o[2] + ((i >> 2 & 1) ? hs : 0);
+      fan::vec3 center(c.c + hs * 0.5f);
       for (std::uint32_t ti : tri_idx) {
         if (fm::d3::triangle_intersects_aabb(tris[ti].v0, tris[ti].v1, tris[ti].v2, center, hsv3)) {
           c.tris.push_back(ti);
@@ -57,17 +60,10 @@ struct svdag_t {
       if (hs == 1) {
         lm |= (1u << i);
         if (!mat_set) { leaf_mat = tris[c.tris[0]].mat_id; mat_set = true; }
-      }
-    }
-
-    leaf_base[node_idx] = leaf_data.size();
-    int non_leaf_count = 0;
-    for (int i = 0; i < 8; ++i) {
-      if (children[i].tris.empty()) { continue; }
-      if (lm & (1u << i)) {
-        auto& t = tris[children[i].tris[0]];
+        auto& t = tris[c.tris[0]];
         leaf_data.push_back({fan::vec4(t.v0, 1.f), fan::vec4(t.v1, 1.f), fan::vec4(t.v2, 1.f), t.uv0, t.uv1, t.uv2, t.mat_id, {}});
-      } else {
+      }
+      else {
         ++non_leaf_count;
       }
     }
@@ -84,7 +80,7 @@ struct svdag_t {
     int slot = 0;
     for (int i = 0; i < 8; ++i) {
       if (!children[i].tris.empty() && !(lm & (1u << i))) {
-        std::uint32_t cr = build_node(tris, children[i].tris, children[i].cx, children[i].cy, children[i].cz, hs);
+        std::uint32_t cr = build_node(tris, children[i].tris, children[i].c, hs);
         nodes[first_child + slot] = nodes[cr];
         child_ptrs[first_child + slot] = child_ptrs[cr];
         leaf_base[first_child + slot] = leaf_base[cr];
@@ -101,7 +97,7 @@ struct svdag_t {
     leaf_base.reserve(1 << 20); leaf_data.reserve(1 << 20);
     std::vector<std::uint32_t> root_idx(tris.size());
     std::iota(root_idx.begin(), root_idx.end(), 0);
-    build_node(tris, root_idx, 0, 0, 0, res);
+    build_node(tris, root_idx, 0, res);
   }
 
   bool save(const std::string& path) const {
@@ -143,7 +139,7 @@ struct build_data_t {
 
 static build_data_t extract_build_tris(const std::string& path, int voxel_res) {
   fan::model::fms_t fms({.path = path});
-  build_data_t out_data;
+  build_data_t out_data({.mats{!fms.meshes.size()}});
   std::vector<const fan::model::pm_texture_data_t*> active_textures;
   for (std::size_t mi = 0; mi < fms.meshes.size(); ++mi) {
     const auto& m = fms.meshes[mi];
@@ -151,14 +147,13 @@ static build_data_t extract_build_tris(const std::string& path, int voxel_res) {
     if (mi < fms.material_data_vector.size()) {
       const auto& bc = fms.material_data_vector[mi].color[12];
       const auto& dc = fms.material_data_vector[mi].color[1];
-      auto not_white = [](const fan::vec4& c) { return c.x != 1.f || c.y != 1.f || c.z != 1.f; };
+      auto not_white = [](const auto& c) { return c != fan::colors::white; };
       mat.base_color = not_white(bc) ? bc : (not_white(dc) ? dc : mat.base_color);
     }
-    if (1 < std::size(m.texture_names)) { mat.diffuse_tex = fan::model::get_texture_index(m.texture_names[1], active_textures); }
-    if (6 < std::size(m.texture_names)) { mat.normal_tex = fan::model::get_texture_index(m.texture_names[6], active_textures); }
-    out_data.mats.push_back(mat);
+    mat.diffuse_tex = fan::model::get_texture_index(m.texture_names[fan::texture_type::diffuse], active_textures);
+    mat.normal_tex = fan::model::get_texture_index(m.texture_names[fan::texture_type::normals], active_textures);
+    out_data.mats.push_back(std::move(mat));
   }
-  if (out_data.mats.empty()) { out_data.mats.push_back({}); }
 
   if (!active_textures.empty()) {
     glGenTextures(1, &out_data.tex_array);
@@ -170,9 +165,8 @@ static build_data_t extract_build_tris(const std::string& path, int voxel_res) {
       auto td = active_textures[i];
       for (int y = 0; y < tsz; ++y) {
         for (int x = 0; x < tsz; ++x) {
-          int sx = std::clamp((int)((float)x / (tsz - 1) * td->size.x), 0, (int)td->size.x - 1);
-          int sy = std::clamp((int)((float)y / (tsz - 1) * td->size.y), 0, (int)td->size.y - 1);
-          int sidx = (sy * td->size.x + sx) * td->channels, didx = (y * tsz + x) * 4;
+          fan::vec2 s = (fan::vec2(x, y) / (tsz - 1) * td->size).clamp({0}, td->size - 1);
+          int sidx = (s.y * td->size.x + s.x) * td->channels, didx = (y * tsz + x) * 4;
           for(int c = 0; c < 4; ++c) { resized[didx+c] = (c < td->channels) ? td->data[sidx+c] : 255; }
         }
       }
@@ -185,11 +179,11 @@ static build_data_t extract_build_tris(const std::string& path, int voxel_res) {
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
   }
 
-  fan::vec3 bmin(std::numeric_limits<f32_t>::max()), bmax(-std::numeric_limits<f32_t>::max());
+  fan::vec3 bmin = fan::vec3::vmax(), bmax = -bmin;
   for (const auto& m : fms.meshes) {
     for (const auto& v : m.vertices) {
-      bmin = fan::vec3(fm::min(bmin.x, v.position.x), fm::min(bmin.y, v.position.y), fm::min(bmin.z, v.position.z));
-      bmax = fan::vec3(fm::max(bmax.x, v.position.x), fm::max(bmax.y, v.position.y), fm::max(bmax.z, v.position.z));
+      bmin = bmin.min(v.position);
+      bmax = bmax.max(v.position);
     }
   }
   fan::vec3 sz = bmax - bmin;
@@ -213,8 +207,7 @@ struct svdag_renderer_t {
   svdag_renderer_t(const build_data_t& bdata, int res, const std::string& cache_path)
     : bmin(bdata.bmin), bmax(bdata.bmax), go(bdata.go), sf(bdata.sf), tex_array(bdata.tex_array), voxel_res(res)
   {
-    std::string_view comp_path = "shaders/opengl/3D/compute/svdag_tracer.comp";
-    trace_nr = gloco()->shader_make_compute(comp_path);
+    trace_nr = gloco()->shader_make_compute("shaders/opengl/3D/compute/svdag_tracer.comp");
 
     if (cache_path.empty() || !dag.load(cache_path)) {
       fan::print("Building SVDAG...");
@@ -228,13 +221,13 @@ struct svdag_renderer_t {
     }
 
     ssbo_nodes.open(gl, GL_SHADER_STORAGE_BUFFER);
-    ssbo_nodes.write_buffer(gl, dag.nodes.data(), dag.nodes.size() * 4);
+    ssbo_nodes.write_buffer(gl, dag.nodes.data(), dag.nodes.size() * sizeof(decltype(dag.nodes)::value_type));
     ssbo_ptrs.open(gl, GL_SHADER_STORAGE_BUFFER);
-    ssbo_ptrs.write_buffer(gl, dag.child_ptrs.data(), dag.child_ptrs.size() * 4);
+    ssbo_ptrs.write_buffer(gl, dag.child_ptrs.data(), dag.child_ptrs.size() * sizeof(decltype(dag.child_ptrs)::value_type));
     ssbo_mats.open(gl, GL_SHADER_STORAGE_BUFFER);
     ssbo_mats.write_buffer(gl, bdata.mats.data(), bdata.mats.size() * sizeof(gpu_mat_t));
     ssbo_leaf_base.open(gl, GL_SHADER_STORAGE_BUFFER);
-    ssbo_leaf_base.write_buffer(gl, dag.leaf_base.data(), dag.leaf_base.size() * 4);
+    ssbo_leaf_base.write_buffer(gl, dag.leaf_base.data(), dag.leaf_base.size() * sizeof(decltype(dag.leaf_base)::value_type));
     ssbo_leaf_data.open(gl, GL_SHADER_STORAGE_BUFFER);
     ssbo_leaf_data.write_buffer(gl, dag.leaf_data.data(), dag.leaf_data.size() * sizeof(gpu_leaf_data_t));
     vao.open(gl);
@@ -248,12 +241,15 @@ struct svdag_renderer_t {
   }
 
   void render(fan::vec3 cam_pos, const fan::mat4& inv_view_proj, const fan::vec3& sun_dir) {
-    fan::vec2i s = fan::window::get_size();
-    if (s != res) {
-      res = s; img_screen.remove();
-      img_screen = image_t({.data = nullptr, .size = res}, {.internal_format = image_format_e::rgba8, .format = image_format_e::rgba, .type = data_type_e::fan_unsigned_byte});
+    fan::vec2i res = fan::window::get_size();
+    if (!img_screen || (img_screen && res != img_screen.get_size())) {
+      img_screen.remove();
+      img_screen = image_t(
+        {.data = nullptr, .size = res}, 
+        {.internal_format = image_format_e::rgba8, .format = image_format_e::rgba, .type = data_type_e::fan_unsigned_byte}
+      );
     }
-    gl.image_bind(img_screen, 0, GL_WRITE_ONLY, GL_RGBA8);
+    img_screen.bind(0, GL_WRITE_ONLY, GL_RGBA8);
     ssbo_nodes.bind_base(gl, 1); ssbo_ptrs.bind_base(gl, 2); ssbo_mats.bind_base(gl, 3);
     ssbo_leaf_base.bind_base(gl, 4); ssbo_leaf_data.bind_base(gl, 5);
 
@@ -272,9 +268,8 @@ struct svdag_renderer_t {
     glDispatchCompute((res.x + 7) / 8, (res.y + 7) / 8, 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 
-    auto set_blend = fan::make_restore_flag(false, [&](bool f) { gl.set_depth_test(f); gl.set_blending(f); });
-    vao.bind(gl); glActiveTexture(GL_TEXTURE0); img_screen.bind();
-    gloco()->shader_set_value(gloco()->shaders.blit, "u_tex", 0);
+    vao.bind(gl); img_screen.bind(0);
+    gloco()->shaders.blit.set_value(*gloco(), "u_tex", 0);
     glDrawArrays(GL_TRIANGLES, 0, 3);
   }
 
@@ -286,13 +281,11 @@ struct svdag_renderer_t {
   fan::vec3 bmin, bmax, go;
   f32_t sf;
   GLuint tex_array = 0;
-  fan::vec2i res{0, 0};
   int voxel_res;
 };
 
 struct game_t {
-  game_t() {
-    renderer = std::make_unique<svdag_renderer_t>(extract_build_tris("models/oldman.gltf", voxel_res), voxel_res, "");
+  game_t() : renderer(extract_build_tris("models/oldman.gltf", voxel_res), voxel_res, "") {
     engine.camera_set_position(engine.perspective_render_view, {209.4, -9.7, 122.5});
     auto& cam = engine.camera_get(engine.perspective_render_view);
     cam.yaw = -118.1; cam.pitch = 0.3;
@@ -305,14 +298,13 @@ struct game_t {
 
     gloco()->add_custom_draw([&] {
       auto& c = engine.camera_get(engine.perspective_render_view);
-      renderer->render(c.position, (c.projection * c.view).inverse(), sun_direction);
+      renderer.render(c.position, (c.projection * c.view).inverse(), sun_direction);
     });
 
     engine.loop([&](f32_t dt) {
       engine.camera_move(move_speed);
-      auto& c = engine.camera_get(engine.perspective_render_view);
       if (auto h = gui::hud_interactive("##ctrl", 0.f)) {
-        gui::text(std::format("pos: {:.1f} {:.1f} {:.1f}\nyaw: {:.2f}  pitch: {:.2f}", c.position.x, c.position.y, c.position.z, c.yaw, c.pitch));
+        gui::text(engine.perspective_render_view.get_camera());
         gui::drag("sun", &sun_direction);
         gui::drag("speed", &move_speed);
       }
@@ -321,7 +313,7 @@ struct game_t {
 
   engine_t engine;
   int voxel_res = 64;
-  std::unique_ptr<svdag_renderer_t> renderer;
+  svdag_renderer_t renderer;
   fan::vec3 sun_direction{0.6f, 0.9f, 0.4f};
   f32_t move_speed = 1000.f;
 };

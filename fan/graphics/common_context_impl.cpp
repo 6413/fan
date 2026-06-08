@@ -167,6 +167,12 @@ namespace fan::graphics {
   void image_t::bind() const {
     ctx()->image_bind(ctx(), *this);
   }
+  void image_t::bind(std::uint32_t unit) const {
+    ctx()->image_bind_unit(ctx(), *this, unit);
+  }
+  void image_t::bind(std::uint32_t unit, std::uint32_t access, std::uint32_t format) const {
+    ctx()->image_bind_params(ctx(), *this, unit, access, format);
+  }
   void image_t::unbind() const {
     ctx()->image_unbind(ctx(), *this);
   }
@@ -255,6 +261,12 @@ namespace fan::graphics {
   }
   void render_view_t::set_camera_position(fan::vec3 pos) {
     camera_set_position(camera, pos);
+  }
+  context_camera_t& render_view_t::get_camera() {
+    return camera_get(camera);
+  }
+  context_viewport_t& render_view_t::get_viewport() {
+    return viewport_get(viewport);
   }
 
   fan::vec2 translate_position(const fan::vec2& p, viewport_t viewport, camera_t camera) {

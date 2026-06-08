@@ -311,6 +311,7 @@ constexpr auto clamp(value_type mi, value_type ma) const { make_for_all(ret[i] =
 constexpr auto clamp(const vec_t& test0, const vec_t& test1) const { make_for_all_test2(ret[i] = fan::math::clamp((*this)[i], test0[i], test1[i])); }
 constexpr auto reflect(const vec_t& normal) { return *this - normal * 2 * dot(normal); }
 constexpr auto reflect_tangent(const vec_t& normal) { return *this - normal * dot(normal); }
+static constexpr auto vmax() { return std::numeric_limits<value_type>::max(); }
 
 constexpr auto max_abs() const { 
   auto v0 = min();

@@ -34,6 +34,7 @@
   build_function(image_get, void*, fan::graphics::image_nr_t nr) \
   build_function(image_erase, void, fan::graphics::image_nr_t nr) \
   build_function(image_bind, void, fan::graphics::image_nr_t nr) \
+  build_function(image_bind_unit, void, fan::graphics::image_nr_t nr, std::uint32_t unit) \
   build_function(image_bind_params, void, fan::graphics::image_nr_t nr, std::uint32_t unit, std::uint32_t access, std::uint32_t format) \
   build_function(image_unbind, void, fan::graphics::image_nr_t nr) \
   build_function(image_get_settings, image_load_properties_t&,  fan::graphics::image_nr_t nr) \
