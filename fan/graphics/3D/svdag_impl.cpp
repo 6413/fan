@@ -412,7 +412,7 @@ namespace fan::graphics {
     if (!f) { return false; }
     svdag_cache_header_t h;
     f.read(reinterpret_cast<char*>(&h), sizeof(h));
-    if (!f || h.magic != 0x47414453 || h.version != 8
+    if (!f || h.magic != 0x47414453 || h.version != svdag_cache_header_t{}.version
          || h.voxel_res != std::uint32_t(voxel_res)
          || h.leaf_size != sizeof(gpu_leaf_data_t)
          || h.lod_size != sizeof(gpu_lod_data_t)) { return false; }
@@ -444,19 +444,139 @@ namespace fan::graphics {
     file::write(f, dag.lod_data);
   }
 
-  svdag_load_result_t load_svdag_cpu(const std::string& path, int voxel_res, const std::string& cache_path) {
-    svdag_load_result_t out;
+  struct svdag_asset_load_t {
+    build_data_t build_data;
+    svdag_t dag;
+  };
+
+  static svdag_asset_load_t load_svdag_asset_cpu(const std::string& path, int voxel_res, const std::string& cache_path) {
+    svdag_asset_load_t out;
     out.build_data = extract_build_tris_cpu(path, voxel_res);
+
     if (!load_svdag_cache(out.dag, cache_path, voxel_res)) {
-      fan::print("Building SVDAG...");
+      fan::print("Building SVDAG asset:", path);
       fan::time::scope_timer_print sp{};
       out.dag.build_from_mesh(out.build_data.tris, voxel_res, out.build_data.mats, out.build_data.textures);
       save_svdag_cache(out.dag, cache_path, voxel_res);
     }
     else {
-      fan::print("Loaded SVDAG from cache.");
+      fan::print("Loaded SVDAG asset cache:", cache_path);
     }
-    fan::print("SVDAG tris:", out.build_data.tris.size(), "nodes:", out.dag.nodes.size(), "leaves:", out.dag.leaf_data.size());
+
+    fan::print("SVDAG asset tris:", out.build_data.tris.size(), "nodes:", out.dag.nodes.size(), "leaves:", out.dag.leaf_data.size());
+    return out;
+  }
+
+  static std::uint32_t append_svdag_asset(svdag_scene_t& scene, build_data_t&& bdata, svdag_t&& dag, int voxel_res) {
+    svdag_asset_t asset;
+    asset.bmin = bdata.bmin;
+    asset.bmax = bdata.bmax;
+    asset.go = bdata.go;
+    asset.sf = bdata.sf;
+    asset.root_node = scene.nodes.size();
+    asset.node_count = dag.nodes.size();
+    asset.leaf_count = dag.leaf_data.size();
+    asset.mat_count = bdata.mats.size();
+    asset.texture_count = bdata.textures.size();
+    asset.max_depth = std::uint32_t(fm::max(1, int(std::round(std::log2(voxel_res)))));
+
+    std::uint32_t node_offset = scene.nodes.size();
+    std::uint32_t leaf_data_offset = scene.leaf_data.size();
+    std::uint32_t mat_offset = scene.mats.size();
+    int texture_offset = int(scene.textures.size());
+
+    scene.nodes.insert(scene.nodes.end(), dag.nodes.begin(), dag.nodes.end());
+
+    scene.child_ptrs.reserve(scene.child_ptrs.size() + dag.child_ptrs.size());
+    for (std::uint32_t ptr : dag.child_ptrs) {
+      scene.child_ptrs.push_back(ptr == 0 ? 0 : ptr + node_offset);
+    }
+
+    scene.leaf_base.reserve(scene.leaf_base.size() + dag.leaf_base.size());
+    for (std::uint32_t base : dag.leaf_base) {
+      scene.leaf_base.push_back(base + leaf_data_offset);
+    }
+
+    scene.leaf_data.reserve(scene.leaf_data.size() + dag.leaf_data.size());
+    for (auto leaf : dag.leaf_data) {
+      leaf.mat_id += mat_offset;
+      scene.leaf_data.push_back(leaf);
+    }
+
+    scene.lod_data.insert(scene.lod_data.end(), dag.lod_data.begin(), dag.lod_data.end());
+
+    scene.mats.reserve(scene.mats.size() + bdata.mats.size());
+    for (auto mat : bdata.mats) {
+      if (mat.diffuse_tex >= 0) {
+        mat.diffuse_tex += texture_offset;
+      }
+      if (mat.normal_tex >= 0) {
+        mat.normal_tex += texture_offset;
+      }
+      scene.mats.push_back(mat);
+    }
+
+    for (auto& texture : bdata.textures) {
+      scene.textures.push_back(std::move(texture));
+    }
+
+    std::uint32_t asset_id = scene.assets.size();
+    scene.assets.push_back(asset);
+    return asset_id;
+  }
+
+  static gpu_svdag_instance_t make_svdag_instance(const svdag_asset_t& asset, fan::mat4 transform, int voxel_res) {
+    gpu_svdag_instance_t out;
+    out.world_to_local = transform.inverse();
+    out.local_to_world = transform;
+    out.bmin_sf = fan::vec4(asset.bmin, asset.sf);
+    out.go_voxel_res = fan::vec4(asset.go, f32_t(voxel_res));
+    out.root_node = asset.root_node;
+    out.max_depth = asset.max_depth;
+    return out;
+  }
+
+  svdag_load_result_t load_svdag_cpu(const std::string& path, int voxel_res, const std::string& cache_path) {
+    return load_svdag_cpu(std::vector<svdag_scene_model_t>{{path, fan::mat4(1), cache_path}}, voxel_res, cache_path);
+  }
+
+  static std::string make_asset_cache_path(const std::string& cache_path, const std::string& model_path) {
+    if (cache_path.empty()) { return {}; }
+
+    std::string s = model_path;
+    for (char& c : s) {
+      if (c == '/' || c == '\\' || c == ':' || c == ' ' || c == '.') {
+        c = '_';
+      }
+    }
+    return cache_path + "." + s + ".cbin";
+  }
+
+  svdag_load_result_t load_svdag_cpu(const std::vector<svdag_scene_model_t>& models, int voxel_res, const std::string& cache_path) {
+    svdag_load_result_t out;
+    std::unordered_map<std::string, std::uint32_t> asset_map;
+
+    for (std::size_t i = 0; i < models.size(); ++i) {
+      const auto& model = models[i];
+      std::string asset_cache_path = model.cache_path.empty() ? make_asset_cache_path(cache_path, model.path) : model.cache_path;
+      std::string key = model.path + "|" + asset_cache_path;
+      auto it = asset_map.find(key);
+      std::uint32_t asset_id;
+
+      if (it == asset_map.end()) {
+        fan::print("loading instanced model:", model.path);
+        svdag_asset_load_t asset = load_svdag_asset_cpu(model.path, voxel_res, asset_cache_path);
+        asset_id = append_svdag_asset(out.scene, std::move(asset.build_data), std::move(asset.dag), voxel_res);
+        asset_map[key] = asset_id;
+      }
+      else {
+        asset_id = it->second;
+      }
+
+      out.scene.instances.push_back(make_svdag_instance(out.scene.assets[asset_id], model.transform, voxel_res));
+    }
+
+    fan::print("SVDAG instances:", out.scene.instances.size(), "assets:", out.scene.assets.size(), "nodes:", out.scene.nodes.size(), "leaves:", out.scene.leaf_data.size());
     return out;
   }
 
@@ -466,32 +586,38 @@ namespace fan::graphics {
     });
   }
 
+  void svdag_loader_t::start(const std::vector<svdag_scene_model_t>& models, int voxel_res, const std::string& cache_path) {
+    job = std::async(std::launch::async, [=] {
+      return load_svdag_cpu(models, voxel_res, cache_path);
+    });
+  }
+
   bool svdag_loader_t::ready() const {
     if (!job.valid()) { return false; }
     return job.wait_for(std::chrono::seconds(0)) == std::future_status::ready;
   }
 
-  svdag_renderer_t::svdag_renderer_t(build_data_t&& bdata, svdag_t&& in_dag, int res)
-    : dag(std::move(in_dag)), bmin(bdata.bmin), bmax(bdata.bmax),
-      go(bdata.go), sf(bdata.sf), voxel_res(res)
+  svdag_renderer_t::svdag_renderer_t(svdag_scene_t&& in_scene, int res)
+    : scene(std::move(in_scene)), voxel_res(res)
   {
     trace_nr = gloco()->shader_make_compute("shaders/opengl/3D/compute/svdag_tracer.comp");
-    tex_array = fan::model::upload_texture_array(bdata.textures);
-    fan::print("uploaded texture layers:", bdata.textures.size());
-    max_depth = fm::max(1, int(std::round(std::log2(voxel_res))));
+    tex_array = fan::model::upload_texture_array(scene.textures);
+    fan::print("uploaded texture layers:", scene.textures.size());
 
     ssbo_nodes.open(gl, GL_SHADER_STORAGE_BUFFER);
-    ssbo_nodes.write_buffer(gl, dag.nodes.data(), dag.nodes.size() * sizeof(std::uint32_t));
+    ssbo_nodes.write_buffer(gl, scene.nodes.data(), scene.nodes.size() * sizeof(std::uint32_t));
     ssbo_ptrs.open(gl, GL_SHADER_STORAGE_BUFFER);
-    ssbo_ptrs.write_buffer(gl, dag.child_ptrs.data(), dag.child_ptrs.size() * sizeof(std::uint32_t));
+    ssbo_ptrs.write_buffer(gl, scene.child_ptrs.data(), scene.child_ptrs.size() * sizeof(std::uint32_t));
     ssbo_mats.open(gl, GL_SHADER_STORAGE_BUFFER);
-    ssbo_mats.write_buffer(gl, bdata.mats.data(), bdata.mats.size() * sizeof(gpu_mat_t));
+    ssbo_mats.write_buffer(gl, scene.mats.data(), scene.mats.size() * sizeof(gpu_mat_t));
     ssbo_leaf_base.open(gl, GL_SHADER_STORAGE_BUFFER);
-    ssbo_leaf_base.write_buffer(gl, dag.leaf_base.data(), dag.leaf_base.size() * sizeof(std::uint32_t));
+    ssbo_leaf_base.write_buffer(gl, scene.leaf_base.data(), scene.leaf_base.size() * sizeof(std::uint32_t));
     ssbo_leaf_data.open(gl, GL_SHADER_STORAGE_BUFFER);
-    ssbo_leaf_data.write_buffer(gl, dag.leaf_data.data(), dag.leaf_data.size() * sizeof(gpu_leaf_data_t));
+    ssbo_leaf_data.write_buffer(gl, scene.leaf_data.data(), scene.leaf_data.size() * sizeof(gpu_leaf_data_t));
     ssbo_lod_data.open(gl, GL_SHADER_STORAGE_BUFFER);
-    ssbo_lod_data.write_buffer(gl, dag.lod_data.data(), dag.lod_data.size() * sizeof(gpu_lod_data_t));
+    ssbo_lod_data.write_buffer(gl, scene.lod_data.data(), scene.lod_data.size() * sizeof(gpu_lod_data_t));
+    ssbo_instances.open(gl, GL_SHADER_STORAGE_BUFFER);
+    ssbo_instances.write_buffer(gl, scene.instances.data(), scene.instances.size() * sizeof(gpu_svdag_instance_t));
 
     vao.open(gl);
 
@@ -504,7 +630,7 @@ namespace fan::graphics {
 
   svdag_renderer_t::~svdag_renderer_t() {
     ssbo_nodes.close(gl); ssbo_ptrs.close(gl); ssbo_mats.close(gl);
-    ssbo_leaf_base.close(gl); ssbo_leaf_data.close(gl); ssbo_lod_data.close(gl);
+    ssbo_leaf_base.close(gl); ssbo_leaf_data.close(gl); ssbo_lod_data.close(gl); ssbo_instances.close(gl);
     vao.close(gl);
     if (tex_array) { glDeleteTextures(1, &tex_array); }
   }
@@ -527,7 +653,7 @@ namespace fan::graphics {
 
     img_screen.bind(0, GL_WRITE_ONLY, GL_RGBA8);
     ssbo_nodes.bind_base(gl, 1); ssbo_ptrs.bind_base(gl, 2); ssbo_mats.bind_base(gl, 3);
-    ssbo_leaf_base.bind_base(gl, 4); ssbo_leaf_data.bind_base(gl, 5); ssbo_lod_data.bind_base(gl, 6);
+    ssbo_leaf_base.bind_base(gl, 4); ssbo_leaf_data.bind_base(gl, 5); ssbo_lod_data.bind_base(gl, 6); ssbo_instances.bind_base(gl, 7);
 
     if (tex_array) {
       glActiveTexture(GL_TEXTURE0);
@@ -536,11 +662,10 @@ namespace fan::graphics {
 
     trace_nr.set_value(gl, "u_tex_array", 0);
     trace_nr.set_value(gl, "u_inv_view_proj", inv_view_proj);
-    trace_nr.set_value(gl, "u_cam_pos", (cam_pos - bmin) * sf + go);
+    trace_nr.set_value(gl, "u_world_cam_pos", cam_pos);
     trace_nr.set_value(gl, "u_resolution", fan::vec2(res.x, res.y));
-    trace_nr.set_value(gl, "u_voxel_res", voxel_res);
+    trace_nr.set_value(gl, "u_instance_count", int(scene.instances.size()));
     trace_nr.set_value(gl, "u_sun_dir", sun_dir.normalize());
-    trace_nr.set_value(gl, "u_max_depth", max_depth);
     trace_nr.set_value(gl, "u_lod_bias", lod_bias);
     trace_nr.set_value(gl, "u_ao_quality", ao_quality);
     trace_nr.set_value(gl, "u_debug_heatmap", debug_heatmap);
@@ -558,7 +683,7 @@ namespace fan::graphics {
 
   std::unique_ptr<svdag_renderer_t> svdag_loader_t::finish(int voxel_res) {
     auto result = job.get();
-    return std::make_unique<svdag_renderer_t>(std::move(result.build_data), std::move(result.dag), voxel_res);
+    return std::make_unique<svdag_renderer_t>(std::move(result.scene), voxel_res);
   }
 }
 

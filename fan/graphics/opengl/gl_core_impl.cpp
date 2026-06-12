@@ -1122,7 +1122,13 @@ namespace fan::opengl {
   }
   void context_t::camera_set_perspective(fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size) {
     auto& camera = camera_get(nr);
-    camera.projection = fan::math::perspective<fan::mat4>(fan::math::radians(fov), (f32_t)window_size.x / (f32_t)window_size.y, camera.znear, camera.zfar);
+    camera.fov = fov;
+    camera.projection = fan::math::perspective<fan::mat4>(
+      fan::math::radians(camera.fov),
+      (f32_t)window_size.x / (f32_t)window_size.y,
+      camera.znear,
+      camera.zfar
+    );
     camera.update_view();
     camera.view = camera.get_view_matrix();
   }

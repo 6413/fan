@@ -36,6 +36,17 @@ struct LodData {
   vec4 normal;
 };
 
+struct Instance {
+  mat4 world_to_local;
+  mat4 local_to_world;
+  vec4 bmin_sf;
+  vec4 go_voxel_res;
+  uint root_node;
+  uint max_depth;
+  uint pad0;
+  uint pad1;
+};
+
 layout(rgba8, binding = 0) uniform writeonly image2D u_output_image;
 layout(std430, binding = 1) readonly buffer SVDAGNodes     { uint u_nodes[];      };
 layout(std430, binding = 2) readonly buffer SVDAGPtrs      { uint u_child_ptrs[]; };
@@ -43,14 +54,14 @@ layout(std430, binding = 3) readonly buffer Materials      { Material u_mats[]; 
 layout(std430, binding = 4) readonly buffer LeafBase       { uint u_leaf_base[];  };
 layout(std430, binding = 5) readonly buffer LeafDataBuffer { LeafData u_leaf_data[]; };
 layout(std430, binding = 6) readonly buffer LodDataBuffer  { LodData u_lod_data[]; };
+layout(std430, binding = 7) readonly buffer Instances      { Instance u_instances[]; };
 
 uniform sampler2DArray u_tex_array;
 uniform mat4  u_inv_view_proj;
-uniform vec3  u_cam_pos;
+uniform vec3  u_world_cam_pos;
 uniform vec2  u_resolution;
-uniform int   u_voxel_res;
+uniform int   u_instance_count;
 uniform vec3  u_sun_dir;
-uniform int   u_max_depth;
 uniform float u_lod_bias;
 uniform int   u_ao_quality;
 #if DEBUG
@@ -106,6 +117,7 @@ vec3 sky_color(vec3 ray_dir, vec3 sun_dir) {
 
 bool svdag_traverse(
   Ray ray,
+  uint root_node,
   float root_size,
   int max_stack_depth,
   out float t_hit,
@@ -133,7 +145,7 @@ bool svdag_traverse(
   int traverse_iterations = effective_max_depth * 64;
 
   int stack_top = 0;
-  stack_node_ptr[0] = 0u;
+  stack_node_ptr[0] = root_node;
   stack_voxel_min[0] = vec3(0.0);
   stack_t_exit[0] = t_exit;
 
@@ -265,7 +277,7 @@ vec3 make_ao_direction(vec3 surface_normal, int sample_index) {
   return normalize(tangent * local_dir.x + bitangent * local_dir.y + surface_normal * local_dir.z);
 }
 
-float compute_ao(vec3 surface_point, vec3 surface_normal, float root_size, int sample_count, int max_stack_depth, float voxel_half_size) {
+float compute_ao(vec3 surface_point, vec3 surface_normal, uint root_node, float root_size, int sample_count, int max_stack_depth, float voxel_half_size) {
   float occlusion = 0.0;
   float ao_radius = max(voxel_half_size * 32.0, 4.0);
   vec3 ray_origin = surface_point + surface_normal * max(voxel_half_size * 1.25, 0.02);
@@ -284,7 +296,7 @@ float compute_ao(vec3 surface_point, vec3 surface_normal, float root_size, int s
     int ao_iter;
 #endif
 
-    if (svdag_traverse(ao_ray, root_size, max_stack_depth, ao_t, ao_vmin, ao_hsz, ao_hdr, ao_ptr, ao_cidx, ao_leaf DEBUG_ITER_ARG(ao_iter))) {
+    if (svdag_traverse(ao_ray, root_node, root_size, max_stack_depth, ao_t, ao_vmin, ao_hsz, ao_hdr, ao_ptr, ao_cidx, ao_leaf DEBUG_ITER_ARG(ao_iter))) {
       occlusion += clamp(1.0 - ao_t / ao_radius, 0.0, 1.0);
     }
   }
@@ -363,24 +375,79 @@ void main() {
   vec4 ray_b_h = u_inv_view_proj * vec4(ndc, 0.5, 1.0);
   vec3 ray_a = ray_a_h.xyz / ray_a_h.w;
   vec3 ray_b = ray_b_h.xyz / ray_b_h.w;
+  vec3 world_ray_dir = normalize(ray_b - ray_a);
 
-  Ray primary_ray = make_ray(u_cam_pos, normalize(ray_b - ray_a));
+  if (u_instance_count <= 0) {
+    imageStore(u_output_image, pixel, vec4(sky_color(world_ray_dir, u_sun_dir), 1.0));
+    return;
+  }
 
-  float t_hit;
-  float hit_half_size;
-  vec3 hit_voxel_min;
-  uint node_header;
-  uint hit_node_ptr;
-  uint hit_child_idx;
-  bool hit_is_leaf;
+  float best_t_world = 3.402823e38;
+  int best_instance = -1;
+  Ray primary_ray = make_ray(vec3(0.0), vec3(0.0, 0.0, 1.0));
+  float t_hit = 0.0;
+  float hit_half_size = 0.0;
+  vec3 hit_voxel_min = vec3(0.0);
+  uint node_header = 0u;
+  uint hit_node_ptr = 0u;
+  uint hit_child_idx = 0u;
+  bool hit_is_leaf = false;
 #if DEBUG
-  int primary_iterations;
+  int primary_iterations = 0;
 #endif
 
-  if (!svdag_traverse(
-    primary_ray, float(u_voxel_res), u_max_depth,
-    t_hit, hit_voxel_min, hit_half_size, node_header, hit_node_ptr, hit_child_idx, hit_is_leaf DEBUG_ITER_ARG(primary_iterations)
-  )) {
+  for (int i = 0; i < u_instance_count; ++i) {
+    Instance inst = u_instances[i];
+
+    vec3 local_cam = (inst.world_to_local * vec4(u_world_cam_pos, 1.0)).xyz;
+    vec3 local_a = (inst.world_to_local * vec4(ray_a, 1.0)).xyz;
+    vec3 local_b = (inst.world_to_local * vec4(ray_b, 1.0)).xyz;
+    vec3 voxel_cam = (local_cam - inst.bmin_sf.xyz) * inst.bmin_sf.w + inst.go_voxel_res.xyz;
+    vec3 voxel_a = (local_a - inst.bmin_sf.xyz) * inst.bmin_sf.w + inst.go_voxel_res.xyz;
+    vec3 voxel_b = (local_b - inst.bmin_sf.xyz) * inst.bmin_sf.w + inst.go_voxel_res.xyz;
+    Ray candidate_ray = make_ray(voxel_cam, normalize(voxel_b - voxel_a));
+
+    float candidate_t;
+    float candidate_half_size;
+    vec3 candidate_voxel_min;
+    uint candidate_node_header;
+    uint candidate_node_ptr;
+    uint candidate_child_idx;
+    bool candidate_is_leaf;
+#if DEBUG
+    int candidate_iterations;
+#endif
+
+    if (!svdag_traverse(
+      candidate_ray, inst.root_node, inst.go_voxel_res.w, int(inst.max_depth),
+      candidate_t, candidate_voxel_min, candidate_half_size, candidate_node_header, candidate_node_ptr, candidate_child_idx, candidate_is_leaf DEBUG_ITER_ARG(candidate_iterations)
+    )) {
+      continue;
+    }
+
+    vec3 voxel_hit = candidate_ray.origin + candidate_ray.dir * candidate_t;
+    vec3 local_hit = (voxel_hit - inst.go_voxel_res.xyz) / inst.bmin_sf.w + inst.bmin_sf.xyz;
+    vec3 world_hit = (inst.local_to_world * vec4(local_hit, 1.0)).xyz;
+    float t_world = length(world_hit - u_world_cam_pos);
+
+    if (t_world < best_t_world) {
+      best_t_world = t_world;
+      best_instance = i;
+      primary_ray = candidate_ray;
+      t_hit = candidate_t;
+      hit_half_size = candidate_half_size;
+      hit_voxel_min = candidate_voxel_min;
+      node_header = candidate_node_header;
+      hit_node_ptr = candidate_node_ptr;
+      hit_child_idx = candidate_child_idx;
+      hit_is_leaf = candidate_is_leaf;
+#if DEBUG
+      primary_iterations = candidate_iterations;
+#endif
+    }
+  }
+
+  if (best_instance < 0) {
 #if DEBUG
     if (u_debug_heatmap != 0) {
       imageStore(u_output_image, pixel, vec4(0.0, 0.0, 0.0, 1.0));
@@ -388,13 +455,16 @@ void main() {
     }
 #endif
 
-    imageStore(u_output_image, pixel, vec4(sky_color(primary_ray.dir, u_sun_dir), 1.0));
+    imageStore(u_output_image, pixel, vec4(sky_color(world_ray_dir, u_sun_dir), 1.0));
     return;
   }
 
+  Instance best_inst = u_instances[best_instance];
+  vec3 local_sun_dir = normalize((best_inst.world_to_local * vec4(u_sun_dir, 0.0)).xyz);
+
 #if DEBUG
   if (u_debug_heatmap == 1) {
-    float cost = clamp(float(primary_iterations) / float(max(u_max_depth * 4, 1)), 0.0, 1.0);
+    float cost = clamp(float(primary_iterations) / float(max(int(best_inst.max_depth) * 4, 1)), 0.0, 1.0);
     vec3 color = mix(vec3(0.05, 0.05, 0.05), vec3(1.0, 0.0, 0.0), cost);
     imageStore(u_output_image, pixel, vec4(color, 1.0));
     return;
@@ -403,7 +473,7 @@ void main() {
 
   t_hit = max(0.0, t_hit);
   if (isnan(t_hit) || isinf(t_hit)) {
-    imageStore(u_output_image, pixel, vec4(sky_color(primary_ray.dir, u_sun_dir), 1.0));
+    imageStore(u_output_image, pixel, vec4(sky_color(world_ray_dir, u_sun_dir), 1.0));
     return;
   }
 
@@ -419,14 +489,14 @@ void main() {
     LodData lod = u_lod_data[hit_node_ptr];
 
     if (lod.albedo.w <= 0.5 || lod.normal.w <= 0.5) {
-      imageStore(u_output_image, pixel, vec4(sky_color(primary_ray.dir, u_sun_dir), 1.0));
+      imageStore(u_output_image, pixel, vec4(sky_color(world_ray_dir, u_sun_dir), 1.0));
       return;
     }
 
     hit_normal = normalize(lod.normal.xyz);
     hit_normal = faceforward(hit_normal, primary_ray.dir, hit_normal);
 
-    float diffuse_light = max(dot(hit_normal, normalize(u_sun_dir)), 0.0);
+    float diffuse_light = max(dot(hit_normal, local_sun_dir), 0.0);
     float lighting = 0.35 + 0.65 * diffuse_light;
 
     imageStore(u_output_image, pixel, vec4(lod.albedo.rgb * lighting, 1.0));
@@ -480,9 +550,10 @@ void main() {
     ao = compute_ao(
       hit_pos,
       normalize(hit_normal),
-      float(u_voxel_res),
+      best_inst.root_node,
+      best_inst.go_voxel_res.w,
       ao_samples,
-      u_max_depth,
+      int(best_inst.max_depth),
       hit_half_size
     );
   }
@@ -502,7 +573,7 @@ void main() {
   }
 #endif
 
-  float diffuse_light = max(dot(normalize(hit_normal), normalize(u_sun_dir)), 0.0);
+  float diffuse_light = max(dot(normalize(hit_normal), local_sun_dir), 0.0);
   float lighting = 0.35 + 0.65 * diffuse_light;
 
   imageStore(u_output_image, pixel, vec4(albedo.rgb * lighting * (0.35 + 0.65 * ao), 1.0));

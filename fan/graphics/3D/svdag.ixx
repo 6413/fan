@@ -32,7 +32,7 @@ export namespace fan::graphics {
     int diffuse_tex = -1;
     int normal_tex = -1;
     f32_t tex_scale = 1.f;
-    std::uint32_t pad;
+    std::uint32_t pad = 0;
   };
 
   struct gpu_leaf_data_t {
@@ -113,11 +113,49 @@ export namespace fan::graphics {
     f32_t sf = 1.f;
   };
 
+  struct svdag_scene_model_t {
+    std::string path;
+    fan::mat4 transform{1};
+    std::string cache_path;
+  };
+
+  struct gpu_svdag_instance_t {
+    fan::mat4 world_to_local{1};
+    fan::mat4 local_to_world{1};
+    fan::vec4 bmin_sf{};
+    fan::vec4 go_voxel_res{};
+    std::uint32_t root_node = 0;
+    std::uint32_t max_depth = 1;
+    std::uint32_t pad[2]{};
+  };
+
+  struct svdag_asset_t {
+    fan::vec3 bmin{}, bmax{}, go{};
+    f32_t sf = 1.f;
+    std::uint32_t root_node = 0;
+    std::uint32_t node_count = 0;
+    std::uint32_t leaf_count = 0;
+    std::uint32_t mat_count = 0;
+    std::uint32_t texture_count = 0;
+    std::uint32_t max_depth = 1;
+  };
+
+  struct svdag_scene_t {
+    std::vector<std::uint32_t> nodes, child_ptrs, leaf_base;
+    std::vector<gpu_leaf_data_t> leaf_data;
+    std::vector<gpu_lod_data_t> lod_data;
+    std::vector<gpu_mat_t> mats;
+    std::vector<fan::model::cpu_texture_t> textures;
+    std::vector<svdag_asset_t> assets;
+    std::vector<gpu_svdag_instance_t> instances;
+  };
+
   build_data_t extract_build_tris_cpu(const std::string& path, int voxel_res);
+
 
   struct svdag_cache_header_t {
     std::uint32_t magic     = 0x47414453;
-    std::uint32_t version   = 8;
+    std::uint32_t version   = 10;
     std::uint32_t voxel_res = 0;
     std::uint32_t leaf_size = sizeof(gpu_leaf_data_t);
     std::uint32_t lod_size  = sizeof(gpu_lod_data_t);
@@ -136,14 +174,17 @@ export namespace fan::graphics {
   struct svdag_renderer_t;
 
   struct svdag_load_result_t {
-    build_data_t build_data;
-    svdag_t dag;
+    svdag_scene_t scene;
   };
 
   svdag_load_result_t load_svdag_cpu(const std::string& path, int voxel_res, const std::string& cache_path);
 
+  svdag_load_result_t load_svdag_cpu(const std::vector<svdag_scene_model_t>& models, int voxel_res, const std::string& cache_path);
+
   struct svdag_loader_t {
     void start(const std::string& path, int voxel_res, const std::string& cache_path);
+
+    void start(const std::vector<svdag_scene_model_t>& models, int voxel_res, const std::string& cache_path);
 
     bool ready() const;
 
@@ -153,24 +194,21 @@ export namespace fan::graphics {
   };
 
   struct svdag_renderer_t {
-    svdag_renderer_t(build_data_t&& bdata, svdag_t&& in_dag, int res);
+    svdag_renderer_t(svdag_scene_t&& in_scene, int res);
 
     ~svdag_renderer_t();
 
     void render(fan::vec3 cam_pos, const fan::mat4& inv_view_proj, const fan::vec3& sun_dir);
 
     shader_t trace_nr;
-    fan::opengl::core::gpu_buffer_t ssbo_nodes, ssbo_ptrs, ssbo_mats, ssbo_leaf_base, ssbo_leaf_data, ssbo_lod_data;
+    fan::opengl::core::gpu_buffer_t ssbo_nodes, ssbo_ptrs, ssbo_mats, ssbo_leaf_base, ssbo_leaf_data, ssbo_lod_data, ssbo_instances;
     fan::opengl::core::vao_t vao;
     image_t img_screen;
-    svdag_t dag;
-    fan::vec3 bmin{}, bmax{}, go{};
-    f32_t sf = 1.f;
+    svdag_scene_t scene;
     f32_t render_scale = 1.f;
     f32_t lod_bias = 0.f;
     GLuint tex_array = 0;
     int voxel_res = 0;
-    int max_depth = 1;
     int ao_quality = 0;
     int debug_heatmap = 0;
   };

@@ -145,6 +145,14 @@ void init_framebuffer() {
       fan::vec2(0, d.size.y)
     );
 
+    auto& camera = loco.camera_get(loco.perspective_render_view.camera);
+    loco.camera_set_perspective(
+      loco.perspective_render_view,
+      camera.fov,
+      d.size
+    );
+    camera.update_view();
+
     fan::image::info_t image_info;
     image_info.data = nullptr;
     image_info.size = loco.window.get_size();

@@ -605,20 +605,19 @@ export namespace fan::graphics::gui {
     fan::graphics::camera_t cam = gloco()->perspective_render_view) {
     fan::graphics::context_camera_t& camera = gloco()->camera_get(cam);
     static f32_t friction = 12.f;
-    static f32_t fov = 90.f;
     static f32_t speed = 1000.f;
     bool update = false;
     gui::push_id(&FAN_UNIQUE_CALL_PASS);
     update |= gui::slider("zfar", &camera.zfar, std::max(ranges.zfar_min, camera.znear + 0.001f), ranges.zfar_max);
     update |= gui::slider("znear", &camera.znear, ranges.znear_min, std::min(ranges.znear_max, camera.zfar - 0.001f));
-    update |= gui::slider("fov", &fov, ranges.fov_min, ranges.fov_max);
+    update |= gui::slider("fov", &camera.fov, ranges.fov_min, ranges.fov_max);
     update |= gui::slider("sensitivity", &camera.sensitivity, ranges.sensitivity_min, ranges.sensitivity_max);
     update |= gui::slider("speed", &speed, ranges.speed_min, ranges.speed_max);
     update |= gui::slider("friction", &friction, ranges.friction_min, ranges.friction_max);
 
     gloco()->camera_move(speed, friction);
     if (update) {
-      gloco()->camera_set_perspective(cam, fov, gloco()->window.get_size());
+      gloco()->camera_set_perspective(cam, camera.fov, gloco()->window.get_size());
     }
     gui::pop_id();
   }
