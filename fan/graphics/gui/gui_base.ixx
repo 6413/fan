@@ -970,7 +970,7 @@ export namespace fan::graphics::gui {
   }
 
   template<typename T>
-  bool drag(str_view_t label, T* v, f32_t v_speed = 0.1f, f32_t v_min = 0, f32_t v_max = 0, slider_flags_t flags = 0) {
+  bool drag(str_view_t label, T* v, f32_t v_speed = 0.1f, f32_t v_min = std::numeric_limits<f32_t>::quiet_NaN(), f32_t v_max = std::numeric_limits<f32_t>::quiet_NaN(), slider_flags_t flags = 0) {
     if constexpr (get_component_count<T>() == 1) {
       if (std::is_integral<T>::value) { v_speed = std::max(v_speed, 1.f); }
       T min_val;
@@ -995,11 +995,14 @@ export namespace fan::graphics::gui {
           static_cast<T>(v_max);
       }
 
-      if (min_val > max_val) {
+      bool has_min = !std::isnan(v_min);
+      bool has_max = !std::isnan(v_max);
+
+      if (has_min && has_max && min_val > max_val) {
         std::swap(min_val, max_val);
       }
 
-      return drag_scalar(label, get_imgui_data_type<T>(), v, v_speed, &min_val, &max_val, get_default_format<T>(), flags);
+      return drag_scalar(label, get_imgui_data_type<T>(), v, v_speed, has_min ? &min_val : nullptr, has_max ? &max_val : nullptr, get_default_format<T>(), (has_min || has_max) ? flags | gui::slider_flags_always_clamp : flags);
     }
     else {
       using component_type = component_type_t<T>;
@@ -1008,7 +1011,6 @@ export namespace fan::graphics::gui {
       component_type speed_val = static_cast<component_type>(v_speed);
       component_type min_val;
       component_type max_val;
-
 
       if constexpr (std::is_floating_point_v<component_type>) {
         min_val = static_cast<component_type>(v_min);
@@ -1029,22 +1031,25 @@ export namespace fan::graphics::gui {
           static_cast<component_type>(v_max);
       }
 
-      if (min_val > max_val) {
+      bool has_min = !std::isnan(v_min);
+      bool has_max = !std::isnan(v_max);
+
+      if (has_min && has_max && min_val > max_val) {
         std::swap(min_val, max_val);
       }
 
-      return drag_scalar_n(label, get_imgui_data_type<component_type>(), v->data(), get_component_count<T>(), speed_val, &min_val, &max_val, get_default_format<component_type>(), flags);
+      return drag_scalar_n(label, get_imgui_data_type<component_type>(), v->data(), get_component_count<T>(), speed_val, has_min ? &min_val : nullptr, has_max ? &max_val : nullptr, get_default_format<component_type>(), (has_min || has_max) ? flags | gui::slider_flags_always_clamp : flags);
     }
   }
   template<typename T>
-  bool drag(T* v, f32_t v_speed = 0.1f, f32_t v_min = 0, f32_t v_max = 0, slider_flags_t flags = 0) {
+  bool drag(T* v, f32_t v_speed = 0.1f, f32_t v_min = std::numeric_limits<f32_t>::quiet_NaN(), f32_t v_max = std::numeric_limits<f32_t>::quiet_NaN(), slider_flags_t flags = 0) {
     push_id(v);
     bool changed = drag("##", v, v_speed, v_min, v_max, flags);
     pop_id();
     return changed;
   }
   template <typename T = f32_t, FAN_UNIQUE_CALL>
-  gui::ret_t<T> drag(f32_t v_speed = 0.1f, f32_t v_min = 0, f32_t v_max = 0, slider_flags_t flags = 0) {
+  gui::ret_t<T> drag(f32_t v_speed = 0.1f, f32_t v_min = std::numeric_limits<f32_t>::quiet_NaN(), f32_t v_max = std::numeric_limits<f32_t>::quiet_NaN(), slider_flags_t flags = 0) {
     static T val{};
     return gui::ret_t{val, drag(&val, v_speed, v_min, v_max, flags)};
   }

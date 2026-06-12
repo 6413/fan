@@ -394,6 +394,9 @@ export namespace fan::graphics {
     void set_value(auto& engine, const std::string_view name, const T& val) {
       engine.shader_set_value(*this, name, val);
     }
+    void use(auto& engine) const {
+      engine.shader_use(*this);
+    }
   };
   using viewport_t = fan::graphics::viewport_nr_t;
   // image_t defined after render_context_handle_t
