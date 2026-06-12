@@ -891,6 +891,7 @@ namespace fan::opengl {
   fan::graphics::image_nr_t context_t::create_missing_texture() {
     fan::opengl::context_t::image_load_properties_t p;
     p.visual_output = GL_REPEAT;
+    p.min_filter = p.mag_filter = GL_NEAREST;
     fan::graphics::image_nr_t nr = image_create((void*)fan::image::missing_texture_pixels, fan::vec2i(2, 2), p);
     __fan_internal_image_list[nr].image_settings = image_opengl_to_global(p);
     return nr;

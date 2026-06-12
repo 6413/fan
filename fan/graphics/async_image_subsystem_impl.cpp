@@ -19,7 +19,7 @@ namespace fan::graphics {
     const fan::graphics::image_load_properties_t& properties
   ) {
     fan::graphics::async_image_t out;
-    out.image = fan::graphics::create_transparent_texture();
+    out.image = gloco()->default_texture;
     out.result = fan::image::async_cache().load(path);
 
     uploads.push_back({
