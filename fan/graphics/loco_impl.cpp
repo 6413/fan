@@ -237,6 +237,7 @@ void loco_t::shader_set_paths(fan::graphics::shader_t shader, std::string_view v
 void loco_t::shader_recompile_all() {
 #if defined(FAN_OPENGL)
   glFinish();
+  context.gl.shader_uniform_cache.clear();
 #endif
   for_each_list(shader_list, [&](auto& list, auto nr) {
     auto& sd = list[nr];
@@ -1261,6 +1262,7 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   loco_init_renderer_post_window(this);
   #if defined(FAN_OPENGL) || defined(FAN_VULKAN)
   load_engine_images();
+  async_image.init();
   #endif
   loco_init_shapes_system(this);
   #if defined(FAN_OPENGL) || defined(FAN_VULKAN)
@@ -1307,6 +1309,8 @@ loco_t::~loco_t() {
 }
 
 void loco_t::destroy() {
+
+  async_image.destroy();
 
 #if defined(FAN_GUI)
   delete (fan::graphics::gui::settings_menu_t*)gui.settings_menu;
@@ -2084,6 +2088,8 @@ renderer_state.lighting.update(get_delta_time());
     shapes.update_children();
   #endif
   }
+
+  async_image.process();
 
   cb(get_delta_time());
 

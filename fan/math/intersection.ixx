@@ -73,6 +73,24 @@ export namespace fan::math::d2 {
 }
 
 export namespace fan::math::d3 {
+  struct aabb_t {
+    fan::vec3 min, max;
+  };
+
+  constexpr aabb_t triangle_bounds(const fan::vec3& v0, const fan::vec3& v1, const fan::vec3& v2) {
+    return {v0.min(v1).min(v2), v0.max(v1).max(v2)};
+  }
+
+  constexpr bool aabb_intersects_aabb(const aabb_t& a, const aabb_t& b) {
+    return a.min.x <= b.max.x && a.max.x >= b.min.x
+        && a.min.y <= b.max.y && a.max.y >= b.min.y
+        && a.min.z <= b.max.z && a.max.z >= b.min.z;
+  }
+
+  constexpr bool aabb_intersects_aabb(const aabb_t& a, const fan::vec3& min, const fan::vec3& max) {
+    return aabb_intersects_aabb(a, {min, max});
+  }
+
   constexpr bool triangle_intersects_aabb(const fan::vec3& v0, const fan::vec3& v1, const fan::vec3& v2, const fan::vec3& bc, const fan::vec3& hs) {
     fan::vec3 a[3] = {v0 - bc, v1 - bc, v2 - bc};
     if (fm::min(a[0].x, a[1].x, a[2].x) > hs.x || fm::max(a[0].x, a[1].x, a[2].x) < -hs.x) { return false; }
@@ -94,6 +112,7 @@ export namespace fan::math::d3 {
     }
     return true;
   }
+
   constexpr bool is_ray_intersecting_cube(const fan::ray3_t& ray, const fan::vec3& position, const fan::vec3& size) {
     fan::vec3 min_bounds = position - size;
     fan::vec3 max_bounds = position + size;
@@ -109,12 +128,56 @@ export namespace fan::math::d3 {
 
     return t_near <= t_far && t_far >= 0.0f;
   }
-  fan::vec3 barycentric(const fan::vec3& p, const fan::vec3& a, const fan::vec3& b, const fan::vec3& c) {
+
+  constexpr fan::vec3 barycentric(const fan::vec3& p, const fan::vec3& a, const fan::vec3& b, const fan::vec3& c) {
     fan::vec3 v0 = b - a, v1 = c - a, v2 = p - a;
     f32_t d00 = v0.dot(v0), d01 = v0.dot(v1), d11 = v1.dot(v1), d20 = v2.dot(v0), d21 = v2.dot(v1);
     f32_t denom = d00 * d11 - d01 * d01;
     f32_t v = (d11 * d20 - d01 * d21) / denom;
     f32_t w = (d00 * d21 - d01 * d20) / denom;
     return {1.0f - v - w, v, w};
+  }
+
+  constexpr fan::vec3 closest_barycentric(const fan::vec3& p, const fan::vec3& a, const fan::vec3& b, const fan::vec3& c) {
+    fan::vec3 ab = b - a;
+    fan::vec3 ac = c - a;
+    fan::vec3 ap = p - a;
+
+    f32_t d1 = ab.dot(ap);
+    f32_t d2 = ac.dot(ap);
+    if (d1 <= 0.f && d2 <= 0.f) { return {1.f, 0.f, 0.f}; }
+
+    fan::vec3 bp = p - b;
+    f32_t d3 = ab.dot(bp);
+    f32_t d4 = ac.dot(bp);
+    if (d3 >= 0.f && d4 <= d3) { return {0.f, 1.f, 0.f}; }
+
+    f32_t vc = d1 * d4 - d3 * d2;
+    if (vc <= 0.f && d1 >= 0.f && d3 <= 0.f) {
+      f32_t v = d1 / (d1 - d3);
+      return {1.f - v, v, 0.f};
+    }
+
+    fan::vec3 cp = p - c;
+    f32_t d5 = ab.dot(cp);
+    f32_t d6 = ac.dot(cp);
+    if (d6 >= 0.f && d5 <= d6) { return {0.f, 0.f, 1.f}; }
+
+    f32_t vb = d5 * d2 - d1 * d6;
+    if (vb <= 0.f && d2 >= 0.f && d6 <= 0.f) {
+      f32_t w = d2 / (d2 - d6);
+      return {1.f - w, 0.f, w};
+    }
+
+    f32_t va = d3 * d6 - d5 * d4;
+    if (va <= 0.f && d4 - d3 >= 0.f && d5 - d6 >= 0.f) {
+      f32_t w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+      return {0.f, 1.f - w, w};
+    }
+
+    f32_t denom = 1.f / (va + vb + vc);
+    f32_t v = vb * denom;
+    f32_t w = vc * denom;
+    return {1.f - v - w, v, w};
   }
 }

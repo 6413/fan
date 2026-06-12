@@ -39,34 +39,36 @@ import fan.graphics.loco;
 using namespace fan::opengl;
 
 export namespace fan::model {
-  inline int get_texture_index(
-    const std::string_view path,
-    std::vector<const pm_texture_data_t*>& active_textures
-  ) {
-    if (path.empty()) {
-      return -1;
-    }
-
-    const auto fname = std::filesystem::path(path).filename();
-
-    for (const auto& [k, v] : cached_texture_data) {
-      if (
-        std::filesystem::path(k).filename() == fname &&
-        !v.data.empty() &&
-        v.channels >= 3
-        ) {
-        auto it = std::find(active_textures.begin(), active_textures.end(), &v);
-
-        if (it != active_textures.end()) {
-          return std::distance(active_textures.begin(), it);
-        }
-
-        active_textures.push_back(&v);
-        return active_textures.size() - 1;
+  GLuint upload_texture_array(const std::vector<fan::model::cpu_texture_t>& textures) {
+    if (textures.empty()) { return 0; }
+    fan::vec2ui layer_size = choose_texture_array_size(textures);
+    GLuint tex_array = 0;
+    glGenTextures(1, &tex_array);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, tex_array);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glPixelStorei(GL_UNPACK_IMAGE_HEIGHT, 0);
+    glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+    glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
+    glPixelStorei(GL_UNPACK_SKIP_IMAGES, 0);
+    int levels = 1 + int(std::floor(std::log2(f32_t(std::max(layer_size.x, layer_size.y)))));
+    glTexStorage3D(GL_TEXTURE_2D_ARRAY, levels, GL_RGBA8, layer_size.x, layer_size.y, textures.size());
+    for (int i = 0; i < int(textures.size()); ++i) {
+      const auto& t = textures[i];
+      std::vector<std::uint8_t> resized;
+      const std::uint8_t* pixels = t.data.get();
+      if (t.size.x != layer_size.x || t.size.y != layer_size.y || t.channels != 4) {
+        resized = resize_rgba_nearest(t, layer_size);
+        pixels = resized.data();
       }
+      glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, layer_size.x, layer_size.y, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
     }
-
-    return -1;
+    glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    return tex_array;
   }
 }
 
@@ -86,7 +88,6 @@ export namespace fan {
       model_t(const properties_t& p) : fms_t(p) {
         camera_nr = p.camera;
         viewport_nr = p.viewport;
-        meshes = load_meshes(p);
         mesh_images.resize(meshes.size());
         for (std::size_t mi = 0; mi < meshes.size(); ++mi) {
           for (std::size_t ti = 0; ti < fan::model::texture_max; ++ti) {

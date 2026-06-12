@@ -651,6 +651,9 @@ namespace fan::opengl {
 
     shader.id = temp_id;
 
+    shader_uniform_cache.clear();
+    shader_location_cache.clear();
+
     shader.projection_view[0] = fan_opengl_call(glGetUniformLocation(shader.id, "projection"));
     shader.projection_view[1] = fan_opengl_call(glGetUniformLocation(shader.id, "view"));
 

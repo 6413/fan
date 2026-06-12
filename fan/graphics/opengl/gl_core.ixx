@@ -193,92 +193,125 @@ export namespace fan::opengl {
       }
     }
 
+    struct shader_uniform_info_t {
+      GLint location = -1;
+      std::size_t type_hash = 0;
+    };
+
+    std::unordered_map<std::size_t, shader_uniform_info_t> shader_uniform_cache;
+
+    shader_uniform_info_t* shader_get_uniform(fan::graphics::shader_nr_t nr, std::string_view name) {
+      shader_t& shader = shader_get(nr);
+
+      std::size_t hash0 = std::hash<std::string_view> {}(name);
+      std::size_t hash1 = std::hash<decltype(fan::graphics::shader_nr_t::NRI)> {}(nr.NRI);
+      auto key = hash0 ^ (hash1 + 0x9e3779b97f4a7c15ull + (hash0 << 6) + (hash0 >> 2));
+
+      auto it = shader_uniform_cache.find(key);
+      if (it != shader_uniform_cache.end()) {
+        return &it->second;
+      }
+
+      std::string name_string(name);
+
+      auto type_it = __fan_internal_shader_list[nr].uniform_type_table.find(name_string);
+      if (type_it == __fan_internal_shader_list[nr].uniform_type_table.end()) {
+        return nullptr;
+      }
+
+      GLint location = fan_opengl_call(glGetUniformLocation(shader.id, name_string.c_str()));
+      if (location == -1) {
+        return nullptr;
+      }
+
+      auto [new_it, _] = shader_uniform_cache.emplace(key, shader_uniform_info_t {
+        .location = location,
+        .type_hash = fan::get_hash(std::string_view(type_it->second))
+      });
+
+      return &new_it->second;
+    }
+
     template <typename T>
     void shader_set_value(fan::graphics::shader_nr_t nr, const std::string_view name, const T& val) {
       static_assert(!std::is_same_v<T, std::uint8_t>, "only 4 std::byte supported");
       static_assert(!std::is_same_v<T, std::uint16_t>, "only 4 std::byte supported");
-      static_assert(std::is_same_v<T, bool> == false || !std::is_same_v<T, int>, "only 4 std::byte supported");
       static_assert(std::is_same_v<T, double> == false, "only 4 std::byte supported");
-      std::uint8_t value[sizeof(T)];
-      for (std::uint32_t i = 0; i < sizeof(T); ++i) {
-        value[i] = ((std::uint8_t*)&val)[i];
-      }
+
       shader_use(nr);
-      shader_t& shader = shader_get(nr);
-      auto& context = *this;
-      auto found = __fan_internal_shader_list[nr].uniform_type_table.find(std::string(name));
-      if (found == __fan_internal_shader_list[nr].uniform_type_table.end()) {
-        //fan::print_impl("failed to set uniform value");
+
+      shader_uniform_info_t* uniform = shader_get_uniform(nr, name);
+      if (!uniform) {
         return;
-        //fan::throw_error("failed to set uniform value");
       }
 
-      std::size_t hash0 = std::hash<std::string_view>{}(name);
-      std::size_t hash1 = std::hash<decltype(fan::graphics::shader_nr_t::NRI)>{}(nr.NRI);
-      auto shader_loc_it = shader_location_cache.find(hash0 ^ hash1);
-      if (shader_loc_it == shader_location_cache.end()) {
-        GLint location = fan_opengl_call(glGetUniformLocation(shader.id, std::string(name).c_str()));
-        if (location == -1) {
-          return;
-        }
-        shader_loc_it = shader_location_cache.emplace(hash0 ^ hash1, location).first;
-      }
-      GLint location = shader_loc_it->second;
+      GLint location = uniform->location;
 
-
-#if FAN_DEBUG >= fan_debug_insane
-      //fan_validate_value(location, validate_error_message(name));
-#endif
-
-      switch (fan::get_hash(found->second)) {
-      case fan::get_hash(std::string_view("bool")): {
-        if constexpr (not_non_arithmethic_types<T>) {
-          fan_opengl_call(glUniform1i(location, *(bool*)value ? 1 : 0));
+      switch (uniform->type_hash) {
+        case fan::get_hash(std::string_view("bool")):
+        {
+          if constexpr (std::is_same_v<T, bool>) {
+            fan_opengl_call(glUniform1i(location, val ? 1 : 0));
+          }
+          break;
         }
-        break;
-      }
-      case fan::get_hash(std::string_view("sampler2D")):
-      case fan::get_hash(std::string_view("int")): {
-        if constexpr (not_non_arithmethic_types<T>) {
-          fan_opengl_call(glUniform1i(location, *(int*)value));
+        case fan::get_hash(std::string_view("sampler1D")):
+        case fan::get_hash(std::string_view("sampler2D")):
+        case fan::get_hash(std::string_view("sampler3D")):
+        case fan::get_hash(std::string_view("samplerCube")):
+        case fan::get_hash(std::string_view("sampler2DArray")):
+        case fan::get_hash(std::string_view("int")):
+        {
+          if constexpr (std::is_integral_v<T> && !std::is_same_v<T, bool>) {
+            fan_opengl_call(glUniform1i(location, GLint(val)));
+          }
+          break;
         }
-        break;
-      }
-      case fan::get_hash(std::string_view("uint")): {
-        if constexpr (not_non_arithmethic_types<T>) {
-          fan_opengl_call(glUniform1ui(location, *(std::uint32_t*)value));
+        case fan::get_hash(std::string_view("uint")):
+        {
+          if constexpr (std::is_integral_v<T> && !std::is_same_v<T, bool>) {
+            fan_opengl_call(glUniform1ui(location, GLuint(val)));
+          }
+          break;
         }
-        break;
-      }
-      case fan::get_hash(std::string_view("float")): {
-        if constexpr (not_non_arithmethic_types<T>) {
-          fan_opengl_call(glUniform1f(location, *(f32_t*)value));
+        case fan::get_hash(std::string_view("float")):
+        {
+          if constexpr (std::is_arithmetic_v<T> && !std::is_same_v<T, bool>) {
+            fan_opengl_call(glUniform1f(location, f32_t(val)));
+          }
+          break;
         }
-        break;
-      }
-      case fan::get_hash(std::string_view("vec2")): {
-        if constexpr (std::is_same_v<T, fan::vec2> ||
-          std::is_same_v<T, fan::vec3>) {
-          fan_opengl_call(glUniform2fv(location, 1, (f32_t*)&value[0]));
+        case fan::get_hash(std::string_view("vec2")):
+        {
+          if constexpr (std::is_same_v<T, fan::vec2>) {
+            fan_opengl_call(glUniform2fv(location, 1, &val.x));
+          }
+          break;
         }
-        break;
-      }
-      case fan::get_hash(std::string_view("vec3")): {
-        if constexpr (std::is_same_v<T, fan::vec3>) {
-          fan_opengl_call(glUniform3fv(location, 1, (f32_t*)&value[0]));
+        case fan::get_hash(std::string_view("vec3")):
+        {
+          if constexpr (std::is_same_v<T, fan::vec3>) {
+            fan_opengl_call(glUniform3fv(location, 1, &val.x));
+          }
+          break;
         }
-        break;
-      }
-      case fan::get_hash(std::string_view("vec4")): {
-        if constexpr (std::is_same_v<T, fan::vec4> || std::is_same_v<T, fan::color>) {
-          fan_opengl_call(glUniform4fv(location, 1, (f32_t*)&value[0]));
+        case fan::get_hash(std::string_view("vec4")):
+        {
+          if constexpr (std::is_same_v<T, fan::vec4>) {
+            fan_opengl_call(glUniform4fv(location, 1, &val.x));
+          }
+          else if constexpr (std::is_same_v<T, fan::color>) {
+            fan_opengl_call(glUniform4fv(location, 1, &val.r));
+          }
+          break;
         }
-        break;
-      }
-      case fan::get_hash(std::string_view("mat4")): {
-        fan_opengl_call(glUniformMatrix4fv(location, 1, GL_FALSE, (f32_t*)&value[0]));
-        break;
-      }
+        case fan::get_hash(std::string_view("mat4")):
+        {
+          if constexpr (std::is_same_v<T, fan::mat4>) {
+            fan_opengl_call(glUniformMatrix4fv(location, 1, GL_FALSE, reinterpret_cast<const f32_t*>(&val)));
+          }
+          break;
+        }
       }
     }
     template <typename T>
