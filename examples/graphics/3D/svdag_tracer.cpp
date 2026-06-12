@@ -6,7 +6,11 @@ using namespace fan::graphics;
 
 struct game_t {
   game_t() {
-    loader.start("models/oldman.gltf", voxel_res, "oldman.cbin");
+    loader.start({
+      {"models/oldman_idle.fbx", fan::mat4(1).translate({0.f, 0.f, 0.f})},
+      {"models/Fox.glb", fan::mat4(1).translate({300.f, 0.f, 0.f})},
+      {"models/xbot_idle.fbx", fan::mat4(1).translate({-300.f, 0.f, 0.f})}
+    }, voxel_res, "");
 
     engine.camera_set_position(engine.perspective_render_view, {100.8, -6.3, 75.7});
     auto& cam = engine.camera_get(engine.perspective_render_view);
@@ -42,6 +46,10 @@ struct game_t {
           gui::drag("lod_bias", &renderer->lod_bias);
           gui::drag("ao_quality", &renderer->ao_quality);
           gui::drag("debug_heatmap", &renderer->debug_heatmap);
+          gui::text("nodes:", renderer->scene.nodes.size());
+          gui::text("leaves:", renderer->scene.leaf_data.size());
+          gui::text("assets:", renderer->scene.assets.size());
+          gui::text("instances:", renderer->scene.instances.size());
         }
         gui::new_line();
         gui::text("----------------------------------------------------------------------------");

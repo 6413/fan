@@ -132,6 +132,7 @@ export namespace fan {
       f32_t zfar = 1000.f;
       f32_t znear = 0.1f;
       f32_t zoom = 1.0f;
+      f32_t fov = 90.f;
 
       union {
         struct {
@@ -145,8 +146,8 @@ export namespace fan {
 
       friend std::ostream& operator<<(std::ostream& os, const context_camera_t& c) {
         return os << std::format(
-          "pos: {:.1f} {:.1f} {:.1f}\nyaw: {:.2f}  pitch: {:.2f}\nnear: {:.2f}  far: {:.1f}  zoom: {:.2f}",
-          c.position.x, c.position.y, c.position.z, c.yaw, c.pitch, c.znear, c.zfar, c.zoom
+          "pos: {:.1f} {:.1f} {:.1f}\nyaw: {:.2f}  pitch: {:.2f}\nfov: {:.1f}  near: {:.2f}  far: {:.1f}  zoom: {:.2f}",
+          c.position.x, c.position.y, c.position.z, c.yaw, c.pitch, c.fov, c.znear, c.zfar, c.zoom
         );
       }
 
