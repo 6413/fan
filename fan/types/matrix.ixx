@@ -84,12 +84,12 @@ export namespace fan {
       }
 
       operator aiMatrix4x4() const {
-        aiMatrix4x4 m;
-        m.a1 = (*this)[0][0];  m.b1 = (*this)[0][1];  m.c1 = (*this)[0][2];  m.d1 = (*this)[0][3];
-        m.a2 = (*this)[1][0];  m.b2 = (*this)[1][1];  m.c2 = (*this)[1][2];  m.d2 = (*this)[1][3];
-        m.a3 = (*this)[2][0];  m.b3 = (*this)[2][1];  m.c3 = (*this)[2][2];  m.d3 = (*this)[2][3];
-        m.a4 = (*this)[3][0];  m.b4 = (*this)[3][1];  m.c4 = (*this)[3][2];  m.d4 = (*this)[3][3];
-        return m;
+        return aiMatrix4x4(
+          (*this)[0][0], (*this)[1][0], (*this)[2][0], (*this)[3][0],
+          (*this)[0][1], (*this)[1][1], (*this)[2][1], (*this)[3][1],
+          (*this)[0][2], (*this)[1][2], (*this)[2][2], (*this)[3][2],
+          (*this)[0][3], (*this)[1][3], (*this)[2][3], (*this)[3][3]
+        );
       }
     #endif
 

@@ -81,4 +81,69 @@ namespace fan::image {
       }
     }
   }
+
+  owned_t load_owned(fan::str_view_t path, const std::source_location& callers_path) {
+    info_t ii {};
+    owned_t out;
+
+    if (load(path, &ii, callers_path)) {
+      return out;
+    }
+
+    out.size = ii.size;
+    out.channels = ii.channels;
+    out.data_size = std::size_t(out.size.x) * out.size.y * out.channels;
+    out.data = std::shared_ptr<std::uint8_t>(
+      new std::uint8_t[out.data_size],
+      std::default_delete<std::uint8_t[]>()
+    );
+
+    std::memcpy(out.data.get(), ii.data, out.data_size);
+    free(&ii);
+
+    return out;
+  }
+
+  bool async_result_t::try_finish() {
+    if (state != state_e::loading) {
+      return true;
+    }
+    if (job.wait_for(std::chrono::seconds(0)) != std::future_status::ready) {
+      return false;
+    }
+    image = job.get();
+    state = image.valid() ? state_e::ready : state_e::failed;
+    return true;
+  }
+
+  void async_result_t::wait() {
+    if (state != state_e::loading) {
+      return;
+    }
+    image = job.get();
+    state = image.valid() ? state_e::ready : state_e::failed;
+  }
+
+  std::shared_ptr<async_result_t> async_cache_t::load(const std::string& path) {
+    std::lock_guard lock(mutex);
+
+    if (auto it = images.find(path); it != images.end()) {
+      return it->second;
+    }
+
+    auto result = std::make_shared<async_result_t>();
+    result->job = std::async(std::launch::async, [path] {
+      return load_owned(path);
+    });
+
+    images.emplace(path, result);
+
+    return result;
+  }
+
+  async_cache_t& async_cache() {
+    static async_cache_t cache;
+    return cache;
+  }
+
 }

@@ -1,171 +1,509 @@
 #version 430 core
+#define DEBUG 0
+
+#if DEBUG
+  #define DEBUG_ITER_PARAM , out int iteration_count
+  #define DEBUG_ITER_ARG(v) , v
+  #define DEBUG_ITER_INIT iteration_count = 0;
+  #define DEBUG_ITER_SET(i) iteration_count = (i) + 1;
+#else
+  #define DEBUG_ITER_PARAM
+  #define DEBUG_ITER_ARG(v)
+  #define DEBUG_ITER_INIT
+  #define DEBUG_ITER_SET(i)
+#endif
+
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 
-struct Material { vec4 base_color; int diffuse_tex; int normal_tex; float tex_scale; int pad0; };
-struct LeafData { vec4 v0, v1, v2; vec2 uv0, uv1, uv2; uint mat_id; uint pad[5]; };
+struct Material {
+  vec4 base_color;
+  int diffuse_tex;
+  int normal_tex;
+  float tex_scale;
+  int pad0;
+};
+
+struct LeafData {
+  vec4 v0, v1, v2;
+  vec4 c0, c1, c2;
+  vec2 uv0, uv1, uv2;
+  uint mat_id;
+  uint pad[5];
+};
+
+struct LodData {
+  vec4 albedo;
+  vec4 normal;
+};
 
 layout(rgba8, binding = 0) uniform writeonly image2D u_output_image;
-layout(std430, binding = 1) readonly buffer SVDAGNodes { uint u_nodes[]; };
-layout(std430, binding = 2) readonly buffer SVDAGPtrs  { uint u_ptrs[];  };
-layout(std430, binding = 3) readonly buffer Materials  { Material u_mats[]; };
-layout(std430, binding = 4) readonly buffer LeafBase   { uint u_leaf_base[]; };
+layout(std430, binding = 1) readonly buffer SVDAGNodes     { uint u_nodes[];      };
+layout(std430, binding = 2) readonly buffer SVDAGPtrs      { uint u_child_ptrs[]; };
+layout(std430, binding = 3) readonly buffer Materials      { Material u_mats[];   };
+layout(std430, binding = 4) readonly buffer LeafBase       { uint u_leaf_base[];  };
 layout(std430, binding = 5) readonly buffer LeafDataBuffer { LeafData u_leaf_data[]; };
+layout(std430, binding = 6) readonly buffer LodDataBuffer  { LodData u_lod_data[]; };
 
 uniform sampler2DArray u_tex_array;
 uniform mat4  u_inv_view_proj;
 uniform vec3  u_cam_pos;
 uniform vec2  u_resolution;
-uniform float u_voxel_scale;
 uniform int   u_voxel_res;
 uniform vec3  u_sun_dir;
 uniform int   u_max_depth;
+uniform float u_lod_bias;
+uniform int   u_ao_quality;
+#if DEBUG
+uniform int   u_debug_heatmap;
+#endif
 
-struct Ray { vec3 o, d, inv_d; };
+struct Ray {
+  vec3 origin;
+  vec3 dir;
+  vec3 inv_dir;
+};
 
-bool intersect_aabb(Ray r, vec3 bmin, vec3 bmax, out float tmin, out float tmax) {
-  vec3 t1 = (bmin - r.o) * r.inv_d, t2 = (bmax - r.o) * r.inv_d;
-  vec3 lo = min(t1, t2), hi = max(t1, t2);
-  tmin = max(max(lo.x, lo.y), lo.z);
-  tmax = min(min(hi.x, hi.y), hi.z);
-  return tmin <= tmax && tmax > 0.0;
+Ray make_ray(vec3 origin, vec3 dir) {
+  Ray ray;
+  ray.origin = origin;
+  ray.dir = dir;
+  ray.inv_dir = 1.0 / dir;
+  return ray;
 }
 
-vec3 sky_color(vec3 d, vec3 sun) {
-  float up = clamp(d.y * 0.5 + 0.5, 0.0, 1.0), sdot = max(0.0, dot(d, normalize(sun)));
-  vec3 sky = mix(vec3(0.82, 0.78, 0.68), vec3(0.28, 0.46, 0.72), pow(up, 0.6));
-  return sky + vec3(1.0, 0.9, 0.7) * pow(sdot, 180.0) * 2.5 + vec3(1.0, 0.85, 0.6) * pow(sdot, 8.0) * 0.18;
+bool intersect_axis(float origin, float dir, float box_min, float box_max, inout float t_enter, inout float t_exit) {
+  if (abs(dir) < 1e-8) {
+    return origin >= box_min && origin <= box_max;
+  }
+
+  float inv_dir = 1.0 / dir;
+  float t0 = (box_min - origin) * inv_dir;
+  float t1 = (box_max - origin) * inv_dir;
+  t_enter = max(t_enter, min(t0, t1));
+  t_exit = min(t_exit, max(t0, t1));
+  return t_enter <= t_exit;
 }
 
-bool svdag_hit(Ray r, float root, int max_sp, out float t_hit, out vec3 vmin_hit, out float hsz_hit, out uint hdr_hit, out uint hit_cp, out uint hit_cidx, out bool hit_is_leaf) {
-  float t_min, t_max;
-  if (!intersect_aabb(r, vec3(0.0), vec3(root), t_min, t_max)) { return false; }
+bool intersect_aabb(Ray ray, vec3 box_min, vec3 box_max, out float t_enter, out float t_exit) {
+  float inf = uintBitsToFloat(0x7F800000u);
+  t_enter = -inf;
+  t_exit = inf;
 
-  uint s_ptr[32]; vec3 s_min[32]; float s_tmax[32];
-  int sp = 0; s_ptr[0] = 0u; s_min[0] = vec3(0.0); s_tmax[0] = t_max;
-  float base_eps = root * 8e-5, t = max(t_min, 0.0) + base_eps;
+  return intersect_axis(ray.origin.x, ray.dir.x, box_min.x, box_max.x, t_enter, t_exit)
+      && intersect_axis(ray.origin.y, ray.dir.y, box_min.y, box_max.y, t_enter, t_exit)
+      && intersect_axis(ray.origin.z, ray.dir.z, box_min.z, box_max.z, t_enter, t_exit)
+      && t_exit > 0.0;
+}
 
-  for (int lg = 0; sp >= 0 && lg < max_sp * 64; ++lg) {
-    uint cp = s_ptr[sp]; vec3 cpos = s_min[sp];
-    float csz = root / float(1 << sp), hsz = csz * 0.5, eps = max(base_eps, t * 1e-5);
-    vec3 p = clamp(r.o + r.d * t, cpos + eps, cpos + vec3(csz) - eps), mid = cpos + vec3(hsz);
-    uint cidx = (p.x >= mid.x ? 1u : 0u) | (p.y >= mid.y ? 2u : 0u) | (p.z >= mid.z ? 4u : 0u);
-    uint hdr = u_nodes[cp], vmsk = hdr & 0xFFu, lmsk = (hdr >> 8) & 0xFFu;
-    vec3 cmin = cpos + vec3(float(cidx & 1u), float((cidx >> 1u) & 1u), float((cidx >> 2u) & 1u)) * hsz;
+vec3 sky_color(vec3 ray_dir, vec3 sun_dir) {
+  float sky_blend = clamp(ray_dir.y * 0.5 + 0.5, 0.0, 1.0);
+  float sun_dot = max(0.0, dot(ray_dir, normalize(sun_dir)));
+  vec3 sky_gradient = mix(vec3(0.82, 0.78, 0.68), vec3(0.28, 0.46, 0.72), pow(sky_blend, 0.6));
+  vec3 sun_disc = vec3(1.0, 0.9, 0.7) * pow(sun_dot, 180.0) * 2.5;
+  vec3 sun_halo = vec3(1.0, 0.85, 0.6) * pow(sun_dot, 8.0) * 0.18;
+  return sky_gradient + sun_disc + sun_halo;
+}
 
-    float st0, st1;
-    bool in_child = intersect_aabb(r, cmin, cmin + vec3(hsz), st0, st1);
+bool svdag_traverse(
+  Ray ray,
+  float root_size,
+  int max_stack_depth,
+  out float t_hit,
+  out vec3 hit_voxel_min,
+  out float hit_voxel_half_size,
+  out uint hit_node_header,
+  out uint hit_node_ptr,
+  out uint hit_child_idx,
+  out bool hit_is_leaf
+  DEBUG_ITER_PARAM)
+{
+  DEBUG_ITER_INIT
 
-    if (in_child && (vmsk & (1u << cidx)) != 0u) {
-      bool is_leaf = (lmsk & (1u << cidx)) != 0u;
-      if (is_leaf || csz <= max(t, base_eps) * (2.0 / u_resolution.y) || sp >= max_sp) {
-        t_hit = max(t, st0); vmin_hit = cmin; hsz_hit = hsz; hdr_hit = hdr;
-        hit_cp = cp; hit_cidx = cidx; hit_is_leaf = is_leaf; return true;
+  float t_enter, t_exit;
+  if (!intersect_aabb(ray, vec3(0.0), vec3(root_size), t_enter, t_exit)) {
+    return false;
+  }
+
+  uint  stack_node_ptr[32];
+  vec3  stack_voxel_min[32];
+  float stack_t_exit[32];
+
+  int effective_max_depth = clamp(max_stack_depth, 1, 31);
+  int traverse_depth = effective_max_depth + 1;
+  int traverse_iterations = effective_max_depth * 64;
+
+  int stack_top = 0;
+  stack_node_ptr[0] = 0u;
+  stack_voxel_min[0] = vec3(0.0);
+  stack_t_exit[0] = t_exit;
+
+  float epsilon_base = root_size * 2e-5;
+  float t_current = max(t_enter, 0.0) + epsilon_base;
+
+  for (int iteration = 0; stack_top >= 0 && iteration < traverse_iterations; ++iteration) {
+    DEBUG_ITER_SET(iteration)
+
+    uint node_ptr = stack_node_ptr[stack_top];
+    vec3 voxel_min = stack_voxel_min[stack_top];
+    float voxel_size = root_size / float(1 << stack_top);
+    float half_size = voxel_size * 0.5;
+    float epsilon = max(epsilon_base, abs(t_current) * 1e-5);
+    vec3 voxel_center = voxel_min + vec3(half_size);
+    vec3 ray_pos = clamp(ray.origin + ray.dir * t_current, voxel_min + epsilon, voxel_min + vec3(voxel_size) - epsilon);
+
+    vec3 b = step(voxel_center, ray_pos);
+    uint child_idx = uint(b.x) | (uint(b.y) << 1u) | (uint(b.z) << 2u);
+
+    uint node_header = u_nodes[node_ptr];
+    uint voxel_mask = node_header & 0xFFu;
+    uint leaf_mask = (node_header >> 8) & 0xFFu;
+    vec3 child_min = voxel_min + b * half_size;
+
+    float child_t_enter, child_t_exit;
+    bool ray_hits_child = intersect_aabb(ray, child_min, child_min + vec3(half_size), child_t_enter, child_t_exit);
+
+    if (ray_hits_child && (voxel_mask & (1u << child_idx)) != 0u) {
+      bool child_is_leaf = (leaf_mask & (1u << child_idx)) != 0u;
+
+      if (child_is_leaf) {
+        t_hit               = max(t_current, child_t_enter);
+        hit_voxel_min       = child_min;
+        hit_voxel_half_size = half_size;
+        hit_node_header     = node_header;
+        hit_node_ptr        = node_ptr;
+        hit_child_idx       = child_idx;
+        hit_is_leaf         = true;
+        return true;
       }
-      uint off = bitCount(vmsk & ~lmsk & ((1u << cidx) - 1u));
-      s_min[++sp] = cmin; s_ptr[sp] = u_ptrs[cp] + off; s_tmax[sp] = st1;
-    } else {
-      float t_next = in_child ? st1 : s_tmax[sp];
-      t = t_next + max(base_eps, t_next * 1e-5);
-      while (sp >= 0 && t >= s_tmax[sp] - base_eps * 0.5) { sp--; }
+
+      uint inner_child_offset = bitCount(voxel_mask & ~leaf_mask & ((1u << child_idx) - 1u));
+      uint child_node_ptr = u_child_ptrs[node_ptr] + inner_child_offset;
+
+      float lod_bias = max(u_lod_bias, 0.0);
+      float pixel_world_size = max(t_current, epsilon_base) * (2.0 / u_resolution.y);
+      bool at_screen_lod =
+           lod_bias > 0.0
+        && half_size <= pixel_world_size * lod_bias
+        && u_lod_data[child_node_ptr].albedo.w > 0.5
+        && u_lod_data[child_node_ptr].normal.w > 0.5;
+
+      if (at_screen_lod) {
+        t_hit               = max(t_current, child_t_enter);
+        hit_voxel_min       = child_min;
+        hit_voxel_half_size = half_size;
+        hit_node_header     = u_nodes[child_node_ptr];
+        hit_node_ptr        = child_node_ptr;
+        hit_child_idx       = 0u;
+        hit_is_leaf         = false;
+        return true;
+      }
+
+      if (stack_top + 1 >= traverse_depth) {
+        float t_step_to = child_t_exit;
+        if (isnan(t_step_to) || isinf(t_step_to) || t_step_to <= t_current) {
+          stack_top--;
+          continue;
+        }
+
+        t_current = t_step_to + max(epsilon_base, abs(t_step_to) * 1e-5);
+
+        while (stack_top >= 0 && t_current >= stack_t_exit[stack_top] - epsilon_base * 0.5) {
+          stack_top--;
+        }
+        continue;
+      }
+
+      stack_top++;
+      stack_voxel_min[stack_top] = child_min;
+      stack_node_ptr[stack_top] = child_node_ptr;
+      stack_t_exit[stack_top] = child_t_exit;
+    }
+    else {
+      float t_step_to = ray_hits_child ? child_t_exit : stack_t_exit[stack_top];
+
+      if (isnan(t_step_to) || isinf(t_step_to) || t_step_to <= t_current) {
+        stack_top--;
+        continue;
+      }
+
+      t_current = t_step_to + max(epsilon_base, abs(t_step_to) * 1e-5);
+
+      if (isnan(t_current) || isinf(t_current)) {
+        return false;
+      }
+
+      while (stack_top >= 0 && t_current >= stack_t_exit[stack_top] - epsilon_base * 0.5) {
+        stack_top--;
+      }
     }
   }
+
   return false;
 }
 
-vec3 voxel_normal(Ray r, vec3 vmin, float hsz) {
-  vec3 t1 = (vmin - r.o) * r.inv_d, t2 = (vmin + hsz * 2.0 - r.o) * r.inv_d;
-  vec3 tenter = mix(t2, t1, step(0.0, r.inv_d)), n = vec3(0.0);
-  if (tenter.x >= tenter.y && tenter.x >= tenter.z) { n.x = -sign(r.inv_d.x); }
-  else if (tenter.y >= tenter.z) { n.y = -sign(r.inv_d.y); }
-  else { n.z = -sign(r.inv_d.z); }
-  return n;
+vec3 voxel_face_normal(Ray ray, vec3 voxel_min, float half_size) {
+  vec3 center = voxel_min + vec3(half_size);
+  vec3 t = (center - ray.origin) * ray.inv_dir - abs(vec3(half_size) * ray.inv_dir);
+  bvec3 sel = bvec3(t.x >= t.y && t.x >= t.z, t.y > t.x && t.y >= t.z, t.z > t.x && t.z > t.y);
+  return -sign(ray.dir) * vec3(sel);
 }
 
-float sun_shadow(vec3 origin, vec3 n, float root, int max_sp, float hsz) {
-  Ray sr; sr.d = normalize(u_sun_dir); sr.o = origin + n * hsz * 2.0 + sr.d * hsz;
-  sr.inv_d = 1.0 / (sign(sr.d) * max(abs(sr.d), vec3(1e-9)));
-  float dt, dh; vec3 dv; uint dhdr, dcp, dci; bool dl;
-  return svdag_hit(sr, root, max_sp, dt, dv, dh, dhdr, dcp, dci, dl) ? 0.75 : 1.0;
+vec3 make_ao_direction(vec3 surface_normal, int sample_index) {
+  const vec3 hemisphere_samples[6] = vec3[6](
+    vec3( 0.00,  0.00, 1.00),
+    vec3( 0.70,  0.00, 0.71),
+    vec3(-0.70,  0.00, 0.71),
+    vec3( 0.00,  0.70, 0.71),
+    vec3( 0.00, -0.70, 0.71),
+    vec3( 0.50,  0.50, 0.71)
+  );
+
+  vec3 up = abs(surface_normal.y) < 0.99 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
+  vec3 tangent = normalize(cross(up, surface_normal));
+  vec3 bitangent = cross(surface_normal, tangent);
+  vec3 local_dir = normalize(hemisphere_samples[sample_index]);
+  return normalize(tangent * local_dir.x + bitangent * local_dir.y + surface_normal * local_dir.z);
 }
 
-float compute_ao(vec3 origin, vec3 n, float root, int n_samples, int max_sp, float hsz) {
-  const vec3 dirs[6] = vec3[6](vec3(0.57735, 0.57735, 0.57735), vec3(-0.57735, 0.57735, 0.57735), vec3(0.57735, 0.57735, -0.57735), vec3(-0.57735, 0.57735, -0.57735), vec3(0.81650, 0.40825, 0.40825), vec3(-0.40825, 0.81650, 0.40825));
-  float occ = 0.0; vec3 off = n * hsz * 2.0;
-  for (int i = 0; i < n_samples; i++) {
-    Ray ar; ar.d = dot(dirs[i], n) < 0.0 ? reflect(dirs[i], n) : dirs[i]; ar.d = normalize(ar.d);
-    ar.o = origin + off; ar.inv_d = 1.0 / (sign(ar.d) * max(abs(ar.d), vec3(1e-9)));
-    float dt, dh; vec3 dv; uint dhdr, dcp, dci; bool dl;
-    if (svdag_hit(ar, root, max_sp, dt, dv, dh, dhdr, dcp, dci, dl)) { occ += clamp(1.0 - dt / 80.0, 0.0, 1.0); }
+float compute_ao(vec3 surface_point, vec3 surface_normal, float root_size, int sample_count, int max_stack_depth, float voxel_half_size) {
+  float occlusion = 0.0;
+  float ao_radius = max(voxel_half_size * 32.0, 4.0);
+  vec3 ray_origin = surface_point + surface_normal * max(voxel_half_size * 1.25, 0.02);
+
+  for (int i = 0; i < sample_count; i++) {
+    Ray ao_ray = make_ray(ray_origin, make_ao_direction(surface_normal, i));
+
+    float ao_t;
+    vec3 ao_vmin;
+    float ao_hsz;
+    uint ao_hdr;
+    uint ao_ptr;
+    uint ao_cidx;
+    bool ao_leaf;
+#if DEBUG
+    int ao_iter;
+#endif
+
+    if (svdag_traverse(ao_ray, root_size, max_stack_depth, ao_t, ao_vmin, ao_hsz, ao_hdr, ao_ptr, ao_cidx, ao_leaf DEBUG_ITER_ARG(ao_iter))) {
+      occlusion += clamp(1.0 - ao_t / ao_radius, 0.0, 1.0);
+    }
   }
-  return 1.0 - 0.5 * (occ / float(n_samples));
+
+  return clamp(1.0 - 0.9 * (occlusion / float(sample_count)), 0.12, 1.0);
 }
 
-bool intersect_triangle(Ray r, vec3 v0, vec3 v1, vec3 v2, out float t, out float u, out float v) {
-  vec3 e1 = v1 - v0, e2 = v2 - v0, h = cross(r.d, e2);
-  float a = dot(e1, h); if (abs(a) < 1e-6) { return false; }
-  float f = 1.0 / a; vec3 s = r.o - v0; u = f * dot(s, h);
-  if (u < 0.0 || u > 1.0) { return false; }
-  vec3 q = cross(s, e1); v = f * dot(r.d, q);
-  if (v < 0.0 || u + v > 1.0) { return false; }
-  t = f * dot(e2, q); return t > 0.0;
+bool intersect_triangle(Ray ray, vec3 v0, vec3 v1, vec3 v2, out float t_hit, out float bary_u, out float bary_v) {
+  vec3 edge1 = v1 - v0;
+  vec3 edge2 = v2 - v0;
+  vec3 h = cross(ray.dir, edge2);
+  float det = dot(edge1, h);
+
+  if (abs(det) < 1e-6) {
+    return false;
+  }
+
+  float inv_det = 1.0 / det;
+  vec3 s = ray.origin - v0;
+  bary_u = inv_det * dot(s, h);
+
+  if (bary_u < 0.0 || bary_u > 1.0) {
+    return false;
+  }
+
+  vec3 q = cross(s, edge1);
+  bary_v = inv_det * dot(ray.dir, q);
+
+  if (bary_v < 0.0 || bary_u + bary_v > 1.0) {
+    return false;
+  }
+
+  t_hit = inv_det * dot(edge2, q);
+  return t_hit > 0.0;
+}
+
+void closest_triangle_surface(LeafData leaf, vec3 point, out vec2 tex_uv, out vec4 vertex_color, out vec3 triangle_normal) {
+  vec3 ab = leaf.v1.xyz - leaf.v0.xyz;
+  vec3 ac = leaf.v2.xyz - leaf.v0.xyz;
+  vec3 n = cross(ab, ac);
+  float nn = dot(n, n);
+  triangle_normal = nn > 1e-12 ? normalize(n) : vec3(0.0, 1.0, 0.0);
+
+  vec3 ap = point - leaf.v0.xyz;
+  float d11 = dot(ab, ab), d12 = dot(ab, ac), d22 = dot(ac, ac);
+  float d31 = dot(ap, ab), d32 = dot(ap, ac);
+  float denom = max(d11 * d22 - d12 * d12, 1e-12);
+  float v = (d22 * d31 - d12 * d32) / denom;
+  float w = (d11 * d32 - d12 * d31) / denom;
+  float u = 1.0 - v - w;
+
+  tex_uv = leaf.uv0 * u + leaf.uv1 * v + leaf.uv2 * w;
+  vertex_color = leaf.c0 * u + leaf.c1 * v + leaf.c2 * w;
+}
+
+vec4 sample_texture_layer(vec2 uv, int layer) {
+  ivec2 size = textureSize(u_tex_array, 0).xy;
+  ivec2 p = ivec2(clamp(fract(uv), vec2(0.0), vec2(0.999999)) * vec2(size));
+  return texelFetch(u_tex_array, ivec3(p, layer), 0);
+}
+
+uint get_leaf_slot(uint node_ptr, uint node_header, uint child_idx) {
+  return u_leaf_base[node_ptr]
+       + bitCount(((node_header >> 8) & 0xFFu) & ((1u << child_idx) - 1u));
 }
 
 void main() {
-  ivec2 px = ivec2(gl_GlobalInvocationID.xy);
-  if (any(greaterThanEqual(px, ivec2(u_resolution)))) { return; }
-
-  vec2 ndc = (vec2(px) + 0.5) / u_resolution * 2.0 - 1.0;
-  vec4 pn = u_inv_view_proj * vec4(ndc, 0.0, 1.0), pf = u_inv_view_proj * vec4(ndc, 1.0, 1.0);
-  Ray r; r.o = u_cam_pos; r.d = normalize(pf.xyz / pf.w - pn.xyz / pn.w);
-  r.inv_d = 1.0 / (sign(r.d) * max(abs(r.d), vec3(1e-9)));
-
-  float t_hit, hsz; vec3 vmin; uint hdr, hit_cp, hit_cidx; bool hit_is_leaf;
-  if (!svdag_hit(r, float(u_voxel_res), u_max_depth, t_hit, vmin, hsz, hdr, hit_cp, hit_cidx, hit_is_leaf)) {
-    imageStore(u_output_image, px, vec4(sky_color(r.d, u_sun_dir), 1.0)); return;
+  ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
+  if (any(greaterThanEqual(pixel, ivec2(u_resolution)))) {
+    return;
   }
 
-  vec3 hit = r.o + r.d * t_hit, n = voxel_normal(r, vmin, hsz);
-  vec2 uv = vec2(0.0); uint mat_id = hdr >> 16; float lod = 0.0;
+  vec2 ndc = (vec2(pixel) + 0.5) / u_resolution * 2.0 - 1.0;
 
-  if (hit_is_leaf) {
-    LeafData lf = u_leaf_data[u_leaf_base[hit_cp] + bitCount(((hdr >> 8) & 0xFFu) & ((1u << hit_cidx) - 1u))];
-    mat_id = lf.mat_id; float t_tri, u, v;
-    if (intersect_triangle(r, lf.v0.xyz, lf.v1.xyz, lf.v2.xyz, t_tri, u, v)) {
-      t_hit = t_tri; hit = r.o + r.d * t_hit; uv = lf.uv0 * (1.0 - u - v) + lf.uv1 * u + lf.uv2 * v;
-      vec3 e1 = lf.v1.xyz - lf.v0.xyz, e2 = lf.v2.xyz - lf.v0.xyz; vec2 d1 = lf.uv1 - lf.uv0, d2 = lf.uv2 - lf.uv0;
-      float a_w = length(cross(e1, e2)), a_u = abs(d1.x * d2.y - d2.x * d1.y);
-      lod = max(0.0, log2(t_hit * (2.0 / u_resolution.y) * sqrt(a_u / (a_w + 1e-6)) * 1024.0 * u_mats[mat_id].tex_scale));
-      n = normalize(cross(e1, e2)); if (dot(n, voxel_normal(r, vmin, hsz)) < 0.0) { n = -n; }
-      if (u_mats[mat_id].normal_tex >= 0) {
-        vec3 tg = normalize((1.0 / (d1.x * d2.y - d2.x * d1.y + 1e-6)) * (d2.y * e1 - d1.y * e2));
-        vec3 tn = textureLod(u_tex_array, vec3(uv, u_mats[mat_id].normal_tex), lod).xyz * 2.0 - 1.0;
-        n = normalize(mat3(tg, normalize(cross(n, tg)), n) * tn);
-      }
-    } else { uv = lf.uv0; }
+  vec4 ray_a_h = u_inv_view_proj * vec4(ndc, 0.0, 1.0);
+  vec4 ray_b_h = u_inv_view_proj * vec4(ndc, 0.5, 1.0);
+  vec3 ray_a = ray_a_h.xyz / ray_a_h.w;
+  vec3 ray_b = ray_b_h.xyz / ray_b_h.w;
+
+  Ray primary_ray = make_ray(u_cam_pos, normalize(ray_b - ray_a));
+
+  float t_hit;
+  float hit_half_size;
+  vec3 hit_voxel_min;
+  uint node_header;
+  uint hit_node_ptr;
+  uint hit_child_idx;
+  bool hit_is_leaf;
+#if DEBUG
+  int primary_iterations;
+#endif
+
+  if (!svdag_traverse(
+    primary_ray, float(u_voxel_res), u_max_depth,
+    t_hit, hit_voxel_min, hit_half_size, node_header, hit_node_ptr, hit_child_idx, hit_is_leaf DEBUG_ITER_ARG(primary_iterations)
+  )) {
+#if DEBUG
+    if (u_debug_heatmap != 0) {
+      imageStore(u_output_image, pixel, vec4(0.0, 0.0, 0.0, 1.0));
+      return;
+    }
+#endif
+
+    imageStore(u_output_image, pixel, vec4(sky_color(primary_ray.dir, u_sun_dir), 1.0));
+    return;
   }
 
-  Material mat = u_mats[mat_id]; vec4 col = mat.base_color;
-  if (mat.diffuse_tex >= 0) {
-    if (!hit_is_leaf) {
-      float ir = 1.0 / float(u_voxel_res);
-      lod = max(0.0, log2(t_hit * 2.0 / u_resolution.y * ir * mat.tex_scale * 1024.0));
-      vec3 b = pow(abs(n), vec3(8.0)); b /= b.x + b.y + b.z;
-      col *= textureLod(u_tex_array, vec3(hit.zy * ir * mat.tex_scale, mat.diffuse_tex), lod) * b.x +
-             textureLod(u_tex_array, vec3(hit.xz * ir * mat.tex_scale, mat.diffuse_tex), lod) * b.y +
-             textureLod(u_tex_array, vec3(hit.xy * ir * mat.tex_scale, mat.diffuse_tex), lod) * b.z;
-    } else { col *= textureLod(u_tex_array, vec3(uv, mat.diffuse_tex), lod); }
+#if DEBUG
+  if (u_debug_heatmap == 1) {
+    float cost = clamp(float(primary_iterations) / float(max(u_max_depth * 4, 1)), 0.0, 1.0);
+    vec3 color = mix(vec3(0.05, 0.05, 0.05), vec3(1.0, 0.0, 0.0), cost);
+    imageStore(u_output_image, pixel, vec4(color, 1.0));
+    return;
   }
-  /*
+#endif
 
-  float dr = clamp(t_hit / (float(u_voxel_res) * 0.5), 0.0, 1.0);
-  float ao = compute_ao(hit, n, float(u_voxel_res), max(2, int(6.0 * dr + 0.5)) + 1, max(2, int(float(u_max_depth) * 0.5 * dr + 1.0)), hsz);
-  float sh = sun_shadow(hit, n, float(u_voxel_res), max(2, int(float(u_max_depth) * 0.6 * dr + 2.0)), hsz);
-  imageStore(u_output_image, px, vec4(col.rgb * (max(0.0, dot(n, normalize(u_sun_dir))) * sh + 0.15 * ao), 1.0));
-*/
-  
-  float dr = clamp(t_hit / (float(u_voxel_res) * 0.5), 0.0, 1.0);
-  float ao = compute_ao(hit, n, float(u_voxel_res), max(2, int(6.0 * dr + 0.5)) + 1, max(2, int(float(u_max_depth) * 0.5 * dr + 1.0)), hsz);
-  
-  imageStore(u_output_image, px, vec4(col.rgb * (0.0 + 0.9 * ao), 1.0));
+  t_hit = max(0.0, t_hit);
+  if (isnan(t_hit) || isinf(t_hit)) {
+    imageStore(u_output_image, pixel, vec4(sky_color(primary_ray.dir, u_sun_dir), 1.0));
+    return;
+  }
 
+  vec3 hit_pos = primary_ray.origin + primary_ray.dir * t_hit;
+  vec3 hit_normal = voxel_face_normal(primary_ray, hit_voxel_min, hit_half_size);
+  vec2 tex_uv = vec2(0.0);
+  vec4 vertex_color = vec4(1.0);
+  uint mat_id = node_header >> 16;
+  bool has_triangle_uv = false;
+  bool has_real_triangle_hit = false;
+
+  if (!hit_is_leaf) {
+    LodData lod = u_lod_data[hit_node_ptr];
+
+    if (lod.albedo.w <= 0.5 || lod.normal.w <= 0.5) {
+      imageStore(u_output_image, pixel, vec4(sky_color(primary_ray.dir, u_sun_dir), 1.0));
+      return;
+    }
+
+    hit_normal = normalize(lod.normal.xyz);
+    hit_normal = faceforward(hit_normal, primary_ray.dir, hit_normal);
+
+    float diffuse_light = max(dot(hit_normal, normalize(u_sun_dir)), 0.0);
+    float lighting = 0.35 + 0.65 * diffuse_light;
+
+    imageStore(u_output_image, pixel, vec4(lod.albedo.rgb * lighting, 1.0));
+    return;
+  }
+
+  uint leaf_slot = get_leaf_slot(hit_node_ptr, node_header, hit_child_idx);
+  LeafData leaf = u_leaf_data[leaf_slot];
+
+  vec3 tri_edge1 = leaf.v1.xyz - leaf.v0.xyz;
+  vec3 tri_edge2 = leaf.v2.xyz - leaf.v0.xyz;
+  vec2 uv_edge1 = leaf.uv1 - leaf.uv0;
+  vec2 uv_edge2 = leaf.uv2 - leaf.uv0;
+
+  float uv_area = abs(uv_edge1.x * uv_edge2.y - uv_edge2.x * uv_edge1.y);
+  float tri_t, bary_u, bary_v;
+  has_real_triangle_hit = intersect_triangle(primary_ray, leaf.v0.xyz, leaf.v1.xyz, leaf.v2.xyz, tri_t, bary_u, bary_v);
+
+  mat_id = leaf.mat_id;
+  has_triangle_uv = uv_area > 1e-8;
+
+  if (has_real_triangle_hit) {
+    t_hit = tri_t;
+    hit_pos = primary_ray.origin + primary_ray.dir * t_hit;
+  }
+
+  closest_triangle_surface(leaf, hit_pos, tex_uv, vertex_color, hit_normal);
+  hit_normal = faceforward(hit_normal, primary_ray.dir, hit_normal);
+
+  if (u_mats[mat_id].normal_tex >= 0 && has_triangle_uv) {
+    float uv_det = uv_edge1.x * uv_edge2.y - uv_edge2.x * uv_edge1.y;
+    vec3 tangent = normalize((uv_edge2.y * tri_edge1 - uv_edge1.y * tri_edge2) / uv_det);
+    tangent = normalize(tangent - hit_normal * dot(hit_normal, tangent));
+    vec3 bitangent = normalize(cross(hit_normal, tangent)) * sign(uv_det);
+    vec3 normal_sample = sample_texture_layer(tex_uv, u_mats[mat_id].normal_tex).xyz * 2.0 - 1.0;
+    hit_normal = normalize(mat3(tangent, bitangent, hit_normal) * normal_sample);
+    hit_normal = faceforward(hit_normal, primary_ray.dir, hit_normal);
+  }
+
+  Material mat = u_mats[mat_id];
+  vec4 albedo = mat.base_color * vertex_color;
+
+  if (has_triangle_uv && mat.diffuse_tex >= 0) {
+    vec4 texel = sample_texture_layer(tex_uv, mat.diffuse_tex);
+    albedo *= vec4(texel.rgb, 1.0);
+  }
+
+  float ao = 1.0;
+  if (u_ao_quality > 0) {
+    int ao_samples = u_ao_quality == 1 ? 3 : 6;
+    ao = compute_ao(
+      hit_pos,
+      normalize(hit_normal),
+      float(u_voxel_res),
+      ao_samples,
+      u_max_depth,
+      hit_half_size
+    );
+  }
+
+#if DEBUG
+  if (u_debug_heatmap == 2) {
+    float q = float(clamp(u_ao_quality, 0, 2)) * 0.5;
+    imageStore(u_output_image, pixel, vec4(q, 0.0, 1.0 - q, 1.0));
+    return;
+  }
+#endif
+
+#if DEBUG
+  if (u_debug_heatmap == 3) {
+    imageStore(u_output_image, pixel, vec4(vec3(ao), 1.0));
+    return;
+  }
+#endif
+
+  float diffuse_light = max(dot(normalize(hit_normal), normalize(u_sun_dir)), 0.0);
+  float lighting = 0.35 + 0.65 * diffuse_light;
+
+  imageStore(u_output_image, pixel, vec4(albedo.rgb * lighting * (0.35 + 0.65 * ao), 1.0));
 }

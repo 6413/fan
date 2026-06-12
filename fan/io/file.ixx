@@ -98,6 +98,18 @@ export namespace fan {
         return write(std::string_view(to_str(std::forward<P>(path))), data, mode);
       }
 
+      template <typename T>
+      inline void write(std::ofstream& f, const std::vector<T>& v) {
+        f.write(reinterpret_cast<const char*>(v.data()), std::streamsize(v.size() * sizeof(T)));
+      }
+
+      template <typename T>
+      inline bool read(std::ifstream& f, std::vector<T>& v, std::uint64_t size) {
+        v.resize(size);
+        f.read(reinterpret_cast<char*>(v.data()), std::streamsize(v.size() * sizeof(T)));
+        return bool(f);
+      }
+
       template <path_t P>
       bool exists(P&& p) { return exists(std::string_view(to_str(std::forward<P>(p)))); }
 

@@ -84,6 +84,8 @@ import fan.physics.types;
   import fan.graphics.physics_subsystem;
 #endif
 
+import fan.graphics.async_image_subsystem;
+
 #if defined(debug_shape_t)
   import fan.print;
 #endif
@@ -1191,6 +1193,8 @@ public:
     void update_physics(bool flag);
     fan::physics::context_t& get_physics_context() { return physics.context; }
   #endif
+
+  fan::graphics::async_image_subsystem_t async_image;
 
   fan::graphics::image_t get_color_buffer(int idx);
 

@@ -147,19 +147,25 @@ export namespace fan {
       }
     };
     inline constexpr auto texture_max = AI_TEXTURE_TYPE_MAX + 1;
+    inline std::array<bool, texture_max> make_texture_filter(std::initializer_list<std::uint32_t> types) {
+      std::array<bool, texture_max> out{};
+      for (std::uint32_t t : types) { if (t < out.size()) { out[t] = true; } }
+      return out;
+    }
     struct mesh_t {
       std::vector<fan::model::vertex_t> vertices;
       std::vector<std::uint32_t> indices;
       std::uint32_t indices_len = 0;
 
       std::string texture_names[texture_max]{};
+      std::shared_ptr<fan::image::async_result_t> texture_jobs[texture_max]{};
     };
+    using texture_data_t = fan::image::owned_t;
+
     // pm -- parsed model
-    struct pm_texture_data_t {
-      fan::vec2ui size = 0;
-      std::vector<std::uint8_t> data;
-      int channels = 0;
-    };
+    using pm_texture_data_t = texture_data_t;
+    using cpu_texture_t = texture_data_t;
+
     std::unordered_map<std::string, pm_texture_data_t> cached_texture_data;
     struct pm_material_data_t {
       fan::color color[AI_TEXTURE_TYPE_MAX + 1];
@@ -167,9 +173,24 @@ export namespace fan {
     // fan model stuff
     struct fms_t {
       struct properties_t {
+        enum class texture_loading_e {
+          sync,
+          deferred,
+          wait
+        };
+
         std::string path;
         std::string texture_path = "models/textures";
         int use_cpu = false;
+        bool load_skeleton = true;
+        bool load_animations = true;
+        bool fix_uv_diagonals = true;
+        texture_loading_e texture_loading = texture_loading_e::sync;
+        std::array<bool, texture_max> load_texture_types = [] {
+          std::array<bool, texture_max> out{};
+          out.fill(true);
+          return out;
+        }();
       };
       fms_t() = default;
       fms_t(const properties_t& fmi) {
@@ -199,9 +220,11 @@ export namespace fan {
           pm_material_data_t mat = load_materials(mesh);
           material_data_vector.push_back(mat);
           load_textures(m, mesh);
-          process_bone_offsets(mesh);
+          if (p.load_skeleton) {
+            process_bone_offsets(mesh);
+          }
 
-          meshes.push_back(m);
+          meshes.push_back(std::move(m));
         }
 
         for (unsigned int i = 0; i < node->mNumChildren; i++) {
@@ -473,7 +496,6 @@ export namespace fan {
         }
       }
 
-
       mesh_t process_mesh(aiMesh* mesh, const aiMatrix4x4& transform, fan::vec3& out_min, fan::vec3& out_max) {
         mesh_t new_mesh;
         new_mesh.vertices.resize(mesh->mNumVertices);
@@ -568,29 +590,76 @@ export namespace fan {
           }
         }
 
+        new_mesh.indices.reserve(mesh->mNumFaces * 3);
         for (std::uint32_t i = 0; i < mesh->mNumFaces; i++) {
           aiFace& face = mesh->mFaces[i];
           for (std::uint32_t j = 0; j < face.mNumIndices; j++) {
             new_mesh.indices.push_back(face.mIndices[j]);
           }
         }
-
         new_mesh.indices_len = new_mesh.indices.size();
-        fix_uv_diagonals(new_mesh);
-
+        if (p.fix_uv_diagonals) {
+          fix_uv_diagonals(new_mesh);
+        }
         return new_mesh;
+      }
+
+      std::shared_ptr<fan::image::async_result_t> load_embedded_texture_async(const aiTexture* embedded_texture) {
+        auto bytes = std::make_shared<std::vector<std::uint8_t>>();
+        bytes->resize(embedded_texture->mWidth);
+        std::memcpy(bytes->data(), embedded_texture->pcData, embedded_texture->mWidth);
+
+        auto result = std::make_shared<fan::image::async_result_t>();
+        result->job = std::async(std::launch::async, [bytes] {
+          fan::image::owned_t out;
+
+          int width = 0;
+          int height = 0;
+          int nr_channels = 0;
+
+          unsigned char* data = stbi_load_from_memory(
+            bytes->data(),
+            int(bytes->size()),
+            &width,
+            &height,
+            &nr_channels,
+            STBI_rgb_alpha
+          );
+
+          if (data == nullptr) {
+            return out;
+          }
+
+          out.size = fan::vec2i(std::uint32_t(width), std::uint32_t(height));
+          out.channels = 4;
+          out.data_size = std::size_t(out.size.x) * out.size.y * out.channels;
+          out.data = std::shared_ptr<std::uint8_t>(
+            reinterpret_cast<std::uint8_t*>(data),
+            [](std::uint8_t* p) {
+            stbi_image_free(p);
+          }
+          );
+
+          return out;
+        });
+
+        return result;
       }
 
       void load_textures(mesh_t& mesh, aiMesh* ai_mesh) {
         if (scene->mNumMaterials == 0) {
           return;
         }
+
         aiMaterial* material = scene->mMaterials[ai_mesh->mMaterialIndex];
+
         for (std::uint32_t texture_type = 0; texture_type < AI_TEXTURE_TYPE_MAX + 1; ++texture_type) {
+          if (!p.load_texture_types[texture_type]) { continue; }
           aiString path;
           if (material->GetTexture((aiTextureType)texture_type, 0, &path) != AI_SUCCESS) {
             continue;
           }
+
           std::string path_str = path.C_Str();
           if (path_str.size() > 4 && path_str.compare(path_str.size() - 4, 4, ".psd") == 0) {
             path_str = path_str.substr(0, path_str.size() - 4) + ".png";
@@ -599,36 +668,110 @@ export namespace fan {
           auto embedded_texture = scene->GetEmbeddedTexture(path.C_Str());
 
           if (embedded_texture && embedded_texture->mHeight == 0) {
-            int width, height, nr_channels;
-            unsigned char* data = stbi_load_from_memory(reinterpret_cast<const unsigned char*>(embedded_texture->pcData), embedded_texture->mWidth, &width, &height, &nr_channels, 0);
-            if (data == nullptr) {
-              fan::print_impl("failed to load texture");
+            std::string generated_str = "embedded:" + path_str;
+            mesh.texture_names[texture_type] = generated_str;
+
+            if (fan::model::cached_texture_data.find(generated_str) != fan::model::cached_texture_data.end()) {
               continue;
             }
 
-            // must not collide with other names
-            std::string generated_str = path_str + std::to_string(texture_type);
-            mesh.texture_names[texture_type] = generated_str;
-            auto& td = fan::model::cached_texture_data[generated_str];
-            td.size = fan::vec2(width, height);
-            td.data.insert(td.data.end(), data, data + td.size.multiply() * nr_channels);
-            td.channels = nr_channels;
-            stbi_image_free(data);
+            auto job = load_embedded_texture_async(embedded_texture);
+            mesh.texture_jobs[texture_type] = job;
+
+            if (p.texture_loading == properties_t::texture_loading_e::deferred) {
+              continue;
+            }
+
+            if (p.texture_loading == properties_t::texture_loading_e::wait) {
+              continue;
+            }
+
+            job->wait();
+
+            if (job->state == fan::image::async_result_t::state_e::ready) {
+              fan::model::cached_texture_data[generated_str] = job->image;
+            }
           }
           else {
-            std::string file_path = p.texture_path + "/" + scene->GetShortFilename(path_str.c_str());
-            mesh.texture_names[texture_type] = file_path;
-            auto found = cached_texture_data.find(file_path);
-            if (found == cached_texture_data.end()) {
-              fan::image::info_t ii;
-              if (fan::image::load(file_path, &ii)) {
+            std::vector<std::filesystem::path> paths;
+            std::filesystem::path texture_path(path_str);
+            std::filesystem::path model_dir = std::filesystem::path(p.path).parent_path();
+
+            if (texture_path.is_absolute()) {
+              paths.push_back(texture_path);
+            }
+            else {
+              paths.push_back(model_dir / texture_path);
+              paths.push_back(std::filesystem::path(p.texture_path) / texture_path.filename());
+              paths.push_back(std::filesystem::path(p.texture_path) / texture_path);
+              paths.push_back(texture_path);
+            }
+
+            std::string file_path;
+
+            for (const auto& candidate : paths) {
+              file_path = candidate.string();
+
+              if (fan::model::cached_texture_data.find(file_path) != fan::model::cached_texture_data.end()) {
+                mesh.texture_names[texture_type] = file_path;
+                break;
+              }
+
+              if (!fan::image::valid(file_path)) {
                 continue;
               }
-              auto& td = cached_texture_data[file_path];
-              td.size = ii.size;
-              td.data.insert(td.data.end(), (std::uint8_t*)ii.data, (std::uint8_t*)ii.data + ii.size.multiply() * ii.channels);
-              td.channels = ii.channels;
-              fan::image::free(&ii);
+
+              if (p.texture_loading == properties_t::texture_loading_e::sync) {
+                auto td = fan::image::load_owned(file_path);
+                if (td.valid()) {
+                  mesh.texture_names[texture_type] = file_path;
+                  fan::model::cached_texture_data[file_path] = std::move(td);
+                  break;
+                }
+                continue;
+              }
+
+              mesh.texture_names[texture_type] = file_path;
+              mesh.texture_jobs[texture_type] = fan::image::async_cache().load(file_path);
+              break;
+            }
+          }
+        }
+      }
+
+      void resolve_deferred_textures() {
+        for (auto& mesh : meshes) {
+          for (std::uint32_t texture_type = 0; texture_type < texture_max; ++texture_type) {
+            auto& job = mesh.texture_jobs[texture_type];
+
+            if (job == nullptr || fan::model::cached_texture_data.find(mesh.texture_names[texture_type]) != fan::model::cached_texture_data.end()) {
+              continue;
+            }
+
+            if (!job->try_finish()) {
+              continue;
+            }
+
+            if (job->state == fan::image::async_result_t::state_e::ready) {
+              fan::model::cached_texture_data[mesh.texture_names[texture_type]] = job->image;
+            }
+          }
+        }
+      }
+
+      void wait_deferred_textures() {
+        for (auto& mesh : meshes) {
+          for (std::uint32_t texture_type = 0; texture_type < texture_max; ++texture_type) {
+            auto& job = mesh.texture_jobs[texture_type];
+
+            if (job == nullptr || fan::model::cached_texture_data.find(mesh.texture_names[texture_type]) != fan::model::cached_texture_data.end()) {
+              continue;
+            }
+
+            job->wait();
+
+            if (job->state == fan::image::async_result_t::state_e::ready) {
+              fan::model::cached_texture_data[mesh.texture_names[texture_type]] = job->image;
             }
           }
         }
@@ -710,6 +853,59 @@ export namespace fan {
 
         return material_data;
       }
+
+      struct triangle_ref_t {
+        std::uint32_t mesh_id = 0;
+        std::uint32_t triangle_id = 0;
+        std::uint32_t vertex_indices[3]{};
+        const vertex_t* vertices[3]{};
+      };
+
+      std::size_t get_triangle_count() const {
+        std::size_t count = 0;
+        for (const auto& m : meshes) {
+          count += m.indices.size() / 3;
+        }
+        return count;
+      }
+
+      template <typename fn_t>
+      void for_each_triangle(fn_t&& fn) const {
+        for (std::uint32_t mesh_id = 0; mesh_id < meshes.size(); ++mesh_id) {
+          const auto& m = meshes[mesh_id];
+          for (std::uint32_t i = 0; i + 2 < m.indices.size(); i += 3) {
+            std::uint32_t i0 = m.indices[i + 0];
+            std::uint32_t i1 = m.indices[i + 1];
+            std::uint32_t i2 = m.indices[i + 2];
+
+            fn(triangle_ref_t{
+              .mesh_id = mesh_id,
+              .triangle_id = i / 3,
+              .vertex_indices = {i0, i1, i2},
+              .vertices = {&m.vertices[i0], &m.vertices[i1], &m.vertices[i2]}
+            });
+          }
+        }
+      }
+
+      fan::color get_material_base_color(std::uint32_t mesh_id, fan::color fallback = fan::colors::white) const {
+        if (mesh_id >= material_data_vector.size()) {
+          return fallback;
+        }
+
+        const auto& m = material_data_vector[mesh_id];
+        const auto& bc = m.color[fan::texture_type::base_color];
+        const auto& dc = m.color[fan::texture_type::diffuse];
+
+        if (bc != fan::colors::white) {
+          return bc;
+        }
+        if (dc != fan::colors::white) {
+          return dc;
+        }
+        return fallback;
+      }
+
       void process_skeleton(aiNode* node, bone_t* parent, fan::vec3& largest_scale) {
         if (parent == nullptr) {
           bone_count = 0;
@@ -843,9 +1039,13 @@ export namespace fan {
         m_transform = fan::mat4{1};
 
         bone_count = 0;
-        fan::vec3 largest_bone = 0;
-        process_skeleton(scene->mRootNode, nullptr, largest_bone);
-        load_animations();
+        if (p.load_skeleton) {
+          fan::vec3 largest_bone = 0;
+          process_skeleton(scene->mRootNode, nullptr, largest_bone);
+          if (p.load_animations) {
+            load_animations();
+          }
+        }
 
         meshes.clear();
 
@@ -854,10 +1054,14 @@ export namespace fan {
 
         process_node(scene->mRootNode, aiMatrix4x4(), global_min, global_max);
 
+        if (p.texture_loading == properties_t::texture_loading_e::wait) {
+          wait_deferred_textures();
+        }
+
         aabbmin = global_min;
         aabbmax = global_max;
         
-        update_bone_transforms();
+        //update_bone_transforms();
         return true;
       }
       void calculate_vertices(const std::vector<fan::mat4>& bt, std::uint32_t mesh_id, const fan::mat4& model) {
@@ -890,7 +1094,6 @@ export namespace fan {
         fan::vec2 uv[3]{};
         std::uint32_t vertex_indices[3];
       };
-
       std::vector<one_triangle_t> get_triangles(std::uint32_t mesh_id) {
         std::vector<one_triangle_t> triangles;
         static constexpr int edge_count = 3;
@@ -2003,7 +2206,7 @@ export namespace fan {
       }
 
       const auto& td = found->second;
-      if (td.data.empty() || td.channels < 3) {
+      if (td.data == nullptr || td.data_size == 0 || td.channels < 3) {
         return -1;
       }
 
@@ -2015,12 +2218,80 @@ export namespace fan {
       active_textures.push_back(&td);
       return active_textures.size() - 1;
     }
+    std::int32_t get_texture_index_fast(
+      const std::string& texture_name,
+      std::vector<const fan::model::pm_texture_data_t*>& active_textures,
+      std::unordered_map<std::string, int>& texture_layer_map
+    ) {
+      if (texture_name.empty()) {
+        return -1;
+      }
+
+      if (auto it = texture_layer_map.find(texture_name); it != texture_layer_map.end()) {
+        return it->second;
+      }
+
+      auto it = fan::model::cached_texture_data.find(texture_name);
+      if (it == fan::model::cached_texture_data.end() || !it->second.valid()) {
+        return -1;
+      }
+
+      int layer = active_textures.size();
+      active_textures.push_back(&it->second);
+      texture_layer_map[texture_name] = layer;
+      return layer;
+    }
+    std::int32_t get_first_texture_index(
+      const fan::model::mesh_t& mesh,
+      std::initializer_list<std::uint32_t> texture_types,
+      std::vector<const fan::model::pm_texture_data_t*>& active_textures,
+      std::unordered_map<std::string, int>& texture_layer_map
+    ) {
+      for (std::uint32_t texture_type : texture_types) {
+        std::int32_t index = get_texture_index_fast(mesh.texture_names[texture_type], active_textures, texture_layer_map);
+        if (index != -1) {
+          return index;
+        }
+      }
+      return -1;
+    }
+
+    std::vector<cpu_texture_t> copy_cpu_textures(const std::vector<const pm_texture_data_t*>& textures) {
+      std::vector<cpu_texture_t> out;
+      out.reserve(textures.size());
+      for (auto* t : textures) {
+        out.push_back({t->size, t->data, t->data_size, t->channels});
+      }
+      return out;
+    }
+
+    fan::vec2ui choose_texture_array_size(const std::vector<cpu_texture_t>& textures) {
+      fan::vec2ui size(1);
+      for (const auto& t : textures) {
+        size.x = std::max(size.x, t.size.x);
+        size.y = std::max(size.y, t.size.y);
+      }
+      return {
+        std::min<std::uint32_t>(std::bit_ceil(size.x), 1024),
+        std::min<std::uint32_t>(std::bit_ceil(size.y), 1024)
+      };
+    }
+    std::vector<std::uint8_t> resize_rgba_nearest(const cpu_texture_t& src, fan::vec2ui dst) {
+      std::vector<std::uint8_t> out(dst.multiply() * 4, 255);
+      std::vector<std::uint32_t> xm(dst.x), ym(dst.y);
+      for (std::uint32_t x = 0; x < dst.x; ++x) { xm[x] = std::min<std::uint32_t>(x * src.size.x / dst.x, src.size.x - 1); }
+      for (std::uint32_t y = 0; y < dst.y; ++y) { ym[y] = std::min<std::uint32_t>(y * src.size.y / dst.y, src.size.y - 1); }
+      for (std::uint32_t y = 0; y < dst.y; ++y) {
+        for (std::uint32_t x = 0; x < dst.x; ++x) {
+          std::uint32_t si = (ym[y] * src.size.x + xm[x]) * src.channels;
+          std::uint32_t di = (y * dst.x + x) * 4;
+          std::memcpy(&out[di], src.data.get() + si, std::min<std::size_t>(std::size_t(src.channels), 4));
+        }
+      }
+      return out;
+    }
   }
 }
-
-#ifdef fms_use_opengl
-  #undef fms_use_opengl
-#endif
 
 #endif 
 

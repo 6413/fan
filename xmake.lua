@@ -235,6 +235,7 @@ local feature_modules = {
     "fan/graphics/audio_subsystem.ixx",
     "fan/graphics/physics_subsystem.ixx",
     "fan/graphics/input_subsystem.ixx",
+    "fan/graphics/async_image_load.ixx",
 
     "fan/graphics/loco.ixx",
     "fan/graphics/graphics.ixx",

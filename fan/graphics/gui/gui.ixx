@@ -25,6 +25,8 @@ import std;
   import fan.graphics.shapes;
 
   import fan.graphics.gui.types;
+  import fan.graphics.gui.base;
+  import fan.graphics.loco;
   import fan.console;
   
   import fan.formatter; // todo REMOVE
@@ -576,6 +578,50 @@ export namespace fan::graphics::gui {
     f32_t& move_speed
   );
 #endif
+
+  struct camera_controls_ranges_t {
+    f32_t zfar_min = 1.f;
+    f32_t zfar_max = 10000.f;
+
+    f32_t znear_min = 0.001f;
+    f32_t znear_max = 10.f;
+
+    f32_t fov_min = 1.f;
+    f32_t fov_max = 180.f;
+
+    f32_t sensitivity_min = 0.01f;
+    f32_t sensitivity_max = 1.f;
+
+    f32_t speed_min = 1.f;
+    f32_t speed_max = 10000.f;
+
+    f32_t friction_min = 0.f;
+    f32_t friction_max = 30.f;
+  };
+  
+  template <FAN_UNIQUE_CALL>
+  void camera_controls(
+    const camera_controls_ranges_t& ranges = {},
+    fan::graphics::camera_t cam = gloco()->perspective_render_view) {
+    fan::graphics::context_camera_t& camera = gloco()->camera_get(cam);
+    static f32_t friction = 12.f;
+    static f32_t fov = 90.f;
+    static f32_t speed = 1000.f;
+    bool update = false;
+    gui::push_id(&FAN_UNIQUE_CALL_PASS);
+    update |= gui::slider("zfar", &camera.zfar, std::max(ranges.zfar_min, camera.znear + 0.001f), ranges.zfar_max);
+    update |= gui::slider("znear", &camera.znear, ranges.znear_min, std::min(ranges.znear_max, camera.zfar - 0.001f));
+    update |= gui::slider("fov", &fov, ranges.fov_min, ranges.fov_max);
+    update |= gui::slider("sensitivity", &camera.sensitivity, ranges.sensitivity_min, ranges.sensitivity_max);
+    update |= gui::slider("speed", &speed, ranges.speed_min, ranges.speed_max);
+    update |= gui::slider("friction", &friction, ranges.friction_min, ranges.friction_max);
+
+    gloco()->camera_move(speed, friction);
+    if (update) {
+      gloco()->camera_set_perspective(cam, fov, gloco()->window.get_size());
+    }
+    gui::pop_id();
+  }
 }
 /*
 template fan::graphics::gui::imgui_fs_var_t::imgui_fs_var_t(
