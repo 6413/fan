@@ -10,6 +10,8 @@ import std;
 
 #if defined(FAN_3D) && defined(FAN_VULKAN)
 
+import fan.types.vector;
+import fan.types.matrix;
 import fan.graphics.vulkan.core;
 import fan.graphics.fms;
 

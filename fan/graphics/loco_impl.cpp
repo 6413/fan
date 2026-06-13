@@ -1128,6 +1128,9 @@ static void loco_init_platform(loco_t* l) {
 }
 
 static void loco_init_renderer(loco_t* l) {
+    if (l->open_props.renderer == fan::window_t::renderer_t::unknown) {
+      l->open_props.renderer = fan::window_t::renderer_t::opengl;
+    }
   l->get_render_shapes_top() = l->open_props.render_shapes_top;
   l->window.renderer = l->open_props.renderer;
 #if defined(FAN_OPENGL)
@@ -1622,7 +1625,7 @@ void loco_t::process_shapes() {
         vk.post_process.m_layout,
         0,
         1,
-        vk.d_attachments.m_descriptor_set,
+        &vk.d_attachments.m_descriptor_set[context.vk.current_frame],
         0,
         nullptr
       );
@@ -1917,8 +1920,10 @@ void loco_t::process_render() {
 
 #if defined(FAN_2D)
 
-  for (auto& light : gl->alpha_shadow_renderer.lights) {
-    add_shape_to_immediate_draw(fan::graphics::shapes::light_t::properties_t{.position=light.position, .size=light.radius, .color=light.color});
+  if (window.renderer == fan::window_t::renderer_t::opengl) {
+    for (auto& light : gl->alpha_shadow_renderer.lights) {
+      add_shape_to_immediate_draw(fan::graphics::shapes::light_t::properties_t {.position = light.position, .size = light.radius, .color = light.color});
+    }
   }
 
   fan::graphics::g_shapes->shaper.ProcessBlockEditQueue();
@@ -2574,6 +2579,7 @@ void loco_t::shape_open(
     pipe_p.descriptor_layout = &vk.shape_data.m_descriptor.m_layout;
     pipe_p.descriptor_layout_count = 1;
     pipe_p.push_constants_size = sizeof(fan::vulkan::context_t::push_constants_t);
+    pipe_p.enable_depth_test = false;
     p.open(context.vk, pipe_p);
     vk.pipeline = p;
     bp.renderer.vk = vk;

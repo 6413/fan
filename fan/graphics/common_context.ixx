@@ -270,7 +270,6 @@ export namespace fan {
       context_build_camera_functions(context_typedef_func_ptr)
       context_build_viewport_functions(context_typedef_func_ptr)
     };
-    context_functions_t get_vk_context_functions();
 
     constexpr std::uint8_t get_channel_amount(std::uint32_t format) {
       switch (format) {

@@ -7,30 +7,70 @@ loco_t& get_loco() {
 
 #if defined(FAN_2D)
 void shapes_open() {
-  auto& l = loco;
-  loco.shape_open(
-    fan::graphics::shapes::sprite_t::shape_type,
-    sizeof(fan::graphics::shapes::sprite_t::vi_t),
-    sizeof(fan::graphics::shapes::sprite_t::ri_t),
-    fan::graphics::shape_gl_init_list_t{
-      .ptr=fan::graphics::g_shapes->sprite.get_locations().data(),
-      .count=static_cast<int>(fan::graphics::g_shapes->sprite.get_locations().size())
-    },
-    "shaders/vulkan/2D/objects/sprite.vert",
-    "shaders/vulkan/2D/objects/sprite.frag"
-  );
+  struct shape_descriptor_t {
+    uint16_t shape_type;
+    std::size_t sizeof_vi;
+    std::size_t sizeof_ri;
+    fan::graphics::shape_gl_init_list_t locations;
+    fan::graphics::shader_t shader;
+    fan::graphics::shaper_t::ShapeRenderDataSize_t instance_count;
+    bool instanced;
+  };
 
-  loco.shape_open(
-    fan::graphics::shapes::rectangle_t::shape_type,
-    sizeof(fan::graphics::shapes::rectangle_t::vi_t),
-    sizeof(fan::graphics::shapes::rectangle_t::ri_t),
-    fan::graphics::shape_gl_init_list_t{
-      .ptr=fan::graphics::g_shapes->rectangle.get_locations().data(),
-      .count=static_cast<int>(fan::graphics::g_shapes->rectangle.get_locations().size())
-    },
-    "shaders/vulkan/2D/objects/rectangle.vert",
-    "shaders/vulkan/2D/objects/rectangle.frag"
-  );
+#define SHAPE_DESC(shape, shader) \
+  shape_descriptor_t{ \
+    fan::graphics::shapes::shape##_t::shape_type, \
+    sizeof(fan::graphics::shapes::shape##_t::vi_t), \
+    sizeof(fan::graphics::shapes::shape##_t::ri_t), \
+    fan::graphics::shape_gl_init_list_t{ \
+      .ptr = fan::graphics::g_shapes->shape.get_locations().data(), \
+      .count = static_cast<int>(fan::graphics::g_shapes->shape.get_locations().size()) \
+    }, \
+    shader, \
+    1, \
+    true \
+  }
+
+  auto& sh = loco.shaders;
+
+  const shape_descriptor_t descriptors[] = {
+    SHAPE_DESC(sprite, sh.sprite),
+    SHAPE_DESC(rectangle, sh.rectangle),
+  };
+
+  for (auto& d : descriptors) {
+    loco.shape_open(
+      d.shape_type,
+      d.sizeof_vi,
+      d.sizeof_ri,
+      d.locations,
+      d.shader,
+      d.instance_count,
+      d.instanced
+    );
+  }
+
+#undef SHAPE_DESC
+}
+#endif
+
+#if defined(FAN_2D)
+void shaders_compile() {
+  auto& sh = loco.shaders;
+
+  auto compile = [&](fan::graphics::shader_t& out, const char* vs, const char* fs) {
+    out = loco.shader_create();
+    loco.shader_set_vertex(out, vs, fan::graphics::read_shader(vs));
+    loco.shader_set_fragment(out, fs, fan::graphics::read_shader(fs));
+    loco.shader_compile(out);
+  };
+
+#define C(n) compile(sh.n, "shaders/vulkan/2D/objects/" #n ".vert", "shaders/vulkan/2D/objects/" #n ".frag")
+
+  C(sprite);
+  C(rectangle);
+
+#undef C
 }
 #endif
 
@@ -48,7 +88,7 @@ void begin_render_pass() {
   VkClearValue clear_values[
     3
   ]{};
-  fan::color clear_color = loco.clear_color;
+  fan::color clear_color = loco.get_clear_color();
   clear_values[0].color = { { clear_color.r, clear_color.g, clear_color.b, clear_color.a } };
   clear_values[1].color = { { clear_color.r, clear_color.g, clear_color.b, clear_color.a } };
   clear_values[2].depthStencil = { 1.0f, 0 };
@@ -57,7 +97,7 @@ void begin_render_pass() {
   renderPassInfo.clearValueCount = std::size(clear_values);
   renderPassInfo.pClearValues = clear_values;
 
-  if (loco.render_shapes_top) {
+  if (loco.get_render_shapes_top()) {
   //  renderPassInfo.clearValueCount = 0;
   }
 
@@ -104,7 +144,7 @@ void begin_draw() {
 
     VkWriteDescriptorSet write{};
     write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write.dstSet = loco.vk.d_attachments.m_descriptor_set[0];
+    write.dstSet = loco.vk.d_attachments.m_descriptor_set[context.current_frame];
     write.dstBinding = 1;
     write.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
     write.descriptorCount = 1;
@@ -116,20 +156,53 @@ void begin_draw() {
   vkResetFences(context.device, 1, &context.in_flight_fences[context.current_frame]);
   vkResetCommandBuffer(context.command_buffers[context.current_frame], /*VkCommandBufferResetFlagBits*/ 0);
   {
+    context.image_pool.clear();
+
     fan::graphics::image_list_t::nrtra_t nrtra;
     fan::graphics::image_nr_t nr;
+
+    std::uint32_t max_image_id = 0;
+    VkDescriptorImageInfo fallback {};
+    bool has_fallback = false;
+
     nrtra.Open(&loco.image_list, &nr);
-    VkDescriptorImageInfo imageInfo{};
-    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    context.image_pool.resize(loco.image_list.Usage());
-    uintptr_t idx = 0;
     while (nrtra.Loop(&loco.image_list, &nr)) {
-      fan::vulkan::context_t::image_t img = loco.image_get(nr).vk;
-      imageInfo.imageView = img.image_view;
-      imageInfo.sampler = img.sampler;
-      context.image_pool[idx++] = imageInfo;
+      auto img = loco.image_get(nr).vk;
+
+      if (img.image_view == VK_NULL_HANDLE || img.sampler == VK_NULL_HANDLE) {
+        continue;
+      }
+
+      max_image_id = std::max(max_image_id, (std::uint32_t)nr.NRI);
+
+      if (!has_fallback) {
+        fallback.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        fallback.imageView = img.image_view;
+        fallback.sampler = img.sampler;
+        has_fallback = true;
+      }
     }
     nrtra.Close(&loco.image_list);
+
+    if (has_fallback) {
+      context.image_pool.assign(max_image_id + 1, fallback);
+
+      nrtra.Open(&loco.image_list, &nr);
+      while (nrtra.Loop(&loco.image_list, &nr)) {
+        auto img = loco.image_get(nr).vk;
+
+        if (img.image_view == VK_NULL_HANDLE || img.sampler == VK_NULL_HANDLE) {
+          continue;
+        }
+
+        VkDescriptorImageInfo image_info {};
+        image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        image_info.imageView = img.image_view;
+        image_info.sampler = img.sampler;
+        context.image_pool[nr.NRI] = image_info;
+      }
+      nrtra.Close(&loco.image_list);
+    }
   }
 
   #if defined(FAN_2D)
@@ -164,7 +237,7 @@ void begin_draw() {
   }
 
   
-  if (loco.render_shapes_top == false) {
+  if (loco.get_render_shapes_top() == false) {
     begin_render_pass();
   }
 }
@@ -244,18 +317,28 @@ void shapes_draw() {
         shader.projection_view_block->edit_instance(
           loco.context.vk, 
           0, 
-          &fan::vulkan::context_t::view_projection_t::view, 
+          &fan::vulkan::view_projection_t::view,
           camera_data.view
         );
         shader.projection_view_block->edit_instance(
           loco.context.vk,
           0, 
-          &fan::vulkan::context_t::view_projection_t::projection,
+          &fan::vulkan::view_projection_t::projection,
           camera_data.projection
         );
 
         auto& st = fan::graphics::g_shapes->shaper.GetShapeTypes(shape_type);
         auto& vk_data = st.renderer.vk;
+        auto current_frame = loco.context.vk.current_frame;
+        vk_data.shape_data.m_descriptor.m_properties[0].buffer =
+          vk_data.shape_data.common.memory[current_frame].buffer;
+        vk_data.shape_data.m_descriptor.m_properties[1].buffer =
+          shader.projection_view_block->common.memory[current_frame].buffer;
+        vk_data.shape_data.m_descriptor.m_properties[1].range =
+          shader.projection_view_block->m_size;
+        vk_data.shape_data.m_descriptor.update(loco.context.vk, 2, 0);
+        auto* descriptor_set =
+          &vk_data.shape_data.m_descriptor.m_descriptor_set[current_frame];
         {
            vkCmdBindDescriptorSets(
             cmd_buffer,
@@ -263,7 +346,7 @@ void shapes_draw() {
             vk_data.pipeline.m_layout,
             0,
             1,
-            vk_data.shape_data.m_descriptor.m_descriptor_set,
+            descriptor_set,
             0,
             nullptr
           );
@@ -295,7 +378,7 @@ void shapes_draw() {
           vk_data.pipeline.m_layout,
           0,
           1,
-          vk_data.shape_data.m_descriptor.m_descriptor_set,
+          descriptor_set,
           0,
           nullptr
         );
@@ -334,8 +417,8 @@ void shapes_draw() {
 
 void init() {
   auto nr = loco.shader_create();
-  loco.shader_set_vertex(nr, fan::graphics::read_shader("shaders/vulkan/loco_fbo.vert"));
-  loco.shader_set_fragment(nr, fan::graphics::read_shader("shaders/vulkan/loco_fbo.frag"));
+  loco.shader_set_vertex(nr, "shaders/vulkan/loco_fbo.vert", fan::graphics::read_shader("shaders/vulkan/loco_fbo.vert"));
+  loco.shader_set_fragment(nr, "shaders/vulkan/loco_fbo.frag", fan::graphics::read_shader("shaders/vulkan/loco_fbo.frag"));
   loco.shader_compile(nr);
 
   VkPipelineColorBlendAttachmentState color_blend_attachment = fan::vulkan::get_default_color_blend();
@@ -382,6 +465,7 @@ void init() {
   p.descriptor_layout_count = 1;
   p.color_blend_attachment = &color_blend_attachment;
   p.color_blend_attachment_count = 1;
+  p.enable_depth_test = false;
   loco.vk.post_process.open(loco.context.vk, p);
 
   window_resize_handle = loco.window.add_resize_callback([&](const auto& d) {

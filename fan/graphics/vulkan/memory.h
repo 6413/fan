@@ -92,7 +92,7 @@ struct memory_common_t {
 		m_edit_index = context.memory_queue.push_back(write_cb);
 	}
 
-	void edit(fan::vulkan::context_t& context, uint32_t begin, uint32_t end) {
+	void edit(fan::vulkan::context_t& context, std::uint64_t begin, std::uint64_t end) {
 		m_min_edit = std::min(m_min_edit, begin);
 		m_max_edit = std::max(m_max_edit, end);
 
