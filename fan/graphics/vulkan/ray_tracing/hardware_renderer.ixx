@@ -11,10 +11,14 @@ import std;
 
 #if defined(FAN_3D) && defined(FAN_VULKAN)
 
+import fan.types.matrix;
 import fan.graphics.vulkan.core;
 import fan.graphics;
 import fan.graphics.vulkan.ray_tracing.shapes;
 import fan.random;
+import fan.graphics.fms;
+import fan.print;
+
 export namespace fan::graphics::vulkan::ray_tracing {
   struct acceleration_structure_t {
     void destroy(fan::vulkan::context_t& ctx) {
@@ -69,6 +73,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
       std::uint32_t index_count;
       std::uint32_t material_index;
       std::uint32_t first_primitive;
+      std::uint32_t first_vertex;
+      std::uint32_t vertex_count;
     };
     struct instance_t {
       std::uint32_t model_index;
@@ -114,7 +120,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
       triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
       triangles.vertexData.deviceAddress = get_buffer_address(vertex_buffer);
       triangles.vertexStride             = sizeof(vertex_t);
-      triangles.maxVertex                = static_cast<std::uint32_t>(vertex_data.size()) - 1;
+      triangles.maxVertex                = model.vertex_count ?
+        model.first_vertex + model.vertex_count - 1 : 0;
       triangles.indexType                = VK_INDEX_TYPE_UINT32;
       triangles.indexData.deviceAddress = get_buffer_address(index_buffer);
       VkAccelerationStructureGeometryKHR geometry{};
@@ -291,6 +298,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     }
     void create_output_image() {
       output_image = ctx->image_create();       
+      output_image_valid = true;
       auto& img = ctx->image_get(output_image); 
       VkImageCreateInfo image_info{};
       image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -467,7 +475,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       pipeline_info.pStages = stages;
       pipeline_info.groupCount = 4;
       pipeline_info.pGroups = groups;
-      pipeline_info.maxPipelineRayRecursionDepth = 3;
+      pipeline_info.maxPipelineRayRecursionDepth = 4;
       pipeline_info.layout = pipeline_layout;
       fan::vulkan::validate(
         vkCreateRayTracingPipelinesKHR(
@@ -532,11 +540,10 @@ export namespace fan::graphics::vulkan::ray_tracing {
       std::uint8_t* sbt_ptr = static_cast<std::uint8_t*>(data);
       std::memset(sbt_ptr, 0, sbt_size);
       group_stride = aligned_group_sz;
-      rgen_offset        = 0;
+      rgen_offset        = 0 * aligned_group_sz;
       miss_offset        = 1 * aligned_group_sz;
       shadow_miss_offset = 2 * aligned_group_sz;
       hit_offset         = 3 * aligned_group_sz;
-      shadow_hit_offset  = 4 * aligned_group_sz;
       std::memcpy(sbt_ptr + rgen_offset,        handles.data() + 0 * handle_size, handle_size);
       std::memcpy(sbt_ptr + miss_offset,        handles.data() + 1 * handle_size, handle_size);
       std::memcpy(sbt_ptr + shadow_miss_offset, handles.data() + 3 * handle_size, handle_size);
@@ -556,7 +563,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       pool_sizes[3].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
       pool_sizes[3].descriptorCount = max_textures;
       pool_sizes[4].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-      pool_sizes[4].descriptorCount = 3;
+      pool_sizes[4].descriptorCount = 5;
       VkDescriptorPoolCreateInfo pool_info{};
       pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
       pool_info.maxSets = 1;
@@ -578,7 +585,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
       VkDescriptorBufferInfo cam_info{};
       cam_info.buffer = camera_buffer;
-      cam_info.range = sizeof(fan::vulkan::context_t::view_projection_t) * 16;
+      cam_info.range = sizeof(fan::vulkan::view_projection_t) * 16;
       VkDescriptorBufferInfo time_info{};
       time_info.buffer = time_buffer;
       time_info.range = sizeof(time_ubo_t);
@@ -834,7 +841,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
         model_t model{};
         model.first_index = (std::uint32_t)index_data.size();
         model.index_count = (std::uint32_t)src_mesh.indices.size();
-        std::uint32_t first_vertex = (std::uint32_t)vertex_data.size();
+        model.first_vertex = (std::uint32_t)vertex_data.size();
+        model.vertex_count = (std::uint32_t)src_mesh.vertices.size();
+        std::uint32_t first_vertex = model.first_vertex;
         for (const auto& v : src_mesh.vertices) {
           vertex_t out{};
           out.position = v.position;
@@ -849,20 +858,20 @@ export namespace fan::graphics::vulkan::ray_tracing {
         mat.base_color            = fan::vec3(1,1,1);
         if (mesh_idx < fms.material_data_vector.size()) {
           const auto& md = fms.material_data_vector[mesh_idx];
-          fan::vec4 c = md.color[fan::texture_type::base_color];
-          if (c.x == 1 && c.y == 1 && c.z == 1 && c.w == 1) {
-            c = md.color[fan::texture_type::diffuse];
+          const fan::color* c = &md.color[fan::texture_type::base_color];
+          if ((*c)[0] == 1 && (*c)[1] == 1 && (*c)[2] == 1 && (*c)[3] == 1) {
+            c = &md.color[fan::texture_type::diffuse];
           }
-          mat.base_color = fan::vec3(c.x, c.y, c.z);
+          mat.base_color = fan::vec3((*c)[0], (*c)[1], (*c)[2]);
         }
         auto load_rt_texture = [&](const std::string& name) -> std::int32_t {
           if (name.empty()) return -1;
           auto it = fan::model::cached_texture_data.find(name);
           if (it == fan::model::cached_texture_data.end()) return -1;
           const auto& td = it->second;
-          if (td.data.empty()) return -1;
+          if (!td.valid()) return -1;
           fan::image::info_t ii;
-          ii.data     = (void*)td.data.data();
+          ii.data     = (void*)td.data.get();
           ii.size     = td.size;
           ii.channels = td.channels;
           auto tex = ctx->image_load(ii);
@@ -875,22 +884,35 @@ export namespace fan::graphics::vulkan::ray_tracing {
           rt_texture_infos.push_back(di);
           return (std::int32_t)rt_texture_infos.size() - 1;
         };
-        {
-          const std::string& tn = src_mesh.texture_names[fan::texture_type::diffuse];
-          if (!tn.empty()) {
+        auto load_first_rt_texture = [&](std::initializer_list<std::uint32_t> types) -> std::int32_t {
+          for (auto type : types) {
+            const std::string& tn = src_mesh.texture_names[type];
+            if (tn.empty()) {
+              continue;
+            }
             std::int32_t slot = load_rt_texture(tn);
             if (slot >= 0) {
-              mat.albedo_texture_id = slot;
+              return slot;
             }
+          }
+          return -1;
+        };
+        {
+          std::int32_t slot = load_first_rt_texture({
+            fan::texture_type::base_color,
+            fan::texture_type::diffuse
+          });
+          if (slot >= 0) {
+            mat.albedo_texture_id = slot;
           }
         }
         {
-          const std::string& tn = src_mesh.texture_names[fan::texture_type::normals];
-          if (!tn.empty()) {
-            std::int32_t slot = load_rt_texture(tn);
-            if (slot >= 0) {
-              mat.normal_texture_id = slot;
-            }
+          std::int32_t slot = load_first_rt_texture({
+            fan::texture_type::normals,
+            fan::texture_type::normal_camera
+          });
+          if (slot >= 0) {
+            mat.normal_texture_id = slot;
           }
         }
         {
@@ -949,7 +971,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       auto camera_handle = fan::graphics::get_perspective_render_view().camera;
       auto camera_data = ctx->camera_get(camera_handle);
       void* data;
-      fan::vulkan::context_t::view_projection_t vp{};
+      fan::vulkan::view_projection_t vp{};
       vp.projection = camera_data.projection;
       vp.view = camera_data.view;
       vkMapMemory(ctx->device, camera_memory, 0, sizeof(vp), 0, &data);
@@ -961,7 +983,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       size = sz;
       load_functions();
       ctx->create_buffer(
-        sizeof(fan::vulkan::context_t::view_projection_t) * 16,
+        sizeof(fan::vulkan::view_projection_t) * 16,
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
         camera_buffer,
@@ -983,31 +1005,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
       );
       create_exposure_ubo(); 
       create_luminance_buffer(size.x, size.y);
-      
-      
-      add_model("models/NewSponza_Main_glTF_003.gltf", fan::mat4(1).scale(0.1f).translate(fan::vec3(0.1, -0.1, 0.1)));
-    /*  add_model("models/Fox.glb", fan::mat4(1).scale(0.001f).translate(fan::vec3(0.1, -0.1, 0.1)));
-      for (int i = 0; i < 100000; ++i) {
-        add_instance(0, fan::mat4(1).scale(0.001f).translate(fan::vec3(fan::random::value(0.0, 10.0) - 5.0, fan::random::value(0.0, 10.0), fan::random::value(0.0, 10.0) - 5.0)).rotate(fan::random::vec3(-fan::math::two_pi, fan::math::two_pi)));
-      }
-      add_model("models/floor.fbx", fan::mat4(1).scale(0.001f).translate(fan::vec3(0.1, -0.1, 0.1)));
-      add_model("models/wall.fbx", fan::mat4(1).scale(0.001f).translate(fan::vec3(0.1, -0.1, 0.1)));
-      fan::print_impl("models:", models.size(), "instances:", instances.size(),
-        "materials:", materials.size(),
-        "material_indices_per_primitive:", material_indices_per_primitive.size());*/
 
-      //auto mesh = ray_tracing::shapes::make_sphere(0, 1);
-      //mesh_geometries.resize(mesh_geometries.size() + 1);
-      //mesh_geometries.back().upload(*ctx, mesh);
-     /* add_model("models/sphere_optimized.fbx", fan::mat4(1).scale(0.0001f));
-      for (int i = 0; i < 500; ++i) {
-        for (int j = 0; j < 500; ++j) {
-          for (int k = 0; k < 500; ++k) {
-            add_instance(0, fan::mat4(1).scale(0.0007f).translate(fan::vec3(i, j, k)));
-          }
-        }
-      }*/
-      //add_instance(0, fan::mat4(1).translate(fan::vec3(0, 0, 0)));
+      add_model("models/Fox.glb", fan::mat4(1).translate(fan::vec3(0.0f, -0.8f, 3.0f)).scale(0.01f));
       create_vertex_buffer();
       create_index_buffer();
       create_material_buffer();
@@ -1017,7 +1016,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       }
       for (std::size_t i = 0; i < materials.size(); i++) {
         const auto& m = materials[i];
-        fan::print_impl("material", i,
+        fan::print("material", i,
           "albedo_texture_id", m.albedo_texture_id,
           "base_color", m.base_color.x, m.base_color.y, m.base_color.z);
       }
@@ -1036,8 +1035,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
       frame_index = 0;
     }
     void record_trace_rays(VkCommandBuffer cmd) {
-      static fan::time::timer timer{ true };
-      time_ubo_t t{ timer.seconds() };
+      static auto start_time = std::chrono::steady_clock::now();
+      time_ubo_t t{ std::chrono::duration<f32_t>(std::chrono::steady_clock::now() - start_time).count() };
       void* data;
       vkMapMemory(ctx->device, time_memory, 0, sizeof(t), 0, &data);
       std::memcpy(data, &t, sizeof(t));
@@ -1055,7 +1054,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
         barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;  
         vkCmdPipelineBarrier(
           cmd,
-          VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
           VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
           0,
           0, nullptr,
@@ -1117,28 +1116,6 @@ export namespace fan::graphics::vulkan::ray_tracing {
         current_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       }
       dispatch_luminance_compute(cmd, luminance_descriptor_set, size.x, size.y);
-      {
-        VkImageMemoryBarrier post_barrier{};
-        post_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        post_barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-        post_barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        post_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        post_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        post_barrier.image = ctx->image_get(output_image).image_index;
-        post_barrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-        post_barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT; 
-        post_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;  
-        vkCmdPipelineBarrier(
-          cmd,
-          VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
-          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-          0,
-          0, nullptr,
-          0, nullptr,
-          1, &post_barrier
-        );
-        current_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-      }
       if (accum_layout != VK_IMAGE_LAYOUT_GENERAL) {
         VkImageMemoryBarrier acc_back{};
         acc_back.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -1215,6 +1192,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     }
     void create_accum_image() {
       accum_image = ctx->image_create();
+      accum_image_valid = true;
       auto& img = ctx->image_get(accum_image);
       VkImageCreateInfo image_info{};
       image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -1474,7 +1452,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       VkDescriptorImageInfo hdr_info{};
       hdr_info.sampler     = hdr_img.sampler;
       hdr_info.imageView   = hdr_img.image_view;
-      hdr_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL; 
+      hdr_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       VkDescriptorBufferInfo lum_info{};
       lum_info.buffer = luminance_buffer;
       lum_info.range  = VK_WHOLE_SIZE;
@@ -1539,8 +1517,29 @@ export namespace fan::graphics::vulkan::ray_tracing {
       vkCmdPushConstants(cmd, luminance_pipeline_layout,
         VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pc), &pc);
       vkCmdDispatch(cmd, groupsX, groupsY, 1);
+      VkBufferMemoryBarrier read_barrier{};
+      read_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+      read_barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+      read_barrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
+      read_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      read_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      read_barrier.buffer = luminance_buffer;
+      read_barrier.offset = 0;
+      read_barrier.size = sizeof(float) * luminance_group_count;
+      vkCmdPipelineBarrier(
+        cmd,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_HOST_BIT,
+        0,
+        0, nullptr,
+        1, &read_barrier,
+        0, nullptr
+      );
     }
     void update_exposure(float dt) {
+      if (!ctx || !luminance_buffer || luminance_group_count == 0) {
+        return;
+      }
       std::vector<float> partial(luminance_group_count);
       void* data;
       vkMapMemory(ctx->device, luminance_memory, 0,
@@ -1604,9 +1603,92 @@ export namespace fan::graphics::vulkan::ray_tracing {
       if(index_memory) vkFreeMemory(ctx->device, index_memory, nullptr);
       if(material_buffer) vkDestroyBuffer(ctx->device, material_buffer, nullptr);
       if(material_memory) vkFreeMemory(ctx->device, material_memory, nullptr);
+      if(material_index_buffer) vkDestroyBuffer(ctx->device, material_index_buffer, nullptr);
+      if(material_index_memory) vkFreeMemory(ctx->device, material_index_memory, nullptr);
+      if(accum_pipeline) vkDestroyPipeline(ctx->device, accum_pipeline, nullptr);
+      if(accum_pipeline_layout) vkDestroyPipelineLayout(ctx->device, accum_pipeline_layout, nullptr);
+      if(accum_descriptor_layout) vkDestroyDescriptorSetLayout(ctx->device, accum_descriptor_layout, nullptr);
+      if(accum_descriptor_pool) vkDestroyDescriptorPool(ctx->device, accum_descriptor_pool, nullptr);
+      if(luminance_pipeline) vkDestroyPipeline(ctx->device, luminance_pipeline, nullptr);
+      if(luminance_pipeline_layout) vkDestroyPipelineLayout(ctx->device, luminance_pipeline_layout, nullptr);
+      if(luminance_descriptor_layout) vkDestroyDescriptorSetLayout(ctx->device, luminance_descriptor_layout, nullptr);
+      if(luminance_descriptor_pool) vkDestroyDescriptorPool(ctx->device, luminance_descriptor_pool, nullptr);
+      if(luminance_buffer) vkDestroyBuffer(ctx->device, luminance_buffer, nullptr);
+      if(luminance_memory) vkFreeMemory(ctx->device, luminance_memory, nullptr);
+      if(exposure_ubo) vkDestroyBuffer(ctx->device, exposure_ubo, nullptr);
+      if(exposure_ubo_memory) vkFreeMemory(ctx->device, exposure_ubo_memory, nullptr);
+      if(light_buffer) vkDestroyBuffer(ctx->device, light_buffer, nullptr);
+      if(light_memory) vkFreeMemory(ctx->device, light_memory, nullptr);
       for(auto tex_id : texture_ids){
         ctx->image_erase(tex_id);
       }
+      if(output_image_valid){
+        ctx->image_erase(output_image);
+      }
+      if(accum_image_valid){
+        ctx->image_erase(accum_image);
+      }
+      blas_list.clear();
+      mesh_geometries.clear();
+      submeshes.clear();
+      models.clear();
+      instances.clear();
+      materials.clear();
+      vertex_data.clear();
+      index_data.clear();
+      texture_ids.clear();
+      rt_texture_infos.clear();
+      material_indices_per_primitive.clear();
+      current_material_index = 0;
+      vertex_offset = 0;
+      tlas_instance_count = 0;
+      frame_index = 0;
+      output_image_valid = false;
+      accum_image_valid = false;
+      pipeline = VK_NULL_HANDLE;
+      pipeline_layout = VK_NULL_HANDLE;
+      descriptor_layout = VK_NULL_HANDLE;
+      descriptor_pool = VK_NULL_HANDLE;
+      descriptor_set = VK_NULL_HANDLE;
+      shader_binding_table = VK_NULL_HANDLE;
+      sbt_memory = VK_NULL_HANDLE;
+      sbt_staging = VK_NULL_HANDLE;
+      sbt_staging_memory = VK_NULL_HANDLE;
+      accum_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+      accum_pipeline = VK_NULL_HANDLE;
+      accum_pipeline_layout = VK_NULL_HANDLE;
+      accum_descriptor_layout = VK_NULL_HANDLE;
+      accum_descriptor_pool = VK_NULL_HANDLE;
+      accum_descriptor_set = VK_NULL_HANDLE;
+      current_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+      camera_buffer = VK_NULL_HANDLE;
+      camera_memory = VK_NULL_HANDLE;
+      time_buffer = VK_NULL_HANDLE;
+      time_memory = VK_NULL_HANDLE;
+      tlas_instance_buffer = VK_NULL_HANDLE;
+      tlas_instance_memory = VK_NULL_HANDLE;
+      tlas_scratch_buffer = VK_NULL_HANDLE;
+      tlas_scratch_memory = VK_NULL_HANDLE;
+      vertex_buffer = VK_NULL_HANDLE;
+      vertex_memory = VK_NULL_HANDLE;
+      index_buffer = VK_NULL_HANDLE;
+      index_memory = VK_NULL_HANDLE;
+      material_buffer = VK_NULL_HANDLE;
+      material_memory = VK_NULL_HANDLE;
+      material_index_buffer = VK_NULL_HANDLE;
+      material_index_memory = VK_NULL_HANDLE;
+      luminance_buffer = VK_NULL_HANDLE;
+      luminance_memory = VK_NULL_HANDLE;
+      luminance_group_count = 0;
+      exposure_ubo = VK_NULL_HANDLE;
+      exposure_ubo_memory = VK_NULL_HANDLE;
+      luminance_descriptor_layout = VK_NULL_HANDLE;
+      luminance_descriptor_pool = VK_NULL_HANDLE;
+      luminance_descriptor_set = VK_NULL_HANDLE;
+      luminance_pipeline_layout = VK_NULL_HANDLE;
+      luminance_pipeline = VK_NULL_HANDLE;
+      light_buffer = VK_NULL_HANDLE;
+      light_memory = VK_NULL_HANDLE;
       ctx = nullptr;
     }
   #pragma pack(push, 1)
@@ -1641,6 +1723,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     std::uint32_t handle_size_aligned = 0;
     std::uint32_t group_stride = 0;
     fan::graphics::image_t accum_image;
+    bool accum_image_valid = false;
     VkImageLayout accum_layout = VK_IMAGE_LAYOUT_UNDEFINED;
     VkPipeline accum_pipeline = VK_NULL_HANDLE;
     VkPipelineLayout accum_pipeline_layout = VK_NULL_HANDLE;
@@ -1649,6 +1732,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     VkDescriptorSet accum_descriptor_set = VK_NULL_HANDLE;
     std::uint32_t frame_index = 0;
     fan::graphics::image_t output_image;
+    bool output_image_valid = false;
     VkImageLayout current_layout = VK_IMAGE_LAYOUT_UNDEFINED;
     VkBuffer camera_buffer = VK_NULL_HANDLE;
     VkDeviceMemory camera_memory = VK_NULL_HANDLE;
@@ -1678,18 +1762,18 @@ export namespace fan::graphics::vulkan::ray_tracing {
     f32_t exposure = 1.f;
     f32_t target_exposure = 1.f;
     f32_t adaptation_speed = 4.f;
-    VkBuffer luminance_buffer;
-    VkDeviceMemory luminance_memory;
-    std::uint32_t luminance_group_count;
-    VkBuffer exposure_ubo;
-    VkDeviceMemory exposure_ubo_memory;
+    VkBuffer luminance_buffer = VK_NULL_HANDLE;
+    VkDeviceMemory luminance_memory = VK_NULL_HANDLE;
+    std::uint32_t luminance_group_count = 0;
+    VkBuffer exposure_ubo = VK_NULL_HANDLE;
+    VkDeviceMemory exposure_ubo_memory = VK_NULL_HANDLE;
     VkDescriptorSetLayout luminance_descriptor_layout = VK_NULL_HANDLE;
     VkDescriptorPool      luminance_descriptor_pool   = VK_NULL_HANDLE;
     VkDescriptorSet       luminance_descriptor_set    = VK_NULL_HANDLE;
     VkPipelineLayout      luminance_pipeline_layout   = VK_NULL_HANDLE;
     VkPipeline            luminance_pipeline          = VK_NULL_HANDLE;
-    VkBuffer light_buffer; 
-    VkDeviceMemory light_memory;
+    VkBuffer light_buffer = VK_NULL_HANDLE;
+    VkDeviceMemory light_memory = VK_NULL_HANDLE;
     PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR = nullptr;
     PFN_vkCmdBuildAccelerationStructuresKHR vkCmdBuildAccelerationStructuresKHR = nullptr;
     PFN_vkGetAccelerationStructureBuildSizesKHR vkGetAccelerationStructureBuildSizesKHR = nullptr;

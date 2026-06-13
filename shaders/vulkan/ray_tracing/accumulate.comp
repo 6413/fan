@@ -6,18 +6,23 @@ layout(binding = 0) uniform sampler2D current_frame;
 layout(binding = 1, rgba16f) uniform image2D accum_frame;
 
 layout(push_constant) uniform PushConstants {
-	uint frame_index;
+  uint frame_index;
 } pc;
 
 void main() {
-	ivec2 px = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 px = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 size = imageSize(accum_frame);
 
-	vec3 curr = texelFetch(current_frame, px, 0).rgb;
-	vec3 prev = imageLoad(accum_frame, px).rgb;
+  if (px.x >= size.x || px.y >= size.y) {
+    return;
+  }
 
-	float a = 1.0 / float(pc.frame_index + 1);
+  vec3 curr = texelFetch(current_frame, px, 0).rgb;
+  vec3 prev = imageLoad(accum_frame, px).rgb;
 
-	vec3 blended = mix(prev, curr, a);
+  float a = 1.0 / float(pc.frame_index + 1);
 
-	imageStore(accum_frame, px, vec4(blended, 1.0));
+  vec3 blended = mix(prev, curr, a);
+
+  imageStore(accum_frame, px, vec4(blended, 1.0));
 }

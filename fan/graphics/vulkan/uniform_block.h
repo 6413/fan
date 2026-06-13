@@ -58,18 +58,25 @@ struct uniform_block_t {
 	}
 
 	void push_ram_instance(fan::vulkan::context_t& context, const type_t& data) {
-		std::memmove(&buffer[m_size], (void*)&data, sizeof(type_t));
+		const auto begin = static_cast<std::uint32_t>(m_size);
+		std::memmove(&buffer[m_size], &data, sizeof(type_t));
 		m_size += sizeof(type_t);
-		common.edit(context, {0, (unsigned char)(m_size / sizeof(type_t) - 1)});
+		common.edit(context, begin, static_cast<std::uint32_t>(m_size));
 	}
 
-	void edit_instance(fan::vulkan::context_t& context, uint32_t i, auto type_t::*member, auto value) {
-		((type_t*)buffer)[i].*member = value;
-		common.edit(context, {0, (unsigned char)i});
-	}
+  template <typename member_t>
+  void edit_instance(fan::vulkan::context_t& context, std::uint32_t i, member_t type_t::* member, const member_t& value) {
+    ((type_t*)buffer)[i].*member = value;
+
+    const auto begin = static_cast<std::uint32_t>(
+      sizeof(type_t) * i + fan::member_offset(member)
+      );
+
+    common.edit(context, begin, begin + sizeof(member_t));
+  }
 
 	// nr_t is useless here
-	fan::vulkan::context_t::memory_common_t<nr_t, instance_id_t> common;
+	fan::vulkan::context_t::memory_common_t<fan::graphics::shader_nr_t, instance_id_t> common;
 	uint8_t buffer[element_size * sizeof(type_t)];
 	uint32_t m_size;
 };

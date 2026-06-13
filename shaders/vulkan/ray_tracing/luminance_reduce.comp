@@ -1,22 +1,43 @@
 #version 460
-#extension GL_EXT_shader_atomic_float          : require
+
 layout(local_size_x = 16, local_size_y = 16) in;
+
 layout(binding = 0) uniform sampler2D hdrImage;
 layout(std430, binding = 1) buffer LuminanceBuffer {
-    float partialSums[];
+  float partialSums[];
 };
+
 layout(push_constant) uniform LuminancePC {
-    int width;
-    int height;
-    int numGroupsX;
-    int numGroupsY;
+  int width;
+  int height;
+  int numGroupsX;
+  int numGroupsY;
 } pc;
+
+shared float sums[256];
+
 void main() {
-    uvec2 gid = gl_GlobalInvocationID.xy;
-    if (gid.x >= uint(pc.width) || gid.y >= uint(pc.height))
-        return;
+  uvec2 gid = gl_GlobalInvocationID.xy;
+  uint lid = gl_LocalInvocationIndex;
+
+  float L = 0.0;
+  if (gid.x < uint(pc.width) && gid.y < uint(pc.height)) {
     vec3 color = texelFetch(hdrImage, ivec2(gid), 0).rgb;
-    float L = dot(color, vec3(0.2126, 0.7152, 0.0722));
+    L = dot(color, vec3(0.2126, 0.7152, 0.0722));
+  }
+
+  sums[lid] = L;
+  barrier();
+
+  for (uint stride = 128; stride > 0; stride >>= 1) {
+    if (lid < stride) {
+      sums[lid] += sums[lid + stride];
+    }
+    barrier();
+  }
+
+  if (lid == 0) {
     uint groupIndex = gl_WorkGroupID.y * uint(pc.numGroupsX) + gl_WorkGroupID.x;
-    atomicAdd(partialSums[groupIndex], L);
+    partialSums[groupIndex] = sums[0];
+  }
 }

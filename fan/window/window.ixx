@@ -143,6 +143,7 @@ export namespace fan {
     };
 
     struct renderer_t {
+      static constexpr std::uint8_t unknown = 255;
       static constexpr std::uint8_t opengl = 0;
       static constexpr std::uint8_t vulkan = 1;
     };

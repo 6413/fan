@@ -15,6 +15,7 @@ module;
   #endif
   #if defined(FAN_VULKAN)
     #include <vulkan/vulkan.h>
+    #include <fan/imgui/imgui_impl_vulkan.h>
   #endif
   #define GLFW_INCLUDE_NONE
   #include <GLFW/glfw3.h>

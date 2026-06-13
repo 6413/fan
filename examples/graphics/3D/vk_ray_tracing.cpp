@@ -10,7 +10,7 @@ int main() {
   }};
   engine.set_vsync(0);
   engine.set_target_fps(0);
-  engine.clear_color = 0.3;
+  engine.set_clear_color(0.3);
   engine.set_culling_enabled(false);
 
   auto& vk = fan::graphics::get_vk_context();
@@ -25,14 +25,14 @@ int main() {
 
 
   fan::graphics::sprite_t s{{
-      .size = fan::vec2(window_size) / 2.f
+      .position = fan::vec3(fan::vec2(window_size) / 2.f, 0),
+      .size = fan::vec2(window_size) / 2.f,
+      .image = rt_image
     }};
-  s.set_image(rt_image);
 
   bool pending = false;
   fan::vec2ui pending_size = window_size;
   bool rt_ready = true;
-  bool rt_image_valid = true;
 
   auto resize_cb = engine.window.add_resize_callback([&](const auto& d) {
     pending_size = d.size;
@@ -60,7 +60,7 @@ int main() {
   engine.loop([&] {
     rt.on_camera_updated(update_camera);
 
-    if (engine.is_key_pressed(fan::key_r)) {
+    if (engine.is_key_clicked(fan::key_r)) {
       vkDeviceWaitIdle(vk.device);
 
       // destroy old pipeline + SBT
@@ -75,7 +75,7 @@ int main() {
       fan::print("Ray tracing shaders reloaded.");
     }
 
-    rt.update_exposure(engine.delta_time);
+    rt.update_exposure(engine.get_delta_time());
 
     if (pending) {
       pending = false;
@@ -83,10 +83,7 @@ int main() {
 
       vkDeviceWaitIdle(vk.device);
 
-
       if (rt_opened) {
-        engine.image_erase(rt_image);
-
         rt.close();
         rt_opened = false;
       }
@@ -96,14 +93,15 @@ int main() {
 
 
       rt_image = rt.accum_image;
-      rt_image_valid = true;
 
       s.set_image(rt_image);
-      //s.set_size(fan::vec2(pending_size) / 2.f);
+      s.set_position(fan::vec3(fan::vec2(pending_size) / 2.f, 0));
+      s.set_size(fan::vec2(pending_size) / 2.f);
 
       rt_ready = true;
     }
 
+    s.set_position(fan::vec3(engine.window.get_size() / 2.f, 0));
     s.set_size(engine.window.get_size() / 2.f);
 
     if (!pending && rt_ready) {
@@ -112,7 +110,7 @@ int main() {
 
     cursor_mode = engine.is_mouse_down(fan::mouse_right);
     engine.window.set_cursor(!cursor_mode);
-    engine.camera_move(camera, engine.delta_time, 10.f);
+    engine.camera_move(camera, engine.get_delta_time(), 10.f);
     engine.camera_set_perspective(camera_handle, 90.f, engine.window.get_size());
     if (rt_ready) {
       rt.update_camera_from_engine();
@@ -141,7 +139,7 @@ int main() {
 
       void* data;
       vkMapMemory(engine.context.vk.device, rt.light_memory, 0, sizeof(ubo), 0, &data);
-      memcpy(data, &ubo, sizeof(ubo));
+      std::memcpy(data, &ubo, sizeof(ubo));
       vkUnmapMemory(engine.context.vk.device, rt.light_memory);
       fan::graphics::gui::end();
     }
@@ -149,11 +147,6 @@ int main() {
   });
 
   vkDeviceWaitIdle(vk.device);
-
-  if (rt_image_valid) {
-    engine.image_erase(rt_image);
-    rt_image_valid = false;
-  }
 
   if (rt_opened) {
     rt.close();

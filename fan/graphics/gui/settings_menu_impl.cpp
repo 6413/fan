@@ -731,7 +731,9 @@ namespace fan::graphics::gui {
       if (config.display.window_position.x != -1 && config.display.window_position.y != -1) {
         gloco()->open_props.window_position = config.display.window_position;
       }
-      gloco()->open_props.renderer = config.display.renderer;
+      if (gloco()->open_props.renderer == fan::window_t::renderer_t::unknown) {
+        gloco()->open_props.renderer = config.display.renderer;
+      }
       if (config.display.custom_resolution.x != -1 && gloco()->open_props.window_size.x == -1) {
         gloco()->open_props.window_size = config.display.custom_resolution;
       }
