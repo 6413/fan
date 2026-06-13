@@ -567,10 +567,10 @@ namespace fan::graphics::gui {
           menu->mark_dirty();
         }
       #endif
-        if (draw_toggle_row("Track OpenGL calls", (bool*)&fan_track_opengl_calls())) {
-          menu->config.performance.track_opengl_calls = fan_track_opengl_calls();
-          menu->mark_dirty();
-        }
+        //if (draw_toggle_row("Track OpenGL calls", (bool*)&fan_track_opengl_calls())) {
+        //  menu->config.performance.track_opengl_calls = fan_track_opengl_calls();
+        //  menu->mark_dirty();
+        //}
       }
       gui::end_table();
     }
