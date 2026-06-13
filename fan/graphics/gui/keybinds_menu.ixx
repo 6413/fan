@@ -1,13 +1,20 @@
 module;
 
 #if defined(FAN_GUI)
+
+#include <cstdint>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <vector>
+#include <utility>
+
+
 #endif
 
 export module fan.graphics.gui.keybinds_menu;
 
 #if defined (FAN_WINDOW)
-
-import std;
 
 #if defined(FAN_GUI)
 
