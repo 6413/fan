@@ -194,15 +194,15 @@ export namespace fan::graphics::gameplay {
       f32_t w = size.x;
       f32_t h = size.y;
 
-      fan::vec2 a {0, -h}, b {-w, h}, c {w, h};
+      fan::vec2 a(0.f, -h), b(-w, h), c(w, h);
       if (dir == "down") {
         a.y = -a.y; b.y = -b.y; c.y = -c.y;
       }
       else if (dir == "left") {
-        a = {h, 0}; b = {-h, -w}; c = {-h, w};
+        a = fan::vec2(h, 0.f); b = fan::vec2(-h, -w); c = fan::vec2(-h, w);
       }
       else if (dir == "right") {
-        a = {-h, 0}; b = {h, -w}; c = {h, w};
+        a = fan::vec2(-h, 0.f); b = fan::vec2(h, -w); c = fan::vec2(h, w);
       }
       return {{a, b, c}};
     }
