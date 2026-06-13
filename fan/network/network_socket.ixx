@@ -77,7 +77,6 @@ export namespace fan::network {
     nr_t push_back(node_t n) {
       std::uint32_t idx = _alloc_idx(std::move(n));
       nodes[idx].next = null;
-      nodes[idx].next = null;
       nodes[idx].prev = tail;
       if (tail != null) { nodes[tail].next = idx; } else { head = idx; }
       tail = idx;
