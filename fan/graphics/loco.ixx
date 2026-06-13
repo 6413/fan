@@ -447,49 +447,7 @@ export namespace fan {
   struct stage_t {
     using self_t = Derived;
 
-    stage_t(const stage_loader_t::stage_open_properties_t& op = {}) {
-      stage_common.open = [](void* ptr, void* sod) {
-        if constexpr (requires { static_cast<Derived*>(ptr)->open(sod); }) {
-          static_cast<Derived*>(ptr)->open(sod);
-        }
-      };
-      stage_common.close = [](void* ptr) {
-        if constexpr (requires { static_cast<Derived*>(ptr)->close(); }) {
-          static_cast<Derived*>(ptr)->close();
-        }
-        delete static_cast<Derived*>(ptr);
-      };
-      stage_common.update = [](void* ptr) {
-        if constexpr (requires { static_cast<Derived*>(ptr)->update(); }) {
-          static_cast<Derived*>(ptr)->update();
-        }
-      };
-
-      auto outside = static_cast<Derived*>(this);
-      auto nr = gstage->stage_list.NewNodeLast();
-      stage_common.stage_id = nr;
-      stage_common.parent_id = op.parent_id;
-      gstage->type_stage_map[std::type_index(typeid(Derived))] = nr;
-      gstage->stage_list[nr].stage = outside;
-
-      if (stage_common.stage_id.Prev(&gstage->stage_list) != gstage->stage_list.src) {
-        stage_common.it = static_cast<stage_loader_t::stage_common_t*>(
-          gstage->stage_list[stage_common.stage_id.Prev(&gstage->stage_list)].stage)->it + 1;
-      } else {
-        stage_common.it = 0;
-      }
-
-      stage_common.update_nr = gloco()->m_update_callback.NewNodeFirst();
-      gstage->stage_list[stage_common.stage_id].update_nr = stage_common.update_nr;
-      gloco()->m_update_callback[stage_common.update_nr] = [outside](void*) {
-        outside->stage_common.update(outside);
-      };
-
-      auto resize_id = gloco()->window.add_resize_callback([outside](const auto& d) {
-        std::printf("todo -- stage common window resize\n");
-      });
-      gstage->stage_list[stage_common.stage_id].resize_id = resize_id;
-    }
+    stage_t(const stage_loader_t::stage_open_properties_t& op = {});
 
     static constexpr std::string_view get_stage_name() {
       if constexpr (requires { Derived::stage_name; }) {
@@ -1206,6 +1164,51 @@ public:
   bool shader_update_fragment(std::uint16_t shape_type, const std::string_view fragment_file_path, const std::string& fragment);
 #endif
 }; // loco_t
+
+template <typename Derived>
+inline fan::stage_t<Derived>::stage_t(const stage_loader_t::stage_open_properties_t& op) {
+  stage_common.open = [](void* ptr, void* sod) {
+    if constexpr (requires { static_cast<Derived*>(ptr)->open(sod); }) {
+      static_cast<Derived*>(ptr)->open(sod);
+    }
+  };
+  stage_common.close = [](void* ptr) {
+    if constexpr (requires { static_cast<Derived*>(ptr)->close(); }) {
+      static_cast<Derived*>(ptr)->close();
+    }
+    delete static_cast<Derived*>(ptr);
+  };
+  stage_common.update = [](void* ptr) {
+    if constexpr (requires { static_cast<Derived*>(ptr)->update(); }) {
+      static_cast<Derived*>(ptr)->update();
+    }
+  };
+
+  auto outside = static_cast<Derived*>(this);
+  auto nr = gstage->stage_list.NewNodeLast();
+  stage_common.stage_id = nr;
+  stage_common.parent_id = op.parent_id;
+  gstage->type_stage_map[std::type_index(typeid(Derived))] = nr;
+  gstage->stage_list[nr].stage = outside;
+
+  if (stage_common.stage_id.Prev(&gstage->stage_list) != gstage->stage_list.src) {
+    stage_common.it = static_cast<stage_loader_t::stage_common_t*>(
+      gstage->stage_list[stage_common.stage_id.Prev(&gstage->stage_list)].stage)->it + 1;
+  } else {
+    stage_common.it = 0;
+  }
+
+  stage_common.update_nr = gloco()->m_update_callback.NewNodeFirst();
+  gstage->stage_list[stage_common.stage_id].update_nr = stage_common.update_nr;
+  gloco()->m_update_callback[stage_common.update_nr] = [outside](void*) {
+    outside->stage_common.update(outside);
+  };
+
+  auto resize_id = gloco()->window.add_resize_callback([outside](const auto& d) {
+    std::printf("todo -- stage common window resize\n");
+  });
+  gstage->stage_list[stage_common.stage_id].resize_id = resize_id;
+}
 
 template <typename T>
 inline fan::stage_loader_t::nr_t fan::stage_loader_t::open_stage(const stage_open_properties_t& op) {
