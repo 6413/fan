@@ -279,7 +279,7 @@ export namespace fan {
       std::function<void(entity_t other)> on_exit = [](auto){};
     };
     struct collision_listener_handle_t {
-      b2BodyId body = b2_nullBodyId;
+      b2BodyId body = body_get_null();
       std::uint32_t index = UINT32_MAX;
       bool valid() const { return index != UINT32_MAX; }
     };

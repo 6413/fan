@@ -10,9 +10,11 @@ layout(location = 2) out flat uint flag;
 
 struct block_instance_t{
 	vec3 position;
-  float parallax_factor;
+  float pad_position;
+  vec2 parallax_factor;
   vec2 size;
   vec2 rotation_point;
+  vec2 pad_rotation;
   vec4 color;
   vec3 angle;
   uint flags;
