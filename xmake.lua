@@ -280,7 +280,7 @@ local feature_modules = {
 
   FAN_NETWORK = {
     "fan/network/network.ixx",
-    "fan/graphics/graphics_network.ixx"
+    "fan/graphics/2D/graphics_network.ixx"
   },
 
   FAN_AUDIO = {
