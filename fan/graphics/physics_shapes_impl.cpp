@@ -1265,7 +1265,7 @@ namespace fan::graphics::physics {
   }
 
   #if defined(FAN_JSON)
-  fan::graphics::physics::character2d_t fan::graphics::physics::from_json(
+  fan::graphics::physics::character2d_t from_json(
     const fan::graphics::physics::character_config_t& config,
     const std::source_location& callers_path
   ) {
