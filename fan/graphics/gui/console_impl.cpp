@@ -293,8 +293,11 @@ namespace fan {
       state->editor.SetReadOnly(true);
       state->editor.SetShowWhitespaces(false);
 
-      state->input = state->editor;
+      state->input.SetLanguageDefinition(lang);
+      state->input.SetPalette(palette);
+      state->input.SetTabSize(2);
       state->input.SetReadOnly(false);
+      state->input.SetShowWhitespaces(false);
       palette[(int)TextEditor::PaletteIndex::Background] = TextEditor::GetDarkPalette()[(int)TextEditor::PaletteIndex::Background];
       state->input.SetPalette(palette);
 
