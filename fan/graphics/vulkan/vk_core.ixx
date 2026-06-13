@@ -159,6 +159,7 @@ export namespace fan {
       // for only VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
       // imageLayout can be VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
       bool use_image = false;
+      std::uint32_t descriptor_count = 0;
       std::vector<VkDescriptorImageInfo> image_infos{max_textures};
     };
 
@@ -354,9 +355,9 @@ export namespace fan {
           std::vector<VkDescriptorSetLayoutBinding> uboLayoutBinding(properties.size());
           for (std::uint16_t i = 0; i < properties.size(); ++i) {
             uboLayoutBinding[i].binding = properties[i].binding;
-            uboLayoutBinding[i].descriptorCount = 1;
-            if (m_properties[i].use_image) {
-              uboLayoutBinding[i].descriptorCount = max_textures;
+            uboLayoutBinding[i].descriptorCount = m_properties[i].descriptor_count;
+            if (uboLayoutBinding[i].descriptorCount == 0) {
+              uboLayoutBinding[i].descriptorCount = m_properties[i].use_image ? max_textures : 1;
             }
             uboLayoutBinding[i].descriptorType = properties[i].type;
             uboLayoutBinding[i].stageFlags = properties[i].flags;
@@ -408,10 +409,14 @@ export namespace fan {
     write.descriptorType = m_properties[j].type;
 
     if (m_properties[j].use_image) {
-      if (texture_begin + texture_n > m_properties[j].image_infos.size()) {
+      std::uint32_t descriptor_n = texture_n;
+      if (texture_n == max_textures && m_properties[j].descriptor_count != 0) {
+        descriptor_n = m_properties[j].descriptor_count;
+      }
+      if (texture_begin + descriptor_n > m_properties[j].image_infos.size()) {
         fan::throw_error("descriptor image update out of range");
       }
-      write.descriptorCount = texture_n;
+      write.descriptorCount = descriptor_n;
       write.pImageInfo = m_properties[j].image_infos.data() + texture_begin;
     }
     else {

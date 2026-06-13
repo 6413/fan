@@ -1980,8 +1980,7 @@ namespace fan::graphics::gui {
 
   #if defined(FAN_VULKAN)
     if (renderer == vulkan_renderer_definition) {
-      ImDrawData* draw_data = ImGui::GetDrawData();
-      ImGui_ImplVulkan_RenderDrawData(draw_data, cmd_buffer);
+      (void)cmd_buffer;
       render_func(context, image_error, clear_color);
     }
   #endif

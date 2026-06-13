@@ -551,9 +551,10 @@ namespace fan::graphics::gui {
       gui::begin_table("settings_left_table_performance_stats", 2,
         gui::table_flags_borders_inner_h | gui::table_flags_borders_outer_h | gui::table_flags_no_clip);
       {
-        if (draw_toggle_row("Enable VSync", (bool*)&gloco()->timing.vsync)) {
-          gloco()->set_vsync(gloco()->timing.vsync);
-          menu->config.performance.vsync = gloco()->timing.vsync;
+        bool vsync = gloco()->get_vsync();
+        if (draw_toggle_row("Enable VSync", &vsync)) {
+          gloco()->set_vsync(vsync);
+          menu->config.performance.vsync = vsync;
           menu->mark_dirty();
         }
         if (draw_toggle_row("Show fps", (bool*)&gloco()->gui.show_fps)) {
@@ -734,6 +735,7 @@ namespace fan::graphics::gui {
       if (gloco()->open_props.renderer == fan::window_t::renderer_t::unknown) {
         gloco()->open_props.renderer = config.display.renderer;
       }
+      gloco()->open_props.vsync = config.performance.vsync;
       if (config.display.custom_resolution.x != -1 && gloco()->open_props.window_size.x == -1) {
         gloco()->open_props.window_size = config.display.custom_resolution;
       }

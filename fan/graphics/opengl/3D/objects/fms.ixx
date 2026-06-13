@@ -795,7 +795,6 @@ export namespace fan {
         // Method 1: Try AI_MATKEY_BASE_COLOR (newer Assimp)
         if (cmaterial->Get(AI_MATKEY_BASE_COLOR, base_color) == AI_SUCCESS) {
           material_data.color[aiTextureType_DIFFUSE] = fan::vec4(base_color.r, base_color.g, base_color.b, base_color.a);
-          fan::print_impl("Found base color via AI_MATKEY_BASE_COLOR:", base_color.r, base_color.g, base_color.b, base_color.a);
           found_color = true;
         }
 
@@ -803,7 +802,6 @@ export namespace fan {
         if (!found_color) {
           if (cmaterial->Get("$clr.base", 0, 0, base_color) == AI_SUCCESS) {
             material_data.color[aiTextureType_DIFFUSE] = fan::vec4(base_color.r, base_color.g, base_color.b, base_color.a);
-            fan::print_impl("Found base color via $clr.base:", base_color.r, base_color.g, base_color.b, base_color.a);
             found_color = true;
           }
         }
@@ -813,9 +811,6 @@ export namespace fan {
           for (unsigned int i = 0; i < cmaterial->mNumProperties; i++) {
             aiMaterialProperty* prop = cmaterial->mProperties[i];
             std::string key = prop->mKey.C_Str();
-
-            // Debug: print all properties
-            fan::print_impl("Material property [", i, "]:", key, "type:", prop->mType, "dataLen:", prop->mDataLength);
 
             // Look for base color property
             if (key.find("base") != std::string::npos || 
@@ -831,7 +826,6 @@ export namespace fan {
                 base_color.a = color_data[3];
 
                 material_data.color[aiTextureType_DIFFUSE] = fan::vec4(base_color.r, base_color.g, base_color.b, base_color.a);
-                fan::print_impl("Found base color via property search:", base_color.r, base_color.g, base_color.b, base_color.a);
                 found_color = true;
                 break;
               }
@@ -843,7 +837,6 @@ export namespace fan {
         if (!found_color) {
           if (cmaterial->Get(AI_MATKEY_COLOR_DIFFUSE, base_color) == AI_SUCCESS) {
             material_data.color[aiTextureType_DIFFUSE] = fan::vec4(base_color.r, base_color.g, base_color.b, base_color.a);
-            fan::print_impl("Found diffuse color:", base_color.r, base_color.g, base_color.b, base_color.a);
           }
         }
 
