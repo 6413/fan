@@ -18,8 +18,8 @@ hitAttributeEXT vec2 attribs;
 struct MaterialInfo {
     int   albedo_texture_id;
     int   normal_texture_id;
-    int   metallic_roughness_id;
-    uint  padding;
+    int   metallic_texture_id;
+    int   roughness_texture_id;
     vec3  base_color;
     float pad1;
 };
@@ -156,15 +156,14 @@ void main() {
         N = normalize(T * n.x + B * n.y + Ng * n.z);
     }
 
-    // Ensure shading normal faces the view direction
     if (dot(N, V) < 0.0)
         N = -N;
 
     float metallic = 0.0;
     float roughness = 1.0;
 
-    if (mat.metallic_roughness_id >= 0) {
-        vec4 mr = texture(textures[mat.metallic_roughness_id], uv);
+    if (mat.metallic_texture_id >= 0) {
+        vec4 mr = texture(textures[mat.metallic_texture_id], uv);
         metallic  = mr.b;
         roughness = mr.g;
     }
@@ -172,7 +171,6 @@ void main() {
     metallic  = clamp(metallic, 0.0, 1.0);
     roughness = clamp(roughness, 0.04, 1.0);
 
-    // Manual override for material ID 2: mirror-like
     if (mat_id == 2u) {
         metallic  = 1.0;
         roughness = 0.00;
@@ -182,7 +180,6 @@ void main() {
 
     bool is_gi_ray = (payload.ao < 0.0);
 
-    // GI ray shading
     if (is_gi_ray) {
         shadowed = false;
 
@@ -225,7 +222,6 @@ void main() {
         return;
     }
 
-    // Secondary bounce shading
     if (payload.depth > 0) {
         float NdotV = max(dot(N, V), 0.0);
         float ao_view = pow(NdotV, 1.5);
@@ -242,7 +238,6 @@ void main() {
         return;
     }
 
-    // Primary hit shading
     shadowed = false;
 
     vec3 Lp = light.light_pos;
@@ -275,7 +270,6 @@ void main() {
 
     vec3 direct_lighting = ambient + diffuse;
 
-    // One-bounce GI
     vec3 indirect_color = vec3(0.0);
     {
         Payload saved = payload;
@@ -322,7 +316,6 @@ void main() {
     float gi_boost = smoothstep(0.0, 0.3, 1.0 - clamp(direct_lum, 0.0, 1.0));
     indirect_color *= mix(1.0, 2.0, gi_boost);
 
-    // Mirror reflection for material 2
     vec3 reflection_color = vec3(0.0);
     if (mat_id == 2u) {
         vec3 R = reflect(-V, N);
@@ -349,7 +342,7 @@ void main() {
         );
 
         reflection_color = payload.color;
-				reflection_color *= light.intensity;
+        reflection_color *= light.intensity;
 
         payload = saved;
     }
@@ -367,7 +360,6 @@ void main() {
     final_color *= exposure_ubo.exposure;
     final_color = clamp(final_color, vec3(0.0), vec3(12.0));
 
-    // Bloom
     float b = brightness(final_color);
 
     float bloom_thresh   = 1.0;

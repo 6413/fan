@@ -520,7 +520,9 @@ struct shaper_t{
       return shaper.GetData(s.sti, s.blid, s.ElementIndex);
     }
 
-    constexpr ShapeID_t() = default;
+    constexpr ShapeID_t() {
+      sic();
+    }
     constexpr ShapeID_t(ShapeList_t::nr_t nr) : ShapeList_t::nr_t(nr) {}
 
     #if defined(shaper_set_ExpandInside_ShapeID)
