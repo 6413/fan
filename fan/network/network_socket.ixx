@@ -117,11 +117,12 @@ export namespace fan::network {
   using read_cb_list_t = cb_list_t<cb_node_t<read_cb_t>>;
   using write_cb_list_t = cb_list_t<cb_node_t<write_cb_t>>;
 
-  struct peer_slot_t {
+  struct peer_slot_t : std::enable_shared_from_this<peer_slot_t> {
     static constexpr std::uint32_t null = std::uint32_t(-1);
 
     struct uv_tcp_deleter_t {
       void operator()(uv_tcp_t* p) const {
+        if (!p) { return; }
         uv_close(reinterpret_cast<uv_handle_t*>(p), [](uv_handle_t* h) { delete reinterpret_cast<uv_tcp_t*>(h); });
       }
     };
@@ -135,8 +136,14 @@ export namespace fan::network {
     void block() { blocked = true; }
     void resume_connect();
 
-    read_cb_list_t::nr_t  add_read_cb(void* ext_data, read_cb_t cb) { return read_cbs.push_back({.ext_data = ext_data, .cb = std::move(cb)}); }
-    write_cb_list_t::nr_t add_write_cb(void* ext_data, write_cb_t cb) { return write_cbs.push_back({.ext_data = ext_data, .cb = std::move(cb)}); }
+    std::shared_ptr<peer_slot_t> ref() { return shared_from_this(); }
+
+    read_cb_list_t::nr_t add_read_cb(void* ext_data, read_cb_t cb) {
+      return read_cbs.push_back({.ext_data = ext_data, .cb = std::move(cb)});
+    }
+    write_cb_list_t::nr_t add_write_cb(void* ext_data, write_cb_t cb) {
+      return write_cbs.insert_before(sentinel_write_nr, {.ext_data = ext_data, .cb = std::move(cb)});
+    }
     void remove_read_cb(read_cb_list_t::nr_t nr) { read_cbs.remove(nr); }
     void remove_write_cb(write_cb_list_t::nr_t nr) { write_cbs.remove(nr); }
 
@@ -146,6 +153,12 @@ export namespace fan::network {
     }
 
     void write(fan::bytes_t buf) { dispatch_write({write_cbs.head}, buf); }
+    void write(std::string_view str) {
+      write(fan::bytes_t(
+        reinterpret_cast<const std::uint8_t*>(str.data()),
+        reinterpret_cast<const std::uint8_t*>(str.data()) + str.size()
+      ));
+    }
     void dispatch_write(write_cb_list_t::nr_t from, fan::bytes_t buf) {
       if (from.valid()) { write_cbs.dispatch_from(from.idx, [&](auto, auto& node) { return node.cb(node.ext_data, *this, buf); }); }
     }
@@ -155,9 +168,12 @@ export namespace fan::network {
     std::uint32_t connect_idx {0};
     bool          blocked {false};
     bool          connected {false};
+    bool          reading {false};
+    bool          close_requested {false};
 
     read_cb_list_t  read_cbs;
     write_cb_list_t write_cbs;
+    write_cb_list_t::nr_t sentinel_write_nr;
 
     std::unique_ptr<uv_tcp_t, uv_tcp_deleter_t> tcp;
     fan::bytes_t                                read_buf;
@@ -195,41 +211,42 @@ export namespace fan::network {
 
   struct sentinel_ext_t : extension_impl_t<std::monostate> {
     static bool write_cb(void*, peer_slot_t& peer, fan::bytes_t& buf) {
-      if (!peer.tcp) { return true; }
+      if (!peer.tcp) { return false; }
       auto* stream = reinterpret_cast<uv_stream_t*>(peer.tcp.get());
-      if (!uv_is_writable(stream)) { return true; }
+      if (!uv_is_writable(stream)) { return false; }
 
       auto* d = new sentinel_write_req_t{ {}, buf };
       d->req.data = d;
-      uv_buf_t uvbuf = uv_buf_init(reinterpret_cast<char*>(d->buf.data()), d->buf.size());
+      uv_buf_t uvbuf = uv_buf_init(reinterpret_cast<char*>(d->buf.data()), std::uint32_t(d->buf.size()));
       uv_write(&d->req, stream, &uvbuf, 1, [](uv_write_t* req, int) { delete static_cast<sentinel_write_req_t*>(req->data); });
-      return true;
+      return false;
     }
   };
 
   struct peer_bll_t {
-    std::vector<std::unique_ptr<peer_slot_t>> slots;
+    std::vector<std::shared_ptr<peer_slot_t>> slots;
     std::vector<std::uint32_t>                free_stack;
 
     peer_nr_t alloc() {
       std::uint32_t idx = free_stack.empty() ? std::uint32_t(slots.size()) : free_stack.back();
       if (free_stack.empty()) {
-        slots.push_back(std::make_unique<peer_slot_t>());
+        slots.push_back(std::make_shared<peer_slot_t>());
       } else {
         free_stack.pop_back();
-        slots[idx] = std::make_unique<peer_slot_t>();
+        slots[idx] = std::make_shared<peer_slot_t>();
       }
       slots[idx]->nr = {idx};
       return {idx};
     }
 
     void free(peer_nr_t nr) {
+      if (!exists(nr)) { return; }
       slots[nr.index].reset();
       free_stack.push_back(nr.index);
     }
 
     peer_slot_t& operator[](peer_nr_t nr) { return *slots[nr.index]; }
-    bool exists(peer_nr_t nr) const { return nr.index < slots.size() && slots[nr.index] != nullptr; }
+    bool exists(peer_nr_t nr) const { return nr.valid() && std::size_t(nr.index) < slots.size() && slots[nr.index] != nullptr; }
     bool valid(peer_nr_t nr) const { return exists(nr) && slots[nr.index]->connected; }
   };
 
@@ -252,7 +269,7 @@ export namespace fan::network {
       peer.tcp->data = &peer;
 
       for (auto& ext : extensions) { ext->alloc_for(nr); }
-      peer.add_write_cb(nullptr, &sentinel_ext_t::write_cb);
+      peer.sentinel_write_nr = peer.write_cbs.push_back({.ext_data = nullptr, .cb = &sentinel_ext_t::write_cb});
 
       auto* req = new uv_connect_t;
       req->data = this;
@@ -262,13 +279,13 @@ export namespace fan::network {
       uv_tcp_connect(req, peer.tcp.get(), reinterpret_cast<const sockaddr*>(&addr), [](uv_connect_t* req, int status) {
         auto* sock = static_cast<socket_t*>(req->data);
         auto* peer = static_cast<peer_slot_t*>(reinterpret_cast<uv_tcp_t*>(req->handle)->data);
+        peer_nr_t nr = peer->nr;
         delete req;
         if (status != 0) {
           std::cout << "connect failed: " << uv_strerror(status) << "\n";
-          sock->close_peer(peer->nr);
+          sock->close_peer(nr);
           return;
         }
-        sock->_start_read(*peer);
         sock->_begin_connect_chain(*peer);
       });
 
@@ -276,8 +293,19 @@ export namespace fan::network {
     }
 
     void close_peer(peer_nr_t nr) {
-      if (!peers.valid(nr)) { return; }
+      if (!peers.exists(nr)) { return; }
+
       peer_slot_t& peer = peers[nr];
+
+      if (peer.blocked || peer.connect_idx < std::uint32_t(extensions.size())) {
+        peer.close_requested = true;
+        return;
+      }
+
+      if (peer.close_requested) { return; }
+      peer.close_requested = true;
+      peer.connected = false;
+
       _run_disconnect_chain(peer);
       for (auto& ext : extensions) { ext->free_for(nr); }
       peers.free(nr);
@@ -289,7 +317,7 @@ export namespace fan::network {
     }
 
     peer_slot_t& operator[](peer_nr_t nr) { return peers[nr]; }
-    bool         valid(peer_nr_t nr) { return peers.valid(nr); }
+    bool         valid(peer_nr_t nr) const { return peers.valid(nr); }
     bool         exists(peer_nr_t nr) const { return peers.exists(nr); }
 
     std::vector<std::unique_ptr<extension_base_t>> extensions;
@@ -298,17 +326,32 @@ export namespace fan::network {
   private:
     void _begin_connect_chain(peer_slot_t& peer) {
       while (peer.connect_idx < std::uint32_t(extensions.size())) {
-        auto& ext = *extensions[peer.connect_idx++];
+        std::uint32_t idx = peer.connect_idx++;
+
+        if (!extensions[idx]) {
+          continue;
+        }
+
+        auto& ext = *extensions[idx];
+
         if (ext.on_connect) {
           ext.on_connect(ext.peer_data(peer.nr), peer);
-          if (peer.blocked) { return; }
+
+          if (peer.blocked) {
+            return;
+          }
         }
+      }
+
+      if (!peer.reading) {
+        peer.reading = true;
+        _start_read(peer);
       }
     }
 
     void _run_disconnect_chain(peer_slot_t& peer) {
       for (auto& ext : extensions) {
-        if (ext->on_disconnect) { ext->on_disconnect(ext->peer_data(peer.nr), peer); }
+        if (ext && ext->on_disconnect) { ext->on_disconnect(ext->peer_data(peer.nr), peer); }
       }
     }
 
@@ -317,13 +360,21 @@ export namespace fan::network {
         reinterpret_cast<uv_stream_t*>(peer.tcp.get()),
         [](uv_handle_t* h, std::size_t suggested, uv_buf_t* buf) {
           auto* p = static_cast<peer_slot_t*>(h->data);
-          p->read_buf.resize(suggested);
-          *buf = uv_buf_init(reinterpret_cast<char*>(p->read_buf.data()), suggested);
+          p->read_buf.resize(suggested ? suggested : 65536);
+          *buf = uv_buf_init(reinterpret_cast<char*>(p->read_buf.data()), std::uint32_t(p->read_buf.size()));
         },
         [](uv_stream_t* stream, ssize_t nread, const uv_buf_t*) {
+          auto* peer = static_cast<peer_slot_t*>(stream->data);
           if (nread > 0) {
-            auto* peer = static_cast<peer_slot_t*>(stream->data);
             peer->dispatch_read({peer->read_buf.data(), std::size_t(nread)});
+            return;
+          }
+          if (nread < 0 && peer->owner) {
+            if (peer->blocked) {
+              peer->close_requested = true;
+              return;
+            }
+            peer->owner->close_peer(peer->nr);
           }
         }
       );
@@ -331,6 +382,11 @@ export namespace fan::network {
   };
 
   inline void peer_slot_t::resume_connect() {
-    if (owner) { owner->_advance_connect_chain(*this); }
+    if (!owner) {
+      std::cout << "resume failed: owner null\n";
+      return;
+    }
+
+    owner->_advance_connect_chain(*this);
   }
 } // namespace fan::network
