@@ -18,6 +18,7 @@ import std;
 import fan.utility;
 import fan.graphics;
 import fan.network;
+import fan.event.types;
 import fan.event;
 import fan.types;
 import fan.types.json;
