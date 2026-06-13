@@ -1034,8 +1034,8 @@ export namespace fan {
       operator bool() const {
         return status >= 0;
       }
-      operator const std::string& () const {
-        return { data.begin(), data.end() };
+      operator std::string() const {
+        return std::string(data.begin(), data.end());
       }
       operator const buffer_t() const {
         return data;
