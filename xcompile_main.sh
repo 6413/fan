@@ -223,13 +223,13 @@ else
     exit 0
   fi
 
-  target_name="fan"
+  target_name="a"
   exe_path=$(find build -type f \( -name "$target_name" -o -name "$target_name.exe" \) -perm -111 | head -n1)
   if [ -z "$exe_path" ]; then
     exe_path=$(find build -type f \( -name "$target_name" -o -name "$target_name.exe" \) | head -n1)
   fi
   if [ -z "$exe_path" ]; then
-    echo -e "${RED}Error:${NC} Built executable for target '${target_name}' not found"
+    echo -e "${RED}Error:${NC} Built executable '${target_name}.exe' not found"
     exit 1
   fi
 
