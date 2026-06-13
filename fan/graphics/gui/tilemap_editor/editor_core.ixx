@@ -288,7 +288,7 @@ export struct fte_t {
       render_view = properties.camera;
     }
 
-    mouse_move_handle = get_window().add_mouse_move_callback([this](const auto& d) {
+    mouse_move_handle = get_window().add_mouse_move_callback([this](const fan::window_t::mouse_move_data_t& d) {
       if (viewport_settings.move) {
         fan::vec2 move_off = (d.position - viewport_settings.offset) / camera_get_zoom(render_view->camera);
         camera_set_position(render_view->camera, viewport_settings.pos - move_off);
@@ -305,7 +305,7 @@ export struct fte_t {
       }
     });
 
-    buttons_handle = get_window().add_buttons_callback([this](const auto& d) {
+    buttons_handle = get_window().add_buttons_callback([this](const fan::window_t::buttons_data_t& d) {
       if (d.button == fan::mouse_left && d.state == fan::mouse_state::release) {
         prev_grid_position = -999999;
       }
@@ -356,7 +356,7 @@ export struct fte_t {
       }
     });
 
-    keys_handle = get_window().add_keys_callback([this](const auto& d) {
+    keys_handle = get_window().add_keys_callback([this](const fan::window_t::keys_data_t& d) {
       if (d.state != fan::keyboard_state::press || gui::is_any_item_active()) {
         return;
       }
