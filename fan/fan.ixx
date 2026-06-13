@@ -56,6 +56,7 @@ export import fan.texture_pack.tp0;
 
 #if defined(FAN_NETWORK)
   export import fan.network;
+  export import fan.network.socket;
 #endif
 
 export import fan.event.types;

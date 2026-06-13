@@ -279,6 +279,7 @@ local feature_modules = {
 
   FAN_NETWORK = {
     "fan/network/network.ixx",
+    "fan/network/network_socket.ixx",
     "fan/graphics/2D/graphics_network.ixx"
   },
 
@@ -397,16 +398,16 @@ if has_config("FAN_GUI") then
   end
   end)
   add_files(
-  "fan/imgui/imgui.cpp",
-  "fan/imgui/imgui_draw.cpp",
-  "fan/imgui/imgui_widgets.cpp",
-  "fan/imgui/imgui_tables.cpp",
-  "fan/imgui/imgui_impl_glfw.cpp",
-  "fan/imgui/implot_items.cpp",
-  "fan/imgui/implot.cpp",
-  "fan/imgui/text_editor.cpp",
-  "fan/imgui/misc/freetype/imgui_freetype.cpp",
-  "fan/imgui/ImGuizmo.cpp"
+    "fan/imgui/imgui.cpp",
+    "fan/imgui/imgui_draw.cpp",
+    "fan/imgui/imgui_widgets.cpp",
+    "fan/imgui/imgui_tables.cpp",
+    "fan/imgui/imgui_impl_glfw.cpp",
+    "fan/imgui/implot_items.cpp",
+    "fan/imgui/implot.cpp",
+    "fan/imgui/text_editor.cpp",
+    "fan/imgui/misc/freetype/imgui_freetype.cpp",
+    "fan/imgui/ImGuizmo.cpp"
   )
   add_files("fan/imgui/imgui_impl_opengl3.cpp", {unity_ignored = true})
   if has_config("FAN_VULKAN") then
