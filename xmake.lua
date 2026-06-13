@@ -471,6 +471,9 @@ target("fan")
     set_kind("static")
   else
     set_kind("binary")
+    if not is_plat("wasm") then
+      set_filename("a.exe")
+    end
   end
   add_rules("c++.build.modules")
 

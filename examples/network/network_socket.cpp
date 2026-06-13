@@ -1,12 +1,17 @@
 import std;
 import fan;
+import fan.event;
+import fan.network;
+import fan.network.socket;
 
 namespace examples {
+
+  static constexpr std::uint16_t test_port = 7788;
 
   fan::event::task_t local_http_server() {
     std::cout << "server starting\n";
 
-    co_await fan::network::tcp_server_listen({.ip = "127.0.0.1", .port = 7777}, [](fan::network::tcp_t& client) -> fan::event::task_t {
+    co_await fan::network::tcp_server_listen({.ip = "127.0.0.1", .port = test_port}, [](fan::network::tcp_t& client) -> fan::event::task_t {
       std::cout << "server accepted\n";
 
       auto request = co_await client.read_raw();
@@ -32,9 +37,25 @@ namespace examples {
   }
 
   fan::event::task_t start_client(fan::network::socket_t& socket) {
-    co_await fan::co_sleep(250);
+    co_await fan::co_sleep(500);
+
     std::cout << "client opening peer\n";
-    socket.open_peer("127.0.0.1", 7777);
+    socket.open_peer("127.0.0.1", test_port);
+  }
+
+  fan::event::task_t resume_peer_after_delay(fan::network::socket_t* owner, fan::network::peer_nr_t nr) {
+    co_await fan::co_sleep(1000);
+
+    std::cout << "delay done\n";
+
+    if (!owner || !owner->exists(nr)) {
+      std::cout << "resume failed: peer closed\n";
+      fan::event::loop_stop();
+      co_return;
+    }
+
+    std::cout << "resuming connect chain\n";
+    (*owner)[nr].resume_connect();
   }
 
   struct delay_connect_ext_t : fan::network::extension_impl_t<std::monostate> {
@@ -42,18 +63,12 @@ namespace examples {
       on_connect = [](void*, fan::network::peer_slot_t& peer) {
         std::cout << "delay begin\n";
 
-        auto* peer_ptr = &peer;
+        auto* owner = peer.owner;
+        auto nr = peer.nr;
 
         peer.block();
 
-        fan::event::add_awaitable([peer_ptr]() -> fan::event::task_t {
-          co_await fan::co_sleep(1000);
-
-          std::cout << "delay done\n";
-          std::cout << "resuming connect chain\n";
-
-          peer_ptr->resume_connect();
-        }());
+        fan::event::add_awaitable(resume_peer_after_delay(owner, nr));
       };
     }
   };
@@ -100,12 +115,12 @@ namespace examples {
           return false;
         });
 
-        peer.write(fan::as_bytes(
+        peer.write(
           "GET " + this->path + " HTTP/1.1\r\n"
           "Host: " + this->host + "\r\n"
           "Connection: close\r\n"
           "\r\n"
-        ));
+        );
 
         std::cout << "http request sent\n";
       };
