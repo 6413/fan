@@ -1,4 +1,4 @@
-template <typename type_t, uint32_t element_size>
+template <typename type_t, std::uint32_t element_size>
 struct uniform_block_t {
 
 	static constexpr auto buffer_count = fan::vulkan::max_frames_in_flight;
@@ -7,30 +7,35 @@ struct uniform_block_t {
 		open_properties_t() {}
 	}op;
 
-	using nr_t = uint8_t;
-	using instance_id_t = uint8_t;
+	using nr_t = std::uint8_t;
+	using instance_id_t = std::uint8_t;
 
 	uniform_block_t() = default;
 
 	uniform_block_t(fan::vulkan::context_t& context, open_properties_t op_ = open_properties_t()) {
-		open(context, op);
+		open(context, op_);
 	}
 
 	void open(fan::vulkan::context_t& context, open_properties_t op_ = open_properties_t()) {
 		common.open(context, [&context, this] () {
-			for (uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; ++frame) {
+			const auto begin = common.m_min_edit;
+			const auto end = common.m_max_edit;
 
-				uint8_t* data;
-				fan::vulkan::validate(vkMapMemory(context.device, common.memory[frame].device_memory, 0, element_size * sizeof(type_t), 0, (void**)&data));
-							
-				for (auto j : common.indices) {
-					((type_t*)data)[j.i] = ((type_t*)buffer)[j.i];
-				}
-				// unnecessary? is necessary
-				vkUnmapMemory(context.device, common.memory[frame].device_memory);
-
+			if (begin == 0xFFFFFFFFFFFFFFFF || end <= begin) {
 				common.on_edit(context);
+				return;
 			}
+
+			for (std::uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; ++frame) {
+				std::uint8_t* data;
+				fan::vulkan::validate(vkMapMemory(context.device, common.memory[frame].device_memory, 0, element_size * sizeof(type_t), 0, (void**)&data));
+
+				std::memcpy(data + begin, buffer + begin, end - begin);
+
+				vkUnmapMemory(context.device, common.memory[frame].device_memory);
+			}
+
+			common.on_edit(context);
 		});
 
 		op = op_;
@@ -39,7 +44,7 @@ struct uniform_block_t {
 
 		VkDeviceSize bufferSize = sizeof(type_t) * element_size;
 
-		for (size_t i = 0; i < buffer_count; i++) {
+		for (std::size_t i = 0; i < buffer_count; i++) {
 			context.create_buffer(
 				bufferSize, 
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
@@ -49,11 +54,12 @@ struct uniform_block_t {
 			);
 		}
 	}
+
 	void close(fan::vulkan::context_t& context) {
 		common.close(context);
 	}
 
-	uint32_t size() const {
+	std::uint32_t size() const {
 		return m_size / sizeof(type_t);
 	}
 
@@ -75,8 +81,7 @@ struct uniform_block_t {
     common.edit(context, begin, begin + sizeof(member_t));
   }
 
-	// nr_t is useless here
 	fan::vulkan::context_t::memory_common_t<fan::graphics::shader_nr_t, instance_id_t> common;
-	uint8_t buffer[element_size * sizeof(type_t)];
-	uint32_t m_size;
+	std::uint8_t buffer[element_size * sizeof(type_t)];
+	std::uint32_t m_size;
 };
