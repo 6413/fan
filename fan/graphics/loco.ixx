@@ -84,8 +84,6 @@ import fan.physics.types;
   import fan.graphics.physics_subsystem;
 #endif
 
-import fan.graphics.async_image_subsystem;
-
 #if defined(debug_shape_t)
   import fan.print;
 #endif
@@ -1152,7 +1150,89 @@ public:
     fan::physics::context_t& get_physics_context() { return physics.context; }
   #endif
 
-  fan::graphics::async_image_subsystem_t async_image;
+  struct async_image_t {
+    bool ready() const {
+      return result != nullptr && result->state == fan::image::async_result_t::state_e::ready;
+    }
+
+    bool failed() const {
+      return result != nullptr && result->state == fan::image::async_result_t::state_e::failed;
+    }
+
+    operator fan::graphics::image_t() const {
+      return image;
+    }
+
+    fan::graphics::image_t image;
+    std::shared_ptr<fan::image::async_result_t> result;
+  };
+
+  struct async_image_upload_t {
+    fan::graphics::image_t image;
+    fan::graphics::image_load_properties_t properties;
+    std::shared_ptr<fan::image::async_result_t> result;
+  };
+
+  void async_image_init() {
+    async_image_initialized = true;
+  }
+
+  void async_image_destroy() {
+    async_image_uploads.clear();
+    async_image_initialized = false;
+  }
+
+  async_image_t image_load_async(
+    const std::string& path,
+    const fan::graphics::image_load_properties_t& properties = fan::graphics::image_presets::pixel_art()
+  ) {
+    async_image_t out;
+    out.image = default_texture;
+    out.result = fan::image::async_cache().load(path);
+
+    async_image_uploads.push_back({
+      .image = out.image,
+      .properties = properties,
+      .result = out.result
+    });
+
+    return out;
+  }
+
+  void async_image_process() {
+    std::size_t uploaded = 0;
+
+    for (std::size_t i = 0; i < async_image_uploads.size();) {
+      auto& u = async_image_uploads[i];
+
+      if (!u.result->try_finish()) {
+        ++i;
+        continue;
+      }
+
+      if (u.result->state == fan::image::async_result_t::state_e::ready) {
+        if (uploaded >= max_async_image_uploads_per_frame) {
+          ++i;
+          continue;
+        }
+
+        fan::image::info_t info;
+        info.data = u.result->image.data.get();
+        info.size = u.result->image.size;
+        info.channels = u.result->image.channels;
+
+        fan::graphics::image_reload(u.image, info, u.properties);
+        ++uploaded;
+      }
+
+      async_image_uploads[i] = std::move(async_image_uploads.back());
+      async_image_uploads.pop_back();
+    }
+  }
+
+  std::vector<async_image_upload_t> async_image_uploads;
+  std::size_t max_async_image_uploads_per_frame = 1;
+  bool async_image_initialized = false;
 
   fan::graphics::image_t get_color_buffer(int idx);
 
@@ -1290,6 +1370,7 @@ namespace fan {
 
 export namespace fan::graphics {
   using engine_t = loco_t;
+  using async_image_t = loco_t::async_image_t;
   void shader_set_camera(fan::graphics::shader_t nr, fan::graphics::camera_t camera_nr);
 }
 
