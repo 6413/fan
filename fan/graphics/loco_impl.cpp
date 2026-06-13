@@ -1265,7 +1265,7 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   loco_init_renderer_post_window(this);
   #if defined(FAN_OPENGL) || defined(FAN_VULKAN)
   load_engine_images();
-  async_image.init();
+  async_image_init();
   #endif
   loco_init_shapes_system(this);
   #if defined(FAN_OPENGL) || defined(FAN_VULKAN)
@@ -1313,7 +1313,7 @@ loco_t::~loco_t() {
 
 void loco_t::destroy() {
 
-  async_image.destroy();
+  async_image_destroy();
 
 #if defined(FAN_GUI)
   delete (fan::graphics::gui::settings_menu_t*)gui.settings_menu;
@@ -2094,7 +2094,7 @@ renderer_state.lighting.update(get_delta_time());
   #endif
   }
 
-  async_image.process();
+  async_image_process();
 
   cb(get_delta_time());
 
