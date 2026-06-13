@@ -383,7 +383,7 @@ void shapes_draw() {
           nullptr
         );
         fan::vulkan::context_t::push_constants_t vp;
-        vp.camera_id = 0;
+        vp.camera_id = 0; // TODO ??
         vp.texture_id = texture.NRI; // hope that bll doesnt hold sentinels
         // todo use shaper
         vkCmdPushConstants(
