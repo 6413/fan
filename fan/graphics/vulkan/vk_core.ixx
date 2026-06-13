@@ -136,7 +136,7 @@ export namespace fan {
     void validate(VkResult result);
 
     inline constexpr std::uint16_t max_camera = 16;
-    inline constexpr std::uint16_t max_textures = 0xffff;
+    inline constexpr std::uint16_t max_textures = 1024;
 
     struct write_descriptor_set_t {
       // glsl layout binding

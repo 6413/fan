@@ -64,15 +64,15 @@ struct memory_common_t {
 		queued = false;
 
 		m_min_edit = 0xFFFFFFFFFFFFFFFF;
-		//context <- uniform_block <-> uniform_write_queue <- loco
 		m_max_edit = 0x00000000;
 	}
+
 	void close(fan::vulkan::context_t& context) {
 		if (is_queued()) {
 			context.memory_queue.erase(m_edit_index);
 		}
 
-		for (uint32_t i = 0; i < fan::vulkan::max_frames_in_flight; ++i) {
+		for (std::uint32_t i = 0; i < fan::vulkan::max_frames_in_flight; ++i) {
 			vkDestroyBuffer(context.device, memory[i].buffer, nullptr);
 			vkFreeMemory(context.device, memory[i].device_memory, nullptr);
 		}
@@ -118,8 +118,8 @@ struct memory_common_t {
 	std::vector<index_t> indices;
 	fan::vulkan::context_t::memory_write_queue_t::nr_t m_edit_index;
 
-	uint64_t m_min_edit;
-	uint64_t m_max_edit;
+	std::uint64_t m_min_edit;
+	std::uint64_t m_max_edit;
 
 	bool queued = 0;
 };
