@@ -35,8 +35,6 @@ import fan.types.vector;
 
 #if defined(FAN_2D)
 
-#include <fan/graphics/opengl/init.h>
-
 export namespace fan::graphics {
 
   #define TO_ENUM(x) x,
