@@ -8,6 +8,7 @@ module;
 #include <string_view>
 #include <utility>
 #include <vector>
+#include <unordered_map>
 
 export module fan.types.json;
 
