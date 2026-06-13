@@ -1169,6 +1169,7 @@ static void loco_open_window(loco_t* l) {
     new (&l->context.vk) fan::vulkan::context_t();
     l->context.vk.enable_clear = !l->get_render_shapes_top();
     l->context.vk.shapes_top = l->get_render_shapes_top();
+    l->context.vk.vsync = l->open_props.vsync;
     l->context.vk.open(l->window);
   }
 #endif
@@ -1292,7 +1293,7 @@ loco_t::loco_t(const loco_t::properties_t& props) :
 #endif
   loco_init_culling(this);
   #if defined(FAN_OPENGL) || defined(FAN_VULKAN)
-  set_vsync(false);
+  set_vsync(open_props.vsync);
   #endif
 #if defined(FAN_GUI)
   get_smenu(this)->init_runtime();
@@ -1456,6 +1457,7 @@ void loco_t::switch_renderer(std::uint8_t renderer) {
     if (window.renderer == fan::window_t::renderer_t::vulkan) {
       new (&context.vk) fan::vulkan::context_t();
       context_functions = fan::graphics::get_vk_context_functions();
+      context.vk.vsync = timing.vsync;
       context.vk.open(window);
     }
   #endif
@@ -1637,8 +1639,6 @@ void loco_t::process_shapes() {
 
       // render post process
       vkCmdDraw(cmd_buffer, 6, 1, 0, 0);
-    }
-    if (get_render_shapes_top() == true) {
       vkCmdEndRenderPass(cmd_buffer);
     }
   }
@@ -1955,11 +1955,6 @@ void loco_t::process_render() {
   }
 #if defined(FAN_VULKAN)
   else if (window.renderer == fan::window_t::renderer_t::vulkan) {
-  #if !defined(FAN_GUI)
-    auto& cmd_buffer = context.vk.command_buffers[context.vk.current_frame];
-    vkCmdNextSubpass(cmd_buffer, VK_SUBPASS_CONTENTS_INLINE);
-    vkCmdEndRenderPass(cmd_buffer);
-  #endif
     if (vk.image_error != VK_SUCCESS) {
       context.vk.command_buffer_in_use = false;
     }

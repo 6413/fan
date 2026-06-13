@@ -27,7 +27,9 @@ int main() {
   fan::graphics::sprite_t s{{
       .position = fan::vec3(fan::vec2(window_size) / 2.f, 0),
       .size = fan::vec2(window_size) / 2.f,
-      .image = rt_image
+      .image = rt_image,
+      .tc_position = fan::vec2(0.f, 1.f),
+      .tc_size = fan::vec2(1.f, -1.f)
     }};
 
   bool pending = false;
@@ -110,8 +112,8 @@ int main() {
 
     cursor_mode = engine.is_mouse_down(fan::mouse_right);
     engine.window.set_cursor(!cursor_mode);
-    engine.camera_move(camera, engine.get_delta_time(), 10.f);
-    engine.camera_set_perspective(camera_handle, 90.f, engine.window.get_size());
+    gui::camera_controls();
+    //engine.camera_move(camera,100, 10.f);
     if (rt_ready) {
       rt.update_camera_from_engine();
     }
@@ -121,6 +123,9 @@ int main() {
       fan::graphics::gui::begin("light");
 
       fan::graphics::gui::checkbox("update camera", &update_camera);
+      fan::graphics::gui::checkbox("auto exposure", &rt.enable_auto_exposure);
+      fan::graphics::gui::checkbox("gi bounce", &rt.enable_gi);
+      fan::graphics::gui::checkbox("reflections", &rt.enable_reflections);
 
       static fan::vec3 light_pos = fan::vec3(5.0f, 10.0f, 5.0f);
       static fan::vec3 light_color = fan::vec3(1.0f, 1.0f, 1.0f);

@@ -1292,10 +1292,22 @@ void fan::vulkan::context_t::recreate_swap_chain(fan::window_t* window, VkResult
     #endif
       ) {
 
+      vkDeviceWaitIdle(device);
+      swap_chain_support_details_t swapChainSupport = query_swap_chain_support(physical_device);
+      present_mode = choose_swap_present_mode(swapChainSupport.present_modes);
+
     #if defined(FAN_GUI)
+      MainWindowData.PresentMode = present_mode;
+      MinImageCount = std::max<std::uint32_t>(
+        2,
+        (std::uint32_t)ImGui_ImplVulkanH_GetMinImageCountFromPresentMode(present_mode)
+      );
       ImGui_ImplVulkan_SetMinImageCount(MinImageCount);
       ImGui_ImplVulkanH_CreateOrResizeWindow(instance, physical_device, device, &MainWindowData, queue_family, /*g_Allocator*/nullptr, fb_width, fb_height, MinImageCount);
       current_frame = MainWindowData.FrameIndex = 0;
+    #else
+      cleanup_swap_chain();
+      create_swap_chain(fan::vec2ui((std::uint32_t)fb_width, (std::uint32_t)fb_height));
     #endif
       SwapChainRebuild = false;
     #if defined(FAN_GUI)
@@ -1550,13 +1562,6 @@ void fan::vulkan::context_t::create_logical_device() {
 
   createInfo.enabledExtensionCount = (std::uint32_t)deviceExtensions.size();
   createInfo.ppEnabledExtensionNames = deviceExtensions.data();
-
-#if FAN_DEBUG >= fan_debug_high
-  if (supports_validation_layers) {
-    createInfo.enabledLayerCount = (std::uint32_t)validationLayers.size();
-    createInfo.ppEnabledLayerNames = validationLayers.data();
-  }
-#endif
 
   // -----------------------------
   // Create device
@@ -2136,17 +2141,28 @@ VkSurfaceFormatKHR fan::vulkan::context_t::choose_swap_surface_format(const std:
   return available_formats[0];
 }
 VkPresentModeKHR fan::vulkan::context_t::choose_swap_present_mode(const std::vector<VkPresentModeKHR>& available_present_modes) {
-  //return VK_PRESENT_MODE_IMMEDIATE_KHR;
-  for (const auto& available_present_mode : available_present_modes) {
-    if (available_present_mode == VK_PRESENT_MODE_IMMEDIATE_KHR && !vsync) {
-      return VK_PRESENT_MODE_IMMEDIATE_KHR;
+  if (vsync) {
+    for (const auto& available_present_mode : available_present_modes) {
+      if (available_present_mode == VK_PRESENT_MODE_FIFO_KHR) {
+        return VK_PRESENT_MODE_FIFO_KHR;
+      }
     }
-    else if (available_present_mode == VK_PRESENT_MODE_FIFO_KHR && vsync) {
-      return VK_PRESENT_MODE_FIFO_KHR;
+  }
+  else {
+    for (const auto& preferred_mode : {
+      VK_PRESENT_MODE_IMMEDIATE_KHR,
+      VK_PRESENT_MODE_MAILBOX_KHR,
+      VK_PRESENT_MODE_FIFO_RELAXED_KHR
+    }) {
+      for (const auto& available_present_mode : available_present_modes) {
+        if (available_present_mode == preferred_mode) {
+          return preferred_mode;
+        }
+      }
     }
   }
 
-  return available_present_modes[0];
+  return VK_PRESENT_MODE_FIFO_KHR;
 }
 VkExtent2D fan::vulkan::context_t::choose_swap_extent(const fan::vec2ui& framebuffer_size, const VkSurfaceCapabilitiesKHR& capabilities) {
   if (capabilities.currentExtent.width != std::numeric_limits<std::uint32_t>::max()) {
@@ -2307,6 +2323,11 @@ bool fan::vulkan::context_t::check_validation_layer_support() {
     }
 
     if (!layerFound) {
+      fan::print_warning("missing Vulkan validation layer:", layerName);
+      fan::print_warning("available Vulkan instance layers:");
+      for (const auto& layerProperties : availableLayers) {
+        fan::print_warning("  ", layerProperties.layerName);
+      }
       return false;
     }
   }
@@ -2330,9 +2351,11 @@ VKAPI_ATTR VkBool32 VKAPI_CALL fan::vulkan::context_t::debug_callback(
 }
 #if defined(loco_window)
 void fan::vulkan::context_t::set_vsync(fan::window_t* window, bool flag) {
+  if (vsync == flag && !SwapChainRebuild) {
+    return;
+  }
   vsync = flag;
   SwapChainRebuild = true;
-  recreate_swap_chain(window, VK_ERROR_OUT_OF_DATE_KHR);
 }
 
 #endif

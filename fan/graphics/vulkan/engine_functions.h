@@ -109,6 +109,10 @@ void begin_draw() {
   vkQueueWaitIdle(loco.context.vk.graphics_queue);
   fan::vulkan::context_t& context = loco.context.vk;
   vkWaitForFences(context.device, 1, &context.in_flight_fences[context.current_frame], VK_TRUE, UINT64_MAX);
+
+  if (context.SwapChainRebuild) {
+    context.recreate_swap_chain(&loco.window, VK_SUCCESS);
+  }
     
   loco.vk.image_error = vkAcquireNextImageKHR(
     context.device,
@@ -438,6 +442,7 @@ void init() {
   ds_properties[0].dst_binding = 1;
   ds_properties[0].type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
   ds_properties[0].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
+  ds_properties[0].descriptor_count = 1;
   for (uint32_t i = 0; i < fan::vulkan::max_textures; ++i) {
     ds_properties[0].image_infos[i] = imageInfo;
   }
@@ -452,6 +457,7 @@ void init() {
   ds_properties[1].dst_binding = 2;
   ds_properties[1].type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
   ds_properties[1].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
+  ds_properties[1].descriptor_count = 1;
   for (uint32_t i = 0; i < fan::vulkan::max_textures; ++i) {
     ds_properties[1].image_infos[i] = imageInfo;
   }

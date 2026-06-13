@@ -62,8 +62,8 @@ layout(binding = 3, set = 0) uniform TimeUBO {
 
 layout(binding = 10, set = 0) uniform ExposureUBO {
     float exposure;
-    float pad0;
-    float pad1;
+    float enable_gi;
+    float enable_reflections;
     float pad2;
 } exposure_ubo;
 
@@ -271,7 +271,7 @@ void main() {
     vec3 direct_lighting = ambient + diffuse;
 
     vec3 indirect_color = vec3(0.0);
-    {
+    if (exposure_ubo.enable_gi > 0.5) {
         Payload saved = payload;
 
         float fi = floor(time_ubo.time * 60.0);
@@ -308,16 +308,16 @@ void main() {
 
         indirect_color = payload.color;
         payload = saved;
+
+        indirect_color = clamp(indirect_color, vec3(0.0), vec3(3.0));
+
+        float direct_lum = luminance(direct_lighting);
+        float gi_boost = smoothstep(0.0, 0.3, 1.0 - clamp(direct_lum, 0.0, 1.0));
+        indirect_color *= mix(1.0, 2.0, gi_boost);
     }
 
-    indirect_color = clamp(indirect_color, vec3(0.0), vec3(3.0));
-
-    float direct_lum = luminance(direct_lighting);
-    float gi_boost = smoothstep(0.0, 0.3, 1.0 - clamp(direct_lum, 0.0, 1.0));
-    indirect_color *= mix(1.0, 2.0, gi_boost);
-
     vec3 reflection_color = vec3(0.0);
-    if (mat_id == 2u) {
+    if (exposure_ubo.enable_reflections > 0.5 && mat_id == 2u) {
         vec3 R = reflect(-V, N);
 
         Payload saved = payload;
