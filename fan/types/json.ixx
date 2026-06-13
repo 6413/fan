@@ -1,8 +1,15 @@
 module;
 
-export module fan.types.json;
+#include <algorithm>
+#include <cstdint>
+#include <exception>
+#include <ios>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
-import std;
+export module fan.types.json;
 
 import fan.types;
 import fan.types.vector;
