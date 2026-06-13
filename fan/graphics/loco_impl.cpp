@@ -60,10 +60,10 @@ fan::graphics::gui::settings_menu_t* get_smenu(loco_t* loco) {
 }
 
 bool init_fan_track_opengl_print = []() {
-  fan_opengl_track_print() = [](std::string func_name, std::uint64_t elapsed) {
-    gloco()->gui.console.print(func_name + ":", fan::graphics::highlight_e::text);
-    gloco()->gui.console.print(std::to_string(elapsed / 1e+6f) + "ms", fan::graphics::highlight_e::warning);
-  };
+  //fan_opengl_track_print() = [](std::string func_name, std::uint64_t elapsed) {
+  //  gloco()->gui.console.print(func_name + ":", fan::graphics::highlight_e::text);
+  //  gloco()->gui.console.print(std::to_string(elapsed / 1e+6f) + "ms", fan::graphics::highlight_e::warning);
+  //};
   return 1;
 }();
 
