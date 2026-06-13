@@ -1980,7 +1980,6 @@ namespace fan::graphics::gui {
 
   #if defined(FAN_VULKAN)
     if (renderer == vulkan_renderer_definition) {
-      (void)cmd_buffer;
       render_func(context, image_error, clear_color);
     }
   #endif
