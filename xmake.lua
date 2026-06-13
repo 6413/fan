@@ -519,11 +519,11 @@ target("fan")
 
   if is_plat("linux") then
     add_links(
-    "webp", "glfw", "X11", "opus", "pulse-simple",
-    "uv", "GL", "ssl", "crypto", "png", "z", "curl"
+      "webp", "glfw", "X11", "opus", "pulse-simple",
+      "uv", "GL", "ssl", "crypto", "curl"
     )
     if has_config("FAN_FMT") then add_links("fmt") end
-    if has_config("FAN_GUI") then add_links("freetype", "lunasvg") end
+    if has_config("FAN_GUI") then add_links("freetype", "lunasvg", "png16", "z") end
     if has_config("FAN_PHYSICS_2D") then
       add_ldflags("-Wl,--whole-archive", "third_party/fan/lib/libbox2d.a", "-Wl,--no-whole-archive", {force = true})
     end
