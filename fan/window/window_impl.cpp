@@ -852,8 +852,11 @@ namespace fan {
   }
 
   void window_t::toggle_cursor() {
-    bool disabled = glfwGetInputMode(*this, GLFW_CURSOR) != GLFW_CURSOR_DISABLED;
+    bool disabled = !is_cursor_enabled();
     set_cursor(disabled);
+  }
+  bool window_t::is_cursor_enabled() const {
+    return glfwGetInputMode(*this, GLFW_CURSOR) != GLFW_CURSOR_DISABLED;
   }
 
   void window_t::set_display_mode(int mode) {

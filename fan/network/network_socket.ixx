@@ -13,7 +13,6 @@ import fan.types;
 import fan.utility;
 import fan.event.types;
 import fan.event;
-import fan.network;
 
 export namespace fan::network {
   struct socket_t;
