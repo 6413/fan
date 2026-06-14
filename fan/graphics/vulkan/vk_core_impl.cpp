@@ -1156,13 +1156,13 @@ void fan::vulkan::context_t::destroy_vulkan_soft() {
   close_vais(upscaleImageViews1);
   close_vais(vai_depth);
 
-  for (std::size_t i = 0; i < max_frames_in_flight; i++) {
-    if (render_finished_semaphores.size())
-      vkDestroySemaphore(device, render_finished_semaphores[i], nullptr);
-    if (image_available_semaphores.size())
-      vkDestroySemaphore(device, image_available_semaphores[i], nullptr);
-    if (in_flight_fences.size())
-      vkDestroyFence(device, in_flight_fences[i], nullptr);
+  for (std::size_t i = 0; i < image_available_semaphores.size(); i++) {
+    vkDestroySemaphore(device, image_available_semaphores[i], nullptr);
+    vkDestroySemaphore(device, render_finished_semaphores[i], nullptr);
+  }
+
+  for (std::size_t i = 0; i < in_flight_fences.size(); i++) {
+    vkDestroyFence(device, in_flight_fences[i], nullptr);
   }
 
   vkDestroyRenderPass(device, render_pass, nullptr);
@@ -1936,8 +1936,13 @@ void fan::vulkan::context_t::end_single_time_commands(VkCommandBuffer command_bu
   submitInfo.commandBufferCount = 1;
   submitInfo.pCommandBuffers = &command_buffer;
 
-  vkQueueSubmit(graphics_queue, 1, &submitInfo, VK_NULL_HANDLE);
-  vkQueueWaitIdle(graphics_queue);
+  VkFenceCreateInfo fence_info {};
+  fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+  VkFence fence = VK_NULL_HANDLE;
+  fan::vulkan::validate(vkCreateFence(device, &fence_info, nullptr, &fence));
+  fan::vulkan::validate(vkQueueSubmit(graphics_queue, 1, &submitInfo, fence));
+  fan::vulkan::validate(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX));
+  vkDestroyFence(device, fence, nullptr);
 
   vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
 }
@@ -2018,22 +2023,26 @@ void fan::vulkan::context_t::draw(
   bindless_draw(vertex_count, instance_count, first_instance);
 }
 void fan::vulkan::context_t::create_sync_objects() {
-  image_available_semaphores.resize(max_frames_in_flight);
-  render_finished_semaphores.resize(max_frames_in_flight);
+  std::uint32_t acquire_count = std::max((std::uint32_t)swap_chain_images.size(), (std::uint32_t)3);
+  image_available_semaphores.resize(acquire_count);
+  render_finished_semaphores.resize(acquire_count);
   in_flight_fences.resize(max_frames_in_flight);
 
-  VkSemaphoreCreateInfo semaphoreInfo {};
+  VkSemaphoreCreateInfo semaphoreInfo{};
   semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-
-  VkFenceCreateInfo fenceInfo {};
+  VkFenceCreateInfo fenceInfo{};
   fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
   fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-  for (std::size_t i = 0; i < max_frames_in_flight; i++) {
+  for (std::size_t i = 0; i < acquire_count; i++) {
     if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &image_available_semaphores[i]) != VK_SUCCESS ||
-      vkCreateSemaphore(device, &semaphoreInfo, nullptr, &render_finished_semaphores[i]) != VK_SUCCESS ||
-      vkCreateFence(device, &fenceInfo, nullptr, &in_flight_fences[i]) != VK_SUCCESS) {
-      fan::throw_error("failed to create synchronization objects for a frame!");
+      vkCreateSemaphore(device, &semaphoreInfo, nullptr, &render_finished_semaphores[i]) != VK_SUCCESS) {
+      fan::throw_error("failed to create semaphore!");
+    }
+  }
+  for (std::size_t i = 0; i < max_frames_in_flight; i++) {
+    if (vkCreateFence(device, &fenceInfo, nullptr, &in_flight_fences[i]) != VK_SUCCESS) {
+      fan::throw_error("failed to create fence!");
     }
   }
 }
@@ -2097,7 +2106,7 @@ VkResult fan::vulkan::context_t::end_render() {
   VkSubmitInfo submitInfo {};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-  VkSemaphore waitSemaphores[] = {image_available_semaphores[current_frame]};
+  VkSemaphore waitSemaphores[] = {current_acquire_semaphore};
   VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
   submitInfo.waitSemaphoreCount = 1;
   submitInfo.pWaitSemaphores = waitSemaphores;
@@ -2106,7 +2115,7 @@ VkResult fan::vulkan::context_t::end_render() {
   submitInfo.commandBufferCount = 1;
   submitInfo.pCommandBuffers = &command_buffers[current_frame];
 
-  VkSemaphore signalSemaphores[] = {render_finished_semaphores[current_frame]};
+  VkSemaphore signalSemaphores[] = {render_finished_semaphores[image_index]};
   submitInfo.signalSemaphoreCount = 1;
   submitInfo.pSignalSemaphores = signalSemaphores;
 
