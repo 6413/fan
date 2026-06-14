@@ -2014,6 +2014,8 @@ renderer_state.lighting.update(get_delta_time());
     fan::window_t::renderer_t::opengl,
     fan::window_t::renderer_t::vulkan
   );
+  fan::graphics::gui::gizmo::begin_frame();
+
 
   using namespace fan::graphics;
 
