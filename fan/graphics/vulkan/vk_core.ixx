@@ -28,7 +28,6 @@ module;
 #include <fan/utility.h>
 
 export module fan.graphics.vulkan.core;
-
 import std;
 
 #if defined(FAN_VULKAN)
@@ -63,7 +62,6 @@ import fan.graphics.common_context;
 #define ENABLE_RAYTRACING_DEPENDENCIES
 
 extern const std::vector<const char*> validationLayers;
-
 extern const std::vector<const char*> deviceExtensions;
 
 
@@ -137,34 +135,19 @@ export namespace fan {
 
     inline constexpr std::uint16_t max_camera = 16;
     inline constexpr std::uint16_t max_textures = 1024;
-
     struct write_descriptor_set_t {
-      // glsl layout binding
       std::uint32_t binding;
       std::uint32_t dst_binding = 0;
-
-      // VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-      // VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
       VkDescriptorType type;
-
-      // VK_SHADER_STAGE_VERTEX_BIT
-      // VK_SHADER_STAGE_FRAGMENT_BIT
-      // Note: for VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER use VK_SHADER_STAGE_FRAGMENT_BIT
       VkShaderStageFlags flags;
-
       VkBuffer buffer = nullptr;
-
       std::uint64_t range;
-
-      // for only VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-      // imageLayout can be VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
       bool use_image = false;
       std::uint32_t descriptor_count = 0;
       std::vector<VkDescriptorImageInfo> image_infos{max_textures};
     };
 
     inline constexpr std::uint32_t max_frames_in_flight = 1;
-
     inline std::uint32_t makeAccessMaskPipelineStageFlags(std::uint32_t accessMask) {
       static constexpr std::uint32_t accessPipes[] = {
         VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
@@ -174,16 +157,22 @@ export namespace fan {
         VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT,
         VK_PIPELINE_STAGE_VERTEX_INPUT_BIT,
         VK_ACCESS_UNIFORM_READ_BIT,
-        VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT | VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT
-        | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
+        VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT | VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT
+        | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
         VK_ACCESS_INPUT_ATTACHMENT_READ_BIT,
         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
         VK_ACCESS_SHADER_READ_BIT,
-        VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT | VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT
-        | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_VERTEX_SHADER_BIT |
+        VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT | VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT
+        | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
         VK_ACCESS_SHADER_WRITE_BIT,
-        VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT | VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT
-        | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT |
+        VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT
+        | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
         VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
         VK_ACCESS_COLOR_ATTACHMENT_READ_NONCOHERENT_BIT_EXT,
@@ -191,9 +180,11 @@ export namespace fan {
         VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
         VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
-        VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+        VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+        VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
         VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-        VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+        VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT |
+        VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
         VK_ACCESS_TRANSFER_READ_BIT,
         VK_PIPELINE_STAGE_TRANSFER_BIT,
         VK_ACCESS_TRANSFER_WRITE_BIT,
@@ -206,6 +197,7 @@ export namespace fan {
         0,
         VK_ACCESS_MEMORY_WRITE_BIT,
         0,
+    
     #if VK_NV_device_generated_commands
         VK_ACCESS_COMMAND_PREPROCESS_READ_BIT_NV,
         VK_PIPELINE_STAGE_COMMAND_PREPROCESS_BIT_NV,
@@ -213,14 +205,12 @@ export namespace fan {
         VK_PIPELINE_STAGE_COMMAND_PREPROCESS_BIT_NV,
     #endif
       };
-
       if (!accessMask)
       {
         return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
       }
 
       std::uint32_t pipes = 0;
-
       for (std::uint32_t i = 0; i < std::size(accessPipes); i += 2)
       {
         if (accessPipes[i] & accessMask)
@@ -236,7 +226,6 @@ export namespace fan {
       return pipes;
     }
 
-    // view and image
     struct vai_t {
       struct properties_t {
         fan::vec2 swap_chain_size;
@@ -246,7 +235,6 @@ export namespace fan {
       };
       void open(fan::vulkan::context_t& context, const properties_t& p);
       void close(fan::vulkan::context_t& context);
-
       void transition_image_layout(auto& context, VkImageLayout newLayout, VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT) {
         if (old_layout == newLayout) {
           return;
@@ -269,7 +257,6 @@ export namespace fan {
 
         VkPipelineStageFlags sourceStage;
         VkPipelineStageFlags destinationStage;
-
         if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
           barrier.srcAccessMask = 0;
           barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
@@ -300,7 +287,6 @@ export namespace fan {
           0, nullptr,
           1, &barrier
         );
-
         context.end_single_time_commands(commandBuffer);
 
         old_layout = newLayout;
@@ -348,16 +334,15 @@ export namespace fan {
       struct descriptor_t {
 
         using properties_t = std::vector<fan::vulkan::write_descriptor_set_t>;
-
         void open(fan::vulkan::context_t& context, const properties_t& properties) {
           m_properties = properties;
-
           std::vector<VkDescriptorSetLayoutBinding> uboLayoutBinding(properties.size());
           for (std::uint16_t i = 0; i < properties.size(); ++i) {
             uboLayoutBinding[i].binding = properties[i].binding;
             uboLayoutBinding[i].descriptorCount = m_properties[i].descriptor_count;
             if (uboLayoutBinding[i].descriptorCount == 0) {
-              uboLayoutBinding[i].descriptorCount = m_properties[i].use_image ? max_textures : 1;
+              uboLayoutBinding[i].descriptorCount = m_properties[i].use_image ?
+                max_textures : 1;
             }
             uboLayoutBinding[i].descriptorType = properties[i].type;
             uboLayoutBinding[i].stageFlags = properties[i].flags;
@@ -386,8 +371,6 @@ export namespace fan {
           vkDestroyDescriptorSetLayout(context.device, m_layout, 0);
         }
 
-
-        // for buffer update, need to manually call .m_properties.common
         void update(
   fan::vulkan::context_t& context,
   std::uint32_t n,
@@ -400,14 +383,12 @@ export namespace fan {
 
   for (std::uint32_t i = 0; i < n; ++i) {
     std::uint32_t j = begin + i;
-
     auto& write = descriptor_writes[i];
     write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     write.dstSet = m_descriptor_set[context.current_frame];
     write.dstBinding = m_properties[j].dst_binding;
     write.dstArrayElement = texture_begin;
     write.descriptorType = m_properties[j].type;
-
     if (m_properties[j].use_image) {
       std::uint32_t descriptor_n = texture_n;
       if (texture_n == max_textures && m_properties[j].descriptor_count != 0) {
@@ -423,7 +404,6 @@ export namespace fan {
       buffer_infos[i].buffer = m_properties[j].buffer;
       buffer_infos[i].offset = 0;
       buffer_infos[i].range = m_properties[j].range;
-
       write.descriptorCount = 1;
       write.pBufferInfo = &buffer_infos[i];
     }
@@ -436,7 +416,6 @@ export namespace fan {
         VkDescriptorSetLayout m_layout;
         VkDescriptorSet m_descriptor_set[fan::vulkan::max_frames_in_flight];
       };
-
       #include "memory.h"
       #include "uniform_block.h"
       #include "ssbo.h"
@@ -450,6 +429,7 @@ export namespace fan {
             { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1024 },
             { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024 },
             { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+          
           #if defined(FAN_GUI)
               IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE +
           #endif
@@ -479,8 +459,6 @@ export namespace fan {
         VkDescriptorPool m_descriptor_pool;
       }descriptor_pool;
 
-      //-----------------------------shader-----------------------------
-
       struct shader_t {
         int projection_view[2]{ -1, -1 };
         fan::vulkan::context_t::uniform_block_t<fan::vulkan::view_projection_t, fan::vulkan::max_camera>* projection_view_block;
@@ -492,7 +470,6 @@ export namespace fan {
       static std::vector<std::uint32_t> compile_file(const std::string& source_name,
         shaderc_shader_kind kind,
         const std::string& source);
-
       fan::graphics::shader_nr_t shader_create();
 
       void shader_erase(fan::graphics::shader_nr_t nr, int recycle = 1);
@@ -500,21 +477,17 @@ export namespace fan {
       void shader_use(fan::graphics::shader_nr_t nr);
 
       VkShaderModule create_shader_module(const std::vector<std::uint32_t>& code);
-
       void shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& vertex_code);
 
       void shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string& vertex_code);
-
       void shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& fragment_code);
 
       void shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string& fragment_code);
-
       void shader_set_compute(
         fan::graphics::shader_nr_t nr,
         const std::string_view file_path,
         const std::string& compute_code
       );
-
       void shader_set_camera(fan::graphics::shader_nr_t nr, fan::graphics::camera_nr_t camera_nr);
 
       void shader_dispatch_compute(
@@ -523,14 +496,9 @@ export namespace fan {
         std::uint32_t y,
         std::uint32_t z
       );
-
       static void parse_uniforms(std::string& shaderData, std::unordered_map<std::string, std::string>& uniform_type_table);
 
       bool shader_compile(fan::graphics::shader_nr_t nr);
-
-      //-----------------------------shader-----------------------------
-
-      //-----------------------------image-----------------------------
 
       struct image_format {
         static constexpr auto b8g8r8a8_unorm = VK_FORMAT_B8G8R8A8_UNORM;
@@ -555,27 +523,17 @@ export namespace fan {
 
       struct image_load_properties_defaults {
         static constexpr VkSamplerAddressMode visual_output = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        //static constexpr uint32_t internal_format = GL_RGBA;
         static constexpr VkFormat format = image_format::r8b8g8a8_unorm;
-        //static constexpr uint32_t type = GL_UNSIGNED_BYTE;
         static constexpr VkFilter min_filter = image_filter::nearest;
         static constexpr VkFilter mag_filter = image_filter::nearest;
       };
-
       struct image_load_properties_t {
-        //constexpr load_properties_t(auto a, auto b, auto c, auto d, auto e)
-          //: visual_output(a), internal_format(b), format(c), type(d), filter(e) {}
         VkSamplerAddressMode visual_output = image_load_properties_defaults::visual_output;
-        // unused opengl filler
         std::uint8_t internal_format = 0;
-        //uintptr_t           internal_format = load_properties_defaults::internal_format;
-        //uintptr_t           format = load_properties_defaults::format;
-        //uintptr_t           type = load_properties_defaults::type;
         VkFormat format = image_load_properties_defaults::format;
         VkFilter           min_filter = image_load_properties_defaults::min_filter;
         VkFilter           mag_filter = image_load_properties_defaults::mag_filter;
       };
-
       struct primitive_topology_t {
         static constexpr std::uint32_t points = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
         static constexpr std::uint32_t lines = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
@@ -588,7 +546,6 @@ export namespace fan {
         static constexpr std::uint32_t triangles_with_adjacency = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY;
         static constexpr std::uint32_t triangle_strip_with_adjacency = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY;
       };
-
       void transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
       void copy_buffer_to_image(
         VkBuffer buffer,
@@ -597,9 +554,6 @@ export namespace fan {
         const fan::vec2ui& size,
         const fan::vec2ui& stride = fan::vec2ui(1)
       );
-
-
-
       void create_texture_sampler(VkSampler& sampler, const image_load_properties_t& lp);
 
       struct image_t {
@@ -621,7 +575,7 @@ export namespace fan {
           }
           case fan::vulkan::context_t::image_format::r8_unorm:
           {
-            return 1; // 1?
+            return 1;
           }
           case fan::vulkan::context_t::image_format::r8g8b8a8_srgb:
           {
@@ -632,7 +586,7 @@ export namespace fan {
             return 4;
           }
           default:
-          {// removes warning
+          {
             break;
           }
         }
@@ -643,7 +597,6 @@ export namespace fan {
       std::vector<VkDescriptorImageInfo> image_pool; // for draw
 
       fan::graphics::image_nr_t image_create();
-
       std::uint64_t image_get_handle(fan::graphics::image_nr_t nr);
 
       fan::vulkan::context_t::image_t& image_get(fan::graphics::image_nr_t nr);
@@ -652,7 +605,6 @@ export namespace fan {
 
 
       void image_bind(fan::graphics::image_nr_t nr);
-
       void image_bind(fan::graphics::image_nr_t nr, std::uint32_t unit);
 
       void image_bind(
@@ -661,7 +613,6 @@ export namespace fan {
         std::uint32_t access,
         std::uint32_t format
       );
-
       void image_unbind(fan::graphics::image_nr_t nr);
 
       fan::graphics::image_load_properties_t& image_get_settings(fan::graphics::image_nr_t nr);
@@ -669,40 +620,30 @@ export namespace fan {
       void image_set_settings(fan::graphics::image_nr_t nr, const fan::vulkan::context_t::image_load_properties_t& p);
 
       void image_set_settings(const fan::vulkan::context_t::image_load_properties_t& p);
-
       fan::graphics::image_nr_t image_load(const fan::image::info_t& image_info, const fan::vulkan::context_t::image_load_properties_t& p);
 
       fan::graphics::image_nr_t image_load(const fan::image::info_t& image_info);
 
       fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size_, const fan::vulkan::context_t::image_load_properties_t& p);
-
       fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size_);
 
       fan::graphics::image_nr_t create_missing_texture();
       fan::graphics::image_nr_t create_transparent_texture();
-
       fan::graphics::image_nr_t image_load(fan::str_view_t path, const fan::vulkan::context_t::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current());
 
       fan::graphics::image_nr_t image_load(fan::str_view_t path, const std::source_location& callers_path = std::source_location::current());
-
       void image_unload(fan::graphics::image_nr_t nr);
 
       void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const fan::vulkan::context_t::image_load_properties_t& p);
 
 
       void image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info);
-
       void image_reload(fan::graphics::image_nr_t nr, fan::str_view_t path, const fan::vulkan::context_t::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current());
-
       void image_reload(fan::graphics::image_nr_t nr, fan::str_view_t path, const std::source_location& callers_path = std::source_location::current());
-
-      // creates single colored text size.x*size.y sized
       fan::graphics::image_nr_t image_create(const fan::color& color, const fan::vulkan::context_t::image_load_properties_t& p);
-
       fan::graphics::image_nr_t image_create(const fan::color& color);
 
       fan::graphics::image_nr_t image_create(void* data, const fan::vec2ui& size, const fan::vulkan::context_t::image_load_properties_t& p);
-
       std::vector<std::uint8_t> image_get_pixel_data(fan::graphics::image_nr_t nr, std::uint32_t format, fan::vec2 uvp, fan::vec2 uvs);
 
       fan::graphics::image_nr_t image_create_from_view(
@@ -712,44 +653,31 @@ export namespace fan {
         VkFormat format
       );
 
-      //-----------------------------image-----------------------------
-
-      //-----------------------------camera-----------------------------
-
       fan::graphics::camera_nr_t camera_create();
 
       fan::graphics::context_camera_t& camera_get(fan::graphics::camera_nr_t nr);
 
       void camera_erase(fan::graphics::camera_nr_t nr);
-
       void camera_set_ortho(fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y);
       void camera_update_projection(fan::graphics::camera_nr_t nr);
       void camera_update_view(fan::graphics::camera_nr_t nr);
 
       fan::graphics::camera_nr_t camera_create(const fan::vec2& x, const fan::vec2& y);
-
       fan::vec3 camera_get_position(fan::graphics::camera_nr_t nr);
 
       void camera_set_position(fan::graphics::camera_nr_t nr, const fan::vec3& cp);
 
       fan::vec3 camera_get_center(fan::graphics::camera_nr_t nr);
       void camera_set_center(fan::graphics::camera_nr_t nr, const fan::vec3& cp);
-
       fan::vec2 camera_get_size(fan::graphics::camera_nr_t nr);
 
       f32_t camera_get_zoom(fan::graphics::camera_nr_t nr);
       void camera_set_zoom(fan::graphics::camera_nr_t nr, f32_t new_zoom);
 
       void camera_set_perspective(fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size);
-
       void camera_rotate(fan::graphics::camera_nr_t nr, const fan::vec2& offset);
 
-      //-----------------------------camera-----------------------------
-
-      //-----------------------------viewport-----------------------------
-
       void viewport_set(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
-
       fan::graphics::context_viewport_t& viewport_get(fan::graphics::viewport_nr_t nr);
 
       void viewport_set(fan::graphics::viewport_nr_t nr, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
@@ -757,7 +685,6 @@ export namespace fan {
       fan::graphics::viewport_nr_t viewport_create();
 
       void viewport_erase(fan::graphics::viewport_nr_t nr);
-
       fan::vec2 viewport_get_position(fan::graphics::viewport_nr_t nr);
 
       fan::vec2 viewport_get_size(fan::graphics::viewport_nr_t nr);
@@ -765,10 +692,7 @@ export namespace fan {
       void viewport_zero(fan::graphics::viewport_nr_t nr);
 
       bool viewport_inside(fan::graphics::viewport_nr_t nr, const fan::vec2& position);
-
       bool viewport_inside_wir(fan::graphics::viewport_nr_t nr, const fan::vec2& position);
-
-      //-----------------------------viewport-----------------------------
 
       struct pipeline_t {
 
@@ -781,12 +705,10 @@ export namespace fan {
 
           std::uint32_t color_blend_attachment_count = 0;
           VkPipelineColorBlendAttachmentState* color_blend_attachment = 0;
-
           bool enable_depth_test = VK_TRUE;
           VkCompareOp depth_test_compare_op = VK_COMPARE_OP_LESS;
           VkPrimitiveTopology shape_type = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         };
-
         void open(fan::vulkan::context_t& context, const properties_t& p) {
           VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
           vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -834,7 +756,6 @@ export namespace fan {
           colorBlending.blendConstants[1] = 1.0f;
           colorBlending.blendConstants[2] = 1.0f;
           colorBlending.blendConstants[3] = 1.0f;
-
           std::vector<VkDynamicState> dynamicStates = {
               VK_DYNAMIC_STATE_VIEWPORT,
               VK_DYNAMIC_STATE_SCISSOR
@@ -890,7 +811,6 @@ export namespace fan {
         }
 
         fan::graphics::shader_nr_t shader_nr;
-
         operator VkPipeline() const {
           return m_pipeline;
         }
@@ -905,7 +825,7 @@ export namespace fan {
       void open_no_window();
     #if defined(loco_window)
       void open(fan::window_t& window);
-#endif
+    #endif
 
       void close_vais(std::vector<fan::vulkan::vai_t>& v);
 
@@ -913,7 +833,6 @@ export namespace fan {
 
     public:
       void gui_close();
-
       void close();
 
       void cleanup_swap_chain_dependencies();
@@ -922,31 +841,25 @@ export namespace fan {
 
       void recreate_swap_chain_dependencies();
 
-      // if swapchain changes, reque
       void update_swapchain_dependencies();
-
       void recreate_swap_chain(fan::window_t* window, VkResult err);
 
-      //void recreate_swap_chain(const fan::vec2i& window_size);
 
       void create_instance();
 
       void populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT& create_info);
 
       void setup_debug_messenger();
-
-#if defined(loco_window)
+      #if defined(loco_window)
       void create_surface(GLFWwindow* window);
-#endif
+      #endif
 
       void pick_physical_device();
 
       void create_logical_device();
-
-
-    #if defined(loco_window)
+      #if defined(loco_window)
       void create_swap_chain(const fan::vec2ui& framebuffer_size);
-    #endif
+      #endif
 
       VkImageView create_image_view(VkImage image, VkFormat format, VkImageAspectFlags aspect_flags);
 
@@ -957,7 +870,6 @@ export namespace fan {
 
 
       void create_framebuffers();
-
       void create_command_pool();
 
       VkFormat find_supported_format(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features);
@@ -965,31 +877,59 @@ export namespace fan {
       VkFormat find_depth_format();
 
       bool has_stencil_component(VkFormat format);
-
       void create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& buffer_memory);
 
       VkCommandBuffer begin_single_time_commands();
 
       void end_single_time_commands(VkCommandBuffer command_buffer);
-
       void copy_buffer(VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size);
+
+      template <typename T>
+      void upload_buffer(const std::vector<T>& data, VkBufferUsageFlags usage, VkBuffer& buffer, VkDeviceMemory& buffer_memory) {
+        if (data.empty()) return;
+        VkDeviceSize size = sizeof(T) * data.size();
+        VkBuffer staging;
+        VkDeviceMemory staging_mem;
+        create_buffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, staging, staging_mem);
+        void* mapped;
+        vkMapMemory(device, staging_mem, 0, size, 0, &mapped);
+        std::memcpy(mapped, data.data(), size);
+        vkUnmapMemory(device, staging_mem);
+        create_buffer(size, usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer, buffer_memory);
+        copy_buffer(staging, buffer, size);
+        vkDestroyBuffer(device, staging, nullptr);
+        vkFreeMemory(device, staging_mem, nullptr);
+      }
+
+      void insert_image_barrier(
+        VkCommandBuffer cmd, VkImage image, VkImageLayout old_layout, VkImageLayout new_layout,
+        VkAccessFlags src_access, VkAccessFlags dst_access,
+        VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage
+      ) {
+        VkImageMemoryBarrier barrier{};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout = old_layout;
+        barrier.newLayout = new_layout;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = image;
+        barrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+        barrier.srcAccessMask = src_access;
+        barrier.dstAccessMask = dst_access;
+        vkCmdPipelineBarrier(cmd, src_stage, dst_stage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+      }
 
       std::uint32_t find_memory_type(std::uint32_t type_filter, VkMemoryPropertyFlags properties) const;
 
       void create_command_buffers();
-
-
       void bind_draw(
         const fan::vulkan::context_t::pipeline_t& pipeline,
         std::uint32_t descriptor_count,
         VkDescriptorSet* descriptor_sets);
-
-      // assumes things are already bound
       void bindless_draw(
         std::uint32_t vertex_count,
         std::uint32_t instance_count,
         std::uint32_t first_instance);
-
       void draw(
         std::uint32_t vertex_count,
         std::uint32_t instance_count,
@@ -998,22 +938,17 @@ export namespace fan {
         std::uint32_t descriptor_count,
         VkDescriptorSet* descriptor_sets
       );
-
       void create_sync_objects();
 
-       //----------------------------------------------imgui stuff----------------------------------------------
       bool                     SwapChainRebuild = false;
       #if defined(FAN_GUI)
       ImGui_ImplVulkanH_Window MainWindowData;
       std::uint32_t                 MinImageCount = 2;
-
       void ImGuiSetupVulkanWindow();
 
       static void ImGuiFrameRender(void* ctx, VkResult next_image_khr_err, fan::color clear_color);
-      //----------------------------------------------imgui stuff----------------------------------------------
-#endif
+      #endif
       VkResult end_render();
-
       VkSurfaceFormatKHR choose_swap_surface_format(const std::vector<VkSurfaceFormatKHR>& available_formats);
 
       VkPresentModeKHR choose_swap_present_mode(const std::vector<VkPresentModeKHR>& available_present_modes);
@@ -1022,7 +957,6 @@ export namespace fan {
       VkExtent2D choose_swap_extent(const fan::vec2ui& framebuffer_size, const VkSurfaceCapabilitiesKHR& capabilities);
 
       swap_chain_support_details_t query_swap_chain_support(VkPhysicalDevice device);
-
       bool is_device_suitable(VkPhysicalDevice device);
 
       bool check_device_extension_support(VkPhysicalDevice device);
@@ -1033,14 +967,12 @@ export namespace fan {
 
 
       bool check_validation_layer_support();
-
       static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT messageType,
         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
         void* pUserData
       );
-
       #if defined(loco_window)
       void set_vsync(fan::window_t* window, bool flag);
       #endif
@@ -1053,9 +985,9 @@ export namespace fan {
       VkDevice device = VK_NULL_HANDLE;
 
       VkQueue graphics_queue;
-#if defined(loco_window)
+      #if defined(loco_window)
       VkQueue present_queue;
-#endif
+      #endif
 
       std::vector<vai_t> mainColorImageViews;
       std::vector<vai_t> postProcessedColorImageViews;
@@ -1080,7 +1012,6 @@ export namespace fan {
       std::uint32_t queue_family = -1;
       std::uint32_t min_image_count = 0;
       std::uint32_t image_count = 0;
-      
       std::vector<VkCommandBuffer> command_buffers;
 
       std::vector<std::function<void()>> pre_begin_cmd_cb;
@@ -1092,7 +1023,6 @@ export namespace fan {
       std::uint32_t current_frame = 0;
 
       fan::window_t::resize_handle_t window_resize_handle;
-
       bool enable_clear = true;
       bool shapes_top = false;
 
@@ -1108,7 +1038,6 @@ export namespace fan {
     };
   }
 }
-//#include "ssbo.h"
 
 export namespace fan {
   namespace vulkan {
@@ -1145,9 +1074,7 @@ export namespace fan {
 }
 
 void fan::vulkan::image_create(const fan::vulkan::context_t& context, const fan::vec2ui& image_size, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory);
-
 auto fan::graphics::format_converter::image_global_to_vulkan(const fan::graphics::image_load_properties_t& p);
-
 
 export namespace fan::graphics {
   fan::graphics::context_functions_t get_vk_context_functions();

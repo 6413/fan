@@ -65,11 +65,13 @@ int main() {
       rt.set_transform(
         moving_fox.handle,
         fan::mat4(1)
-          .translate(moving_fox.base_position + offset * 10.f)
+          .translate(moving_fox.base_position * 10.f + offset * 100.f)
           .scale(1.f)
       );
     }
-    gui::camera_controls();
+    if (auto h = gui::hud_interactive{"##2"}) {
+      gui::camera_controls();
+    }
     rt.render_gui();
   });
 }

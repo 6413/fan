@@ -19,13 +19,11 @@ export namespace fan::graphics::vulkan::ray_tracing::shapes {
 
   struct triangle_mesh_t { 
     std::vector<fan::vec3> vertices; 
-    std::vector<std::uint32_t> indices; 
-
+    std::vector<std::uint32_t> indices;
     triangle_mesh_t() = default;
     triangle_mesh_t(const fan::model::mesh_t& m) {
       vertices.reserve(m.vertices.size());
       indices.reserve(m.indices.size());
-
       for (auto& v : m.vertices) {
         vertices.push_back(fan::mat4(1).scale(0.0001) * v.position);
       }
@@ -42,75 +40,15 @@ export namespace fan::graphics::vulkan::ray_tracing::shapes {
     VkDeviceMemory index_memory = VK_NULL_HANDLE;
     std::uint32_t vertex_count = 0;
     std::uint32_t index_count = 0;
-
     void upload(fan::vulkan::context_t& ctx, const triangle_mesh_t& mesh) {
       vertex_count = (std::uint32_t)mesh.vertices.size();
       index_count = (std::uint32_t)mesh.indices.size();
-
       if (vertex_count == 0 || index_count == 0) {
         return;
       }
 
-      VkDeviceSize vertex_size = sizeof(fan::vec3) * (VkDeviceSize)vertex_count;
-      VkDeviceSize index_size = sizeof(std::uint32_t) * (VkDeviceSize)index_count;
-
-      VkBuffer staging_vertex = VK_NULL_HANDLE;
-      VkDeviceMemory staging_vertex_mem = VK_NULL_HANDLE;
-      VkBuffer staging_index = VK_NULL_HANDLE;
-      VkDeviceMemory staging_index_mem = VK_NULL_HANDLE;
-
-      ctx.create_buffer(
-        vertex_size,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        staging_vertex,
-        staging_vertex_mem
-      );
-
-      void* data = nullptr;
-      vkMapMemory(ctx.device, staging_vertex_mem, 0, vertex_size, 0, &data);
-      std::memcpy(data, mesh.vertices.data(), (std::size_t)vertex_size);
-      vkUnmapMemory(ctx.device, staging_vertex_mem);
-
-      ctx.create_buffer(
-        index_size,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        staging_index,
-        staging_index_mem
-      );
-
-      vkMapMemory(ctx.device, staging_index_mem, 0, index_size, 0, &data);
-      std::memcpy(data, mesh.indices.data(), (std::size_t)index_size);
-      vkUnmapMemory(ctx.device, staging_index_mem);
-
-      ctx.create_buffer(
-        vertex_size,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-        VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
-        VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        vertex_buffer,
-        vertex_memory
-      );
-
-      ctx.create_buffer(
-        index_size,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-        VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
-        VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        index_buffer,
-        index_memory
-      );
-
-      ctx.copy_buffer(staging_vertex, vertex_buffer, vertex_size);
-      ctx.copy_buffer(staging_index, index_buffer, index_size);
-
-      vkDestroyBuffer(ctx.device, staging_vertex, nullptr);
-      vkFreeMemory(ctx.device, staging_vertex_mem, nullptr);
-      vkDestroyBuffer(ctx.device, staging_index, nullptr);
-      vkFreeMemory(ctx.device, staging_index_mem, nullptr);
+      ctx.upload_buffer(mesh.vertices, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, vertex_buffer, vertex_memory);
+      ctx.upload_buffer(mesh.indices, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, index_buffer, index_memory);
     }
 
     void destroy(fan::vulkan::context_t& ctx) {
@@ -130,7 +68,6 @@ export namespace fan::graphics::vulkan::ray_tracing::shapes {
       index_count = 0;
     }
   };
-
   triangle_mesh_t make_sphere(
     const fan::vec3& center,
     f32_t radius,
@@ -138,10 +75,8 @@ export namespace fan::graphics::vulkan::ray_tracing::shapes {
     std::uint32_t slices = 20
   ) {
     triangle_mesh_t mesh;
-
     mesh.vertices.reserve((stacks + 1) * (slices + 1));
     mesh.indices.reserve(stacks * slices * 6);
-
     for (std::uint32_t i = 0; i <= stacks; ++i) {
       f32_t v = (f32_t)i / (f32_t)stacks;
       f32_t phi = v * 3.1415926535f;
@@ -155,7 +90,6 @@ export namespace fan::graphics::vulkan::ray_tracing::shapes {
           radius * std::cos(phi),
           radius * std::sin(phi) * std::sin(theta)
         );
-
         mesh.vertices.push_back(center + pos);
       }
     }
