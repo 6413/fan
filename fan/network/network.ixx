@@ -6,10 +6,14 @@ module;
 #undef min
 #undef max
 #undef NO_ERROR
-#if defined(__clang__) || !defined(__GNUC__) || defined(FAN_NETWORK_ENABLE_CURL_ON_GCC)
-#define __use_curl
+#if defined(__clang__) || !defined(__GNUC__) || defined(FAN_NETWORK_ENABLE_HTTP_ON_GCC)
+#define FAN_NETWORK_HTTP_ENABLED
 #endif
-#ifdef __use_curl
+#if defined(FAN_NETWORK_HTTP_ENABLED) && \
+  (defined(__clang__) || !defined(__GNUC__) || defined(FAN_NETWORK_ENABLE_CURL_ON_GCC))
+#define FAN_NETWORK_CURL_ENABLED
+#endif
+#ifdef FAN_NETWORK_CURL_ENABLED
   #include <curl/curl.h>
   #include <curl/multi.h>
 #endif
@@ -1698,6 +1702,7 @@ export namespace fan {
         server_address = server_addr;
       }
     };
+#if defined(FAN_NETWORK_HTTP_ENABLED)
     // -------------------------------HTTP/REST-------------------------------
     namespace http {
       struct method_t {
@@ -2281,7 +2286,7 @@ export namespace fan {
         }
       };
 
-    #ifdef __use_curl
+    #ifdef FAN_NETWORK_CURL_ENABLED
       struct config_t {
         bool verify_ssl = true;
         bool follow_redirects = true;
@@ -2662,6 +2667,7 @@ export namespace fan {
     #endif
     } // namespace http
     // -------------------------------HTTP/REST-------------------------------
+#endif
   } // namespace network
 }
 
