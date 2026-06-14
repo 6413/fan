@@ -19,6 +19,7 @@ import fan.random;
 import fan.graphics.fms;
 import fan.graphics.gui.base;
 import fan.graphics.loco;
+import fan.math.intersection;
 import fan.print.error;
 export namespace fan::graphics::vulkan::ray_tracing {
   struct acceleration_structure_t {
@@ -77,6 +78,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
       std::uint32_t vertex_count;
       std::uint32_t first_bone = 0;
       std::uint32_t bone_count = 0;
+      fan::vec3 aabb_min = fan::vec3(0);
+      fan::vec3 aabb_max = fan::vec3(0);
+      bool has_bounds = false;
       bool animated = false;
     };
     struct instance_t {
@@ -190,6 +194,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
       f32_t ambient_strength = 0.18f;
       f32_t shadow_strength = 0.35f;
       f32_t wrap_strength = 0.35f;
+      f32_t show_light_indicator = 1.f;
+      f32_t light_indicator_radius = 6.f;
       f32_t pad0 = 0.f;
     };
     VkDeviceAddress get_buffer_address(VkBuffer buffer) const {
@@ -532,9 +538,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
       bnd(5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
       bnd(6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
       bnd(7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
-      bnd(8, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
+      bnd(8, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
       bnd(9, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
-      bnd(10, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
+      bnd(10, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
 
       VkDescriptorSetLayoutCreateInfo layout_info{};
       layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -832,6 +838,15 @@ export namespace fan::graphics::vulkan::ray_tracing {
           if (animated && bone_count != 0) {
             bake_cached_animation_vertex(src, out);
           }
+          if (!model.has_bounds) {
+            model.aabb_min = out.position;
+            model.aabb_max = out.position;
+            model.has_bounds = true;
+          }
+          else {
+            model.aabb_min = model.aabb_min.min(out.position);
+            model.aabb_max = model.aabb_max.max(out.position);
+          }
           source_vertex_data.push_back(src);
           vertex_data.push_back(out);
         }
@@ -989,6 +1004,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     void clear_scene_models() {
       scene_models.clear();
       objects.clear();
+      selected_object = {};
       if (!ctx || !ready) return;
       instances.clear();
       animated_models.clear();
@@ -1498,16 +1514,174 @@ export namespace fan::graphics::vulkan::ray_tracing {
         sync_output_sprite();
       }
       if (!ready) return;
-      update_shared_animations(attached_engine->start_time.seconds());
+      bool update_animation_state = update_animations && (update_camera || !pause_animations_with_camera);
+      if (update_animation_state) {
+        update_shared_animations(attached_engine->start_time.seconds());
+      }
       if (tlas_dirty && !can_update_tlas_transforms()) flush_transform_updates();
       bool camera_changed = update_camera ? update_camera_from_engine() : false;
       on_camera_updated(camera_changed);
       sync_output_sprite();
     }
 #if defined(FAN_GUI)
+    bool get_object_world_bounds(std::uint32_t object_index, fan::vec3& min, fan::vec3& max) const {
+      if (object_index >= objects.size()) {
+        return false;
+      }
+      const object_t& object = objects[object_index];
+      bool found_bounds = false;
+      for (std::uint32_t i = 0; i < object.instance_count; ++i) {
+        std::uint32_t instance_index = object.first_instance + i;
+        if (instance_index >= instances.size()) {
+          continue;
+        }
+        const instance_t& instance = instances[instance_index];
+        if (instance.model_index >= models.size()) {
+          continue;
+        }
+        const model_t& model = models[instance.model_index];
+        if (!model.has_bounds) {
+          continue;
+        }
+        fan::math::d3::aabb_t world_bounds = fan::math::d3::transform_aabb(
+          { model.aabb_min, model.aabb_max },
+          instance.transform
+        );
+        if (!found_bounds) {
+          min = world_bounds.min;
+          max = world_bounds.max;
+          found_bounds = true;
+        }
+        else {
+          fan::math::d3::aabb_t merged = fan::math::d3::merge_aabb({ min, max }, world_bounds);
+          min = merged.min;
+          max = merged.max;
+        }
+      }
+      return found_bounds;
+    }
+
+    object_handle_t pick_object_gizmo() const {
+      if (!attached_engine || !show_object_gizmo) {
+        return {};
+      }
+      auto& rv = attached_engine->perspective_render_view;
+      auto& camera = attached_engine->camera_get(rv.camera);
+      fan::ray3_t ray = attached_engine->convert_mouse_to_ray(
+        attached_engine->camera_get_position(rv.camera),
+        camera.projection,
+        camera.view
+      );
+      f32_t closest_t = std::numeric_limits<f32_t>::max();
+      object_handle_t closest{};
+      for (std::uint32_t i = 0; i < objects.size(); ++i) {
+        fan::vec3 min;
+        fan::vec3 max;
+        if (!get_object_world_bounds(i, min, max)) {
+          continue;
+        }
+        f32_t hit_t = 0.f;
+        if (!fan::math::d3::ray_intersects_aabb(ray, min, max, hit_t)) {
+          continue;
+        }
+        if (hit_t < closest_t) {
+          closest_t = hit_t;
+          closest = { i, objects[i].generation };
+        }
+      }
+      return closest;
+    }
+
+    void update_object_gizmo_hotkeys() {
+      if (!attached_engine || light_gizmo_gui_blocks_pick || !attached_engine->window.is_cursor_enabled()) {
+        return;
+      }
+      if (attached_engine->is_key_clicked(fan::key_1)) {
+        object_gizmo_mode = fan::graphics::gui::gizmo::transform_mode::translate;
+      }
+      if (attached_engine->is_key_clicked(fan::key_2)) {
+        object_gizmo_mode = fan::graphics::gui::gizmo::transform_mode::rotate;
+      }
+      if (attached_engine->is_key_clicked(fan::key_3)) {
+        object_gizmo_mode = fan::graphics::gui::gizmo::transform_mode::scale;
+      }
+    }
+
+    bool mouse_hits_light_gizmo(f32_t radius) {
+      auto& rv = attached_engine->perspective_render_view;
+      auto& camera = attached_engine->camera_get(rv.camera);
+      fan::ray3_t ray = attached_engine->convert_mouse_to_ray(
+        attached_engine->camera_get_position(rv.camera),
+        camera.projection,
+        camera.view
+      );
+      return fan::math::d3::ray_intersects_sphere(ray, light_position, radius);
+    }
+
+    void render_light_gizmo() {
+      if (!attached_engine || (!show_light_gizmo && !show_object_gizmo)) {
+        return;
+      }
+      auto& rv = attached_engine->perspective_render_view;
+      auto& camera = attached_engine->camera_get(rv.camera);
+      fan::vec2 viewport_position = attached_engine->viewport_get_position(rv.viewport);
+      fan::vec2 viewport_size = attached_engine->viewport_get_size(rv.viewport);
+      if (viewport_size.x <= 0 || viewport_size.y <= 0) {
+        return;
+      }
+
+      fan::mat4 light_transform = fan::translate(light_position);
+      fan::graphics::gui::gizmo::set_orthographic(false);
+      fan::graphics::gui::gizmo::set_drawlist();
+      fan::graphics::gui::gizmo::set_rect(viewport_position, viewport_size);
+      if (show_light_gizmo && light_gizmo_selected) {
+        if (fan::graphics::gui::gizmo::manipulate(
+          camera.view,
+          camera.projection,
+          fan::graphics::gui::gizmo::operation::translate,
+          fan::graphics::gui::gizmo::mode::world,
+          light_transform
+        )) {
+          set_light(light_transform.get_translation(), light_color, light_intensity);
+        }
+      }
+      if (show_object_gizmo && is_object_valid(selected_object)) {
+        fan::mat4 object_transform = scene_models[selected_object.index].transform;
+        if (fan::graphics::gui::gizmo::manipulate(
+          camera.view,
+          camera.projection,
+          fan::graphics::gui::gizmo::operation_from_transform_mode(object_gizmo_mode),
+          fan::graphics::gui::gizmo::mode::world,
+          object_transform
+        )) {
+          set_transform(selected_object, object_transform, false);
+        }
+      }
+
+      fan::vec2 mouse_position = attached_engine->get_mouse_position();
+      bool can_select =
+        attached_engine->window.is_cursor_enabled() &&
+        attached_engine->is_mouse_clicked() &&
+        attached_engine->inside(rv.viewport, mouse_position) &&
+        !light_gizmo_gui_blocks_pick &&
+        !fan::graphics::gui::gizmo::is_using_any();
+      if (can_select) {
+        bool click_is_on_visible_gizmo =
+          ((show_light_gizmo && light_gizmo_selected) || (show_object_gizmo && is_object_valid(selected_object))) &&
+          fan::graphics::gui::gizmo::is_over();
+        if (!click_is_on_visible_gizmo) {
+          f32_t pick_radius = std::max(light_indicator_radius, 1.f);
+          bool hit_light = show_light_gizmo && mouse_hits_light_gizmo(pick_radius);
+          light_gizmo_selected = hit_light;
+          selected_object = hit_light ? object_handle_t{} : pick_object_gizmo();
+        }
+      }
+    }
     void render_gui(const char* window_name = "ray tracing") {
-      fan::graphics::gui::begin(window_name);
+      fan::graphics::gui::begin(window_name, 0, gui::window_flags_topmost);
       fan::graphics::gui::checkbox("update camera", &update_camera);
+      fan::graphics::gui::checkbox("update animations", &update_animations);
+      fan::graphics::gui::checkbox("pause animations with camera", &pause_animations_with_camera);
       bool shading_changed = false;
       shading_changed |= fan::graphics::gui::checkbox("auto exposure", &enable_auto_exposure);
       shading_changed |= fan::graphics::gui::checkbox("gi bounce", &enable_gi);
@@ -1516,6 +1690,28 @@ export namespace fan::graphics::vulkan::ray_tracing {
       shading_changed |= fan::graphics::gui::drag("Ambient Strength", &ambient_strength, 0.01f, 0.f, 1.f);
       shading_changed |= fan::graphics::gui::drag("Shadow Strength", &shadow_strength, 0.01f, 0.f, 1.f);
       shading_changed |= fan::graphics::gui::drag("Wrap Strength", &wrap_strength, 0.01f, 0.f, 1.f);
+      shading_changed |= fan::graphics::gui::checkbox("light indicator", &show_light_indicator);
+      shading_changed |= fan::graphics::gui::drag("Light Indicator Radius", &light_indicator_radius, 0.1f, 0.1f, 100.f);
+      shading_changed |= fan::graphics::gui::checkbox("light gizmo", &show_light_gizmo);
+      fan::graphics::gui::checkbox("light selected", &light_gizmo_selected);
+      fan::graphics::gui::checkbox("object gizmo", &show_object_gizmo);
+      object_gizmo_mode = std::clamp(object_gizmo_mode, 0, fan::graphics::gui::gizmo::transform_mode::count - 1);
+      fan::graphics::gui::combo(
+        "object gizmo mode",
+        &object_gizmo_mode,
+        fan::graphics::gui::gizmo::transform_mode_names,
+        fan::graphics::gui::gizmo::transform_mode::count
+      );
+      fan::graphics::gui::text(std::format(
+        "selected object: {}",
+        is_object_valid(selected_object) ? (int)selected_object.index : -1
+      ));
+      if (fan::graphics::gui::button("clear object selection")) {
+        selected_object = {};
+      }
+      if (!show_object_gizmo) {
+        selected_object = {};
+      }
       if (shading_changed) {
         write_exposure_ubo();
         reset_accumulation();
@@ -1525,7 +1721,18 @@ export namespace fan::graphics::vulkan::ray_tracing {
       light_changed |= fan::graphics::gui::drag("Light Color", &light_color);
       light_changed |= fan::graphics::gui::drag("Light Intensity", &light_intensity);
       if (light_changed) set_light();
+      light_gizmo_gui_blocks_pick =
+        fan::graphics::gui::is_window_hovered(
+          fan::graphics::gui::hovered_flags_child_windows |
+          fan::graphics::gui::hovered_flags_allow_when_blocked_by_popup |
+          fan::graphics::gui::hovered_flags_allow_when_blocked_by_active_item
+        ) ||
+        fan::graphics::gui::is_any_item_active();
       fan::graphics::gui::end();
+      update_object_gizmo_hotkeys();
+      if (auto h = fan::graphics::gui::hud_interactive{"##rt_light_gizmo"}) {
+        render_light_gizmo();
+      }
     }
 #endif
     void attach_engine_callbacks(fan::graphics::engine_t& engine) {
@@ -1985,6 +2192,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
       ubo.ambient_strength = std::clamp(ambient_strength, 0.f, 1.f);
       ubo.shadow_strength = std::clamp(shadow_strength, 0.f, 1.f);
       ubo.wrap_strength = std::clamp(wrap_strength, 0.f, 1.f);
+      ubo.show_light_indicator = show_light_indicator ? 1.f : 0.f;
+      ubo.light_indicator_radius = std::max(light_indicator_radius, 0.1f);
       std::memcpy(exposure_mapped, &ubo, sizeof(ubo));
     }
     void update_exposure(f32_t dt) {
@@ -2094,6 +2303,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       animation_vertices_dirty = false;
       bone_buffer_dirty = false;
       scene_geometry_dirty = false;
+      selected_object = {};
       luminance_ready = false;
       output_image_valid = false;
       accum_image_valid = false;
@@ -2221,7 +2431,17 @@ export namespace fan::graphics::vulkan::ray_tracing {
     f32_t ambient_strength = 0.18f;
     f32_t shadow_strength = 0.35f;
     f32_t wrap_strength = 0.35f;
+    bool show_light_indicator = true;
+    f32_t light_indicator_radius = 6.f;
+    bool show_light_gizmo = true;
+    bool light_gizmo_selected = true;
+    bool light_gizmo_gui_blocks_pick = false;
+    bool show_object_gizmo = true;
+    object_handle_t selected_object;
+    int object_gizmo_mode = 0;
     bool update_camera = true;
+    bool update_animations = true;
+    bool pause_animations_with_camera = true;
     fan::vec3 light_position = fan::vec3(5.0f, 10.0f, 5.0f);
     fan::vec3 light_color = fan::vec3(1.0f, 1.0f, 1.0f);
     f32_t light_intensity = 3.0f;

@@ -9,6 +9,7 @@ struct Payload {
     uint  material_id;
     float ao;
     int   depth;
+    float hit_t;
 };
 
 layout(location = 0) rayPayloadInEXT Payload payload;
@@ -69,6 +70,8 @@ layout(binding = 10, set = 0) uniform ExposureUBO {
     float ambient_strength;
     float shadow_strength;
     float wrap_strength;
+    float show_light_indicator;
+    float light_indicator_radius;
     float pad2;
 } exposure_ubo;
 
@@ -182,6 +185,7 @@ void main() {
           v2.texcoord * bary.z;
 
     vec3 P = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
+    payload.hit_t = gl_HitTEXT;
 
     vec3 albedo = mat.base_color;
     if (mat.albedo_texture_id >= 0)

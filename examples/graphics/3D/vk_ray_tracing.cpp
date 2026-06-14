@@ -12,7 +12,7 @@ int main() {
 
   rt::context_t renderer(engine);
   renderer.animation_sample_rate = 30.f;
-  renderer.set_light(fan::vec3(0.f, 0.f, -100.f), fan::vec3(1.f, 1.f, 1.f), 5.f);
+  renderer.set_light(fan::vec3(0.f, 30.f, -40.f), fan::vec3(1.f, 1.f, 1.f), 5.f);
   constexpr std::uint32_t actor_count = 10;
 
   renderer.add_model("models/cube_with_colors.fbx", fan::translate(fan::vec3(100, 0, 100)).scale(fan::vec3(10.f, 1.f, 1.f)));
@@ -51,9 +51,10 @@ int main() {
     if (engine.is_mouse_released(fan::mouse_right)) {
       engine.window.toggle_cursor();
     }
+      renderer.render_gui();
     if (auto h = fan::graphics::gui::hud_interactive{"##rt"}) {
       fan::graphics::gui::camera_controls();
-      renderer.render_gui();
     }
+    //engine.camera_move();
   });
 }

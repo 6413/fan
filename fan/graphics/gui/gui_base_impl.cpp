@@ -2621,6 +2621,10 @@ namespace fan::graphics::gui::gizmo {
     ImGuizmo::SetDrawlist();
   }
 
+  void set_drawlist(gui::draw_list_t* draw_list) {
+    ImGuizmo::SetDrawlist(draw_list);
+  }
+
   void set_rect(const fan::vec2& pos, const fan::vec2& size) {
     ImGuizmo::SetRect(pos.x, pos.y, size.x, size.y);
   }
@@ -2630,20 +2634,20 @@ namespace fan::graphics::gui::gizmo {
     int op,
     int m,
     fan::mat4& transform,
-    const fan::mat4* delta,
+    fan::mat4* delta,
     const fan::mat4* snap,
     const fan::mat4* bounds,
     const fan::mat4* bounds_snap) {
     return ImGuizmo::Manipulate(
-      &view[0][0],
-      &projection[0][0],
+      view.data(),
+      projection.data(),
       static_cast<ImGuizmo::OPERATION>(op),
       static_cast<ImGuizmo::MODE>(m),
-      &transform[0][0],
-      delta ? &(*delta)[0][0] : nullptr,
-      snap ? &(*snap)[0][0] : nullptr,
-      bounds ? &(*bounds)[0][0] : nullptr,
-      bounds_snap ? &(*bounds_snap)[0][0] : nullptr
+      transform.data(),
+      delta ? delta->data() : nullptr,
+      snap ? snap->data() : nullptr,
+      bounds ? bounds->data() : nullptr,
+      bounds_snap ? bounds_snap->data() : nullptr
     );
   }
 
@@ -2663,7 +2667,7 @@ namespace fan::graphics::gui::gizmo {
     const fan::mat4& projection,
     const fan::mat4& matrix,
     float size) {
-    ImGuizmo::DrawGrid(&view[0][0], &projection[0][0], &matrix[0][0], size);
+    ImGuizmo::DrawGrid(view.data(), projection.data(), matrix.data(), size);
   }
 
 } // namespace fan::graphics::gui::gizmo
