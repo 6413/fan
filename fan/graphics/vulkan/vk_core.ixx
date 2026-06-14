@@ -1018,6 +1018,8 @@ export namespace fan {
       std::vector<std::function<void(VkCommandBuffer)>> begin_cmd_cb;
 
       std::vector<VkSemaphore> image_available_semaphores;
+      std::uint32_t acquire_semaphore_index = 0;
+      VkSemaphore current_acquire_semaphore = VK_NULL_HANDLE;
       std::vector<VkSemaphore> render_finished_semaphores;
       std::vector<VkFence> in_flight_fences;
       std::uint32_t current_frame = 0;

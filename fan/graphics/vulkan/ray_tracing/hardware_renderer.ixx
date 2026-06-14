@@ -161,12 +161,13 @@ export namespace fan::graphics::vulkan::ray_tracing {
       vkGetRayTracingShaderGroupHandlesKHR = (PFN_vkGetRayTracingShaderGroupHandlesKHR)vkGetDeviceProcAddr(ctx->device, "vkGetRayTracingShaderGroupHandlesKHR");
       vkCmdTraceRaysKHR = (PFN_vkCmdTraceRaysKHR)vkGetDeviceProcAddr(ctx->device, "vkCmdTraceRaysKHR");
     }
-    void create_blas_for_model(std::uint32_t model_index) {
+    void fill_blas_build_info(
+      std::uint32_t model_index,
+      VkAccelerationStructureGeometryTrianglesDataKHR& triangles,
+      VkAccelerationStructureGeometryKHR& geometry,
+      VkAccelerationStructureBuildGeometryInfoKHR& build_info
+    ) const {
       const model_t& model = models[model_index];
-      std::uint32_t first_index     = model.first_index;
-      std::uint32_t index_count     = model.index_count;
-      std::uint32_t primitive_count = index_count / 3;
-      VkAccelerationStructureGeometryTrianglesDataKHR triangles{};
       triangles.sType       = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
       triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
       triangles.vertexData.deviceAddress = get_buffer_address(vertex_buffer);
@@ -174,50 +175,79 @@ export namespace fan::graphics::vulkan::ray_tracing {
       triangles.maxVertex                = model.vertex_count ? model.first_vertex + model.vertex_count - 1 : 0;
       triangles.indexType                = VK_INDEX_TYPE_UINT32;
       triangles.indexData.deviceAddress = get_buffer_address(index_buffer);
-      VkAccelerationStructureGeometryKHR geometry{};
       geometry.sType        = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
       geometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
       geometry.geometry.triangles = triangles;
       geometry.flags        = 0;
-      VkAccelerationStructureBuildGeometryInfoKHR build_info{};
       build_info.sType         = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
       build_info.type          = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
       build_info.flags         = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
       build_info.geometryCount = 1;
       build_info.pGeometries   = &geometry;
-      VkAccelerationStructureBuildSizesInfoKHR size_info{};
-      size_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
-      vkGetAccelerationStructureBuildSizesKHR(ctx->device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &build_info, &primitive_count, &size_info);
-      acceleration_structure_t blas;
-      ctx->create_buffer(size_info.accelerationStructureSize, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, blas.buffer, blas.memory);
-      VkAccelerationStructureCreateInfoKHR create_info{};
-      create_info.sType  = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
-      create_info.buffer = blas.buffer;
-      create_info.size   = size_info.accelerationStructureSize;
-      create_info.type   = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-      fan::vulkan::validate(vkCreateAccelerationStructureKHR(ctx->device, &create_info, nullptr, &blas.handle));
-      VkBuffer scratch_buffer;
-      VkDeviceMemory scratch_memory;
-      ctx->create_buffer(size_info.buildScratchSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, scratch_buffer, scratch_memory);
-      build_info.mode                    = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
-      build_info.dstAccelerationStructure = blas.handle;
-      build_info.scratchData.deviceAddress = get_buffer_address(scratch_buffer);
-      VkAccelerationStructureBuildRangeInfoKHR range_info{};
-      range_info.primitiveCount  = primitive_count;
-      range_info.primitiveOffset = first_index * sizeof(std::uint32_t);
-      range_info.firstVertex     = 0;
-      range_info.transformOffset = 0;
-      const VkAccelerationStructureBuildRangeInfoKHR* range_infos = &range_info;
+    }
+    void create_blas_for_models() {
+      if (models.empty()) return;
+      std::vector<VkAccelerationStructureBuildSizesInfoKHR> sizes(models.size());
+      std::vector<std::uint32_t> primitive_counts(models.size());
+      VkDeviceSize scratch_size = 0;
+      blas_list.resize(models.size());
+      for (std::uint32_t i = 0; i < models.size(); ++i) {
+        const model_t& model = models[i];
+        primitive_counts[i] = model.index_count / 3;
+        VkAccelerationStructureGeometryTrianglesDataKHR triangles{};
+        VkAccelerationStructureGeometryKHR geometry{};
+        VkAccelerationStructureBuildGeometryInfoKHR build_info{};
+        fill_blas_build_info(i, triangles, geometry, build_info);
+        sizes[i].sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
+        vkGetAccelerationStructureBuildSizesKHR(ctx->device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &build_info, &primitive_counts[i], &sizes[i]);
+        scratch_size = std::max(scratch_size, sizes[i].buildScratchSize);
+        acceleration_structure_t& blas = blas_list[i];
+        ctx->create_buffer(sizes[i].accelerationStructureSize, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, blas.buffer, blas.memory);
+        VkAccelerationStructureCreateInfoKHR create_info{};
+        create_info.sType  = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
+        create_info.buffer = blas.buffer;
+        create_info.size   = sizes[i].accelerationStructureSize;
+        create_info.type   = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
+        fan::vulkan::validate(vkCreateAccelerationStructureKHR(ctx->device, &create_info, nullptr, &blas.handle));
+      }
+      VkBuffer scratch_buffer = VK_NULL_HANDLE;
+      VkDeviceMemory scratch_memory = VK_NULL_HANDLE;
+      ctx->create_buffer(scratch_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, scratch_buffer, scratch_memory);
+      VkDeviceAddress scratch_address = get_buffer_address(scratch_buffer);
       VkCommandBuffer cmd = ctx->begin_single_time_commands();
-      vkCmdBuildAccelerationStructuresKHR(cmd, 1, &build_info, &range_infos);
+      for (std::uint32_t i = 0; i < models.size(); ++i) {
+        const model_t& model = models[i];
+        VkAccelerationStructureGeometryTrianglesDataKHR triangles{};
+        VkAccelerationStructureGeometryKHR geometry{};
+        VkAccelerationStructureBuildGeometryInfoKHR build_info{};
+        fill_blas_build_info(i, triangles, geometry, build_info);
+        build_info.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+        build_info.dstAccelerationStructure = blas_list[i].handle;
+        build_info.scratchData.deviceAddress = scratch_address;
+        VkAccelerationStructureBuildRangeInfoKHR range_info{};
+        range_info.primitiveCount  = primitive_counts[i];
+        range_info.primitiveOffset = model.first_index * sizeof(std::uint32_t);
+        range_info.firstVertex     = 0;
+        range_info.transformOffset = 0;
+        const VkAccelerationStructureBuildRangeInfoKHR* range_infos = &range_info;
+        vkCmdBuildAccelerationStructuresKHR(cmd, 1, &build_info, &range_infos);
+        if (i + 1 < models.size()) {
+          VkMemoryBarrier barrier{};
+          barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+          barrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
+          barrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
+          vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, 0, 1, &barrier, 0, nullptr, 0, nullptr);
+        }
+      }
       ctx->end_single_time_commands(cmd);
       vkDestroyBuffer(ctx->device, scratch_buffer, nullptr);
       vkFreeMemory(ctx->device, scratch_memory, nullptr);
-      VkAccelerationStructureDeviceAddressInfoKHR addr_info{};
-      addr_info.sType                 = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
-      addr_info.accelerationStructure = blas.handle;
-      blas.device_address             = vkGetAccelerationStructureDeviceAddressKHR(ctx->device, &addr_info);
-      blas_list.push_back(blas);
+      for (auto& blas : blas_list) {
+        VkAccelerationStructureDeviceAddressInfoKHR addr_info{};
+        addr_info.sType                 = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
+        addr_info.accelerationStructure = blas.handle;
+        blas.device_address             = vkGetAccelerationStructureDeviceAddressKHR(ctx->device, &addr_info);
+      }
     }
     std::vector<VkAccelerationStructureInstanceKHR> make_tlas_instances() const {
       std::uint32_t instance_count = (std::uint32_t)instances.size();
@@ -615,6 +645,14 @@ export namespace fan::graphics::vulkan::ray_tracing {
       ctx->upload_buffer(material_indices_per_primitive, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, material_index_buffer, material_index_memory);
     }
     void load_model_from_fms(fan::model::fms_t& fms) {
+      std::uint32_t added_index_count = 0;
+      for (const auto& mesh : fms.meshes) {
+        added_index_count += (std::uint32_t)mesh.indices.size();
+      }
+      std::uint32_t needed_primitive_count = ((std::uint32_t)index_data.size() + added_index_count) / 3;
+      if (material_indices_per_primitive.size() < needed_primitive_count) {
+        material_indices_per_primitive.resize(needed_primitive_count);
+      }
       for (std::uint32_t mesh_idx = 0; mesh_idx < fms.meshes.size(); mesh_idx++) {
         const auto& src_mesh = fms.meshes[mesh_idx];
         model_t model{};
@@ -700,10 +738,6 @@ export namespace fan::graphics::vulkan::ray_tracing {
         std::uint32_t mesh_index_count   = model.index_count;
         std::uint32_t mesh_primitive_cnt = mesh_index_count / 3;
         model.first_primitive       = mesh_first_index / 3;
-        std::uint32_t needed_prim = model.first_primitive + mesh_primitive_cnt;
-        if (material_indices_per_primitive.size() < needed_prim) {
-          material_indices_per_primitive.resize(needed_prim);
-        }
         for (std::uint32_t p = 0; p < mesh_primitive_cnt; ++p) {
           material_indices_per_primitive[model.first_primitive + p] = model.material_index;
         }
@@ -734,10 +768,10 @@ export namespace fan::graphics::vulkan::ray_tracing {
       scene_models.push_back(model);
       objects.push_back({ .generation = handle.generation, .first_instance = 0, .instance_count = 0 });
       if (!ctx || !ready) return handle;
-      vkDeviceWaitIdle(ctx->device);
       bool geometry_changed = load_scene_model(handle.index);
-      if (geometry_changed) rebuild_scene_geometry();
-      else rebuild_tlas();
+      scene_geometry_dirty = scene_geometry_dirty || geometry_changed;
+      tlas_dirty = true;
+      frame_index = 0;
       return handle;
     }
     object_handle_t add_model(const std::string& path, const fan::mat4& transform = fan::mat4(1)) {
@@ -750,9 +784,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
       scene_models.clear();
       objects.clear();
       if (!ctx || !ready) return;
-      vkDeviceWaitIdle(ctx->device);
       instances.clear();
-      rebuild_tlas();
+      tlas_dirty = true;
+      frame_index = 0;
     }
     bool is_object_valid(object_handle_t handle) const {
       return handle.valid() && handle.index < objects.size() && objects[handle.index].generation == handle.generation;
@@ -778,11 +812,18 @@ export namespace fan::graphics::vulkan::ray_tracing {
     }
     void flush_transform_updates() {
       if (!tlas_dirty || !ctx || !ready) return;
+      if (scene_geometry_dirty) {
+        rebuild_scene_geometry();
+        scene_geometry_dirty = false;
+        tlas_dirty = false;
+        return;
+      }
       if (!update_tlas_transforms()) rebuild_tlas();
       tlas_dirty = false;
     }
     void flush_transform_updates(VkCommandBuffer cmd) {
       if (!tlas_dirty || !ctx || !ready) return;
+      if (scene_geometry_dirty) return;
       if (can_update_tlas_transforms()) {
         record_tlas_transform_update(cmd);
         tlas_dirty = false;
@@ -884,7 +925,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       create_index_buffer();
       create_material_buffer();
       create_material_index_buffer();
-      for (std::uint32_t i = 0; i < models.size(); ++i) create_blas_for_model(i);
+      create_blas_for_models();
       create_tlas();
       update_tlas_descriptor();
       update_scene_buffers_descriptor();
@@ -951,7 +992,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       create_index_buffer();
       create_material_buffer();
       create_material_index_buffer();
-      for (std::uint32_t i = 0; i < models.size(); i++) create_blas_for_model(i);
+      create_blas_for_models();
       create_tlas();
       create_output_image();
       create_accum_image();
@@ -1491,6 +1532,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     std::uint32_t vertex_offset = 0;
     std::uint32_t object_generation_counter = 1;
     bool tlas_dirty = false;
+    bool scene_geometry_dirty = false;
     f32_t exposure = 1.f;
     f32_t target_exposure = 1.f;
     f32_t adaptation_speed = 4.f;
