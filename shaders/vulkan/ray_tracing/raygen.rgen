@@ -26,6 +26,7 @@ layout(location = 0) rayPayloadEXT Payload payload;
 
 layout(binding = 3, set = 0) uniform TimeUBO {
   float time;
+  uint frame_index;
 } ubo;
 
 void main() {

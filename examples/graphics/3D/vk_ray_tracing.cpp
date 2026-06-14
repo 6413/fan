@@ -12,15 +12,18 @@ int main() {
 
   rt::context_t renderer(engine);
   renderer.animation_sample_rate = 30.f;
+  renderer.set_light(fan::vec3(0.f, 0.f, -100.f), fan::vec3(1.f, 1.f, 1.f), 5.f);
+  constexpr std::uint32_t actor_count = 10;
 
-  constexpr std::uint32_t actor_count = 100;
+  renderer.add_model("models/cube_with_colors.fbx", fan::translate(fan::vec3(100, 0, 100)).scale(fan::vec3(10.f, 1.f, 1.f)));
+
   std::vector<rt::context_t::object_handle_t> actors;
   actors.reserve(actor_count);
 
   for (std::uint32_t i = 0; i < actor_count; ++i) {
-    fan::vec3 p = fan::random::vec3(-100.f, 100.f);
+    fan::vec3 p = fan::random::vec3(-300.f, 300.f);
     actors.push_back(renderer.add_animated_model(
-      "models/oldman_idle.fbx",
+      "models/Fox.glb",
       fan::translate(p).scale(1.f),
       "",
       fan::random::value(0.f, 10.f),
@@ -50,7 +53,7 @@ int main() {
     }
     if (auto h = fan::graphics::gui::hud_interactive{"##rt"}) {
       fan::graphics::gui::camera_controls();
+      renderer.render_gui();
     }
-    renderer.render_gui();
   });
 }

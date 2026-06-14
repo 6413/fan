@@ -3,7 +3,13 @@
 
 layout(location = 1) rayPayloadInEXT bool shadowed;
 
+const float shadow_self_hit_reject = 0.05;
+
 void main() 
 {
-	shadowed = true;
+  if (gl_HitTEXT < shadow_self_hit_reject) {
+    ignoreIntersectionEXT;
+    return;
+  }
+  shadowed = true;
 }
