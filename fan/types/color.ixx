@@ -172,10 +172,10 @@ export namespace fan {
     constexpr void set_bgra(std::uint32_t color_) { unpack_color(color_, b, g, r, a); }
 
     constexpr std::uint16_t get_rgb565() const {
-      std::uint32_t r = std::uint32_t(color::clamp(r, 0.f, 1.f) * 31.f + 0.5f);
-      std::uint32_t g = std::uint32_t(color::clamp(g, 0.f, 1.f) * 63.f + 0.5f);
-      std::uint32_t b = std::uint32_t(color::clamp(b, 0.f, 1.f) * 31.f + 0.5f);
-      return std::uint16_t((r << 11) | (g << 5) | b);
+      std::uint32_t r5 = std::uint32_t(color::clamp(r, 0.f, 1.f) * 31.f + 0.5f);
+      std::uint32_t g6 = std::uint32_t(color::clamp(g, 0.f, 1.f) * 63.f + 0.5f);
+      std::uint32_t b5 = std::uint32_t(color::clamp(b, 0.f, 1.f) * 31.f + 0.5f);
+      return std::uint16_t((r5 << 11) | (g6 << 5) | b5);
     }
     constexpr void set_rgb565(std::uint16_t v) {
       r = ((v >> 11) & 0x1F) / 31.f;
