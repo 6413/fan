@@ -232,10 +232,10 @@ export namespace fan {
     void zero();
   };
 
-  template <typename T> fan::quaternion<T> to_quat(const _matrix4x4<T>& m) { return _matrix4x4<T>::to_quat(m); }
-  template <typename T> constexpr _matrix4x4<T> translate(const fan::vec3_wrap_t<T>& v) { return _matrix4x4<T>(1).translate(v); }
-  template <typename T> constexpr _matrix4x4<T> scale(const fan::vec3_wrap_t<T>& v) { return _matrix4x4<T>(1).scale(v); }
-  template <typename T> constexpr _matrix4x4<T> inverse(const _matrix4x4<T>& m) { return m.inverse(); }
+  template <typename T = f32_t> fan::quaternion<T> to_quat(const _matrix4x4<T>& m) { return _matrix4x4<T>::to_quat(m); }
+  template <typename T = f32_t> constexpr _matrix4x4<T> translate(const fan::vec3_wrap_t<T>& v) { return _matrix4x4<T>(1).translate(v); }
+  template <typename T = f32_t> constexpr _matrix4x4<T> scale(const fan::vec3_wrap_t<T>& v) { return _matrix4x4<T>(1).scale(v); }
+  template <typename T = f32_t> constexpr _matrix4x4<T> inverse(const _matrix4x4<T>& m) { return m.inverse(); }
 
   template <typename T>
   inline _matrix4x4<T> rotation_quat_matrix(const fan::quaternion<T>& rotation) {

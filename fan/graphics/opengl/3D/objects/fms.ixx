@@ -1241,10 +1241,10 @@ export namespace fan {
         // fix xd
         if (animation.duration != 0) {
           if (/*animation.weight == 1 && */get_active_animation_id() != -1 && animation.duration == get_active_animation().duration) {
-            dt = fmod(dt, animation.duration);
+            dt = std::fmod(dt, animation.duration);
           }
           else {
-            dt = fmod(dt, 100000);
+            dt = std::fmod(dt, 100000);
           }
         }
         fan::vec3 position = 0, scale = 1;

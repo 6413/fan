@@ -36,8 +36,11 @@ int main() {
     if (engine.window.is_cursor_enabled()) return;
     camera.rotate_camera(d.motion);
   });
+  auto h = rt.add_animated_model("models/Fox.glb", fan::translate({0, 0, 0}));
 
   engine.loop([&] {
+    rt.set_animation(h);
+
     if (engine.is_key_clicked(fan::key_r)) {
       rt.reload_pipeline();
       fan::print("Ray tracing shaders reloaded.");

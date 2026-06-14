@@ -1,0 +1,74 @@
+#version 460
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+
+struct vertex_t {
+  vec4 position;
+  vec4 normal;
+  vec4 texcoord;
+  vec4 color;
+};
+
+struct source_vertex_t {
+  vec4 position;
+  vec4 normal;
+  vec4 texcoord;
+  vec4 color;
+  ivec4 bone_ids;
+  vec4 bone_weights;
+};
+
+layout(std430, binding = 0) readonly buffer source_vertices_t {
+  source_vertex_t source_vertices[];
+};
+
+layout(std430, binding = 1) buffer vertices_t {
+  vertex_t vertices[];
+};
+
+layout(std430, binding = 2) readonly buffer bone_matrices_t {
+  mat4 bone_matrices[];
+};
+
+layout(push_constant) uniform push_t {
+  uint first_vertex;
+  uint vertex_count;
+  uint first_bone;
+  uint bone_count;
+} pc;
+
+void main() {
+  uint local_vertex = gl_GlobalInvocationID.x;
+  if (local_vertex >= pc.vertex_count) {
+    return;
+  }
+
+  uint vertex_index = pc.first_vertex + local_vertex;
+  source_vertex_t src = source_vertices[vertex_index];
+
+  vec4 position = vec4(0.0);
+  vec3 normal = vec3(0.0);
+  float total_weight = 0.0;
+
+  for (int i = 0; i < 4; ++i) {
+    int bone_id = src.bone_ids[i];
+    float weight = src.bone_weights[i];
+    if (bone_id < 0 || weight <= 0.0) {
+      continue;
+    }
+    mat4 bone_matrix = bone_matrices[bone_id];
+    position += bone_matrix * vec4(src.position.xyz, 1.0) * weight;
+    normal += mat3(bone_matrix) * src.normal.xyz * weight;
+    total_weight += weight;
+  }
+
+  if (total_weight <= 0.0) {
+    position = vec4(src.position.xyz, 1.0);
+    normal = src.normal.xyz;
+  }
+
+  vertices[vertex_index].position = vec4(position.xyz, 0.0);
+  vertices[vertex_index].normal = vec4(normalize(normal), 0.0);
+  vertices[vertex_index].texcoord = src.texcoord;
+  vertices[vertex_index].color = src.color;
+}
