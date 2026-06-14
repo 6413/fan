@@ -236,8 +236,10 @@ void loco_t::shader_set_paths(fan::graphics::shader_t shader, std::string_view v
 
 void loco_t::shader_recompile_all() {
 #if defined(FAN_OPENGL)
-  glFinish();
-  context.gl.shader_uniform_cache.clear();
+  if (window.renderer == fan::window_t::renderer_t::opengl) {
+    glFinish();
+    context.gl.shader_uniform_cache.clear();
+  }
 #endif
   for_each_list(shader_list, [&](auto& list, auto nr) {
     auto& sd = list[nr];
