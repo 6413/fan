@@ -94,6 +94,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
       std::string path;
       fan::mat4 transform = fan::mat4(1);
       std::string texture_path = "models/textures";
+      std::string animation_name;
+      f32_t animation_time_offset = 0.f;
+      f32_t animation_speed = 1.f;
       std::source_location callers_path;
       bool fix_uv_diagonals = false;
       bool animated = false;
@@ -102,11 +105,34 @@ export namespace fan::graphics::vulkan::ray_tracing {
       std::uint32_t first_model = 0;
       std::uint32_t model_count = 0;
     };
+    struct animation_frame_t {
+      std::uint32_t first_model = 0;
+      std::uint32_t model_count = 0;
+      f32_t time_ms = 0.f;
+    };
+    struct animation_clip_cache_t {
+      std::string name;
+      f32_t duration_ms = 0.f;
+      std::vector<animation_frame_t> frames;
+    };
+    struct animation_cache_entry_t {
+      std::string key;
+      std::string default_clip;
+      std::uint32_t bone_count = 0;
+      f32_t sample_rate = 12.f;
+      std::vector<animation_clip_cache_t> clips;
+      std::unordered_map<std::string, std::uint32_t> clip_indices;
+    };
     struct object_t {
       std::uint32_t generation = 0;
       std::uint32_t first_instance = 0;
       std::uint32_t instance_count = 0;
       std::uint32_t animated_model_index = std::uint32_t(-1);
+      std::uint32_t animation_cache_index = std::uint32_t(-1);
+      std::string animation_name;
+      f32_t animation_time_offset = 0.f;
+      f32_t animation_speed = 1.f;
+      std::uint32_t animation_frame = std::uint32_t(-1);
     };
     struct engine_open_properties_t {
       fan::vec2ui size{};
@@ -126,6 +152,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
     std::vector<scene_model_t> scene_models;
     std::vector<object_t> objects;
     std::unordered_map<std::string, model_cache_entry_t> model_cache;
+    std::unordered_map<std::string, std::uint32_t> animation_cache;
+    std::vector<animation_cache_entry_t> animation_caches;
     context_t() = default;
     context_t(fan::graphics::engine_t& engine, const engine_open_properties_t& properties = {}) {
       attached_engine = &engine;
@@ -749,6 +777,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
         }
         auto load_rt_texture = [&](const std::string& name) -> std::int32_t {
           if (name.empty()) return -1;
+          auto cached = rt_texture_cache.find(name);
+          if (cached != rt_texture_cache.end()) return cached->second;
           auto it = fan::model::cached_texture_data.find(name);
           if (it == fan::model::cached_texture_data.end()) return -1;
           const auto& td = it->second;
@@ -765,7 +795,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
           di.imageView   = img.image_view;
           di.sampler     = img.sampler;
           rt_texture_infos.push_back(di);
-          return (std::int32_t)rt_texture_infos.size() - 1;
+          std::int32_t slot = (std::int32_t)rt_texture_infos.size() - 1;
+          rt_texture_cache[name] = slot;
+          return slot;
         };
         auto load_first_rt_texture = [&](std::initializer_list<std::uint32_t> types) -> std::int32_t {
           for (auto type : types) {
@@ -863,6 +895,23 @@ export namespace fan::graphics::vulkan::ray_tracing {
       m.animated = true;
       return add_model(m, callers_path);
     }
+    object_handle_t add_animated_model(
+      const std::string& path,
+      const fan::mat4& transform,
+      const std::string& animation_name,
+      f32_t animation_time_offset,
+      f32_t animation_speed = 1.f,
+      std::source_location callers_path = std::source_location::current())
+    {
+      scene_model_t m;
+      m.path = path;
+      m.transform = transform;
+      m.animation_name = animation_name;
+      m.animation_time_offset = animation_time_offset;
+      m.animation_speed = animation_speed;
+      m.animated = true;
+      return add_model(m, callers_path);
+    }
     void clear_scene_models() {
       scene_models.clear();
       objects.clear();
@@ -895,11 +944,43 @@ export namespace fan::graphics::vulkan::ray_tracing {
     bool set_transform_deferred(object_handle_t handle, const fan::mat4& transform) {
       return set_transform(handle, transform, false);
     }
+    bool set_object_animation_frame(std::uint32_t object_index, f32_t time_seconds) {
+      object_t& object = objects[object_index];
+      if (object.animation_cache_index == std::uint32_t(-1) || object.animation_cache_index >= animation_caches.size()) return false;
+      animation_cache_entry_t& cache = animation_caches[object.animation_cache_index];
+      std::string clip_name = object.animation_name.empty() ? cache.default_clip : object.animation_name;
+      auto clip_found = cache.clip_indices.find(clip_name);
+      if (clip_found == cache.clip_indices.end()) return false;
+      animation_clip_cache_t& clip = cache.clips[clip_found->second];
+      if (clip.frames.empty()) return false;
+      f32_t duration = clip.duration_ms > 0.f ? clip.duration_ms : 1000.f;
+      f32_t local_time = std::fmod((time_seconds + object.animation_time_offset) * object.animation_speed * 1000.f, duration);
+      if (local_time < 0.f) {
+        local_time += duration;
+      }
+      std::uint32_t frame = std::min<std::uint32_t>((std::uint32_t)((local_time / duration) * clip.frames.size()), (std::uint32_t)clip.frames.size() - 1);
+      if (object.animation_frame == frame) return true;
+      const animation_frame_t& frame_data = clip.frames[frame];
+      for (std::uint32_t i = 0; i < object.instance_count; ++i) {
+        instances[object.first_instance + i].model_index = frame_data.first_model + i;
+      }
+      object.animation_frame = frame;
+      tlas_dirty = true;
+      frame_index = 0;
+      return true;
+    }
     bool set_animation(object_handle_t handle, f32_t time_seconds, const std::string& animation_name = {}, f32_t weight = 1.f) {
       if (!is_object_valid(handle)) return false;
       object_t& object = objects[handle.index];
+      if (object.animation_cache_index != std::uint32_t(-1)) {
+        if (!animation_name.empty()) {
+          object.animation_name = animation_name;
+        }
+        return set_object_animation_frame(handle.index, time_seconds);
+      }
       if (object.animated_model_index == std::uint32_t(-1) || object.animated_model_index >= animated_models.size()) return false;
       animated_model_t& animated_model = animated_models[object.animated_model_index];
+      if (!animated_model.fms) return false;
       fan::model::fms_t& fms = *animated_model.fms;
       if (!fms.root_bone || fms.bone_count == 0 || fms.animation_list.empty()) return false;
       std::string name = animation_name.empty() ? fms.active_anim : animation_name;
@@ -934,6 +1015,21 @@ export namespace fan::graphics::vulkan::ray_tracing {
     }
     bool set_animation(object_handle_t handle, const std::string& animation_name = {}, f32_t weight = 1.f) {
       return set_animation(handle, attached_engine->start_time.seconds(), animation_name, weight);
+    }
+    bool set_animation_offset(object_handle_t handle, f32_t animation_time_offset) {
+      if (!is_object_valid(handle)) return false;
+      objects[handle.index].animation_time_offset = animation_time_offset;
+      return true;
+    }
+    bool set_animation_speed(object_handle_t handle, f32_t animation_speed) {
+      if (!is_object_valid(handle)) return false;
+      objects[handle.index].animation_speed = animation_speed;
+      return true;
+    }
+    void update_shared_animations(f32_t time_seconds) {
+      for (std::uint32_t i = 0; i < objects.size(); ++i) {
+        set_object_animation_frame(i, time_seconds);
+      }
     }
     void flush_transform_updates() {
       if (!tlas_dirty || !ctx || !ready) return;
@@ -982,36 +1078,107 @@ export namespace fan::graphics::vulkan::ray_tracing {
       animated_model.dirty = true;
       animation_vertices_dirty = true;
     }
-    bool load_animated_scene_model(std::uint32_t object_index) {
-      scene_model_t& model = scene_models[object_index];
-      object_t& object = objects[object_index];
-      object.first_instance = (std::uint32_t)instances.size();
+    std::string make_animation_cache_key(const scene_model_t& model) const {
+      return make_model_cache_key(model) + std::string("#animated#") + std::to_string((int)animation_sample_rate);
+    }
+    void append_pose_frame(fan::model::fms_t& fms, animation_clip_cache_t& clip, f32_t time_ms) {
+      std::uint32_t first_bone = (std::uint32_t)bone_matrices.size();
+      std::uint32_t bone_count = fms.bone_count;
+      if (bone_count != 0) {
+        bone_matrices.resize(first_bone + bone_count, fan::mat4(1));
+      }
+      if (fms.bone_transforms.size() != fms.bone_count) {
+        fms.bone_transforms.resize(fms.bone_count, fan::mat4(1));
+      }
+      fms.dt = time_ms;
+      fms.fk_calculate_poses();
+      std::vector<fan::mat4> transforms = fms.fk_calculate_transformations();
+      if (transforms.size() < bone_count) {
+        transforms.resize(bone_count, fan::mat4(1));
+      }
+      std::copy_n(transforms.begin(), bone_count, bone_matrices.begin() + first_bone);
+      model_cache_entry_t range = load_model_from_fms(fms, first_bone, bone_count, true);
+      animated_models.emplace_back();
+      animated_model_t& animated_model = animated_models.back();
+      animated_model.first_model = range.first_model;
+      animated_model.model_count = range.model_count;
+      animated_model.first_bone = first_bone;
+      animated_model.bone_count = bone_count;
+      animated_model.dirty = true;
+      animation_vertices_dirty = true;
+      clip.frames.push_back({ range.first_model, range.model_count, time_ms });
+    }
+    std::uint32_t get_or_create_animation_cache(const scene_model_t& model, bool& created) {
+      std::string key = make_animation_cache_key(model);
+      auto found_cache = animation_cache.find(key);
+      if (found_cache != animation_cache.end()) {
+        created = false;
+        return found_cache->second;
+      }
+      created = true;
       fan::model::fms_t::properties_t properties;
       properties.path = model.path;
       properties.texture_path = model.texture_path;
       properties.fix_uv_diagonals = model.fix_uv_diagonals;
-      auto fms = std::make_unique<fan::model::fms_t>(properties, model.callers_path);
-      std::uint32_t first_bone = (std::uint32_t)bone_matrices.size();
-      std::uint32_t bone_count = fms->bone_count;
-      if (bone_count != 0) {
-        bone_matrices.resize(first_bone + bone_count, fan::mat4(1));
+      fan::model::fms_t fms(properties, model.callers_path);
+      std::uint32_t cache_index = (std::uint32_t)animation_caches.size();
+      animation_cache[key] = cache_index;
+      animation_cache_entry_t& cache = animation_caches.emplace_back();
+      cache.key = key;
+      cache.default_clip = fms.active_anim;
+      cache.bone_count = fms.bone_count;
+      cache.sample_rate = animation_sample_rate;
+      for (auto& [clip_name, animation] : fms.animation_list) {
+        cache.clip_indices[clip_name] = (std::uint32_t)cache.clips.size();
+        animation_clip_cache_t& clip = cache.clips.emplace_back();
+        clip.name = clip_name;
+        clip.duration_ms = animation.duration > 0 ? animation.duration : 1000.f;
+        for (auto& other : fms.animation_list) {
+          other.second.weight = 0;
+        }
+        animation.weight = 1.f;
+        fms.active_anim = clip_name;
+        std::uint32_t frame_count = std::max<std::uint32_t>(1, (std::uint32_t)std::ceil((clip.duration_ms / 1000.f) * animation_sample_rate));
+        for (std::uint32_t frame = 0; frame < frame_count; ++frame) {
+          f32_t time_ms = clip.duration_ms * ((f32_t)frame / (f32_t)frame_count);
+          append_pose_frame(fms, clip, time_ms);
+        }
       }
-      std::uint32_t first_model = (std::uint32_t)models.size();
-      model_cache_entry_t range = load_model_from_fms(*fms, first_bone, bone_count, true);
-      for (std::uint32_t i = 0; i < range.model_count; ++i) {
-        add_instance(range.first_model + i, model.transform);
+      if (cache.clips.empty()) {
+        animation_clip_cache_t& clip = cache.clips.emplace_back();
+        clip.name = "bind";
+        clip.duration_ms = 1000.f;
+        cache.default_clip = clip.name;
+        cache.clip_indices[clip.name] = 0;
+        fms.update_bone_transforms();
+        append_pose_frame(fms, clip, 0.f);
+      }
+      return cache_index;
+    }
+    bool load_animated_scene_model(std::uint32_t object_index) {
+      scene_model_t& model = scene_models[object_index];
+      object_t& object = objects[object_index];
+      object.first_instance = (std::uint32_t)instances.size();
+      bool created = false;
+      object.animation_cache_index = get_or_create_animation_cache(model, created);
+      animation_cache_entry_t& cache = animation_caches[object.animation_cache_index];
+      object.animation_name = model.animation_name.empty() ? cache.default_clip : model.animation_name;
+      object.animation_time_offset = model.animation_time_offset;
+      object.animation_speed = model.animation_speed;
+      object.animation_frame = std::uint32_t(-1);
+      auto clip_found = cache.clip_indices.find(object.animation_name);
+      if (clip_found == cache.clip_indices.end()) {
+        object.animation_name = cache.default_clip;
+        clip_found = cache.clip_indices.find(object.animation_name);
+      }
+      if (clip_found == cache.clip_indices.end() || cache.clips[clip_found->second].frames.empty()) return created;
+      const animation_frame_t& frame = cache.clips[clip_found->second].frames.front();
+      for (std::uint32_t i = 0; i < frame.model_count; ++i) {
+        add_instance(frame.first_model + i, model.transform);
       }
       object.instance_count = (std::uint32_t)instances.size() - object.first_instance;
-      object.animated_model_index = (std::uint32_t)animated_models.size();
-      animated_models.emplace_back();
-      animated_model_t& animated_model = animated_models.back();
-      animated_model.fms = std::move(fms);
-      animated_model.first_model = first_model;
-      animated_model.model_count = (std::uint32_t)models.size() - first_model;
-      animated_model.first_bone = first_bone;
-      animated_model.bone_count = bone_count;
-      initialize_animated_model_pose(animated_model);
-      return true;
+      object.animation_frame = 0;
+      return created;
     }
     bool load_scene_model(std::uint32_t object_index) {
       scene_model_t& model = scene_models[object_index];
@@ -1239,6 +1406,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
         sync_output_sprite();
       }
       if (!ready) return;
+      update_shared_animations(attached_engine->start_time.seconds());
       if (tlas_dirty && !can_update_tlas_transforms()) flush_transform_updates();
       on_camera_updated(update_camera);
       update_exposure(attached_engine->get_delta_time());
@@ -1755,7 +1923,13 @@ export namespace fan::graphics::vulkan::ray_tracing {
         object.first_instance = 0;
         object.instance_count = 0;
         object.animated_model_index = std::uint32_t(-1);
+        object.animation_cache_index = std::uint32_t(-1);
+        object.animation_name.clear();
+        object.animation_frame = std::uint32_t(-1);
       }
+      animation_cache.clear();
+      animation_caches.clear();
+      rt_texture_cache.clear();
       materials.clear();
       source_vertex_data.clear();
       vertex_data.clear();
@@ -1802,6 +1976,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
   #pragma pack(pop)
     static constexpr std::uint32_t instance_count = 1;
     static constexpr std::uint32_t max_textures = 512;
+    f32_t animation_sample_rate = 12.f;
     engine_open_properties_t pending_open_properties;
     fan::vulkan::context_t* ctx = nullptr;
     fan::vec2ui size{};
@@ -1870,6 +2045,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     std::vector<fan::mat4> bone_matrices;
     std::vector<fan::graphics::image_nr_t> texture_ids;
     std::vector<VkDescriptorImageInfo> rt_texture_infos;
+    std::unordered_map<std::string, std::int32_t> rt_texture_cache;
     VkBuffer material_index_buffer = VK_NULL_HANDLE;
     VkDeviceMemory material_index_memory = VK_NULL_HANDLE;
     std::vector<std::uint32_t> material_indices_per_primitive;
