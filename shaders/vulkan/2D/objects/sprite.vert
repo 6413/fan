@@ -4,9 +4,6 @@
 
 layout(location = 0) out vec4 instance_color;
 layout(location = 1) out vec2 texture_coordinate;
-layout(location = 2) out flat uint flag;
-
-
 
 struct block_instance_t{
 	vec3 position;

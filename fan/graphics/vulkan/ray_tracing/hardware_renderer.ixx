@@ -20,13 +20,11 @@ import fan.graphics.fms;
 import fan.graphics.gui.base;
 import fan.graphics.loco;
 import fan.print.error;
-
 export namespace fan::graphics::vulkan::ray_tracing {
   struct acceleration_structure_t {
     void destroy(fan::vulkan::context_t& ctx) {
       if (handle) {
-        auto vkDestroyAS = (PFN_vkDestroyAccelerationStructureKHR)
-          vkGetDeviceProcAddr(ctx.device, "vkDestroyAccelerationStructureKHR");
+        auto vkDestroyAS = (PFN_vkDestroyAccelerationStructureKHR)vkGetDeviceProcAddr(ctx.device, "vkDestroyAccelerationStructureKHR");
         vkDestroyAS(ctx.device, handle, nullptr);
       }
       if (buffer) vkDestroyBuffer(ctx.device, buffer, nullptr);
@@ -41,7 +39,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     VkDeviceMemory memory = VK_NULL_HANDLE;
     VkDeviceAddress device_address = 0;
   };
-#pragma pack(push, 1)
+  #pragma pack(push, 1)
   struct material_info_t {
     std::int32_t albedo_texture_id = -1;
     std::int32_t normal_texture_id = -1;
@@ -50,7 +48,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     fan::vec3 base_color = fan::vec3(1.0f, 1.0f, 1.0f);
     f32_t pad1;
   };
-#pragma pack(pop)
+  #pragma pack(pop)
   struct light_t {
     fan::vec3 position;
     f32_t radius;
@@ -120,8 +118,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       pending_open_properties = properties;
       engine.single_queue.push_back([this, &engine]() {
         auto sz = pending_open_properties.size;
-        if (sz.x == 0 || sz.y == 0)
-          sz = engine.window.get_size();
+        if (sz.x == 0 || sz.y == 0) sz = engine.window.get_size();
         output_sprite_enabled = pending_open_properties.create_output_sprite;
         open(engine.context.vk, sz);
         ready = true;
@@ -155,22 +152,14 @@ export namespace fan::graphics::vulkan::ray_tracing {
       return vkGetBufferDeviceAddressKHR(ctx->device, &info);
     }
     void load_functions() {
-      vkGetBufferDeviceAddressKHR = (PFN_vkGetBufferDeviceAddressKHR)
-        vkGetDeviceProcAddr(ctx->device, "vkGetBufferDeviceAddressKHR");
-      vkCmdBuildAccelerationStructuresKHR = (PFN_vkCmdBuildAccelerationStructuresKHR)
-        vkGetDeviceProcAddr(ctx->device, "vkCmdBuildAccelerationStructuresKHR");
-      vkGetAccelerationStructureBuildSizesKHR = (PFN_vkGetAccelerationStructureBuildSizesKHR)
-        vkGetDeviceProcAddr(ctx->device, "vkGetAccelerationStructureBuildSizesKHR");
-      vkCreateAccelerationStructureKHR = (PFN_vkCreateAccelerationStructureKHR)
-        vkGetDeviceProcAddr(ctx->device, "vkCreateAccelerationStructureKHR");
-      vkGetAccelerationStructureDeviceAddressKHR = (PFN_vkGetAccelerationStructureDeviceAddressKHR)
-        vkGetDeviceProcAddr(ctx->device, "vkGetAccelerationStructureDeviceAddressKHR");
-      vkCreateRayTracingPipelinesKHR = (PFN_vkCreateRayTracingPipelinesKHR)
-        vkGetDeviceProcAddr(ctx->device, "vkCreateRayTracingPipelinesKHR");
-      vkGetRayTracingShaderGroupHandlesKHR = (PFN_vkGetRayTracingShaderGroupHandlesKHR)
-        vkGetDeviceProcAddr(ctx->device, "vkGetRayTracingShaderGroupHandlesKHR");
-      vkCmdTraceRaysKHR = (PFN_vkCmdTraceRaysKHR)
-        vkGetDeviceProcAddr(ctx->device, "vkCmdTraceRaysKHR");
+      vkGetBufferDeviceAddressKHR = (PFN_vkGetBufferDeviceAddressKHR)vkGetDeviceProcAddr(ctx->device, "vkGetBufferDeviceAddressKHR");
+      vkCmdBuildAccelerationStructuresKHR = (PFN_vkCmdBuildAccelerationStructuresKHR)vkGetDeviceProcAddr(ctx->device, "vkCmdBuildAccelerationStructuresKHR");
+      vkGetAccelerationStructureBuildSizesKHR = (PFN_vkGetAccelerationStructureBuildSizesKHR)vkGetDeviceProcAddr(ctx->device, "vkGetAccelerationStructureBuildSizesKHR");
+      vkCreateAccelerationStructureKHR = (PFN_vkCreateAccelerationStructureKHR)vkGetDeviceProcAddr(ctx->device, "vkCreateAccelerationStructureKHR");
+      vkGetAccelerationStructureDeviceAddressKHR = (PFN_vkGetAccelerationStructureDeviceAddressKHR)vkGetDeviceProcAddr(ctx->device, "vkGetAccelerationStructureDeviceAddressKHR");
+      vkCreateRayTracingPipelinesKHR = (PFN_vkCreateRayTracingPipelinesKHR)vkGetDeviceProcAddr(ctx->device, "vkCreateRayTracingPipelinesKHR");
+      vkGetRayTracingShaderGroupHandlesKHR = (PFN_vkGetRayTracingShaderGroupHandlesKHR)vkGetDeviceProcAddr(ctx->device, "vkGetRayTracingShaderGroupHandlesKHR");
+      vkCmdTraceRaysKHR = (PFN_vkCmdTraceRaysKHR)vkGetDeviceProcAddr(ctx->device, "vkCmdTraceRaysKHR");
     }
     void create_blas_for_model(std::uint32_t model_index) {
       const model_t& model = models[model_index];
@@ -182,8 +171,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
       triangles.vertexData.deviceAddress = get_buffer_address(vertex_buffer);
       triangles.vertexStride             = sizeof(vertex_t);
-      triangles.maxVertex                = model.vertex_count ?
-        model.first_vertex + model.vertex_count - 1 : 0;
+      triangles.maxVertex                = model.vertex_count ? model.first_vertex + model.vertex_count - 1 : 0;
       triangles.indexType                = VK_INDEX_TYPE_UINT32;
       triangles.indexData.deviceAddress = get_buffer_address(index_buffer);
       VkAccelerationStructureGeometryKHR geometry{};
@@ -199,39 +187,18 @@ export namespace fan::graphics::vulkan::ray_tracing {
       build_info.pGeometries   = &geometry;
       VkAccelerationStructureBuildSizesInfoKHR size_info{};
       size_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
-      vkGetAccelerationStructureBuildSizesKHR(
-        ctx->device,
-        VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
-        &build_info,
-        &primitive_count,
-        &size_info
-      );
+      vkGetAccelerationStructureBuildSizesKHR(ctx->device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &build_info, &primitive_count, &size_info);
       acceleration_structure_t blas;
-      ctx->create_buffer(
-        size_info.accelerationStructureSize,
-        VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
-        VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        blas.buffer,
-        blas.memory
-      );
+      ctx->create_buffer(size_info.accelerationStructureSize, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, blas.buffer, blas.memory);
       VkAccelerationStructureCreateInfoKHR create_info{};
       create_info.sType  = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
       create_info.buffer = blas.buffer;
       create_info.size   = size_info.accelerationStructureSize;
       create_info.type   = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-      fan::vulkan::validate(
-        vkCreateAccelerationStructureKHR(ctx->device, &create_info, nullptr, &blas.handle)
-      );
+      fan::vulkan::validate(vkCreateAccelerationStructureKHR(ctx->device, &create_info, nullptr, &blas.handle));
       VkBuffer scratch_buffer;
       VkDeviceMemory scratch_memory;
-      ctx->create_buffer(
-        size_info.buildScratchSize,
-        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        scratch_buffer,
-        scratch_memory
-      );
+      ctx->create_buffer(size_info.buildScratchSize, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, scratch_buffer, scratch_memory);
       build_info.mode                    = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
       build_info.dstAccelerationStructure = blas.handle;
       build_info.scratchData.deviceAddress = get_buffer_address(scratch_buffer);
@@ -273,34 +240,18 @@ export namespace fan::graphics::vulkan::ray_tracing {
       return vk_instances;
     }
     void ensure_tlas_instance_staging(VkDeviceSize size) {
-      if (tlas_instance_staging_buffer && tlas_instance_staging_size >= size) {
-        return;
-      }
+      if (tlas_instance_staging_buffer && tlas_instance_staging_size >= size) return;
       destroy_buffer(tlas_instance_staging_buffer, tlas_instance_staging_memory);
-      tlas_instance_staging_size = 0;
-      ctx->create_buffer(
-        size,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        tlas_instance_staging_buffer,
-        tlas_instance_staging_memory
-      );
+      ctx->create_buffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, tlas_instance_staging_buffer, tlas_instance_staging_memory);
+      vkMapMemory(ctx->device, tlas_instance_staging_memory, 0, size, 0, &tlas_instance_staging_mapped);
       tlas_instance_staging_size = size;
     }
     void upload_tlas_instances_to_staging(const std::vector<VkAccelerationStructureInstanceKHR>& vk_instances, VkDeviceSize size) {
       ensure_tlas_instance_staging(size);
-      void* data;
-      vkMapMemory(ctx->device, tlas_instance_staging_memory, 0, size, 0, &data);
-      std::memcpy(data, vk_instances.data(), (std::size_t)size);
-      vkUnmapMemory(ctx->device, tlas_instance_staging_memory);
+      std::memcpy(tlas_instance_staging_mapped, vk_instances.data(), (std::size_t)size);
     }
     bool can_update_tlas_transforms() const {
-      return ctx &&
-        tlas.handle &&
-        tlas_instance_buffer &&
-        tlas_scratch_buffer &&
-        tlas_instance_count != 0 &&
-        tlas_instance_count == (std::uint32_t)instances.size();
+      return ctx && tlas.handle && tlas_instance_buffer && tlas_scratch_buffer && tlas_instance_count != 0 && tlas_instance_count == (std::uint32_t)instances.size();
     }
     void record_tlas_transform_update(VkCommandBuffer cmd) {
       std::vector<VkAccelerationStructureInstanceKHR> vk_instances = make_tlas_instances();
@@ -318,9 +269,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       VkAccelerationStructureBuildGeometryInfoKHR build_info{};
       build_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
       build_info.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
-      build_info.flags =
-        VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR |
-        VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
+      build_info.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
       build_info.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR;
       build_info.srcAccelerationStructure = tlas.handle;
       build_info.dstAccelerationStructure = tlas.handle;
@@ -343,48 +292,22 @@ export namespace fan::graphics::vulkan::ray_tracing {
       instance_barrier.buffer = tlas_instance_buffer;
       instance_barrier.offset = 0;
       instance_barrier.size = instance_size;
-      vkCmdPipelineBarrier(
-        cmd,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
-        0,
-        0, nullptr,
-        1, &instance_barrier,
-        0, nullptr
-      );
+      vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, 0, 0, nullptr, 1, &instance_barrier, 0, nullptr);
       vkCmdBuildAccelerationStructuresKHR(cmd, 1, &build_info, &range_infos);
       VkMemoryBarrier build_barrier{};
       build_barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
       build_barrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
       build_barrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR;
-      vkCmdPipelineBarrier(
-        cmd,
-        VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
-        VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
-        0,
-        1, &build_barrier,
-        0, nullptr,
-        0, nullptr
-      );
+      vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR, 0, 1, &build_barrier, 0, nullptr, 0, nullptr);
       frame_index = 0;
     }
     void create_tlas() {
       tlas_instance_count = (std::uint32_t)instances.size();
-      if (tlas_instance_count == 0) {
-        return;
-      }
+      if (tlas_instance_count == 0) return;
       std::vector<VkAccelerationStructureInstanceKHR> vk_instances = make_tlas_instances();
       VkDeviceSize instance_size = sizeof(VkAccelerationStructureInstanceKHR) * tlas_instance_count;
       upload_tlas_instances_to_staging(vk_instances, instance_size);
-      ctx->create_buffer(
-        instance_size,
-        VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
-        VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        tlas_instance_buffer,
-        tlas_instance_memory
-      );
+      ctx->create_buffer(instance_size, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, tlas_instance_buffer, tlas_instance_memory);
       ctx->copy_buffer(tlas_instance_staging_buffer, tlas_instance_buffer, instance_size);
       VkAccelerationStructureGeometryInstancesDataKHR instances_data{};
       instances_data.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
@@ -398,28 +321,13 @@ export namespace fan::graphics::vulkan::ray_tracing {
       VkAccelerationStructureBuildGeometryInfoKHR build_info{};
       build_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
       build_info.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
-      build_info.flags =
-        VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR |
-        VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
+      build_info.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
       build_info.geometryCount = 1;
       build_info.pGeometries = &geometry;
       VkAccelerationStructureBuildSizesInfoKHR size_info{};
       size_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
-      vkGetAccelerationStructureBuildSizesKHR(
-        ctx->device,
-        VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
-        &build_info,
-        &tlas_instance_count,
-        &size_info
-      );
-      ctx->create_buffer(
-        size_info.accelerationStructureSize,
-        VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
-        VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        tlas.buffer,
-        tlas.memory
-      );
+      vkGetAccelerationStructureBuildSizesKHR(ctx->device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &build_info, &tlas_instance_count, &size_info);
+      ctx->create_buffer(size_info.accelerationStructureSize, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, tlas.buffer, tlas.memory);
       VkAccelerationStructureCreateInfoKHR create_info{};
       create_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
       create_info.buffer = tlas.buffer;
@@ -427,13 +335,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       create_info.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
       fan::vulkan::validate(vkCreateAccelerationStructureKHR(ctx->device, &create_info, nullptr, &tlas.handle));
       VkDeviceSize scratch_size = std::max(size_info.buildScratchSize, size_info.updateScratchSize);
-      ctx->create_buffer(
-        scratch_size,
-        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        tlas_scratch_buffer,
-        tlas_scratch_memory
-      );
+      ctx->create_buffer(scratch_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, tlas_scratch_buffer, tlas_scratch_memory);
       build_info.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
       build_info.dstAccelerationStructure = tlas.handle;
       build_info.scratchData.deviceAddress = get_buffer_address(tlas_scratch_buffer);
@@ -449,9 +351,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       tlas.device_address = vkGetAccelerationStructureDeviceAddressKHR(ctx->device, &addr_info);
     }
     bool update_tlas_transforms() {
-      if (!can_update_tlas_transforms()) {
-        return false;
-      }
+      if (!can_update_tlas_transforms()) return false;
       VkCommandBuffer cmd = ctx->begin_single_time_commands();
       record_tlas_transform_update(cmd);
       ctx->end_single_time_commands(cmd);
@@ -470,15 +370,10 @@ export namespace fan::graphics::vulkan::ray_tracing {
       image_info.arrayLayers = 1;
       image_info.samples = VK_SAMPLE_COUNT_1_BIT;
       image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
-      image_info.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
-        VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+      image_info.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
       image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
       image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-      fan::vulkan::image_create(*ctx, size, VK_FORMAT_R16G16B16A16_SFLOAT,
-        VK_IMAGE_TILING_OPTIMAL,
-        image_info.usage,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        img.image_index, img.image_memory);
+      fan::vulkan::image_create(*ctx, size, VK_FORMAT_R16G16B16A16_SFLOAT, VK_IMAGE_TILING_OPTIMAL, image_info.usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, img.image_index, img.image_memory);
       VkImageViewCreateInfo view_info{};
       view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
       view_info.image = img.image_index;
@@ -492,29 +387,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       fan::vulkan::validate(vkCreateImageView(ctx->device, &view_info, nullptr, &img.image_view));
       ctx->create_texture_sampler(img.sampler, {});
       VkCommandBuffer cmd = ctx->begin_single_time_commands();
-      VkImageMemoryBarrier barrier{};
-      barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-      barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-      barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-      barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      barrier.image = img.image_index;
-      barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-      barrier.subresourceRange.baseMipLevel = 0;
-      barrier.subresourceRange.levelCount = 1;
-      barrier.subresourceRange.baseArrayLayer = 0;
-      barrier.subresourceRange.layerCount = 1;
-      barrier.srcAccessMask = 0;
-      barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
-      vkCmdPipelineBarrier(
-        cmd,
-        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-        VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier
-      );
+      ctx->insert_image_barrier(cmd, img.image_index, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, 0, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
       ctx->end_single_time_commands(cmd);
       current_layout = VK_IMAGE_LAYOUT_GENERAL;
     }
@@ -525,111 +398,64 @@ export namespace fan::graphics::vulkan::ray_tracing {
     }
     void create_pipeline() {
       VkDescriptorSetLayoutBinding bindings[11]{};
-      bindings[0].binding = 0;
-      bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
-      bindings[0].descriptorCount = 1;
-      bindings[0].stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-      bindings[1].binding = 1;
-      bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-      bindings[1].descriptorCount = 1;
-      bindings[1].stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-      bindings[2].binding = 2;
-      bindings[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-      bindings[2].descriptorCount = 1;
-      bindings[2].stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-      bindings[3].binding = 3;
-      bindings[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-      bindings[3].descriptorCount = 1;
-      bindings[3].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-      bindings[4].binding = 4;
-      bindings[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-      bindings[4].descriptorCount = max_textures;
-      bindings[4].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-      bindings[5].binding = 5;
-      bindings[5].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-      bindings[5].descriptorCount = 1;
-      bindings[5].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-      bindings[6].binding = 6;
-      bindings[6].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-      bindings[6].descriptorCount = 1;
-      bindings[6].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-      bindings[7].binding = 7;
-      bindings[7].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-      bindings[7].descriptorCount = 1;
-      bindings[7].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-      bindings[8].binding = 8;
-      bindings[8].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-      bindings[8].descriptorCount = 1;
-      bindings[8].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-      bindings[9].binding = 9;
-      bindings[9].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-      bindings[9].descriptorCount = 1;
-      bindings[9].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-      bindings[10].binding = 10;
-      bindings[10].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-      bindings[10].descriptorCount = 1;
-      bindings[10].stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+      auto bnd = [&](int i, VkDescriptorType t, int c, VkShaderStageFlags s) { bindings[i] = { (std::uint32_t)i, t, (std::uint32_t)c, s, nullptr }; };
+      bnd(0, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 1, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
+      bnd(1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_RAYGEN_BIT_KHR);
+      bnd(2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_RAYGEN_BIT_KHR);
+      bnd(3, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_RAYGEN_BIT_KHR);
+      bnd(4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, max_textures, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
+      bnd(5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
+      bnd(6, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
+      bnd(7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
+      bnd(8, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
+      bnd(9, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
+      bnd(10, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR);
+
       VkDescriptorSetLayoutCreateInfo layout_info{};
       layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
       layout_info.bindingCount = std::size(bindings);
       layout_info.pBindings = bindings;
       fan::vulkan::validate(vkCreateDescriptorSetLayout(ctx->device, &layout_info, nullptr, &descriptor_layout));
+
       VkPipelineLayoutCreateInfo pipeline_layout_info{};
       pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
       pipeline_layout_info.setLayoutCount = 1;
       pipeline_layout_info.pSetLayouts = &descriptor_layout;
       fan::vulkan::validate(vkCreatePipelineLayout(ctx->device, &pipeline_layout_info, nullptr, &pipeline_layout));
-      VkShaderModule rgen   = load_shader("shaders/vulkan/ray_tracing/raygen.rgen",           shaderc_glsl_raygen_shader);
-      VkShaderModule miss   = load_shader("shaders/vulkan/ray_tracing/miss.rmiss",           shaderc_glsl_miss_shader);
-      VkShaderModule chit   = load_shader("shaders/vulkan/ray_tracing/closesthit.rchit",     shaderc_glsl_closesthit_shader);
-      VkShaderModule shadow = load_shader("shaders/vulkan/ray_tracing/shadow.rmiss",         shaderc_glsl_miss_shader);
-      VkShaderModule shany  = load_shader("shaders/vulkan/ray_tracing/shadow_anyhit.rahit",  shaderc_glsl_anyhit_shader);
+
+      VkShaderModule rgen   = load_shader("shaders/vulkan/ray_tracing/raygen.rgen", shaderc_glsl_raygen_shader);
+      VkShaderModule miss   = load_shader("shaders/vulkan/ray_tracing/miss.rmiss", shaderc_glsl_miss_shader);
+      VkShaderModule chit   = load_shader("shaders/vulkan/ray_tracing/closesthit.rchit", shaderc_glsl_closesthit_shader);
+      VkShaderModule shadow = load_shader("shaders/vulkan/ray_tracing/shadow.rmiss", shaderc_glsl_miss_shader);
+      VkShaderModule shany  = load_shader("shaders/vulkan/ray_tracing/shadow_anyhit.rahit", shaderc_glsl_anyhit_shader);
+
       VkPipelineShaderStageCreateInfo stages[5]{};
-      stages[0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-      stages[0].stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
-      stages[0].module = rgen;
-      stages[0].pName = "main";
-      stages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-      stages[1].stage = VK_SHADER_STAGE_MISS_BIT_KHR;
-      stages[1].module = miss;
-      stages[1].pName = "main";
-      stages[2].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-      stages[2].stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
-      stages[2].module = chit;
-      stages[2].pName = "main";
-      stages[3].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-      stages[3].stage = VK_SHADER_STAGE_MISS_BIT_KHR;
-      stages[3].module = shadow;
-      stages[3].pName = "main";
-      stages[4].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-      stages[4].stage = VK_SHADER_STAGE_ANY_HIT_BIT_KHR;
-      stages[4].module = shany;
-      stages[4].pName = "main";
+      auto stg = [&](int i, VkShaderStageFlagBits s, VkShaderModule m) {
+        stages[i].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        stages[i].stage = s;
+        stages[i].module = m;
+        stages[i].pName = "main";
+      };
+      stg(0, VK_SHADER_STAGE_RAYGEN_BIT_KHR, rgen);
+      stg(1, VK_SHADER_STAGE_MISS_BIT_KHR, miss);
+      stg(2, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, chit);
+      stg(3, VK_SHADER_STAGE_MISS_BIT_KHR, shadow);
+      stg(4, VK_SHADER_STAGE_ANY_HIT_BIT_KHR, shany);
+
       VkRayTracingShaderGroupCreateInfoKHR groups[4]{};
-      groups[0].sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
-      groups[0].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
-      groups[0].generalShader = 0;
-      groups[0].closestHitShader = VK_SHADER_UNUSED_KHR;
-      groups[0].anyHitShader = VK_SHADER_UNUSED_KHR;
-      groups[0].intersectionShader = VK_SHADER_UNUSED_KHR;
-      groups[1].sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
-      groups[1].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
-      groups[1].generalShader = 1;
-      groups[1].closestHitShader = VK_SHADER_UNUSED_KHR;
-      groups[1].anyHitShader = VK_SHADER_UNUSED_KHR;
-      groups[1].intersectionShader = VK_SHADER_UNUSED_KHR;
-      groups[2].sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
-      groups[2].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
-      groups[2].generalShader = VK_SHADER_UNUSED_KHR;
-      groups[2].closestHitShader = 2;
-      groups[2].anyHitShader = 4;
-      groups[2].intersectionShader = VK_SHADER_UNUSED_KHR;
-      groups[3].sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
-      groups[3].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
-      groups[3].generalShader = 3;
-      groups[3].closestHitShader = VK_SHADER_UNUSED_KHR;
-      groups[3].anyHitShader = VK_SHADER_UNUSED_KHR;
-      groups[3].intersectionShader = VK_SHADER_UNUSED_KHR;
+      auto grp = [&](int i, VkRayTracingShaderGroupTypeKHR t, std::uint32_t g, std::uint32_t c, std::uint32_t a) {
+        groups[i].sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+        groups[i].type = t;
+        groups[i].generalShader = g;
+        groups[i].closestHitShader = c;
+        groups[i].anyHitShader = a;
+        groups[i].intersectionShader = VK_SHADER_UNUSED_KHR;
+      };
+      grp(0, VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR, 0, VK_SHADER_UNUSED_KHR, VK_SHADER_UNUSED_KHR);
+      grp(1, VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR, 1, VK_SHADER_UNUSED_KHR, VK_SHADER_UNUSED_KHR);
+      grp(2, VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR, VK_SHADER_UNUSED_KHR, 2, 4);
+      grp(3, VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR, 3, VK_SHADER_UNUSED_KHR, VK_SHADER_UNUSED_KHR);
+
       VkRayTracingPipelineCreateInfoKHR pipeline_info{};
       pipeline_info.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR;
       pipeline_info.stageCount = 5;
@@ -638,17 +464,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
       pipeline_info.pGroups = groups;
       pipeline_info.maxPipelineRayRecursionDepth = 3;
       pipeline_info.layout = pipeline_layout;
-      fan::vulkan::validate(
-        vkCreateRayTracingPipelinesKHR(
-          ctx->device,
-          VK_NULL_HANDLE,
-          VK_NULL_HANDLE,
-          1,
-          &pipeline_info,
-          nullptr,
-          &pipeline
-        )
-      );
+      fan::vulkan::validate(vkCreateRayTracingPipelinesKHR(ctx->device, VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &pipeline));
+
       vkDestroyShaderModule(ctx->device, rgen, nullptr);
       vkDestroyShaderModule(ctx->device, miss, nullptr);
       vkDestroyShaderModule(ctx->device, chit, nullptr);
@@ -670,32 +487,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
       const std::uint32_t aligned_group_sz = (handle_size_aligned + base_align - 1) & ~(base_align - 1);
       const std::uint32_t sbt_size         = group_count * aligned_group_sz;
       std::vector<std::uint8_t> handles(group_count * handle_size);
-      fan::vulkan::validate(
-        vkGetRayTracingShaderGroupHandlesKHR(
-          ctx->device,
-          pipeline,
-          0,
-          group_count,
-          group_count * handle_size,
-          handles.data()
-        )
-      );
-      ctx->create_buffer(
-        sbt_size,
-        VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR |
-        VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT    |
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        shader_binding_table,
-        sbt_memory
-      );
-      ctx->create_buffer(
-        sbt_size,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        sbt_staging,
-        sbt_staging_memory
-      );
+      fan::vulkan::validate(vkGetRayTracingShaderGroupHandlesKHR(ctx->device, pipeline, 0, group_count, group_count * handle_size, handles.data()));
+      ctx->create_buffer(sbt_size, VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, shader_binding_table, sbt_memory);
+      ctx->create_buffer(sbt_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, sbt_staging, sbt_staging_memory);
       void* data;
       vkMapMemory(ctx->device, sbt_staging_memory, 0, sbt_size, 0, &data);
       std::uint8_t* sbt_ptr = static_cast<std::uint8_t*>(data);
@@ -711,7 +505,6 @@ export namespace fan::graphics::vulkan::ray_tracing {
       std::memcpy(sbt_ptr + hit_offset,         handles.data() + 2 * handle_size, handle_size);
       vkUnmapMemory(ctx->device, sbt_staging_memory);
       ctx->copy_buffer(sbt_staging, shader_binding_table, sbt_size);
-      VkDeviceAddress sbt_addr = get_buffer_address(shader_binding_table);
     }
     void create_descriptor_set(){
       VkDescriptorPoolSize pool_sizes[5]{};
@@ -725,141 +518,52 @@ export namespace fan::graphics::vulkan::ray_tracing {
       pool_sizes[3].descriptorCount = max_textures;
       pool_sizes[4].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
       pool_sizes[4].descriptorCount = 5;
+
       VkDescriptorPoolCreateInfo pool_info{};
       pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
       pool_info.maxSets = 1;
       pool_info.poolSizeCount = 5;
       pool_info.pPoolSizes = pool_sizes;
       fan::vulkan::validate(vkCreateDescriptorPool(ctx->device, &pool_info, nullptr, &descriptor_pool));
+
       VkDescriptorSetAllocateInfo alloc_info{};
       alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
       alloc_info.descriptorPool = descriptor_pool;
       alloc_info.descriptorSetCount = 1;
       alloc_info.pSetLayouts = &descriptor_layout;
       fan::vulkan::validate(vkAllocateDescriptorSets(ctx->device, &alloc_info, &descriptor_set));
-      VkWriteDescriptorSetAccelerationStructureKHR as_info{};
-      as_info.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
-      as_info.accelerationStructureCount = 1;
-      as_info.pAccelerationStructures = &tlas.handle;
+
       VkDescriptorImageInfo image_info{};
       image_info.imageView = ctx->image_get(output_image).image_view;
       image_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-      VkDescriptorBufferInfo cam_info{};
-      cam_info.buffer = camera_buffer;
-      cam_info.range = sizeof(rt_camera_t) * 16;
-      VkDescriptorBufferInfo time_info{};
-      time_info.buffer = time_buffer;
-      time_info.range = sizeof(time_ubo_t);
-      VkDescriptorBufferInfo material_info{};
-      material_info.buffer = material_buffer;
-      material_info.range = VK_WHOLE_SIZE;
-      VkDescriptorBufferInfo vertex_info{};
-      vertex_info.buffer = vertex_buffer;
-      vertex_info.range = VK_WHOLE_SIZE;
-      VkDescriptorBufferInfo index_info{};
-      index_info.buffer = index_buffer;
-      index_info.range = VK_WHOLE_SIZE;
-      std::vector<VkDescriptorImageInfo> texture_infos(max_textures);
-      auto& dummy_img = ctx->image_get(fan::graphics::ctx().default_texture);
-      for (std::uint32_t i = 0; i < max_textures; i++) {
-        if (i < rt_texture_infos.size()) {
-          texture_infos[i] = rt_texture_infos[i];
-        }
-        else {
-          texture_infos[i].sampler = dummy_img.sampler;
-          texture_infos[i].imageView = dummy_img.image_view;
-          texture_infos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        }
-      }
-      VkWriteDescriptorSet writes[10]{};
-      writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      writes[0].pNext = &as_info;
-      writes[0].dstSet = descriptor_set;
-      writes[0].dstBinding = 0;
-      writes[0].descriptorCount = 1;
-      writes[0].descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
-      writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      writes[1].dstSet = descriptor_set;
-      writes[1].dstBinding = 1;
-      writes[1].descriptorCount = 1;
-      writes[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-      writes[1].pImageInfo = &image_info;
-      writes[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      writes[2].dstSet = descriptor_set;
-      writes[2].dstBinding = 2;
-      writes[2].descriptorCount = 1;
-      writes[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-      writes[2].pBufferInfo = &cam_info;
-      writes[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      writes[3].dstSet = descriptor_set;
-      writes[3].dstBinding = 3;
-      writes[3].descriptorCount = 1;
-      writes[3].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-      writes[3].pBufferInfo = &time_info;
-      writes[4].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      writes[4].dstSet = descriptor_set;
-      writes[4].dstBinding = 4;
-      writes[4].descriptorCount = texture_infos.size();
-      writes[4].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-      writes[4].pImageInfo = texture_infos.data();
-      writes[5].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      writes[5].dstSet = descriptor_set;
-      writes[5].dstBinding = 5;
-      writes[5].descriptorCount = 1;
-      writes[5].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-      writes[5].pBufferInfo = &material_info;
-      writes[6].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      writes[6].dstSet = descriptor_set;
-      writes[6].dstBinding = 6;
-      writes[6].descriptorCount = 1;
-      writes[6].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-      writes[6].pBufferInfo = &vertex_info;
-      writes[7].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      writes[7].dstSet = descriptor_set;
-      writes[7].dstBinding = 7;
-      writes[7].descriptorCount = 1;
-      writes[7].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-      writes[7].pBufferInfo = &index_info;
-      VkDescriptorBufferInfo light_info{};
-      light_info.buffer = light_buffer;
-      light_info.range = sizeof(light_ubo_t);
-      writes[8].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      writes[8].dstSet = descriptor_set;
-      writes[8].dstBinding = 8;
-      writes[8].descriptorCount = 1;
-      writes[8].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-      writes[8].pBufferInfo = &light_info;
-      VkDescriptorBufferInfo mat_idx_info{};
-      mat_idx_info.buffer = material_index_buffer;
-      mat_idx_info.range = VK_WHOLE_SIZE;
-      writes[9].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      writes[9].dstSet = descriptor_set;
-      writes[9].dstBinding = 9;
-      writes[9].descriptorCount = 1;
-      writes[9].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-      writes[9].pBufferInfo = &mat_idx_info;
-      vkUpdateDescriptorSets(ctx->device, (std::uint32_t)std::size(writes), writes, 0, nullptr);
-      {
-        VkDescriptorBufferInfo exposure_info{};
-        exposure_info.buffer = exposure_ubo;
-        exposure_info.range = sizeof(exposure_ubo_t);
-        VkWriteDescriptorSet write{};
-        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.dstSet = descriptor_set;
-        write.dstBinding = 10;
-        write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        write.descriptorCount = 1;
-        write.pBufferInfo = &exposure_info;
-        vkUpdateDescriptorSets(ctx->device, 1, &write, 0, nullptr);
-      }
+
+      VkDescriptorBufferInfo cam_info{camera_buffer, 0, sizeof(rt_camera_t) * 16};
+      VkDescriptorBufferInfo time_info{time_buffer, 0, sizeof(time_ubo_t)};
+      VkDescriptorBufferInfo light_info{light_buffer, 0, sizeof(light_ubo_t)};
+      VkDescriptorBufferInfo exposure_info{exposure_ubo, 0, sizeof(exposure_ubo_t)};
+
+      VkWriteDescriptorSet writes[5]{};
+      auto wds = [&](int i, int b, VkDescriptorType t, const auto* info) {
+        writes[i] = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, descriptor_set, (std::uint32_t)b, 0, 1, t, nullptr, nullptr, nullptr };
+        if constexpr (std::is_same_v<decltype(info), const VkDescriptorImageInfo*>) writes[i].pImageInfo = info;
+        else writes[i].pBufferInfo = info;
+      };
+      wds(0, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, &image_info);
+      wds(1, 2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &cam_info);
+      wds(2, 3, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &time_info);
+      wds(3, 8, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &light_info);
+      wds(4, 10, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &exposure_info);
+      vkUpdateDescriptorSets(ctx->device, 5, writes, 0, nullptr);
+
+      update_tlas_descriptor();
+      update_scene_buffers_descriptor();
+      update_rt_textures_descriptor();
     }
     void update_rt_textures_descriptor() {
       std::vector<VkDescriptorImageInfo> infos(max_textures);
       auto& dummy = ctx->image_get(fan::graphics::ctx().default_texture);
       for (std::uint32_t i = 0; i < max_textures; i++) {
-        if (i < rt_texture_infos.size()) {
-          infos[i] = rt_texture_infos[i];
-        }
+        if (i < rt_texture_infos.size()) infos[i] = rt_texture_infos[i];
         else {
           infos[i].sampler = dummy.sampler;
           infos[i].imageView = dummy.image_view;
@@ -876,125 +580,21 @@ export namespace fan::graphics::vulkan::ray_tracing {
       vkUpdateDescriptorSets(ctx->device, 1, &write, 0, nullptr);
     }
     void create_vertex_buffer() {
-      VkDeviceSize size = sizeof(vertex_t) * vertex_data.size();
-      VkBuffer staging;
-      VkDeviceMemory staging_mem;
-      ctx->create_buffer(
-        size,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        staging,
-        staging_mem
-      );
-      void* data;
-      vkMapMemory(ctx->device, staging_mem, 0, size, 0, &data);
-      memcpy(data, vertex_data.data(), (std::size_t)size);
-      vkUnmapMemory(ctx->device, staging_mem);
-      ctx->create_buffer(
-        size,
-        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-        VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
-        VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        vertex_buffer,
-        vertex_memory
-      );
-      ctx->copy_buffer(staging, vertex_buffer, size);
-      vkDestroyBuffer(ctx->device, staging, nullptr);
-      vkFreeMemory(ctx->device, staging_mem, nullptr);
+      ctx->upload_buffer(vertex_data, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_DST_BIT, vertex_buffer, vertex_memory);
     }
     void create_index_buffer() {
-      VkDeviceSize size = sizeof(std::uint32_t) * index_data.size();
-      VkBuffer staging;
-      VkDeviceMemory staging_mem;
-      ctx->create_buffer(
-        size,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        staging,
-        staging_mem
-      );
-      void* data;
-      vkMapMemory(ctx->device, staging_mem, 0, size, 0, &data);
-      memcpy(data, index_data.data(), (std::size_t)size);
-      vkUnmapMemory(ctx->device, staging_mem);
-      ctx->create_buffer(
-        size,
-        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-        VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
-        VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        index_buffer,
-        index_memory
-      );
-      ctx->copy_buffer(staging, index_buffer, size);
-      vkDestroyBuffer(ctx->device, staging, nullptr);
-      vkFreeMemory(ctx->device, staging_mem, nullptr);
+      ctx->upload_buffer(index_data, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_DST_BIT, index_buffer, index_memory);
     }
     void create_material_buffer() {
-      VkDeviceSize size = sizeof(material_info_t) * materials.size();
-      VkBuffer staging;
-      VkDeviceMemory staging_mem;
-      ctx->create_buffer(
-        size,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        staging,
-        staging_mem
-      );
-      void* data;
-      vkMapMemory(ctx->device, staging_mem, 0, size, 0, &data);
-      memcpy(data, materials.data(), (std::size_t)size);
-      vkUnmapMemory(ctx->device, staging_mem);
-      ctx->create_buffer(
-        size,
-        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-        VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        material_buffer,
-        material_memory
-      );
-      ctx->copy_buffer(staging, material_buffer, size);
-      vkDestroyBuffer(ctx->device, staging, nullptr);
-      vkFreeMemory(ctx->device, staging_mem, nullptr);
+      ctx->upload_buffer(materials, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, material_buffer, material_memory);
     }
     void create_material_index_buffer() {
-      if (material_indices_per_primitive.empty()) {
-        return;
-      }
-      VkDeviceSize size = sizeof(std::uint32_t) * material_indices_per_primitive.size();
-      VkBuffer staging;
-      VkDeviceMemory staging_mem;
-      ctx->create_buffer(
-        size,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        staging,
-        staging_mem
-      );
-      void* data;
-      vkMapMemory(ctx->device, staging_mem, 0, size, 0, &data);
-      std::memcpy(data, material_indices_per_primitive.data(), (std::size_t)size);
-      vkUnmapMemory(ctx->device, staging_mem);
+      if (material_indices_per_primitive.empty()) return;
       if (material_index_buffer) {
         vkDestroyBuffer(ctx->device, material_index_buffer, nullptr);
         vkFreeMemory(ctx->device, material_index_memory, nullptr);
       }
-      ctx->create_buffer(
-        size,
-        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-        VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        material_index_buffer,
-        material_index_memory
-      );
-      ctx->copy_buffer(staging, material_index_buffer, size);
-      vkDestroyBuffer(ctx->device, staging, nullptr);
-      vkFreeMemory(ctx->device, staging_mem, nullptr);
+      ctx->upload_buffer(material_indices_per_primitive, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, material_index_buffer, material_index_memory);
     }
     void load_model_from_fms(fan::model::fms_t& fms) {
       for (std::uint32_t mesh_idx = 0; mesh_idx < fms.meshes.size(); mesh_idx++) {
@@ -1048,50 +648,32 @@ export namespace fan::graphics::vulkan::ray_tracing {
         auto load_first_rt_texture = [&](std::initializer_list<std::uint32_t> types) -> std::int32_t {
           for (auto type : types) {
             const std::string& tn = src_mesh.texture_names[type];
-            if (tn.empty()) {
-              continue;
-            }
+            if (tn.empty()) continue;
             std::int32_t slot = load_rt_texture(tn);
-            if (slot >= 0) {
-              return slot;
-            }
+            if (slot >= 0) return slot;
           }
           return -1;
         };
         {
-          std::int32_t slot = load_first_rt_texture({
-            fan::texture_type::base_color,
-            fan::texture_type::diffuse
-          });
-          if (slot >= 0) {
-            mat.albedo_texture_id = slot;
-          }
+          std::int32_t slot = load_first_rt_texture({ fan::texture_type::base_color, fan::texture_type::diffuse });
+          if (slot >= 0) mat.albedo_texture_id = slot;
         }
         {
-          std::int32_t slot = load_first_rt_texture({
-            fan::texture_type::normals,
-            fan::texture_type::normal_camera
-          });
-          if (slot >= 0) {
-            mat.normal_texture_id = slot;
-          }
+          std::int32_t slot = load_first_rt_texture({ fan::texture_type::normals, fan::texture_type::normal_camera });
+          if (slot >= 0) mat.normal_texture_id = slot;
         }
         {
           const std::string& tn = src_mesh.texture_names[fan::texture_type::metalness];
           if (!tn.empty()) {
             std::int32_t slot = load_rt_texture(tn);
-            if (slot >= 0) {
-              mat.metallic_texture_id = slot;
-            }
+            if (slot >= 0) mat.metallic_texture_id = slot;
           }
         }
         {
           const std::string& tn = src_mesh.texture_names[fan::texture_type::diffuse_roughness];
           if (!tn.empty()) {
             std::int32_t slot = load_rt_texture(tn);
-            if (slot >= 0) {
-              mat.roughness_texture_id = slot;
-            }
+            if (slot >= 0) mat.roughness_texture_id = slot;
           }
         }
         model.material_index = (std::uint32_t)materials.size();
@@ -1130,27 +712,14 @@ export namespace fan::graphics::vulkan::ray_tracing {
       }
     }
     object_handle_t add_model(const scene_model_t& model) {
-      object_handle_t handle {
-        (std::uint32_t)scene_models.size(),
-        object_generation_counter++
-      };
+      object_handle_t handle { (std::uint32_t)scene_models.size(), object_generation_counter++ };
       scene_models.push_back(model);
-      objects.push_back({
-        .generation = handle.generation,
-        .first_instance = 0,
-        .instance_count = 0
-      });
-      if (!ctx || !ready) {
-        return handle;
-      }
+      objects.push_back({ .generation = handle.generation, .first_instance = 0, .instance_count = 0 });
+      if (!ctx || !ready) return handle;
       vkDeviceWaitIdle(ctx->device);
       bool geometry_changed = load_scene_model(handle.index);
-      if (geometry_changed) {
-        rebuild_scene_geometry();
-      }
-      else {
-        rebuild_tlas();
-      }
+      if (geometry_changed) rebuild_scene_geometry();
+      else rebuild_tlas();
       return handle;
     }
     object_handle_t add_model(const std::string& path, const fan::mat4& transform = fan::mat4(1)) {
@@ -1162,28 +731,20 @@ export namespace fan::graphics::vulkan::ray_tracing {
     void clear_scene_models() {
       scene_models.clear();
       objects.clear();
-      if (!ctx || !ready) {
-        return;
-      }
+      if (!ctx || !ready) return;
       vkDeviceWaitIdle(ctx->device);
       instances.clear();
       rebuild_tlas();
     }
     bool is_object_valid(object_handle_t handle) const {
-      return handle.valid() &&
-        handle.index < objects.size() &&
-        objects[handle.index].generation == handle.generation;
+      return handle.valid() && handle.index < objects.size() && objects[handle.index].generation == handle.generation;
     }
     fan::mat4 get_transform(object_handle_t handle) const {
-      if (!is_object_valid(handle)) {
-        fan::throw_error("invalid ray tracing object handle");
-      }
+      if (!is_object_valid(handle)) fan::throw_error("invalid ray tracing object handle");
       return scene_models[handle.index].transform;
     }
     bool set_transform(object_handle_t handle, const fan::mat4& transform, bool rebuild_now = false) {
-      if (!is_object_valid(handle)) {
-        return false;
-      }
+      if (!is_object_valid(handle)) return false;
       scene_models[handle.index].transform = transform;
       object_t& object = objects[handle.index];
       for (std::uint32_t i = 0; i < object.instance_count; ++i) {
@@ -1191,27 +752,19 @@ export namespace fan::graphics::vulkan::ray_tracing {
       }
       tlas_dirty = true;
       frame_index = 0;
-      if (rebuild_now) {
-        flush_transform_updates();
-      }
+      if (rebuild_now) flush_transform_updates();
       return true;
     }
     bool set_transform_deferred(object_handle_t handle, const fan::mat4& transform) {
       return set_transform(handle, transform, false);
     }
     void flush_transform_updates() {
-      if (!tlas_dirty || !ctx || !ready) {
-        return;
-      }
-      if (!update_tlas_transforms()) {
-        rebuild_tlas();
-      }
+      if (!tlas_dirty || !ctx || !ready) return;
+      if (!update_tlas_transforms()) rebuild_tlas();
       tlas_dirty = false;
     }
     void flush_transform_updates(VkCommandBuffer cmd) {
-      if (!tlas_dirty || !ctx || !ready) {
-        return;
-      }
+      if (!tlas_dirty || !ctx || !ready) return;
       if (can_update_tlas_transforms()) {
         record_tlas_transform_update(cmd);
         tlas_dirty = false;
@@ -1260,9 +813,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       tlas_instance_staging_size = 0;
     }
     void update_tlas_descriptor() {
-      if (!descriptor_set) {
-        return;
-      }
+      if (!descriptor_set) return;
       VkWriteDescriptorSetAccelerationStructureKHR as_info{};
       as_info.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
       as_info.accelerationStructureCount = 1;
@@ -1277,52 +828,23 @@ export namespace fan::graphics::vulkan::ray_tracing {
       vkUpdateDescriptorSets(ctx->device, 1, &write, 0, nullptr);
     }
     void update_scene_buffers_descriptor() {
-      if (!descriptor_set) {
-        return;
-      }
-      VkDescriptorBufferInfo material_info{};
-      material_info.buffer = material_buffer;
-      material_info.range = VK_WHOLE_SIZE;
-      VkDescriptorBufferInfo vertex_info{};
-      vertex_info.buffer = vertex_buffer;
-      vertex_info.range = VK_WHOLE_SIZE;
-      VkDescriptorBufferInfo index_info{};
-      index_info.buffer = index_buffer;
-      index_info.range = VK_WHOLE_SIZE;
-      VkDescriptorBufferInfo mat_idx_info{};
-      mat_idx_info.buffer = material_index_buffer;
-      mat_idx_info.range = VK_WHOLE_SIZE;
+      if (!descriptor_set) return;
+      VkDescriptorBufferInfo material_info{material_buffer, 0, VK_WHOLE_SIZE};
+      VkDescriptorBufferInfo vertex_info{vertex_buffer, 0, VK_WHOLE_SIZE};
+      VkDescriptorBufferInfo index_info{index_buffer, 0, VK_WHOLE_SIZE};
+      VkDescriptorBufferInfo mat_idx_info{material_index_buffer, 0, VK_WHOLE_SIZE};
       VkWriteDescriptorSet writes[4]{};
-      writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      writes[0].dstSet = descriptor_set;
-      writes[0].dstBinding = 5;
-      writes[0].descriptorCount = 1;
-      writes[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-      writes[0].pBufferInfo = &material_info;
-      writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      writes[1].dstSet = descriptor_set;
-      writes[1].dstBinding = 6;
-      writes[1].descriptorCount = 1;
-      writes[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-      writes[1].pBufferInfo = &vertex_info;
-      writes[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      writes[2].dstSet = descriptor_set;
-      writes[2].dstBinding = 7;
-      writes[2].descriptorCount = 1;
-      writes[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-      writes[2].pBufferInfo = &index_info;
-      writes[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      writes[3].dstSet = descriptor_set;
-      writes[3].dstBinding = 9;
-      writes[3].descriptorCount = 1;
-      writes[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-      writes[3].pBufferInfo = &mat_idx_info;
-      vkUpdateDescriptorSets(ctx->device, (std::uint32_t)std::size(writes), writes, 0, nullptr);
+      auto wds = [&](int i, int b, const VkDescriptorBufferInfo* info) {
+        writes[i] = { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, descriptor_set, (std::uint32_t)b, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, nullptr, info, nullptr };
+      };
+      wds(0, 5, &material_info);
+      wds(1, 6, &vertex_info);
+      wds(2, 7, &index_info);
+      wds(3, 9, &mat_idx_info);
+      vkUpdateDescriptorSets(ctx->device, 4, writes, 0, nullptr);
     }
     void rebuild_tlas() {
-      if (!ctx) {
-        return;
-      }
+      if (!ctx) return;
       vkDeviceWaitIdle(ctx->device);
       destroy_tlas_resources();
       create_tlas();
@@ -1331,14 +853,10 @@ export namespace fan::graphics::vulkan::ray_tracing {
       tlas_dirty = false;
     }
     void rebuild_scene_geometry() {
-      if (!ctx) {
-        return;
-      }
+      if (!ctx) return;
       vkDeviceWaitIdle(ctx->device);
       destroy_tlas_resources();
-      for (auto& blas : blas_list) {
-        blas.destroy(*ctx);
-      }
+      for (auto& blas : blas_list) blas.destroy(*ctx);
       blas_list.clear();
       destroy_buffer(vertex_buffer, vertex_memory);
       destroy_buffer(index_buffer, index_memory);
@@ -1348,9 +866,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       create_index_buffer();
       create_material_buffer();
       create_material_index_buffer();
-      for (std::uint32_t i = 0; i < models.size(); ++i) {
-        create_blas_for_model(i);
-      }
+      for (std::uint32_t i = 0; i < models.size(); ++i) create_blas_for_model(i);
       create_tlas();
       update_tlas_descriptor();
       update_scene_buffers_descriptor();
@@ -1362,38 +878,22 @@ export namespace fan::graphics::vulkan::ray_tracing {
       light_position = position;
       light_color = color;
       light_intensity = intensity;
-      if (!ctx || !light_buffer) {
-        return;
-      }
+      if (!ctx || !light_buffer || !light_mapped) return;
       light_ubo_t ubo{};
       ubo.position = light_position;
       ubo.color = light_color;
       ubo.intensity = light_intensity;
-      void* data;
-      vkMapMemory(ctx->device, light_memory, 0, sizeof(ubo), 0, &data);
-      std::memcpy(data, &ubo, sizeof(ubo));
-      vkUnmapMemory(ctx->device, light_memory);
+      std::memcpy(light_mapped, &ubo, sizeof(ubo));
     }
     void set_light() {
       set_light(light_position, light_color, light_intensity);
     }
     void reload_pipeline() {
-      if (!ctx) {
-        return;
-      }
+      if (!ctx) return;
       vkDeviceWaitIdle(ctx->device);
-      if (pipeline) {
-        vkDestroyPipeline(ctx->device, pipeline, nullptr);
-        pipeline = VK_NULL_HANDLE;
-      }
-      if (shader_binding_table) {
-        vkDestroyBuffer(ctx->device, shader_binding_table, nullptr);
-        shader_binding_table = VK_NULL_HANDLE;
-      }
-      if (sbt_memory) {
-        vkFreeMemory(ctx->device, sbt_memory, nullptr);
-        sbt_memory = VK_NULL_HANDLE;
-      }
+      if (pipeline) vkDestroyPipeline(ctx->device, pipeline, nullptr);
+      pipeline = VK_NULL_HANDLE;
+      destroy_buffer(shader_binding_table, sbt_memory);
       create_pipeline();
       create_sbt();
       frame_index = 0;
@@ -1401,58 +901,39 @@ export namespace fan::graphics::vulkan::ray_tracing {
     void update_camera_from_engine(){
       auto camera_handle = fan::graphics::get_perspective_render_view().camera;
       auto camera_data = ctx->camera_get(camera_handle);
-      void* data;
+      if (!camera_mapped) return;
       rt_camera_t vp{};
       vp.projection = camera_data.projection;
       vp.view = camera_data.view;
       vp.inv_projection = camera_data.projection.inverse();
       vp.inv_view = camera_data.view.inverse();
-      vkMapMemory(ctx->device, camera_memory, 0, sizeof(vp), 0, &data);
-      memcpy(data, &vp, sizeof(vp));
-      vkUnmapMemory(ctx->device, camera_memory);
+      std::memcpy(camera_mapped, &vp, sizeof(vp));
     }
     void open(fan::vulkan::context_t& main_ctx, const fan::vec2ui& sz) {
       ctx = &main_ctx;
       size = sz;
       load_functions();
-      ctx->create_buffer(
-        sizeof(rt_camera_t) * 16,
-        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        camera_buffer,
-        camera_memory
-      );
-      ctx->create_buffer(
-        sizeof(time_ubo_t),
-        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        time_buffer,
-        time_memory
-      );
-      ctx->create_buffer(
-        sizeof(light_ubo_t),
-        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        light_buffer,
-        light_memory
-      );
+
+      ctx->create_buffer(sizeof(rt_camera_t) * 16, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, camera_buffer, camera_memory);
+      vkMapMemory(ctx->device, camera_memory, 0, sizeof(rt_camera_t) * 16, 0, &camera_mapped);
+
+      ctx->create_buffer(sizeof(time_ubo_t), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, time_buffer, time_memory);
+      vkMapMemory(ctx->device, time_memory, 0, sizeof(time_ubo_t), 0, &time_mapped);
+
+      ctx->create_buffer(sizeof(light_ubo_t), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, light_buffer, light_memory);
+      vkMapMemory(ctx->device, light_memory, 0, sizeof(light_ubo_t), 0, &light_mapped);
+
       set_light();
       create_exposure_ubo(); 
       create_luminance_buffer(size.x, size.y);
 
-      if (scene_models.empty()) {
-        fan::throw_error("ray tracing scene has no models; call add_model() before open()");
-      }
-      for (std::uint32_t i = 0; i < scene_models.size(); ++i) {
-        load_scene_model(i);
-      }
+      if (scene_models.empty()) fan::throw_error("ray tracing scene has no models; call add_model() before open()");
+      for (std::uint32_t i = 0; i < scene_models.size(); ++i) load_scene_model(i);
       create_vertex_buffer();
       create_index_buffer();
       create_material_buffer();
       create_material_index_buffer();
-      for (std::uint32_t i = 0; i < models.size(); i++) {
-        create_blas_for_model(i);
-      }
+      for (std::uint32_t i = 0; i < models.size(); i++) create_blas_for_model(i);
       create_tlas();
       create_output_image();
       create_accum_image();
@@ -1471,9 +952,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     void open(fan::graphics::engine_t& engine, const engine_open_properties_t& properties = {}) {
       attached_engine = &engine;
       auto output_size = properties.size;
-      if (output_size.x == 0 || output_size.y == 0) {
-        output_size = engine.window.get_size();
-      }
+      if (output_size.x == 0 || output_size.y == 0) output_size = engine.window.get_size();
       output_sprite_enabled = properties.create_output_sprite;
       open(engine.context.vk, output_size);
       ready = true;
@@ -1481,33 +960,21 @@ export namespace fan::graphics::vulkan::ray_tracing {
       attach_engine_callbacks(engine);
     }
     void detach_engine() {
-      if (attached_engine && update_callback_registered) {
-        attached_engine->remove_update_callback(update_callback_handle);
-      }
+      if (attached_engine && update_callback_registered) attached_engine->remove_update_callback(update_callback_handle);
       update_callback_registered = false;
       resize_handle.remove();
-      if (pre_begin_callback_registered && registered_vk_context &&
-        pre_begin_cmd_cb_index < registered_vk_context->pre_begin_cmd_cb.size()) {
-        registered_vk_context->pre_begin_cmd_cb[pre_begin_cmd_cb_index] = []() {};
-      }
+      if (pre_begin_callback_registered && registered_vk_context && pre_begin_cmd_cb_index < registered_vk_context->pre_begin_cmd_cb.size()) registered_vk_context->pre_begin_cmd_cb[pre_begin_cmd_cb_index] = []() {};
       pre_begin_callback_registered = false;
-      if (command_callback_registered && registered_vk_context &&
-        begin_cmd_cb_index < registered_vk_context->begin_cmd_cb.size()) {
-        registered_vk_context->begin_cmd_cb[begin_cmd_cb_index] = [](VkCommandBuffer) {};
-      }
+      if (command_callback_registered && registered_vk_context && begin_cmd_cb_index < registered_vk_context->begin_cmd_cb.size()) registered_vk_context->begin_cmd_cb[begin_cmd_cb_index] = [](VkCommandBuffer) {};
       command_callback_registered = false;
       registered_vk_context = nullptr;
       attached_engine = nullptr;
       pending_resize = false;
       ready = false;
-      if (output_sprite) {
-        output_sprite.erase();
-      }
+      if (output_sprite) output_sprite.erase();
     }
     void update() {
-      if (!attached_engine) {
-        return;
-      }
+      if (!attached_engine) return;
       if (pending_resize) {
         pending_resize = false;
         vkDeviceWaitIdle(attached_engine->context.vk.device);
@@ -1516,17 +983,11 @@ export namespace fan::graphics::vulkan::ray_tracing {
         ready = true;
         sync_output_sprite();
       }
-      if (!ready) {
-        return;
-      }
-      if (tlas_dirty && !can_update_tlas_transforms()) {
-        flush_transform_updates();
-      }
+      if (!ready) return;
+      if (tlas_dirty && !can_update_tlas_transforms()) flush_transform_updates();
       on_camera_updated(update_camera);
       update_exposure(attached_engine->get_delta_time());
-      if (update_camera) {
-        update_camera_from_engine();
-      }
+      if (update_camera) update_camera_from_engine();
       sync_output_sprite();
     }
 #if defined(FAN_GUI)
@@ -1540,22 +1001,16 @@ export namespace fan::graphics::vulkan::ray_tracing {
       light_changed |= fan::graphics::gui::drag("Light Position", &light_position);
       light_changed |= fan::graphics::gui::drag("Light Color", &light_color);
       light_changed |= fan::graphics::gui::drag("Light Intensity", &light_intensity);
-      if (light_changed) {
-        set_light();
-      }
+      if (light_changed) set_light();
       fan::graphics::gui::end();
     }
 #endif
     void attach_engine_callbacks(fan::graphics::engine_t& engine) {
-      if (!registered_vk_context) {
-        registered_vk_context = &engine.context.vk;
-      }
+      if (!registered_vk_context) registered_vk_context = &engine.context.vk;
       if (!pre_begin_callback_registered) {
         pre_begin_cmd_cb_index = registered_vk_context->pre_begin_cmd_cb.size();
         registered_vk_context->pre_begin_cmd_cb.push_back([this]() {
-          if (tlas_dirty && !can_update_tlas_transforms()) {
-            flush_transform_updates();
-          }
+          if (tlas_dirty && !can_update_tlas_transforms()) flush_transform_updates();
         });
         pre_begin_callback_registered = true;
       }
@@ -1570,9 +1025,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
         command_callback_registered = true;
       }
       if (!update_callback_registered) {
-        update_callback_handle = engine.add_update_callback_front([this](void*) {
-          update();
-        });
+        update_callback_handle = engine.add_update_callback_front([this](void*) { update(); });
         update_callback_registered = true;
       }
       resize_handle = engine.window.add_resize_callback([this](const auto& d) {
@@ -1582,9 +1035,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       });
     }
     void sync_output_sprite() {
-      if (!attached_engine || !output_sprite_enabled || !accum_image_valid) {
-        return;
-      }
+      if (!attached_engine || !output_sprite_enabled || !accum_image_valid) return;
       fan::vec2 window_size = fan::vec2(attached_engine->window.get_size());
       if (!output_sprite) {
         output_sprite = fan::graphics::sprite_t{{
@@ -1603,40 +1054,14 @@ export namespace fan::graphics::vulkan::ray_tracing {
     void record_trace_rays(VkCommandBuffer cmd) {
       static auto start_time = std::chrono::steady_clock::now();
       time_ubo_t t{ std::chrono::duration<f32_t>(std::chrono::steady_clock::now() - start_time).count() };
-      void* data;
-      vkMapMemory(ctx->device, time_memory, 0, sizeof(t), 0, &data);
-      std::memcpy(data, &t, sizeof(t));
-      vkUnmapMemory(ctx->device, time_memory);
+      std::memcpy(time_mapped, &t, sizeof(t));
+
       if (current_layout != VK_IMAGE_LAYOUT_GENERAL) {
-        VkImageMemoryBarrier barrier{};
-        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        barrier.oldLayout = current_layout;
-        barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        barrier.image = ctx->image_get(output_image).image_index;
-        barrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-        barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;   
-        barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;  
-        vkCmdPipelineBarrier(
-          cmd,
-          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-          VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
-          0,
-          0, nullptr,
-          0, nullptr,
-          1, &barrier
-        );
+        ctx->insert_image_barrier(cmd, ctx->image_get(output_image).image_index, current_layout, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR);
         current_layout = VK_IMAGE_LAYOUT_GENERAL;
       }
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline);
-      vkCmdBindDescriptorSets(
-        cmd,
-        VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
-        pipeline_layout,
-        0, 1, &descriptor_set,
-        0, nullptr
-      );
+      vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipeline_layout, 0, 1, &descriptor_set, 0, nullptr);
       VkDeviceAddress sbt_addr = get_buffer_address(shader_binding_table);
       VkStridedDeviceAddressRegionKHR rgen_region{};
       rgen_region.deviceAddress = sbt_addr + rgen_offset;
@@ -1651,109 +1076,30 @@ export namespace fan::graphics::vulkan::ray_tracing {
       hit_region.stride        = group_stride;
       hit_region.size          = group_stride;
       VkStridedDeviceAddressRegionKHR callable_region{};
-      vkCmdTraceRaysKHR(
-        cmd,
-        &rgen_region,
-        &miss_region,
-        &hit_region,
-        &callable_region,
-        size.x, size.y, 1
-      );
+      vkCmdTraceRaysKHR(cmd, &rgen_region, &miss_region, &hit_region, &callable_region, size.x, size.y, 1);
       {
-        VkImageMemoryBarrier lum_barrier{};
-        lum_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        lum_barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-        lum_barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        lum_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        lum_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        lum_barrier.image = ctx->image_get(output_image).image_index;
-        lum_barrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-        lum_barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT; 
-        lum_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;  
-        vkCmdPipelineBarrier(
-          cmd,
-          VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
-          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-          0,
-          0, nullptr,
-          0, nullptr,
-          1, &lum_barrier
-        );
+        ctx->insert_image_barrier(cmd, ctx->image_get(output_image).image_index, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
         current_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       }
-      if (enable_auto_exposure) {
-        dispatch_luminance_compute(cmd, luminance_descriptor_set, size.x, size.y);
-      }
+      if (enable_auto_exposure) dispatch_luminance_compute(cmd, luminance_descriptor_set, size.x, size.y);
       if (accum_layout != VK_IMAGE_LAYOUT_GENERAL) {
-        VkImageMemoryBarrier acc_back{};
-        acc_back.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        acc_back.oldLayout = accum_layout;
-        acc_back.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-        acc_back.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        acc_back.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        acc_back.image = ctx->image_get(accum_image).image_index;
-        acc_back.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-        acc_back.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;   
-        acc_back.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;  
-        vkCmdPipelineBarrier(
-          cmd,
-          VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-          0,
-          0, nullptr,
-          0, nullptr,
-          1, &acc_back
-        );
+        ctx->insert_image_barrier(cmd, ctx->image_get(accum_image).image_index, accum_layout, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
         accum_layout = VK_IMAGE_LAYOUT_GENERAL;
       }
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, accum_pipeline);
-      vkCmdBindDescriptorSets(
-        cmd,
-        VK_PIPELINE_BIND_POINT_COMPUTE,
-        accum_pipeline_layout,
-        0, 1, &accum_descriptor_set,
-        0, nullptr
-      );
-      vkCmdPushConstants(
-        cmd,
-        accum_pipeline_layout,
-        VK_SHADER_STAGE_COMPUTE_BIT,
-        0,
-        sizeof(std::uint32_t),
-        &frame_index
-      );
+      vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, accum_pipeline_layout, 0, 1, &accum_descriptor_set, 0, nullptr);
+      vkCmdPushConstants(cmd, accum_pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(std::uint32_t), &frame_index);
       std::uint32_t gx = (size.x + 7) / 8;
       std::uint32_t gy = (size.y + 7) / 8;
       vkCmdDispatch(cmd, gx, gy, 1);
       {
-        VkImageMemoryBarrier acc_to_sample{};
-        acc_to_sample.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        acc_to_sample.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-        acc_to_sample.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        acc_to_sample.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        acc_to_sample.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        acc_to_sample.image = ctx->image_get(accum_image).image_index;
-        acc_to_sample.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
-        acc_to_sample.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT; 
-        acc_to_sample.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;  
-        vkCmdPipelineBarrier(
-          cmd,
-          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-          VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-          0,
-          0, nullptr,
-          0, nullptr,
-          1, &acc_to_sample
-        );
+        ctx->insert_image_barrier(cmd, ctx->image_get(accum_image).image_index, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
         accum_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       }
     }
     void on_camera_updated(bool camera_moved) {
-      if (camera_moved) {
-        frame_index = 0;
-      } else {
-        frame_index++;
-      }
+      if (camera_moved) frame_index = 0;
+      else frame_index++;
     }
     void trace_rays_before_shapes(){
       record_trace_rays(ctx->command_buffers[ctx->current_frame]);
@@ -1765,29 +1111,16 @@ export namespace fan::graphics::vulkan::ray_tracing {
       VkImageCreateInfo image_info{};
       image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
       image_info.imageType = VK_IMAGE_TYPE_2D;
-      image_info.format = VK_FORMAT_R16G16B16A16_SFLOAT; 
+      image_info.format = VK_FORMAT_R16G16B16A16_SFLOAT;
       image_info.extent = { size.x, size.y, 1 };
       image_info.mipLevels = 1;
       image_info.arrayLayers = 1;
       image_info.samples = VK_SAMPLE_COUNT_1_BIT;
       image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
-      image_info.usage =
-        VK_IMAGE_USAGE_STORAGE_BIT |
-        VK_IMAGE_USAGE_SAMPLED_BIT |
-        VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-        VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+      image_info.usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
       image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
       image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-      fan::vulkan::image_create(
-        *ctx,
-        size,
-        image_info.format,
-        VK_IMAGE_TILING_OPTIMAL,
-        image_info.usage,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-        img.image_index,
-        img.image_memory
-      );
+      fan::vulkan::image_create(*ctx, size, image_info.format, VK_IMAGE_TILING_OPTIMAL, image_info.usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, img.image_index, img.image_memory);
       VkImageViewCreateInfo view_info{};
       view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
       view_info.image = img.image_index;
@@ -1798,37 +1131,10 @@ export namespace fan::graphics::vulkan::ray_tracing {
       view_info.subresourceRange.levelCount = 1;
       view_info.subresourceRange.baseArrayLayer = 0;
       view_info.subresourceRange.layerCount = 1;
-      fan::vulkan::validate(
-        vkCreateImageView(ctx->device, &view_info, nullptr, &img.image_view)
-      );
+      fan::vulkan::validate(vkCreateImageView(ctx->device, &view_info, nullptr, &img.image_view));
       ctx->create_texture_sampler(img.sampler, {});
       VkCommandBuffer cmd = ctx->begin_single_time_commands();
-      VkImageMemoryBarrier barrier{};
-      barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-      barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-      barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-      barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-      barrier.image = img.image_index;
-      barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-      barrier.subresourceRange.baseMipLevel = 0;
-      barrier.subresourceRange.levelCount = 1;
-      barrier.subresourceRange.baseArrayLayer = 0;
-      barrier.subresourceRange.layerCount = 1;
-      barrier.srcAccessMask = 0;
-      barrier.dstAccessMask =
-        VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
-      vkCmdPipelineBarrier(
-        cmd,
-        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT |
-        VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR |
-        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier
-      );
+      ctx->insert_image_barrier(cmd, img.image_index, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL, 0, VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
       VkClearColorValue clear_color{};
       clear_color.float32[0] = 0.0f;
       clear_color.float32[1] = 0.0f;
@@ -1840,34 +1146,20 @@ export namespace fan::graphics::vulkan::ray_tracing {
       range.levelCount = 1;
       range.baseArrayLayer = 0;
       range.layerCount = 1;
-      vkCmdClearColorImage(
-        cmd,
-        img.image_index,
-        VK_IMAGE_LAYOUT_GENERAL,
-        &clear_color,
-        1,
-        &range
-      );
+      vkCmdClearColorImage(cmd, img.image_index, VK_IMAGE_LAYOUT_GENERAL, &clear_color, 1, &range);
       ctx->end_single_time_commands(cmd);
       accum_layout = VK_IMAGE_LAYOUT_GENERAL;
     }
     void create_accum_pipeline() {
       VkDescriptorSetLayoutBinding bindings[2]{};
-      bindings[0].binding = 0;
-      bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-      bindings[0].descriptorCount = 1;
-      bindings[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-      bindings[1].binding = 1;
-      bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-      bindings[1].descriptorCount = 1;
-      bindings[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+      auto bnd = [&](int i, VkDescriptorType t) { bindings[i] = { (std::uint32_t)i, t, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr }; };
+      bnd(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+      bnd(1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE);
       VkDescriptorSetLayoutCreateInfo layout_info{};
       layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
       layout_info.bindingCount = 2;
       layout_info.pBindings = bindings;
-      fan::vulkan::validate(
-        vkCreateDescriptorSetLayout(ctx->device, &layout_info, nullptr, &accum_descriptor_layout)
-      );
+      fan::vulkan::validate(vkCreateDescriptorSetLayout(ctx->device, &layout_info, nullptr, &accum_descriptor_layout));
       VkPushConstantRange pcr{};
       pcr.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
       pcr.offset = 0;
@@ -1878,13 +1170,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
       pl_info.pSetLayouts = &accum_descriptor_layout;
       pl_info.pushConstantRangeCount = 1;
       pl_info.pPushConstantRanges = &pcr;
-      fan::vulkan::validate(
-        vkCreatePipelineLayout(ctx->device, &pl_info, nullptr, &accum_pipeline_layout)
-      );
-      VkShaderModule comp = load_shader(
-        "shaders/vulkan/ray_tracing/accumulate.comp",
-        shaderc_glsl_compute_shader
-      );
+      fan::vulkan::validate(vkCreatePipelineLayout(ctx->device, &pl_info, nullptr, &accum_pipeline_layout));
+      VkShaderModule comp = load_shader("shaders/vulkan/ray_tracing/accumulate.comp", shaderc_glsl_compute_shader);
       VkPipelineShaderStageCreateInfo stage{};
       stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
       stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -1894,9 +1181,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       pi.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
       pi.stage = stage;
       pi.layout = accum_pipeline_layout;
-      fan::vulkan::validate(
-        vkCreateComputePipelines(ctx->device, VK_NULL_HANDLE, 1, &pi, nullptr, &accum_pipeline)
-      );
+      fan::vulkan::validate(vkCreateComputePipelines(ctx->device, VK_NULL_HANDLE, 1, &pi, nullptr, &accum_pipeline));
       vkDestroyShaderModule(ctx->device, comp, nullptr);
     }
     void create_accum_descriptor_set() {
@@ -1910,17 +1195,13 @@ export namespace fan::graphics::vulkan::ray_tracing {
       pool_info.maxSets = 1;
       pool_info.poolSizeCount = 2;
       pool_info.pPoolSizes = pool_sizes;
-      fan::vulkan::validate(
-        vkCreateDescriptorPool(ctx->device, &pool_info, nullptr, &accum_descriptor_pool)
-      );
+      fan::vulkan::validate(vkCreateDescriptorPool(ctx->device, &pool_info, nullptr, &accum_descriptor_pool));
       VkDescriptorSetAllocateInfo alloc_info{};
       alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
       alloc_info.descriptorPool = accum_descriptor_pool;
       alloc_info.descriptorSetCount = 1;
       alloc_info.pSetLayouts = &accum_descriptor_layout;
-      fan::vulkan::validate(
-        vkAllocateDescriptorSets(ctx->device, &alloc_info, &accum_descriptor_set)
-      );
+      fan::vulkan::validate(vkAllocateDescriptorSets(ctx->device, &alloc_info, &accum_descriptor_set));
       auto& out_img = ctx->image_get(output_image);
       VkDescriptorImageInfo current_info{};
       current_info.sampler = out_img.sampler;
@@ -1948,21 +1229,14 @@ export namespace fan::graphics::vulkan::ray_tracing {
     }
     void create_luminance_pipeline() {
       VkDescriptorSetLayoutBinding bindings[2]{};
-      bindings[0].binding = 0;
-      bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-      bindings[0].descriptorCount = 1;
-      bindings[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
-      bindings[1].binding = 1;
-      bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-      bindings[1].descriptorCount = 1;
-      bindings[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+      auto bnd = [&](int i, VkDescriptorType t) { bindings[i] = { (std::uint32_t)i, t, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr }; };
+      bnd(0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+      bnd(1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
       VkDescriptorSetLayoutCreateInfo layout_info{};
       layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
       layout_info.bindingCount = 2;
       layout_info.pBindings = bindings;
-      fan::vulkan::validate(
-        vkCreateDescriptorSetLayout(ctx->device, &layout_info, nullptr, &luminance_descriptor_layout)
-      );
+      fan::vulkan::validate(vkCreateDescriptorSetLayout(ctx->device, &layout_info, nullptr, &luminance_descriptor_layout));
       VkPushConstantRange pcr{};
       pcr.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
       pcr.offset = 0;
@@ -1973,13 +1247,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
       pl_info.pSetLayouts = &luminance_descriptor_layout;
       pl_info.pushConstantRangeCount = 1;
       pl_info.pPushConstantRanges = &pcr;
-      fan::vulkan::validate(
-        vkCreatePipelineLayout(ctx->device, &pl_info, nullptr, &luminance_pipeline_layout)
-      );
-      VkShaderModule comp = load_shader(
-        "shaders/vulkan/ray_tracing/luminance_reduce.comp",
-        shaderc_glsl_compute_shader
-      );
+      fan::vulkan::validate(vkCreatePipelineLayout(ctx->device, &pl_info, nullptr, &luminance_pipeline_layout));
+      VkShaderModule comp = load_shader("shaders/vulkan/ray_tracing/luminance_reduce.comp", shaderc_glsl_compute_shader);
       VkPipelineShaderStageCreateInfo stage{};
       stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
       stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -1989,9 +1258,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       pi.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
       pi.stage = stage;
       pi.layout = luminance_pipeline_layout;
-      fan::vulkan::validate(
-        vkCreateComputePipelines(ctx->device, VK_NULL_HANDLE, 1, &pi, nullptr, &luminance_pipeline)
-      );
+      fan::vulkan::validate(vkCreateComputePipelines(ctx->device, VK_NULL_HANDLE, 1, &pi, nullptr, &luminance_pipeline));
       vkDestroyShaderModule(ctx->device, comp, nullptr);
     }
     void create_luminance_descriptor_set() {
@@ -2005,17 +1272,13 @@ export namespace fan::graphics::vulkan::ray_tracing {
       pool_info.maxSets       = 1;
       pool_info.poolSizeCount = 2;
       pool_info.pPoolSizes    = pool_sizes;
-      fan::vulkan::validate(
-        vkCreateDescriptorPool(ctx->device, &pool_info, nullptr, &luminance_descriptor_pool)
-      );
+      fan::vulkan::validate(vkCreateDescriptorPool(ctx->device, &pool_info, nullptr, &luminance_descriptor_pool));
       VkDescriptorSetAllocateInfo alloc_info{};
       alloc_info.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
       alloc_info.descriptorPool     = luminance_descriptor_pool;
       alloc_info.descriptorSetCount = 1;
       alloc_info.pSetLayouts        = &luminance_descriptor_layout;
-      fan::vulkan::validate(
-        vkAllocateDescriptorSets(ctx->device, &alloc_info, &luminance_descriptor_set)
-      );
+      fan::vulkan::validate(vkAllocateDescriptorSets(ctx->device, &alloc_info, &luminance_descriptor_set));
       auto& hdr_img = ctx->image_get(output_image);
       VkDescriptorImageInfo hdr_info{};
       hdr_info.sampler     = hdr_img.sampler;
@@ -2043,21 +1306,14 @@ export namespace fan::graphics::vulkan::ray_tracing {
       std::uint32_t groupsX = (width  + 15) / 16;
       std::uint32_t groupsY = (height + 15) / 16;
       luminance_group_count = groupsX * groupsY;
-      VkDeviceSize size = sizeof(float) * luminance_group_count;
-      ctx->create_buffer(
-        size,
-        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        luminance_buffer,
-        luminance_memory
-      );
+      VkDeviceSize size = sizeof(f32_t) * luminance_group_count;
+      ctx->create_buffer(size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, luminance_buffer, luminance_memory);
+      vkMapMemory(ctx->device, luminance_memory, 0, size, 0, &luminance_mapped);
     }
-    void dispatch_luminance_compute(VkCommandBuffer cmd, VkDescriptorSet luminance_set,
-      std::uint32_t width, std::uint32_t height) 
-    {
+    void dispatch_luminance_compute(VkCommandBuffer cmd, VkDescriptorSet luminance_set, std::uint32_t width, std::uint32_t height) {
       std::uint32_t groupsX = (width  + 15) / 16;
       std::uint32_t groupsY = (height + 15) / 16;
-      vkCmdFillBuffer(cmd, luminance_buffer, 0, sizeof(float) * luminance_group_count, 0);
+      vkCmdFillBuffer(cmd, luminance_buffer, 0, sizeof(f32_t) * luminance_group_count, 0);
       VkBufferMemoryBarrier clearBarrier{};
       clearBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
       clearBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -2065,25 +1321,15 @@ export namespace fan::graphics::vulkan::ray_tracing {
       clearBarrier.buffer = luminance_buffer;
       clearBarrier.offset = 0;
       clearBarrier.size = VK_WHOLE_SIZE;
-      vkCmdPipelineBarrier(
-        cmd,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        0,
-        0, nullptr,
-        1, &clearBarrier,
-        0, nullptr
-      );
+      vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 1, &clearBarrier, 0, nullptr);
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, luminance_pipeline);
-      vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE,
-        luminance_pipeline_layout, 0, 1, &luminance_set, 0, nullptr);
+      vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, luminance_pipeline_layout, 0, 1, &luminance_set, 0, nullptr);
       struct PC { int w, h, gx, gy; } pc;
       pc.w = width;
       pc.h = height;
       pc.gx = groupsX;
       pc.gy = groupsY;
-      vkCmdPushConstants(cmd, luminance_pipeline_layout,
-        VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pc), &pc);
+      vkCmdPushConstants(cmd, luminance_pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pc), &pc);
       vkCmdDispatch(cmd, groupsX, groupsY, 1);
       VkBufferMemoryBarrier read_barrier{};
       read_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
@@ -2093,122 +1339,88 @@ export namespace fan::graphics::vulkan::ray_tracing {
       read_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
       read_barrier.buffer = luminance_buffer;
       read_barrier.offset = 0;
-      read_barrier.size = sizeof(float) * luminance_group_count;
-      vkCmdPipelineBarrier(
-        cmd,
-        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        VK_PIPELINE_STAGE_HOST_BIT,
-        0,
-        0, nullptr,
-        1, &read_barrier,
-        0, nullptr
-      );
+      read_barrier.size = sizeof(f32_t) * luminance_group_count;
+      vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_HOST_BIT, 0, 0, nullptr, 1, &read_barrier, 0, nullptr);
     }
     void write_exposure_ubo() {
-      if (!ctx || !exposure_ubo) {
-        return;
-      }
+      if (!ctx || !exposure_ubo || !exposure_mapped) return;
       exposure_ubo_t ubo{};
       ubo.exposure = exposure;
       ubo.enable_gi = enable_gi ? 1.f : 0.f;
       ubo.enable_reflections = enable_reflections ? 1.f : 0.f;
-      void* mapped;
-      vkMapMemory(ctx->device, exposure_ubo_memory, 0, sizeof(ubo), 0, &mapped);
-      std::memcpy(mapped, &ubo, sizeof(ubo));
-      vkUnmapMemory(ctx->device, exposure_ubo_memory);
+      std::memcpy(exposure_mapped, &ubo, sizeof(ubo));
     }
-    void update_exposure(float dt) {
-      if (!ctx || !enable_auto_exposure || !luminance_buffer || luminance_group_count == 0) {
+    void update_exposure(f32_t dt) {
+      if (!ctx || !enable_auto_exposure || !luminance_buffer || luminance_group_count == 0 || !luminance_mapped) {
         write_exposure_ubo();
         return;
       }
-      std::vector<float> partial(luminance_group_count);
-      void* data;
-      vkMapMemory(ctx->device, luminance_memory, 0,
-        sizeof(float) * luminance_group_count, 0, &data);
-      std::memcpy(partial.data(), data, sizeof(float) * luminance_group_count);
-      vkUnmapMemory(ctx->device, luminance_memory);
+      std::vector<f32_t> partial(luminance_group_count);
+      std::memcpy(partial.data(), luminance_mapped, sizeof(f32_t) * luminance_group_count);
       double total = 0.0;
-      for (float v : partial) total += v;
+      for (f32_t v : partial) total += v;
       double avgL = total / double(size.x * size.y);
       if (avgL < 1e-6) avgL = 1e-6;
-      float middle_gray = 0.06f;
-      target_exposure = middle_gray / float(avgL);
-      float lambda = 1.0f - std::exp(-adaptation_speed * dt);
+      f32_t middle_gray = 0.06f;
+      target_exposure = middle_gray / f32_t(avgL);
+      f32_t lambda = 1.0f - std::exp(-adaptation_speed * dt);
       exposure = exposure + lambda * (target_exposure - exposure);
       exposure = std::clamp(exposure, 0.0001f, 20.0f);
       write_exposure_ubo();
     }
     void create_exposure_ubo() {
-      ctx->create_buffer(
-        sizeof(exposure_ubo_t),
-        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        exposure_ubo,
-        exposure_ubo_memory
-      );
+      ctx->create_buffer(sizeof(exposure_ubo_t), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, exposure_ubo, exposure_ubo_memory);
+      vkMapMemory(ctx->device, exposure_ubo_memory, 0, sizeof(exposure_ubo_t), 0, &exposure_mapped);
       write_exposure_ubo();
     }
     void close(){
       if(!ctx) return;
       ready = false;
       vkDeviceWaitIdle(ctx->device);
-      for(auto& geom : mesh_geometries){
-        geom.destroy(*ctx);
-      }
-      for(auto& blas : blas_list){
-        blas.destroy(*ctx);
-      }
+      for(auto& geom : mesh_geometries) geom.destroy(*ctx);
+      for(auto& blas : blas_list) blas.destroy(*ctx);
       tlas.destroy(*ctx);
-      if(pipeline) vkDestroyPipeline(ctx->device, pipeline, nullptr);
-      if(pipeline_layout) vkDestroyPipelineLayout(ctx->device, pipeline_layout, nullptr);
-      if(descriptor_layout) vkDestroyDescriptorSetLayout(ctx->device, descriptor_layout, nullptr);
-      if(descriptor_pool) vkDestroyDescriptorPool(ctx->device, descriptor_pool, nullptr);
-      if(shader_binding_table) vkDestroyBuffer(ctx->device, shader_binding_table, nullptr);
-      if(sbt_memory) vkFreeMemory(ctx->device, sbt_memory, nullptr);
-      if(sbt_staging) vkDestroyBuffer(ctx->device, sbt_staging, nullptr);
-      if(sbt_staging_memory) vkFreeMemory(ctx->device, sbt_staging_memory, nullptr);
-      if(camera_buffer) vkDestroyBuffer(ctx->device, camera_buffer, nullptr);
-      if(camera_memory) vkFreeMemory(ctx->device, camera_memory, nullptr);
-      if(time_buffer) vkDestroyBuffer(ctx->device, time_buffer, nullptr);
-      if(time_memory) vkFreeMemory(ctx->device, time_memory, nullptr);
-      if(tlas_instance_buffer) vkDestroyBuffer(ctx->device, tlas_instance_buffer, nullptr);
-      if(tlas_instance_memory) vkFreeMemory(ctx->device, tlas_instance_memory, nullptr);
-      if(tlas_instance_staging_buffer) vkDestroyBuffer(ctx->device, tlas_instance_staging_buffer, nullptr);
-      if(tlas_instance_staging_memory) vkFreeMemory(ctx->device, tlas_instance_staging_memory, nullptr);
-      if(tlas_scratch_buffer) vkDestroyBuffer(ctx->device, tlas_scratch_buffer, nullptr);
-      if(tlas_scratch_memory) vkFreeMemory(ctx->device, tlas_scratch_memory, nullptr);
-      if(vertex_buffer) vkDestroyBuffer(ctx->device, vertex_buffer, nullptr);
-      if(vertex_memory) vkFreeMemory(ctx->device, vertex_memory, nullptr);
-      if(index_buffer) vkDestroyBuffer(ctx->device, index_buffer, nullptr);
-      if(index_memory) vkFreeMemory(ctx->device, index_memory, nullptr);
-      if(material_buffer) vkDestroyBuffer(ctx->device, material_buffer, nullptr);
-      if(material_memory) vkFreeMemory(ctx->device, material_memory, nullptr);
-      if(material_index_buffer) vkDestroyBuffer(ctx->device, material_index_buffer, nullptr);
-      if(material_index_memory) vkFreeMemory(ctx->device, material_index_memory, nullptr);
-      if(accum_pipeline) vkDestroyPipeline(ctx->device, accum_pipeline, nullptr);
-      if(accum_pipeline_layout) vkDestroyPipelineLayout(ctx->device, accum_pipeline_layout, nullptr);
-      if(accum_descriptor_layout) vkDestroyDescriptorSetLayout(ctx->device, accum_descriptor_layout, nullptr);
-      if(accum_descriptor_pool) vkDestroyDescriptorPool(ctx->device, accum_descriptor_pool, nullptr);
-      if(luminance_pipeline) vkDestroyPipeline(ctx->device, luminance_pipeline, nullptr);
-      if(luminance_pipeline_layout) vkDestroyPipelineLayout(ctx->device, luminance_pipeline_layout, nullptr);
-      if(luminance_descriptor_layout) vkDestroyDescriptorSetLayout(ctx->device, luminance_descriptor_layout, nullptr);
-      if(luminance_descriptor_pool) vkDestroyDescriptorPool(ctx->device, luminance_descriptor_pool, nullptr);
-      if(luminance_buffer) vkDestroyBuffer(ctx->device, luminance_buffer, nullptr);
-      if(luminance_memory) vkFreeMemory(ctx->device, luminance_memory, nullptr);
-      if(exposure_ubo) vkDestroyBuffer(ctx->device, exposure_ubo, nullptr);
-      if(exposure_ubo_memory) vkFreeMemory(ctx->device, exposure_ubo_memory, nullptr);
-      if(light_buffer) vkDestroyBuffer(ctx->device, light_buffer, nullptr);
-      if(light_memory) vkFreeMemory(ctx->device, light_memory, nullptr);
-      for(auto tex_id : texture_ids){
-        ctx->image_erase(tex_id);
-      }
-      if(output_image_valid){
-        ctx->image_erase(output_image);
-      }
-      if(accum_image_valid){
-        ctx->image_erase(accum_image);
-      }
+
+      auto destroy_pipe = [&](auto& p, auto& l, auto& d, auto& pool) {
+        if (p) vkDestroyPipeline(ctx->device, p, nullptr);
+        if (l) vkDestroyPipelineLayout(ctx->device, l, nullptr);
+        if (d) vkDestroyDescriptorSetLayout(ctx->device, d, nullptr);
+        if (pool) vkDestroyDescriptorPool(ctx->device, pool, nullptr);
+        p = VK_NULL_HANDLE;
+        l = VK_NULL_HANDLE;
+        d = VK_NULL_HANDLE;
+        pool = VK_NULL_HANDLE;
+      };
+      destroy_pipe(pipeline, pipeline_layout, descriptor_layout, descriptor_pool);
+      destroy_pipe(accum_pipeline, accum_pipeline_layout, accum_descriptor_layout, accum_descriptor_pool);
+      destroy_pipe(luminance_pipeline, luminance_pipeline_layout, luminance_descriptor_layout, luminance_descriptor_pool);
+
+      destroy_buffer(shader_binding_table, sbt_memory);
+      destroy_buffer(sbt_staging, sbt_staging_memory);
+      destroy_buffer(camera_buffer, camera_memory);
+      destroy_buffer(time_buffer, time_memory);
+      destroy_buffer(tlas_instance_buffer, tlas_instance_memory);
+      destroy_buffer(tlas_instance_staging_buffer, tlas_instance_staging_memory);
+      destroy_buffer(tlas_scratch_buffer, tlas_scratch_memory);
+      destroy_buffer(vertex_buffer, vertex_memory);
+      destroy_buffer(index_buffer, index_memory);
+      destroy_buffer(material_buffer, material_memory);
+      destroy_buffer(material_index_buffer, material_index_memory);
+      destroy_buffer(luminance_buffer, luminance_memory);
+      destroy_buffer(exposure_ubo, exposure_ubo_memory);
+      destroy_buffer(light_buffer, light_memory);
+
+      camera_mapped = nullptr;
+      time_mapped = nullptr;
+      tlas_instance_staging_mapped = nullptr;
+      luminance_mapped = nullptr;
+      exposure_mapped = nullptr;
+      light_mapped = nullptr;
+
+      for(auto tex_id : texture_ids) ctx->image_erase(tex_id);
+      if(output_image_valid) ctx->image_erase(output_image);
+      if(accum_image_valid) ctx->image_erase(accum_image);
+
       blas_list.clear();
       model_cache.clear();
       mesh_geometries.clear();
@@ -2232,53 +1444,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
       tlas_dirty = false;
       output_image_valid = false;
       accum_image_valid = false;
-      pipeline = VK_NULL_HANDLE;
-      pipeline_layout = VK_NULL_HANDLE;
-      descriptor_layout = VK_NULL_HANDLE;
-      descriptor_pool = VK_NULL_HANDLE;
-      descriptor_set = VK_NULL_HANDLE;
-      shader_binding_table = VK_NULL_HANDLE;
-      sbt_memory = VK_NULL_HANDLE;
-      sbt_staging = VK_NULL_HANDLE;
-      sbt_staging_memory = VK_NULL_HANDLE;
-      accum_layout = VK_IMAGE_LAYOUT_UNDEFINED;
-      accum_pipeline = VK_NULL_HANDLE;
-      accum_pipeline_layout = VK_NULL_HANDLE;
-      accum_descriptor_layout = VK_NULL_HANDLE;
-      accum_descriptor_pool = VK_NULL_HANDLE;
-      accum_descriptor_set = VK_NULL_HANDLE;
-      current_layout = VK_IMAGE_LAYOUT_UNDEFINED;
-      camera_buffer = VK_NULL_HANDLE;
-      camera_memory = VK_NULL_HANDLE;
-      time_buffer = VK_NULL_HANDLE;
-      time_memory = VK_NULL_HANDLE;
-      tlas_instance_buffer = VK_NULL_HANDLE;
-      tlas_instance_memory = VK_NULL_HANDLE;
-      tlas_instance_staging_buffer = VK_NULL_HANDLE;
-      tlas_instance_staging_memory = VK_NULL_HANDLE;
       tlas_instance_staging_size = 0;
-      tlas_scratch_buffer = VK_NULL_HANDLE;
-      tlas_scratch_memory = VK_NULL_HANDLE;
-      vertex_buffer = VK_NULL_HANDLE;
-      vertex_memory = VK_NULL_HANDLE;
-      index_buffer = VK_NULL_HANDLE;
-      index_memory = VK_NULL_HANDLE;
-      material_buffer = VK_NULL_HANDLE;
-      material_memory = VK_NULL_HANDLE;
-      material_index_buffer = VK_NULL_HANDLE;
-      material_index_memory = VK_NULL_HANDLE;
-      luminance_buffer = VK_NULL_HANDLE;
-      luminance_memory = VK_NULL_HANDLE;
       luminance_group_count = 0;
-      exposure_ubo = VK_NULL_HANDLE;
-      exposure_ubo_memory = VK_NULL_HANDLE;
-      luminance_descriptor_layout = VK_NULL_HANDLE;
-      luminance_descriptor_pool = VK_NULL_HANDLE;
-      luminance_descriptor_set = VK_NULL_HANDLE;
-      luminance_pipeline_layout = VK_NULL_HANDLE;
-      luminance_pipeline = VK_NULL_HANDLE;
-      light_buffer = VK_NULL_HANDLE;
-      light_memory = VK_NULL_HANDLE;
       ctx = nullptr;
     }
   #pragma pack(push, 1)
@@ -2325,6 +1492,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     fan::graphics::image_t output_image;
     bool output_image_valid = false;
     VkImageLayout current_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+
     VkBuffer camera_buffer = VK_NULL_HANDLE;
     VkDeviceMemory camera_memory = VK_NULL_HANDLE;
     VkBuffer time_buffer = VK_NULL_HANDLE;
@@ -2391,6 +1559,14 @@ export namespace fan::graphics::vulkan::ray_tracing {
     VkPipeline            luminance_pipeline          = VK_NULL_HANDLE;
     VkBuffer light_buffer = VK_NULL_HANDLE;
     VkDeviceMemory light_memory = VK_NULL_HANDLE;
+
+    void* camera_mapped = nullptr;
+    void* time_mapped = nullptr;
+    void* light_mapped = nullptr;
+    void* exposure_mapped = nullptr;
+    void* luminance_mapped = nullptr;
+    void* tlas_instance_staging_mapped = nullptr;
+
     PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR = nullptr;
     PFN_vkCmdBuildAccelerationStructuresKHR vkCmdBuildAccelerationStructuresKHR = nullptr;
     PFN_vkGetAccelerationStructureBuildSizesKHR vkGetAccelerationStructureBuildSizesKHR = nullptr;

@@ -1454,7 +1454,7 @@ void fan::vulkan::context_t::create_logical_device() {
   #endif
   };
 
-  float queuePriority = 1.0f;
+  f32_t queuePriority = 1.0f;
   for (std::uint32_t queueFamily : uniqueQueueFamilies) {
     VkDeviceQueueCreateInfo queueCreateInfo {};
     queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
