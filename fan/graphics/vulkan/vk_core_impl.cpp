@@ -59,6 +59,7 @@ import fan.math.intersection;
 
 #define ENABLE_RAYTRACING_DEPENDENCIES
 
+#define VK_CTX ((fan::vulkan::context_t*)context)
 
 const std::vector<const char*> validationLayers = {
     "VK_LAYER_KHRONOS_validation"
@@ -2431,196 +2432,197 @@ void fan::vulkan::vai_t::close(fan::vulkan::context_t& context) {
     memory = 0;
   }
 }
+
 fan::graphics::context_functions_t fan::graphics::get_vk_context_functions() {
   fan::graphics::context_functions_t cf;
   cf.shader_create = [](void* context) {
-    return ((fan::vulkan::context_t*)context)->shader_create();
+    return VK_CTX->shader_create();
   };
   cf.shader_get = [](void* context, fan::graphics::shader_nr_t nr) {
-    return (void*)&((fan::vulkan::context_t*)context)->shader_get(nr);
+    return (void*)&VK_CTX->shader_get(nr);
   };
   cf.shader_erase = [](void* context, fan::graphics::shader_nr_t nr) {
-    ((fan::vulkan::context_t*)context)->shader_erase(nr);
+    VK_CTX->shader_erase(nr);
   };
   cf.shader_use = [](void* context, fan::graphics::shader_nr_t nr) {
-    ((fan::vulkan::context_t*)context)->shader_use(nr);
+    VK_CTX->shader_use(nr);
   };
   cf.shader_set_vertex = [](void* context, fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& vertex_code) {
-    ((fan::vulkan::context_t*)context)->shader_set_vertex(nr, file_path, vertex_code);
+    VK_CTX->shader_set_vertex(nr, file_path, vertex_code);
   };
   cf.shader_set_fragment = [](void* context, fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& fragment_code) {
-    ((fan::vulkan::context_t*)context)->shader_set_fragment(nr, file_path, fragment_code);
+    VK_CTX->shader_set_fragment(nr, file_path, fragment_code);
   };
   cf.shader_set_compute = [](void* context, fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& compute_code) {
-    ((fan::vulkan::context_t*)context)->shader_set_compute(nr, file_path, compute_code);
+    VK_CTX->shader_set_compute(nr, file_path, compute_code);
   };
   cf.shader_dispatch_compute = [](void* context, fan::graphics::shader_nr_t nr, uint32_t x, uint32_t y, uint32_t z) {
-    ((fan::vulkan::context_t*)context)->shader_dispatch_compute(nr, x, y, z);
+    VK_CTX->shader_dispatch_compute(nr, x, y, z);
   };
   cf.shader_compile = [](void* context, fan::graphics::shader_nr_t nr) {
-    return ((fan::vulkan::context_t*)context)->shader_compile(nr);
+    return VK_CTX->shader_compile(nr);
   };
   /*image*/
   cf.image_create = [](void* context) {
-    return ((fan::vulkan::context_t*)context)->image_create();
+    return VK_CTX->image_create();
   };
   cf.image_get_handle = [](void* context, fan::graphics::image_nr_t nr) {
-    return (std::uint64_t)((fan::vulkan::context_t*)context)->image_get_handle(nr);
+    return (std::uint64_t)VK_CTX->image_get_handle(nr);
   };
   cf.image_get = [](void* context, fan::graphics::image_nr_t nr) {
-    return (void*)&((fan::vulkan::context_t*)context)->image_get(nr);
+    return (void*)&VK_CTX->image_get(nr);
   };
   cf.image_erase = [](void* context, fan::graphics::image_nr_t nr) {
-    ((fan::vulkan::context_t*)context)->image_erase(nr);
+    VK_CTX->image_erase(nr);
   };
   cf.image_bind = [](void* context, fan::graphics::image_nr_t nr) {
-    ((fan::vulkan::context_t*)context)->image_bind(nr);
+    VK_CTX->image_bind(nr);
   };
   cf.image_bind_unit = [](void* context, fan::graphics::image_nr_t nr, std::uint32_t unit) {
-    ((fan::vulkan::context_t*)context)->image_bind(nr, unit);
+    VK_CTX->image_bind(nr, unit);
   };
   cf.image_bind_params = [](void* context, fan::graphics::image_nr_t nr, std::uint32_t unit, std::uint32_t access, std::uint32_t format) {
-    ((fan::vulkan::context_t*)context)->image_bind(nr, unit, access, format);
+    VK_CTX->image_bind(nr, unit, access, format);
   };
   cf.image_unbind = [](void* context, fan::graphics::image_nr_t nr) {
-    ((fan::vulkan::context_t*)context)->image_unbind(nr);
+    VK_CTX->image_unbind(nr);
   };
   cf.image_get_settings = [](void* context, fan::graphics::image_nr_t nr) -> fan::graphics::image_load_properties_t& {
-    return ((fan::vulkan::context_t*)context)->image_get_settings(nr);
+    return VK_CTX->image_get_settings(nr);
   };
   cf.image_set_settings = [](void* context, fan::graphics::image_nr_t nr, const fan::graphics::image_load_properties_t& settings) {
-    ((fan::vulkan::context_t*)context)->image_set_settings(nr, fan::graphics::format_converter::image_global_to_vulkan(settings));
+    VK_CTX->image_set_settings(nr, fan::graphics::format_converter::image_global_to_vulkan(settings));
   };
   cf.image_load_info = [](void* context, const fan::image::info_t& image_info) {
-    return ((fan::vulkan::context_t*)context)->image_load(image_info);
+    return VK_CTX->image_load(image_info);
   };
   cf.image_load_info_props = [](void* context, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
-    return ((fan::vulkan::context_t*)context)->image_load(image_info, fan::graphics::format_converter::image_global_to_vulkan(p));
+    return VK_CTX->image_load(image_info, fan::graphics::format_converter::image_global_to_vulkan(p));
   };
   cf.image_load_path = [](void* context, fan::str_view_t path, const std::source_location& callers_path = std::source_location::current()) {
-    return ((fan::vulkan::context_t*)context)->image_load(path, callers_path);
+    return VK_CTX->image_load(path, callers_path);
   };
   cf.image_load_path_props = [](void* context, fan::str_view_t path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current()) {
-    return ((fan::vulkan::context_t*)context)->image_load(path, fan::graphics::format_converter::image_global_to_vulkan(p), callers_path);
+    return VK_CTX->image_load(path, fan::graphics::format_converter::image_global_to_vulkan(p), callers_path);
   };
   cf.image_load_colors = [](void* context, fan::color* colors, const fan::vec2ui& size_) {
-    return ((fan::vulkan::context_t*)context)->image_load(colors, size_);
+    return VK_CTX->image_load(colors, size_);
   };
   cf.image_load_colors_props = [](void* context, fan::color* colors, const fan::vec2ui& size_, const fan::graphics::image_load_properties_t& p) {
-    return ((fan::vulkan::context_t*)context)->image_load(colors, size_, fan::graphics::format_converter::image_global_to_vulkan(p));
+    return VK_CTX->image_load(colors, size_, fan::graphics::format_converter::image_global_to_vulkan(p));
   };
   cf.image_unload = [](void* context, fan::graphics::image_nr_t nr) {
-    ((fan::vulkan::context_t*)context)->image_unload(nr);
+    VK_CTX->image_unload(nr);
   };
   cf.create_missing_texture = [](void* context) {
-    return ((fan::vulkan::context_t*)context)->create_missing_texture();
+    return VK_CTX->create_missing_texture();
   };
   cf.create_transparent_texture = [](void* context) {
-    return ((fan::vulkan::context_t*)context)->create_transparent_texture();
+    return VK_CTX->create_transparent_texture();
   };
   cf.image_reload_image_info = [](void* context, fan::graphics::image_nr_t nr, const fan::image::info_t& image_info) {
-    return ((fan::vulkan::context_t*)context)->image_reload(nr, image_info);
+    return VK_CTX->image_reload(nr, image_info);
   };
   cf.image_reload_image_info_props = [](void* context, fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
-    return ((fan::vulkan::context_t*)context)->image_reload(nr, image_info, fan::graphics::format_converter::image_global_to_vulkan(p));
+    return VK_CTX->image_reload(nr, image_info, fan::graphics::format_converter::image_global_to_vulkan(p));
   };
   cf.image_reload_path = [](void* context, fan::graphics::image_nr_t nr, fan::str_view_t path, const std::source_location& callers_path = std::source_location::current()) {
-    return ((fan::vulkan::context_t*)context)->image_reload(nr, path, callers_path);
+    return VK_CTX->image_reload(nr, path, callers_path);
   };
   cf.image_reload_path_props = [](void* context, fan::graphics::image_nr_t nr, fan::str_view_t path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current()) {
-    return ((fan::vulkan::context_t*)context)->image_reload(nr, path, fan::graphics::format_converter::image_global_to_vulkan(p), callers_path);
+    return VK_CTX->image_reload(nr, path, fan::graphics::format_converter::image_global_to_vulkan(p), callers_path);
   };
   cf.image_create_color = [](void* context, const fan::color& color) {
-    return ((fan::vulkan::context_t*)context)->image_create(color);
+    return VK_CTX->image_create(color);
   };
   cf.image_create_color_props = [](void* context, const fan::color& color, const fan::graphics::image_load_properties_t& p) {
-    return ((fan::vulkan::context_t*)context)->image_create(color, fan::graphics::format_converter::image_global_to_vulkan(p));
+    return VK_CTX->image_create(color, fan::graphics::format_converter::image_global_to_vulkan(p));
   };
   cf.image_create_data = [](void* context, void* data, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p) {
-    return ((fan::vulkan::context_t*)context)->image_create(data, size, fan::graphics::format_converter::image_global_to_vulkan(p));
+    return VK_CTX->image_create(data, size, fan::graphics::format_converter::image_global_to_vulkan(p));
   };
   /*camera*/
   cf.camera_create = [](void* context) {
-    return ((fan::vulkan::context_t*)context)->camera_create();
+    return VK_CTX->camera_create();
   };
   cf.camera_get = [](void* context, fan::graphics::camera_nr_t nr) -> decltype(auto) {
-    return ((fan::vulkan::context_t*)context)->camera_get(nr);
+    return VK_CTX->camera_get(nr);
   };
   cf.camera_erase = [](void* context, fan::graphics::camera_nr_t nr) {
-    ((fan::vulkan::context_t*)context)->camera_erase(nr);
+    VK_CTX->camera_erase(nr);
   };
   cf.camera_create_params = [](void* context, const fan::vec2& x, const fan::vec2& y) {
-    return ((fan::vulkan::context_t*)context)->camera_create(x, y);
+    return VK_CTX->camera_create(x, y);
   };
   cf.camera_get_position = [](void* context, fan::graphics::camera_nr_t nr) {
-    return ((fan::vulkan::context_t*)context)->camera_get_position(nr);
+    return VK_CTX->camera_get_position(nr);
   };
   cf.camera_set_position = [](void* context, fan::graphics::camera_nr_t nr, const fan::vec3& cp) {
-    ((fan::vulkan::context_t*)context)->camera_set_position(nr, cp);
+    VK_CTX->camera_set_position(nr, cp);
   };
   cf.camera_get_center = [](void* context, fan::graphics::camera_nr_t nr) {
-    return ((fan::vulkan::context_t*)context)->camera_get_center(nr);
+    return VK_CTX->camera_get_center(nr);
   };
   cf.camera_set_center = [](void* context, fan::graphics::camera_nr_t nr, const fan::vec3& cp) {
-    ((fan::vulkan::context_t*)context)->camera_set_center(nr, cp);
+    VK_CTX->camera_set_center(nr, cp);
   };
   cf.camera_get_size = [](void* context, fan::graphics::camera_nr_t nr) {
-    return ((fan::vulkan::context_t*)context)->camera_get_size(nr);
+    return VK_CTX->camera_get_size(nr);
   };
   cf.camera_get_zoom = [](void* context, fan::graphics::camera_nr_t nr) {
-    return ((fan::vulkan::context_t*)context)->camera_get_zoom(nr);
+    return VK_CTX->camera_get_zoom(nr);
   };
   cf.camera_set_zoom = [](void* context, fan::graphics::camera_nr_t nr, f32_t new_zoom) {
-    ((fan::vulkan::context_t*)context)->camera_set_zoom(nr, new_zoom);
+    VK_CTX->camera_set_zoom(nr, new_zoom);
   };
   cf.camera_set_ortho = [](void* context, fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y) {
-    ((fan::vulkan::context_t*)context)->camera_set_ortho(nr, x, y);
+    VK_CTX->camera_set_ortho(nr, x, y);
   };
   cf.camera_set_perspective = [](void* context, fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size) {
-    ((fan::vulkan::context_t*)context)->camera_set_perspective(nr, fov, window_size);
+    VK_CTX->camera_set_perspective(nr, fov, window_size);
   };
   cf.camera_rotate = [](void* context, fan::graphics::camera_nr_t nr, const fan::vec2& offset) {
-    ((fan::vulkan::context_t*)context)->camera_rotate(nr, offset);
+    VK_CTX->camera_rotate(nr, offset);
   };
   /*viewport*/
   cf.viewport_create = [](void* context) {
-    return ((fan::vulkan::context_t*)context)->viewport_create();
+    return VK_CTX->viewport_create();
   };
   cf.viewport_create_params = [](void* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
-    auto vk_context = ((fan::vulkan::context_t*)context);
+    auto vk_context = VK_CTX;
     auto nr = vk_context->viewport_create();
     vk_context->viewport_set(nr, viewport_position_, viewport_size_, window_size);
     return nr;
   };
   cf.viewport_get = [](void* context, fan::graphics::viewport_nr_t nr) -> fan::graphics::context_viewport_t& {
-    return ((fan::vulkan::context_t*)context)->viewport_get(nr);
+    return VK_CTX->viewport_get(nr);
   };
   cf.viewport_erase = [](void* context, fan::graphics::viewport_nr_t nr) {
-    ((fan::vulkan::context_t*)context)->viewport_erase(nr);
+    VK_CTX->viewport_erase(nr);
   };
   cf.viewport_get_position = [](void* context, fan::graphics::viewport_nr_t nr) {
-    return ((fan::vulkan::context_t*)context)->viewport_get_position(nr);
+    return VK_CTX->viewport_get_position(nr);
   };
   cf.viewport_get_size = [](void* context, fan::graphics::viewport_nr_t nr) {
-    return ((fan::vulkan::context_t*)context)->viewport_get_size(nr);
+    return VK_CTX->viewport_get_size(nr);
   };
   cf.viewport_set = [](void* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
-    ((fan::vulkan::context_t*)context)->viewport_set(viewport_position_, viewport_size_, window_size);
+    VK_CTX->viewport_set(viewport_position_, viewport_size_, window_size);
   };
   cf.viewport_set_nr = [](void* context, fan::graphics::viewport_nr_t nr, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
-    ((fan::vulkan::context_t*)context)->viewport_set(nr, viewport_position_, viewport_size_, window_size);
+    VK_CTX->viewport_set(nr, viewport_position_, viewport_size_, window_size);
   };
   cf.viewport_zero = [](void* context, fan::graphics::viewport_nr_t nr) {
-    ((fan::vulkan::context_t*)context)->viewport_zero(nr);
+    VK_CTX->viewport_zero(nr);
   };
   cf.viewport_inside = [](void* context, fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
-    return ((fan::vulkan::context_t*)context)->viewport_inside(nr, position);
+    return VK_CTX->viewport_inside(nr, position);
   };
   cf.viewport_inside_wir = [](void* context, fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
-    return ((fan::vulkan::context_t*)context)->viewport_inside_wir(nr, position);
+    return VK_CTX->viewport_inside_wir(nr, position);
   };
   cf.image_get_pixel_data = [](void* context, fan::graphics::image_nr_t nr, std::uint32_t format, fan::vec2 uvp, fan::vec2 uvs) {
-    return ((fan::vulkan::context_t*)context)->image_get_pixel_data(nr, format, uvp, uvs);
+    return VK_CTX->image_get_pixel_data(nr, format, uvp, uvs);
   };
   cf.image_read_pixels = [](void* context, fan::graphics::image_nr_t nr, fan::vec2 uv_pos, fan::vec2 uv_size) {
     auto& vk = *(fan::vulkan::context_t*)context;
