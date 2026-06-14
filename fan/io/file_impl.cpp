@@ -15,9 +15,6 @@ module fan.io.file;
 import fan.print;
 import fan.utility;
 
-static constexpr fan::io::file::fs_mode FS_BINARY = std::ios_base::binary;
-static constexpr fan::io::file::fs_mode FS_APP = std::ios_base::app;
-
 std::string fan::io::file::extension(const std::string& file_path) {
   std::size_t dot_pos = file_path.find_last_of('.');
   std::size_t sep_pos = file_path.find_last_of("/\\");

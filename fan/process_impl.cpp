@@ -425,12 +425,12 @@ namespace fan::process {
   #if defined(fan_platform_windows)
     ::SetEnvironmentVariableA(spawn_self_env.c_str(), id.c_str());
     std::vector<std::string> args = {get_self_path()};
-    auto result = co_await run_async(args, [](std::string_view line) { fan::print_impl("[child]", line); });
+    co_await run_async(args, [](std::string_view line) { fan::print_impl("[child]", line); });
     ::SetEnvironmentVariableA(spawn_self_env.c_str(), nullptr);
   #else
     std::vector<std::string> args = {get_self_path()};
     setenv(spawn_self_env.c_str(), id.c_str(), 1);
-    auto result = co_await run_async(args, [](std::string_view line) { fan::print_impl("[child]", line); });
+    co_await run_async(args, [](std::string_view line) { fan::print_impl("[child]", line); });
     unsetenv(spawn_self_env.c_str());
   #endif
 
