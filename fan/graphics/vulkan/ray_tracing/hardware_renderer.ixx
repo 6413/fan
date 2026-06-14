@@ -82,6 +82,13 @@ export namespace fan::graphics::vulkan::ray_tracing {
       std::uint32_t model_index;
       fan::mat4 transform;
     };
+    struct object_handle_t {
+      std::uint32_t index = std::uint32_t(-1);
+      std::uint32_t generation = 0;
+      bool valid() const {
+        return index != std::uint32_t(-1);
+      }
+    };
     struct scene_model_t {
       std::string path;
       fan::mat4 transform = fan::mat4(1);
@@ -92,6 +99,11 @@ export namespace fan::graphics::vulkan::ray_tracing {
       std::uint32_t first_model = 0;
       std::uint32_t model_count = 0;
     };
+    struct object_t {
+      std::uint32_t generation = 0;
+      std::uint32_t first_instance = 0;
+      std::uint32_t instance_count = 0;
+    };
     struct engine_open_properties_t {
       fan::vec2ui size{};
       bool create_output_sprite = true;
@@ -100,6 +112,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     std::vector<model_t> models;
     std::vector<instance_t> instances;
     std::vector<scene_model_t> scene_models;
+    std::vector<object_t> objects;
     std::unordered_map<std::string, model_cache_entry_t> model_cache;
     context_t() = default;
     context_t(fan::graphics::engine_t& engine, const engine_open_properties_t& properties = {}) {
@@ -239,13 +252,10 @@ export namespace fan::graphics::vulkan::ray_tracing {
       blas.device_address             = vkGetAccelerationStructureDeviceAddressKHR(ctx->device, &addr_info);
       blas_list.push_back(blas);
     }
-    void create_tlas() {
-      tlas_instance_count = (std::uint32_t)instances.size();
-      if (tlas_instance_count == 0) {
-        return;
-      }
-      std::vector<VkAccelerationStructureInstanceKHR> vk_instances(tlas_instance_count);
-      for (std::uint32_t i = 0; i < tlas_instance_count; ++i) {
+    std::vector<VkAccelerationStructureInstanceKHR> make_tlas_instances() const {
+      std::uint32_t instance_count = (std::uint32_t)instances.size();
+      std::vector<VkAccelerationStructureInstanceKHR> vk_instances(instance_count);
+      for (std::uint32_t i = 0; i < instance_count; ++i) {
         const instance_t& inst = instances[i];
         const model_t& model = models[inst.model_index];
         VkTransformMatrixKHR t{};
@@ -260,20 +270,112 @@ export namespace fan::graphics::vulkan::ray_tracing {
         vk_instances[i].flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
         vk_instances[i].accelerationStructureReference = blas_list[inst.model_index].device_address;
       }
-      VkDeviceSize instance_size = sizeof(VkAccelerationStructureInstanceKHR) * tlas_instance_count;
-      VkBuffer staging;
-      VkDeviceMemory staging_mem;
+      return vk_instances;
+    }
+    void ensure_tlas_instance_staging(VkDeviceSize size) {
+      if (tlas_instance_staging_buffer && tlas_instance_staging_size >= size) {
+        return;
+      }
+      destroy_buffer(tlas_instance_staging_buffer, tlas_instance_staging_memory);
+      tlas_instance_staging_size = 0;
       ctx->create_buffer(
-        instance_size,
+        size,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        staging,
-        staging_mem
+        tlas_instance_staging_buffer,
+        tlas_instance_staging_memory
       );
+      tlas_instance_staging_size = size;
+    }
+    void upload_tlas_instances_to_staging(const std::vector<VkAccelerationStructureInstanceKHR>& vk_instances, VkDeviceSize size) {
+      ensure_tlas_instance_staging(size);
       void* data;
-      vkMapMemory(ctx->device, staging_mem, 0, instance_size, 0, &data);
-      std::memcpy(data, vk_instances.data(), (std::size_t)instance_size);
-      vkUnmapMemory(ctx->device, staging_mem);
+      vkMapMemory(ctx->device, tlas_instance_staging_memory, 0, size, 0, &data);
+      std::memcpy(data, vk_instances.data(), (std::size_t)size);
+      vkUnmapMemory(ctx->device, tlas_instance_staging_memory);
+    }
+    bool can_update_tlas_transforms() const {
+      return ctx &&
+        tlas.handle &&
+        tlas_instance_buffer &&
+        tlas_scratch_buffer &&
+        tlas_instance_count != 0 &&
+        tlas_instance_count == (std::uint32_t)instances.size();
+    }
+    void record_tlas_transform_update(VkCommandBuffer cmd) {
+      std::vector<VkAccelerationStructureInstanceKHR> vk_instances = make_tlas_instances();
+      VkDeviceSize instance_size = sizeof(VkAccelerationStructureInstanceKHR) * tlas_instance_count;
+      upload_tlas_instances_to_staging(vk_instances, instance_size);
+
+      VkAccelerationStructureGeometryInstancesDataKHR instances_data{};
+      instances_data.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
+      instances_data.arrayOfPointers = VK_FALSE;
+      instances_data.data.deviceAddress = get_buffer_address(tlas_instance_buffer);
+      VkAccelerationStructureGeometryKHR geometry{};
+      geometry.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR;
+      geometry.geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR;
+      geometry.geometry.instances = instances_data;
+      VkAccelerationStructureBuildGeometryInfoKHR build_info{};
+      build_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
+      build_info.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
+      build_info.flags =
+        VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR |
+        VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
+      build_info.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR;
+      build_info.srcAccelerationStructure = tlas.handle;
+      build_info.dstAccelerationStructure = tlas.handle;
+      build_info.geometryCount = 1;
+      build_info.pGeometries = &geometry;
+      build_info.scratchData.deviceAddress = get_buffer_address(tlas_scratch_buffer);
+      VkAccelerationStructureBuildRangeInfoKHR range_info{};
+      range_info.primitiveCount = tlas_instance_count;
+      const VkAccelerationStructureBuildRangeInfoKHR* range_infos = &range_info;
+
+      VkBufferCopy copy_region{};
+      copy_region.size = instance_size;
+      vkCmdCopyBuffer(cmd, tlas_instance_staging_buffer, tlas_instance_buffer, 1, &copy_region);
+      VkBufferMemoryBarrier instance_barrier{};
+      instance_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+      instance_barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+      instance_barrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR;
+      instance_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      instance_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      instance_barrier.buffer = tlas_instance_buffer;
+      instance_barrier.offset = 0;
+      instance_barrier.size = instance_size;
+      vkCmdPipelineBarrier(
+        cmd,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+        0,
+        0, nullptr,
+        1, &instance_barrier,
+        0, nullptr
+      );
+      vkCmdBuildAccelerationStructuresKHR(cmd, 1, &build_info, &range_infos);
+      VkMemoryBarrier build_barrier{};
+      build_barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+      build_barrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
+      build_barrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR;
+      vkCmdPipelineBarrier(
+        cmd,
+        VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR,
+        VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
+        0,
+        1, &build_barrier,
+        0, nullptr,
+        0, nullptr
+      );
+      frame_index = 0;
+    }
+    void create_tlas() {
+      tlas_instance_count = (std::uint32_t)instances.size();
+      if (tlas_instance_count == 0) {
+        return;
+      }
+      std::vector<VkAccelerationStructureInstanceKHR> vk_instances = make_tlas_instances();
+      VkDeviceSize instance_size = sizeof(VkAccelerationStructureInstanceKHR) * tlas_instance_count;
+      upload_tlas_instances_to_staging(vk_instances, instance_size);
       ctx->create_buffer(
         instance_size,
         VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
@@ -283,9 +385,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
         tlas_instance_buffer,
         tlas_instance_memory
       );
-      ctx->copy_buffer(staging, tlas_instance_buffer, instance_size);
-      vkDestroyBuffer(ctx->device, staging, nullptr);
-      vkFreeMemory(ctx->device, staging_mem, nullptr);
+      ctx->copy_buffer(tlas_instance_staging_buffer, tlas_instance_buffer, instance_size);
       VkAccelerationStructureGeometryInstancesDataKHR instances_data{};
       instances_data.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR;
       instances_data.arrayOfPointers = VK_FALSE;
@@ -298,7 +398,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
       VkAccelerationStructureBuildGeometryInfoKHR build_info{};
       build_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
       build_info.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
-      build_info.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+      build_info.flags =
+        VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR |
+        VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
       build_info.geometryCount = 1;
       build_info.pGeometries = &geometry;
       VkAccelerationStructureBuildSizesInfoKHR size_info{};
@@ -324,8 +426,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
       create_info.size = size_info.accelerationStructureSize;
       create_info.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
       fan::vulkan::validate(vkCreateAccelerationStructureKHR(ctx->device, &create_info, nullptr, &tlas.handle));
+      VkDeviceSize scratch_size = std::max(size_info.buildScratchSize, size_info.updateScratchSize);
       ctx->create_buffer(
-        size_info.buildScratchSize,
+        scratch_size,
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
         tlas_scratch_buffer,
@@ -344,6 +447,15 @@ export namespace fan::graphics::vulkan::ray_tracing {
       addr_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
       addr_info.accelerationStructure = tlas.handle;
       tlas.device_address = vkGetAccelerationStructureDeviceAddressKHR(ctx->device, &addr_info);
+    }
+    bool update_tlas_transforms() {
+      if (!can_update_tlas_transforms()) {
+        return false;
+      }
+      VkCommandBuffer cmd = ctx->begin_single_time_commands();
+      record_tlas_transform_update(cmd);
+      ctx->end_single_time_commands(cmd);
+      return true;
     }
     void create_output_image() {
       output_image = ctx->image_create();       
@@ -1017,28 +1129,39 @@ export namespace fan::graphics::vulkan::ray_tracing {
         add_instance(entry.first_model + i, model.transform);
       }
     }
-    void add_model(const scene_model_t& model) {
+    object_handle_t add_model(const scene_model_t& model) {
+      object_handle_t handle {
+        (std::uint32_t)scene_models.size(),
+        object_generation_counter++
+      };
       scene_models.push_back(model);
+      objects.push_back({
+        .generation = handle.generation,
+        .first_instance = 0,
+        .instance_count = 0
+      });
       if (!ctx || !ready) {
-        return;
+        return handle;
       }
       vkDeviceWaitIdle(ctx->device);
-      bool geometry_changed = load_scene_model(model);
+      bool geometry_changed = load_scene_model(handle.index);
       if (geometry_changed) {
         rebuild_scene_geometry();
       }
       else {
         rebuild_tlas();
       }
+      return handle;
     }
-    void add_model(const std::string& path, const fan::mat4& transform = fan::mat4(1)) {
+    object_handle_t add_model(const std::string& path, const fan::mat4& transform = fan::mat4(1)) {
       scene_model_t m;
       m.path = path;
       m.transform = transform;
-      add_model(m);
+      return add_model(m);
     }
     void clear_scene_models() {
       scene_models.clear();
+      objects.clear();
       if (!ctx || !ready) {
         return;
       }
@@ -1046,11 +1169,63 @@ export namespace fan::graphics::vulkan::ray_tracing {
       instances.clear();
       rebuild_tlas();
     }
-    bool load_scene_model(const scene_model_t& model) {
+    bool is_object_valid(object_handle_t handle) const {
+      return handle.valid() &&
+        handle.index < objects.size() &&
+        objects[handle.index].generation == handle.generation;
+    }
+    fan::mat4 get_transform(object_handle_t handle) const {
+      if (!is_object_valid(handle)) {
+        fan::throw_error("invalid ray tracing object handle");
+      }
+      return scene_models[handle.index].transform;
+    }
+    bool set_transform(object_handle_t handle, const fan::mat4& transform, bool rebuild_now = false) {
+      if (!is_object_valid(handle)) {
+        return false;
+      }
+      scene_models[handle.index].transform = transform;
+      object_t& object = objects[handle.index];
+      for (std::uint32_t i = 0; i < object.instance_count; ++i) {
+        instances[object.first_instance + i].transform = transform;
+      }
+      tlas_dirty = true;
+      frame_index = 0;
+      if (rebuild_now) {
+        flush_transform_updates();
+      }
+      return true;
+    }
+    bool set_transform_deferred(object_handle_t handle, const fan::mat4& transform) {
+      return set_transform(handle, transform, false);
+    }
+    void flush_transform_updates() {
+      if (!tlas_dirty || !ctx || !ready) {
+        return;
+      }
+      if (!update_tlas_transforms()) {
+        rebuild_tlas();
+      }
+      tlas_dirty = false;
+    }
+    void flush_transform_updates(VkCommandBuffer cmd) {
+      if (!tlas_dirty || !ctx || !ready) {
+        return;
+      }
+      if (can_update_tlas_transforms()) {
+        record_tlas_transform_update(cmd);
+        tlas_dirty = false;
+      }
+    }
+    bool load_scene_model(std::uint32_t object_index) {
+      scene_model_t& model = scene_models[object_index];
+      object_t& object = objects[object_index];
+      object.first_instance = (std::uint32_t)instances.size();
       std::string key = make_model_cache_key(model);
       auto found = model_cache.find(key);
       if (found != model_cache.end()) {
         add_cached_model_instances(model, found->second);
+        object.instance_count = (std::uint32_t)instances.size() - object.first_instance;
         return false;
       }
       fan::model::fms_t::properties_t properties;
@@ -1063,6 +1238,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       std::uint32_t last_model  = (std::uint32_t)models.size();
       model_cache[key] = { first_model, last_model - first_model };
       add_cached_model_instances(model, model_cache[key]);
+      object.instance_count = (std::uint32_t)instances.size() - object.first_instance;
       return true;
     }
     void destroy_buffer(VkBuffer& buffer, VkDeviceMemory& memory) {
@@ -1078,8 +1254,10 @@ export namespace fan::graphics::vulkan::ray_tracing {
     void destroy_tlas_resources() {
       tlas.destroy(*ctx);
       destroy_buffer(tlas_instance_buffer, tlas_instance_memory);
+      destroy_buffer(tlas_instance_staging_buffer, tlas_instance_staging_memory);
       destroy_buffer(tlas_scratch_buffer, tlas_scratch_memory);
       tlas_instance_count = 0;
+      tlas_instance_staging_size = 0;
     }
     void update_tlas_descriptor() {
       if (!descriptor_set) {
@@ -1150,6 +1328,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       create_tlas();
       update_tlas_descriptor();
       frame_index = 0;
+      tlas_dirty = false;
     }
     void rebuild_scene_geometry() {
       if (!ctx) {
@@ -1177,6 +1356,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       update_scene_buffers_descriptor();
       update_rt_textures_descriptor();
       frame_index = 0;
+      tlas_dirty = false;
     }
     void set_light(const fan::vec3& position, const fan::vec3& color, f32_t intensity) {
       light_position = position;
@@ -1263,8 +1443,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
       if (scene_models.empty()) {
         fan::throw_error("ray tracing scene has no models; call add_model() before open()");
       }
-      for (const auto& model : scene_models) {
-        load_scene_model(model);
+      for (std::uint32_t i = 0; i < scene_models.size(); ++i) {
+        load_scene_model(i);
       }
       create_vertex_buffer();
       create_index_buffer();
@@ -1286,6 +1466,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       update_camera_from_engine();
       update_rt_textures_descriptor();
       frame_index = 0;
+      tlas_dirty = false;
     }
     void open(fan::graphics::engine_t& engine, const engine_open_properties_t& properties = {}) {
       attached_engine = &engine;
@@ -1305,6 +1486,11 @@ export namespace fan::graphics::vulkan::ray_tracing {
       }
       update_callback_registered = false;
       resize_handle.remove();
+      if (pre_begin_callback_registered && registered_vk_context &&
+        pre_begin_cmd_cb_index < registered_vk_context->pre_begin_cmd_cb.size()) {
+        registered_vk_context->pre_begin_cmd_cb[pre_begin_cmd_cb_index] = []() {};
+      }
+      pre_begin_callback_registered = false;
       if (command_callback_registered && registered_vk_context &&
         begin_cmd_cb_index < registered_vk_context->begin_cmd_cb.size()) {
         registered_vk_context->begin_cmd_cb[begin_cmd_cb_index] = [](VkCommandBuffer) {};
@@ -1333,6 +1519,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
       if (!ready) {
         return;
       }
+      if (tlas_dirty && !can_update_tlas_transforms()) {
+        flush_transform_updates();
+      }
       on_camera_updated(update_camera);
       update_exposure(attached_engine->get_delta_time());
       if (update_camera) {
@@ -1358,11 +1547,23 @@ export namespace fan::graphics::vulkan::ray_tracing {
     }
 #endif
     void attach_engine_callbacks(fan::graphics::engine_t& engine) {
-      if (!command_callback_registered) {
+      if (!registered_vk_context) {
         registered_vk_context = &engine.context.vk;
+      }
+      if (!pre_begin_callback_registered) {
+        pre_begin_cmd_cb_index = registered_vk_context->pre_begin_cmd_cb.size();
+        registered_vk_context->pre_begin_cmd_cb.push_back([this]() {
+          if (tlas_dirty && !can_update_tlas_transforms()) {
+            flush_transform_updates();
+          }
+        });
+        pre_begin_callback_registered = true;
+      }
+      if (!command_callback_registered) {
         begin_cmd_cb_index = registered_vk_context->begin_cmd_cb.size();
         registered_vk_context->begin_cmd_cb.push_back([this](VkCommandBuffer cmd) {
           if (ready) {
+            flush_transform_updates(cmd);
             record_trace_rays(cmd);
           }
         });
@@ -1973,6 +2174,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
       if(time_memory) vkFreeMemory(ctx->device, time_memory, nullptr);
       if(tlas_instance_buffer) vkDestroyBuffer(ctx->device, tlas_instance_buffer, nullptr);
       if(tlas_instance_memory) vkFreeMemory(ctx->device, tlas_instance_memory, nullptr);
+      if(tlas_instance_staging_buffer) vkDestroyBuffer(ctx->device, tlas_instance_staging_buffer, nullptr);
+      if(tlas_instance_staging_memory) vkFreeMemory(ctx->device, tlas_instance_staging_memory, nullptr);
       if(tlas_scratch_buffer) vkDestroyBuffer(ctx->device, tlas_scratch_buffer, nullptr);
       if(tlas_scratch_memory) vkFreeMemory(ctx->device, tlas_scratch_memory, nullptr);
       if(vertex_buffer) vkDestroyBuffer(ctx->device, vertex_buffer, nullptr);
@@ -2012,6 +2215,10 @@ export namespace fan::graphics::vulkan::ray_tracing {
       submeshes.clear();
       models.clear();
       instances.clear();
+      for (auto& object : objects) {
+        object.first_instance = 0;
+        object.instance_count = 0;
+      }
       materials.clear();
       vertex_data.clear();
       index_data.clear();
@@ -2022,6 +2229,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       vertex_offset = 0;
       tlas_instance_count = 0;
       frame_index = 0;
+      tlas_dirty = false;
       output_image_valid = false;
       accum_image_valid = false;
       pipeline = VK_NULL_HANDLE;
@@ -2046,6 +2254,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
       time_memory = VK_NULL_HANDLE;
       tlas_instance_buffer = VK_NULL_HANDLE;
       tlas_instance_memory = VK_NULL_HANDLE;
+      tlas_instance_staging_buffer = VK_NULL_HANDLE;
+      tlas_instance_staging_memory = VK_NULL_HANDLE;
+      tlas_instance_staging_size = 0;
       tlas_scratch_buffer = VK_NULL_HANDLE;
       tlas_scratch_memory = VK_NULL_HANDLE;
       vertex_buffer = VK_NULL_HANDLE;
@@ -2120,6 +2331,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
     VkDeviceMemory time_memory = VK_NULL_HANDLE;
     VkBuffer tlas_instance_buffer = VK_NULL_HANDLE;
     VkDeviceMemory tlas_instance_memory = VK_NULL_HANDLE;
+    VkBuffer tlas_instance_staging_buffer = VK_NULL_HANDLE;
+    VkDeviceMemory tlas_instance_staging_memory = VK_NULL_HANDLE;
+    VkDeviceSize tlas_instance_staging_size = 0;
     std::uint32_t tlas_instance_count = 0;
     VkBuffer tlas_scratch_buffer = VK_NULL_HANDLE;
     VkDeviceMemory tlas_scratch_memory = VK_NULL_HANDLE;
@@ -2139,6 +2353,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
     std::vector<std::uint32_t> material_indices_per_primitive;
     std::size_t current_material_index = 0;
     std::uint32_t vertex_offset = 0;
+    std::uint32_t object_generation_counter = 1;
+    bool tlas_dirty = false;
     f32_t exposure = 1.f;
     f32_t target_exposure = 1.f;
     f32_t adaptation_speed = 4.f;
@@ -2159,6 +2375,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
     fan::graphics::engine_t::update_callback_handle_t update_callback_handle;
     bool update_callback_registered = false;
     fan::vulkan::context_t* registered_vk_context = nullptr;
+    std::size_t pre_begin_cmd_cb_index = 0;
+    bool pre_begin_callback_registered = false;
     std::size_t begin_cmd_cb_index = 0;
     bool command_callback_registered = false;
     VkBuffer luminance_buffer = VK_NULL_HANDLE;

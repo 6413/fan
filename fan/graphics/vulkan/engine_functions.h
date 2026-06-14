@@ -228,6 +228,10 @@ void begin_draw() {
   }
 #endif
 
+  for (auto& i : context.pre_begin_cmd_cb) {
+    i();
+  }
+
   VkCommandBufferBeginInfo beginInfo{};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 

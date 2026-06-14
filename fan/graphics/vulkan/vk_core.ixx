@@ -1083,6 +1083,7 @@ export namespace fan {
       
       std::vector<VkCommandBuffer> command_buffers;
 
+      std::vector<std::function<void()>> pre_begin_cmd_cb;
       std::vector<std::function<void(VkCommandBuffer)>> begin_cmd_cb;
 
       std::vector<VkSemaphore> image_available_semaphores;

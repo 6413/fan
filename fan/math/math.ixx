@@ -375,35 +375,6 @@ export namespace fan {
       );
     }
 
-    // depends about world rotation
-
-    inline f32_t sin(f32_t x) {
-      float res = 0, pow = x, fact = 1;
-      for (int i = 0; i < 5; ++i)
-      {
-        res += pow / fact;
-        pow *= -1 * x * x;
-        fact *= float((2 * (i + 1)) * (2 * (i + 1) + 1));
-      }
-
-      return res;
-    }
-
-    inline f32_t cos(f32_t x) {
-      f32_t t, s;
-      int p;
-      p = 0;
-      s = 1.0;
-      t = 1.0;
-      while (std::abs(t / s) > .0001f)
-      {
-        p++;
-        t = f32_t((f32_t)(-t * x * x) / (f32_t)((2 * p - 1) * (2 * p)));
-        s += t;
-      }
-      return s;
-    }
-
     template <typename vector_t>
     inline vector_t direction_vector(f32_t alpha, f32_t beta)
     {

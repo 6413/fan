@@ -2,6 +2,8 @@ import fan;
 using namespace fan::graphics;
 import fan.graphics.vulkan.ray_tracing.hardware_renderer;
 
+namespace rt = fan::graphics::vulkan::ray_tracing;
+
 int main() {
   engine_t engine{{
     .renderer = fan::graphics::renderer_t::vulkan,
@@ -9,8 +11,24 @@ int main() {
 
   fan::graphics::vulkan::ray_tracing::context_t rt(engine);
   int i = 0;
-  for (; i < 4500; ++i) {
-    rt.add_model("models/Fox.glb", fan::mat4(1).translate(fan::random::vec3(-1000,1000)));
+  struct moving_fox_t {
+    rt::context_t::object_handle_t handle;
+    fan::vec3 base_position;
+    f32_t phase;
+  };
+  std::vector<moving_fox_t> foxes;
+  foxes.reserve(5000);
+  for (; i < 4499; ++i) {
+    fan::vec3 base_position(
+      fan::random::value(-120.f, 120.f),
+      fan::random::value(-120.f, 120.f),
+      4.0f
+    );
+    foxes.push_back({
+      rt.add_model("models/Fox.glb", fan::mat4(1).translate(base_position)),
+      base_position,
+      fan::random::value(0.f, fan::math::two_pi)
+    });
   }
 
   auto camera_handle = engine.perspective_render_view.camera;
@@ -29,8 +47,27 @@ int main() {
     if (engine.is_mouse_clicked(fan::mouse_right))  engine.window.toggle_cursor();
     if (engine.is_mouse_released(fan::mouse_right)) engine.window.toggle_cursor();
     if (engine.is_mouse_clicked()) {
-      rt.add_model("models/Fox.glb", fan::mat4(1).translate(fan::vec3(0.0f, i * 5.f, 4.0f)).scale(1.f));
+      fan::vec3 base_position(0.0f, 0.0f, 4.0f);
+      foxes.push_back({
+        rt.add_model("models/Fox.glb", fan::mat4(1).translate(base_position).scale(1.f)),
+        base_position,
+        fan::random::value(0.f, fan::math::two_pi)
+      });
       ++i;
+    }
+    f32_t t = engine.start_time.seconds();
+    for (auto& moving_fox : foxes) {
+      fan::vec3 offset(
+        std::sin(t + moving_fox.phase) * 2.0f,
+        std::cos(t * 0.7f + moving_fox.phase) * 2.0f,
+        std::sin(t * 1.3f + moving_fox.phase) * 0.35f
+      );
+      rt.set_transform(
+        moving_fox.handle,
+        fan::mat4(1)
+          .translate(moving_fox.base_position + offset * 10.f)
+          .scale(1.f)
+      );
     }
     gui::camera_controls();
     rt.render_gui();
