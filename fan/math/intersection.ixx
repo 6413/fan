@@ -3,6 +3,7 @@ export module fan.math.intersection;
 import std;
 import fan.types;
 import fan.types.vector;
+import fan.types.matrix;
 import fan.math;
 
 namespace fm = fan::math;
@@ -91,6 +92,87 @@ export namespace fan::math::d3 {
     return aabb_intersects_aabb(a, {min, max});
   }
 
+  constexpr aabb_t merge_aabb(const aabb_t& a, const aabb_t& b) {
+    return {a.min.min(b.min), a.max.max(b.max)};
+  }
+
+  constexpr aabb_t transform_aabb(const aabb_t& aabb, const fan::mat4& transform) {
+    fan::vec3 first = transform * fan::vec3(aabb.min.x, aabb.min.y, aabb.min.z);
+    aabb_t result{first, first};
+    for (std::uint32_t corner = 1; corner < 8; ++corner) {
+      fan::vec3 local(
+        (corner & 1) ? aabb.max.x : aabb.min.x,
+        (corner & 2) ? aabb.max.y : aabb.min.y,
+        (corner & 4) ? aabb.max.z : aabb.min.z
+      );
+      fan::vec3 world = transform * local;
+      result.min = result.min.min(world);
+      result.max = result.max.max(world);
+    }
+    return result;
+  }
+
+  constexpr bool ray_intersects_aabb(const fan::ray3_t& ray, const fan::vec3& min, const fan::vec3& max, f32_t& hit_t, f32_t epsilon = 1e-6f) {
+    f32_t t_min = 0.f;
+    f32_t t_max = std::numeric_limits<f32_t>::max();
+    for (std::uint32_t axis = 0; axis < 3; ++axis) {
+      f32_t origin = ray.origin[axis];
+      f32_t direction = ray.direction[axis];
+      if (fm::abs(direction) < epsilon) {
+        if (origin < min[axis] || origin > max[axis]) {
+          return false;
+        }
+        continue;
+      }
+      f32_t inv_direction = 1.f / direction;
+      f32_t t0 = (min[axis] - origin) * inv_direction;
+      f32_t t1 = (max[axis] - origin) * inv_direction;
+      if (t0 > t1) {
+        std::swap(t0, t1);
+      }
+      t_min = std::max(t_min, t0);
+      t_max = std::min(t_max, t1);
+      if (t_min > t_max) {
+        return false;
+      }
+    }
+    hit_t = t_min;
+    return true;
+  }
+
+  constexpr bool ray_intersects_aabb(const fan::ray3_t& ray, const aabb_t& aabb, f32_t& hit_t, f32_t epsilon = 1e-6f) {
+    return ray_intersects_aabb(ray, aabb.min, aabb.max, hit_t, epsilon);
+  }
+
+  inline bool ray_intersects_sphere(const fan::ray3_t& ray, const fan::vec3& center, f32_t radius, f32_t& hit_t) {
+    fan::vec3 to_center = ray.origin - center;
+    f32_t a = ray.direction.dot(ray.direction);
+    f32_t b = 2.f * to_center.dot(ray.direction);
+    f32_t c = to_center.dot(to_center) - radius * radius;
+    f32_t discriminant = b * b - 4.f * a * c;
+    if (discriminant < 0.f) {
+      return false;
+    }
+    f32_t sqrt_discriminant = std::sqrt(discriminant);
+    f32_t inv_denom = 1.f / (2.f * a);
+    f32_t t0 = (-b - sqrt_discriminant) * inv_denom;
+    f32_t t1 = (-b + sqrt_discriminant) * inv_denom;
+    if (t0 >= 0.f) {
+      hit_t = t0;
+      return true;
+    }
+    if (t1 >= 0.f) {
+      hit_t = t1;
+      return true;
+    }
+    return false;
+  }
+
+  inline bool ray_intersects_sphere(const fan::ray3_t& ray, const fan::vec3& center, f32_t radius) {
+    f32_t hit_t = 0.f;
+    return ray_intersects_sphere(ray, center, radius, hit_t);
+  }
+
   constexpr bool triangle_intersects_aabb(const fan::vec3& v0, const fan::vec3& v1, const fan::vec3& v2, const fan::vec3& bc, const fan::vec3& hs) {
     fan::vec3 a[3] = {v0 - bc, v1 - bc, v2 - bc};
     if (fm::min(a[0].x, a[1].x, a[2].x) > hs.x || fm::max(a[0].x, a[1].x, a[2].x) < -hs.x) { return false; }
@@ -114,19 +196,8 @@ export namespace fan::math::d3 {
   }
 
   constexpr bool is_ray_intersecting_cube(const fan::ray3_t& ray, const fan::vec3& position, const fan::vec3& size) {
-    fan::vec3 min_bounds = position - size;
-    fan::vec3 max_bounds = position + size;
-
-    fan::vec3 t_min = (min_bounds - ray.origin) / (ray.direction + fan::vec3(1e-6f));
-    fan::vec3 t_max = (max_bounds - ray.origin) / (ray.direction + fan::vec3(1e-6f));
-
-    fan::vec3 t1 = t_min.min(t_max);
-    fan::vec3 t2 = t_min.max(t_max);
-
-    f32_t t_near = std::max({t1.x, t1.y, t1.z});
-    f32_t t_far = std::min({t2.x, t2.y, t2.z});
-
-    return t_near <= t_far && t_far >= 0.0f;
+    f32_t hit_t = 0.f;
+    return ray_intersects_aabb(ray, position - size, position + size, hit_t);
   }
 
   constexpr fan::vec3 barycentric(const fan::vec3& p, const fan::vec3& a, const fan::vec3& b, const fan::vec3& c) {

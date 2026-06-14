@@ -1388,9 +1388,33 @@ export namespace fan::graphics::gui::gizmo {
     };
   };
 
+  struct transform_mode {
+    enum {
+      translate,
+      rotate,
+      scale,
+      count
+    };
+  };
+
+  inline constexpr const char* transform_mode_names[] = {
+    "translate",
+    "rotate",
+    "scale"
+  };
+
+  constexpr int operation_from_transform_mode(int mode_index) {
+    switch (mode_index) {
+      case transform_mode::rotate: return operation::rotate;
+      case transform_mode::scale: return operation::scale;
+      default: return operation::translate;
+    }
+  }
+
   void begin_frame();
   void set_orthographic(bool ortho);
   void set_drawlist();
+  void set_drawlist(gui::draw_list_t* draw_list);
 
   void set_rect(const fan::vec2& pos, const fan::vec2& size);
 
@@ -1400,7 +1424,7 @@ export namespace fan::graphics::gui::gizmo {
     int op,
     int m,
     fan::mat4& transform,
-    const fan::mat4* delta = nullptr,
+    fan::mat4* delta = nullptr,
     const fan::mat4* snap = nullptr,
     const fan::mat4* bounds = nullptr,
     const fan::mat4* bounds_snap = nullptr

@@ -21,6 +21,7 @@ struct Payload {
   uint material_id;
   float ao;
   int depth;
+  float hit_t;
 };
 layout(location = 0) rayPayloadEXT Payload payload;
 
@@ -28,6 +29,42 @@ layout(binding = 3, set = 0) uniform TimeUBO {
   float time;
   uint frame_index;
 } ubo;
+
+layout(binding = 8, set = 0) uniform LightUBO {
+  vec3 light_pos;
+  float pad0;
+  vec3 light_color;
+  float intensity;
+} light;
+
+layout(binding = 10, set = 0) uniform ExposureUBO {
+  float exposure;
+  float enable_gi;
+  float enable_reflections;
+  float enable_shadows;
+  float ambient_strength;
+  float shadow_strength;
+  float wrap_strength;
+  float show_light_indicator;
+  float light_indicator_radius;
+  float pad2;
+} exposure_ubo;
+
+float ray_sphere_intersect(vec3 origin, vec3 direction, vec3 center, float radius) {
+  vec3 oc = origin - center;
+  float b = dot(oc, direction);
+  float c = dot(oc, oc) - radius * radius;
+  float h = b * b - c;
+  if (h < 0.0) {
+    return -1.0;
+  }
+  h = sqrt(h);
+  float t = -b - h;
+  if (t <= 0.001) {
+    t = -b + h;
+  }
+  return t > 0.001 ? t : -1.0;
+}
 
 void main() {
   uint cam = 0;
@@ -50,6 +87,7 @@ void main() {
   payload.material_id = 0u;
   payload.ao = 1.0;
   payload.depth = 0;
+  payload.hit_t = 3.402823466e38;
 
   traceRayEXT(
     topLevelAS,
@@ -62,6 +100,20 @@ void main() {
     1000.0,
     0
   );
+
+  if (exposure_ubo.show_light_indicator > 0.5) {
+    float radius = max(exposure_ubo.light_indicator_radius, 0.1);
+    float marker_t = ray_sphere_intersect(origin, direction, light.light_pos, radius);
+    if (marker_t > 0.0 && marker_t < payload.hit_t) {
+      vec3 marker_pos = origin + direction * marker_t;
+      vec3 marker_normal = normalize(marker_pos - light.light_pos);
+      float view_facing = max(dot(marker_normal, -direction), 0.0);
+      float rim = pow(1.0 - view_facing, 3.0);
+      vec3 core = max(light.light_color, vec3(0.25)) * (2.0 + light.intensity);
+      vec3 edge = vec3(1.0, 0.72, 0.12) * (4.0 + light.intensity);
+      payload.color = mix(core, edge, rim);
+    }
+  }
 
   imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(payload.color, 1.0));
 }

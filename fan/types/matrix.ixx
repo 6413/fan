@@ -35,8 +35,8 @@ export namespace fan {
       f32_t c = std::cos(a), s = std::sin(a);
       return {v.x * c - v.y * s, v.x * s + v.y * c};
     }
-    constexpr fan::vec2& operator[](std::uintptr_t i) { return m[i]; }
-    constexpr fan::vec2 operator[](std::uintptr_t i) const { return m[i]; }
+    constexpr value_type& operator[](std::uintptr_t i) { return m[i]; }
+    constexpr const value_type& operator[](std::uintptr_t i) const { return m[i]; }
   };
 
   template <typename T>
@@ -56,8 +56,8 @@ export namespace fan {
       f32_t c = std::cos(a), s = std::sin(a);
       return {v.x * c - v.y * s, v.x * s + v.y * c, v.z};
     }
-    constexpr fan::vec3& operator[](std::uintptr_t i) { return m[i]; }
-    constexpr fan::vec3 operator[](std::uintptr_t i) const { return m[i]; }
+    constexpr value_type& operator[](std::uintptr_t i) { return m[i]; }
+    constexpr const value_type& operator[](std::uintptr_t i) const { return m[i]; }
   };
 
   template <typename T>
@@ -163,8 +163,8 @@ export namespace fan {
       return r;
     }
 
-    constexpr fan::vec4& operator[](std::uintptr_t i) { return m[i]; }
-    constexpr fan::vec4 operator[](std::uintptr_t i) const { return m[i]; }
+    constexpr value_type& operator[](std::uintptr_t i) { return m[i]; }
+    constexpr const value_type& operator[](std::uintptr_t i) const { return m[i]; }
     T* data() { return &m[0][0]; }
     const T* data() const { return &m[0][0]; }
 
