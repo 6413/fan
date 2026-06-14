@@ -75,6 +75,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
       std::uint32_t first_primitive;
       std::uint32_t first_vertex;
       std::uint32_t vertex_count;
+      std::uint32_t first_bone = 0;
+      std::uint32_t bone_count = 0;
+      bool animated = false;
     };
     struct instance_t {
       std::uint32_t model_index;
@@ -93,6 +96,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       std::string texture_path = "models/textures";
       std::source_location callers_path;
       bool fix_uv_diagonals = false;
+      bool animated = false;
     };
     struct model_cache_entry_t {
       std::uint32_t first_model = 0;
@@ -102,10 +106,19 @@ export namespace fan::graphics::vulkan::ray_tracing {
       std::uint32_t generation = 0;
       std::uint32_t first_instance = 0;
       std::uint32_t instance_count = 0;
+      std::uint32_t animated_model_index = std::uint32_t(-1);
     };
     struct engine_open_properties_t {
       fan::vec2ui size{};
       bool create_output_sprite = true;
+    };
+    struct animated_model_t {
+      std::unique_ptr<fan::model::fms_t> fms;
+      std::uint32_t first_model = 0;
+      std::uint32_t model_count = 0;
+      std::uint32_t first_bone = 0;
+      std::uint32_t bone_count = 0;
+      bool dirty = false;
     };
     std::vector<submesh_t> submeshes;
     std::vector<model_t> models;
@@ -182,7 +195,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       geometry.flags        = 0;
       build_info.sType         = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
       build_info.type          = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-      build_info.flags         = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+      build_info.flags         = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
       build_info.geometryCount = 1;
       build_info.pGeometries   = &geometry;
     }
@@ -201,7 +214,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
         fill_blas_build_info(i, triangles, geometry, build_info);
         sizes[i].sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
         vkGetAccelerationStructureBuildSizesKHR(ctx->device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &build_info, &primitive_counts[i], &sizes[i]);
-        scratch_size = std::max(scratch_size, sizes[i].buildScratchSize);
+        scratch_size = std::max(scratch_size, std::max(sizes[i].buildScratchSize, sizes[i].updateScratchSize));
         acceleration_structure_t& blas = blas_list[i];
         ctx->create_buffer(sizes[i].accelerationStructureSize, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, blas.buffer, blas.memory);
         VkAccelerationStructureCreateInfoKHR create_info{};
@@ -211,10 +224,10 @@ export namespace fan::graphics::vulkan::ray_tracing {
         create_info.type   = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
         fan::vulkan::validate(vkCreateAccelerationStructureKHR(ctx->device, &create_info, nullptr, &blas.handle));
       }
-      VkBuffer scratch_buffer = VK_NULL_HANDLE;
-      VkDeviceMemory scratch_memory = VK_NULL_HANDLE;
-      ctx->create_buffer(scratch_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, scratch_buffer, scratch_memory);
-      VkDeviceAddress scratch_address = get_buffer_address(scratch_buffer);
+      destroy_buffer(blas_scratch_buffer, blas_scratch_memory);
+      blas_scratch_size = scratch_size;
+      ctx->create_buffer(blas_scratch_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, blas_scratch_buffer, blas_scratch_memory);
+      VkDeviceAddress scratch_address = get_buffer_address(blas_scratch_buffer);
       VkCommandBuffer cmd = ctx->begin_single_time_commands();
       for (std::uint32_t i = 0; i < models.size(); ++i) {
         const model_t& model = models[i];
@@ -241,14 +254,30 @@ export namespace fan::graphics::vulkan::ray_tracing {
         }
       }
       ctx->end_single_time_commands(cmd);
-      vkDestroyBuffer(ctx->device, scratch_buffer, nullptr);
-      vkFreeMemory(ctx->device, scratch_memory, nullptr);
+
       for (auto& blas : blas_list) {
         VkAccelerationStructureDeviceAddressInfoKHR addr_info{};
         addr_info.sType                 = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR;
         addr_info.accelerationStructure = blas.handle;
         blas.device_address             = vkGetAccelerationStructureDeviceAddressKHR(ctx->device, &addr_info);
       }
+    }
+    void record_blas_update(VkCommandBuffer cmd, std::uint32_t model_index) {
+      if (model_index >= models.size() || model_index >= blas_list.size() || !blas_scratch_buffer) return;
+      const model_t& model = models[model_index];
+      VkAccelerationStructureGeometryTrianglesDataKHR triangles{};
+      VkAccelerationStructureGeometryKHR geometry{};
+      VkAccelerationStructureBuildGeometryInfoKHR build_info{};
+      fill_blas_build_info(model_index, triangles, geometry, build_info);
+      build_info.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR;
+      build_info.srcAccelerationStructure = blas_list[model_index].handle;
+      build_info.dstAccelerationStructure = blas_list[model_index].handle;
+      build_info.scratchData.deviceAddress = get_buffer_address(blas_scratch_buffer);
+      VkAccelerationStructureBuildRangeInfoKHR range_info{};
+      range_info.primitiveCount = model.index_count / 3;
+      range_info.primitiveOffset = model.first_index * sizeof(std::uint32_t);
+      const VkAccelerationStructureBuildRangeInfoKHR* range_infos = &range_info;
+      vkCmdBuildAccelerationStructuresKHR(cmd, 1, &build_info, &range_infos);
     }
     std::vector<VkAccelerationStructureInstanceKHR> make_tlas_instances() const {
       std::uint32_t instance_count = (std::uint32_t)instances.size();
@@ -628,6 +657,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
       write.pImageInfo = infos.data();
       vkUpdateDescriptorSets(ctx->device, 1, &write, 0, nullptr);
     }
+    void create_source_vertex_buffer() {
+      ctx->upload_buffer(source_vertex_data, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, source_vertex_buffer, source_vertex_memory);
+    }
     void create_vertex_buffer() {
       ctx->upload_buffer(vertex_data, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_DST_BIT, vertex_buffer, vertex_memory);
     }
@@ -645,7 +677,23 @@ export namespace fan::graphics::vulkan::ray_tracing {
       }
       ctx->upload_buffer(material_indices_per_primitive, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, material_index_buffer, material_index_memory);
     }
-    void load_model_from_fms(fan::model::fms_t& fms) {
+    void create_bone_buffer() {
+      destroy_buffer(bone_buffer, bone_memory);
+      bone_mapped = nullptr;
+      std::uint32_t count = std::max<std::uint32_t>((std::uint32_t)bone_matrices.size(), 1);
+      VkDeviceSize size = sizeof(fan::mat4) * count;
+      ctx->create_buffer(size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, bone_buffer, bone_memory);
+      vkMapMemory(ctx->device, bone_memory, 0, size, 0, &bone_mapped);
+      if (bone_matrices.empty()) {
+        fan::mat4 identity(1);
+        std::memcpy(bone_mapped, &identity, sizeof(identity));
+      }
+      else {
+        std::memcpy(bone_mapped, bone_matrices.data(), sizeof(fan::mat4) * bone_matrices.size());
+      }
+    }
+    model_cache_entry_t load_model_from_fms(fan::model::fms_t& fms, std::uint32_t first_bone = 0, std::uint32_t bone_count = 0, bool animated = false) {
+      std::uint32_t first_model = (std::uint32_t)models.size();
       std::uint32_t added_index_count = 0;
       for (const auto& mesh : fms.meshes) {
         added_index_count += (std::uint32_t)mesh.indices.size();
@@ -661,12 +709,29 @@ export namespace fan::graphics::vulkan::ray_tracing {
         model.index_count = (std::uint32_t)src_mesh.indices.size();
         model.first_vertex = (std::uint32_t)vertex_data.size();
         model.vertex_count = (std::uint32_t)src_mesh.vertices.size();
+        model.first_bone = first_bone;
+        model.bone_count = bone_count;
+        model.animated = animated;
         std::uint32_t first_vertex = model.first_vertex;
         for (const auto& v : src_mesh.vertices) {
           vertex_t out{};
           out.position = v.position;
           out.normal   = v.normal;
           out.texcoord = v.uv;
+          out.color = fan::vec3(v.color.x, v.color.y, v.color.z);
+          source_vertex_t src{};
+          src.position = out.position;
+          src.normal = out.normal;
+          src.texcoord = out.texcoord;
+          src.color = out.color;
+          src.bone_ids = v.bone_ids;
+          src.bone_weights = v.bone_weights;
+          for (int i = 0; i < 4; ++i) {
+            if (src.bone_ids[i] >= 0) {
+              src.bone_ids[i] += first_bone;
+            }
+          }
+          source_vertex_data.push_back(src);
           vertex_data.push_back(out);
         }
         for (std::uint32_t idx : src_mesh.indices) {
@@ -744,6 +809,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
         }
         models.push_back(model);
       }
+      return { first_model, (std::uint32_t)models.size() - first_model };
     }
     void add_instance(std::uint32_t model_index, const fan::mat4& transform) {
       instance_t inst{};
@@ -786,11 +852,24 @@ export namespace fan::graphics::vulkan::ray_tracing {
       m.transform = transform;
       return add_model(m, callers_path);
     }
+    object_handle_t add_animated_model(
+      const std::string& path,
+      const fan::mat4& transform = fan::mat4(1),
+      std::source_location callers_path = std::source_location::current())
+    {
+      scene_model_t m;
+      m.path = path;
+      m.transform = transform;
+      m.animated = true;
+      return add_model(m, callers_path);
+    }
     void clear_scene_models() {
       scene_models.clear();
       objects.clear();
       if (!ctx || !ready) return;
       instances.clear();
+      animated_models.clear();
+      bone_matrices.clear();
       tlas_dirty = true;
       frame_index = 0;
     }
@@ -816,6 +895,46 @@ export namespace fan::graphics::vulkan::ray_tracing {
     bool set_transform_deferred(object_handle_t handle, const fan::mat4& transform) {
       return set_transform(handle, transform, false);
     }
+    bool set_animation(object_handle_t handle, f32_t time_seconds, const std::string& animation_name = {}, f32_t weight = 1.f) {
+      if (!is_object_valid(handle)) return false;
+      object_t& object = objects[handle.index];
+      if (object.animated_model_index == std::uint32_t(-1) || object.animated_model_index >= animated_models.size()) return false;
+      animated_model_t& animated_model = animated_models[object.animated_model_index];
+      fan::model::fms_t& fms = *animated_model.fms;
+      if (!fms.root_bone || fms.bone_count == 0 || fms.animation_list.empty()) return false;
+      std::string name = animation_name.empty() ? fms.active_anim : animation_name;
+      auto found = fms.animation_list.find(name);
+      if (found == fms.animation_list.end()) return false;
+      for (auto& animation : fms.animation_list) {
+        animation.second.weight = 0;
+      }
+      fms.active_anim = name;
+      found->second.weight = weight;
+      fms.dt = time_seconds * 1000.f;
+      if (fms.bone_transforms.size() != fms.bone_count) {
+        fms.bone_transforms.resize(fms.bone_count, fan::mat4(1));
+      }
+      fms.fk_calculate_poses();
+      std::vector<fan::mat4> transforms = fms.fk_calculate_transformations();
+      if (transforms.size() < animated_model.bone_count) {
+        transforms.resize(animated_model.bone_count, fan::mat4(1));
+      }
+      std::copy_n(transforms.begin(), animated_model.bone_count, bone_matrices.begin() + animated_model.first_bone);
+      if (bone_mapped) {
+        std::memcpy(
+          static_cast<std::byte*>(bone_mapped) + sizeof(fan::mat4) * animated_model.first_bone,
+          transforms.data(),
+          sizeof(fan::mat4) * animated_model.bone_count
+        );
+      }
+      animated_model.dirty = true;
+      animation_vertices_dirty = true;
+      frame_index = 0;
+      return true;
+    }
+    bool set_animation(object_handle_t handle, const std::string& animation_name = {}, f32_t weight = 1.f) {
+      return set_animation(handle, attached_engine->start_time.seconds(), animation_name, weight);
+    }
     void flush_transform_updates() {
       if (!tlas_dirty || !ctx || !ready) return;
       if (scene_geometry_dirty) {
@@ -835,8 +954,70 @@ export namespace fan::graphics::vulkan::ray_tracing {
         tlas_dirty = false;
       }
     }
+    void initialize_animated_model_pose(animated_model_t& animated_model) {
+      fan::model::fms_t& fms = *animated_model.fms;
+      if (!fms.root_bone || fms.bone_count == 0) return;
+      if (fms.bone_transforms.size() != fms.bone_count) {
+        fms.bone_transforms.resize(fms.bone_count, fan::mat4(1));
+      }
+      if (!fms.animation_list.empty() && !fms.active_anim.empty()) {
+        auto found = fms.animation_list.find(fms.active_anim);
+        if (found != fms.animation_list.end()) {
+          for (auto& animation : fms.animation_list) {
+            animation.second.weight = 0;
+          }
+          found->second.weight = 1.f;
+          fms.dt = 0;
+          fms.fk_calculate_poses();
+          fms.bone_transforms = fms.fk_calculate_transformations();
+        }
+      }
+      else {
+        fms.update_bone_transforms();
+      }
+      if (fms.bone_transforms.size() < animated_model.bone_count) {
+        fms.bone_transforms.resize(animated_model.bone_count, fan::mat4(1));
+      }
+      std::copy_n(fms.bone_transforms.begin(), animated_model.bone_count, bone_matrices.begin() + animated_model.first_bone);
+      animated_model.dirty = true;
+      animation_vertices_dirty = true;
+    }
+    bool load_animated_scene_model(std::uint32_t object_index) {
+      scene_model_t& model = scene_models[object_index];
+      object_t& object = objects[object_index];
+      object.first_instance = (std::uint32_t)instances.size();
+      fan::model::fms_t::properties_t properties;
+      properties.path = model.path;
+      properties.texture_path = model.texture_path;
+      properties.fix_uv_diagonals = model.fix_uv_diagonals;
+      auto fms = std::make_unique<fan::model::fms_t>(properties, model.callers_path);
+      std::uint32_t first_bone = (std::uint32_t)bone_matrices.size();
+      std::uint32_t bone_count = fms->bone_count;
+      if (bone_count != 0) {
+        bone_matrices.resize(first_bone + bone_count, fan::mat4(1));
+      }
+      std::uint32_t first_model = (std::uint32_t)models.size();
+      model_cache_entry_t range = load_model_from_fms(*fms, first_bone, bone_count, true);
+      for (std::uint32_t i = 0; i < range.model_count; ++i) {
+        add_instance(range.first_model + i, model.transform);
+      }
+      object.instance_count = (std::uint32_t)instances.size() - object.first_instance;
+      object.animated_model_index = (std::uint32_t)animated_models.size();
+      animated_models.emplace_back();
+      animated_model_t& animated_model = animated_models.back();
+      animated_model.fms = std::move(fms);
+      animated_model.first_model = first_model;
+      animated_model.model_count = (std::uint32_t)models.size() - first_model;
+      animated_model.first_bone = first_bone;
+      animated_model.bone_count = bone_count;
+      initialize_animated_model_pose(animated_model);
+      return true;
+    }
     bool load_scene_model(std::uint32_t object_index) {
       scene_model_t& model = scene_models[object_index];
+      if (model.animated) {
+        return load_animated_scene_model(object_index);
+      }
       object_t& object = objects[object_index];
       object.first_instance = (std::uint32_t)instances.size();
       std::string key = make_model_cache_key(model);
@@ -851,10 +1032,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       properties.texture_path = model.texture_path;
       properties.fix_uv_diagonals = model.fix_uv_diagonals;
       fan::model::fms_t fms(properties, model.callers_path);
-      std::uint32_t first_model = (std::uint32_t)models.size();
-      load_model_from_fms(fms);
-      std::uint32_t last_model  = (std::uint32_t)models.size();
-      model_cache[key] = { first_model, last_model - first_model };
+      model_cache[key] = load_model_from_fms(fms);
       add_cached_model_instances(model, model_cache[key]);
       object.instance_count = (std::uint32_t)instances.size() - object.first_instance;
       return true;
@@ -881,10 +1059,15 @@ export namespace fan::graphics::vulkan::ray_tracing {
       for (auto& blas : blas_list) blas.destroy(*ctx);
       blas_list.clear();
       destroy_tlas_resources();
+      destroy_buffer(blas_scratch_buffer, blas_scratch_memory);
+      blas_scratch_size = 0;
+      destroy_buffer(source_vertex_buffer, source_vertex_memory);
       destroy_buffer(vertex_buffer, vertex_memory);
       destroy_buffer(index_buffer, index_memory);
       destroy_buffer(material_buffer, material_memory);
       destroy_buffer(material_index_buffer, material_index_memory);
+      destroy_buffer(bone_buffer, bone_memory);
+      bone_mapped = nullptr;
     }
     void update_tlas_descriptor() {
       if (!descriptor_set) return;
@@ -927,15 +1110,18 @@ export namespace fan::graphics::vulkan::ray_tracing {
       if (!ctx) return;
       vkDeviceWaitIdle(ctx->device);
       destroy_scene_geometry_resources();
+      create_source_vertex_buffer();
       create_vertex_buffer();
       create_index_buffer();
       create_material_buffer();
       create_material_index_buffer();
+      create_bone_buffer();
       create_blas_for_models();
       create_tlas();
       update_tlas_descriptor();
       update_scene_buffers_descriptor();
       update_rt_textures_descriptor();
+      update_skinning_descriptor();
       frame_index = 0;
       tlas_dirty = false;
     }
@@ -994,10 +1180,12 @@ export namespace fan::graphics::vulkan::ray_tracing {
 
       if (scene_models.empty()) fan::throw_error("ray tracing scene has no models; call add_model() before open()");
       for (std::uint32_t i = 0; i < scene_models.size(); ++i) load_scene_model(i);
+      create_source_vertex_buffer();
       create_vertex_buffer();
       create_index_buffer();
       create_material_buffer();
       create_material_index_buffer();
+      create_bone_buffer();
       create_blas_for_models();
       create_tlas();
       create_output_image();
@@ -1009,6 +1197,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
       create_accum_descriptor_set();
       create_luminance_pipeline();
       create_luminance_descriptor_set();
+      create_skinning_pipeline();
+      create_skinning_descriptor_set();
       update_camera_from_engine();
       update_rt_textures_descriptor();
       frame_index = 0;
@@ -1083,6 +1273,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
         begin_cmd_cb_index = registered_vk_context->begin_cmd_cb.size();
         registered_vk_context->begin_cmd_cb.push_back([this](VkCommandBuffer cmd) {
           if (ready) {
+            record_gpu_animation_updates(cmd);
             flush_transform_updates(cmd);
             record_trace_rays(cmd);
           }
@@ -1115,6 +1306,62 @@ export namespace fan::graphics::vulkan::ray_tracing {
       output_sprite.set_image(accum_image);
       output_sprite.set_position(fan::vec3(window_size / 2.f, 0));
       output_sprite.set_size(window_size / 2.f);
+    }
+    void record_gpu_animation_updates(VkCommandBuffer cmd) {
+      if (!animation_vertices_dirty || !skinning_pipeline || !skinning_descriptor_set) return;
+      vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, skinning_pipeline);
+      vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, skinning_pipeline_layout, 0, 1, &skinning_descriptor_set, 0, nullptr);
+      bool dispatched = false;
+      for (animated_model_t& animated_model : animated_models) {
+        if (!animated_model.dirty) continue;
+        for (std::uint32_t i = 0; i < animated_model.model_count; ++i) {
+          std::uint32_t model_index = animated_model.first_model + i;
+          const model_t& model = models[model_index];
+          if (model.vertex_count == 0 || model.bone_count == 0) continue;
+          skinning_push_constants_t pc{};
+          pc.first_vertex = model.first_vertex;
+          pc.vertex_count = model.vertex_count;
+          pc.first_bone = model.first_bone;
+          pc.bone_count = model.bone_count;
+          vkCmdPushConstants(cmd, skinning_pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pc), &pc);
+          vkCmdDispatch(cmd, (model.vertex_count + 63) / 64, 1, 1);
+          dispatched = true;
+        }
+      }
+      if (!dispatched) {
+        animation_vertices_dirty = false;
+        for (animated_model_t& animated_model : animated_models) {
+          animated_model.dirty = false;
+        }
+        return;
+      }
+      VkMemoryBarrier skin_barrier{};
+      skin_barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+      skin_barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+      skin_barrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR;
+      vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, 0, 1, &skin_barrier, 0, nullptr, 0, nullptr);
+      bool updated = false;
+      for (animated_model_t& animated_model : animated_models) {
+        if (!animated_model.dirty) continue;
+        for (std::uint32_t i = 0; i < animated_model.model_count; ++i) {
+          record_blas_update(cmd, animated_model.first_model + i);
+          updated = true;
+          VkMemoryBarrier build_barrier{};
+          build_barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+          build_barrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
+          build_barrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
+          vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, 0, 1, &build_barrier, 0, nullptr, 0, nullptr);
+        }
+        animated_model.dirty = false;
+      }
+      if (updated) {
+        VkMemoryBarrier trace_barrier{};
+        trace_barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+        trace_barrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
+        trace_barrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR;
+        vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR, 0, 1, &trace_barrier, 0, nullptr, 0, nullptr);
+      }
+      animation_vertices_dirty = false;
     }
     void record_trace_rays(VkCommandBuffer cmd) {
       static auto start_time = std::chrono::steady_clock::now();
@@ -1209,6 +1456,66 @@ export namespace fan::graphics::vulkan::ray_tracing {
       pi.layout = pipeline_layout_out;
       fan::vulkan::validate(vkCreateComputePipelines(ctx->device, VK_NULL_HANDLE, 1, &pi, nullptr, &pipeline_out));
       vkDestroyShaderModule(ctx->device, comp, nullptr);
+    }
+    void create_skinning_pipeline() {
+      VkDescriptorSetLayoutBinding bindings[3]{};
+      auto bnd = [&](int i) { bindings[i] = { (std::uint32_t)i, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr }; };
+      bnd(0);
+      bnd(1);
+      bnd(2);
+      create_compute_pipeline(
+        "shaders/vulkan/ray_tracing/skin.comp",
+        bindings,
+        (std::uint32_t)std::size(bindings),
+        sizeof(skinning_push_constants_t),
+        skinning_descriptor_layout,
+        skinning_pipeline_layout,
+        skinning_pipeline
+      );
+    }
+    void update_skinning_descriptor() {
+      if (!skinning_descriptor_set || !source_vertex_buffer || !vertex_buffer || !bone_buffer) return;
+      VkDescriptorBufferInfo source_info{source_vertex_buffer, 0, VK_WHOLE_SIZE};
+      VkDescriptorBufferInfo vertex_info{vertex_buffer, 0, VK_WHOLE_SIZE};
+      VkDescriptorBufferInfo bone_info{bone_buffer, 0, VK_WHOLE_SIZE};
+      VkWriteDescriptorSet writes[3]{};
+      writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      writes[0].dstSet = skinning_descriptor_set;
+      writes[0].dstBinding = 0;
+      writes[0].descriptorCount = 1;
+      writes[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+      writes[0].pBufferInfo = &source_info;
+      writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      writes[1].dstSet = skinning_descriptor_set;
+      writes[1].dstBinding = 1;
+      writes[1].descriptorCount = 1;
+      writes[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+      writes[1].pBufferInfo = &vertex_info;
+      writes[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      writes[2].dstSet = skinning_descriptor_set;
+      writes[2].dstBinding = 2;
+      writes[2].descriptorCount = 1;
+      writes[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+      writes[2].pBufferInfo = &bone_info;
+      vkUpdateDescriptorSets(ctx->device, 3, writes, 0, nullptr);
+    }
+    void create_skinning_descriptor_set() {
+      VkDescriptorPoolSize pool_size{};
+      pool_size.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+      pool_size.descriptorCount = 3;
+      VkDescriptorPoolCreateInfo pool_info{};
+      pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+      pool_info.maxSets = 1;
+      pool_info.poolSizeCount = 1;
+      pool_info.pPoolSizes = &pool_size;
+      fan::vulkan::validate(vkCreateDescriptorPool(ctx->device, &pool_info, nullptr, &skinning_descriptor_pool));
+      VkDescriptorSetAllocateInfo alloc_info{};
+      alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+      alloc_info.descriptorPool = skinning_descriptor_pool;
+      alloc_info.descriptorSetCount = 1;
+      alloc_info.pSetLayouts = &skinning_descriptor_layout;
+      fan::vulkan::validate(vkAllocateDescriptorSets(ctx->device, &alloc_info, &skinning_descriptor_set));
+      update_skinning_descriptor();
     }
     void create_accum_pipeline() {
       VkDescriptorSetLayoutBinding bindings[2]{};
@@ -1414,6 +1721,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
       destroy_pipe(pipeline, pipeline_layout, descriptor_layout, descriptor_pool);
       destroy_pipe(accum_pipeline, accum_pipeline_layout, accum_descriptor_layout, accum_descriptor_pool);
       destroy_pipe(luminance_pipeline, luminance_pipeline_layout, luminance_descriptor_layout, luminance_descriptor_pool);
+      destroy_pipe(skinning_pipeline, skinning_pipeline_layout, skinning_descriptor_layout, skinning_descriptor_pool);
+      skinning_descriptor_set = VK_NULL_HANDLE;
 
       destroy_buffer(shader_binding_table, sbt_memory);
       destroy_buffer(sbt_staging, sbt_staging_memory);
@@ -1429,6 +1738,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       luminance_mapped = nullptr;
       exposure_mapped = nullptr;
       light_mapped = nullptr;
+      bone_mapped = nullptr;
 
       for(auto tex_id : texture_ids) ctx->image_erase(tex_id);
       if(output_image_valid) ctx->image_erase(output_image);
@@ -1440,13 +1750,17 @@ export namespace fan::graphics::vulkan::ray_tracing {
       submeshes.clear();
       models.clear();
       instances.clear();
+      animated_models.clear();
       for (auto& object : objects) {
         object.first_instance = 0;
         object.instance_count = 0;
+        object.animated_model_index = std::uint32_t(-1);
       }
       materials.clear();
+      source_vertex_data.clear();
       vertex_data.clear();
       index_data.clear();
+      bone_matrices.clear();
       texture_ids.clear();
       rt_texture_infos.clear();
       material_indices_per_primitive.clear();
@@ -1455,6 +1769,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       tlas_instance_count = 0;
       frame_index = 0;
       tlas_dirty = false;
+      animation_vertices_dirty = false;
       output_image_valid = false;
       accum_image_valid = false;
       tlas_instance_staging_size = 0;
@@ -1470,6 +1785,20 @@ export namespace fan::graphics::vulkan::ray_tracing {
       fan::vec2 texcoord; fan::vec2 pad2;
       fan::vec3 color; f32_t pad3;
     };
+    struct source_vertex_t {
+      fan::vec3 position; f32_t pad0;
+      fan::vec3 normal; f32_t pad1;
+      fan::vec2 texcoord; fan::vec2 pad2;
+      fan::vec3 color; f32_t pad3;
+      fan::vec4i bone_ids;
+      fan::vec4 bone_weights;
+    };
+    struct skinning_push_constants_t {
+      std::uint32_t first_vertex;
+      std::uint32_t vertex_count;
+      std::uint32_t first_bone;
+      std::uint32_t bone_count;
+    };
   #pragma pack(pop)
     static constexpr std::uint32_t instance_count = 1;
     static constexpr std::uint32_t max_textures = 512;
@@ -1478,6 +1807,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     fan::vec2ui size{};
     std::vector<acceleration_structure_t> blas_list;
     std::vector<shapes::gpu_mesh_t> mesh_geometries;
+    std::vector<animated_model_t> animated_models;
     acceleration_structure_t tlas;
     VkPipeline pipeline = VK_NULL_HANDLE;
     VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
@@ -1520,15 +1850,24 @@ export namespace fan::graphics::vulkan::ray_tracing {
     std::uint32_t tlas_instance_count = 0;
     VkBuffer tlas_scratch_buffer = VK_NULL_HANDLE;
     VkDeviceMemory tlas_scratch_memory = VK_NULL_HANDLE;
+    VkBuffer blas_scratch_buffer = VK_NULL_HANDLE;
+    VkDeviceMemory blas_scratch_memory = VK_NULL_HANDLE;
+    VkDeviceSize blas_scratch_size = 0;
+    VkBuffer source_vertex_buffer = VK_NULL_HANDLE;
+    VkDeviceMemory source_vertex_memory = VK_NULL_HANDLE;
     VkBuffer vertex_buffer = VK_NULL_HANDLE;
     VkDeviceMemory vertex_memory = VK_NULL_HANDLE;
     VkBuffer index_buffer = VK_NULL_HANDLE;
     VkDeviceMemory index_memory = VK_NULL_HANDLE;
     VkBuffer material_buffer = VK_NULL_HANDLE;
     VkDeviceMemory material_memory = VK_NULL_HANDLE;
+    VkBuffer bone_buffer = VK_NULL_HANDLE;
+    VkDeviceMemory bone_memory = VK_NULL_HANDLE;
     std::vector<material_info_t> materials;
+    std::vector<source_vertex_t> source_vertex_data;
     std::vector<vertex_t> vertex_data;
     std::vector<std::uint32_t> index_data;
+    std::vector<fan::mat4> bone_matrices;
     std::vector<fan::graphics::image_nr_t> texture_ids;
     std::vector<VkDescriptorImageInfo> rt_texture_infos;
     VkBuffer material_index_buffer = VK_NULL_HANDLE;
@@ -1539,6 +1878,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     std::uint32_t object_generation_counter = 1;
     bool tlas_dirty = false;
     bool scene_geometry_dirty = false;
+    bool animation_vertices_dirty = false;
     f32_t exposure = 1.f;
     f32_t target_exposure = 1.f;
     f32_t adaptation_speed = 4.f;
@@ -1575,6 +1915,11 @@ export namespace fan::graphics::vulkan::ray_tracing {
     VkDescriptorSet       luminance_descriptor_set    = VK_NULL_HANDLE;
     VkPipelineLayout      luminance_pipeline_layout   = VK_NULL_HANDLE;
     VkPipeline            luminance_pipeline          = VK_NULL_HANDLE;
+    VkDescriptorSetLayout skinning_descriptor_layout = VK_NULL_HANDLE;
+    VkDescriptorPool skinning_descriptor_pool = VK_NULL_HANDLE;
+    VkDescriptorSet skinning_descriptor_set = VK_NULL_HANDLE;
+    VkPipelineLayout skinning_pipeline_layout = VK_NULL_HANDLE;
+    VkPipeline skinning_pipeline = VK_NULL_HANDLE;
     VkBuffer light_buffer = VK_NULL_HANDLE;
     VkDeviceMemory light_memory = VK_NULL_HANDLE;
 
@@ -1583,6 +1928,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     void* light_mapped = nullptr;
     void* exposure_mapped = nullptr;
     void* luminance_mapped = nullptr;
+    void* bone_mapped = nullptr;
     void* tlas_instance_staging_mapped = nullptr;
 
     PFN_vkGetBufferDeviceAddressKHR vkGetBufferDeviceAddressKHR = nullptr;
