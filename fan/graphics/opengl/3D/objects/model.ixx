@@ -74,8 +74,8 @@ export namespace fan::model {
 
 export namespace fan {
   namespace graphics {
-    std::vector<fan::model::mesh_t> load_meshes(const fan::model::fms_t::properties_t& p) {
-      fan::model::fms_t fms(p);
+    std::vector<fan::model::mesh_t> load_meshes(const fan::model::fms_t::properties_t& p, std::source_location callers_path = std::source_location::current()) {
+      fan::model::fms_t fms(p, callers_path);
       return std::move(fms.meshes);
     }
 
@@ -85,7 +85,7 @@ export namespace fan {
         fan::graphics::viewport_t viewport = fan::graphics::get_perspective_render_view().viewport;
       };
 
-      model_t(const properties_t& p) : fms_t(p) {
+      model_t(const properties_t& p, std::source_location callers_path = std::source_location::current()) : fms_t(p, callers_path) {
         camera_nr = p.camera;
         viewport_nr = p.viewport;
         mesh_images.resize(meshes.size());

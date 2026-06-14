@@ -91,6 +91,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       std::string path;
       fan::mat4 transform = fan::mat4(1);
       std::string texture_path = "models/textures";
+      std::source_location callers_path;
       bool fix_uv_diagonals = false;
     };
     struct model_cache_entry_t {
@@ -763,9 +764,10 @@ export namespace fan::graphics::vulkan::ray_tracing {
         add_instance(entry.first_model + i, model.transform);
       }
     }
-    object_handle_t add_model(const scene_model_t& model) {
+    object_handle_t add_model(const scene_model_t& model, std::source_location callers_path = std::source_location::current()) {
       object_handle_t handle { (std::uint32_t)scene_models.size(), object_generation_counter++ };
       scene_models.push_back(model);
+      scene_models.back().callers_path = callers_path;
       objects.push_back({ .generation = handle.generation, .first_instance = 0, .instance_count = 0 });
       if (!ctx || !ready) return handle;
       bool geometry_changed = load_scene_model(handle.index);
@@ -774,11 +776,15 @@ export namespace fan::graphics::vulkan::ray_tracing {
       frame_index = 0;
       return handle;
     }
-    object_handle_t add_model(const std::string& path, const fan::mat4& transform = fan::mat4(1)) {
+    object_handle_t add_model(
+      const std::string& path, 
+      const fan::mat4& transform = fan::mat4(1), 
+      std::source_location callers_path = std::source_location::current()) 
+    {
       scene_model_t m;
       m.path = path;
       m.transform = transform;
-      return add_model(m);
+      return add_model(m, callers_path);
     }
     void clear_scene_models() {
       scene_models.clear();
@@ -844,7 +850,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       properties.path = model.path;
       properties.texture_path = model.texture_path;
       properties.fix_uv_diagonals = model.fix_uv_diagonals;
-      fan::model::fms_t fms(properties);
+      fan::model::fms_t fms(properties, model.callers_path);
       std::uint32_t first_model = (std::uint32_t)models.size();
       load_model_from_fms(fms);
       std::uint32_t last_model  = (std::uint32_t)models.size();
