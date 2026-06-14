@@ -15702,7 +15702,7 @@ template<typename CharType> struct output_adapter_protocol
 
 /// a type to simplify interfaces
 template<typename CharType>
-using output_adapter_t = std::shared_ptr<output_adapter_protocol<CharType>>;
+using output_adapter_t = std::unique_ptr<output_adapter_protocol<CharType>>;
 
 /// output adapter for byte vectors
 template<typename CharType, typename AllocatorType = std::allocator<CharType>>
@@ -15784,19 +15784,19 @@ class output_adapter
   public:
     template<typename AllocatorType = std::allocator<CharType>>
     output_adapter(std::vector<CharType, AllocatorType>& vec)
-        : oa(std::make_shared<output_vector_adapter<CharType, AllocatorType>>(vec)) {}
+        : oa(new output_vector_adapter<CharType, AllocatorType>(vec)) {}
 
 #ifndef JSON_NO_IO
     output_adapter(std::basic_ostream<CharType>& s)
-        : oa(std::make_shared<output_stream_adapter<CharType>>(s)) {}
+        : oa(new output_stream_adapter<CharType>(s)) {}
 #endif  // JSON_NO_IO
 
     output_adapter(StringType& s)
-        : oa(std::make_shared<output_string_adapter<CharType, StringType>>(s)) {}
+        : oa(new output_string_adapter<CharType, StringType>(s)) {}
 
     operator output_adapter_t<CharType>()
     {
-        return oa;
+        return std::move(oa);
     }
 
   private:
