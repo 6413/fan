@@ -31,6 +31,7 @@ import fan.types;
 import fan.types.matrix;
 import fan.types.vector;
 import fan.types.quaternion;
+import fan.io.file;
 import fan.print;
 import fan.math;
 import fan.graphics;
@@ -193,9 +194,9 @@ export namespace fan {
         }();
       };
       fms_t() = default;
-      fms_t(const properties_t& fmi) {
+      fms_t(const properties_t& fmi, std::source_location callers_path = std::source_location::current()) {
         p = fmi;
-        if (!load_model(fmi.path)) {
+        if (!load_model(fmi.path, callers_path)) {
           fan::throw_error("failed to load model:" + fmi.path);
         }
        // importer.~Importer();
@@ -203,7 +204,7 @@ export namespace fan {
 
       // ---------------------model hierarchy---------------------
 
-      void process_node(aiNode* node, const aiMatrix4x4& parent, fan::vec3& out_min, fan::vec3& out_max) {
+      void process_node(aiNode* node, const aiMatrix4x4& parent, fan::vec3& out_min, fan::vec3& out_max, std::source_location callers_path = std::source_location::current()) {
         aiMatrix4x4 global = parent * node->mTransformation;
 
         for (unsigned int i = 0; i < node->mNumMeshes; i++) {
@@ -219,7 +220,7 @@ export namespace fan {
 
           pm_material_data_t mat = load_materials(mesh);
           material_data_vector.push_back(mat);
-          load_textures(m, mesh);
+          load_textures(m, mesh, callers_path);
           if (p.load_skeleton) {
             process_bone_offsets(mesh);
           }
@@ -228,7 +229,7 @@ export namespace fan {
         }
 
         for (unsigned int i = 0; i < node->mNumChildren; i++) {
-          process_node(node->mChildren[i], global, out_min, out_max);
+          process_node(node->mChildren[i], global, out_min, out_max, callers_path);
         }
       }
 
@@ -646,7 +647,7 @@ export namespace fan {
         return result;
       }
 
-      void load_textures(mesh_t& mesh, aiMesh* ai_mesh) {
+      void load_textures(mesh_t& mesh, aiMesh* ai_mesh, std::source_location callers_path = std::source_location::current()) {
         if (scene->mNumMaterials == 0) {
           return;
         }
@@ -664,8 +665,13 @@ export namespace fan {
           if (path_str.size() > 4 && path_str.compare(path_str.size() - 4, 4, ".psd") == 0) {
             path_str = path_str.substr(0, path_str.size() - 4) + ".png";
           }
-
-          auto embedded_texture = scene->GetEmbeddedTexture(path.C_Str());
+          
+          const aiTexture* embedded_texture;
+          {
+            auto resolved_path = fan::io::file::find_relative_path(path.C_Str(), callers_path);
+            auto str = resolved_path.generic_string();
+            embedded_texture = scene->GetEmbeddedTexture(str.c_str());
+          }
 
           if (embedded_texture && embedded_texture->mHeight == 0) {
             std::string generated_str = "embedded:" + path_str;
@@ -710,7 +716,7 @@ export namespace fan {
             std::string file_path;
 
             for (const auto& candidate : paths) {
-              file_path = candidate.string();
+              file_path = candidate.generic_string();
 
               if (fan::model::cached_texture_data.find(file_path) != fan::model::cached_texture_data.end()) {
                 mesh.texture_names[texture_type] = file_path;
@@ -1008,11 +1014,12 @@ export namespace fan {
         fan::vec4 gl_Position = worldPos;
         return gl_Position;
       }
-      bool load_model(const std::string& path) {
+      bool load_model(const std::string& path, std::source_location callers_path = std::source_location::current()) {
         importer.SetPropertyBool(AI_CONFIG_IMPORT_FBX_PRESERVE_PIVOTS, false);
         // corruption when exporting animations, but faster model import
         //scene = (aiScene*)
-        importer.ReadFile(path, 
+        auto resolved = fan::io::file::find_relative_path(path, callers_path);
+        importer.ReadFile(resolved.generic_string(),
           /*aiProcess_LimitBoneWeights | aiProcess_ImproveCacheLocality |
           aiProcess_RemoveRedundantMaterials | aiProcess_PreTransformVertices |
           aiProcess_FindInvalidData |*/
@@ -1045,7 +1052,7 @@ export namespace fan {
         fan::vec3 global_min(std::numeric_limits<f32_t>::max());
         fan::vec3 global_max(-std::numeric_limits<f32_t>::max());
 
-        process_node(scene->mRootNode, aiMatrix4x4(), global_min, global_max);
+        process_node(scene->mRootNode, aiMatrix4x4(), global_min, global_max, callers_path);
 
         if (p.texture_loading == properties_t::texture_loading_e::wait) {
           wait_deferred_textures();
@@ -1278,7 +1285,7 @@ export namespace fan {
         }
 
         if (total_weight > 0) {
-          rotation = rotation.normalize(); local_transform = fan::translation_matrix(position) * fan::rotation_quat_matrix(rotation) * fan::scaling_matrix(scale);
+          rotation = rotation.normalize(); local_transform = fan::translate(position) * fan::rotation_quat_matrix(rotation) * fan::scale(scale);
         }
         else { local_transform = bone.transformation; }
 
