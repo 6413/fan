@@ -25,16 +25,90 @@ declare -A FEATURE_DEFAULTS=(
 declare -A FEATURES=()
 PRESET_USED=false
 
+print_usage() {
+  cat <<'EOF'
+Usage: ./xcompile_main.sh [mode] [preset] [features] [xmake args...]
+
+Modes:
+  --debug | --release | --asan
+  --rebuild
+  --main <file>
+  --clang | --gcc
+  --wasm
+  --buildlib
+
+Presets:
+  --core
+      Build the base fan modules only.
+  --headless
+      Build core + JSON.
+  --only-network, --network-only
+      Build core + JSON + network.
+  --window
+      Build headless + window + OpenGL.
+  --2d
+      Build window + 2D + GUI + physics 2D.
+
+Feature toggles:
+  --enable-<feature>
+  --disable-<feature>
+
+Features:
+  window, 2d, gui, physics-2d, json, opengl, 3d, vulkan, fmt,
+  wayland-screen, network, audio, video, reflection
+
+Legacy enable aliases:
+  --audio --network --3d --video --fmt --reflection --wayland-screen --vulkan
+
+Examples:
+  ./xcompile_main.sh --only-network --main examples/network/network_socket.cpp
+  ./xcompile_main.sh --core --enable-network --enable-json
+  ./xcompile_main.sh --2d --disable-audio --release
+EOF
+}
+
 enable_features() {
   for f in "$@"; do FEATURES[$f]=true; done
 }
 
+feature_name_to_key() {
+  local name="$1"
+  name="${name#--}"
+  name="${name#enable-}"
+  name="${name#disable-}"
+  name="${name//-/_}"
+  name="${name^^}"
+  if [[ "$name" != FAN_* ]]; then
+    name="FAN_${name}"
+  fi
+  echo "$name"
+}
+
+set_feature_from_arg() {
+  local key
+  key=$(feature_name_to_key "$1")
+  local value="$2"
+  if [[ -z "${FEATURE_DEFAULTS[$key]+x}" ]]; then
+    echo -e "${RED}Error:${NC} Unknown feature '$1' (${key})" >&2
+    exit 1
+  fi
+  FEATURES[$key]="$value"
+  if [[ "$key" == "FAN_NETWORK" && "$value" == true ]]; then
+    enable_features FAN_JSON
+  fi
+}
+
 apply_preset_core()     { : ; }
 apply_preset_headless() { enable_features FAN_JSON; }
+apply_preset_network()  { enable_features FAN_JSON FAN_NETWORK; }
 apply_preset_window()   { apply_preset_headless; enable_features FAN_WINDOW FAN_OPENGL; }
 apply_preset_2d()       { apply_preset_window;  enable_features FAN_2D FAN_GUI FAN_PHYSICS_2D; }
 while [[ $# -gt 0 ]]; do
   case $1 in
+    --help|-h)
+      print_usage
+      exit 0
+      ;;
     --debug)
       MODE="debug"
       shift
@@ -74,10 +148,23 @@ while [[ $# -gt 0 ]]; do
       ;;
     --core)        PRESET_USED=true; apply_preset_core;     shift ;;
     --headless)    PRESET_USED=true; apply_preset_headless; shift ;;
+    --only-network|--network-only)
+      PRESET_USED=true
+      apply_preset_network
+      shift
+      ;;
     --window)      PRESET_USED=true; apply_preset_window;   shift ;;
     --2d)          PRESET_USED=true; apply_preset_2d;       shift ;;
+    --enable-*)
+      set_feature_from_arg "$1" true
+      shift
+      ;;
+    --disable-*)
+      set_feature_from_arg "$1" false
+      shift
+      ;;
     --audio)       enable_features FAN_AUDIO;               shift ;;
-    --network)     enable_features FAN_NETWORK;             shift ;;
+    --network)     apply_preset_network;                    shift ;;
     --3d)          enable_features FAN_3D;                  shift ;;
     --video)       enable_features FAN_VIDEO;               shift ;;
     --fmt)         enable_features FAN_FMT;                 shift ;;
@@ -102,7 +189,11 @@ if [[ "$PRESET_USED" == true ]]; then
   done
 elif [[ ${#FEATURES[@]} -gt 0 ]]; then
   for flag in "${!FEATURES[@]}"; do
-    FEATURE_ARGS+=("--${flag}=y")
+    if [[ "${FEATURES[$flag]}" == true ]]; then
+      FEATURE_ARGS+=("--${flag}=y")
+    else
+      FEATURE_ARGS+=("--${flag}=n")
+    fi
   done
 fi
 
