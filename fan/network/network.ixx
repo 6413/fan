@@ -6,7 +6,9 @@ module;
 #undef min
 #undef max
 #undef NO_ERROR
+#if defined(__clang__) || !defined(__GNUC__) || defined(FAN_NETWORK_ENABLE_CURL_ON_GCC)
 #define __use_curl
+#endif
 #ifdef __use_curl
   #include <curl/curl.h>
   #include <curl/multi.h>
