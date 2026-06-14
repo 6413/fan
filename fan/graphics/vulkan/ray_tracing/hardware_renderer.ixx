@@ -17,6 +17,9 @@ import fan.graphics;
 import fan.graphics.vulkan.ray_tracing.shapes;
 import fan.random;
 import fan.graphics.fms;
+import fan.graphics.gui.base;
+import fan.graphics.loco;
+import fan.print.error;
 
 export namespace fan::graphics::vulkan::ray_tracing {
   struct acceleration_structure_t {
@@ -79,9 +82,44 @@ export namespace fan::graphics::vulkan::ray_tracing {
       std::uint32_t model_index;
       fan::mat4 transform;
     };
+    struct scene_model_t {
+      std::string path;
+      fan::mat4 transform = fan::mat4(1);
+      std::string texture_path = "models/textures";
+      bool fix_uv_diagonals = false;
+    };
+    struct model_cache_entry_t {
+      std::uint32_t first_model = 0;
+      std::uint32_t model_count = 0;
+    };
+    struct engine_open_properties_t {
+      fan::vec2ui size{};
+      bool create_output_sprite = true;
+    };
     std::vector<submesh_t> submeshes;
     std::vector<model_t> models;
     std::vector<instance_t> instances;
+    std::vector<scene_model_t> scene_models;
+    std::unordered_map<std::string, model_cache_entry_t> model_cache;
+    context_t() = default;
+    context_t(fan::graphics::engine_t& engine, const engine_open_properties_t& properties = {}) {
+      attached_engine = &engine;
+      pending_open_properties = properties;
+      engine.single_queue.push_back([this, &engine]() {
+        auto sz = pending_open_properties.size;
+        if (sz.x == 0 || sz.y == 0)
+          sz = engine.window.get_size();
+        output_sprite_enabled = pending_open_properties.create_output_sprite;
+        open(engine.context.vk, sz);
+        ready = true;
+        sync_output_sprite();
+        attach_engine_callbacks(engine);
+      });
+    }
+    ~context_t() {
+      detach_engine();
+      close();
+    }
     struct time_ubo_t {
       f32_t time = 0;
     };
@@ -966,20 +1004,219 @@ export namespace fan::graphics::vulkan::ray_tracing {
       inst.transform = transform;
       instances.push_back(inst);
     }
-    void add_model(const std::string& path, const fan::mat4& transform) {
+    std::string make_model_cache_key(const scene_model_t& model) const {
+      std::string key = model.path;
+      key.push_back('\x1f');
+      key += model.texture_path;
+      key.push_back('\x1f');
+      key += model.fix_uv_diagonals ? "1" : "0";
+      return key;
+    }
+    void add_cached_model_instances(const scene_model_t& model, const model_cache_entry_t& entry) {
+      for (std::uint32_t i = 0; i < entry.model_count; ++i) {
+        add_instance(entry.first_model + i, model.transform);
+      }
+    }
+    void add_model(const scene_model_t& model) {
+      scene_models.push_back(model);
+      if (!ctx || !ready) {
+        return;
+      }
+      vkDeviceWaitIdle(ctx->device);
+      bool geometry_changed = load_scene_model(model);
+      if (geometry_changed) {
+        rebuild_scene_geometry();
+      }
+      else {
+        rebuild_tlas();
+      }
+    }
+    void add_model(const std::string& path, const fan::mat4& transform = fan::mat4(1)) {
+      scene_model_t m;
+      m.path = path;
+      m.transform = transform;
+      add_model(m);
+    }
+    void clear_scene_models() {
+      scene_models.clear();
+      if (!ctx || !ready) {
+        return;
+      }
+      vkDeviceWaitIdle(ctx->device);
+      instances.clear();
+      rebuild_tlas();
+    }
+    bool load_scene_model(const scene_model_t& model) {
+      std::string key = make_model_cache_key(model);
+      auto found = model_cache.find(key);
+      if (found != model_cache.end()) {
+        add_cached_model_instances(model, found->second);
+        return false;
+      }
       fan::model::fms_t::properties_t properties;
-      properties.path = path;
-      properties.fix_uv_diagonals = false;
+      properties.path = model.path;
+      properties.texture_path = model.texture_path;
+      properties.fix_uv_diagonals = model.fix_uv_diagonals;
       fan::model::fms_t fms(properties);
       std::uint32_t first_model = (std::uint32_t)models.size();
       load_model_from_fms(fms);
       std::uint32_t last_model  = (std::uint32_t)models.size();
-      for (std::uint32_t i = first_model; i < last_model; ++i) {
-        instance_t inst{};
-        inst.model_index = i;
-        inst.transform   = transform;
-        instances.push_back(inst);
+      model_cache[key] = { first_model, last_model - first_model };
+      add_cached_model_instances(model, model_cache[key]);
+      return true;
+    }
+    void destroy_buffer(VkBuffer& buffer, VkDeviceMemory& memory) {
+      if (buffer) {
+        vkDestroyBuffer(ctx->device, buffer, nullptr);
+        buffer = VK_NULL_HANDLE;
       }
+      if (memory) {
+        vkFreeMemory(ctx->device, memory, nullptr);
+        memory = VK_NULL_HANDLE;
+      }
+    }
+    void destroy_tlas_resources() {
+      tlas.destroy(*ctx);
+      destroy_buffer(tlas_instance_buffer, tlas_instance_memory);
+      destroy_buffer(tlas_scratch_buffer, tlas_scratch_memory);
+      tlas_instance_count = 0;
+    }
+    void update_tlas_descriptor() {
+      if (!descriptor_set) {
+        return;
+      }
+      VkWriteDescriptorSetAccelerationStructureKHR as_info{};
+      as_info.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
+      as_info.accelerationStructureCount = 1;
+      as_info.pAccelerationStructures = &tlas.handle;
+      VkWriteDescriptorSet write{};
+      write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      write.pNext = &as_info;
+      write.dstSet = descriptor_set;
+      write.dstBinding = 0;
+      write.descriptorCount = 1;
+      write.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+      vkUpdateDescriptorSets(ctx->device, 1, &write, 0, nullptr);
+    }
+    void update_scene_buffers_descriptor() {
+      if (!descriptor_set) {
+        return;
+      }
+      VkDescriptorBufferInfo material_info{};
+      material_info.buffer = material_buffer;
+      material_info.range = VK_WHOLE_SIZE;
+      VkDescriptorBufferInfo vertex_info{};
+      vertex_info.buffer = vertex_buffer;
+      vertex_info.range = VK_WHOLE_SIZE;
+      VkDescriptorBufferInfo index_info{};
+      index_info.buffer = index_buffer;
+      index_info.range = VK_WHOLE_SIZE;
+      VkDescriptorBufferInfo mat_idx_info{};
+      mat_idx_info.buffer = material_index_buffer;
+      mat_idx_info.range = VK_WHOLE_SIZE;
+      VkWriteDescriptorSet writes[4]{};
+      writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      writes[0].dstSet = descriptor_set;
+      writes[0].dstBinding = 5;
+      writes[0].descriptorCount = 1;
+      writes[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+      writes[0].pBufferInfo = &material_info;
+      writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      writes[1].dstSet = descriptor_set;
+      writes[1].dstBinding = 6;
+      writes[1].descriptorCount = 1;
+      writes[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+      writes[1].pBufferInfo = &vertex_info;
+      writes[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      writes[2].dstSet = descriptor_set;
+      writes[2].dstBinding = 7;
+      writes[2].descriptorCount = 1;
+      writes[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+      writes[2].pBufferInfo = &index_info;
+      writes[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      writes[3].dstSet = descriptor_set;
+      writes[3].dstBinding = 9;
+      writes[3].descriptorCount = 1;
+      writes[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+      writes[3].pBufferInfo = &mat_idx_info;
+      vkUpdateDescriptorSets(ctx->device, (std::uint32_t)std::size(writes), writes, 0, nullptr);
+    }
+    void rebuild_tlas() {
+      if (!ctx) {
+        return;
+      }
+      vkDeviceWaitIdle(ctx->device);
+      destroy_tlas_resources();
+      create_tlas();
+      update_tlas_descriptor();
+      frame_index = 0;
+    }
+    void rebuild_scene_geometry() {
+      if (!ctx) {
+        return;
+      }
+      vkDeviceWaitIdle(ctx->device);
+      destroy_tlas_resources();
+      for (auto& blas : blas_list) {
+        blas.destroy(*ctx);
+      }
+      blas_list.clear();
+      destroy_buffer(vertex_buffer, vertex_memory);
+      destroy_buffer(index_buffer, index_memory);
+      destroy_buffer(material_buffer, material_memory);
+      destroy_buffer(material_index_buffer, material_index_memory);
+      create_vertex_buffer();
+      create_index_buffer();
+      create_material_buffer();
+      create_material_index_buffer();
+      for (std::uint32_t i = 0; i < models.size(); ++i) {
+        create_blas_for_model(i);
+      }
+      create_tlas();
+      update_tlas_descriptor();
+      update_scene_buffers_descriptor();
+      update_rt_textures_descriptor();
+      frame_index = 0;
+    }
+    void set_light(const fan::vec3& position, const fan::vec3& color, f32_t intensity) {
+      light_position = position;
+      light_color = color;
+      light_intensity = intensity;
+      if (!ctx || !light_buffer) {
+        return;
+      }
+      light_ubo_t ubo{};
+      ubo.position = light_position;
+      ubo.color = light_color;
+      ubo.intensity = light_intensity;
+      void* data;
+      vkMapMemory(ctx->device, light_memory, 0, sizeof(ubo), 0, &data);
+      std::memcpy(data, &ubo, sizeof(ubo));
+      vkUnmapMemory(ctx->device, light_memory);
+    }
+    void set_light() {
+      set_light(light_position, light_color, light_intensity);
+    }
+    void reload_pipeline() {
+      if (!ctx) {
+        return;
+      }
+      vkDeviceWaitIdle(ctx->device);
+      if (pipeline) {
+        vkDestroyPipeline(ctx->device, pipeline, nullptr);
+        pipeline = VK_NULL_HANDLE;
+      }
+      if (shader_binding_table) {
+        vkDestroyBuffer(ctx->device, shader_binding_table, nullptr);
+        shader_binding_table = VK_NULL_HANDLE;
+      }
+      if (sbt_memory) {
+        vkFreeMemory(ctx->device, sbt_memory, nullptr);
+        sbt_memory = VK_NULL_HANDLE;
+      }
+      create_pipeline();
+      create_sbt();
+      frame_index = 0;
     }
     void update_camera_from_engine(){
       auto camera_handle = fan::graphics::get_perspective_render_view().camera;
@@ -1019,10 +1256,16 @@ export namespace fan::graphics::vulkan::ray_tracing {
         light_buffer,
         light_memory
       );
+      set_light();
       create_exposure_ubo(); 
       create_luminance_buffer(size.x, size.y);
 
-      add_model("models/Fox.glb", fan::mat4(1).translate(fan::vec3(0.0f, -1.0f, 4.0f)).scale(1.f));
+      if (scene_models.empty()) {
+        fan::throw_error("ray tracing scene has no models; call add_model() before open()");
+      }
+      for (const auto& model : scene_models) {
+        load_scene_model(model);
+      }
       create_vertex_buffer();
       create_index_buffer();
       create_material_buffer();
@@ -1043,6 +1286,118 @@ export namespace fan::graphics::vulkan::ray_tracing {
       update_camera_from_engine();
       update_rt_textures_descriptor();
       frame_index = 0;
+    }
+    void open(fan::graphics::engine_t& engine, const engine_open_properties_t& properties = {}) {
+      attached_engine = &engine;
+      auto output_size = properties.size;
+      if (output_size.x == 0 || output_size.y == 0) {
+        output_size = engine.window.get_size();
+      }
+      output_sprite_enabled = properties.create_output_sprite;
+      open(engine.context.vk, output_size);
+      ready = true;
+      sync_output_sprite();
+      attach_engine_callbacks(engine);
+    }
+    void detach_engine() {
+      if (attached_engine && update_callback_registered) {
+        attached_engine->remove_update_callback(update_callback_handle);
+      }
+      update_callback_registered = false;
+      resize_handle.remove();
+      if (command_callback_registered && registered_vk_context &&
+        begin_cmd_cb_index < registered_vk_context->begin_cmd_cb.size()) {
+        registered_vk_context->begin_cmd_cb[begin_cmd_cb_index] = [](VkCommandBuffer) {};
+      }
+      command_callback_registered = false;
+      registered_vk_context = nullptr;
+      attached_engine = nullptr;
+      pending_resize = false;
+      ready = false;
+      if (output_sprite) {
+        output_sprite.erase();
+      }
+    }
+    void update() {
+      if (!attached_engine) {
+        return;
+      }
+      if (pending_resize) {
+        pending_resize = false;
+        vkDeviceWaitIdle(attached_engine->context.vk.device);
+        close();
+        open(attached_engine->context.vk, pending_size);
+        ready = true;
+        sync_output_sprite();
+      }
+      if (!ready) {
+        return;
+      }
+      on_camera_updated(update_camera);
+      update_exposure(attached_engine->get_delta_time());
+      if (update_camera) {
+        update_camera_from_engine();
+      }
+      sync_output_sprite();
+    }
+#if defined(FAN_GUI)
+    void render_gui(const char* window_name = "ray tracing") {
+      fan::graphics::gui::begin(window_name);
+      fan::graphics::gui::checkbox("update camera", &update_camera);
+      fan::graphics::gui::checkbox("auto exposure", &enable_auto_exposure);
+      fan::graphics::gui::checkbox("gi bounce", &enable_gi);
+      fan::graphics::gui::checkbox("reflections", &enable_reflections);
+      bool light_changed = false;
+      light_changed |= fan::graphics::gui::drag("Light Position", &light_position);
+      light_changed |= fan::graphics::gui::drag("Light Color", &light_color);
+      light_changed |= fan::graphics::gui::drag("Light Intensity", &light_intensity);
+      if (light_changed) {
+        set_light();
+      }
+      fan::graphics::gui::end();
+    }
+#endif
+    void attach_engine_callbacks(fan::graphics::engine_t& engine) {
+      if (!command_callback_registered) {
+        registered_vk_context = &engine.context.vk;
+        begin_cmd_cb_index = registered_vk_context->begin_cmd_cb.size();
+        registered_vk_context->begin_cmd_cb.push_back([this](VkCommandBuffer cmd) {
+          if (ready) {
+            record_trace_rays(cmd);
+          }
+        });
+        command_callback_registered = true;
+      }
+      if (!update_callback_registered) {
+        update_callback_handle = engine.add_update_callback_front([this](void*) {
+          update();
+        });
+        update_callback_registered = true;
+      }
+      resize_handle = engine.window.add_resize_callback([this](const auto& d) {
+        pending_size = d.size;
+        pending_resize = true;
+        ready = false;
+      });
+    }
+    void sync_output_sprite() {
+      if (!attached_engine || !output_sprite_enabled || !accum_image_valid) {
+        return;
+      }
+      fan::vec2 window_size = fan::vec2(attached_engine->window.get_size());
+      if (!output_sprite) {
+        output_sprite = fan::graphics::sprite_t{{
+          .position = fan::vec3(window_size / 2.f, 0),
+          .size = window_size / 2.f,
+          .image = accum_image,
+          .tc_position = fan::vec2(0.f, 1.f),
+          .tc_size = fan::vec2(1.f, -1.f)
+        }};
+        return;
+      }
+      output_sprite.set_image(accum_image);
+      output_sprite.set_position(fan::vec3(window_size / 2.f, 0));
+      output_sprite.set_size(window_size / 2.f);
     }
     void record_trace_rays(VkCommandBuffer cmd) {
       static auto start_time = std::chrono::steady_clock::now();
@@ -1595,6 +1950,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     }
     void close(){
       if(!ctx) return;
+      ready = false;
       vkDeviceWaitIdle(ctx->device);
       for(auto& geom : mesh_geometries){
         geom.destroy(*ctx);
@@ -1651,6 +2007,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
         ctx->image_erase(accum_image);
       }
       blas_list.clear();
+      model_cache.clear();
       mesh_geometries.clear();
       submeshes.clear();
       models.clear();
@@ -1723,6 +2080,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
   #pragma pack(pop)
     static constexpr std::uint32_t instance_count = 1;
     static constexpr std::uint32_t max_textures = 512;
+    engine_open_properties_t pending_open_properties;
     fan::vulkan::context_t* ctx = nullptr;
     fan::vec2ui size{};
     std::vector<acceleration_structure_t> blas_list;
@@ -1787,6 +2145,22 @@ export namespace fan::graphics::vulkan::ray_tracing {
     bool enable_auto_exposure = false;
     bool enable_gi = false;
     bool enable_reflections = false;
+    bool update_camera = true;
+    fan::vec3 light_position = fan::vec3(5.0f, 10.0f, 5.0f);
+    fan::vec3 light_color = fan::vec3(1.0f, 1.0f, 1.0f);
+    f32_t light_intensity = 3.0f;
+    fan::graphics::sprite_t output_sprite;
+    fan::graphics::engine_t* attached_engine = nullptr;
+    bool output_sprite_enabled = false;
+    bool ready = false;
+    bool pending_resize = false;
+    fan::vec2ui pending_size{};
+    fan::window_t::resize_handle_t resize_handle;
+    fan::graphics::engine_t::update_callback_handle_t update_callback_handle;
+    bool update_callback_registered = false;
+    fan::vulkan::context_t* registered_vk_context = nullptr;
+    std::size_t begin_cmd_cb_index = 0;
+    bool command_callback_registered = false;
     VkBuffer luminance_buffer = VK_NULL_HANDLE;
     VkDeviceMemory luminance_memory = VK_NULL_HANDLE;
     std::uint32_t luminance_group_count = 0;

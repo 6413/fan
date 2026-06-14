@@ -1066,6 +1066,7 @@ void fan::vulkan::context_t::open_no_window() {
   create_sync_objects();
 }
 #if defined(loco_window)
+
 void fan::vulkan::context_t::open(fan::window_t& window) {
   window_resize_handle = window.add_resize_callback([&](const fan::window_t::resize_data_t& d) {
     SwapChainRebuild = true;
