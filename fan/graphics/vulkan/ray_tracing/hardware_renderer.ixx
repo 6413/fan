@@ -46,7 +46,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     std::int32_t metallic_texture_id = -1;
     std::int32_t roughness_texture_id = -1;
     fan::vec3 base_color = fan::vec3(1.0f, 1.0f, 1.0f);
-    f32_t pad1;
+    std::uint32_t source_material_id = 0;
   };
   #pragma pack(pop)
   struct light_t {
@@ -174,6 +174,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     }
     struct time_ubo_t {
       f32_t time = 0;
+      std::uint32_t frame_index = 0;
     };
     struct rt_camera_t {
       fan::mat4 projection;
@@ -185,6 +186,10 @@ export namespace fan::graphics::vulkan::ray_tracing {
       f32_t exposure = 1.f;
       f32_t enable_gi = 0.f;
       f32_t enable_reflections = 0.f;
+      f32_t enable_shadows = 1.f;
+      f32_t ambient_strength = 0.18f;
+      f32_t shadow_strength = 0.35f;
+      f32_t wrap_strength = 0.35f;
       f32_t pad0 = 0.f;
     };
     VkDeviceAddress get_buffer_address(VkBuffer buffer) const {
@@ -343,7 +348,11 @@ export namespace fan::graphics::vulkan::ray_tracing {
     bool can_update_tlas_transforms() const {
       return ctx && tlas.handle && tlas_instance_buffer && tlas_scratch_buffer && tlas_instance_count != 0 && tlas_instance_count == (std::uint32_t)instances.size();
     }
-    void record_tlas_transform_update(VkCommandBuffer cmd) {
+    void reset_accumulation() {
+      frame_index = 0;
+      accumulation_reset_pending = true;
+    }
+    void record_tlas_instance_build(VkCommandBuffer cmd, VkBuildAccelerationStructureModeKHR mode) {
       std::vector<VkAccelerationStructureInstanceKHR> vk_instances = make_tlas_instances();
       VkDeviceSize instance_size = sizeof(VkAccelerationStructureInstanceKHR) * tlas_instance_count;
       upload_tlas_instances_to_staging(vk_instances, instance_size);
@@ -360,8 +369,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
       build_info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR;
       build_info.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR;
       build_info.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR | VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_KHR;
-      build_info.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR;
-      build_info.srcAccelerationStructure = tlas.handle;
+      build_info.mode = mode;
+      build_info.srcAccelerationStructure = mode == VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR ? tlas.handle : VK_NULL_HANDLE;
       build_info.dstAccelerationStructure = tlas.handle;
       build_info.geometryCount = 1;
       build_info.pGeometries = &geometry;
@@ -389,7 +398,13 @@ export namespace fan::graphics::vulkan::ray_tracing {
       build_barrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
       build_barrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR;
       vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR, 0, 1, &build_barrier, 0, nullptr, 0, nullptr);
-      frame_index = 0;
+      reset_accumulation();
+    }
+    void record_tlas_transform_update(VkCommandBuffer cmd) {
+      record_tlas_instance_build(cmd, VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR);
+    }
+    void record_tlas_rebuild(VkCommandBuffer cmd) {
+      record_tlas_instance_build(cmd, VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR);
     }
     void create_tlas() {
       tlas_instance_count = (std::uint32_t)instances.size();
@@ -443,7 +458,12 @@ export namespace fan::graphics::vulkan::ray_tracing {
     bool update_tlas_transforms() {
       if (!can_update_tlas_transforms()) return false;
       VkCommandBuffer cmd = ctx->begin_single_time_commands();
-      record_tlas_transform_update(cmd);
+      if (tlas_rebuild_dirty) {
+        record_tlas_rebuild(cmd);
+      }
+      else {
+        record_tlas_transform_update(cmd);
+      }
       ctx->end_single_time_commands(cmd);
       return true;
     }
@@ -705,13 +725,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
       }
       ctx->upload_buffer(material_indices_per_primitive, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, material_index_buffer, material_index_memory);
     }
-    void create_bone_buffer() {
-      destroy_buffer(bone_buffer, bone_memory);
-      bone_mapped = nullptr;
-      std::uint32_t count = std::max<std::uint32_t>((std::uint32_t)bone_matrices.size(), 1);
-      VkDeviceSize size = sizeof(fan::mat4) * count;
-      ctx->create_buffer(size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, bone_buffer, bone_memory);
-      vkMapMemory(ctx->device, bone_memory, 0, size, 0, &bone_mapped);
+    void upload_bone_buffer() {
+      if (!bone_mapped) return;
       if (bone_matrices.empty()) {
         fan::mat4 identity(1);
         std::memcpy(bone_mapped, &identity, sizeof(identity));
@@ -719,6 +734,61 @@ export namespace fan::graphics::vulkan::ray_tracing {
       else {
         std::memcpy(bone_mapped, bone_matrices.data(), sizeof(fan::mat4) * bone_matrices.size());
       }
+      bone_buffer_dirty = false;
+    }
+    void upload_bone_buffer_if_dirty() {
+      if (bone_buffer_dirty) {
+        upload_bone_buffer();
+      }
+    }
+    void create_bone_buffer() {
+      destroy_buffer(bone_buffer, bone_memory);
+      bone_mapped = nullptr;
+      std::uint32_t count = std::max<std::uint32_t>((std::uint32_t)bone_matrices.size(), 1);
+      VkDeviceSize size = sizeof(fan::mat4) * count;
+      ctx->create_buffer(size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, bone_buffer, bone_memory);
+      vkMapMemory(ctx->device, bone_memory, 0, size, 0, &bone_mapped);
+      upload_bone_buffer();
+    }
+    fan::vec3 transform_direction(const fan::mat4& m, const fan::vec3& v) const {
+      fan::vec3 r(0);
+      for (std::uint32_t i = 0; i < 3; ++i) {
+        for (std::uint32_t j = 0; j < 3; ++j) {
+          r[i] += m[j][i] * v[j];
+        }
+      }
+      return r;
+    }
+    template <typename source_vertex_type_t, typename vertex_type_t>
+    void bake_cached_animation_vertex(const source_vertex_type_t& src, vertex_type_t& dst) const {
+      fan::vec4 position(0);
+      fan::vec3 normal(0);
+      f32_t total_weight = 0;
+      for (std::uint32_t i = 0; i < 4; ++i) {
+        int bone_id = src.bone_ids[i];
+        f32_t weight = src.bone_weights[i];
+        if (bone_id < 0 || weight <= 0) {
+          continue;
+        }
+        if ((std::uint32_t)bone_id >= bone_matrices.size()) {
+          continue;
+        }
+        const fan::mat4& bone = bone_matrices[bone_id];
+        fan::vec4 local_position = bone * fan::vec4(src.position, 1.f);
+        fan::vec3 local_normal = transform_direction(bone, src.normal);
+        for (std::uint32_t component = 0; component < 4; ++component) {
+          position[component] += local_position[component] * weight;
+        }
+        for (std::uint32_t component = 0; component < 3; ++component) {
+          normal[component] += local_normal[component] * weight;
+        }
+        total_weight += weight;
+      }
+      if (total_weight <= 0) {
+        return;
+      }
+      dst.position = fan::vec3(position);
+      dst.normal = normal.length_squared() > 0 ? normal.normalize() : src.normal;
     }
     model_cache_entry_t load_model_from_fms(fan::model::fms_t& fms, std::uint32_t first_bone = 0, std::uint32_t bone_count = 0, bool animated = false) {
       std::uint32_t first_model = (std::uint32_t)models.size();
@@ -759,6 +829,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
               src.bone_ids[i] += first_bone;
             }
           }
+          if (animated && bone_count != 0) {
+            bake_cached_animation_vertex(src, out);
+          }
           source_vertex_data.push_back(src);
           vertex_data.push_back(out);
         }
@@ -767,6 +840,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
         }
         material_info_t mat;
         mat.base_color            = fan::vec3(1,1,1);
+        mat.source_material_id    = mesh_idx;
         if (mesh_idx < fms.material_data_vector.size()) {
           const auto& md = fms.material_data_vector[mesh_idx];
           const fan::color* c = &md.color[fan::texture_type::base_color];
@@ -871,7 +945,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       bool geometry_changed = load_scene_model(handle.index);
       scene_geometry_dirty = scene_geometry_dirty || geometry_changed;
       tlas_dirty = true;
-      frame_index = 0;
+      reset_accumulation();
       return handle;
     }
     object_handle_t add_model(
@@ -920,7 +994,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
       animated_models.clear();
       bone_matrices.clear();
       tlas_dirty = true;
-      frame_index = 0;
+      tlas_rebuild_dirty = false;
+      reset_accumulation();
     }
     bool is_object_valid(object_handle_t handle) const {
       return handle.valid() && handle.index < objects.size() && objects[handle.index].generation == handle.generation;
@@ -937,7 +1012,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
         instances[object.first_instance + i].transform = transform;
       }
       tlas_dirty = true;
-      frame_index = 0;
+      reset_accumulation();
       if (rebuild_now) flush_transform_updates();
       return true;
     }
@@ -966,7 +1041,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
       }
       object.animation_frame = frame;
       tlas_dirty = true;
-      frame_index = 0;
+      tlas_rebuild_dirty = true;
+      reset_accumulation();
       return true;
     }
     bool set_animation(object_handle_t handle, f32_t time_seconds, const std::string& animation_name = {}, f32_t weight = 1.f) {
@@ -1001,16 +1077,10 @@ export namespace fan::graphics::vulkan::ray_tracing {
         transforms.resize(animated_model.bone_count, fan::mat4(1));
       }
       std::copy_n(transforms.begin(), animated_model.bone_count, bone_matrices.begin() + animated_model.first_bone);
-      if (bone_mapped) {
-        std::memcpy(
-          static_cast<std::byte*>(bone_mapped) + sizeof(fan::mat4) * animated_model.first_bone,
-          transforms.data(),
-          sizeof(fan::mat4) * animated_model.bone_count
-        );
-      }
+      bone_buffer_dirty = true;
       animated_model.dirty = true;
       animation_vertices_dirty = true;
-      frame_index = 0;
+      reset_accumulation();
       return true;
     }
     bool set_animation(object_handle_t handle, const std::string& animation_name = {}, f32_t weight = 1.f) {
@@ -1041,13 +1111,20 @@ export namespace fan::graphics::vulkan::ray_tracing {
       }
       if (!update_tlas_transforms()) rebuild_tlas();
       tlas_dirty = false;
+      tlas_rebuild_dirty = false;
     }
     void flush_transform_updates(VkCommandBuffer cmd) {
       if (!tlas_dirty || !ctx || !ready) return;
       if (scene_geometry_dirty) return;
       if (can_update_tlas_transforms()) {
-        record_tlas_transform_update(cmd);
+        if (tlas_rebuild_dirty) {
+          record_tlas_rebuild(cmd);
+        }
+        else {
+          record_tlas_transform_update(cmd);
+        }
         tlas_dirty = false;
+        tlas_rebuild_dirty = false;
       }
     }
     void initialize_animated_model_pose(animated_model_t& animated_model) {
@@ -1075,11 +1152,19 @@ export namespace fan::graphics::vulkan::ray_tracing {
         fms.bone_transforms.resize(animated_model.bone_count, fan::mat4(1));
       }
       std::copy_n(fms.bone_transforms.begin(), animated_model.bone_count, bone_matrices.begin() + animated_model.first_bone);
+      bone_buffer_dirty = true;
       animated_model.dirty = true;
       animation_vertices_dirty = true;
     }
     std::string make_animation_cache_key(const scene_model_t& model) const {
       return make_model_cache_key(model) + std::string("#animated#") + std::to_string((int)animation_sample_rate);
+    }
+    f32_t get_cached_animation_sample_time(f32_t duration_ms, std::uint32_t frame, std::uint32_t frame_count) const {
+      if (duration_ms <= 0 || frame_count == 0) {
+        return 0;
+      }
+      f32_t t = duration_ms * (((f32_t)frame + 0.5f) / (f32_t)frame_count);
+      return std::min(t, std::max(0.f, duration_ms - 0.001f));
     }
     void append_pose_frame(fan::model::fms_t& fms, animation_clip_cache_t& clip, f32_t time_ms) {
       std::uint32_t first_bone = (std::uint32_t)bone_matrices.size();
@@ -1104,8 +1189,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       animated_model.model_count = range.model_count;
       animated_model.first_bone = first_bone;
       animated_model.bone_count = bone_count;
-      animated_model.dirty = true;
-      animation_vertices_dirty = true;
+      animated_model.dirty = false;
       clip.frames.push_back({ range.first_model, range.model_count, time_ms });
     }
     std::uint32_t get_or_create_animation_cache(const scene_model_t& model, bool& created) {
@@ -1140,7 +1224,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
         fms.active_anim = clip_name;
         std::uint32_t frame_count = std::max<std::uint32_t>(1, (std::uint32_t)std::ceil((clip.duration_ms / 1000.f) * animation_sample_rate));
         for (std::uint32_t frame = 0; frame < frame_count; ++frame) {
-          f32_t time_ms = clip.duration_ms * ((f32_t)frame / (f32_t)frame_count);
+          f32_t time_ms = get_cached_animation_sample_time(clip.duration_ms, frame, frame_count);
           append_pose_frame(fms, clip, time_ms);
         }
       }
@@ -1270,8 +1354,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
       destroy_tlas_resources();
       create_tlas();
       update_tlas_descriptor();
-      frame_index = 0;
+      reset_accumulation();
       tlas_dirty = false;
+      tlas_rebuild_dirty = false;
     }
     void rebuild_scene_geometry() {
       if (!ctx) return;
@@ -1289,13 +1374,15 @@ export namespace fan::graphics::vulkan::ray_tracing {
       update_scene_buffers_descriptor();
       update_rt_textures_descriptor();
       update_skinning_descriptor();
-      frame_index = 0;
+      reset_accumulation();
       tlas_dirty = false;
+      tlas_rebuild_dirty = false;
     }
     void set_light(const fan::vec3& position, const fan::vec3& color, f32_t intensity) {
       light_position = position;
       light_color = color;
       light_intensity = intensity;
+      reset_accumulation();
       if (!ctx || !light_buffer || !light_mapped) return;
       light_ubo_t ubo{};
       ubo.position = light_position;
@@ -1314,18 +1401,22 @@ export namespace fan::graphics::vulkan::ray_tracing {
       destroy_buffer(shader_binding_table, sbt_memory);
       create_pipeline();
       create_sbt();
-      frame_index = 0;
+      reset_accumulation();
     }
-    void update_camera_from_engine(){
+    bool update_camera_from_engine(){
       auto camera_handle = fan::graphics::get_perspective_render_view().camera;
       auto camera_data = ctx->camera_get(camera_handle);
-      if (!camera_mapped) return;
+      if (!camera_mapped) return false;
       rt_camera_t vp{};
       vp.projection = camera_data.projection;
       vp.view = camera_data.view;
       vp.inv_projection = camera_data.projection.inverse();
       vp.inv_view = camera_data.view.inverse();
+      bool changed = !last_camera_ubo_valid || std::memcmp(&last_camera_ubo, &vp, sizeof(vp)) != 0;
       std::memcpy(camera_mapped, &vp, sizeof(vp));
+      last_camera_ubo = vp;
+      last_camera_ubo_valid = true;
+      return changed;
     }
     void open(fan::vulkan::context_t& main_ctx, const fan::vec2ui& sz) {
       ctx = &main_ctx;
@@ -1368,8 +1459,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
       create_skinning_descriptor_set();
       update_camera_from_engine();
       update_rt_textures_descriptor();
-      frame_index = 0;
+      reset_accumulation();
       tlas_dirty = false;
+      tlas_rebuild_dirty = false;
     }
     void open(fan::graphics::engine_t& engine, const engine_open_properties_t& properties = {}) {
       attached_engine = &engine;
@@ -1408,18 +1500,26 @@ export namespace fan::graphics::vulkan::ray_tracing {
       if (!ready) return;
       update_shared_animations(attached_engine->start_time.seconds());
       if (tlas_dirty && !can_update_tlas_transforms()) flush_transform_updates();
-      on_camera_updated(update_camera);
-      update_exposure(attached_engine->get_delta_time());
-      if (update_camera) update_camera_from_engine();
+      bool camera_changed = update_camera ? update_camera_from_engine() : false;
+      on_camera_updated(camera_changed);
       sync_output_sprite();
     }
 #if defined(FAN_GUI)
     void render_gui(const char* window_name = "ray tracing") {
       fan::graphics::gui::begin(window_name);
       fan::graphics::gui::checkbox("update camera", &update_camera);
-      fan::graphics::gui::checkbox("auto exposure", &enable_auto_exposure);
-      fan::graphics::gui::checkbox("gi bounce", &enable_gi);
-      fan::graphics::gui::checkbox("reflections", &enable_reflections);
+      bool shading_changed = false;
+      shading_changed |= fan::graphics::gui::checkbox("auto exposure", &enable_auto_exposure);
+      shading_changed |= fan::graphics::gui::checkbox("gi bounce", &enable_gi);
+      shading_changed |= fan::graphics::gui::checkbox("reflections", &enable_reflections);
+      shading_changed |= fan::graphics::gui::checkbox("shadows", &enable_shadows);
+      shading_changed |= fan::graphics::gui::drag("Ambient Strength", &ambient_strength, 0.01f, 0.f, 1.f);
+      shading_changed |= fan::graphics::gui::drag("Shadow Strength", &shadow_strength, 0.01f, 0.f, 1.f);
+      shading_changed |= fan::graphics::gui::drag("Wrap Strength", &wrap_strength, 0.01f, 0.f, 1.f);
+      if (shading_changed) {
+        write_exposure_ubo();
+        reset_accumulation();
+      }
       bool light_changed = false;
       light_changed |= fan::graphics::gui::drag("Light Position", &light_position);
       light_changed |= fan::graphics::gui::drag("Light Color", &light_color);
@@ -1433,7 +1533,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
       if (!pre_begin_callback_registered) {
         pre_begin_cmd_cb_index = registered_vk_context->pre_begin_cmd_cb.size();
         registered_vk_context->pre_begin_cmd_cb.push_back([this]() {
+          upload_bone_buffer_if_dirty();
           if (tlas_dirty && !can_update_tlas_transforms()) flush_transform_updates();
+          if (attached_engine) update_exposure(attached_engine->get_delta_time());
         });
         pre_begin_callback_registered = true;
       }
@@ -1477,6 +1579,18 @@ export namespace fan::graphics::vulkan::ray_tracing {
     }
     void record_gpu_animation_updates(VkCommandBuffer cmd) {
       if (!animation_vertices_dirty || !skinning_pipeline || !skinning_descriptor_set) return;
+      if (bone_buffer) {
+        VkBufferMemoryBarrier bone_barrier{};
+        bone_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+        bone_barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+        bone_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        bone_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        bone_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        bone_barrier.buffer = bone_buffer;
+        bone_barrier.offset = 0;
+        bone_barrier.size = VK_WHOLE_SIZE;
+        vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 1, &bone_barrier, 0, nullptr);
+      }
       vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, skinning_pipeline);
       vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, skinning_pipeline_layout, 0, 1, &skinning_descriptor_set, 0, nullptr);
       bool dispatched = false;
@@ -1503,11 +1617,24 @@ export namespace fan::graphics::vulkan::ray_tracing {
         }
         return;
       }
-      VkMemoryBarrier skin_barrier{};
-      skin_barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+      VkBufferMemoryBarrier skin_barrier{};
+      skin_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
       skin_barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-      skin_barrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR;
-      vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, 0, 1, &skin_barrier, 0, nullptr, 0, nullptr);
+      skin_barrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR | VK_ACCESS_SHADER_READ_BIT;
+      skin_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      skin_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      skin_barrier.buffer = vertex_buffer;
+      skin_barrier.offset = 0;
+      skin_barrier.size = VK_WHOLE_SIZE;
+      vkCmdPipelineBarrier(
+        cmd,
+        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+        VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR | VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR,
+        0,
+        0, nullptr,
+        1, &skin_barrier,
+        0, nullptr
+      );
       bool updated = false;
       for (animated_model_t& animated_model : animated_models) {
         if (!animated_model.dirty) continue;
@@ -1533,7 +1660,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
     }
     void record_trace_rays(VkCommandBuffer cmd) {
       static auto start_time = std::chrono::steady_clock::now();
-      time_ubo_t t{ std::chrono::duration<f32_t>(std::chrono::steady_clock::now() - start_time).count() };
+      time_ubo_t t{};
+      t.time = std::chrono::duration<f32_t>(std::chrono::steady_clock::now() - start_time).count();
+      t.frame_index = frame_index;
       std::memcpy(time_mapped, &t, sizeof(t));
 
       if (current_layout != VK_IMAGE_LAYOUT_GENERAL) {
@@ -1572,14 +1701,20 @@ export namespace fan::graphics::vulkan::ray_tracing {
       std::uint32_t gx = (size.x + 7) / 8;
       std::uint32_t gy = (size.y + 7) / 8;
       vkCmdDispatch(cmd, gx, gy, 1);
+      accumulation_reset_pending = false;
       {
         ctx->insert_image_barrier(cmd, ctx->image_get(accum_image).image_index, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
         accum_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
       }
     }
     void on_camera_updated(bool camera_moved) {
-      if (camera_moved) frame_index = 0;
-      else frame_index++;
+      if (camera_moved) {
+        reset_accumulation();
+        return;
+      }
+      if (!accumulation_reset_pending) {
+        frame_index++;
+      }
     }
     void trace_rays_before_shapes(){
       record_trace_rays(ctx->command_buffers[ctx->current_frame]);
@@ -1803,6 +1938,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       luminance_group_x = (width  + 15) / 16;
       luminance_group_y = (height + 15) / 16;
       luminance_group_count = luminance_group_x * luminance_group_y;
+      luminance_ready = false;
       VkDeviceSize size = sizeof(f32_t) * luminance_group_count;
       ctx->create_buffer(size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, luminance_buffer, luminance_memory);
       vkMapMemory(ctx->device, luminance_memory, 0, size, 0, &luminance_mapped);
@@ -1827,6 +1963,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       pc.gy = luminance_group_y;
       vkCmdPushConstants(cmd, luminance_pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pc), &pc);
       vkCmdDispatch(cmd, luminance_group_x, luminance_group_y, 1);
+      luminance_ready = true;
       VkBufferMemoryBarrier read_barrier{};
       read_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
       read_barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
@@ -1844,10 +1981,19 @@ export namespace fan::graphics::vulkan::ray_tracing {
       ubo.exposure = exposure;
       ubo.enable_gi = enable_gi ? 1.f : 0.f;
       ubo.enable_reflections = enable_reflections ? 1.f : 0.f;
+      ubo.enable_shadows = enable_shadows ? 1.f : 0.f;
+      ubo.ambient_strength = std::clamp(ambient_strength, 0.f, 1.f);
+      ubo.shadow_strength = std::clamp(shadow_strength, 0.f, 1.f);
+      ubo.wrap_strength = std::clamp(wrap_strength, 0.f, 1.f);
       std::memcpy(exposure_mapped, &ubo, sizeof(ubo));
     }
     void update_exposure(f32_t dt) {
       if (!ctx || !enable_auto_exposure || !luminance_buffer || luminance_group_count == 0 || !luminance_mapped) {
+        luminance_ready = false;
+        write_exposure_ubo();
+        return;
+      }
+      if (!luminance_ready) {
         write_exposure_ubo();
         return;
       }
@@ -1901,6 +2047,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       destroy_buffer(light_buffer, light_memory);
 
       camera_mapped = nullptr;
+      last_camera_ubo_valid = false;
       time_mapped = nullptr;
       tlas_instance_staging_mapped = nullptr;
       luminance_mapped = nullptr;
@@ -1941,9 +2088,13 @@ export namespace fan::graphics::vulkan::ray_tracing {
       current_material_index = 0;
       vertex_offset = 0;
       tlas_instance_count = 0;
-      frame_index = 0;
+      reset_accumulation();
       tlas_dirty = false;
+      tlas_rebuild_dirty = false;
       animation_vertices_dirty = false;
+      bone_buffer_dirty = false;
+      scene_geometry_dirty = false;
+      luminance_ready = false;
       output_image_valid = false;
       accum_image_valid = false;
       tlas_instance_staging_size = 0;
@@ -2009,12 +2160,15 @@ export namespace fan::graphics::vulkan::ray_tracing {
     VkDescriptorPool accum_descriptor_pool = VK_NULL_HANDLE;
     VkDescriptorSet accum_descriptor_set = VK_NULL_HANDLE;
     std::uint32_t frame_index = 0;
+    bool accumulation_reset_pending = true;
     fan::graphics::image_t output_image;
     bool output_image_valid = false;
     VkImageLayout current_layout = VK_IMAGE_LAYOUT_UNDEFINED;
 
     VkBuffer camera_buffer = VK_NULL_HANDLE;
     VkDeviceMemory camera_memory = VK_NULL_HANDLE;
+    rt_camera_t last_camera_ubo{};
+    bool last_camera_ubo_valid = false;
     VkBuffer time_buffer = VK_NULL_HANDLE;
     VkDeviceMemory time_memory = VK_NULL_HANDLE;
     VkBuffer tlas_instance_buffer = VK_NULL_HANDLE;
@@ -2053,14 +2207,20 @@ export namespace fan::graphics::vulkan::ray_tracing {
     std::uint32_t vertex_offset = 0;
     std::uint32_t object_generation_counter = 1;
     bool tlas_dirty = false;
+    bool tlas_rebuild_dirty = false;
     bool scene_geometry_dirty = false;
     bool animation_vertices_dirty = false;
+    bool bone_buffer_dirty = false;
     f32_t exposure = 1.f;
     f32_t target_exposure = 1.f;
     f32_t adaptation_speed = 4.f;
     bool enable_auto_exposure = false;
     bool enable_gi = false;
     bool enable_reflections = false;
+    bool enable_shadows = true;
+    f32_t ambient_strength = 0.18f;
+    f32_t shadow_strength = 0.35f;
+    f32_t wrap_strength = 0.35f;
     bool update_camera = true;
     fan::vec3 light_position = fan::vec3(5.0f, 10.0f, 5.0f);
     fan::vec3 light_color = fan::vec3(1.0f, 1.0f, 1.0f);
@@ -2084,6 +2244,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     std::uint32_t luminance_group_x = 0;
     std::uint32_t luminance_group_y = 0;
     std::uint32_t luminance_group_count = 0;
+    bool luminance_ready = false;
     VkBuffer exposure_ubo = VK_NULL_HANDLE;
     VkDeviceMemory exposure_ubo_memory = VK_NULL_HANDLE;
     VkDescriptorSetLayout luminance_descriptor_layout = VK_NULL_HANDLE;
