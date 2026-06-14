@@ -106,7 +106,6 @@ void begin_render_pass() {
 }
 
 void begin_draw() {
-  vkQueueWaitIdle(loco.context.vk.graphics_queue);
   fan::vulkan::context_t& context = loco.context.vk;
   vkWaitForFences(context.device, 1, &context.in_flight_fences[context.current_frame], VK_TRUE, UINT64_MAX);
 
@@ -118,7 +117,7 @@ void begin_draw() {
     context.device,
     context.swap_chain,
     UINT64_MAX,
-    context.image_available_semaphores[context.current_frame],
+    context.image_available_semaphores[context.acquire_semaphore_index],
     VK_NULL_HANDLE,
     &context.image_index
   );
@@ -129,7 +128,7 @@ void begin_draw() {
       context.device,
       context.swap_chain,
       UINT64_MAX,
-      context.image_available_semaphores[context.current_frame],
+      context.image_available_semaphores[context.acquire_semaphore_index],
       VK_NULL_HANDLE,
       &context.image_index
     );
@@ -139,6 +138,9 @@ void begin_draw() {
     context.command_buffer_in_use = false; 
     return; 
   }
+
+  context.current_acquire_semaphore = context.image_available_semaphores[context.acquire_semaphore_index];
+  context.acquire_semaphore_index = (context.acquire_semaphore_index + 1) % (std::uint32_t)context.image_available_semaphores.size();
 
   {
     VkDescriptorImageInfo mainInfo{};

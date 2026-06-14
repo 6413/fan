@@ -31,8 +31,7 @@ int main() {
     });
   }
 
-  auto camera_handle = engine.perspective_render_view.camera;
-  auto& camera = engine.camera_get(camera_handle);
+  auto& camera = engine.camera_get(engine.perspective_render_view.camera);
 
   auto cb = engine.window.add_mouse_motion_callback([&](const auto& d) {
     if (engine.window.is_cursor_enabled()) return;
@@ -64,9 +63,7 @@ int main() {
       );
       rt.set_transform(
         moving_fox.handle,
-        fan::mat4(1)
-          .translate(moving_fox.base_position * 10.f + offset * 100.f)
-          .scale(1.f)
+        fan::translation_matrix(moving_fox.base_position * 10.f + offset * 100.f)
       );
     }
     if (auto h = gui::hud_interactive{"##2"}) {
