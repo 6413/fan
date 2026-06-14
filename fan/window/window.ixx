@@ -367,6 +367,7 @@ export namespace fan {
     void set_borderless();
     void set_cursor(int flag);
     void toggle_cursor();
+    bool is_cursor_enabled() const;
     void set_display_mode(int mode);
     fan::vec2d get_mouse_position() const;
     int key_state(int key) const;

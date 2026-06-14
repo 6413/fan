@@ -901,7 +901,7 @@ export namespace fan {
 
       static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
       static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
-
+      
       void open_no_window();
     #if defined(loco_window)
       void open(fan::window_t& window);
