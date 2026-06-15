@@ -993,20 +993,25 @@ export namespace fan {
         auto& vertex = meshes[mesh_id].vertices[vertex_id];
 
         fan::vec4 totalPosition(0.0);
+        f32_t total_weight = 0;
 
         for (int i = 0; i < 4; i++) {
           f32_t weight = vertex.bone_weights[i];
           int boneId = vertex.bone_ids[i];
-          if (boneId == -1) {
+          if (boneId < 0 || weight == 0) {
             continue;
           }
 
-          if (boneId >= bt.size()) {
-            totalPosition = fan::vec4(vertex.position, 1.0);
-            break;
+          if ((std::uint32_t)boneId >= bt.size()) {
+            return fan::vec4(vertex.position, 1.0);
           }
-          fan::vec4 local_position = bt[boneId] * fan::vec4(vertex.position, 1.0);
+          fan::vec4 local_position = bt[(std::uint32_t)boneId] * fan::vec4(vertex.position, 1.0);
           totalPosition += local_position * weight;
+          total_weight += weight;
+        }
+
+        if (total_weight == 0) {
+          return fan::vec4(vertex.position, 1.0);
         }
 
         fan::mat4 model(1);
@@ -1081,11 +1086,17 @@ export namespace fan {
         }
       }
       // flag default, ik, fk?
-      void calculate_modified_vertices(const fan::mat4& model = fan::mat4(1)) {
+      void calculate_modified_vertices(const std::vector<fan::mat4>& bt, const fan::mat4& model = fan::mat4(1)) {
+        calculated_meshes = meshes;
         for (std::uint32_t i = 0; i < meshes.size(); ++i) {
-          update_bone_transforms();
-          calculate_vertices(bone_transforms, i, model);
+          calculate_vertices(bt, i, model);
         }
+      }
+      void calculate_modified_vertices(const fan::mat4& model = fan::mat4(1)) {
+        if (bone_transforms.size() < bone_count) {
+          update_bone_transforms();
+        }
+        calculate_modified_vertices(bone_transforms, model);
       }
       // triangle consists of 3 vertices
       struct one_triangle_t {
@@ -1234,7 +1245,7 @@ export namespace fan {
         return ret;
       }
       void fk_get_pose(animation_data_t& animation, const bone_t& bone) {
-        if (animation.bone_poses.empty()) {
+        if (bone.id < 0 || (std::uint32_t)bone.id >= animation.bone_transform_tracks.size() || (std::uint32_t)bone.id >= animation.bone_poses.size()) {
           return;
         }
         // this fmods other animations too. dt per animation? or with weights or max of all animations?
@@ -1262,6 +1273,9 @@ export namespace fan {
         animation.bone_poses[bone.id].scale = scale;
       }
       void fk_interpolate_animations(std::vector<fan::mat4>& out_bone_transforms, bone_t& bone, fan::mat4& parent_transform) {
+        if (bone.id < 0 || (std::uint32_t)bone.id >= out_bone_transforms.size()) {
+          return;
+        }
         fan::mat4 local_transform = bone.transformation;
         bool has_active_animation = false;
 
@@ -1269,7 +1283,7 @@ export namespace fan {
         fan::quat rotation;
         float total_weight = 0.0f;
         for (const auto& [key, anim] : animation_list) {
-          if (anim.weight > 0 && !anim.bone_poses.empty() && !anim.bone_transform_tracks.empty()) {
+          if (anim.weight > 0 && (std::uint32_t)bone.id < anim.bone_poses.size() && (std::uint32_t)bone.id < anim.bone_transform_tracks.size()) {
             const auto& pose = anim.bone_poses[bone.id];
             if (pose.rotation.w == -9999) {
               local_transform = bone.transformation;
@@ -1303,12 +1317,16 @@ export namespace fan {
       }
       std::vector<fan::mat4> fk_calculate_transformations() {
         std::vector<fan::mat4> fk_transformations = bone_transforms;
-        fk_interpolate_animations(fk_transformations, *root_bone, m_transform);
+        if (fk_transformations.size() < bone_count) {
+          fk_transformations.resize(bone_count, fan::mat4(1));
+        }
+        if (root_bone) {
+          fk_interpolate_animations(fk_transformations, *root_bone, m_transform);
+        }
+        bone_transforms = fk_transformations;
 
         if (p.use_cpu) {
-          for (std::uint32_t i = 0; i < meshes.size(); ++i) {
-            calculate_vertices(fk_transformations, i, fan::mat4(1));
-          }
+          calculate_modified_vertices(fk_transformations);
         }
         return fk_transformations;
       }
