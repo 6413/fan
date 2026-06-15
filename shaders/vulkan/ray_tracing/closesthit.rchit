@@ -23,6 +23,7 @@ struct MaterialInfo {
     int   roughness_texture_id;
     vec3  base_color;
     uint  source_material_id;
+    vec4  uv_transform;
 };
 
 layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
@@ -187,14 +188,24 @@ void main() {
     vec3 P = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
     payload.hit_t = gl_HitTEXT;
 
+    vec2 sample_uv = uv;
+    if (mat.uv_transform.z > 0.0 && mat.uv_transform.w > 0.0)
+        sample_uv = mat.uv_transform.xy + fract(uv) * mat.uv_transform.zw;
+
     vec3 albedo = mat.base_color;
     if (mat.albedo_texture_id >= 0)
-        albedo *= texture(textures[mat.albedo_texture_id], uv).rgb;
+        albedo *= texture(textures[mat.albedo_texture_id], sample_uv).rgb;
+
+    vec3 vertex_color =
+          v0.color * bary.x
+        + v1.color * bary.y
+        + v2.color * bary.z;
+    albedo *= vertex_color;
 
     vec3 N = Nbase;
 
     if (mat.normal_texture_id >= 0) {
-        vec3 n = safe_normalize(texture(textures[mat.normal_texture_id], uv).xyz * 2.0 - 1.0, vec3(0.0, 0.0, 1.0));
+        vec3 n = safe_normalize(texture(textures[mat.normal_texture_id], sample_uv).xyz * 2.0 - 1.0, vec3(0.0, 0.0, 1.0));
 
         vec2 duv1 = v1.texcoord - v0.texcoord;
         vec2 duv2 = v2.texcoord - v0.texcoord;
@@ -222,7 +233,7 @@ void main() {
     float roughness = 1.0;
 
     if (mat.metallic_texture_id >= 0) {
-        vec4 mr = texture(textures[mat.metallic_texture_id], uv);
+        vec4 mr = texture(textures[mat.metallic_texture_id], sample_uv);
         metallic  = mr.b;
         roughness = mr.g;
     }

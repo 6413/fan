@@ -174,24 +174,47 @@ export namespace fan::math::d3 {
   }
 
   constexpr bool triangle_intersects_aabb(const fan::vec3& v0, const fan::vec3& v1, const fan::vec3& v2, const fan::vec3& bc, const fan::vec3& hs) {
-    fan::vec3 a[3] = {v0 - bc, v1 - bc, v2 - bc};
-    if (fm::min(a[0].x, a[1].x, a[2].x) > hs.x || fm::max(a[0].x, a[1].x, a[2].x) < -hs.x) { return false; }
-    if (fm::min(a[0].y, a[1].y, a[2].y) > hs.y || fm::max(a[0].y, a[1].y, a[2].y) < -hs.y) { return false; }
-    if (fm::min(a[0].z, a[1].z, a[2].z) > hs.z || fm::max(a[0].z, a[1].z, a[2].z) < -hs.z) { return false; }
-    fan::vec3 e[3] = {a[1] - a[0], a[2] - a[1], a[0] - a[2]};
-    fan::vec3 n = e[0].cross(e[1]);
-    if (fm::abs(n.dot(a[0])) > hs.x * fm::abs(n.x) + hs.y * fm::abs(n.y) + hs.z * fm::abs(n.z)) { return false; }
-    auto t_cr = [](f32_t eu, f32_t ev, f32_t a0u, f32_t a0v, f32_t a1u, f32_t a1v, f32_t a2u, f32_t a2v, f32_t hu, f32_t hv) {
-      f32_t p0 = a0u * ev - a0v * eu, p1 = a1u * ev - a1v * eu, p2 = a2u * ev - a2v * eu, rad = hu * fm::abs(ev) + hv * fm::abs(eu);
-      return fm::min(p0, p1, p2) > rad || fm::max(p0, p1, p2) < -rad;
-    };
-    for (int i = 0; i < 3; ++i) {
-      if (t_cr(e[i].z, e[i].y, a[0].y, a[0].z, a[1].y, a[1].z, a[2].y, a[2].z, hs.y, hs.z) ||
-          t_cr(e[i].z, e[i].x, a[0].x, a[0].z, a[1].x, a[1].z, a[2].x, a[2].z, hs.x, hs.z) ||
-          t_cr(e[i].y, e[i].x, a[0].x, a[0].y, a[1].x, a[1].y, a[2].x, a[2].y, hs.x, hs.y)) {
-        return false;
-      }
-    }
+    f32_t a0x = v0.x - bc.x, a0y = v0.y - bc.y, a0z = v0.z - bc.z;
+    f32_t a1x = v1.x - bc.x, a1y = v1.y - bc.y, a1z = v1.z - bc.z;
+    f32_t a2x = v2.x - bc.x, a2y = v2.y - bc.y, a2z = v2.z - bc.z;
+
+    if (std::max(a0x, std::max(a1x, a2x)) < -hs.x || std::min(a0x, std::min(a1x, a2x)) > hs.x) { return false; }
+    if (std::max(a0y, std::max(a1y, a2y)) < -hs.y || std::min(a0y, std::min(a1y, a2y)) > hs.y) { return false; }
+    if (std::max(a0z, std::max(a1z, a2z)) < -hs.z || std::min(a0z, std::min(a1z, a2z)) > hs.z) { return false; }
+
+    f32_t e0x = a1x - a0x, e0y = a1y - a0y, e0z = a1z - a0z;
+    f32_t e1x = a2x - a1x, e1y = a2y - a1y, e1z = a2z - a1z;
+    f32_t e2x = a0x - a2x, e2y = a0y - a2y, e2z = a0z - a2z;
+
+    f32_t p0, p1, p2, r;
+
+    p0 = a0z * e0y - a0y * e0z; p2 = a2z * e0y - a2y * e0z; r = hs.y * std::abs(e0z) + hs.z * std::abs(e0y);
+    if (std::max(p0, p2) < -r || std::min(p0, p2) > r) { return false; }
+    p0 = a0x * e0z - a0z * e0x; p2 = a2x * e0z - a2z * e0x; r = hs.x * std::abs(e0z) + hs.z * std::abs(e0x);
+    if (std::max(p0, p2) < -r || std::min(p0, p2) > r) { return false; }
+    p0 = a0y * e0x - a0x * e0y; p2 = a2y * e0x - a2x * e0y; r = hs.x * std::abs(e0y) + hs.y * std::abs(e0x);
+    if (std::max(p0, p2) < -r || std::min(p0, p2) > r) { return false; }
+
+    p0 = a0z * e1y - a0y * e1z; p1 = a1z * e1y - a1y * e1z; r = hs.y * std::abs(e1z) + hs.z * std::abs(e1y);
+    if (std::max(p0, p1) < -r || std::min(p0, p1) > r) { return false; }
+    p0 = a0x * e1z - a0z * e1x; p1 = a1x * e1z - a1z * e1x; r = hs.x * std::abs(e1z) + hs.z * std::abs(e1x);
+    if (std::max(p0, p1) < -r || std::min(p0, p1) > r) { return false; }
+    p0 = a0y * e1x - a0x * e1y; p1 = a1y * e1x - a1x * e1y; r = hs.x * std::abs(e1y) + hs.y * std::abs(e1x);
+    if (std::max(p0, p1) < -r || std::min(p0, p1) > r) { return false; }
+
+    p0 = a0z * e2y - a0y * e2z; p1 = a1z * e2y - a1y * e2z; r = hs.y * std::abs(e2z) + hs.z * std::abs(e2y);
+    if (std::max(p0, p1) < -r || std::min(p0, p1) > r) { return false; }
+    p0 = a0x * e2z - a0z * e2x; p1 = a1x * e2z - a1z * e2x; r = hs.x * std::abs(e2z) + hs.z * std::abs(e2x);
+    if (std::max(p0, p1) < -r || std::min(p0, p1) > r) { return false; }
+    p0 = a0y * e2x - a0x * e2y; p1 = a1y * e2x - a1x * e2y; r = hs.x * std::abs(e2y) + hs.y * std::abs(e2x);
+    if (std::max(p0, p1) < -r || std::min(p0, p1) > r) { return false; }
+
+    f32_t nx = e0y * e1z - e0z * e1y;
+    f32_t ny = e0z * e1x - e0x * e1z;
+    f32_t nz = e0x * e1y - e0y * e1x;
+    r = hs.x * std::abs(nx) + hs.y * std::abs(ny) + hs.z * std::abs(nz);
+    if (std::abs(nx * a0x + ny * a0y + nz * a0z) > r) { return false; }
+
     return true;
   }
 
