@@ -288,6 +288,9 @@ f32_t* loco_t::get_bloom_filter_radius_ptr() {
 #if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
   if (gl) return &gl->blur.bloom_filter_radius;
 #endif
+#if defined(FAN_VULKAN)
+  if (window.renderer == fan::window_t::renderer_t::vulkan) return &vk.bloom_filter_radius;
+#endif
   static f32_t dummy = 0; 
   return &dummy;
 }
@@ -295,6 +298,9 @@ f32_t* loco_t::get_bloom_filter_radius_ptr() {
 f32_t* loco_t::get_bloom_threshold_ptr() {
 #if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
   if (gl) return &gl->blur.threshold;
+#endif
+#if defined(FAN_VULKAN)
+  if (window.renderer == fan::window_t::renderer_t::vulkan) return &vk.bloom_threshold;
 #endif
   static f32_t dummy = 0; 
   return &dummy;
@@ -304,11 +310,17 @@ f32_t* loco_t::get_bloom_knee_ptr() {
 #if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
   if (gl) return &gl->blur.knee;
 #endif
+#if defined(FAN_VULKAN)
+  if (window.renderer == fan::window_t::renderer_t::vulkan) return &vk.bloom_knee;
+#endif
   static f32_t dummy = 0; 
   return &dummy;
 }
 
 fan::vec3* loco_t::get_bloom_tint_ptr() {
+#if defined(FAN_VULKAN)
+  if (window.renderer == fan::window_t::renderer_t::vulkan) return &vk.bloom_tint;
+#endif
   static fan::vec3 dummy = 0; 
   return &dummy;
 }
@@ -1359,9 +1371,7 @@ void loco_t::destroy() {
 #if defined(FAN_VULKAN)
   if (window.renderer == fan::window_t::renderer_t::vulkan) {
     vkDeviceWaitIdle(context.vk.device);
-    vkDestroySampler(context.vk.device, vk.post_process_sampler, nullptr);
-    vk.d_attachments.close(context.vk);
-    vk.post_process.close(context.vk);
+    vk.close();
   }
 #endif
 #if defined(FAN_GUI)
@@ -1390,9 +1400,7 @@ void loco_t::switch_renderer(std::uint8_t renderer) {
   #if defined(FAN_VULKAN)
     if (window.renderer == fan::window_t::renderer_t::vulkan) {
       vkDeviceWaitIdle(context.vk.device);
-      vkDestroySampler(context.vk.device, vk.post_process_sampler, nullptr);
-      vk.d_attachments.close(context.vk);
-      vk.post_process.close(context.vk);
+      vk.close();
     #if defined(FAN_2D)
       for (auto& st : fan::graphics::g_shapes->shaper.ShapeTypes) {
         if (st.sti == (decltype(st.sti))-1) {
@@ -1621,27 +1629,7 @@ void loco_t::process_shapes() {
   if (window.renderer == fan::window_t::renderer_t::vulkan) {
     auto& cmd_buffer = context.vk.command_buffers[context.vk.current_frame];
     if (vk.image_error == VK_SUCCESS) {
-      vkCmdNextSubpass(cmd_buffer, VK_SUBPASS_CONTENTS_INLINE);
-      vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vk.post_process);
-      vkCmdBindDescriptorSets(
-        cmd_buffer,
-        VK_PIPELINE_BIND_POINT_GRAPHICS,
-        vk.post_process.m_layout,
-        0,
-        1,
-        &vk.d_attachments.m_descriptor_set[context.vk.current_frame],
-        0,
-        nullptr
-      );
-
-      context.vk.viewport_set(0, window.get_size(), window.get_size());
-
-      VkRect2D sc {}; sc.offset = {0, 0}; sc.extent = {(std::uint32_t)window.get_size().x, (std::uint32_t)window.get_size().y};
-      vkCmdSetScissor(cmd_buffer, 0, 1, &sc);
-
-      // render post process
-      vkCmdDraw(cmd_buffer, 6, 1, 0, 0);
-      vkCmdEndRenderPass(cmd_buffer);
+      vk.draw_post_process();
     }
   }
 #endif
@@ -1962,7 +1950,11 @@ void loco_t::process_render() {
     }
     else {
       VkResult err = context.vk.end_render();
-      context.vk.recreate_swap_chain(&window, err);
+      if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR || context.vk.SwapChainRebuild) {
+        vk.close_swapchain_resources();
+        context.vk.recreate_swap_chain(&window, err);
+        vk.open_swapchain_resources();
+      }
     }
   }
 #endif
