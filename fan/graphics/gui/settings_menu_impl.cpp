@@ -39,6 +39,22 @@ namespace fan::graphics::gui {
     }
   };
 
+  static void sync_vulkan_post_processing(const settings_config_t::post_processing_t& pp) {
+#if defined(FAN_VULKAN)
+    if (gloco()->window.renderer != fan::window_t::renderer_t::vulkan) {
+      return;
+    }
+    gloco()->vk.bloom_strength = pp.bloom_strength;
+    gloco()->vk.bloom_threshold = pp.bloom_threshold;
+    gloco()->vk.bloom_knee = pp.bloom_knee;
+    gloco()->vk.bloom_filter_radius = pp.bloom_filter_radius;
+    gloco()->vk.bloom_tint = pp.bloom_tint;
+    gloco()->vk.gamma = pp.gamma;
+    gloco()->vk.exposure = pp.exposure;
+    gloco()->vk.contrast = pp.contrast;
+#endif
+  }
+
   void settings_config_t::load_from_json(const fan::json& j) {
     if (j.contains("display")) {
       const auto& d = j["display"];
@@ -257,6 +273,7 @@ namespace fan::graphics::gui {
     gloco()->set_post_process("exposure", config.post_processing.exposure);
     gloco()->set_post_process("contrast", config.post_processing.contrast);
     gloco()->set_post_process("bloom_tint", *gloco()->get_bloom_tint_ptr());
+    sync_vulkan_post_processing(config.post_processing);
     gloco()->set_culling_enabled(config.debug.frustum_culling_enabled);
   }
 
@@ -407,6 +424,7 @@ namespace fan::graphics::gui {
         draw_sub_row("Strength", [&] {
           if (gui::slider(&menu->config.post_processing.bloom_strength, 0.f, 1.f, gui::slider_flags_always_clamp)) {
             gloco()->set_post_process("bloom_strength", menu->config.post_processing.bloom_strength);
+            sync_vulkan_post_processing(menu->config.post_processing);
             menu->mark_dirty();
           }
         });
@@ -415,12 +433,14 @@ namespace fan::graphics::gui {
         draw_sub_row("Threshold", [&] {
           if (gui::slider(&menu->config.post_processing.bloom_threshold, 0.0f, 5.0f, gui::slider_flags_always_clamp)) {
             *gloco()->get_bloom_threshold_ptr() = menu->config.post_processing.bloom_threshold;
+            sync_vulkan_post_processing(menu->config.post_processing);
             menu->mark_dirty();
           }
         });
         draw_sub_row("Knee (Softness)", [&] {
           if (gui::slider(&menu->config.post_processing.bloom_knee, 0.0f, 1.0f, gui::slider_flags_always_clamp)) {
             *gloco()->get_bloom_knee_ptr() = menu->config.post_processing.bloom_knee;
+            sync_vulkan_post_processing(menu->config.post_processing);
             menu->mark_dirty();
           }
         });
@@ -428,6 +448,7 @@ namespace fan::graphics::gui {
           if (gui::color_edit3(&menu->config.post_processing.bloom_tint)) {
             *gloco()->get_bloom_tint_ptr() = menu->config.post_processing.bloom_tint;
             gloco()->set_post_process("bloom_tint", *gloco()->get_bloom_tint_ptr());
+            sync_vulkan_post_processing(menu->config.post_processing);
             menu->mark_dirty();
           }
         });
@@ -435,6 +456,7 @@ namespace fan::graphics::gui {
         draw_sub_row("Filter radius", [&] {
           if (gui::slider(&menu->config.post_processing.bloom_filter_radius, 0.f, 1.f, gui::slider_flags_always_clamp)) {
             *gloco()->get_bloom_filter_radius_ptr() = menu->config.post_processing.bloom_filter_radius;
+            sync_vulkan_post_processing(menu->config.post_processing);
             menu->mark_dirty();
           }
         });
@@ -525,18 +547,21 @@ namespace fan::graphics::gui {
       draw_sub_row("Gamma", [&] {
         if (gui::drag(&menu->config.post_processing.gamma, 0.01f, 0.1f, 5.0f)) {
           gloco()->set_post_process("gamma", menu->config.post_processing.gamma);
+          sync_vulkan_post_processing(menu->config.post_processing);
           menu->mark_dirty();
         }
       });
       draw_sub_row("Exposure", [&] {
         if (gui::drag(&menu->config.post_processing.exposure, 0.01f, 0.0f, 10.0f)) {
           gloco()->set_post_process("exposure", menu->config.post_processing.exposure);
+          sync_vulkan_post_processing(menu->config.post_processing);
           menu->mark_dirty();
         }
       });
       draw_sub_row("Contrast", [&] {
         if (gui::drag(&menu->config.post_processing.contrast, 0.01f, 0.0f, 5.0f)) {
           gloco()->set_post_process("contrast", menu->config.post_processing.contrast);
+          sync_vulkan_post_processing(menu->config.post_processing);
           menu->mark_dirty();
         }
       });
