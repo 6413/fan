@@ -106,7 +106,7 @@ end
 
 option("main") set_default("examples/engine_demos/engine_demo.cpp") option_end()
 
-add_includedirs(".", {public = true})
+add_includedirs(".", "third_party/fan/include", "third_party/fan/include/VulkanMemoryAllocator/include", "third_party/VulkanMemoryAllocator/include", {public = true})
 
 local llvm_sdk = "/usr/lib/llvm"
 if type(get_config) == "function" then
@@ -263,6 +263,12 @@ local feature_modules = {
     "fan/graphics/opengl/uniform_block.ixx"
   },
 
+  FAN_VULKAN = {
+    "fan/graphics/vulkan/vk_core_types.ixx",
+    "fan/graphics/vulkan/vk_core_vai.ixx",
+    "fan/graphics/vulkan/vk_core.ixx"
+  },
+
   FAN_2D = {
     "fan/graphics/2D/shapes_types.ixx",
     "fan/graphics/2D/culling.ixx",
@@ -362,6 +368,14 @@ function find_impl_files(module_list)
 end
 
 local impl_files = find_impl_files(module_files)
+
+if has_config("FAN_VULKAN") then
+  table.insert(impl_files, "fan/graphics/vulkan/vk_vma_impl.cpp")
+  table.insert(impl_files, "fan/graphics/vulkan/vk_core_device_impl.cpp")
+  table.insert(impl_files, "fan/graphics/vulkan/vk_core_shader_impl.cpp")
+  table.insert(impl_files, "fan/graphics/vulkan/vk_core_image_impl.cpp")
+  table.insert(impl_files, "fan/graphics/vulkan/vk_core_camera_viewport_impl.cpp")
+end
 
 if has_config("FAN_WINDOW") and os.isfile("fan/graphics/2D/algorithm/AStar.cpp") then
   table.insert(impl_files, "fan/graphics/2D/algorithm/AStar.cpp")
@@ -519,7 +533,7 @@ target("fan")
     add_files(main_file)
   end
 
-  add_includedirs(".", "third_party/fan/include", {public = true})
+  add_includedirs(".", "third_party/fan/include", "third_party/fan/include/VulkanMemoryAllocator/include", "third_party/VulkanMemoryAllocator/include", {public = true})
   add_linkdirs("third_party/fan/lib")
 
   if is_plat("linux") then
