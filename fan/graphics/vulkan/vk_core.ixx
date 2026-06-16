@@ -269,6 +269,12 @@ export namespace fan {
           sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
           destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
         }
+        else if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
+          barrier.srcAccessMask = 0;
+          barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+          sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+          destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        }
         else if (newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
           barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
           barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
@@ -708,6 +714,7 @@ export namespace fan {
           bool enable_depth_test = VK_TRUE;
           VkCompareOp depth_test_compare_op = VK_COMPARE_OP_LESS;
           VkPrimitiveTopology shape_type = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+          VkRenderPass render_pass = VK_NULL_HANDLE;
         };
         void open(fan::vulkan::context_t& context, const properties_t& p) {
           VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
@@ -795,7 +802,7 @@ export namespace fan {
           pipelineInfo.pColorBlendState = &colorBlending;
           pipelineInfo.pDynamicState = &dynamicState;
           pipelineInfo.layout = m_layout;
-          pipelineInfo.renderPass = context.render_pass;
+          pipelineInfo.renderPass = p.render_pass == VK_NULL_HANDLE ? context.render_pass : p.render_pass;
           pipelineInfo.subpass = p.subpass;
           pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
@@ -895,7 +902,7 @@ export namespace fan {
         vkMapMemory(device, staging_mem, 0, size, 0, &mapped);
         std::memcpy(mapped, data.data(), size);
         vkUnmapMemory(device, staging_mem);
-        create_buffer(size, usage, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer, buffer_memory);
+        create_buffer(size, usage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer, buffer_memory);
         copy_buffer(staging, buffer, size);
         vkDestroyBuffer(device, staging, nullptr);
         vkFreeMemory(device, staging_mem, nullptr);
@@ -1001,6 +1008,7 @@ export namespace fan {
 
       VkSwapchainKHR swap_chain;
       VkFormat swap_chain_image_format;
+      VkFormat main_color_format = VK_FORMAT_R8G8B8A8_UNORM;
       fan::vec2 swap_chain_size;
       std::vector<VkFramebuffer> swap_chain_framebuffers;
       VkPresentModeKHR present_mode;

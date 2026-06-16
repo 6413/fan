@@ -531,8 +531,15 @@ export namespace fan::graphics::vulkan::ray_tracing {
       std::vector<VkAccelerationStructureInstanceKHR> vk_instances = make_tlas_instances();
       VkDeviceSize instance_size = sizeof(VkAccelerationStructureInstanceKHR) * tlas_instance_count;
       upload_tlas_instances_to_staging(vk_instances, instance_size);
-      ctx->create_buffer(instance_size, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, tlas_instance_buffer, tlas_instance_memory);
+
+      if (tlas_instance_count > tlas_instance_capacity || !tlas_instance_buffer) {
+        destroy_buffer(tlas_instance_buffer, tlas_instance_memory);
+        tlas_instance_capacity = std::max<VkDeviceSize>(tlas_instance_capacity * 2, tlas_instance_count + 1024);
+        VkDeviceSize capacity_size = sizeof(VkAccelerationStructureInstanceKHR) * tlas_instance_capacity;
+        ctx->create_buffer(capacity_size, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, tlas_instance_buffer, tlas_instance_memory);
+      }
       ctx->copy_buffer(tlas_instance_staging_buffer, tlas_instance_buffer, instance_size);
+
       VkAccelerationStructureGeometryInstancesDataKHR instances_data {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR,
         .arrayOfPointers = VK_FALSE,
@@ -551,9 +558,16 @@ export namespace fan::graphics::vulkan::ray_tracing {
         .geometryCount = 1,
         .pGeometries = &geometry
       };
+
       VkAccelerationStructureBuildSizesInfoKHR size_info {.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR};
       vkGetAccelerationStructureBuildSizesKHR(ctx->device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &build_info, &tlas_instance_count, &size_info);
-      ctx->create_buffer(size_info.accelerationStructureSize, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, tlas.buffer, tlas.memory);
+
+      if (size_info.accelerationStructureSize > tlas_capacity || !tlas.buffer) {
+        tlas.destroy(*ctx);
+        tlas_capacity = std::max<VkDeviceSize>(tlas_capacity * 2, size_info.accelerationStructureSize + 65536);
+        ctx->create_buffer(tlas_capacity, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, tlas.buffer, tlas.memory);
+      }
+
       VkAccelerationStructureCreateInfoKHR create_info {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,
         .buffer = tlas.buffer,
@@ -561,8 +575,14 @@ export namespace fan::graphics::vulkan::ray_tracing {
         .type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR
       };
       fan::vulkan::validate(vkCreateAccelerationStructureKHR(ctx->device, &create_info, nullptr, &tlas.handle));
+
       VkDeviceSize scratch_size = std::max(size_info.buildScratchSize, size_info.updateScratchSize);
-      ctx->create_buffer(scratch_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, tlas_scratch_buffer, tlas_scratch_memory);
+      if (scratch_size > tlas_scratch_capacity || !tlas_scratch_buffer) {
+        destroy_buffer(tlas_scratch_buffer, tlas_scratch_memory);
+        tlas_scratch_capacity = std::max<VkDeviceSize>(tlas_scratch_capacity * 2, scratch_size + 65536);
+        ctx->create_buffer(tlas_scratch_capacity, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, tlas_scratch_buffer, tlas_scratch_memory);
+      }
+
       build_info.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
       build_info.dstAccelerationStructure = tlas.handle;
       build_info.scratchData.deviceAddress = get_buffer_address(tlas_scratch_buffer);
@@ -571,6 +591,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       VkCommandBuffer cmd = ctx->begin_single_time_commands();
       vkCmdBuildAccelerationStructuresKHR(cmd, 1, &build_info, &range_infos);
       ctx->end_single_time_commands(cmd);
+
       VkAccelerationStructureDeviceAddressInfoKHR addr_info {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR,
         .accelerationStructure = tlas.handle
@@ -788,10 +809,22 @@ export namespace fan::graphics::vulkan::ray_tracing {
       };
       vkUpdateDescriptorSets(ctx->device, 1, &write, 0, nullptr);
     }
-    void create_source_vertex_buffer() { ctx->upload_buffer(source_vertex_data, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, source_vertex_buffer, source_vertex_memory); }
-    void create_vertex_buffer() { ctx->upload_buffer(vertex_data, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_DST_BIT, vertex_buffer, vertex_memory); }
-    void create_index_buffer() { ctx->upload_buffer(index_data, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_DST_BIT, index_buffer, index_memory); }
-    void create_material_buffer() { ctx->upload_buffer(materials, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, material_buffer, material_memory); }
+    void create_source_vertex_buffer() { 
+      ctx->upload_buffer(source_vertex_data, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, source_vertex_buffer, source_vertex_memory);
+      source_vertex_capacity = source_vertex_data.size();
+    }
+    void create_vertex_buffer() { 
+      ctx->upload_buffer(vertex_data, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_DST_BIT, vertex_buffer, vertex_memory);
+      vertex_capacity = vertex_data.size();
+    }
+    void create_index_buffer() { 
+      ctx->upload_buffer(index_data, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_DST_BIT, index_buffer, index_memory);
+      index_capacity = index_data.size();
+    }
+    void create_material_buffer() { 
+      ctx->upload_buffer(materials, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, material_buffer, material_memory);
+      material_capacity = materials.size();
+    }
     void create_material_index_buffer() {
       if (material_indices_per_primitive.empty()) { return; }
       if (material_index_buffer) {
@@ -799,6 +832,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
         vkFreeMemory(ctx->device, material_index_memory, nullptr);
       }
       ctx->upload_buffer(material_indices_per_primitive, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, material_index_buffer, material_index_memory);
+      material_index_capacity = material_indices_per_primitive.size();
     }
     void upload_bone_buffer() {
       if (!bone_mapped) { return; }
@@ -1196,49 +1230,56 @@ export namespace fan::graphics::vulkan::ray_tracing {
       }
       return handle;
     }
-    // Grows dst_buffer to hold old_byte_count + new data.
-    // Allocates new buffer, copies existing GPU data, uploads new slice — single command buffer.
-    // Does NOT touch the CPU-side vectors; caller already appended to them.
     template <typename T>
     void grow_gpu_buffer(
-      VkBuffer& dst_buffer, VkDeviceMemory& dst_memory,
+      VkBuffer& dst_buffer, VkDeviceMemory& dst_memory, VkDeviceSize& capacity,
       VkBufferUsageFlags usage,
       const T* new_data, VkDeviceSize new_count,
-      VkDeviceSize old_gpu_count
+      VkDeviceSize old_count
     ) {
-      VkDeviceSize old_bytes = sizeof(T) * old_gpu_count;
-      VkDeviceSize new_bytes = sizeof(T) * new_count;
-      VkDeviceSize total     = old_bytes + new_bytes;
+      if (new_count == 0) { return; }
+      VkDeviceSize required_capacity = old_count + new_count;
 
+      if (required_capacity > capacity || dst_buffer == VK_NULL_HANDLE) {
+        VkDeviceSize new_capacity = std::max<VkDeviceSize>(capacity * 2, required_capacity + 1024);
+        VkDeviceSize old_bytes = sizeof(T) * old_count;
+        VkDeviceSize new_bytes = sizeof(T) * new_capacity;
+
+        VkBuffer new_buf; VkDeviceMemory new_mem;
+        ctx->create_buffer(new_bytes, usage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, new_buf, new_mem);
+
+        if (dst_buffer && old_bytes > 0) {
+          VkCommandBuffer cmd = ctx->begin_single_time_commands();
+          VkBufferCopy r { .srcOffset = 0, .dstOffset = 0, .size = old_bytes };
+          vkCmdCopyBuffer(cmd, dst_buffer, new_buf, 1, &r);
+          ctx->end_single_time_commands(cmd);
+        }
+
+        vkDeviceWaitIdle(ctx->device);
+        if (dst_buffer) { vkDestroyBuffer(ctx->device, dst_buffer, nullptr); dst_buffer = VK_NULL_HANDLE; }
+        if (dst_memory) { vkFreeMemory(ctx->device, dst_memory, nullptr); dst_memory = VK_NULL_HANDLE; }
+
+        dst_buffer = new_buf;
+        dst_memory = new_mem;
+        capacity = new_capacity;
+      }
+
+      VkDeviceSize slice_bytes = sizeof(T) * new_count;
       VkBuffer staging; VkDeviceMemory staging_mem;
-      ctx->create_buffer(new_bytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-        staging, staging_mem);
+      ctx->create_buffer(slice_bytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, staging, staging_mem);
+
       void* mapped;
-      vkMapMemory(ctx->device, staging_mem, 0, new_bytes, 0, &mapped);
-      std::memcpy(mapped, new_data, (std::size_t)new_bytes);
+      vkMapMemory(ctx->device, staging_mem, 0, slice_bytes, 0, &mapped);
+      std::memcpy(mapped, new_data, (std::size_t)slice_bytes);
       vkUnmapMemory(ctx->device, staging_mem);
 
-      VkBuffer new_buf; VkDeviceMemory new_mem;
-      ctx->create_buffer(total,
-        usage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, new_buf, new_mem);
-
       VkCommandBuffer cmd = ctx->begin_single_time_commands();
-      if (dst_buffer && old_bytes > 0) {
-        VkBufferCopy r { .srcOffset = 0, .dstOffset = 0, .size = old_bytes };
-        vkCmdCopyBuffer(cmd, dst_buffer, new_buf, 1, &r);
-      }
-      { VkBufferCopy r { .srcOffset = 0, .dstOffset = old_bytes, .size = new_bytes };
-        vkCmdCopyBuffer(cmd, staging, new_buf, 1, &r); }
+      VkBufferCopy r { .srcOffset = 0, .dstOffset = sizeof(T) * old_count, .size = slice_bytes };
+      vkCmdCopyBuffer(cmd, staging, dst_buffer, 1, &r);
       ctx->end_single_time_commands(cmd);
 
       vkDestroyBuffer(ctx->device, staging, nullptr);
       vkFreeMemory(ctx->device, staging_mem, nullptr);
-      if (dst_buffer) { vkDestroyBuffer(ctx->device, dst_buffer, nullptr); dst_buffer = VK_NULL_HANDLE; }
-      if (dst_memory) { vkFreeMemory(ctx->device, dst_memory, nullptr); dst_memory = VK_NULL_HANDLE; }
-      dst_buffer = new_buf;
-      dst_memory = new_mem;
     }
     // add_mesh_incremental: O(1) cost regardless of scene size.
     // Appends geometry to existing GPU buffers, builds only the one new BLAS,
@@ -1282,18 +1323,18 @@ export namespace fan::graphics::vulkan::ray_tracing {
       constexpr VkBufferUsageFlags stor_usage =
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
-      grow_gpu_buffer(source_vertex_buffer, source_vertex_memory, stor_usage,
+      grow_gpu_buffer(source_vertex_buffer, source_vertex_memory, source_vertex_capacity, vert_usage,
         source_vertex_data.data() + old_vertex_count, new_vertex_count, old_vertex_count);
-      grow_gpu_buffer(vertex_buffer, vertex_memory, vert_usage,
+      grow_gpu_buffer(vertex_buffer, vertex_memory, vertex_capacity, vert_usage,
         vertex_data.data() + old_vertex_count, new_vertex_count, old_vertex_count);
-      grow_gpu_buffer(index_buffer, index_memory, vert_usage,
+      grow_gpu_buffer(index_buffer, index_memory, index_capacity, vert_usage,
         index_data.data() + old_index_count, new_index_count, old_index_count);
       if (new_material_count > 0) {
-        grow_gpu_buffer(material_buffer, material_memory, stor_usage,
+        grow_gpu_buffer(material_buffer, material_memory, material_capacity, stor_usage,
           materials.data() + old_material_count, new_material_count, old_material_count);
       }
       if (new_prim_count > 0) {
-        grow_gpu_buffer(material_index_buffer, material_index_memory, stor_usage,
+        grow_gpu_buffer(material_index_buffer, material_index_memory, material_index_capacity, stor_usage,
           material_indices_per_primitive.data() + old_prim_count, new_prim_count, old_prim_count);
       }
       update_scene_buffers_descriptor();
@@ -2147,10 +2188,10 @@ export namespace fan::graphics::vulkan::ray_tracing {
       if (memory) { vkFreeMemory(ctx->device, memory, nullptr); memory = VK_NULL_HANDLE; }
     }
     void destroy_tlas_resources() {
-      tlas.destroy(*ctx);
-      destroy_buffer(tlas_instance_buffer, tlas_instance_memory);
+      tlas.destroy(*ctx); tlas_capacity = 0;
+      destroy_buffer(tlas_instance_buffer, tlas_instance_memory); tlas_instance_capacity = 0;
       destroy_buffer(tlas_instance_staging_buffer, tlas_instance_staging_memory);
-      destroy_buffer(tlas_scratch_buffer, tlas_scratch_memory);
+      destroy_buffer(tlas_scratch_buffer, tlas_scratch_memory); tlas_scratch_capacity = 0;
       tlas_instance_count = 0;
       tlas_instance_staging_size = 0;
     }
@@ -2160,13 +2201,28 @@ export namespace fan::graphics::vulkan::ray_tracing {
       destroy_tlas_resources();
       destroy_buffer(blas_scratch_buffer, blas_scratch_memory);
       blas_scratch_size = 0;
-      destroy_buffer(source_vertex_buffer, source_vertex_memory);
-      destroy_buffer(vertex_buffer, vertex_memory);
-      destroy_buffer(index_buffer, index_memory);
-      destroy_buffer(material_buffer, material_memory);
-      destroy_buffer(material_index_buffer, material_index_memory);
+      destroy_buffer(source_vertex_buffer, source_vertex_memory); source_vertex_capacity = 0;
+      destroy_buffer(vertex_buffer, vertex_memory); vertex_capacity = 0;
+      destroy_buffer(index_buffer, index_memory); index_capacity = 0;
+      destroy_buffer(material_buffer, material_memory); material_capacity = 0;
+      destroy_buffer(material_index_buffer, material_index_memory); material_index_capacity = 0;
       destroy_buffer(bone_buffer, bone_memory);
       bone_mapped = nullptr;
+    }
+    void rebuild_tlas() {
+      if (!ctx) { return; }
+      vkDeviceWaitIdle(ctx->device);
+      if (tlas.handle) {
+        auto destroy_as = (PFN_vkDestroyAccelerationStructureKHR)vkGetDeviceProcAddr(ctx->device, "vkDestroyAccelerationStructureKHR");
+        destroy_as(ctx->device, tlas.handle, nullptr);
+        tlas.handle = VK_NULL_HANDLE;
+        tlas.device_address = 0;
+      }
+      create_tlas();
+      update_tlas_descriptor();
+      reset_accumulation();
+      tlas_dirty = false;
+      tlas_rebuild_dirty = false;
     }
     void update_tlas_descriptor() {
       if (!descriptor_set) { return; }
@@ -2197,16 +2253,6 @@ export namespace fan::graphics::vulkan::ray_tracing {
       set_descriptor_buffer_write(writes[2], 7, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &index_info);
       set_descriptor_buffer_write(writes[3], 9, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, &mat_idx_info);
       vkUpdateDescriptorSets(ctx->device, 4, writes, 0, nullptr);
-    }
-    void rebuild_tlas() {
-      if (!ctx) { return; }
-      vkDeviceWaitIdle(ctx->device);
-      destroy_tlas_resources();
-      create_tlas();
-      update_tlas_descriptor();
-      reset_accumulation();
-      tlas_dirty = false;
-      tlas_rebuild_dirty = false;
     }
     void rebuild_scene_geometry() {
       if (!ctx) { return; }
@@ -2967,12 +3013,16 @@ export namespace fan::graphics::vulkan::ray_tracing {
     VkDeviceSize blas_scratch_size = 0;
     VkBuffer source_vertex_buffer = VK_NULL_HANDLE;
     VkDeviceMemory source_vertex_memory = VK_NULL_HANDLE;
+    VkDeviceSize source_vertex_capacity = 0;
     VkBuffer vertex_buffer = VK_NULL_HANDLE;
     VkDeviceMemory vertex_memory = VK_NULL_HANDLE;
+    VkDeviceSize vertex_capacity = 0;
     VkBuffer index_buffer = VK_NULL_HANDLE;
     VkDeviceMemory index_memory = VK_NULL_HANDLE;
+    VkDeviceSize index_capacity = 0;
     VkBuffer material_buffer = VK_NULL_HANDLE;
     VkDeviceMemory material_memory = VK_NULL_HANDLE;
+    VkDeviceSize material_capacity = 0;
     VkBuffer bone_buffer = VK_NULL_HANDLE;
     VkDeviceMemory bone_memory = VK_NULL_HANDLE;
     std::vector<material_info_t> materials;
@@ -2985,6 +3035,10 @@ export namespace fan::graphics::vulkan::ray_tracing {
     std::unordered_map<std::string, std::int32_t> rt_texture_cache;
     VkBuffer material_index_buffer = VK_NULL_HANDLE;
     VkDeviceMemory material_index_memory = VK_NULL_HANDLE;
+    VkDeviceSize material_index_capacity = 0;
+    VkDeviceSize tlas_instance_capacity = 0;
+    VkDeviceSize tlas_capacity = 0;
+    VkDeviceSize tlas_scratch_capacity = 0;
     std::vector<std::uint32_t> material_indices_per_primitive;
     std::size_t current_material_index = 0;
     std::uint32_t vertex_offset = 0;

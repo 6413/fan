@@ -9,32 +9,6 @@ import fan;
 import fan.graphics.vulkan.ray_tracing.hardware_renderer;
 
 namespace rt = fan::graphics::vulkan::ray_tracing;
-
-struct value_noise_2d_t {
-  static f32_t fade(f32_t t) { return t * t * t * (t * (t * 6.f - 15.f) + 10.f); }
-  static std::uint32_t hash(std::int32_t x, std::int32_t y, std::uint32_t seed) {
-    std::uint32_t h = (std::uint32_t)x * 0x8da6b343u ^ (std::uint32_t)y * 0xd8163841u ^ seed * 0xcb1ab31fu;
-    h ^= h >> 16; h *= 0x7feb352du; h ^= h >> 15; h *= 0x846ca68bu; h ^= h >> 16;
-    return h;
-  }
-  f32_t value(f32_t x, f32_t y) const {
-    std::int32_t x0 = (std::int32_t)std::floor(x), y0 = (std::int32_t)std::floor(y);
-    f32_t tx = fade(x - x0), ty = fade(y - y0);
-    auto h = [&](std::int32_t px, std::int32_t py) {
-      return (f32_t)(hash(px, py, seed) & 0x00ffffffu) / 16777215.f;
-    };
-    return std::lerp(std::lerp(h(x0,y0), h(x0+1,y0), tx), std::lerp(h(x0,y0+1), h(x0+1,y0+1), tx), ty);
-  }
-  f32_t fbm(f32_t x, f32_t y, std::uint32_t octaves, f32_t lacunarity = 2.f, f32_t gain = 0.5f) const {
-    f32_t sum = 0, amp = 1, norm = 0, freq = 1;
-    for (std::uint32_t i = 0; i < octaves; ++i) {
-      sum += value(x * freq, y * freq) * amp; norm += amp; freq *= lacunarity; amp *= gain;
-    }
-    return sum / norm;
-  }
-  std::uint32_t seed = 1337;
-};
-
 struct chunk_coord_t {
   bool operator==(const chunk_coord_t& o) const { return x == o.x && z == o.z; }
   std::int32_t x = 0, z = 0;
@@ -107,14 +81,23 @@ struct terrain_streamer_t {
     if (height >= rock_line || slope > 7.f) { return y + 1 >= height ? rock_color : dirt_color; }
     return y + 1 >= height ? grass_color : dirt_color;
   }
-  chunk_build_result_t build_chunk(chunk_coord_t coord) const {
+  struct worker_workspace_t {
     rt::context_t::voxel_grid_t grid;
-    grid.resize(chunk_size, sy, chunk_size);
-    std::vector<std::uint32_t> hcache(height_cache_width * height_cache_width);
+    std::vector<std::uint32_t> hcache;
+    std::vector<rt::context_t::voxel_surface_t> mask;
+  };
+  chunk_build_result_t build_chunk(chunk_coord_t coord, worker_workspace_t& ws) const {
+    ws.grid.sx = chunk_size;
+    ws.grid.sy = sy;
+    ws.grid.sz = chunk_size;
+    std::size_t req = chunk_size * sy * chunk_size;
+    if (ws.grid.data.size() < req) { ws.grid.data.resize(req); }
+    if (ws.hcache.size() < height_cache_width * height_cache_width) { ws.hcache.resize(height_cache_width * height_cache_width); }
+
     auto hidx = [](std::uint32_t x, std::uint32_t z) { return z * height_cache_width + x; };
     for (std::uint32_t z = 0; z < height_cache_width; ++z) {
       for (std::uint32_t x = 0; x < height_cache_width; ++x) {
-        hcache[hidx(x, z)] = height_at(
+        ws.hcache[hidx(x, z)] = height_at(
           coord.x * (std::int32_t)chunk_size + (std::int32_t)x - 1,
           coord.z * (std::int32_t)chunk_size + (std::int32_t)z - 1);
       }
@@ -124,22 +107,27 @@ struct terrain_streamer_t {
         std::int32_t wx = coord.x * (std::int32_t)chunk_size + (std::int32_t)x;
         std::int32_t wz = coord.z * (std::int32_t)chunk_size + (std::int32_t)z;
         std::uint32_t hx = x + 1, hz = z + 1;
-        std::uint32_t height = hcache[hidx(hx, hz)];
-        f32_t slope = std::abs((f32_t)height - (f32_t)hcache[hidx(hx+1,hz)])
-                    + std::abs((f32_t)height - (f32_t)hcache[hidx(hx-1,hz)])
-                    + std::abs((f32_t)height - (f32_t)hcache[hidx(hx,hz+1)])
-                    + std::abs((f32_t)height - (f32_t)hcache[hidx(hx,hz-1)]);
+        std::uint32_t height = ws.hcache[hidx(hx, hz)];
+        f32_t slope = std::abs((f32_t)height - (f32_t)ws.hcache[hidx(hx+1,hz)])
+                    + std::abs((f32_t)height - (f32_t)ws.hcache[hidx(hx-1,hz)])
+                    + std::abs((f32_t)height - (f32_t)ws.hcache[hidx(hx,hz+1)])
+                    + std::abs((f32_t)height - (f32_t)ws.hcache[hidx(hx,hz-1)]);
         std::uint32_t col_limit = std::min<std::uint32_t>(std::max(height, sea_level), sy - 1);
-        for (std::uint32_t y = 0; y <= col_limit; ++y) {
-          if (y <= height) {
-            if (enable_caves && y > 8 && y + 5 < height && ((x+y+z)&7) == 0 && cave_at(wx,(std::int32_t)y,wz) > 0.76f) { continue; }
-            auto& v = grid.at(x,y,z); v.id = 1; v.color = terrain_color(y, height, slope);
+        for (std::uint32_t y = 0; y < sy; ++y) {
+          auto& v = ws.grid.at(x,y,z);
+          if (y <= col_limit) {
+            if (y <= height) {
+              if (enable_caves && y > 8 && y + 5 < height && ((x+y+z)&7) == 0 && cave_at(wx,(std::int32_t)y,wz) > 0.76f) { v.id = 0; continue; }
+              v.id = 1; v.color = terrain_color(y, height, slope);
+            }
+            else if (y <= sea_level) { v.id = 1; v.color = water_color; }
+            else { v.id = 0; }
           }
-          else if (y <= sea_level) { auto& v = grid.at(x,y,z); v.id = 1; v.color = water_color; }
+          else { v.id = 0; }
         }
       }
     }
-    auto mesh = rt::context_t::greedy_mesh_grid(grid, voxel_size);
+    auto mesh = rt::context_t::greedy_mesh_grid_impl(ws.grid, nullptr, {}, voxel_size, &ws.mask);
     mesh.transform = fan::translate(fan::vec3(
       (f32_t)(coord.x * (std::int32_t)chunk_size) * voxel_size,
       -(f32_t)sea_level * voxel_size,
@@ -148,6 +136,7 @@ struct terrain_streamer_t {
   }
 
   void worker_loop() {
+    worker_workspace_t ws;
     while (true) {
       chunk_coord_t coord{};
       {
@@ -157,7 +146,7 @@ struct terrain_streamer_t {
         coord = work_queue.front();
         work_queue.erase(work_queue.begin());
       }
-      auto result = build_chunk(coord);
+      auto result = build_chunk(coord, ws);
       { std::lock_guard lk(ready_mtx); ready.push_back(std::move(result)); }
     }
   }
@@ -205,8 +194,8 @@ struct terrain_streamer_t {
     ch.uploaded = true;
     ch.pending  = false;
   }
-  // Used only for the initial synchronous load before the renderer opens
   void load_initial(rt::context_t& renderer, chunk_coord_t center, std::int32_t radius) {
+    worker_workspace_t ws;
     for (std::int32_t z = center.z - radius; z <= center.z + radius; ++z) {
       for (std::int32_t x = center.x - radius; x <= center.x + radius; ++x) {
         std::int32_t dx = x - center.x, dz = z - center.z;
@@ -214,8 +203,8 @@ struct terrain_streamer_t {
         chunk_coord_t coord{x, z};
         auto& ch = chunks[coord];
         if (ch.uploaded) { continue; }
-        auto result  = build_chunk(coord);
-        ch.handle    = renderer.add_mesh(result.mesh);  // deferred, no GPU work yet
+        auto result  = build_chunk(coord, ws);
+        ch.handle    = renderer.add_mesh(result.mesh);
         ch.uploaded  = true;
       }
     }
@@ -233,12 +222,12 @@ struct terrain_streamer_t {
 
   std::unordered_map<chunk_coord_t, terrain_chunk_t, chunk_coord_hash_t> chunks;
   fan::graphics::terrain_palette_t palette;
-  value_noise_2d_t noise;
+  fan::noise_t noise;
   fan::vec4 water_color, sand_color, dirt_color, grass_color, rock_color, snow_color;
 
   std::int32_t render_distance     = 12;
   std::int32_t initial_load_radius = 3;
-  bool         enable_caves        = false;
+  bool         enable_caves        = true;
 };
 
 int main() {
@@ -247,7 +236,7 @@ int main() {
   }};
 
   rt::context_t renderer(engine);
-  renderer.set_light(fan::vec3(0.f, 220.f, -180.f), fan::vec3(1.f, 0.96f, 0.88f), 12.f);
+  renderer.set_light(fan::vec3(0.f, 220.f, -180.f), fan::vec3(1.f, 0.96f, 0.88f), 3.f);
 
   terrain_streamer_t terrain;
   terrain.init();

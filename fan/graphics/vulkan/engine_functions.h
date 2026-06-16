@@ -1,9 +1,585 @@
-VkSampler post_process_sampler;
+VkSampler post_process_sampler = VK_NULL_HANDLE;
+VkRenderPass post_process_render_pass = VK_NULL_HANDLE;
+VkRenderPass bloom_render_pass = VK_NULL_HANDLE;
+VkRenderPass bloom_blend_render_pass = VK_NULL_HANDLE;
+std::vector<VkFramebuffer> post_process_framebuffers;
+fan::graphics::shader_t post_process_shader;
+fan::graphics::shader_t bloom_downsample_shader;
+fan::graphics::shader_t bloom_upsample_shader;
+fan::vulkan::context_t::pipeline_t bloom_downsample_pipeline;
+fan::vulkan::context_t::pipeline_t bloom_upsample_pipeline;
+fan::vulkan::context_t::pipeline_t bloom_upsample_add_pipeline;
+std::vector<fan::vulkan::context_t::descriptor_t> bloom_downsample_descriptors;
+std::vector<fan::vulkan::context_t::descriptor_t> bloom_upsample_descriptors;
+bool post_process_resources_open = false;
+std::uint32_t bloom_mip_count = 6;
+f32_t bloom_filter_radius = 0.1f;
+f32_t bloom_threshold = 0.0f;
+f32_t bloom_knee = 0.1f;
+f32_t bloom_strength = 0.04f;
+f32_t bloom_intensity = 1.0f;
+f32_t bloom_dirt_intensity = 0.0f;
+f32_t bloom_strength_scale = 0.1f;
+f32_t gamma = 1.0f;
+f32_t exposure = 1.0f;
+f32_t contrast = 1.0f;
+fan::vec3 bloom_tint = fan::vec3(1.0f, 1.0f, 1.0f);
+
+struct bloom_mip_t {
+  fan::vec2ui size;
+  fan::vulkan::vai_t image;
+  VkFramebuffer framebuffer = VK_NULL_HANDLE;
+};
+
+struct bloom_chain_t {
+  std::vector<bloom_mip_t> mips;
+};
+
+std::vector<bloom_chain_t> bloom_chains;
+
+struct post_process_push_constants_t {
+  fan::vec4 bloom_tint_strength;
+  fan::vec4 blur_focus;
+  fan::vec4 window_frame;
+  fan::vec4 params0;
+  fan::vec4 tonemap;
+};
+
+struct bloom_downsample_push_constants_t {
+  fan::vec4 resolution_threshold_knee_mip;
+  fan::vec4 mode;
+};
+
+struct bloom_upsample_push_constants_t {
+  fan::vec4 filter_radius;
+};
 
 loco_t& get_loco() {
   return (*OFFSETLESS(this, loco_t, vk));
 }
 #define loco get_loco()
+
+VkFormat get_bloom_format() {
+  return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
+}
+
+VkRenderPass make_color_render_pass(VkFormat format, VkAttachmentLoadOp load_op, VkImageLayout initial_layout, VkImageLayout final_layout) {
+  fan::vulkan::context_t& context = loco.context.vk;
+
+  VkAttachmentDescription attachment{};
+  attachment.format = format;
+  attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+  attachment.loadOp = load_op;
+  attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+  attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+  attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+  attachment.initialLayout = initial_layout;
+  attachment.finalLayout = final_layout;
+
+  VkAttachmentReference color_ref{};
+  color_ref.attachment = 0;
+  color_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+  VkSubpassDescription subpass{};
+  subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+  subpass.colorAttachmentCount = 1;
+  subpass.pColorAttachments = &color_ref;
+
+  VkSubpassDependency deps[2]{};
+  deps[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+  deps[0].dstSubpass = 0;
+  deps[0].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  deps[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  deps[0].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+  deps[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+  deps[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+  deps[1].srcSubpass = 0;
+  deps[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+  deps[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  deps[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+  deps[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+  deps[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+  deps[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+  VkRenderPassCreateInfo info{};
+  info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+  info.attachmentCount = 1;
+  info.pAttachments = &attachment;
+  info.subpassCount = 1;
+  info.pSubpasses = &subpass;
+  info.dependencyCount = std::size(deps);
+  info.pDependencies = deps;
+
+  VkRenderPass render_pass = VK_NULL_HANDLE;
+  if (vkCreateRenderPass(context.device, &info, nullptr, &render_pass) != VK_SUCCESS) {
+    fan::throw_error("failed to create post process render pass");
+  }
+  return render_pass;
+}
+
+VkFramebuffer make_framebuffer(VkRenderPass render_pass, VkImageView image_view, fan::vec2ui size) {
+  fan::vulkan::context_t& context = loco.context.vk;
+
+  VkFramebufferCreateInfo info{};
+  info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+  info.renderPass = render_pass;
+  info.attachmentCount = 1;
+  info.pAttachments = &image_view;
+  info.width = size.x;
+  info.height = size.y;
+  info.layers = 1;
+
+  VkFramebuffer framebuffer = VK_NULL_HANDLE;
+  if (vkCreateFramebuffer(context.device, &info, nullptr, &framebuffer) != VK_SUCCESS) {
+    fan::throw_error("failed to create post process framebuffer");
+  }
+  return framebuffer;
+}
+
+fan::vulkan::write_descriptor_set_t make_sampler_descriptor(std::uint32_t binding) {
+  fan::vulkan::write_descriptor_set_t d{};
+  d.use_image = true;
+  d.binding = binding;
+  d.dst_binding = binding;
+  d.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  d.flags = VK_SHADER_STAGE_FRAGMENT_BIT;
+  d.descriptor_count = 1;
+  return d;
+}
+
+VkDescriptorImageInfo make_image_info(VkImageView image_view) {
+  VkDescriptorImageInfo info{};
+  info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  info.imageView = image_view;
+  info.sampler = post_process_sampler;
+  return info;
+}
+
+void update_single_sampler_descriptor(fan::vulkan::context_t::descriptor_t& descriptor, VkImageView image_view) {
+  descriptor.m_properties[0].image_infos[0] = make_image_info(image_view);
+  descriptor.update(loco.context.vk, 1, 0, 1);
+}
+
+void begin_color_pass(VkRenderPass render_pass, VkFramebuffer framebuffer, fan::vec2ui size, bool clear) {
+  fan::vulkan::context_t& context = loco.context.vk;
+  VkRenderPassBeginInfo info{};
+  info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+  info.renderPass = render_pass;
+  info.framebuffer = framebuffer;
+  info.renderArea.offset = {0, 0};
+  info.renderArea.extent = {size.x, size.y};
+
+  VkClearValue clear_value{};
+  clear_value.color = {{0.f, 0.f, 0.f, 0.f}};
+  if (clear) {
+    info.clearValueCount = 1;
+    info.pClearValues = &clear_value;
+  }
+
+  VkCommandBuffer cmd = context.command_buffers[context.current_frame];
+  vkCmdBeginRenderPass(cmd, &info, VK_SUBPASS_CONTENTS_INLINE);
+
+  VkViewport viewport{};
+  viewport.x = 0.f;
+  viewport.y = 0.f;
+  viewport.width = (f32_t)size.x;
+  viewport.height = (f32_t)size.y;
+  viewport.minDepth = 0.f;
+  viewport.maxDepth = 1.f;
+  vkCmdSetViewport(cmd, 0, 1, &viewport);
+
+  VkRect2D scissor{};
+  scissor.offset = {0, 0};
+  scissor.extent = {size.x, size.y};
+  vkCmdSetScissor(cmd, 0, 1, &scissor);
+}
+
+void draw_fullscreen(
+  fan::vulkan::context_t::pipeline_t& pipeline,
+  fan::vulkan::context_t::descriptor_t& descriptor,
+  const void* push_constants,
+  std::uint32_t push_constants_size
+) {
+  fan::vulkan::context_t& context = loco.context.vk;
+  VkCommandBuffer cmd = context.command_buffers[context.current_frame];
+
+  vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.m_pipeline);
+  vkCmdBindDescriptorSets(
+    cmd,
+    VK_PIPELINE_BIND_POINT_GRAPHICS,
+    pipeline.m_layout,
+    0,
+    1,
+    &descriptor.m_descriptor_set[context.current_frame],
+    0,
+    nullptr
+  );
+  if (push_constants_size != 0) {
+    vkCmdPushConstants(
+      cmd,
+      pipeline.m_layout,
+      VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+      0,
+      push_constants_size,
+      push_constants
+    );
+  }
+  vkCmdDraw(cmd, 6, 1, 0, 0);
+}
+
+void open_post_process_sampler() {
+  if (post_process_sampler != VK_NULL_HANDLE) {
+    return;
+  }
+  fan::vulkan::context_t::image_load_properties_t lp{};
+  lp.min_filter = VK_FILTER_LINEAR;
+  lp.mag_filter = VK_FILTER_LINEAR;
+  lp.visual_output = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+  loco.context.vk.create_texture_sampler(post_process_sampler, lp);
+}
+
+void open_bloom_chains() {
+  fan::vulkan::context_t& context = loco.context.vk;
+  bloom_chains.resize(context.swap_chain_image_views.size());
+
+  for (std::size_t image_i = 0; image_i < bloom_chains.size(); ++image_i) {
+    fan::vec2ui mip_size(
+      std::max<std::uint32_t>(1, (std::uint32_t)context.swap_chain_size.x / 2),
+      std::max<std::uint32_t>(1, (std::uint32_t)context.swap_chain_size.y / 2)
+    );
+
+    auto& chain = bloom_chains[image_i];
+    chain.mips.resize(bloom_mip_count);
+
+    for (std::uint32_t mip_i = 0; mip_i < bloom_mip_count; ++mip_i) {
+      auto& mip = chain.mips[mip_i];
+      mip.size = mip_size;
+
+      fan::vulkan::vai_t::properties_t p{};
+      p.swap_chain_size = mip_size;
+      p.format = get_bloom_format();
+      p.usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+      p.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
+      mip.image.open(context, p);
+      mip.image.transition_image_layout(context, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+      mip.framebuffer = make_framebuffer(bloom_render_pass, mip.image.image_view, mip_size);
+
+      mip_size.x = std::max<std::uint32_t>(1, mip_size.x / 2);
+      mip_size.y = std::max<std::uint32_t>(1, mip_size.y / 2);
+    }
+  }
+}
+
+void close_bloom_chains() {
+  fan::vulkan::context_t& context = loco.context.vk;
+  for (auto& chain : bloom_chains) {
+    for (auto& mip : chain.mips) {
+      if (mip.framebuffer != VK_NULL_HANDLE) {
+        vkDestroyFramebuffer(context.device, mip.framebuffer, nullptr);
+        mip.framebuffer = VK_NULL_HANDLE;
+      }
+      mip.image.close(context);
+    }
+    chain.mips.clear();
+  }
+  bloom_chains.clear();
+}
+
+void open_post_process_framebuffers() {
+  fan::vulkan::context_t& context = loco.context.vk;
+  post_process_framebuffers.resize(context.swap_chain_image_views.size());
+  for (std::size_t i = 0; i < post_process_framebuffers.size(); ++i) {
+    post_process_framebuffers[i] = make_framebuffer(
+      post_process_render_pass,
+      context.swap_chain_image_views[i],
+      fan::vec2ui((std::uint32_t)context.swap_chain_size.x, (std::uint32_t)context.swap_chain_size.y)
+    );
+  }
+}
+
+void close_post_process_framebuffers() {
+  fan::vulkan::context_t& context = loco.context.vk;
+  for (VkFramebuffer& framebuffer : post_process_framebuffers) {
+    if (framebuffer != VK_NULL_HANDLE) {
+      vkDestroyFramebuffer(context.device, framebuffer, nullptr);
+      framebuffer = VK_NULL_HANDLE;
+    }
+  }
+  post_process_framebuffers.clear();
+}
+
+void open_post_process_descriptors() {
+  fan::vulkan::context_t& context = loco.context.vk;
+
+  std::vector<fan::vulkan::write_descriptor_set_t> final_descriptors(4);
+  final_descriptors[0] = make_sampler_descriptor(0);
+  final_descriptors[1] = make_sampler_descriptor(1);
+  final_descriptors[2] = make_sampler_descriptor(2);
+  final_descriptors[3] = make_sampler_descriptor(3);
+  loco.vk.d_attachments.open(context, final_descriptors);
+
+  std::vector<fan::vulkan::write_descriptor_set_t> sampler_descriptors(1);
+  sampler_descriptors[0] = make_sampler_descriptor(0);
+
+  bloom_downsample_descriptors.resize(bloom_mip_count);
+  bloom_upsample_descriptors.resize(bloom_mip_count);
+  for (std::uint32_t i = 0; i < bloom_mip_count; ++i) {
+    bloom_downsample_descriptors[i].open(context, sampler_descriptors);
+    bloom_upsample_descriptors[i].open(context, sampler_descriptors);
+  }
+}
+
+void close_post_process_descriptors() {
+  fan::vulkan::context_t& context = loco.context.vk;
+  for (auto& descriptor : bloom_downsample_descriptors) {
+    descriptor.close(context);
+  }
+  bloom_downsample_descriptors.clear();
+  for (auto& descriptor : bloom_upsample_descriptors) {
+    descriptor.close(context);
+  }
+  bloom_upsample_descriptors.clear();
+  loco.vk.d_attachments.close(context);
+}
+
+void open_post_process_pipelines() {
+  fan::vulkan::context_t& context = loco.context.vk;
+
+  VkPipelineColorBlendAttachmentState replace_blend = fan::vulkan::get_default_color_blend();
+  replace_blend.blendEnable = VK_FALSE;
+
+  VkPipelineColorBlendAttachmentState add_blend = fan::vulkan::get_default_color_blend();
+  add_blend.blendEnable = VK_TRUE;
+  add_blend.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+  add_blend.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+  add_blend.colorBlendOp = VK_BLEND_OP_ADD;
+  add_blend.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+  add_blend.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+  add_blend.alphaBlendOp = VK_BLEND_OP_ADD;
+
+  fan::vulkan::context_t::pipeline_t::properties_t p{};
+  p.descriptor_layout_count = 1;
+  p.enable_depth_test = false;
+  p.color_blend_attachment_count = 1;
+
+  p.shader = post_process_shader;
+  p.render_pass = post_process_render_pass;
+  p.descriptor_layout = &loco.vk.d_attachments.m_layout;
+  p.color_blend_attachment = &replace_blend;
+  p.push_constants_size = sizeof(post_process_push_constants_t);
+  loco.vk.post_process.open(context, p);
+
+  p.shader = bloom_downsample_shader;
+  p.render_pass = bloom_render_pass;
+  p.descriptor_layout = &bloom_downsample_descriptors[0].m_layout;
+  p.color_blend_attachment = &replace_blend;
+  p.push_constants_size = sizeof(bloom_downsample_push_constants_t);
+  bloom_downsample_pipeline.open(context, p);
+
+  p.shader = bloom_upsample_shader;
+  p.render_pass = bloom_render_pass;
+  p.descriptor_layout = &bloom_upsample_descriptors[0].m_layout;
+  p.color_blend_attachment = &replace_blend;
+  p.push_constants_size = sizeof(bloom_upsample_push_constants_t);
+  bloom_upsample_pipeline.open(context, p);
+
+  p.render_pass = bloom_blend_render_pass;
+  p.color_blend_attachment = &add_blend;
+  bloom_upsample_add_pipeline.open(context, p);
+}
+
+void close_post_process_pipelines() {
+  fan::vulkan::context_t& context = loco.context.vk;
+  loco.vk.post_process.close(context);
+  bloom_downsample_pipeline.close(context);
+  bloom_upsample_pipeline.close(context);
+  bloom_upsample_add_pipeline.close(context);
+}
+
+void open_swapchain_resources() {
+  if (post_process_resources_open) {
+    return;
+  }
+
+  fan::vulkan::context_t& context = loco.context.vk;
+  open_post_process_sampler();
+
+  post_process_render_pass = make_color_render_pass(
+    context.swap_chain_image_format,
+    VK_ATTACHMENT_LOAD_OP_CLEAR,
+    VK_IMAGE_LAYOUT_UNDEFINED,
+    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+  );
+  bloom_render_pass = make_color_render_pass(
+    get_bloom_format(),
+    VK_ATTACHMENT_LOAD_OP_CLEAR,
+    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+  );
+  bloom_blend_render_pass = make_color_render_pass(
+    get_bloom_format(),
+    VK_ATTACHMENT_LOAD_OP_LOAD,
+    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+  );
+
+  open_post_process_framebuffers();
+  open_bloom_chains();
+  open_post_process_descriptors();
+  open_post_process_pipelines();
+  post_process_resources_open = true;
+}
+
+void close_swapchain_resources() {
+  if (!post_process_resources_open) {
+    return;
+  }
+
+  fan::vulkan::context_t& context = loco.context.vk;
+  vkDeviceWaitIdle(context.device);
+  close_post_process_pipelines();
+  close_post_process_descriptors();
+  close_bloom_chains();
+  close_post_process_framebuffers();
+
+  if (post_process_render_pass != VK_NULL_HANDLE) {
+    vkDestroyRenderPass(context.device, post_process_render_pass, nullptr);
+    post_process_render_pass = VK_NULL_HANDLE;
+  }
+  if (bloom_render_pass != VK_NULL_HANDLE) {
+    vkDestroyRenderPass(context.device, bloom_render_pass, nullptr);
+    bloom_render_pass = VK_NULL_HANDLE;
+  }
+  if (bloom_blend_render_pass != VK_NULL_HANDLE) {
+    vkDestroyRenderPass(context.device, bloom_blend_render_pass, nullptr);
+    bloom_blend_render_pass = VK_NULL_HANDLE;
+  }
+  post_process_resources_open = false;
+}
+
+void close() {
+  close_swapchain_resources();
+  if (post_process_sampler != VK_NULL_HANDLE) {
+    vkDestroySampler(loco.context.vk.device, post_process_sampler, nullptr);
+    post_process_sampler = VK_NULL_HANDLE;
+  }
+}
+
+void draw_bloom() {
+  fan::vulkan::context_t& context = loco.context.vk;
+  auto& chain = bloom_chains[context.image_index];
+  if (chain.mips.empty()) {
+    return;
+  }
+
+  for (std::uint32_t i = 0; i < chain.mips.size(); ++i) {
+    VkImageView source = i == 0 ? context.mainColorImageViews[context.image_index].image_view : chain.mips[i - 1].image.image_view;
+    update_single_sampler_descriptor(bloom_downsample_descriptors[i], source);
+
+    bloom_downsample_push_constants_t pc{};
+    fan::vec2 source_size = i == 0 ? context.swap_chain_size : fan::vec2(chain.mips[i - 1].size.x, chain.mips[i - 1].size.y);
+    pc.resolution_threshold_knee_mip = fan::vec4(source_size.x, source_size.y, bloom_threshold, bloom_knee);
+    pc.mode = fan::vec4(i == 0 ? 0.f : 1.f, 0.f, 0.f, 0.f);
+
+    begin_color_pass(bloom_render_pass, chain.mips[i].framebuffer, chain.mips[i].size, true);
+    draw_fullscreen(bloom_downsample_pipeline, bloom_downsample_descriptors[i], &pc, sizeof(pc));
+    vkCmdEndRenderPass(context.command_buffers[context.current_frame]);
+  }
+
+  for (int i = (int)chain.mips.size() - 1; i > 0; --i) {
+    auto& mip = chain.mips[i];
+    auto& next_mip = chain.mips[i - 1];
+
+    update_single_sampler_descriptor(bloom_upsample_descriptors[i], mip.image.image_view);
+
+    fan::vec2 texel_size = fan::vec2(1.0f / mip.size.x, 1.0f / mip.size.y) * bloom_filter_radius;
+    bloom_upsample_push_constants_t pc{};
+    pc.filter_radius = fan::vec4(texel_size.x * 3.f, texel_size.y * 3.f, 0.f, 0.f);
+
+    begin_color_pass(bloom_blend_render_pass, next_mip.framebuffer, next_mip.size, false);
+    draw_fullscreen(bloom_upsample_add_pipeline, bloom_upsample_descriptors[i], &pc, sizeof(pc));
+    vkCmdEndRenderPass(context.command_buffers[context.current_frame]);
+  }
+}
+
+void update_final_descriptor() {
+  fan::vulkan::context_t& context = loco.context.vk;
+  VkImageView scene = context.mainColorImageViews[context.image_index].image_view;
+  VkImageView bloom = scene;
+  if (context.image_index < bloom_chains.size() && !bloom_chains[context.image_index].mips.empty()) {
+    bloom = bloom_chains[context.image_index].mips[0].image.image_view;
+  }
+
+  loco.vk.d_attachments.m_properties[0].image_infos[0] = make_image_info(scene);
+  loco.vk.d_attachments.m_properties[1].image_infos[0] = make_image_info(bloom);
+  loco.vk.d_attachments.m_properties[2].image_infos[0] = make_image_info(scene);
+  loco.vk.d_attachments.m_properties[3].image_infos[0] = make_image_info(scene);
+  loco.vk.d_attachments.update(context, 4, 0, 1);
+}
+
+post_process_push_constants_t make_post_process_pc() {
+  fan::vec2 window_size = loco.window.get_size();
+  if (loco.open_props.blur_focus_follow_mouse) {
+    fan::vec2 mouse_position = loco.get_raw_mouse_position();
+    auto clamp01 = [](f32_t v) {
+      return v < 0.f ? 0.f : (v > 1.f ? 1.f : v);
+    };
+    f32_t x = window_size.x == 0.f ? 0.f : mouse_position.x / window_size.x;
+    f32_t y = window_size.y == 0.f ? 0.f : mouse_position.y / window_size.y;
+    loco.open_props.blur_focus_position = fan::vec2(clamp01(x), clamp01(y));
+  }
+
+  post_process_push_constants_t pc{};
+  pc.bloom_tint_strength = fan::vec4(bloom_tint.x, bloom_tint.y, bloom_tint.z, bloom_strength * bloom_strength_scale);
+  pc.blur_focus = fan::vec4(
+    loco.open_props.blur_focus_position.x,
+    loco.open_props.blur_focus_position.y,
+    loco.open_props.blur_focus_radius,
+    loco.open_props.blur_focus_falloff
+  );
+  pc.window_frame = fan::vec4(
+    window_size.x,
+    window_size.y,
+    loco.renderer_state.clear_color.a,
+    (f32_t)loco.open_props.post_process_mode
+  );
+  pc.params0 = fan::vec4(
+    bloom_intensity,
+    bloom_dirt_intensity,
+    loco.open_props.blur_amount,
+    loco.open_props.blur_focus_enabled ? 1.f : 0.f
+  );
+  pc.tonemap = fan::vec4(gamma, exposure, contrast, 0.f);
+  return pc;
+}
+
+void draw_post_process() {
+  fan::vulkan::context_t& context = loco.context.vk;
+  VkCommandBuffer cmd = context.command_buffers[context.current_frame];
+
+  vkCmdEndRenderPass(cmd);
+
+  const bool bloom_enabled =
+    loco.open_props.post_process_mode == loco_t::post_process_mode_e::bloom ||
+    loco.open_props.post_process_mode == loco_t::post_process_mode_e::bloom_blur;
+
+  if (bloom_enabled) {
+    draw_bloom();
+  }
+
+  update_final_descriptor();
+  auto pc = make_post_process_pc();
+
+  begin_color_pass(
+    post_process_render_pass,
+    post_process_framebuffers[context.image_index],
+    fan::vec2ui((std::uint32_t)context.swap_chain_size.x, (std::uint32_t)context.swap_chain_size.y),
+    true
+  );
+  draw_fullscreen(loco.vk.post_process, loco.vk.d_attachments, &pc, sizeof(pc));
+  vkCmdEndRenderPass(cmd);
+}
 
 #if defined(FAN_2D)
 void shapes_open() {
@@ -86,12 +662,11 @@ void begin_render_pass() {
 
   // TODO
   VkClearValue clear_values[
-    3
+    2
   ]{};
   fan::color clear_color = loco.get_clear_color();
   clear_values[0].color = { { clear_color.r, clear_color.g, clear_color.b, clear_color.a } };
-  clear_values[1].color = { { clear_color.r, clear_color.g, clear_color.b, clear_color.a } };
-  clear_values[2].depthStencil = { 1.0f, 0 };
+  clear_values[1].depthStencil = { 1.0f, 0 };
 
 
   renderPassInfo.clearValueCount = std::size(clear_values);
@@ -110,7 +685,9 @@ void begin_draw() {
   vkWaitForFences(context.device, 1, &context.in_flight_fences[context.current_frame], VK_TRUE, UINT64_MAX);
 
   if (context.SwapChainRebuild) {
+    close_swapchain_resources();
     context.recreate_swap_chain(&loco.window, VK_SUCCESS);
+    open_swapchain_resources();
   }
     
   loco.vk.image_error = vkAcquireNextImageKHR(
@@ -123,7 +700,9 @@ void begin_draw() {
   );
 
   if (loco.vk.image_error == VK_ERROR_OUT_OF_DATE_KHR || loco.vk.image_error == VK_SUBOPTIMAL_KHR) {
+    close_swapchain_resources();
     context.recreate_swap_chain(&loco.window, loco.vk.image_error);
+    open_swapchain_resources();
     loco.vk.image_error = vkAcquireNextImageKHR(
       context.device,
       context.swap_chain,
@@ -141,23 +720,6 @@ void begin_draw() {
 
   context.current_acquire_semaphore = context.image_available_semaphores[context.acquire_semaphore_index];
   context.acquire_semaphore_index = (context.acquire_semaphore_index + 1) % (std::uint32_t)context.image_available_semaphores.size();
-
-  {
-    VkDescriptorImageInfo mainInfo{};
-    mainInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    mainInfo.imageView = context.mainColorImageViews[context.image_index].image_view;
-    mainInfo.sampler = VK_NULL_HANDLE;
-
-    VkWriteDescriptorSet write{};
-    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write.dstSet = loco.vk.d_attachments.m_descriptor_set[context.current_frame];
-    write.dstBinding = 1;
-    write.descriptorType = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-    write.descriptorCount = 1;
-    write.pImageInfo = &mainInfo;
-
-    vkUpdateDescriptorSets(context.device, 1, &write, 0, nullptr);
-  }
 
   vkResetFences(context.device, 1, &context.in_flight_fences[context.current_frame]);
   vkResetCommandBuffer(context.command_buffers[context.current_frame], /*VkCommandBufferResetFlagBits*/ 0);
@@ -426,59 +988,22 @@ void shapes_draw() {
 }
 
 void init() {
-  auto nr = loco.shader_create();
-  loco.shader_set_vertex(nr, "shaders/vulkan/loco_fbo.vert", fan::graphics::read_shader("shaders/vulkan/loco_fbo.vert"));
-  loco.shader_set_fragment(nr, "shaders/vulkan/loco_fbo.frag", fan::graphics::read_shader("shaders/vulkan/loco_fbo.frag"));
-  loco.shader_compile(nr);
+  post_process_shader = loco.shader_create();
+  loco.shader_set_vertex(post_process_shader, "shaders/vulkan/loco_fbo.vert", fan::graphics::read_shader("shaders/vulkan/loco_fbo.vert"));
+  loco.shader_set_fragment(post_process_shader, "shaders/vulkan/loco_fbo.frag", fan::graphics::read_shader("shaders/vulkan/loco_fbo.frag"));
+  loco.shader_compile(post_process_shader);
 
-  VkPipelineColorBlendAttachmentState color_blend_attachment = fan::vulkan::get_default_color_blend();
-  fan::vulkan::context_t::pipeline_t::properties_t p;
+  bloom_downsample_shader = loco.shader_create();
+  loco.shader_set_vertex(bloom_downsample_shader, "shaders/vulkan/loco_fbo.vert", fan::graphics::read_shader("shaders/vulkan/loco_fbo.vert"));
+  loco.shader_set_fragment(bloom_downsample_shader, "shaders/vulkan/downsample.frag", fan::graphics::read_shader("shaders/vulkan/downsample.frag"));
+  loco.shader_compile(bloom_downsample_shader);
 
-  std::vector<fan::vulkan::write_descriptor_set_t> ds_properties(2);
+  bloom_upsample_shader = loco.shader_create();
+  loco.shader_set_vertex(bloom_upsample_shader, "shaders/vulkan/loco_fbo.vert", fan::graphics::read_shader("shaders/vulkan/loco_fbo.vert"));
+  loco.shader_set_fragment(bloom_upsample_shader, "shaders/vulkan/upsample.frag", fan::graphics::read_shader("shaders/vulkan/upsample.frag"));
+  loco.shader_compile(bloom_upsample_shader);
 
-  VkDescriptorImageInfo imageInfo{};
-  //gloco()->context.vk.create_texture_sampler(post_process_sampler, fan::vulkan::context_t::image_load_properties_t());
-
-  imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-  imageInfo.imageView = gloco()->get_context().vk.mainColorImageViews[0].image_view;
-  //imageInfo.sampler = post_process_sampler;
-
-  ds_properties[0].use_image = 1;
-  ds_properties[0].binding = 1;
-  ds_properties[0].dst_binding = 1;
-  ds_properties[0].type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-  ds_properties[0].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
-  ds_properties[0].descriptor_count = 1;
-  for (uint32_t i = 0; i < fan::vulkan::max_textures; ++i) {
-    ds_properties[0].image_infos[i] = imageInfo;
-  }
-
-  imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-  imageInfo.imageView = gloco()->get_context().vk.postProcessedColorImageViews[0].image_view;
-  //imageInfo.sampler = post_process_sampler;
-
-  imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-  ds_properties[1].use_image = 1;
-  ds_properties[1].binding = 2;
-  ds_properties[1].dst_binding = 2;
-  ds_properties[1].type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-  ds_properties[1].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
-  ds_properties[1].descriptor_count = 1;
-  for (uint32_t i = 0; i < fan::vulkan::max_textures; ++i) {
-    ds_properties[1].image_infos[i] = imageInfo;
-  }
-
-  loco.vk.d_attachments.open(loco.context.vk, ds_properties);
-  loco.vk.d_attachments.update(loco.context.vk, 2);
-
-  p.shader = nr;
-  p.subpass = 1;
-  p.descriptor_layout = &loco.vk.d_attachments.m_layout;
-  p.descriptor_layout_count = 1;
-  p.color_blend_attachment = &color_blend_attachment;
-  p.color_blend_attachment_count = 1;
-  p.enable_depth_test = false;
-  loco.vk.post_process.open(loco.context.vk, p);
+  open_swapchain_resources();
 
   window_resize_handle = loco.window.add_resize_callback([&](const auto& d) {
     loco.camera_set_ortho(
