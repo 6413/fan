@@ -1,6 +1,6 @@
 #!/bin/bash
 
-THIRDPARTY_DIR="$(pwd)/thirdparty/fan"
+THIRDPARTY_DIR="$(pwd)/third_party/fan"
 
 if [ -d "$THIRDPARTY_DIR" ]; then
 	echo "removing $THIRDPARTY_DIR"

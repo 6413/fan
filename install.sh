@@ -68,6 +68,26 @@ move_and_pull "https://github.com/7244/bcontainer.git"  "bcontainer"
 move_and_pull "https://github.com/7244/pixfconv.git"    "pixfconv"
 move_and_pull "https://github.com/6413/PIXF.git"        "PIXF"
 
+install_vma() {
+    local REPO_DIR="$INSTALL_DIR/repos/VulkanMemoryAllocator"
+
+    mkdir -p "$INSTALL_DIR/repos"
+    if [ -d "$REPO_DIR/.git" ]; then
+        echo "Updating VulkanMemoryAllocator..."
+        git -C "$REPO_DIR" pull || { echo "failed to update VulkanMemoryAllocator"; exit 1; }
+    else
+        echo "Cloning VulkanMemoryAllocator..."
+        git clone --depth 1 "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git" "$REPO_DIR"
+    fi
+
+    cp "$REPO_DIR/include/vk_mem_alloc.h" "$INCLUDE_DIR/vk_mem_alloc.h"
+    mkdir -p "$INCLUDE_DIR/VulkanMemoryAllocator/include"
+    cp "$REPO_DIR/include/vk_mem_alloc.h" "$INCLUDE_DIR/VulkanMemoryAllocator/include/vk_mem_alloc.h"
+    echo "✓ VulkanMemoryAllocator installed"
+}
+
+install_vma
+
 # ─── glad ─────────────────────────────────────────────────────────────────────
 mkdir -p "$INCLUDE_DIR/glad" "$INCLUDE_DIR/KHR"
 
@@ -245,6 +265,7 @@ if $WASM_BUILD; then
     check "$INCLUDE_DIR/glad/gl.h"       "glad (wasm stub)"
     check "$INCLUDE_DIR/BLL"             "BLL"
     check "$INCLUDE_DIR/WITCH"           "WITCH"
+    check "$INCLUDE_DIR/vk_mem_alloc.h"  "VulkanMemoryAllocator"
     check "$INCLUDE_DIR/BCOL"            "BCOL"
     check "$INCLUDE_DIR/BVEC"            "BVEC"
     check "$INCLUDE_DIR/BDBT"            "BDBT"
@@ -256,6 +277,7 @@ else
     check "$LIB_DIR/liblunasvg.a"         "LunaSVG"
     check "$INCLUDE_DIR/BLL"              "BLL"
     check "$INCLUDE_DIR/WITCH"            "WITCH"
+    check "$INCLUDE_DIR/vk_mem_alloc.h"   "VulkanMemoryAllocator"
 fi
 
 echo ""
