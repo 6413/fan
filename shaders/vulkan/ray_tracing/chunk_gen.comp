@@ -1,0 +1,232 @@
+#version 460
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+struct vertex_t {
+  vec4 position;
+  vec4 normal;
+  vec4 texcoord;
+  vec4 color;
+};
+
+layout(binding = 0, set = 0) buffer vertices_t {
+  vertex_t vertices[];
+};
+
+layout(binding = 1, set = 0) buffer indices_t {
+  uint indices[];
+};
+
+layout(binding = 2, set = 0) buffer counters_t {
+  uint vertex_count;
+  uint index_count;
+  uint pad0;
+  uint pad1;
+};
+
+layout(push_constant) uniform push_t {
+  int chunk_x;
+  int chunk_z;
+  uint chunk_size;
+  uint sy;
+  uint sea_level;
+  uint snow_line;
+  uint rock_line;
+  uint pad0;
+  float voxel_size;
+  float pad1;
+  float pad2;
+  float pad3;
+} pc;
+
+struct block_t {
+  vec2 top;
+  vec2 side;
+};
+
+const vec2 ATLAS_SIZE = vec2(2048.0);
+const vec2 TILE_SIZE = vec2(128.0);
+
+const block_t BLOCK_GRASS = block_t(vec2(4, 9), vec2(3, 0));
+const block_t BLOCK_STONE = block_t(vec2(1, 0), vec2(1, 0));
+const block_t BLOCK_SAND  = block_t(vec2(2, 1), vec2(2, 1));
+const block_t BLOCK_SNOW  = block_t(vec2(2, 4), vec2(4, 4));
+const block_t BLOCK_WATER = block_t(vec2(15, 12), vec2(15, 12));
+
+uint hash_u(uint x) {
+  x ^= x >> 16;
+  x *= 0x7feb352du;
+  x ^= x >> 15;
+  x *= 0x846ca68bu;
+  x ^= x >> 16;
+  return x;
+}
+
+float hash21(ivec2 p) {
+  uint h = hash_u(uint(p.x) * 0x8da6b343u ^ uint(p.y) * 0xd8163841u);
+  return float(h & 0x00ffffffu) / float(0x01000000u);
+}
+
+float fade(float t) {
+  return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+}
+
+float value_noise(vec2 p) {
+  ivec2 i = ivec2(floor(p));
+  vec2 f = fract(p);
+  vec2 u = vec2(fade(f.x), fade(f.y));
+
+  float a = hash21(i);
+  float b = hash21(i + ivec2(1, 0));
+  float c = hash21(i + ivec2(0, 1));
+  float d = hash21(i + ivec2(1, 1));
+
+  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+float fbm(vec2 p, int o, float l, float g) {
+  float a = 0.5;
+  float s = 0.0;
+  float n = 0.0;
+
+  for (int i = 0; i < o; ++i) {
+    s += value_noise(p) * a;
+    n += a;
+    p *= l;
+    a *= g;
+  }
+
+  return s / max(n, 0.0001);
+}
+
+uint height_at(int x, int z) {
+  float h =
+    fbm(vec2(x, z) * 0.0028, 5, 2.0, 0.55) * 0.7 +
+    fbm(vec2(x, z) * 0.011, 5, 2.0, 0.5) * 0.25 +
+    fbm(vec2(x, z) * 0.045, 3, 2.0, 0.45) * 0.05;
+
+  h = clamp((h - 0.25) / 0.72, 0.0, 1.0);
+  h = h * h * (3.0 - 2.0 * h);
+
+  return uint(clamp(8.0 + h * (float(pc.sy) - 14.0), 1.0, float(pc.sy) - 2.0));
+}
+
+block_t terrain_block(uint h, float slope) {
+  if (h >= pc.snow_line) {
+    return BLOCK_SNOW;
+  }
+  if (h >= pc.rock_line || slope > 7.0) {
+    return BLOCK_STONE;
+  }
+  if (h <= pc.sea_level + 2u) {
+    return BLOCK_SAND;
+  }
+  return BLOCK_GRASS;
+}
+
+vec2 atlas_uv(vec2 tile_id, vec2 uv) {
+  vec2 pad = vec2(0.5);
+  uv.y = 1.0 - uv.y;
+  return (tile_id * TILE_SIZE + pad + uv * (TILE_SIZE - pad * 2.0)) / ATLAS_SIZE;
+}
+
+vec2 block_uv(block_t b, vec2 uv, bool is_top) {
+  return atlas_uv(is_top ? b.top : b.side, uv);
+}
+
+void putv(uint i, vec3 p, vec3 n, vec2 uv, vec4 c, block_t b, bool is_top) {
+  vertices[i].position = vec4(p, 0.0);
+  vertices[i].normal = vec4(n, 0.0);
+  vertices[i].texcoord = vec4(block_uv(b, uv, is_top), 0.0, 0.0);
+  vertices[i].color = c;
+}
+
+void emit_quad(vec3 p0, vec3 p1, vec3 p2, vec3 p3, vec3 n, vec4 c, block_t b, bool is_top) {
+  uint vi = atomicAdd(vertex_count, 4u);
+  uint ii = atomicAdd(index_count, 6u);
+
+  putv(vi + 0u, p0, n, vec2(0, 0), c, b, is_top);
+  putv(vi + 1u, p1, n, vec2(1, 0), c, b, is_top);
+  putv(vi + 2u, p2, n, vec2(1, 1), c, b, is_top);
+  putv(vi + 3u, p3, n, vec2(0, 1), c, b, is_top);
+
+  indices[ii + 0u] = vi;
+  indices[ii + 1u] = vi + 1u;
+  indices[ii + 2u] = vi + 2u;
+  indices[ii + 3u] = vi;
+  indices[ii + 4u] = vi + 2u;
+  indices[ii + 5u] = vi + 3u;
+}
+
+void emit_side(uint x, uint z, uint h0, uint h1, int axis, int sign, vec4 c, block_t b) {
+  if (h0 <= h1) {
+    return;
+  }
+
+  float s = pc.voxel_size;
+  float x0 = float(x) * s;
+  float x1 = float(x + 1u) * s;
+  float z0 = float(z) * s;
+  float z1 = float(z + 1u) * s;
+  float y0 = float(h1 + 1u) * s;
+  float y1 = float(h0 + 1u) * s;
+
+  if (axis == 0 && sign > 0) {
+    emit_quad(vec3(x1, y0, z1), vec3(x1, y0, z0), vec3(x1, y1, z0), vec3(x1, y1, z1), vec3(1, 0, 0), c, b, false);
+  }
+  else if (axis == 0 && sign < 0) {
+    emit_quad(vec3(x0, y0, z0), vec3(x0, y0, z1), vec3(x0, y1, z1), vec3(x0, y1, z0), vec3(-1, 0, 0), c, b, false);
+  }
+  else if (axis == 2 && sign > 0) {
+    emit_quad(vec3(x0, y0, z1), vec3(x1, y0, z1), vec3(x1, y1, z1), vec3(x0, y1, z1), vec3(0, 0, 1), c, b, false);
+  }
+  else if (axis == 2 && sign < 0) {
+    emit_quad(vec3(x1, y0, z0), vec3(x0, y0, z0), vec3(x0, y1, z0), vec3(x1, y1, z0), vec3(0, 0, -1), c, b, false);
+  }
+}
+
+void main() {
+  uint x = gl_GlobalInvocationID.x;
+  uint z = gl_GlobalInvocationID.y;
+
+  if (x >= pc.chunk_size || z >= pc.chunk_size) {
+    return;
+  }
+
+  int wx = pc.chunk_x * int(pc.chunk_size) + int(x);
+  int wz = pc.chunk_z * int(pc.chunk_size) + int(z);
+
+  uint h = height_at(wx, wz);
+  uint hx0 = height_at(wx - 1, wz);
+  uint hx1 = height_at(wx + 1, wz);
+  uint hz0 = height_at(wx, wz - 1);
+  uint hz1 = height_at(wx, wz + 1);
+
+  float slope =
+    abs(float(h) - float(hx0)) +
+    abs(float(h) - float(hx1)) +
+    abs(float(h) - float(hz0)) +
+    abs(float(h) - float(hz1));
+
+  block_t block = terrain_block(h, slope);
+
+  float s = pc.voxel_size;
+  float x0 = float(x) * s;
+  float x1 = float(x + 1u) * s;
+  float z0 = float(z) * s;
+  float z1 = float(z + 1u) * s;
+  float y = float(h + 1u) * s;
+
+  vec4 c = vec4(1.0);
+
+  emit_quad(vec3(x0, y, z0), vec3(x1, y, z0), vec3(x1, y, z1), vec3(x0, y, z1), vec3(0, 1, 0), c, block, true);
+  emit_side(x, z, h, hx1, 0, 1, c, block);
+  emit_side(x, z, h, hx0, 0, -1, c, block);
+  emit_side(x, z, h, hz1, 2, 1, c, block);
+  emit_side(x, z, h, hz0, 2, -1, c, block);
+
+  if (h < pc.sea_level) {
+    float wy = float(pc.sea_level + 1u) * s;
+    emit_quad(vec3(x0, wy, z0), vec3(x1, wy, z0), vec3(x1, wy, z1), vec3(x0, wy, z1), vec3(0, 1, 0), vec4(1.0), BLOCK_WATER, true);
+  }
+}

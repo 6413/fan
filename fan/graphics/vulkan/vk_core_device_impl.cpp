@@ -171,6 +171,15 @@ void fan::vulkan::context_t::close_vais(std::vector<fan::vulkan::vai_t>& v) {
 }
 void fan::vulkan::context_t::destroy_vulkan_soft() {
   vkDeviceWaitIdle(device);
+  if (single_time_fence != VK_NULL_HANDLE) {
+    vkWaitForFences(device, 1, &single_time_fence, VK_TRUE, UINT64_MAX);
+    vkDestroyFence(device, single_time_fence, nullptr);
+    single_time_fence = VK_NULL_HANDLE;
+  }
+  if (single_time_cmd != VK_NULL_HANDLE) {
+    vkFreeCommandBuffers(device, command_pool, 1, &single_time_cmd);
+    single_time_cmd = VK_NULL_HANDLE;
+  }
   fan::vulkan::context_t& context = *this;
   {
     fan::graphics::shader_list_t::nrtra_t nrtra;
@@ -904,32 +913,7 @@ void fan::vulkan::context_t::destroy_allocator() {
     allocator = VK_NULL_HANDLE;
   }
 }
-void fan::vulkan::context_t::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& buffer_memory) {
-  VkBufferCreateInfo bufferInfo {};
-  bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  bufferInfo.size = size;
-  bufferInfo.usage = usage;
-  bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-  fan::vulkan::validate(vkCreateBuffer(device, &bufferInfo, nullptr, &buffer));
-
-  VkMemoryRequirements memRequirements;
-  vkGetBufferMemoryRequirements(device, buffer, &memRequirements);
-
-  VkMemoryAllocateFlagsInfo allocFlags {};
-  allocFlags.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
-  allocFlags.flags = (usage & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT) ? VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT : 0;
-  allocFlags.pNext = nullptr;
-
-  VkMemoryAllocateInfo allocInfo {};
-  allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-  allocInfo.allocationSize = memRequirements.size;
-  allocInfo.memoryTypeIndex = find_memory_type(memRequirements.memoryTypeBits, properties);
-  allocInfo.pNext = (allocFlags.flags != 0) ? &allocFlags : nullptr;
-
-  fan::vulkan::validate(vkAllocateMemory(device, &allocInfo, nullptr, &buffer_memory));
-  fan::vulkan::validate(vkBindBufferMemory(device, buffer, buffer_memory, 0));
-}
 void fan::vulkan::context_t::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VmaAllocation& allocation, VmaAllocationInfo* allocation_info) {
   VkBufferCreateInfo buffer_info{};
   buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -941,20 +925,17 @@ void fan::vulkan::context_t::create_buffer(VkDeviceSize size, VkBufferUsageFlags
   allocation_create_info.usage = VMA_MEMORY_USAGE_AUTO;
   allocation_create_info.requiredFlags = properties;
   if (properties & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
-    allocation_create_info.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+    allocation_create_info.flags = (properties & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) ?
+      VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT :
+      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
   }
 
   fan::vulkan::validate(vmaCreateBuffer(allocator, &buffer_info, &allocation_create_info, &buffer, &allocation, allocation_info));
 }
-void fan::vulkan::context_t::destroy_buffer(VkBuffer& buffer, VkDeviceMemory& buffer_memory) {
-  if (buffer != VK_NULL_HANDLE) {
-    vkDestroyBuffer(device, buffer, nullptr);
-    buffer = VK_NULL_HANDLE;
-  }
-  if (buffer_memory != VK_NULL_HANDLE) {
-    vkFreeMemory(device, buffer_memory, nullptr);
-    buffer_memory = VK_NULL_HANDLE;
-  }
+
+void fan::vulkan::context_t::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, buffer_t& buffer, VmaAllocationInfo* allocation_info) {
+  create_buffer(size, usage, properties, buffer.buffer, buffer.allocation, allocation_info);
+  buffer.size = size;
 }
 void fan::vulkan::context_t::destroy_buffer(VkBuffer& buffer, VmaAllocation& allocation) {
   if (buffer != VK_NULL_HANDLE) {
@@ -963,63 +944,297 @@ void fan::vulkan::context_t::destroy_buffer(VkBuffer& buffer, VmaAllocation& all
     allocation = VK_NULL_HANDLE;
   }
 }
+void fan::vulkan::context_t::destroy_buffer(buffer_t& buffer) {
+  unmap_buffer(buffer);
+  destroy_buffer(buffer.buffer, buffer.allocation);
+  buffer.size = 0;
+}
+VkResult fan::vulkan::context_t::map_buffer(buffer_t& buffer, void** data) {
+  if (buffer.mapped == nullptr) {
+    VkResult result = vmaMapMemory(allocator, buffer.allocation, &buffer.mapped);
+    if (result != VK_SUCCESS) {
+      return result;
+    }
+  }
+  *data = buffer.mapped;
+  return VK_SUCCESS;
+}
+void fan::vulkan::context_t::unmap_buffer(buffer_t& buffer) {
+  if (buffer.mapped != nullptr) {
+    vmaUnmapMemory(allocator, buffer.allocation);
+    buffer.mapped = nullptr;
+  }
+}
+void fan::vulkan::context_t::invalidate_buffer(buffer_t& buffer, VkDeviceSize offset, VkDeviceSize size) {
+  fan::vulkan::validate(vmaInvalidateAllocation(allocator, buffer.allocation, offset, size));
+}
 VkCommandBuffer fan::vulkan::context_t::begin_single_time_commands() {
-  VkCommandBufferAllocateInfo allocInfo {};
-  allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  allocInfo.commandPool = command_pool;
-  allocInfo.commandBufferCount = 1;
+  if (single_time_cmd == VK_NULL_HANDLE) {
+    VkCommandBufferAllocateInfo allocInfo {};
+    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    allocInfo.commandPool = command_pool;
+    allocInfo.commandBufferCount = 1;
+    fan::vulkan::validate(vkAllocateCommandBuffers(device, &allocInfo, &single_time_cmd));
 
-  VkCommandBuffer commandBuffer;
-  vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer);
+    VkFenceCreateInfo fence_info {};
+    fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+    fan::vulkan::validate(vkCreateFence(device, &fence_info, nullptr, &single_time_fence));
+  }
+  else {
+    fan::vulkan::validate(vkWaitForFences(device, 1, &single_time_fence, VK_TRUE, UINT64_MAX));
+    fan::vulkan::validate(vkResetFences(device, 1, &single_time_fence));
+    fan::vulkan::validate(vkResetCommandBuffer(single_time_cmd, 0));
+  }
 
   VkCommandBufferBeginInfo beginInfo {};
   beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+  fan::vulkan::validate(vkBeginCommandBuffer(single_time_cmd, &beginInfo));
 
-  vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-  return commandBuffer;
+  return single_time_cmd;
 }
 void fan::vulkan::context_t::end_single_time_commands(VkCommandBuffer command_buffer) {
-  vkEndCommandBuffer(command_buffer);
+  fan::vulkan::validate(vkEndCommandBuffer(command_buffer));
 
   VkSubmitInfo submitInfo {};
   submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
   submitInfo.commandBufferCount = 1;
   submitInfo.pCommandBuffers = &command_buffer;
 
-  VkFenceCreateInfo fence_info {};
-  fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-  VkFence fence = VK_NULL_HANDLE;
-  fan::vulkan::validate(vkCreateFence(device, &fence_info, nullptr, &fence));
-  fan::vulkan::validate(vkQueueSubmit(graphics_queue, 1, &submitInfo, fence));
-  fan::vulkan::validate(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX));
-  vkDestroyFence(device, fence, nullptr);
-
-  vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
+  fan::vulkan::validate(vkQueueSubmit(graphics_queue, 1, &submitInfo, single_time_fence));
+  fan::vulkan::validate(vkWaitForFences(device, 1, &single_time_fence, VK_TRUE, UINT64_MAX));
 }
 void fan::vulkan::context_t::copy_buffer(VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size) {
-  VkCommandBuffer commandBuffer = begin_single_time_commands();
-
+  VkCommandBuffer cmd = begin_single_time_commands();
   VkBufferCopy copyRegion {};
   copyRegion.size = size;
-  vkCmdCopyBuffer(commandBuffer, src_buffer, dst_buffer, 1, &copyRegion);
-
-  end_single_time_commands(commandBuffer);
+  vkCmdCopyBuffer(cmd, src_buffer, dst_buffer, 1, &copyRegion);
+  end_single_time_commands(cmd);
 }
-std::uint32_t fan::vulkan::context_t::find_memory_type(std::uint32_t type_filter, VkMemoryPropertyFlags properties) const {
-  VkPhysicalDeviceMemoryProperties memProperties;
-  vkGetPhysicalDeviceMemoryProperties(physical_device, &memProperties);
+void fan::vulkan::context_t::copy_buffer_cmd(VkCommandBuffer cmd, VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize src_offset, VkDeviceSize dst_offset, VkDeviceSize size) {
+  VkBufferCopy r { .srcOffset = src_offset, .dstOffset = dst_offset, .size = size };
+  vkCmdCopyBuffer(cmd, src_buffer, dst_buffer, 1, &r);
+}
 
-  for (std::uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-    if ((type_filter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-      return i;
-    }
+void fan::vulkan::context_t::fill_buffer_cmd(VkCommandBuffer cmd, buffer_t& buffer, VkDeviceSize offset, VkDeviceSize size, std::uint32_t data) {
+  vkCmdFillBuffer(cmd, buffer.buffer, offset, size, data);
+}
+void fan::vulkan::context_t::buffer_barrier_cmd(VkCommandBuffer cmd, buffer_t& buffer, VkAccessFlags src_access, VkAccessFlags dst_access, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, VkDeviceSize offset, VkDeviceSize size) {
+  VkBufferMemoryBarrier barrier{};
+  barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+  barrier.srcAccessMask = src_access;
+  barrier.dstAccessMask = dst_access;
+  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.buffer = buffer.buffer;
+  barrier.offset = offset;
+  barrier.size = size;
+  vkCmdPipelineBarrier(cmd, src_stage, dst_stage, 0, 0, nullptr, 1, &barrier, 0, nullptr);
+}
+void fan::vulkan::context_t::buffer_barriers_cmd(VkCommandBuffer cmd, const std::vector<buffer_barrier_t>& barriers, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage) {
+  std::vector<VkBufferMemoryBarrier> vk_barriers;
+  vk_barriers.reserve(barriers.size());
+  for (auto& src : barriers) {
+    if (src.buffer == nullptr || src.buffer->buffer == VK_NULL_HANDLE) { continue; }
+    VkBufferMemoryBarrier barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    barrier.srcAccessMask = src.src_access;
+    barrier.dstAccessMask = src.dst_access;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.buffer = src.buffer->buffer;
+    barrier.offset = src.offset;
+    barrier.size = src.size;
+    vk_barriers.push_back(barrier);
   }
+  if (!vk_barriers.empty()) {
+    vkCmdPipelineBarrier(cmd, src_stage, dst_stage, 0, 0, nullptr, (std::uint32_t)vk_barriers.size(), vk_barriers.data(), 0, nullptr);
+  }
+}
+void fan::vulkan::context_t::compute_pipeline_t::open(fan::vulkan::context_t& context, const std::string& path, VkDeviceSize push_size_, const std::vector<binding_t>& bindings) {
+  push_size = push_size_;
+  std::vector<VkDescriptorSetLayoutBinding> layout_bindings;
+  layout_bindings.reserve(bindings.size());
+  for (auto& binding : bindings) {
+    layout_bindings.push_back({binding.binding, binding.type, binding.descriptor_count, binding.stage_flags, nullptr});
+  }
+  VkDescriptorSetLayoutCreateInfo descriptor_info{};
+  descriptor_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+  descriptor_info.bindingCount = (std::uint32_t)layout_bindings.size();
+  descriptor_info.pBindings = layout_bindings.data();
+  fan::vulkan::validate(vkCreateDescriptorSetLayout(context.device, &descriptor_info, nullptr, &descriptor_layout));
 
-  fan::throw_error("failed to find suitable memory type!");
-  return {};
+  auto shader_code = fan::graphics::read_shader(path);
+  auto spirv = fan::vulkan::context_t::compile_file(path, shaderc_compute_shader, shader_code);
+  VkShaderModule shader = context.create_shader_module(spirv);
+
+  VkPushConstantRange push_range{};
+  push_range.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+  push_range.offset = 0;
+  push_range.size = (std::uint32_t)push_size;
+
+  VkPipelineLayoutCreateInfo layout_info{};
+  layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+  layout_info.setLayoutCount = 1;
+  layout_info.pSetLayouts = &descriptor_layout;
+  layout_info.pushConstantRangeCount = push_size == 0 ? 0 : 1;
+  layout_info.pPushConstantRanges = push_size == 0 ? nullptr : &push_range;
+  fan::vulkan::validate(vkCreatePipelineLayout(context.device, &layout_info, nullptr, &pipeline_layout));
+
+  VkComputePipelineCreateInfo pipeline_info{};
+  pipeline_info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+  pipeline_info.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+  pipeline_info.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+  pipeline_info.stage.module = shader;
+  pipeline_info.stage.pName = "main";
+  pipeline_info.layout = pipeline_layout;
+  fan::vulkan::validate(vkCreateComputePipelines(context.device, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &pipeline));
+  vkDestroyShaderModule(context.device, shader, nullptr);
+}
+void fan::vulkan::context_t::compute_pipeline_t::close(fan::vulkan::context_t& context) {
+  if (pipeline != VK_NULL_HANDLE) { vkDestroyPipeline(context.device, pipeline, nullptr); }
+  if (pipeline_layout != VK_NULL_HANDLE) { vkDestroyPipelineLayout(context.device, pipeline_layout, nullptr); }
+  if (descriptor_layout != VK_NULL_HANDLE) { vkDestroyDescriptorSetLayout(context.device, descriptor_layout, nullptr); }
+  pipeline = VK_NULL_HANDLE;
+  pipeline_layout = VK_NULL_HANDLE;
+  descriptor_layout = VK_NULL_HANDLE;
+  push_size = 0;
+}
+void fan::vulkan::context_t::compute_pipeline_t::dispatch(fan::vulkan::context_t& context, VkCommandBuffer cmd, VkDescriptorSet descriptor_set, const void* push, std::uint32_t x, std::uint32_t y, std::uint32_t z) const {
+  vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
+  vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline_layout, 0, 1, &descriptor_set, 0, nullptr);
+  if (push_size != 0 && push != nullptr) {
+    vkCmdPushConstants(cmd, pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, (std::uint32_t)push_size, push);
+  }
+  vkCmdDispatch(cmd, x, y, z);
+}
+void fan::vulkan::context_t::compute_slot_ring_t::open(fan::vulkan::context_t& context, std::uint32_t slot_count, VkDescriptorSetLayout descriptor_layout, const std::vector<buffer_properties_t>& buffer_properties_) {
+  buffer_properties = buffer_properties_;
+  slots.resize(slot_count);
+
+  std::vector<VkDescriptorPoolSize> pool_sizes;
+  for (auto& bp : buffer_properties) {
+    auto it = std::find_if(pool_sizes.begin(), pool_sizes.end(), [&](const auto& p) { return p.type == bp.descriptor_type; });
+    if (it == pool_sizes.end()) { pool_sizes.push_back({bp.descriptor_type, slot_count}); }
+    else { it->descriptorCount += slot_count; }
+  }
+  VkDescriptorPoolCreateInfo pool_info{};
+  pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+  pool_info.maxSets = slot_count;
+  pool_info.poolSizeCount = (std::uint32_t)pool_sizes.size();
+  pool_info.pPoolSizes = pool_sizes.data();
+  fan::vulkan::validate(vkCreateDescriptorPool(context.device, &pool_info, nullptr, &descriptor_pool));
+
+  std::vector<VkDescriptorSetLayout> layouts(slot_count, descriptor_layout);
+  std::vector<VkDescriptorSet> sets(slot_count);
+  VkDescriptorSetAllocateInfo descriptor_alloc{};
+  descriptor_alloc.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+  descriptor_alloc.descriptorPool = descriptor_pool;
+  descriptor_alloc.descriptorSetCount = slot_count;
+  descriptor_alloc.pSetLayouts = layouts.data();
+  fan::vulkan::validate(vkAllocateDescriptorSets(context.device, &descriptor_alloc, sets.data()));
+
+  VkCommandBufferAllocateInfo cmd_alloc{};
+  cmd_alloc.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  cmd_alloc.commandPool = context.command_pool;
+  cmd_alloc.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  cmd_alloc.commandBufferCount = slot_count;
+  std::vector<VkCommandBuffer> commands(slot_count);
+  fan::vulkan::validate(vkAllocateCommandBuffers(context.device, &cmd_alloc, commands.data()));
+
+  VkFenceCreateInfo fence_info{};
+  fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+  for (std::uint32_t i = 0; i < slot_count; ++i) {
+    auto& slot = slots[i];
+    slot.command_buffer = commands[i];
+    slot.descriptor_set = sets[i];
+    fan::vulkan::validate(vkCreateFence(context.device, &fence_info, nullptr, &slot.fence));
+    slot.buffers.resize(buffer_properties.size());
+    for (std::uint32_t j = 0; j < buffer_properties.size(); ++j) {
+      auto& bp = buffer_properties[j];
+      context.create_buffer(bp.size, bp.usage, bp.memory, slot.buffers[j]);
+      if (bp.map) { fan::vulkan::validate(context.map_buffer(slot.buffers[j], &slot.buffers[j].mapped)); }
+    }
+    std::vector<VkDescriptorBufferInfo> infos(buffer_properties.size());
+    std::vector<VkWriteDescriptorSet> writes(buffer_properties.size());
+    for (std::uint32_t j = 0; j < buffer_properties.size(); ++j) {
+      infos[j] = {slot.buffers[j].buffer, 0, VK_WHOLE_SIZE};
+      writes[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      writes[j].dstSet = slot.descriptor_set;
+      writes[j].dstBinding = j;
+      writes[j].descriptorCount = 1;
+      writes[j].descriptorType = buffer_properties[j].descriptor_type;
+      writes[j].pBufferInfo = &infos[j];
+    }
+    vkUpdateDescriptorSets(context.device, (std::uint32_t)writes.size(), writes.data(), 0, nullptr);
+  }
+}
+void fan::vulkan::context_t::compute_slot_ring_t::close(fan::vulkan::context_t& context) {
+  std::vector<VkCommandBuffer> commands;
+  for (auto& slot : slots) {
+    if (slot.in_flight) { fan::vulkan::validate(vkWaitForFences(context.device, 1, &slot.fence, VK_TRUE, UINT64_MAX)); }
+    for (auto& buffer : slot.buffers) { context.destroy_buffer(buffer); }
+    if (slot.fence != VK_NULL_HANDLE) { vkDestroyFence(context.device, slot.fence, nullptr); }
+    if (slot.command_buffer != VK_NULL_HANDLE) { commands.push_back(slot.command_buffer); }
+  }
+  if (!commands.empty()) { vkFreeCommandBuffers(context.device, context.command_pool, (std::uint32_t)commands.size(), commands.data()); }
+  if (descriptor_pool != VK_NULL_HANDLE) { vkDestroyDescriptorPool(context.device, descriptor_pool, nullptr); }
+  slots.clear();
+  buffer_properties.clear();
+  descriptor_pool = VK_NULL_HANDLE;
+  submit_slot = 0;
+}
+std::uint32_t fan::vulkan::context_t::compute_slot_ring_t::acquire() const {
+  if (slots.empty()) { return invalid_slot; }
+  for (std::uint32_t i = 0; i < slots.size(); ++i) {
+    std::uint32_t index = (submit_slot + i) % (std::uint32_t)slots.size();
+    if (!slots[index].in_flight) { return index; }
+  }
+  return invalid_slot;
+}
+VkCommandBuffer fan::vulkan::context_t::compute_slot_ring_t::begin(fan::vulkan::context_t& context, std::uint32_t slot_index) {
+  auto& slot = slots[slot_index];
+  fan::vulkan::validate(vkResetFences(context.device, 1, &slot.fence));
+  fan::vulkan::validate(vkResetCommandBuffer(slot.command_buffer, 0));
+  VkCommandBufferBeginInfo begin_info{};
+  begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+  fan::vulkan::validate(vkBeginCommandBuffer(slot.command_buffer, &begin_info));
+  return slot.command_buffer;
+}
+void fan::vulkan::context_t::compute_slot_ring_t::submit(fan::vulkan::context_t& context, std::uint32_t slot_index) {
+  auto& slot = slots[slot_index];
+  fan::vulkan::validate(vkEndCommandBuffer(slot.command_buffer));
+  VkSubmitInfo submit_info{};
+  submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  submit_info.commandBufferCount = 1;
+  submit_info.pCommandBuffers = &slot.command_buffer;
+  fan::vulkan::validate(vkQueueSubmit(context.graphics_queue, 1, &submit_info, slot.fence));
+  slot.in_flight = true;
+  submit_slot = (slot_index + 1) % (std::uint32_t)slots.size();
+}
+bool fan::vulkan::context_t::compute_slot_ring_t::done(fan::vulkan::context_t& context, std::uint32_t slot_index) const {
+  auto& slot = slots[slot_index];
+  if (!slot.in_flight) { return false; }
+  VkResult r = vkGetFenceStatus(context.device, slot.fence);
+  if (r == VK_NOT_READY) { return false; }
+  fan::vulkan::validate(r);
+  return true;
+}
+void fan::vulkan::context_t::compute_slot_ring_t::set_idle(std::uint32_t slot_index) {
+  slots[slot_index].in_flight = false;
+}
+std::uint32_t fan::vulkan::context_t::compute_slot_ring_t::free_slot_count() const {
+  std::uint32_t count = 0;
+  for (auto& slot : slots) { count += !slot.in_flight; }
+  return count;
+}
+fan::vulkan::context_t::compute_slot_ring_t::slot_t& fan::vulkan::context_t::compute_slot_ring_t::get(std::uint32_t slot_index) {
+  return slots[slot_index];
+}
+const fan::vulkan::context_t::compute_slot_ring_t::slot_t& fan::vulkan::context_t::compute_slot_ring_t::get(std::uint32_t slot_index) const {
+  return slots[slot_index];
 }
 void fan::vulkan::context_t::create_command_buffers() {
   command_buffers.resize(max_frames_in_flight);
