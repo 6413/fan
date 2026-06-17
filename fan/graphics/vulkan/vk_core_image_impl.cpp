@@ -13,6 +13,7 @@ module;
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
 #include <shaderc/shaderc.hpp>
+#include <vulkan/vk_enum_string_helper.h>
 #if defined(fan_platform_windows)
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
@@ -131,7 +132,7 @@ std::uint32_t fan::graphics::format_converter::vulkan_to_global_filter(VkFilter 
 
 void fan::vulkan::validate(VkResult result) {
   if (result != VK_SUCCESS) {
-    fan::throw_error("function failed");
+    fan::throw_error("function failed with:", string_VkResult(result));
   }
 }
 void fan::vulkan::context_t::transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
@@ -277,17 +278,8 @@ void fan::vulkan::context_t::image_erase(fan::graphics::image_nr_t nr, int recyc
     img.image_view = VK_NULL_HANDLE;
   }
   if (img.image_index != VK_NULL_HANDLE && img.owns_image) {
-    if (img.image_allocation != VK_NULL_HANDLE) {
-      vmaDestroyImage(allocator, img.image_index, img.image_allocation);
-      img.image_allocation = VK_NULL_HANDLE;
-    }
-    else {
-      vkDestroyImage(device, img.image_index, nullptr);
-      if (img.image_memory != VK_NULL_HANDLE) {
-        vkFreeMemory(device, img.image_memory, nullptr);
-        img.image_memory = VK_NULL_HANDLE;
-      }
-    }
+    vmaDestroyImage(allocator, img.image_index, img.image_allocation);
+    img.image_allocation = VK_NULL_HANDLE;
     img.image_index = VK_NULL_HANDLE;
   }
 
@@ -639,35 +631,7 @@ void fan::vulkan::image_create(const fan::vulkan::context_t& context, const fan:
     fan::throw_error("failed to create image!");
   }
 }
-void fan::vulkan::image_create(const fan::vulkan::context_t& context, const fan::vec2ui& image_size, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& image_memory) {
-  VkImageCreateInfo imageInfo {};
-  imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-  imageInfo.imageType = VK_IMAGE_TYPE_2D;
-  imageInfo.extent.width = image_size.x;
-  imageInfo.extent.height = image_size.y;
-  imageInfo.extent.depth = 1;
-  imageInfo.mipLevels = 1;
-  imageInfo.arrayLayers = 1;
-  imageInfo.format = format;
-  imageInfo.tiling = tiling;
-  imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  imageInfo.usage = usage;
-  imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-  imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-  fan::vulkan::validate(vkCreateImage(context.device, &imageInfo, nullptr, &image));
-
-  VkMemoryRequirements memRequirements;
-  vkGetImageMemoryRequirements(context.device, image, &memRequirements);
-
-  VkMemoryAllocateInfo allocInfo {};
-  allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-  allocInfo.allocationSize = memRequirements.size;
-  allocInfo.memoryTypeIndex = context.find_memory_type(memRequirements.memoryTypeBits, properties);
-
-  fan::vulkan::validate(vkAllocateMemory(context.device, &allocInfo, nullptr, &image_memory));
-  fan::vulkan::validate(vkBindImageMemory(context.device, image, image_memory, 0));
-}
 void fan::vulkan::vai_t::open(fan::vulkan::context_t& context, const properties_t& p) {
   old_layout = VK_IMAGE_LAYOUT_UNDEFINED;
   fan::vulkan::image_create(

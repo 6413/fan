@@ -1,8 +1,8 @@
 // vram instance, ram instance
 struct ssbo_t	{
 
-  uint32_t max_instance_size = 1024;
-  uint32_t descriptor_count = 0;
+  std::uint32_t max_instance_size = 1024;
+  std::uint32_t descriptor_count = 0;
 
 	static constexpr auto buffer_count = fan::vulkan::max_frames_in_flight;
 
@@ -30,19 +30,19 @@ struct ssbo_t	{
 //	using nr_t = instance_list_NodeReference_t;
 //	using instance_id_t = uint8_t;
 
-  using instance_id_t = uint32_t;
+  using instance_id_t = std::uint32_t;
 
-  void allocate(fan::vulkan::context_t& context, uint64_t size) {
-    for (uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {
-      if (instance_list.size() != 0) {
-        if (common.memory[frame].buffer != nullptr) {
-          // Only need to wait idle once before destroying all buffers
-          if (frame == 0) {
-            vkDeviceWaitIdle(context.device);
-          }
-          vkDestroyBuffer(context.device, common.memory[frame].buffer, 0);
-          vkUnmapMemory(context.device, common.memory[frame].device_memory);
+  void allocate(fan::vulkan::context_t& context, std::uint64_t size) {
+    for (std::uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {
+      if (common.memory[frame].buffer != VK_NULL_HANDLE) {
+        if (frame == 0) {
+          vkDeviceWaitIdle(context.device);
         }
+        if (data[frame]) {
+          vmaUnmapMemory(context.allocator, common.memory[frame].device_memory);
+          data[frame] = nullptr;
+        }
+        context.destroy_buffer(common.memory[frame].buffer, common.memory[frame].device_memory);
       }
 
       context.create_buffer(
@@ -52,8 +52,7 @@ struct ssbo_t	{
         common.memory[frame].buffer,
         common.memory[frame].device_memory
       );
-      fan::vulkan::validate(vkMapMemory(context.device, common.memory[frame].device_memory,
-        0, size, 0, (void**)&data[frame]));
+      fan::vulkan::validate(vmaMapMemory(context.allocator, common.memory[frame].device_memory, (void**)&data[frame]));
     }
   }
 
@@ -61,7 +60,7 @@ struct ssbo_t	{
 					
     // write all for now
     auto& ptr = instance_list[0];
-		for (uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {
+		for (std::uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {
       memcpy(data[frame], &ptr, instance_list.size() * sizeof(instance_id_t));
     }
     // for loop for each frame
@@ -92,7 +91,7 @@ struct ssbo_t	{
 	//	common.on_edit(context);
 	//}
 
-	void open(fan::vulkan::context_t& context, uint32_t descriptor_count, uint32_t max_instance_size = 256) {
+	void open(fan::vulkan::context_t& context, std::uint32_t descriptor_count, std::uint32_t max_instance_size = 256) {
     this->descriptor_count = descriptor_count;
     this->max_instance_size = max_instance_size;
 		common.open(context, [&context, this] {
@@ -100,8 +99,11 @@ struct ssbo_t	{
 		});
 	}
 	void close(fan::vulkan::context_t& context) {
-		for (uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {
-      vkUnmapMemory(context.device, common.memory[frame].device_memory);
+		for (std::uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {
+      if (data[frame]) {
+        vmaUnmapMemory(context.allocator, common.memory[frame].device_memory);
+        data[frame] = nullptr;
+      }
     }
     m_descriptor.close(context);
 		common.close(context);
@@ -182,7 +184,7 @@ struct ssbo_t	{
 
 	memory_common_t<int, instance_id_t> common;
 	std::vector<instance_list_t> instance_list;
-	uint64_t vram_capacity = 0;
+	std::uint64_t vram_capacity = 0;
 	fan::vulkan::context_t::descriptor_t m_descriptor;
-	uint8_t* data[fan::vulkan::max_frames_in_flight];
+	std::uint8_t* data[fan::vulkan::max_frames_in_flight] {};
 };

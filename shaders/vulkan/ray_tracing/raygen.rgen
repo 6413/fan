@@ -9,6 +9,7 @@ struct pv_t {
   mat4 view;
   mat4 inv_projection;
   mat4 inv_view;
+  vec4 ray; // x = znear, y = zfar
 };
 layout(binding = 2, set = 0) uniform upv_t {
   pv_t pv[16];
@@ -95,9 +96,9 @@ void main() {
     0xff,
     0, 0, 0,
     origin,
-    0.001,
+    max(pv[cam].ray.x, 0.001),
     direction,
-    1000.0,
+    pv[cam].ray.y,
     0
   );
 

@@ -28,11 +28,11 @@ struct uniform_block_t {
 
 			for (std::uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; ++frame) {
 				std::uint8_t* data;
-				fan::vulkan::validate(vkMapMemory(context.device, common.memory[frame].device_memory, 0, element_size * sizeof(type_t), 0, (void**)&data));
+				fan::vulkan::validate(vmaMapMemory(context.allocator, common.memory[frame].device_memory, (void**)&data));
 
 				std::memcpy(data + begin, buffer + begin, end - begin);
 
-				vkUnmapMemory(context.device, common.memory[frame].device_memory);
+				vmaUnmapMemory(context.allocator, common.memory[frame].device_memory);
 			}
 
 			common.on_edit(context);
