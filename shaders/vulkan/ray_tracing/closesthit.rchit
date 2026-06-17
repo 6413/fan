@@ -33,10 +33,11 @@ layout(binding = 5, set = 0) readonly buffer MaterialBuffer {
 };
 
 struct Vertex {
-    vec3 position; float pad0;
-    vec3 normal;   float pad1;
-    vec2 texcoord; vec2 pad2;
-    vec3 color;    float pad3;
+    vec4 position;
+    vec4 normal;
+    vec2 texcoord;
+    uint color;
+    uint pad0;
 };
 
 layout(binding = 6, set = 0) readonly buffer VertexBuffer {
@@ -138,6 +139,14 @@ vec3 offset_ray_origin(vec3 p, vec3 geometric_normal, vec3 direction) {
     return p + n * ray_bias + direction * ray_bias;
 }
 
+vec3 unpack_color(uint c) {
+  return vec3(
+      float(c & 0xffu),
+      float((c >> 8) & 0xffu),
+      float((c >> 16) & 0xffu)
+  ) / 255.0;
+}
+
 void main() {
 
     uint prim_id     = gl_PrimitiveID;
@@ -157,9 +166,9 @@ void main() {
 
     vec3 bary = vec3(1.0 - attribs.x - attribs.y, attribs.x, attribs.y);
 
-    vec3 p0 = (gl_ObjectToWorldEXT * vec4(v0.position, 1.0)).xyz;
-    vec3 p1 = (gl_ObjectToWorldEXT * vec4(v1.position, 1.0)).xyz;
-    vec3 p2 = (gl_ObjectToWorldEXT * vec4(v2.position, 1.0)).xyz;
+    vec3 p0 = (gl_ObjectToWorldEXT * vec4(v0.position.xyz, 1.0)).xyz;
+    vec3 p1 = (gl_ObjectToWorldEXT * vec4(v1.position.xyz, 1.0)).xyz;
+    vec3 p2 = (gl_ObjectToWorldEXT * vec4(v2.position.xyz, 1.0)).xyz;
 
     vec3 e1 = p1 - p0;
     vec3 e2 = p2 - p0;
@@ -171,19 +180,19 @@ void main() {
         Ng = -Ng;
 
     vec3 object_normal = safe_normalize(
-          v0.normal * bary.x
-        + v1.normal * bary.y
-        + v2.normal * bary.z,
-        vec3(0.0, 0.0, 1.0)
+        v0.normal.xyz * bary.x
+      + v1.normal.xyz * bary.y
+      + v2.normal.xyz * bary.z,
+      vec3(0.0, 0.0, 1.0)
     );
     vec3 Nbase = safe_normalize((gl_ObjectToWorldEXT * vec4(object_normal, 0.0)).xyz, Ng);
     if (dot(Nbase, Ng) < 0.0)
         Nbase = -Nbase;
 
     vec2 uv =
-          v0.texcoord * bary.x +
-          v1.texcoord * bary.y +
-          v2.texcoord * bary.z;
+      v0.texcoord * bary.x +
+      v1.texcoord * bary.y +
+      v2.texcoord * bary.z;
 
     vec3 P = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
     payload.hit_t = gl_HitTEXT;
@@ -197,9 +206,9 @@ void main() {
         albedo *= texture(textures[mat.albedo_texture_id], sample_uv).rgb;
 
     vec3 vertex_color =
-          v0.color * bary.x
-        + v1.color * bary.y
-        + v2.color * bary.z;
+      unpack_color(v0.color) * bary.x
+    + unpack_color(v1.color) * bary.y
+    + unpack_color(v2.color) * bary.z;
     albedo *= vertex_color;
 
     vec3 N = Nbase;
@@ -253,7 +262,7 @@ void main() {
     bool is_gi_ray = (payload.ao < 0.0);
 
     if (is_gi_ray) {
-        shadowed = false;
+        shadowed = true;
 
         vec3 Lp = light.light_pos;
         vec3 light_delta = Lp - P;
@@ -267,8 +276,8 @@ void main() {
             vec3 shadow_origin = offset_ray_origin(P, Ng, L);
             traceRayEXT(
                 topLevelAS,
-                gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsSkipClosestHitShaderEXT,
-                0xff,
+                gl_RayFlagsOpaqueEXT | gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsSkipClosestHitShaderEXT,
+                0x01,
                 0, 0, 1,
                 shadow_origin,
                 ray_bias,
@@ -278,8 +287,8 @@ void main() {
             );
         }
 
-        vec3 ambient = albedo * max(exposure_ubo.ambient_strength, 0.20);
-        float shadow_mult = shadowed ? (1.0 - clamp(exposure_ubo.shadow_strength, 0.0, 1.0)) : 1.0;
+        float shadow_mult = shadowed ? pow(1.0 - clamp(exposure_ubo.shadow_strength, 0.0, 1.0), 3.0) : 1.0;
+        vec3 ambient = albedo * max(exposure_ubo.ambient_strength, 0.0) * mix(shadow_mult, 1.0, 0.15);
 
         vec3 diffuse = albedo * diffuse_strength *
                        light.light_color * light.intensity *
@@ -312,7 +321,7 @@ void main() {
         return;
     }
 
-    shadowed = false;
+    shadowed = true;
 
     vec3 Lp = light.light_pos;
     vec3 light_delta = Lp - P;
@@ -324,8 +333,8 @@ void main() {
         vec3 shadow_origin = offset_ray_origin(P, Ng, L);
         traceRayEXT(
             topLevelAS,
-            gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsSkipClosestHitShaderEXT,
-            0xff,
+            gl_RayFlagsOpaqueEXT | gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsSkipClosestHitShaderEXT,
+            0x01,
             0, 0, 1,
             shadow_origin,
             ray_bias,
@@ -337,7 +346,7 @@ void main() {
 
     float shadow_mult = shadowed ? (1.0 - clamp(exposure_ubo.shadow_strength, 0.0, 1.0)) : 1.0;
 
-    vec3 ambient = albedo * max(exposure_ubo.ambient_strength, 0.0);
+    vec3 ambient = albedo * max(exposure_ubo.ambient_strength, 0.0) * mix(shadow_mult, 1.0, 0.15);
 
     vec3 diffuse =
         albedo * diffuse_strength *
@@ -373,7 +382,7 @@ void main() {
         traceRayEXT(
             topLevelAS,
             gl_RayFlagsOpaqueEXT,
-            0xff,
+            0x01,
             0, 0, 0,
             offset_ray_origin(P, Ng, gi_dir),
             ray_bias,
@@ -392,6 +401,10 @@ void main() {
         indirect_color *= mix(1.0, 2.0, gi_boost);
     }
 
+    if (shadowed) {
+        indirect_color *= 0.25;
+    }
+
     vec3 reflection_color = vec3(0.0);
     if (exposure_ubo.enable_reflections > 0.5 && special_mat) {
         vec3 R = reflect(-V, N);
@@ -408,7 +421,7 @@ void main() {
         traceRayEXT(
             topLevelAS,
             gl_RayFlagsOpaqueEXT,
-            0xff,
+            0x01,
             0, 0, 0,
             offset_ray_origin(P, Ng, R),
             ray_bias,
@@ -447,9 +460,6 @@ void main() {
     final_color += final_color * bloom * bloom_strength;
 
     payload.color       = final_color;
-    if (isnan(payload.color.x) || isnan(payload.color.y) || isnan(payload.color.z)) {
-    payload.color = vec3(1.0, 0.0, 1.0); // If you see bright pink, you found your NaNs
-}
     payload.normal      = N;
     payload.uv          = uv;
     payload.material_id = mat_id;
