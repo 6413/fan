@@ -5,8 +5,9 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 struct vertex_t {
   vec4 position;
   vec4 normal;
-  vec4 texcoord;
-  vec4 color;
+  vec2 texcoord;
+  uint color;
+  uint pad0;
 };
 
 layout(binding = 0, set = 0) buffer vertices_t {
@@ -46,12 +47,32 @@ struct block_t {
 
 const vec2 ATLAS_SIZE = vec2(2048.0);
 const vec2 TILE_SIZE = vec2(128.0);
+const uint MAX_VERTICES = 32u * 32u * 10u * 4u;
+const uint MAX_INDICES = 32u * 32u * 10u * 6u;
 
 const block_t BLOCK_GRASS = block_t(vec2(4, 9), vec2(3, 0));
 const block_t BLOCK_STONE = block_t(vec2(1, 0), vec2(1, 0));
 const block_t BLOCK_SAND  = block_t(vec2(2, 1), vec2(2, 1));
 const block_t BLOCK_SNOW  = block_t(vec2(2, 4), vec2(4, 4));
 const block_t BLOCK_WATER = block_t(vec2(15, 12), vec2(15, 12));
+const block_t BLOCK_LOG   = block_t(vec2(4, 1), vec2(4, 1));
+const block_t BLOCK_LEAF  = block_t(vec2(3, 10), vec2(3, 10));
+
+const int FACE_X_POS = 0;
+const int FACE_X_NEG = 1;
+const int FACE_Y_POS = 2;
+const int FACE_Y_NEG = 3;
+const int FACE_Z_POS = 4;
+const int FACE_Z_NEG = 5;
+
+const ivec3 FACE_DIRS[6] = ivec3[6](
+  ivec3(1, 0, 0),
+  ivec3(-1, 0, 0),
+  ivec3(0, 1, 0),
+  ivec3(0, -1, 0),
+  ivec3(0, 0, 1),
+  ivec3(0, 0, -1)
+);
 
 uint hash_u(uint x) {
   x ^= x >> 16;
@@ -124,6 +145,10 @@ block_t terrain_block(uint h, float slope) {
   return BLOCK_GRASS;
 }
 
+bool is_grass(block_t b) {
+  return all(equal(b.top, BLOCK_GRASS.top)) && all(equal(b.side, BLOCK_GRASS.side));
+}
+
 vec2 atlas_uv(vec2 tile_id, vec2 uv) {
   vec2 pad = vec2(0.5);
   uv.y = 1.0 - uv.y;
@@ -134,16 +159,26 @@ vec2 block_uv(block_t b, vec2 uv, bool is_top) {
   return atlas_uv(is_top ? b.top : b.side, uv);
 }
 
-void putv(uint i, vec3 p, vec3 n, vec2 uv, vec4 c, block_t b, bool is_top) {
+void putv(uint i, vec3 p, vec3 n, vec2 uv, uint c, block_t b, bool is_top) {
   vertices[i].position = vec4(p, 0.0);
   vertices[i].normal = vec4(n, 0.0);
-  vertices[i].texcoord = vec4(block_uv(b, uv, is_top), 0.0, 0.0);
+  vertices[i].texcoord = block_uv(b, uv, is_top);
   vertices[i].color = c;
+  vertices[i].pad0 = 0u;
 }
 
-void emit_quad(vec3 p0, vec3 p1, vec3 p2, vec3 p3, vec3 n, vec4 c, block_t b, bool is_top) {
-  uint vi = atomicAdd(vertex_count, 4u);
-  uint ii = atomicAdd(index_count, 6u);
+bool reserve_quad(out uint vi, out uint ii) {
+  vi = atomicAdd(vertex_count, 4u);
+  ii = atomicAdd(index_count, 6u);
+  return vi + 3u < MAX_VERTICES && ii + 5u < MAX_INDICES;
+}
+
+void emit_quad(vec3 p0, vec3 p1, vec3 p2, vec3 p3, vec3 n, uint c, block_t b, bool is_top) {
+  uint vi;
+  uint ii;
+  if (!reserve_quad(vi, ii)) {
+    return;
+  }
 
   putv(vi + 0u, p0, n, vec2(0, 0), c, b, is_top);
   putv(vi + 1u, p1, n, vec2(1, 0), c, b, is_top);
@@ -158,7 +193,37 @@ void emit_quad(vec3 p0, vec3 p1, vec3 p2, vec3 p3, vec3 n, vec4 c, block_t b, bo
   indices[ii + 5u] = vi + 3u;
 }
 
-void emit_side(uint x, uint z, uint h0, uint h1, int axis, int sign, vec4 c, block_t b) {
+void emit_face(ivec3 p, int face, uint c, block_t b) {
+  float s = pc.voxel_size;
+
+  float x0 = float(p.x) * s;
+  float x1 = float(p.x + 1) * s;
+  float y0 = float(p.y) * s;
+  float y1 = float(p.y + 1) * s;
+  float z0 = float(p.z) * s;
+  float z1 = float(p.z + 1) * s;
+
+  if (face == FACE_X_POS) {
+    emit_quad(vec3(x1, y0, z1), vec3(x1, y0, z0), vec3(x1, y1, z0), vec3(x1, y1, z1), vec3(1, 0, 0), c, b, false);
+  }
+  else if (face == FACE_X_NEG) {
+    emit_quad(vec3(x0, y0, z0), vec3(x0, y0, z1), vec3(x0, y1, z1), vec3(x0, y1, z0), vec3(-1, 0, 0), c, b, false);
+  }
+  else if (face == FACE_Y_POS) {
+    emit_quad(vec3(x0, y1, z0), vec3(x1, y1, z0), vec3(x1, y1, z1), vec3(x0, y1, z1), vec3(0, 1, 0), c, b, true);
+  }
+  else if (face == FACE_Y_NEG) {
+    emit_quad(vec3(x0, y0, z0), vec3(x0, y0, z1), vec3(x1, y0, z1), vec3(x1, y0, z0), vec3(0, -1, 0), c, b, false);
+  }
+  else if (face == FACE_Z_POS) {
+    emit_quad(vec3(x0, y0, z1), vec3(x1, y0, z1), vec3(x1, y1, z1), vec3(x0, y1, z1), vec3(0, 0, 1), c, b, false);
+  }
+  else {
+    emit_quad(vec3(x1, y0, z0), vec3(x0, y0, z0), vec3(x0, y1, z0), vec3(x1, y1, z0), vec3(0, 0, -1), c, b, false);
+  }
+}
+
+void emit_side(uint x, uint z, uint h0, uint h1, int face, uint c, block_t b) {
   if (h0 <= h1) {
     return;
   }
@@ -171,17 +236,94 @@ void emit_side(uint x, uint z, uint h0, uint h1, int axis, int sign, vec4 c, blo
   float y0 = float(h1 + 1u) * s;
   float y1 = float(h0 + 1u) * s;
 
-  if (axis == 0 && sign > 0) {
+  if (face == FACE_X_POS) {
     emit_quad(vec3(x1, y0, z1), vec3(x1, y0, z0), vec3(x1, y1, z0), vec3(x1, y1, z1), vec3(1, 0, 0), c, b, false);
   }
-  else if (axis == 0 && sign < 0) {
+  else if (face == FACE_X_NEG) {
     emit_quad(vec3(x0, y0, z0), vec3(x0, y0, z1), vec3(x0, y1, z1), vec3(x0, y1, z0), vec3(-1, 0, 0), c, b, false);
   }
-  else if (axis == 2 && sign > 0) {
+  else if (face == FACE_Z_POS) {
     emit_quad(vec3(x0, y0, z1), vec3(x1, y0, z1), vec3(x1, y1, z1), vec3(x0, y1, z1), vec3(0, 0, 1), c, b, false);
   }
-  else if (axis == 2 && sign < 0) {
+  else if (face == FACE_Z_NEG) {
     emit_quad(vec3(x1, y0, z0), vec3(x0, y0, z0), vec3(x0, y1, z0), vec3(x1, y1, z0), vec3(0, 0, -1), c, b, false);
+  }
+}
+
+bool tree_voxel(ivec3 p) {
+  if (p.x == 0 && p.z == 0 && p.y >= 1 && p.y <= 4) {
+    return true;
+  }
+
+  int dy = p.y - 4;
+  if (dy < -1 || dy > 2) {
+    return false;
+  }
+
+  int r = dy <= 0 ? 2 : 2 - dy;
+  return abs(p.x) + abs(p.z) <= r + 1 && max(abs(p.x), abs(p.z)) <= r;
+}
+
+block_t tree_block(ivec3 p) {
+  return p.x == 0 && p.z == 0 && p.y <= 4 ? BLOCK_LOG : BLOCK_LEAF;
+}
+
+uint tree_face_mask(ivec3 p) {
+  uint mask = 0u;
+
+  for (int face = 0; face < 6; ++face) {
+    if (face == FACE_Y_NEG && p.x == 0 && p.z == 0 && p.y == 1) {
+      continue;
+    }
+    if (!tree_voxel(p + FACE_DIRS[face])) {
+      mask |= 1u << uint(face);
+    }
+  }
+
+  return mask;
+}
+
+void emit_voxel(ivec3 p, uint mask, block_t b) {
+  uint c = 0xffffffffu;
+
+  for (int face = 0; face < 6; ++face) {
+    if ((mask & (1u << uint(face))) != 0u) {
+      emit_face(p, face, c, b);
+    }
+  }
+}
+
+const int TREE_CELL = 10;
+
+ivec2 tree_candidate(ivec2 cell) {
+  float rx = hash21(cell * 37 + ivec2(11, 7));
+  float rz = hash21(cell * 53 + ivec2(3, 19));
+  return cell * TREE_CELL + ivec2(int(rx * float(TREE_CELL)), int(rz * float(TREE_CELL)));
+}
+
+void emit_tree(ivec3 root) {
+  for (int y = 1; y <= 6; ++y) {
+    for (int z = -3; z <= 3; ++z) {
+      for (int x = -3; x <= 3; ++x) {
+        ivec3 p = ivec3(x, y, z);
+        if (tree_voxel(p)) {
+          emit_voxel(root + p, tree_face_mask(p), tree_block(p));
+        }
+      }
+    }
+  }
+}
+
+void try_emit_tree(uint x, uint z, uint h, float slope, block_t block, ivec2 wp) {
+  if (!is_grass(block) || h <= pc.sea_level + 2u || slope >= 3.0) {
+    return;
+  }
+
+  ivec2 cell = ivec2(floor(vec2(wp) / float(TREE_CELL)));
+  ivec2 candidate = tree_candidate(cell);
+
+  if (all(equal(wp, candidate))) {
+    emit_tree(ivec3(int(x), int(h), int(z)));
   }
 }
 
@@ -209,24 +351,17 @@ void main() {
     abs(float(h) - float(hz1));
 
   block_t block = terrain_block(h, slope);
+  uint c = 0xffffffffu;
 
-  float s = pc.voxel_size;
-  float x0 = float(x) * s;
-  float x1 = float(x + 1u) * s;
-  float z0 = float(z) * s;
-  float z1 = float(z + 1u) * s;
-  float y = float(h + 1u) * s;
-
-  vec4 c = vec4(1.0);
-
-  emit_quad(vec3(x0, y, z0), vec3(x1, y, z0), vec3(x1, y, z1), vec3(x0, y, z1), vec3(0, 1, 0), c, block, true);
-  emit_side(x, z, h, hx1, 0, 1, c, block);
-  emit_side(x, z, h, hx0, 0, -1, c, block);
-  emit_side(x, z, h, hz1, 2, 1, c, block);
-  emit_side(x, z, h, hz0, 2, -1, c, block);
+  emit_face(ivec3(int(x), int(h), int(z)), FACE_Y_POS, c, block);
+  emit_side(x, z, h, hx1, FACE_X_POS, c, block);
+  emit_side(x, z, h, hx0, FACE_X_NEG, c, block);
+  emit_side(x, z, h, hz1, FACE_Z_POS, c, block);
+  emit_side(x, z, h, hz0, FACE_Z_NEG, c, block);
 
   if (h < pc.sea_level) {
-    float wy = float(pc.sea_level + 1u) * s;
-    emit_quad(vec3(x0, wy, z0), vec3(x1, wy, z0), vec3(x1, wy, z1), vec3(x0, wy, z1), vec3(0, 1, 0), vec4(1.0), BLOCK_WATER, true);
+    emit_face(ivec3(int(x), int(pc.sea_level), int(z)), FACE_Y_POS, c, BLOCK_WATER);
   }
+
+  try_emit_tree(x, z, h, slope, block, ivec2(wx, wz));
 }
