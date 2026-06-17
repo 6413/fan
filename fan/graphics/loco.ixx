@@ -17,6 +17,7 @@ module;
 #define LOCO_FRAMEBUFFER
 #if defined(FAN_VULKAN)
   #include <vulkan/vulkan.h>
+  #include <vk_mem_alloc.h>
 #endif
 #include <fan/event/types.h>
 

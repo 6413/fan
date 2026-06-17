@@ -76,7 +76,6 @@ export namespace fan {
   namespace vulkan {
     struct context_t;
     void image_create(const fan::vulkan::context_t& context, const fan::vec2ui& image_size, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VmaAllocation& allocation);
-    void image_create(const fan::vulkan::context_t& context, const fan::vec2ui& image_size, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& image_memory);
   }
 }
 
@@ -340,7 +339,6 @@ export namespace fan {
         VkImage image_index = VK_NULL_HANDLE;
         VkImageView image_view = VK_NULL_HANDLE;
         VmaAllocation image_allocation = VK_NULL_HANDLE;
-        VkDeviceMemory image_memory = VK_NULL_HANDLE;
         VkSampler sampler = VK_NULL_HANDLE;
         VkBuffer staging_buffer = VK_NULL_HANDLE;
         VmaAllocation staging_allocation = VK_NULL_HANDLE;
@@ -348,6 +346,73 @@ export namespace fan {
         void* data = nullptr;
         bool owns_image = true;
         bool owns_image_view = true;
+      };
+      struct buffer_t {
+        VkBuffer buffer = VK_NULL_HANDLE;
+        VmaAllocation allocation = VK_NULL_HANDLE;
+        VkDeviceSize size = 0;
+        void* mapped = nullptr;
+
+        operator VkBuffer() const { return buffer; }
+        explicit operator bool() const { return buffer != VK_NULL_HANDLE; }
+      };
+
+      struct compute_pipeline_t {
+        struct binding_t {
+          std::uint32_t binding = 0;
+          VkDescriptorType type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+          std::uint32_t descriptor_count = 1;
+          VkShaderStageFlags stage_flags = VK_SHADER_STAGE_COMPUTE_BIT;
+        };
+
+        void open(fan::vulkan::context_t& context, const std::string& path, VkDeviceSize push_size, const std::vector<binding_t>& bindings);
+        void close(fan::vulkan::context_t& context);
+        void dispatch(fan::vulkan::context_t& context, VkCommandBuffer cmd, VkDescriptorSet descriptor_set, const void* push, std::uint32_t x, std::uint32_t y, std::uint32_t z) const;
+
+        VkDescriptorSetLayout descriptor_layout = VK_NULL_HANDLE;
+        VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
+        VkPipeline pipeline = VK_NULL_HANDLE;
+        VkDeviceSize push_size = 0;
+      };
+      struct compute_slot_ring_t {
+        static constexpr std::uint32_t invalid_slot = (std::uint32_t)-1;
+        struct buffer_properties_t {
+          VkDeviceSize size = 0;
+          VkBufferUsageFlags usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+          VkMemoryPropertyFlags memory = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+          VkDescriptorType descriptor_type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+          bool map = true;
+        };
+        struct slot_t {
+          std::vector<buffer_t> buffers;
+          VkCommandBuffer command_buffer = VK_NULL_HANDLE;
+          VkFence fence = VK_NULL_HANDLE;
+          VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
+          bool in_flight = false;
+        };
+
+        void open(fan::vulkan::context_t& context, std::uint32_t slot_count, VkDescriptorSetLayout descriptor_layout, const std::vector<buffer_properties_t>& buffer_properties);
+        void close(fan::vulkan::context_t& context);
+        std::uint32_t acquire() const;
+        VkCommandBuffer begin(fan::vulkan::context_t& context, std::uint32_t slot_index);
+        void submit(fan::vulkan::context_t& context, std::uint32_t slot_index);
+        bool done(fan::vulkan::context_t& context, std::uint32_t slot_index) const;
+        void set_idle(std::uint32_t slot_index);
+        std::uint32_t free_slot_count() const;
+        slot_t& get(std::uint32_t slot_index);
+        const slot_t& get(std::uint32_t slot_index) const;
+
+        std::vector<slot_t> slots;
+        std::vector<buffer_properties_t> buffer_properties;
+        VkDescriptorPool descriptor_pool = VK_NULL_HANDLE;
+        std::uint32_t submit_slot = 0;
+      };
+      struct buffer_barrier_t {
+        buffer_t* buffer = nullptr;
+        VkAccessFlags src_access = 0;
+        VkAccessFlags dst_access = 0;
+        VkDeviceSize offset = 0;
+        VkDeviceSize size = VK_WHOLE_SIZE;
       };
 
       VkFormat get_format_from_channels(int channels);
@@ -664,47 +729,42 @@ export namespace fan {
       bool has_stencil_component(VkFormat format);
       void create_allocator();
       void destroy_allocator();
-      void create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& buffer_memory);
       void create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VmaAllocation& allocation, VmaAllocationInfo* allocation_info = nullptr);
-      void destroy_buffer(VkBuffer& buffer, VkDeviceMemory& buffer_memory);
+      void create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, buffer_t& buffer, VmaAllocationInfo* allocation_info = nullptr);
       void destroy_buffer(VkBuffer& buffer, VmaAllocation& allocation);
+      void destroy_buffer(buffer_t& buffer);
+      VkResult map_buffer(buffer_t& buffer, void** data);
+      void unmap_buffer(buffer_t& buffer);
+      void invalidate_buffer(buffer_t& buffer, VkDeviceSize offset = 0, VkDeviceSize size = VK_WHOLE_SIZE);
 
       VkCommandBuffer begin_single_time_commands();
 
       void end_single_time_commands(VkCommandBuffer command_buffer);
       void copy_buffer(VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size);
-
-      template <typename T>
-      void upload_buffer(const std::vector<T>& data, VkBufferUsageFlags usage, VkBuffer& buffer, VkDeviceMemory& buffer_memory) {
-        if (data.empty()) return;
-        VkDeviceSize size = sizeof(T) * data.size();
-        VkBuffer staging;
-        VkDeviceMemory staging_mem;
-        create_buffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, staging, staging_mem);
-        void* mapped;
-        vkMapMemory(device, staging_mem, 0, size, 0, &mapped);
-        std::memcpy(mapped, data.data(), size);
-        vkUnmapMemory(device, staging_mem);
-        create_buffer(size, usage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer, buffer_memory);
-        copy_buffer(staging, buffer, size);
-        vkDestroyBuffer(device, staging, nullptr);
-        vkFreeMemory(device, staging_mem, nullptr);
-      }
+      void copy_buffer_cmd(VkCommandBuffer cmd, VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize src_offset, VkDeviceSize dst_offset, VkDeviceSize size);
+      void fill_buffer_cmd(VkCommandBuffer cmd, buffer_t& buffer, VkDeviceSize offset, VkDeviceSize size, std::uint32_t data);
+      void buffer_barrier_cmd(VkCommandBuffer cmd, buffer_t& buffer, VkAccessFlags src_access, VkAccessFlags dst_access, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, VkDeviceSize offset = 0, VkDeviceSize size = VK_WHOLE_SIZE);
+      void buffer_barriers_cmd(VkCommandBuffer cmd, const std::vector<buffer_barrier_t>& barriers, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage);
 
       template <typename T>
       void upload_buffer(const std::vector<T>& data, VkBufferUsageFlags usage, VkBuffer& buffer, VmaAllocation& allocation) {
         if (data.empty()) return;
         VkDeviceSize size = sizeof(T) * data.size();
-        VkBuffer staging;
-        VmaAllocation staging_allocation;
-        create_buffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, staging, staging_allocation);
-        void* mapped;
-        vmaMapMemory(allocator, staging_allocation, &mapped);
+        buffer_t staging;
+        create_buffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, staging);
+        void* mapped = nullptr;
+        fan::vulkan::validate(map_buffer(staging, &mapped));
         std::memcpy(mapped, data.data(), size);
-        vmaUnmapMemory(allocator, staging_allocation);
+        unmap_buffer(staging);
         create_buffer(size, usage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer, allocation);
         copy_buffer(staging, buffer, size);
-        destroy_buffer(staging, staging_allocation);
+        destroy_buffer(staging);
+      }
+      template <typename T>
+      void upload_buffer(const std::vector<T>& data, VkBufferUsageFlags usage, buffer_t& buffer) {
+        if (data.empty()) return;
+        upload_buffer(data, usage, buffer.buffer, buffer.allocation);
+        buffer.size = sizeof(T) * data.size();
       }
 
       void insert_image_barrier(
@@ -725,7 +785,6 @@ export namespace fan {
         vkCmdPipelineBarrier(cmd, src_stage, dst_stage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
       }
 
-      std::uint32_t find_memory_type(std::uint32_t type_filter, VkMemoryPropertyFlags properties) const;
 
       void create_command_buffers();
       void bind_draw(
@@ -817,6 +876,8 @@ export namespace fan {
       VkRenderPass render_pass;
 
       VkCommandPool command_pool;
+      VkCommandBuffer single_time_cmd = VK_NULL_HANDLE;
+      VkFence single_time_fence = VK_NULL_HANDLE;
       std::uint32_t queue_family = -1;
       std::uint32_t min_image_count = 0;
       std::uint32_t image_count = 0;

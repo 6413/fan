@@ -42,8 +42,8 @@ public:
 };
 
 struct memory_t {
-	VkBuffer buffer = nullptr;
-	VkDeviceMemory device_memory = nullptr;
+	VkBuffer buffer = VK_NULL_HANDLE;
+	VmaAllocation device_memory = VK_NULL_HANDLE;
 };
 
 template <typename nr_t, typename instance_id_t>
@@ -73,8 +73,9 @@ struct memory_common_t {
 		}
 
 		for (std::uint32_t i = 0; i < fan::vulkan::max_frames_in_flight; ++i) {
-			vkDestroyBuffer(context.device, memory[i].buffer, nullptr);
-			vkFreeMemory(context.device, memory[i].device_memory, nullptr);
+			if (memory[i].buffer != VK_NULL_HANDLE) {
+				context.destroy_buffer(memory[i].buffer, memory[i].device_memory);
+			}
 		}
 	}
 

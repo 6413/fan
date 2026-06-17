@@ -2,6 +2,7 @@ module;
 
 #if defined(FAN_3D) && defined(FAN_VULKAN)
 #include <vulkan/vulkan.h>
+#include <vk_mem_alloc.h>
 #endif
 
 export module fan.graphics.vulkan.ray_tracing.shapes;
@@ -34,10 +35,8 @@ export namespace fan::graphics::vulkan::ray_tracing::shapes {
   };
 
   struct gpu_mesh_t {
-    VkBuffer vertex_buffer = VK_NULL_HANDLE;
-    VkDeviceMemory vertex_memory = VK_NULL_HANDLE;
-    VkBuffer index_buffer = VK_NULL_HANDLE;
-    VkDeviceMemory index_memory = VK_NULL_HANDLE;
+    fan::vulkan::context_t::buffer_t vertex_buffer;
+    fan::vulkan::context_t::buffer_t index_buffer;
     std::uint32_t vertex_count = 0;
     std::uint32_t index_count = 0;
     void upload(fan::vulkan::context_t& ctx, const triangle_mesh_t& mesh) {
@@ -47,23 +46,13 @@ export namespace fan::graphics::vulkan::ray_tracing::shapes {
         return;
       }
 
-      ctx.upload_buffer(mesh.vertices, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, vertex_buffer, vertex_memory);
-      ctx.upload_buffer(mesh.indices, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, index_buffer, index_memory);
+      ctx.upload_buffer(mesh.vertices, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, vertex_buffer);
+      ctx.upload_buffer(mesh.indices, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, index_buffer);
     }
 
     void destroy(fan::vulkan::context_t& ctx) {
-      if (vertex_buffer) {
-        vkDestroyBuffer(ctx.device, vertex_buffer, nullptr);
-        vkFreeMemory(ctx.device, vertex_memory, nullptr);
-      }
-      if (index_buffer) {
-        vkDestroyBuffer(ctx.device, index_buffer, nullptr);
-        vkFreeMemory(ctx.device, index_memory, nullptr);
-      }
-      vertex_buffer = VK_NULL_HANDLE;
-      vertex_memory = VK_NULL_HANDLE;
-      index_buffer = VK_NULL_HANDLE;
-      index_memory = VK_NULL_HANDLE;
+      ctx.destroy_buffer(vertex_buffer);
+      ctx.destroy_buffer(index_buffer);
       vertex_count = 0;
       index_count = 0;
     }
