@@ -1,13 +1,14 @@
-#include <cmath>
-#include <cstdint>
+import std;
 import fan;
 import fan.graphics.vulkan.ray_tracing.hardware_renderer;
 import fan.graphics.vulkan.ray_tracing.gpu_terrain_streamer;
 
+using namespace fan::graphics;
+
 namespace rt = fan::graphics::vulkan::ray_tracing;
 
 int main() {
-  fan::graphics::engine_t engine{{
+  fan::graphics::engine_t engine {{
     .renderer = fan::graphics::renderer_t::vulkan,
   }};
 
@@ -16,6 +17,7 @@ int main() {
 
   rt::gpu_terrain_streamer_t terrain;
   auto cam = engine.perspective_render_view.camera;
+  bool noclip = false;
 
   {
     auto& camera = engine.camera_get(cam);
@@ -29,22 +31,6 @@ int main() {
     fan::translate(fan::vec3(0.f, -1000000.f, 0.f)).scale(fan::vec3(rt::gpu_terrain_streamer_t::voxel_size * 1.03f))
   );
   renderer.set_ray_mask(highlight, 0x02);
-
-  auto world_to_block = [](const fan::vec3& p) {
-    return fan::vec3i(
-      (std::int32_t)std::floor(p.x / rt::gpu_terrain_streamer_t::voxel_size),
-      (std::int32_t)std::floor(p.y / rt::gpu_terrain_streamer_t::voxel_size + rt::gpu_terrain_streamer_t::sea_level),
-      (std::int32_t)std::floor(p.z / rt::gpu_terrain_streamer_t::voxel_size)
-    );
-  };
-
-  auto block_to_world = [](const fan::vec3i& b) {
-    return fan::vec3(
-      (f32_t)b.x * rt::gpu_terrain_streamer_t::voxel_size,
-      ((f32_t)b.y - (f32_t)rt::gpu_terrain_streamer_t::sea_level) * rt::gpu_terrain_streamer_t::voxel_size,
-      (f32_t)b.z * rt::gpu_terrain_streamer_t::voxel_size
-    );
-  };
 
   auto hide_highlight = [&] {
     renderer.set_transform_deferred(
@@ -67,7 +53,7 @@ int main() {
       right = right.normalize();
     }
 
-    fan::vec3 wish{};
+    fan::vec3 wish {};
     if (engine.is_key_down(fan::key_w)) { wish += forward; }
     if (engine.is_key_down(fan::key_s)) { wish -= forward; }
     if (engine.is_key_down(fan::key_d)) { wish += right; }
@@ -81,8 +67,9 @@ int main() {
     constexpr f32_t gravity = 60.f;
     constexpr f32_t jump_speed = 20.f;
     constexpr f32_t eye_height = 2.4f;
+    constexpr f32_t player_radius = 0.35f;
 
-    f32_t ground_y = terrain.ground_y(camera.position.x, camera.position.z) + eye_height;
+    f32_t ground_y = terrain.ground_y(camera.position.x, camera.position.z, player_radius) + eye_height;
     bool grounded = camera.position.y <= ground_y + 0.05f;
 
     camera.velocity.x = wish.x * speed;
@@ -100,7 +87,7 @@ int main() {
     camera.velocity.y -= gravity * dt;
     camera.position += camera.velocity * dt;
 
-    ground_y = terrain.ground_y(camera.position.x, camera.position.z) + eye_height;
+    ground_y = terrain.ground_y(camera.position.x, camera.position.z, player_radius) + eye_height;
     if (camera.position.y < ground_y) {
       camera.position.y = ground_y;
       camera.velocity.y = 0.f;
@@ -110,24 +97,55 @@ int main() {
     camera.view = camera.get_view_matrix();
   };
 
+  auto update_noclip_camera = [&] {
+    auto& camera = engine.camera_get(cam);
+    f32_t dt = engine.get_delta_time();
+
+    fan::vec3 wish {};
+    if (engine.is_key_down(fan::key_w)) { wish += camera.front; }
+    if (engine.is_key_down(fan::key_s)) { wish -= camera.front; }
+    if (engine.is_key_down(fan::key_d)) { wish += camera.right; }
+    if (engine.is_key_down(fan::key_a)) { wish -= camera.right; }
+    if (engine.is_key_down(fan::key_space)) { wish += fan::vec3(0.f, 1.f, 0.f); }
+    if (engine.is_key_down(fan::key_left_shift)) { wish -= fan::vec3(0.f, 1.f, 0.f); }
+
+    if (wish.length_squared() > 0.f) {
+      wish = wish.normalize();
+    }
+
+    constexpr f32_t speed = 40.f;
+    camera.velocity = wish * speed;
+    camera.position += camera.velocity * dt;
+    camera.update_view();
+    camera.view = camera.get_view_matrix();
+  };
+
   auto cb = engine.window.add_mouse_motion_callback([&](const auto& d) {
-    if (engine.is_toggled(fan::key_t)) return;
-    //if (engine.window.is_cursor_enabled()) { return; }
+    if (engine.is_toggled(fan::key_t)) { return; }
     auto& camera = engine.camera_get(cam);
     camera.rotate_camera(d.motion);
     camera.view = camera.get_view_matrix();
   });
-engine.window.toggle_cursor();
+
+  engine.window.toggle_cursor();
+  sprite_t crosshair(fan::vec3(engine.window.get_size() / 2.f, 0xffa), 4.f, "images/circle.png");
+
   engine.loop([&] {
     if (engine.is_key_clicked(fan::key_r)) { renderer.reload_pipeline(); }
-    if (engine.is_mouse_clicked(fan::key_t)) { engine.window.toggle_cursor(); }
+    if (engine.is_key_clicked(fan::key_q)) { noclip = !noclip; engine.camera_get(cam).velocity = fan::vec3(0.f); }
+    if (engine.is_key_clicked(fan::key_t)) { engine.window.toggle_cursor(); }
 
-    if (auto h = fan::graphics::gui::hud_interactive{"##rt"}; h && engine.is_toggled(fan::key_t)) {
+    if (auto h = fan::graphics::gui::hud_interactive {"##rt"}; h && engine.is_toggled(fan::key_t)) {
       fan::graphics::gui::camera_controls();
       terrain.render_gui(renderer);
     }
     else {
-      update_ground_camera();
+      if (noclip) {
+        update_noclip_camera();
+      }
+      else {
+        update_ground_camera();
+      }
     }
 
     terrain.update(renderer, engine.camera_get(cam).position);
@@ -137,13 +155,22 @@ engine.window.toggle_cursor();
       fan::vec3 hit_position = fan::vec3(pick.position);
       fan::vec3 hit_normal = fan::vec3(pick.normal).normalize();
       fan::vec3 place_p = hit_position + hit_normal * 0.01f;
-      fan::vec3i block = world_to_block(place_p);
-      fan::vec3 position = block_to_world(block) + fan::vec3(0.5f) * rt::gpu_terrain_streamer_t::voxel_size;
+      auto place_block = terrain.world_to_block(place_p);
+      fan::vec3 highlight_position = terrain.block_to_world(place_block) + fan::vec3(0.5f) * rt::gpu_terrain_streamer_t::voxel_size;
 
-      renderer.set_transform_deferred(
-        highlight,
-        fan::translate(position).scale(fan::vec3(rt::gpu_terrain_streamer_t::voxel_size * 0.005f))
-      );
+      //renderer.set_transform_deferred(
+      //  highlight,
+      //  fan::translate(highlight_position).scale(fan::vec3(rt::gpu_terrain_streamer_t::voxel_size * 0.005f))
+      //);
+
+      if (!engine.window.is_cursor_enabled() && engine.is_mouse_clicked(fan::mouse_right)) {
+        terrain.set_block(renderer, terrain.world_to_block(place_p), 1);
+      }
+
+      if (!engine.window.is_cursor_enabled() && engine.is_mouse_clicked(fan::mouse_left)) {
+        fan::vec3 break_p = hit_position - hit_normal * 0.01f;
+        terrain.remove_block(renderer, terrain.world_to_block(break_p));
+      }
     }
     else {
       hide_highlight();

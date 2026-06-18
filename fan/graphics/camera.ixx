@@ -23,7 +23,7 @@ export namespace fan {
     void update_view();
     void rotate_camera(fan::vec2 offset);
 
-    f32_t sensitivity = 0.1f;
+    f32_t sensitivity = 0.05f;
     bool first_movement = true;
     static constexpr f32_t max_yaw = 180;
     static constexpr f32_t max_pitch = 89;

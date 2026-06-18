@@ -785,8 +785,22 @@ export namespace fan::graphics::vulkan::ray_tracing {
         { 10, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR, nullptr },
         { 11, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_RAYGEN_BIT_KHR, nullptr }
       };
+      VkDescriptorBindingFlags binding_flags[std::size(bindings)] {};
+      for (std::uint32_t i = 0; i < (std::uint32_t)std::size(binding_flags); ++i) {
+        binding_flags[i] =
+          VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
+          VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT |
+          VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+      }
+      VkDescriptorSetLayoutBindingFlagsCreateInfo binding_flags_info {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+        .bindingCount = (std::uint32_t)std::size(binding_flags),
+        .pBindingFlags = binding_flags
+      };
       VkDescriptorSetLayoutCreateInfo layout_info {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        .pNext = &binding_flags_info,
+        .flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
         .bindingCount = (std::uint32_t)std::size(bindings),
         .pBindings = bindings
       };
@@ -875,6 +889,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       };
       VkDescriptorPoolCreateInfo pool_info {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+        .flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT,
         .maxSets = 1,
         .poolSizeCount = (std::uint32_t)std::size(pool_sizes),
         .pPoolSizes = pool_sizes
@@ -2780,7 +2795,6 @@ export namespace fan::graphics::vulkan::ray_tracing {
       if (!ready) { return; }
       bool update_animation_state = update_animations && (update_camera || !pause_animations_with_camera);
       if (update_animation_state) { update_shared_animations(attached_engine->start_time.seconds()); }
-      if (tlas_dirty && !can_update_tlas_transforms()) { flush_transform_updates(); }
       bool camera_changed = update_camera ? update_camera_from_engine() : false;
       on_camera_updated(camera_changed);
       sync_output_sprite();
@@ -3083,7 +3097,25 @@ export namespace fan::graphics::vulkan::ray_tracing {
     void trace_rays_before_shapes() { record_trace_rays(ctx->command_buffers[ctx->current_frame]); }
     void create_accum_image() { accum_image = create_rt_image(accum_image_valid, accum_layout, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, true); }
     void create_compute_pipeline(const char* shader_path, const VkDescriptorSetLayoutBinding* bindings, std::uint32_t binding_count, std::uint32_t push_constant_size, VkDescriptorSetLayout& descriptor_layout_out, VkPipelineLayout& pipeline_layout_out, VkPipeline& pipeline_out) {
-      VkDescriptorSetLayoutCreateInfo layout_info {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, .bindingCount = binding_count, .pBindings = bindings};
+      std::vector<VkDescriptorBindingFlags> binding_flags(binding_count);
+      for (auto& flags : binding_flags) {
+        flags =
+          VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
+          VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT |
+          VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+      }
+      VkDescriptorSetLayoutBindingFlagsCreateInfo binding_flags_info {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+        .bindingCount = binding_count,
+        .pBindingFlags = binding_flags.data()
+      };
+      VkDescriptorSetLayoutCreateInfo layout_info {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        .pNext = &binding_flags_info,
+        .flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
+        .bindingCount = binding_count,
+        .pBindings = bindings
+      };
       fan::vulkan::validate(vkCreateDescriptorSetLayout(ctx->device, &layout_info, nullptr, &descriptor_layout_out));
       VkPushConstantRange pcr {.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT, .offset = 0, .size = push_constant_size};
       VkPipelineLayoutCreateInfo pl_info {.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, .setLayoutCount = 1, .pSetLayouts = &descriptor_layout_out, .pushConstantRangeCount = push_constant_size ? 1u : 0u, .pPushConstantRanges = push_constant_size ? &pcr : nullptr};
@@ -3116,7 +3148,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     }
     void create_skinning_descriptor_set() {
       VkDescriptorPoolSize pool_size {.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .descriptorCount = 3};
-      VkDescriptorPoolCreateInfo pool_info {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, .maxSets = 1, .poolSizeCount = 1, .pPoolSizes = &pool_size};
+      VkDescriptorPoolCreateInfo pool_info {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, .flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT, .maxSets = 1, .poolSizeCount = 1, .pPoolSizes = &pool_size};
       fan::vulkan::validate(vkCreateDescriptorPool(ctx->device, &pool_info, nullptr, &skinning_descriptor_pool));
       VkDescriptorSetAllocateInfo alloc_info {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, .descriptorPool = skinning_descriptor_pool, .descriptorSetCount = 1, .pSetLayouts = &skinning_descriptor_layout};
       fan::vulkan::validate(vkAllocateDescriptorSets(ctx->device, &alloc_info, &skinning_descriptor_set));
@@ -3134,7 +3166,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 },
         { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1 }
       };
-      VkDescriptorPoolCreateInfo pool_info {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, .maxSets = 1, .poolSizeCount = 2, .pPoolSizes = pool_sizes};
+      VkDescriptorPoolCreateInfo pool_info {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, .flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT, .maxSets = 1, .poolSizeCount = 2, .pPoolSizes = pool_sizes};
       fan::vulkan::validate(vkCreateDescriptorPool(ctx->device, &pool_info, nullptr, &accum_descriptor_pool));
       VkDescriptorSetAllocateInfo alloc_info {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, .descriptorPool = accum_descriptor_pool, .descriptorSetCount = 1, .pSetLayouts = &accum_descriptor_layout};
       fan::vulkan::validate(vkAllocateDescriptorSets(ctx->device, &alloc_info, &accum_descriptor_set));
@@ -3160,7 +3192,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
         { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 },
         { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 }
       };
-      VkDescriptorPoolCreateInfo pool_info {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, .maxSets = 1, .poolSizeCount = 2, .pPoolSizes = pool_sizes};
+      VkDescriptorPoolCreateInfo pool_info {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, .flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT, .maxSets = 1, .poolSizeCount = 2, .pPoolSizes = pool_sizes};
       fan::vulkan::validate(vkCreateDescriptorPool(ctx->device, &pool_info, nullptr, &luminance_descriptor_pool));
       VkDescriptorSetAllocateInfo alloc_info {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, .descriptorPool = luminance_descriptor_pool, .descriptorSetCount = 1, .pSetLayouts = &luminance_descriptor_layout};
       fan::vulkan::validate(vkAllocateDescriptorSets(ctx->device, &alloc_info, &luminance_descriptor_set));

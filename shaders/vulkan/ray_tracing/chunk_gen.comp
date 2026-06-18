@@ -25,6 +25,18 @@ layout(binding = 2, set = 0) buffer counters_t {
   uint pad1;
 };
 
+struct block_edit_t {
+  ivec4 data;
+};
+
+layout(binding = 3, set = 0) readonly buffer block_edits_t {
+  uint edit_count;
+  uint edit_pad0;
+  uint edit_pad1;
+  uint edit_pad2;
+  block_edit_t edits[];
+};
+
 layout(push_constant) uniform push_t {
   int chunk_x;
   int chunk_z;
@@ -47,10 +59,11 @@ struct block_t {
 
 const vec2 ATLAS_SIZE = vec2(2048.0);
 const vec2 TILE_SIZE = vec2(128.0);
-const uint MAX_VERTICES = 32u * 32u * 10u * 4u;
-const uint MAX_INDICES = 32u * 32u * 10u * 6u;
+const uint MAX_VERTICES = 32u * 32u * 16u * 4u;
+const uint MAX_INDICES = 32u * 32u * 16u * 6u;
 
 const block_t BLOCK_GRASS = block_t(vec2(4, 9), vec2(3, 0));
+const block_t BLOCK_DIRT  = block_t(vec2(3, 0), vec2(3, 0));
 const block_t BLOCK_STONE = block_t(vec2(1, 0), vec2(1, 0));
 const block_t BLOCK_SAND  = block_t(vec2(2, 1), vec2(2, 1));
 const block_t BLOCK_SNOW  = block_t(vec2(2, 4), vec2(4, 4));
@@ -132,18 +145,150 @@ uint height_at(int x, int z) {
   return uint(clamp(8.0 + h * (float(pc.sy) - 14.0), 1.0, float(pc.sy) - 2.0));
 }
 
-block_t terrain_block(uint h, float slope) {
-  if (h >= pc.snow_line) {
+block_t terrain_block(int h, float slope) {
+  if (h >= int(pc.snow_line)) {
     return BLOCK_SNOW;
   }
-  if (h >= pc.rock_line || slope > 7.0) {
+  if (h >= int(pc.rock_line) || slope > 7.0) {
     return BLOCK_STONE;
   }
-  if (h <= pc.sea_level + 2u) {
+  if (h <= int(pc.sea_level) + 2) {
     return BLOCK_SAND;
   }
   return BLOCK_GRASS;
 }
+
+float terrain_slope_at(int wx, int wz) {
+  int h = int(height_at(wx, wz));
+  return
+    abs(float(h) - float(height_at(wx - 1, wz))) +
+    abs(float(h) - float(height_at(wx + 1, wz))) +
+    abs(float(h) - float(height_at(wx, wz - 1))) +
+    abs(float(h) - float(height_at(wx, wz + 1)));
+}
+
+block_t generated_block_at(ivec3 p, int base_h, float base_slope) {
+  if (p.y >= base_h) {
+    return terrain_block(base_h, base_slope);
+  }
+
+  if (base_h <= int(pc.sea_level) + 2) {
+    return BLOCK_SAND;
+  }
+
+  if (p.y <= base_h - 5 || p.y >= int(pc.rock_line) - 4) {
+    return BLOCK_STONE;
+  }
+
+  return BLOCK_DIRT;
+}
+
+block_t block_from_id(int id) {
+  if (id == 2) {
+    return BLOCK_STONE;
+  }
+  if (id == 3) {
+    return BLOCK_SAND;
+  }
+  if (id == 4) {
+    return BLOCK_SNOW;
+  }
+  if (id == 5) {
+    return BLOCK_LOG;
+  }
+  if (id == 6) {
+    return BLOCK_LEAF;
+  }
+  return BLOCK_GRASS;
+}
+
+ivec3 local_to_world(ivec3 p) {
+  return ivec3(
+    pc.chunk_x * int(pc.chunk_size) + p.x,
+    p.y,
+    pc.chunk_z * int(pc.chunk_size) + p.z
+  );
+}
+
+int block_edit_at(ivec3 p) {
+  ivec3 w = local_to_world(p);
+  uint n = min(edit_count, 2048u);
+
+  for (uint i = 0u; i < n; ++i) {
+    ivec4 e = edits[i].data; // world x, y, z, id
+    if (e.x == w.x && e.y == w.y && e.z == w.z) {
+      return e.w;
+    }
+  }
+
+  return -1;
+}
+
+bool column_has_edit(int lx, int lz) {
+  int wx = pc.chunk_x * int(pc.chunk_size) + lx;
+  int wz = pc.chunk_z * int(pc.chunk_size) + lz;
+  uint n = min(edit_count, 2048u);
+
+  for (uint i = 0u; i < n; ++i) {
+    ivec4 e = edits[i].data;
+    if (e.x == wx && e.z == wz) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool column_needs_voxel_emit(int x, int z) {
+  return
+    column_has_edit(x, z) ||
+    column_has_edit(x + 1, z) ||
+    column_has_edit(x - 1, z) ||
+    column_has_edit(x, z + 1) ||
+    column_has_edit(x, z - 1);
+}
+
+bool solid_at(ivec3 p) {
+  if (p.y < 0) {
+    return false;
+  }
+
+  int edit = block_edit_at(p);
+  if (edit == 0) {
+    return false;
+  }
+  if (edit > 0) {
+    return true;
+  }
+
+  ivec3 w = local_to_world(p);
+  return p.y <= int(height_at(w.x, w.z));
+}
+
+int column_height(int lx, int lz) {
+  int wx = pc.chunk_x * int(pc.chunk_size) + lx;
+  int wz = pc.chunk_z * int(pc.chunk_size) + lz;
+  int h = int(height_at(wx, wz));
+
+  uint n = min(edit_count, 2048u);
+
+  for (uint i = 0u; i < n; ++i) {
+    ivec4 e = edits[i].data;
+    if (e.x == wx && e.z == wz && e.w > 0) {
+      h = max(h, e.y);
+    }
+  }
+
+  for (int y = h; y >= 0; --y) {
+    if (solid_at(ivec3(lx, y, lz))) {
+      return y;
+    }
+  }
+
+  return -1;
+}
+
+
 
 bool is_grass(block_t b) {
   return all(equal(b.top, BLOCK_GRASS.top)) && all(equal(b.side, BLOCK_GRASS.side));
@@ -223,30 +368,43 @@ void emit_face(ivec3 p, int face, uint c, block_t b) {
   }
 }
 
-void emit_side(uint x, uint z, uint h0, uint h1, int face, uint c, block_t b) {
+void emit_side(uint x, uint z, int h0, int h1, int face, uint c, block_t b) {
   if (h0 <= h1) {
     return;
   }
 
-  float s = pc.voxel_size;
-  float x0 = float(x) * s;
-  float x1 = float(x + 1u) * s;
-  float z0 = float(z) * s;
-  float z1 = float(z + 1u) * s;
-  float y0 = float(h1 + 1u) * s;
-  float y1 = float(h0 + 1u) * s;
+  for (int y = h1 + 1; y <= h0; ++y) {
+    ivec3 p = ivec3(int(x), y, int(z));
+    if (solid_at(p) && !solid_at(p + FACE_DIRS[face])) {
+      emit_face(p, face, c, b);
+    }
+  }
+}
 
-  if (face == FACE_X_POS) {
-    emit_quad(vec3(x1, y0, z1), vec3(x1, y0, z0), vec3(x1, y1, z0), vec3(x1, y1, z1), vec3(1, 0, 0), c, b, false);
-  }
-  else if (face == FACE_X_NEG) {
-    emit_quad(vec3(x0, y0, z0), vec3(x0, y0, z1), vec3(x0, y1, z1), vec3(x0, y1, z0), vec3(-1, 0, 0), c, b, false);
-  }
-  else if (face == FACE_Z_POS) {
-    emit_quad(vec3(x0, y0, z1), vec3(x1, y0, z1), vec3(x1, y1, z1), vec3(x0, y1, z1), vec3(0, 0, 1), c, b, false);
-  }
-  else if (face == FACE_Z_NEG) {
-    emit_quad(vec3(x1, y0, z0), vec3(x0, y0, z0), vec3(x0, y1, z0), vec3(x1, y1, z0), vec3(0, 0, -1), c, b, false);
+void emit_voxel(ivec3 p, uint mask, block_t b);
+
+void emit_voxel_column(uint x, uint z, int base_h, float base_slope, uint c) {
+  int top_y = column_height(int(x), int(z));
+
+  for (int y = 0; y <= top_y; ++y) {
+    ivec3 p = ivec3(int(x), y, int(z));
+    if (!solid_at(p)) {
+      continue;
+    }
+
+    int edit = block_edit_at(p);
+    block_t b = edit > 0 ? block_from_id(edit) : generated_block_at(p, base_h, base_slope);
+    uint mask = 0u;
+
+    for (int face = 0; face < 6; ++face) {
+      if (!solid_at(p + FACE_DIRS[face])) {
+        mask |= 1u << uint(face);
+      }
+    }
+
+    if (mask != 0u) {
+      emit_voxel(p, mask, b);
+    }
   }
 }
 
@@ -268,14 +426,18 @@ block_t tree_block(ivec3 p) {
   return p.x == 0 && p.z == 0 && p.y <= 4 ? BLOCK_LOG : BLOCK_LEAF;
 }
 
-uint tree_face_mask(ivec3 p) {
+bool tree_solid(ivec3 root, ivec3 p) {
+  return tree_voxel(p) && block_edit_at(root + p) != 0;
+}
+
+uint tree_face_mask(ivec3 root, ivec3 p) {
   uint mask = 0u;
 
   for (int face = 0; face < 6; ++face) {
     if (face == FACE_Y_NEG && p.x == 0 && p.z == 0 && p.y == 1) {
       continue;
     }
-    if (!tree_voxel(p + FACE_DIRS[face])) {
+    if (!tree_solid(root, p + FACE_DIRS[face])) {
       mask |= 1u << uint(face);
     }
   }
@@ -306,16 +468,16 @@ void emit_tree(ivec3 root) {
     for (int z = -3; z <= 3; ++z) {
       for (int x = -3; x <= 3; ++x) {
         ivec3 p = ivec3(x, y, z);
-        if (tree_voxel(p)) {
-          emit_voxel(root + p, tree_face_mask(p), tree_block(p));
+        if (tree_solid(root, p)) {
+          emit_voxel(root + p, tree_face_mask(root, p), tree_block(p));
         }
       }
     }
   }
 }
 
-void try_emit_tree(uint x, uint z, uint h, float slope, block_t block, ivec2 wp) {
-  if (!is_grass(block) || h <= pc.sea_level + 2u || slope >= 3.0) {
+void try_emit_tree(uint x, uint z, int h, float slope, block_t block, ivec2 wp) {
+  if (!is_grass(block) || h <= int(pc.sea_level) + 2 || slope >= 3.0) {
     return;
   }
 
@@ -324,6 +486,31 @@ void try_emit_tree(uint x, uint z, uint h, float slope, block_t block, ivec2 wp)
 
   if (all(equal(wp, candidate))) {
     emit_tree(ivec3(int(x), int(h), int(z)));
+  }
+}
+
+void emit_forced_blocks(uint x, uint z) {
+  int wx = pc.chunk_x * int(pc.chunk_size) + int(x);
+  int wz = pc.chunk_z * int(pc.chunk_size) + int(z);
+  uint n = min(edit_count, 2048u);
+  for (uint i = 0u; i < n; ++i) {
+    ivec4 e = edits[i].data;
+    if (e.w <= 0 || e.x != wx || e.z != wz) {
+      continue;
+    }
+
+    // e.xyz is world; convert to local for solid_at
+    ivec3 p = ivec3(int(x), e.y, int(z));
+    uint mask = 0u;
+    for (int face = 0; face < 6; ++face) {
+      if (!solid_at(p + FACE_DIRS[face])) {
+        mask |= 1u << uint(face);
+      }
+    }
+
+    if (mask != 0u) {
+      emit_voxel(p, mask, block_from_id(e.w));
+    }
   }
 }
 
@@ -338,30 +525,46 @@ void main() {
   int wx = pc.chunk_x * int(pc.chunk_size) + int(x);
   int wz = pc.chunk_z * int(pc.chunk_size) + int(z);
 
-  uint h = height_at(wx, wz);
-  uint hx0 = height_at(wx - 1, wz);
-  uint hx1 = height_at(wx + 1, wz);
-  uint hz0 = height_at(wx, wz - 1);
-  uint hz1 = height_at(wx, wz + 1);
+  int base_h = int(height_at(wx, wz));
+  float base_slope = terrain_slope_at(wx, wz);
 
-  float slope =
-    abs(float(h) - float(hx0)) +
-    abs(float(h) - float(hx1)) +
-    abs(float(h) - float(hz0)) +
-    abs(float(h) - float(hz1));
+  int h   = column_height(int(x),     int(z));
+  int hx0 = column_height(int(x) - 1, int(z));
+  int hx1 = column_height(int(x) + 1, int(z));
+  int hz0 = column_height(int(x),     int(z) - 1);
+  int hz1 = column_height(int(x),     int(z) + 1);
 
-  block_t block = terrain_block(h, slope);
+  if (h < 0) {
+    return;
+  }
+
+  block_t block = terrain_block(base_h, base_slope);
   uint c = 0xffffffffu;
 
-  emit_face(ivec3(int(x), int(h), int(z)), FACE_Y_POS, c, block);
-  emit_side(x, z, h, hx1, FACE_X_POS, c, block);
-  emit_side(x, z, h, hx0, FACE_X_NEG, c, block);
-  emit_side(x, z, h, hz1, FACE_Z_POS, c, block);
-  emit_side(x, z, h, hz0, FACE_Z_NEG, c, block);
+  bool voxel_emit = column_needs_voxel_emit(int(x), int(z));
 
-  if (h < pc.sea_level) {
+  if (voxel_emit) {
+    emit_voxel_column(x, z, base_h, base_slope, c);
+  }
+  else if (h > 0) {
+    if (!solid_at(ivec3(int(x), int(h) + 1, int(z)))) {
+      emit_face(ivec3(int(x), int(h), int(z)), FACE_Y_POS, c, block);
+    }
+    emit_side(x, z, h, hx1, FACE_X_POS, c, block);
+    emit_side(x, z, h, hx0, FACE_X_NEG, c, block);
+    emit_side(x, z, h, hz1, FACE_Z_POS, c, block);
+    emit_side(x, z, h, hz0, FACE_Z_NEG, c, block);
+  }
+
+  if (h < int(pc.sea_level) && !solid_at(ivec3(int(x), int(pc.sea_level), int(z)))) {
     emit_face(ivec3(int(x), int(pc.sea_level), int(z)), FACE_Y_POS, c, BLOCK_WATER);
   }
 
-  try_emit_tree(x, z, h, slope, block, ivec2(wx, wz));
+  if (h == base_h) {
+    try_emit_tree(x, z, h, base_slope, block, ivec2(wx, wz));
+  }
+
+  if (!voxel_emit) {
+    emit_forced_blocks(x, z);
+  }
 }
