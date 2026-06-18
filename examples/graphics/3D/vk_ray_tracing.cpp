@@ -18,6 +18,7 @@ int main() {
   rt::gpu_terrain_streamer_t terrain;
   auto cam = engine.perspective_render_view.camera;
   bool noclip = false;
+  bool ui_open = false;
 
   {
     auto& camera = engine.camera_get(cam);
@@ -121,23 +122,34 @@ int main() {
   };
 
   auto cb = engine.window.add_mouse_motion_callback([&](const auto& d) {
-    if (engine.is_toggled(fan::key_t)) { return; }
+    if (ui_open || engine.window.is_cursor_enabled()) { return; }
     auto& camera = engine.camera_get(cam);
     camera.rotate_camera(d.motion);
     camera.view = camera.get_view_matrix();
   });
 
-  engine.window.toggle_cursor();
+  engine.window.set_cursor(0);
   sprite_t crosshair(fan::vec3(engine.window.get_size() / 2.f, 0xffa), 4.f, "images/circle.png");
 
   engine.loop([&] {
     if (engine.is_key_clicked(fan::key_r)) { renderer.reload_pipeline(); }
     if (engine.is_key_clicked(fan::key_q)) { noclip = !noclip; engine.camera_get(cam).velocity = fan::vec3(0.f); }
-    if (engine.is_key_clicked(fan::key_t)) { engine.window.toggle_cursor(); }
+    if (engine.is_key_clicked(fan::key_t)) {
+      ui_open = !ui_open;
+      engine.window.set_cursor(ui_open ? 1 : 0);
+      engine.camera_get(cam).velocity = fan::vec3(0.f);
+      if (ui_open) { hide_highlight(); }
+    }
 
-    if (auto h = fan::graphics::gui::hud_interactive {"##rt"}; h && engine.is_toggled(fan::key_t)) {
-      fan::graphics::gui::camera_controls();
-      terrain.render_gui(renderer);
+    if (engine.window.is_cursor_enabled() != ui_open) {
+      engine.window.set_cursor(ui_open ? 1 : 0);
+    }
+
+    if (ui_open) {
+      if (auto h = fan::graphics::gui::hud_interactive {"##rt"}; h) {
+        fan::graphics::gui::camera_controls();
+        terrain.render_gui(renderer);
+      }
     }
     else {
       if (noclip) {
@@ -163,11 +175,11 @@ int main() {
       //  fan::translate(highlight_position).scale(fan::vec3(rt::gpu_terrain_streamer_t::voxel_size * 0.005f))
       //);
 
-      if (!engine.window.is_cursor_enabled() && engine.is_mouse_clicked(fan::mouse_right)) {
+      if (!ui_open && !engine.window.is_cursor_enabled() && engine.is_mouse_clicked(fan::mouse_right)) {
         terrain.set_block(renderer, terrain.world_to_block(place_p), 1);
       }
 
-      if (!engine.window.is_cursor_enabled() && engine.is_mouse_clicked(fan::mouse_left)) {
+      if (!ui_open && !engine.window.is_cursor_enabled() && engine.is_mouse_clicked(fan::mouse_left)) {
         fan::vec3 break_p = hit_position - hit_normal * 0.01f;
         terrain.remove_block(renderer, terrain.world_to_block(break_p));
       }

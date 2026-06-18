@@ -60,9 +60,16 @@ export namespace fan::graphics::vulkan::ray_tracing {
   };
   struct terrain_chunk_t {
     context_t::object_handle_t handle;
+    std::uint32_t vertex_capacity = 0;
+    std::uint32_t index_capacity = 0;
     bool uploaded = false;
     bool pending = false;
     bool dirty = false;
+  };
+  struct free_chunk_handle_t {
+    context_t::object_handle_t handle;
+    std::uint32_t vertex_capacity = 0;
+    std::uint32_t index_capacity = 0;
   };
 
   struct gpu_chunk_generator_t {
@@ -105,6 +112,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     }
     bool ready() const { return ctx && pipeline.pipeline != VK_NULL_HANDLE; }
     std::uint32_t free_slot_count() const { return slots.free_slot_count(); }
+    std::uint32_t busy_slot_count() const { return slot_count - slots.free_slot_count(); }
     bool submit(const push_t& push, chunk_coord_t coord, const std::vector<block_edit_t>& edits) {
       if (!ready()) { return false; }
       std::uint32_t si = slots.acquire();
@@ -145,7 +153,16 @@ export namespace fan::graphics::vulkan::ray_tracing {
     bool read_mesh(vk_context_t::compute_slot_ring_t::slot_t& slot, const state_t& state, context_t::voxel_mesh_input_t& mesh) {
       ctx->invalidate_buffer(slot.buffers[2], 0, sizeof(counters_t));
       auto* c = static_cast<counters_t*>(slot.buffers[2].mapped);
-      if (!c->vertex_count || !c->index_count || c->vertex_count > max_vertices || c->index_count > max_indices) { mesh.vertices.clear(); mesh.indices.clear(); return false; }
+      debug_last_vertex_count = c->vertex_count;
+      debug_last_index_count = c->index_count;
+      if (!c->vertex_count || !c->index_count || c->vertex_count > max_vertices || c->index_count > max_indices) {
+        if (c->vertex_count > max_vertices || c->index_count > max_indices) {
+          ++debug_overflow_count;
+        }
+        mesh.vertices.clear();
+        mesh.indices.clear();
+        return false;
+      }
       mesh.vertices.resize(c->vertex_count);
       mesh.indices.resize(c->index_count);
       auto vb = mesh.vertices.size() * sizeof(context_t::vertex_t), ib = mesh.indices.size() * sizeof(std::uint32_t);
@@ -166,6 +183,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
     vk_context_t::compute_pipeline_t pipeline;
     vk_context_t::compute_slot_ring_t slots;
     std::array<state_t, slot_count> states {};
+    std::uint32_t debug_last_vertex_count = 0;
+    std::uint32_t debug_last_index_count = 0;
+    std::uint32_t debug_overflow_count = 0;
   };
 
   context_t::voxel_mesh_input_t make_bootstrap_mesh() {
@@ -178,6 +198,34 @@ export namespace fan::graphics::vulkan::ray_tracing {
   struct gpu_terrain_streamer_t {
     static constexpr std::uint32_t chunk_size = 32, sy = 96, sea_level = 28, snow_line = 74, rock_line = 62;
     static constexpr f32_t voxel_size = 1.5f;
+
+    struct debug_stats_t {
+      std::size_t chunks = 0;
+      std::size_t uploaded_chunks = 0;
+      std::size_t pending_chunks = 0;
+      std::size_t dirty_chunks = 0;
+      std::size_t queued_chunks = 0;
+      std::size_t free_handles = 0;
+      std::size_t removed_blocks = 0;
+      std::size_t placed_blocks = 0;
+      std::size_t placed_vertices = 0;
+      std::size_t placed_indices = 0;
+      std::uint32_t gpu_slots_busy = 0;
+      std::uint32_t gpu_slots_free = 0;
+      std::uint32_t last_uploads = 0;
+      std::uint32_t last_submits = 0;
+      std::uint32_t last_unloads = 0;
+      std::uint32_t last_queue_pruned = 0;
+      std::uint32_t last_generated_vertices = 0;
+      std::uint32_t last_generated_indices = 0;
+      std::uint32_t mesh_overflows = 0;
+      std::int32_t current_chunk_x = 0;
+      std::int32_t current_chunk_z = 0;
+      f32_t estimated_terrain_mesh_mb = 0.f;
+      f32_t estimated_free_pool_mesh_mb = 0.f;
+      f32_t estimated_compute_slots_mb = 0.f;
+      f32_t estimated_placed_mesh_mb = 0.f;
+    };
     void init() {}
     void open(context_t& renderer) {
       if (gpu.ready()) { return; }
@@ -203,11 +251,20 @@ export namespace fan::graphics::vulkan::ray_tracing {
         chunk_count * reserve_indices_per_chunk / 3
       );
     }
+    static std::uint32_t round_up_capacity(std::uint32_t v, std::uint32_t step) {
+      return ((v + step - 1) / step) * step;
+    }
+    static std::uint32_t terrain_vertex_capacity(std::uint32_t used) {
+      return std::min<std::uint32_t>(gpu_chunk_generator_t::max_vertices, round_up_capacity(std::max<std::uint32_t>(used + 512, 4096), 4096));
+    }
+    static std::uint32_t terrain_index_capacity(std::uint32_t used) {
+      return std::min<std::uint32_t>(gpu_chunk_generator_t::max_indices, round_up_capacity(std::max<std::uint32_t>(used + 768, 6144), 6144));
+    }
     void prepare_chunk_mesh(context_t::voxel_mesh_input_t& mesh) const {
       mesh.materials = {terrain_mat};
       mesh.primitive_material_indices.assign(mesh.indices.size() / 3, 0);
-      mesh.vertex_capacity = gpu_chunk_generator_t::max_vertices;
-      mesh.index_capacity = gpu_chunk_generator_t::max_indices;
+      mesh.vertex_capacity = terrain_vertex_capacity((std::uint32_t)mesh.vertices.size());
+      mesh.index_capacity = terrain_index_capacity((std::uint32_t)mesh.indices.size());
       mesh.material_capacity = 1;
     }
     void destroy() { gpu.close(); }
@@ -222,6 +279,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
         auto it = chunks.find(work_queue[i]);
         if (it != chunks.end()) { it->second.pending = false; if (!it->second.uploaded) { chunks.erase(it); } }
         work_queue.erase(work_queue.begin() + i);
+        ++debug_last_queue_pruned;
       }
     }
     context_t::voxel_mesh_input_t make_hidden_chunk_mesh() const {
@@ -318,13 +376,15 @@ export namespace fan::graphics::vulkan::ray_tracing {
       }
       mesh.materials = {terrain_mat};
       mesh.primitive_material_indices.assign(mesh.indices.size() / 3, 0);
-      mesh.vertex_capacity = std::max<std::uint32_t>((std::uint32_t)mesh.vertices.size() + 4096, 65'536);
-      mesh.index_capacity = std::max<std::uint32_t>((std::uint32_t)mesh.indices.size() + 6144, 98'304);
+      mesh.vertex_capacity = terrain_vertex_capacity((std::uint32_t)mesh.vertices.size());
+      mesh.index_capacity = terrain_index_capacity((std::uint32_t)mesh.indices.size());
       mesh.material_capacity = 1;
       return mesh;
     }
     void rebuild_placed_blocks(context_t& renderer) {
       context_t::voxel_mesh_input_t mesh = make_placed_blocks_mesh();
+      debug_placed_vertices = mesh.vertices.size();
+      debug_placed_indices = mesh.indices.size();
       if (!placed_overlay_uploaded) {
         placed_overlay = renderer.add_mesh_incremental(mesh);
         placed_overlay_uploaded = true;
@@ -339,12 +399,18 @@ export namespace fan::graphics::vulkan::ray_tracing {
       for (auto it = chunks.begin(); it != chunks.end();) {
         if (!it->second.uploaded || in_range(it->first, center, preload_extra + 2)) { ++it; continue; }
         renderer.set_transform_deferred(it->second.handle, fan::translate(fan::vec3(0.f, -1000000.f, 0.f)));
-        free_handles.push_back(it->second.handle);
+        free_handles.push_back({it->second.handle, it->second.vertex_capacity, it->second.index_capacity});
         it = chunks.erase(it);
+        ++debug_last_unloads;
       }
     }
     bool ready() const { return gpu.ready(); }
     void update(context_t& renderer, const fan::vec3& cam) {
+      debug_last_uploads = 0;
+      debug_last_submits = 0;
+      debug_last_unloads = 0;
+      debug_last_queue_pruned = 0;
+
       if (!bootstrap_added) { renderer.add_mesh(make_bootstrap_mesh()); bootstrap_added = true; }
       if (!gpu.ready()) {
         if (!renderer.ready) { return; }
@@ -352,18 +418,91 @@ export namespace fan::graphics::vulkan::ray_tracing {
         load_initial(renderer, to_chunk(cam), initial_load_radius, cam);
       }
       chunk_coord_t center = to_chunk(cam);
+      debug_center = center;
       prune_queue(center); unload_far(renderer, center); queue_missing(center, cam); poll_completed(renderer, center); submit_pending(center, cam);
+    }
+    debug_stats_t debug_stats() const {
+      debug_stats_t s;
+      s.chunks = chunks.size();
+      s.queued_chunks = work_queue.size();
+      s.free_handles = free_handles.size();
+      s.removed_blocks = block_edits.size();
+      s.placed_blocks = placed_blocks.size();
+      s.gpu_slots_free = gpu.ready() ? gpu.free_slot_count() : 0;
+      s.gpu_slots_busy = gpu.ready() ? gpu.busy_slot_count() : 0;
+      s.last_uploads = debug_last_uploads;
+      s.last_submits = debug_last_submits;
+      s.last_unloads = debug_last_unloads;
+      s.last_queue_pruned = debug_last_queue_pruned;
+      s.last_generated_vertices = gpu.debug_last_vertex_count;
+      s.last_generated_indices = gpu.debug_last_index_count;
+      s.mesh_overflows = gpu.debug_overflow_count;
+      s.current_chunk_x = debug_center.x;
+      s.current_chunk_z = debug_center.y;
+      s.placed_vertices = debug_placed_vertices;
+      s.placed_indices = debug_placed_indices;
+
+      for (auto& [coord, chunk] : chunks) {
+        (void)coord;
+        if (chunk.uploaded) { ++s.uploaded_chunks; }
+        if (chunk.pending) { ++s.pending_chunks; }
+        if (chunk.dirty) { ++s.dirty_chunks; }
+      }
+
+      std::size_t terrain_chunk_bytes = 0;
+      std::size_t free_pool_bytes = 0;
+      for (auto& [coord, chunk] : chunks) {
+        (void)coord;
+        if (!chunk.uploaded) { continue; }
+        terrain_chunk_bytes +=
+          (std::size_t)chunk.vertex_capacity * sizeof(context_t::vertex_t) +
+          (std::size_t)chunk.index_capacity * sizeof(std::uint32_t);
+      }
+      for (auto& h : free_handles) {
+        free_pool_bytes +=
+          (std::size_t)h.vertex_capacity * sizeof(context_t::vertex_t) +
+          (std::size_t)h.index_capacity * sizeof(std::uint32_t);
+      }
+      std::size_t compute_slot_bytes =
+        (std::size_t)gpu_chunk_generator_t::max_vertices * sizeof(context_t::vertex_t) +
+        (std::size_t)gpu_chunk_generator_t::max_indices * sizeof(std::uint32_t) +
+        sizeof(gpu_chunk_generator_t::counters_t) +
+        gpu_chunk_generator_t::edit_buffer_size;
+      std::size_t placed_bytes =
+        s.placed_vertices * sizeof(context_t::vertex_t) +
+        s.placed_indices * sizeof(std::uint32_t);
+
+      constexpr f32_t mb = 1024.f * 1024.f;
+      s.estimated_terrain_mesh_mb = (f32_t)terrain_chunk_bytes / mb;
+      s.estimated_free_pool_mesh_mb = (f32_t)free_pool_bytes / mb;
+      s.estimated_compute_slots_mb = (f32_t)(gpu_chunk_generator_t::slot_count * compute_slot_bytes) / mb;
+      s.estimated_placed_mesh_mb = (f32_t)placed_bytes / mb;
+      return s;
     }
     void render_gui(context_t& renderer) {
       gui::drag("render distance", &render_distance);
       gui::drag("max uploads", &max_uploads_per_frame);
       gui::drag("max submits", &max_submits_per_frame);
+      gui::drag("max pending", &max_pending_chunks);
       gui::drag("preload extra", &preload_extra);
       gui::drag("upload budget ms", &upload_budget_ms);
-      gui::text(chunks.size());
-      gui::text(work_queue.size());
-      gui::text(free_handles.size());
-      gui::text(gpu.free_slot_count());
+
+      auto s = debug_stats();
+      auto debug_text = [](std::string_view text) {
+        gui::text_box(text, fan::vec2(0.f), fan::colors::white, fan::colors::black.set_alpha(0.72f));
+      };
+
+      debug_text("terrain debug");
+      debug_text(std::format("center chunk: {}, {}", s.current_chunk_x, s.current_chunk_z));
+      debug_text(std::format("chunks: {} uploaded:{} pending:{} dirty:{} queued:{}", s.chunks, s.uploaded_chunks, s.pending_chunks, s.dirty_chunks, s.queued_chunks));
+      debug_text(std::format("gpu slots: busy:{} free:{} / {}", s.gpu_slots_busy, s.gpu_slots_free, gpu_chunk_generator_t::slot_count));
+      debug_text(std::format("frame stream: uploads:{} submits:{} unloads:{} queue pruned:{}", s.last_uploads, s.last_submits, s.last_unloads, s.last_queue_pruned));
+      debug_text(std::format("edits: removed:{} placed:{}", s.removed_blocks, s.placed_blocks));
+      debug_text(std::format("last chunk mesh: vertices:{} indices:{} overflows:{}", s.last_generated_vertices, s.last_generated_indices, s.mesh_overflows));
+      debug_text(std::format("placed mesh: vertices:{} indices:{}", s.placed_vertices, s.placed_indices));
+      debug_text(std::format("estimated mesh memory: terrain {:.2f} MB, free pool {:.2f} MB, compute {:.2f} MB, placed {:.2f} MB", s.estimated_terrain_mesh_mb, s.estimated_free_pool_mesh_mb, s.estimated_compute_slots_mb, s.estimated_placed_mesh_mb));
+      debug_text(std::format("compute capacity: vertices:{} indices:{}", gpu_chunk_generator_t::max_vertices, gpu_chunk_generator_t::max_indices));
+
       renderer.render_gui();
     }
     void load_initial(context_t& renderer, chunk_coord_t center, std::int32_t radius, const fan::vec3& cam) {
@@ -599,6 +738,14 @@ export namespace fan::graphics::vulkan::ray_tracing {
         .voxel_size = voxel_size,
       };
     }
+    std::size_t find_free_handle(std::uint32_t vertex_capacity, std::uint32_t index_capacity) const {
+      for (std::size_t i = 0; i < free_handles.size(); ++i) {
+        if (free_handles[i].vertex_capacity >= vertex_capacity && free_handles[i].index_capacity >= index_capacity) {
+          return i;
+        }
+      }
+      return std::size_t(-1);
+    }
     void poll_completed(context_t& renderer, chunk_coord_t center) {
       fan::time::timer t{true};
       std::uint32_t uploaded = 0;
@@ -615,24 +762,39 @@ export namespace fan::graphics::vulkan::ray_tracing {
         if (mesh.vertices.empty() || mesh.indices.empty()) { ch.pending = false; ch.dirty = false; continue; }
         prepare_chunk_mesh(mesh);
         if (!batch) { renderer.begin_incremental_upload(); batch = true; }
+        std::uint32_t mesh_vertex_capacity = mesh.vertex_capacity;
+        std::uint32_t mesh_index_capacity = mesh.index_capacity;
         if (ch.uploaded) {
           if (!renderer.update_mesh(ch.handle, mesh)) {
             renderer.set_transform_deferred(ch.handle, fan::translate(fan::vec3(0.f, -1000000.f, 0.f)));
+            free_handles.push_back({ch.handle, ch.vertex_capacity, ch.index_capacity});
             ch.handle = renderer.add_mesh_incremental(mesh);
           }
-        }
-        else if (free_handles.empty()) {
-          ch.handle = renderer.add_mesh_incremental(mesh);
+          else {
+            renderer.set_transform_deferred(ch.handle, mesh.transform);
+          }
         }
         else {
-          ch.handle = free_handles.back();
-          free_handles.pop_back();
-          if (!renderer.update_mesh(ch.handle, mesh)) {
+          std::size_t free_index = find_free_handle(mesh_vertex_capacity, mesh_index_capacity);
+          if (free_index == std::size_t(-1)) {
             ch.handle = renderer.add_mesh_incremental(mesh);
           }
+          else {
+            ch.handle = free_handles[free_index].handle;
+            free_handles[free_index] = free_handles.back();
+            free_handles.pop_back();
+            if (!renderer.update_mesh(ch.handle, mesh)) {
+              ch.handle = renderer.add_mesh_incremental(mesh);
+            }
+            else {
+              renderer.set_transform_deferred(ch.handle, mesh.transform);
+            }
+          }
         }
+        ch.vertex_capacity = mesh_vertex_capacity;
+        ch.index_capacity = mesh_index_capacity;
         bool regenerate = ch.dirty;
-        ch.uploaded = true; ch.pending = false; ch.dirty = false; ++uploaded;
+        ch.uploaded = true; ch.pending = false; ch.dirty = false; ++uploaded; ++debug_last_uploads;
         if (regenerate) {
           queue_dirty_chunk(coord);
         }
@@ -656,8 +818,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
         return chunk_distance2(p, cam) + (f32_t)d.length_squared() * 0.001f;
       });
 
+      std::uint32_t pending_cap = std::max<std::uint32_t>(max_pending_chunks, max_submits_per_frame + gpu_chunk_generator_t::slot_count);
       std::vector<chunk_coord_t> kept;
-      kept.reserve(std::min<std::size_t>(work_queue.size(), max_pending_chunks));
+      kept.reserve(std::min<std::size_t>(work_queue.size(), pending_cap));
 
       for (chunk_coord_t c : work_queue) {
         auto it = chunks.find(c);
@@ -665,7 +828,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
           continue;
         }
 
-        bool keep = kept.size() < max_pending_chunks || it->second.dirty;
+        bool keep = kept.size() < pending_cap || it->second.dirty;
         if (keep) {
           kept.push_back(c);
           continue;
@@ -697,6 +860,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
         chunks[coord].dirty = false;
         work_queue.erase(work_queue.begin() + bi);
         ++submitted;
+        ++debug_last_submits;
       }
     }
     std::size_t closest_work_index(const fan::vec3& cam) const {
@@ -738,13 +902,20 @@ export namespace fan::graphics::vulkan::ray_tracing {
     gpu_chunk_generator_t gpu;
     bool bootstrap_added = false;
     std::vector<chunk_coord_t> work_queue;
-    std::vector<context_t::object_handle_t> free_handles;
+    std::vector<free_chunk_handle_t> free_handles;
     std::unordered_map<chunk_coord_t, terrain_chunk_t, chunk_coord_hash_t> chunks;
     std::unordered_map<block_pos_t, std::uint8_t, block_pos_hash_t> block_edits;
     std::unordered_map<block_pos_t, std::uint8_t, block_pos_hash_t> placed_blocks;
     context_t::object_handle_t placed_overlay;
     bool placed_overlay_uploaded = false;
     std::vector<block_edit_t> submit_edits;
+    chunk_coord_t debug_center {};
+    std::uint32_t debug_last_uploads = 0;
+    std::uint32_t debug_last_submits = 0;
+    std::uint32_t debug_last_unloads = 0;
+    std::uint32_t debug_last_queue_pruned = 0;
+    std::size_t debug_placed_vertices = 0;
+    std::size_t debug_placed_indices = 0;
     std::int32_t render_distance = 8, initial_load_radius = 3;
     std::uint32_t max_uploads_per_frame = 2, max_submits_per_frame = 4, max_pending_chunks = 384;
     std::int32_t preload_extra = 0;
