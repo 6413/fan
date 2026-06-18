@@ -25,6 +25,35 @@ namespace gui = fan::graphics::gui;
 
 export namespace fan::graphics::vulkan::ray_tracing {
   using chunk_coord_t = fan::vec2_wrap_t<std::int32_t>;
+  struct block_pos_t {
+    std::int32_t x = 0;
+    std::int32_t y = 0;
+    std::int32_t z = 0;
+
+    bool operator==(const block_pos_t& o) const {
+      return x == o.x && y == o.y && z == o.z;
+    }
+  };
+  struct block_pos_hash_t {
+    std::size_t operator()(const block_pos_t& p) const {
+      std::uint32_t h =
+        (std::uint32_t)p.x * 0x8da6b343u ^
+        (std::uint32_t)p.y * 0xd8163841u ^
+        (std::uint32_t)p.z * 0xcb1ab31fu;
+      h ^= h >> 16;
+      h *= 0x7feb352du;
+      h ^= h >> 15;
+      h *= 0x846ca68bu;
+      h ^= h >> 16;
+      return h;
+    }
+  };
+  struct block_edit_t {
+    std::int32_t x = 0;
+    std::int32_t y = 0;
+    std::int32_t z = 0;
+    std::int32_t id = -1;
+  };
   struct chunk_coord_hash_t {
     std::size_t operator()(const chunk_coord_t& c) const {
     return (std::size_t)c[0] | ((std::size_t)c[1] << 32); }
@@ -33,15 +62,19 @@ export namespace fan::graphics::vulkan::ray_tracing {
     context_t::object_handle_t handle;
     bool uploaded = false;
     bool pending = false;
+    bool dirty = false;
   };
 
   struct gpu_chunk_generator_t {
     static constexpr std::uint32_t chunk_size = 32;
-    static constexpr std::uint32_t max_faces_per_column = 10;
+    static constexpr std::uint32_t max_faces_per_column = 16;
     static constexpr std::uint32_t max_vertices = chunk_size * chunk_size * max_faces_per_column * 4;
     static constexpr std::uint32_t max_indices = chunk_size * chunk_size * max_faces_per_column * 6;
     static constexpr std::uint32_t slot_count = 4;
+    static constexpr std::uint32_t max_edits_per_chunk = 2048;
     struct counters_t { std::uint32_t vertex_count = 0, index_count = 0, pad0 = 0, pad1 = 0; };
+    struct edit_header_t { std::uint32_t count = 0, pad0 = 0, pad1 = 0, pad2 = 0; };
+    static constexpr std::uint32_t edit_buffer_size = sizeof(edit_header_t) + max_edits_per_chunk * sizeof(block_edit_t);
     struct push_t {
       std::int32_t chunk_x = 0, chunk_z = 0;
       std::uint32_t chunk_size = 32, sy = 96, sea_level = 28, snow_line = 74, rock_line = 62, pad0 = 0;
@@ -53,13 +86,15 @@ export namespace fan::graphics::vulkan::ray_tracing {
     void open(context_t& renderer) {
       ctx = renderer.ctx;
       pipeline.open(*ctx, "shaders/vulkan/ray_tracing/chunk_gen.comp", sizeof(push_t), {
-        {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER}, {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER}, {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER}
+        {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER}, {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER}, {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER}, {3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER}
       });
-      constexpr VkMemoryPropertyFlags mem = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+      constexpr VkMemoryPropertyFlags read_mem = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
+      constexpr VkMemoryPropertyFlags write_mem = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
       slots.open(*ctx, slot_count, pipeline.descriptor_layout, {
-        {max_vertices * sizeof(context_t::vertex_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, mem},
-        {max_indices * sizeof(std::uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, mem},
-        {sizeof(counters_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, mem}
+        {max_vertices * sizeof(context_t::vertex_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, read_mem},
+        {max_indices * sizeof(std::uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, read_mem},
+        {sizeof(counters_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, read_mem},
+        {edit_buffer_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, write_mem}
       });
     }
     void close() {
@@ -70,13 +105,21 @@ export namespace fan::graphics::vulkan::ray_tracing {
     }
     bool ready() const { return ctx && pipeline.pipeline != VK_NULL_HANDLE; }
     std::uint32_t free_slot_count() const { return slots.free_slot_count(); }
-    bool submit(const push_t& push, chunk_coord_t coord) {
+    bool submit(const push_t& push, chunk_coord_t coord, const std::vector<block_edit_t>& edits) {
       if (!ready()) { return false; }
       std::uint32_t si = slots.acquire();
       if (si == vk_context_t::compute_slot_ring_t::invalid_slot) { return false; }
       auto& slot = slots.get(si);
+      std::uint32_t edit_count = std::min<std::uint32_t>((std::uint32_t)edits.size(), max_edits_per_chunk);
+      auto* header = static_cast<edit_header_t*>(slot.buffers[3].mapped);
+      header->count = edit_count;
+      header->pad0 = header->pad1 = header->pad2 = 0;
+      if (edit_count) {
+        std::memcpy((std::uint8_t*)slot.buffers[3].mapped + sizeof(edit_header_t), edits.data(), (std::size_t)edit_count * sizeof(block_edit_t));
+      }
       auto cmd = slots.begin(*ctx, si);
       ctx->fill_buffer_cmd(cmd, slot.buffers[2], 0, sizeof(counters_t), 0);
+      ctx->buffer_barrier_cmd(cmd, slot.buffers[3], VK_ACCESS_HOST_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, edit_buffer_size);
       ctx->buffer_barrier_cmd(cmd, slot.buffers[2], VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, sizeof(counters_t));
       pipeline.dispatch(*ctx, cmd, slot.descriptor_set, &push, (chunk_size + 7) / 8, (chunk_size + 7) / 8, 1);
       ctx->buffer_barriers_cmd(cmd, {
@@ -197,6 +240,101 @@ export namespace fan::graphics::vulkan::ray_tracing {
       mesh.transform = fan::translate(fan::vec3(0.f, -1000000.f, 0.f));
       return mesh;
     }
+    struct block_tiles_t {
+      fan::vec2 top;
+      fan::vec2 side;
+    };
+    static block_tiles_t block_tiles(std::uint8_t id) {
+      if (id == 2) { return {fan::vec2(1.f, 0.f), fan::vec2(1.f, 0.f)}; }
+      if (id == 3) { return {fan::vec2(2.f, 1.f), fan::vec2(2.f, 1.f)}; }
+      if (id == 4) { return {fan::vec2(2.f, 4.f), fan::vec2(4.f, 4.f)}; }
+      if (id == 5) { return {fan::vec2(4.f, 1.f), fan::vec2(4.f, 1.f)}; }
+      if (id == 6) { return {fan::vec2(3.f, 10.f), fan::vec2(3.f, 10.f)}; }
+      return {fan::vec2(4.f, 9.f), fan::vec2(3.f, 0.f)};
+    }
+    static fan::vec2 atlas_uv(fan::vec2 tile_id, fan::vec2 uv) {
+      constexpr f32_t atlas_size = 2048.f;
+      constexpr f32_t tile_size = 128.f;
+      constexpr f32_t pad = 0.5f;
+      uv.y = 1.f - uv.y;
+      return (tile_id * tile_size + fan::vec2(pad) + uv * (tile_size - pad * 2.f)) / atlas_size;
+    }
+    static fan::vec2 block_uv(block_tiles_t b, fan::vec2 uv, bool top) {
+      return atlas_uv(top ? b.top : b.side, uv);
+    }
+    static void push_vertex(context_t::voxel_mesh_input_t& mesh, fan::vec3 p, fan::vec3 n, fan::vec2 uv, block_tiles_t b, bool top) {
+      context_t::vertex_t v {};
+      v.position = fan::vec4(p.x, p.y, p.z, 0.f);
+      v.normal = fan::vec4(n.x, n.y, n.z, 0.f);
+      v.texcoord = block_uv(b, uv, top);
+      v.color = 0xffffffffu;
+      mesh.vertices.push_back(v);
+    }
+    static void push_quad(context_t::voxel_mesh_input_t& mesh, fan::vec3 p0, fan::vec3 p1, fan::vec3 p2, fan::vec3 p3, fan::vec3 n, block_tiles_t b, bool top) {
+      std::uint32_t vi = (std::uint32_t)mesh.vertices.size();
+      push_vertex(mesh, p0, n, fan::vec2(0.f, 0.f), b, top);
+      push_vertex(mesh, p1, n, fan::vec2(1.f, 0.f), b, top);
+      push_vertex(mesh, p2, n, fan::vec2(1.f, 1.f), b, top);
+      push_vertex(mesh, p3, n, fan::vec2(0.f, 1.f), b, top);
+      mesh.indices.insert(mesh.indices.end(), {vi + 0, vi + 1, vi + 2, vi + 0, vi + 2, vi + 3});
+    }
+    void push_block_face(context_t::voxel_mesh_input_t& mesh, block_pos_t p, std::int32_t face, block_tiles_t b) const {
+      f32_t s = voxel_size;
+      f32_t x0 = (f32_t)p.x * s;
+      f32_t x1 = (f32_t)(p.x + 1) * s;
+      f32_t y0 = ((f32_t)p.y - (f32_t)sea_level) * s;
+      f32_t y1 = ((f32_t)(p.y + 1) - (f32_t)sea_level) * s;
+      f32_t z0 = (f32_t)p.z * s;
+      f32_t z1 = (f32_t)(p.z + 1) * s;
+
+      if (face == 0) { push_quad(mesh, fan::vec3(x1, y0, z1), fan::vec3(x1, y0, z0), fan::vec3(x1, y1, z0), fan::vec3(x1, y1, z1), fan::vec3(1.f, 0.f, 0.f), b, false); }
+      else if (face == 1) { push_quad(mesh, fan::vec3(x0, y0, z0), fan::vec3(x0, y0, z1), fan::vec3(x0, y1, z1), fan::vec3(x0, y1, z0), fan::vec3(-1.f, 0.f, 0.f), b, false); }
+      else if (face == 2) { push_quad(mesh, fan::vec3(x0, y1, z0), fan::vec3(x1, y1, z0), fan::vec3(x1, y1, z1), fan::vec3(x0, y1, z1), fan::vec3(0.f, 1.f, 0.f), b, true); }
+      else if (face == 3) { push_quad(mesh, fan::vec3(x0, y0, z0), fan::vec3(x0, y0, z1), fan::vec3(x1, y0, z1), fan::vec3(x1, y0, z0), fan::vec3(0.f, -1.f, 0.f), b, false); }
+      else if (face == 4) { push_quad(mesh, fan::vec3(x0, y0, z1), fan::vec3(x1, y0, z1), fan::vec3(x1, y1, z1), fan::vec3(x0, y1, z1), fan::vec3(0.f, 0.f, 1.f), b, false); }
+      else { push_quad(mesh, fan::vec3(x1, y0, z0), fan::vec3(x0, y0, z0), fan::vec3(x0, y1, z0), fan::vec3(x1, y1, z0), fan::vec3(0.f, 0.f, -1.f), b, false); }
+    }
+    context_t::voxel_mesh_input_t make_placed_blocks_mesh() const {
+      if (placed_blocks.empty()) {
+        return make_hidden_chunk_mesh();
+      }
+
+      context_t::voxel_mesh_input_t mesh;
+      mesh.transform = fan::mat4(1);
+      constexpr std::array<block_pos_t, 6> dirs {{
+        {1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}
+      }};
+      for (auto& [p, id] : placed_blocks) {
+        block_tiles_t tiles = block_tiles(id);
+        for (std::int32_t face = 0; face < 6; ++face) {
+          block_pos_t n {p.x + dirs[face].x, p.y + dirs[face].y, p.z + dirs[face].z};
+          if (!solid_block(n)) {
+            push_block_face(mesh, p, face, tiles);
+          }
+        }
+      }
+      if (mesh.vertices.empty() || mesh.indices.empty()) {
+        return make_hidden_chunk_mesh();
+      }
+      mesh.materials = {terrain_mat};
+      mesh.primitive_material_indices.assign(mesh.indices.size() / 3, 0);
+      mesh.vertex_capacity = std::max<std::uint32_t>((std::uint32_t)mesh.vertices.size() + 4096, 65'536);
+      mesh.index_capacity = std::max<std::uint32_t>((std::uint32_t)mesh.indices.size() + 6144, 98'304);
+      mesh.material_capacity = 1;
+      return mesh;
+    }
+    void rebuild_placed_blocks(context_t& renderer) {
+      context_t::voxel_mesh_input_t mesh = make_placed_blocks_mesh();
+      if (!placed_overlay_uploaded) {
+        placed_overlay = renderer.add_mesh_incremental(mesh);
+        placed_overlay_uploaded = true;
+        return;
+      }
+      if (!renderer.update_mesh(placed_overlay, mesh)) {
+        renderer.set_transform_deferred(placed_overlay, fan::translate(fan::vec3(0.f, -1000000.f, 0.f)));
+        placed_overlay = renderer.add_mesh_incremental(mesh);
+      }
+    }
     void unload_far(context_t& renderer, chunk_coord_t center) {
       for (auto it = chunks.begin(); it != chunks.end();) {
         if (!it->second.uploaded || in_range(it->first, center, preload_extra + 2)) { ++it; continue; }
@@ -211,10 +349,10 @@ export namespace fan::graphics::vulkan::ray_tracing {
       if (!gpu.ready()) {
         if (!renderer.ready) { return; }
         open(renderer);
-        load_initial(renderer, to_chunk(cam), initial_load_radius);
+        load_initial(renderer, to_chunk(cam), initial_load_radius, cam);
       }
       chunk_coord_t center = to_chunk(cam);
-      prune_queue(center); unload_far(renderer, center); queue_missing(center); poll_completed(renderer, center); submit_pending(center);
+      prune_queue(center); unload_far(renderer, center); queue_missing(center, cam); poll_completed(renderer, center); submit_pending(center, cam);
     }
     void render_gui(context_t& renderer) {
       gui::drag("render distance", &render_distance);
@@ -228,17 +366,122 @@ export namespace fan::graphics::vulkan::ray_tracing {
       gui::text(gpu.free_slot_count());
       renderer.render_gui();
     }
-    void load_initial(context_t& renderer, chunk_coord_t center, std::int32_t radius) {
+    void load_initial(context_t& renderer, chunk_coord_t center, std::int32_t radius, const fan::vec3& cam) {
       if (!gpu.ready()) { return; }
-      (center - radius).rect(center + radius, [&](std::int32_t x, std::int32_t z) {
-        if ((chunk_coord_t{x, z} - center).length_squared() <= radius * radius) { queue_coord({x, z}); }
-      });
 
-      submit_pending(center);
+      for (std::int32_t r = 0; r <= radius; ++r) {
+        (center - r).rect(center + r, [&](std::int32_t x, std::int32_t z) {
+          chunk_coord_t c(x, z);
+          chunk_coord_t d = c - center;
+          if (d.length_squared() <= r * r) {
+            queue_coord(c);
+          }
+        });
+      }
+
+      sort_and_trim_work_queue(center, cam);
+      submit_pending(center, cam);
     }
     chunk_coord_t to_chunk(const fan::vec3& p) const {
       f32_t s = (f32_t)chunk_size * voxel_size;
       return {(std::int32_t)std::floor(p.x / s), (std::int32_t)std::floor(p.z / s)};
+    }
+    static std::int32_t floor_div(std::int32_t a, std::int32_t b) {
+      std::int32_t q = a / b;
+      std::int32_t r = a % b;
+      return q - ((r != 0) && ((r < 0) != (b < 0)));
+    }
+    static std::int32_t floor_mod(std::int32_t a, std::int32_t b) {
+      std::int32_t r = a % b;
+      return r < 0 ? r + b : r;
+    }
+    block_pos_t world_to_block(const fan::vec3& p) const {
+      return {
+        (std::int32_t)std::floor(p.x / voxel_size),
+        (std::int32_t)std::floor(p.y / voxel_size + (f32_t)sea_level),
+        (std::int32_t)std::floor(p.z / voxel_size)
+      };
+    }
+    fan::vec3 block_to_world(block_pos_t b) const {
+      return fan::vec3(
+        (f32_t)b.x * voxel_size,
+        ((f32_t)b.y - (f32_t)sea_level) * voxel_size,
+        (f32_t)b.z * voxel_size
+      );
+    }
+    chunk_coord_t block_to_chunk(block_pos_t b) const {
+      return {
+        floor_div(b.x, (std::int32_t)chunk_size),
+        floor_div(b.z, (std::int32_t)chunk_size)
+      };
+    }
+    void collect_chunk_edits(chunk_coord_t coord, std::vector<block_edit_t>& out) const {
+      out.clear();
+      std::int32_t ox = coord.x * (std::int32_t)chunk_size;
+      std::int32_t oz = coord.y * (std::int32_t)chunk_size;
+      std::int32_t min_x = ox - 1;
+      std::int32_t max_x = ox + (std::int32_t)chunk_size;
+      std::int32_t min_z = oz - 1;
+      std::int32_t max_z = oz + (std::int32_t)chunk_size;
+
+      for (auto& [p, id] : block_edits) {
+        if (p.x < min_x || p.x > max_x || p.z < min_z || p.z > max_z) {
+          continue;
+        }
+        out.push_back({p.x, p.y, p.z, (std::int32_t)id});
+        if (out.size() >= gpu_chunk_generator_t::max_edits_per_chunk) {
+          break;
+        }
+      }
+    }
+    void queue_dirty_chunk(chunk_coord_t c) {
+      auto& ch = chunks[c];
+      ch.dirty = true;
+      if (!ch.pending) {
+        ch.pending = true;
+        work_queue.push_back(c);
+      }
+    }
+    void queue_dirty_block(block_pos_t b) {
+      chunk_coord_t c = block_to_chunk(b);
+      queue_dirty_chunk(c);
+      std::int32_t lx = floor_mod(b.x, (std::int32_t)chunk_size);
+      std::int32_t lz = floor_mod(b.z, (std::int32_t)chunk_size);
+      if (lx == 0) { queue_dirty_chunk({c.x - 1, c.y}); }
+      if (lx == (std::int32_t)chunk_size - 1) { queue_dirty_chunk({c.x + 1, c.y}); }
+      if (lz == 0) { queue_dirty_chunk({c.x, c.y - 1}); }
+      if (lz == (std::int32_t)chunk_size - 1) { queue_dirty_chunk({c.x, c.y + 1}); }
+    }
+    void set_block(context_t& renderer, block_pos_t b, std::uint8_t id) {
+      auto it = placed_blocks.find(b);
+      if (it != placed_blocks.end() && it->second == id) {
+        return;
+      }
+      placed_blocks[b] = id;
+      rebuild_placed_blocks(renderer);
+    }
+    void remove_block(context_t& renderer, block_pos_t b) {
+      auto placed = placed_blocks.find(b);
+      if (placed != placed_blocks.end()) {
+        placed_blocks.erase(placed);
+        rebuild_placed_blocks(renderer);
+        return;
+      }
+
+      std::uint32_t h = height_at(b.x, b.z);
+      auto it = block_edits.find(b);
+      if (b.y > (std::int32_t)h && it == block_edits.end()) {
+        return;
+      }
+      if (b.y <= (std::int32_t)h) {
+        for (std::int32_t y = std::max<std::int32_t>(b.y, 0); y <= (std::int32_t)h; ++y) {
+          block_edits[{b.x, y, b.z}] = 0;
+        }
+      }
+      else {
+        block_edits[b] = 0;
+      }
+      queue_dirty_block(b);
     }
     static std::uint32_t hash_u(std::uint32_t x) {
       x ^= x >> 16;
@@ -299,10 +542,50 @@ export namespace fan::graphics::vulkan::ray_tracing {
 
       return (std::uint32_t)std::clamp(8.f + h * ((f32_t)sy - 14.f), 1.f, (f32_t)sy - 2.f);
     }
+    std::int32_t edit_at(block_pos_t b) const {
+      auto it = block_edits.find(b);
+      return it == block_edits.end() ? -1 : (std::int32_t)it->second;
+    }
+    bool solid_block(block_pos_t b) const {
+      if (b.y < 0) {
+        return false;
+      }
+      if (placed_blocks.contains(b)) {
+        return true;
+      }
+      std::int32_t edit = edit_at(b);
+      if (edit == 0) {
+        return false;
+      }
+      return b.y <= (std::int32_t)height_at(b.x, b.z);
+    }
+    std::int32_t column_top_y(std::int32_t bx, std::int32_t bz) const {
+      std::int32_t max_y = (std::int32_t)sy - 1;
+      for (auto& [p, id] : placed_blocks) {
+        if (p.x == bx && p.z == bz) {
+          max_y = std::max(max_y, p.y);
+        }
+      }
+      for (std::int32_t y = max_y; y >= 0; --y) {
+        if (solid_block({bx, y, bz})) {
+          return y;
+        }
+      }
+      return -1;
+    }
     f32_t ground_y(f32_t x, f32_t z) const {
       std::int32_t bx = (std::int32_t)std::floor(x / voxel_size);
       std::int32_t bz = (std::int32_t)std::floor(z / voxel_size);
-      return ((f32_t)height_at(bx, bz) + 1.f - (f32_t)sea_level) * voxel_size;
+      std::int32_t y = column_top_y(bx, bz);
+      return ((f32_t)y + 1.f - (f32_t)sea_level) * voxel_size;
+    }
+    f32_t ground_y(f32_t x, f32_t z, f32_t radius) const {
+      f32_t y = ground_y(x, z);
+      y = std::max(y, ground_y(x + radius, z + radius));
+      y = std::max(y, ground_y(x + radius, z - radius));
+      y = std::max(y, ground_y(x - radius, z + radius));
+      y = std::max(y, ground_y(x - radius, z - radius));
+      return y;
     }
     gpu_chunk_generator_t::push_t make_push(chunk_coord_t c) const {
       return {
@@ -328,12 +611,17 @@ export namespace fan::graphics::vulkan::ray_tracing {
         auto it = chunks.find(coord);
         if (it == chunks.end()) { continue; }
         auto& ch = it->second;
-        if (!in_range(coord, center, 1)) { ch.pending = false; if (!ch.uploaded) { chunks.erase(it); } continue; }
-        if (ch.uploaded) { ch.pending = false; continue; }
-        if (mesh.vertices.empty() || mesh.indices.empty()) { ch.pending = false; continue; }
+        if (!in_range(coord, center, 1)) { ch.pending = false; ch.dirty = false; if (!ch.uploaded) { chunks.erase(it); } continue; }
+        if (mesh.vertices.empty() || mesh.indices.empty()) { ch.pending = false; ch.dirty = false; continue; }
         prepare_chunk_mesh(mesh);
         if (!batch) { renderer.begin_incremental_upload(); batch = true; }
-        if (free_handles.empty()) {
+        if (ch.uploaded) {
+          if (!renderer.update_mesh(ch.handle, mesh)) {
+            renderer.set_transform_deferred(ch.handle, fan::translate(fan::vec3(0.f, -1000000.f, 0.f)));
+            ch.handle = renderer.add_mesh_incremental(mesh);
+          }
+        }
+        else if (free_handles.empty()) {
           ch.handle = renderer.add_mesh_incremental(mesh);
         }
         else {
@@ -343,14 +631,60 @@ export namespace fan::graphics::vulkan::ray_tracing {
             ch.handle = renderer.add_mesh_incremental(mesh);
           }
         }
-        ch.uploaded = true; ch.pending = false; ++uploaded;
+        bool regenerate = ch.dirty;
+        ch.uploaded = true; ch.pending = false; ch.dirty = false; ++uploaded;
+        if (regenerate) {
+          queue_dirty_chunk(coord);
+        }
       }
       if (batch) { renderer.end_incremental_upload(); }
     }
-    void submit_pending(chunk_coord_t center) {
+    f32_t chunk_distance2(chunk_coord_t c, const fan::vec3& cam) const {
+      f32_t s = (f32_t)chunk_size * voxel_size;
+      f32_t x0 = (f32_t)c.x * s;
+      f32_t x1 = (f32_t)(c.x + 1) * s;
+      f32_t z0 = (f32_t)c.y * s;
+      f32_t z1 = (f32_t)(c.y + 1) * s;
+
+      f32_t dx = cam.x < x0 ? x0 - cam.x : (cam.x > x1 ? cam.x - x1 : 0.f);
+      f32_t dz = cam.z < z0 ? z0 - cam.z : (cam.z > z1 ? cam.z - z1 : 0.f);
+      return dx * dx + dz * dz;
+    }
+    void sort_and_trim_work_queue(chunk_coord_t center, const fan::vec3& cam) {
+      std::ranges::sort(work_queue, {}, [&](const chunk_coord_t& p) {
+        chunk_coord_t d = p - center;
+        return chunk_distance2(p, cam) + (f32_t)d.length_squared() * 0.001f;
+      });
+
+      std::vector<chunk_coord_t> kept;
+      kept.reserve(std::min<std::size_t>(work_queue.size(), max_pending_chunks));
+
+      for (chunk_coord_t c : work_queue) {
+        auto it = chunks.find(c);
+        if (it == chunks.end()) {
+          continue;
+        }
+
+        bool keep = kept.size() < max_pending_chunks || it->second.dirty;
+        if (keep) {
+          kept.push_back(c);
+          continue;
+        }
+
+        it->second.pending = false;
+        if (!it->second.uploaded) {
+          chunks.erase(it);
+        }
+      }
+
+      work_queue = std::move(kept);
+    }
+    void submit_pending(chunk_coord_t center, const fan::vec3& cam) {
+      sort_and_trim_work_queue(center, cam);
+
       std::uint32_t submitted = 0;
       while (!work_queue.empty() && submitted < max_submits_per_frame && gpu.free_slot_count()) {
-        std::size_t bi = closest_work_index(center);
+        std::size_t bi = closest_work_index(cam);
         chunk_coord_t coord = work_queue[bi];
         if (!in_range(coord, center, 1)) {
           auto it = chunks.find(coord);
@@ -358,28 +692,37 @@ export namespace fan::graphics::vulkan::ray_tracing {
           work_queue.erase(work_queue.begin() + bi);
           continue;
         }
-        if (!gpu.submit(make_push(coord), coord)) { break; }
+        collect_chunk_edits(coord, submit_edits);
+        if (!gpu.submit(make_push(coord), coord, submit_edits)) { break; }
+        chunks[coord].dirty = false;
         work_queue.erase(work_queue.begin() + bi);
         ++submitted;
       }
     }
-    std::size_t closest_work_index(chunk_coord_t center) const {
+    std::size_t closest_work_index(const fan::vec3& cam) const {
       const auto it = std::ranges::min_element(work_queue, {}, [&](const chunk_coord_t& p) {
-        return (p - center).length_squared();
+        return chunk_distance2(p, cam);
       });
       return std::distance(work_queue.begin(), it);
     }
     void queue_coord(chunk_coord_t c) {
       auto& ch = chunks[c];
-      if (!ch.uploaded && !ch.pending && work_queue.size() < max_pending_chunks) { ch.pending = true; work_queue.push_back(c); }
+      if (!ch.uploaded && !ch.pending) {
+        ch.pending = true;
+        work_queue.push_back(c);
+      }
     }
-    void queue_missing(chunk_coord_t center) {
+    void queue_missing(chunk_coord_t center, const fan::vec3& cam) {
       std::int32_t r = render_distance + preload_extra;
       std::int32_t r2 = r * r;
       (center - r).rect(center + r, [&](std::int32_t x, std::int32_t z) {
         chunk_coord_t c(x, z);
-        if ((c - center).length_squared() <= r2) { queue_coord(c); }
+        if ((c - center).length_squared() <= r2) {
+          queue_coord(c);
+        }
       });
+
+      sort_and_trim_work_queue(center, cam);
     }
     std::int32_t register_rt_image(context_t& renderer, fan::graphics::image_t& img) {
       auto& vk_img = renderer.ctx->image_get(img);
@@ -397,8 +740,13 @@ export namespace fan::graphics::vulkan::ray_tracing {
     std::vector<chunk_coord_t> work_queue;
     std::vector<context_t::object_handle_t> free_handles;
     std::unordered_map<chunk_coord_t, terrain_chunk_t, chunk_coord_hash_t> chunks;
+    std::unordered_map<block_pos_t, std::uint8_t, block_pos_hash_t> block_edits;
+    std::unordered_map<block_pos_t, std::uint8_t, block_pos_hash_t> placed_blocks;
+    context_t::object_handle_t placed_overlay;
+    bool placed_overlay_uploaded = false;
+    std::vector<block_edit_t> submit_edits;
     std::int32_t render_distance = 8, initial_load_radius = 3;
-    std::uint32_t max_uploads_per_frame = 1, max_submits_per_frame = 2, max_pending_chunks = 192;
+    std::uint32_t max_uploads_per_frame = 2, max_submits_per_frame = 4, max_pending_chunks = 384;
     std::int32_t preload_extra = 0;
     f32_t upload_budget_ms = 0.25f;
   };

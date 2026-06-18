@@ -584,6 +584,11 @@ void fan::vulkan::context_t::create_logical_device() {
   vulkan12.descriptorIndexing = VK_TRUE;
   vulkan12.descriptorBindingVariableDescriptorCount = VK_TRUE;
   vulkan12.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+  vulkan12.descriptorBindingStorageImageUpdateAfterBind = VK_TRUE;
+  vulkan12.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE;
+  vulkan12.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE;
+  vulkan12.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
+  vulkan12.descriptorBindingPartiallyBound = VK_TRUE;
 
 #if defined(ENABLE_RAYTRACING_DEPENDENCIES)
   vulkan12.bufferDeviceAddress = VK_TRUE;
@@ -591,6 +596,7 @@ void fan::vulkan::context_t::create_logical_device() {
   VkPhysicalDeviceAccelerationStructureFeaturesKHR accel {};
   accel.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
   accel.accelerationStructure = VK_TRUE;
+  accel.descriptorBindingAccelerationStructureUpdateAfterBind = VK_TRUE;
 
   VkPhysicalDeviceRayTracingPipelineFeaturesKHR rt {};
   rt.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
@@ -1059,8 +1065,23 @@ void fan::vulkan::context_t::compute_pipeline_t::open(fan::vulkan::context_t& co
   for (auto& binding : bindings) {
     layout_bindings.push_back({binding.binding, binding.type, binding.descriptor_count, binding.stage_flags, nullptr});
   }
+  std::vector<VkDescriptorBindingFlags> binding_flags(layout_bindings.size());
+  for (auto& flags : binding_flags) {
+    flags =
+      VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
+      VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT |
+      VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+  }
+
+  VkDescriptorSetLayoutBindingFlagsCreateInfo binding_flags_info{};
+  binding_flags_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+  binding_flags_info.bindingCount = (std::uint32_t)binding_flags.size();
+  binding_flags_info.pBindingFlags = binding_flags.data();
+
   VkDescriptorSetLayoutCreateInfo descriptor_info{};
   descriptor_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+  descriptor_info.pNext = &binding_flags_info;
+  descriptor_info.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
   descriptor_info.bindingCount = (std::uint32_t)layout_bindings.size();
   descriptor_info.pBindings = layout_bindings.data();
   fan::vulkan::validate(vkCreateDescriptorSetLayout(context.device, &descriptor_info, nullptr, &descriptor_layout));
@@ -1121,6 +1142,7 @@ void fan::vulkan::context_t::compute_slot_ring_t::open(fan::vulkan::context_t& c
   }
   VkDescriptorPoolCreateInfo pool_info{};
   pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+  pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
   pool_info.maxSets = slot_count;
   pool_info.poolSizeCount = (std::uint32_t)pool_sizes.size();
   pool_info.pPoolSizes = pool_sizes.data();

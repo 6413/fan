@@ -127,8 +127,36 @@ export namespace fan {
             uboLayoutBinding[i].stageFlags = properties[i].flags;
           }
 
+          std::vector<VkDescriptorBindingFlags> binding_flags(uboLayoutBinding.size());
+          bool has_update_after_bind = false;
+          for (std::uint32_t i = 0; i < (std::uint32_t)uboLayoutBinding.size(); ++i) {
+            switch (uboLayoutBinding[i].descriptorType) {
+              case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+              case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+              case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+              case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+              case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+                binding_flags[i] =
+                  VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
+                  VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT |
+                  VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+                has_update_after_bind = true;
+                break;
+              default:
+                binding_flags[i] = 0;
+                break;
+            }
+          }
+
+          VkDescriptorSetLayoutBindingFlagsCreateInfo binding_flags_info{};
+          binding_flags_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+          binding_flags_info.bindingCount = (std::uint32_t)binding_flags.size();
+          binding_flags_info.pBindingFlags = binding_flags.data();
+
           VkDescriptorSetLayoutCreateInfo layoutInfo{};
           layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+          layoutInfo.pNext = has_update_after_bind ? &binding_flags_info : nullptr;
+          layoutInfo.flags = has_update_after_bind ? VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT : 0;
           layoutInfo.bindingCount = std::size(uboLayoutBinding);
           layoutInfo.pBindings = uboLayoutBinding.data();
 
@@ -218,7 +246,7 @@ export namespace fan {
           };
           VkDescriptorPoolCreateInfo pool_info = {};
           pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-          pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+          pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT | VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
           pool_info.maxSets = 0;
           for (VkDescriptorPoolSize& pool_size : pool_sizes)
             pool_info.maxSets += max_frames_in_flight * pool_size.descriptorCount;
