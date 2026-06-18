@@ -475,8 +475,6 @@ void draw_bloom() {
 
   for (std::uint32_t i = 0; i < chain.mips.size(); ++i) {
     VkImageView source = i == 0 ? context.mainColorImageViews[context.image_index].image_view : chain.mips[i - 1].image.image_view;
-    update_single_sampler_descriptor(bloom_downsample_descriptors[i], source);
-
     bloom_downsample_push_constants_t pc{};
     fan::vec2 source_size = i == 0 ? context.swap_chain_size : fan::vec2(chain.mips[i - 1].size.x, chain.mips[i - 1].size.y);
     pc.resolution_threshold_knee_mip = fan::vec4(source_size.x, source_size.y, bloom_threshold, bloom_knee);
@@ -490,8 +488,6 @@ void draw_bloom() {
   for (int i = (int)chain.mips.size() - 1; i > 0; --i) {
     auto& mip = chain.mips[i];
     auto& next_mip = chain.mips[i - 1];
-
-    update_single_sampler_descriptor(bloom_upsample_descriptors[i], mip.image.image_view);
 
     fan::vec2 texel_size = fan::vec2(1.0f / mip.size.x, 1.0f / mip.size.y) * bloom_filter_radius;
     bloom_upsample_push_constants_t pc{};
@@ -516,6 +512,27 @@ void update_final_descriptor() {
   loco.vk.d_attachments.m_properties[2].image_infos[0] = make_image_info(scene);
   loco.vk.d_attachments.m_properties[3].image_infos[0] = make_image_info(scene);
   loco.vk.d_attachments.update(context, 4, 0, 1);
+}
+
+void update_post_process_descriptors_before_cmd() {
+  if (!post_process_resources_open) {
+    return;
+  }
+
+  fan::vulkan::context_t& context = loco.context.vk;
+
+  if (context.image_index < bloom_chains.size()) {
+    auto& chain = bloom_chains[context.image_index];
+    for (std::uint32_t i = 0; i < chain.mips.size(); ++i) {
+      VkImageView source = i == 0 ? context.mainColorImageViews[context.image_index].image_view : chain.mips[i - 1].image.image_view;
+      update_single_sampler_descriptor(bloom_downsample_descriptors[i], source);
+    }
+    for (int i = (int)chain.mips.size() - 1; i > 0; --i) {
+      update_single_sampler_descriptor(bloom_upsample_descriptors[i], chain.mips[i].image.image_view);
+    }
+  }
+
+  update_final_descriptor();
 }
 
 post_process_push_constants_t make_post_process_pc() {
@@ -568,7 +585,6 @@ void draw_post_process() {
     draw_bloom();
   }
 
-  update_final_descriptor();
   auto pc = make_post_process_pc();
 
   begin_color_pass(
@@ -680,6 +696,49 @@ void begin_render_pass() {
   vkCmdBeginRenderPass(context.command_buffers[context.current_frame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
+
+#if defined(FAN_2D)
+void update_shape_descriptors_before_cmd() {
+  if (fan::graphics::g_shapes == nullptr) {
+    return;
+  }
+  if (loco.context.vk.image_pool.empty()) {
+    return;
+  }
+
+  fan::graphics::shaper_t::KeyTraverse_t KeyTraverse;
+  KeyTraverse.Init(fan::graphics::g_shapes->shaper);
+
+  while (KeyTraverse.Loop(fan::graphics::g_shapes->shaper)) {
+    if (!KeyTraverse.isbm) {
+      continue;
+    }
+
+    fan::graphics::shaper_t::BlockTraverse_t BlockTraverse;
+    fan::graphics::shaper_t::ShapeTypeIndex_t shape_type = BlockTraverse.Init(fan::graphics::g_shapes->shaper, KeyTraverse.bmid());
+
+    if (shape_type == fan::graphics::shapes::shape_type_t::light_end) {
+      continue;
+    }
+
+    auto shader_nr = fan::graphics::g_shapes->shaper.GetShader(shape_type);
+    auto& shader = *(fan::vulkan::context_t::shader_t*)loco.context_functions.shader_get(&loco.context.vk, shader_nr);
+    auto& st = fan::graphics::g_shapes->shaper.GetShapeTypes(shape_type);
+    auto& vk_data = st.renderer.vk;
+    auto current_frame = loco.context.vk.current_frame;
+
+    vk_data.shape_data.m_descriptor.m_properties[0].buffer =
+      vk_data.shape_data.common.memory[current_frame].buffer;
+    vk_data.shape_data.m_descriptor.m_properties[1].buffer =
+      shader.projection_view_block->common.memory[current_frame].buffer;
+    vk_data.shape_data.m_descriptor.m_properties[1].range =
+      shader.projection_view_block->m_size;
+    vk_data.shape_data.m_descriptor.m_properties[2].image_infos = loco.context.vk.image_pool;
+    vk_data.shape_data.m_descriptor.update(loco.context.vk, 3, 0, vk_data.shape_data.m_descriptor.m_properties[2].image_infos.size());
+  }
+}
+#endif
+
 void begin_draw() {
   fan::vulkan::context_t& context = loco.context.vk;
   vkWaitForFences(context.device, 1, &context.in_flight_fences[context.current_frame], VK_TRUE, UINT64_MAX);
@@ -774,23 +833,10 @@ void begin_draw() {
   }
 
   #if defined(FAN_2D)
-  {
-    for (auto& st : fan::graphics::g_shapes->shaper.ShapeTypes) {
-      if (st.sti == (decltype(st.sti))-1) {
-        continue;
-      }
-      // TODO add more shapes here to enable textures
-      if (st.sti != fan::graphics::shapes::shape_type_t::sprite) {
-        continue;
-      }
-      auto& vk_data = st.renderer.vk;
-      // todo slow, use only pointer
-      vk_data.shape_data.m_descriptor.m_properties[2].image_infos = loco.context.vk.image_pool;
-      // doesnt like multiple frames in flight
-      vk_data.shape_data.m_descriptor.update(loco.context.vk, 1, 2, vk_data.shape_data.m_descriptor.m_properties[2].image_infos.size());
-    }
-  }
+  update_shape_descriptors_before_cmd();
 #endif
+
+  update_post_process_descriptors_before_cmd();
 
   for (auto& i : context.pre_begin_cmd_cb) {
     i();
@@ -908,7 +954,6 @@ void shapes_draw() {
           shader.projection_view_block->common.memory[current_frame].buffer;
         vk_data.shape_data.m_descriptor.m_properties[1].range =
           shader.projection_view_block->m_size;
-        vk_data.shape_data.m_descriptor.update(loco.context.vk, 2, 0);
         auto* descriptor_set =
           &vk_data.shape_data.m_descriptor.m_descriptor_set[current_frame];
         {
