@@ -45,9 +45,9 @@ layout(push_constant) uniform push_t {
   uint sea_level;
   uint snow_line;
   uint rock_line;
-  uint pad0;
+  uint tree_cell;
   float voxel_size;
-  float pad1;
+  float tree_density;
   float pad2;
   float pad3;
 } pc;
@@ -455,12 +455,14 @@ void emit_voxel(ivec3 p, uint mask, block_t b) {
   }
 }
 
-const int TREE_CELL = 10;
+int tree_cell_size() {
+  return max(int(pc.tree_cell), 1);
+}
 
-ivec2 tree_candidate(ivec2 cell) {
+ivec2 tree_candidate(ivec2 cell, int cell_size) {
   float rx = hash21(cell * 37 + ivec2(11, 7));
   float rz = hash21(cell * 53 + ivec2(3, 19));
-  return cell * TREE_CELL + ivec2(int(rx * float(TREE_CELL)), int(rz * float(TREE_CELL)));
+  return cell * cell_size + ivec2(int(rx * float(cell_size)), int(rz * float(cell_size)));
 }
 
 void emit_tree(ivec3 root) {
@@ -477,12 +479,17 @@ void emit_tree(ivec3 root) {
 }
 
 void try_emit_tree(uint x, uint z, int h, float slope, block_t block, ivec2 wp) {
-  if (!is_grass(block) || h <= int(pc.sea_level) + 2 || slope >= 3.0) {
+  if (pc.tree_density <= 0.0 || !is_grass(block) || h <= int(pc.sea_level) + 2 || slope >= 3.0) {
     return;
   }
 
-  ivec2 cell = ivec2(floor(vec2(wp) / float(TREE_CELL)));
-  ivec2 candidate = tree_candidate(cell);
+  int cell_size = tree_cell_size();
+  ivec2 cell = ivec2(floor(vec2(wp) / float(cell_size)));
+  if (hash21(cell * 97 + ivec2(23, 41)) > pc.tree_density) {
+    return;
+  }
+
+  ivec2 candidate = tree_candidate(cell, cell_size);
 
   if (all(equal(wp, candidate))) {
     emit_tree(ivec3(int(x), int(h), int(z)));
