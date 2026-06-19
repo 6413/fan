@@ -56,9 +56,10 @@ void main() {
     if (bone_id < 0 || weight <= 0.0) {
       continue;
     }
+    
     mat4 bone_matrix = bone_matrices[bone_id];
     position += bone_matrix * vec4(src.position.xyz, 1.0) * weight;
-    normal += mat3(bone_matrix) * src.normal.xyz * weight;
+    normal += (bone_matrix * vec4(src.normal.xyz, 0.0)).xyz * weight;
     total_weight += weight;
   }
 

@@ -700,6 +700,82 @@ public:
   void camera_move(f32_t movement_speed = 1000.f, f32_t friction = 12);
   void camera_move(fan::graphics::context_camera_t& camera, f32_t movement_speed = 1000.f, f32_t friction = 12);
 
+  struct fps_camera_params_t {
+    f32_t speed = 5.f;
+    f32_t noclip_speed = 40.f;
+    f32_t gravity = 60.f;
+    f32_t jump_force = 20.f;
+    f32_t eye_height = 2.4f;
+    f32_t player_radius = 0.35f;
+    f32_t noclip_acceleration = 80.f;
+    f32_t noclip_friction = 30.f;
+    f32_t ground_acceleration = 60.f;
+  };
+  static fan::vec3 approach(fan::vec3 v, fan::vec3 target, f32_t step) {
+    fan::vec3 d = target - v;
+    f32_t l2 = d.length_squared();
+    if (l2 <= step * step) { return target; }
+    return v + d.normalize() * step;
+  }
+
+  template <typename ground_check_t>
+  void camera_move(camera_t cam, bool noclip, ground_check_t&& ground_check, const fps_camera_params_t& params = {}) {
+    auto& c = camera_get(cam);
+    f32_t dt = get_delta_time();
+
+    fan::vec2 input = get_input_vector();
+    if (input.length_squared() > 1.f) { input = input.normalize(); }
+
+    fan::vec3 f = noclip ? c.front : c.front.normalized_xz();
+    fan::vec3 r = noclip ? c.right : c.right.normalized_xz();
+    fan::vec3 wish = r * input.x - f * input.y;
+
+    if (noclip) {
+      wish += fan::camera::world_up * (f32_t)(is_key_down(fan::key_space) - is_key_down(fan::key_left_shift));
+
+      if (wish.length_squared() > 0.f) {
+        wish = wish.normalize();
+        c.velocity = c.velocity.approach(wish * params.noclip_speed, params.noclip_acceleration * dt);
+      }
+      else {
+        c.velocity = c.velocity.approach(fan::vec3(0), params.noclip_friction * dt);
+      }
+
+      c.position += c.velocity * dt;
+    }
+    else {
+      f32_t ground_y = ground_check(c.position.x, c.position.z, params.player_radius) + params.eye_height;
+      bool grounded = c.position.y <= ground_y + 0.05f;
+
+      fan::vec3 target_velocity(wish.x * params.speed, c.velocity.y, wish.z * params.speed);
+      fan::vec3 velocity = c.velocity.approach(target_velocity, params.ground_acceleration * dt);
+      c.velocity.x = velocity.x;
+      c.velocity.z = velocity.z;
+
+      if (grounded) {
+        c.velocity.y = std::max(0.f, c.velocity.y);
+        if (is_key_clicked(fan::key_space)) { c.velocity.y = params.jump_force; }
+      }
+
+      c.velocity.y -= params.gravity * dt;
+      c.position += c.velocity * dt;
+
+      ground_y = ground_check(c.position.x, c.position.z, params.player_radius) + params.eye_height;
+      if (c.position.y < ground_y) {
+        c.position.y = ground_y;
+        c.velocity.y = 0.f;
+      }
+    }
+
+    c.update_view();
+    c.view = c.get_view_matrix();
+  }
+
+  template <typename ground_check_t>
+  void camera_move(bool noclip, ground_check_t&& ground_check, const fps_camera_params_t& params = {}) {
+    camera_move(perspective_render_view, noclip, std::forward<ground_check_t>(ground_check), params);
+  }
+
   #include "shaders.h"
   shaders_t shaders;
 

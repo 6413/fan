@@ -1,10 +1,7 @@
 import std;
 import fan;
-import fan.graphics.vulkan.ray_tracing.hardware_renderer;
-import fan.graphics.vulkan.ray_tracing.gpu_terrain_streamer;
 
 using namespace fan::graphics;
-
 namespace rt = fan::graphics::vulkan::ray_tracing;
 
 int main() {
@@ -40,87 +37,6 @@ int main() {
     );
   };
 
-  auto update_ground_camera = [&] {
-    auto& camera = engine.camera_get(cam);
-    f32_t dt = engine.get_delta_time();
-
-    fan::vec3 forward(camera.front.x, 0.f, camera.front.z);
-    if (forward.length_squared() > 0.f) {
-      forward = forward.normalize();
-    }
-
-    fan::vec3 right(camera.right.x, 0.f, camera.right.z);
-    if (right.length_squared() > 0.f) {
-      right = right.normalize();
-    }
-
-    fan::vec3 wish {};
-    if (engine.is_key_down(fan::key_w)) { wish += forward; }
-    if (engine.is_key_down(fan::key_s)) { wish -= forward; }
-    if (engine.is_key_down(fan::key_d)) { wish += right; }
-    if (engine.is_key_down(fan::key_a)) { wish -= right; }
-
-    if (wish.length_squared() > 0.f) {
-      wish = wish.normalize();
-    }
-
-    constexpr f32_t speed = 5.f;
-    constexpr f32_t gravity = 60.f;
-    constexpr f32_t jump_speed = 20.f;
-    constexpr f32_t eye_height = 2.4f;
-    constexpr f32_t player_radius = 0.35f;
-
-    f32_t ground_y = terrain.ground_y(camera.position.x, camera.position.z, player_radius) + eye_height;
-    bool grounded = camera.position.y <= ground_y + 0.05f;
-
-    camera.velocity.x = wish.x * speed;
-    camera.velocity.z = wish.z * speed;
-
-    if (grounded && camera.velocity.y < 0.f) {
-      camera.velocity.y = 0.f;
-    }
-
-    if (grounded && engine.is_key_clicked(fan::key_space)) {
-      camera.velocity.y = jump_speed;
-      grounded = false;
-    }
-
-    camera.velocity.y -= gravity * dt;
-    camera.position += camera.velocity * dt;
-
-    ground_y = terrain.ground_y(camera.position.x, camera.position.z, player_radius) + eye_height;
-    if (camera.position.y < ground_y) {
-      camera.position.y = ground_y;
-      camera.velocity.y = 0.f;
-    }
-
-    camera.update_view();
-    camera.view = camera.get_view_matrix();
-  };
-
-  auto update_noclip_camera = [&] {
-    auto& camera = engine.camera_get(cam);
-    f32_t dt = engine.get_delta_time();
-
-    fan::vec3 wish {};
-    if (engine.is_key_down(fan::key_w)) { wish += camera.front; }
-    if (engine.is_key_down(fan::key_s)) { wish -= camera.front; }
-    if (engine.is_key_down(fan::key_d)) { wish += camera.right; }
-    if (engine.is_key_down(fan::key_a)) { wish -= camera.right; }
-    if (engine.is_key_down(fan::key_space)) { wish += fan::vec3(0.f, 1.f, 0.f); }
-    if (engine.is_key_down(fan::key_left_shift)) { wish -= fan::vec3(0.f, 1.f, 0.f); }
-
-    if (wish.length_squared() > 0.f) {
-      wish = wish.normalize();
-    }
-
-    constexpr f32_t speed = 40.f;
-    camera.velocity = wish * speed;
-    camera.position += camera.velocity * dt;
-    camera.update_view();
-    camera.view = camera.get_view_matrix();
-  };
-
   auto cb = engine.window.add_mouse_motion_callback([&](const auto& d) {
     if (ui_open || engine.window.is_cursor_enabled()) { return; }
     auto& camera = engine.camera_get(cam);
@@ -133,11 +49,10 @@ int main() {
 
   engine.loop([&] {
     if (engine.is_key_clicked(fan::key_r)) { renderer.reload_pipeline(); }
-    if (engine.is_key_clicked(fan::key_q)) { noclip = !noclip; engine.camera_get(cam).velocity = fan::vec3(0.f); }
+    if (engine.is_key_clicked(fan::key_q)) { noclip = !noclip; }
     if (engine.is_key_clicked(fan::key_t)) {
       ui_open = !ui_open;
       engine.window.set_cursor(ui_open ? 1 : 0);
-      engine.camera_get(cam).velocity = fan::vec3(0.f);
       if (ui_open) { hide_highlight(); }
     }
 
@@ -152,12 +67,9 @@ int main() {
       }
     }
     else {
-      if (noclip) {
-        update_noclip_camera();
-      }
-      else {
-        update_ground_camera();
-      }
+      engine.camera_move(noclip, [&](f32_t x, f32_t z, f32_t r) {
+        return terrain.ground_y(x, z, r);
+      });
     }
 
     terrain.update(renderer, engine.camera_get(cam).position);

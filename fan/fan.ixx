@@ -113,6 +113,7 @@ export import fan.crypto;
   export import fan.graphics.voxel;
   #if defined(FAN_VULKAN)
   export import fan.graphics.vulkan.ray_tracing.hardware_renderer;
+  export import fan.graphics.vulkan.ray_tracing.gpu_terrain_streamer;
   #endif
 #endif
 

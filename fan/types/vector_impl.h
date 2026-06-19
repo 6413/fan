@@ -441,7 +441,17 @@ static vec_t from_string(const std::string& str) {
 bool is_near(const vec_t& test0, value_type_t epsilon) const { 
   make_for_all_test1_noret(if (!fan::math::is_near((*this)[i], test0[i], epsilon)) return false;);
   return true;
-} 
+}
+
+constexpr vec_t approach(const vec_t& target, value_type_t step) const {
+  if (step <= value_type_t(0)) { return *this; }
+
+  vec_t d = target - *this;
+  auto l2 = d.length_squared();
+  if (l2 <= step * step) { return target; }
+
+  return *this + d.normalize() * step;
+}
 
 friend std::ostream& operator<<(std::ostream& os, const vec_t& test0) { os << (std::string)test0; return os; }
 

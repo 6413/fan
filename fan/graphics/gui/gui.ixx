@@ -604,19 +604,17 @@ export namespace fan::graphics::gui {
     const camera_controls_ranges_t& ranges = {},
     fan::graphics::camera_t cam = gloco()->perspective_render_view) {
     fan::graphics::context_camera_t& camera = gloco()->camera_get(cam);
-    static f32_t friction = 12.f;
-    static f32_t speed = 1000.f;
-    static int id = 0;
     bool update = false;
-    gui::push_id(&id);
+
+    gui::push_id(reinterpret_cast<const void*>(static_cast<std::uintptr_t>(cam.gint())));
     update |= gui::slider("zfar", &camera.zfar, std::max(ranges.zfar_min, camera.znear + 0.001f), ranges.zfar_max);
     update |= gui::slider("znear", &camera.znear, ranges.znear_min, std::min(ranges.znear_max, camera.zfar - 0.001f));
     update |= gui::slider("fov", &camera.fov, ranges.fov_min, ranges.fov_max);
     update |= gui::slider("sensitivity", &camera.sensitivity, ranges.sensitivity_min, ranges.sensitivity_max);
-    update |= gui::slider("speed", &speed, ranges.speed_min, ranges.speed_max);
-    update |= gui::slider("friction", &friction, ranges.friction_min, ranges.friction_max);
+    update |= gui::slider("speed", &camera.speed, ranges.speed_min, ranges.speed_max);
+    update |= gui::slider("friction", &camera.friction, ranges.friction_min, ranges.friction_max);
 
-    gloco()->camera_move(speed, friction);
+    gloco()->camera_move(camera.speed, camera.friction);
     if (update) {
       gloco()->camera_set_perspective(cam, camera.fov, gloco()->window.get_size());
     }

@@ -715,7 +715,6 @@ void loco_t::camera_move(fan::graphics::context_camera_t& camera, f32_t movement
   auto dt = get_delta_time();
   camera.velocity /= friction * dt + 1;
   static constexpr auto minimum_velocity = 0.001;
-  static constexpr f32_t camera_rotate_speed = 100;
   if (camera.velocity.x < minimum_velocity && camera.velocity.x > -minimum_velocity) {
     camera.velocity.x = 0;
   }
@@ -734,7 +733,7 @@ void loco_t::camera_move(fan::graphics::context_camera_t& camera, f32_t movement
   if (is_key_down(fan::input::key_space)) { camera.velocity.y += msd; }
   if (is_key_down(fan::input::key_left_shift)) { camera.velocity.y -= msd; }
 
-  f64_t rotate = camera.sensitivity * camera_rotate_speed * get_delta_time();
+  f64_t rotate = camera.sensitivity * get_delta_time();
   if (is_key_down(fan::input::key_left)) { camera.set_yaw(camera.get_yaw() - rotate); }
   if (is_key_down(fan::input::key_right)) { camera.set_yaw(camera.get_yaw() + rotate); }
   if (is_key_down(fan::input::key_up)) { camera.set_pitch(camera.get_pitch() + rotate); }

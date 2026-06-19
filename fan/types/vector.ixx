@@ -380,7 +380,13 @@ export namespace fan {
     constexpr vec3_wrap_t offset(value_type_t dx, value_type_t dy, value_type_t dz) const {
       return { x + dx, y + dy, z + dz };
     }
-
+    constexpr vec3_wrap_t xz0() const {
+      return {x, 0, z};
+    }
+    constexpr vec3_wrap_t normalized_xz() const {
+      vec3_wrap_t v = xz0();
+      return v.length_squared() > 0 ? v.normalize() : v;
+    }
 
   #if defined(fan_compile_component_functions)
     generate_vec_component_functions(3);

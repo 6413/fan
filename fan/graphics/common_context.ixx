@@ -133,6 +133,8 @@ export namespace fan {
       f32_t znear = 0.1f;
       f32_t zoom = 1.0f;
       f32_t fov = 90.f;
+      f32_t speed = 1000.f;
+      f32_t friction = 12.f;
 
       union {
         struct {
