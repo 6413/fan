@@ -18,7 +18,9 @@ export module fan.graphics.vulkan.ray_tracing.gpu_terrain_streamer;
 import std;
 
 #if defined(FAN_3D) && defined(FAN_VULKAN)
-import fan;
+import fan.types.vector;
+import fan.time;
+import fan.graphics.gui.base;
 import fan.graphics.vulkan.ray_tracing.hardware_renderer;
 
 namespace gui = fan::graphics::gui;

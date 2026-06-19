@@ -100,7 +100,7 @@ export namespace fan {
       std::vector<VkDescriptorImageInfo> image_infos{max_textures};
     };
 
-    inline constexpr std::uint32_t max_frames_in_flight = 1;
+    inline constexpr std::uint32_t max_frames_in_flight = 2;
     inline std::uint32_t makeAccessMaskPipelineStageFlags(std::uint32_t accessMask) {
       static constexpr std::uint32_t accessPipes[] = {
         VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
