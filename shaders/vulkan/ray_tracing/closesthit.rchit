@@ -79,7 +79,7 @@ layout(binding = 10, set = 0) uniform ExposureUBO {
 
 vec3 safe_normalize(vec3 v, vec3 fallback) {
     float len2 = dot(v, v);
-    if (!(len2 > 1e-12) || !(len2 < 1e20)) {
+    if (len2 <= 1e-12 || len2 >= 1e20) {
         return fallback;
     }
     return v * inversesqrt(len2);
@@ -96,10 +96,13 @@ vec3 stabilize_mapped_normal(vec3 mapped, vec3 geometric_normal) {
 float stable_direct_lambert(vec3 shading_normal, vec3 geometric_normal, vec3 light_dir) {
     float mapped_raw = dot(shading_normal, light_dir);
     float geometric_raw = dot(geometric_normal, light_dir);
+    
     float mapped = max(mapped_raw, 0.0);
     float geometric = max(geometric_raw, 0.0);
+    
     float wrap = clamp(exposure_ubo.wrap_strength, 0.0, 1.0);
     float wrapped = clamp((max(mapped_raw, geometric_raw) + wrap) / (1.0 + wrap), 0.0, 1.0) * wrap;
+    
     return max(max(mapped, geometric * 0.35), wrapped);
 }
 
@@ -120,7 +123,7 @@ vec3 cosine_sample_hemisphere(vec3 N, float u1, float u2) {
     vec3 up = abs(N.z) < 0.999 ? vec3(0,0,1) : vec3(0,1,0);
     vec3 T  = safe_normalize(cross(up, N), vec3(1.0, 0.0, 0.0));
     vec3 B  = safe_normalize(cross(N, T), vec3(0.0, 1.0, 0.0));
-
+    
     return safe_normalize(T * x + B * y + N * z, N);
 }
 
@@ -144,11 +147,10 @@ vec3 unpack_color(uint c) {
       float(c & 0xffu),
       float((c >> 8) & 0xffu),
       float((c >> 16) & 0xffu)
-  ) / 255.0;
+  ) * 0.003921568627;
 }
 
 void main() {
-
     uint prim_id     = gl_PrimitiveID;
     uint prim_offset = gl_InstanceCustomIndexEXT;
     uint global_prim = prim_offset + prim_id;
@@ -172,12 +174,11 @@ void main() {
 
     vec3 e1 = p1 - p0;
     vec3 e2 = p2 - p0;
-
+    
     vec3 V  = safe_normalize(-gl_WorldRayDirectionEXT, vec3(0.0, 0.0, 1.0));
     vec3 Ng = safe_normalize(cross(e1, e2), V);
-
-    if (dot(Ng, V) < 0.0)
-        Ng = -Ng;
+    
+    if (dot(Ng, V) < 0.0) Ng = -Ng;
 
     vec3 object_normal = safe_normalize(
         v0.normal.xyz * bary.x
@@ -185,9 +186,9 @@ void main() {
       + v2.normal.xyz * bary.z,
       vec3(0.0, 0.0, 1.0)
     );
+
     vec3 Nbase = safe_normalize((gl_ObjectToWorldEXT * vec4(object_normal, 0.0)).xyz, Ng);
-    if (dot(Nbase, Ng) < 0.0)
-        Nbase = -Nbase;
+    if (dot(Nbase, Ng) < 0.0) Nbase = -Nbase;
 
     vec2 uv =
       v0.texcoord * bary.x +
@@ -209,23 +210,24 @@ void main() {
       unpack_color(v0.color) * bary.x
     + unpack_color(v1.color) * bary.y
     + unpack_color(v2.color) * bary.z;
+
     albedo *= vertex_color;
 
     vec3 N = Nbase;
 
     if (mat.normal_texture_id >= 0) {
         vec3 n = safe_normalize(texture(textures[mat.normal_texture_id], sample_uv).xyz * 2.0 - 1.0, vec3(0.0, 0.0, 1.0));
-
         vec2 duv1 = v1.texcoord - v0.texcoord;
         vec2 duv2 = v2.texcoord - v0.texcoord;
-
         float det = duv1.x * duv2.y - duv1.y * duv2.x;
+
         if (abs(det) > 1e-8) {
             float r = 1.0 / det;
             vec3 T = (e1 * duv2.y - e2 * duv1.y) * r;
             vec3 B = (e2 * duv1.x - e1 * duv2.x) * r;
             float t_len2 = dot(T, T);
             float b_len2 = dot(B, B);
+            
             if (t_len2 > 1e-12 && b_len2 > 1e-12 && t_len2 < 1e20 && b_len2 < 1e20) {
                 T = safe_normalize(T, Nbase);
                 B = safe_normalize(B, Nbase);
@@ -235,8 +237,7 @@ void main() {
     }
 
     N = safe_normalize(N, Nbase);
-    if (dot(N, V) < 0.0)
-        N = -N;
+    if (dot(N, V) < 0.0) N = -N;
 
     float metallic = 0.0;
     float roughness = 1.0;
@@ -251,7 +252,6 @@ void main() {
     roughness = clamp(roughness, 0.04, 1.0);
 
     bool special_mat = mat.source_material_id == 2u;
-
     if (special_mat) {
         metallic  = 1.0;
         roughness = 0.00;
@@ -269,7 +269,6 @@ void main() {
         vec3 L  = safe_normalize(light_delta, N);
         float d = length(light_delta);
         float NdotL = stable_direct_lambert(N, Ng, L);
-
         float sun_scale = 0.5;
 
         if (exposure_ubo.enable_shadows > 0.5 && NdotL > 0.0) {
@@ -289,11 +288,7 @@ void main() {
 
         float shadow_mult = shadowed ? pow(1.0 - clamp(exposure_ubo.shadow_strength, 0.0, 1.0), 3.0) : 1.0;
         vec3 ambient = albedo * max(exposure_ubo.ambient_strength, 0.0) * mix(shadow_mult, 1.0, 0.15);
-
-        vec3 diffuse = albedo * diffuse_strength *
-                       light.light_color * light.intensity *
-                       NdotL * shadow_mult * sun_scale;
-
+        vec3 diffuse = albedo * diffuse_strength * light.light_color * light.intensity * NdotL * shadow_mult * sun_scale;
         vec3 gi = ambient + diffuse;
 
         gi *= exposure_ubo.exposure;
@@ -311,7 +306,6 @@ void main() {
 
         vec3 base = albedo * diffuse_strength * (0.2 + 0.8 * NdotV);
         base *= mix(0.85, 1.0, ao_view);
-
         base *= exposure_ubo.exposure;
 
         payload.color       = base;
@@ -345,28 +339,20 @@ void main() {
     }
 
     float shadow_mult = shadowed ? (1.0 - clamp(exposure_ubo.shadow_strength, 0.0, 1.0)) : 1.0;
-
     vec3 ambient = albedo * max(exposure_ubo.ambient_strength, 0.0) * mix(shadow_mult, 1.0, 0.15);
-
-    vec3 diffuse =
-        albedo * diffuse_strength *
-        light.light_color * light.intensity *
-        NdotL * shadow_mult;
-
+    vec3 diffuse = albedo * diffuse_strength * light.light_color * light.intensity * NdotL * shadow_mult;
     vec3 direct_lighting = ambient + diffuse;
 
     vec3 indirect_color = vec3(0.0);
+
     if (exposure_ubo.enable_gi > 0.5) {
         Payload saved = payload;
-
         float fi = float(time_ubo.frame_index);
-
         vec3 seed = vec3(
             float(gl_LaunchIDEXT.x) + 17.0 * fi,
             float(gl_LaunchIDEXT.y) + 31.0 * fi,
             13.0 * fi
         );
-
         float u1 = hash(seed);
         float u2 = hash(seed.yzx);
 
@@ -408,7 +394,6 @@ void main() {
     vec3 reflection_color = vec3(0.0);
     if (exposure_ubo.enable_reflections > 0.5 && special_mat) {
         vec3 R = reflect(-V, N);
-
         Payload saved = payload;
 
         payload.color       = vec3(0.0);
@@ -429,7 +414,7 @@ void main() {
             10000.0,
             0
         );
-
+        
         reflection_color = payload.color;
         reflection_color *= light.intensity;
 
@@ -450,7 +435,6 @@ void main() {
     final_color = clamp(final_color, vec3(0.0), vec3(12.0));
 
     float b = brightness(final_color);
-
     float bloom_thresh   = 1.0;
     float bloom_soft     = 0.5;
     float bloom_strength = 0.25;
@@ -458,7 +442,6 @@ void main() {
     float bloom = smoothstep(bloom_thresh, bloom_thresh + bloom_soft, b);
 
     final_color += final_color * bloom * bloom_strength;
-
     payload.color       = final_color;
     payload.normal      = N;
     payload.uv          = uv;

@@ -21,7 +21,6 @@ void main() {
   vec3 prev = imageLoad(accum_frame, px).rgb;
 
   float a = 1.0 / float(pc.frame_index + 1);
-
   vec3 blended = mix(prev, curr, a);
 
   imageStore(accum_frame, px, vec4(blended, 1.0));
