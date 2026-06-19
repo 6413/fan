@@ -62,6 +62,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
     context_t::object_handle_t handle;
     std::uint32_t vertex_capacity = 0;
     std::uint32_t index_capacity = 0;
+    std::uint32_t tree_cell = 0;
+    std::uint32_t tree_density_u8 = 0;
     bool uploaded = false;
     bool pending = false;
     bool dirty = false;
@@ -70,7 +72,10 @@ export namespace fan::graphics::vulkan::ray_tracing {
     context_t::object_handle_t handle;
     std::uint32_t vertex_capacity = 0;
     std::uint32_t index_capacity = 0;
+    std::uint32_t age = 0;
   };
+
+  using chunk_map_t = std::unordered_map<chunk_coord_t, terrain_chunk_t, chunk_coord_hash_t>;
 
   struct gpu_chunk_generator_t {
     static constexpr std::uint32_t chunk_size = 32;
@@ -84,8 +89,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
     static constexpr std::uint32_t edit_buffer_size = sizeof(edit_header_t) + max_edits_per_chunk * sizeof(block_edit_t);
     struct push_t {
       std::int32_t chunk_x = 0, chunk_z = 0;
-      std::uint32_t chunk_size = 32, sy = 96, sea_level = 28, snow_line = 74, rock_line = 62, pad0 = 0;
-      f32_t voxel_size = 1.5f, pad1 = 0.f, pad2 = 0.f, pad3 = 0.f;
+      std::uint32_t chunk_size = 32, sy = 96, sea_level = 28, snow_line = 74, rock_line = 62, tree_cell = 10;
+      f32_t voxel_size = 1.5f, tree_density = 1.f, pad2 = 0.f, pad3 = 0.f;
     };
     struct state_t { chunk_coord_t coord {}; push_t push {}; };
     using vk_context_t = fan::vulkan::context_t;
@@ -205,6 +210,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
       std::size_t pending_chunks = 0;
       std::size_t dirty_chunks = 0;
       std::size_t queued_chunks = 0;
+      std::size_t queued_missing_chunks = 0;
+      std::size_t queued_dirty_chunks = 0;
       std::size_t free_handles = 0;
       std::size_t removed_blocks = 0;
       std::size_t placed_blocks = 0;
@@ -217,6 +224,11 @@ export namespace fan::graphics::vulkan::ray_tracing {
       std::uint32_t last_unloads = 0;
       std::uint32_t last_queue_pruned = 0;
       std::uint32_t last_free_pool_destroys = 0;
+      std::uint32_t effective_uploads = 0;
+      std::uint32_t effective_submits = 0;
+      f32_t effective_upload_budget_ms = 0.f;
+      f32_t frame_ms = 0.f;
+      f32_t fps = 0.f;
       std::uint32_t last_generated_vertices = 0;
       std::uint32_t last_generated_indices = 0;
       std::uint32_t mesh_overflows = 0;
@@ -225,6 +237,13 @@ export namespace fan::graphics::vulkan::ray_tracing {
       f32_t estimated_terrain_mesh_mb = 0.f;
       f32_t estimated_free_pool_mesh_mb = 0.f;
       f32_t free_pool_budget_mb = 0.f;
+      f32_t terrain_budget_mb = 0.f;
+      std::uint32_t max_loaded_chunks = 0;
+      std::int32_t unload_margin = 0;
+      std::int32_t tree_detail_distance = 0;
+      std::int32_t tree_cell = 0;
+      f32_t tree_density = 0.f;
+      std::size_t tree_enabled_chunks = 0;
       f32_t estimated_compute_slots_mb = 0.f;
       f32_t estimated_placed_mesh_mb = 0.f;
       f32_t estimated_cpu_cached_mb = 0.f;
@@ -275,21 +294,89 @@ export namespace fan::graphics::vulkan::ray_tracing {
       }
       return bytes;
     }
+    static std::size_t chunk_mesh_bytes(const terrain_chunk_t& ch) {
+      return
+        (std::size_t)ch.vertex_capacity * sizeof(context_t::vertex_t) +
+        (std::size_t)ch.index_capacity * sizeof(std::uint32_t);
+    }
+    std::size_t uploaded_chunk_count() const {
+      std::size_t n = 0;
+      for (const auto& [coord, ch] : chunks) {
+        (void)coord;
+        if (ch.uploaded) {
+          ++n;
+        }
+      }
+      return n;
+    }
+    std::size_t terrain_mesh_bytes() const {
+      std::size_t bytes = 0;
+      for (const auto& [coord, ch] : chunks) {
+        (void)coord;
+        if (ch.uploaded) {
+          bytes += chunk_mesh_bytes(ch);
+        }
+      }
+      return bytes;
+    }
+    void sanitize_settings() {
+      render_distance = std::clamp(render_distance, 1, 16);
+      initial_load_radius = std::clamp(initial_load_radius, 1, render_distance);
+      max_uploads_per_frame = std::clamp<std::uint32_t>(max_uploads_per_frame, 1, 8);
+      max_submits_per_frame = std::clamp<std::uint32_t>(max_submits_per_frame, 1, 8);
+      max_pending_chunks = std::clamp<std::uint32_t>(max_pending_chunks, max_submits_per_frame + gpu_chunk_generator_t::slot_count, 4096);
+      max_free_pool_mesh_mb = std::clamp(max_free_pool_mesh_mb, 0, 512);
+      max_terrain_mesh_mb = std::clamp(max_terrain_mesh_mb, 0, 4096);
+      max_loaded_chunks = std::clamp(max_loaded_chunks, 0, 4096);
+      preload_extra = std::clamp(preload_extra, 0, 4);
+      unload_margin = std::clamp(unload_margin, 0, 4);
+      tree_cell_size = std::clamp(tree_cell_size, 4, 64);
+      tree_detail_distance = std::clamp(tree_detail_distance, 0, render_distance + preload_extra);
+      tree_density = std::clamp(tree_density, 0.f, 1.f);
+      upload_budget_ms = std::clamp(upload_budget_ms, 0.05f, 10.f);
+      max_adaptive_uploads_per_frame = std::clamp<std::uint32_t>(max_adaptive_uploads_per_frame, max_uploads_per_frame, 8);
+      max_adaptive_submits_per_frame = std::clamp<std::uint32_t>(max_adaptive_submits_per_frame, max_submits_per_frame, 8);
+    }
+    void age_free_handles() {
+      for (auto& h : free_handles) {
+        if (h.age < 0xffffffffu) {
+          ++h.age;
+        }
+      }
+    }
+    bool can_recycle_geometry(const context_t& renderer) const {
+      return gpu.busy_slot_count() == 0 && renderer.pending_mesh_upload_count() == 0;
+    }
+    bool free_pool_over_hard_budget() const {
+      std::size_t budget = (std::size_t)std::max(0, max_free_pool_mesh_mb) * 1024ull * 1024ull;
+      return budget != 0 && free_pool_mesh_bytes() > budget * 2;
+    }
     void trim_free_pool(context_t& renderer) {
       std::size_t budget = (std::size_t)std::max(0, max_free_pool_mesh_mb) * 1024ull * 1024ull;
       std::size_t bytes = free_pool_mesh_bytes();
+      if (!can_recycle_geometry(renderer)) {
+        if (budget == 0 || bytes <= budget * 2) { return; }
+        renderer.wait_idle();
+      }
 
       while (bytes > budget && !free_handles.empty()) {
-        auto it = std::ranges::max_element(free_handles, {}, [](const free_chunk_handle_t& h) {
-          return free_handle_mesh_bytes(h);
-        });
-        if (it == free_handles.end()) {
+        auto best = free_handles.end();
+        bool hard = budget != 0 && bytes > budget * 2;
+        for (auto it = free_handles.begin(); it != free_handles.end(); ++it) {
+          if (!hard && it->age < free_handle_safe_age) {
+            continue;
+          }
+          if (best == free_handles.end() || free_handle_mesh_bytes(*it) > free_handle_mesh_bytes(*best)) {
+            best = it;
+          }
+        }
+        if (best == free_handles.end()) {
           break;
         }
 
-        bytes -= std::min(bytes, free_handle_mesh_bytes(*it));
-        renderer.destroy_object_geometry(it->handle);
-        *it = free_handles.back();
+        bytes -= std::min(bytes, free_handle_mesh_bytes(*best));
+        renderer.destroy_object_geometry(best->handle);
+        *best = free_handles.back();
         free_handles.pop_back();
         ++debug_last_free_pool_destroys;
       }
@@ -431,23 +518,217 @@ export namespace fan::graphics::vulkan::ray_tracing {
         placed_overlay = renderer.add_mesh_incremental(mesh);
       }
     }
+    struct tree_lod_t {
+      std::uint32_t cell = 10;
+      std::uint32_t density_u8 = 255;
+      f32_t density = 1.f;
+    };
+    tree_lod_t tree_lod_for_chunk(chunk_coord_t c, chunk_coord_t center) const {
+      chunk_coord_t d = c - center;
+      if (tree_detail_distance > 0 && d.length_squared() > tree_detail_distance * tree_detail_distance) {
+        return {(std::uint32_t)tree_cell_size, 0, 0.f};
+      }
+
+      f32_t density = std::clamp(tree_density, 0.f, 1.f);
+      return {
+        (std::uint32_t)std::max(1, tree_cell_size),
+        (std::uint32_t)std::round(density * 255.f),
+        density
+      };
+    }
+    void discard_uploaded_chunk(context_t& renderer, chunk_map_t::iterator& it) {
+      renderer.set_transform_deferred(it->second.handle, fan::translate(fan::vec3(0.f, -1000000.f, 0.f)));
+      free_handles.push_back({it->second.handle, it->second.vertex_capacity, it->second.index_capacity, 0});
+      it = chunks.erase(it);
+      ++debug_last_unloads;
+    }
+    bool over_chunk_budget() const {
+      bool over_count = max_loaded_chunks > 0 && uploaded_chunk_count() > (std::size_t)max_loaded_chunks;
+      bool over_memory = max_terrain_mesh_mb > 0 && terrain_mesh_bytes() > (std::size_t)max_terrain_mesh_mb * 1024ull * 1024ull;
+      return over_count || over_memory;
+    }
+    void enforce_loaded_budget(context_t& renderer, chunk_coord_t center) {
+      while (over_chunk_budget()) {
+        auto best = chunks.end();
+        std::int64_t best_d2 = -1;
+
+        for (auto it = chunks.begin(); it != chunks.end(); ++it) {
+          if (!it->second.uploaded || it->second.pending || it->second.dirty) {
+            continue;
+          }
+          if (in_range(it->first, center, 0)) {
+            continue;
+          }
+
+          chunk_coord_t d = it->first - center;
+          std::int64_t d2 = (std::int64_t)d.length_squared();
+          if (d2 > best_d2) {
+            best_d2 = d2;
+            best = it;
+          }
+        }
+
+        if (best == chunks.end()) {
+          break;
+        }
+
+        discard_uploaded_chunk(renderer, best);
+      }
+    }
+    std::size_t pending_chunk_count() const {
+      std::size_t n = 0;
+      for (const auto& [coord, ch] : chunks) {
+        (void)coord;
+        if (ch.pending) {
+          ++n;
+        }
+      }
+      return n;
+    }
+    std::uint32_t effective_upload_limit() const {
+      if (!adaptive_streaming) {
+        return max_uploads_per_frame;
+      }
+      std::size_t backlog = work_queue.size() + pending_chunk_count();
+      std::uint32_t limit = max_uploads_per_frame;
+      if (backlog > 24) {
+        limit = std::max<std::uint32_t>(limit, std::min<std::uint32_t>(max_adaptive_uploads_per_frame, max_uploads_per_frame + 1));
+      }
+      if (backlog > 48 && debug_frame_ms < 22.f) {
+        limit = std::max<std::uint32_t>(limit, max_adaptive_uploads_per_frame);
+      }
+      if (debug_frame_ms > 28.f) {
+        limit = max_uploads_per_frame;
+      }
+      return std::clamp<std::uint32_t>(limit, 1, 8);
+    }
+    std::uint32_t effective_submit_limit() const {
+      if (!adaptive_streaming) {
+        return max_submits_per_frame;
+      }
+      std::size_t backlog = work_queue.size() + pending_chunk_count();
+      std::uint32_t limit = max_submits_per_frame;
+      if (backlog > 16) {
+        limit = std::max<std::uint32_t>(limit, std::min<std::uint32_t>(max_adaptive_submits_per_frame, max_submits_per_frame + 1));
+      }
+      if (backlog > 40 && debug_frame_ms < 22.f) {
+        limit = std::max<std::uint32_t>(limit, max_adaptive_submits_per_frame);
+      }
+      if (debug_frame_ms > 28.f) {
+        limit = max_submits_per_frame;
+      }
+      return std::clamp<std::uint32_t>(limit, 1, 8);
+    }
+    f32_t effective_upload_budget_ms() const {
+      if (!adaptive_streaming) {
+        return upload_budget_ms;
+      }
+      std::size_t backlog = work_queue.size() + pending_chunk_count();
+      f32_t budget = upload_budget_ms;
+      if (backlog > 24) {
+        budget = std::max(budget, upload_budget_ms * 2.f);
+      }
+      if (backlog > 48 && debug_frame_ms < 22.f) {
+        budget = std::max(budget, upload_budget_ms * 4.f);
+      }
+      if (debug_frame_ms > 28.f) {
+        budget = upload_budget_ms;
+      }
+      return std::clamp(budget, 0.05f, 4.f);
+    }
+    void update_frame_timing() {
+      using clock_t = std::chrono::steady_clock;
+      auto now = clock_t::now();
+      if (!timing_initialized) {
+        last_update_time = now;
+        timing_initialized = true;
+        return;
+      }
+      f32_t ms = std::chrono::duration<f32_t, std::milli>(now - last_update_time).count();
+      last_update_time = now;
+      if (debug_frame_ms <= 0.f) {
+        debug_frame_ms = ms;
+      }
+      else {
+        debug_frame_ms = debug_frame_ms * 0.9f + ms * 0.1f;
+      }
+    }
+    std::int32_t work_category(chunk_coord_t c) const {
+      auto it = chunks.find(c);
+      if (it == chunks.end()) {
+        return 3;
+      }
+      const auto& ch = it->second;
+      if (!ch.uploaded) {
+        return 0;
+      }
+      if (ch.dirty) {
+        return 1;
+      }
+      return 2;
+    }
+    f32_t work_priority(chunk_coord_t c, chunk_coord_t center, const fan::vec3& cam) const {
+      chunk_coord_t d = c - center;
+      return (f32_t)work_category(c) * 1000000000.f + chunk_distance2(c, cam) + (f32_t)d.length_squared() * 0.001f;
+    }
+    void queue_visible_dirty(chunk_coord_t center) {
+      std::uint32_t pending_cap = std::max<std::uint32_t>(max_pending_chunks, effective_submit_limit() + gpu_chunk_generator_t::slot_count);
+      if (work_queue.size() >= pending_cap) {
+        return;
+      }
+      for (auto& [coord, ch] : chunks) {
+        if (work_queue.size() >= pending_cap) {
+          break;
+        }
+        if (!ch.uploaded || !ch.dirty || ch.pending || !in_range(coord, center, 0)) {
+          continue;
+        }
+        ch.pending = true;
+        work_queue.push_back(coord);
+      }
+    }
+    void refresh_tree_lod(chunk_coord_t center) {
+      std::uint32_t queued = 0;
+      constexpr std::uint32_t max_tree_lod_rebuilds_per_frame = 1;
+
+      for (auto& [coord, ch] : chunks) {
+        if (queued >= max_tree_lod_rebuilds_per_frame) {
+          break;
+        }
+        if (!ch.uploaded || ch.pending || ch.dirty || !in_range(coord, center, 0)) {
+          continue;
+        }
+
+        tree_lod_t lod = tree_lod_for_chunk(coord, center);
+        if (ch.tree_cell == lod.cell && ch.tree_density_u8 == lod.density_u8) {
+          continue;
+        }
+
+        ch.dirty = true;
+        ch.pending = true;
+        work_queue.push_back(coord);
+        ++queued;
+      }
+    }
     void unload_far(context_t& renderer, chunk_coord_t center) {
       for (auto it = chunks.begin(); it != chunks.end();) {
-        if (!it->second.uploaded || in_range(it->first, center, preload_extra + 2)) { ++it; continue; }
-        renderer.set_transform_deferred(it->second.handle, fan::translate(fan::vec3(0.f, -1000000.f, 0.f)));
-        free_handles.push_back({it->second.handle, it->second.vertex_capacity, it->second.index_capacity});
-        it = chunks.erase(it);
-        ++debug_last_unloads;
+        if (!it->second.uploaded || in_range(it->first, center, preload_extra + unload_margin)) { ++it; continue; }
+        discard_uploaded_chunk(renderer, it);
       }
+      enforce_loaded_budget(renderer, center);
       trim_free_pool(renderer);
     }
     bool ready() const { return gpu.ready(); }
     void update(context_t& renderer, const fan::vec3& cam) {
+      sanitize_settings();
       debug_last_uploads = 0;
       debug_last_submits = 0;
       debug_last_unloads = 0;
       debug_last_queue_pruned = 0;
       debug_last_free_pool_destroys = 0;
+      update_frame_timing();
+
+      age_free_handles();
 
       if (!bootstrap_added) { renderer.add_mesh(make_bootstrap_mesh()); bootstrap_added = true; }
       if (!gpu.ready()) {
@@ -457,12 +738,18 @@ export namespace fan::graphics::vulkan::ray_tracing {
       }
       chunk_coord_t center = to_chunk(cam);
       debug_center = center;
-      prune_queue(center); unload_far(renderer, center); queue_missing(center, cam); poll_completed(renderer, center); submit_pending(center, cam);
+      prune_queue(center); unload_far(renderer, center); queue_missing(center, cam); queue_visible_dirty(center); refresh_tree_lod(center); poll_completed(renderer, center); submit_pending(center, cam);
     }
     debug_stats_t debug_stats() const {
       debug_stats_t s;
       s.chunks = chunks.size();
       s.queued_chunks = work_queue.size();
+      for (chunk_coord_t c : work_queue) {
+        auto it = chunks.find(c);
+        if (it == chunks.end()) { continue; }
+        if (!it->second.uploaded) { ++s.queued_missing_chunks; }
+        else if (it->second.dirty) { ++s.queued_dirty_chunks; }
+      }
       s.free_handles = free_handles.size();
       s.removed_blocks = block_edits.size();
       s.placed_blocks = placed_blocks.size();
@@ -473,6 +760,11 @@ export namespace fan::graphics::vulkan::ray_tracing {
       s.last_unloads = debug_last_unloads;
       s.last_queue_pruned = debug_last_queue_pruned;
       s.last_free_pool_destroys = debug_last_free_pool_destroys;
+      s.effective_uploads = effective_upload_limit();
+      s.effective_submits = effective_submit_limit();
+      s.effective_upload_budget_ms = effective_upload_budget_ms();
+      s.frame_ms = debug_frame_ms;
+      s.fps = debug_frame_ms > 0.f ? 1000.f / debug_frame_ms : 0.f;
       s.last_generated_vertices = gpu.debug_last_vertex_count;
       s.last_generated_indices = gpu.debug_last_index_count;
       s.mesh_overflows = gpu.debug_overflow_count;
@@ -525,6 +817,18 @@ export namespace fan::graphics::vulkan::ray_tracing {
       s.estimated_terrain_mesh_mb = (f32_t)terrain_chunk_bytes / mb;
       s.estimated_free_pool_mesh_mb = (f32_t)free_pool_bytes / mb;
       s.free_pool_budget_mb = (f32_t)std::max(0, max_free_pool_mesh_mb);
+      s.terrain_budget_mb = (f32_t)std::max(0, max_terrain_mesh_mb);
+      s.max_loaded_chunks = (std::uint32_t)std::max(0, max_loaded_chunks);
+      s.unload_margin = unload_margin;
+      s.tree_detail_distance = tree_detail_distance;
+      s.tree_cell = tree_cell_size;
+      s.tree_density = tree_density;
+      for (auto& [coord, chunk] : chunks) {
+        (void)coord;
+        if (chunk.uploaded && chunk.tree_density_u8 != 0) {
+          ++s.tree_enabled_chunks;
+        }
+      }
       s.estimated_compute_slots_mb = (f32_t)(gpu_chunk_generator_t::slot_count * compute_slot_bytes) / mb;
       s.estimated_placed_mesh_mb = (f32_t)placed_bytes / mb;
       s.estimated_cpu_cached_mb = (f32_t)cpu_cached_bytes / mb;
@@ -532,8 +836,16 @@ export namespace fan::graphics::vulkan::ray_tracing {
     }
     void render_gui(context_t& renderer) {
       gui::drag("render distance", &render_distance);
+      gui::drag("max loaded chunks", &max_loaded_chunks);
+      gui::drag("terrain mesh budget MB", &max_terrain_mesh_mb);
+      gui::drag("unload margin", &unload_margin);
+      gui::drag("tree detail distance", &tree_detail_distance);
+      gui::drag("tree cell size", &tree_cell_size);
+      gui::drag("tree density", &tree_density);
       gui::drag("max uploads", &max_uploads_per_frame);
       gui::drag("max submits", &max_submits_per_frame);
+      gui::drag("max adaptive uploads", &max_adaptive_uploads_per_frame);
+      gui::drag("max adaptive submits", &max_adaptive_submits_per_frame);
       gui::drag("max pending", &max_pending_chunks);
       gui::drag("max free pool MB", &max_free_pool_mesh_mb);
       gui::drag("preload extra", &preload_extra);
@@ -547,14 +859,19 @@ export namespace fan::graphics::vulkan::ray_tracing {
       debug_text("terrain debug");
       debug_text(std::format("center chunk: {}, {}", s.current_chunk_x, s.current_chunk_z));
       debug_text(std::format("chunks: {} uploaded:{} pending:{} dirty:{} queued:{}", s.chunks, s.uploaded_chunks, s.pending_chunks, s.dirty_chunks, s.queued_chunks));
+      debug_text(std::format("queue split: missing:{} dirty:{}", s.queued_missing_chunks, s.queued_dirty_chunks));
       debug_text(std::format("gpu slots: busy:{} free:{} / {}", s.gpu_slots_busy, s.gpu_slots_free, gpu_chunk_generator_t::slot_count));
+      debug_text(std::format("frame: {:.2f} ms {:.0f} fps", s.frame_ms, s.fps));
       debug_text(std::format("frame stream: uploads:{} submits:{} unloads:{} queue pruned:{}", s.last_uploads, s.last_submits, s.last_unloads, s.last_queue_pruned));
+      debug_text(std::format("stream limits: uploads:{} submits:{} budget:{:.2f} ms", s.effective_uploads, s.effective_submits, s.effective_upload_budget_ms));
       debug_text(std::format("edits: removed:{} placed:{}", s.removed_blocks, s.placed_blocks));
       debug_text(std::format("last chunk mesh: vertices:{} indices:{} overflows:{}", s.last_generated_vertices, s.last_generated_indices, s.mesh_overflows));
       debug_text(std::format("placed mesh: vertices:{} indices:{}", s.placed_vertices, s.placed_indices));
       debug_text(std::format("terrain vertex/index memory: {:.2f} MB", s.estimated_terrain_mesh_mb));
       debug_text(std::format("free pool vertex/index memory: {:.2f} MB", s.estimated_free_pool_mesh_mb));
       debug_text(std::format("free pool handles:{} budget:{:.0f} MB destroyed:{}", s.free_handles, s.free_pool_budget_mb, s.last_free_pool_destroys));
+      debug_text(std::format("chunk budget: max:{} mesh budget:{:.0f} MB unload margin:{}", s.max_loaded_chunks, s.terrain_budget_mb, s.unload_margin));
+      debug_text(std::format("trees: detail:{} cell:{} density:{:.2f} enabled chunks:{}", s.tree_detail_distance, s.tree_cell, s.tree_density, s.tree_enabled_chunks));
       debug_text(std::format("compute memory: {:.2f} MB, placed mesh: {:.2f} MB", s.estimated_compute_slots_mb, s.estimated_placed_mesh_mb));
       debug_text(std::format("cpu cached chunk data: {:.2f} MB", s.estimated_cpu_cached_mb));
 
@@ -568,6 +885,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
       debug_text(std::format("rt CPU materials: {:.2f} MB", rt.rt_cpu_materials_mb));
       debug_text(std::format("rt GPU source buffer: {:.2f} MB", rt.rt_gpu_source_buffer_mb));
       debug_text(std::format("rt GPU vertex buffer: {:.2f} MB index:{:.2f} MB", rt.rt_gpu_vertex_buffer_mb, rt.rt_gpu_index_buffer_mb));
+      debug_text(std::format("rt global used: vertex:{:.2f} MB index:{:.2f} MB", rt.rt_global_vertex_used_mb, rt.rt_global_index_used_mb));
+      debug_text(std::format("rt global free: vertex:{:.2f} MB/{} ranges index:{:.2f} MB/{} ranges", rt.rt_global_vertex_free_mb, rt.rt_global_vertex_free_ranges, rt.rt_global_index_free_mb, rt.rt_global_index_free_ranges));
+      debug_text(std::format("rt global wasted/capacity slack: {:.2f} MB", rt.rt_global_wasted_mb));
       debug_text(std::format("textures/images: {:.2f} MB count:{}", rt.textures_images_mb, rt.texture_count));
       debug_text(std::format("compute capacity: vertices:{} indices:{}", gpu_chunk_generator_t::max_vertices, gpu_chunk_generator_t::max_indices));
 
@@ -675,19 +995,11 @@ export namespace fan::graphics::vulkan::ray_tracing {
         return;
       }
 
-      std::uint32_t h = height_at(b.x, b.z);
-      auto it = block_edits.find(b);
-      if (b.y > (std::int32_t)h && it == block_edits.end()) {
+      if (!solid_block(b)) {
         return;
       }
-      if (b.y <= (std::int32_t)h) {
-        for (std::int32_t y = std::max<std::int32_t>(b.y, 0); y <= (std::int32_t)h; ++y) {
-          block_edits[{b.x, y, b.z}] = 0;
-        }
-      }
-      else {
-        block_edits[b] = 0;
-      }
+
+      block_edits[b] = 0;
       queue_dirty_block(b);
     }
     static std::uint32_t hash_u(std::uint32_t x) {
@@ -764,6 +1076,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
       if (edit == 0) {
         return false;
       }
+      if (edit > 0) {
+        return true;
+      }
       return b.y <= (std::int32_t)height_at(b.x, b.z);
     }
     std::int32_t column_top_y(std::int32_t bx, std::int32_t bz) const {
@@ -794,7 +1109,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
       y = std::max(y, ground_y(x - radius, z - radius));
       return y;
     }
-    gpu_chunk_generator_t::push_t make_push(chunk_coord_t c) const {
+    gpu_chunk_generator_t::push_t make_push(chunk_coord_t c, chunk_coord_t center) const {
+      tree_lod_t lod = tree_lod_for_chunk(c, center);
       return {
         .chunk_x = c.x,
         .chunk_z = c.y,
@@ -803,23 +1119,47 @@ export namespace fan::graphics::vulkan::ray_tracing {
         .sea_level = sea_level,
         .snow_line = snow_line,
         .rock_line = rock_line,
+        .tree_cell = lod.cell,
         .voxel_size = voxel_size,
+        .tree_density = lod.density,
       };
     }
-    std::size_t find_free_handle(std::uint32_t vertex_capacity, std::uint32_t index_capacity) const {
+    std::size_t find_free_handle(const context_t& renderer, std::uint32_t vertex_capacity, std::uint32_t index_capacity) const {
+      bool hard = free_pool_over_hard_budget();
+      if (!hard && !can_recycle_geometry(renderer)) { return std::size_t(-1); }
       for (std::size_t i = 0; i < free_handles.size(); ++i) {
-        if (free_handles[i].vertex_capacity >= vertex_capacity && free_handles[i].index_capacity >= index_capacity) {
+        if ((hard || free_handles[i].age >= free_handle_safe_age) && free_handles[i].vertex_capacity >= vertex_capacity && free_handles[i].index_capacity >= index_capacity) {
           return i;
         }
       }
       return std::size_t(-1);
     }
+    context_t::object_handle_t upload_or_reuse_handle(context_t& renderer, context_t::voxel_mesh_input_t& mesh, std::uint32_t mesh_vertex_capacity, std::uint32_t mesh_index_capacity) {
+      std::size_t free_index = find_free_handle(renderer, mesh_vertex_capacity, mesh_index_capacity);
+      if (free_index == std::size_t(-1)) {
+        return renderer.add_mesh_incremental(mesh);
+      }
+
+      renderer.wait_idle();
+      context_t::object_handle_t handle = free_handles[free_index].handle;
+      free_handles[free_index] = free_handles.back();
+      free_handles.pop_back();
+      if (!renderer.update_mesh(handle, mesh)) {
+        renderer.destroy_object_geometry(handle);
+        return renderer.add_mesh_incremental(mesh);
+      }
+
+      renderer.set_transform_deferred(handle, mesh.transform);
+      return handle;
+    }
     void poll_completed(context_t& renderer, chunk_coord_t center) {
       fan::time::timer t{true};
       std::uint32_t uploaded = 0;
       bool batch = false;
-      while (uploaded < max_uploads_per_frame) {
-        if (uploaded && t.millis() > upload_budget_ms) { break; }
+      std::uint32_t upload_limit = effective_upload_limit();
+      f32_t upload_budget = effective_upload_budget_ms();
+      while (uploaded < upload_limit) {
+        if (uploaded && t.millis() > upload_budget) { break; }
         chunk_coord_t coord {};
         context_t::voxel_mesh_input_t mesh;
         if (!gpu.fetch_completed(coord, mesh)) { break; }
@@ -828,45 +1168,48 @@ export namespace fan::graphics::vulkan::ray_tracing {
         auto& ch = it->second;
         if (!in_range(coord, center, 1)) { ch.pending = false; ch.dirty = false; if (!ch.uploaded) { chunks.erase(it); } continue; }
         if (mesh.vertices.empty() || mesh.indices.empty()) { ch.pending = false; ch.dirty = false; continue; }
+
+        if (ch.dirty) {
+          ch.pending = false;
+          ch.dirty = false;
+          queue_dirty_chunk(coord);
+          continue;
+        }
+
         prepare_chunk_mesh(mesh);
         if (!batch) { renderer.begin_incremental_upload(); batch = true; }
         std::uint32_t mesh_vertex_capacity = mesh.vertex_capacity;
         std::uint32_t mesh_index_capacity = mesh.index_capacity;
         if (ch.uploaded) {
-          if (!renderer.update_mesh(ch.handle, mesh)) {
-            renderer.set_transform_deferred(ch.handle, fan::translate(fan::vec3(0.f, -1000000.f, 0.f)));
-            free_handles.push_back({ch.handle, ch.vertex_capacity, ch.index_capacity});
-            ch.handle = renderer.add_mesh_incremental(mesh);
+          bool updated_in_place = false;
+          if (mesh.vertices.size() <= ch.vertex_capacity && mesh.indices.size() <= ch.index_capacity) {
+            mesh.vertex_capacity = ch.vertex_capacity;
+            mesh.index_capacity = ch.index_capacity;
+            updated_in_place = renderer.update_mesh(ch.handle, mesh);
+            mesh_vertex_capacity = ch.vertex_capacity;
+            mesh_index_capacity = ch.index_capacity;
           }
-          else {
-            renderer.set_transform_deferred(ch.handle, mesh.transform);
+
+          if (!updated_in_place) {
+            context_t::object_handle_t old_handle = ch.handle;
+            std::uint32_t old_vertex_capacity = ch.vertex_capacity;
+            std::uint32_t old_index_capacity = ch.index_capacity;
+
+            ch.handle = upload_or_reuse_handle(renderer, mesh, mesh_vertex_capacity, mesh_index_capacity);
+
+            renderer.set_transform_deferred(old_handle, fan::translate(fan::vec3(0.f, -1000000.f, 0.f)));
+            free_handles.push_back({old_handle, old_vertex_capacity, old_index_capacity, 0});
           }
         }
         else {
-          std::size_t free_index = find_free_handle(mesh_vertex_capacity, mesh_index_capacity);
-          if (free_index == std::size_t(-1)) {
-            ch.handle = renderer.add_mesh_incremental(mesh);
-          }
-          else {
-            ch.handle = free_handles[free_index].handle;
-            free_handles[free_index] = free_handles.back();
-            free_handles.pop_back();
-            if (!renderer.update_mesh(ch.handle, mesh)) {
-              renderer.destroy_object_geometry(ch.handle);
-              ch.handle = renderer.add_mesh_incremental(mesh);
-            }
-            else {
-              renderer.set_transform_deferred(ch.handle, mesh.transform);
-            }
-          }
+          ch.handle = upload_or_reuse_handle(renderer, mesh, mesh_vertex_capacity, mesh_index_capacity);
         }
         ch.vertex_capacity = mesh_vertex_capacity;
         ch.index_capacity = mesh_index_capacity;
-        bool regenerate = ch.dirty;
+        tree_lod_t applied_lod = tree_lod_for_chunk(coord, center);
+        ch.tree_cell = applied_lod.cell;
+        ch.tree_density_u8 = applied_lod.density_u8;
         ch.uploaded = true; ch.pending = false; ch.dirty = false; ++uploaded; ++debug_last_uploads;
-        if (regenerate) {
-          queue_dirty_chunk(coord);
-        }
       }
       if (batch) { renderer.end_incremental_upload(); }
       trim_free_pool(renderer);
@@ -884,11 +1227,10 @@ export namespace fan::graphics::vulkan::ray_tracing {
     }
     void sort_and_trim_work_queue(chunk_coord_t center, const fan::vec3& cam) {
       std::ranges::sort(work_queue, {}, [&](const chunk_coord_t& p) {
-        chunk_coord_t d = p - center;
-        return chunk_distance2(p, cam) + (f32_t)d.length_squared() * 0.001f;
+        return work_priority(p, center, cam);
       });
 
-      std::uint32_t pending_cap = std::max<std::uint32_t>(max_pending_chunks, max_submits_per_frame + gpu_chunk_generator_t::slot_count);
+      std::uint32_t pending_cap = std::max<std::uint32_t>(max_pending_chunks, effective_submit_limit() + gpu_chunk_generator_t::slot_count);
       std::vector<chunk_coord_t> kept;
       kept.reserve(std::min<std::size_t>(work_queue.size(), pending_cap));
 
@@ -898,8 +1240,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
           continue;
         }
 
-        bool keep = kept.size() < pending_cap || it->second.dirty;
-        if (keep) {
+        if (kept.size() < pending_cap) {
           kept.push_back(c);
           continue;
         }
@@ -915,8 +1256,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
     void submit_pending(chunk_coord_t center, const fan::vec3& cam) {
       sort_and_trim_work_queue(center, cam);
 
+      std::uint32_t submit_limit = effective_submit_limit();
       std::uint32_t submitted = 0;
-      while (!work_queue.empty() && submitted < max_submits_per_frame && gpu.free_slot_count()) {
+      while (!work_queue.empty() && submitted < submit_limit && gpu.free_slot_count()) {
         std::size_t bi = closest_work_index(cam);
         chunk_coord_t coord = work_queue[bi];
         if (!in_range(coord, center, 1)) {
@@ -926,7 +1268,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
           continue;
         }
         collect_chunk_edits(coord, submit_edits);
-        if (!gpu.submit(make_push(coord), coord, submit_edits)) { break; }
+        if (!gpu.submit(make_push(coord, center), coord, submit_edits)) { break; }
         chunks[coord].dirty = false;
         work_queue.erase(work_queue.begin() + bi);
         ++submitted;
@@ -935,7 +1277,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     }
     std::size_t closest_work_index(const fan::vec3& cam) const {
       const auto it = std::ranges::min_element(work_queue, {}, [&](const chunk_coord_t& p) {
-        return chunk_distance2(p, cam);
+        return work_priority(p, debug_center, cam);
       });
       return std::distance(work_queue.begin(), it);
     }
@@ -973,7 +1315,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     bool bootstrap_added = false;
     std::vector<chunk_coord_t> work_queue;
     std::vector<free_chunk_handle_t> free_handles;
-    std::unordered_map<chunk_coord_t, terrain_chunk_t, chunk_coord_hash_t> chunks;
+    chunk_map_t chunks;
     std::unordered_map<block_pos_t, std::uint8_t, block_pos_hash_t> block_edits;
     std::unordered_map<block_pos_t, std::uint8_t, block_pos_hash_t> placed_blocks;
     context_t::object_handle_t placed_overlay;
@@ -988,10 +1330,23 @@ export namespace fan::graphics::vulkan::ray_tracing {
     std::size_t debug_placed_vertices = 0;
     std::size_t debug_placed_indices = 0;
     std::int32_t render_distance = 8, initial_load_radius = 3;
+    static constexpr std::uint32_t free_handle_safe_age = 32;
     std::uint32_t max_uploads_per_frame = 2, max_submits_per_frame = 4, max_pending_chunks = 384;
+    bool adaptive_streaming = false;
+    std::uint32_t max_adaptive_uploads_per_frame = 1;
+    std::uint32_t max_adaptive_submits_per_frame = 1;
     std::int32_t max_free_pool_mesh_mb = 24;
+    std::int32_t max_loaded_chunks = 220;
+    std::int32_t max_terrain_mesh_mb = 180;
     std::int32_t preload_extra = 0;
+    std::int32_t unload_margin = 0;
+    std::int32_t tree_detail_distance = 7;
+    std::int32_t tree_cell_size = 10;
+    f32_t tree_density = 1.f;
     f32_t upload_budget_ms = 0.25f;
+    bool timing_initialized = false;
+    std::chrono::steady_clock::time_point last_update_time {};
+    f32_t debug_frame_ms = 0.f;
   };
 
 }

@@ -159,7 +159,18 @@ export namespace fan::graphics::vulkan::ray_tracing {
       f32_t rt_gpu_source_buffer_mb = 0.f;
       f32_t rt_gpu_vertex_buffer_mb = 0.f;
       f32_t rt_gpu_index_buffer_mb = 0.f;
+      f32_t rt_global_vertex_used_mb = 0.f;
+      f32_t rt_global_vertex_free_mb = 0.f;
+      f32_t rt_global_index_used_mb = 0.f;
+      f32_t rt_global_index_free_mb = 0.f;
+      f32_t rt_global_wasted_mb = 0.f;
+      std::size_t rt_global_vertex_free_ranges = 0;
+      std::size_t rt_global_index_free_ranges = 0;
       f32_t textures_images_mb = 0.f;
+    };
+    struct scene_range_t {
+      std::uint32_t first = 0;
+      std::uint32_t count = 0;
     };
     struct object_t {
       std::uint32_t generation = 0;
@@ -409,23 +420,60 @@ export namespace fan::graphics::vulkan::ray_tracing {
         &buffer.buffer, &buffer.allocation, nullptr);
       buffer.size = aligned_size;
     }
+    std::uint32_t model_blas_primitive_count(const model_t& model) const {
+      return model.blas_primitive_count ? model.blas_primitive_count : model.index_count / 3;
+    }
+    std::uint32_t model_blas_primitive_capacity(const model_t& model) const {
+      return model.blas_primitive_capacity ? model.blas_primitive_capacity : model_blas_primitive_count(model);
+    }
+    bool model_has_blas_geometry(const model_t& model) const {
+      return model.vertex_capacity != 0 && model.index_capacity != 0 && model_blas_primitive_count(model) != 0 && model_blas_primitive_capacity(model) != 0;
+    }
+    bool has_gpu_only_models() const {
+      for (const model_t& model : models) {
+        if (model_has_blas_geometry(model) && !model.keep_cpu_geometry) { return true; }
+      }
+      return false;
+    }
+    void destroy_acceleration_structures_only() {
+      destroy_mesh_upload_jobs();
+      for (auto& blas : blas_list) { blas.destroy(*ctx); }
+      blas_list.clear();
+      destroy_tlas_resources();
+      destroy_buffer(blas_scratch_buffer);
+      blas_scratch_size = 0;
+      blas_scratch_peak_size = 0;
+    }
     void create_blas_for_models() {
       if (models.empty()) { return; }
       std::vector<VkAccelerationStructureBuildSizesInfoKHR> sizes(models.size());
       std::vector<std::uint32_t> primitive_counts(models.size());
       VkDeviceSize scratch_size = 0;
       blas_list.resize(models.size());
+
       for (std::uint32_t i = 0; i < models.size(); ++i) {
         const model_t& model = models[i];
-        primitive_counts[i] = model.blas_primitive_capacity ? model.blas_primitive_capacity : model.index_count / 3;
+        if (!model_has_blas_geometry(model)) {
+          blas_list[i].destroy(*ctx);
+          continue;
+        }
+
+        primitive_counts[i] = model_blas_primitive_capacity(model);
         VkAccelerationStructureGeometryTrianglesDataKHR triangles {};
         VkAccelerationStructureGeometryKHR geometry {};
         VkAccelerationStructureBuildGeometryInfoKHR build_info {};
         fill_blas_build_info(i, triangles, geometry, build_info);
         sizes[i].sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
         vkGetAccelerationStructureBuildSizesKHR(ctx->device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &build_info, &primitive_counts[i], &sizes[i]);
+        if (sizes[i].accelerationStructureSize == 0) {
+          blas_list[i].destroy(*ctx);
+          primitive_counts[i] = 0;
+          continue;
+        }
+
         scratch_size = std::max(scratch_size, std::max(sizes[i].buildScratchSize, sizes[i].updateScratchSize));
         acceleration_structure_t& blas = blas_list[i];
+        blas.destroy(*ctx);
         ctx->create_buffer(sizes[i].accelerationStructureSize, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, blas.buffer);
         VkAccelerationStructureCreateInfoKHR create_info {
           .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,
@@ -435,14 +483,20 @@ export namespace fan::graphics::vulkan::ray_tracing {
         };
         fan::vulkan::validate(vkCreateAccelerationStructureKHR(ctx->device, &create_info, nullptr, &blas.handle));
       }
+
+      if (scratch_size == 0) { return; }
       destroy_buffer(blas_scratch_buffer);
       blas_scratch_size = scratch_size;
       create_scratch_buffer(blas_scratch_size, blas_scratch_buffer);
       blas_scratch_peak_size = std::max(blas_scratch_peak_size, blas_scratch_buffer.size);
       VkDeviceAddress scratch_address = get_buffer_address(blas_scratch_buffer);
       VkCommandBuffer cmd = ctx->begin_single_time_commands();
+      bool recorded = false;
       for (std::uint32_t i = 0; i < models.size(); ++i) {
         const model_t& model = models[i];
+        std::uint32_t prim_count = model_blas_primitive_count(model);
+        if (prim_count == 0 || i >= blas_list.size() || blas_list[i].handle == VK_NULL_HANDLE) { continue; }
+
         VkAccelerationStructureGeometryTrianglesDataKHR triangles {};
         VkAccelerationStructureGeometryKHR geometry {};
         VkAccelerationStructureBuildGeometryInfoKHR build_info {};
@@ -451,24 +505,25 @@ export namespace fan::graphics::vulkan::ray_tracing {
         build_info.dstAccelerationStructure = blas_list[i].handle;
         build_info.scratchData.deviceAddress = scratch_address;
         VkAccelerationStructureBuildRangeInfoKHR range_info {
-          .primitiveCount = model.blas_primitive_count ? model.blas_primitive_count : model.index_count / 3,
+          .primitiveCount = prim_count,
           .primitiveOffset = model.first_index * sizeof(std::uint32_t),
           .firstVertex = 0,
           .transformOffset = 0
         };
         const VkAccelerationStructureBuildRangeInfoKHR* range_infos = &range_info;
         vkCmdBuildAccelerationStructuresKHR(cmd, 1, &build_info, &range_infos);
-        if (i + 1 < models.size()) {
-          VkMemoryBarrier barrier {
-            .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER,
-            .srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
-            .dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR
-          };
-          vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, 0, 1, &barrier, 0, nullptr, 0, nullptr);
-        }
+        VkMemoryBarrier barrier {
+          .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+          .srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
+          .dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR
+        };
+        vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, 0, 1, &barrier, 0, nullptr, 0, nullptr);
+        recorded = true;
       }
       ctx->end_single_time_commands(cmd);
+      if (!recorded) { return; }
       for (auto& blas : blas_list) {
+        if (blas.handle == VK_NULL_HANDLE) { blas.device_address = 0; continue; }
         VkAccelerationStructureDeviceAddressInfoKHR addr_info {
           .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR,
           .accelerationStructure = blas.handle
@@ -477,8 +532,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
       }
     }
     void record_blas_update(VkCommandBuffer cmd, std::uint32_t model_index) {
-      if (model_index >= models.size() || model_index >= blas_list.size() || !blas_scratch_buffer) { return; }
+      if (model_index >= models.size() || model_index >= blas_list.size() || !blas_scratch_buffer || blas_list[model_index].handle == VK_NULL_HANDLE) { return; }
       const model_t& model = models[model_index];
+      if (!model_has_blas_geometry(model)) { return; }
       VkAccelerationStructureGeometryTrianglesDataKHR triangles {};
       VkAccelerationStructureGeometryKHR geometry {};
       VkAccelerationStructureBuildGeometryInfoKHR build_info {};
@@ -488,16 +544,16 @@ export namespace fan::graphics::vulkan::ray_tracing {
       build_info.dstAccelerationStructure = blas_list[model_index].handle;
       build_info.scratchData.deviceAddress = get_buffer_address(blas_scratch_buffer);
       VkAccelerationStructureBuildRangeInfoKHR range_info {
-        .primitiveCount = model.blas_primitive_count ? model.blas_primitive_count : model.index_count / 3,
+        .primitiveCount = model_blas_primitive_count(model),
         .primitiveOffset = model.first_index * sizeof(std::uint32_t)
       };
       const VkAccelerationStructureBuildRangeInfoKHR* range_infos = &range_info;
       vkCmdBuildAccelerationStructuresKHR(cmd, 1, &build_info, &range_infos);
     }
     void record_blas_rebuild(VkCommandBuffer cmd, std::uint32_t model_index) {
-      if (model_index >= models.size() || model_index >= blas_list.size() || !blas_scratch_buffer) { return; }
+      if (model_index >= models.size() || model_index >= blas_list.size() || !blas_scratch_buffer || blas_list[model_index].handle == VK_NULL_HANDLE) { return; }
       const model_t& model = models[model_index];
-      std::uint32_t prim_count = model.blas_primitive_count ? model.blas_primitive_count : model.index_count / 3;
+      std::uint32_t prim_count = model_blas_primitive_count(model);
       if (!prim_count) { return; }
       VkAccelerationStructureGeometryTrianglesDataKHR triangles {};
       VkAccelerationStructureGeometryKHR geometry {};
@@ -519,8 +575,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
     bool recreate_blas(std::uint32_t model_index) {
       if (!ctx || model_index >= models.size()) { return false; }
       const model_t& model = models[model_index];
-      std::uint32_t prim_count = model.blas_primitive_count ? model.blas_primitive_count : model.index_count / 3;
-      std::uint32_t prim_capacity = model.blas_primitive_capacity ? model.blas_primitive_capacity : prim_count;
+      std::uint32_t prim_count = model_blas_primitive_count(model);
+      std::uint32_t prim_capacity = model_blas_primitive_capacity(model);
       if (!prim_count || !prim_capacity) { return false; }
       blas_list.resize(models.size());
       acceleration_structure_t& blas = blas_list[model_index];
@@ -576,22 +632,25 @@ export namespace fan::graphics::vulkan::ray_tracing {
       return true;
     }
     std::vector<VkAccelerationStructureInstanceKHR> make_tlas_instances() const {
-      std::vector<VkAccelerationStructureInstanceKHR> vk_instances(instances.size());
-      for (std::uint32_t i = 0; i < instances.size(); ++i) {
-        const instance_t& inst = instances[i];
+      std::vector<VkAccelerationStructureInstanceKHR> vk_instances;
+      vk_instances.reserve(instances.size());
+      for (const instance_t& inst : instances) {
+        if (inst.model_index >= models.size() || inst.model_index >= blas_list.size()) { continue; }
+        if (blas_list[inst.model_index].device_address == 0) { continue; }
         const model_t& model = models[inst.model_index];
+        if (!model_has_blas_geometry(model)) { continue; }
         VkTransformMatrixKHR t {};
         t.matrix[0][0] = inst.transform[0][0]; t.matrix[0][1] = inst.transform[1][0]; t.matrix[0][2] = inst.transform[2][0]; t.matrix[0][3] = inst.transform[3][0];
         t.matrix[1][0] = inst.transform[0][1]; t.matrix[1][1] = inst.transform[1][1]; t.matrix[1][2] = inst.transform[2][1]; t.matrix[1][3] = inst.transform[3][1];
         t.matrix[2][0] = inst.transform[0][2]; t.matrix[2][1] = inst.transform[1][2]; t.matrix[2][2] = inst.transform[2][2]; t.matrix[2][3] = inst.transform[3][2];
-        vk_instances[i] = {
+        vk_instances.push_back({
           .transform = t,
           .instanceCustomIndex = model.first_primitive,
           .mask = inst.mask,
           .instanceShaderBindingTableRecordOffset = 0,
           .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR,
           .accelerationStructureReference = blas_list[inst.model_index].device_address
-        };
+        });
       }
       return vk_instances;
     }
@@ -618,6 +677,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
     }
     void record_tlas_instance_build(VkCommandBuffer cmd, VkBuildAccelerationStructureModeKHR mode) {
       std::vector<VkAccelerationStructureInstanceKHR> vk_instances = make_tlas_instances();
+      tlas_instance_count = (std::uint32_t)vk_instances.size();
+      if (tlas_instance_count == 0) { return; }
       VkDeviceSize instance_size = sizeof(VkAccelerationStructureInstanceKHR) * tlas_instance_count;
       upload_tlas_instances_to_staging(vk_instances, instance_size);
 
@@ -673,9 +734,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
       record_tlas_instance_build(cmd, VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR);
     }
     void create_tlas() {
-      tlas_instance_count = (std::uint32_t)instances.size();
-      if (tlas_instance_count == 0) { return; }
       std::vector<VkAccelerationStructureInstanceKHR> vk_instances = make_tlas_instances();
+      tlas_instance_count = (std::uint32_t)vk_instances.size();
+      if (tlas_instance_count == 0) { return; }
       VkDeviceSize instance_size = sizeof(VkAccelerationStructureInstanceKHR) * tlas_instance_count;
       upload_tlas_instances_to_staging(vk_instances, instance_size);
 
@@ -715,13 +776,15 @@ export namespace fan::graphics::vulkan::ray_tracing {
         ctx->create_buffer(tlas_capacity, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, tlas.buffer);
       }
 
-      VkAccelerationStructureCreateInfoKHR create_info {
-        .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,
-        .buffer = tlas.buffer,
-        .size = size_info.accelerationStructureSize,
-        .type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR
-      };
-      fan::vulkan::validate(vkCreateAccelerationStructureKHR(ctx->device, &create_info, nullptr, &tlas.handle));
+      if (!tlas.handle) {
+        VkAccelerationStructureCreateInfoKHR create_info {
+          .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,
+          .buffer = tlas.buffer,
+          .size = tlas_capacity,
+          .type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR
+        };
+        fan::vulkan::validate(vkCreateAccelerationStructureKHR(ctx->device, &create_info, nullptr, &tlas.handle));
+      }
 
       VkDeviceSize scratch_size = std::max(size_info.buildScratchSize, size_info.updateScratchSize);
       if (scratch_size > tlas_scratch_capacity || !tlas_scratch_buffer) {
@@ -1377,17 +1440,63 @@ export namespace fan::graphics::vulkan::ray_tracing {
         material_indices_per_primitive[model.first_primitive + primitive] = model.material_index + relative_material;
       }
     }
+    static void merge_scene_ranges(std::vector<scene_range_t>& ranges) {
+      if (ranges.empty()) { return; }
+      std::sort(ranges.begin(), ranges.end(), [](const scene_range_t& a, const scene_range_t& b) {
+        return a.first < b.first;
+      });
+      std::size_t out = 0;
+      for (std::size_t i = 1; i < ranges.size(); ++i) {
+        scene_range_t& back = ranges[out];
+        scene_range_t& next = ranges[i];
+        std::uint64_t back_end = (std::uint64_t)back.first + back.count;
+        if (back_end >= next.first) {
+          std::uint64_t next_end = (std::uint64_t)next.first + next.count;
+          back.count = (std::uint32_t)(std::max(back_end, next_end) - back.first);
+        }
+        else {
+          ++out;
+          if (out != i) { ranges[out] = next; }
+        }
+      }
+      ranges.resize(out + 1);
+    }
+    static void release_scene_range(std::vector<scene_range_t>& ranges, std::uint32_t first, std::uint32_t count) {
+      if (count == 0) { return; }
+      ranges.push_back({first, count});
+      merge_scene_ranges(ranges);
+    }
+    static std::uint64_t scene_range_free_count(const std::vector<scene_range_t>& ranges) {
+      std::uint64_t n = 0;
+      for (const auto& range : ranges) { n += range.count; }
+      return n;
+    }
+    static std::uint32_t alloc_scene_range(std::vector<scene_range_t>& ranges, VkDeviceSize& high_water, std::uint32_t count) {
+      if (count == 0) { return 0; }
+      for (std::size_t i = 0; i < ranges.size(); ++i) {
+        scene_range_t& range = ranges[i];
+        if (range.count < count) { continue; }
+        std::uint32_t first = range.first;
+        range.first += count;
+        range.count -= count;
+        if (range.count == 0) { ranges.erase(ranges.begin() + i); }
+        return first;
+      }
+      std::uint32_t first = (std::uint32_t)high_water;
+      high_water += count;
+      return first;
+    }
     std::uint32_t append_mesh_model(const voxel_mesh_input_t& mesh_input) {
       model_t model {};
-      model.first_index = (std::uint32_t)scene_index_count;
       model.index_count = (std::uint32_t)mesh_input.indices.size();
-      model.first_vertex = (std::uint32_t)scene_vertex_count;
       model.vertex_count = (std::uint32_t)mesh_input.vertices.size();
       model.vertex_capacity = std::max(model.vertex_count, mesh_input.vertex_capacity);
       model.index_capacity = std::max(model.index_count, mesh_input.index_capacity);
       model.blas_primitive_count = model.index_count / 3;
       model.blas_primitive_capacity = model.index_capacity / 3;
-      model.first_primitive = (std::uint32_t)scene_primitive_count;
+      model.first_vertex = alloc_scene_range(vertex_free_ranges, scene_vertex_count, model.vertex_capacity);
+      model.first_index = alloc_scene_range(index_free_ranges, scene_index_count, model.index_capacity);
+      model.first_primitive = alloc_scene_range(primitive_free_ranges, scene_primitive_count, model.blas_primitive_capacity);
       model.keep_cpu_geometry = mesh_input.keep_cpu_copy;
 
       reset_model_bounds(model);
@@ -1396,9 +1505,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
       }
 
       if (model.keep_cpu_geometry) {
-        if (vertex_data.size() < scene_vertex_count + model.vertex_capacity) { vertex_data.resize((std::size_t)scene_vertex_count + model.vertex_capacity); }
-        if (source_vertex_data.size() < scene_vertex_count + model.vertex_capacity) { source_vertex_data.resize((std::size_t)scene_vertex_count + model.vertex_capacity); }
-        if (index_data.size() < scene_index_count + model.index_capacity) { index_data.resize((std::size_t)scene_index_count + model.index_capacity); }
+        if (vertex_data.size() < (std::size_t)model.first_vertex + model.vertex_capacity) { vertex_data.resize((std::size_t)model.first_vertex + model.vertex_capacity); }
+        if (source_vertex_data.size() < (std::size_t)model.first_vertex + model.vertex_capacity) { source_vertex_data.resize((std::size_t)model.first_vertex + model.vertex_capacity); }
+        if (index_data.size() < (std::size_t)model.first_index + model.index_capacity) { index_data.resize((std::size_t)model.first_index + model.index_capacity); }
         for (std::uint32_t i = 0; i < model.vertex_capacity; ++i) {
           vertex_t vertex {};
           if (i < mesh_input.vertices.size()) { vertex = mesh_input.vertices[i]; }
@@ -1421,10 +1530,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
 
       write_material_indices_for_model(model, mesh_input);
 
-      scene_vertex_count += model.vertex_capacity;
-      scene_index_count += model.index_capacity;
       scene_material_count = materials.size();
-      scene_primitive_count += model.blas_primitive_capacity;
 
       std::uint32_t model_index = (std::uint32_t)models.size();
       models.push_back(model);
@@ -1507,7 +1613,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
         VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR;
       constexpr VkBufferUsageFlags stor_usage =
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
-      reserve_gpu_buffer<source_vertex_t>(source_vertex_buffer, source_vertex_capacity, vert_usage, vertex_count, scene_vertex_count);
+      if (!source_vertex_buffer && !source_vertex_data.empty()) {
+        create_source_vertex_buffer();
+      }
       reserve_gpu_buffer<vertex_t>(vertex_buffer, vertex_capacity, vert_usage, vertex_count, scene_vertex_count);
       reserve_gpu_buffer<std::uint32_t>(index_buffer, index_capacity, vert_usage, index_count, scene_index_count);
       reserve_gpu_buffer<material_info_t>(material_buffer, material_capacity, stor_usage, material_count, scene_material_count);
@@ -2445,6 +2553,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     }
     bool destroy_object_geometry(object_handle_t handle) {
       if (!is_object_valid(handle)) { return false; }
+      wait_idle();
 
       std::uint32_t model_index = std::uint32_t(-1);
       const object_t& object = objects[handle.index];
@@ -2460,6 +2569,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
         }
         if (model_index < models.size()) {
           model_t& model = models[model_index];
+          release_scene_range(vertex_free_ranges, model.first_vertex, model.vertex_capacity);
+          release_scene_range(index_free_ranges, model.first_index, model.index_capacity);
+          release_scene_range(primitive_free_ranges, model.first_primitive, model.blas_primitive_capacity);
           model.index_count = 0;
           model.vertex_count = 0;
           model.vertex_capacity = 0;
@@ -2474,6 +2586,16 @@ export namespace fan::graphics::vulkan::ray_tracing {
 
       return removed;
     }
+    std::size_t pending_mesh_upload_count() const {
+      return pending_mesh_uploads.size();
+    }
+    bool has_pending_mesh_uploads() const {
+      return !pending_mesh_uploads.empty();
+    }
+    void wait_idle() {
+      if (ctx) { vkDeviceWaitIdle(ctx->device); }
+    }
+
     fan::mat4 get_transform(object_handle_t handle) const {
       if (!is_object_valid(handle)) { fan::throw_error("invalid ray tracing object handle"); }
       return scene_models[handle.index].transform;
@@ -2773,13 +2895,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       tlas_instance_staging_size = 0;
     }
     void destroy_scene_geometry_resources() {
-      destroy_mesh_upload_jobs();
-      for (auto& blas : blas_list) blas.destroy(*ctx);
-      blas_list.clear();
-      destroy_tlas_resources();
-      destroy_buffer(blas_scratch_buffer);
-      blas_scratch_size = 0;
-      blas_scratch_peak_size = 0;
+      destroy_acceleration_structures_only();
       destroy_buffer(source_vertex_buffer); source_vertex_capacity = 0;
       destroy_buffer(vertex_buffer); vertex_capacity = 0;
       destroy_buffer(index_buffer); index_capacity = 0;
@@ -2838,6 +2954,21 @@ export namespace fan::graphics::vulkan::ray_tracing {
     void rebuild_scene_geometry() {
       if (!ctx) { return; }
       vkDeviceWaitIdle(ctx->device);
+
+      if (has_gpu_only_models()) {
+        destroy_acceleration_structures_only();
+        create_blas_for_models();
+        create_tlas();
+        update_tlas_descriptor();
+        update_scene_buffers_descriptor();
+        update_rt_textures_descriptor();
+        update_skinning_descriptor();
+        reset_accumulation();
+        tlas_dirty = false;
+        tlas_rebuild_dirty = false;
+        return;
+      }
+
       destroy_scene_geometry_resources();
       create_source_vertex_buffer();
       create_vertex_buffer();
@@ -3093,6 +3224,29 @@ export namespace fan::graphics::vulkan::ray_tracing {
       out.rt_gpu_source_buffer_mb = to_mb((std::size_t)source_vertex_buffer.size);
       out.rt_gpu_vertex_buffer_mb = to_mb((std::size_t)vertex_buffer.size);
       out.rt_gpu_index_buffer_mb = to_mb((std::size_t)index_buffer.size);
+
+      std::uint64_t active_vertex_capacity = 0;
+      std::uint64_t active_index_capacity = 0;
+      for (const model_t& model : models) {
+        active_vertex_capacity += model.vertex_capacity;
+        active_index_capacity += model.index_capacity;
+      }
+      std::uint64_t free_vertex_capacity = scene_range_free_count(vertex_free_ranges);
+      std::uint64_t free_index_capacity = scene_range_free_count(index_free_ranges);
+      std::size_t vertex_used_bytes = (std::size_t)active_vertex_capacity * sizeof(vertex_t);
+      std::size_t index_used_bytes = (std::size_t)active_index_capacity * sizeof(std::uint32_t);
+      std::size_t vertex_free_bytes = (std::size_t)free_vertex_capacity * sizeof(vertex_t);
+      std::size_t index_free_bytes = (std::size_t)free_index_capacity * sizeof(std::uint32_t);
+      std::size_t global_buffer_bytes = (std::size_t)vertex_buffer.size + (std::size_t)index_buffer.size;
+      std::size_t global_used_bytes = vertex_used_bytes + index_used_bytes;
+      out.rt_global_vertex_used_mb = to_mb(vertex_used_bytes);
+      out.rt_global_vertex_free_mb = to_mb(vertex_free_bytes);
+      out.rt_global_index_used_mb = to_mb(index_used_bytes);
+      out.rt_global_index_free_mb = to_mb(index_free_bytes);
+      out.rt_global_vertex_free_ranges = vertex_free_ranges.size();
+      out.rt_global_index_free_ranges = index_free_ranges.size();
+      out.rt_global_wasted_mb = global_buffer_bytes > global_used_bytes ? to_mb(global_buffer_bytes - global_used_bytes) : 0.f;
+
       scene_buffer_bytes += (std::size_t)bone_buffer.size;
       scene_buffer_bytes += (std::size_t)tlas_instance_buffer.size;
       scene_buffer_bytes += (std::size_t)tlas_instance_staging_buffer.size;
@@ -3634,6 +3788,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
       scene_index_count = 0;
       scene_material_count = 0;
       scene_primitive_count = 0;
+      vertex_free_ranges.clear();
+      index_free_ranges.clear();
+      primitive_free_ranges.clear();
       source_vertex_data.clear();
       vertex_data.clear();
       index_data.clear();
@@ -3731,6 +3888,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
     VkDeviceSize material_capacity = 0;
     fan::vulkan::context_t::buffer_t bone_buffer;
     std::vector<material_info_t> materials;
+    std::vector<scene_range_t> vertex_free_ranges;
+    std::vector<scene_range_t> index_free_ranges;
+    std::vector<scene_range_t> primitive_free_ranges;
     VkDeviceSize scene_vertex_count = 0;
     VkDeviceSize scene_index_count = 0;
     VkDeviceSize scene_material_count = 0;
