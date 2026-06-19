@@ -64,12 +64,14 @@ import fan.math.intersection;
 #define VK_CTX ((fan::vulkan::context_t*)context)
 
 VkFormat fan::graphics::format_converter::global_to_vulkan_format(std::uintptr_t format) {
-  if (format == image_format_e::bgra) return VK_FORMAT_B8G8R8A8_UNORM;
-  if (format == image_format_e::rgba) return VK_FORMAT_R8G8B8A8_UNORM;
-  if (format == image_format_e::r8_unorm) return VK_FORMAT_R8_UNORM;
-  if (format == image_format_e::r8_uint) return VK_FORMAT_R8_UINT;
-  if (format == image_format_e::r8g8b8a8_srgb) return VK_FORMAT_R8G8B8A8_SRGB;
-  if (format == image_format_e::rgba_unorm) return VK_FORMAT_R8G8B8A8_UNORM;
+  switch (format) {
+    case image_format_e::bgra: return VK_FORMAT_B8G8R8A8_UNORM;
+    case image_format_e::rgba: return VK_FORMAT_R8G8B8A8_UNORM;
+    case image_format_e::r8_unorm: return VK_FORMAT_R8_UNORM;
+    case image_format_e::r8_uint: return VK_FORMAT_R8_UINT;
+    case image_format_e::r8g8b8a8_srgb: return VK_FORMAT_R8G8B8A8_SRGB;
+    case image_format_e::rgba_unorm: return VK_FORMAT_R8G8B8A8_UNORM;
+  }
 #if FAN_DEBUG >= fan_debug_high
   fan::throw_error("invalid format");
 #endif

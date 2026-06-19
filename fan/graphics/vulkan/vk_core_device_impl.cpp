@@ -319,15 +319,13 @@ void fan::vulkan::context_t::update_swapchain_dependencies() {
   #else 
     min_image_count + 1
   #endif
-    ;
+  ;
   vkGetSwapchainImagesKHR(device, swap_chain, &imageCount, nullptr);
   swap_chain_images.resize(imageCount);
-  mainColorImageViews.resize(imageCount);
-  postProcessedColorImageViews.resize(imageCount);
-  depthImageViews.resize(imageCount);
-  downscaleImageViews1.resize(imageCount);
-  upscaleImageViews1.resize(imageCount);
-  vai_depth.resize(imageCount);
+
+  for (auto* view : {&mainColorImageViews, &postProcessedColorImageViews, &depthImageViews, &downscaleImageViews1, &upscaleImageViews1, &vai_depth}) {
+    view->resize(imageCount);
+  }
 
   vkGetSwapchainImagesKHR(device, swap_chain, &imageCount, swap_chain_images.data());
   recreate_swap_chain_dependencies();

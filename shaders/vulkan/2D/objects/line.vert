@@ -1,50 +1,89 @@
-R"(
-#version 430
+#version 450
 
-#define get_instance() instances[gl_InstanceIndex]
-
-struct travel_data_t {
-	vec4 color;
-};
-
-layout(location = 0) out travel_data_t data;
-
-struct block_instance_t {
-	vec4 color;
-	vec3 src;
-	vec3 dst;
-};
-
-layout(std140, binding = 0) readonly buffer instances_t{
-	block_instance_t instances[];
+layout(std430, set = 0, binding = 0) readonly buffer instances_t {
+  uint raw_data[];
 };
 
 layout(push_constant) uniform constants_t {
-	uint texture_id;
-	uint camera_id;
-}constants;
+  uint texture_id;
+  uint camera_id;
+} constants;
 
 struct pv_t {
-	mat4 projection;
-	mat4 view;
+  mat4 projection;
+  mat4 view;
 };
 
-layout(binding = 1) uniform upv_t {
-	pv_t pv[16];
+layout(set = 0, binding = 1) uniform upv_t {
+  pv_t pv[16];
 };
+
+uint base;
+float f(uint o) { return uintBitsToFloat(raw_data[base + o / 4u]); }
+uint u(uint o) { return raw_data[base + o / 4u]; }
+int i(uint o) { return int(raw_data[base + o / 4u]); }
+vec2 v2(uint o) { return vec2(f(o), f(o + 4u)); }
+vec3 v3(uint o) { return vec3(f(o), f(o + 4u), f(o + 8u)); }
+vec4 v4(uint o) { return vec4(f(o), f(o + 4u), f(o + 8u), f(o + 12u)); }
+
+vec2 rectangle_vertices[6] = vec2[](
+  vec2(-1.0, -1.0),
+  vec2(1.0, -1.0),
+  vec2(1.0, 1.0),
+  vec2(1.0, 1.0),
+  vec2(-1.0, 1.0),
+  vec2(-1.0, -1.0)
+);
+
+vec2 texture_coordinates[6] = vec2[](
+  vec2(0.0, 0.0),
+  vec2(1.0, 0.0),
+  vec2(1.0, 1.0),
+  vec2(1.0, 1.0),
+  vec2(0.0, 1.0),
+  vec2(0.0, 0.0)
+);
+
+vec2 rotate2(vec2 p, float a) {
+  float c = cos(a);
+  float s = sin(a);
+  return vec2(p.x * c - p.y * s, p.x * s + p.y * c);
+}
+
+vec2 rotate_around(vec2 p, vec2 pivot, float a) {
+  return pivot + rotate2(p - pivot, a);
+}
+
+vec4 project2(vec3 p) {
+  return pv[constants.camera_id].projection * pv[constants.camera_id].view * vec4(p, 1.0);
+}
+
+layout(location = 0) out vec4 instance_color;
+layout(location = 1) out vec2 line_start;
+layout(location = 2) out vec2 line_end;
+layout(location = 3) out float line_radius;
+layout(location = 4) out vec3 frag_position;
+layout(location = 5) out vec2 ba;
+layout(location = 6) out float ba_len2;
 
 void main() {
-	uint id = uint(gl_VertexIndex % 6);
-
-	mat4 view = pv[constants.camera_id].view;
-  mat4 m = view;
-	m[3][0] = 0;
-	m[3][1] = 0;
-	
-	vec4 view_position = m * vec4(((id & 1u) == 0u) ? get_instance().src.xy : get_instance().dst.xy, get_instance().src.z, 1);
-
-  gl_Position = pv[constants.camera_id].projection * view_position;
-
-	data.color = get_instance().color;
+  base = uint(gl_InstanceIndex) * 11u;
+  uint id = uint(gl_VertexIndex) % 6u;
+  vec2 rp = rectangle_vertices[id];
+  vec3 src = v3(16u);
+  vec2 dst = v2(28u);
+  float radius = f(36u) * 0.5;
+  vec2 dir = dst - src.xy;
+  float len = length(dir);
+  float angle = atan(dir.y, dir.x);
+  vec2 box_size = vec2(len + radius * 4.0, radius * 4.0);
+  vec2 world = rotate2(rp * box_size * 0.5, angle) + (src.xy + dst) * 0.5;
+  frag_position = vec3(world, src.z);
+  gl_Position = project2(frag_position);
+  instance_color = v4(0u);
+  line_start = src.xy;
+  line_end = dst;
+  line_radius = radius;
+  ba = line_end - line_start;
+  ba_len2 = max(dot(ba, ba), 0.000001);
 }
-)"
