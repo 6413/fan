@@ -956,7 +956,8 @@ public:
     fan::graphics::shape_gl_init_list_t shape_shader_locations,
     fan::graphics::shader_t shader,
     fan::graphics::shaper_t::ShapeRenderDataSize_t instance_count = 1,
-    bool instanced = true
+    bool instanced = true,
+    std::uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles
   );
 #endif
 

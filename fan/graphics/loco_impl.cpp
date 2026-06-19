@@ -2499,7 +2499,8 @@ void loco_t::shape_open(
   fan::graphics::shape_gl_init_list_t shape_shader_locations,
   fan::graphics::shader_t shader,
   fan::graphics::shaper_t::ShapeRenderDataSize_t instance_count,
-  bool instanced
+  bool instanced,
+  std::uint8_t draw_mode
 ) {
   fan::graphics::shaper_t::BlockProperties_t bp;
   bp.MaxElementPerBlock = (fan::graphics::shaper_t::MaxElementPerBlock_t)fan::graphics::MaxElementPerBlock;
@@ -2571,6 +2572,7 @@ void loco_t::shape_open(
     pipe_p.descriptor_layout_count = 1;
     pipe_p.push_constants_size = sizeof(fan::vulkan::context_t::push_constants_t);
     pipe_p.enable_depth_test = false;
+    pipe_p.shape_type = (VkPrimitiveTopology)fan::graphics::get_draw_mode(draw_mode);
     p.open(context.vk, pipe_p);
     vk.pipeline = p;
     bp.renderer.vk = vk;

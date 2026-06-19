@@ -1816,6 +1816,41 @@ namespace fan::graphics{
     return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_outline_size(this);
   }
 
+  static void set_pixel_format_shader(fan::graphics::shader_t shader, std::uint8_t format) {
+  #if defined(FAN_VULKAN)
+    const bool is_vulkan = fan::graphics::ctx().window->renderer == fan::window_t::renderer_t::vulkan;
+  #else
+    const bool is_vulkan = false;
+  #endif
+
+    const char* vs_path = is_vulkan ?
+      "shaders/vulkan/2D/objects/universal_image_renderer.vert" :
+      fan::shader_paths::gl::pixel_format_renderer_vs;
+
+    std::string_view fs_path;
+    switch (format) {
+      case fan::graphics::image_format_e::yuv420p:
+        fs_path = is_vulkan ? "shaders/vulkan/2D/objects/yuv420p.frag" : fan::shader_paths::gl::yuv420p_fs;
+        break;
+      case fan::graphics::image_format_e::nv12:
+        fs_path = is_vulkan ? "shaders/vulkan/2D/objects/nv12.frag" : fan::shader_paths::gl::nv12_fs;
+        break;
+      default:
+        fan::throw_error("unimplemented format");
+    }
+
+    fan::graphics::ctx()->shader_set_vertex(
+      fan::graphics::ctx(),
+      shader,
+      vs_path,
+      read_shader(vs_path)
+    );
+
+    auto fs = read_shader(fs_path);
+    fan::graphics::ctx()->shader_set_fragment(fan::graphics::ctx(), shader, fs_path, fs);
+    fan::graphics::ctx()->shader_compile(fan::graphics::ctx(), shader);
+  }
+
   void shapes::shape_t::reload(std::uint8_t format, void** image_data, const fan::vec2& image_size) {
     auto& settings = fan::graphics::ctx()->image_get_settings(fan::graphics::ctx(), get_image());
     std::uint32_t filter = settings.min_filter;
@@ -1830,24 +1865,7 @@ namespace fan::graphics{
       fan::graphics::image_t vi_image = get_image();
 
       auto shader = g_shapes->shaper.GetShader(sti);
-      fan::graphics::ctx()->shader_set_vertex(
-        fan::graphics::ctx(),
-        shader,
-        fan::shader_paths::gl::pixel_format_renderer_vs,
-        read_shader(fan::shader_paths::gl::pixel_format_renderer_vs)
-      );
-      std::string_view fs_path;
-      {
-        std::string fs;
-        switch (format) {
-          case fan::graphics::image_format_e::yuv420p: fs_path = fan::shader_paths::gl::yuv420p_fs; break;
-          case fan::graphics::image_format_e::nv12:    fs_path = fan::shader_paths::gl::nv12_fs;    break;
-          default:                                     fan::throw_error("unimplemented format");
-        }
-        fs = read_shader(fs_path);
-        fan::graphics::ctx()->shader_set_fragment(fan::graphics::ctx(), shader, fs_path, fs);
-        fan::graphics::ctx()->shader_compile(fan::graphics::ctx(), shader);
-      }
+      set_pixel_format_shader(shader, format);
 
       std::uint8_t image_count_old = fan::graphics::get_channel_amount(props.format);
       if (image_count_new < image_count_old) {
@@ -1944,27 +1962,9 @@ namespace fan::graphics{
 
       auto shader = g_shapes->shaper.GetShader(sti);
           
-      fan::graphics::ctx()->shader_set_vertex(fan::graphics::ctx(), 
-        shader,
-        "shaders/opengl/2D/objects/pixel_format_renderer.vs",
-        read_shader("shaders/opengl/2D/objects/pixel_format_renderer.vs")
-      );
-      {
-        std::string_view fs_path;
-        std::string fs;
-
-        switch (format) {
-        case fan::graphics::image_format_e::yuv420p: fs_path = "shaders/opengl/2D/objects/yuv420p.fs"; break;
-        case fan::graphics::image_format_e::nv12:    fs_path = "shaders/opengl/2D/objects/nv12.fs";    break;
-        default:                                     fan::throw_error("unimplemented format");
-        }
-        fs = read_shader(fs_path);
-        fan::graphics::ctx()->shader_set_fragment(fan::graphics::ctx(), shader, fs_path, fs);
-
-        fan::graphics::ctx()->shader_compile(fan::graphics::ctx(), shader);
-      }
+      set_pixel_format_shader(shader, format);
       set_image(images[0]);
-      std::copy(&images[1], &images[0] + ri.images_rest.size(), ri.images_rest.data());
+      std::copy(&images[1], &images[fan::graphics::get_channel_amount(format)], ri.images_rest.data());
       ri.format = format;
     }
   }
