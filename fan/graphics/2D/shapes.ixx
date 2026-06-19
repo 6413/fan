@@ -794,18 +794,15 @@ export namespace fan::graphics {
 
       struct vi_t {
         fan::vec3 position;
-        f32_t pad_position;
         fan::vec2 parallax_factor;
         fan::vec2 size;
         fan::vec2 rotation_point;
-        fan::vec2 pad_rotation;
         fan::color color;
         fan::vec3 angle;
         std::uint32_t flags;
         fan::vec2 tc_position;
         fan::vec2 tc_size;
         f32_t seed;
-        fan::vec3 pad;
       };
 
     #pragma pack(pop)
@@ -877,18 +874,15 @@ export namespace fan::graphics {
 
       struct vi_t {
         fan::vec3 position;
-        f32_t pad_position;
         fan::vec2 parallax_factor;
         fan::vec2 size;
         fan::vec2 rotation_point;
-        fan::vec2 pad_rotation;
         fan::color color;
         fan::vec3 angle;
         std::uint32_t flags;
         fan::vec2 tc_position;
         fan::vec2 tc_size;
-        f32_t seed = 0;
-        fan::vec3 pad;
+        f32_t seed;
       };
     #pragma pack(pop)
 

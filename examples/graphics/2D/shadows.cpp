@@ -70,7 +70,7 @@ int main() {
     sprites.emplace_back(sprite_t{{
       .position = fan::vec3(t.position, 0xfffa),
       .size     = t.size,
-      .color    = fan::colors::transparent,
+      .color    = fan::colors::white,
       .texture_pack_unique_id = t.texture_pack_unique_id
     }});
     gloco()->shadow_add_caster(&sprites.back(), 0.1f);

@@ -834,7 +834,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       s.estimated_cpu_cached_mb = (f32_t)cpu_cached_bytes / mb;
       return s;
     }
-    void render_gui(context_t& renderer) {
+    void render_gui_controls(context_t& renderer) {
       gui::drag("render distance", &render_distance);
       gui::drag("max loaded chunks", &max_loaded_chunks);
       gui::drag("terrain mesh budget MB", &max_terrain_mesh_mb);
@@ -891,7 +891,14 @@ export namespace fan::graphics::vulkan::ray_tracing {
       debug_text(std::format("textures/images: {:.2f} MB count:{}", rt.textures_images_mb, rt.texture_count));
       debug_text(std::format("compute capacity: vertices:{} indices:{}", gpu_chunk_generator_t::max_vertices, gpu_chunk_generator_t::max_indices));
 
-      renderer.render_gui();
+      renderer.render_gui_controls();
+    }
+    bool render_gui(context_t& renderer, const char* window_name = "##rt") {
+      if (auto h = gui::hud_interactive {window_name}; h) {
+        render_gui_controls(renderer);
+        return true;
+      }
+      return false;
     }
     void load_initial(context_t& renderer, chunk_coord_t center, std::int32_t radius, const fan::vec3& cam) {
       if (!gpu.ready()) { return; }
