@@ -180,6 +180,8 @@ struct alpha_shadow_renderer_t {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    glReadBuffer(GL_COLOR_ATTACHMENT0);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
       fan::throw_error_impl("alpha_shadow_renderer: framebuffer incomplete");
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -267,11 +269,19 @@ struct alpha_shadow_renderer_t {
         {mp({-size.x, size.y}), {uv0.x,uv1.y}},
       }};
 
-      bool outside = true;
+      fan::vec2 min = verts[0].position;
+      fan::vec2 max = verts[0].position;
+
       for (auto& v : verts) {
-        if (std::abs(v.position.x) <= 1.25f && std::abs(v.position.y) <= 1.25f) { outside = false; break; }
+        min.x = std::min(min.x, v.position.x);
+        min.y = std::min(min.y, v.position.y);
+        max.x = std::max(max.x, v.position.x);
+        max.y = std::max(max.y, v.position.y);
       }
-      if (outside) continue;
+
+      if (max.x < -1.25f || min.x > 1.25f || max.y < -1.25f || min.y > 1.25f) {
+        continue;
+      }
 
       glActiveTexture(GL_TEXTURE0);
       glBindTexture(GL_TEXTURE_2D, ti.image.get_handle());

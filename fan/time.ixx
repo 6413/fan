@@ -15,89 +15,86 @@ export namespace fan {
     void delay(std::uint64_t time);
 
     struct timer {
+      static constexpr std::uint64_t no_interval_v = (std::uint64_t)-1;
+      static constexpr std::uint64_t infinite_v = (std::uint64_t)-2;
+
       timer() = default;
-      explicit timer(std::uint64_t time, bool start_timer) {
+      explicit timer(std::uint64_t time, bool start_timer) : m_time(time) {
         if (start_timer) {
-          start(time);
+          restart();
         }
       }
-      explicit timer(f64_t time, bool start_timer) {
-        if (start_timer) {
-          start(time);
-        }
-      }
+      explicit timer(f64_t time, bool start_timer) : timer((std::uint64_t)(time * 1e9), start_timer) {}
       explicit timer(bool start_timer) {
         if (start_timer) {
           start();
         }
       }
-      constexpr std::uint64_t count() const {
-        return m_time;
-      }
-      constexpr std::uint64_t duration() const {
-        return count();
-      }
-      constexpr f64_t duration_seconds() const {
-        return duration() / 1e9;
-      }
+
+      constexpr std::uint64_t count() const { return m_time; }
+      constexpr std::uint64_t duration() const { return count(); }
+      constexpr f64_t duration_seconds() const { return duration() / 1e9; }
+
       void start() {
         m_timer = fan::time::now();
-        m_time = -2;
+        if (m_time == no_interval_v) {
+          m_time = infinite_v;
+        }
       }
       void start(std::uint64_t time) {
-        this->start();
         m_time = time;
+        restart();
       }
       void start_seconds(f64_t s) {
-        start();
-        m_time = (std::uint64_t)(s * 1e9);
+        start((std::uint64_t)(s * 1e9));
       }
       void start_millis(f64_t ms) {
-        start();
-        m_time = (std::uint64_t)(ms * 1e6);
+        start((std::uint64_t)(ms * 1e6));
       }
       void start_micros(f64_t us) {
-        start();
-        m_time = (std::uint64_t)(us * 1e3);
+        start((std::uint64_t)(us * 1e3));
       }
 
       void set_time(std::uint64_t time) {
         m_time = time;
       }
       void restart() {
-        auto prev = m_time;
-        start();
-        m_time = prev;
+        if (m_time == no_interval_v) {
+          return;
+        }
+        m_timer = fan::time::now();
       }
       bool finished() const {
-        auto elapsed = this->elapsed();
-        return elapsed >= m_time;
+        return started() && m_time != infinite_v && elapsed() >= m_time;
       }
       explicit operator bool() const {
         return finished();
       }
       bool started() const {
-        return m_time != (std::uint64_t)-1;
+        return m_timer != 0;
+      }
+      void stop() {
+        m_timer = 0;
       }
       std::uint64_t elapsed() const {
         return m_timer == 0 ? 0 : fan::time::now() - m_timer;
       }
-      double seconds() const {
+      f64_t seconds() const {
         return elapsed() / 1e9;
       }
-      double millis() const {
+      f64_t millis() const {
         return elapsed() / 1e6;
       }
 
       std::uint64_t start_time() const {
         return m_timer;
       }
-      std::uint64_t start_time_seconds() const {
+      f64_t start_time_seconds() const {
         return m_timer / 1e9;
       }
 
       std::uint64_t m_timer = 0;
-      std::uint64_t m_time = (std::uint64_t)-1;
+      std::uint64_t m_time = no_interval_v;
     };
 
     timer seconds_timer(f64_t s) {
@@ -196,15 +193,20 @@ export namespace fan {
     void process_tasks() {
       auto& queue = get_task_queue();
       for (auto it = queue.begin(); it != queue.end();) {
+        if (it->duration.finished()) {
+          it = queue.erase(it);
+          continue;
+        }
         if (it->interval.finished()) {
           bool done = false;
           if (it->timer_cb) {
             done = it->timer_cb();
           }
-          if (done || it->duration.finished()) {
+          if (done) {
             it = queue.erase(it);
             continue;
           }
+          it->interval.restart();
         }
         ++it;
       }
