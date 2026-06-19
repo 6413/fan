@@ -21,6 +21,7 @@ import fan.graphics.fms;
 import fan.graphics.gui.base;
 import fan.graphics.loco;
 import fan.math.intersection;
+import fan.print;
 import fan.print.error;
 
 export namespace fan::graphics::vulkan::ray_tracing {
@@ -373,7 +374,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
         .vertexFormat = VK_FORMAT_R32G32B32_SFLOAT,
         .vertexData = {.deviceAddress = get_buffer_address(vertex_buffer)},
         .vertexStride = sizeof(vertex_t),
-        .maxVertex = model.vertex_capacity ? model.first_vertex + model.vertex_capacity - 1 : 0,
+        .maxVertex = model_vertex_blas_capacity(model) ? model.first_vertex + model_vertex_blas_capacity(model) - 1 : 0,
         .indexType = VK_INDEX_TYPE_UINT32,
         .indexData = {.deviceAddress = get_buffer_address(index_buffer)}
       };
@@ -420,6 +421,12 @@ export namespace fan::graphics::vulkan::ray_tracing {
         &buffer.buffer, &buffer.allocation, nullptr);
       buffer.size = aligned_size;
     }
+    std::uint32_t model_vertex_blas_capacity(const model_t& model) const {
+      return model.vertex_capacity ? model.vertex_capacity : model.vertex_count;
+    }
+    std::uint32_t model_index_blas_capacity(const model_t& model) const {
+      return model.index_capacity ? model.index_capacity : model.index_count;
+    }
     std::uint32_t model_blas_primitive_count(const model_t& model) const {
       return model.blas_primitive_count ? model.blas_primitive_count : model.index_count / 3;
     }
@@ -427,7 +434,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       return model.blas_primitive_capacity ? model.blas_primitive_capacity : model_blas_primitive_count(model);
     }
     bool model_has_blas_geometry(const model_t& model) const {
-      return model.vertex_capacity != 0 && model.index_capacity != 0 && model_blas_primitive_count(model) != 0 && model_blas_primitive_capacity(model) != 0;
+      return model_vertex_blas_capacity(model) != 0 && model_index_blas_capacity(model) != 0 && model_blas_primitive_count(model) != 0 && model_blas_primitive_capacity(model) != 0;
     }
     bool has_gpu_only_models() const {
       for (const model_t& model : models) {
@@ -736,7 +743,10 @@ export namespace fan::graphics::vulkan::ray_tracing {
     void create_tlas() {
       std::vector<VkAccelerationStructureInstanceKHR> vk_instances = make_tlas_instances();
       tlas_instance_count = (std::uint32_t)vk_instances.size();
-      if (tlas_instance_count == 0) { return; }
+      if (tlas_instance_count == 0) {
+        tlas.device_address = 0;
+        return;
+      }
       VkDeviceSize instance_size = sizeof(VkAccelerationStructureInstanceKHR) * tlas_instance_count;
       upload_tlas_instances_to_staging(vk_instances, instance_size);
 
@@ -1122,11 +1132,16 @@ export namespace fan::graphics::vulkan::ray_tracing {
       if (material_indices_per_primitive.size() < needed_primitive_count) { material_indices_per_primitive.resize(needed_primitive_count); }
       for (std::uint32_t mesh_idx = 0; mesh_idx < fms.meshes.size(); mesh_idx++) {
         const auto& src_mesh = fms.meshes[mesh_idx];
+
         model_t model {};
         model.first_index = (std::uint32_t)index_data.size();
         model.index_count = (std::uint32_t)src_mesh.indices.size();
         model.first_vertex = (std::uint32_t)vertex_data.size();
         model.vertex_count = (std::uint32_t)src_mesh.vertices.size();
+        model.vertex_capacity = model.vertex_count;
+        model.index_capacity = model.index_count;
+        model.blas_primitive_count = model.index_count / 3;
+        model.blas_primitive_capacity = model.blas_primitive_count;
         model.first_bone = first_bone;
         model.bone_count = bone_count;
         model.animated = animated;
@@ -1136,7 +1151,11 @@ export namespace fan::graphics::vulkan::ray_tracing {
           out.position = v.position;
           out.normal = v.normal;
           out.texcoord = v.uv;
-          out.color = pack_vertex_color(fan::vec3(v.color.x, v.color.y, v.color.z));
+          fan::vec3 vc(v.color.x, v.color.y, v.color.z);
+          if (vc.length_squared() < 1e-8f) {
+            vc = fan::vec3(1.f);
+          }
+          out.color = pack_vertex_color(vc);
           source_vertex_t src {};
           src.position = fan::vec3(out.position);
           src.normal = fan::vec3(out.normal);
@@ -1195,7 +1214,12 @@ export namespace fan::graphics::vulkan::ray_tracing {
           }
           return -1;
         };
-        { std::int32_t slot = load_first_rt_texture({fan::texture_type::base_color, fan::texture_type::diffuse}); if (slot >= 0) mat.albedo_texture_id = slot; }
+        { std::int32_t slot = load_first_rt_texture({
+           fan::texture_type::base_color,
+           fan::texture_type::diffuse,
+           fan::texture_type::ambient,
+           fan::texture_type::unknown
+        }); if (slot >= 0) mat.albedo_texture_id = slot; }
         { std::int32_t slot = load_first_rt_texture({fan::texture_type::normals, fan::texture_type::normal_camera}); if (slot >= 0) mat.normal_texture_id = slot; }
         { const std::string& tn = src_mesh.texture_names[fan::texture_type::metalness]; if (!tn.empty()) { std::int32_t slot = load_rt_texture(tn); if (slot >= 0) mat.metallic_texture_id = slot; } }
         { const std::string& tn = src_mesh.texture_names[fan::texture_type::diffuse_roughness]; if (!tn.empty()) { std::int32_t slot = load_rt_texture(tn); if (slot >= 0) mat.roughness_texture_id = slot; } }
@@ -1207,6 +1231,14 @@ export namespace fan::graphics::vulkan::ray_tracing {
         model.first_primitive = mesh_first_index / 3;
         for (std::uint32_t p = 0; p < mesh_primitive_cnt; ++p) { material_indices_per_primitive[model.first_primitive + p] = model.material_index; }
         models.push_back(model);
+fan::print(
+  "mesh", mesh_idx,
+  "base:", src_mesh.texture_names[fan::texture_type::base_color],
+  "diff:", src_mesh.texture_names[fan::texture_type::diffuse],
+  "amb:", src_mesh.texture_names[fan::texture_type::ambient],
+  "unk:", src_mesh.texture_names[fan::texture_type::unknown],
+  "slot:", mat.albedo_texture_id
+);
       }
       return {first_model, (std::uint32_t)models.size() - first_model};
     }
@@ -2922,7 +2954,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       tlas_rebuild_dirty = false;
     }
     void update_tlas_descriptor() {
-      if (!descriptor_set) { return; }
+      if (!descriptor_set || tlas.handle == VK_NULL_HANDLE) { return; }
       VkWriteDescriptorSetAccelerationStructureKHR as_info {
         .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR,
         .accelerationStructureCount = 1,
@@ -3319,7 +3351,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       out.textures_images_mb = to_mb(image_bytes);
       return out;
     }
-    void render_gui(const char* window_name = "ray tracing") {
+    void render_gui_controls() {
       fan::graphics::gui::checkbox("update camera", &update_camera);
       fan::graphics::gui::checkbox("update animations", &update_animations);
       fan::graphics::gui::checkbox("pause animations with camera", &pause_animations_with_camera);
@@ -3353,6 +3385,14 @@ export namespace fan::graphics::vulkan::ray_tracing {
       light_gizmo_gui_blocks_pick = fan::graphics::gui::is_window_hovered(fan::graphics::gui::hovered_flags_child_windows | fan::graphics::gui::hovered_flags_allow_when_blocked_by_popup | fan::graphics::gui::hovered_flags_allow_when_blocked_by_active_item) || fan::graphics::gui::is_any_item_active();
       update_object_gizmo_hotkeys();
       render_light_gizmo();
+    }
+    bool render_gui(const char* window_name = "##rt") {
+      if (auto h = fan::graphics::gui::hud_interactive {window_name}; h) {
+        render_gui_controls();
+        return true;
+      }
+      light_gizmo_gui_blocks_pick = false;
+      return false;
     }
   #endif
     void attach_engine_callbacks(fan::graphics::engine_t& engine) {
@@ -3482,7 +3522,48 @@ export namespace fan::graphics::vulkan::ray_tracing {
       }
       animation_vertices_dirty = false;
     }
+    bool can_trace_rays() const {
+      return
+        ctx != nullptr &&
+        pipeline != VK_NULL_HANDLE &&
+        pipeline_layout != VK_NULL_HANDLE &&
+        descriptor_set != VK_NULL_HANDLE &&
+        shader_binding_table.buffer != VK_NULL_HANDLE &&
+        tlas.handle != VK_NULL_HANDLE &&
+        output_image_valid &&
+        accum_image_valid;
+    }
+    void record_clear_rt_images(VkCommandBuffer cmd) {
+      VkClearColorValue clear_color {};
+      clear_color.float32[3] = 1.0f;
+      VkImageSubresourceRange range {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+      if (output_image_valid) {
+        auto& img = ctx->image_get(output_image);
+        if (current_layout != VK_IMAGE_LAYOUT_GENERAL) {
+          ctx->insert_image_barrier(cmd, img.image_index, current_layout, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR, VK_PIPELINE_STAGE_TRANSFER_BIT);
+          current_layout = VK_IMAGE_LAYOUT_GENERAL;
+        }
+        vkCmdClearColorImage(cmd, img.image_index, VK_IMAGE_LAYOUT_GENERAL, &clear_color, 1, &range);
+        ctx->insert_image_barrier(cmd, img.image_index, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+        current_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      }
+      if (accum_image_valid) {
+        auto& img = ctx->image_get(accum_image);
+        if (accum_layout != VK_IMAGE_LAYOUT_GENERAL) {
+          ctx->insert_image_barrier(cmd, img.image_index, accum_layout, VK_IMAGE_LAYOUT_GENERAL, VK_ACCESS_SHADER_READ_BIT, VK_ACCESS_TRANSFER_WRITE_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR, VK_PIPELINE_STAGE_TRANSFER_BIT);
+          accum_layout = VK_IMAGE_LAYOUT_GENERAL;
+        }
+        vkCmdClearColorImage(cmd, img.image_index, VK_IMAGE_LAYOUT_GENERAL, &clear_color, 1, &range);
+        ctx->insert_image_barrier(cmd, img.image_index, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+        accum_layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      }
+      accumulation_reset_pending = false;
+    }
     void record_trace_rays(VkCommandBuffer cmd) {
+      if (!can_trace_rays()) {
+        record_clear_rt_images(cmd);
+        return;
+      }
       static auto start_time = std::chrono::steady_clock::now();
       time_ubo_t t {};
       t.time = std::chrono::duration<f32_t>(std::chrono::steady_clock::now() - start_time).count();

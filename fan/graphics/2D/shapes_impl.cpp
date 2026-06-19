@@ -833,10 +833,8 @@ namespace fan::graphics{
 
       shapes::sprite_t::vi_t vi;
       vi.position = properties.position;
-      vi.pad_position = 0;
       vi.size = properties.size;
       vi.rotation_point = properties.rotation_point;
-      vi.pad_rotation = 0;
       vi.color = properties.color;
       vi.angle = properties.angle;
       vi.flags = properties.flags;
@@ -950,10 +948,8 @@ namespace fan::graphics{
 
       shapes::unlit_sprite_t::vi_t vi;
       vi.position = properties.position;
-      vi.pad_position = 0;
       vi.size = properties.size;
       vi.rotation_point = properties.rotation_point;
-      vi.pad_rotation = 0;
       vi.color = properties.color;
       vi.angle = properties.angle;
       vi.flags = properties.flags;

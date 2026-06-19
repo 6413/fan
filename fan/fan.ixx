@@ -111,6 +111,9 @@ export import fan.crypto;
   export import fan.graphics.fms;
   export import fan.graphics.opengl3D.objects.model;
   export import fan.graphics.voxel;
+  #if defined(FAN_VULKAN)
+  export import fan.graphics.vulkan.ray_tracing.hardware_renderer;
+  #endif
 #endif
 
 

@@ -72,12 +72,12 @@ float ray_sphere_intersect(vec3 origin, vec3 direction, vec3 center, float radiu
   return t > 0.001 ? t : -1.0;
 }
 
-vec3 apply_fog(vec3 color, float dist) {
+vec3 apply_fog(vec3 color, float dist, vec3 light_col, float zfar) {
   const vec3 fog_color = vec3(0.55, 0.65, 0.75);
-  const float fog_start = 32.0 * 1.5 * 4.0;
-  const float fog_end = 32.0 * 1.5 * 6.0;
+  float fog_end = zfar * 0.03;
+  float fog_start = fog_end * (4.0 / 6.0);
   float f = smoothstep(fog_start, fog_end, dist);
-  return mix(color, fog_color, f);
+  return mix(color, fog_color + fog_color * light_col, f / 1.0f);
 }
 
 void reset_payload() {
@@ -168,7 +168,7 @@ void main() {
     }
   }
 
-  payload.color = apply_fog(payload.color, payload.hit_t);
+  payload.color = apply_fog(payload.color, payload.hit_t, light.light_color, pv[cam].ray.y);
 
   imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(payload.color, 1.0));
 }

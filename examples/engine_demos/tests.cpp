@@ -1091,7 +1091,7 @@ int main() {
   shape_tester_t tester;
 
   // enable glFlush & glFinish
-  fan_track_opengl_calls() = 1;
+  //fan_track_opengl_calls() = 1;
 
   engine.set_cull_padding(10000);
 

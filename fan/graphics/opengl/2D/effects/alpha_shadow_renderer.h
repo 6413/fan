@@ -57,6 +57,7 @@ struct alpha_shadow_renderer_t {
 
     create_target(occluder_fbo, occluder_texture, occluder_resolution, occluder_resolution, GL_R16F,    GL_RED,  GL_FLOAT, GL_NEAREST, GL_NEAREST, GL_CLAMP_TO_EDGE);
     create_target(shadow_fbo, shadow_texture, angle_resolution, 1, GL_RGBA16F, GL_RGBA, GL_FLOAT, GL_LINEAR, GL_LINEAR, GL_REPEAT);
+    resize_light_target(loco.window.get_size());
   }
 
   void close() {
@@ -75,24 +76,69 @@ struct alpha_shadow_renderer_t {
   void render_overlay(std::span<const caster_t> casters, std::span<const light_t> lights) {
     if (occluder_shader.iic()) { open(); }
 
+    fan::vec2 ws = loco.window.get_size();
+    resize_light_target(ws);
+
     GLint old_fbo; glGetIntegerv(GL_FRAMEBUFFER_BINDING, &old_fbo);
     GLint old_vp[4]; glGetIntegerv(GL_VIEWPORT, old_vp);
+    GLint old_vao; glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &old_vao);
+    GLint old_active_texture; glGetIntegerv(GL_ACTIVE_TEXTURE, &old_active_texture);
+    GLboolean old_depth = glIsEnabled(GL_DEPTH_TEST);
+    GLboolean old_cull = glIsEnabled(GL_CULL_FACE);
+    GLboolean old_scissor = glIsEnabled(GL_SCISSOR_TEST);
     save_blend();
 
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
+    glDisable(GL_SCISSOR_TEST);
     glBindVertexArray(vao);
 
-    render_darkness(darkness, old_fbo, old_vp);
+    glBindFramebuffer(GL_FRAMEBUFFER, light_fbo);
+    glViewport(0, 0, (std::int32_t)ws.x, (std::int32_t)ws.y);
+    f32_t ambient = 1.f - darkness;
+    glClearColor(ambient, ambient, ambient, 1.f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
     for (const light_t& light : lights) {
       render_occluders(light, casters);
       render_shadow_map();
-      render_light(light, old_fbo, old_vp);
+      render_light(light, light_fbo, old_vp);
     }
 
     restore_blend();
+    if (old_depth) { glEnable(GL_DEPTH_TEST); }
+    else { glDisable(GL_DEPTH_TEST); }
+    if (old_cull) { glEnable(GL_CULL_FACE); }
+    else { glDisable(GL_CULL_FACE); }
+    if (old_scissor) { glEnable(GL_SCISSOR_TEST); }
+    else { glDisable(GL_SCISSOR_TEST); }
+    glActiveTexture(old_active_texture);
+    glBindVertexArray(old_vao);
     glBindFramebuffer(GL_FRAMEBUFFER, old_fbo);
     glViewport(old_vp[0], old_vp[1], old_vp[2], old_vp[3]);
+  }
+
+  void resize_light_target(fan::vec2 size) {
+    if (light_texture && light_size == size) {
+      return;
+    }
+
+    if (light_texture) { glDeleteTextures(1, &light_texture); }
+    if (light_fbo) { glDeleteFramebuffers(1, &light_fbo); }
+
+    light_size = size;
+    create_target(
+      light_fbo,
+      light_texture,
+      (std::int32_t)size.x,
+      (std::int32_t)size.y,
+      GL_RGBA16F,
+      GL_RGBA,
+      GL_FLOAT,
+      GL_LINEAR,
+      GL_LINEAR,
+      GL_CLAMP_TO_EDGE
+    );
   }
 
 
@@ -250,30 +296,30 @@ struct alpha_shadow_renderer_t {
 
   void render_light(const light_t& light, GLint fbo, const GLint vp[4]) {
     fan::vec2 center = w2s(light.position, *light.render_view);
-    fan::vec2 edge   = w2s(light.position + fan::vec2(light.radius, 0), *light.render_view);
+    fan::vec2 edge = w2s(light.position + fan::vec2(light.radius, 0), *light.render_view);
     f32_t r = std::max(1.f, std::abs(edge.x - center.x));
     fan::vec2 p0 = center - r, p1 = center + r;
 
-    std::array<vertex_t, 6> verts{{
+    std::array<vertex_t, 6> verts {{
       {clip({p0.x,p1.y}), {0,0}}, {clip({p1.x,p1.y}), {1,0}}, {clip({p1.x,p0.y}), {1,1}},
       {clip({p0.x,p1.y}), {0,0}}, {clip({p1.x,p0.y}), {1,1}}, {clip({p0.x,p0.y}), {0,1}},
     }};
 
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-    glViewport(vp[0], vp[1], vp[2], vp[3]);
+    glViewport(0, 0, vp[2], vp[3]);
     glEnable(GL_BLEND);
     glBlendEquation(GL_FUNC_ADD);
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_ZERO, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendFuncSeparate(GL_ONE, GL_ONE, GL_ZERO, GL_ONE);
 
     loco.shader_use(light_shader);
-    loco.shader_set_value(light_shader, "shadow_texture",  0);
-    loco.shader_set_value(light_shader, "light_color",     light.color);
-    loco.shader_set_value(light_shader, "softness",        light.softness);
-    loco.shader_set_value(light_shader, "falloff_power",   light.falloff_power);
-    loco.shader_set_value(light_shader, "angle_texel",     1.f / f32_t(angle_resolution));
-    loco.shader_set_value(light_shader, "cone_angle",     light.angle);
-    loco.shader_set_value(light_shader, "cone_inner",     light.cone_inner);
-    loco.shader_set_value(light_shader, "cone_outer",     light.cone_outer);
+    loco.shader_set_value(light_shader, "shadow_texture", 0);
+    loco.shader_set_value(light_shader, "light_color", light.color);
+    loco.shader_set_value(light_shader, "softness", light.softness);
+    loco.shader_set_value(light_shader, "falloff_power", light.falloff_power);
+    loco.shader_set_value(light_shader, "angle_texel", 1.f / f32_t(angle_resolution));
+    loco.shader_set_value(light_shader, "cone_angle", light.angle);
+    loco.shader_set_value(light_shader, "cone_inner", light.cone_inner);
+    loco.shader_set_value(light_shader, "cone_outer", light.cone_outer);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, shadow_texture);
     draw(verts);
@@ -286,6 +332,9 @@ struct alpha_shadow_renderer_t {
   std::uint32_t occluder_fbo = 0, occluder_texture = 0;
   std::uint32_t shadow_fbo   = 0, shadow_texture   = 0;
   std::uint32_t vao = 0, vbo = 0;
+
+  std::uint32_t light_fbo = 0, light_texture = 0;
+  fan::vec2 light_size = 0;
 
   fan::graphics::shader_t occluder_shader;
   fan::graphics::shader_t radial_shader;

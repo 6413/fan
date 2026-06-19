@@ -6,6 +6,7 @@ uniform sampler2D _t00;
 uniform sampler2D _t01;
 uniform sampler2D _t02;
 uniform sampler2D _t03;
+uniform sampler2D _t04;
 
 uniform float bloom_strength = 0.04;
 uniform float bloom_intensity = 1.0;
@@ -60,6 +61,9 @@ void main() {
     color = mix(color, blur, amount);
   }
 
+  vec3 light = texture(_t04, texture_coordinate).rgb;
+  color *= light;
+
   if (bloom_enabled) {
     vec3 bloom = texture(_t01, texture_coordinate).rgb;
 
@@ -75,8 +79,6 @@ void main() {
 
   color *= exposure;
   color = (color - 0.5) * contrast + 0.5;
-  // already srgb
-  //color = pow(max(color, vec3(0.0)), vec3(1.0 / gamma));
 
   o_attachment0 = vec4(color, framebuffer_alpha);
 }
