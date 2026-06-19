@@ -359,7 +359,6 @@ void add_shape_type(fan::graphics::shaper_t::ShapeTypes_NodeData_t& st, const fa
   if (!data.shader.iic()) {
     shader = loco.shader_get(data.shader);
   }
-  uint64_t ptr_offset = 0;
   if (data.locations.ptr == nullptr) {
     return;
   }
@@ -373,40 +372,35 @@ void add_shape_type(fan::graphics::shaper_t::ShapeTypes_NodeData_t& st, const fa
     }
     fan_opengl_call(glEnableVertexAttribArray(location.index.first));
     switch (location.type) {
-    case GL_UNSIGNED_INT:
-    case GL_INT: {
-      fan_opengl_call(glVertexAttribIPointer(location.index.first, location.size, location.type, location.stride, (void*)ptr_offset));
-      break;
+      case GL_UNSIGNED_INT:
+      case GL_INT:
+      {
+        fan_opengl_call(glVertexAttribIPointer(
+          location.index.first,
+          location.size,
+          location.type,
+          location.stride,
+          (void*)(std::uintptr_t)location.offset
+        ));
+        break;
+      }
+      default:
+      {
+        fan_opengl_call(glVertexAttribPointer(
+          location.index.first,
+          location.size,
+          location.type,
+          GL_FALSE,
+          location.stride,
+          (void*)(std::uintptr_t)location.offset
+        ));
+      }
     }
-    default: {
-      fan_opengl_call(glVertexAttribPointer(location.index.first, location.size, location.type, GL_FALSE, location.stride, (void*)ptr_offset));
-    }
-    }
-    // instancing
     if ((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) {
       if (data.instanced) {
         fan_opengl_call(glVertexAttribDivisor(location.index.first, 1));
       }
     }
-    uint64_t sizeof_type = 0;
-    switch (location.type) {
-    case GL_FLOAT: {
-      sizeof_type = sizeof(GLfloat);
-      break;
-    }
-    case GL_UNSIGNED_INT: {
-      sizeof_type = sizeof(GLuint);
-      break;
-    }
-    case GL_INT: {
-      sizeof_type = sizeof(GLint);
-      break;
-    }
-    default: {
-      fan::throw_error_impl("Invalid GL type");
-    }
-    }
-    ptr_offset += location.size * sizeof_type;
   }
 }
 
@@ -918,10 +912,10 @@ void shapes_draw() {
 
     if ((loco.context.gl.opengl.major > 3) || (loco.context.gl.opengl.major == 3 && loco.context.gl.opengl.minor >= 3)) {
       
-      //loco.gl->alpha_shadow_renderer.render_overlay(
-      //  loco.gl->alpha_shadow_renderer.casters,
-      //  loco.gl->alpha_shadow_renderer.lights
-      //);
+      loco.gl->alpha_shadow_renderer.render_overlay(
+        loco.gl->alpha_shadow_renderer.casters,
+        loco.gl->alpha_shadow_renderer.lights
+      );
 
       loco.gl->m_framebuffer.unbind(loco.context.gl);
 
@@ -960,9 +954,13 @@ void shapes_draw() {
       loco.gl->reflection.draw();
       loco.gl->m_framebuffer.unbind(loco.context.gl);
 
+      loco.shader_use(loco.gl->m_fbo_final_shader);
+
       loco.shader_set_value(loco.gl->m_fbo_final_shader, "_t00", 0);
       loco.shader_set_value(loco.gl->m_fbo_final_shader, "_t01", 1);
       loco.shader_set_value(loco.gl->m_fbo_final_shader, "_t03", 3);
+      loco.shader_set_value(loco.gl->m_fbo_final_shader, "_t04", 4);
+
       loco.shader_set_value(loco.gl->m_fbo_final_shader, "framebuffer_alpha", loco.renderer_state.clear_color.a);
       loco.shader_set_value(loco.gl->m_fbo_final_shader, "post_process_mode", (int)loco.open_props.post_process_mode);
       loco.shader_set_value(loco.gl->m_fbo_final_shader, "blur_amount", loco.open_props.blur_amount);
@@ -994,6 +992,15 @@ void shapes_draw() {
           fan_opengl_call(glActiveTexture(GL_TEXTURE3));
           loco.image_bind(loco.gl->raw_blur.mips.front().image);
         }
+
+        fan_opengl_call(glDisable(GL_BLEND));
+        loco.context.gl.set_depth_test(false);
+
+        fan_opengl_call(glActiveTexture(GL_TEXTURE0));
+        loco.image_bind(loco.gl->color_buffers[0]);
+
+        fan_opengl_call(glActiveTexture(GL_TEXTURE4));
+        fan_opengl_call(glBindTexture(GL_TEXTURE_2D, loco.gl->alpha_shadow_renderer.light_texture));
 
         render_final_fb();
       }
