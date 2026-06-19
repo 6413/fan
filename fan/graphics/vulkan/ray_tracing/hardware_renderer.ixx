@@ -232,7 +232,12 @@ export namespace fan::graphics::vulkan::ray_tracing {
       std::uint32_t color_key = 0;
       std::uint32_t material_index = 0;
       fan::vec4 color = fan::vec4(1, 1, 1, 1);
+
+      std::uint64_t hash() const {
+        return ((std::uint64_t)visible) | ((std::uint64_t)id << 8) | ((std::uint64_t)material_index << 16) | ((std::uint64_t)color_key << 32);
+      }
     };
+
     struct voxel_grid_t {
       void resize(std::uint32_t x, std::uint32_t y, std::uint32_t z) {
         sx = x; sy = y; sz = z;
@@ -458,6 +463,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
       VkDeviceSize scratch_size = 0;
       blas_list.resize(models.size());
 
+      VkDeviceSize align = get_scratch_alignment();
+
       for (std::uint32_t i = 0; i < models.size(); ++i) {
         const model_t& model = models[i];
         if (!model_has_blas_geometry(model)) {
@@ -472,23 +479,24 @@ export namespace fan::graphics::vulkan::ray_tracing {
         fill_blas_build_info(i, triangles, geometry, build_info);
         sizes[i].sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR;
         vkGetAccelerationStructureBuildSizesKHR(ctx->device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &build_info, &primitive_counts[i], &sizes[i]);
+
         if (sizes[i].accelerationStructureSize == 0) {
           blas_list[i].destroy(*ctx);
           primitive_counts[i] = 0;
           continue;
         }
 
-        scratch_size = std::max(scratch_size, std::max(sizes[i].buildScratchSize, sizes[i].updateScratchSize));
-        acceleration_structure_t& blas = blas_list[i];
-        blas.destroy(*ctx);
-        ctx->create_buffer(sizes[i].accelerationStructureSize, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, blas.buffer);
+        scratch_size += sizes[i].buildScratchSize;
+        scratch_size = (scratch_size + align - 1) & ~(align - 1);
+
+        ctx->create_buffer(sizes[i].accelerationStructureSize, VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, blas_list[i].buffer);
         VkAccelerationStructureCreateInfoKHR create_info {
           .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,
-          .buffer = blas.buffer,
+          .buffer = blas_list[i].buffer,
           .size = sizes[i].accelerationStructureSize,
           .type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR
         };
-        fan::vulkan::validate(vkCreateAccelerationStructureKHR(ctx->device, &create_info, nullptr, &blas.handle));
+        fan::vulkan::validate(vkCreateAccelerationStructureKHR(ctx->device, &create_info, nullptr, &blas_list[i].handle));
       }
 
       if (scratch_size == 0) { return; }
@@ -497,38 +505,64 @@ export namespace fan::graphics::vulkan::ray_tracing {
       create_scratch_buffer(blas_scratch_size, blas_scratch_buffer);
       blas_scratch_peak_size = std::max(blas_scratch_peak_size, blas_scratch_buffer.size);
       VkDeviceAddress scratch_address = get_buffer_address(blas_scratch_buffer);
-      VkCommandBuffer cmd = ctx->begin_single_time_commands();
-      bool recorded = false;
+
+      std::vector<VkAccelerationStructureGeometryTrianglesDataKHR> batch_triangles;
+      std::vector<VkAccelerationStructureGeometryKHR> batch_geometries;
+      std::vector<VkAccelerationStructureBuildGeometryInfoKHR> batch_build_infos;
+      std::vector<VkAccelerationStructureBuildRangeInfoKHR> batch_ranges;
+      std::vector<const VkAccelerationStructureBuildRangeInfoKHR*> batch_range_ptrs;
+
+      batch_triangles.reserve(models.size());
+      batch_geometries.reserve(models.size());
+      batch_build_infos.reserve(models.size());
+      batch_ranges.reserve(models.size());
+      batch_range_ptrs.reserve(models.size());
+
+      VkDeviceSize current_scratch = scratch_address;
+
       for (std::uint32_t i = 0; i < models.size(); ++i) {
         const model_t& model = models[i];
         std::uint32_t prim_count = model_blas_primitive_count(model);
         if (prim_count == 0 || i >= blas_list.size() || blas_list[i].handle == VK_NULL_HANDLE) { continue; }
 
-        VkAccelerationStructureGeometryTrianglesDataKHR triangles {};
-        VkAccelerationStructureGeometryKHR geometry {};
-        VkAccelerationStructureBuildGeometryInfoKHR build_info {};
-        fill_blas_build_info(i, triangles, geometry, build_info);
-        build_info.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
-        build_info.dstAccelerationStructure = blas_list[i].handle;
-        build_info.scratchData.deviceAddress = scratch_address;
-        VkAccelerationStructureBuildRangeInfoKHR range_info {
+        batch_triangles.push_back({});
+        batch_geometries.push_back({});
+        batch_build_infos.push_back({});
+        fill_blas_build_info(i, batch_triangles.back(), batch_geometries.back(), batch_build_infos.back());
+
+        batch_build_infos.back().mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+        batch_build_infos.back().dstAccelerationStructure = blas_list[i].handle;
+        batch_build_infos.back().scratchData.deviceAddress = current_scratch;
+        
+        current_scratch += sizes[i].buildScratchSize;
+        current_scratch = (current_scratch + align - 1) & ~(align - 1);
+
+        batch_ranges.push_back({
           .primitiveCount = prim_count,
           .primitiveOffset = model.first_index * sizeof(std::uint32_t),
           .firstVertex = 0,
           .transformOffset = 0
-        };
-        const VkAccelerationStructureBuildRangeInfoKHR* range_infos = &range_info;
-        vkCmdBuildAccelerationStructuresKHR(cmd, 1, &build_info, &range_infos);
-        VkMemoryBarrier barrier {
-          .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER,
-          .srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
-          .dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR
-        };
-        vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, 0, 1, &barrier, 0, nullptr, 0, nullptr);
-        recorded = true;
+        });
+        batch_range_ptrs.push_back(&batch_ranges.back());
       }
+
+      if (batch_build_infos.empty()) { return; }
+
+      for (std::size_t i = 0; i < batch_build_infos.size(); ++i) {
+        batch_geometries[i].geometry.triangles = batch_triangles[i];
+        batch_build_infos[i].pGeometries = &batch_geometries[i];
+      }
+
+      VkCommandBuffer cmd = ctx->begin_single_time_commands();
+      vkCmdBuildAccelerationStructuresKHR(cmd, batch_build_infos.size(), batch_build_infos.data(), batch_range_ptrs.data());
+      VkMemoryBarrier barrier {
+        .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+        .srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR,
+        .dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR | VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR
+      };
+      vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, 0, 1, &barrier, 0, nullptr, 0, nullptr);
       ctx->end_single_time_commands(cmd);
-      if (!recorded) { return; }
+
       for (auto& blas : blas_list) {
         if (blas.handle == VK_NULL_HANDLE) { blas.device_address = 0; continue; }
         VkAccelerationStructureDeviceAddressInfoKHR addr_info {
@@ -638,9 +672,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
       blas.device_address = vkGetAccelerationStructureDeviceAddressKHR(ctx->device, &addr_info);
       return true;
     }
-    std::vector<VkAccelerationStructureInstanceKHR> make_tlas_instances() const {
-      std::vector<VkAccelerationStructureInstanceKHR> vk_instances;
-      vk_instances.reserve(instances.size());
+    const std::vector<VkAccelerationStructureInstanceKHR>& make_tlas_instances() const {
+      cached_tlas_instances.clear();
+      cached_tlas_instances.reserve(instances.size());
       for (const instance_t& inst : instances) {
         if (inst.model_index >= models.size() || inst.model_index >= blas_list.size()) { continue; }
         if (blas_list[inst.model_index].device_address == 0) { continue; }
@@ -650,7 +684,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
         t.matrix[0][0] = inst.transform[0][0]; t.matrix[0][1] = inst.transform[1][0]; t.matrix[0][2] = inst.transform[2][0]; t.matrix[0][3] = inst.transform[3][0];
         t.matrix[1][0] = inst.transform[0][1]; t.matrix[1][1] = inst.transform[1][1]; t.matrix[1][2] = inst.transform[2][1]; t.matrix[1][3] = inst.transform[3][1];
         t.matrix[2][0] = inst.transform[0][2]; t.matrix[2][1] = inst.transform[1][2]; t.matrix[2][2] = inst.transform[2][2]; t.matrix[2][3] = inst.transform[3][2];
-        vk_instances.push_back({
+        cached_tlas_instances.push_back({
           .transform = t,
           .instanceCustomIndex = model.first_primitive,
           .mask = inst.mask,
@@ -659,7 +693,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
           .accelerationStructureReference = blas_list[inst.model_index].device_address
         });
       }
-      return vk_instances;
+      return cached_tlas_instances;
     }
     void ensure_tlas_instance_staging(VkDeviceSize size) {
       if (tlas_instance_staging_buffer && tlas_instance_staging_size >= size) { return; }
@@ -1096,12 +1130,9 @@ export namespace fan::graphics::vulkan::ray_tracing {
       fan::vulkan::validate(ctx->map_buffer(bone_buffer, &bone_buffer.mapped));
       upload_bone_buffer();
     }
+    // hardware_renderer.ixx
     fan::vec3 transform_direction(const fan::mat4& m, const fan::vec3& v) const {
-      return fan::vec3(
-        m[0][0] * v.x + m[1][0] * v.y + m[2][0] * v.z,
-        m[0][1] * v.x + m[1][1] * v.y + m[2][1] * v.z,
-        m[0][2] * v.x + m[1][2] * v.y + m[2][2] * v.z
-      );
+      return fan::vec3(m * fan::vec4(v, 0.f));
     }
     template <typename source_vertex_type_t, typename vertex_type_t>
     void bake_cached_animation_vertex(const source_vertex_type_t& src, vertex_type_t& dst) const {
@@ -1231,14 +1262,14 @@ export namespace fan::graphics::vulkan::ray_tracing {
         model.first_primitive = mesh_first_index / 3;
         for (std::uint32_t p = 0; p < mesh_primitive_cnt; ++p) { material_indices_per_primitive[model.first_primitive + p] = model.material_index; }
         models.push_back(model);
-fan::print(
-  "mesh", mesh_idx,
-  "base:", src_mesh.texture_names[fan::texture_type::base_color],
-  "diff:", src_mesh.texture_names[fan::texture_type::diffuse],
-  "amb:", src_mesh.texture_names[fan::texture_type::ambient],
-  "unk:", src_mesh.texture_names[fan::texture_type::unknown],
-  "slot:", mat.albedo_texture_id
-);
+        fan::print(
+          "mesh", mesh_idx,
+          "base:", src_mesh.texture_names[fan::texture_type::base_color],
+          "diff:", src_mesh.texture_names[fan::texture_type::diffuse],
+          "amb:", src_mesh.texture_names[fan::texture_type::ambient],
+          "unk:", src_mesh.texture_names[fan::texture_type::unknown],
+          "slot:", mat.albedo_texture_id
+        );
       }
       return {first_model, (std::uint32_t)models.size() - first_model};
     }
@@ -1272,10 +1303,10 @@ fan::print(
       return pack_channel(color.x) | (pack_channel(color.y) << 8) | (pack_channel(color.z) << 16) | (pack_channel(color.w) << 24);
     }
     static bool same_voxel_surface(const voxel_surface_t& a, const voxel_surface_t& b) {
-      return a.visible == b.visible && a.id == b.id && a.color_key == b.color_key && a.material_index == b.material_index;
+      return a.hash() == b.hash();
     }
     static std::uint32_t voxel_face_index(int axis, int sign) {
-      return (std::uint32_t)axis * 2u + (sign > 0 ? 0u : 1u);
+      return (std::uint32_t)(axis * 2 + (sign <= 0));
     }
     static std::uint32_t get_or_add_voxel_material(voxel_mesh_input_t& mesh, std::unordered_map<std::uint64_t, std::uint32_t>& material_map, const atlas_t& atlas, std::uint32_t tile) {
       std::uint64_t key = (std::uint64_t)(std::uint32_t)atlas.texture_id | ((std::uint64_t)tile << 32);
@@ -1928,11 +1959,12 @@ fan::print(
       return true;
     }
     struct pending_buffer_copy_t {
-      fan::vulkan::context_t::buffer_t staging;
       fan::vulkan::context_t::buffer_t* dst_buffer = nullptr;
+      VkDeviceSize src_offset = 0;
       VkDeviceSize dst_offset = 0;
       VkDeviceSize size = 0;
     };
+
     struct pending_mesh_upload_t {
       std::uint32_t model_index = 0;
       std::vector<pending_buffer_copy_t> copies;
@@ -1981,13 +2013,21 @@ fan::print(
     void make_pending_model_buffer_copy(pending_mesh_upload_t& job, fan::vulkan::context_t::buffer_t& dst_buffer, const void* data, VkDeviceSize elem_size, VkDeviceSize first, VkDeviceSize count) {
       if (!count) { return; }
       VkDeviceSize bytes = elem_size * count;
-      fan::vulkan::context_t::buffer_t staging;
-      ctx->create_buffer(bytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, staging);
-      void* mapped = nullptr;
-      fan::vulkan::validate(ctx->map_buffer(staging, &mapped));
-      std::memcpy(mapped, data, (std::size_t)bytes);
-      ctx->unmap_buffer(staging);
-      job.copies.push_back({.staging = staging, .dst_buffer = &dst_buffer, .dst_offset = elem_size * first, .size = bytes});
+      VkDeviceSize align = 256;
+      VkDeviceSize aligned_bytes = (bytes + align - 1) & ~(align - 1);
+
+      if (!staging_ring_buffer) {
+        ctx->create_buffer(128 * 1024 * 1024, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, staging_ring_buffer);
+        fan::vulkan::validate(ctx->map_buffer(staging_ring_buffer, &staging_ring_buffer.mapped));
+      }
+
+      if (staging_ring_offset + aligned_bytes > staging_ring_buffer.size) {
+        staging_ring_offset = 0;
+      }
+
+      std::memcpy(static_cast<std::uint8_t*>(staging_ring_buffer.mapped) + staging_ring_offset, data, bytes);
+      job.copies.push_back({.dst_buffer = &dst_buffer, .src_offset = staging_ring_offset, .dst_offset = elem_size * first, .size = bytes});
+      staging_ring_offset += aligned_bytes;
     }
     bool enqueue_mesh_model_gpu_upload(std::uint32_t model_index, const voxel_mesh_input_t* mesh_input = nullptr) {
       if (!ctx || !ready || model_index >= models.size()) { return false; }
@@ -2023,36 +2063,14 @@ fan::print(
       pending_mesh_uploads.push_back(std::move(job));
       return true;
     }
-    void retire_mesh_upload(pending_mesh_upload_t& job) {
-      retired_mesh_upload_t retired;
-      retired.frames_left = 4;
-      retired.staging_buffers.reserve(job.copies.size());
-      for (auto& copy : job.copies) { retired.staging_buffers.push_back(copy.staging); copy.staging = {}; }
-      retired_mesh_uploads.push_back(std::move(retired));
-    }
-    void gc_retired_mesh_uploads() {
-      for (std::size_t i = 0; i < retired_mesh_uploads.size();) {
-        auto& retired = retired_mesh_uploads[i];
-        if (retired.frames_left) { --retired.frames_left; ++i; continue; }
-        for (auto& staging : retired.staging_buffers) { destroy_buffer(staging); }
-        retired_mesh_uploads.erase(retired_mesh_uploads.begin() + i);
-      }
-    }
-    void destroy_mesh_upload_jobs() {
-      for (auto& job : pending_mesh_uploads) {
-        for (auto& copy : job.copies) { destroy_buffer(copy.staging); }
-      }
-      pending_mesh_uploads.clear();
-      for (auto& retired : retired_mesh_uploads) {
-        for (auto& staging : retired.staging_buffers) { destroy_buffer(staging); }
-      }
-      retired_mesh_uploads.clear();
-    }
+    void retire_mesh_upload(pending_mesh_upload_t& job) {}
+    void gc_retired_mesh_uploads() {}
+    void destroy_mesh_upload_jobs() { pending_mesh_uploads.clear(); }
     void record_pending_mesh_uploads(VkCommandBuffer cmd) {
       if (pending_mesh_uploads.empty()) { return; }
       pending_mesh_upload_t job = std::move(pending_mesh_uploads.front());
       pending_mesh_uploads.erase(pending_mesh_uploads.begin());
-      for (auto& copy : job.copies) { ctx->copy_buffer_cmd(cmd, copy.staging, *copy.dst_buffer, 0, copy.dst_offset, copy.size); }
+      for (auto& copy : job.copies) { ctx->copy_buffer_cmd(cmd, staging_ring_buffer, *copy.dst_buffer, copy.src_offset, copy.dst_offset, copy.size); }
       ctx->buffer_barriers_cmd(cmd, {
         {&source_vertex_buffer, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR},
         {&vertex_buffer, VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR},
@@ -2067,7 +2085,6 @@ fan::print(
         .dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR | VK_ACCESS_SHADER_READ_BIT
       };
       vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR | VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR, 0, 1, &barrier, 0, nullptr, 0, nullptr);
-      retire_mesh_upload(job);
     }
     static void release_mesh_input_storage(voxel_mesh_input_t& mesh) {
       std::vector<vertex_t>().swap(mesh.vertices);
@@ -3304,16 +3321,8 @@ fan::print(
         cpu_cached_bytes += mesh.materials.capacity() * sizeof(material_info_t);
         cpu_cached_bytes += mesh.primitive_material_indices.capacity() * sizeof(std::uint32_t);
       }
-      for (const auto& job : pending_mesh_uploads) {
-        for (const auto& copy : job.copies) {
-          cpu_cached_bytes += (std::size_t)copy.staging.size;
-        }
-      }
-      for (const auto& retired : retired_mesh_uploads) {
-        for (const auto& staging : retired.staging_buffers) {
-          cpu_cached_bytes += (std::size_t)staging.size;
-        }
-      }
+
+      cpu_cached_bytes += (std::size_t)staging_ring_buffer.size;
 
       std::size_t image_bytes = 0;
       auto add_image_allocation = [&](const auto& nr) {
@@ -3437,14 +3446,16 @@ fan::print(
           .position = fan::vec3(window_size / 2.f, 0),
           .size = window_size / 2.f,
           .image = accum_image,
-          .tc_position = fan::vec2(0.f, 1.f),
-          .tc_size = fan::vec2(1.f, -1.f)
+          .tc_position = fan::vec2(0.f, 0.f),
+          .tc_size = fan::vec2(1.f, 1.f)
         }};
         return;
       }
       output_sprite.set_image(accum_image);
       output_sprite.set_position(fan::vec3(window_size / 2.f, 0));
       output_sprite.set_size(window_size / 2.f);
+      output_sprite.set_tc_position(fan::vec2(0.f, 0.f));
+      output_sprite.set_tc_size(fan::vec2(1.f, 1.f));
     }
     void record_gpu_animation_updates(VkCommandBuffer cmd) {
       if (!animation_vertices_dirty || !skinning_pipeline || !skinning_descriptor_set) { return; }
@@ -3833,6 +3844,7 @@ fan::print(
       if (pick_buffer.mapped) { ctx->unmap_buffer(pick_buffer); }
       if (exposure_ubo.mapped) { ctx->unmap_buffer(exposure_ubo); }
       if (light_buffer.mapped) { ctx->unmap_buffer(light_buffer); }
+      if (staging_ring_buffer.mapped) { ctx->unmap_buffer(staging_ring_buffer); }
 
       destroy_buffer(shader_binding_table);
       destroy_buffer(sbt_staging);
@@ -3842,6 +3854,7 @@ fan::print(
       destroy_buffer(pick_buffer);
       destroy_buffer(exposure_ubo);
       destroy_buffer(light_buffer);
+      destroy_buffer(staging_ring_buffer);
 
       last_camera_ubo_valid = false;
 
@@ -3984,6 +3997,7 @@ fan::print(
     std::vector<VkDescriptorImageInfo> rt_texture_infos;
     std::unordered_map<std::string, std::int32_t> rt_texture_cache;
     fan::vulkan::context_t::buffer_t material_index_buffer;
+    mutable std::vector<VkAccelerationStructureInstanceKHR> cached_tlas_instances;
     VkDeviceSize material_index_capacity = 0;
     VkDeviceSize tlas_instance_capacity = 0;
     VkDeviceSize tlas_capacity = 0;
@@ -4066,6 +4080,8 @@ fan::print(
     PFN_vkCreateRayTracingPipelinesKHR vkCreateRayTracingPipelinesKHR = nullptr;
     PFN_vkGetRayTracingShaderGroupHandlesKHR vkGetRayTracingShaderGroupHandlesKHR = nullptr;
     PFN_vkCmdTraceRaysKHR vkCmdTraceRaysKHR = nullptr;
+    fan::vulkan::context_t::buffer_t staging_ring_buffer;
+    VkDeviceSize staging_ring_offset = 0;
   };
 }
 

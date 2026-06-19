@@ -81,8 +81,8 @@ void fan::vulkan::context_t::camera_update_projection(fan::graphics::camera_nr_t
   camera.projection = fan::math::ortho<fan::mat4>(
     camera.coordinates.left / camera.zoom,
     camera.coordinates.right / camera.zoom,
-    camera.coordinates.bottom / camera.zoom,
     camera.coordinates.top / camera.zoom,
+    camera.coordinates.bottom / camera.zoom,
     -fan::graphics::znearfar / 2,
     fan::graphics::znearfar / 2
   );

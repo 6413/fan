@@ -58,32 +58,21 @@ vec4 project2(vec3 p) {
   return pv[constants.camera_id].projection * pv[constants.camera_id].view * vec4(p, 1.0);
 }
 
-layout(location = 0) out vec4 instance_color;
-layout(location = 1) out vec2 line_start;
-layout(location = 2) out vec2 line_end;
-layout(location = 3) out float line_radius;
-layout(location = 4) out vec3 frag_position;
-layout(location = 5) out vec2 ba;
-layout(location = 6) out float ba_len2;
+layout(location = 0) out vec2 local_position;
+layout(location = 1) out vec2 grid_size;
+layout(location = 2) out vec4 instance_color;
 
 void main() {
-  base = uint(gl_InstanceIndex) * 11u;
+  base = uint(gl_InstanceIndex) * 16u;
   uint id = uint(gl_VertexIndex) % 6u;
   vec2 rp = rectangle_vertices[id];
-  vec3 src = v3(16u);
-  vec2 dst = v2(28u);
-  float radius = f(36u) * 0.5;
-  vec2 dir = dst - src.xy;
-  float len = length(dir);
-  float angle = atan(dir.y, dir.x);
-  vec2 box_size = vec2(len + radius * 4.0, radius * 4.0);
-  vec2 world = rotate2(rp * box_size * 0.5, angle) + (src.xy + dst) * 0.5;
-  frag_position = vec3(world, src.z);
-  gl_Position = project2(frag_position);
-  instance_color = v4(0u);
-  line_start = src.xy;
-  line_end = dst;
-  line_radius = radius;
-  ba = line_end - line_start;
-  ba_len2 = max(dot(ba, ba), 0.000001);
+  vec3 position = v3(0u);
+  vec2 size = v2(12u);
+  vec2 rotation_point = v2(28u);
+  float angle = v3(52u).z;
+  vec2 local = rotate_around(rp * size, rotation_point, angle);
+  gl_Position = project2(vec3(local + position.xy, position.z));
+  local_position = rp * size;
+  grid_size = max(v2(20u), vec2(0.0001));
+  instance_color = v4(36u);
 }

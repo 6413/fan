@@ -101,18 +101,15 @@ fan::graphics::shader_nr_t fan::vulkan::context_t::shader_create() {
   }
   return nr;
 }
+// .cpp
 void fan::vulkan::context_t::shader_erase(fan::graphics::shader_nr_t nr, int recycle) {
   auto& shader = shader_get(nr);
-  if (shader.shader_stages[0].module) {
-    vkDestroyShaderModule(device, shader.shader_stages[0].module, nullptr);
+  for (auto& stage : shader.shader_stages) {
+    if (stage.module) {
+      vkDestroyShaderModule(device, stage.module, nullptr);
+    }
   }
-  if (shader.shader_stages[1].module) {
-    vkDestroyShaderModule(device, shader.shader_stages[1].module, nullptr);
-  }
-  if (shader.shader_stages[2].module) {
-    vkDestroyShaderModule(device, shader.shader_stages[2].module, nullptr);
-  }
-  //TODO
+  // TODO
   shader.projection_view_block->close(*this);
   delete shader.projection_view_block;
   delete static_cast<fan::vulkan::context_t::shader_t*>(__fan_internal_shader_list[nr].internal);

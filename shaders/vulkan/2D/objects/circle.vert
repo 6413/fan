@@ -59,31 +59,25 @@ vec4 project2(vec3 p) {
 }
 
 layout(location = 0) out vec4 instance_color;
-layout(location = 1) out vec2 line_start;
-layout(location = 2) out vec2 line_end;
-layout(location = 3) out float line_radius;
-layout(location = 4) out vec3 frag_position;
-layout(location = 5) out vec2 ba;
-layout(location = 6) out float ba_len2;
+layout(location = 1) out vec3 instance_position;
+layout(location = 2) out float instance_radius;
+layout(location = 3) out vec3 frag_position;
+layout(location = 4) flat out uint flags;
+layout(location = 5) out vec4 instance_outline_color;
+layout(location = 6) out float instance_outline_width;
 
 void main() {
-  base = uint(gl_InstanceIndex) * 11u;
+  base = uint(gl_InstanceIndex) * 19u;
   uint id = uint(gl_VertexIndex) % 6u;
   vec2 rp = rectangle_vertices[id];
-  vec3 src = v3(16u);
-  vec2 dst = v2(28u);
-  float radius = f(36u) * 0.5;
-  vec2 dir = dst - src.xy;
-  float len = length(dir);
-  float angle = atan(dir.y, dir.x);
-  vec2 box_size = vec2(len + radius * 4.0, radius * 4.0);
-  vec2 world = rotate2(rp * box_size * 0.5, angle) + (src.xy + dst) * 0.5;
-  frag_position = vec3(world, src.z);
+  vec3 position = v3(0u);
+  float radius = f(12u);
+  frag_position = vec3(rp * radius + position.xy, position.z);
   gl_Position = project2(frag_position);
-  instance_color = v4(0u);
-  line_start = src.xy;
-  line_end = dst;
-  line_radius = radius;
-  ba = line_end - line_start;
-  ba_len2 = max(dot(ba, ba), 0.000001);
+  instance_color = v4(24u);
+  instance_position = position;
+  instance_radius = radius;
+  flags = u(52u);
+  instance_outline_color = v4(56u);
+  instance_outline_width = f(72u);
 }
