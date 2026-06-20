@@ -698,7 +698,7 @@ post_process_push_constants_t make_post_process_pc() {
   pc.window_frame = fan::vec4(
     window_size.x,
     window_size.y,
-    loco.renderer_state.clear_color.a,
+    1.f,
     (f32_t)loco.open_props.post_process_mode
   );
   pc.params0 = fan::vec4(
@@ -1194,7 +1194,9 @@ void shapes_draw() {
     return pipeline;
   };
 
-  auto push = [&] (fan::vulkan::context_t::pipeline_t& pipeline, const fan::vulkan::context_t::push_constants_t& pc) {
+  auto push = [&] (fan::vulkan::context_t::pipeline_t& pipeline, fan::vulkan::context_t::push_constants_t pc) {
+    auto ambient = loco.renderer_state.lighting.ambient;
+    pc.lighting_ambient = fan::vec4(ambient.x, ambient.y, ambient.z, 1.f);
     vkCmdPushConstants(
       cmd_buffer,
       pipeline.m_layout,
@@ -1375,12 +1377,11 @@ void shapes_draw() {
 
     auto default_shader_nr = fan::graphics::g_shapes->shaper.GetShader(shape_type);
     auto shape_shader_nr = shader_nr.iic() ? default_shader_nr : shader_nr;
-    if (!shape_shader_nr) continue;
-
     auto& vk_data = shaper.GetShapeTypes(shape_type).renderer.vk;
 
     if (shape_type == fan::graphics::shapes::shape_type_t::polygon) {
       if (polygon_vertices.empty()) { continue; }
+      if (!shape_shader_nr) continue;
       auto& pipeline = prepare(shape_type, shape_shader_nr);
       fan::vulkan::context_t::push_constants_t pc{};
       pc.camera_id = 0;
@@ -1447,6 +1448,7 @@ void shapes_draw() {
       continue;
     }
 
+    if (shape_shader_nr)
     do {
       auto& pipeline = prepare(shape_type, shape_shader_nr);
       fan::vulkan::context_t::push_constants_t pc{};
