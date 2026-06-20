@@ -946,7 +946,13 @@ void update_shape_descriptors_before_cmd() {
     }
 
     auto shader_nr = fan::graphics::g_shapes->shaper.GetShader(shape_type);
+    if (shader_nr.iic()) {
+      continue;
+    }
     auto& shader = *(fan::vulkan::context_t::shader_t*)loco.context_functions.shader_get(&loco.context.vk, shader_nr);
+    if (shader.projection_view_block == nullptr) {
+      continue;
+    }
     auto& st = fan::graphics::g_shapes->shaper.GetShapeTypes(shape_type);
     auto& vk_data = st.renderer.vk;
     auto current_frame = loco.context.vk.current_frame;
@@ -1369,6 +1375,8 @@ void shapes_draw() {
 
     auto default_shader_nr = fan::graphics::g_shapes->shaper.GetShader(shape_type);
     auto shape_shader_nr = shader_nr.iic() ? default_shader_nr : shader_nr;
+    if (!shape_shader_nr) continue;
+
     auto& vk_data = shaper.GetShapeTypes(shape_type).renderer.vk;
 
     if (shape_type == fan::graphics::shapes::shape_type_t::polygon) {
