@@ -1283,6 +1283,7 @@ namespace fan::graphics::gui {
 
   bool color_edit3(str_view_t label, fan::color* color, gui::color_edit_flags_t flags) { return detail::color_edit_impl<ImGui::ColorEdit3>(label, color, flags); }
   bool color_edit3(str_view_t label, fan::vec3* color, gui::color_edit_flags_t flags)  { return detail::color_edit_impl<ImGui::ColorEdit3>(label, color, flags); }
+  bool color_edit3(fan::color* color, gui::color_edit_flags_t flags)                    { return detail::color_edit_impl<ImGui::ColorEdit3>(color, flags); }
   bool color_edit3(fan::vec3* color, gui::color_edit_flags_t flags)                    { return detail::color_edit_impl<ImGui::ColorEdit3>(color, flags); }
 
   bool color_edit4(str_view_t label, fan::color* color, gui::color_edit_flags_t flags) { return detail::color_edit_impl<ImGui::ColorEdit4>(label, color, flags); }
