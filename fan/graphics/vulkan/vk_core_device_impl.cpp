@@ -99,8 +99,6 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 void fan::vulkan::context_t::open_no_window() {
   create_instance();
   setup_debug_messenger();
-  create_instance();
-  setup_debug_messenger();
   pick_physical_device();
   create_logical_device();
   create_allocator();
@@ -720,30 +718,28 @@ VkImageView fan::vulkan::context_t::create_image_view(VkImage image, VkFormat fo
 void fan::vulkan::context_t::create_image_views() {
   swap_chain_image_views.resize(swap_chain_images.size());
 
-  fan::vulkan::vai_t::properties_t vp;
-  vp.format = main_color_format;
-  vp.swap_chain_size = swap_chain_size;
-  vp.usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-  vp.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
+  fan::vulkan::vai_t::properties_t vp{
+    .swap_chain_size = swap_chain_size,
+    .format = main_color_format,
+    .usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+    .aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT
+  };
+  fan::vulkan::vai_t::properties_t depth_vp = vp;
+  depth_vp.aspect_flags = VK_IMAGE_ASPECT_DEPTH_BIT;
+  depth_vp.format = find_depth_format();
+  depth_vp.usage_flags = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
-  // Resize vectors to hold image views for each swap chain image
-  mainColorImageViews.resize(swap_chain_image_views.size());
-  postProcessedColorImageViews.resize(swap_chain_image_views.size());
-  depthImageViews.resize(swap_chain_image_views.size());
-  downscaleImageViews1.resize(swap_chain_image_views.size());
-  upscaleImageViews1.resize(swap_chain_image_views.size());
+  for (auto* view : {&mainColorImageViews, &postProcessedColorImageViews, &depthImageViews, &downscaleImageViews1, &upscaleImageViews1}) {
+    view->resize(swap_chain_images.size());
+  }
 
-  for (std::size_t i = 0; i < swap_chain_image_views.size(); i++) {
+  for (std::size_t i = 0; i < swap_chain_images.size(); ++i) {
     mainColorImageViews[i].open(*this, vp);
     mainColorImageViews[i].transition_image_layout(*this, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
 
     postProcessedColorImageViews[i].open(*this, vp);
     postProcessedColorImageViews[i].transition_image_layout(*this, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
 
-    fan::vulkan::vai_t::properties_t depth_vp = vp;
-    depth_vp.aspect_flags = VK_IMAGE_ASPECT_DEPTH_BIT;
-    depth_vp.format = find_depth_format();
-    depth_vp.usage_flags = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
     depthImageViews[i].open(*this, depth_vp);
     depthImageViews[i].transition_image_layout(*this, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, depth_vp.aspect_flags);
 
@@ -752,9 +748,7 @@ void fan::vulkan::context_t::create_image_views() {
 
     upscaleImageViews1[i].open(*this, vp);
     upscaleImageViews1[i].transition_image_layout(*this, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
-  }
 
-  for (std::uint32_t i = 0; i < swap_chain_images.size(); i++) {
     swap_chain_image_views[i] = create_image_view(swap_chain_images[i], swap_chain_image_format, VK_IMAGE_ASPECT_COLOR_BIT);
   }
 }
@@ -1025,16 +1019,7 @@ void fan::vulkan::context_t::fill_buffer_cmd(VkCommandBuffer cmd, buffer_t& buff
   vkCmdFillBuffer(cmd, buffer.buffer, offset, size, data);
 }
 void fan::vulkan::context_t::buffer_barrier_cmd(VkCommandBuffer cmd, buffer_t& buffer, VkAccessFlags src_access, VkAccessFlags dst_access, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, VkDeviceSize offset, VkDeviceSize size) {
-  VkBufferMemoryBarrier barrier{};
-  barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-  barrier.srcAccessMask = src_access;
-  barrier.dstAccessMask = dst_access;
-  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.buffer = buffer.buffer;
-  barrier.offset = offset;
-  barrier.size = size;
-  vkCmdPipelineBarrier(cmd, src_stage, dst_stage, 0, 0, nullptr, 1, &barrier, 0, nullptr);
+  buffer_barriers_cmd(cmd, {{&buffer, src_access, dst_access, offset, size}}, src_stage, dst_stage);
 }
 void fan::vulkan::context_t::buffer_barriers_cmd(VkCommandBuffer cmd, const std::vector<buffer_barrier_t>& barriers, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage) {
   std::vector<VkBufferMemoryBarrier> vk_barriers;

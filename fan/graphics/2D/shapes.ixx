@@ -1105,7 +1105,8 @@ export namespace fan::graphics {
       #pragma pack(pop)
 
       struct ri_t {
-        std::vector<fan::graphics::polygon_vertex_t> vertices;
+        std::uint32_t shape_id = 0;
+        std::uint32_t vertex_count = 0;
         std::uint32_t buffer_size = 0;
       #if defined(FAN_VULKAN)
         std::uint32_t vk_first_vertex = 0;
@@ -1114,9 +1115,6 @@ export namespace fan::graphics {
       #if defined(FAN_OPENGL)
         fan::opengl::core::vao_t vao;
         fan::opengl::core::gpu_buffer_t vbo;
-      #endif
-      #if defined(FAN_VULKAN)
-        fan::vulkan::context_t::buffer_t vk_buffer;
       #endif
       };
 

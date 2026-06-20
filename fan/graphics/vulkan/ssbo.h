@@ -58,22 +58,16 @@ struct ssbo_t	{
   }
 
 	void write(fan::vulkan::context_t& context) {
-					
-    // write all for now
-    auto& ptr = instance_list[0];
-		for (std::uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {
+    if (!common.is_current_frame_dirty(context)) {
+      common.on_edit(context);
+      return;
+    }
+
+    auto frame = context.current_frame;
+    if (!instance_list.empty()) {
+      auto& ptr = instance_list[0];
       memcpy(data[frame], &ptr, instance_list.size() * sizeof(instance_id_t));
     }
-    // for loop for each frame
-		//if (common.m_min_edit != (uint64_t)-1) {
-//       // TODO not probably best way
-//       
-		//}
-		//else {
-		//	for (auto i : common.indices) {
-		//		((vi_t*)data)[(uint32_t)i.nr.NRI * max_instance_size + i.i] = instance_list.get_vi(i.nr, i.i);
-		//	}
-		//}
 
 		common.on_edit(context);
 	}

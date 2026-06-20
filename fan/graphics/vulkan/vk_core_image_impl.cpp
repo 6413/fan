@@ -102,13 +102,16 @@ VkFilter fan::graphics::format_converter::global_to_vulkan_filter(std::uintptr_t
 }
 
 std::uint32_t fan::graphics::format_converter::vulkan_to_global_format(VkFormat format) {
-  if (format == VK_FORMAT_B8G8R8A8_UNORM) return fan::graphics::image_format_e::bgra;
-  if (format == VK_FORMAT_R8G8B8A8_UNORM) return fan::graphics::image_format_e::rgba;
-  if (format == VK_FORMAT_R8_UNORM) return fan::graphics::image_format_e::r8_unorm;
-  if (format == VK_FORMAT_R8_UINT) return fan::graphics::image_format_e::r8_uint;
-  if (format == VK_FORMAT_R8G8_UNORM) return fan::graphics::image_format_e::rg8_unorm;
-  if (format == VK_FORMAT_R8G8B8_UNORM) return fan::graphics::image_format_e::rgb_unorm;
-  if (format == VK_FORMAT_R8G8B8A8_SRGB) return fan::graphics::image_format_e::r8g8b8a8_srgb;
+  switch (format) {
+    case VK_FORMAT_B8G8R8A8_UNORM: return fan::graphics::image_format_e::bgra;
+    case VK_FORMAT_R8G8B8A8_UNORM: return fan::graphics::image_format_e::rgba;
+    case VK_FORMAT_R8_UNORM: return fan::graphics::image_format_e::r8_unorm;
+    case VK_FORMAT_R8_UINT: return fan::graphics::image_format_e::r8_uint;
+    case VK_FORMAT_R8G8_UNORM: return fan::graphics::image_format_e::rg8_unorm;
+    case VK_FORMAT_R8G8B8_UNORM: return fan::graphics::image_format_e::rgb_unorm;
+    case VK_FORMAT_R8G8B8A8_SRGB: return fan::graphics::image_format_e::r8g8b8a8_srgb;
+    default: break;
+  }
 #if FAN_DEBUG >= fan_debug_high
   fan::throw_error("invalid format");
 #endif
@@ -116,11 +119,14 @@ std::uint32_t fan::graphics::format_converter::vulkan_to_global_format(VkFormat 
 }
 
 std::uint32_t fan::graphics::format_converter::vulkan_to_global_address_mode(VkSamplerAddressMode mode) {
-  if (mode == VK_SAMPLER_ADDRESS_MODE_REPEAT) return fan::graphics::image_sampler_address_mode_e::repeat;
-  if (mode == VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT) return fan::graphics::image_sampler_address_mode_e::mirrored_repeat;
-  if (mode == VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE) return fan::graphics::image_sampler_address_mode_e::clamp_to_edge;
-  if (mode == VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER) return fan::graphics::image_sampler_address_mode_e::clamp_to_border;
-  if (mode == VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE) return fan::graphics::image_sampler_address_mode_e::mirrored_clamp_to_edge;
+  switch (mode) {
+    case VK_SAMPLER_ADDRESS_MODE_REPEAT: return fan::graphics::image_sampler_address_mode_e::repeat;
+    case VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT: return fan::graphics::image_sampler_address_mode_e::mirrored_repeat;
+    case VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE: return fan::graphics::image_sampler_address_mode_e::clamp_to_edge;
+    case VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER: return fan::graphics::image_sampler_address_mode_e::clamp_to_border;
+    case VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE: return fan::graphics::image_sampler_address_mode_e::mirrored_clamp_to_edge;
+    default: break;
+  }
 #if FAN_DEBUG >= fan_debug_high
   fan::throw_error("invalid format");
 #endif
@@ -128,8 +134,11 @@ std::uint32_t fan::graphics::format_converter::vulkan_to_global_address_mode(VkS
 }
 
 std::uint32_t fan::graphics::format_converter::vulkan_to_global_filter(VkFilter filter) {
-  if (filter == VK_FILTER_NEAREST) return fan::graphics::image_filter_e::nearest;
-  if (filter == VK_FILTER_LINEAR) return fan::graphics::image_filter_e::linear;
+  switch (filter) {
+    case VK_FILTER_NEAREST: return fan::graphics::image_filter_e::nearest;
+    case VK_FILTER_LINEAR: return fan::graphics::image_filter_e::linear;
+    default: break;
+  }
 #if FAN_DEBUG >= fan_debug_high
   fan::throw_error("invalid format");
 #endif

@@ -95,7 +95,7 @@ struct alpha_shadow_renderer_t {
 
     glBindFramebuffer(GL_FRAMEBUFFER, light_fbo);
     glViewport(0, 0, (std::int32_t)ws.x, (std::int32_t)ws.y);
-    f32_t ambient = 1.f - darkness;
+    f32_t ambient = lights.empty() ? 1.f : 1.f - darkness;
     glClearColor(ambient, ambient, ambient, 1.f);
     glClear(GL_COLOR_BUFFER_BIT);
 
