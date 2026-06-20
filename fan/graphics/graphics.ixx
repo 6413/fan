@@ -1384,7 +1384,7 @@ export namespace fan::graphics {
     }
   #endif
     else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {
-      throw "todo";
+      (void)nr; (void)name; (void)val;
     }
   }
 
@@ -1397,7 +1397,7 @@ export namespace fan::graphics {
     }
   #endif
     else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {
-      throw "todo";
+      (void)nr; (void)name; (void)val;
     }
   }
 } // namespace fan::graphics

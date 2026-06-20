@@ -69,6 +69,8 @@ VkFormat fan::graphics::format_converter::global_to_vulkan_format(std::uintptr_t
     case image_format_e::rgba: return VK_FORMAT_R8G8B8A8_UNORM;
     case image_format_e::r8_unorm: return VK_FORMAT_R8_UNORM;
     case image_format_e::r8_uint: return VK_FORMAT_R8_UINT;
+    case image_format_e::rg8_unorm: return VK_FORMAT_R8G8_UNORM;
+    case image_format_e::rgb_unorm: return VK_FORMAT_R8G8B8_UNORM;
     case image_format_e::r8g8b8a8_srgb: return VK_FORMAT_R8G8B8A8_SRGB;
     case image_format_e::rgba_unorm: return VK_FORMAT_R8G8B8A8_UNORM;
   }
@@ -104,6 +106,8 @@ std::uint32_t fan::graphics::format_converter::vulkan_to_global_format(VkFormat 
   if (format == VK_FORMAT_R8G8B8A8_UNORM) return fan::graphics::image_format_e::rgba;
   if (format == VK_FORMAT_R8_UNORM) return fan::graphics::image_format_e::r8_unorm;
   if (format == VK_FORMAT_R8_UINT) return fan::graphics::image_format_e::r8_uint;
+  if (format == VK_FORMAT_R8G8_UNORM) return fan::graphics::image_format_e::rg8_unorm;
+  if (format == VK_FORMAT_R8G8B8_UNORM) return fan::graphics::image_format_e::rgb_unorm;
   if (format == VK_FORMAT_R8G8B8A8_SRGB) return fan::graphics::image_format_e::r8g8b8a8_srgb;
 #if FAN_DEBUG >= fan_debug_high
   fan::throw_error("invalid format");
@@ -169,6 +173,13 @@ void fan::vulkan::context_t::transition_image_layout(VkImage image, VkFormat for
 
     sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
     destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+  }
+  else if (oldLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+    barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+    sourceStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
   }
   else {
     fan::throw_error("unsupported layout transition!");
@@ -257,8 +268,29 @@ fan::graphics::image_nr_t fan::vulkan::context_t::image_create() {
   return nr;
 }
 std::uint64_t fan::vulkan::context_t::image_get_handle(fan::graphics::image_nr_t nr) {
-  fan::throw_error("invalid call");
+#if defined(FAN_GUI)
+  auto& img = image_get(nr);
+  if (img.image_view == VK_NULL_HANDLE || img.sampler == VK_NULL_HANDLE) {
+    return 0;
+  }
+  if (img.gui_descriptor_set == VK_NULL_HANDLE ||
+    img.gui_image_view != img.image_view ||
+    img.gui_sampler != img.sampler) {
+    if (img.gui_descriptor_set != VK_NULL_HANDLE) {
+      ImGui_ImplVulkan_RemoveTexture(img.gui_descriptor_set);
+    }
+    img.gui_descriptor_set = ImGui_ImplVulkan_AddTexture(
+      img.sampler,
+      img.image_view,
+      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+    );
+    img.gui_image_view = img.image_view;
+    img.gui_sampler = img.sampler;
+  }
+  return (std::uint64_t)img.gui_descriptor_set;
+#else
   return 0;
+#endif
 }
 fan::vulkan::context_t::image_t& fan::vulkan::context_t::image_get(fan::graphics::image_nr_t nr) {
   return *(fan::vulkan::context_t::image_t*)__fan_internal_image_list[nr].internal;
@@ -266,6 +298,15 @@ fan::vulkan::context_t::image_t& fan::vulkan::context_t::image_get(fan::graphics
 void fan::vulkan::context_t::image_erase(fan::graphics::image_nr_t nr, int recycle) {
   auto& node = __fan_internal_image_list[nr];
   auto& img = image_get(nr);
+
+#if defined(FAN_GUI)
+  if (img.gui_descriptor_set != VK_NULL_HANDLE) {
+    ImGui_ImplVulkan_RemoveTexture(img.gui_descriptor_set);
+    img.gui_descriptor_set = VK_NULL_HANDLE;
+    img.gui_image_view = VK_NULL_HANDLE;
+    img.gui_sampler = VK_NULL_HANDLE;
+  }
+#endif
 
   if (img.sampler != VK_NULL_HANDLE) {
     vkDestroySampler(device, img.sampler, nullptr);
@@ -487,7 +528,39 @@ void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, const fa
 
   fan::vulkan::context_t::image_t& image = image_get(nr);
   auto& image_data = __fan_internal_image_list[nr];
+
+  auto new_settings = fan::graphics::format_converter::image_vulkan_to_global(p);
+  bool image_was_null = image.image_index == VK_NULL_HANDLE;
+  bool recreate_image = image.image_index != VK_NULL_HANDLE && (
+    image_data.size != image_info.size ||
+    image_data.image_settings.format != new_settings.format
+  );
+  if (recreate_image) {
+  #if defined(FAN_GUI)
+    if (image.gui_descriptor_set != VK_NULL_HANDLE) {
+      ImGui_ImplVulkan_RemoveTexture(image.gui_descriptor_set);
+      image.gui_descriptor_set = VK_NULL_HANDLE;
+      image.gui_image_view = VK_NULL_HANDLE;
+      image.gui_sampler = VK_NULL_HANDLE;
+    }
+  #endif
+    if (image.sampler != VK_NULL_HANDLE) {
+      vkDestroySampler(device, image.sampler, nullptr);
+      image.sampler = VK_NULL_HANDLE;
+    }
+    if (image.image_view != VK_NULL_HANDLE && image.owns_image_view) {
+      vkDestroyImageView(device, image.image_view, nullptr);
+      image.image_view = VK_NULL_HANDLE;
+    }
+    if (image.image_index != VK_NULL_HANDLE && image.owns_image) {
+      vmaDestroyImage(allocator, image.image_index, image.image_allocation);
+      image.image_index = VK_NULL_HANDLE;
+      image.image_allocation = VK_NULL_HANDLE;
+    }
+  }
+
   image_data.size = image_info.size;
+  image_data.image_settings = new_settings;
 
   VkDeviceSize image_size_bytes = image_size;
 
@@ -525,7 +598,12 @@ void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, const fa
   memcpy(image.data, image_info.data, image_size_bytes);
   vmaUnmapMemory(allocator, image.staging_allocation);
 
-  transition_image_layout(image.image_index, p.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+  transition_image_layout(
+    image.image_index,
+    p.format,
+    (recreate_image || image_was_null) ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+  );
   copy_buffer_to_image(image.staging_buffer, image.image_index, p.format, image_info.size);
   transition_image_layout(image.image_index, p.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 }
@@ -557,7 +635,7 @@ fan::graphics::image_nr_t fan::vulkan::context_t::image_create(const fan::color&
 
   fan::image::info_t ii;
 
-  ii.data = (void*)&color.r;
+  ii.data = pixels;
   ii.size = 1;
   ii.channels = 4;
   fan::graphics::image_nr_t nr = image_load(ii, p);
