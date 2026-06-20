@@ -1094,7 +1094,7 @@ public:
   fan::graphics::lighting_t& get_lighting()          { return renderer_state.lighting; }
   bool&                      get_render_shapes_top() { return renderer_state.render_shapes_top; }
   fan::color&                get_clear_color() { return renderer_state.clear_color; }
-  void                       set_clear_color(const fan::color& color) { get_clear_color() = color; }
+  void                       set_clear_color(const fan::color& color);
 
   
   struct timing_t {
