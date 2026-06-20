@@ -101,6 +101,7 @@ namespace fan::graphics::gui {
       else {
         post_processing.clear_color = gloco()->get_clear_color();
       }
+      post_processing.clear_color.a = 1.f;
       if (pp.contains("ambient_color")) {
         pp.get_if("ambient_color", post_processing.ambient_color);
       }
@@ -171,7 +172,9 @@ namespace fan::graphics::gui {
     j["audio"]["volume"] = audio.volume;
 
     j["post_processing"]["mode"] = (int)gloco()->open_props.post_process_mode;
-    j["post_processing"]["clear_color"] = post_processing.clear_color;
+    fan::color clear_color = post_processing.clear_color;
+    clear_color.a = 1.f;
+    j["post_processing"]["clear_color"] = clear_color;
     j["post_processing"]["ambient_color"] = post_processing.ambient_color;
     j["post_processing"]["bloom_strength"] = post_processing.bloom_strength;
     j["post_processing"]["bloom_threshold"] = post_processing.bloom_threshold;
@@ -250,6 +253,7 @@ namespace fan::graphics::gui {
     }
     );
     gloco()->open_props.post_process_mode = (loco_t::post_process_mode_e)config.post_processing.mode;
+    config.post_processing.clear_color.a = 1.f;
     gloco()->set_clear_color(config.post_processing.clear_color);
     gloco()->get_lighting().set_target(config.post_processing.ambient_color);
     gloco()->open_props.blur_amount = std::clamp(config.post_processing.blur_amount, 0.f, 1.f);
@@ -377,7 +381,8 @@ namespace fan::graphics::gui {
 
       draw_sub_row("Clear color", [&] {
         fan::color& c = menu->config.post_processing.clear_color;
-        if (gui::color_edit4(&c)) {
+        if (gui::color_edit3(&c)) {
+          c.a = 1.f;
           gloco()->set_clear_color(c);
           menu->mark_dirty();
           menu->save();
