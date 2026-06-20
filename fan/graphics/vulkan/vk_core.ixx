@@ -133,22 +133,18 @@ export namespace fan {
           std::vector<VkDescriptorBindingFlags> binding_flags(uboLayoutBinding.size());
           bool has_update_after_bind = false;
           for (std::uint32_t i = 0; i < (std::uint32_t)uboLayoutBinding.size(); ++i) {
-            switch (uboLayoutBinding[i].descriptorType) {
-              case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-              case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-              case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-              case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-              case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-                binding_flags[i] =
-                  VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
-                  VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT |
-                  VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
-                has_update_after_bind = true;
-                break;
-              default:
-                binding_flags[i] = 0;
-                break;
-            }
+            bool is_bindless =
+              uboLayoutBinding[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+              uboLayoutBinding[i].descriptorType == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
+              uboLayoutBinding[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ||
+              uboLayoutBinding[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
+              uboLayoutBinding[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+
+            binding_flags[i] = is_bindless ?
+              VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
+              VK_DESCRIPTOR_BINDING_UPDATE_UNUSED_WHILE_PENDING_BIT |
+              VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT : 0;
+            has_update_after_bind |= is_bindless;
           }
 
           VkDescriptorSetLayoutBindingFlagsCreateInfo binding_flags_info{};
@@ -273,6 +269,7 @@ export namespace fan {
         int projection_view[2]{ -1, -1 };
         fan::vulkan::context_t::uniform_block_t<fan::vulkan::view_projection_t, fan::vulkan::max_camera>* projection_view_block;
         VkPipelineShaderStageCreateInfo shader_stages[3]{};
+        std::uint32_t compile_generation = 0;
       };
 
       fan::vulkan::context_t::shader_t& shader_get(fan::graphics::shader_nr_t nr);
