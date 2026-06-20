@@ -29,10 +29,19 @@ struct shape_shader_pipeline_t {
   std::uint16_t shape_type;
   fan::graphics::shader_t shader;
   std::uint8_t draw_mode;
+  std::uint32_t generation = 0;
   fan::vulkan::context_t::pipeline_t pipeline;
 };
 
 std::vector<shape_shader_pipeline_t> shape_shader_pipelines;
+
+struct deferred_shape_pipeline_destroy_t {
+  VkPipeline pipeline = VK_NULL_HANDLE;
+  VkPipelineLayout layout = VK_NULL_HANDLE;
+  std::uint32_t frames_left = 0;
+};
+
+std::vector<deferred_shape_pipeline_destroy_t> deferred_shape_pipeline_destroys;
 
 struct bloom_mip_t {
   fan::vec2ui size;
@@ -51,8 +60,8 @@ struct particles_gpu_t {
   fan::vec4 loop_times;
   fan::vec4 count_life;
   fan::vec4 size;
-  fan::color color0;
-  fan::color color1;
+  fan::vec4 color0;
+  fan::vec4 color1;
   fan::vec4 velocity;
   fan::vec4 angle_velocity0;
   fan::vec4 angle_velocity1;
@@ -91,9 +100,50 @@ loco_t& get_loco() {
 }
 #define loco get_loco()
 
+void destroy_shape_pipeline_handles(VkPipeline pipeline, VkPipelineLayout layout) {
+  auto& context = loco.context.vk;
+  if (pipeline != VK_NULL_HANDLE) {
+    vkDestroyPipeline(context.device, pipeline, nullptr);
+  }
+  if (layout != VK_NULL_HANDLE) {
+    vkDestroyPipelineLayout(context.device, layout, nullptr);
+  }
+}
+
+void defer_close_shape_pipeline(fan::vulkan::context_t::pipeline_t& pipeline) {
+  if (pipeline.m_pipeline == VK_NULL_HANDLE && pipeline.m_layout == VK_NULL_HANDLE) {
+    return;
+  }
+
+  deferred_shape_pipeline_destroys.push_back({
+    .pipeline = pipeline.m_pipeline,
+    .layout = pipeline.m_layout,
+    .frames_left = fan::vulkan::max_frames_in_flight
+  });
+
+  pipeline.m_pipeline = VK_NULL_HANDLE;
+  pipeline.m_layout = VK_NULL_HANDLE;
+}
+
+void flush_deferred_shape_pipeline_destroys(bool force = false) {
+  for (auto it = deferred_shape_pipeline_destroys.begin(); it != deferred_shape_pipeline_destroys.end();) {
+    if (!force && it->frames_left != 0) {
+      --it->frames_left;
+      ++it;
+      continue;
+    }
+
+    destroy_shape_pipeline_handles(it->pipeline, it->layout);
+    it = deferred_shape_pipeline_destroys.erase(it);
+  }
+}
+
 void close_shape_shader_pipelines() {
+  flush_deferred_shape_pipeline_destroys(true);
   for (auto& i : shape_shader_pipelines) {
-    i.pipeline.close(loco.context.vk);
+    destroy_shape_pipeline_handles(i.pipeline.m_pipeline, i.pipeline.m_layout);
+    i.pipeline.m_pipeline = VK_NULL_HANDLE;
+    i.pipeline.m_layout = VK_NULL_HANDLE;
   }
   shape_shader_pipelines.clear();
 }
@@ -113,16 +163,24 @@ fan::vulkan::context_t::pipeline_t& get_shape_shader_pipeline(
   fan::graphics::shader_t shader,
   std::uint8_t draw_mode
 ) {
-  for (auto& i : shape_shader_pipelines) {
-    if (i.shape_type == shape_type && i.shader.gint() == shader.gint() && i.draw_mode == draw_mode) {
-      return i.pipeline;
+  auto generation = loco.context.vk.shader_get(shader).compile_generation;
+  for (auto it = shape_shader_pipelines.begin(); it != shape_shader_pipelines.end();) {
+    if (it->shape_type != shape_type || it->shader.gint() != shader.gint() || it->draw_mode != draw_mode) {
+      ++it;
+      continue;
     }
+    if (it->generation == generation) {
+      return it->pipeline;
+    }
+    defer_close_shape_pipeline(it->pipeline);
+    it = shape_shader_pipelines.erase(it);
   }
 
   auto& item = shape_shader_pipelines.emplace_back();
   item.shape_type = shape_type;
   item.shader = shader;
   item.draw_mode = draw_mode;
+  item.generation = generation;
 
   auto& vk_data = fan::graphics::g_shapes->shaper.GetShapeTypes(shape_type).renderer.vk;
   VkPipelineColorBlendAttachmentState attachment = fan::vulkan::get_default_color_blend();
@@ -818,6 +876,52 @@ void begin_render_pass() {
 
 
 #if defined(FAN_2D)
+
+void upload_shape_frame_data() {
+  auto& context = loco.context.vk;
+  auto& shaper = fan::graphics::g_shapes->shaper;
+  auto frame = context.current_frame;
+
+  fan::graphics::shaper_t::KeyTraverse_t KeyTraverse;
+  KeyTraverse.Init(shaper);
+
+  while (KeyTraverse.Loop(shaper)) {
+    if (!KeyTraverse.isbm) {
+      continue;
+    }
+
+    fan::graphics::shaper_t::BlockTraverse_t BlockTraverse;
+    auto shape_type = BlockTraverse.Init(shaper, KeyTraverse.bmid());
+    if (shape_type == fan::graphics::shapes::shape_type_t::light_end) {
+      continue;
+    }
+
+    auto& vk_data = shaper.GetShapeTypes(shape_type).renderer.vk;
+    auto render_data_size = shaper.GetRenderDataSize(shape_type);
+    if (render_data_size == 0 || vk_data.shape_data.data[frame] == nullptr) {
+      continue;
+    }
+
+    do {
+      auto bytes = (std::uint64_t)BlockTraverse.GetAmount(shaper) * render_data_size;
+      auto offset = BlockTraverse.GetRenderDataOffset(shaper);
+      auto wanted = offset + bytes;
+      if (wanted > vk_data.shape_data.vram_capacity) {
+        auto new_size = std::max<std::uint64_t>(
+          wanted,
+          vk_data.shape_data.vram_capacity ? vk_data.shape_data.vram_capacity * 2 : wanted
+        );
+        vk_data.shape_data.allocate(context, new_size);
+      }
+      std::memcpy(
+        vk_data.shape_data.data[frame] + offset,
+        BlockTraverse.GetRenderData(shaper),
+        bytes
+      );
+    } while (BlockTraverse.Loop(shaper));
+  }
+}
+
 void update_shape_descriptors_before_cmd() {
   if (fan::graphics::g_shapes == nullptr) {
     return;
@@ -849,6 +953,7 @@ void update_shape_descriptors_before_cmd() {
 
     vk_data.shape_data.m_descriptor.m_properties[0].buffer =
       vk_data.shape_data.common.memory[current_frame].buffer;
+    vk_data.shape_data.m_descriptor.m_properties[0].range = VK_WHOLE_SIZE;
     vk_data.shape_data.m_descriptor.m_properties[1].buffer =
       shader.projection_view_block->common.memory[current_frame].buffer;
     vk_data.shape_data.m_descriptor.m_properties[1].range =
@@ -862,6 +967,7 @@ void update_shape_descriptors_before_cmd() {
 void begin_draw() {
   fan::vulkan::context_t& context = loco.context.vk;
   vkWaitForFences(context.device, 1, &context.in_flight_fences[context.current_frame], VK_TRUE, UINT64_MAX);
+  flush_deferred_shape_pipeline_destroys();
 
   if (context.SwapChainRebuild) {
     close_swapchain_resources();
@@ -983,6 +1089,7 @@ void begin_draw() {
 void shapes_draw() {
 
   loco.context.vk.memory_queue.process(loco.context.vk);
+  upload_shape_frame_data();
 
 #if defined(FAN_2D)
   fan::graphics::shaper_t::KeyTraverse_t KeyTraverse;
@@ -1046,9 +1153,10 @@ void shapes_draw() {
 
     auto& vk_data = shaper.GetShapeTypes(shape_type).renderer.vk;
     auto default_shader_nr = fan::graphics::g_shapes->shaper.GetShader(shape_type);
-    auto& pipeline = (shape_type == fan::graphics::shapes::shape_type_t::universal_image_renderer ||
-      shape_shader_nr.gint() != default_shader_nr.gint()) ?
-      get_shape_shader_pipeline(shape_type, shape_shader_nr, draw_mode) : vk_data.pipeline;
+    bool use_shader_pipeline = shape_type == fan::graphics::shapes::shape_type_t::shader_shape ||
+      shape_type == fan::graphics::shapes::shape_type_t::universal_image_renderer ||
+      shape_shader_nr.gint() != default_shader_nr.gint();
+    auto& pipeline = use_shader_pipeline ? get_shape_shader_pipeline(shape_type, shape_shader_nr, draw_mode) : vk_data.pipeline;
 
     vk_data.shape_data.m_descriptor.m_properties[0].buffer =
       vk_data.shape_data.common.memory[context.current_frame].buffer;
@@ -1144,9 +1252,27 @@ void shapes_draw() {
           auto* pri = (fan::graphics::shapes::polygon_t::ri_t*)pre_block.GetData(shaper);
           for (std::uint32_t i = 0; i < pre_block.GetAmount(shaper); ++i) {
             auto& ri = pri[i];
+            fan::graphics::shapes::shape_ids_t::nr_t id;
+            id.gint() = ri.shape_id;
+            auto& sd = fan::graphics::g_shapes->shape_ids[id];
+            auto& props = *static_cast<fan::graphics::shapes::polygon_t::properties_t*>(
+              fan::graphics::g_shapes->shape_props_getters[sd.shape_type](
+                fan::graphics::g_shapes->shape_pool_storage[sd.shape_type],
+                sd.data_nr
+              )
+            );
+
             ri.vk_first_vertex = (std::uint32_t)polygon_vertices.size();
-            ri.vk_vertex_count = (std::uint32_t)ri.vertices.size();
-            polygon_vertices.insert(polygon_vertices.end(), ri.vertices.begin(), ri.vertices.end());
+            ri.vk_vertex_count = (std::uint32_t)props.vertices.size();
+            for (auto& v : props.vertices) {
+              fan::graphics::polygon_vertex_t pv;
+              pv.position = v.position;
+              pv.color = v.color;
+              pv.offset = props.position;
+              pv.angle = props.angle;
+              pv.rotation_point = props.rotation_point;
+              polygon_vertices.push_back(pv);
+            }
           }
         } while (pre_block.Loop(shaper));
       }
@@ -1232,7 +1358,7 @@ void shapes_draw() {
     fan::graphics::shaper_t::ShapeTypeIndex_t shape_type = BlockTraverse.Init(shaper, KeyTraverse.bmid());
 
     if (shape_type == fan::graphics::shapes::shape_type_t::light_end) {
-      break;
+      continue;
     }
     if ((shape_type == fan::graphics::shapes::shape_type_t::light) != (draw_pass == 1)) {
       continue;
@@ -1246,33 +1372,34 @@ void shapes_draw() {
     auto& vk_data = shaper.GetShapeTypes(shape_type).renderer.vk;
 
     if (shape_type == fan::graphics::shapes::shape_type_t::polygon) {
+      if (polygon_vertices.empty()) { continue; }
       auto& pipeline = prepare(shape_type, shape_shader_nr);
       fan::vulkan::context_t::push_constants_t pc{};
       pc.camera_id = 0;
       pc.texture_id = texture_id(texture);
       push(pipeline, pc);
 
+      auto frame = context.current_frame;
+      vk_data.shape_data.m_descriptor.m_properties[0].buffer = polygon_draw_buffers[frame].buffer;
+      vk_data.shape_data.m_descriptor.m_properties[0].range = VK_WHOLE_SIZE;
+      vk_data.shape_data.m_descriptor.update(context, 1, 0);
+      vkCmdBindDescriptorSets(
+        cmd_buffer,
+        VK_PIPELINE_BIND_POINT_GRAPHICS,
+        pipeline.m_layout,
+        0,
+        1,
+        &vk_data.shape_data.m_descriptor.m_descriptor_set[context.current_frame],
+        0,
+        nullptr
+      );
+
       do {
         auto* pri = (fan::graphics::shapes::polygon_t::ri_t*)BlockTraverse.GetData(shaper);
         for (std::uint32_t i = 0; i < BlockTraverse.GetAmount(shaper); ++i) {
           auto& ri = pri[i];
-          if (!ri.vk_buffer || ri.buffer_size == 0) { continue; }
-
-          vk_data.shape_data.m_descriptor.m_properties[0].buffer = ri.vk_buffer.buffer;
-          vk_data.shape_data.m_descriptor.m_properties[0].range = ri.vk_buffer.size;
-          vk_data.shape_data.m_descriptor.update(context, 1, 0);
-          vkCmdBindDescriptorSets(
-            cmd_buffer,
-            VK_PIPELINE_BIND_POINT_GRAPHICS,
-            pipeline.m_layout,
-            0,
-            1,
-            &vk_data.shape_data.m_descriptor.m_descriptor_set[context.current_frame],
-            0,
-            nullptr
-          );
-
-          vkCmdDraw(cmd_buffer, ri.buffer_size / sizeof(fan::graphics::polygon_vertex_t), 1, 0, 0);
+          if (ri.vk_vertex_count == 0) { continue; }
+          vkCmdDraw(cmd_buffer, ri.vk_vertex_count, 1, ri.vk_first_vertex, 0);
           did_draw = true;
         }
       } while (BlockTraverse.Loop(shaper));
@@ -1289,7 +1416,7 @@ void shapes_draw() {
 
       auto frame = context.current_frame;
       vk_data.shape_data.m_descriptor.m_properties[0].buffer = particle_draw_buffers[frame].buffer;
-      vk_data.shape_data.m_descriptor.m_properties[0].range = sizeof(particle_emitters[0]) * particle_emitters.size();
+      vk_data.shape_data.m_descriptor.m_properties[0].range = VK_WHOLE_SIZE;
       vk_data.shape_data.m_descriptor.update(context, 1, 0);
       vkCmdBindDescriptorSets(
         cmd_buffer,

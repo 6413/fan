@@ -21,19 +21,18 @@ struct uniform_block_t {
 			const auto begin = common.m_min_edit;
 			const auto end = common.m_max_edit;
 
-			if (begin == 0xFFFFFFFFFFFFFFFF || end <= begin) {
+			if (!common.is_current_frame_dirty(context) || begin == 0xFFFFFFFFFFFFFFFF || end <= begin) {
 				common.on_edit(context);
 				return;
 			}
 
-			for (std::uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; ++frame) {
-				std::uint8_t* data;
-				fan::vulkan::validate(vmaMapMemory(context.allocator, common.memory[frame].device_memory, (void**)&data));
+			auto frame = context.current_frame;
+			std::uint8_t* data;
+			fan::vulkan::validate(vmaMapMemory(context.allocator, common.memory[frame].device_memory, (void**)&data));
 
-				std::memcpy(data + begin, buffer + begin, end - begin);
+			std::memcpy(data + begin, buffer + begin, end - begin);
 
-				vmaUnmapMemory(context.allocator, common.memory[frame].device_memory);
-			}
+			vmaUnmapMemory(context.allocator, common.memory[frame].device_memory);
 
 			common.on_edit(context);
 		});

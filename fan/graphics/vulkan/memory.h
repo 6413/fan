@@ -22,14 +22,19 @@ public:
 	}
 
 	void process(fan::vulkan::context_t& context) {
+		std::vector<memory_edit_cb_t> cbs;
 		auto it = write_queue.GetNodeFirst();
 		while (it != write_queue.dst) {
 			write_queue.StartSafeNext(it);
-			write_queue[it].cb();
+			cbs.push_back(write_queue[it].cb);
 			it = write_queue.EndSafeNext();
 		}
 
 		write_queue.Clear();
+
+		for (auto& cb : cbs) {
+			cb();
+		}
 	}
 
 	void erase(nr_t node_reference) {
@@ -62,6 +67,7 @@ struct memory_common_t {
 	void open(fan::vulkan::context_t& context, const memory_write_queue_t::memory_edit_cb_t& cb) {
 		write_cb = cb;
 		queued = false;
+		dirty_frames = 0;
 
 		m_min_edit = 0xFFFFFFFFFFFFFFFF;
 		m_max_edit = 0x00000000;
@@ -83,20 +89,44 @@ struct memory_common_t {
 		return queued;
 	}
 
-	void edit(fan::vulkan::context_t& context, const index_t& idx) {
-		indices.push_back(idx);
+	void queue(fan::vulkan::context_t& context) {
+		dirty_frames |= (std::uint64_t(1) << fan::vulkan::max_frames_in_flight) - 1;
 
 		if (is_queued()) {
 			return;
 		}
 		queued = true;
 		m_edit_index = context.memory_queue.push_back(write_cb);
+	}
+
+	void edit(fan::vulkan::context_t& context, const index_t& idx) {
+		indices.push_back(idx);
+		queue(context);
 	}
 
 	void edit(fan::vulkan::context_t& context, std::uint64_t begin, std::uint64_t end) {
 		m_min_edit = std::min(m_min_edit, begin);
 		m_max_edit = std::max(m_max_edit, end);
+		queue(context);
+	}
 
+	bool is_current_frame_dirty(fan::vulkan::context_t& context) const {
+		return dirty_frames & (std::uint64_t(1) << context.current_frame);
+	}
+
+	void on_edit(fan::vulkan::context_t& context) {
+		dirty_frames &= ~(std::uint64_t(1) << context.current_frame);
+
+		if (dirty_frames) {
+			queued = false;
+			queue_current(context);
+			return;
+		}
+
+		reset_edit();
+	}
+
+	void queue_current(fan::vulkan::context_t& context) {
 		if (is_queued()) {
 			return;
 		}
@@ -104,12 +134,9 @@ struct memory_common_t {
 		m_edit_index = context.memory_queue.push_back(write_cb);
 	}
 
-	void on_edit(fan::vulkan::context_t& context) {
-		reset_edit();
-	}
-
 	void reset_edit() {
 		queued = false;
+		dirty_frames = 0;
 		indices.clear();
 
 		m_min_edit = 0xFFFFFFFFFFFFFFFF;
@@ -121,6 +148,7 @@ struct memory_common_t {
 
 	std::uint64_t m_min_edit;
 	std::uint64_t m_max_edit;
+	std::uint64_t dirty_frames = 0;
 
 	bool queued = 0;
 };

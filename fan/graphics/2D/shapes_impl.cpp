@@ -7,9 +7,6 @@ module;
 #if defined(FAN_OPENGL)
   #include <fan/graphics/gl_api.h>
 #endif
-#if defined(FAN_VULKAN)
-  #include <vulkan/vulkan.h>
-#endif
 #include <fan/graphics/shape_macros.h>
 
 #endif
@@ -1026,19 +1023,20 @@ namespace fan::graphics{
         fan::throw_error("invalid vertices");
       }
 
-      std::vector<polygon_vertex_t> polygon_vertices(properties.vertices.size());
-      for (std::size_t i = 0; i < properties.vertices.size(); ++i) {
+      shapes::polygon_t::vi_t vi;
+      shapes::polygon_t::ri_t ri;
+      ri.shape_id = NRI;
+      ri.vertex_count = (std::uint32_t)properties.vertices.size();
+      ri.buffer_size = sizeof(fan::graphics::polygon_vertex_t) * ri.vertex_count;
+
+      std::vector<fan::graphics::polygon_vertex_t> polygon_vertices(ri.vertex_count);
+      for (std::uint32_t i = 0; i < ri.vertex_count; ++i) {
         polygon_vertices[i].position = properties.vertices[i].position;
         polygon_vertices[i].color = properties.vertices[i].color;
         polygon_vertices[i].offset = properties.position;
         polygon_vertices[i].angle = properties.angle;
         polygon_vertices[i].rotation_point = properties.rotation_point;
       }
-
-      shapes::polygon_t::vi_t vi;
-      shapes::polygon_t::ri_t ri;
-      ri.vertices = std::move(polygon_vertices);
-      ri.buffer_size = sizeof(decltype(ri.vertices)::value_type) * ri.vertices.size();
 
     #if defined(FAN_OPENGL)
       if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
@@ -1048,7 +1046,7 @@ namespace fan::graphics{
         fan::opengl::core::write_glbuffer(
           (*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))),
           ri.vbo.m_buffer,
-          ri.vertices.data(),
+          polygon_vertices.data(),
           ri.buffer_size,
           GL_STATIC_DRAW,
           ri.vbo.m_target
@@ -1090,13 +1088,6 @@ namespace fan::graphics{
         }
       }
     #endif
-    #if defined(FAN_VULKAN)
-      if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {
-        auto& vk = *static_cast<fan::vulkan::context_t*>(static_cast<void*>(fan::graphics::ctx()));
-        vk.upload_buffer(ri.vertices, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, ri.vk_buffer);
-      }
-    #endif
-
       sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::polygon, vi, ri,
         Key_e::visible, (std::uint8_t)true,
@@ -1374,12 +1365,9 @@ namespace fan::graphics{
         ri.vbo.close((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))));
       }
     #endif
-    #if defined(FAN_VULKAN)
-      if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {
-        auto& vk = *static_cast<fan::vulkan::context_t*>(static_cast<void*>(fan::graphics::ctx()));
-        vk.destroy_buffer(ri.vk_buffer);
-      }
-    #endif
+      ri.shape_id = 0;
+      ri.vertex_count = 0;
+      ri.buffer_size = 0;
     }
     shapes::shape_ids_t::nr_t id;
     id.gint() = NRI;
@@ -1408,7 +1396,7 @@ namespace fan::graphics{
   // many things assume uint16_t so thats why not shaper_t::ShapeTypeIndex_t
   std::uint16_t shapes::shape_t::get_shape_type() const {
     auto& vs = get_visual_id();
-    if (vs) {
+    if (!vs.iic()) {
       return g_shapes->shaper.ShapeList[vs].sti;
     }
     shapes::shape_ids_t::nr_t id;
@@ -1437,7 +1425,7 @@ namespace fan::graphics{
         }
       });
 
-      if (shape->get_visual_id()) {
+      if (!shape->get_visual_id().iic()) {
         auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)
           shape->GetData(fan::graphics::g_shapes->shaper);
         ri.position = position;
@@ -1639,7 +1627,7 @@ namespace fan::graphics{
             (std::int8_t)desired_sign.x,
             (std::int8_t)desired_sign.y
           };
-          if (get_visual_id()) {
+          if (!get_visual_id().iic()) {
             set_sprite_sheet_next_frame(props.sprite_sheet_data.current_frame);
           }
         }
@@ -1656,7 +1644,7 @@ namespace fan::graphics{
       }
     });
 
-    if (!get_visual_id()) {
+    if (get_visual_id().iic()) {
       return false;
     }
 
@@ -1735,7 +1723,7 @@ namespace fan::graphics{
   fan::graphics::image_t shapes::shape_t::get_image() const {
     auto st = get_shape_type();
     if (get_shape_type() == fan::graphics::shape_type_t::universal_image_renderer) {
-      if (get_visual_id()) {
+      if (!get_visual_id().iic()) {
         return fan::graphics::shapes::get_shape_functions()[st].get_image(this);
       }
       return get_properties<shapes::universal_image_renderer_t::properties_t>().images[0];
@@ -1747,9 +1735,6 @@ namespace fan::graphics{
   }
 
   void shapes::shape_t::set_image(fan::graphics::image_t image) {
-    if (get_image() == image) {
-      return;
-    }
     fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_image(this, image);
   }
 
@@ -1874,35 +1859,40 @@ namespace fan::graphics{
     fan::graphics::ctx()->shader_set_fragment(fan::graphics::ctx(), shader, fs_path, fs);
     fan::graphics::ctx()->shader_compile(fan::graphics::ctx(), shader);
   }
-
   void shapes::shape_t::reload(std::uint8_t format, void** image_data, const fan::vec2& image_size) {
-    auto& settings = fan::graphics::ctx()->image_get_settings(fan::graphics::ctx(), get_image());
-    std::uint32_t filter = settings.min_filter;
+    fan::graphics::image_t current_image = get_image();
+    std::uint32_t filter = fan::graphics::image_filter_e::linear;
+    if (!current_image.iic()) {
+      auto& settings = fan::graphics::ctx()->image_get_settings(fan::graphics::ctx(), current_image);
+      filter = settings.min_filter;
+    }
 
     shapes::shape_ids_t::nr_t id;
     id.gint() = NRI;
     auto& sd = g_shapes->shape_ids[id];
     auto& props = get_properties<shapes::universal_image_renderer_t::properties_t>();
+
     std::uint8_t image_count_new = fan::graphics::get_channel_amount(format);
+    std::uint8_t image_count_old = fan::graphics::get_channel_amount(props.format);
+
     if (format != props.format) {
       auto sti = get_shape_type();
-      fan::graphics::image_t vi_image = get_image();
-
       auto shader = g_shapes->shaper.GetShader(sti);
       set_pixel_format_shader(shader, format);
 
-      std::uint8_t image_count_old = fan::graphics::get_channel_amount(props.format);
       if (image_count_new < image_count_old) {
         std::uint8_t textures_to_remove = image_count_old - image_count_new;
-        if (vi_image.iic() || vi_image == fan::graphics::ctx().default_texture) { // uninitialized
+        if (current_image.iic() || current_image == fan::graphics::ctx().default_texture) {
           textures_to_remove = 0;
         }
-        for (int i = 0; i < textures_to_remove; ++i) {
-          int index = image_count_old - i - 1; // not tested
+
+        for (std::uint32_t i = 0; i < textures_to_remove; ++i) {
+          std::uint32_t index = image_count_old - i - 1;
           if (index == 0) {
-            fan::graphics::ctx()->image_erase(fan::graphics::ctx(), vi_image);
-                
-            set_image(fan::graphics::ctx().default_texture);
+            fan::graphics::ctx()->image_erase(fan::graphics::ctx(), current_image);
+            current_image = fan::graphics::ctx().default_texture;
+            set_image(current_image);
+            props.images[0] = current_image;
           }
           else {
             fan::graphics::ctx()->image_erase(fan::graphics::ctx(), props.images[index]);
@@ -1914,20 +1904,18 @@ namespace fan::graphics{
         for (std::uint32_t i = image_count_old; i < image_count_new; ++i) {
           props.images[i] = fan::graphics::ctx()->image_create(fan::graphics::ctx());
         }
-        if (image_count_old == 0) {
-          set_image(props.images[0]);
-        }
       }
     }
 
-    auto vi_image = get_image();
+    current_image = get_image();
 
     for (std::uint32_t i = 0; i < image_count_new; ++i) {
       if (i == 0) {
-        if (vi_image.iic() || vi_image == fan::graphics::ctx().default_texture) {
-          vi_image = fan::graphics::ctx()->image_create(fan::graphics::ctx());
-          set_image(vi_image);
+        if (current_image.iic() || current_image == fan::graphics::ctx().default_texture) {
+          current_image = fan::graphics::ctx()->image_create(fan::graphics::ctx());
         }
+        props.images[0] = current_image;
+        set_image(current_image);
       }
       else {
         if (props.images[i].iic() || props.images[i] == fan::graphics::ctx().default_texture) {
@@ -1936,10 +1924,15 @@ namespace fan::graphics{
       }
     }
 
-    for (std::uint32_t i = 0; i < image_count_new; i++) {
+    for (std::uint32_t i = image_count_new; i < props.images.size(); ++i) {
+      props.images[i] = fan::graphics::ctx().default_texture;
+    }
+
+    for (std::uint32_t i = 0; i < image_count_new; ++i) {
       fan::image::info_t image_info;
       image_info.data = image_data[i];
       image_info.size = fan::graphics::get_image_sizes(format, image_size)[i];
+
       auto lp = fan::graphics::get_image_properties<image_load_properties_t>(format)[i];
       lp.min_filter = filter;
       if (filter == fan::graphics::image_filter_e::linear ||
@@ -1949,51 +1942,62 @@ namespace fan::graphics{
       else {
         lp.mag_filter = fan::graphics::image_filter_e::linear;
       }
-      if (i == 0) {
-            
-        fan::graphics::ctx()->image_reload_image_info_props(fan::graphics::ctx(), 
-          vi_image,
-          image_info,
-          lp
-        );
-      }
-      else {
-        fan::graphics::ctx()->image_reload_image_info_props(fan::graphics::ctx(), 
-          props.images[i],
-          image_info,
-          lp
-        );
-      }
+
+      fan::graphics::ctx()->image_reload_image_info_props(
+        fan::graphics::ctx(),
+        props.images[i],
+        image_info,
+        lp
+      );
     }
-    if (get_visual_id()) {
-      universal_image_renderer_t::ri_t& ri = *(universal_image_renderer_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
-      std::copy(props.images.begin() + 1, props.images.end(), ri.images_rest.data());
+
+    if (!get_visual_id().iic()) {
+      set_image(props.images[0]);
+
+      auto& ri = *(universal_image_renderer_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
+      std::fill(ri.images_rest.begin(), ri.images_rest.end(), fan::graphics::ctx().default_texture);
+      if (image_count_new > 1) {
+        std::copy_n(props.images.begin() + 1, image_count_new - 1, ri.images_rest.begin());
+      }
       ri.format = format;
     }
+
     props.format = format;
   }
 
   void shapes::shape_t::reload(std::uint8_t format, const fan::vec2& image_size) {
-        
     void* data[4]{};
     reload(format, data, image_size);
   }
 
-  // universal image specific
   void shapes::shape_t::reload(std::uint8_t format, fan::graphics::image_t images[4]) {
-    universal_image_renderer_t::ri_t& ri = *(universal_image_renderer_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
-    if (format != ri.format) {
-      auto sti = g_shapes->shaper.ShapeList[get_visual_id()].sti;
+    auto& props = get_properties<shapes::universal_image_renderer_t::properties_t>();
+    auto image_count = fan::graphics::get_channel_amount(format);
 
+    if (format != props.format) {
+      auto sti = get_shape_type();
       auto shader = g_shapes->shaper.GetShader(sti);
-          
       set_pixel_format_shader(shader, format);
-      set_image(images[0]);
-      std::copy(&images[1], &images[fan::graphics::get_channel_amount(format)], ri.images_rest.data());
+    }
+
+    std::fill(props.images.begin(), props.images.end(), fan::graphics::ctx().default_texture);
+    for (std::uint32_t i = 0; i < image_count; ++i) {
+      props.images[i] = images[i];
+    }
+
+    set_image(props.images[0]);
+
+    if (!get_visual_id().iic()) {
+      auto& ri = *(universal_image_renderer_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
+      std::fill(ri.images_rest.begin(), ri.images_rest.end(), fan::graphics::ctx().default_texture);
+      for (std::uint32_t i = 1; i < image_count; ++i) {
+        ri.images_rest[i - 1] = images[i];
+      }
       ri.format = format;
     }
-  }
 
+    props.format = format;
+  }
   void shapes::shape_t::set_line(const fan::vec2& src, const fan::vec2& dst) {
     auto st = get_shape_type();
     if (st == fan::graphics::shapes::shape_type_t::line) {
@@ -2108,7 +2112,7 @@ namespace fan::graphics{
           props.sprite_sheet_data.current_sprite_sheet = fan::graphics::shape_sprite_sheets()[props.sprite_sheet_data.shape_sprite_sheets].back();
         }
       });
-      if (!get_visual_id()) {
+      if (get_visual_id().iic()) {
         return;
       }
 
@@ -2125,7 +2129,7 @@ namespace fan::graphics{
     return is_sprite_sheet_finished(get_current_sprite_sheet_id());
   }
   bool shapes::shape_t::is_sprite_sheet_finished(sprite_sheet_id_t nr) const {
-    if (!get_visual_id()) {
+    if (get_visual_id().iic()) {
       return true;
     }
     auto& sprite_sheet = fan::graphics::get_sprite_sheet(nr);
@@ -2172,7 +2176,7 @@ namespace fan::graphics{
       if constexpr (requires { props.sprite_sheet_data; }) {
         props.sprite_sheet_data.previous_frame = props.sprite_sheet_data.current_frame;
         props.sprite_sheet_data.current_frame = 0;
-        if (get_visual_id()) {
+        if (!get_visual_id().iic()) {
           auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
           ri.sprite_sheet_data.previous_frame = props.sprite_sheet_data.previous_frame;
           ri.sprite_sheet_data.current_frame = 0;
@@ -2186,7 +2190,7 @@ namespace fan::graphics{
         props.sprite_sheet_data.previous_frame = props.sprite_sheet_data.current_frame;
         props.sprite_sheet_data.current_frame = 0;
         props.sprite_sheet_data.frame_accumulator = 0.f;
-        if (get_visual_id()) {
+        if (!get_visual_id().iic()) {
           auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
           ri.sprite_sheet_data.previous_frame = props.sprite_sheet_data.previous_frame;
           ri.sprite_sheet_data = props.sprite_sheet_data;
@@ -2218,7 +2222,7 @@ namespace fan::graphics{
           sheet_data.current_frame = std::min(sheet_data.current_frame, frame_count - 1);
         }
 
-        if (!get_visual_id()) {
+        if (get_visual_id().iic()) {
           return;
         }
         fan::vec2 sign = get_image_sign();
@@ -2445,7 +2449,7 @@ namespace fan::graphics{
     g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
       if constexpr (requires { props.sprite_sheet_data; }) {
         props.sprite_sheet_data.current_frame = frame_id;
-        if (get_visual_id()) {
+        if (!get_visual_id().iic()) {
           auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
           ri.sprite_sheet_data.current_frame = frame_id;
         }
@@ -2537,7 +2541,7 @@ namespace fan::graphics{
       }
     });
 
-    if (!get_visual_id()) {
+    if (get_visual_id().iic()) {
       return;
     }
 
@@ -2565,7 +2569,7 @@ namespace fan::graphics{
         props.loop_disabled_time = -1;
       }
     });
-    if (!get_visual_id()) {
+    if (get_visual_id().iic()) {
       return;
     }
     auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)
@@ -2580,7 +2584,7 @@ namespace fan::graphics{
         props.loop_disabled_time = fan::time::now() / 1e9;
       }
     });
-    if (!get_visual_id()) {
+    if (get_visual_id().iic()) {
       return;
     }
     auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)
@@ -2819,7 +2823,7 @@ void fan::graphics::shapes::shape_t::sprite_sheet_frame_update_cb(
           sheet_data.just_finished = true;
         }
 
-        if (shape->get_visual_id()) {
+        if (!shape->get_visual_id().iic()) {
           auto& ri = *(sprite_t::ri_t*)shape->GetData(shaper);
           ri.sprite_sheet_data = sheet_data;
           props.sprite_sheet_data = ri.sprite_sheet_data;
@@ -2889,7 +2893,7 @@ void fan::graphics::shapes::shape_t::stop_sprite_sheet() {
         fan::graphics::ctx().update_callback->unlrec(sheet_data.frame_update_nr);
         sheet_data.frame_update_nr.sic();
       }
-      if (get_visual_id()) {
+      if (!get_visual_id().iic()) {
         auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
         ri.sprite_sheet_data = sheet_data;
       }
@@ -2946,7 +2950,7 @@ void fan::graphics::shapes::shape_t::add_sprite_sheet(const fan::graphics::sprit
     if constexpr (requires { props.sprite_sheet_data.shape_sprite_sheets; }) {
       props.sprite_sheet_data.shape_sprite_sheets = add_shape_sprite_sheet(props.sprite_sheet_data.shape_sprite_sheets, sprite_sheet);
       props.sprite_sheet_data.current_sprite_sheet = shape_sprite_sheets()[props.sprite_sheet_data.shape_sprite_sheets].back();
-      if (get_visual_id()) {
+      if (!get_visual_id().iic()) {
         auto& ri = *(sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper);
         ri.sprite_sheet_data.shape_sprite_sheets = props.sprite_sheet_data.shape_sprite_sheets;
         ri.sprite_sheet_data.current_sprite_sheet = props.sprite_sheet_data.current_sprite_sheet;

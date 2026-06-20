@@ -61,8 +61,12 @@ void main() {
     color = mix(color, blur, amount);
   }
 
-  vec3 light = texture(_t04, texture_coordinate).rgb;
-  color *= light;
+  //vec3 light = texture(_t04, texture_coordinate).rgb;
+  //color *= light;
+
+  vec2 light_uv = gl_FragCoord.xy / window_size;
+  vec3 light = texture(_t04, light_uv).rgb;
+  color.rgb *= light;
 
   if (bloom_enabled) {
     vec3 bloom = texture(_t01, texture_coordinate).rgb;

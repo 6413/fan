@@ -1,4 +1,3 @@
-#if 0
 // This file is meant to stay up-to-date. More library usage will be implemented and showcased over time
 
 #include <vector>
@@ -130,6 +129,12 @@ struct engine_demo_t {
     void* pixel_data = pixel_data_str.data();
     auto split = fan::image::plane_split(pixel_data, image_size, fan::graphics::image_format_e::yuv420p);
     engine_demo->shapes.back().reload(fan::graphics::image_format_e::yuv420p, split, image_size);
+fan::printn8(
+  "props", engine_demo->shapes.back().get_images()[0].NRI,
+  "get_image", engine_demo->shapes.back().get_image().NRI,
+  "visual", engine_demo->shapes.back().get_visual_id().gint(),
+  "default", gloco()->default_texture.NRI
+);
   }
 
   fan::graphics::image_t image_tire = engine.image_load("images/tire.webp");
@@ -372,9 +377,9 @@ void main() {
   if (tex_color.a <= 0.25) {
     discard;
   }
-  tex_color.rgb *= abs(sin(float(constants.camera_id) + 1.0));
   float luminance = dot(tex_color.rgb, vec3(0.299, 0.587, 0.114));
-  tex_color.rgb = vec3(1.0, 0.0, 0.0) * luminance;
+  tex_color.rgb = instance_color.rgb * luminance;
+  tex_color.a *= instance_color.a;
   o_attachment0 = tex_color;
 })";
 
@@ -397,6 +402,7 @@ void main() {
       .render_view = &engine_demo->right_column_view,
       .position = fan::vec3(fan::vec2(0), 3),
       .size = viewport_size / 2,
+      .color = engine_demo->custom_color,
       .shader = engine_demo->demo_shader_shape_shader,
       .image = image,
     }});
@@ -404,7 +410,14 @@ void main() {
   }
   static void demo_shader_shape_update(engine_demo_t* engine_demo) {
     if (fan::graphics::gui::color_edit4("##c0", &engine_demo->custom_color)) {
-      engine_demo->engine.shader_set_value(engine_demo->demo_shader_shape_shader, "custom_color", engine_demo->custom_color);
+      if (engine_demo->engine.window.renderer == fan::window_t::renderer_t::vulkan) {
+        if (!engine_demo->shapes.empty()) {
+          engine_demo->shapes[0].set_color(engine_demo->custom_color);
+        }
+      }
+      else {
+        engine_demo->engine.shader_set_value(engine_demo->demo_shader_shape_shader, "custom_color", engine_demo->custom_color);
+      }
     }
   }
 
@@ -446,8 +459,7 @@ void main() {
   // ------------------------SHAPES------------------------
 
   // ------------------------GUI------------------------
-  struct demo_shader_live_editor_t {
-    std::string shader_code = R"(#version 330
+  inline static const char* demo_shader_live_editor_shader_gl = R"(#version 330
 in vec2 texture_coordinate;
 layout (location = 0) out vec4 o_attachment0;
 uniform float m_time;
@@ -482,6 +494,54 @@ void main() {
     DrawScanline(o_attachment0.rgb, tex);
 })";
 
+  inline static const char* demo_shader_live_editor_shader_vk = R"(#version 450
+layout(location = 0) in vec4 instance_color;
+layout(location = 1) in vec2 texture_coordinate;
+layout(location = 0) out vec4 o_attachment0;
+
+layout(push_constant) uniform constants_t {
+  uint texture_id;
+  uint camera_id;
+  uint texture_id1;
+  uint texture_id2;
+  uint texture_id3;
+} constants;
+
+layout(set = 0, binding = 2) uniform sampler2D textures[1024];
+
+void DrawVignette(inout vec3 color, vec2 uv) {
+  float vignette = uv.x * uv.y * (1.0 - uv.x) * (1.0 - uv.y);
+  vignette = clamp(pow(16.0 * vignette, 0.3), 0.0, 1.0);
+  color *= vignette;
+}
+
+vec2 CRTCurveUV(vec2 uv) {
+  uv = uv * 2.0 - 1.0;
+  vec2 offset = abs(uv.yx) / vec2(6.0, 4.0);
+  uv = uv + uv * offset * offset;
+  uv = uv * 0.5 + 0.5;
+  return uv;
+}
+
+void DrawScanline(inout vec3 color, vec2 uv) {
+  float scanline = clamp(0.95 + 0.05 * cos(3.14 * uv.y * 240.0), 0.0, 1.0);
+  float grille = 0.85 + 0.15 * clamp(1.5 * cos(3.14 * uv.x * 640.0), 0.0, 1.0);
+  color *= scanline * grille * 1.2;
+}
+
+void main() {
+  vec2 tex = vec2(texture_coordinate.x, 1.0 - texture_coordinate.y);
+  tex = CRTCurveUV(tex * 1.05);
+  vec3 actual = texture(textures[constants.texture_id], tex).rgb;
+  o_attachment0 = vec4(actual * instance_color.rgb, instance_color.a);
+  DrawVignette(o_attachment0.rgb, tex);
+  DrawScanline(o_attachment0.rgb, tex);
+})";
+
+  struct demo_shader_live_editor_t {
+    std::string shader_code;
+
+
     fan::graphics::shader_t shader;
     fan::graphics::shape_t shader_shape;
     bool shader_compiled = true;
@@ -491,6 +551,8 @@ void main() {
     engine_demo->demo_shader_live_editor_data = new demo_shader_live_editor_t();
     auto& data = *engine_demo->demo_shader_live_editor_data;
 
+    data.shader_code = engine_demo->engine.window.renderer == fan::window_t::renderer_t::vulkan ?
+      demo_shader_live_editor_shader_vk : demo_shader_live_editor_shader_gl;
     data.shader = engine_demo->engine.get_sprite_shader("", data.shader_code);
     fan::graphics::image_t image = engine_demo->engine.image_load("images/lava_seamless.webp");
 
@@ -516,7 +578,12 @@ void main() {
     if (gui::input_text_multiline("##Shader Code", &data.shader_code, editor_size, gui::input_text_flags_allow_tab_input)) {
       engine_demo->engine.shader_set_vertex(data.shader, "", engine_demo->engine.shader_list[engine_demo->engine.shapes.shaper.GetShader(fan::graphics::shape_type_t::shader_shape)].svertex);
       engine_demo->engine.shader_set_fragment(data.shader, "", data.shader_code);
-      data.shader_compiled = engine_demo->engine.shader_compile(data.shader);
+      try {
+        data.shader_compiled = engine_demo->engine.shader_compile(data.shader);
+      }
+      catch (...) {
+        data.shader_compiled = false;
+      }
     }
   }
   static void demo_shader_live_editor_cleanup(engine_demo_t* engine_demo) {
@@ -1629,5 +1696,3 @@ int main() {////
     });
   */
 }
-
-#endif

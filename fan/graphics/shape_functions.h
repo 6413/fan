@@ -96,7 +96,7 @@ static fan::graphics::camera_t get_camera(const fan::graphics::shapes::shape_t* 
   return cam;
 
   auto sti = shape->get_shape_type();
-  if (!shape->get_visual_id()) {
+  if (shape->get_visual_id().iic()) {
     return {};
   }
   uint8_t* key_pack = fan::graphics::g_shapes->shaper.GetKeys(shape->get_visual_id());
@@ -346,7 +346,7 @@ static void set_colors(fan::graphics::shapes::shape_t* s, const std::array<fan::
     }
   });
 
-  if (!s->get_visual_id()) {
+  if (s->get_visual_id().iic()) {
     return;
   }
 

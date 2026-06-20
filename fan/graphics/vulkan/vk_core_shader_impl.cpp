@@ -239,64 +239,32 @@ void fan::vulkan::context_t::parse_uniforms(std::string& shaderData, std::unorde
 }
 bool fan::vulkan::context_t::shader_compile(fan::graphics::shader_nr_t nr) {
   auto& shader = shader_get(nr);
-  bool has_vertex = !__fan_internal_shader_list[nr].svertex.empty();
-  bool has_fragment = !__fan_internal_shader_list[nr].sfragment.empty();
-  bool has_compute = !__fan_internal_shader_list[nr].scompute.empty();
+  auto& list_item = __fan_internal_shader_list[nr];
+
+  bool has_vertex = !list_item.svertex.empty();
+  bool has_fragment = !list_item.sfragment.empty();
+  bool has_compute = !list_item.scompute.empty();
 
   if (has_compute && (has_vertex || has_fragment)) {
     fan::print_impl("compute shader cannot be linked with graphics shaders");
     return false;
   }
 
-  if (has_vertex) {
-    auto spirv = compile_file(std::string(__fan_internal_shader_list[nr].path_vertex.c_str()), shaderc_glsl_vertex_shader, __fan_internal_shader_list[nr].svertex);
+  auto compile_stage = [&](const std::string& path, std::string& code, shaderc_shader_kind kind, VkShaderStageFlagBits stage, int index) {
+    if (code.empty()) { return; }
+    auto spirv = compile_file(path, kind, code);
+    shader.shader_stages[index] = {
+      VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0,
+      stage, create_shader_module(spirv), "main", nullptr
+    };
+    parse_uniforms(code, list_item.uniform_type_table);
+  };
 
-    auto module_vertex = create_shader_module(spirv);
+  compile_stage(list_item.path_vertex.c_str(), list_item.svertex, shaderc_glsl_vertex_shader, VK_SHADER_STAGE_VERTEX_BIT, 0);
+  compile_stage(list_item.path_fragment.c_str(), list_item.sfragment, shaderc_glsl_fragment_shader, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
+  compile_stage(list_item.path_compute.c_str(), list_item.scompute, shaderc_glsl_compute_shader, VK_SHADER_STAGE_COMPUTE_BIT, 0);
 
-    VkPipelineShaderStageCreateInfo vert {};
-    vert.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    vert.stage = VK_SHADER_STAGE_VERTEX_BIT;
-    vert.module = module_vertex;
-    vert.pName = "main";
-
-    shader.shader_stages[0] = vert;
-  }
-  if (has_fragment) {
-    auto spirv = compile_file(std::string(__fan_internal_shader_list[nr].path_fragment.c_str()), shaderc_glsl_fragment_shader, __fan_internal_shader_list[nr].sfragment);
-
-    auto module_fragment = create_shader_module(spirv);
-
-    VkPipelineShaderStageCreateInfo frag {};
-    frag.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    frag.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-    frag.module = module_fragment;
-    frag.pName = "main";
-
-    shader.shader_stages[1] = frag;
-  }
-  if (has_compute) {
-    auto spirv = compile_file(std::string(__fan_internal_shader_list[nr].path_compute.c_str()), shaderc_glsl_compute_shader, __fan_internal_shader_list[nr].scompute);
-
-    auto module_compute = create_shader_module(spirv);
-
-    VkPipelineShaderStageCreateInfo compute {};
-    compute.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    compute.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-    compute.module = module_compute;
-    compute.pName = "main";
-
-    shader.shader_stages[0] = compute;
-  }
-
-  std::string vertexData = __fan_internal_shader_list[nr].svertex;
-  parse_uniforms(vertexData, __fan_internal_shader_list[nr].uniform_type_table);
-
-  std::string fragmentData = __fan_internal_shader_list[nr].sfragment;
-  parse_uniforms(fragmentData, __fan_internal_shader_list[nr].uniform_type_table);
-
-  std::string computeData = __fan_internal_shader_list[nr].scompute;
-  parse_uniforms(computeData, __fan_internal_shader_list[nr].uniform_type_table);
-
+  ++shader.compile_generation;
   return true;
 }
 #endif

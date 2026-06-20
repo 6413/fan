@@ -16,7 +16,7 @@ float sd_box(vec2 p, vec2 half_size) {
 
 void main() {
   vec2 size = abs(instance_size);
-  vec2 half_size = size * 0.5;
+  vec2 half_size = size;
   vec2 p = (texture_coordinate - 0.5) * size * 2.0;
   float dist = sd_box(p, half_size);
 
