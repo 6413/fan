@@ -70,7 +70,7 @@ VkFormat fan::graphics::format_converter::global_to_vulkan_format(std::uintptr_t
     case image_format_e::r8_unorm: return VK_FORMAT_R8_UNORM;
     case image_format_e::r8_uint: return VK_FORMAT_R8_UINT;
     case image_format_e::rg8_unorm: return VK_FORMAT_R8G8_UNORM;
-    case image_format_e::rgb_unorm: return VK_FORMAT_R8G8B8_UNORM;
+    case image_format_e::rgb_unorm: return VK_FORMAT_R8G8B8A8_UNORM;
     case image_format_e::r8g8b8a8_srgb: return VK_FORMAT_R8G8B8A8_SRGB;
     case image_format_e::rgba_unorm: return VK_FORMAT_R8G8B8A8_UNORM;
   }
@@ -264,7 +264,7 @@ VkFormat fan::vulkan::context_t::get_format_from_channels(int channels) {
   switch (channels) {
     case 1: return VK_FORMAT_R8_UNORM;
     case 2: return VK_FORMAT_R8G8_UNORM;
-    case 3: return VK_FORMAT_R8G8B8_UNORM;
+    case 3: return VK_FORMAT_R8G8B8A8_UNORM;
     case 4: return VK_FORMAT_R8G8B8A8_UNORM;
     default: return VK_FORMAT_R8G8B8A8_UNORM;
   }
@@ -532,8 +532,9 @@ void fan::vulkan::context_t::image_unload(fan::graphics::image_nr_t nr) {
   image_erase(nr);
 }
 void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const fan::vulkan::context_t::image_load_properties_t& p) {
-  auto image_multiplier = get_image_multiplier(p.format);
-  VkDeviceSize image_size = image_info.size.multiply() * image_multiplier;
+  auto format_channels = get_image_multiplier(p.format);
+  auto src_channels = image_info.channels <= 0 ? format_channels : image_info.channels;
+  VkDeviceSize image_size = image_info.size.multiply() * format_channels;
 
   fan::vulkan::context_t::image_t& image = image_get(nr);
   auto& image_data = __fan_internal_image_list[nr];
@@ -604,7 +605,29 @@ void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, const fa
   }
 
   vmaMapMemory(allocator, image.staging_allocation, &image.data);
-  memcpy(image.data, image_info.data, image_size_bytes);
+
+  const std::uint8_t* src = static_cast<const std::uint8_t*>(image_info.data);
+  std::uint8_t* dst = static_cast<std::uint8_t*>(image.data);
+  std::uint64_t pixel_count = image_info.size.multiply();
+
+  if (src_channels == format_channels) {
+    std::memcpy(dst, src, image_size_bytes);
+  }
+  else if (src_channels == 3 && format_channels == 4) {
+    for (std::uint64_t i = 0; i < pixel_count; ++i) {
+      dst[0] = src[0];
+      dst[1] = src[1];
+      dst[2] = src[2];
+      dst[3] = 255;
+      src += 3;
+      dst += 4;
+    }
+  }
+  else {
+    vmaUnmapMemory(allocator, image.staging_allocation);
+    fan::throw_error("image_reload: unsupported channel/format combination");
+  }
+
   vmaUnmapMemory(allocator, image.staging_allocation);
 
   transition_image_layout(

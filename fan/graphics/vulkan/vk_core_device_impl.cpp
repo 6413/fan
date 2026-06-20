@@ -1624,13 +1624,19 @@ VKAPI_ATTR VkBool32 VKAPI_CALL fan::vulkan::context_t::debug_callback(
   const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
   void* pUserData
 ) {
-  if (pCallbackData->pMessageIdName && std::string(pCallbackData->pMessageIdName) == "Loader Message") {
+  if (pCallbackData->pMessageIdName && std::string_view(pCallbackData->pMessageIdName) == "Loader Message") {
     return VK_FALSE;
   }
-  fan::print_impl("validation layer:", pCallbackData->pMessage);
-  // system("pause");
-//  exit(0);
 
+  std::string_view msg = pCallbackData->pMessage ? pCallbackData->pMessage : "";
+
+  if ((messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) &&
+    msg.find("has an Output value declared at Location") != std::string_view::npos &&
+    msg.find("but there is no corresponding Input declared") != std::string_view::npos) {
+    return VK_FALSE;
+  }
+
+  fan::print_impl("validation layer:", pCallbackData->pMessage);
   return VK_FALSE;
 }
 #if defined(loco_window)
@@ -1707,7 +1713,11 @@ fan::graphics::context_functions_t fan::graphics::get_vk_context_functions() {
     return VK_CTX->image_load(image_info);
   };
   cf.image_load_info_props = [](void* context, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
-    return VK_CTX->image_load(image_info, fan::graphics::format_converter::image_global_to_vulkan(p));
+    fan::image::info_t info = image_info;
+    if (info.channels <= 0) {
+      info.channels = fan::graphics::get_channel_amount(p.format);
+    }
+    return VK_CTX->image_load(info, fan::graphics::format_converter::image_global_to_vulkan(p));
   };
   cf.image_load_path = [](void* context, fan::str_view_t path, const std::source_location& callers_path = std::source_location::current()) {
     return VK_CTX->image_load(path, callers_path);
@@ -1734,7 +1744,11 @@ fan::graphics::context_functions_t fan::graphics::get_vk_context_functions() {
     return VK_CTX->image_reload(nr, image_info);
   };
   cf.image_reload_image_info_props = [](void* context, fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
-    return VK_CTX->image_reload(nr, image_info, fan::graphics::format_converter::image_global_to_vulkan(p));
+    fan::image::info_t info = image_info;
+    if (info.channels <= 0) {
+      info.channels = fan::graphics::get_channel_amount(p.format);
+    }
+    return VK_CTX->image_reload(nr, info, fan::graphics::format_converter::image_global_to_vulkan(p));
   };
   cf.image_reload_path = [](void* context, fan::graphics::image_nr_t nr, fan::str_view_t path, const std::source_location& callers_path = std::source_location::current()) {
     return VK_CTX->image_reload(nr, path, callers_path);
@@ -1749,7 +1763,11 @@ fan::graphics::context_functions_t fan::graphics::get_vk_context_functions() {
     return VK_CTX->image_create(color, fan::graphics::format_converter::image_global_to_vulkan(p));
   };
   cf.image_create_data = [](void* context, void* data, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& p) {
-    return VK_CTX->image_create(data, size, fan::graphics::format_converter::image_global_to_vulkan(p));
+    fan::image::info_t info;
+    info.data = data;
+    info.size = size;
+    info.channels = fan::graphics::get_channel_amount(p.format);
+    return VK_CTX->image_load(info, fan::graphics::format_converter::image_global_to_vulkan(p));
   };
   /*camera*/
   cf.camera_create = [](void* context) {
