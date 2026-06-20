@@ -1,3 +1,4 @@
+#if 0
 // This file is meant to stay up-to-date. More library usage will be implemented and showcased over time
 
 #include <vector>
@@ -35,7 +36,7 @@ engine_demo_t* engine_demo_ptr;
 
 struct engine_demo_t {
   engine_t engine {{ // initialize before everything
-    .renderer = fan::graphics::renderer_t::opengl,
+    .renderer = fan::graphics::renderer_t::vulkan,
   }};
 
   engine_demo_t() {
@@ -310,7 +311,7 @@ struct engine_demo_t {
     });
   }
 
-  inline static const char* demo_shader_shape_fragment_shader = R"(#version 330
+  inline static const char* demo_shader_shape_fragment_shader_gl = R"(#version 330
 layout (location = 0) out vec4 o_attachment0;
 
 in vec2 texture_coordinate;
@@ -351,7 +352,37 @@ void main() {
   o_attachment0 = tex_color;
 })";
 
-  fan::graphics::shader_t demo_shader_shape_shader {engine.get_sprite_shader("", demo_shader_shape_fragment_shader)};
+  inline static const char* demo_shader_shape_fragment_shader_vk = R"(#version 450
+layout(location = 0) in vec4 instance_color;
+layout(location = 1) in vec2 texture_coordinate;
+layout(location = 0) out vec4 o_attachment0;
+
+layout(push_constant) uniform constants_t {
+  uint texture_id;
+  uint camera_id;
+  uint texture_id1;
+  uint texture_id2;
+  uint texture_id3;
+} constants;
+
+layout(set = 0, binding = 2) uniform sampler2D textures[1024];
+
+void main() {
+  vec4 tex_color = texture(textures[constants.texture_id], texture_coordinate) * instance_color;
+  if (tex_color.a <= 0.25) {
+    discard;
+  }
+  tex_color.rgb *= abs(sin(float(constants.camera_id) + 1.0));
+  float luminance = dot(tex_color.rgb, vec3(0.299, 0.587, 0.114));
+  tex_color.rgb = vec3(1.0, 0.0, 0.0) * luminance;
+  o_attachment0 = tex_color;
+})";
+
+  fan::graphics::shader_t demo_shader_shape_shader {engine.get_sprite_shader(
+    "",
+    engine.window.renderer == fan::window_t::renderer_t::vulkan ?
+      demo_shader_shape_fragment_shader_vk : demo_shader_shape_fragment_shader_gl
+  )};
   fan::color custom_color = fan::colors::red;
   static void demo_shapes_init_shader_shape(engine_demo_t* engine_demo) {
     if (engine_demo->demo_shader_shape_shader.iic()) {
@@ -1598,3 +1629,5 @@ int main() {////
     });
   */
 }
+
+#endif

@@ -6,24 +6,22 @@ layout(location = 0) out vec4 o_attachment0;
 layout(push_constant) uniform constants_t {
   uint texture_id;
   uint camera_id;
+  uint texture_id1;
+  uint texture_id2;
+  uint texture_id3;
 } constants;
 
 layout(set = 0, binding = 2) uniform sampler2D textures[1024];
 
 void main() {
-  vec3 yuv;
-  yuv.x = texture(textures[constants.texture_id + 0], texture_coordinate).r;
-  yuv.y = texture(textures[constants.texture_id + 1], texture_coordinate).r;
-  yuv.z = texture(textures[constants.texture_id + 2], texture_coordinate).r;
-
-  yuv.x = 1.1643 * (yuv.x - 0.0625);
-  yuv.y -= 0.5;
-  yuv.z -= 0.5;
+  float y = texture(textures[constants.texture_id], texture_coordinate).r;
+  float u = texture(textures[constants.texture_id1], texture_coordinate).r - 0.5;
+  float v = texture(textures[constants.texture_id2], texture_coordinate).r - 0.5;
 
   vec3 rgb;
-  rgb.r = yuv.x + 1.5958 * yuv.z;
-  rgb.g = yuv.x - 0.391773 * yuv.y - 0.81290 * yuv.z;
-  rgb.b = yuv.x + 2.017 * yuv.y;
+  rgb.r = y + 1.402 * v;
+  rgb.g = y - 0.344136 * u - 0.714136 * v;
+  rgb.b = y + 1.772 * u;
 
-  o_attachment0 = vec4(rgb, 1);
+  o_attachment0 = vec4(clamp(rgb, 0.0, 1.0), 1.0);
 }

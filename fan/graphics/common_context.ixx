@@ -332,12 +332,15 @@ export namespace fan {
         for (int i = 0; i < 3; ++i) {
           result[i].internal_format = fan::graphics::image_format_e::r8_unorm;
           result[i].format = fan::graphics::image_format_e::r8_unorm;
+          result[i].visual_output = fan::graphics::image_sampler_address_mode_e::clamp_to_edge;
         }
         break;
 
       case image_format_e::nv12:
         result[0].internal_format = result[0].format = fan::graphics::image_format_e::r8_unorm;
         result[1].internal_format = result[1].format = fan::graphics::image_format_e::rg8_unorm;
+        result[0].visual_output = fan::graphics::image_sampler_address_mode_e::clamp_to_edge;
+        result[1].visual_output = fan::graphics::image_sampler_address_mode_e::clamp_to_edge;
         break;
 
       default:
