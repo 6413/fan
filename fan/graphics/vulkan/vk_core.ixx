@@ -108,6 +108,9 @@ export namespace fan {
       struct push_constants_t {
         std::uint32_t texture_id;
         std::uint32_t camera_id;
+        std::uint32_t texture_id1 = 0;
+        std::uint32_t texture_id2 = 0;
+        std::uint32_t texture_id3 = 0;
       };
 
       struct descriptor_t {
@@ -312,6 +315,8 @@ export namespace fan {
         static constexpr auto r8b8g8a8_unorm = VK_FORMAT_R8G8B8A8_UNORM;
         static constexpr auto r8_unorm = VK_FORMAT_R8_UNORM;
         static constexpr auto r8_uint = VK_FORMAT_R8_UINT;
+        static constexpr auto r8g8_unorm = VK_FORMAT_R8G8_UNORM;
+        static constexpr auto r8g8b8_unorm = VK_FORMAT_R8G8B8_UNORM;
         static constexpr auto r8g8b8a8_srgb = VK_FORMAT_R8G8B8A8_SRGB;
       };
 
@@ -372,6 +377,11 @@ export namespace fan {
         VmaAllocation staging_allocation = VK_NULL_HANDLE;
         VkDeviceSize staging_size = 0;
         void* data = nullptr;
+      #if defined(FAN_GUI)
+        VkDescriptorSet gui_descriptor_set = VK_NULL_HANDLE;
+        VkImageView gui_image_view = VK_NULL_HANDLE;
+        VkSampler gui_sampler = VK_NULL_HANDLE;
+      #endif
         bool owns_image = true;
         bool owns_image_view = true;
       };
@@ -453,6 +463,14 @@ export namespace fan {
           case fan::vulkan::context_t::image_format::r8_unorm:
           {
             return 1;
+          }
+          case fan::vulkan::context_t::image_format::r8g8_unorm:
+          {
+            return 2;
+          }
+          case fan::vulkan::context_t::image_format::r8g8b8_unorm:
+          {
+            return 3;
           }
           case fan::vulkan::context_t::image_format::r8g8b8a8_srgb:
           {

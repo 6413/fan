@@ -33,6 +33,7 @@ struct ssbo_t	{
   using instance_id_t = std::uint32_t;
 
   void allocate(fan::vulkan::context_t& context, std::uint64_t size) {
+    vram_capacity = size;
     for (std::uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {
       if (common.memory[frame].buffer != VK_NULL_HANDLE) {
         if (frame == 0) {

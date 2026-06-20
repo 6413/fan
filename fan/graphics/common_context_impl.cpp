@@ -610,20 +610,14 @@ namespace fan::graphics {
     const std::string_view fragment_file_path,
     const fan::str_view_t fragment) 
   {
-    if (ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
-      fan::graphics::shader_t shader = ctx()->shader_create(ctx());
-      ctx()->shader_set_vertex(ctx(), shader, vertex_file_path, std::string(vertex));
-      ctx()->shader_set_fragment(ctx(), shader, fragment_file_path, std::string(fragment));
-      if (!ctx()->shader_compile(ctx(), shader)) {
-        ctx()->shader_erase(ctx(), shader);
-        shader.sic();
-      }
-      return shader;
+    fan::graphics::shader_t shader = ctx()->shader_create(ctx());
+    ctx()->shader_set_vertex(ctx(), shader, vertex_file_path, std::string(vertex));
+    ctx()->shader_set_fragment(ctx(), shader, fragment_file_path, std::string(fragment));
+    if (!ctx()->shader_compile(ctx(), shader)) {
+      ctx()->shader_erase(ctx(), shader);
+      shader.sic();
     }
-    else {
-      fan::print_impl("todo");
-    }
-    return {};
+    return shader;
   }
 
   void shader_erase(fan::graphics::shader_nr_t nr) {
@@ -720,9 +714,14 @@ namespace fan::graphics {
       );
     }
     else {
-      fan::print_impl("todo");
+      auto str = fan::graphics::read_shader("shaders/vulkan/2D/objects/shader_shape.vert");
+      return fan::graphics::shader_create(
+        "shaders/vulkan/2D/objects/shader_shape.vert",
+        str,
+        fragment_file_path,
+        fragment
+      );
     }
-    return {};
   }
 
   std::string read_shader(

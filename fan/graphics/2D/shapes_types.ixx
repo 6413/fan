@@ -314,9 +314,17 @@ export namespace fan::graphics::shaper {
   else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {\
     auto& vk = st.renderer.vk;\
     auto wrote = bu.MaxEdit - bu.MinEdit;\
+    std::uint64_t dst_offset = GetRenderDataOffset(be.sti, be.blid) + bu.MinEdit;\
+    std::uint64_t wanted = dst_offset + wrote;\
+    if (wanted > vk.shape_data.vram_capacity) {\
+      auto& context = *static_cast<fan::vulkan::context_t*>(static_cast<void*>(fan::graphics::ctx()));\
+      std::uint64_t new_size = std::max<std::uint64_t>(wanted, vk.shape_data.vram_capacity ? vk.shape_data.vram_capacity * 2 : wanted);\
+      vk.shape_data.allocate(context, new_size);\
+      _RenderDataReset(be.sti);\
+    }\
     for (std::uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {\
       memcpy(\
-        vk.shape_data.data[frame] + (GetRenderDataOffset(be.sti, be.blid) + bu.MinEdit),\
+        vk.shape_data.data[frame] + dst_offset,\
         GetRenderData(be.sti, be.blid, 0) + bu.MinEdit,\
         wrote\
       );\
@@ -376,7 +384,13 @@ export namespace fan::graphics::shaper {
   )\
   vulkan_expand(\
   else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan){\
-    _RenderDataReset(sti);\
+    auto& vk = st.renderer.vk;\
+    std::uint64_t wanted = (std::uint64_t)new_capacity * st.RenderDataSize * st.MaxElementPerBlock();\
+    if (wanted && wanted > vk.shape_data.vram_capacity) {\
+      auto& context = *static_cast<fan::vulkan::context_t*>(static_cast<void*>(fan::graphics::ctx()));\
+      std::uint64_t new_size = std::max<std::uint64_t>(wanted, vk.shape_data.vram_capacity ? vk.shape_data.vram_capacity * 2 : wanted);\
+      vk.shape_data.allocate(context, new_size);\
+    }\
   }\
   )
 

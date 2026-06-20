@@ -566,7 +566,7 @@ public:
     }
   #endif
     else if (window.renderer == fan::window_t::renderer_t::vulkan) {
-      fan::throw_error_impl("todo");
+      (void)nr; (void)name; (void)val;
     }
   }
   shader_t get_post_process_shader();

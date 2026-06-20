@@ -1105,9 +1105,19 @@ export namespace fan::graphics {
       #pragma pack(pop)
 
       struct ri_t {
+        std::vector<fan::graphics::polygon_vertex_t> vertices;
         std::uint32_t buffer_size = 0;
+      #if defined(FAN_VULKAN)
+        std::uint32_t vk_first_vertex = 0;
+        std::uint32_t vk_vertex_count = 0;
+      #endif
+      #if defined(FAN_OPENGL)
         fan::opengl::core::vao_t vao;
         fan::opengl::core::gpu_buffer_t vbo;
+      #endif
+      #if defined(FAN_VULKAN)
+        fan::vulkan::context_t::buffer_t vk_buffer;
+      #endif
       };
 
       static std::array<shape_gl_init_t, 5>& get_locations() {
@@ -1257,6 +1267,9 @@ export namespace fan::graphics {
         std::uint32_t shape;
 
         bool blending;
+      #if defined(FAN_VULKAN)
+        std::uint32_t vk_emitter_index = 0;
+      #endif
       };
 
       struct properties_t {

@@ -2525,7 +2525,7 @@ void loco_t::shape_open(
     auto& shaderd = *(fan::vulkan::context_t::shader_t*)gloco()->context_functions.shader_get(&gloco()->context.vk, shader);
     std::uint32_t ds_offset = 2;
     vk.shape_data.open(gloco()->context.vk, 1);
-    vk.shape_data.allocate(gloco()->context.vk, 0xffffff);
+    vk.shape_data.allocate(gloco()->context.vk, std::max<std::uint64_t>(bp.RenderDataSize * bp.MaxElementPerBlock, 16));
 
     std::array<fan::vulkan::write_descriptor_set_t, vulkan_buffer_count> ds_properties {{{0}}};
     {
@@ -2564,6 +2564,12 @@ void loco_t::shape_open(
     fan::vulkan::context_t::pipeline_t p;
     fan::vulkan::context_t::pipeline_t::properties_t pipe_p;
     VkPipelineColorBlendAttachmentState attachment = fan::vulkan::get_default_color_blend();
+    if (shape_type == fan::graphics::shapes::shape_type_t::light) {
+      attachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+      attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+      attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+      attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    }
     pipe_p.color_blend_attachment_count = 1;
     pipe_p.color_blend_attachment = &attachment;
     pipe_p.shader = shader;
