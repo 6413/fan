@@ -334,24 +334,35 @@ export namespace fan {
     return ec == std::errc {} ? result : 0;
   }
 
-  template <std::ranges::contiguous_range R>
-  requires std::same_as<std::ranges::range_value_t<R>, std::uint8_t>
-        || std::same_as<std::ranges::range_value_t<R>, char>
+  template <typename R>
+  concept char_range = std::ranges::contiguous_range<R> &&
+    (std::same_as<std::ranges::range_value_t<R>, std::uint8_t> ||
+    std::same_as<std::ranges::range_value_t<R>, char>);
+
+  template <char_range R>
   inline std::string as_chars(R&& v) {
     return std::string(std::ranges::begin(v), std::ranges::end(v));
   }
 
-  template <typename range_t>
-  inline bytes_t as_bytes(const range_t& v) {
-    return bytes_t(v.begin(), v.end());
+  template <std::ranges::contiguous_range R>
+  requires (!char_range<R>&& std::is_trivially_copyable_v<std::ranges::range_value_t<R>>)
+  inline std::string as_chars(R&& v) {
+    using T = std::ranges::range_value_t<R>;
+    auto* p = reinterpret_cast<const char*>(std::ranges::data(v));
+    return std::string(p, p + std::ranges::size(v) * sizeof(T));
   }
-  template <typename range_t>
-  inline std::vector<bytes_t> as_bytes(const std::vector<range_t>& v) {
-    std::vector<bytes_t> bytes(v.size());
-    for (std::size_t i = 0; i < v.size(); ++i) {
-      bytes[i] = bytes_t(v[i].begin(), v[i].end());
-    }
-    return bytes;
+
+  template <char_range R>
+  inline std::vector<std::uint8_t> as_bytes(R&& v) {
+    return std::vector<std::uint8_t>(std::ranges::begin(v), std::ranges::end(v));
+  }
+
+  template <std::ranges::contiguous_range R>
+  requires (!char_range<R>&& std::is_trivially_copyable_v<std::ranges::range_value_t<R>>)
+  inline std::vector<std::uint8_t> as_bytes(R&& v) {
+    using T = std::ranges::range_value_t<R>;
+    auto* p = reinterpret_cast<const std::uint8_t*>(std::ranges::data(v));
+    return std::vector<std::uint8_t>(p, p + std::ranges::size(v) * sizeof(T));
   }
 
   std::vector<std::string_view> chunks(std::string_view s, std::size_t n) {

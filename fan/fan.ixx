@@ -5,6 +5,7 @@ export import fan.types.vector;
 export import fan.types.color;
 export import fan.types.matrix;
 export import fan.types.fstring;
+export import fan.types.bitset;
 #if defined(FAN_JSON)
   export import fan.types.json;
 #endif

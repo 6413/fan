@@ -185,6 +185,7 @@ local module_files = {
   "fan/types/fstring.ixx",
   "fan/types/compile_time_string.ixx",
   "fan/types/flat_hash_map.ixx",
+  "fan/types/bitset.ixx",
 
   "fan/memory/memory.ixx",
 
