@@ -453,4 +453,17 @@ export namespace fan {
     const auto b = n.find(p) + p.size();
     return n.substr(b, n.rfind(s) - b);
   }
+
+  template <std::size_t Bits>
+  struct uint_from_bits {
+    using type =
+      std::conditional_t<Bits <= 8,  std::uint8_t,
+      std::conditional_t<Bits <= 16, std::uint16_t,
+      std::conditional_t<Bits <= 32, std::uint32_t,
+      std::conditional_t<Bits <= 64, std::uint64_t,
+      void>>>>;
+  };
+
+  template <std::size_t Bits>
+  using uint_from_bits_t = typename uint_from_bits<Bits>::type;
 }

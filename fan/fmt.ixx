@@ -34,6 +34,11 @@ export namespace fan {
   }
 
   template <typename... args_t>
+  constexpr auto printf(current_fmt::format_string<args_t...> fmt, args_t&&... args) {
+    fan::print_format(fmt, std::forward<args_t>(args)...);
+  }
+
+  template <typename... args_t>
   constexpr auto printn8_format(current_fmt::format_string<args_t...> fmt, args_t&&... args) {
     fan::printn8(current_fmt::format(fmt, std::forward<args_t>(args)...));
   }
