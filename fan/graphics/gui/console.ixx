@@ -11,6 +11,10 @@ import fan.types.fstring;
 import fan.formatter;
 import fan.graphics.common_types;
 
+#if defined(FAN_FMT)
+  import fan.fmt;
+#endif
+
 export namespace fan {
   struct console_t;
 
@@ -89,6 +93,18 @@ export namespace fan {
     void println(const std::string& msg, int highlight);
     void print_colored(const std::string& msg, const fan::color& color);
     void println_colored(const std::string& msg, const fan::color& color);
+
+#if defined(FAN_FMT)
+    template <typename... Args>
+    void printf(std::string_view fmt, Args&&... args) {
+      print(fan::format(fmt, std::forward<Args>(args)...), fan::graphics::highlight_e::text);
+    }
+
+    template <typename... Args>
+    void printfln(std::string_view fmt, Args&&... args) {
+      println(fan::format(fmt, std::forward<Args>(args)...), fan::graphics::highlight_e::text);
+    }
+#endif
 
     void erase_frame_process(frame_cb_nr_t& nr);
     frame_cb_nr_t push_frame_process(std::function<void()> func);

@@ -6,9 +6,9 @@ module;
 
 #if defined(fan_compiler_gcc)
   // fixes collision with GLFW3 headers while doing import std;
-	#ifndef _GCC_MAX_ALIGN_T
-		#define _GCC_MAX_ALIGN_T
-	#endif
+  #ifndef _GCC_MAX_ALIGN_T
+    #define _GCC_MAX_ALIGN_T
+  #endif
 #endif
 
 #if defined(FAN_VULKAN)
@@ -25,6 +25,10 @@ module;
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
+
+#if defined(fan_platform_unix)
+  #include <X11/Xlib.h>
+#endif
 
 #endif
 
@@ -1157,6 +1161,30 @@ std::string fan::window_t::get_clipboard() const {
 
 void fan::window_t::set_clipboard(const std::string& text) {
   glfwSetClipboardString(glfw_window, text.c_str());
+}
+
+
+fan::vec2i fan::get_primary_screen_resolution() {
+#if defined(_WIN32)
+  return {
+    GetSystemMetrics(SM_CXSCREEN),
+    GetSystemMetrics(SM_CYSCREEN)
+  };
+#elif defined(fan_platform_unix)
+  Display* dpy = XOpenDisplay(nullptr);
+  if (!dpy) {
+    return {0, 0};
+  }
+  int screen = DefaultScreen(dpy);
+  fan::vec2i res = {
+    DisplayWidth(dpy, screen),
+    DisplayHeight(dpy, screen)
+  };
+  XCloseDisplay(dpy);
+  return res;
+#else
+  return {0, 0};
+#endif
 }
 
 #endif

@@ -41,6 +41,12 @@ export namespace fan {
           path += ext;
         }
       }
+      template <path_t P>
+      inline std::string replace_extension(P&& path, std::string_view ext) {
+        std::string s = strip_extension(std::forward<P>(path));
+        s += ext;
+        return s;
+      }
       bool exists(std::string_view path);
       bool rename(const std::string& from, const std::string& to);
       std::filesystem::path relative_path(const std::filesystem::path& path, const std::filesystem::path& base);
