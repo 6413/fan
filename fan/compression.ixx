@@ -10,18 +10,11 @@ namespace file = fan::io::file;
 
 export namespace fan::fcs {
   constexpr std::uint32_t read_le32(const std::uint8_t* p) {
-    return 
-       std::uint32_t(p[0]) |
-      (std::uint32_t(p[1]) << 8) |
-      (std::uint32_t(p[2]) << 16) |
-      (std::uint32_t(p[3]) << 24);
+    return std::uint32_t(p[0]) | (std::uint32_t(p[1]) << 8) | (std::uint32_t(p[2]) << 16) | (std::uint32_t(p[3]) << 24);
   }
 
   constexpr void write_le32(std::uint8_t* p, std::uint32_t v) {
-    p[0] = std::uint8_t(v);
-    p[1] = std::uint8_t(v >> 8);
-    p[2] = std::uint8_t(v >> 16);
-    p[3] = std::uint8_t(v >> 24);
+    p[0] = std::uint8_t(v); p[1] = std::uint8_t(v >> 8); p[2] = std::uint8_t(v >> 16); p[3] = std::uint8_t(v >> 24);
   }
 
   constexpr void bcj_transform(fan::bytes_t& d, bool enc) {
@@ -31,16 +24,11 @@ export namespace fan::fcs {
       int s = (b == 0xe8 || b == 0xe9) ? 1 :
         (i + 6 <= n && ((b == 0x0f && (p[1] & 0xf0) == 0x80) || (b == 0xff && (p[1] == 0x15 || p[1] == 0x25)))) ? 2 :
         (i + 7 <= n && b == 0x48 && p[1] == 0x8d && (p[2] & 0xc7) == 0x05) ? 3 : 0;
-      if (s) {
-        std::uint32_t v = read_le32(p + s);
-        v += enc ? i : -i;
-        write_le32(p + s, v);
-        i += s + 3;
-      }
+      if (!s) { continue; }
+      write_le32(p + s, read_le32(p + s) + (enc ? i : -i));
+      i += s + 3;
     }
   }
-
-// ── Hybrid symbol coding ──────────────────────────────────────────────────────
 
   struct hybrid_sym_t { std::uint32_t cat, extra, bits; };
 
@@ -49,9 +37,6 @@ export namespace fan::fcs {
     std::uint32_t r = v - base, k = std::bit_width(r) - 1;
     return {t + k, r - (1u << k), k};
   }
-
-
-  // ── Match finder ──────────────────────────────────────────────────────────────
 
   struct match_t { std::size_t offset = 0, length = 0; int profit = 0; };
 
@@ -74,14 +59,13 @@ export namespace fan::fcs {
     }
 
     void insert(const fan::bytes_t& d, std::size_t i) {
-      if (i + 4 > d.size() || (i >= base + 2 && i + 1 < d.size() && d[i] == d[i - 1] && d[i] == d[i - 2] && d[i] == d[i + 1])) return;
+      if (i + 4 > d.size() || (i >= base + 2 && i + 1 < d.size() && d[i] == d[i-1] && d[i] == d[i-2] && d[i] == d[i+1])) return;
       link(i) = std::exchange(head[hash(d, i)], std::int32_t(i));
     }
 
     constexpr match_t find(const fan::bytes_t& src, std::size_t i, std::size_t c_end, const std::array<std::uint32_t, 4>& rep, std::size_t chain, bool push) {
       match_t best;
-      if (i + 4 > c_end) return best;
-
+      if (i + 4 > c_end) { return best; }
       auto h = hash(src, i);
       std::int32_t cur = push ? std::exchange(head[h], std::int32_t(i)) : head[h];
       if (push) { link(i) = cur; }
@@ -106,7 +90,6 @@ export namespace fan::fcs {
           std::size_t off = i - std::size_t(cur);
           int ob = (off == rep[0]) ? 2 : (off == rep[1] || off == rep[2] || off == rep[3]) ? 4 : 5 + int(pack_sym(off - 1, 32, 31).bits);
           int p = int(len * 8) - ob;
-
           if (p > best.profit || (p == best.profit && len > best.length)) {
             best = {off, len, p}; best_len = len;
             if (len == max_avail || best_len >= 8192) { break; }
@@ -121,8 +104,6 @@ export namespace fan::fcs {
   inline constexpr int num_lit_ctx = 4096;
   inline constexpr int num_dist_ctx = 16;
   inline constexpr auto chunk_size = 1uz << 26;
-
-  // ── State Token Architecture ──────────────────────────────────────────────────
 
   enum class op_e : std::uint8_t { rep0, rep1, rep2, rep3, exp, none };
   struct seq_t { std::uint32_t lit_len; op_e op; std::uint32_t match_len, offset; };
@@ -157,8 +138,7 @@ export namespace fan::fcs {
           int pft = int(m.length * 8) - (9 + int(pack_sym(m.length - 2, 24, 23).bits) + int(pack_sym(m.offset - 1, 32, 31).bits));
           if (pft > b.profit || (pft == b.profit && m.length > b.len)) { b = {op_e::exp, m.length, std::uint32_t(m.offset), pft}; }
         }
-      }
-      else if (push) { finder.insert(src, p); }
+      } else if (push) { finder.insert(src, p); }
       return b;
     };
 
@@ -192,8 +172,6 @@ export namespace fan::fcs {
     return out;
   }
 
-  // ── Binary Range Coder ───────────────────────────────────────────────
-
   struct range_enc_t {
     fan::bytes_t& out;
     std::uint64_t low = 0;
@@ -205,8 +183,7 @@ export namespace fan::fcs {
         out.push_back(cache + std::uint8_t(low >> 32));
         out.insert(out.end(), cache_size - 1, std::uint8_t(low >> 32) ? 0x00 : 0xFF);
         cache = std::uint8_t(low >> 24); cache_size = 1;
-      }
-      else { ++cache_size; }
+      } else { ++cache_size; }
       low = std::uint32_t(low << 8);
     }
 
@@ -256,6 +233,7 @@ export namespace fan::fcs {
       for (int i = 0; i < bits; ++i) { ctx = (ctx << 1) | decode(tree[ctx]); }
       return ctx - (1u << bits);
     }
+
     constexpr bool decode_direct() {
       range >>= 1; bool bit = code >= range;
       if (bit) { code -= range; }
@@ -263,8 +241,6 @@ export namespace fan::fcs {
       return bit;
     }
   };
-
-  // ── Probability Models ────────────────────────────────────────────────
 
   struct stream_model_t {
     std::array<std::array<std::uint16_t, 256>, num_lit_ctx> lit;
@@ -292,9 +268,9 @@ export namespace fan::fcs {
 
   constexpr void encode_op(range_enc_t& rc, stream_model_t& m, std::uint32_t ll, op_e op, std::size_t pos) {
     int ctx = (std::min<int>(ll, 7) << 2) | (pos & 3);
-    rc.encode(m.is_exp[ctx], op == op_e::exp);         if (op == op_e::exp) { return; }
-    rc.encode(m.is_rep0[ctx], op == op_e::rep0);       if (op == op_e::rep0) { return; }
-    rc.encode(m.is_none[ctx], op == op_e::none);       if (op == op_e::none) { return; }
+    rc.encode(m.is_exp[ctx], op == op_e::exp);   if (op == op_e::exp) { return; }
+    rc.encode(m.is_rep0[ctx], op == op_e::rep0); if (op == op_e::rep0) { return; }
+    rc.encode(m.is_none[ctx], op == op_e::none); if (op == op_e::none) { return; }
     rc.encode_tree(m.rep_idx[ctx], int(op) - int(op_e::rep1), 2);
   }
 
@@ -323,8 +299,6 @@ export namespace fan::fcs {
     return base + (1u << b) + ((x << mb) | rd.decode_tree(std::span<std::uint16_t>{xtree[c]}, mb));
   }
 
-  // ── Compress & Decompress ────────────────────────────────────────────────────────
-
   fan::bytes_t compress(fan::bytes_t src) {
     bool bcj = file::is_pe(src);
     if (bcj) { fan::fcs::bcj_transform(src, true); }
@@ -332,6 +306,7 @@ export namespace fan::fcs {
 
     std::vector<chunk_payload_t> blocks(nc);
     std::atomic<std::size_t> next = 0;
+    std::size_t nw = std::min<std::size_t>(nc, std::max(1u, std::thread::hardware_concurrency()));
     std::vector<std::jthread> workers;
     for (std::size_t w = 0, count = std::min<std::size_t>(nc, std::max(1u, std::thread::hardware_concurrency())); w < count; ++w) {
       workers.emplace_back([&] {
@@ -360,8 +335,9 @@ export namespace fan::fcs {
         encode_op(rc, model, s.lit_len, s.op, src_ptr);
         if (s.op == op_e::none) { continue; }
 
-        if (s.op == op_e::rep0) { encode_val(rc, model.match_len[src_ptr & 3][0], model.match_len_extra, pack_sym(s.match_len - 1, 24, 23)); }
-        else {
+        if (s.op == op_e::rep0) {
+          encode_val(rc, model.match_len[src_ptr & 3][0], model.match_len_extra, pack_sym(s.match_len - 1, 24, 23));
+        } else {
           int op_i = s.op == op_e::exp ? 4 : int(s.op);
           encode_val(rc, model.match_len[src_ptr & 3][op_i], model.match_len_extra, pack_sym(s.match_len - 2, 24, 23));
           if (s.op == op_e::exp) { encode_val(rc, model.off[std::min<std::uint32_t>(s.match_len - 2, num_dist_ctx - 1)], model.off_extra, pack_sym(s.offset - 1, 32, 31)); }
@@ -398,8 +374,10 @@ export namespace fan::fcs {
       if (op == op_e::none) { continue; }
 
       std::uint32_t mlen = 0, off = 0;
-      if (op == op_e::rep0) { mlen = 1 + decode_val(rd, model.match_len[out.size() & 3][0], model.match_len_extra, 24, 23); off = rep[0]; }
-      else {
+      if (op == op_e::rep0) {
+        mlen = 1 + decode_val(rd, model.match_len[out.size() & 3][0], model.match_len_extra, 24, 23);
+        off = rep[0];
+      } else {
         int op_i = op == op_e::exp ? 4 : int(op);
         mlen = 2 + decode_val(rd, model.match_len[out.size() & 3][op_i], model.match_len_extra, 24, 23);
         int r = op == op_e::exp ? 3 : int(op);
