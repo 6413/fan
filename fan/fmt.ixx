@@ -2,7 +2,7 @@ module;
 
 //std::format doesnt exist for clang in linux without libc++
 #if __has_include("format")
-  namespace current_fmt = std;
+
 #else
 #define FMT_HEADER_ONLY
 #include <fmt/xchar.h>
@@ -19,7 +19,9 @@ import fan.print;
 import fan.types.fstring;
 import fan.types.vector;
 
-
+#if __has_include("format")
+  namespace current_fmt = std;
+#endif
 
 export namespace fan {
 

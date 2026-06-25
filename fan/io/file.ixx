@@ -10,6 +10,7 @@ export module fan.io.file;
 
 import std;
 
+import fan.types;
 import fan.print.error;
 export import fan.io.types;
 
@@ -64,9 +65,6 @@ export namespace fan {
 
       bool write(std::string_view path, const std::string& data, fs_mode mode);
 
-      template <typename T>
-      void write(std::string path, const std::vector<T>& vector, fs_mode mode);
-
       std::vector<std::string> read_line(const std::string& path);
       bool try_write(std::string path, const std::string& data, fs_mode mode);
       std::string get_exe_path();
@@ -93,14 +91,32 @@ export namespace fan {
         return v;
       }
 
-      template <path_t P>
-      bool write(P&& path, const std::string& data, fs_mode mode) {
-        return write(std::string_view(to_str(std::forward<P>(path))), data, mode);
+      template <typename T>
+      bool write(std::string_view path, const std::vector<T>& data, fs_mode mode = std::ios::binary) {
+        std::ofstream f{std::string(path), std::ios::openmode(mode) | std::ios::binary};
+        if (!f) {
+          return false;
+        }
+        f.write(reinterpret_cast<const char*>(data.data()), std::streamsize(data.size() * sizeof(T)));
+        return bool(f);
       }
 
-      template <typename T>
-      inline void write(std::ofstream& f, const std::vector<T>& v) {
-        f.write(reinterpret_cast<const char*>(v.data()), std::streamsize(v.size() * sizeof(T)));
+      template <path_t P, typename T = std::uint8_t>
+      bool write(P&& path, const std::vector<T>& data, fs_mode mode = std::ios::binary) {
+        return write<T>(std::string_view(to_str(std::forward<P>(path))), data, mode);
+      }
+
+      bool write(std::string_view path, const std::string& data, fs_mode mode) {
+        std::ofstream f{std::string(path), std::ios::openmode(mode)};
+        if (!f) {
+          return false;
+        }
+        f.write(data.data(), std::streamsize(data.size()));
+        return bool(f);
+      }
+      template <path_t P>
+      bool write(P&& path, const std::string& data, fs_mode mode = std::ios::binary) {
+        return write(std::string_view(to_str(std::forward<P>(path))), data, mode);
       }
 
       template <typename T>
@@ -141,6 +157,8 @@ export namespace fan {
 
       template <path_t P>
       std::uint64_t file_size_p(P&& p) { return file_size(std::forward<P>(p)); }
+
+      bool is_pe(const fan::bytes_t& d);
     }
   }
 

@@ -214,6 +214,8 @@ local module_files = {
   "fan/event/event_types.ixx",
   "fan/event/event.ixx",
   "fan/event/uv_raw.ixx",
+  
+  "fan/compression.ixx"
 }
 
 local feature_modules = {

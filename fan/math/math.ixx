@@ -379,9 +379,9 @@ export namespace fan {
     inline vector_t direction_vector(f32_t alpha, f32_t beta)
     {
       return vector_t(
-        (sin(fan::math::radians(alpha)) * cos(fan::math::radians(beta))),
-        sin(radians(beta)),
-        (cos(fan::math::radians(alpha)) * cos(fan::math::radians(beta)))
+        (std::sin(fan::math::radians(alpha)) * std::cos(fan::math::radians(beta))),
+        std::sin(radians(beta)),
+        (std::cos(fan::math::radians(alpha)) * std::cos(fan::math::radians(beta)))
       );
     }
 

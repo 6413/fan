@@ -18,7 +18,9 @@ export namespace fan {
       static constexpr std::uint64_t no_interval_v = (std::uint64_t)-1;
       static constexpr std::uint64_t infinite_v = (std::uint64_t)-2;
 
-      timer() = default;
+      timer() {
+        start();
+      }
       explicit timer(std::uint64_t time, bool start_timer) : m_time(time) {
         if (start_timer) {
           restart();
