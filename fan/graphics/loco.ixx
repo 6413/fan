@@ -1190,7 +1190,7 @@ public:
 #endif
     fan::console_t console;
   #if defined(FAN_GUI)
-    fan::time::timer fps_timer;
+    fan::time::timer fps_timer{false};
     std::uint32_t frame_count = 0;
     std::uint32_t last_fps = 0;
     bool render_console = false;
@@ -1453,6 +1453,9 @@ export namespace fan::graphics {
 }
 
 export namespace fan {
+
+  loco_t::properties_t get_centered_window(vec2 size);
+
   template <typename Derived>
   struct frame_task_t {
     using self_t = Derived;

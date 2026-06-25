@@ -3,7 +3,6 @@ namespace file = fan::io::file;
 import std;
 
 static void print_results(const fan::bytes_t& o, const fan::bytes_t& c, f64_t cms, f64_t dms, std::ptrdiff_t m) {
-  fan::print(fan::bytes_t(84, '-'));
   auto p = [](auto n, auto s, auto u) { fan::printf("{:<12}{:>16}{:>16}", n, s, u); };
   p("original", o.size(), "bytes"); p("fcs", c.size(), "bytes"); p("zip", file::read_binary("compress.zip").size(), "bytes");
   auto p2 = [](auto&&... args) {fan::printf("{:<12}{:>16.3f}{:>16}", args...);};

@@ -206,11 +206,28 @@ export namespace fan::event {
   void run_once(fan::event::loop_t l = fan::event::get_loop());
   std::string strerror(int err);
 
+  void init_dispatcher();
+  void process_main_queue();
+  void post_to_main(std::function<void()> cb);
+
   template <typename cb_t, typename ...args_t>
   void thread_create(cb_t&& cb, args_t&&... args) {
     std::jthread([cb = std::forward<cb_t>(cb), args = std::make_tuple(std::forward<args_t>(args)...)]() mutable {
       std::apply(cb, args);
     }).detach();
+  }
+
+  template <typename func_t>
+  fan::event::waitv_t<std::invoke_result_t<func_t>> run_on_thread(func_t&& f) {
+    using ret_t = std::invoke_result_t<func_t>;
+    fan::event::signal_awaitable_t<ret_t> sig;
+    fan::event::thread_create([&sig, f = std::forward<func_t>(f)]() mutable {
+      ret_t result = f();
+      fan::event::post_to_main([&sig, result = std::move(result)]() mutable {
+        sig.signal(std::move(result));
+      });
+    });
+    co_return co_await sig;
   }
 
   struct poll_awaitable_t {
@@ -288,6 +305,8 @@ export namespace fan::event {
   }
 
   void process() {
+    process_main_queue();
+
     auto& queue = get_awaitable_queue();
     for (auto it = queue.begin(); it != queue.end();) {
       if (it->done()) it = queue.erase(it);

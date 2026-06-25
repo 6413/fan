@@ -1259,6 +1259,8 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   open_props(props),
   init_gloco([this] { gloco() = this; return true; }())
 {
+  fan::event::init_dispatcher();
+
   idle_handle  = new fan::uv::idle_t;
   timer_handle = new fan::uv::timer_t;
   
@@ -2974,6 +2976,13 @@ namespace fan::graphics::gui {
 
 void fan::graphics::shader_set_camera(fan::graphics::shader_t nr, fan::graphics::camera_t camera_nr) {
   renderer_set(shader_set_camera, nr, camera_nr);
+}
+
+loco_t::properties_t fan::get_centered_window(vec2 size) {
+  return {
+    .window_position = (vec2(get_primary_screen_resolution()) - size) * 0.5f,
+    .window_size = size
+  };
 }
 
 #endif
