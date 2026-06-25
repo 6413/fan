@@ -54,6 +54,10 @@ export import fan.texture_pack.tp0;
 
 #endif
 
+#if defined(FAN_FMT)
+  export import fan.fmt;
+#endif
+
 
 #if defined(FAN_NETWORK)
   export import fan.network;
@@ -122,3 +126,5 @@ export import fan.crypto;
 #if defined(FAN_VIDEO)
   export import fan.graphics.video;
 #endif
+
+export import fan.compression;
