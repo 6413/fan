@@ -309,6 +309,42 @@ namespace fan::event {
   std::uint64_t now() { return fan::uv::now((fan::uv::loop_t*)get_loop()) * 1000000; }
   std::string strerror(int err) { return fan::uv::strerror(err); }
 
+  static std::vector<std::function<void()>> async_queue;
+  static std::mutex async_mtx;
+  static fan::uv::async_t async_handle;
+  static std::once_flag async_once;
+  static std::atomic<bool> async_ready = false;
+
+  void process_main_queue() {
+    std::vector<std::function<void()>> q;
+    {
+      std::lock_guard lock(async_mtx);
+      q.swap(async_queue);
+    }
+    for (auto& cb : q) {
+      cb();
+    }
+  }
+
+  void init_dispatcher() {
+    std::call_once(async_once, [] {
+      fan::uv::async_init((fan::uv::loop_t*)get_loop(), &async_handle, [](fan::uv::async_t*) {
+        process_main_queue();
+      });
+      async_ready.store(true, std::memory_order_release);
+    });
+  }
+
+  void post_to_main(std::function<void()> cb) {
+    {
+      std::lock_guard lock(async_mtx);
+      async_queue.push_back(std::move(cb));
+    }
+    if (async_ready.load(std::memory_order_acquire)) {
+      fan::uv::async_send(&async_handle);
+    }
+  }
+
   poll_awaitable_t::poll_awaitable_t(loop_t loop, int fd, int events) {
     poll_handle = new fan::uv::poll_t();
     fan::uv::poll_t* ph = static_cast<fan::uv::poll_t*>(poll_handle);

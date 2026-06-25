@@ -9,12 +9,57 @@ import fan.types.fstring;
 namespace file = fan::io::file;
 
 export namespace fan::fcs {
+  constexpr std::uint16_t read_le16(const std::uint8_t* p) {
+    return std::uint16_t(p[0]) | (std::uint16_t(p[1]) << 8);
+  }
+
+  constexpr void write_le16(std::uint8_t* p, std::uint16_t v) {
+    p[0] = std::uint8_t(v); p[1] = std::uint8_t(v >> 8);
+  }
+
   constexpr std::uint32_t read_le32(const std::uint8_t* p) {
     return std::uint32_t(p[0]) | (std::uint32_t(p[1]) << 8) | (std::uint32_t(p[2]) << 16) | (std::uint32_t(p[3]) << 24);
   }
 
   constexpr void write_le32(std::uint8_t* p, std::uint32_t v) {
     p[0] = std::uint8_t(v); p[1] = std::uint8_t(v >> 8); p[2] = std::uint8_t(v >> 16); p[3] = std::uint8_t(v >> 24);
+  }
+
+  struct decompress_result_t {
+    std::string filename;
+    fan::bytes_t data;
+  };
+
+  inline std::string archive_filename(const fan::bytes_t& comp) {
+    if (comp.size() < 7) {
+      return {};
+    }
+
+    std::uint16_t len = read_le16(comp.data() + 5);
+    if (comp.size() < std::size_t(7 + len)) {
+      return {};
+    }
+
+    return {reinterpret_cast<const char*>(comp.data() + 7), len};
+  }
+
+  inline std::string archive_filename(std::string_view path) {
+    std::ifstream f{std::filesystem::path(path), std::ios::binary};
+    std::uint8_t h[7]{};
+
+    if (!f || !f.read(reinterpret_cast<char*>(h), sizeof(h))) {
+      return {};
+    }
+
+    std::string s(read_le16(h + 5), '\0');
+    return f.read(s.data(), s.size()) ? s : std::string{};
+  }
+
+  inline std::string archive_output_path(std::string_view path) {
+    std::string name = archive_filename(path);
+    return name.empty() ?
+      file::replace_extension(path, "") :
+      (std::filesystem::path(path).parent_path() / name).string();
   }
 
   constexpr std::size_t get_match_len(const std::uint8_t* p1, const std::uint8_t* p2, std::size_t max_len) {
@@ -318,7 +363,7 @@ export namespace fan::fcs {
     return base + (1u << b) + ((x << mb) | rd.decode_tree(std::span<std::uint16_t>{xtree[c]}, mb));
   }
 
-  fan::bytes_t compress(fan::bytes_t src, compress_params_t params = params_max()) {
+  fan::bytes_t compress(fan::bytes_t src, std::string_view file_path, compress_params_t params = params_max()) {
     bool bcj = params.bcj && file::is_pe(src);
     if (bcj) { fan::fcs::bcj_transform(src, true); }
     std::size_t nc = (src.size() + chunk_size - 1) / chunk_size;
@@ -337,9 +382,17 @@ export namespace fan::fcs {
     }
     workers.clear();
 
-    fan::bytes_t out; out.reserve(src.size() / 5);
+    std::string fn = std::filesystem::path(file_path).filename().string();
+    std::uint16_t fn_len = static_cast<std::uint16_t>(fn.size());
+
+    fan::bytes_t out; out.reserve((src.size() / 5) + fn_len + 7);
     std::uint32_t t_sz = src.size(); auto* p = (std::uint8_t*)&t_sz;
     out.insert(out.end(), p, p + 4); out.push_back(bcj);
+
+    std::uint8_t len_buf[2]; write_le16(len_buf, fn_len);
+    out.insert(out.end(), len_buf, len_buf + 2);
+    auto* fn_p = reinterpret_cast<const std::uint8_t*>(fn.data());
+    out.insert(out.end(), fn_p, fn_p + fn_len);
 
     range_enc_t rc {out};
     auto m_ptr = std::make_unique<stream_model_t>(); stream_model_t& model = *m_ptr;
@@ -369,10 +422,15 @@ export namespace fan::fcs {
     return out;
   }
 
-  fan::bytes_t decompress(const fan::bytes_t& comp) {
+  decompress_result_t decompress(const fan::bytes_t& comp) {
     std::size_t idx = 0;
     std::uint32_t total_uncomp = fan::vector_read_data<std::uint32_t>(comp, idx);
     bool bcj = comp[idx++];
+
+    std::uint16_t fn_len = read_le16(comp.data() + idx);
+    idx += 2;
+    std::string orig_name(reinterpret_cast<const char*>(comp.data() + idx), fn_len);
+    idx += fn_len;
 
     fan::bytes_t out; out.reserve(total_uncomp);
     range_dec_t rd {comp, idx};
@@ -419,6 +477,6 @@ export namespace fan::fcs {
       }
     }
     if (bcj) { fan::fcs::bcj_transform(out, false); }
-    return out;
+    return {std::move(orig_name), std::move(out)};
   }
 }

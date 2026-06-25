@@ -16,12 +16,16 @@ import fan.graphics.common_context;
 import fan.formatter;
 import fan.graphics.gui.types;
 
+#if defined(FAN_FMT)
+  import fan.fmt;
+#endif
+
 export namespace fan::graphics::gui {
   struct text_logger_t {
     struct text_t {
       std::string text;
       fan::color color;
-      fan::time::timer fade_time;
+      fan::time::timer fade_time{false};
       bool is_static;
       bool needs_formatting = false;
       std::int32_t tab_width = 0;
@@ -61,6 +65,18 @@ export namespace fan::graphics::gui {
       add_floating(fan::format_args(args...) + "\n", color);
     }
 
+#if defined(FAN_FMT)
+    template <typename... args_t>
+    void printf(const std::string_view fmt, args_t&&... args) {
+      add_floating(fan::format(fmt, std::forward<args_t>(args)...) + "\n");
+    }
+
+    template <typename... args_t>
+    void printf(const fan::color& color, const std::string_view fmt, args_t&&... args) {
+      add_floating(fan::format(fmt, std::forward<args_t>(args)...) + "\n", color);
+    }
+#endif
+
     template <typename ...Args>
     void print_static(const Args&... args) {
       add_static(fan::format_args(args...) + "\n");
@@ -86,6 +102,18 @@ export namespace fan::graphics::gui {
   void print(const fan::color& color, const Args&... args) {
     ((text_logger_t*)fan::graphics::ctx().text_logger)->print(color, args...);
   }
+
+#if defined(FAN_FMT)
+  template <typename... args_t>
+  void printf(const std::string_view fmt, args_t&&... args) {
+    ((text_logger_t*)fan::graphics::ctx().text_logger)->printf(fmt, std::forward<args_t>(args)...);
+  }
+
+  template <typename... args_t>
+  void printf(const fan::color& color, const std::string_view fmt, args_t&&... args) {
+    ((text_logger_t*)fan::graphics::ctx().text_logger)->printf(color, fmt, std::forward<args_t>(args)...);
+  }
+#endif
 
   template <typename ...args_t>
   void print_error(args_t&&... args) {

@@ -474,6 +474,8 @@ export namespace fan {
 
     std::uint32_t char_pressed = 0;
   };
+
+  fan::vec2i get_primary_screen_resolution();
 }
 
 #endif

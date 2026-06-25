@@ -22,14 +22,14 @@ namespace fan::graphics::gui {
   text_logger_t::text_t::text_t(const std::string& t, const fan::color& c, bool static_msg)
     : text(t), color(c), is_static(static_msg) {
     if (!is_static) {
-      fade_time = fan::time::timer(4e+9, true);
+      fade_time = fan::time::timer(std::uint64_t(4e+9), true);
     }
   }
 
   void text_logger_t::set_text_fade_time(f32_t seconds) {
     for (auto& msg : floating_texts) {
       if (!msg.is_static) {
-        msg.fade_time = fan::time::timer(seconds * 1e+9, false);
+        msg.fade_time = fan::time::timer(seconds, false);
       }
     }
   }

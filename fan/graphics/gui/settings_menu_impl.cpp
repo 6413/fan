@@ -759,7 +759,7 @@ namespace fan::graphics::gui {
   void settings_menu_t::apply_config(bool construct, bool runtime) {
     if (!runtime) {
       gloco()->open_props.window_open_mode = config.display.display_mode;
-      if (config.display.window_position.x != -1 && config.display.window_position.y != -1) {
+      if (config.display.window_position.x != -1 && gloco()->open_props.window_position.x == -1) {
         gloco()->open_props.window_position = config.display.window_position;
       }
       if (gloco()->open_props.renderer == fan::window_t::renderer_t::unknown) {
