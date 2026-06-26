@@ -1,497 +1,256 @@
 set_project("fan")
 set_languages("cxx26")
 
-
 if is_plat("wasm") then
   add_cxxflags("-pthread", "-DFAN_WASM", {force = true})
   add_ldflags("-s USE_GLFW=3", "-s ASYNCIFY=1", "-pthread", "-s PTHREAD_POOL_SIZE=4", {force = true})
 else
   option("compiler") set_default("clang") option_end()
-  if get_config("compiler") == "gcc" then
-    set_toolchains("gcc")
-  else
-    set_toolchains("clang")
-  end
+  set_toolchains(get_config("compiler") == "gcc" and "gcc" or "clang")
 end
 
-rule("mode.mode_none")
-rule_end()
-
+rule("mode.mode_none") rule_end()
 add_rules("mode.mode_none", "mode.debug", "mode.release")
 
 rule("mode.asan")
   on_load(function (target)
-  target:set("optimize", "none")
-  target:set("symbols", "debug")
-  target:add("cxxflags", "-fsanitize=address", "-fno-omit-frame-pointer")
-  target:add("ldflags", "-fsanitize=address")
-  target:add("defines", "_DEBUG=3")
-end)
+    target:set("optimize", "none")
+    target:set("symbols", "debug")
+    target:add("cxxflags", "-fsanitize=address", "-fno-omit-frame-pointer")
+    target:add("ldflags", "-fsanitize=address")
+    target:add("defines", "_DEBUG=3")
+  end)
 rule_end()
 
-if is_mode("asan") then
-  add_rules("mode.asan")
-end
-
+if is_mode("asan") then add_rules("mode.asan") end
 set_defaultmode("mode_none")
 
-if is_mode("mode_none") then
+if is_mode("mode_none") or is_mode("debug") then
   add_defines("_DEBUG=3")
 end
-
 if is_mode("release") then
   set_optimize("fastest")
   add_cxflags("-O3", {force = true})
   add_ldflags("-s", {force = true})
-  add_defines("NDEBUG")
-  add_defines("_DEBUG=0")
+  add_defines("NDEBUG", "_DEBUG=0")
 elseif is_mode("debug") then
   set_optimize("none")
   set_symbols("debug")
   add_cxflags("-g", "-gdwarf-4", "-fno-inline", "-fno-inline-functions", {force = true})
-  add_defines("_DEBUG=3")
 end
 
 local fan_features = {
-  FAN_WINDOW = true,
-  FAN_2D = true,
-  FAN_GUI = true,
-  FAN_PHYSICS_2D = true,
-  FAN_JSON = true,
-
-  FAN_3D = false,
-  FAN_OPENGL = true,
-  FAN_VULKAN = false,
-  FAN_FMT = false,
-  FAN_WAYLAND_SCREEN = false,
-  FAN_NETWORK = true,
-  FAN_AUDIO = true,
-  FAN_VIDEO = false,
-  FAN_REFLECTION = false
+  FAN_WINDOW = true, FAN_2D = true, FAN_GUI = true, FAN_PHYSICS_2D = true, FAN_JSON = true,
+  FAN_3D = false, FAN_OPENGL = true, FAN_VULKAN = false, FAN_FMT = false,
+  FAN_WAYLAND_SCREEN = false, FAN_NETWORK = true, FAN_AUDIO = true, FAN_VIDEO = false, FAN_REFLECTION = false
 }
 
 for name, enabled in pairs(fan_features) do
-  option(name)
-    set_default(enabled)
-  option_end()
+  option(name) set_default(enabled) option_end()
+  if has_config(name) then add_defines(name) end
 end
 
-for name, _ in pairs(fan_features) do
-  if has_config(name) then
-    add_defines(name)
+option("static_runtime") set_default(true) option_end()
+
+if not has_config("FAN_WINDOW") then
+  for _, f in ipairs({"FAN_GUI", "FAN_2D", "FAN_OPENGL", "FAN_3D", "FAN_VIDEO"}) do
+    if has_config(f) then os.raise(f .. " requires FAN_WINDOW") end
   end
 end
 
-if not has_config("FAN_WINDOW") then
-  if has_config("FAN_GUI") then os.raise("FAN_GUI requires FAN_WINDOW") end
-  if has_config("FAN_2D") then os.raise("FAN_2D requires FAN_WINDOW") end
-  if has_config("FAN_OPENGL") then os.raise("FAN_OPENGL requires FAN_WINDOW") end
-  if has_config("FAN_3D") then os.raise("FAN_3D requires FAN_WINDOW") end
-  if has_config("FAN_VIDEO") then os.raise("FAN_VIDEO requires FAN_WINDOW") end
-end
+if has_config("FAN_REFLECTION") then add_cxxflags("-freflection", {force = true}) end
 
-if has_config("FAN_REFLECTION") then
-  add_cxxflags("-freflection", {force = true})
-end
-
-option("FAN_USE_STD_MODULE")
-set_default(false)
-set_showmenu(true)
-add_defines("FAN_USE_STD_MODULE")
-option_end()
-
-if has_config("FAN_USE_STD_MODULE") then
-  set_policy("build.c++.modules.std", true)
-end
-
+option("FAN_USE_STD_MODULE") set_default(false) set_showmenu(true) add_defines("FAN_USE_STD_MODULE") option_end()
 option("main") set_default("examples/engine_demos/engine_demo.cpp") option_end()
+
+local static_req = {system = false, configs = {shared = false}}
+if has_config("FAN_FMT") then add_requires("fmt 10.2.1", static_req) end
+if not is_plat("wasm") then
+  add_requires("libuv 1.48.0", static_req)
+  if has_config("FAN_WINDOW") then
+    add_requires("zlib 1.3.1", static_req)
+    add_requires("libpng 1.6.43", static_req)
+    add_requires("libwebp 1.3.2", static_req)
+  end
+  if is_plat("linux") and has_config("FAN_OPENGL") then
+    add_requires("glfw 3.4", static_req)
+  end
+  if has_config("FAN_GUI") then
+    add_requires("freetype 2.13.2", static_req)
+    add_requires("lunasvg 2.4.1", static_req)
+  end
+  if has_config("FAN_PHYSICS_2D") then
+    add_requires("box2d 3.1.1", static_req)
+  end
+end
 
 add_includedirs(".", "third_party/fan/include", "third_party/fan/include/VulkanMemoryAllocator/include", "third_party/VulkanMemoryAllocator/include", {public = true})
 
-local llvm_sdk = "/usr/lib/llvm"
-if type(get_config) == "function" then
-  local cfgsdk = get_config("sdk")
-  if cfgsdk and cfgsdk ~= "" then llvm_sdk = cfgsdk end
-end
-
 local is_gcc = get_config("compiler") == "gcc"
-
-if not is_gcc and not is_plat("wasm") then
-  add_cxxflags("-stdlib=libstdc++", {force = true})
-end
+if not is_gcc and not is_plat("wasm") then add_cxxflags("-stdlib=libstdc++", {force = true}) end
 
 set_policy("build.c++.modules.std", true)
 set_policy("build.c++.modules.reuse", true)
-
 add_cxxflags("-pthread", {force = true})
 
 local common_flags = {
-  "-Wall", "-Wextra",
-  "-Wno-unused-variable",
-  "-Wno-unused-parameter",
-  "-Wno-unused-function",
-  "-Wno-invalid-offsetof",
-  "-Wno-missing-field-initializers",
-  "-Wno-sign-compare",
-  "-Wno-unused-but-set-parameter",
-  "-Wno-unused-value",
-  "-Wno-padded",
-  "-Wno-unused-function",
-  "-Wno-parentheses",
-  "-Wno-unused-static-function",
-  "-fsized-deallocation",
+  "-Wall", "-Wextra", "-Wno-unused-variable", "-Wno-unused-parameter", "-Wno-unused-function",
+  "-Wno-invalid-offsetof", "-Wno-missing-field-initializers", "-Wno-sign-compare",
+  "-Wno-unused-but-set-parameter", "-Wno-unused-value", "-Wno-padded", "-Wno-parentheses",
+  "-Wno-unused-static-function", "-fsized-deallocation"
 }
-
-local clang_only_flags = {
-  "-ferror-limit=20",
-  "-Wno-include-angled-in-module-purview",
-  "-fmacro-backtrace-limit=0",
-  "-Wno-shift-op-parentheses",
-  "-Wno-int-to-void-pointer-cast",
-  "-Wno-bitwise-op-parentheses",
-}
-
-local gcc_only_flags = {
-  "-fmax-errors=20",
-}
-
 add_cxxflags(table.unpack(common_flags), {force = true})
 
 if is_gcc then
-  add_cxxflags(table.unpack(gcc_only_flags), {force = true})
-  add_cxxflags("-fmodules-ts", "-fno-module-lazy", {force = true})
+  add_cxxflags("-fmax-errors=20", "-fmodules-ts", "-fno-module-lazy", {force = true})
 else
-  add_cxxflags(table.unpack(clang_only_flags), {force = true})
+  add_cxxflags("-ferror-limit=20", "-Wno-include-angled-in-module-purview", "-fmacro-backtrace-limit=0", "-Wno-shift-op-parentheses", "-Wno-int-to-void-pointer-cast", "-Wno-bitwise-op-parentheses", {force = true})
 end
 
 if has_config("FAN_GUI") then
-  add_defines(
-  "IMGUI_IMPL_OPENGL_LOADER_CUSTOM",
-  "IMGUI_DEFINE_MATH_OPERATORS",
-  "IMGUI_DISABLE_SSE",
-  "IMGUI_ENABLE_FREETYPE",
-  "IMGUI_ENABLE_FREETYPE_LUNASVG",
-  "STBI_NO_SIMD"
-  )
+  add_defines("IMGUI_IMPL_OPENGL_LOADER_CUSTOM", "IMGUI_DEFINE_MATH_OPERATORS", "IMGUI_DISABLE_SSE", "IMGUI_ENABLE_FREETYPE", "IMGUI_ENABLE_FREETYPE_LUNASVG", "STBI_NO_SIMD")
 end
 
 local module_files = {
-  -- Core
-  "fan/types/types.ixx",
-  "fan/types/color.ixx",
-  "fan/types/vector.ixx",
-  "fan/types/quaternion.ixx",
-  "fan/types/matrix.ixx",
-  "fan/types/fstring.ixx",
-  "fan/types/compile_time_string.ixx",
-  "fan/types/flat_hash_map.ixx",
-  "fan/types/bitset.ixx",
-
-  "fan/memory/memory.ixx",
-
-  "fan/math/math.ixx",
-  "fan/math/intersection.ixx",
-
-  "fan/time.ixx",
-  "fan/mpl.ixx",
-  "fan/utility.ixx",
-  "fan/formatter.ixx",
-
-  "fan/print_error.ixx",
-  "fan/print.ixx",
-
-  "fan/random.ixx",
-  "fan/log_dispatcher.ixx",
-
-  "fan/crypto.ixx",
-
-  "fan/process.ixx",
-
-  "fan/io/io_types.ixx",
-  "fan/io/directory.ixx",
-  "fan/io/file.ixx",
-
-  "fan/event/event_types.ixx",
-  "fan/event/event.ixx",
-  "fan/event/uv_raw.ixx",
-  
-  "fan/compression.ixx"
+  "fan/types/types.ixx", "fan/types/color.ixx", "fan/types/vector.ixx", "fan/types/quaternion.ixx",
+  "fan/types/matrix.ixx", "fan/types/fstring.ixx", "fan/types/compile_time_string.ixx",
+  "fan/types/flat_hash_map.ixx", "fan/types/bitset.ixx", "fan/memory/memory.ixx",
+  "fan/math/math.ixx", "fan/math/intersection.ixx", "fan/time.ixx", "fan/mpl.ixx",
+  "fan/utility.ixx", "fan/formatter.ixx", "fan/print_error.ixx", "fan/print.ixx",
+  "fan/random.ixx", "fan/log_dispatcher.ixx", "fan/crypto.ixx", "fan/process.ixx",
+  "fan/io/io_types.ixx", "fan/io/directory.ixx", "fan/io/file.ixx",
+  "fan/event/event_types.ixx", "fan/event/event.ixx", "fan/event/uv_raw.ixx", "fan/compression.ixx"
 }
 
 local feature_modules = {
-
   FAN_WINDOW = {
-    "fan/window/window.ixx",
-    "fan/window/input_common.ixx",
-    "fan/window/input.ixx",
-    "fan/window/input_action.ixx",
-
-    "fan/graphics/common_types.ixx",
-    "fan/graphics/camera.ixx",
-    "fan/graphics/image_load.ixx",
-
-    "fan/graphics/webp.ixx",
-    "fan/graphics/stb.ixx",
-
-    "fan/graphics/common_context.ixx",
-
-    "fan/graphics/audio_subsystem.ixx",
-    "fan/graphics/physics_subsystem.ixx",
-    "fan/graphics/input_subsystem.ixx",
-
-    "fan/graphics/loco.ixx",
-    "fan/graphics/graphics.ixx",
-
-    "fan/graphics/file_dialog.ixx",
-
-    "fan/graphics/2D/algorithm/raycast_grid.ixx",
-
-    "fan/graphics/gameplay/gameplay_types.ixx",
-    "fan/graphics/gameplay/gameplay.ixx",
-
-    "fan/graphics/graphics_event.ixx",
-
-    "fan/texture_pack/tp0.ixx",
-    
-    "fan/physics/physics_types.ixx",
-    
-    "fan/noise.ixx",
-    "fan/pathfind.ixx",
-    "fan/spatial.ixx",
-    "fan/ecs.ixx",
+    "fan/window/window.ixx", "fan/window/input_common.ixx", "fan/window/input.ixx", "fan/window/input_action.ixx",
+    "fan/graphics/common_types.ixx", "fan/graphics/camera.ixx", "fan/graphics/image_load.ixx",
+    "fan/graphics/webp.ixx", "fan/graphics/stb.ixx", "fan/graphics/common_context.ixx",
+    "fan/graphics/audio_subsystem.ixx", "fan/graphics/physics_subsystem.ixx", "fan/graphics/input_subsystem.ixx",
+    "fan/graphics/loco.ixx", "fan/graphics/graphics.ixx", "fan/graphics/file_dialog.ixx",
+    "fan/graphics/2D/algorithm/raycast_grid.ixx", "fan/graphics/gameplay/gameplay_types.ixx",
+    "fan/graphics/gameplay/gameplay.ixx", "fan/graphics/graphics_event.ixx", "fan/texture_pack/tp0.ixx",
+    "fan/physics/physics_types.ixx", "fan/noise.ixx", "fan/pathfind.ixx", "fan/spatial.ixx", "fan/ecs.ixx"
   },
-
-  FAN_OPENGL = {
-    "fan/graphics/opengl/gl_core.ixx",
-    "fan/graphics/opengl/uniform_block.ixx"
-  },
-
-  FAN_VULKAN = {
-    "fan/graphics/vulkan/vk_core_types.ixx",
-    "fan/graphics/vulkan/vk_core_vai.ixx",
-    "fan/graphics/vulkan/vk_core.ixx"
-  },
-
-  FAN_2D = {
-    "fan/graphics/2D/shapes_types.ixx",
-    "fan/graphics/2D/culling.ixx",
-    "fan/graphics/2D/shapes.ixx"
-  },
-
-  FAN_JSON = {
-    "fan/types/json.ixx"
-  },
-
-  FAN_FMT = {
-    "fan/fmt.ixx"
-  },
-
-  FAN_NETWORK = {
-    "fan/network/network.ixx",
-    "fan/network/network_socket.ixx",
-    "fan/graphics/2D/graphics_network.ixx"
-  },
-
-  FAN_AUDIO = {
-    "fan/audio/audio.ixx"
-  },
-
-  FAN_PHYSICS_2D = {
-    "fan/physics/b2_integration.ixx",
-    "fan/physics/physics_common_context.ixx",
-    "fan/graphics/physics_shapes.ixx"
-  },
-
+  FAN_OPENGL = { "fan/graphics/opengl/gl_core.ixx", "fan/graphics/opengl/uniform_block.ixx" },
+  FAN_VULKAN = { "fan/graphics/vulkan/vk_core_types.ixx", "fan/graphics/vulkan/vk_core_vai.ixx", "fan/graphics/vulkan/vk_core.ixx" },
+  FAN_2D = { "fan/graphics/2D/shapes_types.ixx", "fan/graphics/2D/culling.ixx", "fan/graphics/2D/shapes.ixx" },
+  FAN_JSON = { "fan/types/json.ixx" },
+  FAN_FMT = { "fan/fmt.ixx" },
+  FAN_NETWORK = { "fan/network/network.ixx", "fan/network/network_socket.ixx", "fan/graphics/2D/graphics_network.ixx" },
+  FAN_AUDIO = { "fan/audio/audio.ixx" },
+  FAN_PHYSICS_2D = { "fan/physics/b2_integration.ixx", "fan/physics/physics_common_context.ixx", "fan/graphics/physics_shapes.ixx" },
   FAN_GUI = {
-    "fan/graphics/gui/console.ixx",
-
-    "fan/graphics/gui/gui_base.ixx",
-    "fan/graphics/gui/gui_input.ixx",
-    "fan/graphics/gui/gui_types.ixx",
-    "fan/graphics/gui/gui.ixx",
-
-    "fan/graphics/gui/text_logger.ixx",
-    "fan/graphics/gui/settings_menu.ixx",
-    "fan/graphics/gui/keybinds_menu.ixx",
-
-    "fan/graphics/gameplay/items.ixx",
-
-    "fan/graphics/gui/gameplay/equipment.ixx",
-    "fan/graphics/gui/gameplay/hotbar.ixx",
-    "fan/graphics/gui/gameplay/inventory.ixx",
-    "fan/graphics/gui/gameplay/inventory_hotbar.ixx",
-    "fan/graphics/gui/gameplay/drag_drop.ixx",
-    "fan/graphics/gui/gameplay/slot_renderer.ixx",
-
-    "fan/graphics/gui/tilemap_editor/loader.ixx",
-    "fan/graphics/gui/tilemap_editor/editor_core.ixx",
-    "fan/graphics/gui/tilemap_editor/editor_ui.ixx",
-    "fan/graphics/gui/tilemap_editor/renderer0.ixx"
+    "fan/graphics/gui/console.ixx", "fan/graphics/gui/gui_base.ixx", "fan/graphics/gui/gui_input.ixx",
+    "fan/graphics/gui/gui_types.ixx", "fan/graphics/gui/gui.ixx", "fan/graphics/gui/text_logger.ixx",
+    "fan/graphics/gui/settings_menu.ixx", "fan/graphics/gui/keybinds_menu.ixx", "fan/graphics/gameplay/items.ixx",
+    "fan/graphics/gui/gameplay/equipment.ixx", "fan/graphics/gui/gameplay/hotbar.ixx",
+    "fan/graphics/gui/gameplay/inventory.ixx", "fan/graphics/gui/gameplay/inventory_hotbar.ixx",
+    "fan/graphics/gui/gameplay/drag_drop.ixx", "fan/graphics/gui/gameplay/slot_renderer.ixx",
+    "fan/graphics/gui/tilemap_editor/loader.ixx", "fan/graphics/gui/tilemap_editor/editor_core.ixx",
+    "fan/graphics/gui/tilemap_editor/editor_ui.ixx", "fan/graphics/gui/tilemap_editor/renderer0.ixx"
   },
-
-  FAN_3D = {
-    "fan/graphics/opengl/3D/objects/fms.ixx",
-    "fan/graphics/opengl/3D/objects/model.ixx",
-    "fan/graphics/voxel.ixx"
-  },
-
-  FAN_VIDEO = {
-    "fan/video/codec.ixx",
-    "fan/video/screen.ixx",
-    "fan/video/renderer.ixx",
-    "fan/video/video.ixx"
-  },
-
-  FAN_WAYLAND_SCREEN = {
-    "fan/video/screen_codec.ixx"
-  }
+  FAN_3D = { "fan/graphics/opengl/3D/objects/fms.ixx", "fan/graphics/opengl/3D/objects/model.ixx", "fan/graphics/voxel.ixx" },
+  FAN_VIDEO = { "fan/video/codec.ixx", "fan/video/screen.ixx", "fan/video/renderer.ixx", "fan/video/video.ixx" },
+  FAN_WAYLAND_SCREEN = { "fan/video/screen_codec.ixx" }
 }
 
-for feature, files in pairs(feature_modules) do
-  if has_config(feature) then
-    for _, file in ipairs(files) do
-      table.insert(module_files, file)
-    end
+for feat, files in pairs(feature_modules) do
+  if has_config(feat) then
+    for _, f in ipairs(files) do table.insert(module_files, f) end
   end
 end
-
 table.insert(module_files, "fan/fan.ixx")
 
-function find_impl_files(module_list)
-  local impl_files = {}
-  for _, module_path in ipairs(module_list) do
-    local dir = path.directory(module_path)
-    local name = path.basename(module_path)
-    local impl_path = path.join(dir, name .. "_impl.cpp")
-    if os.isfile(impl_path) then
-      table.insert(impl_files, impl_path)
-    end
-  end
-  return impl_files
+local impl_files = {}
+for _, m in ipairs(module_files) do
+  local p = path.join(path.directory(m), path.basename(m) .. "_impl.cpp")
+  if os.isfile(p) then table.insert(impl_files, p) end
 end
-
-local impl_files = find_impl_files(module_files)
 
 if has_config("FAN_VULKAN") then
-  table.insert(impl_files, "fan/graphics/vulkan/vk_vma_impl.cpp")
-  table.insert(impl_files, "fan/graphics/vulkan/vk_core_device_impl.cpp")
-  table.insert(impl_files, "fan/graphics/vulkan/vk_core_shader_impl.cpp")
-  table.insert(impl_files, "fan/graphics/vulkan/vk_core_image_impl.cpp")
-  table.insert(impl_files, "fan/graphics/vulkan/vk_core_camera_viewport_impl.cpp")
+  for _, f in ipairs({"vk_vma", "vk_core_device", "vk_core_shader", "vk_core_image", "vk_core_camera_viewport"}) do
+    table.insert(impl_files, "fan/graphics/vulkan/" .. f .. "_impl.cpp")
+  end
 end
-
 if has_config("FAN_WINDOW") and os.isfile("fan/graphics/2D/algorithm/AStar.cpp") then
   table.insert(impl_files, "fan/graphics/2D/algorithm/AStar.cpp")
 end
 
 if has_config("FAN_GUI") then
   target("imgui")
-  set_kind("static")
-  add_rules("c++.unity_build", {batchsize = 16})
-  if not is_gcc and not is_plat("wasm") then
-    add_cxxflags("-stdlib=libstdc++", {force = true})
-    add_ldflags("-stdlib=libstdc++", "-lstdc++", {force = true})
-  end
-  add_includedirs(
-  "fan/imgui",
-  "fan/imgui/misc/freetype",
-  "third_party/fan/include",
-  "third_party/fan/include/freetype2"
-  )
-  on_load(function (target)
-  if target:is_plat("linux") then
-    import("lib.detect.find_tool")
-    local pkg_config = find_tool("pkg-config")
-    if pkg_config then
-      local result = os.iorunv("pkg-config", {"--cflags-only-I", "glib-2.0"})
-      if result then
-        for _, path in ipairs(result:split("%s+")) do
-          if path:startswith("-I") then
-            target:add("includedirs", path:sub(3))
+    set_kind("static")
+    add_rules("c++.unity_build", {batchsize = 16})
+    if not is_gcc and not is_plat("wasm") then
+      add_cxxflags("-stdlib=libstdc++", {force = true})
+      add_ldflags("-stdlib=libstdc++", "-lstdc++", {force = true})
+    end
+    if is_plat("linux") then
+      add_packages("freetype", "lunasvg", "zlib", "libpng")
+    else
+      add_linkdirs("third_party/fan/lib")
+      add_links("freetype", "lunasvg")
+      add_syslinks("png16", "z")
+    end
+    add_includedirs("fan/imgui", "fan/imgui/misc/freetype", "third_party/fan/include", "third_party/fan/include/freetype2")
+    on_load(function (target)
+      if target:is_plat("linux") then
+        import("lib.detect.find_tool")
+        if find_tool("pkg-config") then
+          local res = os.iorunv("pkg-config", {"--cflags-only-I", "glib-2.0"})
+          if res then
+            for _, p in ipairs(res:split("%s+")) do
+              if p:startswith("-I") then target:add("includedirs", p:sub(3)) end
+            end
           end
         end
       end
-    end
-  end
-  end)
-  add_files(
-    "fan/imgui/imgui.cpp",
-    "fan/imgui/imgui_draw.cpp",
-    "fan/imgui/imgui_widgets.cpp",
-    "fan/imgui/imgui_tables.cpp",
-    "fan/imgui/imgui_impl_glfw.cpp",
-    "fan/imgui/implot_items.cpp",
-    "fan/imgui/implot.cpp",
-    "fan/imgui/text_editor.cpp",
-    "fan/imgui/misc/freetype/imgui_freetype.cpp",
-    "fan/imgui/ImGuizmo.cpp"
-  )
-  add_files("fan/imgui/imgui_impl_opengl3.cpp", {unity_ignored = true})
-  if has_config("FAN_VULKAN") then
-    add_files("fan/imgui/imgui_impl_vulkan.cpp")
-  end
-  if has_config("FAN_3D") and has_config("FAN_GUI") then
-    add_files("fan/imgui/ImGuizmo.cpp")
-  end
-  add_linkdirs("third_party/fan/lib")
-  add_links("freetype", "lunasvg")
-  add_syslinks("png16", "z")
+    end)
+    add_files(
+      "fan/imgui/imgui.cpp", "fan/imgui/imgui_draw.cpp", "fan/imgui/imgui_widgets.cpp",
+      "fan/imgui/imgui_tables.cpp", "fan/imgui/imgui_impl_glfw.cpp", "fan/imgui/implot_items.cpp",
+      "fan/imgui/implot.cpp", "fan/imgui/text_editor.cpp", "fan/imgui/misc/freetype/imgui_freetype.cpp",
+      "fan/imgui/ImGuizmo.cpp"
+    )
+    add_files("fan/imgui/imgui_impl_opengl3.cpp", {unity_ignored = true})
+    if has_config("FAN_VULKAN") then add_files("fan/imgui/imgui_impl_vulkan.cpp") end
   target_end()
 end
 
 if not is_plat("wasm") and has_config("FAN_WINDOW") then
   target("nfd")
-  set_kind("static")
-  add_rules("c++.unity_build", {batchsize = 8})
-  if is_plat("linux") then
-    add_files(
-    "fan/nativefiledialog/nfd_common.c",
-    "fan/nativefiledialog/nfd_gtk.c"
-    )
-  elseif is_plat("windows") then
-    add_files(
-    "fan/nativefiledialog/nfd_common.c",
-    "fan/nativefiledialog/nfd_win.cpp"
-    )
-  end
-  on_load(function (target)
-  if target:is_plat("linux") then
-    import("lib.detect.find_tool")
-    local pkg_config = find_tool("pkg-config")
-    if pkg_config then
-      local cflags = os.iorunv("pkg-config", {"--cflags-only-I", "gtk+-3.0"})
-      if cflags then
-        for _, path in ipairs(cflags:split("%s+")) do
-          if path:startswith("-I") then
-            target:add("includedirs", path:sub(3))
+    set_kind("static")
+    add_rules("c++.unity_build", {batchsize = 8})
+    add_files("fan/nativefiledialog/nfd_common.c")
+    if is_plat("linux") then add_files("fan/nativefiledialog/nfd_gtk.c")
+    elseif is_plat("windows") then add_files("fan/nativefiledialog/nfd_win.cpp") end
+    on_load(function (target)
+      if target:is_plat("linux") then
+        import("lib.detect.find_tool")
+        if find_tool("pkg-config") then
+          local cflags = os.iorunv("pkg-config", {"--cflags-only-I", "gtk+-3.0"})
+          if cflags then
+            for _, p in ipairs(cflags:split("%s+")) do
+              if p:startswith("-I") then target:add("includedirs", p:sub(3)) end
+            end
+          end
+          local libs = os.iorunv("pkg-config", {"--libs", "gtk+-3.0"})
+          if libs then
+            for _, l in ipairs(libs:split("%s+")) do
+              if l:startswith("-l") then target:add("links", l:sub(3)) end
+            end
           end
         end
       end
-      local libs = os.iorunv("pkg-config", {"--libs", "gtk+-3.0"})
-      if libs then
-        for _, lib in ipairs(libs:split("%s+")) do
-          if lib:startswith("-l") then
-            target:add("links", lib:sub(3))
-          end
-        end
-      end
-    end
-  end
-  end)
+    end)
   target_end()
 end
 
 option("buildlib") set_default(false) option_end()
 
-target("fan")
-  if has_config("buildlib") then
-    set_kind("static")
-  else
-    set_kind("binary")
-    if not is_plat("wasm") then
-      set_filename("a.exe")
-    end
-  end
+target("a.exe")
+  set_kind(has_config("buildlib") and "static" or "binary")
   add_rules("c++.build.modules")
 
   if is_plat("wasm") then
@@ -501,159 +260,104 @@ target("fan")
     add_links("uv_wasm", "webp_wasm")
   end
 
-  if has_config("FAN_GUI") then
-    add_deps("imgui")
-  end
-  if not is_plat("wasm") and has_config("FAN_WINDOW") then
-    add_deps("nfd")
-  end
+  if has_config("FAN_GUI") then add_deps("imgui") end
+  if not is_plat("wasm") and has_config("FAN_WINDOW") then add_deps("nfd") end
+  if has_config("FAN_FMT") then add_packages("fmt") end
 
-  for _, file in ipairs(module_files) do
-    add_files(file)
-  end
+  for _, f in ipairs(module_files) do add_files(f) end
 
   if has_config("FAN_REFLECTION") then
-    for _, file in ipairs(os.files("fan/reflection/*.ixx")) do
-      add_files(file, {cxxflags = "-freflection"})
-      local impl = path.join(path.directory(file), path.basename(file) .. "_impl.cpp")
-      if os.isfile(impl) then
-        add_files(impl, {cxxflags = "-freflection"})
-      end
+    for _, f in ipairs(os.files("fan/reflection/*.ixx")) do
+      add_files(f, {cxxflags = "-freflection"})
+      local impl = path.join(path.directory(f), path.basename(f) .. "_impl.cpp")
+      if os.isfile(impl) then add_files(impl, {cxxflags = "-freflection"}) end
     end
   end
 
-  for _, impl in ipairs(impl_files) do
-    add_files(impl)
-  end
-  if not is_plat("wasm") and has_config("FAN_WINDOW") then
-    add_files("third_party/fan/glad.c")
-  end
+  for _, f in ipairs(impl_files) do add_files(f) end
+  if not is_plat("wasm") and has_config("FAN_OPENGL") then add_files("third_party/fan/glad.c") end
 
   set_policy("check.auto_ignore_flags", false)
-
-  if not has_config("buildlib") then
-    local main_file = get_config("main")
-    add_files(main_file)
-  end
+  if not has_config("buildlib") then add_files(get_config("main")) end
 
   add_includedirs(".", "third_party/fan/include", "third_party/fan/include/VulkanMemoryAllocator/include", "third_party/VulkanMemoryAllocator/include", {public = true})
   add_linkdirs("third_party/fan/lib")
 
   if is_plat("linux") then
-    add_links(
-      "webp", "glfw", "X11", "opus", "pulse-simple",
-      "uv", "GL", "ssl", "crypto", "curl"
-    )
-    if has_config("FAN_FMT") then add_links("fmt") end
-    if has_config("FAN_GUI") then
-      add_links("freetype", "lunasvg")
-      add_syslinks("png16", "z")
-    end
-    if has_config("FAN_PHYSICS_2D") then
-      add_ldflags("-Wl,--whole-archive", "third_party/fan/lib/libbox2d.a", "-Wl,--no-whole-archive", {force = true})
-    end
+    if has_config("static_runtime") then add_ldflags("-static-libstdc++", "-static-libgcc", {force = true}) end
+    add_packages("libuv")
+    if has_config("FAN_WINDOW") then add_packages("zlib", "libpng", "libwebp") end
+    if has_config("FAN_OPENGL") then add_packages("glfw") add_links("X11", "GL") end
+    if has_config("FAN_AUDIO") then add_links("opus", "pulse-simple") end
+    if has_config("FAN_NETWORK") then add_links("ssl", "crypto", "curl") end
+    if has_config("FAN_GUI") then add_packages("freetype", "lunasvg") end
+    if has_config("FAN_PHYSICS_2D") then add_packages("box2d") end
     if has_config("FAN_3D") then add_links("assimp") end
-    if has_config("FAN_VULKAN") then
-      add_packages("vulkansdk")
-      add_links("shaderc_shared")
-    end
-    if has_config("FAN_WAYLAND_SCREEN") then
-      add_links("wayland-client", "pipewire-0.3", "dbus-1")
-      add_links("avcodec", "avutil", "swscale")
-    end
+    if has_config("FAN_VULKAN") then add_packages("vulkansdk") add_links("shaderc_shared") end
+    if has_config("FAN_WAYLAND_SCREEN") then add_links("wayland-client", "pipewire-0.3", "dbus-1", "avcodec", "avutil", "swscale") end
   elseif is_plat("windows") then
     add_links("opengl32")
     add_linkdirs("lib/GLFW", "lib/GLEW", "lib/libuv", "lib/libwebp", "lib/opus", "lib/openssl")
-    add_links(
-    "glfw3_mt", "glew32s", "uv_a", "libwebp",
-    "opus", "libssl", "libcrypto"
-    )
-    if has_config("FAN_GUI") then
-      add_linkdirs("lib/freetype", "lib/lunasvg")
-      add_links("freetype", "lunasvg")
-    end
-    if has_config("FAN_PHYSICS_2D") then
-      add_linkdirs("lib/box2d")
-      add_links("box2d")
-    end
-    if has_config("FAN_3D") then
-      add_linkdirs("C:/Program Files/Assimp/lib/x64")
-      add_links("assimp-vc143-mt")
-    end
-    if has_config("FAN_VULKAN") then
-      add_packages("vulkansdk")
-      add_links("shaderc_shared")
-    end
+    add_links("glfw3_mt", "glew32s", "uv_a", "libwebp", "opus", "libssl", "libcrypto")
+    if has_config("FAN_GUI") then add_linkdirs("lib/freetype", "lib/lunasvg") add_links("freetype", "lunasvg") end
+    if has_config("FAN_PHYSICS_2D") then add_linkdirs("lib/box2d") add_links("box2d") end
+    if has_config("FAN_3D") then add_linkdirs("C:/Program Files/Assimp/lib/x64") add_links("assimp-vc143-mt") end
+    if has_config("FAN_VULKAN") then add_packages("vulkansdk") add_links("shaderc_shared") end
     if has_config("FAN_WAYLAND_SCREEN") then
       add_linkdirs("lib/libx264", "lib/openh264")
-      add_links(
-      "DXGI", "D3D11", "libx264",
-      "welsdcore", "welsecore", "WelsDecPlus",
-      "WelsEncPlus", "WelsVP"
-      )
+      add_links("DXGI", "D3D11", "libx264", "welsdcore", "welsecore", "WelsDecPlus", "WelsEncPlus", "WelsVP")
     end
   end
 
   on_load(function (target)
-  if target:is_plat("linux") then
-    import("lib.detect.find_tool")
-    if has_config("FAN_GUI") then
-        local pkg_config = find_tool("pkg-config")
-        if pkg_config then
-        local libs = os.iorunv("pkg-config", {"--libs", "gtk+-3.0"})
-        if libs then
-            for _, lib in ipairs(libs:split("%s+")) do
-            if lib:startswith("-l") then
-                target:add("links", lib:sub(3))
-            end
-            end
-        end
-        end
+    local is_gfx = has_config("FAN_WINDOW") or has_config("FAN_VULKAN")
+    local missing_base = not os.isfile("third_party/fan/.core.stamp")
+    local missing_gfx  = is_gfx and not os.isfile("third_party/fan/.gfx.stamp")
+
+    if missing_base or missing_gfx then
+      print("Missing third_party headers. Running install.sh...")
+      local args = {}
+      if target:is_plat("wasm") then table.insert(args, "--wasm") end
+      if not is_gfx then table.insert(args, "--core") end
+      if os.execv("./install.sh", args) ~= 0 then raise("./install.sh failed") end
     end
-    if find_tool("mold") then
-        target:add("ldflags", "-fuse-ld=mold", {force = true})
-    elseif find_tool("gold") then
-        target:add("ldflags", "-fuse-ld=gold", {force = true})
+
+    if target:is_plat("linux") then
+      import("lib.detect.find_tool")
+      if has_config("FAN_GUI") then
+        if find_tool("pkg-config") then
+          local libs = os.iorunv("pkg-config", {"--libs", "gtk+-3.0"})
+          if libs then
+            for _, l in ipairs(libs:split("%s+")) do
+              if l:startswith("-l") then target:add("links", l:sub(3)) end
+            end
+          end
+        end
+      end
+      if find_tool("mold") then target:add("ldflags", "-fuse-ld=mold", {force = true})
+      elseif find_tool("gold") then target:add("ldflags", "-fuse-ld=gold", {force = true}) end
     end
-  end
   end)
-  
+
   after_build(function (target)
     if has_config("buildlib") then
-      local gcm_dir = "gcm.cache"
-      os.mkdir(gcm_dir)
-      
-      local gcm_files = os.files("build/**.gcm")
-      for _, file in ipairs(gcm_files) do
-        os.cp(file, gcm_dir)
-      end
-      
+      os.mkdir("gcm.cache")
+      for _, f in ipairs(os.files("build/**.gcm")) do os.cp(f, "gcm.cache") end
       os.cp(target:targetfile(), ".")
-      
       print("Library artifacts copied to current directory.")
     end
   end)
 target_end()
 
 local marker = "fan_modules_info_printed.flag"
-
 after_load(function (target)
-  if target:name() ~= "fan_modules" then
-    return
-  end
-  if os.isfile(marker) then
-    return
-  end
+  if target:name() ~= "fan_modules" or os.isfile(marker) then return end
   io.writefile(marker, "1")
   print("Module files: " .. #module_files)
   print("Implementation files: " .. #impl_files)
   if #impl_files > 0 then
     print("Found implementations:")
-    for i = 1, math.min(5, #impl_files) do
-      print("  - " .. impl_files[i])
-  end
-  if #impl_files > 5 then
-    print("  ... and " .. (#impl_files - 5) .. " more")
-  end
+    for i = 1, math.min(5, #impl_files) do print("  - " .. impl_files[i]) end
+    if #impl_files > 5 then print("  ... and " .. (#impl_files - 5) .. " more") end
   end
 end)

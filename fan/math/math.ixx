@@ -688,6 +688,7 @@ export namespace fan {
           return compute_from_strings_with_detail(lhs, c, rhs);
         }
       }
+      return std::unexpected(error_info {error::bad_op, "Function failed"});
     }
   } // namespace fan::math
 } // namespace fan
