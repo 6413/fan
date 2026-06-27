@@ -12,6 +12,7 @@ import std;
 
 import fan.types;
 import fan.print.error;
+import fan.memory;
 export import fan.io.types;
 
 export namespace fan {
@@ -165,6 +166,24 @@ export namespace fan {
       std::uint64_t file_size_p(P&& p) { return file_size(std::forward<P>(p)); }
 
       bool is_pe(const fan::bytes_t& d);
+
+      struct file_writer_t {
+        void write_byte(std::uint8_t b) { write_bytes(std::span<const std::uint8_t>(&b, 1)); }
+        void write_repeat(std::uint8_t b, std::size_t n) {
+          std::array<std::uint8_t, 4096> buf; buf.fill(b);
+          while (n) { std::size_t w = std::min<std::size_t>(n, buf.size()); write_bytes(std::span<const std::uint8_t>(buf.data(), w)); n -= w; }
+        }
+        void write_bytes(std::span<const std::uint8_t> bytes) {
+          if (!bytes.empty() && fan::io::file::write(fp, (void*)bytes.data(), 1, bytes.size())) { throw std::runtime_error("write failed"); }
+        }
+        file_t* fp = nullptr;
+      };
+
+      struct file_reader_t {
+        file_t* fp = nullptr;
+        void read_exact(std::span<std::uint8_t> out) { if (!out.empty() && fan::io::file::read(fp, out.data(), 1, out.size())) throw std::runtime_error("eof"); }
+        void read_exact(fan::bytes_t& out) { if (!out.empty() && fan::io::file::read(fp, out.data(), 1, out.size())) throw std::runtime_error("eof"); }
+      };
     }
   }
 

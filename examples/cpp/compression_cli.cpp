@@ -90,7 +90,7 @@ static bool cmd_compress(const std::string& in, std::string out, const cli_optio
   fan::print("compressing", in, "->", out); fan::time::timer t;
 
   {
-    fan::fcs::progress_t prog;
+    fan::progress_t prog;
     std::jthread monitor([&](std::stop_token st) {
       while (!st.stop_requested()) {
         fan::print_progress(prog.done.load(std::memory_order_relaxed), prog.total.load(std::memory_order_relaxed));
@@ -113,11 +113,12 @@ static bool cmd_compress(const std::string& in, std::string out, const cli_optio
 }
 
 static bool cmd_decompress(const std::string& in, std::string out_dir, const cli_options_t&) {
-  if (out_dir.empty()) { out_dir = in.ends_with(".fcs") ? in.substr(0, in.size() - 4) : in + "_ext"; }
+  bool default_out = out_dir.empty();
+  if (default_out) { out_dir = in.ends_with(".fcs") ? in.substr(0, in.size() - 4) : in + "_ext"; }
   fan::print("decompressing", in, "->", out_dir); fan::time::timer t;
 
   {
-    fan::fcs::progress_t prog;
+    fan::progress_t prog;
     std::jthread monitor([&](std::stop_token st) {
       while (!st.stop_requested()) {
         fan::print_progress(prog.done.load(std::memory_order_relaxed), prog.total.load(std::memory_order_relaxed));
@@ -126,11 +127,12 @@ static bool cmd_decompress(const std::string& in, std::string out_dir, const cli
       fan::print_progress(prog.total.load(std::memory_order_relaxed), prog.total.load(std::memory_order_relaxed));
       fan::print("");
     });
-    if (!fan::fcs::decompress_file_to_dir(in, out_dir, &prog)) {
+    if (!fan::fcs::decompress_file_to_dir(in, out_dir, default_out, &prog)) {
       fan::print("read failed", in); return false;
     }
   }
-  row_float("time", t.millis(), "ms"); fan::print("extracted to", out_dir); return true;
+  row_float("time", t.millis(), "ms");
+  fan::print("extracted to", out_dir); return true;
 }
 
 static int usage(std::string_view exe) {
@@ -146,6 +148,7 @@ struct cmd_t {
 };
 
 int main(int argc, char** argv) {
+  fan::print("STart");
   try {
     auto args = parse_args(argc, argv);
     if (!args) { return usage(argv[0]); }

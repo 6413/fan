@@ -5,6 +5,8 @@ module;
 
 export module fan.io.types;
 
+import fan.types;
+
 import std;
 
 export namespace fan {
@@ -98,5 +100,29 @@ export namespace fan {
         std::is_convertible_v<T, const char*> ||
         std::is_same_v<std::remove_cvref_t<T>, std::filesystem::path>;
     }
+
+    struct file_buffer_t {
+      std::string path;
+      std::vector<std::uint8_t> data;
+    };
+
+    struct bytes_writer_t {
+      constexpr void write_byte(std::uint8_t b) { out.push_back(b); }
+      constexpr void write_repeat(std::uint8_t b, std::size_t n) { out.insert(out.end(), n, b); }
+      constexpr void write_bytes(std::span<const std::uint8_t> bytes) { out.insert(out.end(), bytes.begin(), bytes.end()); }
+      fan::bytes_t& out;
+    };
+
+    struct bytes_reader_t {
+      constexpr std::uint8_t read_byte() { return pos < in.size() ? in[pos++] : 0; }
+      const fan::bytes_t& in;
+      std::size_t pos = 0;
+    };
+
+    struct file_info_t {
+      std::filesystem::path real_path;
+      std::string archive_path;
+      std::uint64_t size = 0;
+    };
   }
 }
