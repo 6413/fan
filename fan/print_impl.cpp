@@ -107,7 +107,7 @@ namespace fan::detail {
 }
 
 namespace fan {
-  void fan::print_progress(std::size_t done, std::size_t total) {
+  void print_progress(std::size_t done, std::size_t total) {
     if (!total) { return; }
     f64_t pct = std::min<f64_t>(100.0, (f64_t(done) / total) * 100.0);
     char buf[41];
@@ -123,7 +123,7 @@ namespace fan {
   #endif
   }
 
-  void fan::flush_console() {
+  void flush_console() {
   #if defined(USE_STD_PRINT)
     std::fflush(stdout);
   #else
