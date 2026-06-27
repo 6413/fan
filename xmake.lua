@@ -40,9 +40,20 @@ elseif is_mode("debug") then
 end
 
 local fan_features = {
-  FAN_WINDOW = true, FAN_2D = true, FAN_GUI = true, FAN_PHYSICS_2D = true, FAN_JSON = true,
-  FAN_3D = false, FAN_OPENGL = true, FAN_VULKAN = false, FAN_FMT = false,
-  FAN_WAYLAND_SCREEN = false, FAN_NETWORK = true, FAN_AUDIO = true, FAN_VIDEO = false, FAN_REFLECTION = false
+  FAN_WINDOW = true,
+  FAN_2D = true,
+  FAN_GUI = true,
+  FAN_PHYSICS_2D = true,
+  FAN_JSON = true,
+  FAN_3D = false,
+  FAN_OPENGL = true,
+  FAN_VULKAN = false,
+  FAN_FMT = false,
+  FAN_WAYLAND_SCREEN = false,
+  FAN_NETWORK = true,
+  FAN_AUDIO = true,
+  FAN_VIDEO = false,
+  FAN_REFLECTION = false
 }
 
 for name, enabled in pairs(fan_features) do
@@ -84,7 +95,8 @@ if not is_plat("wasm") then
   end
 end
 
-add_includedirs(".", "third_party/fan/include", "third_party/fan/include/VulkanMemoryAllocator/include", "third_party/VulkanMemoryAllocator/include", {public = true})
+add_includedirs(".", "third_party/fan/include", {public = true})
+if has_config("FAN_VULKAN") then add_includedirs("third_party/fan/include/VulkanMemoryAllocator/include", "third_party/VulkanMemoryAllocator/include", {public = true}) end
 
 local is_gcc = get_config("compiler") == "gcc"
 if not is_gcc and not is_plat("wasm") then add_cxxflags("-stdlib=libstdc++", {force = true}) end
@@ -280,7 +292,8 @@ target("a.exe")
   set_policy("check.auto_ignore_flags", false)
   if not has_config("buildlib") then add_files(get_config("main")) end
 
-  add_includedirs(".", "third_party/fan/include", "third_party/fan/include/VulkanMemoryAllocator/include", "third_party/VulkanMemoryAllocator/include", {public = true})
+  add_includedirs(".", "third_party/fan/include", {public = true})
+  if has_config("FAN_VULKAN") then add_includedirs("third_party/fan/include/VulkanMemoryAllocator/include", "third_party/VulkanMemoryAllocator/include", {public = true}) end
   add_linkdirs("third_party/fan/lib")
 
   if is_plat("linux") then
