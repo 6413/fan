@@ -99,6 +99,12 @@ export namespace fan {
       }
 
       template <typename T>
+      bool write(std::ostream& f, const std::vector<T>& data) {
+        f.write(reinterpret_cast<const char*>(data.data()), std::streamsize(data.size() * sizeof(T)));
+        return bool(f);
+      }
+
+      template <typename T>
       bool write(std::string_view path, const std::vector<T>& data, fs_mode mode = std::ios::binary) {
         std::ofstream f{std::string(path), std::ios::openmode(mode) | std::ios::binary};
         if (!f) {
