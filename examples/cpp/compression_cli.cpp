@@ -1,8 +1,6 @@
 import std;
 import fan;
 
-namespace file = fan::io::file;
-
 static void row(auto n, auto v, auto u) { fan::printf("{:<12}{:>16}{:>16}", n, v, u); }
 static void row_float(auto n, f64_t v, auto u) { fan::printf("{:<12}{:>16.3f}{:>16}", n, v, u); }
 
@@ -87,6 +85,15 @@ static bool ask_overwrite(const std::string& path) {
   return !s.empty() && (s[0] == 'y' || s[0] == 'Y');
 }
 
+static void print_progress_until_done(fan::fcs::progress_t& prog, std::stop_token st) {
+  while (!st.stop_requested()) {
+    fan::print_progress(prog.done.load(std::memory_order_relaxed), prog.total.load(std::memory_order_relaxed));
+    std::this_thread::sleep_for(std::chrono::milliseconds(33));
+  }
+  fan::print_progress(prog.total.load(std::memory_order_relaxed), prog.total.load(std::memory_order_relaxed));
+  fan::print("");
+}
+
 static bool cmd_compress(const std::string& in, std::string out, const cli_options_t& options) {
   if (out.empty()) {
     std::string_view s = in;
@@ -94,60 +101,29 @@ static bool cmd_compress(const std::string& in, std::string out, const cli_optio
     out = std::string(s) + ".fcs";
   }
   if (!ask_overwrite(out)) { return true; }
-  std::vector<fan::fcs::archive_file_t> files;
-  std::size_t total_os = 0;
-  std::error_code ec;
 
-  if (std::filesystem::is_directory(in, ec)) {
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(in)) {
-      if (!entry.is_regular_file()) { continue; }
-      fan::bytes_t d = file::read_binary(entry.path().string());
-      total_os += d.size();
-      auto rel = std::filesystem::relative(entry.path(), in);
-      if (options.verbose) {
-        fan::print("found:", rel.generic_string());
-      }
-      files.push_back({rel.generic_string(), std::move(d)});
-    }
-    fan::print("found", files.size(), "files");
-  }
-  else {
-    fan::bytes_t d = file::read_binary(in);
-    if (d.empty()) { fan::print("read failed", in); return false; }
-    total_os += d.size();
-    files.push_back({std::filesystem::path(in).filename().string(), std::move(d)});
-  }
-
-  fan::print("compressing", in, "->", out, "(", files.size(), "files)");
+  fan::print("compressing", in, "->", out);
   fan::time::timer t;
-  fan::bytes_t dst;
+  fan::fcs::progress_t prog;
 
   {
-    fan::fcs::progress_t prog;
-    std::jthread monitor([&](std::stop_token st) {
-      while (!st.stop_requested()) {
-        fan::print_progress(prog.done.load(std::memory_order_relaxed), prog.total.load(std::memory_order_relaxed));
-        std::this_thread::sleep_for(std::chrono::milliseconds(33));
-      }
-      fan::print_progress(prog.total.load(std::memory_order_relaxed), prog.total.load(std::memory_order_relaxed));
-      fan::print("");
-    });
-    dst = fan::fcs::compress(files, get_params(options.level), &prog);
+    std::jthread monitor([&](std::stop_token st) { print_progress_until_done(prog, st); });
+    if (!fan::fcs::compress_path_to_file(in, out, get_params(options.level), &prog, options.verbose)) {
+      fan::print("write failed", out);
+      return false;
+    }
   }
 
   f64_t ms = t.millis();
+  std::error_code ec;
+  std::uint64_t original = prog.total.load(std::memory_order_relaxed);
+  std::uint64_t compressed = std::filesystem::file_size(out, ec);
 
-  if (!file::write(out, dst)) {
-    fan::print("write failed", out);
-    return false;
-  }
-
-  row("files", files.size(), "");
-  row("original", total_os, "bytes");
-  row("fcs", dst.size(), "bytes");
-  row_float("ratio", total_os ? f64_t(dst.size()) / total_os * 100.0 : 0, "%");
+  row("original", original, "bytes");
+  row("fcs", ec ? 0 : compressed, "bytes");
+  row_float("ratio", !ec && original ? f64_t(compressed) / original * 100.0 : 0, "%");
   row_float("time", ms, "ms");
-  row_float("speed", fan::bytes_to_mib_per_s(total_os, ms), "MiB/s");
+  row_float("speed", fan::bytes_to_mib_per_s(original, ms), "MiB/s");
   fan::print("wrote", out);
   return true;
 }
@@ -156,45 +132,25 @@ static bool cmd_decompress(const std::string& in, std::string out_dir, const cli
   if (out_dir.empty()) {
     out_dir = in.ends_with(".fcs") ? in.substr(0, in.size() - 4) : in + "_ext";
   }
-  fan::bytes_t src = file::read_binary(in);
-  if (src.empty()) {
-    fan::print("read failed", in);
-    return false;
-  }
+
   fan::print("decompressing", in, "->", out_dir);
   fan::time::timer t;
-  std::vector<fan::fcs::archive_file_t> files;
+  fan::fcs::progress_t prog;
 
   {
-    fan::fcs::progress_t prog;
-    std::jthread monitor([&](std::stop_token st) {
-      while (!st.stop_requested()) {
-        fan::print_progress(prog.done.load(std::memory_order_relaxed), prog.total.load(std::memory_order_relaxed));
-        std::this_thread::sleep_for(std::chrono::milliseconds(33));
-      }
-      fan::print_progress(prog.total.load(std::memory_order_relaxed), prog.total.load(std::memory_order_relaxed));
-      fan::print("");
-    });
-    files = fan::fcs::decompress(src, &prog);
+    std::jthread monitor([&](std::stop_token st) { print_progress_until_done(prog, st); });
+    if (!fan::fcs::decompress_file_to_dir(in, out_dir, &prog)) {
+      fan::print("read failed", in);
+      return false;
+    }
   }
 
   f64_t ms = t.millis();
+  std::uint64_t extracted = prog.total.load(std::memory_order_relaxed);
 
-  std::size_t total_os = 0;
-  for (const auto& f : files) {
-    std::filesystem::path p = std::filesystem::path(out_dir) / f.path;
-    std::filesystem::create_directories(p.parent_path());
-    if (!file::write(p.string(), f.data)) {
-      fan::print("write failed", p.string());
-      return false;
-    }
-    total_os += f.data.size();
-  }
-
-  row("files", files.size(), "");
-  row("extracted", total_os, "bytes");
+  row("extracted", extracted, "bytes");
   row_float("time", ms, "ms");
-  row_float("speed", fan::bytes_to_mib_per_s(total_os, ms), "MiB/s");
+  row_float("speed", fan::bytes_to_mib_per_s(extracted, ms), "MiB/s");
   fan::print("extracted to", out_dir);
   return true;
 }
