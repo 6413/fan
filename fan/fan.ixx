@@ -14,6 +14,7 @@ export import fan.random;
 export import fan.time;
 export import fan.print;
 export import fan.print.error;
+export import fan.io.prompt;
 export import fan.utility;
 export import fan.memory;
 //export import fan.types.masterpiece;
