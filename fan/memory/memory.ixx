@@ -90,3 +90,12 @@ export namespace fan {
     fan::memory::heap_profiler_t::instance().deallocate_memory(ptr);
   }
 }
+
+export namespace fan::memory {
+  constexpr std::uint16_t read_le16(const std::uint8_t* p) { return std::uint16_t(p[0]) | (std::uint16_t(p[1]) << 8); }
+  constexpr void write_le16(std::uint8_t* p, std::uint16_t v) { p[0] = std::uint8_t(v); p[1] = std::uint8_t(v >> 8); }
+  constexpr std::uint32_t read_le32(const std::uint8_t* p) { return std::uint32_t(p[0]) | (std::uint32_t(p[1]) << 8) | (std::uint32_t(p[2]) << 16) | (std::uint32_t(p[3]) << 24); }
+  constexpr void write_le32(std::uint8_t* p, std::uint32_t v) { p[0] = std::uint8_t(v); p[1] = std::uint8_t(v >> 8); p[2] = std::uint8_t(v >> 16); p[3] = std::uint8_t(v >> 24); }
+  constexpr std::uint64_t read_le64(const std::uint8_t* p) { return std::uint64_t(read_le32(p)) | (std::uint64_t(read_le32(p + 4)) << 32); }
+  constexpr void write_le64(std::uint8_t* p, std::uint64_t v) { write_le32(p, std::uint32_t(v)); write_le32(p + 4, std::uint32_t(v >> 32)); }
+}

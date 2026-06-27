@@ -138,3 +138,9 @@ void fan::io::iterate_files_recursive(
     }
   }
 }
+
+bool fan::io::is_safe_path(const std::filesystem::path& path) {
+  if (path.empty() || path.is_absolute()) { return false; }
+  for (const auto& part : path) { if (part == "..") { return false; } }
+  return true;
+}

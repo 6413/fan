@@ -470,4 +470,9 @@ export namespace fan {
   f64_t bytes_to_mib_per_s(std::size_t size, f64_t ms) {
     return ms == 0 ? 0 : f64_t(size) / 1024 / 1024 / (ms / 1000);
   }
+
+  struct progress_t {
+    std::atomic<std::size_t> done = 0;
+    std::atomic<std::size_t> total = 0;
+  };
 }
