@@ -276,10 +276,15 @@ if [[ "$REBUILD" == true ]]; then
   echo ""
   echo -e "${BLUE}[3/3]${NC} Building..."
 else
-  echo -e "${BLUE}Configuring & Building...${NC}"
-  if ! xmake f -c "${CONFIG_ARGS[@]}" "${FEATURE_ARGS[@]}" "${XMAKE_ARGS[@]}"; then
-    echo -e "${RED}✗ XMake configuration failed!${NC}"
-    exit 1
+  CFG_STR="${CONFIG_ARGS[*]} ${FEATURE_ARGS[*]} ${XMAKE_ARGS[*]}"
+  if [[ ! -f .xmake/cfg_cache ]] || [[ "$(cat .xmake/cfg_cache 2>/dev/null)" != "$CFG_STR" ]]; then
+    echo -e "${BLUE}Configuring...${NC}"
+    if ! xmake f -c "${CONFIG_ARGS[@]}" "${FEATURE_ARGS[@]}" "${XMAKE_ARGS[@]}"; then
+      echo -e "${RED}✗ XMake configuration failed!${NC}"
+      exit 1
+    fi
+    mkdir -p .xmake
+    echo "$CFG_STR" > .xmake/cfg_cache
   fi
 fi
 
