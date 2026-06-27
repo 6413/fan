@@ -126,3 +126,15 @@ void fan::io::iterate_directory_files(
     function(str);
   }
 }
+
+void fan::io::iterate_files_recursive(
+  const std::filesystem::path& path,
+  const std::function<void(const std::filesystem::path& full, const std::filesystem::path& rel)>& function
+) {
+  std::error_code ec;
+  for (const auto& e : std::filesystem::recursive_directory_iterator(path, ec)) {
+    if (e.is_regular_file(ec)) {
+      function(e.path(), std::filesystem::relative(e.path(), path));
+    }
+  }
+}

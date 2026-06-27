@@ -43,5 +43,10 @@ export namespace fan {
       const std::string& path,
       const std::function<void(const std::string& path)>& function
     );
+
+    void iterate_files_recursive(
+      const std::filesystem::path& path,
+      const std::function<void(const std::filesystem::path& full, const std::filesystem::path& rel)>& function
+    );
   }
 }

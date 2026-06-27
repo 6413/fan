@@ -4,6 +4,8 @@ module;
   #define USE_STD_PRINT
 #endif
 
+#include <cstdio>
+
 module fan.print;
 
 import std;
@@ -100,6 +102,32 @@ namespace fan::detail {
     // Fallback if needed
   #else
     print_line_raw("stacktrace not supported");
+  #endif
+  }
+}
+
+namespace fan {
+  void fan::print_progress(std::size_t done, std::size_t total) {
+    if (!total) { return; }
+    f64_t pct = std::min<f64_t>(100.0, (f64_t(done) / total) * 100.0);
+    char buf[41];
+    int filled = static_cast<int>(pct / 2.5);
+    std::memset(buf, '=', filled);
+    std::memset(buf + filled, ' ', 40 - filled);
+    buf[40] = '\0';
+  #if defined(USE_STD_PRINT)
+    std::print("\r[{}] {:>5.3f}%", buf, pct);
+    std::fflush(stdout);  // flush the C stream, not cout
+  #else
+    std::cout << std::format("\r[{}] {:>5.3f}%", buf, pct) << std::flush;
+  #endif
+  }
+
+  void fan::flush_console() {
+  #if defined(USE_STD_PRINT)
+    std::fflush(stdout);
+  #else
+    std::cout.flush();
   #endif
   }
 }

@@ -247,6 +247,9 @@ export namespace fan {
     }
   }
 
+  void flush_console();
+  void print_progress(std::size_t done, std::size_t total);
+
   namespace debug {
     void print_stacktrace() {
       detail::print_stacktrace_impl();
