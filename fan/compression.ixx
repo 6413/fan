@@ -1,3 +1,4 @@
+// fan.compression
 module;
 
 export module fan.compression;
@@ -25,42 +26,15 @@ export namespace fan::fcs {
     p[0] = std::uint8_t(v); p[1] = std::uint8_t(v >> 8); p[2] = std::uint8_t(v >> 16); p[3] = std::uint8_t(v >> 24);
   }
 
-  struct decompress_result_t {
-    std::string filename;
+  struct archive_file_t {
+    std::string path;
     fan::bytes_t data;
   };
 
-  inline std::string archive_filename(const fan::bytes_t& comp) {
-    if (comp.size() < 7) {
-      return {};
-    }
-
-    std::uint16_t len = read_le16(comp.data() + 5);
-    if (comp.size() < std::size_t(7 + len)) {
-      return {};
-    }
-
-    return {reinterpret_cast<const char*>(comp.data() + 7), len};
-  }
-
-  inline std::string archive_filename(std::string_view path) {
-    std::ifstream f{std::filesystem::path(path), std::ios::binary};
-    std::uint8_t h[7]{};
-
-    if (!f || !f.read(reinterpret_cast<char*>(h), sizeof(h))) {
-      return {};
-    }
-
-    std::string s(read_le16(h + 5), '\0');
-    return f.read(s.data(), s.size()) ? s : std::string{};
-  }
-
-  inline std::string archive_output_path(std::string_view path) {
-    std::string name = archive_filename(path);
-    return name.empty() ?
-      file::replace_extension(path, "") :
-      (std::filesystem::path(path).parent_path() / name).string();
-  }
+  struct progress_t {
+    std::atomic<std::size_t> done = 0;
+    std::atomic<std::size_t> total = 0;
+  };
 
   constexpr std::size_t get_match_len(const std::uint8_t* p1, const std::uint8_t* p2, std::size_t max_len) {
     std::size_t l = 0;
@@ -174,7 +148,7 @@ export namespace fan::fcs {
   struct seq_t { std::uint32_t lit_len; op_e op; std::uint32_t match_len, offset; };
   struct chunk_payload_t { std::vector<seq_t> seqs; };
 
-  constexpr chunk_payload_t parse_chunk_optimal(const fan::bytes_t& src, std::size_t c_start, std::size_t c_end, match_finder_t& finder, const compress_params_t& params) {
+  constexpr chunk_payload_t parse_chunk_optimal(const fan::bytes_t& src, std::size_t c_start, std::size_t c_end, match_finder_t& finder, const compress_params_t& params, progress_t* prog = nullptr) {
     chunk_payload_t out;
     out.seqs.reserve((c_end - c_start) / 5);
     std::size_t d_start = c_start >= chunk_size ? c_start - chunk_size : 0, i = c_start;
@@ -208,13 +182,17 @@ export namespace fan::fcs {
 
     while (i < c_end) {
       auto M = best_cand(i, true, params.chain_main);
-      if (M.profit <= 0 || M.len == 0) { ++lit_cnt; ++i; continue; }
+      if (M.profit <= 0 || M.len == 0) {
+        ++lit_cnt; ++i;
+        if (prog) { prog->done.fetch_add(1, std::memory_order_relaxed); }
+        continue;
+      }
       if (params.lazy_depth > 0 && i + 4 < c_end && M.len < 128) {
         int skip = 1;
         for (; skip <= params.lazy_depth && i + skip < c_end; ++skip) {
           if (best_cand(i + skip, false, params.chain_lazy).profit > M.profit + (skip * 8)) { break; }
         }
-        if (skip <= params.lazy_depth) { lit_cnt += skip; i += skip; continue; }
+        if (skip <= params.lazy_depth) { lit_cnt += skip; i += skip; if (prog) { prog->done.fetch_add(skip, std::memory_order_relaxed); } continue; }
       }
       out.seqs.push_back({lit_cnt, M.op, std::uint32_t(M.len), M.off});
 
@@ -230,6 +208,7 @@ export namespace fan::fcs {
       for (std::size_t k = 1; k < M.len; k += step) {
         if (i + k + 2 < c_end) { finder.insert(src, i + k); }
       }
+      if (prog) { prog->done.fetch_add(M.len, std::memory_order_relaxed); }
       i += M.len;
     }
     if (lit_cnt) { out.seqs.push_back({lit_cnt, op_e::none, 0, 0}); }
@@ -363,8 +342,31 @@ export namespace fan::fcs {
     return base + (1u << b) + ((x << mb) | rd.decode_tree(std::span<std::uint16_t>{xtree[c]}, mb));
   }
 
-  fan::bytes_t compress(fan::bytes_t src, std::string_view file_path, compress_params_t params = params_max()) {
-    bool bcj = params.bcj && file::is_pe(src);
+  fan::bytes_t compress(const std::vector<archive_file_t>& files, compress_params_t params = params_max(), progress_t* prog = nullptr) {
+    std::size_t total_sz = 4;
+    for (const auto& f : files) {
+      total_sz += 2 + f.path.size() + 4 + f.data.size();
+    }
+
+    if (prog) { prog->total.store(total_sz, std::memory_order_relaxed); }
+
+    fan::bytes_t src; src.reserve(total_sz);
+    std::uint8_t u32_buf[4];
+    write_le32(u32_buf, static_cast<std::uint32_t>(files.size()));
+    src.insert(src.end(), u32_buf, u32_buf + 4);
+    for (const auto& f : files) {
+      std::uint8_t u16_buf[2];
+      write_le16(u16_buf, static_cast<std::uint16_t>(f.path.size()));
+      src.insert(src.end(), u16_buf, u16_buf + 2);
+      auto* p_path = reinterpret_cast<const std::uint8_t*>(f.path.data());
+      src.insert(src.end(), p_path, p_path + f.path.size());
+      write_le32(u32_buf, static_cast<std::uint32_t>(f.data.size()));
+      src.insert(src.end(), u32_buf, u32_buf + 4);
+      src.insert(src.end(), f.data.begin(), f.data.end());
+      if (prog) { prog->done.fetch_add(2 + f.path.size() + 4 + f.data.size(), std::memory_order_relaxed); }
+    }
+
+    bool bcj = params.bcj && files.size() == 1 && file::is_pe(files[0].data);
     if (bcj) { fan::fcs::bcj_transform(src, true); }
     std::size_t nc = (src.size() + chunk_size - 1) / chunk_size;
 
@@ -372,27 +374,22 @@ export namespace fan::fcs {
     std::atomic<std::size_t> next = 0;
     std::size_t nw = std::min<std::size_t>(nc, std::max(1u, std::thread::hardware_concurrency()));
     std::vector<std::jthread> workers;
+
     for (std::size_t w = 0; w < nw; ++w) {
       workers.emplace_back([&] {
         match_finder_t finder;
         for (std::size_t k; (k = next.fetch_add(1, std::memory_order_relaxed)) < nc;) {
-          blocks[k] = parse_chunk_optimal(src, k * chunk_size, std::min(src.size(), (k + 1) * chunk_size), finder, params);
+          std::size_t cs = k * chunk_size, ce = std::min(src.size(), (k + 1) * chunk_size);
+          blocks[k] = parse_chunk_optimal(src, cs, ce, finder, params);
+          if (prog) { prog->done.fetch_add(ce - cs, std::memory_order_relaxed); }
         }
       });
     }
     workers.clear();
 
-    std::string fn = std::filesystem::path(file_path).filename().string();
-    std::uint16_t fn_len = static_cast<std::uint16_t>(fn.size());
-
-    fan::bytes_t out; out.reserve((src.size() / 5) + fn_len + 7);
-    std::uint32_t t_sz = src.size(); auto* p = (std::uint8_t*)&t_sz;
-    out.insert(out.end(), p, p + 4); out.push_back(bcj);
-
-    std::uint8_t len_buf[2]; write_le16(len_buf, fn_len);
-    out.insert(out.end(), len_buf, len_buf + 2);
-    auto* fn_p = reinterpret_cast<const std::uint8_t*>(fn.data());
-    out.insert(out.end(), fn_p, fn_p + fn_len);
+    fan::bytes_t out; out.reserve((src.size() / 5) + 5);
+    std::uint32_t t_sz = src.size(); auto* p_sz = reinterpret_cast<std::uint8_t*>(&t_sz);
+    out.insert(out.end(), p_sz, p_sz + 4); out.push_back(bcj);
 
     range_enc_t rc {out};
     auto m_ptr = std::make_unique<stream_model_t>(); stream_model_t& model = *m_ptr;
@@ -422,22 +419,19 @@ export namespace fan::fcs {
     return out;
   }
 
-  decompress_result_t decompress(const fan::bytes_t& comp) {
+  std::vector<archive_file_t> decompress(const fan::bytes_t& comp, progress_t* prog = nullptr) {
     std::size_t idx = 0;
     std::uint32_t total_uncomp = fan::vector_read_data<std::uint32_t>(comp, idx);
     bool bcj = comp[idx++];
 
-    std::uint16_t fn_len = read_le16(comp.data() + idx);
-    idx += 2;
-    std::string orig_name(reinterpret_cast<const char*>(comp.data() + idx), fn_len);
-    idx += fn_len;
+    if (prog) { prog->total.store(total_uncomp, std::memory_order_relaxed); }
 
     fan::bytes_t out; out.reserve(total_uncomp);
     range_dec_t rd {comp, idx};
     auto m_ptr = std::make_unique<stream_model_t>(); stream_model_t& model = *m_ptr;
 
     std::array<std::uint32_t, 4> rep {1, 1, 1, 1};
-    std::size_t next_boundary = chunk_size;
+    std::size_t next_boundary = chunk_size, last_rep = 0;
 
     while (out.size() < total_uncomp) {
       if (out.size() == next_boundary) { rep = {1, 1, 1, 1}; next_boundary += chunk_size; }
@@ -475,8 +469,31 @@ export namespace fan::fcs {
         for (; j + off <= mlen; j += off) { std::memcpy(p + j, s + j, off); }
         for (; j < mlen; ++j) { p[j] = s[j]; }
       }
+
+      if (prog && (out.size() - last_rep >= 65536 || out.size() >= total_uncomp)) {
+        prog->done.store(out.size(), std::memory_order_relaxed);
+        last_rep = out.size();
+      }
     }
+
     if (bcj) { fan::fcs::bcj_transform(out, false); }
-    return {std::move(orig_name), std::move(out)};
+
+    std::vector<archive_file_t> files;
+    if (out.size() < 4) { return files; }
+    std::size_t out_idx = 0;
+    std::uint32_t num_files = read_le32(out.data() + out_idx); out_idx += 4;
+    for (std::uint32_t i = 0; i < num_files; ++i) {
+      if (out_idx + 2 > out.size()) { break; }
+      std::uint16_t path_len = read_le16(out.data() + out_idx); out_idx += 2;
+      if (out_idx + path_len > out.size()) { break; }
+      std::string path(reinterpret_cast<const char*>(out.data() + out_idx), path_len); out_idx += path_len;
+      if (out_idx + 4 > out.size()) { break; }
+      std::uint32_t size = read_le32(out.data() + out_idx); out_idx += 4;
+      if (out_idx + size > out.size()) { break; }
+      fan::bytes_t data(out.begin() + out_idx, out.begin() + out_idx + size); out_idx += size;
+      files.push_back({std::move(path), std::move(data)});
+    }
+
+    return files;
   }
 }
