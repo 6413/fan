@@ -74,6 +74,173 @@ export namespace fan::fcs {
     return std::min(out_idx, raw.size());
   }
 
+
+  inline constexpr std::uint8_t flag_bcj = 1u;
+  inline constexpr std::uint8_t flag_delta = 2u;
+  inline constexpr std::uint8_t flag_text = 32u;
+  inline constexpr std::uint8_t text_marker = 1u;
+
+  constexpr bool text_word_char(std::uint8_t c) {
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-';
+  }
+
+  constexpr bool text_word_first(std::uint8_t c) {
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+  }
+
+  inline bool looks_like_large_text(const fan::bytes_t& raw, std::size_t payload_offset) {
+    std::size_t begin = std::min(payload_offset, raw.size());
+    std::size_t n = std::min<std::size_t>(raw.size() - begin, 1uz << 20);
+    if (n < (1uz << 20) || raw.size() < (64uz << 20)) { return false; }
+    std::size_t printable = 0, letters = 0, zeros = 0;
+    for (std::size_t i = 0; i < n; ++i) {
+      std::uint8_t c = raw[begin + i];
+      printable += (c == 9 || c == 10 || c == 13 || (c >= 32 && c < 127));
+      letters += ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z'));
+      zeros += c == 0;
+    }
+    return zeros == 0 && printable * 100 >= n * 93 && letters * 100 >= n * 35;
+  }
+
+  struct text_word_t {
+    std::string word;
+    std::uint32_t count = 0;
+    std::uint32_t score = 0;
+  };
+
+  inline fan::bytes_t text_encode_transform(const fan::bytes_t& raw) {
+    std::unordered_map<std::string, std::uint32_t> counts;
+    counts.reserve(1 << 16);
+    for (std::size_t i = 0; i < raw.size();) {
+      std::uint8_t c = raw[i];
+      if (!text_word_first(c)) { ++i; continue; }
+      std::size_t b = i++;
+      while (i < raw.size() && text_word_char(raw[i]) && i - b < 31) { ++i; }
+      while (i < raw.size() && text_word_char(raw[i])) { ++i; }
+      std::size_t len = i - b;
+      if (len < 4 || len > 31) { continue; }
+      ++counts[std::string(reinterpret_cast<const char*>(raw.data() + b), len)];
+    }
+
+    std::vector<text_word_t> words;
+    words.reserve(std::min<std::size_t>(counts.size(), 8192));
+    for (auto& [w, c] : counts) {
+      if (c < 4) { continue; }
+      std::uint32_t score = std::uint32_t(c * (w.size() > 3 ? w.size() - 3 : 0));
+      if (score > w.size() + 16) { words.push_back({std::move(w), c, score}); }
+    }
+    std::sort(words.begin(), words.end(), [](const auto& a, const auto& b) {
+      if (a.score != b.score) { return a.score > b.score; }
+      return a.word < b.word;
+    });
+
+    std::vector<std::string> dict;
+    dict.reserve(4096);
+    for (auto& w : words) {
+      std::size_t id = dict.size();
+      std::size_t repl = id < 256 ? 3 : 4;
+      std::size_t saved = w.count * (w.word.size() - repl);
+      if (w.word.size() <= repl || saved <= w.word.size() + 8) { continue; }
+      dict.push_back(std::move(w.word));
+      if (dict.size() == 4096) { break; }
+    }
+    if (dict.empty()) { return {}; }
+
+    std::unordered_map<std::string_view, std::uint32_t> ids;
+    ids.reserve(dict.size() * 2);
+    for (std::uint32_t i = 0; i < dict.size(); ++i) { ids.emplace(dict[i], i); }
+
+    fan::bytes_t out;
+    out.reserve(raw.size() * 9 / 10);
+    std::uint8_t buf[8];
+    fan::memory::write_le64(buf, raw.size());
+    out.insert(out.end(), buf, buf + 8);
+    std::uint8_t dc[2];
+    fan::memory::write_le16(dc, std::uint16_t(dict.size()));
+    out.insert(out.end(), dc, dc + 2);
+    for (const auto& w : dict) {
+      out.push_back(std::uint8_t(w.size()));
+      out.insert(out.end(), w.begin(), w.end());
+    }
+
+    for (std::size_t i = 0; i < raw.size();) {
+      std::uint8_t c = raw[i];
+      if (c == text_marker) {
+        out.push_back(text_marker);
+        out.push_back(0);
+        ++i;
+        continue;
+      }
+      if (!text_word_first(c)) {
+        out.push_back(c);
+        ++i;
+        continue;
+      }
+      std::size_t b = i++;
+      while (i < raw.size() && text_word_char(raw[i]) && i - b < 31) { ++i; }
+      while (i < raw.size() && text_word_char(raw[i])) { ++i; }
+      std::string_view w(reinterpret_cast<const char*>(raw.data() + b), i - b);
+      auto it = ids.find(w);
+      if (it == ids.end()) {
+        out.insert(out.end(), raw.begin() + b, raw.begin() + i);
+        continue;
+      }
+      std::uint32_t id = it->second;
+      out.push_back(text_marker);
+      if (id < 256) {
+        out.push_back(1);
+        out.push_back(std::uint8_t(id));
+      } else {
+        out.push_back(2);
+        out.push_back(std::uint8_t(id));
+        out.push_back(std::uint8_t(id >> 8));
+      }
+    }
+    return out.size() + raw.size() / 64 < raw.size() ? std::move(out) : fan::bytes_t{};
+  }
+
+  inline fan::bytes_t text_decode_transform(const fan::bytes_t& in) {
+    if (in.size() < 10) { throw std::runtime_error("corrupt text transform"); }
+    std::size_t p = 0;
+    std::uint64_t out_size = fan::memory::read_le64(in.data()); p += 8;
+    std::uint16_t dict_count = fan::memory::read_le16(in.data() + p); p += 2;
+    std::vector<std::string> dict;
+    dict.reserve(dict_count);
+    for (std::uint32_t i = 0; i < dict_count; ++i) {
+      if (p >= in.size()) { throw std::runtime_error("corrupt text transform"); }
+      std::uint8_t len = in[p++];
+      if (p + len > in.size()) { throw std::runtime_error("corrupt text transform"); }
+      dict.emplace_back(reinterpret_cast<const char*>(in.data() + p), len);
+      p += len;
+    }
+
+    fan::bytes_t out;
+    out.reserve(std::size_t(out_size));
+    while (p < in.size()) {
+      std::uint8_t c = in[p++];
+      if (c != text_marker) {
+        out.push_back(c);
+        continue;
+      }
+      if (p >= in.size()) { throw std::runtime_error("corrupt text transform"); }
+      std::uint8_t t = in[p++];
+      if (t == 0) { out.push_back(text_marker); }
+      else if (t == 1) {
+        if (p >= in.size()) { throw std::runtime_error("corrupt text transform"); }
+        std::uint32_t id = in[p++];
+        if (id >= dict.size()) { throw std::runtime_error("corrupt text transform"); }
+        out.insert(out.end(), dict[id].begin(), dict[id].end());
+      } else if (t == 2) {
+        if (p + 2 > in.size()) { throw std::runtime_error("corrupt text transform"); }
+        std::uint32_t id = std::uint32_t(in[p]) | (std::uint32_t(in[p + 1]) << 8); p += 2;
+        if (id >= dict.size()) { throw std::runtime_error("corrupt text transform"); }
+        out.insert(out.end(), dict[id].begin(), dict[id].end());
+      } else { throw std::runtime_error("corrupt text transform"); }
+    }
+    if (out.size() != out_size) { throw std::runtime_error("corrupt text transform"); }
+    return out;
+  }
+
   // --- match finder: h2/h3/h4 + hash chain, returns up to max_out candidates ---
 
   struct match_t { std::uint32_t offset = 0, length = 0; };
@@ -1179,16 +1346,25 @@ export namespace fan::fcs {
     fan::bytes_t raw_buf;
     provider.read_range(0, provider.size(), raw_buf);
 
+    bool use_text = false;
+    if (!use_bcj && files.size() == 1 && looks_like_large_text(raw_buf, payload_offset)) {
+      fan::bytes_t text_buf = text_encode_transform(raw_buf);
+      if (!text_buf.empty()) {
+        raw_buf = std::move(text_buf);
+        use_text = true;
+      }
+    }
+
     if (use_bcj) {
       bcj_transform_range(raw_buf, payload_offset, raw_buf.size(), true);
-    } else {
+    } else if (!use_text) {
       delta_stride = detect_delta_stride(raw_buf);
       use_delta = delta_stride > 1;
       if (use_delta) { delta_encode(raw_buf, delta_stride); }
     }
 
     int stride_log2 = delta_stride == 8 ? 3 : delta_stride == 4 ? 2 : delta_stride == 2 ? 1 : 0;
-    std::uint8_t flags = std::uint8_t(use_bcj ? 1 : 0) | std::uint8_t(use_delta ? 2 : 0) | std::uint8_t(stride_log2 << 2);
+    std::uint8_t flags = std::uint8_t(use_bcj ? flag_bcj : 0) | std::uint8_t(use_delta ? flag_delta : 0) | std::uint8_t(use_text ? flag_text : 0) | std::uint8_t(stride_log2 << 2);
 
     fan::io::file::file_t* fp = nullptr;
     if (fan::io::file::open(&fp, out_path.string(), {"wb"})) { return false; }
@@ -1221,8 +1397,9 @@ export namespace fan::fcs {
       if (fan::memory::read_le32(header) != magic_v4) { throw std::runtime_error("needs FCS4"); }
       std::uint64_t total_uncomp = fan::memory::read_le64(header + 4);
       std::uint8_t flags = header[16];
-      bool use_bcj = flags & 1;
-      bool use_delta = (flags >> 1) & 1;
+      bool use_bcj = flags & flag_bcj;
+      bool use_delta = flags & flag_delta;
+      bool use_text = flags & flag_text;
       int stride_log2 = (flags >> 2) & 7;
       int delta_stride = 1 << stride_log2;
 
@@ -1234,6 +1411,7 @@ export namespace fan::fcs {
       if (prog) { prog->done.store(0, std::memory_order_relaxed); prog->total.store(total_uncomp, std::memory_order_relaxed); }
 
       fan::bytes_t raw = decode_stream_seq(comp, 0, total_uncomp, prog);
+      if (use_text)  { raw = text_decode_transform(raw); }
       if (use_delta) { delta_decode(raw, delta_stride); }
       if (use_bcj)   { bcj_transform_range(raw, archive_payload_offset(raw), raw.size(), false); }
 
@@ -1271,13 +1449,21 @@ export namespace fan::fcs {
 
     int delta_stride = 1;
     bool use_delta = false;
-    if (!use_bcj) {
+    bool use_text = false;
+    if (!use_bcj && files.size() == 1 && looks_like_large_text(raw, payload_offset)) {
+      fan::bytes_t text_buf = text_encode_transform(raw);
+      if (!text_buf.empty()) {
+        raw = std::move(text_buf);
+        use_text = true;
+      }
+    }
+    if (!use_bcj && !use_text) {
       delta_stride = detect_delta_stride(raw);
       use_delta = delta_stride > 1;
       if (use_delta) { delta_encode(raw, delta_stride); }
     }
     int stride_log2 = delta_stride == 8 ? 3 : delta_stride == 4 ? 2 : delta_stride == 2 ? 1 : 0;
-    std::uint8_t flags = std::uint8_t(use_bcj ? 1 : 0) | std::uint8_t(use_delta ? 2 : 0) | std::uint8_t(stride_log2 << 2);
+    std::uint8_t flags = std::uint8_t(use_bcj ? flag_bcj : 0) | std::uint8_t(use_delta ? flag_delta : 0) | std::uint8_t(use_text ? flag_text : 0) | std::uint8_t(stride_log2 << 2);
 
     fan::bytes_t comp;
     run_compress_core(raw, params, prog, 0, comp);
@@ -1296,13 +1482,15 @@ export namespace fan::fcs {
     if (comp.size() < 17 || fan::memory::read_le32(comp.data()) != magic_v4) { throw std::runtime_error("needs FCS4"); }
     std::uint64_t total_uncomp = fan::memory::read_le64(comp.data() + 4);
     std::uint8_t flags = comp[16];
-    bool use_bcj = flags & 1;
-    bool use_delta = (flags >> 1) & 1;
+    bool use_bcj = flags & flag_bcj;
+    bool use_delta = flags & flag_delta;
+    bool use_text = flags & flag_text;
     int stride_log2 = (flags >> 2) & 7;
     int delta_stride = 1 << stride_log2;
     if (prog) { prog->total.store(total_uncomp, std::memory_order_relaxed); }
 
     fan::bytes_t raw = decode_stream_seq(comp, 17, total_uncomp, prog);
+    if (use_text)  { raw = text_decode_transform(raw); }
     if (use_delta) { delta_decode(raw, delta_stride); }
     if (use_bcj)   { bcj_transform_range(raw, archive_payload_offset(raw), raw.size(), false); }
     if (raw.size() < 4) { return files; }
