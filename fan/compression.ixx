@@ -15,7 +15,8 @@ import fan.print;
 namespace file = fan::io::file;
 
 export namespace fan::fcs {
-  inline constexpr std::size_t chunk_size = 1uz << 26; // 64 MiB
+  inline constexpr std::size_t default_chunk_size = 1uz << 26; // 64 MiB
+  inline constexpr std::size_t chunk_size = default_chunk_size;
 
   constexpr void bcj_transform_range(fan::bytes_t& d, std::size_t begin, std::size_t end, bool enc) {
     end = std::min(end, d.size());
@@ -78,6 +79,7 @@ export namespace fan::fcs {
   inline constexpr std::uint8_t flag_bcj = 1u;
   inline constexpr std::uint8_t flag_delta = 2u;
   inline constexpr std::uint8_t flag_text = 32u;
+  inline constexpr std::uint8_t flag_text2 = 64u;
   inline constexpr std::uint8_t text_marker = 1u;
 
   constexpr bool text_word_char(std::uint8_t c) {
@@ -241,9 +243,256 @@ export namespace fan::fcs {
     return out;
   }
 
+
+  inline constexpr std::string_view text2_static_tokens[] = {
+    "<page>", "</page>", "<title>", "</title>", "<ns>", "</ns>", "<id>", "</id>",
+    "<revision>", "</revision>", "<timestamp>", "</timestamp>", "<contributor>", "</contributor>",
+    "<username>", "</username>", "<ip>", "</ip>", "<comment>", "</comment>",
+    "<text xml:space=\"preserve\">", "</text>", "<minor />", "<sha1>", "</sha1>",
+    "<model>wikitext</model>", "<format>text/x-wiki</format>",
+    "[[", "]]", "{{", "}}", "'''", "''", "==", "||", "|-", "|}", "{|",
+    "&quot;", "&amp;", "&lt;", "&gt;", "&nbsp;", "&ndash;", "&mdash;",
+    "<redirect title=\"", "#REDIRECT", "Category:", "Image:", "File:", "Template:",
+    "http://", "https://", "www.", "ref>", "</ref>", "<br />",
+    "which", "there", "their", "that", "this", "with", "have", "were", "from", ".com", "ing", "ion", "and", "the", " tha", "ent", "ere", " co", "e o", "e a", "e c", "e s", "e t", " th", " t", "in ", "he ", " to", "of ", " of", "for", "you", "not", "all", "was", "one", "our", "ver", "ter", "men", "ati", "ass", "ate", "div", "whi", "who", "but", "his", "her", "hat", "tha", "the ", "they", "are", "res", "com", "con", "per", "pro", "tion", "atio", "ment", "ence", "able", "ould", "ight", "ally", "ally ", " and", " the", " to ", " of ", " in ", " a ", " is ", " as ", " on ", " or ", " by ", " an ", " be ", " re", " wa", " wi", " wh", " ma", " ha", " fo", " cl", " we", "</", "=\"", "ch ", "th "
+  };
+
+  inline std::uint8_t text2_lower(std::uint8_t c) {
+    return c >= 'A' && c <= 'Z' ? std::uint8_t(c + ('a' - 'A')) : c;
+  }
+
+  inline std::uint8_t text2_upper(std::uint8_t c) {
+    return c >= 'a' && c <= 'z' ? std::uint8_t(c - ('a' - 'A')) : c;
+  }
+
+  inline std::uint8_t text2_case_kind(const std::uint8_t* p, std::size_t n) {
+    bool has_alpha = false, has_lower = false, has_upper = false;
+    for (std::size_t i = 0; i < n; ++i) {
+      auto c = p[i];
+      if (c >= 'a' && c <= 'z') { has_alpha = has_lower = true; }
+      else if (c >= 'A' && c <= 'Z') { has_alpha = has_upper = true; }
+    }
+    if (!has_alpha) { return 0; }
+    if (has_lower && !has_upper) { return 0; }
+    if (has_upper && !has_lower) { return 2; }
+    if (p[0] >= 'A' && p[0] <= 'Z') {
+      for (std::size_t i = 1; i < n; ++i) {
+        if (p[i] >= 'A' && p[i] <= 'Z') { return 3; }
+      }
+      return 1;
+    }
+    return 3;
+  }
+
+  inline std::string text2_to_lower_word(const std::uint8_t* p, std::size_t n) {
+    std::string s;
+    s.resize(n);
+    for (std::size_t i = 0; i < n; ++i) { s[i] = char(text2_lower(p[i])); }
+    return s;
+  }
+
+  inline void text2_emit_id(fan::bytes_t& out, std::uint8_t t8, std::uint8_t t16, std::uint32_t id) {
+    out.push_back(text_marker);
+    if (id < 256) {
+      out.push_back(t8);
+      out.push_back(std::uint8_t(id));
+    } else {
+      out.push_back(t16);
+      out.push_back(std::uint8_t(id));
+      out.push_back(std::uint8_t(id >> 8));
+    }
+  }
+
+  inline int text2_static_match(const fan::bytes_t& raw, std::size_t i) {
+    switch (raw[i]) {
+      case '<': case '[': case '{': case '&': case '#': case 'C': case 'I': case 'F': case 'T':
+      case 'a': case 'b': case 'c': case 'd': case 'e': case 'f': case 'g': case 'h':
+      case 'i': case 'm': case 'n': case 'o': case 'p': case 'r': case 's': case 't':
+      case 'u': case 'v': case 'w': case 'y': case '|': case '=': case '\'': break;
+      default: return -1;
+    }
+    int best = -1;
+    std::size_t best_len = 0;
+    for (std::size_t k = 0; k < std::size(text2_static_tokens); ++k) {
+      auto tok = text2_static_tokens[k];
+      if (tok.empty() || raw[i] != std::uint8_t(tok[0]) || i + tok.size() > raw.size()) { continue; }
+      std::size_t emit_len = k < 256 ? 3 : 4;
+      if (tok.size() < emit_len || tok.size() <= best_len) { continue; }
+      if (std::memcmp(raw.data() + i, tok.data(), tok.size()) == 0) {
+        best = int(k);
+        best_len = tok.size();
+      }
+    }
+    return best;
+  }
+
+  inline fan::bytes_t text2_encode_transform(const fan::bytes_t& raw) {
+    std::unordered_map<std::string, std::uint32_t> counts;
+    counts.reserve(1 << 17);
+    for (std::size_t i = 0; i < raw.size();) {
+      std::uint8_t c = raw[i];
+      if (!text_word_first(c)) { ++i; continue; }
+      std::size_t b = i++;
+      while (i < raw.size() && text_word_char(raw[i]) && i - b < 31) { ++i; }
+      while (i < raw.size() && text_word_char(raw[i])) { ++i; }
+      std::size_t len = i - b;
+      if (len < 4 || len > 31) { continue; }
+      auto ck = text2_case_kind(raw.data() + b, len);
+      if (ck == 3) { continue; }
+      ++counts[text2_to_lower_word(raw.data() + b, len)];
+    }
+
+    std::vector<text_word_t> words;
+    words.reserve(std::min<std::size_t>(counts.size(), 16384));
+    for (auto& [w, c] : counts) {
+      if (c < 4) { continue; }
+      std::uint32_t score = std::uint32_t(c * (w.size() > 3 ? w.size() - 3 : 0));
+      if (score > w.size() + 12) { words.push_back({std::move(w), c, score}); }
+    }
+    std::sort(words.begin(), words.end(), [](const auto& a, const auto& b) {
+      if (a.score != b.score) { return a.score > b.score; }
+      return a.word < b.word;
+    });
+
+    std::vector<std::string> dict;
+    dict.reserve(8192);
+    for (auto& w : words) {
+      std::size_t id = dict.size();
+      std::size_t repl = id < 256 ? 3 : 4;
+      std::size_t saved = w.count * (w.word.size() - repl);
+      if (w.word.size() <= repl || saved <= w.word.size() + 8) { continue; }
+      dict.push_back(std::move(w.word));
+      if (dict.size() == 8192) { break; }
+    }
+    if (dict.empty()) { return {}; }
+
+    std::unordered_map<std::string_view, std::uint32_t> ids;
+    ids.reserve(dict.size() * 2);
+    for (std::uint32_t i = 0; i < dict.size(); ++i) { ids.emplace(dict[i], i); }
+
+    fan::bytes_t out;
+    out.reserve(raw.size() * 4 / 5);
+    std::uint8_t buf[8];
+    fan::memory::write_le64(buf, raw.size());
+    out.insert(out.end(), buf, buf + 8);
+    std::uint8_t dc[2];
+    fan::memory::write_le16(dc, std::uint16_t(dict.size()));
+    out.insert(out.end(), dc, dc + 2);
+    for (const auto& w : dict) {
+      out.push_back(std::uint8_t(w.size()));
+      out.insert(out.end(), w.begin(), w.end());
+    }
+
+    for (std::size_t i = 0; i < raw.size();) {
+      if (raw[i] == text_marker) {
+        out.push_back(text_marker);
+        out.push_back(0);
+        ++i;
+        continue;
+      }
+      int st = text2_static_match(raw, i);
+      if (st >= 0) {
+        text2_emit_id(out, 7, 8, std::uint32_t(st));
+        i += text2_static_tokens[st].size();
+        continue;
+      }
+      if (!text_word_first(raw[i])) {
+        out.push_back(raw[i++]);
+        continue;
+      }
+      std::size_t b = i++;
+      while (i < raw.size() && text_word_char(raw[i]) && i - b < 31) { ++i; }
+      while (i < raw.size() && text_word_char(raw[i])) { ++i; }
+      std::size_t len = i - b;
+      std::uint8_t ck = len <= 31 ? text2_case_kind(raw.data() + b, len) : 3;
+      if (len < 4 || len > 31 || ck == 3) {
+        out.insert(out.end(), raw.begin() + b, raw.begin() + i);
+        continue;
+      }
+      auto lw = text2_to_lower_word(raw.data() + b, len);
+      auto it = ids.find(std::string_view(lw.data(), lw.size()));
+      if (it == ids.end()) {
+        out.insert(out.end(), raw.begin() + b, raw.begin() + i);
+        continue;
+      }
+      std::uint8_t t8 = ck == 0 ? 1 : ck == 1 ? 3 : 5;
+      text2_emit_id(out, t8, std::uint8_t(t8 + 1), it->second);
+    }
+    return out.size() < raw.size() + raw.size() / 64 ? std::move(out) : fan::bytes_t{};
+  }
+
+  inline fan::bytes_t text2_decode_transform(const fan::bytes_t& in) {
+    if (in.size() < 10) { throw std::runtime_error("corrupt text2 transform"); }
+    std::size_t p = 0;
+    std::uint64_t out_size = fan::memory::read_le64(in.data()); p += 8;
+    std::uint16_t dict_count = fan::memory::read_le16(in.data() + p); p += 2;
+    std::vector<std::string> dict;
+    dict.reserve(dict_count);
+    for (std::uint32_t i = 0; i < dict_count; ++i) {
+      if (p >= in.size()) { throw std::runtime_error("corrupt text2 transform"); }
+      std::uint8_t len = in[p++];
+      if (p + len > in.size()) { throw std::runtime_error("corrupt text2 transform"); }
+      dict.emplace_back(reinterpret_cast<const char*>(in.data() + p), len);
+      p += len;
+    }
+
+    fan::bytes_t out;
+    out.reserve(std::size_t(out_size));
+    auto put_word = [&](std::uint32_t id, std::uint8_t ck) {
+      if (id >= dict.size()) { throw std::runtime_error("corrupt text2 transform"); }
+      for (std::size_t i = 0; i < dict[id].size(); ++i) {
+        std::uint8_t c = std::uint8_t(dict[id][i]);
+        if (ck == 1 && i == 0) { c = text2_upper(c); }
+        else if (ck == 2) { c = text2_upper(c); }
+        out.push_back(c);
+      }
+    };
+
+    while (p < in.size()) {
+      std::uint8_t c = in[p++];
+      if (c != text_marker) {
+        out.push_back(c);
+        continue;
+      }
+      if (p >= in.size()) { throw std::runtime_error("corrupt text2 transform"); }
+      std::uint8_t t = in[p++];
+      if (t == 0) { out.push_back(text_marker); continue; }
+      std::uint32_t id = 0;
+      if (t == 1 || t == 3 || t == 5 || t == 7) {
+        if (p >= in.size()) { throw std::runtime_error("corrupt text2 transform"); }
+        id = in[p++];
+      } else if (t == 2 || t == 4 || t == 6 || t == 8) {
+        if (p + 2 > in.size()) { throw std::runtime_error("corrupt text2 transform"); }
+        id = std::uint32_t(in[p]) | (std::uint32_t(in[p + 1]) << 8); p += 2;
+      } else { throw std::runtime_error("corrupt text2 transform"); }
+
+      if (t == 7 || t == 8) {
+        if (id >= std::size(text2_static_tokens)) { throw std::runtime_error("corrupt text2 transform"); }
+        auto tok = text2_static_tokens[id];
+        out.insert(out.end(), tok.begin(), tok.end());
+      } else {
+        std::uint8_t ck = (t == 1 || t == 2) ? 0 : (t == 3 || t == 4) ? 1 : 2;
+        put_word(id, ck);
+      }
+    }
+    if (out.size() != out_size) { throw std::runtime_error("corrupt text2 transform"); }
+    return out;
+  }
+
   // --- match finder: h2/h3/h4 + hash chain, returns up to max_out candidates ---
 
   struct match_t { std::uint32_t offset = 0, length = 0; };
+
+  struct match_heads_t {
+    std::uint32_t h2 = 0xFFFFFFFFu;
+    std::uint32_t h3 = 0xFFFFFFFFu;
+    std::uint32_t h4 = 0xFFFFFFFFu;
+  };
+
+  struct match_cache_t {
+    std::uint32_t count = 0;
+    std::array<match_t, 64> matches{};
+  };
 
   struct match_finder_t {
     static constexpr std::uint32_t nil = 0xFFFFFFFFu;
@@ -252,11 +501,12 @@ export namespace fan::fcs {
     static constexpr std::uint32_t h4_size = 1 << 24;
 
     std::vector<std::uint32_t> h2, h3, h4, chain;
+    std::vector<std::uint64_t> inserted_bits;
     std::size_t base = 0;
 
     match_finder_t(std::size_t d_start, std::size_t c_end)
       : h2(h2_size, nil), h3(h3_size, nil), h4(h4_size, nil),
-        chain(c_end - d_start, nil), base(d_start) {
+        chain(c_end - d_start, nil), inserted_bits(((c_end - d_start) + 63) / 64), base(d_start) {
       if (c_end - d_start > std::numeric_limits<std::uint32_t>::max() - 1) {
         throw std::runtime_error("match window too large");
       }
@@ -271,6 +521,13 @@ export namespace fan::fcs {
     std::uint32_t to_rel(std::size_t p) const { return std::uint32_t(p - base); }
     std::size_t to_abs(std::uint32_t p) const { return base + p; }
     std::uint32_t& link(std::size_t p) { return chain[p - base]; }
+    bool mark_inserted(std::uint32_t r) {
+      std::uint64_t bit = 1ull << (r & 63);
+      auto& word = inserted_bits[r >> 6];
+      if (word & bit) { return false; }
+      word |= bit;
+      return true;
+    }
 
     void warm_up(const fan::bytes_t& d, std::size_t ws, std::size_t we) {
       for (std::size_t i = ws; i + 4 <= we; ++i) { insert(d, i); }
@@ -280,66 +537,65 @@ export namespace fan::fcs {
       if (i + 4 > d.size()) { return; }
       std::uint32_t k2, k3, k4;
       hashes(d.data() + i, k2, k3, k4);
+      insert_known_hashes(i, k2, k3, k4);
+    }
+
+    match_heads_t get_heads(std::uint32_t k2, std::uint32_t k3, std::uint32_t k4) const {
+      return {h2[k2], h3[k3], h4[k4]};
+    }
+
+    void insert_known_hashes(std::size_t i, std::uint32_t k2, std::uint32_t k3, std::uint32_t k4) {
       std::uint32_t r = to_rel(i);
-      link(i) = h4[k4];
+      if (!mark_inserted(r)) { return; }
+      chain[r] = h4[k4];
       h2[k2] = h3[k3] = h4[k4] = r;
     }
 
-    // returns number of matches written into out[], sorted ascending by length
-    std::uint32_t find(const fan::bytes_t& src, std::size_t i, std::size_t c_end,
-                       const std::array<std::uint32_t,4>& rep, std::uint32_t chain_limit,
-                       bool push, std::span<match_t> out) {
+    std::uint32_t find_from_heads(const fan::bytes_t& src, std::size_t i, std::size_t c_end,
+                                  match_heads_t heads, std::uint32_t chain_limit,
+                                  std::span<match_t> out) const {
       const std::uint32_t max_avail = std::uint32_t(c_end - i);
       std::uint32_t n_out = 0;
       if (i + 4 > c_end) { return 0; }
 
       const auto* po = src.data() + i;
-      std::uint32_t k2, k3, k4;
-      hashes(po, k2, k3, k4);
-
-      // 2-byte quick hit
-      std::uint32_t c2r = h2[k2];
-      if (c2r != nil && max_avail >= 2) {
-        std::size_t c2 = to_abs(c2r);
-        if (c2 < i) {
-          const auto* pc = src.data() + c2;
-          if (pc[0] == po[0] && pc[1] == po[1]) {
-            std::uint32_t len = 2;
-            while (len < max_avail && po[len] == pc[len]) { ++len; }
-            out[n_out++] = {std::uint32_t(i - c2), len};
-          }
+      auto try_quick = [&](std::uint32_t cur, std::uint32_t min_len) {
+        if (cur == nil || n_out >= out.size()) { return; }
+        std::size_t p = base + cur;
+        if (p >= i || max_avail < min_len) { return; }
+        const auto* pc = src.data() + p;
+        for (std::uint32_t k = 0; k < min_len; ++k) {
+          if (po[k] != pc[k]) { return; }
         }
-      }
-      // 3-byte quick hit
-      std::uint32_t c3r = h3[k3];
-      if (c3r != nil && max_avail >= 3) {
-        std::size_t c3 = to_abs(c3r);
-        if (c3 < i) {
-          const auto* pc = src.data() + c3;
-          if (pc[0] == po[0] && pc[1] == po[1] && pc[2] == po[2]) {
-            std::uint32_t len = 3;
-            while (len < max_avail && po[len] == pc[len]) { ++len; }
-            if (n_out == 0 || len > out[n_out-1].length) { out[n_out++] = {std::uint32_t(i - c3), len}; }
-          }
-        }
-      }
+        std::uint32_t len = min_len;
+        while (len < max_avail && po[len] == pc[len]) { ++len; }
+        if (n_out == 0 || len > out[n_out - 1].length) { out[n_out++] = {std::uint32_t(i - p), len}; }
+      };
 
-      // main chain walk
-      std::uint32_t cur = h4[k4];
-      if (push) {
-        link(i) = cur;
-        h2[k2] = h3[k3] = h4[k4] = to_rel(i);
-      }
+      try_quick(heads.h2, 2);
+      try_quick(heads.h3, 3);
 
-      std::uint32_t best_len = (n_out > 0) ? out[n_out-1].length : 0;
+      std::uint32_t best_len = (n_out > 0) ? out[n_out - 1].length : 0;
+      std::uint32_t cur = heads.h4;
       std::uint32_t iters = 0;
+      std::uint32_t po4; std::memcpy(&po4, po, 4);
       while (cur != nil && iters++ < chain_limit) {
-        std::size_t cur_abs = to_abs(cur);
-        if (cur_abs >= i) { break; }
+        std::size_t cur_abs = base + cur;
+        if (cur_abs >= i) {
+          std::uint32_t next = chain[cur];
+          if (next == cur) { break; }
+          cur = next;
+          continue;
+        }
         const auto* pc = src.data() + cur_abs;
-        if (best_len > 0 && best_len < max_avail && po[best_len] != pc[best_len]) { cur = link(cur_abs); continue; }
-        std::uint32_t v0, v1; std::memcpy(&v0, po, 4); std::memcpy(&v1, pc, 4);
-        if (v0 == v1) {
+        if (best_len > 0 && best_len < max_avail && po[best_len] != pc[best_len]) {
+          std::uint32_t next = chain[cur];
+          if (next == cur) { break; }
+          cur = next;
+          continue;
+        }
+        std::uint32_t pc4; std::memcpy(&pc4, pc, 4);
+        if (po4 == pc4) {
           std::uint32_t len = 4;
           while (len + 8 <= max_avail) {
             std::uint64_t x, y; std::memcpy(&x, po+len, 8); std::memcpy(&y, pc+len, 8);
@@ -350,13 +606,26 @@ export namespace fan::fcs {
           if (len > best_len) {
             best_len = len;
             if (n_out < out.size()) { out[n_out++] = {std::uint32_t(i - cur_abs), len}; }
-            else { out[n_out-1] = {std::uint32_t(i - cur_abs), len}; }
+            else { out[n_out - 1] = {std::uint32_t(i - cur_abs), len}; }
             if (len >= max_avail) { break; }
           }
         }
-        cur = link(cur_abs);
+        std::uint32_t next = chain[cur];
+        if (next == cur) { break; }
+        cur = next;
       }
       return n_out;
+    }
+
+    std::uint32_t find(const fan::bytes_t& src, std::size_t i, std::size_t c_end,
+                       const std::array<std::uint32_t,4>&, std::uint32_t chain_limit,
+                       bool push, std::span<match_t> out) {
+      if (i + 4 > c_end) { return 0; }
+      std::uint32_t k2, k3, k4;
+      hashes(src.data() + i, k2, k3, k4);
+      match_heads_t heads = get_heads(k2, k3, k4);
+      if (push) { insert_known_hashes(i, k2, k3, k4); }
+      return find_from_heads(src, i, c_end, heads, chain_limit, out);
     }
   };
 
@@ -365,11 +634,12 @@ export namespace fan::fcs {
     bool bcj = true;
     bool optimal = true; // true = DP optimal parser, false = lazy
     int lazy_depth = 2;  // only used when optimal=false
+    std::size_t chunk_size = default_chunk_size;
   };
 
-  constexpr compress_params_t params_fast()   { return {16, true, false, 1}; }
-  constexpr compress_params_t params_normal() { return {32, true, false, 2}; }
-  constexpr compress_params_t params_max()    { return {48, true, true,  0}; }
+  constexpr compress_params_t params_fast()   { return {16, true, false, 1, default_chunk_size}; }
+  constexpr compress_params_t params_normal() { return {32, true, false, 2, default_chunk_size}; }
+  constexpr compress_params_t params_max()    { return {48, true, true,  0, default_chunk_size}; }
 
   // --- LZMA 12-state model ---
   // states: 0-3 literal, 4 match-after-lit, 5 rep-after-lit, 6 shortrep-after-lit,
@@ -818,11 +1088,49 @@ export namespace fan::fcs {
     std::uint8_t state = 0;
   };
 
+  struct parse_price_cache_t {
+    std::array<std::array<std::uint32_t, max_exp_len - 1>, num_pos_states> match_len{};
+    std::array<std::array<std::uint32_t, max_rep_len>, num_pos_states> rep_len{};
+    std::array<std::array<std::uint32_t, 64>, 4> pos_slot{};
+
+    void refresh(lzma_model_t& m) {
+      for (int ps = 0; ps < num_pos_states; ++ps) {
+        for (std::uint32_t i = 0; i < max_exp_len - 1; ++i) { match_len[ps][i] = len_price(m.match_len, i, ps); }
+        for (std::uint32_t i = 0; i < max_rep_len; ++i) { rep_len[ps][i] = len_price(m.rep_len, i, ps); }
+      }
+      for (std::uint32_t ls = 0; ls < 4; ++ls) {
+        for (std::uint32_t slot = 0; slot < 64; ++slot) {
+          pos_slot[ls][slot] = tree_price(std::span<const std::uint16_t>{m.pos_slot[ls]}, slot, 6);
+        }
+      }
+    }
+
+    std::uint32_t dist_price(lzma_model_t& m, std::uint32_t dist, std::uint32_t len_state) const {
+      std::uint32_t d = dist - 1;
+      std::uint32_t slot = slot_for_dist(d);
+      std::uint32_t cost = pos_slot[len_state][slot];
+      if (slot >= 4) {
+        std::uint32_t footer_bits = (slot >> 1) - 1;
+        std::uint32_t base_val = (2u | (slot & 1u)) << footer_bits;
+        std::uint32_t footer = d - base_val;
+        if (slot < 14) {
+          cost += tree_price(std::span<const std::uint16_t>{m.pos_special[slot - 4]}, footer, footer_bits);
+        } else {
+          cost += (footer_bits - 4) * price_scale;
+          cost += tree_price(std::span<const std::uint16_t>{m.align_bits}, footer & 0xFu, 4);
+        }
+      }
+      return cost;
+    }
+  };
+
   chunk_payload_t parse_chunk_optimal(const fan::bytes_t& src, std::size_t c_start, std::size_t c_end,
-                                      const compress_params_t& params, fan::progress_t* prog) {
+                                      const compress_params_t& params, fan::progress_t* prog,
+                                      std::size_t thread_count = 1) {
     chunk_payload_t out;
     out.seqs.reserve((c_end - c_start) / 5);
-    std::size_t d_start = c_start >= chunk_size ? c_start - chunk_size : 0;
+    std::size_t dict_size = std::max<std::size_t>(1, params.chunk_size);
+    std::size_t d_start = c_start >= dict_size ? c_start - dict_size : 0;
     std::size_t ci = c_start, cend = c_end;
 
     match_finder_t finder(d_start, cend);
@@ -838,6 +1146,9 @@ export namespace fan::fcs {
 
     std::vector<opt_t> opts(kNumOpts + 1);
     std::array<match_t, 64> matches;
+    std::vector<match_heads_t> match_heads(kNumOpts);
+    std::vector<match_cache_t> match_cache(kNumOpts);
+    parse_price_cache_t price_cache;
 
     auto ps = [](std::size_t pos) { return int(pos & (num_pos_states - 1)); };
     auto len_state = [](std::uint32_t len) { return std::min<std::uint32_t>(len - 2, 3); };
@@ -994,7 +1305,54 @@ export namespace fan::fcs {
     }
 
     // --- DP optimal parser ---
+    std::size_t cache_thread_count = std::max<std::size_t>(1, thread_count);
+    std::size_t cache_worker_count = cache_thread_count > 1 ? cache_thread_count - 1 : 0;
+    std::atomic<std::uint32_t> next_match = 0;
+    std::mutex cache_mutex;
+    std::condition_variable cache_cv, cache_done_cv;
+    std::uint64_t cache_generation = 0;
+    std::size_t cache_finished = 0;
+    bool cache_stop = false;
+    std::size_t cache_ci = 0;
+    std::uint32_t cache_window = 0;
+
+    auto fill_match_cache = [&](std::size_t base_pos, std::uint32_t begin, std::uint32_t end) {
+      std::array<match_t, 64> local_matches;
+      for (std::uint32_t j = begin; j < end; ++j) {
+        std::size_t pos = base_pos + j;
+        if (pos + 4 > cend) { continue; }
+        std::uint32_t chain = j == 0 ? params.chain_main : std::min<std::uint32_t>(params.chain_main, 8);
+        auto& c = match_cache[j];
+        c.count = finder.find_from_heads(src, pos, cend, match_heads[j], chain, std::span<match_t>{local_matches});
+        for (std::uint32_t i = 0; i < c.count; ++i) { c.matches[i] = local_matches[i]; }
+      }
+    };
+
+    std::vector<std::jthread> cache_workers;
+    for (std::size_t w = 0; w < cache_worker_count; ++w) {
+      cache_workers.emplace_back([&] {
+        std::uint64_t seen = 0;
+        for (;;) {
+          std::unique_lock lock(cache_mutex);
+          cache_cv.wait(lock, [&] { return cache_stop || cache_generation != seen; });
+          if (cache_stop) { break; }
+          seen = cache_generation;
+          std::size_t base_pos = cache_ci;
+          std::uint32_t window = cache_window;
+          lock.unlock();
+          for (;;) {
+            std::uint32_t begin = next_match.fetch_add(64, std::memory_order_relaxed);
+            if (begin >= window) { break; }
+            fill_match_cache(base_pos, begin, std::min<std::uint32_t>(begin + 64, window));
+          }
+          lock.lock();
+          if (++cache_finished == cache_worker_count) { cache_done_cv.notify_one(); }
+        }
+      });
+    }
+
     while (ci < cend) {
+      price_cache.refresh(model);
       std::uint32_t avail = std::uint32_t(cend - ci);
       std::uint32_t window = std::min(avail, kNumOpts - 1);
 
@@ -1004,6 +1362,37 @@ export namespace fan::fcs {
       for (std::uint32_t k = 1; k <= window; ++k) { opts[k].price = inf_price; }
 
       std::uint32_t len_end = 1;
+
+      for (std::uint32_t j = 0; j < window; ++j) {
+        std::size_t pos = ci + j;
+        match_cache[j].count = 0;
+        if (pos + 4 > cend) { continue; }
+        std::uint32_t k2, k3, k4;
+        match_finder_t::hashes(src.data() + pos, k2, k3, k4);
+        match_heads[j] = finder.get_heads(k2, k3, k4);
+        finder.insert_known_hashes(pos, k2, k3, k4);
+      }
+
+      if (cache_worker_count == 0 || window < 512) {
+        fill_match_cache(ci, 0, window);
+      } else {
+        {
+          std::lock_guard lock(cache_mutex);
+          cache_ci = ci;
+          cache_window = window;
+          cache_finished = 0;
+          next_match.store(0, std::memory_order_relaxed);
+          ++cache_generation;
+        }
+        cache_cv.notify_all();
+        for (;;) {
+          std::uint32_t begin = next_match.fetch_add(64, std::memory_order_relaxed);
+          if (begin >= window) { break; }
+          fill_match_cache(ci, begin, std::min<std::uint32_t>(begin + 64, window));
+        }
+        std::unique_lock lock(cache_mutex);
+        cache_done_cv.wait(lock, [&] { return cache_finished == cache_worker_count; });
+      }
 
       for (std::uint32_t j = 0; j < window; ++j) {
         if (opts[j].price == inf_price) { continue; }
@@ -1034,42 +1423,51 @@ export namespace fan::fcs {
         }
 
         // rep matches
+        int pst = ps(pos);
         for (int r = 0; r < 4 && pos < cend; ++r) {
           if (pos < d_start + rep[r]) { continue; }
           std::uint32_t max_l = std::min<std::uint32_t>(std::uint32_t(cend - pos), max_rep_len);
           std::uint32_t l = 0;
           while (l < max_l && src[pos+l] == src[pos - rep[r] + l]) { ++l; }
           if (l == 0) { continue; }
-          // short rep (rep0, len=1)
-          if (r == 0 && l >= 1) {
-            std::uint32_t cost = opts[j].price + bit_price(model.is_match[st][ps(pos)], true)
-              + bit_price(model.is_rep[st], true)
-              + bit_price(model.is_rep0[st], true)
-              + bit_price(model.is_rep0_short[st][ps(pos)], false);
+          std::uint32_t base_price = opts[j].price + bit_price(model.is_match[st][pst], true) + bit_price(model.is_rep[st], true);
+          if (r == 0) {
+            std::uint32_t rep0_price = base_price + bit_price(model.is_rep0[st], true);
+            std::uint32_t cost = rep0_price + bit_price(model.is_rep0_short[st][pst], false);
             std::array<std::uint32_t,4> nrep = rep;
             try_price(j+1, cost, op_e::rep0, 1, rep[0], state_shortrep_next[st], nrep);
+            try_lens(2, l, [&](std::uint32_t ml) {
+              std::uint32_t cost = rep0_price + bit_price(model.is_rep0_short[st][pst], true) + price_cache.rep_len[pst][ml - 1];
+              std::array<std::uint32_t,4> nrep = rep;
+              try_price(j + ml, cost, op_e::rep0, ml, rep[0], state_rep_next[st], nrep);
+            });
+          } else {
+            std::uint32_t rep_price = base_price + bit_price(model.is_rep0[st], false);
+            if (r == 1) { rep_price += bit_price(model.is_rep1[st], false); }
+            else { rep_price += bit_price(model.is_rep1[st], true) + bit_price(model.is_rep2[st], r == 2 ? false : true); }
+            try_lens(2, l, [&](std::uint32_t ml) {
+              std::uint32_t cost = rep_price + price_cache.rep_len[pst][ml - 1];
+              std::array<std::uint32_t,4> nrep = rep;
+              if      (r == 1) { std::swap(nrep[0], nrep[1]); }
+              else if (r == 2) { auto t=nrep[2]; nrep[2]=nrep[1]; nrep[1]=nrep[0]; nrep[0]=t; }
+              else if (r == 3) { auto t=nrep[3]; nrep[3]=nrep[2]; nrep[2]=nrep[1]; nrep[1]=nrep[0]; nrep[0]=t; }
+              try_price(j + ml, cost, static_cast<op_e>(r), ml, rep[r], state_rep_next[st], nrep);
+            });
           }
-          try_lens(2, l, [&](std::uint32_t ml) {
-            std::uint32_t cost = opts[j].price + rep_match_price(pos, st, r, ml);
-            std::array<std::uint32_t,4> nrep = rep;
-            if      (r == 1) { std::swap(nrep[0], nrep[1]); }
-            else if (r == 2) { auto t=nrep[2]; nrep[2]=nrep[1]; nrep[1]=nrep[0]; nrep[0]=t; }
-            else if (r == 3) { auto t=nrep[3]; nrep[3]=nrep[2]; nrep[2]=nrep[1]; nrep[1]=nrep[0]; nrep[0]=t; }
-            op_e op = static_cast<op_e>(r);
-            try_price(j + ml, cost, op, ml, rep[r], state_rep_next[st], nrep);
-          });
         }
 
         // explicit matches
         if (pos + 4 <= cend) {
-          std::uint32_t chain = j == 0 ? params.chain_main : std::min<std::uint32_t>(params.chain_main, 8);
-          std::uint32_t n = finder.find(src, pos, cend, rep, chain, true, std::span<match_t>{matches});
-          for (std::uint32_t mi = 0; mi < n; ++mi) {
-            auto& mc = matches[mi];
+          auto& cached = match_cache[j];
+          std::uint32_t base_price = opts[j].price + bit_price(model.is_match[st][pst], true) + bit_price(model.is_rep[st], false);
+          for (std::uint32_t mi = 0; mi < cached.count; ++mi) {
+            auto& mc = cached.matches[mi];
             if (mc.length < 2) { continue; }
             std::uint32_t max_l = std::min({mc.length, std::uint32_t(cend - pos), max_exp_len});
+            std::array<std::uint32_t, 4> dist_cost;
+            for (std::uint32_t ls = 0; ls < 4; ++ls) { dist_cost[ls] = price_cache.dist_price(model, mc.offset, ls); }
             try_lens(2, max_l, [&](std::uint32_t ml) {
-              std::uint32_t cost = opts[j].price + exp_match_price(pos, st, mc.offset, ml);
+              std::uint32_t cost = base_price + price_cache.match_len[pst][ml - 2] + dist_cost[std::min<std::uint32_t>(ml - 2, 3)];
               std::array<std::uint32_t,4> nrep = rep;
               nrep[3]=nrep[2]; nrep[2]=nrep[1]; nrep[1]=nrep[0]; nrep[0]=mc.offset;
               try_price(j + ml, cost, op_e::exp, ml, mc.offset, state_match_next[st], nrep);
@@ -1117,6 +1515,14 @@ export namespace fan::fcs {
       }
     }
 
+    if (cache_worker_count != 0) {
+      {
+        std::lock_guard lock(cache_mutex);
+        cache_stop = true;
+      }
+      cache_cv.notify_all();
+      cache_workers.clear();
+    }
     if (prog) { prog->done.fetch_add((cend - last_report) * parse_progress_weight, std::memory_order_relaxed); }
     if (lit_cnt) { out.seqs.push_back({lit_cnt, op_e::none, 0, 0}); }
     return out;
@@ -1124,7 +1530,7 @@ export namespace fan::fcs {
 
   // --- stream encode/decode using new LZMA model ---
 
-  fan::bytes_t encode_stream_seq(const fan::bytes_t& src, const std::vector<chunk_payload_t>& blocks, fan::progress_t* prog) {
+  fan::bytes_t encode_stream_seq(const fan::bytes_t& src, const std::vector<chunk_payload_t>& blocks, std::size_t chunk_size, fan::progress_t* prog) {
     fan::bytes_t out; out.reserve(src.size() / 5);
     fan::io::bytes_writer_t bw{out};
     range_enc_t<fan::io::bytes_writer_t> rc{bw};
@@ -1205,7 +1611,7 @@ export namespace fan::fcs {
     return out;
   }
 
-  fan::bytes_t decode_stream_seq(const fan::bytes_t& comp, std::size_t idx, std::uint64_t total_uncomp, fan::progress_t* prog) {
+  fan::bytes_t decode_stream_seq(const fan::bytes_t& comp, std::size_t idx, std::uint64_t total_uncomp, std::size_t chunk_size, fan::progress_t* prog) {
     fan::bytes_t out; out.reserve(total_uncomp);
     fan::io::bytes_reader_t br{comp, idx};
     range_dec_t<fan::io::bytes_reader_t> rd{br};
@@ -1275,10 +1681,18 @@ export namespace fan::fcs {
   // --- shared compress core ---
   inline void run_compress_core(fan::bytes_t& raw, compress_params_t params,
                                  fan::progress_t* prog, std::size_t thread_count,
-                                 fan::bytes_t& out_comp) {
+                                 fan::bytes_t& out_comp, bool reset_progress = true,
+                                 std::uint64_t progress_base = 0, std::uint64_t progress_total = 0) {
     std::size_t actual_threads = thread_count ? thread_count : std::max<std::size_t>(1, std::thread::hardware_concurrency());
-    if (prog) { prog->done.store(0, std::memory_order_relaxed); prog->total.store(raw.size() * progress_scale, std::memory_order_relaxed); }
+    std::size_t parse_threads = actual_threads;
+    std::uint64_t progress_end = progress_base + raw.size() * progress_scale;
+    if (prog) {
+      if (reset_progress) { prog->total.store(progress_total ? progress_total : raw.size() * progress_scale, std::memory_order_relaxed); }
+      prog->done.store(progress_base, std::memory_order_relaxed);
+    }
+    std::size_t chunk_size = std::max<std::size_t>(1, params.chunk_size);
     std::size_t nc = (raw.size() + chunk_size - 1) / chunk_size;
+    actual_threads = std::min(actual_threads, std::max<std::size_t>(1, nc));
     std::vector<chunk_payload_t> blocks(nc);
     std::atomic<std::size_t> next = 0;
     std::vector<std::jthread> workers;
@@ -1287,12 +1701,261 @@ export namespace fan::fcs {
         for (std::size_t k; (k = next.fetch_add(1, std::memory_order_relaxed)) < nc;) {
           std::size_t c_start = k * chunk_size;
           std::size_t c_end = std::min(raw.size(), c_start + chunk_size);
-          blocks[k] = parse_chunk_optimal(raw, c_start, c_end, params, prog);
+          blocks[k] = parse_chunk_optimal(raw, c_start, c_end, params, prog, parse_threads);
         }
       });
     }
     workers.clear();
-    out_comp = encode_stream_seq(raw, blocks, prog);
+    out_comp = encode_stream_seq(raw, blocks, chunk_size, prog);
+    if (prog) { prog->done.store(progress_end, std::memory_order_relaxed); }
+  }
+
+
+  struct compress_candidate_t {
+    fan::bytes_t data;
+    fan::bytes_t comp;
+    std::string_view name;
+    std::uint8_t flags = 0;
+    std::unique_ptr<fan::progress_t> progress;
+  };
+
+  inline std::uint64_t candidate_progress_total(const std::vector<compress_candidate_t>& candidates) {
+    std::uint64_t total = 0;
+    for (const auto& c : candidates) { total += c.data.size() * progress_scale; }
+    return total;
+  }
+
+  inline void compress_candidates_seq(std::vector<compress_candidate_t>& candidates, compress_params_t params,
+                                      fan::progress_t* prog, std::size_t thread_count) {
+    std::uint64_t progress_total = candidate_progress_total(candidates);
+    std::uint64_t progress_base = 0;
+    for (auto& c : candidates) {
+      run_compress_core(c.data, params, prog, thread_count, c.comp, &c == candidates.data(), progress_base, progress_total);
+      progress_base += c.data.size() * progress_scale;
+    }
+  }
+
+  inline void compress_candidates_parallel(std::vector<compress_candidate_t>& candidates, compress_params_t params,
+                                           fan::progress_t* prog, std::size_t thread_count) {
+    std::size_t actual_threads = thread_count ? thread_count : std::max<std::size_t>(1, std::thread::hardware_concurrency());
+    if (candidates.size() < 2 || actual_threads < 2) {
+      compress_candidates_seq(candidates, params, prog, thread_count);
+      return;
+    }
+    std::uint64_t progress_total = candidate_progress_total(candidates);
+    if (prog) {
+      prog->total.store(progress_total, std::memory_order_relaxed);
+      prog->done.store(0, std::memory_order_relaxed);
+    }
+    for (auto& c : candidates) { c.progress = std::make_unique<fan::progress_t>(); }
+    std::jthread monitor;
+    if (prog) {
+      monitor = std::jthread([&](std::stop_token st) {
+        while (!st.stop_requested()) {
+          std::uint64_t done = 0;
+          for (auto& c : candidates) {
+            std::uint64_t total = c.data.size() * progress_scale;
+            std::uint64_t cd = c.progress ? c.progress->done.load(std::memory_order_relaxed) : 0;
+            done += std::min(cd, total);
+          }
+          prog->done.store(std::min(done, progress_total), std::memory_order_relaxed);
+          std::this_thread::sleep_for(std::chrono::milliseconds(33));
+        }
+      });
+    }
+    std::size_t outer_threads = std::min<std::size_t>(candidates.size(), actual_threads);
+    std::size_t inner_threads = std::max<std::size_t>(1, actual_threads / outer_threads);
+    std::atomic<std::size_t> next = 0;
+    std::vector<std::jthread> workers;
+    for (std::size_t w = 0; w < outer_threads; ++w) {
+      workers.emplace_back([&] {
+        for (std::size_t i; (i = next.fetch_add(1, std::memory_order_relaxed)) < candidates.size();) {
+          auto& c = candidates[i];
+          run_compress_core(c.data, params, c.progress.get(), inner_threads, c.comp);
+        }
+      });
+    }
+    workers.clear();
+    if (prog) {
+      prog->done.store(progress_total, std::memory_order_relaxed);
+      monitor.request_stop();
+    }
+  }
+
+  inline compress_candidate_t compress_best_candidate(std::vector<compress_candidate_t> candidates, compress_params_t params,
+                                                      fan::progress_t* prog, std::size_t thread_count, bool verbose = false) {
+    if (verbose) {
+      fan::print("testing candidates:");
+      for (const auto& c : candidates) { fan::print(" ", c.name); }
+    }
+    compress_candidates_parallel(candidates, params, prog, thread_count);
+    std::size_t best = 0;
+    for (std::size_t i = 1; i < candidates.size(); ++i) {
+      if (candidates[i].comp.size() < candidates[best].comp.size()) { best = i; }
+    }
+    if (verbose) {
+      for (const auto& c : candidates) { fan::print("candidate:", c.name, c.comp.size(), "bytes"); }
+      fan::print("selected:", candidates[best].name);
+    }
+    return std::move(candidates[best]);
+  }
+
+  struct core_result_t {
+    fan::bytes_t comp;
+    std::size_t chunk_size = default_chunk_size;
+    std::string_view name = "solid";
+  };
+
+  inline std::size_t safe_parallel_chunk_size(std::size_t size, std::size_t threads) {
+    if (threads <= 1) { return size; }
+    std::size_t mib = 1uz << 20;
+    std::size_t cs = (size + threads - 1) / threads;
+    cs = ((cs + mib - 1) / mib) * mib;
+    return std::clamp<std::size_t>(cs, mib, std::max<std::size_t>(mib, size));
+  }
+
+  inline core_result_t run_compress_core_safe_parallel(fan::bytes_t& raw, compress_params_t params,
+                                                       fan::progress_t* prog, std::size_t thread_count) {
+    std::size_t actual_threads = thread_count ? thread_count : std::max<std::size_t>(1, std::thread::hardware_concurrency());
+    if (actual_threads < 2 || raw.size() < (2uz << 20)) {
+      core_result_t r{{}, params.chunk_size, "solid"};
+      run_compress_core(raw, params, prog, thread_count, r.comp);
+      return r;
+    }
+
+    fan::progress_t solid_prog, parallel_prog;
+    if (prog) {
+      prog->total.store(raw.size() * progress_scale * 2, std::memory_order_relaxed);
+      prog->done.store(0, std::memory_order_relaxed);
+    }
+
+    fan::bytes_t solid_comp;
+    fan::bytes_t parallel_comp;
+    fan::bytes_t parallel_raw = raw;
+    compress_params_t parallel_params = params;
+    std::size_t baseline_chunks = (raw.size() + std::max<std::size_t>(1, params.chunk_size) - 1) / std::max<std::size_t>(1, params.chunk_size);
+    std::size_t solid_threads = std::min<std::size_t>(baseline_chunks, std::max<std::size_t>(1, actual_threads / 4));
+    std::size_t parallel_threads = std::max<std::size_t>(1, actual_threads - solid_threads);
+    parallel_params.chunk_size = safe_parallel_chunk_size(raw.size(), parallel_threads);
+
+    std::exception_ptr error;
+    std::mutex error_mutex;
+    auto save_error = [&] {
+      std::lock_guard lock(error_mutex);
+      if (!error) { error = std::current_exception(); }
+    };
+
+    std::jthread monitor;
+    if (prog) {
+      monitor = std::jthread([&](std::stop_token st) {
+        while (!st.stop_requested()) {
+          std::uint64_t done = std::min<std::uint64_t>(solid_prog.done.load(std::memory_order_relaxed), raw.size() * progress_scale)
+            + std::min<std::uint64_t>(parallel_prog.done.load(std::memory_order_relaxed), raw.size() * progress_scale);
+          prog->done.store(std::min<std::uint64_t>(done, raw.size() * progress_scale * 2), std::memory_order_relaxed);
+          std::this_thread::sleep_for(std::chrono::milliseconds(33));
+        }
+      });
+    }
+
+    std::jthread solid_worker([&] {
+      try { run_compress_core(raw, params, &solid_prog, solid_threads, solid_comp); }
+      catch (...) { save_error(); }
+    });
+    std::jthread parallel_worker([&] {
+      try { run_compress_core(parallel_raw, parallel_params, &parallel_prog, parallel_threads, parallel_comp); }
+      catch (...) { save_error(); }
+    });
+
+    solid_worker.join();
+    parallel_worker.join();
+    if (prog) {
+      monitor.request_stop();
+      prog->done.store(prog->total.load(std::memory_order_relaxed), std::memory_order_relaxed);
+    }
+    if (error) { std::rethrow_exception(error); }
+
+    if (!parallel_comp.empty() && parallel_comp.size() <= solid_comp.size()) {
+      return {std::move(parallel_comp), parallel_params.chunk_size, "parallel"};
+    }
+    return {std::move(solid_comp), params.chunk_size, "solid"};
+  }
+
+  inline compress_candidate_t compress_best_candidate_safe_parallel(std::vector<compress_candidate_t> candidates, compress_params_t params,
+                                                                     fan::progress_t* prog, std::size_t thread_count, bool verbose = false) {
+    std::size_t actual_threads = thread_count ? thread_count : std::max<std::size_t>(1, std::thread::hardware_concurrency());
+    if (actual_threads < 2 || candidates.size() < 2) {
+      return compress_best_candidate(std::move(candidates), params, prog, thread_count, verbose);
+    }
+    if (verbose) {
+      fan::print("testing candidates:");
+      for (const auto& c : candidates) { fan::print(" ", c.name, "solid+parallel"); }
+    }
+
+    std::uint64_t progress_total = 0;
+    for (const auto& c : candidates) { progress_total += c.data.size() * progress_scale * 2; }
+    if (prog) {
+      prog->total.store(progress_total, std::memory_order_relaxed);
+      prog->done.store(0, std::memory_order_relaxed);
+    }
+
+    for (auto& c : candidates) { c.progress = std::make_unique<fan::progress_t>(); }
+    std::vector<std::string_view> modes(candidates.size());
+    std::atomic<std::size_t> next = 0;
+    std::exception_ptr error;
+    std::mutex error_mutex;
+    auto save_error = [&] {
+      std::lock_guard lock(error_mutex);
+      if (!error) { error = std::current_exception(); }
+    };
+
+    std::jthread monitor;
+    if (prog) {
+      monitor = std::jthread([&](std::stop_token st) {
+        while (!st.stop_requested()) {
+          std::uint64_t done = 0;
+          for (auto& c : candidates) {
+            std::uint64_t total = c.data.size() * progress_scale * 2;
+            std::uint64_t cd = c.progress ? c.progress->done.load(std::memory_order_relaxed) : 0;
+            done += std::min(cd, total);
+          }
+          prog->done.store(std::min(done, progress_total), std::memory_order_relaxed);
+          std::this_thread::sleep_for(std::chrono::milliseconds(33));
+        }
+      });
+    }
+
+    std::size_t outer_threads = std::min<std::size_t>(candidates.size(), std::max<std::size_t>(1, actual_threads / 2));
+    std::size_t inner_threads = std::max<std::size_t>(2, actual_threads / outer_threads);
+    std::vector<std::jthread> workers;
+    for (std::size_t w = 0; w < outer_threads; ++w) {
+      workers.emplace_back([&] {
+        for (std::size_t i; (i = next.fetch_add(1, std::memory_order_relaxed)) < candidates.size();) {
+          try {
+            core_result_t r = run_compress_core_safe_parallel(candidates[i].data, params, candidates[i].progress.get(), inner_threads);
+            candidates[i].comp = std::move(r.comp);
+            modes[i] = r.name;
+          }
+          catch (...) { save_error(); }
+        }
+      });
+    }
+    workers.clear();
+    if (prog) {
+      monitor.request_stop();
+      prog->done.store(progress_total, std::memory_order_relaxed);
+    }
+    if (error) { std::rethrow_exception(error); }
+
+    std::size_t best = 0;
+    for (std::size_t i = 1; i < candidates.size(); ++i) {
+      if (candidates[i].comp.size() < candidates[best].comp.size()) { best = i; }
+    }
+    if (verbose) {
+      for (std::size_t i = 0; i < candidates.size(); ++i) { fan::print("candidate:", candidates[i].name, modes[i], candidates[i].comp.size(), "bytes"); }
+      fan::print("selected:", candidates[best].name, modes[best]);
+    }
+    if (prog) { prog->done.store(progress_total, std::memory_order_relaxed); }
+    return std::move(candidates[best]);
   }
 
   bool compress_path_to_file(const std::filesystem::path& in, const std::filesystem::path& out_path,
@@ -1347,42 +2010,56 @@ export namespace fan::fcs {
     provider.read_range(0, provider.size(), raw_buf);
 
     bool use_text = false;
-    if (!use_bcj && files.size() == 1 && looks_like_large_text(raw_buf, payload_offset)) {
-      fan::bytes_t text_buf = text_encode_transform(raw_buf);
-      if (!text_buf.empty()) {
-        raw_buf = std::move(text_buf);
-        use_text = true;
-      }
+    bool use_text2 = false;
+    fan::bytes_t text_buf;
+    fan::bytes_t text2_buf;
+    bool try_text = !use_bcj && files.size() == 1 && looks_like_large_text(raw_buf, payload_offset);
+    if (try_text) {
+      text_buf = text_encode_transform(raw_buf);
+      text2_buf = text2_encode_transform(raw_buf);
     }
 
     if (use_bcj) {
       bcj_transform_range(raw_buf, payload_offset, raw_buf.size(), true);
-    } else if (!use_text) {
+    } else if (!try_text) {
       delta_stride = detect_delta_stride(raw_buf);
       use_delta = delta_stride > 1;
       if (use_delta) { delta_encode(raw_buf, delta_stride); }
     }
 
     int stride_log2 = delta_stride == 8 ? 3 : delta_stride == 4 ? 2 : delta_stride == 2 ? 1 : 0;
-    std::uint8_t flags = std::uint8_t(use_bcj ? flag_bcj : 0) | std::uint8_t(use_delta ? flag_delta : 0) | std::uint8_t(use_text ? flag_text : 0) | std::uint8_t(stride_log2 << 2);
+    std::uint8_t flags = std::uint8_t(use_bcj ? flag_bcj : 0) | std::uint8_t(use_delta ? flag_delta : 0) | std::uint8_t(stride_log2 << 2);
 
     fan::io::file::file_t* fp = nullptr;
     if (fan::io::file::open(&fp, out_path.string(), {"wb"})) { return false; }
     try {
       fan::bytes_t comp;
-      run_compress_core(raw_buf, params, prog, thread_count, comp);
+      std::size_t selected_chunk_size = params.chunk_size;
+      if (try_text) {
+        std::vector<compress_candidate_t> candidates;
+        candidates.push_back({std::move(raw_buf), {}, "raw", flags});
+        if (!text_buf.empty()) { candidates.push_back({std::move(text_buf), {}, "text", flag_text}); }
+        if (!text2_buf.empty()) { candidates.push_back({std::move(text2_buf), {}, "text2", flag_text2}); }
+        auto best = compress_best_candidate(std::move(candidates), params, prog, thread_count, verbose);
+        raw_buf = std::move(best.data);
+        comp = std::move(best.comp);
+        flags = best.flags;
+      } else {
+        run_compress_core(raw_buf, params, prog, thread_count, comp);
+        selected_chunk_size = params.chunk_size;
+      }
 
       std::uint8_t header[17];
       fan::memory::write_le32(header, magic_v4);
       fan::memory::write_le64(header + 4, raw_buf.size());
-      fan::memory::write_le32(header + 12, chunk_size);
+      fan::memory::write_le32(header + 12, std::uint32_t(std::min<std::size_t>(selected_chunk_size, std::numeric_limits<std::uint32_t>::max())));
       header[16] = flags;
 
       fan::io::file::file_writer_t sink{fp};
       sink.write_bytes(std::span<const std::uint8_t>(header, 17));
       sink.write_bytes(comp);
       fan::io::file::close(fp);
-      if (prog) { prog->done.store(raw_buf.size() * progress_scale, std::memory_order_relaxed); }
+      if (prog) { prog->done.store(prog->total.load(std::memory_order_relaxed), std::memory_order_relaxed); }
       return true;
     } catch (...) { fan::io::file::close(fp); throw; }
   }
@@ -1396,10 +2073,13 @@ export namespace fan::fcs {
       std::uint8_t header[17]; src.read_exact(std::span<std::uint8_t>(header, 17));
       if (fan::memory::read_le32(header) != magic_v4) { throw std::runtime_error("needs FCS4"); }
       std::uint64_t total_uncomp = fan::memory::read_le64(header + 4);
+      std::size_t stored_chunk_size = fan::memory::read_le32(header + 12);
+      if (stored_chunk_size == 0) { stored_chunk_size = default_chunk_size; }
       std::uint8_t flags = header[16];
       bool use_bcj = flags & flag_bcj;
       bool use_delta = flags & flag_delta;
       bool use_text = flags & flag_text;
+      bool use_text2 = flags & flag_text2;
       int stride_log2 = (flags >> 2) & 7;
       int delta_stride = 1 << stride_log2;
 
@@ -1410,9 +2090,10 @@ export namespace fan::fcs {
 
       if (prog) { prog->done.store(0, std::memory_order_relaxed); prog->total.store(total_uncomp, std::memory_order_relaxed); }
 
-      fan::bytes_t raw = decode_stream_seq(comp, 0, total_uncomp, prog);
-      if (use_text)  { raw = text_decode_transform(raw); }
+      fan::bytes_t raw = decode_stream_seq(comp, 0, total_uncomp, stored_chunk_size, prog);
       if (use_delta) { delta_decode(raw, delta_stride); }
+      if (use_text2) { raw = text2_decode_transform(raw); }
+      if (use_text)  { raw = text_decode_transform(raw); }
       if (use_bcj)   { bcj_transform_range(raw, archive_payload_offset(raw), raw.size(), false); }
 
       fan::io::file::archive_extractor_t writer(out_dir, default_out);
@@ -1450,30 +2131,44 @@ export namespace fan::fcs {
     int delta_stride = 1;
     bool use_delta = false;
     bool use_text = false;
-    if (!use_bcj && files.size() == 1 && looks_like_large_text(raw, payload_offset)) {
-      fan::bytes_t text_buf = text_encode_transform(raw);
-      if (!text_buf.empty()) {
-        raw = std::move(text_buf);
-        use_text = true;
-      }
+    bool use_text2 = false;
+    fan::bytes_t text_buf;
+    fan::bytes_t text2_buf;
+    bool try_text = !use_bcj && files.size() == 1 && looks_like_large_text(raw, payload_offset);
+    if (try_text) {
+      text_buf = text_encode_transform(raw);
+      text2_buf = text2_encode_transform(raw);
     }
-    if (!use_bcj && !use_text) {
+    if (!use_bcj && !try_text) {
       delta_stride = detect_delta_stride(raw);
       use_delta = delta_stride > 1;
       if (use_delta) { delta_encode(raw, delta_stride); }
     }
     int stride_log2 = delta_stride == 8 ? 3 : delta_stride == 4 ? 2 : delta_stride == 2 ? 1 : 0;
-    std::uint8_t flags = std::uint8_t(use_bcj ? flag_bcj : 0) | std::uint8_t(use_delta ? flag_delta : 0) | std::uint8_t(use_text ? flag_text : 0) | std::uint8_t(stride_log2 << 2);
+    std::uint8_t flags = std::uint8_t(use_bcj ? flag_bcj : 0) | std::uint8_t(use_delta ? flag_delta : 0) | std::uint8_t(stride_log2 << 2);
 
     fan::bytes_t comp;
-    run_compress_core(raw, params, prog, 0, comp);
+    std::size_t selected_chunk_size = params.chunk_size;
+    if (try_text) {
+      std::vector<compress_candidate_t> candidates;
+      candidates.push_back({std::move(raw), {}, "raw", flags});
+      if (!text_buf.empty()) { candidates.push_back({std::move(text_buf), {}, "text", flag_text}); }
+      if (!text2_buf.empty()) { candidates.push_back({std::move(text2_buf), {}, "text2", flag_text2}); }
+      auto best = compress_best_candidate(std::move(candidates), params, prog, 0);
+      raw = std::move(best.data);
+      comp = std::move(best.comp);
+      flags = best.flags;
+    } else {
+      run_compress_core(raw, params, prog, 0, comp);
+      selected_chunk_size = params.chunk_size;
+    }
 
     fan::bytes_t result; result.reserve(comp.size() + 17);
     std::uint8_t header[17];
-    fan::memory::write_le32(header, magic_v4); fan::memory::write_le64(header + 4, raw.size()); fan::memory::write_le32(header + 12, chunk_size); header[16] = flags;
+    fan::memory::write_le32(header, magic_v4); fan::memory::write_le64(header + 4, raw.size()); fan::memory::write_le32(header + 12, std::uint32_t(std::min<std::size_t>(selected_chunk_size, std::numeric_limits<std::uint32_t>::max()))); header[16] = flags;
     result.insert(result.end(), header, header + sizeof(header));
     result.insert(result.end(), comp.begin(), comp.end());
-    if (prog) { prog->done.store(raw.size() * progress_scale, std::memory_order_relaxed); }
+    if (prog) { prog->done.store(prog->total.load(std::memory_order_relaxed), std::memory_order_relaxed); }
     return result;
   }
 
@@ -1481,17 +2176,21 @@ export namespace fan::fcs {
     std::vector<fan::io::file_buffer_t> files;
     if (comp.size() < 17 || fan::memory::read_le32(comp.data()) != magic_v4) { throw std::runtime_error("needs FCS4"); }
     std::uint64_t total_uncomp = fan::memory::read_le64(comp.data() + 4);
+    std::size_t stored_chunk_size = fan::memory::read_le32(comp.data() + 12);
+    if (stored_chunk_size == 0) { stored_chunk_size = default_chunk_size; }
     std::uint8_t flags = comp[16];
     bool use_bcj = flags & flag_bcj;
     bool use_delta = flags & flag_delta;
     bool use_text = flags & flag_text;
+    bool use_text2 = flags & flag_text2;
     int stride_log2 = (flags >> 2) & 7;
     int delta_stride = 1 << stride_log2;
     if (prog) { prog->total.store(total_uncomp, std::memory_order_relaxed); }
 
-    fan::bytes_t raw = decode_stream_seq(comp, 17, total_uncomp, prog);
-    if (use_text)  { raw = text_decode_transform(raw); }
+    fan::bytes_t raw = decode_stream_seq(comp, 17, total_uncomp, stored_chunk_size, prog);
     if (use_delta) { delta_decode(raw, delta_stride); }
+    if (use_text2) { raw = text2_decode_transform(raw); }
+    if (use_text)  { raw = text_decode_transform(raw); }
     if (use_bcj)   { bcj_transform_range(raw, archive_payload_offset(raw), raw.size(), false); }
     if (raw.size() < 4) { return files; }
 

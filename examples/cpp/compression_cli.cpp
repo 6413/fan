@@ -11,7 +11,9 @@ enum class compression_level_e { fast, normal, max };
 struct cli_options_t {
   compression_level_e level = compression_level_e::max;
   bool verbose = false;
+  bool yes = false;
   std::size_t thread_count = 0;
+  std::size_t chunk_mib = 0;
 };
 
 struct cli_args_t {
@@ -39,17 +41,35 @@ struct progress_monitor_t {
   std::jthread monitor;
 };
 
-static fan::fcs::compress_params_t get_params(compression_level_e level) {
-  switch (level) {
-    case compression_level_e::fast: return fan::fcs::params_fast();
-    case compression_level_e::normal: return fan::fcs::params_normal();
-    default: return fan::fcs::params_max();
+static fan::fcs::compress_params_t get_params(const cli_options_t& options) {
+  fan::fcs::compress_params_t params;
+  switch (options.level) {
+    case compression_level_e::fast: params = fan::fcs::params_fast(); break;
+    case compression_level_e::normal: params = fan::fcs::params_normal(); break;
+    default: params = fan::fcs::params_max(); break;
   }
+  if (options.chunk_mib != 0) {
+    constexpr std::size_t max_mib = std::numeric_limits<std::uint32_t>::max() >> 20;
+    params.chunk_size = std::min(options.chunk_mib, max_mib) << 20;
+  }
+  return params;
 }
 
 static bool parse_size(std::string_view s, std::size_t& out) {
   auto r = std::from_chars(s.data(), s.data() + s.size(), out);
   return r.ec == std::errc {} && r.ptr == s.data() + s.size() && out != 0;
+}
+
+static bool parse_option_value(std::string_view a, std::string_view name, int& i, int argc, char** argv, std::string_view& out) {
+  if (a == name) {
+    out = ++i < argc ? std::string_view(argv[i]) : std::string_view();
+    return true;
+  }
+  if (a.starts_with(name) && a.size() > name.size() && a[name.size()] == '=') {
+    out = a.substr(name.size() + 1);
+    return true;
+  }
+  return false;
 }
 
 static std::optional<cli_args_t> parse_args(int argc, char** argv) {
@@ -58,12 +78,17 @@ static std::optional<cli_args_t> parse_args(int argc, char** argv) {
   args.mode = argv[1];
   for (int i = 2; i < argc; ++i) {
     std::string_view a = argv[i];
+    std::string_view v;
     if (a == "--fast") { args.options.level = compression_level_e::fast; }
     else if (a == "--normal") { args.options.level = compression_level_e::normal; }
     else if (a == "--max") { args.options.level = compression_level_e::max; }
     else if (a == "--verbose") { args.options.verbose = true; }
+    else if (a == "-y" || a == "--y") { args.options.yes = true; }
+    else if (parse_option_value(a, "--chunk-mib", i, argc, argv, v) || parse_option_value(a, "--dict-mib", i, argc, argv, v)) {
+      if (v.empty() || !parse_size(v, args.options.chunk_mib)) { return {}; }
+    }
     else if (a.starts_with("-j")) {
-      std::string_view v = a.size() == 2 ? (++i < argc ? argv[i] : "") : a.substr(2);
+      v = a.size() == 2 ? (++i < argc ? argv[i] : "") : a.substr(2);
       if (v.empty() || !parse_size(v, args.options.thread_count)) { return {}; }
     }
     else if (a.starts_with("-")) { return {}; }
@@ -97,14 +122,14 @@ static bool cmd_compress(const std::string& in, std::string out, const cli_optio
     while (s.ends_with('/') || s.ends_with('\\')) { s.remove_suffix(1); }
     out = std::string(s) + ".fcs";
   }
-  if (std::filesystem::exists(out) && !fan::io::ask_override(out)) { return true; }
+  if (!options.yes && std::filesystem::exists(out) && !fan::io::ask_override(out)) { return true; }
   auto stats = get_input_stats(in);
   fan::print("compressing", in, "->", out);
   fan::time::timer t;
 
   {
     progress_monitor_t pm;
-    if (!fan::fcs::compress_path_to_file(in, out, get_params(options.level), &pm.prog, options.verbose, options.thread_count)) {
+    if (!fan::fcs::compress_path_to_file(in, out, get_params(options), &pm.prog, options.verbose, options.thread_count)) {
       fan::print("write failed", out); return false;
     }
   }
@@ -131,12 +156,17 @@ static bool cmd_decompress(const std::string& in, std::string out_dir, const cli
       fan::print("read failed", in); return false;
     }
   }
-  row_float("time", t.millis(), "ms");
+  f64_t ms = t.millis();
+  auto stats = get_input_stats(out_dir);
+  row("files", stats.files, "");
+  row("output", stats.size, "bytes");
+  row_float("time", ms, "ms");
+  row_float("speed", fan::bytes_to_mib_per_s(stats.size, ms), "MiB/s");
   fan::print("extracted to", out_dir); return true;
 }
 
 static int usage(std::string_view exe) {
-  fan::printf("usage:\n  {0} c <input_file_or_dir> [output.fcs] [--fast|--normal|--max] [--verbose] [-jN]\n  {0} d <input.fcs> [output_dir]\n", exe);
+  fan::printf("usage:\n  {0} c <input_file_or_dir> [output.fcs] [--fast|--normal|--max] [--verbose] [-y|--y] [-jN] [--chunk-mib N]\n  {0} d <input.fcs> [output_dir]\n", exe);
   return 1;
 }
 
