@@ -148,7 +148,6 @@ struct cmd_t {
 };
 
 int main(int argc, char** argv) {
-  fan::print("STart");
   try {
     auto args = parse_args(argc, argv);
     if (!args) { return usage(argv[0]); }
