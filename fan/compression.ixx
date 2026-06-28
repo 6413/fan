@@ -46,19 +46,24 @@ export namespace fan::fcs {
   constexpr void delta_decode(fan::bytes_t& d, int stride) {
     for (std::size_t i = stride; i < d.size(); ++i) { d[i] += d[i - stride]; }
   }
-  inline int detect_delta_stride(const fan::bytes_t& d) {
+  
+  inline constexpr int delta_strides[] = {1, 2, 3, 4, 6, 8, 12, 16};
+  
+  inline int detect_delta_stride(const fan::bytes_t& d, int& out_idx) {
     std::size_t probe = std::min<std::size_t>(d.size(), 131072);
-    int best_stride = 1;
+    int best_idx = 0;
     double best_ent = 1e18, base_ent = 1e18;
-    for (int s : {1, 2, 4, 8}) {
+    for (int idx = 0; idx < 8; ++idx) {
+      int s = delta_strides[idx];
       std::array<int, 256> freq {}; std::size_t n = 0;
       for (std::size_t i = s; i < probe; ++i) { ++freq[std::uint8_t(d[i] - d[i - s])]; ++n; }
       double ent = 0;
       for (int c : freq) { if (c) { double p = double(c) / n; ent -= p * std::log2(p); } }
       if (s == 1) { base_ent = ent; }
-      if (ent < best_ent) { best_ent = ent; best_stride = s; }
+      if (ent < best_ent) { best_ent = ent; best_idx = idx; }
     }
-    return best_stride != 1 && best_ent + 0.05 < base_ent ? best_stride : 1;
+    out_idx = best_idx;
+    return best_idx != 0 && best_ent + 0.05 < base_ent ? delta_strides[best_idx] : 1;
   }
 
   inline std::size_t archive_payload_offset(const fan::bytes_t& raw) {
@@ -142,7 +147,7 @@ export namespace fan::fcs {
     }
 
     std::vector<text_word_t> words;
-    words.reserve(std::min<std::size_t>(counts.size(), 8192));
+    words.reserve(std::min<std::size_t>(counts.size(), 65530));
     for (auto& [w, c] : counts) {
       if (c < 4) { continue; }
       std::uint32_t score = std::uint32_t(c * (w.size() > 3 ? w.size() - 3 : 0));
@@ -153,14 +158,14 @@ export namespace fan::fcs {
     });
 
     std::vector<std::string> dict;
-    dict.reserve(4096);
+    dict.reserve(65530);
     for (auto& w : words) {
       std::size_t id = dict.size();
       std::size_t repl = id < 256 ? 3 : 4;
       std::size_t saved = w.count * (w.word.size() - repl);
       if (w.word.size() <= repl || saved <= w.word.size() + 8) { continue; }
       dict.push_back(std::move(w.word));
-      if (dict.size() == 4096) { break; }
+      if (dict.size() == 65530) { break; }
     }
     if (dict.empty()) { return {}; }
 
@@ -304,7 +309,7 @@ export namespace fan::fcs {
     }
 
     std::vector<text_word_t> words;
-    words.reserve(std::min<std::size_t>(counts.size(), 32768));
+    words.reserve(counts.size());
     for (auto& [w, c] : counts) {
       if (c < 4) { continue; }
       std::uint32_t score = std::uint32_t(c * (w.size() > 3 ? w.size() - 3 : 0));
@@ -315,14 +320,14 @@ export namespace fan::fcs {
     });
 
     std::vector<std::string> dict;
-    dict.reserve(16384);
+    dict.reserve(65530);
     for (auto& w : words) {
       std::size_t id = dict.size();
       std::size_t repl = id < 256 ? 3 : 4;
       std::size_t saved = w.count * (w.word.size() - repl);
       if (w.word.size() <= repl || saved <= w.word.size() + 4) { continue; }
       dict.push_back(std::move(w.word));
-      if (dict.size() == 16384) { break; }
+      if (dict.size() == 65530) { break; }
     }
     if (dict.empty()) { return {}; }
 
@@ -435,7 +440,7 @@ export namespace fan::fcs {
 
   struct match_t { std::uint32_t offset = 0, length = 0; };
   struct match_heads_t { std::uint32_t h2 = -1u, h3 = -1u, h4 = -1u; };
-  struct match_cache_t { std::uint32_t count = 0; std::array<match_t, 64> matches{}; };
+  struct match_cache_t { std::uint32_t count = 0; std::array<match_t, 128> matches{}; };
 
   struct match_finder_t {
     static constexpr std::uint32_t nil = 0xFFFFFFFFu;
@@ -485,7 +490,7 @@ export namespace fan::fcs {
       const std::uint32_t* p_chain = chain.data();
 
       auto try_quick = [&](std::uint32_t cur, std::uint32_t min_len) {
-        if (cur == nil || n_out >= 64 || max_avail < min_len) { return; }
+        if (cur == nil || n_out >= 128 || max_avail < min_len) { return; }
         std::size_t cur_abs = base + cur;
         if (cur_abs >= i) { return; }
         std::uint32_t len = get_match_len(po, src_base + cur_abs, max_avail);
@@ -512,7 +517,7 @@ export namespace fan::fcs {
             std::uint32_t len = get_match_len_from_4(po, pc, max_avail);
             if (len > best_len) {
               best_len = len;
-              out[n_out < 64 ? n_out++ : n_out - 1] = {std::uint32_t(i - cur_abs), len};
+              out[n_out < 128 ? n_out++ : n_out - 1] = {std::uint32_t(i - cur_abs), len};
               if (len >= nice_len || len == max_avail) { break; }
             }
           }
@@ -546,8 +551,8 @@ export namespace fan::fcs {
 
   constexpr compress_params_t params_fast()   { return {16,   32, true, false, 1, default_chunk_size, 1 << 11, 1uz << 20, 2}; }
   constexpr compress_params_t params_normal() { return {64,  128, true, true,  0, default_chunk_size, 1 << 11, 2uz << 20, 3}; }
-  constexpr compress_params_t params_high()   { return {512, 273, true, true,  0, default_chunk_size, 1 << 13, 4uz << 20, 4}; }
-  constexpr compress_params_t params_max()    { return {1024,273, true, true,  0, default_chunk_size, 1 << 14, 4uz << 20, 4}; }
+  constexpr compress_params_t params_high()   { return {512, 512, true, true,  0, default_chunk_size, 1 << 15, 4uz << 20, 4}; }
+  constexpr compress_params_t params_max()    { return {2048,1024,true, true,  0, default_chunk_size, 1 << 16, 4uz << 20, 4}; }
 
   inline constexpr std::uint8_t state_lit_next[12]      = {0,0,0,0,1,2,3,4,5,6,4,5};
   inline constexpr std::uint8_t state_match_next[12]    = {7,7,7,7,7,7,7,10,10,10,10,10};
@@ -560,8 +565,8 @@ export namespace fan::fcs {
   struct chunk_payload_t { std::vector<seq_t> seqs; };
 
   inline constexpr std::uint32_t magic_v4 = 0x34334346;
-  inline constexpr int num_pos_states = 4;
-  inline constexpr int lc = 4, lp = 0, num_lit_ctx = 1 << (lc + lp);
+  inline constexpr int num_pos_states = 8;
+  inline constexpr int lc = 8, lp = 0, num_lit_ctx = 1 << (lc + lp);
 
   constexpr std::uint32_t lit_ctx(std::size_t pos, std::uint8_t prev) {
     return ((std::uint32_t(pos) & ((1u << lp) - 1)) << lc) | (prev >> (8 - lc));
@@ -574,7 +579,7 @@ export namespace fan::fcs {
     struct len_model_t {
       std::array<std::array<std::uint16_t, num_pos_states>, 1> choice, choice2;
       std::array<std::array<std::uint16_t, 8>, num_pos_states> low, mid;
-      std::array<std::uint16_t, 256> high;
+      std::array<std::uint16_t, 4096> high;
     };
     len_model_t match_len, rep_len;
     std::array<std::array<std::uint16_t, 64>, 4> pos_slot;
@@ -663,14 +668,14 @@ export namespace fan::fcs {
   inline void encode_len(range_enc_t<Writer>& rc, lzma_model_t::len_model_t& lm, std::uint32_t len, int ps) {
     if (len < 8) { rc.encode(lm.choice[0][ps], 0); rc.encode_tree(lm.low[ps].data(), len, 3); }
     else if (len < 16) { rc.encode(lm.choice[0][ps], 1); rc.encode(lm.choice2[0][ps], 0); rc.encode_tree(lm.mid[ps].data(), len - 8, 3); }
-    else { rc.encode(lm.choice[0][ps], 1); rc.encode(lm.choice2[0][ps], 1); rc.encode_tree(lm.high.data(), len - 16, 8); }
+    else { rc.encode(lm.choice[0][ps], 1); rc.encode(lm.choice2[0][ps], 1); rc.encode_tree(lm.high.data(), len - 16, 12); }
   }
 
   template <typename Reader>
   inline std::uint32_t decode_len(range_dec_t<Reader>& rd, lzma_model_t::len_model_t& lm, int ps) {
     if (!rd.decode(lm.choice[0][ps])) { return rd.decode_tree(lm.low[ps].data(), 3); }
     if (!rd.decode(lm.choice2[0][ps])) { return 8 + rd.decode_tree(lm.mid[ps].data(), 3); }
-    return 16 + rd.decode_tree(lm.high.data(), 8);
+    return 16 + rd.decode_tree(lm.high.data(), 12);
   }
 
   template <typename Writer>
@@ -718,7 +723,7 @@ export namespace fan::fcs {
     return std::uint8_t(sym & 0xFF);
   }
 
-  inline constexpr std::uint32_t max_opt_window = 1 << 14, max_exp_len = 273, max_rep_len = 272;
+  inline constexpr std::uint32_t max_opt_window = 1 << 16, max_exp_len = 4111, max_rep_len = 4110;
   inline constexpr std::uint32_t progress_step = 512;
   inline constexpr std::uint64_t parse_progress_weight = 80, encode_progress_weight = 20, progress_scale = 100;
   inline constexpr std::uint32_t inf_price = 0xFFFFFFFFu;
@@ -763,7 +768,7 @@ export namespace fan::fcs {
   inline std::uint32_t len_price(const lzma_model_t::len_model_t& lm, std::uint32_t len, int ps) {
     if (len < 8) { return bit_price(lm.choice[0][ps], 0) + tree_price_v<3>(lm.low[ps].data(), len); }
     if (len < 16) { return bit_price(lm.choice[0][ps], 1) + bit_price(lm.choice2[0][ps], 0) + tree_price_v<3>(lm.mid[ps].data(), len - 8); }
-    return bit_price(lm.choice[0][ps], 1) + bit_price(lm.choice2[0][ps], 1) + tree_price_v<8>(lm.high.data(), len - 16);
+    return bit_price(lm.choice[0][ps], 1) + bit_price(lm.choice2[0][ps], 1) + tree_price(lm.high.data(), len - 16, 12);
   }
 
   inline std::uint32_t dist_price(const lzma_model_t& m, std::uint32_t dist, std::uint32_t len_state) {
@@ -797,7 +802,7 @@ export namespace fan::fcs {
   inline void update_len(lzma_model_t::len_model_t& lm, std::uint32_t len, int ps) {
     if (len < 8) { update_bit(lm.choice[0][ps], 0); update_tree_v<3>(lm.low[ps].data(), len); }
     else if (len < 16) { update_bit(lm.choice[0][ps], 1); update_bit(lm.choice2[0][ps], 0); update_tree_v<3>(lm.mid[ps].data(), len - 8); }
-    else { update_bit(lm.choice[0][ps], 1); update_bit(lm.choice2[0][ps], 1); update_tree_v<8>(lm.high.data(), len - 16); }
+    else { update_bit(lm.choice[0][ps], 1); update_bit(lm.choice2[0][ps], 1); update_tree(lm.high.data(), len - 16, 12); }
   }
 
   inline void update_dist(lzma_model_t& m, std::uint32_t dist, std::uint32_t len_state) {
@@ -948,7 +953,7 @@ export namespace fan::fcs {
           if (pft < b.price || (pft == b.price && l > b.len)) { b = {static_cast<op_e>(r), l, g_rep[r], pft}; }
         }
         if (avail >= 4) {
-          match_t l_matches[64];
+          match_t l_matches[128];
           std::uint32_t k2, k3, k4; match_finder_t::hashes(src.data() + p, k2, k3, k4);
           match_heads_t heads = {finder.h2[k2], finder.h3[k3], finder.h4[k4]};
           if (push) { finder.insert_known_hashes(p, k2, k3, k4); }
@@ -1320,12 +1325,12 @@ export namespace fan::fcs {
       text_buf = text_encode_transform(raw);
       text2_buf = text2_encode_transform(raw);
     } else if (!can_bcj) {
-      int delta_stride = detect_delta_stride(raw);
+      int stride_idx = 0;
+      int delta_stride = detect_delta_stride(raw, stride_idx);
       if (delta_stride > 1) {
-        int stride_log2 = delta_stride == 8 ? 3 : delta_stride == 4 ? 2 : 1;
         delta_buf = raw;
         delta_encode(delta_buf, delta_stride);
-        candidates.push_back({std::move(delta_buf), {}, "delta", std::uint8_t(flag_delta | (stride_log2 << 2)), params.chunk_size});
+        candidates.push_back({std::move(delta_buf), {}, "delta", std::uint8_t(flag_delta | (stride_idx << 2)), params.chunk_size});
       }
     }
 
@@ -1450,7 +1455,7 @@ export namespace fan::fcs {
       std::uint64_t total_uncomp = fan::memory::read_le64(header + 4);
       std::size_t stored_chunk_size = fan::memory::read_le32(header + 12); if (stored_chunk_size == 0) { stored_chunk_size = default_chunk_size; }
       std::uint8_t flags = header[16]; bool use_bcj = flags & flag_bcj, use_delta = flags & flag_delta, use_text = flags & flag_text, use_text2 = flags & flag_text2;
-      int delta_stride = 1 << ((flags >> 2) & 7);
+      int delta_stride = delta_strides[(flags >> 2) & 7];
 
       fan::bytes_t comp; std::uint64_t fsz = fan::io::file::file_size(in_path.string());
       if (fsz > 17) { comp.resize(fsz - 17); src.read_exact(comp); }
@@ -1511,7 +1516,7 @@ export namespace fan::fcs {
     std::uint64_t total_uncomp = fan::memory::read_le64(comp.data() + 4);
     std::size_t stored_chunk_size = fan::memory::read_le32(comp.data() + 12); if (stored_chunk_size == 0) { stored_chunk_size = default_chunk_size; }
     std::uint8_t flags = comp[16]; bool use_bcj = flags & flag_bcj, use_delta = flags & flag_delta, use_text = flags & flag_text, use_text2 = flags & flag_text2;
-    int delta_stride = 1 << ((flags >> 2) & 7);
+    int delta_stride = delta_strides[(flags >> 2) & 7];
     if (prog) { prog->total.store(total_uncomp, std::memory_order_relaxed); }
 
     fan::bytes_t raw = decode_stream_seq(comp, 17, total_uncomp, stored_chunk_size, prog);
