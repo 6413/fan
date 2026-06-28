@@ -498,6 +498,8 @@ export namespace fan::fcs {
       try_quick(heads.h3, 3);
 
       std::uint32_t best_len = (n_out > 0) ? out[n_out - 1].length : 0;
+      if (best_len >= nice_len || best_len >= max_avail) { return n_out; }
+
       std::uint32_t cur = heads.h4, iters = 0, po4; std::memcpy(&po4, po, 4);
 
       while (cur != nil && iters < chain_limit) {
@@ -506,15 +508,18 @@ export namespace fan::fcs {
         ++iters;
         const auto* pc = src_base + cur_abs;
 
+        if (pc[best_len] != po[best_len]) {
+          cur = p_chain[cur];
+          continue;
+        }
+
         std::uint32_t pc4; std::memcpy(&pc4, pc, 4);
         if (po4 == pc4) {
-          if (best_len < 4 || best_len >= max_avail || po[best_len] == pc[best_len]) {
-            std::uint32_t len = get_match_len_from_4(po, pc, max_avail);
-            if (len > best_len) {
-              best_len = len;
-              out[n_out < 128 ? n_out++ : n_out - 1] = {std::uint32_t(i - cur_abs), len};
-              if (len >= nice_len || len == max_avail) { break; }
-            }
+          std::uint32_t len = get_match_len_from_4(po, pc, max_avail);
+          if (len > best_len) {
+            best_len = len;
+            out[n_out < 128 ? n_out++ : n_out - 1] = {std::uint32_t(i - cur_abs), len};
+            if (best_len >= nice_len || best_len >= max_avail) { break; }
           }
         }
         cur = p_chain[cur];
@@ -544,10 +549,10 @@ export namespace fan::fcs {
     std::uint32_t candidate_sample_count = 4;
   };
 
-  constexpr compress_params_t params_fast()   { return {16,   32, true, false, 1, default_chunk_size, 1 << 11, 1uz << 20, 2}; }
-  constexpr compress_params_t params_normal() { return {64,  128, true, true,  0, default_chunk_size, 1 << 12, 2uz << 20, 3}; }
-  constexpr compress_params_t params_high()   { return {512, 512, true, true,  0, default_chunk_size, 1 << 13, 4uz << 20, 4}; }
-  constexpr compress_params_t params_max()    { return {1024,1024,true, true,  0, default_chunk_size, 1 << 14, 4uz << 20, 4}; }
+  constexpr compress_params_t params_fast()   { return {32,   64,   true, false, 1, default_chunk_size, 1 << 11, 1uz << 20, 2}; }
+  constexpr compress_params_t params_normal() { return {128,  256,  true, true,  0, default_chunk_size, 1 << 12, 2uz << 20, 3}; }
+  constexpr compress_params_t params_high()   { return {512,  512,  true, true,  0, default_chunk_size, 1 << 13, 4uz << 20, 4}; }
+  constexpr compress_params_t params_max()    { return {2048, 1024, true, true,  0, default_chunk_size, 1 << 14, 4uz << 20, 4}; }
 
   inline constexpr std::uint8_t state_lit_next[12]      = {0,0,0,0,1,2,3,4,5,6,4,5};
   inline constexpr std::uint8_t state_match_next[12]    = {7,7,7,7,7,7,7,10,10,10,10,10};
