@@ -6,7 +6,7 @@ namespace file = fan::io::file;
 static void row(auto n, auto v, auto u) { fan::printf("{:<12}{:>16}{:>16}", n, v, u); }
 static void row_float(auto n, f64_t v, auto u) { fan::printf("{:<12}{:>16.3f}{:>16}", n, v, u); }
 
-enum class compression_level_e { fast, normal, max };
+enum class compression_level_e { fast, normal, high, max };
 
 struct cli_options_t {
   compression_level_e level = compression_level_e::max;
@@ -30,10 +30,16 @@ struct progress_monitor_t {
   progress_monitor_t() {
     monitor = std::jthread([this](std::stop_token st) {
       while (!st.stop_requested()) {
-        fan::print_progress(prog.done.load(std::memory_order_relaxed), prog.total.load(std::memory_order_relaxed));
+        auto total = prog.total.load(std::memory_order_relaxed);
+        if (total != 0) {
+          fan::print_progress(prog.done.load(std::memory_order_relaxed), total);
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(33));
       }
-      fan::print_progress(prog.total.load(std::memory_order_relaxed), prog.total.load(std::memory_order_relaxed));
+      auto total = prog.total.load(std::memory_order_relaxed);
+      if (total != 0) {
+        fan::print_progress(total, total);
+      }
       fan::print("");
     });
   }
@@ -46,6 +52,7 @@ static fan::fcs::compress_params_t get_params(const cli_options_t& options) {
   switch (options.level) {
     case compression_level_e::fast: params = fan::fcs::params_fast(); break;
     case compression_level_e::normal: params = fan::fcs::params_normal(); break;
+    case compression_level_e::high: params = fan::fcs::params_high(); break;
     default: params = fan::fcs::params_max(); break;
   }
   if (options.chunk_mib != 0) {
@@ -81,6 +88,7 @@ static std::optional<cli_args_t> parse_args(int argc, char** argv) {
     std::string_view v;
     if (a == "--fast") { args.options.level = compression_level_e::fast; }
     else if (a == "--normal") { args.options.level = compression_level_e::normal; }
+    else if (a == "--high") { args.options.level = compression_level_e::high; }
     else if (a == "--max") { args.options.level = compression_level_e::max; }
     else if (a == "--verbose") { args.options.verbose = true; }
     else if (a == "-y" || a == "--y") { args.options.yes = true; }
@@ -166,7 +174,7 @@ static bool cmd_decompress(const std::string& in, std::string out_dir, const cli
 }
 
 static int usage(std::string_view exe) {
-  fan::printf("usage:\n  {0} c <input_file_or_dir> [output.fcs] [--fast|--normal|--max] [--verbose] [-y|--y] [-jN] [--chunk-mib N]\n  {0} d <input.fcs> [output_dir]\n", exe);
+  fan::printf("usage:\n  {0} c <input_file_or_dir> [output.fcs] [--fast|--normal|--high|--max] [--verbose] [-y|--y] [-jN] [--chunk-mib N]\n  {0} d <input.fcs> [output_dir]\n", exe);
   return 1;
 }
 
