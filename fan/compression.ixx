@@ -444,14 +444,14 @@ export namespace fan::fcs {
     std::size_t base = 0;
 
     match_finder_t(std::size_t d_start, std::size_t c_end)
-      : h2(1 << 16, nil), h3(1 << 20, nil), h4(1 << 24, nil), chain(c_end - d_start, nil),
+      : h2(1 << 16, nil), h3(1 << 19, nil), h4(1 << 22, nil), chain(c_end - d_start, nil),
         inserted_bits(((c_end - d_start) + 63) / 64), base(d_start) {}
 
     static void hashes(const std::uint8_t* p, std::uint32_t& k2, std::uint32_t& k3, std::uint32_t& k4) {
       std::uint32_t v; std::memcpy(&v, p, 4);
       k2 = ((v & 0xFFFFu) * 0x9E3779B9u) >> 16;
-      k3 = ((v & 0xFFFFFFu) * 0x1E35A7BDu) >> 12;
-      k4 = (v * 0x9E3779B9u) >> 8;
+      k3 = ((v & 0xFFFFFFu) * 0x1E35A7BDu) >> 13;
+      k4 = (v * 0x9E3779B9u) >> 10;
     }
     std::uint32_t to_rel(std::size_t p) const { return std::uint32_t(p - base); }
 
@@ -500,29 +500,38 @@ export namespace fan::fcs {
       std::uint32_t best_len = (n_out > 0) ? out[n_out - 1].length : 0;
       if (best_len >= nice_len || best_len >= max_avail) { return n_out; }
 
-      std::uint32_t cur = heads.h4, iters = 0, po4; std::memcpy(&po4, po, 4);
+      std::uint32_t cur = heads.h4, iters = 0;
+      std::uint32_t po4; std::memcpy(&po4, po, 4);
+
+      std::uint32_t limit_tail = best_len > 3 ? best_len - 3 : 0;
+      std::uint32_t po_tail; std::memcpy(&po_tail, po + limit_tail, 4);
 
       while (cur != nil && iters < chain_limit) {
+        std::uint32_t next_cur = p_chain[cur];
         std::size_t cur_abs = base + cur;
-        if (cur_abs >= i) { cur = p_chain[cur]; continue; }
+        if (cur_abs >= i) { cur = next_cur; continue; }
         ++iters;
         const auto* pc = src_base + cur_abs;
 
-        if (pc[best_len] != po[best_len]) {
-          cur = p_chain[cur];
-          continue;
-        }
-
-        std::uint32_t pc4; std::memcpy(&pc4, pc, 4);
-        if (po4 == pc4) {
-          std::uint32_t len = get_match_len_from_4(po, pc, max_avail);
-          if (len > best_len) {
-            best_len = len;
-            out[n_out < 128 ? n_out++ : n_out - 1] = {std::uint32_t(i - cur_abs), len};
-            if (best_len >= nice_len || best_len >= max_avail) { break; }
+        std::uint32_t pc_tail; std::memcpy(&pc_tail, pc + limit_tail, 4);
+        if (po_tail == pc_tail) {
+          bool head_match = true;
+          if (limit_tail > 0) {
+            std::uint32_t pc4; std::memcpy(&pc4, pc, 4);
+            head_match = (po4 == pc4);
+          }
+          if (head_match) {
+            std::uint32_t len = get_match_len_from_4(po, pc, max_avail);
+            if (len > best_len) {
+              best_len = len;
+              out[n_out < 128 ? n_out++ : n_out - 1] = {std::uint32_t(i - cur_abs), len};
+              if (best_len >= nice_len || best_len >= max_avail) { break; }
+              limit_tail = best_len > 3 ? best_len - 3 : 0;
+              std::memcpy(&po_tail, po + limit_tail, 4);
+            }
           }
         }
-        cur = p_chain[cur];
+        cur = next_cur;
       }
       return n_out;
     }
