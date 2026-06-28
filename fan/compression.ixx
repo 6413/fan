@@ -46,24 +46,19 @@ export namespace fan::fcs {
   constexpr void delta_decode(fan::bytes_t& d, int stride) {
     for (std::size_t i = stride; i < d.size(); ++i) { d[i] += d[i - stride]; }
   }
-  
-  inline constexpr int delta_strides[] = {1, 2, 3, 4, 6, 8, 12, 16};
-  
-  inline int detect_delta_stride(const fan::bytes_t& d, int& out_idx) {
+  inline int detect_delta_stride(const fan::bytes_t& d) {
     std::size_t probe = std::min<std::size_t>(d.size(), 131072);
-    int best_idx = 0;
+    int best_stride = 1;
     double best_ent = 1e18, base_ent = 1e18;
-    for (int idx = 0; idx < 8; ++idx) {
-      int s = delta_strides[idx];
+    for (int s : {1, 2, 4, 8}) {
       std::array<int, 256> freq {}; std::size_t n = 0;
       for (std::size_t i = s; i < probe; ++i) { ++freq[std::uint8_t(d[i] - d[i - s])]; ++n; }
       double ent = 0;
       for (int c : freq) { if (c) { double p = double(c) / n; ent -= p * std::log2(p); } }
       if (s == 1) { base_ent = ent; }
-      if (ent < best_ent) { best_ent = ent; best_idx = idx; }
+      if (ent < best_ent) { best_ent = ent; best_stride = s; }
     }
-    out_idx = best_idx;
-    return best_idx != 0 && best_ent + 0.05 < base_ent ? delta_strides[best_idx] : 1;
+    return best_stride != 1 && best_ent + 0.05 < base_ent ? best_stride : 1;
   }
 
   inline std::size_t archive_payload_offset(const fan::bytes_t& raw) {
@@ -550,9 +545,9 @@ export namespace fan::fcs {
   };
 
   constexpr compress_params_t params_fast()   { return {16,   32, true, false, 1, default_chunk_size, 1 << 11, 1uz << 20, 2}; }
-  constexpr compress_params_t params_normal() { return {64,  128, true, true,  0, default_chunk_size, 1 << 11, 2uz << 20, 3}; }
-  constexpr compress_params_t params_high()   { return {512, 512, true, true,  0, default_chunk_size, 1 << 15, 4uz << 20, 4}; }
-  constexpr compress_params_t params_max()    { return {2048,1024,true, true,  0, default_chunk_size, 1 << 16, 4uz << 20, 4}; }
+  constexpr compress_params_t params_normal() { return {64,  128, true, true,  0, default_chunk_size, 1 << 12, 2uz << 20, 3}; }
+  constexpr compress_params_t params_high()   { return {512, 512, true, true,  0, default_chunk_size, 1 << 13, 4uz << 20, 4}; }
+  constexpr compress_params_t params_max()    { return {1024,1024,true, true,  0, default_chunk_size, 1 << 14, 4uz << 20, 4}; }
 
   inline constexpr std::uint8_t state_lit_next[12]      = {0,0,0,0,1,2,3,4,5,6,4,5};
   inline constexpr std::uint8_t state_match_next[12]    = {7,7,7,7,7,7,7,10,10,10,10,10};
@@ -565,8 +560,8 @@ export namespace fan::fcs {
   struct chunk_payload_t { std::vector<seq_t> seqs; };
 
   inline constexpr std::uint32_t magic_v4 = 0x34334346;
-  inline constexpr int num_pos_states = 8;
-  inline constexpr int lc = 8, lp = 0, num_lit_ctx = 1 << (lc + lp);
+  inline constexpr int num_pos_states = 4;
+  inline constexpr int lc = 4, lp = 0, num_lit_ctx = 1 << (lc + lp);
 
   constexpr std::uint32_t lit_ctx(std::size_t pos, std::uint8_t prev) {
     return ((std::uint32_t(pos) & ((1u << lp) - 1)) << lc) | (prev >> (8 - lc));
@@ -723,7 +718,7 @@ export namespace fan::fcs {
     return std::uint8_t(sym & 0xFF);
   }
 
-  inline constexpr std::uint32_t max_opt_window = 1 << 16, max_exp_len = 4111, max_rep_len = 4110;
+  inline constexpr std::uint32_t max_opt_window = 1 << 14, max_exp_len = 4111, max_rep_len = 4110;
   inline constexpr std::uint32_t progress_step = 512;
   inline constexpr std::uint64_t parse_progress_weight = 80, encode_progress_weight = 20, progress_scale = 100;
   inline constexpr std::uint32_t inf_price = 0xFFFFFFFFu;
@@ -1325,12 +1320,12 @@ export namespace fan::fcs {
       text_buf = text_encode_transform(raw);
       text2_buf = text2_encode_transform(raw);
     } else if (!can_bcj) {
-      int stride_idx = 0;
-      int delta_stride = detect_delta_stride(raw, stride_idx);
+      int delta_stride = detect_delta_stride(raw);
       if (delta_stride > 1) {
+        int stride_log2 = delta_stride == 8 ? 3 : delta_stride == 4 ? 2 : 1;
         delta_buf = raw;
         delta_encode(delta_buf, delta_stride);
-        candidates.push_back({std::move(delta_buf), {}, "delta", std::uint8_t(flag_delta | (stride_idx << 2)), params.chunk_size});
+        candidates.push_back({std::move(delta_buf), {}, "delta", std::uint8_t(flag_delta | (stride_log2 << 2)), params.chunk_size});
       }
     }
 
@@ -1455,7 +1450,7 @@ export namespace fan::fcs {
       std::uint64_t total_uncomp = fan::memory::read_le64(header + 4);
       std::size_t stored_chunk_size = fan::memory::read_le32(header + 12); if (stored_chunk_size == 0) { stored_chunk_size = default_chunk_size; }
       std::uint8_t flags = header[16]; bool use_bcj = flags & flag_bcj, use_delta = flags & flag_delta, use_text = flags & flag_text, use_text2 = flags & flag_text2;
-      int delta_stride = delta_strides[(flags >> 2) & 7];
+      int delta_stride = 1 << ((flags >> 2) & 7);
 
       fan::bytes_t comp; std::uint64_t fsz = fan::io::file::file_size(in_path.string());
       if (fsz > 17) { comp.resize(fsz - 17); src.read_exact(comp); }
@@ -1516,7 +1511,7 @@ export namespace fan::fcs {
     std::uint64_t total_uncomp = fan::memory::read_le64(comp.data() + 4);
     std::size_t stored_chunk_size = fan::memory::read_le32(comp.data() + 12); if (stored_chunk_size == 0) { stored_chunk_size = default_chunk_size; }
     std::uint8_t flags = comp[16]; bool use_bcj = flags & flag_bcj, use_delta = flags & flag_delta, use_text = flags & flag_text, use_text2 = flags & flag_text2;
-    int delta_stride = delta_strides[(flags >> 2) & 7];
+    int delta_stride = 1 << ((flags >> 2) & 7);
     if (prog) { prog->total.store(total_uncomp, std::memory_order_relaxed); }
 
     fan::bytes_t raw = decode_stream_seq(comp, 17, total_uncomp, stored_chunk_size, prog);
