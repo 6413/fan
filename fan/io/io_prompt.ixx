@@ -16,7 +16,7 @@ export namespace fan::io {
   }
 
   std::string ask_string(const std::string_view question) {
-    fan::print("{}: ", question);
+    fan::printf("{}: ", question);
     std::string response;
     std::getline(std::cin, response);
     return response;
