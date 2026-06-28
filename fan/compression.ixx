@@ -539,11 +539,15 @@ export namespace fan::fcs {
     bool optimal = true;
     int lazy_depth = 2;
     std::size_t chunk_size = default_chunk_size;
+    std::uint32_t opt_window = 1 << 12;
+    std::size_t candidate_sample_size = 2uz << 20;
+    std::uint32_t candidate_sample_count = 4;
   };
 
-  constexpr compress_params_t params_fast()   { return {16,  32, true, false, 1, default_chunk_size}; }
-  constexpr compress_params_t params_normal() { return {32, 128, true, false, 2, default_chunk_size}; }
-  constexpr compress_params_t params_max()    { return {128, 273, true, true, 0, default_chunk_size}; }
+  constexpr compress_params_t params_fast()   { return {16,   32, true, false, 1, default_chunk_size, 1 << 11, 1uz << 20, 2}; }
+  constexpr compress_params_t params_normal() { return {64,  128, true, true,  0, default_chunk_size, 1 << 11, 2uz << 20, 3}; }
+  constexpr compress_params_t params_high()   { return {512, 273, true, true,  0, default_chunk_size, 1 << 13, 4uz << 20, 4}; }
+  constexpr compress_params_t params_max()    { return {1024,273, true, true,  0, default_chunk_size, 1 << 14, 4uz << 20, 4}; }
 
   inline constexpr std::uint8_t state_lit_next[12]      = {0,0,0,0,1,2,3,4,5,6,4,5};
   inline constexpr std::uint8_t state_match_next[12]    = {7,7,7,7,7,7,7,10,10,10,10,10};
@@ -714,7 +718,7 @@ export namespace fan::fcs {
     return std::uint8_t(sym & 0xFF);
   }
 
-  inline constexpr std::uint32_t kNumOpts = 1 << 12, max_exp_len = 273, max_rep_len = 272;
+  inline constexpr std::uint32_t max_opt_window = 1 << 14, max_exp_len = 273, max_rep_len = 272;
   inline constexpr std::uint32_t progress_step = 512;
   inline constexpr std::uint64_t parse_progress_weight = 80, encode_progress_weight = 20, progress_scale = 100;
   inline constexpr std::uint32_t inf_price = 0xFFFFFFFFu;
@@ -886,8 +890,8 @@ export namespace fan::fcs {
       }
     };
 
-    std::vector<opt_t> opts(kNumOpts + max_exp_len + 1);
-    std::vector<match_cache_t> match_cache(kNumOpts);
+    std::vector<opt_t> opts(max_opt_window + max_exp_len + 1);
+    std::vector<match_cache_t> match_cache(max_opt_window);
     parse_price_cache_t price_cache;
 
     std::size_t cache_thread_count = std::max<std::size_t>(1, thread_count);
@@ -895,7 +899,7 @@ export namespace fan::fcs {
     std::atomic<std::uint32_t> next_match = 0; std::mutex cache_mutex; std::condition_variable cache_cv, cache_done_cv;
     std::uint64_t cache_generation = 0; std::size_t cache_finished = 0, cache_ci = 0; std::uint32_t cache_window = 0; bool cache_stop = false;
 
-    std::vector<match_heads_t> match_heads(kNumOpts);
+    std::vector<match_heads_t> match_heads(max_opt_window);
 
     auto fill_match_cache = [&](std::size_t base_pos, std::uint32_t begin, std::uint32_t end) {
       for (std::uint32_t j = begin; j < end; ++j) {
@@ -997,7 +1001,8 @@ export namespace fan::fcs {
 
     while (ci < cend) {
       price_cache.refresh(model);
-      std::uint32_t window = std::min(std::uint32_t(cend - ci), kNumOpts - 1), len_end = 1;
+      std::uint32_t opt_window = std::clamp(params.opt_window, 2u, max_opt_window);
+      std::uint32_t window = std::min(std::uint32_t(cend - ci), opt_window - 1), len_end = 1;
       opts[0] = {0, 0, 1, 0, op_e::none, g_rep, g_state};
       for (std::uint32_t k = 1; k <= window + max_exp_len; ++k) { opts[k].price = inf_price; }
 
@@ -1074,7 +1079,10 @@ export namespace fan::fcs {
                 }
               };
               for (std::uint32_t ml = 2, e = std::min(l, 16u); ml <= e; ++ml) { put(ml); }
-              if (l > 16) { for (std::uint32_t ml = 20; ml < l; ml += 8) { put(ml); } put(l); }
+              if (l > 16) {
+                for (std::uint32_t ml = 17, e = std::min(l, 32u); ml <= e; ++ml) { put(ml); }
+                if (l > 32) { for (std::uint32_t ml = 36; ml < l; ml += 4) { put(ml); } put(l); }
+              }
             }
           } else {
             std::uint32_t rp = bp + bit_price(model.is_rep0[st], 0) + (r == 1 ? bit_price(model.is_rep1[st], 0) : bit_price(model.is_rep1[st], 1) + bit_price(model.is_rep2[st], r != 2));
@@ -1087,7 +1095,10 @@ export namespace fan::fcs {
                 }
               };
               for (std::uint32_t ml = 2, e = std::min(l, 16u); ml <= e; ++ml) { put(ml); }
-              if (l > 16) { for (std::uint32_t ml = 20; ml < l; ml += 8) { put(ml); } put(l); }
+              if (l > 16) {
+                for (std::uint32_t ml = 17, e = std::min(l, 32u); ml <= e; ++ml) { put(ml); }
+                if (l > 32) { for (std::uint32_t ml = 36; ml < l; ml += 4) { put(ml); } put(l); }
+              }
             }
           }
         }
@@ -1113,8 +1124,11 @@ export namespace fan::fcs {
 
             for (std::uint32_t ml = start_len, e = std::min(limit, 16u); ml <= e; ++ml) { put(ml); }
             if (limit > 16) {
-              for (std::uint32_t ml = std::max(20u, (start_len + 7) & ~7u); ml < limit; ml += 8) { put(ml); }
-              put(limit);
+              for (std::uint32_t ml = std::max(start_len, 17u), e = std::min(limit, 32u); ml <= e; ++ml) { put(ml); }
+              if (limit > 32) {
+                for (std::uint32_t ml = std::max(36u, (start_len + 3) & ~3u); ml < limit; ml += 4) { put(ml); }
+                put(limit);
+              }
             }
             prev_len = limit;
           }
@@ -1294,12 +1308,54 @@ export namespace fan::fcs {
     std::size_t chunk_size = default_chunk_size;
   };
 
-  inline std::size_t quick_test_candidate(const fan::bytes_t& data) {
-    std::size_t sample_size = std::min<std::size_t>(data.size(), 1uz << 20);
-    fan::bytes_t sample(data.begin(), data.begin() + sample_size);
+  inline void add_transform_candidates(std::vector<compress_candidate_t>& candidates, fan::bytes_t&& raw, std::size_t payload_offset, bool can_bcj, bool can_text, compress_params_t params) {
+    fan::bytes_t bcj_buf, delta_buf, text_buf, text2_buf;
+    if (can_bcj) {
+      bcj_buf = raw;
+      bcj_transform_range(bcj_buf, payload_offset, bcj_buf.size(), true);
+    }
+
+    bool try_text = !can_bcj && can_text && looks_like_large_text(raw, payload_offset);
+    if (try_text) {
+      text_buf = text_encode_transform(raw);
+      text2_buf = text2_encode_transform(raw);
+    } else if (!can_bcj) {
+      int delta_stride = detect_delta_stride(raw);
+      if (delta_stride > 1) {
+        int stride_log2 = delta_stride == 8 ? 3 : delta_stride == 4 ? 2 : 1;
+        delta_buf = raw;
+        delta_encode(delta_buf, delta_stride);
+        candidates.push_back({std::move(delta_buf), {}, "delta", std::uint8_t(flag_delta | (stride_log2 << 2)), params.chunk_size});
+      }
+    }
+
+    candidates.push_back({std::move(raw), {}, "raw", 0, params.chunk_size});
+    if (!bcj_buf.empty()) { candidates.push_back({std::move(bcj_buf), {}, "bcj", flag_bcj, params.chunk_size}); }
+    if (!text_buf.empty()) { candidates.push_back({std::move(text_buf), {}, "text", flag_text, params.chunk_size}); }
+    if (!text2_buf.empty()) { candidates.push_back({std::move(text2_buf), {}, "text2", flag_text2, params.chunk_size}); }
+  }
+
+  inline fan::bytes_t make_candidate_sample(const fan::bytes_t& data, compress_params_t params) {
+    if (data.size() <= params.candidate_sample_size || params.candidate_sample_count <= 1) { return data; }
+    std::uint32_t n = std::max<std::uint32_t>(1, params.candidate_sample_count);
+    std::size_t each = std::max<std::size_t>(1, params.candidate_sample_size / n);
+    fan::bytes_t sample; sample.reserve(each * n);
+    for (std::uint32_t i = 0; i < n; ++i) {
+      std::size_t max_pos = data.size() > each ? data.size() - each : 0;
+      std::size_t pos = n == 1 ? 0 : max_pos * i / (n - 1);
+      sample.insert(sample.end(), data.begin() + pos, data.begin() + pos + std::min(each, data.size() - pos));
+    }
+    return sample;
+  }
+
+  inline std::size_t quick_test_candidate(const fan::bytes_t& data, compress_params_t params) {
+    fan::bytes_t sample = make_candidate_sample(data, params);
     fan::bytes_t comp;
-    auto p = params_fast(); p.chunk_size = sample_size;
-    run_compress_core(sample, p, nullptr, 1, comp);
+    params.chunk_size = sample.size();
+    params.chain_main = std::min(params.chain_main, 128u);
+    params.nice_len = std::min(params.nice_len, 192u);
+    params.opt_window = std::min(params.opt_window, 1u << 12);
+    run_compress_core(sample, params, nullptr, 1, comp);
     return comp.size();
   }
 
@@ -1311,7 +1367,7 @@ export namespace fan::fcs {
       if (verbose) { fan::print("quick testing candidates..."); }
       std::size_t best_s = -1uz;
       for (std::size_t i = 0; i < candidates.size(); ++i) {
-        std::size_t s = quick_test_candidate(candidates[i].data);
+        std::size_t s = quick_test_candidate(candidates[i].data, params);
         if (verbose) { fan::print("candidate:", candidates[i].name, "sample size:", s); }
         if (s < best_s) { best_s = s; best_idx = i; }
       }
@@ -1357,41 +1413,24 @@ export namespace fan::fcs {
 
     fan::bytes_t raw_buf; provider.read_range(0, provider.size(), raw_buf);
 
-    bool use_bcj = false, use_delta = false, use_text = false, use_text2 = false; int delta_stride = 1;
+    bool can_bcj = false;
     if (params.bcj && files.size() == 1) {
       fan::bytes_t file_head(std::min<std::uint64_t>(files[0].size, 4));
       fan::io::file::file_t* fpp = nullptr;
       if (!fan::io::file::open(&fpp, files[0].real_path.string(), {"rb"})) {
         fan::io::file::file_reader_t fr{fpp}; fr.read_exact(file_head); fan::io::file::close(fpp);
-        if (file_head.size() >= 2 && file_head[0] == 'M' && file_head[1] == 'Z') { use_bcj = true; }
+        if (file_head.size() >= 2 && file_head[0] == 'M' && file_head[1] == 'Z') { can_bcj = true; }
       }
     }
-
-    fan::bytes_t text_buf, text2_buf;
-    bool try_text = !use_bcj && files.size() == 1 && looks_like_large_text(raw_buf, payload_offset);
-    if (try_text) { text_buf = text_encode_transform(raw_buf); text2_buf = text2_encode_transform(raw_buf); }
-
-    if (use_bcj) { bcj_transform_range(raw_buf, payload_offset, raw_buf.size(), true); }
-    else if (!try_text) {
-      delta_stride = detect_delta_stride(raw_buf); use_delta = delta_stride > 1;
-      if (use_delta) { delta_encode(raw_buf, delta_stride); }
-    }
-
-    int stride_log2 = delta_stride == 8 ? 3 : delta_stride == 4 ? 2 : delta_stride == 2 ? 1 : 0;
-    std::uint8_t flags = std::uint8_t(use_bcj ? flag_bcj : 0) | std::uint8_t(use_delta ? flag_delta : 0) | std::uint8_t(stride_log2 << 2);
 
     fan::io::file::file_t* fp = nullptr;
     if (fan::io::file::open(&fp, out_path.string(), {"wb"})) { return false; }
     try {
       fan::bytes_t comp; std::size_t selected_chunk_size = std::min<std::size_t>(std::max<std::size_t>(1, params.chunk_size), 1uz << 30);
       std::vector<compress_candidate_t> candidates;
-      candidates.push_back({std::move(raw_buf), {}, "raw", flags, params.chunk_size});
-      if (try_text) {
-        if (!text_buf.empty()) { candidates.push_back({std::move(text_buf), {}, "text", std::uint8_t(flags | flag_text), params.chunk_size}); }
-        if (!text2_buf.empty()) { candidates.push_back({std::move(text2_buf), {}, "text2", std::uint8_t(flags | flag_text2), params.chunk_size}); }
-      }
+      add_transform_candidates(candidates, std::move(raw_buf), payload_offset, can_bcj, files.size() == 1, params);
       auto best = compress_best_candidate(candidates, params, prog, thread_count, verbose);
-      raw_buf = std::move(best.data); comp = std::move(best.comp); flags = best.flags; selected_chunk_size = best.chunk_size;
+      raw_buf = std::move(best.data); comp = std::move(best.comp); std::uint8_t flags = best.flags; selected_chunk_size = best.chunk_size;
 
       std::uint8_t header[17]; fan::memory::write_le32(header, magic_v4); fan::memory::write_le64(header + 4, raw_buf.size());
       fan::memory::write_le32(header + 12, std::uint32_t(selected_chunk_size)); header[16] = flags;
@@ -1451,28 +1490,13 @@ export namespace fan::fcs {
     std::size_t payload_offset = raw.size();
     for (const auto& f : files) { raw.insert(raw.end(), f.data.begin(), f.data.end()); }
 
-    bool use_bcj = params.bcj && files.size() == 1 && files[0].data.size() >= 2 && files[0].data[0] == 'M' && files[0].data[1] == 'Z';
-    if (use_bcj) { bcj_transform_range(raw, payload_offset, raw.size(), true); }
-
-    int delta_stride = 1; bool use_delta = false, use_text = false, use_text2 = false; fan::bytes_t text_buf, text2_buf;
-    bool try_text = !use_bcj && files.size() == 1 && looks_like_large_text(raw, payload_offset);
-    if (try_text) { text_buf = text_encode_transform(raw); text2_buf = text2_encode_transform(raw); }
-    if (!use_bcj && !try_text) {
-      delta_stride = detect_delta_stride(raw); use_delta = delta_stride > 1;
-      if (use_delta) { delta_encode(raw, delta_stride); }
-    }
-    int stride_log2 = delta_stride == 8 ? 3 : delta_stride == 4 ? 2 : delta_stride == 2 ? 1 : 0;
-    std::uint8_t flags = std::uint8_t(use_bcj ? flag_bcj : 0) | std::uint8_t(use_delta ? flag_delta : 0) | std::uint8_t(stride_log2 << 2);
+    bool can_bcj = params.bcj && files.size() == 1 && files[0].data.size() >= 2 && files[0].data[0] == 'M' && files[0].data[1] == 'Z';
 
     fan::bytes_t comp; std::size_t selected_chunk_size = std::min<std::size_t>(std::max<std::size_t>(1, params.chunk_size), 1uz << 30);
     std::vector<compress_candidate_t> candidates;
-    candidates.push_back({std::move(raw), {}, "raw", flags, params.chunk_size});
-    if (try_text) {
-      if (!text_buf.empty()) { candidates.push_back({std::move(text_buf), {}, "text", std::uint8_t(flags | flag_text), params.chunk_size}); }
-      if (!text2_buf.empty()) { candidates.push_back({std::move(text2_buf), {}, "text2", std::uint8_t(flags | flag_text2), params.chunk_size}); }
-    }
+    add_transform_candidates(candidates, std::move(raw), payload_offset, can_bcj, files.size() == 1, params);
     auto best = compress_best_candidate(candidates, params, prog, 0);
-    raw = std::move(best.data); comp = std::move(best.comp); flags = best.flags; selected_chunk_size = best.chunk_size;
+    raw = std::move(best.data); comp = std::move(best.comp); std::uint8_t flags = best.flags; selected_chunk_size = best.chunk_size;
 
     fan::bytes_t result; result.reserve(comp.size() + 17); std::uint8_t header[17];
     fan::memory::write_le32(header, magic_v4); fan::memory::write_le64(header + 4, raw.size());
