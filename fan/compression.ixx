@@ -81,6 +81,48 @@ export namespace fan::fcs {
     return pe + 4 <= d.size() && d[pe] == 'P' && d[pe + 1] == 'E' && d[pe + 2] == 0 && d[pe + 3] == 0;
   }
 
+  inline bool looks_like_elf_x86(const fan::bytes_t& d) {
+    if (d.size() < 20 || d[0] != 0x7f || d[1] != 'E' || d[2] != 'L' || d[3] != 'F') { return false; }
+    if (d[5] != 1) { return false; }
+    std::uint16_t machine = fan::memory::read_le16(d.data() + 18);
+    return machine == 3 || machine == 62;
+  }
+
+  inline bool looks_like_coff_x86(const fan::bytes_t& d) {
+    if (d.size() < 20) { return false; }
+    std::uint16_t machine = fan::memory::read_le16(d.data());
+    std::uint16_t sections = fan::memory::read_le16(d.data() + 2);
+    std::uint16_t opt_size = fan::memory::read_le16(d.data() + 16);
+    return (machine == 0x14c || machine == 0x8664) && sections != 0 && sections < 128 && opt_size < 4096;
+  }
+
+  inline bool looks_like_x86_binary(const fan::bytes_t& d) {
+    return looks_like_pe(d) || looks_like_elf_x86(d) || looks_like_coff_x86(d) ||
+      (d.size() >= 8 && std::memcmp(d.data(), "!<arch>\n", 8) == 0);
+  }
+
+  inline bool looks_like_bcj_data(const fan::bytes_t& d, std::size_t payload_offset) {
+    std::size_t begin = std::min(payload_offset, d.size());
+    std::size_t n = std::min<std::size_t>(d.size() - begin, 4uz << 20);
+    if (n < (64uz << 10)) { return false; }
+
+    std::size_t hits = 0, good = 0;
+    for (std::size_t i = begin; i + 5 <= begin + n; ++i) {
+      std::uint8_t b = d[i];
+      int s = (b == 0xe8 || b == 0xe9) ? 1 :
+        (i + 6 <= begin + n && ((b == 0x0f && (d[i + 1] & 0xf0) == 0x80) || (b == 0xff && (d[i + 1] == 0x15 || d[i + 1] == 0x25)))) ? 2 :
+        (i + 7 <= begin + n && (b == 0x48 || b == 0x4c) && d[i + 1] == 0x8d && (d[i + 2] & 0xc7) == 0x05) ? 3 : 0;
+      if (!s) { continue; }
+      ++hits;
+      std::uint32_t v; std::memcpy(&v, d.data() + i + s, 4);
+      std::uint32_t pos = std::uint32_t(i - begin);
+      std::uint32_t target = v + pos;
+      good += target < d.size();
+      i += s + 3;
+    }
+    return hits >= n / 4096 && good * 3 >= hits;
+  }
+
   inline constexpr std::uint8_t flag_bcj = 1u;
   inline constexpr std::uint8_t flag_delta = 2u;
   inline constexpr std::uint8_t flag_text = 32u;
@@ -249,7 +291,8 @@ export namespace fan::fcs {
     "&quot;", "&amp;", "&lt;", "&gt;", "&nbsp;", "&ndash;", "&mdash;",
     "<redirect title=\"", "#REDIRECT", "Category:", "Image:", "File:", "Template:",
     "http://", "https://", "www.", "ref>", "</ref>", "<br />",
-    "which", "there", "their", "that", "this", "with", "have", "were", "from", ".com", "ing", "ion", "and", "the", " tha", "ent", "ere", " co", "e o", "e a", "e c", "e s", "e t", " th", " t", "in ", "he ", " to", "of ", " of", "for", "you", "not", "all", "was", "one", "our", "ver", "ter", "men", "ati", "ass", "ate", "div", "whi", "who", "but", "his", "her", "hat", "tha", "the ", "they", "are", "res", "com", "con", "per", "pro", "tion", "atio", "ment", "ence", "able", "ould", "ight", "ally", "ally ", " and", " the", " to ", " of ", " in ", " a ", " is ", " as ", " on ", " or ", " by ", " an ", " be ", " re", " wa", " wi", " wh", " ma", " ha", " fo", " cl", " we", "</", "=\"", "ch ", "th "
+    "which", "there", "their", "that", "this", "with", "have", "were", "from", ".com", "ing", "ion", "and", "the", " tha", "ent", "ere", " co", "e o", "e a", "e c", "e s", "e t", " th", " t", "in ", "he ", " to", "of ", " of", "for", "you", "not", "all", "was", "one", "our", "ver", "ter", "men", "ati", "ass", "ate", "div", "whi", "who", "but", "his", "her", "hat", "tha", "the ", "they", "are", "res", "com", "con", "per", "pro", "tion", "atio", "ment", "ence", "able", "ould", "ight", "ally", "ally ", " and", " the", " to ", " of ", " in ", " a ", " is ", " as ", " on ", " or ", " by ", " an ", " be ", " re", " wa", " wi", " wh", " ma", " ha", " fo", " cl", " we", "</", "=\"", "ch ", "th ",
+    "#include", "import ", "export ", "module ", "namespace ", "template", "typename", "constexpr", "consteval", "constinit", "inline ", "static ", "struct ", "class ", "public:", "private:", "protected:", "return ", "std::", "std::size_t", "std::uint", "std::vector", "std::array", "std::string", "std::string_view", "std::span", "std::move", "std::forward", "std::min", "std::max", "std::clamp", "std::runtime_error", "std::filesystem", "std::memory_order_relaxed", "fan::", "fan::bytes_t", "std::uint8_t", "std::uint16_t", "std::uint32_t", "std::uint64_t", "std::size_t", "std::memcpy", "std::memset", "if (", "for (", "while (", "else ", "auto ", "bool ", "void ", "true", "false", "nullptr", "throw ", "continue;", "break;", "return;", "push_back", "emplace_back", ".data()", ".size()", ".begin()", ".end()", "operator", "using ", "typedef", "virtual ", "override", "final", "noexcept", "requires", "concept ", "switch (", "case ", "default:", "lambda", "->", "::", "&&", "||", "==", "!=", "<=", ">=", "<<", ">>"
   };
 
   inline std::uint8_t text2_lower(std::uint8_t c) { return c >= 'A' && c <= 'Z' ? std::uint8_t(c + ('a' - 'A')) : c; }
@@ -439,26 +482,36 @@ export namespace fan::fcs {
 
   inline fan::bytes_t rle_encode_transform(const fan::bytes_t& raw) {
     if (raw.size() < (64uz << 10)) { return {}; }
+
     fan::bytes_t out;
     out.reserve(raw.size() * 7 / 8);
     std::uint8_t sz[8];
     fan::memory::write_le64(sz, raw.size());
     out.insert(out.end(), sz, sz + 8);
+
+    std::size_t lit_begin = 0;
+    auto flush_lit = [&](std::size_t lit_end) {
+      while (lit_begin < lit_end) {
+        std::size_t n = std::min<std::size_t>(lit_end - lit_begin, 1uz << 20);
+        out.push_back(0); rle_write_var(out, n);
+        out.insert(out.end(), raw.begin() + lit_begin, raw.begin() + lit_begin + n);
+        lit_begin += n;
+      }
+    };
+
     for (std::size_t i = 0; i < raw.size();) {
       std::uint8_t c = raw[i];
       std::size_t run = 1;
       while (i + run < raw.size() && raw[i + run] == c) { ++run; }
       if (run >= 4) {
-        out.push_back(0); out.push_back(1); out.push_back(c); rle_write_var(out, run);
+        flush_lit(i);
+        out.push_back(1); out.push_back(c); rle_write_var(out, run);
+        i += run; lit_begin = i;
+      } else {
         i += run;
-        continue;
-      }
-      for (std::size_t j = 0; j < run; ++j) {
-        if (c == 0) { out.push_back(0); out.push_back(0); }
-        else { out.push_back(c); }
-        ++i;
       }
     }
+    flush_lit(raw.size());
     return out.size() + raw.size() / 128 < raw.size() ? std::move(out) : fan::bytes_t{};
   }
 
@@ -469,16 +522,18 @@ export namespace fan::fcs {
     fan::bytes_t out;
     out.reserve(std::size_t(out_size));
     while (p < in.size()) {
-      std::uint8_t c = in[p++];
-      if (c != 0) { out.push_back(c); continue; }
-      if (p >= in.size()) { throw std::runtime_error("corrupt rle transform"); }
       std::uint8_t t = in[p++];
-      if (t == 0) { out.push_back(0); continue; }
-      if (t != 1 || p >= in.size()) { throw std::runtime_error("corrupt rle transform"); }
-      std::uint8_t v = in[p++];
-      std::uint64_t run = rle_read_var(in, p);
-      if (out.size() + run > out_size) { throw std::runtime_error("corrupt rle transform"); }
-      out.insert(out.end(), std::size_t(run), v);
+      if (t == 0) {
+        std::uint64_t n = rle_read_var(in, p);
+        if (n > in.size() - p || out.size() + n > out_size) { throw std::runtime_error("corrupt rle transform"); }
+        out.insert(out.end(), in.begin() + p, in.begin() + p + std::size_t(n)); p += std::size_t(n);
+      } else if (t == 1) {
+        if (p >= in.size()) { throw std::runtime_error("corrupt rle transform"); }
+        std::uint8_t v = in[p++];
+        std::uint64_t run = rle_read_var(in, p);
+        if (out.size() + run > out_size) { throw std::runtime_error("corrupt rle transform"); }
+        out.insert(out.end(), std::size_t(run), v);
+      } else { throw std::runtime_error("corrupt rle transform"); }
     }
     if (out.size() != out_size) { throw std::runtime_error("corrupt rle transform"); }
     return out;
@@ -637,7 +692,7 @@ export namespace fan::fcs {
   struct seq_t { std::uint32_t lit_len; op_e op; std::uint32_t match_len, offset; };
   struct chunk_payload_t { std::vector<seq_t> seqs; };
 
-  inline constexpr std::uint32_t magic_v5 = 0x35334346;
+  inline constexpr std::uint32_t magic_v6 = 0x36334346;
   inline constexpr int num_pos_states = 4;
   inline constexpr int lc = 8, lp = 0, num_lit_ctx = 1 << (lc + lp);
 
@@ -1482,7 +1537,7 @@ export namespace fan::fcs {
       fan::io::file::file_t* fpp = nullptr;
       if (!fan::io::file::open(&fpp, files[0].real_path.string(), {"rb"})) {
         fan::io::file::file_reader_t fr{fpp}; fr.read_exact(file_head); fan::io::file::close(fpp);
-        can_bcj = looks_like_pe(file_head);
+        can_bcj = looks_like_x86_binary(file_head) || looks_like_bcj_data(raw_buf, payload_offset);
       }
     }
 
@@ -1494,7 +1549,7 @@ export namespace fan::fcs {
       auto best = compress_best_candidate(candidates, params, prog, thread_count, verbose);
       raw_buf = std::move(best.data); fan::bytes_t comp = std::move(best.comp); std::uint8_t flags = best.flags;
 
-      std::uint8_t header[17]; fan::memory::write_le32(header, magic_v5); fan::memory::write_le64(header + 4, raw_buf.size());
+      std::uint8_t header[17]; fan::memory::write_le32(header, magic_v6); fan::memory::write_le64(header + 4, raw_buf.size());
       fan::memory::write_le32(header + 12, std::uint32_t(best.chunk_size)); header[16] = flags;
 
       fan::io::file::file_writer_t sink{fp}; sink.write_bytes(std::span<const std::uint8_t>(header, 17)); sink.write_bytes(comp);
@@ -1508,7 +1563,7 @@ export namespace fan::fcs {
     fan::io::file::file_reader_t src{fp};
     try {
       std::uint8_t header[17]; src.read_exact(std::span<std::uint8_t>(header, 17));
-      if (fan::memory::read_le32(header) != magic_v5) throw std::runtime_error("needs FCS5");
+      if (fan::memory::read_le32(header) != magic_v6) throw std::runtime_error("needs FCS6");
       std::uint64_t total_uncomp = fan::memory::read_le64(header + 4);
       std::size_t stored_chunk_size = fan::memory::read_le32(header + 12); if (stored_chunk_size == 0) stored_chunk_size = default_chunk_size;
       std::uint8_t flags = header[16]; bool use_bcj = flags & flag_bcj, use_delta = flags & flag_delta, use_text = flags & flag_text, use_text2 = flags & flag_text2, use_rle = flags & flag_rle;
@@ -1553,7 +1608,7 @@ export namespace fan::fcs {
     std::size_t payload_offset = raw.size();
     for (const auto& f : files) raw.insert(raw.end(), f.data.begin(), f.data.end());
 
-    bool can_bcj = params.bcj && files.size() == 1 && looks_like_pe(files[0].data);
+    bool can_bcj = params.bcj && files.size() == 1 && (looks_like_x86_binary(files[0].data) || looks_like_bcj_data(raw, payload_offset));
 
     std::vector<compress_candidate_t> candidates;
     add_transform_candidates(candidates, std::move(raw), payload_offset, can_bcj, files.size() == 1, params);
@@ -1561,7 +1616,7 @@ export namespace fan::fcs {
     raw = std::move(best.data); fan::bytes_t comp = std::move(best.comp); std::uint8_t flags = best.flags;
 
     fan::bytes_t result; result.reserve(comp.size() + 17); std::uint8_t header[17];
-    fan::memory::write_le32(header, magic_v5); fan::memory::write_le64(header + 4, raw.size());
+    fan::memory::write_le32(header, magic_v6); fan::memory::write_le64(header + 4, raw.size());
     fan::memory::write_le32(header + 12, std::uint32_t(best.chunk_size)); header[16] = flags;
     result.insert(result.end(), header, header + sizeof(header)); result.insert(result.end(), comp.begin(), comp.end());
     return result;
@@ -1569,7 +1624,7 @@ export namespace fan::fcs {
 
   std::vector<fan::io::file_buffer_t> decompress(const fan::bytes_t& comp, fan::progress_t* prog = nullptr) {
     std::vector<fan::io::file_buffer_t> files;
-    if (comp.size() < 17 || fan::memory::read_le32(comp.data()) != magic_v5) throw std::runtime_error("needs FCS5");
+    if (comp.size() < 17 || fan::memory::read_le32(comp.data()) != magic_v6) throw std::runtime_error("needs FCS6");
     std::uint64_t total_uncomp = fan::memory::read_le64(comp.data() + 4);
     std::size_t stored_chunk_size = fan::memory::read_le32(comp.data() + 12); if (stored_chunk_size == 0) stored_chunk_size = default_chunk_size;
     std::uint8_t flags = comp[16]; bool use_bcj = flags & flag_bcj, use_delta = flags & flag_delta, use_text = flags & flag_text, use_text2 = flags & flag_text2, use_rle = flags & flag_rle;
