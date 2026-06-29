@@ -674,13 +674,15 @@ export namespace fan::fcs {
     std::uint32_t opt_window = 1 << 12;
     std::size_t candidate_sample_size = 2uz << 20;
     std::uint32_t candidate_sample_count = 4;
+    std::uint32_t commit_limit = 0;
+    bool parser_verify = false;
   };
 
-  constexpr compress_params_t params_fast()   { return {32,   64,   true, false, 1, default_chunk_size, 1 << 10, 1uz << 20, 2}; }
-  constexpr compress_params_t params_normal() { return {128,  256,  true, true,  0, default_chunk_size, 1 << 11, 2uz << 20, 3}; }
-  constexpr compress_params_t params_high()   { return {512,  512,  true, true,  0, default_chunk_size, 1 << 12, 4uz << 20, 4}; }
-  constexpr compress_params_t params_max()    { return {2048, 1024, true, true,  0, default_chunk_size, 1 << 13, 8uz << 20, 6}; }
-  constexpr compress_params_t params_ultra()  { return {4096, 4111, true, true,  0, default_chunk_size, 1 << 14, 8uz << 20, 6}; }
+  constexpr compress_params_t params_fast()   { return {32,   64,   true, false, 1, default_chunk_size, 1 << 10, 1uz << 20, 2, 0}; }
+  constexpr compress_params_t params_normal() { return {128,  256,  true, true,  0, default_chunk_size, 1 << 11, 2uz << 20, 3, 0}; }
+  constexpr compress_params_t params_high()   { return {512,  512,  true, true,  0, default_chunk_size, 1 << 12, 4uz << 20, 4, 0}; }
+  constexpr compress_params_t params_max()    { return {2048, 1024, true, true,  0, default_chunk_size, 1 << 13, 8uz << 20, 6, 0}; }
+  constexpr compress_params_t params_ultra()  { return {4096, 4111, true, true,  0, default_chunk_size, 1 << 14, 8uz << 20, 6, 0}; }
 
   inline constexpr std::uint8_t state_lit_next[12]      = {0,0,0,0,1,2,3,4,5,6,4,5};
   inline constexpr std::uint8_t state_match_next[12]    = {7,7,7,7,7,7,7,10,10,10,10,10};
@@ -1209,20 +1211,22 @@ export namespace fan::fcs {
 
       std::vector<std::uint32_t> path;
       for (std::uint32_t cur = len_end; cur > 0; cur = opts[cur].prev) { path.push_back(cur); }
+      std::uint32_t committed = 0;
       for (auto it = path.rbegin(); it != path.rend(); ++it) {
         auto& d = opts[*it];
         if (d.op == op_e::none) {
           update_literal_symbol(model, g_state, ci, ci > 0 ? src[ci - 1] : 0, src[ci], ci >= g_rep[0] ? src[ci - g_rep[0]] : 0);
           ++lit_cnt; g_state = state_lit_next[g_state];
-          ++ci;
+          ++ci; ++committed;
         } else {
           out.seqs.push_back({lit_cnt, d.op, d.len, d.offset});
           update_match_symbol(model, g_state, ci, d.op, d.len, d.offset);
           lit_cnt = 0;
           if (d.op == op_e::rep0) g_state = (d.len == 1) ? state_shortrep_next[g_state] : state_rep_next[g_state];
           else { shift_rep(int(d.op), d.offset, g_rep); g_state = (d.op == op_e::exp) ? state_match_next[g_state] : state_rep_next[g_state]; }
-          ci += d.len;
+          ci += d.len; committed += d.len;
         }
+        if (params.commit_limit && committed >= params.commit_limit) { break; }
       }
       report_prog(ci);
     }
@@ -1465,6 +1469,47 @@ export namespace fan::fcs {
     return total;
   }
 
+  struct full_param_candidate_t {
+    std::string_view name;
+    compress_params_t params;
+  };
+
+  inline std::vector<full_param_candidate_t> make_full_param_candidates(compress_params_t params) {
+    std::vector<full_param_candidate_t> out;
+    auto same = [](const compress_params_t& a, const compress_params_t& b) {
+      return a.chain_main == b.chain_main && a.nice_len == b.nice_len && a.optimal == b.optimal &&
+        a.lazy_depth == b.lazy_depth && a.chunk_size == b.chunk_size && a.opt_window == b.opt_window &&
+        a.commit_limit == b.commit_limit;
+    };
+    auto push = [&](std::string_view name, compress_params_t p) {
+      for (const auto& v : out) { if (same(v.params, p)) { return; } }
+      out.push_back({name, p});
+    };
+
+    push("base", params);
+    if (!params.optimal) { return out; }
+
+    auto p = params; p.commit_limit = 1024; push("commit1024", p);
+    p = params; p.commit_limit = 256; push("commit256", p);
+    p = params; p.commit_limit = 64; push("commit64", p);
+
+    p = params;
+    p.chain_main = std::max(p.chain_main, 3072u);
+    p.nice_len = std::max(p.nice_len, 2048u);
+    p.opt_window = std::max(p.opt_window, 1u << 14);
+    p.commit_limit = 256;
+    push("deep256", p);
+
+    p = params;
+    p.chain_main = std::min(p.chain_main, 1024u);
+    p.nice_len = std::min(p.nice_len, 768u);
+    p.opt_window = std::min(p.opt_window, 1u << 12);
+    p.commit_limit = 256;
+    push("tight256", p);
+
+    return out;
+  }
+
   inline compress_candidate_t compress_best_candidate(std::vector<compress_candidate_t>& candidates, compress_params_t params, fan::progress_t* prog, std::size_t thread_count, bool verbose = false) {
     std::size_t actual_threads = thread_count ? thread_count : std::max<std::size_t>(1, std::thread::hardware_concurrency());
     std::size_t best_idx = 0;
@@ -1494,9 +1539,57 @@ export namespace fan::fcs {
     auto& c = candidates[best_idx];
     if (verbose) fan::print("selected:", c.name, "for full compression");
 
-    if (prog) { prog->total.store(c.data.size() * progress_scale, std::memory_order_relaxed); prog->done.store(0, std::memory_order_relaxed); }
-    c.chunk_size = run_compress_core(c.data, params, prog, actual_threads, c.comp);
-    if (prog) prog->done.store(c.data.size() * progress_scale, std::memory_order_relaxed);
+    if (!params.parser_verify) {
+      if (prog) { prog->total.store(c.data.size() * progress_scale, std::memory_order_relaxed); prog->done.store(0, std::memory_order_relaxed); }
+      c.chunk_size = run_compress_core(c.data, params, prog, actual_threads, c.comp);
+      if (prog) { prog->done.store(c.data.size() * progress_scale, std::memory_order_relaxed); }
+      return std::move(c);
+    }
+
+    auto full_params = make_full_param_candidates(params);
+    if (verbose && full_params.size() > 1) { fan::print("full testing parser settings..."); }
+
+    std::size_t best_full = -1uz;
+    fan::bytes_t best_comp;
+    std::size_t best_chunk = 0;
+    std::uint64_t full_unit = c.data.size() * progress_scale, done_base = 0;
+    if (prog) { prog->total.store(full_unit * full_params.size(), std::memory_order_relaxed); prog->done.store(0, std::memory_order_relaxed); }
+
+    for (const auto& fp : full_params) {
+      fan::bytes_t comp;
+      fan::progress_t local_prog;
+      std::atomic_bool pump_done = false;
+      std::jthread pump;
+      if (prog) {
+        local_prog.total.store(full_unit, std::memory_order_relaxed);
+        local_prog.done.store(0, std::memory_order_relaxed);
+        pump = std::jthread([&] {
+          while (!pump_done.load(std::memory_order_relaxed)) {
+            prog->done.store(done_base + std::min<std::uint64_t>(local_prog.done.load(std::memory_order_relaxed), full_unit), std::memory_order_relaxed);
+            std::this_thread::sleep_for(std::chrono::milliseconds(32));
+          }
+        });
+      }
+      std::size_t ch = 0;
+      try {
+        ch = run_compress_core(c.data, fp.params, prog ? &local_prog : nullptr, actual_threads, comp);
+      } catch (...) {
+        if (prog) { pump_done.store(true, std::memory_order_relaxed); }
+        throw;
+      }
+      if (prog) { pump_done.store(true, std::memory_order_relaxed); }
+      if (verbose && full_params.size() > 1) { fan::print("parser:", fp.name, "size:", comp.size()); }
+      if (comp.size() < best_full) {
+        best_full = comp.size();
+        best_chunk = ch;
+        best_comp = std::move(comp);
+      }
+      if (prog) { done_base += full_unit; prog->done.store(done_base, std::memory_order_relaxed); }
+    }
+
+    c.chunk_size = best_chunk;
+    c.comp = std::move(best_comp);
+    if (prog) { prog->total.store(full_unit, std::memory_order_relaxed); prog->done.store(full_unit, std::memory_order_relaxed); }
     return std::move(c);
   }
 
