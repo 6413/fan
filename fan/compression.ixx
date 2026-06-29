@@ -81,13 +81,24 @@ export namespace fan::fcs {
   inline constexpr std::uint8_t flag_text2 = 64u;
   inline constexpr std::uint8_t text_marker = 1u;
 
-  constexpr bool text_word_char(std::uint8_t c) {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '-';
-  }
+  inline constexpr std::array<bool, 256> text_char_lut = [] {
+    std::array<bool, 256> t{};
+    for (int i = 0; i < 256; ++i) {
+      t[i] = (i >= 'a' && i <= 'z') || (i >= 'A' && i <= 'Z') || (i >= '0' && i <= '9') || i == '_' || i == '-';
+    }
+    return t;
+  }();
 
-  constexpr bool text_word_first(std::uint8_t c) {
-    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
-  }
+  inline constexpr std::array<bool, 256> text_first_lut = [] {
+    std::array<bool, 256> t{};
+    for (int i = 0; i < 256; ++i) {
+      t[i] = (i >= 'a' && i <= 'z') || (i >= 'A' && i <= 'Z');
+    }
+    return t;
+  }();
+
+  constexpr bool text_word_char(std::uint8_t c) { return text_char_lut[c]; }
+  constexpr bool text_word_first(std::uint8_t c) { return text_first_lut[c]; }
 
   inline bool looks_like_large_text(const fan::bytes_t& raw, std::size_t payload_offset) {
     std::size_t begin = std::min(payload_offset, raw.size());
@@ -104,7 +115,7 @@ export namespace fan::fcs {
   }
 
   struct text_word_t {
-    std::string word;
+    std::string_view word;
     std::uint32_t count = 0;
     std::uint32_t score = 0;
   };
@@ -131,14 +142,14 @@ export namespace fan::fcs {
   }
 
   inline fan::bytes_t text_encode_transform(const fan::bytes_t& raw) {
-    std::unordered_map<std::string, std::uint32_t> counts;
+    std::unordered_map<std::string_view, std::uint32_t> counts;
     counts.reserve(1 << 16);
     for (std::size_t i = 0; i < raw.size();) {
       if (!text_word_first(raw[i])) { ++i; continue; }
       std::size_t b = skip_word(raw, i);
       std::size_t len = i - b;
       if (len < 4 || len > 31) { continue; }
-      ++counts[std::string(reinterpret_cast<const char*>(raw.data() + b), len)];
+      ++counts[std::string_view(reinterpret_cast<const char*>(raw.data() + b), len)];
     }
 
     std::vector<text_word_t> words;
@@ -146,7 +157,7 @@ export namespace fan::fcs {
     for (auto& [w, c] : counts) {
       if (c < 4) { continue; }
       std::uint32_t score = std::uint32_t(c * (w.size() > 3 ? w.size() - 3 : 0));
-      if (score > w.size() + 16) { words.push_back({std::move(w), c, score}); }
+      if (score > w.size() + 16) { words.push_back({w, c, score}); }
     }
     std::sort(words.begin(), words.end(), [](const auto& a, const auto& b) {
       return a.score != b.score ? a.score > b.score : a.word < b.word;
@@ -159,7 +170,7 @@ export namespace fan::fcs {
       std::size_t repl = id < 256 ? 3 : 4;
       std::size_t saved = w.count * (w.word.size() - repl);
       if (w.word.size() <= repl || saved <= w.word.size() + 8) { continue; }
-      dict.push_back(std::move(w.word));
+      dict.emplace_back(w.word);
       if (dict.size() == 65530) { break; }
     }
     if (dict.empty()) { return {}; }
@@ -238,12 +249,12 @@ export namespace fan::fcs {
   inline std::uint8_t text2_upper(std::uint8_t c) { return c >= 'a' && c <= 'z' ? std::uint8_t(c - ('a' - 'A')) : c; }
 
   inline std::uint8_t text2_case_kind(const std::uint8_t* p, std::size_t n) {
-    bool has_alpha = false, has_lower = false, has_upper = false;
+    bool has_lower = false, has_upper = false;
     for (std::size_t i = 0; i < n; ++i) {
-      if (p[i] >= 'a' && p[i] <= 'z') { has_alpha = has_lower = true; }
-      else if (p[i] >= 'A' && p[i] <= 'Z') { has_alpha = has_upper = true; }
+      if (p[i] >= 'a' && p[i] <= 'z') { has_lower = true; }
+      else if (p[i] >= 'A' && p[i] <= 'Z') { has_upper = true; }
     }
-    if (!has_alpha || (has_lower && !has_upper)) { return 0; }
+    if (!has_lower && !has_upper) { return 0; }
     if (has_upper && !has_lower) { return 2; }
     if (p[0] >= 'A' && p[0] <= 'Z') {
       for (std::size_t i = 1; i < n; ++i) { if (p[i] >= 'A' && p[i] <= 'Z') { return 3; } }
@@ -303,7 +314,8 @@ export namespace fan::fcs {
       ++counts[text2_to_lower_word(raw.data() + b, len)];
     }
 
-    std::vector<text_word_t> words;
+    struct text2_word_t { std::string word; std::uint32_t count = 0, score = 0; };
+    std::vector<text2_word_t> words;
     words.reserve(counts.size());
     for (auto& [w, c] : counts) {
       if (c < 4) { continue; }
@@ -502,32 +514,25 @@ export namespace fan::fcs {
 
       std::uint32_t cur = heads.h4, iters = 0;
       std::uint32_t po4; std::memcpy(&po4, po, 4);
-
-      std::uint32_t limit_tail = best_len > 3 ? best_len - 3 : 0;
-      std::uint32_t po_tail; std::memcpy(&po_tail, po + limit_tail, 4);
+      std::uint8_t po_tail_byte = po[best_len];
 
       while (cur != nil && iters < chain_limit) {
         std::uint32_t next_cur = p_chain[cur];
         std::size_t cur_abs = base + cur;
         if (cur_abs >= i) { cur = next_cur; continue; }
         ++iters;
+        
         const auto* pc = src_base + cur_abs;
 
-        std::uint32_t pc_tail; std::memcpy(&pc_tail, pc + limit_tail, 4);
-        if (po_tail == pc_tail) {
-          bool head_match = true;
-          if (limit_tail > 0) {
-            std::uint32_t pc4; std::memcpy(&pc4, pc, 4);
-            head_match = (po4 == pc4);
-          }
-          if (head_match) {
+        if (pc[best_len] == po_tail_byte) {
+          std::uint32_t pc4; std::memcpy(&pc4, pc, 4);
+          if (po4 == pc4) {
             std::uint32_t len = get_match_len_from_4(po, pc, max_avail);
             if (len > best_len) {
               best_len = len;
               out[n_out < 128 ? n_out++ : n_out - 1] = {std::uint32_t(i - cur_abs), len};
               if (best_len >= nice_len || best_len >= max_avail) { break; }
-              limit_tail = best_len > 3 ? best_len - 3 : 0;
-              std::memcpy(&po_tail, po + limit_tail, 4);
+              po_tail_byte = po[best_len];
             }
           }
         }
