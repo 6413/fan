@@ -475,4 +475,19 @@ export namespace fan {
     std::atomic<std::size_t> done = 0;
     std::atomic<std::size_t> total = 0;
   };
+
+  std::string exception_message() {
+    try {
+      throw;
+    }
+    catch (const std::exception& e) {
+      return e.what();
+    }
+    catch (...) {
+      return "unknown error";
+    }
+  }
+  auto error(std::string s) {
+    return std::unexpected<std::string>{std::move(s)};
+  }
 }

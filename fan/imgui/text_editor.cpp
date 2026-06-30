@@ -1,3 +1,4 @@
+#if defined(FAN_WINDOW)
 #include "text_editor.h"
 
 #include <cassert>
@@ -3222,3 +3223,4 @@ const TextEditor::LanguageDefinition& TextEditor::LanguageDefinition::Lua()
   }
   return langDef;
 }
+#endif

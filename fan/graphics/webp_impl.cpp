@@ -1,9 +1,13 @@
 module;
+#if defined(FAN_WINDOW)
 #include <cstdint>
 #include <cstdlib>
 #include <webp/encode.h>
 #include <webp/decode.h>
+#endif
 module fan.graphics.webp;
+
+#if defined(FAN_WINDOW)
 
 import fan.io.file;
 import fan.print;
@@ -149,3 +153,5 @@ bool fan::webp::validate(
     &height
   ) == 1;
 }
+
+#endif

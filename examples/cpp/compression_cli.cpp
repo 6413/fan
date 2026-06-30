@@ -3,8 +3,17 @@ import fan;
 
 namespace file = fan::io::file;
 
-static void row(auto n, auto v, auto u) { fan::printf("{:<12}{:>16}{:>16}", n, v, u); }
-static void row_float(auto n, f64_t v, auto u) { fan::printf("{:<12}{:>16.3f}{:>16}", n, v, u); }
+static void row(auto n, auto v, auto u) {
+  std::ostringstream ss;
+  ss << std::left << std::setw(12) << n << std::right << std::setw(16) << v << std::setw(16) << u;
+  fan::print(ss.str());
+}
+
+static void row_float(auto n, f64_t v, auto u) {
+  std::ostringstream ss;
+  ss << std::left << std::setw(12) << n << std::right << std::setw(16) << std::fixed << std::setprecision(3) << v << std::setw(16) << u;
+  fan::print(ss.str());
+}
 
 enum class compression_level_e { fast, normal, high, max };
 
@@ -174,7 +183,9 @@ static bool cmd_decompress(const std::string& in, std::string out_dir, const cli
 }
 
 static int usage(std::string_view exe) {
-  fan::printf("usage:\n  {0} c <input_file_or_dir> [output.fcs] [--fast|--normal|--high|--max] [--verbose] [-y|--y] [-jN] [--chunk-mib N]\n  {0} d <input.fcs> [output_dir]\n", exe);
+  fan::print("usage:");
+  fan::print(" ", exe, " c <input_file_or_dir> [output.fcs] [--fast|--normal|--high|--max] [--verbose] [-y|--y] [-jN] [--chunk-mib N]");
+  fan::print(" ", exe, " d <input.fcs> [output_dir]");
   return 1;
 }
 

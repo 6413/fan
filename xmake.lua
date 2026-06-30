@@ -10,7 +10,8 @@ else
 end
 
 rule("mode.mode_none") rule_end()
-add_rules("mode.mode_none", "mode.debug", "mode.release")
+rule("mode.release-minsize") rule_end()
+add_rules("mode.mode_none", "mode.debug", "mode.release", "mode.release-minsize")
 
 rule("mode.asan")
   on_load(function (target)
@@ -32,6 +33,11 @@ if is_mode("release") then
   set_optimize("fastest")
   add_cxflags("-O3", {force = true})
   add_ldflags("-s", {force = true})
+  add_defines("NDEBUG", "_DEBUG=0")
+elseif is_mode("release-minsize") then
+  set_optimize("smallest")
+  add_cxflags("-Oz", "-ffunction-sections", "-fdata-sections", {force = true})
+  add_ldflags("-s", "-Wl,--gc-sections", {force = true})
   add_defines("NDEBUG", "_DEBUG=0")
 elseif is_mode("debug") then
   set_optimize("none")
@@ -61,7 +67,7 @@ for name, enabled in pairs(fan_features) do
   if has_config(name) then add_defines(name) end
 end
 
-option("static_runtime") set_default(true) option_end()
+option("static_runtime") set_default(false) option_end()
 
 if not has_config("FAN_WINDOW") then
   for _, f in ipairs({"FAN_GUI", "FAN_2D", "FAN_OPENGL", "FAN_3D", "FAN_VIDEO"}) do

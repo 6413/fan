@@ -56,18 +56,30 @@ namespace fan::process {
     st->running = true;
 
     auto* loop = (uv_loop_t*)fan::event::get_loop();
-    uv_pipe_init(loop, &st->pipe, 0);
 
     std::vector<char*> argv;
     for (auto& a : args) { argv.push_back(const_cast<char*>(a.c_str())); }
     argv.push_back(nullptr);
 
     uv_stdio_container_t stdio[3];
-    stdio[0].flags = UV_IGNORE;
-    stdio[1].flags = (uv_stdio_flags)(UV_CREATE_PIPE | UV_WRITABLE_PIPE);
-    stdio[1].data.stream = reinterpret_cast<uv_stream_t*>(&st->pipe);
-    stdio[2].flags = (uv_stdio_flags)(UV_CREATE_PIPE | UV_WRITABLE_PIPE);
-    stdio[2].data.stream = reinterpret_cast<uv_stream_t*>(&st->pipe);
+    if (st->on_line) {
+      uv_pipe_init(loop, &st->pipe, 0);
+      st->pipe.data = st;
+
+      stdio[0].flags = UV_IGNORE;
+      stdio[1].flags = (uv_stdio_flags)(UV_CREATE_PIPE | UV_WRITABLE_PIPE);
+      stdio[1].data.stream = reinterpret_cast<uv_stream_t*>(&st->pipe);
+      stdio[2].flags = (uv_stdio_flags)(UV_CREATE_PIPE | UV_WRITABLE_PIPE);
+      stdio[2].data.stream = reinterpret_cast<uv_stream_t*>(&st->pipe);
+    } else {
+      stdio[0].flags = UV_INHERIT_FD;
+      stdio[0].data.fd = 0;
+      stdio[1].flags = UV_INHERIT_FD;
+      stdio[1].data.fd = 1;
+      stdio[2].flags = UV_INHERIT_FD;
+      stdio[2].data.fd = 2;
+      st->pipe_closed = true;
+    }
 
     uv_process_options_t opts {};
     opts.file = argv[0];
@@ -88,7 +100,6 @@ namespace fan::process {
     };
 
     st->process.data = st;
-    st->pipe.data = st;
 
     if (uv_spawn(loop, &st->process, &opts) != 0) {
       st->running = false;
@@ -100,41 +111,43 @@ namespace fan::process {
     DPRINT("[process] st=", (void*)st);
     DPRINT("[process] pid=", st->process.pid);
 
-    uv_read_start(reinterpret_cast<uv_stream_t*>(&st->pipe),
-      [](uv_handle_t*, std::size_t n, uv_buf_t* buf) {
-        buf->base = new char[n];
-        buf->len = (unsigned long)n;
-      },
-      [](uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
-        auto* st = static_cast<spawn_state_t*>(stream->data);
-        if (nread > 0) {
-          st->line_buf.append(buf->base, nread);
-          std::size_t pos;
-          while ((pos = st->line_buf.find_first_of("\n\r")) != std::string::npos) {
-            std::string line = st->line_buf.substr(0, pos);
-            st->line_buf.erase(0, pos + 1);
-            if (line.empty()) { continue; }
-            st->last_line = line;
-            st->on_line(line);
+    if (st->on_line) {
+      uv_read_start(reinterpret_cast<uv_stream_t*>(&st->pipe),
+        [](uv_handle_t*, std::size_t n, uv_buf_t* buf) {
+          buf->base = new char[n];
+          buf->len = (unsigned long)n;
+        },
+        [](uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) {
+          auto* st = static_cast<spawn_state_t*>(stream->data);
+          if (nread > 0) {
+            st->line_buf.append(buf->base, nread);
+            std::size_t pos;
+            while ((pos = st->line_buf.find_first_of("\n\r")) != std::string::npos) {
+              std::string line = st->line_buf.substr(0, pos);
+              st->line_buf.erase(0, pos + 1);
+              if (line.empty()) { continue; }
+              st->last_line = line;
+              st->on_line(line);
+            }
+          }
+          if (buf->base) { delete[] buf->base; }
+          if (nread == UV_EOF || nread < 0) {
+            DPRINT("[process] pipe EOF: nread=", nread, " last_line=", st->last_line);
+            if (!st->line_buf.empty()) {
+              st->on_line(st->line_buf);
+              st->line_buf.clear();
+            }
+            uv_read_stop(stream);
+            uv_close(reinterpret_cast<uv_handle_t*>(stream), [](uv_handle_t* h) {
+              auto* st = static_cast<spawn_state_t*>(h->data);
+              DPRINT("[process] pipe close cb");
+              st->pipe_closed = true;
+              st->try_resume();
+            });
           }
         }
-        if (buf->base) { delete[] buf->base; }
-        if (nread == UV_EOF || nread < 0) {
-          DPRINT("[process] pipe EOF: nread=", nread, " last_line=", st->last_line);
-          if (!st->line_buf.empty()) {
-            st->on_line(st->line_buf);
-            st->line_buf.clear();
-          }
-          uv_read_stop(stream);
-          uv_close(reinterpret_cast<uv_handle_t*>(stream), [](uv_handle_t* h) {
-            auto* st = static_cast<spawn_state_t*>(h->data);
-            DPRINT("[process] pipe close cb");
-            st->pipe_closed = true;
-            st->try_resume();
-          });
-        }
-      }
-    );
+      );
+    }
   }
 
   bool spawn_t::is_running() const { return state_ && static_cast<spawn_state_t*>(state_)->running; }
