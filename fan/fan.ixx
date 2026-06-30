@@ -78,9 +78,9 @@ export import fan.event;
   export import fan.graphics.physics_shapes;
 #endif
 
+export import fan.process;
 #if defined(FAN_WINDOW)
 export import fan.spatial;
-export import fan.process;
 
 export import fan.noise;
 export import fan.ecs;

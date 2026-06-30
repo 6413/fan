@@ -92,9 +92,19 @@ export namespace fan {
       template <typename T = std::uint8_t>
       std::vector<T> read_binary(std::string_view path) {
         auto sz = file_size(path);
-        if (!sz || sz % sizeof(T)) return {};
+        if (!sz || sz % sizeof(T)) { return {}; }
         std::vector<T> v(sz / sizeof(T));
-        if (!read_bytes(path, v.data(), sz)) return {};
+        if (!read_bytes(path, v.data(), sz)) { return {}; }
+        return v;
+      }
+
+      template <typename T = std::uint8_t, path_t P>
+      std::vector<T> read_binary(P&& path) {
+        std::string s = to_str(std::forward<P>(path));
+        auto sz = file_size(s);
+        if (!sz || sz % sizeof(T)) { return {}; }
+        std::vector<T> v(sz / sizeof(T));
+        if (!read_bytes(s, v.data(), sz)) { return {}; }
         return v;
       }
 

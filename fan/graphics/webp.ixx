@@ -2,6 +2,8 @@ module;
 
 export module fan.graphics.webp;
 
+#if defined(FAN_WINDOW)
+
 import std;
 
 import fan.types;
@@ -32,3 +34,5 @@ export namespace fan {
     bool validate(fan::str_view_t path, const std::source_location& callers_path = std::source_location::current());
   }
 }
+
+#endif

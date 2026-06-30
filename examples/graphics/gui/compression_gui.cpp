@@ -15,7 +15,6 @@ enum class compression_level_e { fast, normal, high, max };
 struct cli_options_t {
   compression_level_e level = compression_level_e::max;
   bool verbose = true;
-  bool yes = true;
   int thread_count = 0;
   int chunk_mib = 0;
 };
@@ -84,7 +83,7 @@ static input_stats_t get_input_stats(const std::filesystem::path& in) {
     }
   }
   else {
-    stats.size = std::filesystem::file_size(in);
+    stats.size = file::file_size(in);
     stats.files = 1;
   }
   return stats;
@@ -139,7 +138,7 @@ fan::event::task_t compression_task(std::string in, std::string out, cli_options
   }
 
   f64_t ms = t.millis();
-  print_compress_stats(stats, std::filesystem::file_size(out), ms);
+  print_compress_stats(stats, file::file_size(out), ms);
   con().printfln("wrote {}", out);
   gui::print("Done");
 }
@@ -147,7 +146,7 @@ fan::event::task_t compression_task(std::string in, std::string out, cli_options
 fan::event::task_t decompression_task(std::string in, std::string out) {
   bool default_out = out.empty();
   if (default_out) {
-    out = in.ends_with(".fcs") ? in.substr(0, in.size() - 4) : in + "_ext";
+    out = in.ends_with(".fcs") ? file::strip_extension(in) : in + "_ext";
   }
 
   con().printfln("decompressing {} -> {}", in, out);
@@ -177,7 +176,9 @@ static void pick(archive_data& d, bool dec) {
   open_file(dec ? "fcs" : "", [&d, dec](std::string_view p) {
     std::string path{p};
     d.in = path;
-    d.out = dec ? fan::fcs::archive_output_path(path) : file::replace_extension(path, ".fcs");
+    d.out = dec ?
+      (path.ends_with(".fcs") ? file::strip_extension(path) : path + "_ext") :
+      file::replace_extension(path, ".fcs");
   });
 }
 
