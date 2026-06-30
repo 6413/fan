@@ -48,7 +48,7 @@ export namespace fan::process {
     run_result_t result_;
   };
 
-  run_awaitable run_async(const std::vector<std::string>& args, std::function<void(std::string_view)> on_line);
+  run_awaitable run_async(const std::vector<std::string>& args, std::function<void(std::string_view)> on_line = nullptr);
 
   struct ipc_server_conn_t {
     struct read_awaitable {

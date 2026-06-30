@@ -11,6 +11,8 @@ import fan.memory;
 import fan.utility;
 import fan.types.fstring;
 import fan.print;
+import fan.event.types;
+import fan.event;
 
 namespace file = fan::io::file;
 
@@ -247,7 +249,7 @@ export namespace fan::fcs {
     int best = -1; std::size_t best_len = 0;
     for (std::uint8_t k : candidates) {
       auto tok = text2_static_tokens[k];
-      if (i + tok.size() <= raw.size() && tok.size() >= (k < 256 ? 3 : 4) && tok.size() > best_len && std::memcmp(raw.data() + i, tok.data(), tok.size()) == 0) {
+      if (i + tok.size() <= raw.size() && tok.size() >= (std::size_t(k) < 256 ? 3 : 4) && tok.size() > best_len && std::memcmp(raw.data() + i, tok.data(), tok.size()) == 0) {
         best = int(k); best_len = tok.size();
       }
     }
@@ -1002,10 +1004,8 @@ export namespace fan::fcs {
       if (off == 1) { std::memset(out_data + out_pos, out_data[out_pos - 1], mlen); }
       else if (off >= mlen) { std::memcpy(out_data + out_pos, out_data + out_pos - off, mlen); }
       else {
-        for (std::size_t copied = off; copied < mlen;) {
-          std::size_t to_copy = std::min(copied, std::size_t(mlen - copied));
-          std::memcpy(out_data + out_pos + (copied == off ? 0 : copied), out_data + out_pos - off + (copied == off ? 0 : copied), copied == off ? off : to_copy);
-          copied += (copied == off ? off : to_copy);
+        for (std::uint32_t k = 0; k < mlen; ++k) {
+          out_data[out_pos + k] = out_data[out_pos + k - off];
         }
       }
       out_pos += mlen;
@@ -1271,5 +1271,64 @@ export namespace fan::fcs {
       files.push_back({std::move(m.path), std::move(data)});
     }
     return files;
+  }
+
+  // user-friendly wrappers
+  fan::event::waitv_t<fan::bytes_result_t> compress_on_thread(
+    std::string path,
+    fan::bytes_t data,
+    const std::source_location caller = std::source_location::current()
+  ) {
+    return fan::event::run_on_thread([path = std::move(path), data = std::move(data), caller] mutable -> fan::bytes_result_t {
+      try {
+        auto p = fan::io::file::find_relative_path(path, caller);
+
+        std::vector<fan::io::file_buffer_t> files;
+        files.push_back({
+          p.filename().string(),
+          std::move(data)
+        });
+
+        return fan::fcs::compress(files);
+      }
+      catch (...) {
+        return std::unexpected(exception_message());
+      }
+    });
+  }
+
+  fan::event::waitv_t<fan::bytes_result_t> decompress_on_thread(
+    std::string path,
+    const std::source_location caller = std::source_location::current()
+  ) {
+    return fan::event::run_on_thread([path = std::move(path), caller] -> bytes_result_t {
+      try {
+        auto p = fan::io::file::find_relative_path(path, caller);
+        std::string ps = p.string();
+
+        if (!fan::io::file::exists(p)) {
+          return fan::error("file not found: " + ps);
+        }
+
+        fan::bytes_t src = fan::io::file::read_binary(p);
+        if (src.empty() && fan::io::file::file_size(p) != 0) {
+          return fan::error("failed to read file: " + ps);
+        }
+
+        auto files = fan::fcs::decompress(src);
+        if (files.empty()) {
+          return fan::error("archive contains no files: " + ps);
+        }
+
+        if (files.size() != 1) {
+          return fan::error("archive contains multiple files: " + ps);
+        }
+
+        return std::move(files[0].data);
+      }
+      catch (...) {
+        return fan::error(exception_message());
+      }
+    });
   }
 }

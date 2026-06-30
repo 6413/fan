@@ -24,6 +24,8 @@
 // SOFTWARE.
 //
 
+#if defined(FAN_WINDOW)
+
 #ifndef IMGUI_DEFINE_MATH_OPERATORS
 #define IMGUI_DEFINE_MATH_OPERATORS
 #endif
@@ -3142,3 +3144,6 @@ namespace IMGUIZMO_NAMESPACE
       ComputeContext(svgView.m16, svgProjection.m16, gContext.mModelSource.m16, gContext.mMode);
    }
 };
+
+
+#endif

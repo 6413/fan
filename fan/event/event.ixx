@@ -218,15 +218,19 @@ export namespace fan::event {
   }
 
   template <typename func_t>
-  fan::event::waitv_t<std::invoke_result_t<func_t>> run_on_thread(func_t&& f) {
-    using ret_t = std::invoke_result_t<func_t>;
+  fan::event::waitv_t<std::invoke_result_t<func_t&>> run_on_thread(func_t f) {
+    using ret_t = std::invoke_result_t<func_t&>;
+
     fan::event::signal_awaitable_t<ret_t> sig;
-    fan::event::thread_create([&sig, f = std::forward<func_t>(f)]() mutable {
+
+    fan::event::thread_create([&sig, f = std::move(f)]() mutable {
       ret_t result = f();
+
       fan::event::post_to_main([&sig, result = std::move(result)]() mutable {
         sig.signal(std::move(result));
       });
     });
+
     co_return co_await sig;
   }
 

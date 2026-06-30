@@ -30,7 +30,7 @@ print_usage() {
 Usage: ./xcompile_main.sh [mode] [preset] [features] [xmake args...]
 
 Modes:
-  --debug | --release | --asan
+  --debug | --release | --release-minsize | --asan
   --rebuild
   --main <file>
   --clang | --gcc
@@ -115,6 +115,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --release)
       MODE="release"
+      shift
+      ;;
+    --release-minsize)
+      MODE="release-minsize"
       shift
       ;;
     --asan)

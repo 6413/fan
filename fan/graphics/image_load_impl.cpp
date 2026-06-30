@@ -2,6 +2,8 @@ module;
 
 module fan.graphics.image_load;
 
+#if defined(FAN_WINDOW)
+
 import std;
 
 import fan.print;
@@ -147,3 +149,5 @@ namespace fan::image {
   }
 
 }
+
+#endif
