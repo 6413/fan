@@ -66,43 +66,13 @@ extern "C" {
     return Destination;
   }
 }
-
-extern "C" {
-  // __m128i __cdecl _mm_loadu_si128(const __m128i* p) {
-  //   __m128i result;
-  //   memcpy(&result, p, sizeof(__m128i));
-  //   return result;
-  // }
-
-  // __m128i __cdecl _mm_cmpeq_epi16(__m128i a, __m128i b) {
-  //   __m128i result;
-  //   short* ap = (short*)&a;
-  //   short* bp = (short*)&b;
-  //   short* rp = (short*)&result;
-  //   for (int i = 0; i < 8; i++) {
-  //     rp[i] = (ap[i] == bp[i]) ? 0xFFFF : 0;
-  //   }
-  //   return result;
-  // }
-
-  // int __cdecl _mm_movemask_epi8(__m128i a) {
-  //   unsigned char* ap = (unsigned char*)&a;
-  //   int result = 0;
-  //   for (int i = 0; i < 16; i++) {
-  //     if (ap[i] & 0x80) {
-  //       result |= (1 << i);
-  //     }
-  //   }
-  //   return result;
-  // }
-}
 #endif
 
 #if defined(FAN_AUDIO)
 export namespace fan {
   namespace audio {
+    using pcm_format = fan::system_audio_t::pcm_format;
 
-    // doesnt use thread_local since audio has own thread
     struct g_audio_t {
       g_audio_t() = default;
       g_audio_t(fan::audio_t* paudio) : audio(paudio) {}
@@ -124,7 +94,75 @@ export namespace fan {
       return g_audio;
     }
 
+    inline std::uint8_t pcm_sample_size(std::uint8_t format){
+      switch (format) {
+        case fan::system_audio_t::pcm_format::int8: return 1;
+        case fan::system_audio_t::pcm_format::int16: return 2;
+        case fan::system_audio_t::pcm_format::int24: return 3;
+        case fan::system_audio_t::pcm_format::int32: return 4;
+        case fan::system_audio_t::pcm_format::float64: return 8;
+        case fan::system_audio_t::pcm_format::half_float: fan::throw_error_impl("half_float pcm not implemented");
+        default: return 4;
+      }
+    }
+
+    inline void pcm_to_f32(const std::uint8_t* src, f32_t* dst, std::uint64_t sample_count, std::uint8_t format){
+      switch (format) {
+        case fan::system_audio_t::pcm_format::int8: {
+          auto* s = (const std::int8_t*)src;
+          for (std::uint64_t i = 0; i < sample_count; ++i) { dst[i] = s[i] / 128.f; }
+          break;
+        }
+        case fan::system_audio_t::pcm_format::int16: {
+          auto* s = (const std::int16_t*)src;
+          for (std::uint64_t i = 0; i < sample_count; ++i) { dst[i] = s[i] / 32768.f; }
+          break;
+        }
+        case fan::system_audio_t::pcm_format::int24: {
+          for (std::uint64_t i = 0; i < sample_count; ++i) {
+            std::int32_t v = (src[i * 3] << 8) | (src[i * 3 + 1] << 16) | (src[i * 3 + 2] << 24);
+            dst[i] = (v >> 8) / 8388608.f;
+          }
+          break;
+        }
+        case fan::system_audio_t::pcm_format::int32: {
+          auto* s = (const std::int32_t*)src;
+          for (std::uint64_t i = 0; i < sample_count; ++i) { dst[i] = s[i] / 2147483648.f; }
+          break;
+        }
+        case fan::system_audio_t::pcm_format::float64: {
+          auto* s = (const f64_t*)src;
+          for (std::uint64_t i = 0; i < sample_count; ++i) { dst[i] = (f32_t)s[i]; }
+          break;
+        }
+        case fan::system_audio_t::pcm_format::half_float: {
+          fan::throw_error_impl("half_float pcm not implemented");
+          break;
+        }
+        default: {
+          std::memcpy(dst, src, sample_count * sizeof(f32_t));
+          break;
+        }
+      }
+    }
+
     using sound_play_id_t = fan::audio_t::SoundPlayID_t;
+
+    inline bool is_playing(sound_play_id_t id) {
+      if (id.nr.iic()) { return false; }
+      TH_lock(&gaudio()->system_audio->Process.PlayInfoListMutex);
+      bool active = false;
+      if (!gaudio()->system_audio->Process.PlayInfoList.inri(id.nr)) {
+        if (!gaudio()->system_audio->Process.PlayInfoList.IsNodeReferenceRecycled(id.nr)) {
+          auto node = &gaudio()->system_audio->Process.PlayInfoList[id.nr];
+          if (node->unique == id.unique) {
+            active = true;
+          }
+        }
+      }
+      TH_unlock(&gaudio()->system_audio->Process.PlayInfoListMutex);
+      return active;
+    }
 
     struct piece_t : fan::audio_t::piece_t {
       using fan::audio_t::piece_t::piece_t;
@@ -201,6 +239,72 @@ export namespace fan {
       }
     };
 
+    struct stream_t : fan::audio_t::stream_t {
+      using fan::audio_t::stream_t::stream_t;
+
+      stream_t() : fan::audio_t::stream_t{ nullptr } {}
+      stream_t(const fan::audio_t::stream_t& stream)
+        : fan::audio_t::stream_t(stream) {}
+      stream_t(
+        const void* data, std::uint64_t frame_count, std::uint8_t channel_count = 2,
+        std::uint8_t format = fan::system_audio_t::pcm_format::float32
+      ) : fan::audio_t::stream_t(open_stream(data, frame_count, channel_count, format)) {}
+
+      operator fan::audio_t::stream_t& (){
+        return *dynamic_cast<fan::audio_t::stream_t*>(this);
+      }
+
+      stream_t open_stream(const void* data, std::uint64_t frame_count, std::uint8_t channel_count, std::uint8_t format){
+        fan::audio_t::stream_t* stream = &(fan::audio_t::stream_t&)*this;
+        gaudio()->OpenStream(stream);
+        stream->_stream->ChannelAmount = channel_count;
+        stream->_stream->FrameAmount = frame_count;
+        stream->_stream->type = format;
+
+        std::uint64_t byte_count = frame_count * channel_count * pcm_sample_size(format);
+        auto pcm = std::make_shared<std::vector<std::uint8_t>>(
+          (const std::uint8_t*)data, (const std::uint8_t*)data + byte_count);
+
+        stream->set_buffer_end_cb([pcm, channel_count, format](fan::system_audio_t::Process_t*, f32_t* out, std::uint32_t frames, std::uint64_t offset){
+          std::uint64_t byte_offset = offset * channel_count * pcm_sample_size(format);
+          
+          if (channel_count == 1) {
+            std::vector<f32_t> mono(frames);
+            pcm_to_f32(pcm->data() + byte_offset, mono.data(), frames, format);
+            for (std::uint32_t i = 0; i < frames; ++i) {
+              out[i * 2 + 0] = mono[i];
+              out[i * 2 + 1] = mono[i];
+            }
+          } else {
+            pcm_to_f32(pcm->data() + byte_offset, out, (std::uint64_t)frames * channel_count, format);
+          }
+        });
+
+        return *this;
+      }
+
+      sound_play_id_t play(std::uint32_t group_id = 0, bool loop = false){
+        fan::audio_t::PropertiesSoundPlay_t p{};
+        p.Flags.Loop = loop;
+        p.GroupID = group_id;
+        return gaudio()->StreamPlay(&*this, &p);
+      }
+
+      void stop(sound_play_id_t id){
+        fan::audio_t::PropertiesSoundStop_t p{};
+        p.FadeOutTo = 0;
+        gaudio()->SoundStop(id, &p);
+      }
+
+      void close(){
+        // gaudio()->Close(&*this); // TODO: implement CloseStream in audio.h
+      }
+    };
+
+    inline void close_stream(stream_t& stream){
+      stream.close();
+    }
+
     piece_t piece_invalid;
 
     inline piece_t open_piece(
@@ -227,17 +331,23 @@ export namespace fan {
       return id;
     }
 
-    inline void stop(sound_play_id_t id){
-      fan::audio_t::PropertiesSoundStop_t p{};
-      p.FadeOutTo = 0;
+    inline void stop(sound_play_id_t id, f32_t fade_out_seconds = 0.f) {
+      fan::audio_t::PropertiesSoundStop_t p {};
+      p.FadeOutTo = fade_out_seconds;
       gaudio()->SoundStop(id, &p);
     }
 
-    inline void stop(const std::string& path) {
+    inline void stop(const std::string& path, f32_t fade_out_seconds = 0.f) {
       auto it = gaudio().active.find(path);
       if (it == gaudio().active.end()) { return; }
-      stop(it->second);
+      stop(it->second, fade_out_seconds);
       gaudio().active.erase(it);
+    }
+
+    inline bool is_playing(const std::string& path) {
+      auto it = gaudio().active.find(path);
+      if (it == gaudio().active.end()) { return false; }
+      return is_playing(it->second);
     }
 
     inline void resume(std::uint32_t group_id = 0){
@@ -259,13 +369,18 @@ export namespace fan {
     fan::audio::piece_t piece_hover, piece_click;
 
     struct sound_t {
+      sound_t() = default;
       sound_t(const std::string& path,
         fan::audio_t::PieceFlag::t flags = 0,
         const std::source_location& callers_path = std::source_location::current()
       ) : piece(path, flags, callers_path) {}
 
+      sound_t(const void* data, std::uint64_t frame_count, std::uint8_t channel_count = 2,
+        std::uint8_t format = fan::system_audio_t::pcm_format::float32
+      ) : stream(data, frame_count, channel_count, format), from_stream(true) {}
+
       void play(bool loop = false){
-        play_id = fan::audio::play(piece, 0, loop);
+        play_id = from_stream ? stream.play(0, loop) : fan::audio::play(piece, 0, loop);
       }
 
       void play_once(){
@@ -280,8 +395,17 @@ export namespace fan {
         fan::audio::stop(play_id);
       }
 
+      bool is_playing() const {
+        return fan::audio::is_playing(play_id);
+      }
+
       fan::audio::piece_t piece;
-      fan::audio::sound_play_id_t play_id;
+      fan::audio::stream_t stream;
+      bool from_stream = false;
+      fan::audio::sound_play_id_t play_id = { 
+        []{fan::system_audio_t::_PlayInfoList_NodeReference_t nr; nr.sic(); return nr; }(),
+        0
+      };
     };
 
     sound_play_id_t play_once(fan::audio::piece_t piece){

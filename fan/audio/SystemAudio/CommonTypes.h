@@ -127,7 +127,7 @@ struct _stream_t {
     return FrameAmount - BeginCut;
   }
 
-  std::function<void(Process_t *, f32_t *, uint32_t)> buffer_end_cb = [](Process_t *, f32_t *, uint32_t){};
+  std::function<void(Process_t *, f32_t *, uint32_t, uint64_t)> buffer_end_cb = [](Process_t *, f32_t *, uint32_t, uint64_t){};
 
   uint32_t ReferenceCount = 0;
   bool WantClose = false;
@@ -136,7 +136,7 @@ struct _stream_t {
 struct stream_t {
   _stream_t *_stream = 0;
 
-  void set_buffer_end_cb(const std::function<void(Process_t *, f32_t *, uint32_t)>& cb) {
+  void set_buffer_end_cb(const std::function<void(Process_t *, f32_t *, uint32_t, uint64_t)>& cb) {
     _stream->buffer_end_cb = cb;
   }
 };
