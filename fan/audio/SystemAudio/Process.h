@@ -32,6 +32,7 @@ struct nihl_t{
   f32_t LossDivision = 1;
   f32_t LossDivisionMax = 1;
   f32_t LossTime = 0;
+  f32_t CurrentDivision = 1;
   static constexpr f32_t MaxLossTime = 1;
   void c(){ // calculate
     f32_t n = LossTime / MaxLossTime;
@@ -371,26 +372,22 @@ void _DataCallback(f32_t *Output) {
       switch (Message->Type) {
         case _MessageType_t::SoundPlay: {
           auto PlayInfo = &PlayInfoList[Message->Data.SoundPlay.PlayInfoReference];
-          ++PlayInfo->_piece->ReferenceCount;
+          if (PlayInfo->PlayType == 0) {
+            ++PlayInfo->_piece->ReferenceCount;
+          } else if (PlayInfo->PlayType == 1) {
+            ++PlayInfo->_stream->ReferenceCount;
+          }
           this->_AddSoundToPlay(Message->Data.SoundPlay.PlayInfoReference);
           break;
         }
         case _MessageType_t::SoundStop: {
           auto &SoundPlayID = Message->Data.SoundStop.SoundPlayID;
           auto &nr = SoundPlayID.nr;
-          if(PlayInfoList.inri(nr) == true){
-            break;
-          }
-          if(PlayInfoList.IsNRSentinel(nr) == true){
-            break;
-          }
-          if(PlayInfoList.IsNodeReferenceRecycled(nr) == true){
-            break;
-          }
+          if(PlayInfoList.inri(nr) == true){ break; }
+          if(PlayInfoList.IsNRSentinel(nr) == true){ break; }
+          if(PlayInfoList.IsNodeReferenceRecycled(nr) == true){ break; }
           auto &node = PlayInfoList[nr];
-          if(node.unique != SoundPlayID.unique){
-            break;
-          }
+          if(node.unique != SoundPlayID.unique){ break; }
           this->_RemoveFromPlayInfoList(nr, &Message->Data.SoundStop.Properties);
           break;
         }
@@ -446,8 +443,7 @@ void _DataCallback(f32_t *Output) {
           auto _piece = Message->Data.ClosePiece._piece;
           if(_piece->ReferenceCount != 0){
             _piece->WantClose = true;
-          }
-          else{
+          } else {
             _ClosePiece(_piece);
           }
           break;
@@ -457,17 +453,113 @@ void _DataCallback(f32_t *Output) {
     this->MessageQueueList.Current = 0;
     TH_unlock(&this->MessageQueueListMutex);
   }
+
   for (uint32_t PlayID = 0; PlayID < this->PlayList.Current;) {
     _Play_t *Play = &((_Play_t *)this->PlayList.ptr)[PlayID];
     _PlayInfoList_NodeReference_t PlayInfoReference = Play->Reference;
     auto PlayInfo = &this->PlayInfoList[PlayInfoReference];
-    auto _piece = PlayInfo->_piece;
     PropertiesSoundPlay_t *Properties = &PlayInfo->properties;
     uint32_t OutputIndex = 0;
     uint32_t CanBeReadFrameCount;
     struct {
       f32_t FadePerFrame;
     }CalculatedVariables;
+
+    if (PlayInfo->PlayType == 1) { // STREAM
+      auto _stream = PlayInfo->_stream;
+    gt_ReOffset_stream:
+      Properties->Flags.FadeIn = 0;
+      Properties->Flags.FadeOut = 0;
+      CanBeReadFrameCount = _stream->GetFrameAmount() - PlayInfo->offset;
+      if (CanBeReadFrameCount > _constants::CallFrameCount - OutputIndex) {
+        CanBeReadFrameCount = _constants::CallFrameCount - OutputIndex;
+      }
+
+      if (Properties->Flags.FadeIn || Properties->Flags.FadeOut) {
+        f32_t TotalFade = Properties->FadeTo - Properties->FadeFrom;
+        f32_t CurrentFadeTime = (f32_t)CanBeReadFrameCount / _constants::opus_decode_sample_rate;
+        if (TotalFade < CurrentFadeTime) {
+          CanBeReadFrameCount = TotalFade * _constants::opus_decode_sample_rate;
+          if (CanBeReadFrameCount == 0) {
+            if(Properties->Flags.FadeIn == true){
+              Properties->Flags.FadeIn = false;
+            } else if(Properties->Flags.FadeOut == true){
+              PropertiesSoundStop_t PropertiesSoundStop;
+              this->_RemoveFromPlayInfoList(PlayInfoReference, &PropertiesSoundStop);
+              continue;
+            }
+          }
+        }
+        CalculatedVariables.FadePerFrame = (f32_t)1 / (Properties->FadeTo * _constants::opus_decode_sample_rate);
+      }
+
+      f32_t temp_out[_constants::CallFrameCount * _constants::ChannelAmount] = {0};
+      _stream->buffer_end_cb(this, temp_out, CanBeReadFrameCount, PlayInfo->offset);
+
+      if (Properties->Flags.FadeIn) {
+        f32_t CurrentVolume = Properties->FadeFrom / Properties->FadeTo;
+        for (uint32_t i = 0; i < CanBeReadFrameCount; i++) {
+          for (uint32_t iChannel = 0; iChannel < _constants::ChannelAmount; iChannel++) {
+            ((f32_t*)Output)[(OutputIndex + i) * _constants::ChannelAmount + iChannel] += temp_out[i * _constants::ChannelAmount + iChannel] * CurrentVolume;
+          }
+          CurrentVolume += CalculatedVariables.FadePerFrame;
+        }
+        Properties->FadeFrom += (f32_t)CanBeReadFrameCount / _constants::opus_decode_sample_rate;
+      } else if (Properties->Flags.FadeOut) {
+        f32_t CurrentVolume = Properties->FadeFrom / Properties->FadeTo;
+        CurrentVolume = (f32_t)1 - CurrentVolume;
+        for (uint32_t i = 0; i < CanBeReadFrameCount; i++) {
+          for (uint32_t iChannel = 0; iChannel < _constants::ChannelAmount; iChannel++) {
+            ((f32_t*)Output)[(OutputIndex + i) * _constants::ChannelAmount + iChannel] += temp_out[i * _constants::ChannelAmount + iChannel] * CurrentVolume;
+          }
+          CurrentVolume -= CalculatedVariables.FadePerFrame;
+        }
+        Properties->FadeFrom += (f32_t)CanBeReadFrameCount / _constants::opus_decode_sample_rate;
+      } else {
+        for (uint32_t i = 0; i < CanBeReadFrameCount * _constants::ChannelAmount; i++) {
+          ((f32_t*)Output)[OutputIndex * _constants::ChannelAmount + i] += temp_out[i];
+        }
+      }
+
+      PlayInfo->offset += CanBeReadFrameCount;
+      OutputIndex += CanBeReadFrameCount;
+
+      #define JumpIfNeeded_stream() \
+        if(OutputIndex != _constants::CallFrameCount) { goto gt_ReOffset_stream; }
+
+      if (PlayInfo->offset == _stream->GetFrameAmount()) {
+        if (Properties->Flags.Loop == true) {
+          PlayInfo->offset = 0;
+        } else {
+          PropertiesSoundStop_t PropertiesSoundStop;
+          this->_RemoveFromPlayInfoList(PlayInfoReference, &PropertiesSoundStop);
+          continue;
+        }
+      }
+
+      if (Properties->Flags.FadeIn) {
+        if (Properties->FadeFrom >= Properties->FadeTo) {
+          Properties->Flags.FadeIn = false;
+        }
+        JumpIfNeeded_stream();
+      } else if (Properties->Flags.FadeOut) {
+        if (Properties->FadeFrom >= Properties->FadeTo) {
+          PropertiesSoundStop_t PropertiesSoundStop;
+          this->_RemoveFromPlayInfoList(PlayInfoReference, &PropertiesSoundStop);
+          continue;
+        }
+        JumpIfNeeded_stream();
+      } else {
+        JumpIfNeeded_stream();
+      }
+      #undef JumpIfNeeded_stream
+      
+      PlayID++;
+      continue;
+    }
+
+    // PIECE
+    auto _piece = PlayInfo->_piece;
   gt_ReOffset:
     Properties->Flags.FadeIn=0;
     Properties->Flags.FadeOut=0;
@@ -526,7 +618,6 @@ void _DataCallback(f32_t *Output) {
         Properties->FadeFrom += (f32_t)FrameCacheAmount / _constants::opus_decode_sample_rate;
       }
       else {
-        // is size always same
         std::vector<f32_t> temporary_audio(std::size_t(FrameCacheAmount * _constants::ChannelAmount));
         std::memcpy(temporary_audio.data(), FrameCachePointer, FrameCacheAmount* _constants::ChannelAmount*sizeof(f32_t));
         _piece->buffer_end_cb(this, _piece, PlayInfoReference.NRI, temporary_audio.data(), FrameCacheAmount);
@@ -581,7 +672,7 @@ void _DataCallback(f32_t *Output) {
   {
     f32_t biggest = 0;
     for(uint32_t i = 0; i < _constants::CallFrameCount * _constants::ChannelAmount; i++){
-      f32_t s = abs(Output[i]);
+      f32_t s = std::abs(Output[i]);
       if(s > biggest){
         biggest = s;
       }
@@ -593,8 +684,13 @@ void _DataCallback(f32_t *Output) {
       nihl.c();
     }
     nihl.LossTime = std::max(nihl.LossTime - _constants::DataCallbackTime, (decltype(nihl.LossTime))0);
-    for(uint32_t i = 0; i < _constants::CallFrameCount * _constants::ChannelAmount; i++){
-      Output[i] /= nihl.LossDivision;
+    
+    for(uint32_t i = 0; i < _constants::CallFrameCount; i++){
+      nihl.CurrentDivision += (nihl.LossDivision - nihl.CurrentDivision) * 0.005f;
+      for(uint32_t c = 0; c < _constants::ChannelAmount; c++){
+        uint32_t idx = i * _constants::ChannelAmount + c;
+        Output[idx] = std::tanh(Output[idx] / std::max(1.0f, nihl.CurrentDivision));
+      }
     }
   }
 
@@ -682,13 +778,6 @@ void _DataCallbackPcm(f32_t *Output) {
         }
         case _MessageType_t::ClosePiece: {
           fan::throw_error("todo");
-         /* auto _stream = Message->Data.ClosePiece._stream;
-          if(_stream->ReferenceCount != 0){
-            _stream->WantClose = true;
-          }
-          else{
-            _ClosePiece(_stream);
-          }*/
           break;
         }
       }
@@ -696,6 +785,7 @@ void _DataCallbackPcm(f32_t *Output) {
     this->MessageQueueList.Current = 0;
     TH_unlock(&this->MessageQueueListMutex);
   }
+
   for (uint32_t PlayID = 0; PlayID < this->PlayList.Current;) {
     _Play_t *Play = &((_Play_t *)this->PlayList.ptr)[PlayID];
     _PlayInfoList_NodeReference_t PlayInfoReference = Play->Reference;
@@ -707,11 +797,15 @@ void _DataCallbackPcm(f32_t *Output) {
     struct {
       f32_t FadePerFrame;
     }CalculatedVariables;
-    gt_ReOffset:
+
+  gt_ReOffset:
+    Properties->Flags.FadeIn = 0;
+    Properties->Flags.FadeOut = 0;
     CanBeReadFrameCount = _stream->GetFrameAmount() - PlayInfo->offset;
     if (CanBeReadFrameCount > _constants::CallFrameCount - OutputIndex) {
       CanBeReadFrameCount = _constants::CallFrameCount - OutputIndex;
     }
+
     if (Properties->Flags.FadeIn || Properties->Flags.FadeOut) {
       f32_t TotalFade = Properties->FadeTo - Properties->FadeFrom;
       f32_t CurrentFadeTime = (f32_t)CanBeReadFrameCount / _constants::opus_decode_sample_rate;
@@ -731,11 +825,38 @@ void _DataCallbackPcm(f32_t *Output) {
       CalculatedVariables.FadePerFrame = (f32_t)1 / (Properties->FadeTo * _constants::opus_decode_sample_rate);
     }
 
-    // need to cache then sum
-    _stream->buffer_end_cb(this, Output, _constants::CallFrameCount);
+    f32_t temp_out[_constants::CallFrameCount * _constants::ChannelAmount] = {0};
+    _stream->buffer_end_cb(this, temp_out, CanBeReadFrameCount, PlayInfo->offset);
 
-    CanBeReadFrameCount -= 1;
-    PlayInfo->offset += 1;
+    if (Properties->Flags.FadeIn) {
+      f32_t CurrentVolume = Properties->FadeFrom / Properties->FadeTo;
+      for (uint32_t i = 0; i < CanBeReadFrameCount; i++) {
+        for (uint32_t iChannel = 0; iChannel < _constants::ChannelAmount; iChannel++) {
+          ((f32_t*)Output)[(OutputIndex + i) * _constants::ChannelAmount + iChannel] += temp_out[i * _constants::ChannelAmount + iChannel] * CurrentVolume;
+        }
+        CurrentVolume += CalculatedVariables.FadePerFrame;
+      }
+      Properties->FadeFrom += (f32_t)CanBeReadFrameCount / _constants::opus_decode_sample_rate;
+    }
+    else if (Properties->Flags.FadeOut) {
+      f32_t CurrentVolume = Properties->FadeFrom / Properties->FadeTo;
+      CurrentVolume = (f32_t)1 - CurrentVolume;
+      for (uint32_t i = 0; i < CanBeReadFrameCount; i++) {
+        for (uint32_t iChannel = 0; iChannel < _constants::ChannelAmount; iChannel++) {
+          ((f32_t*)Output)[(OutputIndex + i) * _constants::ChannelAmount + iChannel] += temp_out[i * _constants::ChannelAmount + iChannel] * CurrentVolume;
+        }
+        CurrentVolume -= CalculatedVariables.FadePerFrame;
+      }
+      Properties->FadeFrom += (f32_t)CanBeReadFrameCount / _constants::opus_decode_sample_rate;
+    }
+    else {
+      for (uint32_t i = 0; i < CanBeReadFrameCount * _constants::ChannelAmount; i++) {
+        ((f32_t*)Output)[OutputIndex * _constants::ChannelAmount + i] += temp_out[i];
+      }
+    }
+
+    PlayInfo->offset += CanBeReadFrameCount;
+    OutputIndex += CanBeReadFrameCount;
 
     #define JumpIfNeeded() \
       if(OutputIndex != _constants::CallFrameCount) { goto gt_ReOffset; }
@@ -744,7 +865,13 @@ void _DataCallbackPcm(f32_t *Output) {
       if (Properties->Flags.Loop == true) {
         PlayInfo->offset = 0;
       }
+      else {
+        PropertiesSoundStop_t PropertiesSoundStop;
+        this->_RemoveFromPlayInfoList(PlayInfoReference, &PropertiesSoundStop);
+        continue;
+      }
     }
+
     if (Properties->Flags.FadeIn) {
       if (Properties->FadeFrom >= Properties->FadeTo) {
         Properties->Flags.FadeIn = false;
@@ -759,13 +886,8 @@ void _DataCallbackPcm(f32_t *Output) {
       }
       JumpIfNeeded();
     }
-    else{
-   /*   if (PlayInfo->offset == _stream->GetFrameAmount()) {
-        PropertiesSoundStop_t PropertiesSoundStop;
-        this->_RemoveFromPlayInfoList(PlayInfoReference, &PropertiesSoundStop);
-        continue;
-      }
-      JumpIfNeeded();*/
+    else {
+      JumpIfNeeded();
     }
 
     #undef JumpIfNeeded
@@ -776,7 +898,7 @@ void _DataCallbackPcm(f32_t *Output) {
   {
     f32_t biggest = 0;
     for(uint32_t i = 0; i < _constants::CallFrameCount * _constants::ChannelAmount; i++){
-      f32_t s = abs(Output[i]);
+      f32_t s = std::abs(Output[i]);
       if(s > biggest){
         biggest = s;
       }
@@ -788,8 +910,13 @@ void _DataCallbackPcm(f32_t *Output) {
       nihl.c();
     }
     nihl.LossTime = std::max(nihl.LossTime - _constants::DataCallbackTime, (decltype(nihl.LossTime))0);
-    for(uint32_t i = 0; i < _constants::CallFrameCount * _constants::ChannelAmount; i++){
-      Output[i] /= nihl.LossDivision;
+    
+    for(uint32_t i = 0; i < _constants::CallFrameCount; i++){
+      nihl.CurrentDivision += (nihl.LossDivision - nihl.CurrentDivision) * 0.005f;
+      for(uint32_t c = 0; c < _constants::ChannelAmount; c++){
+        uint32_t idx = i * _constants::ChannelAmount + c;
+        Output[idx] = std::tanh(Output[idx] / std::max(1.0f, nihl.CurrentDivision));
+      }
     }
   }
 

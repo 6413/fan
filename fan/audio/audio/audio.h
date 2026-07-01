@@ -235,6 +235,7 @@ SoundPlayID_t StreamPlay(stream_t *stream, const PropertiesSoundPlay_t *Properti
   }
   auto pnr = system_audio->Process.PlayInfoList.NewNode();
   auto PlayInfo = &system_audio->Process.PlayInfoList[pnr];
+  PlayInfo->_piece = nullptr;
   PlayInfo->_stream = stream->_stream;
   PlayInfo->PlayType = 1; // 1 stream
   PlayInfo->GroupID = Properties->GroupID;
