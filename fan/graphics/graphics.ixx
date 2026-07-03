@@ -3,7 +3,7 @@ module;
 #if defined (FAN_WINDOW)
 
 #include <coroutine>
-#define POSITION2_WINDOW_CENTER fan::vec2(fan::graphics::ctx().window->get_size() / 2)
+#define POSITION2_WINDOW_CENTER fan::vec2(fan::graphics::ctx().window->get_size() / 2.f)
 #define POSITION3_WINDOW_CENTER fan::vec3(POSITION2_WINDOW_CENTER, 0)
 
 #include <fan/utility.h>
@@ -1400,6 +1400,8 @@ export namespace fan::graphics {
       (void)nr; (void)name; (void)val;
     }
   }
+
+  void update_tiling_background(fan::graphics::shape_t& sprite, fan::vec2 tile_size, render_view_t* rv = ctx().orthographic_render_view);
 } // namespace fan::graphics
 
 #endif

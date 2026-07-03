@@ -7,34 +7,48 @@
 #define make_for_all_test2(todo) \
   vec_t ret = *this; for (access_type_t i = 0; i < size() && i < test0.size() && i < test1.size(); ++i) { todo; } return ret
 
+#ifndef fan_vector_array
+  template <typename U> using rebind_t = vec_t<U>;
+#else
+  template <typename U> using rebind_t = vec_t<vec_n, U>;
+#endif
+
 #define make_operator_const(arithmetic) \
 template <typename T> \
 requires (!std::is_arithmetic_v<T>) \
-constexpr vec_t operator arithmetic(const T& test0) const \
-{ \
-  make_for_all_test1(ret[i] = (*this)[i] arithmetic test0[i]); \
+constexpr auto operator arithmetic(const T& test0) const { \
+  rebind_t<std::common_type_t<value_type_t, std::remove_reference_t<decltype(test0[0])>>> ret{}; \
+  for (access_type_t i = 0; i < size() && i < test0.size(); ++i) { \
+    ret[i] = (*this)[i] arithmetic test0[i]; \
+  } \
+  return ret; \
 } \
 \
 template <typename T> \
 requires (std::is_arithmetic_v<T>)\
-constexpr vec_t operator arithmetic(T v0) const \
-{ \
-  make_for_all(ret[i] = (*this)[i] arithmetic v0); \
+constexpr auto operator arithmetic(T v0) const { \
+  rebind_t<std::common_type_t<value_type_t, T>> ret{}; \
+  for (access_type_t i = 0; i < size(); ++i) { \
+    ret[i] = (*this)[i] arithmetic v0; \
+  } \
+  return ret; \
 }
+
 #define make_operator_assign(arithmetic) \
 template <typename T> \
 requires (!std::is_arithmetic_v<T>) \
-constexpr vec_t& operator CONCAT(arithmetic,=) (const T& test0) \
-{ \
+constexpr vec_t& operator CONCAT(arithmetic,=) (const T& test0) { \
   make_for_all_test1_noret((*this)[i] CONCAT(arithmetic,=) test0[i]); \
   return *this; \
 } \
 \
 template <typename T> \
 requires (std::is_arithmetic_v<T>)\
-constexpr vec_t operator CONCAT(arithmetic,=)(T v0) \
-{ \
-  make_for_all((*this)[i] CONCAT(arithmetic,=) v0); \
+constexpr vec_t& operator CONCAT(arithmetic,=)(T v0) { \
+  for (access_type_t i = 0; i < size(); ++i) { \
+    (*this)[i] CONCAT(arithmetic,=) v0; \
+  } \
+  return *this; \
 }
 
 using value_type = value_type_t;
@@ -103,8 +117,8 @@ make_operators(/);
 #define make_operator_scalar_left(arithmetic) \
   template <typename T> \
   requires (std::is_arithmetic_v<T>) \
-  friend constexpr vec_t operator arithmetic(T lhs, const vec_t& rhs) { \
-    vec_t ret{}; \
+  friend constexpr auto operator arithmetic(T lhs, const vec_t& rhs) { \
+    rebind_t<std::common_type_t<T, value_type_t>> ret{}; \
     for (access_type_t i = 0; i < rhs.size(); ++i) { \
       ret[i] = lhs arithmetic rhs[i]; \
     } \
