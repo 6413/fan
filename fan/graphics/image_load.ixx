@@ -92,7 +92,6 @@ export namespace fan::image {
     void clear();
 
     std::mutex mutex;
-    std::unordered_map<std::string, std::shared_ptr<async_result_t>> images;
   };
 
   async_cache_t& async_cache();

@@ -129,6 +129,11 @@ namespace fan::image {
             queue.pop();
           }
 
+          if (std::get<1>(task).use_count() == 1) {
+            std::get<1>(task)->state.store(async_result_t::state_e::failed, std::memory_order_release);
+            continue;
+          }
+
           auto out = load_owned(std::get<0>(task), std::get<2>(task), std::source_location::current());
           std::get<1>(task)->image = std::move(out);
           std::get<1>(task)->state.store(
@@ -176,21 +181,14 @@ namespace fan::image {
   std::shared_ptr<async_result_t> async_cache_t::load(const std::string& path, fan::vec2ui max_size) {
     std::lock_guard lock(mutex);
 
-    if (auto it = images.find(path); it != images.end()) {
-      return it->second;
-    }
-
     auto result = std::make_shared<async_result_t>();
     image_queue().push(path, result, max_size);
-
-    images.emplace(path, result);
 
     return result;
   }
   
   void async_cache_t::clear() {
     std::lock_guard lock(mutex);
-    images.clear();
     image_queue().clear();
   }
 
