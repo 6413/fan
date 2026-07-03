@@ -417,7 +417,7 @@ struct fgm_t {
     while (it != shape_list.dst) {
       auto& shape_instance = shape_list[it];
       fan::graphics::gui::tree_node_flags_t node_flags = base_flags;
-      const bool is_selected = (selection_mask & (1 << (intptr_t)it.NRI)) != 0;
+      const bool is_selected = (selection_mask & (1 << (std::intptr_t)it.NRI)) != 0;
       if (is_selected) {
         node_flags |= fan::graphics::gui::tree_node_flags_selected;
       }
@@ -777,7 +777,7 @@ struct fgm_t {
       }
       if (gui::color_edit3("ambient", &gloco()->renderer_state.lighting.ambient)) {
       }
-      if (gui::drag("grid snap", &fan::graphics::vfi_root_t::snap, 1, 0, FLT_MAX, gui::slider_flags_always_clamp)) {
+      if (gui::drag("grid snap", &fan::graphics::vfi_root_t::snap, 1, 0, std::numeric_limits<f32_t>::max(), gui::slider_flags_always_clamp)) {
       }
       if (gui::checkbox("render axes", &render_axis_lines)) {
         axis_lines[0].set_color(axis_x_color * render_axis_lines);
@@ -1510,7 +1510,7 @@ struct fgm_t {
         gui::separator();
         auto& kf = keyframes[selected_keyframe];
 
-        if (gui::drag("Time", &kf.time, 0.01f, 0.0f, FLT_MAX)) {
+        if (gui::drag("Time", &kf.time, 0.01f, 0.0f, std::numeric_limits<f32_t>::max())) {
           std::sort(keyframes.begin(), keyframes.end(),
             [](const keyframe_t& a, const keyframe_t& b) {
             return a.time < b.time;
