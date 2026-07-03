@@ -145,6 +145,7 @@ export {
       bool is_number() const;
       bool is_boolean() const;
       bool contains(const char* key) const;
+      bool contains(const std::string& key) const;
       bool is_object() const;
       bool is_array() const;
       bool is_null() const;

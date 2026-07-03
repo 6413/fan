@@ -28,6 +28,7 @@ import fan.graphics.common_context;
 import fan.graphics.common_types;
 import fan.graphics.shapes.types;
 import fan.graphics.shapes;
+export import fan.graphics.grid_placer;
 import fan.pathfind;
 import fan.graphics.opengl.core;
 import fan.graphics.image_load;
