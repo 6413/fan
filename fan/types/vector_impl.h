@@ -130,118 +130,34 @@ make_operator_scalar_left(*)
 make_operator_scalar_left(/)
 make_operator_scalar_left(%)
 
-template <typename T>
-  requires (!std::is_arithmetic_v<T>)
-constexpr bool operator==(const T& rhs) const {
-  for (access_type_t i = 0; i < size() && i < rhs.size(); ++i) {
-    if ((*this)[i] != rhs[i]) {
-      return false;
-    }
-  }
-  
-  return true;
+#define make_operator_bool(op) \
+template <typename T> \
+  requires (!std::is_arithmetic_v<T>) \
+constexpr bool operator op(const T& rhs) const { \
+  for (access_type_t i = 0; i < size() && i < rhs.size(); ++i) { \
+    if (!((*this)[i] op rhs[i])) { \
+      return false; \
+    } \
+  } \
+  return true; \
+} \
+template <typename T> \
+  requires (std::is_arithmetic_v<T>) \
+constexpr bool operator op(T rhs) const { \
+  for (access_type_t i = 0; i < size(); ++i) { \
+    if (!((*this)[i] op rhs)) { \
+      return false; \
+    } \
+  } \
+  return true; \
 }
 
-template <typename T>
-  requires (std::is_arithmetic_v<T>)
-constexpr bool operator==(const T& rhs) const {
-  return (*this)[0] == rhs;
-}
-
-template <typename T>
-  requires (!std::is_arithmetic_v<T>)
-constexpr bool operator!=(const T& rhs) const {
-  return !(*this == rhs);
-}
-
-template <typename T>
-  requires (std::is_arithmetic_v<T>)
-constexpr bool operator!=(const T& rhs) const {
-  return !(*this == rhs);
-}
-
-template <typename T>
-  requires (!std::is_arithmetic_v<T>)
-constexpr bool operator<(const T& rhs) const {
-  for (access_type_t i = 0; i < size() && i < rhs.size(); ++i) {
-    if (!((*this)[i] < rhs[i])) {
-      return false;
-    }
-  }
-  return true;
-}
-template <typename T>
-  requires (!std::is_arithmetic_v<T>)
-constexpr bool operator>(const T& rhs) const {
-  for (access_type_t i = 0; i < size() && i < rhs.size(); ++i) {
-    if (!((*this)[i] > rhs[i])) {
-      return false;
-    }
-  }
-  return true;
-}
-template <typename T>
-  requires (std::is_arithmetic_v<T>)
-constexpr bool operator<(T rhs) const {
-  for (access_type_t i = 0; i < size(); ++i) {
-    if (!((*this)[i] < rhs)) {
-      return false;
-    }
-  }
-  return true;
-}
-template <typename T>
-  requires (std::is_arithmetic_v<T>)
-constexpr bool operator>(T rhs) const {
-  for (access_type_t i = 0; i < size(); ++i) {
-    if (!((*this)[i] > rhs)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-template <typename T>
-  requires (!std::is_arithmetic_v<T>)
-constexpr bool operator<=(const T& rhs) const {
-  for (access_type_t i = 0; i < size() && i < rhs.size(); ++i) {
-    if (!((*this)[i] <= rhs[i])) {
-      return false;
-    }
-  }
-  return true;
-}
-template <typename T>
-  requires (std::is_arithmetic_v<T>)
-constexpr bool operator<=(T rhs) const {
-  for (access_type_t i = 0; i < size(); ++i) {
-    if (!((*this)[i] <= rhs)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-template <typename T>
-  requires (!std::is_arithmetic_v<T>)
-constexpr bool operator>=(const T& rhs) const {
-  for (access_type_t i = 0; i < size() && i < rhs.size(); ++i) {
-    if (!((*this)[i] >= rhs[i])) {
-      return false;
-    }
-  }
-  return true;
-}
-template <typename T>
-  requires (std::is_arithmetic_v<T>)
-constexpr bool operator>=(T rhs) const {
-  for (access_type_t i = 0; i < size(); ++i) {
-    if (!((*this)[i] >= rhs)) {
-      return false;
-    }
-  }
-  return true;
-}
+make_operator_bool(==)
+make_operator_bool(!=)
+make_operator_bool(<)
+make_operator_bool(>)
+make_operator_bool(<=)
+make_operator_bool(>=)
 
 explicit constexpr operator bool() const {
   for (access_type_t i = 0; i < size(); ++i) {
