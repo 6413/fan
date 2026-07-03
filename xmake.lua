@@ -154,7 +154,7 @@ local feature_modules = {
   },
   FAN_OPENGL = { "fan/graphics/opengl/gl_core.ixx", "fan/graphics/opengl/uniform_block.ixx" },
   FAN_VULKAN = { "fan/graphics/vulkan/vk_core_types.ixx", "fan/graphics/vulkan/vk_core_vai.ixx", "fan/graphics/vulkan/vk_core.ixx" },
-  FAN_2D = { "fan/graphics/2D/shapes_types.ixx", "fan/graphics/2D/culling.ixx", "fan/graphics/2D/shapes.ixx" },
+  FAN_2D = { "fan/graphics/2D/shapes_types.ixx", "fan/graphics/2D/grid_placer.ixx", "fan/graphics/2D/culling.ixx", "fan/graphics/2D/shapes.ixx" },
   FAN_JSON = { "fan/types/json.ixx" },
   FAN_FMT = { "fan/fmt.ixx" },
   FAN_NETWORK = { "fan/network/network.ixx", "fan/network/network_socket.ixx", "fan/graphics/2D/graphics_network.ixx" },

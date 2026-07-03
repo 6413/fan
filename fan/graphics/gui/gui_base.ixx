@@ -1255,10 +1255,10 @@ export namespace fan::graphics::gui {
       bool selected = state.selected.contains(i);
       render_cb(i, cpos, sprite_size, selected);
       if (selected) {
-        draw_list->AddRect(ImVec2(cpos.x, cpos.y), ImVec2(cpos.x + sprite_size.x, cpos.y + sprite_size.y), 0xff0077ff, 0, 0, 1);
+        draw_list->AddRect(ImVec2(cpos.x + 2.f, cpos.y + 2.f), ImVec2(cpos.x + sprite_size.x - 2.f, cpos.y + sprite_size.y - 2.f), 0xff0077ff, 0, 0, 3.f);
       }
       if (!state.is_selecting && fan::math::d2::aabb_point_inside(cpos, gui::get_mouse_pos() - sprite_size / 2.f, sprite_size / 2.f)) {
-        draw_list->AddRect(ImVec2(cpos.x, cpos.y), ImVec2(cpos.x + sprite_size.x, cpos.y + sprite_size.y), 0xff0077ff, 0, 0, 3);
+        draw_list->AddRect(ImVec2(cpos.x + 2.f, cpos.y + 2.f), ImVec2(cpos.x + sprite_size.x - 2.f, cpos.y + sprite_size.y - 2.f), 0xff0077ff, 0, 0, 3.f);
       }
       if (gui::is_item_hovered(gui::hovered_flags_rect_only)) {
         if (l_drag) {
@@ -1326,14 +1326,17 @@ export namespace fan::graphics::gui {
   bool single_image_selector(str_view_t id, grid_state_t& state, const std::vector<T>& images, int& selected_index, int columns = -1, f32_t base_cell_size = 64.f, fan::vec2 item_spacing = fan::vec2(8.f)) {
     if (images.empty()) return false;
     
-    if (state.selected.empty()) state.selected.insert(selected_index);
+    bool changed = false;
+    if (state.selected.empty()) {
+      state.selected.insert(selected_index);
+      changed = true;
+    }
     if (state.selected.size() > 1) {
       state.selected.clear();
       state.selected.insert(selected_index);
     }
 
     int cols = columns <= 0 ? images.size() : columns;
-    bool changed = false;
 
     gui::grid(id, state, images.size(), cols, base_cell_size, item_spacing, [&](int i, fan::vec2 cpos, fan::vec2 sprite_size, bool selected) {
       auto* draw_list = gui::get_window_draw_list();
