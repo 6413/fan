@@ -23,7 +23,7 @@ export namespace fan::graphics {
     }
 
     inline fan::vec3 get_placement(fan::vec2i cell, fan::vec2 object_size, float custom_scale_x = 1.0f) const {
-      int cells_occupied = std::max(1, (int)std::ceil(custom_scale_x));
+      int cells_occupied = std::max(1, (int)std::round(custom_scale_x));
       fan::vec2 pos(
         cell.x + (cells_occupied * tile_size.x) / 2.f,
         cell.y + tile_size.y - object_size.y / 2.f

@@ -942,9 +942,26 @@ namespace fan::graphics::gui {
     return ImGui::IsItemEdited();
   }
 
-  bool& want_io() {
-    static bool g_want_io = false;
-    return g_want_io;
+  static bool g_want_io = false;
+
+  bool want_io() {
+    if (force_want_io_for_frame()) return true;
+    if (g_want_io) return true;
+
+    ImGuiContext* g = ImGui::GetCurrentContext();
+    if (!g) return false;
+
+    bool is_hovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow) || ImGui::IsAnyItemHovered() || ImGui::IsAnyItemActive();
+    if (!is_hovered) return false;
+
+    if (g->HoveredWindow) {
+      std::string name = g->HoveredWindow->Name;
+      if (name.rfind("WindowOverViewport_", 0) == 0 || detail::want_io_ignore_list().count(name)) {
+        return false;
+      }
+    }
+
+    return true;
   }
 
   bool& force_want_io_for_frame() {
@@ -954,7 +971,7 @@ namespace fan::graphics::gui {
 
   void set_want_io(bool flag, bool op_or) {
     if (force_want_io_for_frame()) {
-      want_io() = true;
+      g_want_io = true;
       return;
     }
 
@@ -963,28 +980,28 @@ namespace fan::graphics::gui {
     if (g->NavWindow) {
       std::string nav_window_name = g->NavWindow->Name;
       if (nav_window_name.rfind("WindowOverViewport_", 0) == 0) {
-        want_io() = false;
+        g_want_io = false;
         return;
       }
     }
 
     if (g->NavWindow && detail::want_io_ignore_list().find(g->NavWindow->Name) != detail::want_io_ignore_list().end()) {
-      want_io() = false;
+      g_want_io = false;
       return;
     }
     if (g->HoveredWindow) {
       std::string nav_window_name = g->HoveredWindow->Name;
       if (nav_window_name.rfind("WindowOverViewport_", 0) == 0) {
-        want_io() = false;
+        g_want_io = false;
         return;
       }
     }
 
     if (g->HoveredWindow && detail::want_io_ignore_list().find(g->HoveredWindow->Name) != detail::want_io_ignore_list().end()) {
-      want_io() = false;
+      g_want_io = false;
       return;
     }
-    want_io() = op_or ? (want_io() | flag) : flag;
+    g_want_io = op_or ? (g_want_io | flag) : flag;
   }
 
   void set_keyboard_focus_here(int offset) {
