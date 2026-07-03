@@ -480,6 +480,7 @@ namespace fan::graphics::gui {
 
   void content_browser_t::update_directory_cache() {
     search_iterator.stop();
+    directory_iterator.stop();
     search_state.is_searching = false;
     search_state.found_files.clear();
     search_state.search_cache_dirty = true;
@@ -502,18 +503,21 @@ namespace fan::graphics::gui {
     if (!directory_iterator.callback) {
       directory_iterator.sort_alphabetically = true;
       directory_iterator.callback = [this](const std::string& path_str, bool is_dir) -> fan::event::task_t {
-        file_info_t file_info;
-        file_info.filename = path_filename(path_str);
-        file_info.item_path = path_relative(path_str, asset_path);
-        file_info.is_directory = is_dir;
-        file_info.is_selected = false;
+        try {
+          file_info_t file_info;
+          file_info.filename = path_filename(path_str);
+          file_info.item_path = path_relative(path_str, asset_path);
+          file_info.is_directory = is_dir;
+          file_info.is_selected = false;
 
-        if (!is_dir && fan::image::valid(path_str)) {
-          file_info.async_preview = fan::image::async_cache().load(path_str, fan::vec2ui(512, 512));
+          if (!is_dir && fan::image::valid(path_str)) {
+            file_info.async_preview = fan::image::async_cache().load(path_str, fan::vec2ui(512, 512));
+          }
+
+          directory_cache.push_back(file_info);
+          invalidate_cache();
         }
-
-        directory_cache.push_back(file_info);
-        invalidate_cache();
+        catch (...) {}
         co_return;
       };
     }
