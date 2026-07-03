@@ -10,6 +10,7 @@ export import fan.types.bitset;
   export import fan.types.json;
 #endif
 export import fan.math;
+export import fan.tween;
 export import fan.random;
 export import fan.time;
 export import fan.print;
