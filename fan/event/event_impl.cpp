@@ -535,10 +535,14 @@ namespace fan::io {
       while (s->current_index < s->entries.size()) {
         if (s->stopped) break;
         const auto& entry = s->entries[s->current_index];
-        co_await iter->callback(entry.path().string(), entry.is_directory());
+        std::string path_str = entry.path().string();
+        bool is_dir = entry.is_directory();
+        auto cb_task = iter->callback(path_str, is_dir);
+        co_await cb_task;
         ++s->current_index;
         if (s->stopped) break;
-        co_await ev_next_tick_awaiter{};
+        ev_next_tick_awaiter awaiter{};
+        co_await awaiter;
       }
     }
     catch (...) {}
