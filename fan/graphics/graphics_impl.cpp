@@ -1664,6 +1664,22 @@ namespace fan::graphics {
       sprite_name /*image path*/
     ));
   }
+
+  void update_tiling_background(
+    fan::graphics::shape_t& sprite, 
+    fan::vec2 tile_size, 
+    fan::graphics::render_view_t* rv) 
+  {
+    f32_t zoom = camera_get_zoom(*rv);
+    fan::vec2 c = camera_get_center(*rv);
+    fan::vec2 ws = fan::window::get_size();
+    fan::vec2 half_size = ws / zoom / 2.f;
+
+    sprite.set_position(c);
+    sprite.set_size(half_size);
+    sprite.set_tc_position((c - half_size) / tile_size / 2.f);
+    sprite.set_tc_size(half_size / tile_size);
+  }
 } // namespace fan::graphics
 
 namespace fan {

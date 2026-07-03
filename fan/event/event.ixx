@@ -324,10 +324,20 @@ export namespace fan {
   using co_sleep = event::timer_t;
 
   template<typename func_t, FAN_UNIQUE_CALL>
-  auto do_once(func_t&& f) requires (!fan::is_awaitable_v<decltype(f())>) { return f(); }
+  auto do_once(func_t&& f) requires (!fan::is_awaitable_v<decltype(f())>) { 
+    static bool once = true;
+    if (!once) return;
+    once = false;
+    return f(); 
+  }
 
   template<typename func_t, FAN_UNIQUE_CALL>
-  fan::event::task_t do_once(func_t&& f) requires (fan::is_awaitable_v<decltype(f())>) { co_return co_await f(); }
+  fan::event::task_t do_once(func_t&& f) requires (fan::is_awaitable_v<decltype(f())>) { 
+    static bool once = true;
+    if (!once) co_return;
+    once = false;
+    co_return co_await f(); 
+  }
 }
 
 export namespace fan::io::file {
