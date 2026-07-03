@@ -508,7 +508,10 @@ export namespace fan::graphics {
     image_t(const fan::color& color);
     image_t(fan::str_view_t path, const std::source_location& callers_path = std::source_location::current());
     image_t(fan::str_view_t path, const fan::graphics::image_load_properties_t lp, const std::source_location& callers_path = std::source_location::current());
+    image_t(const std::string& path, const std::source_location& callers_path = std::source_location::current());
+    image_t(const std::string& path, const fan::graphics::image_load_properties_t lp, const std::source_location& callers_path = std::source_location::current());
     image_t(const char* path, const std::source_location& callers_path = std::source_location::current());
+    image_t(const char* path, const fan::graphics::image_load_properties_t lp, const std::source_location& callers_path = std::source_location::current());
     image_t(const fan::image::info_t& info);
     image_t(const fan::image::info_t& info, const fan::graphics::image_load_properties_t& lp);
     image_t(fan::color* colors, const fan::vec2ui& size);

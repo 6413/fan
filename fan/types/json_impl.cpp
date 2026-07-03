@@ -263,6 +263,7 @@ namespace fan {
   bool json::is_boolean() const { return m_ptr && static_cast<nlohmann::json*>(m_ptr)->is_boolean(); }
 
   bool json::contains(const char* key) const { return static_cast<nlohmann::json*>(m_ptr)->contains(key); }
+  bool json::contains(const std::string& key) const { return static_cast<nlohmann::json*>(m_ptr)->contains(key); }
   bool json::is_object() const { return static_cast<nlohmann::json*>(m_ptr)->is_object(); }
   bool json::is_array() const { return static_cast<nlohmann::json*>(m_ptr)->is_array(); }
   bool json::is_null() const { return static_cast<nlohmann::json*>(m_ptr)->is_null(); }
