@@ -489,18 +489,18 @@ namespace fan::io {
     std::coroutine_handle<> coro;
     bool await_ready() noexcept { return false; }
     void await_suspend(std::coroutine_handle<> h) noexcept {
-      coro = h;
-      idle_handle = new fan::uv::idle_t;
-      fan::uv::idle_init((fan::uv::loop_t*)fan::event::get_loop(), idle_handle);
-      idle_handle->data = this;
-      fan::uv::idle_start(idle_handle, [](fan::uv::idle_t* handle) {
-        auto* awaiter = static_cast<ev_next_tick_awaiter*>(handle->data);
-        fan::uv::idle_stop(handle);
-        fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(handle), [](fan::uv::handle_t* h) {
-          delete reinterpret_cast<fan::uv::idle_t*>(h);
+        coro = h;
+        idle_handle = new fan::uv::idle_t;
+        fan::uv::idle_init((fan::uv::loop_t*)fan::event::get_loop(), idle_handle);
+        idle_handle->data = this;
+        fan::uv::idle_start(idle_handle, [](fan::uv::idle_t* handle) {
+          auto* awaiter = static_cast<ev_next_tick_awaiter*>(handle->data);
+          fan::uv::idle_stop(handle);
+          fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(handle), [](fan::uv::handle_t* h) {
+            delete reinterpret_cast<fan::uv::idle_t*>(h);
+          });
+          awaiter->coro.resume();
         });
-        awaiter->coro.resume();
-      });
     }
     void await_resume() noexcept {}
   };
@@ -531,14 +531,36 @@ namespace fan::io {
 
   fan::event::task_t iterate_directory(async_directory_iterator_t* iter) {
     auto* s = static_cast<dir_iter_internal*>(iter->internal_state);
-    while (s->current_index < s->entries.size()) {
-      if (s->stopped) co_return;
-      const auto& entry = s->entries[s->current_index];
-      co_await iter->callback(entry.path().string(), entry.is_directory());
-      ++s->current_index;
-      if (s->stopped) co_return;
-      co_await ev_next_tick_awaiter{};
+    try {
+      while (s->current_index < s->entries.size()) {
+        if (s->stopped) break;
+        const auto& entry = s->entries[s->current_index];
+        co_await iter->callback(entry.path().string(), entry.is_directory());
+        ++s->current_index;
+        if (s->stopped) break;
+        co_await ev_next_tick_awaiter{};
+      }
     }
+    catch (...) {}
+    
+    iter->operation_in_progress = false;
+
+    if (s->switch_requested) {
+      s->switch_requested = false;
+      fan::uv::idle_t* idle = new fan::uv::idle_t;
+      idle->data = iter;
+      fan::uv::idle_init((fan::uv::loop_t*)fan::event::get_loop(), idle);
+      fan::uv::idle_start(idle, [](fan::uv::idle_t* handle) {
+        auto* it = static_cast<async_directory_iterator_t*>(handle->data);
+        std::string path = static_cast<dir_iter_internal*>(it->internal_state)->next_path;
+        fan::uv::idle_stop(handle);
+        fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(handle), [](fan::uv::handle_t* h) {
+          delete reinterpret_cast<fan::uv::idle_t*>(h);
+        });
+        async_directory_iterate(it, path);
+      });
+    }
+
     co_return;
   }
 
@@ -590,27 +612,30 @@ namespace fan::io {
             return a_is_dir && !b_is_dir;
           });
         }
-        if (!state->stopped) state->iteration_task = iterate_directory(it);
+        if (!state->stopped) {
+          state->iteration_task = iterate_directory(it);
+        } else {
+          it->operation_in_progress = false;
+
+          if (state->switch_requested) {
+            state->switch_requested = false;
+            fan::uv::idle_t* idle = new fan::uv::idle_t;
+            idle->data = it;
+            fan::uv::idle_init((fan::uv::loop_t*)fan::event::get_loop(), idle);
+            fan::uv::idle_start(idle, [](fan::uv::idle_t* handle) {
+              auto* it = static_cast<async_directory_iterator_t*>(handle->data);
+              std::string path = static_cast<dir_iter_internal*>(it->internal_state)->next_path;
+              fan::uv::idle_stop(handle);
+              fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(handle), [](fan::uv::handle_t* h) {
+                delete reinterpret_cast<fan::uv::idle_t*>(h);
+              });
+              async_directory_iterate(it, path);
+            });
+          }
+        }
       }
       fan::uv::fs_req_cleanup(r);
       delete r;
-      it->operation_in_progress = false;
-
-      if (state->switch_requested) {
-        state->switch_requested = false;
-        fan::uv::idle_t* idle = new fan::uv::idle_t;
-        idle->data = it;
-        fan::uv::idle_init((fan::uv::loop_t*)fan::event::get_loop(), idle);
-        fan::uv::idle_start(idle, [](fan::uv::idle_t* handle) {
-          auto* it = static_cast<async_directory_iterator_t*>(handle->data);
-          std::string path = static_cast<dir_iter_internal*>(it->internal_state)->next_path;
-          fan::uv::idle_stop(handle);
-          fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(handle), [](fan::uv::handle_t* h) {
-            delete reinterpret_cast<fan::uv::idle_t*>(h);
-          });
-          async_directory_iterate(it, path);
-        });
-      }
     });
     if (ret < 0) {
       delete req;

@@ -43,8 +43,6 @@ namespace fan::stb {
 
     if (max_size.x > 0 && max_size.y > 0) {
       if ((std::uint32_t)image_info->size.x > max_size.x || (std::uint32_t)image_info->size.y > max_size.y) {
-        fan::print("Downscaling image:", path, "from", image_info->size, "to max", max_size);
-        // Calculate aspect ratio preserving size
         f32_t ratio_x = (f32_t)max_size.x / image_info->size.x;
         f32_t ratio_y = (f32_t)max_size.y / image_info->size.y;
         f32_t ratio = std::min(ratio_x, ratio_y);
