@@ -3,6 +3,8 @@ module;
 #include <fan/stb/stb_image.h>
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <fan/stb/stb_image_write.h>
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include <fan/stb/stb_image_resize2.h>
 module fan.graphics.stb;
 import fan.io.file;
 import fan.print;
@@ -16,7 +18,7 @@ namespace fan::stb {
     );
   }
 
-  bool load(fan::str_view_t path, info_t* image_info, const std::source_location& callers_path) {
+  bool load(fan::str_view_t path, info_t* image_info, fan::vec2ui max_size, const std::source_location& callers_path) {
     auto p = fan::io::file::find_relative_path(path, callers_path).string();
 
     image_info->data = ::stbi_load(
@@ -37,6 +39,38 @@ namespace fan::stb {
         ::stbi_failure_reason()
       );
       return true;
+    }
+
+    if (max_size.x > 0 && max_size.y > 0) {
+      if ((std::uint32_t)image_info->size.x > max_size.x || (std::uint32_t)image_info->size.y > max_size.y) {
+        fan::print("Downscaling image:", path, "from", image_info->size, "to max", max_size);
+        // Calculate aspect ratio preserving size
+        f32_t ratio_x = (f32_t)max_size.x / image_info->size.x;
+        f32_t ratio_y = (f32_t)max_size.y / image_info->size.y;
+        f32_t ratio = std::min(ratio_x, ratio_y);
+        
+        int new_x = std::max(1, (int)(image_info->size.x * ratio));
+        int new_y = std::max(1, (int)(image_info->size.y * ratio));
+
+        unsigned char* resized_data = (unsigned char*)malloc(new_x * new_y * image_info->channels);
+        if (resized_data) {
+          auto result = stbir_resize_uint8_linear(
+            image_info->data, image_info->size.x, image_info->size.y, 0,
+            resized_data, new_x, new_y, 0,
+            (stbir_pixel_layout)image_info->channels
+          );
+          if (result == NULL) {
+            fan::print("Failed to resize image:", path);
+            free(resized_data);
+          }
+          else {
+            ::stbi_image_free(image_info->data);
+            image_info->data = resized_data;
+            image_info->size.x = new_x;
+            image_info->size.y = new_y;
+          }
+        }
+      }
     }
 
     return false;

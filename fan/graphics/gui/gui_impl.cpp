@@ -489,6 +489,7 @@ namespace fan::graphics::gui {
     std::fill(search_buffer.begin(), search_buffer.end(), '\0');
     clear_selection();
     invalidate_cache();
+    fan::image::async_cache().clear();
 
     for (auto& img : directory_cache) {
       if (fan::graphics::is_image_valid(img.preview_image)) {
@@ -508,7 +509,7 @@ namespace fan::graphics::gui {
         file_info.is_selected = false;
 
         if (!is_dir && fan::image::valid(path_str)) {
-          file_info.preview_image = fan::graphics::image_load(path_str);
+          file_info.async_preview = fan::image::async_cache().load(path_str, fan::vec2ui(512, 512));
         }
 
         directory_cache.push_back(file_info);
@@ -598,7 +599,7 @@ namespace fan::graphics::gui {
           file_info.is_selected = false;
 
           if (fan::image::valid(path_str)) {
-            file_info.preview_image = fan::graphics::image_load(path_str);
+            file_info.async_preview = fan::image::async_cache().load(path_str, fan::vec2ui(512, 512));
           }
 
           search_state.found_files.push_back(file_info);
@@ -642,6 +643,13 @@ namespace fan::graphics::gui {
   }
 
   void content_browser_t::render() {
+    for (auto& img : directory_cache) {
+      img.process_async_preview();
+    }
+    for (auto& file : search_state.found_files) {
+      file.process_async_preview();
+    }
+
     item_right_clicked = false;
     item_right_clicked_name.clear();
 
@@ -851,7 +859,7 @@ namespace fan::graphics::gui {
 
         bool item_clicked = image_button(
           "##",
-          fan::graphics::is_image_valid(file_info.preview_image) ? file_info.preview_image
+          fan::graphics::is_image_valid(search_state.found_files[original_index].preview_image) ? search_state.found_files[original_index].preview_image
           : file_info.is_directory ? icon_directory : file_info.filename.ends_with(".json") ? icon_object : icon_file,
           fan::vec2(thumbnail_size, thumbnail_size)
         );
@@ -918,8 +926,8 @@ namespace fan::graphics::gui {
         std::string id = "##" + file_info.filename;
         bool item_clicked = image_button(
           std::string_view(id),
-          fan::graphics::is_image_valid(file_info.preview_image) ? file_info.preview_image
-          : file_info.is_directory ? icon_directory : file_info.filename.ends_with(".json") ? icon_object : icon_file,
+            fan::graphics::is_image_valid(directory_cache[original_index].preview_image) ? directory_cache[original_index].preview_image
+            : file_info.is_directory ? icon_directory : file_info.filename.ends_with(".json") ? icon_object : icon_file,
           fan::vec2(thumbnail_size, thumbnail_size)
         );
 
@@ -1028,7 +1036,7 @@ namespace fan::graphics::gui {
           handle_right_click(file_info.filename);
 
           texture_id_t texture_id = (texture_id_t)fan::graphics::image_get_handle(
-            fan::graphics::is_image_valid(file_info.preview_image) ? file_info.preview_image
+            fan::graphics::is_image_valid(search_state.found_files[original_index].preview_image) ? search_state.found_files[original_index].preview_image
             : file_info.is_directory ? icon_directory : icon_file
           );
           get_window_draw_list()->AddImage(texture_id, cursor_pos, cursor_pos + image_size);
@@ -1088,7 +1096,7 @@ namespace fan::graphics::gui {
           handle_right_click(file_info.filename);
 
           texture_id_t texture_id = (texture_id_t)fan::graphics::image_get_handle(
-            fan::graphics::is_image_valid(file_info.preview_image) ? file_info.preview_image
+            fan::graphics::is_image_valid(directory_cache[original_index].preview_image) ? directory_cache[original_index].preview_image
             : file_info.is_directory ? icon_directory : icon_file
           );
           get_window_draw_list()->AddImage(texture_id, cursor_pos, cursor_pos + image_size);

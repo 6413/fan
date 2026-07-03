@@ -31,7 +31,7 @@ export namespace fan::image {
   };
 
   bool valid(const std::string& path, const std::source_location& callers_path = std::source_location::current());
-  bool load(fan::str_view_t path, info_t* image_info, const std::source_location& callers_path = std::source_location::current());
+  bool load(fan::str_view_t path, info_t* image_info, fan::vec2ui max_size = 0, const std::source_location& callers_path = std::source_location::current());
   bool write(fan::str_view_t path, const info_t& image_info, f32_t quality = 80.f);
   bool write(fan::str_view_t path, void* data, fan::vec2i size, int channels, f32_t quality = 80.f);
   bool write(fan::str_view_t path, std::span<const std::uint8_t> data, fan::vec2i size, int channels, f32_t quality = 80.f);
@@ -71,7 +71,7 @@ export namespace fan::image {
     }
   };
 
-  owned_t load_owned(fan::str_view_t path, const std::source_location& callers_path = std::source_location::current());
+  owned_t load_owned(fan::str_view_t path, fan::vec2ui max_size = 0, const std::source_location& callers_path = std::source_location::current());
 
   struct async_result_t {
     enum class state_e {
@@ -83,13 +83,13 @@ export namespace fan::image {
     bool try_finish();
     void wait();
 
-    state_e state = state_e::loading;
+    std::atomic<state_e> state = state_e::loading;
     owned_t image;
-    std::future<owned_t> job;
   };
 
   struct async_cache_t {
-    std::shared_ptr<async_result_t> load(const std::string& path);
+    std::shared_ptr<async_result_t> load(const std::string& path, fan::vec2ui max_size = 0);
+    void clear();
 
     std::mutex mutex;
     std::unordered_map<std::string, std::shared_ptr<async_result_t>> images;
