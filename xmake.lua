@@ -137,7 +137,8 @@ local module_files = {
   "fan/utility.ixx", "fan/formatter.ixx", "fan/print_error.ixx", "fan/print.ixx",
   "fan/random.ixx", "fan/log_dispatcher.ixx", "fan/crypto.ixx", "fan/process.ixx",
   "fan/io/io_types.ixx", "fan/io/directory.ixx", "fan/io/file.ixx", "fan/io/io_prompt.ixx",
-  "fan/event/event_types.ixx", "fan/event/event.ixx", "fan/event/uv_raw.ixx", "fan/compression.ixx"
+  "fan/event/event_types.ixx", "fan/event/event.ixx", "fan/event/uv_raw.ixx", "fan/compression.ixx",
+  "fan/tween.ixx"
 }
 
 local feature_modules = {
