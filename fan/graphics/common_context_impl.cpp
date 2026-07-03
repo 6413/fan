@@ -813,7 +813,7 @@ namespace fan::graphics {
     fan::vec2 src_center = camera_get_position(nr) + offset;
     fan::vec2 new_center = move_speed == 0 
       ? target 
-      : src_center + (target - src_center) * fan::graphics::get_window().m_delta_time * move_speed;
+      : src_center + (target - src_center) * (f32_t)fan::graphics::get_window().m_delta_time * move_speed;
 
     camera_set_center(nr, fan::vec3(new_center, 0.f));
   }

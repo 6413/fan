@@ -30,6 +30,7 @@ import std;
 #endif
 
 import fan.types;
+import fan.window.input;
 import fan.graphics.gui.types;
 import fan.types.vector;
 import fan.types.color;
@@ -37,6 +38,7 @@ import fan.types.matrix;
 import fan.types.compile_time_string;
 import fan.utility;
 import fan.math;
+import fan.math.intersection;
 import fan.formatter;
 import fan.print;
 import fan.graphics.common_context;
@@ -879,6 +881,39 @@ export namespace fan::graphics::gui {
 
   style_scope_t make_invisible_input_style();
 
+
+  struct floating_toolbar {
+    floating_toolbar(str_view_t name, const fan::vec2& size, f32_t bottom_offset = 20.f)
+      : style_scope(gui::style_var_window_padding, fan::vec2(0, 0)) 
+    {
+      fan::vec2 vp_pos = gui::get_viewport_rect().position;
+      fan::vec2 vp_size = gui::get_viewport_rect().size;
+      
+      gui::set_next_window_pos(fan::vec2(
+        vp_pos.x + vp_size.x / 2.f - size.x / 2.f, 
+        vp_pos.y + vp_size.y - size.y - bottom_offset
+      ));
+      gui::set_next_window_size(size);
+
+      wnd.emplace(
+        name, 
+        gui::window_flags_no_title_bar | 
+        gui::window_flags_no_background | 
+        gui::window_flags_no_resize | 
+        gui::window_flags_no_move | 
+        gui::window_flags_no_scrollbar
+      );
+    }
+
+    explicit operator bool() const {
+      return wnd.has_value() && static_cast<bool>(*wnd);
+    }
+
+  private:
+    gui::style_scope_t style_scope;
+    std::optional<gui::window> wnd;
+  };
+  
   struct scale_window_t {
     scale_window_t(str_view_t title, window_flags_t flags = 0);
     ~scale_window_t();
@@ -1173,6 +1208,154 @@ export namespace fan::graphics::gui {
 
   fan::vec2 image_fit(fan::graphics::image_t img, fan::vec2 avail);
   void image_centered_fit(fan::graphics::image_t img, f32_t reserved_height = 0.f);
+  
+
+  struct grid_state_t {
+    f32_t zoom = 1.0f;
+    std::unordered_set<int> selected;
+    fan::vec2i min_rect = 0x7FFFFFFF;
+    fan::vec2i max_rect = -1;
+    fan::vec2 min_rect_draw = 0x7FFFFFFF;
+    fan::vec2 max_rect_draw = -1;
+    bool is_selecting = false;
+  };
+
+  template <typename render_cb_t>
+  void grid(str_view_t id, grid_state_t& state, int total_items, int columns, f32_t base_cell_size, fan::vec2 item_spacing, render_cb_t&& render_cb) {
+    if (columns <= 0 || total_items <= 0) {
+      return;
+    }
+    gui::push_id(id);
+    if (gui::is_window_hovered() && fan::window::is_key_down(fan::key_left_control)) {
+      state.zoom = fan::math::clamp(state.zoom * (1.f + gui::get_io().MouseWheel * 0.08f), 0.01f, 8.f);
+    }
+    if (gui::is_window_hovered() && gui::is_mouse_dragging(fan::mouse_middle)) {
+      fan::vec2 md = gui::get_mouse_drag_delta(fan::mouse_middle);
+      gui::reset_mouse_drag_delta(fan::mouse_middle);
+      gui::set_scroll_x(gui::get_scroll_x() - md.x);
+      gui::set_scroll_y(gui::get_scroll_y() - md.y);
+    }
+    int rows = (total_items + columns - 1) / columns;
+    f32_t cell_size = std::max(base_cell_size * state.zoom, 1.f);
+    fan::vec2 sprite_size(cell_size);
+    fan::vec2 spacing = item_spacing * state.zoom;
+    fan::vec2 step = sprite_size + spacing;
+    fan::vec2 initial_pos = gui::get_cursor_screen_pos();
+    auto* draw_list = gui::get_window_draw_list();
+    bool l_click = fan::window::is_mouse_clicked(0);
+    bool l_drag = fan::window::is_mouse_down(0) && gui::is_mouse_dragging(0);
+    bool r_click = fan::window::is_mouse_clicked(1);
+    bool r_drag = fan::window::is_mouse_down(1) && gui::is_mouse_dragging(1);
+    bool ctrl = fan::window::is_key_down(fan::key_left_control);
+    for (int i = 0; i < total_items; ++i) {
+      fan::vec2i grid_idx(i % columns, i / columns);
+      fan::vec2 cpos = initial_pos + fan::vec2(grid_idx) * step;
+      gui::set_cursor_screen_pos(cpos);
+      gui::invisible_button(std::string("##" + std::to_string(i)).c_str(), sprite_size);
+      bool selected = state.selected.contains(i);
+      render_cb(i, cpos, sprite_size, selected);
+      if (selected) {
+        draw_list->AddRect(ImVec2(cpos.x, cpos.y), ImVec2(cpos.x + sprite_size.x, cpos.y + sprite_size.y), 0xff0077ff, 0, 0, 1);
+      }
+      if (!state.is_selecting && fan::math::d2::aabb_point_inside(cpos, gui::get_mouse_pos() - sprite_size / 2.f, sprite_size / 2.f)) {
+        draw_list->AddRect(ImVec2(cpos.x, cpos.y), ImVec2(cpos.x + sprite_size.x, cpos.y + sprite_size.y), 0xff0077ff, 0, 0, 3);
+      }
+      if (gui::is_item_hovered(gui::hovered_flags_rect_only)) {
+        if (l_drag) {
+          state.min_rect_draw = state.min_rect_draw.min(cpos);
+          state.max_rect_draw = state.max_rect_draw.max(cpos);
+          state.min_rect = state.min_rect.min(grid_idx);
+          state.max_rect = state.max_rect.max(grid_idx);
+          state.is_selecting = true;
+        }
+        else if (l_click && !ctrl) {
+          state.selected.clear();
+          state.selected.insert(i);
+        }
+        else if (l_click && ctrl) {
+          if (selected) {
+            state.selected.erase(i);
+          }
+          else {
+            state.selected.insert(i);
+          }
+        }
+        if (r_click || r_drag) {
+          state.selected.erase(i);
+        }
+      }
+    }
+    fan::vec2 cur_grid = ((gui::get_mouse_pos() - initial_pos) / step).floor();
+    if (state.is_selecting) {
+      fan::vec2 max_draw = (state.max_rect_draw + sprite_size).min(initial_pos + cur_grid * step + sprite_size);
+      if (state.min_rect.x != 0x7FFFFFFF && state.max_rect.x != -1) {
+        draw_list->AddRect(ImVec2(state.min_rect_draw.x, state.min_rect_draw.y), ImVec2(max_draw.x, max_draw.y), 0xff0077ff);
+      }
+      if (fan::window::is_mouse_released(0)) {
+        state.is_selecting = false;
+        state.min_rect = 0x7FFFFFFF;
+        state.max_rect = -1;
+        state.min_rect_draw = 0x7FFFFFFF;
+        state.max_rect_draw = -1;
+      }
+    }
+    if (state.min_rect.x != 0x7FFFFFFF && state.max_rect.x != -1) {
+      for (int y = state.min_rect.y; y <= std::min((int)state.max_rect.y, (int)cur_grid.y); ++y) {
+        for (int x = state.min_rect.x; x <= std::min((int)state.max_rect.x, (int)cur_grid.x); ++x) {
+          int idx = y * columns + x;
+          if (idx >= 0 && idx < total_items) {
+            state.selected.insert(idx);
+          }
+        }
+      }
+    }
+    gui::set_cursor_screen_pos(initial_pos);
+    gui::dummy(fan::vec2(columns * step.x - spacing.x, rows * step.y - spacing.y));
+    gui::pop_id();
+  }
+
+  fan::vec2 calc_grid_bounds(int total_items, int columns, f32_t base_cell_size, fan::vec2 item_spacing, f32_t zoom) {
+    if (columns <= 0 || total_items <= 0) return 0.f;
+    int rows = (total_items + columns - 1) / columns;
+    f32_t cell = std::max(base_cell_size * zoom, 1.f);
+    fan::vec2 space = item_spacing * zoom;
+    return fan::vec2(columns * cell + (columns - 1) * space.x, rows * cell + (rows - 1) * space.y);
+  }
+
+  template <typename T>
+  bool single_image_selector(str_view_t id, grid_state_t& state, const std::vector<T>& images, int& selected_index, int columns = -1, f32_t base_cell_size = 64.f, fan::vec2 item_spacing = fan::vec2(8.f)) {
+    if (images.empty()) return false;
+    
+    if (state.selected.empty()) state.selected.insert(selected_index);
+    if (state.selected.size() > 1) {
+      state.selected.clear();
+      state.selected.insert(selected_index);
+    }
+
+    int cols = columns <= 0 ? images.size() : columns;
+    bool changed = false;
+
+    gui::grid(id, state, images.size(), cols, base_cell_size, item_spacing, [&](int i, fan::vec2 cpos, fan::vec2 sprite_size, bool selected) {
+      auto* draw_list = gui::get_window_draw_list();
+      gui::texture_id_t tex = (gui::texture_id_t)fan::graphics::image_get_handle(images[i]);
+      
+      fan::vec2 img_size = images[i].get_size();
+      f32_t scale = std::min(sprite_size.x / img_size.x, sprite_size.y / img_size.y);
+      fan::vec2 render_size = img_size * scale;
+      fan::vec2 render_pos = cpos + (sprite_size - render_size) / 2.f;
+
+      draw_list->AddImage(tex, ImVec2(render_pos.x, render_pos.y), ImVec2(render_pos.x + render_size.x, render_pos.y + render_size.y));
+    });
+
+    if (!state.selected.empty()) {
+      int current = *state.selected.begin();
+      if (current != selected_index) {
+        selected_index = current;
+        changed = true;
+      }
+    }
+    return changed;
+  }
 } // namespace fan::graphics::gui
 
 export namespace fan::graphics::gui::plot {
