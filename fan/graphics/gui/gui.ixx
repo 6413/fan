@@ -22,6 +22,7 @@ import std;
   import fan.event;
 
   import fan.graphics.common_context;
+  import fan.graphics.image_load;
   import fan.graphics.shapes;
 
   import fan.graphics.gui.types;
@@ -180,8 +181,27 @@ export namespace fan::graphics::gui {
       std::string filename;
       std::string item_path;
       bool is_directory;
-      fan::graphics::image_t preview_image;
+      fan::graphics::image_t preview_image = fan::graphics::image_t::invalid();
+      std::shared_ptr<fan::image::async_result_t> async_preview;
       bool is_selected = false;
+
+      void process_async_preview() {
+        if (async_preview && async_preview->try_finish()) {
+          if (async_preview->state == fan::image::async_result_t::state_e::ready && async_preview->image.valid()) {
+            fan::image::info_t info;
+            info.data = async_preview->image.data.get();
+            info.size = async_preview->image.size;
+            info.channels = async_preview->image.channels;
+            info.type = fan::image::image_type_e::stb; // or webp, doesn't matter for raw data
+            
+            preview_image = fan::graphics::image_load(
+              info,
+              fan::graphics::image_presets::pixel_art()
+            );
+          }
+          async_preview.reset();
+        }
+      }
     };
 
     struct selection_state_t {
@@ -205,6 +225,8 @@ export namespace fan::graphics::gui {
     bool item_right_clicked = false;
     std::string item_right_clicked_name;
     std::string pending_directory_change;
+    std::string pending_search_query;
+    bool has_pending_search = false;
 
     std::string asset_path = "./";
 

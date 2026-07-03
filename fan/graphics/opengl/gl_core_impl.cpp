@@ -690,7 +690,7 @@ namespace fan::opengl {
   #endif
 
     fan::image::info_t image_info;
-    if (fan::image::load(path, &image_info, callers_path)) {
+    if (fan::image::load(path, &image_info, fan::vec2ui(0, 0), callers_path)) {
       return create_missing_texture();
     }
     fan::graphics::image_nr_t nr = image_load(image_info, p);
@@ -706,7 +706,7 @@ namespace fan::opengl {
     const std::source_location& callers_path
   ){
     fan::image::info_t image_info;
-    if (fan::image::load(path, &image_info, callers_path)) {
+    if (fan::image::load(path, &image_info, fan::vec2ui(0, 0), callers_path)) {
       image_info.data = (void*)fan::image::missing_texture_pixels;
       image_info.size = 2;
       image_info.channels = 4;

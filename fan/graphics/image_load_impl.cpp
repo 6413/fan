@@ -20,7 +20,7 @@ namespace fan::image {
     return false;
   }
 
-  bool load(fan::str_view_t path, info_t* image_info, const std::source_location& callers_path) {
+  bool load(fan::str_view_t path, info_t* image_info, fan::vec2ui max_size, const std::source_location& callers_path) {
     bool ret;
     if (fan::webp::validate(path, callers_path)) {
       ret = fan::webp::load(path, (fan::webp::info_t*)image_info, callers_path);
@@ -28,7 +28,7 @@ namespace fan::image {
     }
     else {
       #if !defined(loco_no_stb)
-        ret = fan::stb::load(path, (fan::stb::info_t*)image_info, callers_path);
+        ret = fan::stb::load(path, (fan::stb::info_t*)image_info, max_size, callers_path);
         image_info->type = image_type_e::stb;
       #endif
     }
@@ -84,11 +84,11 @@ namespace fan::image {
     }
   }
 
-  owned_t load_owned(fan::str_view_t path, const std::source_location& callers_path) {
+  owned_t load_owned(fan::str_view_t path, fan::vec2ui max_size, const std::source_location& callers_path) {
     info_t ii {};
     owned_t out;
 
-    if (load(path, &ii, callers_path)) {
+    if (load(path, &ii, max_size, callers_path)) {
       return out;
     }
 
@@ -107,26 +107,73 @@ namespace fan::image {
   }
 
   bool async_result_t::try_finish() {
-    if (state != state_e::loading) {
-      return true;
-    }
-    if (job.wait_for(std::chrono::seconds(0)) != std::future_status::ready) {
-      return false;
-    }
-    image = job.get();
-    state = image.valid() ? state_e::ready : state_e::failed;
-    return true;
+    return state.load(std::memory_order_acquire) != state_e::loading;
   }
 
   void async_result_t::wait() {
-    if (state != state_e::loading) {
-      return;
+    while (state.load(std::memory_order_acquire) == state_e::loading) {
+      std::this_thread::yield();
     }
-    image = job.get();
-    state = image.valid() ? state_e::ready : state_e::failed;
   }
 
-  std::shared_ptr<async_result_t> async_cache_t::load(const std::string& path) {
+  struct image_load_queue_t {
+    image_load_queue_t() {
+      worker = std::thread([this] {
+        while (true) {
+          std::tuple<std::string, std::shared_ptr<async_result_t>, fan::vec2ui> task;
+          {
+            std::unique_lock lock(mutex);
+            cv.wait(lock, [this] { return stop || !queue.empty(); });
+            if (stop && queue.empty()) return;
+            task = std::move(queue.front());
+            queue.pop();
+          }
+
+          auto out = load_owned(std::get<0>(task), std::get<2>(task), std::source_location::current());
+          std::get<1>(task)->image = std::move(out);
+          std::get<1>(task)->state.store(
+            std::get<1>(task)->image.valid() ? async_result_t::state_e::ready : async_result_t::state_e::failed,
+            std::memory_order_release
+          );
+        }
+      });
+    }
+
+    ~image_load_queue_t() {
+      {
+        std::lock_guard lock(mutex);
+        stop = true;
+      }
+      cv.notify_one();
+      if (worker.joinable()) {
+        worker.join();
+      }
+    }
+
+    void push(const std::string& path, std::shared_ptr<async_result_t> result, fan::vec2ui max_size) {
+      std::lock_guard lock(mutex);
+      queue.push({path, result, max_size});
+      cv.notify_one();
+    }
+    
+    void clear() {
+      std::lock_guard lock(mutex);
+      while (!queue.empty()) queue.pop();
+    }
+
+    std::queue<std::tuple<std::string, std::shared_ptr<async_result_t>, fan::vec2ui>> queue;
+    std::mutex mutex;
+    std::condition_variable cv;
+    std::thread worker;
+    bool stop = false;
+  };
+
+  image_load_queue_t& image_queue() {
+    static image_load_queue_t queue;
+    return queue;
+  }
+
+  std::shared_ptr<async_result_t> async_cache_t::load(const std::string& path, fan::vec2ui max_size) {
     std::lock_guard lock(mutex);
 
     if (auto it = images.find(path); it != images.end()) {
@@ -134,13 +181,17 @@ namespace fan::image {
     }
 
     auto result = std::make_shared<async_result_t>();
-    result->job = std::async(std::launch::async, [path] {
-      return load_owned(path);
-    });
+    image_queue().push(path, result, max_size);
 
     images.emplace(path, result);
 
     return result;
+  }
+  
+  void async_cache_t::clear() {
+    std::lock_guard lock(mutex);
+    images.clear();
+    image_queue().clear();
   }
 
   async_cache_t& async_cache() {
