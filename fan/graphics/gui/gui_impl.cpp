@@ -643,11 +643,18 @@ namespace fan::graphics::gui {
   }
 
   void content_browser_t::render() {
+    if (!pending_directory_change.empty()) {
+      current_directory = pending_directory_change;
+      update_directory_cache();
+      pending_directory_change.clear();
+    }
+
+    int uploads_this_frame = 0;
     for (auto& img : directory_cache) {
-      img.process_async_preview();
+      img.process_async_preview(uploads_this_frame);
     }
     for (auto& file : search_state.found_files) {
-      file.process_async_preview();
+      file.process_async_preview(uploads_this_frame);
     }
 
     item_right_clicked = false;
@@ -673,15 +680,13 @@ namespace fan::graphics::gui {
         push_style_color(col_button_hovered, fan::color(0.3f, 0.3f, 0.3f, 0.3f));
 
         if (image_button("##icon_arrow_left", icon_arrow_left, fan::vec2(32))) {
-          current_directory = path_parent(current_directory);
-          update_directory_cache();
+          pending_directory_change = path_parent(current_directory);
         }
         same_line();
         
         if (button("Open..")) {
           fan::graphics::open_folder([this](std::string_view path) {
-             current_directory = std::string(path);
-             update_directory_cache();
+             pending_directory_change = std::string(path);
           });
         }
         same_line();
@@ -694,7 +699,7 @@ namespace fan::graphics::gui {
         set_next_item_width(get_content_region_avail().x - right_aligned_elements_width);
         
         if (input_text("##current_directory_input", &current_directory, input_text_flags_enter_returns_true)) {
-           update_directory_cache();
+           pending_directory_change = current_directory;
         }
         pop_style_var();
 
@@ -746,12 +751,6 @@ namespace fan::graphics::gui {
 
     pop_style_var();
     gui::end();
-
-    if (!pending_directory_change.empty()) {
-      current_directory = pending_directory_change;
-      update_directory_cache();
-      pending_directory_change.clear();
-    }
   }
   void content_browser_t::handle_item_interaction(const file_info_t& file_info, std::size_t original_index) {
     if (!file_info.is_directory) {
