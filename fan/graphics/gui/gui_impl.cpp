@@ -828,7 +828,6 @@ namespace fan::graphics::gui {
   }
 
   void content_browser_t::render_large_thumbnails_view() {
-    f32_t thumbnail_size = 128.0f;
     f32_t panel_width = get_content_region_avail().x;
     int column_count = std::max((int)(panel_width / (thumbnail_size + padding)), 1);
 
@@ -836,6 +835,25 @@ namespace fan::graphics::gui {
     int pressed_key = get_pressed_key();
 
     bool showing_search_results = !search_state.found_files.empty() && !search_buffer.empty();
+    auto get_aspect_fit_size = [this](fan::graphics::image_t image) -> fan::vec2 {
+      fan::vec2 image_size = image.get_size();
+      if (image_size.x <= 0 || image_size.y <= 0) {
+        return fan::vec2(thumbnail_size);
+      }
+
+      f32_t scale = std::min(thumbnail_size / image_size.x, thumbnail_size / image_size.y);
+      return image_size * scale;
+    };
+
+    auto render_thumbnail_button = [&](std::string_view id, fan::graphics::image_t image) -> bool {
+      fan::vec2 item_pos = get_cursor_screen_pos();
+      bool item_clicked = button(id, fan::vec2(thumbnail_size));
+      fan::vec2 image_size = get_aspect_fit_size(image);
+      fan::vec2 image_pos = item_pos + (fan::vec2(thumbnail_size) - image_size) / 2.0f;
+      texture_id_t texture_id = (texture_id_t)fan::graphics::image_get_handle(image);
+      get_window_draw_list()->AddImage(texture_id, image_pos, image_pos + image_size);
+      return item_clicked;
+    };
 
     if (showing_search_results) {
       update_search_sorted_cache();
@@ -860,11 +878,13 @@ namespace fan::graphics::gui {
           push_style_color(col_button_active, fan::color(0.5f, 0.5f, 0.5f, 0.3f));
         }
 
-        bool item_clicked = image_button(
-          "##",
+        fan::graphics::image_t thumbnail_image =
           fan::graphics::is_image_valid(search_state.found_files[original_index].preview_image) ? search_state.found_files[original_index].preview_image
-          : file_info.is_directory ? icon_directory : file_info.filename.ends_with(".json") ? icon_object : icon_file,
-          fan::vec2(thumbnail_size, thumbnail_size)
+          : file_info.is_directory ? icon_directory : file_info.filename.ends_with(".json") ? icon_object : icon_file;
+
+        bool item_clicked = render_thumbnail_button(
+          "##",
+          thumbnail_image
         );
 
         if (item_clicked) {
@@ -927,11 +947,13 @@ namespace fan::graphics::gui {
         }
 
         std::string id = "##" + file_info.filename;
-        bool item_clicked = image_button(
+        fan::graphics::image_t thumbnail_image =
+          fan::graphics::is_image_valid(directory_cache[original_index].preview_image) ? directory_cache[original_index].preview_image
+          : file_info.is_directory ? icon_directory : file_info.filename.ends_with(".json") ? icon_object : icon_file;
+
+        bool item_clicked = render_thumbnail_button(
           std::string_view(id),
-            fan::graphics::is_image_valid(directory_cache[original_index].preview_image) ? directory_cache[original_index].preview_image
-            : file_info.is_directory ? icon_directory : file_info.filename.ends_with(".json") ? icon_object : icon_file,
-          fan::vec2(thumbnail_size, thumbnail_size)
+          thumbnail_image
         );
 
         if (item_clicked) {
