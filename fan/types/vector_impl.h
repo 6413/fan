@@ -7,48 +7,34 @@
 #define make_for_all_test2(todo) \
   vec_t ret = *this; for (access_type_t i = 0; i < size() && i < test0.size() && i < test1.size(); ++i) { todo; } return ret
 
-#ifndef fan_vector_array
-  template <typename U> using rebind_t = vec_t<U>;
-#else
-  template <typename U> using rebind_t = vec_t<vec_n, U>;
-#endif
-
 #define make_operator_const(arithmetic) \
 template <typename T> \
 requires (!std::is_arithmetic_v<T>) \
-constexpr auto operator arithmetic(const T& test0) const { \
-  rebind_t<std::common_type_t<value_type_t, std::remove_reference_t<decltype(test0[0])>>> ret{}; \
-  for (access_type_t i = 0; i < size() && i < test0.size(); ++i) { \
-    ret[i] = (*this)[i] arithmetic test0[i]; \
-  } \
-  return ret; \
+constexpr vec_t operator arithmetic(const T& test0) const \
+{ \
+  make_for_all_test1(ret[i] = (*this)[i] arithmetic test0[i]); \
 } \
 \
 template <typename T> \
 requires (std::is_arithmetic_v<T>)\
-constexpr auto operator arithmetic(T v0) const { \
-  rebind_t<std::common_type_t<value_type_t, T>> ret{}; \
-  for (access_type_t i = 0; i < size(); ++i) { \
-    ret[i] = (*this)[i] arithmetic v0; \
-  } \
-  return ret; \
+constexpr vec_t operator arithmetic(T v0) const \
+{ \
+  make_for_all(ret[i] = (*this)[i] arithmetic v0); \
 }
-
 #define make_operator_assign(arithmetic) \
 template <typename T> \
 requires (!std::is_arithmetic_v<T>) \
-constexpr vec_t& operator CONCAT(arithmetic,=) (const T& test0) { \
+constexpr vec_t& operator CONCAT(arithmetic,=) (const T& test0) \
+{ \
   make_for_all_test1_noret((*this)[i] CONCAT(arithmetic,=) test0[i]); \
   return *this; \
 } \
 \
 template <typename T> \
 requires (std::is_arithmetic_v<T>)\
-constexpr vec_t& operator CONCAT(arithmetic,=)(T v0) { \
-  for (access_type_t i = 0; i < size(); ++i) { \
-    (*this)[i] CONCAT(arithmetic,=) v0; \
-  } \
-  return *this; \
+constexpr vec_t operator CONCAT(arithmetic,=)(T v0) \
+{ \
+  make_for_all((*this)[i] CONCAT(arithmetic,=) v0); \
 }
 
 using value_type = value_type_t;
@@ -117,8 +103,8 @@ make_operators(/);
 #define make_operator_scalar_left(arithmetic) \
   template <typename T> \
   requires (std::is_arithmetic_v<T>) \
-  friend constexpr auto operator arithmetic(T lhs, const vec_t& rhs) { \
-    rebind_t<std::common_type_t<T, value_type_t>> ret{}; \
+  friend constexpr vec_t operator arithmetic(T lhs, const vec_t& rhs) { \
+    vec_t ret{}; \
     for (access_type_t i = 0; i < rhs.size(); ++i) { \
       ret[i] = lhs arithmetic rhs[i]; \
     } \
@@ -130,34 +116,118 @@ make_operator_scalar_left(*)
 make_operator_scalar_left(/)
 make_operator_scalar_left(%)
 
-#define make_operator_bool(op) \
-template <typename T> \
-  requires (!std::is_arithmetic_v<T>) \
-constexpr bool operator op(const T& rhs) const { \
-  for (access_type_t i = 0; i < size() && i < rhs.size(); ++i) { \
-    if (!((*this)[i] op rhs[i])) { \
-      return false; \
-    } \
-  } \
-  return true; \
-} \
-template <typename T> \
-  requires (std::is_arithmetic_v<T>) \
-constexpr bool operator op(T rhs) const { \
-  for (access_type_t i = 0; i < size(); ++i) { \
-    if (!((*this)[i] op rhs)) { \
-      return false; \
-    } \
-  } \
-  return true; \
+template <typename T>
+  requires (!std::is_arithmetic_v<T>)
+constexpr bool operator==(const T& rhs) const {
+  for (access_type_t i = 0; i < size() && i < rhs.size(); ++i) {
+    if ((*this)[i] != rhs[i]) {
+      return false;
+    }
+  }
+  
+  return true;
 }
 
-make_operator_bool(==)
-make_operator_bool(!=)
-make_operator_bool(<)
-make_operator_bool(>)
-make_operator_bool(<=)
-make_operator_bool(>=)
+template <typename T>
+  requires (std::is_arithmetic_v<T>)
+constexpr bool operator==(const T& rhs) const {
+  return (*this)[0] == rhs;
+}
+
+template <typename T>
+  requires (!std::is_arithmetic_v<T>)
+constexpr bool operator!=(const T& rhs) const {
+  return !(*this == rhs);
+}
+
+template <typename T>
+  requires (std::is_arithmetic_v<T>)
+constexpr bool operator!=(const T& rhs) const {
+  return !(*this == rhs);
+}
+
+template <typename T>
+  requires (!std::is_arithmetic_v<T>)
+constexpr bool operator<(const T& rhs) const {
+  for (access_type_t i = 0; i < size() && i < rhs.size(); ++i) {
+    if (!((*this)[i] < rhs[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+template <typename T>
+  requires (!std::is_arithmetic_v<T>)
+constexpr bool operator>(const T& rhs) const {
+  for (access_type_t i = 0; i < size() && i < rhs.size(); ++i) {
+    if (!((*this)[i] > rhs[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+template <typename T>
+  requires (std::is_arithmetic_v<T>)
+constexpr bool operator<(T rhs) const {
+  for (access_type_t i = 0; i < size(); ++i) {
+    if (!((*this)[i] < rhs)) {
+      return false;
+    }
+  }
+  return true;
+}
+template <typename T>
+  requires (std::is_arithmetic_v<T>)
+constexpr bool operator>(T rhs) const {
+  for (access_type_t i = 0; i < size(); ++i) {
+    if (!((*this)[i] > rhs)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+template <typename T>
+  requires (!std::is_arithmetic_v<T>)
+constexpr bool operator<=(const T& rhs) const {
+  for (access_type_t i = 0; i < size() && i < rhs.size(); ++i) {
+    if (!((*this)[i] <= rhs[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+template <typename T>
+  requires (std::is_arithmetic_v<T>)
+constexpr bool operator<=(T rhs) const {
+  for (access_type_t i = 0; i < size(); ++i) {
+    if (!((*this)[i] <= rhs)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+template <typename T>
+  requires (!std::is_arithmetic_v<T>)
+constexpr bool operator>=(const T& rhs) const {
+  for (access_type_t i = 0; i < size() && i < rhs.size(); ++i) {
+    if (!((*this)[i] >= rhs[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+template <typename T>
+  requires (std::is_arithmetic_v<T>)
+constexpr bool operator>=(T rhs) const {
+  for (access_type_t i = 0; i < size(); ++i) {
+    if (!((*this)[i] >= rhs)) {
+      return false;
+    }
+  }
+  return true;
+}
 
 explicit constexpr operator bool() const {
   for (access_type_t i = 0; i < size(); ++i) {

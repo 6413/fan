@@ -218,7 +218,9 @@ void main() {
   }
 
   vec2 vel_mag = mix(start_velocity, end_velocity, t);
-  float spread = mix(begin_angle, end_angle, floatConstruct(RAND(seed + 2u)));
+  float turn_t = smoothstep(0.0, 1.0, t);
+  float angle_variation = (floatConstruct(RAND(seed + 2u)) - 0.5) * 0.18;
+  float spread = mix(begin_angle, end_angle, turn_t) + angle_variation;
   float ca = cos(spread), sa = sin(spread);
   vec2 velocity = vec2(
     vel_mag.x * ca - vel_mag.y * sa,

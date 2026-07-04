@@ -1,14 +1,13 @@
 {
-  "alive_time": 10.069999694824219,
-  "begin_angle": 3.3340001106262207,
+  "alive_time": 7.440000057220459,
   "begin_color": [
     1.0,
     1.0,
     1.0,
     0.2666666805744171
   ],
-  "count": 922,
-  "end_angle": 2.9679999351501465,
+  "count": 457,
+  "end_angle": 0.5139999985694885,
   "end_color": [
     1.0,
     1.0,
@@ -24,15 +23,15 @@
     0.0
   ],
   "end_velocity": [
-    -3.4000000953674316,
-    4.900000095367432
+    0.0,
+    -19.799999237060547
   ],
-  "expansion_power": 2.0,
+  "expansion_power": 1.9199999570846558,
   "image_path": "../images/smoke.webp",
   "position": [
     1280.0,
     684.0,
-    10.0
+    0.0
   ],
   "shape": "particles",
   "size_random_range": [
