@@ -11,14 +11,8 @@
 #include <filesystem>
 #include <condition_variable>
 
-#include <fan/utility.h> // OFFSETLESS
-
-//
 import fan;
-//
-// include macro extensions after import fan;
-#include <fan/graphics/types.h>
-//
+
 using namespace fan::graphics;
 using menu_t = fan::graphics::gui::settings_menu_t;
 
