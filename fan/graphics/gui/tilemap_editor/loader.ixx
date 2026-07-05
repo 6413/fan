@@ -324,8 +324,8 @@ export namespace fan::graphics {
 
     void open() {}
 
-    compiled_map_t* compile(const std::string& filename,const std::source_location& callers_path = std::source_location::current());
-    compiled_map_t* compile(const std::string& filename, const std::string& name, const std::source_location& callers_path = std::source_location::current());
+    compiled_map_t* compile(const std::string& name, const std::source_location& callers_path = std::source_location::current());
+    compiled_map_t* compile(const std::string& name, const std::string& filename, const std::source_location& callers_path = std::source_location::current());
     compiled_map_t* get_compiled(const std::string& name);
 
     fan::vec2 convert_to_grid(const fan::vec2& p, const node_t& node) {

@@ -1,6 +1,7 @@
 void open(void* sod) {
   fan::time::timer t{ true };
   pile.player.body.set_physics_position(fan::vec2(320.384949, 382.723236));
+  pile.is_map_changing = false;
   
   pile.active_map_id = main_map_id = pile.renderer.add(pile.renderer.get_compiled(stage_name), {
     .position = pile.player.body.get_position(),
@@ -68,13 +69,8 @@ void update() {
 
   if (!pile.is_map_changing && fan::physics::is_on_sensor(pile.player.body, player_sensor_door)) {
     pile.is_map_changing = true;
-    pile.map_transition_task = pile.stage_loader.change_stage<stage_forest_t>(
-      pile.engine.get_lighting(), pile.fadeout_target_color, pile.renderer.get_compiled(stage_forest_t::stage_name)->lighting.ambient,
-      stage_common.stage_id, pile.current_stage
-    );
+    pile.engine.stage_change<stage_shop_t, stage_forest_t>();
   }
-  
-  pile.is_map_changing = pile.map_transition_task.valid();
   pile.renderer.update(main_map_id, pile.player.body.get_position());
   pile.step();
 }
