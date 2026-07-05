@@ -743,7 +743,6 @@ void shapes_open() {
     uint16_t shape_type;
     std::size_t sizeof_vi;
     std::size_t sizeof_ri;
-    fan::graphics::shape_gl_init_list_t locations;
     fan::graphics::shader_t shader;
     fan::graphics::shaper_t::ShapeRenderDataSize_t instance_count;
     std::uint32_t vertex_count;
@@ -756,10 +755,6 @@ void shapes_open() {
     fan::graphics::shapes::shape##_t::shape_type, \
     sizeof(fan::graphics::shapes::shape##_t::vi_t), \
     sizeof(fan::graphics::shapes::shape##_t::ri_t), \
-    fan::graphics::shape_gl_init_list_t{ \
-      .ptr = fan::graphics::g_shapes->shape.get_locations().data(), \
-      .count = static_cast<int>(fan::graphics::g_shapes->shape.get_locations().size()) \
-    }, \
     shader, \
     1, \
     vertex_count_, \
@@ -795,7 +790,6 @@ void shapes_open() {
       d.shape_type,
       d.sizeof_vi,
       d.sizeof_ri,
-      d.locations,
       d.shader,
       d.instance_count,
       d.instanced,

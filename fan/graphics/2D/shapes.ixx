@@ -637,18 +637,6 @@ export namespace fan::graphics {
       };
 
 
-      static std::array<shape_gl_init_t, 7>& get_locations() {
-        static std::array<shape_gl_init_t, 7> locs{{
-          shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
-          shape_gl_init_t{{1, "in_parallax_factor"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, parallax_factor)},
-          shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, size)},
-          shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
-          shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)},
-          shape_gl_init_t{{5, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), offsetof(vi_t, flags)},
-          shape_gl_init_t{{6, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, angle)}
-        }};
-        return locs;
-      }
 
       struct properties_t {
         using type_t = light_t;
@@ -687,15 +675,6 @@ export namespace fan::graphics {
       };
 
 
-      static std::array<shape_gl_init_t, 4>& get_locations() {
-        static std::array<shape_gl_init_t, 4> locs{{
-          shape_gl_init_t{{0, "in_color"}, decltype(vi_t::color)::size(), GL_FLOAT, sizeof(line_t::vi_t), offsetof(line_t::vi_t, color)},
-          shape_gl_init_t{{1, "in_src"}, decltype(vi_t::src)::size(), GL_FLOAT, sizeof(line_t::vi_t), offsetof(line_t::vi_t, src)},
-          shape_gl_init_t{{2, "in_dst"}, decltype(vi_t::dst)::size(), GL_FLOAT, sizeof(line_t::vi_t), offsetof(line_t::vi_t, dst)},
-          shape_gl_init_t{{3, "line_thickness"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, thickness)}
-        }};
-        return locs;
-      }
 
       struct properties_t {
         using type_t = line_t;
@@ -734,17 +713,6 @@ export namespace fan::graphics {
       };
 
 
-      static std::array<shape_gl_init_t, 6>& get_locations() {
-        static std::array<shape_gl_init_t, 6> locs{{
-          shape_gl_init_t{{0, "in_position"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
-          shape_gl_init_t{{1, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, size)},
-          shape_gl_init_t{{2, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
-          shape_gl_init_t{{3, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)},
-          shape_gl_init_t{{4, "in_outline_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, outline_color)},
-          shape_gl_init_t{{5, "in_angle"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, angle)}
-        }};
-        return locs;
-      }
 
       struct properties_t {
         using type_t = rectangle_t;
@@ -790,21 +758,6 @@ export namespace fan::graphics {
       };
 
 
-      static std::array<shape_gl_init_t, 10>& get_locations() {
-        static std::array<shape_gl_init_t, 10> locs{{
-          shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
-          shape_gl_init_t{{1, "in_parallax_factor"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, parallax_factor)},
-          shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, size)},
-          shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
-          shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)},
-          shape_gl_init_t{{5, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, angle)},
-          shape_gl_init_t{{6, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), offsetof(vi_t, flags)},
-          shape_gl_init_t{{7, "in_tc_position"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, tc_position)},
-          shape_gl_init_t{{8, "in_tc_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, tc_size)},
-          shape_gl_init_t{{9, "in_seed"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, seed)},
-        }};
-        return locs;
-      }
 
       struct properties_t {
         using type_t = sprite_t;
@@ -869,21 +822,6 @@ export namespace fan::graphics {
       };
 
 
-      static std::array<shape_gl_init_t, 10>& get_locations() {
-        static std::array<shape_gl_init_t, 10> locs{{
-          shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
-          shape_gl_init_t{{1, "in_parallax_factor"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, parallax_factor)},
-          shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, size)},
-          shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
-          shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)},
-          shape_gl_init_t{{5, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, angle)},
-          shape_gl_init_t{{6, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), offsetof(vi_t, flags)},
-          shape_gl_init_t{{7, "in_tc_position"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, tc_position)},
-          shape_gl_init_t{{8, "in_tc_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, tc_size)},
-          shape_gl_init_t{{9, "in_seed"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, seed)},
-        }};
-        return locs;
-      }
 
       struct properties_t {
         using type_t = unlit_sprite_t;
@@ -976,19 +914,6 @@ export namespace fan::graphics {
 
       };
 
-      static auto& get_locations() {
-        static std::array<shape_gl_init_t, 8> locs{{
-          shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position) },
-          shape_gl_init_t{{1, "in_radius"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, radius)},
-          shape_gl_init_t{{2, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
-          shape_gl_init_t{{3, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)},
-          shape_gl_init_t{{4, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, angle)},
-          shape_gl_init_t{{5, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), offsetof(vi_t, flags)},
-          shape_gl_init_t{{6, "in_outline_color"}, 4, GL_FLOAT , sizeof(vi_t), offsetof(vi_t, outline_color)},
-          shape_gl_init_t{{7, "in_outline_width"}, 1, GL_FLOAT , sizeof(vi_t), offsetof(vi_t, outline_width)}
-        }};
-        return locs;
-      }
 
       struct properties_t {
         using type_t = circle_t;
@@ -1033,20 +958,6 @@ export namespace fan::graphics {
       };
 
 
-      static std::array<shape_gl_init_t, 9>& get_locations() {
-        static std::array<shape_gl_init_t, 9> locs{{
-          shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position) },
-          shape_gl_init_t{{1, "in_center0"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, center0)},
-          shape_gl_init_t{{2, "in_center1"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, center1)},
-          shape_gl_init_t{{3, "in_radius"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, radius)},
-          shape_gl_init_t{{4, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
-          shape_gl_init_t{{5, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)},
-          shape_gl_init_t{{6, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, angle)},
-          shape_gl_init_t{{7, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), offsetof(vi_t, flags)},
-          shape_gl_init_t{{8, "in_outline_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, outline_color)},
-        }};
-        return locs;
-      }
 
       struct properties_t {
         using type_t = capsule_t;
@@ -1087,16 +998,6 @@ export namespace fan::graphics {
         std::uint32_t vk_vertex_count = 0;
       };
 
-      static std::array<shape_gl_init_t, 5>& get_locations() {
-        static std::array<shape_gl_init_t, 5> locs{{
-            shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(polygon_vertex_t), offsetof(polygon_vertex_t, position)},
-            shape_gl_init_t{{1, "in_color"}, 4, GL_FLOAT, sizeof(polygon_vertex_t), offsetof(polygon_vertex_t, color)},
-            shape_gl_init_t{{2, "in_offset"}, 3, GL_FLOAT, sizeof(polygon_vertex_t), offsetof(polygon_vertex_t, offset)},
-            shape_gl_init_t{{3, "in_angle"}, 3, GL_FLOAT, sizeof(polygon_vertex_t), offsetof(polygon_vertex_t, angle)},
-            shape_gl_init_t{{4, "in_rotation_point"}, 2, GL_FLOAT, sizeof(polygon_vertex_t), offsetof(polygon_vertex_t, rotation_point)},
-          }};
-        return locs;
-      }
 
       struct properties_t {
         using type_t = polygon_t;
@@ -1135,17 +1036,6 @@ export namespace fan::graphics {
       };
 
 
-      static std::array<shape_gl_init_t, 6>& get_locations() {
-        static std::array<shape_gl_init_t, 6> locs{{
-          shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
-          shape_gl_init_t{{1, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, size)},
-          shape_gl_init_t{{2, "in_grid_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, grid_size)},
-          shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
-          shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)},
-          shape_gl_init_t{{5, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, angle)},
-        }};
-        return locs;
-      }
 
       struct properties_t {
         using type_t = grid_t;
@@ -1167,10 +1057,6 @@ export namespace fan::graphics {
     struct particles_t {
       static constexpr fan::graphics::shaper_t::KeyTypeIndex_t shape_type = shape_type_t::particles;
 
-      static std::array<shape_gl_init_t, 0>& get_locations() {
-        static std::array<shape_gl_init_t, 0> locs = {};
-        return locs;
-      }
 
       struct shapes_e {
         enum {
@@ -1307,15 +1193,6 @@ export namespace fan::graphics {
         std::array<fan::graphics::image_t, 3> images_rest;
         std::uint8_t format = fan::graphics::image_format_e::undefined;
       };
-      static std::array<shape_gl_init_t, 4>& get_locations() {
-        static std::array<shape_gl_init_t, 4> locs{{
-          shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
-          shape_gl_init_t{{1, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, size)},
-          shape_gl_init_t{{2, "in_tc_position"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, tc_position)},
-          shape_gl_init_t{{3, "in_tc_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, tc_size)}
-        }};
-        return locs;
-      }
 
       struct properties_t {
         using type_t = universal_image_renderer_t;
@@ -1356,19 +1233,6 @@ export namespace fan::graphics {
       struct ri_t {
 
       };
-      static std::array<shape_gl_init_t, 8>& get_locations() {
-        static std::array<shape_gl_init_t, 8> locs{{
-          shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
-          shape_gl_init_t{{1, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, size)},
-          shape_gl_init_t{{2, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
-          shape_gl_init_t{{3, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color) + sizeof(fan::color) * 0},
-          shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color) + sizeof(fan::color) * 1},
-          shape_gl_init_t{{5, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color) + sizeof(fan::color) * 2},
-          shape_gl_init_t{{6, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color) + sizeof(fan::color) * 3},
-          shape_gl_init_t{{7, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, angle)}
-        }};
-        return locs;
-      }
 
       struct properties_t {
         using type_t = gradient_t;
@@ -1415,21 +1279,6 @@ export namespace fan::graphics {
       struct ri_t {
 
       };
-      static std::array<shape_gl_init_t, 10>& get_locations() {
-        static std::array<shape_gl_init_t, 10> locs{{
-          shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
-          shape_gl_init_t{{1, "in_shape"}, 1, GL_INT, sizeof(vi_t), offsetof(vi_t, shape)},
-          shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, size)},
-          shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
-          shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)},
-          shape_gl_init_t{{5, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), offsetof(vi_t, flags)},
-          shape_gl_init_t{{6, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, angle)},
-          shape_gl_init_t{{7, "in_light_position"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, light_position)},
-          shape_gl_init_t{{8, "in_light_radius"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, light_radius)},
-          shape_gl_init_t{{9, "in_pad"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, pad)},
-        }};
-        return locs;
-      }
 
       struct properties_t {
         using type_t = shadow_t;
@@ -1470,21 +1319,6 @@ export namespace fan::graphics {
       struct ri_t {
         std::array<fan::graphics::image_t, 30> images;
       };
-      static std::array<shape_gl_init_t, 10>& get_locations() {
-        static std::array<shape_gl_init_t, 10> locs{{
-          shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, position)},
-          shape_gl_init_t{{1, "in_parallax_factor"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, parallax_factor)},
-          shape_gl_init_t{{2, "in_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, size)},
-          shape_gl_init_t{{3, "in_rotation_point"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, rotation_point)},
-          shape_gl_init_t{{4, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)},
-          shape_gl_init_t{{5, "in_angle"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, angle)},
-          shape_gl_init_t{{6, "in_flags"}, 1, GL_UNSIGNED_INT , sizeof(vi_t), offsetof(vi_t, flags)},
-          shape_gl_init_t{{7, "in_tc_position"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, tc_position)},
-          shape_gl_init_t{{8, "in_tc_size"}, 2, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, tc_size)},
-          shape_gl_init_t{{9, "in_seed"}, 1, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, seed)},
-        }};
-        return locs;
-      }
 
       struct properties_t {
         using type_t = shader_shape_t;
@@ -1524,14 +1358,6 @@ export namespace fan::graphics {
       struct ri_t {
 
       };
-      static std::array<shape_gl_init_t, 3>& get_locations() {
-        static std::array<shape_gl_init_t, 3> locs{{
-          shape_gl_init_t{{0, "in_position"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t,  position)},
-          shape_gl_init_t{{1, "in_size"}, 3, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, size)},
-          shape_gl_init_t{{2, "in_color"}, 4, GL_FLOAT, sizeof(vi_t), offsetof(vi_t, color)}
-        }};
-        return locs;
-      }
 
       struct properties_t {
         using type_t = rectangle3d_t;
@@ -1568,14 +1394,6 @@ export namespace fan::graphics {
       struct ri_t {
 
       };
-      static std::array<shape_gl_init_t, 3>& get_locations() {
-        static std::array<shape_gl_init_t, 3> locs{{
-          shape_gl_init_t{{0, "in_color"}, 4, GL_FLOAT, sizeof(line_t::vi_t), offsetof(line_t::vi_t, color)},
-          shape_gl_init_t{{1, "in_src"}, 3, GL_FLOAT, sizeof(line_t::vi_t), offsetof(line_t::vi_t, src)},
-          shape_gl_init_t{{2, "in_dst"}, 3, GL_FLOAT, sizeof(line_t::vi_t), offsetof(line_t::vi_t, dst)}
-        }};
-        return locs;
-      }
 
       struct properties_t {
         using type_t = line_t;
