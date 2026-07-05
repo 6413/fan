@@ -53,7 +53,7 @@ local fan_features = {
   FAN_JSON = true,
   FAN_3D = false,
   
-  FAN_VULKAN = false,
+  FAN_VULKAN = true,
   FAN_FMT = false,
   FAN_WAYLAND_SCREEN = false,
   FAN_NETWORK = true,

@@ -55,14 +55,6 @@ fan::graphics::gui::settings_menu_t* get_smenu(loco_t* loco) {
   return static_cast<fan::graphics::gui::settings_menu_t*>(loco->gui.settings_menu);
 }
 
-bool init_fan_track_opengl_print = []() {
-  //fan_opengl_track_print() = [](std::string func_name, std::uint64_t elapsed) {
-  //  gloco()->gui.console.print(func_name + ":", fan::graphics::highlight_e::text);
-  //  gloco()->gui.console.print(std::to_string(elapsed / 1e+6f) + "ms", fan::graphics::highlight_e::warning);
-  //};
-  return 1;
-}();
-
 namespace fan {
   namespace graphics {
     namespace gui {
@@ -144,7 +136,7 @@ bool loco_t::shader_compile(fan::graphics::shader_nr_t nr) {
 #if defined(FAN_2D)
 
 void loco_t::shader_set_camera(fan::graphics::shader_nr_t nr, camera_t camera_nr) {
-  renderer_set(shader_set_camera, nr, camera_nr);
+  fan::graphics::get_vk_context().shader_set_camera(nr, camera_nr); 
 }
 
 fan::graphics::shader_nr_t loco_t::shader_get_nr(std::uint16_t shape_type) {
@@ -1039,12 +1031,12 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   loco_init_shapes_system(this);
   loco_init_render_views(this);
 #if defined(FAN_2D)
-  renderer_call(shaders_compile); 
+  vk.shaders_compile();
 #endif
-  renderer_call(init);
+  vk.init();
 #if defined(FAN_2D)
   load_engine_images();
-  renderer_call(shapes_open);
+  vk.shapes_open();
 #endif
 #if defined(FAN_GUI)
   init_gui();
@@ -1145,7 +1137,7 @@ void loco_t::close() {
 void loco_t::shapes_draw() {
   timing.shape_draw_timer.start();
 
-  renderer_call(shapes_draw);
+  vk.shapes_draw();
 
   timing.shape_draw_time_s = timing.shape_draw_timer.seconds();
 
@@ -1435,9 +1427,9 @@ void loco_t::process_render() {
 
 #if defined(FAN_2D)
 
-  fan::graphics::g_shapes->shaper.ProcessBlockEditQueue();
-
   vk.begin_draw();
+
+  fan::graphics::g_shapes->shaper.ProcessBlockEditQueue();
 
   viewport_set(0, window.get_size());
 
@@ -1708,7 +1700,7 @@ fan::vec2 loco_t::ndc_to_screen(const fan::vec2& ndc_position) {
 void loco_t::set_vsync(bool flag) {
   timing.vsync = flag;
   // vulkan vsync is enabled by presentation mode in swap chain
-  renderer_set(set_vsync, &window, flag);
+  fan::graphics::get_vk_context().set_vsync(&window, flag);
 }
 
 void loco_t::start_timer() {
@@ -2436,7 +2428,7 @@ namespace fan::graphics::gui {
 #endif
 
 void fan::graphics::shader_set_camera(fan::graphics::shader_t nr, fan::graphics::camera_t camera_nr) {
-  renderer_set(shader_set_camera, nr, camera_nr);
+  fan::graphics::get_vk_context().shader_set_camera(nr, camera_nr);
 }
 
 loco_t::properties_t fan::get_centered_window(vec2 size) {

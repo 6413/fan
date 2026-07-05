@@ -17,7 +17,7 @@ BUILDLIB=false
 
 declare -A FEATURE_DEFAULTS=(
   [FAN_WINDOW]=false [FAN_2D]=false [FAN_GUI]=false
-  [FAN_PHYSICS_2D]=false [FAN_JSON]=false [FAN_OPENGL]=false
+  [FAN_PHYSICS_2D]=false [FAN_JSON]=false
   [FAN_3D]=false [FAN_VULKAN]=false [FAN_FMT]=false
   [FAN_WAYLAND_SCREEN]=false [FAN_NETWORK]=false [FAN_AUDIO]=false
   [FAN_VIDEO]=false [FAN_REFLECTION]=false
@@ -101,7 +101,7 @@ set_feature_from_arg() {
 apply_preset_core()     { : ; }
 apply_preset_headless() { enable_features FAN_JSON; }
 apply_preset_network()  { enable_features FAN_JSON FAN_NETWORK; }
-apply_preset_window()   { apply_preset_headless; enable_features FAN_WINDOW FAN_OPENGL; }
+apply_preset_window()   { apply_preset_headless; enable_features FAN_WINDOW; }
 apply_preset_2d()       { apply_preset_window;  enable_features FAN_2D FAN_GUI FAN_PHYSICS_2D; }
 while [[ $# -gt 0 ]]; do
   case $1 in
