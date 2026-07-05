@@ -136,7 +136,7 @@ struct game_t {
           .font_size = 48.f,
           .offset = {0, -60.f},
           .window_offset = {0.f, 0.f},
-          .align = gui::text_style_t::align_t::center
+          .align = gui::text_style_t::align_e::center
         });
         if (gui::button_centered("Restart", {.offset={0,10.f}})) open();
       }
