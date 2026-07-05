@@ -1093,7 +1093,6 @@ void loco_t::destroy() {
 #endif
 
   vkDeviceWaitIdle(context.vk.device);
-  vk.close();
 #if defined(FAN_2D)
   for (auto& st : fan::graphics::g_shapes->shaper.ShapeTypes) {
     if (st.sti == (decltype(st.sti))-1) {
@@ -1104,6 +1103,8 @@ void loco_t::destroy() {
   }
 #endif
 
+  vk.close();
+
 #if defined(FAN_2D)
   fan::graphics::g_shapes->shaper.Close();
 #endif
@@ -1111,9 +1112,7 @@ void loco_t::destroy() {
 #if defined(FAN_GUI)
   destroy_gui();
 #else
-  if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    context.vk.close();
-  }
+  context.vk.close();
 #endif
 
   window.close();
@@ -1710,12 +1709,7 @@ void loco_t::start_timer() {
 
     loco->timing.accumulated_time += elapsed;
 
-    if (loco->timing.accumulated_time > 0.05) {
-      loco->timing.accumulated_time = 0.05;
-    }
-
     if (loco->timing.accumulated_time >= loco->timing.target_frame_time) {
-      
       loco->timing.accumulated_time -= loco->timing.target_frame_time;
 
       if (loco->process_frame(loco->main_loop)) {
@@ -1723,7 +1717,7 @@ void loco_t::start_timer() {
         fan::uv::stop((fan::uv::loop_t*)fan::event::get_loop());
       }
     }
-  }, 0, delay);
+  }, delay, delay);
 }
 
 void loco_t::idle_cb(void* handle) {
@@ -1743,29 +1737,22 @@ void loco_t::start_idle(bool start_idle) {
 
 // if target fps does not seem to be accurate/updating, use timeBeginPeriod to request the correct hz for libuv
 void loco_t::update_timer_interval(bool idle) {
+  if (idle_init) {
+    fan::uv::idle_stop((fan::uv::idle_t*)idle_handle);
+  }
+  if (timer_init) {
+    fan::uv::timer_stop((fan::uv::timer_t*)timer_handle);
+  }
+
   if (target_fps > 0) {
     timing.target_frame_time = 1.0 / target_fps;
-    std::uint64_t delay = target_fps > 60 ? 1 : std::max(1.0, std::floor(1.0 / target_fps * 1000.0 * 0.5));
-
-    if (idle_init) {
-      fan::uv::idle_stop((fan::uv::idle_t*)idle_handle);
-    }
-    if (!timing.timer_enabled) {
-      timing.frame_timer.start();
-      timing.accumulated_time = 0.0;
-      start_timer();
-      timing.timer_enabled = true;
-    }
-    else if (timer_init) {
-      fan::uv::timer_set_repeat((fan::uv::timer_t*)timer_handle, delay);
-      fan::uv::timer_again((fan::uv::timer_t*)timer_handle);
-    }
+    timing.frame_timer.start();
+    timing.accumulated_time = 0.0;
+    timing.timer_enabled = true;
+    start_timer();
   }
   else {
-    if (timer_init) {
-      fan::uv::timer_stop((fan::uv::timer_t*)timer_handle);
-      timing.timer_enabled = false;
-    }
+    timing.timer_enabled = false;
     if (idle_init && idle) {
       fan::uv::idle_start((fan::uv::idle_t*)idle_handle, (fan::uv::idle_cb)idle_cb);
     }
@@ -1984,7 +1971,6 @@ void loco_t::shape_open(
   std::uint32_t ds_offset = 2;
   vk.shape_data.open(gloco()->context.vk, 1);
   vk.shape_data.allocate(gloco()->context.vk, std::max<std::uint64_t>(bp.RenderDataSize * bp.MaxElementPerBlock, 16));
-
   std::array<fan::vulkan::write_descriptor_set_t, vulkan_buffer_count> ds_properties {{{0}}};
   {
     ds_properties[0].binding = 0;
