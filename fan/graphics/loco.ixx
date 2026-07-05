@@ -766,11 +766,6 @@ public:
   #include "shaders.h"
   shaders_t shaders;
 
-#if defined(FAN_OPENGL)
-  struct opengl;
-  opengl* gl = nullptr;
-#endif
-
   struct vulkan {
   #include <fan/graphics/vulkan/engine_functions.h>
 
