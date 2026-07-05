@@ -1,6 +1,5 @@
 module;
 
-#if defined(FAN_VULKAN)
 #if defined(fan_platform_windows)
 #define VK_USE_PLATFORM_WIN32_KHR
 #elif defined(fan_platform_unix)
@@ -24,14 +23,12 @@ module;
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
-#endif
 
 #include <fan/utility.h>
 
 export module fan.graphics.vulkan.core;
 import std;
 
-#if defined(FAN_VULKAN)
 
 export import :types;
 export import :vai;
@@ -65,8 +62,22 @@ import fan.graphics.common_context;
 
 #define ENABLE_RAYTRACING_DEPENDENCIES
 
-extern const std::vector<const char*> validationLayers;
-extern const std::vector<const char*> deviceExtensions;
+inline constexpr auto validationLayers = std::to_array<const char*>({
+  "VK_LAYER_KHRONOS_validation"
+});
+
+inline constexpr auto deviceExtensions = std::to_array<const char*>({
+  VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+  VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+#if defined(ENABLE_RAYTRACING_DEPENDENCIES)
+  VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+  VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+  VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+  VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+  VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+  VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
+#endif
+});
 
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
@@ -118,6 +129,19 @@ export namespace fan {
       };
 
       struct descriptor_t {
+
+        descriptor_t() = default;
+        descriptor_t(const descriptor_t&) = delete;
+        descriptor_t& operator=(const descriptor_t&) = delete;
+        descriptor_t(descriptor_t&& other) noexcept { *this = std::move(other); }
+        descriptor_t& operator=(descriptor_t&& other) noexcept {
+          m_properties = std::move(other.m_properties);
+          m_layout = other.m_layout;
+          std::memcpy(m_descriptor_set, other.m_descriptor_set, sizeof(m_descriptor_set));
+          other.m_layout = VK_NULL_HANDLE;
+          std::memset(other.m_descriptor_set, 0, sizeof(other.m_descriptor_set));
+          return *this;
+        }
 
         using properties_t = std::vector<fan::vulkan::write_descriptor_set_t>;
         void open(fan::vulkan::context_t& context, const properties_t& properties) {
@@ -178,52 +202,54 @@ export namespace fan {
           validate(vkAllocateDescriptorSets(context.device, &allocInfo, m_descriptor_set));
         }
         void close(fan::vulkan::context_t& context) {
+          if (m_layout == VK_NULL_HANDLE) { return; }
           vkDestroyDescriptorSetLayout(context.device, m_layout, 0);
+          m_layout = VK_NULL_HANDLE;
         }
 
         void update(
-  fan::vulkan::context_t& context,
-  std::uint32_t n,
-  std::uint32_t begin = 0,
-  std::uint32_t texture_n = max_textures,
-  std::uint32_t texture_begin = 0
-) {
-  std::vector<VkDescriptorBufferInfo> buffer_infos(n);
-  std::vector<VkWriteDescriptorSet> descriptor_writes(n);
+          fan::vulkan::context_t& context,
+          std::uint32_t n,
+          std::uint32_t begin = 0,
+          std::uint32_t texture_n = max_textures,
+          std::uint32_t texture_begin = 0
+        ) {
+          std::vector<VkDescriptorBufferInfo> buffer_infos(n);
+          std::vector<VkWriteDescriptorSet> descriptor_writes(n);
 
-  for (std::uint32_t i = 0; i < n; ++i) {
-    std::uint32_t j = begin + i;
-    auto& write = descriptor_writes[i];
-    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write.dstSet = m_descriptor_set[context.current_frame];
-    write.dstBinding = m_properties[j].dst_binding;
-    write.dstArrayElement = texture_begin;
-    write.descriptorType = m_properties[j].type;
-    if (m_properties[j].use_image) {
-      std::uint32_t descriptor_n = texture_n;
-      if (texture_n == max_textures && m_properties[j].descriptor_count != 0) {
-        descriptor_n = m_properties[j].descriptor_count;
-      }
-      if (texture_begin + descriptor_n > m_properties[j].image_infos.size()) {
-        fan::throw_error("descriptor image update out of range");
-      }
-      write.descriptorCount = descriptor_n;
-      write.pImageInfo = m_properties[j].image_infos.data() + texture_begin;
-    }
-    else {
-      buffer_infos[i].buffer = m_properties[j].buffer;
-      buffer_infos[i].offset = 0;
-      buffer_infos[i].range = m_properties[j].range;
-      write.descriptorCount = 1;
-      write.pBufferInfo = &buffer_infos[i];
-    }
-  }
+          for (std::uint32_t i = 0; i < n; ++i) {
+            std::uint32_t j = begin + i;
+            auto& write = descriptor_writes[i];
+            write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+            write.dstSet = m_descriptor_set[context.current_frame];
+            write.dstBinding = m_properties[j].dst_binding;
+            write.dstArrayElement = texture_begin;
+            write.descriptorType = m_properties[j].type;
+            if (m_properties[j].use_image) {
+              std::uint32_t descriptor_n = texture_n;
+              if (texture_n == max_textures && m_properties[j].descriptor_count != 0) {
+                descriptor_n = m_properties[j].descriptor_count;
+              }
+              if (texture_begin + descriptor_n > m_properties[j].image_infos.size()) {
+                fan::throw_error("descriptor image update out of range");
+              }
+              write.descriptorCount = descriptor_n;
+              write.pImageInfo = m_properties[j].image_infos.data() + texture_begin;
+            }
+            else {
+              buffer_infos[i].buffer = m_properties[j].buffer;
+              buffer_infos[i].offset = 0;
+              buffer_infos[i].range = m_properties[j].range;
+              write.descriptorCount = 1;
+              write.pBufferInfo = &buffer_infos[i];
+            }
+          }
 
-  vkUpdateDescriptorSets(context.device, n, descriptor_writes.data(), 0, nullptr);
-}
+          vkUpdateDescriptorSets(context.device, n, descriptor_writes.data(), 0, nullptr);
+        }
 
         properties_t m_properties;
-        VkDescriptorSetLayout m_layout;
+        VkDescriptorSetLayout m_layout = VK_NULL_HANDLE;
         VkDescriptorSet m_descriptor_set[fan::vulkan::max_frames_in_flight];
       };
       #include "memory.h"
@@ -732,6 +758,8 @@ export namespace fan {
       void gui_close();
       void close();
 
+      void destroy_shape_resources();
+
       void cleanup_swap_chain_dependencies();
 
       void cleanup_swap_chain();
@@ -1000,5 +1028,3 @@ export namespace fan::graphics {
   fan::graphics::context_functions_t get_vk_context_functions();
   fan::vulkan::context_t& get_vk_context();
 }
-
-#endif

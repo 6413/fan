@@ -4,9 +4,6 @@ module;
 
 #include <fan/utility.h>
 
-#if defined(FAN_OPENGL)
-  #include <fan/graphics/gl_api.h>
-#endif
 #include <fan/graphics/shape_macros.h>
 
 #endif
@@ -30,7 +27,6 @@ import fan.math.intersection;
   import fan.graphics.gui.text_logger;
 #endif
 
-#include <fan/graphics/opengl/init.h>
 
 #if defined(FAN_2D)
 
@@ -182,17 +178,7 @@ namespace fan::graphics {
   // warning does deep copy, addresses can die
   fan::graphics::context_shader_t shader_get(fan::graphics::shader_nr_t nr) {
     fan::graphics::context_shader_t context_shader;
-    if (0) {}
-  #if defined(FAN_OPENGL)
-    else if (fan::graphics::ctx().window->renderer == fan::window_t::renderer_t::opengl) {
-      context_shader.gl = *(fan::opengl::context_t::shader_t*)fan::graphics::ctx()->shader_get(fan::graphics::ctx(), nr);
-    }
-  #endif
-  #if defined(FAN_VULKAN)
-    else if (fan::graphics::ctx().window->renderer == fan::window_t::renderer_t::vulkan) {
-      context_shader.vk = *(fan::vulkan::context_t::shader_t*)fan::graphics::ctx()->shader_get(fan::graphics::ctx(), nr);
-    }
-  #endif
+    context_shader.vk = *(fan::vulkan::context_t::shader_t*)fan::graphics::ctx()->shader_get(fan::graphics::ctx(), nr);
     return context_shader;
   }
 
@@ -1038,56 +1024,6 @@ namespace fan::graphics{
         polygon_vertices[i].rotation_point = properties.rotation_point;
       }
 
-    #if defined(FAN_OPENGL)
-      if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
-        ri.vao.open((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))));
-        ri.vao.bind((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))));
-        ri.vbo.open((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))), GL_ARRAY_BUFFER);
-        fan::opengl::core::write_glbuffer(
-          (*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))),
-          ri.vbo.m_buffer,
-          polygon_vertices.data(),
-          ri.buffer_size,
-          GL_STATIC_DRAW,
-          ri.vbo.m_target
-        );
-
-        auto& shape_data = g_shapes->shaper.GetShapeTypes(shape_type_t::polygon).renderer.gl;
-        fan::graphics::context_shader_t shader;
-        if (!shape_data.shader.iic()) {
-          shader = fan::graphics::shader_get(shape_data.shader);
-        }
-        std::uint64_t ptr_offset = 0;
-        for (shape_gl_init_t& location : g_shapes->polygon.get_locations()) {
-          if (((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))).opengl.major == 2 &&
-            (*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))).opengl.minor == 1) &&
-            !shape_data.shader.iic()) {
-            location.index.first = fan_opengl_call(glGetAttribLocation(shader.gl.id, location.index.second));
-          }
-          fan_opengl_call(glEnableVertexAttribArray(location.index.first));
-          switch (location.type) {
-          case GL_UNSIGNED_INT:
-          case GL_INT:
-            fan_opengl_call(glVertexAttribIPointer(location.index.first, location.size, location.type, location.stride, (void*)ptr_offset));
-            break;
-          default:
-            fan_opengl_call(glVertexAttribPointer(location.index.first, location.size, location.type, GL_FALSE, location.stride, (void*)ptr_offset));
-          }
-          if (((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))).opengl.major > 3) ||
-            ((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))).opengl.major == 3 &&
-              (*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))).opengl.minor >= 3)) {
-            if (shape_data.instanced) {
-              fan_opengl_call(glVertexAttribDivisor(location.index.first, 1));
-            }
-          }
-          switch (location.type) {
-          case GL_FLOAT: ptr_offset += location.size * sizeof(GLfloat); break;
-          case GL_UNSIGNED_INT: ptr_offset += location.size * sizeof(GLuint); break;
-          default: fan::throw_error_impl();
-          }
-        }
-      }
-    #endif
       sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::polygon, vi, ri,
         Key_e::visible, (std::uint8_t)true,
@@ -1359,12 +1295,6 @@ namespace fan::graphics{
   void shapes::shape_t::erase_shaper() {
     if (get_shape_type() == shape_type_t::polygon) {
       auto& ri = get_shape_rdata<shapes::polygon_t>();
-    #if defined(FAN_OPENGL)
-      if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
-        ri.vao.close((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))));
-        ri.vbo.close((*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx()))));
-      }
-    #endif
       ri.shape_id = 0;
       ri.vertex_count = 0;
       ri.buffer_size = 0;
@@ -1826,23 +1756,16 @@ namespace fan::graphics{
   }
 
   static void set_pixel_format_shader(fan::graphics::shader_t shader, std::uint8_t format) {
-  #if defined(FAN_VULKAN)
-    const bool is_vulkan = fan::graphics::ctx().window->renderer == fan::window_t::renderer_t::vulkan;
-  #else
-    const bool is_vulkan = false;
-  #endif
 
-    const char* vs_path = is_vulkan ?
-      "shaders/vulkan/2D/objects/universal_image_renderer.vert" :
-      fan::shader_paths::gl::pixel_format_renderer_vs;
+    const char* vs_path = "shaders/vulkan/2D/objects/universal_image_renderer.vert";
 
     std::string_view fs_path;
     switch (format) {
       case fan::graphics::image_format_e::yuv420p:
-        fs_path = is_vulkan ? "shaders/vulkan/2D/objects/yuv420p.frag" : fan::shader_paths::gl::yuv420p_fs;
+        fs_path = "shaders/vulkan/2D/objects/yuv420p.frag";
         break;
       case fan::graphics::image_format_e::nv12:
-        fs_path = is_vulkan ? "shaders/vulkan/2D/objects/nv12.frag" : fan::shader_paths::gl::nv12_fs;
+        fs_path = "shaders/vulkan/2D/objects/nv12.frag";
         break;
       default:
         fan::throw_error("unimplemented format");
@@ -2009,23 +1932,6 @@ namespace fan::graphics{
       auto data = reinterpret_cast<line3d_t::vi_t*>(GetRenderData(fan::graphics::g_shapes->shaper));
       data->src = fan::vec3(src.x, src.y, 0);
       data->dst = fan::vec3(dst.x, dst.y, 0);
-      if (fan::graphics::ctx().window->renderer == fan::window_t::renderer_t::opengl) {
-        auto& data = g_shapes->shaper.ShapeList[get_visual_id()];
-        g_shapes->shaper.ElementIsPartiallyEdited(
-          data.sti,
-          data.blid,
-          data.ElementIndex,
-          fan::member_offset(&line3d_t::vi_t::src),
-          sizeof(line3d_t::vi_t::src)
-        );
-        g_shapes->shaper.ElementIsPartiallyEdited(
-          data.sti,
-          data.blid,
-          data.ElementIndex,
-          fan::member_offset(&line3d_t::vi_t::dst),
-          sizeof(line3d_t::vi_t::dst)
-        );
-      }
     }
   #endif
   }
@@ -2498,16 +2404,6 @@ namespace fan::graphics{
       fan::throw_error("invalid function call for current shape");
     }
     reinterpret_cast<shadow_t::vi_t*>(GetRenderData(fan::graphics::g_shapes->shaper))->light_position = new_pos;
-    if (fan::graphics::ctx().window->renderer == fan::window_t::renderer_t::opengl) {
-      auto& data = g_shapes->shaper.ShapeList[get_visual_id()];
-      g_shapes->shaper.ElementIsPartiallyEdited(
-        data.sti,
-        data.blid,
-        data.ElementIndex,
-        fan::member_offset(&shadow_t::vi_t::light_position),
-        sizeof(shadow_t::vi_t::light_position)
-      );
-    }
   }
 
   void shapes::shape_t::set_light_radius(f32_t radius) {
@@ -2516,16 +2412,6 @@ namespace fan::graphics{
     }
 
     reinterpret_cast<shadow_t::vi_t*>(GetRenderData(fan::graphics::g_shapes->shaper))->light_radius = radius;
-    if (fan::graphics::ctx().window->renderer == fan::window_t::renderer_t::opengl) {
-      auto& data = g_shapes->shaper.ShapeList[get_visual_id()];
-      g_shapes->shaper.ElementIsPartiallyEdited(
-        data.sti,
-        data.blid,
-        data.ElementIndex,
-        fan::member_offset(&shadow_t::vi_t::light_radius),
-        sizeof(shadow_t::vi_t::light_radius)
-      );
-    }
   }
 
   // for line
@@ -2661,10 +2547,18 @@ namespace fan::graphics{
   }
 
   std::uint8_t* shapes::shape_t::get_keys() {
-    return g_shapes->shaper.GetKeys(get_visual_id());
+    auto& vid = get_visual_id();
+    if (vid.iic()) {
+      return nullptr;
+    }
+    return g_shapes->shaper.GetKeys(vid);
   }
   shaper_t::KeyPackSize_t shapes::shape_t::get_keys_size() {
-    return g_shapes->shaper.GetKeysSize(get_visual_id());
+    auto& vid = get_visual_id();
+    if (vid.iic()) {
+      return 0;
+    }
+    return g_shapes->shaper.GetKeysSize(vid);
   }
 
   std::string_view shapes::shape_t::get_name() const {
@@ -2969,22 +2863,7 @@ void* fan::graphics::shapes::shape_t::get_shape_data_impl(std::uint16_t shape_ty
 }
 
 void fan::graphics::shapes::shape_t::get_gldata_impl(void* dst, std::size_t size, std::size_t offset) {
-  glFinish();
-
-  auto& vbo = get_shape_type_data().renderer.gl.m_vbo;
-  auto* ctx_ptr = (fan::opengl::context_t*)ctx().render_context;
-
-  get_shape_type_data().renderer.gl.m_vao.bind(*ctx_ptr);
-  vbo.bind(*ctx_ptr);
-
-  fan::opengl::core::get_glbuffer(
-    *ctx_ptr,
-    dst,
-    vbo.m_buffer,
-    size,
-    offset,
-    vbo.m_target
-  );
+  fan::throw_error_impl("backend TODO: get_gldata_impl for Vulkan");
 }
 
 namespace {

@@ -9,9 +9,7 @@ module;
   #include <fan/imgui/imgui_internal.h>
   #include <fan/imgui/ImGuizmo.h>
 #endif
-#if defined(FAN_VULKAN)
   #include <vulkan/vulkan.h>
-#endif
 
 #include <fan/utility.h>
 
@@ -450,11 +448,7 @@ export namespace fan::graphics::gui {
 
   void init(
     GLFWwindow* window,
-    int renderer,
-    int opengl_renderer_definition,
-    int vulkan_renderer_definition
-  #if defined(FAN_VULKAN)
-    , VkInstance instance,
+    VkInstance instance,
     VkPhysicalDevice physical_device,
     VkDevice device,
     std::uint32_t queue_family,
@@ -465,16 +459,11 @@ export namespace fan::graphics::gui {
     std::uint32_t min_image_count,
     VkSampleCountFlagBits msaa_samples,
     void (*check_vk_result)(VkResult)
-  #endif
   );
 
   void init_graphics_context(
     GLFWwindow* window,
-    int renderer,
-    int opengl_renderer_definition,
-    int vulkan_renderer_definition
-  #if defined(FAN_VULKAN)
-    , VkInstance instance,
+    VkInstance instance,
     VkPhysicalDevice physical_device,
     VkDevice device,
     std::uint32_t queue_family,
@@ -485,47 +474,28 @@ export namespace fan::graphics::gui {
     std::uint32_t min_image_count,
     VkSampleCountFlagBits msaa_samples,
     void (*check_vk_result)(VkResult)
-  #endif
   );
 
   void init_fonts();
   void load_emojis();
 
-  void shutdown_graphics_context(
-    int renderer,
-    int opengl_renderer_definition,
-    int vulkan_renderer_definition
-  #if defined(FAN_VULKAN)
-    , VkDevice device
-  #endif
-  );
+  void shutdown_graphics_context(VkDevice device);
 
   void shutdown_window_context();
   void destroy();
 
-  void new_frame(
-    int renderer,
-    int opengl_renderer_definition,
-    int vulkan_renderer_definition
-  );
+  void new_frame();
 
-#if defined(FAN_VULKAN)
   typedef void (*ImGuiFrameRenderFunc)(void* context, VkResult, fan::color);
-#endif
 
   void render(
-    int renderer,
-    int opengl_renderer_definition,
-    int vulkan_renderer_definition,
     bool render_shapes_top
-  #if defined(FAN_VULKAN)
     ,
     void* context,
     const fan::color& clear_color,
     VkResult& image_error,
     VkCommandBuffer& cmd_buffer,
     ImGuiFrameRenderFunc render_func
-  #endif
   );
 
   void profile_heap(void* (*dynamic_malloc)(std::size_t, void*), void (*dynamic_free)(void*, void*));

@@ -1,16 +1,8 @@
 #pragma once
 
 // renderer dispatch
-#if defined(FAN_OPENGL)
-  #define IF_GL(...) __VA_ARGS__
-#else
   #define IF_GL(...)
-#endif
-#if defined(FAN_VULKAN)
   #define IF_VK(...) __VA_ARGS__
-#else
-  #define IF_VK(...)
-#endif
 
 #if defined(FAN_GUI)
   #define IF_GUI(...) __VA_ARGS__
@@ -34,43 +26,18 @@
   } else { fan::throw_error_impl("backend TODO: " #func); }
 
 // set — void return
-#define renderer_set(func, ...)                                                    \
-do {                                                                               \
-  IF_GL(if (_rcc_renderer == fan::window_t::renderer_t::opengl)                   \
-    { _rcc_dispatch_void(_rcc_gl_ctx, func, __VA_ARGS__) })                        \
-  IF_VK(if (_rcc_renderer == fan::window_t::renderer_t::vulkan)                   \
-    { _rcc_dispatch_void(_rcc_vk_ctx, func, __VA_ARGS__) })                        \
-  fan::throw_error_impl("renderer not supported: " #func);                         \
-} while(0)
+#define renderer_set(func, ...) _rcc_dispatch_void(_rcc_vk_ctx, func, __VA_ARGS__)
 
 // get — non-void return, caller specifies return type and union member
-#define renderer_get(type, gl_member, vk_member, func, ...)                        \
-([&]() -> type {                                                                   \
-  IF_GL(if (_rcc_renderer == fan::window_t::renderer_t::opengl)                   \
-    { _rcc_dispatch_ret(type, _rcc_gl_ctx, gl_member, func, __VA_ARGS__) })        \
-  IF_VK(if (_rcc_renderer == fan::window_t::renderer_t::vulkan)                   \
-    { _rcc_dispatch_ret(type, _rcc_vk_ctx, vk_member, func, __VA_ARGS__) })        \
-  fan::throw_error_impl("renderer not supported: " #func);                         \
-  __unreachable();                                                                 \
-}())
+#define renderer_get(type, gl_member, vk_member, func, ...) _rcc_dispatch_ret(type, _rcc_vk_ctx, vk_member, func, __VA_ARGS__)
 
 #define render_context_call(type, func, ...)                                       \
   render_context_call_ret(type, gl, func, __VA_ARGS__)
 
-#define render_context_call_raw(gl_expr, vk_expr) \
-  do { \
-    IF_GL(if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::opengl) { gl_expr; }) \
-    IF_VK(if (fan::graphics::get_window().renderer == fan::window_t::renderer_t::vulkan) { vk_expr; }) \
-  } while(0)
+#define render_context_call_raw(vk_expr) vk_expr;
 
 #define renderer_call(func) { \
-  auto& w = fan::graphics::get_window(); \
-  IF_GL(if (w.renderer == fan::window_t::renderer_t::opengl) { \
-    gl->func(); \
-  }) \
-  IF_VK(if (w.renderer == fan::window_t::renderer_t::vulkan) { \
-    vk.func(); \
-  }) \
+  vk.func(); \
 }
 
 // shape push_back for trivial shapes

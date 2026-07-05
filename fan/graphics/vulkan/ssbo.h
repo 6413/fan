@@ -1,34 +1,50 @@
-// vram instance, ram instance
 struct ssbo_t	{
+
+  ssbo_t() = default;
+  ssbo_t(const ssbo_t& other) {
+    *this = other;
+  }
+  ssbo_t& operator=(const ssbo_t& other) {
+    auto& src = const_cast<ssbo_t&>(other);
+    max_instance_size = src.max_instance_size;
+    descriptor_count = src.descriptor_count;
+    common = src.common;
+    common.user_data = this;
+    instance_list = std::move(src.instance_list);
+    vram_capacity = src.vram_capacity;
+    m_descriptor = std::move(src.m_descriptor);
+    for (std::uint32_t i = 0; i < fan::vulkan::max_frames_in_flight; ++i) {
+      data[i] = src.data[i];
+      src.data[i] = nullptr;
+      src.common.memory[i] = {};
+    }
+    src.vram_capacity = 0;
+    return *this;
+  }
+  ssbo_t(ssbo_t&& other) noexcept { *this = std::move(other); }
+  ssbo_t& operator=(ssbo_t&& other) noexcept {
+    max_instance_size = other.max_instance_size;
+    descriptor_count = other.descriptor_count;
+    common = other.common;
+    common.user_data = this;
+    instance_list = std::move(other.instance_list);
+    vram_capacity = other.vram_capacity;
+    m_descriptor = std::move(other.m_descriptor);
+    for (std::uint32_t i = 0; i < fan::vulkan::max_frames_in_flight; ++i) {
+      data[i] = other.data[i];
+    }
+    other.vram_capacity = 0;
+    for (std::uint32_t i = 0; i < fan::vulkan::max_frames_in_flight; ++i) {
+      other.common.memory[i] = {};
+      other.data[i] = nullptr;
+    }
+    return *this;
+  }
 
   std::uint32_t max_instance_size = 1024;
   std::uint32_t descriptor_count = 0;
 
 	static constexpr auto buffer_count = fan::vulkan::max_frames_in_flight;
-
-//	#define BLL_set_MultipleType_Sizes sizeof(vi_t) * max_instance_size, sizeof(ri_t) * max_instance_size
-//	#include <fan/fan_bll_preset.h>
-//	#define BLL_set_prefix instance_list
-//	#define BLL_set_type_node uint16_t
-//	#define BLL_set_Link 1
-//	#define BLL_set_MultipleType_LinkIndex 1
-//	//#define BVEC_set_BufferingFormat 0
-//	//#define BVEC_set_BufferingFormat0_WantedBufferByteAmount 0xfffff
-//	static constexpr auto multiple_type_link_index = BLL_set_MultipleType_LinkIndex;
-//	#define BLL_set_AreWeInsideStruct 1
-//	#define BLL_set_Overload_Declare \
-//		vi_t &get_vi(instance_list_NodeReference_t nr, uint32_t i) { \
-//			return ((vi_t*)this->GetNodeReferenceData(nr, 0))[i]; \
-//		} \
-//		ri_t &get_ri(instance_list_NodeReference_t nr, uint32_t i) { \
-//			return ((ri_t*)this->GetNodeReferenceData(nr, 1))[i]; \
-//		}
-//protected:
-//	#include <BLL/BLL.h>
-//public:
-//	
-//	using nr_t = instance_list_NodeReference_t;
-//	using instance_id_t = uint8_t;
 
   using instance_id_t = std::uint32_t;
 
@@ -72,37 +88,25 @@ struct ssbo_t	{
 		common.on_edit(context);
 	}
 
-	//void write(fan::vulkan::context_t* context, uint32_t frame) {
-
-	//	uint8_t* data;
-	//	validate(vkMapMemory(context.device, common.memory[frame].device_memory, 0, vram_capacity, 0, (void**)&data));
-	//	
-	//	for (auto i : common.indices) {
-	//		((vi_t*)data)[i.i] = instance_list.get_vi(i.nr, i.i);
-	//	}
-	//	// unnecessary? is necessary
-	//	vkUnmapMemory(context.device, common.memory[frame].device_memory);
-
-	//	common.on_edit(context);
-	//}
+  static void write_cb_impl(fan::vulkan::context_t& context, void* ptr) {
+    static_cast<ssbo_t*>(ptr)->write(context);
+  }
 
 	void open(fan::vulkan::context_t& context, std::uint32_t descriptor_count, std::uint32_t max_instance_size = 256) {
     this->descriptor_count = descriptor_count;
     this->max_instance_size = max_instance_size;
-		common.open(context, [&context, this] {
-			write(context);
-		});
+		common.open(context, write_cb_impl, this);
 	}
 	void close(fan::vulkan::context_t& context) {
-		for (std::uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {
+    for (std::uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {
       if (data[frame]) {
         vmaUnmapMemory(context.allocator, common.memory[frame].device_memory);
         data[frame] = nullptr;
       }
     }
     m_descriptor.close(context);
-		common.close(context);
-	}
+    common.close(context);
+  }
 
 	void open_descriptors(
 		fan::vulkan::context_t& context,
@@ -110,67 +114,6 @@ struct ssbo_t	{
 	) {
 		m_descriptor.open(context, properties);
 	}
-
-/*		uint32_t size() const {
-		return buffer.size();
-	}*/
-
-	/*nr_t add(fan::vulkan::context_t& context, memory_write_queue_t* wq) {
-		uint32_t old_size = instance_list.Usage();
-
-		nr_t nr = instance_list.NewNode();
-					
-		if (vram_capacity < instance_list.GetAmountOfAllocated() * sizeof(vi_t) * max_instance_size) {
-			vram_capacity = instance_list.GetAmountOfAllocated() * sizeof(vi_t) * max_instance_size;
-			for (uint32_t i = 0; i < max_frames_in_flight; ++i) {
-				allocate(context, vram_capacity, i);
-				if (old_size) {
-					common.edit(context, wq, 0, old_size);
-				}
-				m_descriptor.m_properties[0].buffer = common.memory[i].buffer;
-				m_descriptor.update(context, 1);
-			}
-		}
-		return nr;
-	}*/
-
-/*	void copy_instance(
-		fan::vulkan::context_t& context, 
-		memory_write_queue_t* write_queue, 
-		nr_t src_block_nr, 
-		instance_id_t src_instance_id, 
-		nr_t dst_block_nr, 
-		instance_id_t dst_instance_id
-	) {
-		instance_list.get_vi(dst_block_nr, dst_instance_id) = 
-			instance_list.get_vi(src_block_nr, src_instance_id);
-
-		instance_list.get_ri(dst_block_nr, dst_instance_id) = 
-			instance_list.get_ri(src_block_nr, src_instance_id);
-		common.edit(
-			context,
-			write_queue,
-			{ dst_block_nr, dst_instance_id }
-		);
-	}*/
-				
-	/*void copy_instance(fan::vulkan::context_t& context, memory_write_queue_t* write_queue, nr_t nr, instance_id_t i, auto vi_t::*member, auto value) {
-		instance_list.get_vi(nr, i).*member = value;
-		common.edit(
-			context,
-			write_queue,
-			{ nr, i }
-		);
-	}*/
-				
-	/*void copy_instance(fan::vulkan::context_t& context, memory_write_queue_t* write_queue, instance_id_t i, vi_t* instance) {
-		instance_list[i].vi = *instance;
-		common.edit(
-			context,
-			write_queue,
-			{ nr, i }
-		);
-	}*/
 
   struct instance_list_t {
     void* vi;

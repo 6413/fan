@@ -1,6 +1,5 @@
 module;
 
-#if defined(FAN_VULKAN)
 #if defined(fan_platform_windows)
 #define VK_USE_PLATFORM_WIN32_KHR
 #elif defined(fan_platform_unix)
@@ -25,13 +24,11 @@ module;
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
-#endif
 
 module fan.graphics.vulkan.core;
 
 import std;
 
-#if defined(FAN_VULKAN)
 
 import fan.types.fstring;
 import fan.types.color;
@@ -517,7 +514,7 @@ fan::graphics::image_nr_t fan::vulkan::context_t::image_load(fan::str_view_t pat
 #endif
 
   fan::image::info_t image_info;
-  if (fan::image::load(path, &image_info, callers_path)) {
+  if (fan::image::load(path, &image_info, 0, callers_path)) {
     return create_missing_texture();
   }
   fan::graphics::image_nr_t nr = image_load(image_info, p);
@@ -644,7 +641,7 @@ void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, const fa
 }
 void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, fan::str_view_t path, const fan::vulkan::context_t::image_load_properties_t& p, const std::source_location& callers_path) {
   fan::image::info_t image_info;
-  if (fan::image::load(path, &image_info, callers_path)) {
+  if (fan::image::load(path, &image_info, 0, callers_path)) {
     image_info.data = (void*)fan::image::missing_texture_pixels;
     image_info.size = 2;
     image_info.channels = 4;
@@ -771,4 +768,3 @@ void fan::vulkan::vai_t::close(fan::vulkan::context_t& context) {
   }
   old_layout = VK_IMAGE_LAYOUT_UNDEFINED;
 }
-#endif

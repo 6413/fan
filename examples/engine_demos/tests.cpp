@@ -3,20 +3,15 @@
 import fan;
 import std;
 
-#include <fan/graphics/opengl/init.h>
-
 #if defined(FAN_REFLECTION)
   import fan.reflection;
 #endif
-
-#include <fan/graphics/gl_api.h>
-
 
 using namespace fan::graphics;
 
 // make it global to try break it more with siof
 engine_t engine{ {
-  .renderer = fan::window_t::renderer_t::opengl,
+  .renderer = fan::window_t::renderer_t::vulkan,
 } };
 
 struct test_result_t {
@@ -146,55 +141,7 @@ struct shape_tester_t {
     });
   }
 
-  void assert_shape_type_attribs_enabled(
-    fan::graphics::shaper_t& shaper,
-    fan::graphics::shaper_t::ShapeTypeIndex_t sti
-  ) {
-    if (fan::graphics::ctx().get_renderer() != fan::window_t::renderer_t::opengl) {
-      return;
-    }
 
-    auto& st = shaper.ShapeTypes[sti];
-    auto& gl = st.renderer.gl;
-
-    if (!gl.m_vao.is_valid()) {
-      return;
-    }
-
-    gl.m_vao.bind(*static_cast<fan::opengl::context_t*>(static_cast<void*>(fan::graphics::ctx())));
-
-    if (gl.locations.ptr == nullptr || gl.locations.count == 0) {
-      return;
-    }
-
-    for (int i = 0; i < gl.locations.count; ++i) {
-      const auto& loc = gl.locations.ptr[i];
-      GLint enabled = 0;
-      glGetVertexAttribiv(loc.index.first, GL_VERTEX_ATTRIB_ARRAY_ENABLED, &enabled);
-
-      if (!enabled) {
-        throw std::runtime_error(
-          "ShapeType sti=" + std::to_string((int)sti) +
-          " attrib disabled at location " + std::to_string(loc.index.first) +
-          " (" + (loc.index.second ? loc.index.second : "unnamed") + ")"
-        );
-      }
-    }
-  }
-  void test_all_shape_types_attribs() {
-    run_test("VAO Attrib Enabled - All ShapeTypes", [&]() {
-      auto& shaper = engine.shapes.shaper;
-
-      fan::graphics::shaper_t::ShapeTypes_t::nrtra_t tra;
-      fan::graphics::shaper_t::ShapeTypeIndex_t sti;
-
-      tra.Open(&shaper.ShapeTypes, &sti);
-      while (tra.Loop(&shaper.ShapeTypes, &sti)) {
-        assert_shape_type_attribs_enabled(shaper, sti);
-      }
-      tra.Close(&shaper.ShapeTypes);
-    });
-  }
 
   void test_position_operations() {
     run_test("Position Set/Get - Rectangle", [&]() {
@@ -446,198 +393,9 @@ struct shape_tester_t {
     });
   }
 
-  auto& fb() {
-    return *reinterpret_cast<
-      fan::opengl::core::framebuffer_t*
-    >(engine.get_framebuffer());
-  }
-
-  void assert_shape_pixels(const fan::graphics::shapes::shape_t& shape, const fan::color& expected_color) {
-    fan::vec2 ws = engine.window.get_size();
-    float tol = 0.09f;
-
-    engine.process_frame();
-    engine.process_frame([&] {
-      try {
-        fb().bind(engine.context.gl);
-        glReadBuffer(GL_COLOR_ATTACHMENT0);
-
-        std::vector<uint8_t> px(ws.x * ws.y * 4);
-        glReadPixels(0, 0, ws.x, ws.y, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
-
-        fb().unbind(engine.context.gl);
-
-        fan::color bg = engine.get_clear_color();
-        int min_x = ws.x, max_x = 0, min_y = ws.y, max_y = 0;
-
-        for (int y = 0; y < ws.y; ++y) {
-          for (int x = 0; x < ws.x; ++x) {
-            int flipped_y = ws.y - 1 - y;
-            int i = (flipped_y * (int)ws.x + x) * 4;
-
-            fan::color c(px[i] / 255.f, px[i + 1] / 255.f, px[i + 2] / 255.f, px[i + 3] / 255.f);
-
-            bool is_shape_color = false;
-            if (expected_color.r > 0.5f) {
-              is_shape_color = c.r > 0.5f && c.g < 0.3f && c.b < 0.3f;
-            }
-            else if (expected_color.g > 0.5f) {
-              is_shape_color = c.g > 0.5f && c.r < 0.3f && c.b < 0.3f;
-            }
-            else if (expected_color.b > 0.5f) {
-              is_shape_color = c.b > 0.5f && c.r < 0.3f && c.g < 0.3f;
-            }
-
-            if (is_shape_color) {
-              min_x = std::min(min_x, x);
-              max_x = std::max(max_x, x);
-              min_y = std::min(min_y, y);
-              max_y = std::max(max_y, y);
-            }
-          }
-        }
-
-        for (int y = 0; y < ws.y; ++y) {
-          for (int x = 0; x < ws.x; ++x) {
-            int flipped_y = ws.y - 1 - y;
-            int i = (flipped_y * (int)ws.x + x) * 4;
-
-            fan::color c(px[i] / 255.f, px[i + 1] / 255.f, px[i + 2] / 255.f, px[i + 3] / 255.f);
-
-            bool inside_rendered = (x >= min_x - 1 && x <= max_x + 1 && y >= min_y - 1 && y <= max_y + 1);
-            bool is_aa = (c.a > 0.01f && c.a < 0.99f);
-
-            if (!is_aa) {
-              if (expected_color.r > 0.5f && ((c.r > 0.001f && c.r < 0.1f) || (c.r > 0.05f && c.r < expected_color.r * 0.95f))) {
-                is_aa = true;
-              }
-              else if (expected_color.g > 0.5f && ((c.g > 0.001f && c.g < 0.1f) || (c.g > 0.05f && c.g < expected_color.g * 0.95f))) {
-                is_aa = true;
-              }
-              else if (expected_color.b > 0.5f && ((c.b > 0.001f && c.b < 0.1f) || (c.b > 0.05f && c.b < expected_color.b * 0.95f))) {
-                is_aa = true;
-              }
-            }
-
-            if (is_aa) {
-              continue;
-            }
-
-            bool matches_bg = (std::abs(c.r - bg.r) < tol && std::abs(c.g - bg.g) < tol && std::abs(c.b - bg.b) < tol);
-
-            if (!inside_rendered && !matches_bg) {
-              assert_true(false, "Pixel outside shape was modified");
-            }
-          }
-        }
-      }
-      catch (const std::exception& e) {
-        fan::print_error("Exception:"_str + e.what());
-        throw;
-      }
-    });
-  }
-
-  void test_pixel_accuracy() {
-    run_test("Pixel Accuracy - Rectangle", [&]() {
-      fan::vec2 ws = engine.window.get_size();
-
-      rectangle_t rect{ {
-        .position = fan::vec3(ws.x / 2, ws.y / 2, 0),
-        .size = fan::vec2(100, 80),
-        .color = fan::colors::red
-      } };
 
 
-      assert_shape_pixels(rect, fan::colors::red);
-    });
 
-    run_test("Pixel Accuracy - Circle", [&]() {
-      fan::vec2 ws = engine.window.get_size();
-
-      circle_t circle{ {
-        .position = fan::vec3(ws.x / 2, ws.y / 2, 0),
-        .radius = 40,
-        .color = fan::colors::green
-      } };
-
-      assert_shape_pixels(circle, fan::colors::green);
-    });
-  }
-
-  void test_depth_ordering() {
-    run_test("Depth Ordering - Z-axis position change", [&]() {
-      fan::vec2 ws = engine.window.get_size();
-      fan::vec3 center_pos(ws.x / 2, ws.y / 2, 0);
-
-      rectangle_t red_rect{ {
-        .position = fan::vec3(center_pos.x - 20, center_pos.y - 20, 0),
-        .size = fan::vec2(100, 100),
-        .color = fan::colors::red
-      } };
-
-      rectangle_t green_rect{ {
-        .position = fan::vec3(center_pos.x + 20, center_pos.y + 20, 5),
-        .size = fan::vec2(100, 100),
-        .color = fan::colors::green
-      } };
-
-
-      engine.process_frame();
-      engine.process_frame([&] {
-        try {
-          fb().bind(engine.context.gl);
-          glReadBuffer(GL_COLOR_ATTACHMENT0);
-
-          std::vector<uint8_t> px(ws.x * ws.y * 4);
-          glReadPixels(0, 0, ws.x, ws.y, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
-
-          fb().unbind(engine.context.gl);
-
-          fan::vec2 overlap_point(center_pos.x, center_pos.y);
-          int flipped_y = ws.y - 1 - (int)overlap_point.y;
-          int i = (flipped_y * (int)ws.x + (int)overlap_point.x) * 4;
-
-          fan::color c(px[i] / 255.f, px[i + 1] / 255.f, px[i + 2] / 255.f, px[i + 3] / 255.f);
-
-          bool is_green = (c.g > 0.5f && c.r < 0.3f && c.b < 0.3f);
-          assert_true(is_green, "Green rect should be on top initially (z=5 > z=0)");
-        }
-        catch (const std::exception& e) {
-          fan::print_error("Exception:"_str + e.what());
-          throw;
-        }
-      });
-
-      red_rect.set_position(fan::vec3(center_pos.x - 20, center_pos.y - 20, 10));
-
-      engine.process_frame();
-      engine.process_frame([&] {
-        try {
-          fb().bind(engine.context.gl);
-          glReadBuffer(GL_COLOR_ATTACHMENT0);
-
-          std::vector<uint8_t> px(ws.x * ws.y * 4);
-          glReadPixels(0, 0, ws.x, ws.y, GL_RGBA, GL_UNSIGNED_BYTE, px.data());
-
-          fb().unbind(engine.context.gl);
-
-          fan::vec2 overlap_point(center_pos.x, center_pos.y);
-          int flipped_y = ws.y - 1 - (int)overlap_point.y;
-          int i = (flipped_y * (int)ws.x + (int)overlap_point.x) * 4;
-
-          fan::color c(px[i] / 255.f, px[i + 1] / 255.f, px[i + 2] / 255.f, px[i + 3] / 255.f);
-
-          bool is_red = (c.r > 0.5f && c.g < 0.3f && c.b < 0.3f);
-          assert_true(is_red, "Red rect should be on top after z change (z=10 > z=5)");
-        }
-        catch (const std::exception& e) {
-          fan::print_error("Exception:"_str + e.what());
-          throw;
-        }
-      });
-    });
-  }
 
   void test_camera_position() {
     run_test("Camera Position Persistence", [&]() {
@@ -1044,7 +802,6 @@ struct shape_tester_t {
     fan::print_color(fan::colors::green, "\n=== Running Shape System Tests ===\n");
 
     test_keypack_integrity();
-    test_all_shape_types_attribs();
     test_position_operations();
     test_size_operations();
     test_color_operations();
@@ -1054,8 +811,6 @@ struct shape_tester_t {
     test_shape_specific_properties();
     test_keypack_changes();
     test_sequential_updates();
-    test_pixel_accuracy();
-    test_depth_ordering();
 
     test_camera_position();
     test_viewport_resize();
@@ -1090,8 +845,7 @@ struct shape_tester_t {
 int main() {
   shape_tester_t tester;
 
-  // enable glFlush & glFinish
-  //fan_track_opengl_calls() = 1;
+
 
   engine.set_cull_padding(10000);
 

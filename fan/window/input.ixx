@@ -17,9 +17,7 @@ module;
   #include <Windows.h>
   #pragma comment(lib, "user32.lib")
 #endif
-#if defined(FAN_VULKAN)
 #include <vulkan/vulkan.h>
-#endif
 #if defined(fan_platform_windows)
   #define GLFW_EXPOSE_NATIVE_WIN32
   #define GLFW_EXPOSE_NATIVE_WGL

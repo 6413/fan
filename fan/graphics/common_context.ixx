@@ -427,7 +427,6 @@ export namespace fan::graphics {
     void set_context(context_functions_t& ctx, void* context);
     context_functions_t* operator->();
     operator void* ();
-    std::uint8_t get_renderer();
 
     context_functions_t* context_functions = nullptr;
     void* render_context = nullptr;
