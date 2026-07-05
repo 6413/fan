@@ -1,20 +1,14 @@
 module;
 
-#if defined(FAN_OPENGL)
-#endif
-
 export module fan.texture_pack.tp0;
 
 #if defined (FAN_WINDOW)
 
 import std;
 
-#if defined(FAN_OPENGL)
-
 import fan.types.vector;
 
 import fan.graphics.common_context;
-import fan.graphics.opengl.core;
 
 export namespace fan::graphics {
   struct texture_pack_t;
@@ -52,9 +46,9 @@ export namespace fan::graphics {
     struct internal_t {
       struct open_properties_t {
         fan::vec2ui preferred_pack_size = 1024;
-        std::uint32_t visual_output = fan::opengl::context_t::image_load_properties_defaults::visual_output;
+        std::uint32_t visual_output = 0;
         std::uint32_t min_filter = 0x2703; // GL_LINEAR_MIPMAP_LINEAR
-        std::uint32_t mag_filter = fan::opengl::context_t::image_load_properties_defaults::mag_filter;
+        std::uint32_t mag_filter = 0;
       };
 
       struct pack_properties_t {
@@ -168,4 +162,4 @@ export namespace fan::graphics {
 }
 #endif
 
-#endif
+

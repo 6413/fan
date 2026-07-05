@@ -2,9 +2,7 @@ module;
 
 #include <fan/utility.h>
 
-#if defined(FAN_VULKAN)
   #include <vulkan/vulkan.h>
-#endif
 #if defined(FAN_GUI)
   #include <fan/imgui/imgui.h>
   #include <fan/imgui/implot.h>
@@ -247,10 +245,8 @@ export namespace fan {
     constexpr vec2_wrap_t(const b2Vec2& v) { x = v.x; y = v.y; }
   #endif
 
-  #if defined(FAN_VULKAN)
     constexpr operator VkExtent2D() const { return VkExtent2D{(std::uint32_t)x, (std::uint32_t)y}; }
     constexpr vec2_wrap_t(const VkExtent2D& v) { x = v.width; y = v.height; }
-  #endif
 
     // coordinate system angle. TODO need rename to something meaningful
     constexpr auto csangle() const { return std::atan2(x, -y); }

@@ -50,9 +50,6 @@ namespace fan::graphics {
   render_context_handle_t::operator void* () {
     return render_context;
   }
-  std::uint8_t render_context_handle_t::get_renderer() {
-    return window->renderer;
-  }
   fan::window_t& get_window() {
     return *fan::graphics::ctx().window;
   }
@@ -600,13 +597,6 @@ namespace fan::graphics {
     return fan::graphics::ctx()->image_create_data(fan::graphics::ctx(), data, size, p);
   }
 
-#if defined(FAN_OPENGL)
-  std::vector<std::uint8_t> read_pixels(const fan::vec2& position, const fan::vec2& size) {
-    std::vector<std::uint8_t> pixels(size.multiply() * 4);
-    glReadPixels(position.x, position.y, size.x, size.y, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
-    return pixels;
-  }
-#endif
 
   fan::graphics::shader_t shader_create() {
     return fan::graphics::ctx()->shader_create(fan::graphics::ctx());
@@ -651,30 +641,7 @@ namespace fan::graphics {
     const std::string_view compute_file_path,
     const fan::str_view_t compute
   ) {
-    if (ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
-
-      fan::graphics::shader_t shader =
-        ctx()->shader_create(ctx());
-
-      ctx()->shader_set_compute(
-        ctx(),
-        shader,
-        compute_file_path,
-        std::string(compute)
-      );
-
-      if (!ctx()->shader_compile(ctx(), shader)) {
-
-        ctx()->shader_erase(ctx(), shader);
-
-        shader.sic();
-      }
-
-      return shader;
-    }
-
     fan::print_impl("todo");
-
     return {};
   }
 
@@ -711,24 +678,13 @@ namespace fan::graphics {
   }
 
   fan::graphics::shader_t get_sprite_shader(const std::string_view fragment_file_path, const fan::str_view_t fragment) {
-    if (ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
-      auto str = fan::graphics::read_shader("shaders/opengl/2D/objects/sprite.vs");
-      return fan::graphics::shader_create(
-        "shaders/opengl/2D/objects/sprite.vs",
-        str, 
-        fragment_file_path,
-        fragment
-      );
-    }
-    else {
-      auto str = fan::graphics::read_shader("shaders/vulkan/2D/objects/shader_shape.vert");
-      return fan::graphics::shader_create(
-        "shaders/vulkan/2D/objects/shader_shape.vert",
-        str,
-        fragment_file_path,
-        fragment
-      );
-    }
+    auto str = fan::graphics::read_shader("shaders/vulkan/2D/objects/shader_shape.vert");
+    return fan::graphics::shader_create(
+      "shaders/vulkan/2D/objects/shader_shape.vert",
+      str,
+      fragment_file_path,
+      fragment
+    );
   }
 
   std::string read_shader(

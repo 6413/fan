@@ -41,15 +41,9 @@ import fan.types.fstring;
   import fan.types.json;
 #endif
 
-#if defined(FAN_OPENGL)
-  import fan.graphics.common_context;
-  import fan.graphics.opengl.core;
-#endif
 
-#if defined(FAN_VULKAN)
   import fan.graphics.common_context;
   import fan.graphics.vulkan.core;
-#endif
 
 import fan.physics.types; // aabb
 
@@ -86,43 +80,24 @@ export namespace fan::graphics {
     context_shader_t() {}
     ~context_shader_t() {}
     union {
-    #if defined(FAN_OPENGL)
-      fan::opengl::context_t::shader_t gl;
-    #endif
-    #if defined(FAN_VULKAN)
       fan::vulkan::context_t::shader_t vk;
-    #endif
     };
   };
   struct context_image_t {
     context_image_t() {}
     ~context_image_t() {}
     union {
-    #if defined(FAN_OPENGL)
-      fan::opengl::context_t::image_t gl;
-    #endif
-    #if defined(FAN_VULKAN)
       fan::vulkan::context_t::image_t vk; // note vk::image_t uses vector 
-    #endif
     };
   };
   struct context_t {
     context_t() {}
     ~context_t() {}
     union {
-    #if defined(FAN_OPENGL)
-      fan::opengl::context_t gl;
-    #endif
-    #if defined(FAN_VULKAN)
       fan::vulkan::context_t vk;
-    #endif
     };
   };
 
-  #if defined(FAN_OPENGL) || defined(FAN_VULKAN)
-  // warning does deep copy, addresses can die
-  fan::graphics::context_shader_t shader_get(fan::graphics::shader_nr_t nr);
-  #endif
 
 #if defined(FAN_2D)
 
@@ -1108,14 +1083,8 @@ export namespace fan::graphics {
         std::uint32_t shape_id = 0;
         std::uint32_t vertex_count = 0;
         std::uint32_t buffer_size = 0;
-      #if defined(FAN_VULKAN)
         std::uint32_t vk_first_vertex = 0;
         std::uint32_t vk_vertex_count = 0;
-      #endif
-      #if defined(FAN_OPENGL)
-        fan::opengl::core::vao_t vao;
-        fan::opengl::core::gpu_buffer_t vbo;
-      #endif
       };
 
       static std::array<shape_gl_init_t, 5>& get_locations() {
@@ -1265,9 +1234,7 @@ export namespace fan::graphics {
         std::uint32_t shape;
 
         bool blending;
-      #if defined(FAN_VULKAN)
         std::uint32_t vk_emitter_index = 0;
-      #endif
       };
 
       struct properties_t {

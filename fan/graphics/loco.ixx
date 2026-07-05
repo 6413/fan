@@ -15,10 +15,8 @@ module;
 // loco framebuffer is recommended, you cant see sprites without it, 
 // since light uses framebuffer _t01. you could use unlit_sprite, if required
 #define LOCO_FRAMEBUFFER
-#if defined(FAN_VULKAN)
   #include <vulkan/vulkan.h>
   #include <vk_mem_alloc.h>
-#endif
 #include <fan/event/types.h>
 
 // +cuda
@@ -54,15 +52,13 @@ import fan.texture_pack.tp0;
 import fan.graphics.common_context;
 import fan.graphics.shapes;
 import fan.graphics.image_load;
-import fan.graphics.opengl.core;
 import fan.graphics.input_subsystem;
 import fan.graphics.culling;
 
 import fan.noise;
 
-#if defined(FAN_VULKAN)
-  import fan.graphics.vulkan.core;
-#endif
+import fan.graphics.vulkan.core;
+
 
 #if defined(FAN_2D)
   import fan.graphics.shapes.types;
@@ -90,6 +86,9 @@ import fan.physics.types;
 #endif
 
 import fan.math.intersection;
+
+// temp includes
+import fan.print;
 
 #if defined(loco_cuda)
 export namespace fan {
@@ -499,6 +498,9 @@ export struct loco_t {
     bloom_blur
   };
 
+  // first variable
+  fan::init_manager_t::cleaner_t _cleaner;
+
   struct properties_t {
     bool render_shapes_top = false;
     bool vsync = true;
@@ -506,7 +508,6 @@ export struct loco_t {
     fan::vec2 window_size = -1;
     std::uint64_t window_flags = 0;
     int window_open_mode = fan::window_t::mode::windowed;
-    std::uint8_t renderer = fan::window_t::renderer_t::unknown;
     std::uint8_t samples = 0;
     post_process_mode_e post_process_mode = post_process_mode_e::bloom;
     f32_t blur_amount = 0.08f;
@@ -539,8 +540,6 @@ private:
 
 public:
 
-  std::uint8_t get_renderer();
-
   fan::graphics::shader_t shader_make_compute(
     const std::string_view file_path,
     const std::source_location& callers_path = std::source_location::current()
@@ -559,24 +558,12 @@ public:
   bool shader_compile(fan::graphics::shader_nr_t nr);
   template <typename T>
   void shader_set_value(fan::graphics::shader_nr_t nr, const std::string_view name, const T& val) {
-    if (0) {}
-  #if defined(FAN_OPENGL)
-    else if (window.renderer == fan::window_t::renderer_t::opengl) {
-      context.gl.shader_set_value(nr, name, val);
-    }
-  #endif
-    else if (window.renderer == fan::window_t::renderer_t::vulkan) {
-      (void)nr; (void)name; (void)val;
-    }
+    fan::print("todo");
   }
   shader_t get_post_process_shader();
   template <typename T>
   void set_post_process(const std::string_view name, T value) {
-  #if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
-    if (window.renderer == fan::window_t::renderer_t::opengl) {
-      shader_set_value(get_post_process_shader(), name, value);
-    }
-  #endif
+    fan::print("todo");
   }
   #if defined(FAN_2D)
   void shader_set_camera(shader_t nr, camera_t camera_nr);
@@ -784,7 +771,6 @@ public:
   opengl* gl = nullptr;
 #endif
 
-#if defined(FAN_VULKAN)
   struct vulkan {
   #include <fan/graphics/vulkan/engine_functions.h>
 
@@ -794,7 +780,6 @@ public:
 
     fan::window_t::resize_handle_t window_resize_handle;
   }vk;
-#endif
 
 public:
 
@@ -839,9 +824,7 @@ public:
   void visualize_culling();
 #endif
 
-#if defined(FAN_VULKAN)
   static void check_vk_result(VkResult err);
-#endif
 
 #if defined(FAN_GUI)
   void init_gui();
@@ -859,7 +842,6 @@ public:
   void destroy();
   void close();
 
-  void switch_renderer(std::uint8_t renderer);
   void shapes_draw();
   void process_shapes();
   void process_gui();
@@ -1049,9 +1031,7 @@ public:
   void toggle_console(bool active);
 #endif
 
-#if defined(FAN_OPENGL)
-  fan::graphics::texture_pack_t texture_pack;
-#endif
+fan::graphics::texture_pack_t texture_pack;
 
   fan::graphics::image_load_properties_t default_noise_image_properties();
   fan::graphics::image_t create_noise_image(const fan::vec2& size);
@@ -1087,8 +1067,6 @@ public:
     bool force_line_draw = false;
   #endif
     bool render_shapes_top = false;
-    // -1 no reload, opengl = 0 etc
-    std::uint8_t reload_renderer_to = -1;
   } renderer_state;
 
   fan::graphics::lighting_t& get_lighting()          { return renderer_state.lighting; }
@@ -1433,9 +1411,7 @@ void fan::stage_loader_t::close_stage(nr_t id) {
   stage_list.unlrec(id);
 }
 
-#if defined(FAN_VULKAN)
 #include <fan/graphics/vulkan/uniform_block.h>
-#endif
 
 #if defined(FAN_GUI)
 namespace fan {

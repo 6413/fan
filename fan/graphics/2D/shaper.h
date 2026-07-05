@@ -264,11 +264,12 @@ struct shaper_t{
   #define BLL_set_Recycle 0
   #define BLL_set_IntegerNR 1
   #define BLL_set_Usage 1
-  #define BLL_set_CPP_Node_ConstructDestruct 1
-  #define BLL_set_CPP_CopyAtPointerChange 1
   #define BLL_set_AreWeInsideStruct 1
   #define BLL_set_NodeDataType ShapeType_t
   #define BLL_set_type_node ShapeTypeAmount_t
+  #define BLL_set_CPP_ConstructNode 1
+  #define BLL_set_CPP_DestructNode 1
+  #define BLL_set_CPP_CopyAtPointerChange 1
   #include <BLL/BLL.h>
   ShapeTypes_t ShapeTypes;
 
@@ -642,14 +643,13 @@ struct shaper_t{
     ShapeTypeIndex_t sti,
     const BlockProperties_t& bp
   ){
-    while(sti >= ShapeTypes.Usage()){
+    while (sti >= ShapeTypes.Usage()) {
       auto csti = ShapeTypes.NewNode();
       auto &st = ShapeTypes[csti];
-
-      /* filler init */
       st.shaper = this;
       st.sti = csti;
       st.BlockList.Open(1);
+      std::construct_at(&st.renderer.vk);
     }
 
     auto &st = ShapeTypes[sti];

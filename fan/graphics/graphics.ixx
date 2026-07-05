@@ -30,7 +30,6 @@ import fan.graphics.shapes.types;
 import fan.graphics.shapes;
 export import fan.graphics.grid_placer;
 import fan.pathfind;
-import fan.graphics.opengl.core;
 import fan.graphics.image_load;
 
 import fan.time;
@@ -51,6 +50,8 @@ import fan.physics.types;
 
 import fan.ecs;
 
+import fan.print.error;
+
 export namespace fan::ecs {
   struct c_rectangle { fan::vec2 size; fan::color color; f32_t depth = 0.f; };
   struct c_line { fan::vec2 offset; fan::color color; f32_t thickness = 1.f; };
@@ -63,7 +64,6 @@ export namespace fan::ecs {
 }
 
 export namespace fan::graphics {
-  using renderer_t = fan::window_t::renderer_t;
   extern fan::graphics::image_t invalid_image;
   fan::graphics::render_view_t add_render_view();
   fan::graphics::render_view_t add_render_view(const fan::vec2& ortho_x, const fan::vec2& ortho_y, const fan::vec2& viewport_position, const fan::vec2& viewport_size);
@@ -913,11 +913,6 @@ export namespace fan::graphics {
       int count_index;
     };
 
-  #if defined(FAN_OPENGL)
-    fan::graphics::texture_pack::internal_t::open_properties_t open_properties;
-    fan::graphics::texture_pack::internal_t e;
-    fan::graphics::texture_pack::internal_t::texture_properties_t texture_properties;
-  #endif
 
     fan::graphics::image_t root_image{fan::graphics::ctx().default_texture};
     std::vector<std::vector<image_t>> images;
@@ -1378,28 +1373,12 @@ export namespace fan::graphics {
 
   template <typename T>
   void shader_get_value(fan::graphics::shader_nr_t nr, const std::string_view name, T& val) {
-    if (0) {}
-  #if defined(FAN_OPENGL)
-    else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
-      fan::graphics::get_gl_context().shader_get_value(nr, name, val);
-    }
-  #endif
-    else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {
-      (void)nr; (void)name; (void)val;
-    }
+    fan::throw_error("todo");
   }
 
   template <typename T>
   void shader_set_value(fan::graphics::shader_nr_t nr, const std::string_view name, const T& val) {
-    if (0) {}
-  #if defined(FAN_OPENGL)
-    else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::opengl) {
-      fan::graphics::get_gl_context().shader_set_value(nr, name, val);
-    }
-  #endif
-    else if (fan::graphics::ctx().get_renderer() == fan::window_t::renderer_t::vulkan) {
-      (void)nr; (void)name; (void)val;
-    }
+    fan::throw_error("todo");
   }
 
   void update_tiling_background(fan::graphics::shape_t& sprite, fan::vec2 tile_size, render_view_t* rv = ctx().orthographic_render_view);

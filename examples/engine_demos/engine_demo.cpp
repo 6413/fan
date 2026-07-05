@@ -25,18 +25,13 @@ using menu_t = fan::graphics::gui::settings_menu_t;
 /*
   Tracking ram is enabled by fan::heap_profiler_t::instance().enabled = true;
     Slowest ram allocations can be printed fan::heap_profiler_t::instance().print_slowest_allocs(top_count)
-
-  Tracking vram is enabled by fan_track_opengl_calls() = true;
-    TODO make more flexible, currently prints slow functions to console.
 */
 
 struct engine_demo_t;
 engine_demo_t* engine_demo_ptr;
 
 struct engine_demo_t {
-  engine_t engine {{ // initialize before everything
-    .renderer = fan::graphics::renderer_t::vulkan,
-  }};
+  engine_t engine; // initialize before everything
 
   engine_demo_t() {
     create_gui();
@@ -129,12 +124,6 @@ struct engine_demo_t {
     void* pixel_data = pixel_data_str.data();
     auto split = fan::image::plane_split(pixel_data, image_size, fan::graphics::image_format_e::yuv420p);
     engine_demo->shapes.back().reload(fan::graphics::image_format_e::yuv420p, split, image_size);
-fan::printn8(
-  "props", engine_demo->shapes.back().get_images()[0].NRI,
-  "get_image", engine_demo->shapes.back().get_image().NRI,
-  "visual", engine_demo->shapes.back().get_visual_id().gint(),
-  "default", gloco()->default_texture.NRI
-);
   }
 
   fan::graphics::image_t image_tire = engine.image_load("images/tire.webp");
@@ -316,47 +305,6 @@ fan::printn8(
     });
   }
 
-  inline static const char* demo_shader_shape_fragment_shader_gl = R"(#version 330
-layout (location = 0) out vec4 o_attachment0;
-
-in vec2 texture_coordinate;
-in vec4 instance_color;
-
-uniform sampler2D _t00;
-uniform sampler2D _t01;
-uniform sampler2D _t02;
-uniform float _time;
-uniform vec3 lighting_ambient;
-uniform vec2 window_size;
-uniform vec4 custom_color;
-
-void main() {
-
-  vec2 tc = texture_coordinate;
-
-  vec4 tex_color = vec4(1, 1, 1, 1);
-
-  tex_color = texture(_t00, tc) * instance_color;
-
-  if (tex_color.a <= 0.25) {
-    discard;
-  }
-
-  vec4 lighting_texture = vec4(texture(_t01, gl_FragCoord.xy / window_size).rgb, 1);
-  vec3 base_lit = tex_color.rgb * lighting_ambient;
-  vec3 additive_light = lighting_texture.rgb;
-  tex_color.rgb = base_lit + additive_light;
-
-  // demonstration of custom shader which blinks the given image and changes hue
-  tex_color.rgb *= abs(sin(_time));
-
-  float luminance = dot(tex_color.rgb, vec3(0.299, 0.587, 0.114));
-  tex_color.rgb = custom_color.rgb * luminance;
-  tex_color.a *= custom_color.a;
-
-  o_attachment0 = tex_color;
-})";
-
   inline static const char* demo_shader_shape_fragment_shader_vk = R"(#version 450
 layout(location = 0) in vec4 instance_color;
 layout(location = 1) in vec2 texture_coordinate;
@@ -385,8 +333,7 @@ void main() {
 
   fan::graphics::shader_t demo_shader_shape_shader {engine.get_sprite_shader(
     "",
-    engine.window.renderer == fan::window_t::renderer_t::vulkan ?
-      demo_shader_shape_fragment_shader_vk : demo_shader_shape_fragment_shader_gl
+    demo_shader_shape_fragment_shader_vk
   )};
   fan::color custom_color = fan::colors::red;
   static void demo_shapes_init_shader_shape(engine_demo_t* engine_demo) {
@@ -410,13 +357,8 @@ void main() {
   }
   static void demo_shader_shape_update(engine_demo_t* engine_demo) {
     if (fan::graphics::gui::color_edit4("##c0", &engine_demo->custom_color)) {
-      if (engine_demo->engine.window.renderer == fan::window_t::renderer_t::vulkan) {
-        if (!engine_demo->shapes.empty()) {
-          engine_demo->shapes[0].set_color(engine_demo->custom_color);
-        }
-      }
-      else {
-        engine_demo->engine.shader_set_value(engine_demo->demo_shader_shape_shader, "custom_color", engine_demo->custom_color);
+      if (!engine_demo->shapes.empty()) {
+        engine_demo->shapes[0].set_color(engine_demo->custom_color);
       }
     }
   }
@@ -459,41 +401,6 @@ void main() {
   // ------------------------SHAPES------------------------
 
   // ------------------------GUI------------------------
-  inline static const char* demo_shader_live_editor_shader_gl = R"(#version 330
-in vec2 texture_coordinate;
-layout (location = 0) out vec4 o_attachment0;
-uniform float m_time;
-uniform sampler2D _t00;
-
-void DrawVignette( inout vec3 color, vec2 uv ) {    
-    float vignette = uv.x * uv.y * ( 1.0 - uv.x ) * ( 1.0 - uv.y );
-    vignette = clamp( pow( 16.0 * vignette, 0.3 ), 0.0, 1.0 );
-    color *= vignette;
-}
-
-vec2 CRTCurveUV( vec2 uv ) {
-    uv = uv * 2.0 - 1.0;
-    vec2 offset = abs( uv.yx ) / vec2( 6.0, 4.0 );
-    uv = uv + uv * offset * offset;
-    uv = uv * 0.5 + 0.5;
-    return uv;
-}
-
-void DrawScanline( inout vec3 color, vec2 uv ) {
-    float scanline = clamp( 0.95 + 0.05 * cos( 3.14 * ( uv.y + 0.008 * m_time ) * 240.0 * 1.0 ), 0.0, 1.0 );
-    float grille = 0.85 + 0.15 * clamp( 1.5 * cos( 3.14 * uv.x * 640.0 * 1.0 ), 0.0, 1.0 );    
-    color *= scanline * grille * 1.2;
-}
-
-void main() {
-    vec2 tex = vec2(texture_coordinate.x, 1.0 - texture_coordinate.y);
-    tex = CRTCurveUV(tex*1.05);
-    vec3 actual = texture(_t00, tex).rgb;
-    o_attachment0 = vec4(actual, 1);
-    DrawVignette(o_attachment0.rgb, tex);
-    DrawScanline(o_attachment0.rgb, tex);
-})";
-
   inline static const char* demo_shader_live_editor_shader_vk = R"(#version 450
 layout(location = 0) in vec4 instance_color;
 layout(location = 1) in vec2 texture_coordinate;
@@ -551,8 +458,7 @@ void main() {
     engine_demo->demo_shader_live_editor_data = new demo_shader_live_editor_t();
     auto& data = *engine_demo->demo_shader_live_editor_data;
 
-    data.shader_code = engine_demo->engine.window.renderer == fan::window_t::renderer_t::vulkan ?
-      demo_shader_live_editor_shader_vk : demo_shader_live_editor_shader_gl;
+    data.shader_code = demo_shader_live_editor_shader_vk;
     data.shader = engine_demo->engine.get_sprite_shader("", data.shader_code);
     fan::graphics::image_t image = engine_demo->engine.image_load("images/lava_seamless.webp");
 

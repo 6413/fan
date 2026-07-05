@@ -34,9 +34,6 @@ export import fan.graphics.common_context;
 
 export import fan.graphics.loco;
 
-#if defined(FAN_OPENGL)
-  export import fan.graphics.opengl.core;
-#endif
 
 #if defined(FAN_2D)
   export import fan.graphics.shapes.types;
@@ -116,12 +113,9 @@ export import fan.crypto;
 
 #if defined(FAN_3D)
   export import fan.graphics.fms;
-  export import fan.graphics.opengl3D.objects.model;
   export import fan.graphics.voxel;
-  #if defined(FAN_VULKAN)
   export import fan.graphics.vulkan.ray_tracing.hardware_renderer;
   export import fan.graphics.vulkan.ray_tracing.gpu_terrain_streamer;
-  #endif
 #endif
 
 

@@ -1,6 +1,5 @@
 module;
 
-#if defined(FAN_VULKAN)
 #if defined(fan_platform_windows)
 #define VK_USE_PLATFORM_WIN32_KHR
 #elif defined(fan_platform_unix)
@@ -24,7 +23,6 @@ module;
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
-#endif
 
 #include <fan/utility.h>
 
@@ -32,7 +30,6 @@ export module fan.graphics.vulkan.core:vai;
 export import :types;
 import std;
 
-#if defined(FAN_VULKAN)
 
 import fan.types.matrix;
 import fan.types.fstring;
@@ -137,5 +134,3 @@ export namespace fan {
     };
   }
 }
-
-#endif

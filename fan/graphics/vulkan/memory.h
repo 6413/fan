@@ -1,154 +1,131 @@
 struct memory_write_queue_t {
+  memory_write_queue_t() : write_queue() {}
 
-	memory_write_queue_t() : write_queue() {
-					
-	}
+  using memory_edit_cb_t = void (*)(fan::vulkan::context_t&, void*);
 
-	using memory_edit_cb_t = std::function<void()>;
+  struct node_data_t {
+    memory_edit_cb_t cb = nullptr;
+    void* user_data = nullptr;
+  };
 
-
-	#include "memory_bll_settings.h"
+  #include "memory_bll_settings.h"
 protected:
-	#include <BLL/BLL.h>
-	write_queue_t write_queue;
+  #include <BLL/BLL.h>
+  write_queue_t write_queue;
 public:
+  using nr_t = write_queue_NodeReference_t;
 
-	using nr_t = write_queue_NodeReference_t;
+  nr_t push_back(memory_edit_cb_t cb, void* user_data) {
+    auto nr = write_queue.NewNodeLast();
+    write_queue[nr].cb = cb;
+    write_queue[nr].user_data = user_data;
+    return nr;
+  }
 
-	nr_t push_back(const memory_edit_cb_t& cb) {
-		auto nr = write_queue.NewNodeLast();
-		write_queue[nr].cb = cb;
-		return nr;
-	}
+  void process(fan::vulkan::context_t& context) {
+    std::vector<node_data_t> cbs;
+    auto it = write_queue.GetNodeFirst();
+    while (it != write_queue.dst) {
+      write_queue.StartSafeNext(it);
+      cbs.push_back({write_queue[it].cb, write_queue[it].user_data});
+      it = write_queue.EndSafeNext();
+    }
 
-	void process(fan::vulkan::context_t& context) {
-		std::vector<memory_edit_cb_t> cbs;
-		auto it = write_queue.GetNodeFirst();
-		while (it != write_queue.dst) {
-			write_queue.StartSafeNext(it);
-			cbs.push_back(write_queue[it].cb);
-			it = write_queue.EndSafeNext();
-		}
+    write_queue.Clear();
 
-		write_queue.Clear();
+    for (auto& item : cbs) {
+      if (item.cb) { item.cb(context, item.user_data); }
+    }
+  }
 
-		for (auto& cb : cbs) {
-			cb();
-		}
-	}
+  void erase(nr_t node_reference) {
+    write_queue.unlrec(node_reference);
+  }
 
-	void erase(nr_t node_reference) {
-		write_queue.unlrec(node_reference);
-	}
-
-	void clear() {
-		write_queue.Clear();
-	}
+  void clear() {
+    write_queue.Clear();
+  }
 };
 
 struct memory_t {
-	VkBuffer buffer = VK_NULL_HANDLE;
-	VmaAllocation device_memory = VK_NULL_HANDLE;
+  VkBuffer buffer = VK_NULL_HANDLE;
+  VmaAllocation device_memory = VK_NULL_HANDLE;
 };
 
 template <typename nr_t, typename instance_id_t>
 struct memory_common_t {
-	static constexpr auto buffer_count = fan::vulkan::max_frames_in_flight;
+  using write_cb_t = void (*)(fan::vulkan::context_t&, void*);
 
-	struct index_t {
-		nr_t nr;
-		instance_id_t i;
-	};
+  write_cb_t write_cb = nullptr;
+  void* user_data = nullptr;
+  nr_t shape_nr{};
+  memory_write_queue_t::nr_t m_edit_index{};
+  uint64_t dirty_frames = 0;
+  bool queued = false;
+  std::vector<instance_id_t> indices;
+  uint64_t m_min_edit = -1;
+  uint64_t m_max_edit = 0;
+  memory_t memory[fan::vulkan::max_frames_in_flight]{};
 
-	memory_t memory[buffer_count];
+  void open(fan::vulkan::context_t& context, write_cb_t cb, void* ptr = nullptr) {
+    write_cb = cb;
+    user_data = ptr;
+  }
 
-	memory_write_queue_t::memory_edit_cb_t write_cb;
+  void close(fan::vulkan::context_t& context) {
+    if (queued) {
+      context.memory_queue.erase(m_edit_index);
+      queued = false;
+    }
+    for (std::uint32_t i = 0; i < fan::vulkan::max_frames_in_flight; ++i) {
+      if (memory[i].buffer != VK_NULL_HANDLE) {
+        context.destroy_buffer(memory[i].buffer, memory[i].device_memory);
+        memory[i].buffer = VK_NULL_HANDLE;
+      }
+    }
+  }
 
-	void open(fan::vulkan::context_t& context, const memory_write_queue_t::memory_edit_cb_t& cb) {
-		write_cb = cb;
-		queued = false;
-		dirty_frames = 0;
+  bool is_queued() const {
+    return queued;
+  }
 
-		m_min_edit = 0xFFFFFFFFFFFFFFFF;
-		m_max_edit = 0x00000000;
-	}
+  void queue(fan::vulkan::context_t& context) {
+    dirty_frames |= (std::uint64_t(1) << fan::vulkan::max_frames_in_flight) - 1;
 
-	void close(fan::vulkan::context_t& context) {
-		if (is_queued()) {
-			context.memory_queue.erase(m_edit_index);
-		}
+    if (is_queued()) {
+      return;
+    }
+    queued = true;
+    m_edit_index = context.memory_queue.push_back(write_cb, user_data);
+  }
 
-		for (std::uint32_t i = 0; i < fan::vulkan::max_frames_in_flight; ++i) {
-			if (memory[i].buffer != VK_NULL_HANDLE) {
-				context.destroy_buffer(memory[i].buffer, memory[i].device_memory);
-			}
-		}
-	}
+  void edit(fan::vulkan::context_t& context, const instance_id_t& idx) {
+    indices.push_back(idx);
+    queue(context);
+  }
 
-	bool is_queued() const {
-		return queued;
-	}
+  void edit(fan::vulkan::context_t& context, std::uint64_t begin, std::uint64_t end) {
+    m_min_edit = std::min(m_min_edit, begin);
+    m_max_edit = std::max(m_max_edit, end);
+    queue(context);
+  }
 
-	void queue(fan::vulkan::context_t& context) {
-		dirty_frames |= (std::uint64_t(1) << fan::vulkan::max_frames_in_flight) - 1;
+  bool is_current_frame_dirty(fan::vulkan::context_t& context) const {
+    return dirty_frames & (std::uint64_t(1) << context.current_frame);
+  }
 
-		if (is_queued()) {
-			return;
-		}
-		queued = true;
-		m_edit_index = context.memory_queue.push_back(write_cb);
-	}
+  void on_edit(fan::vulkan::context_t& context) {
+    dirty_frames &= ~(std::uint64_t(1) << context.current_frame);
 
-	void edit(fan::vulkan::context_t& context, const index_t& idx) {
-		indices.push_back(idx);
-		queue(context);
-	}
+    if (dirty_frames) {
+      queued = false;
+      queue(context);
+      return;
+    }
 
-	void edit(fan::vulkan::context_t& context, std::uint64_t begin, std::uint64_t end) {
-		m_min_edit = std::min(m_min_edit, begin);
-		m_max_edit = std::max(m_max_edit, end);
-		queue(context);
-	}
-
-	bool is_current_frame_dirty(fan::vulkan::context_t& context) const {
-		return dirty_frames & (std::uint64_t(1) << context.current_frame);
-	}
-
-	void on_edit(fan::vulkan::context_t& context) {
-		dirty_frames &= ~(std::uint64_t(1) << context.current_frame);
-
-		if (dirty_frames) {
-			queued = false;
-			queue_current(context);
-			return;
-		}
-
-		reset_edit();
-	}
-
-	void queue_current(fan::vulkan::context_t& context) {
-		if (is_queued()) {
-			return;
-		}
-		queued = true;
-		m_edit_index = context.memory_queue.push_back(write_cb);
-	}
-
-	void reset_edit() {
-		queued = false;
-		dirty_frames = 0;
-		indices.clear();
-
-		m_min_edit = 0xFFFFFFFFFFFFFFFF;
-		m_max_edit = 0x00000000;
-	}
-
-	std::vector<index_t> indices;
-	fan::vulkan::context_t::memory_write_queue_t::nr_t m_edit_index;
-
-	std::uint64_t m_min_edit;
-	std::uint64_t m_max_edit;
-	std::uint64_t dirty_frames = 0;
-
-	bool queued = 0;
+    queued = false;
+    indices.clear();
+    m_min_edit = -1;
+    m_max_edit = 0;
+  }
 };

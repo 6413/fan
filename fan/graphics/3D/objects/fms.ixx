@@ -611,7 +611,7 @@ export namespace fan {
         std::memcpy(bytes->data(), embedded_texture->pcData, embedded_texture->mWidth);
 
         auto result = std::make_shared<fan::image::async_result_t>();
-        result->job = std::async(std::launch::async, [bytes] {
+        std::thread([bytes, result] {
           fan::image::owned_t out;
 
           int width = 0;
@@ -628,7 +628,8 @@ export namespace fan {
           );
 
           if (data == nullptr) {
-            return out;
+            result->state.store(fan::image::async_result_t::state_e::failed, std::memory_order_release);
+            return;
           }
 
           out.size = fan::vec2i(std::uint32_t(width), std::uint32_t(height));
@@ -641,8 +642,9 @@ export namespace fan {
           }
           );
 
-          return out;
-        });
+          result->image = std::move(out);
+          result->state.store(fan::image::async_result_t::state_e::ready, std::memory_order_release);
+        }).detach();
 
         return result;
       }
@@ -2314,3 +2316,4 @@ export namespace fan {
 #endif 
 
 #endif
+

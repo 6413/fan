@@ -1,16 +1,18 @@
 module;
 
-#if defined(FAN_3D) && defined(FAN_VULKAN)
+#if defined(FAN_3D)
+
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
 #include <shaderc/shaderc.hpp>
+
 #endif
 
 export module fan.graphics.vulkan.ray_tracing.hardware_renderer;
 
-import std;
+#if defined(FAN_3D)
 
-#if defined(FAN_3D) && defined(FAN_VULKAN)
+import std;
 
 import fan.types.matrix;
 import fan.graphics.vulkan.core;

@@ -1,6 +1,5 @@
 module;
 
-#if defined(FAN_VULKAN)
 #if defined(fan_platform_windows)
 #define VK_USE_PLATFORM_WIN32_KHR
 #elif defined(fan_platform_unix)
@@ -24,13 +23,11 @@ module;
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
-#endif
 
 module fan.graphics.vulkan.core;
 
 import std;
 
-#if defined(FAN_VULKAN)
 
 import fan.types.fstring;
 import fan.types.color;
@@ -61,24 +58,6 @@ import fan.math.intersection;
 #define ENABLE_RAYTRACING_DEPENDENCIES
 
 #define VK_CTX ((fan::vulkan::context_t*)context)
-
-const std::vector<const char*> validationLayers = {
-    "VK_LAYER_KHRONOS_validation"
-};
-
-const std::vector<const char*> deviceExtensions = {
-  VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-  VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
-#if defined(ENABLE_RAYTRACING_DEPENDENCIES)
-  // RT
-  VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-  VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
-  VK_KHR_SPIRV_1_4_EXTENSION_NAME,
-  VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
-  VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
-  VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
-#endif
-};
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
   auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
@@ -178,25 +157,7 @@ void fan::vulkan::context_t::destroy_vulkan_soft() {
     vkFreeCommandBuffers(device, command_pool, 1, &single_time_cmd);
     single_time_cmd = VK_NULL_HANDLE;
   }
-  fan::vulkan::context_t& context = *this;
-  {
-    fan::graphics::shader_list_t::nrtra_t nrtra;
-    fan::graphics::shader_list_t::nr_t nr;
-    nrtra.Open(&__fan_internal_shader_list, &nr);
-    while (nrtra.Loop(&__fan_internal_shader_list, &nr)) {
-      shader_erase(nr, 0);
-    }
-    nrtra.Close(&__fan_internal_shader_list);
-  }
-  {
-    fan::graphics::image_list_t::nrtra_t nrtra;
-    fan::graphics::image_list_t::nr_t nr;
-    nrtra.Open(&__fan_internal_image_list, &nr);
-    while (nrtra.Loop(&__fan_internal_image_list, &nr)) {
-      image_erase(nr, 0);
-    }
-    nrtra.Close(&__fan_internal_image_list);
-  }
+
 
   close_vais(mainColorImageViews);
   close_vais(postProcessedColorImageViews);
@@ -231,8 +192,7 @@ void fan::vulkan::context_t::gui_close() {
 #if defined(FAN_GUI)
   ImGui_ImplVulkanH_DestroyWindow(instance, device, &MainWindowData, nullptr);
 #endif
-
-  destroy_allocator();
+  destroy_shape_resources();
   vkDestroyDevice(device, nullptr);
   vkDestroyInstance(instance, nullptr);
 }
@@ -241,6 +201,12 @@ void fan::vulkan::context_t::close() {
   cleanup_swap_chain();
   vkDestroySurfaceKHR(instance, surface, nullptr);
   destroy_vulkan_soft();
+  destroy_shape_resources();
+  destroy_allocator();
+  vkDestroyDevice(device, nullptr);
+  vkDestroyInstance(instance, nullptr);
+}
+void fan::vulkan::context_t::destroy_shape_resources() {
   fan::vulkan::context_t& context = *this;
   {
     fan::graphics::camera_list_t::nrtra_t nrtra;
@@ -278,9 +244,6 @@ void fan::vulkan::context_t::close() {
     }
     nrtra.Close(&__fan_internal_viewport_list);
   }
-  destroy_allocator();
-  vkDestroyDevice(device, nullptr);
-  vkDestroyInstance(instance, nullptr);
 }
 void fan::vulkan::context_t::cleanup_swap_chain_dependencies() {
   vkDeviceWaitIdle(device);
@@ -1864,4 +1827,3 @@ namespace fan::graphics {
     return (*static_cast<fan::vulkan::context_t*>(static_cast<void*>(fan::graphics::ctx())));
   }
 }
-#endif

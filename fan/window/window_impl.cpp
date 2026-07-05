@@ -11,9 +11,7 @@ module;
   #endif
 #endif
 
-#if defined(FAN_VULKAN)
 #include <vulkan/vulkan.h>
-#endif
 #if defined(fan_platform_windows)
   #define WIN32_LEAN_AND_MEAN
   #define NOMINMAX
@@ -40,35 +38,27 @@ import fan.print;
 
 namespace fan {
 
-  bool& init_manager_t::initialized() {
-    static bool instance = false;
-    return instance;
+  static int& glfw_ref_count() {
+    static int count = 0;
+    return count;
   }
 
   void init_manager_t::initialize() {
-    if (initialized()) {
-      return;
+    if (glfw_ref_count()++ == 0) {
+      glfwSetErrorCallback([](int error, const char* description) {
+      #if defined(GLFW_FEATURE_UNAVAILABLE)
+        if (error == GLFW_FEATURE_UNAVAILABLE) { return; }
+      #endif
+        fan::throw_error("GLFW error " + std::to_string(error) + ": " + description);
+      });
+      glfwInit();
     }
-    glfwSetErrorCallback([](int error, const char* description) {
-    #if defined(GLFW_FEATURE_UNAVAILABLE)
-      if (error == GLFW_FEATURE_UNAVAILABLE) {
-        return; // ignore unsupported Wayland features
-      }
-    #endif
-      fan::throw_error("GLFW error " + std::to_string(error) + ": " + description);
-    });
-    if (!glfwInit()) {
-      return;
-    }
-    initialized() = true;
   }
 
   void init_manager_t::uninitialize() {
-    if (initialized() == false) {
-      return;
+    if (glfw_ref_count() > 0 && --glfw_ref_count() == 0) {
+      glfwTerminate();
     }
-    glfwTerminate();
-    initialized() = false;
   }
 
   init_manager_t::cleaner_t::cleaner_t() {
@@ -83,8 +73,6 @@ namespace fan {
     static cleaner_t instance;
     return instance;
   }
-
-  fan::init_manager_t::cleaner_t& _cleaner = fan::init_manager_t::cleaner();
 }
 
 namespace fan::window {
@@ -285,6 +273,7 @@ namespace fan {
   }
 
   void window_t::open(std::uint64_t flags) {
+    fan::init_manager_t::initialize();
     properties_t props;
     props.flags = flags;
     open(props);
@@ -360,44 +349,8 @@ namespace fan {
       y = my;
     }
 
-    if (renderer == renderer_t::vulkan) {
-      glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-      glfw_window = glfwCreateWindow(w, h, props.name.c_str(), use_mon, nullptr);
-    }
-    else if (renderer == renderer_t::opengl) {
-      glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_API);
-
-      if (props.opengl_major > 0) {
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, props.opengl_major);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, props.opengl_minor);
-        if (props.opengl_major > 3 || (props.opengl_major == 3 && props.opengl_minor >= 3)) {
-          glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-          glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
-        }
-        else {
-          glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_ANY_PROFILE);
-        }
-        glfw_window = glfwCreateWindow(w, h, props.name.c_str(), use_mon, nullptr);
-      }
-      else {
-        const std::pair<int, int> gl_versions[] = {
-          {4, 6}, {4, 5}, {4, 4}, {4, 3}, {4, 2}, {4, 1}, {4, 0}, {3, 3}
-        };
-
-        for (auto [major, minor] : gl_versions) {
-          glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, major);
-          glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, minor);
-          glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-          glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE);
-
-          glfw_window = glfwCreateWindow(w, h, props.name.c_str(), use_mon, nullptr);
-          
-          if (glfw_window != nullptr) {
-            break; 
-          }
-        }
-      }
-    }
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    glfw_window = glfwCreateWindow(w, h, props.name.c_str(), use_mon, nullptr);
 
     if (glfw_window == nullptr) {
       glfwTerminate();
@@ -422,10 +375,6 @@ namespace fan {
     }
   #endif
 
-    if (renderer == renderer_t::opengl) {
-      glfwMakeContextCurrent(glfw_window);
-      glfwSwapBuffers(glfw_window);
-    }
     glfwSetMouseButtonCallback(glfw_window, fan::window::mouse_button_callback);
     glfwSetKeyCallback(glfw_window, fan::window::keyboard_keys_callback);
     glfwSetCharCallback(glfw_window, fan::window::text_callback);
@@ -446,6 +395,7 @@ namespace fan {
       glfwMakeContextCurrent(nullptr);
       glfwDestroyWindow(glfw_window);
       glfw_window = nullptr;
+      fan::init_manager_t::uninitialize();
     }
   }
 

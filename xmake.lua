@@ -52,7 +52,7 @@ local fan_features = {
   FAN_PHYSICS_2D = true,
   FAN_JSON = true,
   FAN_3D = false,
-  FAN_OPENGL = true,
+  
   FAN_VULKAN = false,
   FAN_FMT = false,
   FAN_WAYLAND_SCREEN = false,
@@ -70,7 +70,7 @@ end
 option("static_runtime") set_default(false) option_end()
 
 if not has_config("FAN_WINDOW") then
-  for _, f in ipairs({"FAN_GUI", "FAN_2D", "FAN_OPENGL", "FAN_3D", "FAN_VIDEO"}) do
+  for _, f in ipairs({"FAN_GUI", "FAN_2D", "FAN_3D", "FAN_VIDEO"}) do
     if has_config(f) then os.raise(f .. " requires FAN_WINDOW") end
   end
 end
@@ -89,9 +89,7 @@ if not is_plat("wasm") then
     add_requires("libpng 1.6.43", static_req)
     add_requires("libwebp 1.3.2", static_req)
   end
-  if is_plat("linux") and has_config("FAN_OPENGL") then
-    add_requires("glfw 3.4", static_req)
-  end
+  
   if has_config("FAN_GUI") then
     add_requires("freetype 2.13.2", static_req)
     add_requires("lunasvg 2.4.1", static_req)
@@ -152,7 +150,7 @@ local feature_modules = {
     "fan/graphics/gameplay/gameplay.ixx", "fan/graphics/graphics_event.ixx", "fan/texture_pack/tp0.ixx",
     "fan/physics/physics_types.ixx", "fan/noise.ixx", "fan/pathfind.ixx", "fan/spatial.ixx", "fan/ecs.ixx"
   },
-  FAN_OPENGL = { "fan/graphics/opengl/gl_core.ixx", "fan/graphics/opengl/uniform_block.ixx" },
+  
   FAN_VULKAN = { "fan/graphics/vulkan/vk_core_types.ixx", "fan/graphics/vulkan/vk_core_vai.ixx", "fan/graphics/vulkan/vk_core.ixx" },
   FAN_2D = { "fan/graphics/2D/shapes_types.ixx", "fan/graphics/2D/grid_placer.ixx", "fan/graphics/2D/culling.ixx", "fan/graphics/2D/shapes.ixx" },
   FAN_JSON = { "fan/types/json.ixx" },
@@ -294,7 +292,7 @@ target("a.exe")
   end
 
   for _, f in ipairs(impl_files) do add_files(f) end
-  if not is_plat("wasm") and has_config("FAN_OPENGL") then add_files("third_party/fan/glad.c") end
+  
 
   set_policy("check.auto_ignore_flags", false)
   if not has_config("buildlib") then add_files(get_config("main")) end
@@ -307,7 +305,7 @@ target("a.exe")
     if has_config("static_runtime") then add_ldflags("-static-libstdc++", "-static-libgcc", {force = true}) end
     add_packages("libuv")
     if has_config("FAN_WINDOW") then add_packages("zlib", "libpng", "libwebp") end
-    if has_config("FAN_OPENGL") then add_packages("glfw") add_links("X11", "GL") end
+    
     if has_config("FAN_AUDIO") then add_links("opus", "pulse-simple") end
     if has_config("FAN_NETWORK") then add_links("ssl", "crypto", "curl") end
     if has_config("FAN_GUI") then add_packages("freetype", "lunasvg") end

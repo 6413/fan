@@ -1,3 +1,4 @@
+// uniform_block.h
 template <typename type_t, std::uint32_t element_size>
 struct uniform_block_t {
 
@@ -11,31 +12,48 @@ struct uniform_block_t {
 	using instance_id_t = std::uint8_t;
 
 	uniform_block_t() = default;
+	uniform_block_t(const uniform_block_t& other) {
+		*this = other;
+	}
+	uniform_block_t& operator=(const uniform_block_t& other) {
+		op = other.op;
+		common = other.common;
+		common.user_data = this;
+		std::memcpy(buffer, other.buffer, sizeof(buffer));
+		m_size = other.m_size;
+		return *this;
+	}
 
 	uniform_block_t(fan::vulkan::context_t& context, open_properties_t op_ = open_properties_t()) {
 		open(context, op_);
 	}
 
-	void open(fan::vulkan::context_t& context, open_properties_t op_ = open_properties_t()) {
-		common.open(context, [&context, this] () {
-			const auto begin = common.m_min_edit;
-			const auto end = common.m_max_edit;
+	void write(fan::vulkan::context_t& context) {
+		const auto begin = common.m_min_edit;
+		const auto end = common.m_max_edit;
 
-			if (!common.is_current_frame_dirty(context) || begin == 0xFFFFFFFFFFFFFFFF || end <= begin) {
-				common.on_edit(context);
-				return;
-			}
-
-			auto frame = context.current_frame;
-			std::uint8_t* data;
-			fan::vulkan::validate(vmaMapMemory(context.allocator, common.memory[frame].device_memory, (void**)&data));
-
-			std::memcpy(data + begin, buffer + begin, end - begin);
-
-			vmaUnmapMemory(context.allocator, common.memory[frame].device_memory);
-
+		if (!common.is_current_frame_dirty(context) || begin == 0xFFFFFFFFFFFFFFFF || end <= begin) {
 			common.on_edit(context);
-		});
+			return;
+		}
+
+		auto frame = context.current_frame;
+		std::uint8_t* data;
+		fan::vulkan::validate(vmaMapMemory(context.allocator, common.memory[frame].device_memory, (void**)&data));
+
+		std::memcpy(data + begin, buffer + begin, end - begin);
+
+		vmaUnmapMemory(context.allocator, common.memory[frame].device_memory);
+
+		common.on_edit(context);
+	}
+
+	static void write_cb_impl(fan::vulkan::context_t& context, void* ptr) {
+		static_cast<uniform_block_t*>(ptr)->write(context);
+	}
+
+	void open(fan::vulkan::context_t& context, open_properties_t op_ = open_properties_t()) {
+		common.open(context, write_cb_impl, this);
 
 		op = op_;
 
