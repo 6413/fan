@@ -1578,11 +1578,6 @@ int main() {////
   // remove default "open settings" keybind
   demo.engine.get_input_action().remove(fan::actions::toggle_settings);
 
-      fan::physics::body_id_t id = demo.engine.get_physics_context().create_rectangle(
-      fan::vec2(400.f, 700.f), 
-      fan::vec2(400.f, 20.f)
-    );
-
   demo.engine.loop([&] {
     auto camera = fan::graphics::camera_get(demo.right_column_view.camera);
 
