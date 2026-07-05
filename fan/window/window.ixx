@@ -11,9 +11,7 @@ module;
 	#endif
 #endif
 
-#if defined(FAN_VULKAN)
 #include <vulkan/vulkan.h>
-#endif
 #if defined(fan_platform_windows)
   #define WIN32_LEAN_AND_MEAN
   #define NOMINMAX
@@ -47,8 +45,6 @@ export import fan.types.vector;
 export namespace fan {
 
   struct init_manager_t {
-    static bool& initialized();
-
     static void initialize();
     static void uninitialize();
 
@@ -59,7 +55,6 @@ export namespace fan {
 
     static cleaner_t& cleaner();
   };
-  extern fan::init_manager_t::cleaner_t& _cleaner;
 }
 
 namespace fan {
@@ -140,12 +135,6 @@ export namespace fan {
       static constexpr std::uint64_t hidden = 1 << 7;
       static constexpr std::uint64_t topmost = 1 << 8;
       static constexpr std::uint64_t click_through = 1 << 9;
-    };
-
-    struct renderer_t {
-      static constexpr std::uint8_t unknown = 255;
-      static constexpr std::uint8_t opengl = 0;
-      static constexpr std::uint8_t vulkan = 1;
     };
 
     struct buttons_data_t {
@@ -434,7 +423,6 @@ export namespace fan {
     std::string get_clipboard() const;
     void set_clipboard(const std::string& text);
 
-    std::uint8_t renderer = renderer_t::opengl;
     double last_frame_time = glfwGetTime();
     f64_t m_delta_time = 1.0 / 256.0;
     std::uint32_t m_frame_counter = 0;

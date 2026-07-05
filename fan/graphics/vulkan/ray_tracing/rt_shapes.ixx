@@ -1,20 +1,17 @@
 module;
 
-#if defined(FAN_3D) && defined(FAN_VULKAN)
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
-#endif
 
 export module fan.graphics.vulkan.ray_tracing.shapes;
 
 import std;
 
-#if defined(FAN_3D) && defined(FAN_VULKAN)
 
 import fan.types.vector;
 import fan.types.matrix;
 import fan.graphics.vulkan.core;
-import fan.graphics.fms;
+
 
 export namespace fan::graphics::vulkan::ray_tracing::shapes {
 
@@ -22,16 +19,6 @@ export namespace fan::graphics::vulkan::ray_tracing::shapes {
     std::vector<fan::vec3> vertices; 
     std::vector<std::uint32_t> indices;
     triangle_mesh_t() = default;
-    triangle_mesh_t(const fan::model::mesh_t& m) {
-      vertices.reserve(m.vertices.size());
-      indices.reserve(m.indices.size());
-      for (auto& v : m.vertices) {
-        vertices.push_back(fan::mat4(1).scale(0.0001) * v.position);
-      }
-      for (auto idx : m.indices) {
-        indices.push_back(idx);
-      }
-    }
   };
 
   struct gpu_mesh_t {
@@ -102,5 +89,3 @@ export namespace fan::graphics::vulkan::ray_tracing::shapes {
   }
   
 }
-
-#endif

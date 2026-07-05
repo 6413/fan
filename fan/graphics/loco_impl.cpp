@@ -4,14 +4,11 @@ module;
 
 // loco framebuffer is recommended, you cant see sprites without it, 
 // since light uses framebuffer _t01. you could use unlit_sprite, if required
-#define LOCO_FRAMEBUFFER
 #include <coroutine>
 
 // TODO REMOVE
-#if defined(FAN_VULKAN)
-  // TODO REMOVE
-  #include <vulkan/vulkan.h>
-#endif
+#include <vulkan/vulkan.h>
+#include <vk_mem_alloc.h>
 
 #include <fan/graphics/shape_macros.h>
 
@@ -51,7 +48,6 @@ import fan.graphics.common_types;
   import fan.graphics.gui.settings_menu;
 #endif
 
-#include <fan/graphics/opengl/init.h>
 
 #if defined(FAN_GUI)
 
@@ -88,57 +84,13 @@ static void for_each_list(list_t& list, fn_t&& fn) {
   nrtra.Close(&list);
 }
 
-#if defined(FAN_OPENGL)
-struct loco_t::opengl {
-  #if defined(LOCO_FRAMEBUFFER)
-    fan::opengl::core::framebuffer_t m_framebuffer;
-    fan::opengl::core::renderbuffer_t m_rbo;
-    fan::graphics::image_t color_buffers[4];
-    fan::graphics::shader_t m_fbo_final_shader;
-    fan::graphics::shader_t alpha_shadow_solid;
-    fan::graphics::shader_t alpha_shadow_occluder;
-    fan::graphics::shader_t alpha_shadow_radial;
-    fan::graphics::shader_t alpha_shadow_light;
-  #endif
-
-  fan::window_t::resize_handle_t window_resize_handle;
-  GLenum blend_src_factor = GL_SRC_ALPHA;
-  GLenum blend_dst_factor = GL_ONE_MINUS_SRC_ALPHA;
-  std::uint32_t fb_vao;
-  std::uint32_t fb_vbo;
-
-  #include <fan/graphics/opengl/engine_functions.h>
-  #if defined(LOCO_FRAMEBUFFER)
-  #include <fan/graphics/opengl/2D/effects/blur.h>
-  blur_t blur;
-  blur_t raw_blur;
-
-  #include <fan/graphics/opengl/2D/effects/reflection.h>
-  reflection_t reflection;
-
-  #include <fan/graphics/opengl/2D/effects/alpha_shadow_renderer.h>
-  alpha_shadow_renderer_t alpha_shadow_renderer;
-  #endif
-};
-#endif
+  
+  
 
 namespace fan::graphics {
 
   std::uint32_t get_draw_mode(std::uint8_t internal_draw_mode) {
-    if (gloco()->get_renderer() == fan::window_t::renderer_t::opengl) {
-    #if defined(FAN_OPENGL)
-      return fan::opengl::core::get_draw_mode(internal_draw_mode);
-    #endif
-    }
-    else if (gloco()->get_renderer() == fan::window_t::renderer_t::vulkan) {
-    #if defined(FAN_VULKAN)
-      return fan::vulkan::core::get_draw_mode(internal_draw_mode);
-    #endif
-    }
-  #if FAN_DEBUG >= fan_debug_medium
-    fan::throw_error_impl("invalid get");
-  #endif
-    return -1;
+    return fan::vulkan::core::get_draw_mode(internal_draw_mode);
   }
 }
 
@@ -146,31 +98,16 @@ fan::window_t& loco_t::get_window() {
   return window;
 }
 
-std::uint8_t loco_t::get_renderer() {
-  return window.renderer;
-}
-
-#if defined(FAN_OPENGL) || defined(FAN_VULKAN)
-
-fan::graphics::shader_t loco_t::shader_make_compute(
-  const std::string_view file_path,
-  const std::source_location& callers_path) 
-{
-  shader_t nr;
-  std::string comp_src = fan::graphics::read_shader(file_path);
-  nr = gloco()->shader_create();
-  gloco()->shader_set_compute(nr, file_path, comp_src);
-  gloco()->shader_compile(nr);
-  return nr;
-}
-
 fan::graphics::shader_nr_t loco_t::shader_create() {
   return context_functions.shader_create(&context);
 }
 
 fan::graphics::context_shader_t loco_t::shader_get(fan::graphics::shader_nr_t nr) {
-  return renderer_get(fan::graphics::context_shader_t, gl, vk, shader_get, nr);
+  fan::graphics::context_shader_t obj {};
+  obj.vk = fan::graphics::get_vk_context().shader_get(nr);
+  return obj;
 }
+
 void loco_t::shader_erase(fan::graphics::shader_nr_t nr) {
   context_functions.shader_erase(&context, nr);
 }
@@ -204,12 +141,6 @@ bool loco_t::shader_compile(fan::graphics::shader_nr_t nr) {
   return context_functions.shader_compile(&context, nr);
 }
 
-fan::graphics::shader_nr_t loco_t::get_post_process_shader() {
-  return gl->m_fbo_final_shader;
-}
-
-#endif
-
 #if defined(FAN_2D)
 
 void loco_t::shader_set_camera(fan::graphics::shader_nr_t nr, camera_t camera_nr) {
@@ -235,12 +166,6 @@ void loco_t::shader_set_paths(fan::graphics::shader_t shader, std::string_view v
 }
 
 void loco_t::shader_recompile_all() {
-#if defined(FAN_OPENGL)
-  if (window.renderer == fan::window_t::renderer_t::opengl) {
-    glFinish();
-    context.gl.shader_uniform_cache.clear();
-  }
-#endif
   for_each_list(shader_list, [&](auto& list, auto nr) {
     auto& sd = list[nr];
     if ((sd.svertex.empty() || sd.sfragment.empty()) && sd.scompute.empty()) return;
@@ -285,74 +210,31 @@ void loco_t::shader_recompile_all() {
 }
 
 f32_t* loco_t::get_bloom_filter_radius_ptr() {
-#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
-  if (gl) return &gl->blur.bloom_filter_radius;
-#endif
-#if defined(FAN_VULKAN)
-  if (window.renderer == fan::window_t::renderer_t::vulkan) return &vk.bloom_filter_radius;
-#endif
-  static f32_t dummy = 0; 
-  return &dummy;
+  return &vk.bloom_filter_radius;
 }
 
 f32_t* loco_t::get_bloom_threshold_ptr() {
-#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
-  if (gl) return &gl->blur.threshold;
-#endif
-#if defined(FAN_VULKAN)
-  if (window.renderer == fan::window_t::renderer_t::vulkan) return &vk.bloom_threshold;
-#endif
-  static f32_t dummy = 0; 
-  return &dummy;
+  return &vk.bloom_threshold;
 }
 
 f32_t* loco_t::get_bloom_knee_ptr() {
-#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
-  if (gl) return &gl->blur.knee;
-#endif
-#if defined(FAN_VULKAN)
-  if (window.renderer == fan::window_t::renderer_t::vulkan) return &vk.bloom_knee;
-#endif
-  static f32_t dummy = 0; 
-  return &dummy;
+  return &vk.bloom_knee;
 }
 
 fan::vec3* loco_t::get_bloom_tint_ptr() {
-#if defined(FAN_VULKAN)
-  if (window.renderer == fan::window_t::renderer_t::vulkan) return &vk.bloom_tint;
-#endif
-  static fan::vec3 dummy = 0; 
-  return &dummy;
+  return &vk.bloom_tint;
 }
 
 #endif
 
-#if defined(LOCO_FRAMEBUFFER) && (defined(FAN_OPENGL) || defined(FAN_VULKAN))
-
-void* loco_t::get_framebuffer() {
-  return reinterpret_cast<void*>(&gl->m_framebuffer);
-}
-
-#endif
 
 void loco_t::shadow_add_caster(fan::graphics::shape_t* shape, f32_t alpha_threshold) {
-#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
-  if (gl) gl->alpha_shadow_renderer.casters.push_back({shape, alpha_threshold});
-#endif
 }
 
 void loco_t::shadow_remove_caster(fan::graphics::shape_t* shape) {
-#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
-  if (!gl) return;
-  auto& c = gl->alpha_shadow_renderer.casters;
-  c.erase(std::remove_if(c.begin(), c.end(), [shape](const auto& x){ return x.shape == shape; }), c.end());
-#endif
 }
 
 void loco_t::shadow_clear_casters() {
-#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
-  if (gl) gl->alpha_shadow_renderer.casters.clear();
-#endif
 }
 
 void loco_t::shadow_add_light(
@@ -365,60 +247,23 @@ void loco_t::shadow_add_light(
   f32_t cone_inner,
   f32_t cone_outer
 ) {
-#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
-  if (!gl) return;
-  gl->alpha_shadow_renderer.lights.push_back({
-    .position      = position,
-    .radius        = radius,
-    .color         = color,
-    .softness      = softness,
-    .falloff_power = falloff_power,
-    .angle         = angle,
-    .cone_inner    = cone_inner,
-    .cone_outer    = cone_outer,
-  });
-#endif
 }
 
 void loco_t::shadow_set_light_angle(std::size_t index, f32_t angle) {
-#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
-  if (gl && index < gl->alpha_shadow_renderer.lights.size()) {
-    gl->alpha_shadow_renderer.lights[index].angle = angle;
-  }
-#endif
 }
 
 void loco_t::shadow_set_light_cone(std::size_t index, f32_t cone_inner, f32_t cone_outer) {
-#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
-  if (gl && index < gl->alpha_shadow_renderer.lights.size()) {
-    gl->alpha_shadow_renderer.lights[index].cone_inner = cone_inner;
-    gl->alpha_shadow_renderer.lights[index].cone_outer = cone_outer;
-  }
-#endif
 }
 void loco_t::shadow_set_light_position(std::size_t index, fan::vec2 position) {
-#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
-  if (gl && index < gl->alpha_shadow_renderer.lights.size())
-    gl->alpha_shadow_renderer.lights[index].position = position;
-#endif
 }
 
 void loco_t::shadow_clear_lights() {
-#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
-  if (gl) gl->alpha_shadow_renderer.lights.clear();
-#endif
 }
 
 void loco_t::shadow_set_darkness(f32_t darkness) {
-#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
-  if (gl) gl->alpha_shadow_renderer.darkness = darkness;
-#endif
 }
 
 std::size_t loco_t::shadow_light_count() {
-#if defined(LOCO_FRAMEBUFFER) && defined(FAN_OPENGL)
-  if (gl) return gl->alpha_shadow_renderer.lights.size();
-#endif
   return 0;
 }
 
@@ -428,24 +273,12 @@ std::vector<std::uint8_t> loco_t::image_get_pixel_data(
   fan::vec2 uvp,
   fan::vec2 uvs
 ) {
-  std::vector<std::uint8_t> result;
-
-  render_context_call_raw(
-    result = fan::graphics::get_gl_context().image_get_pixel_data(
-      nr,
-      fan::opengl::context_t::global_to_opengl_format(image_format),
-      uvp,
-      uvs
-    ),
-    result = fan::graphics::get_vk_context().image_get_pixel_data(
-      nr,
-      image_format,
-      uvp,
-      uvs
-    )
+  return fan::graphics::get_vk_context().image_get_pixel_data(
+    nr,
+    image_format,
+    uvp,
+    uvs
   );
-
-  return result;
 }
 
 fan::graphics::image_t loco_t::image_create() {
@@ -453,7 +286,9 @@ fan::graphics::image_t loco_t::image_create() {
 }
 
 fan::graphics::context_image_t loco_t::image_get(fan::graphics::image_t nr) {
-  return renderer_get(fan::graphics::context_image_t,  gl, vk, image_get,  nr);
+  fan::graphics::context_image_t obj {};
+  obj.vk = fan::graphics::get_vk_context().image_get(nr);
+  return obj;
 }
 
 std::uint64_t loco_t::image_get_handle(fan::graphics::image_t nr) {
@@ -794,27 +629,7 @@ void loco_t::generate_commands(loco_t* loco) {
     [](loco_t* l, const std::string& v) { l->renderer_state.clear_color = fan::color::parse(v); });
   add_simple_command(loco->gui.console, "set_lighting_ambient", "sets lighting ambient color", 1,
     [](loco_t* l, const std::string& v) { l->renderer_state.lighting.set_target(fan::color::parse(v)); });
-#if defined(LOCO_FRAMEBUFFER)
-  add_simple_command(loco->gui.console, "set_gamma", "sets gamma", 1,
-    [](loco_t* l, const std::string& v) { l->set_post_process("gamma", std::stof(v)); });
-  add_simple_command(loco->gui.console, "set_contrast", "sets contrast", 1,
-    [](loco_t* l, const std::string& v) { l->set_post_process("contrast", std::stof(v)); });
-  add_simple_command(loco->gui.console, "set_exposure", "sets exposure", 1,
-    [](loco_t* l, const std::string& v) { l->set_post_process("exposure", std::stof(v)); });
-  add_simple_command(loco->gui.console, "set_bloom_strength", "sets bloom strength", 1,
-    [](loco_t* l, const std::string& v) {
-    auto* sm = get_smenu(l);
-    sm->config.post_processing.bloom_strength = std::stof(v);
-    l->set_post_process("bloom_strength", sm->config.post_processing.bloom_strength);
-  });
-  add_simple_command(loco->gui.console, "set_blur_amount", "sets blur amount", 1,
-    [](loco_t* l, const std::string& v) {
-    auto* sm = get_smenu(l);
-    sm->config.post_processing.blur_amount = std::stof(v);
-    l->open_props.blur_amount = sm->config.post_processing.blur_amount;
-    l->set_post_process("blur_amount", sm->config.post_processing.blur_amount);
-  });
-#endif
+
 
   loco->gui.console.commands.add("echo", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
     auto* loco = OFFSETLESS(self, loco_t, gui.console);
@@ -1030,13 +845,11 @@ void loco_t::visualize_culling() {
 }
 #endif
 
-#if defined(FAN_VULKAN)
 void loco_t::check_vk_result(VkResult err) {
   if (err != VK_SUCCESS) {
     fan::print_impl("vkerr", (int)err);
   }
 }
-#endif
 
 #if defined(FAN_GUI)
 void loco_t::init_gui() {
@@ -1046,11 +859,6 @@ void loco_t::init_gui() {
   }
   fan::graphics::gui::init(
     window,
-    window.renderer,
-    fan::window_t::renderer_t::opengl,
-    fan::window_t::renderer_t::vulkan
-  #if defined(FAN_VULKAN)
-    ,
     context.vk.instance,
     context.vk.physical_device,
     context.vk.device,
@@ -1062,7 +870,6 @@ void loco_t::init_gui() {
     context.vk.MinImageCount,
     VK_SAMPLE_COUNT_1_BIT,
     check_vk_result
-  #endif
   );
   gui.font_future = std::async(std::launch::async, []() {
     fan::graphics::gui::init_fonts();
@@ -1076,25 +883,13 @@ void loco_t::destroy_gui() {
   }
 
   fan::graphics::gui::shutdown_graphics_context(
-    window.renderer,
-    fan::window_t::renderer_t::opengl,
-    fan::window_t::renderer_t::vulkan
-  #if defined(FAN_VULKAN)
-    , context.vk.device
-  #endif
+    context.vk.device
   );
-  if (renderer_state.reload_renderer_to != (decltype(renderer_state.reload_renderer_to))-1) {
-    gui.gui_initialized = false;
-    return;
-  }
-#if defined(FAN_VULKAN)
-  if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    context.vk.gui_close(); // TODO remove
-  }
-#endif
 
   fan::graphics::gui::destroy();
   gui.gui_initialized = false;
+
+  context.vk.gui_close();
 }
 #endif
 
@@ -1120,11 +915,6 @@ static void loco_init_shapes_context(loco_t* l) {
   l->shapes.texture_pack = &l->texture_pack;
   l->shapes.immediate_render_list = &l->immediate_render_list;
   l->shapes.static_render_list = &l->static_render_list;
-  fan::graphics::shaper_t::gl_add_shape_type() = [](
-    fan::graphics::shaper_t::ShapeTypes_NodeData_t& nd,
-    const fan::graphics::shaper_t::BlockProperties_t& bp) {
-    gloco()->gl->add_shape_type(nd, bp);
-  };
   l->shapes.shapes_init_pools(&l->shapes);
   fan::graphics::g_shapes = &l->shapes;
   l->shapes.visibility = new fan::graphics::culling::culling_t;
@@ -1135,23 +925,10 @@ static void loco_init_platform(loco_t* l) {
 #if defined(fan_platform_windows)
   SetConsoleOutputCP(CP_UTF8);
 #endif
-  if (!fan::init_manager_t::initialized()) {
-    fan::init_manager_t::initialize();
-  }
 }
 
 static void loco_init_renderer(loco_t* l) {
-    if (l->open_props.renderer == fan::window_t::renderer_t::unknown) {
-      l->open_props.renderer = fan::window_t::renderer_t::opengl;
-    }
   l->get_render_shapes_top() = l->open_props.render_shapes_top;
-  l->window.renderer = l->open_props.renderer;
-#if defined(FAN_OPENGL)
-  if (l->window.renderer == fan::window_t::renderer_t::opengl) {
-    new (&l->context.gl) fan::opengl::context_t();
-    l->gl = new loco_t::opengl;
-  }
-#endif
 }
 
 static void loco_load_settings_into_open_props(loco_t* l) {
@@ -1176,37 +953,16 @@ static void loco_open_window(loco_t* l) {
     .flags = l->open_props.window_flags,
     .open_mode = l->open_props.window_open_mode
   });
-#if defined(FAN_VULKAN)
-  if (l->window.renderer == fan::window_t::renderer_t::vulkan) {
-    l->context_functions = fan::graphics::get_vk_context_functions();
-    new (&l->context.vk) fan::vulkan::context_t();
-    l->context.vk.enable_clear = !l->get_render_shapes_top();
-    l->context.vk.shapes_top = l->get_render_shapes_top();
-    l->context.vk.vsync = l->open_props.vsync;
-    l->context.vk.open(l->window);
-  }
-#endif
+  l->context_functions = fan::graphics::get_vk_context_functions();
+  new (&l->context.vk) fan::vulkan::context_t();
+  l->context.vk.enable_clear = !l->get_render_shapes_top();
+  l->context.vk.shapes_top = l->get_render_shapes_top();
+  l->context.vk.vsync = l->open_props.vsync;
+  l->context.vk.open(l->window);
 }
 
 static void loco_init_renderer_post_window(loco_t* l) {
   l->start_time.start();
-#if defined(FAN_OPENGL)
-  if (l->window.renderer == fan::window_t::renderer_t::opengl) {
-    l->window.make_context_current();
-    l->context.gl.open();
-    l->context_functions = fan::graphics::get_gl_context_functions();
-    l->gl->open();
-#if FAN_DEBUG >= fan_debug_high
-    l->get_context().gl.set_error_callback();
-#endif
-    if (l->window.get_antialiasing() > 0) {
-    #if !defined(__wasm__)
-      glEnable(GL_MULTISAMPLE);
-    #endif
-    }
-    l->gl->initialize_fb_vaos();
-  }
-#endif
 }
 
 static void loco_init_shapes_system(loco_t* l) {
@@ -1259,6 +1015,7 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   open_props(props),
   init_gloco([this] { gloco() = this; return true; }())
 {
+  fan::init_manager_t::cleaner();
   fan::event::init_dispatcher();
 
   idle_handle  = new fan::uv::idle_t;
@@ -1279,19 +1036,14 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   loco_load_settings_into_open_props(this);
   loco_open_window(this);
   loco_init_renderer_post_window(this);
-  #if defined(FAN_OPENGL) || defined(FAN_VULKAN)
-  load_engine_images();
-  async_image_init();
-  #endif
   loco_init_shapes_system(this);
-  #if defined(FAN_OPENGL) || defined(FAN_VULKAN)
   loco_init_render_views(this);
-  #endif
 #if defined(FAN_2D)
   renderer_call(shaders_compile); 
 #endif
   renderer_call(init);
 #if defined(FAN_2D)
+  load_engine_images();
   renderer_call(shapes_open);
 #endif
 #if defined(FAN_GUI)
@@ -1307,9 +1059,6 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   gui.console.commands.call("debug_memory " + std::to_string((int)fan::memory::heap_profiler_t::instance().enabled));
 #endif
   loco_init_culling(this);
-  #if defined(FAN_OPENGL) || defined(FAN_VULKAN)
-  set_vsync(open_props.vsync);
-  #endif
 #if defined(FAN_GUI)
   get_smenu(this)->init_runtime();
 #endif
@@ -1328,7 +1077,6 @@ loco_t::~loco_t() {
 }
 
 void loco_t::destroy() {
-
   async_image_destroy();
 
 #if defined(FAN_GUI)
@@ -1346,7 +1094,6 @@ void loco_t::destroy() {
 
 #if defined(FAN_2D)
   shapes.shapes_destroy_pools(&shapes);
-  // TODO fix destruct order to not do manually, because shaper closes before them?
   static_render_list.clear();
   immediate_render_list.clear();
   delete ((fan::graphics::culling::culling_t*)shapes.visibility);
@@ -1361,238 +1108,38 @@ void loco_t::destroy() {
   gui.console.close();
 #endif
 
-#if defined(FAN_OPENGL)
-  if (window.renderer == fan::window_t::renderer_t::opengl) {
-    gl->close();
+  vkDeviceWaitIdle(context.vk.device);
+  vk.close();
+#if defined(FAN_2D)
+  for (auto& st : fan::graphics::g_shapes->shaper.ShapeTypes) {
+    if (st.sti == (decltype(st.sti))-1) {
+      continue;
+    }
+    st.renderer.vk.shape_data.close(context.vk);
+    st.renderer.vk.pipeline.close(context.vk);
   }
 #endif
+
 #if defined(FAN_2D)
   fan::graphics::g_shapes->shaper.Close();
 #endif
-#if defined(FAN_VULKAN)
-  if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    vkDeviceWaitIdle(context.vk.device);
-    vk.close();
-  }
-#endif
+
 #if defined(FAN_GUI)
   destroy_gui();
+#else
+  if (window.renderer == fan::window_t::renderer_t::vulkan) {
+    context.vk.close();
+  }
 #endif
+
   window.close();
-  #if defined(FAN_AUDIO)
+#if defined(FAN_AUDIO)
   audio.destroy();
-  #endif
+#endif
 }
 
 void loco_t::close() {
   window.set_should_close(true);
-}
-
-void loco_t::switch_renderer(std::uint8_t renderer) {
-  fan::vec2 window_size = window.get_size();
-  fan::vec2 window_position = window.get_position();
-  std::uint64_t flags = window.flags;
-
-#if defined(FAN_GUI)
-  bool was_imgui_init = gui.gui_initialized;
-#endif
-
-  { // close
-  #if defined(FAN_VULKAN)
-    if (window.renderer == fan::window_t::renderer_t::vulkan) {
-      vkDeviceWaitIdle(context.vk.device);
-      vk.close();
-    #if defined(FAN_2D)
-      for (auto& st : fan::graphics::g_shapes->shaper.ShapeTypes) {
-        if (st.sti == (decltype(st.sti))-1) {
-          continue;
-        }
-      #if defined(FAN_VULKAN)
-        auto& str = st.renderer.vk;
-        str.shape_data.close(context.vk);
-        str.pipeline.close(context.vk);
-      #endif
-      }
-    #endif
-    }
-    else
-    #endif
-    #if defined(FAN_OPENGL)
-      if (window.renderer == fan::window_t::renderer_t::opengl) {
-        glDeleteVertexArrays(1, &gl->fb_vao);
-        glDeleteBuffers(1, &gl->fb_vbo);
-        context.gl.internal_close();
-      }
-  #endif
-
-  #if defined(FAN_GUI)
-    if (gui.gui_initialized) {
-      fan::graphics::gui::shutdown_graphics_context(
-        window.renderer,
-        fan::window_t::renderer_t::opengl,
-        fan::window_t::renderer_t::vulkan
-      #if defined(FAN_VULKAN)
-        , context.vk.device
-      #endif
-      );
-      fan::graphics::gui::shutdown_window_context();
-      gui.gui_initialized = false;
-    }
-  #endif
-
-    window.close();
-  }
-
-  { // reopen
-    window.renderer = renderer_state.reload_renderer_to; // i dont like this {window.renderer = ...}
-  #if defined(FAN_OPENGL)
-    if (window.renderer == fan::window_t::renderer_t::opengl) {
-      context_functions = fan::graphics::get_gl_context_functions();
-      new (&context.gl) fan::opengl::context_t();
-      context.gl.open();
-      gl->open();
-    }
-  #endif
-
-    window.open(fan::window_t::properties_t{
-      .size = window_size,
-      .position = open_props.window_position,
-      .flags = flags | fan::window_t::flags::hidden,
-      .open_mode = open_props.window_open_mode
-    });
-    window.set_position(window_position);
-    window.show();
-    window.flags = flags;
-
-  #if defined(FAN_VULKAN)
-    if (window.renderer == fan::window_t::renderer_t::vulkan) {
-      new (&context.vk) fan::vulkan::context_t();
-      context_functions = fan::graphics::get_vk_context_functions();
-      context.vk.vsync = timing.vsync;
-      context.vk.open(window);
-    }
-  #endif
-  }
-
-  { // reload
-    for_each_list(camera_list, [&](auto& list, auto nr) {
-      auto& cam = list[nr];
-      camera_set_ortho(
-        nr,
-        fan::vec2(cam.coordinates.left, cam.coordinates.right),
-        fan::vec2(cam.coordinates.top, cam.coordinates.bottom)
-      );
-    });
-    for_each_list(viewport_list, [&](auto& list, auto nr) {
-      auto& viewport = list[nr];
-      viewport_set(nr, viewport.position, viewport.size);
-    });
-
-    // reconstruct missing texture props once, reuse across image loop
-    fan::image::info_t missing_info;
-    missing_info.data = (void*)fan::image::missing_texture_pixels;
-    missing_info.size = 2;
-    missing_info.channels = 4;
-    fan::graphics::image_load_properties_t missing_lp;
-    missing_lp.min_filter = fan::graphics::image_filter_e::nearest;
-    missing_lp.mag_filter = fan::graphics::image_filter_e::nearest;
-    missing_lp.visual_output = fan::graphics::image_sampler_address_mode_e::repeat;
-
-    for_each_list(image_list, [&](auto& list, auto nr) {
-      IF_GL(
-        if (window.renderer == fan::window_t::renderer_t::opengl) {
-          list[nr].internal = new fan::opengl::context_t::image_t;
-          fan_opengl_call(glGenTextures(1, &((fan::opengl::context_t::image_t*)context_functions.image_get(&context.gl, nr))->texture_id));
-        }
-      )
-      IF_VK(
-        if (window.renderer == fan::window_t::renderer_t::vulkan) {
-          list[nr].internal = new fan::vulkan::context_t::image_t;
-        }
-      )
-      auto image_path = list[nr].image_path;
-      if (image_path.empty()) {
-        image_reload(nr, missing_info, missing_lp);
-      }
-      else {
-        image_reload(nr, list[nr].image_path);
-      }
-    });
-    for_each_list(shader_list, [&](auto& list, auto nr) {
-      IF_GL(
-        if (window.renderer == fan::window_t::renderer_t::opengl) {
-          list[nr].internal = new fan::opengl::context_t::shader_t;
-        }
-      )
-      IF_VK(
-        if (window.renderer == fan::window_t::renderer_t::vulkan) {
-          list[nr].internal = new fan::vulkan::context_t::shader_t;
-          ((fan::vulkan::context_t::shader_t*)list[nr].internal)->projection_view_block =
-            new std::remove_pointer_t<decltype(fan::vulkan::context_t::shader_t::projection_view_block)>;
-        }
-      )
-    });
-
-    image_reload(default_texture, missing_info, missing_lp);
-
-    if (window.renderer == fan::window_t::renderer_t::opengl) {
-    #if defined(FAN_2D)
-      gl->shapes_open();
-    #endif
-    #if defined(FAN_OPENGL)
-      gl->initialize_fb_vaos();
-      if (window.get_antialiasing() > 0) {
-      #if !defined(__wasm__)
-        glEnable(GL_MULTISAMPLE);
-      #endif
-      }
-    #endif
-    }
-  #if defined(FAN_VULKAN)
-    else if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    #if defined(FAN_2D)
-      vk.shapes_open();
-    #endif
-    }
-  #endif
-
-  #if defined(FAN_GUI)
-    if (was_imgui_init && fan::graphics::gui::is_gui_initialized()) {
-      fan::graphics::gui::init_graphics_context(
-        window,
-        window.renderer,
-        fan::window_t::renderer_t::opengl,
-        fan::window_t::renderer_t::vulkan
-      #if defined(FAN_VULKAN)
-        ,
-        context.vk.instance,
-        context.vk.physical_device,
-        context.vk.device,
-        context.vk.queue_family,
-        context.vk.graphics_queue,
-        context.vk.descriptor_pool,
-        context.vk.MainWindowData.RenderPass,
-        context.vk.MainWindowData.ImageCount,
-        context.vk.MinImageCount,
-        VK_SAMPLE_COUNT_1_BIT,
-        check_vk_result
-      #endif
-      );
-      gui.gui_initialized = true;
-      get_smenu(this)->set_settings_theme();
-    }
-  #endif
-
-  #if defined(FAN_2D)
-    fan::graphics::g_shapes->shaper._BlockListCapacityChange(fan::graphics::shapes::shape_type_t::rectangle, 0, 1);
-    fan::graphics::g_shapes->shaper._BlockListCapacityChange(fan::graphics::shapes::shape_type_t::sprite, 0, 1);
-  #endif
-    #if defined(FAN_AUDIO)
-    audio.destroy();
-    audio.init();
-    #endif
-  }
-  renderer_state.reload_renderer_to = -1;
 }
 
 void loco_t::shapes_draw() {
@@ -1609,13 +1156,9 @@ void loco_t::shapes_draw() {
 
 void loco_t::process_shapes() {
 
-#if defined(FAN_VULKAN)
-  if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    if (get_render_shapes_top() == true) {
-      vk.begin_render_pass();
-    }
+  if (get_render_shapes_top() == true) {
+    vk.begin_render_pass();
   }
-#endif
   for (const auto& i : m_pre_draw) {
     i();
   }
@@ -1626,14 +1169,10 @@ void loco_t::process_shapes() {
     func();
   }
 
-#if defined(FAN_VULKAN)
-  if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    auto& cmd_buffer = context.vk.command_buffers[context.vk.current_frame];
-    if (vk.image_error == VK_SUCCESS) {
-      vk.draw_post_process();
-    }
+  auto& cmd_buffer = context.vk.command_buffers[context.vk.current_frame];
+  if (vk.image_error == VK_SUCCESS) {
+    vk.draw_post_process();
   }
-#endif
 }
 
 void loco_t::process_gui() {
@@ -1780,18 +1319,12 @@ void loco_t::process_gui() {
   fan::graphics::gui::enforce_topmost();
 
   gui::render(
-    window.renderer,
-    fan::window_t::renderer_t::opengl,
-    fan::window_t::renderer_t::vulkan,
-    get_render_shapes_top()
-  #if defined(FAN_VULKAN)
-    ,
+    get_render_shapes_top(),
     &get_vk_context(),
     renderer_state.clear_color,
     vk.image_error,
     context.vk.command_buffers[context.vk.current_frame],
     fan::vulkan::context_t::ImGuiFrameRender
-  #endif
   );
 #endif
 #if defined(FAN_GUI)
@@ -1801,21 +1334,22 @@ void loco_t::process_gui() {
 }
 
 void loco_t::get_vram_usage(int* total_mem_MB, int* used_MB) {
-#ifdef FAN_USE_GLAD
-  if (GLAD_GL_NVX_gpu_memory_info) {
-    glGetIntegerv(GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX, (GLint*)total_mem_MB);
+  VkPhysicalDeviceMemoryProperties mem_props;
+  vkGetPhysicalDeviceMemoryProperties(context.vk.physical_device, &mem_props);
 
-    GLint currently_available_kb = 0;
-    glGetIntegerv(GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &currently_available_kb);
+  std::vector<VmaBudget> budgets(mem_props.memoryHeapCount);
+  vmaGetHeapBudgets(context.vk.allocator, budgets.data());
 
-    *used_MB = (*total_mem_MB - currently_available_kb) / 1024.0;
-    *total_mem_MB = *total_mem_MB / 1024.0;
-    return;
+  VkDeviceSize total_bytes = 0;
+  VkDeviceSize used_bytes = 0;
+  for (uint32_t i = 0; i < mem_props.memoryHeapCount; ++i) {
+    if (mem_props.memoryHeaps[i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT) {
+      total_bytes += budgets[i].budget;
+      used_bytes += budgets[i].usage;
+    }
   }
-#else
-  *total_mem_MB = -1;
-  *used_MB = -1;
-#endif
+  *total_mem_MB = static_cast<int>(total_bytes / (1024 * 1024));
+  *used_MB = static_cast<int>(used_bytes / (1024 * 1024));
 }
 
 void loco_t::time_monitor_t::update(f32_t v) {
@@ -1887,11 +1421,6 @@ void loco_t::process_render() {
   }
 #endif
 
-#if defined(FAN_OPENGL)
-  if (window.renderer == fan::window_t::renderer_t::opengl) {
-    gl->begin_process_frame();
-  }
-#endif
 
 #if defined(FAN_2D)
   if (is_visualizing_culling) {
@@ -1903,32 +1432,14 @@ void loco_t::process_render() {
   fan::graphics::gui::end();
 #endif
 
-#if defined(FAN_OPENGL) && defined(FAN_2D)
-  if (window.renderer == fan::window_t::renderer_t::opengl) {
-    run_culling();
-  }
-#endif
 
 #if defined(FAN_2D)
 
-  if (window.renderer == fan::window_t::renderer_t::opengl) {
-    for (auto& light : gl->alpha_shadow_renderer.lights) {
-      add_shape_to_immediate_draw(fan::graphics::shapes::light_t::properties_t {.position = light.position, .size = light.radius, .color = light.color});
-    }
-  }
-
   fan::graphics::g_shapes->shaper.ProcessBlockEditQueue();
-#endif
 
-#if defined(FAN_VULKAN)
-  if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    vk.begin_draw();
-  }
-#endif
+  vk.begin_draw();
 
-  #if defined(FAN_OPENGL) || defined(FAN_VULKAN)
   viewport_set(0, window.get_size());
-  #endif
 
   if (get_render_shapes_top() == false) {
     process_shapes();
@@ -1941,24 +1452,18 @@ void loco_t::process_render() {
   for (auto& i : draw_end_cb) {
     i();
   }
-  if (window.renderer == fan::window_t::renderer_t::opengl) {
-    window.swap_buffers();
+
+  if (vk.image_error != VK_SUCCESS) {
+    context.vk.command_buffer_in_use = false;
   }
-#if defined(FAN_VULKAN)
-  else if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    if (vk.image_error != VK_SUCCESS) {
-      context.vk.command_buffer_in_use = false;
-    }
-    else {
-      VkResult err = context.vk.end_render();
-      if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR || context.vk.SwapChainRebuild) {
-        vk.close_swapchain_resources();
-        context.vk.recreate_swap_chain(&window, err);
-        vk.open_swapchain_resources();
-      }
+  else {
+    VkResult err = context.vk.end_render();
+    if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR || context.vk.SwapChainRebuild) {
+      vk.close_swapchain_resources();
+      context.vk.recreate_swap_chain(&window, err);
+      vk.open_swapchain_resources();
     }
   }
-#endif
 }
 
 bool loco_t::should_close() {
@@ -1991,10 +1496,7 @@ bool loco_t::process_frame(const std::function<void(f32_t delta_time)>& cb) {
   physics.context.begin_frame(get_delta_time());
 #endif
 
-if (renderer_state.reload_renderer_to != (decltype(renderer_state.reload_renderer_to))-1) {
-  switch_renderer(renderer_state.reload_renderer_to);
-}
-renderer_state.lighting.update(get_delta_time());
+  renderer_state.lighting.update(get_delta_time());
 
 #if defined(FAN_GUI)
   if (gui.font_future.valid()) {
@@ -2002,11 +1504,7 @@ renderer_state.lighting.update(get_delta_time());
     gui.font_future = {};
   }
 
-  fan::graphics::gui::new_frame(
-    window.renderer,
-    fan::window_t::renderer_t::opengl,
-    fan::window_t::renderer_t::vulkan
-  );
+  fan::graphics::gui::new_frame();
   fan::graphics::gui::gizmo::begin_frame();
 
 
@@ -2096,7 +1594,7 @@ renderer_state.lighting.update(get_delta_time());
 
 #if defined(FAN_2D)
   if (renderer_state.force_line_draw) {
-    gl->draw_all_shape_aabbs();
+    // vulkan draw_all_shape_aabbs
   }
 #endif
 
@@ -2349,11 +1847,6 @@ void loco_t::unload_engine_images() {
   image_unload(fan::graphics::icons.pause);
   image_unload(fan::graphics::icons.settings);
 
-#if defined(FAN_OPENGL) && defined(LOCO_FRAMEBUFFER)
-  for (auto& i : gl->color_buffers) {
-    image_unload(i);
-  }
-#endif
 }
 
 void loco_t::set_window_name(const std::string& name) {
@@ -2384,15 +1877,6 @@ void loco_t::debug_draw_light_buffer() {
     r.size = window_size * 0.5f;
     r.color = fan::color::rgb(0, 255, 0, 55.f);
     add_shape_to_immediate_draw(fan::graphics::shape_t(r, false));
-  }
-  { // light buffer
-    fan::graphics::shapes::unlit_sprite_t::properties_t p;
-    p.position = r.position.offset_z(1);
-    p.size = r.size;
-    p.size.y *= -1;
-    p.image = gl->color_buffers[1];
-    p.color = fan::colors::red;
-    add_shape_to_immediate_draw(fan::graphics::shape_t(p, false));
   }
 }
 #endif
@@ -2507,84 +1991,71 @@ void loco_t::shape_open(
   bp.MaxElementPerBlock = (fan::graphics::shaper_t::MaxElementPerBlock_t)fan::graphics::MaxElementPerBlock;
   bp.RenderDataSize = (decltype(fan::graphics::shaper_t::BlockProperties_t::RenderDataSize))(sizeof_vi * instance_count);
   bp.DataSize = sizeof_ri;
+  std::construct_at(&bp.renderer.vk);
+  fan::graphics::shaper_t::BlockProperties_t::vk_t vk;
 
-  if (window.renderer == fan::window_t::renderer_t::opengl) {
-    std::construct_at(&bp.renderer.gl);
-    fan::graphics::shaper_t::BlockProperties_t::gl_t d;
-    d.locations = shape_shader_locations;
-    d.shader = shader;
-    d.instanced = instanced;
-    bp.renderer.gl = d;
-  }
-#if defined(FAN_VULKAN)
-  else if (window.renderer == fan::window_t::renderer_t::vulkan) {
-    std::construct_at(&bp.renderer.vk);
-    fan::graphics::shaper_t::BlockProperties_t::vk_t vk;
+  // 2 for rect instance, upv
+  static constexpr auto vulkan_buffer_count = 3;
+  decltype(vk.shape_data.m_descriptor)::properties_t rectp;
+  auto& shaderd = *(fan::vulkan::context_t::shader_t*)gloco()->context_functions.shader_get(&gloco()->context.vk, shader);
+  std::uint32_t ds_offset = 2;
+  vk.shape_data.open(gloco()->context.vk, 1);
+  vk.shape_data.allocate(gloco()->context.vk, std::max<std::uint64_t>(bp.RenderDataSize * bp.MaxElementPerBlock, 16));
 
-    // 2 for rect instance, upv
-    static constexpr auto vulkan_buffer_count = 3;
-    decltype(vk.shape_data.m_descriptor)::properties_t rectp;
-    auto& shaderd = *(fan::vulkan::context_t::shader_t*)gloco()->context_functions.shader_get(&gloco()->context.vk, shader);
-    std::uint32_t ds_offset = 2;
-    vk.shape_data.open(gloco()->context.vk, 1);
-    vk.shape_data.allocate(gloco()->context.vk, std::max<std::uint64_t>(bp.RenderDataSize * bp.MaxElementPerBlock, 16));
+  std::array<fan::vulkan::write_descriptor_set_t, vulkan_buffer_count> ds_properties {{{0}}};
+  {
+    ds_properties[0].binding = 0;
+    ds_properties[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    ds_properties[0].flags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    ds_properties[0].range = VK_WHOLE_SIZE;
+    ds_properties[0].buffer = vk.shape_data.common.memory[gloco()->get_context().vk.current_frame].buffer;
+    ds_properties[0].dst_binding = 0;
 
-    std::array<fan::vulkan::write_descriptor_set_t, vulkan_buffer_count> ds_properties {{{0}}};
-    {
-      ds_properties[0].binding = 0;
-      ds_properties[0].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-      ds_properties[0].flags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-      ds_properties[0].range = VK_WHOLE_SIZE;
-      ds_properties[0].buffer = vk.shape_data.common.memory[gloco()->get_context().vk.current_frame].buffer;
-      ds_properties[0].dst_binding = 0;
+    ds_properties[1].binding = 1;
+    ds_properties[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    ds_properties[1].flags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    ds_properties[1].buffer = shaderd.projection_view_block->common.memory[gloco()->get_context().vk.current_frame].buffer;
+    ds_properties[1].range = shaderd.projection_view_block->m_size;
+    ds_properties[1].dst_binding = 1;
 
-      ds_properties[1].binding = 1;
-      ds_properties[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-      ds_properties[1].flags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-      ds_properties[1].buffer = shaderd.projection_view_block->common.memory[gloco()->get_context().vk.current_frame].buffer;
-      ds_properties[1].range = shaderd.projection_view_block->m_size;
-      ds_properties[1].dst_binding = 1;
+    VkDescriptorImageInfo imageInfo {};
+    auto img = gloco()->image_get(gloco()->default_texture).vk;
+    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    imageInfo.imageView = img.image_view;
+    imageInfo.sampler = img.sampler;
 
-      VkDescriptorImageInfo imageInfo {};
-      auto img = gloco()->image_get(gloco()->default_texture).vk;
-      imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-      imageInfo.imageView = img.image_view;
-      imageInfo.sampler = img.sampler;
-
-      ds_properties[2].use_image = 1;
-      ds_properties[2].binding = 2;
-      ds_properties[2].dst_binding = 2;
-      ds_properties[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-      ds_properties[2].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
-      for (std::uint32_t i = 0; i < fan::vulkan::max_textures; ++i) {
-        ds_properties[ds_offset].image_infos[i] = imageInfo;
-      }
+    ds_properties[2].use_image = 1;
+    ds_properties[2].binding = 2;
+    ds_properties[2].dst_binding = 2;
+    ds_properties[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    ds_properties[2].flags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    for (std::uint32_t i = 0; i < fan::vulkan::max_textures; ++i) {
+      ds_properties[ds_offset].image_infos[i] = imageInfo;
     }
-
-    vk.shape_data.open_descriptors(gloco()->context.vk, {ds_properties.begin(), ds_properties.end()});
-    vk.shape_data.m_descriptor.update(context.vk, 3, 0);
-    fan::vulkan::context_t::pipeline_t p;
-    fan::vulkan::context_t::pipeline_t::properties_t pipe_p;
-    VkPipelineColorBlendAttachmentState attachment = fan::vulkan::get_default_color_blend();
-    if (shape_type == fan::graphics::shapes::shape_type_t::light) {
-      attachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-      attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
-      attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-      attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    }
-    pipe_p.color_blend_attachment_count = 1;
-    pipe_p.color_blend_attachment = &attachment;
-    pipe_p.shader = shader;
-    pipe_p.descriptor_layout = &vk.shape_data.m_descriptor.m_layout;
-    pipe_p.descriptor_layout_count = 1;
-    pipe_p.push_constants_size = sizeof(fan::vulkan::context_t::push_constants_t);
-    pipe_p.enable_depth_test = false;
-    pipe_p.shape_type = (VkPrimitiveTopology)fan::graphics::get_draw_mode(draw_mode);
-    p.open(context.vk, pipe_p);
-    vk.pipeline = p;
-    bp.renderer.vk = vk;
   }
-#endif
+
+  vk.shape_data.open_descriptors(gloco()->context.vk, {ds_properties.begin(), ds_properties.end()});
+  vk.shape_data.m_descriptor.update(context.vk, 3, 0);
+  fan::vulkan::context_t::pipeline_t p;
+  fan::vulkan::context_t::pipeline_t::properties_t pipe_p;
+  VkPipelineColorBlendAttachmentState attachment = fan::vulkan::get_default_color_blend();
+  if (shape_type == fan::graphics::shapes::shape_type_t::light) {
+    attachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+    attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+    attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+  }
+  pipe_p.color_blend_attachment_count = 1;
+  pipe_p.color_blend_attachment = &attachment;
+  pipe_p.shader = shader;
+  pipe_p.descriptor_layout = &vk.shape_data.m_descriptor.m_layout;
+  pipe_p.descriptor_layout_count = 1;
+  pipe_p.push_constants_size = sizeof(fan::vulkan::context_t::push_constants_t);
+  pipe_p.enable_depth_test = false;
+  pipe_p.shape_type = (VkPrimitiveTopology)fan::graphics::get_draw_mode(draw_mode);
+  p.open(context.vk, pipe_p);
+  vk.pipeline = p;
+  bp.renderer.vk = std::move(vk);
 
   fan::graphics::g_shapes->shaper.SetShapeType(shape_type, bp);
 }
@@ -2594,12 +2065,7 @@ fan::graphics::shader_t loco_t::get_sprite_shader(const std::string_view fragmen
   return fan::graphics::get_sprite_shader(fragment_file_path, fragment);
 }
 
-std::string loco_t::get_renderer_string() {
-  if (window.renderer == fan::window_t::renderer_t::opengl) {
-    return std::string("OpenGL ") + (const char*)glGetString(GL_VERSION)
-      + " | " + (const char*)glGetString(GL_RENDERER);
-  }
-  return "Vulkan";
+std::string loco_t::get_renderer_string() {  return "Vulkan";
 }
 
 std::string_view loco_t::get_platform_string() {
@@ -2770,11 +2236,6 @@ void loco_t::cuda_textures_t::graphics_resource_t::unmap() {
 }
 #endif
 
-#if defined(FAN_OPENGL) || defined(FAN_VULKAN)
-fan::graphics::image_t loco_t::get_color_buffer(int idx) {
-  return gl->color_buffers[idx];
-}
-#endif
 
 #if defined(FAN_2D)
 
@@ -2984,5 +2445,7 @@ loco_t::properties_t fan::get_centered_window(vec2 size) {
     .window_size = size
   };
 }
+
+#endif
 
 #endif

@@ -1,6 +1,5 @@
 module;
 
-#if defined(FAN_VULKAN)
 #if defined(fan_platform_windows)
 #define VK_USE_PLATFORM_WIN32_KHR
 #elif defined(fan_platform_unix)
@@ -23,14 +22,12 @@ module;
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
-#endif
 
 #include <fan/utility.h>
 
 export module fan.graphics.vulkan.core:types;
 import std;
 
-#if defined(FAN_VULKAN)
 
 import fan.types.matrix;
 import fan.types.fstring;
@@ -100,7 +97,7 @@ export namespace fan {
       std::vector<VkDescriptorImageInfo> image_infos{max_textures};
     };
 
-    inline constexpr std::uint32_t max_frames_in_flight = 2;
+    inline constexpr std::uint32_t max_frames_in_flight = 1;
     inline std::uint32_t makeAccessMaskPipelineStageFlags(std::uint32_t accessMask) {
       static constexpr std::uint32_t accessPipes[] = {
         VK_ACCESS_INDIRECT_COMMAND_READ_BIT,
@@ -198,5 +195,3 @@ export namespace fan {
     }
   }
 }
-
-#endif

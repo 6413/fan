@@ -10,13 +10,8 @@ module;
   #include <fan/imgui/ImGuizmo.h>
   #include <fan/graphics/gui/imgui_themes.h>
   #include <fan/imgui/misc/freetype/imgui_freetype.h>
-  #if defined(FAN_OPENGL)
-    #include <fan/imgui/imgui_impl_opengl3.h>
-  #endif
-  #if defined(FAN_VULKAN)
     #include <vulkan/vulkan.h>
     #include <fan/imgui/imgui_impl_vulkan.h>
-  #endif
   #define GLFW_INCLUDE_NONE
   #include <GLFW/glfw3.h>
 #endif
@@ -1755,11 +1750,7 @@ namespace fan::graphics::gui {
 
   void init(
     GLFWwindow* window,
-    int renderer,
-    int opengl_renderer_definition,
-    int vulkan_renderer_definition
-  #if defined(FAN_VULKAN)
-    , VkInstance instance,
+    VkInstance instance,
     VkPhysicalDevice physical_device,
     VkDevice device,
     std::uint32_t queue_family,
@@ -1770,7 +1761,6 @@ namespace fan::graphics::gui {
     std::uint32_t min_image_count,
     VkSampleCountFlagBits msaa_samples,
     void (*check_vk_result)(VkResult)
-  #endif
   ) {
     ImGui::CreateContext();
     ImPlot::CreateContext();
@@ -1793,11 +1783,6 @@ namespace fan::graphics::gui {
 
     init_graphics_context(
       window,
-      renderer,
-      opengl_renderer_definition,
-      vulkan_renderer_definition
-    #if defined(FAN_VULKAN)
-      ,
       instance,
       physical_device,
       device,
@@ -1809,7 +1794,6 @@ namespace fan::graphics::gui {
       min_image_count,
       msaa_samples,
       check_vk_result
-    #endif
     );
 
     imgui_themes::dark();
@@ -1819,11 +1803,7 @@ namespace fan::graphics::gui {
 
   void init_graphics_context(
     GLFWwindow* window,
-    int renderer,
-    int opengl_renderer_definition,
-    int vulkan_renderer_definition
-  #if defined(FAN_VULKAN)
-    , VkInstance instance,
+    VkInstance instance,
     VkPhysicalDevice physical_device,
     VkDevice device,
     std::uint32_t queue_family,
@@ -1834,36 +1814,24 @@ namespace fan::graphics::gui {
     std::uint32_t min_image_count,
     VkSampleCountFlagBits msaa_samples,
     void (*check_vk_result)(VkResult)
-  #endif
   ) {
-    if (renderer == opengl_renderer_definition) {
-      glfwMakeContextCurrent(window);
-      ImGui_ImplGlfw_InitForOpenGL(window, true);
-      const char* glsl_version = "#version 120";
-      ImGui_ImplOpenGL3_Init(glsl_version);
-    }
+    ImGui_ImplGlfw_InitForVulkan(window, true);
 
-  #if defined(FAN_VULKAN)
-    else if (renderer == vulkan_renderer_definition) {
-      ImGui_ImplGlfw_InitForVulkan(window, true);
+    ImGui_ImplVulkan_InitInfo init_info = {};
+    init_info.Instance = instance;
+    init_info.PhysicalDevice = physical_device;
+    init_info.Device = device;
+    init_info.QueueFamily = queue_family;
+    init_info.Queue = graphics_queue;
+    init_info.DescriptorPool = descriptor_pool;
+    init_info.RenderPass = render_pass;
+    init_info.Subpass = 0;
+    init_info.MinImageCount = min_image_count;
+    init_info.ImageCount = image_count;
+    init_info.MSAASamples = msaa_samples;
+    init_info.CheckVkResultFn = check_vk_result;
 
-      ImGui_ImplVulkan_InitInfo init_info = {};
-      init_info.Instance = instance;
-      init_info.PhysicalDevice = physical_device;
-      init_info.Device = device;
-      init_info.QueueFamily = queue_family;
-      init_info.Queue = graphics_queue;
-      init_info.DescriptorPool = descriptor_pool;
-      init_info.RenderPass = render_pass;
-      init_info.Subpass = 0;
-      init_info.MinImageCount = min_image_count;
-      init_info.ImageCount = image_count;
-      init_info.MSAASamples = msaa_samples;
-      init_info.CheckVkResultFn = check_vk_result;
-
-      ImGui_ImplVulkan_Init(&init_info);
-    }
-  #endif
+    ImGui_ImplVulkan_Init(&init_info);
   }
 
   struct font_load_info_t {
@@ -1923,22 +1891,8 @@ namespace fan::graphics::gui {
     load_font_family();
   }
 
-  void shutdown_graphics_context(
-    int renderer,
-    int opengl_renderer_definition,
-    int vulkan_renderer_definition
-  #if defined(FAN_VULKAN)
-    , VkDevice device
-  #endif
-  ) {
-    if (renderer == opengl_renderer_definition) {
-      ImGui_ImplOpenGL3_Shutdown();
-    }
-  #if defined(FAN_VULKAN)
-    if (renderer == vulkan_renderer_definition) {
-      ImGui_ImplVulkan_Shutdown();
-    }
-  #endif
+  void shutdown_graphics_context(VkDevice device) {
+    ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();
   }
 
@@ -1951,30 +1905,15 @@ namespace fan::graphics::gui {
     is_gui_initialized() = false;
   }
 
-  void new_frame(
-    int renderer,
-    int opengl_renderer_definition,
-    int vulkan_renderer_definition
-  ) {
+  void new_frame() {
     ImGui_ImplGlfw_NewFrame();
-    if (renderer == opengl_renderer_definition) {
-      ImGui_ImplOpenGL3_NewFrame();
-    }
-  #if defined(FAN_VULKAN)
-    if (renderer == vulkan_renderer_definition) {
-      ImGui_ImplVulkan_NewFrame();
-    }
-  #endif
+    ImGui_ImplVulkan_NewFrame();
     ImGui::NewFrame();
     force_want_io_for_frame() = false;
     detail::want_io_ignore_list().clear();
   }
 
-#if defined(FAN_VULKAN)
   void render(
-    int renderer,
-    int opengl_renderer_definition,
-    int vulkan_renderer_definition,
     bool render_shapes_top,
     void* context,
     const fan::color& clear_color,
@@ -1982,25 +1921,9 @@ namespace fan::graphics::gui {
     VkCommandBuffer& cmd_buffer,
     ImGuiFrameRenderFunc render_func
   ) {
-#else
-  void render(
-    int renderer,
-    int opengl_renderer_definition,
-    int vulkan_renderer_definition,
-    bool render_shapes_top
-  ) {
-#endif
     ImGui::Render();
 
-    if (renderer == opengl_renderer_definition) {
-      ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    }
-
-  #if defined(FAN_VULKAN)
-    if (renderer == vulkan_renderer_definition) {
-      render_func(context, image_error, clear_color);
-    }
-  #endif
+    render_func(context, image_error, clear_color);
 
     if (ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
       ImGui::UpdatePlatformWindows();
@@ -2754,3 +2677,5 @@ namespace fan::graphics::gui::slot {
 #endif
 
 #endif
+
+

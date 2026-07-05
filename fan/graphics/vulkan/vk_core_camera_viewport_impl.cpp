@@ -1,6 +1,5 @@
 module;
 
-#if defined(FAN_VULKAN)
 #if defined(fan_platform_windows)
 #define VK_USE_PLATFORM_WIN32_KHR
 #elif defined(fan_platform_unix)
@@ -23,13 +22,11 @@ module;
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
-#endif
 
 module fan.graphics.vulkan.core;
 
 import std;
 
-#if defined(FAN_VULKAN)
 
 import fan.types.fstring;
 import fan.types.color;
@@ -243,4 +240,3 @@ bool fan::vulkan::context_t::viewport_inside_wir(fan::graphics::viewport_nr_t nr
   fan::graphics::context_viewport_t& viewport = viewport_get(nr);
   return fan::math::d2::aabb_point_inside(position, viewport.size / 2, viewport.size / 2);
 }
-#endif

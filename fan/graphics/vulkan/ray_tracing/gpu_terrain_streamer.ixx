@@ -1,6 +1,7 @@
 module;
 
-#if defined(FAN_3D) && defined(FAN_VULKAN)
+#if defined(FAN_3D)
+
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -11,13 +12,15 @@ module;
 #include <unordered_map>
 #include <vector>
 #include <vulkan/vulkan.h>
+
 #endif
 
 export module fan.graphics.vulkan.ray_tracing.gpu_terrain_streamer;
 
+#if defined(FAN_3D)
+
 import std;
 
-#if defined(FAN_3D) && defined(FAN_VULKAN)
 import fan.types.vector;
 import fan.time;
 import fan.graphics.gui.base;

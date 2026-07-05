@@ -4,17 +4,12 @@ module;
 
 #include <cstdint>
 
-#if defined(FAN_OPENGL)
-  #include <fan/utility.h>
-#endif
-
+#include <fan/utility.h>
 #endif
 
 module fan.texture_pack.tp0;
 
 #if defined (FAN_WINDOW)
-
-#if defined(FAN_OPENGL)
 
 import fan.graphics.webp;
 import fan.io.file;
@@ -581,4 +576,4 @@ namespace fan::graphics {
 }
 #endif
 
-#endif
+

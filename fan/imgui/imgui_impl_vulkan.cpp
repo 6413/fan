@@ -82,7 +82,6 @@
 //  2016-10-18: Vulkan: Add location decorators & change to use structs as in/out in glsl, update embedded spv (produced with glslangValidator -x). Null the released resources.
 //  2016-08-27: Vulkan: Fix Vulkan example for use when a depth buffer is active.
 
-#if defined(FAN_VULKAN)
 
 #include "imgui.h"
 #ifndef IMGUI_DISABLE
@@ -1670,5 +1669,3 @@ void ImGui_ImplVulkanH_DestroyFrameSemaphores(VkDevice device, ImGui_ImplVulkanH
 //-----------------------------------------------------------------------------
 
 #endif // #ifndef IMGUI_DISABLE
-
-#endif // if defined FAN_VULKAN
