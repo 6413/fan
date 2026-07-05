@@ -1970,8 +1970,7 @@ namespace fan::graphics{
       );
     }
     }
-    fan::throw_error("todo");
-    return true;
+    return false;
   }
 
   bool shapes::shape_t::collides(const fan::graphics::shapes::shape_t& shape) const {
@@ -1999,8 +1998,7 @@ namespace fan::graphics{
       return fan::math::d2::circle_point_inside(point, get_position(), get_radius());
     }
     }
-    fan::throw_error("todo");
-    return true;
+    return false;
   }
 
   bool shapes::shape_t::collides(const fan::vec2& point) const {

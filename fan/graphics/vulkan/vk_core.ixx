@@ -333,7 +333,7 @@ export namespace fan {
         std::uint32_t y,
         std::uint32_t z
       );
-      static void parse_uniforms(std::string& shaderData, std::unordered_map<std::string, std::string>& uniform_type_table);
+
 
       bool shader_compile(fan::graphics::shader_nr_t nr);
 

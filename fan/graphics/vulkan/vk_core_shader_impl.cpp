@@ -195,45 +195,7 @@ void fan::vulkan::context_t::shader_dispatch_compute(
 ) {
   fan::throw_error("vulkan compute dispatch is not implemented");
 }
-void fan::vulkan::context_t::parse_uniforms(std::string& shaderData, std::unordered_map<std::string, std::string>& uniform_type_table) {
-  std::size_t pos = 0;
 
-  while ((pos = shaderData.find("uniform", pos)) != std::string::npos) {
-    std::size_t endLine = shaderData.find(';', pos);
-    if (endLine == std::string::npos) break;
-
-    std::string line = shaderData.substr(pos, endLine - pos + 1);
-
-    line = line.substr(7);
-
-    std::size_t start = line.find_first_not_of(" \t");
-    if (start == std::string::npos) {
-      pos = endLine + 1;
-      continue;
-    }
-    line = line.substr(start);
-
-    std::size_t space1 = line.find_first_of(" \t");
-    if (space1 == std::string::npos) {
-      pos = endLine + 1;
-      continue;
-    }
-
-    std::string type = line.substr(0, space1);
-    line = line.substr(space1);
-    line = line.substr(line.find_first_not_of(" \t"));
-
-    std::size_t varEnd = line.find_first_of("=;");
-    std::string name = line.substr(0, varEnd);
-
-    name.erase(0, name.find_first_not_of(" \t"));
-    name.erase(name.find_last_not_of(" \t") + 1);
-
-    uniform_type_table[name] = type;
-
-    pos = endLine + 1;
-  }
-}
 bool fan::vulkan::context_t::shader_compile(fan::graphics::shader_nr_t nr) {
   auto& shader = shader_get(nr);
   auto& list_item = __fan_internal_shader_list[nr];
@@ -254,7 +216,7 @@ bool fan::vulkan::context_t::shader_compile(fan::graphics::shader_nr_t nr) {
       VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0,
       stage, create_shader_module(spirv), "main", nullptr
     };
-    parse_uniforms(code, list_item.uniform_type_table);
+
   };
 
   compile_stage(list_item.path_vertex.c_str(), list_item.svertex, shaderc_glsl_vertex_shader, VK_SHADER_STAGE_VERTEX_BIT, 0);

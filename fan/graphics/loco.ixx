@@ -558,10 +558,7 @@ public:
   bool shader_compile(fan::graphics::shader_nr_t nr);
 
   shader_t get_post_process_shader();
-  template <typename T>
-  void set_post_process(const std::string_view name, T value) {
-    fan::print("todo");
-  }
+
   #if defined(FAN_2D)
   void shader_set_camera(shader_t nr, camera_t camera_nr);
   fan::graphics::shader_nr_t shader_get_nr(std::uint16_t shape_type);
