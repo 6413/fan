@@ -480,8 +480,7 @@ struct perf_suite_t {
   }
 
   engine_t engine{{
-    .window_size = {1920, 1080},
-    .renderer = fan::window_t::renderer_t::opengl,
+    .window_size = {1920, 1080}
   }};
   std::vector<perf_result_t> results;
 };

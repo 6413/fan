@@ -109,7 +109,7 @@ struct fireworks_t {
     gui::drag("Spark life max", &spark_lifetime_max);
     gui::end();
   }
-  engine_t engine {{.renderer = renderer_t::opengl}};
+  engine_t engine;
   particle_pool_t<circle_t, spark_sim_t, max_sparks>  spark_pool;
   particle_pool_t<circle_t, rocket_sim_t, max_rockets> rocket_pool;
   particle_pool_t<circle_t, fan::graphics::trail_particle_t, max_trails> trail_pool;

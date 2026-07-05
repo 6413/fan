@@ -21,7 +21,7 @@ module;
 #undef min
 #undef max
 
-#include <fan/graphics/gl_api.h>
+
 
 #endif
 
