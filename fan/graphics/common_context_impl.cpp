@@ -494,8 +494,8 @@ namespace fan::graphics {
   void image_bind_image(
     fan::graphics::image_t nr,
     uint32_t unit,
-    GLenum access,
-    GLenum format
+    int access,
+    int format
   ) {
     fan::graphics::ctx()->image_bind_params(
       fan::graphics::ctx(),

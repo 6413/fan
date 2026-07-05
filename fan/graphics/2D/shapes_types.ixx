@@ -56,17 +56,7 @@ export namespace fan::graphics {
   #undef GEN_SHAPES_SKIP_ENUM
   #undef GEN_SHAPES_SKIP_STRING
 
-  struct shape_gl_init_t {
-    std::pair<int, const char*> index;
-    std::uint32_t size;
-    std::uint32_t type; // for example GL_FLOAT
-    std::uint32_t stride;
-    std::uint32_t offset;
-  };
-  struct shape_gl_init_list_t {
-    fan::graphics::shape_gl_init_t* ptr = nullptr;
-    int count = 0;
-  };
+
 
   std::uint8_t* A_resize(void* ptr, std::uintptr_t size);
 }
