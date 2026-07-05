@@ -490,12 +490,7 @@ export namespace fan::graphics::gui {
     fan::str_view_t label
   );
 
-  struct shader_contols_t {
-    bool vec3_as_color = false;
-    bool vec4_as_color = true;
-  };
 
-  void shader_controls(fan::graphics::shader_t shader_id, const shader_contols_t& controls = {});
 
   struct hex_editor_t {
     struct config_t {

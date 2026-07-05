@@ -1371,15 +1371,7 @@ export namespace fan::graphics {
     }
   }
 
-  template <typename T>
-  void shader_get_value(fan::graphics::shader_nr_t nr, const std::string_view name, T& val) {
-    fan::throw_error("todo");
-  }
 
-  template <typename T>
-  void shader_set_value(fan::graphics::shader_nr_t nr, const std::string_view name, const T& val) {
-    fan::throw_error("todo");
-  }
 
   void update_tiling_background(fan::graphics::shape_t& sprite, fan::vec2 tile_size, render_view_t* rv = ctx().orthographic_render_view);
 } // namespace fan::graphics
