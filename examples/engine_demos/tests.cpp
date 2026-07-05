@@ -10,9 +10,7 @@ import std;
 using namespace fan::graphics;
 
 // make it global to try break it more with siof
-engine_t engine{ {
-  .renderer = fan::window_t::renderer_t::vulkan,
-} };
+engine_t engine;
 
 struct test_result_t {
   std::string name;

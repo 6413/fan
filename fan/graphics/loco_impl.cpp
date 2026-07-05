@@ -1973,7 +1973,6 @@ void loco_t::shape_open(
   std::uint16_t shape_type,
   std::size_t sizeof_vi,
   std::size_t sizeof_ri,
-  fan::graphics::shape_gl_init_list_t shape_shader_locations,
   fan::graphics::shader_t shader,
   fan::graphics::shaper_t::ShapeRenderDataSize_t instance_count,
   bool instanced,
