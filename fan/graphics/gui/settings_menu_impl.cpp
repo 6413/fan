@@ -254,20 +254,10 @@ namespace fan::graphics::gui {
     gloco()->open_props.blur_focus_position = config.post_processing.blur_focus_position;
     gloco()->open_props.blur_focus_radius = config.post_processing.blur_focus_radius;
     gloco()->open_props.blur_focus_falloff = config.post_processing.blur_focus_falloff;
-    gloco()->set_post_process("bloom_strength", config.post_processing.bloom_strength);
-    gloco()->set_post_process("blur_amount", gloco()->open_props.blur_amount);
-    gloco()->set_post_process("blur_focus_enabled", gloco()->open_props.blur_focus_enabled);
-    gloco()->set_post_process("blur_focus_position", gloco()->open_props.blur_focus_position);
-    gloco()->set_post_process("blur_focus_radius", gloco()->open_props.blur_focus_radius);
-    gloco()->set_post_process("blur_focus_falloff", gloco()->open_props.blur_focus_falloff);
     *gloco()->get_bloom_threshold_ptr() = config.post_processing.bloom_threshold;
     *gloco()->get_bloom_knee_ptr() = config.post_processing.bloom_knee;
     *gloco()->get_bloom_tint_ptr() = config.post_processing.bloom_tint;
     *gloco()->get_bloom_filter_radius_ptr() = config.post_processing.bloom_filter_radius;
-    gloco()->set_post_process("gamma", config.post_processing.gamma);
-    gloco()->set_post_process("exposure", config.post_processing.exposure);
-    gloco()->set_post_process("contrast", config.post_processing.contrast);
-    gloco()->set_post_process("bloom_tint", *gloco()->get_bloom_tint_ptr());
     sync_vulkan_post_processing(config.post_processing);
     gloco()->set_culling_enabled(config.debug.frustum_culling_enabled);
   }
@@ -379,7 +369,6 @@ namespace fan::graphics::gui {
       if (mode == (int)loco_t::post_process_mode_e::bloom || mode == (int)loco_t::post_process_mode_e::bloom_blur) {
         draw_sub_row("Strength", [&] {
           if (gui::slider(&menu->config.post_processing.bloom_strength, 0.f, 1.f, gui::slider_flags_always_clamp)) {
-            gloco()->set_post_process("bloom_strength", menu->config.post_processing.bloom_strength);
             sync_vulkan_post_processing(menu->config.post_processing);
             menu->mark_dirty();
           }
@@ -401,7 +390,6 @@ namespace fan::graphics::gui {
         draw_sub_row("Tint", [&] {
           if (gui::color_edit3(&menu->config.post_processing.bloom_tint)) {
             *gloco()->get_bloom_tint_ptr() = menu->config.post_processing.bloom_tint;
-            gloco()->set_post_process("bloom_tint", *gloco()->get_bloom_tint_ptr());
             sync_vulkan_post_processing(menu->config.post_processing);
             menu->mark_dirty();
           }
@@ -420,7 +408,6 @@ namespace fan::graphics::gui {
           if (gui::slider(&menu->config.post_processing.blur_amount, 0.f, 1.0f, gui::slider_flags_always_clamp)) {
             menu->config.post_processing.blur_amount = std::clamp(menu->config.post_processing.blur_amount, 0.f, 1.f);
             gloco()->open_props.blur_amount = menu->config.post_processing.blur_amount;
-            gloco()->set_post_process("blur_amount", menu->config.post_processing.blur_amount);
             menu->mark_dirty();
           }
         });
@@ -441,7 +428,6 @@ namespace fan::graphics::gui {
             menu->config.post_processing.blur_focus_position.x = std::clamp(menu->config.post_processing.blur_focus_position.x, 0.f, 1.f);
             menu->config.post_processing.blur_focus_position.y = std::clamp(menu->config.post_processing.blur_focus_position.y, 0.f, 1.f);
             gloco()->open_props.blur_focus_position = menu->config.post_processing.blur_focus_position;
-            gloco()->set_post_process("blur_focus_position", gloco()->open_props.blur_focus_position);
             menu->mark_dirty();
           };
 
@@ -484,14 +470,12 @@ namespace fan::graphics::gui {
           draw_sub_row("Focus radius", [&] {
             if (gui::slider(&menu->config.post_processing.blur_focus_radius, 0.f, 1.f, gui::slider_flags_always_clamp)) {
               gloco()->open_props.blur_focus_radius = menu->config.post_processing.blur_focus_radius;
-              gloco()->set_post_process("blur_focus_radius", gloco()->open_props.blur_focus_radius);
               menu->mark_dirty();
             }
           });
           draw_sub_row("Focus falloff", [&] {
             if (gui::slider(&menu->config.post_processing.blur_focus_falloff, 0.001f, 1.f, gui::slider_flags_always_clamp)) {
               gloco()->open_props.blur_focus_falloff = menu->config.post_processing.blur_focus_falloff;
-              gloco()->set_post_process("blur_focus_falloff", gloco()->open_props.blur_focus_falloff);
               menu->mark_dirty();
             }
           });
@@ -499,21 +483,18 @@ namespace fan::graphics::gui {
       }
       draw_sub_row("Gamma", [&] {
         if (gui::drag(&menu->config.post_processing.gamma, 0.01f, 0.1f, 5.0f)) {
-          gloco()->set_post_process("gamma", menu->config.post_processing.gamma);
           sync_vulkan_post_processing(menu->config.post_processing);
           menu->mark_dirty();
         }
       });
       draw_sub_row("Exposure", [&] {
         if (gui::drag(&menu->config.post_processing.exposure, 0.01f, 0.0f, 10.0f)) {
-          gloco()->set_post_process("exposure", menu->config.post_processing.exposure);
           sync_vulkan_post_processing(menu->config.post_processing);
           menu->mark_dirty();
         }
       });
       draw_sub_row("Contrast", [&] {
         if (gui::drag(&menu->config.post_processing.contrast, 0.01f, 0.0f, 5.0f)) {
-          gloco()->set_post_process("contrast", menu->config.post_processing.contrast);
           sync_vulkan_post_processing(menu->config.post_processing);
           menu->mark_dirty();
         }

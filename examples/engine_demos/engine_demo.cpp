@@ -347,7 +347,6 @@ void main() {
       .shader = engine_demo->demo_shader_shape_shader,
       .image = image,
     }});
-    engine_demo->engine.shader_set_value(engine_demo->demo_shader_shape_shader, "custom_color", engine_demo->custom_color);
   }
   static void demo_shader_shape_update(engine_demo_t* engine_demo) {
     if (fan::graphics::gui::color_edit4("##c0", &engine_demo->custom_color)) {
