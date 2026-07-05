@@ -22,6 +22,7 @@ void open(void* sod) {
   if (main_compiled_map == nullptr) {
     fan::throw_error("Failed to fetch compiled map! Did you spell the name wrong in compile()?");
   }
+  pile.is_map_changing = false;
 
   main_map_id = pile.renderer.add(main_compiled_map, {
     .position = pile.player.body.get_position(),
@@ -45,7 +46,7 @@ void open(void* sod) {
     .blending = true
   }};
 
-  if (pile.stage_loader.previous_stage_name == stage_shop_t::stage_name) {
+  if (pile.engine.stage_loader.previous_stage_name == stage_shop_t::stage_name) {
     pile.player.body.set_physics_position(player_sensor_door.get_physics_position() + fan::vec2(0, player_sensor_door.get_size().y * 2.f));
   }
   else {
@@ -85,22 +86,9 @@ void update() {
 
   if (!pile.is_map_changing && fan::physics::is_on_sensor(pile.player.body, player_sensor_door)) {
     pile.is_map_changing = true;
-    
-    fan::vec3 fadein_color = pile.renderer.get_compiled("stage_shop")->lighting.ambient;
-    
-    pile.map_transition_task = pile.stage_loader.change_stage<stage_shop_t>(
-      pile.engine.get_lighting(),
-      pile.fadeout_target_color,
-      fadein_color,
-      stage_common.stage_id,
-      pile.current_stage
-    );
+    pile.engine.stage_change<stage_forest_t, stage_shop_t>();
   } else if (enable_lightning) {
     pile.weather.lightning();
-  }
-  
-  if (pile.is_map_changing && !pile.map_transition_task.valid()) {
-    pile.is_map_changing = false;
   }
 
   pile.step();

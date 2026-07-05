@@ -18,7 +18,7 @@ using menu_t = fan::graphics::gui::settings_menu_t;
 
 /*
   Tracking ram is enabled by fan::heap_profiler_t::instance().enabled = true;
-    Slowest ram allocations can be printed fan::heap_profiler_t::instance().print_slowest_allocs(top_count)
+  Slowest ram allocations can be printed fan::heap_profiler_t::instance().print_slowest_allocs(top_count)
 */
 
 struct engine_demo_t;
