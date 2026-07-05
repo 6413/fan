@@ -193,6 +193,7 @@ void fan::vulkan::context_t::gui_close() {
   ImGui_ImplVulkanH_DestroyWindow(instance, device, &MainWindowData, nullptr);
 #endif
   destroy_shape_resources();
+  destroy_allocator();
   vkDestroyDevice(device, nullptr);
   vkDestroyInstance(instance, nullptr);
 }
@@ -285,6 +286,9 @@ void fan::vulkan::context_t::update_swapchain_dependencies() {
   swap_chain_images.resize(imageCount);
 
   for (auto* view : {&mainColorImageViews, &postProcessedColorImageViews, &depthImageViews, &downscaleImageViews1, &upscaleImageViews1, &vai_depth}) {
+    for (std::size_t i = imageCount; i < view->size(); ++i) {
+      (*view)[i].close(*this);
+    }
     view->resize(imageCount);
   }
 
@@ -679,6 +683,12 @@ VkImageView fan::vulkan::context_t::create_image_view(VkImage image, VkFormat fo
   return imageView;
 }
 void fan::vulkan::context_t::create_image_views() {
+  for (auto& view : swap_chain_image_views) {
+    if (view != VK_NULL_HANDLE) {
+      vkDestroyImageView(device, view, nullptr);
+      view = VK_NULL_HANDLE;
+    }
+  }
   swap_chain_image_views.resize(swap_chain_images.size());
 
   fan::vulkan::vai_t::properties_t vp{
@@ -697,18 +707,23 @@ void fan::vulkan::context_t::create_image_views() {
   }
 
   for (std::size_t i = 0; i < swap_chain_images.size(); ++i) {
+    mainColorImageViews[i].close(*this);
     mainColorImageViews[i].open(*this, vp);
     mainColorImageViews[i].transition_image_layout(*this, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
 
+    postProcessedColorImageViews[i].close(*this);
     postProcessedColorImageViews[i].open(*this, vp);
     postProcessedColorImageViews[i].transition_image_layout(*this, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
 
+    depthImageViews[i].close(*this);
     depthImageViews[i].open(*this, depth_vp);
     depthImageViews[i].transition_image_layout(*this, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, depth_vp.aspect_flags);
 
+    downscaleImageViews1[i].close(*this);
     downscaleImageViews1[i].open(*this, vp);
     downscaleImageViews1[i].transition_image_layout(*this, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
 
+    upscaleImageViews1[i].close(*this);
     upscaleImageViews1[i].open(*this, vp);
     upscaleImageViews1[i].transition_image_layout(*this, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
 
@@ -800,6 +815,12 @@ void fan::vulkan::context_t::create_render_pass() {
   }
 }
 void fan::vulkan::context_t::create_framebuffers() {
+  for (auto& fb : swap_chain_framebuffers) {
+    if (fb != VK_NULL_HANDLE) {
+      vkDestroyFramebuffer(device, fb, nullptr);
+      fb = VK_NULL_HANDLE;
+    }
+  }
   swap_chain_framebuffers.resize(swap_chain_image_views.size());
 
   for (std::size_t i = 0; i < swap_chain_image_views.size(); i++) {
@@ -870,6 +891,10 @@ void fan::vulkan::context_t::create_allocator() {
 }
 void fan::vulkan::context_t::destroy_allocator() {
   if (allocator != VK_NULL_HANDLE) {
+    //char* statsString;
+    //vmaBuildStatsString(allocator, &statsString, VK_TRUE);
+    //fan::print("VMA STATS:\\n", statsString);
+    //vmaFreeStatsString(allocator, statsString);
     vmaDestroyAllocator(allocator);
     allocator = VK_NULL_HANDLE;
   }
