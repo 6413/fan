@@ -261,7 +261,7 @@ sint32_t Open(){
   }
   r = Out.Open();
   if(r != 0){
-    fan::throw_error("TODO");
+    return r;
   }
   return r;
 }

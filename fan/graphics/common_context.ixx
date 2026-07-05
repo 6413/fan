@@ -180,7 +180,7 @@ export namespace fan {
     struct shader_data_t {
       fan::ct_string<256> path_vertex, path_fragment, path_compute;
       std::string svertex, sfragment, scompute;
-      std::unordered_map<std::string, std::string> uniform_type_table;
+
       void* internal;
     };
 

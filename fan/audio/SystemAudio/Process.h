@@ -777,7 +777,7 @@ void _DataCallbackPcm(f32_t *Output) {
           break;
         }
         case _MessageType_t::ClosePiece: {
-          fan::throw_error("todo");
+          // fan::throw_error("todo");
           break;
         }
       }

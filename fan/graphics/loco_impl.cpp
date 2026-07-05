@@ -191,14 +191,6 @@ void loco_t::shader_recompile_all() {
     if (!shader_compile(nr))
       fan::print_warning("failed to recompile shader. vertex shader:" + std::string(sd.path_vertex) + ", fragment shader:" + std::string(sd.path_fragment));
   });
-  #if defined(FAN_GUI)
-  set_post_process("bloom_strength", get_smenu(this)->config.post_processing.bloom_strength);
-  set_post_process("blur_amount", get_smenu(this)->config.post_processing.blur_amount);
-  set_post_process("blur_focus_enabled", open_props.blur_focus_enabled);
-  set_post_process("blur_focus_position", open_props.blur_focus_position);
-  set_post_process("blur_focus_radius", open_props.blur_focus_radius);
-  set_post_process("blur_focus_falloff", open_props.blur_focus_falloff);
-  #endif
 }
 
 f32_t* loco_t::get_bloom_filter_radius_ptr() {
