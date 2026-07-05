@@ -556,10 +556,7 @@ public:
     const std::string& compute_code
   );
   bool shader_compile(fan::graphics::shader_nr_t nr);
-  template <typename T>
-  void shader_set_value(fan::graphics::shader_nr_t nr, const std::string_view name, const T& val) {
-    fan::print("todo");
-  }
+
   shader_t get_post_process_shader();
   template <typename T>
   void set_post_process(const std::string_view name, T value) {

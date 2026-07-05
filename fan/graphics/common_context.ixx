@@ -395,10 +395,7 @@ export namespace fan::graphics {
   struct shader_t : fan::graphics::shader_nr_t {
     using shader_nr_t::shader_nr_t;
     shader_t(shader_nr_t nr) : shader_nr_t(nr) {}
-    template <typename T>
-    void set_value(auto& engine, const std::string_view name, const T& val) {
-      engine.shader_set_value(*this, name, val);
-    }
+
     void use(auto& engine) const {
       engine.shader_use(*this);
     }
