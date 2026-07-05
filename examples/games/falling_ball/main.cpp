@@ -5,7 +5,7 @@ import fan;
 using namespace fan::graphics;
 
 int main() {
-  engine_t engine{{.renderer=renderer_t::vulkan}};
+  engine_t engine;
   engine.get_lighting().set_target(0.3f);
 
   interactive_camera_t ic;
