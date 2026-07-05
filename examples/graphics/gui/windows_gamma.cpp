@@ -168,9 +168,7 @@ int main() {
 
   /*glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
   glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);*/
-  engine_t engine{ {
-    .renderer = fan::graphics::renderer_t::opengl
-  } };
+  engine_t engine;
 
   f32_t gamma = 1.f, contrast = 1.f;
 

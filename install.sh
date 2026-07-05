@@ -83,29 +83,7 @@ if ! $CORE_ONLY; then
   move_and_pull "https://github.com/6413/PIXF.git"       "PIXF"
   install_vma
 
-  mkdir -p "$INCLUDE_DIR/glad" "$INCLUDE_DIR/KHR"
-  if $FORCE_REBUILD || [[ ! -f "$INCLUDE_DIR/glad/gl_native.h" ]]; then
-    echo "Generating glad (native)..."
-    pip install glad2 --break-system-packages --quiet || true
-    GLAD_DIR="$INSTALL_DIR/repos/glad"
-    glad --api gl:core --out-path "$GLAD_DIR"
-    cp "$GLAD_DIR/include/glad/gl.h"         "$INCLUDE_DIR/glad/gl_native.h"
-    cp "$GLAD_DIR/include/KHR/khrplatform.h" "$INCLUDE_DIR/KHR/khrplatform.h"
-    cp "$GLAD_DIR/src/gl.c"                  "$INSTALL_DIR/glad.c"
-  fi
 
-  cat > "$INCLUDE_DIR/glad/gl.h" << 'EOF'
-#pragma once
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#include <GLES3/gl3.h>
-#include <GLES2/gl2ext.h>
-static inline int gladLoadGL(void) { return 1; }
-static inline int gladLoaderLoadGL(void) { return 1; }
-#else
-#include "gl_native.h"
-#endif
-EOF
 
   touch "$INSTALL_DIR/.gfx.stamp"
 fi
