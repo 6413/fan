@@ -101,7 +101,8 @@ if ! $CORE_ONLY; then
   move_and_pull "https://github.com/7244/pixfconv.git"   "pixfconv"
   move_and_pull "https://github.com/6413/PIXF.git"       "PIXF"
   install_vma
-  install_vulkan_utility_libraries
+
+
 
   touch "$INSTALL_DIR/.gfx.stamp"
 fi
