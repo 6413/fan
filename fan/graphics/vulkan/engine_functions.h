@@ -998,7 +998,7 @@ void update_shape_descriptors_before_cmd() {
     vk_data.shape_data.m_descriptor.m_properties[1].range =
       shader.projection_view_block->m_size;
     vk_data.shape_data.m_descriptor.m_properties[2].image_infos = loco.context.vk.image_pool;
-    vk_data.shape_data.m_descriptor.update(loco.context.vk, 3, 0, vk_data.shape_data.m_descriptor.m_properties[2].image_infos.size());
+    vk_data.shape_data.m_descriptor.update(loco.context.vk, 3, 0, std::min((std::uint32_t)vk_data.shape_data.m_descriptor.m_properties[2].image_infos.size(), (std::uint32_t)fan::vulkan::max_textures));
   }
 }
 #endif
@@ -1211,7 +1211,7 @@ void shapes_draw() {
       context,
       3,
       0,
-      vk_data.shape_data.m_descriptor.m_properties[2].image_infos.size()
+      std::min((std::uint32_t)vk_data.shape_data.m_descriptor.m_properties[2].image_infos.size(), (std::uint32_t)fan::vulkan::max_textures)
     );
 
     set_viewport();
