@@ -255,6 +255,9 @@ namespace bll_builds {
 
 export namespace fan {
 
+  namespace vulkan {
+    struct decoded_image_payload_t;
+  }
   namespace graphics {
     using camera_list_t = bll_builds::camera_list_t;
     using shader_list_t = bll_builds::shader_list_t;

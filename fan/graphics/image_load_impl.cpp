@@ -118,30 +118,34 @@ namespace fan::image {
 
   struct image_load_queue_t {
     image_load_queue_t() {
-      worker = std::thread([this] {
-        while (true) {
-          std::tuple<std::string, std::shared_ptr<async_result_t>, fan::vec2ui> task;
-          {
-            std::unique_lock lock(mutex);
-            cv.wait(lock, [this] { return stop || !queue.empty(); });
-            if (stop && queue.empty()) return;
-            task = std::move(queue.front());
-            queue.pop();
-          }
+      int num_workers = std::thread::hardware_concurrency() - 1;
+      if (num_workers <= 0) num_workers = 1;
+      for (int i = 0; i < num_workers; ++i) {
+        workers.emplace_back([this] {
+          while (true) {
+            std::tuple<std::string, std::shared_ptr<async_result_t>, fan::vec2ui> task;
+            {
+              std::unique_lock lock(mutex);
+              cv.wait(lock, [this] { return stop || !queue.empty(); });
+              if (stop && queue.empty()) return;
+              task = std::move(queue.front());
+              queue.pop();
+            }
 
-          if (std::get<1>(task).use_count() == 1) {
-            std::get<1>(task)->state.store(async_result_t::state_e::failed, std::memory_order_release);
-            continue;
-          }
+            if (std::get<1>(task).use_count() == 1) {
+              std::get<1>(task)->state.store(async_result_t::state_e::failed, std::memory_order_release);
+              continue;
+            }
 
-          auto out = load_owned(std::get<0>(task), std::get<2>(task), std::source_location::current());
-          std::get<1>(task)->image = std::move(out);
-          std::get<1>(task)->state.store(
-            std::get<1>(task)->image.valid() ? async_result_t::state_e::ready : async_result_t::state_e::failed,
-            std::memory_order_release
-          );
-        }
-      });
+            auto out = load_owned(std::get<0>(task), std::get<2>(task), std::source_location::current());
+            std::get<1>(task)->image = std::move(out);
+            std::get<1>(task)->state.store(
+              std::get<1>(task)->image.valid() ? async_result_t::state_e::ready : async_result_t::state_e::failed,
+              std::memory_order_release
+            );
+          }
+        });
+      }
     }
 
     ~image_load_queue_t() {
@@ -149,9 +153,11 @@ namespace fan::image {
         std::lock_guard lock(mutex);
         stop = true;
       }
-      cv.notify_one();
-      if (worker.joinable()) {
-        worker.join();
+      cv.notify_all();
+      for (auto& worker : workers) {
+        if (worker.joinable()) {
+          worker.join();
+        }
       }
     }
 
@@ -169,7 +175,7 @@ namespace fan::image {
     std::queue<std::tuple<std::string, std::shared_ptr<async_result_t>, fan::vec2ui>> queue;
     std::mutex mutex;
     std::condition_variable cv;
-    std::thread worker;
+    std::vector<std::thread> workers;
     bool stop = false;
   };
 

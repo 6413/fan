@@ -252,7 +252,10 @@ bool fan::vulkan::context_t::shader_compile(fan::graphics::shader_nr_t nr) {
     if (code.empty()) { return; }
     auto spirv = load_or_compile(path, kind, code);
     if (shader.shader_stages[index].module != VK_NULL_HANDLE) {
-      shader_reloader.pending_deletions[current_frame].push_back(shader.shader_stages[index].module);
+      VkShaderModule old_module = shader.shader_stages[index].module;
+      get_current_deletion_queue().push_function([=, device = this->device]() {
+        vkDestroyShaderModule(device, old_module, nullptr);
+      });
     }
     shader.shader_stages[index] = {
       VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0,
