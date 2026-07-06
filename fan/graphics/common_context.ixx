@@ -129,7 +129,7 @@ export namespace fan {
     struct context_camera_t : fan::camera {
       fan::mat4 projection = fan::mat4(1);
       fan::mat4 view = fan::mat4(1);
-      f32_t zfar = 1000.f;
+      f32_t zfar = 0xffff;
       f32_t znear = 0.1f;
       f32_t zoom = 1.0f;
       f32_t fov = 90.f;
@@ -184,8 +184,6 @@ export namespace fan {
 
       void* internal;
     };
-
-    constexpr f32_t znearfar = 0xffff;
 
     struct primitive_topology_t {
       enum {
