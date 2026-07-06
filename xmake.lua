@@ -1,5 +1,5 @@
 set_project("fan")
-set_languages("cxx26")
+set_languages("cxx23")
 
 if is_plat("wasm") then
   add_cxxflags("-pthread", "-DFAN_WASM", {force = true})
