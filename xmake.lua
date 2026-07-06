@@ -219,7 +219,7 @@ if has_config("FAN_GUI") then
       add_links("freetype", "lunasvg")
       add_syslinks("png16", "z")
     end
-    add_includedirs("fan/imgui", "fan/imgui/misc/freetype", "third_party/fan/include", "third_party/fan/include/freetype2")
+    add_includedirs("fan/imgui", "fan/imgui/misc/freetype", "third_party/fan/include")
     on_load(function (target)
       if target:is_plat("linux") then
         import("lib.detect.find_tool")
