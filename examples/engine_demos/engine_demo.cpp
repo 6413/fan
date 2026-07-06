@@ -1560,6 +1560,7 @@ void main() {
 #include "library_usage_samples.h"
 
 int main() {////
+  fan::time::get_measure_time() = true;
   engine_demo_ptr = new engine_demo_t;
   engine_demo_t& demo = *engine_demo_ptr;
 
