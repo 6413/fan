@@ -1467,7 +1467,7 @@ void fan::vulkan::context_t::ImGuiFrameRender(void* ctx, VkResult next_image_khr
 }
 
 #endif
-VkResult fan::vulkan::context_t::end_render() {
+VkResult fan::vulkan::context_t::end_render(fan::window_t* window) {
   //// render_fullscreen_pl loco fbo?
   if (!command_buffer_in_use) {
     return VK_SUCCESS;
@@ -1512,6 +1512,12 @@ VkResult fan::vulkan::context_t::end_render() {
   presentInfo.pSwapchains = swapChains;
   presentInfo.pImageIndices = &image_index;
   auto result = vkQueuePresentKHR(present_queue, &presentInfo);
+
+  if (!window_shown) {
+    window_shown = true;
+    vkQueueWaitIdle(present_queue);
+    window->show();
+  }
 
   current_frame = (current_frame + 1) % max_frames_in_flight;
   return result;
