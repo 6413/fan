@@ -125,6 +125,11 @@ export namespace fan {
         deletors.clear();
       }
 
+      void merge(frame_deletion_queue_t& other) {
+        deletors.insert(deletors.end(), std::make_move_iterator(other.deletors.begin()), std::make_move_iterator(other.deletors.end()));
+        other.deletors.clear();
+      }
+
     private:
       std::vector<std::function<void()>> deletors;
     };

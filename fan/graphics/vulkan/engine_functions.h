@@ -1006,7 +1006,8 @@ void update_shape_descriptors_before_cmd() {
 void begin_draw() {
   fan::vulkan::context_t& context = loco.context.vk;
   vkWaitForFences(context.device, 1, &context.in_flight_fences[context.current_frame], VK_TRUE, UINT64_MAX);
-  context.get_current_deletion_queue().flush();
+  context.get_current_deletion_queue(context.current_frame).flush();
+  context.get_current_deletion_queue(context.current_frame).merge(context.pending_deletion_queue);
   flush_deferred_shape_pipeline_destroys();
 
   if (context.SwapChainRebuild) {

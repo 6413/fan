@@ -65,7 +65,8 @@ void fan::vulkan::context_t::camera_update_projection(fan::graphics::camera_nr_t
     camera.coordinates.right / camera.zoom,
     camera.coordinates.top / camera.zoom,
     camera.coordinates.bottom / camera.zoom,
-    camera.znear,
+    //camera.znear,
+    0.0f, // force 0.f for ortho vulkan, otherwise when znear=0.1, position.z = 0, gl_Position.z goes negative
     camera.zfar
   );
 }
@@ -76,9 +77,7 @@ void fan::vulkan::context_t::camera_update_view(fan::graphics::camera_nr_t nr) {
   camera.view[3][2] = 0;
   camera.view = camera.view.translate(camera.position);
   fan::vec3 position = camera.view.get_translation();
-  constexpr fan::vec3 front(0, 0, 1);
-  camera.view = fan::math::look_at_left<fan::mat4, fan::vec3>(position, position + front, fan::camera::world_up);
-  camera.view[2][3] *= -1;
+  camera.view = fan::math::look_at_right<fan::mat4, fan::vec3>(position, position + camera.front, fan::camera::world_up);
 }
 fan::graphics::camera_nr_t fan::vulkan::context_t::camera_create(const fan::vec2& x, const fan::vec2& y) {
   fan::graphics::camera_nr_t nr = camera_create();
