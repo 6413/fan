@@ -107,7 +107,7 @@ namespace fan::graphics {
     : fan::graphics::image_nr_t(ctx()->image_load_colors_props(ctx(), colors, size, lp)) {}
   image_t::image_t(std::span<const fan::color> colors, const fan::vec2ui& size)
     : fan::graphics::image_nr_t(ctx()->image_load_colors_props(ctx(), const_cast<fan::color*>(colors.data()), size, image_presets::pixel_art())) {}
-  image_t::image_t(const fan::vec2& size, std::uint32_t channels, const image_load_properties_t& lp) {
+  image_t::image_t(const fan::vec2i& size, std::uint32_t channels, const image_load_properties_t& lp) {
     std::vector<std::uint8_t> blank(size.multiply() * channels, 0);
     fan::image::info_t info;
     info.size = size;
