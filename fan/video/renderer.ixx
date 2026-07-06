@@ -94,6 +94,7 @@ export namespace fan {
           if (!demuxer.seek(seconds)) return false;
           decoder.flush();
           frames.clear();
+          frames.shrink_to_fit();
           buf.clear();
           packet_pts = std::numeric_limits<std::int64_t>::min();
           seek_target_time = seconds;

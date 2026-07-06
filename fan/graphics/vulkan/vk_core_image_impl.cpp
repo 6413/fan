@@ -696,28 +696,31 @@ void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, const fa
     image_data.size != image_info.size ||
     image_data.image_settings.format != new_settings.format
   );
+
   if (recreate_image) {
-  #if defined(FAN_GUI)
-    if (image.gui_descriptor_set != VK_NULL_HANDLE) {
-      ImGui_ImplVulkan_RemoveTexture(image.gui_descriptor_set);
-      image.gui_descriptor_set = VK_NULL_HANDLE;
-      image.gui_image_view = VK_NULL_HANDLE;
-      image.gui_sampler = VK_NULL_HANDLE;
-    }
-  #endif
-    if (image.sampler != VK_NULL_HANDLE) {
-      vkDestroySampler(device, image.sampler, nullptr);
-      image.sampler = VK_NULL_HANDLE;
-    }
-    if (image.image_view != VK_NULL_HANDLE && image.owns_image_view) {
-      vkDestroyImageView(device, image.image_view, nullptr);
-      image.image_view = VK_NULL_HANDLE;
-    }
-    if (image.image_index != VK_NULL_HANDLE && image.owns_image) {
-      vmaDestroyImage(allocator, image.image_index, image.image_allocation);
-      image.image_index = VK_NULL_HANDLE;
-      image.image_allocation = VK_NULL_HANDLE;
-    }
+    VkDevice dev = device;
+    VmaAllocator alloc = allocator;
+    get_current_deletion_queue().push_function([
+      dev, alloc,
+      gui_ds = image.gui_descriptor_set,
+      sampler = image.sampler,
+      view = (image.image_view && image.owns_image_view) ? image.image_view : VK_NULL_HANDLE,
+      img = (image.image_index && image.owns_image) ? image.image_index : VK_NULL_HANDLE,
+      alloc_handle = (image.image_index && image.owns_image) ? image.image_allocation : VK_NULL_HANDLE
+    ]() mutable {
+#if defined(FAN_GUI)
+      if (gui_ds != VK_NULL_HANDLE) ImGui_ImplVulkan_RemoveTexture(gui_ds);
+#endif
+      if (sampler != VK_NULL_HANDLE) vkDestroySampler(dev, sampler, nullptr);
+      if (view != VK_NULL_HANDLE) vkDestroyImageView(dev, view, nullptr);
+      if (img != VK_NULL_HANDLE) vmaDestroyImage(alloc, img, alloc_handle);
+    });
+
+    image.gui_descriptor_set = VK_NULL_HANDLE;
+    image.sampler = VK_NULL_HANDLE;
+    image.image_view = VK_NULL_HANDLE;
+    image.image_index = VK_NULL_HANDLE;
+    image.image_allocation = VK_NULL_HANDLE;
   }
 
   image_data.size = image_info.size;
@@ -781,14 +784,17 @@ void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, const fa
 
   vmaUnmapMemory(allocator, image.staging_allocation);
 
-  transition_image_layout(
+  VkCommandBuffer cmd = begin_single_time_commands();
+  transition_image_layout_cmd(
+    cmd,
     image.image_index,
     p.format,
     (recreate_image || image_was_null) ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
   );
-  copy_buffer_to_image(image.staging_buffer, image.image_index, p.format, image_info.size);
-  transition_image_layout(image.image_index, p.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  copy_buffer_to_image_cmd(cmd, image.staging_buffer, image.image_index, p.format, image_info.size);
+  transition_image_layout_cmd(cmd, image.image_index, p.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  end_single_time_commands(cmd);
 }
 void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info) {
   image_reload(nr, image_info, fan::vulkan::context_t::image_load_properties_t());
