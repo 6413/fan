@@ -8,6 +8,7 @@ module fan.event;
 import fan.print;
 import fan.print.error;
 import fan.event.uv_raw;
+import fan.io.file;
 
 namespace fan::event {
 
@@ -264,7 +265,7 @@ namespace fan::event {
   fs_watcher_t::fs_watcher_t(const std::string& path) {
     internal_state = new fs_watcher_internal_t();
     auto* state = static_cast<fs_watcher_internal_t*>(internal_state);
-    state->watch_path = path;
+    state->watch_path = std::filesystem::absolute(path).generic_string();
     state->fs_event.data = state;
     state->timer.data = state;
   }

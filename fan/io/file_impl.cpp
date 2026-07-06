@@ -26,9 +26,8 @@ namespace fan::io::file {
   }
 
   bool exists(std::string_view name) {
-    if (name.empty()) return false;
-    std::ifstream file(std::string(name), std::ios::binary);
-    return file.good();
+    std::error_code ec;
+    return !name.empty() && std::filesystem::exists(name, ec);
   }
 
   bool rename(const std::string& from, const std::string& to) {
@@ -236,7 +235,7 @@ namespace fan::io::file {
     if (ec) return {};
 
     auto try_candidate = [&](const fs::path& p) {
-      if (fs::is_regular_file(p, ec) && !ec) {
+      if (fs::exists(p, ec) && !ec) {
         fs::path r = fs::relative(p, current_dir, ec);
         return ec ? p : r;
       }
@@ -279,7 +278,7 @@ namespace fan::io::file {
     {
       std::error_code ec2;
       fs::path fp = fs::path(file_path);
-      if (fs::is_regular_file(fp, ec2))
+      if (fs::exists(fp, ec2))
         return fs::relative(fp, current_dir, ec2);
       fs::path p = src_dir;
       while (p.has_parent_path()) {
@@ -334,5 +333,17 @@ namespace fan::io::file {
     std::uint32_t pe;
     std::memcpy(&pe, d.data() + 0x3c, sizeof(pe));
     return pe <= d.size() - 4 && std::memcmp(d.data() + pe, "PE\0\0", 4) == 0;
+  }
+
+  bool is_temp_file(std::string_view path) {
+    return path.empty() || path.back() == '~' || path.find(".tmp") != std::string_view::npos;
+  }
+  bool is_up_to_date(std::string_view source_path, std::string_view cache_path) {
+    std::error_code ec_src, ec_cache;
+    if (!std::filesystem::exists(cache_path, ec_cache) || ec_cache) return false;
+    auto src_time = std::filesystem::last_write_time(source_path, ec_src);
+    auto cache_time = std::filesystem::last_write_time(cache_path, ec_cache);
+    if (ec_src || ec_cache || src_time > cache_time) return false;
+    return std::filesystem::file_size(cache_path, ec_cache) > 0 && !ec_cache;
   }
 }
