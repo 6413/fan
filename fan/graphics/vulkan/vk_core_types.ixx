@@ -12,6 +12,7 @@ module;
 export module fan.graphics.vulkan.core:types;
 import std;
 
+import fan.types.vector;
 import fan.types.matrix;
 import fan.types.fstring;
 import fan.types.color;
