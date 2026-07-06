@@ -182,6 +182,8 @@ export namespace fan {
       std::uint64_t file_size_p(P&& p) { return file_size(std::forward<P>(p)); }
 
       bool is_pe(const fan::bytes_t& d);
+      bool is_temp_file(std::string_view path);
+      bool is_up_to_date(std::string_view source_path, std::string_view cache_path);
 
       struct file_writer_t {
         void write_byte(std::uint8_t b) { write_bytes(std::span<const std::uint8_t>(&b, 1)); }

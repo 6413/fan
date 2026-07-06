@@ -12,7 +12,8 @@ std::string fan::io::file_to_directory(const std::string& file) {
     (char)std::filesystem::path::preferred_separator;
 }
 bool fan::io::directory_exists(const std::string& directory) {
-  return std::filesystem::exists(directory.c_str());
+  std::error_code ec;
+  return std::filesystem::exists(directory, ec);
 }
 void fan::io::create_directory(const std::string& folders) {
   std::filesystem::create_directories(folders);
@@ -46,7 +47,7 @@ void fan::io::iterate_directory(
   const std::string& path,
   const std::function<void(const std::string& path, bool is_directory)>& function
 ) {
-  if (!directory_exists(path.c_str())) {
+  if (!directory_exists(path)) {
     fan::throw_error("directory does not exist");
   }
   try {
@@ -113,7 +114,7 @@ void fan::io::iterate_directory_files(
   const std::string& path,
   const std::function<void(const std::string& path)>& function
 ) {
-  if (!fan::io::directory_exists(path.c_str())) {
+  if (!directory_exists(path)) {
     fan::throw_error("directory does not exist");
   }
   for (const auto& entry : std::filesystem::directory_iterator(path)) {

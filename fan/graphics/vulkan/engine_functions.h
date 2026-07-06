@@ -183,13 +183,10 @@ fan::vulkan::context_t::pipeline_t& get_shape_shader_pipeline(
   item.generation = generation;
 
   auto& vk_data = fan::graphics::g_shapes->shaper.GetShapeTypes(shape_type).renderer.vk;
-  VkPipelineColorBlendAttachmentState attachment = fan::vulkan::get_default_color_blend();
   fan::vulkan::context_t::pipeline_t::properties_t pipe_p{};
-  pipe_p.color_blend_attachment_count = 1;
-  pipe_p.color_blend_attachment = &attachment;
+  pipe_p.color_blend_attachments = {fan::vulkan::get_default_color_blend()};
   pipe_p.shader = shader;
-  pipe_p.descriptor_layout = &vk_data.shape_data.m_descriptor.m_layout;
-  pipe_p.descriptor_layout_count = 1;
+  pipe_p.descriptor_layouts = {vk_data.shape_data.m_descriptor.m_layout};
   pipe_p.push_constants_size = sizeof(fan::vulkan::context_t::push_constants_t);
   pipe_p.enable_depth_test = false;
   pipe_p.shape_type = (VkPrimitiveTopology)fan::graphics::get_draw_mode(draw_mode);
@@ -497,33 +494,29 @@ void open_post_process_pipelines() {
   add_blend.alphaBlendOp = VK_BLEND_OP_ADD;
 
   fan::vulkan::context_t::pipeline_t::properties_t p{};
-  p.descriptor_layout_count = 1;
   p.enable_depth_test = false;
-  p.color_blend_attachment_count = 1;
+  p.color_blend_attachments = {replace_blend};
 
   p.shader = post_process_shader;
   p.render_pass = post_process_render_pass;
-  p.descriptor_layout = &loco.vk.d_attachments.m_layout;
-  p.color_blend_attachment = &replace_blend;
+  p.descriptor_layouts = {loco.vk.d_attachments.m_layout};
   p.push_constants_size = sizeof(post_process_push_constants_t);
   loco.vk.post_process.open(context, p);
 
   p.shader = bloom_downsample_shader;
   p.render_pass = bloom_render_pass;
-  p.descriptor_layout = &bloom_downsample_descriptors[0].m_layout;
-  p.color_blend_attachment = &replace_blend;
+  p.descriptor_layouts = {bloom_downsample_descriptors[0].m_layout};
   p.push_constants_size = sizeof(bloom_downsample_push_constants_t);
   bloom_downsample_pipeline.open(context, p);
 
   p.shader = bloom_upsample_shader;
   p.render_pass = bloom_render_pass;
-  p.descriptor_layout = &bloom_upsample_descriptors[0].m_layout;
-  p.color_blend_attachment = &replace_blend;
+  p.descriptor_layouts = {bloom_upsample_descriptors[0].m_layout};
   p.push_constants_size = sizeof(bloom_upsample_push_constants_t);
   bloom_upsample_pipeline.open(context, p);
 
   p.render_pass = bloom_blend_render_pass;
-  p.color_blend_attachment = &add_blend;
+  p.color_blend_attachments = {add_blend};
   bloom_upsample_add_pipeline.open(context, p);
 }
 
