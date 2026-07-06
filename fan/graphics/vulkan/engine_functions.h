@@ -967,6 +967,7 @@ void update_shape_descriptors_before_cmd() {
 void begin_draw() {
   fan::vulkan::context_t& context = loco.context.vk;
   vkWaitForFences(context.device, 1, &context.in_flight_fences[context.current_frame], VK_TRUE, UINT64_MAX);
+  context.shader_reloader.process_frame_deletions(context.device, context.current_frame);
   flush_deferred_shape_pipeline_destroys();
 
   if (context.SwapChainRebuild) {

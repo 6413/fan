@@ -27,7 +27,6 @@ module fan.graphics.vulkan.core;
 
 import std;
 
-
 import fan.types.fstring;
 import fan.types.color;
 
@@ -43,6 +42,8 @@ import fan.graphics.common_context;
 
 import fan.math;
 import fan.math.intersection;
+
+import fan.io.file;
 
 #define __fan_internal_camera_list (*fan::graphics::ctx().camera_list)
 #define __fan_internal_shader_list (*fan::graphics::ctx().shader_list)
@@ -85,6 +86,44 @@ std::vector<std::uint32_t> fan::vulkan::context_t::compile_file(const std::strin
   }
 
   return {module.cbegin(), module.cend()};
+}
+
+std::vector<std::uint32_t> fan::vulkan::context_t::load_or_compile(const std::string& source_name,
+  shaderc_shader_kind kind,
+  const std::string& source) {
+
+  if (source_name.empty()) {
+    return compile_file(source_name, kind, source);
+  }
+
+  std::string flat = source_name;
+  std::replace(flat.begin(), flat.end(), '/', '_');
+  std::replace(flat.begin(), flat.end(), '\\', '_');
+  std::string cache_path = ".shader_cache/" + flat + ".spv";
+
+  std::error_code ec;
+  if (std::filesystem::exists(cache_path, ec) &&
+      std::filesystem::last_write_time(source_name, ec) <= std::filesystem::last_write_time(cache_path, ec)) {
+    auto spv_size = std::filesystem::file_size(cache_path, ec);
+    if (!ec && spv_size > 0) {
+      std::ifstream file(cache_path, std::ios::binary);
+      if (file) {
+        std::vector<std::uint32_t> spv(spv_size / sizeof(std::uint32_t));
+        file.read(reinterpret_cast<char*>(spv.data()), spv_size);
+        if (file) {
+          return spv;
+        }
+      }
+    }
+  }
+
+  auto spv = compile_file(source_name, kind, source);
+  std::filesystem::create_directories(".shader_cache", ec);
+  std::string tmp_path = cache_path + ".tmp";
+  fan::io::file::write(tmp_path, std::string(reinterpret_cast<const char*>(spv.data()), spv.size() * sizeof(std::uint32_t)), std::ios_base::binary);
+  std::filesystem::remove(cache_path, ec);
+  std::filesystem::rename(tmp_path, cache_path, ec);
+  return spv;
 }
 fan::graphics::shader_nr_t fan::vulkan::context_t::shader_create() {
   fan::graphics::shader_nr_t nr = __fan_internal_shader_list.NewNode();
@@ -211,12 +250,14 @@ bool fan::vulkan::context_t::shader_compile(fan::graphics::shader_nr_t nr) {
 
   auto compile_stage = [&](const std::string& path, std::string& code, shaderc_shader_kind kind, VkShaderStageFlagBits stage, int index) {
     if (code.empty()) { return; }
-    auto spirv = compile_file(path, kind, code);
+    auto spirv = load_or_compile(path, kind, code);
+    if (shader.shader_stages[index].module != VK_NULL_HANDLE) {
+      shader_reloader.pending_deletions[current_frame].push_back(shader.shader_stages[index].module);
+    }
     shader.shader_stages[index] = {
       VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0,
       stage, create_shader_module(spirv), "main", nullptr
     };
-
   };
 
   compile_stage(list_item.path_vertex.c_str(), list_item.svertex, shaderc_glsl_vertex_shader, VK_SHADER_STAGE_VERTEX_BIT, 0);

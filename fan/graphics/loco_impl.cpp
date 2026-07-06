@@ -49,6 +49,8 @@ import fan.graphics.common_types;
 #endif
 
 
+import fan.io.file;
+
 #if defined(FAN_GUI)
 
 fan::graphics::gui::settings_menu_t* get_smenu(loco_t* loco) {
@@ -999,8 +1001,13 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   open_props(props),
   init_gloco([this] { gloco() = this; return true; }())
 {
+  fan::print("loco_t init start");
+  fan::time::timer t_loco;
+  fan::time::timer t;
   fan::init_manager_t::cleaner();
+  fan::print("cleaner took:", t.millis(), "ms"); t.restart();
   fan::event::init_dispatcher();
+  fan::print("init_dispatcher took:", t.millis(), "ms"); t.restart();
 
   idle_handle  = new fan::uv::idle_t;
   timer_handle = new fan::uv::timer_t;
@@ -1012,41 +1019,86 @@ loco_t::loco_t(const loco_t::properties_t& props) :
     gui.settings_menu = new fan::graphics::gui::settings_menu_t;
   }
   #endif
+  fan::print("gui settings took:", t.millis(), "ms"); t.restart();
 
   bind_global_context();
+  fan::print("bind_global_context took:", t.millis(), "ms"); t.restart();
   loco_init_shapes_context(this);
+  fan::print("loco_init_shapes_context took:", t.millis(), "ms"); t.restart();
   loco_init_platform(this);
+  fan::print("loco_init_platform took:", t.millis(), "ms"); t.restart();
   loco_init_renderer(this);
+  fan::print("loco_init_renderer took:", t.millis(), "ms"); t.restart();
   loco_load_settings_into_open_props(this);
+  fan::print("loco_load_settings_into_open_props took:", t.millis(), "ms"); t.restart();
   loco_open_window(this);
+  fan::print("loco_open_window took:", t.millis(), "ms"); t.restart();
   loco_init_renderer_post_window(this);
+  fan::print("loco_init_renderer_post_window took:", t.millis(), "ms"); t.restart();
   loco_init_shapes_system(this);
+  fan::print("loco_init_shapes_system took:", t.millis(), "ms"); t.restart();
   loco_init_render_views(this);
+  fan::print("loco_init_render_views took:", t.millis(), "ms"); t.restart();
 #if defined(FAN_2D)
   vk.shaders_compile();
+  fan::print("vk.shaders_compile took:", t.millis(), "ms"); t.restart();
 #endif
   vk.init();
+  fan::print("vk.init took:", t.millis(), "ms"); t.restart();
 #if defined(FAN_2D)
   load_engine_images();
+  fan::print("load_engine_images took:", t.millis(), "ms"); t.restart();
   vk.shapes_open();
+  fan::print("vk.shapes_open took:", t.millis(), "ms"); t.restart();
 #endif
 #if defined(FAN_GUI)
   init_gui();
+  fan::print("init_gui took:", t.millis(), "ms"); t.restart();
   generate_commands(this);
+  fan::print("generate_commands took:", t.millis(), "ms"); t.restart();
 #endif
   input.init(window);
+  fan::print("input.init took:", t.millis(), "ms"); t.restart();
   #if defined(FAN_AUDIO)
   audio.init();
+  fan::print("audio.init took:", t.millis(), "ms"); t.restart();
   #endif
   fan::graphics::ctx().default_texture = default_texture;
 #if defined(FAN_GUI)
   gui.console.commands.call("debug_memory " + std::to_string((int)fan::memory::heap_profiler_t::instance().enabled));
 #endif
   loco_init_culling(this);
+  fan::print("loco_init_culling took:", t.millis(), "ms"); t.restart();
 #if defined(FAN_GUI)
   get_smenu(this)->init_runtime();
 #endif
   loco_fire_engine_init_callbacks(this);
+
+  shader_watcher = new fan::event::fs_watcher_t("shaders");
+  shader_watcher->start([this](const std::string& filename, int events) {
+    std::error_code ec;
+    std::string normalized = filename;
+    std::replace(normalized.begin(), normalized.end(), '\\', '/');
+    
+    if (std::filesystem::file_size("shaders/" + normalized, ec) == 0) {
+      return;
+    }
+
+    for_each_list(shader_list, [&](auto& list, auto nr) {
+      auto& shader = list[nr];
+      auto check_and_reload = [&](auto& path_ct, std::string& src_code) {
+        std::string path(path_ct.c_str());
+        if (!path.empty() && (path.ends_with(normalized) || normalized.ends_with(path))) {
+          if (fan::io::file::read(path, &src_code)) return;
+          shader_compile(nr);
+        }
+      };
+      check_and_reload(shader.path_vertex, shader.svertex);
+      check_and_reload(shader.path_fragment, shader.sfragment);
+      check_and_reload(shader.path_compute, shader.scompute);
+    });
+  });
+  fan::print("loco total took:", t_loco.millis(), "ms");
 }
 
 loco_t::loco_t(std::function<void()> loop_fn) : loco_t(loop_fn, properties_t()) {}
@@ -1063,6 +1115,10 @@ loco_t::~loco_t() {
 void loco_t::destroy() {
   async_image_destroy();
 
+  if (shader_watcher) {
+    delete shader_watcher;
+    shader_watcher = nullptr;
+  }
 #if defined(FAN_GUI)
   delete (fan::graphics::gui::settings_menu_t*)gui.settings_menu;
 #endif
