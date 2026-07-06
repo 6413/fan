@@ -6,14 +6,14 @@ fan::camera::camera() {
   update_view();
 }
 fan::mat4 fan::camera::get_view_matrix() const {
-  return fan::math::look_at_left<fan::mat4, fan::vec3>(
+  return fan::math::look_at_right<fan::mat4, fan::vec3>(
     fan::vec3(position),
     position + front,
     up
   );
 }
 fan::mat4 fan::camera::get_view_matrix(const fan::mat4& m) const {
-  return m * fan::math::look_at_left<fan::mat4, fan::vec3>(
+  return m * fan::math::look_at_right<fan::mat4, fan::vec3>(
     fan::vec3(position),
     position + front,
     world_up
@@ -57,6 +57,7 @@ void fan::camera::set_pitch(f32_t angle) {
 }
 void fan::camera::update_view() {
   front = (fan::math::direction_vector<fan::vec3>(yaw, pitch)).normalize();
+  front.z *= -1.f;
   right = (fan::math::cross(world_up, front)).normalize();
   up = (fan::math::cross(front, right)).normalize();
 }

@@ -112,10 +112,11 @@ export namespace fan {
     struct context_t {
       frame_deletion_queue_t frame_deletion_queues[max_frames_in_flight];
       frame_deletion_queue_t main_deletion_queue;
+      frame_deletion_queue_t pending_deletion_queue;
       staging_ring_buffer_t staging_ring_buffer;
 
       frame_deletion_queue_t& get_current_deletion_queue() {
-        return frame_deletion_queues[current_frame];
+        return pending_deletion_queue;
       }
       frame_deletion_queue_t& get_current_deletion_queue(std::uint32_t frame) {
         return frame_deletion_queues[frame];
@@ -126,6 +127,8 @@ export namespace fan {
         for (std::uint32_t i = 0; i < max_frames_in_flight; ++i) {
           get_current_deletion_queue(i).flush();
         }
+        pending_deletion_queue.flush();
+        main_deletion_queue.flush();
       }
 
       struct push_constants_t {
