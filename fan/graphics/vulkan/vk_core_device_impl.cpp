@@ -935,13 +935,12 @@ void fan::vulkan::context_t::create_allocator() {
   allocator_info.instance = instance;
   allocator_info.vulkanApiVersion = VK_API_VERSION_1_2;
   fan::vulkan::validate(vmaCreateAllocator(&allocator_info, &allocator));
+
+  staging_ring_buffer.init(device, allocator, 32 * 1024 * 1024);
 }
 void fan::vulkan::context_t::destroy_allocator() {
   if (allocator != VK_NULL_HANDLE) {
-    //char* statsString;
-    //vmaBuildStatsString(allocator, &statsString, VK_TRUE);
-    //fan::print("VMA STATS:\\n", statsString);
-    //vmaFreeStatsString(allocator, statsString);
+    staging_ring_buffer.destroy();
     vmaDestroyAllocator(allocator);
     allocator = VK_NULL_HANDLE;
   }
@@ -1038,6 +1037,43 @@ void fan::vulkan::context_t::end_single_time_commands(VkCommandBuffer command_bu
   fan::vulkan::validate(vkQueueSubmit(graphics_queue, 1, &submitInfo, single_time_fence));
   fan::vulkan::validate(vkWaitForFences(device, 1, &single_time_fence, VK_TRUE, UINT64_MAX));
 }
+
+VkCommandBuffer fan::vulkan::context_t::begin_async_transfer_commands() {
+  VkCommandBufferAllocateInfo allocInfo {};
+  allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+  allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+  allocInfo.commandPool = command_pool;
+  allocInfo.commandBufferCount = 1;
+  
+  VkCommandBuffer cmd;
+  fan::vulkan::validate(vkAllocateCommandBuffers(device, &allocInfo, &cmd));
+
+  VkCommandBufferBeginInfo beginInfo {};
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+  fan::vulkan::validate(vkBeginCommandBuffer(cmd, &beginInfo));
+
+  return cmd;
+}
+
+void fan::vulkan::context_t::end_async_transfer_commands(VkCommandBuffer command_buffer) {
+  fan::vulkan::validate(vkEndCommandBuffer(command_buffer));
+
+  VkSubmitInfo submitInfo {};
+  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  submitInfo.commandBufferCount = 1;
+  submitInfo.pCommandBuffers = &command_buffer;
+
+  fan::vulkan::validate(vkQueueSubmit(graphics_queue, 1, &submitInfo, VK_NULL_HANDLE));
+
+  VkDevice device_handle = device;
+  VkCommandPool pool_handle = command_pool;
+
+  get_current_deletion_queue().push_function([=]() {
+    vkFreeCommandBuffers(device_handle, pool_handle, 1, &command_buffer);
+  });
+}
+
 void fan::vulkan::context_t::copy_buffer(VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size) {
   VkCommandBuffer cmd = begin_single_time_commands();
   VkBufferCopy copyRegion {};
@@ -1048,6 +1084,38 @@ void fan::vulkan::context_t::copy_buffer(VkBuffer src_buffer, VkBuffer dst_buffe
 void fan::vulkan::context_t::copy_buffer_cmd(VkCommandBuffer cmd, VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize src_offset, VkDeviceSize dst_offset, VkDeviceSize size) {
   VkBufferCopy r { .srcOffset = src_offset, .dstOffset = dst_offset, .size = size };
   vkCmdCopyBuffer(cmd, src_buffer, dst_buffer, 1, &r);
+}
+
+void fan::vulkan::context_t::upload_to_buffer(VkBuffer dest_buffer, std::span<const std::byte> data, VkDeviceSize dst_offset) {
+  if (data.empty()) return;
+
+  auto alloc = staging_ring_buffer.allocate(data.size());
+  
+  std::memcpy(alloc.mapped_ptr, data.data(), data.size());
+
+  VkCommandBuffer cmd = begin_async_transfer_commands();
+  
+  VkBufferCopy copy_region{
+      .srcOffset = alloc.offset,
+      .dstOffset = dst_offset,
+      .size = data.size()
+  };
+  
+  vkCmdCopyBuffer(cmd, alloc.buffer, dest_buffer, 1, &copy_region);
+
+  end_async_transfer_commands(cmd);
+
+  VkDeviceSize captured_head = staging_ring_buffer.get_head();
+  auto* ring_ptr = &staging_ring_buffer;
+  auto allocator_handle = allocator;
+
+  get_current_deletion_queue().push_function([=]() {
+      if (alloc.is_spilled) {
+          vmaDestroyBuffer(allocator_handle, alloc.buffer, alloc.fallback_allocation);
+      } else {
+          ring_ptr->advance_tail(captured_head);
+      }
+  });
 }
 
 void fan::vulkan::context_t::fill_buffer_cmd(VkCommandBuffer cmd, buffer_t& buffer, VkDeviceSize offset, VkDeviceSize size, std::uint32_t data) {
@@ -1747,6 +1815,12 @@ fan::graphics::context_functions_t fan::graphics::get_vk_context_functions() {
       info.channels = fan::graphics::get_channel_amount(p.format);
     }
     return VK_CTX->image_load(info, fan::graphics::format_converter::image_global_to_vulkan(p));
+  };
+  cf.request_image_load_async = [](void* context, fan::str_view_t path, const fan::graphics::image_load_properties_t& p, std::function<void(const fan::vulkan::decoded_image_payload_t&)> on_gpu_uploaded) {
+    return VK_CTX->request_image_load_async(path, fan::graphics::format_converter::image_global_to_vulkan(p), on_gpu_uploaded);
+  };
+  cf.process_async_image_uploads = [](void* context) {
+    VK_CTX->process_async_image_uploads();
   };
   cf.image_load_path = [](void* context, fan::str_view_t path, const std::source_location& callers_path = std::source_location::current()) {
     return VK_CTX->image_load(path, callers_path);

@@ -113,18 +113,15 @@ constexpr static std::uint32_t get_image_multiplier(VkFormat format);
 
 export namespace fan {
   namespace vulkan {
-    struct shader_reloader_t {
-      std::vector<VkShaderModule> pending_deletions[fan::vulkan::max_frames_in_flight];
-
-      void process_frame_deletions(VkDevice device, std::uint32_t current_frame) {
-        for (auto module : pending_deletions[current_frame]) {
-          vkDestroyShaderModule(device, module, nullptr);
-        }
-        pending_deletions[current_frame].clear();
-      }
-    };
 
     struct context_t {
+      frame_deletion_queue_t frame_deletion_queues[max_frames_in_flight];
+      frame_deletion_queue_t main_deletion_queue;
+      staging_ring_buffer_t staging_ring_buffer;
+
+      frame_deletion_queue_t& get_current_deletion_queue() {
+        return frame_deletion_queues[current_frame];
+      }
 
       struct push_constants_t {
         std::uint32_t texture_id;
@@ -399,12 +396,21 @@ export namespace fan {
         static constexpr std::uint32_t triangle_strip_with_adjacency = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY;
       };
       void transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+      void transition_image_layout_cmd(VkCommandBuffer cmd, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
       void copy_buffer_to_image(
         VkBuffer buffer,
         VkImage image,
         VkFormat format,
         const fan::vec2ui& size,
-        const fan::vec2ui& stride = fan::vec2ui(1)
+        VkDeviceSize buffer_offset = 0
+      );
+      void copy_buffer_to_image_cmd(
+        VkCommandBuffer cmd,
+        VkBuffer buffer,
+        VkImage image,
+        VkFormat format,
+        const fan::vec2ui& size,
+        VkDeviceSize buffer_offset = 0
       );
       void create_texture_sampler(VkSampler& sampler, const image_load_properties_t& lp);
 
@@ -529,6 +535,9 @@ export namespace fan {
         return {};
       }
 
+      std::vector<std::pair<fan::vulkan::decoded_image_payload_t, std::function<void(const fan::vulkan::decoded_image_payload_t&)>>> pending_image_uploads;
+      std::mutex async_image_mutex;
+
       std::vector<VkDescriptorImageInfo> image_pool; // for draw
 
       fan::graphics::image_nr_t image_create();
@@ -564,6 +573,13 @@ export namespace fan {
 
       fan::graphics::image_nr_t create_missing_texture();
       fan::graphics::image_nr_t create_transparent_texture();
+      fan::graphics::image_nr_t request_image_load_async(
+        fan::str_view_t path,
+        const fan::vulkan::context_t::image_load_properties_t& p,
+        std::function<void(const fan::vulkan::decoded_image_payload_t&)> on_gpu_uploaded
+      );
+      void process_async_image_uploads();
+
       fan::graphics::image_nr_t image_load(fan::str_view_t path, const fan::vulkan::context_t::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current());
 
       fan::graphics::image_nr_t image_load(fan::str_view_t path, const std::source_location& callers_path = std::source_location::current());
@@ -826,11 +842,14 @@ export namespace fan {
       void invalidate_buffer(buffer_t& buffer, VkDeviceSize offset = 0, VkDeviceSize size = VK_WHOLE_SIZE);
 
       VkCommandBuffer begin_single_time_commands();
-
       void end_single_time_commands(VkCommandBuffer command_buffer);
+
+      VkCommandBuffer begin_async_transfer_commands();
+      void end_async_transfer_commands(VkCommandBuffer command_buffer);
       void copy_buffer(VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size);
       void copy_buffer_cmd(VkCommandBuffer cmd, VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize src_offset, VkDeviceSize dst_offset, VkDeviceSize size);
       void fill_buffer_cmd(VkCommandBuffer cmd, buffer_t& buffer, VkDeviceSize offset, VkDeviceSize size, std::uint32_t data);
+      void upload_to_buffer(VkBuffer dest_buffer, std::span<const std::byte> data, VkDeviceSize dst_offset = 0);
       void buffer_barrier_cmd(VkCommandBuffer cmd, buffer_t& buffer, VkAccessFlags src_access, VkAccessFlags dst_access, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, VkDeviceSize offset = 0, VkDeviceSize size = VK_WHOLE_SIZE);
       void buffer_barriers_cmd(VkCommandBuffer cmd, const std::vector<buffer_barrier_t>& barriers, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage);
 
@@ -838,15 +857,8 @@ export namespace fan {
       void upload_buffer(const std::vector<T>& data, VkBufferUsageFlags usage, VkBuffer& buffer, VmaAllocation& allocation) {
         if (data.empty()) return;
         VkDeviceSize size = sizeof(T) * data.size();
-        buffer_t staging;
-        create_buffer(size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, staging);
-        void* mapped = nullptr;
-        fan::vulkan::validate(map_buffer(staging, &mapped));
-        std::memcpy(mapped, data.data(), size);
-        unmap_buffer(staging);
         create_buffer(size, usage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer, allocation);
-        copy_buffer(staging, buffer, size);
-        destroy_buffer(staging);
+        upload_to_buffer(buffer, std::span<const std::byte>(reinterpret_cast<const std::byte*>(data.data()), size));
       }
       template <typename T>
       void upload_buffer(const std::vector<T>& data, VkBufferUsageFlags usage, buffer_t& buffer) {
@@ -980,7 +992,7 @@ export namespace fan {
       std::vector<VkSemaphore> render_finished_semaphores;
       std::vector<VkFence> in_flight_fences;
       std::uint32_t current_frame = 0;
-      shader_reloader_t shader_reloader;
+
 
       fan::window_t::resize_handle_t window_resize_handle;
       bool enable_clear = true;

@@ -11,6 +11,7 @@ module;
 #define loco_window
 #include <vulkan/vulkan.h>
 #include <shaderc/shaderc.hpp>
+#include <vk_mem_alloc.h>
 #if defined(fan_platform_windows)
   #define WIN32_LEAN_AND_MEAN
   #define NOMINMAX
@@ -60,6 +61,17 @@ export struct queue_family_indices_t {
   }
 };
 
+namespace fan::vulkan {
+  export struct decoded_image_payload_t {
+    std::string filename;
+    fan::vec2ui size;
+    int channels;
+    std::vector<std::uint8_t> raw_pixels; // Decompressed RGBA data
+    fan::graphics::image_load_properties_t properties;
+    fan::graphics::image_nr_t target_nr; // Pre-allocated image node
+  };
+}
+
 export struct swap_chain_support_details_t {
   VkSurfaceCapabilitiesKHR capabilities;
   std::vector<VkSurfaceFormatKHR> formats;
@@ -98,6 +110,169 @@ export namespace fan {
     };
 
     inline constexpr std::uint32_t max_frames_in_flight = 2;
+
+    class frame_deletion_queue_t {
+    public:
+      template<typename F>
+      void push_function(F&& deletor) {
+        deletors.push_back(std::forward<F>(deletor));
+      }
+
+      void push_buffer(VmaAllocator allocator, VkBuffer buffer, VmaAllocation allocation) {
+        push_function([=]() {
+          vmaDestroyBuffer(allocator, buffer, allocation);
+        });
+      }
+
+      void push_image(VmaAllocator allocator, VkImage image, VmaAllocation allocation) {
+        push_function([=]() {
+          vmaDestroyImage(allocator, image, allocation);
+        });
+      }
+
+      void push_image_view(VkDevice device, VkImageView view) {
+        push_function([=]() {
+          vkDestroyImageView(device, view, nullptr);
+        });
+      }
+
+      void push_pipeline(VkDevice device, VkPipeline pipeline) {
+        push_function([=]() {
+          vkDestroyPipeline(device, pipeline, nullptr);
+        });
+      }
+
+      void flush() {
+        for (auto it = deletors.rbegin(); it != deletors.rend(); ++it) {
+          (*it)();
+        }
+        deletors.clear();
+      }
+
+    private:
+      std::vector<std::function<void()>> deletors;
+    };
+
+    class staging_ring_buffer_t {
+    public:
+      struct allocation_t {
+        VkBuffer buffer;
+        VkDeviceSize offset;
+        void* mapped_ptr;
+        bool is_spilled;
+        VmaAllocation fallback_allocation;
+      };
+
+      void init(VkDevice device, VmaAllocator allocator, VkDeviceSize capacity = 32 * 1024 * 1024) {
+        this->allocator = allocator;
+        total_capacity = capacity;
+        head = 0;
+        tail = 0;
+
+        VkBufferCreateInfo buffer_info{
+          .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+          .size = total_capacity,
+          .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+        };
+
+        VmaAllocationCreateInfo alloc_info{
+          .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | 
+                   VMA_ALLOCATION_CREATE_MAPPED_BIT,
+          .usage = VMA_MEMORY_USAGE_AUTO
+        };
+
+        vmaCreateBuffer(allocator, &buffer_info, &alloc_info, &buffer, &allocation, &alloc_info_out);
+      }
+
+      void destroy() {
+        if (buffer) {
+          vmaDestroyBuffer(allocator, buffer, allocation);
+          buffer = VK_NULL_HANDLE;
+        }
+      }
+
+      allocation_t allocate(VkDeviceSize size, VkDeviceSize alignment = 16) {
+        VkDeviceSize aligned_size = (size + alignment - 1) & ~(alignment - 1);
+        VkDeviceSize aligned_head = (head + alignment - 1) & ~(alignment - 1);
+
+        if (aligned_size > total_capacity) {
+          return allocate_fallback(size);
+        }
+
+        if (aligned_head + aligned_size <= total_capacity) {
+          if (head < tail && (aligned_head + aligned_size) >= tail) {
+            return allocate_fallback(size);
+          }
+          
+          allocation_t result{
+            .buffer = buffer,
+            .offset = aligned_head,
+            .mapped_ptr = static_cast<std::uint8_t*>(alloc_info_out.pMappedData) + aligned_head,
+            .is_spilled = false,
+            .fallback_allocation = VK_NULL_HANDLE
+          };
+          head = aligned_head + aligned_size;
+          return result;
+        }
+
+        VkDeviceSize wrapped_head = 0;
+        if (wrapped_head + aligned_size >= tail) {
+          return allocate_fallback(size);
+        }
+
+        allocation_t result{
+          .buffer = buffer,
+          .offset = wrapped_head,
+          .mapped_ptr = alloc_info_out.pMappedData,
+          .is_spilled = false,
+          .fallback_allocation = VK_NULL_HANDLE
+        };
+        head = wrapped_head + aligned_size;
+        return result;
+      }
+
+      void advance_tail(VkDeviceSize completed_offset) {
+        tail = completed_offset;
+      }
+
+      VkDeviceSize get_head() const { return head; }
+
+    private:
+      allocation_t allocate_fallback(VkDeviceSize size) {
+        VkBufferCreateInfo buffer_info{
+          .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+          .size = size,
+          .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT
+        };
+
+        VmaAllocationCreateInfo alloc_info{
+          .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | 
+                   VMA_ALLOCATION_CREATE_MAPPED_BIT,
+          .usage = VMA_MEMORY_USAGE_AUTO
+        };
+
+        VkBuffer fallback_buf;
+        VmaAllocation fallback_alloc;
+        VmaAllocationInfo info;
+        vmaCreateBuffer(allocator, &buffer_info, &alloc_info, &fallback_buf, &fallback_alloc, &info);
+
+        return allocation_t{
+          .buffer = fallback_buf,
+          .offset = 0,
+          .mapped_ptr = info.pMappedData,
+          .is_spilled = true,
+          .fallback_allocation = fallback_alloc
+        };
+      }
+
+      VmaAllocator allocator = VK_NULL_HANDLE;
+      VkBuffer buffer = VK_NULL_HANDLE;
+      VmaAllocation allocation = VK_NULL_HANDLE;
+      VmaAllocationInfo alloc_info_out{};
+      VkDeviceSize total_capacity = 0;
+      VkDeviceSize head = 0;
+      VkDeviceSize tail = 0;
+    };
     inline std::uint32_t makeAccessMaskPipelineStageFlags(std::uint32_t accessMask) {
       static constexpr std::uint32_t accessPipes[] = {
         VK_ACCESS_INDIRECT_COMMAND_READ_BIT,

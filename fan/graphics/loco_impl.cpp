@@ -323,6 +323,14 @@ fan::graphics::image_t loco_t::image_load(const std::string& path, const fan::gr
   return context_functions.image_load_path_props(&context, path, p, callers_path);
 }
 
+fan::graphics::image_t loco_t::request_image_load_async(const std::string& path, const fan::graphics::image_load_properties_t& p, std::function<void(const fan::vulkan::decoded_image_payload_t&)> on_gpu_uploaded) {
+  return context_functions.request_image_load_async(&context, path, p, on_gpu_uploaded);
+}
+
+void loco_t::process_async_image_uploads() {
+  context_functions.process_async_image_uploads(&context);
+}
+
 fan::graphics::image_t loco_t::image_load(fan::color* colors, const fan::vec2ui& size) {
   return context_functions.image_load_colors(&context, colors, size);
 }
@@ -1061,6 +1069,7 @@ loco_t::loco_t(const loco_t::properties_t& props) :
 #if defined(FAN_GUI)
   init_gui();
   fan::time::measure(t, "init_gui");
+  process_async_image_uploads();
   generate_commands(this);
   fan::time::measure(t, "generate_commands");
 #endif
@@ -1082,6 +1091,8 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   get_smenu(this)->init_runtime();
 #endif
   loco_fire_engine_init_callbacks(this);
+
+  vkQueueWaitIdle(context.vk.graphics_queue);
 
   shader_watcher = new fan::event::fs_watcher_t("shaders");
   shader_watcher->start([this](const std::string& filename, int events) {
@@ -1540,6 +1551,8 @@ bool loco_t::process_frame(const std::function<void(f32_t delta_time)>& cb) {
 
   get_delta_time() = window.m_delta_time;
 
+  process_async_image_uploads();
+
 #if defined(FAN_PHYSICS_2D)
   physics.context.begin_frame(get_delta_time());
 #endif
@@ -1877,9 +1890,9 @@ void loco_t::remove_update_callback(update_callback_handle_t handle) {
 void loco_t::load_engine_images() {
   default_texture = create_missing_texture();
 
-  fan::graphics::icons.play = image_load("icons/play.png");
-  fan::graphics::icons.pause = image_load("icons/pause.png");
-  fan::graphics::icons.settings = image_load("icons/settings.png");
+  fan::graphics::icons.play = request_image_load_async("icons/play.png");
+  fan::graphics::icons.pause = request_image_load_async("icons/pause.png");
+  fan::graphics::icons.settings = request_image_load_async("icons/settings.png");
 
   fan::graphics::tile_world_images.dirt = fan::color::from_rgb(0x492201);
   fan::graphics::tile_world_images.background = fan::color::from_rgb(0x20a7db);
