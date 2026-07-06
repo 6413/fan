@@ -1,5 +1,4 @@
-struct ssbo_t	{
-
+struct ssbo_t {
   ssbo_t() = default;
   ssbo_t(const ssbo_t& other) {
     *this = other;

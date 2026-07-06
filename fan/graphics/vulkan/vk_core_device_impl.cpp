@@ -137,14 +137,18 @@ void fan::vulkan::context_t::open(fan::window_t& window) {
   create_command_pool();
   fan::time::measure(t, "create_command_pool");
 
+#if !defined(FAN_GUI)
   create_image_views();
   fan::time::measure(t, "create_image_views");
+#endif
 
   create_render_pass();
   fan::time::measure(t, "create_render_pass");
 
+#if !defined(FAN_GUI)
   create_framebuffers();
   fan::time::measure(t, "create_framebuffers");
+#endif
 
   create_command_buffers();
   fan::time::measure(t, "create_command_buffers");
@@ -163,31 +167,6 @@ void fan::vulkan::context_t::open(fan::window_t& window) {
   if (fan::time::is_measuring()) {
     fan::print("open total took:", t_total.millis(), "ms");
   }
-
-  //{
-  //  VkImageMemoryBarrier barrier = {};
-  //  barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-  //  barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // Layout after the first render pass
-  //  barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; // Layout for the second render pass
-  //  barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; // Access in the first pass
-  //  barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT; // Access in the second pass
-  //  barrier.image = swap_chain; // Your color attachment image
-  //  barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT; // For color attachments
-  //  barrier.subresourceRange.baseMipLevel = 0;
-  //  barrier.subresourceRange.levelCount = 1;
-  //  barrier.subresourceRange.baseArrayLayer = 0;
-  //  barrier.subresourceRange.layerCount = 1;
-
-  //  // Insert the pipeline barrier
-  //  vkCmdPipelineBarrier(commandBuffer,
-  //    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // Source stage
-  //    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // Destination stage
-  //    0, // No dependency flags
-  //    0, nullptr, // No memory barriers
-  //    0, nullptr, // No buffer barriers
-  //    1, &barrier); // One image barrier
-  //}
-
 }
 
 #endif
@@ -198,6 +177,7 @@ void fan::vulkan::context_t::close_vais(std::vector<fan::vulkan::vai_t>& v) {
 }
 void fan::vulkan::context_t::destroy_vulkan_soft() {
   vkDeviceWaitIdle(device);
+
   if (single_time_fence != VK_NULL_HANDLE) {
     vkWaitForFences(device, 1, &single_time_fence, VK_TRUE, UINT64_MAX);
     vkDestroyFence(device, single_time_fence, nullptr);
@@ -207,7 +187,6 @@ void fan::vulkan::context_t::destroy_vulkan_soft() {
     vkFreeCommandBuffers(device, command_pool, 1, &single_time_cmd);
     single_time_cmd = VK_NULL_HANDLE;
   }
-
 
   close_vais(mainColorImageViews);
   close_vais(postProcessedColorImageViews);
@@ -225,6 +204,8 @@ void fan::vulkan::context_t::destroy_vulkan_soft() {
     vkDestroyFence(device, in_flight_fences[i], nullptr);
   }
 
+  flush_deletion_queues();
+
   vkDestroyRenderPass(device, render_pass, nullptr);
   vkDestroyCommandPool(device, command_pool, nullptr);
 
@@ -235,25 +216,34 @@ void fan::vulkan::context_t::destroy_vulkan_soft() {
 #endif
 }
 void fan::vulkan::context_t::gui_close() {
+  vkDeviceWaitIdle(device);
+
   vkFreeCommandBuffers(device, command_pool, command_buffers.size(), command_buffers.data());
+
   cleanup_swap_chain_dependencies();
   descriptor_pool.close(*this);
-  destroy_vulkan_soft();
+
 #if defined(FAN_GUI)
   ImGui_ImplVulkanH_DestroyWindow(instance, device, &MainWindowData, nullptr);
 #endif
+
   destroy_shape_resources();
+  destroy_vulkan_soft();
   destroy_allocator();
   vkDestroyDevice(device, nullptr);
   vkDestroyInstance(instance, nullptr);
 }
+
 void fan::vulkan::context_t::close() {
   vkDeviceWaitIdle(device);
+
   cleanup_swap_chain();
   vkDestroySurfaceKHR(instance, surface, nullptr);
-  destroy_vulkan_soft();
+
   destroy_shape_resources();
+  destroy_vulkan_soft();
   destroy_allocator();
+
   vkDestroyDevice(device, nullptr);
   vkDestroyInstance(instance, nullptr);
 }
@@ -336,8 +326,10 @@ void fan::vulkan::context_t::update_swapchain_dependencies() {
   swap_chain_images.resize(imageCount);
 
   for (auto* view : {&mainColorImageViews, &postProcessedColorImageViews, &depthImageViews, &downscaleImageViews1, &upscaleImageViews1, &vai_depth}) {
-    for (std::size_t i = imageCount; i < view->size(); ++i) {
-      (*view)[i].close(*this);
+    if (imageCount < view->size()) {
+      for (std::size_t i = imageCount; i < view->size(); ++i) {
+        (*view)[i].close(*this);
+      }
     }
     view->resize(imageCount);
   }
@@ -750,6 +742,11 @@ void fan::vulkan::context_t::create_image_views() {
   depth_vp.usage_flags = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
   for (auto* view : {&mainColorImageViews, &postProcessedColorImageViews, &depthImageViews, &downscaleImageViews1, &upscaleImageViews1}) {
+    if (swap_chain_images.size() < view->size()) {
+      for (std::size_t i = swap_chain_images.size(); i < view->size(); ++i) {
+        (*view)[i].close(*this);
+      }
+    }
     view->resize(swap_chain_images.size());
   }
 
@@ -940,6 +937,10 @@ void fan::vulkan::context_t::create_allocator() {
 }
 void fan::vulkan::context_t::destroy_allocator() {
   if (allocator != VK_NULL_HANDLE) {
+    //char* stats_string = nullptr;
+    //vmaBuildStatsString(allocator, &stats_string, VK_TRUE);
+    //fan::print(stats_string);
+    //vmaFreeStatsString(allocator, stats_string);
     staging_ring_buffer.destroy();
     vmaDestroyAllocator(allocator);
     allocator = VK_NULL_HANDLE;

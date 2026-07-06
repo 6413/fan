@@ -1,8 +1,6 @@
 module;
 
 #include <coroutine>
-#define POSITION2_WINDOW_CENTER fan::vec2(fan::graphics::ctx().window->get_size() / 2)
-#define POSITION3_WINDOW_CENTER fan::vec3(POSITION2_WINDOW_CENTER, 0)
 
 #include <fan/utility.h>
 
@@ -13,14 +11,12 @@ import std;
 import fan.mpl;
 
 import fan.event.types;
-
 export namespace fan::event {
 
   loop_t loop_new();
   loop_t& get_loop();
   void loop_stop(loop_t loop = fan::event::get_loop());
   int loop_close(loop_t loop = fan::event::get_loop());
-
   struct error_code_t {
     int code;
     constexpr error_code_t(int code) noexcept : code(code) {}
@@ -30,7 +26,6 @@ export namespace fan::event {
     void throw_if() const;
     void await_resume() const;
   };
-
   void print_event_handles(loop_t loop = get_loop());
 
   struct timer_t {
@@ -58,13 +53,11 @@ export namespace fan::event {
 
     std::unique_ptr<timer_data, timer_deleter> data;
   };
-
   struct deferred_resume_t {
     struct queued_resume_t {
       std::shared_ptr<void> keepalive;
       std::coroutine_handle<> h;
     };
-
     using resume_handle = std::list<queued_resume_t>::iterator;
 
     static auto& get_queue() {
@@ -82,7 +75,6 @@ export namespace fan::event {
 
     static void process_resumes();
   };
-
   template<typename promise_t>
   void schedule_resume(std::coroutine_handle<promise_t> h) {
     deferred_resume_t::schedule_resume(h);
@@ -103,7 +95,6 @@ export namespace fan::event {
 
   idle_id_t task_idle(std::function<task_t()> callback);
   void idle_stop(idle_id_t idle_handle);
-
   struct counter_awaitable_t {
     struct state_t {
       std::size_t remaining;
@@ -114,7 +105,6 @@ export namespace fan::event {
     void await_suspend(std::coroutine_handle<> h) noexcept;
     void await_resume() const noexcept;
   };
-
   template <typename... tasks_t>
   fan::event::task_t when_all(tasks_t&&... tasks) {
     counter_awaitable_t::state_t state{ sizeof...(tasks_t), {} };
@@ -157,7 +147,6 @@ export namespace fan::event {
     bool ready = false;
     std::coroutine_handle<> waiting_coroutine{};
   };
-
   struct fs_watcher_t {
     void* internal_state = nullptr;
     fs_watcher_t(const std::string& path);
@@ -189,7 +178,6 @@ export namespace fan::event {
     std::uint64_t duration_ms,
     auto fn) {
     auto start = now();
-
     while ((now() - start) / 1e6 < duration_ms) {
       if constexpr (fan::is_awaitable_v<decltype(fn())>) {
         if (co_await fn()) break;
@@ -207,6 +195,7 @@ export namespace fan::event {
   std::string strerror(int err);
 
   void init_dispatcher();
+  void close_dispatcher();
   void process_main_queue();
   void post_to_main(std::function<void()> cb);
 
@@ -222,7 +211,6 @@ export namespace fan::event {
     using ret_t = std::invoke_result_t<func_t&>;
 
     fan::event::signal_awaitable_t<ret_t> sig;
-
     fan::event::thread_create([&sig, f = std::move(f)]() mutable {
       ret_t result = f();
 
@@ -230,7 +218,6 @@ export namespace fan::event {
         sig.signal(std::move(result));
       });
     });
-
     co_return co_await sig;
   }
 
@@ -248,7 +235,6 @@ export namespace fan::event {
   };
 
   poll_awaitable_t poll_task(loop_t loop, int fd, int events);
-
   struct uv_fs_open_awaitable {
     alignas(8) std::uint8_t data[512];
     uv_fs_open_awaitable(const std::string& path, int flags, int mode);
@@ -268,7 +254,6 @@ export namespace fan::event {
     std::intptr_t result() const noexcept;
     void await_resume() noexcept {}
   };
-
   struct uv_fs_write_awaitable {
     alignas(8) std::uint8_t data[512];
     uv_fs_write_awaitable(int fd, const char* buffer, std::size_t length, std::int64_t offset);
@@ -310,7 +295,6 @@ export namespace fan::event {
 
   void process() {
     process_main_queue();
-
     auto& queue = get_awaitable_queue();
     for (auto it = queue.begin(); it != queue.end();) {
       if (it->done()) it = queue.erase(it);
@@ -322,7 +306,6 @@ export namespace fan::event {
 
 export namespace fan {
   using co_sleep = event::timer_t;
-
   template<typename func_t, FAN_UNIQUE_CALL>
   auto do_once(func_t&& f) requires (!fan::is_awaitable_v<decltype(f())>) { 
     static bool once = true;
@@ -348,7 +331,6 @@ export namespace fan::io::file {
   fan::event::runv_t<std::intptr_t> async_size(int file);
   fan::event::runv_t<std::intptr_t> async_size(const std::string& path);
   fan::event::runv_t<std::intptr_t> async_read(int file, std::string* buffer, std::int64_t offset, std::size_t buffer_size = 4096);
-
   template <typename lambda_t>
   fan::event::task_t async_read_cb(const std::string& path, lambda_t&& lambda, int buffer_size = 64) {
     int fd = co_await fan::io::file::async_open(path);
@@ -382,7 +364,6 @@ export namespace fan::io::file {
     fan::event::run_t close();
     fan::event::runv_t<std::string> read();
   };
-
   struct async_write_t {
     std::string path;
     int fd = -1;

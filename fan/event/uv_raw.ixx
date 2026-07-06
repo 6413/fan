@@ -80,16 +80,22 @@ export namespace fan::uv {
 
   // ─── handle ──────────────────────────────────────────────────────────────
 
+  inline int is_closing(const handle_t* handle) {
+    return ::uv_is_closing(handle);
+  }
+
   inline void close(handle_t* handle, close_cb cb = nullptr) {
+    if (handle == nullptr || handle->loop == nullptr || handle->type == UV_UNKNOWN_HANDLE || is_closing(handle)) {
+      if (cb) {
+        cb(handle);
+      }
+      return;
+    }
     ::uv_close(handle, cb);
   }
 
   inline int is_active(const handle_t* handle) {
     return ::uv_is_active(handle);
-  }
-
-  inline int is_closing(const handle_t* handle) {
-    return ::uv_is_closing(handle);
   }
 
   // ─── timer ───────────────────────────────────────────────────────────────

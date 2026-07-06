@@ -924,7 +924,6 @@ public:
   fan::graphics::image_t default_texture;
 
   void load_engine_images();
-  void unload_engine_images();
 
   fan::graphics::render_view_t orthographic_render_view;
   fan::graphics::render_view_t perspective_render_view;
