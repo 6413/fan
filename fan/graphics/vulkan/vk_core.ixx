@@ -113,6 +113,16 @@ constexpr static std::uint32_t get_image_multiplier(VkFormat format);
 
 export namespace fan {
   namespace vulkan {
+    struct shader_reloader_t {
+      std::vector<VkShaderModule> pending_deletions[fan::vulkan::max_frames_in_flight];
+
+      void process_frame_deletions(VkDevice device, std::uint32_t current_frame) {
+        for (auto module : pending_deletions[current_frame]) {
+          vkDestroyShaderModule(device, module, nullptr);
+        }
+        pending_deletions[current_frame].clear();
+      }
+    };
 
     struct context_t {
 
@@ -305,6 +315,9 @@ export namespace fan {
       fan::vulkan::context_t::shader_t& shader_get(fan::graphics::shader_nr_t nr);
 
       static std::vector<std::uint32_t> compile_file(const std::string& source_name,
+        shaderc_shader_kind kind,
+        const std::string& source);
+      static std::vector<std::uint32_t> load_or_compile(const std::string& source_name,
         shaderc_shader_kind kind,
         const std::string& source);
       fan::graphics::shader_nr_t shader_create();
@@ -967,6 +980,7 @@ export namespace fan {
       std::vector<VkSemaphore> render_finished_semaphores;
       std::vector<VkFence> in_flight_fences;
       std::uint32_t current_frame = 0;
+      shader_reloader_t shader_reloader;
 
       fan::window_t::resize_handle_t window_resize_handle;
       bool enable_clear = true;

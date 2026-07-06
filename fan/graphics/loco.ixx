@@ -596,6 +596,7 @@ public:
   std::size_t shadow_light_count();
 
   fan::graphics::camera_list_t camera_list;
+  fan::event::fs_watcher_t* shader_watcher = nullptr;
   fan::graphics::shader_list_t shader_list;
   fan::graphics::image_list_t image_list;
   fan::graphics::viewport_list_t viewport_list;
