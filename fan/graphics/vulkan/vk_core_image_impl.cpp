@@ -42,6 +42,9 @@ import fan.print;
 import fan.print.error;
 import fan.graphics.image_load;
 import fan.graphics.common_context;
+import fan.graphics.webp;
+
+#include <fan/stb/stb_image.h>
 
 import fan.math;
 import fan.math.intersection;
@@ -149,6 +152,10 @@ void fan::vulkan::validate(VkResult result) {
 }
 void fan::vulkan::context_t::transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
   VkCommandBuffer command_buffer = begin_single_time_commands();
+  transition_image_layout_cmd(command_buffer, image, format, oldLayout, newLayout);
+  end_single_time_commands(command_buffer);
+}
+void fan::vulkan::context_t::transition_image_layout_cmd(VkCommandBuffer command_buffer, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) {
 
   VkImageMemoryBarrier barrier {};
   barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -199,19 +206,27 @@ void fan::vulkan::context_t::transition_image_layout(VkImage image, VkFormat for
     0, nullptr,
     1, &barrier
   );
-
-  end_single_time_commands(command_buffer);
 }
 void fan::vulkan::context_t::copy_buffer_to_image(
   VkBuffer buffer,
   VkImage image,
   VkFormat format,
   const fan::vec2ui& size,
-  const fan::vec2ui& stride) {
+  VkDeviceSize buffer_offset) {
   VkCommandBuffer command_buffer = begin_single_time_commands();
+  copy_buffer_to_image_cmd(command_buffer, buffer, image, format, size, buffer_offset);
+  end_single_time_commands(command_buffer);
+}
+void fan::vulkan::context_t::copy_buffer_to_image_cmd(
+  VkCommandBuffer command_buffer,
+  VkBuffer buffer,
+  VkImage image,
+  VkFormat format,
+  const fan::vec2ui& size,
+  VkDeviceSize buffer_offset) {
 
   VkBufferImageCopy region {};
-  region.bufferOffset = 0;
+  region.bufferOffset = buffer_offset;
   region.bufferRowLength = 0;      // tightly packed
   region.bufferImageHeight = 0;    // tightly packed
 
@@ -231,8 +246,6 @@ void fan::vulkan::context_t::copy_buffer_to_image(
     1,
     &region
   );
-
-  end_single_time_commands(command_buffer);
 }
 void fan::vulkan::context_t::create_texture_sampler(VkSampler& sampler, const image_load_properties_t& lp) {
   VkPhysicalDeviceProperties properties {};
@@ -402,19 +415,12 @@ fan::graphics::image_nr_t fan::vulkan::context_t::image_load(const fan::image::i
 
   VkDeviceSize image_size_bytes = image_info.size.multiply() * format_channels;
 
-  create_buffer(
-    image_size_bytes,
-    VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-    image.staging_buffer,
-    image.staging_allocation
-  );
+  auto alloc = staging_ring_buffer.allocate(image_size_bytes);
 
   image.staging_size = image_size_bytes;
-  vmaMapMemory(allocator, image.staging_allocation, &image.data);
 
   const std::uint8_t* src = static_cast<const std::uint8_t*>(image_info.data);
-  std::uint8_t* dst = static_cast<std::uint8_t*>(image.data);
+  std::uint8_t* dst = static_cast<std::uint8_t*>(alloc.mapped_ptr);
   std::uint64_t pixel_count = image_info.size.multiply();
 
   if (src_channels == format_channels) {
@@ -431,11 +437,8 @@ fan::graphics::image_nr_t fan::vulkan::context_t::image_load(const fan::image::i
     }
   }
   else {
-    vmaUnmapMemory(allocator, image.staging_allocation);
     fan::throw_error("image_load: unsupported channel/format combination");
   }
-
-  vmaUnmapMemory(allocator, image.staging_allocation);
 
   fan::vulkan::image_create(
     *this,
@@ -450,9 +453,23 @@ fan::graphics::image_nr_t fan::vulkan::context_t::image_load(const fan::image::i
   image.image_view = create_image_view(image.image_index, lp.format, VK_IMAGE_ASPECT_COLOR_BIT);
   create_texture_sampler(image.sampler, lp);
 
-  transition_image_layout(image.image_index, lp.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-  copy_buffer_to_image(image.staging_buffer, image.image_index, lp.format, image_info.size);
-  transition_image_layout(image.image_index, lp.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  VkCommandBuffer cmd = begin_async_transfer_commands();
+  transition_image_layout_cmd(cmd, image.image_index, lp.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+  copy_buffer_to_image_cmd(cmd, alloc.buffer, image.image_index, lp.format, image_info.size, alloc.offset);
+  transition_image_layout_cmd(cmd, image.image_index, lp.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  end_async_transfer_commands(cmd);
+
+  VkDeviceSize captured_head = staging_ring_buffer.get_head();
+  auto* ring_ptr = &staging_ring_buffer;
+  auto allocator_handle = allocator;
+
+  get_current_deletion_queue().push_function([=]() {
+    if (alloc.is_spilled) {
+      vmaDestroyBuffer(allocator_handle, alloc.buffer, alloc.fallback_allocation);
+    } else {
+      ring_ptr->advance_tail(captured_head);
+    }
+  });
 
   return nr;
 }
@@ -499,6 +516,152 @@ fan::graphics::image_nr_t fan::vulkan::context_t::create_transparent_texture() {
 
   return nr;
 }
+
+fan::graphics::image_nr_t fan::vulkan::context_t::request_image_load_async(
+  fan::str_view_t path,
+  const fan::vulkan::context_t::image_load_properties_t& p,
+  std::function<void(const fan::vulkan::decoded_image_payload_t&)> on_gpu_uploaded
+) {
+  fan::graphics::image_nr_t nr = image_create();
+  
+  fan::vec2ui size{0, 0};
+  if (fan::webp::validate(path)) {
+    fan::webp::get_image_size(path, &size);
+  } else {
+    int x, y, comp;
+    ::stbi_info(path.data(), &x, &y, &comp);
+    size = {static_cast<std::uint32_t>(x), static_cast<std::uint32_t>(y)};
+  }
+  
+  __fan_internal_image_list[nr].size = size;
+  __fan_internal_image_list[nr].image_settings = fan::graphics::format_converter::image_vulkan_to_global(p);
+  __fan_internal_image_list[nr].image_path = path;
+
+  std::string path_str(path);
+  std::jthread([this, path_str, nr, p, on_gpu_uploaded]() {
+    auto owned = fan::image::load_owned(path_str);
+    if (!owned.valid()) { return; }
+
+    std::lock_guard lock(async_image_mutex);
+    pending_image_uploads.emplace_back(
+      fan::vulkan::decoded_image_payload_t{
+        .filename = path_str,
+        .size = owned.size,
+        .channels = owned.channels,
+        .raw_pixels = std::vector<std::uint8_t>(owned.data.get(), owned.data.get() + owned.data_size),
+        .properties = fan::graphics::format_converter::image_vulkan_to_global(p),
+        .target_nr = nr
+      },
+      on_gpu_uploaded
+    );
+  }).detach();
+
+  return nr;
+}
+
+void fan::vulkan::context_t::process_async_image_uploads() {
+  std::vector<std::pair<fan::vulkan::decoded_image_payload_t, std::function<void(const fan::vulkan::decoded_image_payload_t&)>>> ready_uploads;
+  
+  {
+      std::lock_guard<std::mutex> lock(async_image_mutex);
+      if (pending_image_uploads.empty()) return;
+      ready_uploads.swap(pending_image_uploads);
+  }
+
+  for (auto& [payload, callback] : ready_uploads) {
+      fan::image::info_t ii;
+      ii.data = payload.raw_pixels.data();
+      ii.size = payload.size;
+      ii.channels = payload.channels;
+      
+      fan::vulkan::context_t::image_t& image = image_get(payload.target_nr);
+      
+      auto lp = fan::graphics::format_converter::image_global_to_vulkan(payload.properties);
+      int src_channels = ii.channels;
+      int format_channels = 0;
+
+      if (lp.format == image_load_properties_defaults::format) {
+        if (src_channels <= 0) {
+          fan::throw_error("image_load: unknown channel count with default format");
+        }
+        if (src_channels == 1) {
+          lp.format = get_format_from_channels(1);
+          format_channels = 1;
+        }
+        else {
+          lp.format = get_format_from_channels(4);
+          format_channels = 4;
+        }
+      }
+      else {
+        format_channels = fan::graphics::get_channel_amount(
+          fan::graphics::format_converter::vulkan_to_global_format(lp.format)
+        );
+        if (src_channels <= 0) {
+          src_channels = format_channels;
+        }
+      }
+
+      VkDeviceSize image_size_bytes = ii.size.multiply() * format_channels;
+      auto alloc = staging_ring_buffer.allocate(image_size_bytes);
+      image.staging_size = image_size_bytes;
+
+      const std::uint8_t* src = static_cast<const std::uint8_t*>(ii.data);
+      std::uint8_t* dst = static_cast<std::uint8_t*>(alloc.mapped_ptr);
+      std::uint64_t pixel_count = ii.size.multiply();
+
+      if (src_channels == format_channels) {
+        memcpy(dst, src, image_size_bytes);
+      }
+      else if (src_channels == 3 && format_channels == 4) {
+        for (std::uint64_t i = 0; i < pixel_count; ++i) {
+          dst[0] = src[0];
+          dst[1] = src[1];
+          dst[2] = src[2];
+          dst[3] = 255;
+          src += 3;
+          dst += 4;
+        }
+      }
+      else {
+        fan::throw_error("image_load: unsupported channel/format combination");
+      }
+
+      fan::vulkan::image_create(
+        *this,
+        ii.size,
+        lp.format,
+        VK_IMAGE_TILING_OPTIMAL,
+        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        image.image_index,
+        image.image_allocation
+      );
+      image.image_view = create_image_view(image.image_index, lp.format, VK_IMAGE_ASPECT_COLOR_BIT);
+      create_texture_sampler(image.sampler, lp);
+
+      VkCommandBuffer cmd = begin_async_transfer_commands();
+      transition_image_layout_cmd(cmd, image.image_index, lp.format, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+      copy_buffer_to_image_cmd(cmd, alloc.buffer, image.image_index, lp.format, ii.size, alloc.offset);
+      transition_image_layout_cmd(cmd, image.image_index, lp.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+      end_async_transfer_commands(cmd);
+
+      VkDeviceSize captured_head = staging_ring_buffer.get_head();
+      auto* ring_ptr = &staging_ring_buffer;
+      auto allocator_handle = allocator;
+
+      get_current_deletion_queue().push_function([=]() {
+        if (alloc.is_spilled) {
+          vmaDestroyBuffer(allocator_handle, alloc.buffer, alloc.fallback_allocation);
+        } else {
+          ring_ptr->advance_tail(captured_head);
+        }
+      });
+
+      if (callback) callback(payload);
+  }
+}
+
 fan::graphics::image_nr_t fan::vulkan::context_t::image_load(fan::str_view_t path, const fan::vulkan::context_t::image_load_properties_t& p, const std::source_location& callers_path) {
 
 #if fan_assert_if_same_path_loaded_multiple_times
