@@ -27,6 +27,8 @@ module;
 
 module fan.time;
 
+import fan.print;
+
 namespace fan {
   namespace time {
     std::uint64_t now() {
@@ -68,5 +70,17 @@ namespace fan {
     scope_timer_print::~scope_timer_print() {
       std::printf("elapsed: %.2fms\n", t.millis());
     }
+  }
+
+  bool& get_measure_time() {
+    static bool measure = false;
+    return measure;
+  }
+
+  void measure_time(fan::time::timer& timer, const std::string_view msg) {
+    if (get_measure_time()) {
+      fan::print(msg, "took:", timer.millis(), "ms");
+    }
+    timer.restart();
   }
 }
