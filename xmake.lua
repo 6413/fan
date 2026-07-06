@@ -120,7 +120,10 @@ local common_flags = {
   "-Wno-unused-but-set-parameter", "-Wno-unused-value", "-Wno-padded", "-Wno-parentheses",
   "-Wno-unused-static-function", "-fsized-deallocation"
 }
-add_cxxflags(table.unpack(common_flags), {force = true})
+
+for _, flag in ipairs(common_flags) do
+  if flag then add_cxxflags(flag, {force = true}) end
+end
 
 if is_gcc then
   add_cxxflags("-fmax-errors=20", "-fmodules-ts", "-fno-module-lazy", {force = true})
