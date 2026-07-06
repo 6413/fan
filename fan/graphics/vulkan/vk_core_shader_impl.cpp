@@ -74,35 +74,35 @@ std::vector<std::uint32_t> fan::vulkan::context_t::load_or_compile(const std::st
     return compile_file(source_name, kind, source);
   }
 
+  std::filesystem::path resolved_source = fan::io::file::find_relative_path(source_name);
+  if (resolved_source.empty()) {
+    return compile_file(source_name, kind, source);
+  }
+
   std::string flat = source_name;
   std::replace(flat.begin(), flat.end(), '/', '_');
   std::replace(flat.begin(), flat.end(), '\\', '_');
   std::string cache_path = ".shader_cache/" + flat + ".spv";
 
-  std::error_code ec;
-  if (std::filesystem::exists(cache_path, ec) &&
-      std::filesystem::last_write_time(source_name, ec) <= std::filesystem::last_write_time(cache_path, ec)) {
-    auto spv_size = std::filesystem::file_size(cache_path, ec);
-    if (!ec && spv_size > 0) {
-      std::ifstream file(cache_path, std::ios::binary);
-      if (file) {
-        std::vector<std::uint32_t> spv(spv_size / sizeof(std::uint32_t));
-        file.read(reinterpret_cast<char*>(spv.data()), spv_size);
-        if (file) {
-          return spv;
-        }
-      }
+  if (fan::io::file::is_up_to_date(resolved_source.string(), cache_path)) {
+    auto spv_size = fan::io::file::file_size(cache_path);
+    std::vector<std::uint32_t> spv(spv_size / sizeof(std::uint32_t));
+    if (fan::io::file::read_bytes(cache_path, spv.data(), spv_size)) {
+      return spv;
     }
   }
 
   auto spv = compile_file(source_name, kind, source);
+  std::error_code ec;
   std::filesystem::create_directories(".shader_cache", ec);
   std::string tmp_path = cache_path + ".tmp";
-  fan::io::file::write(tmp_path, std::string(reinterpret_cast<const char*>(spv.data()), spv.size() * sizeof(std::uint32_t)), std::ios_base::binary);
+  std::string raw_spv(reinterpret_cast<const char*>(spv.data()), spv.size() * sizeof(std::uint32_t));
+  fan::io::file::try_write(tmp_path, raw_spv, std::ios_base::binary);
   std::filesystem::remove(cache_path, ec);
   std::filesystem::rename(tmp_path, cache_path, ec);
   return spv;
 }
+
 fan::graphics::shader_nr_t fan::vulkan::context_t::shader_create() {
   fan::graphics::shader_nr_t nr = __fan_internal_shader_list.NewNode();
   __fan_internal_shader_list[nr].internal = new fan::vulkan::context_t::shader_t;

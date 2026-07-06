@@ -642,20 +642,21 @@ export namespace fan {
       struct pipeline_t {
 
         struct properties_t {
-          std::uint32_t descriptor_layout_count = 0;
-          VkDescriptorSetLayout* descriptor_layout;
+          std::vector<VkDescriptorSetLayout> descriptor_layouts;
           fan::graphics::shader_nr_t shader;
           std::uint32_t push_constants_size = 0;
           std::uint32_t subpass = 0;
 
-          std::uint32_t color_blend_attachment_count = 0;
-          VkPipelineColorBlendAttachmentState* color_blend_attachment = 0;
+          std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachments;
           bool enable_depth_test = VK_TRUE;
           VkCompareOp depth_test_compare_op = VK_COMPARE_OP_LESS;
           VkPrimitiveTopology shape_type = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
           VkRenderPass render_pass = VK_NULL_HANDLE;
         };
+
         void open(fan::vulkan::context_t& context, const properties_t& p) {
+          properties = p;
+
           VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
           vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 
@@ -696,25 +697,27 @@ export namespace fan {
           colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
           colorBlending.logicOpEnable = VK_FALSE;
           colorBlending.logicOp = VK_LOGIC_OP_NO_OP;
-          colorBlending.attachmentCount = p.color_blend_attachment_count;
-          colorBlending.pAttachments = p.color_blend_attachment;
+          colorBlending.attachmentCount = static_cast<std::uint32_t>(p.color_blend_attachments.size());
+          colorBlending.pAttachments = p.color_blend_attachments.data();
           colorBlending.blendConstants[0] = 1.0f;
           colorBlending.blendConstants[1] = 1.0f;
           colorBlending.blendConstants[2] = 1.0f;
           colorBlending.blendConstants[3] = 1.0f;
+
           std::vector<VkDynamicState> dynamicStates = {
               VK_DYNAMIC_STATE_VIEWPORT,
               VK_DYNAMIC_STATE_SCISSOR
           };
+
           VkPipelineDynamicStateCreateInfo dynamicState{};
           dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-          dynamicState.dynamicStateCount = dynamicStates.size();
+          dynamicState.dynamicStateCount = static_cast<std::uint32_t>(dynamicStates.size());
           dynamicState.pDynamicStates = dynamicStates.data();
 
           VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
           pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-          pipelineLayoutInfo.setLayoutCount = p.descriptor_layout_count;
-          pipelineLayoutInfo.pSetLayouts = p.descriptor_layout;
+          pipelineLayoutInfo.setLayoutCount = static_cast<std::uint32_t>(p.descriptor_layouts.size());
+          pipelineLayoutInfo.pSetLayouts = p.descriptor_layouts.data();
 
           VkPushConstantRange push_constant;
           push_constant.offset = 0;
@@ -741,12 +744,12 @@ export namespace fan {
           pipelineInfo.pColorBlendState = &colorBlending;
           pipelineInfo.pDynamicState = &dynamicState;
           pipelineInfo.layout = m_layout;
-          pipelineInfo.renderPass = p.render_pass == VK_NULL_HANDLE ? context.render_pass : p.render_pass;
+          pipelineInfo.renderPass = p.render_pass == VK_NULL_HANDLE ?
+            context.render_pass : p.render_pass;
           pipelineInfo.subpass = p.subpass;
           pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
           shader_nr = p.shader;
-
           if (vkCreateGraphicsPipelines(context.device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
             fan::throw_error("failed to create graphics pipeline");
           }
@@ -763,6 +766,7 @@ export namespace fan {
 
         VkPipelineLayout m_layout;
         VkPipeline m_pipeline;
+        properties_t properties;
       };
 
       static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);

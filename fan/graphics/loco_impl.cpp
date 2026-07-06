@@ -1106,28 +1106,78 @@ loco_t::loco_t(const loco_t::properties_t& props) :
 
   vkQueueWaitIdle(context.vk.graphics_queue);
 
-  shader_watcher = new fan::event::fs_watcher_t("shaders");
-  shader_watcher->start([this](const std::string& filename, int events) {
-    std::error_code ec;
+  auto shaders_path = fan::io::file::find_relative_path("shaders").generic_string();
+  if (shaders_path.empty()) {
+    fan::throw_error("failed to find path for 'shaders'");
+  }
+  shader_watcher = new fan::event::fs_watcher_t(shaders_path);
+  shader_watcher->start([this, shaders_path](const std::string& filename, int events) {
+    if (fan::io::file::is_temp_file(filename)) { return; }
+
     std::string normalized = filename;
     std::replace(normalized.begin(), normalized.end(), '\\', '/');
-    
-    if (std::filesystem::file_size("shaders/" + normalized, ec) == 0) {
-      return;
-    }
+
+    std::error_code ec;
+    std::filesystem::path full_path = std::filesystem::path(shaders_path) / normalized;
+    if (std::filesystem::is_directory(full_path, ec) || !std::filesystem::exists(full_path, ec)) { return; }
 
     for_each_list(shader_list, [&](auto& list, auto nr) {
       auto& shader = list[nr];
-      auto check_and_reload = [&](auto& path_ct, std::string& src_code) {
+      bool reload_needed = false;
+
+      auto check_and_update = [&](auto& path_ct, std::string& src_code, auto set_fn) {
         std::string path(path_ct.c_str());
         if (!path.empty() && (path.ends_with(normalized) || normalized.ends_with(path))) {
-          if (fan::io::file::read(path, &src_code)) return;
-          shader_compile(nr);
+          std::string new_code;
+          if (!fan::io::file::read(path, &new_code) && !new_code.empty() && new_code != src_code) {
+            src_code = std::move(new_code);
+            set_fn(nr, path, src_code);
+            reload_needed = true;
+          }
         }
       };
-      check_and_reload(shader.path_vertex, shader.svertex);
-      check_and_reload(shader.path_fragment, shader.sfragment);
-      check_and_reload(shader.path_compute, shader.scompute);
+
+      check_and_update(shader.path_vertex, shader.svertex, [this](auto n, const auto& p, const auto& c) {
+        shader_set_vertex(n, p, c);
+      });
+      check_and_update(shader.path_fragment, shader.sfragment, [this](auto n, const auto& p, const auto& c) {
+        shader_set_fragment(n, p, c);
+      });
+      check_and_update(shader.path_compute, shader.scompute, [this](auto n, const auto& p, const auto& c) {
+        shader_set_compute(n, p, c);
+      });
+
+      if (!reload_needed || !shader_compile(nr)) { return; }
+
+      vkDeviceWaitIdle(context.vk.device);
+#if defined(FAN_2D)
+      for (auto& st : fan::graphics::g_shapes->shaper.ShapeTypes) {
+        if (st.sti == (decltype(st.sti))-1 || st.renderer.vk.pipeline.properties.shader != nr) {
+          continue;
+        }
+
+        auto props = st.renderer.vk.pipeline.properties;
+        st.renderer.vk.pipeline.close(context.vk);
+
+        props.descriptor_layouts.clear();
+        if (st.renderer.vk.shape_data.m_descriptor.m_layout != VK_NULL_HANDLE) {
+          props.descriptor_layouts.push_back(st.renderer.vk.shape_data.m_descriptor.m_layout);
+        }
+
+        props.push_constants_size = sizeof(fan::vulkan::context_t::push_constants_t);
+
+        VkPipelineColorBlendAttachmentState attachment = fan::vulkan::get_default_color_blend();
+        if (st.sti == fan::graphics::shapes::shape_type_t::light) {
+          attachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+          attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+          attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+          attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+        }
+        props.color_blend_attachments = { attachment };
+
+        st.renderer.vk.pipeline.open(context.vk, props);
+      }
+#endif
     });
   });
   fan::time::print_measure("loco total took:", t_loco.millis(), "ms");
@@ -2120,7 +2170,7 @@ void loco_t::shape_open(
   vk.shape_data.open_descriptors(gloco()->context.vk, {ds_properties.begin(), ds_properties.end()});
   vk.shape_data.m_descriptor.update(context.vk, 3, 0);
   fan::vulkan::context_t::pipeline_t p;
-  fan::vulkan::context_t::pipeline_t::properties_t pipe_p;
+  fan::vulkan::context_t::pipeline_t::properties_t pipe_p{};
   VkPipelineColorBlendAttachmentState attachment = fan::vulkan::get_default_color_blend();
   if (shape_type == fan::graphics::shapes::shape_type_t::light) {
     attachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
@@ -2128,11 +2178,9 @@ void loco_t::shape_open(
     attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
     attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
   }
-  pipe_p.color_blend_attachment_count = 1;
-  pipe_p.color_blend_attachment = &attachment;
+  pipe_p.color_blend_attachments = {attachment};
   pipe_p.shader = shader;
-  pipe_p.descriptor_layout = &vk.shape_data.m_descriptor.m_layout;
-  pipe_p.descriptor_layout_count = 1;
+  pipe_p.descriptor_layouts = {vk.shape_data.m_descriptor.m_layout};
   pipe_p.push_constants_size = sizeof(fan::vulkan::context_t::push_constants_t);
   pipe_p.enable_depth_test = false;
   pipe_p.shape_type = (VkPrimitiveTopology)fan::graphics::get_draw_mode(draw_mode);
