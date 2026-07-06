@@ -170,8 +170,10 @@ namespace fan::image {
     }
 
     void push(const std::string& path, std::shared_ptr<async_result_t> result, fan::vec2ui max_size) {
-      std::lock_guard lock(mutex);
-      queue.push({path, result, max_size});
+      {
+        std::lock_guard lock(mutex);
+        queue.push({path, result, max_size});
+      }
       cv.notify_one();
     }
     
