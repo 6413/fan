@@ -88,11 +88,11 @@ export namespace fan::image {
   };
 
   struct async_cache_t {
+    std::mutex mutex;
     std::shared_ptr<async_result_t> load(const std::string& path, fan::vec2ui max_size = 0);
     void clear();
-
-    std::mutex mutex;
   };
 
+  bool has_pending_async_tasks();
   async_cache_t& async_cache();
 }

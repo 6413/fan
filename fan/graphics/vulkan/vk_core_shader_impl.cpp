@@ -248,9 +248,9 @@ bool fan::vulkan::context_t::shader_compile(fan::graphics::shader_nr_t nr) {
     return false;
   }
 
-  auto compile_stage = [&](const std::string& path, std::string& code, shaderc_shader_kind kind, VkShaderStageFlagBits stage, int index) {
+  auto compile_stage = [&](const std::string& path, std::string& code, std::vector<std::uint32_t>& preloaded_spv, shaderc_shader_kind kind, VkShaderStageFlagBits stage, int index) {
     if (code.empty()) { return; }
-    auto spirv = load_or_compile(path, kind, code);
+    auto spirv = preloaded_spv.empty() ? load_or_compile(path, kind, code) : std::move(preloaded_spv);
     if (shader.shader_stages[index].module != VK_NULL_HANDLE) {
       VkShaderModule old_module = shader.shader_stages[index].module;
       get_current_deletion_queue().push_function([=, device = this->device]() {
@@ -263,9 +263,9 @@ bool fan::vulkan::context_t::shader_compile(fan::graphics::shader_nr_t nr) {
     };
   };
 
-  compile_stage(list_item.path_vertex.c_str(), list_item.svertex, shaderc_glsl_vertex_shader, VK_SHADER_STAGE_VERTEX_BIT, 0);
-  compile_stage(list_item.path_fragment.c_str(), list_item.sfragment, shaderc_glsl_fragment_shader, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
-  compile_stage(list_item.path_compute.c_str(), list_item.scompute, shaderc_glsl_compute_shader, VK_SHADER_STAGE_COMPUTE_BIT, 0);
+  compile_stage(list_item.path_vertex.c_str(), list_item.svertex, list_item.spv_vertex, shaderc_glsl_vertex_shader, VK_SHADER_STAGE_VERTEX_BIT, 0);
+  compile_stage(list_item.path_fragment.c_str(), list_item.sfragment, list_item.spv_fragment, shaderc_glsl_fragment_shader, VK_SHADER_STAGE_FRAGMENT_BIT, 1);
+  compile_stage(list_item.path_compute.c_str(), list_item.scompute, list_item.spv_compute, shaderc_glsl_compute_shader, VK_SHADER_STAGE_COMPUTE_BIT, 0);
 
   ++shader.compile_generation;
   return true;

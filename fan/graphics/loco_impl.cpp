@@ -331,6 +331,13 @@ void loco_t::process_async_image_uploads() {
   context_functions.process_async_image_uploads(&context);
 }
 
+void loco_t::flush_startup_async_images() {
+  while (!context.vk.pending_image_uploads.empty() || fan::image::has_pending_async_tasks()) {
+    process_async_image_uploads();
+    std::this_thread::yield();
+  }
+}
+
 fan::graphics::image_t loco_t::image_load(fan::color* colors, const fan::vec2ui& size) {
   return context_functions.image_load_colors(&context, colors, size);
 }
@@ -949,8 +956,6 @@ static void loco_open_window(loco_t* l) {
     .flags = l->open_props.window_flags,
     .open_mode = l->open_props.window_open_mode
   });
-  l->context_functions = fan::graphics::get_vk_context_functions();
-  new (&l->context.vk) fan::vulkan::context_t();
   l->context.vk.enable_clear = !l->get_render_shapes_top();
   l->context.vk.shapes_top = l->get_render_shapes_top();
   l->context.vk.vsync = l->open_props.vsync;
@@ -1046,6 +1051,13 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   std::jthread audio_init_thread([this] { audio.init(); });
 #endif
 
+  context_functions = fan::graphics::get_vk_context_functions();
+  new (&context.vk) fan::vulkan::context_t();
+
+#if defined(FAN_2D)
+  vk.shaders_compile_preload();
+#endif
+
   loco_open_window(this);
   fan::time::measure(t, "loco_open_window");
   loco_init_renderer_post_window(this);
@@ -1069,7 +1081,7 @@ loco_t::loco_t(const loco_t::properties_t& props) :
 #if defined(FAN_GUI)
   init_gui();
   fan::time::measure(t, "init_gui");
-  process_async_image_uploads();
+  flush_startup_async_images();
   generate_commands(this);
   fan::time::measure(t, "generate_commands");
 #endif

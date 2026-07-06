@@ -803,17 +803,36 @@ void shapes_open() {
 #endif
 
 #if defined(FAN_2D)
-void shaders_compile() {
-  auto& sh = loco.shaders;
+struct shader_preload_payload_t {
+  std::string vs_path;
+  std::string fs_path;
+  std::string vs_code;
+  std::string fs_code;
+  std::vector<std::uint32_t> vs_spv;
+  std::vector<std::uint32_t> fs_spv;
+  fan::graphics::shader_t* out;
+};
+std::vector<shader_preload_payload_t> shader_preloads;
 
-  auto compile = [&](fan::graphics::shader_t& out, const char* vs, const char* fs) {
-    out = loco.shader_create();
-    loco.shader_set_vertex(out, vs, fan::graphics::read_shader(vs));
-    loco.shader_set_fragment(out, fs, fan::graphics::read_shader(fs));
-    loco.shader_compile(out);
+void shaders_compile_preload() {
+  auto& sh = loco.shaders;
+  shader_preloads.reserve(32);
+
+  auto preload = [&](fan::graphics::shader_t& out, const char* vs, const char* fs) {
+    shader_preloads.push_back({
+      std::string(vs), std::string(fs), "", "", {}, {}, &out
+    });
+    auto& payload = shader_preloads.back();
+
+    loco.shader_preload_threads.emplace_back([&payload, p_loco = &loco]() {
+      payload.vs_code = fan::graphics::read_shader(payload.vs_path.c_str());
+      payload.fs_code = fan::graphics::read_shader(payload.fs_path.c_str());
+      payload.vs_spv = p_loco->context.vk.load_or_compile(payload.vs_path.c_str(), shaderc_glsl_vertex_shader, payload.vs_code);
+      payload.fs_spv = p_loco->context.vk.load_or_compile(payload.fs_path.c_str(), shaderc_glsl_fragment_shader, payload.fs_code);
+    });
   };
 
-#define C(n) compile(sh.n, "shaders/vulkan/2D/objects/" #n ".vert", "shaders/vulkan/2D/objects/" #n ".frag")
+#define C(n) preload(sh.n, "shaders/vulkan/2D/objects/" #n ".vert", "shaders/vulkan/2D/objects/" #n ".frag")
 
   C(sprite);
   C(line);
@@ -835,6 +854,26 @@ void shaders_compile() {
 #endif
 
 #undef C
+}
+
+void shaders_compile() {
+  for (auto& t : loco.shader_preload_threads) {
+    if (t.joinable()) t.join();
+  }
+  loco.shader_preload_threads.clear();
+
+  for (auto& payload : shader_preloads) {
+    *payload.out = loco.shader_create();
+    auto& list_item = fan::graphics::ctx().shader_list->operator[](*payload.out);
+    list_item.path_vertex = std::string_view(payload.vs_path);
+    list_item.path_fragment = std::string_view(payload.fs_path);
+    list_item.svertex = std::move(payload.vs_code);
+    list_item.sfragment = std::move(payload.fs_code);
+    list_item.spv_vertex = std::move(payload.vs_spv);
+    list_item.spv_fragment = std::move(payload.fs_spv);
+    loco.shader_compile(*payload.out);
+  }
+  shader_preloads.clear();
 }
 #endif
 

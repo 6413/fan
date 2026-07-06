@@ -130,10 +130,13 @@ namespace fan::image {
               if (stop && queue.empty()) return;
               task = std::move(queue.front());
               queue.pop();
+              active_tasks++;
             }
 
             if (std::get<1>(task).use_count() == 1) {
               std::get<1>(task)->state.store(async_result_t::state_e::failed, std::memory_order_release);
+              std::lock_guard lock(mutex);
+              active_tasks--;
               continue;
             }
 
@@ -143,6 +146,11 @@ namespace fan::image {
               std::get<1>(task)->image.valid() ? async_result_t::state_e::ready : async_result_t::state_e::failed,
               std::memory_order_release
             );
+            
+            {
+              std::lock_guard lock(mutex);
+              active_tasks--;
+            }
           }
         });
       }
@@ -172,10 +180,16 @@ namespace fan::image {
       while (!queue.empty()) queue.pop();
     }
 
+    bool has_pending_tasks() {
+      std::lock_guard lock(mutex);
+      return !queue.empty() || active_tasks > 0;
+    }
+
     std::queue<std::tuple<std::string, std::shared_ptr<async_result_t>, fan::vec2ui>> queue;
     std::mutex mutex;
     std::condition_variable cv;
     std::vector<std::thread> workers;
+    int active_tasks = 0;
     bool stop = false;
   };
 
@@ -196,6 +210,10 @@ namespace fan::image {
   void async_cache_t::clear() {
     std::lock_guard lock(mutex);
     image_queue().clear();
+  }
+
+  bool has_pending_async_tasks() {
+    return image_queue().has_pending_tasks();
   }
 
   async_cache_t& async_cache() {
