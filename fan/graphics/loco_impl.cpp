@@ -29,6 +29,8 @@ module fan.graphics.loco;
 
 #if defined (FAN_WINDOW)
 
+import std;
+
 import fan.window.input;
 
 import fan.event.types;
@@ -1031,6 +1033,11 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   fan::print("loco_init_renderer took:", t.millis(), "ms"); t.restart();
   loco_load_settings_into_open_props(this);
   fan::print("loco_load_settings_into_open_props took:", t.millis(), "ms"); t.restart();
+
+#if defined(FAN_AUDIO)
+  std::jthread audio_init_thread([this] { audio.init(); });
+#endif
+
   loco_open_window(this);
   fan::print("loco_open_window took:", t.millis(), "ms"); t.restart();
   loco_init_renderer_post_window(this);
@@ -1060,8 +1067,10 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   input.init(window);
   fan::print("input.init took:", t.millis(), "ms"); t.restart();
   #if defined(FAN_AUDIO)
-  audio.init();
-  fan::print("audio.init took:", t.millis(), "ms"); t.restart();
+  if (audio_init_thread.joinable()) {
+    audio_init_thread.join();
+  }
+  fan::print("audio.init wait took:", t.millis(), "ms"); t.restart();
   #endif
   fan::graphics::ctx().default_texture = default_texture;
 #if defined(FAN_GUI)
