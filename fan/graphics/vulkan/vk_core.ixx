@@ -992,7 +992,11 @@ export namespace fan {
       fan::vulkan::context_t::pipeline_t render_fullscreen_pl;
 
       bool command_buffer_in_use = false;
+#if FAN_DEBUG >= fan_debug_high
       bool supports_validation_layers = true;
+#else
+      bool supports_validation_layers = false;
+#endif
 
       fan::vulkan::context_t::memory_write_queue_t memory_queue;
     };
