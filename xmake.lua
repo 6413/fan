@@ -308,7 +308,13 @@ target("a.exe")
   if not has_config("buildlib") then add_files(get_config("main")) end
 
   add_includedirs(".", "third_party/fan/include", {public = true})
-  if has_config("FAN_VULKAN") then add_includedirs("third_party/fan/include/VulkanMemoryAllocator/include", "third_party/VulkanMemoryAllocator/include", {public = true}) end
+  if has_config("FAN_VULKAN") then 
+    add_includedirs(
+      "third_party/fan/include/VulkanMemoryAllocator/include", 
+      "third_party/VulkanMemoryAllocator/include"
+      {public = true}
+    ) 
+  end
   add_linkdirs("third_party/fan/lib")
 
   if is_plat("linux") then
