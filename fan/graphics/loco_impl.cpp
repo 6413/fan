@@ -1528,7 +1528,7 @@ void loco_t::process_render() {
     context.vk.command_buffer_in_use = false;
   }
   else {
-    VkResult err = context.vk.end_render();
+    VkResult err = context.vk.end_render(&window);
     if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR || context.vk.SwapChainRebuild) {
       vk.close_swapchain_resources();
       context.vk.recreate_swap_chain(&window, err);

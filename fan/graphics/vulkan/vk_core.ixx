@@ -913,7 +913,7 @@ export namespace fan {
 
       static void ImGuiFrameRender(void* ctx, VkResult next_image_khr_err, fan::color clear_color);
       #endif
-      VkResult end_render();
+      VkResult end_render(fan::window_t* window);
       VkSurfaceFormatKHR choose_swap_surface_format(const std::vector<VkSurfaceFormatKHR>& available_formats);
 
       VkPresentModeKHR choose_swap_present_mode(const std::vector<VkPresentModeKHR>& available_present_modes);
@@ -1010,6 +1010,7 @@ export namespace fan {
       bool supports_validation_layers = false;
 #endif
 
+      bool window_shown = false;
       fan::vulkan::context_t::memory_write_queue_t memory_queue;
     };
   }
