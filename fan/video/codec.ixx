@@ -900,112 +900,42 @@ export namespace fan {
         fan::vec2ui target_size = {0, 0},
         codec_config_t::scaling_quality_e quality = codec_config_t::SCALING_FAST) {
         std::vector<decode_result_t> results;
-
         if (!initialized_) return results;
 
         if (!codec_ctx_) {
           std::string detected_codec = forced_codec;
-
           if (detected_codec == "auto-detect") {
             detected_codec = detect_codec_from_data(data, size);
-
           }
 
           bool hw_success = false;
-
           try {
             hw_success = find_and_init_hw_decoder(detected_codec);
-
           }
           catch (...) {
             hw_success = false;
-
           }
 
           if (!hw_success && !find_and_init_sw_decoder(detected_codec)) {
             return results;
-
           }
-        }
-
-        static int packet_count = 0;
-
-        static int eagain_count = 0;
-        static bool has_seen_sps = false;
-        static bool has_seen_pps = false;
-        static bool fallback_triggered = false;
-
-        packet_count++;
-
-        if (size >= 5 && data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x01) {
-          std::uint8_t nal_type = data[4] & 0x1F;
-
-          if (nal_type == 7) has_seen_sps = true;
-          else if (nal_type == 8) has_seen_pps = true;
-
         }
 
         packet_->data = const_cast<std::uint8_t*>(data);
         packet_->size = size;
 
         int ret = avcodec_send_packet(codec_ctx_, packet_);
-
-        if (ret == AVERROR(EAGAIN)) {
-          eagain_count++;
-
-          if (using_hardware_ && !fallback_triggered && has_seen_sps && !has_seen_pps && eagain_count > 30) {
-            fallback_triggered = true;
-
-            close();
-            if (open()) {
-              std::string detected_codec = detect_codec_from_data(data, size);
-
-              if (find_and_init_sw_decoder(detected_codec)) {
-                eagain_count = 0;
-
-                packet_->data = const_cast<std::uint8_t*>(data);
-                packet_->size = size;
-                ret = avcodec_send_packet(codec_ctx_, packet_);
-
-              }
-            }
-          }
-        }
-        else if (ret < 0 && ret != AVERROR(EAGAIN)) {
-          static int consecutive_errors = 0;
-
-          if (++consecutive_errors > 5 && using_hardware_ && !fallback_triggered) {
-            fallback_triggered = true;
-
-            close();
-            if (open()) {
-              std::string detected_codec = detect_codec_from_data(data, size);
-
-              find_and_init_sw_decoder(detected_codec);
-              consecutive_errors = 0;
-            }
-          }
+        if (ret < 0 && ret != AVERROR(EAGAIN)) {
           return results;
-
         }
 
         while (true) {
-          AVFrame* target_frame = using_hardware_ ?
-
-            hw_frame_ : frame_;
+          AVFrame* target_frame = using_hardware_ ? hw_frame_ : frame_;
           ret = avcodec_receive_frame(codec_ctx_, target_frame);
           if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF || ret < 0) break;
 
-          static bool first_success = true;
-          if (first_success) {
-            eagain_count = 0;
-
-            first_success = false;
-          }
-
           decode_result_t result;
           result.success = true;
-
           result.was_hardware_decoded = using_hardware_;
           result.pts = target_frame->pts;
 
@@ -1013,23 +943,18 @@ export namespace fan {
           std::uint32_t actual_height = target_frame->height;
 
           if (using_hardware_ && target_frame->format == hw_pixel_format_) {
-            if (frame_->width != actual_width || frame_->height != actual_height) {
-              av_frame_unref(frame_);
-
-              frame_->width = actual_width;
-              frame_->height = actual_height;
-              if (av_frame_get_buffer(frame_, 32) < 0) continue;
-
-            }
+            av_frame_unref(frame_);
+            frame_->format = AV_PIX_FMT_NONE;
 
             ret = av_hwframe_transfer_data(frame_, target_frame, 0);
+            if (ret < 0) {
+              av_frame_unref(target_frame);
+              continue;
+            }
 
-            if (ret < 0) continue;
-
-            frame_->width = actual_width;
-            frame_->height = actual_height;
+            actual_width = frame_->width;
+            actual_height = frame_->height;
             target_frame = frame_;
-
           }
 
           result.image_size = {actual_width, actual_height};
@@ -1042,7 +967,6 @@ export namespace fan {
               actual_width, actual_height, static_cast<AVPixelFormat>(target_frame->format),
               dst_w, dst_h, AV_PIX_FMT_RGBA,
               sws_flags, nullptr, nullptr, nullptr);
-
             if (sws_ctx_) {
               result.image_size = fan::vec2ui(dst_w, dst_h);
               result.linesize.resize(1);
@@ -1059,43 +983,37 @@ export namespace fan {
           else {
             result.pixel_format = static_cast<AVPixelFormat>(target_frame->format);
             int num_planes = av_pix_fmt_count_planes(static_cast<AVPixelFormat>(target_frame->format));
-            if (num_planes <= 0) continue;
+            if (num_planes > 0) {
+              result.plane_data.resize(num_planes);
+              result.linesize.resize(num_planes);
+              for (int i = 0; i < num_planes; i++) {
+                result.linesize[i] = target_frame->linesize[i];
+                int plane_height;
+                if (i == 0) {
+                  plane_height = target_frame->height;
+                }
+                else {
+                  const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(static_cast<AVPixelFormat>(target_frame->format));
+                  if (desc) plane_height = target_frame->height >> desc->log2_chroma_h;
+                  else plane_height = target_frame->height / 2;
+                }
 
-            result.plane_data.resize(num_planes);
-            result.linesize.resize(num_planes);
-
-            for (int i = 0; i < num_planes; i++) {
-              result.linesize[i] = target_frame->linesize[i];
-
-              int plane_height;
-              if (i == 0) {
-                plane_height = target_frame->height;
-
+                int plane_size = result.linesize[i] * plane_height;
+                if (plane_size > 0 && target_frame->data[i]) {
+                  result.plane_data[i].resize(plane_size);
+                  std::memcpy(result.plane_data[i].data(), target_frame->data[i], plane_size);
+                }
               }
-              else {
-                const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(static_cast<AVPixelFormat>(target_frame->format));
-
-                if (desc) plane_height = target_frame->height >> desc->log2_chroma_h;
-                else plane_height = target_frame->height / 2;
-
-              }
-
-              int plane_size = result.linesize[i] * plane_height;
-
-              if (plane_size <= 0 || !target_frame->data[i]) continue;
-
-              result.plane_data[i].resize(plane_size);
-              std::memcpy(result.plane_data[i].data(), target_frame->data[i], plane_size);
-
             }
           }
 
-          results.push_back(std::move(result));
+          av_frame_unref(frame_);
+          av_frame_unref(hw_frame_);
 
+          results.push_back(std::move(result));
         }
 
         return results;
-
       }
 
       bool has_hardware_support() const {
@@ -1491,29 +1409,22 @@ export namespace fan {
       size_t src_size,
       std::vector<uint8_t>& out) {
       out.clear();
-
+      out.reserve(src_size + src_size / 4 + 64);
       size_t pos = 0;
 
       while (pos + nal_length_size_ <= src_size) {
-
         uint32_t nal_size = 0;
-
         for (int i = 0; i < nal_length_size_; ++i) {
-          nal_size = (nal_size << 8) |
-
-            src[pos + i];
+          nal_size = (nal_size << 8) | src[pos + i];
         }
 
         pos += nal_length_size_;
-
         if (nal_size == 0 || pos + nal_size > src_size) {
           break;
-
         }
 
         out.insert(out.end(), {0x00,0x00,0x00,0x01});
         out.insert(out.end(), src + pos, src + pos + nal_size);
-
         pos += nal_size;
       }
     }
