@@ -1846,7 +1846,9 @@ fan::graphics::context_functions_t fan::graphics::get_vk_context_functions() {
     return VK_CTX->create_transparent_texture();
   };
   cf.image_reload_image_info = [](void* context, fan::graphics::image_nr_t nr, const fan::image::info_t& image_info) {
-    return VK_CTX->image_reload(nr, image_info);
+    image_load_properties_t lp;
+    if (nr) lp = image_get_settings(nr);
+    return VK_CTX->image_reload(nr, image_info, fan::graphics::format_converter::image_global_to_vulkan(lp));
   };
   cf.image_reload_image_info_props = [](void* context, fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p) {
     fan::image::info_t info = image_info;
