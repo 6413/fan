@@ -1559,8 +1559,8 @@ void main() {
 
 #include "library_usage_samples.h"
 
-int main() {////
-  fan::time::get_measure_time() = true;
+int main() {
+ // fan::time::set_measuring(true);
   engine_demo_ptr = new engine_demo_t;
   engine_demo_t& demo = *engine_demo_ptr;
 
@@ -1573,21 +1573,6 @@ int main() {////
   demo.engine.get_input_action().remove(fan::actions::toggle_settings);
 
   demo.engine.loop([&] {
-    auto camera = fan::graphics::camera_get(demo.right_column_view.camera);
-
-    /*fan::vec2 s(
-      (camera.coordinates.right - camera.coordinates.left) / 2.f,
-      (camera.coordinates.bottom - camera.coordinates.top) / 2.f
-    );*/
-    //fan::graphics::aabb(0, s*2.f, 5.f, &demo.right_column_view);
-    uint32_t v, c;
-    demo.engine.get_culling_stats(v, c);
-    //fan::print_throttled(v, c);
     demo.update();
   });
-  /*  Optionally
-    demo.engine.loop([&]{
-      demo.update();
-    });
-  */
 }
