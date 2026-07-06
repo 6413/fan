@@ -92,11 +92,7 @@ if not is_plat("wasm") then
   end
   
   if has_config("FAN_GUI") then
-    package("freetype")
-      set_base("freetype")
-      add_urls("https://github.com/freetype/freetype.git")
-      add_versions("2.13.2", "VER-2-13-2")
-  package_end()
+    add_requires("freetype 2.13.2", static_req)
     add_requires("lunasvg 2.4.1", static_req)
   end
   if has_config("FAN_PHYSICS_2D") then
