@@ -130,6 +130,10 @@ export namespace fan {
         pending_deletion_queue.flush();
         main_deletion_queue.flush();
       }
+      void retire_frame_deletions(std::uint32_t frame) {
+        get_current_deletion_queue(frame).flush();
+        get_current_deletion_queue(frame).merge(pending_deletion_queue);
+      }
 
       struct push_constants_t {
         std::uint32_t texture_id;
