@@ -71,16 +71,29 @@ namespace fan {
       std::printf("elapsed: %.2fms\n", t.millis());
     }
   }
-
-  bool& get_measure_time() {
-    static bool measure = false;
-    return measure;
-  }
-
-  void measure_time(fan::time::timer& timer, const std::string_view msg) {
-    if (get_measure_time()) {
-      fan::print(msg, "took:", timer.millis(), "ms");
+  namespace time {
+    bool& is_measuring() {
+      static bool measure = false;
+      return measure;
     }
-    timer.restart();
+    void set_measuring(bool state) {
+      is_measuring() = state;
+    }
+    void print_measure(const std::string_view msg) {
+      if (is_measuring()) {
+        fan::print(msg);
+      }
+    }
+    void print_measure(const std::string_view msg, f64_t time, const std::string_view unit) {
+      if (is_measuring()) {
+        fan::print(msg, time, unit);
+      }
+    }
+    void measure(fan::time::timer& timer, const std::string_view msg) {
+      if (is_measuring()) {
+        fan::print(msg, "took:", timer.millis(), "ms");
+      }
+      timer.restart();
+    }
   }
 }
