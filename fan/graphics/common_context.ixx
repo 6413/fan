@@ -180,6 +180,7 @@ export namespace fan {
     struct shader_data_t {
       fan::ct_string<256> path_vertex, path_fragment, path_compute;
       std::string svertex, sfragment, scompute;
+      std::vector<std::uint32_t> spv_vertex, spv_fragment, spv_compute;
 
       void* internal;
     };
