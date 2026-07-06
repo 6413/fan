@@ -77,88 +77,92 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
   }
 }
 void fan::vulkan::context_t::open_no_window() {
-  fan::print("open_no_window start");
+  if (fan::time::is_measuring()) {
+    fan::print("open_no_window start");
+  }
   fan::time::timer t;
-  fan::measure_time(t, "create_instance");
+  fan::time::measure(t, "create_instance");
   setup_debug_messenger();
-  fan::measure_time(t, "setup_debug_messenger");
+  fan::time::measure(t, "setup_debug_messenger");
   pick_physical_device();
-  fan::measure_time(t, "pick_physical_device");
+  fan::time::measure(t, "pick_physical_device");
   create_logical_device();
-  fan::measure_time(t, "create_logical_device");
+  fan::time::measure(t, "create_logical_device");
   create_allocator();
-  fan::measure_time(t, "create_allocator");
+  fan::time::measure(t, "create_allocator");
   create_command_pool();
-  fan::measure_time(t, "create_command_pool");
+  fan::time::measure(t, "create_command_pool");
   create_command_buffers();
-  fan::measure_time(t, "create_command_buffers");
+  fan::time::measure(t, "create_command_buffers");
   create_sync_objects();
-#if FAN_MEASURE_TIME_ENABLED
-  fan::print("create_sync_objects took:", t.millis(), "ms");
-#endif
+  if (fan::time::is_measuring()) {
+    fan::print("create_sync_objects took:", t.millis(), "ms");
+  }
 }
 #if defined(loco_window)
 
 void fan::vulkan::context_t::open(fan::window_t& window) {
-  fan::print("open start");
+  if (fan::time::is_measuring()) {
+    fan::print("open start");
+  }
   fan::time::timer t_total;
   fan::time::timer t;
   window_resize_handle = window.add_resize_callback([&](const fan::window_t::resize_data_t& d) {
     SwapChainRebuild = true;
   });
 
-  fan::measure_time(t, "window callback");
+  fan::time::measure(t, "window callback");
   
   create_instance();
-  fan::measure_time(t, "create_instance");
+  fan::time::measure(t, "create_instance");
 
   setup_debug_messenger();
-  fan::measure_time(t, "setup_debug_messenger");
+  fan::time::measure(t, "setup_debug_messenger");
 
   create_surface(window);
-  fan::measure_time(t, "create_surface");
+  fan::time::measure(t, "create_surface");
 
   pick_physical_device();
-  fan::measure_time(t, "pick_physical_device");
+  fan::time::measure(t, "pick_physical_device");
 
   create_logical_device();
-  fan::measure_time(t, "create_logical_device");
+  fan::time::measure(t, "create_logical_device");
 
   create_allocator();
-  fan::measure_time(t, "create_allocator");
+  fan::time::measure(t, "create_allocator");
 
   create_swap_chain(window.get_size());
-  fan::measure_time(t, "create_swap_chain");
+  fan::time::measure(t, "create_swap_chain");
 
   create_command_pool();
-  fan::measure_time(t, "create_command_pool");
+  fan::time::measure(t, "create_command_pool");
 
   create_image_views();
-  fan::measure_time(t, "create_image_views");
+  fan::time::measure(t, "create_image_views");
 
   create_render_pass();
-  fan::measure_time(t, "create_render_pass");
+  fan::time::measure(t, "create_render_pass");
 
   create_framebuffers();
-  fan::measure_time(t, "create_framebuffers");
+  fan::time::measure(t, "create_framebuffers");
 
   create_command_buffers();
-  fan::measure_time(t, "create_command_buffers");
+  fan::time::measure(t, "create_command_buffers");
 
   create_sync_objects();
-  fan::measure_time(t, "create_sync_objects");
+  fan::time::measure(t, "create_sync_objects");
 
   descriptor_pool.open(*this);
-  fan::measure_time(t, "descriptor_pool.open");
+  fan::time::measure(t, "descriptor_pool.open");
 
 #if defined(FAN_GUI)
   ImGuiSetupVulkanWindow();
-  fan::measure_time(t, "ImGuiSetupVulkanWindow");
+  fan::time::measure(t, "ImGuiSetupVulkanWindow");
 #endif
 
-#if FAN_MEASURE_TIME_ENABLED
-  fan::print("open total took:", t_total.millis(), "ms");
-#endif
+  if (fan::time::is_measuring()) {
+    fan::print("open total took:", t_total.millis(), "ms");
+  }
 
   //{
   //  VkImageMemoryBarrier barrier = {};
@@ -416,7 +420,6 @@ void fan::vulkan::context_t::create_instance() {
   appInfo.pEngineName = "fan";
   appInfo.engineVersion = VK_MAKE_VERSION(1, 2, 0);
   appInfo.apiVersion = VK_API_VERSION_1_2;
-
 
 
   VkInstanceCreateInfo createInfo {};
@@ -1606,10 +1609,12 @@ std::vector<std::string> fan::vulkan::context_t::get_required_extensions() {
   }
 #endif
 
+#if 0
   fan::print("Requested Vulkan Instance Extensions:");
   for (const auto& ext : extension_str) {
     fan::print("- ", ext);
   }
+#endif
 
   return extension_str;
 }
