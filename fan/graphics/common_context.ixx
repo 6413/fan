@@ -515,7 +515,7 @@ export namespace fan::graphics {
     image_t(fan::color* colors, const fan::vec2ui& size);
     image_t(fan::color* colors, const fan::vec2ui& size, const fan::graphics::image_load_properties_t& lp);
     image_t(std::span<const fan::color> colors, const fan::vec2ui& size);
-    image_t(const fan::vec2& size, std::uint32_t channels = 4, const image_load_properties_t& lp = image_presets::pixel_art());
+    image_t(const fan::vec2i& size, std::uint32_t channels = 4, const image_load_properties_t& lp = image_presets::pixel_art());
 
     // for no gloco access
     static image_t invalid();
