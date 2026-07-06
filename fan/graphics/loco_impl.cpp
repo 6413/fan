@@ -1145,6 +1145,12 @@ loco_t::~loco_t() {
 }
 
 void loco_t::destroy() {
+  if (window == nullptr) {
+    return;
+  }
+
+  fan::event::close_dispatcher();
+
   async_image_destroy();
 
   if (shader_watcher) {
@@ -1153,27 +1159,43 @@ void loco_t::destroy() {
   }
 #if defined(FAN_GUI)
   delete (fan::graphics::gui::settings_menu_t*)gui.settings_menu;
+  gui.settings_menu = nullptr;
 #endif
 
   if (idle_handle) {
-    delete (fan::uv::idle_t*)idle_handle;
+    if (idle_init) {
+      fan::uv::idle_stop((fan::uv::idle_t*)idle_handle);
+      fan::uv::close((fan::uv::handle_t*)idle_handle, [](fan::uv::handle_t* h) {
+        delete (fan::uv::idle_t*)h;
+      });
+    }
+    else {
+      delete (fan::uv::idle_t*)idle_handle;
+    }
     idle_handle = nullptr;
   }
   if (timer_handle) {
-    delete (fan::uv::timer_t*)timer_handle;
+    if (timer_init) {
+      fan::uv::timer_stop((fan::uv::timer_t*)timer_handle);
+      fan::uv::close((fan::uv::handle_t*)timer_handle, [](fan::uv::handle_t* h) {
+        delete (fan::uv::timer_t*)h;
+      });
+    }
+    else {
+      delete (fan::uv::timer_t*)timer_handle;
+    }
     timer_handle = nullptr;
   }
+
+  fan::uv::run((fan::uv::loop_t*)fan::event::get_loop(), fan::uv::run_default);
 
 #if defined(FAN_2D)
   shapes.shapes_destroy_pools(&shapes);
   static_render_list.clear();
   immediate_render_list.clear();
   delete ((fan::graphics::culling::culling_t*)shapes.visibility);
+  shapes.visibility = nullptr;
 #endif
-
-  if (window == nullptr) {
-    return;
-  }
 
 #if defined(FAN_GUI)
   gui.console.commands.get_command_list().clear();
@@ -1207,6 +1229,8 @@ void loco_t::destroy() {
 #if defined(FAN_AUDIO)
   audio.destroy();
 #endif
+
+  fan::event::loop_close();
 }
 
 void loco_t::close() {
@@ -1908,15 +1932,6 @@ void loco_t::load_engine_images() {
 
   fan::graphics::tile_world_images.dirt = fan::color::from_rgb(0x492201);
   fan::graphics::tile_world_images.background = fan::color::from_rgb(0x20a7db);
-}
-// already removed in image_list iteration
-void loco_t::unload_engine_images() {
-  image_unload(default_texture);
-
-  image_unload(fan::graphics::icons.play);
-  image_unload(fan::graphics::icons.pause);
-  image_unload(fan::graphics::icons.settings);
-
 }
 
 void loco_t::set_window_name(const std::string& name) {

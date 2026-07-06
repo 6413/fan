@@ -11,18 +11,9 @@ struct uniform_block_t {
 	using nr_t = std::uint8_t;
 	using instance_id_t = std::uint8_t;
 
-	uniform_block_t() = default;
-	uniform_block_t(const uniform_block_t& other) {
-		*this = other;
-	}
-	uniform_block_t& operator=(const uniform_block_t& other) {
-		op = other.op;
-		common = other.common;
-		common.user_data = this;
-		std::memcpy(buffer, other.buffer, sizeof(buffer));
-		m_size = other.m_size;
-		return *this;
-	}
+  uniform_block_t() = default;
+  uniform_block_t(const uniform_block_t&) = delete;
+  uniform_block_t& operator=(const uniform_block_t&) = delete;
 
 	uniform_block_t(fan::vulkan::context_t& context, open_properties_t op_ = open_properties_t()) {
 		open(context, op_);

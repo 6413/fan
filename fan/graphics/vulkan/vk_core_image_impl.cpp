@@ -318,32 +318,39 @@ void fan::vulkan::context_t::image_erase(fan::graphics::image_nr_t nr, int recyc
   auto& node = __fan_internal_image_list[nr];
   auto& img = image_get(nr);
 
-#if defined(FAN_GUI)
-  if (img.gui_descriptor_set != VK_NULL_HANDLE) {
-    ImGui_ImplVulkan_RemoveTexture(img.gui_descriptor_set);
-    img.gui_descriptor_set = VK_NULL_HANDLE;
-    img.gui_image_view = VK_NULL_HANDLE;
-    img.gui_sampler = VK_NULL_HANDLE;
-  }
-#endif
+  VkDevice dev = device;
+  VmaAllocator alloc = allocator;
+  
+  auto to_destroy = [
+    dev, alloc, 
+    gui_ds = img.gui_descriptor_set,
+    sampler = img.sampler,
+    view = (img.image_view && img.owns_image_view) ? img.image_view : VK_NULL_HANDLE,
+    image = (img.image_index && img.owns_image) ? img.image_index : VK_NULL_HANDLE,
+    alloc_handle = (img.image_index && img.owns_image) ? img.image_allocation : VK_NULL_HANDLE,
+    staging_buf = img.staging_buffer,
+    staging_alloc = img.staging_allocation
+  ]() mutable {
+    #if defined(FAN_GUI)
+      if (gui_ds != VK_NULL_HANDLE) ImGui_ImplVulkan_RemoveTexture(gui_ds);
+    #endif
+    if (sampler != VK_NULL_HANDLE) vkDestroySampler(dev, sampler, nullptr);
+    if (view != VK_NULL_HANDLE) vkDestroyImageView(dev, view, nullptr);
+    if (image != VK_NULL_HANDLE) vmaDestroyImage(alloc, image, alloc_handle);
+    if (staging_buf != VK_NULL_HANDLE) {
+        // You would need to make sure destroy_buffer logic is accessible here
+        // or just use vmaDestroyBuffer directly
+        vmaDestroyBuffer(alloc, staging_buf, staging_alloc);
+    }
+  };
 
-  if (img.sampler != VK_NULL_HANDLE) {
-    vkDestroySampler(device, img.sampler, nullptr);
-    img.sampler = VK_NULL_HANDLE;
-  }
-  if (img.staging_buffer != VK_NULL_HANDLE) {
-    destroy_buffer(img.staging_buffer, img.staging_allocation);
-    img.staging_size = 0;
-  }
-  if (img.image_view != VK_NULL_HANDLE && img.owns_image_view) {
-    vkDestroyImageView(device, img.image_view, nullptr);
-    img.image_view = VK_NULL_HANDLE;
-  }
-  if (img.image_index != VK_NULL_HANDLE && img.owns_image) {
-    vmaDestroyImage(allocator, img.image_index, img.image_allocation);
-    img.image_allocation = VK_NULL_HANDLE;
-    img.image_index = VK_NULL_HANDLE;
-  }
+  get_current_deletion_queue().push_function(std::move(to_destroy));
+
+  img.gui_descriptor_set = VK_NULL_HANDLE;
+  img.sampler = VK_NULL_HANDLE;
+  img.image_view = VK_NULL_HANDLE;
+  img.image_index = VK_NULL_HANDLE;
+  img.staging_buffer = VK_NULL_HANDLE;
 
   delete node.internal;
   node.internal = nullptr;
@@ -879,7 +886,16 @@ fan::vulkan::context_t::image_load_properties_t fan::graphics::format_converter:
     .mag_filter = global_to_vulkan_filter(p.mag_filter),
   };
 }
-void fan::vulkan::image_create(const fan::vulkan::context_t& context, const fan::vec2ui& image_size, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VmaAllocation& allocation) {
+void fan::vulkan::image_create(
+  const fan::vulkan::context_t& context,
+  const fan::vec2ui& image_size,
+  VkFormat format,
+  VkImageTiling tiling,
+  VkImageUsageFlags usage,
+  VkMemoryPropertyFlags properties,
+  VkImage& image,
+  VmaAllocation& allocation
+) {
   VkImageCreateInfo imageInfo {};
   imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
   imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -898,7 +914,6 @@ void fan::vulkan::image_create(const fan::vulkan::context_t& context, const fan:
   VmaAllocationCreateInfo allocation_info{};
   allocation_info.usage = VMA_MEMORY_USAGE_AUTO;
   allocation_info.requiredFlags = properties;
-
   if (vmaCreateImage(context.allocator, &imageInfo, &allocation_info, &image, &allocation, nullptr) != VK_SUCCESS) {
     fan::throw_error("failed to create image!");
   }

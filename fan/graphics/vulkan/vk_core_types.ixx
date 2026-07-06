@@ -232,7 +232,7 @@ export namespace fan {
       }
 
       void advance_tail(VkDeviceSize completed_offset) {
-        tail = completed_offset;
+        tail = std::max(tail, completed_offset);
       }
 
       VkDeviceSize get_head() const { return head; }

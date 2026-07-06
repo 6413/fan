@@ -276,45 +276,86 @@ namespace fan::event {
 
   bool fs_watcher_t::start(std::function<void(const std::string&, int)> callback) {
     auto* state = static_cast<fs_watcher_internal_t*>(internal_state);
-    if (state->active_handles > 0) return false;
-    state->active_handles = 2;
+    if (state->active_handles > 0) {
+      return false;
+    }
     state->event_callback = callback;
     int result = fan::uv::fs_event_init((fan::uv::loop_t*)get_loop(), &state->fs_event);
-    if (result < 0) return false;
+    if (result < 0) {
+      return false;
+    }
     result = fan::uv::fs_event_start(&state->fs_event, [](fan::uv::fs_event_t* handle, const char* filename, int events, int status) {
-      if (status < 0) return;
+      if (status < 0) {
+        return;
+      }
       auto* state = static_cast<fs_watcher_internal_t*>(handle->data);
       if (filename) {
         std::string file_str(filename);
         state->pending_events[file_str] = { file_str, events, std::chrono::steady_clock::now() };
       }
     }, state->watch_path.c_str(), fan::uv::fs_event_recursive);
-    if (result < 0) return false;
+    if (result < 0) {
+      fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(&state->fs_event), nullptr);
+      return false;
+    }
     result = fan::uv::timer_init((fan::uv::loop_t*)get_loop(), &state->timer);
-    if (result < 0) return false;
+    if (result < 0) {
+      fan::uv::fs_event_stop(&state->fs_event);
+      fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(&state->fs_event), nullptr);
+      return false;
+    }
     result = fan::uv::timer_start(&state->timer, [](fan::uv::timer_t* handle) {
       auto* state = static_cast<fs_watcher_internal_t*>(handle->data);
       for (auto& event_pair : state->pending_events) {
-        if (state->event_callback) state->event_callback(event_pair.second.filename, event_pair.second.events);
+        if (state->event_callback) {
+          state->event_callback(event_pair.second.filename, event_pair.second.events);
+        }
       }
       state->pending_events.clear();
     }, 0, 50);
-    return result >= 0;
+    if (result < 0) {
+      fan::uv::fs_event_stop(&state->fs_event);
+      fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(&state->fs_event), nullptr);
+      fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(&state->timer), nullptr);
+      return false;
+    }
+    state->active_handles = 2;
+    return true;
   }
 
   void fs_watcher_t::stop() {
     auto* state = static_cast<fs_watcher_internal_t*>(internal_state);
-    if (!state || state->active_handles == 0) return;
-    
-    fan::uv::fs_event_stop(&state->fs_event);
-    fan::uv::timer_stop(&state->timer);
+    if (!state || state->active_handles == 0) {
+      return;
+    }
 
-    fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(&state->fs_event), [](fan::uv::handle_t* handle) {
-      static_cast<fs_watcher_internal_t*>(handle->data)->on_handle_close();
-    });
-    fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(&state->timer), [](fan::uv::handle_t* handle) {
-      static_cast<fs_watcher_internal_t*>(handle->data)->on_handle_close();
-    });
+    if (state->fs_event.loop != nullptr && state->fs_event.type != UV_UNKNOWN_HANDLE && !fan::uv::is_closing(reinterpret_cast<fan::uv::handle_t*>(&state->fs_event))) {
+      fan::uv::fs_event_stop(&state->fs_event);
+      fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(&state->fs_event), [](fan::uv::handle_t* handle) {
+        static_cast<fs_watcher_internal_t*>(handle->data)->on_handle_close();
+      });
+    }
+    else {
+      --state->active_handles;
+    }
+
+    if (state->timer.loop != nullptr && state->timer.type != UV_UNKNOWN_HANDLE && !fan::uv::is_closing(reinterpret_cast<fan::uv::handle_t*>(&state->timer))) {
+      fan::uv::timer_stop(&state->timer);
+      fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(&state->timer), [](fan::uv::handle_t* handle) {
+        static_cast<fs_watcher_internal_t*>(handle->data)->on_handle_close();
+      });
+    }
+    else {
+      --state->active_handles;
+    }
+
+    if (state->active_handles == 0) {
+      delete state;
+      internal_state = nullptr;
+    }
+    else {
+      fan::uv::run((fan::uv::loop_t*)get_loop(), fan::uv::run_nowait);
+    }
   }
 
   std::string fs_watcher_t::get_watch_path() {
@@ -351,6 +392,12 @@ namespace fan::event {
       });
       async_ready.store(true, std::memory_order_release);
     });
+  }
+
+  void close_dispatcher() {
+    if (async_ready.exchange(false, std::memory_order_acq_rel)) {
+      fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(&async_handle), nullptr);
+    }
   }
 
   void post_to_main(std::function<void()> cb) {
@@ -679,9 +726,3 @@ namespace fan::io {
     return s->current_index >= s->entries.size();
   }
 }
-
-struct cleaner_t {
-  ~cleaner_t() {
-    fan::uv::loop_close((fan::uv::loop_t*)fan::event::get_loop());
-  }
-} cleaner;

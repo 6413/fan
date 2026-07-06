@@ -122,6 +122,16 @@ export namespace fan {
       frame_deletion_queue_t& get_current_deletion_queue() {
         return frame_deletion_queues[current_frame];
       }
+      frame_deletion_queue_t& get_current_deletion_queue(std::uint32_t frame) {
+        return frame_deletion_queues[frame];
+      }
+
+      void flush_deletion_queues() {
+        vkDeviceWaitIdle(device);
+        for (std::uint32_t i = 0; i < max_frames_in_flight; ++i) {
+          get_current_deletion_queue(i).flush();
+        }
+      }
 
       struct push_constants_t {
         std::uint32_t texture_id;
@@ -355,6 +365,8 @@ export namespace fan {
         static constexpr auto r8g8_unorm = VK_FORMAT_R8G8_UNORM;
         static constexpr auto r8g8b8_unorm = VK_FORMAT_R8G8B8_UNORM;
         static constexpr auto r8g8b8a8_srgb = VK_FORMAT_R8G8B8A8_SRGB;
+        static constexpr auto d32_sfloat = VK_FORMAT_D32_SFLOAT;
+        static constexpr auto b10_g11_r11_ufloat_pack32 = VK_FORMAT_B10G11R11_UFLOAT_PACK32;
       };
 
       struct image_sampler_address_mode {
@@ -500,39 +512,23 @@ export namespace fan {
       };
 
       VkFormat get_format_from_channels(int channels);
-      constexpr std::uint32_t get_image_multiplier(VkFormat format) {
+      static constexpr std::uint32_t get_image_multiplier(VkFormat format) {
+        using img_fmt = fan::vulkan::context_t::image_format;
         switch (format) {
-          case fan::vulkan::context_t::image_format::b8g8r8a8_unorm:
-          {
+          case img_fmt::r8_unorm: return 1;
+          case img_fmt::r8g8_unorm: return 2;
+          case img_fmt::r8g8b8_unorm: return 3;
+
+          case img_fmt::b8g8r8a8_unorm:
+          case img_fmt::r8g8b8a8_srgb:
+          case img_fmt::r8b8g8a8_unorm:
+          case img_fmt::d32_sfloat:
+          case img_fmt::b10_g11_r11_ufloat_pack32:
             return 4;
-          }
-          case fan::vulkan::context_t::image_format::r8_unorm:
-          {
-            return 1;
-          }
-          case fan::vulkan::context_t::image_format::r8g8_unorm:
-          {
-            return 2;
-          }
-          case fan::vulkan::context_t::image_format::r8g8b8_unorm:
-          {
-            return 3;
-          }
-          case fan::vulkan::context_t::image_format::r8g8b8a8_srgb:
-          {
-            return 4;
-          }
-          case fan::vulkan::context_t::image_format::r8b8g8a8_unorm:
-          {
-            return 4;
-          }
-          default:
-          {
-            break;
-          }
+
+          default: fan::throw_error("failed to find format for image multiplier");
+          return {};
         }
-        fan::throw_error("failed to find format for image multiplier");
-        return {};
       }
 
       std::vector<std::pair<fan::vulkan::decoded_image_payload_t, std::function<void(const fan::vulkan::decoded_image_payload_t&)>>> pending_image_uploads;
