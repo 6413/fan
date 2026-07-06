@@ -1,5 +1,7 @@
 module;
 
+#include <fan/utility.h>
+
 #if __has_include(<print>)
   #define USE_STD_PRINT
 #endif
