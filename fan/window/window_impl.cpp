@@ -281,25 +281,6 @@ namespace fan {
     open(props);
   }
 
-#if defined(fan_platform_windows)
-  LRESULT CALLBACK dark_wndproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
-    switch (msg) {
-      case WM_ERASEBKGND: {
-        return 1;
-      }
-      case WM_PAINT: {
-        PAINTSTRUCT ps;
-        HDC hdc = BeginPaint(hwnd, &ps);
-        FillRect(hdc, &ps.rcPaint, static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH)));
-        EndPaint(hwnd, &ps);
-        return 0;
-      }
-    }
-    WNDPROC orig_proc = reinterpret_cast<WNDPROC>(GetPropW(hwnd, L"fan_orig_wndproc"));
-    return CallWindowProcW(orig_proc, hwnd, msg, wparam, lparam);
-  }
-#endif
-
   void window_t::open(const properties_t& props) {
     this->flags = props.flags;
     std::fill(key_states, key_states + std::size(key_states), -1);
@@ -383,11 +364,7 @@ namespace fan {
     if (glfw_window) {
 #if defined(fan_platform_windows)
       HWND hwnd = glfwGetWin32Window(glfw_window);
-
       SetClassLongPtr(hwnd, GCLP_HBRBACKGROUND, reinterpret_cast<LONG_PTR>(GetStockObject(BLACK_BRUSH)));
-      SetPropW(hwnd, L"fan_orig_wndproc", reinterpret_cast<HANDLE>(GetWindowLongPtrW(hwnd, GWLP_WNDPROC)));
-      SetWindowLongPtrW(hwnd, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(dark_wndproc));
-
       BOOL dark_mode = TRUE;
       DwmSetWindowAttribute(hwnd, 20, &dark_mode, sizeof(dark_mode));
 #endif
