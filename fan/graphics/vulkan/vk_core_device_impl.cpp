@@ -79,22 +79,23 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
 void fan::vulkan::context_t::open_no_window() {
   fan::print("open_no_window start");
   fan::time::timer t;
-  create_instance();
-  fan::print("create_instance took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "create_instance");
   setup_debug_messenger();
-  fan::print("setup_debug_messenger took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "setup_debug_messenger");
   pick_physical_device();
-  fan::print("pick_physical_device took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "pick_physical_device");
   create_logical_device();
-  fan::print("create_logical_device took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "create_logical_device");
   create_allocator();
-  fan::print("create_allocator took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "create_allocator");
   create_command_pool();
-  fan::print("create_command_pool took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "create_command_pool");
   create_command_buffers();
-  fan::print("create_command_buffers took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "create_command_buffers");
   create_sync_objects();
+#if FAN_MEASURE_TIME_ENABLED
   fan::print("create_sync_objects took:", t.millis(), "ms");
+#endif
 }
 #if defined(loco_window)
 
@@ -106,44 +107,58 @@ void fan::vulkan::context_t::open(fan::window_t& window) {
     SwapChainRebuild = true;
   });
 
-  fan::print("window callback took:", t.millis(), "ms"); t.restart();
-
+  fan::measure_time(t, "window callback");
+  
   create_instance();
-  fan::print("create_instance took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "create_instance");
 
   setup_debug_messenger();
-  fan::print("setup_debug_messenger took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "setup_debug_messenger");
+
   create_surface(window);
-  fan::print("create_surface took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "create_surface");
+
   pick_physical_device();
-  fan::print("pick_physical_device took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "pick_physical_device");
+
   create_logical_device();
-  fan::print("create_logical_device took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "create_logical_device");
+
   create_allocator();
-  fan::print("create_allocator took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "create_allocator");
 
   create_swap_chain(window.get_size());
-  fan::print("create_swap_chain took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "create_swap_chain");
 
   create_command_pool();
-  fan::print("create_command_pool took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "create_command_pool");
+
   create_image_views();
-  fan::print("create_image_views took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "create_image_views");
+
   create_render_pass();
-  fan::print("create_render_pass took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "create_render_pass");
+
   create_framebuffers();
-  fan::print("create_framebuffers took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "create_framebuffers");
+
   create_command_buffers();
-  fan::print("create_command_buffers took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "create_command_buffers");
+
   create_sync_objects();
-  fan::print("create_sync_objects took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "create_sync_objects");
+
   descriptor_pool.open(*this);
-  fan::print("descriptor_pool.open took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "descriptor_pool.open");
+
 #if defined(FAN_GUI)
   ImGuiSetupVulkanWindow();
-  fan::print("ImGuiSetupVulkanWindow took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "ImGuiSetupVulkanWindow");
 #endif
+
+#if FAN_MEASURE_TIME_ENABLED
   fan::print("open total took:", t_total.millis(), "ms");
+#endif
 
   //{
   //  VkImageMemoryBarrier barrier = {};

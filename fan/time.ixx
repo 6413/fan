@@ -270,4 +270,7 @@ export namespace fan {
     }
     static cooldown_t full(f32_t max) { cooldown_t c{max}; c.current = max; return c; }
   };
+
+  bool& get_measure_time();
+  void measure_time(fan::time::timer& timer, const std::string_view msg);
 }

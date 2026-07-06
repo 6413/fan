@@ -1007,9 +1007,9 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   fan::time::timer t_loco;
   fan::time::timer t;
   fan::init_manager_t::cleaner();
-  fan::print("cleaner took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "cleaner");
   fan::event::init_dispatcher();
-  fan::print("init_dispatcher took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "init_dispatcher");
 
   idle_handle  = new fan::uv::idle_t;
   timer_handle = new fan::uv::timer_t;
@@ -1021,63 +1021,63 @@ loco_t::loco_t(const loco_t::properties_t& props) :
     gui.settings_menu = new fan::graphics::gui::settings_menu_t;
   }
   #endif
-  fan::print("gui settings took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "gui settings");
 
   bind_global_context();
-  fan::print("bind_global_context took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "bind_global_context");
   loco_init_shapes_context(this);
-  fan::print("loco_init_shapes_context took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "loco_init_shapes_context");
   loco_init_platform(this);
-  fan::print("loco_init_platform took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "loco_init_platform");
   loco_init_renderer(this);
-  fan::print("loco_init_renderer took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "loco_init_renderer");
   loco_load_settings_into_open_props(this);
-  fan::print("loco_load_settings_into_open_props took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "loco_load_settings_into_open_props");
 
 #if defined(FAN_AUDIO)
   std::jthread audio_init_thread([this] { audio.init(); });
 #endif
 
   loco_open_window(this);
-  fan::print("loco_open_window took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "loco_open_window");
   loco_init_renderer_post_window(this);
-  fan::print("loco_init_renderer_post_window took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "loco_init_renderer_post_window");
   loco_init_shapes_system(this);
-  fan::print("loco_init_shapes_system took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "loco_init_shapes_system");
   loco_init_render_views(this);
-  fan::print("loco_init_render_views took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "loco_init_render_views");
 #if defined(FAN_2D)
   vk.shaders_compile();
-  fan::print("vk.shaders_compile took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "vk.shaders_compile");
 #endif
   vk.init();
-  fan::print("vk.init took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "vk.init");
 #if defined(FAN_2D)
   load_engine_images();
-  fan::print("load_engine_images took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "load_engine_images");
   vk.shapes_open();
-  fan::print("vk.shapes_open took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "vk.shapes_open");
 #endif
 #if defined(FAN_GUI)
   init_gui();
-  fan::print("init_gui took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "init_gui");
   generate_commands(this);
-  fan::print("generate_commands took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "generate_commands");
 #endif
   input.init(window);
-  fan::print("input.init took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "input.init");
   #if defined(FAN_AUDIO)
   if (audio_init_thread.joinable()) {
     audio_init_thread.join();
   }
-  fan::print("audio.init wait took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "audio.init wait");
   #endif
   fan::graphics::ctx().default_texture = default_texture;
 #if defined(FAN_GUI)
   gui.console.commands.call("debug_memory " + std::to_string((int)fan::memory::heap_profiler_t::instance().enabled));
 #endif
   loco_init_culling(this);
-  fan::print("loco_init_culling took:", t.millis(), "ms"); t.restart();
+  fan::measure_time(t, "loco_init_culling");
 #if defined(FAN_GUI)
   get_smenu(this)->init_runtime();
 #endif
@@ -1107,7 +1107,9 @@ loco_t::loco_t(const loco_t::properties_t& props) :
       check_and_reload(shader.path_compute, shader.scompute);
     });
   });
+#if FAN_MEASURE_TIME_ENABLED
   fan::print("loco total took:", t_loco.millis(), "ms");
+#endif
 }
 
 loco_t::loco_t(std::function<void()> loop_fn) : loco_t(loop_fn, properties_t()) {}
