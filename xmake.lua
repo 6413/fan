@@ -6,8 +6,7 @@ if is_plat("wasm") then
   add_ldflags("-s USE_GLFW=3", "-s ASYNCIFY=1", "-pthread", "-s PTHREAD_POOL_SIZE=4", {force = true})
 else
   option("compiler") set_default("clang") option_end()
-  local compiler = get_config("compiler") or "clang"
-  set_toolchains(compiler == "gcc" and "gcc" or "clang")
+  set_toolchains(get_config("compiler") == "gcc" and "gcc" or "clang")
 end
 
 rule("mode.mode_none") rule_end()
@@ -32,18 +31,18 @@ if is_mode("mode_none") or is_mode("debug") then
 end
 if is_mode("release") then
   set_optimize("fastest")
-  add_cxflags("-O3", {force = true})
+  add_cxxflags("-O3", {force = true})
   add_ldflags("-s", {force = true})
   add_defines("NDEBUG", "_DEBUG=0")
 elseif is_mode("release-minsize") then
   set_optimize("smallest")
-  add_cxflags("-Oz", "-ffunction-sections", "-fdata-sections", {force = true})
+  add_cxxflags("-Oz", "-ffunction-sections", "-fdata-sections", {force = true})
   add_ldflags("-s", "-Wl,--gc-sections", {force = true})
   add_defines("NDEBUG", "_DEBUG=0")
 elseif is_mode("debug") then
   set_optimize("none")
   set_symbols("debug")
-  add_cxflags("-g", "-gdwarf-4", "-fno-inline", "-fno-inline-functions", {force = true})
+  add_cxxflags("-g", "-gdwarf-4", "-fno-inline", "-fno-inline-functions", {force = true})
 end
 
 local fan_features = {
