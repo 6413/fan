@@ -80,9 +80,6 @@ if has_config("FAN_REFLECTION") then add_cxxflags("-freflection", {force = true}
 option("FAN_USE_STD_MODULE") set_default(false) set_showmenu(true) add_defines("FAN_USE_STD_MODULE") option_end()
 option("main") set_default("examples/engine_demos/engine_demo.cpp") option_end()
 
-add_requires("freetype", static_req)
-add_requires("libpng", static_req)
-
 local static_req = {system = false, configs = {shared = false}}
 if has_config("FAN_FMT") then add_requires("fmt 10.2.1", static_req) end
 if has_config("FAN_VULKAN") then add_requires("vulkan-headers", {system = false}) end
@@ -95,7 +92,11 @@ if not is_plat("wasm") then
   end
   
   if has_config("FAN_GUI") then
-    add_requires("freetype 2.13.2", static_req)
+    package("freetype")
+      set_base("freetype")
+      add_urls("https://github.com/freetype/freetype.git")
+      add_versions("2.13.2", "VER-2-13-2")
+  package_end()
     add_requires("lunasvg 2.4.1", static_req)
   end
   if has_config("FAN_PHYSICS_2D") then
