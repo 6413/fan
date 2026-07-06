@@ -6,7 +6,8 @@ if is_plat("wasm") then
   add_ldflags("-s USE_GLFW=3", "-s ASYNCIFY=1", "-pthread", "-s PTHREAD_POOL_SIZE=4", {force = true})
 else
   option("compiler") set_default("clang") option_end()
-  set_toolchains(get_config("compiler") == "gcc" and "gcc" or "clang")
+  local compiler = get_config("compiler") or "clang"
+  set_toolchains(compiler == "gcc" and "gcc" or "clang")
 end
 
 rule("mode.mode_none") rule_end()
@@ -120,10 +121,7 @@ local common_flags = {
   "-Wno-unused-but-set-parameter", "-Wno-unused-value", "-Wno-padded", "-Wno-parentheses",
   "-Wno-unused-static-function", "-fsized-deallocation"
 }
-
-for _, flag in ipairs(common_flags) do
-  if flag then add_cxxflags(flag, {force = true}) end
-end
+add_cxxflags(table.unpack(common_flags), {force = true})
 
 if is_gcc then
   add_cxxflags("-fmax-errors=20", "-fmodules-ts", "-fno-module-lazy", {force = true})
