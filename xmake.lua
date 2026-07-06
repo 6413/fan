@@ -80,6 +80,9 @@ if has_config("FAN_REFLECTION") then add_cxxflags("-freflection", {force = true}
 option("FAN_USE_STD_MODULE") set_default(false) set_showmenu(true) add_defines("FAN_USE_STD_MODULE") option_end()
 option("main") set_default("examples/engine_demos/engine_demo.cpp") option_end()
 
+add_requires("freetype", static_req)
+add_requires("libpng", static_req)
+
 local static_req = {system = false, configs = {shared = false}}
 if has_config("FAN_FMT") then add_requires("fmt 10.2.1", static_req) end
 if has_config("FAN_VULKAN") then add_requires("vulkan-headers", {system = false}) end
