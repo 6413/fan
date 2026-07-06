@@ -381,6 +381,11 @@ void fan::vulkan::context_t::recreate_swap_chain(fan::window_t* window, VkResult
       //#endif
       //}
 void fan::vulkan::context_t::create_instance() {
+#if defined(fan_platform_windows)
+  SetEnvironmentVariableA("DISABLE_VULKAN_OBS_CAPTURE", "1");
+  SetEnvironmentVariableA("DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1", "1");
+#endif
+
 
 #if FAN_DEBUG >= fan_debug_high
   if (!check_validation_layer_support()) {
@@ -397,13 +402,7 @@ void fan::vulkan::context_t::create_instance() {
   appInfo.engineVersion = VK_MAKE_VERSION(1, 2, 0);
   appInfo.apiVersion = VK_API_VERSION_1_2;
 
-#if fan_debug >= 2
-  VkPhysicalDeviceProperties deviceProperties;
-  vkGetPhysicalDeviceProperties(physicalDevice, &deviceProperties);
-  if (deviceProperties.apiVersion < VK_API_VERSION_1_2) {
-    fan::throw_error("unsupported Vulkan apiVersion:", appInfo.apiVersion);
-  }
-#endif
+
 
   VkInstanceCreateInfo createInfo {};
   createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -411,11 +410,10 @@ void fan::vulkan::context_t::create_instance() {
 
   auto extensions = get_required_extensions();
   createInfo.enabledExtensionCount = extensions.size();
-  std::vector<char*> extension_names(extensions.size() + 1);
+  std::vector<const char*> extension_names(extensions.size());
 
   for (std::uint32_t i = 0; i < extensions.size(); ++i) {
-    extension_names[i] = new char[extensions[i].size() + 1];
-    memcpy(extension_names[i], extensions[i].data(), extensions[i].size() + 1);
+    extension_names[i] = extensions[i].c_str();
   }
   createInfo.ppEnabledExtensionNames = extension_names.data();
 
@@ -1577,34 +1575,26 @@ queue_family_indices_t fan::vulkan::context_t::find_queue_families(VkPhysicalDev
   return indices;
 }
 std::vector<std::string> fan::vulkan::context_t::get_required_extensions() {
+  uint32_t glfwExtensionCount = 0;
+  const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 
-  std::uint32_t extensions_count = 0;
-  vkEnumerateInstanceExtensionProperties(nullptr, &extensions_count, nullptr);
-  if (extensions_count == 0) {
-    fan::throw_error("Could not get the number of Instance extensions.");
-  }
-
-  std::vector<VkExtensionProperties> available_extensions;
-
-  available_extensions.resize(extensions_count);
-
-  vkEnumerateInstanceExtensionProperties(nullptr, &extensions_count, &available_extensions[0]);
-
-  if (extensions_count == 0) {
-    fan::throw_error("Could not enumerate Instance extensions.");
-  }
-
-  std::vector<std::string> extension_str(available_extensions.size());
-
-  for (int i = 0; i < available_extensions.size(); i++) {
-    extension_str[i] = available_extensions[i].extensionName;
+  std::vector<std::string> extension_str;
+  if (glfwExtensions) {
+    for (uint32_t i = 0; i < glfwExtensionCount; i++) {
+      extension_str.push_back(glfwExtensions[i]);
+    }
   }
 
 #if FAN_DEBUG >= fan_debug_high
   if (supports_validation_layers) {
-    extension_str.push_back((char*)VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    extension_str.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
   }
 #endif
+
+  fan::print("Requested Vulkan Instance Extensions:");
+  for (const auto& ext : extension_str) {
+    fan::print("- ", ext);
+  }
 
   return extension_str;
 }
