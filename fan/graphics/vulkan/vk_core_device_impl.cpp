@@ -28,6 +28,7 @@ module fan.graphics.vulkan.core;
 
 import std;
 
+import fan.time;
 
 import fan.types.fstring;
 import fan.types.color;
@@ -76,43 +77,73 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
   }
 }
 void fan::vulkan::context_t::open_no_window() {
+  fan::print("open_no_window start");
+  fan::time::timer t;
   create_instance();
+  fan::print("create_instance took:", t.millis(), "ms"); t.restart();
   setup_debug_messenger();
+  fan::print("setup_debug_messenger took:", t.millis(), "ms"); t.restart();
   pick_physical_device();
+  fan::print("pick_physical_device took:", t.millis(), "ms"); t.restart();
   create_logical_device();
+  fan::print("create_logical_device took:", t.millis(), "ms"); t.restart();
   create_allocator();
+  fan::print("create_allocator took:", t.millis(), "ms"); t.restart();
   create_command_pool();
+  fan::print("create_command_pool took:", t.millis(), "ms"); t.restart();
   create_command_buffers();
+  fan::print("create_command_buffers took:", t.millis(), "ms"); t.restart();
   create_sync_objects();
+  fan::print("create_sync_objects took:", t.millis(), "ms");
 }
 #if defined(loco_window)
 
 void fan::vulkan::context_t::open(fan::window_t& window) {
+  fan::print("open start");
+  fan::time::timer t_total;
+  fan::time::timer t;
   window_resize_handle = window.add_resize_callback([&](const fan::window_t::resize_data_t& d) {
     SwapChainRebuild = true;
   });
 
+  fan::print("window callback took:", t.millis(), "ms"); t.restart();
 
   create_instance();
+  fan::print("create_instance took:", t.millis(), "ms"); t.restart();
 
   setup_debug_messenger();
+  fan::print("setup_debug_messenger took:", t.millis(), "ms"); t.restart();
   create_surface(window);
+  fan::print("create_surface took:", t.millis(), "ms"); t.restart();
   pick_physical_device();
+  fan::print("pick_physical_device took:", t.millis(), "ms"); t.restart();
   create_logical_device();
+  fan::print("create_logical_device took:", t.millis(), "ms"); t.restart();
   create_allocator();
+  fan::print("create_allocator took:", t.millis(), "ms"); t.restart();
 
   create_swap_chain(window.get_size());
+  fan::print("create_swap_chain took:", t.millis(), "ms"); t.restart();
 
   create_command_pool();
+  fan::print("create_command_pool took:", t.millis(), "ms"); t.restart();
   create_image_views();
+  fan::print("create_image_views took:", t.millis(), "ms"); t.restart();
   create_render_pass();
+  fan::print("create_render_pass took:", t.millis(), "ms"); t.restart();
   create_framebuffers();
+  fan::print("create_framebuffers took:", t.millis(), "ms"); t.restart();
   create_command_buffers();
+  fan::print("create_command_buffers took:", t.millis(), "ms"); t.restart();
   create_sync_objects();
+  fan::print("create_sync_objects took:", t.millis(), "ms"); t.restart();
   descriptor_pool.open(*this);
+  fan::print("descriptor_pool.open took:", t.millis(), "ms"); t.restart();
 #if defined(FAN_GUI)
   ImGuiSetupVulkanWindow();
+  fan::print("ImGuiSetupVulkanWindow took:", t.millis(), "ms"); t.restart();
 #endif
+  fan::print("open total took:", t_total.millis(), "ms");
 
   //{
   //  VkImageMemoryBarrier barrier = {};

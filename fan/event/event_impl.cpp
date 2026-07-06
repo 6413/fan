@@ -248,6 +248,12 @@ namespace fan::event {
       int events;
       std::chrono::steady_clock::time_point timestamp;
     };
+    int active_handles = 0;
+    void on_handle_close() {
+      if (--active_handles == 0) {
+        delete this;
+      }
+    }
     fan::uv::fs_event_t fs_event;
     fan::uv::timer_t    timer;
     std::string watch_path;
@@ -264,11 +270,14 @@ namespace fan::event {
   }
 
   fs_watcher_t::~fs_watcher_t() {
-    delete static_cast<fs_watcher_internal_t*>(internal_state);
+    stop();
+    internal_state = nullptr;
   }
 
   bool fs_watcher_t::start(std::function<void(const std::string&, int)> callback) {
     auto* state = static_cast<fs_watcher_internal_t*>(internal_state);
+    if (state->active_handles > 0) return false;
+    state->active_handles = 2;
     state->event_callback = callback;
     int result = fan::uv::fs_event_init((fan::uv::loop_t*)get_loop(), &state->fs_event);
     if (result < 0) return false;
@@ -295,8 +304,17 @@ namespace fan::event {
 
   void fs_watcher_t::stop() {
     auto* state = static_cast<fs_watcher_internal_t*>(internal_state);
+    if (!state || state->active_handles == 0) return;
+    
     fan::uv::fs_event_stop(&state->fs_event);
     fan::uv::timer_stop(&state->timer);
+
+    fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(&state->fs_event), [](fan::uv::handle_t* handle) {
+      static_cast<fs_watcher_internal_t*>(handle->data)->on_handle_close();
+    });
+    fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(&state->timer), [](fan::uv::handle_t* handle) {
+      static_cast<fs_watcher_internal_t*>(handle->data)->on_handle_close();
+    });
   }
 
   std::string fs_watcher_t::get_watch_path() {
