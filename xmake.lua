@@ -238,7 +238,7 @@ if has_config("FAN_GUI") then
       "fan/imgui/implot.cpp", "fan/imgui/text_editor.cpp", "fan/imgui/misc/freetype/imgui_freetype.cpp",
       "fan/imgui/ImGuizmo.cpp"
     )
-    if has_config("FAN_VULKAN") then add_requires("vulkansdk") add_files("fan/imgui/imgui_impl_vulkan.cpp") end
+    if has_config("FAN_VULKAN") then add_packages("vulkan-headers") add_files("fan/imgui/imgui_impl_vulkan.cpp") end
   target_end()
 end
 
@@ -288,7 +288,8 @@ target("a.exe")
   if not is_plat("wasm") and has_config("FAN_WINDOW") then add_deps("nfd") end
   if has_config("FAN_FMT") then add_packages("fmt") end
   if has_config("FAN_VULKAN") then
-    add_requires("vulkansdk")
+    add_packages("vulkan-headers")
+    add_includedirs("$(pkg_includedirs vulkan-headers)", {public = true})
   end
 
   for _, f in ipairs(module_files) do add_files(f) end
