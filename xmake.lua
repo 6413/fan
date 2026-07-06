@@ -129,7 +129,7 @@ else
 end
 
 if has_config("FAN_GUI") then
-  add_defines("IMGUI_IMPL_OPENGL_LOADER_CUSTOM", "IMGUI_DEFINE_MATH_OPERATORS", "IMGUI_DISABLE_SSE", "IMGUI_ENABLE_FREETYPE", "IMGUI_ENABLE_FREETYPE_LUNASVG", "STBI_NO_SIMD")
+  add_defines("IMGUI_DEFINE_MATH_OPERATORS", "IMGUI_DISABLE_SSE", "IMGUI_ENABLE_FREETYPE", "IMGUI_ENABLE_FREETYPE_LUNASVG", "STBI_NO_SIMD")
 end
 
 local module_files = {
@@ -173,7 +173,7 @@ local feature_modules = {
     "fan/graphics/gui/tilemap_editor/loader.ixx", "fan/graphics/gui/tilemap_editor/editor_core.ixx",
     "fan/graphics/gui/tilemap_editor/editor_ui.ixx", "fan/graphics/gui/tilemap_editor/renderer0.ixx"
   },
-  FAN_3D = { "fan/graphics/opengl/3D/objects/fms.ixx", "fan/graphics/opengl/3D/objects/model.ixx", "fan/graphics/voxel.ixx" },
+  FAN_3D = { "fan/graphics/3D/objects/fms.ixx", "fan/graphics/voxel.ixx" },
   FAN_VIDEO = { "fan/video/codec.ixx", "fan/video/screen.ixx", "fan/video/renderer.ixx", "fan/video/video.ixx" },
   FAN_WAYLAND_SCREEN = { "fan/video/screen_codec.ixx" }
 }
@@ -239,7 +239,6 @@ if has_config("FAN_GUI") then
       "fan/imgui/implot.cpp", "fan/imgui/text_editor.cpp", "fan/imgui/misc/freetype/imgui_freetype.cpp",
       "fan/imgui/ImGuizmo.cpp"
     )
-    add_files("fan/imgui/imgui_impl_opengl3.cpp", {unity_ignored = true})
     if has_config("FAN_VULKAN") then add_packages("vulkan-headers") add_files("fan/imgui/imgui_impl_vulkan.cpp") end
   target_end()
 end
@@ -327,7 +326,6 @@ target("a.exe")
     if has_config("FAN_VULKAN") then add_packages("vulkansdk") add_links("shaderc_shared") end
     if has_config("FAN_WAYLAND_SCREEN") then add_links("wayland-client", "pipewire-0.3", "dbus-1", "avcodec", "avutil", "swscale") end
   elseif is_plat("windows") then
-    add_links("opengl32")
     add_linkdirs("lib/GLFW", "lib/GLEW", "lib/libuv", "lib/libwebp", "lib/opus", "lib/openssl")
     add_links("glfw3_mt", "glew32s", "uv_a", "libwebp", "opus", "libssl", "libcrypto")
     if has_config("FAN_GUI") then add_linkdirs("lib/freetype", "lib/lunasvg") add_links("freetype", "lunasvg") end
