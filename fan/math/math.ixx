@@ -506,9 +506,9 @@ export namespace fan {
     //default
     template <typename matrix_t, typename vector_t>
     constexpr auto look_at_right(const vector_t& eye, const vector_t& center, const vector_t& up) {
-      vector_t f(fan::math::normalize(center - eye));
-      vector_t s(fan::math::normalize(cross(f, up)));
-      vector_t u(fan::math::cross(s, f));
+      vector_t f((center - eye).normalize());
+      vector_t s((cross(f, up)).normalize());
+      vector_t u(s.cross(f));
 
       matrix_t matrix(1);
       matrix[0][0] = s[0];
