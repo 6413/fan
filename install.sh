@@ -72,6 +72,25 @@ install_vma() {
   cp "$repo/include/vk_mem_alloc.h" "$INCLUDE_DIR/VulkanMemoryAllocator/include/vk_mem_alloc.h"
 }
 
+install_vulkan_utility_libraries() {
+  local repo="$INSTALL_DIR/repos/Vulkan-Utility-Libraries"
+  if [[ -f "$INCLUDE_DIR/vulkan/vk_enum_string_helper.h" && "$FORCE_REBUILD" == false ]]; then
+    return 0
+  fi
+  mkdir -p "$INSTALL_DIR/repos"
+  if [[ -d "$repo/.git" ]] && ! git -C "$repo" status >/dev/null 2>&1; then
+    rm -rf "$repo"
+  fi
+  if [[ -d "$repo/.git" ]]; then
+    git -C "$repo" pull --quiet || exit 1
+  else
+    echo "Cloning Vulkan-Utility-Libraries..."
+    git -c http.version=HTTP/1.1 clone --depth 1 "https://github.com/KhronosGroup/Vulkan-Utility-Libraries.git" "$repo" --quiet || exit 1
+  fi
+  mkdir -p "$INCLUDE_DIR/vulkan"
+  cp "$repo/include/vulkan/"*.h "$INCLUDE_DIR/vulkan/"
+}
+
 if ! $CORE_ONLY; then
   move_and_pull "https://github.com/7244/WITCH.git"      "WITCH"
   move_and_pull "https://github.com/7244/BCOL.git"       "BCOL"
@@ -82,8 +101,7 @@ if ! $CORE_ONLY; then
   move_and_pull "https://github.com/7244/pixfconv.git"   "pixfconv"
   move_and_pull "https://github.com/6413/PIXF.git"       "PIXF"
   install_vma
-
-
+  install_vulkan_utility_libraries
 
   touch "$INSTALL_DIR/.gfx.stamp"
 fi
