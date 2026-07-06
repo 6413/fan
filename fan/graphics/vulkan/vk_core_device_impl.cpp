@@ -51,11 +51,6 @@ import fan.math.intersection;
 #define __fan_internal_image_list (*fan::graphics::ctx().image_list)
 #define __fan_internal_viewport_list (*fan::graphics::ctx().viewport_list)
 
-#if defined(fan_compiler_msvc)
-#pragma comment(lib, "vulkan-1.lib")
-#pragma comment(lib, "shaderc_combined_mt.lib")
-#endif
-
 #define ENABLE_RAYTRACING_DEPENDENCIES
 
 #define VK_CTX ((fan::vulkan::context_t*)context)

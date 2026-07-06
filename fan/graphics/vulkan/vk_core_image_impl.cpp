@@ -1,34 +1,23 @@
 module;
 
 #if defined(fan_platform_windows)
-#define VK_USE_PLATFORM_WIN32_KHR
+  #define VK_USE_PLATFORM_WIN32_KHR
 #elif defined(fan_platform_unix)
-#define VK_USE_PLATFORM_XLIB_KHR
+  #define VK_USE_PLATFORM_XLIB_KHR
 #endif
+
 #if defined(FAN_GUI)
-#include <fan/imgui/imgui_impl_vulkan.h>
+  #include <fan/imgui/imgui_impl_vulkan.h>
 #endif
+
 #define loco_window
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
-#include <shaderc/shaderc.hpp>
 #include <vulkan/vk_enum_string_helper.h>
-#if defined(fan_platform_windows)
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <Windows.h>
-#define GLFW_EXPOSE_NATIVE_WIN32
-#define GLFW_EXPOSE_NATIVE_WGL
-#define GLFW_NATIVE_INCLUDE_NONE
-#endif
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
-#include <GLFW/glfw3native.h>
 
 module fan.graphics.vulkan.core;
 
 import std;
-
 
 import fan.types.fstring;
 import fan.types.color;
@@ -53,11 +42,6 @@ import fan.math.intersection;
 #define __fan_internal_shader_list (*fan::graphics::ctx().shader_list)
 #define __fan_internal_image_list (*fan::graphics::ctx().image_list)
 #define __fan_internal_viewport_list (*fan::graphics::ctx().viewport_list)
-
-#if defined(fan_compiler_msvc)
-#pragma comment(lib, "vulkan-1.lib")
-#pragma comment(lib, "shaderc_combined_mt.lib")
-#endif
 
 #define ENABLE_RAYTRACING_DEPENDENCIES
 

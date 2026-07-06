@@ -1,43 +1,23 @@
 module;
 
 #if defined(fan_platform_windows)
-#define VK_USE_PLATFORM_WIN32_KHR
+  #define VK_USE_PLATFORM_WIN32_KHR
 #elif defined(fan_platform_unix)
-#define VK_USE_PLATFORM_XLIB_KHR
+  #define VK_USE_PLATFORM_XLIB_KHR
 #endif
-#if defined(FAN_GUI)
-  #include <fan/imgui/imgui_impl_vulkan.h>
-#endif
-#define loco_window
 #include <vulkan/vulkan.h>
-#include <shaderc/shaderc.hpp>
 #include <vk_mem_alloc.h>
-#if defined(fan_platform_windows)
-  #define WIN32_LEAN_AND_MEAN
-  #define NOMINMAX
-  #include <Windows.h>
-  #define GLFW_EXPOSE_NATIVE_WIN32
-  #define GLFW_EXPOSE_NATIVE_WGL
-  #define GLFW_NATIVE_INCLUDE_NONE
-#endif
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
-#include <GLFW/glfw3native.h>
-
 #include <fan/utility.h>
 
 export module fan.graphics.vulkan.core:types;
 import std;
-
 
 import fan.types.matrix;
 import fan.types.fstring;
 import fan.types.color;
 import fan.types.compile_time_string;
 
-#if defined(loco_window)
-  import fan.window;
-#endif
+import fan.window;
 
 import fan.memory;
 
@@ -49,14 +29,10 @@ import fan.graphics.common_context;
 
 export struct queue_family_indices_t {
   std::optional<std::uint32_t> graphics_family;
-#if defined(loco_window)
   std::optional<std::uint32_t> present_family;
-#endif
   bool is_complete() {
     return graphics_family.has_value()
-    #if defined(loco_window)
       && present_family.has_value()
-    #endif
       ;
   }
 };

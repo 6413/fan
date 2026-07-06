@@ -8,20 +8,8 @@ module;
 #if defined(FAN_GUI)
 #include <fan/imgui/imgui_impl_vulkan.h>
 #endif
-#define loco_window
+
 #include <vulkan/vulkan.h>
-#include <shaderc/shaderc.hpp>
-#if defined(fan_platform_windows)
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <Windows.h>
-#define GLFW_EXPOSE_NATIVE_WIN32
-#define GLFW_EXPOSE_NATIVE_WGL
-#define GLFW_NATIVE_INCLUDE_NONE
-#endif
-#define GLFW_INCLUDE_NONE
-#include <GLFW/glfw3.h>
-#include <GLFW/glfw3native.h>
 
 module fan.graphics.vulkan.core;
 
@@ -31,9 +19,7 @@ import std;
 import fan.types.fstring;
 import fan.types.color;
 
-#if defined(loco_window)
 import fan.window;
-#endif
 
 import fan.utility;
 import fan.print;
@@ -51,7 +37,6 @@ import fan.math.intersection;
 
 #if defined(fan_compiler_msvc)
 #pragma comment(lib, "vulkan-1.lib")
-#pragma comment(lib, "shaderc_combined_mt.lib")
 #endif
 
 #define ENABLE_RAYTRACING_DEPENDENCIES
