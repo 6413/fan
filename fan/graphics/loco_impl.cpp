@@ -1737,6 +1737,15 @@ void loco_t::start_idle(bool start_idle) {
 
 // if target fps does not seem to be accurate/updating, use timeBeginPeriod to request the correct hz for libuv
 void loco_t::update_timer_interval(bool idle) {
+  if (!timer_init) {
+    fan::uv::timer_init((fan::uv::loop_t*)fan::event::get_loop(), (fan::uv::timer_t*)timer_handle);
+    timer_init = true;
+  }
+  if (!idle_init) {
+    fan::uv::idle_init((fan::uv::loop_t*)fan::event::get_loop(), (fan::uv::idle_t*)idle_handle);
+    idle_init = true;
+  }
+
   if (idle_init) {
     fan::uv::idle_stop((fan::uv::idle_t*)idle_handle);
   }
