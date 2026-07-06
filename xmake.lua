@@ -206,7 +206,6 @@ if has_config("FAN_GUI") then
     add_rules("c++.unity_build", {batchsize = 16})
     if has_config("FAN_VULKAN") then
       add_packages("vulkan-headers")
-      add_includedirs("$(pkg_includedirs vulkan-headers)", {public = true})
     end
     if not is_gcc and not is_plat("wasm") then
       add_cxxflags("-stdlib=libstdc++", {force = true})
@@ -290,7 +289,6 @@ target("a.exe")
   if has_config("FAN_FMT") then add_packages("fmt") end
   if has_config("FAN_VULKAN") then
     add_packages("vulkan-headers")
-    add_includedirs("$(pkg_includedirs vulkan-headers)", {public = true})
   end
 
   for _, f in ipairs(module_files) do add_files(f) end
