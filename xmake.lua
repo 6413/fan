@@ -111,6 +111,7 @@ if not is_plat("wasm") then
         table.insert(configs, "-DCMAKE_BUILD_TYPE=" .. (package:is_debug() and "Debug" or "Release"))
         table.insert(configs, "-DFT_DISABLE_HARFBUZZ=TRUE")
         table.insert(configs, "-DFT_DISABLE_BROTLI=TRUE")
+        table.insert(configs, "-DFT_DISABLE_BZIP2=TRUE")
         import("package.tools.cmake").install(package, configs)
       end)
     package_end()
