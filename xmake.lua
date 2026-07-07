@@ -52,7 +52,7 @@ local fan_features = {
   FAN_PHYSICS_2D = true,
   FAN_JSON = true,
   FAN_3D = false,
-  
+
   FAN_VULKAN = true,
   FAN_FMT = false,
   FAN_WAYLAND_SCREEN = false,
@@ -100,7 +100,7 @@ if not is_plat("wasm") then
     add_requires("libwebp 1.3.2", static_req)
     add_requires("glfw 3.4", static_req)
   end
-  
+
   if has_config("FAN_GUI") then
     package("freetype")
       set_base("freetype")
@@ -179,7 +179,7 @@ local feature_modules = {
     "fan/graphics/gameplay/gameplay.ixx", "fan/graphics/graphics_event.ixx", "fan/texture_pack/tp0.ixx",
     "fan/physics/physics_types.ixx", "fan/noise.ixx", "fan/pathfind.ixx", "fan/spatial.ixx", "fan/ecs.ixx"
   },
-  
+
   FAN_VULKAN = { "fan/graphics/vulkan/vk_core_types.ixx", "fan/graphics/vulkan/vk_core_vai.ixx", "fan/graphics/vulkan/vk_core.ixx" },
   FAN_2D = { "fan/graphics/2D/shapes_types.ixx", "fan/graphics/2D/grid_placer.ixx", "fan/graphics/2D/culling.ixx", "fan/graphics/2D/shapes.ixx" },
   FAN_JSON = { "fan/types/json.ixx" },
@@ -202,9 +202,12 @@ local feature_modules = {
   FAN_WAYLAND_SCREEN = { "fan/video/screen_codec.ixx" }
 }
 
-for feat, files in pairs(feature_modules) do
+local feature_names = {}
+for feat in pairs(feature_modules) do table.insert(feature_names, feat) end
+table.sort(feature_names)
+for _, feat in ipairs(feature_names) do
   if has_config(feat) then
-    for _, f in ipairs(files) do table.insert(module_files, f) end
+    for _, f in ipairs(feature_modules[feat]) do table.insert(module_files, f) end
   end
 end
 table.insert(module_files, "fan/fan.ixx")
@@ -253,7 +256,9 @@ if has_config("FAN_GUI") then
         if find_tool("pkg-config") then
           local res = os.iorunv("pkg-config", {"--cflags-only-I", "glib-2.0"})
           if res then
-            for _, p in ipairs(res:split("%s+")) do
+            local flags = res:split("%s+")
+            table.sort(flags)
+            for _, p in ipairs(flags) do
               if p:startswith("-I") then target:add("includedirs", p:sub(3)) end
             end
           end
@@ -283,13 +288,17 @@ if not is_plat("wasm") and has_config("FAN_WINDOW") then
         if find_tool("pkg-config") then
           local cflags = os.iorunv("pkg-config", {"--cflags-only-I", "gtk+-3.0"})
           if cflags then
-            for _, p in ipairs(cflags:split("%s+")) do
+            local flags = cflags:split("%s+")
+            table.sort(flags)
+            for _, p in ipairs(flags) do
               if p:startswith("-I") then target:add("includedirs", p:sub(3)) end
             end
           end
           local libs = os.iorunv("pkg-config", {"--libs", "gtk+-3.0"})
           if libs then
-            for _, l in ipairs(libs:split("%s+")) do
+            local flags = libs:split("%s+")
+            table.sort(flags)
+            for _, l in ipairs(flags) do
               if l:startswith("-l") then target:add("links", l:sub(3)) end
             end
           end
@@ -314,7 +323,7 @@ target("a.exe")
   if has_config("FAN_GUI") then add_deps("imgui") end
   if not is_plat("wasm") and has_config("FAN_WINDOW") then add_deps("nfd") end
   if has_config("FAN_FMT") then add_packages("fmt") end
-  
+
   if has_config("FAN_VULKAN") then
     add_packages("vulkan-headers", "shaderc")
   end
@@ -322,7 +331,9 @@ target("a.exe")
   for _, f in ipairs(module_files) do add_files(f) end
 
   if has_config("FAN_REFLECTION") then
-    for _, f in ipairs(os.files("fan/reflection/*.ixx")) do
+    local reflection_files = os.files("fan/reflection/*.ixx")
+    table.sort(reflection_files)
+    for _, f in ipairs(reflection_files) do
       add_files(f, {cxxflags = "-freflection"})
       local impl = path.join(path.directory(f), path.basename(f) .. "_impl.cpp")
       if os.isfile(impl) then add_files(impl, {cxxflags = "-freflection"}) end
@@ -330,27 +341,27 @@ target("a.exe")
   end
 
   for _, f in ipairs(impl_files) do add_files(f) end
-  
+
 
   set_policy("check.auto_ignore_flags", false)
   if not has_config("buildlib") then add_files(get_config("main")) end
 
   add_includedirs(".", "third_party/fan/include", {public = true})
-  if has_config("FAN_VULKAN") then 
+  if has_config("FAN_VULKAN") then
     add_includedirs(
-      "third_party/fan/include/VulkanMemoryAllocator/include", 
+      "third_party/fan/include/VulkanMemoryAllocator/include",
       {public = true}
-    ) 
+    )
   end
   add_linkdirs("third_party/fan/lib")
 
   if is_plat("linux") then
     if has_config("static_runtime") then add_ldflags("-static-libstdc++", "-static-libgcc", {force = true}) end
     add_packages("libuv")
-    if has_config("FAN_WINDOW") then 
+    if has_config("FAN_WINDOW") then
       add_packages("glfw", "zlib", "libpng", "libwebp")
     end
-    
+
     if has_config("FAN_AUDIO") then add_links("opus", "pulse-simple") end
     if has_config("FAN_NETWORK") then add_links("ssl", "crypto", "curl") end
     if has_config("FAN_GUI") then add_packages("freetype", "lunasvg") end
@@ -390,7 +401,9 @@ target("a.exe")
         if find_tool("pkg-config") then
           local libs = os.iorunv("pkg-config", {"--libs", "gtk+-3.0"})
           if libs then
-            for _, l in ipairs(libs:split("%s+")) do
+            local flags = libs:split("%s+")
+            table.sort(flags)
+            for _, l in ipairs(flags) do
               if l:startswith("-l") then target:add("links", l:sub(3)) end
             end
           end
@@ -413,7 +426,7 @@ target_end()
 
 local marker = "fan_modules_info_printed.flag"
 after_load(function (target)
-  if target:name() ~= "fan_modules" or os.isfile(marker) then return end
+  if target:name() ~= "a.exe" or os.isfile(marker) then return end
   io.writefile(marker, "1")
   print("Module files: " .. #module_files)
   print("Implementation files: " .. #impl_files)
