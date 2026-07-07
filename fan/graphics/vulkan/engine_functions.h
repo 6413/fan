@@ -820,8 +820,9 @@ void shaders_compile_preload() {
     loco.shader_preload_threads.emplace_back([&payload, p_loco = &loco]() {
       payload.vs_code = fan::graphics::read_shader(payload.vs_path.c_str());
       payload.fs_code = fan::graphics::read_shader(payload.fs_path.c_str());
-      payload.vs_spv = p_loco->context.vk.load_or_compile(payload.vs_path.c_str(), shaderc_glsl_vertex_shader, payload.vs_code);
-      payload.fs_spv = p_loco->context.vk.load_or_compile(payload.fs_path.c_str(), shaderc_glsl_fragment_shader, payload.fs_code);
+                                                                                    // clang bmi bug triggered by shaderc include
+      payload.vs_spv = p_loco->context.vk.load_or_compile(payload.vs_path.c_str(), 0/*shaderc_glsl_vertex_shader*/, payload.vs_code);
+      payload.fs_spv = p_loco->context.vk.load_or_compile(payload.fs_path.c_str(), 1/*shaderc_glsl_fragment_shader*/, payload.fs_code);
     });
   };
 
