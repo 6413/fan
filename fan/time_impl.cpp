@@ -81,17 +81,17 @@ namespace fan {
     }
     void print_measure(const std::string_view msg) {
       if (is_measuring()) {
-        fan::print(msg);
+        fan::print_dbg(msg);
       }
     }
     void print_measure(const std::string_view msg, f64_t time, const std::string_view unit) {
       if (is_measuring()) {
-        fan::print(msg, time, unit);
+        fan::print_dbg(msg, time, unit);
       }
     }
     void measure(fan::time::timer& timer, const std::string_view msg) {
       if (is_measuring()) {
-        fan::print(msg, "took:", timer.millis(), "ms");
+        fan::print_dbg(msg, "took:", timer.millis(), "ms");
       }
       timer.restart();
     }

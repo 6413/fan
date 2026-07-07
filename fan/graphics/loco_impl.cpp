@@ -633,7 +633,6 @@ void loco_t::generate_commands(loco_t* loco) {
   add_simple_command(loco->gui.console, "set_lighting_ambient", "sets lighting ambient color", 1,
     [](loco_t* l, const std::string& v) { l->renderer_state.lighting.set_target(fan::color::parse(v)); });
 
-
   loco->gui.console.commands.add("echo", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
     auto* loco = OFFSETLESS(self, loco_t, gui.console);
     fan::commands_t::output_t out;
@@ -768,6 +767,51 @@ void loco_t::generate_commands(loco_t* loco) {
     out.highlight = fan::graphics::highlight_e::info;
     loco->gui.text_logger.print(fan::graphics::highlight_color_table[out.highlight], out.text);
   }).description = "prints something to bottom left of screen - usage print [args]";
+  
+  loco->gui.console.commands.add("dump_dbg", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    static fan::console_t::frame_cb_nr_t active_poll_nr = -1;
+    static std::uint64_t log_cursor = 0;
+
+    auto print_logs = [self](const std::vector<fan::log_entry_t>& logs) {
+      for (const auto& log : logs) {
+        switch (log.level) {
+          case fan::log_level_e::error:   self->println_colored("[ERROR] " + log.msg, fan::colors::red); break;
+          case fan::log_level_e::warning: self->println_colored("[WARN] " + log.msg, fan::colors::yellow); break;
+          default:                        self->println_colored("[INFO] " + log.msg, fan::colors::white); break;
+        }
+      }
+    };
+
+    if (args.empty() || args[0] == "1") {
+      auto logs = fan::dump_memory_logs();
+      if (logs.empty()) {
+        self->println_colored("Debug buffer is empty.", fan::colors::yellow);
+        return;
+      }
+      self->println_colored("--- DEBUG BUFFER DUMP ---", fan::colors::green);
+      print_logs(logs);
+    } 
+    else if (args[0] == "2" || args[0] == "on") {
+      if (active_poll_nr != static_cast<fan::console_t::frame_cb_nr_t>(-1)) {
+        self->println_colored("Active debug printing is already ON.", fan::colors::yellow);
+        return;
+      }
+      
+      fan::dump_memory_logs_since(log_cursor);
+      self->println_colored("Active debug printing ENABLED. Type 'dump_dbg 0' to stop.", fan::colors::green);
+      
+      active_poll_nr = self->push_frame_process([self, print_logs]() {
+        print_logs(fan::dump_memory_logs_since(log_cursor));
+      });
+    }
+    else if (args[0] == "0" || args[0] == "off") {
+      if (active_poll_nr != static_cast<fan::console_t::frame_cb_nr_t>(-1)) {
+        self->erase_frame_process(active_poll_nr);
+        self->println_colored("Active debug printing DISABLED.", fan::colors::yellow);
+      }
+    }
+  }).description = "Dumps debug buffer. Usage: dump_dbg [empty=dump once] [2=live feed on] [0=live feed off]";
+
 #endif
 }
 
