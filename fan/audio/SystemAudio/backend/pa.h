@@ -23,10 +23,10 @@ static void *_thread_func(void *p) {
       frames[i] *= Volume;
     }
 
-    int err;
+    int err = 0;
     int ret = pa_simple_write(This->pas, frames, _constants::CallFrameCount * sizeof(f32_t) * _constants::ChannelAmount, &err);
     if(ret != 0){
-      fan::throw_error("pa", __LINE__);
+      fan::throw_error(pa_strerror(err));
     }
   }
 
@@ -40,6 +40,7 @@ sint32_t Open(){
   ss.channels = _constants::ChannelAmount;
   ss.rate = _constants::opus_decode_sample_rate;
 
+  int err = 0;
   pas = pa_simple_new(
     NULL,
     "Fooapp", /* TODO get application name */
@@ -49,10 +50,10 @@ sint32_t Open(){
     &ss,
     NULL,
     NULL,
-    NULL);
+    &err);
 
   if(pas == NULL){
-    fan::throw_error("pa", __LINE__);
+    fan::throw_error(pa_strerror(err), __LINE__);
   }
 
   this->thid = TH_open((void *)_thread_func, system_audio());
