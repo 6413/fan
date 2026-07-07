@@ -10,6 +10,7 @@ import fan.event;
 import fan.types.vector;
 import fan.graphics.common_context;
 import fan.event.types;
+import fan.print.error;
 
 export namespace fan::graphics::event {
   void image_to_texture_pack_watcher(
@@ -20,7 +21,7 @@ export namespace fan::graphics::event {
     std::function<void()> fs_event_cb = {},
     const std::string& exe_path = "image2texturepack.exe" // todo: use real code
   ) {
-    fs_watcher.start([=, &fs_watcher](const std::string& filename, int events) {
+    auto started = fs_watcher.start([=, &fs_watcher](const std::string& filename, int events) {
 
       if (!(events & fan::fs_change)) {
         return;
@@ -47,6 +48,9 @@ export namespace fan::graphics::event {
 
       if (fs_event_cb) fs_event_cb();
     });
+    if (!started) {
+      fan::throw_error(started.error());
+    }
   }
 }
 

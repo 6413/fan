@@ -2474,6 +2474,10 @@ namespace fan::graphics::gui {
   void render_allocations_plot() {
     using namespace fan::graphics;
 
+#if defined(fan_std23)
+    bool hovered = false;
+#endif
+
     struct pause_state_t {
       bool paused;
     };
