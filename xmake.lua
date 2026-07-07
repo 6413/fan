@@ -62,7 +62,11 @@ local fan_features = {
   FAN_REFLECTION = false
 }
 
-for name, enabled in pairs(fan_features) do
+local fan_feature_names = {}
+for name in pairs(fan_features) do table.insert(fan_feature_names, name) end
+table.sort(fan_feature_names)
+for _, name in ipairs(fan_feature_names) do
+  local enabled = fan_features[name]
   option(name) set_default(enabled) option_end()
   if has_config(name) then add_defines(name) end
 end
