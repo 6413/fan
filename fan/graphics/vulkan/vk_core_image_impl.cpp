@@ -336,7 +336,7 @@ void fan::vulkan::context_t::image_erase(fan::graphics::image_nr_t nr, int recyc
   img.image_index = VK_NULL_HANDLE;
   img.staging_buffer = VK_NULL_HANDLE;
 
-  delete node.internal;
+  delete reinterpret_cast<fan::vulkan::context_t::image_t*>(node.internal);
   node.internal = nullptr;
 
   if (recycle) {
