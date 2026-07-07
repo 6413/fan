@@ -903,51 +903,6 @@ void begin_render_pass() {
 
 #if defined(FAN_2D)
 
-void upload_shape_frame_data() {
-  auto& context = loco.context.vk;
-  auto& shaper = fan::graphics::g_shapes->shaper;
-  auto frame = context.current_frame;
-
-  fan::graphics::shaper_t::KeyTraverse_t KeyTraverse;
-  KeyTraverse.Init(shaper);
-
-  while (KeyTraverse.Loop(shaper)) {
-    if (!KeyTraverse.isbm) {
-      continue;
-    }
-
-    fan::graphics::shaper_t::BlockTraverse_t BlockTraverse;
-    auto shape_type = BlockTraverse.Init(shaper, KeyTraverse.bmid());
-    if (shape_type == fan::graphics::shapes::shape_type_t::light_end) {
-      continue;
-    }
-
-    auto& vk_data = shaper.GetShapeTypes(shape_type).renderer.vk;
-    auto render_data_size = shaper.GetRenderDataSize(shape_type);
-    if (render_data_size == 0 || vk_data.shape_data.data[frame] == nullptr) {
-      continue;
-    }
-
-    do {
-      auto bytes = (std::uint64_t)BlockTraverse.GetAmount(shaper) * render_data_size;
-      auto offset = BlockTraverse.GetRenderDataOffset(shaper);
-      auto wanted = offset + bytes;
-      if (wanted > vk_data.shape_data.vram_capacity) {
-        auto new_size = std::max<std::uint64_t>(
-          wanted,
-          vk_data.shape_data.vram_capacity ? vk_data.shape_data.vram_capacity * 2 : wanted
-        );
-        vk_data.shape_data.allocate(context, new_size);
-      }
-      std::memcpy(
-        vk_data.shape_data.data[frame] + offset,
-        BlockTraverse.GetRenderData(shaper),
-        bytes
-      );
-    } while (BlockTraverse.Loop(shaper));
-  }
-}
-
 void update_shape_descriptors_before_cmd() {
   if (fan::graphics::g_shapes == nullptr) {
     return;
@@ -1123,7 +1078,6 @@ void begin_draw() {
 void shapes_draw() {
 
   loco.context.vk.memory_queue.process(loco.context.vk);
-  upload_shape_frame_data();
 
 #if defined(FAN_2D)
   fan::graphics::shaper_t::KeyTraverse_t KeyTraverse;

@@ -170,24 +170,26 @@ export namespace fan::graphics::shaper {
       vk.shape_data.allocate(context, new_size);\
       _RenderDataReset(be.sti);\
     }\
-    auto frame = context.current_frame;\
-    std::memcpy(\
-      vk.shape_data.data[frame] + dst_offset,\
-      GetRenderData(be.sti, be.blid, 0) + bu.MinEdit,\
-      wrote\
-    );
+    auto src = GetRenderData(be.sti, be.blid, 0) + bu.MinEdit;\
+    for (std::uint32_t _f = 0; _f < fan::vulkan::max_frames_in_flight; ++_f) {\
+      if (vk.shape_data.data[_f]) {\
+        std::memcpy(vk.shape_data.data[_f] + dst_offset, src, wrote);\
+      }\
+    }
 
   #define shaper_set_ExpandInside__RenderDataReset \
-  BlockList_t::nrtra_t traverse;\
-  BlockList_t::nr_t node_id;\
-  traverse.Open(&st.BlockList, &node_id);\
   auto& vk = st.renderer.vk;\
   auto& context = *static_cast<fan::vulkan::context_t*>(static_cast<void*>(fan::graphics::ctx()));\
-  auto frame = context.current_frame;\
-  while (traverse.Loop(&st.BlockList, &node_id)) {\
-    std::memcpy(vk.shape_data.data[frame] + GetRenderDataOffset(sti, node_id), GetRenderData(sti, node_id, 0), st.RenderDataSize * st.MaxElementPerBlock());\
-  }\
-  traverse.Close(&st.BlockList);
+  for (std::uint32_t _frame = 0; _frame < fan::vulkan::max_frames_in_flight; ++_frame) {\
+    if (vk.shape_data.data[_frame] == nullptr) continue;\
+    BlockList_t::nrtra_t traverse;\
+    BlockList_t::nr_t node_id;\
+    traverse.Open(&st.BlockList, &node_id);\
+    while (traverse.Loop(&st.BlockList, &node_id)) {\
+      std::memcpy(vk.shape_data.data[_frame] + GetRenderDataOffset(sti, node_id), GetRenderData(sti, node_id, 0), st.RenderDataSize * st.MaxElementPerBlock());\
+    }\
+    traverse.Close(&st.BlockList);\
+  }
 
   #define shaper_set_ExpandInside__BlockListCapacityChange \
     auto& vk = st.renderer.vk;\
