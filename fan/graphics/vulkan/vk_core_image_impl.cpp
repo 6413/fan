@@ -511,7 +511,7 @@ fan::graphics::image_nr_t fan::vulkan::context_t::create_transparent_texture() {
 fan::graphics::image_nr_t fan::vulkan::context_t::request_image_load_async(
   fan::str_view_t path,
   const fan::vulkan::context_t::image_load_properties_t& p,
-  std::function<void(const fan::vulkan::decoded_image_payload_t&)> on_gpu_uploaded
+  std::function<void(const fan::graphics::decoded_image_payload_t&)> on_gpu_uploaded
 ) {
   fan::graphics::image_nr_t nr = image_create();
   
@@ -535,7 +535,7 @@ fan::graphics::image_nr_t fan::vulkan::context_t::request_image_load_async(
 
     std::lock_guard lock(async_image_mutex);
     pending_image_uploads.emplace_back(
-      fan::vulkan::decoded_image_payload_t{
+      fan::graphics::decoded_image_payload_t{
         .filename = path_str,
         .size = owned.size,
         .channels = owned.channels,
@@ -551,7 +551,7 @@ fan::graphics::image_nr_t fan::vulkan::context_t::request_image_load_async(
 }
 
 void fan::vulkan::context_t::process_async_image_uploads() {
-  std::vector<std::pair<fan::vulkan::decoded_image_payload_t, std::function<void(const fan::vulkan::decoded_image_payload_t&)>>> ready_uploads;
+  std::vector<std::pair<fan::graphics::decoded_image_payload_t, std::function<void(const fan::graphics::decoded_image_payload_t&)>>> ready_uploads;
   
   {
       std::lock_guard<std::mutex> lock(async_image_mutex);
