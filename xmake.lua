@@ -97,6 +97,9 @@ if not is_plat("wasm") then
       add_urls("https://github.com/freetype/freetype.git")
       add_versions("2.13.2", "VER-2-13-2")
       add_deps("cmake")
+      on_load(function (package)
+        package:add("includedirs", "include/freetype2")
+      end)
       on_install(function (package)
         local configs = {}
         table.insert(configs, "-DBUILD_SHARED_LIBS=" .. (package:config("shared") and "ON" or "OFF"))
