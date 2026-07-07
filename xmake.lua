@@ -356,6 +356,7 @@ target("a.exe")
   add_linkdirs("third_party/fan/lib")
 
   if is_plat("linux") then
+    add_links("stdc++exp")
     if has_config("static_runtime") then add_ldflags("-static-libstdc++", "-static-libgcc", {force = true}) end
     add_packages("libuv")
     if has_config("FAN_WINDOW") then
