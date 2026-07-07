@@ -92,7 +92,7 @@ std::vector<std::uint32_t> fan::vulkan::context_t::load_or_compile(const std::st
     }
   }
 
-  auto spv = compile_file(source_name, kind, source);
+  auto spv = compile_file(source_name, (shaderc_shader_kind)kind, source);
   std::error_code ec;
   std::filesystem::create_directories(".shader_cache", ec);
   std::string tmp_path = cache_path + ".tmp";
