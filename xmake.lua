@@ -311,7 +311,7 @@ target("a.exe")
   if has_config("FAN_VULKAN") then 
     add_includedirs(
       "third_party/fan/include/VulkanMemoryAllocator/include", 
-      "third_party/VulkanMemoryAllocator/include"
+      "third_party/VulkanMemoryAllocator/include",
       {public = true}
     ) 
   end
