@@ -1,7 +1,7 @@
 #!/bin/bash
 packages=(
 	clang-20
-	cmake # >= 3.31.1 required
+	xmake # >= 3.31.1 required
 	libwebp-dev
 	llvm
 	libfmt-dev
@@ -16,15 +16,12 @@ packages=(
 	libuv1
 	libuv1-dev
 	ninja-build
-	libglew-dev
 	libshaderc-dev
 )
 
 for package in "${packages[@]}"; do
     apt install -y "$package" || echo "Failed to install $package, skipping..."
 done
-
-echo "\n\n"
 
 # Verify cmake version
 cmake_version=$(cmake --version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+')
