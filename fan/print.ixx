@@ -9,7 +9,6 @@ import std;
 import fan.types;
 import fan.utility;
 import fan.types.color;
-import fan.time;
 import fan.print.error;
 import fan.formatter;
 
@@ -258,13 +257,6 @@ export namespace fan {
     std::string msg = format_args(args...);
     std::size_t key = std::hash<std::string>{}(msg);
     detail::print_throttled_impl(throttle_ms, key, msg);
-  }
-
-  template<typename... Args, FAN_UNIQUE_CALL>
-  void print_every(int throttle_ms, const Args&... args) {
-    if (fan::time::every<FAN_UNIQUE_CALL_PASS>(throttle_ms)) {
-      detail::printr_impl(fan::format_args(args...) + '\n');
-    }
   }
 
   void print_once(const auto&... args) {
