@@ -2450,7 +2450,7 @@ template <>
 struct FastNoiseLite::Arguments_must_be_floating_point_values<long double> {};
 
 template <typename T>
-const T FastNoiseLite::Lookup<T>::Gradients2D[] =
+inline const T FastNoiseLite::Lookup<T>::Gradients2D[] =
 {
     0.130526192220052f, 0.99144486137381f, 0.38268343236509f, 0.923879532511287f, 0.608761429008721f, 0.793353340291235f, 0.793353340291235f, 0.608761429008721f,
     0.923879532511287f, 0.38268343236509f, 0.99144486137381f, 0.130526192220051f, 0.99144486137381f, -0.130526192220051f, 0.923879532511287f, -0.38268343236509f,
@@ -2524,7 +2524,7 @@ const T FastNoiseLite::Lookup<T>::RandVecs2D[] =
 };
 
 template <typename T>
-const T FastNoiseLite::Lookup<T>::Gradients3D[] =
+inline const T FastNoiseLite::Lookup<T>::Gradients3D[] =
 {
     0, 1, 1, 0,  0,-1, 1, 0,  0, 1,-1, 0,  0,-1,-1, 0,
     1, 0, 1, 0, -1, 0, 1, 0,  1, 0,-1, 0, -1, 0,-1, 0,
