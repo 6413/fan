@@ -212,8 +212,8 @@ find_compiler() {
     for bin in "$dir"/${binary}-*; do
       [[ -x "$bin" ]] || continue
       local name=$(basename "$bin")
-      if [[ $name =~ ^${binary}-([0-9]+)$ ]]; then
-        local ver="${BASH_REMATCH[1]}"
+      if [[ $name =~ ^(.*)-([0-9]+)$ ]] && [[ "${BASH_REMATCH[1]}" == "$binary" ]]; then
+        local ver="${BASH_REMATCH[2]}"
         if (( ver >= min_version && ver > best_version )); then
           best_version=$ver
           best_bin=$bin
