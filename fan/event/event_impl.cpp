@@ -299,6 +299,18 @@ namespace fan::event {
     }
   };
 
+  fs_watcher_t::fs_watcher_t(const std::string& path) {
+    internal_state = new fs_watcher_internal_t();
+    auto* state = static_cast<fs_watcher_internal_t*>(internal_state);
+    state->watch_path = std::filesystem::absolute(path).generic_string();
+    state->timer.data = state;
+  }
+
+  fs_watcher_t::~fs_watcher_t() {
+    stop();
+    internal_state = nullptr;
+  }
+
   std::expected<void, std::string> fs_watcher_t::start(std::function<void(const std::string&, int)> callback) {
     auto* state = static_cast<fs_watcher_internal_t*>(internal_state);
     if (state->active_handles > 0) {
