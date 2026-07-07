@@ -12,7 +12,9 @@ module;
   #include <fan/imgui/misc/freetype/imgui_freetype.h>
     #include <vulkan/vulkan.h>
     #include <fan/imgui/imgui_impl_vulkan.h>
-  #define GLFW_INCLUDE_NONE
+  #ifndef GLFW_INCLUDE_NONE
+    #define GLFW_INCLUDE_NONE
+  #endif
   #include <GLFW/glfw3.h>
 #endif
 
