@@ -1362,7 +1362,7 @@ void loco_t::shapes_draw() {
 
 #if defined(FAN_2D)
   immediate_render_list.clear();
-  fan::graphics::g_shapes->shaper.BlockEditQueue.Clear();
+  fan::graphics::g_shapes->shaper.ProcessBlockEditQueue();
 #endif
 }
 
