@@ -2,7 +2,9 @@
 packages=(
 	clang-20
 	xmake # >= 3.31.1 required
-	libwebp-dev
+  curl
+  unzip
+  libwebp-dev
 	llvm
 	libfmt-dev
 	libglfw3-dev
@@ -23,8 +25,8 @@ for package in "${packages[@]}"; do
     apt install -y "$package" || echo "Failed to install $package, skipping..."
 done
 
-# Verify cmake version
-cmake_version=$(cmake --version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+')
+# Verify xmake version
+cmake_version=$(xmake --version 2>/dev/null | head -n1 | grep -oE '[0-9]+\.[0-9]+')
 if [[ "$cmake_version" < "3.31.1" ]]; then
     echo "CMake version $cmake_version is too old (need >= 3.31.1)"
 fi
