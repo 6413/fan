@@ -32,7 +32,7 @@ struct library_usage_t {
     // Demonstrates GUI console print
     struct console_print {
       console_print() {
-        fan::printcl("Random number on construct(0-5):" + fan::random::value(0, 5));
+        fan::printcl("Random number on construct(0-5):", fan::random::value(0, 5));
       }
     };
     //-------------------------------------------------------------------
