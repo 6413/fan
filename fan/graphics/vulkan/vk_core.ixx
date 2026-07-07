@@ -533,7 +533,7 @@ export namespace fan {
         }
       }
 
-      std::vector<std::pair<fan::vulkan::decoded_image_payload_t, std::function<void(const fan::vulkan::decoded_image_payload_t&)>>> pending_image_uploads;
+      std::vector<std::pair<fan::graphics::decoded_image_payload_t, std::function<void(const fan::graphics::decoded_image_payload_t&)>>> pending_image_uploads;
       std::mutex async_image_mutex;
 
       std::vector<VkDescriptorImageInfo> image_pool; // for draw
@@ -574,7 +574,7 @@ export namespace fan {
       fan::graphics::image_nr_t request_image_load_async(
         fan::str_view_t path,
         const fan::vulkan::context_t::image_load_properties_t& p,
-        std::function<void(const fan::vulkan::decoded_image_payload_t&)> on_gpu_uploaded
+        std::function<void(const fan::graphics::decoded_image_payload_t&)> on_gpu_uploaded
       );
       void process_async_image_uploads();
 

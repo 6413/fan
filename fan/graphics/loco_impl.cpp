@@ -323,7 +323,7 @@ fan::graphics::image_t loco_t::image_load(const std::string& path, const fan::gr
   return context_functions.image_load_path_props(&context, path, p, callers_path);
 }
 
-fan::graphics::image_t loco_t::request_image_load_async(const std::string& path, const fan::graphics::image_load_properties_t& p, std::function<void(const fan::vulkan::decoded_image_payload_t&)> on_gpu_uploaded) {
+fan::graphics::image_t loco_t::request_image_load_async(const std::string& path, const fan::graphics::image_load_properties_t& p, std::function<void(const fan::graphics::decoded_image_payload_t&)> on_gpu_uploaded) {
   return context_functions.request_image_load_async(&context, path, p, on_gpu_uploaded);
 }
 

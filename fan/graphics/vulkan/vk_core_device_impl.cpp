@@ -1818,7 +1818,7 @@ fan::graphics::context_functions_t fan::graphics::get_vk_context_functions() {
     }
     return VK_CTX->image_load(info, fan::graphics::format_converter::image_global_to_vulkan(p));
   };
-  cf.request_image_load_async = [](void* context, fan::str_view_t path, const fan::graphics::image_load_properties_t& p, std::function<void(const fan::vulkan::decoded_image_payload_t&)> on_gpu_uploaded) {
+  cf.request_image_load_async = [](void* context, fan::str_view_t path, const fan::graphics::image_load_properties_t& p, std::function<void(const fan::graphics::decoded_image_payload_t&)> on_gpu_uploaded) {
     return VK_CTX->request_image_load_async(path, fan::graphics::format_converter::image_global_to_vulkan(p), on_gpu_uploaded);
   };
   cf.process_async_image_uploads = [](void* context) {

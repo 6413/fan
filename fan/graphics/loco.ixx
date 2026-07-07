@@ -615,7 +615,7 @@ public:
   fan::graphics::image_t image_load(const fan::image::info_t& image_info, const fan::graphics::image_load_properties_t& p);
   fan::graphics::image_t image_load(const std::string& path, const std::source_location& callers_path = std::source_location::current());
   fan::graphics::image_t image_load(const std::string& path, const fan::graphics::image_load_properties_t& p, const std::source_location& callers_path = std::source_location::current());
-  fan::graphics::image_t request_image_load_async(const std::string& path, const fan::graphics::image_load_properties_t& p = {}, std::function<void(const fan::vulkan::decoded_image_payload_t&)> on_gpu_uploaded = nullptr);
+  fan::graphics::image_t request_image_load_async(const std::string& path, const fan::graphics::image_load_properties_t& p = {}, std::function<void(const fan::graphics::decoded_image_payload_t&)> on_gpu_uploaded = nullptr);
   std::vector<std::jthread> shader_preload_threads;
   void process_async_image_uploads();
   void flush_startup_async_images();

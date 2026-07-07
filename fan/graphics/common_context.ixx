@@ -253,10 +253,6 @@ namespace bll_builds {
 };
 
 export namespace fan {
-
-  namespace vulkan {
-    struct decoded_image_payload_t;
-  }
   namespace graphics {
     using camera_list_t = bll_builds::camera_list_t;
     using shader_list_t = bll_builds::shader_list_t;
@@ -267,6 +263,15 @@ export namespace fan {
     using shader_nr_t = bll_builds::shader_nr_t;
     using image_nr_t = bll_builds::image_nr_t;
     using viewport_nr_t = bll_builds::viewport_nr_t;
+
+    struct decoded_image_payload_t {
+      std::string filename;
+      fan::vec2ui size;
+      int channels;
+      std::vector<std::uint8_t> raw_pixels;
+      fan::graphics::image_load_properties_t properties;
+      fan::graphics::image_nr_t target_nr;
+    };
 
     struct context_functions_t {
       context_build_shader_functions(context_typedef_func_ptr)

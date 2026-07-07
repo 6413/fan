@@ -41,7 +41,7 @@
   build_function(image_set_settings, void,  fan::graphics::image_nr_t nr, const image_load_properties_t& p) \
   build_function(image_load_info, fan::graphics::image_nr_t, const fan::image::info_t& image_info) \
   build_function(image_load_info_props, fan::graphics::image_nr_t, const fan::image::info_t& image_info, const image_load_properties_t& p) \
-  build_function(request_image_load_async, fan::graphics::image_nr_t, fan::str_view_t path, const image_load_properties_t& p, std::function<void(const fan::vulkan::decoded_image_payload_t&)> on_gpu_uploaded) \
+  build_function(request_image_load_async, fan::graphics::image_nr_t, fan::str_view_t path, const image_load_properties_t& p, std::function<void(const fan::graphics::decoded_image_payload_t&)> on_gpu_uploaded) \
   CONCAT(build_function, 2)(process_async_image_uploads, void) \
   build_function(image_load_path, fan::graphics::image_nr_t, fan::str_view_t path, const std::source_location& callers_path) \
   build_function(image_load_path_props, fan::graphics::image_nr_t, fan::str_view_t path, const image_load_properties_t& p, const std::source_location& callers_path) \
