@@ -8,7 +8,7 @@ module;
 
   #include <fan/graphics/2D/algorithm/FastNoiseLite.h>
   
-  template class FastNoiseLite::Lookup<f32_t>;
+  template class FastNoiseLite::Lookup<float>;
 #endif
 
 export module fan.noise;
