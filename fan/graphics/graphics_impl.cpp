@@ -7,8 +7,6 @@ module;
 #include <fan/event/types.h>
 #include <coroutine>
 
-
-
 #endif
 
 module fan.graphics;
@@ -28,6 +26,7 @@ import fan.print;
 import fan.types.compile_time_string;
 import fan.graphics.algorithm.raycast_grid;
 import fan.io.file;
+import fan.graphics.vulkan.core;
 
 #define POSITION2_WINDOW_CENTER fan::vec2(fan::graphics::ctx().window->get_size() / 2)
 #define POSITION3_WINDOW_CENTER fan::vec3(POSITION2_WINDOW_CENTER, 0)
