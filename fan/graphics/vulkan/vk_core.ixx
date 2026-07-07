@@ -107,7 +107,24 @@ namespace fan::graphics::format_converter {
   }
 }
 
-constexpr static std::uint32_t get_image_multiplier(VkFormat format);
+static constexpr std::uint32_t get_format_channel_count(VkFormat format) {
+  using img_fmt = fan::vulkan::context_t::image_format;
+  switch (format) {
+    case img_fmt::r8_unorm: return 1;
+    case img_fmt::r8g8_unorm: return 2;
+    case img_fmt::r8g8b8_unorm: return 3;
+
+    case img_fmt::b8g8r8a8_unorm:
+    case img_fmt::r8g8b8a8_srgb:
+    case img_fmt::r8b8g8a8_unorm:
+    case img_fmt::d32_sfloat:
+    case img_fmt::b10_g11_r11_ufloat_pack32:
+      return 4;
+
+    default: fan::throw_error("failed to find format for image multiplier");
+    return {};
+  }
+}
 
 export namespace fan {
   namespace vulkan {
@@ -517,24 +534,6 @@ export namespace fan {
       };
 
       VkFormat get_format_from_channels(int channels);
-      static constexpr std::uint32_t get_image_multiplier(VkFormat format) {
-        using img_fmt = fan::vulkan::context_t::image_format;
-        switch (format) {
-          case img_fmt::r8_unorm: return 1;
-          case img_fmt::r8g8_unorm: return 2;
-          case img_fmt::r8g8b8_unorm: return 3;
-
-          case img_fmt::b8g8r8a8_unorm:
-          case img_fmt::r8g8b8a8_srgb:
-          case img_fmt::r8b8g8a8_unorm:
-          case img_fmt::d32_sfloat:
-          case img_fmt::b10_g11_r11_ufloat_pack32:
-            return 4;
-
-          default: fan::throw_error("failed to find format for image multiplier");
-          return {};
-        }
-      }
 
       std::vector<std::pair<fan::graphics::decoded_image_payload_t, std::function<void(const fan::graphics::decoded_image_payload_t&)>>> pending_image_uploads;
       std::mutex async_image_mutex;
