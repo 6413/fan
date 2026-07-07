@@ -349,9 +349,14 @@ else
   fi
 
   target_name="a"
-  exe_path=$(find build -type f \( -name "$target_name" -o -name "$target_name.exe" \) -perm -111 | head -n1)
+  if [[ -n "$MODE" ]]; then
+    mode_dir="${MODE}"
+  else
+    mode_dir="mode_none"
+  fi
+  exe_path=$(find build -path "*/${mode_dir}/*" \( -name "$target_name" -o -name "$target_name.exe" \) -perm -111 | head -n1)
   if [ -z "$exe_path" ]; then
-    exe_path=$(find build -type f \( -name "$target_name" -o -name "$target_name.exe" \) | head -n1)
+    exe_path=$(find build -path "*/${mode_dir}/*" \( -name "$target_name" -o -name "$target_name.exe" \) | head -n1)
   fi
   if [ -z "$exe_path" ]; then
     echo -e "${RED}Error:${NC} Built executable '${target_name}.exe' not found"
