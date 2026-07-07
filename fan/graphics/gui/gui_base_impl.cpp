@@ -131,7 +131,7 @@ namespace fan::graphics::gui {
         fan::graphics::ctx()->image_get_handle(fan::graphics::ctx(), img);
 
       char id_buf[64];
-      std::snprintf(id_buf, sizeof(id_buf), "imgbtn_%p", tex);
+      std::snprintf(id_buf, sizeof(id_buf), "imgbtn_%p", reinterpret_cast<void*>(tex));
 
       ImVec4 bg(bg_col.r, bg_col.g, bg_col.b, bg_col.a);
       ImVec4 tint(tint_col.r, tint_col.g, tint_col.b, tint_col.a);

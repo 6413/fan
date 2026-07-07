@@ -567,12 +567,14 @@ static void generic_set_line(fan::graphics::shapes::shape_t* shape, const fan::v
 
   shape->update_dynamic();
 }
+#if defined(FAN_3D)
 static void generic_set_line(fan::graphics::shapes::shape_t* shape, const fan::vec3& src, const fan::vec2& dst) {
   generic_set_src<fan::graphics::shapes::line_t>(shape, src);
   generic_set_dst<fan::graphics::shapes::line_t>(shape, dst);
 
   shape->update_dynamic();
 }
+#endif
 
 using get_colors_fn_t = std::array<fan::color,4> (*)(const fan::graphics::shapes::shape_t*);
 using set_colors_fn_t = void (*)(fan::graphics::shapes::shape_t*, const std::array<fan::color,4>&);

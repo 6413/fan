@@ -1486,7 +1486,7 @@ void main() {
   }
   //
   static void menus_engine_demo_render_element_count(menu_t* menu) {
-    if (gui::drag("Shape count", &engine_demo.shape_count, 1, 0, std::numeric_limits<int>::max())) {
+    if (gui::drag("Shape count", &engine_demo.shape_count, 1, 0, std::numeric_limits<f32_t>::max())) {
       auto& demo = demos[engine_demo.current_demo_index];
       if (demo.cleanup_function) {
         demo.cleanup_function(&engine_demo);
