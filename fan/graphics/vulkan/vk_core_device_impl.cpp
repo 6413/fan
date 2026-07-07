@@ -72,10 +72,10 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
   }
 }
 void fan::vulkan::context_t::open_no_window() {
-  if (fan::time::is_measuring()) {
-    fan::print("open_no_window start");
-  }
   fan::time::timer t;
+  if (fan::time::is_measuring()) {
+    fan::time::measure(t, "open_no_window start");
+  }
   fan::time::measure(t, "create_instance");
   setup_debug_messenger();
   fan::time::measure(t, "setup_debug_messenger");
@@ -626,7 +626,7 @@ void fan::vulkan::context_t::create_logical_device() {
   // -----------------------------
   VkResult r = vkCreateDevice(physical_device, &createInfo, nullptr, &device);
   if (r != VK_SUCCESS) {
-    fan::print_impl("vkCreateDevice failed with code:", (int)r);
+    fan::print_error("vkCreateDevice failed with code:", (int)r);
     fan::throw_error("failed to create logical device");
   }
 
@@ -1680,9 +1680,9 @@ std::vector<std::string> fan::vulkan::context_t::get_required_extensions() {
 #endif
 
 #if 0
-  fan::print("Requested Vulkan Instance Extensions:");
+  fan::print_dbg_tag("VULKAN", "Requested Vulkan Instance Extensions:");
   for (const auto& ext : extension_str) {
-    fan::print("- ", ext);
+    fan::print_dbg_tag("VULKAN", "- ", ext);
   }
 #endif
 
@@ -1735,7 +1735,18 @@ VKAPI_ATTR VkBool32 VKAPI_CALL fan::vulkan::context_t::debug_callback(
     return VK_FALSE;
   }
 
-  fan::print_impl("validation layer:", pCallbackData->pMessage);
+  if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+    fan::print_log(fan::log_level_e::error, "VULKAN - Validation layer:", pCallbackData->pMessage);
+  }
+  else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+    fan::print_log(fan::log_level_e::warning, "VULKAN - Validation layer:", pCallbackData->pMessage);
+  }
+  else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
+    fan::print_log(fan::log_level_e::info, "VULKAN - Validation layer:", pCallbackData->pMessage);
+  }
+  else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
+    fan::print_log(fan::log_level_e::info, "VULKAN - Validation layer:", pCallbackData->pMessage);
+  }
   return VK_FALSE;
 }
 #if defined(loco_window)

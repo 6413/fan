@@ -784,7 +784,7 @@ void loco_t::generate_commands(loco_t* loco) {
           default:
             self->print_colored("[INFO] ", fan::colors::orange / text_dim);
             break;
-        }
+          }
         if (log.tag.size()) {
           self->print_colored(std::format("[{}] ", log.tag), fan::colors::cyan / text_dim);
         }
