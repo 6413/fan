@@ -738,8 +738,8 @@ export namespace fan::graphics::gui {
   bool& force_want_io_for_frame();
 
   void set_want_io(
-    bool flag = ImGui::GetIO().WantCaptureMouse |
-      ImGui::GetIO().WantCaptureKeyboard |
+    bool flag = ImGui::GetIO().WantCaptureMouse ||
+      ImGui::GetIO().WantCaptureKeyboard ||
       ImGui::GetIO().WantTextInput,
     bool op_or = false
   );

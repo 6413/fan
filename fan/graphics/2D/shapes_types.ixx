@@ -270,7 +270,7 @@ export namespace fan::graphics {
   using depth_t = std::uint16_t;
   using visible_t = std::uint8_t;
   using shader_raw_t = decltype(fan::graphics::shader_t::NRI);
-
+#undef st
 #define st(name, viewport_inside) \
   struct CONCAT(_, name); \
   template <bool cond> \

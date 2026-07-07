@@ -190,7 +190,6 @@ struct vfi_t {
   }
 
   fan::graphics::shapes::shape_t push_back(const properties_t& p) {
-    kps_t::vfi_t keypack;
     ri_t instance;
     instance.shape_data           = new common_shape_data_t;
     instance.shape_type           = p.shape_type;
