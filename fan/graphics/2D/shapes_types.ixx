@@ -171,7 +171,7 @@ export namespace fan::graphics::shaper {
       _RenderDataReset(be.sti);\
     }\
     auto frame = context.current_frame;\
-    memcpy(\
+    std::memcpy(\
       vk.shape_data.data[frame] + dst_offset,\
       GetRenderData(be.sti, be.blid, 0) + bu.MinEdit,\
       wrote\
@@ -185,7 +185,7 @@ export namespace fan::graphics::shaper {
   auto& context = *static_cast<fan::vulkan::context_t*>(static_cast<void*>(fan::graphics::ctx()));\
   auto frame = context.current_frame;\
   while (traverse.Loop(&st.BlockList, &node_id)) {\
-    memcpy(vk.shape_data.data[frame] + GetRenderDataOffset(sti, node_id), GetRenderData(sti, node_id, 0), st.RenderDataSize * st.MaxElementPerBlock());\
+    std::memcpy(vk.shape_data.data[frame] + GetRenderDataOffset(sti, node_id), GetRenderData(sti, node_id, 0), st.RenderDataSize * st.MaxElementPerBlock());\
   }\
   traverse.Close(&st.BlockList);
 
