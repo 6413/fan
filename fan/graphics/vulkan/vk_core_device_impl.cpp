@@ -1706,11 +1706,13 @@ bool fan::vulkan::context_t::check_validation_layer_support() {
     }
 
     if (!layerFound) {
-      fan::print_log(fan::log_level_e::warning, "VULKAN - validation layer:", "missing Vulkan validation layer:", layerName);
-      fan::print_log(fan::log_level_e::warning, "VULKAN - validation layer:", "available Vulkan instance layers:");
+      fan::print_log(fan::log_level_e::warning, "VULKAN - validation layer:", "Missing Vulkan validation layer:", layerName);
+      std::string msg = "Available Vulkan instance layers:\n";
       for (const auto& layerProperties : availableLayers) {
-        fan::print_log(fan::log_level_e::warning, "VULKAN - validation layer:", "  ", layerProperties.layerName);
+        msg += "  ", layerProperties.layerName + '\n';
       }
+      msg.pop_back();
+      fan::print_log(fan::log_level_e::warning, "VULKAN - validation layer:", msg);
       return false;
     }
   }
