@@ -419,7 +419,6 @@ namespace fan::graphics::gui::tilemap_editor::ui {
       }
 
       f32_t x_size = fan::graphics::gui::get_content_region_avail().x;
-      f32_t y_size = fan::graphics::gui::get_content_region_avail().y;
       fan::graphics::gui::drag("original image width", &editor.original_image_width, 1, 0, 10000);
 
       auto& style = fan::graphics::gui::get_style();

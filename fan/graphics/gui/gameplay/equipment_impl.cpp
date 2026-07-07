@@ -78,7 +78,6 @@ namespace fan::graphics::gui::gameplay {
       gui::push_id(static_cast<int>(i));
 
       fan::vec2 local_min = gui::get_cursor_pos();
-      fan::vec2 local_max = local_min + slot_size;
 
       fan::vec2 abs_min = gui::get_cursor_screen_pos();
       fan::vec2 abs_max = abs_min + slot_size;

@@ -132,6 +132,7 @@ namespace fan::graphics {
       destroy_shape_pool<fan::graphics::shapes::name##_t::properties_t>( \
         s, fan::graphics::shape_type_t::name);
 
+    #undef  GEN_SHAPES_EXPAND
     #define GEN_SHAPES_EXPAND(name) DESTROY_POOL(name)
     #define SKIP(x)
 
@@ -1683,7 +1684,6 @@ namespace fan::graphics{
     else if (shape_type == shape_type_t::universal_image_renderer) {
       shapes::shape_ids_t::nr_t id;
       id.gint() = NRI;
-      auto& sd = g_shapes->shape_ids[id];
       auto& imgs = get_properties<shapes::universal_image_renderer_t::properties_t>().images;
 
       std::array<fan::graphics::image_t, 30> ret;
@@ -1792,7 +1792,6 @@ namespace fan::graphics{
 
     shapes::shape_ids_t::nr_t id;
     id.gint() = NRI;
-    auto& sd = g_shapes->shape_ids[id];
     auto& props = get_properties<shapes::universal_image_renderer_t::properties_t>();
 
     std::uint8_t image_count_new = fan::graphics::get_channel_amount(format);
