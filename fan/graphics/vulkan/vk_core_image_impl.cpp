@@ -14,6 +14,8 @@ module;
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
 #include <vulkan/vk_enum_string_helper.h>
+#include <fan/stb/stb_image.h>
+
 
 module fan.graphics.vulkan.core;
 
@@ -32,8 +34,6 @@ import fan.print.error;
 import fan.graphics.image_load;
 import fan.graphics.common_context;
 import fan.graphics.webp;
-
-#include <fan/stb/stb_image.h>
 
 import fan.math;
 import fan.math.intersection;
