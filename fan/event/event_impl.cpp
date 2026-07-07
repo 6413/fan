@@ -250,9 +250,9 @@ struct fs_watcher_internal_t {
   };
   int active_handles = 0;
   void on_handle_close() {
-    fan::print_dbg("[FS_WATCHER DEBUG] Handle closed. Remaining active handles:", active_handles - 1);
+    fan::print_dbg_tag("FS_WATCHER DEBUG", "Handle closed. Remaining active handles:", active_handles - 1);
     if (--active_handles == 0) {
-      fan::print_dbg("[FS_WATCHER DEBUG] All handles closed. Deleting internal state.");
+      fan::print_dbg_tag("FS_WATCHER DEBUG", "All handles closed. Deleting internal state.");
       delete this;
     }
   }
@@ -265,13 +265,13 @@ struct fs_watcher_internal_t {
   std::unordered_map<std::string, file_event> pending_events;
 
   int attach_watch(const std::string& target_path) {
-    fan::print_dbg("[FS_WATCHER DEBUG] Attempting to attach watch to:", target_path);
+    fan::print_dbg_tag("FS_WATCHER DEBUG", "Attempting to attach watch to:", target_path);
     auto* ev = new fan::uv::fs_event_t;
     ev->data = this;
     
     int result = fan::uv::fs_event_init((fan::uv::loop_t*)get_loop(), ev);
     if (result < 0) { 
-      fan::print_dbg("[FS_WATCHER DEBUG] FAILED to init fs_event for:", target_path, "Error:", fan::event::strerror(result));
+      fan::print_dbg_tag("FS_WATCHER DEBUG", "FAILED to init fs_event for:", target_path, "Error:", fan::event::strerror(result));
       delete ev; 
       return result; 
     }
@@ -284,24 +284,24 @@ struct fs_watcher_internal_t {
       std::string file_str = filename ? filename : "UNKNOWN_FILE";
       std::string full_path = state->event_paths[handle] + "/" + file_str;
       
-      fan::print_dbg("[FS_WATCHER DEBUG] RAW INOTIFY EVENT FIRED! Status:", status, "| Events bitmask:", events, "| File:", full_path);
+      fan::print_dbg_tag("FS_WATCHER DEBUG", "RAW INOTIFY EVENT FIRED! Status:", status, "| Events bitmask:", events, "| File:", full_path);
 
       if (status < 0) return;
       if (filename) {
         // Dynamically attach a watcher if a new folder is created at runtime
         std::error_code ec;
         if (std::filesystem::is_directory(full_path, ec)) {
-          fan::print_dbg("[FS_WATCHER DEBUG] Detected new runtime directory, attaching new watcher:", full_path);
+          fan::print_dbg_tag("FS_WATCHER DEBUG", "Detected new runtime directory, attaching new watcher:", full_path);
           state->attach_watch(full_path);
         }
 
         state->pending_events[full_path] = { full_path, events, std::chrono::steady_clock::now() };
-        fan::print_dbg("[FS_WATCHER DEBUG] Event queued for processing on next timer tick.");
+        fan::print_dbg_tag("FS_WATCHER DEBUG", "Event queued for processing on next timer tick.");
       }
     }, target_path.c_str(), 0);
 
     if (result < 0) {
-      fan::print_dbg("[FS_WATCHER DEBUG] FAILED to start fs_event for:", target_path, "Error:", fan::event::strerror(result));
+      fan::print_dbg_tag("FS_WATCHER DEBUG", "FAILED to start fs_event for:", target_path, "Error:", fan::event::strerror(result));
       event_paths.erase(ev);
       fan::uv::close((fan::uv::handle_t*)ev, [](fan::uv::handle_t* h) { delete (fan::uv::fs_event_t*)h; });
       return result;
@@ -309,7 +309,7 @@ struct fs_watcher_internal_t {
     
     fs_events.push_back(ev);
     active_handles++;
-    fan::print_dbg("[FS_WATCHER DEBUG] Successfully attached watch. Total handles:", active_handles);
+    fan::print_dbg_tag("FS_WATCHER DEBUG", "Successfully attached watch. Total handles:", active_handles);
     return 0;
   }
 };
@@ -318,37 +318,37 @@ fs_watcher_t::fs_watcher_t(const std::string& path) {
   internal_state = new fs_watcher_internal_t();
   auto* state = static_cast<fs_watcher_internal_t*>(internal_state);
   state->watch_path = std::filesystem::absolute(path).generic_string();
-  fan::print_dbg("[FS_WATCHER DEBUG] Watcher object constructed. Absolute target path:", state->watch_path);
+  fan::print_dbg_tag("FS_WATCHER DEBUG", "Watcher object constructed. Absolute target path:", state->watch_path);
   state->timer.data = state;
 }
 
 fs_watcher_t::~fs_watcher_t() {
-  fan::print_dbg("[FS_WATCHER DEBUG] Watcher destructor called.");
+  fan::print_dbg_tag("FS_WATCHER DEBUG", "Watcher destructor called.");
   stop();
   internal_state = nullptr;
 }
 
 std::expected<void, std::string> fs_watcher_t::start(std::function<void(const std::string&, int)> callback) {
-  fan::print_dbg("[FS_WATCHER DEBUG] start() called.");
+  fan::print_dbg_tag("FS_WATCHER DEBUG", "start() called.");
   auto* state = static_cast<fs_watcher_internal_t*>(internal_state);
   
   if (state->active_handles > 0) {
-    fan::print_dbg("[FS_WATCHER DEBUG] start() aborted: Watcher is already active.");
+    fan::print_dbg_tag("FS_WATCHER DEBUG", "start() aborted: Watcher is already active.");
     return std::unexpected("Watcher is already active");
   }
   state->event_callback = callback;
 
-  fan::print_dbg("[FS_WATCHER DEBUG] Attaching root watcher...");
+  fan::print_dbg_tag("FS_WATCHER DEBUG", "Attaching root watcher...");
   int res = state->attach_watch(state->watch_path);
   if (res < 0) return std::unexpected(fan::event::strerror(res));
 
 #if defined(__linux__) || defined(__unix__)
-  fan::print_dbg("[FS_WATCHER DEBUG] UNIX Environment detected. Executing manual recursive traversal...");
+  fan::print_dbg_tag("FS_WATCHER DEBUG", "UNIX Environment detected. Executing manual recursive traversal...");
   std::error_code ec;
   auto it = std::filesystem::recursive_directory_iterator(state->watch_path, std::filesystem::directory_options::skip_permission_denied, ec);
   
   if (ec) {
-    fan::print_dbg("[FS_WATCHER DEBUG] Filesystem error while starting iterator:", ec.message());
+    fan::print_dbg_tag("FS_WATCHER DEBUG", "Filesystem error while starting iterator:", ec.message());
   }
 
   int dir_count = 0;
@@ -358,26 +358,26 @@ std::expected<void, std::string> fs_watcher_t::start(std::function<void(const st
       
       // Skip hidden folders (.git, .xmake) and build output folders
       if ((dir_name.length() > 0 && dir_name[0] == '.') || dir_name == "build") {
-        fan::print_dbg("[FS_WATCHER DEBUG] Skipping ignored directory:", it->path().string());
+        fan::print_dbg_tag("FS_WATCHER DEBUG", "Skipping ignored directory:", it->path().string());
         it.disable_recursion_pending();
         continue;
       }
 
       int r = state->attach_watch(it->path().string());
       if (r < 0) {
-         fan::print_dbg("[FS_WATCHER DEBUG] CRITICAL WARNING: Failed to attach watcher to", it->path().string(), "- Error:", fan::event::strerror(r));
+         fan::print_dbg_tag("FS_WATCHER DEBUG", "CRITICAL WARNING: Failed to attach watcher to", it->path().string(), "- Error:", fan::event::strerror(r));
       } else {
          dir_count++;
       }
     }
   }
-  fan::print_dbg("[FS_WATCHER DEBUG] Recursive traversal complete. Successfully attached to", dir_count, "subdirectories.");
+  fan::print_dbg_tag("FS_WATCHER DEBUG", "Recursive traversal complete. Successfully attached to", dir_count, "subdirectories.");
 #endif
 
-  fan::print_dbg("[FS_WATCHER DEBUG] Initializing timer...");
+  fan::print_dbg_tag("FS_WATCHER DEBUG", "Initializing timer...");
   int result = fan::uv::timer_init((fan::uv::loop_t*)get_loop(), &state->timer);
   if (result < 0) {
-    fan::print_dbg("[FS_WATCHER DEBUG] Timer init failed:", fan::event::strerror(result));
+    fan::print_dbg_tag("FS_WATCHER DEBUG", "Timer init failed:", fan::event::strerror(result));
     stop();
     return std::unexpected(fan::event::strerror(result));
   }
@@ -388,12 +388,12 @@ std::expected<void, std::string> fs_watcher_t::start(std::function<void(const st
     // Heartbeat logic
     static int ticks = 0;
     if (ticks == 0 || ticks % 40 == 0) { // Prints immediately on first tick, then roughly every 2 seconds
-      fan::print_dbg("[FS_WATCHER DEBUG] Heartbeat tick. Event loop is healthy. Active handles:", state->active_handles);
+      fan::print_dbg_tag("FS_WATCHER DEBUG", "Heartbeat tick. Event loop is healthy. Active handles:", state->active_handles);
     }
     ticks++;
 
     if (!state->pending_events.empty()) {
-      fan::print_dbg("[FS_WATCHER DEBUG] Dispatching", state->pending_events.size(), "queued events to user callback.");
+      fan::print_dbg_tag("FS_WATCHER DEBUG", "Dispatching", state->pending_events.size(), "queued events to user callback.");
     }
 
     for (auto& event_pair : state->pending_events) {
@@ -405,13 +405,13 @@ std::expected<void, std::string> fs_watcher_t::start(std::function<void(const st
   }, 0, 50);
 
   if (result < 0) {
-    fan::print_dbg("[FS_WATCHER DEBUG] Timer start failed:", fan::event::strerror(result));
+    fan::print_dbg_tag("FS_WATCHER DEBUG", "Timer start failed:", fan::event::strerror(result));
     stop();
     return std::unexpected(fan::event::strerror(result));
   }
   
   state->active_handles++;
-  fan::print_dbg("[FS_WATCHER DEBUG] start() complete successfully.");
+  fan::print_dbg_tag("FS_WATCHER DEBUG", "start() complete successfully.");
   return {};
 }
 
@@ -421,7 +421,7 @@ void fs_watcher_t::stop() {
     return;
   }
   
-  fan::print_dbg("[FS_WATCHER DEBUG] stop() initiated. Closing", state->fs_events.size(), "filesystem handles and timer.");
+  fan::print_dbg_tag("FS_WATCHER DEBUG", "stop() initiated. Closing", state->fs_events.size(), "filesystem handles and timer.");
 
   for (auto* ev : state->fs_events) {
     if (ev->loop != nullptr && ev->type != UV_UNKNOWN_HANDLE && !fan::uv::is_closing(reinterpret_cast<fan::uv::handle_t*>(ev))) {

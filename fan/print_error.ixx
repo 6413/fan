@@ -12,6 +12,7 @@ export namespace fan {
   };
 
   struct log_entry_t {
+    std::string tag;
     std::string msg;
     log_level_e level;
   };
@@ -29,7 +30,13 @@ export namespace fan {
   struct exception_t { const char* reason; };
   void throw_error_impl(const char* reason = "");
 
+  void push_memory_log(
+    const std::string& tag,
+    const std::string& msg,
+    log_level_e level = log_level_e::info
+  );
   void push_memory_log(const std::string& msg, log_level_e level = log_level_e::info);
+
   std::vector<log_entry_t> dump_memory_logs();
   std::vector<log_entry_t> dump_memory_logs_since(std::uint64_t& cursor);
   void clear_memory_logs();
