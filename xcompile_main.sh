@@ -258,6 +258,7 @@ else
   else
     CXX=$(find_compiler "clang++" 20)
     CC=$(find_compiler "clang" 20)
+    SCAN=$(find_compiler "clang-scan-deps" 20 || true)
     TOOLCHAIN="clang"
     BIN_CXX="clang++"
   fi
@@ -265,8 +266,10 @@ else
   mkdir -p .xmake/bin
   ln -sf "$CC" .xmake/bin/$COMPILER
   ln -sf "$CXX" .xmake/bin/$BIN_CXX
+  if [[ -n "$SCAN" ]]; then
+    ln -sf "$SCAN" .xmake/bin/clang-scan-deps
+  fi
   export PATH="$PWD/.xmake/bin:$PATH"
-
   CONFIG_ARGS=("--compiler=$COMPILER" "--toolchain=$TOOLCHAIN")
   if [[ -n "$MAIN_FILE" ]]; then
     CONFIG_ARGS+=("--main=$MAIN_FILE")
