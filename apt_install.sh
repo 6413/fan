@@ -3,6 +3,7 @@ packages=(
 	clang-20
 	xmake # >= 3.31.1 required
   curl
+  libcurl4-openssl-dev
   unzip
   libwebp-dev
 	llvm
