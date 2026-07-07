@@ -38,17 +38,6 @@ export struct queue_family_indices_t {
   }
 };
 
-namespace fan::vulkan {
-  export struct decoded_image_payload_t {
-    std::string filename;
-    fan::vec2ui size;
-    int channels;
-    std::vector<std::uint8_t> raw_pixels; // Decompressed RGBA data
-    fan::graphics::image_load_properties_t properties;
-    fan::graphics::image_nr_t target_nr; // Pre-allocated image node
-  };
-}
-
 export struct swap_chain_support_details_t {
   VkSurfaceCapabilitiesKHR capabilities;
   std::vector<VkSurfaceFormatKHR> formats;
