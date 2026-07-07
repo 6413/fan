@@ -78,15 +78,9 @@ install_vulkan_utility_libraries() {
     return 0
   fi
   mkdir -p "$INSTALL_DIR/repos"
-  if [[ -d "$repo/.git" ]] && ! git -C "$repo" status >/dev/null 2>&1; then
-    rm -rf "$repo"
-  fi
-  if [[ -d "$repo/.git" ]]; then
-    git -C "$repo" pull --quiet || exit 1
-  else
-    echo "Cloning Vulkan-Utility-Libraries..."
-    git -c http.version=HTTP/1.1 clone --depth 1 "https://github.com/KhronosGroup/Vulkan-Utility-Libraries.git" "$repo" --quiet || exit 1
-  fi
+  rm -rf "$repo"
+  echo "Cloning Vulkan-Utility-Libraries..."
+  git -c http.version=HTTP/1.1 clone --depth 1 --branch vulkan-sdk-1.4.335.0 "https://github.com/KhronosGroup/Vulkan-Utility-Libraries.git" "$repo" --quiet || exit 1
   mkdir -p "$INCLUDE_DIR/vulkan"
   cp "$repo/include/vulkan/"*.h "$INCLUDE_DIR/vulkan/"
 }
