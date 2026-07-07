@@ -1111,7 +1111,7 @@ loco_t::loco_t(const loco_t::properties_t& props) :
     fan::throw_error("failed to find path for 'shaders'");
   }
   shader_watcher = new fan::event::fs_watcher_t(shaders_path);
-  shader_watcher->start([this, shaders_path](const std::string& filename, int events) {
+  auto started = shader_watcher->start([this, shaders_path](const std::string& filename, int events) {
     if (fan::io::file::is_temp_file(filename)) { return; }
 
     std::string normalized = filename;
@@ -1180,6 +1180,9 @@ loco_t::loco_t(const loco_t::properties_t& props) :
 #endif
     });
   });
+  if (!started) {
+    fan::print_error("Shader reload watch failed to start:", started.error());
+  }
   fan::time::print_measure("loco total took:", t_loco.millis(), "ms");
 }
 
