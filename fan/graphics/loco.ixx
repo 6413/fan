@@ -135,6 +135,19 @@ export global_loco_t& gloco() {
 }
 
 export namespace fan::graphics {
+
+  struct fps_camera_params_t {
+    f32_t speed = 5.f;
+    f32_t noclip_speed = 40.f;
+    f32_t gravity = 60.f;
+    f32_t jump_force = 20.f;
+    f32_t eye_height = 2.4f;
+    f32_t player_radius = 0.35f;
+    f32_t noclip_acceleration = 80.f;
+    f32_t noclip_friction = 30.f;
+    f32_t ground_acceleration = 60.f;
+  };
+  
   struct engine_init_t {
   #define BLL_set_SafeNext 1
   #define BLL_set_AreWeInsideStruct 1
@@ -688,17 +701,6 @@ public:
   void camera_move(f32_t movement_speed = 1000.f, f32_t friction = 12);
   void camera_move(fan::graphics::context_camera_t& camera, f32_t movement_speed = 1000.f, f32_t friction = 12);
 
-  struct fps_camera_params_t {
-    f32_t speed = 5.f;
-    f32_t noclip_speed = 40.f;
-    f32_t gravity = 60.f;
-    f32_t jump_force = 20.f;
-    f32_t eye_height = 2.4f;
-    f32_t player_radius = 0.35f;
-    f32_t noclip_acceleration = 80.f;
-    f32_t noclip_friction = 30.f;
-    f32_t ground_acceleration = 60.f;
-  };
   static fan::vec3 approach(fan::vec3 v, fan::vec3 target, f32_t step) {
     fan::vec3 d = target - v;
     f32_t l2 = d.length_squared();
@@ -707,7 +709,7 @@ public:
   }
 
   template <typename ground_check_t>
-  void camera_move(camera_t cam, bool noclip, ground_check_t&& ground_check, const fps_camera_params_t& params = {}) {
+  void camera_move(camera_t cam, bool noclip, ground_check_t&& ground_check, const fan::graphics::fps_camera_params_t& params = {}) {
     auto& c = camera_get(cam);
     f32_t dt = get_delta_time();
 
@@ -760,7 +762,7 @@ public:
   }
 
   template <typename ground_check_t>
-  void camera_move(bool noclip, ground_check_t&& ground_check, const fps_camera_params_t& params = {}) {
+  void camera_move(bool noclip, ground_check_t&& ground_check, const fan::graphics::fps_camera_params_t& params = {}) {
     camera_move(perspective_render_view, noclip, std::forward<ground_check_t>(ground_check), params);
   }
 
