@@ -242,163 +242,220 @@ namespace fan::event {
   bool counter_awaitable_t::await_ready() const noexcept { return st->remaining == 0; }
   void counter_awaitable_t::await_suspend(std::coroutine_handle<> h) noexcept { st->continuation = h; }
   void counter_awaitable_t::await_resume() const noexcept {}
-
-  struct fs_watcher_internal_t {
-    struct file_event {
-      std::string filename;
-      int events;
-      std::chrono::steady_clock::time_point timestamp;
-    };
-    int active_handles = 0;
-    void on_handle_close() {
-      if (--active_handles == 0) {
-        delete this;
-      }
-    }
-
-    std::vector<fan::uv::fs_event_t*> fs_events;
-    std::unordered_map<fan::uv::fs_event_t*, std::string> event_paths;
-    fan::uv::timer_t timer;
-    std::string watch_path;
-    std::function<void(const std::string&, int)> event_callback;
-    std::unordered_map<std::string, file_event> pending_events;
-
-    int attach_watch(const std::string& target_path) {
-      auto* ev = new fan::uv::fs_event_t;
-      ev->data = this;
-      int result = fan::uv::fs_event_init((fan::uv::loop_t*)get_loop(), ev);
-      if (result < 0) { delete ev; return result; }
-
-      event_paths[ev] = target_path;
-
-      result = fan::uv::fs_event_start(ev, [](fan::uv::fs_event_t* handle, const char* filename, int events, int status) {
-        if (status < 0) return;
-        auto* state = static_cast<fs_watcher_internal_t*>(handle->data);
-        if (filename) {
-          std::string file_str(filename);
-          std::string full_path = state->event_paths[handle] + "/" + file_str;
-
-          // Dynamically attach a watcher if a new folder is created at runtime
-          std::error_code ec;
-          if (std::filesystem::is_directory(full_path, ec)) {
-            state->attach_watch(full_path);
-          }
-
-          state->pending_events[file_str] = {file_str, events, std::chrono::steady_clock::now()};
-        }
-      }, target_path.c_str(), 0);
-
-      if (result < 0) {
-        event_paths.erase(ev);
-        fan::uv::close((fan::uv::handle_t*)ev, [](fan::uv::handle_t* h) { delete (fan::uv::fs_event_t*)h; });
-        return result;
-      }
-      fs_events.push_back(ev);
-      active_handles++;
-      return 0;
-    }
+struct fs_watcher_internal_t {
+  struct file_event {
+    std::string filename;
+    int events;
+    std::chrono::steady_clock::time_point timestamp;
   };
-
-  fs_watcher_t::fs_watcher_t(const std::string& path) {
-    internal_state = new fs_watcher_internal_t();
-    auto* state = static_cast<fs_watcher_internal_t*>(internal_state);
-    state->watch_path = std::filesystem::absolute(path).generic_string();
-    state->timer.data = state;
+  int active_handles = 0;
+  void on_handle_close() {
+    fan::print("[FS_WATCHER DEBUG] Handle closed. Remaining active handles:", active_handles - 1);
+    if (--active_handles == 0) {
+      fan::print("[FS_WATCHER DEBUG] All handles closed. Deleting internal state.");
+      delete this;
+    }
   }
+  
+  std::vector<fan::uv::fs_event_t*> fs_events;
+  std::unordered_map<fan::uv::fs_event_t*, std::string> event_paths;
+  fan::uv::timer_t timer;
+  std::string watch_path;
+  std::function<void(const std::string&, int)> event_callback;
+  std::unordered_map<std::string, file_event> pending_events;
 
-  fs_watcher_t::~fs_watcher_t() {
-    stop();
-    internal_state = nullptr;
-  }
-
-  std::expected<void, std::string> fs_watcher_t::start(std::function<void(const std::string&, int)> callback) {
-    auto* state = static_cast<fs_watcher_internal_t*>(internal_state);
-    if (state->active_handles > 0) {
-      return std::unexpected("Watcher is already active");
+  int attach_watch(const std::string& target_path) {
+    fan::print("[FS_WATCHER DEBUG] Attempting to attach watch to:", target_path);
+    auto* ev = new fan::uv::fs_event_t;
+    ev->data = this;
+    
+    int result = fan::uv::fs_event_init((fan::uv::loop_t*)get_loop(), ev);
+    if (result < 0) { 
+      fan::print("[FS_WATCHER DEBUG] FAILED to init fs_event for:", target_path, "Error:", fan::event::strerror(result));
+      delete ev; 
+      return result; 
     }
-    state->event_callback = callback;
+    
+    event_paths[ev] = target_path;
 
-    int res = state->attach_watch(state->watch_path);
-    if (res < 0) return std::unexpected(fan::event::strerror(res));
-
-  #if defined(fan_platform_unix)
-    // Manually build the tree for existing folders, bypassing the Linux limitation
-    std::error_code ec;
-    for (const auto& entry : std::filesystem::recursive_directory_iterator(state->watch_path, std::filesystem::directory_options::skip_permission_denied, ec)) {
-      if (entry.is_directory(ec)) {
-        state->attach_watch(entry.path().string());
-      }
-    }
-  #endif
-
-    int result = fan::uv::timer_init((fan::uv::loop_t*)get_loop(), &state->timer);
-    if (result < 0) {
-      stop();
-      return std::unexpected(fan::event::strerror(result));
-    }
-
-    result = fan::uv::timer_start(&state->timer, [](fan::uv::timer_t* handle) {
+    result = fan::uv::fs_event_start(ev, [](fan::uv::fs_event_t* handle, const char* filename, int events, int status) {
       auto* state = static_cast<fs_watcher_internal_t*>(handle->data);
-      for (auto& event_pair : state->pending_events) {
-        if (state->event_callback) {
-          state->event_callback(event_pair.second.filename, event_pair.second.events);
+      
+      std::string file_str = filename ? filename : "UNKNOWN_FILE";
+      std::string full_path = state->event_paths[handle] + "/" + file_str;
+      
+      fan::print("[FS_WATCHER DEBUG] RAW INOTIFY EVENT FIRED! Status:", status, "| Events bitmask:", events, "| File:", full_path);
+
+      if (status < 0) return;
+      if (filename) {
+        // Dynamically attach a watcher if a new folder is created at runtime
+        std::error_code ec;
+        if (std::filesystem::is_directory(full_path, ec)) {
+          fan::print("[FS_WATCHER DEBUG] Detected new runtime directory, attaching new watcher:", full_path);
+          state->attach_watch(full_path);
         }
+
+        state->pending_events[file_str] = { file_str, events, std::chrono::steady_clock::now() };
+        fan::print("[FS_WATCHER DEBUG] Event queued for processing on next timer tick.");
       }
-      state->pending_events.clear();
-    }, 0, 50);
+    }, target_path.c_str(), 0);
 
     if (result < 0) {
-      stop();
-      return std::unexpected(fan::event::strerror(result));
+      fan::print("[FS_WATCHER DEBUG] FAILED to start fs_event for:", target_path, "Error:", fan::event::strerror(result));
+      event_paths.erase(ev);
+      fan::uv::close((fan::uv::handle_t*)ev, [](fan::uv::handle_t* h) { delete (fan::uv::fs_event_t*)h; });
+      return result;
     }
-    state->active_handles++;
+    
+    fs_events.push_back(ev);
+    active_handles++;
+    fan::print("[FS_WATCHER DEBUG] Successfully attached watch. Total handles:", active_handles);
+    return 0;
+  }
+};
 
-    return {};
+fs_watcher_t::fs_watcher_t(const std::string& path) {
+  internal_state = new fs_watcher_internal_t();
+  auto* state = static_cast<fs_watcher_internal_t*>(internal_state);
+  state->watch_path = std::filesystem::absolute(path).generic_string();
+  fan::print("[FS_WATCHER DEBUG] Watcher object constructed. Absolute target path:", state->watch_path);
+  state->timer.data = state;
+}
+
+fs_watcher_t::~fs_watcher_t() {
+  fan::print("[FS_WATCHER DEBUG] Watcher destructor called.");
+  stop();
+  internal_state = nullptr;
+}
+
+std::expected<void, std::string> fs_watcher_t::start(std::function<void(const std::string&, int)> callback) {
+  fan::print("[FS_WATCHER DEBUG] start() called.");
+  auto* state = static_cast<fs_watcher_internal_t*>(internal_state);
+  
+  if (state->active_handles > 0) {
+    fan::print("[FS_WATCHER DEBUG] start() aborted: Watcher is already active.");
+    return std::unexpected("Watcher is already active");
+  }
+  state->event_callback = callback;
+
+  fan::print("[FS_WATCHER DEBUG] Attaching root watcher...");
+  int res = state->attach_watch(state->watch_path);
+  if (res < 0) return std::unexpected(fan::event::strerror(res));
+
+#if defined(fan_platform_unix)
+  fan::print("[FS_WATCHER DEBUG] UNIX Environment detected. Executing manual recursive traversal...");
+  std::error_code ec;
+  auto it = std::filesystem::recursive_directory_iterator(state->watch_path, std::filesystem::directory_options::skip_permission_denied, ec);
+  
+  if (ec) {
+    fan::print("[FS_WATCHER DEBUG] Filesystem error while starting iterator:", ec.message());
   }
 
-  void fs_watcher_t::stop() {
-    auto* state = static_cast<fs_watcher_internal_t*>(internal_state);
-    if (!state || state->active_handles == 0) {
-      return;
+  int dir_count = 0;
+  for (; it != std::filesystem::recursive_directory_iterator(); ++it) {
+    if (it->is_directory(ec)) {
+      std::string dir_name = it->path().filename().string();
+      
+      // Skip hidden folders (.git, .xmake) and build output folders
+      if ((dir_name.length() > 0 && dir_name[0] == '.') || dir_name == "build") {
+        fan::print("[FS_WATCHER DEBUG] Skipping ignored directory:", it->path().string());
+        it.disable_recursion_pending();
+        continue;
+      }
+
+      int r = state->attach_watch(it->path().string());
+      if (r < 0) {
+         fan::print("[FS_WATCHER DEBUG] CRITICAL WARNING: Failed to attach watcher to", it->path().string(), "- Error:", fan::event::strerror(r));
+      } else {
+         dir_count++;
+      }
+    }
+  }
+  fan::print("[FS_WATCHER DEBUG] Recursive traversal complete. Successfully attached to", dir_count, "subdirectories.");
+#endif
+
+  fan::print("[FS_WATCHER DEBUG] Initializing timer...");
+  int result = fan::uv::timer_init((fan::uv::loop_t*)get_loop(), &state->timer);
+  if (result < 0) {
+    fan::print("[FS_WATCHER DEBUG] Timer init failed:", fan::event::strerror(result));
+    stop();
+    return std::unexpected(fan::event::strerror(result));
+  }
+  
+  result = fan::uv::timer_start(&state->timer, [](fan::uv::timer_t* handle) {
+    auto* state = static_cast<fs_watcher_internal_t*>(handle->data);
+    
+    // Heartbeat logic
+    static int ticks = 0;
+    if (ticks == 0 || ticks % 40 == 0) { // Prints immediately on first tick, then roughly every 2 seconds
+      fan::print("[FS_WATCHER DEBUG] Heartbeat tick. Event loop is healthy. Active handles:", state->active_handles);
+    }
+    ticks++;
+
+    if (!state->pending_events.empty()) {
+      fan::print("[FS_WATCHER DEBUG] Dispatching", state->pending_events.size(), "queued events to user callback.");
     }
 
-    for (auto* ev : state->fs_events) {
-      if (ev->loop != nullptr && ev->type != UV_UNKNOWN_HANDLE && !fan::uv::is_closing(reinterpret_cast<fan::uv::handle_t*>(ev))) {
-        fan::uv::fs_event_stop(ev);
-        fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(ev), [](fan::uv::handle_t* handle) {
-          static_cast<fs_watcher_internal_t*>(handle->data)->on_handle_close();
-          delete (fan::uv::fs_event_t*)handle;
-        });
-      }
-      else {
-        --state->active_handles;
+    for (auto& event_pair : state->pending_events) {
+      if (state->event_callback) {
+        state->event_callback(event_pair.second.filename, event_pair.second.events);
       }
     }
-    state->fs_events.clear();
+    state->pending_events.clear();
+  }, 0, 50);
 
-    if (state->timer.loop != nullptr && state->timer.type != UV_UNKNOWN_HANDLE && !fan::uv::is_closing(reinterpret_cast<fan::uv::handle_t*>(&state->timer))) {
-      fan::uv::timer_stop(&state->timer);
-      fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(&state->timer), [](fan::uv::handle_t* handle) {
+  if (result < 0) {
+    fan::print("[FS_WATCHER DEBUG] Timer start failed:", fan::event::strerror(result));
+    stop();
+    return std::unexpected(fan::event::strerror(result));
+  }
+  
+  state->active_handles++;
+  fan::print("[FS_WATCHER DEBUG] start() complete successfully.");
+  return {};
+}
+
+void fs_watcher_t::stop() {
+  auto* state = static_cast<fs_watcher_internal_t*>(internal_state);
+  if (!state || state->active_handles == 0) {
+    return;
+  }
+  
+  fan::print("[FS_WATCHER DEBUG] stop() initiated. Closing", state->fs_events.size(), "filesystem handles and timer.");
+
+  for (auto* ev : state->fs_events) {
+    if (ev->loop != nullptr && ev->type != UV_UNKNOWN_HANDLE && !fan::uv::is_closing(reinterpret_cast<fan::uv::handle_t*>(ev))) {
+      fan::uv::fs_event_stop(ev);
+      fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(ev), [](fan::uv::handle_t* handle) {
         static_cast<fs_watcher_internal_t*>(handle->data)->on_handle_close();
+        delete (fan::uv::fs_event_t*)handle;
       });
-    }
-    else {
+    } else {
       --state->active_handles;
     }
+  }
+  state->fs_events.clear();
 
-    if (state->active_handles == 0) {
-      delete state;
-      internal_state = nullptr;
-    }
-    else {
-      fan::uv::run((fan::uv::loop_t*)get_loop(), fan::uv::run_nowait);
-    }
+  if (state->timer.loop != nullptr && state->timer.type != UV_UNKNOWN_HANDLE && !fan::uv::is_closing(reinterpret_cast<fan::uv::handle_t*>(&state->timer))) {
+    fan::uv::timer_stop(&state->timer);
+    fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(&state->timer), [](fan::uv::handle_t* handle) {
+      static_cast<fs_watcher_internal_t*>(handle->data)->on_handle_close();
+    });
+  } else {
+    --state->active_handles;
   }
 
-  std::string fs_watcher_t::get_watch_path() {
-    return static_cast<fs_watcher_internal_t*>(internal_state)->watch_path;
+  if (state->active_handles == 0) {
+    delete state;
+    internal_state = nullptr;
+  } else {
+    fan::uv::run((fan::uv::loop_t*)get_loop(), fan::uv::run_nowait);
   }
+}
 
+std::string fs_watcher_t::get_watch_path() {
+  return static_cast<fs_watcher_internal_t*>(internal_state)->watch_path;
+}
   void sleep(unsigned int msec) { fan::uv::sleep(msec); }
   void loop(fan::event::loop_t l, bool once) { fan::uv::run((fan::uv::loop_t*)l, once ? fan::uv::run_once : fan::uv::run_default); }
   void run_once(fan::event::loop_t l) { loop(l, true); }
