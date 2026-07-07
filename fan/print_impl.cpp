@@ -12,8 +12,6 @@ module fan.print;
 
 import std;
 
-import fan.time;
-
 namespace fan::detail {
   static void print_raw(std::string_view msg) {
 #if defined(USE_STD_PRINT)
@@ -74,20 +72,6 @@ namespace fan::detail {
     std::uint8_t g = (rgba >> 16) & 0xFF;
     std::uint8_t b = (rgba >> 8) & 0xFF;
     print_raw(std::format("\033[38;2;{};{};{}m{}\033[0m", (int)r, (int)g, (int)b, msg));
-  }
-
-  void print_throttled_impl(int throttle_ms, std::size_t hash_key, const std::string& msg) {
-    static std::unordered_map<std::size_t, fan::time::timer> timers;
-    auto& t = timers[hash_key];
-    if (!t.started()) { 
-      print_line_raw(msg);
-      t.start_millis(throttle_ms); 
-      return; 
-    }
-    if (t.finished()) { 
-      print_line_raw(msg);
-      t.start_millis(throttle_ms); 
-    }
   }
 
   void print_once_impl(const std::string& msg) {

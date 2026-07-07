@@ -56,7 +56,6 @@ export namespace fan {
     void printr_impl(const std::string& msg);
     void wprint_impl(const std::wstring& msg, bool newline);
     void print_color_impl(const fan::color& c, const std::string& msg);
-    void print_throttled_impl(int throttle_ms, std::size_t hash_key, const std::string& msg);
     void print_once_impl(const std::string& msg);
     void print_stacktrace_impl();
 
@@ -250,13 +249,6 @@ export namespace fan {
     push_memory_log(message, log_level_e::warning);
     detail::print_impl(format_warning_no_space(message) + '\n');
   #endif
-  }
-
-  template <int throttle_ms = 1000, typename... Args>
-  void print_throttled(const Args&... args) {
-    std::string msg = format_args(args...);
-    std::size_t key = std::hash<std::string>{}(msg);
-    detail::print_throttled_impl(throttle_ms, key, msg);
   }
 
   void print_once(const auto&... args) {
