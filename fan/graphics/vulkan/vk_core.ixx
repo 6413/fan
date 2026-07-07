@@ -27,12 +27,13 @@ module;
 #include <fan/utility.h>
 
 export module fan.graphics.vulkan.core;
-import std;
 
+import std;
 
 export import :types;
 export import :vai;
 
+import fan.types;
 import fan.types.matrix;
 import fan.types.fstring;
 import fan.types.color;
