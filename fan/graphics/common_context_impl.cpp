@@ -12,6 +12,8 @@ module fan.graphics.common_context;
 
 #if defined (FAN_WINDOW)
 
+import std;
+
 import fan.print;
 import fan.math;
 
@@ -493,7 +495,7 @@ namespace fan::graphics {
 
   void image_bind_image(
     fan::graphics::image_t nr,
-    uint32_t unit,
+    std::uint32_t unit,
     int access,
     int format
   ) {
@@ -660,9 +662,9 @@ namespace fan::graphics {
 
   void shader_dispatch_compute(
     fan::graphics::shader_nr_t nr,
-    uint32_t x,
-    uint32_t y,
-    uint32_t z
+    std::uint32_t x,
+    std::uint32_t y,
+    std::uint32_t z
   ) {
     fan::graphics::ctx()->shader_dispatch_compute(
       fan::graphics::ctx(),
