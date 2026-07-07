@@ -819,7 +819,7 @@ void loco_t::generate_commands(loco_t* loco) {
       fan::dump_memory_logs_since(log_cursor);
       self->println_colored("Active debug printing ENABLED. Type 'dump_dbg 0' to stop.", fan::colors::green / text_dim);
       
-      active_poll_nr = self->push_frame_process([self, print_logs]() {
+      active_poll_nr = self->push_frame_process([print_logs]() {
         print_logs(fan::dump_memory_logs_since(log_cursor));
       });
     }
@@ -1380,7 +1380,6 @@ void loco_t::process_shapes() {
     func();
   }
 
-  auto& cmd_buffer = context.vk.command_buffers[context.vk.current_frame];
   if (vk.image_error == VK_SUCCESS) {
     vk.draw_post_process();
   }
@@ -1722,8 +1721,6 @@ bool loco_t::process_frame(const std::function<void(f32_t delta_time)>& cb) {
 
 
   using namespace fan::graphics;
-
-  auto& style = gui::get_style();
 
   gui::push_style_color(gui::col_window_bg, fan::color(0, 0, 0, 0));
   gui::push_style_color(gui::col_docking_empty_bg, fan::color(0, 0, 0, 0));
@@ -2562,8 +2559,6 @@ namespace fan::graphics::gui {
       gui::plot::push_style_var(gui::plot::style_var_fill_alpha, 0.25f);
       gui::plot::plot_bars("Allocations", allocation_sizes.data(), allocation_sizes.size());
       gui::plot::pop_style_var();
-
-      bool hovered = false;
 
       if (gui::plot::is_plot_hovered()) {
         auto mouse = gui::plot::get_plot_mouse_pos();

@@ -909,6 +909,7 @@ VkFormat fan::vulkan::context_t::find_supported_format(const std::vector<VkForma
   }
 
   fan::throw_error("failed to find supported format!");
+  return {};
 }
 VkFormat fan::vulkan::context_t::find_depth_format() {
   return find_supported_format(
