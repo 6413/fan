@@ -282,6 +282,14 @@ fi
 if [[ "$REBUILD" == true ]]; then
   echo -e "${BLUE}[1/3]${NC} Cleaning build directory..."
   rm -rf build .xmake
+
+  mkdir -p .xmake/bin
+  ln -sf "$CC" .xmake/bin/$COMPILER
+  ln -sf "$CXX" .xmake/bin/$BIN_CXX
+  if [[ -n "$SCAN" ]]; then
+    ln -sf "$SCAN" .xmake/bin/clang-scan-deps
+  fi
+
   echo ""
   echo -e "${BLUE}[2/3]${NC} Configuring..."
   if ! xmake f -c "${CONFIG_ARGS[@]}" "${FEATURE_ARGS[@]}" "${XMAKE_ARGS[@]}"; then
