@@ -148,6 +148,31 @@ export namespace fan {
   #endif
   }
 
+  template <typename ...Args>
+  void print_log(
+    log_level_e level,
+    std::string_view tag,
+    const Args&... args
+  ) {
+    std::string msg = format_args(args...);
+
+    if (tag.empty()) {
+      push_memory_log(msg, level);
+    }
+    else {
+      push_memory_log(std::string(tag), msg, level);
+    }
+
+  #if FAN_DEBUG >= fan_debug_insane
+    if (tag.empty()) {
+      detail::print_impl(msg + '\n');
+    }
+    else {
+      detail::print_impl("[" + std::string(tag) + "] " + msg + '\n');
+    }
+  #endif
+  }
+
 #if !defined(FAN_REFLECTION)
   template <typename ...Args> void print(const Args&... args) { fan::print_impl(args...); }
 #endif
