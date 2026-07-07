@@ -441,7 +441,6 @@ namespace fan::graphics::gui::tilemap_editor::ui {
       f32_t final_image_size = x_size / images_per_row;
       f32_t cell_size = std::max(final_image_size * zoom, 1.f);
 
-      static fan::vec2 selection_start(-1, -1);
       static fan::vec2 selection_end(-1, -1);
       static fan::vec2 min_rect = (std::uint32_t)~0;
       static fan::vec2 max_rect = -1;
@@ -719,6 +718,7 @@ namespace fan::graphics::gui::tilemap_editor::ui {
           if (fan::graphics::gui::toggle_button("Is sensor", &sp.is_sensor)) editor.brush.physics_shape_properties.is_sensor = sp.is_sensor;
           break;
         }
+        default: break;
       }
     }
     fan::graphics::gui::end();
