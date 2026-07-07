@@ -109,6 +109,7 @@ if not is_plat("wasm") then
         import("package.tools.cmake").install(package, configs)
       end)
     package_end()
+    add_requires("freetype 2.13.2", static_req)
     add_requires("lunasvg 2.4.1", static_req)
   end
   if has_config("FAN_PHYSICS_2D") then
