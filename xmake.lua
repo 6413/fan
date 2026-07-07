@@ -7,20 +7,6 @@ if is_plat("wasm") then
 else
   option("compiler") set_default("clang") option_end()
   set_toolchains(get_config("compiler") == "gcc" and "gcc" or "clang")
-  if get_config("compiler") == "clang" and is_plat("linux") then
-    import("lib.detect.find_tool")
-    for v = 30, 20, -1 do
-      local cc = "clang-" .. v
-      if find_tool(cc) then
-        local cxx = "clang++-" .. v
-        set_toolset("cc", cc)
-        set_toolset("cxx", cxx)
-        set_toolset("ld", cxx)
-        set_toolset("sh", cxx)
-        break
-      end
-    end
-  end
 end
 
 rule("mode.mode_none") rule_end()

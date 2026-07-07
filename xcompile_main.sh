@@ -254,12 +254,19 @@ else
     CXX=$(find_compiler "g++" 0)
     CC=$(find_compiler "gcc" 0)
     TOOLCHAIN="gcc"
+    BIN_CXX="g++"
   else
     CXX=$(find_compiler "clang++" 20)
     CC=$(find_compiler "clang" 20)
     TOOLCHAIN="clang"
+    BIN_CXX="clang++"
   fi
-  CONFIG_ARGS=("--compiler=$COMPILER" "--toolchain=$TOOLCHAIN" "--cc=$CC" "--cxx=$CXX")
+  mkdir -p .local_bin
+  ln -sf "$CC" .local_bin/$COMPILER
+  ln -sf "$CXX" .local_bin/$BIN_CXX
+  export PATH="$PWD/.local_bin:$PATH"
+
+  CONFIG_ARGS=("--compiler=$COMPILER" "--toolchain=$TOOLCHAIN")
   if [[ -n "$MAIN_FILE" ]]; then
     CONFIG_ARGS+=("--main=$MAIN_FILE")
   fi
