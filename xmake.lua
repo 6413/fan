@@ -216,7 +216,7 @@ end
 if has_config("FAN_GUI") then
   target("imgui")
     set_kind("static")
-    add_rules("c++.unity_build", {batchsize = 16})
+    ---add_rules("c++.unity_build", {batchsize = 16})
     if has_config("FAN_VULKAN") then
       add_packages("vulkan-headers")
     end
@@ -247,11 +247,10 @@ if has_config("FAN_GUI") then
     end)
     add_files(
       "fan/imgui/imgui.cpp", "fan/imgui/imgui_draw.cpp", "fan/imgui/imgui_widgets.cpp",
-      "fan/imgui/imgui_tables.cpp", "fan/imgui/implot_items.cpp",
+      "fan/imgui/imgui_tables.cpp", "fan/imgui/imgui_impl_glfw.cpp", "fan/imgui/implot_items.cpp",
       "fan/imgui/implot.cpp", "fan/imgui/text_editor.cpp", "fan/imgui/misc/freetype/imgui_freetype.cpp",
       "fan/imgui/ImGuizmo.cpp"
     )
-    add_files("fan/imgui/imgui_impl_glfw.cpp", {unity_build = false})
     if has_config("FAN_VULKAN") then add_packages("vulkan-headers") add_files("fan/imgui/imgui_impl_vulkan.cpp") end
   target_end()
 end
