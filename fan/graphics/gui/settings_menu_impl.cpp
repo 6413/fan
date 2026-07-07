@@ -18,7 +18,9 @@ module fan.graphics.gui.settings_menu;
 import fan.types.vector;
 import fan.types.json;
 import fan.graphics.gui.keybinds_menu;
-import fan.audio;
+#if defined(FAN_AUDIO)
+  import fan.audio;
+#endif
 import fan.memory;
 import fan.io.file;
 import fan.graphics.loco;
