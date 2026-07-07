@@ -255,25 +255,49 @@ namespace fan::event {
         delete this;
       }
     }
-    fan::uv::fs_event_t fs_event;
-    fan::uv::timer_t    timer;
+
+    std::vector<fan::uv::fs_event_t*> fs_events;
+    std::unordered_map<fan::uv::fs_event_t*, std::string> event_paths;
+    fan::uv::timer_t timer;
     std::string watch_path;
     std::function<void(const std::string&, int)> event_callback;
     std::unordered_map<std::string, file_event> pending_events;
+
+    int attach_watch(const std::string& target_path) {
+      auto* ev = new fan::uv::fs_event_t;
+      ev->data = this;
+      int result = fan::uv::fs_event_init((fan::uv::loop_t*)get_loop(), ev);
+      if (result < 0) { delete ev; return result; }
+
+      event_paths[ev] = target_path;
+
+      result = fan::uv::fs_event_start(ev, [](fan::uv::fs_event_t* handle, const char* filename, int events, int status) {
+        if (status < 0) return;
+        auto* state = static_cast<fs_watcher_internal_t*>(handle->data);
+        if (filename) {
+          std::string file_str(filename);
+          std::string full_path = state->event_paths[handle] + "/" + file_str;
+
+          // Dynamically attach a watcher if a new folder is created at runtime
+          std::error_code ec;
+          if (std::filesystem::is_directory(full_path, ec)) {
+            state->attach_watch(full_path);
+          }
+
+          state->pending_events[file_str] = {file_str, events, std::chrono::steady_clock::now()};
+        }
+      }, target_path.c_str(), 0);
+
+      if (result < 0) {
+        event_paths.erase(ev);
+        fan::uv::close((fan::uv::handle_t*)ev, [](fan::uv::handle_t* h) { delete (fan::uv::fs_event_t*)h; });
+        return result;
+      }
+      fs_events.push_back(ev);
+      active_handles++;
+      return 0;
+    }
   };
-
-  fs_watcher_t::fs_watcher_t(const std::string& path) {
-    internal_state = new fs_watcher_internal_t();
-    auto* state = static_cast<fs_watcher_internal_t*>(internal_state);
-    state->watch_path = std::filesystem::absolute(path).generic_string();
-    state->fs_event.data = state;
-    state->timer.data = state;
-  }
-
-  fs_watcher_t::~fs_watcher_t() {
-    stop();
-    internal_state = nullptr;
-  }
 
   std::expected<void, std::string> fs_watcher_t::start(std::function<void(const std::string&, int)> callback) {
     auto* state = static_cast<fs_watcher_internal_t*>(internal_state);
@@ -281,30 +305,26 @@ namespace fan::event {
       return std::unexpected("Watcher is already active");
     }
     state->event_callback = callback;
-    int result = fan::uv::fs_event_init((fan::uv::loop_t*)get_loop(), &state->fs_event);
-    if (result < 0) {
-      return std::unexpected(fan::event::strerror(result));
-    }
-    result = fan::uv::fs_event_start(&state->fs_event, [](fan::uv::fs_event_t* handle, const char* filename, int events, int status) {
-      if (status < 0) {
-        return;
+
+    int res = state->attach_watch(state->watch_path);
+    if (res < 0) return std::unexpected(fan::event::strerror(res));
+
+  #if defined(fan_platform_unix)
+    // Manually build the tree for existing folders, bypassing the Linux limitation
+    std::error_code ec;
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(state->watch_path, std::filesystem::directory_options::skip_permission_denied, ec)) {
+      if (entry.is_directory(ec)) {
+        state->attach_watch(entry.path().string());
       }
-      auto* state = static_cast<fs_watcher_internal_t*>(handle->data);
-      if (filename) {
-        std::string file_str(filename);
-        state->pending_events[file_str] = { file_str, events, std::chrono::steady_clock::now() };
-      }
-    }, state->watch_path.c_str(), fan::uv::fs_event_recursive);
+    }
+  #endif
+
+    int result = fan::uv::timer_init((fan::uv::loop_t*)get_loop(), &state->timer);
     if (result < 0) {
-      fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(&state->fs_event), nullptr);
+      stop();
       return std::unexpected(fan::event::strerror(result));
     }
-    result = fan::uv::timer_init((fan::uv::loop_t*)get_loop(), &state->timer);
-    if (result < 0) {
-      fan::uv::fs_event_stop(&state->fs_event);
-      fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(&state->fs_event), nullptr);
-      return std::unexpected(fan::event::strerror(result));
-    }
+
     result = fan::uv::timer_start(&state->timer, [](fan::uv::timer_t* handle) {
       auto* state = static_cast<fs_watcher_internal_t*>(handle->data);
       for (auto& event_pair : state->pending_events) {
@@ -314,13 +334,13 @@ namespace fan::event {
       }
       state->pending_events.clear();
     }, 0, 50);
+
     if (result < 0) {
-      fan::uv::fs_event_stop(&state->fs_event);
-      fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(&state->fs_event), nullptr);
-      fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(&state->timer), nullptr);
+      stop();
       return std::unexpected(fan::event::strerror(result));
     }
-    state->active_handles = 2;
+    state->active_handles++;
+
     return {};
   }
 
@@ -330,15 +350,19 @@ namespace fan::event {
       return;
     }
 
-    if (state->fs_event.loop != nullptr && state->fs_event.type != UV_UNKNOWN_HANDLE && !fan::uv::is_closing(reinterpret_cast<fan::uv::handle_t*>(&state->fs_event))) {
-      fan::uv::fs_event_stop(&state->fs_event);
-      fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(&state->fs_event), [](fan::uv::handle_t* handle) {
-        static_cast<fs_watcher_internal_t*>(handle->data)->on_handle_close();
-      });
+    for (auto* ev : state->fs_events) {
+      if (ev->loop != nullptr && ev->type != UV_UNKNOWN_HANDLE && !fan::uv::is_closing(reinterpret_cast<fan::uv::handle_t*>(ev))) {
+        fan::uv::fs_event_stop(ev);
+        fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(ev), [](fan::uv::handle_t* handle) {
+          static_cast<fs_watcher_internal_t*>(handle->data)->on_handle_close();
+          delete (fan::uv::fs_event_t*)handle;
+        });
+      }
+      else {
+        --state->active_handles;
+      }
     }
-    else {
-      --state->active_handles;
-    }
+    state->fs_events.clear();
 
     if (state->timer.loop != nullptr && state->timer.type != UV_UNKNOWN_HANDLE && !fan::uv::is_closing(reinterpret_cast<fan::uv::handle_t*>(&state->timer))) {
       fan::uv::timer_stop(&state->timer);
