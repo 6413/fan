@@ -257,6 +257,26 @@ enum class name { __VA_ARGS__ }
 #endif
 
 #ifndef OFFSETLESS
-  #define OFFSETLESS(ptr_m, t_m, d_m) \
-    ((t_m *)((std::uint8_t *)(ptr_m) - offsetof(t_m, d_m)))
+  #if defined(fan_compiler_clang)
+    #define OFFSETLESS(ptr_m, t_m, d_m) \
+      __extension__({ \
+        _Pragma("clang diagnostic push") \
+        _Pragma("clang diagnostic ignored \"-Winvalid-offsetof\"") \
+        t_m* _res = (t_m *)((std::uint8_t *)(ptr_m) - offsetof(t_m, d_m)); \
+        _Pragma("clang diagnostic pop") \
+        _res; \
+      })
+  #elif defined(fan_compiler_gcc)
+    #define OFFSETLESS(ptr_m, t_m, d_m) \
+      __extension__({ \
+        _Pragma("GCC diagnostic push") \
+        _Pragma("GCC diagnostic ignored \"-Winvalid-offsetof\"") \
+        t_m* _res = (t_m *)((std::uint8_t *)(ptr_m) - offsetof(t_m, d_m)); \
+        _Pragma("GCC diagnostic pop") \
+        _res; \
+      })
+  #else
+    #define OFFSETLESS(ptr_m, t_m, d_m) \
+      ((t_m *)((std::uint8_t *)(ptr_m) - offsetof(t_m, d_m)))
+  #endif
 #endif
