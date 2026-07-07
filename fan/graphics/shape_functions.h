@@ -37,7 +37,7 @@ static void update_shape(fan::graphics::shapes::shape_t* shape, modifier_t&& mod
   auto sti = shape->get_shape_type();
 
   auto key_pack_size = fan::graphics::g_shapes->shaper.GetKeysSize(shape->get_visual_id());
-  std::unique_ptr<uint8_t[]> key_pack(new uint8_t[key_pack_size]);
+  std::unique_ptr<std::uint8_t[]> key_pack(new uint8_t[key_pack_size]);
   fan::graphics::g_shapes->shaper.WriteKeys(shape->get_visual_id(), key_pack.get());
 
   modifier_fn(sti, key_pack.get());
