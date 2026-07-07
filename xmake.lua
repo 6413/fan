@@ -98,7 +98,7 @@ if not is_plat("wasm") then
       add_versions("2.13.2", "VER-2-13-2")
       add_deps("cmake")
       on_load(function (package)
-        package:add("includedirs", "include/freetype2")
+        package:add("includedirs", path.join(package:installdir(), "include", "freetype2"))
       end)
       on_install(function (package)
         local configs = {}
