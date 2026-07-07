@@ -204,8 +204,9 @@ export namespace fan {
   #ifndef fan_disable_warnings
     std::string message = format_args(args...);
     write_error_to_disk(message);
-    push_memory_log(message, log_level_e::warning);
     print_color_raw(fan::colors::yellow, message);
+    if (message.size() && message.back() == '\n') message.pop_back();
+    push_memory_log(message, log_level_e::warning);
   #endif
   }
 
@@ -214,8 +215,9 @@ export namespace fan {
   #ifndef fan_disable_errors
     std::string message = format_args(args...);
     write_error_to_disk(message);
-    push_memory_log(message, log_level_e::error);
     print_color_raw(fan::colors::red, message);
+    if (message.size() && message.back() == '\n') message.pop_back();
+    push_memory_log(message, log_level_e::error);
   #endif
   }
 
