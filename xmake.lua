@@ -140,9 +140,9 @@ add_cxxflags("-pthread", {force = true})
 
 local common_flags = {
   "-Wall", "-Wextra", "-Wno-unused-variable", "-Wno-unused-parameter", "-Wno-unused-function",
-  "-Wno-invalid-offsetof", "-Wno-missing-field-initializers", "-Wno-sign-compare",
+  "-Wno-missing-field-initializers", "-Wno-sign-compare",
   "-Wno-unused-but-set-parameter", "-Wno-unused-value", "-Wno-padded", "-Wno-parentheses",
-  "-Wno-unused-static-function", "-fsized-deallocation", "-Wno-invalid-offsetof"
+  "-Wno-unused-static-function", "-fsized-deallocation"
 }
 add_cxxflags(table.unpack(common_flags), {force = true})
 
