@@ -1,4 +1,4 @@
-static constexpr int get_shape_category(uint16_t sti) {
+static constexpr int get_shape_category(std::uint16_t sti) {
   switch (sti) {
   case fan::graphics::shapes::shape_type_t::light:
     return fan::graphics::shapes::kp::light;
@@ -37,19 +37,19 @@ static void update_shape(fan::graphics::shapes::shape_t* shape, modifier_t&& mod
   auto sti = shape->get_shape_type();
 
   auto key_pack_size = fan::graphics::g_shapes->shaper.GetKeysSize(shape->get_visual_id());
-  std::unique_ptr<std::uint8_t[]> key_pack(new uint8_t[key_pack_size]);
+  std::unique_ptr<std::uint8_t[]> key_pack(new std::uint8_t[key_pack_size]);
   fan::graphics::g_shapes->shaper.WriteKeys(shape->get_visual_id(), key_pack.get());
 
   modifier_fn(sti, key_pack.get());
 
   auto _vi = shape->GetRenderData(fan::graphics::g_shapes->shaper);
   auto vlen_t = fan::graphics::g_shapes->shaper.GetRenderDataSize(sti);
-  std::unique_ptr<std::uint8_t[]> vi(new uint8_t[vlen_t]);
+  std::unique_ptr<std::uint8_t[]> vi(new std::uint8_t[vlen_t]);
   std::memcpy(vi.get(), _vi, vlen_t);
 
   auto _ri = shape->GetData(fan::graphics::g_shapes->shaper);
   auto rlen_t = fan::graphics::g_shapes->shaper.GetDataSize(sti);
-  std::unique_ptr<std::uint8_t[]> ri(new uint8_t[rlen_t]);
+  std::unique_ptr<std::uint8_t[]> ri(new std::uint8_t[rlen_t]);
   std::memcpy(ri.get(), _ri, rlen_t);
 
   shape->erase_shaper();
@@ -99,7 +99,7 @@ static fan::graphics::camera_t get_camera(const fan::graphics::shapes::shape_t* 
   if (shape->get_visual_id().iic()) {
     return {};
   }
-  uint8_t* key_pack = fan::graphics::g_shapes->shaper.GetKeys(shape->get_visual_id());
+  std::uint8_t* key_pack = fan::graphics::g_shapes->shaper.GetKeys(shape->get_visual_id());
 
   switch (get_shape_category(sti)) {
   case fan::graphics::shapes::kp::light:
@@ -232,7 +232,7 @@ static fan::graphics::shader_t get_shader(const fan::graphics::shapes::shape_t* 
     return result;
   }
   auto sti = shape->get_shape_type();
-  uint8_t* key_pack = fan::graphics::g_shapes->shaper.GetKeys(shape->get_visual_id());
+  std::uint8_t* key_pack = fan::graphics::g_shapes->shaper.GetKeys(shape->get_visual_id());
   if (get_shape_category(sti) == fan::graphics::shapes::kp::texture) {
     result.gint() = shaper_get_key_safe(shader_raw_t, texture_t, shader_raw);
   }
@@ -411,7 +411,7 @@ static void set_with_sync(fan::graphics::shapes::shape_t* s, const field_t& v, p
 
   if (updates_keypack) {
     auto sti = s->get_shape_type();
-    uint8_t* key_pack = fan::graphics::g_shapes->shaper.GetKeys(vid);
+    std::uint8_t* key_pack = fan::graphics::g_shapes->shaper.GetKeys(vid);
 
     switch (get_shape_category(sti)) {
     case fan::graphics::shapes::kp::common:
@@ -693,7 +693,7 @@ vtables_storage[fan::graphics::shape_type_t::shape_name].set_shader = generic_se
     GEN_SHAPES(REGISTER_SHAPE_FUNCS, SKIP);
   }
 
-  vtable_t& operator[](uint16_t shape){
+  vtable_t& operator[](std::uint16_t shape){
     return vtables_storage[shape];
   }
 
