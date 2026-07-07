@@ -328,7 +328,7 @@ export namespace fan {
         shaderc_shader_kind kind,
         const std::string& source);
       static std::vector<std::uint32_t> load_or_compile(const std::string& source_name,
-        shaderc_shader_kind kind,
+        int kind,
         const std::string& source);
       fan::graphics::shader_nr_t shader_create();
 

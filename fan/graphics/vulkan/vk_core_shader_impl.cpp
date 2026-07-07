@@ -67,16 +67,16 @@ std::vector<std::uint32_t> fan::vulkan::context_t::compile_file(const std::strin
 }
 
 std::vector<std::uint32_t> fan::vulkan::context_t::load_or_compile(const std::string& source_name,
-  shaderc_shader_kind kind,
+  int kind,
   const std::string& source) {
 
   if (source_name.empty()) {
-    return compile_file(source_name, kind, source);
+    return compile_file(source_name, (shaderc_shader_kind)kind, source);
   }
 
   std::filesystem::path resolved_source = fan::io::file::find_relative_path(source_name);
   if (resolved_source.empty()) {
-    return compile_file(source_name, kind, source);
+    return compile_file(source_name, (shaderc_shader_kind)kind, source);
   }
 
   std::string flat = source_name;
