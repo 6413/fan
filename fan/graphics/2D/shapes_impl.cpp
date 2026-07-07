@@ -2568,9 +2568,6 @@ namespace fan::graphics{
     return ret;
   }
 
-  static constexpr std::uint8_t default_visible = 1;
-  //shapes
-  
   shapes::shape_t shapes::sprite_t::push_back(const properties_t& properties){
     bool uses_texture_pack = properties.texture_pack_unique_id.iic() == false && g_shapes->texture_pack;
     fan::graphics::texture_pack::ti_t ti;

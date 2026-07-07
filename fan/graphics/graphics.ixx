@@ -713,7 +713,6 @@ export namespace fan::graphics {
           set_position(new_pos, false);
           for (auto& child : children) {
             auto c = child.get_color();
-            auto i = child.get_image();
             if (c.a != 1.0f) {
               c.a = 1.0f;
               child.set_color(c);
