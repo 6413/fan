@@ -73,7 +73,7 @@ namespace fan {
   }
   namespace time {
     bool& is_measuring() {
-      static bool measure = false;
+      static bool measure = true;
       return measure;
     }
     void set_measuring(bool state) {
