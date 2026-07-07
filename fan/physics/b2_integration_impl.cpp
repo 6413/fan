@@ -919,6 +919,7 @@ namespace fan::physics {
       proxy.radius = 0.0f;
       break;
     }
+    default: fan::throw_error("invalid switch"); break;
     }
   }
 

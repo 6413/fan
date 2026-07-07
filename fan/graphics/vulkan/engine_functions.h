@@ -607,7 +607,6 @@ void draw_bloom() {
   }
 
   for (std::uint32_t i = 0; i < chain.mips.size(); ++i) {
-    VkImageView source = i == 0 ? context.mainColorImageViews[context.image_index].image_view : chain.mips[i - 1].image.image_view;
     bloom_downsample_push_constants_t pc{};
     fan::vec2 source_size = i == 0 ? context.swap_chain_size : fan::vec2(chain.mips[i - 1].size.x, chain.mips[i - 1].size.y);
     pc.resolution_threshold_knee_mip = fan::vec4(source_size.x, source_size.y, bloom_threshold, bloom_knee);

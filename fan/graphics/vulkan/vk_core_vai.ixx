@@ -65,7 +65,7 @@ export namespace fan {
         barrier.subresourceRange.baseArrayLayer = 0;
         barrier.subresourceRange.layerCount = 1;
 
-        VkPipelineStageFlags sourceStage;
+        VkPipelineStageFlags sourceStage{};
         VkPipelineStageFlags destinationStage;
         if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
           barrier.srcAccessMask = 0;

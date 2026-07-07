@@ -245,7 +245,6 @@ void fan::vulkan::context_t::close() {
   vkDestroyInstance(instance, nullptr);
 }
 void fan::vulkan::context_t::destroy_shape_resources() {
-  fan::vulkan::context_t& context = *this;
   {
     fan::graphics::camera_list_t::nrtra_t nrtra;
     fan::graphics::camera_list_t::nr_t nr;

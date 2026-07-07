@@ -506,7 +506,6 @@ namespace fan::graphics::gui {
 
   
   void set_viewport(fan::graphics::viewport_t viewport) {
-    auto* current = get_current_window();
     viewport_rect_t main_viewport = get_viewport_rect();
     fan::vec2 wnd_pos = get_window_pos();
     fan::vec2 wnd_size = get_window_size();
