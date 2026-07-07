@@ -82,7 +82,7 @@ option("main") set_default("examples/engine_demos/engine_demo.cpp") option_end()
 
 local static_req = {system = false, configs = {shared = false}}
 if has_config("FAN_FMT") then add_requires("fmt 10.2.1", static_req) end
-if has_config("FAN_VULKAN") then add_requires("vulkan-headers v1.3.296", {system = false}) end
+if has_config("FAN_VULKAN") then add_requires("vulkan-headers v1.4.335", {system = false}) end
 if not is_plat("wasm") then
   add_requires("libuv 1.48.0", static_req)
   if has_config("FAN_WINDOW") then
