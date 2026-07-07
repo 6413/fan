@@ -275,15 +275,15 @@ namespace fan::event {
     internal_state = nullptr;
   }
 
-  bool fs_watcher_t::start(std::function<void(const std::string&, int)> callback) {
+  std::expected<void, std::string> fs_watcher_t::start(std::function<void(const std::string&, int)> callback) {
     auto* state = static_cast<fs_watcher_internal_t*>(internal_state);
     if (state->active_handles > 0) {
-      return false;
+      return std::unexpected("Watcher is already active");
     }
     state->event_callback = callback;
     int result = fan::uv::fs_event_init((fan::uv::loop_t*)get_loop(), &state->fs_event);
     if (result < 0) {
-      return false;
+      return std::unexpected(fan::event::strerror(result));
     }
     result = fan::uv::fs_event_start(&state->fs_event, [](fan::uv::fs_event_t* handle, const char* filename, int events, int status) {
       if (status < 0) {
@@ -297,13 +297,13 @@ namespace fan::event {
     }, state->watch_path.c_str(), fan::uv::fs_event_recursive);
     if (result < 0) {
       fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(&state->fs_event), nullptr);
-      return false;
+      return std::unexpected(fan::event::strerror(result));
     }
     result = fan::uv::timer_init((fan::uv::loop_t*)get_loop(), &state->timer);
     if (result < 0) {
       fan::uv::fs_event_stop(&state->fs_event);
       fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(&state->fs_event), nullptr);
-      return false;
+      return std::unexpected(fan::event::strerror(result));
     }
     result = fan::uv::timer_start(&state->timer, [](fan::uv::timer_t* handle) {
       auto* state = static_cast<fs_watcher_internal_t*>(handle->data);
@@ -318,10 +318,10 @@ namespace fan::event {
       fan::uv::fs_event_stop(&state->fs_event);
       fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(&state->fs_event), nullptr);
       fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(&state->timer), nullptr);
-      return false;
+      return std::unexpected(fan::event::strerror(result));
     }
     state->active_handles = 2;
-    return true;
+    return {};
   }
 
   void fs_watcher_t::stop() {
