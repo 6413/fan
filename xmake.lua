@@ -211,7 +211,7 @@ for _, m in ipairs(module_files) do
 end
 
 if has_config("FAN_VULKAN") then
-  for _, f in ipairs({"vk_core_device", "vk_core_shader", "vk_core_image", "vk_core_camera_viewport"}) do
+  for _, f in ipairs({"vk_core_device", "vk_core_shader", "vk_core_image", "vk_core_camera_viewport", "vk_mem_alloc"}) do
     table.insert(impl_files, "fan/graphics/vulkan/" .. f .. "_impl.cpp")
   end
 end
@@ -340,7 +340,9 @@ target("a.exe")
   if is_plat("linux") then
     if has_config("static_runtime") then add_ldflags("-static-libstdc++", "-static-libgcc", {force = true}) end
     add_packages("libuv")
-    if has_config("FAN_WINDOW") then add_packages("zlib", "libpng", "libwebp") end
+    if has_config("FAN_WINDOW") then 
+      add_packages("glfw", "zlib", "libpng", "libwebp")
+    end
     
     if has_config("FAN_AUDIO") then add_links("opus", "pulse-simple") end
     if has_config("FAN_NETWORK") then add_links("ssl", "crypto", "curl") end
