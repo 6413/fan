@@ -683,7 +683,7 @@ void fan::vulkan::context_t::image_unload(fan::graphics::image_nr_t nr) {
   image_erase(nr);
 }
 void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, const fan::image::info_t& image_info, const fan::vulkan::context_t::image_load_properties_t& p) {
-  auto format_channels = get_image_multiplier(p.format);
+  auto format_channels = get_format_channel_count(p.format);
   auto src_channels = image_info.channels <= 0 ? format_channels : image_info.channels;
   VkDeviceSize image_size = image_info.size.multiply() * format_channels;
 
