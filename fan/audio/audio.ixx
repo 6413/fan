@@ -147,23 +147,31 @@ export namespace fan {
     }
 
     using sound_play_id_t = fan::audio_t::SoundPlayID_t;
+  }
+}
+
+bool is_playing_locked(fan::audio::sound_play_id_t id) {
+  TH_lock(&fan::audio::gaudio()->system_audio->Process.PlayInfoListMutex);
+  bool active = false;
+  if (!fan::audio::gaudio()->system_audio->Process.PlayInfoList.inri(id.nr)) {
+    if (!fan::audio::gaudio()->system_audio->Process.PlayInfoList.IsNodeReferenceRecycled(id.nr)) {
+      auto node = &fan::audio::gaudio()->system_audio->Process.PlayInfoList[id.nr];
+      if (node->unique == id.unique) {
+        active = true;
+      }
+    }
+  }
+  TH_unlock(&fan::audio::gaudio()->system_audio->Process.PlayInfoListMutex);
+  return active;
+}
+
+export namespace fan {
+  namespace audio {
 
     inline bool is_playing(sound_play_id_t id) {
       if (id.nr.iic()) { return false; }
-      TH_lock(&gaudio()->system_audio->Process.PlayInfoListMutex);
-      bool active = false;
-      if (!gaudio()->system_audio->Process.PlayInfoList.inri(id.nr)) {
-        if (!gaudio()->system_audio->Process.PlayInfoList.IsNodeReferenceRecycled(id.nr)) {
-          auto node = &gaudio()->system_audio->Process.PlayInfoList[id.nr];
-          if (node->unique == id.unique) {
-            active = true;
-          }
-        }
-      }
-      TH_unlock(&gaudio()->system_audio->Process.PlayInfoListMutex);
-      return active;
+      return is_playing_locked(id);
     }
-
     struct piece_t : fan::audio_t::piece_t {
       using fan::audio_t::piece_t::piece_t;
 
