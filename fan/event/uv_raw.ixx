@@ -48,6 +48,8 @@ export namespace fan::uv {
   inline constexpr auto writable_pipe= UV_WRITABLE_PIPE;
   inline constexpr auto ignore       = UV_IGNORE;
 
+  inline constexpr auto unknown_handle = UV_UNKNOWN_HANDLE;
+
   // ─── loop ────────────────────────────────────────────────────────────────
 
   inline loop_t* default_loop() {
