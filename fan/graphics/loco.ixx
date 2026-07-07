@@ -55,6 +55,8 @@ import fan.graphics.image_load;
 import fan.graphics.input_subsystem;
 import fan.graphics.culling;
 
+import fan.camera;
+
 import fan.noise;
 
 import fan.graphics.vulkan.core;
