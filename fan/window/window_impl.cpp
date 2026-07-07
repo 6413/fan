@@ -1128,28 +1128,16 @@ void fan::window_t::set_clipboard(const std::string& text) {
   glfwSetClipboardString(glfw_window, text.c_str());
 }
 
-
 fan::vec2i fan::get_primary_screen_resolution() {
-#if defined(_WIN32)
-  return {
-    GetSystemMetrics(SM_CXSCREEN),
-    GetSystemMetrics(SM_CYSCREEN)
-  };
-#elif defined(fan_platform_unix)
-  Display* dpy = XOpenDisplay(nullptr);
-  if (!dpy) {
-    return {0, 0};
-  }
-  int screen = DefaultScreen(dpy);
-  fan::vec2i res = {
-    DisplayWidth(dpy, screen),
-    DisplayHeight(dpy, screen)
-  };
-  XCloseDisplay(dpy);
+  fan::init_manager_t::initialize();
+  
+  GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+  const GLFWvidmode* mode = monitor ? glfwGetVideoMode(monitor) : nullptr;
+  fan::vec2i res = mode ? fan::vec2i(mode->width, mode->height) : fan::vec2i(0, 0);
+  
+  fan::init_manager_t::uninitialize();
+  
   return res;
-#else
-  return {0, 0};
-#endif
 }
 
 #endif
