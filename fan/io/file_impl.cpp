@@ -87,7 +87,7 @@ namespace fan::io::file {
         return 0;
       }
     }
-    fan::print_warning("file is not opened:");
+    fan::print_log(fan::log_level_e::warning, "fan::io::file", "file is not opened:");
     return 1;
   }
 
@@ -105,7 +105,7 @@ namespace fan::io::file {
       file_ptr = f2;
       return 0;
     }
-    fan::print_warning("file is not opened:");
+    fan::print_log(fan::log_level_e::warning, "fan::io::file", "file is not opened:");
     return 1;
   }
 
@@ -117,7 +117,7 @@ namespace fan::io::file {
   bool close(file_t* f) {
     int ret = std::fclose(f);
   #if FAN_DEBUG >= fan_debug_low
-    if (ret != 0) { fan::print_warning("failed to close file stream"); return 1; }
+    if (ret != 0) { fan::print_log(fan::log_level_e::warning, "fan::io::file", "failed to close file stream"); return 1; }
   #endif
     return 0;
   }
@@ -125,7 +125,7 @@ namespace fan::io::file {
   bool read(file_t* f, void* data, std::uint64_t size, std::uint64_t elements) {
     std::uint64_t ret = std::fread(data, size, elements, f);
   #if FAN_DEBUG >= fan_debug_low
-    if (ret != elements && size != 0) { fan::print_warning("failed to read from file stream"); return 1; }
+    if (ret != elements && size != 0) { fan::print_log(fan::log_level_e::warning, "fan::io::file", "failed to read from file stream"); return 1; }
   #endif
     return 0;
   }
@@ -133,7 +133,7 @@ namespace fan::io::file {
   bool write(file_t* f, void* data, std::uint64_t size, std::uint64_t elements) {
     std::uint64_t ret = std::fwrite(data, size, elements, f);
   #if FAN_DEBUG >= fan_debug_low
-    if (ret != elements && size != 0) { fan::print_warning("failed to write from file stream"); return 1; }
+    if (ret != elements && size != 0) { fan::print_log(fan::log_level_e::warning, "fan::io::file", "failed to write from file stream"); return 1; }
   #endif
     return 0;
   }
