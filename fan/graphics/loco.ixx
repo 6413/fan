@@ -1198,13 +1198,8 @@ fan::graphics::texture_pack_t texture_pack;
   #endif
 
   struct async_image_t {
-    bool ready() const {
-      return result != nullptr && result->state == fan::image::async_result_t::state_e::ready;
-    }
-
-    bool failed() const {
-      return result != nullptr && result->state == fan::image::async_result_t::state_e::failed;
-    }
+    bool ready() const;
+    bool failed() const;
 
     operator fan::graphics::image_t() const {
       return image;
