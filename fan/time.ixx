@@ -287,4 +287,21 @@ export namespace fan {
       fan::printr(fan::format_args(args...) + '\n');
     }
   }
+
+  template <int throttle_ms = 1000, typename... Args>
+  void print_throttled(const Args&... args) {
+    std::string msg = format_args(args...);
+    std::size_t hash_key = std::hash<std::string>{}(msg);
+    static std::unordered_map<std::size_t, fan::time::timer> timers;
+    auto& t = timers[hash_key];
+    if (!t.started()) { 
+      print_line_raw(msg);
+      t.start_millis(throttle_ms); 
+      return; 
+    }
+    if (t.finished()) { 
+      print_line_raw(msg);
+      t.start_millis(throttle_ms); 
+    }
+  }
 }
