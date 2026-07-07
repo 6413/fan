@@ -159,9 +159,9 @@ void fan::vulkan::context_t::shader_set_vertex(fan::graphics::shader_nr_t nr, co
   shader_set_vertex(nr, {}, vertex_code);
 }
 void fan::vulkan::context_t::shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& fragment_code) {
-  auto& shader = shader_get(nr);
-  __fan_internal_shader_list[nr].path_fragment = file_path;
-  __fan_internal_shader_list[nr].sfragment = fragment_code;
+  auto& shader = __fan_internal_shader_list[nr];
+  shader.path_fragment = file_path;
+  shader.sfragment = fragment_code;
   //fan::print_impl(
     // "processed vertex shader:", path, "resulted in:",
   //preprocess_shader(shader_name.c_str(), shaderc_glsl_fragment_shader, shader_code);
