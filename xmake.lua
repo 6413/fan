@@ -94,6 +94,7 @@ if not is_plat("wasm") then
     add_requires("zlib 1.3.1", static_req)
     add_requires("libpng 1.6.43", static_req)
     add_requires("libwebp 1.3.2", static_req)
+    add_requires("glfw 3.4", static_req)
   end
   
   if has_config("FAN_GUI") then
