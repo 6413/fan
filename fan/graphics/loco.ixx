@@ -7,6 +7,7 @@ module;
 #if defined(fan_compiler_gcc)
   #define _GCC_MAX_ALIGN_T
   #define _BITS_PTHREADTYPES_COMMON_H
+  #include <pthread.h>
 #endif
 
 #include <cstdint>
