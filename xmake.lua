@@ -223,8 +223,11 @@ if has_config("FAN_GUI") then
   target("imgui")
     set_kind("static")
     ---add_rules("c++.unity_build", {batchsize = 16})
+    if has_config("FAN_WINDOW") then
+      add_packages("glfw")
+    end
     if has_config("FAN_VULKAN") then
-      add_packages("vulkan-headers", "glfw")
+      add_packages("vulkan-headers")
       if is_plat("linux") then add_syslinks("vulkan") end
     end
     if not is_gcc and not is_plat("wasm") then
