@@ -9,7 +9,6 @@ import std;
 export import fan.mpl;
 import fan.types;
 import fan.memory;
-import fan.time;
 
 namespace raii_build {
   #include <fan/types/raii_nr.h>

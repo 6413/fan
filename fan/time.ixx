@@ -7,6 +7,8 @@ export module fan.time;
 import std;
 
 import fan.types;
+import fan.formatter;
+import fan.print;
 
 export namespace fan {
   namespace time {
@@ -278,4 +280,11 @@ export namespace fan {
     }
     static cooldown_t full(f32_t max) { cooldown_t c{max}; c.current = max; return c; }
   };
+
+  template<typename... Args, FAN_UNIQUE_CALL>
+  void print_every(int throttle_ms, const Args&... args) {
+    if (fan::time::every<FAN_UNIQUE_CALL_PASS>(throttle_ms)) {
+      fan::printr(fan::format_args(args...) + '\n');
+    }
+  }
 }
