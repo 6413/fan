@@ -39,7 +39,8 @@ export namespace fan {
   }
 
   template <typename T>
-  requires requires(const T& t) { t.size.size(); }
+  requires requires(const T& t) { t.size.size();
+  }
   std::ostream& operator<<(std::ostream& os, const T& container_within) noexcept {
     for (std::uintptr_t i = 0; i < container_within.size(); i++) {
       for (std::uintptr_t j = 0; j < container_within[i].size(); j++)
@@ -131,11 +132,12 @@ export namespace fan {
   template <typename ...Args> void print_impl(const Args&... args) { detail::print_impl(format_args(args...) + '\n'); }
   
   template <typename ...Args> void print_dbg(const Args&... args) { 
-    #if FAN_DEBUG >= fan_debug_high
-    detail::print_impl(format_args(args...) + '\n');
+    std::string msg = format_args(args...);
+    push_memory_log(msg, log_level_e::info);
+    #if FAN_DEBUG >= fan_debug_insanity
+      detail::print_impl(msg + '\n');
     #endif
   }
-  
   
 #if !defined(FAN_REFLECTION)
   template <typename ...Args> void print(const Args&... args) { fan::print_impl(args...); }
@@ -168,6 +170,7 @@ export namespace fan {
   #ifndef fan_disable_warnings
     std::string message = format_args(args...);
     write_error_to_disk(message);
+    push_memory_log(message, log_level_e::warning);
     print_color_raw(fan::colors::yellow, message);
   #endif
   }
@@ -177,6 +180,7 @@ export namespace fan {
   #ifndef fan_disable_errors
     std::string message = format_args(args...);
     write_error_to_disk(message);
+    push_memory_log(message, log_level_e::error);
     print_color_raw(fan::colors::red, message);
   #endif
   }
@@ -208,6 +212,7 @@ export namespace fan {
   void print_warning_no_space(const std::string& message) {
   #ifndef fan_disable_warnings
     write_error_to_disk(message);
+    push_memory_log(message, log_level_e::warning);
     detail::print_impl(format_warning_no_space(message) + '\n');
   #endif
   }

@@ -5,11 +5,34 @@ export module fan.print.error;
 import std;
 
 export namespace fan {
-  struct log_t { std::string filename = "fan_errors.txt"; };
+  enum class log_level_e : std::uint8_t {
+    info,
+    warning,
+    error
+  };
+
+  struct log_entry_t {
+    std::string msg;
+    log_level_e level;
+  };
+
+  struct log_t { 
+    std::string filename = "fan_errors.txt"; 
+    std::deque<log_entry_t> buffer;
+    std::size_t max_size = 1000;
+    std::uint64_t total_logs_pushed = 0;
+    std::mutex mtx;
+  };
+  
   log_t& get_error_log();
   void write_error_to_disk(const std::string& msg);
   struct exception_t { const char* reason; };
   void throw_error_impl(const char* reason = "");
+
+  void push_memory_log(const std::string& msg, log_level_e level = log_level_e::info);
+  std::vector<log_entry_t> dump_memory_logs();
+  std::vector<log_entry_t> dump_memory_logs_since(std::uint64_t& cursor);
+  void clear_memory_logs();
 
   template <typename ...Args>
   void throw_error(const Args&... args) {
