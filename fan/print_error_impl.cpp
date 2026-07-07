@@ -28,13 +28,16 @@ namespace fan {
     out << oss.str() << " - " << msg << '\n';
   }
 
-  void push_memory_log(const std::string& msg, log_level_e level) {
+  void push_memory_log(const std::string& tag, const std::string& msg, log_level_e level) {
     auto& log = get_error_log();
     std::lock_guard<std::mutex> lock(log.mtx);
-    log.buffer.push_back({msg, level});
+    log.buffer.push_back({tag, msg, level});
     if (log.buffer.size() > log.max_size) {
       log.buffer.pop_front();
     }
+  }
+  void push_memory_log(const std::string& msg, log_level_e level) {
+    push_memory_log("", msg, level);
   }
 
   std::vector<log_entry_t> dump_memory_logs() {
