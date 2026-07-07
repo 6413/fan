@@ -363,7 +363,7 @@ target("a.exe")
       add_packages("glfw", "zlib", "libpng", "libwebp")
     end
 
-    if has_config("FAN_AUDIO") then add_links("opus", "pulse-simple") end
+    if has_config("FAN_AUDIO") then add_links("opus", "pulse-simple", "pulse") end
     if has_config("FAN_NETWORK") then add_links("ssl", "crypto", "curl") end
     if has_config("FAN_GUI") then add_packages("freetype", "lunasvg") end
     if has_config("FAN_PHYSICS_2D") then add_packages("box2d") end
