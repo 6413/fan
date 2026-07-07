@@ -653,6 +653,25 @@ void fan::vulkan::context_t::process_async_image_uploads() {
   }
 }
 
+static constexpr std::uint32_t get_format_channel_count(VkFormat format) {
+  using img_fmt = fan::vulkan::context_t::image_format;
+  switch (format) {
+    case img_fmt::r8_unorm: return 1;
+    case img_fmt::r8g8_unorm: return 2;
+    case img_fmt::r8g8b8_unorm: return 3;
+
+    case img_fmt::b8g8r8a8_unorm:
+    case img_fmt::r8g8b8a8_srgb:
+    case img_fmt::r8b8g8a8_unorm:
+    case img_fmt::d32_sfloat:
+    case img_fmt::b10_g11_r11_ufloat_pack32:
+      return 4;
+
+    default: fan::throw_error("failed to find format for image multiplier");
+    return {};
+  }
+}
+
 fan::graphics::image_nr_t fan::vulkan::context_t::image_load(fan::str_view_t path, const fan::vulkan::context_t::image_load_properties_t& p, const std::source_location& callers_path) {
 
 #if fan_assert_if_same_path_loaded_multiple_times
