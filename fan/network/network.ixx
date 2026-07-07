@@ -753,7 +753,7 @@ export namespace fan {
         return *client_list[id];
       }
       const tcp_t& get_client(nr_t id) const {
-        return get_client(id);
+        return const_cast<client_handler_t*>(this)->get_client(id);
       }
 
       tcp_t& operator[](nr_t id) {
