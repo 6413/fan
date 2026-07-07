@@ -15,7 +15,6 @@ module fan.graphics.vulkan.core;
 
 import std;
 
-
 import fan.types.fstring;
 import fan.types.color;
 
@@ -29,6 +28,8 @@ import fan.graphics.common_context;
 
 import fan.math;
 import fan.math.intersection;
+
+import fan.camera;
 
 #define __fan_internal_camera_list (*fan::graphics::ctx().camera_list)
 #define __fan_internal_shader_list (*fan::graphics::ctx().shader_list)
