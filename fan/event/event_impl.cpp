@@ -424,7 +424,7 @@ void fs_watcher_t::stop() {
   fan::print_dbg_tag("FS_WATCHER DEBUG", "stop() initiated. Closing", state->fs_events.size(), "filesystem handles and timer.");
 
   for (auto* ev : state->fs_events) {
-    if (ev->loop != nullptr && ev->type != UV_UNKNOWN_HANDLE && !fan::uv::is_closing(reinterpret_cast<fan::uv::handle_t*>(ev))) {
+    if (ev->loop != nullptr && ev->type != fan::uv::unknown_handle && !fan::uv::is_closing(reinterpret_cast<fan::uv::handle_t*>(ev))) {
       fan::uv::fs_event_stop(ev);
       fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(ev), [](fan::uv::handle_t* handle) {
         static_cast<fs_watcher_internal_t*>(handle->data)->on_handle_close();
@@ -436,7 +436,7 @@ void fs_watcher_t::stop() {
   }
   state->fs_events.clear();
 
-  if (state->timer.loop != nullptr && state->timer.type != UV_UNKNOWN_HANDLE && !fan::uv::is_closing(reinterpret_cast<fan::uv::handle_t*>(&state->timer))) {
+  if (state->timer.loop != nullptr && state->timer.type != fan::uv::unknown_handle && !fan::uv::is_closing(reinterpret_cast<fan::uv::handle_t*>(&state->timer))) {
     fan::uv::timer_stop(&state->timer);
     fan::uv::close(reinterpret_cast<fan::uv::handle_t*>(&state->timer), [](fan::uv::handle_t* handle) {
       static_cast<fs_watcher_internal_t*>(handle->data)->on_handle_close();
