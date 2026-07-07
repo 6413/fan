@@ -153,7 +153,7 @@ else
 end
 
 if has_config("FAN_GUI") then
-  add_defines("IMGUI_DEFINE_MATH_OPERATORS", "IMGUI_DISABLE_SSE", "IMGUI_ENABLE_FREETYPE", "IMGUI_ENABLE_FREETYPE_LUNASVG", "STBI_NO_SIMD")
+  add_defines("IMGUI_DEFINE_MATH_OPERATORS", "IMGUI_DISABLE_SSE", "STBI_NO_SIMD")
 end
 
 local module_files = {
