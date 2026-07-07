@@ -261,7 +261,7 @@ if has_config("FAN_GUI") then
             local flags = res:split("%s+")
             table.sort(flags)
             for _, p in ipairs(flags) do
-              if p:startswith("-I") then target:add("includedirs", p:sub(3)) end
+              if p:startswith("-I") then target:add("sysincludedirs", p:sub(3)) end
             end
           end
         end
@@ -280,6 +280,7 @@ end
 if not is_plat("wasm") and has_config("FAN_WINDOW") then
   target("nfd")
     set_kind("static")
+    set_warnings("none")
     add_rules("c++.unity_build", {batchsize = 8})
     add_files("fan/nativefiledialog/nfd_common.c")
     if is_plat("linux") then add_files("fan/nativefiledialog/nfd_gtk.c")
@@ -293,7 +294,7 @@ if not is_plat("wasm") and has_config("FAN_WINDOW") then
             local flags = cflags:split("%s+")
             table.sort(flags)
             for _, p in ipairs(flags) do
-              if p:startswith("-I") then target:add("includedirs", p:sub(3)) end
+              if p:startswith("-I") then target:add("sysincludedirs", p:sub(3)) end
             end
           end
           local libs = os.iorunv("pkg-config", {"--libs", "gtk+-3.0"})
