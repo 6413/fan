@@ -15,8 +15,9 @@ module;
 // loco framebuffer is recommended, you cant see sprites without it, 
 // since light uses framebuffer _t01. you could use unlit_sprite, if required
 #define LOCO_FRAMEBUFFER
-  #include <vulkan/vulkan.h>
-  #include <vk_mem_alloc.h>
+#include <vulkan/vulkan.h>
+#include <vk_mem_alloc.h>
+#include <shaderc/shaderc.hpp>
 #include <fan/event/types.h>
 
 // +cuda
