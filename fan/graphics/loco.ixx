@@ -4,13 +4,13 @@ module;
 
 #include <fan/utility.h>
 
-#include <cstdint>
-
 #if defined(fan_compiler_gcc)
   #define _GCC_MAX_ALIGN_T
   #define ____mbstate_t_defined
   #define _BITS_PTHREADTYPES_COMMON_H
 #endif
+
+#include <cstdint>
 
 // loco framebuffer is recommended, you cant see sprites without it, 
 // since light uses framebuffer _t01. you could use unlit_sprite, if required
