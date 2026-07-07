@@ -16,6 +16,8 @@ namespace raii_build {
 }
 
 export namespace fan {
+  
+  inline constexpr auto tab = "  ";
 
   template<typename It>
   struct iterator_traits {
