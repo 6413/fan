@@ -128,8 +128,9 @@ if not is_plat("wasm") then
   end
 end
 
-add_includedirs(".", "third_party/fan/include", {public = true})
-if has_config("FAN_VULKAN") then add_includedirs("third_party/fan/include/VulkanMemoryAllocator/include", {public = true}) end
+add_includedirs(".", {public = true})
+add_sysincludedirs("third_party/fan/include", {public = true})
+if has_config("FAN_VULKAN") then add_sysincludedirs("third_party/fan/include/VulkanMemoryAllocator/include", {public = true}) end
 
 local is_gcc = get_config("compiler") == "gcc"
 if not is_gcc and not is_plat("wasm") then add_cxxflags("-stdlib=libstdc++", {force = true}) end
