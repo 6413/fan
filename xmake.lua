@@ -82,7 +82,12 @@ option("main") set_default("examples/engine_demos/engine_demo.cpp") option_end()
 
 local static_req = {system = false, configs = {shared = false}}
 if has_config("FAN_FMT") then add_requires("fmt 10.2.1", static_req) end
-if has_config("FAN_VULKAN") then add_requires("vulkan-headers v1.4.335", {system = false}) end
+if has_config("FAN_VULKAN") then
+  add_defines("VK_ENABLE_BETA_EXTENSIONS")
+  add_requires("vulkan-headers v1.4.335", {system = false})
+  add_requires("shaderc", static_req)
+end
+
 if not is_plat("wasm") then
   add_requires("libuv 1.48.0", static_req)
   if has_config("FAN_WINDOW") then
@@ -300,8 +305,9 @@ target("a.exe")
   if has_config("FAN_GUI") then add_deps("imgui") end
   if not is_plat("wasm") and has_config("FAN_WINDOW") then add_deps("nfd") end
   if has_config("FAN_FMT") then add_packages("fmt") end
+  
   if has_config("FAN_VULKAN") then
-    add_packages("vulkan-headers")
+    add_packages("vulkan-headers", "shaderc")
   end
 
   for _, f in ipairs(module_files) do add_files(f) end
@@ -340,7 +346,7 @@ target("a.exe")
     if has_config("FAN_GUI") then add_packages("freetype", "lunasvg") end
     if has_config("FAN_PHYSICS_2D") then add_packages("box2d") end
     if has_config("FAN_3D") then add_links("assimp") end
-    if has_config("FAN_VULKAN") then add_packages("vulkansdk") add_links("shaderc_shared") end
+    if has_config("FAN_VULKAN") then add_packages("vulkansdk") end
     if has_config("FAN_WAYLAND_SCREEN") then add_links("wayland-client", "pipewire-0.3", "dbus-1", "avcodec", "avutil", "swscale") end
   elseif is_plat("windows") then
     add_linkdirs("lib/GLFW", "lib/GLEW", "lib/libuv", "lib/libwebp", "lib/opus", "lib/openssl")
@@ -348,7 +354,7 @@ target("a.exe")
     if has_config("FAN_GUI") then add_linkdirs("lib/freetype", "lib/lunasvg") add_links("freetype", "lunasvg") end
     if has_config("FAN_PHYSICS_2D") then add_linkdirs("lib/box2d") add_links("box2d") end
     if has_config("FAN_3D") then add_linkdirs("C:/Program Files/Assimp/lib/x64") add_links("assimp-vc143-mt") end
-    if has_config("FAN_VULKAN") then add_packages("vulkansdk") add_links("shaderc_shared") end
+    if has_config("FAN_VULKAN") then add_packages("vulkansdk") end
     if has_config("FAN_WAYLAND_SCREEN") then
       add_linkdirs("lib/libx264", "lib/openh264")
       add_links("DXGI", "D3D11", "libx264", "welsdcore", "welsecore", "WelsDecPlus", "WelsEncPlus", "WelsVP")
