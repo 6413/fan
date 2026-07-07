@@ -1433,7 +1433,6 @@ namespace fan::graphics::gui {
         fan::graphics::image_t preview_image = fan::graphics::image_load(sprite_sheet_drag_drop_name);
 
         if (fan::graphics::is_image_valid(preview_image)) {
-          f32_t content_width = hframes * (64 + gui::get_style().ItemSpacing.x);
           f32_t content_height = vframes * (64 + gui::get_style().ItemSpacing.y);
 
           if (gui::begin_child("sprite_preview", fan::vec2(0, std::min(content_height + 20, 300.0f)), true, window_flags_horizontal_scrollbar)) {
@@ -1848,29 +1847,9 @@ namespace fan::graphics::gui {
   }
 
   void text_partial_render(const std::string& text, std::size_t render_pos, f32_t wrap_width, f32_t line_spacing) {
-    static auto find_next_word = [](const std::string& str, std::size_t offset) -> std::size_t {
-      std::size_t found = str.find(' ', offset);
-      if (found == std::string::npos) {
-        found = str.size();
-      }
-      if (found != std::string::npos) {
-      }
-      return found;
-    };
-    static auto find_previous_word = [](const std::string& str, std::size_t offset) -> std::size_t {
-      std::size_t found = str.rfind(' ', offset);
-      if (found == std::string::npos) {
-        found = str.size();
-      }
-      if (found != std::string::npos) {
-      }
-      return found;
-    };
-
     std::vector<std::string> lines;
     std::size_t previous_word = 0;
     std::size_t previous_push = 0;
-    bool found = false;
     for (std::size_t i = 0; i < text.size(); ++i) {
       std::size_t word_index = text.find(' ', i);
       if (word_index == std::string::npos) {
