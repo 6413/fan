@@ -299,7 +299,6 @@ option("buildlib") set_default(false) option_end()
 
 target("a.exe")
   set_kind(has_config("buildlib") and "static" or "binary")
-  add_rules("c++.build.modules")
 
   if is_plat("wasm") then
     set_extension(".html")
@@ -336,7 +335,6 @@ target("a.exe")
   if has_config("FAN_VULKAN") then 
     add_includedirs(
       "third_party/fan/include/VulkanMemoryAllocator/include", 
-      "third_party/VulkanMemoryAllocator/include",
       {public = true}
     ) 
   end
