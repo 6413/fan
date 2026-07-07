@@ -198,7 +198,6 @@ struct engine_demo_t {
   }*demo_particles_data = 0;
 
   static void demo_shapes_init_particles(engine_demo_t* engine_demo) {
-    fan::vec2 viewport_size = engine_demo->engine.viewport_get_size(engine_demo->right_column_view.viewport);
     engine_demo->demo_particles_data = new demo_particles_t;
     engine_demo->demo_particles_data->editor.set_particle_shape(fan::graphics::shapes::particles_t::properties_t {
       .position = fan::vec3(0.f, 0.f, 10.0f),
