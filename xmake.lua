@@ -230,6 +230,7 @@ end
 if has_config("FAN_GUI") then
   target("imgui")
     set_kind("static")
+    set_warnings("none")
     ---add_rules("c++.unity_build", {batchsize = 16})
     if has_config("FAN_WINDOW") then
       add_packages("glfw")
@@ -346,7 +347,8 @@ target("a.exe")
   set_policy("check.auto_ignore_flags", false)
   if not has_config("buildlib") then add_files(get_config("main")) end
 
-  add_includedirs(".", "third_party/fan/include", {public = true})
+  add_includedirs(".", {public = true})
+  add_sysincludedirs("third_party/fan/include", {public = true})
   if has_config("FAN_VULKAN") then
     add_includedirs(
       "third_party/fan/include/VulkanMemoryAllocator/include",
