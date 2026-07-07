@@ -130,6 +130,13 @@ export namespace fan {
 
   template <typename ...Args> void print_impl(const Args&... args) { detail::print_impl(format_args(args...) + '\n'); }
   
+  template <typename ...Args> void print_dbg(const Args&... args) { 
+    #if FAN_DEBUG >= fan_debug_high
+    detail::print_impl(format_args(args...) + '\n');
+    #endif
+  }
+  
+  
 #if !defined(FAN_REFLECTION)
   template <typename ...Args> void print(const Args&... args) { fan::print_impl(args...); }
 #endif
