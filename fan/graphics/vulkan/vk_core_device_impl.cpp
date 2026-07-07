@@ -91,14 +91,14 @@ void fan::vulkan::context_t::open_no_window() {
   fan::time::measure(t, "create_command_buffers");
   create_sync_objects();
   if (fan::time::is_measuring()) {
-    fan::print("create_sync_objects took:", t.millis(), "ms");
+    fan::time::print_measure("create_sync_objects took:", t.millis(), "ms");
   }
 }
 #if defined(loco_window)
 
 void fan::vulkan::context_t::open(fan::window_t& window) {
   if (fan::time::is_measuring()) {
-    fan::print("open start");
+    fan::time::print_measure("open start");
   }
   fan::time::timer t_total;
   fan::time::timer t;
@@ -160,7 +160,7 @@ void fan::vulkan::context_t::open(fan::window_t& window) {
 #endif
 
   if (fan::time::is_measuring()) {
-    fan::print("open total took:", t_total.millis(), "ms");
+    fan::time::print_measure("open total took:", t_total.millis(), "ms");
   }
 }
 
@@ -1493,7 +1493,7 @@ VkResult fan::vulkan::context_t::end_render(fan::window_t* window) {
 
   VkResult submit_result = vkQueueSubmit(graphics_queue, 1, &submitInfo, in_flight_fences[current_frame]);
   if (submit_result != VK_SUCCESS) {
-    fan::print_impl("vkQueueSubmit error:", (int)submit_result);
+    fan::print_error("vkQueueSubmit error:", (int)submit_result);
     fan::throw_error("failed to submit draw command buffer!");
   }
 
