@@ -92,7 +92,20 @@ if not is_plat("wasm") then
   end
   
   if has_config("FAN_GUI") then
-    add_requires("freetype 2.13.2", static_req)
+    package("freetype")
+      set_base("freetype")
+      add_urls("https://github.com/freetype/freetype.git")
+      add_versions("2.13.2", "VER-2-13-2")
+      add_deps("cmake")
+      on_install(function (package)
+        local configs = {}
+        table.insert(configs, "-DBUILD_SHARED_LIBS=" .. (package:config("shared") and "ON" or "OFF"))
+        table.insert(configs, "-DCMAKE_BUILD_TYPE=" .. (package:is_debug() and "Debug" or "Release"))
+        table.insert(configs, "-DFT_DISABLE_HARFBUZZ=TRUE")
+        table.insert(configs, "-DFT_DISABLE_BROTLI=TRUE")
+        import("package.tools.cmake").install(package, configs)
+      end)
+    package_end()
     add_requires("lunasvg 2.4.1", static_req)
   end
   if has_config("FAN_PHYSICS_2D") then
