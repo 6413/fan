@@ -261,10 +261,11 @@ else
     TOOLCHAIN="clang"
     BIN_CXX="clang++"
   fi
-  mkdir -p .local_bin
-  ln -sf "$CC" .local_bin/$COMPILER
-  ln -sf "$CXX" .local_bin/$BIN_CXX
-  export PATH="$PWD/.local_bin:$PATH"
+
+  mkdir -p .xmake/bin
+  ln -sf "$CC" .xmake/bin/$COMPILER
+  ln -sf "$CXX" .xmake/bin/$BIN_CXX
+  export PATH="$PWD/.xmake/bin:$PATH"
 
   CONFIG_ARGS=("--compiler=$COMPILER" "--toolchain=$TOOLCHAIN")
   if [[ -n "$MAIN_FILE" ]]; then
