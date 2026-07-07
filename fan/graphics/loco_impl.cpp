@@ -616,6 +616,15 @@ static void add_simple_command(
   }).description = desc;
 }
 
+bool loco_t::async_image_t::ready() const {
+  return result != nullptr && result->state == fan::image::async_result_t::state_e::ready;
+}
+
+bool loco_t::async_image_t::failed() const {
+  return result != nullptr && result->state == fan::image::async_result_t::state_e::failed;
+}
+
+
 void loco_t::generate_commands(loco_t* loco) {
 #if defined(FAN_GUI)
   loco->gui.console.open();
