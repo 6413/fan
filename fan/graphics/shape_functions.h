@@ -44,12 +44,12 @@ static void update_shape(fan::graphics::shapes::shape_t* shape, modifier_t&& mod
 
   auto _vi = shape->GetRenderData(fan::graphics::g_shapes->shaper);
   auto vlen_t = fan::graphics::g_shapes->shaper.GetRenderDataSize(sti);
-  std::unique_ptr<uint8_t[]> vi(new uint8_t[vlen_t]);
+  std::unique_ptr<std::uint8_t[]> vi(new uint8_t[vlen_t]);
   std::memcpy(vi.get(), _vi, vlen_t);
 
   auto _ri = shape->GetData(fan::graphics::g_shapes->shaper);
   auto rlen_t = fan::graphics::g_shapes->shaper.GetDataSize(sti);
-  std::unique_ptr<uint8_t[]> ri(new uint8_t[rlen_t]);
+  std::unique_ptr<std::uint8_t[]> ri(new uint8_t[rlen_t]);
   std::memcpy(ri.get(), _ri, rlen_t);
 
   shape->erase_shaper();
