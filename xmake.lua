@@ -82,7 +82,7 @@ option("main") set_default("examples/engine_demos/engine_demo.cpp") option_end()
 
 local static_req = {system = false, configs = {shared = false}}
 if has_config("FAN_FMT") then add_requires("fmt 10.2.1", static_req) end
-if has_config("FAN_VULKAN") then add_requires("vulkan-headers", {system = false}) end
+if has_config("FAN_VULKAN") then add_requires("vulkan-headers 1.3.296", {system = false}) end
 if not is_plat("wasm") then
   add_requires("libuv 1.48.0", static_req)
   if has_config("FAN_WINDOW") then
@@ -218,7 +218,7 @@ if has_config("FAN_GUI") then
     set_kind("static")
     ---add_rules("c++.unity_build", {batchsize = 16})
     if has_config("FAN_VULKAN") then
-      add_packages("vulkan-headers")
+      add_requires("vulkan-headers 1.3.296", {system = false})
     end
     if not is_gcc and not is_plat("wasm") then
       add_cxxflags("-stdlib=libstdc++", {force = true})
@@ -251,7 +251,7 @@ if has_config("FAN_GUI") then
       "fan/imgui/implot.cpp", "fan/imgui/text_editor.cpp", "fan/imgui/misc/freetype/imgui_freetype.cpp",
       "fan/imgui/ImGuizmo.cpp"
     )
-    if has_config("FAN_VULKAN") then add_packages("vulkan-headers") add_files("fan/imgui/imgui_impl_vulkan.cpp") end
+    if has_config("FAN_VULKAN") then add_requires("vulkan-headers 1.3.296", {system = false}) add_files("fan/imgui/imgui_impl_vulkan.cpp") end
   target_end()
 end
 
@@ -301,7 +301,7 @@ target("a.exe")
   if not is_plat("wasm") and has_config("FAN_WINDOW") then add_deps("nfd") end
   if has_config("FAN_FMT") then add_packages("fmt") end
   if has_config("FAN_VULKAN") then
-    add_packages("vulkan-headers")
+    add_requires("vulkan-headers 1.3.296", {system = false})
   end
 
   for _, f in ipairs(module_files) do add_files(f) end
