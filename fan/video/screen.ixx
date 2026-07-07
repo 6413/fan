@@ -1,6 +1,6 @@
 module;
 
-#if defined (FAN_WINDOW)
+#if defined (FAN_WINDOW) && defined(FAN_VIDEO)
 
 #include <cstring>
 
@@ -15,7 +15,7 @@ module;
 
 export module fan.graphics.video.screen;
 
-#if defined (FAN_WINDOW)
+#if defined (FAN_WINDOW) && defined(FAN_VIDEO)
 
 import std;
 import fan.graphics.video.codec;

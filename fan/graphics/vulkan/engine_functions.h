@@ -901,56 +901,6 @@ void begin_render_pass() {
 }
 
 
-#if defined(FAN_2D)
-
-void update_shape_descriptors_before_cmd() {
-  if (fan::graphics::g_shapes == nullptr) {
-    return;
-  }
-  if (loco.context.vk.image_pool.empty()) {
-    return;
-  }
-
-  fan::graphics::shaper_t::KeyTraverse_t KeyTraverse;
-  KeyTraverse.Init(fan::graphics::g_shapes->shaper);
-
-  while (KeyTraverse.Loop(fan::graphics::g_shapes->shaper)) {
-    if (!KeyTraverse.isbm) {
-      continue;
-    }
-
-    fan::graphics::shaper_t::BlockTraverse_t BlockTraverse;
-    fan::graphics::shaper_t::ShapeTypeIndex_t shape_type = BlockTraverse.Init(fan::graphics::g_shapes->shaper, KeyTraverse.bmid());
-
-    if (shape_type == fan::graphics::shapes::shape_type_t::light_end) {
-      continue;
-    }
-
-    auto shader_nr = fan::graphics::g_shapes->shaper.GetShader(shape_type);
-    if (shader_nr.iic()) {
-      continue;
-    }
-    auto& shader = *(fan::vulkan::context_t::shader_t*)loco.context_functions.shader_get(&loco.context.vk, shader_nr);
-    if (shader.projection_view_block == nullptr) {
-      continue;
-    }
-    auto& st = fan::graphics::g_shapes->shaper.GetShapeTypes(shape_type);
-    auto& vk_data = st.renderer.vk;
-    auto current_frame = loco.context.vk.current_frame;
-
-    vk_data.shape_data.m_descriptor.m_properties[0].buffer =
-      vk_data.shape_data.common.memory[current_frame].buffer;
-    vk_data.shape_data.m_descriptor.m_properties[0].range = VK_WHOLE_SIZE;
-    vk_data.shape_data.m_descriptor.m_properties[1].buffer =
-      shader.projection_view_block->common.memory[current_frame].buffer;
-    vk_data.shape_data.m_descriptor.m_properties[1].range =
-      shader.projection_view_block->m_size;
-    vk_data.shape_data.m_descriptor.m_properties[2].image_infos = loco.context.vk.image_pool;
-    vk_data.shape_data.m_descriptor.update(loco.context.vk, 3, 0, std::min((std::uint32_t)vk_data.shape_data.m_descriptor.m_properties[2].image_infos.size(), (std::uint32_t)fan::vulkan::max_textures));
-  }
-}
-#endif
-
 void begin_draw() {
   fan::vulkan::context_t& context = loco.context.vk;
   vkWaitForFences(context.device, 1, &context.in_flight_fences[context.current_frame], VK_TRUE, UINT64_MAX);
@@ -1046,10 +996,6 @@ void begin_draw() {
       nrtra.Close(&loco.image_list);
     }
   }
-
-  #if defined(FAN_2D)
-  update_shape_descriptors_before_cmd();
-#endif
 
   update_post_process_descriptors_before_cmd();
 

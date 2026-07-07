@@ -4,6 +4,7 @@ module;
 
 #include <fan/utility.h>
 #include <cstdint>
+#include <vk_mem_alloc.h>
 
 #endif
 
@@ -174,6 +175,7 @@ export namespace fan::graphics::shaper {
     for (std::uint32_t _f = 0; _f < fan::vulkan::max_frames_in_flight; ++_f) {\
       if (vk.shape_data.data[_f]) {\
         std::memcpy(vk.shape_data.data[_f] + dst_offset, src, wrote);\
+        fan::vulkan::validate(vmaFlushAllocation(context.allocator, vk.shape_data.common.memory[_f].device_memory, dst_offset, wrote));\
       }\
     }
 
@@ -186,7 +188,10 @@ export namespace fan::graphics::shaper {
     BlockList_t::nr_t node_id;\
     traverse.Open(&st.BlockList, &node_id);\
     while (traverse.Loop(&st.BlockList, &node_id)) {\
-      std::memcpy(vk.shape_data.data[_frame] + GetRenderDataOffset(sti, node_id), GetRenderData(sti, node_id, 0), st.RenderDataSize * st.MaxElementPerBlock());\
+      auto _rdo = GetRenderDataOffset(sti, node_id);\
+      auto _rsize = st.RenderDataSize * st.MaxElementPerBlock();\
+      std::memcpy(vk.shape_data.data[_frame] + _rdo, GetRenderData(sti, node_id, 0), _rsize);\
+      fan::vulkan::validate(vmaFlushAllocation(context.allocator, vk.shape_data.common.memory[_frame].device_memory, _rdo, _rsize));\
     }\
     traverse.Close(&st.BlockList);\
   }

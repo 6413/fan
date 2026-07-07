@@ -1,6 +1,6 @@
 module;
 
-#if defined (FAN_WINDOW)
+#if defined (FAN_WINDOW) && defined(FAN_VIDEO)
 
 #if defined(FAN_2D)
   extern "C" {
@@ -12,7 +12,7 @@ module;
 
 export module fan.graphics.video.renderer;
 
-#if defined (FAN_WINDOW)
+#if defined (FAN_WINDOW) && defined(FAN_VIDEO)
 
 import std;
 import fan.time;
