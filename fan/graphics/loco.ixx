@@ -4,10 +4,6 @@ module;
 
 #include <fan/utility.h>
 
-#if defined(fan_compiler_gcc)
-  #define _GCC_MAX_ALIGN_T
-#endif
-
 #include <cstdint>
 
 // loco framebuffer is recommended, you cant see sprites without it, 
