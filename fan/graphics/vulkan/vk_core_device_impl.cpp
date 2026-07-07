@@ -395,7 +395,7 @@ void fan::vulkan::context_t::create_instance() {
 
 #if FAN_DEBUG >= fan_debug_high
   if (!check_validation_layer_support()) {
-    fan::print_warning("validation layers not supported");
+    fan::print_log(fan::log_level_e::warning, "VULKAN - validation layer:", "validation layers not supported");
     supports_validation_layers = false;
   }
 #endif
@@ -1706,10 +1706,10 @@ bool fan::vulkan::context_t::check_validation_layer_support() {
     }
 
     if (!layerFound) {
-      fan::print_warning("missing Vulkan validation layer:", layerName);
-      fan::print_warning("available Vulkan instance layers:");
+      fan::print_log(fan::log_level_e::warning, "VULKAN - validation layer:", "missing Vulkan validation layer:", layerName);
+      fan::print_log(fan::log_level_e::warning, "VULKAN - validation layer:", "available Vulkan instance layers:");
       for (const auto& layerProperties : availableLayers) {
-        fan::print_warning("  ", layerProperties.layerName);
+        fan::print_log(fan::log_level_e::warning, "VULKAN - validation layer:", "  ", layerProperties.layerName);
       }
       return false;
     }
