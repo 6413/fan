@@ -1,6 +1,6 @@
 module;
 
-#if defined (FAN_WINDOW)
+#if defined (FAN_WINDOW) && defined(FAN_VIDEO)
 
 #if defined(FAN_2D)
 extern "C" {
@@ -18,7 +18,7 @@ extern "C" {
 
 export module fan.graphics.video.codec;
 
-#if defined (FAN_WINDOW)
+#if defined (FAN_WINDOW) && defined(FAN_VIDEO)
 
 import std;
 

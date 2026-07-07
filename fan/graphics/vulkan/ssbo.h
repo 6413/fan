@@ -51,20 +51,17 @@ struct ssbo_t {
     vram_capacity = size;
     for (std::uint32_t frame = 0; frame < fan::vulkan::max_frames_in_flight; frame++) {
       if (common.memory[frame].buffer != VK_NULL_HANDLE) {
-        if (frame == 0) {
-          vkDeviceWaitIdle(context.device);
-        }
         if (data[frame]) {
           vmaUnmapMemory(context.allocator, common.memory[frame].device_memory);
           data[frame] = nullptr;
         }
-        context.destroy_buffer(common.memory[frame].buffer, common.memory[frame].device_memory);
+        context.get_current_deletion_queue(frame).push_buffer(context.allocator, common.memory[frame].buffer, common.memory[frame].device_memory);
       }
 
       context.create_buffer(
         size,
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT,
         common.memory[frame].buffer,
         common.memory[frame].device_memory
       );
@@ -82,6 +79,7 @@ struct ssbo_t {
     if (!instance_list.empty()) {
       auto& ptr = instance_list[0];
       memcpy(data[frame], &ptr, instance_list.size() * sizeof(instance_id_t));
+      fan::vulkan::validate(vmaFlushAllocation(context.allocator, common.memory[frame].device_memory, 0, VK_WHOLE_SIZE));
     }
 
 		common.on_edit(context);
