@@ -151,7 +151,7 @@ export namespace fan::event {
     void* internal_state = nullptr;
     fs_watcher_t(const std::string& path);
     ~fs_watcher_t();
-    bool start(std::function<void(const std::string&, int)> callback);
+    std::expected<void, std::string> start(std::function<void(const std::string&, int)> callback);
     void stop();
     std::string get_watch_path();
   };
