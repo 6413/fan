@@ -1709,7 +1709,7 @@ bool fan::vulkan::context_t::check_validation_layer_support() {
       fan::print_log(fan::log_level_e::warning, "VULKAN - validation layer:", "Missing Vulkan validation layer:", layerName);
       std::string msg = "Available Vulkan instance layers:\n";
       for (const auto& layerProperties : availableLayers) {
-        msg += "  ", layerProperties.layerName + '\n';
+        msg += std::string(fan::tab) + layerProperties.layerName + '\n';
       }
       msg.pop_back();
       fan::print_log(fan::log_level_e::warning, "VULKAN - validation layer:", msg);
