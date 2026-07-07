@@ -3,7 +3,7 @@ module;
 #if defined (FAN_WINDOW)
 
 #include <fan/utility.h>
-
+#include <cstdint>
 
 #endif
 
