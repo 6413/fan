@@ -295,7 +295,7 @@ struct fs_watcher_internal_t {
           state->attach_watch(full_path);
         }
 
-        state->pending_events[file_str] = { file_str, events, std::chrono::steady_clock::now() };
+        state->pending_events[full_path] = { full_path, events, std::chrono::steady_clock::now() };
         fan::print("[FS_WATCHER DEBUG] Event queued for processing on next timer tick.");
       }
     }, target_path.c_str(), 0);
