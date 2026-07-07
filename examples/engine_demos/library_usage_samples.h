@@ -194,7 +194,7 @@ struct library_usage_t {
     // Demonstrates file system watching for changes
     struct file_watcher {
       file_watcher() : watcher("./") {
-        watcher.start([this](const std::string& filename, int events) {
+        auto started = watcher.start([this](const std::string& filename, int events) {
           last_event = "file: " + filename;
           if (events & fan::fs_change) {
             last_event += " (modified)";
@@ -204,6 +204,7 @@ struct library_usage_t {
           }
           fan::print("fs event: " + last_event);
         });
+        if (!started) fan::throw_error(started.error());
       }
       void update() {
         fan::graphics::gui::text("watching current directory for file changes");
