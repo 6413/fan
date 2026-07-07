@@ -26,6 +26,7 @@ module;
   #include <xaudio2.h>
 #elif fan_audio_set_backend == 1
   #include <pulse/simple.h>
+  #include <pulse/error.h>
 #endif
 #include <WITCH/FS/FS.h>
 #include <WITCH/T/T.h>
