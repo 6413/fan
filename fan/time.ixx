@@ -295,12 +295,12 @@ export namespace fan {
     static std::unordered_map<std::size_t, fan::time::timer> timers;
     auto& t = timers[hash_key];
     if (!t.started()) { 
-      print_line_raw(msg);
+      fan::print_impl(msg + '\n');
       t.start_millis(throttle_ms); 
       return; 
     }
     if (t.finished()) { 
-      print_line_raw(msg);
+      fan::print_impl(msg + '\n');
       t.start_millis(throttle_ms); 
     }
   }

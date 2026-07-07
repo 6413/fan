@@ -13,6 +13,8 @@ import std;
 
 import fan.graphics.shapes;
 import fan.print;
+import fan.time;
+
 
 namespace fan::graphics::culling {
 
