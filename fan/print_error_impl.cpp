@@ -74,6 +74,7 @@ namespace fan {
   void throw_error_impl(const char* reason) {
     std::string res(reason);
     if (res.size()) {
+      res += std::format("\n{}", std::stacktrace::current());
       write_error_to_disk(res);
       push_memory_log(res, log_level_e::error);
     }
