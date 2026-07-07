@@ -332,7 +332,6 @@ export struct fte_t {
           }
           else {
             camera_set_zoom(render_view->camera, camera_get_zoom(render_view->camera) * scroll_speed);
-            auto& style = gui::get_style();
             fan::vec2 pos = (get_window().get_mouse_position() - viewport_settings.window_related_mouse_pos);
             pos /= get_window().get_size();
             pos *= viewport_settings.size / 2;
