@@ -340,7 +340,7 @@ namespace fan::physics {
         b2World_Draw(ctx->world_id, &ctx->debug.debug_draw);
       };
     };
-    b2World_SetPreSolveCallback(world_id, reinterpret_cast<b2PreSolveFcn*>(global_presolve), this);
+    b2World_SetPreSolveCallback(world_id, reinterpret_cast<b2PreSolveFcn*>(reinterpret_cast<void(*)()>(global_presolve)), this);
   }
 
   void context_t::set_gravity(const fan::vec2& gravity) {
@@ -1222,7 +1222,7 @@ namespace fan::physics {
   }
 
   void set_pre_solve_callback(b2WorldId world_id, pre_solve_fn_t* fcn, void* context) {
-    b2World_SetPreSolveCallback(world_id, reinterpret_cast<b2PreSolveFcn*>(fcn), context);
+    b2World_SetPreSolveCallback(world_id, reinterpret_cast<b2PreSolveFcn*>(reinterpret_cast<void(*)()>(global_presolve)), this);
   }
 
   // for drawing physics shapes
