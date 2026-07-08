@@ -11,7 +11,6 @@ module;
 	#endif
 #endif
 
-#include <vulkan/vulkan.h>
 #if defined(fan_platform_windows)
   #define WIN32_LEAN_AND_MEAN
   #define NOMINMAX
@@ -35,7 +34,6 @@ export module fan.window;
 import std;
 
 import fan.types;
-import fan.print.error;
 import fan.utility;
 import fan.memory;
 import fan.graphics.image_load;
