@@ -204,6 +204,18 @@ export namespace fan::graphics {
     bool enable_overlay = true;
   #endif
   };
+    
+  struct timing_t {
+    fan::time::timer shape_draw_timer;
+    fan::time::timer gui_draw_timer;
+    f64_t shape_draw_time_s = 0;
+    f64_t gui_draw_time_s = 0;
+    fan::time::timer frame_timer {true};
+    f64_t target_frame_time = 0.0;
+    f64_t accumulated_time = 0.0;
+    bool timer_enabled = true;
+    bool vsync = false;
+  };
 }
 
 struct global_loco_t {
@@ -1101,19 +1113,8 @@ fan::graphics::texture_pack_t texture_pack;
   bool&                      get_render_shapes_top() { return renderer_state.render_shapes_top; }
   fan::color&                get_clear_color() { return renderer_state.clear_color; }
   void                       set_clear_color(const fan::color& color);
-
   
-  struct timing_t {
-    fan::time::timer shape_draw_timer;
-    fan::time::timer gui_draw_timer;
-    f64_t shape_draw_time_s = 0;
-    f64_t gui_draw_time_s = 0;
-    fan::time::timer frame_timer {true};
-    f64_t target_frame_time = 0.0;
-    f64_t accumulated_time = 0.0;
-    bool timer_enabled = true;
-    bool vsync = false;
-  } timing;
+  fan::graphics::timing_t timing;
 
   bool&  get_vsync()       { return timing.vsync; }
   f64_t& get_delta_time()  { return window.m_delta_time; }
