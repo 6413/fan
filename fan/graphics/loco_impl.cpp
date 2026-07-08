@@ -81,9 +81,15 @@ static void for_each_list(list_t& list, fn_t&& fn) {
 }
 
   
-  
-
 namespace fan::graphics {
+
+  bool async_image_t::ready() const {
+    return result != nullptr && result->state == fan::image::async_result_t::state_e::ready;
+  }
+
+  bool async_image_t::failed() const {
+    return result != nullptr && result->state == fan::image::async_result_t::state_e::failed;
+  }
 
   std::uint32_t get_draw_mode(std::uint8_t internal_draw_mode) {
     return fan::vulkan::core::get_draw_mode(internal_draw_mode);
@@ -614,14 +620,6 @@ static void add_simple_command(
     }
     fn(loco, args.empty() ? "" : args[0]);
   }).description = desc;
-}
-
-bool loco_t::async_image_t::ready() const {
-  return result != nullptr && result->state == fan::image::async_result_t::state_e::ready;
-}
-
-bool loco_t::async_image_t::failed() const {
-  return result != nullptr && result->state == fan::image::async_result_t::state_e::failed;
 }
 
 
@@ -2654,11 +2652,11 @@ void fan::stage_loader_t::nr_t::erase() {
   sic();
 }
 
-loco_t::async_image_t loco_t::image_load_async(
+fan::graphics::async_image_t loco_t::image_load_async(
   const std::string& path,
   const fan::graphics::image_load_properties_t& properties
 ) {
-  async_image_t out;
+  fan::graphics::async_image_t out;
   out.image = default_texture;
   out.result = fan::image::async_cache().load(path);
 
