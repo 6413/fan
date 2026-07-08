@@ -4150,6 +4150,70 @@ void fan::graphics::shapes::visibility_remove(shape_nr_t id) {
   fan::graphics::shapes::shape_t& fan::graphics::shapes::shape_t::operator=(const std::string& json_string) {
     return fan::graphics::shapes::shape_t::operator=(fan::json::parse(json_string));
   }
+
+  void fan::graphics::load_scaled_particles(std::vector<shape_t>& out, const fan::json& model, const fan::vec3& position, const fan::vec2& target_size) {
+    if (!model.contains("shapes")) {
+      return;
+    }
+    fan::vec2 base_size(1.f, 1.f);
+    fan::vec3 sprite_pos(0.f, 0.f, 0.f);
+    for (const auto& sh : model["shapes"]) {
+      if (sh["shape"] == "sprite") {
+        base_size = {(f32_t)sh["size"][0], (f32_t)sh["size"][1]};
+        sprite_pos = {(f32_t)sh["position"][0], (f32_t)sh["position"][1], (f32_t)sh["position"][2]};
+        break;
+      }
+    }
+    fan::vec2 ratio = target_size / base_size;
+    for (const auto& sh : model["shapes"]) {
+      if (sh["shape"] != "particles") {
+        continue;
+      }
+      fan::json sm = sh;
+      for (auto* k : {"start_size", "end_size", "start_spread", "end_spread"}) {
+        sm[k][0] = (f32_t)sm[k][0] * ratio.x;
+        sm[k][1] = (f32_t)sm[k][1] * ratio.y;
+      }
+      sm["end_velocity"][1] = (f32_t)sm["end_velocity"][1] * ratio.y;
+
+      shape_t p(sm);
+      fan::vec3 p_pos = p.get_position();
+      if (sm.contains("position")) {
+        p_pos = {(f32_t)sm["position"][0], (f32_t)sm["position"][1], (f32_t)sm["position"][2]};
+      }
+      fan::vec3 offset = (p_pos - sprite_pos);
+      offset.x *= ratio.x;
+      offset.y *= ratio.y;
+      p.set_position(position + offset);
+      p.start_particles();
+      out.push_back(std::move(p));
+    }
+  }
+
+  void fan::graphics::load_emitters(std::vector<shape_t>& out, const fan::json& base_config, const fan::json& emitters, const fan::vec3& position, f32_t z_offset) {
+    for (const auto& emitter : emitters) {
+      fan::json sm = base_config;
+      f32_t sc = emitter.contains("scale") ? (f32_t)emitter["scale"] : 1.0f;
+      for (auto* k : {"start_size", "end_size", "start_spread", "end_spread"}) {
+        for (int i : {0, 1}) {
+          sm[k][i] = (f32_t)sm[k][i] * sc;
+        }
+      }
+      for (auto* k : {"start_velocity", "end_velocity"}) {
+        sm[k][1] = (f32_t)sm[k][1] * sc;
+      }
+      sm["count"] = std::max<uint32_t>(10, (uint32_t)((f32_t)sm["count"] * sc));
+
+      shape_t p(sm);
+      fan::vec2 offset(0, 0);
+      if (emitter.contains("offset")) {
+        offset = {(f32_t)emitter["offset"][0], (f32_t)emitter["offset"][1]};
+      }
+      p.set_position(position + fan::vec3(offset.x, offset.y, z_offset));
+      p.start_particles();
+      out.push_back(std::move(p));
+    }
+  }
 #endif
 #endif
 #endif
