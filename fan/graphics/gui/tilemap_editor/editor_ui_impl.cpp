@@ -43,7 +43,7 @@ namespace fan::graphics::gui::tilemap_editor::ui {
     screen_pos.y -= text_size.y * 0.5f;
     screen_pos = screen_pos.floor();
 
-    draw_list->AddText(ImVec2(screen_pos.x, screen_pos.y), fan::color(255, 255, 255, 200).get_gui_color(), display_id.c_str());
+    draw_list->AddText(fan::vec2(screen_pos.x, screen_pos.y), fan::color(255, 255, 255, 200).get_gui_color(), display_id.c_str());
     fan::graphics::gui::pop_font();
   }
 
@@ -52,7 +52,7 @@ namespace fan::graphics::gui::tilemap_editor::ui {
     auto v = fan::graphics::ctx()->viewport_get(fan::graphics::ctx(), editor.render_view->viewport);
     fan::vec2 clip_min(v.position.x, v.position.y);
     fan::vec2 clip_max(v.position.x + v.size.x, v.position.y + v.size.y);
-    draw_list->PushClipRect(ImVec2(clip_min.x, clip_min.y), ImVec2(clip_max.x, clip_max.y), true);
+    draw_list->PushClipRect(fan::vec2(clip_min.x, clip_min.y), fan::vec2(clip_max.x, clip_max.y), true);
 
     f32_t base_font_size = 14.0f;
     f32_t zoom = fan::graphics::camera_get_zoom(editor.render_view->camera);
@@ -125,7 +125,7 @@ namespace fan::graphics::gui::tilemap_editor::ui {
       fan::graphics::gui::pop_font();
 
       fan::vec2 prev_item_spacing(style.ItemSpacing.x, style.ItemSpacing.y);
-      style.ItemSpacing = ImVec2(0, 0);
+      style.ItemSpacing = fan::vec2(0, 0);
       fan::vec2 old_cursorpos = fan::graphics::gui::get_cursor_pos();
       fan::vec2 draw_start = fan::graphics::gui::get_mouse_pos();
       fan::vec2 cursor_pos = 0;
@@ -152,7 +152,7 @@ namespace fan::graphics::gui::tilemap_editor::ui {
       }
 
       fan::graphics::gui::set_cursor_pos(old_cursorpos);
-      style.ItemSpacing = ImVec2(prev_item_spacing.x, prev_item_spacing.y);
+      style.ItemSpacing = fan::vec2(prev_item_spacing.x, prev_item_spacing.y);
 
       fan::vec2 cursor_position = fan::window::get_mouse_position();
       fan::vec2i grid_pos;
@@ -382,13 +382,13 @@ namespace fan::graphics::gui::tilemap_editor::ui {
 
       auto& style = gui::get_style();
       fan::vec2 prev_item_spacing(style.ItemSpacing.x, style.ItemSpacing.y);
-      style.ItemSpacing = ImVec2(0, 0);
+      style.ItemSpacing = fan::vec2(0, 0);
       editor.current_tile_brush_count = 0;
 
       int total_images = editor.texture_pack_images.size();
       int images_per_row = editor.texturepack_single_image_size.x <= 0 ? 0 : (editor.original_image_width / editor.texturepack_single_image_size.x);
       if (images_per_row == 0) {
-        style.ItemSpacing = ImVec2(prev_item_spacing.x, prev_item_spacing.y);
+        style.ItemSpacing = fan::vec2(prev_item_spacing.x, prev_item_spacing.y);
         fan::graphics::gui::end();
         fan::graphics::gui::pop_style_color(5);
         fan::graphics::gui::pop_style_var();
@@ -443,14 +443,14 @@ namespace fan::graphics::gui::tilemap_editor::ui {
           image_size = node_size / max_node_size * cell_size;
         }
         fan::vec2 image_pos = cursor_pos_global + (sprite_size - image_size) / 2.f;
-        draw_list->AddImage((fan::graphics::gui::texture_id_t)fan::graphics::image_get_handle(node.ti.image), ImVec2(image_pos.x, image_pos.y), ImVec2(image_pos.x + image_size.x, image_pos.y + image_size.y), ImVec2(uv0.x, uv0.y), ImVec2(uv1.x, uv1.y));
+        draw_list->AddImage((fan::graphics::gui::texture_id_t)fan::graphics::image_get_handle(node.ti.image), fan::vec2(image_pos.x, image_pos.y), fan::vec2(image_pos.x + image_size.x, image_pos.y + image_size.y), fan::vec2(uv0.x, uv0.y), fan::vec2(uv1.x, uv1.y));
 
         if (editor.current_image_indices.find(grid_index) != editor.current_image_indices.end()) {
-          draw_list->AddRect(ImVec2(cursor_pos_global.x, cursor_pos_global.y), ImVec2(cursor_pos_global.x + sprite_size.x, cursor_pos_global.y + sprite_size.y), 0xff0077ff, 0, 0, 1);
+          draw_list->AddRect(fan::vec2(cursor_pos_global.x, cursor_pos_global.y), fan::vec2(cursor_pos_global.x + sprite_size.x, cursor_pos_global.y + sprite_size.y), 0xff0077ff, 0, 0, 1);
         }
 
         if (!is_selecting && fan::math::d2::aabb_point_inside(cursor_pos_global, fan::graphics::gui::get_mouse_pos() - sprite_size / 2, sprite_size / 2)) {
-          draw_list->AddRect(ImVec2(cursor_pos_global.x, cursor_pos_global.y), ImVec2(cursor_pos_global.x + sprite_size.x, cursor_pos_global.y + sprite_size.y), 0xff0077ff, 0, 0, 3);
+          draw_list->AddRect(fan::vec2(cursor_pos_global.x, cursor_pos_global.y), fan::vec2(cursor_pos_global.x + sprite_size.x, cursor_pos_global.y + sprite_size.y), 0xff0077ff, 0, 0, 3);
         }
 
         bool is_mouse_hovered = fan::graphics::gui::is_item_hovered(fan::graphics::gui::hovered_flags_rect_only);
@@ -487,7 +487,7 @@ namespace fan::graphics::gui::tilemap_editor::ui {
         selection_end = fan::graphics::gui::get_mouse_pos();
         fan::vec2 max_rect_draw_adjusted = max_rect_draw + sprite_size;
         max_rect_draw_adjusted = max_rect_draw_adjusted.min(initial_pos + cursor_grid * sprite_size + sprite_size);
-        if (min_rect != (std::uint32_t)~0 && max_rect != -1) draw_list->AddRect(ImVec2(min_rect_draw.x, min_rect_draw.y), ImVec2(max_rect_draw_adjusted.x, max_rect_draw_adjusted.y), 0xff0077ff);
+        if (min_rect != (std::uint32_t)~0 && max_rect != -1) draw_list->AddRect(fan::vec2(min_rect_draw.x, min_rect_draw.y), fan::vec2(max_rect_draw_adjusted.x, max_rect_draw_adjusted.y), 0xff0077ff);
         if (is_left_mouse_button_released) {
           is_selecting = false;
           min_rect = (std::uint32_t)~0;
@@ -510,7 +510,7 @@ namespace fan::graphics::gui::tilemap_editor::ui {
       fan::graphics::gui::set_cursor_screen_pos(initial_pos);
       fan::graphics::gui::dummy(fan::vec2(images_per_row * cell_size, rows_needed * cell_size));
 
-      style.ItemSpacing = ImVec2(prev_item_spacing.x, prev_item_spacing.y);
+      style.ItemSpacing = fan::vec2(prev_item_spacing.x, prev_item_spacing.y);
       if (editor.current_image_indices.size()) editor.current_tile_images.clear();
 
       int prev_y = -1;
