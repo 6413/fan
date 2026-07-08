@@ -1269,15 +1269,6 @@ void loco_t::destroy() {
 
   async_image_destroy();
 
-  if (shader_watcher) {
-    delete shader_watcher;
-    shader_watcher = nullptr;
-  }
-#if defined(FAN_GUI)
-  delete (fan::graphics::gui::settings_menu_t*)gui.settings_menu;
-  gui.settings_menu = nullptr;
-#endif
-
   if (idle_handle) {
     if (idle_init) {
       fan::uv::idle_stop((fan::uv::idle_t*)idle_handle);
@@ -1302,6 +1293,15 @@ void loco_t::destroy() {
     }
     timer_handle = nullptr;
   }
+
+  if (shader_watcher) {
+    delete shader_watcher;
+    shader_watcher = nullptr;
+  }
+#if defined(FAN_GUI)
+  delete (fan::graphics::gui::settings_menu_t*)gui.settings_menu;
+  gui.settings_menu = nullptr;
+#endif
 
   fan::uv::run((fan::uv::loop_t*)fan::event::get_loop(), fan::uv::run_default);
 
