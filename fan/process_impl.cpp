@@ -465,6 +465,27 @@ namespace fan::process {
       ::exit(0);
     }
   } spawn_self_child_checker;
+
+  fan::log_dispatcher_t default_logger() {
+    return fan::log_dispatcher_t {}
+      .on("ERROR:", [](std::string_view l) { fan::print_error(l); })
+      .on("error:", [](std::string_view l) { fan::print_error(l); })
+      .on("WARNING:", [](std::string_view l) { fan::print_warning(l); })
+      .on("warning:", [](std::string_view l) { fan::print_warning(l); })
+      .otherwise([](std::string_view l) { fan::print_impl(l); });
+  }
+
+  fan::event::task_t spawn_self(std::function<void()> child_fn) {
+    return spawn_self_impl(std::move(child_fn));
+  }
+
+  std::string ipc_default_path(std::string_view name) {
+#if defined(fan_platform_windows)
+    return std::string("\\\\.\\pipe\\") + std::string(name);
+#else
+    return std::string("/tmp/") + std::string(name) + ".sock";
+#endif
+  }
 }
 
 #endif

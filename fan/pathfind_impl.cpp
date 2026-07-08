@@ -57,6 +57,23 @@ fan::pathfind::generator::get_walls() {
   return impl.getWalls();
 }
 
+void fan::pathfind::generator::init(const fan::vec2i& world_size, bool diagonal) {
+  set_world_size(world_size);
+  set_diagonal_movement(diagonal);
+  clear_collisions();
+}
+
+bool fan::pathfind::generator::is_fully_connected(const fan::vec2i& goal) {
+  fan::vec2i gc = impl.getWorldSize();
+  const fan::vec2i origins[] = {
+    {0,       0      }, {gc.x / 2,  0      }, {gc.x - 1,  0      },
+    {0,       gc.y / 2 }, {gc.x - 1,  gc.y / 2 },
+    {0,       gc.y - 1 }, {gc.x / 2,  gc.y - 1 }, {gc.x - 1,  gc.y - 1}
+  };
+  for (auto& o : origins) if (find_path(o, goal).empty()) return false;
+  return true;
+}
+
 fan::pathfind::uint
 fan::pathfind::heuristic::manhattan(vec2i a, vec2i b) {
   return ::AStar::Heuristic::manhattan(::AStar::Vec2i(a), ::AStar::Vec2i(b));

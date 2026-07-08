@@ -17,18 +17,8 @@ export namespace fan::graphics::gui {
   struct topmost_window_data_t {
     std::vector<std::string> windows;
 
-    void register_window(std::string_view name) {
-      if (std::find(windows.begin(), windows.end(), name) == windows.end()) {
-        windows.push_back(std::string(name));
-      }
-    }
-
-    void unregister_window(std::string_view name) {
-      auto it = std::find(windows.begin(), windows.end(), name);
-      if (it != windows.end()) {
-        windows.erase(it);
-      }
-    }
+    void register_window(std::string_view name);
+    void unregister_window(std::string_view name);
   };
 
   enum dock_flags_e {

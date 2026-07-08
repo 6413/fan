@@ -239,15 +239,7 @@ export namespace fan {
       nr_t() = default;
       nr_t(base_nr_t nr) : base_nr_t(nr) {}
 
-      void erase() {
-        #if FAN_DEBUG >= 2
-        if (iic()) {
-          fan::throw_error("double erase or uninitialized erase");
-        }
-        #endif
-        gstage->close_stage(*this);
-        sic();
-      }
+      void erase();
     };
 
     struct stage_open_properties_t {
@@ -1226,50 +1218,9 @@ fan::graphics::texture_pack_t texture_pack;
   async_image_t image_load_async(
     const std::string& path,
     const fan::graphics::image_load_properties_t& properties = fan::graphics::image_presets::pixel_art()
-  ) {
-    async_image_t out;
-    out.image = default_texture;
-    out.result = fan::image::async_cache().load(path);
+  );
 
-    async_image_uploads.push_back({
-      .image = out.image,
-      .properties = properties,
-      .result = out.result
-    });
-
-    return out;
-  }
-
-  void async_image_process() {
-    std::size_t uploaded = 0;
-
-    for (std::size_t i = 0; i < async_image_uploads.size();) {
-      auto& u = async_image_uploads[i];
-
-      if (!u.result->try_finish()) {
-        ++i;
-        continue;
-      }
-
-      if (u.result->state == fan::image::async_result_t::state_e::ready) {
-        if (uploaded >= max_async_image_uploads_per_frame) {
-          ++i;
-          continue;
-        }
-
-        fan::image::info_t info;
-        info.data = u.result->image.data.get();
-        info.size = u.result->image.size;
-        info.channels = u.result->image.channels;
-
-        fan::graphics::image_reload(u.image, info, u.properties);
-        ++uploaded;
-      }
-
-      async_image_uploads[i] = std::move(async_image_uploads.back());
-      async_image_uploads.pop_back();
-    }
-  }
+  void async_image_process();
 
   std::vector<async_image_upload_t> async_image_uploads;
   std::size_t max_async_image_uploads_per_frame = 1;
@@ -1351,50 +1302,7 @@ inline fan::stage_loader_t::nr_t fan::stage_loader_t::open_stage(const stage_ope
   return stage->stage_common.stage_id;
 }
 
-fan::event::task_t fan::stage_loader_t::change_stage_impl(
-  std::function<void()> close_cb,
-  std::function<void()> open_cb,
-  fan::stage_fade_mode_t mode,
-  f32_t duration,
-  fan::color color
-) {
-#if defined(FAN_2D)
-  if (mode == fan::stage_fade_mode_t::instant || duration <= 0.f) {
-    close_cb();
-    open_cb();
-    co_return;
-  }
-  fan::graphics::shape_t overlay{fan::graphics::shapes::rectangle_t::properties_t{
-    .position = fan::vec3(0, 0, 0xfffe),
-    .size = fan::vec2(99999),
-    .color = color.set_alpha(mode == fan::stage_fade_mode_t::fade_in ? 1.f : 0.f),
-    .blending = true,
-  }};
-  f32_t half = (mode == fan::stage_fade_mode_t::crossfade) ? duration / 2.f : duration;
-  if (mode == fan::stage_fade_mode_t::crossfade) {
-    for (f32_t t = 0.f; t < half; t += gloco()->get_delta_time()) {
-      overlay.set_color(color.set_alpha(t / half));
-      co_await fan::graphics::co_next_frame();
-    }
-  }
-  close_cb();
-  open_cb();
-  for (f32_t t = 0.f; t < half; t += gloco()->get_delta_time()) {
-    overlay.set_color(color.set_alpha(1.f - t / half));
-    co_await fan::graphics::co_next_frame();
-  }
-#else
-  co_return;
-#endif
-}
 
-void fan::stage_loader_t::close_stage(nr_t id) {
-  auto* sc = (stage_common_t*)stage_list[id].stage;
-  auto update_nr = stage_list[id].update_nr;
-  gloco()->m_update_callback.unlrec(update_nr);
-  sc->close(stage_list[id].stage);
-  stage_list.unlrec(id);
-}
 
 #include <fan/graphics/vulkan/uniform_block.h>
 

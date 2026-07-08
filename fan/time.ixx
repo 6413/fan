@@ -20,54 +20,23 @@ export namespace fan {
       static constexpr std::uint64_t no_interval_v = (std::uint64_t)-1;
       static constexpr std::uint64_t infinite_v = (std::uint64_t)-2;
 
-      timer() {
-        start();
-      }
-      explicit timer(std::uint64_t time, bool start_timer) : m_time(time) {
-        if (start_timer) {
-          restart();
-        }
-      }
+      timer();
+      explicit timer(std::uint64_t time, bool start_timer);
       explicit timer(f64_t time, bool start_timer) : timer((std::uint64_t)(time * 1e9), start_timer) {}
-      explicit timer(bool start_timer) {
-        if (start_timer) {
-          start();
-        }
-      }
+      explicit timer(bool start_timer);
 
       constexpr std::uint64_t count() const { return m_time; }
       constexpr std::uint64_t duration() const { return count(); }
       constexpr f64_t duration_seconds() const { return duration() / 1e9; }
 
-      void start() {
-        m_timer = fan::time::now();
-        if (m_time == no_interval_v) {
-          m_time = infinite_v;
-        }
-      }
-      void start(std::uint64_t time) {
-        m_time = time;
-        restart();
-      }
-      void start_seconds(f64_t s) {
-        start((std::uint64_t)(s * 1e9));
-      }
-      void start_millis(f64_t ms) {
-        start((std::uint64_t)(ms * 1e6));
-      }
-      void start_micros(f64_t us) {
-        start((std::uint64_t)(us * 1e3));
-      }
+      void start();
+      void start(std::uint64_t time);
+      void start_seconds(f64_t s);
+      void start_millis(f64_t ms);
+      void start_micros(f64_t us);
 
-      void set_time(std::uint64_t time) {
-        m_time = time;
-      }
-      void restart() {
-        if (m_time == no_interval_v) {
-          return;
-        }
-        m_timer = fan::time::now();
-      }
+      void set_time(std::uint64_t time);
+      void restart();
       bool finished() const {
         return started() && m_time != infinite_v && elapsed() >= m_time;
       }
@@ -219,14 +188,7 @@ export namespace fan {
     struct interval_t {
       interval_t() = default;
       interval_t(f32_t interval) : interval(interval) {}
-      bool tick(f32_t dt) {
-        timer -= dt;
-        if (timer <= 0.f) {
-          timer += interval;
-          return true;
-        }
-        return false;
-      }
+      bool tick(f32_t dt);
       void reset() { timer = 0.f; }
       f32_t interval = 0.f;
       f32_t timer = 0.f;
@@ -258,9 +220,7 @@ export namespace fan {
     f32_t max = 0.f;
     f32_t current = 0.f;
 
-    void tick(f32_t dt) {
-      if (current > 0.f) { current -= dt; }
-    }
+    void tick(f32_t dt);
 
     template <typename F>
     bool tick_and_fire(f32_t dt, F&& cb) {
@@ -274,10 +234,7 @@ export namespace fan {
     bool is_ready() const { return current <= 0.f; }
     void reset() { current = max; }
     void expire() { current = 0.f; }
-    bool tick_ready(f32_t dt) {
-      tick(dt);
-      return is_ready();
-    }
+    bool tick_ready(f32_t dt);
     static cooldown_t full(f32_t max) { cooldown_t c{max}; c.current = max; return c; }
   };
 

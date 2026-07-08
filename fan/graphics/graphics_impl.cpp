@@ -1657,6 +1657,60 @@ namespace fan::graphics {
     sprite.set_tc_position((c - half_size) / tile_size / 2.f);
     sprite.set_tc_size(half_size / tile_size);
   }
+
+  line3d_t::line3d_t(line3d_properties_t p) {
+    *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
+      fan_init_struct(
+        typename fan::graphics::shapes::line3d_t::properties_t,
+        .camera = p.render_view->camera,
+        .viewport = p.render_view->viewport,
+        .src = p.src,
+        .dst = p.dst,
+        .color = p.color,
+        .blending = p.blending
+      ));
+  }
+
+  rectangle3d_t::rectangle3d_t(rectangle3d_properties_t p) {
+    *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
+      fan_init_struct(
+        typename fan::graphics::shapes::rectangle3d_t::properties_t,
+        .camera = p.render_view->camera,
+        .viewport = p.render_view->viewport,
+        .position = p.position,
+        .size = p.size,
+        .color = p.color,
+        .blending = p.blending
+      ));
+  }
+
+  aabb_t::aabb_t(const fan::vec3& c, const fan::vec2& hsize, f32_t d, const fan::color& col)
+    : center(c), half_size(hsize), color(col), depth(d) {
+    fan::vec3 bl(center.x - half_size.x, center.y - half_size.y, depth);
+    fan::vec3 br(center.x + half_size.x, center.y - half_size.y, depth);
+    fan::vec3 tr(center.x + half_size.x, center.y + half_size.y, depth);
+    fan::vec3 tl(center.x - half_size.x, center.y + half_size.y, depth);
+    edges[0] = line_t(line_properties_t {.src = bl, .dst = br, .color = color});
+    edges[1] = line_t(line_properties_t {.src = br, .dst = tr, .color = color});
+    edges[2] = line_t(line_properties_t {.src = tr, .dst = tl, .color = color});
+    edges[3] = line_t(line_properties_t {.src = tl, .dst = bl, .color = color});
+  }
+
+  void rectangle_bordered(fan::vec3 pos, fan::vec2 outer_size, fan::color outer_col, fan::vec2 inner_size, fan::color inner_col, fan::graphics::render_view_t* rv) {
+    rectangle(pos, outer_size, outer_col, rv);
+    rectangle(fan::vec3(pos.x, pos.y, pos.z + 1.f), inner_size, inner_col, rv);
+  }
+
+  void polyline_t::set(const polyline_properties_t& props) {
+    std::vector<vertex_t> verts;
+    polyline_build(props, verts);
+    mesh = polygon_t {{
+      .position = fan::vec3(0, 0, props.depth),
+      .vertices = verts,
+      .draw_mode = primitive_topology_t::triangle_strip,
+      .enable_culling = false
+    }};
+  }
 } // namespace fan::graphics
 
 namespace fan {

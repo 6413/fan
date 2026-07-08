@@ -218,18 +218,8 @@ export namespace fan {
     }
 
 
-    static inline f32_t srgb_to_linear_channel(f32_t c) {
-      if (c <= 0.04045f) {
-        return c / 12.92f;
-      }
-      return std::pow((c + 0.055f) / 1.055f, 2.4f);
-    }
-    static inline f32_t linear_to_srgb_channel(f32_t c) {
-      if (c <= 0.0031308f) {
-        return c * 12.92f;
-      }
-      return 1.055f * std::pow(c, 1.0f / 2.4f) - 0.055f;
-    }
+    static f32_t srgb_to_linear_channel(f32_t c);
+    static f32_t linear_to_srgb_channel(f32_t c);
     static color to_srgb(const color& c);
     static color to_linear(const color& c);
     static void rgb_to_hsl(f32_t r, f32_t g, f32_t b, f32_t& h, f32_t& s, f32_t& l);

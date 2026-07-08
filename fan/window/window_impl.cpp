@@ -1142,4 +1142,290 @@ fan::vec2i fan::get_primary_screen_resolution() {
   return res;
 }
 
+fan::window_t::buttons_handle_t fan::window_t::add_buttons_callback(
+  std::function<void(const buttons_data_t&)> fn)
+{
+  using handle_t = buttons_handle_t;
+  using fn_t     = typename handle_t::fn_t;
+  using add_fn   = typename handle_t::add_fn;
+  using rem_fn   = typename handle_t::remove_fn;
+
+  add_fn add = [](window_t* w, fn_t cb) {
+    auto nr = w->m_buttons_callback.NewNodeLast();
+    w->m_buttons_callback[nr] = [cb](const buttons_data_t& d){ cb(nullptr, d); };
+    return nr;
+  };
+
+  rem_fn remove = [](window_t* w, buttons_callback_NodeReference_t nr) {
+    if (w->m_buttons_callback.NodeList.Current) w->m_buttons_callback.unlrec(nr);
+  };
+
+  return handle_t(
+    this,
+    std::move(add),
+    std::move(remove),
+    [fn](window_t*, const buttons_data_t& d){ fn(d); }
+  );
+}
+
+fan::window_t::keys_handle_t fan::window_t::add_keys_callback(
+  std::function<void(const keys_data_t&)> fn)
+{
+  using handle_t = keys_handle_t;
+  using fn_t     = typename handle_t::fn_t;
+  using add_fn   = typename handle_t::add_fn;
+  using rem_fn   = typename handle_t::remove_fn;
+
+  add_fn add = [](window_t* w, fn_t cb) {
+    auto nr = w->m_keys_callback.NewNodeLast();
+    w->m_keys_callback[nr] = [cb](const keys_data_t& d){ cb(nullptr, d); };
+    return nr;
+  };
+
+  rem_fn remove = [](window_t* w, keys_callback_NodeReference_t nr) {
+    if (w->m_keys_callback.NodeList.Current) w->m_keys_callback.unlrec(nr);
+  };
+
+  return handle_t(
+    this,
+    std::move(add),
+    std::move(remove),
+    [fn](window_t*, const keys_data_t& d){ fn(d); }
+  );
+}
+
+fan::window_t::text_handle_t fan::window_t::add_text_callback(
+  std::function<void(const text_data_t&)> fn)
+{
+  using handle_t = text_handle_t;
+  using fn_t     = typename handle_t::fn_t;
+  using add_fn   = typename handle_t::add_fn;
+  using rem_fn   = typename handle_t::remove_fn;
+
+  add_fn add = [](window_t* w, fn_t cb) {
+    auto nr = w->m_text_callback.NewNodeLast();
+    w->m_text_callback[nr] = [cb](const text_data_t& d){ cb(nullptr, d); };
+    return nr;
+  };
+
+  rem_fn remove = [](window_t* w, text_callback_NodeReference_t nr) {
+    if (w->m_text_callback.NodeList.Current) w->m_text_callback.unlrec(nr);
+  };
+
+  return handle_t(
+    this,
+    std::move(add),
+    std::move(remove),
+    [fn](window_t*, const text_data_t& d){ fn(d); }
+  );
+}
+
+fan::window_t::move_handle_t fan::window_t::add_move_callback(
+  std::function<void(const move_data_t&)> fn)
+{
+  using handle_t = move_handle_t;
+  using fn_t     = typename handle_t::fn_t;
+  using add_fn   = typename handle_t::add_fn;
+  using rem_fn   = typename handle_t::remove_fn;
+
+  add_fn add = [](window_t* w, fn_t cb) {
+    auto nr = w->m_move_callback.NewNodeLast();
+    w->m_move_callback[nr] = [cb](const move_data_t& d){ cb(nullptr, d); };
+    return nr;
+  };
+
+  rem_fn remove = [](window_t* w, move_callback_NodeReference_t nr) {
+    if (w->m_move_callback.NodeList.Current) w->m_move_callback.unlrec(nr);
+  };
+
+  return handle_t(
+    this,
+    std::move(add),
+    std::move(remove),
+    [fn](window_t*, const move_data_t& d){ fn(d); }
+  );
+}
+
+fan::window_t::resize_handle_t fan::window_t::add_resize_callback(
+  std::function<void(const resize_data_t&)> fn)
+{
+  using handle_t = resize_handle_t;
+  using fn_t     = typename handle_t::fn_t;
+  using add_fn   = typename handle_t::add_fn;
+  using rem_fn   = typename handle_t::remove_fn;
+
+  add_fn add = [](window_t* w, fn_t cb) {
+    auto nr = w->m_resize_callback.NewNodeLast();
+    w->m_resize_callback[nr] = [cb](const resize_data_t& d){ cb(nullptr, d); };
+    return nr;
+  };
+
+  rem_fn remove = [](window_t* w, resize_callback_NodeReference_t nr) {
+    if (w->m_resize_callback.NodeList.Current) w->m_resize_callback.unlrec(nr);
+  };
+
+  return handle_t(
+    this,
+    std::move(add),
+    std::move(remove),
+    [fn](window_t*, const resize_data_t& d){ fn(d); }
+  );
+}
+
+fan::window_t::close_handle_t fan::window_t::add_close_callback(
+  std::function<void(const close_data_t&)> fn)
+{
+  using handle_t = close_handle_t;
+  using fn_t     = typename handle_t::fn_t;
+  using add_fn   = typename handle_t::add_fn;
+  using rem_fn   = typename handle_t::remove_fn;
+
+  add_fn add = [](window_t* w, fn_t cb) {
+    auto nr = w->m_close_callback.NewNodeLast();
+    w->m_close_callback[nr] = [cb](const close_data_t& d){ cb(nullptr, d); };
+    return nr;
+  };
+
+  rem_fn remove = [](window_t* w, close_callback_NodeReference_t nr) {
+    if (w->m_close_callback.NodeList.Current) w->m_close_callback.unlrec(nr);
+  };
+
+  return handle_t(
+    this,
+    std::move(add),
+    std::move(remove),
+    [fn](window_t*, const close_data_t& d){ fn(d); }
+  );
+}
+
+fan::window_t::mouse_move_handle_t fan::window_t::add_mouse_move_callback(
+  std::function<void(const mouse_move_data_t&)> fn)
+{
+  using handle_t = mouse_move_handle_t;
+  using fn_t     = typename handle_t::fn_t;
+  using add_fn   = typename handle_t::add_fn;
+  using rem_fn   = typename handle_t::remove_fn;
+
+  add_fn add = [](window_t* w, fn_t cb) {
+    auto nr = w->m_mouse_position_callback.NewNodeLast();
+    w->m_mouse_position_callback[nr] = [cb](const mouse_move_data_t& d){ cb(nullptr, d); };
+    return nr;
+  };
+
+  rem_fn remove = [](window_t* w, mouse_position_callback_NodeReference_t nr) {
+    if (w->m_mouse_position_callback.NodeList.Current) w->m_mouse_position_callback.unlrec(nr);
+  };
+
+  return handle_t(
+    this,
+    std::move(add),
+    std::move(remove),
+    [fn](window_t*, const mouse_move_data_t& d){ fn(d); }
+  );
+}
+
+fan::window_t::mouse_motion_handle_t fan::window_t::add_mouse_motion_callback(
+  std::function<void(const mouse_motion_data_t&)> fn)
+{
+  using handle_t = mouse_motion_handle_t;
+  using fn_t     = typename handle_t::fn_t;
+  using add_fn   = typename handle_t::add_fn;
+  using rem_fn   = typename handle_t::remove_fn;
+
+  add_fn add = [](window_t* w, fn_t cb) {
+    auto nr = w->m_mouse_motion_callback.NewNodeLast();
+    w->m_mouse_motion_callback[nr] = [cb](const mouse_motion_data_t& d){ cb(nullptr, d); };
+    return nr;
+  };
+
+  rem_fn remove = [](window_t* w, mouse_motion_callback_NodeReference_t nr) {
+    if (w->m_mouse_motion_callback.NodeList.Current) w->m_mouse_motion_callback.unlrec(nr);
+  };
+
+  return handle_t(
+    this,
+    std::move(add),
+    std::move(remove),
+    [fn](window_t*, const mouse_motion_data_t& d){ fn(d); }
+  );
+}
+
+fan::window_t::key_down_handle_t fan::window_t::add_key_down_callback(
+  std::function<void(const keys_data_t&)> fn)
+{
+  using handle_t = key_down_handle_t;
+  using fn_t     = typename handle_t::fn_t;
+  using add_fn   = typename handle_t::add_fn;
+  using rem_fn   = typename handle_t::remove_fn;
+
+  add_fn add = [](window_t* w, fn_t cb) {
+    auto nr = w->m_key_down_callbacks.NewNodeLast();
+    w->m_key_down_callbacks[nr] = [cb](const keys_data_t& d){ cb(nullptr, d); };
+    return nr;
+  };
+
+  rem_fn remove = [](window_t* w, key_down_callbacks_NodeReference_t nr) {
+    if (w->m_key_down_callbacks.NodeList.Current) w->m_key_down_callbacks.unlrec(nr);
+  };
+
+  return handle_t(
+    this,
+    std::move(add),
+    std::move(remove),
+    [fn](window_t*, const keys_data_t& d){ fn(d); }
+  );
+}
+
+fan::window_t::mouse_down_handle_t fan::window_t::add_mouse_down_callback(
+  std::function<void(const buttons_data_t&)> fn)
+{
+  using handle_t = mouse_down_handle_t;
+  using fn_t     = typename handle_t::fn_t;
+  using add_fn   = typename handle_t::add_fn;
+  using rem_fn   = typename handle_t::remove_fn;
+
+  add_fn add = [](window_t* w, fn_t cb) {
+    auto nr = w->m_mouse_down_callbacks.NewNodeLast();
+    w->m_mouse_down_callbacks[nr] = [cb](const buttons_data_t& d){ cb(nullptr, d); };
+    return nr;
+  };
+
+  rem_fn remove = [](window_t* w, mouse_down_callbacks_NodeReference_t nr) {
+    if (w->m_mouse_down_callbacks.NodeList.Current) w->m_mouse_down_callbacks.unlrec(nr);
+  };
+
+  return handle_t(
+    this,
+    std::move(add),
+    std::move(remove),
+    [fn](window_t*, const buttons_data_t& d){ fn(d); }
+  );
+}
+
+fan::window_t::drop_handle_t fan::window_t::add_drop_callback(
+  std::function<void(const drop_data_t&)> fn)
+{
+  using handle_t = drop_handle_t;
+  using fn_t     = typename handle_t::fn_t;
+  using add_fn   = typename handle_t::add_fn;
+  using rem_fn   = typename handle_t::remove_fn;
+
+  add_fn add = [](window_t* w, fn_t cb) {
+    auto nr = w->m_drop_callback.NewNodeLast();
+    w->m_drop_callback[nr] = [cb](const drop_data_t& d){ cb(nullptr, d); };
+    return nr;
+  };
+
+  rem_fn remove = [](window_t* w, drop_callback_NodeReference_t nr) {
+    if (w->m_drop_callback.NodeList.Current) w->m_drop_callback.unlrec(nr);
+  };
+
+  return handle_t(
+    this,
+    std::move(add),
+    std::move(remove),
+    [fn](window_t*, const drop_data_t& d){ fn(d); }
+  );
+}
+
 #endif

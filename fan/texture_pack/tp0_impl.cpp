@@ -559,6 +559,16 @@ namespace fan::graphics {
     return 0;
   }
 
+  texture_pack::ti_t::ti_t(std::string_view name, texture_pack_t* tp) {
+    tp->qti(std::string(name), this);
+  }
+  bool texture_pack::ti_t::qti(texture_pack_t* tp, const std::string& name) {
+    return tp->qti(name, this);
+  }
+  bool texture_pack::ti_t::qti(texture_pack_t* tp, std::uint64_t hash) {
+    return tp->qti(hash, this);
+  }
+
   bool texture_pack_t::qti(std::uint64_t hash, ti_t* ti) {
     auto* s = static_cast<tp_runtime_state_t*>(internal_state);
     auto it = s->hash_to_unique.find(hash);

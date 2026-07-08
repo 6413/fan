@@ -79,14 +79,7 @@ export namespace fan {
 }
 
 export namespace fan::graphics::gui {
-  fan::log_dispatcher_t default_logger() {
-    return fan::log_dispatcher_t {}
-      .on("ERROR:", [](std::string_view l) { fan::printcl_err(l); })
-      .on("error:", [](std::string_view l) { fan::printcl_err(l); })
-      .on("WARNING:", [](std::string_view l) { fan::printcl_warn(l); })
-      .on("warning:", [](std::string_view l) { fan::printcl_warn(l); })
-      .otherwise([](std::string_view l) { fan::printcl(l); });
-  }
+  fan::log_dispatcher_t default_logger();
 }
 
 
@@ -185,26 +178,7 @@ export namespace fan::graphics::gui {
       std::shared_ptr<fan::image::async_result_t> async_preview;
       bool is_selected = false;
 
-      void process_async_preview(int& uploads_this_frame) {
-        if (async_preview && async_preview->try_finish()) {
-          if (async_preview->state == fan::image::async_result_t::state_e::ready && async_preview->image.valid()) {
-            if (uploads_this_frame >= 2) return; // limit uploads per frame
-
-            fan::image::info_t info;
-            info.data = async_preview->image.data.get();
-            info.size = async_preview->image.size;
-            info.channels = async_preview->image.channels;
-            info.type = fan::image::image_type_e::stb; 
-            
-            preview_image = fan::graphics::image_load(
-              info,
-              fan::graphics::image_presets::pixel_art()
-            );
-            uploads_this_frame++;
-          }
-          async_preview.reset();
-        }
-      }
+      void process_async_preview(int& uploads_this_frame);
     };
 
     struct selection_state_t {

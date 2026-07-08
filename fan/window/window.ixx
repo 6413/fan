@@ -292,19 +292,30 @@ export namespace fan {
       }
 
     // Note that buttons callback, the button state will never be repeat, instead use on_button_down
-    FAN_DEFINE_CB_RAII(buttons, m_buttons_callback, buttons_callback_NodeReference_t, buttons_data_t);
-    FAN_DEFINE_CB_RAII(keys, m_keys_callback, keys_callback_NodeReference_t, keys_data_t);
-    FAN_DEFINE_CB_RAII(text, m_text_callback, text_callback_NodeReference_t, text_data_t);
-    FAN_DEFINE_CB_RAII(move, m_move_callback, move_callback_NodeReference_t, move_data_t);
-    FAN_DEFINE_CB_RAII(resize, m_resize_callback, resize_callback_NodeReference_t, resize_data_t);
-    FAN_DEFINE_CB_RAII(close, m_close_callback, close_callback_NodeReference_t, close_data_t);
-    FAN_DEFINE_CB_RAII(mouse_move, m_mouse_position_callback, mouse_position_callback_NodeReference_t, mouse_move_data_t);
-    FAN_DEFINE_CB_RAII(mouse_motion, m_mouse_motion_callback, mouse_motion_callback_NodeReference_t, mouse_motion_data_t);
+    using buttons_handle_t = raii_nr_t<buttons_callback_NodeReference_t, window_t, const buttons_data_t&>;
+    buttons_handle_t add_buttons_callback(std::function<void(const buttons_data_t&)> fn);
+    using keys_handle_t = raii_nr_t<keys_callback_NodeReference_t, window_t, const keys_data_t&>;
+    keys_handle_t add_keys_callback(std::function<void(const keys_data_t&)> fn);
+    using text_handle_t = raii_nr_t<text_callback_NodeReference_t, window_t, const text_data_t&>;
+    text_handle_t add_text_callback(std::function<void(const text_data_t&)> fn);
+    using move_handle_t = raii_nr_t<move_callback_NodeReference_t, window_t, const move_data_t&>;
+    move_handle_t add_move_callback(std::function<void(const move_data_t&)> fn);
+    using resize_handle_t = raii_nr_t<resize_callback_NodeReference_t, window_t, const resize_data_t&>;
+    resize_handle_t add_resize_callback(std::function<void(const resize_data_t&)> fn);
+    using close_handle_t = raii_nr_t<close_callback_NodeReference_t, window_t, const close_data_t&>;
+    close_handle_t add_close_callback(std::function<void(const close_data_t&)> fn);
+    using mouse_move_handle_t = raii_nr_t<mouse_position_callback_NodeReference_t, window_t, const mouse_move_data_t&>;
+    mouse_move_handle_t add_mouse_move_callback(std::function<void(const mouse_move_data_t&)> fn);
+    using mouse_motion_handle_t = raii_nr_t<mouse_motion_callback_NodeReference_t, window_t, const mouse_motion_data_t&>;
+    mouse_motion_handle_t add_mouse_motion_callback(std::function<void(const mouse_motion_data_t&)> fn);
 
-    FAN_DEFINE_CB_RAII(key_down, m_key_down_callbacks, key_down_callbacks_NodeReference_t, keys_data_t);
-    FAN_DEFINE_CB_RAII(mouse_down, m_mouse_down_callbacks, mouse_down_callbacks_NodeReference_t, buttons_data_t);
+    using key_down_handle_t = raii_nr_t<key_down_callbacks_NodeReference_t, window_t, const keys_data_t&>;
+    key_down_handle_t add_key_down_callback(std::function<void(const keys_data_t&)> fn);
+    using mouse_down_handle_t = raii_nr_t<mouse_down_callbacks_NodeReference_t, window_t, const buttons_data_t&>;
+    mouse_down_handle_t add_mouse_down_callback(std::function<void(const buttons_data_t&)> fn);
 
-    FAN_DEFINE_CB_RAII(drop, m_drop_callback, drop_callback_NodeReference_t, drop_data_t);
+    using drop_handle_t = raii_nr_t<drop_callback_NodeReference_t, window_t, const drop_data_t&>;
+    drop_handle_t add_drop_callback(std::function<void(const drop_data_t&)> fn);
 
     using key_handle_t = raii_nr_t<key_callback_NodeReference_t, window_t, const key_data_t&>;
     using text_callback_handle_t = raii_nr_t<text_callback_NodeReference_t, window_t, const text_data_t&>;

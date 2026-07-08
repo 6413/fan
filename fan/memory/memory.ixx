@@ -41,21 +41,13 @@ export namespace fan::memory {
     };
     
     struct compare_alloc_size_t {
-      bool operator()(const memory_data_t& lhs, const memory_data_t& rhs) const {
-        if (lhs.n != rhs.n) {
-          return lhs.n < rhs.n;
-        }
-        return lhs.p < rhs.p;
-      }
+      bool operator()(const memory_data_t& lhs, const memory_data_t& rhs) const;
     };
     
     using map_t = std::map<void*, memory_data_t, std::less<void*>, custom_alloc_t<std::pair<void* const, memory_data_t>>>;
     using set_t = std::set<memory_data_t, compare_alloc_size_t, custom_alloc_t<memory_data_t>>;
     
-    static heap_profiler_t& instance() {
-      static heap_profiler_t instance;
-      return instance;
-    }
+    static heap_profiler_t& instance();
     
     ~heap_profiler_t();
     map_t& get_memory_map();
