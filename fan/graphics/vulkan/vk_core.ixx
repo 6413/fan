@@ -34,6 +34,9 @@ import std;
 
 export import :types;
 export import :vai;
+export import :image;
+export import :compute;
+export import :pipeline;
 
 import fan.types;
 import fan.types.matrix;
@@ -121,61 +124,13 @@ export namespace fan {
         get_current_deletion_queue(frame).merge(pending_deletion_queue);
       }
 
-      struct push_constants_t {
-        std::uint32_t texture_id;
-        std::uint32_t camera_id;
-        std::uint32_t texture_id1 = 0;
-        std::uint32_t texture_id2 = 0;
-        std::uint32_t texture_id3 = 0;
-        std::uint32_t pad0 = 0;
-        std::uint32_t pad1 = 0;
-        std::uint32_t pad2 = 0;
-        fan::vec4 lighting_ambient = fan::vec4(1.f, 1.f, 1.f, 1.f);
-      };
-
-      struct descriptor_t {
-
-        descriptor_t() = default;
-        descriptor_t(const descriptor_t&) = delete;
-        descriptor_t& operator=(const descriptor_t&) = delete;
-        descriptor_t(descriptor_t&& other) noexcept;
-        descriptor_t& operator=(descriptor_t&& other) noexcept;
-
-        using properties_t = std::vector<fan::vulkan::write_descriptor_set_t>;
-        void open(fan::vulkan::context_t& context, const properties_t& properties);
-        void close(fan::vulkan::context_t& context);
-
-        void update(
-          fan::vulkan::context_t& context,
-          std::uint32_t n,
-          std::uint32_t begin = 0,
-          std::uint32_t texture_n = max_textures,
-          std::uint32_t texture_begin = 0
-        );
-
-        properties_t m_properties;
-        VkDescriptorSetLayout m_layout = VK_NULL_HANDLE;
-        VkDescriptorSet m_descriptor_set[fan::vulkan::max_frames_in_flight];
-        std::vector<VkDescriptorBufferInfo> m_buffer_infos;
-        std::vector<VkWriteDescriptorSet> m_descriptor_writes;
-      };
+      using push_constants_t = fan::vulkan::push_constants_t;
+      using descriptor_t = fan::vulkan::descriptor_t;
+      using descriptor_pool_t = fan::vulkan::descriptor_pool_t;
+      descriptor_pool_t descriptor_pool;
       #include "memory.h"
       #include "uniform_block.h"
       #include "ssbo.h"
-
-      struct descriptor_pool_t {
-
-#define loco_vulkan_descriptor_uniform_block
-#define loco_vulkan_descriptor_image_sampler
-        void open(fan::vulkan::context_t& context);
-        void close(fan::vulkan::context_t& context);
-
-        operator VkDescriptorPool() const {
-          return m_descriptor_pool;
-        }
-
-        VkDescriptorPool m_descriptor_pool;
-      }descriptor_pool;
 
       struct shader_t {
         int projection_view[2]{ -1, -1 };
@@ -222,56 +177,12 @@ export namespace fan {
 
       bool shader_compile(fan::graphics::shader_nr_t nr);
 
-      struct image_format {
-        static constexpr auto b8g8r8a8_unorm = VK_FORMAT_B8G8R8A8_UNORM;
-        static constexpr auto r8b8g8a8_unorm = VK_FORMAT_R8G8B8A8_UNORM;
-        static constexpr auto r8_unorm = VK_FORMAT_R8_UNORM;
-        static constexpr auto r8_uint = VK_FORMAT_R8_UINT;
-        static constexpr auto r8g8_unorm = VK_FORMAT_R8G8_UNORM;
-        static constexpr auto r8g8b8_unorm = VK_FORMAT_R8G8B8_UNORM;
-        static constexpr auto r8g8b8a8_srgb = VK_FORMAT_R8G8B8A8_SRGB;
-        static constexpr auto d32_sfloat = VK_FORMAT_D32_SFLOAT;
-        static constexpr auto b10_g11_r11_ufloat_pack32 = VK_FORMAT_B10G11R11_UFLOAT_PACK32;
-      };
-
-      struct image_sampler_address_mode {
-        static constexpr auto repeat = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        static constexpr auto mirrored_repeat = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-        static constexpr auto clamp_to_edge = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-        static constexpr auto clamp_to_border = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
-        static constexpr auto mirrored_clamp_to_edge = VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE;
-      };
-
-      struct image_filter {
-        static constexpr auto nearest = VK_FILTER_NEAREST;
-        static constexpr auto linear = VK_FILTER_LINEAR;
-      };
-
-      struct image_load_properties_defaults {
-        static constexpr VkSamplerAddressMode visual_output = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        static constexpr VkFormat format = image_format::r8b8g8a8_unorm;
-        static constexpr VkFilter min_filter = image_filter::nearest;
-        static constexpr VkFilter mag_filter = image_filter::nearest;
-      };
-      struct image_load_properties_t {
-        VkSamplerAddressMode visual_output = image_load_properties_defaults::visual_output;
-        std::uint8_t internal_format = 0;
-        VkFormat format = image_load_properties_defaults::format;
-        VkFilter           min_filter = image_load_properties_defaults::min_filter;
-        VkFilter           mag_filter = image_load_properties_defaults::mag_filter;
-      };
-      struct primitive_topology_t {
-        static constexpr std::uint32_t points = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-        static constexpr std::uint32_t lines = VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-        static constexpr std::uint32_t line_strip = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
-        static constexpr std::uint32_t triangles = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        static constexpr std::uint32_t triangle_strip = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-        static constexpr std::uint32_t triangle_fan = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
-        static constexpr std::uint32_t lines_with_adjacency = VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY;
-        static constexpr std::uint32_t line_strip_with_adjacency = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY;
-        static constexpr std::uint32_t triangles_with_adjacency = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY;
-        static constexpr std::uint32_t triangle_strip_with_adjacency = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY;
-      };
+      using image_format = fan::vulkan::image_format;
+      using image_sampler_address_mode = fan::vulkan::image_sampler_address_mode;
+      using image_filter = fan::vulkan::image_filter;
+      using image_load_properties_defaults = fan::vulkan::image_load_properties_defaults;
+      using image_load_properties_t = fan::vulkan::image_load_properties_t;
+      using primitive_topology_t = fan::vulkan::primitive_topology_t;
       void transition_image_layout(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
       void transition_image_layout_cmd(VkCommandBuffer cmd, VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
       void copy_buffer_to_image(
@@ -291,90 +202,11 @@ export namespace fan {
       );
       void create_texture_sampler(VkSampler& sampler, const image_load_properties_t& lp);
 
-      struct image_t {
-        VkImage image_index = VK_NULL_HANDLE;
-        VkImageView image_view = VK_NULL_HANDLE;
-        VmaAllocation image_allocation = VK_NULL_HANDLE;
-        VkSampler sampler = VK_NULL_HANDLE;
-        VkBuffer staging_buffer = VK_NULL_HANDLE;
-        VmaAllocation staging_allocation = VK_NULL_HANDLE;
-        VkDeviceSize staging_size = 0;
-        void* data = nullptr;
-      #if defined(FAN_GUI)
-        VkDescriptorSet gui_descriptor_set = VK_NULL_HANDLE;
-        VkImageView gui_image_view = VK_NULL_HANDLE;
-        VkSampler gui_sampler = VK_NULL_HANDLE;
-      #endif
-        bool owns_image = true;
-        bool owns_image_view = true;
-      };
-      struct buffer_t {
-        VkBuffer buffer = VK_NULL_HANDLE;
-        VmaAllocation allocation = VK_NULL_HANDLE;
-        VkDeviceSize size = 0;
-        void* mapped = nullptr;
-
-        operator VkBuffer() const { return buffer; }
-        explicit operator bool() const { return buffer != VK_NULL_HANDLE; }
-      };
-
-      struct compute_pipeline_t {
-        struct binding_t {
-          std::uint32_t binding = 0;
-          VkDescriptorType type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-          std::uint32_t descriptor_count = 1;
-          VkShaderStageFlags stage_flags = VK_SHADER_STAGE_COMPUTE_BIT;
-        };
-
-        void open(fan::vulkan::context_t& context, const std::string& path, VkDeviceSize push_size, const std::vector<binding_t>& bindings);
-        void close(fan::vulkan::context_t& context);
-        void dispatch(fan::vulkan::context_t& context, VkCommandBuffer cmd, VkDescriptorSet descriptor_set, const void* push, std::uint32_t x, std::uint32_t y, std::uint32_t z) const;
-
-        VkDescriptorSetLayout descriptor_layout = VK_NULL_HANDLE;
-        VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
-        VkPipeline pipeline = VK_NULL_HANDLE;
-        VkDeviceSize push_size = 0;
-      };
-      struct compute_slot_ring_t {
-        static constexpr std::uint32_t invalid_slot = (std::uint32_t)-1;
-        struct buffer_properties_t {
-          VkDeviceSize size = 0;
-          VkBufferUsageFlags usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-          VkMemoryPropertyFlags memory = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT;
-          VkDescriptorType descriptor_type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-          bool map = true;
-        };
-        struct slot_t {
-          std::vector<buffer_t> buffers;
-          VkCommandBuffer command_buffer = VK_NULL_HANDLE;
-          VkFence fence = VK_NULL_HANDLE;
-          VkDescriptorSet descriptor_set = VK_NULL_HANDLE;
-          bool in_flight = false;
-        };
-
-        void open(fan::vulkan::context_t& context, std::uint32_t slot_count, VkDescriptorSetLayout descriptor_layout, const std::vector<buffer_properties_t>& buffer_properties);
-        void close(fan::vulkan::context_t& context);
-        std::uint32_t acquire() const;
-        VkCommandBuffer begin(fan::vulkan::context_t& context, std::uint32_t slot_index);
-        void submit(fan::vulkan::context_t& context, std::uint32_t slot_index);
-        bool done(fan::vulkan::context_t& context, std::uint32_t slot_index) const;
-        void set_idle(std::uint32_t slot_index);
-        std::uint32_t free_slot_count() const;
-        slot_t& get(std::uint32_t slot_index);
-        const slot_t& get(std::uint32_t slot_index) const;
-
-        std::vector<slot_t> slots;
-        std::vector<buffer_properties_t> buffer_properties;
-        VkDescriptorPool descriptor_pool = VK_NULL_HANDLE;
-        std::uint32_t submit_slot = 0;
-      };
-      struct buffer_barrier_t {
-        buffer_t* buffer = nullptr;
-        VkAccessFlags src_access = 0;
-        VkAccessFlags dst_access = 0;
-        VkDeviceSize offset = 0;
-        VkDeviceSize size = VK_WHOLE_SIZE;
-      };
+      using image_t = fan::vulkan::image_t;
+      using buffer_t = fan::vulkan::buffer_t;
+      using compute_pipeline_t = fan::vulkan::compute_pipeline_t;
+      using compute_slot_ring_t = fan::vulkan::compute_slot_ring_t;
+      using buffer_barrier_t = fan::vulkan::buffer_barrier_t;
 
       VkFormat get_format_from_channels(int channels);
 
@@ -488,33 +320,7 @@ export namespace fan {
       bool viewport_inside(fan::graphics::viewport_nr_t nr, const fan::vec2& position);
       bool viewport_inside_wir(fan::graphics::viewport_nr_t nr, const fan::vec2& position);
 
-      struct pipeline_t {
-
-        struct properties_t {
-          std::vector<VkDescriptorSetLayout> descriptor_layouts;
-          fan::graphics::shader_nr_t shader;
-          std::uint32_t push_constants_size = 0;
-          std::uint32_t subpass = 0;
-
-          std::vector<VkPipelineColorBlendAttachmentState> color_blend_attachments;
-          bool enable_depth_test = VK_TRUE;
-          VkCompareOp depth_test_compare_op = VK_COMPARE_OP_LESS;
-          VkPrimitiveTopology shape_type = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-          VkRenderPass render_pass = VK_NULL_HANDLE;
-        };
-
-        void open(fan::vulkan::context_t& context, const properties_t& p);
-        void close(fan::vulkan::context_t& context);
-
-        fan::graphics::shader_nr_t shader_nr;
-        operator VkPipeline() const {
-          return m_pipeline;
-        }
-
-        VkPipelineLayout m_layout;
-        VkPipeline m_pipeline;
-        properties_t properties;
-      };
+      using pipeline_t = fan::vulkan::pipeline_t;
 
       static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
       static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);

@@ -1143,7 +1143,7 @@ void fan::vulkan::context_t::buffer_barriers_cmd(VkCommandBuffer cmd, const std:
     vkCmdPipelineBarrier(cmd, src_stage, dst_stage, 0, 0, nullptr, (std::uint32_t)vk_barriers.size(), vk_barriers.data(), 0, nullptr);
   }
 }
-void fan::vulkan::context_t::compute_pipeline_t::open(fan::vulkan::context_t& context, const std::string& path, VkDeviceSize push_size_, const std::vector<binding_t>& bindings) {
+void fan::vulkan::compute_pipeline_t::open(fan::vulkan::context_t& context, const std::string& path, VkDeviceSize push_size_, const std::vector<binding_t>& bindings) {
   push_size = push_size_;
   std::vector<VkDescriptorSetLayoutBinding> layout_bindings;
   layout_bindings.reserve(bindings.size());
@@ -1198,7 +1198,7 @@ void fan::vulkan::context_t::compute_pipeline_t::open(fan::vulkan::context_t& co
   fan::vulkan::validate(vkCreateComputePipelines(context.device, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &pipeline));
   vkDestroyShaderModule(context.device, shader, nullptr);
 }
-void fan::vulkan::context_t::compute_pipeline_t::close(fan::vulkan::context_t& context) {
+void fan::vulkan::compute_pipeline_t::close(fan::vulkan::context_t& context) {
   if (pipeline != VK_NULL_HANDLE) { vkDestroyPipeline(context.device, pipeline, nullptr); }
   if (pipeline_layout != VK_NULL_HANDLE) { vkDestroyPipelineLayout(context.device, pipeline_layout, nullptr); }
   if (descriptor_layout != VK_NULL_HANDLE) { vkDestroyDescriptorSetLayout(context.device, descriptor_layout, nullptr); }
@@ -1207,7 +1207,7 @@ void fan::vulkan::context_t::compute_pipeline_t::close(fan::vulkan::context_t& c
   descriptor_layout = VK_NULL_HANDLE;
   push_size = 0;
 }
-void fan::vulkan::context_t::compute_pipeline_t::dispatch(fan::vulkan::context_t& context, VkCommandBuffer cmd, VkDescriptorSet descriptor_set, const void* push, std::uint32_t x, std::uint32_t y, std::uint32_t z) const {
+void fan::vulkan::compute_pipeline_t::dispatch(fan::vulkan::context_t& context, VkCommandBuffer cmd, VkDescriptorSet descriptor_set, const void* push, std::uint32_t x, std::uint32_t y, std::uint32_t z) const {
   vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
   vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline_layout, 0, 1, &descriptor_set, 0, nullptr);
   if (push_size != 0 && push != nullptr) {
@@ -1215,7 +1215,7 @@ void fan::vulkan::context_t::compute_pipeline_t::dispatch(fan::vulkan::context_t
   }
   vkCmdDispatch(cmd, x, y, z);
 }
-void fan::vulkan::context_t::compute_slot_ring_t::open(fan::vulkan::context_t& context, std::uint32_t slot_count, VkDescriptorSetLayout descriptor_layout, const std::vector<buffer_properties_t>& buffer_properties_) {
+void fan::vulkan::compute_slot_ring_t::open(fan::vulkan::context_t& context, std::uint32_t slot_count, VkDescriptorSetLayout descriptor_layout, const std::vector<buffer_properties_t>& buffer_properties_) {
   buffer_properties = buffer_properties_;
   slots.resize(slot_count);
 
@@ -1277,7 +1277,7 @@ void fan::vulkan::context_t::compute_slot_ring_t::open(fan::vulkan::context_t& c
     vkUpdateDescriptorSets(context.device, (std::uint32_t)writes.size(), writes.data(), 0, nullptr);
   }
 }
-void fan::vulkan::context_t::compute_slot_ring_t::close(fan::vulkan::context_t& context) {
+void fan::vulkan::compute_slot_ring_t::close(fan::vulkan::context_t& context) {
   std::vector<VkCommandBuffer> commands;
   for (auto& slot : slots) {
     if (slot.in_flight) { fan::vulkan::validate(vkWaitForFences(context.device, 1, &slot.fence, VK_TRUE, UINT64_MAX)); }
@@ -1292,7 +1292,7 @@ void fan::vulkan::context_t::compute_slot_ring_t::close(fan::vulkan::context_t& 
   descriptor_pool = VK_NULL_HANDLE;
   submit_slot = 0;
 }
-std::uint32_t fan::vulkan::context_t::compute_slot_ring_t::acquire() const {
+std::uint32_t fan::vulkan::compute_slot_ring_t::acquire() const {
   if (slots.empty()) { return invalid_slot; }
   for (std::uint32_t i = 0; i < slots.size(); ++i) {
     std::uint32_t index = (submit_slot + i) % (std::uint32_t)slots.size();
@@ -1300,7 +1300,7 @@ std::uint32_t fan::vulkan::context_t::compute_slot_ring_t::acquire() const {
   }
   return invalid_slot;
 }
-VkCommandBuffer fan::vulkan::context_t::compute_slot_ring_t::begin(fan::vulkan::context_t& context, std::uint32_t slot_index) {
+VkCommandBuffer fan::vulkan::compute_slot_ring_t::begin(fan::vulkan::context_t& context, std::uint32_t slot_index) {
   auto& slot = slots[slot_index];
   fan::vulkan::validate(vkResetFences(context.device, 1, &slot.fence));
   fan::vulkan::validate(vkResetCommandBuffer(slot.command_buffer, 0));
@@ -1310,7 +1310,7 @@ VkCommandBuffer fan::vulkan::context_t::compute_slot_ring_t::begin(fan::vulkan::
   fan::vulkan::validate(vkBeginCommandBuffer(slot.command_buffer, &begin_info));
   return slot.command_buffer;
 }
-void fan::vulkan::context_t::compute_slot_ring_t::submit(fan::vulkan::context_t& context, std::uint32_t slot_index) {
+void fan::vulkan::compute_slot_ring_t::submit(fan::vulkan::context_t& context, std::uint32_t slot_index) {
   auto& slot = slots[slot_index];
   fan::vulkan::validate(vkEndCommandBuffer(slot.command_buffer));
   VkSubmitInfo submit_info{};
@@ -1321,7 +1321,7 @@ void fan::vulkan::context_t::compute_slot_ring_t::submit(fan::vulkan::context_t&
   slot.in_flight = true;
   submit_slot = (slot_index + 1) % (std::uint32_t)slots.size();
 }
-bool fan::vulkan::context_t::compute_slot_ring_t::done(fan::vulkan::context_t& context, std::uint32_t slot_index) const {
+bool fan::vulkan::compute_slot_ring_t::done(fan::vulkan::context_t& context, std::uint32_t slot_index) const {
   auto& slot = slots[slot_index];
   if (!slot.in_flight) { return false; }
   VkResult r = vkGetFenceStatus(context.device, slot.fence);
@@ -1329,18 +1329,18 @@ bool fan::vulkan::context_t::compute_slot_ring_t::done(fan::vulkan::context_t& c
   fan::vulkan::validate(r);
   return true;
 }
-void fan::vulkan::context_t::compute_slot_ring_t::set_idle(std::uint32_t slot_index) {
+void fan::vulkan::compute_slot_ring_t::set_idle(std::uint32_t slot_index) {
   slots[slot_index].in_flight = false;
 }
-std::uint32_t fan::vulkan::context_t::compute_slot_ring_t::free_slot_count() const {
+std::uint32_t fan::vulkan::compute_slot_ring_t::free_slot_count() const {
   std::uint32_t count = 0;
   for (auto& slot : slots) { count += !slot.in_flight; }
   return count;
 }
-fan::vulkan::context_t::compute_slot_ring_t::slot_t& fan::vulkan::context_t::compute_slot_ring_t::get(std::uint32_t slot_index) {
+fan::vulkan::compute_slot_ring_t::slot_t& fan::vulkan::compute_slot_ring_t::get(std::uint32_t slot_index) {
   return slots[slot_index];
 }
-const fan::vulkan::context_t::compute_slot_ring_t::slot_t& fan::vulkan::context_t::compute_slot_ring_t::get(std::uint32_t slot_index) const {
+const fan::vulkan::compute_slot_ring_t::slot_t& fan::vulkan::compute_slot_ring_t::get(std::uint32_t slot_index) const {
   return slots[slot_index];
 }
 void fan::vulkan::context_t::create_command_buffers() {
