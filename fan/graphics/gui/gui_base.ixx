@@ -456,7 +456,7 @@ export namespace fan::graphics::gui {
     std::uint32_t image_count,
     std::uint32_t min_image_count,
     VkSampleCountFlagBits msaa_samples,
-    void (*check_vk_result)(VkResult)
+    void (*check_vk_result)(int)
   );
 
   void init_graphics_context(
@@ -471,7 +471,7 @@ export namespace fan::graphics::gui {
     std::uint32_t image_count,
     std::uint32_t min_image_count,
     VkSampleCountFlagBits msaa_samples,
-    void (*check_vk_result)(VkResult)
+    void (*check_vk_result)(int)
   );
 
   void init_fonts();

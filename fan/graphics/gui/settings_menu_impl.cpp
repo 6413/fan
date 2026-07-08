@@ -38,14 +38,14 @@ namespace fan::graphics::gui {
   };
 
   static void sync_vulkan_post_processing(const settings_config_t::post_processing_t& pp) {
-    gloco()->vk.bloom_strength = pp.bloom_strength;
-    gloco()->vk.bloom_threshold = pp.bloom_threshold;
-    gloco()->vk.bloom_knee = pp.bloom_knee;
-    gloco()->vk.bloom_filter_radius = pp.bloom_filter_radius;
-    gloco()->vk.bloom_tint = pp.bloom_tint;
-    gloco()->vk.gamma = pp.gamma;
-    gloco()->vk.exposure = pp.exposure;
-    gloco()->vk.contrast = pp.contrast;
+    *gloco()->get_bloom_strength_ptr()      = pp.bloom_strength;
+    *gloco()->get_bloom_threshold_ptr()     = pp.bloom_threshold;
+    *gloco()->get_bloom_knee_ptr()          = pp.bloom_knee;
+    *gloco()->get_bloom_filter_radius_ptr() = pp.bloom_filter_radius;
+    *gloco()->get_bloom_tint_ptr()          = pp.bloom_tint;
+    *gloco()->get_gamma_ptr()               = pp.gamma;
+    *gloco()->get_exposure_ptr()            = pp.exposure;
+    *gloco()->get_contrast_ptr()            = pp.contrast;
   }
 
   void settings_config_t::load_from_json(const fan::json& j) {
