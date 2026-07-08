@@ -58,3 +58,8 @@ namespace fan {
   const int fs_nocreate  = O_EXCL;
   const int fs_noreplace = O_EXCL;
 }
+
+namespace fan::event {
+  void error_code_t::throw_if() const { if (code) throw code; }
+  void error_code_t::await_resume() const { throw_if(); }
+}
