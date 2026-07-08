@@ -13,6 +13,8 @@ module fan.noise;
 
 import std;
 
+import fan.graphics.image_load;
+
 namespace fan {
 
   struct noise_t::impl_t {
