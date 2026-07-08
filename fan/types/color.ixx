@@ -13,7 +13,7 @@ import fan.types;
 import fan.types.vector;
 
 #if defined(FAN_GUI)
-import fan.graphics.gui.types;
+  import fan.graphics.gui.types;
 #endif
 
 #pragma pack(push, 1)
@@ -273,15 +273,8 @@ export namespace fan {
     }
 
   #if defined(FAN_GUI)
-    constexpr color(const fan::graphics::gui::vec4_t& v) {
-      r = v.x;
-      g = v.y;
-      b = v.z;
-      a = v.w;
-    }
-    constexpr operator fan::graphics::gui::vec4_t() const {
-      return *(fan::graphics::gui::vec4_t*)this;
-    }
+    color(const fan::graphics::gui::vec4_t& v);
+    operator fan::graphics::gui::vec4_t() const;
     constexpr operator fan::vec3() const {
       return fan::vec3{ r, g, b };
     }

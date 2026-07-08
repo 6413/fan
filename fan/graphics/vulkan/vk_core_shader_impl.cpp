@@ -39,7 +39,7 @@ fan::vulkan::shader_t& fan::vulkan::context_t::shader_get(fan::graphics::shader_
   return *(fan::vulkan::shader_t*)__fan_internal_shader_list[nr].internal;
 }
 std::vector<std::uint32_t> fan::vulkan::context_t::compile_file(const std::string& source_name,
-  shaderc_shader_kind kind,
+  int kind,
   const std::string& source) 
 {
   shaderc::Compiler compiler;
@@ -56,7 +56,7 @@ std::vector<std::uint32_t> fan::vulkan::context_t::compile_file(const std::strin
 #endif
 
   shaderc::SpvCompilationResult module =
-    compiler.CompileGlslToSpv(source.c_str(), kind, source_name.c_str(), options);
+    compiler.CompileGlslToSpv(source.c_str(), static_cast<shaderc_shader_kind>(kind), source_name.c_str(), options);
 
   if (module.GetCompilationStatus() != shaderc_compilation_status_success) {
     fan::throw_error(module.GetErrorMessage().c_str());

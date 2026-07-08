@@ -2386,6 +2386,18 @@ namespace fan::graphics::gui {
     set_cursor_pos((ws - fan::vec2(render_size.x, render_size.y + reserved_height)) / 2.f);
     image(img, render_size);
   }
+
+  void add_image(draw_list_t* draw_list, texture_id_t tex, const fan::vec2& min, const fan::vec2& max) {
+    draw_list->AddImage(tex, ImVec2(min.x, min.y), ImVec2(max.x, max.y));
+  }
+
+  void add_rect(draw_list_t* draw_list, const fan::vec2& min, const fan::vec2& max, u32_t col, f32_t rounding, int flags, f32_t thickness) {
+    draw_list->AddRect(ImVec2(min.x, min.y), ImVec2(max.x, max.y), col, rounding, flags, thickness);
+  }
+
+  f32_t get_mouse_wheel() {
+    return ImGui::GetIO().MouseWheel;
+  }
 } // namespace fan::graphics::gui
 
 namespace fan::graphics::gui::plot {
