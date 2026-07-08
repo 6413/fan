@@ -446,6 +446,16 @@ task_auto_promise_t<suspend_t>::get_return_object() {
 }
 
 export namespace fan::event {
+  struct error_code_t {
+    int code;
+    constexpr error_code_t(int code) noexcept : code(code) {}
+    constexpr operator int() const noexcept { return code; }
+    constexpr bool await_ready() const noexcept { return true; }
+    constexpr void await_suspend(std::coroutine_handle<>) const noexcept {}
+    void throw_if() const;
+    void await_resume() const;
+  };
+
   using loop_t = void*;
   using idle_id_t = void*;
 

@@ -17,15 +17,6 @@ export namespace fan::event {
   loop_t& get_loop();
   void loop_stop(loop_t loop = fan::event::get_loop());
   int loop_close(loop_t loop = fan::event::get_loop());
-  struct error_code_t {
-    int code;
-    constexpr error_code_t(int code) noexcept : code(code) {}
-    constexpr operator int() const noexcept { return code; }
-    constexpr bool await_ready() const noexcept { return true; }
-    constexpr void await_suspend(std::coroutine_handle<>) const noexcept {}
-    void throw_if() const;
-    void await_resume() const;
-  };
   void print_event_handles(loop_t loop = get_loop());
 
   struct timer_t {
