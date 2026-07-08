@@ -240,7 +240,7 @@ for _, m in ipairs(module_files) do
 end
 
 if has_config("FAN_VULKAN") then
-  for _, f in ipairs({"vk_core_device", "vk_core_shader", "vk_core_image", "vk_core_camera_viewport", "vk_mem_alloc"}) do
+  for _, f in ipairs({"vk_core_device", "vk_core_shader", "vk_core_image", "vk_mem_alloc"}) do
     table.insert(impl_files, "fan/graphics/vulkan/" .. f .. "_impl.cpp")
   end
 end
