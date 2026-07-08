@@ -143,9 +143,29 @@ local common_flags = {
   "-Wall", "-Wextra", "-Wno-unused-variable", "-Wno-unused-parameter", "-Wno-unused-function",
   "-Wno-missing-field-initializers", "-Wno-sign-compare",
   "-Wno-unused-but-set-parameter", "-Wno-unused-value", "-Wno-padded", "-Wno-parentheses",
-  "-Wno-unused-static-function", "-fsized-deallocation"
+  "-fsized-deallocation"
 }
-add_cxxflags(table.unpack(common_flags), {force = true})
+add_cxxflags(common_flags, {force = true})
+
+if is_gcc then
+  add_cxxflags(
+    "-Wno-unused-static-function",
+    "-fmax-errors=20",
+    "-fmodules-ts",
+    "-fno-module-lazy",
+    {force = true}
+  )
+else
+  add_cxxflags(
+    "-ferror-limit=20",
+    "-Wno-include-angled-in-module-purview",
+    "-fmacro-backtrace-limit=0",
+    "-Wno-shift-op-parentheses",
+    "-Wno-int-to-void-pointer-cast",
+    "-Wno-bitwise-op-parentheses",
+    {force = true}
+  )
+end
 
 if is_gcc then
   add_cxxflags("-fmax-errors=20", "-fmodules-ts", "-fno-module-lazy", {force = true})
