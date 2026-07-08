@@ -1222,7 +1222,7 @@ namespace fan::physics {
   }
 
   void set_pre_solve_callback(b2WorldId world_id, pre_solve_fn_t* fcn, void* context) {
-    b2World_SetPreSolveCallback(world_id, reinterpret_cast<b2PreSolveFcn*>(reinterpret_cast<void(*)()>(global_presolve)), this);
+    b2World_SetPreSolveCallback(world_id, reinterpret_cast<b2PreSolveFcn*>(reinterpret_cast<void(*)()>(fcn)), context);
   }
 
   // for drawing physics shapes
