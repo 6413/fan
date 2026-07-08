@@ -1,5 +1,9 @@
 module;
 
+#if defined(FAN_GUI)
+  #include <fan/imgui/imgui.h>
+#endif
+
 module fan.types.color;
 
 import std;
@@ -7,6 +11,18 @@ import std;
 import fan.random;
 
 namespace fan {
+
+#if defined(FAN_GUI)
+  color::color(const fan::graphics::gui::vec4_t& v) {
+    r = v.x;
+    g = v.y;
+    b = v.z;
+    a = v.w;
+  }
+  color::operator fan::graphics::gui::vec4_t() const {
+    return *(fan::graphics::gui::vec4_t*)this;
+  }
+#endif
 
   f32_t color::srgb_to_linear_channel(f32_t c) {
     if (c <= 0.04045f) {

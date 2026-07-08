@@ -11,7 +11,6 @@ module;
 #define loco_window
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
-#include <shaderc/shaderc.hpp>
 #if defined(fan_platform_windows)
   #define WIN32_LEAN_AND_MEAN
   #define NOMINMAX
@@ -136,7 +135,7 @@ export namespace fan {
       fan::vulkan::shader_t& shader_get(fan::graphics::shader_nr_t nr);
 
       static std::vector<std::uint32_t> compile_file(const std::string& source_name,
-        shaderc_shader_kind kind,
+        int kind,
         const std::string& source);
       static std::vector<std::uint32_t> load_or_compile(const std::string& source_name,
         int kind,

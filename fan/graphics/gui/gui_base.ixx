@@ -1146,6 +1146,11 @@ export namespace fan::graphics::gui {
   fan::vec2 image_fit(fan::graphics::image_t img, fan::vec2 avail);
   void image_centered_fit(fan::graphics::image_t img, f32_t reserved_height = 0.f);
   
+  void add_image(draw_list_t* draw_list, texture_id_t tex, const fan::vec2& min, const fan::vec2& max);
+
+  void add_image(draw_list_t* draw_list, texture_id_t tex, const fan::vec2& min, const fan::vec2& max);
+  void add_rect(draw_list_t* draw_list, const fan::vec2& min, const fan::vec2& max, u32_t col, f32_t rounding = 0.0f, int flags = 0, f32_t thickness = 1.0f);
+  f32_t get_mouse_wheel();
 
   struct grid_state_t {
     f32_t zoom = 1.0f;
@@ -1164,7 +1169,7 @@ export namespace fan::graphics::gui {
     }
     gui::push_id(id);
     if (gui::is_window_hovered() && fan::window::is_key_down(fan::key_left_control)) {
-      state.zoom = fan::math::clamp(state.zoom * (1.f + gui::get_io().MouseWheel * 0.08f), 0.01f, 8.f);
+      state.zoom = fan::math::clamp(state.zoom * (1.f + gui::get_mouse_wheel() * 0.08f), 0.01f, 8.f);
     }
     if (gui::is_window_hovered() && gui::is_mouse_dragging(fan::mouse_middle)) {
       fan::vec2 md = gui::get_mouse_drag_delta(fan::mouse_middle);
@@ -1192,10 +1197,10 @@ export namespace fan::graphics::gui {
       bool selected = state.selected.contains(i);
       render_cb(i, cpos, sprite_size, selected);
       if (selected) {
-        draw_list->AddRect(ImVec2(cpos.x + 2.f, cpos.y + 2.f), ImVec2(cpos.x + sprite_size.x - 2.f, cpos.y + sprite_size.y - 2.f), 0xff0077ff, 0, 0, 3.f);
+        gui::add_rect(draw_list, cpos + 2.f, cpos + sprite_size - 2.f, 0xff0077ff, 0, 0, 3.f);
       }
       if (!state.is_selecting && fan::math::d2::aabb_point_inside(cpos, gui::get_mouse_pos() - sprite_size / 2.f, sprite_size / 2.f)) {
-        draw_list->AddRect(ImVec2(cpos.x + 2.f, cpos.y + 2.f), ImVec2(cpos.x + sprite_size.x - 2.f, cpos.y + sprite_size.y - 2.f), 0xff0077ff, 0, 0, 3.f);
+        gui::add_rect(draw_list, cpos + 2.f, cpos + sprite_size - 2.f, 0xff0077ff, 0, 0, 3.f);
       }
       if (gui::is_item_hovered(gui::hovered_flags_rect_only)) {
         if (l_drag) {
@@ -1226,7 +1231,7 @@ export namespace fan::graphics::gui {
     if (state.is_selecting) {
       fan::vec2 max_draw = (state.max_rect_draw + sprite_size).min(initial_pos + cur_grid * step + sprite_size);
       if (state.min_rect.x != 0x7FFFFFFF && state.max_rect.x != -1) {
-        draw_list->AddRect(ImVec2(state.min_rect_draw.x, state.min_rect_draw.y), ImVec2(max_draw.x, max_draw.y), 0xff0077ff);
+        gui::add_rect(draw_list, state.min_rect_draw, max_draw, 0xff0077ff);
       }
       if (fan::window::is_mouse_released(0)) {
         state.is_selecting = false;
@@ -1278,16 +1283,9 @@ export namespace fan::graphics::gui {
       fan::vec2 render_size = img_size * scale;
       fan::vec2 render_pos = cpos + (sprite_size - render_size) / 2.f;
 
-      draw_list->AddImage(tex, ImVec2(render_pos.x, render_pos.y), ImVec2(render_pos.x + render_size.x, render_pos.y + render_size.y));
+      gui::add_image(draw_list, tex, render_pos, render_pos + render_size);
     });
 
-    if (!state.selected.empty()) {
-      int current = *state.selected.begin();
-      if (current != selected_index) {
-        selected_index = current;
-        changed = true;
-      }
-    }
     return changed;
   }
 } // namespace fan::graphics::gui
