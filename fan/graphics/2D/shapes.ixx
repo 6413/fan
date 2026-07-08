@@ -80,7 +80,7 @@ export namespace fan::graphics {
     context_shader_t() {}
     ~context_shader_t() {}
     union {
-      fan::vulkan::context_t::shader_t vk;
+      fan::vulkan::shader_t vk;
     };
   };
   struct context_image_t {

@@ -1,0 +1,106 @@
+module;
+
+#include <vulkan/vulkan.h>
+
+export module fan.graphics.vulkan.core:uniform_block;
+
+import std;
+
+import :types;
+
+export namespace fan::vulkan {
+  struct context_t;
+  template <typename type_t, std::uint32_t element_size, typename ctx_t = context_t>
+  struct uniform_block_t {
+
+    static constexpr auto buffer_count = fan::vulkan::max_frames_in_flight;
+
+    struct open_properties_t {
+      open_properties_t() {}
+    }op;
+
+    using nr_t = std::uint8_t;
+    using instance_id_t = std::uint8_t;
+
+    uniform_block_t() = default;
+    uniform_block_t(const uniform_block_t&) = delete;
+    uniform_block_t& operator=(const uniform_block_t&) = delete;
+
+    uniform_block_t(ctx_t& context, open_properties_t op_ = open_properties_t()) {
+      open(context, op_);
+    }
+
+    void write(ctx_t& context) {
+      const auto begin = common.m_min_edit;
+      const auto end = common.m_max_edit;
+
+      if (!common.is_current_frame_dirty(context) || begin == 0xFFFFFFFFFFFFFFFF || end <= begin) {
+        common.on_edit(context);
+        return;
+      }
+
+      auto frame = context.current_frame;
+      std::memcpy((std::uint8_t*)mapped_data[frame] + begin, buffer + begin, end - begin);
+
+      common.on_edit(context);
+    }
+
+    static void write_cb_impl(ctx_t& context, void* ptr) {
+      static_cast<uniform_block_t*>(ptr)->write(context);
+    }
+
+    void open(ctx_t& context, open_properties_t op_ = open_properties_t()) {
+      common.open(context, write_cb_impl, this);
+
+      op = op_;
+
+      m_size = 0;
+
+      VkDeviceSize bufferSize = sizeof(type_t) * element_size;
+
+      for (std::size_t i = 0; i < buffer_count; i++) {
+        VmaAllocationInfo alloc_info;
+        context.create_buffer(
+          bufferSize,
+          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+          common.memory[i].buffer,
+          common.memory[i].device_memory,
+          &alloc_info
+        );
+        mapped_data[i] = alloc_info.pMappedData;
+      }
+    }
+
+    void close(ctx_t& context) {
+      common.close(context);
+    }
+
+    std::uint32_t size() const {
+      return m_size / sizeof(type_t);
+    }
+
+    void push_ram_instance(ctx_t& context, const type_t& data) {
+      const auto begin = static_cast<std::uint32_t>(m_size);
+      std::memmove(&buffer[m_size], &data, sizeof(type_t));
+      m_size += sizeof(type_t);
+      common.edit(context, begin, static_cast<std::uint32_t>(m_size));
+    }
+
+    template <typename member_t>
+    void edit_instance(ctx_t& context, std::uint32_t i, member_t type_t::* member, const member_t& value) {
+      ((type_t*)buffer)[i].*member = value;
+
+      const auto begin = static_cast<std::uint32_t>(
+        sizeof(type_t) * i + fan::member_offset(member)
+        );
+
+      common.edit(context, begin, begin + sizeof(member_t));
+    }
+
+    typename ctx_t::template memory_common_t<fan::graphics::shader_nr_t, instance_id_t> common;
+    std::uint8_t buffer[element_size * sizeof(type_t)];
+    std::uint32_t m_size;
+    void* mapped_data[buffer_count] {};
+  };
+}

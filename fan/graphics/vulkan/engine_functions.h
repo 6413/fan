@@ -1011,10 +1011,10 @@ void begin_draw() {
   }
   context.command_buffer_in_use = true;
 
-  if (context.viewport_dirty) {
-    vkCmdSetViewport(context.command_buffers[context.current_frame], 0, 1, &context.pending_viewport);
-    vkCmdSetScissor(context.command_buffers[context.current_frame], 0, 1, &context.pending_scissor);
-    context.viewport_dirty = false;
+  if (context.cameras.viewport_dirty) {
+    vkCmdSetViewport(context.command_buffers[context.current_frame], 0, 1, &context.cameras.pending_viewport);
+    vkCmdSetScissor(context.command_buffers[context.current_frame], 0, 1, &context.cameras.pending_scissor);
+    context.cameras.viewport_dirty = false;
   }
 
   for (auto& i : context.begin_cmd_cb) {
@@ -1077,7 +1077,7 @@ void shapes_draw() {
 
   auto prepare = [&] (std::uint16_t shape_type, fan::graphics::shader_t shape_shader_nr) -> fan::vulkan::context_t::pipeline_t& {
     auto camera_data = loco.camera_get(camera);
-    auto& shader = *(fan::vulkan::context_t::shader_t*)loco.context_functions.shader_get(&context, shape_shader_nr);
+    auto& shader = *(fan::vulkan::shader_t*)loco.context_functions.shader_get(&context, shape_shader_nr);
     shader.projection_view_block->edit_instance(
       context,
       0,

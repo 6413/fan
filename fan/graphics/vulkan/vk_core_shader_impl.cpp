@@ -33,16 +33,15 @@ import fan.io.file;
 #define __fan_internal_image_list (*fan::graphics::ctx().image_list)
 #define __fan_internal_viewport_list (*fan::graphics::ctx().viewport_list)
 
-#define ENABLE_RAYTRACING_DEPENDENCIES
-
 #define VK_CTX ((fan::vulkan::context_t*)context)
 
-fan::vulkan::context_t::shader_t& fan::vulkan::context_t::shader_get(fan::graphics::shader_nr_t nr) {
-  return *(fan::vulkan::context_t::shader_t*)__fan_internal_shader_list[nr].internal;
+fan::vulkan::shader_t& fan::vulkan::context_t::shader_get(fan::graphics::shader_nr_t nr) {
+  return *(fan::vulkan::shader_t*)__fan_internal_shader_list[nr].internal;
 }
 std::vector<std::uint32_t> fan::vulkan::context_t::compile_file(const std::string& source_name,
   shaderc_shader_kind kind,
-  const std::string& source) {
+  const std::string& source) 
+{
   shaderc::Compiler compiler;
   shaderc::CompileOptions options;
 
@@ -105,7 +104,7 @@ std::vector<std::uint32_t> fan::vulkan::context_t::load_or_compile(const std::st
 
 fan::graphics::shader_nr_t fan::vulkan::context_t::shader_create() {
   fan::graphics::shader_nr_t nr = __fan_internal_shader_list.NewNode();
-  __fan_internal_shader_list[nr].internal = new fan::vulkan::context_t::shader_t;
+  __fan_internal_shader_list[nr].internal = new fan::vulkan::shader_t;
   auto& shader = shader_get(nr);
   shader.projection_view_block = new std::remove_pointer_t<decltype(shader.projection_view_block)>;
   //TODO
@@ -126,7 +125,7 @@ void fan::vulkan::context_t::shader_erase(fan::graphics::shader_nr_t nr, int rec
   // TODO
   shader.projection_view_block->close(*this);
   delete shader.projection_view_block;
-  delete static_cast<fan::vulkan::context_t::shader_t*>(__fan_internal_shader_list[nr].internal);
+  delete static_cast<fan::vulkan::shader_t*>(__fan_internal_shader_list[nr].internal);
   if (recycle) {
     __fan_internal_shader_list.Recycle(nr);
   }
@@ -180,7 +179,7 @@ void fan::vulkan::context_t::shader_set_compute(
 }
 void fan::vulkan::context_t::shader_set_camera(fan::graphics::shader_nr_t nr, fan::graphics::camera_nr_t camera_nr) {
   auto& shader = shader_get(nr);
-  auto& camera = camera_get(camera_nr);
+  auto& camera = cameras.camera_get(camera_nr);
 
   std::uint32_t camera_index = camera_nr.gint();
 
