@@ -28,12 +28,10 @@ import fan.graphics.common_context;
 import fan.graphics.common_types;
 import fan.graphics.shapes.types;
 import fan.graphics.shapes;
-export import fan.graphics.grid_placer;
 import fan.pathfind;
 import fan.graphics.image_load;
 
 import fan.time;
-import fan.formatter;
 
 import fan.window.input;
 import fan.window.input_action;
