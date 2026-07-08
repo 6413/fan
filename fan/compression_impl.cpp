@@ -4,7 +4,7 @@ module fan.compression;
 
 import std;
 
-namespace fan {
+namespace fan::fcs {
   chunk_payload_t parse_chunk_optimal(const fan::bytes_t& src, std::size_t c_start, std::size_t c_end, const compress_params_t& params, std::function<void(std::uint64_t)> set_prog) {
     chunk_payload_t out; out.seqs.reserve((c_end - c_start) / 5);
     std::size_t dict_size = std::max<std::size_t>(1, params.chunk_size), d_start = c_start >= dict_size ? c_start - dict_size : 0;
