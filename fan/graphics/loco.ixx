@@ -4,14 +4,13 @@ module;
 
 #include <fan/utility.h>
 
+#include <vulkan/vulkan.h>
+
 #include <cstdint>
 
 // loco framebuffer is recommended, you cant see sprites without it, 
 // since light uses framebuffer _t01. you could use unlit_sprite, if required
 #define LOCO_FRAMEBUFFER
-#include <vulkan/vulkan.h>
-#include <vk_mem_alloc.h>
-#include <fan/event/types.h>
 
 // +cuda
 #if __has_include("cuda.h")
@@ -139,6 +138,7 @@ export namespace fan::graphics {
   struct renderer_state_t {
     fan::color clear_color = {0.f, 0.f, 0.f, 1.f};
     fan::graphics::lighting_t lighting;
+
   #if defined(FAN_2D)
     bool force_line_draw = false;
   #endif
@@ -155,7 +155,8 @@ export namespace fan::graphics {
       f32_t max_frame_time_s;
 
       f32_t avg_fps() const { return 1.0f / avg_frame_time_s; }
-      f32_t min_fps() const { return 1.0f / max_frame_time_s; }
+      f32_t min_fps() const { return 1.0f / max_frame_time_s;
+      }
       f32_t max_fps() const { return 1.0f / min_frame_time_s; }
     };
 
@@ -170,6 +171,7 @@ export namespace fan::graphics {
     std::vector<f32_t> buffer;
     std::deque<int> min_q;
     std::deque<int> max_q;
+
     f32_t sum = 0.0f;
     bool paused = false;
   };
@@ -230,10 +232,7 @@ struct global_loco_t {
   }
 };
 
-export global_loco_t& gloco() {
-  static global_loco_t loco;
-  return loco;
-}
+export global_loco_t& gloco();
 
 export namespace fan::graphics {
 
@@ -248,7 +247,7 @@ export namespace fan::graphics {
     f32_t noclip_friction = 30.f;
     f32_t ground_acceleration = 60.f;
   };
-  
+
   struct engine_init_t {
   #define BLL_set_SafeNext 1
   #define BLL_set_AreWeInsideStruct 1
@@ -263,10 +262,7 @@ export namespace fan::graphics {
     using init_callback_nr_t = init_callback_NodeReference_t;
   };
   // cbs called every time engine opens
-  engine_init_t::init_callback_t& get_engine_init_cbs() {
-    static engine_init_t::init_callback_t engine_init_cbs;
-    return engine_init_cbs;
-  }
+  engine_init_t::init_callback_t& get_engine_init_cbs();
 
   std::uint32_t get_draw_mode(std::uint8_t internal_draw_mode);
 }
@@ -283,7 +279,6 @@ export namespace fan {
 
   inline struct gstage_t {
     stage_loader_t* loader;
-
     operator stage_loader_t*() {
       return loader;
     }
@@ -306,7 +301,7 @@ export namespace fan {
     #define BLL_set_type_node std::uint16_t
     #define bcontainer_set_StoreFormat 1
     #define BLL_set_NodeData \
-    fan::graphics::update_callback_nr_t update_nr; \
+    fan::graphics::update_callback_nr_t update_nr;\
     fan::window_t::resize_callback_NodeReference_t resize_id; \
     void *stage;
     #include <BLL/BLL.h>
@@ -328,7 +323,7 @@ export namespace fan {
     #define BLL_set_prefix stage_list
     #define BLL_set_type_node std::uint16_t
     #define BLL_set_NodeData \
-    fan::graphics::update_callback_nr_t update_nr; \
+    fan::graphics::update_callback_nr_t update_nr;\
     fan::window_t::resize_callback_NodeReference_t resize_id; \
     void *stage;
     #define BLL_set_Link 1
@@ -342,7 +337,6 @@ export namespace fan {
     struct nr_t : stage_list_NodeReference_t {
       using base_nr_t = stage_list_NodeReference_t;
       using base_nr_t::base_nr_t;
-
       nr_t() = default;
       nr_t(base_nr_t nr) : base_nr_t(nr) {}
 
@@ -370,7 +364,8 @@ export namespace fan {
       update_t update;
       stage_list_NodeReference_t stage_id;
       std::uint32_t it;
-    #if defined(FAN_2D)
+
+#if defined(FAN_2D)
       cid_list_t cid_list;
     #endif
       stage_loader_t::stage_list_NodeReference_t parent_id;
@@ -463,7 +458,8 @@ export namespace fan {
       auto key = std::type_index(typeid(T));
       auto it = type_stage_map.find(key);
       nr_t old_nr;
-      if (it != type_stage_map.end()) { old_nr = it->second; type_stage_map.erase(it); }
+      if (it != type_stage_map.end()) { old_nr = it->second; type_stage_map.erase(it);
+      }
       nr_t nr = open_stage<T>(stage_open_properties_t{.sod = sod});
       type_stage_map[key] = nr;
       if (old_nr) close_stage(old_nr);
@@ -535,7 +531,8 @@ export namespace fan {
     {
       return change_stage_impl(
         [this, old_stage_id] { close_stage(old_stage_id); },
-        [this, &out_new_stage_id, sod] { out_new_stage_id = open_stage<NextStageT>(stage_open_properties_t{.sod = sod}); },
+        [this, &out_new_stage_id, sod] { out_new_stage_id = open_stage<NextStageT>(stage_open_properties_t{.sod = sod}); 
+        },
         mode, duration, color
       );
     }
@@ -552,7 +549,6 @@ export namespace fan {
   template <typename Derived>
   struct stage_t {
     using self_t = Derived;
-
     stage_t(const stage_loader_t::stage_open_properties_t& op = {});
 
     static constexpr std::string_view get_stage_name() {
@@ -565,7 +561,7 @@ export namespace fan {
 
     inline static loco_t* engine = nullptr;
     inline static fan::window_t* window = nullptr;
-  #if defined(FAN_PHYSICS_2D)
+    #if defined(FAN_PHYSICS_2D)
     inline static fan::physics::context_t* physics = nullptr;
   #endif
     stage_loader_t::stage_common_t stage_common;
@@ -601,7 +597,6 @@ export struct loco_t {
 
   // first variable
   fan::init_manager_t::cleaner_t _cleaner;
-
   struct properties_t {
     bool render_shapes_top = false;
     bool vsync = true;
@@ -619,10 +614,12 @@ export struct loco_t {
     f32_t blur_focus_radius = 0.25f;
     f32_t blur_focus_falloff = 0.15f;
   }open_props;
-  std::int32_t target_fps = 165; // must be changed from function
+  std::int32_t target_fps = 165;
+  // must be changed from function
   bool init_gloco;
   fan::window_t& get_window();
-  fan::window_t window; // destruct last
+  fan::window_t window;
+  // destruct last
 
   fan::vec2 ws() const {
     return window.get_size();
@@ -638,7 +635,6 @@ private:
 
   // shared impl for is_mouse_clicked/down and is_key_clicked/down
   bool key_state_is(int key, bool include_repeat);
-
 public:
 
   fan::graphics::shader_t shader_make_compute(
@@ -673,6 +669,10 @@ public:
   f32_t* get_bloom_threshold_ptr();
   f32_t* get_bloom_knee_ptr();
   fan::vec3* get_bloom_tint_ptr();
+  f32_t* get_bloom_strength_ptr();
+  f32_t* get_gamma_ptr();
+  f32_t* get_exposure_ptr();
+  f32_t* get_contrast_ptr();
   void* get_framebuffer();
 
 
@@ -701,7 +701,6 @@ public:
   fan::graphics::shader_list_t shader_list;
   fan::graphics::image_list_t image_list;
   fan::graphics::viewport_list_t viewport_list;
-
   std::vector<std::uint8_t> image_get_pixel_data(fan::graphics::image_t nr, int image_format, fan::vec2 uvp = 0, fan::vec2 uvs = 1);
   fan::graphics::image_t image_create();
   fan::graphics::context_image_t image_get(fan::graphics::image_t nr);
@@ -786,11 +785,11 @@ public:
   void use();
   void camera_move(f32_t movement_speed = 1000.f, f32_t friction = 12);
   void camera_move(fan::graphics::context_camera_t& camera, f32_t movement_speed = 1000.f, f32_t friction = 12);
-
   static fan::vec3 approach(fan::vec3 v, fan::vec3 target, f32_t step) {
     fan::vec3 d = target - v;
     f32_t l2 = d.length_squared();
-    if (l2 <= step * step) { return target; }
+    if (l2 <= step * step) { return target;
+    }
     return v + d.normalize() * step;
   }
 
@@ -800,15 +799,14 @@ public:
     f32_t dt = get_delta_time();
 
     fan::vec2 input = get_input_vector();
-    if (input.length_squared() > 1.f) { input = input.normalize(); }
+    if (input.length_squared() > 1.f) { input = input.normalize();
+    }
 
     fan::vec3 f = noclip ? c.front : c.front.normalized_xz();
     fan::vec3 r = noclip ? c.right : c.right.normalized_xz();
     fan::vec3 wish = r * input.x - f * input.y;
-
     if (noclip) {
       wish += fan::camera::world_up * (f32_t)(is_key_down(fan::key_space) - is_key_down(fan::key_left_shift));
-
       if (wish.length_squared() > 0.f) {
         wish = wish.normalize();
         c.velocity = c.velocity.approach(wish * params.noclip_speed, params.noclip_acceleration * dt);
@@ -827,10 +825,10 @@ public:
       fan::vec3 velocity = c.velocity.approach(target_velocity, params.ground_acceleration * dt);
       c.velocity.x = velocity.x;
       c.velocity.z = velocity.z;
-
       if (grounded) {
         c.velocity.y = std::max(0.f, c.velocity.y);
-        if (is_key_clicked(fan::key_space)) { c.velocity.y = params.jump_force; }
+        if (is_key_clicked(fan::key_space)) { c.velocity.y = params.jump_force;
+        }
       }
 
       c.velocity.y -= params.gravity * dt;
@@ -854,15 +852,8 @@ public:
 
   fan::graphics::shaders_t shaders;
 
-  struct vulkan {
-  #include <fan/graphics/vulkan/engine_functions.h>
-
-    fan::vulkan::context_t::descriptor_t d_attachments;
-    fan::vulkan::context_t::pipeline_t post_process;
-    VkResult image_error = VK_SUCCESS;
-
-    fan::window_t::resize_handle_t window_resize_handle;
-  }vk;
+  struct vulkan_t;
+  vulkan_t* vk = nullptr;
 
 public:
 
@@ -907,7 +898,7 @@ public:
   void visualize_culling();
 #endif
 
-  static void check_vk_result(VkResult err);
+  static void check_vk_result(int err);
 
 #if defined(FAN_GUI)
   void init_gui();
@@ -967,7 +958,6 @@ public:
     const fan::vec2& ortho_x, const fan::vec2& ortho_y,
     const fan::vec2& viewport_position, const fan::vec2& viewport_size
   );
-
   using update_callback_handle_t = fan::graphics::update_callback_t::nr_t;
   // function callback parameter gives loco_t*
   update_callback_handle_t add_update_callback(std::function<void(void*)>&& cb);
@@ -993,13 +983,13 @@ public:
 
   fan::time::timer start_time;
   f32_t time = 0;
-
   bool idle_init = false;
   void* idle_handle = nullptr;
   bool timer_init = false;
   void* timer_handle = nullptr;
 
-  std::function<void(f32_t delta_time)> main_loop; // bad, but forced
+  std::function<void(f32_t delta_time)> main_loop;
+  // bad, but forced
 
 #define FORWARD_CB_TO_WINDOW(NAME, HANDLE, CBDATA_NAME) \
     HANDLE on_##NAME(int arg, CBDATA_NAME cb) { \
@@ -1025,7 +1015,6 @@ public:
 
 #if defined(FAN_2D)
   void debug_draw_light_buffer();
-
   // clears shapes after drawing, good for debug draw, not best for performance
   std::vector<fan::graphics::shapes::shape_t> immediate_render_list;
   std::unordered_map<std::uint32_t, fan::graphics::shapes::shape_t> static_render_list;
@@ -1053,8 +1042,7 @@ public:
   bool is_clicked(std::string_view action_name);
   bool is_down(std::string_view action_name);
   bool is_released(std::string_view action_name);
-
-#if defined(FAN_2D)
+  #if defined(FAN_2D)
   void shape_open(
     std::uint16_t shape_type,
     std::size_t sizeof_vi,
@@ -1064,7 +1052,7 @@ public:
     bool instanced = true,
     std::uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles
   );
-#endif
+  #endif
 
   fan::graphics::shader_t get_sprite_shader(const std::string_view fragment_file_path, const std::string& fragment);
 
@@ -1088,8 +1076,7 @@ fan::graphics::texture_pack_t texture_pack;
   fan::vec2 convert_mouse_to_ndc() const;
   fan::ray3_t convert_mouse_to_ray(const fan::vec3& camera_position, const fan::mat4& projection, const fan::mat4& view);
   fan::ray3_t convert_mouse_to_ray(const fan::mat4& projection, const fan::mat4& view);
-
-#if defined(loco_cuda)
+  #if defined(loco_cuda)
   struct cuda_textures_t {
     void close(loco_t* loco, fan::graphics::shapes::shape_t& cid);
     void resize(loco_t* loco, fan::graphics::shapes::shape_t& id, std::uint8_t format, fan::vec2ui size);
@@ -1108,28 +1095,33 @@ fan::graphics::texture_pack_t texture_pack;
 #endif
 
   fan::graphics::renderer_state_t renderer_state;
-
-  fan::graphics::lighting_t& get_lighting()          { return renderer_state.lighting; }
-  bool&                      get_render_shapes_top() { return renderer_state.render_shapes_top; }
-  fan::color&                get_clear_color() { return renderer_state.clear_color; }
+  fan::graphics::lighting_t& get_lighting()          { return renderer_state.lighting;
+  }
+  bool&                      get_render_shapes_top() { return renderer_state.render_shapes_top;
+  }
+  fan::color&                get_clear_color() { return renderer_state.clear_color;
+  }
   void                       set_clear_color(const fan::color& color);
-  
   fan::graphics::timing_t timing;
 
-  bool&  get_vsync()       { return timing.vsync; }
+  bool&  get_vsync()       { return timing.vsync;
+  }
   f64_t& get_delta_time()  { return window.m_delta_time; }
 
   // input
   fan::graphics::input_subsystem_t input;
-  fan::window::input_action_t& get_input_action() { return input.input_action; }
+  fan::window::input_action_t& get_input_action() { return input.input_action;
+  }
 
   fan::stage_loader_t stage_loader;
 
   template <typename T>
-  fan::stage_handle_t stage_open(void* sod = nullptr) { return stage_loader.open<T>(sod); }
+  fan::stage_handle_t stage_open(void* sod = nullptr) { return stage_loader.open<T>(sod);
+  }
 
   template <typename T>
-  void stage_close() { stage_loader.close<T>(); }
+  void stage_close() { stage_loader.close<T>();
+  }
 
   template <typename T>
   void stage_restart(
@@ -1148,7 +1140,7 @@ fan::graphics::texture_pack_t texture_pack;
     f32_t duration = 1.f,
     fan::color color = fan::colors::black) 
   { 
-    fan::event::add_awaitable(stage_loader.change_stage<CurrentStageT, NextStageT>(sod, mode, duration, color)); 
+    fan::event::add_awaitable(stage_loader.change_stage<CurrentStageT, NextStageT>(sod, mode, duration, color));
   }
 
   template <typename CurrentStageT, typename NextStageT>
@@ -1161,7 +1153,7 @@ fan::graphics::texture_pack_t texture_pack;
     fan::color color = fan::colors::black)
   { 
     fan::event::add_awaitable(stage_loader.change_stage<CurrentStageT, NextStageT>(
-      sod, old_stage_id, out_new_stage_id, mode, duration, color)); 
+      sod, old_stage_id, out_new_stage_id, mode, duration, color));
   }
 
   template <typename CurrentStageT, typename NextStageT>
@@ -1170,7 +1162,7 @@ fan::graphics::texture_pack_t texture_pack;
     f32_t duration = 1.f,
     fan::color color = fan::colors::black) 
   { 
-    stage_change<CurrentStageT, NextStageT>(nullptr, mode, duration, color); 
+    stage_change<CurrentStageT, NextStageT>(nullptr, mode, duration, color);
   }
 
   template <typename CurrentStageT, typename NextStageT>
@@ -1181,25 +1173,31 @@ fan::graphics::texture_pack_t texture_pack;
     f32_t duration = 1.f,
     fan::color color = fan::colors::black)
   { 
-    stage_change<CurrentStageT, NextStageT>(nullptr, old_stage_id, out_new_stage_id, mode, duration, color); 
+    stage_change<CurrentStageT, NextStageT>(nullptr, old_stage_id, out_new_stage_id, mode, duration, color);
   }
 
   template <typename T>
-  T& stage_get() { return stage_loader.get_data<T>(); }
+  T& stage_get() { return stage_loader.get_data<T>();
+  }
 
   template <typename T>
   bool is_stage_open() { return stage_loader.is_open<T>(); }
 
   fan::graphics::gui_state_t gui;
-
-#if defined(FAN_GUI)
-  void*                                 get_settings_menu()        { return gui.settings_menu; }
-  bool&                                 get_render_settings_menu() { return gui.render_settings_menu; }
-  bool&                                 get_show_fps()             { return gui.show_fps; }
-  bool&                                 get_allow_docking()        { return gui.allow_docking; }
-  bool&                                 get_enable_overlay()       { return gui.enable_overlay; }
+  #if defined(FAN_GUI)
+  void* get_settings_menu()        { return gui.settings_menu;
+  }
+  bool&                                 get_render_settings_menu() { return gui.render_settings_menu;
+  }
+  bool&                                 get_show_fps()             { return gui.show_fps;
+  }
+  bool&                                 get_allow_docking()        { return gui.allow_docking;
+  }
+  bool&                                 get_enable_overlay()       { return gui.enable_overlay;
+  }
 #endif
-  fan::console_t&                       get_console()              { return gui.console; }
+  fan::console_t&                       get_console()              { return gui.console;
+  }
 
 #if defined(FAN_AUDIO)
   fan::graphics::audio_subsystem_t audio;
@@ -1224,7 +1222,6 @@ fan::graphics::texture_pack_t texture_pack;
     const std::string& path,
     const fan::graphics::image_load_properties_t& properties = fan::graphics::image_presets::pixel_art()
   );
-
   void async_image_process();
 
   std::vector<fan::graphics::async_image_upload_t> async_image_uploads;
@@ -1232,14 +1229,13 @@ fan::graphics::texture_pack_t texture_pack;
   bool async_image_initialized = false;
 
   fan::graphics::image_t get_color_buffer(int idx);
-
-#if defined(FAN_2D)
+  #if defined(FAN_2D)
   void camera_move_to(const fan::graphics::shapes::shape_t& shape, const fan::graphics::render_view_t& render_view);
   void camera_move_to(const fan::graphics::shapes::shape_t& shape);
   void camera_move_to_smooth(const fan::graphics::shapes::shape_t& shape, const fan::graphics::render_view_t& render_view);
   void camera_move_to_smooth(const fan::graphics::shapes::shape_t& shape);
   bool shader_update_fragment(std::uint16_t shape_type, const std::string_view fragment_file_path, const std::string& fragment);
-#endif
+  #endif
 }; // loco_t
 
 template <typename Derived>
@@ -1328,7 +1324,6 @@ export namespace fan {
   template <typename Derived>
   struct frame_task_t {
     using self_t = Derived;
-
     frame_task_t() {
       update_nr = gloco()->m_update_callback.NewNodeFirst();
       gloco()->m_update_callback[update_nr] = [this](void*) {

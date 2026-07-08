@@ -69,6 +69,16 @@ namespace fan {
 }
 #endif
 
+global_loco_t& gloco() {
+  static global_loco_t loco;
+  return loco;
+}
+
+fan::graphics::engine_init_t::init_callback_t& fan::graphics::get_engine_init_cbs() {
+  static fan::graphics::engine_init_t::init_callback_t engine_init_cbs;
+  return engine_init_cbs;
+}
+
 template<typename list_t, typename fn_t>
 static void for_each_list(list_t& list, fn_t&& fn) {
   typename list_t::nrtra_t nrtra;
@@ -80,9 +90,18 @@ static void for_each_list(list_t& list, fn_t&& fn) {
   nrtra.Close(&list);
 }
 
-  
-namespace fan::graphics {
+struct loco_t::vulkan_t {
+  loco_t* loco_ptr = nullptr;
 
+  #include <fan/graphics/vulkan/engine_functions.h>
+
+  fan::vulkan::context_t::descriptor_t d_attachments;
+  fan::vulkan::context_t::pipeline_t post_process;
+  VkResult image_error{};
+  fan::window_t::resize_handle_t window_resize_handle;
+};
+
+namespace fan::graphics {
   bool async_image_t::ready() const {
     return result != nullptr && result->state == fan::image::async_result_t::state_e::ready;
   }
@@ -265,21 +284,14 @@ void loco_t::shader_recompile_all() {
   });
 }
 
-f32_t* loco_t::get_bloom_filter_radius_ptr() {
-  return &vk.bloom_filter_radius;
-}
-
-f32_t* loco_t::get_bloom_threshold_ptr() {
-  return &vk.bloom_threshold;
-}
-
-f32_t* loco_t::get_bloom_knee_ptr() {
-  return &vk.bloom_knee;
-}
-
-fan::vec3* loco_t::get_bloom_tint_ptr() {
-  return &vk.bloom_tint;
-}
+f32_t* loco_t::get_bloom_filter_radius_ptr() { return &vk->bloom_filter_radius; }
+f32_t* loco_t::get_bloom_threshold_ptr()     { return &vk->bloom_threshold; }
+f32_t* loco_t::get_bloom_knee_ptr()          { return &vk->bloom_knee; }
+fan::vec3* loco_t::get_bloom_tint_ptr()      { return &vk->bloom_tint; }
+f32_t* loco_t::get_bloom_strength_ptr()      { return &vk->bloom_strength; }
+f32_t* loco_t::get_gamma_ptr()               { return &vk->gamma; }
+f32_t* loco_t::get_exposure_ptr()            { return &vk->exposure; }
+f32_t* loco_t::get_contrast_ptr()            { return &vk->contrast; }
 
 #endif
 
@@ -971,7 +983,7 @@ void loco_t::visualize_culling() {
 }
 #endif
 
-void loco_t::check_vk_result(VkResult err) {
+void loco_t::check_vk_result(int err) {
   if (err != VK_SUCCESS) {
     fan::print_impl("vkerr", (int)err);
   }
@@ -1178,7 +1190,9 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   new (&context.vk) fan::vulkan::context_t();
 
 #if defined(FAN_2D)
-  vk.shaders_compile_preload();
+  vk = new loco_t::vulkan_t;
+  vk->loco_ptr = this;
+  vk->shaders_compile_preload();
 #endif
 
   loco_open_window(this);
@@ -1190,15 +1204,15 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   loco_init_render_views(this);
   fan::time::measure(t, "loco_init_render_views");
 #if defined(FAN_2D)
-  vk.shaders_compile();
+  vk->shaders_compile();
   fan::time::measure(t, "vk.shaders_compile");
 #endif
-  vk.init();
+  vk->init();
   fan::time::measure(t, "vk.init");
 #if defined(FAN_2D)
   load_engine_images();
   fan::time::measure(t, "load_engine_images");
-  vk.shapes_open();
+  vk->shapes_open();
   fan::time::measure(t, "vk.shapes_open");
 #endif
 #if defined(FAN_GUI)
@@ -1220,7 +1234,7 @@ loco_t::loco_t(const loco_t::properties_t& props) :
 #if defined(FAN_GUI)
   gui.console.commands.call("debug_memory " + std::to_string((int)fan::memory::heap_profiler_t::instance().enabled));
 #endif
-  loco_init_culling(this);
+   loco_init_culling(this);
   fan::time::measure(t, "loco_init_culling");
 #if defined(FAN_GUI)
   get_smenu(this)->init_runtime();
@@ -1389,7 +1403,9 @@ void loco_t::destroy() {
   }
 #endif
 
-  vk.close();
+  vk->close();
+  delete vk;
+  vk = nullptr;
 
 #if defined(FAN_2D)
   fan::graphics::g_shapes->shaper.Close();
@@ -1416,7 +1432,7 @@ void loco_t::close() {
 void loco_t::shapes_draw() {
   timing.shape_draw_timer.start();
 
-  vk.shapes_draw();
+  vk->shapes_draw();
 
   timing.shape_draw_time_s = timing.shape_draw_timer.seconds();
 
@@ -1429,7 +1445,7 @@ void loco_t::shapes_draw() {
 void loco_t::process_shapes() {
 
   if (get_render_shapes_top() == true) {
-    vk.begin_render_pass();
+    vk->begin_render_pass();
   }
   for (const auto& i : m_pre_draw) {
     i();
@@ -1441,8 +1457,8 @@ void loco_t::process_shapes() {
     func();
   }
 
-  if (vk.image_error == VK_SUCCESS) {
-    vk.draw_post_process();
+  if (vk->image_error == VK_SUCCESS) {
+    vk->draw_post_process();
   }
 }
 
@@ -1593,7 +1609,7 @@ void loco_t::process_gui() {
     get_render_shapes_top(),
     &get_vk_context(),
     renderer_state.clear_color,
-    vk.image_error,
+    vk->image_error,
     context.vk.command_buffers[context.vk.current_frame],
     fan::vulkan::context_t::ImGuiFrameRender
   );
@@ -1646,7 +1662,7 @@ void loco_t::process_render() {
 
 #if defined(FAN_2D)
 
-  vk.begin_draw();
+  vk->begin_draw();
 
   fan::graphics::g_shapes->shaper.ProcessBlockEditQueue();
 
@@ -1664,15 +1680,15 @@ void loco_t::process_render() {
     i();
   }
 
-  if (vk.image_error != VK_SUCCESS) {
+  if (vk->image_error != VK_SUCCESS) {
     context.vk.command_buffer_in_use = false;
   }
   else {
     VkResult err = context.vk.end_render(&window);
     if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR || context.vk.SwapChainRebuild) {
-      vk.close_swapchain_resources();
+      vk->close_swapchain_resources();
       context.vk.recreate_swap_chain(&window, err);
-      vk.open_swapchain_resources();
+      vk->open_swapchain_resources();
     }
   }
 }
