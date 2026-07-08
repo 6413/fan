@@ -4202,7 +4202,7 @@ void fan::graphics::shapes::visibility_remove(shape_nr_t id) {
       for (auto* k : {"start_velocity", "end_velocity"}) {
         sm[k][1] = (f32_t)sm[k][1] * sc;
       }
-      sm["count"] = std::max<std::uint32_t>(10, (uint32_t)((f32_t)sm["count"] * sc));
+      sm["count"] = std::max<std::uint32_t>(10, (std::uint32_t)((f32_t)sm["count"] * sc));
 
       shape_t p(sm);
       fan::vec2 offset(0, 0);
