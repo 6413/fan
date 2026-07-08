@@ -1,6 +1,6 @@
 module;
 
-module fan.graphics.gui.tilemap_editor.core;
+module fan.graphics.gui.tilemap_editor.ui;
 
 #if defined (FAN_WINDOW)
 #if defined(FAN_2D)
@@ -909,11 +909,6 @@ namespace fan::graphics::gui::tilemap_editor::ui {
       editor.content_browser.render();
     }
   }
-
-}
-
-void fte_t::render() {
-  fan::graphics::gui::tilemap_editor::ui::handle_gui(*this);
 }
 
 #endif
