@@ -134,9 +134,6 @@ namespace fan::event {
   void loop_stop(loop_t loop) { fan::uv::stop((fan::uv::loop_t*)loop); }
   int loop_close(loop_t loop) { return fan::uv::loop_close((fan::uv::loop_t*)loop); }
 
-  void error_code_t::throw_if() const { if (code) throw code; }
-  void error_code_t::await_resume() const { throw_if(); }
-
   void print_event_handles(loop_t loop) {
     fan::uv::loop_t* uvloop = (fan::uv::loop_t*)loop;
     fan::print_dbg("========================");
