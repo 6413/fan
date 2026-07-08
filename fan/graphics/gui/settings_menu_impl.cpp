@@ -216,6 +216,12 @@ namespace fan::graphics::gui {
     keybind_menu.mark_dirty_cb = [this]() { mark_dirty(); };
   }
 
+  settings_menu_t::~settings_menu_t() {
+    if (is_dirty) {
+      save();
+    }
+  }
+
   void settings_menu_t::init_runtime() {
     set_settings_theme();
     keybind_menu.sync_from_input_action();

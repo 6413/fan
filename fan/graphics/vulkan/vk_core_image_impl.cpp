@@ -129,6 +129,15 @@ std::uint32_t fan::graphics::format_converter::vulkan_to_global_filter(VkFilter 
   return fan::graphics::image_filter_e::nearest;
 }
 
+fan::graphics::image_load_properties_t fan::graphics::format_converter::image_vulkan_to_global(const fan::vulkan::context_t::image_load_properties_t& p) {
+  return fan::graphics::image_load_properties_t{
+    .visual_output = vulkan_to_global_address_mode(p.visual_output),
+    .format = vulkan_to_global_format(p.format),
+    .min_filter = vulkan_to_global_filter(p.min_filter),
+    .mag_filter = vulkan_to_global_filter(p.mag_filter),
+  };
+}
+
 void fan::vulkan::validate(VkResult result) {
   if (result != VK_SUCCESS) {
     fan::throw_error("function failed with:", string_VkResult(result));

@@ -18,7 +18,7 @@ export namespace fan {
   };
 
   struct log_t { 
-    std::string filename = "fan_errors.txt"; 
+    std::string filename = "fan_log.txt"; 
     std::deque<log_entry_t> buffer;
     std::size_t max_size = 1000;
     std::uint64_t total_logs_pushed = 0;

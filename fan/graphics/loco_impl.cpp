@@ -1637,6 +1637,7 @@ void loco_t::process_render() {
   if (is_visualizing_culling) {
     visualize_culling();
   }
+  run_culling();
 #endif
 
 #if defined(FAN_GUI)
