@@ -38,7 +38,8 @@ module fan.window;
 
 #if defined (FAN_WINDOW)
 
-import fan.print;
+//import fan.print;
+import fan.print.error;
 
 namespace fan {
 
