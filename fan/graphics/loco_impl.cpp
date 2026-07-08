@@ -91,6 +91,68 @@ namespace fan::graphics {
     return result != nullptr && result->state == fan::image::async_result_t::state_e::failed;
   }
 
+  
+  void fan::graphics::time_monitor_t::update(f32_t v) {
+    if (paused || v <= 0.0f) return;
+
+    buffer.push_back(v);
+    sum += v;
+
+    int idx = static_cast<int>(buffer.size()) - 1;
+
+    while (!min_q.empty() && buffer[min_q.back()] >= v) {
+      min_q.pop_back();
+    }
+    min_q.push_back(idx);
+
+    while (!max_q.empty() && buffer[max_q.back()] <= v) {
+      max_q.pop_back();
+    }
+    max_q.push_back(idx);
+  }
+
+  void fan::graphics::time_monitor_t::reset() {
+    buffer.clear();
+    sum = 0.0f;
+    min_q.clear();
+    max_q.clear();
+  }
+
+  fan::graphics::time_monitor_t::stats_t fan::graphics::time_monitor_t::stats() const {
+    if (buffer.empty()) return {0, 0, 0};
+
+    return {
+      sum / buffer.size(),
+      buffer[min_q.front()],
+      buffer[max_q.front()]
+    };
+  }
+
+  #if defined(FAN_GUI)
+  void fan::graphics::time_monitor_t::plot(loco_t* loco, std::string_view label) {
+    using namespace fan::graphics;
+    if (buffer.empty()) return;
+
+    int plot_count = std::min(loco->gui.time_plot_scroll.view_size, static_cast<int>(buffer.size()));
+    static std::vector<f32_t> plot_data;
+    plot_data.resize(plot_count);
+
+    if (!paused) {
+      int max_start = std::max(0, static_cast<int>(buffer.size()) - loco->gui.time_plot_scroll.view_size);
+      loco->gui.time_plot_scroll.scroll_offset = max_start;
+    }
+
+    int max_start = std::max(0, static_cast<int>(buffer.size()) - loco->gui.time_plot_scroll.view_size);
+    int start = std::min(loco->gui.time_plot_scroll.scroll_offset, max_start);
+
+    for (int i = 0; i < plot_count; ++i) {
+      plot_data[i] = buffer[start + i] * 1e3f; // ms
+    }
+
+    gui::plot::plot_line(label, plot_data.data(), plot_count);
+  }
+  #endif
+
   std::uint32_t get_draw_mode(std::uint8_t internal_draw_mode) {
     return fan::vulkan::core::get_draw_mode(internal_draw_mode);
   }
@@ -1560,67 +1622,6 @@ void loco_t::get_vram_usage(int* total_mem_MB, int* used_MB) {
   *total_mem_MB = static_cast<int>(total_bytes / (1024 * 1024));
   *used_MB = static_cast<int>(used_bytes / (1024 * 1024));
 }
-
-void loco_t::time_monitor_t::update(f32_t v) {
-  if (paused || v <= 0.0f) return;
-
-  buffer.push_back(v);
-  sum += v;
-
-  int idx = static_cast<int>(buffer.size()) - 1;
-
-  while (!min_q.empty() && buffer[min_q.back()] >= v) {
-    min_q.pop_back();
-  }
-  min_q.push_back(idx);
-
-  while (!max_q.empty() && buffer[max_q.back()] <= v) {
-    max_q.pop_back();
-  }
-  max_q.push_back(idx);
-}
-
-void loco_t::time_monitor_t::reset() {
-  buffer.clear();
-  sum = 0.0f;
-  min_q.clear();
-  max_q.clear();
-}
-
-loco_t::time_monitor_t::stats_t loco_t::time_monitor_t::stats() const {
-  if (buffer.empty()) return {0, 0, 0};
-
-  return {
-    sum / buffer.size(),
-    buffer[min_q.front()],
-    buffer[max_q.front()]
-  };
-}
-
-#if defined(FAN_GUI)
-void loco_t::time_monitor_t::plot(loco_t* loco, std::string_view label) {
-  using namespace fan::graphics;
-  if (buffer.empty()) return;
-
-  int plot_count = std::min(loco->gui.time_plot_scroll.view_size, static_cast<int>(buffer.size()));
-  static std::vector<f32_t> plot_data;
-  plot_data.resize(plot_count);
-
-  if (!paused) {
-    int max_start = std::max(0, static_cast<int>(buffer.size()) - loco->gui.time_plot_scroll.view_size);
-    loco->gui.time_plot_scroll.scroll_offset = max_start;
-  }
-
-  int max_start = std::max(0, static_cast<int>(buffer.size()) - loco->gui.time_plot_scroll.view_size);
-  int start = std::min(loco->gui.time_plot_scroll.scroll_offset, max_start);
-
-  for (int i = 0; i < plot_count; ++i) {
-    plot_data[i] = buffer[start + i] * 1e3f; // ms
-  }
-
-  gui::plot::plot_line(label, plot_data.data(), plot_count);
-}
-#endif
 
 void loco_t::process_render() {
 #if defined(FAN_2D)
