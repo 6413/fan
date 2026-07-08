@@ -1761,7 +1761,7 @@ namespace fan::graphics::gui {
     std::uint32_t image_count,
     std::uint32_t min_image_count,
     VkSampleCountFlagBits msaa_samples,
-    void (*check_vk_result)(VkResult)
+    void (*check_vk_result)(int)
   ) {
     ImGui::CreateContext();
     ImPlot::CreateContext();
@@ -1814,7 +1814,7 @@ namespace fan::graphics::gui {
     std::uint32_t image_count,
     std::uint32_t min_image_count,
     VkSampleCountFlagBits msaa_samples,
-    void (*check_vk_result)(VkResult)
+    void (*check_vk_result)(int)
   ) {
     ImGui_ImplGlfw_InitForVulkan(window, true);
 
@@ -1830,7 +1830,7 @@ namespace fan::graphics::gui {
     init_info.MinImageCount = min_image_count;
     init_info.ImageCount = image_count;
     init_info.MSAASamples = msaa_samples;
-    init_info.CheckVkResultFn = check_vk_result;
+    init_info.CheckVkResultFn = reinterpret_cast<decltype(init_info.CheckVkResultFn)>(reinterpret_cast<void(*)(int)>(check_vk_result));
 
     ImGui_ImplVulkan_Init(&init_info);
   }

@@ -96,7 +96,7 @@ struct bloom_upsample_push_constants_t {
 };
 
 loco_t& get_loco() {
-  return (*OFFSETLESS(this, loco_t, vk));
+  return *loco_ptr;
 }
 #define loco get_loco()
 
@@ -452,7 +452,7 @@ void open_post_process_descriptors() {
   final_descriptors[1] = make_sampler_descriptor(1);
   final_descriptors[2] = make_sampler_descriptor(2);
   final_descriptors[3] = make_sampler_descriptor(3);
-  loco.vk.d_attachments.open(context, final_descriptors);
+  loco.vk->d_attachments.open(context, final_descriptors);
 
   std::vector<fan::vulkan::write_descriptor_set_t> sampler_descriptors(1);
   sampler_descriptors[0] = make_sampler_descriptor(0);
@@ -475,7 +475,7 @@ void close_post_process_descriptors() {
     descriptor.close(context);
   }
   bloom_upsample_descriptors.clear();
-  loco.vk.d_attachments.close(context);
+  loco.vk->d_attachments.close(context);
 }
 
 void open_post_process_pipelines() {
@@ -499,9 +499,9 @@ void open_post_process_pipelines() {
 
   p.shader = post_process_shader;
   p.render_pass = post_process_render_pass;
-  p.descriptor_layouts = {loco.vk.d_attachments.m_layout};
+  p.descriptor_layouts = {loco.vk->d_attachments.m_layout};
   p.push_constants_size = sizeof(post_process_push_constants_t);
-  loco.vk.post_process.open(context, p);
+  loco.vk->post_process.open(context, p);
 
   p.shader = bloom_downsample_shader;
   p.render_pass = bloom_render_pass;
@@ -522,7 +522,7 @@ void open_post_process_pipelines() {
 
 void close_post_process_pipelines() {
   fan::vulkan::context_t& context = loco.context.vk;
-  loco.vk.post_process.close(context);
+  loco.vk->post_process.close(context);
   bloom_downsample_pipeline.close(context);
   bloom_upsample_pipeline.close(context);
   bloom_upsample_add_pipeline.close(context);
@@ -639,11 +639,11 @@ void update_final_descriptor() {
     bloom = bloom_chains[context.image_index].mips[0].image.image_view;
   }
 
-  loco.vk.d_attachments.m_properties[0].image_infos[0] = make_image_info(scene);
-  loco.vk.d_attachments.m_properties[1].image_infos[0] = make_image_info(bloom);
-  loco.vk.d_attachments.m_properties[2].image_infos[0] = make_image_info(scene);
-  loco.vk.d_attachments.m_properties[3].image_infos[0] = make_image_info(scene);
-  loco.vk.d_attachments.update(context, 4, 0, 1);
+  loco.vk->d_attachments.m_properties[0].image_infos[0] = make_image_info(scene);
+  loco.vk->d_attachments.m_properties[1].image_infos[0] = make_image_info(bloom);
+  loco.vk->d_attachments.m_properties[2].image_infos[0] = make_image_info(scene);
+  loco.vk->d_attachments.m_properties[3].image_infos[0] = make_image_info(scene);
+  loco.vk->d_attachments.update(context, 4, 0, 1);
 }
 
 void update_post_process_descriptors_before_cmd() {
@@ -725,7 +725,7 @@ void draw_post_process() {
     fan::vec2ui((std::uint32_t)context.swap_chain_size.x, (std::uint32_t)context.swap_chain_size.y),
     true
   );
-  draw_fullscreen(loco.vk.post_process, loco.vk.d_attachments, &pc, sizeof(pc));
+  draw_fullscreen(loco.vk->post_process, loco.vk->d_attachments, &pc, sizeof(pc));
   vkCmdEndRenderPass(cmd);
 }
 
@@ -914,7 +914,7 @@ void begin_draw() {
     open_swapchain_resources();
   }
     
-  loco.vk.image_error = vkAcquireNextImageKHR(
+  loco.vk->image_error = vkAcquireNextImageKHR(
     context.device,
     context.swap_chain,
     UINT64_MAX,
@@ -923,11 +923,11 @@ void begin_draw() {
     &context.image_index
   );
 
-  if (loco.vk.image_error == VK_ERROR_OUT_OF_DATE_KHR || loco.vk.image_error == VK_SUBOPTIMAL_KHR) {
+  if (loco.vk->image_error == VK_ERROR_OUT_OF_DATE_KHR || loco.vk->image_error == VK_SUBOPTIMAL_KHR) {
     close_swapchain_resources();
-    context.recreate_swap_chain(&loco.window, loco.vk.image_error);
+    context.recreate_swap_chain(&loco.window, loco.vk->image_error);
     open_swapchain_resources();
-    loco.vk.image_error = vkAcquireNextImageKHR(
+    loco.vk->image_error = vkAcquireNextImageKHR(
       context.device,
       context.swap_chain,
       UINT64_MAX,
@@ -937,7 +937,7 @@ void begin_draw() {
     );
   }
 
-  if (loco.vk.image_error != VK_SUCCESS) { 
+  if (loco.vk->image_error != VK_SUCCESS) { 
     context.command_buffer_in_use = false; 
     return; 
   }
