@@ -109,7 +109,7 @@ namespace fan::graphics::gui {
       if (post_processing.mode < 0 || post_processing.mode > 3) {
         post_processing.mode = 0;
       }
-      gloco()->open_props.post_process_mode = (loco_t::post_process_mode_e)post_processing.mode;
+      gloco()->open_props.post_process_mode = (fan::graphics::post_process_mode_e)post_processing.mode;
       pp.get_if("bloom_strength", post_processing.bloom_strength);
       pp.get_if("bloom_threshold", post_processing.bloom_threshold);
       pp.get_if("bloom_knee", post_processing.bloom_knee);
@@ -251,7 +251,7 @@ namespace fan::graphics::gui {
       }
     }
     );
-    gloco()->open_props.post_process_mode = (loco_t::post_process_mode_e)config.post_processing.mode;
+    gloco()->open_props.post_process_mode = (fan::graphics::post_process_mode_e)config.post_processing.mode;
     config.post_processing.clear_color.a = 1.f;
     gloco()->set_clear_color(config.post_processing.clear_color);
     gloco()->get_lighting().set_target(config.post_processing.ambient_color);
@@ -364,7 +364,7 @@ namespace fan::graphics::gui {
           if (gui::selectable(post_process_modes[i], is_selected)) {
             mode = i;
             menu->config.post_processing.mode = mode;
-            gloco()->open_props.post_process_mode = (loco_t::post_process_mode_e)mode;
+            gloco()->open_props.post_process_mode = (fan::graphics::post_process_mode_e)mode;
             menu->mark_dirty();
           }
           if (is_selected) {
@@ -374,7 +374,7 @@ namespace fan::graphics::gui {
         gui::end_combo();
       }
 
-      if (mode == (int)loco_t::post_process_mode_e::bloom || mode == (int)loco_t::post_process_mode_e::bloom_blur) {
+      if (mode == (int)fan::graphics::post_process_mode_e::bloom || mode == (int)fan::graphics::post_process_mode_e::bloom_blur) {
         draw_sub_row("Strength", [&] {
           if (gui::slider(&menu->config.post_processing.bloom_strength, 0.f, 1.f, gui::slider_flags_always_clamp)) {
             sync_vulkan_post_processing(menu->config.post_processing);
@@ -411,7 +411,7 @@ namespace fan::graphics::gui {
           }
         });
       }
-      if (mode == (int)loco_t::post_process_mode_e::blur || mode == (int)loco_t::post_process_mode_e::bloom_blur) {
+      if (mode == (int)fan::graphics::post_process_mode_e::blur || mode == (int)fan::graphics::post_process_mode_e::bloom_blur) {
         draw_sub_row("Amount", [&] {
           if (gui::slider(&menu->config.post_processing.blur_amount, 0.f, 1.0f, gui::slider_flags_always_clamp)) {
             menu->config.post_processing.blur_amount = std::clamp(menu->config.post_processing.blur_amount, 0.f, 1.f);

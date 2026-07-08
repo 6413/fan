@@ -710,8 +710,8 @@ void draw_post_process() {
   vkCmdEndRenderPass(cmd);
 
   const bool bloom_enabled =
-    loco.open_props.post_process_mode == loco_t::post_process_mode_e::bloom ||
-    loco.open_props.post_process_mode == loco_t::post_process_mode_e::bloom_blur;
+    loco.open_props.post_process_mode == fan::graphics::post_process_mode_e::bloom ||
+    loco.open_props.post_process_mode == fan::graphics::post_process_mode_e::bloom_blur;
 
   if (bloom_enabled) {
     draw_bloom();

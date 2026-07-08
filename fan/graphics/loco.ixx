@@ -83,9 +83,6 @@ import fan.physics.types;
 
 import fan.math.intersection;
 
-// temp includes
-import fan.print;
-
 #if defined(loco_cuda)
 export namespace fan {
   namespace cuda {
@@ -108,6 +105,44 @@ export extern "C" {
 }
 #endif
 // -cuda
+
+export namespace fan::graphics {
+  #include "shaders.h"
+
+  struct async_image_t {
+    bool ready() const;
+    bool failed() const;
+
+    operator fan::graphics::image_t() const {
+      return image;
+    }
+
+    fan::graphics::image_t image;
+    std::shared_ptr<fan::image::async_result_t> result;
+  };
+
+  struct async_image_upload_t {
+    fan::graphics::image_t image;
+    fan::graphics::image_load_properties_t properties;
+    std::shared_ptr<fan::image::async_result_t> result;
+  };
+
+  enum class post_process_mode_e {
+    none,
+    bloom,
+    blur,
+    bloom_blur
+  };
+
+  struct renderer_state_t {
+    fan::color clear_color = {0.f, 0.f, 0.f, 1.f};
+    fan::graphics::lighting_t lighting;
+  #if defined(FAN_2D)
+    bool force_line_draw = false;
+  #endif
+    bool render_shapes_top = false;
+  };
+}
 
 export struct loco_t;
 
@@ -492,13 +527,6 @@ export struct loco_t {
 
   using buttons_cb_t = fan::window_t::buttons_cb_t;
 
-  enum class post_process_mode_e {
-    none,
-    bloom,
-    blur,
-    bloom_blur
-  };
-
   // first variable
   fan::init_manager_t::cleaner_t _cleaner;
 
@@ -510,7 +538,7 @@ export struct loco_t {
     std::uint64_t window_flags = 0;
     int window_open_mode = fan::window_t::mode::windowed;
     std::uint8_t samples = 0;
-    post_process_mode_e post_process_mode = post_process_mode_e::bloom;
+    fan::graphics::post_process_mode_e post_process_mode = fan::graphics::post_process_mode_e::bloom;
     f32_t blur_amount = 0.08f;
     f32_t blur_filter_radius = 0.02f;
     bool blur_focus_enabled = false;
@@ -752,8 +780,7 @@ public:
     camera_move(perspective_render_view, noclip, std::forward<ground_check_t>(ground_check), params);
   }
 
-  #include "shaders.h"
-  shaders_t shaders;
+  fan::graphics::shaders_t shaders;
 
   struct vulkan {
   #include <fan/graphics/vulkan/engine_functions.h>
@@ -1042,14 +1069,7 @@ fan::graphics::texture_pack_t texture_pack;
   };
 #endif
 
-  struct renderer_state_t {
-    fan::color clear_color = {0.f, 0.f, 0.f, 1.f};
-    fan::graphics::lighting_t lighting;
-  #if defined(FAN_2D)
-    bool force_line_draw = false;
-  #endif
-    bool render_shapes_top = false;
-  } renderer_state;
+  fan::graphics::renderer_state_t renderer_state;
 
   fan::graphics::lighting_t& get_lighting()          { return renderer_state.lighting; }
   bool&                      get_render_shapes_top() { return renderer_state.render_shapes_top; }
@@ -1188,24 +1208,6 @@ fan::graphics::texture_pack_t texture_pack;
     fan::physics::context_t& get_physics_context() { return physics.context; }
   #endif
 
-  struct async_image_t {
-    bool ready() const;
-    bool failed() const;
-
-    operator fan::graphics::image_t() const {
-      return image;
-    }
-
-    fan::graphics::image_t image;
-    std::shared_ptr<fan::image::async_result_t> result;
-  };
-
-  struct async_image_upload_t {
-    fan::graphics::image_t image;
-    fan::graphics::image_load_properties_t properties;
-    std::shared_ptr<fan::image::async_result_t> result;
-  };
-
   void async_image_init() {
     async_image_initialized = true;
   }
@@ -1215,14 +1217,14 @@ fan::graphics::texture_pack_t texture_pack;
     async_image_initialized = false;
   }
 
-  async_image_t image_load_async(
+  fan::graphics::async_image_t image_load_async(
     const std::string& path,
     const fan::graphics::image_load_properties_t& properties = fan::graphics::image_presets::pixel_art()
   );
 
   void async_image_process();
 
-  std::vector<async_image_upload_t> async_image_uploads;
+  std::vector<fan::graphics::async_image_upload_t> async_image_uploads;
   std::size_t max_async_image_uploads_per_frame = 1;
   bool async_image_initialized = false;
 
@@ -1302,10 +1304,6 @@ inline fan::stage_loader_t::nr_t fan::stage_loader_t::open_stage(const stage_ope
   return stage->stage_common.stage_id;
 }
 
-
-
-#include <fan/graphics/vulkan/uniform_block.h>
-
 #if defined(FAN_GUI)
 namespace fan {
   namespace graphics {
@@ -1317,7 +1315,6 @@ namespace fan {
 
 export namespace fan::graphics {
   using engine_t = loco_t;
-  using async_image_t = loco_t::async_image_t;
   void shader_set_camera(fan::graphics::shader_t nr, fan::graphics::camera_t camera_nr);
 }
 
