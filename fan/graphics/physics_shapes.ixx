@@ -40,42 +40,6 @@ import fan.graphics;
 import fan.graphics.common_context;
 import fan.graphics.shapes;
 
-// could add debug_draw_render_view for custom view
-
-/// Draw a closed polygon provided in CCW order.
-void DrawPolygon(const fan::vec2* vertices, int vertexCount, b2HexColor color, void* context);
-
-/// Draw a solid closed polygon provided in CCW order.
-void DrawSolidPolygon(b2Transform transform, const b2Vec2* vertices, int vertexCount, f32_t radius, b2HexColor color,
-  void* context);
-
-/// Draw a circle.
-void DrawCircle(b2Vec2 center, f32_t radius, b2HexColor color, void* context);
-
-/// Draw a solid circle.
-void DrawSolidCircle(b2Transform transform, f32_t radius, b2HexColor color, void* context);
-
-/// Draw a capsule.
-void DrawCapsule(b2Vec2 p1, b2Vec2 p2, f32_t radius, b2HexColor color, void* context);
-
-/// Draw a solid capsule.
-void DrawSolidCapsule(b2Vec2 p1, b2Vec2 p2, f32_t radius, b2HexColor color, void* context);
-
-/// Draw a line segment.
-void DrawSegment(b2Vec2 p1, b2Vec2 p2, b2HexColor color, void* context);
-
-/// Draw a transform. Choose your own length scale.
-void DrawTransform(b2Transform transform, void* context);
-
-/// Draw a point.
-void DrawPoint(b2Vec2 p, f32_t size, b2HexColor color, void* context);
-
-/// Draw a string.
-void DrawString(b2Vec2 p, const char* s, b2HexColor color, void* context);
-
-b2DebugDraw initialize_debug(bool enabled);
-
-
 export namespace fan {
   namespace graphics {
     namespace physics {
