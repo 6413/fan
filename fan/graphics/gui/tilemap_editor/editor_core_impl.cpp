@@ -13,7 +13,6 @@ module;
 module fan.graphics.gui.tilemap_editor.core;
 
 #if defined (FAN_WINDOW)
-
 #if defined(FAN_2D)
 #if defined(FAN_GUI) && defined(FAN_PHYSICS_2D)
 
@@ -46,163 +45,606 @@ import fan.graphics.gui.text_logger;
 
 using namespace fan::graphics;
 
-void fte_t::open(const properties_t& properties) {
-    image_load_properties_t lp;
-    lp.visual_output = image_sampler_address_mode_e::repeat;
-    lp.min_filter = image_filter_e::nearest;
-    lp.mag_filter = image_filter_e::nearest;
+void fte_t::spawn_mark_t::json_write(fan::json& j) const {
+  j["position"] = position;
+  j["size"] = size;
+  j["color"] = color;
+  j["mesh_property"] = type;
+  if (!id.empty()) j["id"] = id;
+}
 
-    if (properties.camera == nullptr) {
-      render_view = &get_orthographic_render_view();
+void fte_t::spawn_mark_t::json_read(const fan::json& j) {
+  position = j.value("position", fan::vec3(0));
+  size = j.value("size", fan::vec2(0));
+  color = j.value("color", fan::colors::white);
+  type = j.value("mesh_property", mesh_property_t::mark);
+  id = j.value("id", "");
+}
+
+std::uint32_t fte_t::find_layer_shape(const std::vector<shapes_t::global_t::layer_t>& vec, bool top) {
+  std::uint32_t found = invalid;
+  std::int64_t depth = -1;
+  for (std::size_t i = 0; i < vec.size(); ++i) {
+    if (top) {
+      if (vec[i].tile.position.z > depth) {
+        depth = vec[i].tile.position.z;
+        found = i;
+      }
+    }
+    else if (vec[i].tile.position.z == brush.depth) {
+      return i;
+    }
+  }
+  return found;
+}
+
+void fte_t::resize_map() {
+  grid_visualize.background.set_size(tile_size * map_size);
+  grid_visualize.background.set_tc_size(fan::vec2(0.5) * map_size);
+  grid_visualize.background.set_position(fan::vec3(tile_size * 2 * map_size / 2 - tile_size, 0));
+
+  grid_visualize.grid.set_position(fan::vec2(map_size * (tile_size * 2.f) / 2.f - tile_size));
+  grid_visualize.grid.set_grid_size(map_size / 2.f);
+
+  if (grid_visualize.render_grid) {
+    grid_visualize.grid.set_size(map_size * (tile_size * 2.f) / 2.f);
+  }
+  else {
+    grid_visualize.grid.set_size(0);
+  }
+
+  fan::vec2 s = grid_visualize.highlight_hover.get_size();
+  fan::vec2 sp = fan::vec2(grid_visualize.highlight_hover.get_position());
+  fan::vec2 p = tile_size * ((sp / s));
+  grid_visualize.highlight_hover.set_position(p);
+  grid_visualize.highlight_hover.set_size(tile_size);
+  grid_visualize.highlight_selected.set_position(p);
+  if (current_tile.layer != nullptr) {
+    grid_visualize.highlight_selected.set_size(tile_size);
+  }
+}
+
+void fte_t::reset_map() {
+  physics_shapes.clear();
+  visual_layers.clear();
+  map_tiles.clear();
+  spawn_marks.clear();
+  visual_shapes.clear();
+  previous_filename.clear();
+  invalidate_selection();
+  resize_map();
+}
+
+bool fte_t::window_relative_to_grid(const fan::vec2& window_relative_position, fan::vec2i* in) {
+  auto camera_position = camera_get_position(render_view->camera);
+  fan::vec2 p = translate_position(window_relative_position, render_view->viewport, render_view->camera) + camera_position;
+  *in = ((p + tile_size) / (tile_size * 2)).floor() * (tile_size * 2);
+  return fan::math::d2::aabb_point_inside(*in - map_size * tile_size / 2, map_size / 2 * tile_size - tile_size, map_size * tile_size);
+}
+
+void fte_t::convert_draw_to_grid(fan::vec2i& p) {}
+void fte_t::convert_grid_to_draw(fan::vec2i& p) {}
+
+void fte_t::close() {}
+
+bool fte_t::is_in_constraints(const fan::vec2i& position) {
+  if (position.x >= map_size.x * tile_size.x * 2 || position.x < 0) return false;
+  if (position.y >= map_size.y * tile_size.y * 2 || position.y < 0) return false;
+  return true;
+}
+
+bool fte_t::is_in_constraints(fan::vec2i& position, int j, int i) {
+  position += -brush.size / 2 * tile_size * 2 + tile_size * 2 * fan::vec2(j, i);
+  return is_in_constraints(position);
+}
+
+f32_t fte_t::get_snapped_angle() {
+  switch (fan::random::value_i64(0, 3)) {
+    case 0: return 0;
+    case 1: return fan::math::pi * 0.5;
+    case 2: return fan::math::pi;
+    case 3: return fan::math::pi * 1.5;
+    default: return 0;
+  }
+}
+
+fan::vec2 fte_t::snap_to_tile_center(const fan::vec2& world_pos) {
+  fan::vec2i grid_coord = ((world_pos + tile_size) / (tile_size * 2.f)).floor();
+  return fan::vec2(grid_coord * (tile_size * 2.f));
+}
+
+bool fte_t::apply_jitter(fan::vec2i& position) {
+  if (!brush.jitter) return false;
+  if (brush.jitter_chance <= fan::random::value_f32(0, 1)) return true;
+  position += (fan::random::vec2i(-brush.jitter, brush.jitter) * 2 + 1) * tile_size + tile_size;
+  return false;
+}
+
+sprite_t fte_t::make_sprite(
+  const fan::vec3& pos,
+  const fan::vec2& size,
+  const fan::color& color,
+  render_view_t* rv,
+  image_t image)
+{
+  return sprite_t{ {
+    .render_view = rv,
+    .position = pos,
+    .size = size,
+    .color = color,
+    .image = image
+  } };
+}
+
+image_t fte_t::get_marker_image(mesh_property_t type) {
+  switch (type) {
+    case mesh_property_t::player_spawn: return image_create(fan::color(0, 1, 0, 0.5));
+    case mesh_property_t::enemy_spawn:  return image_create(fan::color(1, 0, 0, 0.5));
+    default:                            return image_create(fan::color(1, 1, 0, 0.5));
+  }
+}
+
+bool fte_t::mouse_to_grid(fan::vec2i& position) {
+  if (window_relative_to_grid(fan::window::get_mouse_position(), &position)) {
+    convert_draw_to_grid(position);
+    position /= tile_size * 2;
+    return true;
+  }
+  return false;
+}
+
+bool fte_t::physics_shape_exists(const fan::vec3& position, const fan::vec2& size) {
+  auto found = physics_shapes.find(position.z);
+  if (found == physics_shapes.end()) return false;
+  for (auto& shape : found->second) {
+    if (shape.visual.get_position() == position && shape.visual.get_size() == size) return true;
+  }
+  return false;
+}
+
+void fte_t::invalidate_selection() {
+  grid_visualize.highlight_selected.set_size(0);
+  current_tile.layer = nullptr;
+}
+
+void fte_t::open_texture_pack(const std::string& path) {
+  if (texture_packs.empty()) texture_packs.resize(1);
+  texture_packs[0]->open_compiled(path);
+  texture_pack_images.clear();
+  current_image_indices.clear();
+  current_tile_images.clear();
+  texture_pack_images.reserve(texture_packs[0]->size());
+  texturepack_position_offset = 0;
+  texturepack_size = 0;
+  texturepack_single_image_size = 0;
+  texture_packs[0]->iterate_loaded_images([this](auto& image) {
+    tile_info_t ii;
+    ii.ti.unique_id = image.unique_id;
+    ii.ti.position = image.position;
+    ii.ti.size = image.size;
+    ii.ti.image = texture_packs[0]->get_pixel_data(image.unique_id).image;
+
+    auto& img_data = fan::graphics::image_get_data(texture_packs[0]->get_pixel_data(image.unique_id).image);
+    fan::vec2 size = img_data.size;
+
+    texture_pack_images.push_back(ii);
+    texturepack_size = texturepack_size.max(fan::vec2(size));
+    texturepack_single_image_size = texturepack_single_image_size.max(fan::vec2(image.size));
+  });
+  if (texturepack_size.x > 0) {
+    original_image_width = texturepack_size.x;
+  }
+}
+
+void fte_t::apply_brush_settings(const std::string& id, f32_t depth, const fan::vec2& size, const fan::color& color, const fan::vec3& angle) {
+  brush.id = id;
+  brush.depth = depth;
+  brush.tile_size = size / tile_size;
+  brush.color = color;
+  brush.angle = angle;
+}
+
+void fte_t::handle_pick_tile() {
+  fan::vec2i position;
+  if (!window_relative_to_grid(fan::window::get_mouse_position(), &position)) return;
+  fan::vec2i grid_position = position;
+  convert_draw_to_grid(grid_position);
+  grid_position /= tile_size * 2;
+
+  for (auto& depth_pair : spawn_marks) {
+    for (auto& mark : depth_pair.second) {
+      if (fan::math::d2::aabb_point_inside(position, mark.position, mark.size)) {
+        current_image_indices.clear();
+        current_tile_images.clear();
+        apply_brush_settings(mark.id, mark.position.z, mark.size, mark.color);
+
+        if (mark.type == mesh_property_t::player_spawn) brush.type = brush_t::type_e::player_spawn;
+        else if (mark.type == mesh_property_t::enemy_spawn) brush.type = brush_t::type_e::enemy_spawn;
+        else brush.type = brush_t::type_e::mark;
+        return;
+      }
+    }
+  }
+
+  for (auto& depth_pair : physics_shapes) {
+    for (auto& physics_shape : depth_pair.second) {
+      if (fan::math::d2::aabb_point_inside(position, physics_shape.visual.get_position(), physics_shape.visual.get_size())) {
+        current_image_indices.clear();
+        current_tile_images.clear();
+        auto& visual = physics_shape.visual;
+        apply_brush_settings(physics_shape.id, visual.get_position().z, visual.get_size(), visual.get_color());
+        brush.type = brush_t::type_e::physics_shape;
+        brush.physics_type = physics_shape.type;
+        brush.physics_body_type = physics_shape.body_type;
+        brush.physics_draw = physics_shape.draw;
+        brush.physics_shape_properties = physics_shape.shape_properties;
+        return;
+      }
+    }
+  }
+
+  auto found = map_tiles.find(grid_position);
+  if (found == map_tiles.end()) return;
+
+  auto& layers = found->second.layers;
+  std::uint32_t idx = find_layer_shape(layers);
+  if (idx == invalid) idx = find_layer_shape(layers, true);
+  if (idx == invalid || idx >= layers.size()) return;
+  auto& layer = layers[idx];
+  apply_brush_settings(layer.tile.id, layer.tile.position.z, layer.tile.size, layer.shape.get_color(), layer.shape.get_angle());
+
+  std::uint16_t st = layer.shape.get_shape_type();
+  if (st == (std::uint16_t)shape_type_t::sprite || st == (std::uint16_t)shape_type_t::unlit_sprite) {
+    current_image_indices.clear();
+    current_tile_images.clear();
+    current_tile_images.resize(1);
+    current_tile_images[0].push_back({.ti = layer.shape.get_tp()});
+    brush.type = brush_t::type_e::texture;
+  }
+  else if (layer.tile.mesh_property == mesh_property_t::physics_shape) {
+    current_image_indices.clear();
+    current_tile_images.clear();
+    brush.type = brush_t::type_e::physics_shape;
+  }
+  else if (layer.tile.mesh_property == mesh_property_t::light) {
+    current_image_indices.clear();
+    current_tile_images.clear();
+    brush.type = brush_t::type_e::light;
+  }
+}
+
+void fte_t::handle_select_tile() {
+  fan::vec2i position;
+  if (window_relative_to_grid(fan::window::get_mouse_position(), &position)) {
+    fan::vec2i grid_position = position;
+    convert_draw_to_grid(grid_position);
+    grid_position /= tile_size * 2;
+    auto found = map_tiles.find(fan::vec2i(grid_position.x, grid_position.y));
+    if (found != map_tiles.end()) {
+      auto& layers = found->second.layers;
+      std::uint32_t idx = find_layer_shape(layers);
+      if ((idx != invalid || idx < brush.depth)) {
+        current_tile.position = position;
+        current_tile.layer = layers.data();
+        current_tile.layer_index = idx;
+        grid_visualize.highlight_selected.set_position(fan::vec2(position));
+        grid_visualize.highlight_selected.set_size(tile_size);
+      }
+    }
+  }
+}
+
+bool fte_t::same_visual(const fte_t::shapes_t::global_t::layer_t& a, const fte_t::shapes_t::global_t::layer_t& b) {
+  return
+    a.tile.mesh_property == b.tile.mesh_property &&
+    a.tile.id == b.tile.id &&
+    a.tile.size == b.tile.size &&
+    a.shape.get_angle() == b.shape.get_angle() &&
+    a.shape.get_color() == b.shape.get_color() &&
+    a.shape.get_flags() == b.shape.get_flags() &&
+    a.shape.get_tp().unique_id == b.shape.get_tp().unique_id;
+}
+
+fte_t::terrain_generator_t::terrain_generator_t() {
+  init();
+}
+
+void fte_t::terrain_generator_t::init() {
+  ic.create_default(0.15f);
+  tile_world.init();
+  fan::vec2 map_size = tile_world.map_size;
+  f32_t cell_size = tile_world.cell_size;
+
+  rects.reserve(map_size.x * map_size.y);
+  for (int y = 0; y < map_size.y; y++) {
+    for (int x = 0; x < map_size.x; x++) {
+      rects.push_back(sprite_t{ {
+        .render_view = ic,
+        .position = fan::vec3(fan::vec2(x, y) * cell_size * 2.f + cell_size, 0xFFFA),
+        .size = fan::vec2(cell_size, cell_size),
+        .image = tile_world_images.dirt
+      } });
+    }
+  }
+
+  visual_grid = grid_t{ {
+    .render_view = ic,
+    .position = fan::vec3(fan::vec2(map_size.x, map_size.y) * cell_size, 0xFFFA),
+    .size = fan::vec2(map_size.x, map_size.y) * cell_size,
+    .grid_size = fan::vec2(map_size.x, map_size.y) / 2.f,
+    .color = fan::colors::black.set_alpha(0.4)
+  } };
+  ic.pan_with_middle_mouse = true;
+  ic.set_position(tile_world.map_size * tile_world.cell_size);
+  rebuild_colors();
+}
+
+void fte_t::terrain_generator_t::rebuild_colors() {
+  for (int y = 0; y < tile_world.map_size.y; y++) {
+    for (int x = 0; x < tile_world.map_size.x; x++) {
+      rects[x + y * tile_world.map_size.x].set_image(
+        tile_world.is_solid(x, y) ? tile_world_images.dirt : tile_world_images.background
+      );
+    }
+  }
+}
+
+void fte_t::terrain_generator_t::iterate() {
+  tile_world.iterate();
+  rebuild_colors();
+}
+
+void fte_t::terrain_generator_t::reset() {
+  tile_world.init_tile_world();
+  rebuild_colors();
+}
+
+void fte_t::terrain_generator_t::render() {
+  auto* editor = OFFSETLESS(this, fte_t, terrain_generator);
+
+  gui::set_next_window_bg_alpha(0);
+  if (gui::begin("Terrain Generator", nullptr,
+    gui::window_flags_no_background | gui::window_flags_no_focus_on_appearing |
+    gui::window_flags_override_input)) 
+  {
+    {
+      if (gui::button("Iterate")) iterate();
+      if (gui::button("Reset")) reset();
+      if (gui::button("Insert to map")) {
+        gui::open_popup("Confirm Insert");
+      }
+    }
+    {
+      if (gui::is_popup_open("Confirm Insert")) {
+        gui::set_next_window_pos(fan::window::get_size() / 2.0f, gui::cond_once, 0.5);
+      }
+
+      if (gui::begin_popup_modal("Confirm Insert", gui::window_flags_always_auto_resize)) {
+        gui::text("Insert tiles into map at depth " + std::to_string((int)editor->brush.depth - shape_depths_t::max_layer_depth / 2) + "?", fan::colors::yellow);
+        gui::text("It might overwrite tiles at the depth level.", fan::colors::yellow);
+
+        if (gui::button("Cancel")) {
+          gui::close_current_popup();
+        }
+        gui::same_line();
+        if (gui::button("Confirm")) {
+          insert_selected_tiles(editor->brush.depth);
+          gui::close_current_popup();
+        }
+        gui::end_popup();
+      }
+    }
+    {
+      fan::vec2 need_init = !prev_viewport_size || prev_viewport_size != gui::get_window_size();
+      gui::set_viewport(ic.render_view.viewport);
+      if (need_init) ic.update();
+      prev_viewport_size = gui::get_window_size();
+    }
+  }
+  else {
+    viewport_zero(ic.render_view.viewport);
+  }
+  gui::end();
+}
+
+void fte_t::terrain_generator_t::insert_selected_tiles(int depth) {
+  auto* editor = OFFSETLESS(this, fte_t, terrain_generator);
+  
+  fan::vec2i map_size = tile_world.map_size;
+  if (editor->map_size.x < map_size.x || editor->map_size.y < map_size.y) {
+    editor->map_size.x = std::max(editor->map_size.x, map_size.x);
+    editor->map_size.y = std::max(editor->map_size.y, map_size.y);
+    editor->resize_map();
+  }
+
+  for (int y = 0; y < map_size.y; ++y) {
+    for (int x = 0; x < map_size.x; ++x) {
+      fan::vec2i grid_pos(x, y);
+      auto& layers = editor->map_tiles[grid_pos].layers;
+
+      std::uint32_t idx = editor->find_layer_shape(layers);
+      if (idx == fte_t::invalid) {
+        layers.resize(layers.size() + 1);
+        idx = layers.size() - 1;
+      }
+
+      auto& layer = layers[idx];
+      layer.tile.position = fan::vec3(grid_pos * editor->tile_size * 2, depth);
+      layer.tile.size = editor->tile_size;
+      layer.tile.mesh_property = fte_t::mesh_property_t::none;
+      image_t img = rects[x + y * map_size.x].get_image();
+      if (img == tile_world_images.dirt) layer.tile.id = "##tile_world_dirt";
+      else if (img == tile_world_images.background) layer.tile.id = "##tile_world_background";
+
+      layer.shape = sprite_t{ {
+        .render_view = editor->render_view,
+        .position = layer.tile.position,
+        .size = layer.tile.size,
+        .image = img,
+        .blending = true
+      } };
+      editor->visual_layers[depth].positions[grid_pos] = true;
+    }
+  }
+}
+
+void fte_t::open(const properties_t& properties) {
+  image_load_properties_t lp;
+  lp.visual_output = image_sampler_address_mode_e::repeat;
+  lp.min_filter = image_filter_e::nearest;
+  lp.mag_filter = image_filter_e::nearest;
+
+  if (properties.camera == nullptr) {
+    render_view = &get_orthographic_render_view();
+  }
+  else {
+    render_view = properties.camera;
+  }
+
+  mouse_move_handle = get_window().add_mouse_move_callback([this](const fan::window_t::mouse_move_data_t& d) {
+    if (viewport_settings.move) {
+      fan::vec2 move_off = (d.position - viewport_settings.offset) / camera_get_zoom(render_view->camera);
+      camera_set_position(render_view->camera, viewport_settings.pos - move_off);
+    }
+
+    fan::vec2i p;
+    if (window_relative_to_grid(d.position, &p)) {
+      grid_visualize.highlight_hover.set_position(fan::vec2(p) + tile_size * brush.offset);
+      grid_visualize.highlight_hover.set_size(tile_size * brush.tile_size * brush.size);
+      grid_visualize.highlight_hover.set_color(fan::color(1, 1, 1, 0.6));
     }
     else {
-      render_view = properties.camera;
+      grid_visualize.highlight_hover.set_color(fan::colors::transparent);
+    }
+  });
+
+  buttons_handle = get_window().add_buttons_callback([this](const fan::window_t::buttons_data_t& d) {
+    if (d.button == fan::mouse_left && d.state == fan::mouse_state::release) {
+      prev_grid_position = -999999;
     }
 
-    mouse_move_handle = get_window().add_mouse_move_callback([this](const fan::window_t::mouse_move_data_t& d) {
-      if (viewport_settings.move) {
-        fan::vec2 move_off = (d.position - viewport_settings.offset) / camera_get_zoom(render_view->camera);
-        camera_set_position(render_view->camera, viewport_settings.pos - move_off);
-      }
+    if (!editor_settings.hovered && d.state != fan::mouse_state::release) {
+      return;
+    }
 
-      fan::vec2i p;
-      if (window_relative_to_grid(d.position, &p)) {
-        grid_visualize.highlight_hover.set_position(fan::vec2(p) + tile_size * brush.offset);
-        grid_visualize.highlight_hover.set_size(tile_size * brush.tile_size * brush.size);
-        grid_visualize.highlight_hover.set_color(fan::color(1, 1, 1, 0.6));
+    switch (d.button) {
+      case fan::mouse_middle: {
+        viewport_settings.move = (bool)d.state;
+        viewport_settings.offset = fan::window::get_mouse_position();
+        viewport_settings.pos = camera_get_position(render_view->camera);
+        break;
       }
-      else {
-        grid_visualize.highlight_hover.set_color(fan::colors::transparent);
-      }
-    });
-
-    buttons_handle = get_window().add_buttons_callback([this](const fan::window_t::buttons_data_t& d) {
-      if (d.button == fan::mouse_left && d.state == fan::mouse_state::release) {
-        prev_grid_position = -999999;
-      }
-
-      if (!editor_settings.hovered && d.state != fan::mouse_state::release) {
+      case fan::mouse_scroll_up: {
+        if (get_window().key_pressed(fan::key_left_control)) {
+          brush.depth += 1;
+          brush.depth = std::min((int)brush.depth, shape_depths_t::max_layer_depth);
+        }
+        else if (get_window().key_pressed(fan::key_left_shift)) {
+          brush.size += 1;
+          grid_visualize.highlight_hover.set_size(tile_size * brush.size);
+        }
+        else {
+          camera_set_zoom(render_view->camera, camera_get_zoom(render_view->camera) * scroll_speed);
+          fan::vec2 pos = (get_window().get_mouse_position() - viewport_settings.window_related_mouse_pos);
+          pos /= get_window().get_size();
+          pos *= viewport_settings.size / 2;
+        }
         return;
       }
-
-      switch (d.button) {
-        case fan::mouse_middle: {
-          viewport_settings.move = (bool)d.state;
-          viewport_settings.offset = fan::window::get_mouse_position();
-          viewport_settings.pos = camera_get_position(render_view->camera);
-          break;
+      case fan::mouse_scroll_down: {
+        if (get_window().key_pressed(fan::key_left_control)) {
+          brush.depth -= 1;
+          brush.depth = std::max((std::uint32_t)brush.depth, (std::uint32_t)1);
         }
-        case fan::mouse_scroll_up: {
-          if (get_window().key_pressed(fan::key_left_control)) {
-            brush.depth += 1;
-            brush.depth = std::min((int)brush.depth, shape_depths_t::max_layer_depth);
-          }
-          else if (get_window().key_pressed(fan::key_left_shift)) {
-            brush.size += 1;
-            grid_visualize.highlight_hover.set_size(tile_size * brush.size);
-          }
-          else {
-            camera_set_zoom(render_view->camera, camera_get_zoom(render_view->camera) * scroll_speed);
-            fan::vec2 pos = (get_window().get_mouse_position() - viewport_settings.window_related_mouse_pos);
-            pos /= get_window().get_size();
-            pos *= viewport_settings.size / 2;
-          }
-          return;
+        else if (get_window().key_pressed(fan::key_left_shift)) {
+          brush.size = (brush.size - 1).max(fan::vec2i(1));
+          grid_visualize.highlight_hover.set_size(tile_size * brush.size);
         }
-        case fan::mouse_scroll_down: {
-          if (get_window().key_pressed(fan::key_left_control)) {
-            brush.depth -= 1;
-            brush.depth = std::max((std::uint32_t)brush.depth, (std::uint32_t)1);
-          }
-          else if (get_window().key_pressed(fan::key_left_shift)) {
-            brush.size = (brush.size - 1).max(fan::vec2i(1));
-            grid_visualize.highlight_hover.set_size(tile_size * brush.size);
-          }
-          else {
-            camera_set_zoom(render_view->camera, camera_get_zoom(render_view->camera) / scroll_speed);
-          }
-          return;
+        else {
+          camera_set_zoom(render_view->camera, camera_get_zoom(render_view->camera) / scroll_speed);
         }
-      }
-    });
-
-    keys_handle = get_window().add_keys_callback([this](const fan::window_t::keys_data_t& d) {
-      if (d.state != fan::keyboard_state::press || gui::is_any_item_active()) {
         return;
       }
-      switch (d.key) {
-        case fan::key_r: {
-          brush.angle.z = std::fmod(brush.angle.z + fan::math::pi / 2, fan::math::pi * 2);
-          break;
-        }
-        case fan::key_delete: {
-          if (get_window().key_pressed(fan::key_left_control)) {
-            reset_map();
-          }
-          break;
-        }
+    }
+  });
+
+  keys_handle = get_window().add_keys_callback([this](const fan::window_t::keys_data_t& d) {
+    if (d.state != fan::keyboard_state::press || gui::is_any_item_active()) {
+      return;
+    }
+    switch (d.key) {
+      case fan::key_r: {
+        brush.angle.z = std::fmod(brush.angle.z + fan::math::pi / 2, fan::math::pi * 2);
+        break;
       }
-    });
+      case fan::key_delete: {
+        if (get_window().key_pressed(fan::key_left_control)) {
+          reset_map();
+        }
+        break;
+      }
+    }
+  });
 
-    viewport_settings.size = 0;
-    transparent_texture = create_transparent_texture();
+  viewport_settings.size = 0;
+  transparent_texture = create_transparent_texture();
 
-    grid_visualize.background = sprite_t{{
-      .render_view = render_view,
-      .position = fan::vec3(tile_size * 2 * map_size / 2 - tile_size, 0),
-      .size = 0,
-      .image = transparent_texture,
-    }};
+  grid_visualize.background = sprite_t{{
+    .render_view = render_view,
+    .position = fan::vec3(tile_size * 2 * map_size / 2 - tile_size, 0),
+    .size = 0,
+    .image = transparent_texture,
+  }};
 
-    lp.min_filter = image_filter_e::nearest;
-    lp.mag_filter = image_filter_e::nearest;
+  lp.min_filter = image_filter_e::nearest;
+  lp.mag_filter = image_filter_e::nearest;
 
-    grid_visualize.highlight_color = image_load("images/highlight_hover.webp", lp);
-    grid_visualize.collider_color = image_create(fan::color(0, 0.5, 0, 0.5));
-    grid_visualize.light_color = image_load("images/lightbulb.webp", lp);
+  grid_visualize.highlight_color = image_load("images/highlight_hover.webp", lp);
+  grid_visualize.collider_color = image_create(fan::color(0, 0.5, 0, 0.5));
+  grid_visualize.light_color = image_load("images/lightbulb.webp", lp);
 
-    grid_visualize.highlight_hover = unlit_sprite_t{{
-      .render_view = render_view,
-      .position = fan::vec3(viewport_settings.pos, shape_depths_t::cursor_highlight_depth),
-      .size = tile_size,
-      .image = grid_visualize.highlight_color,
-      .blending = true
-    }};
+  grid_visualize.highlight_hover = unlit_sprite_t{{
+    .render_view = render_view,
+    .position = fan::vec3(viewport_settings.pos, shape_depths_t::cursor_highlight_depth),
+    .size = tile_size,
+    .image = grid_visualize.highlight_color,
+    .blending = true
+  }};
 
-    grid_visualize.highlight_selected = unlit_sprite_t{{
-      .render_view = render_view,
-      .position = fan::vec3(viewport_settings.pos, shape_depths_t::cursor_highlight_depth - 1),
-      .size = 0,
-      .color = fan::color(2, 2, 2, 1),
-      .image = grid_visualize.highlight_color,
-      .blending = true
-    }};
+  grid_visualize.highlight_selected = unlit_sprite_t{{
+    .render_view = render_view,
+    .position = fan::vec3(viewport_settings.pos, shape_depths_t::cursor_highlight_depth - 1),
+    .size = 0,
+    .color = fan::color(2, 2, 2, 1),
+    .image = grid_visualize.highlight_color,
+    .blending = true
+  }};
 
-    fan::vec2 p = 0;
-    p = ((p - tile_size) / tile_size).floor() * tile_size;
-    grid_visualize.highlight_hover.set_position(p);
+  fan::vec2 p = 0;
+  p = ((p - tile_size) / tile_size).floor() * tile_size;
+  grid_visualize.highlight_hover.set_position(p);
 
-    camera_set_position(render_view->camera, viewport_settings.pos + tile_size * 2.f * map_size / 2.f);
+  camera_set_position(render_view->camera, viewport_settings.pos + tile_size * 2.f * map_size / 2.f);
 
-    shapes::grid_t::properties_t gp;
-    gp.viewport = render_view->viewport;
-    gp.camera = render_view->camera;
-    gp.position = fan::vec3(map_size * (tile_size * 2.f) / 2.f - tile_size, shape_depths_t::cursor_highlight_depth - 1);
-    gp.size = 0;
-    gp.color = fan::colors::black.set_alpha(0.4);
-    grid_visualize.grid = gp;
-    resize_map();
+  shapes::grid_t::properties_t gp;
+  gp.viewport = render_view->viewport;
+  gp.camera = render_view->camera;
+  gp.position = fan::vec3(map_size * (tile_size * 2.f) / 2.f - tile_size, shape_depths_t::cursor_highlight_depth - 1);
+  gp.size = 0;
+  gp.color = fan::colors::black.set_alpha(0.4);
+  grid_visualize.grid = gp;
+  resize_map();
 
-    visual_line = line_t{{
-      .render_view = render_view,
-      .src = fan::vec3(0, 0, shape_depths_t::cursor_highlight_depth + 1),
-      .dst = fan::vec2(400),
-      .color = fan::colors::white
-    }};
+  visual_line = line_t{{
+    .render_view = render_view,
+    .src = fan::vec3(0, 0, shape_depths_t::cursor_highlight_depth + 1),
+    .dst = fan::vec2(400),
+    .color = fan::colors::white
+  }};
 
-    content_browser.init("");
-    content_browser.current_view_mode = gui::content_browser_t::view_mode_large_thumbnails;
-  }
+  content_browser.init("");
+  content_browser.current_view_mode = gui::content_browser_t::view_mode_large_thumbnails;
+}
 
 bool fte_t::handle_tile_push(fan::vec2i& position, int& pj, int& pi) {
     if (apply_jitter(position) || !is_in_constraints(position, pj, pi)) {
@@ -700,263 +1142,263 @@ void fte_t::fout(std::string filename) {
   }
 
 void fte_t::fin(const std::string& filename, const std::source_location& callers_path) {
-  #if defined(FAN_JSON)
+#if defined(FAN_JSON)
 
-    std::ifstream file(fan::io::file::find_relative_path(filename, callers_path), std::ios::binary | std::ios::ate);
-    if (!file) {
-      fan::throw_error("Failed to open file: " + filename);
-      return;
-    }
-
-    std::streamsize size = file.tellg();
-    file.seekg(0, std::ios::beg);
-
-    std::string buffer;
-    buffer.resize(size);
-
-    if (!file.read(&buffer[0], size)) {
-      fan::throw_error("Failed to read file: " + filename);
-      return;
-    }
-    file.close();
-
-    fan::json json = fan::json::parse(buffer);
-    buffer.clear(); 
-    buffer.shrink_to_fit();
-
-    if (json["version"] != 1) {
-      fan::throw_error("version mismatch");
-    }
-
-    if (json.contains("texture_packs")) {
-      std::vector<std::string> tp_paths = json["texture_packs"];
-      std::filesystem::path file_dir = std::filesystem::absolute(
-        fan::io::file::find_relative_path(filename, callers_path)
-      ).parent_path();
-      for (auto& path : tp_paths) {
-        std::string resolved = (file_dir / path).lexically_normal().generic_string();
-        open_texture_pack(resolved);
-      }
-    }
-    else if (texture_packs.empty() || texture_packs[0]->size() == 0) {
-      gui::print("open valid texturepack");
-      return;
-    }
-
-    invalidate_selection();
-    previous_filename = filename;
-
-    map_size = json["map_size"];
-    tile_size = json["tile_size"];
-
-    if (json.contains("camera_position")) {
-      camera_set_position(render_view->camera, json["camera_position"]);
-    }
-    if (json.contains("camera_zoom")) {
-      camera_set_zoom(render_view->camera, json["camera_zoom"]);
-    }
-    if (json.contains("gravity")) {
-      fan::physics::gphysics()->set_gravity(json["gravity"]);
-    }
-    get_lighting().set_target(json["lighting.ambient"]);
-
-    map_tiles.clear();
-    visual_layers.clear();
-    visual_shapes.clear();
-    physics_shapes.clear();
-    spawn_marks.clear();
-
-    std::size_t estimated_tiles = map_size.x * map_size.y / 4;
-    map_tiles.reserve(estimated_tiles);
-
-    resize_map();
-
-    static image_t player_marker_image = image_create(fan::color(0, 1, 0, 0.5));
-    static image_t enemy_marker_image = image_create(fan::color(1, 0, 0, 0.5));
-    static image_t mark_marker_image = image_create(fan::color(1, 1, 0, 0.5));
-
-    static const fte_t::physics_shapes_t physics_defaults;
-    static const fte_t::tile_t tile_defaults = fte_t::tile_t();
-
-    auto expand_instance = [&](const fan::json& shape_json, auto emit_one) {
-      if (!shape_json.contains("instance")) {
-        emit_one(fan::vec3(0, 0, 0));
-        return;
-      }
-
-      const auto& inst = shape_json["instance"];
-
-      if (inst.contains("count_x")) {
-        int cx = inst.value("count_x", 1);
-        int cy = inst.value("count_y", 1);
-
-        fan::vec3 dx = inst.value("delta_x", fan::vec3(0, 0, 0));
-        fan::vec3 dy = inst.value("delta_y", fan::vec3(0, 0, 0));
-
-        for (int y = 0; y < cy; y++) {
-          for (int x = 0; x < cx; x++) {
-            emit_one(dx * (f32_t)x + dy * (f32_t)y);
-          }
-        }
-        return;
-      }
-
-      int count = inst.value("count", 1);
-      fan::vec3 delta = inst.value("delta", fan::vec3(0, 0, 0));
-      for (int i = 0; i < count; i++) {
-        emit_one(delta * (f32_t)i);
-      }
-    };
-
-    shape_deserialize_t it;
-    shape_t base_shape;
-
-    const auto& tiles_array = json["tiles"];
-
-    while (it.iterate(tiles_array, &base_shape)) {
-      const auto shape_json = *(it.data.it - 1);
-
-      expand_instance(shape_json, [&](const fan::vec3& offs) {
-        shape_t shape = base_shape;
-        shape.set_position(shape.get_position() + offs);
-
-        if (shape_json.contains("mesh_property")) {
-          auto mesh_prop = static_cast<fte_t::mesh_property_t>(shape_json["mesh_property"].get<std::uint32_t>());
-
-          if (mesh_prop == fte_t::mesh_property_t::physics_shape) {
-            std::uint16_t depth = shape.get_position().z;
-            auto& physics_shape = physics_shapes[depth];
-            physics_shape.emplace_back();
-            auto& physics_element = physics_shape.back();
-
-            shape.set_camera(render_view->camera);
-            shape.set_viewport(render_view->viewport);
-            shape.set_image(grid_visualize.collider_color);
-
-            if (shape_json.contains("physics_shape_data")) {
-              physics_element.id = shape_json.value("id", physics_defaults.id);
-              const fan::json& physics_shape_data = shape_json["physics_shape_data"];
-              physics_element.type = physics_shape_data.value("type", physics_defaults.type);
-              physics_element.body_type = physics_shape_data.value("body_type", physics_defaults.body_type);
-              physics_element.draw = physics_shape_data.value("draw", physics_defaults.draw);
-              physics_element.shape_properties.friction = physics_shape_data.value("friction", physics_defaults.shape_properties.friction);
-              physics_element.shape_properties.density = physics_shape_data.value("density", physics_defaults.shape_properties.density);
-              physics_element.shape_properties.fixed_rotation = physics_shape_data.value("fixed_rotation", physics_defaults.shape_properties.fixed_rotation);
-              physics_element.shape_properties.presolve_events = physics_shape_data.value("presolve_events", physics_defaults.shape_properties.presolve_events);
-              physics_element.shape_properties.is_sensor = physics_shape_data.value("is_sensor", physics_defaults.shape_properties.is_sensor);
-            }
-
-            physics_element.visual = std::move(shape);
-            return;
-          }
-          else if (mesh_prop == mesh_property_t::player_spawn ||
-            mesh_prop == mesh_property_t::enemy_spawn ||
-            mesh_prop == mesh_property_t::mark) {
-
-            spawn_mark_t mark;
-            mark.position = shape_json.contains("position") ? shape_json["position"].get<fan::vec3>() : fan::vec3(0);
-            mark.position += offs;
-            mark.size = shape_json.contains("size") ? shape_json["size"].get<fan::vec2>() : fan::vec2(0);
-            
-            if (shape_json.contains("color")) {
-              auto col_array = shape_json["color"];
-              mark.color = fan::color(col_array[0], col_array[1], col_array[2], col_array[3]);
-            } else {
-              mark.color = fan::colors::white;
-            }
-
-            mark.type = mesh_prop;
-            mark.id = shape_json.value("id", "");
-
-            std::uint16_t depth = mark.position.z;
-            spawn_marks[depth].push_back(std::move(mark));
-            auto& inserted_mark = spawn_marks[depth].back();
-
-            image_t marker_image;
-            if (mesh_prop == mesh_property_t::player_spawn) {
-              marker_image = player_marker_image;
-            }
-            else if (mesh_prop == mesh_property_t::enemy_spawn) {
-              marker_image = enemy_marker_image;
-            }
-            else {
-              marker_image = mark_marker_image;
-            }
-
-            visual_shapes[inserted_mark.position].shape = 
-              make_sprite(inserted_mark.position, inserted_mark.size, 
-                fan::color(1), render_view, marker_image);
-            return;
-          }
-        }
-
-        fan::vec2i gp = shape.get_position();
-        std::uint16_t depth = shape.get_position().z;
-
-        convert_draw_to_grid(gp);
-        gp /= tile_size * 2;
-
-        visual_layers[depth].positions[gp];
-
-        auto& cell = map_tiles[gp];
-        cell.layers.emplace_back();
-        auto* layer = &cell.layers.back();
-
-        layer->tile.position = fan::vec3i(gp, depth);
-        layer->tile.size = shape.get_size();
-        layer->tile.angle = shape.get_angle();
-        layer->tile.color = shape.get_color();
-        layer->tile.id = shape_json.value("id", tile_defaults.id);
-        layer->tile.mesh_property = shape_json.contains("mesh_property") 
-            ? static_cast<fte_t::mesh_property_t>(shape_json["mesh_property"].get<std::uint32_t>()) 
-            : tile_defaults.mesh_property;
-
-        layer->shape = std::move(shape);
-
-        switch (layer->tile.mesh_property) {
-        case fte_t::mesh_property_t::none: {
-          layer->shape.set_camera(render_view->camera);
-          layer->shape.set_viewport(render_view->viewport);
-          break;
-        }
-        case fte_t::mesh_property_t::light: {
-          layer->shape = light_t{{
-              .render_view = render_view,
-              .position = layer->shape.get_position(),
-              .size = layer->tile.size,
-              .color = layer->tile.color,
-              .flags = layer->shape.get_flags()
-            }};
-          visual_shapes[layer->shape.get_position()].shape = sprite_t{{
-              .render_view = render_view,
-              .position = fan::vec3(fan::vec2(layer->shape.get_position()), layer->shape.get_position().z + 1),
-              .size = tile_size,
-              .image = grid_visualize.light_color,
-              .blending = true
-            }};
-          break;
-        }
-        default: {
-          fan::throw_error("");
-        }
-        }
-      });
-    }
-
-    if (json.contains("layer_info")) {
-      for (const auto& layer_json : json["layer_info"]) {
-        layer_info_t layer_info;
-        layer_info.layer_name = layer_json["layer_name"];
-        layer_info.depth = layer_json["depth"];
-        if (visual_layers.find(layer_info.depth) != visual_layers.end()) {
-          visual_layers[layer_info.depth].text = std::move(layer_info.layer_name);
-        }
-      }
-    }
-  #else
-    fan::throw_error("FAN_JSON not enabled");
-  #endif
+  std::ifstream file(fan::io::file::find_relative_path(filename, callers_path), std::ios::binary | std::ios::ate);
+  if (!file) {
+    fan::throw_error("Failed to open file: " + filename);
+    return;
   }
+
+  std::streamsize size = file.tellg();
+  file.seekg(0, std::ios::beg);
+
+  std::string buffer;
+  buffer.resize(size);
+
+  if (!file.read(&buffer[0], size)) {
+    fan::throw_error("Failed to read file: " + filename);
+    return;
+  }
+  file.close();
+
+  fan::json json = fan::json::parse(buffer);
+  buffer.clear(); 
+  buffer.shrink_to_fit();
+
+  if (json["version"] != 1) {
+    fan::throw_error("version mismatch");
+  }
+
+  if (json.contains("texture_packs")) {
+    std::vector<std::string> tp_paths = json["texture_packs"];
+    std::filesystem::path file_dir = std::filesystem::absolute(
+      fan::io::file::find_relative_path(filename, callers_path)
+    ).parent_path();
+    for (auto& path : tp_paths) {
+      std::string resolved = (file_dir / path).lexically_normal().generic_string();
+      open_texture_pack(resolved);
+    }
+  }
+  else if (texture_packs.empty() || texture_packs[0]->size() == 0) {
+    gui::print("open valid texturepack");
+    return;
+  }
+
+  invalidate_selection();
+  previous_filename = filename;
+
+  map_size = json["map_size"];
+  tile_size = json["tile_size"];
+
+  if (json.contains("camera_position")) {
+    camera_set_position(render_view->camera, json["camera_position"]);
+  }
+  if (json.contains("camera_zoom")) {
+    camera_set_zoom(render_view->camera, json["camera_zoom"]);
+  }
+  if (json.contains("gravity")) {
+    fan::physics::gphysics()->set_gravity(json["gravity"]);
+  }
+  get_lighting().set_target(json["lighting.ambient"]);
+
+  map_tiles.clear();
+  visual_layers.clear();
+  visual_shapes.clear();
+  physics_shapes.clear();
+  spawn_marks.clear();
+
+  std::size_t estimated_tiles = map_size.x * map_size.y / 4;
+  map_tiles.reserve(estimated_tiles);
+
+  resize_map();
+
+  static image_t player_marker_image = image_create(fan::color(0, 1, 0, 0.5));
+  static image_t enemy_marker_image = image_create(fan::color(1, 0, 0, 0.5));
+  static image_t mark_marker_image = image_create(fan::color(1, 1, 0, 0.5));
+
+  static const fte_t::physics_shapes_t physics_defaults;
+  static const fte_t::tile_t tile_defaults = fte_t::tile_t();
+
+  auto expand_instance = [&](const fan::json& shape_json, auto emit_one) {
+    if (!shape_json.contains("instance")) {
+      emit_one(fan::vec3(0, 0, 0));
+      return;
+    }
+
+    const auto& inst = shape_json["instance"];
+
+    if (inst.contains("count_x")) {
+      int cx = inst.value("count_x", 1);
+      int cy = inst.value("count_y", 1);
+
+      fan::vec3 dx = inst.value("delta_x", fan::vec3(0, 0, 0));
+      fan::vec3 dy = inst.value("delta_y", fan::vec3(0, 0, 0));
+
+      for (int y = 0; y < cy; y++) {
+        for (int x = 0; x < cx; x++) {
+          emit_one(dx * (f32_t)x + dy * (f32_t)y);
+        }
+      }
+      return;
+    }
+
+    int count = inst.value("count", 1);
+    fan::vec3 delta = inst.value("delta", fan::vec3(0, 0, 0));
+    for (int i = 0; i < count; i++) {
+      emit_one(delta * (f32_t)i);
+    }
+  };
+
+  shape_deserialize_t it;
+  shape_t base_shape;
+
+  const auto& tiles_array = json["tiles"];
+
+  while (it.iterate(tiles_array, &base_shape)) {
+    const auto shape_json = *(it.data.it - 1);
+
+    expand_instance(shape_json, [&](const fan::vec3& offs) {
+      shape_t shape = base_shape;
+      shape.set_position(shape.get_position() + offs);
+
+      if (shape_json.contains("mesh_property")) {
+        auto mesh_prop = static_cast<fte_t::mesh_property_t>(shape_json["mesh_property"].get<std::uint32_t>());
+
+        if (mesh_prop == fte_t::mesh_property_t::physics_shape) {
+          std::uint16_t depth = shape.get_position().z;
+          auto& physics_shape = physics_shapes[depth];
+          physics_shape.emplace_back();
+          auto& physics_element = physics_shape.back();
+
+          shape.set_camera(render_view->camera);
+          shape.set_viewport(render_view->viewport);
+          shape.set_image(grid_visualize.collider_color);
+
+          if (shape_json.contains("physics_shape_data")) {
+            physics_element.id = shape_json.value("id", physics_defaults.id);
+            const fan::json& physics_shape_data = shape_json["physics_shape_data"];
+            physics_element.type = physics_shape_data.value("type", physics_defaults.type);
+            physics_element.body_type = physics_shape_data.value("body_type", physics_defaults.body_type);
+            physics_element.draw = physics_shape_data.value("draw", physics_defaults.draw);
+            physics_element.shape_properties.friction = physics_shape_data.value("friction", physics_defaults.shape_properties.friction);
+            physics_element.shape_properties.density = physics_shape_data.value("density", physics_defaults.shape_properties.density);
+            physics_element.shape_properties.fixed_rotation = physics_shape_data.value("fixed_rotation", physics_defaults.shape_properties.fixed_rotation);
+            physics_element.shape_properties.presolve_events = physics_shape_data.value("presolve_events", physics_defaults.shape_properties.presolve_events);
+            physics_element.shape_properties.is_sensor = physics_shape_data.value("is_sensor", physics_defaults.shape_properties.is_sensor);
+          }
+
+          physics_element.visual = std::move(shape);
+          return;
+        }
+        else if (mesh_prop == mesh_property_t::player_spawn ||
+          mesh_prop == mesh_property_t::enemy_spawn ||
+          mesh_prop == mesh_property_t::mark) {
+
+          spawn_mark_t mark;
+          mark.position = shape_json.contains("position") ? shape_json["position"].get<fan::vec3>() : fan::vec3(0);
+          mark.position += offs;
+          mark.size = shape_json.contains("size") ? shape_json["size"].get<fan::vec2>() : fan::vec2(0);
+            
+          if (shape_json.contains("color")) {
+            auto col_array = shape_json["color"];
+            mark.color = fan::color(col_array[0], col_array[1], col_array[2], col_array[3]);
+          } else {
+            mark.color = fan::colors::white;
+          }
+
+          mark.type = mesh_prop;
+          mark.id = shape_json.value("id", "");
+
+          std::uint16_t depth = mark.position.z;
+          spawn_marks[depth].push_back(std::move(mark));
+          auto& inserted_mark = spawn_marks[depth].back();
+
+          image_t marker_image;
+          if (mesh_prop == mesh_property_t::player_spawn) {
+            marker_image = player_marker_image;
+          }
+          else if (mesh_prop == mesh_property_t::enemy_spawn) {
+            marker_image = enemy_marker_image;
+          }
+          else {
+            marker_image = mark_marker_image;
+          }
+
+          visual_shapes[inserted_mark.position].shape = 
+            make_sprite(inserted_mark.position, inserted_mark.size, 
+              fan::color(1), render_view, marker_image);
+          return;
+        }
+      }
+
+      fan::vec2i gp = shape.get_position();
+      std::uint16_t depth = shape.get_position().z;
+
+      convert_draw_to_grid(gp);
+      gp /= tile_size * 2;
+
+      visual_layers[depth].positions[gp];
+
+      auto& cell = map_tiles[gp];
+      cell.layers.emplace_back();
+      auto* layer = &cell.layers.back();
+
+      layer->tile.position = fan::vec3i(gp, depth);
+      layer->tile.size = shape.get_size();
+      layer->tile.angle = shape.get_angle();
+      layer->tile.color = shape.get_color();
+      layer->tile.id = shape_json.value("id", tile_defaults.id);
+      layer->tile.mesh_property = shape_json.contains("mesh_property") 
+          ? static_cast<fte_t::mesh_property_t>(shape_json["mesh_property"].get<std::uint32_t>()) 
+          : tile_defaults.mesh_property;
+
+      layer->shape = std::move(shape);
+
+      switch (layer->tile.mesh_property) {
+      case fte_t::mesh_property_t::none: {
+        layer->shape.set_camera(render_view->camera);
+        layer->shape.set_viewport(render_view->viewport);
+        break;
+      }
+      case fte_t::mesh_property_t::light: {
+        layer->shape = light_t{{
+            .render_view = render_view,
+            .position = layer->shape.get_position(),
+            .size = layer->tile.size,
+            .color = layer->tile.color,
+            .flags = layer->shape.get_flags()
+          }};
+        visual_shapes[layer->shape.get_position()].shape = sprite_t{{
+            .render_view = render_view,
+            .position = fan::vec3(fan::vec2(layer->shape.get_position()), layer->shape.get_position().z + 1),
+            .size = tile_size,
+            .image = grid_visualize.light_color,
+            .blending = true
+          }};
+        break;
+      }
+      default: {
+        fan::throw_error("");
+      }
+      }
+    });
+  }
+
+  if (json.contains("layer_info")) {
+    for (const auto& layer_json : json["layer_info"]) {
+      layer_info_t layer_info;
+      layer_info.layer_name = layer_json["layer_name"];
+      layer_info.depth = layer_json["depth"];
+      if (visual_layers.find(layer_info.depth) != visual_layers.end()) {
+        visual_layers[layer_info.depth].text = std::move(layer_info.layer_name);
+      }
+    }
+  }
+#else
+  fan::throw_error("FAN_JSON not enabled");
+#endif
+}
 
 #endif
 #endif

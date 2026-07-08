@@ -85,7 +85,7 @@ struct scene_manager_t {
     if (render_scene) {
       fte.fout(add_temp_before_ext(fte.file_name));
       reload_scene(fte, view);
-      fan::vec3 pos = 0;
+      fan::vec2 pos = 0;
       player = std::make_unique<player_t>(pos, view);
       engine.set_vsync(0);
     }
@@ -132,7 +132,7 @@ int main() {
   const f32_t z = 17;
 
   engine.loop([&] {
-    fte.render();
+    gui::tilemap_editor::ui::handle_gui(fte);
 
     if (scene.render_scene && scene.player) {
       if (gui::begin("Program", 0, gui::window_flags_no_background)) {
