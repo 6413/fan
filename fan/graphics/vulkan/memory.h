@@ -14,6 +14,7 @@ protected:
   write_queue_t write_queue;
 public:
   using nr_t = write_queue_NodeReference_t;
+  std::vector<node_data_t> m_scratch_nodes;
 
   nr_t push_back(memory_edit_cb_t cb, void* user_data) {
     auto nr = write_queue.NewNodeLast();
@@ -23,17 +24,17 @@ public:
   }
 
   void process(fan::vulkan::context_t& context) {
-    std::vector<node_data_t> cbs;
+    m_scratch_nodes.clear();
     auto it = write_queue.GetNodeFirst();
     while (it != write_queue.dst) {
       write_queue.StartSafeNext(it);
-      cbs.push_back({write_queue[it].cb, write_queue[it].user_data});
+      m_scratch_nodes.push_back({write_queue[it].cb, write_queue[it].user_data});
       it = write_queue.EndSafeNext();
     }
 
     write_queue.Clear();
 
-    for (auto& item : cbs) {
+    for (auto& item : m_scratch_nodes) {
       if (item.cb) { item.cb(context, item.user_data); }
     }
   }
