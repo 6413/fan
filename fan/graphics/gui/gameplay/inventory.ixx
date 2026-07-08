@@ -115,14 +115,12 @@ export namespace fan::graphics::gui {
         return;
       }
 
-      auto& io = gui::get_io();
-
       if (!drag_state.active) {
         hovered_inventory_slot = std::numeric_limits<std::uint32_t>::max();
         hovered_secondary_slot = std::numeric_limits<std::uint32_t>::max();
       }
 
-      fan::vec2 window_size = io.DisplaySize;
+      fan::vec2 window_size = gui::get_display_size();
       fan::vec2 total_size = get_total_size();
 
       gui::set_next_window_pos(fan::vec2(
