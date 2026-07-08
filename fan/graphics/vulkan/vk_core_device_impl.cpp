@@ -955,9 +955,10 @@ void fan::vulkan::context_t::create_buffer(VkDeviceSize size, VkBufferUsageFlags
   allocation_create_info.usage = VMA_MEMORY_USAGE_AUTO;
   allocation_create_info.requiredFlags = properties;
   if (properties & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
-    allocation_create_info.flags = (properties & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) ?
-      VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT :
-      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+    allocation_create_info.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT |
+      ((properties & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) ?
+        VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT :
+        VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
   }
 
   fan::vulkan::validate(vmaCreateBuffer(allocator, &buffer_info, &allocation_create_info, &buffer, &allocation, allocation_info));
