@@ -1,6 +1,7 @@
 module;
 
 #include <vulkan/vulkan.h>
+#include <vk_mem_alloc.h>
 
 export module fan.graphics.vulkan.core:uniform_block;
 
