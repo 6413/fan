@@ -1982,6 +1982,24 @@ fan::graphics::context_functions_t fan::graphics::get_vk_context_functions() {
   };
   return cf;
 }
+void fan::vulkan::context_t::insert_image_barrier(
+  VkCommandBuffer cmd, VkImage image, VkImageLayout old_layout, VkImageLayout new_layout,
+  VkAccessFlags src_access, VkAccessFlags dst_access,
+  VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage
+) {
+  VkImageMemoryBarrier barrier{};
+  barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+  barrier.oldLayout = old_layout;
+  barrier.newLayout = new_layout;
+  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.image = image;
+  barrier.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
+  barrier.srcAccessMask = src_access;
+  barrier.dstAccessMask = dst_access;
+  vkCmdPipelineBarrier(cmd, src_stage, dst_stage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+}
+
 namespace fan::graphics {
   fan::vulkan::context_t& get_vk_context() {
     return (*static_cast<fan::vulkan::context_t*>(static_cast<void*>(fan::graphics::ctx())));

@@ -85,6 +85,7 @@ export namespace fan::graphics::gui {
       f32_t split_ratio = 0.5f;
     };
     settings_menu_t();
+    ~settings_menu_t();
     void init_runtime();
     static bool draw_toggle_row(const char* label, bool* enabled);
     static void draw_sub_row(const char* sublabel, auto widget_fn, f32_t sublabel_indent = 50.f, f32_t subwidget_indent = 0.f);
