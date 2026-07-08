@@ -1,243 +1,46 @@
-#pragma pack(push, 1)
-#define make_for_all(todo) \
-  vec_t ret = 0; for (access_type_t i = 0; i < size(); ++i) { todo; } return ret
-#define make_for_all_test1_noret(todo) for (access_type_t i = 0; i < size() && i < test0.size(); ++i) { todo; }
-#define make_for_all_test1(todo) \
-  vec_t ret = *this; for (access_type_t i = 0; i < size() && i < test0.size(); ++i) { todo; } return ret
-#define make_for_all_test2(todo) \
-  vec_t ret = *this; for (access_type_t i = 0; i < size() && i < test0.size() && i < test1.size(); ++i) { todo; } return ret
-
-#define make_operator_const(arithmetic) \
-template <typename T> \
-requires (!std::is_arithmetic_v<T>) \
-constexpr vec_t operator arithmetic(const T& test0) const \
-{ \
-  make_for_all_test1(ret[i] = (*this)[i] arithmetic test0[i]); \
-} \
-\
-template <typename T> \
-requires (std::is_arithmetic_v<T>)\
-constexpr vec_t operator arithmetic(T v0) const \
-{ \
-  make_for_all(ret[i] = (*this)[i] arithmetic v0); \
-}
-#define make_operator_assign(arithmetic) \
-template <typename T> \
-requires (!std::is_arithmetic_v<T>) \
-constexpr vec_t& operator CONCAT(arithmetic,=) (const T& test0) \
-{ \
-  make_for_all_test1_noret((*this)[i] CONCAT(arithmetic,=) test0[i]); \
-  return *this; \
-} \
-\
-template <typename T> \
-requires (std::is_arithmetic_v<T>)\
-constexpr vec_t operator CONCAT(arithmetic,=)(T v0) \
-{ \
-  make_for_all((*this)[i] CONCAT(arithmetic,=) v0); \
-}
-
 using value_type = value_type_t;
 
-static constexpr access_type_t size() { return vec_n; }
-
 constexpr vec_t() = default;
-template <typename T>
-requires std::is_arithmetic_v<T>
-constexpr vec_t(T single_init) { for (access_type_t i = 0; i < vec_n; ++i) operator[](i) = single_init; } 
+
+template <typename U> requires std::is_arithmetic_v<U>
+constexpr vec_t(U single_init) { for (access_type_t i = 0; i < vec_n; ++i) operator[](i) = single_init; } 
+
 template<typename... Args>
-requires ((std::is_arithmetic_v<std::remove_reference_t<Args>> && ...) &&
-          sizeof...(Args) == size())
+requires ((std::is_arithmetic_v<std::remove_reference_t<Args>> && ...) && sizeof...(Args) == vec_n)
 constexpr vec_t(Args&&...args) {
   access_type_t i = 0;
-  ((this->operator[](i++) = args), ...);
+  ((this->operator[](i++) = static_cast<value_type_t>(args)), ...);
 }
-// initializer list
-template <typename U>
-requires (std::is_convertible_v<U, value_type_t>)
+
+template <typename U> requires std::is_convertible_v<U, value_type_t>
 constexpr vec_t(std::initializer_list<U> init) {
   access_type_t i = 0;
   for (auto&& e : init) {
-    if (i >= size()) {
-      break;
-    }
+    if (i >= vec_n) break;
     (*this)[i++] = static_cast<value_type_t>(e);
   }
-
-  for (; i < size(); ++i) {
-    (*this)[i] = value_type_t{};
-  }
+  for (; i < vec_n; ++i) (*this)[i] = value_type_t{};
 }
+
 template<typename... Args>
-requires(
-  (std::is_same_v<value_type_t, std::remove_reference_t<Args>> && ...) &&
-  (!std::is_arithmetic_v<std::remove_reference_t<Args>> && ...) &&
-  sizeof...(Args) == size()
-  )
+requires((std::is_same_v<value_type_t, std::remove_reference_t<Args>> && ...) && (!std::is_arithmetic_v<std::remove_reference_t<Args>> && ...) && sizeof...(Args) == vec_n)
 constexpr vec_t(Args&&...args) {
   access_type_t i = 0;
   ((this->operator[](i++) = args), ...);
 }
+
 #ifndef fan_vector_array
-  template <typename T>
-  constexpr vec_t(const vec_t<T>& test0) { for (int i = 0; i < size(); ++i) operator[](i) = test0[i]; } 
+  template <typename U>
+  constexpr vec_t(const vec_t<U>& test0) { for (access_type_t i = 0; i < vec_n; ++i) operator[](i) = test0[i]; } 
 #else
-  template <typename T>
-  constexpr vec_t(const vec_t<vec_n, T>& test0) { for (int i = 0; i < size(); ++i) operator[](i) = test0[i]; } 
+  template <typename U>
+  constexpr vec_t(const vec_t<vec_n, U>& test0) { for (access_type_t i = 0; i < vec_n; ++i) operator[](i) = test0[i]; } 
 #endif
+
 vec_t(const std::string& str) {
-  *this = from_string(str);
+  *this = fan::vec_base<vec_t, vec_n, value_type_t>::from_string(str);
 }
 
-#define make_operators(arithmetic) \
-  make_operator_const(arithmetic); \
-  make_operator_assign(arithmetic)
-
-constexpr vec_t operator-() const { make_for_all(ret[i] = -(*this)[i]); }
-constexpr vec_t operator+() const { make_for_all(ret[i] = +(*this)[i]); }
-make_operators(-);
-make_operators(+);
-make_operators(*);
-make_operators(/);
-
-#define make_operator_scalar_left(arithmetic) \
-  template <typename T> \
-  requires (std::is_arithmetic_v<T>) \
-  friend constexpr vec_t operator arithmetic(T lhs, const vec_t& rhs) { \
-    vec_t ret{}; \
-    for (access_type_t i = 0; i < rhs.size(); ++i) { \
-      ret[i] = lhs arithmetic rhs[i]; \
-    } \
-    return ret; \
-  }
-make_operator_scalar_left(+)
-make_operator_scalar_left(-)
-make_operator_scalar_left(*)
-make_operator_scalar_left(/)
-make_operator_scalar_left(%)
-
-template <typename T>
-  requires (!std::is_arithmetic_v<T>)
-constexpr bool operator==(const T& rhs) const {
-  for (access_type_t i = 0; i < size() && i < rhs.size(); ++i) {
-    if ((*this)[i] != rhs[i]) {
-      return false;
-    }
-  }
-  
-  return true;
-}
-
-template <typename T>
-  requires (std::is_arithmetic_v<T>)
-constexpr bool operator==(const T& rhs) const {
-  return (*this)[0] == rhs;
-}
-
-template <typename T>
-  requires (!std::is_arithmetic_v<T>)
-constexpr bool operator!=(const T& rhs) const {
-  return !(*this == rhs);
-}
-
-template <typename T>
-  requires (std::is_arithmetic_v<T>)
-constexpr bool operator!=(const T& rhs) const {
-  return !(*this == rhs);
-}
-
-template <typename T>
-  requires (!std::is_arithmetic_v<T>)
-constexpr bool operator<(const T& rhs) const {
-  for (access_type_t i = 0; i < size() && i < rhs.size(); ++i) {
-    if (!((*this)[i] < rhs[i])) {
-      return false;
-    }
-  }
-  return true;
-}
-template <typename T>
-  requires (!std::is_arithmetic_v<T>)
-constexpr bool operator>(const T& rhs) const {
-  for (access_type_t i = 0; i < size() && i < rhs.size(); ++i) {
-    if (!((*this)[i] > rhs[i])) {
-      return false;
-    }
-  }
-  return true;
-}
-template <typename T>
-  requires (std::is_arithmetic_v<T>)
-constexpr bool operator<(T rhs) const {
-  for (access_type_t i = 0; i < size(); ++i) {
-    if (!((*this)[i] < rhs)) {
-      return false;
-    }
-  }
-  return true;
-}
-template <typename T>
-  requires (std::is_arithmetic_v<T>)
-constexpr bool operator>(T rhs) const {
-  for (access_type_t i = 0; i < size(); ++i) {
-    if (!((*this)[i] > rhs)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-template <typename T>
-  requires (!std::is_arithmetic_v<T>)
-constexpr bool operator<=(const T& rhs) const {
-  for (access_type_t i = 0; i < size() && i < rhs.size(); ++i) {
-    if (!((*this)[i] <= rhs[i])) {
-      return false;
-    }
-  }
-  return true;
-}
-template <typename T>
-  requires (std::is_arithmetic_v<T>)
-constexpr bool operator<=(T rhs) const {
-  for (access_type_t i = 0; i < size(); ++i) {
-    if (!((*this)[i] <= rhs)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-template <typename T>
-  requires (!std::is_arithmetic_v<T>)
-constexpr bool operator>=(const T& rhs) const {
-  for (access_type_t i = 0; i < size() && i < rhs.size(); ++i) {
-    if (!((*this)[i] >= rhs[i])) {
-      return false;
-    }
-  }
-  return true;
-}
-template <typename T>
-  requires (std::is_arithmetic_v<T>)
-constexpr bool operator>=(T rhs) const {
-  for (access_type_t i = 0; i < size(); ++i) {
-    if (!((*this)[i] >= rhs)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-explicit constexpr operator bool() const {
-  for (access_type_t i = 0; i < size(); ++i) {
-    if ((*this)[i] != value_type_t(0)) {
-      return true;
-    }
-  }
-  return false;
-}
-                    
 #define __FAN_SWITCH_IDX(x, idx) case idx: return x
 
 constexpr value_type_t& operator[](access_type_t idx) { 
@@ -245,9 +48,9 @@ constexpr value_type_t& operator[](access_type_t idx) {
   switch (idx) {
     #if vec_n
     __FAN__FOREACH(__FAN_SWITCH_IDX, fan_coordinate(vec_n);)
-      #else
+    #else
     default: return *(value_type_t*)nullptr;
-      #endif
+    #endif
   }
 #else
   return fan_coordinate(idx);
@@ -282,93 +85,14 @@ constexpr auto begin() const {
 #endif
 #endif
 }
-constexpr auto end() const { return begin() + size(); }
+constexpr auto end() const { return begin() + vec_n; }
 constexpr auto data() const { return begin(); }
 
 constexpr auto begin() { return &operator[](0); }
-constexpr auto end() { return begin() + size(); }
+constexpr auto end() { return begin() + vec_n; }
 constexpr auto data() { return begin(); }
 
-constexpr auto sum() const { value_type_t r{}; for (access_type_t i = 0; i < size(); ++i) r += (*this)[i]; return r; }
-constexpr auto multiply() const { value_type_t r{1}; for (access_type_t i = 0; i < size(); ++i) r *= (*this)[i]; return r; }
-constexpr auto sign() const { make_for_all(ret[i] = fan::math::sgn((*this)[i])); }
-constexpr auto floor() const { make_for_all(ret[i] = std::floor((*this)[i])); }
-constexpr auto floor_div(auto value) const { make_for_all(ret[i] = std::floor((*this)[i] / value)); }
-constexpr auto ceil() const { make_for_all(ret[i] = std::ceil((*this)[i])); }
-constexpr auto round() const { make_for_all(ret[i] = std::round((*this)[i])); }
-constexpr auto abs() const { make_for_all(ret[i] = std::abs((*this)[i])); }
-constexpr auto min() const { return *std::min_element(begin(), end()); }
-template <typename T>
-requires(std::is_arithmetic_v<T>)
-constexpr auto min(const T& test0) const { make_for_all(ret[i] = std::min((*this)[i], test0)); }
-constexpr auto min(const auto& test0) const { make_for_all_test1(ret[i] = std::min((*this)[i], test0[i])); }
-constexpr auto max() const { return *std::max_element(begin(), end()); }
-template <typename T>
-requires(std::is_arithmetic_v<T>)
-constexpr auto max(const T& test0) const { make_for_all(ret[i] = std::max((*this)[i], test0)); }
-constexpr auto max(const auto& test0) const { make_for_all_test1(ret[i] = std::max((*this)[i], test0[i])); }
-constexpr auto clamp(value_type mi, value_type ma) const { make_for_all(ret[i] = fan::math::clamp((*this)[i], mi, ma)); }
-constexpr auto clamp(const vec_t& test0, const vec_t& test1) const { make_for_all_test2(ret[i] = fan::math::clamp((*this)[i], test0[i], test1[i])); }
-constexpr auto reflect(const vec_t& normal) { return *this - normal * 2 * dot(normal); }
-constexpr auto reflect_tangent(const vec_t& normal) { return *this - normal * dot(normal); }
-static constexpr auto vmax() { return std::numeric_limits<value_type>::max(); }
-
-constexpr auto max_abs() const { 
-  auto v0 = min();
-  auto v1 = max();
-  return std::abs(v0) < std::abs(v1) ? v1 : v0;
-}
-
-constexpr auto dot(const auto& test0) const { return fan::math::dot(*this, test0); }
-template <typename... Ts>
-constexpr auto cross(Ts... args) const { return fan::math::cross(*this, args...); }
-constexpr auto length() const { return std::sqrt((double)dot(*this)); }
-constexpr auto length_squared() const { return dot(*this); }
-constexpr auto normalize() const { auto l = length(); if (l == 0) return vec_t(0); make_for_all(ret[i] = (*this)[i] / l); }
-template <typename T>
-requires(!std::is_arithmetic_v<T>)
-constexpr auto distance(const T& other) const { return (*this - other).length(); }
-
-constexpr vec_t square_normalize () const { 
-  auto max_val = abs().max();
-  if (max_val == 0) {
-    return vec_t{};
-  }
-  return *this / max_val; 
-}
-
-constexpr vec_t rotate(value_type_t angle) const {
-  if constexpr (size() >= 2) {
-    vec_t ret = *this;
-    value_type_t cos_angle = std::cos(angle);
-    value_type_t sin_angle = std::sin(angle);
-    value_type_t x = (*this)[0];
-    value_type_t y = (*this)[1];
-    ret[0] = x * cos_angle - y * sin_angle;
-    ret[1] = x * sin_angle + y * cos_angle;
-    return ret;
-  }
-  else {
-    return *this;
-  }
-}
-
-constexpr vec_t grid_round(value_type_t grid_size) const {
-  return (*this / grid_size).round() * grid_size;
-}
-constexpr vec_t grid_round(const vec_t& grid_size) const {
-  return (*this / grid_size).round() * grid_size;
-}
-
-constexpr vec_t grid_floor(value_type_t grid_size, value_type_t offset = 0) const {
-  return (*this / grid_size).floor() * grid_size + offset;
-}
-constexpr vec_t grid_floor(const vec_t& grid_size, const vec_t& offset = vec_t(0)) const {
-  return (*this / grid_size).floor() * grid_size + offset;
-}
-
 #ifndef fan_vector_array
-// Returns cell index
 constexpr vec_t<int> grid_cell(value_type_t grid_size) const {
   return vec_t<int>((*this / grid_size).floor());
 }
@@ -377,107 +101,12 @@ constexpr vec_t<int> grid_cell(const vec_t& grid_size) const {
 }
 #endif
 
-constexpr auto fmod(value_type_t divisor) const { 
-  make_for_all(ret[i] = std::fmod((*this)[i], divisor)); 
-}
-
-constexpr auto fmod(const vec_t& test0) const { 
-  make_for_all_test1(ret[i] = std::fmod((*this)[i], test0[i])); 
-}
-
-template <typename T>
-static auto val_to_string(const T a_value, const int n = 2) {
-  char buf[64];
-  std::snprintf(buf, sizeof(buf), "%.*f", n, (double)a_value);
-  return std::string(buf);
-}
-
-constexpr bool in_range(const vec_t& lo, const vec_t& hi) const {
-  for (access_type_t i = 0; i < size(); ++i) {
-    if ((*this)[i] < lo[i] || (*this)[i] > hi[i]) {
-      return false;
-    }
-  }
-  return true;
-}
-
-static std::string to_string(const vec_t& vec, int precision = 4) {
-  std::string out("{");
-  for (access_type_t i = 0; i < vec.size() - 1; ++i) { out += val_to_string(vec[i], precision) + ", "; }
-  if constexpr (vec.size()) {
-    out += val_to_string(vec[vec.size() - 1], precision);
-  }
-  out += '}';
-  return out;
-}
-
-std::string to_string() const {
-  return to_string(*this);
-}
-
-explicit operator std::string() const {
-  return to_string(*this);
-}
-
-static vec_t from_string(const std::string& str) {
-  vec_t vec{};
-  std::string s = str;
-  s.erase(std::remove_if(s.begin(), s.end(),
-    [](char c) { return c == '{' || c == '}' || c == ' '; }), s.end());
-
-  access_type_t i = 0;
-  std::size_t pos = 0;
-  while (i < size()) {
-    std::size_t comma = s.find(',', pos);
-    std::string item = s.substr(pos, comma == std::string::npos ? comma : comma - pos);
-    vec[i] = item.empty() ? value_type_t{} : static_cast<value_type_t>(std::stof(item));
-    ++i;
-    if (comma == std::string::npos) break;
-    pos = comma + 1;
-  }
-  return vec;
-}
-
-bool is_near(const vec_t& test0, value_type_t epsilon) const { 
-  make_for_all_test1_noret(if (!fan::math::is_near((*this)[i], test0[i], epsilon)) return false;);
-  return true;
-}
-
-constexpr vec_t approach(const vec_t& target, value_type_t step) const {
-  if (step <= value_type_t(0)) { return *this; }
-
-  vec_t d = target - *this;
-  auto l2 = d.length_squared();
-  if (l2 <= step * step) { return target; }
-
-  return *this + d.normalize() * step;
-}
-
-friend std::ostream& operator<<(std::ostream& os, const vec_t& test0) { os << (std::string)test0; return os; }
-
-inline void iterate_row(access_type_t y, access_type_t x0, access_type_t x1, auto&& fn) {
-  for (access_type_t xx = x0; xx <= x1; ++xx) {
-    fn(xx, y);
-  }
-}
-
 #if !defined(fan_vector_array) && vec_n
 value_type_t fan_coordinate(vec_n);
 #elif defined(fan_vector_array)
   value_type_t fan_coordinate(vec_n){};
 #endif
 
-#undef make_operator_scalar_left
-#undef make_operator_comparison
-#undef make_operator_const
-#undef make_operators
-#undef make_operator_assign
 #undef vec_n
 #undef vec_t
-#undef make_for_all
-#undef make_for_all_test1
-#undef make_for_all_test2
-#undef __FAN_PTR_EACH
 #undef fan_vector_array
-
-#pragma pack(pop)

@@ -31,8 +31,13 @@ export namespace fan {
       return (T(0) < x) - (x < T(0));
     }
     template <typename T>
-    constexpr auto is_near(T a, T b, f64_t epsilon) {
-      return std::abs(a - b) < epsilon;
+    constexpr bool is_near(T a, T b, f64_t epsilon) {
+      if constexpr (std::is_floating_point_v<T>) {
+        return std::abs(a - b) < epsilon;
+      }
+      else {
+        return static_cast<f64_t>(a > b ? a - b : b - a) < epsilon;
+      }
     }
   }
 }
