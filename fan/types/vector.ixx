@@ -4,7 +4,6 @@ module;
 
   #include <vulkan/vulkan.h>
 #if defined(FAN_GUI)
-  #include <fan/imgui/imgui.h>
   #include <fan/imgui/implot.h>
 #endif
 #if defined(FAN_3D)
