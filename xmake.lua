@@ -201,7 +201,7 @@ local feature_modules = {
     "fan/physics/physics_types.ixx", "fan/noise.ixx", "fan/pathfind.ixx", "fan/spatial.ixx", "fan/ecs.ixx"
   },
 
-  FAN_VULKAN = { "fan/graphics/vulkan/vk_core_types.ixx", "fan/graphics/vulkan/vk_core_vai.ixx", "fan/graphics/vulkan/vk_core.ixx" },
+  FAN_VULKAN = { "fan/graphics/vulkan/vk_core_types.ixx", "fan/graphics/vulkan/vk_core_vai.ixx", "fan/graphics/vulkan/vk_core_image.ixx", "fan/graphics/vulkan/vk_core_compute.ixx", "fan/graphics/vulkan/vk_core_pipeline.ixx", "fan/graphics/vulkan/vk_core.ixx" },
   FAN_2D = { "fan/graphics/2D/shapes_types.ixx", "fan/graphics/2D/grid_placer.ixx", "fan/graphics/2D/culling.ixx", "fan/graphics/2D/shapes.ixx" },
   FAN_JSON = { "fan/types/json.ixx" },
   FAN_FMT = { "fan/fmt.ixx" },
