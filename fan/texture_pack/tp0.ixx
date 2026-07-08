@@ -150,15 +150,6 @@ export namespace fan::graphics {
     bool qti(std::uint64_t hash, ti_t* ti);
   };
 
-  inline texture_pack::ti_t::ti_t(std::string_view name, texture_pack_t* tp) {
-    tp->qti(std::string(name), this);
-  }
-  inline bool texture_pack::ti_t::qti(texture_pack_t* tp, const std::string& name) {
-    return tp->qti(name, this);
-  }
-  inline bool texture_pack::ti_t::qti(texture_pack_t* tp, std::uint64_t hash) {
-    return tp->qti(hash, this);
-  }
 }
 #endif
 

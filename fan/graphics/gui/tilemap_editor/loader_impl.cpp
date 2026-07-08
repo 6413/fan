@@ -71,6 +71,215 @@ namespace fan::graphics {
     id = ref.NRI;
   }
 
+  std::size_t tilemap_loader_t::vec2i_hasher::operator()(const fan::vec2i& k) const {
+    std::hash<int> hasher;
+    std::size_t hash_value = 17;
+    hash_value = hash_value * 31 + hasher(k.x);
+    hash_value = hash_value * 31 + hasher(k.y);
+    return hash_value;
+  }
+
+  std::size_t tilemap_loader_t::vec3i_hasher::operator()(const fan::vec3i& k) const {
+    std::hash<int> hasher;
+    std::size_t hash_value = 17;
+    hash_value = hash_value * 31 + hasher(k.x);
+    hash_value = hash_value * 31 + hasher(k.y);
+    hash_value = hash_value * 31 + hasher(k.z);
+    return hash_value;
+  }
+
+  void tilemap_loader_t::iterate_visual(id_t map_id, std::function<bool(fte_t::tile_t&)> cb) {
+    auto& node = get_map_node(map_id);
+    auto& shapes = node.compiled_map->compiled_shapes;
+    for (auto& i : shapes) {
+      for (auto& j : i) {
+        for (auto& k : j) {
+          if (cb(k)) return;
+        }
+      }
+    }
+  }
+
+  void tilemap_loader_t::iterate_marks(id_t map_id, std::function<bool(fte_t::spawn_mark_data_t&)> cb) {
+    auto& node = get_map_node(map_id);
+    for (auto& mark : node.compiled_map->spawn_marks) {
+      if (cb(mark)) break;
+    }
+  }
+
+  void tilemap_loader_t::iterate_marks(id_t map_id, std::initializer_list<std::pair<std::string_view, std::function<void(fte_t::spawn_mark_data_t&)>>> dispatch) {
+    iterate_marks(map_id, [&](fte_t::spawn_mark_data_t& mark) -> bool {
+      for (auto& [key, fn] : dispatch) {
+        if (mark.id == key) { fn(mark); break; }
+      }
+      return false;
+    });
+  }
+
+  fan::physics::body_id_t tilemap_loader_t::get_physics_body(id_t map_id, const std::string& id) {
+    fan::physics::body_id_t body;
+    iterate_physics_entities(map_id, [&]<typename T>(auto& entity, T & entity_visual) -> bool {
+      if (entity.id == id) {
+        body = entity_visual;
+        return true;
+      }
+      return false;
+    });
+    return body;
+  }
+
+  std::vector<fan::physics::body_id_t> tilemap_loader_t::get_physics_bodies(id_t map_id, const std::string& id) {
+    std::vector<fan::physics::body_id_t> bodies;
+    iterate_physics_entities(map_id, [&]<typename T>(auto& entity, T & entity_visual) -> bool {
+      if (entity.id == id) {
+        bodies.emplace_back(entity_visual);
+      }
+      return false;
+    });
+    return bodies;
+  }
+
+  bool tilemap_loader_t::get_body(id_t map_id, const std::string& id, fte_t::tile_t& tile) {
+    auto& node = get_map_node(map_id);
+    {
+      auto& shapes = node.compiled_map->physics_shapes;
+      for (auto& shape : shapes) {
+        if (shape.physics_shapes.id == id) {
+          tile.position = shape.position;
+          tile.size = shape.size;
+          return true;
+        }
+      }
+    }
+    {
+      auto& compiled_map = *node.compiled_map;
+      auto it = compiled_map.id_lookup.find(id);
+      if (it != compiled_map.id_lookup.end() && !it->second.empty()) {
+        tile = *it->second[0];
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool tilemap_loader_t::get_bodies(id_t map_id, const std::string& id, std::vector<fte_t::tile_t>& tiles) {
+    auto& node = get_map_node(map_id);
+    {
+      auto& shapes = node.compiled_map->physics_shapes;
+      for (auto& shape : shapes) {
+        if (shape.physics_shapes.id == id) {
+          fte_t::tile_t tile;
+          tile.position = shape.position;
+          tile.size = shape.size;
+          tiles.emplace_back(std::move(tile));
+        }
+      }
+    }
+    {
+      auto& compiled_map = *node.compiled_map;
+      auto it = compiled_map.id_lookup.find(id);
+      if (it != compiled_map.id_lookup.end()) {
+        for (auto* t : it->second) {
+          tiles.emplace_back(*t);
+        }
+      }
+    }
+    return tiles.size();
+  }
+
+  bool tilemap_loader_t::get_visual_bodies(id_t map_id, const std::string& id, std::vector<fte_t::tile_t>* tiles) {
+    auto& node = get_map_node(map_id);
+    auto& compiled_map = *node.compiled_map;
+    auto it = compiled_map.id_lookup.find(id);
+    if (it != compiled_map.id_lookup.end()) {
+      for (auto* t : it->second) {
+        tiles->emplace_back(*t);
+      }
+    }
+    return tiles->size();
+  }
+
+  fan::vec3 tilemap_loader_t::get_position(id_t map_id, const std::string& id) {
+    fte_t::tile_t tile;
+    if (get_body(map_id, id, tile)) {
+      return tile.position;
+    }
+    fan::throw_error("failed to find id");
+    return {};
+  }
+
+  fan::vec3 tilemap_loader_t::get_spawn(id_t map_id, const std::string_view id) {
+    auto& node = get_map_node(map_id);
+    auto& marks = node.compiled_map->spawn_marks;
+
+    for (auto& mark : marks) {
+      if ((id.size() ? (mark.id != id) : (mark.type != fte_t::mesh_property_t::player_spawn))) {
+        continue;
+      }
+      return mark.position;
+    }
+    fan::throw_error("spawn position not found: " + std::string(id));
+    return {};
+  }
+
+  fan::vec3 tilemap_loader_t::get_enemy_spawn(id_t map_id, const std::string_view id) {
+    auto& node = get_map_node(map_id);
+    auto& marks = node.compiled_map->spawn_marks;
+
+    for (auto& mark : marks) {
+      if ((id.size() ? (mark.id != id) : (mark.type != fte_t::mesh_property_t::enemy_spawn))) {
+        continue;
+      }
+      return mark.position;
+    }
+    fan::throw_error("spawn position not found: " + std::string(id));
+    return {};
+  }
+
+  std::vector<fan::vec3> tilemap_loader_t::get_enemy_spawns(id_t map_id, const std::string_view id) {
+    auto& node = get_map_node(map_id);
+    auto& marks = node.compiled_map->spawn_marks;
+    std::vector<fan::vec3> pos;
+
+    for (auto& mark : marks) {
+      if ((id.size() ? (mark.id != id) : (mark.type != fte_t::mesh_property_t::enemy_spawn))) {
+        continue;
+      }
+      pos.emplace_back(mark.position);
+    }
+    return pos;
+  }
+
+  std::vector<fan::vec3> tilemap_loader_t::get_all_spawn_positions(id_t map_id, fte_t::mesh_property_t type) {
+    std::vector<fan::vec3> positions;
+    auto& node = get_map_node(map_id);
+    auto& marks = node.compiled_map->spawn_marks;
+
+    for (auto& mark : marks) {
+      if (mark.type == type) {
+        positions.push_back(mark.position);
+      }
+    }
+    return positions;
+  }
+
+  std::size_t tilemap_loader_t::count(id_t id, const std::string& str_id) {
+    auto& map = *get_map_node(id).compiled_map;
+    std::size_t c = 0;
+
+    if (auto it = map.id_lookup.find(str_id); it != map.id_lookup.end()) {
+      c += it->second.size();
+    }
+    for (auto& s : map.physics_shapes) {
+      c += s.physics_shapes.id == str_id;
+    }
+    for (auto& m : map.spawn_marks) {
+      c += m.id == str_id;
+    }
+
+    return c;
+  }
+
   tilemap_loader_t::compiled_map_t* tilemap_loader_t::get_compiled(const std::string& name) {
     auto it = compiled_maps.find(name);
     return it != compiled_maps.end() ? &it->second : nullptr;

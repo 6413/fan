@@ -853,27 +853,7 @@ export namespace fan::graphics::gui {
 
 
   struct floating_toolbar {
-    floating_toolbar(str_view_t name, const fan::vec2& size, f32_t bottom_offset = 20.f)
-      : style_scope(gui::style_var_window_padding, fan::vec2(0, 0)) 
-    {
-      fan::vec2 vp_pos = gui::get_viewport_rect().position;
-      fan::vec2 vp_size = gui::get_viewport_rect().size;
-      
-      gui::set_next_window_pos(fan::vec2(
-        vp_pos.x + vp_size.x / 2.f - size.x / 2.f, 
-        vp_pos.y + vp_size.y - size.y - bottom_offset
-      ));
-      gui::set_next_window_size(size);
-
-      wnd.emplace(
-        name, 
-        gui::window_flags_no_title_bar | 
-        gui::window_flags_no_background | 
-        gui::window_flags_no_resize | 
-        gui::window_flags_no_move | 
-        gui::window_flags_no_scrollbar
-      );
-    }
+    floating_toolbar(str_view_t name, const fan::vec2& size, f32_t bottom_offset = 20.f);
 
     explicit operator bool() const {
       return wnd.has_value() && static_cast<bool>(*wnd);
@@ -1064,20 +1044,7 @@ export namespace fan::graphics::gui {
     fan::vec2 size,
     f32_t font_size,
     font::type_t font_type = font::regular
-  ) {
-    font_scope_t fs(font_size, font_type);
-    int i = 0;
-    for (fan::str_view_t label : labels) {
-      if (button(label, size)) {
-        return label;
-      }
-      if (i != (int)labels.size() - 1 && (i + 1) % columns != 0)
-        same_line();
-
-      ++i;
-    }
-    return std::nullopt;
-  }
+  );
   template <typename label_fn_t, typename enabled_fn_t, typename on_click_t>
   void button_row(std::ranges::range auto&& data, label_fn_t&& label_fn, enabled_fn_t&& enabled_fn, const fan::vec2& size, on_click_t&& on_click) {
     int i = 0;
@@ -1284,13 +1251,7 @@ export namespace fan::graphics::gui {
     gui::pop_id();
   }
 
-  fan::vec2 calc_grid_bounds(int total_items, int columns, f32_t base_cell_size, fan::vec2 item_spacing, f32_t zoom) {
-    if (columns <= 0 || total_items <= 0) return 0.f;
-    int rows = (total_items + columns - 1) / columns;
-    f32_t cell = std::max(base_cell_size * zoom, 1.f);
-    fan::vec2 space = item_spacing * zoom;
-    return fan::vec2(columns * cell + (columns - 1) * space.x, rows * cell + (rows - 1) * space.y);
-  }
+  fan::vec2 calc_grid_bounds(int total_items, int columns, f32_t base_cell_size, fan::vec2 item_spacing, f32_t zoom);
 
   template <typename T>
   bool single_image_selector(str_view_t id, grid_state_t& state, const std::vector<T>& images, int& selected_index, int columns = -1, f32_t base_cell_size = 64.f, fan::vec2 item_spacing = fan::vec2(8.f)) {

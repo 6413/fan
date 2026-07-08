@@ -146,12 +146,7 @@ export namespace fan {
         fan::vec4 v;
       }coordinates{};
 
-      friend std::ostream& operator<<(std::ostream& os, const context_camera_t& c) {
-        return os << std::format(
-          "pos: {:.1f} {:.1f} {:.1f}\nyaw: {:.2f}  pitch: {:.2f}\nfov: {:.1f}  near: {:.2f}  far: {:.1f}  zoom: {:.2f}",
-          c.position.x, c.position.y, c.position.z, c.yaw, c.pitch, c.fov, c.znear, c.zfar, c.zoom
-        );
-      }
+      friend std::ostream& operator<<(std::ostream& os, const context_camera_t& c);
 
       fan::vec4 original_coordinates = fan::vec4(0, 0, 0, 0);
     };
@@ -473,34 +468,10 @@ export namespace fan::graphics {
 #endif
 
   namespace image_presets {
-    image_load_properties_t pixel_art() {
-      image_load_properties_t props;
-      props.visual_output = fan::graphics::image_sampler_address_mode_e::clamp_to_border;
-      props.min_filter = image_filter_e::nearest;
-      props.mag_filter = image_filter_e::nearest;
-      return props;
-    }
-
-    image_load_properties_t pixel_art_repeat() {
-      auto props = pixel_art();
-      props.visual_output = fan::graphics::image_sampler_address_mode_e::repeat;
-      return props;
-    }
-
-    image_load_properties_t smooth() {
-      image_load_properties_t props;
-      props.visual_output = fan::graphics::image_sampler_address_mode_e::clamp_to_border;
-      props.min_filter = image_filter_e::linear;
-      props.mag_filter = image_filter_e::linear;
-      return props;
-    }
-
-    image_load_properties_t mipmapped() {
-      image_load_properties_t props;
-      props.min_filter = image_filter_e::linear_mipmap_linear;
-      props.mag_filter = image_filter_e::linear;
-      return props;
-    }
+    image_load_properties_t pixel_art();
+    image_load_properties_t pixel_art_repeat();
+    image_load_properties_t smooth();
+    image_load_properties_t mipmapped();
   }
 
 

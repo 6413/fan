@@ -1859,6 +1859,57 @@ namespace fan::graphics::gui {
     return get_font_array()[type][best_index];
   }
 
+  floating_toolbar::floating_toolbar(str_view_t name, const fan::vec2& size, f32_t bottom_offset)
+    : style_scope(gui::style_var_window_padding, fan::vec2(0, 0)) 
+  {
+    fan::vec2 vp_pos = gui::get_viewport_rect().position;
+    fan::vec2 vp_size = gui::get_viewport_rect().size;
+    
+    gui::set_next_window_pos(fan::vec2(
+      vp_pos.x + vp_size.x / 2.f - size.x / 2.f, 
+      vp_pos.y + vp_size.y - size.y - bottom_offset
+    ));
+    gui::set_next_window_size(size);
+
+    wnd.emplace(
+      name, 
+      gui::window_flags_no_title_bar | 
+      gui::window_flags_no_background | 
+      gui::window_flags_no_resize | 
+      gui::window_flags_no_move | 
+      gui::window_flags_no_scrollbar
+    );
+  }
+
+  std::optional<fan::str_view_t> button_grid(
+    std::initializer_list<fan::str_view_t> labels,
+    int columns,
+    fan::vec2 size,
+    f32_t font_size,
+    font::type_t font_type
+  ) {
+    font_scope_t fs(font_size, font_type);
+    int i = 0;
+    for (fan::str_view_t label : labels) {
+      if (button(label, size)) {
+        return label;
+      }
+      if (i != (int)labels.size() - 1 && (i + 1) % columns != 0)
+        same_line();
+
+      ++i;
+    }
+    return std::nullopt;
+  }
+
+  fan::vec2 calc_grid_bounds(int total_items, int columns, f32_t base_cell_size, fan::vec2 item_spacing, f32_t zoom) {
+    if (columns <= 0 || total_items <= 0) return 0.f;
+    int rows = (total_items + columns - 1) / columns;
+    f32_t cell = std::max(base_cell_size * zoom, 1.f);
+    fan::vec2 space = item_spacing * zoom;
+    return fan::vec2(columns * cell + (columns - 1) * space.x, rows * cell + (rows - 1) * space.y);
+  }
+
   void load_font_family(void (*custom_font_cb)(f32_t) = [](f32_t) {}) {
     auto& io = get_io();
     io.Fonts->Clear();

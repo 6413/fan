@@ -188,21 +188,7 @@ export namespace fan {
           fan::vec2 parallax_factor = 0;
           bool blending = true;
           std::uint32_t flags = sprite_flags_e::circle | sprite_flags_e::multiplicative;
-          operator fan::graphics::sprite_properties_t() const {
-            return fan::graphics::sprite_properties_t{
-              .render_view = render_view,
-              .position = position,
-              .size = size,
-              .angle = angle,
-              .color = color,
-              .rotation_point = rotation_point,
-              .image = image,
-              .images = images,
-              .parallax_factor = parallax_factor,
-              .blending = blending,
-              .flags = flags
-            };
-          }
+          operator fan::graphics::sprite_properties_t() const;
           std::uint8_t body_type = fan::physics::body_type_e::static_body;
           mass_data_t mass_data;
           fan::physics::shape_properties_t shape_properties;
@@ -227,19 +213,7 @@ export namespace fan {
           fan::vec3 angle = 0;
           bool blending = true;
           std::uint32_t flags = 0;
-          operator fan::graphics::circle_properties_t() const {
-            return fan::graphics::circle_properties_t{
-              .render_view = render_view,
-              .position = position,
-              .radius = radius,
-              .color = color,
-              .outline_color = outline_color,
-              .outline_width = outline_width,
-              .angle = angle,
-              .blending = blending,
-              .flags = flags
-            };
-          }
+          operator fan::graphics::circle_properties_t() const;
           std::uint8_t body_type = fan::physics::body_type_e::static_body;
           mass_data_t mass_data;
           fan::physics::shape_properties_t shape_properties;
@@ -263,18 +237,7 @@ export namespace fan {
           fan::color color = fan::color(1, 1, 1, 1);
           bool blending = true;
           std::uint32_t flags = sprite_flags_e::circle | sprite_flags_e::multiplicative;
-          operator fan::graphics::sprite_properties_t() const {
-            return fan::graphics::sprite_properties_t{
-              .render_view = render_view,
-              .position = position,
-              .size = size,
-              .angle = angle,
-              .color = color,
-              .image = image,
-              .blending = blending,
-              .flags = flags
-            };
-          }
+          operator fan::graphics::sprite_properties_t() const;
           std::uint8_t body_type = fan::physics::body_type_e::static_body;
           mass_data_t mass_data;
           fan::physics::shape_properties_t shape_properties;
@@ -299,20 +262,7 @@ export namespace fan {
           fan::color outline_color = color;
           bool blending = true;
           std::uint32_t flags = 0;
-          operator fan::graphics::capsule_properties_t() const {
-            return fan::graphics::capsule_properties_t{
-              .render_view = render_view,
-              .position = position,
-              .center0 = center0,
-              .center1 = center1,
-              .radius = radius,
-              .angle = angle,
-              .color = color,
-              .outline_color = outline_color,
-              .blending = blending,
-              .flags = flags
-            };
-          }
+          operator fan::graphics::capsule_properties_t() const;
           std::uint8_t body_type = fan::physics::body_type_e::static_body;
           mass_data_t mass_data;
           fan::physics::shape_properties_t shape_properties;
@@ -346,21 +296,7 @@ export namespace fan {
           mass_data_t mass_data;
           fan::physics::shape_properties_t shape_properties;
 
-          operator fan::graphics::sprite_properties_t() const {
-            return fan::graphics::sprite_properties_t{
-              .render_view = render_view,
-              .position = position,
-              .size = size,
-              .angle = angle,
-              .color = color,
-              .rotation_point = rotation_point,
-              .image = image,
-              .images = images,
-              .parallax_factor = parallax_factor,
-              .blending = blending,
-              .flags = flags
-            };
-          }
+          operator fan::graphics::sprite_properties_t() const;
         };
         capsule_sprite_t() = default;
         capsule_sprite_t(const properties_t& p);
@@ -380,17 +316,7 @@ export namespace fan {
           std::vector<vertex_t> vertices;
           bool blending = true;
           std::uint8_t draw_mode = fan::graphics::primitive_topology_t::triangle_fan;
-          operator fan::graphics::polygon_properties_t() const {
-            return fan::graphics::polygon_properties_t{
-              .render_view = render_view,
-              .position = position,
-              .vertices = vertices,
-              .angle = angle,
-              .rotation_point = rotation_point,
-              .blending = blending,
-              .draw_mode = draw_mode
-            };
-          }
+          operator fan::graphics::polygon_properties_t() const;
           std::uint8_t body_type = fan::physics::body_type_e::static_body;
           mass_data_t mass_data;
           fan::physics::shape_properties_t shape_properties;
@@ -412,17 +338,7 @@ export namespace fan {
           std::vector<vertex_t> vertices;
           bool blending = true;
           std::uint8_t draw_mode = fan::graphics::primitive_topology_t::triangle_strip;
-          operator fan::graphics::polygon_properties_t() const {
-            return fan::graphics::polygon_properties_t{
-              .render_view = render_view,
-              .position = position,
-              .vertices = vertices,
-              .angle = angle,
-              .rotation_point = rotation_point,
-              .blending = blending,
-              .draw_mode = draw_mode
-            };
-          }
+          operator fan::graphics::polygon_properties_t() const;
           std::uint8_t body_type = fan::physics::body_type_e::static_body;
           mass_data_t mass_data;
           fan::physics::shape_properties_t shape_properties;
@@ -476,12 +392,7 @@ export namespace fan {
         bool handle_jump = true;
         bool allow_double_jump = false;
 
-        void reset(){
-          jumping = false;
-          consumed = false;
-          double_jump_consumed = false;
-          on_air_after_jump = false;
-        }
+        void reset();
         bool can_coyote_jump(f32_t current_time) const{
           return (current_time - last_ground_time) / 1e+9 <= coyote_time;
         }
@@ -625,40 +536,8 @@ export namespace fan {
           !std::is_same_v<std::remove_cvref_t<T>, character2d_t>
             )
           explicit character2d_t(T&& shape) : base_shape_t(std::forward<T>(shape)) {}
-        character2d_t(const character2d_t& o)
-          : base_shape_t(o),
-          anim_controller(o.anim_controller),
-          attack_state(o.attack_state),
-          movement_state(o.movement_state),
-          wall_jump(o.wall_jump),
-          movement_cb_handle(),
-          feet(o.feet[0], o.feet[1]) {
-          if (movement_state.enabled) {
-            movement_cb_handle = add_movement_callback([this]() {
-              process_keyboard_movement(movement_state.type);
-            });
-          }
-          set_draw_offset(o.get_draw_offset());
-        }
-
-        character2d_t(character2d_t&& o) noexcept
-          : base_shape_t(std::move(o)),
-          anim_controller(std::move(o.anim_controller)),
-          attack_state(std::move(o.attack_state)),
-          movement_state(std::move(o.movement_state)),
-          wall_jump(std::move(o.wall_jump)),
-          movement_cb_handle(),
-          feet {std::move(o.feet[0]), std::move(o.feet[1])} {
-          if (!o.movement_cb_handle.iic()) {
-            o.movement_cb_handle.remove();
-            o.movement_cb_handle.sic();
-          }
-          if (movement_state.enabled) {
-            movement_cb_handle = add_movement_callback([this]() {
-              process_keyboard_movement(movement_state.type);
-            });
-          }
-        }
+        character2d_t(const character2d_t& o);
+        character2d_t(character2d_t&& o) noexcept;
         character2d_t& operator=(const character2d_t& o);
         character2d_t& operator=(character2d_t&& o) noexcept;
         ~character2d_t();
@@ -707,23 +586,7 @@ export namespace fan {
           const character2d_t& target
         );
 
-        void enable_oneway_platforms() {
-          fan::physics::gphysics()->add_presolve_handler(
-            [](fan::physics::shape_id_t a, fan::physics::shape_id_t b, fan::physics::manifold_t* m, void* ctx) -> bool {
-              auto* character = static_cast<character2d_t*>(ctx);
-              bool drop = character->drop_through_requested;
-              if (drop && character->drop_through_timer.finished()) {
-                character->drop_through_requested = false;
-                drop = false;
-              }
-              return fan::physics::presolve_oneway_collision(a, b, m,
-                *static_cast<fan::physics::body_id_t*>(static_cast<base_shape_t*>(character)),
-                drop);
-            },
-            static_cast<void*>(this)
-          );
-          oneway_enabled = true;
-        }
+        void enable_oneway_platforms();
 
         fan::graphics::sprite_sheet_controller_t anim_controller;
         attack_state_t attack_state;
@@ -790,60 +653,9 @@ export namespace fan {
         bool is_backstepping = false;
         int backstep_dir = 0;
 
-        void restart() {
-          idle_timer.restart();
-          backstep_timer.restart();
-          backstep_cooldown.restart();
-        }
-
-        void init(const config_t& cfg) {
-          idle_timer.start(fan::random::value(cfg.idle_timer_range.first, cfg.idle_timer_range.second));
-          backstep_cooldown.start(cfg.backstep_cooldown);
-        }
-
-        bool update(character2d_t& body, const fan::vec2& target_pos, const config_t& cfg) {
-          fan::vec2 distance = target_pos - body.get_physics_position();
-    
-          if (!body.attack_state.is_attacking) {
-            body.movement_state.desired_facing.x = fan::math::sgn(distance.x);
-          }
-
-          if (is_backstepping) {
-            body.movement_state.move_to_direction_raw(body, {(f32_t)backstep_dir, 0.f});
-            if (backstep_timer.finished()) {
-              is_backstepping = false;
-              backstep_dir = 0;
-            }
-            return true;
-          }
-
-          if (!body.attack_state.is_attacking && 
-              std::abs(distance.x) < body.attack_state.attack_range.x && 
-              backstep_cooldown.finished() && 
-              fan::random::value_f32(0, 1) > cfg.backstep_chance) {
-            backstep_dir = (distance.x > 0.f) ? -1 : 1;
-            is_backstepping = true;
-            backstep_timer.start(cfg.backstep_duration);
-            backstep_cooldown.start(cfg.backstep_cooldown);
-            return true;
-          }
-
-          fan::vec2 movement{0.f, 0.f};
-          if (std::abs(distance.x) > cfg.ideal_distance + 20.f) {
-            movement.x = fan::math::sgn(distance.x);
-          }
-
-          if (movement.x == 0 && idle_timer.finished()) {
-            f32_t r = fan::random::value_f32(0, 1);
-            if (r < cfg.idle_movement_chance) {
-              movement.x = (r < cfg.idle_movement_chance / 2.f) ? fan::math::sgn(distance.x) : -fan::math::sgn(distance.x);
-            }
-            idle_timer.start(fan::random::value_i64(cfg.idle_timer_range.first, cfg.idle_timer_range.second));
-          }
-
-          body.movement_state.move_to_direction_raw(body, movement);
-          return false;
-        }
+        void restart();
+        void init(const config_t& cfg);
+        bool update(character2d_t& body, const fan::vec2& target_pos, const config_t& cfg);
       };
       // --------------------------------------------------------------------------------
 
@@ -851,25 +663,14 @@ export namespace fan {
         static constexpr f32_t default_jump_height = 60.f;
         static constexpr f32_t default_knockback = 20.f;
 
-        static void setup_default_controls(fan::graphics::physics::character2d_t& body) {
-          body.enable_default_movement();
-          body.set_jump_height(default_jump_height);
-          body.enable_double_jump();
-          body.sync_visual_angle(false);
-        }
+        static void setup_default_controls(fan::graphics::physics::character2d_t& body);
       };
       struct combat_controller_t {
         fan::graphics::physics::attack_hitbox_t hitbox;
         bool did_attack = false;
         f32_t damage = 10.f;
 
-        void setup_attack(fan::graphics::physics::character2d_t& body, const std::string& anim_name, int hit_frame) {
-          hitbox.setup({
-            .spawns = {{.frame = hit_frame}},
-            .attack_animation = anim_name,
-            .track_hit_targets = true
-          });
-        }
+        void setup_attack(fan::graphics::physics::character2d_t& body, const std::string& anim_name, int hit_frame);
 
         template <typename enemies_t>
         void handle_attack(fan::graphics::physics::character2d_t& body, enemies_t& enemies) {
@@ -888,12 +689,7 @@ export namespace fan {
         ai_behavior_t behavior;
         navigation_helper_t navigation;
 
-        void open(const character_config_t& properties, fan::vec2 initial_pos, const std::source_location& callers_path = std::source_location::current()) {
-          body = physics::from_json(properties, callers_path);
-          body.set_physics_position(initial_pos);
-          if (properties.draw_offset != fan::vec2{0, 0}) { body.set_draw_offset(properties.draw_offset); }
-          if (properties.target) { behavior.target = properties.target; }
-        }
+        void open(const character_config_t& properties, fan::vec2 initial_pos, const std::source_location& callers_path = std::source_location::current());
         void update(fan::vec2 tile_size) {
           behavior.update_ai(&body, navigation, behavior.target->get_position(), tile_size);
         }
@@ -1180,11 +976,7 @@ export namespace fan::physics {
     f32_t arrive_r2 = 1600.f; // squared
   };
 
-  fan::vec2 steer_toward(vec2 pos, vec2 vel, vec2 target, vec2 sep, const steer_params_t& p, f32_t speed_mul = 1.f) {
-    fan::vec2 dir = (target - pos).normalize() + sep * p.sep_scale;
-    if (dir.length_squared() > 0.0001f) dir = dir.normalize();
-    return vel * p.drag + dir * (p.speed * speed_mul);
-  }
+  fan::vec2 steer_toward(vec2 pos, vec2 vel, vec2 target, vec2 sep, const steer_params_t& p, f32_t speed_mul = 1.f);
 
   template <typename WallTag, typename ObstacleTag, typename Registry, typename World, typename OnDamage>
   void push_out_walls(Registry& registry, World& world, vec2& pos, f32_t grid, f32_t dt, bool bash, OnDamage&& on_damage) {

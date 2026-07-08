@@ -335,6 +335,12 @@ namespace fan::io::file {
     return pe <= d.size() - 4 && std::memcmp(d.data() + pe, "PE\0\0", 4) == 0;
   }
 
+  void ensure_extension(std::string& path, std::string_view ext) {
+    if (extension(path) != ext) {
+      path += ext;
+    }
+  }
+
   bool is_temp_file(std::string_view path) {
     return path.empty() || path.back() == '~' || path.find(".tmp") != std::string_view::npos;
   }
@@ -346,4 +352,16 @@ namespace fan::io::file {
     if (ec_src || ec_cache || src_time > cache_time) return false;
     return std::filesystem::file_size(cache_path, ec_cache) > 0 && !ec_cache;
   }
+
+  void file_writer_t::write_repeat(std::uint8_t b, std::size_t n) {
+    std::array<std::uint8_t, 4096> buf; buf.fill(b);
+    while (n) { std::size_t w = std::min<std::size_t>(n, buf.size()); write_bytes(std::span<const std::uint8_t>(buf.data(), w)); n -= w; }
+  }
+  void file_writer_t::write_bytes(std::span<const std::uint8_t> bytes) {
+    if (!bytes.empty() && fan::io::file::write(fp, (void*)bytes.data(), 1, bytes.size())) { throw std::runtime_error("write failed"); }
+  }
+}
+
+std::string fan::path::join(const std::string& dir, const std::string& file) {
+  return (std::filesystem::path(dir.empty() ? "." : dir) / file).string();
 }
