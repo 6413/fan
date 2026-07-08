@@ -157,35 +157,19 @@ void fan::vulkan::context_t::camera_rotate(fan::graphics::camera_nr_t nr, const 
       //-----------------------------viewport-----------------------------
 
 void fan::vulkan::context_t::viewport_set(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
-  VkViewport viewport {};
-  viewport.x = viewport_position_.x;
-  viewport.y = viewport_position_.y;
-  viewport.width = viewport_size_.x;
-  viewport.height = viewport_size_.y;
-  viewport.minDepth = 0.0f;
-  viewport.maxDepth = 1.0f;
+  pending_viewport.x = viewport_position_.x;
+  pending_viewport.y = viewport_position_.y;
+  pending_viewport.width = viewport_size_.x;
+  pending_viewport.height = viewport_size_.y;
+  pending_viewport.minDepth = 0.0f;
+  pending_viewport.maxDepth = 1.0f;
 
-  VkCommandBufferBeginInfo beginInfo {};
-  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  pending_scissor.offset.x = (std::int32_t)viewport_position_.x;
+  pending_scissor.offset.y = (std::int32_t)viewport_position_.y;
+  pending_scissor.extent.width = (std::uint32_t)viewport_size_.x;
+  pending_scissor.extent.height = (std::uint32_t)viewport_size_.y;
 
-  if (!command_buffer_in_use) {
-    VkResult result = vkGetFenceStatus(device, in_flight_fences[current_frame]);
-    if (result == VK_NOT_READY) {
-      vkDeviceWaitIdle(device);
-    }
-
-    if (vkBeginCommandBuffer(command_buffers[current_frame], &beginInfo) != VK_SUCCESS) {
-      fan::throw_error("failed to begin recording command buffer!");
-    }
-  }
-  vkCmdSetViewport(command_buffers[current_frame], 0, 1, &viewport);
-
-  if (!command_buffer_in_use) {
-    if (vkEndCommandBuffer(command_buffers[current_frame]) != VK_SUCCESS) {
-      fan::throw_error("failed to record command buffer!");
-    }
-    command_buffer_in_use = false;
-  }
+  viewport_dirty = true;
 }
 fan::graphics::context_viewport_t& fan::vulkan::context_t::viewport_get(fan::graphics::viewport_nr_t nr) {
   return __fan_internal_viewport_list[nr];

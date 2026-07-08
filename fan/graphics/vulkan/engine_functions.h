@@ -1011,6 +1011,12 @@ void begin_draw() {
   }
   context.command_buffer_in_use = true;
 
+  if (context.viewport_dirty) {
+    vkCmdSetViewport(context.command_buffers[context.current_frame], 0, 1, &context.pending_viewport);
+    vkCmdSetScissor(context.command_buffers[context.current_frame], 0, 1, &context.pending_scissor);
+    context.viewport_dirty = false;
+  }
+
   for (auto& i : context.begin_cmd_cb) {
     i(context.command_buffers[context.current_frame]);
   }

@@ -234,12 +234,12 @@ export namespace fan {
           std::uint32_t texture_n = max_textures,
           std::uint32_t texture_begin = 0
         ) {
-          std::vector<VkDescriptorBufferInfo> buffer_infos(n);
-          std::vector<VkWriteDescriptorSet> descriptor_writes(n);
+          m_buffer_infos.resize(n);
+          m_descriptor_writes.resize(n);
 
           for (std::uint32_t i = 0; i < n; ++i) {
             std::uint32_t j = begin + i;
-            auto& write = descriptor_writes[i];
+            auto& write = m_descriptor_writes[i];
             write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             write.dstSet = m_descriptor_set[context.current_frame];
             write.dstBinding = m_properties[j].dst_binding;
@@ -257,20 +257,22 @@ export namespace fan {
               write.pImageInfo = m_properties[j].image_infos.data() + texture_begin;
             }
             else {
-              buffer_infos[i].buffer = m_properties[j].buffer;
-              buffer_infos[i].offset = 0;
-              buffer_infos[i].range = m_properties[j].range;
+              m_buffer_infos[i].buffer = m_properties[j].buffer;
+              m_buffer_infos[i].offset = 0;
+              m_buffer_infos[i].range = m_properties[j].range;
               write.descriptorCount = 1;
-              write.pBufferInfo = &buffer_infos[i];
+              write.pBufferInfo = &m_buffer_infos[i];
             }
           }
 
-          vkUpdateDescriptorSets(context.device, n, descriptor_writes.data(), 0, nullptr);
+          vkUpdateDescriptorSets(context.device, n, m_descriptor_writes.data(), 0, nullptr);
         }
 
         properties_t m_properties;
         VkDescriptorSetLayout m_layout = VK_NULL_HANDLE;
         VkDescriptorSet m_descriptor_set[fan::vulkan::max_frames_in_flight];
+        std::vector<VkDescriptorBufferInfo> m_buffer_infos;
+        std::vector<VkWriteDescriptorSet> m_descriptor_writes;
       };
       #include "memory.h"
       #include "uniform_block.h"
@@ -989,6 +991,9 @@ export namespace fan {
       fan::vulkan::context_t::pipeline_t render_fullscreen_pl;
 
       bool command_buffer_in_use = false;
+      VkViewport pending_viewport{};
+      VkRect2D pending_scissor{};
+      bool viewport_dirty = false;
 #if FAN_DEBUG >= fan_debug_high
       bool supports_validation_layers = true;
 #else

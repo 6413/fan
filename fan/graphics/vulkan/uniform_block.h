@@ -29,12 +29,7 @@ struct uniform_block_t {
 		}
 
 		auto frame = context.current_frame;
-		std::uint8_t* data;
-		fan::vulkan::validate(vmaMapMemory(context.allocator, common.memory[frame].device_memory, (void**)&data));
-
-		std::memcpy(data + begin, buffer + begin, end - begin);
-
-		vmaUnmapMemory(context.allocator, common.memory[frame].device_memory);
+		std::memcpy((std::uint8_t*)mapped_data[frame] + begin, buffer + begin, end - begin);
 
 		common.on_edit(context);
 	}
@@ -53,13 +48,16 @@ struct uniform_block_t {
 		VkDeviceSize bufferSize = sizeof(type_t) * element_size;
 
 		for (std::size_t i = 0; i < buffer_count; i++) {
+			VmaAllocationInfo alloc_info;
 			context.create_buffer(
 				bufferSize, 
 				VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, 
 				VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 
 				common.memory[i].buffer,
-				common.memory[i].device_memory
+				common.memory[i].device_memory,
+				&alloc_info
 			);
+			mapped_data[i] = alloc_info.pMappedData;
 		}
 	}
 
@@ -92,4 +90,5 @@ struct uniform_block_t {
 	fan::vulkan::context_t::memory_common_t<fan::graphics::shader_nr_t, instance_id_t> common;
 	std::uint8_t buffer[element_size * sizeof(type_t)];
 	std::uint32_t m_size;
+	void* mapped_data[buffer_count] {};
 };
