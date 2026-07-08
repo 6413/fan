@@ -27,10 +27,10 @@ void fan::vulkan::context_t::flush_deletion_queues() {
   main_deletion_queue.flush();
 }
 
-fan::vulkan::context_t::descriptor_t::descriptor_t(descriptor_t&& other) noexcept {
+fan::vulkan::descriptor_t::descriptor_t(descriptor_t&& other) noexcept {
   *this = std::move(other);
 }
-fan::vulkan::context_t::descriptor_t& fan::vulkan::context_t::descriptor_t::operator=(descriptor_t&& other) noexcept {
+fan::vulkan::descriptor_t& fan::vulkan::descriptor_t::operator=(descriptor_t&& other) noexcept {
   m_properties = std::move(other.m_properties);
   m_layout = other.m_layout;
   std::memcpy(m_descriptor_set, other.m_descriptor_set, sizeof(m_descriptor_set));
@@ -38,7 +38,7 @@ fan::vulkan::context_t::descriptor_t& fan::vulkan::context_t::descriptor_t::oper
   std::memset(other.m_descriptor_set, 0, sizeof(other.m_descriptor_set));
   return *this;
 }
-void fan::vulkan::context_t::descriptor_t::open(fan::vulkan::context_t& context, const properties_t& properties) {
+void fan::vulkan::descriptor_t::open(fan::vulkan::context_t& context, const properties_t& properties) {
   m_properties = properties;
   std::vector<VkDescriptorSetLayoutBinding> uboLayoutBinding(properties.size());
   for (std::uint16_t i = 0; i < properties.size(); ++i) {
@@ -95,12 +95,12 @@ void fan::vulkan::context_t::descriptor_t::open(fan::vulkan::context_t& context,
 
   validate(vkAllocateDescriptorSets(context.device, &allocInfo, m_descriptor_set));
 }
-void fan::vulkan::context_t::descriptor_t::close(fan::vulkan::context_t& context) {
+void fan::vulkan::descriptor_t::close(fan::vulkan::context_t& context) {
   if (m_layout == VK_NULL_HANDLE) { return; }
   vkDestroyDescriptorSetLayout(context.device, m_layout, 0);
   m_layout = VK_NULL_HANDLE;
 }
-void fan::vulkan::context_t::descriptor_t::update(
+void fan::vulkan::descriptor_t::update(
   fan::vulkan::context_t& context,
   std::uint32_t n,
   std::uint32_t begin,
@@ -168,7 +168,7 @@ void fan::vulkan::context_t::descriptor_pool_t::close(fan::vulkan::context_t& co
   vkDestroyDescriptorPool(context.device, m_descriptor_pool, nullptr);
 }
 
-void fan::vulkan::context_t::pipeline_t::open(fan::vulkan::context_t& context, const properties_t& p) {
+void fan::vulkan::pipeline_t::open(fan::vulkan::context_t& context, const properties_t& p) {
   properties = p;
 
   VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
@@ -268,7 +268,7 @@ void fan::vulkan::context_t::pipeline_t::open(fan::vulkan::context_t& context, c
     fan::throw_error("failed to create graphics pipeline");
   }
 }
-void fan::vulkan::context_t::pipeline_t::close(fan::vulkan::context_t& context) {
+void fan::vulkan::pipeline_t::close(fan::vulkan::context_t& context) {
   vkDestroyPipeline(context.device, m_pipeline, nullptr);
   vkDestroyPipelineLayout(context.device, m_layout, nullptr);
 }
