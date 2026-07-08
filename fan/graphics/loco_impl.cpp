@@ -2196,7 +2196,7 @@ void loco_t::shape_open(
   // 2 for rect instance, upv
   static constexpr auto vulkan_buffer_count = 3;
   decltype(vk.shape_data.m_descriptor)::properties_t rectp;
-  auto& shaderd = *(fan::vulkan::context_t::shader_t*)gloco()->context_functions.shader_get(&gloco()->context.vk, shader);
+  auto& shaderd = *(fan::vulkan::shader_t*)gloco()->context_functions.shader_get(&gloco()->context.vk, shader);
   std::uint32_t ds_offset = 2;
   vk.shape_data.open(gloco()->context.vk, 1);
   vk.shape_data.allocate(gloco()->context.vk, std::max<std::uint64_t>(bp.RenderDataSize * bp.MaxElementPerBlock, 16));

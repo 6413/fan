@@ -42,23 +42,21 @@ import fan.camera;
 
 #define ENABLE_RAYTRACING_DEPENDENCIES
 
-#define VK_CTX ((fan::vulkan::context_t*)context)
-
-fan::graphics::camera_nr_t fan::vulkan::context_t::camera_create() {
+fan::graphics::camera_nr_t fan::vulkan::camera_subsystem_t::camera_create() {
   return __fan_internal_camera_list.NewNode();
 }
-fan::graphics::context_camera_t& fan::vulkan::context_t::camera_get(fan::graphics::camera_nr_t nr) {
+fan::graphics::context_camera_t& fan::vulkan::camera_subsystem_t::camera_get(fan::graphics::camera_nr_t nr) {
   return __fan_internal_camera_list[nr];
 }
-void fan::vulkan::context_t::camera_erase(fan::graphics::camera_nr_t nr) {
+void fan::vulkan::camera_subsystem_t::camera_erase(fan::graphics::camera_nr_t nr) {
   __fan_internal_camera_list.Recycle(nr);
 }
-void fan::vulkan::context_t::camera_set_ortho(fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y) {
+void fan::vulkan::camera_subsystem_t::camera_set_ortho(fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y) {
   camera_get(nr).coordinates.v = fan::vec4(x, y);
   camera_update_projection(nr);
   camera_update_view(nr);
 }
-void fan::vulkan::context_t::camera_update_projection(fan::graphics::camera_nr_t nr) {
+void fan::vulkan::camera_subsystem_t::camera_update_projection(fan::graphics::camera_nr_t nr) {
   auto& camera = camera_get(nr);
 
   camera.projection = fan::math::ortho<fan::mat4>(
@@ -66,12 +64,11 @@ void fan::vulkan::context_t::camera_update_projection(fan::graphics::camera_nr_t
     camera.coordinates.right / camera.zoom,
     camera.coordinates.top / camera.zoom,
     camera.coordinates.bottom / camera.zoom,
-    //camera.znear,
-    0.0f, // force 0.f for ortho vulkan, otherwise when znear=0.1, position.z = 0, gl_Position.z goes negative
+    0.0f,
     camera.zfar
   );
 }
-void fan::vulkan::context_t::camera_update_view(fan::graphics::camera_nr_t nr) {
+void fan::vulkan::camera_subsystem_t::camera_update_view(fan::graphics::camera_nr_t nr) {
   auto& camera = camera_get(nr);
   camera.view[3][0] = 0;
   camera.view[3][1] = 0;
@@ -80,20 +77,20 @@ void fan::vulkan::context_t::camera_update_view(fan::graphics::camera_nr_t nr) {
   fan::vec3 position = camera.view.get_translation();
   camera.view = fan::math::look_at_right<fan::mat4, fan::vec3>(position, position + camera.front, fan::camera::world_up);
 }
-fan::graphics::camera_nr_t fan::vulkan::context_t::camera_create(const fan::vec2& x, const fan::vec2& y) {
+fan::graphics::camera_nr_t fan::vulkan::camera_subsystem_t::camera_create(const fan::vec2& x, const fan::vec2& y) {
   fan::graphics::camera_nr_t nr = camera_create();
   camera_set_ortho(nr, fan::vec2(x.x, x.y), fan::vec2(y.x, y.y));
   return nr;
 }
-fan::vec3 fan::vulkan::context_t::camera_get_position(fan::graphics::camera_nr_t nr) {
+fan::vec3 fan::vulkan::camera_subsystem_t::camera_get_position(fan::graphics::camera_nr_t nr) {
   return camera_get(nr).position;
 }
-void fan::vulkan::context_t::camera_set_position(fan::graphics::camera_nr_t nr, const fan::vec3& cp) {
+void fan::vulkan::camera_subsystem_t::camera_set_position(fan::graphics::camera_nr_t nr, const fan::vec3& cp) {
   auto& camera = camera_get(nr);
   camera.position = cp;
   camera_update_view(nr);
 }
-fan::vec3 fan::vulkan::context_t::camera_get_center(fan::graphics::camera_nr_t nr) {
+fan::vec3 fan::vulkan::camera_subsystem_t::camera_get_center(fan::graphics::camera_nr_t nr) {
   auto& c = camera_get(nr);
   fan::vec2 center_offset = fan::vec2(
     c.coordinates.left + c.coordinates.right,
@@ -101,7 +98,7 @@ fan::vec3 fan::vulkan::context_t::camera_get_center(fan::graphics::camera_nr_t n
   ) / (2.f * c.zoom);
   return fan::vec2(c.position.x, c.position.y) + center_offset;
 }
-void fan::vulkan::context_t::camera_set_center(fan::graphics::camera_nr_t nr, const fan::vec3& cp) {
+void fan::vulkan::camera_subsystem_t::camera_set_center(fan::graphics::camera_nr_t nr, const fan::vec3& cp) {
   auto& c = camera_get(nr);
   fan::vec2 center_offset = fan::vec2(
     c.coordinates.left + c.coordinates.right,
@@ -110,19 +107,19 @@ void fan::vulkan::context_t::camera_set_center(fan::graphics::camera_nr_t nr, co
 
   camera_set_position(nr, fan::vec3(cp.xy() - center_offset, cp.z));
 }
-fan::vec2 fan::vulkan::context_t::camera_get_size(fan::graphics::camera_nr_t nr) {
+fan::vec2 fan::vulkan::camera_subsystem_t::camera_get_size(fan::graphics::camera_nr_t nr) {
   fan::graphics::context_camera_t& camera = camera_get(nr);
   return fan::vec2(std::abs(camera.coordinates.right - camera.coordinates.left), std::abs(camera.coordinates.bottom - camera.coordinates.top));
 }
-f32_t fan::vulkan::context_t::camera_get_zoom(fan::graphics::camera_nr_t nr) {
+f32_t fan::vulkan::camera_subsystem_t::camera_get_zoom(fan::graphics::camera_nr_t nr) {
   return camera_get(nr).zoom;
 }
-void fan::vulkan::context_t::camera_set_zoom(fan::graphics::camera_nr_t nr, f32_t new_zoom) {
+void fan::vulkan::camera_subsystem_t::camera_set_zoom(fan::graphics::camera_nr_t nr, f32_t new_zoom) {
   camera_get(nr).zoom = new_zoom;
   camera_update_projection(nr);
   camera_update_view(nr);
 }
-void fan::vulkan::context_t::camera_set_perspective(fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size) {
+void fan::vulkan::camera_subsystem_t::camera_set_perspective(fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size) {
   fan::graphics::context_camera_t& camera = camera_get(nr);
 
   camera.fov = fov;
@@ -131,32 +128,14 @@ void fan::vulkan::context_t::camera_set_perspective(fan::graphics::camera_nr_t n
   camera.update_view();
 
   camera.view = camera.get_view_matrix();
-
-  //auto it = gloco()->m_viewport_resize_callback.GetNodeFirst();
-
-  //while (it != gloco()->m_viewport_resize_callback.dst) {
-
-  //  gloco()->m_viewport_resize_callback.StartSafeNext(it);
-
-  //  resize_cb_data_t cbd;
-  //  cbd.camera = this;
-  //  cbd.position = get_position();
-  //  cbd.size = get_camera_size();
-  //  gloco()->m_viewport_resize_callback[it].data(cbd);
-
-  //  it = gloco()->m_viewport_resize_callback.EndSafeNext();
-  //}
 }
-void fan::vulkan::context_t::camera_rotate(fan::graphics::camera_nr_t nr, const fan::vec2& offset) {
+void fan::vulkan::camera_subsystem_t::camera_rotate(fan::graphics::camera_nr_t nr, const fan::vec2& offset) {
   fan::graphics::context_camera_t& camera = camera_get(nr);
   camera.rotate_camera(offset);
   camera.view = camera.get_view_matrix();
 }
-//-----------------------------camera-----------------------------
 
-      //-----------------------------viewport-----------------------------
-
-void fan::vulkan::context_t::viewport_set(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
+void fan::vulkan::camera_subsystem_t::viewport_set(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
   pending_viewport.x = viewport_position_.x;
   pending_viewport.y = viewport_position_.y;
   pending_viewport.width = viewport_size_.x;
@@ -171,42 +150,42 @@ void fan::vulkan::context_t::viewport_set(const fan::vec2& viewport_position_, c
 
   viewport_dirty = true;
 }
-fan::graphics::context_viewport_t& fan::vulkan::context_t::viewport_get(fan::graphics::viewport_nr_t nr) {
+fan::graphics::context_viewport_t& fan::vulkan::camera_subsystem_t::viewport_get(fan::graphics::viewport_nr_t nr) {
   return __fan_internal_viewport_list[nr];
 }
-void fan::vulkan::context_t::viewport_set(fan::graphics::viewport_nr_t nr, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
+void fan::vulkan::camera_subsystem_t::viewport_set(fan::graphics::viewport_nr_t nr, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
   fan::graphics::context_viewport_t& viewport = viewport_get(nr);
   viewport.position = viewport_position_;
   viewport.size = viewport_size_;
 
   viewport_set(viewport_position_, viewport_size_, window_size);
 }
-fan::graphics::viewport_nr_t fan::vulkan::context_t::viewport_create() {
+fan::graphics::viewport_nr_t fan::vulkan::camera_subsystem_t::viewport_create() {
   auto nr = __fan_internal_viewport_list.NewNode();
 
   viewport_set(nr, 0, 1, 0);
   return nr;
 }
-void fan::vulkan::context_t::viewport_erase(fan::graphics::viewport_nr_t nr) {
+void fan::vulkan::camera_subsystem_t::viewport_erase(fan::graphics::viewport_nr_t nr) {
   __fan_internal_viewport_list.Recycle(nr);
 }
-fan::vec2 fan::vulkan::context_t::viewport_get_position(fan::graphics::viewport_nr_t nr) {
+fan::vec2 fan::vulkan::camera_subsystem_t::viewport_get_position(fan::graphics::viewport_nr_t nr) {
   return viewport_get(nr).position;
 }
-fan::vec2 fan::vulkan::context_t::viewport_get_size(fan::graphics::viewport_nr_t nr) {
+fan::vec2 fan::vulkan::camera_subsystem_t::viewport_get_size(fan::graphics::viewport_nr_t nr) {
   return viewport_get(nr).size;
 }
-void fan::vulkan::context_t::viewport_zero(fan::graphics::viewport_nr_t nr) {
+void fan::vulkan::camera_subsystem_t::viewport_zero(fan::graphics::viewport_nr_t nr) {
   auto& viewport = viewport_get(nr);
   viewport.position = 0;
   viewport.size = 0;
-  viewport_set(0, 0, 0); // window_size not used
+  viewport_set(0, 0, 0);
 }
-bool fan::vulkan::context_t::viewport_inside(fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
+bool fan::vulkan::camera_subsystem_t::viewport_inside(fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
   fan::graphics::context_viewport_t& viewport = viewport_get(nr);
   return fan::math::d2::aabb_point_inside(position, viewport.position + viewport.size / 2, viewport.size / 2);
 }
-bool fan::vulkan::context_t::viewport_inside_wir(fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
+bool fan::vulkan::camera_subsystem_t::viewport_inside_wir(fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
   fan::graphics::context_viewport_t& viewport = viewport_get(nr);
   return fan::math::d2::aabb_point_inside(position, viewport.size / 2, viewport.size / 2);
 }

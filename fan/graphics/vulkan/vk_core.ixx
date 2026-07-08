@@ -37,6 +37,8 @@ export import :vai;
 export import :image;
 export import :compute;
 export import :pipeline;
+export import :camera_subsystem;
+export import :shader_subsystem;
 
 import fan.types;
 import fan.types.matrix;
@@ -129,17 +131,9 @@ export namespace fan {
       using descriptor_pool_t = fan::vulkan::descriptor_pool_t;
       descriptor_pool_t descriptor_pool;
       #include "memory.h"
-      #include "uniform_block.h"
       #include "ssbo.h"
 
-      struct shader_t {
-        int projection_view[2]{ -1, -1 };
-        fan::vulkan::context_t::uniform_block_t<fan::vulkan::view_projection_t, fan::vulkan::max_camera>* projection_view_block;
-        VkPipelineShaderStageCreateInfo shader_stages[3]{};
-        std::uint32_t compile_generation = 0;
-      };
-
-      fan::vulkan::context_t::shader_t& shader_get(fan::graphics::shader_nr_t nr);
+      fan::vulkan::shader_t& shader_get(fan::graphics::shader_nr_t nr);
 
       static std::vector<std::uint32_t> compile_file(const std::string& source_name,
         shaderc_shader_kind kind,
@@ -278,47 +272,6 @@ export namespace fan {
         fan::vec2ui size,
         VkFormat format
       );
-
-      fan::graphics::camera_nr_t camera_create();
-
-      fan::graphics::context_camera_t& camera_get(fan::graphics::camera_nr_t nr);
-
-      void camera_erase(fan::graphics::camera_nr_t nr);
-      void camera_set_ortho(fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y);
-      void camera_update_projection(fan::graphics::camera_nr_t nr);
-      void camera_update_view(fan::graphics::camera_nr_t nr);
-
-      fan::graphics::camera_nr_t camera_create(const fan::vec2& x, const fan::vec2& y);
-      fan::vec3 camera_get_position(fan::graphics::camera_nr_t nr);
-
-      void camera_set_position(fan::graphics::camera_nr_t nr, const fan::vec3& cp);
-
-      fan::vec3 camera_get_center(fan::graphics::camera_nr_t nr);
-      void camera_set_center(fan::graphics::camera_nr_t nr, const fan::vec3& cp);
-      fan::vec2 camera_get_size(fan::graphics::camera_nr_t nr);
-
-      f32_t camera_get_zoom(fan::graphics::camera_nr_t nr);
-      void camera_set_zoom(fan::graphics::camera_nr_t nr, f32_t new_zoom);
-
-      void camera_set_perspective(fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size);
-      void camera_rotate(fan::graphics::camera_nr_t nr, const fan::vec2& offset);
-
-      void viewport_set(const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
-      fan::graphics::context_viewport_t& viewport_get(fan::graphics::viewport_nr_t nr);
-
-      void viewport_set(fan::graphics::viewport_nr_t nr, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size);
-
-      fan::graphics::viewport_nr_t viewport_create();
-
-      void viewport_erase(fan::graphics::viewport_nr_t nr);
-      fan::vec2 viewport_get_position(fan::graphics::viewport_nr_t nr);
-
-      fan::vec2 viewport_get_size(fan::graphics::viewport_nr_t nr);
-
-      void viewport_zero(fan::graphics::viewport_nr_t nr);
-
-      bool viewport_inside(fan::graphics::viewport_nr_t nr, const fan::vec2& position);
-      bool viewport_inside_wir(fan::graphics::viewport_nr_t nr, const fan::vec2& position);
 
       using pipeline_t = fan::vulkan::pipeline_t;
 
@@ -543,9 +496,6 @@ export namespace fan {
       fan::vulkan::context_t::pipeline_t render_fullscreen_pl;
 
       bool command_buffer_in_use = false;
-      VkViewport pending_viewport{};
-      VkRect2D pending_scissor{};
-      bool viewport_dirty = false;
 #if FAN_DEBUG >= fan_debug_high
       bool supports_validation_layers = true;
 #else
@@ -554,6 +504,7 @@ export namespace fan {
 
       bool window_shown = false;
       fan::vulkan::context_t::memory_write_queue_t memory_queue;
+      fan::vulkan::camera_subsystem_t cameras;
     };
   }
 }

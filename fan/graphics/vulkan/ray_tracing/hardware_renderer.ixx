@@ -3062,7 +3062,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
     }
     bool update_camera_from_engine() {
       auto camera_handle = fan::graphics::get_perspective_render_view().camera;
-      auto camera_data = ctx->camera_get(camera_handle);
+      auto camera_data = ctx->cameras.camera_get(camera_handle);
       if (!camera_buffer.mapped) { return false; }
       rt_camera_t vp {};
       vp.projection = camera_data.projection;
