@@ -3,7 +3,7 @@ module;
 #if defined(FAN_2D)
 #endif
 
-export module fan.graphics.gui.tilemap_editor.core:ui;
+export module fan.graphics.gui.tilemap_editor.ui;
 
 #if defined (FAN_WINDOW)
 
@@ -48,7 +48,6 @@ export namespace fan::graphics::gui::tilemap_editor::ui {
   void handle_custom_tools_window(fte_t& editor);
   void handle_tile_brush(fte_t& editor);
   void handle_gui(fte_t& editor);
-
 }
 
 #endif

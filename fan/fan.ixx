@@ -95,6 +95,7 @@ export import fan.types.flat_hash_map;
 export import fan.formatter;
 
 #if defined(FAN_GUI)
+export import fan.graphics.gui.tilemap_editor.ui;
 export import fan.graphics.tilemap_editor.renderer;
 export import fan.graphics.gameplay;
 export import fan.graphics.gui.inventory_hotbar;
