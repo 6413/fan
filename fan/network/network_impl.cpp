@@ -1,30 +1,43 @@
 module;
 
 #if defined(FAN_NETWORK)
-#include <coroutine>
-#include <uv.h>
-#undef min
-#undef max
-#undef NO_ERROR
-#if defined(__clang__) || !defined(__GNUC__) || defined(FAN_NETWORK_ENABLE_HTTP_ON_GCC)
-#define FAN_NETWORK_HTTP_ENABLED
-#endif
-#if defined(FAN_NETWORK_HTTP_ENABLED) && \
-  (defined(__clang__) || !defined(__GNUC__) || defined(FAN_NETWORK_ENABLE_CURL_ON_GCC))
-#define FAN_NETWORK_CURL_ENABLED
-#endif
-#ifdef FAN_NETWORK_CURL_ENABLED
-  #include <curl/curl.h>
-  #include <curl/multi.h>
-#endif
-#include <openssl/sha.h>
+  #include <coroutine>
+  #include <uv.h>
+  #undef min
+  #undef max
+  #undef NO_ERROR
+  #if defined(__clang__) || !defined(__GNUC__) || defined(FAN_NETWORK_ENABLE_HTTP_ON_GCC)
+    #define FAN_NETWORK_HTTP_ENABLED
+  #endif
+  #if defined(FAN_NETWORK_HTTP_ENABLED) && \
+    (defined(__clang__) || !defined(__GNUC__) || defined(FAN_NETWORK_ENABLE_CURL_ON_GCC))
+    #define FAN_NETWORK_CURL_ENABLED
+  #endif
+  #ifdef FAN_NETWORK_CURL_ENABLED
+    #include <curl/curl.h>
+    #include <curl/multi.h>
+  #endif
+  #include <openssl/sha.h>
 #endif
 
 module fan.network;
 
+import std;
+
 #if defined(FAN_NETWORK)
 namespace fan {
   namespace network {
+    
+    struct getaddrinfo_t::getaddrinfo_data_t {
+      uv_getaddrinfo_t getaddrinfo_handle;
+      std::coroutine_handle<> co_handle;
+      bool ready{ false };
+      int status;
+    };
+
+    bool getaddrinfo_t::await_ready() const { return data->ready; }
+    void getaddrinfo_t::await_suspend(std::coroutine_handle<> h) { data->co_handle = h; }
+    int getaddrinfo_t::await_resume() const { return data->status; }
 
     getaddrinfo_t::getaddrinfo_t(const char* node, const char* service, struct addrinfo* hints) :
       data(std::make_unique<getaddrinfo_data_t>()) {
@@ -53,6 +66,60 @@ namespace fan {
       }
     }
 
+    struct connector_t::connector_data_t {
+      uv_connect_t req;
+      std::coroutine_handle<> co_handle;
+      int status;
+    };
+
+    connector_t::connector_t(connector_t&&) noexcept = default;
+    connector_t& connector_t::operator=(connector_t&&) noexcept = default;
+
+    connector_t::connector_t(const tcp_t& tcp, const std::string& ip, int port) :
+      data{ std::make_unique<connector_data_t>() } {
+      data->req.data = data.get();
+      struct sockaddr_in client_addr;
+      auto result = uv_ip4_addr(ip.c_str(), port, &client_addr);
+
+      if (result != 0) {
+        fan::throw_error("failed to resolve address");
+      }
+
+      data->status = uv_tcp_connect(&data->req, tcp.socket.get(), reinterpret_cast<sockaddr*>(&client_addr),
+        [](uv_connect_t* req, int status) {
+          auto* data = static_cast<connector_data_t*>(req->data);
+          data->status = status;
+          [[likely]] if (data->co_handle) {
+            data->co_handle();
+          }
+        });
+      if (data->status == 0) {
+        data->status = 1;
+      }
+    }
+
+    connector_t::connector_t(const tcp_t& tcp, const getaddrinfo_t& info) : data(std::make_unique<connector_data_t>()) {
+      data->req.data = data.get();
+      data->status = uv_tcp_connect(
+        &data->req, 
+        tcp.socket.get(), 
+        (const struct sockaddr*)info.data->getaddrinfo_handle.addrinfo->ai_addr,
+        [](uv_connect_t* req, int status) {
+          auto* data = static_cast<connector_data_t*>(req->data);
+          data->status = status;
+          [[likely]] if (data->co_handle) {
+            data->co_handle();
+          }
+        }
+      );
+      if (data->status == 0) {
+        data->status = 1;
+      }
+    }
+
+    bool connector_t::await_ready() const { return data->status <= 0; }
+    void connector_t::await_suspend(std::coroutine_handle<> h) { data->co_handle = h; }
+
     connector_t::~connector_t() {
       [[unlikely]] if (data && data->status == 1) {
         data->req.cb = [](uv_connect_t* req, int) {
@@ -67,6 +134,42 @@ namespace fan {
         fan::throw_error(std::string("connection failed with:") + uv_strerror(data->status));
       }
       return data->status;
+    }
+
+    listener_t::listener_t(const tcp_t& tcp, int backlog) :
+      stream{ std::reinterpret_pointer_cast<uv_stream_t>(tcp.socket) },
+      ready{ false } {
+      stream->data = this;
+      auto r = uv_listen(stream.get(), backlog, [](uv_stream_t* req, int status) {
+        auto self = static_cast<listener_t*>(req->data);
+        self->status = status;
+        self->ready = true;
+        if (self->co_handle)
+          self->co_handle();
+        });
+      if (r != 0) {
+        fan::throw_error("listen error:"_str + uv_strerror(r));
+      }
+    }
+
+    listener_t::listener_t(listener_t&& l) :
+      stream(std::move(l.stream)),
+      co_handle(std::move(l.co_handle)),
+      status(l.status),
+      ready(l.ready) {
+      stream->data = this;
+    }
+
+    raw_reader_t::raw_reader_t(const tcp_t& tcp) : stream{ std::reinterpret_pointer_cast<uv_stream_t>(tcp.socket) } {
+      stream->data = this;
+    }
+
+    raw_reader_t::raw_reader_t(raw_reader_t&& r) noexcept :
+      stream{ std::move(r.stream) },
+      buf{ std::move(r.buf) },
+      nread{ std::move(r.nread) },
+      co_handle{ std::move(r.co_handle) } {
+      stream->data = this;
     }
 
     void raw_reader_t::stop() {
@@ -106,6 +209,29 @@ namespace fan {
         uv_read_stop(stream.get());
       }
       buf.clear();
+    }
+
+    struct raw_writer_t::writer_data_t {
+      std::shared_ptr<uv_stream_t> stream;
+      uv_write_t write_handle;
+      buffer_t to_write;
+      std::coroutine_handle<> co_handle;
+      int status{ 0 };
+    };
+
+    raw_writer_t::raw_writer_t(raw_writer_t&&) noexcept = default;
+    raw_writer_t& raw_writer_t::operator=(raw_writer_t&&) noexcept = default;
+
+    raw_writer_t::raw_writer_t(const tcp_t& tcp) :
+      data(new writer_data_t{ std::reinterpret_pointer_cast<uv_stream_t>(tcp.socket) }) {
+      data->write_handle.data = data.get();
+    }
+
+    bool raw_writer_t::await_ready() const noexcept { return data->status <= 0; }
+    void raw_writer_t::await_suspend(std::coroutine_handle<> h) noexcept { data->co_handle = h; }
+    int raw_writer_t::await_resume() noexcept {
+      data->co_handle = nullptr;
+      return data->status;
     }
 
     int raw_writer_t::write(const buffer_t& some_data) {
@@ -183,6 +309,26 @@ namespace fan {
       head_ = 0;
       tail_ = size_;
       capacity_ = new_capacity * 2;
+    }
+
+    reader_t::reader_t(const tcp_t& tcp)
+      : stream{ std::reinterpret_pointer_cast<uv_stream_t>(tcp.socket) },
+      temp_buf(default_buffer_size) {
+      stream->data = this;
+    }
+
+    reader_t::reader_t(reader_t&& r) noexcept :
+      stream{ std::move(r.stream) },
+      accumulated_buf{ std::move(r.accumulated_buf) },
+      temp_buf{ std::move(r.temp_buf) },
+      nread{ std::move(r.nread) },
+      co_handle{ std::move(r.co_handle) },
+      expected_size{ r.expected_size },
+      bytes_read{ r.bytes_read },
+      reading_header{ r.reading_header },
+      is_raw_read{ r.is_raw_read },
+      is_fixed_size_read{ r.is_fixed_size_read } {
+      stream->data = this;
     }
 
     void reader_t::setup_fixed_size_read(ssize_t len) {
@@ -320,6 +466,8 @@ namespace fan {
       }
     }
 
+    writer_t::writer_t(const tcp_t& tcp) : raw_writer(tcp) {}
+
     int writer_t::write(const buffer_t& user_data) {
       std::uint64_t data_size = user_data.size();
       buffer_t message_data;
@@ -401,7 +549,6 @@ namespace fan {
         }
         auto client_id = get_client_handler().add_client();
         tcp_t& client = get_client_handler()[client_id];
-        // simple cleanup
         for (auto it = tasks.begin(); it != tasks.end();) {
           if (it->owner->h.done()) {
             it = tasks.erase(it);
@@ -502,12 +649,78 @@ namespace fan {
       return sizeof(struct sockaddr_storage);
     }
 
+    struct udp_send_t::send_data_t {
+      uv_udp_send_t req;
+      buffer_t data_buffer;
+      socket_address_t destination;
+      std::coroutine_handle<> co_handle;
+      int status{ 1 };
+    };
+
+    udp_send_t::udp_send_t(udp_send_t&&) noexcept = default;
+    udp_send_t& udp_send_t::operator=(udp_send_t&&) noexcept = default;
+
+    udp_send_t::udp_send_t(const udp_t& udp, const buffer_t& message, const socket_address_t& addr) :
+      data(std::make_unique<send_data_t>()) {
+      data->req.data = data.get();
+      data->data_buffer = message;
+      data->destination = addr;
+      uv_buf_t buf = uv_buf_init(data->data_buffer.data(), data->data_buffer.size());
+      data->status = uv_udp_send(&data->req, udp.socket.get(), &buf, 1,
+        data->destination.sockaddr_ptr(),
+        [](uv_udp_send_t* req, int status) {
+          auto* data = static_cast<send_data_t*>(req->data);
+          data->status = status;
+          if (data->co_handle) {
+            data->co_handle();
+          }
+        }
+      );
+      if (data->status == 0) {
+        data->status = 1;
+      }
+    }
+
+    udp_send_t::udp_send_t(const udp_t& udp, const buffer_t& message, const std::string& ip, int port) :
+      udp_send_t(udp, message, socket_address_t(ip, port)) {}
+
+    udp_send_t::udp_send_t(const udp_t& udp, const std::string& message, const socket_address_t& addr) :
+      udp_send_t(udp, buffer_t{ message.begin(), message.end() }, addr) {}
+
+    udp_send_t::udp_send_t(const udp_t& udp, const std::string& message, const std::string& ip, int port) :
+      udp_send_t(udp, message, socket_address_t(ip, port)) {}
+
+    bool udp_send_t::await_ready() const { return data->status <= 0; }
+    void udp_send_t::await_suspend(std::coroutine_handle<> h) { data->co_handle = h; }
+
     udp_send_t::~udp_send_t() {
       if (data && data->status == 1) {
         data->req.cb = [](uv_udp_send_t* req, int) {
           delete static_cast<send_data_t*>(req->data);
         };
         data.release();
+      }
+    }
+
+    int udp_send_t::await_resume() {
+      if (data->status < 0) {
+        fan::throw_error(std::string("UDP send failed: ") + uv_strerror(data->status));
+      }
+      return data->status;
+    }
+
+    udp_recv_t::udp_recv_t(const udp_t& udp) : socket(udp.socket) {
+      socket->data = this;
+    }
+
+    udp_recv_t::udp_recv_t(udp_recv_t&& r) noexcept :
+      socket{ std::move(r.socket) },
+      co_handle{ std::move(r.co_handle) },
+      datagram{ std::move(r.datagram) },
+      ready{ r.ready },
+      receiving{ r.receiving } {
+      if (socket) {
+        socket->data = this;
       }
     }
 
@@ -548,6 +761,21 @@ namespace fan {
 
     udp_recv_t::~udp_recv_t() {
       stop();
+    }
+
+    udp_recvfrom_t::udp_recvfrom_t(const udp_t& udp) : socket(udp.socket) {
+      socket->data = this;
+    }
+
+    udp_recvfrom_t::udp_recvfrom_t(udp_recvfrom_t&& r) noexcept :
+      socket{ std::move(r.socket) },
+      co_handle{ std::move(r.co_handle) },
+      datagram{ std::move(r.datagram) },
+      ready{ r.ready },
+      receiving{ r.receiving } {
+      if (socket) {
+        socket->data = this;
+      }
     }
 
     void udp_recvfrom_t::set_expected_sender(const socket_address_t& sender) {
@@ -966,6 +1194,33 @@ namespace fan {
       }
 
 #ifdef FAN_NETWORK_CURL_ENABLED
+      struct async_context_t {
+        struct sock_ctx {
+          uv_poll_t poll;
+          curl_socket_t sock;
+          async_context_t* ctx;
+        };
+
+        CURLM* multi_handle = nullptr;
+        std::unordered_map<curl_socket_t, sock_ctx*> polls;
+        uv_timer_t timeout_timer {};
+        bool timeout_timer_active = false;
+        std::vector<std::shared_ptr<async_request_t>> active_requests;
+
+        async_context_t();
+        ~async_context_t();
+
+        static async_context_t& instance();
+        static int socket_cb(CURL*, curl_socket_t s, int what, void* userp, void* socketp);
+        static int timer_cb(CURLM*, long timeout_ms, void* userp);
+        static void timeout_cb(uv_timer_t* handle);
+        static void poll_cb(uv_poll_t* req, int status, int events);
+        sock_ctx* create_sock_ctx(curl_socket_t s);
+        void destroy_sock_ctx(sock_ctx* c);
+        void add_request(const std::shared_ptr<async_request_t>& req);
+        void drain_multi();
+      };
+
       async_request_t::async_request_t(const std::string& u, const config_t& cfg)
         : url(u), config(cfg) {
         easy_handle = curl_easy_init();
@@ -973,26 +1228,27 @@ namespace fan {
           error_message = "curl_easy_init failed";
           return;
         }
-        curl_easy_setopt(easy_handle, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(easy_handle, CURLOPT_WRITEFUNCTION, &async_request_t::write_cb);
-        curl_easy_setopt(easy_handle, CURLOPT_WRITEDATA, this);
-        curl_easy_setopt(easy_handle, CURLOPT_FOLLOWLOCATION, config.follow_redirects ? 1L : 0L);
-        curl_easy_setopt(easy_handle, CURLOPT_SSL_VERIFYPEER, config.verify_ssl ? 1L : 0L);
-        curl_easy_setopt(easy_handle, CURLOPT_SSL_VERIFYHOST, config.verify_ssl ? 2L : 0L);
-        curl_easy_setopt(easy_handle, CURLOPT_TIMEOUT, config.timeout_seconds);
-        curl_easy_setopt(easy_handle, CURLOPT_USERAGENT, config.user_agent.c_str());
-        curl_easy_setopt(easy_handle, CURLOPT_NOSIGNAL, 1L);
-        curl_easy_setopt(easy_handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
-        curl_easy_setopt(easy_handle, CURLOPT_CAINFO, "curl-ca-bundle.crt");
+        CURL* curl = static_cast<CURL*>(easy_handle);
+        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &async_request_t::write_cb);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, this);
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, config.follow_redirects ? 1L : 0L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, config.verify_ssl ? 1L : 0L);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, config.verify_ssl ? 2L : 0L);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, config.timeout_seconds);
+        curl_easy_setopt(curl, CURLOPT_USERAGENT, config.user_agent.c_str());
+        curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+        curl_easy_setopt(curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+        curl_easy_setopt(curl, CURLOPT_CAINFO, "curl-ca-bundle.crt");
       }
 
       async_request_t::~async_request_t() {
         if (curl_headers) {
-          curl_slist_free_all(curl_headers);
+          curl_slist_free_all(static_cast<curl_slist*>(curl_headers));
           curl_headers = nullptr;
         }
         if (easy_handle) {
-          curl_easy_cleanup(easy_handle);
+          curl_easy_cleanup(static_cast<CURL*>(easy_handle));
           easy_handle = nullptr;
         }
       }
@@ -1176,15 +1432,18 @@ namespace fan {
         if (!req || !req->easy_handle) {
           return;
         }
+        CURL* easy = static_cast<CURL*>(req->easy_handle);
+        curl_slist* headers = static_cast<curl_slist*>(req->curl_headers);
         for (const auto& kv : req->headers_map) {
           std::string h = kv.first + ": " + kv.second;
-          req->curl_headers = curl_slist_append(req->curl_headers, h.c_str());
+          headers = curl_slist_append(headers, h.c_str());
         }
-        if (req->curl_headers) {
-          curl_easy_setopt(req->easy_handle, CURLOPT_HTTPHEADER, req->curl_headers);
+        req->curl_headers = headers;
+        if (headers) {
+          curl_easy_setopt(easy, CURLOPT_HTTPHEADER, headers);
         }
-        curl_easy_setopt(req->easy_handle, CURLOPT_PRIVATE, req.get());
-        CURLMcode rc = curl_multi_add_handle(multi_handle, req->easy_handle);
+        curl_easy_setopt(easy, CURLOPT_PRIVATE, req.get());
+        CURLMcode rc = curl_multi_add_handle(multi_handle, easy);
         if (rc != CURLM_OK) {
           req->error_message = curl_multi_strerror(rc);
           if (req->awaiting) {
@@ -1252,9 +1511,10 @@ namespace fan {
         auto req = std::make_shared<async_request_t>(url, cfg);
         req->headers_map = headers;
 
-        curl_easy_setopt(req->easy_handle, CURLOPT_POST, 1L);
-        curl_easy_setopt(req->easy_handle, CURLOPT_POSTFIELDS, body.c_str());
-        curl_easy_setopt(req->easy_handle, CURLOPT_POSTFIELDSIZE, body.size());
+        CURL* easy = static_cast<CURL*>(req->easy_handle);
+        curl_easy_setopt(easy, CURLOPT_POST, 1L);
+        curl_easy_setopt(easy, CURLOPT_POSTFIELDS, body.c_str());
+        curl_easy_setopt(easy, CURLOPT_POSTFIELDSIZE, body.size());
 
         co_return co_await *req;
       }
@@ -1279,18 +1539,20 @@ namespace fan {
       fan::event::runv_t<std::expected<response_t, std::string>>
         client_t::put(const std::string& path, const fan::json& body) {
         auto req = std::make_shared<async_request_t>(base_url + path, config);
-        req->headers_map = {{"Content-Type", "application /json"}};
+        req->headers_map = {{"Content-Type", "application/json"}};
         std::string body_str = body.dump();
-        curl_easy_setopt(req->easy_handle, CURLOPT_CUSTOMREQUEST, "PUT");
-        curl_easy_setopt(req->easy_handle, CURLOPT_POSTFIELDS, body_str.c_str());
-        curl_easy_setopt(req->easy_handle, CURLOPT_POSTFIELDSIZE, body_str.size());
+        CURL* easy = static_cast<CURL*>(req->easy_handle);
+        curl_easy_setopt(easy, CURLOPT_CUSTOMREQUEST, "PUT");
+        curl_easy_setopt(easy, CURLOPT_POSTFIELDS, body_str.c_str());
+        curl_easy_setopt(easy, CURLOPT_POSTFIELDSIZE, body_str.size());
         co_return co_await *req;
       }
 
       fan::event::runv_t<std::expected<response_t, std::string>>
         client_t::delete_(const std::string& path) {
         auto req = std::make_shared<async_request_t>(base_url + path, config);
-        curl_easy_setopt(req->easy_handle, CURLOPT_CUSTOMREQUEST, "DELETE");
+        CURL* easy = static_cast<CURL*>(req->easy_handle);
+        curl_easy_setopt(easy, CURLOPT_CUSTOMREQUEST, "DELETE");
         co_return co_await *req;
       }
 #endif
