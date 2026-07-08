@@ -4,13 +4,9 @@ export module fan.compression;
 
 import std;
 import fan.types;
-import fan.io.file;
-import fan.io.directory;
 import fan.io.types;
-import fan.memory;
 import fan.utility;
 import fan.types.fstring;
-import fan.print;
 import fan.event.types;
 import fan.event;
 
