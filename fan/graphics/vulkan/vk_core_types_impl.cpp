@@ -9,7 +9,7 @@ module;
 #include <vk_mem_alloc.h>
 #include <fan/utility.h>
 
-module fan.graphics.vulkan.core:types;
+module fan.graphics.vulkan.core;
 
 import std;
 
