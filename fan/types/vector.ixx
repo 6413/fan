@@ -289,13 +289,13 @@ export namespace fan {
 
     constexpr auto copysign(const auto& test0) const { return vec2_wrap_t(fan::math::copysign(this->x, test0.x), fan::math::copysign(this->y, test0.y)); }
 
-    template <typename Dest> requires (!requires { std::declval<Dest>().derived(); } && std::is_default_constructible_v<Dest> && requires(Dest d) { d.x = this->x; d.y = this->y; })
+    template <typename Dest> requires (!requires { std::declval<Dest>().derived(); } && std::is_default_constructible_v<Dest> && requires(Dest d) { d.x; d.y; })
     constexpr operator Dest() const { Dest d{}; d.x = static_cast<std::remove_reference_t<decltype(d.x)>>(this->x); d.y = static_cast<std::remove_reference_t<decltype(d.y)>>(this->y); return d; }
 
     template <typename Src> requires (!requires { std::declval<Src>().derived(); } && requires(Src v) { v.x; v.y; })
     constexpr vec2_wrap_t(const Src& v) { this->x = static_cast<value_type_t>(v.x); this->y = static_cast<value_type_t>(v.y); }
 
-    template <typename Dest> requires (!requires { std::declval<Dest>().derived(); } && std::is_default_constructible_v<Dest> && requires(Dest d) { d.width = this->x; d.height = this->y; })
+    template <typename Dest> requires (!requires { std::declval<Dest>().derived(); } && std::is_default_constructible_v<Dest> && requires(Dest d) { d.width; d.height; })
     constexpr operator Dest() const { Dest d{}; d.width = static_cast<std::remove_reference_t<decltype(d.width)>>(this->x); d.height = static_cast<std::remove_reference_t<decltype(d.height)>>(this->y); return d; }
 
     template <typename Src> requires (!requires { std::declval<Src>().derived(); } && requires(Src v) { v.width; v.height; })
@@ -351,7 +351,7 @@ export namespace fan {
     template <typename T> constexpr vec3_wrap_t(const vec3_wrap_t<T>& test0, auto value) : vec3_wrap_t(test0.x, test0.y, value) { }
 
   #if defined(FAN_3D)
-    template <typename Dest> requires (!requires { std::declval<Dest>().derived(); } && std::is_default_constructible_v<Dest> && requires(Dest d) { d.x = this->x; d.y = this->y; d.z = this->z; })
+    template <typename Dest> requires (!requires { std::declval<Dest>().derived(); } && std::is_default_constructible_v<Dest> && requires(Dest d) { d.x; d.y; d.z; })
     constexpr operator Dest() const { Dest d{}; d.x = static_cast<std::remove_reference_t<decltype(d.x)>>(this->x); d.y = static_cast<std::remove_reference_t<decltype(d.y)>>(this->y); d.z = static_cast<std::remove_reference_t<decltype(d.z)>>(this->z); return d; }
 
     template <typename Src> requires (!requires { std::declval<Src>().derived(); } && requires(Src v) { v.x; v.y; v.z; })
@@ -387,7 +387,7 @@ export namespace fan {
     template <typename T> constexpr vec4_wrap_t(const vec3_wrap_t<T>& test0, auto value) : vec4_wrap_t(test0.x, test0.y, test0.z, value) { }
 
   #if defined(FAN_GUI)
-    template <typename Dest> requires (!requires { std::declval<Dest>().derived(); } && std::is_default_constructible_v<Dest> && requires(Dest d) { d.x = this->x; d.y = this->y; d.z = this->z; d.w = this->w; })
+    template <typename Dest> requires (!requires { std::declval<Dest>().derived(); } && std::is_default_constructible_v<Dest> && requires(Dest d) { d.x; d.y; d.z; d.w; })
     constexpr operator Dest() const { Dest d{}; d.x = static_cast<std::remove_reference_t<decltype(d.x)>>(this->x); d.y = static_cast<std::remove_reference_t<decltype(d.y)>>(this->y); d.z = static_cast<std::remove_reference_t<decltype(d.z)>>(this->z); d.w = static_cast<std::remove_reference_t<decltype(d.w)>>(this->w); return d; }
 
     template <typename Src> requires (!requires { std::declval<Src>().derived(); } && requires(Src v) { v.x; v.y; v.z; v.w; })
