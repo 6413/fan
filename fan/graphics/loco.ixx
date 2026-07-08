@@ -106,6 +106,8 @@ export extern "C" {
 #endif
 // -cuda
 
+export struct loco_t;
+
 export namespace fan::graphics {
   #include "shaders.h"
 
@@ -142,9 +144,67 @@ export namespace fan::graphics {
   #endif
     bool render_shapes_top = false;
   };
-}
 
-export struct loco_t;
+  struct time_monitor_t {
+    void update(f32_t v);
+    void reset();
+
+    struct stats_t {
+      f32_t avg_frame_time_s;
+      f32_t min_frame_time_s;
+      f32_t max_frame_time_s;
+
+      f32_t avg_fps() const { return 1.0f / avg_frame_time_s; }
+      f32_t min_fps() const { return 1.0f / max_frame_time_s; }
+      f32_t max_fps() const { return 1.0f / min_frame_time_s; }
+    };
+
+    stats_t stats() const;
+
+  #if defined(FAN_GUI)
+    void plot(loco_t* loco, std::string_view label);
+  #endif
+
+    void toggle_pause() { paused = !paused; }
+
+    std::vector<f32_t> buffer;
+    std::deque<int> min_q;
+    std::deque<int> max_q;
+    f32_t sum = 0.0f;
+    bool paused = false;
+  };
+
+  struct time_plot_scroll_t {
+    int scroll_offset = 0;
+    int view_size = 512;
+  };
+
+  struct gui_state_t {
+#if defined(FAN_GUI)
+    void* settings_menu = nullptr;
+    std::future<void> font_future;
+#endif
+    fan::console_t console;
+  #if defined(FAN_GUI)
+    fan::time::timer fps_timer{false};
+    std::uint32_t frame_count = 0;
+    std::uint32_t last_fps = 0;
+    bool render_console = false;
+    bool render_debug_memory = false;
+    bool show_fps = false;
+    bool render_settings_menu = 0;
+    bool allow_docking = true;
+    bool gui_initialized = false;
+    fan::graphics::gui::text_logger_t text_logger;
+    fan::graphics::gui_draw_cb_t gui_draw_cb;
+    time_monitor_t frame_monitor;
+    time_monitor_t shape_monitor;
+    time_monitor_t gui_monitor;
+    time_plot_scroll_t time_plot_scroll;
+    bool enable_overlay = true;
+  #endif
+  };
+}
 
 struct global_loco_t {
   loco_t* loco = nullptr;
@@ -858,40 +918,6 @@ public:
   void process_gui();
   void get_vram_usage(int* total_mem_MB, int* used_MB);
 
-  struct time_monitor_t {
-    void update(f32_t v);
-    void reset();
-
-    struct stats_t {
-      f32_t avg_frame_time_s;
-      f32_t min_frame_time_s;
-      f32_t max_frame_time_s;
-
-      f32_t avg_fps() const { return 1.0f / avg_frame_time_s; }
-      f32_t min_fps() const { return 1.0f / max_frame_time_s; }
-      f32_t max_fps() const { return 1.0f / min_frame_time_s; }
-    };
-
-    stats_t stats() const;
-
-  #if defined(FAN_GUI)
-    void plot(loco_t* loco, std::string_view label);
-  #endif
-
-    void toggle_pause() { paused = !paused; }
-
-    std::vector<f32_t> buffer;
-    std::deque<int> min_q;
-    std::deque<int> max_q;
-    f32_t sum = 0.0f;
-    bool paused = false;
-  };
-
-  struct time_plot_scroll_t {
-    int scroll_offset = 0;
-    int view_size = 512;
-  };
-
   std::vector<std::function<void()>> draw_end_cb;
 
   void process_render();
@@ -1163,31 +1189,7 @@ fan::graphics::texture_pack_t texture_pack;
   template <typename T>
   bool is_stage_open() { return stage_loader.is_open<T>(); }
 
-  struct gui_state_t {
-#if defined(FAN_GUI)
-    void* settings_menu = nullptr;
-    std::future<void> font_future;
-#endif
-    fan::console_t console;
-  #if defined(FAN_GUI)
-    fan::time::timer fps_timer{false};
-    std::uint32_t frame_count = 0;
-    std::uint32_t last_fps = 0;
-    bool render_console = false;
-    bool render_debug_memory = false;
-    bool show_fps = false;
-    bool render_settings_menu = 0;
-    bool allow_docking = true;
-    bool gui_initialized = false;
-    fan::graphics::gui::text_logger_t text_logger;
-    fan::graphics::gui_draw_cb_t gui_draw_cb;
-    time_monitor_t frame_monitor;
-    time_monitor_t shape_monitor;
-    time_monitor_t gui_monitor;
-    time_plot_scroll_t time_plot_scroll;
-    bool enable_overlay = true;
-  #endif
-  } gui;
+  fan::graphics::gui_state_t gui;
 
 #if defined(FAN_GUI)
   void*                                 get_settings_menu()        { return gui.settings_menu; }
