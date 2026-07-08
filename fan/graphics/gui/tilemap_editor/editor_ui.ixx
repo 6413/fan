@@ -36,17 +36,6 @@ import fan.physics.b2_integration;
 import fan.io.file;
 
 export namespace fan::graphics::gui::tilemap_editor::ui {
-
-  template <typename enum_t, std::size_t N>
-  bool combo_enum(const char* label, enum_t& val, const char* const (&names)[N]) {
-    int idx = static_cast<int>(val);
-    if (fan::graphics::gui::combo(label, &idx, N, [&](int i) -> const char* { return names[i]; })) {
-      val = static_cast<enum_t>(idx);
-      return true;
-    }
-    return false;
-  }
-
   void draw_id_label(const std::string& id, const fan::vec3& world_pos, f32_t base_font_size, f32_t zoom, fan::graphics::render_view_t* render_view, fan::graphics::gui::draw_list_t* draw_list);
   void draw_id_labels(fte_t& editor);
   bool handle_editor_window(fte_t& editor, fan::vec2& editor_size);

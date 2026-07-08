@@ -1,12 +1,24 @@
 module;
 
-module fan.graphics.gui.tilemap_editor.core:ui;
+module fan.graphics.gui.tilemap_editor.core;
 
 #if defined (FAN_WINDOW)
 #if defined(FAN_2D)
 #if defined(FAN_GUI) && defined(FAN_PHYSICS_2D)
 
+import fan.graphics.loco;
+
 namespace fan::graphics::gui::tilemap_editor::ui {
+
+  template <typename enum_t, std::size_t N>
+  bool combo_enum(const char* label, enum_t& val, const char* const (&names)[N]) {
+    int idx = static_cast<int>(val);
+    if (fan::graphics::gui::combo(label, &idx, N, [&](int i) -> const char* { return names[i]; })) {
+      val = static_cast<enum_t>(idx);
+      return true;
+    }
+    return false;
+  }
 
   void draw_id_label(const std::string& id, const fan::vec3& world_pos, f32_t base_font_size, f32_t zoom, fan::graphics::render_view_t* render_view, fan::graphics::gui::draw_list_t* draw_list) {
     if (id.empty()) return;
@@ -96,7 +108,7 @@ namespace fan::graphics::gui::tilemap_editor::ui {
       fan::graphics::gui::pop_style_color();
 
       fan::vec2 viewport_size = fan::graphics::gui::get_content_region_avail();
-      auto& style = ImGui::GetStyle();
+      auto& style = gui::get_style();
       fan::vec2 frame_padding(style.FramePadding.x, style.FramePadding.y);
       fan::vec2 real_viewport_size = viewport_size + frame_padding * 2 + fan::vec2(0, style.WindowPadding.y * 2);
       real_viewport_size.x = fan::math::clamp(real_viewport_size.x, 1.f, real_viewport_size.x);
@@ -355,7 +367,7 @@ namespace fan::graphics::gui::tilemap_editor::ui {
 
       fan::graphics::gui::separator();
       if (fan::graphics::gui::is_window_hovered() && fan::window::is_key_down(fan::key_left_control)) {
-        zoom *= 1.f + ImGui::GetIO().MouseWheel * 0.08f;
+        zoom *= 1.f + gui::get_io().MouseWheel * 0.08f;
         zoom = fan::math::clamp(zoom, 0.01f, 8.f);
       }
       if (fan::graphics::gui::is_window_hovered() && fan::graphics::gui::is_mouse_dragging(fan::mouse_middle)) {
@@ -368,7 +380,7 @@ namespace fan::graphics::gui::tilemap_editor::ui {
       f32_t x_size = fan::graphics::gui::get_content_region_avail().x;
       fan::graphics::gui::drag("original image width", &editor.original_image_width, 1, 0, 10000);
 
-      auto& style = ImGui::GetStyle();
+      auto& style = gui::get_style();
       fan::vec2 prev_item_spacing(style.ItemSpacing.x, style.ItemSpacing.y);
       style.ItemSpacing = ImVec2(0, 0);
       editor.current_tile_brush_count = 0;
@@ -616,15 +628,15 @@ namespace fan::graphics::gui::tilemap_editor::ui {
         editor.brush.depth = idx + fte_t::shape_depths_t::max_layer_depth / 2;
       }
 
-      combo_enum("mode", editor.brush.mode, fte_t::brush_t::mode_names);
-      combo_enum("type", editor.brush.type, fte_t::brush_t::type_names);
+      fan::graphics::gui::tilemap_editor::ui::combo_enum("mode", editor.brush.mode, fte_t::brush_t::mode_names);
+      fan::graphics::gui::tilemap_editor::ui::combo_enum("type", editor.brush.type, fte_t::brush_t::type_names);
       if (fan::graphics::gui::slider("jitter", &editor.brush.jitter, 0, editor.brush.size.min())) {
         editor.grid_visualize.highlight_hover.set_size(editor.tile_size * editor.brush.size);
       }
       fan::graphics::gui::drag("jitter_chance", &editor.brush.jitter_chance, 1, 0, 0.01);
 
-      combo_enum("dynamics angle", editor.brush.dynamics_angle, fte_t::brush_t::dynamics_names);
-      combo_enum("dynamics color", editor.brush.dynamics_color, fte_t::brush_t::dynamics_names);
+      fan::graphics::gui::tilemap_editor::ui::combo_enum("dynamics angle", editor.brush.dynamics_angle, fte_t::brush_t::dynamics_names);
+      fan::graphics::gui::tilemap_editor::ui::combo_enum("dynamics color", editor.brush.dynamics_color, fte_t::brush_t::dynamics_names);
       if (fan::graphics::gui::drag("size", &editor.brush.size, 0.1)) editor.grid_visualize.highlight_hover.set_size(editor.tile_size * editor.brush.size);
 
       fan::graphics::gui::drag("tile size", &editor.brush.tile_size, 0.1);
