@@ -1658,6 +1658,7 @@ namespace fan::graphics {
     sprite.set_tc_size(half_size / tile_size);
   }
 
+#if defined(FAN_3D)
   line3d_t::line3d_t(line3d_properties_t p) {
     *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
       fan_init_struct(
@@ -1683,6 +1684,7 @@ namespace fan::graphics {
         .blending = p.blending
       ));
   }
+#endif
 
   aabb_t::aabb_t(const fan::vec3& c, const fan::vec2& hsize, f32_t d, const fan::color& col)
     : center(c), half_size(hsize), color(col), depth(d) {
