@@ -2,17 +2,6 @@ module;
 
 #include <fan/utility.h>
 
-  #include <vulkan/vulkan.h>
-#if defined(FAN_GUI)
-  #include <fan/imgui/implot.h>
-#endif
-#if defined(FAN_3D)
-  #include <assimp/vector3.h>
-#endif
-#if defined(FAN_PHYSICS_2D)
-  #include <box2d/math_functions.h>
-#endif
-
 export module fan.types.vector;
 import std;
 
@@ -300,20 +289,17 @@ export namespace fan {
 
     constexpr auto copysign(const auto& test0) const { return vec2_wrap_t(fan::math::copysign(this->x, test0.x), fan::math::copysign(this->y, test0.y)); }
 
-  #if defined(FAN_GUI)
-    constexpr operator ImPlotPoint() const { return ImPlotPoint((f32_t)this->x, (f32_t)this->y); }
-    constexpr vec2_wrap_t(const ImPlotPoint& v) { this->x = v.x; this->y = v.y; }
-    constexpr operator ImVec2() const { return ImVec2{(f32_t)this->x, (f32_t)this->y}; }
-    constexpr vec2_wrap_t(const ImVec2& v) { this->x = v.x; this->y = v.y; }
-  #endif
+    template <typename Dest> requires (!requires { std::declval<Dest>().derived(); } && std::is_default_constructible_v<Dest> && requires(Dest d) { d.x = this->x; d.y = this->y; })
+    constexpr operator Dest() const { Dest d{}; d.x = static_cast<std::remove_reference_t<decltype(d.x)>>(this->x); d.y = static_cast<std::remove_reference_t<decltype(d.y)>>(this->y); return d; }
 
-  #if defined(FAN_PHYSICS_2D)
-    constexpr operator b2Vec2() const { return b2Vec2{(f32_t)this->x, (f32_t)this->y}; }
-    constexpr vec2_wrap_t(const b2Vec2& v) { this->x = v.x; this->y = v.y; }
-  #endif
+    template <typename Src> requires (!requires { std::declval<Src>().derived(); } && requires(Src v) { v.x; v.y; })
+    constexpr vec2_wrap_t(const Src& v) { this->x = static_cast<value_type_t>(v.x); this->y = static_cast<value_type_t>(v.y); }
 
-    constexpr operator VkExtent2D() const { return VkExtent2D{(std::uint32_t)this->x, (std::uint32_t)this->y}; }
-    constexpr vec2_wrap_t(const VkExtent2D& v) { this->x = v.width; this->y = v.height; }
+    template <typename Dest> requires (!requires { std::declval<Dest>().derived(); } && std::is_default_constructible_v<Dest> && requires(Dest d) { d.width = this->x; d.height = this->y; })
+    constexpr operator Dest() const { Dest d{}; d.width = static_cast<std::remove_reference_t<decltype(d.width)>>(this->x); d.height = static_cast<std::remove_reference_t<decltype(d.height)>>(this->y); return d; }
+
+    template <typename Src> requires (!requires { std::declval<Src>().derived(); } && requires(Src v) { v.width; v.height; })
+    constexpr vec2_wrap_t(const Src& v) { this->x = static_cast<value_type_t>(v.width); this->y = static_cast<value_type_t>(v.height); }
 
     constexpr auto csangle() const { return std::atan2(this->x, -this->y); }
     constexpr auto angle() const { return std::atan2(this->y, this->x); }
@@ -365,8 +351,11 @@ export namespace fan {
     template <typename T> constexpr vec3_wrap_t(const vec3_wrap_t<T>& test0, auto value) : vec3_wrap_t(test0.x, test0.y, value) { }
 
   #if defined(FAN_3D)
-    vec3_wrap_t(const aiVector3D& v) { this->x = v.x; this->y = v.y; this->z = v.z; }
-    operator aiVector3D() { return {this->x, this->y, this->z}; }
+    template <typename Dest> requires (!requires { std::declval<Dest>().derived(); } && std::is_default_constructible_v<Dest> && requires(Dest d) { d.x = this->x; d.y = this->y; d.z = this->z; })
+    constexpr operator Dest() const { Dest d{}; d.x = static_cast<std::remove_reference_t<decltype(d.x)>>(this->x); d.y = static_cast<std::remove_reference_t<decltype(d.y)>>(this->y); d.z = static_cast<std::remove_reference_t<decltype(d.z)>>(this->z); return d; }
+
+    template <typename Src> requires (!requires { std::declval<Src>().derived(); } && requires(Src v) { v.x; v.y; v.z; })
+    constexpr vec3_wrap_t(const Src& v) { this->x = static_cast<value_type_t>(v.x); this->y = static_cast<value_type_t>(v.y); this->z = static_cast<value_type_t>(v.z); }
   #endif
 
     template <typename T>
@@ -398,8 +387,11 @@ export namespace fan {
     template <typename T> constexpr vec4_wrap_t(const vec3_wrap_t<T>& test0, auto value) : vec4_wrap_t(test0.x, test0.y, test0.z, value) { }
 
   #if defined(FAN_GUI)
-    constexpr operator ImVec4() const { return ImVec4(this->x, this->y, this->z, this->w); }
-    constexpr vec4_wrap_t(const ImVec4& v) { this->x = v.x; this->y = v.y; this->z = v.z; this->w = v.w; }
+    template <typename Dest> requires (!requires { std::declval<Dest>().derived(); } && std::is_default_constructible_v<Dest> && requires(Dest d) { d.x = this->x; d.y = this->y; d.z = this->z; d.w = this->w; })
+    constexpr operator Dest() const { Dest d{}; d.x = static_cast<std::remove_reference_t<decltype(d.x)>>(this->x); d.y = static_cast<std::remove_reference_t<decltype(d.y)>>(this->y); d.z = static_cast<std::remove_reference_t<decltype(d.z)>>(this->z); d.w = static_cast<std::remove_reference_t<decltype(d.w)>>(this->w); return d; }
+
+    template <typename Src> requires (!requires { std::declval<Src>().derived(); } && requires(Src v) { v.x; v.y; v.z; v.w; })
+    constexpr vec4_wrap_t(const Src& v) { this->x = static_cast<value_type_t>(v.x); this->y = static_cast<value_type_t>(v.y); this->z = static_cast<value_type_t>(v.z); this->w = static_cast<value_type_t>(v.w); }
   #endif
 
     template <typename T>
