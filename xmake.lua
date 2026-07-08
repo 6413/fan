@@ -56,8 +56,8 @@ local fan_features = {
   FAN_VULKAN = true,
   FAN_FMT = false,
   FAN_WAYLAND_SCREEN = false,
-  FAN_NETWORK = true,
-  FAN_AUDIO = true,
+  FAN_NETWORK = false,
+  FAN_AUDIO = false,
   FAN_VIDEO = false,
   FAN_REFLECTION = false
 }
