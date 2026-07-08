@@ -250,7 +250,7 @@ void fan::vulkan::context_t::destroy_shape_resources() {
     fan::graphics::camera_list_t::nr_t nr;
     nrtra.Open(&__fan_internal_camera_list, &nr);
     while (nrtra.Loop(&__fan_internal_camera_list, &nr)) {
-      camera_erase(nr);
+      cameras.camera_erase(nr);
     }
     nrtra.Close(&__fan_internal_camera_list);
   }
@@ -277,7 +277,7 @@ void fan::vulkan::context_t::destroy_shape_resources() {
     fan::graphics::viewport_list_t::nr_t nr;
     nrtra.Open(&__fan_internal_viewport_list, &nr);
     while (nrtra.Loop(&__fan_internal_viewport_list, &nr)) {
-      viewport_erase(nr);
+      cameras.viewport_erase(nr);
     }
     nrtra.Close(&__fan_internal_viewport_list);
   }
@@ -1894,83 +1894,83 @@ fan::graphics::context_functions_t fan::graphics::get_vk_context_functions() {
   };
   /*camera*/
   cf.camera_create = [](void* context) {
-    return VK_CTX->camera_create();
+    return VK_CTX->cameras.camera_create();
   };
   cf.camera_get = [](void* context, fan::graphics::camera_nr_t nr) -> decltype(auto) {
-    return VK_CTX->camera_get(nr);
+    return VK_CTX->cameras.camera_get(nr);
   };
   cf.camera_erase = [](void* context, fan::graphics::camera_nr_t nr) {
-    VK_CTX->camera_erase(nr);
+    VK_CTX->cameras.camera_erase(nr);
   };
   cf.camera_create_params = [](void* context, const fan::vec2& x, const fan::vec2& y) {
-    return VK_CTX->camera_create(x, y);
+    return VK_CTX->cameras.camera_create(x, y);
   };
   cf.camera_get_position = [](void* context, fan::graphics::camera_nr_t nr) {
-    return VK_CTX->camera_get_position(nr);
+    return VK_CTX->cameras.camera_get_position(nr);
   };
   cf.camera_set_position = [](void* context, fan::graphics::camera_nr_t nr, const fan::vec3& cp) {
-    VK_CTX->camera_set_position(nr, cp);
+    VK_CTX->cameras.camera_set_position(nr, cp);
   };
   cf.camera_get_center = [](void* context, fan::graphics::camera_nr_t nr) {
-    return VK_CTX->camera_get_center(nr);
+    return VK_CTX->cameras.camera_get_center(nr);
   };
   cf.camera_set_center = [](void* context, fan::graphics::camera_nr_t nr, const fan::vec3& cp) {
-    VK_CTX->camera_set_center(nr, cp);
+    VK_CTX->cameras.camera_set_center(nr, cp);
   };
   cf.camera_get_size = [](void* context, fan::graphics::camera_nr_t nr) {
-    return VK_CTX->camera_get_size(nr);
+    return VK_CTX->cameras.camera_get_size(nr);
   };
   cf.camera_get_zoom = [](void* context, fan::graphics::camera_nr_t nr) {
-    return VK_CTX->camera_get_zoom(nr);
+    return VK_CTX->cameras.camera_get_zoom(nr);
   };
   cf.camera_set_zoom = [](void* context, fan::graphics::camera_nr_t nr, f32_t new_zoom) {
-    VK_CTX->camera_set_zoom(nr, new_zoom);
+    VK_CTX->cameras.camera_set_zoom(nr, new_zoom);
   };
   cf.camera_set_ortho = [](void* context, fan::graphics::camera_nr_t nr, fan::vec2 x, fan::vec2 y) {
-    VK_CTX->camera_set_ortho(nr, x, y);
+    VK_CTX->cameras.camera_set_ortho(nr, x, y);
   };
   cf.camera_set_perspective = [](void* context, fan::graphics::camera_nr_t nr, f32_t fov, const fan::vec2& window_size) {
-    VK_CTX->camera_set_perspective(nr, fov, window_size);
+    VK_CTX->cameras.camera_set_perspective(nr, fov, window_size);
   };
   cf.camera_rotate = [](void* context, fan::graphics::camera_nr_t nr, const fan::vec2& offset) {
-    VK_CTX->camera_rotate(nr, offset);
+    VK_CTX->cameras.camera_rotate(nr, offset);
   };
   /*viewport*/
   cf.viewport_create = [](void* context) {
-    return VK_CTX->viewport_create();
+    return VK_CTX->cameras.viewport_create();
   };
   cf.viewport_create_params = [](void* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
     auto vk_context = VK_CTX;
-    auto nr = vk_context->viewport_create();
-    vk_context->viewport_set(nr, viewport_position_, viewport_size_, window_size);
+    auto nr = vk_context->cameras.viewport_create();
+    vk_context->cameras.viewport_set(nr, viewport_position_, viewport_size_, window_size);
     return nr;
   };
   cf.viewport_get = [](void* context, fan::graphics::viewport_nr_t nr) -> fan::graphics::context_viewport_t& {
-    return VK_CTX->viewport_get(nr);
+    return VK_CTX->cameras.viewport_get(nr);
   };
   cf.viewport_erase = [](void* context, fan::graphics::viewport_nr_t nr) {
-    VK_CTX->viewport_erase(nr);
+    VK_CTX->cameras.viewport_erase(nr);
   };
   cf.viewport_get_position = [](void* context, fan::graphics::viewport_nr_t nr) {
-    return VK_CTX->viewport_get_position(nr);
+    return VK_CTX->cameras.viewport_get_position(nr);
   };
   cf.viewport_get_size = [](void* context, fan::graphics::viewport_nr_t nr) {
-    return VK_CTX->viewport_get_size(nr);
+    return VK_CTX->cameras.viewport_get_size(nr);
   };
   cf.viewport_set = [](void* context, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
-    VK_CTX->viewport_set(viewport_position_, viewport_size_, window_size);
+    VK_CTX->cameras.viewport_set(viewport_position_, viewport_size_, window_size);
   };
   cf.viewport_set_nr = [](void* context, fan::graphics::viewport_nr_t nr, const fan::vec2& viewport_position_, const fan::vec2& viewport_size_, const fan::vec2& window_size) {
-    VK_CTX->viewport_set(nr, viewport_position_, viewport_size_, window_size);
+    VK_CTX->cameras.viewport_set(nr, viewport_position_, viewport_size_, window_size);
   };
   cf.viewport_zero = [](void* context, fan::graphics::viewport_nr_t nr) {
-    VK_CTX->viewport_zero(nr);
+    VK_CTX->cameras.viewport_zero(nr);
   };
   cf.viewport_inside = [](void* context, fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
-    return VK_CTX->viewport_inside(nr, position);
+    return VK_CTX->cameras.viewport_inside(nr, position);
   };
   cf.viewport_inside_wir = [](void* context, fan::graphics::viewport_nr_t nr, const fan::vec2& position) {
-    return VK_CTX->viewport_inside_wir(nr, position);
+    return VK_CTX->cameras.viewport_inside_wir(nr, position);
   };
   cf.image_get_pixel_data = [](void* context, fan::graphics::image_nr_t nr, std::uint32_t format, fan::vec2 uvp, fan::vec2 uvs) {
     return VK_CTX->image_get_pixel_data(nr, format, uvp, uvs);

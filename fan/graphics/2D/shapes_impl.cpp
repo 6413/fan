@@ -179,7 +179,7 @@ namespace fan::graphics {
   // warning does deep copy, addresses can die
   fan::graphics::context_shader_t shader_get(fan::graphics::shader_nr_t nr) {
     fan::graphics::context_shader_t context_shader;
-    context_shader.vk = *(fan::vulkan::context_t::shader_t*)fan::graphics::ctx()->shader_get(fan::graphics::ctx(), nr);
+    context_shader.vk = *(fan::vulkan::shader_t*)fan::graphics::ctx()->shader_get(fan::graphics::ctx(), nr);
     return context_shader;
   }
 
