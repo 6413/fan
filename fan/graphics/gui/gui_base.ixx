@@ -38,7 +38,6 @@ import fan.utility;
 import fan.math;
 import fan.math.intersection;
 import fan.formatter;
-import fan.print;
 import fan.graphics.common_context;
 
 export namespace fan::graphics::gui {
