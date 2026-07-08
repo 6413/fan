@@ -247,6 +247,18 @@ namespace fan::memory {
     enabled = was_enabled;
   }
 
+  bool heap_profiler_t::compare_alloc_size_t::operator()(const memory_data_t& lhs, const memory_data_t& rhs) const {
+    if (lhs.n != rhs.n) {
+      return lhs.n < rhs.n;
+    }
+    return lhs.p < rhs.p;
+  }
+
+  heap_profiler_t& heap_profiler_t::instance() {
+    static heap_profiler_t instance;
+    return instance;
+  }
+
   void heap_profiler_t::print_slowest_allocs(int top_count) {
     std::vector<memory_data_t> entries;
     entries.reserve(memory_map.size());

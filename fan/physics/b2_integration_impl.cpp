@@ -872,6 +872,20 @@ namespace fan::physics {
     return a.index1 == b.index1 && a.world0 == b.world0 && a.generation == b.generation;
   }
 
+  bool context_t::global_presolve(fan::physics::shape_id_t a, fan::physics::shape_id_t b, fan::physics::manifold_t* m, void* ctx) {
+    bool result = true;
+    for (auto& [fn, user_ctx] : static_cast<context_t*>(ctx)->presolve_handlers) {
+      if (!fn(a, b, m, user_ctx)) { result = false; }
+    }
+    return result;
+  }
+  void context_t::add_presolve_handler(pre_solve_fn_t* fn, void* ctx) {
+    presolve_handlers.emplace_back(fn, ctx);
+  }
+  void context_t::remove_presolve_handler(void* ctx) {
+    std::erase_if(presolve_handlers, [ctx](auto& p) { return p.second == ctx; });
+  }
+
   context_t::properties_t::properties_t() {}
 
   std::size_t context_t::pair_hash_t::operator()(const std::pair<std::uint64_t, std::uint64_t>& p) const {

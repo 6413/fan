@@ -8,6 +8,19 @@ import fan.random;
 
 namespace fan {
 
+  f32_t color::srgb_to_linear_channel(f32_t c) {
+    if (c <= 0.04045f) {
+      return c / 12.92f;
+    }
+    return std::pow((c + 0.055f) / 1.055f, 2.4f);
+  }
+  f32_t color::linear_to_srgb_channel(f32_t c) {
+    if (c <= 0.0031308f) {
+      return c * 12.92f;
+    }
+    return 1.055f * std::pow(c, 1.0f / 2.4f) - 0.055f;
+  }
+
   color color::hsv(f32_t H, f32_t S, f32_t V) {
     f32_t s = S / 100, v = V / 100;
     f32_t C = s * v;

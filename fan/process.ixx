@@ -17,14 +17,7 @@ import fan.print;
 import fan.log_dispatcher;
 
 export namespace fan::process {
-  inline fan::log_dispatcher_t default_logger() {
-    return fan::log_dispatcher_t {}
-      .on("ERROR:", [](std::string_view l) { fan::print_error(l); })
-      .on("error:", [](std::string_view l) { fan::print_error(l); })
-      .on("WARNING:", [](std::string_view l) { fan::print_warning(l); })
-      .on("warning:", [](std::string_view l) { fan::print_warning(l); })
-      .otherwise([](std::string_view l) { fan::print_impl(l); });
-  }
+  fan::log_dispatcher_t default_logger();
 
   struct spawn_t {
     void start(const std::vector<std::string>& args, std::function<void(std::string_view)> on_line);
@@ -94,19 +87,11 @@ export namespace fan::process {
   
   fan::event::task_t spawn_self_impl(std::function<void()> child_fn);
 
-  inline fan::event::task_t spawn_self(std::function<void()> child_fn) {
-    return spawn_self_impl(std::move(child_fn));
-  }
+  fan::event::task_t spawn_self(std::function<void()> child_fn);
 
   inline std::string spawn_self_env = "FAN_SPAWN_SELF_ID";
 
-  inline std::string ipc_default_path(std::string_view name) {
-#if defined(fan_platform_windows)
-    return std::string("\\\\.\\pipe\\") + std::string(name);
-#else
-    return std::string("/tmp/") + std::string(name) + ".sock";
-#endif
-  }
+  std::string ipc_default_path(std::string_view name);
 }
 
 #endif

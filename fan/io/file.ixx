@@ -37,11 +37,7 @@ export namespace fan {
         return path;
       }
       std::string extension(const std::string& file_path);
-      inline void ensure_extension(std::string& path, std::string_view ext) {
-        if (extension(path) != ext) {
-          path += ext;
-        }
-      }
+      void ensure_extension(std::string& path, std::string_view ext);
       template <path_t P>
       inline std::string replace_extension(P&& path, std::string_view ext) {
         std::string s = strip_extension(std::forward<P>(path));
@@ -187,13 +183,8 @@ export namespace fan {
 
       struct file_writer_t {
         void write_byte(std::uint8_t b) { write_bytes(std::span<const std::uint8_t>(&b, 1)); }
-        void write_repeat(std::uint8_t b, std::size_t n) {
-          std::array<std::uint8_t, 4096> buf; buf.fill(b);
-          while (n) { std::size_t w = std::min<std::size_t>(n, buf.size()); write_bytes(std::span<const std::uint8_t>(buf.data(), w)); n -= w; }
-        }
-        void write_bytes(std::span<const std::uint8_t> bytes) {
-          if (!bytes.empty() && fan::io::file::write(fp, (void*)bytes.data(), 1, bytes.size())) { throw std::runtime_error("write failed"); }
-        }
+        void write_repeat(std::uint8_t b, std::size_t n);
+        void write_bytes(std::span<const std::uint8_t> bytes);
         file_t* fp = nullptr;
       };
 
@@ -224,7 +215,5 @@ export namespace fan {
 }
 
 export namespace fan::path {
-  inline std::string join(const std::string& dir, const std::string& file) {
-    return (std::filesystem::path(dir.empty() ? "." : dir) / file).string();
-  }
+  std::string join(const std::string& dir, const std::string& file);
 }

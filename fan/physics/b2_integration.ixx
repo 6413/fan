@@ -374,19 +374,9 @@ export namespace fan {
       fan::physics::physics_update_cbs_t::nd_t& get_physics_update_data(fan::physics::physics_update_cbs_t::nr_t nr);
       void remove_physics_update(physics_update_cbs_t::nr_t nr);
 
-      static bool global_presolve(fan::physics::shape_id_t a, fan::physics::shape_id_t b, fan::physics::manifold_t* m, void* ctx) {
-        bool result = true;
-        for (auto& [fn, user_ctx] : static_cast<context_t*>(ctx)->presolve_handlers) {
-          if (!fn(a, b, m, user_ctx)) { result = false; }
-        }
-        return result;
-      }
-      void add_presolve_handler(pre_solve_fn_t* fn, void* ctx) {
-        presolve_handlers.emplace_back(fn, ctx);
-      }
-      void remove_presolve_handler(void* ctx) {
-        std::erase_if(presolve_handlers, [ctx](auto& p) { return p.second == ctx; });
-      }
+      static bool global_presolve(fan::physics::shape_id_t a, fan::physics::shape_id_t b, fan::physics::manifold_t* m, void* ctx);
+      void add_presolve_handler(pre_solve_fn_t* fn, void* ctx);
+      void remove_presolve_handler(void* ctx);
 
       joint_id_t create_revolute_joint(
         body_id_t body_a,

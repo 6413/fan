@@ -72,6 +72,55 @@ namespace fan {
     }
   }
   namespace time {
+    void timer::start() {
+      m_timer = fan::time::now();
+      if (m_time == no_interval_v) {
+        m_time = infinite_v;
+      }
+    }
+    void timer::start(std::uint64_t time) {
+      m_time = time;
+      restart();
+    }
+    void timer::start_seconds(f64_t s) {
+      start((std::uint64_t)(s * 1e9));
+    }
+    void timer::start_millis(f64_t ms) {
+      start((std::uint64_t)(ms * 1e6));
+    }
+    void timer::start_micros(f64_t us) {
+      start((std::uint64_t)(us * 1e3));
+    }
+    void timer::set_time(std::uint64_t time) {
+      m_time = time;
+    }
+    void timer::restart() {
+      if (m_time == no_interval_v) {
+        return;
+      }
+      m_timer = fan::time::now();
+    }
+    timer::timer() {
+      start();
+    }
+    timer::timer(std::uint64_t time, bool start_timer) : m_time(time) {
+      if (start_timer) {
+        restart();
+      }
+    }
+    timer::timer(bool start_timer) {
+      if (start_timer) {
+        start();
+      }
+    }
+    bool interval_t::tick(f32_t dt) {
+      timer -= dt;
+      if (timer <= 0.f) {
+        timer += interval;
+        return true;
+      }
+      return false;
+    }
     bool& is_measuring() {
       static bool measure = true;
       return measure;
@@ -95,5 +144,12 @@ namespace fan {
       }
       timer.restart();
     }
+  }
+  void cooldown_t::tick(f32_t dt) {
+    if (current > 0.f) { current -= dt; }
+  }
+  bool cooldown_t::tick_ready(f32_t dt) {
+    tick(dt);
+    return is_ready();
   }
 }
