@@ -199,7 +199,8 @@ local feature_modules = {
     "fan/graphics/2D/algorithm/raycast_grid.ixx", "fan/graphics/gameplay/gameplay_types.ixx",
     "fan/graphics/gameplay/gameplay.ixx", "fan/graphics/graphics_event.ixx", "fan/texture_pack/tp0.ixx",
     "fan/physics/physics_types.ixx", "fan/noise.ixx", "fan/pathfind.ixx", "fan/spatial.ixx", "fan/ecs.ixx",
-    "fan/graphics/gui/console.ixx"
+    "fan/graphics/gui/console.ixx",
+    "fan/graphics/gui/tilemap_editor/loader.ixx", "fan/graphics/gui/tilemap_editor/renderer0.ixx"
   },
 
   FAN_VULKAN = { "fan/graphics/vulkan/vk_core_types.ixx", "fan/graphics/vulkan/vk_core_vai.ixx", "fan/graphics/vulkan/vk_core_image.ixx", "fan/graphics/vulkan/vk_core_compute.ixx", "fan/graphics/vulkan/vk_core_pipeline.ixx", "fan/graphics/vulkan/vk_core_camera_subsystem.ixx", "fan/graphics/vulkan/vk_core_uniform_block.ixx", "fan/graphics/vulkan/vk_core_shader_subsystem.ixx", "fan/graphics/vulkan/vk_core.ixx" },
@@ -216,8 +217,8 @@ local feature_modules = {
     "fan/graphics/gui/gameplay/equipment.ixx", "fan/graphics/gui/gameplay/hotbar.ixx",
     "fan/graphics/gui/gameplay/inventory.ixx", "fan/graphics/gui/gameplay/inventory_hotbar.ixx",
     "fan/graphics/gui/gameplay/drag_drop.ixx", "fan/graphics/gui/gameplay/slot_renderer.ixx",
-    "fan/graphics/gui/tilemap_editor/loader.ixx", "fan/graphics/gui/tilemap_editor/editor_core.ixx",
-    "fan/graphics/gui/tilemap_editor/editor_ui.ixx", "fan/graphics/gui/tilemap_editor/renderer0.ixx"
+    "fan/graphics/gui/tilemap_editor/editor_core.ixx",
+    "fan/graphics/gui/tilemap_editor/editor_ui.ixx"
   },
   FAN_3D = { "fan/graphics/3D/objects/fms.ixx", "fan/graphics/voxel.ixx" },
   FAN_VIDEO = { "fan/video/codec.ixx", "fan/video/screen.ixx", "fan/video/renderer.ixx", "fan/video/video.ixx" },
