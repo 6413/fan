@@ -21,7 +21,9 @@ import fan.network;
 import fan.event.types;
 import fan.event;
 import fan.types;
+#if defined(FAN_JSON)
 import fan.types.json;
+#endif
 import fan.graphics.shapes;
 import fan.print.error;
 
