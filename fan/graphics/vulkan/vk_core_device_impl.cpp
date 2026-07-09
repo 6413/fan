@@ -102,7 +102,7 @@ void fan::vulkan::context_t::open_no_window() {
 void fan::vulkan::context_t::open(fan::window_t& window) {
   shaders.init(*this);
   if (fan::time::is_measuring()) {
-    fan::print_measure("open start");
+    fan::time::print_measure("open start");
   }
   fan::time::timer t_total;
   fan::time::timer t;
