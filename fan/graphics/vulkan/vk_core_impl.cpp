@@ -248,7 +248,7 @@ void fan::vulkan::pipeline_t::open(fan::vulkan::context_t& context, const proper
   VkGraphicsPipelineCreateInfo pipelineInfo{};
   pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
   pipelineInfo.stageCount = 2;
-  pipelineInfo.pStages = context.shader_get(p.shader).shader_stages;
+  pipelineInfo.pStages = context.shaders.shader_get(p.shader).shader_stages;
   pipelineInfo.pVertexInputState = &vertexInputInfo;
   pipelineInfo.pInputAssemblyState = &inputAssembly;
   pipelineInfo.pViewportState = &viewportState;

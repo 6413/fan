@@ -259,7 +259,7 @@ void fan::vulkan::context_t::destroy_shape_resources() {
     fan::graphics::shader_list_t::nr_t nr;
     nrtra.Open(&__fan_internal_shader_list, &nr);
     while (nrtra.Loop(&__fan_internal_shader_list, &nr)) {
-      shader_erase(nr);
+      shaders.shader_erase(nr);
     }
     nrtra.Close(&__fan_internal_shader_list);
   }
@@ -1085,19 +1085,19 @@ void fan::vulkan::context_t::copy_buffer_cmd(VkCommandBuffer cmd, VkBuffer src_b
   vkCmdCopyBuffer(cmd, src_buffer, dst_buffer, 1, &r);
 }
 
-void fan::vulkan::context_t::upload_to_buffer(VkBuffer dest_buffer, std::span<const std::byte> data, VkDeviceSize dst_offset) {
-  if (data.empty()) return;
+void fan::vulkan::context_t::upload_to_buffer(VkBuffer dest_buffer, const void* data, std::size_t size, VkDeviceSize dst_offset) {
+  if (!data || size == 0) return;
 
-  auto alloc = staging_ring_buffer.allocate(data.size());
+  auto alloc = staging_ring_buffer.allocate(size);
   
-  std::memcpy(alloc.mapped_ptr, data.data(), data.size());
+  std::memcpy(alloc.mapped_ptr, data, size);
 
   VkCommandBuffer cmd = begin_async_transfer_commands();
   
   VkBufferCopy copy_region{
       .srcOffset = alloc.offset,
       .dstOffset = dst_offset,
-      .size = data.size()
+      .size = size
   };
   
   vkCmdCopyBuffer(cmd, alloc.buffer, dest_buffer, 1, &copy_region);
@@ -1115,6 +1115,16 @@ void fan::vulkan::context_t::upload_to_buffer(VkBuffer dest_buffer, std::span<co
           ring_ptr->advance_tail(captured_head);
       }
   });
+}
+
+void fan::vulkan::context_t::upload_buffer(const void* data, std::size_t size, VkBufferUsageFlags usage, VkBuffer& buffer, VmaAllocation& allocation) {
+  if (size == 0) return;
+  create_buffer(size, usage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer, allocation);
+  upload_to_buffer(buffer, data, size);
+}
+void fan::vulkan::context_t::upload_buffer(const void* data, std::size_t size, VkBufferUsageFlags usage, buffer_t& buffer) {
+  upload_buffer(data, size, usage, buffer.buffer, buffer.allocation);
+  buffer.size = size;
 }
 
 void fan::vulkan::context_t::fill_buffer_cmd(VkCommandBuffer cmd, buffer_t& buffer, VkDeviceSize offset, VkDeviceSize size, std::uint32_t data) {
@@ -1172,8 +1182,8 @@ void fan::vulkan::compute_pipeline_t::open(fan::vulkan::context_t& context, cons
   fan::vulkan::validate(vkCreateDescriptorSetLayout(context.device, &descriptor_info, nullptr, &descriptor_layout));
 
   auto shader_code = fan::graphics::read_shader(path);
-  auto spirv = fan::vulkan::context_t::compile_file(path, shaderc_compute_shader, shader_code);
-  VkShaderModule shader = context.create_shader_module(spirv);
+  auto spirv = context.shaders.compile_file(path, shaderc_compute_shader, shader_code);
+  VkShaderModule shader = context.shaders.create_shader_module(spirv);
 
   VkPushConstantRange push_range{};
   push_range.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -1767,31 +1777,31 @@ void fan::vulkan::context_t::set_vsync(fan::window_t* window, bool flag) {
 fan::graphics::context_functions_t fan::graphics::get_vk_context_functions() {
   fan::graphics::context_functions_t cf;
   cf.shader_create = [](void* context) {
-    return VK_CTX->shader_create();
+    return VK_CTX->shaders.shader_create();
   };
   cf.shader_get = [](void* context, fan::graphics::shader_nr_t nr) {
-    return (void*)&VK_CTX->shader_get(nr);
+    return (void*)&VK_CTX->shaders.shader_get(nr);
   };
   cf.shader_erase = [](void* context, fan::graphics::shader_nr_t nr) {
-    VK_CTX->shader_erase(nr);
+    VK_CTX->shaders.shader_erase(nr);
   };
   cf.shader_use = [](void* context, fan::graphics::shader_nr_t nr) {
-    VK_CTX->shader_use(nr);
+    VK_CTX->shaders.shader_use(nr);
   };
   cf.shader_set_vertex = [](void* context, fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& vertex_code) {
-    VK_CTX->shader_set_vertex(nr, file_path, vertex_code);
+    VK_CTX->shaders.shader_set_vertex(nr, file_path, vertex_code);
   };
   cf.shader_set_fragment = [](void* context, fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& fragment_code) {
-    VK_CTX->shader_set_fragment(nr, file_path, fragment_code);
+    VK_CTX->shaders.shader_set_fragment(nr, file_path, fragment_code);
   };
   cf.shader_set_compute = [](void* context, fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& compute_code) {
-    VK_CTX->shader_set_compute(nr, file_path, compute_code);
+    VK_CTX->shaders.shader_set_compute(nr, file_path, compute_code);
   };
   cf.shader_dispatch_compute = [](void* context, fan::graphics::shader_nr_t nr, uint32_t x, uint32_t y, uint32_t z) {
-    VK_CTX->shader_dispatch_compute(nr, x, y, z);
+    VK_CTX->shaders.shader_dispatch_compute(nr, x, y, z);
   };
   cf.shader_compile = [](void* context, fan::graphics::shader_nr_t nr) {
-    return VK_CTX->shader_compile(nr);
+    return VK_CTX->shaders.shader_compile(nr);
   };
   /*image*/
   cf.image_create = [](void* context) {

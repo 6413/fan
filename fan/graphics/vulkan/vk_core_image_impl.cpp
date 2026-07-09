@@ -543,8 +543,8 @@ fan::graphics::image_nr_t fan::vulkan::context_t::request_image_load_async(
     if (!owned.valid()) { return; }
 
     std::lock_guard lock(async_image_mutex);
-    pending_image_uploads.emplace_back(
-      fan::graphics::decoded_image_payload_t{
+    pending_image_uploads.push_back({
+      .payload = fan::graphics::decoded_image_payload_t{
         .filename = path_str,
         .size = owned.size,
         .channels = owned.channels,
@@ -552,15 +552,15 @@ fan::graphics::image_nr_t fan::vulkan::context_t::request_image_load_async(
         .properties = fan::graphics::format_converter::image_vulkan_to_global(p),
         .target_nr = nr
       },
-      on_gpu_uploaded
-    );
+      .callback = on_gpu_uploaded
+    });
   }).detach();
 
   return nr;
 }
 
 void fan::vulkan::context_t::process_async_image_uploads() {
-  std::vector<std::pair<fan::graphics::decoded_image_payload_t, std::function<void(const fan::graphics::decoded_image_payload_t&)>>> ready_uploads;
+  std::vector<pending_image_upload_t> ready_uploads;
   
   {
       std::lock_guard<std::mutex> lock(async_image_mutex);
@@ -568,7 +568,9 @@ void fan::vulkan::context_t::process_async_image_uploads() {
       ready_uploads.swap(pending_image_uploads);
   }
 
-  for (auto& [payload, callback] : ready_uploads) {
+  for (auto& upload : ready_uploads) {
+      auto& payload = upload.payload;
+      auto& callback = upload.callback;
       fan::image::info_t ii;
       ii.data = payload.raw_pixels.data();
       ii.size = payload.size;
