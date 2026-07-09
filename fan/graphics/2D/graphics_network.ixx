@@ -85,7 +85,11 @@ export namespace fan::graphics::network {
             if (data.done && on_receive) {
               std::vector<receive_type_t> items(1);
               fan::graphics::shape_deserialize_t it;
+#if defined(FAN_JSON)
               while (it.iterate(fan::json::parse(buffer), &items.back())) {
+#else
+              while (false) {
+#endif
                 items.resize(items.size() + 1);
               }
               on_receive(items, buffer);

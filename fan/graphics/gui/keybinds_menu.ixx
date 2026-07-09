@@ -95,6 +95,7 @@ export namespace fan::graphics::gui {
     void sync_from_input_action();
     void update_input_action(std::string_view action_name);
 
+#if defined(FAN_JSON)
     void add_bindings_to_json(
       fan::json& binds_arr,
       std::set<std::string>& unique_combos,
@@ -103,6 +104,7 @@ export namespace fan::graphics::gui {
 
     void load_from_settings_json(const fan::json& j);
     void save_to_settings_json(fan::json& j) const;
+#endif
     void apply_to_input_action();
     void refresh_input_actions();
 
