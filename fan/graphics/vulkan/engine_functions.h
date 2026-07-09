@@ -1039,6 +1039,7 @@ void shapes_draw() {
   viewport.sic();
   loco_t::camera_t camera;
   camera.sic();
+  decltype(camera.NRI) camera_id = 0;
   fan::graphics::image_t texture;
   texture.sic();
   fan::graphics::shader_t shader_nr;
@@ -1080,13 +1081,13 @@ void shapes_draw() {
     auto& shader = *(fan::vulkan::shader_t*)loco.context_functions.shader_get(&context, shape_shader_nr);
     shader.projection_view_block->edit_instance(
       context,
-      0,
+      camera_id,
       &fan::vulkan::view_projection_t::view,
       camera_data.view
     );
     shader.projection_view_block->edit_instance(
       context,
-      0,
+      camera_id,
       &fan::vulkan::view_projection_t::projection,
       camera_data.projection
     );
@@ -1273,6 +1274,7 @@ void shapes_draw() {
       }
       case fan::graphics::Key_e::camera: {
         camera = *(loco_t::camera_t*)KeyTraverse.kd();
+        camera_id = (std::uint32_t)camera.NRI;
         break;
       }
       case fan::graphics::Key_e::visible: {
@@ -1319,7 +1321,7 @@ void shapes_draw() {
       if (!shape_shader_nr) continue;
       auto& pipeline = prepare(shape_type, shape_shader_nr);
       fan::vulkan::context_t::push_constants_t pc{};
-      pc.camera_id = 0;
+      pc.camera_id = camera_id;
       pc.texture_id = texture_id(texture);
       push(pipeline, pc);
 
@@ -1354,7 +1356,7 @@ void shapes_draw() {
       if (particle_emitters.empty()) { continue; }
       auto& pipeline = prepare(shape_type, shape_shader_nr);
       fan::vulkan::context_t::push_constants_t pc{};
-      pc.camera_id = 0;
+      pc.camera_id = camera_id;
       pc.texture_id = texture_id(texture);
       push(pipeline, pc);
 
@@ -1387,7 +1389,7 @@ void shapes_draw() {
     do {
       auto& pipeline = prepare(shape_type, shape_shader_nr);
       fan::vulkan::context_t::push_constants_t pc{};
-      pc.camera_id = 0;
+      pc.camera_id = camera_id;
       pc.texture_id = texture_id(texture);
 
       auto off = BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type);

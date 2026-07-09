@@ -36,7 +36,14 @@ import fan.physics.b2_integration;
 import fan.io.file;
 
 export namespace fan::graphics::gui::tilemap_editor::ui {
-  void draw_id_label(const std::string& id, const fan::vec3& world_pos, f32_t base_font_size, f32_t zoom, fan::graphics::render_view_t* render_view, fan::graphics::gui::draw_list_t* draw_list);
+  void draw_id_label(
+    const std::string& id, 
+    const fan::vec3& world_pos, 
+    f32_t base_font_size, 
+    f32_t zoom, 
+    fan::graphics::render_view_t* render_view, 
+    fan::graphics::gui::draw_list_t* draw_list
+  );
   void draw_id_labels(fte_t& editor);
   bool handle_editor_window(fte_t& editor, fan::vec2& editor_size);
   bool handle_editor_settings_window(fte_t& editor);

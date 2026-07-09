@@ -133,7 +133,6 @@ int main() {
 
   engine.loop([&] {
     gui::tilemap_editor::ui::handle_gui(fte);
-
     if (scene.render_scene && scene.player) {
       if (gui::begin("Program", 0, gui::window_flags_no_background)) {
         gui::set_viewport(views.program.viewport);
