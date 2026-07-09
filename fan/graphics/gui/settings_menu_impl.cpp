@@ -50,6 +50,7 @@ namespace fan::graphics::gui {
     *gloco()->get_contrast_ptr()            = pp.contrast;
   }
 
+#if defined(FAN_JSON)
   void settings_config_t::load_from_json(const fan::json& j) {
     if (j.contains("display")) {
       const auto& d = j["display"];
@@ -190,6 +191,7 @@ namespace fan::graphics::gui {
 
     return j;
   }
+#endif
 
   settings_menu_t::settings_menu_t() {
     load();
@@ -990,6 +992,7 @@ namespace fan::graphics::gui {
   }
 
   bool settings_menu_t::load() {
+#if defined(FAN_JSON)
     std::string content;
     if (fan::io::file::read(config.config_save_path, &content) != 0) return false;
     fan::json j;
@@ -1004,12 +1007,15 @@ namespace fan::graphics::gui {
       keybind_menu.load_from_settings_json(j);
       keybind_menu.apply_to_input_action();
     }
+#endif
     return true;
   }
   void settings_menu_t::save() {
+#if defined(FAN_JSON)
     fan::json j = config.to_json();
     keybind_menu.save_to_settings_json(j);
     fan::io::file::write(config.config_save_path, j.dump(2), std::ios_base::binary);
+#endif
   }
 } // namespace fan::graphics::gui
 
