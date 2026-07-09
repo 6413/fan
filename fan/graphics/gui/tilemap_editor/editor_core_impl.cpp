@@ -47,6 +47,7 @@ import fan.graphics.gui.text_logger;
 
 using namespace fan::graphics;
 
+#if defined(FAN_JSON)
 void fte_t::spawn_mark_t::json_write(fan::json& j) const {
   j["position"] = position;
   j["size"] = size;
@@ -62,6 +63,7 @@ void fte_t::spawn_mark_t::json_read(const fan::json& j) {
   type = j.value("mesh_property", mesh_property_t::mark);
   id = j.value("id", "");
 }
+#endif
 
 std::uint32_t fte_t::find_layer_shape(const std::vector<shapes_t::global_t::layer_t>& vec, bool top) {
   std::uint32_t found = invalid;
