@@ -68,8 +68,10 @@ export namespace fan::graphics::gui {
       f32_t exposure = 1.0f;
       f32_t contrast = 1.0f;
     };
+#if defined(FAN_JSON)
     void load_from_json(const fan::json& j) ;
     fan::json to_json() const;
+#endif
     std::string config_save_path = "fan_settings.json";
     display_settings_t display;
     performance_settings_t performance;

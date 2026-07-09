@@ -197,8 +197,10 @@ export struct fte_t {
     std::string id;
     fan::color color = fan::colors::white;
 
+#if defined(FAN_JSON)
     void json_write(fan::json& j) const;
     void json_read(const fan::json& j);
+#endif
   };
 
   // --- Declarations (Implemented in .cpp) ---
