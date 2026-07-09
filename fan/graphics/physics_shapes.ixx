@@ -31,7 +31,9 @@ import fan.physics.b2_integration;
 import fan.physics.common_context;
 import fan.graphics.shapes.types;
 import fan.window.input_action;
+#if defined(FAN_JSON)
 import fan.types.json;
+#endif
 import fan.math;
 import fan.random;
 import fan.ecs;
