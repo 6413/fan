@@ -101,8 +101,16 @@ export namespace fan {
         ~collision_scope_t();
         collision_scope_t(const collision_scope_t&) = delete;
         collision_scope_t& operator=(const collision_scope_t&) = delete;
-        fan::physics::collision_listener_handle_t on_enter(fan::physics::body_id_t body, std::function<void()> cb);
-        fan::physics::collision_listener_handle_t on_exit(fan::physics::body_id_t body, std::function<void()> cb);
+        fan::physics::collision_listener_handle_t on_enter(fan::physics::body_id_t body, auto cb) {
+          auto h = fan::physics::add_collision_listeners(body, {.on_enter = std::move(cb)});
+          handles.push_back(h);
+          return h;
+        }
+        fan::physics::collision_listener_handle_t on_exit(fan::physics::body_id_t body, auto cb) {
+          auto h = fan::physics::add_collision_listeners(body, {.on_exit = std::move(cb)});
+          handles.push_back(h);
+          return h;
+        }
         std::vector<fan::physics::collision_listener_handle_t> handles;
       };
 

@@ -304,16 +304,6 @@ namespace fan::graphics::physics {
   collision_scope_t::~collision_scope_t() {
     for (auto& h : handles) fan::physics::remove_collision_listener(h);
   }
-  fan::physics::collision_listener_handle_t collision_scope_t::on_enter(fan::physics::body_id_t body, std::function<void()> cb) {
-    auto h = fan::physics::add_collision_listeners(body, {.on_enter = std::move(cb)});
-    handles.push_back(h);
-    return h;
-  }
-  fan::physics::collision_listener_handle_t collision_scope_t::on_exit(fan::physics::body_id_t body, std::function<void()> cb) {
-    auto h = fan::physics::add_collision_listeners(body, {.on_exit = std::move(cb)});
-    handles.push_back(h);
-    return h;
-  }
 
   void base_shape_t::set_shape(fan::graphics::shape_t&& shape) {
     /*fan::vec3 prev_pos;
