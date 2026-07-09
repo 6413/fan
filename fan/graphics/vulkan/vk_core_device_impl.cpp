@@ -548,7 +548,7 @@ void fan::vulkan::context_t::create_logical_device() {
 
     auto hasExt = [&](const char* name) {
       for (auto& e : exts) {
-        if (strcmp(e.extensionName, name) == 0) return true;
+        if (std::strcmp(e.extensionName, name) == 0) return true;
       }
       return false;
     };
@@ -1714,7 +1714,7 @@ bool fan::vulkan::context_t::check_validation_layer_support() {
     bool layerFound = false;
 
     for (const auto& layerProperties : availableLayers) {
-      if (strcmp(layerName, layerProperties.layerName) == 0) {
+      if (std::strcmp(layerName, layerProperties.layerName) == 0) {
         layerFound = true;
         break;
       }
