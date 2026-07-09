@@ -187,7 +187,7 @@ fan::graphics::shader_nr_t loco_t::shader_create() {
 
 fan::graphics::context_shader_t loco_t::shader_get(fan::graphics::shader_nr_t nr) {
   fan::graphics::context_shader_t obj {};
-  obj.vk = fan::graphics::get_vk_context().shader_get(nr);
+  obj.vk = fan::graphics::get_vk_context().shaders.shader_get(nr);
   return obj;
 }
 

@@ -107,9 +107,9 @@ fan::graphics::shader_nr_t fan::vulkan::shader_subsystem_t::shader_create() {
   __fan_internal_shader_list[nr].internal = new fan::vulkan::shader_t;
   auto& shader = shader_get(nr);
   shader.projection_view_block = new std::remove_pointer_t<decltype(shader.projection_view_block)>;
-  shader.projection_view_block->open(ctx);
+  shader.projection_view_block->open(*ctx);
   for (std::uint32_t i = 0; i < fan::vulkan::max_camera; ++i) {
-    shader.projection_view_block->push_ram_instance(ctx, {});
+    shader.projection_view_block->push_ram_instance(*ctx, {});
   }
   return nr;
 }
@@ -117,10 +117,10 @@ void fan::vulkan::shader_subsystem_t::shader_erase(fan::graphics::shader_nr_t nr
   auto& shader = shader_get(nr);
   for (auto& stage : shader.shader_stages) {
     if (stage.module) {
-      vkDestroyShaderModule(ctx.device, stage.module, nullptr);
+      vkDestroyShaderModule(ctx->device, stage.module, nullptr);
     }
   }
-  shader.projection_view_block->close(ctx);
+  shader.projection_view_block->close(*ctx);
   delete shader.projection_view_block;
   delete static_cast<fan::vulkan::shader_t*>(__fan_internal_shader_list[nr].internal);
   if (recycle) {
@@ -136,7 +136,7 @@ VkShaderModule fan::vulkan::shader_subsystem_t::create_shader_module(const std::
   createInfo.pCode = code.data();
 
   VkShaderModule shaderModule;
-  if (vkCreateShaderModule(ctx.device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+  if (vkCreateShaderModule(ctx->device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
     fan::throw_error("failed to create shader module!");
   }
 
@@ -175,7 +175,7 @@ void fan::vulkan::shader_subsystem_t::shader_set_compute(
 }
 void fan::vulkan::shader_subsystem_t::shader_set_camera(fan::graphics::shader_nr_t nr, fan::graphics::camera_nr_t camera_nr) {
   auto& shader = shader_get(nr);
-  auto& camera = ctx.cameras.camera_get(camera_nr);
+  auto& camera = ctx->cameras.camera_get(camera_nr);
 
   std::uint32_t camera_index = camera_nr.gint();
 
@@ -186,14 +186,14 @@ void fan::vulkan::shader_subsystem_t::shader_set_camera(fan::graphics::shader_nr
 #endif
 
   shader.projection_view_block->edit_instance(
-    ctx,
+    *ctx,
     camera_index,
     &fan::vulkan::view_projection_t::projection,
     camera.projection
   );
 
   shader.projection_view_block->edit_instance(
-    ctx,
+    *ctx,
     camera_index,
     &fan::vulkan::view_projection_t::view,
     camera.view
@@ -226,7 +226,7 @@ bool fan::vulkan::shader_subsystem_t::shader_compile(fan::graphics::shader_nr_t 
     auto spirv = preloaded_spv.empty() ? load_or_compile(path, kind, code) : std::move(preloaded_spv);
     if (shader.shader_stages[index].module != VK_NULL_HANDLE) {
       VkShaderModule old_module = shader.shader_stages[index].module;
-      ctx.get_current_deletion_queue().push_function([=, device = ctx.device]() {
+      ctx->get_current_deletion_queue().push_function([=, device = ctx->device]() {
         vkDestroyShaderModule(device, old_module, nullptr);
       });
     }
