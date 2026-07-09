@@ -275,6 +275,7 @@ export namespace fan {
   #if defined(FAN_GUI)
     color(const fan::graphics::gui::vec4_t& v);
     operator fan::graphics::gui::vec4_t() const;
+  #endif
     constexpr operator fan::vec3() const {
       return fan::vec3{ r, g, b };
     }
@@ -287,13 +288,8 @@ export namespace fan {
     constexpr operator fan::graphics::gui::u32_t() const {
       return get_gui_color();
     }
-  #endif
 
     using value_type = f32_t;
-
-    constexpr operator fan::vec4_wrap_t<value_type>() const {
-      return *(fan::vec4_wrap_t<value_type>*)this;
-    }
 
     static fan::color hsv(f32_t H, f32_t S, f32_t V);
     static fan::vec3 to_hsv(const fan::color& c);
