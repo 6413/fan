@@ -351,6 +351,7 @@ target("a.exe")
 
   if has_config("FAN_VULKAN") then
     add_packages("vulkan-headers", "shaderc")
+    if is_plat("linux") then add_syslinks("vulkan") end
   end
 
   for _, f in ipairs(module_files) do add_files(f) end
