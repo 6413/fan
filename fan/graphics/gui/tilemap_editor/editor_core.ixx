@@ -27,7 +27,9 @@ import fan.graphics.gui.types;
 import fan.graphics.gui;
 import fan.types.color;
 import fan.types.vector;
+#if defined(FAN_JSON)
 import fan.types.json;
+#endif
 import fan.math;
 import fan.print.error;
 import fan.file_dialog;

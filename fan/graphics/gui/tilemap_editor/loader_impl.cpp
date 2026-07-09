@@ -16,7 +16,9 @@ module fan.graphics.tilemap_editor.loader;
 #if defined(FAN_2D)
 #if defined(FAN_PHYSICS_2D)
 
+#if defined(FAN_JSON)
 import fan.types.json;
+#endif
 import fan.graphics.loco;
 
 namespace fan::graphics {

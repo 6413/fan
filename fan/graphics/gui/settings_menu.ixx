@@ -14,7 +14,9 @@ import std;
 import fan.types;
 import fan.types.vector;
 import fan.types.color;
+#if defined(FAN_JSON)
 import fan.types.json;
+#endif
 import fan.time;
 import fan.window;
 import fan.graphics.gui.types;
