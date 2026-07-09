@@ -2958,12 +2958,14 @@ namespace fan::graphics::physics {
     });
   }
 
+#if defined(FAN_JSON)
   void ai_character2d_t::open(const character_config_t& properties, fan::vec2 initial_pos, const std::source_location& callers_path) {
     body = physics::from_json(properties, callers_path);
     body.set_physics_position(initial_pos);
     if (properties.draw_offset != fan::vec2{0, 0}) { body.set_draw_offset(properties.draw_offset); }
     if (properties.target) { behavior.target = properties.target; }
   }
+#endif
   void ai_character2d_t::update(fan::vec2 tile_size) {
     behavior.update_ai(&body, navigation, behavior.target->get_position(), tile_size);
   }
