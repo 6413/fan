@@ -291,7 +291,7 @@ export namespace fan {
 
     using value_type = f32_t;
 
-    constexpr operator fan::vec4_wrap_t<value_type>() {
+    constexpr operator fan::vec4_wrap_t<value_type>() const {
       return *(fan::vec4_wrap_t<value_type>*)this;
     }
 
