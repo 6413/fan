@@ -563,7 +563,9 @@ export namespace fan {
         bool oneway_enabled = false;
       };
 
+#if defined(FAN_JSON)
       character2d_t from_json(const character_config_t& config, const std::source_location& callers_path = std::source_location::current());
+#endif
 
       struct attack_hitbox_t {
         struct hitbox_spawn_t {
@@ -651,7 +653,9 @@ export namespace fan {
         ai_behavior_t behavior;
         navigation_helper_t navigation;
 
+#if defined(FAN_JSON)
         void open(const character_config_t& properties, fan::vec2 initial_pos, const std::source_location& callers_path = std::source_location::current());
+#endif
         void update(fan::vec2 tile_size);
       };
 
