@@ -301,6 +301,20 @@ namespace fan::graphics::physics {
     return b2MassData {.mass = mass, .center = center_of_mass, .rotationalInertia = rotational_inertia};
   }
 
+  collision_scope_t::~collision_scope_t() {
+    for (auto& h : handles) fan::physics::remove_collision_listener(h);
+  }
+  fan::physics::collision_listener_handle_t collision_scope_t::on_enter(fan::physics::body_id_t body, std::function<void()> cb) {
+    auto h = fan::physics::add_collision_listeners(body, {.on_enter = std::move(cb)});
+    handles.push_back(h);
+    return h;
+  }
+  fan::physics::collision_listener_handle_t collision_scope_t::on_exit(fan::physics::body_id_t body, std::function<void()> cb) {
+    auto h = fan::physics::add_collision_listeners(body, {.on_exit = std::move(cb)});
+    handles.push_back(h);
+    return h;
+  }
+
   void base_shape_t::set_shape(fan::graphics::shape_t&& shape) {
     /*fan::vec3 prev_pos;
     if (is_valid) {
@@ -504,6 +518,7 @@ namespace fan::graphics::physics {
     p.mass_data
   ) {}
   rectangle_t::rectangle_t(const rectangle_t& r) : base_shape_t(r) {}
+  rectangle_t::rectangle_t(rectangle_t&& r) : base_shape_t(std::move(r)) {}
   rectangle_t& rectangle_t::operator=(const rectangle_t& r) {
     base_shape_t::operator=(r);
     return *this;
@@ -958,7 +973,7 @@ namespace fan::graphics::physics {
     return false;
   }
   void attack_state_t::end_attack() {
-    std::fill(attack_used.begin(), attack_used.end(), false);
+    attack_used = false;
     cooldown_timer.restart();
     if (is_attacking && on_attack_end) {
       on_attack_end();
@@ -1332,6 +1347,7 @@ namespace fan::graphics::physics {
   }
   #endif
 
+  character2d_t::character2d_t() {}
   //character2d_t::character2d_t(const character2d_t& o)
   //  : base_shape_t(o),
   //  anim_controller(o.anim_controller),
@@ -2719,6 +2735,9 @@ namespace fan::graphics::physics {
     is_active = false;
   }
 
+  bool jump_state_t::can_coyote_jump(f32_t current_time) const {
+    return (current_time - last_ground_time) / 1e+9 <= coyote_time;
+  }
   void jump_state_t::reset() {
     jumping = false;
     consumed = false;
@@ -2954,6 +2973,9 @@ namespace fan::graphics::physics {
     body.set_physics_position(initial_pos);
     if (properties.draw_offset != fan::vec2{0, 0}) { body.set_draw_offset(properties.draw_offset); }
     if (properties.target) { behavior.target = properties.target; }
+  }
+  void ai_character2d_t::update(fan::vec2 tile_size) {
+    behavior.update_ai(&body, navigation, behavior.target->get_position(), tile_size);
   }
 }
 
