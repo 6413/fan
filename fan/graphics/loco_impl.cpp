@@ -2361,7 +2361,13 @@ fan::ray3_t loco_t::convert_mouse_to_ray(const fan::mat4& projection, const fan:
   return fan::math::convert_position_to_ray(get_mouse_position(), window.get_size(), camera_get_position(perspective_render_view.camera), projection, view);
 }
 
-void loco_t::set_clear_color(const fan::color& color) { get_clear_color() = get_smenu(this)->config.post_processing.clear_color = color; }
+void loco_t::set_clear_color(const fan::color& color) {
+#if defined(FAN_GUI)
+  get_clear_color() = get_smenu(this)->config.post_processing.clear_color = color;
+#else
+  get_clear_color() = color;
+#endif
+}
 
 #if defined(loco_cuda)
 void loco_t::cuda_textures_t::close(loco_t* loco, fan::graphics::shapes::shape_t& cid) {
