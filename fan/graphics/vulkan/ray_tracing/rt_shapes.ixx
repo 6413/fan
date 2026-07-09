@@ -33,8 +33,8 @@ export namespace fan::graphics::vulkan::ray_tracing::shapes {
         return;
       }
 
-      ctx.upload_buffer(mesh.vertices, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, vertex_buffer);
-      ctx.upload_buffer(mesh.indices, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, index_buffer);
+      ctx.upload_buffer(mesh.vertices.data(), mesh.vertices.size() * sizeof(mesh.vertices[0]), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, vertex_buffer);
+      ctx.upload_buffer(mesh.indices.data(), mesh.indices.size() * sizeof(mesh.indices[0]), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR, index_buffer);
     }
 
     void destroy(fan::vulkan::context_t& ctx) {

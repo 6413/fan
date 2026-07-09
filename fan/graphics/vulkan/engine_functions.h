@@ -163,7 +163,7 @@ fan::vulkan::context_t::pipeline_t& get_shape_shader_pipeline(
   fan::graphics::shader_t shader,
   std::uint8_t draw_mode
 ) {
-  auto generation = loco.context.vk.shader_get(shader).compile_generation;
+  auto generation = loco.context.vk.shaders.shader_get(shader).compile_generation;
   for (auto it = shape_shader_pipelines.begin(); it != shape_shader_pipelines.end();) {
     if (it->shape_type != shape_type || it->shader.gint() != shader.gint() || it->draw_mode != draw_mode) {
       ++it;
@@ -820,8 +820,8 @@ void shaders_compile_preload() {
       payload.vs_code = fan::graphics::read_shader(payload.vs_path.c_str());
       payload.fs_code = fan::graphics::read_shader(payload.fs_path.c_str());
                                                                                     // clang bmi bug triggered by shaderc include
-      payload.vs_spv = p_loco->context.vk.load_or_compile(payload.vs_path.c_str(), 0/*shaderc_glsl_vertex_shader*/, payload.vs_code);
-      payload.fs_spv = p_loco->context.vk.load_or_compile(payload.fs_path.c_str(), 1/*shaderc_glsl_fragment_shader*/, payload.fs_code);
+      payload.vs_spv = p_loco->context.vk.shaders.load_or_compile(payload.vs_path.c_str(), 0/*shaderc_glsl_vertex_shader*/, payload.vs_code);
+      payload.fs_spv = p_loco->context.vk.shaders.load_or_compile(payload.fs_path.c_str(), 1/*shaderc_glsl_fragment_shader*/, payload.fs_code);
     });
   };
 
