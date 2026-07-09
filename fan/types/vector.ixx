@@ -88,7 +88,7 @@ export namespace fan {
     
     constexpr Derived sign() const                { Derived r{}; for (access_type_t i=0; i<N; ++i) r[i] = fan::math::sgn(derived()[i]); return r; }
     constexpr Derived floor() const requires (!std::same_as<T, bool>) { Derived r{}; for (access_type_t i=0; i<N; ++i) r[i] = std::floor(derived()[i]); return r; }
-    constexpr Derived floor_div(auto value) const { Derived r{}; for (access_type_t i=0; i<N; ++i) r[i] = std::floor(derived()[i] / value); return r; }
+    constexpr Derived floor_div(auto value) const requires (!std::same_as<T, bool>) { Derived r{}; for (access_type_t i=0; i<N; ++i) r[i] = std::floor(derived()[i] / value); return r; }
     constexpr Derived ceil() const requires (!std::same_as<T, bool>) { Derived r{}; for (access_type_t i=0; i<N; ++i) r[i] = std::ceil(derived()[i]); return r; }
     constexpr Derived round() const requires (!std::same_as<T, bool>) { Derived r{}; for (access_type_t i=0; i<N; ++i) r[i] = std::round(derived()[i]); return r; }
     constexpr Derived abs() const                 {
@@ -157,8 +157,8 @@ export namespace fan {
       } else return derived();
     }
 
-    constexpr Derived grid_round(T grid_size) const { return (derived() / grid_size).round() * grid_size; }
-    constexpr Derived grid_round(const Derived& grid_size) const { return (derived() / grid_size).round() * grid_size; }
+    constexpr Derived grid_round(T grid_size) const requires (!std::same_as<T, bool>) { return (derived() / grid_size).round() * grid_size; }
+    constexpr Derived grid_round(const Derived& grid_size) const requires (!std::same_as<T, bool>) { return (derived() / grid_size).round() * grid_size; }
     
     constexpr Derived grid_floor(T grid_size, T offset = 0) const
     requires (!std::same_as<T, bool>) {
