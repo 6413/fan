@@ -18,7 +18,9 @@ module fan.graphics.shapes.types;
 import fan.io.file;
 import fan.print.error;
 import fan.memory;
+#if defined(FAN_JSON)
 import fan.types.json;
+#endif
 import fan.graphics.common_context;
 
 
