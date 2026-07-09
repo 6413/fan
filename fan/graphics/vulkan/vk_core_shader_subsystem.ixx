@@ -28,7 +28,8 @@ export namespace fan::vulkan {
   };
 
   struct shader_subsystem_t {
-    context_t& ctx;
+    context_t* ctx = nullptr;
+    void init(context_t& context) { ctx = &context; }
 
     fan::vulkan::shader_t& shader_get(fan::graphics::shader_nr_t nr);
 

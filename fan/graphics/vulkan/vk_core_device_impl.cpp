@@ -74,6 +74,7 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
   }
 }
 void fan::vulkan::context_t::open_no_window() {
+  shaders.init(*this);
   fan::time::timer t;
   if (fan::time::is_measuring()) {
     fan::time::measure(t, "open_no_window start");
@@ -99,8 +100,9 @@ void fan::vulkan::context_t::open_no_window() {
 #if defined(loco_window)
 
 void fan::vulkan::context_t::open(fan::window_t& window) {
+  shaders.init(*this);
   if (fan::time::is_measuring()) {
-    fan::time::print_measure("open start");
+    fan::print_measure("open start");
   }
   fan::time::timer t_total;
   fan::time::timer t;
