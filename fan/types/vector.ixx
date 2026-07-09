@@ -90,7 +90,7 @@ export namespace fan {
     constexpr Derived floor() const requires (!std::same_as<T, bool>) { Derived r{}; for (access_type_t i=0; i<N; ++i) r[i] = std::floor(derived()[i]); return r; }
     constexpr Derived floor_div(auto value) const { Derived r{}; for (access_type_t i=0; i<N; ++i) r[i] = std::floor(derived()[i] / value); return r; }
     constexpr Derived ceil() const requires (!std::same_as<T, bool>) { Derived r{}; for (access_type_t i=0; i<N; ++i) r[i] = std::ceil(derived()[i]); return r; }
-    constexpr Derived round() const               { Derived r{}; for (access_type_t i=0; i<N; ++i) r[i] = std::round(derived()[i]); return r; }
+    constexpr Derived round() const requires (!std::same_as<T, bool>) { Derived r{}; for (access_type_t i=0; i<N; ++i) r[i] = std::round(derived()[i]); return r; }
     constexpr Derived abs() const                 {
       Derived r {};
       for (access_type_t i = 0; i < N; ++i) {
@@ -170,8 +170,8 @@ export namespace fan {
       return (derived() / grid_size).floor() * grid_size + offset;
     }
 
-    constexpr Derived fmod(T divisor) const { Derived r{}; for(access_type_t i=0; i<N; ++i) r[i] = std::fmod(derived()[i], divisor); return r; }
-    constexpr Derived fmod(const Derived& v) const { Derived r{}; for(access_type_t i=0; i<N; ++i) r[i] = std::fmod(derived()[i], v[i]); return r; }
+    constexpr Derived fmod(T divisor) const requires (!std::same_as<T, bool>) { Derived r{}; for(access_type_t i=0; i<N; ++i) r[i] = std::fmod(derived()[i], divisor); return r; }
+    constexpr Derived fmod(const Derived& v) const requires (!std::same_as<T, bool>) { Derived r{}; for(access_type_t i=0; i<N; ++i) r[i] = std::fmod(derived()[i], v[i]); return r; }
 
     constexpr bool in_range(const Derived& lo, const Derived& hi) const {
       for (access_type_t i=0; i<N; ++i) if (derived()[i] < lo[i] || derived()[i] > hi[i]) return false;
