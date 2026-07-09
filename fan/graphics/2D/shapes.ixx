@@ -1651,8 +1651,10 @@ export namespace fan::graphics {
   using shape_type_t = fan::graphics::shapes::shape_type_t;
 #endif
 
+#if defined(FAN_JSON)
   void load_scaled_particles(std::vector<shape_t>& out, const fan::json& model, const fan::vec3& position, const fan::vec2& target_size);
   void load_emitters(std::vector<shape_t>& out, const fan::json& base_config, const fan::json& emitters, const fan::vec3& position, f32_t z_offset = 10.f);
+#endif
 } // namespace fan::graphics
 
 #endif
