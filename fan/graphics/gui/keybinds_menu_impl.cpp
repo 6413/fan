@@ -463,6 +463,7 @@ namespace fan::graphics::gui {
     }
   }
 
+#if defined(FAN_JSON)
   void keybind_menu_t::add_bindings_to_json(
     fan::json& binds_arr,
     std::set<std::string>& unique_combos,
@@ -519,6 +520,7 @@ namespace fan::graphics::gui {
 
     j["keybinds"] = keybinds_json;
   }
+#endif
 
   void keybind_menu_t::apply_to_input_action() {
     auto& ia = *fan::graphics::ctx().input_action;
