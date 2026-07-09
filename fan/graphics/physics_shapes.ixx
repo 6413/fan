@@ -98,21 +98,11 @@ export namespace fan {
 
       struct collision_scope_t {
         collision_scope_t() = default;
-        ~collision_scope_t() {
-          for (auto& h : handles) fan::physics::remove_collision_listener(h);
-        }
+        ~collision_scope_t();
         collision_scope_t(const collision_scope_t&) = delete;
         collision_scope_t& operator=(const collision_scope_t&) = delete;
-        fan::physics::collision_listener_handle_t on_enter(fan::physics::body_id_t body, auto cb) {
-          auto h = fan::physics::add_collision_listeners(body, {.on_enter = std::move(cb)});
-          handles.push_back(h);
-          return h;
-        }
-        fan::physics::collision_listener_handle_t on_exit(fan::physics::body_id_t body, auto cb) {
-          auto h = fan::physics::add_collision_listeners(body, {.on_exit = std::move(cb)});
-          handles.push_back(h);
-          return h;
-        }
+        fan::physics::collision_listener_handle_t on_enter(fan::physics::body_id_t body, std::function<void()> cb);
+        fan::physics::collision_listener_handle_t on_exit(fan::physics::body_id_t body, std::function<void()> cb);
         std::vector<fan::physics::collision_listener_handle_t> handles;
       };
 
@@ -134,7 +124,7 @@ export namespace fan {
         rectangle_t() = default;
         rectangle_t(const properties_t& p);
         rectangle_t(const rectangle_t& r);
-        rectangle_t(rectangle_t&& r) : base_shape_t(std::move(r)) {}
+        rectangle_t(rectangle_t&& r);
         rectangle_t& operator=(const rectangle_t& r);
         rectangle_t& operator=(rectangle_t&& r);
       };
@@ -357,9 +347,7 @@ export namespace fan {
         bool allow_double_jump = false;
 
         void reset();
-        bool can_coyote_jump(f32_t current_time) const{
-          return (current_time - last_ground_time) / 1e+9 <= coyote_time;
-        }
+        bool can_coyote_jump(f32_t current_time) const;
       };
       struct wall_jump_t {
         fan::vec2 normal;
@@ -423,7 +411,7 @@ export namespace fan {
         bool took_damage = false;
         bool stun = true;
         character2d_t* target = nullptr; // TODOOO REMOVE
-        std::vector<bool> attack_used {false};
+        bool attack_used = false;
 
         std::function<void()> on_attack_start;
         std::function<void()> on_attack_end;
@@ -493,7 +481,7 @@ export namespace fan {
         using physics::base_shape_t::base_shape_t;
         using movement_callback_handle_t = fan::physics::step_callback_nr_t;
 
-        character2d_t() {}
+        character2d_t();
         template <typename T>
         requires(
           std::is_convertible_v<T, base_shape_t> &&
@@ -596,7 +584,7 @@ export namespace fan {
 
         hitbox_config_t config;
         std::vector<hitbox_instance_t> instances;
-        std::vector<bool> hitbox_spawned;
+        std::vector<std::uint8_t> hitbox_spawned;
         std::unordered_set<std::uint64_t> hit_enemies;
       };
 
@@ -654,9 +642,7 @@ export namespace fan {
         navigation_helper_t navigation;
 
         void open(const character_config_t& properties, fan::vec2 initial_pos, const std::source_location& callers_path = std::source_location::current());
-        void update(fan::vec2 tile_size) {
-          behavior.update_ai(&body, navigation, behavior.target->get_position(), tile_size);
-        }
+        void update(fan::vec2 tile_size);
       };
 
       // -----------------------------------bone stuff-----------------------------------
