@@ -227,7 +227,7 @@ bool loco_t::shader_compile(fan::graphics::shader_nr_t nr) {
 #if defined(FAN_2D)
 
 void loco_t::shader_set_camera(fan::graphics::shader_nr_t nr, camera_t camera_nr) {
-  fan::graphics::get_vk_context().shader_set_camera(nr, camera_nr); 
+  fan::graphics::get_vk_context().shaders.shader_set_camera(nr, camera_nr); 
 }
 
 fan::graphics::shader_nr_t loco_t::shader_get_nr(std::uint16_t shape_type) {
@@ -2649,7 +2649,7 @@ namespace fan::graphics::gui {
 #endif
 
 void shader_set_camera(fan::graphics::shader_t nr, fan::graphics::camera_t camera_nr) {
-  fan::graphics::get_vk_context().shader_set_camera(nr, camera_nr);
+  fan::graphics::get_vk_context().shaders.shader_set_camera(nr, camera_nr);
 }
 
 loco_t::properties_t fan::get_centered_window(vec2 size) {

@@ -35,10 +35,10 @@ import fan.io.file;
 
 #define VK_CTX ((fan::vulkan::context_t*)context)
 
-fan::vulkan::shader_t& fan::vulkan::context_t::shader_get(fan::graphics::shader_nr_t nr) {
+fan::vulkan::shader_t& fan::vulkan::shader_subsystem_t::shader_get(fan::graphics::shader_nr_t nr) {
   return *(fan::vulkan::shader_t*)__fan_internal_shader_list[nr].internal;
 }
-std::vector<std::uint32_t> fan::vulkan::context_t::compile_file(const std::string& source_name,
+std::vector<std::uint32_t> fan::vulkan::shader_subsystem_t::compile_file(const std::string& source_name,
   int kind,
   const std::string& source) 
 {
@@ -65,7 +65,7 @@ std::vector<std::uint32_t> fan::vulkan::context_t::compile_file(const std::strin
   return {module.cbegin(), module.cend()};
 }
 
-std::vector<std::uint32_t> fan::vulkan::context_t::load_or_compile(const std::string& source_name,
+std::vector<std::uint32_t> fan::vulkan::shader_subsystem_t::load_or_compile(const std::string& source_name,
   int kind,
   const std::string& source) {
 
@@ -102,51 +102,47 @@ std::vector<std::uint32_t> fan::vulkan::context_t::load_or_compile(const std::st
   return spv;
 }
 
-fan::graphics::shader_nr_t fan::vulkan::context_t::shader_create() {
+fan::graphics::shader_nr_t fan::vulkan::shader_subsystem_t::shader_create() {
   fan::graphics::shader_nr_t nr = __fan_internal_shader_list.NewNode();
   __fan_internal_shader_list[nr].internal = new fan::vulkan::shader_t;
   auto& shader = shader_get(nr);
   shader.projection_view_block = new std::remove_pointer_t<decltype(shader.projection_view_block)>;
-  //TODO
-  shader.projection_view_block->open(*this);
+  shader.projection_view_block->open(ctx);
   for (std::uint32_t i = 0; i < fan::vulkan::max_camera; ++i) {
-    shader.projection_view_block->push_ram_instance(*this, {});
+    shader.projection_view_block->push_ram_instance(ctx, {});
   }
   return nr;
 }
-// .cpp
-void fan::vulkan::context_t::shader_erase(fan::graphics::shader_nr_t nr, int recycle) {
+void fan::vulkan::shader_subsystem_t::shader_erase(fan::graphics::shader_nr_t nr, int recycle) {
   auto& shader = shader_get(nr);
   for (auto& stage : shader.shader_stages) {
     if (stage.module) {
-      vkDestroyShaderModule(device, stage.module, nullptr);
+      vkDestroyShaderModule(ctx.device, stage.module, nullptr);
     }
   }
-  // TODO
-  shader.projection_view_block->close(*this);
+  shader.projection_view_block->close(ctx);
   delete shader.projection_view_block;
   delete static_cast<fan::vulkan::shader_t*>(__fan_internal_shader_list[nr].internal);
   if (recycle) {
     __fan_internal_shader_list.Recycle(nr);
   }
 }
-void fan::vulkan::context_t::shader_use(fan::graphics::shader_nr_t nr) {
-  // TODO - required?
+void fan::vulkan::shader_subsystem_t::shader_use(fan::graphics::shader_nr_t nr) {
 }
-VkShaderModule fan::vulkan::context_t::create_shader_module(const std::vector<std::uint32_t>& code) {
+VkShaderModule fan::vulkan::shader_subsystem_t::create_shader_module(const std::vector<std::uint32_t>& code) {
   VkShaderModuleCreateInfo createInfo {};
   createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
   createInfo.codeSize = code.size() * sizeof(typename std::remove_reference_t<decltype(code)>::value_type);
   createInfo.pCode = code.data();
 
   VkShaderModule shaderModule;
-  if (vkCreateShaderModule(device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
+  if (vkCreateShaderModule(ctx.device, &createInfo, nullptr, &shaderModule) != VK_SUCCESS) {
     fan::throw_error("failed to create shader module!");
   }
 
   return shaderModule;
 }
-void fan::vulkan::context_t::shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& vertex_code) {
+void fan::vulkan::shader_subsystem_t::shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& vertex_code) {
   __fan_internal_shader_list[nr].path_vertex = file_path;
   __fan_internal_shader_list[nr].svertex = vertex_code;
   // fan::print_impl(
@@ -154,10 +150,10 @@ void fan::vulkan::context_t::shader_set_vertex(fan::graphics::shader_nr_t nr, co
   // preprocess_shader(shader_name.c_str(), shaderc_glsl_vertex_shader, shader_code);
   // );
 }
-void fan::vulkan::context_t::shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string& vertex_code) {
+void fan::vulkan::shader_subsystem_t::shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string& vertex_code) {
   shader_set_vertex(nr, {}, vertex_code);
 }
-void fan::vulkan::context_t::shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& fragment_code) {
+void fan::vulkan::shader_subsystem_t::shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& fragment_code) {
   auto& shader = __fan_internal_shader_list[nr];
   shader.path_fragment = file_path;
   shader.sfragment = fragment_code;
@@ -166,10 +162,10 @@ void fan::vulkan::context_t::shader_set_fragment(fan::graphics::shader_nr_t nr, 
   //preprocess_shader(shader_name.c_str(), shaderc_glsl_fragment_shader, shader_code);
   //);
 }
-void fan::vulkan::context_t::shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string& fragment_code) {
+void fan::vulkan::shader_subsystem_t::shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string& fragment_code) {
   shader_set_fragment(nr, {}, fragment_code);
 }
-void fan::vulkan::context_t::shader_set_compute(
+void fan::vulkan::shader_subsystem_t::shader_set_compute(
   fan::graphics::shader_nr_t nr,
   const std::string_view file_path,
   const std::string& compute_code
@@ -177,9 +173,9 @@ void fan::vulkan::context_t::shader_set_compute(
   __fan_internal_shader_list[nr].path_compute = file_path;
   __fan_internal_shader_list[nr].scompute = compute_code;
 }
-void fan::vulkan::context_t::shader_set_camera(fan::graphics::shader_nr_t nr, fan::graphics::camera_nr_t camera_nr) {
+void fan::vulkan::shader_subsystem_t::shader_set_camera(fan::graphics::shader_nr_t nr, fan::graphics::camera_nr_t camera_nr) {
   auto& shader = shader_get(nr);
-  auto& camera = cameras.camera_get(camera_nr);
+  auto& camera = ctx.cameras.camera_get(camera_nr);
 
   std::uint32_t camera_index = camera_nr.gint();
 
@@ -190,20 +186,20 @@ void fan::vulkan::context_t::shader_set_camera(fan::graphics::shader_nr_t nr, fa
 #endif
 
   shader.projection_view_block->edit_instance(
-    *this,
+    ctx,
     camera_index,
     &fan::vulkan::view_projection_t::projection,
     camera.projection
   );
 
   shader.projection_view_block->edit_instance(
-    *this,
+    ctx,
     camera_index,
     &fan::vulkan::view_projection_t::view,
     camera.view
   );
 }
-void fan::vulkan::context_t::shader_dispatch_compute(
+void fan::vulkan::shader_subsystem_t::shader_dispatch_compute(
   fan::graphics::shader_nr_t nr,
   std::uint32_t x,
   std::uint32_t y,
@@ -212,7 +208,7 @@ void fan::vulkan::context_t::shader_dispatch_compute(
   fan::throw_error("vulkan compute dispatch is not implemented");
 }
 
-bool fan::vulkan::context_t::shader_compile(fan::graphics::shader_nr_t nr) {
+bool fan::vulkan::shader_subsystem_t::shader_compile(fan::graphics::shader_nr_t nr) {
   auto& shader = shader_get(nr);
   auto& list_item = __fan_internal_shader_list[nr];
 
@@ -230,7 +226,7 @@ bool fan::vulkan::context_t::shader_compile(fan::graphics::shader_nr_t nr) {
     auto spirv = preloaded_spv.empty() ? load_or_compile(path, kind, code) : std::move(preloaded_spv);
     if (shader.shader_stages[index].module != VK_NULL_HANDLE) {
       VkShaderModule old_module = shader.shader_stages[index].module;
-      get_current_deletion_queue().push_function([=, device = this->device]() {
+      ctx.get_current_deletion_queue().push_function([=, device = ctx.device]() {
         vkDestroyShaderModule(device, old_module, nullptr);
       });
     }

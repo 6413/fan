@@ -907,8 +907,8 @@ export namespace fan::graphics::vulkan::ray_tracing {
     }
     VkShaderModule load_shader(const char* path, shaderc_shader_kind kind) {
       std::string code = fan::graphics::read_shader(path);
-      auto spirv = fan::vulkan::context_t::compile_file(path, kind, code);
-      return ctx->create_shader_module(spirv);
+      auto spirv = ctx->shaders.compile_file(path, kind, code);
+      return ctx->shaders.create_shader_module(spirv);
     }
     void create_pipeline() {
       VkDescriptorSetLayoutBinding bindings[] = {
@@ -1085,28 +1085,28 @@ export namespace fan::graphics::vulkan::ray_tracing {
       if (source_vertex_data.empty()) {
         source_vertex_data.push_back({});
       }
-      ctx->upload_buffer(source_vertex_data, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, source_vertex_buffer);
+      ctx->upload_buffer(source_vertex_data.data(), source_vertex_data.size() * sizeof(source_vertex_data[0]), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, source_vertex_buffer);
       source_vertex_capacity = source_vertex_data.size();
       if (source_vertex_data.size() == 1 && scene_vertex_count == 0) {
         source_vertex_data.clear();
       }
     }
     void create_vertex_buffer() { 
-      ctx->upload_buffer(vertex_data, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_DST_BIT, vertex_buffer);
+      ctx->upload_buffer(vertex_data.data(), vertex_data.size() * sizeof(vertex_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_DST_BIT, vertex_buffer);
       vertex_capacity = vertex_data.size();
     }
     void create_index_buffer() { 
-      ctx->upload_buffer(index_data, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_DST_BIT, index_buffer);
+      ctx->upload_buffer(index_data.data(), index_data.size() * sizeof(std::uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_TRANSFER_DST_BIT, index_buffer);
       index_capacity = index_data.size();
     }
     void create_material_buffer() { 
-      ctx->upload_buffer(materials, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, material_buffer);
+      ctx->upload_buffer(materials.data(), materials.size() * sizeof(material_info_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, material_buffer);
       material_capacity = materials.size();
     }
     void create_material_index_buffer() {
       if (material_indices_per_primitive.empty()) { return; }
       destroy_buffer(material_index_buffer);
-      ctx->upload_buffer(material_indices_per_primitive, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, material_index_buffer);
+      ctx->upload_buffer(material_indices_per_primitive.data(), material_indices_per_primitive.size() * sizeof(std::uint32_t), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, material_index_buffer);
       material_index_capacity = material_indices_per_primitive.size();
     }
     void upload_bone_buffer() {

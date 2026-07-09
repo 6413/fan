@@ -132,44 +132,6 @@ export namespace fan {
       #include "memory.h"
       #include "ssbo.h"
 
-      fan::vulkan::shader_t& shader_get(fan::graphics::shader_nr_t nr);
-
-      static std::vector<std::uint32_t> compile_file(const std::string& source_name,
-        int kind,
-        const std::string& source);
-      static std::vector<std::uint32_t> load_or_compile(const std::string& source_name,
-        int kind,
-        const std::string& source);
-      fan::graphics::shader_nr_t shader_create();
-
-      void shader_erase(fan::graphics::shader_nr_t nr, int recycle = 1);
-
-      void shader_use(fan::graphics::shader_nr_t nr);
-
-      VkShaderModule create_shader_module(const std::vector<std::uint32_t>& code);
-      void shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& vertex_code);
-
-      void shader_set_vertex(fan::graphics::shader_nr_t nr, const std::string& vertex_code);
-      void shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string_view file_path, const std::string& fragment_code);
-
-      void shader_set_fragment(fan::graphics::shader_nr_t nr, const std::string& fragment_code);
-      void shader_set_compute(
-        fan::graphics::shader_nr_t nr,
-        const std::string_view file_path,
-        const std::string& compute_code
-      );
-      void shader_set_camera(fan::graphics::shader_nr_t nr, fan::graphics::camera_nr_t camera_nr);
-
-      void shader_dispatch_compute(
-        fan::graphics::shader_nr_t nr,
-        std::uint32_t x,
-        std::uint32_t y,
-        std::uint32_t z
-      );
-
-
-      bool shader_compile(fan::graphics::shader_nr_t nr);
-
       using image_format = fan::vulkan::image_format;
       using image_sampler_address_mode = fan::vulkan::image_sampler_address_mode;
       using image_filter = fan::vulkan::image_filter;
@@ -203,7 +165,11 @@ export namespace fan {
 
       VkFormat get_format_from_channels(int channels);
 
-      std::vector<std::pair<fan::graphics::decoded_image_payload_t, std::function<void(const fan::graphics::decoded_image_payload_t&)>>> pending_image_uploads;
+      struct pending_image_upload_t {
+        fan::graphics::decoded_image_payload_t payload;
+        std::function<void(const fan::graphics::decoded_image_payload_t&)> callback;
+      };
+      std::vector<pending_image_upload_t> pending_image_uploads;
       std::mutex async_image_mutex;
 
       std::vector<VkDescriptorImageInfo> image_pool; // for draw
@@ -352,23 +318,12 @@ export namespace fan {
       void copy_buffer(VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize size);
       void copy_buffer_cmd(VkCommandBuffer cmd, VkBuffer src_buffer, VkBuffer dst_buffer, VkDeviceSize src_offset, VkDeviceSize dst_offset, VkDeviceSize size);
       void fill_buffer_cmd(VkCommandBuffer cmd, buffer_t& buffer, VkDeviceSize offset, VkDeviceSize size, std::uint32_t data);
-      void upload_to_buffer(VkBuffer dest_buffer, std::span<const std::byte> data, VkDeviceSize dst_offset = 0);
+      void upload_to_buffer(VkBuffer dest_buffer, const void* data, std::size_t size, VkDeviceSize dst_offset = 0);
       void buffer_barrier_cmd(VkCommandBuffer cmd, buffer_t& buffer, VkAccessFlags src_access, VkAccessFlags dst_access, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage, VkDeviceSize offset = 0, VkDeviceSize size = VK_WHOLE_SIZE);
       void buffer_barriers_cmd(VkCommandBuffer cmd, const std::vector<buffer_barrier_t>& barriers, VkPipelineStageFlags src_stage, VkPipelineStageFlags dst_stage);
 
-      template <typename T>
-      void upload_buffer(const std::vector<T>& data, VkBufferUsageFlags usage, VkBuffer& buffer, VmaAllocation& allocation) {
-        if (data.empty()) return;
-        VkDeviceSize size = sizeof(T) * data.size();
-        create_buffer(size, usage | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, buffer, allocation);
-        upload_to_buffer(buffer, std::span<const std::byte>(reinterpret_cast<const std::byte*>(data.data()), size));
-      }
-      template <typename T>
-      void upload_buffer(const std::vector<T>& data, VkBufferUsageFlags usage, buffer_t& buffer) {
-        if (data.empty()) return;
-        upload_buffer(data, usage, buffer.buffer, buffer.allocation);
-        buffer.size = sizeof(T) * data.size();
-      }
+      void upload_buffer(const void* data, std::size_t size, VkBufferUsageFlags usage, VkBuffer& buffer, VmaAllocation& allocation);
+      void upload_buffer(const void* data, std::size_t size, VkBufferUsageFlags usage, buffer_t& buffer);
 
       void insert_image_barrier(
         VkCommandBuffer cmd, VkImage image, VkImageLayout old_layout, VkImageLayout new_layout,
@@ -503,6 +458,7 @@ export namespace fan {
 
       bool window_shown = false;
       fan::vulkan::context_t::memory_write_queue_t memory_queue;
+      fan::vulkan::shader_subsystem_t shaders;
       fan::vulkan::camera_subsystem_t cameras;
     };
   }
