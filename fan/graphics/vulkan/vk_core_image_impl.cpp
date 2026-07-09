@@ -316,7 +316,9 @@ void fan::vulkan::context_t::image_erase(fan::graphics::image_nr_t nr, int recyc
   
   auto to_destroy = [
     dev, alloc, 
+#if defined(FAN_GUI)
     gui_ds = img.gui_descriptor_set,
+#endif
     sampler = img.sampler,
     view = (img.image_view && img.owns_image_view) ? img.image_view : VK_NULL_HANDLE,
     image = (img.image_index && img.owns_image) ? img.image_index : VK_NULL_HANDLE,
@@ -339,7 +341,9 @@ void fan::vulkan::context_t::image_erase(fan::graphics::image_nr_t nr, int recyc
 
   get_current_deletion_queue().push_function(std::move(to_destroy));
 
+#if defined(FAN_GUI)
   img.gui_descriptor_set = VK_NULL_HANDLE;
+#endif
   img.sampler = VK_NULL_HANDLE;
   img.image_view = VK_NULL_HANDLE;
   img.image_index = VK_NULL_HANDLE;
@@ -424,7 +428,7 @@ fan::graphics::image_nr_t fan::vulkan::context_t::image_load(const fan::image::i
   std::uint64_t pixel_count = image_info.size.multiply();
 
   if (src_channels == format_channels) {
-    memcpy(dst, src, image_size_bytes);
+    std::memcpy(dst, src, image_size_bytes);
   }
   else if (src_channels == 3 && format_channels == 4) {
     for (std::uint64_t i = 0; i < pixel_count; ++i) {
@@ -613,7 +617,7 @@ void fan::vulkan::context_t::process_async_image_uploads() {
       std::uint64_t pixel_count = ii.size.multiply();
 
       if (src_channels == format_channels) {
-        memcpy(dst, src, image_size_bytes);
+        std::memcpy(dst, src, image_size_bytes);
       }
       else if (src_channels == 3 && format_channels == 4) {
         for (std::uint64_t i = 0; i < pixel_count; ++i) {
@@ -732,7 +736,9 @@ void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, const fa
     VmaAllocator alloc = allocator;
     get_current_deletion_queue().push_function([
       dev, alloc,
+#if defined(FAN_GUI)
       gui_ds = image.gui_descriptor_set,
+#endif
       sampler = image.sampler,
       view = (image.image_view && image.owns_image_view) ? image.image_view : VK_NULL_HANDLE,
       img = (image.image_index && image.owns_image) ? image.image_index : VK_NULL_HANDLE,
@@ -746,7 +752,9 @@ void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, const fa
       if (img != VK_NULL_HANDLE) vmaDestroyImage(alloc, img, alloc_handle);
     });
 
+#if defined(FAN_GUI)
     image.gui_descriptor_set = VK_NULL_HANDLE;
+#endif
     image.sampler = VK_NULL_HANDLE;
     image.image_view = VK_NULL_HANDLE;
     image.image_index = VK_NULL_HANDLE;
