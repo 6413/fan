@@ -114,7 +114,8 @@ namespace fan::graphics::gui::tilemap_editor::ui {
       real_viewport_size.x = fan::math::clamp(real_viewport_size.x, 1.f, real_viewport_size.x);
       real_viewport_size.y = fan::math::clamp(real_viewport_size.y, 1.f, real_viewport_size.y);
       fan::graphics::camera_set_ortho(editor.render_view->camera, (fan::vec2(-real_viewport_size.x / 2, real_viewport_size.x / 2)), (fan::vec2(-real_viewport_size.y / 2, real_viewport_size.y / 2)));
-      fan::graphics::gui::set_viewport(editor.render_view->viewport);
+      //fan::graphics::gui::set_viewport(editor.render_view->viewport);
+      fan::graphics::gui::set_viewport(*editor.render_view);
       editor_size = real_viewport_size;
       editor.viewport_settings.size = viewport_size;
       editor.viewport_settings.window_related_mouse_pos = fan::vec2(fan::vec2(fan::graphics::gui::get_window_pos()) + fan::vec2(fan::graphics::gui::get_window_size() / 2) + fan::vec2(0, style.WindowPadding.y * 2 - frame_padding.y * 2));
