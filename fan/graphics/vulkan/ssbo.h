@@ -78,7 +78,7 @@ struct ssbo_t {
     auto frame = context.current_frame;
     if (!instance_list.empty()) {
       auto& ptr = instance_list[0];
-      memcpy(data[frame], &ptr, instance_list.size() * sizeof(instance_id_t));
+      std::memcpy(data[frame], &ptr, instance_list.size() * sizeof(instance_id_t));
       fan::vulkan::validate(vmaFlushAllocation(context.allocator, common.memory[frame].device_memory, 0, VK_WHOLE_SIZE));
     }
 
