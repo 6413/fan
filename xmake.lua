@@ -198,7 +198,8 @@ local feature_modules = {
     "fan/graphics/loco.ixx", "fan/graphics/graphics.ixx", "fan/graphics/file_dialog.ixx",
     "fan/graphics/2D/algorithm/raycast_grid.ixx", "fan/graphics/gameplay/gameplay_types.ixx",
     "fan/graphics/gameplay/gameplay.ixx", "fan/graphics/graphics_event.ixx", "fan/texture_pack/tp0.ixx",
-    "fan/physics/physics_types.ixx", "fan/noise.ixx", "fan/pathfind.ixx", "fan/spatial.ixx", "fan/ecs.ixx"
+    "fan/physics/physics_types.ixx", "fan/noise.ixx", "fan/pathfind.ixx", "fan/spatial.ixx", "fan/ecs.ixx",
+    "fan/graphics/gui/console.ixx"
   },
 
   FAN_VULKAN = { "fan/graphics/vulkan/vk_core_types.ixx", "fan/graphics/vulkan/vk_core_vai.ixx", "fan/graphics/vulkan/vk_core_image.ixx", "fan/graphics/vulkan/vk_core_compute.ixx", "fan/graphics/vulkan/vk_core_pipeline.ixx", "fan/graphics/vulkan/vk_core_camera_subsystem.ixx", "fan/graphics/vulkan/vk_core_uniform_block.ixx", "fan/graphics/vulkan/vk_core_shader_subsystem.ixx", "fan/graphics/vulkan/vk_core.ixx" },
@@ -209,7 +210,7 @@ local feature_modules = {
   FAN_AUDIO = { "fan/audio/audio.ixx" },
   FAN_PHYSICS_2D = { "fan/physics/b2_integration.ixx", "fan/physics/physics_common_context.ixx", "fan/graphics/physics_shapes.ixx" },
   FAN_GUI = {
-    "fan/graphics/gui/console.ixx", "fan/graphics/gui/gui_base.ixx", "fan/graphics/gui/gui_input.ixx",
+    "fan/graphics/gui/gui_base.ixx", "fan/graphics/gui/gui_input.ixx",
     "fan/graphics/gui/gui_types.ixx", "fan/graphics/gui/gui.ixx", "fan/graphics/gui/text_logger.ixx",
     "fan/graphics/gui/settings_menu.ixx", "fan/graphics/gui/keybinds_menu.ixx", "fan/graphics/gameplay/items.ixx",
     "fan/graphics/gui/gameplay/equipment.ixx", "fan/graphics/gui/gameplay/hotbar.ixx",
