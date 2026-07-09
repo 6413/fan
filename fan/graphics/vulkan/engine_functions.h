@@ -1090,6 +1090,7 @@ void shapes_draw() {
       &fan::vulkan::view_projection_t::projection,
       camera_data.projection
     );
+    shader.projection_view_block->write(context);
 
     auto& vk_data = shaper.GetShapeTypes(shape_type).renderer.vk;
     auto default_shader_nr = fan::graphics::g_shapes->shaper.GetShader(shape_type);
