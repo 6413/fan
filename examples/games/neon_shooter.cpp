@@ -27,7 +27,7 @@ struct enemy_t {
 };
 
 struct neon_shooter_t {
-  engine_t engine {{.post_process_mode = loco_t::post_process_mode_e::bloom}};
+  engine_t engine {{.post_process_mode = fan::graphics::post_process_mode_e::bloom}};
   
   game_state_e state = game_state_e::playing;
   int score = 0;
@@ -50,7 +50,7 @@ struct neon_shooter_t {
   f32_t enemy_spawn_timer = 0.f;
   
   neon_shooter_t() {
-    gloco()->set_post_process("bloom_strength", 0.08f);
+    *gloco()->get_bloom_strength_ptr() = 0.08f;
     restart();
   }
 

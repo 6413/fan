@@ -1782,7 +1782,7 @@ bool loco_t::process_frame(const std::function<void(f32_t delta_time)>& cb) {
       if (node.children.empty()) {
         fan::graphics::gui::tree_node_ex(text, fan::graphics::gui::tree_node_flags_leaf | fan::graphics::gui::tree_node_flags_no_tree_push_on_open);
       } else {
-        bool open = fan::graphics::gui::tree_node_ex(text, fan::graphics::gui::tree_node_flags_default_open);
+        bool open = fan::graphics::gui::tree_node_ex(text);
         if (open) {
           fan::graphics::gui::indent(15.0f);
           for (const auto& pair : node.children) {
