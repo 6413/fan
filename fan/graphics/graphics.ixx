@@ -1286,6 +1286,181 @@ export namespace fan::graphics {
     const fan::graphics::shape_t& operator[](std::size_t i) const {
       return emitters[i];
     }
+
+    void spawn_explosion(fan::vec2 pos, fan::color base_col, int count) {
+      spawn([&](auto& p) {
+        p.loop = false;
+        p.position = fan::vec3(pos, 0);
+        p.count = count;
+        p.alive_time = fan::random::value(0.4f, 1.2f);
+        p.respawn_time = -p.alive_time;
+        p.start_velocity = fan::vec2(150.f, 800.f); 
+        p.end_velocity = fan::vec2(5.f, 20.f); 
+        p.expansion_power = 1.0f;
+        p.start_size = fan::vec2(16.f);
+        p.end_size = fan::vec2(0.f);
+        p.begin_color = base_col;
+        p.end_color = base_col.set_alpha(0.0f);
+        p.color_random_range = fan::vec4(0.2f);
+        p.shape = shape_type_t::shapes_e::circle;
+        p.start_spread = fan::vec2(0, 0);
+        p.end_spread = fan::vec2(0, 0);
+        p.angle = fan::vec3(0,0,0);
+        p.begin_angle = 0;
+        p.end_angle = 6.283185f; 
+        p.start_angle_velocity = fan::vec3(0, 0, 0);
+      });
+    }
+
+    void spawn_fire(fan::vec2 pos, int count) {
+      spawn([&](auto& p) {
+        p.loop = false;
+        p.position = fan::vec3(pos, 0);
+        p.count = count;
+        p.alive_time = fan::random::value(0.5f, 1.5f);
+        p.respawn_time = -p.alive_time;
+        p.start_velocity = fan::vec2(50.f, 150.f);
+        p.end_velocity = fan::vec2(10.f, 50.f);
+        p.expansion_power = 1.2f;
+        p.start_size = fan::vec2(20.f);
+        p.end_size = fan::vec2(0.f);
+        p.begin_color = fan::color(1.0f, 0.5f, 0.1f, 1.0f); // Orange-red
+        p.end_color = fan::color(1.0f, 0.1f, 0.0f, 0.0f);
+        p.color_random_range = fan::vec4(0.1f);
+        p.shape = shape_type_t::shapes_e::circle;
+        p.start_spread = fan::vec2(20.f, 10.f);
+        p.end_spread = fan::vec2(40.f, 20.f);
+        p.angle = fan::vec3(0,0,0);
+        p.begin_angle = -0.5f; // upwards cone
+        p.end_angle = 0.5f;
+        p.start_angle_velocity = fan::vec3(0, 0, 0);
+      });
+    }
+
+    void spawn_smoke(fan::vec2 pos, int count) {
+      spawn([&](auto& p) {
+        p.loop = false;
+        p.position = fan::vec3(pos, 0);
+        p.count = count;
+        p.alive_time = fan::random::value(1.0f, 3.0f);
+        p.respawn_time = -p.alive_time;
+        p.start_velocity = fan::vec2(20.f, 60.f);
+        p.end_velocity = fan::vec2(5.f, 20.f);
+        p.expansion_power = 0.8f;
+        p.start_size = fan::vec2(10.f);
+        p.end_size = fan::vec2(40.f); // smoke expands
+        p.begin_color = fan::color(0.5f, 0.5f, 0.5f, 0.8f); // Gray
+        p.end_color = fan::color(0.2f, 0.2f, 0.2f, 0.0f);
+        p.color_random_range = fan::vec4(0.1f);
+        p.shape = shape_type_t::shapes_e::circle;
+        p.start_spread = fan::vec2(15.f, 15.f);
+        p.end_spread = fan::vec2(50.f, 50.f);
+        p.angle = fan::vec3(0,0,0);
+        p.begin_angle = -1.0f; // drift upwards
+        p.end_angle = 1.0f;
+        p.start_angle_velocity = fan::vec3(0, 0, 0);
+      });
+    }
+
+    void spawn_spark(fan::vec2 pos, fan::color spark_col, int count) {
+      spawn([&](auto& p) {
+        p.loop = false;
+        p.position = fan::vec3(pos, 0);
+        p.count = count;
+        p.alive_time = fan::random::value(0.1f, 0.4f);
+        p.respawn_time = -p.alive_time;
+        p.start_velocity = fan::vec2(300.f, 1000.f);
+        p.end_velocity = fan::vec2(100.f, 300.f);
+        p.expansion_power = 2.0f; // fast deceleration
+        p.start_size = fan::vec2(6.f);
+        p.end_size = fan::vec2(0.f);
+        p.begin_color = spark_col;
+        p.end_color = spark_col.set_alpha(0.0f);
+        p.color_random_range = fan::vec4(0.3f);
+        p.shape = shape_type_t::shapes_e::circle;
+        p.start_spread = fan::vec2(0, 0);
+        p.end_spread = fan::vec2(0, 0);
+        p.angle = fan::vec3(0,0,0);
+        p.begin_angle = 0;
+        p.end_angle = 6.283185f; // all directions
+        p.start_angle_velocity = fan::vec3(0, 0, 0);
+      });
+    }
+
+    void spawn_fountain(fan::vec2 pos, fan::color water_col, int count) {
+      spawn([&](auto& p) {
+        p.loop = false;
+        p.position = fan::vec3(pos, 0);
+        p.count = count;
+        p.alive_time = fan::random::value(0.8f, 2.0f);
+        p.respawn_time = -p.alive_time;
+        p.start_velocity = fan::vec2(100.f, 300.f); 
+        p.end_velocity = fan::vec2(100.f, 300.f); 
+        p.expansion_power = 1.0f;
+        p.start_size = fan::vec2(8.f);
+        p.end_size = fan::vec2(4.f);
+        p.begin_color = water_col;
+        p.end_color = water_col.set_alpha(0.0f);
+        p.color_random_range = fan::vec4(0.1f);
+        p.shape = shape_type_t::shapes_e::circle;
+        p.start_spread = fan::vec2(5.f, 5.f);
+        p.end_spread = fan::vec2(50.f, 100.f);
+        p.angle = fan::vec3(0,0,0);
+        p.begin_angle = -0.3f; // upwards
+        p.end_angle = 0.3f;
+        p.start_angle_velocity = fan::vec3(0, 0, 0);
+      });
+    }
+
+    void spawn_implosion(fan::vec2 pos, fan::color base_col, int count) {
+      spawn([&](auto& p) {
+        p.loop = false;
+        p.position = fan::vec3(pos, 0);
+        p.count = count;
+        p.alive_time = fan::random::value(0.4f, 1.0f);
+        p.respawn_time = -p.alive_time;
+        p.start_velocity = fan::vec2(-800.f, -150.f); // negative velocity for inward motion
+        p.end_velocity = fan::vec2(0.f, 0.f);
+        p.expansion_power = 1.0f;
+        p.start_size = fan::vec2(0.f);
+        p.end_size = fan::vec2(24.f); // grows as it collapses
+        p.begin_color = base_col.set_alpha(0.0f);
+        p.end_color = base_col;
+        p.color_random_range = fan::vec4(0.2f);
+        p.shape = shape_type_t::shapes_e::circle;
+        p.start_spread = fan::vec2(200.f, 200.f);
+        p.end_spread = fan::vec2(0.f, 0.f);
+        p.angle = fan::vec3(0,0,0);
+        p.begin_angle = 0;
+        p.end_angle = 6.283185f;
+        p.start_angle_velocity = fan::vec3(0, 0, 0);
+      });
+    }
+
+    void spawn_rain(fan::vec2 pos, fan::vec2 area_size, int count) {
+      spawn([&](auto& p) {
+        p.loop = false;
+        p.position = fan::vec3(pos, 0);
+        p.count = count;
+        p.alive_time = fan::random::value(1.0f, 2.0f);
+        p.respawn_time = -p.alive_time;
+        p.start_velocity = fan::vec2(400.f, 800.f);
+        p.end_velocity = fan::vec2(400.f, 800.f);
+        p.expansion_power = 1.0f;
+        p.start_size = fan::vec2(2.f, 10.f);
+        p.end_size = fan::vec2(2.f, 10.f);
+        p.begin_color = fan::color(0.5f, 0.7f, 1.0f, 0.6f);
+        p.end_color = fan::color(0.5f, 0.7f, 1.0f, 0.6f);
+        p.color_random_range = fan::vec4(0.05f);
+        p.shape = shape_type_t::shapes_e::circle; // or rectangle if available
+        p.start_spread = area_size;
+        p.end_spread = area_size;
+        p.angle = fan::vec3(0,0,0);
+        p.begin_angle = 1.5707f; // roughly PI/2 (straight down)
+        p.end_angle = 1.5707f;
+        p.start_angle_velocity = fan::vec3(0, 0, 0);
+      });
+    }
   };
 
   struct trail_particle_t {
