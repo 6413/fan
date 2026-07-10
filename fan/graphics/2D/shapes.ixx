@@ -487,21 +487,19 @@ export namespace fan::graphics {
       shaper_t::ShapeRenderData_t* GetRenderData(shaper_t& shaper) const;
       shaper_t::ShapeData_t* GetData(shaper_t& shaper) const;
 
-      // read from gpu itself
-      void get_gldata_impl(void* dst, std::size_t size, std::size_t offset);
-
       template <typename T>
-      T get_gldata() {
+      T get_vram_data() const {
         T out {};
         auto& data = g_shapes->shaper.ShapeList[get_visual_id()];
-        std::uintptr_t instance_offset = g_shapes->shaper.GetRenderDataOffset(data.sti, data.blid);
-        get_gldata_impl(
+        std::uintptr_t instance_offset = g_shapes->shaper.GetRenderDataOffset(data.sti, data.blid) + (data.ElementIndex * sizeof(T));
+        get_vram_data_impl(
           &out,
           sizeof(T),
           instance_offset
         );
         return out;
       }
+      void get_vram_data_impl(void* dst, std::size_t size, std::size_t offset) const;
 
       shaper_t::ShapeTypes_t::nd_t& get_shape_type_data();
 
