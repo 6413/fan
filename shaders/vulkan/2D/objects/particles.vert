@@ -82,6 +82,7 @@ void main() {
   particle_data_t p = particles[gl_InstanceIndex];
   uint count = max(uint(p.count_life.x), 1u);
   uint particle_id = uint(gl_VertexIndex) / 6u + 1u;
+  if (particle_id > count) { gl_Position = vec4(0.0); return; }
   uint vertex_id = uint(gl_VertexIndex) % 6u;
   uint seed = particle_id * count;
   float alive_time = max(p.count_life.y, 0.0001);
@@ -142,12 +143,12 @@ void main() {
     base_pos += vec2(cos(ang) * spread_max.x * r, sin(ang) * spread_max.y * r);
   }
 
-  vec2 vel_mag = mix(p.velocity.xy, p.velocity.zw, t);
+  vec2 avg_vel_mag = p.velocity.xy + (p.velocity.zw - p.velocity.xy) * 0.5 * t;
   float spread = mix(p.angle_velocity0.w, p.angle_velocity1.w, rand_f(seed + 2u));
   float ca = cos(spread);
   float sa = sin(spread);
-  vec2 velocity = vec2(vel_mag.x * ca - vel_mag.y * sa, vel_mag.x * sa + vel_mag.y * ca);
-  base_pos += velocity * pow(time_mod, p.count_life.w);
+  vec2 avg_velocity = vec2(avg_vel_mag.x * ca - avg_vel_mag.y * sa, avg_vel_mag.x * sa + avg_vel_mag.y * ca);
+  base_pos += avg_velocity * pow(time_mod, p.count_life.w);
 
   vec2 jitter_amount = mix(p.jitter_random_size.xy, p.jitter_random_size.zw, t);
   float jitter_speed = p.spread1_jitter.z;
@@ -185,7 +186,7 @@ void main() {
 
   vec2 world_pos = origin + offset + v.xy;
   gl_Position = pv[constants.camera_id].projection * pv[constants.camera_id].view * vec4(world_pos, p.position_shape.z + v.z, 1.0);
-  gl_Position.z = 1.0 - float(particle_id) / float(count);
+  gl_Position.z += (float(particle_id) / float(count)) * 0.0001;
 
   vec4 color = mix(p.color0, p.color1, t);
   if (length(p.color_random) > 0.0) {
