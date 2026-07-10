@@ -249,6 +249,20 @@ void fan::vulkan::context_t::close() {
   if (timestamp_query_pool) {
     vkDestroyQueryPool(device, timestamp_query_pool, nullptr);
   }
+
+  if (pipeline_cache) {
+    size_t cacheSize = 0;
+    if (vkGetPipelineCacheData(device, pipeline_cache, &cacheSize, nullptr) == VK_SUCCESS) {
+      std::vector<char> cacheData(cacheSize);
+      if (vkGetPipelineCacheData(device, pipeline_cache, &cacheSize, cacheData.data()) == VK_SUCCESS) {
+        if (std::ofstream cacheFile{"pipeline_cache.bin", std::ios::binary}) {
+          cacheFile.write(cacheData.data(), cacheSize);
+        }
+      }
+    }
+    vkDestroyPipelineCache(device, pipeline_cache, nullptr);
+  }
+
   vkDestroyDevice(device, nullptr);
   vkDestroyInstance(instance, nullptr);
 }
@@ -644,6 +658,20 @@ void fan::vulkan::context_t::create_logical_device() {
   queryPoolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
   queryPoolInfo.queryCount = 2 * max_frames_in_flight;
   vkCreateQueryPool(device, &queryPoolInfo, nullptr, &timestamp_query_pool);
+
+  std::vector<char> pipeline_cache_data;
+  if (std::ifstream cache_file{"pipeline_cache.bin", std::ios::binary | std::ios::ate}) {
+    auto size = cache_file.tellg();
+    cache_file.seekg(0, std::ios::beg);
+    pipeline_cache_data.resize(size);
+    cache_file.read(pipeline_cache_data.data(), size);
+  }
+
+  VkPipelineCacheCreateInfo cacheCreateInfo{};
+  cacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+  cacheCreateInfo.initialDataSize = pipeline_cache_data.size();
+  cacheCreateInfo.pInitialData = pipeline_cache_data.data();
+  vkCreatePipelineCache(device, &cacheCreateInfo, nullptr, &pipeline_cache);
 
   VkPhysicalDeviceProperties deviceProps;
   vkGetPhysicalDeviceProperties(physical_device, &deviceProps);
@@ -1223,7 +1251,7 @@ void fan::vulkan::compute_pipeline_t::open(fan::vulkan::context_t& context, cons
   pipeline_info.stage.module = shader;
   pipeline_info.stage.pName = "main";
   pipeline_info.layout = pipeline_layout;
-  fan::vulkan::validate(vkCreateComputePipelines(context.device, VK_NULL_HANDLE, 1, &pipeline_info, nullptr, &pipeline));
+  fan::vulkan::validate(vkCreateComputePipelines(context.device, context.pipeline_cache, 1, &pipeline_info, nullptr, &pipeline));
   vkDestroyShaderModule(context.device, shader, nullptr);
 }
 void fan::vulkan::compute_pipeline_t::close(fan::vulkan::context_t& context) {

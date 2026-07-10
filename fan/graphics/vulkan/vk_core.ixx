@@ -129,6 +129,7 @@ export namespace fan {
       using descriptor_t = fan::vulkan::descriptor_t;
       using descriptor_pool_t = fan::vulkan::descriptor_pool_t;
       descriptor_pool_t descriptor_pool;
+      VkPipelineCache pipeline_cache = VK_NULL_HANDLE;
       VkQueryPool timestamp_query_pool = VK_NULL_HANDLE;
       double timestamp_period = 1.0;
       std::uint64_t gpu_timestamps[2] = {0, 0};

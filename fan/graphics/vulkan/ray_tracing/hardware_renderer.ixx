@@ -3646,7 +3646,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       VkShaderModule comp = load_shader(shader_path, shaderc_glsl_compute_shader);
       VkPipelineShaderStageCreateInfo stage {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, .stage = VK_SHADER_STAGE_COMPUTE_BIT, .module = comp, .pName = "main"};
       VkComputePipelineCreateInfo pi {.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO, .stage = stage, .layout = pipeline_layout_out};
-      fan::vulkan::validate(vkCreateComputePipelines(ctx->device, VK_NULL_HANDLE, 1, &pi, nullptr, &pipeline_out));
+      fan::vulkan::validate(vkCreateComputePipelines(ctx->device, ctx->pipeline_cache, 1, &pi, nullptr, &pipeline_out));
       vkDestroyShaderModule(ctx->device, comp, nullptr);
     }
     void create_skinning_pipeline() {

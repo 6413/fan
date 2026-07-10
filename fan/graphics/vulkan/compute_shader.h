@@ -49,7 +49,7 @@ struct compute_shader_t {
 
 		info.layout = m_pipeline_layout;
 		//                                                                          ?
-		fan::vulkan::validate(vkCreateComputePipelines(loco->get_context().device, 0, 1, &info, nullptr, &m_pipeline));
+		fan::vulkan::validate(vkCreateComputePipelines(loco->get_context().device, loco->get_context().pipeline_cache, 1, &info, nullptr, &m_pipeline));
 	}
 
 	void execute(loco_t* loco, const fan::vec3ui& group_count) {
