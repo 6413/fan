@@ -264,7 +264,7 @@ void fan::vulkan::pipeline_t::open(fan::vulkan::context_t& context, const proper
   pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
   shader_nr = p.shader;
-  if (vkCreateGraphicsPipelines(context.device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
+  if (vkCreateGraphicsPipelines(context.device, context.pipeline_cache, 1, &pipelineInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
     fan::throw_error("failed to create graphics pipeline");
   }
 }

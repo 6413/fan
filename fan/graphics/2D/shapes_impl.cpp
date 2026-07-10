@@ -2856,8 +2856,12 @@ void* fan::graphics::shapes::shape_t::get_shape_data_impl(std::uint16_t shape_ty
   return result;
 }
 
-void fan::graphics::shapes::shape_t::get_gldata_impl(void* dst, std::size_t size, std::size_t offset) {
-  fan::throw_error_impl("backend TODO: get_gldata_impl for Vulkan");
+void fan::graphics::shapes::shape_t::get_vram_data_impl(void* dst, std::size_t size, std::size_t offset) const {
+  auto& s = fan::graphics::g_shapes->shaper.ShapeList[get_visual_id()];
+  auto& st = fan::graphics::g_shapes->shaper.ShapeTypes[s.sti];
+  auto& vk = st.renderer.vk;
+  auto& context = *static_cast<fan::vulkan::context_t*>(static_cast<void*>(fan::graphics::ctx()));
+  std::memcpy(dst, vk.shape_data.data[context.current_frame] + offset, size);
 }
 
 namespace {
