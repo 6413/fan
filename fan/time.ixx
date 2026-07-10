@@ -214,6 +214,33 @@ export namespace fan {
 
     void measure(fan::time::timer& timer, const std::string_view msg);
 
+    struct profiler_t {
+      struct entry_t {
+        std::string_view name;
+        fan::time::timer timer;
+        f64_t accumulated_time = 0;
+        int count = 0;
+        f64_t last_average = 0;
+        std::map<std::string_view, entry_t> children;
+      };
+      std::map<std::string_view, entry_t> roots;
+      std::vector<entry_t*> stack;
+      fan::time::timer update_timer{true};
+      bool enabled = false;
+
+      void begin(std::string_view name);
+      void end(std::string_view name);
+      void add_gpu_time(std::string_view name, f64_t time_ms);
+      void update();
+    };
+    extern profiler_t global_profiler;
+
+    struct scope_profiler_t {
+      std::string_view name;
+      scope_profiler_t(std::string_view name);
+      ~scope_profiler_t();
+    };
+
   } // fan::time
 
   struct cooldown_t {

@@ -71,6 +71,7 @@ namespace fan::graphics::gui {
       const auto& p = j["performance"];
       p.get_if("vsync", performance.vsync);
       p.get_if("show_fps", performance.show_fps);
+      p.get_if("show_profiler", performance.show_profiler);
       p.get_if("track_heap", performance.track_heap);
       p.get_if("track_opengl_calls", performance.track_opengl_calls);
     }
@@ -155,6 +156,7 @@ namespace fan::graphics::gui {
 
     j["performance"]["vsync"] = performance.vsync;
     j["performance"]["show_fps"] = performance.show_fps;
+    j["performance"]["show_profiler"] = performance.show_profiler;
     j["performance"]["track_heap"] = performance.track_heap;
     j["performance"]["track_opengl_calls"] = performance.track_opengl_calls;
 
@@ -530,6 +532,9 @@ namespace fan::graphics::gui {
         }
         if (draw_toggle_row("Show fps", (bool*)&gloco()->gui.show_fps)) {
           menu->config.performance.show_fps = gloco()->gui.show_fps;
+          menu->mark_dirty();
+        }
+        if (draw_toggle_row("Show Engine Profiler", &menu->config.performance.show_profiler)) {
           menu->mark_dirty();
         }
       #if defined(fan_std23)
