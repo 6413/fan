@@ -16,6 +16,8 @@ export module fan.graphics;
 
 import std;
 
+import fan.print;
+
 import fan.types;
 import fan.types.color;
 import fan.types.compile_time_string;
@@ -1083,11 +1085,12 @@ export namespace fan::graphics {
 
     particle_pool_t() {
       for (int i = 0; i < n; ++i) {
-        new (&slots[i].shape) user_shape_t {{
-          .position = fan::vec3(-99999, -99999, 0xfff),
-          .radius = 0.f,
-          .color = fan::colors::white
-        }};
+        fan::graphics::shapes::circle_t::properties_t p;
+        p.position = fan::vec3(-99999, -99999, 0xfff);
+        p.radius = 1.f;
+        p.color = fan::colors::transparent;
+        slots[i].shape = shape_t(p, false);
+        slots[i].shape.set_visible(false);
         next[i] = i + 1;
         active[i] = false;
       }
@@ -1102,6 +1105,7 @@ export namespace fan::graphics {
       free_head = next[i];
 
       auto& p = slots[i];
+      p.shape.set_visible(true);
       shape_fn(p.shape);
       sim_fn(static_cast<sim_data_t&>(p));
 
@@ -1116,7 +1120,7 @@ export namespace fan::graphics {
 
         bool alive = fn(slots[i], dt);
         if (!alive) {
-          slots[i].shape.set_radius(0.f);
+          slots[i].shape.set_visible(false);
           slots[i].shape.set_position(fan::vec3(-99999, -99999, 0xfff));
 
           active[i] = false;
@@ -1215,46 +1219,31 @@ export namespace fan::graphics {
     }
   }
 
+  template <typename shape_type_t = fan::graphics::shapes::particles_t>
   struct gpu_particle_system_t {
     std::vector<fan::graphics::shape_t> emitters;
 
-    void spawn_explosion(fan::vec2 pos, fan::color base_col, int count) {
-      fan::graphics::shapes::particles_t::properties_t p;
-      p.loop = false;
-      p.position = fan::vec3(pos, 0);
-      p.count = count;
-      p.alive_time = fan::random::value(0.4f, 1.2f);
-      
-      p.start_velocity = fan::vec2(150.f, 800.f); 
-      p.end_velocity = fan::vec2(5.f, 20.f); 
-      p.expansion_power = 1.0f;
-      
-      p.start_size = fan::vec2(8.f);
-      p.end_size = fan::vec2(0.f);
+    template <typename cb_t>
+    void spawn(const cb_t& cb) {
+      typename shape_type_t::properties_t p;
+      cb(p);
+      emitters.push_back(p);
+      emitters.back().start_particles();
+    }
 
-      p.begin_color = base_col;
-      p.end_color = base_col.set_alpha(0.0f);
-      p.color_random_range = fan::vec4(0.2f);
-
-      p.shape = fan::graphics::shapes::particles_t::shapes_e::circle;
-      
-      p.start_spread = fan::vec2(0, 0);
-      p.end_spread = fan::vec2(0, 0);
-      
-      p.angle = fan::vec3(0,0,0);
-      p.begin_angle = 0;
-      p.end_angle = 6.283185f; 
-      
-      p.start_angle_velocity = fan::vec3(0, 0, 0);
-      
-      fan::graphics::shape_t shape = fan::graphics::g_shapes->particles.push_back(p);
-      shape.start_particles();
-      emitters.push_back(shape);
+    void spawn(const typename shape_type_t::properties_t& p) {
+      emitters.push_back(p);
+      emitters.back().start_particles();
     }
 
     void update(f32_t dt) {
       for (int i = 0; i < emitters.size(); ) {
-        auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)emitters[i].GetData(fan::graphics::g_shapes->shaper);
+        void* data = emitters[i].GetData(fan::graphics::g_shapes->shaper);
+        if (!data) {
+          ++i;
+          continue;
+        }
+        auto& ri = *(typename shape_type_t::ri_t*)data;
         f32_t current_time = (f32_t)(fan::time::now() / 1e9);
         if (current_time - ri.loop_enabled_time > ri.alive_time) {
           emitters[i].erase();
@@ -1263,6 +1252,39 @@ export namespace fan::graphics {
           ++i;
         }
       }
+    }
+
+    std::size_t size() const {
+      return emitters.size();
+    }
+
+    bool empty() const {
+      return emitters.empty();
+    }
+
+    void clear() {
+      for (auto& emitter : emitters) {
+        emitter.erase();
+      }
+      emitters.clear();
+    }
+
+    void erase(std::size_t i) {
+      emitters[i].erase();
+      emitters.erase(emitters.begin() + i);
+    }
+
+    auto begin() { return emitters.begin(); }
+    auto end() { return emitters.end(); }
+    auto begin() const { return emitters.begin(); }
+    auto end() const { return emitters.end(); }
+
+    fan::graphics::shape_t& operator[](std::size_t i) {
+      return emitters[i];
+    }
+
+    const fan::graphics::shape_t& operator[](std::size_t i) const {
+      return emitters[i];
     }
   };
 

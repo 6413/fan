@@ -2533,9 +2533,11 @@ namespace fan::graphics{
   }
 
   fan::graphics::shaper_t::ShapeRenderData_t* shapes::shape_t::GetRenderData(fan::graphics::shaper_t& shaper) const {
+    if (iic() || get_visual_id().iic()) return nullptr;
     return static_cast<ShapeID_t*>(get_visual_shape())->GetRenderData(shaper);
   }
   fan::graphics::shaper_t::ShapeData_t* shapes::shape_t::GetData(fan::graphics::shaper_t& shaper) const {
+    if (iic() || get_visual_id().iic()) return nullptr;
     return static_cast<ShapeID_t*>(get_visual_shape())->GetData(shaper);
   }
 

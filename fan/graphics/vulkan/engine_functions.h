@@ -1393,7 +1393,9 @@ void shapes_draw() {
     }
 
     if (shape_type == fan::graphics::shapes::shape_type_t::particles) {
-      if (particle_emitters.empty()) { continue; }
+      if (particle_emitters.empty()) { 
+        continue; 
+      }
       fan::time::global_profiler.begin(fan::graphics::shape_names[shape_type]);
       auto& pipeline = prepare(shape_type, shape_shader_nr);
       fan::vulkan::context_t::push_constants_t pc{};
@@ -1418,8 +1420,12 @@ void shapes_draw() {
 
       do {
         auto* pri = (fan::graphics::shapes::particles_t::ri_t*)BlockTraverse.GetData(shaper);
-        for (std::uint32_t i = 0; i < BlockTraverse.GetAmount(shaper); ++i) {
-          vkCmdDraw(cmd_buffer, pri[i].count * 6, 1, 0, pri[i].vk_emitter_index);
+        if (BlockTraverse.GetAmount(shaper) > 0) {
+          std::uint32_t max_count = 0;
+          for (std::uint32_t i = 0; i < BlockTraverse.GetAmount(shaper); ++i) {
+            max_count = std::max(max_count, pri[i].count);
+          }
+          vkCmdDraw(cmd_buffer, max_count * 6, BlockTraverse.GetAmount(shaper), 0, pri[0].vk_emitter_index);
           did_draw = true;
         }
       } while (BlockTraverse.Loop(shaper));
