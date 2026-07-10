@@ -35,6 +35,7 @@ export namespace fan::graphics::gui {
     struct performance_settings_t {
       bool vsync = false;
       bool show_fps = false;
+      bool show_profiler = false;
       bool track_heap = false;
       bool track_opengl_calls = false;
     };

@@ -144,6 +144,66 @@ namespace fan {
       }
       timer.restart();
     }
+
+    profiler_t global_profiler;
+
+    void profiler_t::begin(std::string_view name) {
+      if (!enabled) return;
+      entry_t* node;
+      if (stack.empty()) {
+        node = &roots[name];
+      } else {
+        node = &stack.back()->children[name];
+      }
+      node->name = name;
+      node->timer.restart();
+      stack.push_back(node);
+    }
+    void profiler_t::end(std::string_view name) {
+      if (!enabled) return;
+      if (stack.empty()) return;
+      entry_t* node = stack.back();
+      stack.pop_back();
+      node->accumulated_time += node->timer.seconds();
+      node->count++;
+    }
+    void profiler_t::add_gpu_time(std::string_view name, f64_t time_ms) {
+      if (!enabled) return;
+      entry_t* node;
+      if (stack.empty()) {
+        node = &roots[name];
+      } else {
+        node = &stack.back()->children[name];
+      }
+      node->name = name;
+      node->accumulated_time += time_ms / 1000.0;
+      node->count++;
+    }
+    
+    static void update_recursive(profiler_t::entry_t& e) {
+      e.last_average = e.count > 0 ? (e.accumulated_time / e.count) * 1000.0 : 0.0;
+      e.accumulated_time = 0;
+      e.count = 0;
+      for (auto& pair : e.children) {
+        update_recursive(pair.second);
+      }
+    }
+
+    void profiler_t::update() {
+      if (!enabled) return;
+      if (update_timer.seconds() >= 1.0) {
+        for (auto& pair : roots) {
+          update_recursive(pair.second);
+        }
+        update_timer.restart();
+      }
+    }
+    scope_profiler_t::scope_profiler_t(std::string_view name) : name(name) {
+      global_profiler.begin(name);
+    }
+    scope_profiler_t::~scope_profiler_t() {
+      global_profiler.end(name);
+    }
   }
   void cooldown_t::tick(f32_t dt) {
     if (current > 0.f) { current -= dt; }
