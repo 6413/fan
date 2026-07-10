@@ -53,10 +53,13 @@ import fan.graphics.common_types;
 
 import fan.io.file;
 
-#if defined(FAN_GUI)
+using namespace fan::graphics;
 
-fan::graphics::gui::settings_menu_t* get_smenu(loco_t* loco) {
-  return static_cast<fan::graphics::gui::settings_menu_t*>(loco->gui.settings_menu);
+#if defined(FAN_GUI)
+namespace gui = fan::graphics::gui;
+
+::gui::settings_menu_t* get_smenu(loco_t* loco) {
+  return static_cast<::gui::settings_menu_t*>(loco->gui.settings_menu);
 }
 
 namespace fan {
@@ -168,7 +171,7 @@ namespace fan::graphics {
       plot_data[i] = buffer[start + i] * 1e3f; // ms
     }
 
-    gui::plot::plot_line(label, plot_data.data(), plot_count);
+    ::gui::plot::plot_line(label, plot_data.data(), plot_count);
   }
   #endif
 
@@ -991,11 +994,11 @@ void loco_t::check_vk_result(int err) {
 
 #if defined(FAN_GUI)
 void loco_t::init_gui() {
-  if (fan::graphics::gui::is_gui_initialized()) {
+  if (::gui::is_gui_initialized()) {
     gui.gui_initialized = true;
     return;
   }
-  fan::graphics::gui::init(
+  ::gui::init(
     window,
     context.vk.instance,
     context.vk.physical_device,
@@ -1010,21 +1013,21 @@ void loco_t::init_gui() {
     check_vk_result
   );
   gui.font_future = std::async(std::launch::async, []() {
-    fan::graphics::gui::init_fonts();
+    ::gui::init_fonts();
   });
   gui.gui_initialized = true;
 }
 
 void loco_t::destroy_gui() {
-  if (!gui.gui_initialized || !fan::graphics::gui::is_gui_initialized()) {
+  if (!gui.gui_initialized || !::gui::is_gui_initialized()) {
     return;
   }
 
-  fan::graphics::gui::shutdown_graphics_context(
+  ::gui::shutdown_graphics_context(
     context.vk.device
   );
 
-  fan::graphics::gui::destroy();
+  ::gui::destroy();
   gui.gui_initialized = false;
 
   context.vk.gui_close();
@@ -1166,7 +1169,7 @@ loco_t::loco_t(const loco_t::properties_t& props) :
   {
     auto& ctx = fan::graphics::ctx();
     ctx.input_action = &input.input_action;
-    gui.settings_menu = new fan::graphics::gui::settings_menu_t;
+    gui.settings_menu = new ::gui::settings_menu_t;
   }
   #endif
   fan::time::measure(t, "gui settings");
@@ -1373,7 +1376,7 @@ void loco_t::destroy() {
     shader_watcher = nullptr;
   }
 #if defined(FAN_GUI)
-  delete (fan::graphics::gui::settings_menu_t*)gui.settings_menu;
+  delete (::gui::settings_menu_t*)gui.settings_menu;
   gui.settings_menu = nullptr;
 #endif
 
@@ -1483,9 +1486,9 @@ void loco_t::process_gui() {
   using namespace fan::graphics;
   timing.gui_draw_timer.start();
 #if defined(FAN_GUI)
-  fan::graphics::gui::process_frame();
+  ::gui::process_frame();
 
-  if (auto h = gui::hud("##text_logger")) {
+  if (auto h = ::gui::hud("##text_logger")) {
     gui.text_logger.render();
   }
 
@@ -1512,20 +1515,20 @@ void loco_t::process_gui() {
   }
 
   if (gui.render_debug_memory) {
-    gui::set_next_window_bg_alpha(0.99f);
-    gui::window_flags_t window_flags = gui::window_flags_no_title_bar | gui::window_flags_topmost;
-    gui::set_next_window_size(fan::vec2(600, 300), gui::cond_once);
-    gui::begin("fan_memory_dbg_wnd", nullptr, window_flags);
-    gui::render_allocations_plot();
-    gui::end();
+    ::gui::set_next_window_bg_alpha(0.99f);
+    ::gui::window_flags_t window_flags = ::gui::window_flags_no_title_bar | ::gui::window_flags_topmost;
+    ::gui::set_next_window_size(fan::vec2(600, 300), ::gui::cond_once);
+    ::gui::begin("fan_memory_dbg_wnd", nullptr, window_flags);
+    ::gui::render_allocations_plot();
+    ::gui::end();
   }
 
   if (gui.show_fps) {
-    gui::window_flags_t window_flags = gui::window_flags_no_title_bar | gui::window_flags_topmost;
+    ::gui::window_flags_t window_flags = ::gui::window_flags_no_title_bar | ::gui::window_flags_topmost;
 
-    gui::set_next_window_bg_alpha(0.99f);
-    gui::set_next_window_size(fan::vec2(831.0000, 693.0000), gui::cond_once);
-    gui::begin("Performance window", nullptr, window_flags);
+    ::gui::set_next_window_bg_alpha(0.99f);
+    ::gui::set_next_window_size(fan::vec2(831.0000, 693.0000), ::gui::cond_once);
+    ::gui::begin("Performance window", nullptr, window_flags);
 
     gui.frame_monitor.update(get_delta_time());
     gui.shape_monitor.update(timing.shape_draw_time_s);
@@ -1541,48 +1544,48 @@ void loco_t::process_gui() {
       return oss.str();
     };
 
-    gui::text("Current FPS:", std::to_string(static_cast<int>(1.f / get_delta_time())));
-    gui::text("Average FPS:", std::to_string(static_cast<int>(frame_stats.avg_fps())));
-    gui::text("Lowest FPS:", std::to_string(static_cast<int>(frame_stats.min_fps())));
-    gui::text("Highest FPS:", std::to_string(static_cast<int>(frame_stats.max_fps())));
-    gui::text("Frame Time Avg:", format_val(frame_stats.avg_frame_time_s * 1e3) + " ms");
-    gui::text("Shape Draw Avg:", format_val(shape_stats.avg_frame_time_s * 1e3) + " ms");
-    gui::text("GUI Draw Avg:", format_val(gui_stats.avg_frame_time_s * 1e3) + " ms");
+    ::gui::text("Current FPS:", std::to_string(static_cast<int>(1.f / get_delta_time())));
+    ::gui::text("Average FPS:", std::to_string(static_cast<int>(frame_stats.avg_fps())));
+    ::gui::text("Lowest FPS:", std::to_string(static_cast<int>(frame_stats.min_fps())));
+    ::gui::text("Highest FPS:", std::to_string(static_cast<int>(frame_stats.max_fps())));
+    ::gui::text("Frame Time Avg:", format_val(frame_stats.avg_frame_time_s * 1e3) + " ms");
+    ::gui::text("Shape Draw Avg:", format_val(shape_stats.avg_frame_time_s * 1e3) + " ms");
+    ::gui::text("GUI Draw Avg:", format_val(gui_stats.avg_frame_time_s * 1e3) + " ms");
 
-    if (gui::button(gui.frame_monitor.paused ? "Continue" : "Pause")) {
+    if (::gui::button(gui.frame_monitor.paused ? "Continue" : "Pause")) {
       gui.frame_monitor.paused = !gui.frame_monitor.paused;
       gui.shape_monitor.paused = gui.frame_monitor.paused;
       gui.gui_monitor.paused = gui.frame_monitor.paused;
     }
 
-    if (gui::button("Reset data")) {
+    if (::gui::button("Reset data")) {
       gui.frame_monitor.reset();
       gui.shape_monitor.reset();
       gui.gui_monitor.reset();
     }
 
-    if (gui::plot::begin_plot("Times", fan::vec2(-1, 0), gui::plot::flags_no_frame)) {
-      gui::plot::setup_axes("Frame Index", "Frame Time (ms)",
-        gui::plot::axis_flags_auto_fit,
-        gui::plot::axis_flags_auto_fit | gui::plot::axis_flags_range_fit
+    if (::gui::plot::begin_plot("Times", fan::vec2(-1, 0), ::gui::plot::flags_no_frame)) {
+      ::gui::plot::setup_axes("Frame Index", "Frame Time (ms)",
+        ::gui::plot::axis_flags_auto_fit,
+        ::gui::plot::axis_flags_auto_fit | ::gui::plot::axis_flags_range_fit
       );
-      gui::plot::setup_axis_ticks(gui::plot::axis_y1, 0.0, 10.0, 11);
+      ::gui::plot::setup_axis_ticks(::gui::plot::axis_y1, 0.0, 10.0, 11);
       gui.frame_monitor.plot(this, "Frame Draw Time");
       gui.shape_monitor.plot(this, "Shape Draw Time");
       gui.gui_monitor.plot(this, "GUI Draw Time");
 
       if (gui.frame_monitor.buffer.size() > gui.time_plot_scroll.view_size) {
         int max_offset = static_cast<int>(gui.frame_monitor.buffer.size()) - gui.time_plot_scroll.view_size;
-        gui::drag("Scroll", &gui.time_plot_scroll.scroll_offset, 1.f, 0.f, max_offset, gui::slider_flags_always_clamp);
+        ::gui::drag("Scroll", &gui.time_plot_scroll.scroll_offset, 1.f, 0.f, max_offset, ::gui::slider_flags_always_clamp);
       }
-      gui::plot::end_plot();
+      ::gui::plot::end_plot();
     }
 
-    gui::text("Frame Draw Time: ", format_val(get_delta_time() * 1e3) + " ms");
-    gui::text("Shape Draw Time: ", format_val(timing.shape_draw_time_s * 1e3) + " ms");
-    gui::text("GUI Draw Time: ", format_val(timing.gui_draw_time_s * 1e3) + " ms");
+    ::gui::text("Frame Draw Time: ", format_val(get_delta_time() * 1e3) + " ms");
+    ::gui::text("Shape Draw Time: ", format_val(timing.shape_draw_time_s * 1e3) + " ms");
+    ::gui::text("GUI Draw Time: ", format_val(timing.gui_draw_time_s * 1e3) + " ms");
 
-    gui::end();
+    ::gui::end();
   }
 
   {
@@ -1601,28 +1604,28 @@ void loco_t::process_gui() {
 
     std::string s = std::to_string(gui.last_fps);
 
-    gui::push_font(gui::get_font(15.f));
+    ::gui::push_font(::gui::get_font(15.f));
 
-    fan::vec2 ts = gui::calc_text_size(s);
+    fan::vec2 ts = ::gui::calc_text_size(s);
     fan::vec2 bs = fan::vec2(34, ts.y * 1.4f);
     fan::vec2 p = fan::vec2(window.get_size().x - bs.x, 0);
     fan::vec2 tp = fan::vec2(p.x + (bs.x - ts.x) * 0.5f, p.y + (bs.y - ts.y) * 0.5f);
 
-    auto* dl = gui::get_foreground_draw_list();
+    auto* dl = ::gui::get_foreground_draw_list();
     auto bg = fan::color(0, 0, 0, 1).get_gui_color();
-    auto border = gui::get_color_u32(gui::col_border);
-    f32_t rounding = gui::get_style().FrameRounding;
+    auto border = ::gui::get_color_u32(::gui::col_border);
+    f32_t rounding = ::gui::get_style().FrameRounding;
 
     dl->AddRectFilled(fan::vec2(p.x, p.y), fan::vec2(p.x + bs.x, p.y + bs.y), bg, rounding);
     dl->AddRect(fan::vec2(p.x, p.y), fan::vec2(p.x + bs.x, p.y + bs.y), border, rounding);
     dl->AddText(fan::vec2(tp.x, tp.y), fan::color(0, 1, 0, 1).get_gui_color(), s.c_str());
 
-    gui::pop_font();
+    ::gui::pop_font();
   }
 
-  fan::graphics::gui::enforce_topmost();
+  ::gui::enforce_topmost();
 
-  gui::render(
+  ::gui::render(
     get_render_shapes_top(),
     &get_vk_context(),
     renderer_state.clear_color,
@@ -1632,7 +1635,7 @@ void loco_t::process_gui() {
   );
 #endif
 #if defined(FAN_GUI)
-  gui::set_want_io();
+  ::gui::set_want_io();
 #endif
   timing.gui_draw_time_s = timing.gui_draw_timer.seconds();
 }
@@ -1675,7 +1678,7 @@ void loco_t::process_render() {
 #endif
 
 #if defined(FAN_GUI)
-  fan::graphics::gui::end();
+  ::gui::end();
 #endif
 
 
@@ -1771,25 +1774,25 @@ bool loco_t::process_frame(const std::function<void(f32_t delta_time)>& cb) {
     gui.font_future = {};
   }
 
-  fan::graphics::gui::new_frame();
-  fan::graphics::gui::gizmo::begin_frame();
+  ::gui::new_frame();
+  ::gui::gizmo::begin_frame();
 
   if (get_smenu(this)->config.performance.show_profiler) {
-    fan::graphics::gui::begin("Engine Profiler", &get_smenu(this)->config.performance.show_profiler, fan::graphics::gui::window_flags_topmost);
+    ::gui::begin("Engine Profiler", &get_smenu(this)->config.performance.show_profiler, ::gui::window_flags_topmost);
     
     auto render_profiler_node = [](auto& self, const fan::time::profiler_t::entry_t& node) -> void {
       std::string text = std::string(node.name) + ": " + std::to_string(node.last_average) + " ms###" + std::string(node.name);
       if (node.children.empty()) {
-        fan::graphics::gui::tree_node_ex(text, fan::graphics::gui::tree_node_flags_leaf | fan::graphics::gui::tree_node_flags_no_tree_push_on_open);
+        ::gui::tree_node_ex(text, ::gui::tree_node_flags_leaf | ::gui::tree_node_flags_no_tree_push_on_open);
       } else {
-        bool open = fan::graphics::gui::tree_node_ex(text, fan::graphics::gui::tree_node_flags_default_open);
+        bool open = ::gui::tree_node_ex(text, ::gui::tree_node_flags_default_open);
         if (open) {
-          fan::graphics::gui::indent(15.0f);
+          ::gui::indent(15.0f);
           for (const auto& pair : node.children) {
             self(self, pair.second);
           }
-          fan::graphics::gui::unindent(15.0f);
-          fan::graphics::gui::tree_pop();
+          ::gui::unindent(15.0f);
+          ::gui::tree_pop();
         }
       }
     };
@@ -1797,38 +1800,38 @@ bool loco_t::process_frame(const std::function<void(f32_t delta_time)>& cb) {
     for (const auto& pair : fan::time::global_profiler.roots) {
       render_profiler_node(render_profiler_node, pair.second);
     }
-    fan::graphics::gui::end();
+    ::gui::end();
   }
 
 
   using namespace fan::graphics;
 
-  gui::push_style_color(gui::col_window_bg, fan::color(0, 0, 0, 0));
-  gui::push_style_color(gui::col_docking_empty_bg, fan::color(0, 0, 0, 0));
-  gui::dock_space_over_viewport(0, gui::get_main_viewport());
+  ::gui::push_style_color(::gui::col_window_bg, fan::color(0, 0, 0, 0));
+  ::gui::push_style_color(::gui::col_docking_empty_bg, fan::color(0, 0, 0, 0));
+  ::gui::dock_space_over_viewport(0, ::gui::get_main_viewport());
 
   if (gui.allow_docking || is_key_down(fan::key_left_control)) {
-    gui::get_io().ConfigFlags |= gui::config_flags_docking_enable;
+    ::gui::get_io().ConfigFlags |= ::gui::config_flags_docking_enable;
   }
   else {
-    gui::get_io().ConfigFlags &= ~gui::config_flags_docking_enable;
+    ::gui::get_io().ConfigFlags &= ~::gui::config_flags_docking_enable;
   }
 
-  gui::pop_style_color(2);
+  ::gui::pop_style_color(2);
 
-  gui::set_next_window_pos(fan::vec2(0, 0));
-  gui::set_next_window_size(fan::vec2(window.get_size()));
+  ::gui::set_next_window_pos(fan::vec2(0, 0));
+  ::gui::set_next_window_size(fan::vec2(window.get_size()));
 
   {
     static constexpr int wnd_flags =
-      gui::window_flags_no_docking | gui::window_flags_no_saved_settings |
-      gui::window_flags_no_focus_on_appearing | gui::window_flags_no_move |
-      gui::window_flags_no_collapse | gui::window_flags_no_background |
-      gui::window_flags_no_resize | gui::dock_node_flags_no_docking_split |
-      gui::window_flags_no_title_bar | gui::window_flags_no_bring_to_front_on_focus |
-      gui::window_flags_no_inputs
+      ::gui::window_flags_no_docking | ::gui::window_flags_no_saved_settings |
+      ::gui::window_flags_no_focus_on_appearing | ::gui::window_flags_no_move |
+      ::gui::window_flags_no_collapse | ::gui::window_flags_no_background |
+      ::gui::window_flags_no_resize | ::gui::dock_node_flags_no_docking_split |
+      ::gui::window_flags_no_title_bar | ::gui::window_flags_no_bring_to_front_on_focus |
+      ::gui::window_flags_no_inputs
       ;
-    gui::begin("##global_renderer", nullptr, wnd_flags | (!gui.enable_overlay ? gui::window_flags_no_nav | gui::window_flags_override_input : 0));
+    ::gui::begin("##global_renderer", nullptr, wnd_flags | (!gui.enable_overlay ? ::gui::window_flags_no_nav | ::gui::window_flags_override_input : 0));
   }
 #endif
 
@@ -2580,7 +2583,7 @@ namespace fan::graphics::gui {
 
     static pause_state_t pause_state = {false};
 
-    gui::checkbox("pause updates", &pause_state.paused);
+    ::gui::checkbox("pause updates", &pause_state.paused);
 
     static std::vector<f32_t> allocation_sizes;
     static std::vector<fan::memory::heap_profiler_t::memory_data_t> allocations;
@@ -2631,17 +2634,17 @@ namespace fan::graphics::gui {
     }
 
     auto& profiler = fan::memory::heap_profiler_t::instance();
-    gui::text("Active allocations:", profiler.memory_map.size());
-    gui::text("Allocation size:", profiler.current_allocation_size / 1e6, " (MB)");
+    ::gui::text("Active allocations:", profiler.memory_map.size());
+    ::gui::text("Allocation size:", profiler.current_allocation_size / 1e6, " (MB)");
 
     int total_mem_MB, used_MB;
     gloco()->get_vram_usage(&total_mem_MB, &used_MB);
 
-    if (used_MB != -1) { gui::text("VRAM used memory", used_MB, " (MB)"); }
-    if (total_mem_MB != -1) { gui::text("VRAM total memory", total_mem_MB, " (MB)"); }
+    if (used_MB != -1) { ::gui::text("VRAM used memory", used_MB, " (MB)"); }
+    if (total_mem_MB != -1) { ::gui::text("VRAM total memory", total_mem_MB, " (MB)"); }
 
-    fan::vec2 cursor_pos = gui::get_cursor_pos();
-    fan::vec2 window_size = gui::get_window_size();
+    fan::vec2 cursor_pos = ::gui::get_cursor_pos();
+    fan::vec2 window_size = ::gui::get_window_size();
     fan::vec2 available_size = window_size - cursor_pos;
 
   #if defined(fan_std23)
@@ -2649,32 +2652,32 @@ namespace fan::graphics::gui {
   #endif
 
     if (allocation_sizes.size() &&
-      gui::plot::begin_plot("Memory Allocations", available_size,
-        gui::plot::flags_no_frame | gui::plot::flags_no_legend)) {
-      gui::plot::setup_axis(gui::plot::axis_y1, "Memory (MB)");
-      gui::plot::setup_axis_limits(gui::plot::axis_y1, 0, max_y);
-      gui::plot::setup_axis(gui::plot::axis_x1, "Allocations");
-      gui::plot::setup_axis_limits(gui::plot::axis_x1, 0, (double)allocation_sizes.size());
+      ::gui::plot::begin_plot("Memory Allocations", available_size,
+        ::gui::plot::flags_no_frame | ::gui::plot::flags_no_legend)) {
+      ::gui::plot::setup_axis(::gui::plot::axis_y1, "Memory (MB)");
+      ::gui::plot::setup_axis_limits(::gui::plot::axis_y1, 0, max_y);
+      ::gui::plot::setup_axis(::gui::plot::axis_x1, "Allocations");
+      ::gui::plot::setup_axis_limits(::gui::plot::axis_x1, 0, (double)allocation_sizes.size());
 
-      gui::plot::push_style_var(gui::plot::style_var_fill_alpha, 0.25f);
-      gui::plot::plot_bars("Allocations", allocation_sizes.data(), allocation_sizes.size());
-      gui::plot::pop_style_var();
+      ::gui::plot::push_style_var(::gui::plot::style_var_fill_alpha, 0.25f);
+      ::gui::plot::plot_bars("Allocations", allocation_sizes.data(), allocation_sizes.size());
+      ::gui::plot::pop_style_var();
 
-      if (gui::plot::is_plot_hovered()) {
-        auto mouse = gui::plot::get_plot_mouse_pos();
+      if (::gui::plot::is_plot_hovered()) {
+        auto mouse = ::gui::plot::get_plot_mouse_pos();
         mouse.x = (int)mouse.x;
 
         f32_t half_width = 0.25f;
-        f32_t tool_l = gui::plot::plot_to_pixels(mouse.x - half_width * 1.5f, mouse.y).x;
-        f32_t tool_r = gui::plot::plot_to_pixels(mouse.x + half_width * 1.5f, mouse.y).x;
-        f32_t tool_t = gui::plot::get_plot_pos().y;
-        f32_t tool_b = tool_t + gui::plot::get_plot_size().y;
+        f32_t tool_l = ::gui::plot::plot_to_pixels(mouse.x - half_width * 1.5f, mouse.y).x;
+        f32_t tool_r = ::gui::plot::plot_to_pixels(mouse.x + half_width * 1.5f, mouse.y).x;
+        f32_t tool_t = ::gui::plot::get_plot_pos().y;
+        f32_t tool_b = tool_t + ::gui::plot::get_plot_size().y;
 
-        gui::plot::push_plot_clip_rect();
-        auto draw_list = gui::get_window_draw_list();
+        ::gui::plot::push_plot_clip_rect();
+        auto draw_list = ::gui::get_window_draw_list();
         draw_list->AddRectFilled(fan::vec2(tool_l, tool_t), fan::vec2(tool_r, tool_b),
           fan::color(128, 128, 128, 64).get_gui_color());
-        gui::plot::pop_plot_clip_rect();
+        ::gui::plot::pop_plot_clip_rect();
 
       #if defined(fan_std23)
         if (mouse.x >= 0 && mouse.x < allocation_sizes.size()) {
@@ -2713,7 +2716,7 @@ namespace fan::graphics::gui {
         end_tooltip();
       }
 
-      if (begin_popup("view stack", gui::window_flags_always_horizontal_scrollbar)) {
+      if (begin_popup("view stack", ::gui::window_flags_always_horizontal_scrollbar)) {
         std::ostringstream oss;
         oss << stack;
         text(oss.str());
@@ -2721,7 +2724,7 @@ namespace fan::graphics::gui {
       }
     #endif
 
-      gui::plot::end_plot();
+      ::gui::plot::end_plot();
     }
   }
 } // namespace fan::graphics::gui
