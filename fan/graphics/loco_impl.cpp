@@ -1432,33 +1432,50 @@ void loco_t::close() {
 void loco_t::shapes_draw() {
   timing.shape_draw_timer.start();
 
+  fan::time::global_profiler.begin("vk->shapes_draw");
   vk->shapes_draw();
+  fan::time::global_profiler.end("vk->shapes_draw");
 
   timing.shape_draw_time_s = timing.shape_draw_timer.seconds();
 
 #if defined(FAN_2D)
+  fan::time::global_profiler.begin("immediate_render_list.clear()");
   immediate_render_list.clear();
+  fan::time::global_profiler.end("immediate_render_list.clear()");
+  fan::time::global_profiler.begin("ProcessBlockEditQueue");
   fan::graphics::g_shapes->shaper.ProcessBlockEditQueue();
+  fan::time::global_profiler.end("ProcessBlockEditQueue");
 #endif
 }
 
 void loco_t::process_shapes() {
 
   if (get_render_shapes_top() == true) {
+    fan::time::global_profiler.begin("Begin Render Pass");
     vk->begin_render_pass();
+    fan::time::global_profiler.end("Begin Render Pass");
   }
+
+  fan::time::global_profiler.begin("Pre Draw Callbacks");
   for (const auto& i : m_pre_draw) {
     i();
   }
+  fan::time::global_profiler.end("Pre Draw Callbacks");
 
+  fan::time::global_profiler.begin("Shapes Draw");
   shapes_draw();
+  fan::time::global_profiler.end("Shapes Draw");
 
+  fan::time::global_profiler.begin("Post Draw Callbacks");
   for (const auto& func : m_post_draw) {
     func();
   }
+  fan::time::global_profiler.end("Post Draw Callbacks");
 
   if (vk->image_error == VK_SUCCESS) {
+    fan::time::global_profiler.begin("Draw Post Process");
     vk->draw_post_process();
+    fan::time::global_profiler.end("Draw Post Process");
   }
 }
 
@@ -1652,7 +1669,9 @@ void loco_t::process_render() {
   if (is_visualizing_culling) {
     visualize_culling();
   }
+  fan::time::global_profiler.begin("Render: Culling");
   run_culling();
+  fan::time::global_profiler.end("Render: Culling");
 #endif
 
 #if defined(FAN_GUI)
@@ -1662,20 +1681,29 @@ void loco_t::process_render() {
 
 #if defined(FAN_2D)
 
+  fan::time::global_profiler.begin("Render: Begin Draw");
   vk->begin_draw();
+  fan::time::global_profiler.end("Render: Begin Draw");
 
+  fan::time::global_profiler.begin("Render: Block Edit Q");
   fan::graphics::g_shapes->shaper.ProcessBlockEditQueue();
+  fan::time::global_profiler.end("Render: Block Edit Q");
 
   viewport_set(0, window.get_size());
 
+  fan::time::global_profiler.begin("Render: Process Shapes");
   if (get_render_shapes_top() == false) {
     process_shapes();
+    fan::time::global_profiler.end("Render: Process Shapes");
+    fan::time::global_profiler.begin("Render: Process GUI");
     process_gui();
+    fan::time::global_profiler.end("Render: Process GUI");
   }
   else {
     process_gui();
-    process_shapes();
+    fan::time::global_profiler.end("Render: Process Shapes"); // Wait, shapes and gui are flipped here, I'll measure them together or separately accurately.
   }
+
   for (auto& i : draw_end_cb) {
     i();
   }
@@ -1684,7 +1712,9 @@ void loco_t::process_render() {
     context.vk.command_buffer_in_use = false;
   }
   else {
+    fan::time::global_profiler.begin("Render: End Render");
     VkResult err = context.vk.end_render(&window);
+    fan::time::global_profiler.end("Render: End Render");
     if (err == VK_ERROR_OUT_OF_DATE_KHR || err == VK_SUBOPTIMAL_KHR || context.vk.SwapChainRebuild) {
       vk->close_swapchain_resources();
       context.vk.recreate_swap_chain(&window, err);
@@ -1710,6 +1740,10 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
 }
 
 bool loco_t::process_frame(const std::function<void(f32_t delta_time)>& cb) {
+  fan::time::global_profiler.enabled = get_smenu(this) && get_smenu(this)->config.performance.show_profiler;
+  fan::time::global_profiler.update();
+  fan::time::global_profiler.begin("Frame Total CPU");
+  fan::time::global_profiler.begin("Events");
   window.handle_events();
   time = start_time.seconds();
 
@@ -1719,10 +1753,14 @@ bool loco_t::process_frame(const std::function<void(f32_t delta_time)>& cb) {
 
   get_delta_time() = window.m_delta_time;
 
+  fan::time::global_profiler.end("Events");
+
   process_async_image_uploads();
 
 #if defined(FAN_PHYSICS_2D)
+  fan::time::global_profiler.begin("Physics");
   physics.context.begin_frame(get_delta_time());
+  fan::time::global_profiler.end("Physics");
 #endif
 
   renderer_state.lighting.update(get_delta_time());
@@ -1735,6 +1773,32 @@ bool loco_t::process_frame(const std::function<void(f32_t delta_time)>& cb) {
 
   fan::graphics::gui::new_frame();
   fan::graphics::gui::gizmo::begin_frame();
+
+  if (get_smenu(this)->config.performance.show_profiler) {
+    fan::graphics::gui::begin("Engine Profiler", &get_smenu(this)->config.performance.show_profiler);
+    
+    auto render_profiler_node = [](auto& self, const fan::time::profiler_t::entry_t& node) -> void {
+      std::string text = std::string(node.name) + ": " + std::to_string(node.last_average) + " ms###" + std::string(node.name);
+      if (node.children.empty()) {
+        fan::graphics::gui::tree_node_ex(text, fan::graphics::gui::tree_node_flags_leaf | fan::graphics::gui::tree_node_flags_no_tree_push_on_open);
+      } else {
+        bool open = fan::graphics::gui::tree_node_ex(text, fan::graphics::gui::tree_node_flags_default_open);
+        if (open) {
+          fan::graphics::gui::indent(15.0f);
+          for (const auto& pair : node.children) {
+            self(self, pair.second);
+          }
+          fan::graphics::gui::unindent(15.0f);
+          fan::graphics::gui::tree_pop();
+        }
+      }
+    };
+
+    for (const auto& pair : fan::time::global_profiler.roots) {
+      render_profiler_node(render_profiler_node, pair.second);
+    }
+    fan::graphics::gui::end();
+  }
 
 
   using namespace fan::graphics;
@@ -1768,8 +1832,10 @@ bool loco_t::process_frame(const std::function<void(f32_t delta_time)>& cb) {
   }
 #endif
 
+  fan::time::global_profiler.begin("Events");
   fan::event::process();
   fan::time::process_tasks();
+  fan::time::global_profiler.end("Events");
 
   for (const auto& i : single_queue) {
     i();
@@ -1783,7 +1849,9 @@ bool loco_t::process_frame(const std::function<void(f32_t delta_time)>& cb) {
   }
 
 #if defined(FAN_PHYSICS_2D)
+  fan::time::global_profiler.begin("Physics");
   physics.update(get_delta_time());
+  fan::time::global_profiler.end("Physics");
 
   if (input.input_action.is_active(fan::actions::toggle_debug_physics)) {
     fan::physics::debug_draw_cb()(!fan::physics::is_debug_draw_enabled(), &fan::graphics::get_orthographic_render_view());
@@ -1813,7 +1881,9 @@ bool loco_t::process_frame(const std::function<void(f32_t delta_time)>& cb) {
 
   async_image_process();
 
+  fan::time::global_profiler.begin("Game Logic");
   cb(get_delta_time());
+  fan::time::global_profiler.end("Game Logic");
 
 #if defined(FAN_PHYSICS_2D)
   physics.draw();
@@ -1829,7 +1899,10 @@ bool loco_t::process_frame(const std::function<void(f32_t delta_time)>& cb) {
     return 1;
   }
 
+  fan::time::global_profiler.begin("CPU Render Submit");
   process_render();
+  fan::time::global_profiler.end("CPU Render Submit");
+  fan::time::global_profiler.end("Frame Total CPU");
 
   return 0;
 }

@@ -904,6 +904,24 @@ void begin_render_pass() {
 void begin_draw() {
   fan::vulkan::context_t& context = loco.context.vk;
   vkWaitForFences(context.device, 1, &context.in_flight_fences[context.current_frame], VK_TRUE, UINT64_MAX);
+
+  if (context.timestamp_query_pool) {
+    vkGetQueryPoolResults(
+      context.device,
+      context.timestamp_query_pool,
+      context.current_frame * 2,
+      2,
+      sizeof(context.gpu_timestamps),
+      context.gpu_timestamps,
+      sizeof(std::uint64_t),
+      VK_QUERY_RESULT_64_BIT
+    );
+    if (context.gpu_timestamps[1] != 0 && context.gpu_timestamps[0] != 0 && context.gpu_timestamps[1] > context.gpu_timestamps[0]) {
+      double gpu_time_ms = double(context.gpu_timestamps[1] - context.gpu_timestamps[0]) * context.timestamp_period / 1000000.0;
+      fan::time::global_profiler.add_gpu_time("GPU Render", gpu_time_ms);
+    }
+  }
+
   context.get_current_deletion_queue(context.current_frame).flush();
   context.get_current_deletion_queue(context.current_frame).merge(context.pending_deletion_queue);
   flush_deferred_shape_pipeline_destroys();
@@ -1011,6 +1029,11 @@ void begin_draw() {
   }
   context.command_buffer_in_use = true;
 
+  if (context.timestamp_query_pool) {
+    vkCmdResetQueryPool(context.command_buffers[context.current_frame], context.timestamp_query_pool, context.current_frame * 2, 2);
+    vkCmdWriteTimestamp(context.command_buffers[context.current_frame], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, context.timestamp_query_pool, context.current_frame * 2);
+  }
+
   if (context.cameras.viewport_dirty) {
     vkCmdSetViewport(context.command_buffers[context.current_frame], 0, 1, &context.cameras.pending_viewport);
     vkCmdSetScissor(context.command_buffers[context.current_frame], 0, 1, &context.cameras.pending_scissor);
@@ -1028,10 +1051,12 @@ void begin_draw() {
 }
 
 void shapes_draw() {
-
+  fan::time::global_profiler.begin("Memory Queue Process");
   loco.context.vk.memory_queue.process(loco.context.vk);
+  fan::time::global_profiler.end("Memory Queue Process");
 
 #if defined(FAN_2D)
+  fan::time::global_profiler.begin("Variable Initialization");
   fan::graphics::shaper_t::KeyTraverse_t KeyTraverse;
   KeyTraverse.Init(fan::graphics::g_shapes->shaper);
 
@@ -1183,6 +1208,9 @@ void shapes_draw() {
 
   std::vector<fan::graphics::polygon_vertex_t> polygon_vertices;
   std::vector<particles_gpu_t> particle_emitters;
+  fan::time::global_profiler.end("Variable Initialization");
+
+  fan::time::global_profiler.begin("Pre-traverse shapes");
 
   {
     fan::graphics::shaper_t::KeyTraverse_t pre_keys;
@@ -1192,6 +1220,7 @@ void shapes_draw() {
       fan::graphics::shaper_t::BlockTraverse_t pre_block;
       auto pre_shape_type = pre_block.Init(shaper, pre_keys.bmid());
       if (pre_shape_type == fan::graphics::shapes::shape_type_t::polygon) {
+        fan::time::global_profiler.begin(fan::graphics::shape_names[pre_shape_type]);
         do {
           auto* pri = (fan::graphics::shapes::polygon_t::ri_t*)pre_block.GetData(shaper);
           for (std::uint32_t i = 0; i < pre_block.GetAmount(shaper); ++i) {
@@ -1219,8 +1248,10 @@ void shapes_draw() {
             }
           }
         } while (pre_block.Loop(shaper));
+        fan::time::global_profiler.end(fan::graphics::shape_names[pre_shape_type]);
       }
       else if (pre_shape_type == fan::graphics::shapes::shape_type_t::particles) {
+        fan::time::global_profiler.begin(fan::graphics::shape_names[pre_shape_type]);
         do {
           auto* pri = (fan::graphics::shapes::particles_t::ri_t*)pre_block.GetData(shaper);
           for (std::uint32_t i = 0; i < pre_block.GetAmount(shaper); ++i) {
@@ -1228,8 +1259,12 @@ void shapes_draw() {
             particle_emitters.push_back(make_particles_gpu(pri[i]));
           }
         } while (pre_block.Loop(shaper));
+        fan::time::global_profiler.end(fan::graphics::shape_names[pre_shape_type]);
       }
     }
+
+    fan::time::global_profiler.end("Pre-traverse shapes");
+    fan::time::global_profiler.begin("Buffer Mapping");
 
     auto frame = context.current_frame;
     if (!polygon_vertices.empty()) {
@@ -1243,6 +1278,9 @@ void shapes_draw() {
       std::memcpy(particle_draw_buffers[frame].mapped, particle_emitters.data(), (std::size_t)bytes);
     }
   }
+
+  fan::time::global_profiler.end("Buffer Mapping");
+  fan::time::global_profiler.begin("Draw Loop passes");
 
   for (std::uint32_t draw_pass = 0; draw_pass < 2; ++draw_pass) {
     KeyTraverse.Init(shaper);
@@ -1319,6 +1357,7 @@ void shapes_draw() {
     if (shape_type == fan::graphics::shapes::shape_type_t::polygon) {
       if (polygon_vertices.empty()) { continue; }
       if (!shape_shader_nr) continue;
+      fan::time::global_profiler.begin(fan::graphics::shape_names[shape_type]);
       auto& pipeline = prepare(shape_type, shape_shader_nr);
       fan::vulkan::context_t::push_constants_t pc{};
       pc.camera_id = camera_id;
@@ -1349,11 +1388,13 @@ void shapes_draw() {
           did_draw = true;
         }
       } while (BlockTraverse.Loop(shaper));
+      fan::time::global_profiler.end(fan::graphics::shape_names[shape_type]);
       continue;
     }
 
     if (shape_type == fan::graphics::shapes::shape_type_t::particles) {
       if (particle_emitters.empty()) { continue; }
+      fan::time::global_profiler.begin(fan::graphics::shape_names[shape_type]);
       auto& pipeline = prepare(shape_type, shape_shader_nr);
       fan::vulkan::context_t::push_constants_t pc{};
       pc.camera_id = camera_id;
@@ -1382,45 +1423,51 @@ void shapes_draw() {
           did_draw = true;
         }
       } while (BlockTraverse.Loop(shaper));
+      fan::time::global_profiler.end(fan::graphics::shape_names[shape_type]);
       continue;
     }
 
-    if (shape_shader_nr)
-    do {
-      auto& pipeline = prepare(shape_type, shape_shader_nr);
-      fan::vulkan::context_t::push_constants_t pc{};
-      pc.camera_id = camera_id;
-      pc.texture_id = texture_id(texture);
+    if (shape_shader_nr) {
+      fan::time::global_profiler.begin(fan::graphics::shape_names[shape_type]);
+      do {
+        auto& pipeline = prepare(shape_type, shape_shader_nr);
+        fan::vulkan::context_t::push_constants_t pc{};
+        pc.camera_id = camera_id;
+        pc.texture_id = texture_id(texture);
 
-      auto off = BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type);
-      auto draw_vertex_count = vertex_count == (std::uint32_t)-1 ? vk_data.vertex_count : vertex_count;
+        auto off = BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type);
+        auto draw_vertex_count = vertex_count == (std::uint32_t)-1 ? vk_data.vertex_count : vertex_count;
 
-      if (shape_type == fan::graphics::shapes::shape_type_t::universal_image_renderer) {
-        auto* pri = (fan::graphics::shapes::universal_image_renderer_t::ri_t*)BlockTraverse.GetData(shaper);
-        for (std::uint32_t i = 0; i < BlockTraverse.GetAmount(shaper); ++i) {
-          pc.texture_id1 = texture_id(pri[i].images_rest[0]);
-          pc.texture_id2 = texture_id(pri[i].images_rest[1]);
-          pc.texture_id3 = texture_id(pri[i].images_rest[2]);
+        if (shape_type == fan::graphics::shapes::shape_type_t::universal_image_renderer) {
+          auto* pri = (fan::graphics::shapes::universal_image_renderer_t::ri_t*)BlockTraverse.GetData(shaper);
+          for (std::uint32_t i = 0; i < BlockTraverse.GetAmount(shaper); ++i) {
+            pc.texture_id1 = texture_id(pri[i].images_rest[0]);
+            pc.texture_id2 = texture_id(pri[i].images_rest[1]);
+            pc.texture_id3 = texture_id(pri[i].images_rest[2]);
+            push(pipeline, pc);
+            vkCmdDraw(cmd_buffer, draw_vertex_count, 1, 0, off + i);
+            did_draw = true;
+          }
+        }
+        else {
           push(pipeline, pc);
-          vkCmdDraw(cmd_buffer, draw_vertex_count, 1, 0, off + i);
+          vkCmdDraw(
+            cmd_buffer,
+            draw_vertex_count,
+            BlockTraverse.GetAmount(shaper),
+            0,
+            off
+          );
           did_draw = true;
         }
-      }
-      else {
-        push(pipeline, pc);
-        vkCmdDraw(
-          cmd_buffer,
-          draw_vertex_count,
-          BlockTraverse.GetAmount(shaper),
-          0,
-          off
-        );
-        did_draw = true;
-      }
-    } while (BlockTraverse.Loop(shaper));
+      } while (BlockTraverse.Loop(shaper));
+      fan::time::global_profiler.end(fan::graphics::shape_names[shape_type]);
+    }
   }
 
   }
+
+  fan::time::global_profiler.end("Draw Loop passes");
 
   if (!did_draw) {
     VkRect2D scissor = {};

@@ -229,6 +229,9 @@ void fan::vulkan::context_t::gui_close() {
   destroy_shape_resources();
   destroy_vulkan_soft();
   destroy_allocator();
+  if (timestamp_query_pool) {
+    vkDestroyQueryPool(device, timestamp_query_pool, nullptr);
+  }
   vkDestroyDevice(device, nullptr);
   vkDestroyInstance(instance, nullptr);
 }
@@ -243,6 +246,9 @@ void fan::vulkan::context_t::close() {
   destroy_vulkan_soft();
   destroy_allocator();
 
+  if (timestamp_query_pool) {
+    vkDestroyQueryPool(device, timestamp_query_pool, nullptr);
+  }
   vkDestroyDevice(device, nullptr);
   vkDestroyInstance(instance, nullptr);
 }
@@ -632,6 +638,16 @@ void fan::vulkan::context_t::create_logical_device() {
     fan::print_error("vkCreateDevice failed with code:", (int)r);
     fan::throw_error("failed to create logical device");
   }
+
+  VkQueryPoolCreateInfo queryPoolInfo{};
+  queryPoolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+  queryPoolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
+  queryPoolInfo.queryCount = 2 * max_frames_in_flight;
+  vkCreateQueryPool(device, &queryPoolInfo, nullptr, &timestamp_query_pool);
+
+  VkPhysicalDeviceProperties deviceProps;
+  vkGetPhysicalDeviceProperties(physical_device, &deviceProps);
+  timestamp_period = deviceProps.limits.timestampPeriod;
 
   // -----------------------------
   // Get queues
@@ -1483,6 +1499,12 @@ VkResult fan::vulkan::context_t::end_render(fan::window_t* window) {
   if (!command_buffer_in_use) {
     return VK_SUCCESS;
   }
+
+#if defined(FAN_PROFILER)
+  if (timestamp_query_pool) {
+    vkCmdWriteTimestamp(command_buffers[current_frame], VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, timestamp_query_pool, current_frame * 2 + 1);
+  }
+#endif
 
   if (vkEndCommandBuffer(command_buffers[current_frame]) != VK_SUCCESS) {
     fan::throw_error("failed to record command buffer!");
