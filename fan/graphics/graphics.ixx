@@ -1215,6 +1215,57 @@ export namespace fan::graphics {
     }
   }
 
+  struct gpu_particle_system_t {
+    std::vector<fan::graphics::shape_t> emitters;
+
+    void spawn_explosion(fan::vec2 pos, fan::color base_col, int count) {
+      fan::graphics::shapes::particles_t::properties_t p;
+      p.loop = false;
+      p.position = fan::vec3(pos, 0);
+      p.count = count;
+      p.alive_time = fan::random::value(0.4f, 1.2f);
+      
+      p.start_velocity = fan::vec2(150.f, 800.f); 
+      p.end_velocity = fan::vec2(5.f, 20.f); 
+      p.expansion_power = 1.0f;
+      
+      p.start_size = fan::vec2(8.f);
+      p.end_size = fan::vec2(0.f);
+
+      p.begin_color = base_col;
+      p.end_color = base_col.set_alpha(0.0f);
+      p.color_random_range = fan::vec4(0.2f);
+
+      p.shape = fan::graphics::shapes::particles_t::shapes_e::circle;
+      
+      p.start_spread = fan::vec2(0, 0);
+      p.end_spread = fan::vec2(0, 0);
+      
+      p.angle = fan::vec3(0,0,0);
+      p.begin_angle = 0;
+      p.end_angle = 6.283185f; 
+      
+      p.start_angle_velocity = fan::vec3(0, 0, 0);
+      
+      fan::graphics::shape_t shape = fan::graphics::g_shapes->particles.push_back(p);
+      shape.start_particles();
+      emitters.push_back(shape);
+    }
+
+    void update(f32_t dt) {
+      for (int i = 0; i < emitters.size(); ) {
+        auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)emitters[i].GetData(fan::graphics::g_shapes->shaper);
+        f32_t current_time = (f32_t)(fan::time::now() / 1e9);
+        if (current_time - ri.loop_enabled_time > ri.alive_time) {
+          emitters[i].erase();
+          emitters.erase(emitters.begin() + i);
+        } else {
+          ++i;
+        }
+      }
+    }
+  };
+
   struct trail_particle_t {
     fan::vec2 pos;
     fan::vec2 vel;

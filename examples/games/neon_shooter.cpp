@@ -9,12 +9,6 @@ using namespace fan::graphics;
 
 enum class game_state_e { playing, game_over };
 
-struct spark_sim_t {
-  fan::vec2 pos, vel;
-  f32_t life, max_life;
-  fan::color col;
-};
-
 struct projectile_t {
   fan::vec2 pos, vel;
   f32_t life = 2.0f;
@@ -41,9 +35,8 @@ struct neon_shooter_t {
   std::vector<projectile_t> projectiles;
   std::vector<enemy_t> enemies;
   
-  static constexpr int max_sparks = 4096;
   static constexpr int max_trails = 4096;
-  particle_pool_t<circle_t, spark_sim_t, max_sparks> spark_pool;
+  gpu_particle_system_t gpu_sparks;
   particle_pool_t<circle_t, trail_particle_t, max_trails> trail_pool;
   
   f32_t camera_shake = 0.f;
@@ -67,23 +60,7 @@ struct neon_shooter_t {
   }
   
   void explode(fan::vec2 pos, fan::color base_col, int count) {
-    fan::graphics::emit_radial(spark_pool, pos, count, 150.f, 800.f,
-      [&](auto& pool, fan::vec2 pos, fan::vec2 vel) {
-      fan::color col = fan::random::color_near(base_col, 50.f);
-      pool.spawn(
-        [&](shape_t& shape) {
-          shape.set_position(fan::vec3(pos, 0.f));
-          shape.set_radius(4.f);
-          shape.set_color(col);
-        },
-        [&](spark_sim_t& s) {
-          s.pos = pos;
-          s.vel = vel;
-          s.life = s.max_life = fan::random::value(0.4f, 1.2f);
-          s.col = col;
-        }
-      );
-    });
+    gpu_sparks.spawn_explosion(pos, base_col, count);
   }
 
   void draw_background(fan::vec2 cam_pos) {
@@ -229,21 +206,8 @@ struct neon_shooter_t {
       }
     }
     
-    // Particles
     trail_pool.update_and_cull(dt, fan::graphics::trail_particle_updater_t {0.f, 0});
-    
-    spark_pool.update_and_cull(dt, [&](auto& s, f32_t dt) {
-      s.life -= dt;
-      if (s.life <= 0.f) return false;
-      s.vel *= std::pow(0.05f, dt);
-      s.pos += s.vel * dt;
-      f32_t t = std::max(0.f, s.life / s.max_life);
-      s.col.a = t;
-      s.shape.set_position(fan::vec3(s.pos, 0.f));
-      s.shape.set_radius(5.f * t);
-      s.shape.set_color(s.col);
-      return true;
-    });
+    gpu_sparks.update(dt);
     
     if (state == game_state_e::playing) {
       fan::graphics::circle(player_pos, player_radius, fan::colors::cyan);
