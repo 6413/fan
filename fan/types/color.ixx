@@ -315,6 +315,9 @@ export namespace fan {
     void randomize();
 
     std::string to_string() const noexcept;
+    friend std::ostream& operator<<(std::ostream& os, const color& c) {
+      return os << c.to_string();
+    }
     void from_string(const std::string& str);
     static color parse(const std::string& str);
 
