@@ -1775,7 +1775,7 @@ bool loco_t::process_frame(const std::function<void(f32_t delta_time)>& cb) {
   fan::graphics::gui::gizmo::begin_frame();
 
   if (get_smenu(this)->config.performance.show_profiler) {
-    fan::graphics::gui::begin("Engine Profiler", &get_smenu(this)->config.performance.show_profiler);
+    fan::graphics::gui::begin("Engine Profiler", &get_smenu(this)->config.performance.show_profiler, fan::graphics::gui::window_flags_topmost);
     
     auto render_profiler_node = [](auto& self, const fan::time::profiler_t::entry_t& node) -> void {
       std::string text = std::string(node.name) + ": " + std::to_string(node.last_average) + " ms###" + std::string(node.name);
