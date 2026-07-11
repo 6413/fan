@@ -1358,6 +1358,7 @@ void shapes_draw() {
 
     auto default_shader_nr = fan::graphics::g_shapes->shaper.GetShader(shape_type);
     auto shape_shader_nr = shader_nr.iic() ? default_shader_nr : shader_nr;
+    shader_nr.sic();
     auto& vk_data = shaper.GetShapeTypes(shape_type).renderer.vk;
 
     if (shape_type == fan::graphics::shapes::shape_type_t::polygon) {
