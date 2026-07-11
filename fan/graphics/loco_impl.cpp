@@ -555,6 +555,14 @@ void loco_t::camera_follow(const fan::vec2& target, f32_t move_speed) {
   camera_follow(orthographic_render_view, target, move_speed);
 }
 
+void loco_t::camera_follow(fan::graphics::camera_nr_t nr, const fan::graphics::shapes::shape_t& shape, f32_t move_speed) {
+  camera_follow(nr, shape.get_position(), move_speed);
+}
+
+void loco_t::camera_follow(const fan::graphics::shapes::shape_t& shape, f32_t move_speed) {
+  camera_follow(shape.get_position(), move_speed);
+}
+
 fan::graphics::viewport_nr_t loco_t::viewport_create() {
   return context_functions.viewport_create(&context);
 }
@@ -2533,7 +2541,7 @@ void loco_t::cuda_textures_t::graphics_resource_t::unmap() {
 #if defined(FAN_2D)
 
 void loco_t::camera_move_to(const fan::graphics::shapes::shape_t& shape, const fan::graphics::render_view_t& render_view) {
-  camera_set_position(orthographic_render_view.camera, shape.get_position());
+  camera_set_center(orthographic_render_view.camera, shape.get_position());
 }
 
 void loco_t::camera_move_to(const fan::graphics::shapes::shape_t& shape) {
@@ -2543,7 +2551,7 @@ void loco_t::camera_move_to(const fan::graphics::shapes::shape_t& shape) {
 void loco_t::camera_move_to_smooth(const fan::graphics::shapes::shape_t& shape, const fan::graphics::render_view_t& render_view) {
   fan::vec2 current = camera_get_position(render_view.camera);
   fan::vec2 target = shape.get_position();
-  camera_set_position(orthographic_render_view.camera, current.lerp(target, f32_t(1.f - std::exp(-15.f * get_delta_time()))));
+  camera_set_center(orthographic_render_view.camera, current.lerp(target, f32_t(1.f - std::exp(-15.f * get_delta_time()))));
 }
 
 void loco_t::camera_move_to_smooth(const fan::graphics::shapes::shape_t& shape) {

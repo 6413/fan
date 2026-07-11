@@ -96,6 +96,42 @@ export namespace fan::graphics::shaper {
     fan::vulkan::context_t::pipeline_t pipeline;\
     fan::vulkan::context_t::ssbo_t shape_data;\
     std::uint32_t vertex_count = 6;\
+    struct pending_update_t {\
+      std::uint32_t src_frame;\
+      std::uint64_t dst_offset;\
+      std::uint64_t wrote;\
+    };\
+    std::vector<pending_update_t> pending_updates[fan::vulkan::max_frames_in_flight];\
+    bool is_queued = false;\
+  \
+    static void memory_cb(fan::vulkan::context_t& context, void* user_data) {\
+      auto* vk_ptr = static_cast<vk_t*>(user_data);\
+      vk_ptr->is_queued = false;\
+      auto _f = context.current_frame;\
+      for (const auto& update : vk_ptr->pending_updates[_f]) {\
+        if (vk_ptr->shape_data.data[_f] && vk_ptr->shape_data.data[update.src_frame]) {\
+          std::memcpy(vk_ptr->shape_data.data[_f] + update.dst_offset, vk_ptr->shape_data.data[update.src_frame] + update.dst_offset, update.wrote);\
+          fan::vulkan::validate(vmaFlushAllocation(context.allocator, vk_ptr->shape_data.common.memory[_f].device_memory, update.dst_offset, update.wrote));\
+        }\
+      }\
+      vk_ptr->pending_updates[_f].clear();\
+      bool has_more = false;\
+      for (std::uint32_t i = 0; i < fan::vulkan::max_frames_in_flight; ++i) {\
+        if (!vk_ptr->pending_updates[i].empty()) {\
+          has_more = true;\
+          break;\
+        }\
+      }\
+      if (has_more) {\
+        vk_ptr->queue(context);\
+      }\
+    }\
+    void queue(fan::vulkan::context_t& context) {\
+      if (!is_queued) {\
+        is_queued = true;\
+        context.memory_queue.push_back(memory_cb, this);\
+      }\
+    }\
   };\
   \
   struct renderer_t {\
@@ -119,6 +155,42 @@ export namespace fan::graphics::shaper {
     fan::vulkan::context_t::pipeline_t pipeline;\
     fan::vulkan::context_t::ssbo_t shape_data;\
     std::uint32_t vertex_count = 6;\
+    struct pending_update_t {\
+      std::uint32_t src_frame;\
+      std::uint64_t dst_offset;\
+      std::uint64_t wrote;\
+    };\
+    std::vector<pending_update_t> pending_updates[fan::vulkan::max_frames_in_flight];\
+    bool is_queued = false;\
+  \
+    static void memory_cb(fan::vulkan::context_t& context, void* user_data) {\
+      auto* vk_ptr = static_cast<vk_t*>(user_data);\
+      vk_ptr->is_queued = false;\
+      auto _f = context.current_frame;\
+      for (const auto& update : vk_ptr->pending_updates[_f]) {\
+        if (vk_ptr->shape_data.data[_f] && vk_ptr->shape_data.data[update.src_frame]) {\
+          std::memcpy(vk_ptr->shape_data.data[_f] + update.dst_offset, vk_ptr->shape_data.data[update.src_frame] + update.dst_offset, update.wrote);\
+          fan::vulkan::validate(vmaFlushAllocation(context.allocator, vk_ptr->shape_data.common.memory[_f].device_memory, update.dst_offset, update.wrote));\
+        }\
+      }\
+      vk_ptr->pending_updates[_f].clear();\
+      bool has_more = false;\
+      for (std::uint32_t i = 0; i < fan::vulkan::max_frames_in_flight; ++i) {\
+        if (!vk_ptr->pending_updates[i].empty()) {\
+          has_more = true;\
+          break;\
+        }\
+      }\
+      if (has_more) {\
+        vk_ptr->queue(context);\
+      }\
+    }\
+    void queue(fan::vulkan::context_t& context) {\
+      if (!is_queued) {\
+        is_queued = true;\
+        context.memory_queue.push_back(memory_cb, this);\
+      }\
+    }\
   };\
   struct renderer_t {\
     renderer_t(){}\
@@ -172,12 +244,20 @@ export namespace fan::graphics::shaper {
       _RenderDataReset(be.sti);\
     }\
     auto src = GetRenderData(be.sti, be.blid, 0) + bu.MinEdit;\
+    if (vk.shape_data.data[context.current_frame]) {\
+      std::memcpy(vk.shape_data.data[context.current_frame] + dst_offset, src, wrote);\
+      fan::vulkan::validate(vmaFlushAllocation(context.allocator, vk.shape_data.common.memory[context.current_frame].device_memory, dst_offset, wrote));\
+    }\
     for (std::uint32_t _f = 0; _f < fan::vulkan::max_frames_in_flight; ++_f) {\
-      if (vk.shape_data.data[_f]) {\
-        std::memcpy(vk.shape_data.data[_f] + dst_offset, src, wrote);\
-        fan::vulkan::validate(vmaFlushAllocation(context.allocator, vk.shape_data.common.memory[_f].device_memory, dst_offset, wrote));\
+      auto& p = vk.pending_updates[_f];\
+      p.erase(std::remove_if(p.begin(), p.end(), [&](const auto& u) {\
+        return std::max(u.dst_offset, dst_offset) < std::min(u.dst_offset + u.wrote, dst_offset + wrote);\
+      }), p.end());\
+      if (_f != context.current_frame) {\
+        p.push_back({context.current_frame, dst_offset, wrote});\
       }\
-    }
+    }\
+    vk.queue(context);
 
   #define shaper_set_ExpandInside__RenderDataReset \
   auto& vk = st.renderer.vk;\
