@@ -249,12 +249,8 @@ export namespace fan::graphics::shaper {
       fan::vulkan::validate(vmaFlushAllocation(context.allocator, vk.shape_data.common.memory[context.current_frame].device_memory, dst_offset, wrote));\
     }\
     for (std::uint32_t _f = 0; _f < fan::vulkan::max_frames_in_flight; ++_f) {\
-      auto& p = vk.pending_updates[_f];\
-      p.erase(std::remove_if(p.begin(), p.end(), [&](const auto& u) {\
-        return std::max(u.dst_offset, dst_offset) < std::min(u.dst_offset + u.wrote, dst_offset + wrote);\
-      }), p.end());\
       if (_f != context.current_frame) {\
-        p.push_back({context.current_frame, dst_offset, wrote});\
+        vk.pending_updates[_f].push_back({context.current_frame, dst_offset, wrote});\
       }\
     }\
     vk.queue(context);
