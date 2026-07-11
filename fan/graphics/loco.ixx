@@ -760,6 +760,11 @@ public:
   void camera_follow(fan::graphics::camera_nr_t nr, const fan::graphics::shapes::shape_t& shape, f32_t move_speed = 10);
   void camera_follow(const fan::graphics::shapes::shape_t& shape, f32_t move_speed = 10);
 
+  using update_callback_handle_t = fan::graphics::update_callback_t::nr_t;
+
+  update_callback_handle_t camera_set_target(fan::graphics::camera_nr_t nr, const fan::graphics::shapes::shape_t& shape, f32_t move_speed = 10);
+  update_callback_handle_t camera_set_target(const fan::graphics::shapes::shape_t& shape, f32_t move_speed = 10);
+
   fan::graphics::viewport_nr_t viewport_create();
   fan::graphics::viewport_nr_t viewport_create(const fan::vec2& viewport_position, const fan::vec2& viewport_size);
   fan::graphics::context_viewport_t& viewport_get(fan::graphics::viewport_nr_t nr = fan::graphics::get_orthographic_render_view().viewport);
@@ -961,7 +966,7 @@ public:
     const fan::vec2& ortho_x, const fan::vec2& ortho_y,
     const fan::vec2& viewport_position, const fan::vec2& viewport_size
   );
-  using update_callback_handle_t = fan::graphics::update_callback_t::nr_t;
+
   // function callback parameter gives loco_t*
   update_callback_handle_t add_update_callback(std::function<void(void*)>&& cb);
   update_callback_handle_t add_update_callback_front(std::function<void(void*)>&& cb);

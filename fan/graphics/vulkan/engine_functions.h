@@ -1125,8 +1125,14 @@ void shapes_draw() {
       shape_shader_nr.gint() != default_shader_nr.gint();
     auto& pipeline = use_shader_pipeline ? get_shape_shader_pipeline(shape_type, shape_shader_nr, draw_mode) : vk_data.pipeline;
 
-    vk_data.shape_data.m_descriptor.m_properties[0].buffer =
-      vk_data.shape_data.common.memory[context.current_frame].buffer;
+    if (shape_type == fan::graphics::shapes::shape_type_t::particles) {
+      vk_data.shape_data.m_descriptor.m_properties[0].buffer = particle_draw_buffers[context.current_frame].buffer;
+    } else if (shape_type == fan::graphics::shapes::shape_type_t::polygon) {
+      vk_data.shape_data.m_descriptor.m_properties[0].buffer = polygon_draw_buffers[context.current_frame].buffer;
+    } else {
+      vk_data.shape_data.m_descriptor.m_properties[0].buffer =
+        vk_data.shape_data.common.memory[context.current_frame].buffer;
+    }
     vk_data.shape_data.m_descriptor.m_properties[0].range = VK_WHOLE_SIZE;
     vk_data.shape_data.m_descriptor.m_properties[1].buffer =
       shader.projection_view_block->common.memory[context.current_frame].buffer;
@@ -1363,22 +1369,6 @@ void shapes_draw() {
       pc.camera_id = camera_id;
       pc.texture_id = texture_id(texture);
       push(pipeline, pc);
-
-      auto frame = context.current_frame;
-      vk_data.shape_data.m_descriptor.m_properties[0].buffer = polygon_draw_buffers[frame].buffer;
-      vk_data.shape_data.m_descriptor.m_properties[0].range = VK_WHOLE_SIZE;
-      vk_data.shape_data.m_descriptor.update(context, 1, 0);
-      vkCmdBindDescriptorSets(
-        cmd_buffer,
-        VK_PIPELINE_BIND_POINT_GRAPHICS,
-        pipeline.m_layout,
-        0,
-        1,
-        &vk_data.shape_data.m_descriptor.m_descriptor_set[context.current_frame],
-        0,
-        nullptr
-      );
-
       do {
         auto* pri = (fan::graphics::shapes::polygon_t::ri_t*)BlockTraverse.GetData(shaper);
         for (std::uint32_t i = 0; i < BlockTraverse.GetAmount(shaper); ++i) {
@@ -1402,22 +1392,6 @@ void shapes_draw() {
       pc.camera_id = camera_id;
       pc.texture_id = texture_id(texture);
       push(pipeline, pc);
-
-      auto frame = context.current_frame;
-      vk_data.shape_data.m_descriptor.m_properties[0].buffer = particle_draw_buffers[frame].buffer;
-      vk_data.shape_data.m_descriptor.m_properties[0].range = VK_WHOLE_SIZE;
-      vk_data.shape_data.m_descriptor.update(context, 1, 0);
-      vkCmdBindDescriptorSets(
-        cmd_buffer,
-        VK_PIPELINE_BIND_POINT_GRAPHICS,
-        pipeline.m_layout,
-        0,
-        1,
-        &vk_data.shape_data.m_descriptor.m_descriptor_set[context.current_frame],
-        0,
-        nullptr
-      );
-
       do {
         auto* pri = (fan::graphics::shapes::particles_t::ri_t*)BlockTraverse.GetData(shaper);
         if (BlockTraverse.GetAmount(shaper) > 0) {
