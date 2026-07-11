@@ -563,6 +563,20 @@ void loco_t::camera_follow(const fan::graphics::shapes::shape_t& shape, f32_t mo
   camera_follow(shape.get_position(), move_speed);
 }
 
+loco_t::update_callback_handle_t loco_t::camera_set_target(
+  fan::graphics::camera_nr_t nr,
+ const fan::graphics::shapes::shape_t& shape, 
+  f32_t move_speed) 
+{
+  return add_update_callback([&shape, move_speed, nr](void* loco) {
+    ((loco_t*)loco)->camera_follow(nr, shape, move_speed);
+  });
+}
+
+loco_t::update_callback_handle_t loco_t::camera_set_target(const fan::graphics::shapes::shape_t& shape, f32_t move_speed) {
+  return camera_set_target(orthographic_render_view, shape, move_speed);
+}
+
 fan::graphics::viewport_nr_t loco_t::viewport_create() {
   return context_functions.viewport_create(&context);
 }
