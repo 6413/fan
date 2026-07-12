@@ -7,6 +7,7 @@ layout(location = 3) in float instance_radius;
 layout(location = 4) in vec3 frag_position;
 layout(location = 5) in vec4 instance_outline_color;
 layout(location = 6) flat in uint flags;
+layout(location = 7) flat in float debug_angle;
 layout(location = 0) out vec4 o_attachment0;
 
 float sd_capsule(vec2 p, vec2 a, vec2 b, float r) {
@@ -22,6 +23,7 @@ void main() {
   float alpha = 1.0 - smoothstep(-smoothing, smoothing, dist);
   float edge = -pow(instance_radius * 10.0, 1.0 / 3.0) / 3.0;
   float border = 1.0 - smoothstep(edge - smoothing, edge + smoothing, dist);
+  float angle_factor = 0.5 + 0.5 * cos(debug_angle);
   vec4 color = vec4(mix(instance_outline_color.rgb, instance_color.rgb, border), alpha * instance_color.a);
-  o_attachment0 = color;
+  o_attachment0 = vec4(color.rgb * angle_factor, color.a);
 }

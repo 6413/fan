@@ -1878,7 +1878,7 @@ bool loco_t::process_frame(const std::function<void(f32_t delta_time)>& cb) {
   physics.update(get_delta_time());
   fan::time::global_profiler.end("Physics");
 
-  if (input.input_action.is_active(fan::actions::toggle_debug_physics)) {
+  if (input.input_action.is_clicked(fan::actions::toggle_debug_physics)) {
     fan::physics::debug_draw_cb()(!fan::physics::is_debug_draw_enabled(), &fan::graphics::get_orthographic_render_view());
   }
 #endif

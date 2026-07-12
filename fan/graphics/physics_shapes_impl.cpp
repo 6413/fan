@@ -23,6 +23,7 @@ import std;
 
 import fan.types;
 import fan.print.error;
+import fan.print;
 import fan.physics.b2_integration;
 import fan.window.input;
 import fan.graphics.loco;
@@ -125,11 +126,13 @@ void DrawCapsule(b2Vec2 p1, b2Vec2 p2, f32_t radius, b2HexColor color, void* con
 
 /// Draw a solid capsule.
 void DrawSolidCapsule(b2Vec2 p1, b2Vec2 p2, f32_t radius, b2HexColor color, void* context) {
+  fan::vec2 wc0 = fan::physics::physics_to_render(p1);
+  fan::vec2 wc1 = fan::physics::physics_to_render(p2);
   fan::graphics::add_shape_to_immediate_draw(fan::graphics::capsule_t {{
     .render_view = (fan::graphics::render_view_t*)fan::physics::gphysics()->debug.render_view,
-    .position = fan::vec3(0, 0, draw_depth + z_depth),
-    .center0 = fan::physics::physics_to_render(p1),
-    .center1 = fan::physics::physics_to_render(p2),
+    .position = fan::vec3((wc0 + wc1) * 0.5f, draw_depth + z_depth),
+    .center0 = wc0 - (wc0 + wc1) * 0.5f,
+    .center1 = wc1 - (wc0 + wc1) * 0.5f,
     .radius = (f32_t)fan::physics::physics_to_render(radius).x,
     .color = fan::color::from_rgb(color).set_alpha(0.5),
     .enable_culling = false
