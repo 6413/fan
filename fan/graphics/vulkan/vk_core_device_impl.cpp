@@ -232,6 +232,18 @@ void fan::vulkan::context_t::gui_close() {
   if (timestamp_query_pool) {
     vkDestroyQueryPool(device, timestamp_query_pool, nullptr);
   }
+  if (pipeline_cache) {
+    size_t cacheSize = 0;
+    if (vkGetPipelineCacheData(device, pipeline_cache, &cacheSize, nullptr) == VK_SUCCESS) {
+      std::vector<char> cacheData(cacheSize);
+      if (vkGetPipelineCacheData(device, pipeline_cache, &cacheSize, cacheData.data()) == VK_SUCCESS) {
+        if (std::ofstream cacheFile{"pipeline_cache.bin", std::ios::binary}) {
+          cacheFile.write(cacheData.data(), cacheSize);
+        }
+      }
+    }
+    vkDestroyPipelineCache(device, pipeline_cache, nullptr);
+  }
   vkDestroyDevice(device, nullptr);
   vkDestroyInstance(instance, nullptr);
 }
