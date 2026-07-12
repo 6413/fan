@@ -2914,9 +2914,9 @@ namespace {
       fan::vec2 n_size = p_size * child.local_size;
       fan::vec3 n_angle = p_angle + child.local_angle;
 
-      funcs.set_position3(c_handle, n_pos);
-      funcs.set_size(c_handle, n_size);
-      funcs.set_angle(c_handle, n_angle);
+      c_handle->set_position(n_pos);
+      c_handle->set_size(n_size);
+      c_handle->set_angle(n_angle);
 
       update_node_recursive(child.shape, n_pos, n_size, n_angle);
     }

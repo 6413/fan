@@ -1287,10 +1287,10 @@ export namespace fan::graphics {
       return emitters[i];
     }
 
-    void spawn_explosion(fan::vec2 pos, fan::color base_col, int count) {
-      spawn([&](auto& p) {
+    void spawn_explosion(fan::vec3 pos, fan::color base_col, int count, image_t image) {
+      spawn([=](auto& p) {
         p.loop = false;
-        p.position = fan::vec3(pos, 0);
+        p.position = pos;
         p.count = count;
         p.alive_time = fan::random::value(0.4f, 1.2f);
         p.respawn_time = -p.alive_time;
@@ -1309,13 +1309,14 @@ export namespace fan::graphics {
         p.begin_angle = 0;
         p.end_angle = 6.283185f; 
         p.start_angle_velocity = fan::vec3(0, 0, 0);
+        p.image = image;
       });
     }
 
-    void spawn_fire(fan::vec2 pos, int count) {
-      spawn([&](auto& p) {
+    void spawn_fire(fan::vec3 pos, int count, image_t image) {
+      spawn([=](auto& p) {
         p.loop = false;
-        p.position = fan::vec3(pos, 0);
+        p.position = pos;
         p.count = count;
         p.alive_time = fan::random::value(0.5f, 1.5f);
         p.respawn_time = -p.alive_time;
@@ -1334,13 +1335,14 @@ export namespace fan::graphics {
         p.begin_angle = -0.5f; // upwards cone
         p.end_angle = 0.5f;
         p.start_angle_velocity = fan::vec3(0, 0, 0);
+        p.image = image;
       });
     }
 
-    void spawn_smoke(fan::vec2 pos, int count) {
-      spawn([&](auto& p) {
+    void spawn_smoke(fan::vec3 pos, int count, image_t image) {
+      spawn([=](auto& p) {
         p.loop = false;
-        p.position = fan::vec3(pos, 0);
+        p.position = pos;
         p.count = count;
         p.alive_time = fan::random::value(1.0f, 3.0f);
         p.respawn_time = -p.alive_time;
@@ -1359,13 +1361,14 @@ export namespace fan::graphics {
         p.begin_angle = -1.0f; // drift upwards
         p.end_angle = 1.0f;
         p.start_angle_velocity = fan::vec3(0, 0, 0);
+        p.image = image;
       });
     }
 
-    void spawn_spark(fan::vec2 pos, fan::color spark_col, int count) {
+    void spawn_spark(fan::vec3 pos, fan::color spark_col, int count) {
       spawn([&](auto& p) {
         p.loop = false;
-        p.position = fan::vec3(pos, 0);
+        p.position = pos;
         p.count = count;
         p.alive_time = fan::random::value(0.1f, 0.4f);
         p.respawn_time = -p.alive_time;
