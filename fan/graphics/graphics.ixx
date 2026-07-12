@@ -1318,10 +1318,10 @@ export namespace fan::graphics {
         p.loop = false;
         p.position = pos;
         p.count = count;
-        p.alive_time = fan::random::value(0.5f, 1.5f);
+        p.alive_time = fan::random::value(0.01f, 0.05f);
         p.respawn_time = -p.alive_time;
-        p.start_velocity = fan::vec2(50.f, 150.f);
-        p.end_velocity = fan::vec2(10.f, 50.f);
+        p.start_velocity = fan::vec2(0.f, 150.f);
+        p.end_velocity = fan::vec2(0.f, 50.f);
         p.expansion_power = 1.2f;
         p.start_size = fan::vec2(20.f);
         p.end_size = fan::vec2(0.f);
@@ -1329,11 +1329,8 @@ export namespace fan::graphics {
         p.end_color = fan::color(1.0f, 0.1f, 0.0f, 0.0f);
         p.color_random_range = fan::vec4(0.1f);
         p.shape = shape_type_t::shapes_e::circle;
-        p.start_spread = fan::vec2(20.f, 10.f);
-        p.end_spread = fan::vec2(40.f, 20.f);
-        p.angle = fan::vec3(0,0,0);
-        p.begin_angle = -0.5f; // upwards cone
-        p.end_angle = 0.5f;
+        p.start_spread = fan::vec2(0.f, 10.f);
+        p.end_spread = fan::vec2(0.f, 10.f);
         p.start_angle_velocity = fan::vec3(0, 0, 0);
         p.image = image;
       });
@@ -1351,12 +1348,12 @@ export namespace fan::graphics {
         p.expansion_power = 0.8f;
         p.start_size = fan::vec2(10.f);
         p.end_size = fan::vec2(40.f); // smoke expands
-        p.begin_color = fan::color(0.5f, 0.5f, 0.5f, 0.8f); // Gray
-        p.end_color = fan::color(0.2f, 0.2f, 0.2f, 0.0f);
+        p.begin_color = fan::color(0.5f, 0.5f, 0.5f, 0.8f) / 2.f; // Gray
+        p.end_color = fan::color(0.2f, 0.2f, 0.2f, 0.0f) / 2.f;
         p.color_random_range = fan::vec4(0.1f);
         p.shape = shape_type_t::shapes_e::circle;
-        p.start_spread = fan::vec2(15.f, 15.f);
-        p.end_spread = fan::vec2(50.f, 50.f);
+        p.start_spread = fan::vec2(0.f, 15.f);
+        p.end_spread = fan::vec2(0.f, 50.f);
         p.angle = fan::vec3(0,0,0);
         p.begin_angle = -1.0f; // drift upwards
         p.end_angle = 1.0f;
@@ -1372,8 +1369,8 @@ export namespace fan::graphics {
         p.count = count;
         p.alive_time = fan::random::value(0.1f, 0.4f);
         p.respawn_time = -p.alive_time;
-        p.start_velocity = fan::vec2(300.f, 1000.f);
-        p.end_velocity = fan::vec2(100.f, 300.f);
+        p.start_velocity = fan::vec2(0.f, 1000.f);
+        p.end_velocity = fan::vec2(0.f, 300.f);
         p.expansion_power = 2.0f; // fast deceleration
         p.start_size = fan::vec2(6.f);
         p.end_size = fan::vec2(0.f);
@@ -1384,8 +1381,6 @@ export namespace fan::graphics {
         p.start_spread = fan::vec2(0, 0);
         p.end_spread = fan::vec2(0, 0);
         p.angle = fan::vec3(0,0,0);
-        p.begin_angle = 0;
-        p.end_angle = 6.283185f; // all directions
         p.start_angle_velocity = fan::vec3(0, 0, 0);
       });
     }
