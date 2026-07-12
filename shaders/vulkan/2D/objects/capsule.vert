@@ -65,6 +65,7 @@ layout(location = 3) out float instance_radius;
 layout(location = 4) out vec3 frag_position;
 layout(location = 5) out vec4 instance_outline_color;
 layout(location = 6) flat out uint flags;
+layout(location = 7) flat out float debug_angle;
 
 void main() {
   base = uint(gl_InstanceIndex) * 22u;
@@ -78,13 +79,18 @@ void main() {
   float len = length(dir);
   float angle = atan(dir.y, dir.x);
   vec2 box_size = vec2(len + radius * 4.0, radius * 4.0);
-  vec2 world = rotate2(rp * box_size * 0.5, angle) + (center0 + center1) * 0.5;
+  vec3 angle3 = v3(56u);
+  vec2 rotation_point = v2(32u);
+  vec2 midpoint = (center0 + center1) * 0.5;
+  vec2 box_vertex = rotate2(rp * box_size * 0.5, angle);
+  vec2 world = rotate_around(box_vertex + midpoint, rotation_point + position.xy, angle3.z);
   frag_position = vec3(world, position.z);
   gl_Position = project2(frag_position);
   instance_color = v4(40u);
-  instance_center0 = center0;
-  instance_center1 = center1;
+  instance_center0 = rotate_around(center0, midpoint, angle3.z);
+  instance_center1 = rotate_around(center1, midpoint, angle3.z);
   instance_radius = radius;
   flags = u(68u);
   instance_outline_color = v4(72u);
+  debug_angle = angle3.z;
 }

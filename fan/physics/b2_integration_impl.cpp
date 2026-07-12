@@ -329,9 +329,8 @@ namespace fan::physics {
     fan::physics::debug_draw_cb() = [] (bool enabled, void* render_view) {
       fan::physics::context_t* ctx = fan::physics::gphysics();
 
-      if (!fan::physics::gphysics()->debug.render_view) {
-        fan::physics::gphysics()->debug.render_view = render_view;
-      }
+      fan::physics::gphysics()->debug.render_view = render_view;
+      fan::physics::is_debug_draw_enabled() = enabled;
 
       ctx->debug.enabled = enabled;
       ctx->debug.debug_draw = fan::physics::debug_draw_init_cb()(enabled);
@@ -644,6 +643,14 @@ namespace fan::physics {
   collision_listener_handle_t add_collision_listeners(body_id_t sensor, collision_listener_pair_t cb) {
     auto& vec = fan::physics::gphysics()->collision_listeners[sensor];
     vec.push_back(std::move(cb));
+    int shape_count = b2Body_GetShapeCount(sensor);
+    if (shape_count > 0) {
+      std::vector<b2ShapeId> shapes(shape_count);
+      b2Body_GetShapes(sensor, shapes.data(), shape_count);
+      for (auto& shape : shapes) {
+        b2Shape_EnableContactEvents(shape, true);
+      }
+    }
     return {sensor, (std::uint32_t)(vec.size() - 1)};
   }
   void remove_collision_listener(collision_listener_handle_t handle) {

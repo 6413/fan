@@ -245,6 +245,11 @@ export namespace fan::graphics::shaper {
     }\
     auto src = GetRenderData(be.sti, be.blid, 0) + bu.MinEdit;\
     if (vk.shape_data.data[context.current_frame]) {\
+      for (auto _pi = vk.pending_updates[context.current_frame].begin(); _pi != vk.pending_updates[context.current_frame].end(); ) {\
+        if (_pi->dst_offset >= dst_offset && _pi->dst_offset < dst_offset + wrote) {\
+          _pi = vk.pending_updates[context.current_frame].erase(_pi);\
+        } else { ++_pi; }\
+      }\
       std::memcpy(vk.shape_data.data[context.current_frame] + dst_offset, src, wrote);\
       fan::vulkan::validate(vmaFlushAllocation(context.allocator, vk.shape_data.common.memory[context.current_frame].device_memory, dst_offset, wrote));\
     }\
