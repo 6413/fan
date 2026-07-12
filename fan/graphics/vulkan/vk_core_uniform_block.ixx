@@ -41,7 +41,7 @@ export namespace fan::vulkan {
       }
 
       auto frame = context.current_frame;
-      std::memcpy((std::uint8_t*)mapped_data[frame] + begin, buffer + begin, end - begin);
+      std::memcpy((std::uint8_t*)mapped_data[frame] + begin, buffer[frame] + begin, end - begin);
 
       common.on_edit(context);
     }
@@ -83,14 +83,16 @@ export namespace fan::vulkan {
 
     void push_ram_instance(ctx_t& context, const type_t& data) {
       const auto begin = static_cast<std::uint32_t>(m_size);
-      std::memmove(&buffer[m_size], &data, sizeof(type_t));
+      for (std::uint32_t i = 0; i < buffer_count; ++i) {
+        std::memmove(&buffer[i][m_size], &data, sizeof(type_t));
+      }
       m_size += sizeof(type_t);
       common.edit(context, begin, static_cast<std::uint32_t>(m_size));
     }
 
     template <typename member_t>
     void edit_instance(ctx_t& context, std::uint32_t i, member_t type_t::* member, const member_t& value) {
-      ((type_t*)buffer)[i].*member = value;
+      ((type_t*)buffer[context.current_frame])[i].*member = value;
 
       const auto begin = static_cast<std::uint32_t>(
         sizeof(type_t) * i + fan::member_offset(member)
@@ -100,7 +102,7 @@ export namespace fan::vulkan {
     }
 
     typename ctx_t::template memory_common_t<fan::graphics::shader_nr_t, instance_id_t> common;
-    std::uint8_t buffer[element_size * sizeof(type_t)];
+    std::uint8_t buffer[buffer_count][element_size * sizeof(type_t)];
     std::uint32_t m_size;
     void* mapped_data[buffer_count] {};
   };
