@@ -506,6 +506,26 @@ namespace fan::physics {
       shape.point2 = points.front() / length_units_per_meter;
       b2CreateSegmentShape(entity, &shape_def, &shape);
     }
+    
+    if (body_def.type == b2_dynamicBody && shape_properties.density > 0.0f && !points.empty()) {
+      fan::vec2 min_p = points[0];
+      fan::vec2 max_p = points[0];
+      for (const auto& p : points) {
+        min_p = fan::math::min(min_p, p);
+        max_p = fan::math::max(max_p, p);
+      }
+      fan::vec2 size = (max_p - min_p) / length_units_per_meter;
+      f32_t approx_area = size.x * size.y;
+      if (approx_area < 0.01f) approx_area = 1.0f;
+      
+      b2MassData md;
+      md.mass = shape_properties.density * approx_area;
+      md.center = {0.0f, 0.0f};
+      md.rotationalInertia = md.mass * (size.x * size.x + size.y * size.y) / 12.0f;
+      if (md.rotationalInertia < 0.01f) md.rotationalInertia = 1.0f;
+      b2Body_SetMassData(entity, md);
+    }
+    
     return entity;
   }
 

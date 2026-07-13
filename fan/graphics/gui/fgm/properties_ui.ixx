@@ -103,6 +103,7 @@ export namespace fan::graphics::editor {
             gui::drag("Hitbox Size", &shape->physics.hitbox_size, 0.05f);
           }
           else {
+            gui::text(fan::color(1.f, 0.8f, 0.f, 1.f), "Segment Edit Mode");
             gui::text("Segment Points");
             int rem = -1;
             for (size_t i = 0; i < shape->physics.segment_points.size(); i++) {
