@@ -36,11 +36,19 @@ export namespace fan::graphics::editor {
 
       fan::vec2 p_min = (group_pos - group_size - camera_pos) * zoom + viewport_center;
       fan::vec2 p_max = (group_pos + group_size - camera_pos) * zoom + viewport_center;
-      draw_list->AddRect(p_min, p_max, fan::color(1.f, 0.5f, 0.f, 1.f).get_gui_color(), 0.0f, 0, 2.0f);
+
+      fan::vec2 rect_min = p_min.min(p_max);
+      fan::vec2 rect_max = p_min.max(p_max);
+
+      draw_list->AddRect(rect_min, rect_max, fan::color(1.f, 0.5f, 0.f, 1.f).get_gui_color(), 0.0f, 0, 2.0f);
 
       gui::push_id("shape_drag");
-      gui::set_cursor_screen_pos(p_min);
-      gui::invisible_button("##shape_drag", p_max - p_min);
+      gui::set_cursor_screen_pos(rect_min);
+      
+      fan::vec2 button_size = rect_max - rect_min;
+      if (button_size.x < 1.0f) button_size.x = 1.0f;
+      if (button_size.y < 1.0f) button_size.y = 1.0f;
+      gui::invisible_button("##shape_drag", button_size);
 
       if (gui::is_item_active()) {
         if (!is_dragging) {
@@ -98,23 +106,38 @@ export namespace fan::graphics::editor {
               start_size = shape_size;
               resize_anchor = shape_pos - handle_dirs[i] * start_size;
             }
-            fan::vec2 mouse_world = (gui::get_mouse_pos() - viewport_center) / zoom + camera_pos;
+            
+            fan::vec2 p1 = resize_anchor;
+            fan::vec2 p2 = (gui::get_mouse_pos() - viewport_center) / zoom + camera_pos;
             fan::vec2 dir = handle_dirs[i];
-            fan::vec2 new_size = (mouse_world - resize_anchor).abs() / 2.f;
-
-            if (dir.x == 0) new_size.x = start_size.x;
-            if (dir.y == 0) new_size.y = start_size.y;
-            new_size = fan::math::max(new_size, fan::vec2(1.0f));
 
             if (snap > 0.0f && !fan::window::is_key_down(fan::key_left_shift)) {
-              new_size.x = std::round(new_size.x / snap) * snap;
-              new_size.y = std::round(new_size.y / snap) * snap;
-              new_size = fan::math::max(new_size, fan::vec2(snap));
+              p2.x = p1.x + std::round((p2.x - p1.x) / snap) * snap;
+              p2.y = p1.y + std::round((p2.y - p1.y) / snap) * snap;
             }
 
-            fan::vec2 new_center = (mouse_world + resize_anchor) / 2.f;
-            if (dir.x == 0) new_center.x = resize_anchor.x;
-            if (dir.y == 0) new_center.y = resize_anchor.y;
+            fan::vec2 new_size = (p2 - p1).abs() / 2.f;
+            fan::vec2 new_center = (p1 + p2) / 2.f;
+
+            f32_t min_s = (snap > 0.0f && !fan::window::is_key_down(fan::key_left_shift)) ? snap : 1.0f;
+
+            if (new_size.x < min_s) {
+              new_size.x = min_s;
+              new_center.x = p1.x + (p2.x < p1.x ? -min_s : min_s);
+            }
+            if (new_size.y < min_s) {
+              new_size.y = min_s;
+              new_center.y = p1.y + (p2.y < p1.y ? -min_s : min_s);
+            }
+
+            if (dir.x == 0) {
+              new_size.x = start_size.x;
+              new_center.x = resize_anchor.x;
+            }
+            if (dir.y == 0) {
+              new_size.y = start_size.y;
+              new_center.y = resize_anchor.y;
+            }
 
             shape.set_position(fan::vec3(new_center, shape.get_position().z));
             shape.set_size(new_size);
