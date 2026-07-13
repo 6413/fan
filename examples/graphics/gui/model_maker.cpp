@@ -10,7 +10,7 @@
 import fan;
 import fan.fmt;
 
-#include <fan/graphics/gui/model_maker/maker.h>
+import fan.graphics.editor;
 
 int main(int argc, char** argv) {
   {
@@ -21,7 +21,7 @@ int main(int argc, char** argv) {
     //////////
     fan::graphics::engine_t engine;////
 
-    model_maker_t mm;//// 
+    fan::graphics::editor::fgm_t mm;//// 
 
     mm.open("", "");
     // mm.fin("normal_map_tests.json");
