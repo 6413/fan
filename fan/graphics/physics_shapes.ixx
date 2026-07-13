@@ -113,6 +113,11 @@ export namespace fan {
           handles.push_back(h);
           return h;
         }
+        fan::physics::collision_listener_handle_t on_hit(fan::physics::body_id_t body, auto cb) {
+          auto h = fan::physics::add_collision_listeners(body, {.on_hit = std::move(cb)});
+          handles.push_back(h);
+          return h;
+        }
         std::vector<fan::physics::collision_listener_handle_t> handles;
       };
 

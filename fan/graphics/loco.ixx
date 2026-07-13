@@ -394,24 +394,40 @@ export namespace fan {
       gstage = this;
     }
 
+        template <typename T>
+    static std::string_view get_type_name() {
+      static const std::string name = [] {
+        std::string_view n, p, s;
+        #if defined(__clang__)
+        p = "[T = "; s = "]"; n = __PRETTY_FUNCTION__;
+        #elif defined(__GNUC__)
+        p = "[with T = "; s = "]"; n = __PRETTY_FUNCTION__;
+        #elif defined(_MSC_VER)
+        p = "get_type_name<"; s = ">("; n = __FUNCSIG__;
+        #else
+        return std::string();
+        #endif
+        auto start = n.find(p);
+        if (start == std::string_view::npos) return std::string();
+        start += p.size();
+        if (n.substr(start, 7) == "struct ") start += 7;
+        else if (n.substr(start, 6) == "class ") start += 6;
+        auto end = n.rfind(s);
+        if (end == std::string_view::npos || end < start) return std::string();
+        return std::string(n.substr(start, end - start));
+      }();
+      return name;
+    }
+
     template <typename T>
-    static consteval std::string_view get_type_name() {
-      #if defined(__clang__)
-      constexpr std::string_view p = "[T = ";
-      constexpr std::string_view s = "]";
-      constexpr std::string_view n = __PRETTY_FUNCTION__;
-      #elif defined(__GNUC__)
-      constexpr std::string_view p = "[with T = ";
-      constexpr std::string_view s = "]";
-      constexpr std::string_view n = __PRETTY_FUNCTION__;
-      #elif defined(_MSC_VER)
-      constexpr std::string_view p = "get_type_name<struct ";
-      constexpr std::string_view s = ">(void)";
-      constexpr std::string_view n = __FUNCSIG__;
-      #else
-      return "";
-      #endif
-      return n.substr(n.find(p) + p.size(), n.rfind(s) - (n.find(p) + p.size()));
+    requires requires { T::stage_name; }
+    static std::string_view get_stage_name() {
+      return T::stage_name;
+    }
+
+    template <typename T>
+    static std::string_view get_stage_name() {
+      return get_type_name<T>();
     }
 
     template <typename T>
@@ -550,14 +566,6 @@ export namespace fan {
   struct stage_t {
     using self_t = Derived;
     stage_t(const stage_loader_t::stage_open_properties_t& op = {});
-
-    static constexpr std::string_view get_stage_name() {
-      if constexpr (requires { Derived::stage_name; }) {
-        return Derived::stage_name;
-      } else {
-        return stage_loader_t::get_type_name<Derived>();
-      }
-    }
 
     inline static loco_t* engine = nullptr;
     inline static fan::window_t* window = nullptr;
@@ -1320,8 +1328,9 @@ inline fan::stage_loader_t::nr_t fan::stage_loader_t::open_stage(const stage_ope
   previous_stage_name = current_stage_name;
   if constexpr (requires { T::stage_name; }) {
     current_stage_name = T::stage_name;
-  } else {
-    current_stage_name = get_type_name<T>();
+  } 
+  else {
+    current_stage_name = get_stage_name<T>();
   }
 
   T* stage = new T{op};

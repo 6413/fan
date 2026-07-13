@@ -277,6 +277,7 @@ export namespace fan {
     struct collision_listener_pair_t {
       std::function<void(entity_t other)> on_enter = [](auto){};
       std::function<void(entity_t other)> on_exit = [](auto){};
+      std::function<void(entity_t other, f32_t approach_speed)> on_hit = [](auto, auto){};
     };
     struct collision_listener_handle_t {
       b2BodyId body = body_get_null();
