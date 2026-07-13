@@ -1,5 +1,7 @@
 export module fan.graphics.editor:selection;
 
+import std;
+
 import fan.types.vector;
 import fan.types.color;
 import fan.math;
@@ -146,8 +148,8 @@ export namespace fan::graphics::editor {
 
   template <typename GlobalT>
   struct selection_t {
-    template <typename FGM, typename ShapeList>
-    void update(FGM& fgm, ShapeList& shape_list, const fan::vec2& mouse_pos, f32_t zoom) {
+    template <typename FGM>
+    void update(FGM& fgm, std::vector<std::unique_ptr<GlobalT>>& shape_list, const fan::vec2& mouse_pos, f32_t zoom) {
       if (fgm.viewport_settings.editor_hovered && fan::window::is_mouse_clicked() && gizmo.active_handle == -1 && !gizmo.is_dragging) {
         drag_start = mouse_pos;
         bool ctrl = fan::window::is_key_down(fan::key_left_control);
@@ -165,12 +167,10 @@ export namespace fan::graphics::editor {
 
         if (!hit_gizmo) {
           GlobalT* top_hit_shape = nullptr;
-          auto it = shape_list.GetNodeFirst();
-          while (it != shape_list.dst) {
-            if (fan::math::d2::aabb_point_inside(drag_start, shape_list[it]->children[0].get_position(), shape_list[it]->children[0].get_size())) {
-              top_hit_shape = shape_list[it];
+          for (auto& ptr : shape_list) {
+            if (fan::math::d2::aabb_point_inside(drag_start, ptr->children[0].get_position(), ptr->children[0].get_size())) {
+              top_hit_shape = ptr.get();
             }
-            it = it.Next(&shape_list);
           }
           
           if (top_hit_shape) {
@@ -225,24 +225,20 @@ export namespace fan::graphics::editor {
         }
       } else if (fan::window::is_mouse_released() && !fgm.shapes_window_hovered && !gui::is_any_item_active() && gizmo.active_handle == -1 && !gizmo.is_dragging) {
         bool hit_any = false;
-        auto it = shape_list.GetNodeFirst();
-        while (it != shape_list.dst) {
-          if (drag_box.intersects(shape_list[it]->children[0])) {
+        for (auto& ptr : shape_list) {
+          if (drag_box.intersects(ptr->children[0])) {
             if (!moving_object && (drag_box.get_size().x >= 1 && drag_box.get_size().y >= 1)) {
-              shape_list[it]->enable_highlight();
-              objects.push_back(shape_list[it]);
+              ptr->enable_highlight();
+              objects.push_back(ptr.get());
             }
           }
-          if (fan::math::d2::aabb_point_inside(mouse_pos, shape_list[it]->children[0].get_position(), shape_list[it]->children[0].get_size())) {
+          if (fan::math::d2::aabb_point_inside(mouse_pos, ptr->children[0].get_position(), ptr->children[0].get_size())) {
             hit_any = true;
           }
-          it = it.Next(&shape_list);
         }
         if (!hit_any && drag_box.get_size().x == 0) {
-          it = shape_list.GetNodeFirst();
-          while (it != shape_list.dst) {
-            shape_list[it]->disable_highlight();
-            it = it.Next(&shape_list);
+          for (auto& ptr : shape_list) {
+            ptr->disable_highlight();
           }
           objects.clear();
         }
