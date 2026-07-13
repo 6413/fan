@@ -90,14 +90,35 @@ export namespace fan::graphics::editor {
         }
       }
 
-      if (gui::tree_node("Physics Properties")) {
+      if (gui::tree_node_ex("Physics Properties", gui::tree_node_flags_default_open)) {
         gui::checkbox("Enable Physics", &shape->physics.enabled);
         if (shape->physics.enabled) {
           const char* body_types[] = {"Static", "Kinematic", "Dynamic"};
           gui::combo("Body Type", &shape->physics.body_type, body_types, 3);
-          const char* shape_types[] = {"Box", "Circle", "Capsule"};
-          gui::combo("Shape", &shape->physics.shape_type, shape_types, 3);
-          gui::drag("Hitbox Size", &shape->physics.hitbox_size, 0.05f);
+          const char* collision_shapes[] = {"Auto (Bounds)", "Custom Segments"};
+          gui::combo("Collision Shape", &shape->physics.collision_shape, collision_shapes, 2);
+          if (shape->physics.collision_shape == 0) {
+            const char* shape_types[] = {"Box", "Circle", "Capsule"};
+            gui::combo("Shape", &shape->physics.shape_type, shape_types, 3);
+            gui::drag("Hitbox Size", &shape->physics.hitbox_size, 0.05f);
+          }
+          else {
+            gui::text("Segment Points");
+            int rem = -1;
+            for (size_t i = 0; i < shape->physics.segment_points.size(); i++) {
+              gui::push_id((int)i);
+              if (gui::button("X")) rem = (int)i;
+              gui::same_line();
+              gui::drag("point", &shape->physics.segment_points[i], 0.1f);
+              gui::pop_id();
+            }
+            if (rem >= 0 && rem < (int)shape->physics.segment_points.size()) {
+              shape->physics.segment_points.erase(shape->physics.segment_points.begin() + rem);
+            }
+            if (gui::button("Add Point")) {
+              shape->physics.segment_points.push_back(fan::vec2(0));
+            }
+          }
           gui::drag("Mass", &shape->physics.mass, 0.1f);
           gui::drag("Friction", &shape->physics.friction, 0.05f);
           gui::drag("Restitution", &shape->physics.restitution, 0.05f);
@@ -106,7 +127,7 @@ export namespace fan::graphics::editor {
         gui::tree_pop();
       }
 
-      if (gui::tree_node("Material")) {
+      if (gui::tree_node_ex("Material", gui::tree_node_flags_default_open)) {
         const char* material_names[] = {"Textured", "Solid Color"};
         int mt = shape->material_type;
         if (gui::combo("type", &mt, material_names, 2)) {
