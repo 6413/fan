@@ -318,7 +318,7 @@ export namespace fan::graphics::editor {
 
         if (!selection.objects.empty()) {
           fan::vec2 viewport_center = viewport_settings.start_pos - fan::vec2(style.WindowPadding) + viewport_settings.size / 2.f;
-          selection.gizmo.manipulate(*selection.objects[0], camera_pos, zoom, viewport_center, snap);
+          selection.gizmo.manipulate(selection.objects, camera_pos, zoom, viewport_center, snap);
         }
 
         gui::text(fan::to_string(zoom * 100) + " %", {.offset = {0.f, -gui::get_text_line_height_with_spacing()}, .align = align_e::bottom_right});
