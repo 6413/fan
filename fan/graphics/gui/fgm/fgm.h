@@ -25,6 +25,7 @@ struct fgm_t {
         T temp = obj;
         this->shape_type = shape_type;
         typename fan::graphics::shapes::vfi_t::properties_t vfip;
+        vfip.shape_type = fan::graphics::shapes::vfi_t::shape_t::rectangle;
         vfip.shape.rectangle->position = temp.get_position();
         vfip.shape.rectangle->position.z += shape_add ? fgm->current_z++ : 0;
         vfip.shape.rectangle->size = temp.get_size();
@@ -47,6 +48,15 @@ struct fgm_t {
       uint16_t shape_type = 0;
       std::string id;
       uint32_t group_id = 0;
+      
+      struct physics_properties_t {
+        bool enabled = false;
+        int body_type = 0; // 0=static, 1=kinematic, 2=dynamic
+        f32_t mass = 1.0f;
+        f32_t friction = 0.2f;
+        f32_t restitution = 0.0f;
+        bool is_sensor = false;
+      } physics;
     };
   };
 
@@ -283,6 +293,19 @@ struct fgm_t {
       if (gui::is_item_deactivated_after_edit()) {
         current_shape->group_id = std::stoul(str);
       }
+    }
+
+    if (gui::tree_node("Physics Properties")) {
+      gui::checkbox("Enable Physics", &shape->physics.enabled);
+      if (shape->physics.enabled) {
+        const char* body_types[] = { "Static", "Kinematic", "Dynamic" };
+        gui::combo("Body Type", &shape->physics.body_type, body_types, 3);
+        gui::drag("Mass", &shape->physics.mass, 0.1f);
+        gui::drag("Friction", &shape->physics.friction, 0.05f);
+        gui::drag("Restitution", &shape->physics.restitution, 0.05f);
+        gui::checkbox("Is Sensor", &shape->physics.is_sensor);
+      }
+      gui::tree_pop();
     }
 
     switch (shape->children[0].get_shape_type()) {
@@ -650,7 +673,7 @@ struct fgm_t {
         str += " %";
         gui::text(str, {
           .offset = {0.f, -gui::get_text_line_height_with_spacing()},
-          .align = gui::text_style_t::align_e::bottom_right
+          .align = align_e::bottom_right
         });
       }
 
@@ -659,7 +682,7 @@ struct fgm_t {
         std::string cursor_pos_str = cursor_pos.to_string(1);
         std::string str = cursor_pos_str.substr(1, cursor_pos_str.size() - 2);
 
-        gui::text(str, { .align = gui::text_style_t::align_e::bottom_right });
+        gui::text(str, { .align = align_e::bottom_right });
       }
 
       gui::set_cursor_pos(gui::get_cursor_start_pos());
@@ -1001,6 +1024,17 @@ struct fgm_t {
         shape_json["group_id"] = shape_instance->group_id;
       }
 
+      if (shape_instance->physics.enabled) {
+        fan::json physics_json = fan::json::object();
+        physics_json["enabled"] = shape_instance->physics.enabled;
+        physics_json["body_type"] = shape_instance->physics.body_type;
+        physics_json["mass"] = shape_instance->physics.mass;
+        physics_json["friction"] = shape_instance->physics.friction;
+        physics_json["restitution"] = shape_instance->physics.restitution;
+        physics_json["is_sensor"] = shape_instance->physics.is_sensor;
+        shape_json["physics"] = physics_json;
+      }
+
       if (auto found = shape_original_json.find(shape_instance); found != shape_original_json.end()) {
         shape_json.preserve_unknown(found->second);
       }
@@ -1176,6 +1210,15 @@ struct fgm_t {
         }
         if (shape_json.contains("group_id")) {
           node->group_id = shape_json["group_id"].get<uint32_t>();
+        }
+        if (shape_json.contains("physics")) {
+          auto& pjson = shape_json["physics"];
+          node->physics.enabled = pjson.value("enabled", false);
+          node->physics.body_type = pjson.value("body_type", 0);
+          node->physics.mass = pjson.value("mass", 1.0f);
+          node->physics.friction = pjson.value("friction", 0.2f);
+          node->physics.restitution = pjson.value("restitution", 0.0f);
+          node->physics.is_sensor = pjson.value("is_sensor", false);
         }
         shape_original_json[node] = shape_json;
       }
