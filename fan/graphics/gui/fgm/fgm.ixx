@@ -43,14 +43,6 @@ export namespace fan::graphics::editor {
 
     f32_t snap = 32.f;
 
-#define BLL_set_AreWeInsideStruct 1
-#include <fan/fan_bll_preset.h>
-#define BLL_set_prefix shape_list
-#define BLL_set_type_node uint32_t
-#define BLL_set_NodeDataType shapes_t::global_t*
-#define BLL_set_Link 1
-#include <BLL/BLL.h>
-
     void open_texturepack(const std::string& path) {
       gloco()->texture_pack.open_compiled(path);
       texturepack_images.clear();
@@ -151,12 +143,7 @@ export namespace fan::graphics::editor {
     }
 
     void close() {
-      auto it = shape_list.GetNodeFirst();
-      while (it != shape_list.dst) {
-        delete shape_list[it];
-        it = it.Next(&shape_list);
-      }
-      shape_list.Clear();
+      shape_list.clear();
       close_cb();
       background.erase();
       shape_original_json.clear();
@@ -169,66 +156,68 @@ export namespace fan::graphics::editor {
     }
 
     bool id_exists(const std::string& id) {
-      auto it = shape_list.GetNodeFirst();
-      while (it != shape_list.dst) {
-        if (shape_list[it]->id == id) return true;
-        it = it.Next(&shape_list);
+      for (auto& ptr : shape_list) {
+        if (ptr->id == id) return true;
       }
       return false;
     }
 
-    shape_list_t::nr_t push_shape(uint16_t shape_type, const fan::vec2& pos, const fan::vec2& size = 128) {
-      auto nr = shape_list.NewNodeLast();
+    size_t push_shape(uint16_t shape_type, const fan::vec2& pos, const fan::vec2& size = 128) {
+      auto make_node = [&](auto&& shape) {
+        return std::make_unique<shapes_t::global_t>(shape_type, shape, current_z, current_shape);
+      };
+      size_t idx = shape_list.size();
       switch (shape_type) {
         case fan::graphics::shapes::shape_type_t::sprite: {
-          shape_list[nr] = new shapes_t::global_t(shape_type, fan::graphics::sprite_t{{.render_view = &render_view, .position = pos, .size = size}}, current_z, current_shape);
-          auto* ri = ((fan::graphics::shapes::sprite_t::ri_t*)shape_list[nr]->children[0].GetData(fan::graphics::g_shapes->shaper));
+          auto node = make_node(fan::graphics::sprite_t{{.render_view = &render_view, .position = pos, .size = size}});
+          auto* ri = ((fan::graphics::shapes::sprite_t::ri_t*)node->children[0].GetData(fan::graphics::g_shapes->shaper));
           animations_application.current_animation_nr = ri->sprite_sheet_data.current_sprite_sheet;
           animations_application.current_animation_shape_nr = ri->sprite_sheet_data.shape_sprite_sheets;
+          shape_list.push_back(std::move(node));
           break;
         }
         case fan::graphics::shapes::shape_type_t::unlit_sprite: {
-          shape_list[nr] = new shapes_t::global_t(shape_type, fan::graphics::unlit_sprite_t{{.render_view = &render_view, .position = pos, .size = size}}, current_z, current_shape);
+          shape_list.push_back(make_node(fan::graphics::unlit_sprite_t{{.render_view = &render_view, .position = pos, .size = size}}));
           break;
         }
         case fan::graphics::shapes::shape_type_t::rectangle: {
-          shape_list[nr] = new shapes_t::global_t(shape_type, fan::graphics::rectangle_t{{.render_view = &render_view, .position = pos, .size = size}}, current_z, current_shape);
+          shape_list.push_back(make_node(fan::graphics::rectangle_t{{.render_view = &render_view, .position = pos, .size = size}}));
           break;
         }
         case fan::graphics::shapes::shape_type_t::light: {
-          shape_list[nr] = new shapes_t::global_t(shape_type, fan::graphics::light_t{{.render_view = &render_view, .position = pos, .size = size}}, current_z, current_shape);
-          shape_list[nr]->children.push_back(fan::graphics::circle_t {{
+          auto node = make_node(fan::graphics::light_t{{.render_view = &render_view, .position = pos, .size = size}});
+          node->children.push_back(fan::graphics::circle_t {{
             .render_view = &render_view,
             .position = fan::vec3(pos, current_z),
             .radius = size.x,
             .color = fan::color(1, 1, 1, 0.0),
             .blending = true
           }});
+          shape_list.push_back(std::move(node));
           break;
         }
       }
-      return nr;
+      return idx;
     }
 
     void render_tree_with_unified_selection() {
-      auto it = shape_list.GetNodeFirst();
       static int selection_mask = 0;
       int node_clicked = -1;
       static gui::tree_node_flags_t base_flags = gui::tree_node_flags_open_on_arrow | gui::tree_node_flags_open_on_double_click | gui::tree_node_flags_span_avail_width;
 
-      while (it != shape_list.dst) {
-        auto& shape_instance = shape_list[it];
+      for (size_t idx = 0; idx < shape_list.size(); ++idx) {
+        auto& shape_instance = shape_list[idx];
         gui::tree_node_flags_t node_flags = base_flags;
-        if ((selection_mask & (1 << (std::intptr_t)it.NRI)) != 0) node_flags |= gui::tree_node_flags_selected;
+        if ((selection_mask & (1 << idx)) != 0) node_flags |= gui::tree_node_flags_selected;
         if (shape_instance->children.size() <= 1) node_flags |= gui::tree_node_flags_leaf;
 
         std::string_view shape_name = shape_instance->children.empty() ? std::string_view("Node") : fan::graphics::shape_names[shape_instance->children[0].get_shape_type()];
-        bool node_open = gui::tree_node_ex((void*)(intptr_t)it.NRI, node_flags, "%.*s %ld", static_cast<int>(shape_name.length()), shape_name.data(), (intptr_t)it.NRI);
+        bool node_open = gui::tree_node_ex((void*)(std::intptr_t)idx, node_flags, "%.*s %ld", static_cast<int>(shape_name.length()), shape_name.data(), (intptr_t)idx);
 
         if (gui::is_item_clicked() && !gui::is_item_toggled_open()) {
-          node_clicked = (intptr_t)it.NRI;
+          node_clicked = (std::intptr_t)idx;
           if (current_shape) current_shape->disable_highlight();
-          current_shape = shape_instance;
+          current_shape = shape_instance.get();
           current_shape->enable_highlight();
         }
 
@@ -238,7 +227,6 @@ export namespace fan::graphics::editor {
           }
           gui::tree_pop();
         }
-        it = it.Next(&shape_list);
       }
 
       if (node_clicked != -1) {
@@ -256,17 +244,15 @@ export namespace fan::graphics::editor {
         bool node_open = gui::tree_node_ex((void*)(intptr_t)child.NRI, node_flags, "%s %u", fan::graphics::shape_names[child.get_shape_type()], child.NRI);
 
         if (gui::is_item_clicked() && !gui::is_item_toggled_open()) {
-          node_clicked = (intptr_t)child.NRI;
-          auto it = shape_list.GetNodeFirst();
-          while (it != shape_list.dst) {
-            if (shape_list[it]->children[0] == child) {
-              if (current_shape) current_shape->disable_highlight();
-              current_shape = shape_list[it];
-              current_shape->enable_highlight();
-              break;
+            node_clicked = (intptr_t)child.NRI;
+            for (auto& ptr : shape_list) {
+              if (ptr->children[0] == child) {
+                if (current_shape) current_shape->disable_highlight();
+                current_shape = ptr.get();
+                current_shape->enable_highlight();
+                break;
+              }
             }
-            it = it.Next(&shape_list);
-          }
         }
         if (node_open) gui::tree_pop();
         child_index++;
@@ -356,7 +342,7 @@ export namespace fan::graphics::editor {
         if (fan::window::is_key_down(fan::key_left_control) && fan::window::is_key_clicked(fan::key_d)) {
           for (auto& i : selection.objects) {
             for (auto& child : i->children) {
-              shape_list[shape_list.NewNodeLast()] = new shapes_t::global_t(child.get_shape_type(), child, current_z, current_shape);
+              shape_list.push_back(std::make_unique<shapes_t::global_t>(child.get_shape_type(), child, current_z, current_shape));
             }
           }
           selection.objects.clear();
@@ -486,19 +472,16 @@ export namespace fan::graphics::editor {
 
     void erase_current() {
       if (!current_shape) return;
-      auto it = shape_list.GetNodeFirst();
-      while (it != shape_list.dst) {
-        if (current_shape == shape_list[it]) {
+      for (auto it = shape_list.begin(); it != shape_list.end(); ++it) {
+        if (current_shape == it->get()) {
           shape_original_json.erase(current_shape);
           if (auto sel_it = std::find(selection.objects.begin(), selection.objects.end(), current_shape); sel_it != selection.objects.end()) {
             selection.objects.erase(sel_it);
           }
-          delete shape_list[it];
-          shape_list.unlrec(it);
+          shape_list.erase(it);
           invalidate_current();
           break;
         }
-        it = it.Next(&shape_list);
       }
     }
 
@@ -509,7 +492,7 @@ export namespace fan::graphics::editor {
     fan::graphics::render_view_t render_view;
     gui::content_browser_t content_browser {false};
     shapes_t::global_t* current_shape = nullptr;
-    shape_list_t shape_list;
+    std::vector<std::unique_ptr<shapes_t::global_t>> shape_list;
     f32_t current_z = 1;
     uint32_t current_id = 0;
     bool render_content_browser = true;

@@ -67,6 +67,26 @@ export namespace fan::graphics::editor {
         f32_t mass = 1.0f;
         f32_t friction = 0.2f;
         f32_t restitution = 0.0f;
+
+        fan::json to_json() const {
+          fan::json p = fan::json::object();
+          p["enabled"] = enabled;
+          p["body_type"] = body_type;
+          p["mass"] = mass;
+          p["friction"] = friction;
+          p["restitution"] = restitution;
+          p["is_sensor"] = is_sensor;
+          return p;
+        }
+
+        void from_json(const fan::json& p) {
+          enabled = p.value("enabled", false);
+          body_type = p.value("body_type", 0);
+          mass = p.value("mass", 1.0f);
+          friction = p.value("friction", 0.2f);
+          restitution = p.value("restitution", 0.0f);
+          is_sensor = p.value("is_sensor", false);
+        }
       } physics;
     };
   };
