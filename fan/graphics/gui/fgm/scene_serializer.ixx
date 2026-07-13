@@ -87,22 +87,38 @@ export namespace fan::graphics::editor {
     static void serialize_shapes(FGM_T& fgm, fan::json& out) {
       fan::json shapes = fan::json::array();
       for (auto& instance : fgm.shape_list) {
-        fan::json shape_json;
-        fan::graphics::shape_to_json(instance->children[0], &shape_json);
-
-        typename shapes_t::global_t defaults;
-        if (instance->id != defaults.id) shape_json["id"] = instance->id;
-        if (instance->group_id != defaults.group_id) shape_json["group_id"] = instance->group_id;
-        if (instance->physics.enabled) {
-          shape_json["physics"] = instance->physics.to_json();
+        if (instance->material_type == 1) {
+          fan::graphics::image_t saved = instance->children[0].get_image();
+          instance->children[0].set_image(instance->original_image);
+          instance->material_type = 0;
+          fan::json shape_json;
+          fan::graphics::shape_to_json(instance->children[0], &shape_json);
+          shape_json["material_type"] = 1;
+          instance->material_type = 1;
+          instance->children[0].set_image(saved);
+          finish_shape_json(fgm, instance, shape_json);
+          shapes.push_back(shape_json);
+        } else {
+          fan::json shape_json;
+          fan::graphics::shape_to_json(instance->children[0], &shape_json);
+          finish_shape_json(fgm, instance, shape_json);
+          shapes.push_back(shape_json);
         }
-
-        if (auto found = fgm.shape_original_json.find(instance.get()); found != fgm.shape_original_json.end()) {
-          shape_json.preserve_unknown(found->second);
-        }
-        shapes.push_back(shape_json);
       }
       out["shapes"] = shapes;
+    }
+
+    template <typename FGM_T, typename InstanceT>
+    static void finish_shape_json(FGM_T& fgm, InstanceT& instance, fan::json& shape_json) {
+      typename shapes_t::global_t defaults;
+      if (instance->id != defaults.id) shape_json["id"] = instance->id;
+      if (instance->group_id != defaults.group_id) shape_json["group_id"] = instance->group_id;
+      if (instance->physics.enabled) {
+        shape_json["physics"] = instance->physics.to_json();
+      }
+      if (auto found = fgm.shape_original_json.find(instance.get()); found != fgm.shape_original_json.end()) {
+        shape_json.preserve_unknown(found->second);
+      }
     }
 
     static void deserialize_environment(const fan::json& json_in) {
@@ -185,6 +201,11 @@ export namespace fan::graphics::editor {
           if (shape_json.contains("group_id")) node->group_id = shape_json["group_id"].get<uint32_t>();
           if (shape_json.contains("physics")) {
             node->physics.from_json(shape_json["physics"]);
+          }
+          if (shape_json.contains("material_type") && shape_json["material_type"].get<int>() == 1) {
+            node->original_image = node->children[0].get_image();
+            node->material_type = 1;
+            node->children[0].set_image(fgm.white_texture);
           }
           fgm.shape_original_json[node.get()] = shape_json;
         }

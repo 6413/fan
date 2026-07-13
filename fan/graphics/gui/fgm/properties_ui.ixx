@@ -103,54 +103,72 @@ export namespace fan::graphics::editor {
         gui::tree_pop();
       }
 
+      if (gui::tree_node("Material")) {
+        const char* material_names[] = {"Textured", "Solid Color"};
+        int mt = shape->material_type;
+        if (gui::combo("type", &mt, material_names, 2)) {
+          shape->material_type = (uint8_t)mt;
+          fgm.apply_material(shape);
+        }
+        if (shape->material_type == 1) {
+          fan::color c = shape->get_color();
+          if (gui::color_edit4("solid color", &c)) {
+            shape->set_color(c);
+          }
+        }
+        gui::tree_pop();
+      }
+
       switch (shape->children[0].get_shape_type()) {
         case fan::graphics::shapes::shape_type_t::unlit_sprite:
         case fan::graphics::shapes::shape_type_t::sprite:
         {
-          fan::graphics::gui::render_texture_property(shape->children[0], 0, "Base texture", fgm.content_browser.asset_path);
-          fan::graphics::gui::render_texture_property(shape->children[0], 1, "Normal map", fgm.content_browser.asset_path);
-          fan::graphics::gui::render_texture_property(shape->children[0], 2, "Specular map", fgm.content_browser.asset_path);
-          fan::graphics::gui::render_texture_property(shape->children[0], 3, "Occlusion map", fgm.content_browser.asset_path);
+          if (shape->material_type == 0) {
+            fan::graphics::gui::render_texture_property(shape->children[0], 0, "Base texture", fgm.content_browser.asset_path);
+            fan::graphics::gui::render_texture_property(shape->children[0], 1, "Normal map", fgm.content_browser.asset_path);
+            fan::graphics::gui::render_texture_property(shape->children[0], 2, "Specular map", fgm.content_browser.asset_path);
+            fan::graphics::gui::render_texture_property(shape->children[0], 3, "Occlusion map", fgm.content_browser.asset_path);
 
-          auto current_settings = gloco()->image_get_settings(shape->children[0].get_image());
+            auto current_settings = gloco()->image_get_settings(shape->children[0].get_image());
 
-          int current_image_filter = current_settings.min_filter;
-          static auto filter_names = fan::graphics::image_filter_e::get_names();
-          if (gui::combo("image filter", &current_image_filter, filter_names.data(), (int)filter_names.size())) {
-            current_settings.min_filter = current_image_filter;
-            current_settings.mag_filter = current_image_filter;
-            gloco()->image_set_settings(shape->children[0].get_image(), current_settings);
-            if (shape->children[0].get_images()[0].iic() == false) {
-              gloco()->image_set_settings(shape->children[0].get_images()[0], current_settings);
-            }
-          }
-
-          int current_address_mode = current_settings.visual_output;
-          static auto address_mode_names = fan::graphics::image_sampler_address_mode.get_names();
-          if (gui::combo("address mode", &current_address_mode, address_mode_names.data(), address_mode_names.size())) {
-            current_settings.visual_output = current_address_mode;
-            gloco()->image_set_settings(shape->children[0].get_image(), current_settings);
-            if (shape->children[0].get_images()[0].iic() == false) {
-              gloco()->image_set_settings(shape->children[0].get_images()[0], current_settings);
-            }
-          }
-
-          std::string& current = shape->children[0].get_image_data().image_path;
-          str = current;
-          if (gui::input_text("image path", &str)) {
-            if (gui::is_item_deactivated_after_edit()) {
-              fan::graphics::texture_pack::ti_t ti;
-              if (gloco()->texture_pack.qti(str.c_str(), &ti)) {
-                gui::print("failed to load texture:", str);
+            int current_image_filter = current_settings.min_filter;
+            static auto filter_names = fan::graphics::image_filter_e::get_names();
+            if (gui::combo("image filter", &current_image_filter, filter_names.data(), (int)filter_names.size())) {
+              current_settings.min_filter = current_image_filter;
+              current_settings.mag_filter = current_image_filter;
+              gloco()->image_set_settings(shape->children[0].get_image(), current_settings);
+              if (shape->children[0].get_images()[0].iic() == false) {
+                gloco()->image_set_settings(shape->children[0].get_images()[0], current_settings);
               }
-              else {
-                current = str.substr(0, std::strlen(str.c_str()));
-                auto& data = gloco()->texture_pack.get_pixel_data(ti.unique_id);
-                if (shape->children[0].get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {
-                  shape->children[0].load_tp(&ti);
+            }
+
+            int current_address_mode = current_settings.visual_output;
+            static auto address_mode_names = fan::graphics::image_sampler_address_mode.get_names();
+            if (gui::combo("address mode", &current_address_mode, address_mode_names.data(), address_mode_names.size())) {
+              current_settings.visual_output = current_address_mode;
+              gloco()->image_set_settings(shape->children[0].get_image(), current_settings);
+              if (shape->children[0].get_images()[0].iic() == false) {
+                gloco()->image_set_settings(shape->children[0].get_images()[0], current_settings);
+              }
+            }
+
+            std::string& current = shape->children[0].get_image_data().image_path;
+            str = current;
+            if (gui::input_text("image path", &str)) {
+              if (gui::is_item_deactivated_after_edit()) {
+                fan::graphics::texture_pack::ti_t ti;
+                if (gloco()->texture_pack.qti(str.c_str(), &ti)) {
+                  gui::print("failed to load texture:", str);
                 }
-                else if (shape->children[0].get_shape_type() == fan::graphics::shapes::shape_type_t::unlit_sprite) {
-                  shape->children[0].load_tp(&ti);
+                else {
+                  current = str.substr(0, std::strlen(str.c_str()));
+                  auto& data = gloco()->texture_pack.get_pixel_data(ti.unique_id);
+                  if (shape->children[0].get_shape_type() == fan::graphics::shapes::shape_type_t::sprite) {
+                    shape->children[0].load_tp(&ti);
+                  }
+                  else if (shape->children[0].get_shape_type() == fan::graphics::shapes::shape_type_t::unlit_sprite) {
+                    shape->children[0].load_tp(&ti);
+                  }
                 }
               }
             }
