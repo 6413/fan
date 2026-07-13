@@ -150,6 +150,7 @@ export namespace fan::graphics::editor {
       shape_list.clear();
       physics_bodies.clear();
       segment_bodies.clear();
+      segment_drag_idx = -1;
       close_cb();
       shape_original_json.clear();
       is_playing = false;
@@ -309,9 +310,47 @@ export namespace fan::graphics::editor {
       viewport_settings.size = viewport_size;
       viewport_settings.start_pos = vMin;
 
+      if (!is_playing && current_shape && current_shape->physics.enabled && current_shape->physics.collision_shape == 1 && viewport_settings.editor_hovered) {
+        fan::vec2 mouse_world_seg = viewport_t::get_mouse_position(viewport_settings, gui::get_mouse_pos(), zoom, fan::vec2(style.WindowPadding));
+        f32_t inv_sa = std::sin(-current_shape->children[0].get_angle().z);
+        f32_t inv_ca = std::cos(-current_shape->children[0].get_angle().z);
+        fan::vec2 delta = mouse_world_seg - fan::vec2(current_shape->get_position());
+        fan::vec2 local_mouse(inv_ca * delta.x - inv_sa * delta.y, inv_sa * delta.x + inv_ca * delta.y);
+        auto& pts = current_shape->physics.segment_points;
+
+        if (segment_drag_idx >= 0 && segment_drag_idx < (int)pts.size()) {
+          if (fan::window::is_mouse_down(fan::mouse_left)) {
+            pts[segment_drag_idx] = local_mouse;
+          } else {
+            segment_drag_idx = -1;
+          }
+        } else {
+          segment_drag_idx = -1;
+          if (fan::window::is_mouse_clicked(fan::mouse_left) && selection.gizmo.active_handle == -1) {
+            int closest = -1;
+            f32_t closest_d = 12.f;
+            for (size_t i = 0; i < pts.size(); ++i) {
+              f32_t d = (pts[i] - local_mouse).length();
+              if (d < closest_d) { closest_d = d; closest = (int)i; }
+            }
+            if (fan::window::is_key_down(fan::key_left_control) && closest >= 0) {
+              pts.erase(pts.begin() + closest);
+            } else if (closest >= 0) {
+              segment_drag_idx = closest;
+            } else {
+              pts.push_back(local_mouse);
+            }
+          }
+        }
+      }
+
       if (!is_playing && !selection.objects.empty()) {
         fan::vec2 viewport_center = viewport_settings.start_pos - fan::vec2(style.WindowPadding) + viewport_settings.size / 2.f;
-        selection.gizmo.manipulate(selection.objects, camera_pos, zoom, viewport_center, snap);
+        if (segment_drag_idx >= 0) {
+          selection.gizmo.is_dragging = false;
+        } else {
+          selection.gizmo.manipulate(selection.objects, camera_pos, zoom, viewport_center, snap);
+        }
 
         for (auto* obj : selection.objects) {
           if (!obj->physics.enabled) continue;
@@ -395,27 +434,38 @@ export namespace fan::graphics::editor {
         }
       }
 
-      if (!is_playing && current_shape && current_shape->physics.enabled && current_shape->physics.collision_shape == 1 && viewport_settings.editor_hovered) {
-        fan::vec2 mouse_world_seg = viewport_t::get_mouse_position(viewport_settings, gui::get_mouse_pos(), zoom, fan::vec2(style.WindowPadding));
-        if (fan::window::is_mouse_clicked(fan::mouse_left) && !gui::is_any_item_active()) {
-          fan::vec2 world_mouse = mouse_world_seg;
-          f32_t sa = std::sin(-current_shape->children[0].get_angle().z);
-          f32_t ca = std::cos(-current_shape->children[0].get_angle().z);
-          fan::vec2 delta = world_mouse - fan::vec2(current_shape->get_position());
-          fan::vec2 local(ca * delta.x - sa * delta.y, sa * delta.x + ca * delta.y);
-          auto& pts = current_shape->physics.segment_points;
-          if (fan::window::is_key_down(fan::key_left_control)) {
-            int closest = -1;
-            f32_t closest_d = 20.f;
-            for (size_t i = 0; i < pts.size(); ++i) {
-              f32_t d = (pts[i] - local).length();
-              if (d < closest_d) { closest_d = d; closest = (int)i; }
-            }
-            if (closest >= 0) pts.erase(pts.begin() + closest);
-          } else {
-            pts.push_back(local);
+      if (is_playing) {
+        auto* dl = gui::get_window_draw_list();
+        fan::vec2 viewport_center = viewport_settings.start_pos - fan::vec2(style.WindowPadding) + viewport_settings.size / 2.f;
+        for (auto& ptr : shape_list) {
+          if (!ptr->physics.enabled || ptr->physics.collision_shape != 1) continue;
+          fan::vec2 pos = ptr->get_position();
+          f32_t angle = ptr->children[0].get_angle().z;
+          f32_t ca = std::cos(angle), sa = std::sin(angle);
+          auto to_screen = [&](const fan::vec2& p) -> fan::vec2 {
+            return ((p - camera_pos) * zoom + viewport_center);
+          };
+          auto rotate = [&](const fan::vec2& local) -> fan::vec2 {
+            return pos + fan::vec2(ca * local.x - sa * local.y, sa * local.x + ca * local.y);
+          };
+          auto& pts = ptr->physics.segment_points;
+          auto lc = fan::color(0.f, 1.f, 0.3f, 1.f).get_gui_color();
+          auto pc = fan::color(1.f, 0.8f, 0.f, 1.f).get_gui_color();
+          for (size_t pi = 0; pi + 1 < pts.size(); ++pi) {
+            fan::vec2 a = to_screen(rotate(pts[pi]));
+            fan::vec2 b = to_screen(rotate(pts[pi + 1]));
+            dl->AddLine(a, b, lc, 2.f);
+          }
+          if (pts.size() > 2) {
+            dl->AddLine(to_screen(rotate(pts.back())), to_screen(rotate(pts.front())), lc, 2.f);
+          }
+          for (auto& pt : pts) {
+            dl->AddCircleFilled(to_screen(rotate(pt)), 4.f, pc);
           }
         }
+      }
+
+      if (!is_playing && current_shape && current_shape->physics.enabled && current_shape->physics.collision_shape == 1) {
         auto* dl = gui::get_window_draw_list();
         fan::vec2 viewport_center = viewport_settings.start_pos - fan::vec2(style.WindowPadding) + viewport_settings.size / 2.f;
         fan::vec2 pos = current_shape->get_position();
@@ -427,10 +477,20 @@ export namespace fan::graphics::editor {
         auto rotate = [&](const fan::vec2& local) -> fan::vec2 {
           return pos + fan::vec2(ca * local.x - sa * local.y, sa * local.x + ca * local.y);
         };
+        auto& pts = current_shape->physics.segment_points;
         auto c = fan::color(1.f, 0.8f, 0.f, 1.f).get_gui_color();
-        for (auto& pt : current_shape->physics.segment_points) {
-          dl->AddCircleFilled(to_screen(rotate(pt)), 4.f, c);
+        for (size_t i = 0; i < pts.size(); ++i) {
+          auto sc = to_screen(rotate(pts[i]));
+          f32_t r = (int)i == segment_drag_idx ? 6.f : 4.f;
+          dl->AddCircleFilled(sc, r, c);
         }
+      }
+      if (!is_playing && current_shape && current_shape->physics.enabled && current_shape->physics.collision_shape == 1) {
+        gui::push_style_color(gui::col_text, fan::color(1.f, 0.8f, 0.f, 1.f));
+        gui::text("[Segment Edit] ", {.offset = {8, 8}});
+        gui::same_line();
+        gui::text("Click: add point | Drag: move point | Ctrl+Click: delete point");
+        gui::pop_style_color();
       }
 
       gui::text(fan::to_string(zoom * 100) + " %", {.offset = {0.f, -gui::get_text_line_height_with_spacing()}, .align = align_e::bottom_right});
@@ -519,6 +579,14 @@ export namespace fan::graphics::editor {
         if (gui::begin_menu("Create")) {
           if (gui::begin_menu("Shapes")) {
             if (gui::menu_item("Sprite")) push_shape<fan::graphics::sprite_t>(0);
+            if (gui::menu_item("Segment Collider")) {
+              auto idx = push_shape<fan::graphics::rectangle_t>(0, fan::vec2(128));
+              auto& node = *shape_list[idx];
+              node.physics.enabled = true;
+              node.physics.collision_shape = 1;
+              node.physics.segment_points = { fan::vec2(-64, -64), fan::vec2(64, -64), fan::vec2(64, 64), fan::vec2(-64, 64) };
+              node.children[0].set_color(fan::color(0, 0, 0, 0));
+            }
             gui::end_menu();
           }
           if (gui::begin_menu("Lights")) {
@@ -700,6 +768,7 @@ export namespace fan::graphics::editor {
 
       if (render_content_browser) content_browser.render();
 
+      step_physics();
       render_viewport(zoom);
       if (!is_playing) {
         render_settings_window();
@@ -709,7 +778,6 @@ export namespace fan::graphics::editor {
         render_animations_window();
       }
       render_animation_updates();
-      step_physics();
     }
 
     void fout(std::string filename) {
@@ -796,6 +864,7 @@ export namespace fan::graphics::editor {
     std::string scene_backup;
     std::vector<std::unique_ptr<fan::graphics::physics::base_shape_t>> physics_bodies;
     std::vector<segment_body_t> segment_bodies;
+    int segment_drag_idx = -1;
     std::function<void(bool enabled, void* render_view)> saved_fgm_debug_cb;
   };
 }
