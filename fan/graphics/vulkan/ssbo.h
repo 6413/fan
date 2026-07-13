@@ -17,6 +17,7 @@ struct ssbo_t {
       src.data[i] = nullptr;
       src.common.memory[i] = {};
     }
+    src.common.queued = false;
     src.vram_capacity = 0;
     return *this;
   }
@@ -37,6 +38,7 @@ struct ssbo_t {
       other.common.memory[i] = {};
       other.data[i] = nullptr;
     }
+    other.common.queued = false;
     return *this;
   }
 

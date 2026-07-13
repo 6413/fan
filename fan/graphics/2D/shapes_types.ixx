@@ -197,10 +197,19 @@ export namespace fan::graphics::shaper {
     renderer_t(const renderer_t& other){\
       new (&vk) vk_t(other.vk);\
     }\
+    renderer_t(renderer_t&& other) noexcept {\
+      new (&vk) vk_t(std::move(other.vk));\
+    }\
     renderer_t& operator=(const renderer_t& other){\
       if (this == &other) return *this;\
       destroy();\
       new (&vk) vk_t(other.vk);\
+      return *this;\
+    }\
+    renderer_t& operator=(renderer_t&& other) noexcept {\
+      if (this == &other) return *this;\
+      destroy();\
+      new (&vk) vk_t(std::move(other.vk));\
       return *this;\
     }\
     ~renderer_t(){\
@@ -239,7 +248,8 @@ export namespace fan::graphics::shaper {
     std::uint64_t wanted = dst_offset + wrote;\
     auto& context = *static_cast<fan::vulkan::context_t*>(static_cast<void*>(fan::graphics::ctx()));\
     if (wanted > vk.shape_data.vram_capacity) {\
-      std::uint64_t new_size = std::max(wanted, (std::uint64_t)(vk.shape_data.vram_capacity ? vk.shape_data.vram_capacity * 2 : wanted));\
+      std::uint64_t capacity_wanted = (std::uint64_t)(st.BlockList.NodeList.e.c + st.BlockList.NodeList.e.p + 1) * st.RenderDataSize * st.MaxElementPerBlock();\
+      std::uint64_t new_size = std::max(wanted, std::max(capacity_wanted, (std::uint64_t)(vk.shape_data.vram_capacity ? vk.shape_data.vram_capacity * 2 : wanted)));\
       vk.shape_data.allocate(context, new_size);\
       _RenderDataReset(be.sti);\
     }\
@@ -259,6 +269,7 @@ export namespace fan::graphics::shaper {
   auto& vk = st.renderer.vk;\
   auto& context = *static_cast<fan::vulkan::context_t*>(static_cast<void*>(fan::graphics::ctx()));\
   for (std::uint32_t _frame = 0; _frame < fan::vulkan::max_frames_in_flight; ++_frame) {\
+    vk.pending_updates[_frame].clear();\
     if (vk.shape_data.data[_frame] == nullptr) continue;\
     BlockList_t::nrtra_t traverse;\
     BlockList_t::nr_t node_id;\
@@ -274,7 +285,7 @@ export namespace fan::graphics::shaper {
 
   #define shaper_set_ExpandInside__BlockListCapacityChange \
     auto& vk = st.renderer.vk;\
-    std::uint64_t wanted = (std::uint64_t)new_capacity * st.RenderDataSize * st.MaxElementPerBlock();\
+    std::uint64_t wanted = (std::uint64_t)(new_capacity + 1) * st.RenderDataSize * st.MaxElementPerBlock();\
     if (wanted && wanted > vk.shape_data.vram_capacity) {\
       auto& context = *static_cast<fan::vulkan::context_t*>(static_cast<void*>(fan::graphics::ctx()));\
       std::uint64_t new_size = std::max(wanted, (std::uint64_t)(vk.shape_data.vram_capacity ? vk.shape_data.vram_capacity * 2 : wanted));\

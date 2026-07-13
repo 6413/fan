@@ -97,6 +97,7 @@ namespace fan {
   json::json(char v) : json() { *this = v; }
   json::json(const char* v) : json() { *this = v; }
   json::json(const std::string& v) : json() { *this = v; }
+  json::json(std::initializer_list<std::pair<std::string, json>> init) : json() { *this = init; }
 
   json::~json() {
     if (!m_is_ref && m_ptr) { delete static_cast<nlohmann::json*>(m_ptr); }
@@ -129,6 +130,15 @@ namespace fan {
     m_is_ref = other.m_is_ref;
     other.m_ptr = nullptr;
     other.m_is_ref = false;
+    return *this;
+  }
+  json& json::operator=(std::initializer_list<std::pair<std::string, json>> init) {
+    if (!m_ptr) { m_ptr = new nlohmann::json(); }
+    auto& j = *static_cast<nlohmann::json*>(m_ptr);
+    j = nlohmann::json::object();
+    for (const auto& [k, v] : init) {
+      j[k] = *static_cast<nlohmann::json*>(v.m_ptr);
+    }
     return *this;
   }
 

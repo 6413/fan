@@ -60,6 +60,11 @@ struct rocket_game_t : engine_t, fan::frame_task_t<rocket_game_t> {
       bool is_menu = data ? *(bool*)data : false;
       state = is_menu ? game_state_e::menu : game_state_e::playing;
 
+      hills.clear();
+      terrain_shapes.clear();
+      stars.clear();
+      far_mountains.clear();
+
       fan::vec2 view_size = pile.viewport_get_size();
       fan::vec2 start_pos(view_size.x / 2.f, view_size.y * 0.1f);
 
@@ -284,8 +289,22 @@ struct rocket_game_t : engine_t, fan::frame_task_t<rocket_game_t> {
           rocket_shape.apply_linear_impulse_center(thrust_dir * config::thrust_power * rocket_shape.get_mass() * dt);
 
           fan::vec3 exhaust_pos = rocket_shape.get_position() - fan::vec3(thrust_dir * 35.f, 0);
-          particles.spawn_fire(exhaust_pos, 3, fire_image);
-          particles.spawn_smoke(exhaust_pos, 1, particle_image);
+          
+          fire_accumulator += dt * 180.f; // 180 fire particles per second
+          smoke_accumulator += dt * 60.f; // 60 smoke particles per second
+          
+          int fire_count = (int)fire_accumulator;
+          int smoke_count = (int)smoke_accumulator;
+          
+          fire_accumulator -= fire_count;
+          smoke_accumulator -= smoke_count;
+          
+          if (fire_count > 0) {
+            particles.spawn_fire(exhaust_pos, fire_count, fire_image);
+          }
+          if (smoke_count > 0) {
+            particles.spawn_smoke(exhaust_pos, smoke_count, particle_image);
+          }
         }
       }
 
@@ -300,6 +319,8 @@ struct rocket_game_t : engine_t, fan::frame_task_t<rocket_game_t> {
     game_state_e state = game_state_e::menu;
     bool is_landing = false;
     f32_t landing_timer = 0.f;
+    f32_t fire_accumulator = 0.f;
+    f32_t smoke_accumulator = 0.f;
 
     gradient_t sky{
       fan::vec3(0.f, 0.f, 0),
@@ -336,7 +357,7 @@ struct rocket_game_t : engine_t, fan::frame_task_t<rocket_game_t> {
     set_settings({
       .clear_color = fan::colors::black,
       .ambient_color = fan::colors::white,
-      .mode = fan::graphics::post_process_mode_e::bloom_blur,
+      .mode = fan::graphics::post_process_mode_e::none,
       .bloom_strength = 1.000f,
       .bloom_threshold = 0.241f,
       .bloom_knee = 0.264f,

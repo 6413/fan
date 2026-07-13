@@ -65,9 +65,11 @@ export {
       json(char v);
       json(const char* v);
       json(const std::string& v);
+      json(std::initializer_list<std::pair<std::string, json>> init);
 
       json& operator=(const json& other);
       json& operator=(json&& other) noexcept;
+      json& operator=(std::initializer_list<std::pair<std::string, json>> init);
       
       static json parse(const std::string& raw);
       static json load_file(fan::str_view_t path);

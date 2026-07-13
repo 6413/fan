@@ -580,6 +580,7 @@ export namespace fan::graphics {
     }
 
     void set_root(const fan::graphics::shapes::vfi_t::properties_t& p) {
+      fan::graphics::g_shapes->vfi.open();
       fan::graphics::vfi_t::properties_t in = p;
       in.shape_type = fan::graphics::shapes::vfi_t::shape_t::rectangle;
       in.shape.rectangle->camera = p.shape.rectangle->camera;

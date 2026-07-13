@@ -26,6 +26,15 @@ struct model_list_t {
       std::string id;
       uint32_t group_id = 0;
       std::string image_name;
+
+      struct physics_properties_t {
+        bool enabled = false;
+        int body_type = 0; // 0=static, 1=kinematic, 2=dynamic
+        f32_t mass = 1.0f;
+        f32_t friction = 0.2f;
+        f32_t restitution = 0.0f;
+        bool is_sensor = false;
+      } physics;
     };
 
     fan::json shapes;
@@ -90,6 +99,16 @@ struct model_list_t {
       s.set_viewport(mp.viewport);
       s.id = shape_json["id"].get<std::string>();
       s.group_id = shape_json["group_id"].get<uint32_t>();
+
+      if (shape_json.contains("physics")) {
+        auto& pjson = shape_json["physics"];
+        s.physics.enabled = pjson.value("enabled", false);
+        s.physics.body_type = pjson.value("body_type", 0);
+        s.physics.mass = pjson.value("mass", 1.0f);
+        s.physics.friction = pjson.value("friction", 0.2f);
+        s.physics.restitution = pjson.value("restitution", 0.0f);
+        s.physics.is_sensor = pjson.value("is_sensor", false);
+      }
       auto st = shape.get_shape_type();
       if (st == loco_t::shape_type_t::sprite ||
         st == loco_t::shape_type_t::unlit_sprite || st == loco_t::shape_type_t::light) {
