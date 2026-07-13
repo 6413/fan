@@ -16,6 +16,7 @@ import fan.types.fstring;
 import fan.memory;
 import fan.io.file;
 
+import fan.graphics.physics_shapes;
 import :viewport;
 import :selection;
 import :properties_ui;
@@ -85,7 +86,7 @@ export namespace fan::graphics::editor {
 
       key_handle = gloco()->window.add_keys_callback([this](const auto& d) {
         if (d.state != fan::keyboard_state::press || gui::is_any_item_active()) return;
-        if (d.key == fan::key_r) erase_selected();
+        if (d.key == fan::key_r && !is_playing) erase_selected();
       });
 
       gloco()->input.input_action.add_keycombo({fan::input::key_left_control, fan::input::key_space}, "toggle_content_browser");
@@ -146,9 +147,11 @@ export namespace fan::graphics::editor {
 
     void close() {
       shape_list.clear();
+      physics_bodies.clear();
       close_cb();
-      background.erase();
       shape_original_json.clear();
+      is_playing = false;
+      scene_backup.clear();
     }
 
     void update_line_thickness() {
@@ -257,6 +260,25 @@ export namespace fan::graphics::editor {
 
     void render_viewport(f32_t zoom) {
       if (!gui::begin("Editor", nullptr, gui::window_flags_menu_bar | gui::window_flags_no_background)) { gui::end(); return; }
+
+      gui::push_style_color(gui::col_button, is_playing ? fan::color(0.8f, 0.2f, 0.2f, 1.f) : fan::color(0.2f, 0.7f, 0.2f, 1.f));
+      if (gui::button(is_playing ? "Stop" : "Play", fan::vec2(100, 50))) {
+        is_playing = !is_playing;
+        if (is_playing) {
+          selection.objects.clear();
+          invalidate_current();
+          scene_backup = scene_serializer_t::save_to_string(*this);
+          init_physics_scene();
+        } else {
+          destroy_physics_scene();
+          std::string backup = scene_backup;
+          close();
+          scene_serializer_t::load_from_string(*this, backup);
+        }
+      }
+      gui::pop_style_color();
+      gui::same_line();
+
       fan::vec2 viewport_size = gui::get_window_size();
       editor_pos = gui::get_window_pos();
 
@@ -285,7 +307,7 @@ export namespace fan::graphics::editor {
       viewport_settings.size = viewport_size;
       viewport_settings.start_pos = vMin;
 
-      if (!selection.objects.empty()) {
+      if (!is_playing && !selection.objects.empty()) {
         fan::vec2 viewport_center = viewport_settings.start_pos - fan::vec2(style.WindowPadding) + viewport_settings.size / 2.f;
         selection.gizmo.manipulate(selection.objects, camera_pos, zoom, viewport_center, snap);
       }
@@ -296,57 +318,59 @@ export namespace fan::graphics::editor {
       gui::text(cursor_pos_str.substr(1, cursor_pos_str.size() - 2), {.align = align_e::bottom_right});
       gui::set_cursor_pos(gui::get_cursor_start_pos());
 
-      content_browser.receive_drag_drop_target([&](const std::string& file) {
-        if (fan::io::file::extension(file) == ".json") {
-          fin(file);
-        } else {
-          auto image = gloco()->image_load(file);
-          fan::vec2 original_size = gloco()->image_get_data(image).size;
-          shape_list[push_shape<fan::graphics::sprite_t>(0, fan::vec2(128.f * (original_size.x / original_size.y), 128.f))]->children[0].set_image(image);
-        }
-      });
+      if (!is_playing) {
+        content_browser.receive_drag_drop_target([&](const std::string& file) {
+          if (fan::io::file::extension(file) == ".json") {
+            fin(file);
+          } else {
+            auto image = gloco()->image_load(file);
+            fan::vec2 original_size = gloco()->image_get_data(image).size;
+            shape_list[push_shape<fan::graphics::sprite_t>(0, fan::vec2(128.f * (original_size.x / original_size.y), 128.f))]->children[0].set_image(image);
+          }
+        });
 
-      gui::receive_drag_drop_target("FGM_TEXTUREPACK_DROP", [&](const std::string& path) {
-        fan::graphics::texture_pack_t::ti_t ti;
-        if (gloco()->texture_pack.qti(path, &ti)) {
-          gui::print("non texturepack texture or failed to load texture:", path);
-        } else {
-          std::wstring wpath(path.begin(), path.end());
-          auto found = std::find_if(texturepack_images.begin(), texturepack_images.end(), [&](const texturepack_image_t& img) { return wpath == img.image_name; });
-          if (found != texturepack_images.end()) {
-            auto& node = shape_list[push_shape<fan::graphics::sprite_t>(0, fan::vec2(128.f * found->aspect_ratio, 128.f))];
-            node->children[0].load_tp(&ti);
-            node->children[0].get_image_data().image_path = path;
+        gui::receive_drag_drop_target("FGM_TEXTUREPACK_DROP", [&](const std::string& path) {
+          fan::graphics::texture_pack_t::ti_t ti;
+          if (gloco()->texture_pack.qti(path, &ti)) {
+            gui::print("non texturepack texture or failed to load texture:", path);
+          } else {
+            std::wstring wpath(path.begin(), path.end());
+            auto found = std::find_if(texturepack_images.begin(), texturepack_images.end(), [&](const texturepack_image_t& img) { return wpath == img.image_name; });
+            if (found != texturepack_images.end()) {
+              auto& node = shape_list[push_shape<fan::graphics::sprite_t>(0, fan::vec2(128.f * found->aspect_ratio, 128.f))];
+              node->children[0].load_tp(&ti);
+              node->children[0].get_image_data().image_path = path;
+            }
           }
-        }
-      });
+        });
 
-      if (fan::window::is_key_down(fan::key_left_control) && fan::window::is_key_clicked(fan::key_d)) {
-        for (auto& i : selection.objects) {
-          for (auto& child : i->children) {
-            shape_list.push_back(std::make_unique<shapes_t::global_t>(child.get_shape_type(), child, current_z, current_shape));
+        if (fan::window::is_key_down(fan::key_left_control) && fan::window::is_key_clicked(fan::key_d)) {
+          for (auto& i : selection.objects) {
+            for (auto& child : i->children) {
+              shape_list.push_back(std::make_unique<shapes_t::global_t>(child.get_shape_type(), child, current_z, current_shape));
+            }
           }
+          selection.objects.clear();
         }
-        selection.objects.clear();
-      }
 
-      if (gui::begin_menu_bar()) {
-        if (gui::begin_menu("File")) {
-          if (current_shape) selection.moving_object = false;
-          if (gui::menu_item("Open..", "Ctrl+O")) {
-            fan::graphics::open_file("json;fmm", [&](std::string_view p) { close(); fin(std::string(p)); }, []{});
+        if (gui::begin_menu_bar()) {
+          if (gui::begin_menu("File")) {
+            if (current_shape) selection.moving_object = false;
+            if (gui::menu_item("Open..", "Ctrl+O")) {
+              fan::graphics::open_file("json;fmm", [&](std::string_view p) { close(); fin(std::string(p)); }, []{});
+            }
+            if (gui::menu_item("Save", "Ctrl+S")) fout(previous_filename);
+            if (gui::menu_item("Save as", "Ctrl+Shift+S")) {
+              fan::graphics::save_file("json;fmm", [&](std::string_view p) { fout(std::string(p)); }, []{});
+            }
+            if (gui::menu_item("Quit")) {
+              close();
+              gui::end();
+            }
+            gui::end_menu();
           }
-          if (gui::menu_item("Save", "Ctrl+S")) fout(previous_filename);
-          if (gui::menu_item("Save as", "Ctrl+Shift+S")) {
-            fan::graphics::save_file("json;fmm", [&](std::string_view p) { fout(std::string(p)); }, []{});
-          }
-          if (gui::menu_item("Quit")) {
-            close();
-            gui::end();
-          }
-          gui::end_menu();
+          gui::end_menu_bar();
         }
-        gui::end_menu_bar();
       }
       gui::end();
     }
@@ -432,24 +456,92 @@ export namespace fan::graphics::editor {
       }
     }
 
+    void init_physics_scene() {
+      for (auto& ptr : shape_list) {
+        auto& p = ptr->physics;
+        if (!p.enabled) continue;
+        auto& child = ptr->children[0];
+        uint16_t st = child.get_shape_type();
+        fan::physics::shape_properties_t props;
+        props.friction = p.friction;
+        props.restitution = p.restitution;
+        props.density = p.mass;
+        props.is_sensor = p.is_sensor;
+        auto angle = child.get_angle().z;
+        switch (st) {
+          case fan::graphics::shapes::shape_type_t::sprite:
+          case fan::graphics::shapes::shape_type_t::unlit_sprite:
+          case fan::graphics::shapes::shape_type_t::rectangle:
+            physics_bodies.push_back(std::make_unique<fan::graphics::physics::rectangle_t>(
+              fan::graphics::physics::rectangle_t::properties_t{
+                .render_view = &render_view,
+                .position = ptr->get_position(),
+                .size = ptr->get_size(),
+                .color = fan::colors::transparent,
+                .angle = fan::vec3(0, 0, angle),
+                .body_type = (uint8_t)p.body_type,
+                .shape_properties = props
+              }));
+            break;
+          case fan::graphics::shapes::shape_type_t::light:
+            physics_bodies.push_back(std::make_unique<fan::graphics::physics::rectangle_t>(
+              fan::graphics::physics::rectangle_t::properties_t{
+                .render_view = &render_view,
+                .position = ptr->get_position(),
+                .size = ptr->get_size(),
+                .color = fan::colors::transparent,
+                .angle = fan::vec3(0, 0, angle),
+                .body_type = (uint8_t)p.body_type,
+                .shape_properties = props
+              }));
+            break;
+        }
+      }
+      gloco()->update_physics(true);
+    }
+
+    void destroy_physics_scene() {
+      physics_bodies.clear();
+      gloco()->update_physics(false);
+    }
+
+    void step_physics() {
+      if (physics_bodies.empty()) return;
+      size_t i = 0;
+      for (auto& ptr : shape_list) {
+        if (!ptr->physics.enabled) continue;
+        if (i >= physics_bodies.size()) break;
+        auto& body = physics_bodies[i];
+        fan::vec3 bp = body->get_position();
+        ptr->set_position(fan::vec3(fan::vec2(bp), ptr->get_position().z));
+        i++;
+      }
+    }
+
     void render() {
       f32_t zoom = fan::graphics::camera_get_zoom(render_view.camera);
       fan::vec2 mouse_world = viewport_t::get_mouse_position(viewport_settings, gui::get_mouse_pos(), zoom, fan::vec2(gui::get_style().WindowPadding));
-      selection.update(*this, shape_list, mouse_world, zoom);
+
+      if (!is_playing) {
+        selection.update(*this, shape_list, mouse_world, zoom);
+      }
 
       if (gloco()->input.input_action.is_active("set_windowed_fullscreen")) gloco()->window.set_borderless();
       if (gloco()->input.input_action.is_active("toggle_content_browser")) render_content_browser = !render_content_browser;
-      if (gloco()->input.input_action.is_active("save_file")) fout(previous_filename);
+      if (gloco()->input.input_action.is_active("save_file") && !is_playing) fout(previous_filename);
 
       if (render_content_browser) content_browser.render();
 
       render_viewport(zoom);
-      render_settings_window();
-      properties_ui_t::render(*this, current_shape);
-      render_shapes_window();
-      render_texturepack_window();
-      render_animations_window();
+      if (!is_playing) {
+        render_settings_window();
+        properties_ui_t::render(*this, current_shape);
+        render_shapes_window();
+        render_texturepack_window();
+        render_animations_window();
+      }
       render_animation_updates();
+      step_physics();
     }
 
     void fout(std::string filename) {
@@ -532,5 +624,8 @@ export namespace fan::graphics::editor {
     static constexpr fan::color axis_x_color = (fan::colors::red / 2.f).set_alpha(0.8f);
     static constexpr fan::color axis_y_color = (fan::colors::green / 2.f).set_alpha(0.8f);
     bool render_axis_lines = true;
+    bool is_playing = false;
+    std::string scene_backup;
+    std::vector<std::unique_ptr<fan::graphics::physics::base_shape_t>> physics_bodies;
   };
 }
