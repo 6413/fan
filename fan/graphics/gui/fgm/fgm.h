@@ -16,7 +16,7 @@ struct fgm_t {
   };
 
   struct shapes_t {
-    struct global_t : fan::graphics::vfi_root_t, fan::graphics::gui::imgui_element_t {
+    struct global_t : fan::graphics::gui::imgui_element_t {
       global_t() = default;
 
       template <typename T>
@@ -24,25 +24,55 @@ struct fgm_t {
         : fan::graphics::gui::imgui_element_t() {
         T temp = obj;
         this->shape_type = shape_type;
-        typename fan::graphics::shapes::vfi_t::properties_t vfip;
-        vfip.shape_type = fan::graphics::shapes::vfi_t::shape_t::rectangle;
-        vfip.shape.rectangle->position = temp.get_position();
-        vfip.shape.rectangle->position.z += shape_add ? fgm->current_z++ : 0;
-        vfip.shape.rectangle->size = temp.get_size();
-        vfip.shape.rectangle->angle = 0;
-        vfip.shape.rectangle->rotation_point = 0;
-        vfip.shape.rectangle->camera = fgm->render_view.camera;
-        vfip.shape.rectangle->viewport = fgm->render_view.viewport;
-        vfip.mouse_button_cb = [fgm, this](const auto& d) -> int {
-          fgm->current_shape = this;
-          return 0;
-        };
-        fan::graphics::vfi_root_t::set_root(vfip);
         if (shape_add) {
-          temp.set_position(fan::vec3(fan::vec2(temp.get_position()), fgm->current_z - 1));
+          temp.set_position(fan::vec3(fan::vec2(temp.get_position()), fgm->current_z++));
         }
-        fan::graphics::vfi_root_t::push_child(temp);
+        children.push_back(temp);
         fgm->current_shape = this;
+      }
+
+      std::vector<fan::graphics::shapes::shape_t> children;
+
+      fan::vec3 get_position() const {
+        return children.empty() ? fan::vec3(0) : children[0].get_position();
+      }
+
+      void set_position(const fan::vec3& position, bool modify_depth = true) {
+        if (children.empty()) return;
+        fan::vec2 delta = fan::vec2(position - children[0].get_position());
+        for (auto& child : children) {
+          fan::vec3 cp = child.get_position();
+          fan::vec3 new_pos = fan::vec3(fan::vec2(cp) + delta, modify_depth ? position.z : cp.z);
+          modify_depth ? child.set_position(new_pos) : child.set_position(fan::vec2(new_pos));
+        }
+      }
+
+      fan::vec2 get_size() const {
+        return children.empty() ? fan::vec2(0) : children[0].get_size();
+      }
+
+      void set_size(const fan::vec2& size) {
+        if (children.empty()) return;
+        fan::vec2 offset = size - children[0].get_size();
+        for (auto& child : children) {
+          child.set_size(child.get_size() + offset);
+        }
+      }
+
+      fan::color get_color() const {
+        return children.empty() ? fan::color(1) : children[0].get_color();
+      }
+
+      void set_color(const fan::color& c) {
+        for (auto& child : children) {
+          child.set_color(c);
+        }
+      }
+
+      void enable_highlight() {
+      }
+
+      void disable_highlight() {
       }
 
       uint16_t shape_type = 0;
@@ -59,6 +89,12 @@ struct fgm_t {
       } physics;
     };
   };
+
+  fan::graphics::gui::editor::gizmo_t gizmo;
+  bool moving_object = false;
+
+  std::vector<shapes_t::global_t*> selected_objects;
+  f32_t snap = 32.f;
 
 #include <fan/graphics/gui/fgm/common.h>
 #define BLL_set_AreWeInsideStruct 1
@@ -132,6 +168,7 @@ struct fgm_t {
     });
 
     button_handle = gloco()->window.add_buttons_callback([this](const auto& d) {
+      if (gui::is_any_item_active()) return;
       switch (d.button) {
       case fan::mouse_middle:
       {
@@ -198,15 +235,6 @@ struct fgm_t {
     f32_t line_thickness = std::max(2.0 / fan::graphics::camera_get_zoom(render_view.camera), 2.0);
     axis_lines[0].set_thickness(line_thickness);
     axis_lines[1].set_thickness(line_thickness);
-    if (current_shape) {
-      for (auto& i : current_shape->highlight) {
-        for (auto& line : i) {
-          if (line) {
-            line.set_thickness(line_thickness);
-          }
-        }
-      }
-    }
   }
 
   bool id_exists(const std::string& id) {
@@ -231,6 +259,10 @@ struct fgm_t {
     gui::same_line();
     if (gui::drag("shape position", &pos, 0.1f)) {
       pos.z = (int)pos.z;
+      if (!fan::window::is_key_down(fan::key_left_shift) && snap > 0.0f) {
+        pos.x = std::round(pos.x / snap) * snap;
+        pos.y = std::round(pos.y / snap) * snap;
+      }
       shape->set_position(pos);
     }
 
@@ -414,7 +446,7 @@ struct fgm_t {
           .position = pos,
           .size = size
         }}};
-      shape_list[nr]->push_child(fan::graphics::circle_t {{
+      shape_list[nr]->children.push_back(fan::graphics::circle_t {{
         .render_view = &render_view,
         .position = fan::vec3(pos, current_z),
         .radius = size.x,
@@ -486,7 +518,7 @@ struct fgm_t {
 
   void render_child_nodes(
     int& node_clicked,
-    std::vector<fan::graphics::vfi_root_t::child_data_t>& children,
+    std::vector<fan::graphics::shapes::shape_t>& children,
     int& selection_mask,
     fan::graphics::gui::tree_node_flags_t base_flags
   ) {
@@ -545,28 +577,66 @@ struct fgm_t {
   void render() {
     using namespace fan::graphics;
 
-    if (viewport_settings.editor_hovered && fan::window::is_mouse_clicked() && !fan::graphics::vfi_root_t::moving_object) {
+    if (viewport_settings.editor_hovered && fan::window::is_mouse_clicked() && !moving_object && gizmo.active_handle == -1 && !gizmo.is_dragging) {
       drag_start = get_mouse_position();
+      
+      bool hit_gizmo = false;
+      for (auto* obj : selected_objects) {
+        fan::vec2 expanded_size = obj->children[0].get_size() + fan::vec2(gizmo.handle_size / gloco()->camera_get_zoom(render_view.camera));
+        if (fan::math::d2::aabb_point_inside(drag_start, obj->children[0].get_position(), expanded_size)) {
+          hit_gizmo = true;
+          break;
+        }
+      }
+
+      if (!hit_gizmo) {
+        fgm_t::shapes_t::global_t* top_hit_shape = nullptr;
+        auto it = shape_list.GetNodeFirst();
+        while (it != shape_list.dst) {
+          auto& shape = shape_list[it];
+          if (fan::math::d2::aabb_point_inside(drag_start, shape->children[0].get_position(), shape->children[0].get_size())) {
+            top_hit_shape = shape;
+          }
+          it = it.Next(&shape_list);
+        }
+        
+        if (top_hit_shape) {
+          auto find_it = std::find(selected_objects.begin(), selected_objects.end(), top_hit_shape);
+          if (find_it == selected_objects.end()) {
+            for (auto& sel : selected_objects) {
+              sel->disable_highlight();
+            }
+            selected_objects.clear();
+            top_hit_shape->enable_highlight();
+            selected_objects.push_back(top_hit_shape);
+          }
+        } else {
+          for (auto& sel : selected_objects) {
+            sel->disable_highlight();
+          }
+          selected_objects.clear();
+        }
+      }
     }
-    else if (viewport_settings.editor_hovered && fan::window::is_mouse_down() && !fan::graphics::vfi_root_t::moving_object) {
+    else if (viewport_settings.editor_hovered && fan::window::is_mouse_down() && !moving_object && gizmo.active_handle == -1 && !gizmo.is_dragging) {
       fan::vec2 size = get_mouse_position() - drag_start;
-      for (auto& i : fan::graphics::vfi_root_t::selected_objects) {
+      for (auto& i : selected_objects) {
         i->disable_highlight();
       }
-      fan::graphics::vfi_root_t::selected_objects.clear();
+      selected_objects.clear();
       drag_select.set_position(drag_start + size / 2);
       drag_select.set_size(size / 2);
     }
-    else if (fan::window::is_mouse_released() && !shapes_window_hovered && !gui::is_any_item_active()) {
+    else if (fan::window::is_mouse_released() && !shapes_window_hovered && !gui::is_any_item_active() && gizmo.active_handle == -1 && !gizmo.is_dragging) {
       bool hit_any = false;
       auto it = shape_list.GetNodeFirst();
       while (it != shape_list.dst) {
         auto& shape = shape_list[it];
         if (drag_select.intersects(shape->children[0])) {
-          if (!fan::graphics::vfi_root_t::moving_object &&
+          if (!moving_object &&
             (drag_select.get_size().x >= 1 && drag_select.get_size().y >= 1)) {
             shape->enable_highlight();
-            fan::graphics::vfi_root_t::selected_objects.push_back(shape);
+            selected_objects.push_back(shape);
           }
         }
         if (fan::math::d2::aabb_point_inside(
@@ -589,7 +659,7 @@ struct fgm_t {
           shape->disable_highlight();
           it = it.Next(&shape_list);
         }
-        fan::graphics::vfi_root_t::selected_objects.clear();
+        selected_objects.clear();
       }
       drag_select.set_size(fan::vec2(0));
     }
@@ -637,7 +707,7 @@ struct fgm_t {
       background.set_tc_position(tc_offset - tc_size / 2);
 
       viewport_settings.editor_hovered = gui::is_window_hovered();
-      fan::graphics::vfi_root_t::g_ignore_mouse = !viewport_settings.editor_hovered;
+
 
       auto& style = gui::get_style();
       fan::vec2 frame_padding = style.FramePadding;
@@ -667,6 +737,14 @@ struct fgm_t {
 
       viewport_settings.size = viewport_size;
       viewport_settings.start_pos = vMin;
+
+      fan::vec2 viewport_center = viewport_settings.start_pos - fan::vec2(style.WindowPadding) + viewport_settings.size / 2.f;
+      if (!selected_objects.empty()) {
+        gizmo.manipulate(*selected_objects[0], camera_pos, zoom, viewport_center, snap);
+        
+        // If there are multiple objects selected, applying movement to all is handled elsewhere,
+        // but drawing multiple overlapping gizmos causes Z-fighting and broken handles.
+      }
 
       {
         std::string str = fan::to_string(gloco()->camera_get_zoom(render_view.camera) * 100);
@@ -729,14 +807,14 @@ struct fgm_t {
 
     if (fan::window::is_key_down(fan::key_left_control)) {
       if (fan::window::is_key_clicked(fan::key_d)) {
-        for (auto& i : fan::graphics::vfi_root_t::selected_objects) {
+        for (auto& i : selected_objects) {
           for (auto& child : i->children) {
             auto it = shape_list.NewNodeLast();
             auto& node = shape_list[it];
-            node = new shapes_t::global_t {child.get_shape_type(), this, child};
+            node = new shapes_t::global_t(child.get_shape_type(), this, child);
           }
         }
-        fan::graphics::vfi_root_t::selected_objects.clear();
+        selected_objects.clear();
       }
     }
 
@@ -745,7 +823,7 @@ struct fgm_t {
     if (fan::graphics::gui::begin_menu_bar()) {
       if (fan::graphics::gui::begin_menu("File")) {
         if (current_shape) {
-          current_shape->move = false;
+          moving_object = false;
         }
 
         if (fan::graphics::gui::menu_item("Open..", "Ctrl+O")) {
@@ -800,7 +878,7 @@ struct fgm_t {
       }
       if (gui::color_edit3("ambient", &gloco()->renderer_state.lighting.ambient)) {
       }
-      if (gui::drag("grid snap", &fan::graphics::vfi_root_t::snap, 1, 0, std::numeric_limits<f32_t>::max(), gui::slider_flags_always_clamp)) {
+      if (gui::drag("grid snap", &snap, 1, 0, std::numeric_limits<f32_t>::max(), gui::slider_flags_always_clamp)) {
       }
       if (gui::checkbox("render axes", &render_axis_lines)) {
         axis_lines[0].set_color(axis_x_color * render_axis_lines);
@@ -1178,7 +1256,7 @@ struct fgm_t {
           shape,
           false
         );
-        node->push_child(fan::graphics::circle_t {{
+        node->children.push_back(fan::graphics::circle_t {{
           .render_view = &render_view,
           .position = shape.get_position(),
           .radius = shape.get_size().x,
@@ -1238,12 +1316,12 @@ struct fgm_t {
     auto it = shape_list.GetNodeFirst();
     while (it != shape_list.dst) {
       if (current_shape == shape_list[it]) {
-        auto& selected_objs = fan::graphics::vfi_root_t::selected_objects;
+        auto& selected_objs = selected_objects;
         shape_original_json.erase(current_shape);
         if (auto it = std::find(selected_objs.begin(), selected_objs.end(), current_shape); it != selected_objs.end()) {
           selected_objs.erase(it);
         }
-        shape_list[it]->previous_focus = 0;
+
         delete shape_list[it];
         shape_list.unlrec(it);
         invalidate_current();
@@ -1386,9 +1464,6 @@ struct fgm_t {
         return;
       }
 
-      auto saved_selected = fan::graphics::vfi_root_t::selected_objects;
-      fan::graphics::vfi_root_t::selected_objects.clear();
-
       auto frame = get_current_frame();
       shape->set_position(frame.position);
       shape->children[0].set_size(frame.size);
@@ -1396,8 +1471,6 @@ struct fgm_t {
 
       fan::vec2 offset = get_rotation_offset(frame.rotation_pos, frame.size);
       shape->children[0].set_rotation_point(offset);
-
-      fan::graphics::vfi_root_t::selected_objects = saved_selected;
     }
 
     fan::json serialize() const {
