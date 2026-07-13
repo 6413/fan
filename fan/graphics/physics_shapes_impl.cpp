@@ -512,6 +512,14 @@ namespace fan::graphics::physics {
   ) {}
   rectangle_t::rectangle_t(const rectangle_t& r) : base_shape_t(r) {}
   rectangle_t::rectangle_t(rectangle_t&& r) : base_shape_t(std::move(r)) {}
+
+  rectangle_t::rectangle_t(fan::vec3 position, fan::vec2 size, fan::color color, std::uint8_t body_type)
+    : rectangle_t(properties_t{
+        .position = position,
+        .size = size,
+        .color = color,
+        .body_type = body_type
+      }) {}
   rectangle_t& rectangle_t::operator=(const rectangle_t& r) {
     base_shape_t::operator=(r);
     return *this;
@@ -588,8 +596,17 @@ namespace fan::graphics::physics {
   ) {}
 
   capsule_t::capsule_t(const capsule_t& r) : base_shape_t(r) {}
-
   capsule_t::capsule_t(capsule_t&& r) : base_shape_t(std::move(r)) {}
+
+  capsule_t::capsule_t(fan::vec3 position, fan::vec2 center0, fan::vec2 center1, f32_t radius, fan::color color, std::uint8_t body_type)
+    : capsule_t(properties_t{
+        .position = position,
+        .center0 = center0,
+        .center1 = center1,
+        .radius = radius,
+        .color = color,
+        .body_type = body_type
+      }) {}
 
   capsule_t& capsule_t::operator=(const capsule_t& r) {
     base_shape_t::operator=(r);
