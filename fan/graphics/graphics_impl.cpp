@@ -313,6 +313,15 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
       .color = color
     }) {}
 
+  capsule_t::capsule_t(fan::vec3 position, fan::vec2 center0, fan::vec2 center1, f32_t radius, fan::color color)
+    : capsule_t(capsule_properties_t{
+      .position = position,
+      .center0 = center0,
+      .center1 = center1,
+      .radius = radius,
+      .color = color
+    }) {}
+
   capsule_t::capsule_t(capsule_properties_t p) {
     *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
       fan_init_struct(
@@ -406,6 +415,13 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
           .size = size,
           .color{top, top, bottom, bottom},
         }){}
+
+  gradient_t::gradient_t(fan::vec3 position, fan::vec2 size, std::array<fan::color, 4> color)
+    : gradient_t(gradient_properties_t{
+        .position = position,
+        .size = size,
+        .color = color,
+      }){}
 
   shader_shape_t::shader_shape_t(const shader_shape_properties_t& p) {
     *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(

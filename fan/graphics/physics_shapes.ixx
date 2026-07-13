@@ -133,6 +133,7 @@ export namespace fan {
         };
         rectangle_t() = default;
         rectangle_t(const properties_t& p);
+        rectangle_t(fan::vec3 position, fan::vec2 size, fan::color color, std::uint8_t body_type);
         rectangle_t(const rectangle_t& r);
         rectangle_t(rectangle_t&& r);
         rectangle_t& operator=(const rectangle_t& r);
@@ -233,6 +234,7 @@ export namespace fan {
         };
         capsule_t() = default;
         capsule_t(const properties_t& p);
+        capsule_t(fan::vec3 position, fan::vec2 center0, fan::vec2 center1, f32_t radius, fan::color color, std::uint8_t body_type);
         capsule_t(const capsule_t& r);
         capsule_t(capsule_t&& r);
         capsule_t& operator=(const capsule_t& r);

@@ -279,6 +279,7 @@ export namespace fan::graphics {
 
     capsule_t() = default;
     capsule_t(capsule_properties_t p);
+    capsule_t(fan::vec3 position, fan::vec2 center0, fan::vec2 center1, f32_t radius, fan::color color);
   };
 
   struct polygon_properties_t {
@@ -368,6 +369,7 @@ export namespace fan::graphics {
 
     gradient_t() = default;
     gradient_t(const gradient_properties_t& p);
+    gradient_t(fan::vec3 position, fan::vec2 size, std::array<fan::color, 4> color);
     gradient_t(
       const fan::color& top, 
       const fan::color& bottom,

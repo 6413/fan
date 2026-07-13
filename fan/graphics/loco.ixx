@@ -675,6 +675,24 @@ public:
   f32_t* get_contrast_ptr();
   void* get_framebuffer();
 
+  struct post_process_settings_t {
+    std::optional<fan::color> clear_color;
+    std::optional<fan::color> ambient_color;
+    std::optional<fan::graphics::post_process_mode_e> mode;
+    std::optional<f32_t> bloom_strength;
+    std::optional<f32_t> bloom_threshold;
+    std::optional<f32_t> bloom_knee;
+    std::optional<fan::vec3> bloom_tint;
+    std::optional<f32_t> bloom_filter_radius;
+    std::optional<f32_t> blur_amount;
+    std::optional<f32_t> blur_filter_radius;
+    std::optional<bool> blur_focus_enabled;
+    std::optional<f32_t> gamma;
+    std::optional<f32_t> exposure;
+    std::optional<f32_t> contrast;
+  };
+  void set_settings(const post_process_settings_t& settings);
+
 
   void shadow_add_caster(fan::graphics::shape_t* shape, f32_t alpha_threshold = 0.05f);
   void shadow_remove_caster(fan::graphics::shape_t* shape);

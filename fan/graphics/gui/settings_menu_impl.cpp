@@ -40,14 +40,16 @@ namespace fan::graphics::gui {
   };
 
   static void sync_vulkan_post_processing(const settings_config_t::post_processing_t& pp) {
-    *gloco()->get_bloom_strength_ptr()      = pp.bloom_strength;
-    *gloco()->get_bloom_threshold_ptr()     = pp.bloom_threshold;
-    *gloco()->get_bloom_knee_ptr()          = pp.bloom_knee;
-    *gloco()->get_bloom_filter_radius_ptr() = pp.bloom_filter_radius;
-    *gloco()->get_bloom_tint_ptr()          = pp.bloom_tint;
-    *gloco()->get_gamma_ptr()               = pp.gamma;
-    *gloco()->get_exposure_ptr()            = pp.exposure;
-    *gloco()->get_contrast_ptr()            = pp.contrast;
+    gloco()->set_settings({
+      .bloom_strength = pp.bloom_strength,
+      .bloom_threshold = pp.bloom_threshold,
+      .bloom_knee = pp.bloom_knee,
+      .bloom_tint = pp.bloom_tint,
+      .bloom_filter_radius = pp.bloom_filter_radius,
+      .gamma = pp.gamma,
+      .exposure = pp.exposure,
+      .contrast = pp.contrast
+    });
   }
 
 #if defined(FAN_JSON)
@@ -257,21 +259,24 @@ namespace fan::graphics::gui {
       }
     }
     );
-    gloco()->open_props.post_process_mode = (fan::graphics::post_process_mode_e)config.post_processing.mode;
     config.post_processing.clear_color.a = 1.f;
-    gloco()->set_clear_color(config.post_processing.clear_color);
-    gloco()->get_lighting().set_target(config.post_processing.ambient_color);
-    gloco()->open_props.blur_amount = std::clamp(config.post_processing.blur_amount, 0.f, 1.f);
-    gloco()->open_props.blur_filter_radius = config.post_processing.blur_filter_radius;
-    gloco()->open_props.blur_focus_enabled = config.post_processing.blur_focus_enabled;
+    gloco()->set_settings({
+      .clear_color = config.post_processing.clear_color,
+      .ambient_color = config.post_processing.ambient_color,
+      .mode = (fan::graphics::post_process_mode_e)config.post_processing.mode,
+      .bloom_threshold = config.post_processing.bloom_threshold,
+      .bloom_knee = config.post_processing.bloom_knee,
+      .bloom_tint = config.post_processing.bloom_tint,
+      .bloom_filter_radius = config.post_processing.bloom_filter_radius,
+      .blur_amount = std::clamp(config.post_processing.blur_amount, 0.f, 1.f),
+      .blur_filter_radius = config.post_processing.blur_filter_radius,
+      .blur_focus_enabled = config.post_processing.blur_focus_enabled
+    });
     gloco()->open_props.blur_focus_follow_mouse = config.post_processing.blur_focus_follow_mouse;
     gloco()->open_props.blur_focus_position = config.post_processing.blur_focus_position;
     gloco()->open_props.blur_focus_radius = config.post_processing.blur_focus_radius;
     gloco()->open_props.blur_focus_falloff = config.post_processing.blur_focus_falloff;
-    *gloco()->get_bloom_threshold_ptr() = config.post_processing.bloom_threshold;
-    *gloco()->get_bloom_knee_ptr() = config.post_processing.bloom_knee;
-    *gloco()->get_bloom_tint_ptr() = config.post_processing.bloom_tint;
-    *gloco()->get_bloom_filter_radius_ptr() = config.post_processing.bloom_filter_radius;
+    
     sync_vulkan_post_processing(config.post_processing);
     gloco()->set_culling_enabled(config.debug.frustum_culling_enabled);
   }

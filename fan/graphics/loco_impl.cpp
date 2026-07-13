@@ -296,6 +296,22 @@ f32_t* loco_t::get_gamma_ptr()               { return &vk->gamma; }
 f32_t* loco_t::get_exposure_ptr()            { return &vk->exposure; }
 f32_t* loco_t::get_contrast_ptr()            { return &vk->contrast; }
 
+void loco_t::set_settings(const post_process_settings_t& settings) {
+  if (settings.clear_color) set_clear_color(*settings.clear_color);
+  if (settings.ambient_color) get_lighting().ambient = *settings.ambient_color;
+  if (settings.mode) open_props.post_process_mode = *settings.mode;
+  if (settings.bloom_strength) *get_bloom_strength_ptr() = *settings.bloom_strength;
+  if (settings.bloom_threshold) *get_bloom_threshold_ptr() = *settings.bloom_threshold;
+  if (settings.bloom_knee) *get_bloom_knee_ptr() = *settings.bloom_knee;
+  if (settings.bloom_tint) *get_bloom_tint_ptr() = *settings.bloom_tint;
+  if (settings.bloom_filter_radius) *get_bloom_filter_radius_ptr() = *settings.bloom_filter_radius;
+  if (settings.blur_amount) open_props.blur_amount = *settings.blur_amount;
+  if (settings.blur_filter_radius) open_props.blur_filter_radius = *settings.blur_filter_radius;
+  if (settings.blur_focus_enabled) open_props.blur_focus_enabled = *settings.blur_focus_enabled;
+  if (settings.gamma) *get_gamma_ptr() = *settings.gamma;
+  if (settings.exposure) *get_exposure_ptr() = *settings.exposure;
+  if (settings.contrast) *get_contrast_ptr() = *settings.contrast;
+}
 #endif
 
 
@@ -1710,6 +1726,10 @@ void loco_t::process_render() {
   vk->begin_draw();
   fan::time::global_profiler.end("Render: Begin Draw");
 
+  fan::time::global_profiler.begin("Render: Memory Q");
+  context.vk.memory_queue.process(context.vk);
+  fan::time::global_profiler.end("Render: Memory Q");
+
   fan::time::global_profiler.begin("Render: Block Edit Q");
   fan::graphics::g_shapes->shaper.ProcessBlockEditQueue();
   fan::time::global_profiler.end("Render: Block Edit Q");
@@ -1898,10 +1918,6 @@ bool loco_t::process_frame(const std::function<void(f32_t delta_time)>& cb) {
       m_update_callback[it](this);
       it = m_update_callback.EndSafeNext();
     }
-
-  #if defined(FAN_2D)
-    shapes.update_children();
-  #endif
   }
 
   async_image_process();
@@ -1909,6 +1925,10 @@ bool loco_t::process_frame(const std::function<void(f32_t delta_time)>& cb) {
   fan::time::global_profiler.begin("Game Logic");
   cb(get_delta_time());
   fan::time::global_profiler.end("Game Logic");
+
+#if defined(FAN_2D)
+  shapes.update_children();
+#endif
 
 #if defined(FAN_PHYSICS_2D)
   physics.draw();
