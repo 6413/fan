@@ -162,42 +162,36 @@ export namespace fan::graphics::editor {
       return false;
     }
 
-    size_t push_shape(uint16_t shape_type, const fan::vec2& pos, const fan::vec2& size = 128) {
-      auto make_node = [&](auto&& shape) {
-        return std::make_unique<shapes_t::global_t>(shape_type, shape, current_z, current_shape);
-      };
-      size_t idx = shape_list.size();
-      switch (shape_type) {
-        case fan::graphics::shapes::shape_type_t::sprite: {
-          auto node = make_node(fan::graphics::sprite_t{{.render_view = &render_view, .position = pos, .size = size}});
-          auto* ri = ((fan::graphics::shapes::sprite_t::ri_t*)node->children[0].GetData(fan::graphics::g_shapes->shaper));
-          animations_application.current_animation_nr = ri->sprite_sheet_data.current_sprite_sheet;
-          animations_application.current_animation_shape_nr = ri->sprite_sheet_data.shape_sprite_sheets;
-          shape_list.push_back(std::move(node));
-          break;
-        }
-        case fan::graphics::shapes::shape_type_t::unlit_sprite: {
-          shape_list.push_back(make_node(fan::graphics::unlit_sprite_t{{.render_view = &render_view, .position = pos, .size = size}}));
-          break;
-        }
-        case fan::graphics::shapes::shape_type_t::rectangle: {
-          shape_list.push_back(make_node(fan::graphics::rectangle_t{{.render_view = &render_view, .position = pos, .size = size}}));
-          break;
-        }
-        case fan::graphics::shapes::shape_type_t::light: {
-          auto node = make_node(fan::graphics::light_t{{.render_view = &render_view, .position = pos, .size = size}});
-          node->children.push_back(fan::graphics::circle_t {{
-            .render_view = &render_view,
-            .position = fan::vec3(pos, current_z),
-            .radius = size.x,
-            .color = fan::color(1, 1, 1, 0.0),
-            .blending = true
-          }});
-          shape_list.push_back(std::move(node));
-          break;
-        }
+    template <typename ShapeT>
+    size_t push_shape(const fan::vec2& pos, const fan::vec2& size = 128) {
+      constexpr uint16_t st =
+        std::is_same_v<ShapeT, fan::graphics::sprite_t> ? fan::graphics::shapes::shape_type_t::sprite :
+        std::is_same_v<ShapeT, fan::graphics::unlit_sprite_t> ? fan::graphics::shapes::shape_type_t::unlit_sprite :
+        std::is_same_v<ShapeT, fan::graphics::rectangle_t> ? fan::graphics::shapes::shape_type_t::rectangle :
+        fan::graphics::shapes::shape_type_t::light;
+
+      auto node = std::make_unique<shapes_t::global_t>(st,
+        ShapeT{{.render_view = &render_view, .position = pos, .size = size}},
+        current_z, current_shape);
+
+      if constexpr (std::is_same_v<ShapeT, fan::graphics::sprite_t>) {
+        auto* ri = ((fan::graphics::shapes::sprite_t::ri_t*)node->children[0].GetData(fan::graphics::g_shapes->shaper));
+        animations_application.current_animation_nr = ri->sprite_sheet_data.current_sprite_sheet;
+        animations_application.current_animation_shape_nr = ri->sprite_sheet_data.shape_sprite_sheets;
       }
-      return idx;
+
+      if constexpr (std::is_same_v<ShapeT, fan::graphics::light_t>) {
+        node->children.push_back(fan::graphics::circle_t {{
+          .render_view = &render_view,
+          .position = fan::vec3(pos, current_z),
+          .radius = size.x,
+          .color = fan::color(1, 1, 1, 0.0),
+          .blending = true
+        }});
+      }
+
+      shape_list.push_back(std::move(node));
+      return shape_list.size() - 1;
     }
 
     void render_tree_with_unified_selection() {
@@ -259,6 +253,183 @@ export namespace fan::graphics::editor {
       }
     }
 
+    void render_viewport(f32_t zoom) {
+      if (!gui::begin("Editor", nullptr, gui::window_flags_menu_bar | gui::window_flags_no_background)) { gui::end(); return; }
+      fan::vec2 viewport_size = gui::get_window_size();
+      editor_pos = gui::get_window_pos();
+
+      fan::vec2 camera_pos = gloco()->camera_get_position(render_view.camera);
+      auto world_size = viewport_size / zoom;
+
+      background.set_position(camera_pos);
+      background.set_size(world_size / 2);
+      f32_t tile_size = 128.0f;
+      fan::vec2 tc_size = world_size / tile_size;
+      background.set_tc_size(tc_size);
+      fan::vec2 tc_offset = camera_pos / tile_size;
+      tc_offset.x -= floor(tc_offset.x);
+      tc_offset.y -= floor(tc_offset.y);
+      background.set_tc_position(tc_offset - tc_size / 2);
+
+      viewport_settings.editor_hovered = gui::is_window_hovered();
+
+      auto& style = gui::get_style();
+      fan::vec2 vMin = gui::get_window_content_region_min() + gui::get_window_pos();
+      fan::vec2 vMax = gui::get_window_content_region_max() + gui::get_window_pos();
+
+      viewport_size = vMax - vMin + fan::vec2(style.WindowPadding) * 2;
+      gloco()->viewport_set(render_view.viewport, vMin - fan::vec2(style.WindowPadding), viewport_size);
+      gloco()->camera_set_ortho(render_view.camera, fan::vec2(-viewport_size.x / 2, viewport_size.x / 2), fan::vec2(-viewport_size.y / 2, viewport_size.y / 2));
+      viewport_settings.size = viewport_size;
+      viewport_settings.start_pos = vMin;
+
+      if (!selection.objects.empty()) {
+        fan::vec2 viewport_center = viewport_settings.start_pos - fan::vec2(style.WindowPadding) + viewport_settings.size / 2.f;
+        selection.gizmo.manipulate(selection.objects, camera_pos, zoom, viewport_center, snap);
+      }
+
+      gui::text(fan::to_string(zoom * 100) + " %", {.offset = {0.f, -gui::get_text_line_height_with_spacing()}, .align = align_e::bottom_right});
+      fan::vec2 cursor_pos = (gui::get_mouse_pos() - viewport_settings.start_pos + fan::vec2(style.WindowPadding)) - viewport_settings.size / 2;
+      std::string cursor_pos_str = cursor_pos.to_string(1);
+      gui::text(cursor_pos_str.substr(1, cursor_pos_str.size() - 2), {.align = align_e::bottom_right});
+      gui::set_cursor_pos(gui::get_cursor_start_pos());
+
+      content_browser.receive_drag_drop_target([&](const std::string& file) {
+        if (fan::io::file::extension(file) == ".json") {
+          fin(file);
+        } else {
+          auto image = gloco()->image_load(file);
+          fan::vec2 original_size = gloco()->image_get_data(image).size;
+          shape_list[push_shape<fan::graphics::sprite_t>(0, fan::vec2(128.f * (original_size.x / original_size.y), 128.f))]->children[0].set_image(image);
+        }
+      });
+
+      gui::receive_drag_drop_target("FGM_TEXTUREPACK_DROP", [&](const std::string& path) {
+        fan::graphics::texture_pack_t::ti_t ti;
+        if (gloco()->texture_pack.qti(path, &ti)) {
+          gui::print("non texturepack texture or failed to load texture:", path);
+        } else {
+          std::wstring wpath(path.begin(), path.end());
+          auto found = std::find_if(texturepack_images.begin(), texturepack_images.end(), [&](const texturepack_image_t& img) { return wpath == img.image_name; });
+          if (found != texturepack_images.end()) {
+            auto& node = shape_list[push_shape<fan::graphics::sprite_t>(0, fan::vec2(128.f * found->aspect_ratio, 128.f))];
+            node->children[0].load_tp(&ti);
+            node->children[0].get_image_data().image_path = path;
+          }
+        }
+      });
+
+      if (fan::window::is_key_down(fan::key_left_control) && fan::window::is_key_clicked(fan::key_d)) {
+        for (auto& i : selection.objects) {
+          for (auto& child : i->children) {
+            shape_list.push_back(std::make_unique<shapes_t::global_t>(child.get_shape_type(), child, current_z, current_shape));
+          }
+        }
+        selection.objects.clear();
+      }
+
+      if (gui::begin_menu_bar()) {
+        if (gui::begin_menu("File")) {
+          if (current_shape) selection.moving_object = false;
+          if (gui::menu_item("Open..", "Ctrl+O")) {
+            fan::graphics::open_file("json;fmm", [&](std::string_view p) { close(); fin(std::string(p)); }, []{});
+          }
+          if (gui::menu_item("Save", "Ctrl+S")) fout(previous_filename);
+          if (gui::menu_item("Save as", "Ctrl+Shift+S")) {
+            fan::graphics::save_file("json;fmm", [&](std::string_view p) { fout(std::string(p)); }, []{});
+          }
+          if (gui::menu_item("Quit")) {
+            close();
+            gui::end();
+          }
+          gui::end_menu();
+        }
+        gui::end_menu_bar();
+      }
+      gui::end();
+    }
+
+    void render_settings_window() {
+      if (!gui::begin("Settings")) { gui::end(); return; }
+      gui::color_edit3("background", &gloco()->renderer_state.clear_color);
+      gui::color_edit3("ambient", &gloco()->renderer_state.lighting.ambient);
+      gui::drag("grid snap", &snap, 1, 0, std::numeric_limits<f32_t>::max(), gui::slider_flags_always_clamp);
+      if (gui::checkbox("render axes", &render_axis_lines)) {
+        axis_lines[0].set_color(axis_x_color * render_axis_lines);
+        axis_lines[1].set_color(axis_y_color * render_axis_lines);
+      }
+      gui::end();
+    }
+
+    void render_shapes_window() {
+      if (!gui::begin("Shapes", nullptr)) { gui::end(); return; }
+      shapes_window_hovered = gui::is_window_hovered(gui::hovered_flags_allow_when_blocked_by_active_item);
+      if (shapes_window_hovered && fan::window::is_mouse_clicked(fan::mouse_right)) gui::open_popup("ContextMenu");
+      if (gui::begin_popup("ContextMenu")) {
+        if (gui::begin_menu("Create")) {
+          if (gui::begin_menu("Shapes")) {
+            if (gui::menu_item("Sprite")) push_shape<fan::graphics::sprite_t>(0);
+            gui::end_menu();
+          }
+          if (gui::begin_menu("Lights")) {
+            if (gui::menu_item("Circle")) push_shape<fan::graphics::light_t>(0);
+            gui::end_menu();
+          }
+          gui::end_menu();
+        }
+        gui::end_popup();
+      }
+      render_tree_with_unified_selection();
+      gui::end();
+    }
+
+    void render_texturepack_window() {
+      if (!gui::begin("Texture Pack")) { gui::end(); return; }
+      if (gui::button("open")) {
+        fan::graphics::open_file("ftp", [&](std::string_view p) { open_texturepack(std::string(p)); });
+      }
+      f32_t thumbnail_size = 128.0f;
+      int column_count = std::max((int)(gui::get_content_region_avail().x / (thumbnail_size + 16.0f)), 1);
+      gui::columns(column_count, 0, false);
+      gui::push_style_color(gui::col_button, fan::color(0.f, 0.f, 0.f, 0.f));
+      gui::push_style_color(gui::col_button_active, fan::color(0.f, 0.f, 0.f, 0.f));
+      gui::push_style_color(gui::col_button_hovered, fan::color(0.3f, 0.3f, 0.3f, 0.3f));
+      int idx = 0;
+      for (auto& i : texturepack_images) {
+        gui::push_id(idx++);
+        gui::image_button("##", i.image, fan::vec2(thumbnail_size, thumbnail_size / i.aspect_ratio), i.uv0, i.uv1);
+        gui::send_drag_drop_item("FGM_TEXTUREPACK_DROP", i.image_name);
+        gui::next_column();
+        gui::pop_id();
+      }
+      gui::pop_style_color(3);
+      gui::end();
+    }
+
+    void render_animations_window() {
+      if (!gui::begin("Shape Animations")) { gui::end(); return; }
+      if (current_shape && current_shape->children.size() > 0) {
+        auto it = shape_sprite_sheets.find(current_shape);
+        if (it == shape_sprite_sheets.end()) {
+          shape_sprite_sheets[current_shape].owner_shape = current_shape;
+          it = shape_sprite_sheets.find(current_shape);
+        }
+        it->second.render_gui(current_shape);
+      } else {
+        gui::text("Select a shape to animate");
+      }
+      gui::end();
+    }
+
+    void render_animation_updates() {
+      for (auto& [shape, anim] : shape_sprite_sheets) {
+        if (anim.is_playing && anim.owner_shape && !anim.keyframes.empty()) {
+          anim.update(gloco()->get_delta_time());
+          anim.apply_to_shape(anim.owner_shape);
+        }
+      }
+    }
+
     void render() {
       f32_t zoom = fan::graphics::camera_get_zoom(render_view.camera);
       fan::vec2 mouse_world = viewport_t::get_mouse_position(viewport_settings, gui::get_mouse_pos(), zoom, fan::vec2(gui::get_style().WindowPadding));
@@ -270,183 +441,13 @@ export namespace fan::graphics::editor {
 
       if (render_content_browser) content_browser.render();
 
-      if (gui::begin("Editor", nullptr, gui::window_flags_menu_bar | gui::window_flags_no_background)) {
-        fan::vec2 viewport_size = gui::get_window_size();
-        editor_pos = gui::get_window_pos();
-
-        fan::vec2 camera_pos = gloco()->camera_get_position(render_view.camera);
-        auto world_size = viewport_size / zoom;
-
-        background.set_position(camera_pos);
-        background.set_size(world_size / 2);
-
-        f32_t tile_size = 128.0f;
-        fan::vec2 tc_size = world_size / tile_size;
-        background.set_tc_size(tc_size);
-
-        fan::vec2 tc_offset = camera_pos / tile_size;
-        tc_offset.x -= floor(tc_offset.x);
-        tc_offset.y -= floor(tc_offset.y);
-        background.set_tc_position(tc_offset - tc_size / 2);
-
-        viewport_settings.editor_hovered = gui::is_window_hovered();
-
-        auto& style = gui::get_style();
-        fan::vec2 vMin = gui::get_window_content_region_min() + gui::get_window_pos();
-        fan::vec2 vMax = gui::get_window_content_region_max() + gui::get_window_pos();
-
-        viewport_size = vMax - vMin + fan::vec2(style.WindowPadding) * 2;
-        gloco()->viewport_set(render_view.viewport, vMin - fan::vec2(style.WindowPadding), viewport_size);
-        gloco()->camera_set_ortho(render_view.camera, fan::vec2(-viewport_size.x / 2, viewport_size.x / 2), fan::vec2(-viewport_size.y / 2, viewport_size.y / 2));
-
-        viewport_settings.size = viewport_size;
-        viewport_settings.start_pos = vMin;
-
-        if (!selection.objects.empty()) {
-          fan::vec2 viewport_center = viewport_settings.start_pos - fan::vec2(style.WindowPadding) + viewport_settings.size / 2.f;
-          selection.gizmo.manipulate(selection.objects, camera_pos, zoom, viewport_center, snap);
-        }
-
-        gui::text(fan::to_string(zoom * 100) + " %", {.offset = {0.f, -gui::get_text_line_height_with_spacing()}, .align = align_e::bottom_right});
-        
-        fan::vec2 cursor_pos = (gui::get_mouse_pos() - viewport_settings.start_pos + fan::vec2(style.WindowPadding)) - viewport_settings.size / 2;
-        std::string cursor_pos_str = cursor_pos.to_string(1);
-        gui::text(cursor_pos_str.substr(1, cursor_pos_str.size() - 2), {.align = align_e::bottom_right});
-        gui::set_cursor_pos(gui::get_cursor_start_pos());
-
-        content_browser.receive_drag_drop_target([&](const std::string& file) {
-          if (fan::io::file::extension(file) == ".json") {
-            fin(file);
-          } else {
-            auto image = gloco()->image_load(file);
-            fan::vec2 original_size = gloco()->image_get_data(image).size;
-            shape_list[push_shape(fan::graphics::shapes::shape_type_t::sprite, 0, fan::vec2(128.f * (original_size.x / original_size.y), 128.f))]->children[0].set_image(image);
-          }
-        });
-
-        gui::receive_drag_drop_target("FGM_TEXTUREPACK_DROP", [&](const std::string& path) {
-          fan::graphics::texture_pack_t::ti_t ti;
-          if (gloco()->texture_pack.qti(path, &ti)) {
-            gui::print("non texturepack texture or failed to load texture:", path);
-          } else {
-            std::wstring wpath(path.begin(), path.end());
-            auto found = std::find_if(texturepack_images.begin(), texturepack_images.end(), [&](const texturepack_image_t& img) { return wpath == img.image_name; });
-            if (found != texturepack_images.end()) {
-              auto& node = shape_list[push_shape(fan::graphics::shapes::shape_type_t::sprite, 0, fan::vec2(128.f * found->aspect_ratio, 128.f))];
-              node->children[0].load_tp(&ti);
-              node->children[0].get_image_data().image_path = path;
-            }
-          }
-        });
-
-        if (fan::window::is_key_down(fan::key_left_control) && fan::window::is_key_clicked(fan::key_d)) {
-          for (auto& i : selection.objects) {
-            for (auto& child : i->children) {
-              shape_list.push_back(std::make_unique<shapes_t::global_t>(child.get_shape_type(), child, current_z, current_shape));
-            }
-          }
-          selection.objects.clear();
-        }
-
-        if (gui::begin_menu_bar()) {
-          if (gui::begin_menu("File")) {
-            if (current_shape) selection.moving_object = false;
-            if (gui::menu_item("Open..", "Ctrl+O")) {
-              fan::graphics::open_file("json;fmm", [&](std::string_view p) { close(); fin(std::string(p)); }, []{});
-            }
-            if (gui::menu_item("Save", "Ctrl+S")) fout(previous_filename);
-            if (gui::menu_item("Save as", "Ctrl+Shift+S")) {
-              fan::graphics::save_file("json;fmm", [&](std::string_view p) { fout(std::string(p)); }, []{});
-            }
-            if (gui::menu_item("Quit")) {
-              close();
-              gui::end();
-            }
-            gui::end_menu();
-          }
-          gui::end_menu_bar();
-        }
-      }
-      gui::end();
-
-      if (gui::begin("Settings")) {
-        gui::color_edit3("background", &gloco()->renderer_state.clear_color);
-        gui::color_edit3("ambient", &gloco()->renderer_state.lighting.ambient);
-        gui::drag("grid snap", &snap, 1, 0, std::numeric_limits<f32_t>::max(), gui::slider_flags_always_clamp);
-        if (gui::checkbox("render axes", &render_axis_lines)) {
-          axis_lines[0].set_color(axis_x_color * render_axis_lines);
-          axis_lines[1].set_color(axis_y_color * render_axis_lines);
-        }
-      }
-      gui::end();
-
+      render_viewport(zoom);
+      render_settings_window();
       properties_ui_t::render(*this, current_shape);
-
-      if (gui::begin("Shapes", nullptr)) {
-        shapes_window_hovered = gui::is_window_hovered(gui::hovered_flags_allow_when_blocked_by_active_item);
-        if (shapes_window_hovered && fan::window::is_mouse_clicked(fan::mouse_right)) gui::open_popup("ContextMenu");
-        if (gui::begin_popup("ContextMenu")) {
-          if (gui::begin_menu("Create")) {
-            if (gui::begin_menu("Shapes")) {
-              if (gui::menu_item("Sprite")) push_shape(fan::graphics::shapes::shape_type_t::sprite, 0);
-              gui::end_menu();
-            }
-            if (gui::begin_menu("Lights")) {
-              if (gui::menu_item("Circle")) push_shape(fan::graphics::shapes::shape_type_t::light, 0);
-              gui::end_menu();
-            }
-            gui::end_menu();
-          }
-          gui::end_popup();
-        }
-        render_tree_with_unified_selection();
-      }
-      gui::end();
-
-      if (gui::begin("Texture Pack")) {
-        if (gui::button("open")) {
-          fan::graphics::open_file("ftp", [&](std::string_view p) { open_texturepack(std::string(p)); });
-        }
-        f32_t thumbnail_size = 128.0f;
-        int column_count = std::max((int)(gui::get_content_region_avail().x / (thumbnail_size + 16.0f)), 1);
-
-        gui::columns(column_count, 0, false);
-        gui::push_style_color(gui::col_button, fan::color(0.f, 0.f, 0.f, 0.f));
-        gui::push_style_color(gui::col_button_active, fan::color(0.f, 0.f, 0.f, 0.f));
-        gui::push_style_color(gui::col_button_hovered, fan::color(0.3f, 0.3f, 0.3f, 0.3f));
-
-        int idx = 0;
-        for (auto& i : texturepack_images) {
-          gui::push_id(idx++);
-          gui::image_button("##", i.image, fan::vec2(thumbnail_size, thumbnail_size / i.aspect_ratio), i.uv0, i.uv1);
-          gui::send_drag_drop_item("FGM_TEXTUREPACK_DROP", i.image_name);
-          gui::next_column();
-          gui::pop_id();
-        }
-        gui::pop_style_color(3);
-      }
-      gui::end();
-
-      if (gui::begin("Shape Animations")) {
-        if (current_shape && current_shape->children.size() > 0) {
-          auto it = shape_sprite_sheets.find(current_shape);
-          if (it == shape_sprite_sheets.end()) {
-            shape_sprite_sheets[current_shape].owner_shape = current_shape;
-            it = shape_sprite_sheets.find(current_shape);
-          }
-          it->second.render_gui(current_shape);
-        } else {
-          gui::text("Select a shape to animate");
-        }
-      }
-      gui::end();
-
-      for (auto& [shape, anim] : shape_sprite_sheets) {
-        if (anim.is_playing && anim.owner_shape && !anim.keyframes.empty()) {
-          anim.update(gloco()->get_delta_time());
-          anim.apply_to_shape(anim.owner_shape);
-        }
-      }
+      render_shapes_window();
+      render_texturepack_window();
+      render_animations_window();
+      render_animation_updates();
     }
 
     void fout(std::string filename) {
