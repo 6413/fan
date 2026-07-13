@@ -230,7 +230,7 @@ export namespace fan::graphics::editor {
         } else {
           moving_object = true;
         }
-      } else if (fgm.viewport_settings.editor_hovered && fan::window::is_mouse_down() && gizmo.active_handle == -1 && !gizmo.is_dragging) {
+      } else if (fgm.viewport_settings.editor_hovered && fan::window::is_mouse_down() && gizmo.active_handle == -1 && !gizmo.is_dragging && fgm.segment_drag_idx == -1) {
         if (moving_object && !objects.empty()) {
           fan::vec2 delta = mouse_pos - drag_start;
           if (!fan::window::is_key_down(fan::key_left_shift) && fgm.snap > 0.0f) {
