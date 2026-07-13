@@ -95,6 +95,9 @@ export namespace fan::graphics::editor {
         if (shape->physics.enabled) {
           const char* body_types[] = {"Static", "Kinematic", "Dynamic"};
           gui::combo("Body Type", &shape->physics.body_type, body_types, 3);
+          const char* shape_types[] = {"Box", "Circle", "Capsule"};
+          gui::combo("Shape", &shape->physics.shape_type, shape_types, 3);
+          gui::drag("Hitbox Size", &shape->physics.hitbox_size, 0.05f);
           gui::drag("Mass", &shape->physics.mass, 0.1f);
           gui::drag("Friction", &shape->physics.friction, 0.05f);
           gui::drag("Restitution", &shape->physics.restitution, 0.05f);

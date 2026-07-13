@@ -440,8 +440,7 @@ namespace fan::physics {
     entity_t entity;
     b2BodyDef body_def = b2DefaultBodyDef();
     body_def.position = position / length_units_per_meter;
-    body_def.rotation.c = std::cos(-angle);
-    body_def.rotation.s = std::sin(-angle);
+    body_def.rotation = b2MakeRot(angle);
     body_def.type = (b2BodyType)body_type;
     body_def.fixedRotation = shape_properties.fixed_rotation;
     body_def.linearDamping = shape_properties.linear_damping;
