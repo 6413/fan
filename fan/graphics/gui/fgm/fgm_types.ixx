@@ -66,6 +66,8 @@ export namespace fan::graphics::editor {
         bool enabled = false;
         bool is_sensor = false;
         int body_type = 0;
+        int shape_type = 0; // 0=box, 1=circle, 2=capsule
+        fan::vec2 hitbox_size = 1;
         f32_t mass = 1.0f;
         f32_t friction = 0.2f;
         f32_t restitution = 0.0f;
@@ -74,6 +76,8 @@ export namespace fan::graphics::editor {
           fan::json p = fan::json::object();
           p["enabled"] = enabled;
           p["body_type"] = body_type;
+          p["shape_type"] = shape_type;
+          p["hitbox_size"] = hitbox_size;
           p["mass"] = mass;
           p["friction"] = friction;
           p["restitution"] = restitution;
@@ -84,6 +88,8 @@ export namespace fan::graphics::editor {
         void from_json(const fan::json& p) {
           enabled = p.value("enabled", false);
           body_type = p.value("body_type", 0);
+          shape_type = p.value("shape_type", 0);
+          hitbox_size = p.value("hitbox_size", fan::vec2(1));
           mass = p.value("mass", 1.0f);
           friction = p.value("friction", 0.2f);
           restitution = p.value("restitution", 0.0f);
