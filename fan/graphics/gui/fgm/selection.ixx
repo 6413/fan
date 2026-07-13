@@ -1,6 +1,7 @@
 export module fan.graphics.editor:selection;
 
 import fan.types.vector;
+import fan.types.color;
 import fan.math;
 import fan.math.intersection;
 import fan.window.input;
@@ -16,13 +17,52 @@ export namespace fan::graphics::editor {
       fan::vec2 shape_pos = shape.get_position();
       fan::vec2 shape_size = shape.get_size();
 
+      auto* draw_list = gui::get_window_draw_list();
+
+      // Draw bounding box outline
+      fan::vec2 p_min = (shape_pos - shape_size - camera_pos) * zoom + viewport_center;
+      fan::vec2 p_max = (shape_pos + shape_size - camera_pos) * zoom + viewport_center;
+      draw_list->AddRect(p_min, p_max, fan::color(1.f, 0.5f, 0.f, 1.f).get_gui_color(), 0.0f, 0, 2.0f);
+
+      // Shape dragging
+      gui::push_id("shape_drag");
+      gui::set_cursor_screen_pos(p_min);
+      gui::invisible_button("##shape_drag", p_max - p_min);
+      
+      if (gui::is_item_active()) {
+        if (!is_dragging) {
+          is_dragging = true;
+          drag_start_pos = shape_pos;
+          drag_mouse_start = gui::get_mouse_pos();
+        }
+        fan::vec2 mouse_world_delta = (gui::get_mouse_pos() - drag_mouse_start) / zoom;
+        fan::vec2 new_pos = drag_start_pos + mouse_world_delta;
+        
+        if (!fan::window::is_key_down(fan::key_left_shift) && snap > 0.0f) {
+           new_pos.x = std::round(new_pos.x / snap) * snap;
+           new_pos.y = std::round(new_pos.y / snap) * snap;
+        }
+        
+        shape.set_position(fan::vec3(new_pos, shape.get_position().z));
+        changed = true;
+      }
+      gui::pop_id();
+
       for (int i = 0; i < handle_count; ++i) {
         gui::push_id(i);
         fan::vec2 screen_hp = ((shape_pos + shape_size * handle_dirs[i]) - camera_pos) * zoom + viewport_center;
         gui::set_cursor_screen_pos(screen_hp - handle_size);
         gui::invisible_button("##handle", fan::vec2(handle_size * 2.f));
 
-        if (gui::is_item_active()) {
+        bool is_hovered = gui::is_item_hovered();
+        bool is_active = gui::is_item_active();
+        
+        // Draw handle
+        auto handle_color = is_active ? fan::color(1.f, 0.f, 0.f, 1.f) : (is_hovered ? fan::color(1.f, 0.8f, 0.f, 1.f) : fan::color(1.f, 1.f, 1.f, 1.f));
+        draw_list->AddRectFilled(screen_hp - handle_size, screen_hp + handle_size, handle_color.get_gui_color());
+        draw_list->AddRect(screen_hp - handle_size, screen_hp + handle_size, fan::colors::black.get_gui_color());
+
+        if (is_active) {
           if (active_handle != i) {
             active_handle = i;
             start_size = shape_size;
@@ -69,6 +109,8 @@ export namespace fan::graphics::editor {
     };
     int active_handle = -1;
     bool is_dragging = false;
+    fan::vec2 drag_start_pos;
+    fan::vec2 drag_mouse_start;
     fan::vec2 resize_anchor;
     fan::vec2 start_size;
   };
@@ -110,6 +152,8 @@ export namespace fan::graphics::editor {
             for (auto& sel : objects) { sel->disable_highlight(); }
             objects.clear();
           }
+        } else {
+          moving_object = true;
         }
       } else if (fgm.viewport_settings.editor_hovered && fan::window::is_mouse_down() && gizmo.active_handle == -1 && !gizmo.is_dragging) {
         if (moving_object && !objects.empty()) {
