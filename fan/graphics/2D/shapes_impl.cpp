@@ -705,6 +705,9 @@ namespace fan::graphics{
       return;
     }
 
+    remove_all_children();
+    remove_from_parent();
+
     shapes::shape_ids_t::nr_t id;
     id.gint() = NRI;
     auto& sd = g_shapes->shape_ids[id];
@@ -2990,6 +2993,19 @@ namespace fan::graphics {
         get_has_parent().erase(c.shape);
       }
       get_shape_hierarchy().erase(it);
+    }
+  }
+
+  void shapes::shape_t::remove_from_parent() {
+    if (!get_has_parent().contains(NRI)) return;
+    for (auto& [p_nri, children] : get_shape_hierarchy()) {
+      std::erase_if(children, [&](const child_node_t& c) {
+        if (c.shape == NRI) {
+          get_has_parent().erase(c.shape);
+          return true;
+        }
+        return false;
+      });
     }
   }
 

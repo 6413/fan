@@ -594,6 +594,7 @@ export namespace fan::graphics {
       void remove_child(const shape_t& child);
       void remove_children(std::span<const shape_t> children);
       void remove_all_children();
+      void remove_from_parent();
 
       std::vector<fan::graphics::shapes::shape_t*> get_children() const;
       void for_each_child(std::function<void(shape_t&)> callback) const;
