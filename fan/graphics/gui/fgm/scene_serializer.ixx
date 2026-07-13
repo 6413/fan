@@ -70,16 +70,14 @@ export namespace fan::graphics::editor {
         if (anim.keyframes.empty()) continue;
         fan::json anim_entry;
         int shape_index = 0;
-        auto it = fgm.shape_list.GetNodeFirst();
-        while (it != fgm.shape_list.dst) {
-          if (fgm.shape_list[it] == shape) {
+        for (auto& ptr : fgm.shape_list) {
+          if (ptr.get() == shape) {
             anim_entry["shape_index"] = shape_index;
             anim_entry["animation"] = anim.serialize();
             shape_anims.push_back(anim_entry);
             break;
           }
           shape_index++;
-          it = it.Next(&fgm.shape_list);
         }
       }
       if (!shape_anims.empty()) out["shape_keyframe_animations"] = shape_anims;
@@ -88,9 +86,7 @@ export namespace fan::graphics::editor {
     template <typename FGM_T>
     static void serialize_shapes(FGM_T& fgm, fan::json& out) {
       fan::json shapes = fan::json::array();
-      auto it = fgm.shape_list.GetNodeFirst();
-      while (it != fgm.shape_list.dst) {
-        auto& instance = fgm.shape_list[it];
+      for (auto& instance : fgm.shape_list) {
         fan::json shape_json;
         fan::graphics::shape_to_json(instance->children[0], &shape_json);
 
@@ -98,21 +94,13 @@ export namespace fan::graphics::editor {
         if (instance->id != defaults.id) shape_json["id"] = instance->id;
         if (instance->group_id != defaults.group_id) shape_json["group_id"] = instance->group_id;
         if (instance->physics.enabled) {
-          fan::json p = fan::json::object();
-          p["enabled"] = instance->physics.enabled;
-          p["body_type"] = instance->physics.body_type;
-          p["mass"] = instance->physics.mass;
-          p["friction"] = instance->physics.friction;
-          p["restitution"] = instance->physics.restitution;
-          p["is_sensor"] = instance->physics.is_sensor;
-          shape_json["physics"] = p;
+          shape_json["physics"] = instance->physics.to_json();
         }
 
-        if (auto found = fgm.shape_original_json.find(instance); found != fgm.shape_original_json.end()) {
+        if (auto found = fgm.shape_original_json.find(instance.get()); found != fgm.shape_original_json.end()) {
           shape_json.preserve_unknown(found->second);
         }
         shapes.push_back(shape_json);
-        it = it.Next(&fgm.shape_list);
       }
       out["shapes"] = shapes;
     }
@@ -130,16 +118,9 @@ export namespace fan::graphics::editor {
           int shape_index = anim_entry["shape_index"].get<int>();
           shape_keyframe_animation_t anim;
           anim.deserialize(anim_entry["animation"]);
-          
-          int current_index = 0;
-          auto it = fgm.shape_list.GetNodeFirst();
-          while (it != fgm.shape_list.dst) {
-            if (current_index == shape_index) {
-              fgm.shape_sprite_sheets[fgm.shape_list[it]] = anim;
-              break;
-            }
-            current_index++;
-            it = it.Next(&fgm.shape_list);
+
+          if (shape_index >= 0 && shape_index < (int)fgm.shape_list.size()) {
+            fgm.shape_sprite_sheets[fgm.shape_list[shape_index].get()] = anim;
           }
         }
       }
@@ -171,23 +152,22 @@ export namespace fan::graphics::editor {
         shape.set_camera(fgm.render_view.camera);
         shape.set_viewport(fgm.render_view.viewport);
         fgm.current_z = std::max(fgm.current_z, shape.get_position().z);
-        auto it = fgm.shape_list.NewNodeLast();
-        auto& node = fgm.shape_list[it];
+        auto& node = fgm.shape_list.emplace_back();
         
         switch (shape.get_shape_type()) {
           case fan::graphics::shapes::shape_type_t::sprite:
           case fan::graphics::shapes::shape_type_t::unlit_sprite:
           case fan::graphics::shapes::shape_type_t::particles:
           case fan::graphics::shapes::shape_type_t::rectangle: {
-            node = new shapes_t::global_t(shape.get_shape_type(), shape, fgm.current_z, fgm.current_shape, false);
+            node = std::make_unique<shapes_t::global_t>(shape.get_shape_type(), shape, fgm.current_z, fgm.current_shape, false);
             if (shape.get_shape_type() == fan::graphics::shapes::shape_type_t::sprite || shape.get_shape_type() == fan::graphics::shapes::shape_type_t::unlit_sprite) {
-              fgm.load_tp(node);
+              fgm.load_tp(node.get());
               node->children[0].get_image_data().image_path = shape.get_image_data().image_path;
             }
             break;
           }
           case fan::graphics::shapes::shape_type_t::light: {
-            node = new shapes_t::global_t(shape.get_shape_type(), shape, fgm.current_z, fgm.current_shape, false);
+            node = std::make_unique<shapes_t::global_t>(shape.get_shape_type(), shape, fgm.current_z, fgm.current_shape, false);
             node->children.push_back(fan::graphics::circle_t {{
               .render_view = &fgm.render_view,
               .position = shape.get_position(),
@@ -204,15 +184,9 @@ export namespace fan::graphics::editor {
           if (shape_json.contains("id")) node->id = shape_json["id"].get<std::string>();
           if (shape_json.contains("group_id")) node->group_id = shape_json["group_id"].get<uint32_t>();
           if (shape_json.contains("physics")) {
-            auto& pjson = shape_json["physics"];
-            node->physics.enabled = pjson.value("enabled", false);
-            node->physics.body_type = pjson.value("body_type", 0);
-            node->physics.mass = pjson.value("mass", 1.0f);
-            node->physics.friction = pjson.value("friction", 0.2f);
-            node->physics.restitution = pjson.value("restitution", 0.0f);
-            node->physics.is_sensor = pjson.value("is_sensor", false);
+            node->physics.from_json(shape_json["physics"]);
           }
-          fgm.shape_original_json[node] = shape_json;
+          fgm.shape_original_json[node.get()] = shape_json;
         }
       }
       ++fgm.current_z;
