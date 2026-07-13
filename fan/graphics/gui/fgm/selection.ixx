@@ -193,9 +193,16 @@ export namespace fan::graphics::editor {
               }
               moving_object = true;
             }
+            if (fgm.current_shape) fgm.current_shape->disable_highlight();
+            fgm.current_shape = objects.back();
+            fgm.current_shape->enable_highlight();
           } else if (!ctrl) {
             for (auto& sel : objects) { sel->disable_highlight(); }
             objects.clear();
+            if (fgm.current_shape) {
+              fgm.current_shape->disable_highlight();
+              fgm.current_shape = nullptr;
+            }
           }
         } else {
           moving_object = true;

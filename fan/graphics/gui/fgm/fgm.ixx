@@ -83,7 +83,7 @@ export namespace fan::graphics::editor {
 
       key_handle = gloco()->window.add_keys_callback([this](const auto& d) {
         if (d.state != fan::keyboard_state::press || gui::is_any_item_active()) return;
-        if (d.key == fan::key_r) erase_current();
+        if (d.key == fan::key_r) erase_selected();
       });
 
       gloco()->input.input_action.add_keycombo({fan::input::key_left_control, fan::input::key_space}, "toggle_content_browser");
@@ -470,19 +470,23 @@ export namespace fan::graphics::editor {
       current_shape = nullptr;
     }
 
-    void erase_current() {
-      if (!current_shape) return;
-      for (auto it = shape_list.begin(); it != shape_list.end(); ++it) {
-        if (current_shape == it->get()) {
-          shape_original_json.erase(current_shape);
-          if (auto sel_it = std::find(selection.objects.begin(), selection.objects.end(), current_shape); sel_it != selection.objects.end()) {
-            selection.objects.erase(sel_it);
+    void erase_selected() {
+      std::vector<size_t> indices;
+      for (auto* obj : selection.objects) {
+        for (size_t i = 0; i < shape_list.size(); ++i) {
+          if (obj == shape_list[i].get()) {
+            shape_original_json.erase(obj);
+            indices.push_back(i);
+            break;
           }
-          shape_list.erase(it);
-          invalidate_current();
-          break;
         }
       }
+      std::sort(indices.begin(), indices.end(), std::greater<>());
+      for (size_t i : indices) {
+        shape_list.erase(shape_list.begin() + i);
+      }
+      selection.objects.clear();
+      invalidate_current();
     }
 
     fan::graphics::shape_t axis_lines[2];
