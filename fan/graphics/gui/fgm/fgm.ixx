@@ -81,6 +81,8 @@ export namespace fan::graphics::editor {
         open_texturepack(texturepack_name);
       }
 
+      white_texture = fan::graphics::image_create(fan::colors::white);
+
       key_handle = gloco()->window.add_keys_callback([this](const auto& d) {
         if (d.state != fan::keyboard_state::press || gui::is_any_item_active()) return;
         if (d.key == fan::key_r) erase_selected();
@@ -471,6 +473,15 @@ export namespace fan::graphics::editor {
       current_shape = nullptr;
     }
 
+    void apply_material(shapes_t::global_t* node) {
+      if (node->material_type == 1) {
+        node->original_image = node->children[0].get_image();
+        node->children[0].set_image(white_texture);
+      } else {
+        node->children[0].set_image(node->original_image);
+      }
+    }
+
     void erase_selected() {
       std::vector<size_t> indices;
       for (auto* obj : selection.objects) {
@@ -510,6 +521,7 @@ export namespace fan::graphics::editor {
     fan::graphics::sprite_t background;
     std::vector<fan::graphics::shape_t> copy_buffer;
     std::string previous_filename;
+    fan::graphics::image_t white_texture;
     fan::graphics::engine_t::keys_handle_t key_handle;
     fan::graphics::engine_t::mouse_move_handle_t mouse_move_handle;
     fan::graphics::engine_t::buttons_handle_t button_handle;
