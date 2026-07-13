@@ -1,0 +1,73 @@
+export module fan.graphics.editor:fgm_types;
+
+import std;
+
+import fan.types;
+import fan.types.vector;
+import fan.types.color;
+import fan.graphics.shapes;
+import fan.graphics.gui;
+
+export namespace fan::graphics::editor {
+  struct shapes_t {
+    struct global_t : fan::graphics::gui::imgui_element_t {
+      global_t() = default;
+
+      template <typename T>
+      global_t(uint16_t shape_type, const T& obj, f32_t& current_z, global_t*& current_shape, bool shape_add = true) {
+        T temp = obj;
+        this->shape_type = shape_type;
+        if (shape_add) {
+          temp.set_position(fan::vec3(fan::vec2(temp.get_position()), current_z++));
+        }
+        children.push_back(temp);
+        current_shape = this;
+      }
+
+      fan::vec3 get_position() const { return children.empty() ? fan::vec3(0) : children[0].get_position(); }
+      fan::vec2 get_size() const { return children.empty() ? fan::vec2(0) : children[0].get_size(); }
+      fan::color get_color() const { return children.empty() ? fan::color(1) : children[0].get_color(); }
+      
+      void set_position(const fan::vec3& position, bool modify_depth = true) {
+        if (children.empty()) return;
+        fan::vec2 delta = fan::vec2(position - children[0].get_position());
+        for (auto& child : children) {
+          fan::vec3 cp = child.get_position();
+          fan::vec3 new_pos = fan::vec3(fan::vec2(cp) + delta, modify_depth ? position.z : cp.z);
+          modify_depth ? child.set_position(new_pos) : child.set_position(fan::vec2(new_pos));
+        }
+      }
+
+      void set_size(const fan::vec2& size) {
+        if (children.empty()) return;
+        fan::vec2 offset = size - children[0].get_size();
+        for (auto& child : children) {
+          child.set_size(child.get_size() + offset);
+        }
+      }
+
+      void set_color(const fan::color& c) {
+        for (auto& child : children) {
+          child.set_color(c);
+        }
+      }
+
+      void enable_highlight() {}
+      void disable_highlight() {}
+
+      std::vector<fan::graphics::shape_t> children;
+      std::string id;
+      uint32_t group_id = 0;
+      uint16_t shape_type = 0;
+      
+      struct physics_properties_t {
+        bool enabled = false;
+        bool is_sensor = false;
+        int body_type = 0;
+        f32_t mass = 1.0f;
+        f32_t friction = 0.2f;
+        f32_t restitution = 0.0f;
+      } physics;
+    };
+  };
+}
