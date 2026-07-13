@@ -1107,24 +1107,24 @@ namespace fan::graphics::gui {
 
     if (use_draw_list) {
       draw_pos = style.pos;
-      if (style.align == text_style_t::align_e::center) {
+      if (style.align == align_e::center) {
         draw_pos -= text_size * 0.5f;
       }
     } else if (is_window_relative) {
       fan::vec2 ws = get_window_size();
       draw_pos = (ws * 0.5f) + (ws * 0.5f * style.window_offset) - (text_size * style.text_offset);
       
-      if (style.align == text_style_t::align_e::center) {
+      if (style.align == align_e::center) {
         draw_pos.x -= text_size.x * 0.5f; 
-      } else if (style.align == text_style_t::align_e::bottom_right) {
+      } else if (style.align == align_e::bottom_right) {
         draw_pos -= text_size;
       }
 
       use_draw_list = true;
     } else {
-      draw_pos = style.align == text_style_t::align_e::bottom_right ?
+      draw_pos = style.align == align_e::bottom_right ?
         get_window_size() - text_size - fan::vec2(get_style().WindowPadding) : get_cursor_pos();
-      if (style.align == text_style_t::align_e::center) {
+      if (style.align == align_e::center) {
         draw_pos.x = (get_window_size().x - text_size.x) * 0.5f;
       }
     }

@@ -640,6 +640,17 @@ namespace fan::physics {
     }
   }
 
+  static void dispatch_collision_hit(b2BodyId body_a, b2BodyId body_b, f32_t approach_speed) {
+    if (!b2Body_IsValid(body_a) || !b2Body_IsValid(body_b)) { return; }
+    if (auto it = fan::physics::gphysics()->collision_listeners.find(body_a); it != fan::physics::gphysics()->collision_listeners.end()) {
+      for (auto& l : it->second) if (l.on_hit) l.on_hit(entity_t(body_b), approach_speed);
+    }
+    if (!b2Body_IsValid(body_a) || !b2Body_IsValid(body_b)) { return; }
+    if (auto it = fan::physics::gphysics()->collision_listeners.find(body_b); it != fan::physics::gphysics()->collision_listeners.end()) {
+      for (auto& l : it->second) if (l.on_hit) l.on_hit(entity_t(body_a), approach_speed);
+    }
+  }
+
   collision_listener_handle_t add_collision_listeners(body_id_t sensor, collision_listener_pair_t cb) {
     auto& vec = fan::physics::gphysics()->collision_listeners[sensor];
     vec.push_back(std::move(cb));
@@ -649,6 +660,7 @@ namespace fan::physics {
       b2Body_GetShapes(sensor, shapes.data(), shape_count);
       for (auto& shape : shapes) {
         b2Shape_EnableContactEvents(shape, true);
+        b2Shape_EnableHitEvents(shape, true);
       }
     }
     return {sensor, (std::uint32_t)(vec.size() - 1)};
@@ -679,7 +691,9 @@ namespace fan::physics {
     dispatch_collision_exit(b2Shape_GetBody(shape_a), b2Shape_GetBody(shape_b));
   }
 
-  void context_t::on_hit(b2ShapeId shape_a, b2ShapeId shape_b, f32_t approach_speed) {}
+  void context_t::on_hit(b2ShapeId shape_a, b2ShapeId shape_b, f32_t approach_speed) {
+    dispatch_collision_hit(b2Shape_GetBody(shape_a), b2Shape_GetBody(shape_b), approach_speed * length_units_per_meter);
+  }
 
   std::uint64_t context_t::get_shape_key(b2ShapeId shape) const {
     return (std::uint64_t(shape.index1) << 32) | (std::uint64_t(shape.world0) << 16) | std::uint64_t(shape.generation);
