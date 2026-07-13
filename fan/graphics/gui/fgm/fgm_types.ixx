@@ -67,21 +67,27 @@ export namespace fan::graphics::editor {
         bool is_sensor = false;
         int body_type = 0;
         int shape_type = 0; // 0=box, 1=circle, 2=capsule
+        int collision_shape = 0; // 0 = Auto (Bounds), 1 = Custom Segments
         fan::vec2 hitbox_size = 1;
         f32_t mass = 1.0f;
         f32_t friction = 0.2f;
         f32_t restitution = 0.0f;
+        std::vector<fan::vec2> segment_points;
 
         fan::json to_json() const {
           fan::json p = fan::json::object();
           p["enabled"] = enabled;
           p["body_type"] = body_type;
           p["shape_type"] = shape_type;
+          p["collision_shape"] = collision_shape;
           p["hitbox_size"] = hitbox_size;
           p["mass"] = mass;
           p["friction"] = friction;
           p["restitution"] = restitution;
           p["is_sensor"] = is_sensor;
+          fan::json pts = fan::json::array();
+          for (auto& pt : segment_points) { fan::json j; j = pt; pts.push_back(j); }
+          p["segment_points"] = pts;
           return p;
         }
 
@@ -89,11 +95,18 @@ export namespace fan::graphics::editor {
           enabled = p.value("enabled", false);
           body_type = p.value("body_type", 0);
           shape_type = p.value("shape_type", 0);
+          collision_shape = p.value("collision_shape", 0);
           hitbox_size = p.value("hitbox_size", fan::vec2(1));
           mass = p.value("mass", 1.0f);
           friction = p.value("friction", 0.2f);
           restitution = p.value("restitution", 0.0f);
           is_sensor = p.value("is_sensor", false);
+          segment_points.clear();
+          if (p.contains("segment_points")) {
+            for (auto& pt : p["segment_points"]) {
+              segment_points.push_back(pt);
+            }
+          }
         }
       } physics;
     };

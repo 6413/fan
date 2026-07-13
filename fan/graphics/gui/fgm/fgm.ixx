@@ -16,6 +16,7 @@ import fan.types.fstring;
 import fan.memory;
 import fan.io.file;
 
+import fan.physics.b2_integration;
 import fan.graphics.physics_shapes;
 import :viewport;
 import :selection;
@@ -148,6 +149,7 @@ export namespace fan::graphics::editor {
     void close() {
       shape_list.clear();
       physics_bodies.clear();
+      segment_bodies.clear();
       close_cb();
       shape_original_json.clear();
       is_playing = false;
@@ -325,7 +327,24 @@ export namespace fan::graphics::editor {
           auto rotate = [&](const fan::vec2& local) -> fan::vec2 {
             return pos + fan::vec2(ca * local.x - sa * local.y, sa * local.x + ca * local.y);
           };
-          switch (obj->physics.shape_type) {
+          if (obj->physics.collision_shape == 1) {
+            auto& pts = obj->physics.segment_points;
+            auto pc = fan::color(1.f, 0.8f, 0.f, 1.f).get_gui_color();
+            for (size_t pi = 0; pi + 1 < pts.size(); ++pi) {
+              fan::vec2 a = to_screen(rotate(pts[pi]));
+              fan::vec2 b = to_screen(rotate(pts[pi + 1]));
+              dl->AddLine(a, b, c, 2.f);
+            }
+            if (pts.size() > 2) {
+              fan::vec2 a = to_screen(rotate(pts.back()));
+              fan::vec2 b = to_screen(rotate(pts.front()));
+              dl->AddLine(a, b, c, 2.f);
+            }
+            for (auto& pt : pts) {
+              dl->AddCircleFilled(to_screen(rotate(pt)), 4.f, pc);
+            }
+          }
+          else switch (obj->physics.shape_type) {
             case 0: {
               fan::vec2 corners[4];
               for (int i = 0; i < 4; ++i) {
@@ -373,6 +392,44 @@ export namespace fan::graphics::editor {
               break;
             }
           }
+        }
+      }
+
+      if (!is_playing && current_shape && current_shape->physics.enabled && current_shape->physics.collision_shape == 1 && viewport_settings.editor_hovered) {
+        fan::vec2 mouse_world_seg = viewport_t::get_mouse_position(viewport_settings, gui::get_mouse_pos(), zoom, fan::vec2(style.WindowPadding));
+        if (fan::window::is_mouse_clicked(fan::mouse_left) && !gui::is_any_item_active()) {
+          fan::vec2 world_mouse = mouse_world_seg;
+          f32_t sa = std::sin(-current_shape->children[0].get_angle().z);
+          f32_t ca = std::cos(-current_shape->children[0].get_angle().z);
+          fan::vec2 delta = world_mouse - fan::vec2(current_shape->get_position());
+          fan::vec2 local(ca * delta.x - sa * delta.y, sa * delta.x + ca * delta.y);
+          auto& pts = current_shape->physics.segment_points;
+          if (fan::window::is_key_down(fan::key_left_control)) {
+            int closest = -1;
+            f32_t closest_d = 20.f;
+            for (size_t i = 0; i < pts.size(); ++i) {
+              f32_t d = (pts[i] - local).length();
+              if (d < closest_d) { closest_d = d; closest = (int)i; }
+            }
+            if (closest >= 0) pts.erase(pts.begin() + closest);
+          } else {
+            pts.push_back(local);
+          }
+        }
+        auto* dl = gui::get_window_draw_list();
+        fan::vec2 viewport_center = viewport_settings.start_pos - fan::vec2(style.WindowPadding) + viewport_settings.size / 2.f;
+        fan::vec2 pos = current_shape->get_position();
+        f32_t angle = current_shape->children[0].get_angle().z;
+        f32_t ca = std::cos(angle), sa = std::sin(angle);
+        auto to_screen = [&](const fan::vec2& p) -> fan::vec2 {
+          return ((p - camera_pos) * zoom + viewport_center);
+        };
+        auto rotate = [&](const fan::vec2& local) -> fan::vec2 {
+          return pos + fan::vec2(ca * local.x - sa * local.y, sa * local.x + ca * local.y);
+        };
+        auto c = fan::color(1.f, 0.8f, 0.f, 1.f).get_gui_color();
+        for (auto& pt : current_shape->physics.segment_points) {
+          dl->AddCircleFilled(to_screen(rotate(pt)), 4.f, c);
         }
       }
 
@@ -541,7 +598,12 @@ export namespace fan::graphics::editor {
         auto angle = child.get_angle().z;
         auto pos = ptr->get_position();
         auto sz = ptr->get_size() * p.hitbox_size;
-        switch (p.shape_type) {
+        if (p.collision_shape == 1) {
+          segment_bodies.push_back(segment_body_t{
+            fan::physics::gphysics()->create_segment(fan::vec2(pos), p.segment_points, (uint8_t)p.body_type, props)
+          });
+        }
+        else switch (p.shape_type) {
           case 0: {
             physics_bodies.push_back(std::make_unique<fan::graphics::physics::rectangle_t>(
               fan::graphics::physics::rectangle_t::properties_t{
@@ -591,23 +653,36 @@ export namespace fan::graphics::editor {
       gloco()->update_physics(true);
     }
 
+    struct segment_body_t {
+      fan::physics::entity_t entity;
+      fan::vec3 get_position() const { return fan::vec3(entity.get_position(), 0); }
+      fan::vec3 get_angle() const { return fan::vec3(0); }
+    };
+
     void destroy_physics_scene() {
       physics_bodies.clear();
+      segment_bodies.clear();
       fan::physics::debug_draw_cb() = saved_fgm_debug_cb;
       gloco()->update_physics(false);
     }
 
     void step_physics() {
-      if (physics_bodies.empty()) return;
-      size_t i = 0;
+      if (physics_bodies.empty() && segment_bodies.empty()) return;
+      size_t bi = 0, si = 0;
       for (auto& ptr : shape_list) {
         if (!ptr->physics.enabled) continue;
-        if (i >= physics_bodies.size()) break;
-        auto& body = physics_bodies[i];
-        fan::vec3 bp = body->get_position();
-        ptr->set_position(fan::vec3(fan::vec2(bp), ptr->get_position().z));
-        ptr->children[0].set_angle(body->get_angle());
-        i++;
+        if (ptr->physics.collision_shape == 1) {
+          if (si >= segment_bodies.size()) break;
+          auto& body = segment_bodies[si];
+          ptr->set_position(fan::vec3(fan::vec2(body.get_position()), ptr->get_position().z));
+          si++;
+        } else {
+          if (bi >= physics_bodies.size()) break;
+          auto& body = physics_bodies[bi];
+          ptr->set_position(fan::vec3(fan::vec2(body->get_position()), ptr->get_position().z));
+          ptr->children[0].set_angle(body->get_angle());
+          bi++;
+        }
       }
     }
 
@@ -720,6 +795,7 @@ export namespace fan::graphics::editor {
     bool is_playing = false;
     std::string scene_backup;
     std::vector<std::unique_ptr<fan::graphics::physics::base_shape_t>> physics_bodies;
+    std::vector<segment_body_t> segment_bodies;
     std::function<void(bool enabled, void* render_view)> saved_fgm_debug_cb;
   };
 }
