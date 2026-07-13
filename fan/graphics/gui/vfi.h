@@ -333,15 +333,9 @@ struct vfi_t {
       KeyTraverse.Init(g_shapes->shaper);
       while (KeyTraverse.Loop(g_shapes->shaper)) {
         shaper_t::KeyTypeIndex_t kti = KeyTraverse.kti(g_shapes->shaper);
-        if (kti == Key_e::ShapeType) {
-          auto sti = *(shaper_t::ShapeTypeIndex_t*)KeyTraverse.kd();
-          if (sti != fan::graphics::shapes::shape_type_t::vfi) { continue; }
-        }
-        switch (kti) {
-        case Key_e::draw_mode:
-        case Key_e::vertex_count:
-          continue;
-        }
+        if (kti != Key_e::ShapeType) { continue; }
+        auto sti = *(shaper_t::ShapeTypeIndex_t*)KeyTraverse.kd();
+        if (sti != fan::graphics::shapes::shape_type_t::vfi) { continue; }
         if (!KeyTraverse.isbm) { continue; }
         shaper_t::BlockTraverse_t BlockTraverse;
         BlockTraverse.Init(g_shapes->shaper, KeyTraverse.bmid());
@@ -424,6 +418,7 @@ struct vfi_t {
     bp.MaxElementPerBlock = (shaper_t::MaxElementPerBlock_t)fan::graphics::MaxElementPerBlock;
     bp.RenderDataSize     = 0;
     bp.DataSize           = sizeof(ri_t);
+    std::construct_at(&bp.renderer.vk);
     g_shapes->shaper.SetShapeType(fan::graphics::shapes::shape_type_t::vfi, bp);
   }
 
