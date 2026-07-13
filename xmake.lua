@@ -218,7 +218,10 @@ local feature_modules = {
     "fan/graphics/gui/gameplay/inventory.ixx", "fan/graphics/gui/gameplay/inventory_hotbar.ixx",
     "fan/graphics/gui/gameplay/drag_drop.ixx", "fan/graphics/gui/gameplay/slot_renderer.ixx",
     "fan/graphics/gui/tilemap_editor/editor_core.ixx",
-    "fan/graphics/gui/tilemap_editor/editor_ui.ixx"
+    "fan/graphics/gui/tilemap_editor/editor_ui.ixx",
+    "fan/graphics/gui/fgm/viewport.ixx", "fan/graphics/gui/fgm/selection.ixx",
+    "fan/graphics/gui/fgm/properties_ui.ixx", "fan/graphics/gui/fgm/animation_system.ixx",
+    "fan/graphics/gui/fgm/scene_serializer.ixx", "fan/graphics/gui/fgm/fgm.ixx"
   },
   FAN_3D = { "fan/graphics/3D/objects/fms.ixx", "fan/graphics/voxel.ixx" },
   FAN_VIDEO = { "fan/video/codec.ixx", "fan/video/screen.ixx", "fan/video/renderer.ixx", "fan/video/video.ixx" },
