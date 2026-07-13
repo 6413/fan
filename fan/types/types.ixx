@@ -23,3 +23,7 @@ export namespace fan {
   using bytes_cspan_t = std::span<const std::uint8_t>;
   using bytes_result_t = std::expected<fan::bytes_t, std::string>;
 }
+
+export namespace fan::graphics {
+  enum class align_e { left, center, bottom_right };
+}

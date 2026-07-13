@@ -117,7 +117,7 @@ export namespace fan::graphics::gui {
     fan::vec2 offset = 0.f;
     fan::vec2 text_offset = 0.f;
     fan::vec2 window_offset = std::numeric_limits<f32_t>::max();
-    enum class align_e { left, center, bottom_right } align = align_e::left;
+    align_e align = align_e::left;
     bool outlined = false;
     bool wrapped = false;
     bool overlay = false;
