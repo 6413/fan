@@ -50,6 +50,24 @@ export namespace fan::graphics::editor {
       deserialize_shapes(fgm, json_in, filename);
     }
 
+    template <typename FGM_T>
+    static std::string save_to_string(FGM_T& fgm) {
+      fan::json out;
+      out["version"] = 1;
+      serialize_environment(out);
+      serialize_animations(fgm, out);
+      serialize_shapes(fgm, out);
+      return out.dump(2);
+    }
+
+    template <typename FGM_T>
+    static void load_from_string(FGM_T& fgm, const std::string& data) {
+      fan::json json_in = fan::json::parse(data);
+      deserialize_environment(json_in);
+      deserialize_animations(fgm, json_in);
+      deserialize_shapes(fgm, json_in, "");
+    }
+
   private:
     static void serialize_environment(fan::json& out) {
       if (gloco()->renderer_state.lighting.ambient != fan::graphics::lighting_t().ambient) {
@@ -144,10 +162,12 @@ export namespace fan::graphics::editor {
 
     template <typename FGM_T>
     static void deserialize_shapes(FGM_T& fgm, fan::json& json_in, const std::string& filename) {
-      json_in.find_and_iterate("image_path", [&filename](fan::json& value) {
-        std::filesystem::path json_path = std::filesystem::absolute(std::filesystem::path(filename)).parent_path();
-        value = (json_path / std::filesystem::path(value.get<std::string>())).generic_string();
-      });
+      if (!filename.empty()) {
+        json_in.find_and_iterate("image_path", [&filename](fan::json& value) {
+          std::filesystem::path json_path = std::filesystem::absolute(std::filesystem::path(filename)).parent_path();
+          value = (json_path / std::filesystem::path(value.get<std::string>())).generic_string();
+        });
+      }
 
       fan::graphics::shape_deserialize_t iterator;
       fan::graphics::shape_t shape;
