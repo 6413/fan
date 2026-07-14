@@ -1,6 +1,23 @@
 {
+  "materials": [
+    {
+      "id": 0,
+      "material_type": 1
+    },
+    {
+      "color": [
+        0.047355618327856064,
+        0.815276026725769,
+        0.021659472957253456,
+        1.0
+      ],
+      "id": 1,
+      "material_type": 1
+    }
+  ],
   "shapes": [
     {
+      "material_id": 0,
       "material_type": 1,
       "physics": {
         "body_type": 0,
@@ -29,6 +46,7 @@
       ]
     },
     {
+      "material_id": 0,
       "material_type": 1,
       "physics": {
         "body_type": 0,
@@ -57,6 +75,7 @@
       ]
     },
     {
+      "material_id": 0,
       "material_type": 1,
       "physics": {
         "body_type": 0,
@@ -92,6 +111,7 @@
         1.0
       ],
       "id": "landing_pad",
+      "material_id": 1,
       "material_type": 1,
       "physics": {
         "body_type": 0,

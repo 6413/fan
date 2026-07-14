@@ -12,6 +12,8 @@ import fan.io.file;
 import :fgm_types;
 import :animation_system;
 
+import fan.graphics.scene;
+
 export namespace fan::graphics::editor {
   struct scene_serializer_t {
     template <typename FGM_T>
@@ -104,25 +106,65 @@ export namespace fan::graphics::editor {
     template <typename FGM_T>
     static void serialize_shapes(FGM_T& fgm, fan::json& out) {
       fan::json shapes = fan::json::array();
+      std::vector<fan::graphics::material_t> materials;
+
       for (auto& instance : fgm.shape_list) {
+        fan::json shape_json;
         if (instance->material_type == 1) {
           fan::graphics::image_t saved = instance->children[0].get_image();
           instance->children[0].set_image(instance->original_image);
           instance->material_type = 0;
-          fan::json shape_json;
           fan::graphics::shape_to_json(instance->children[0], &shape_json);
           shape_json["material_type"] = 1;
           instance->material_type = 1;
           instance->children[0].set_image(saved);
-          finish_shape_json(fgm, instance, shape_json);
-          shapes.push_back(shape_json);
         } else {
-          fan::json shape_json;
           fan::graphics::shape_to_json(instance->children[0], &shape_json);
-          finish_shape_json(fgm, instance, shape_json);
-          shapes.push_back(shape_json);
         }
+
+        fan::graphics::material_t mat;
+        if (shape_json.contains("color")) {
+          mat.color = shape_json["color"];
+        }
+        if (shape_json.contains("images")) {
+          mat.images = shape_json["images"];
+        }
+        if (shape_json.contains("material_type")) {
+          mat.material_type = shape_json["material_type"].get<int>();
+        }
+
+        fan::json cleaned_shape_json = fan::json::object();
+        for (auto it = shape_json.begin(); it != shape_json.end(); ++it) {
+          if (it.key() != "color" && it.key() != "images" && it.key() != "material_type") {
+            cleaned_shape_json[it.key()] = it.value();
+          }
+        }
+        shape_json = cleaned_shape_json;
+
+        auto it = std::find(materials.begin(), materials.end(), mat);
+        if (it == materials.end()) {
+          mat.id = materials.size();
+          materials.push_back(mat);
+          shape_json["material_id"] = mat.id;
+        } else {
+          shape_json["material_id"] = it->id;
+        }
+
+        finish_shape_json(fgm, instance, shape_json);
+        shapes.push_back(shape_json);
       }
+
+      fan::json materials_json = fan::json::array();
+      for (const auto& mat : materials) {
+        fan::json m_json;
+        m_json["id"] = mat.id;
+        if (mat.color != fan::color(1, 1, 1, 1)) m_json["color"] = mat.color;
+        if (!mat.images.empty()) m_json["images"] = mat.images;
+        if (mat.material_type != 0) m_json["material_type"] = mat.material_type;
+        materials_json.push_back(m_json);
+      }
+      
+      out["materials"] = materials_json;
       out["shapes"] = shapes;
     }
 
@@ -135,7 +177,14 @@ export namespace fan::graphics::editor {
         shape_json["physics"] = instance->physics.to_json();
       }
       if (auto found = fgm.shape_original_json.find(instance.get()); found != fgm.shape_original_json.end()) {
-        shape_json.preserve_unknown(found->second);
+        auto original = found->second;
+        fan::json cleaned_original = fan::json::object();
+        for (auto it = original.begin(); it != original.end(); ++it) {
+          if (it.key() != "color" && it.key() != "images" && it.key() != "material_type") {
+            cleaned_original[it.key()] = it.value();
+          }
+        }
+        shape_json.preserve_unknown(cleaned_original);
       }
     }
 
@@ -169,6 +218,18 @@ export namespace fan::graphics::editor {
         });
       }
 
+      std::unordered_map<int, fan::graphics::material_t> materials;
+      if (json_in.contains("materials")) {
+        for (const auto& mat_json : json_in["materials"]) {
+          fan::graphics::material_t mat;
+          if (mat_json.contains("id")) mat.id = mat_json["id"].get<int>();
+          if (mat_json.contains("color")) mat.color = mat_json["color"];
+          if (mat_json.contains("images")) mat.images = mat_json["images"];
+          if (mat_json.contains("material_type")) mat.material_type = mat_json["material_type"].get<int>();
+          materials[mat.id] = mat;
+        }
+      }
+
       fan::graphics::shape_deserialize_t iterator;
       fan::graphics::shape_t shape;
       fgm.current_z = 0;
@@ -187,6 +248,28 @@ export namespace fan::graphics::editor {
       while (iterator.iterate(shape_object, &shape)) {
         shape.set_camera(fgm.render_view.camera);
         shape.set_viewport(fgm.render_view.viewport);
+
+        const auto shape_json = *(iterator.data.it - 1);
+        int final_material_type = 0;
+
+        if (shape_json.contains("material_id")) {
+          int m_id = shape_json["material_id"].get<int>();
+          if (materials.contains(m_id)) {
+            const auto& mat = materials[m_id];
+            shape.set_color(mat.color);
+            if (!mat.images.empty() && mat.images.is_array() && mat.images.size() > 0) {
+              if (mat.images[0].contains("image_path")) {
+                shape.get_image_data().image_path = mat.images[0]["image_path"].get<std::string>();
+              }
+            }
+            final_material_type = mat.material_type;
+          }
+        } else {
+          if (shape_json.contains("material_type")) {
+            final_material_type = shape_json["material_type"].get<int>();
+          }
+        }
+
         fgm.current_z = std::max(fgm.current_z, shape.get_position().z);
         auto& node = fgm.shape_list.emplace_back();
         
@@ -216,13 +299,12 @@ export namespace fan::graphics::editor {
         }
 
         if (!is_object) {
-          const auto shape_json = *(iterator.data.it - 1);
           if (shape_json.contains("id")) node->id = shape_json["id"].get<std::string>();
           if (shape_json.contains("group_id")) node->group_id = shape_json["group_id"].get<uint32_t>();
           if (shape_json.contains("physics")) {
             node->physics.from_json(shape_json["physics"]);
           }
-          if (shape_json.contains("material_type") && shape_json["material_type"].get<int>() == 1) {
+          if (final_material_type == 1) {
             node->original_image = node->children[0].get_image();
             node->material_type = 1;
             node->children[0].set_image(fgm.white_texture);

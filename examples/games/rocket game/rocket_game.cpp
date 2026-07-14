@@ -1,14 +1,22 @@
 import std;
 import fan;
+import fan.graphics.scene;
+import fan.physics.vehicle_controller;
 
 using namespace fan::graphics;
 
 enum class game_state_e { menu, playing, win, game_over };
 
+struct a_t {
+  a_t() {
+    fan::memory::heap_profiler_t::instance().enabled = true;
+  }
+}a;
+
 struct rocket_game_t : engine_t, fan::frame_task_t<rocket_game_t> {
   struct game_stage_t : fan::stage_t<game_stage_t> {
     struct config {
-      static constexpr f32_t safe_landing_speed = 400.f;
+      static constexpr f32_t safe_landing_speed = 450.f;
       static constexpr f32_t safe_landing_angle = 0.5f;
       static constexpr f32_t landing_duration = 1.f;
       static constexpr f32_t thrust_power = 15.f;
@@ -18,47 +26,43 @@ struct rocket_game_t : engine_t, fan::frame_task_t<rocket_game_t> {
     void open(void* data) {
       state = (data && *(bool*)data) ? game_state_e::menu : game_state_e::playing;
       fan::vec2 view_size = pile.viewport_get_size();
+      pile.camera_set_ortho(pile.orthographic_render_view.camera, fan::vec2(-view_size.x / 2.f, view_size.x / 2.f), fan::vec2(-view_size.y / 2.f, view_size.y / 2.f));
 
-      std::string json_str;
-      if (fan::io::file::read("map0.json", &json_str)) {
-        fan::json map_data = fan::json::parse(json_str);
-        fan::graphics::shape_deserialize_t iterator;
-        fan::graphics::shape_t shape;
-        while (iterator.iterate(map_data["shapes"], &shape)) {
-          fan::vec2 pos = shape.get_position().xy(), size = shape.get_size();
-          if (iterator.current_json->value("id", "") == "landing_pad") {
-            pad_shape = {fan::vec3(pos, 3500), size, fan::colors::transparent, fan::physics::body_type_e::static_body};
-            fan::vec3 p = pad_shape.get_position();
-            pad_visual = {fan::vec3(p.x, p.y, 2500), fan::vec2(size.x * 1.2f, size.y * 0.4f), fan::color(0.3f, 0.5f, 0.3f, 0.8f)};
-            pad_stripe = {fan::vec3(p.x, p.y - 2.f, 2501), fan::vec2(size.x * 0.8f, size.y * 0.2f), fan::color(1.f, 1.f, 1.f, 0.3f)};
-            pad_light = {fan::vec3(p.x, p.y + 2.f, 2499), 6.f, fan::color(0.5f, 1.f, 0.5f, 0.2f)};
-          } else {
-            terrain_shapes.emplace_back(physics::rectangle_t{fan::vec3(pos, 4000), size, shape.get_color(), fan::physics::body_type_e::static_body});
-          }
-        }
-      }
-
-      fan::vec2 start_pos = pad_shape.is_valid() ? fan::vec2(pad_shape.get_position().x, pad_shape.get_position().y - 1200.f) : fan::vec2(view_size.x / 2.f, view_size.y * 0.1f);
-      rocket_shape = physics::capsule_t{fan::vec3(start_pos, 4000), fan::vec2(0, -15), fan::vec2(0, 15), 15.f, fan::colors::transparent, state == game_state_e::menu ? fan::physics::body_type_e::static_body : fan::physics::body_type_e::dynamic_body};
+      scene.load("map0.json");
+      pad_shape = scene.get_physics_body<physics::sprite_t>("landing_pad");
+      fan::vec2 start_pos = pad_shape ? fan::vec2(pad_shape->get_position().x, pad_shape->get_position().y - 1200.f) : fan::vec2(0.f, -view_size.y * 0.4f);
+      rocket_shape = physics::capsule_t{fan::vec3(start_pos, 4000), fan::vec2(0, -15), fan::vec2(0, 15), 15.f, fan::color(0.85f, 0.88f, 0.92f, 1.f) / 5.f, state == game_state_e::menu ? fan::physics::body_type_e::static_body : fan::physics::body_type_e::dynamic_body};
       
-      ship_body = capsule_t{fan::vec3(start_pos, 5000), fan::vec2(0, -15), fan::vec2(0, 15), 15.f, fan::color(0.85f, 0.88f, 0.92f, 1.f) / 5.f};
-      ship_window = circle_t{ship_body.get_position() + fan::vec3(0, -8, 10), 7.f, fan::color(0.3f, 0.7f, 1.f, 1.f)};
-      ship_nozzle = rectangle_t{ship_body.get_position() + fan::vec3(0, 30, -10), fan::vec2(14.f, 6.f), fan::color(0.25f, 0.25f, 0.28f, 1.f)};
-      ship_body.set_dynamic(); ship_window.set_dynamic(); ship_nozzle.set_dynamic();
-      ship_body.add_child(ship_window); ship_body.add_child(ship_nozzle);
+      ship_window = circle_t{rocket_shape.get_position() + fan::vec3(0, -8, 10), 7.f, fan::color(0.3f, 0.7f, 1.f, 1.f)};
+      ship_nozzle = rectangle_t{rocket_shape.get_position() + fan::vec3(0, 30, -10), fan::vec2(14.f, 6.f), fan::color(0.25f, 0.25f, 0.28f, 1.f)};
+      rocket_shape.add_child(ship_window); 
+      rocket_shape.add_child(ship_nozzle);
 
-      auto handle_impact = [&](fan::physics::entity_t other, f32_t speed = 0.f) {
+      rocket_controller.bind(&rocket_shape);
+
+      auto handle_impact = [this](fan::physics::entity_t other, f32_t speed = 0.f) {
         if (state != game_state_e::playing) return;
-        if (other == pad_shape && speed < config::safe_landing_speed && std::fmod(std::abs(rocket_shape.get_angle().z), fan::math::pi * 2.f) < config::safe_landing_angle) {
+        
+        bool is_pad = pad_shape && (other == *pad_shape);
+        f32_t angle = std::fmod(std::abs(rocket_shape.get_angle().z), fan::math::pi * 2.f);
+        
+        if (is_pad && speed < config::safe_landing_speed && angle < config::safe_landing_angle) {
           is_landing = true; landing_timer = config::landing_duration; return;
         }
+
+        fan::print("CRASH DETECTED!");
+        fan::print("pad_shape exists?", pad_shape != nullptr);
+        fan::print("Hit the pad?", is_pad);
+        fan::print("Impact Speed:", speed, " (Safe Limit:", config::safe_landing_speed, ")");
+        fan::print("Impact Angle:", angle, " (Safe Limit:", config::safe_landing_angle, ")");
+        
         particles.spawn_explosion(rocket_shape.get_position(), fan::colors::orange, 200, particle_image);
         state = game_state_e::game_over; rocket_shape.set_body_type(fan::physics::body_type_e::static_body);
       };
 
-      collision_scope.on_enter(rocket_shape, [&](fan::physics::entity_t other) { handle_impact(other); });
+      collision_scope.on_enter(rocket_shape, [handle_impact](fan::physics::entity_t other) { handle_impact(other, 0.f); });
       collision_scope.on_hit(rocket_shape, handle_impact);
-      collision_scope.on_exit(rocket_shape, [&](fan::physics::entity_t other) { if (state == game_state_e::playing && other == pad_shape) is_landing = false; });
+      collision_scope.on_exit(rocket_shape, [this](fan::physics::entity_t other) { if (state == game_state_e::playing && pad_shape && other == *pad_shape) is_landing = false; });
       pile.camera_follow(rocket_shape.get_position());
     }
 
@@ -101,8 +105,6 @@ struct rocket_game_t : engine_t, fan::frame_task_t<rocket_game_t> {
       f32_t dt = pile.get_delta_time();
       if (rocket_shape.is_valid()) {
         pile.camera_set_center(rocket_shape.get_position().xy());
-        ship_body.set_position(fan::vec3(rocket_shape.get_position().xy(), 5000));
-        ship_body.set_angle(fan::vec3(0, 0, rocket_shape.get_angle().z));
       }
 
       if (state == game_state_e::playing) {
@@ -116,12 +118,12 @@ struct rocket_game_t : engine_t, fan::frame_task_t<rocket_game_t> {
         }
 
         fan::vec2 input = pile.get_input_vector();
-        rocket_shape.set_angular_velocity(input.x * config::turn_speed);
+        rocket_controller.apply_turn(input.x * config::turn_speed);
+
         if (input.y < 0.f) {
-          fan::vec2 dir(std::sin(rocket_shape.get_angle().z), -std::cos(rocket_shape.get_angle().z));
-          rocket_shape.apply_linear_impulse_center(dir * config::thrust_power * rocket_shape.get_mass() * dt);
-          if (int fc = (fire_accumulator += dt * 180.f); fc > 0) { particles.spawn_fire(rocket_shape.get_position() - fan::vec3(dir * 35.f, 0), fc, fire_image); fire_accumulator -= fc; }
-          if (int sc = (smoke_accumulator += dt * 60.f); sc > 0) { particles.spawn_smoke(rocket_shape.get_position() - fan::vec3(dir * 35.f, 0), sc, particle_image); smoke_accumulator -= sc; }
+          rocket_controller.apply_thrust(config::thrust_power, dt);
+          if (int fc = (fire_accumulator += dt * 180.f); fc > 0) { particles.spawn_fire(rocket_controller.get_thrust_position(35.f), fc, fire_image); fire_accumulator -= fc; }
+          if (int sc = (smoke_accumulator += dt * 60.f); sc > 0) { particles.spawn_smoke(rocket_controller.get_thrust_position(35.f), sc, particle_image); smoke_accumulator -= sc; }
         }
       }
 
@@ -135,11 +137,12 @@ struct rocket_game_t : engine_t, fan::frame_task_t<rocket_game_t> {
 
     gradient_t sky{fan::vec3(0.f, 0.f, 0), fan::vec2(100000.f, 100000.f), {fan::color(0.005f, 0.005f, 0.02f, 1.f), fan::color(0.005f, 0.005f, 0.02f, 1.f), fan::color(0.02f, 0.05f, 0.15f, 1.f), fan::color(0.15f, 0.08f, 0.12f, 1.f)}};
 
-    std::vector<physics::rectangle_t> terrain_shapes;
-    physics::rectangle_t pad_shape; rectangle_t pad_visual; rectangle_t pad_stripe; circle_t pad_light;
+    fan::graphics::scene_t scene;
+    physics::sprite_t* pad_shape = nullptr;
 
     physics::capsule_t rocket_shape;
-    capsule_t ship_body; circle_t ship_window; rectangle_t ship_nozzle;
+    circle_t ship_window; rectangle_t ship_nozzle;
+    fan::physics::vehicle_controller_t rocket_controller;
     
     gpu_particle_system_t<> particles;
     image_t particle_image{"images/smoke.webp"}; image_t fire_image{"images/circle.png"};
