@@ -151,6 +151,7 @@ export namespace fan::graphics::editor {
       physics_bodies.clear();
       segment_bodies.clear();
       segment_drag_idx = -1;
+      segment_drag_shape = nullptr;
       close_cb();
       shape_original_json.clear();
       is_playing = false;
@@ -214,6 +215,9 @@ export namespace fan::graphics::editor {
         if (shape_instance->children.size() <= 1) node_flags |= gui::tree_node_flags_leaf;
 
         std::string_view shape_name = shape_instance->children.empty() ? std::string_view("Node") : fan::graphics::shape_names[shape_instance->children[0].get_shape_type()];
+        if (shape_instance->physics.collision_shape == 1) {
+          shape_name = "Segment Collider";
+        }
         bool node_open = gui::tree_node_ex((void*)(std::intptr_t)idx, node_flags, "%.*s %ld", static_cast<int>(shape_name.length()), shape_name.data(), (intptr_t)idx);
 
         if (gui::is_item_clicked() && !gui::is_item_toggled_open()) {
@@ -310,35 +314,70 @@ export namespace fan::graphics::editor {
       viewport_settings.size = viewport_size;
       viewport_settings.start_pos = vMin;
 
-      if (!is_playing && current_shape && current_shape->physics.enabled && current_shape->physics.collision_shape == 1 && viewport_settings.editor_hovered) {
+      if (!is_playing && viewport_settings.editor_hovered) {
         fan::vec2 mouse_world_seg = viewport_t::get_mouse_position(viewport_settings, gui::get_mouse_pos(), zoom, fan::vec2(style.WindowPadding));
-        f32_t inv_sa = std::sin(-current_shape->children[0].get_angle().z);
-        f32_t inv_ca = std::cos(-current_shape->children[0].get_angle().z);
-        fan::vec2 delta = mouse_world_seg - fan::vec2(current_shape->get_position());
-        fan::vec2 local_mouse(inv_ca * delta.x - inv_sa * delta.y, inv_sa * delta.x + inv_ca * delta.y);
-        auto& pts = current_shape->physics.segment_points;
 
-        if (segment_drag_idx >= 0 && segment_drag_idx < (int)pts.size()) {
-          if (fan::window::is_mouse_down(fan::mouse_left)) {
-            pts[segment_drag_idx] = local_mouse;
+        if (segment_drag_idx >= 0 && segment_drag_shape != nullptr) {
+          f32_t inv_sa = std::sin(-segment_drag_shape->children[0].get_angle().z);
+          f32_t inv_ca = std::cos(-segment_drag_shape->children[0].get_angle().z);
+          fan::vec2 delta = mouse_world_seg - fan::vec2(segment_drag_shape->get_position());
+          fan::vec2 local_mouse(inv_ca * delta.x - inv_sa * delta.y, inv_sa * delta.x + inv_ca * delta.y);
+          auto& pts = segment_drag_shape->physics.segment_points;
+
+          if (segment_drag_idx < (int)pts.size()) {
+            if (fan::window::is_mouse_down(fan::mouse_left)) {
+              pts[segment_drag_idx] = local_mouse;
+            } else {
+              segment_drag_idx = -1;
+              segment_drag_shape = nullptr;
+            }
           } else {
             segment_drag_idx = -1;
+            segment_drag_shape = nullptr;
           }
         } else {
           segment_drag_idx = -1;
+          segment_drag_shape = nullptr;
           if (fan::window::is_mouse_clicked(fan::mouse_left) && selection.gizmo.active_handle == -1) {
-            int closest = -1;
-            f32_t closest_d = 12.f;
-            for (size_t i = 0; i < pts.size(); ++i) {
-              f32_t d = (pts[i] - local_mouse).length();
-              if (d < closest_d) { closest_d = d; closest = (int)i; }
+            int global_closest = -1;
+            f32_t global_closest_d = 12.f;
+            shapes_t::global_t* best_shape = nullptr;
+
+            for (auto& shape_ptr : shape_list) {
+              if (!shape_ptr->physics.enabled || shape_ptr->physics.collision_shape != 1) continue;
+              
+              f32_t inv_sa = std::sin(-shape_ptr->children[0].get_angle().z);
+              f32_t inv_ca = std::cos(-shape_ptr->children[0].get_angle().z);
+              fan::vec2 delta = mouse_world_seg - fan::vec2(shape_ptr->get_position());
+              fan::vec2 local_mouse(inv_ca * delta.x - inv_sa * delta.y, inv_sa * delta.x + inv_ca * delta.y);
+              auto& pts = shape_ptr->physics.segment_points;
+              
+              for (size_t i = 0; i < pts.size(); ++i) {
+                f32_t d = (pts[i] - local_mouse).length();
+                if (d < global_closest_d) { 
+                  global_closest_d = d; 
+                  global_closest = (int)i; 
+                  best_shape = shape_ptr.get();
+                }
+              }
             }
-            if (fan::window::is_key_down(fan::key_left_control) && closest >= 0) {
-              pts.erase(pts.begin() + closest);
-            } else if (closest >= 0) {
-              segment_drag_idx = closest;
-            } else {
-              pts.push_back(local_mouse);
+
+            if (best_shape) {
+              auto& pts = best_shape->physics.segment_points;
+              if (fan::window::is_key_down(fan::key_left_control)) {
+                pts.erase(pts.begin() + global_closest);
+              } else {
+                segment_drag_idx = global_closest;
+                segment_drag_shape = best_shape;
+              }
+            } else if (current_shape && current_shape->physics.enabled && current_shape->physics.collision_shape == 1) {
+              if (fan::window::is_key_down(fan::key_left_shift)) {
+                f32_t inv_sa = std::sin(-current_shape->children[0].get_angle().z);
+                f32_t inv_ca = std::cos(-current_shape->children[0].get_angle().z);
+                fan::vec2 delta = mouse_world_seg - fan::vec2(current_shape->get_position());
+                fan::vec2 local_mouse(inv_ca * delta.x - inv_sa * delta.y, inv_sa * delta.x + inv_ca * delta.y);
+                current_shape->physics.segment_points.push_back(local_mouse);
+              }
             }
           }
         }
@@ -434,7 +473,7 @@ export namespace fan::graphics::editor {
         }
       }
 
-      if (is_playing) {
+      { // Always draw segment colliders so they are visible even when not focused
         auto* dl = gui::get_window_draw_list();
         fan::vec2 viewport_center = viewport_settings.start_pos - fan::vec2(style.WindowPadding) + viewport_settings.size / 2.f;
         for (auto& ptr : shape_list) {
@@ -823,6 +862,24 @@ export namespace fan::graphics::editor {
       }
       std::sort(indices.begin(), indices.end(), std::greater<>());
       for (size_t i : indices) {
+        if (is_playing && shape_list[i]->physics.enabled) {
+          int bi = 0, si = 0;
+          for (size_t k = 0; k < i; ++k) {
+            if (!shape_list[k]->physics.enabled) continue;
+            if (shape_list[k]->physics.collision_shape == 1) si++;
+            else bi++;
+          }
+          if (shape_list[i]->physics.collision_shape == 1) {
+            if (si < segment_bodies.size()) {
+              segment_bodies[si].entity.destroy();
+              segment_bodies.erase(segment_bodies.begin() + si);
+            }
+          } else {
+            if (bi < physics_bodies.size()) {
+              physics_bodies.erase(physics_bodies.begin() + bi);
+            }
+          }
+        }
         shape_list.erase(shape_list.begin() + i);
       }
       selection.objects.clear();
@@ -865,6 +922,7 @@ export namespace fan::graphics::editor {
     std::vector<std::unique_ptr<fan::graphics::physics::base_shape_t>> physics_bodies;
     std::vector<segment_body_t> segment_bodies;
     int segment_drag_idx = -1;
+    shapes_t::global_t* segment_drag_shape = nullptr;
     std::function<void(bool enabled, void* render_view)> saved_fgm_debug_cb;
   };
 }
