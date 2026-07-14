@@ -1020,7 +1020,7 @@ void fan::vulkan::context_t::create_buffer(VkDeviceSize size, VkBufferUsageFlags
         VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT);
   }
 
-  fan::vulkan::validate(vmaCreateBuffer(allocator, &buffer_info, &allocation_create_info, &buffer, &allocation, allocation_info));
+  fan::vulkan::validate(fan::vulkan::vma_create_buffer(allocator, &buffer_info, &allocation_create_info, &buffer, &allocation, allocation_info));
 }
 
 void fan::vulkan::context_t::create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, buffer_t& buffer, VmaAllocationInfo* allocation_info) {
@@ -1029,7 +1029,7 @@ void fan::vulkan::context_t::create_buffer(VkDeviceSize size, VkBufferUsageFlags
 }
 void fan::vulkan::context_t::destroy_buffer(VkBuffer& buffer, VmaAllocation& allocation) {
   if (buffer != VK_NULL_HANDLE) {
-    vmaDestroyBuffer(allocator, buffer, allocation);
+    fan::vulkan::vma_destroy_buffer(allocator, buffer, allocation);
     buffer = VK_NULL_HANDLE;
     allocation = VK_NULL_HANDLE;
   }
@@ -1169,7 +1169,7 @@ void fan::vulkan::context_t::upload_to_buffer(VkBuffer dest_buffer, const void* 
 
   get_current_deletion_queue().push_function([=]() {
       if (alloc.is_spilled) {
-          vmaDestroyBuffer(allocator_handle, alloc.buffer, alloc.fallback_allocation);
+          fan::vulkan::vma_destroy_buffer(allocator_handle, alloc.buffer, alloc.fallback_allocation);
       } else {
           ring_ptr->advance_tail(captured_head);
       }

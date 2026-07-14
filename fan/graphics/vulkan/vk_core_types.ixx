@@ -52,6 +52,62 @@ export struct uniform_buffer_object_t {
 
 export namespace fan {
   namespace vulkan {
+
+    inline VkResult vma_create_buffer(VmaAllocator allocator, const VkBufferCreateInfo* pBufferCreateInfo, const VmaAllocationCreateInfo* pAllocationCreateInfo, VkBuffer* pBuffer, VmaAllocation* pAllocation, VmaAllocationInfo* pAllocationInfo) {
+      VkResult res = vmaCreateBuffer(allocator, pBufferCreateInfo, pAllocationCreateInfo, pBuffer, pAllocation, pAllocationInfo);
+      if (res == VK_SUCCESS) {
+        if (pAllocationInfo) {
+          fan::memory::heap_profiler_t::instance().track_allocation((void*)*pAllocation, pAllocationInfo->size);
+        } else {
+          VmaAllocationInfo info;
+          vmaGetAllocationInfo(allocator, *pAllocation, &info);
+          fan::memory::heap_profiler_t::instance().track_allocation((void*)*pAllocation, info.size);
+        }
+      }
+      return res;
+    }
+
+    inline VkResult vma_create_buffer_with_alignment(VmaAllocator allocator, const VkBufferCreateInfo* pBufferCreateInfo, const VmaAllocationCreateInfo* pAllocationCreateInfo, VkDeviceSize minAlignment, VkBuffer* pBuffer, VmaAllocation* pAllocation, VmaAllocationInfo* pAllocationInfo) {
+      VkResult res = vmaCreateBufferWithAlignment(allocator, pBufferCreateInfo, pAllocationCreateInfo, minAlignment, pBuffer, pAllocation, pAllocationInfo);
+      if (res == VK_SUCCESS) {
+        if (pAllocationInfo) {
+          fan::memory::heap_profiler_t::instance().track_allocation((void*)*pAllocation, pAllocationInfo->size);
+        } else {
+          VmaAllocationInfo info;
+          vmaGetAllocationInfo(allocator, *pAllocation, &info);
+          fan::memory::heap_profiler_t::instance().track_allocation((void*)*pAllocation, info.size);
+        }
+      }
+      return res;
+    }
+
+    inline void vma_destroy_buffer(VmaAllocator allocator, VkBuffer buffer, VmaAllocation allocation) {
+      if (allocation) {
+        fan::memory::heap_profiler_t::instance().untrack_allocation((void*)allocation);
+      }
+      vmaDestroyBuffer(allocator, buffer, allocation);
+    }
+
+    inline VkResult vma_create_image(VmaAllocator allocator, const VkImageCreateInfo* pImageCreateInfo, const VmaAllocationCreateInfo* pAllocationCreateInfo, VkImage* pImage, VmaAllocation* pAllocation, VmaAllocationInfo* pAllocationInfo) {
+      VkResult res = vmaCreateImage(allocator, pImageCreateInfo, pAllocationCreateInfo, pImage, pAllocation, pAllocationInfo);
+      if (res == VK_SUCCESS) {
+        if (pAllocationInfo) {
+          fan::memory::heap_profiler_t::instance().track_allocation((void*)*pAllocation, pAllocationInfo->size);
+        } else {
+          VmaAllocationInfo info;
+          vmaGetAllocationInfo(allocator, *pAllocation, &info);
+          fan::memory::heap_profiler_t::instance().track_allocation((void*)*pAllocation, info.size);
+        }
+      }
+      return res;
+    }
+
+    inline void vma_destroy_image(VmaAllocator allocator, VkImage image, VmaAllocation allocation) {
+      if (allocation) {
+        fan::memory::heap_profiler_t::instance().untrack_allocation((void*)allocation);
+      }
+      vmaDestroyImage(allocator, image, allocation);
+    }
     struct context_t;
 
     struct view_projection_t {
@@ -86,13 +142,13 @@ export namespace fan {
 
       void push_buffer(VmaAllocator allocator, VkBuffer buffer, VmaAllocation allocation) {
         push_function([=]() {
-          vmaDestroyBuffer(allocator, buffer, allocation);
+          fan::vulkan::vma_destroy_buffer(allocator, buffer, allocation);
         });
       }
 
       void push_image(VmaAllocator allocator, VkImage image, VmaAllocation allocation) {
         push_function([=]() {
-          vmaDestroyImage(allocator, image, allocation);
+          fan::vulkan::vma_destroy_image(allocator, image, allocation);
         });
       }
 
@@ -138,7 +194,7 @@ export namespace fan {
 
       void destroy() {
         if (buffer) {
-          vmaDestroyBuffer(allocator, buffer, allocation);
+          fan::vulkan::vma_destroy_buffer(allocator, buffer, allocation);
           buffer = VK_NULL_HANDLE;
         }
       }
@@ -168,7 +224,7 @@ export namespace fan {
         VkBuffer fallback_buf;
         VmaAllocation fallback_alloc;
         VmaAllocationInfo info;
-        vmaCreateBuffer(allocator, &buffer_info, &alloc_info, &fallback_buf, &fallback_alloc, &info);
+        fan::vulkan::vma_create_buffer(allocator, &buffer_info, &alloc_info, &fallback_buf, &fallback_alloc, &info);
 
         return allocation_t{
           .buffer = fallback_buf,
