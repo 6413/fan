@@ -47,7 +47,7 @@ void fan::vulkan::staging_ring_buffer_t::init(VkDevice device, VmaAllocator allo
     .usage = VMA_MEMORY_USAGE_AUTO
   };
 
-  vmaCreateBuffer(allocator, &buffer_info, &alloc_info, &buffer, &allocation, &alloc_info_out);
+  fan::vulkan::vma_create_buffer(allocator, &buffer_info, &alloc_info, &buffer, &allocation, &alloc_info_out);
 }
 
 fan::vulkan::staging_ring_buffer_t::allocation_t fan::vulkan::staging_ring_buffer_t::allocate(VkDeviceSize size, VkDeviceSize alignment) {

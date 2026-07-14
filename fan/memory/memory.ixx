@@ -55,6 +55,8 @@ export namespace fan::memory {
     void* allocate_memory(std::size_t n);
     void* reallocate_memory(void* ptr, std::size_t n);
     void deallocate_memory(void* p);
+    void track_allocation(void* p, std::size_t n);
+    void untrack_allocation(void* p);
     void print_slowest_allocs(int top_count);
     
     heap_profiler_t() = default;

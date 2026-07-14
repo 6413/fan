@@ -9,7 +9,7 @@ enum class game_state_e { menu, playing, win, game_over };
 
 struct a_t {
   a_t() {
-    fan::memory::heap_profiler_t::instance().enabled = true;
+    //fan::memory::heap_profiler_t::instance().enabled = true;
   }
 }a;
 
@@ -151,7 +151,22 @@ struct rocket_game_t : engine_t, fan::frame_task_t<rocket_game_t> {
 
   rocket_game_t() {
     update_physics(true);
-    set_settings({.clear_color = fan::colors::black, .ambient_color = fan::colors::white, .mode = fan::graphics::post_process_mode_e::none, .bloom_strength = 1.0f, .bloom_threshold = 0.241f, .bloom_knee = 0.264f, .bloom_tint = fan::vec3(1.f, 1.f, 1.f), .bloom_filter_radius = 0.299f, .blur_amount = 0.049f, .blur_filter_radius = 0.027f, .blur_focus_enabled = false, .gamma = 1.0f, .exposure = 1.0f, .contrast = 1.0f});
+    set_settings({
+      .clear_color = fan::colors::black,
+      .ambient_color = fan::colors::white,
+      .mode = fan::graphics::post_process_mode_e::bloom_blur,
+      .bloom_strength = 1.0f,
+      .bloom_threshold = 0.241f,
+      .bloom_knee = 0.264f,
+      .bloom_tint = fan::vec3(1.f, 1.f, 1.f),
+      .bloom_filter_radius = 0.299f,
+      .blur_amount = 0.049f,
+      .blur_filter_radius = 0.027f,
+      .blur_focus_enabled = false,
+      .gamma    = 1.0f,
+      .exposure = 1.0f,
+      .contrast = 1.0f
+    });
     bool is_menu = true;
     stage_open<game_stage_t>(&is_menu);
   }

@@ -134,6 +134,59 @@ namespace fan::memory {
 
   thread_local bool is_inside_allocator = false;
 
+  void heap_profiler_t::track_allocation(void* p, std::size_t n) {
+    if (!enabled || is_inside_allocator) {
+      return;
+    }
+    is_inside_allocator = true;
+
+    {
+      std::lock_guard<std::mutex> lock(memory_mutex);
+
+      auto check_existing = memory_map.find(p);
+      if (check_existing != memory_map.end()) {
+        current_allocation_size -= check_existing->second.n;
+        memory_set.erase(check_existing->second);
+        memory_map.erase(check_existing);
+      }
+
+      memory_data_t md;
+      md.p = p;
+      md.n = n;
+      md.alloc_ns = 0; // Or passed via arg if we want, but fine for VMA
+    #if defined(fan_std23)
+      md.line_data = std::stacktrace::current(0, 20);
+    #endif
+
+      memory_map.insert(std::make_pair(p, md));
+      memory_set.insert(md);
+
+      current_allocation_size += n;
+    }
+
+    is_inside_allocator = false;
+  }
+
+  void heap_profiler_t::untrack_allocation(void* p) {
+    if (!enabled || is_inside_allocator || !p) {
+      return;
+    }
+    is_inside_allocator = true;
+
+    {
+      std::lock_guard<std::mutex> lock(memory_mutex);
+
+      auto found = memory_map.find(p);
+      if (found != memory_map.end()) {
+        current_allocation_size -= found->second.n;
+        memory_set.erase(found->second);
+        memory_map.erase(found);
+      }
+    }
+
+    is_inside_allocator = false;
+  }
+
   void* heap_profiler_t::allocate_memory(std::size_t n) {
     if (!enabled || is_inside_allocator) {
       return std::malloc(n);
@@ -148,35 +201,27 @@ namespace fan::memory {
 
     std::uint64_t elapsed = timer.elapsed();
 
+    is_inside_allocator = false;
+
     if (!p) {
-      is_inside_allocator = false;
       throw std::bad_alloc();
     }
-    {
+    
+    track_allocation(p, n);
+
+    // Update alloc_ns
+    if (enabled && !is_inside_allocator) {
+      is_inside_allocator = true;
       std::lock_guard<std::mutex> lock(memory_mutex);
-
-      auto check_existing = memory_map.find(p);
-      if (check_existing != memory_map.end()) {
-        current_allocation_size -= check_existing->second.n;
-        memory_set.erase(check_existing->second);
-        memory_map.erase(check_existing);
+      auto it = memory_map.find(p);
+      if (it != memory_map.end()) {
+        memory_set.erase(it->second);
+        it->second.alloc_ns = elapsed;
+        memory_set.insert(it->second);
       }
-
-      memory_data_t md;
-      md.p = p;
-      md.n = n;
-      md.alloc_ns = elapsed;
-    #if defined(fan_std23)
-      md.line_data = std::stacktrace::current(0, 20);
-    #endif
-
-      memory_map.insert(std::make_pair(p, md));
-      memory_set.insert(md);
-
-      current_allocation_size += n;
+      is_inside_allocator = false;
     }
 
-    is_inside_allocator = false;
     return p;
   }
 
@@ -249,21 +294,8 @@ namespace fan::memory {
       return;
     }
 
-    is_inside_allocator = true;
-
-    {
-      std::lock_guard<std::mutex> lock(memory_mutex);
-
-      auto found = memory_map.find(p);
-      if (found != memory_map.end()) {
-        current_allocation_size -= found->second.n;
-        memory_set.erase(found->second);
-        memory_map.erase(found);
-      }
-    }
-
+    untrack_allocation(p);
     std::free(p);
-    is_inside_allocator = false;
   }
 
   bool heap_profiler_t::compare_alloc_size_t::operator()(const memory_data_t& lhs, const memory_data_t& rhs) const {
