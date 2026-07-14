@@ -5,6 +5,31 @@ module;
 #endif
 
 #include <fan/utility.h>
+#include <new>
+
+namespace fan {
+  void* memory_profile_malloc_cb(std::size_t n);
+  void memory_profile_free_cb(void* ptr);
+}
+
+void* operator new(std::size_t size) {
+  return fan::memory_profile_malloc_cb(size);
+}
+void* operator new[](std::size_t size) {
+  return fan::memory_profile_malloc_cb(size);
+}
+void operator delete(void* ptr) noexcept {
+  fan::memory_profile_free_cb(ptr);
+}
+void operator delete[](void* ptr) noexcept {
+  fan::memory_profile_free_cb(ptr);
+}
+void operator delete(void* ptr, std::size_t) noexcept {
+  fan::memory_profile_free_cb(ptr);
+}
+void operator delete[](void* ptr, std::size_t) noexcept {
+  fan::memory_profile_free_cb(ptr);
+}
 
 module fan.memory;
 
@@ -107,13 +132,14 @@ namespace fan::memory {
     return memory_set;
   }
 
+  thread_local bool is_inside_allocator = false;
+
   void* heap_profiler_t::allocate_memory(std::size_t n) {
-    bool was_enabled = enabled;
-    if (!was_enabled) {
+    if (!enabled || is_inside_allocator) {
       return std::malloc(n);
     }
 
-    enabled = false;
+    is_inside_allocator = true;
 
     fan::time::timer timer;
     timer.start();
@@ -123,7 +149,7 @@ namespace fan::memory {
     std::uint64_t elapsed = timer.elapsed();
 
     if (!p) {
-      enabled = was_enabled;
+      is_inside_allocator = false;
       throw std::bad_alloc();
     }
     {
@@ -150,45 +176,40 @@ namespace fan::memory {
       current_allocation_size += n;
     }
 
-    enabled = was_enabled;
+    is_inside_allocator = false;
     return p;
   }
 
   void* heap_profiler_t::reallocate_memory(void* ptr, std::size_t n) {
-    bool was_enabled = enabled;
-
-    if (!was_enabled) {
+    if (!enabled || is_inside_allocator) {
       return std::realloc(ptr, n);
     }
 
-    enabled = false;
+    is_inside_allocator = true;
 
     fan::time::timer timer;
     timer.start();
 
-    void* new_ptr = nullptr;
+    void* new_ptr = std::realloc(ptr, n);
+
+    std::uint64_t elapsed = timer.elapsed();
+
+    if (!new_ptr) {
+      is_inside_allocator = false;
+      return nullptr;
+    }
 
     {
       std::lock_guard<std::mutex> lock(memory_mutex);
 
-      auto found = memory_map.find(ptr);
-      if (found == memory_map.end()) {
-        new_ptr = std::realloc(ptr, n);
-        enabled = was_enabled;
-        return new_ptr;
+      if (ptr) {
+        auto found = memory_map.find(ptr);
+        if (found != memory_map.end()) {
+          current_allocation_size -= found->second.n;
+          memory_set.erase(found->second);
+          memory_map.erase(found);
+        }
       }
-
-      new_ptr = std::realloc(ptr, n);
-      std::uint64_t elapsed = timer.elapsed();
-
-      if (!new_ptr) {
-        enabled = was_enabled;
-        return nullptr;
-      }
-
-      current_allocation_size -= found->second.n;
-      memory_set.erase(found->second);
-      memory_map.erase(found);
 
       if (new_ptr != ptr) {
         auto check_existing = memory_map.find(new_ptr);
@@ -214,7 +235,7 @@ namespace fan::memory {
       memory_set.insert(md);
     }
 
-    enabled = was_enabled;
+    is_inside_allocator = false;
     return new_ptr;
   }
 
@@ -223,14 +244,12 @@ namespace fan::memory {
       return;
     }
 
-    bool was_enabled = enabled;
-
-    if (!was_enabled) {
+    if (!enabled || is_inside_allocator) {
       std::free(p);
       return;
     }
 
-    enabled = false;
+    is_inside_allocator = true;
 
     {
       std::lock_guard<std::mutex> lock(memory_mutex);
@@ -244,7 +263,7 @@ namespace fan::memory {
     }
 
     std::free(p);
-    enabled = was_enabled;
+    is_inside_allocator = false;
   }
 
   bool heap_profiler_t::compare_alloc_size_t::operator()(const memory_data_t& lhs, const memory_data_t& rhs) const {

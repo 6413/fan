@@ -210,7 +210,7 @@ void fan::vulkan::context_t::destroy_vulkan_soft() {
 
 #if FAN_DEBUG >= fan_debug_high
   if (supports_validation_layers) {
-    DestroyDebugUtilsMessengerEXT(instance, debug_messenger, nullptr);
+    DestroyDebugUtilsMessengerEXT(instance, debug_messenger, &fan::vulkan::g_allocation_callbacks);
   }
 #endif
 }
@@ -244,15 +244,15 @@ void fan::vulkan::context_t::gui_close() {
     }
     vkDestroyPipelineCache(device, pipeline_cache, nullptr);
   }
-  vkDestroyDevice(device, nullptr);
-  vkDestroyInstance(instance, nullptr);
+  vkDestroyDevice(device, &fan::vulkan::g_allocation_callbacks);
+  vkDestroyInstance(instance, &fan::vulkan::g_allocation_callbacks);
 }
 
 void fan::vulkan::context_t::close() {
   vkDeviceWaitIdle(device);
 
   cleanup_swap_chain();
-  vkDestroySurfaceKHR(instance, surface, nullptr);
+  vkDestroySurfaceKHR(instance, surface, &fan::vulkan::g_allocation_callbacks);
 
   destroy_shape_resources();
   destroy_vulkan_soft();
@@ -275,8 +275,8 @@ void fan::vulkan::context_t::close() {
     vkDestroyPipelineCache(device, pipeline_cache, nullptr);
   }
 
-  vkDestroyDevice(device, nullptr);
-  vkDestroyInstance(instance, nullptr);
+  vkDestroyDevice(device, &fan::vulkan::g_allocation_callbacks);
+  vkDestroyInstance(instance, &fan::vulkan::g_allocation_callbacks);
 }
 void fan::vulkan::context_t::destroy_shape_resources() {
   {
@@ -469,7 +469,7 @@ void fan::vulkan::context_t::create_instance() {
 
 #endif
 
-  if (vkCreateInstance(&createInfo, nullptr, &instance) != VK_SUCCESS) {
+  if (vkCreateInstance(&createInfo, &fan::vulkan::g_allocation_callbacks, &instance) != VK_SUCCESS) {
     fan::throw_error("failed to create instance!");
   }
 }
@@ -492,13 +492,13 @@ void fan::vulkan::context_t::setup_debug_messenger() {
   VkDebugUtilsMessengerCreateInfoEXT createInfo;
   populate_debug_messenger_create_info(createInfo);
 
-  if (CreateDebugUtilsMessengerEXT(instance, &createInfo, nullptr, &debug_messenger) != VK_SUCCESS) {
+  if (CreateDebugUtilsMessengerEXT(instance, &createInfo, &fan::vulkan::g_allocation_callbacks, &debug_messenger) != VK_SUCCESS) {
     fan::throw_error("failed to set up debug messenger!");
   }
 }
 #if defined(loco_window)
 void fan::vulkan::context_t::create_surface(GLFWwindow* window) {
-  if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
+  if (glfwCreateWindowSurface(instance, window, &fan::vulkan::g_allocation_callbacks, &surface) != VK_SUCCESS) {
     fan::throw_error("failed to create window surface!");
   }
 }
@@ -659,7 +659,7 @@ void fan::vulkan::context_t::create_logical_device() {
   // -----------------------------
   // Create device
   // -----------------------------
-  VkResult r = vkCreateDevice(physical_device, &createInfo, nullptr, &device);
+  VkResult r = vkCreateDevice(physical_device, &createInfo, &fan::vulkan::g_allocation_callbacks, &device);
   if (r != VK_SUCCESS) {
     fan::print_error("vkCreateDevice failed with code:", (int)r);
     fan::throw_error("failed to create logical device");
@@ -986,6 +986,7 @@ void fan::vulkan::context_t::create_allocator() {
   allocator_info.device = device;
   allocator_info.instance = instance;
   allocator_info.vulkanApiVersion = VK_API_VERSION_1_2;
+  allocator_info.pAllocationCallbacks = &fan::vulkan::g_allocation_callbacks;
   fan::vulkan::validate(vmaCreateAllocator(&allocator_info, &allocator));
 
   staging_ring_buffer.init(device, allocator, 32 * 1024 * 1024);

@@ -1555,7 +1555,7 @@ void loco_t::process_gui() {
   if (gui.render_debug_memory) {
     ::gui::set_next_window_bg_alpha(0.99f);
     ::gui::window_flags_t window_flags = ::gui::window_flags_no_title_bar | ::gui::window_flags_topmost;
-    ::gui::set_next_window_size(fan::vec2(600, 300), ::gui::cond_once);
+    ::gui::set_next_window_size(fan::vec2(950, 750), ::gui::cond_once);
     ::gui::begin("fan_memory_dbg_wnd", nullptr, window_flags);
     ::gui::render_allocations_plot();
     ::gui::end();
@@ -2684,6 +2684,64 @@ namespace fan::graphics::gui {
 
     if (used_MB != -1) { ::gui::text("VRAM used memory", used_MB, " (MB)"); }
     if (total_mem_MB != -1) { ::gui::text("VRAM total memory", total_mem_MB, " (MB)"); }
+
+    VmaTotalStatistics stats;
+    vmaCalculateStatistics(gloco()->context.vk.allocator, &stats);
+    ::gui::text("VMA block overhead", (stats.total.statistics.blockBytes - stats.total.statistics.allocationBytes) / (1024 * 1024), " (MB)");
+    ::gui::text("VMA total block memory", stats.total.statistics.blockBytes / (1024 * 1024), " (MB)");
+    ::gui::text("VMA total alloc memory", stats.total.statistics.allocationBytes / (1024 * 1024), " (MB)");
+    ::gui::text("VMA block count", stats.total.statistics.blockCount);
+    ::gui::text("VMA alloc count", stats.total.statistics.allocationCount);
+
+    std::uint64_t tracked_ram_mb = profiler.current_allocation_size / 1e6;
+    std::uint64_t tracked_vram_mb = 0;
+
+    VkPhysicalDeviceMemoryProperties mem_props;
+    vkGetPhysicalDeviceMemoryProperties(gloco()->context.vk.physical_device, &mem_props);
+    for (uint32_t i = 0; i < mem_props.memoryTypeCount; i++) {
+      if (stats.memoryType[i].statistics.blockCount > 0) {
+        VkMemoryPropertyFlags flags = mem_props.memoryTypes[i].propertyFlags;
+        std::string flags_str = "";
+        if (flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) flags_str += "DL ";
+        if (flags & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) flags_str += "HV ";
+        if (flags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) flags_str += "HC ";
+        if (flags & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) flags_str += "CA ";
+
+        std::uint64_t block_mb = stats.memoryType[i].statistics.blockBytes / (1024 * 1024);
+        if (flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
+          tracked_vram_mb += block_mb;
+        } else {
+          tracked_ram_mb += block_mb;
+        }
+
+        std::string text = std::string("Type ") + std::to_string(i) + " [" + flags_str + "]" +
+          " | Blocks: " + std::to_string(stats.memoryType[i].statistics.blockCount) +
+          " | Allocs: " + std::to_string(stats.memoryType[i].statistics.allocationCount) +
+          " | Block: " + std::to_string(block_mb) + "MB" +
+          " | Alloc: " + std::to_string(stats.memoryType[i].statistics.allocationBytes / (1024 * 1024)) + "MB";
+        ::gui::text(text);
+      }
+    }
+
+    if (gloco()->context.vk.swap_chain_images.size()) {
+      VkMemoryRequirements req;
+      vkGetImageMemoryRequirements(gloco()->context.vk.device, gloco()->context.vk.swap_chain_images[0], &req);
+      std::uint64_t swapchain_mb = (req.size * gloco()->context.vk.swap_chain_images.size()) / (1024 * 1024);
+      ::gui::text("Swapchain memory", swapchain_mb, " (MB)");
+      tracked_vram_mb += swapchain_mb;
+    }
+
+    if (gloco()->context.vk.vai_depth.size() && gloco()->context.vk.vai_depth[0].image != VK_NULL_HANDLE) {
+      VkMemoryRequirements req_depth;
+      vkGetImageMemoryRequirements(gloco()->context.vk.device, gloco()->context.vk.vai_depth[0].image, &req_depth);
+      std::uint64_t depth_mb = (req_depth.size * gloco()->context.vk.vai_depth.size()) / (1024 * 1024);
+      ::gui::text("Depth memory", depth_mb, " (MB)");
+      tracked_vram_mb += depth_mb;
+    }
+
+    ::gui::text("---------------------------------");
+    ::gui::text("Tracked RAM", tracked_ram_mb, " (MB)");
+    ::gui::text("Tracked VRAM", tracked_vram_mb, " (MB)");
 
     fan::vec2 cursor_pos = ::gui::get_cursor_pos();
     fan::vec2 window_size = ::gui::get_window_size();
