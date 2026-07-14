@@ -1,0 +1,124 @@
+{
+  "shapes": [
+    {
+      "material_type": 1,
+      "physics": {
+        "body_type": 0,
+        "collision_shape": 0,
+        "enabled": true,
+        "friction": 0.20000000298023224,
+        "hitbox_size": [
+          1.0,
+          1.0
+        ],
+        "is_sensor": false,
+        "mass": 1.0,
+        "restitution": 0.0,
+        "segment_points": [],
+        "shape_type": 0
+      },
+      "position": [
+        0.0,
+        0.0,
+        1.0
+      ],
+      "shape": "sprite",
+      "size": [
+        1200.0,
+        48.0
+      ]
+    },
+    {
+      "material_type": 1,
+      "physics": {
+        "body_type": 0,
+        "collision_shape": 0,
+        "enabled": true,
+        "friction": 0.20000000298023224,
+        "hitbox_size": [
+          1.0,
+          1.0
+        ],
+        "is_sensor": false,
+        "mass": 1.0,
+        "restitution": 0.0,
+        "segment_points": [],
+        "shape_type": 0
+      },
+      "position": [
+        -1184.0,
+        -384.0,
+        2.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        432.0
+      ]
+    },
+    {
+      "material_type": 1,
+      "physics": {
+        "body_type": 0,
+        "collision_shape": 0,
+        "enabled": true,
+        "friction": 0.20000000298023224,
+        "hitbox_size": [
+          1.0,
+          1.0
+        ],
+        "is_sensor": false,
+        "mass": 1.0,
+        "restitution": 0.0,
+        "segment_points": [],
+        "shape_type": 0
+      },
+      "position": [
+        1184.0,
+        -384.0,
+        3.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        432.0
+      ]
+    },
+    {
+      "color": [
+        0.047355618327856064,
+        0.815276026725769,
+        0.021659472957253456,
+        1.0
+      ],
+      "id": "landing_pad",
+      "material_type": 1,
+      "physics": {
+        "body_type": 0,
+        "collision_shape": 0,
+        "enabled": true,
+        "friction": 0.20000000298023224,
+        "hitbox_size": [
+          1.0,
+          1.0
+        ],
+        "is_sensor": false,
+        "mass": 1.0,
+        "restitution": 0.0,
+        "segment_points": [],
+        "shape_type": 0
+      },
+      "position": [
+        0.0,
+        -64.0,
+        4.0
+      ],
+      "shape": "sprite",
+      "size": [
+        144.0,
+        16.0
+      ]
+    }
+  ],
+  "version": 1
+}

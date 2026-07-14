@@ -3805,11 +3805,13 @@ namespace fan::graphics {
       return 0;
     }
     if (json.type() == fan::json::value_t::object) {
+      current_json = &json;
       json_to_shape(json, shape, callers_path);
       was_object = true;
       return 1;
     }
     else {
+      current_json = &(*data.it);
       json_to_shape(*data.it, shape, callers_path);
       ++data.it;
     }
