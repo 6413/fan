@@ -1,7 +1,14 @@
 module;
 
+#include <fan/utility.h>
+
+//#define USE_SHADERC
+
 #if defined(fan_platform_windows)
-#define VK_USE_PLATFORM_WIN32_KHR
+  #if defined(USE_SHADERC)
+    #pragma comment (lib, "shaderc_combined_mt.lib")
+  #endif
+  #define VK_USE_PLATFORM_WIN32_KHR
 #elif defined(fan_platform_unix)
   #define VK_USE_PLATFORM_XLIB_KHR
 #endif
@@ -42,6 +49,7 @@ std::vector<std::uint32_t> fan::vulkan::shader_subsystem_t::compile_file(const s
   int kind,
   const std::string& source) 
 {
+#if defined(USE_SHADERC)
   shaderc::Compiler compiler;
   shaderc::CompileOptions options;
 
@@ -63,6 +71,10 @@ std::vector<std::uint32_t> fan::vulkan::shader_subsystem_t::compile_file(const s
   }
 
   return {module.cbegin(), module.cend()};
+#else
+  fan::throw_error("shaderc runtime compilation not available - build with USE_SHADERC");
+  return {};
+#endif
 }
 
 std::vector<std::uint32_t> fan::vulkan::shader_subsystem_t::load_or_compile(const std::string& source_name,

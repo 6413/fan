@@ -10,6 +10,8 @@ module;
   #if defined(FAN_NETWORK_HTTP_ENABLED) && \
     (defined(__clang__) || !defined(__GNUC__) || defined(FAN_NETWORK_ENABLE_CURL_ON_GCC))
     #define FAN_NETWORK_CURL_ENABLED
+    #pragma comment(lib, "libcurl.a")
+    #pragma comment(lib, "libcurl.dll.a")
   #endif
 #endif
 

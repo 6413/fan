@@ -1526,6 +1526,7 @@ export namespace fan::graphics {
     bool init = false;
     bool was_object = false;
   #if defined(FAN_JSON)
+    const fan::json* current_json = nullptr;
     bool iterate(const fan::json& json, fan::graphics::shapes::shape_t* shape, const std::source_location& callers_path = std::source_location::current());
   #endif
     bool iterate(const std::vector<std::uint8_t>& bin_data, fan::graphics::shapes::shape_t* shape);
