@@ -1,4 +1,19 @@
 module;
+
+#include <cstddef>
+namespace fan {
+  void* memory_profile_malloc_cb(std::size_t n);
+  void* memory_profile_realloc_cb(void* ptr, std::size_t n);
+  void memory_profile_free_cb(void* ptr);
+}
+
+#define STBI_MALLOC(sz)           fan::memory_profile_malloc_cb(sz)
+#define STBI_REALLOC(p,newsz)     fan::memory_profile_realloc_cb(p,newsz)
+#define STBI_FREE(p)              fan::memory_profile_free_cb(p)
+
+#define STBIR_MALLOC(size,c)      fan::memory_profile_malloc_cb(size)
+#define STBIR_FREE(ptr,c)         fan::memory_profile_free_cb(ptr)
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <fan/stb/stb_image.h>
 #define STB_IMAGE_WRITE_IMPLEMENTATION

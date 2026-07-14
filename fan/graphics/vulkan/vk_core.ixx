@@ -11,6 +11,8 @@ module;
 #define loco_window
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
+import fan.window;
+
 #if defined(fan_platform_windows)
   #define WIN32_LEAN_AND_MEAN
   #define NOMINMAX
@@ -63,6 +65,27 @@ import fan.graphics.common_context;
 #define __fan_internal_viewport_list (*fan::graphics::ctx().viewport_list)
 
 #define ENABLE_RAYTRACING_DEPENDENCIES
+
+export namespace fan::vulkan {
+  void* VKAPI_PTR vk_allocation_cb(void* pUserData, size_t size, size_t alignment, VkSystemAllocationScope allocationScope) {
+    return fan::memory_profile_malloc_cb(size);
+  }
+  void* VKAPI_PTR vk_reallocation_cb(void* pUserData, void* pOriginal, size_t size, size_t alignment, VkSystemAllocationScope allocationScope) {
+    return fan::memory_profile_realloc_cb(pOriginal, size);
+  }
+  void VKAPI_PTR vk_free_cb(void* pUserData, void* pMemory) {
+    fan::memory_profile_free_cb(pMemory);
+  }
+
+  VkAllocationCallbacks g_allocation_callbacks = {
+    .pUserData = nullptr,
+    .pfnAllocation = vk_allocation_cb,
+    .pfnReallocation = vk_reallocation_cb,
+    .pfnFree = vk_free_cb,
+    .pfnInternalAllocation = nullptr,
+    .pfnInternalFree = nullptr
+  };
+}
 
 inline constexpr auto validationLayers = std::to_array<const char*>({
   "VK_LAYER_KHRONOS_validation"
