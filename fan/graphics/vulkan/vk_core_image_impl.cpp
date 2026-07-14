@@ -331,11 +331,11 @@ void fan::vulkan::context_t::image_erase(fan::graphics::image_nr_t nr, int recyc
     #endif
     if (sampler != VK_NULL_HANDLE) vkDestroySampler(dev, sampler, nullptr);
     if (view != VK_NULL_HANDLE) vkDestroyImageView(dev, view, nullptr);
-    if (image != VK_NULL_HANDLE) vmaDestroyImage(alloc, image, alloc_handle);
+    if (image != VK_NULL_HANDLE) fan::vulkan::vma_destroy_image(alloc, image, alloc_handle);
     if (staging_buf != VK_NULL_HANDLE) {
         // You would need to make sure destroy_buffer logic is accessible here
         // or just use vmaDestroyBuffer directly
-        vmaDestroyBuffer(alloc, staging_buf, staging_alloc);
+        fan::vulkan::vma_destroy_buffer(alloc, staging_buf, staging_alloc);
     }
   };
 
@@ -469,7 +469,7 @@ fan::graphics::image_nr_t fan::vulkan::context_t::image_load(const fan::image::i
 
   get_current_deletion_queue().push_function([=]() {
     if (alloc.is_spilled) {
-      vmaDestroyBuffer(allocator_handle, alloc.buffer, alloc.fallback_allocation);
+      fan::vulkan::vma_destroy_buffer(allocator_handle, alloc.buffer, alloc.fallback_allocation);
     } else {
       ring_ptr->advance_tail(captured_head);
     }
@@ -658,7 +658,7 @@ void fan::vulkan::context_t::process_async_image_uploads() {
 
       get_current_deletion_queue().push_function([=]() {
         if (alloc.is_spilled) {
-          vmaDestroyBuffer(allocator_handle, alloc.buffer, alloc.fallback_allocation);
+          fan::vulkan::vma_destroy_buffer(allocator_handle, alloc.buffer, alloc.fallback_allocation);
         } else {
           ring_ptr->advance_tail(captured_head);
         }
@@ -749,7 +749,7 @@ void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, const fa
 #endif
       if (sampler != VK_NULL_HANDLE) vkDestroySampler(dev, sampler, nullptr);
       if (view != VK_NULL_HANDLE) vkDestroyImageView(dev, view, nullptr);
-      if (img != VK_NULL_HANDLE) vmaDestroyImage(alloc, img, alloc_handle);
+      if (img != VK_NULL_HANDLE) fan::vulkan::vma_destroy_image(alloc, img, alloc_handle);
     });
 
 #if defined(FAN_GUI)
@@ -942,7 +942,7 @@ void fan::vulkan::image_create(
   VmaAllocationCreateInfo allocation_info{};
   allocation_info.usage = VMA_MEMORY_USAGE_AUTO;
   allocation_info.requiredFlags = properties;
-  if (vmaCreateImage(context.allocator, &imageInfo, &allocation_info, &image, &allocation, nullptr) != VK_SUCCESS) {
+  if (fan::vulkan::vma_create_image(context.allocator, &imageInfo, &allocation_info, &image, &allocation, nullptr) != VK_SUCCESS) {
     fan::throw_error("failed to create image!");
   }
 }
@@ -968,7 +968,7 @@ void fan::vulkan::vai_t::close(fan::vulkan::context_t& context) {
     image_view = 0;
   }
   if (image != 0) {
-    vmaDestroyImage(context.allocator, image, memory);
+    fan::vulkan::vma_destroy_image(context.allocator, image, memory);
     image = 0;
     memory = 0;
   }

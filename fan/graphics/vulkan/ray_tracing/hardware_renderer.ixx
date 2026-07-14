@@ -424,7 +424,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
         .size = aligned_size,
         .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
       };
-      vmaCreateBufferWithAlignment(ctx->allocator, &buf_ci, &alloc_ci, align,
+      fan::vulkan::vma_create_buffer_with_alignment(ctx->allocator, &buf_ci, &alloc_ci, align,
         &buffer.buffer, &buffer.allocation, nullptr);
       buffer.size = aligned_size;
     }
