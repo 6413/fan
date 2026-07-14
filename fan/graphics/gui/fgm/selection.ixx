@@ -40,7 +40,17 @@ export namespace fan::graphics::editor {
       fan::vec2 rect_min = p_min.min(p_max);
       fan::vec2 rect_max = p_min.max(p_max);
 
-      draw_list->AddRect(rect_min, rect_max, fan::color(1.f, 0.5f, 0.f, 1.f).get_gui_color(), 0.0f, 0, 2.0f);
+      bool all_segments = true;
+      for (auto* obj : objects) {
+        if (!obj->physics.enabled || obj->physics.collision_shape != 1) {
+          all_segments = false;
+          break;
+        }
+      }
+
+      if (!all_segments) {
+        draw_list->AddRect(rect_min, rect_max, fan::color(1.f, 0.5f, 0.f, 1.f).get_gui_color(), 0.0f, 0, 2.0f);
+      }
 
       gui::push_id("shape_drag");
       gui::set_cursor_screen_pos(rect_min);
@@ -53,32 +63,70 @@ export namespace fan::graphics::editor {
       if (gui::is_item_active()) {
         if (!is_dragging) {
           is_dragging = true;
-          multi_drag_start.clear();
-          multi_drag_start.reserve(objects.size());
-          for (auto* obj : objects) {
-            multi_drag_start.push_back(obj->get_position());
-          }
           drag_mouse_start = gui::get_mouse_pos();
-        }
-        fan::vec2 mouse_world_delta = (gui::get_mouse_pos() - drag_mouse_start) / zoom;
-
-        if (!fan::window::is_key_down(fan::key_left_shift) && snap > 0.0f) {
-          fan::vec2 first_target = fan::vec2(multi_drag_start[0]) + mouse_world_delta;
-          first_target.x = std::round(first_target.x / snap) * snap;
-          first_target.y = std::round(first_target.y / snap) * snap;
-          fan::vec2 snapped_delta = first_target - fan::vec2(objects[0]->get_position());
-          if (snapped_delta != fan::vec2(0)) {
+          if (fan::window::is_key_down(fan::key_left_alt) && objects.size() == 1) {
+            is_alt_resizing = true;
+            T& shape = *objects[0];
+            start_size = shape.get_size();
+            resize_anchor = shape.get_position(); // using resize_anchor as start_pos
+          } else {
+            is_alt_resizing = false;
+            multi_drag_start.clear();
+            multi_drag_start.reserve(objects.size());
             for (auto* obj : objects) {
-              obj->set_position(obj->get_position() + fan::vec3(snapped_delta, 0));
+              multi_drag_start.push_back(obj->get_position());
             }
           }
-        } else {
-          for (size_t i = 0; i < objects.size(); ++i) {
-            fan::vec2 new_pos = fan::vec2(multi_drag_start[i]) + mouse_world_delta;
-            objects[i]->set_position(fan::vec3(new_pos, objects[i]->get_position().z));
-          }
         }
-        changed = true;
+        
+        if (is_alt_resizing && objects.size() == 1) {
+          fan::vec2 mouse_world_delta = (gui::get_mouse_pos() - drag_mouse_start) / zoom;
+
+          if (snap > 0.0f && !fan::window::is_key_down(fan::key_left_shift)) {
+            mouse_world_delta.x = std::round(mouse_world_delta.x / snap) * snap;
+            mouse_world_delta.y = std::round(mouse_world_delta.y / snap) * snap;
+          }
+
+          fan::vec2 new_size = start_size + mouse_world_delta / 2.f;
+          fan::vec2 new_center = resize_anchor + mouse_world_delta / 2.f;
+
+          f32_t min_s = (snap > 0.0f && !fan::window::is_key_down(fan::key_left_shift)) ? snap / 2.f : 0.5f;
+
+          if (new_size.x < min_s) {
+            f32_t diff = min_s - new_size.x;
+            new_size.x = min_s;
+            new_center.x += diff;
+          }
+          if (new_size.y < min_s) {
+            f32_t diff = min_s - new_size.y;
+            new_size.y = min_s;
+            new_center.y += diff;
+          }
+
+          objects[0]->set_position(fan::vec3(new_center, objects[0]->get_position().z));
+          objects[0]->set_size(new_size);
+          changed = true;
+        } else {
+          fan::vec2 mouse_world_delta = (gui::get_mouse_pos() - drag_mouse_start) / zoom;
+  
+          if (!fan::window::is_key_down(fan::key_left_shift) && snap > 0.0f) {
+            fan::vec2 first_target = fan::vec2(multi_drag_start[0]) + mouse_world_delta;
+            first_target.x = std::round(first_target.x / snap) * snap;
+            first_target.y = std::round(first_target.y / snap) * snap;
+            fan::vec2 snapped_delta = first_target - fan::vec2(objects[0]->get_position());
+            if (snapped_delta != fan::vec2(0)) {
+              for (auto* obj : objects) {
+                obj->set_position(obj->get_position() + fan::vec3(snapped_delta, 0));
+              }
+            }
+          } else {
+            for (size_t i = 0; i < objects.size(); ++i) {
+              fan::vec2 new_pos = fan::vec2(multi_drag_start[i]) + mouse_world_delta;
+              objects[i]->set_position(fan::vec3(new_pos, objects[i]->get_position().z));
+            }
+          }
+          changed = true;
+        }
       }
       gui::pop_id();
 
@@ -87,7 +135,8 @@ export namespace fan::graphics::editor {
         fan::vec2 shape_pos = shape.get_position();
         fan::vec2 shape_size = shape.get_size();
 
-        for (int i = 0; i < handle_count; ++i) {
+        if (shape.physics.enabled == false || shape.physics.collision_shape != 1) {
+          for (int i = 0; i < handle_count; ++i) {
           gui::push_id(i);
           fan::vec2 screen_hp = ((shape_pos + shape_size * handle_dirs[i]) - camera_pos) * zoom + viewport_center;
           gui::set_cursor_screen_pos(screen_hp - handle_size);
@@ -145,6 +194,7 @@ export namespace fan::graphics::editor {
           }
           gui::pop_id();
         }
+        } // close if
       }
 
       if (!gui::is_any_item_active()) {
@@ -163,6 +213,7 @@ export namespace fan::graphics::editor {
     };
     int active_handle = -1;
     bool is_dragging = false;
+    bool is_alt_resizing = false;
     fan::vec2 drag_mouse_start;
     fan::vec2 resize_anchor;
     fan::vec2 start_size;
@@ -176,6 +227,8 @@ export namespace fan::graphics::editor {
       if (fgm.viewport_settings.editor_hovered && fan::window::is_mouse_clicked() && gizmo.active_handle == -1 && !gizmo.is_dragging) {
         drag_start = mouse_pos;
         bool ctrl = fan::window::is_key_down(fan::key_left_control);
+        bool shift = fan::window::is_key_down(fan::key_left_shift);
+        if (shift) return;
         bool hit_gizmo = false;
 
         if (!ctrl) {
@@ -217,8 +270,8 @@ export namespace fan::graphics::editor {
               moving_object = true;
             }
             if (fgm.current_shape) fgm.current_shape->disable_highlight();
-            fgm.current_shape = objects.back();
-            fgm.current_shape->enable_highlight();
+            fgm.current_shape = objects.empty() ? nullptr : objects.back();
+            if (fgm.current_shape) fgm.current_shape->enable_highlight();
           } else if (!ctrl) {
             for (auto& sel : objects) { sel->disable_highlight(); }
             objects.clear();
