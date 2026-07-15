@@ -7,44 +7,26 @@ module;
 #include <fan/utility.h>
 #include <new>
 
-namespace fan::memory {
-  struct heap_profiler_t {
-    static heap_profiler_t& instance();
-    void* allocate_memory(std::size_t n);
-    void* reallocate_memory(void* ptr, std::size_t n);
-    void deallocate_memory(void* p);
-  };
-}
-
-namespace fan {
-  void* memory_profile_malloc_cb(std::size_t n) {
-    return fan::memory::heap_profiler_t::instance().allocate_memory(n);
-  }
-  void* memory_profile_realloc_cb(void* ptr, std::size_t n) {
-    return fan::memory::heap_profiler_t::instance().reallocate_memory(ptr, n);
-  }
-  void memory_profile_free_cb(void* ptr) {
-    fan::memory::heap_profiler_t::instance().deallocate_memory(ptr);
-  }
-}
+void* __fan_memory_profile_malloc_cb(std::size_t n);
+void __fan_memory_profile_free_cb(void* ptr);
 
 void* operator new(std::size_t size) {
-  return fan::memory_profile_malloc_cb(size);
+  return __fan_memory_profile_malloc_cb(size);
 }
 void* operator new[](std::size_t size) {
-  return fan::memory_profile_malloc_cb(size);
+  return __fan_memory_profile_malloc_cb(size);
 }
 void operator delete(void* ptr) noexcept {
-  fan::memory_profile_free_cb(ptr);
+  __fan_memory_profile_free_cb(ptr);
 }
 void operator delete[](void* ptr) noexcept {
-  fan::memory_profile_free_cb(ptr);
+  __fan_memory_profile_free_cb(ptr);
 }
 void operator delete(void* ptr, std::size_t) noexcept {
-  fan::memory_profile_free_cb(ptr);
+  __fan_memory_profile_free_cb(ptr);
 }
 void operator delete[](void* ptr, std::size_t) noexcept {
-  fan::memory_profile_free_cb(ptr);
+  __fan_memory_profile_free_cb(ptr);
 }
 
 module fan.memory;
@@ -377,4 +359,20 @@ namespace fan::memory {
     }
   }
 
+}
+
+void* __fan_memory_profile_malloc_cb(std::size_t n) {
+  return fan::memory::heap_profiler_t::instance().allocate_memory(n);
+}
+void* __fan_memory_profile_realloc_cb(void* ptr, std::size_t n) {
+  return fan::memory::heap_profiler_t::instance().reallocate_memory(ptr, n);
+}
+void __fan_memory_profile_free_cb(void* ptr) {
+  fan::memory::heap_profiler_t::instance().deallocate_memory(ptr);
+}
+
+namespace fan {
+  void* memory_profile_malloc_cb(std::size_t n) { return __fan_memory_profile_malloc_cb(n); }
+  void* memory_profile_realloc_cb(void* ptr, std::size_t n) { return __fan_memory_profile_realloc_cb(ptr, n); }
+  void memory_profile_free_cb(void* ptr) { __fan_memory_profile_free_cb(ptr); }
 }

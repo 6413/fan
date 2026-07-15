@@ -1311,7 +1311,7 @@ inline fan::stage_t<Derived>::stage_t(const stage_loader_t::stage_open_propertie
     outside->stage_common.update(outside);
   };
 
-  auto resize_id = gloco()->window.add_resize_callback([outside](const auto& d) {
+  auto resize_id = gloco()->window.add_resize_callback([](const auto& d) {
     std::printf("todo -- stage common window resize\n");
   });
   gstage->stage_list[stage_common.stage_id].resize_id = resize_id;
