@@ -81,41 +81,6 @@ struct library_usage_t {
         gloco()->get_input_action().remove("combo_test");
       }
     };
-    //-------------------------------------------------------------------
-    //-------------------------------------------------------------------
-    // Demonstrates interactive visual elements
-    struct vfi_interactive {
-      fan::graphics::rectangle_t rectangle;
-      fan::graphics::vfi_root_t vfi_root;
-
-      vfi_interactive() {
-        fan::graphics::vfi_t::properties_t vfip;
-        vfip.shape_type = fan::graphics::vfi_t::shape_t::rectangle;
-        vfip.shape.rectangle->position = fan::vec3(500, 500, 1);
-        vfip.shape.rectangle->size = fan::vec2(100, 100);
-        vfip.shape.rectangle->size.x /= 2; // hitbox takes half size
-        vfip.shape.rectangle->camera = gloco()->orthographic_render_view.camera;
-        vfip.shape.rectangle->viewport = gloco()->orthographic_render_view.viewport;
-
-        vfip.mouse_button_cb = [](const fan::graphics::vfi_t::mouse_button_data_t& data) -> int {
-          fan::print("Rectangle clicked.");
-          return 0;
-        };
-
-        rectangle = fan::graphics::rectangle_t{ {
-          .position = fan::vec3(*(fan::vec2*)&vfip.shape.rectangle->position, 0),
-          .size = vfip.shape.rectangle->size,
-          .color = fan::colors::red
-        } };
-
-        vfi_root.set_root(vfip);
-      }
-
-      void update() {
-        fan::graphics::gui::text("Click the red rectangle");
-      }
-    };
-    //-------------------------------------------------------------------
   };
   struct event {
     //-------------------------------------------------------------------
