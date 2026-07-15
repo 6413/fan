@@ -5,6 +5,7 @@ import std;
 import fan.types;
 import fan.types.vector;
 import fan.types.color;
+import fan.graphics.common_context;
 import fan.graphics.shapes;
 import fan.graphics.gui;
 
