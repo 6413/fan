@@ -5,6 +5,9 @@ import std;
 import fan.types;
 import fan.types.vector;
 import fan.types.color;
+#if defined(FAN_JSON)
+  import fan.types.json;
+#endif
 import fan.graphics.common_context;
 import fan.graphics.shapes;
 import fan.graphics.gui;
@@ -76,6 +79,7 @@ export namespace fan::graphics::editor {
         f32_t restitution = 0.0f;
         std::vector<fan::vec2> segment_points;
 
+#if defined(FAN_JSON)
         fan::json to_json() const {
           fan::json p = fan::json::object();
           p["enabled"] = enabled;
@@ -110,6 +114,7 @@ export namespace fan::graphics::editor {
             }
           }
         }
+#endif
       } physics;
     };
   };
