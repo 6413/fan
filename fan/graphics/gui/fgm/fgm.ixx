@@ -898,7 +898,7 @@ export namespace fan::graphics::editor {
     shapes_t::global_t* current_shape = nullptr;
     std::vector<std::unique_ptr<shapes_t::global_t>> shape_list;
     f32_t current_z = 1;
-    uint32_t current_id = 0;
+    std::uint32_t current_id = 0;
     bool render_content_browser = true;
     std::function<void()> close_cb = []() {};
     viewport_settings_t viewport_settings;
