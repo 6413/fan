@@ -7,6 +7,8 @@ import fan.graphics.gui.base;
 import fan.graphics.loco;
 import fan.graphics.scene;
 import fan.graphics.material;
+import fan.graphics.shapes.types;
+import fan.texture_pack.tp0;
 import :fgm_types;
 
 export namespace fan::graphics::editor {
@@ -108,7 +110,7 @@ export namespace fan::graphics::editor {
             gui::text(fan::color(1.f, 0.8f, 0.f, 1.f), "Segment Edit Mode");
             gui::text("Segment Points");
             int rem = -1;
-            for (size_t i = 0; i < shape->physics.segment_points.size(); i++) {
+            for (std::size_t i = 0; i < shape->physics.segment_points.size(); i++) {
               gui::push_id((int)i);
               if (gui::button("X")) rem = (int)i;
               gui::same_line();
@@ -173,7 +175,7 @@ export namespace fan::graphics::editor {
                 shape->material_type = mat.material_type;
                 if (!mat.images.empty() && mat.images.is_array() && mat.images.size() > 0) {
                   if (mat.images[0].contains("image_path")) {
-                    shape->children[0].get_image_data().image_path = mat.images[0]["image_path"].get<std::string>();
+                    shape->children[0].get_image_data().image_path = mat.images[0]["image_path"].template get<std::string>();
                     fan::graphics::texture_pack::ti_t ti;
                     if (gloco()->texture_pack.qti(shape->children[0].get_image_data().image_path.c_str(), &ti) == 0) {
                       if (shape->children[0].get_shape_type() == fan::graphics::shapes::shape_type_t::sprite || shape->children[0].get_shape_type() == fan::graphics::shapes::shape_type_t::unlit_sprite) {
