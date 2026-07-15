@@ -209,7 +209,7 @@ local feature_modules = {
   FAN_FMT = { "fan/fmt.ixx" },
   FAN_NETWORK = { "fan/network/network.ixx", "fan/network/network_socket.ixx", "fan/graphics/2D/graphics_network.ixx" },
   FAN_AUDIO = { "fan/audio/audio.ixx" },
-  FAN_PHYSICS_2D = { "fan/physics/b2_integration.ixx", "fan/physics/physics_common_context.ixx", "fan/graphics/physics_shapes.ixx" },
+  FAN_PHYSICS_2D = { "fan/physics/b2_integration.ixx", "fan/physics/physics_common_context.ixx", "fan/graphics/physics_shapes.ixx", "fan/physics/vehicle_controller.ixx" },
   FAN_GUI = {
     "fan/graphics/gui/gui_base.ixx", "fan/graphics/gui/gui_input.ixx",
     "fan/graphics/gui/gui_types.ixx", "fan/graphics/gui/gui.ixx", "fan/graphics/gui/text_logger.ixx",
