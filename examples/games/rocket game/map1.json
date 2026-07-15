@@ -19,15 +19,14 @@
   "shapes": [
     {
       "id": "start_pad",
-      "color": [0.33, 0.22, 0.03, 1.0],
-      "material_type": 1,
+      "material_id": 2,
       "physics": {
         "body_type": 0, "collision_shape": 0, "enabled": true,
         "friction": 0.2, "hitbox_size": [1, 1],
         "is_sensor": false, "mass": 1, "restitution": 0,
         "segment_points": [], "shape_type": 0
       },
-      "position": [-280, -150, 1],
+      "position": [-200, -100, 1],
       "shape": "sprite",
       "size": [48, 16]
     },
@@ -39,7 +38,7 @@
         "is_sensor": false, "mass": 1, "restitution": 0,
         "segment_points": [], "shape_type": 0
       },
-      "position": [0, -150, 2],
+      "position": [0, -100, 2],
       "shape": "sprite",
       "size": [800, 32]
     },
@@ -51,9 +50,9 @@
         "is_sensor": false, "mass": 1, "restitution": 0,
         "segment_points": [], "shape_type": 0
       },
-      "position": [-350, -320, 3],
+      "position": [-350, -300, 3],
       "shape": "sprite",
-      "size": [32, 180]
+      "size": [32, 220]
     },
     {
       "material_id": 2,
@@ -63,9 +62,9 @@
         "is_sensor": false, "mass": 1, "restitution": 0,
         "segment_points": [], "shape_type": 0
       },
-      "position": [20, -310, 4],
+      "position": [0, -440, 4],
       "shape": "sprite",
-      "size": [300, 32]
+      "size": [320, 32]
     },
     {
       "material_id": 0,
@@ -75,9 +74,9 @@
         "is_sensor": false, "mass": 1, "restitution": 0,
         "segment_points": [], "shape_type": 0
       },
-      "position": [350, -490, 5],
+      "position": [350, -520, 5],
       "shape": "sprite",
-      "size": [32, 200]
+      "size": [32, 140]
     },
     {
       "material_id": 2,
@@ -87,9 +86,9 @@
         "is_sensor": false, "mass": 1, "restitution": 0,
         "segment_points": [], "shape_type": 0
       },
-      "position": [-120, -480, 6],
+      "position": [0, -620, 6],
       "shape": "sprite",
-      "size": [300, 32]
+      "size": [320, 32]
     },
     {
       "material_id": 0,
@@ -99,21 +98,9 @@
         "is_sensor": false, "mass": 1, "restitution": 0,
         "segment_points": [], "shape_type": 0
       },
-      "position": [-350, -660, 7],
+      "position": [-350, -700, 7],
       "shape": "sprite",
-      "size": [32, 200]
-    },
-    {
-      "material_id": 2,
-      "physics": {
-        "body_type": 0, "collision_shape": 0, "enabled": true,
-        "friction": 0.2, "hitbox_size": [1, 1],
-        "is_sensor": false, "mass": 1, "restitution": 0,
-        "segment_points": [], "shape_type": 0
-      },
-      "position": [20, -650, 8],
-      "shape": "sprite",
-      "size": [300, 32]
+      "size": [32, 140]
     },
     {
       "material_id": 0,
@@ -123,9 +110,33 @@
         "is_sensor": false, "mass": 1, "restitution": 0,
         "segment_points": [], "shape_type": 0
       },
-      "position": [0, -800, 9],
+      "position": [0, -790, 8],
       "shape": "sprite",
-      "size": [400, 32]
+      "size": [540, 32]
+    },
+    {
+      "material_id": 0,
+      "physics": {
+        "body_type": 0, "collision_shape": 0, "enabled": true,
+        "friction": 0.2, "hitbox_size": [1, 1],
+        "is_sensor": false, "mass": 1, "restitution": 0,
+        "segment_points": [], "shape_type": 0
+      },
+      "position": [-270, -790, 9],
+      "shape": "sprite",
+      "size": [32, 100]
+    },
+    {
+      "material_id": 0,
+      "physics": {
+        "body_type": 0, "collision_shape": 0, "enabled": true,
+        "friction": 0.2, "hitbox_size": [1, 1],
+        "is_sensor": false, "mass": 1, "restitution": 0,
+        "segment_points": [], "shape_type": 0
+      },
+      "position": [270, -790, 10],
+      "shape": "sprite",
+      "size": [32, 100]
     },
     {
       "id": "landing_pad",
@@ -136,7 +147,7 @@
         "is_sensor": false, "mass": 1, "restitution": 0,
         "segment_points": [], "shape_type": 0
       },
-      "position": [0, -800, 10],
+      "position": [0, -790, 11],
       "shape": "sprite",
       "size": [80, 16]
     }
