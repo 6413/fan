@@ -7,9 +7,25 @@ module;
 #include <fan/utility.h>
 #include <new>
 
+namespace fan::memory {
+  struct heap_profiler_t {
+    static heap_profiler_t& instance();
+    void* allocate_memory(std::size_t n);
+    void* reallocate_memory(void* ptr, std::size_t n);
+    void deallocate_memory(void* p);
+  };
+}
+
 namespace fan {
-  void* memory_profile_malloc_cb(std::size_t n);
-  void memory_profile_free_cb(void* ptr);
+  void* memory_profile_malloc_cb(std::size_t n) {
+    return fan::memory::heap_profiler_t::instance().allocate_memory(n);
+  }
+  void* memory_profile_realloc_cb(void* ptr, std::size_t n) {
+    return fan::memory::heap_profiler_t::instance().reallocate_memory(ptr, n);
+  }
+  void memory_profile_free_cb(void* ptr) {
+    fan::memory::heap_profiler_t::instance().deallocate_memory(ptr);
+  }
 }
 
 void* operator new(std::size_t size) {
