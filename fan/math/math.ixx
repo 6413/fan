@@ -44,6 +44,10 @@ export namespace fan {
 
 export namespace fan {
   namespace math {
+    inline f32_t wrap_angle(f32_t radians) {
+      return std::fmod(std::abs(radians), pi * 2.f);
+    }
+
     template<typename T, typename... Ts>
     constexpr T min(T a, Ts... args) {
       ((a = args < a ? args : a), ...);

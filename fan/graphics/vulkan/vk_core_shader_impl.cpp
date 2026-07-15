@@ -2,7 +2,7 @@ module;
 
 #include <fan/utility.h>
 
-//#define USE_SHADERC
+#define USE_SHADERC
 
 #if defined(fan_platform_windows)
   #if defined(USE_SHADERC)

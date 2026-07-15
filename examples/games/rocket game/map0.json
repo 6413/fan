@@ -2,9 +2,9 @@
   "materials": [
     {
       "color": [
-        0.5215686559677124,
-        0.5215686559677124,
-        0.5215686559677124,
+        0.2050642967224121,
+        0.19442376494407654,
+        0.19442376494407654,
         1.0
       ],
       "id": 0,
@@ -12,9 +12,9 @@
     },
     {
       "color": [
-        0.047355618327856064,
-        0.815276026725769,
-        0.021659472957253456,
+        0.021167119964957237,
+        0.20298874378204346,
+        0.015083005651831627,
         1.0
       ],
       "id": 1,
@@ -24,7 +24,6 @@
   "shapes": [
     {
       "material_id": 0,
-      "material_type": 1,
       "physics": {
         "body_type": 0,
         "collision_shape": 0,
@@ -41,19 +40,18 @@
         "shape_type": 0
       },
       "position": [
-        0.0,
-        0.0,
+        -32.0,
+        -448.0,
         1.0
       ],
       "shape": "sprite",
       "size": [
-        1200.0,
+        640.0,
         48.0
       ]
     },
     {
       "material_id": 0,
-      "material_type": 1,
       "physics": {
         "body_type": 0,
         "collision_shape": 0,
@@ -70,55 +68,19 @@
         "shape_type": 0
       },
       "position": [
-        -1184.0,
-        -384.0,
+        -608.0,
+        -608.0,
         2.0
       ],
       "shape": "sprite",
       "size": [
         32.0,
-        432.0
+        208.0
       ]
     },
     {
-      "material_id": 0,
-      "material_type": 1,
-      "physics": {
-        "body_type": 0,
-        "collision_shape": 0,
-        "enabled": true,
-        "friction": 0.20000000298023224,
-        "hitbox_size": [
-          1.0,
-          1.0
-        ],
-        "is_sensor": false,
-        "mass": 1.0,
-        "restitution": 0.0,
-        "segment_points": [],
-        "shape_type": 0
-      },
-      "position": [
-        1184.0,
-        -384.0,
-        3.0
-      ],
-      "shape": "sprite",
-      "size": [
-        32.0,
-        432.0
-      ]
-    },
-    {
-      "color": [
-        0.047355618327856064,
-        0.815276026725769,
-        0.021659472957253456,
-        1.0
-      ],
       "id": "landing_pad",
       "material_id": 1,
-      "material_type": 1,
       "physics": {
         "body_type": 0,
         "collision_shape": 0,
@@ -136,13 +98,82 @@
       },
       "position": [
         0.0,
-        -64.0,
+        -512.0,
         4.0
       ],
       "shape": "sprite",
       "size": [
         144.0,
         16.0
+      ]
+    },
+    {
+      "color": [
+        0.3295973539352417,
+        0.22151446342468262,
+        0.033383872359991074,
+        1.0
+      ],
+      "id": "start_pad",
+      "material_type": 1,
+      "physics": {
+        "body_type": 0,
+        "collision_shape": 0,
+        "enabled": true,
+        "friction": 0.20000000298023224,
+        "hitbox_size": [
+          1.0,
+          1.0
+        ],
+        "is_sensor": false,
+        "mass": 1.0,
+        "restitution": 0.0,
+        "segment_points": [],
+        "shape_type": 0
+      },
+      "position": [
+        -608.0,
+        -832.0,
+        5.0
+      ],
+      "shape": "sprite",
+      "size": [
+        48.0,
+        16.0
+      ]
+    },
+    {
+      "color": [
+        0.2050642967224121,
+        0.19442376494407654,
+        0.19442376494407654,
+        1.0
+      ],
+      "material_type": 1,
+      "physics": {
+        "body_type": 0,
+        "collision_shape": 0,
+        "enabled": true,
+        "friction": 0.20000000298023224,
+        "hitbox_size": [
+          1.0,
+          1.0
+        ],
+        "is_sensor": false,
+        "mass": 1.0,
+        "restitution": 0.0,
+        "segment_points": [],
+        "shape_type": 0
+      },
+      "position": [
+        544.0,
+        -608.0,
+        6.0
+      ],
+      "shape": "sprite",
+      "size": [
+        32.0,
+        208.0
       ]
     }
   ],
