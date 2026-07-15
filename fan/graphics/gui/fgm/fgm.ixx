@@ -174,7 +174,7 @@ export namespace fan::graphics::editor {
     }
 
     template <typename ShapeT>
-    std::std::size_t push_shape(const fan::vec2& pos, const fan::vec2& size = 128) {
+    std::size_t push_shape(const fan::vec2& pos, const fan::vec2& size = 128) {
       constexpr std::uint16_t st =
         std::is_same_v<ShapeT, fan::graphics::sprite_t> ? fan::graphics::shapes::shape_type_t::sprite :
         std::is_same_v<ShapeT, fan::graphics::unlit_sprite_t> ? fan::graphics::shapes::shape_type_t::unlit_sprite :
@@ -210,7 +210,7 @@ export namespace fan::graphics::editor {
       int node_clicked = -1;
       static gui::tree_node_flags_t base_flags = gui::tree_node_flags_open_on_arrow | gui::tree_node_flags_open_on_double_click | gui::tree_node_flags_span_avail_width;
 
-      for (std::std::size_t idx = 0; idx < shape_list.size(); ++idx) {
+      for (std::size_t idx = 0; idx < shape_list.size(); ++idx) {
         auto& shape_instance = shape_list[idx];
         gui::tree_node_flags_t node_flags = base_flags;
         if ((selection_mask & (1 << idx)) != 0) node_flags |= gui::tree_node_flags_selected;
