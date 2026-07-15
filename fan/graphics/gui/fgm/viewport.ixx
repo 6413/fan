@@ -4,6 +4,7 @@ export module fan.graphics.editor:viewport;
 
 import std;
 
+import fan.types;
 import fan.types.vector;
 
 export namespace fan::graphics::editor {
