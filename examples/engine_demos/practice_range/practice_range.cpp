@@ -1,8 +1,14 @@
+#include <cstdint>
+#include <vector>
 import std;
 import fan;
 import fan.physics.vehicle_controller;
 
 using namespace fan::graphics;
+
+static constexpr f32_t cfg_bullet_speed = 800.f;
+static constexpr f32_t cfg_bullet_life  = 1.5f;
+static constexpr f32_t cfg_shoot_cd     = 0.15f;
 
 static constexpr auto player_size = fan::vec2(48.f);
 static constexpr auto capsule_center0 = fan::vec2(0.f, -24.f);
@@ -32,6 +38,11 @@ struct player_t {
   fan::tween::tween_manager_t tweens;
 };
 
+using registry_t = fan::ecs_t<
+  fan::ecs::c_pos, fan::ecs::c_vel, fan::ecs::c_life, fan::ecs::c_line,
+  fan::ecs::c_rectangle, fan::ecs::c_rectangle_bordered, fan::ecs::tag_bullet
+>;
+
 struct pile_t : engine_t, fan::frame_task_t<pile_t> {
 
   struct example_stage_t : fan::stage_t<example_stage_t> {
@@ -41,12 +52,14 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
         .size = fan::vec2i(64, 32),
       });
 
-      renderer.iterate_tiles(map_id, [&](const auto& tile) {
+      tile_world.init(fan::vec2(-10000), fan::vec2(256), fan::vec2i(256));
+      renderer.iterate_tiles(map_id, [&, i = 0u](const auto& tile) mutable {
         fan::physics::shape_properties_t sp;
         sp.friction = 0;
         collisions.emplace_back(engine->get_physics_context().create_box(
           tile.position, tile.size, 0, fan::physics::body_type_e::static_body, sp
         ));
+        tile_world.upsert(i++, fan::physics::aabb_t::from_center(tile.position, tile.size), fan::spatial::movement_static);
       });
 
       player.init(renderer.get_spawn(map_id));
@@ -59,28 +72,30 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
           0.7f, fan::tween::easing::out_elastic
         );
         auto pos = player.body.get_position();
-        {
-          auto c = decltype(particles)::smoke_config_t{};
-          c.alive_time_min = 0.4f; c.alive_time_max = 0.8f;
-          c.start_size = 15.f; c.end_size = 50.f; c.alpha = 0.25f;
-          auto p = fan::vec3(pos.x, pos.y + feet_y_offset, feet_z);
-          particles.spawn_smoke(p - fan::vec3(feet_x_offset, 0, 0), 8, smoke_image, c);
-          particles.spawn_smoke(p + fan::vec3(feet_x_offset, 0, 0), 8, smoke_image, c);
-        }
+        int count = 8;
+        f32_t alive_min = 0.4f;
+        f32_t alive_max = 0.8f;
         if (jump_type == 1) {
-          auto c = decltype(particles)::smoke_config_t{};
-          c.alive_time_min = 0.3f; c.alive_time_max = 0.6f;
-          c.start_size = 15.f; c.end_size = 50.f; c.alpha = 0.25f;
-          auto p = fan::vec3(pos.x, pos.y + feet_y_offset, feet_z);
-          particles.spawn_smoke(p - fan::vec3(feet_x_offset, 0, 0), 6, smoke_image, c);
-          particles.spawn_smoke(p + fan::vec3(feet_x_offset, 0, 0), 6, smoke_image, c);
+          count = 6;
+          alive_min = 0.3f;
+          alive_max = 0.6f;
         }
+        auto c = decltype(particles)::smoke_config_t{};
+        c.alive_time_min = alive_min;
+        c.alive_time_max = alive_max;
+        c.start_size = 15.f;
+        c.end_size = 50.f;
+        c.alpha = 0.25f;
+        auto p = fan::vec3(pos.x, pos.y + feet_y_offset, feet_z);
+        particles.spawn_smoke(p - fan::vec3(feet_x_offset, 0, 0), count, smoke_image, c);
+        particles.spawn_smoke(p + fan::vec3(feet_x_offset, 0, 0), count, smoke_image, c);
       };
       engine->camera_follow(player.body.get_position(), 0);
       ic.set_zoom(1.728f);
     }
 
     void close() {
+      tile_world.reset();
       for (auto& c : collisions) { c.destroy(); }
       collisions.clear();
       renderer.close_map(map_id);
@@ -98,8 +113,11 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
       if (!player.body.was_on_ground && on_ground) {
         auto pos = player.body.get_position();
         auto c = decltype(particles)::smoke_config_t{};
-        c.alive_time_min = 0.3f; c.alive_time_max = 0.6f;
-        c.start_size = 15.f; c.end_size = 50.f; c.alpha = 0.25f;
+        c.alive_time_min = 0.3f;
+        c.alive_time_max = 0.6f;
+        c.start_size = 15.f;
+        c.end_size = 50.f;
+        c.alpha = 0.25f;
         auto p = fan::vec3(pos.x, pos.y + feet_y_offset, feet_z);
         particles.spawn_smoke(p - fan::vec3(feet_x_offset, 0, 0), 6, smoke_image, c);
         particles.spawn_smoke(p + fan::vec3(feet_x_offset, 0, 0), 6, smoke_image, c);
@@ -108,27 +126,46 @@ struct pile_t : engine_t, fan::frame_task_t<pile_t> {
 
       player.tweens.update(dt);
       particles.update(dt);
+
+      shoot_cd.tick(dt);
+      if (engine->is_mouse_down(fan::mouse_left) && !fan::graphics::gui::want_io() && shoot_cd.is_ready()) {
+        shoot_cd = fan::cooldown_t::full(cfg_shoot_cd);
+        f32_t dir = player.body.movement_state.desired_facing.x;
+        if (dir == 0) { dir = 1; }
+        auto pos = player.body.get_position();
+        registry.create_with(fan::ecs::tag_bullet{}, fan::ecs::c_pos{pos}, fan::ecs::c_vel{fan::vec2(dir * cfg_bullet_speed, 0)},
+          fan::ecs::c_life{cfg_bullet_life}, fan::ecs::c_line{fan::vec2(dir * 15.f, 0), fan::colors::yellow, 3.f});
+      }
+
+      fan::physics::destroy_bullets_vs_tiles(registry, tile_world, 4.f);
+
+      fan::ecs::systems::kinematics<fan::ecs::c_pos, fan::ecs::c_vel>(registry, dt);
+      fan::ecs::systems::lifetimes<fan::ecs::c_life>(registry, dt);
+
       renderer.update(map_id, player.body.get_center());
       ic.update();
       engine->camera_follow(player.body.get_position());
 
+      fan::graphics::systems::render2d(registry);
       draw_gui();
     }
 
     void draw_gui() {
-      using namespace fan::graphics::gui;
-      if (auto h = hud{"##hud"}) {
+      if (auto h = fan::graphics::gui::hud{"##hud"}) {
 
       }
     }
 
-    tilemap_renderer_t::id_t map_id;
+    fan::graphics::tilemap_renderer_t::id_t map_id;
     std::vector<fan::physics::entity_t> collisions;
-    tilemap_renderer_t renderer;
+    fan::spatial::world_t<std::uint32_t> tile_world;
+    fan::graphics::tilemap_renderer_t renderer;
     player_t player;
-    interactive_camera_t ic;
-    gpu_particle_system_t<> particles;
+    fan::graphics::interactive_camera_t ic;
+    fan::graphics::gpu_particle_system_t<> particles;
     fan::graphics::image_t smoke_image{"images/smoke.webp"};
+    registry_t registry;
+    fan::cooldown_t shoot_cd = fan::cooldown_t::full(0.f);
   };
 
   pile_t() {
