@@ -27,7 +27,8 @@ import fan.types.compile_time_string;
 #endif
 
 import fan.graphics.common_context;
-import fan.graphics.common_types;
+export import fan.graphics.common_types;
+export import fan.graphics.material;
 import fan.graphics.shapes.types;
 import fan.graphics.shapes;
 import fan.pathfind;
@@ -1008,7 +1009,7 @@ export namespace fan::graphics {
       emitters.back().start_particles();
     }
 
-    void update(f32_t dt) {
+    void update(f32_t) {
       for (int i = 0; i < emitters.size(); ) {
         void* data = emitters[i].GetData(fan::graphics::g_shapes->shaper);
         if (!data) {
@@ -1017,11 +1018,32 @@ export namespace fan::graphics {
         }
         auto& ri = *(typename shape_type_t::ri_t*)data;
         f32_t current_time = (f32_t)(fan::time::now() / 1e9);
-        if (current_time - ri.loop_enabled_time > ri.alive_time) {
-          emitters[i].erase();
-          emitters.erase(emitters.begin() + i);
+
+        if (ri.loop) {
+          if (ri.loop_disabled_time > 0) {
+            if (current_time > ri.loop_disabled_time + ri.alive_time + 0.033f) {
+              emitters[i].erase();
+              emitters.erase(emitters.begin() + i);
+            } else {
+              ++i;
+            }
+          } else {
+            f32_t elapsed = current_time - ri.loop_enabled_time;
+            if (elapsed > ri.alive_time + 0.033f) {
+              ri.loop_disabled_time = ri.loop_enabled_time + ri.alive_time;
+              ++i;
+            } else {
+              ++i;
+            }
+          }
         } else {
-          ++i;
+          f32_t elapsed = current_time - ri.loop_enabled_time;
+          if (elapsed > ri.alive_time + 0.033f) {
+            emitters[i].erase();
+            emitters.erase(emitters.begin() + i);
+          } else {
+            ++i;
+          }
         }
       }
     }
@@ -1122,7 +1144,7 @@ export namespace fan::graphics {
         p.end_size = fan::vec2(40.f); // smoke expands
         p.begin_color = fan::color(0.5f, 0.5f, 0.5f, 0.8f) / 2.f; // Gray
         p.end_color = fan::color(0.2f, 0.2f, 0.2f, 0.0f) / 2.f;
-        p.color_random_range = fan::vec4(0.1f);
+        p.color_random_range = fan::vec4(0.1f, 0.1f, 0.1f, 0.0f);
         p.shape = shape_type_t::shapes_e::circle;
         p.start_spread = fan::vec2(0.f, 15.f);
         p.end_spread = fan::vec2(0.f, 50.f);

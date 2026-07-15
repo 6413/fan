@@ -192,7 +192,7 @@ local module_files = {
 local feature_modules = {
   FAN_WINDOW = {
     "fan/window/window.ixx", "fan/window/input_common.ixx", "fan/window/input.ixx", "fan/window/input_action.ixx",
-    "fan/graphics/common_types.ixx", "fan/graphics/camera.ixx", "fan/graphics/image_load.ixx",
+    "fan/graphics/common_types.ixx", "fan/graphics/material.ixx", "fan/graphics/camera.ixx", "fan/graphics/image_load.ixx",
     "fan/graphics/webp.ixx", "fan/graphics/stb.ixx", "fan/graphics/common_context.ixx",
     "fan/graphics/audio_subsystem.ixx", "fan/graphics/physics_subsystem.ixx", "fan/graphics/input_subsystem.ixx",
     "fan/graphics/loco.ixx", "fan/graphics/graphics.ixx", "fan/graphics/file_dialog.ixx",

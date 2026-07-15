@@ -339,8 +339,6 @@ std::expected<void, std::string> fs_watcher_t::start(std::function<void(const st
   int res = state->attach_watch(state->watch_path);
   if (res < 0) return std::unexpected(fan::event::strerror(res));
 
-#if defined(__linux__) || defined(__unix__)
-  fan::print_dbg_tag("FS_WATCHER DEBUG", "UNIX Environment detected. Executing manual recursive traversal...");
   std::error_code ec;
   auto it = std::filesystem::recursive_directory_iterator(state->watch_path, std::filesystem::directory_options::skip_permission_denied, ec);
   
@@ -369,7 +367,6 @@ std::expected<void, std::string> fs_watcher_t::start(std::function<void(const st
     }
   }
   fan::print_dbg_tag("FS_WATCHER DEBUG", "Recursive traversal complete. Successfully attached to", dir_count, "subdirectories.");
-#endif
 
   fan::print_dbg_tag("FS_WATCHER DEBUG", "Initializing timer...");
   int result = fan::uv::timer_init((fan::uv::loop_t*)get_loop(), &state->timer);
