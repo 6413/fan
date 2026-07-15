@@ -168,7 +168,7 @@ struct rocket_game_t : engine_t, fan::frame_task_t<rocket_game_t> {
         engine->camera_set_center(rocket_shape.get_position().xy());
       }
 
-      if (engine->is_key_down(fan::key_left_control) && engine->is_key_down(fan::key_left_shift) && engine->is_key_clicked(fan::key_r)) {
+      if (engine->are_keys_down(fan::key_left_control, fan::key_left_shift) && engine->is_key_clicked(fan::key_r)) {
         fan::image::async_cache().clear();
         engine->stage_restart<game_stage_t>();
       }

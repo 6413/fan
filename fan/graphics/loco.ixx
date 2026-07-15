@@ -1068,6 +1068,11 @@ public:
   bool is_key_down(int key);
   bool is_key_released(int key);
 
+  template <typename... keys_t>
+  bool are_keys_down(keys_t... keys) {
+    return window.are_keys_down(keys...);
+  }
+
   // input action wrappers
   bool is_active(std::string_view action_name, int pstate = fan::window::input_action_t::press);
   bool is_toggled(std::string_view action_name);

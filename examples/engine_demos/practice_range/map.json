@@ -1,10 +1,10 @@
 {
   "camera_position": [
-    1166.468994140625,
-    3899.84814453125,
+    2683.939453125,
+    1132.5584716796875,
     0.0
   ],
-  "camera_zoom": 0.33489790558815,
+  "camera_zoom": 1.0000001192092896,
   "gravity": [
     0.0,
     2508.800048828125
@@ -12,7 +12,7 @@
   "layer_info": [
     {
       "depth": 32084,
-      "layer_name": "default\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000"
+      "layer_name": "default"
     }
   ],
   "lighting.ambient": [
@@ -22,10 +22,10 @@
   ],
   "map_size": [
     64,
-    64
+    32
   ],
   "texture_packs": [
-    "C:\\libs\\fan\\examples\\engine_demos\\practice_range\\textures.ftp"
+    "../../games/template/sample_texture_pack.ftp"
   ],
   "tile_size": [
     32,
@@ -34,8 +34,8 @@
   "tiles": [
     {
       "instance": {
-        "count_x": 1,
-        "count_y": 24,
+        "count_x": 64,
+        "count_y": 11,
         "delta_x": [
           64.0,
           0.0,
@@ -49,54 +49,23 @@
       },
       "position": [
         0.0,
-        2560.0,
+        0.0,
         32084.0
       ],
       "shape": "sprite",
       "tc_position": [
-        0.0078125,
-        0.0078125
+        0.0546875,
+        0.0546875
       ],
       "tc_size": [
-        0.5,
-        0.5
+        0.03125,
+        0.03125
       ],
-      "texture_pack_name": "tile0"
+      "texture_pack_name": "tile41"
     },
     {
       "instance": {
-        "count_x": 1,
-        "count_y": 24,
-        "delta_x": [
-          64.0,
-          0.0,
-          0.0
-        ],
-        "delta_y": [
-          0.0,
-          64.0,
-          0.0
-        ]
-      },
-      "position": [
-        4032.0,
-        2560.0,
-        32084.0
-      ],
-      "shape": "sprite",
-      "tc_position": [
-        0.0078125,
-        0.0078125
-      ],
-      "tc_size": [
-        0.5,
-        0.5
-      ],
-      "texture_pack_name": "tile0"
-    },
-    {
-      "instance": {
-        "count_x": 62,
+        "count_x": 39,
         "count_y": 1,
         "delta_x": [
           64.0,
@@ -110,80 +79,936 @@
         ]
       },
       "position": [
-        64.0,
-        4032.0,
+        0.0,
+        704.0,
         32084.0
       ],
       "shape": "sprite",
       "tc_position": [
-        0.0078125,
-        0.0078125
+        0.0546875,
+        0.0546875
       ],
       "tc_size": [
-        0.5,
-        0.5
+        0.03125,
+        0.03125
       ],
-      "texture_pack_name": "tile0"
+      "texture_pack_name": "tile41"
     },
     {
-      "mesh_property": 1,
-      "physics_shape_data": {
-        "fixed_rotation": true
+      "instance": {
+        "count_x": 24,
+        "count_y": 1,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        2560.0,
+        704.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 24,
+        "count_y": 1,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
       },
       "position": [
         0.0,
-        3296.0,
-        32094.0
+        768.0,
+        32084.0
       ],
       "shape": "sprite",
-      "size": [
-        32.0,
-        768.0
-      ]
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
     },
     {
-      "mesh_property": 1,
-      "physics_shape_data": {
-        "fixed_rotation": true
+      "instance": {
+        "count_x": 11,
+        "count_y": 1,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
       },
       "position": [
-        2016.0,
-        4032.0,
-        32094.0
+        1792.0,
+        768.0,
+        32084.0
       ],
       "shape": "sprite",
-      "size": [
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 3,
+        "count_y": 1,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        2560.0,
+        768.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 20,
+        "count_y": 1,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        2816.0,
+        768.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 23,
+        "count_y": 2,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        0.0,
+        832.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 5,
+        "count_y": 1,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        1856.0,
+        832.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 2,
+        "count_y": 1,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        2304.0,
+        832.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 2,
+        "count_y": 1,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        2624.0,
+        832.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 15,
+        "count_y": 1,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        3136.0,
+        832.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "position": [
         1984.0,
-        32.0
-      ]
-    },
-    {
-      "mesh_property": 1,
-      "physics_shape_data": {
-        "fixed_rotation": true
-      },
-      "position": [
-        4032.0,
-        3296.0,
-        32094.0
+        896.0,
+        32084.0
       ],
       "shape": "sprite",
-      "size": [
-        32.0,
-        704.0
-      ]
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
     },
     {
-      "mesh_property": 1,
-      "physics_shape_data": {
-        "fixed_rotation": true
+      "instance": {
+        "count_x": 12,
+        "count_y": 18,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
       },
       "position": [
-        4032.0,
-        4032.0,
-        32094.0
+        3328.0,
+        896.0,
+        32084.0
       ],
-      "shape": "sprite"
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 19,
+        "count_y": 2,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        0.0,
+        960.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 1,
+        "count_y": 2,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        1344.0,
+        960.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 7,
+        "count_y": 1,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        2560.0,
+        1024.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 18,
+        "count_y": 15,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        0.0,
+        1088.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 2,
+        "count_y": 2,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        1856.0,
+        1088.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 3,
+        "count_y": 1,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        2688.0,
+        1088.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 3,
+        "count_y": 1,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        1984.0,
+        1152.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 4,
+        "count_y": 14,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        3072.0,
+        1152.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 8,
+        "count_y": 2,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        1152.0,
+        1216.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 1,
+        "count_y": 2,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        1856.0,
+        1216.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 1,
+        "count_y": 13,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        3008.0,
+        1216.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 4,
+        "count_y": 11,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        1152.0,
+        1344.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 3,
+        "count_y": 11,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        1472.0,
+        1344.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 15,
+        "count_y": 11,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        2048.0,
+        1344.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 1,
+        "count_y": 10,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        1408.0,
+        1408.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 2,
+        "count_y": 10,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        1664.0,
+        1408.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 1,
+        "count_y": 10,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        1984.0,
+        1408.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
+    },
+    {
+      "instance": {
+        "count_x": 3,
+        "count_y": 9,
+        "delta_x": [
+          64.0,
+          0.0,
+          0.0
+        ],
+        "delta_y": [
+          0.0,
+          64.0,
+          0.0
+        ]
+      },
+      "position": [
+        1792.0,
+        1472.0,
+        32084.0
+      ],
+      "shape": "sprite",
+      "tc_position": [
+        0.0546875,
+        0.0546875
+      ],
+      "tc_size": [
+        0.03125,
+        0.03125
+      ],
+      "texture_pack_name": "tile41"
     },
     {
       "color": [
@@ -194,8 +1019,8 @@
       ],
       "mesh_property": 4,
       "position": [
-        1856.0,
-        3776.0,
+        2048.0,
+        1088.0,
         32084.0
       ],
       "shape": "sprite",

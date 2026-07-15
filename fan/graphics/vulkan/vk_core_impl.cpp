@@ -176,7 +176,7 @@ void fan::vulkan::pipeline_t::open(fan::vulkan::context_t& context, const proper
 
   VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
   inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-  inputAssembly.topology = p.shape_type;
+  inputAssembly.topology = properties.shape_type;
   inputAssembly.primitiveRestartEnable = VK_FALSE;
 
   VkPipelineViewportStateCreateInfo viewportState{};
@@ -201,9 +201,9 @@ void fan::vulkan::pipeline_t::open(fan::vulkan::context_t& context, const proper
 
   VkPipelineDepthStencilStateCreateInfo depthStencil{};
   depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-  depthStencil.depthTestEnable = p.enable_depth_test;
-  depthStencil.depthWriteEnable = p.enable_depth_test;
-  depthStencil.depthCompareOp = p.depth_test_compare_op;
+  depthStencil.depthTestEnable = properties.enable_depth_test;
+  depthStencil.depthWriteEnable = properties.enable_depth_test;
+  depthStencil.depthCompareOp = properties.depth_test_compare_op;
   depthStencil.depthBoundsTestEnable = VK_FALSE;
   depthStencil.stencilTestEnable = VK_FALSE;
 
@@ -211,8 +211,8 @@ void fan::vulkan::pipeline_t::open(fan::vulkan::context_t& context, const proper
   colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
   colorBlending.logicOpEnable = VK_FALSE;
   colorBlending.logicOp = VK_LOGIC_OP_NO_OP;
-  colorBlending.attachmentCount = static_cast<std::uint32_t>(p.color_blend_attachments.size());
-  colorBlending.pAttachments = p.color_blend_attachments.data();
+  colorBlending.attachmentCount = static_cast<std::uint32_t>(properties.color_blend_attachments.size());
+  colorBlending.pAttachments = properties.color_blend_attachments.data();
   colorBlending.blendConstants[0] = 1.0f;
   colorBlending.blendConstants[1] = 1.0f;
   colorBlending.blendConstants[2] = 1.0f;
@@ -230,25 +230,34 @@ void fan::vulkan::pipeline_t::open(fan::vulkan::context_t& context, const proper
 
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-  pipelineLayoutInfo.setLayoutCount = static_cast<std::uint32_t>(p.descriptor_layouts.size());
-  pipelineLayoutInfo.pSetLayouts = p.descriptor_layouts.data();
+  pipelineLayoutInfo.setLayoutCount = static_cast<std::uint32_t>(properties.descriptor_layouts.size());
+  pipelineLayoutInfo.pSetLayouts = properties.descriptor_layouts.data();
 
   VkPushConstantRange push_constant;
   push_constant.offset = 0;
-  push_constant.size = p.push_constants_size;
+  push_constant.size = properties.push_constants_size;
   push_constant.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
   pipelineLayoutInfo.pPushConstantRanges = &push_constant;
-  pipelineLayoutInfo.pushConstantRangeCount = p.push_constants_size == 0 ? 0 : 1;
+  pipelineLayoutInfo.pushConstantRangeCount = properties.push_constants_size == 0 ? 0 : 1;
 
   if (vkCreatePipelineLayout(context.device, &pipelineLayoutInfo, nullptr, &m_layout) != VK_SUCCESS) {
     fan::throw_error("failed to create pipeline layout!");
   }
 
+  auto shader_ref = context.shaders.shader_get(properties.shader);
+  std::vector<VkPipelineShaderStageCreateInfo> active_stages;
+  active_stages.reserve(3);
+  for (int i = 0; i < 3; ++i) {
+    if (shader_ref.shader_stages[i].module != VK_NULL_HANDLE) {
+      active_stages.push_back(shader_ref.shader_stages[i]);
+    }
+  }
+
   VkGraphicsPipelineCreateInfo pipelineInfo{};
   pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-  pipelineInfo.stageCount = 2;
-  pipelineInfo.pStages = context.shaders.shader_get(p.shader).shader_stages;
+  pipelineInfo.stageCount = static_cast<std::uint32_t>(active_stages.size());
+  pipelineInfo.pStages = active_stages.data();
   pipelineInfo.pVertexInputState = &vertexInputInfo;
   pipelineInfo.pInputAssemblyState = &inputAssembly;
   pipelineInfo.pViewportState = &viewportState;
@@ -258,12 +267,12 @@ void fan::vulkan::pipeline_t::open(fan::vulkan::context_t& context, const proper
   pipelineInfo.pColorBlendState = &colorBlending;
   pipelineInfo.pDynamicState = &dynamicState;
   pipelineInfo.layout = m_layout;
-  pipelineInfo.renderPass = p.render_pass == VK_NULL_HANDLE ?
-    context.render_pass : p.render_pass;
-  pipelineInfo.subpass = p.subpass;
+  pipelineInfo.renderPass = properties.render_pass == VK_NULL_HANDLE ?
+    context.render_pass : properties.render_pass;
+  pipelineInfo.subpass = properties.subpass;
   pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-  shader_nr = p.shader;
+  shader_nr = properties.shader;
   if (vkCreateGraphicsPipelines(context.device, context.pipeline_cache, 1, &pipelineInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
     fan::throw_error("failed to create graphics pipeline");
   }

@@ -350,11 +350,14 @@ export namespace fan {
 
       struct character2d_t;
 
+      inline constexpr f32_t default_jump_height = 32.f;
+      inline constexpr f32_t default_knockback = 20.f;
+
       struct jump_state_t {
         std::function<void(int jump_state)> on_jump = [](int) {};
         f32_t last_ground_time = 0.f;
         f32_t coyote_time = 0.1f;
-        f32_t impulse = 32.f;
+        f32_t impulse = default_jump_height;
         bool prev_jump_button = false;
         bool jumping = false;
         bool consumed = false;
@@ -568,6 +571,7 @@ export namespace fan {
         bool drop_through_requested = false;
         fan::time::timer drop_through_timer;
         bool oneway_enabled = false;
+        bool was_on_ground = true;
       };
 
 #if defined(FAN_JSON)
@@ -631,8 +635,6 @@ export namespace fan {
       // --------------------------------------------------------------------------------
 
       struct character_movement_preset_t {
-        static constexpr f32_t default_jump_height = 60.f;
-        static constexpr f32_t default_knockback = 20.f;
 
         static void setup_default_controls(fan::graphics::physics::character2d_t& body);
       };

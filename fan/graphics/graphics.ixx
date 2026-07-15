@@ -1130,27 +1130,37 @@ export namespace fan::graphics {
       });
     }
 
-    void spawn_smoke(fan::vec3 pos, int count, image_t image) {
+    struct smoke_config_t {
+      f32_t start_size = 10.f;
+      f32_t end_size = 40.f;
+      f32_t alpha = 0.4f;
+      f32_t begin_angle = -1.0f;
+      f32_t end_angle = 1.0f;
+      f32_t alive_time_min = 1.0f;
+      f32_t alive_time_max = 3.0f;
+    };
+
+    void spawn_smoke(fan::vec3 pos, int count, image_t image, const smoke_config_t& cfg = {}) {
       spawn([=](auto& p) {
         p.loop = false;
         p.position = pos;
         p.count = count;
-        p.alive_time = fan::random::value(1.0f, 3.0f);
+        p.alive_time = fan::random::value(cfg.alive_time_min, cfg.alive_time_max);
         p.respawn_time = -p.alive_time;
         p.start_velocity = fan::vec2(20.f, 60.f);
         p.end_velocity = fan::vec2(5.f, 20.f);
         p.expansion_power = 0.8f;
-        p.start_size = fan::vec2(10.f);
-        p.end_size = fan::vec2(40.f); // smoke expands
-        p.begin_color = fan::color(0.5f, 0.5f, 0.5f, 0.8f) / 2.f; // Gray
-        p.end_color = fan::color(0.2f, 0.2f, 0.2f, 0.0f) / 2.f;
-        p.color_random_range = fan::vec4(0.1f, 0.1f, 0.1f, 0.0f);
+        p.start_size = fan::vec2(cfg.start_size);
+        p.end_size = fan::vec2(cfg.end_size);
+        p.begin_color = fan::color(0.25f, 0.25f, 0.25f, cfg.alpha);
+        p.end_color = fan::color(0.1f, 0.1f, 0.1f, 0.0f);
+        p.color_random_range = fan::vec4(0);
         p.shape = shape_type_t::shapes_e::circle;
         p.start_spread = fan::vec2(0.f, 15.f);
         p.end_spread = fan::vec2(0.f, 50.f);
         p.angle = fan::vec3(0,0,0);
-        p.begin_angle = -1.0f; // drift upwards
-        p.end_angle = 1.0f;
+        p.begin_angle = cfg.begin_angle;
+        p.end_angle = cfg.end_angle;
         p.start_angle_velocity = fan::vec3(0, 0, 0);
         p.image = image;
       });
