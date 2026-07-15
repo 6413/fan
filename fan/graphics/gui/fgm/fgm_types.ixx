@@ -60,7 +60,7 @@ export namespace fan::graphics::editor {
       std::uint32_t group_id = 0;
       std::uint16_t shape_type = 0;
       int material_id = -1;
-      uint8_t material_type = 0; // 0 = textured, 1 = solid color
+      std::uint8_t material_type = 0; // 0 = textured, 1 = solid color
       fan::graphics::image_t original_image;
       
       struct physics_properties_t {
