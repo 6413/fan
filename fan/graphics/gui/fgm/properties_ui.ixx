@@ -149,7 +149,7 @@ export namespace fan::graphics::editor {
           const char* material_names[] = {"Textured", "Solid Color"};
           int mt = shape->material_type;
           if (gui::combo("type", &mt, material_names, 2)) {
-            shape->material_type = (uint8_t)mt;
+            shape->material_type = (std::uint8_t)mt;
             fgm.apply_material(shape);
           }
           if (shape->material_type == 1) {
