@@ -1669,7 +1669,7 @@ namespace fan::graphics{
             (std::int8_t)desired_sign.x,
             (std::int8_t)desired_sign.y
           };
-          if (!get_visual_id().iic()) {
+          if (!get_visual_id().iic() && has_sprite_sheet()) {
             set_sprite_sheet_next_frame(props.sprite_sheet_data.current_frame);
           }
         }

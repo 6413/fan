@@ -796,32 +796,30 @@ void shapes_open() {
 
 #if defined(FAN_2D)
 struct shader_preload_payload_t {
-  std::string vs_path;
-  std::string fs_path;
+  const char* vs_path;
+  const char* fs_path;
   std::string vs_code;
   std::string fs_code;
   std::vector<std::uint32_t> vs_spv;
   std::vector<std::uint32_t> fs_spv;
   fan::graphics::shader_t* out;
 };
-std::vector<shader_preload_payload_t> shader_preloads;
+std::deque<shader_preload_payload_t> shader_preloads;
 
 void shaders_compile_preload() {
   auto& sh = loco.shaders;
-  shader_preloads.reserve(32);
 
   auto preload = [&](fan::graphics::shader_t& out, const char* vs, const char* fs) {
     shader_preloads.push_back({
-      std::string(vs), std::string(fs), "", "", {}, {}, &out
+      vs, fs, "", "", {}, {}, &out
     });
     auto& payload = shader_preloads.back();
 
     loco.shader_preload_threads.emplace_back([&payload, p_loco = &loco]() {
-      payload.vs_code = fan::graphics::read_shader(payload.vs_path.c_str());
-      payload.fs_code = fan::graphics::read_shader(payload.fs_path.c_str());
-                                                                                    // clang bmi bug triggered by shaderc include
-      payload.vs_spv = p_loco->context.vk.shaders.load_or_compile(payload.vs_path.c_str(), 0/*shaderc_glsl_vertex_shader*/, payload.vs_code);
-      payload.fs_spv = p_loco->context.vk.shaders.load_or_compile(payload.fs_path.c_str(), 1/*shaderc_glsl_fragment_shader*/, payload.fs_code);
+      payload.vs_code = fan::graphics::read_shader(payload.vs_path);
+      payload.fs_code = fan::graphics::read_shader(payload.fs_path);
+      payload.vs_spv = p_loco->context.vk.shaders.load_or_compile(payload.vs_path, 0, payload.vs_code);
+      payload.fs_spv = p_loco->context.vk.shaders.load_or_compile(payload.fs_path, 1, payload.fs_code);
     });
   };
 
