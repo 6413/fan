@@ -298,6 +298,12 @@ static void generic_set_visible(fan::graphics::shapes::shape_t* s, bool v) {
       props.visible = v;
     }
   });
+  auto* shape = static_cast<fan::graphics::shapes::shape_t*>(s);
+  if (v) {
+    shape->push_shaper();
+  } else {
+    shape->erase_shaper();
+  }
 }
 
 static f32_t get_radius(const fan::graphics::shapes::shape_t* s) {
