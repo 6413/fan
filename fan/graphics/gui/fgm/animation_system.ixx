@@ -65,7 +65,7 @@ export namespace fan::graphics::editor {
       if (keyframes.empty()) return {};
       if (keyframes.size() == 1) return keyframes[0];
 
-      for (size_t i = 0; i < keyframes.size() - 1; ++i) {
+      for (std::size_t i = 0; i < keyframes.size() - 1; ++i) {
         if (current_time >= keyframes[i].time && current_time <= keyframes[i + 1].time) {
           f32_t delta = keyframes[i + 1].time - keyframes[i].time;
           return delta <= 0.0f ? keyframes[i] : keyframe_t::lerp(keyframes[i], keyframes[i + 1], (current_time - keyframes[i].time) / delta);
