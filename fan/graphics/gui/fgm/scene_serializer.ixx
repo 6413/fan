@@ -246,7 +246,7 @@ export namespace fan::graphics::editor {
             shape.set_color(mat.color);
             if (!mat.images.empty() && mat.images.is_array() && mat.images.size() > 0) {
               if (mat.images[0].contains("image_path")) {
-                shape.get_image_data().image_path = mat.images[0]["image_path"].get<std::string>();
+                shape.get_image_data().image_path = mat.images[0]["image_path"].template get<std::string>();
               }
             }
             final_material_type = mat.material_type;
