@@ -630,6 +630,11 @@ export namespace fan {
     bool is_gamepad_axis_active(int key);
     fan::vec2 get_current_gamepad_axis(int key);
 
+    template <typename... keys_t>
+    bool are_keys_down(keys_t... keys) {
+      return fan::graphics::ctx().window->are_keys_down(keys...);
+    }
+
     bool is_input_clicked(const std::string& name);
     bool is_input_down(const std::string& name);
     bool is_input_released(const std::string& name);

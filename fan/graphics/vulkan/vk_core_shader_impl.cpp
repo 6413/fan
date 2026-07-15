@@ -77,40 +77,53 @@ std::vector<std::uint32_t> fan::vulkan::shader_subsystem_t::compile_file(const s
 #endif
 }
 
-std::vector<std::uint32_t> fan::vulkan::shader_subsystem_t::load_or_compile(const std::string& source_name,
-  int kind,
-  const std::string& source) {
-
+std::vector<std::uint32_t> fan::vulkan::shader_subsystem_t::load_or_compile(const std::string& source_name, int kind, const std::string& source) {
   if (source_name.empty()) {
     return compile_file(source_name, (shaderc_shader_kind)kind, source);
   }
 
-  std::filesystem::path resolved_source = fan::io::file::find_relative_path(source_name);
-  if (resolved_source.empty()) {
-    return compile_file(source_name, (shaderc_shader_kind)kind, source);
-  }
+  auto read_cache = [](const std::string& path) {
+    auto size = fan::io::file::file_size(path);
+    std::vector<std::uint32_t> spv(size / sizeof(std::uint32_t));
+    fan::io::file::read_bytes(path, spv.data(), size);
+    return spv;
+  };
+
+  auto write_cache = [](const std::string& path, const std::vector<std::uint32_t>& spv) {
+    std::error_code ec;
+    std::filesystem::create_directories(".shader_cache", ec);
+    std::string tmp = path + ".tmp";
+    fan::io::file::try_write(tmp, std::string(reinterpret_cast<const char*>(spv.data()), spv.size() * sizeof(std::uint32_t)), std::ios_base::binary);
+    std::filesystem::remove(path, ec);
+    std::filesystem::rename(tmp, path, ec);
+  };
 
   std::string flat = source_name;
   std::replace(flat.begin(), flat.end(), '/', '_');
   std::replace(flat.begin(), flat.end(), '\\', '_');
-  std::string cache_path = ".shader_cache/" + flat + ".spv";
 
-  if (fan::io::file::is_up_to_date(resolved_source.string(), cache_path)) {
-    auto spv_size = fan::io::file::file_size(cache_path);
-    std::vector<std::uint32_t> spv(spv_size / sizeof(std::uint32_t));
-    if (fan::io::file::read_bytes(cache_path, spv.data(), spv_size)) {
-      return spv;
+  std::string cache_path = ".shader_cache/" + flat + ".spv";
+  std::filesystem::path resolved_source = fan::io::file::find_relative_path(source_name);
+
+  if (!resolved_source.empty()) {
+    if (fan::io::file::is_up_to_date(resolved_source.string(), cache_path)) {
+      return read_cache(cache_path);
+    }
+  } 
+  else {
+    if (!source.empty()) {
+      cache_path = ".shader_cache/" + flat + "_" + std::to_string(std::hash<std::string>{}(source)) + ".spv";
+    }
+    if (std::filesystem::exists(cache_path)) {
+      return read_cache(cache_path);
     }
   }
 
   auto spv = compile_file(source_name, (shaderc_shader_kind)kind, source);
-  std::error_code ec;
-  std::filesystem::create_directories(".shader_cache", ec);
-  std::string tmp_path = cache_path + ".tmp";
-  std::string raw_spv(reinterpret_cast<const char*>(spv.data()), spv.size() * sizeof(std::uint32_t));
-  fan::io::file::try_write(tmp_path, raw_spv, std::ios_base::binary);
-  std::filesystem::remove(cache_path, ec);
-  std::filesystem::rename(tmp_path, cache_path, ec);
+  if (!spv.empty()) {
+    write_cache(cache_path, spv);
+  }
+  
   return spv;
 }
 
