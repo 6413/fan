@@ -1174,10 +1174,15 @@ void shapes_draw() {
     );
   };
 
-  auto make_particles_gpu = [&] (const fan::graphics::shapes::particles_t::ri_t& ri) {
+  auto make_particles_gpu = [&](const fan::graphics::shapes::particles_t::ri_t& ri) {
     particles_gpu_t gpu{};
     gpu.position_shape = fan::vec4(ri.position, (f32_t)ri.shape);
-    gpu.loop_times = fan::vec4((f32_t)ri.loop, ri.loop_enabled_time, ri.loop_disabled_time, f32_t(fan::time::now() / 1e9));
+    gpu.loop_times = fan::vec4(
+      (f32_t)ri.loop, 
+      ri.loop_enabled_time, 
+      ri.loop_disabled_time, 
+      f32_t(f64_t(fan::time::now() - ri.begin_time) / 1e9)
+    );
     gpu.count_life = fan::vec4((f32_t)ri.count, ri.alive_time, ri.respawn_time, ri.expansion_power);
     gpu.size = fan::vec4(ri.start_size, ri.end_size);
     gpu.color0 = ri.begin_color;

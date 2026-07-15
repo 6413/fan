@@ -13,6 +13,8 @@ import fan.print;
 export namespace fan {
   namespace time {
     std::uint64_t now();
+    std::uint64_t get_start();
+
     f64_t seconds();
     void delay(std::uint64_t time);
 
