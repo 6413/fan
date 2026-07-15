@@ -221,7 +221,8 @@ local feature_modules = {
     "fan/graphics/gui/tilemap_editor/editor_ui.ixx",
     "fan/graphics/gui/fgm/viewport.ixx", "fan/graphics/gui/fgm/selection.ixx",
     "fan/graphics/gui/fgm/properties_ui.ixx", "fan/graphics/gui/fgm/animation_system.ixx",
-    "fan/graphics/gui/fgm/scene_serializer.ixx", "fan/graphics/gui/fgm/fgm.ixx"
+    "fan/graphics/gui/fgm/scene_serializer.ixx", "fan/graphics/gui/fgm/fgm.ixx",
+    "fan/graphics/scene.ixx"
   },
   FAN_3D = { "fan/graphics/3D/objects/fms.ixx", "fan/graphics/voxel.ixx" },
   FAN_VIDEO = { "fan/video/codec.ixx", "fan/video/screen.ixx", "fan/video/renderer.ixx", "fan/video/video.ixx" },
