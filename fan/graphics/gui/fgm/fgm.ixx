@@ -174,7 +174,7 @@ export namespace fan::graphics::editor {
     }
 
     template <typename ShapeT>
-    size_t push_shape(const fan::vec2& pos, const fan::vec2& size = 128) {
+    std::std::size_t push_shape(const fan::vec2& pos, const fan::vec2& size = 128) {
       constexpr std::uint16_t st =
         std::is_same_v<ShapeT, fan::graphics::sprite_t> ? fan::graphics::shapes::shape_type_t::sprite :
         std::is_same_v<ShapeT, fan::graphics::unlit_sprite_t> ? fan::graphics::shapes::shape_type_t::unlit_sprite :
@@ -210,7 +210,7 @@ export namespace fan::graphics::editor {
       int node_clicked = -1;
       static gui::tree_node_flags_t base_flags = gui::tree_node_flags_open_on_arrow | gui::tree_node_flags_open_on_double_click | gui::tree_node_flags_span_avail_width;
 
-      for (size_t idx = 0; idx < shape_list.size(); ++idx) {
+      for (std::std::size_t idx = 0; idx < shape_list.size(); ++idx) {
         auto& shape_instance = shape_list[idx];
         gui::tree_node_flags_t node_flags = base_flags;
         if ((selection_mask & (1 << idx)) != 0) node_flags |= gui::tree_node_flags_selected;
@@ -220,7 +220,7 @@ export namespace fan::graphics::editor {
         if (shape_instance->physics.collision_shape == 1) {
           shape_name = "Segment Collider";
         }
-        bool node_open = gui::tree_node_ex((void*)(std::intptr_t)idx, node_flags, "%.*s %ld", static_cast<int>(shape_name.length()), shape_name.data(), (intptr_t)idx);
+        bool node_open = gui::tree_node_ex((void*)(std::intptr_t)idx, node_flags, "%.*s %ld", static_cast<int>(shape_name.length()), shape_name.data(), (std::intptr_t)idx);
 
         if (gui::is_item_clicked() && !gui::is_item_toggled_open()) {
           node_clicked = (std::intptr_t)idx;
@@ -246,13 +246,13 @@ export namespace fan::graphics::editor {
       int child_index = 0;
       for (auto& child : children) {
         gui::tree_node_flags_t node_flags = base_flags;
-        if ((selection_mask & (1 << (intptr_t)child.NRI)) != 0) node_flags |= gui::tree_node_flags_selected;
+        if ((selection_mask & (1 << (std::intptr_t)child.NRI)) != 0) node_flags |= gui::tree_node_flags_selected;
         if (child_index + 1 >= children.size()) node_flags |= gui::tree_node_flags_leaf;
 
-        bool node_open = gui::tree_node_ex((void*)(intptr_t)child.NRI, node_flags, "%s %u", fan::graphics::shape_names[child.get_shape_type()], child.NRI);
+        bool node_open = gui::tree_node_ex((void*)(std::intptr_t)child.NRI, node_flags, "%s %u", fan::graphics::shape_names[child.get_shape_type()], child.NRI);
 
         if (gui::is_item_clicked() && !gui::is_item_toggled_open()) {
-            node_clicked = (intptr_t)child.NRI;
+            node_clicked = (std::intptr_t)child.NRI;
             for (auto& ptr : shape_list) {
               if (ptr->children[0] == child) {
                 if (current_shape) current_shape->disable_highlight();
@@ -354,7 +354,7 @@ export namespace fan::graphics::editor {
               fan::vec2 local_mouse(inv_ca * delta.x - inv_sa * delta.y, inv_sa * delta.x + inv_ca * delta.y);
               auto& pts = shape_ptr->physics.segment_points;
               
-              for (size_t i = 0; i < pts.size(); ++i) {
+              for (std::size_t i = 0; i < pts.size(); ++i) {
                 f32_t d = (pts[i] - local_mouse).length();
                 if (d < global_closest_d) { 
                   global_closest_d = d; 
@@ -410,7 +410,7 @@ export namespace fan::graphics::editor {
           if (obj->physics.collision_shape == 1) {
             auto& pts = obj->physics.segment_points;
             auto pc = fan::color(1.f, 0.8f, 0.f, 1.f).get_gui_color();
-            for (size_t pi = 0; pi + 1 < pts.size(); ++pi) {
+            for (std::size_t pi = 0; pi + 1 < pts.size(); ++pi) {
               fan::vec2 a = to_screen(rotate(pts[pi]));
               fan::vec2 b = to_screen(rotate(pts[pi + 1]));
               dl->AddLine(a, b, c, 2.f);
@@ -492,7 +492,7 @@ export namespace fan::graphics::editor {
           auto& pts = ptr->physics.segment_points;
           auto lc = fan::color(0.f, 1.f, 0.3f, 1.f).get_gui_color();
           auto pc = fan::color(1.f, 0.8f, 0.f, 1.f).get_gui_color();
-          for (size_t pi = 0; pi + 1 < pts.size(); ++pi) {
+          for (std::size_t pi = 0; pi + 1 < pts.size(); ++pi) {
             fan::vec2 a = to_screen(rotate(pts[pi]));
             fan::vec2 b = to_screen(rotate(pts[pi + 1]));
             dl->AddLine(a, b, lc, 2.f);
@@ -520,7 +520,7 @@ export namespace fan::graphics::editor {
         };
         auto& pts = current_shape->physics.segment_points;
         auto c = fan::color(1.f, 0.8f, 0.f, 1.f).get_gui_color();
-        for (size_t i = 0; i < pts.size(); ++i) {
+        for (std::size_t i = 0; i < pts.size(); ++i) {
           auto sc = to_screen(rotate(pts[i]));
           f32_t r = (int)i == segment_drag_idx ? 6.f : 4.f;
           dl->AddCircleFilled(sc, r, c);
@@ -777,7 +777,7 @@ export namespace fan::graphics::editor {
 
     void step_physics() {
       if (physics_bodies.empty() && segment_bodies.empty()) return;
-      size_t bi = 0, si = 0;
+      std::size_t bi = 0, si = 0;
       for (auto& ptr : shape_list) {
         if (!ptr->physics.enabled) continue;
         if (ptr->physics.collision_shape == 1) {
@@ -853,9 +853,9 @@ export namespace fan::graphics::editor {
     }
 
     void erase_selected() {
-      std::vector<size_t> indices;
+      std::vector<std::size_t> indices;
       for (auto* obj : selection.objects) {
-        for (size_t i = 0; i < shape_list.size(); ++i) {
+        for (std::size_t i = 0; i < shape_list.size(); ++i) {
           if (obj == shape_list[i].get()) {
             shape_original_json.erase(obj);
             indices.push_back(i);
@@ -864,10 +864,10 @@ export namespace fan::graphics::editor {
         }
       }
       std::sort(indices.begin(), indices.end(), std::greater<>());
-      for (size_t i : indices) {
+      for (std::size_t i : indices) {
         if (is_playing && shape_list[i]->physics.enabled) {
           int bi = 0, si = 0;
-          for (size_t k = 0; k < i; ++k) {
+          for (std::size_t k = 0; k < i; ++k) {
             if (!shape_list[k]->physics.enabled) continue;
             if (shape_list[k]->physics.collision_shape == 1) si++;
             else bi++;
