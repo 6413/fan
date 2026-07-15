@@ -5,7 +5,7 @@ module;
 #endif
 
 #include <fan/utility.h>
-#include <new>
+#include <cstdlib>
 
 namespace fan::memory::detail {
   inline void* (*malloc_fn)(std::size_t) = nullptr;
