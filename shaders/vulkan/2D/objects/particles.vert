@@ -72,7 +72,7 @@ float rand_f(uint seed) {
   uint m = rand_u(seed);
   m &= 0x007fffffu;
   m |= 0x3f800000u;
-  return uintBitsToFloat(m) - 1.0;
+  return uintBitsToFloat(m) - 1.0f;
 }
 
 layout(location = 0) out vec4 instance_color;
@@ -117,7 +117,7 @@ void main() {
   }
   else {
     float local_time = time - loop_enabled_time;
-    if (local_time <= 0.0001 || local_time < spawn_delay) { instance_color = vec4(0.0); gl_Position = vec4(0.0); return; }
+    if (local_time < 0.0 || local_time < spawn_delay) { instance_color = vec4(0.0); gl_Position = vec4(0.0); return; }
     new_time = local_time - spawn_delay;
     if (new_time > alive_time) { instance_color = vec4(0.0); gl_Position = vec4(0.0); return; }
     time_mod = new_time;

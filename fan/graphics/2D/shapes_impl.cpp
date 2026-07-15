@@ -2559,8 +2559,8 @@ namespace fan::graphics{
   void shapes::shape_t::start_particles(f32_t start_offset) {
     g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
       if constexpr (requires { props.loop_enabled_time; }) {
-        props.loop_enabled_time = fan::time::now() / 1e9 - start_offset; // negate the offset to travel to future
-        props.loop_disabled_time = -1;
+        props.loop_enabled_time = 0.f; // negate the offset to travel to future
+        props.loop_disabled_time = -1.f;
       }
     });
     if (get_visual_id().iic()) {
@@ -2568,8 +2568,8 @@ namespace fan::graphics{
     }
     auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)
       GetData(fan::graphics::g_shapes->shaper);
-    ri.loop_enabled_time = fan::time::now() / 1e9 - start_offset;  // negate the offset to travel to future
-    ri.loop_disabled_time = -1;
+    ri.loop_enabled_time = 0.f;  // negate the offset to travel to future
+    ri.loop_disabled_time = -1.f;
   }
 
   void shapes::shape_t::stop_particles() {
@@ -2766,8 +2766,8 @@ namespace fan::graphics{
   shapes::shape_t shapes::particles_t::push_back(const properties_t& properties){
     properties_t modified_props = properties;
     modified_props.begin_time = fan::time::now();
-    modified_props.loop_enabled_time = fan::time::now() / 1e9;
-    modified_props.loop_disabled_time = -1;
+    modified_props.loop_enabled_time = 0.f;
+    modified_props.loop_disabled_time = -1.f;
     auto new_item = g_shapes->add_shape(fan::graphics::shape_type_t::particles, modified_props);
     fan::graphics::shaper_t::ShapeID_t ret;
     ret.gint() = new_item.NRI;

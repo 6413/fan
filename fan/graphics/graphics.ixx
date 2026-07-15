@@ -1017,7 +1017,7 @@ export namespace fan::graphics {
           continue;
         }
         auto& ri = *(typename shape_type_t::ri_t*)data;
-        f32_t current_time = (f32_t)(fan::time::now() / 1e9);
+        f32_t current_time = f32_t(f64_t(fan::time::now() - ri.begin_time) / 1e9);
 
         if (ri.loop) {
           if (ri.loop_disabled_time > 0) {
