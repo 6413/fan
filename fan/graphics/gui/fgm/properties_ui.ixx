@@ -11,6 +11,9 @@ import fan.graphics.shapes.types;
 import fan.texture_pack.tp0;
 import :fgm_types;
 
+import fan.graphics.shapes.types;
+import fan.texture_pack.tp0;
+
 export namespace fan::graphics::editor {
   struct properties_ui_t {
 
