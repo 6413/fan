@@ -13,6 +13,7 @@ import fan.graphics.gui.base;
 import fan.graphics.gui;
 import fan.file_dialog;
 import fan.types.fstring;
+import fan.physics.types;
 import fan.memory;
 import fan.io.file;
 
@@ -300,8 +301,8 @@ export namespace fan::graphics::editor {
       fan::vec2 tc_size = world_size / tile_size;
       background.set_tc_size(tc_size);
       fan::vec2 tc_offset = camera_pos / tile_size;
-      tc_offset.x -= floor(tc_offset.x);
-      tc_offset.y -= floor(tc_offset.y);
+      tc_offset.x -= std::floor(tc_offset.x);
+      tc_offset.y -= std::floor(tc_offset.y);
       background.set_tc_position(tc_offset - tc_size / 2);
 
       viewport_settings.editor_hovered = gui::is_window_hovered();
