@@ -19,6 +19,12 @@
   #define __cta(x) static_assert(x)
 #endif
 
+namespace fan {
+  void* memory_profile_malloc_cb(decltype(0uz) n);
+  void* memory_profile_realloc_cb(void* ptr, decltype(0uz) n);
+  void memory_profile_free_cb(void* ptr);
+}
+
 #ifndef __generic_malloc
   #define __generic_malloc(n) fan::memory_profile_malloc_cb(n)
 #endif
