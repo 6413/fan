@@ -14,7 +14,7 @@ export namespace fan::graphics::editor {
       global_t() = default;
 
       template <typename T>
-      global_t(uint16_t shape_type, const T& obj, f32_t& current_z, global_t*& current_shape, bool shape_add = true) {
+      global_t(std::uint16_t shape_type, const T& obj, f32_t& current_z, global_t*& current_shape, bool shape_add = true) {
         T temp = obj;
         this->shape_type = shape_type;
         if (shape_add) {
@@ -57,8 +57,8 @@ export namespace fan::graphics::editor {
 
       std::vector<fan::graphics::shape_t> children;
       std::string id;
-      uint32_t group_id = 0;
-      uint16_t shape_type = 0;
+      std::uint32_t group_id = 0;
+      std::uint16_t shape_type = 0;
       int material_id = -1;
       uint8_t material_type = 0; // 0 = textured, 1 = solid color
       fan::graphics::image_t original_image;
