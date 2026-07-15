@@ -2,6 +2,7 @@ export module fan.graphics.editor:selection;
 
 import std;
 
+import fan.types;
 import fan.types.vector;
 import fan.types.color;
 import fan.math;
@@ -120,7 +121,7 @@ export namespace fan::graphics::editor {
               }
             }
           } else {
-            for (size_t i = 0; i < objects.size(); ++i) {
+            for (std::size_t i = 0; i < objects.size(); ++i) {
               fan::vec2 new_pos = fan::vec2(multi_drag_start[i]) + mouse_world_delta;
               objects[i]->set_position(fan::vec3(new_pos, objects[i]->get_position().z));
             }
