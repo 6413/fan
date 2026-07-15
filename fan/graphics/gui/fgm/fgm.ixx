@@ -175,7 +175,7 @@ export namespace fan::graphics::editor {
 
     template <typename ShapeT>
     size_t push_shape(const fan::vec2& pos, const fan::vec2& size = 128) {
-      constexpr uint16_t st =
+      constexpr std::uint16_t st =
         std::is_same_v<ShapeT, fan::graphics::sprite_t> ? fan::graphics::shapes::shape_type_t::sprite :
         std::is_same_v<ShapeT, fan::graphics::unlit_sprite_t> ? fan::graphics::shapes::shape_type_t::unlit_sprite :
         std::is_same_v<ShapeT, fan::graphics::rectangle_t> ? fan::graphics::shapes::shape_type_t::rectangle :
@@ -709,7 +709,7 @@ export namespace fan::graphics::editor {
         auto sz = ptr->get_size() * p.hitbox_size;
         if (p.collision_shape == 1) {
           segment_bodies.push_back(segment_body_t{
-            fan::physics::gphysics()->create_segment(fan::vec2(pos), p.segment_points, (uint8_t)p.body_type, props)
+            fan::physics::gphysics()->create_segment(fan::vec2(pos), p.segment_points, (std::uint8_t)p.body_type, props)
           });
         }
         else switch (p.shape_type) {
@@ -721,7 +721,7 @@ export namespace fan::graphics::editor {
                 .size = sz,
                 .color = fan::colors::transparent,
                 .angle = fan::vec3(0, 0, angle),
-                .body_type = (uint8_t)p.body_type,
+                .body_type = (std::uint8_t)p.body_type,
                 .shape_properties = props
               }));
             break;
@@ -735,7 +735,7 @@ export namespace fan::graphics::editor {
                 .radius = radius,
                 .color = fan::colors::transparent,
                 .angle = fan::vec3(0, 0, angle),
-                .body_type = (uint8_t)p.body_type,
+                .body_type = (std::uint8_t)p.body_type,
                 .shape_properties = props
               }));
             break;
@@ -752,7 +752,7 @@ export namespace fan::graphics::editor {
                 .radius = cap_radius,
                 .angle = fan::vec3(0, 0, angle),
                 .color = fan::colors::transparent,
-                .body_type = (uint8_t)p.body_type,
+                .body_type = (std::uint8_t)p.body_type,
                 .shape_properties = props
               }));
             break;
