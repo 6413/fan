@@ -28,7 +28,7 @@ struct rocket_game_t : engine_t, fan::frame_task_t<rocket_game_t> {
         fan::vec2(-view_size.y / 2.f, view_size.y / 2.f)
       );
 
-      scene.load("map0.json");
+      scene.load(current_level == 0 ? "map0.json" : "map1.json");
       pad_shape = scene.get_physics_body<physics::sprite_t>("landing_pad");
       auto* start_pad = scene.get_physics_body<physics::sprite_t>("start_pad");
       
@@ -130,18 +130,26 @@ struct rocket_game_t : engine_t, fan::frame_task_t<rocket_game_t> {
         if (state != game_state_e::playing) {
           bool menu = state == game_state_e::menu;
           bool over = state == game_state_e::game_over;
+          bool won = state == game_state_e::win;
+          bool last_level = current_level >= 1;
           
           push_font(get_font(72, font::bold));
           set_cursor_screen_pos(fan::vec2(vs.x / 2.f, vs.y / 2.f - 150.f));
-          text(menu ? "ROCKET GAME" : (over ? "CRASHED!" : "LANDED!"), {.color = menu ? fan::colors::white : (over ? fan::colors::red : fan::colors::green), .align = align_e::center});
+          const char* title = menu ? "ROCKET GAME" : (over ? "CRASHED!" : (last_level ? "YOU WIN!" : "LANDED!"));
+          text(title, {.color = menu ? fan::colors::white : (over ? fan::colors::red : fan::colors::green), .align = align_e::center});
           pop_font();
 
+          const char* btn_text = menu ? "Start" : (over ? "Restart" : (last_level ? "Play Again" : "Next Level"));
           set_cursor_screen_pos(fan::vec2(vs.x / 2.f - 100.f, vs.y / 2.f + 50.f));
-          if (button(menu ? "Start" : (over ? "Restart" : "Play Again"), fan::vec2(200.f, 60.f)) || engine->is_key_clicked(fan::key_space)) {
+          if (button(btn_text, fan::vec2(200.f, 60.f)) || engine->is_key_clicked(fan::key_space)) {
             if (menu) {
               state = game_state_e::playing;
               rocket_shape.set_body_type(fan::physics::body_type_e::dynamic_body);
+            } else if (won && !last_level) {
+              current_level = 1;
+              engine->stage_restart<game_stage_t>();
             } else {
+              if (won) current_level = 0;
               engine->stage_restart<game_stage_t>();
             }
           }
@@ -227,6 +235,7 @@ struct rocket_game_t : engine_t, fan::frame_task_t<rocket_game_t> {
       draw_gui();
     }
 
+    inline static int current_level = 0;
     game_state_e state = game_state_e::menu;
     bool is_landing = false;
     f32_t landing_timer = 0.f;
@@ -254,6 +263,7 @@ struct rocket_game_t : engine_t, fan::frame_task_t<rocket_game_t> {
 
     physics::collision_scope_t collision_scope;
   };
+
 
   rocket_game_t() {
     update_physics(true);

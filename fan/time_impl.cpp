@@ -48,6 +48,11 @@ namespace fan {
     #endif
     }
 
+    std::uint64_t get_start(){
+      static std::uint64_t start = fan::time::now();
+      return start;
+    }
+
     f64_t seconds() {
       return fan::time::now() / 1e9;
     }
