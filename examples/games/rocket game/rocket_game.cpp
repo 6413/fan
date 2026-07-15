@@ -93,10 +93,10 @@ struct rocket_game_t : engine_t, fan::frame_task_t<rocket_game_t> {
         if (state != game_state_e::playing) return;
         if (speed >= config::safe_landing_speed) {
           particles.spawn_explosion(rocket_shape.get_position(), fan::colors::orange, 200, particle_image);
-          rocket_shape.erase();
-          ship_window.erase();
-          ship_nozzle.erase();
-          flame_light.erase();
+          rocket_shape.set_visible(false);
+          ship_window.set_visible(false);
+          ship_nozzle.set_visible(false);
+          flame_light.set_visible(false);
           state = game_state_e::game_over; 
           rocket_shape.set_body_type(fan::physics::body_type_e::static_body);
         }
