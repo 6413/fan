@@ -72,12 +72,6 @@ export namespace fan::memory {
   };
 }
 
-export namespace fan {
-  void* memory_profile_malloc_cb(std::size_t n);
-  void* memory_profile_realloc_cb(void* ptr, std::size_t n);
-  void memory_profile_free_cb(void* ptr);
-}
-
 export namespace fan::memory {
   constexpr std::uint16_t read_le16(const std::uint8_t* p) { return std::uint16_t(p[0]) | (std::uint16_t(p[1]) << 8); }
   constexpr void write_le16(std::uint8_t* p, std::uint16_t v) { p[0] = std::uint8_t(v); p[1] = std::uint8_t(v >> 8); }
