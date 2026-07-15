@@ -58,7 +58,7 @@ export namespace fan::graphics {
         auto& current_json = *iterator.current_json;
         std::string id = current_json.value("id", "");
         
-        uint8_t body_type = fan::physics::body_type_e::static_body;
+        std::uint8_t body_type = fan::physics::body_type_e::static_body;
         if (current_json.contains("physics")) {
           body_type = current_json["physics"].value("body_type", (int)fan::physics::body_type_e::static_body);
         }
