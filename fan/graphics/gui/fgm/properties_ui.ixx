@@ -9,6 +9,7 @@ import fan.graphics.scene;
 import fan.graphics.material;
 import fan.graphics.shapes.types;
 import fan.texture_pack.tp0;
+import fan.graphics.gui.text_logger;
 import :fgm_types;
 
 export namespace fan::graphics::editor {
@@ -288,7 +289,7 @@ export namespace fan::graphics::editor {
               std::string str = "";
               if (!mat.images.empty() && mat.images.is_array() && mat.images.size() > 0) {
                 if (mat.images[0].contains("image_path")) {
-                  str = mat.images[0]["image_path"].get<std::string>();
+                    str = mat.images[0]["image_path"].template get<std::string>();
                 }
               }
               if (gui::input_text("image path", &str)) {
