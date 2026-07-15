@@ -288,7 +288,7 @@ export namespace fan::graphics::editor {
 
         if (!is_object) {
           if (shape_json.contains("id")) node->id = shape_json["id"].get<std::string>();
-          if (shape_json.contains("group_id")) node->group_id = shape_json["group_id"].get<uint32_t>();
+          if (shape_json.contains("group_id")) node->group_id = shape_json["group_id"].get<std::uint32_t>();
           if (shape_json.contains("physics")) {
             node->physics.from_json(shape_json["physics"]);
           }
