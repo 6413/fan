@@ -979,6 +979,15 @@ export namespace fan::physics {
     });
   }
 
+  template <typename Registry, typename World>
+  void destroy_bullets_vs_tiles(Registry& registry, World& world, f32_t radius) {
+    registry.template destroy_if<fan::ecs::c_pos, fan::ecs::tag_bullet>([&](fan::ecs::c_pos& p, fan::ecs::tag_bullet&) {
+      bool hit = false;
+      world.query_radius(p.v, radius, [&](std::uint32_t) { hit = true; });
+      return hit;
+    });
+  }
+
   template <typename... Tags_t, typename Registry_t, typename World_t>
   bool has_los(Registry_t& registry, World_t& world, fan::vec2 src, fan::vec2 tgt) {
     bool hit = false;
