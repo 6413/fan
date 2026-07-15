@@ -7,26 +7,29 @@ module;
 #include <fan/utility.h>
 #include <new>
 
-void* __fan_memory_profile_malloc_cb(std::size_t n);
-void __fan_memory_profile_free_cb(void* ptr);
+namespace fan::memory::detail {
+  inline void* (*malloc_fn)(std::size_t) = nullptr;
+  inline void* (*realloc_fn)(void*, std::size_t) = nullptr;
+  inline void (*free_fn)(void*) = nullptr;
+}
 
 void* operator new(std::size_t size) {
-  return __fan_memory_profile_malloc_cb(size);
+  return fan::memory::detail::malloc_fn ? fan::memory::detail::malloc_fn(size) : std::malloc(size);
 }
 void* operator new[](std::size_t size) {
-  return __fan_memory_profile_malloc_cb(size);
+  return fan::memory::detail::malloc_fn ? fan::memory::detail::malloc_fn(size) : std::malloc(size);
 }
 void operator delete(void* ptr) noexcept {
-  __fan_memory_profile_free_cb(ptr);
+  fan::memory::detail::free_fn ? fan::memory::detail::free_fn(ptr) : std::free(ptr);
 }
 void operator delete[](void* ptr) noexcept {
-  __fan_memory_profile_free_cb(ptr);
+  fan::memory::detail::free_fn ? fan::memory::detail::free_fn(ptr) : std::free(ptr);
 }
 void operator delete(void* ptr, std::size_t) noexcept {
-  __fan_memory_profile_free_cb(ptr);
+  fan::memory::detail::free_fn ? fan::memory::detail::free_fn(ptr) : std::free(ptr);
 }
 void operator delete[](void* ptr, std::size_t) noexcept {
-  __fan_memory_profile_free_cb(ptr);
+  fan::memory::detail::free_fn ? fan::memory::detail::free_fn(ptr) : std::free(ptr);
 }
 
 module fan.memory;
