@@ -67,7 +67,6 @@ export namespace fan::graphics {
 
         fan::color final_color = shape.get_color();
         fan::json final_images;
-        bool has_custom_material = false;
         int mat_type = 0;
 
         if (current_json.contains("material_id")) {
@@ -77,13 +76,11 @@ export namespace fan::graphics {
             final_color = mat.color;
             final_images = mat.images;
             mat_type = mat.material_type;
-            has_custom_material = true;
           }
         } else {
           // Fallback to flat JSON
           if (current_json.contains("material_type") && current_json["material_type"].get<int>() == 1) {
             mat_type = 1;
-            has_custom_material = true;
           }
           if (current_json.contains("images")) final_images = current_json["images"];
         }
