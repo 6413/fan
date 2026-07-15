@@ -21,9 +21,9 @@ struct rocket_game_t : engine_t, fan::frame_task_t<rocket_game_t> {
     void open(void* data) {
       state = (data && *(bool*)data) ? game_state_e::menu : game_state_e::playing;
       
-      fan::vec2 view_size = pile.viewport_get_size();
-      pile.camera_set_ortho(
-        pile.orthographic_render_view.camera, 
+      fan::vec2 view_size = engine->viewport_get_size();
+      engine->camera_set_ortho(
+        engine->orthographic_render_view.camera, 
         fan::vec2(-view_size.x / 2.f, view_size.x / 2.f), 
         fan::vec2(-view_size.y / 2.f, view_size.y / 2.f)
       );
@@ -84,7 +84,7 @@ struct rocket_game_t : engine_t, fan::frame_task_t<rocket_game_t> {
 
       auto on_pad_touch = [this](fan::physics::entity_t other) {
         if (state != game_state_e::playing) return;
-        if (!pad_shape || other != *pad_shape) return;
+        if (!pad_shape || static_cast<fan::physics::body_id_t>(other) != static_cast<const fan::physics::entity_t&>(*pad_shape)) return;
         is_landing = true; 
         landing_timer = config::landing_duration; 
       };
@@ -105,18 +105,18 @@ struct rocket_game_t : engine_t, fan::frame_task_t<rocket_game_t> {
       collision_scope.on_enter(rocket_shape, on_pad_touch);
       collision_scope.on_hit(rocket_shape, on_pad_hit);
       collision_scope.on_exit(rocket_shape, [this](fan::physics::entity_t other) { 
-        if (state == game_state_e::playing && pad_shape && other == *pad_shape) {
+        if (state == game_state_e::playing && pad_shape && static_cast<fan::physics::body_id_t>(other) == static_cast<const fan::physics::entity_t&>(*pad_shape)) {
           is_landing = false; 
         }
       });
       
-      pile.camera_follow(rocket_shape.get_position());
+      engine->camera_follow(rocket_shape.get_position());
     }
 
     void draw_gui() {
       using namespace fan::graphics::gui;
       if (auto h = hud_interactive{"##game_ui"}) {
-        fan::vec2 vs = pile.viewport_get_size();
+        fan::vec2 vs = engine->viewport_get_size();
         push_font(get_font(24, font::bold));
         
         f32_t speed = rocket_shape.is_valid() ? rocket_shape.get_linear_velocity().length() : 0.f;
@@ -137,12 +137,12 @@ struct rocket_game_t : engine_t, fan::frame_task_t<rocket_game_t> {
           pop_font();
 
           set_cursor_screen_pos(fan::vec2(vs.x / 2.f - 100.f, vs.y / 2.f + 50.f));
-          if (button(menu ? "Start" : (over ? "Restart" : "Play Again"), fan::vec2(200.f, 60.f)) || pile.is_key_clicked(fan::key_space)) {
+          if (button(menu ? "Start" : (over ? "Restart" : "Play Again"), fan::vec2(200.f, 60.f)) || engine->is_key_clicked(fan::key_space)) {
             if (menu) {
               state = game_state_e::playing;
               rocket_shape.set_body_type(fan::physics::body_type_e::dynamic_body);
             } else {
-              pile.stage_restart<game_stage_t>();
+              engine->stage_restart<game_stage_t>();
             }
           }
         } else if (is_landing) {
@@ -155,14 +155,14 @@ struct rocket_game_t : engine_t, fan::frame_task_t<rocket_game_t> {
     }
 
     void update() {
-      f32_t dt = pile.get_delta_time();
+      f32_t dt = engine->get_delta_time();
       if (rocket_shape.is_valid()) {
-        pile.camera_set_center(rocket_shape.get_position().xy());
+        engine->camera_set_center(rocket_shape.get_position().xy());
       }
 
-      if (pile.is_key_down(fan::key_left_control) && pile.is_key_down(fan::key_left_shift) && pile.is_key_clicked(fan::key_r)) {
+      if (engine->is_key_down(fan::key_left_control) && engine->is_key_down(fan::key_left_shift) && engine->is_key_clicked(fan::key_r)) {
         fan::image::async_cache().clear();
-        pile.stage_restart<game_stage_t>();
+        engine->stage_restart<game_stage_t>();
       }
 
       if (state == game_state_e::playing) {
@@ -182,7 +182,7 @@ struct rocket_game_t : engine_t, fan::frame_task_t<rocket_game_t> {
           }
         }
 
-        fan::vec2 input = pile.get_input_vector();
+        fan::vec2 input = engine->get_input_vector();
         rocket_controller.apply_turn(input.x * config::turn_speed);
 
         if (input.y < 0.f) {
