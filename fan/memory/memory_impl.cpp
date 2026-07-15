@@ -207,7 +207,7 @@ namespace fan::memory {
     if (!p) {
       throw std::bad_alloc();
     }
-    
+
     track_allocation(p, n);
 
     // Update alloc_ns
@@ -364,18 +364,19 @@ namespace fan::memory {
 
 }
 
-void* __fan_memory_profile_malloc_cb(std::size_t n) {
-  return fan::memory::heap_profiler_t::instance().allocate_memory(n);
-}
-void* __fan_memory_profile_realloc_cb(void* ptr, std::size_t n) {
-  return fan::memory::heap_profiler_t::instance().reallocate_memory(ptr, n);
-}
-void __fan_memory_profile_free_cb(void* ptr) {
-  fan::memory::heap_profiler_t::instance().deallocate_memory(ptr);
+namespace fan::memory::detail {
+  struct init_fn_ptrs_t {
+    init_fn_ptrs_t() {
+      malloc_fn = [](std::size_t n) -> void* { return fan::memory::heap_profiler_t::instance().allocate_memory(n); };
+      realloc_fn = [](void* ptr, std::size_t n) -> void* { return fan::memory::heap_profiler_t::instance().reallocate_memory(ptr, n); };
+      free_fn = [](void* ptr) { fan::memory::heap_profiler_t::instance().deallocate_memory(ptr); };
+    }
+  };
+  static init_fn_ptrs_t init_fn_ptrs;
 }
 
 namespace fan {
-  void* memory_profile_malloc_cb(std::size_t n) { return __fan_memory_profile_malloc_cb(n); }
-  void* memory_profile_realloc_cb(void* ptr, std::size_t n) { return __fan_memory_profile_realloc_cb(ptr, n); }
-  void memory_profile_free_cb(void* ptr) { __fan_memory_profile_free_cb(ptr); }
+  void* memory_profile_malloc_cb(std::size_t n) { return fan::memory::heap_profiler_t::instance().allocate_memory(n); }
+  void* memory_profile_realloc_cb(void* ptr, std::size_t n) { return fan::memory::heap_profiler_t::instance().reallocate_memory(ptr, n); }
+  void memory_profile_free_cb(void* ptr) { fan::memory::heap_profiler_t::instance().deallocate_memory(ptr); }
 }
