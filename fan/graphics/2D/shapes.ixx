@@ -335,6 +335,11 @@ export namespace fan::graphics {
       std::uint16_t get_shape_type() const;
       shape_t& set_position(const fan::vec2& position);
       shape_t& set_position(const fan::vec3& position);
+
+      void set_local_position(const fan::vec2& local_position);
+      void set_local_position(const fan::vec3& local_position);
+      fan::vec3 get_local_position() const;    
+
       void set_x(f32_t x);
       void set_y(f32_t y);
       void set_z(f32_t z);

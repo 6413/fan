@@ -45,6 +45,8 @@ export namespace fan::graphics::editor {
 
     f32_t snap = 32.f;
 
+    fan::graphics::material_system_t material_system;
+
     void open_texturepack(const std::string& path) {
       gloco()->texture_pack.open_compiled(path);
       texturepack_images.clear();
@@ -812,6 +814,7 @@ export namespace fan::graphics::editor {
       if (!is_playing) {
         render_settings_window();
         properties_ui_t::render(*this, current_shape);
+        properties_ui_t::render_materials(*this);
         render_shapes_window();
         render_texturepack_window();
         render_animations_window();

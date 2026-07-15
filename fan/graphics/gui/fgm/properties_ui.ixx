@@ -5,6 +5,8 @@ import std;
 import fan.math;
 import fan.graphics.gui.base;
 import fan.graphics.loco;
+import fan.graphics.scene;
+import fan.graphics.material;
 import :fgm_types;
 
 export namespace fan::graphics::editor {
@@ -129,17 +131,66 @@ export namespace fan::graphics::editor {
       }
 
       if (gui::tree_node_ex("Material", gui::tree_node_flags_default_open)) {
-        const char* material_names[] = {"Textured", "Solid Color"};
-        int mt = shape->material_type;
-        if (gui::combo("type", &mt, material_names, 2)) {
-          shape->material_type = (uint8_t)mt;
-          fgm.apply_material(shape);
-        }
-        if (shape->material_type == 1) {
-          fan::color c = shape->get_color();
-          if (gui::color_edit4("solid color", &c)) {
-            shape->set_color(c);
+        if (shape->material_id == -1) {
+          if (gui::button("Create Material")) {
+            fan::graphics::material_t mat;
+            mat.material_type = shape->material_type;
+            mat.color = shape->get_color();
+            mat.images = fan::json::array();
+            if (shape->children[0].get_shape_type() == fan::graphics::shapes::shape_type_t::sprite || shape->children[0].get_shape_type() == fan::graphics::shapes::shape_type_t::unlit_sprite) {
+              if (shape->children[0].get_image_data().image_path.size()) {
+                fan::json j_img;
+                j_img["image_path"] = shape->children[0].get_image_data().image_path;
+                mat.images.push_back(j_img);
+              }
+            }
+            shape->material_id = fgm.material_system.add(mat);
           }
+          const char* material_names[] = {"Textured", "Solid Color"};
+          int mt = shape->material_type;
+          if (gui::combo("type", &mt, material_names, 2)) {
+            shape->material_type = (uint8_t)mt;
+            fgm.apply_material(shape);
+          }
+          if (shape->material_type == 1) {
+            fan::color c = shape->get_color();
+            if (gui::color_edit4("solid color", &c)) {
+              shape->set_color(c);
+            }
+          }
+        } else {
+          std::string preview_value = "Material " + std::to_string(shape->material_id);
+          if (gui::begin_combo("Linked Material", preview_value.c_str())) {
+            if (gui::selectable("Unlink (-1)", false)) {
+              shape->material_id = -1;
+            }
+            for (const auto& [id, mat] : fgm.material_system.materials) {
+              std::string label = "Material " + std::to_string(id);
+              bool is_selected = (shape->material_id == id);
+              if (gui::selectable(label.c_str(), is_selected)) {
+                shape->material_id = id;
+                shape->set_color(mat.color);
+                shape->material_type = mat.material_type;
+                if (!mat.images.empty() && mat.images.is_array() && mat.images.size() > 0) {
+                  if (mat.images[0].contains("image_path")) {
+                    shape->children[0].get_image_data().image_path = mat.images[0]["image_path"].get<std::string>();
+                    fan::graphics::texture_pack::ti_t ti;
+                    if (gloco()->texture_pack.qti(shape->children[0].get_image_data().image_path.c_str(), &ti) == 0) {
+                      if (shape->children[0].get_shape_type() == fan::graphics::shapes::shape_type_t::sprite || shape->children[0].get_shape_type() == fan::graphics::shapes::shape_type_t::unlit_sprite) {
+                        shape->children[0].load_tp(&ti);
+                      }
+                    }
+                  }
+                }
+                fgm.apply_material(shape);
+              }
+              if (is_selected) {
+                gui::set_item_default_focus();
+              }
+            }
+            gui::end_combo();
+          }
+          gui::text("Edit this material in the Material List panel.");
         }
         gui::tree_pop();
       }
@@ -148,7 +199,7 @@ export namespace fan::graphics::editor {
         case fan::graphics::shapes::shape_type_t::unlit_sprite:
         case fan::graphics::shapes::shape_type_t::sprite:
         {
-          if (shape->material_type == 0) {
+          if (shape->material_type == 0 && shape->material_id == -1) {
             fan::graphics::gui::render_texture_property(shape->children[0], 0, "Base texture", fgm.content_browser.asset_path);
             fan::graphics::gui::render_texture_property(shape->children[0], 1, "Normal map", fgm.content_browser.asset_path);
             fan::graphics::gui::render_texture_property(shape->children[0], 2, "Specular map", fgm.content_browser.asset_path);
@@ -201,6 +252,81 @@ export namespace fan::graphics::editor {
           break;
         }
       }
+    }
+
+    template <typename FGM_T>
+    static void render_materials(FGM_T& fgm) {
+      if (gui::begin("Material List")) {
+        int to_delete = -1;
+        for (auto& [id, mat] : fgm.material_system.materials) {
+          gui::push_id(id);
+          std::string node_name = "Material " + std::to_string(id);
+          if (gui::tree_node_ex(node_name.c_str(), gui::tree_node_flags_default_open)) {
+            const char* material_names[] = {"Textured", "Solid Color"};
+            int mt = mat.material_type;
+            if (gui::combo("type", &mt, material_names, 2)) {
+              mat.material_type = mt;
+              for (auto& shape : fgm.shape_list) {
+                if (shape->material_id == id) {
+                  shape->material_type = mt;
+                  fgm.apply_material(shape.get());
+                }
+              }
+            }
+            if (mat.material_type == 1) {
+              if (gui::color_edit4("solid color", &mat.color)) {
+                for (auto& shape : fgm.shape_list) {
+                  if (shape->material_id == id) {
+                    shape->set_color(mat.color);
+                  }
+                }
+              }
+            } else {
+              // Edit Texture
+              std::string str = "";
+              if (!mat.images.empty() && mat.images.is_array() && mat.images.size() > 0) {
+                if (mat.images[0].contains("image_path")) {
+                  str = mat.images[0]["image_path"].get<std::string>();
+                }
+              }
+              if (gui::input_text("image path", &str)) {
+                if (gui::is_item_deactivated_after_edit()) {
+                  fan::json j_img;
+                  j_img["image_path"] = str;
+                  if (mat.images.empty()) mat.images.push_back(j_img);
+                  else mat.images[0] = j_img;
+
+                  fan::graphics::texture_pack::ti_t ti;
+                  if (gloco()->texture_pack.qti(str.c_str(), &ti) == 0) {
+                    for (auto& shape : fgm.shape_list) {
+                      if (shape->material_id == id) {
+                        shape->children[0].get_image_data().image_path = str;
+                        if (shape->children[0].get_shape_type() == fan::graphics::shapes::shape_type_t::sprite || shape->children[0].get_shape_type() == fan::graphics::shapes::shape_type_t::unlit_sprite) {
+                          shape->children[0].load_tp(&ti);
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            if (gui::button("Delete Material")) {
+              to_delete = id;
+            }
+            gui::tree_pop();
+          }
+          gui::pop_id();
+        }
+        if (to_delete != -1) {
+          fgm.material_system.materials.erase(to_delete);
+          for (auto& shape : fgm.shape_list) {
+            if (shape->material_id == to_delete) {
+              shape->material_id = -1;
+            }
+          }
+        }
+      }
+      gui::end();
     }
 
     template <typename FGM_T, typename GlobalT>
