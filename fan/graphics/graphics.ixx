@@ -55,7 +55,7 @@ import fan.print.error;
 
 export namespace fan::ecs {
   struct c_rectangle { fan::vec2 size; fan::color color; f32_t depth = 0.f; };
-  struct c_line { fan::vec2 offset; fan::color color; f32_t thickness = 1.f; };
+  struct c_line { fan::vec2 offset; fan::color color; f32_t thickness = 1.f; f32_t depth = 0.f; };
   struct c_rectangle_bordered {
     fan::vec2 size;
     fan::color outer_col;
@@ -1385,7 +1385,7 @@ export namespace fan::graphics {
       }
       if constexpr (registry_t::template bit<fan::ecs::c_line>()) {
         reg.template each<fan::ecs::c_pos, fan::ecs::c_line>([rv](std::uint32_t, auto& pos, auto& line) {
-          fan::graphics::line(fan::vec3(pos.v, 0), fan::vec3(pos.v + line.offset, 0), line.color, line.thickness, rv);
+          fan::graphics::line(fan::vec3(pos.v, line.depth), fan::vec3(pos.v + line.offset, line.depth), line.color, line.thickness, rv);
         });
       }
       if constexpr (registry_t::template bit<fan::ecs::c_rectangle_bordered>()) {
