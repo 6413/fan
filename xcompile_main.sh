@@ -18,7 +18,7 @@ BUILDLIB=false
 declare -A FEATURE_DEFAULTS=(
   [FAN_WINDOW]=false [FAN_2D]=false [FAN_GUI]=false
   [FAN_PHYSICS_2D]=false [FAN_JSON]=false
-  [FAN_3D]=false [FAN_VULKAN]=false [FAN_FMT]=false
+  [FAN_3D]=false [FAN_FMT]=false
   [FAN_WAYLAND_SCREEN]=false [FAN_NETWORK]=false [FAN_AUDIO]=false
   [FAN_VIDEO]=false [FAN_REFLECTION]=false
 )
@@ -174,7 +174,6 @@ while [[ $# -gt 0 ]]; do
     --fmt)         enable_features FAN_FMT;                 shift ;;
     --reflection)  enable_features FAN_REFLECTION;          shift ;;
     --wayland-screen) enable_features FAN_WAYLAND_SCREEN;   shift ;;
-    --vulkan)      enable_features FAN_VULKAN;              shift ;;
     *)
       XMAKE_ARGS+=("$1")
       shift

@@ -1,5 +1,8 @@
 module;
 
+#if defined(FAN_2D)
+
+
 #include <fan/utility.h>
 
 #define USE_SHADERC
@@ -268,3 +271,5 @@ bool fan::vulkan::shader_subsystem_t::shader_compile(fan::graphics::shader_nr_t 
   ++shader.compile_generation;
   return true;
 }
+
+#endif

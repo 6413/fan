@@ -1,6 +1,6 @@
-#if defined(FAN_2D)
-
 module;
+
+#if defined(FAN_2D)
 
 
 #if defined(fan_platform_windows)

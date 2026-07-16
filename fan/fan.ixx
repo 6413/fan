@@ -39,6 +39,7 @@ export import fan.graphics.loco;
   export import fan.graphics.shapes.types;
   export import fan.graphics.shapes;
   export import fan.graphics;
+  export import fan.graphics.scene;
 #endif
 #if defined(FAN_GUI)
   export import fan.console;

@@ -1,5 +1,7 @@
 module;
 
+#if defined(FAN_2D)
+
 #if defined(fan_platform_windows)
   #define VK_USE_PLATFORM_WIN32_KHR
 #elif defined(fan_platform_unix)
@@ -9,7 +11,12 @@ module;
 #include <vk_mem_alloc.h>
 #include <fan/utility.h>
 
+#endif
+
 export module fan.graphics.vulkan.core:types;
+
+#if defined(FAN_2D)
+
 import std;
 
 import fan.types.vector;
@@ -248,3 +255,5 @@ export namespace fan {
     VkPipelineColorBlendAttachmentState get_default_color_blend();
   }
 }
+
+#endif
