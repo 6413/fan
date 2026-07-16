@@ -1,4 +1,4 @@
-
+#if defined(FAN_GUI)
 module fan.graphics.gui.types;
 
 import std;
@@ -17,3 +17,5 @@ namespace fan::graphics::gui {
     }
   }
 }
+
+#endif

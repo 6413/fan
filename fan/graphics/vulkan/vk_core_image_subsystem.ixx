@@ -1,5 +1,5 @@
-#if defined(FAN_2D)
 module;
+#if defined(FAN_2D)
 
 #if defined(fan_platform_windows)
   #define VK_USE_PLATFORM_WIN32_KHR

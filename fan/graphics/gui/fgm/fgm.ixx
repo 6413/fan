@@ -1,5 +1,7 @@
 module;
 
+#if defined(FAN_GUI)
+
 #include <fan/utility.h>
 
 export module fan.graphics.editor;
@@ -930,3 +932,4 @@ export namespace fan::graphics::editor {
     std::function<void(bool enabled, void* render_view)> saved_fgm_debug_cb;
   };
 }
+#endif

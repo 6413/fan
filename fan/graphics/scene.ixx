@@ -1,12 +1,15 @@
-#if defined (FAN_2D)
-
 module;
+
+#if defined (FAN_2D)
 
 export module fan.graphics.scene;
 
 import std;
-import fan;
-import fan.graphics;
+import fan.types.json;
+import fan.io.file;
+import fan.print;
+import fan.physics.types;
+import fan.graphics.shapes;
 import fan.graphics.physics_shapes;
 
 import fan.graphics.material;

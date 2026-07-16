@@ -1,7 +1,5 @@
 import std;
 import fan;
-import fan.graphics.scene;
-import fan.physics.vehicle_controller;
 
 using namespace fan::graphics;
 using namespace fan::color_literals;
