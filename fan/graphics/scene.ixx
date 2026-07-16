@@ -1,3 +1,5 @@
+#if defined (FAN_2D)
+
 module;
 
 export module fan.graphics.scene;
@@ -165,3 +167,5 @@ export namespace fan::graphics {
   };
 
 }
+
+#endif

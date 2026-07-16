@@ -1,3 +1,4 @@
+#if defined(FAN_2D)
 module;
 
 #if defined(fan_platform_windows)
@@ -67,3 +68,5 @@ export namespace fan::vulkan {
     fan::graphics::image_nr_t image_create_from_view(VkImageView view, VkImage image, fan::vec2ui size, VkFormat format);
   };
 }
+
+#endif

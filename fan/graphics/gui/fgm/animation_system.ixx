@@ -1,5 +1,10 @@
+#if defined(FAN_GUI)
+
 export module fan.graphics.editor:animation_system;
 
+#endif
+
+#if defined(FAN_GUI)
 import fan.math;
 import fan.graphics.gui.base;
 import :fgm_types;
@@ -243,3 +248,5 @@ export namespace fan::graphics::editor {
     bool auto_increment_time = true;
   };
 }
+
+#endif

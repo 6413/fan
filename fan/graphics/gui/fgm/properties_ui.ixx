@@ -1,3 +1,4 @@
+#if defined(FAN_GUI)
 export module fan.graphics.editor:properties_ui;
 
 import std;
@@ -399,3 +400,5 @@ export namespace fan::graphics::editor {
     }
   };
 }
+
+#endif
