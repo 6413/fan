@@ -74,6 +74,7 @@ export import fan.event;
   export import fan.physics.types;
   export import fan.physics.b2_integration;
   export import fan.graphics.physics_shapes;
+  export import fan.physics.vehicle_controller;
 #endif
 
 export import fan.process;

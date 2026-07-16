@@ -1,3 +1,5 @@
+#if defined(FAN_GUI)
+
 export module fan.graphics.editor:fgm_types;
 
 import std;
@@ -119,3 +121,5 @@ export namespace fan::graphics::editor {
     };
   };
 }
+
+#endif

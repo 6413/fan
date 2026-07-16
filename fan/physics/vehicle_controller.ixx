@@ -3,8 +3,9 @@ module;
 export module fan.physics.vehicle_controller;
 
 import std;
-import fan;
-import fan.graphics;
+import fan.types;
+import fan.types.vector;
+import fan.graphics.physics_shapes;
 
 export namespace fan::physics {
 
@@ -12,7 +13,6 @@ export namespace fan::physics {
     
     vehicle_controller_t() = default;
 
-    // We take a pointer to the physics body, which must be a base_shape_t derivative (like capsule_t)
     void bind(fan::graphics::physics::base_shape_t* physics_body) {
       body = physics_body;
     }

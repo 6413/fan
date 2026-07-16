@@ -611,6 +611,15 @@ export namespace fan::graphics {
     fan::vec4 get_ortho() const;
     fan::vec2 get_viewport_size() const;
 
+    // camera effects
+    void shake(f32_t intensity, f32_t duration);
+    void bump(fan::vec2 direction, f32_t distance, f32_t duration);
+    void bump_zoom(f32_t amount, f32_t duration);
+    void flash(f32_t alpha, f32_t duration);
+    void flashbang(f32_t duration);
+    f32_t get_flash_alpha() const;
+    void update_fx(f32_t dt);
+
     fan::vec2 old_window_size {};
     fan::vec2 camera_offset {};
     fan::graphics::render_view_t render_view;
@@ -624,6 +633,21 @@ export namespace fan::graphics {
     bool zoom_on_window_resize = true;
     bool pan_with_middle_mouse = true;
     bool clicked_inside_viewport = false;
+
+    // effect state (managed by shake/bump/flash/update_fx)
+    f32_t fx_shake_timer = 0;
+    f32_t fx_shake_duration = 0;
+    f32_t fx_shake_intensity = 0;
+    f32_t fx_bump_timer = 0;
+    f32_t fx_bump_duration = 0;
+    fan::vec2 fx_bump_offset;
+    f32_t fx_bump_zoom_amount = 0;
+    f32_t fx_bump_zoom_base = 0;
+    f32_t fx_bump_zoom_timer = 0;
+    f32_t fx_bump_zoom_duration = 0;
+    f32_t fx_flash_alpha = 0;
+    f32_t fx_flash_timer = 0;
+    f32_t fx_flash_duration = 0;
   };
 
   struct world_window_t {
@@ -1138,6 +1162,16 @@ export namespace fan::graphics {
       f32_t end_angle = 1.0f;
       f32_t alive_time_min = 1.0f;
       f32_t alive_time_max = 3.0f;
+
+      static smoke_config_t puff(f32_t alive_min, f32_t alive_max, f32_t start_sz, f32_t end_sz, f32_t alpha_val) {
+        smoke_config_t c;
+        c.alive_time_min = alive_min;
+        c.alive_time_max = alive_max;
+        c.start_size = start_sz;
+        c.end_size = end_sz;
+        c.alpha = alpha_val;
+        return c;
+      }
     };
 
     void spawn_smoke(fan::vec3 pos, int count, image_t image, const smoke_config_t& cfg = {}) {
@@ -1344,18 +1378,24 @@ export namespace fan::graphics {
   namespace systems {
     template <typename registry_t>
     constexpr void render2d(registry_t& reg, fan::graphics::render_view_t* rv = fan::graphics::ctx().orthographic_render_view) {
-      reg.template each<fan::ecs::c_pos, fan::ecs::c_rectangle>([rv](std::uint32_t, auto& pos, auto& rect) {
-        fan::graphics::rectangle(fan::vec3(pos.v, rect.depth), rect.size, rect.color, rv);
-      });
-      reg.template each<fan::ecs::c_pos, fan::ecs::c_line>([rv](std::uint32_t, auto& pos, auto& line) {
-        fan::graphics::line(fan::vec3(pos.v, 0), fan::vec3(pos.v + line.offset, 0), line.color, line.thickness, rv);
-      });
-      reg.template each<fan::ecs::c_pos, fan::ecs::c_rectangle_bordered>([](std::uint32_t, fan::ecs::c_pos& p, fan::ecs::c_rectangle_bordered& r) {
-        fan::graphics::rectangle_bordered(
-          fan::vec3(p.v, 2.f), r.size, r.outer_col,
-          r.inner_size, r.inner_col
-        );
-      });
+      if constexpr (registry_t::template bit<fan::ecs::c_rectangle>()) {
+        reg.template each<fan::ecs::c_pos, fan::ecs::c_rectangle>([rv](std::uint32_t, auto& pos, auto& rect) {
+          fan::graphics::rectangle(fan::vec3(pos.v, rect.depth), rect.size, rect.color, rv);
+        });
+      }
+      if constexpr (registry_t::template bit<fan::ecs::c_line>()) {
+        reg.template each<fan::ecs::c_pos, fan::ecs::c_line>([rv](std::uint32_t, auto& pos, auto& line) {
+          fan::graphics::line(fan::vec3(pos.v, 0), fan::vec3(pos.v + line.offset, 0), line.color, line.thickness, rv);
+        });
+      }
+      if constexpr (registry_t::template bit<fan::ecs::c_rectangle_bordered>()) {
+        reg.template each<fan::ecs::c_pos, fan::ecs::c_rectangle_bordered>([](std::uint32_t, fan::ecs::c_pos& p, fan::ecs::c_rectangle_bordered& r) {
+          fan::graphics::rectangle_bordered(
+            fan::vec3(p.v, 2.f), r.size, r.outer_col,
+            r.inner_size, r.inner_col
+          );
+        });
+      }
     }
   }
 
