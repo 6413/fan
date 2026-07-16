@@ -53,7 +53,6 @@ local fan_features = {
   FAN_JSON = true,
   FAN_3D = false,
 
-  FAN_VULKAN = true,
   FAN_FMT = false,
   FAN_WAYLAND_SCREEN = false,
   FAN_NETWORK = false,
@@ -86,7 +85,7 @@ option("main") set_default("examples/engine_demos/engine_demo.cpp") option_end()
 
 local static_req = {system = false, configs = {shared = false}}
 if has_config("FAN_FMT") then add_requires("fmt 10.2.1", static_req) end
-if has_config("FAN_VULKAN") then
+if has_config("FAN_2D") then
   add_defines("VK_ENABLE_BETA_EXTENSIONS")
   add_requires("vulkan-headers v1.4.335", {system = false})
   add_requires("shaderc", static_req)
@@ -130,7 +129,7 @@ end
 
 add_includedirs(".", {public = true})
 add_sysincludedirs("third_party/fan/include", {public = true})
-if has_config("FAN_VULKAN") then add_sysincludedirs("third_party/fan/include/VulkanMemoryAllocator/include", {public = true}) end
+if has_config("FAN_2D") then add_sysincludedirs("third_party/fan/include/VulkanMemoryAllocator/include", {public = true}) end
 
 local is_gcc = get_config("compiler") == "gcc"
 if not is_gcc and not is_plat("wasm") then add_cxxflags("-stdlib=libstdc++", {force = true}) end
@@ -203,8 +202,9 @@ local feature_modules = {
     "fan/graphics/gui/tilemap_editor/loader.ixx", "fan/graphics/gui/tilemap_editor/renderer0.ixx"
   },
 
-  FAN_VULKAN = { "fan/graphics/vulkan/vk_core_types.ixx", "fan/graphics/vulkan/vk_core_vai.ixx", "fan/graphics/vulkan/vk_core_image.ixx", "fan/graphics/vulkan/vk_core_compute.ixx", "fan/graphics/vulkan/vk_core_pipeline.ixx", "fan/graphics/vulkan/vk_core_camera_subsystem.ixx", "fan/graphics/vulkan/vk_core_uniform_block.ixx", "fan/graphics/vulkan/vk_core_shader_subsystem.ixx", "fan/graphics/vulkan/vk_core.ixx" },
-  FAN_2D = { "fan/graphics/2D/shapes_types.ixx", "fan/graphics/2D/grid_placer.ixx", "fan/graphics/2D/culling.ixx", "fan/graphics/2D/shapes.ixx" },
+  FAN_2D = { "fan/graphics/2D/shapes_types.ixx", "fan/graphics/2D/grid_placer.ixx", "fan/graphics/2D/culling.ixx", "fan/graphics/2D/shapes.ixx",
+              "fan/graphics/vulkan/vk_core_types.ixx", "fan/graphics/vulkan/vk_core_vai.ixx", "fan/graphics/vulkan/vk_core_image.ixx", "fan/graphics/vulkan/vk_core_compute.ixx", "fan/graphics/vulkan/vk_core_pipeline.ixx", "fan/graphics/vulkan/vk_core_camera_subsystem.ixx", "fan/graphics/vulkan/vk_core_uniform_block.ixx", "fan/graphics/vulkan/vk_core_shader_subsystem.ixx", "fan/graphics/vulkan/vk_core.ixx"
+  },
   FAN_JSON = { "fan/types/json.ixx" },
   FAN_FMT = { "fan/fmt.ixx" },
   FAN_NETWORK = { "fan/network/network.ixx", "fan/network/network_socket.ixx", "fan/graphics/2D/graphics_network.ixx" },
@@ -245,7 +245,7 @@ for _, m in ipairs(module_files) do
   local p = path.join(path.directory(m), path.basename(m) .. "_impl.cpp")
   if os.isfile(p) then table.insert(impl_files, p) end
 end
-if has_config("FAN_VULKAN") then
+if has_config("FAN_2D") then
   for _, f in ipairs({"vk_core_device", "vk_core_shader", "vk_core_image", "vk_mem_alloc"}) do
     table.insert(impl_files, "fan/graphics/vulkan/" .. f .. "_impl.cpp")
   end
@@ -262,7 +262,7 @@ if has_config("FAN_GUI") then
     if has_config("FAN_WINDOW") then
       add_packages("glfw")
     end
-    if has_config("FAN_VULKAN") then
+    if has_config("FAN_2D") then
       add_packages("vulkan-headers")
       if is_plat("linux") then add_syslinks("vulkan") end
     end
@@ -299,7 +299,7 @@ if has_config("FAN_GUI") then
       "fan/imgui/implot.cpp", "fan/imgui/text_editor.cpp", "fan/imgui/misc/freetype/imgui_freetype.cpp",
       "fan/imgui/ImGuizmo.cpp"
     )
-    if has_config("FAN_VULKAN") then add_files("fan/imgui/imgui_impl_vulkan.cpp") end
+    if has_config("FAN_2D") then add_files("fan/imgui/imgui_impl_vulkan.cpp") end
   target_end()
 end
 
@@ -353,7 +353,7 @@ target("a.exe")
   if not is_plat("wasm") and has_config("FAN_WINDOW") then add_deps("nfd") end
   if has_config("FAN_FMT") then add_packages("fmt") end
 
-  if has_config("FAN_VULKAN") then
+  if has_config("FAN_2D") then
     add_packages("vulkan-headers", "shaderc")
     if is_plat("linux") then add_syslinks("vulkan") end
   end
@@ -378,7 +378,7 @@ target("a.exe")
 
   add_includedirs(".", {public = true})
   add_sysincludedirs("third_party/fan/include", {public = true})
-  if has_config("FAN_VULKAN") then
+  if has_config("FAN_2D") then
     add_includedirs(
       "third_party/fan/include/VulkanMemoryAllocator/include",
       {public = true}
@@ -399,7 +399,7 @@ target("a.exe")
     if has_config("FAN_GUI") then add_packages("freetype", "lunasvg") end
     if has_config("FAN_PHYSICS_2D") then add_packages("box2d") end
     if has_config("FAN_3D") then add_links("assimp") end
-    if has_config("FAN_VULKAN") then add_packages("vulkansdk") end
+    if has_config("FAN_2D") then add_packages("vulkansdk") end
     if has_config("FAN_WAYLAND_SCREEN") then add_links("wayland-client", "pipewire-0.3", "dbus-1", "avcodec", "avutil", "swscale") end
   elseif is_plat("windows") then
     add_linkdirs("lib/GLFW", "lib/GLEW", "lib/libuv", "lib/libwebp", "lib/opus", "lib/openssl")
@@ -407,7 +407,7 @@ target("a.exe")
     if has_config("FAN_GUI") then add_linkdirs("lib/freetype", "lib/lunasvg") add_links("freetype", "lunasvg") end
     if has_config("FAN_PHYSICS_2D") then add_linkdirs("lib/box2d") add_links("box2d") end
     if has_config("FAN_3D") then add_linkdirs("C:/Program Files/Assimp/lib/x64") add_links("assimp-vc143-mt") end
-    if has_config("FAN_VULKAN") then add_packages("vulkansdk") end
+    if has_config("FAN_2D") then add_packages("vulkansdk") end
     if has_config("FAN_WAYLAND_SCREEN") then
       add_linkdirs("lib/libx264", "lib/openh264")
       add_links("DXGI", "D3D11", "libx264", "welsdcore", "welsecore", "WelsDecPlus", "WelsEncPlus", "WelsVP")
@@ -415,7 +415,7 @@ target("a.exe")
   end
 
   on_load(function (target)
-    local is_gfx = has_config("FAN_WINDOW") or has_config("FAN_VULKAN")
+    local is_gfx = has_config("FAN_WINDOW") or has_config("FAN_2D")
     local missing_base = not os.isfile("third_party/fan/.core.stamp")
     local missing_gfx  = is_gfx and not os.isfile("third_party/fan/.gfx.stamp")
 

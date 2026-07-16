@@ -1,5 +1,7 @@
 module;
 
+#if defined(FAN_2D)
+
 #if defined(fan_platform_windows)
   #define VK_USE_PLATFORM_WIN32_KHR
 #elif defined(fan_platform_unix)
@@ -8,7 +10,12 @@ module;
 #include <vulkan/vulkan.h>
 #include <fan/utility.h>
 
+#endif
+
 export module fan.graphics.vulkan.core:shader_subsystem;
+
+#if defined(FAN_2D)
+
 import std;
 import :types;
 import :uniform_block;
@@ -53,3 +60,5 @@ export namespace fan::vulkan {
     bool shader_compile(fan::graphics::shader_nr_t nr);
   };
 }
+
+#endif

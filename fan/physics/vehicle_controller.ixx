@@ -1,5 +1,7 @@
 module;
 
+#if defined(FAN_PHYSICS_2D)
+
 export module fan.physics.vehicle_controller;
 
 import std;
@@ -38,3 +40,4 @@ export namespace fan::physics {
   };
 
 }
+#endif

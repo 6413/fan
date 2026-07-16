@@ -1,5 +1,8 @@
 module;
 
+#if defined(FAN_2D)
+
+
 #if defined(fan_platform_windows)
   #define VK_USE_PLATFORM_WIN32_KHR
 #elif defined(fan_platform_unix)
@@ -185,3 +188,6 @@ VkPipelineColorBlendAttachmentState fan::vulkan::get_default_color_blend() {
   color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
   return color_blend_attachment;
 }
+
+
+#endif

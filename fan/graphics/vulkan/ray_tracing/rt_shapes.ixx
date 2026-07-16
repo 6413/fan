@@ -1,9 +1,15 @@
 module;
 
+#if defined(FAN_2D)
+
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
 
+#endif
+
 export module fan.graphics.vulkan.ray_tracing.shapes;
+
+#if defined(FAN_2D)
 
 import std;
 
@@ -89,3 +95,6 @@ export namespace fan::graphics::vulkan::ray_tracing::shapes {
   }
   
 }
+
+
+#endif

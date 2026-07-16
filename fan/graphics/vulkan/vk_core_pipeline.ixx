@@ -1,5 +1,6 @@
-
 module;
+
+#if defined(FAN_2D)
 
 #if defined(fan_platform_windows)
   #define VK_USE_PLATFORM_WIN32_KHR
@@ -10,7 +11,12 @@ module;
 #include <vk_mem_alloc.h>
 #include <fan/utility.h>
 
+#endif
+
 export module fan.graphics.vulkan.core:pipeline;
+
+#if defined(FAN_2D)
+
 import std;
 
 import :types;
@@ -98,3 +104,4 @@ export namespace fan::vulkan {
     properties_t properties;
   };
 }
+#endif

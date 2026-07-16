@@ -1,3 +1,5 @@
+#if defined(FAN_2D)
+
 struct ssbo_t {
   ssbo_t() = default;
   ssbo_t(const ssbo_t& other) {
@@ -125,3 +127,5 @@ struct ssbo_t {
 	fan::vulkan::context_t::descriptor_t m_descriptor;
 	std::uint8_t* data[fan::vulkan::max_frames_in_flight] {};
 };
+
+#endif

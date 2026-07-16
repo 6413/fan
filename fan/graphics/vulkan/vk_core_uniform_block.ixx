@@ -1,9 +1,16 @@
 module;
 
+#if defined(FAN_2D)
+
+
 #include <vulkan/vulkan.h>
 #include <vk_mem_alloc.h>
 
+#endif
+
 export module fan.graphics.vulkan.core:uniform_block;
+
+#if defined(FAN_2D)
 
 import std;
 
@@ -107,3 +114,5 @@ export namespace fan::vulkan {
     void* mapped_data[buffer_count] {};
   };
 }
+
+#endif

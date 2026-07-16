@@ -1,5 +1,8 @@
 module;
 
+#if defined(FAN_2D)
+
+
 #if defined(fan_platform_windows)
 #define VK_USE_PLATFORM_WIN32_KHR
 #elif defined(fan_platform_unix)
@@ -189,3 +192,5 @@ bool fan::vulkan::camera_subsystem_t::viewport_inside_wir(fan::graphics::viewpor
   fan::graphics::context_viewport_t& viewport = viewport_get(nr);
   return fan::math::d2::aabb_point_inside(position, viewport.size / 2, viewport.size / 2);
 }
+
+#endif

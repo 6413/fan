@@ -1,5 +1,6 @@
-#if defined(FAN_GUI)
 module;
+
+#if defined(FAN_GUI)
 
 export module fan.graphics.editor:scene_serializer;
 import std;

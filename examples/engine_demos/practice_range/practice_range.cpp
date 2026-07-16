@@ -113,10 +113,13 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
       f32_t spread = fan::random::value(-0.05f, 0.05f);
       f32_t speed = cfg_bullet_speed * fan::random::value(0.95f, 1.05f);
       f32_t dy = fan::random::value(-8.f, 8.f);
+      fan::vec2 bullet_vel = fan::vec2(dir * speed, speed * spread + dy);
+      fan::vec2 cartridge_vel = fan::vec2(-dir * 120.f, -200.f);
+      fan::print("dir=", dir, " bvel=", bullet_vel, " cvel=", cartridge_vel, " spd=", speed, " sprd=", spread, " dy=", dy);
 
       fan::vec2 muzzle_pos = pos + fan::vec2(dir * 30.f, -4.f);
       registry.create_with(fan::ecs::tag_bullet{}, fan::ecs::c_pos{muzzle_pos},
-        fan::ecs::c_vel{fan::vec2(dir * speed, speed * spread + dy)},
+        fan::ecs::c_vel{bullet_vel},
         fan::ecs::c_life{cfg_bullet_life},
         fan::ecs::c_line{fan::vec2(dir * 15.f, 0), fan::colors::yellow, 3.f});
 
@@ -127,7 +130,7 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
 
       // eject cartridge
       registry.create_with(tag_cartridge{}, fan::ecs::c_pos{muzzle_pos + fan::vec2(-dir * 8.f, 0)},
-        fan::ecs::c_vel{fan::vec2(-dir * 120.f, -200.f)},
+        fan::ecs::c_vel{cartridge_vel},
         fan::ecs::c_life{1.5f},
         fan::ecs::c_rectangle{fan::vec2(4.f, 8.f), fan::colors::orange, 10});
 
