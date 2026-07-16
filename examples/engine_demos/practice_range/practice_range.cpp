@@ -12,14 +12,22 @@ static constexpr auto player_size = fan::vec2(48.f);
 static constexpr auto capsule_center0 = fan::vec2(0.f, -24.f);
 static constexpr auto capsule_center1 = fan::vec2(0.f, 24.f);
 static constexpr auto capsule_radius = player_size.x / 2.f;
-static constexpr auto feet_z = 0xfffa;
+static constexpr auto depth_background = 100;
+static constexpr auto depth_tiles = 200;
+static constexpr auto depth_player = 300;
+static constexpr auto depth_trail = 350;
+static constexpr auto depth_bullet = 400;
+static constexpr auto depth_muzzle = 450;
+static constexpr auto depth_casing = 500;
+static constexpr auto depth_feet = 0xfffa;
+static constexpr auto depth_flash = 0xfffe;
 static constexpr auto feet_y_offset = capsule_center1.y + capsule_radius;
 static constexpr auto feet_x_offset = capsule_radius;
 
 struct player_t {
   void init(fan::vec2 spawn_point) {
     body = fan::graphics::physics::character_capsule_sprite(
-      fan::vec3(spawn_point, 10),
+      fan::vec3(spawn_point, depth_player),
       capsule_center0,
       capsule_center1,
       player_size,
@@ -52,6 +60,7 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
       map_id = renderer.open_map("map.json", {
         .position = fan::vec2(0),
         .size = fan::vec2i(64, 32),
+        .depth_fn = [](auto&, auto&, auto&, f32_t) { return depth_tiles; },
       });
 
       tile_world.init(fan::vec2(-10000), fan::vec2(256), fan::vec2i(256));
@@ -82,9 +91,11 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
           alive_max = 0.6f;
         }
         auto cfg = decltype(particles)::smoke_config_t::puff(alive_min, alive_max, 15.f, 50.f, 0.25f);
-        auto p = fan::vec3(pos.x, pos.y + feet_y_offset, feet_z);
-        particles.spawn_smoke(p - fan::vec3(feet_x_offset, 0, 0), count, smoke_image, cfg);
-        particles.spawn_smoke(p + fan::vec3(feet_x_offset, 0, 0), count, smoke_image, cfg);
+        auto p = fan::vec3(pos.x, pos.y + feet_y_offset, depth_feet);
+        if (smoke_image.valid()) {
+          particles.spawn_smoke(p - fan::vec3(feet_x_offset, 0, 0), count, smoke_image, cfg);
+          particles.spawn_smoke(p + fan::vec3(feet_x_offset, 0, 0), count, smoke_image, cfg);
+        }
       };
       engine->camera_follow(player.body.get_position(), 0);
       ic.set_zoom(1.728f);
@@ -114,25 +125,23 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
       f32_t speed = cfg_bullet_speed * fan::random::value(0.95f, 1.05f);
       f32_t dy = fan::random::value(-8.f, 8.f);
       fan::vec2 bullet_vel = fan::vec2(dir * speed, speed * spread + dy);
-      fan::vec2 cartridge_vel = fan::vec2(-dir * 120.f, -200.f);
-      fan::print("dir=", dir, " bvel=", bullet_vel, " cvel=", cartridge_vel, " spd=", speed, " sprd=", spread, " dy=", dy);
-
       fan::vec2 muzzle_pos = pos + fan::vec2(dir * 30.f, -4.f);
       registry.create_with(fan::ecs::tag_bullet{}, fan::ecs::c_pos{muzzle_pos},
         fan::ecs::c_vel{bullet_vel},
         fan::ecs::c_life{cfg_bullet_life},
-        fan::ecs::c_line{fan::vec2(dir * 15.f, 0), fan::colors::yellow, 3.f});
+        fan::ecs::c_line{fan::vec2(dir * 15.f, 0), fan::colors::yellow, 3.f, depth_bullet});
 
       // muzzle flash
       registry.create_with(tag_muzzle_flash{}, fan::ecs::c_pos{muzzle_pos},
         fan::ecs::c_life{0.08f},
-        fan::ecs::c_line{fan::vec2(dir * 20.f, 0), fan::colors::white, 6.f});
+        fan::ecs::c_line{fan::vec2(dir * 20.f, 0), fan::colors::white, 6.f, depth_muzzle});
 
-      // eject cartridge
-      registry.create_with(tag_cartridge{}, fan::ecs::c_pos{muzzle_pos + fan::vec2(-dir * 8.f, 0)},
-        fan::ecs::c_vel{cartridge_vel},
-        fan::ecs::c_life{1.5f},
-        fan::ecs::c_rectangle{fan::vec2(4.f, 8.f), fan::colors::orange, 10});
+      // eject cartridge (falls downward, slightly backward)
+      fan::vec2 casing_vel = fan::vec2(-dir * 60.f, 200.f);
+      registry.create_with(tag_cartridge{}, fan::ecs::c_pos{muzzle_pos + fan::vec2(-dir * 8.f, 6.f)},
+        fan::ecs::c_vel{casing_vel},
+        fan::ecs::c_life{2.f},
+        fan::ecs::c_rectangle{fan::vec2(3.f, 2.f), fan::colors::orange, depth_casing});
 
       // camera effects
       ic.shake(0.01f, 0.01f);
@@ -163,9 +172,11 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
       if (!player.body.was_on_ground && on_ground) {
         auto pos = player.body.get_position();
         auto cfg = decltype(particles)::smoke_config_t::puff(0.3f, 0.6f, 15.f, 50.f, 0.25f);
-        auto p = fan::vec3(pos.x, pos.y + feet_y_offset, feet_z);
-        particles.spawn_smoke(p - fan::vec3(feet_x_offset, 0, 0), 6, smoke_image, cfg);
-        particles.spawn_smoke(p + fan::vec3(feet_x_offset, 0, 0), 6, smoke_image, cfg);
+        auto p = fan::vec3(pos.x, pos.y + feet_y_offset, depth_feet);
+        if (smoke_image.valid()) {
+          particles.spawn_smoke(p - fan::vec3(feet_x_offset, 0, 0), 6, smoke_image, cfg);
+          particles.spawn_smoke(p + fan::vec3(feet_x_offset, 0, 0), 6, smoke_image, cfg);
+        }
 
         // land squish
         auto squished = fan::vec2(player_size.x * 1.2f, player_size.y * 0.7f);
@@ -189,8 +200,8 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
       registry.each<fan::ecs::c_pos, fan::ecs::c_vel, fan::ecs::tag_bullet>([&](std::uint32_t, fan::ecs::c_pos& p, fan::ecs::c_vel& v, fan::ecs::tag_bullet&) {
         registry.create_with(
           fan::ecs::c_pos{p.v - v.v * (dt * 0.5f)},
-          fan::ecs::c_life{0.15f},
-          fan::ecs::c_line{v.v.normalize() * (-v.v.length() * dt * 0.3f), fan::colors::yellow.set_alpha(0.3f), 1.5f}
+          fan::ecs::c_life{0.25f},
+          fan::ecs::c_line{v.v.normalize() * (-v.v.length() * dt * 0.8f), fan::colors::yellow.set_alpha(0.45f), 2.5f, depth_trail}
         );
       });
 
@@ -216,7 +227,7 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
       if (flash_alpha > 0) {
         fan::vec2 s = ic.get_viewport_size() / ic.get_zoom();
         fan::vec2 center = fan::graphics::camera_get_position(ic.render_view.camera);
-        fan::graphics::rectangle(fan::vec3(center, 0xfffe), s, fan::color(1, 1, 1, flash_alpha));
+        fan::graphics::rectangle(fan::vec3(center, depth_flash), s, fan::color(1, 1, 1, flash_alpha));
       }
 
       draw_gui();
