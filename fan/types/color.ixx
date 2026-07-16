@@ -282,12 +282,14 @@ export namespace fan {
     constexpr operator fan::vec4() const {
       return fan::vec4{ r, g, b, a };
     }
+#if defined(FAN_GUI)
     constexpr fan::graphics::gui::u32_t get_gui_color() const {
       return get_abgr();
     }
     constexpr operator fan::graphics::gui::u32_t() const {
       return get_gui_color();
     }
+#endif
 
     using value_type = f32_t;
 

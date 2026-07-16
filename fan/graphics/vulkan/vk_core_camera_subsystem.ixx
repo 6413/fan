@@ -1,4 +1,7 @@
+#if defined(FAN_2D)
+
 module;
+
 
 #if defined(fan_platform_windows)
   #define VK_USE_PLATFORM_WIN32_KHR
@@ -56,3 +59,5 @@ export namespace fan::vulkan {
     bool viewport_dirty = false;
   };
 }
+
+#endif

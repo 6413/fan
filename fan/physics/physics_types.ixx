@@ -110,7 +110,7 @@ export namespace fan::physics {
   }
 
   struct shape_properties_t {
-    f32_t friction = 0.6f;
+    f32_t friction = 0.f;
     f32_t density = 1.0f;
     f32_t restitution = 0.0f;
     bool fixed_rotation = false;
@@ -119,11 +119,17 @@ export namespace fan::physics {
     bool is_sensor = false;
     f32_t linear_damping = 0.0f;
     f32_t angular_damping = 0.0f;
-    fan::vec2 collision_multiplier = 1; // possibility to change multiplier of collision size
+    fan::vec2 collision_multiplier = 1;
     b2Filter filter = b2DefaultFilter();
     bool fast_rotation = false;
     bool is_bullet = false;
     bool allow_sleep = true;
+
+    static shape_properties_t with_friction(f32_t f) {
+      shape_properties_t r;
+      r.friction = f;
+      return r;
+    }
   };
 
   struct body_type_e {

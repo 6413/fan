@@ -967,6 +967,75 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     return fan::graphics::viewport_get_size(render_view.viewport);
   }
 
+  void interactive_camera_t::shake(f32_t intensity, f32_t duration) {
+    fx_shake_intensity = intensity;
+    fx_shake_duration = duration;
+    fx_shake_timer = duration;
+  }
+
+  void interactive_camera_t::bump(fan::vec2 direction, f32_t distance, f32_t duration) {
+    fx_bump_offset = direction.normalize() * distance;
+    fx_bump_duration = duration;
+    fx_bump_timer = duration;
+  }
+
+  void interactive_camera_t::bump_zoom(f32_t amount, f32_t duration) {
+    fx_bump_zoom_amount = amount;
+    fx_bump_zoom_duration = duration;
+    fx_bump_zoom_timer = duration;
+    fx_bump_zoom_base = get_zoom();
+  }
+
+  void interactive_camera_t::flash(f32_t alpha, f32_t duration) {
+    fx_flash_alpha = alpha;
+    fx_flash_duration = duration;
+    fx_flash_timer = duration;
+  }
+
+  void interactive_camera_t::flashbang(f32_t duration) {
+    flash(1.f, duration);
+  }
+
+  f32_t interactive_camera_t::get_flash_alpha() const {
+    return fx_flash_timer > 0 ? fx_flash_alpha * (fx_flash_timer / fx_flash_duration) : 0;
+  }
+
+  void interactive_camera_t::update_fx(f32_t dt) {
+    fan::vec2 total_offset(0);
+
+    if (fx_shake_timer > 0) {
+      fx_shake_timer -= dt;
+      f32_t t = fx_shake_timer / fx_shake_duration;
+      f32_t intensity = fx_shake_intensity * t;
+      total_offset += fan::vec2(
+        fan::random::value(-intensity, intensity),
+        fan::random::value(-intensity, intensity)
+      );
+    }
+
+    if (fx_bump_timer > 0) {
+      fx_bump_timer -= dt;
+      f32_t t = fx_bump_timer / fx_bump_duration;
+      total_offset += fx_bump_offset * t;
+    }
+
+    if (total_offset.length_squared() > 0) {
+      fan::vec2 current_pos = fan::graphics::camera_get_position(render_view.camera);
+      fan::graphics::camera_set_position(render_view.camera, current_pos + total_offset);
+    }
+
+    if (fx_bump_zoom_timer > 0) {
+      fx_bump_zoom_timer -= dt;
+      f32_t progress = 1 - fx_bump_zoom_timer / fx_bump_zoom_duration;
+      f32_t offset = std::sin(progress * fan::math::pi) * fx_bump_zoom_amount;
+      fan::graphics::camera_set_zoom(render_view.camera, fx_bump_zoom_base + offset);
+    }
+
+    if (fx_flash_timer > 0) {
+      fx_flash_timer -= dt;
+    }
+  }
+
   world_window_t::world_window_t() : render_view(true), cam(render_view) {}
 
   void world_window_t::update(const fan::vec2& viewport_pos, const fan::vec2& viewport_size) {

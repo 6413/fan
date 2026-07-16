@@ -1,3 +1,4 @@
+#if defined(FAN_GUI)
 module;
 
 export module fan.graphics.editor:scene_serializer;
@@ -305,3 +306,4 @@ export namespace fan::graphics::editor {
     }
   };
 }
+#endif

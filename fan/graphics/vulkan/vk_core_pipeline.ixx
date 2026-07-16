@@ -1,3 +1,4 @@
+
 module;
 
 #if defined(fan_platform_windows)
@@ -85,8 +86,9 @@ export namespace fan::vulkan {
 
     void open(fan::vulkan::context_t& context, const properties_t& p);
     void close(fan::vulkan::context_t& context);
-
+#if defined(FAN_2D)
     fan::graphics::shader_nr_t shader_nr;
+#endif
     operator VkPipeline() const {
       return m_pipeline;
     }
