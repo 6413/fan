@@ -576,6 +576,14 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
   fan::graphics::shapes::shape_t& light(const light_properties_t& props) {
     return add_shape_to_immediate_draw(light_t(props));
   }
+  fan::graphics::shapes::shape_t& light(const fan::vec3& position, const fan::vec2& size, const fan::color& color, render_view_t* render_view) {
+    return add_shape_to_immediate_draw(light_t(light_properties_t{
+      .render_view = render_view,
+      .position = position,
+      .size = size,
+      .color = color
+    }));
+  }
 
   fan::graphics::shapes::shape_t& circle(const circle_properties_t& props) {
     return add_shape_to_immediate_draw(circle_t(props));
@@ -980,10 +988,12 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
   }
 
   void interactive_camera_t::bump_zoom(f32_t amount, f32_t duration) {
+    if (fx_bump_zoom_timer <= 0) {
+      fx_bump_zoom_base = get_zoom();
+    }
     fx_bump_zoom_amount = amount;
     fx_bump_zoom_duration = duration;
     fx_bump_zoom_timer = duration;
-    fx_bump_zoom_base = get_zoom();
   }
 
   void interactive_camera_t::flash(f32_t alpha, f32_t duration) {

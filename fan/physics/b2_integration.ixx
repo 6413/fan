@@ -133,12 +133,15 @@ export namespace fan {
 
     inline constexpr f32_t default_physics_timestep = 1.0 / 244.f;
 
+    inline b2Filter default_filter() { return b2DefaultFilter(); }
+
     struct shape_id_t : b2ShapeId {
       using b2ShapeId::b2ShapeId;
       shape_id_t();
       shape_id_t(const b2ShapeId& shape_id);
 
       void set_friction(f32_t friction);
+      void set_filter(b2Filter filter);
       bool operator==(const shape_id_t& shape) const;
       bool operator!=(const shape_id_t& shape) const;
 
@@ -209,6 +212,8 @@ export namespace fan {
       f32_t get_density() const;
       f32_t get_friction() const;
       void set_friction(f32_t friction);
+      void set_filter(b2Filter filter);
+      b2Filter get_filter() const;
       f32_t get_mass() const;
       void set_mass(f32_t mass);
       f32_t get_restitution() const;

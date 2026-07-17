@@ -507,6 +507,7 @@ export namespace fan::graphics {
   fan::graphics::shapes::shape_t& line(const line_properties_t& props = {});
   fan::graphics::shapes::shape_t& line(const fan::vec3& src, const fan::vec3& dst, const fan::color& color = fan::colors::white, f32_t thickness = line_properties_t().thickness, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   fan::graphics::shapes::shape_t& light(const light_properties_t& props = {});
+  fan::graphics::shapes::shape_t& light(const fan::vec3& position, const fan::vec2& size, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   fan::graphics::shapes::shape_t& circle(const circle_properties_t& props = {});
   fan::graphics::shapes::shape_t& circle(const fan::vec3& position, f32_t radius = circle_properties_t{}.radius, const fan::color& color = fan::colors::white, render_view_t* render_view = fan::graphics::ctx().orthographic_render_view);
   fan::graphics::shapes::shape_t& capsule(const capsule_properties_t& props = {});
@@ -1198,6 +1199,14 @@ export namespace fan::graphics {
         p.start_angle_velocity = fan::vec3(0, 0, 0);
         p.image = image;
       });
+    }
+
+    void spawn_footstep_dust(fan::vec3 feet_pos, f32_t x_offset, int count, image_t& img,
+      f32_t alive_min, f32_t alive_max) {
+      auto cfg = smoke_config_t::puff(alive_min, alive_max, 15.f, 50.f, 0.25f);
+      if (!img.valid()) return;
+      spawn_smoke(feet_pos - fan::vec3(x_offset, 0, 0), count, img, cfg);
+      spawn_smoke(feet_pos + fan::vec3(x_offset, 0, 0), count, img, cfg);
     }
 
     void spawn_spark(fan::vec3 pos, fan::color spark_col, int count) {
