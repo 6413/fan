@@ -124,12 +124,6 @@ export namespace fan::physics {
     bool fast_rotation = false;
     bool is_bullet = false;
     bool allow_sleep = true;
-
-    static shape_properties_t with_friction(f32_t f) {
-      shape_properties_t r;
-      r.friction = f;
-      return r;
-    }
   };
 
   struct body_type_e {

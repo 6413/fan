@@ -42,6 +42,8 @@ import fan.graphics;
 import fan.graphics.common_context;
 import fan.graphics.shapes;
 
+import fan.tween;
+
 export namespace fan {
   namespace graphics {
     namespace physics {
@@ -560,12 +562,15 @@ export namespace fan {
 
         void enable_oneway_platforms();
 
+        void squish(fan::vec2 from_size, fan::vec2 to_size, f32_t duration, std::function<f32_t(f32_t)> e = fan::tween::easing::out_elastic);
+
         fan::graphics::sprite_sheet_controller_t anim_controller;
         attack_state_t attack_state;
         
         movement_state_t movement_state;
         wall_jump_t wall_jump;
         movement_callback_handle_t movement_cb_handle;
+        fan::tween::tween_manager_t tweens;
         fan::physics::body_id_t feet[2];
         int combat_frame = 0;
         bool drop_through_requested = false;

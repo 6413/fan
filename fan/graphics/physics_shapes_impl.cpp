@@ -1629,6 +1629,8 @@ namespace fan::graphics::physics {
   }
   #endif
   void character2d_t::process_keyboard_movement(std::uint8_t movement, f32_t friction) {
+    tweens.update(gloco()->get_delta_time());
+
     movement_state.is_wall_sliding = false;
     fan::vec2 velocity = get_linear_velocity();
     fan::physics::shape_id_t colliding_wall_id;
@@ -2904,6 +2906,11 @@ namespace fan::graphics::physics {
       static_cast<void*>(this)
     );
     oneway_enabled = true;
+  }
+
+  void character2d_t::squish(fan::vec2 from_size, fan::vec2 to_size, f32_t duration, std::function<f32_t(f32_t)> e) {
+    set_size(from_size);
+    tweens.add<fan::vec2>([this](fan::vec2 sz) { set_size(sz); }, from_size, to_size, duration, e);
   }
 }
 

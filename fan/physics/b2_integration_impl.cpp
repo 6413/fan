@@ -91,6 +91,12 @@ namespace fan::physics {
     });
   }
 
+  void shape_id_t::set_filter(b2Filter filter) {
+    queue_one_time_command([id = *this, filter]() {
+      b2Shape_SetFilter(id, filter);
+    });
+  }
+
   bool shape_id_t::operator==(const shape_id_t& shape) const {
     return B2_ID_EQUALS(static_cast<b2ShapeId>(*this), shape);
   }
@@ -232,6 +238,12 @@ namespace fan::physics {
   }
   void body_id_t::set_friction(f32_t friction) {
     b2Shape_SetFriction(get_shape_id(), friction);
+  }
+  void body_id_t::set_filter(b2Filter filter) {
+    b2Shape_SetFilter(get_shape_id(), filter);
+  }
+  b2Filter body_id_t::get_filter() const {
+    return b2Shape_GetFilter(get_shape_id());
   }
   f32_t body_id_t::get_mass() const {
     return b2Shape_GetMassData(get_shape_id()).mass * length_units_per_meter;
