@@ -1,9 +1,9 @@
 import std;
 import fan;
 
-static constexpr f32_t cfg_bullet_speed = 4000.f;
+static constexpr f32_t cfg_bullet_speed = 8000.f;
 static constexpr f32_t cfg_bullet_life  = 1.5f;
-static constexpr f32_t cfg_shoot_cd     = 0.01f;
+static constexpr f32_t cfg_shoot_cd     = 0.06f;
 
 static constexpr auto player_size = fan::vec2(48.f);
 static constexpr auto capsule_center0 = fan::vec2(0.f, -24.f);
@@ -44,7 +44,7 @@ struct player_t {
 
 struct tag_muzzle_flash {};
 
-using casing_body_t = fan::graphics::physics::sprite_t;
+using casing_body_t = fan::graphics::physics::rectangle_t;
 
 using registry_t = fan::ecs_t<
   fan::ecs::c_pos, fan::ecs::c_vel, fan::ecs::c_life, fan::ecs::c_line,
@@ -112,9 +112,9 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
       player.body.movement_state.is_in_knockback = true;
 
       // random bullet spread
-      f32_t spread = fan::random::value(-0.05f, 0.05f);
+      f32_t spread = fan::random::value(-0.05f, 0.0f);
       f32_t speed = cfg_bullet_speed * fan::random::value(0.95f, 1.05f);
-      f32_t dy = fan::random::value(-8.f, 8.f);
+      f32_t dy = fan::random::value(-8.f, 0.f);
       fan::vec2 bullet_vel = fan::vec2(dir * speed, speed * spread + dy);
       fan::vec2 muzzle_pos = pos + fan::vec2(dir * 80.f, -4.f);
       
@@ -127,8 +127,8 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
       auto flash_col = fan::color(1.0, 0.6, 0.05);
       for (auto [offset, weight] : {
         std::pair{fan::vec2(dir * 28.f, 0.f), 2.5f},
-        std::pair{fan::vec2(dir * 18.f, -1.f), 2.f},
-        std::pair{fan::vec2(dir * 18.f, 1.f), 2.f}
+        std::pair{fan::vec2(dir * 18.f, -0.4f), 2.f},
+        //std::pair{fan::vec2(dir * 18.f, 0.4f), 2.f}
       }) {
         registry.create_with(tag_muzzle_flash{}, fan::ecs::c_pos{muzzle_pos},
           fan::ecs::c_life{0.08f},
@@ -142,7 +142,8 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
         casing_bodies.push_back(casing_body_t{{
           .position = fan::vec3(muzzle_pos, depth_casing),
           .size = fan::vec2(3.f, 2.f),
-          .image = fan::graphics::image_t{fan::colors::orange},
+          .color = fan::colors::orange,
+          //.image = fan::graphics::image_t{fan::colors::orange},
           .body_type = fan::physics::body_type_e::dynamic_body,
           .shape_properties = {.friction=0.4f, .filter={4, ~std::uint32_t(2 | 4), 0}},
         }});
@@ -244,7 +245,7 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
         fan::graphics::light(
           fan::vec3(pos, depth_muzzle), 
           fan::vec2(400.f) * muzzle_scale, 
-          fan::color(1.0, 0.5, 0.05, 0.6) / 15.f
+          fan::color(1.0, 0.5, 0.05, 0.6) / 4.f
         );
         fan::graphics::circle(
           fan::vec3(pos, depth_muzzle),
