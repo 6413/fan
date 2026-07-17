@@ -508,27 +508,93 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     fan::graphics::get_shapes().static_render_list->erase(s.NRI);
   }
 
+  template<typename T, typename ShapeT>
+  static fan::graphics::shapes::shape_t& add_or_update_immediate_shape(const T& props, int shape_type, const auto& update_fn) {
+    auto& cache = fan::graphics::get_shapes().immediate_shape_caches[shape_type];
+    int idx = cache.used_this_frame++;
+    if (idx < (int)cache.shapes.size()) {
+      auto& shape = cache.shapes[idx];
+      update_fn(shape, props);
+      if (!shape.is_visible()) { shape.set_visible(true); }
+      return shape;
+    }
+    cache.shapes.emplace_back(ShapeT(props));
+    return cache.shapes.back();
+  }
+
+  namespace {
+    void update_sprite(fan::graphics::shapes::shape_t& shape, const sprite_properties_t& props) {
+      shape.set_position(props.position);
+      shape.set_size(props.size);
+      shape.set_color(props.color);
+      shape.set_angle(props.angle);
+      shape.set_parallax_factor(props.parallax_factor);
+      shape.set_flags(props.flags);
+      if (props.image.valid()) { shape.set_image(props.image); }
+    }
+    void update_circle(fan::graphics::shapes::shape_t& shape, const circle_properties_t& props) {
+      shape.set_position(props.position);
+      shape.set_radius(props.radius);
+      shape.set_color(props.color);
+      shape.set_outline_color(props.outline_color);
+      shape.set_angle(props.angle);
+      shape.set_flags(props.flags);
+    }
+    void update_light(fan::graphics::shapes::shape_t& shape, const light_properties_t& props) {
+      shape.set_position(props.position);
+      shape.set_size(props.size);
+      shape.set_color(props.color);
+      shape.set_parallax_factor(props.parallax_factor);
+      shape.set_flags(props.flags);
+      shape.set_angle(props.angle);
+    }
+    void update_rectangle(fan::graphics::shapes::shape_t& shape, const rectangle_properties_t& props) {
+      shape.set_position(props.position);
+      shape.set_size(props.size);
+      shape.set_color(props.color);
+      shape.set_angle(props.angle);
+    }
+    void update_line(fan::graphics::shapes::shape_t& shape, const line_properties_t& props) {
+      shape.set_position(props.src);
+      shape.set_line(props.src.xy(), props.dst);
+      shape.set_color(props.color);
+    }
+    void update_unlit_sprite(fan::graphics::shapes::shape_t& shape, const unlit_sprite_properties_t& props) {
+      shape.set_position(props.position);
+      shape.set_size(props.size);
+      shape.set_color(props.color);
+      shape.set_angle(props.angle);
+      if (props.image.valid()) { shape.set_image(props.image); }
+    }
+  }
+
   fan::graphics::shapes::shape_t& rectangle(const rectangle_properties_t& props) {
-    return add_shape_to_immediate_draw(rectangle_t(props));
+    return add_or_update_immediate_shape<rectangle_properties_t, rectangle_t>(props, fan::graphics::shape_type_t::rectangle, update_rectangle);
   }
 
   fan::graphics::shapes::shape_t& rectangle(const fan::vec3& position, const fan::vec2& size, const fan::color& color, render_view_t* render_view) {
-    return add_shape_to_immediate_draw(rectangle_t(rectangle_properties_t {
+    return rectangle(rectangle_properties_t {
       .render_view = render_view,
       .position = position,
       .size = size,
       .color = color
-    }));
+    });
   }
 
   fan::graphics::shapes::shape_t& sprite(const sprite_properties_t& props) {
-    return add_shape_to_immediate_draw(sprite_t(props));
+    return add_or_update_immediate_shape<sprite_properties_t, sprite_t>(props, fan::graphics::shape_type_t::sprite, update_sprite);
   }
   fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, const fan::color& single_color) {
-    return add_shape_to_immediate_draw(sprite_t(position, size, single_color));
+    return sprite(sprite_properties_t{
+      .position = position, .size = size, .color = single_color,
+      .image = fan::graphics::image_load(std::span<const fan::color>(&single_color, 1), fan::vec2ui(1, 1))
+    });
   }
   fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, std::initializer_list<fan::color> colors, render_view_t* render_view) {
-    return add_shape_to_immediate_draw(sprite_t(position, size, colors, render_view));
+    return sprite(sprite_properties_t{
+      .render_view = render_view, .position = position, .size = size,
+      .image = fan::graphics::image_load(std::span<const fan::color>(colors.begin(), colors.size()), fan::vec2ui((int)colors.size(), 1))
+    });
   }
   fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view) {
     return add_shape_to_immediate_draw(sprite_t(position, size, data, tex_size, render_view));
@@ -537,17 +603,25 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     return add_shape_to_immediate_draw(sprite_t(position, size, info, p, render_view));
   }
   fan::graphics::shapes::shape_t& sprite(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view) {
-    return add_shape_to_immediate_draw(sprite_t(position, size, image, render_view));
+    return sprite(sprite_properties_t{
+      .render_view = render_view, .position = position, .size = size, .image = image
+    });
   }
 
   fan::graphics::shapes::shape_t& unlit_sprite(const unlit_sprite_properties_t& props) {
-    return add_shape_to_immediate_draw(unlit_sprite_t(props));
+    return add_or_update_immediate_shape<unlit_sprite_properties_t, unlit_sprite_t>(props, fan::graphics::shape_type_t::unlit_sprite, update_unlit_sprite);
   }
   fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const fan::color& single_color) {
-    return add_shape_to_immediate_draw(unlit_sprite_t(position, size, single_color));
+    return unlit_sprite(unlit_sprite_properties_t{
+      .position = position, .size = size, .color = single_color,
+      .image = fan::graphics::image_load(std::span<const fan::color>(&single_color, 1), fan::vec2ui(1, 1))
+    });
   }
   fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, std::initializer_list<fan::color> colors, render_view_t* render_view) {
-    return add_shape_to_immediate_draw(unlit_sprite_t(position, size, colors, render_view));
+    return unlit_sprite(unlit_sprite_properties_t{
+      .render_view = render_view, .position = position, .size = size,
+      .image = fan::graphics::image_load(std::span<const fan::color>(colors.begin(), colors.size()), fan::vec2ui((int)colors.size(), 1))
+    });
   }
   fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const std::vector<std::uint8_t>& data, const fan::vec2ui& tex_size, render_view_t* render_view) {
     return add_shape_to_immediate_draw(unlit_sprite_t(position, size, data, tex_size, render_view));
@@ -556,46 +630,38 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     return add_shape_to_immediate_draw(unlit_sprite_t(position, size, info, p, render_view));
   }
   fan::graphics::shapes::shape_t& unlit_sprite(const fan::vec3& position, const fan::vec2& size, const fan::graphics::image_t& image, render_view_t* render_view) {
-    return add_shape_to_immediate_draw(unlit_sprite_t(position, size, image, render_view));
+    return unlit_sprite(unlit_sprite_properties_t{
+      .render_view = render_view, .position = position, .size = size, .image = image
+    });
   }
 
   fan::graphics::shapes::shape_t& line(const line_properties_t& props) {
-    return add_shape_to_immediate_draw(line_t(props));
+    return add_or_update_immediate_shape<line_properties_t, line_t>(props, fan::graphics::shape_type_t::line, update_line);
   }
 
   fan::graphics::shapes::shape_t& line(const fan::vec3& src, const fan::vec3& dst, const fan::color& color, f32_t thickness, render_view_t* render_view) {
-    return add_shape_to_immediate_draw(line_t(line_properties_t {
-      .render_view = render_view,
-      .src = src,
-      .dst = dst,
-      .color = color,
-      .thickness = thickness
-    }));
+    return line(line_properties_t {
+      .render_view = render_view, .src = src, .dst = dst, .color = color, .thickness = thickness
+    });
   }
 
   fan::graphics::shapes::shape_t& light(const light_properties_t& props) {
-    return add_shape_to_immediate_draw(light_t(props));
+    return add_or_update_immediate_shape<light_properties_t, light_t>(props, fan::graphics::shape_type_t::light, update_light);
   }
   fan::graphics::shapes::shape_t& light(const fan::vec3& position, const fan::vec2& size, const fan::color& color, render_view_t* render_view) {
-    return add_shape_to_immediate_draw(light_t(light_properties_t{
-      .render_view = render_view,
-      .position = position,
-      .size = size,
-      .color = color
-    }));
+    return light(light_properties_t{
+      .render_view = render_view, .position = position, .size = size, .color = color
+    });
   }
 
   fan::graphics::shapes::shape_t& circle(const circle_properties_t& props) {
-    return add_shape_to_immediate_draw(circle_t(props));
+    return add_or_update_immediate_shape<circle_properties_t, circle_t>(props, fan::graphics::shape_type_t::circle, update_circle);
   }
 
   fan::graphics::shapes::shape_t& circle(const fan::vec3& position, f32_t radius, const fan::color& color, render_view_t* render_view) {
-    return add_shape_to_immediate_draw(circle_t(circle_properties_t {
-      .render_view = render_view,
-      .position = position,
-      .radius = radius,
-      .color = color
-    }));
+    return circle(circle_properties_t {
+      .render_view = render_view, .position = position, .radius = radius, .color = color
+    });
   }
 
   fan::graphics::shapes::shape_t& capsule(const capsule_properties_t& props) {
