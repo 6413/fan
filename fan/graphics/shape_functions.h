@@ -357,6 +357,7 @@ static void set_colors(fan::graphics::shapes::shape_t* s, const std::array<fan::
   }
 
   if (auto* vdata = s->get_vdata<fan::graphics::shapes::gradient_t::vi_t>()) {
+    if (vdata->color == v) return;
     vdata->color = v;
 
     auto& vid = s->get_visual_id();
@@ -374,6 +375,22 @@ static void set_colors(fan::graphics::shapes::shape_t* s, const std::array<fan::
 
 template<typename shape_type, typename field_t, typename props_field_ptr_t, typename vi_field_ptr_t>
 static void set_with_sync(fan::graphics::shapes::shape_t* s, const field_t& v, props_field_ptr_t props_field_ptr, vi_field_ptr_t vi_field_ptr, bool updates_keypack = false){
+  auto& vid = s->get_visual_id();
+  if (!vid.iic()) {
+    if constexpr (requires { typename shape_type::vi_t; }) {
+      if constexpr (!std::is_same_v<vi_field_ptr_t, std::nullptr_t>) {
+        auto* vdata = s->get_vdata<typename shape_type::vi_t>();
+        if (vdata) {
+          if constexpr (std::is_member_object_pointer_v<vi_field_ptr_t>) {
+            if constexpr (requires { vdata->*vi_field_ptr; }) {
+              if (vdata->*vi_field_ptr == v) return;
+            }
+          }
+        }
+      }
+    }
+  }
+
   fan::graphics::g_shapes->visit_shape_draw_data(s->NRI, [&](auto& props) {
     if constexpr (requires { props.*props_field_ptr; }) {
       using actual_field_t = std::remove_reference_t<decltype(props.*props_field_ptr)>;
@@ -383,11 +400,6 @@ static void set_with_sync(fan::graphics::shapes::shape_t* s, const field_t& v, p
       }
     }
   });
-
-  auto& vid = s->get_visual_id();
-  if (vid.iic()) {
-    return;
-  }
 
   if constexpr (requires { typename shape_type::vi_t; }) {
     if constexpr (!std::is_same_v<vi_field_ptr_t, std::nullptr_t>) {
@@ -412,6 +424,13 @@ static void set_with_sync(fan::graphics::shapes::shape_t* s, const field_t& v, p
           }
         }
       }
+    }
+  }
+
+  {
+    auto& vid = s->get_visual_id();
+    if (vid.iic()) {
+      return;
     }
   }
 

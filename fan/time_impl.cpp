@@ -73,7 +73,7 @@ namespace fan {
     }
 
     scope_timer_print::~scope_timer_print() {
-      std::printf("elapsed: %.2fms\n", t.millis());
+      std::printf("elapsed: %.6fms\n", t.millis());
     }
   }
   namespace time {
