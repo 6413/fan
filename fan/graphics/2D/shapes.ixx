@@ -1422,6 +1422,17 @@ export namespace fan::graphics {
     std::vector<fan::graphics::shapes::shape_t>* immediate_render_list = nullptr;
     std::unordered_map<std::uint32_t, fan::graphics::shapes::shape_t>* static_render_list = nullptr;
 
+    // Per-shape-type ring buffer for immediate-draw functions (sprite/circle/light/etc.).
+    // Slots are assigned by call-order-within-frame, NOT by call-site identity.
+    // This is correct only when all callers of a given shape type are interchangeable
+    // (same image/texture per type). Callers that use different images for the same
+    // shape type will thrash slots and lose the caching benefit — those call sites
+    // need source_location-based keying instead.
+    struct immediate_shape_cache_t {
+      std::vector<fan::graphics::shapes::shape_t> shapes;
+      int used_this_frame = 0;
+    };
+    std::vector<immediate_shape_cache_t> immediate_shape_caches;
 
     // dont look here
     // -----------------------------------shape lists-----------------------------------

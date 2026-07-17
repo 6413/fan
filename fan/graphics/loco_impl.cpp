@@ -1097,6 +1097,7 @@ static void loco_init_shapes_context(loco_t* l) {
   l->shapes.shapes_init_pools(&l->shapes);
   fan::graphics::g_shapes = &l->shapes;
   l->shapes.visibility = new fan::graphics::culling::culling_t;
+  l->shapes.immediate_shape_caches.resize(fan::graphics::shape_type_t::last);
 #endif
 }
 
@@ -1426,6 +1427,7 @@ void loco_t::destroy() {
   shapes.shapes_destroy_pools(&shapes);
   static_render_list.clear();
   immediate_render_list.clear();
+  shapes.immediate_shape_caches.clear();
   delete ((fan::graphics::culling::culling_t*)shapes.visibility);
   shapes.visibility = nullptr;
 #endif
@@ -1485,6 +1487,19 @@ void loco_t::shapes_draw() {
   fan::time::global_profiler.begin("immediate_render_list.clear()");
   immediate_render_list.clear();
   fan::time::global_profiler.end("immediate_render_list.clear()");
+  fan::time::global_profiler.begin("immediate_shape_caches.clear()");
+  {
+    auto& caches = shapes.immediate_shape_caches;
+    for (auto& cache : caches) {
+      int used = cache.used_this_frame;
+      // hide entries beyond this frame's count (stale from prior frames)
+      for (int i = used; i < (int)cache.shapes.size(); ++i) {
+        cache.shapes[i].set_visible(false);
+      }
+      cache.used_this_frame = 0;
+    }
+  }
+  fan::time::global_profiler.end("immediate_shape_caches.clear()");
   fan::time::global_profiler.begin("ProcessBlockEditQueue");
   fan::graphics::g_shapes->shaper.ProcessBlockEditQueue();
   fan::time::global_profiler.end("ProcessBlockEditQueue");
