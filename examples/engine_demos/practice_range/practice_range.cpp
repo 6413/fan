@@ -48,7 +48,7 @@ using casing_body_t = fan::graphics::physics::sprite_t;
 
 using registry_t = fan::ecs_t<
   fan::ecs::c_pos, fan::ecs::c_vel, fan::ecs::c_life, fan::ecs::c_line,
-  fan::ecs::tag_bullet,
+  fan::ecs::tag_bullet, 
   tag_muzzle_flash
 >;
 
@@ -97,7 +97,9 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
 
     void fire_bullet() {
       shoot_task = start_shoot_cd();
-      hitstop_task = apply_hitstop();
+      if (!is_hitstop) {
+        hitstop_task = apply_hitstop();
+      }
 
       auto pos = player.body.get_position();
       auto viewport_center = ic.get_viewport_size() * 0.5f;
@@ -268,7 +270,7 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
     fan::graphics::gpu_particle_system_t<> particles;
     fan::graphics::image_t smoke_image{"images/smoke.webp"};
     registry_t registry;
-    std::vector<casing_body_t> casing_bodies;
+    std::deque<casing_body_t> casing_bodies;
     bool can_shoot = true;
     bool is_hitstop = false;
     fan::event::task_t shoot_task;
