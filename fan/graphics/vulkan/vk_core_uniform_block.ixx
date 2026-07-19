@@ -54,6 +54,7 @@ export namespace fan::vulkan {
     }
 
     static void write_cb_impl(ctx_t& context, void* ptr) {
+      static_cast<uniform_block_t*>(ptr)->common.queued = false;
       static_cast<uniform_block_t*>(ptr)->write(context);
     }
 

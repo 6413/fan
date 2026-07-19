@@ -20,11 +20,18 @@ export namespace fan::graphics::editor {
       if (objects.empty()) return false;
       bool changed = false;
 
-      fan::vec2 min_pos = objects[0]->get_position() - objects[0]->get_size();
-      fan::vec2 max_pos = objects[0]->get_position() + objects[0]->get_size();
+      fan::vec2 s0 = objects[0]->get_size();
+      if (objects[0]->shape_type == fan::graphics::shapes::shape_type_t::particles) {
+        s0 = fan::math::max(s0, fan::vec2(20.f / zoom));
+      }
+      fan::vec2 min_pos = objects[0]->get_position() - s0;
+      fan::vec2 max_pos = objects[0]->get_position() + s0;
       for (auto* obj : objects) {
         fan::vec2 p = obj->get_position();
         fan::vec2 s = obj->get_size();
+        if (obj->shape_type == fan::graphics::shapes::shape_type_t::particles) {
+          s = fan::math::max(s, fan::vec2(20.f / zoom));
+        }
         fan::vec2 cmin = p - s, cmax = p + s;
         if (cmin.x < min_pos.x) min_pos.x = cmin.x;
         if (cmin.y < min_pos.y) min_pos.y = cmin.y;
@@ -136,6 +143,9 @@ export namespace fan::graphics::editor {
         T& shape = *objects[0];
         fan::vec2 shape_pos = shape.get_position();
         fan::vec2 shape_size = shape.get_size();
+        if (shape.shape_type == fan::graphics::shapes::shape_type_t::particles) {
+          shape_size = fan::math::max(shape_size, fan::vec2(20.f / zoom));
+        }
 
         if (shape.physics.enabled == false || shape.physics.collision_shape != 1) {
           for (int i = 0; i < handle_count; ++i) {
@@ -235,7 +245,11 @@ export namespace fan::graphics::editor {
 
         if (!ctrl) {
           for (auto* obj : objects) {
-            fan::vec2 expanded_size = obj->children[0].get_size() + fan::vec2(gizmo.handle_size / zoom);
+            fan::vec2 base_size = obj->children[0].get_size();
+            if (obj->children[0].get_shape_type() == fan::graphics::shapes::shape_type_t::particles) {
+              base_size = fan::math::max(base_size, fan::vec2(20.f / zoom));
+            }
+            fan::vec2 expanded_size = base_size + fan::vec2(gizmo.handle_size / zoom);
             if (fan::math::d2::aabb_point_inside(drag_start, obj->children[0].get_position(), expanded_size)) {
               hit_gizmo = true;
               break;
@@ -246,7 +260,11 @@ export namespace fan::graphics::editor {
         if (!hit_gizmo) {
           GlobalT* top_hit_shape = nullptr;
           for (auto& ptr : shape_list) {
-            if (fan::math::d2::aabb_point_inside(drag_start, ptr->children[0].get_position(), ptr->children[0].get_size())) {
+            fan::vec2 hit_size = ptr->children[0].get_size();
+            if (ptr->children[0].get_shape_type() == fan::graphics::shapes::shape_type_t::particles) {
+              hit_size = fan::math::max(hit_size, fan::vec2(20.f / zoom));
+            }
+            if (fan::math::d2::aabb_point_inside(drag_start, ptr->children[0].get_position(), hit_size)) {
               top_hit_shape = ptr.get();
             }
           }
@@ -317,7 +335,11 @@ export namespace fan::graphics::editor {
               objects.push_back(ptr.get());
             }
           }
-          if (fan::math::d2::aabb_point_inside(mouse_pos, ptr->children[0].get_position(), ptr->children[0].get_size())) {
+          fan::vec2 hit_size = ptr->children[0].get_size();
+          if (ptr->children[0].get_shape_type() == fan::graphics::shapes::shape_type_t::particles) {
+            hit_size = fan::math::max(hit_size, fan::vec2(20.f / zoom));
+          }
+          if (fan::math::d2::aabb_point_inside(mouse_pos, ptr->children[0].get_position(), hit_size)) {
             hit_any = true;
           }
         }

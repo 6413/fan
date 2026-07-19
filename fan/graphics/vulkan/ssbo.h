@@ -90,6 +90,7 @@ struct ssbo_t {
 	}
 
   static void write_cb_impl(fan::vulkan::context_t& context, void* ptr) {
+    static_cast<ssbo_t*>(ptr)->common.queued = false;
     static_cast<ssbo_t*>(ptr)->write(context);
   }
 
