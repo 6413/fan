@@ -203,7 +203,15 @@ namespace fan::image {
   std::shared_ptr<async_result_t> async_cache_t::load(const std::string& path, fan::vec2ui max_size) {
     std::lock_guard lock(mutex);
 
+    auto it = cache.find(path);
+    if (it != cache.end()) {
+      if (auto shared = it->second.lock()) {
+        return shared;
+      }
+    }
+
     auto result = std::make_shared<async_result_t>();
+    cache[path] = result;
     image_queue().push(path, result, max_size);
 
     return result;
@@ -211,6 +219,7 @@ namespace fan::image {
   
   void async_cache_t::clear() {
     std::lock_guard lock(mutex);
+    cache.clear();
     image_queue().clear();
   }
 

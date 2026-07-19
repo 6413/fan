@@ -41,6 +41,8 @@ import fan.graphics.webp;
 import fan.math;
 import fan.math.intersection;
 
+import fan.io.file;
+
 #define __fan_internal_camera_list (*fan::graphics::ctx().camera_list)
 #define __fan_internal_shader_list (*fan::graphics::ctx().shader_list)
 #define __fan_internal_image_list (*fan::graphics::ctx().image_list)
@@ -310,9 +312,32 @@ std::uint64_t fan::vulkan::context_t::image_get_handle(fan::graphics::image_nr_t
 fan::vulkan::context_t::image_t& fan::vulkan::context_t::image_get(fan::graphics::image_nr_t nr) {
   return *(fan::vulkan::context_t::image_t*)__fan_internal_image_list[nr].internal;
 }
+static std::string build_cache_key(const std::string& abs_path, const fan::graphics::image_load_properties_t& p) {
+  std::string cache_key = abs_path;
+  cache_key += std::to_string((int)p.visual_output);
+  cache_key += std::to_string((int)p.internal_format);
+  cache_key += std::to_string((int)p.format);
+  cache_key += std::to_string((int)p.min_filter);
+  cache_key += std::to_string((int)p.mag_filter);
+  return cache_key;
+}
+
 void fan::vulkan::context_t::image_erase(fan::graphics::image_nr_t nr, int recycle) {
   auto& node = __fan_internal_image_list[nr];
   auto& img = image_get(nr);
+
+  if (!node.image_path.empty()) {
+    std::string cache_key = build_cache_key(node.image_path, node.image_settings);
+
+    auto it = image_cache.find(cache_key);
+    if (it != image_cache.end()) {
+      it->second.ref_count--;
+      if (it->second.ref_count > 0) {
+        return;
+      }
+      image_cache.erase(it);
+    }
+  }
 
   VkDevice dev = device;
   VmaAllocator alloc = allocator;
@@ -692,6 +717,29 @@ static constexpr std::uint32_t get_format_channel_count(VkFormat format) {
 
 fan::graphics::image_nr_t fan::vulkan::context_t::image_load(fan::str_view_t path, const fan::vulkan::context_t::image_load_properties_t& p, const std::source_location& callers_path) {
 
+  std::string abs_path;
+  std::string relative_path = fan::io::file::find_relative_path(path, callers_path).generic_string();
+  if (fan::io::file::exists(relative_path)) {
+    abs_path = std::filesystem::absolute(relative_path).generic_string();
+  } else {
+    abs_path = std::string(path);
+  }
+
+  fan::graphics::image_load_properties_t global_p;
+  global_p.visual_output = p.visual_output;
+  global_p.internal_format = p.internal_format;
+  global_p.format = p.format;
+  global_p.min_filter = p.min_filter;
+  global_p.mag_filter = p.mag_filter;
+
+  std::string cache_key = build_cache_key(abs_path, global_p);
+
+  auto it = image_cache.find(cache_key);
+  if (it != image_cache.end()) {
+    it->second.ref_count++;
+    return it->second.nr;
+  }
+
 #if fan_assert_if_same_path_loaded_multiple_times
 
   static std::unordered_map<std::string, bool> existing_images;
@@ -709,8 +757,12 @@ fan::graphics::image_nr_t fan::vulkan::context_t::image_load(fan::str_view_t pat
     return create_missing_texture();
   }
   fan::graphics::image_nr_t nr = image_load(image_info, p);
-  __fan_internal_image_list[nr].image_path = path;
+  __fan_internal_image_list[nr].image_path = abs_path;
+  __fan_internal_image_list[nr].image_settings = global_p;
   fan::image::free(&image_info);
+
+  image_cache[cache_key] = {nr, 1};
+
   return nr;
 }
 fan::graphics::image_nr_t fan::vulkan::context_t::image_load(fan::str_view_t path, const std::source_location& callers_path) {
