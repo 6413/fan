@@ -87,7 +87,6 @@ export namespace fan::vulkan {
       bool enable_depth_test = VK_TRUE;
       VkCompareOp depth_test_compare_op = VK_COMPARE_OP_LESS;
       VkPrimitiveTopology shape_type = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-      VkRenderPass render_pass = VK_NULL_HANDLE;
     };
 
     void open(fan::vulkan::context_t& context, const properties_t& p);
@@ -95,12 +94,9 @@ export namespace fan::vulkan {
 #if defined(FAN_2D)
     fan::graphics::shader_nr_t shader_nr;
 #endif
-    operator VkPipeline() const {
-      return m_pipeline;
-    }
 
     VkPipelineLayout m_layout;
-    VkPipeline m_pipeline;
+    VkShaderEXT m_shaders[2]; // [0] = Vertex, [1] = Fragment
     properties_t properties;
   };
 }

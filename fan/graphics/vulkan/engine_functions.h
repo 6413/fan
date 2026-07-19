@@ -1,8 +1,4 @@
 VkSampler post_process_sampler = VK_NULL_HANDLE;
-VkRenderPass post_process_render_pass = VK_NULL_HANDLE;
-VkRenderPass bloom_render_pass = VK_NULL_HANDLE;
-VkRenderPass bloom_blend_render_pass = VK_NULL_HANDLE;
-std::vector<VkFramebuffer> post_process_framebuffers;
 fan::graphics::shader_t post_process_shader;
 fan::graphics::shader_t bloom_downsample_shader;
 fan::graphics::shader_t bloom_upsample_shader;
@@ -36,7 +32,7 @@ struct shape_shader_pipeline_t {
 std::vector<shape_shader_pipeline_t> shape_shader_pipelines;
 
 struct deferred_shape_pipeline_destroy_t {
-  VkPipeline pipeline = VK_NULL_HANDLE;
+  VkShaderEXT shaders[2] = { VK_NULL_HANDLE, VK_NULL_HANDLE };
   VkPipelineLayout layout = VK_NULL_HANDLE;
   std::uint32_t frames_left = 0;
 };
@@ -46,7 +42,6 @@ std::vector<deferred_shape_pipeline_destroy_t> deferred_shape_pipeline_destroys;
 struct bloom_mip_t {
   fan::vec2ui size;
   fan::vulkan::vai_t image;
-  VkFramebuffer framebuffer = VK_NULL_HANDLE;
 };
 
 struct bloom_chain_t {
@@ -100,10 +95,12 @@ loco_t& get_loco() {
 }
 #define loco get_loco()
 
-void destroy_shape_pipeline_handles(VkPipeline pipeline, VkPipelineLayout layout) {
+void destroy_shape_pipeline_handles(VkShaderEXT* shaders, VkPipelineLayout layout) {
   auto& context = loco.context.vk;
-  if (pipeline != VK_NULL_HANDLE) {
-    vkDestroyPipeline(context.device, pipeline, nullptr);
+  for (int i = 0; i < 2; ++i) {
+    if (shaders[i] != VK_NULL_HANDLE) {
+      fan_vkDestroyShaderEXT(context.device, shaders[i], nullptr);
+    }
   }
   if (layout != VK_NULL_HANDLE) {
     vkDestroyPipelineLayout(context.device, layout, nullptr);
@@ -111,17 +108,18 @@ void destroy_shape_pipeline_handles(VkPipeline pipeline, VkPipelineLayout layout
 }
 
 void defer_close_shape_pipeline(fan::vulkan::context_t::pipeline_t& pipeline) {
-  if (pipeline.m_pipeline == VK_NULL_HANDLE && pipeline.m_layout == VK_NULL_HANDLE) {
+  if (pipeline.m_shaders[0] == VK_NULL_HANDLE && pipeline.m_shaders[1] == VK_NULL_HANDLE && pipeline.m_layout == VK_NULL_HANDLE) {
     return;
   }
 
   deferred_shape_pipeline_destroys.push_back({
-    .pipeline = pipeline.m_pipeline,
+    .shaders = { pipeline.m_shaders[0], pipeline.m_shaders[1] },
     .layout = pipeline.m_layout,
     .frames_left = fan::vulkan::max_frames_in_flight
   });
 
-  pipeline.m_pipeline = VK_NULL_HANDLE;
+  pipeline.m_shaders[0] = VK_NULL_HANDLE;
+  pipeline.m_shaders[1] = VK_NULL_HANDLE;
   pipeline.m_layout = VK_NULL_HANDLE;
 }
 
@@ -133,7 +131,7 @@ void flush_deferred_shape_pipeline_destroys(bool force = false) {
       continue;
     }
 
-    destroy_shape_pipeline_handles(it->pipeline, it->layout);
+    destroy_shape_pipeline_handles(it->shaders, it->layout);
     it = deferred_shape_pipeline_destroys.erase(it);
   }
 }
@@ -141,9 +139,7 @@ void flush_deferred_shape_pipeline_destroys(bool force = false) {
 void close_shape_shader_pipelines() {
   flush_deferred_shape_pipeline_destroys(true);
   for (auto& i : shape_shader_pipelines) {
-    destroy_shape_pipeline_handles(i.pipeline.m_pipeline, i.pipeline.m_layout);
-    i.pipeline.m_pipeline = VK_NULL_HANDLE;
-    i.pipeline.m_layout = VK_NULL_HANDLE;
+    i.pipeline.close(loco.context.vk);
   }
   shape_shader_pipelines.clear();
 }
@@ -286,7 +282,17 @@ void draw_fullscreen(
   fan::vulkan::context_t& context = loco.context.vk;
   VkCommandBuffer cmd = context.command_buffers[context.current_frame];
 
-  vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.m_pipeline);
+  VkShaderStageFlagBits stages[2] = { VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT };
+  fan_vkCmdBindShadersEXT(cmd, 2, stages, pipeline.m_shaders);
+  vkCmdSetPrimitiveTopology(cmd, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+  vkCmdSetRasterizerDiscardEnable(cmd, VK_FALSE);
+  fan_vkCmdSetPolygonModeEXT(cmd, VK_POLYGON_MODE_FILL);
+  fan_vkCmdSetCullMode(cmd, VK_CULL_MODE_NONE);
+  fan_vkCmdSetFrontFace(cmd, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+  vkCmdSetDepthTestEnable(cmd, VK_FALSE);
+  vkCmdSetDepthWriteEnable(cmd, VK_FALSE);
+  VkBool32 blend_enable = VK_FALSE;
+  fan_vkCmdSetColorBlendEnableEXT(cmd, 0, 1, &blend_enable);
   
   VkDescriptorImageInfo image_infos[4];
   image_infos[0] = make_image_info(scene);
@@ -451,7 +457,6 @@ void open_post_process_pipelines() {
   p.color_blend_attachments = {replace_blend};
 
   p.shader = post_process_shader;
-  p.render_pass = post_process_render_pass;
   p.descriptor_layouts = {post_process_descriptor_layout};
   p.push_constants_size = sizeof(post_process_push_constants_t);
   loco.vk->post_process.open(context, p);
@@ -533,7 +538,8 @@ void draw_bloom() {
   VkCommandBuffer cmd = context.command_buffers[context.current_frame];
 
   // Downsample pass
-  vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, bloom_downsample_pipeline.pipeline);
+  VkShaderStageFlagBits compute_stage = VK_SHADER_STAGE_COMPUTE_BIT;
+  fan_vkCmdBindShadersEXT(cmd, 1, &compute_stage, &bloom_downsample_pipeline.shader);
 
   {
     VkImageMemoryBarrier2 barrier{};
@@ -619,7 +625,8 @@ void draw_bloom() {
   }
 
   // Upsample pass
-  vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, bloom_upsample_pipeline.pipeline);
+  VkShaderStageFlagBits upsample_stage = VK_SHADER_STAGE_COMPUTE_BIT;
+  fan_vkCmdBindShadersEXT(cmd, 1, &upsample_stage, &bloom_upsample_pipeline.shader);
 
   for (int i = (int)chain.mips.size() - 1; i > 0; --i) {
     auto& mip = chain.mips[i];
@@ -1302,7 +1309,32 @@ void shapes_draw() {
     );
 
     set_viewport();
-    vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.m_pipeline);
+    {
+      VkShaderEXT shaders_to_bind[2];
+      VkShaderStageFlagBits stages_to_bind[2];
+      std::uint32_t shader_count = 0;
+      for (int i = 0; i < 2; ++i) {
+        if (pipeline.m_shaders[i] != VK_NULL_HANDLE) {
+          shaders_to_bind[shader_count] = pipeline.m_shaders[i];
+          stages_to_bind[shader_count] = (i == 0) ? VK_SHADER_STAGE_VERTEX_BIT : VK_SHADER_STAGE_FRAGMENT_BIT;
+          ++shader_count;
+        }
+      }
+      if (shader_count > 0) {
+        fan_vkCmdBindShadersEXT(cmd_buffer, shader_count, stages_to_bind, shaders_to_bind);
+      }
+      vkCmdSetPrimitiveTopology(cmd_buffer, pipeline.properties.shape_type);
+      vkCmdSetRasterizerDiscardEnable(cmd_buffer, VK_FALSE);
+      fan_vkCmdSetPolygonModeEXT(cmd_buffer, VK_POLYGON_MODE_FILL);
+      fan_vkCmdSetCullMode(cmd_buffer, VK_CULL_MODE_NONE);
+      fan_vkCmdSetFrontFace(cmd_buffer, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+      vkCmdSetDepthTestEnable(cmd_buffer, pipeline.properties.enable_depth_test ? VK_TRUE : VK_FALSE);
+      vkCmdSetDepthWriteEnable(cmd_buffer, pipeline.properties.enable_depth_test ? VK_TRUE : VK_FALSE);
+      vkCmdSetDepthCompareOp(cmd_buffer, pipeline.properties.depth_test_compare_op);
+      VkBool32 blend_enable = (!pipeline.properties.color_blend_attachments.empty() &&
+        pipeline.properties.color_blend_attachments[0].blendEnable) ? VK_TRUE : VK_FALSE;
+      fan_vkCmdSetColorBlendEnableEXT(cmd_buffer, 0, 1, &blend_enable);
+    }
     vkCmdBindDescriptorSets(
       cmd_buffer,
       VK_PIPELINE_BIND_POINT_GRAPHICS,

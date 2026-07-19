@@ -173,63 +173,6 @@ void fan::vulkan::context_t::descriptor_pool_t::close(fan::vulkan::context_t& co
 void fan::vulkan::pipeline_t::open(fan::vulkan::context_t& context, const properties_t& p) {
   properties = p;
 
-  VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
-  vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-
-  VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
-  inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-  inputAssembly.topology = properties.shape_type;
-  inputAssembly.primitiveRestartEnable = VK_FALSE;
-
-  VkPipelineViewportStateCreateInfo viewportState{};
-  viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-  viewportState.viewportCount = 1;
-  viewportState.scissorCount = 1;
-
-  VkPipelineRasterizationStateCreateInfo rasterizer{};
-  rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-  rasterizer.depthClampEnable = VK_FALSE;
-  rasterizer.rasterizerDiscardEnable = VK_FALSE;
-  rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
-  rasterizer.lineWidth = 1.0f;
-  rasterizer.cullMode = VK_CULL_MODE_NONE;
-  rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-  rasterizer.depthBiasEnable = VK_FALSE;
-
-  VkPipelineMultisampleStateCreateInfo multisampling{};
-  multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-  multisampling.sampleShadingEnable = VK_FALSE;
-  multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-
-  VkPipelineDepthStencilStateCreateInfo depthStencil{};
-  depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-  depthStencil.depthTestEnable = properties.enable_depth_test;
-  depthStencil.depthWriteEnable = properties.enable_depth_test;
-  depthStencil.depthCompareOp = properties.depth_test_compare_op;
-  depthStencil.depthBoundsTestEnable = VK_FALSE;
-  depthStencil.stencilTestEnable = VK_FALSE;
-
-  VkPipelineColorBlendStateCreateInfo colorBlending{};
-  colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-  colorBlending.logicOpEnable = VK_FALSE;
-  colorBlending.logicOp = VK_LOGIC_OP_NO_OP;
-  colorBlending.attachmentCount = static_cast<std::uint32_t>(properties.color_blend_attachments.size());
-  colorBlending.pAttachments = properties.color_blend_attachments.data();
-  colorBlending.blendConstants[0] = 1.0f;
-  colorBlending.blendConstants[1] = 1.0f;
-  colorBlending.blendConstants[2] = 1.0f;
-  colorBlending.blendConstants[3] = 1.0f;
-
-  std::vector<VkDynamicState> dynamicStates = {
-    VK_DYNAMIC_STATE_VIEWPORT,
-    VK_DYNAMIC_STATE_SCISSOR
-  };
-
-  VkPipelineDynamicStateCreateInfo dynamicState{};
-  dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-  dynamicState.dynamicStateCount = static_cast<std::uint32_t>(dynamicStates.size());
-  dynamicState.pDynamicStates = dynamicStates.data();
-
   VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
   pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipelineLayoutInfo.setLayoutCount = static_cast<std::uint32_t>(properties.descriptor_layouts.size());
@@ -248,49 +191,60 @@ void fan::vulkan::pipeline_t::open(fan::vulkan::context_t& context, const proper
   }
 
   auto shader_ref = context.shaders.shader_get(properties.shader);
-  std::vector<VkPipelineShaderStageCreateInfo> active_stages;
-  active_stages.reserve(3);
-  for (int i = 0; i < 3; ++i) {
-    if (shader_ref.shader_stages[i].module != VK_NULL_HANDLE) {
-      active_stages.push_back(shader_ref.shader_stages[i]);
+  shader_nr = properties.shader;
+
+  m_shaders[0] = VK_NULL_HANDLE;
+  m_shaders[1] = VK_NULL_HANDLE;
+
+  bool has_stages[2] = { false, false };
+  int ref_indices[2] = { -1, -1 };
+
+  for (int i = 0; i < 2; ++i) {
+    VkShaderStageFlagBits stage = (i == 0) ? VK_SHADER_STAGE_VERTEX_BIT : VK_SHADER_STAGE_FRAGMENT_BIT;
+    for (int j = 0; j < 3; ++j) {
+      if (shader_ref.shader_stages[j].stage == stage && shader_ref.shader_stages[j].module != VK_NULL_HANDLE) {
+        has_stages[i] = true;
+        ref_indices[i] = j;
+        break;
+      }
     }
   }
 
-  VkGraphicsPipelineCreateInfo pipelineInfo{};
-  pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-  pipelineInfo.stageCount = static_cast<std::uint32_t>(active_stages.size());
-  pipelineInfo.pStages = active_stages.data();
-  pipelineInfo.pVertexInputState = &vertexInputInfo;
-  pipelineInfo.pInputAssemblyState = &inputAssembly;
-  pipelineInfo.pViewportState = &viewportState;
-  pipelineInfo.pRasterizationState = &rasterizer;
-  pipelineInfo.pMultisampleState = &multisampling;
-  pipelineInfo.pDepthStencilState = &depthStencil;
-  pipelineInfo.pColorBlendState = &colorBlending;
-  pipelineInfo.pDynamicState = &dynamicState;
-  pipelineInfo.layout = m_layout;
-  VkPipelineRenderingCreateInfo renderingCreateInfo{};
-  renderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
-  renderingCreateInfo.colorAttachmentCount = 1;
-  VkFormat colorFormat = context.main_color_format;
-  renderingCreateInfo.pColorAttachmentFormats = &colorFormat;
-  VkFormat depthFormat = context.find_depth_format();
-  renderingCreateInfo.depthAttachmentFormat = properties.enable_depth_test ? depthFormat : VK_FORMAT_UNDEFINED;
-  renderingCreateInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+  std::uint32_t shader_count = (has_stages[0] ? 1 : 0) + (has_stages[1] ? 1 : 0);
+  VkShaderCreateInfoEXT shader_infos[2] = {};
+  bool link = shader_count > 1;
 
-  pipelineInfo.pNext = &renderingCreateInfo;
-  pipelineInfo.renderPass = VK_NULL_HANDLE;
-  pipelineInfo.subpass = 0;
-  pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+  for (int i = 0, idx = 0; i < 2; ++i) {
+    if (!has_stages[i]) { continue; }
+    auto& spirv = shader_ref.spirv_stages[ref_indices[i]];
+    if (spirv.empty()) { continue; }
 
-  shader_nr = properties.shader;
-  if (vkCreateGraphicsPipelines(context.device, context.pipeline_cache, 1, &pipelineInfo, nullptr, &m_pipeline) != VK_SUCCESS) {
-    fan::throw_error("failed to create graphics pipeline");
+    auto& info = shader_infos[idx];
+    info.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT;
+    info.flags = link ? VK_SHADER_CREATE_LINK_STAGE_BIT_EXT : 0;
+    info.stage = (i == 0) ? VK_SHADER_STAGE_VERTEX_BIT : VK_SHADER_STAGE_FRAGMENT_BIT;
+    info.nextStage = (i == 0 && has_stages[1]) ? VK_SHADER_STAGE_FRAGMENT_BIT : 0;
+    info.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT;
+    info.pCode = spirv.data();
+    info.codeSize = spirv.size() * sizeof(std::uint32_t);
+    info.pName = "main";
+    info.setLayoutCount = (std::uint32_t)properties.descriptor_layouts.size();
+    info.pSetLayouts = properties.descriptor_layouts.data();
+    info.pushConstantRangeCount = properties.push_constants_size ? 1 : 0;
+    info.pPushConstantRanges = properties.push_constants_size ? &push_constant : nullptr;
+    ++idx;
+  }
+
+  if (shader_count > 0) {
+    if (fan_vkCreateShadersEXT(context.device, shader_count, shader_infos, nullptr, m_shaders) != VK_SUCCESS) {
+      fan::throw_error("failed to create shader objects");
+    }
   }
 }
 void fan::vulkan::pipeline_t::close(fan::vulkan::context_t& context) {
-  vkDestroyPipeline(context.device, m_pipeline, nullptr);
-  vkDestroyPipelineLayout(context.device, m_layout, nullptr);
+  if (m_shaders[0]) { fan_vkDestroyShaderEXT(context.device, m_shaders[0], nullptr); }
+  if (m_shaders[1]) { fan_vkDestroyShaderEXT(context.device, m_shaders[1], nullptr); }
+  if (m_layout) { vkDestroyPipelineLayout(context.device, m_layout, nullptr); }
 }
 
 namespace fan::vulkan::core {
