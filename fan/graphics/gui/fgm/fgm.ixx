@@ -264,7 +264,7 @@ export namespace fan::graphics::editor {
     }
 
     void render_viewport(f32_t zoom) {
-      if (!gui::begin("Editor", nullptr, gui::window_flags_menu_bar | gui::window_flags_no_background)) { gui::end(); return; }
+      if (!gui::begin("Editor", nullptr, gui::window_flags_menu_bar | gui::window_flags_no_background | gui::window_flags_no_scrollbar | gui::window_flags_no_scroll_with_mouse)) { gui::end(); return; }
 
       gui::push_style_color(gui::col_button, is_playing ? fan::color(0.8f, 0.2f, 0.2f, 1.f) : fan::color(0.2f, 0.7f, 0.2f, 1.f));
       if (gui::button(is_playing ? "Stop" : "Play", fan::vec2(100, 50))) {
@@ -630,7 +630,7 @@ export namespace fan::graphics::editor {
             gui::end_menu();
           }
           if (gui::begin_menu("Lights")) {
-            if (gui::menu_item("Circle")) push_shape<fan::graphics::light_t>(0);
+            if (gui::menu_item("Point")) push_shape<fan::graphics::light_t>(0);
             gui::end_menu();
           }
           gui::end_menu();
