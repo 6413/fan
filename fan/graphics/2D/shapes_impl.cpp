@@ -112,16 +112,20 @@ namespace {
         child.local_pos.z
       };
 
-      fan::vec3 n_pos = p_pos + offset;
-      fan::vec2 n_size = p_size * child.local_size;
-      fan::vec3 n_angle = p_angle + child.local_angle;
-
-      c_handle->set_position(n_pos);
-      c_handle->set_size(n_size);
-      c_handle->set_angle(n_angle);
-
-      update_node_recursive(child.shape, n_pos, n_size, n_angle);
+      c_handle->set_position(p_pos + offset);
+      c_handle->set_size(p_size * child.local_size);
+      c_handle->set_angle(p_angle + child.local_angle);
     }
+  }
+
+  void propagate_to_children(fan::graphics::shapes::shape_t* s) {
+    auto* s_id = static_cast<fan::graphics::shaper_t::ShapeID_t*>(s);
+    auto& all_funcs = fan::graphics::shapes::get_shape_functions();
+    fan::graphics::shapes::shape_ids_t::nr_t gid;
+    gid.gint() = s_id->NRI;
+    auto& sd = fan::graphics::g_shapes->shape_ids[gid];
+    auto& funcs = all_funcs[sd.shape_type];
+    update_node_recursive(s_id->NRI, funcs.get_position(s), funcs.get_size(s), funcs.get_angle(s));
   }
 }
 
@@ -1467,6 +1471,7 @@ namespace fan::graphics{
     fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_position2(this, position);
     set_particle_pos(this, position);
     update_culling();
+    propagate_to_children(this);
     return *this;
   }
 
@@ -1481,6 +1486,7 @@ namespace fan::graphics{
     fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_position3(this, position);
     set_particle_pos(this, position);
     update_culling();
+    propagate_to_children(this);
     return *this;
   }
 
@@ -2652,6 +2658,7 @@ namespace fan::graphics{
       GetData(fan::graphics::g_shapes->shaper);
     ri.loop_enabled_time = 0.f;  // negate the offset to travel to future
     ri.loop_disabled_time = -1.f;
+    for_each_child([](shape_t& child) { child.start_particles(); });
   }
 
   void shapes::shape_t::stop_particles() {
@@ -2666,6 +2673,7 @@ namespace fan::graphics{
     auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)
       GetData(fan::graphics::g_shapes->shaper);
     ri.loop_disabled_time = fan::time::now() / 1e9;
+    for_each_child([](shape_t& child) { child.stop_particles(); });
   }
 
   void apply_delta(shapes::shape_t& shape, const fan::vec2& delta) {
