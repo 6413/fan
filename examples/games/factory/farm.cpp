@@ -172,6 +172,7 @@ struct farm_manager_t {
   }
 
   void update_placement_cursor(engine_t& engine) {
+    light(fan::vec3(engine.get_mouse_position(), 0), 1500.f, fan::colors::white);
     if (!selected_building) return;
     fan::vec2i cell = grid.get_cell(engine.get_mouse_position());
     if (can_place(cell, *selected_building)) {
