@@ -99,12 +99,10 @@ export namespace fan::vulkan {
 
     template <typename member_t>
     void edit_instance(ctx_t& context, std::uint32_t i, member_t type_t::* member, const member_t& value) {
-      ((type_t*)buffer[context.current_frame])[i].*member = value;
-
-      const auto begin = static_cast<std::uint32_t>(
-        sizeof(type_t) * i + fan::member_offset(member)
-        );
-
+      for (std::uint32_t f = 0; f < buffer_count; ++f) {
+        ((type_t*)buffer[f])[i].*member = value;
+      }
+      const auto begin = static_cast<std::uint32_t>(sizeof(type_t) * i + fan::member_offset(member));
       common.edit(context, begin, begin + sizeof(member_t));
     }
 
