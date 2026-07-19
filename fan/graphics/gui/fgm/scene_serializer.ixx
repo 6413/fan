@@ -161,6 +161,14 @@ export namespace fan::graphics::editor {
       if (instance->physics.enabled) {
         shape_json["physics"] = instance->physics.to_json();
       }
+      if (instance->shape_type == fan::graphics::shapes::shape_type_t::light) {
+        if (instance->light_props.enable_flicker) {
+          shape_json["light_props"] = instance->light_props.to_json();
+        }
+      }
+      if (instance->dynamic_props.target_color.r != 1.0f || instance->dynamic_props.target_color.g != 1.0f || instance->dynamic_props.target_color.b != 1.0f || instance->dynamic_props.target_color.a != 1.0f) {
+        shape_json["dynamic_props"] = instance->dynamic_props.to_json();
+      }
       if (auto found = fgm.shape_original_json.find(instance.get()); found != fgm.shape_original_json.end()) {
         auto original = found->second;
         fan::json cleaned_original = fan::json::object();
@@ -282,13 +290,6 @@ export namespace fan::graphics::editor {
           }
           case fan::graphics::shapes::shape_type_t::light: {
             node = std::make_unique<shapes_t::global_t>(shape.get_shape_type(), shape, fgm.current_z, fgm.current_shape, false);
-            node->children.push_back(fan::graphics::circle_t {{
-              .render_view = &fgm.render_view,
-              .position = shape.get_position(),
-              .radius = shape.get_size().x,
-              .color = shape.get_color(),
-              .blending = true
-            }});
             break;
           }
         }
@@ -298,6 +299,12 @@ export namespace fan::graphics::editor {
           if (shape_json.contains("group_id")) node->group_id = shape_json["group_id"].get<std::uint32_t>();
           if (shape_json.contains("physics")) {
             node->physics.from_json(shape_json["physics"]);
+          }
+          if (shape_json.contains("light_props")) {
+            node->light_props.from_json(shape_json["light_props"]);
+          }
+          if (shape_json.contains("dynamic_props")) {
+            node->dynamic_props.from_json(shape_json["dynamic_props"]);
           }
           if (final_material_type == 1) {
             node->original_image = node->children[0].get_image();
