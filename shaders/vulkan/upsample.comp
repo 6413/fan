@@ -1,0 +1,47 @@
+#version 450
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(set = 0, binding = 0) uniform sampler2D src_lower_mip;
+// Removed dst_mip_read (binding 1) to avoid sampler/storage feedback loop
+layout(set = 0, binding = 2, rgba16f) uniform image2D dst_mip_write;
+
+layout(push_constant) uniform push_constants_t {
+  vec4 filter_radius;
+} pc;
+
+void main() {
+  ivec2 dst_coords = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 dst_size = imageSize(dst_mip_write);
+  if (dst_coords.x >= dst_size.x || dst_coords.y >= dst_size.y) {
+    return;
+  }
+
+  vec2 texture_coordinate = (vec2(dst_coords) + 0.5) / vec2(dst_size);
+
+  float x = pc.filter_radius.x;
+  float y = pc.filter_radius.y;
+
+  vec3 a = texture(src_lower_mip, vec2(texture_coordinate.x - x, texture_coordinate.y + y)).rgb;
+  vec3 b = texture(src_lower_mip, vec2(texture_coordinate.x,     texture_coordinate.y + y)).rgb;
+  vec3 c = texture(src_lower_mip, vec2(texture_coordinate.x + x, texture_coordinate.y + y)).rgb;
+
+  vec3 d = texture(src_lower_mip, vec2(texture_coordinate.x - x, texture_coordinate.y)).rgb;
+  vec3 e = texture(src_lower_mip, vec2(texture_coordinate.x,     texture_coordinate.y)).rgb;
+  vec3 f = texture(src_lower_mip, vec2(texture_coordinate.x + x, texture_coordinate.y)).rgb;
+
+  vec3 g = texture(src_lower_mip, vec2(texture_coordinate.x - x, texture_coordinate.y - y)).rgb;
+  vec3 h = texture(src_lower_mip, vec2(texture_coordinate.x,     texture_coordinate.y - y)).rgb;
+  vec3 i = texture(src_lower_mip, vec2(texture_coordinate.x + x, texture_coordinate.y - y)).rgb;
+
+  vec3 color = e * 4.0;
+  color += (b + d + f + h) * 2.0;
+  color += (a + c + g + i);
+  color *= 1.0 / 16.0;
+
+  // blend-add with current mip directly via storage image to avoid cache hazards
+  vec3 current_val = imageLoad(dst_mip_write, dst_coords).rgb;
+  vec3 final_color = color + current_val;
+
+  imageStore(dst_mip_write, dst_coords, vec4(final_color, 1.0));
+}
