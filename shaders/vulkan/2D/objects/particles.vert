@@ -77,6 +77,7 @@ float rand_f(uint seed) {
 
 layout(location = 0) out vec4 instance_color;
 layout(location = 1) out vec2 texture_coordinate;
+layout(location = 2) out float affected_by_lighting;
 
 void main() {
   particle_data_t p = particles[gl_InstanceIndex];
@@ -196,4 +197,5 @@ void main() {
 
   instance_color = color;
   texture_coordinate = tc[vertex_id];
+  affected_by_lighting = p.spread1_jitter.w;
 }

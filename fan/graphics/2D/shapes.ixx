@@ -491,6 +491,8 @@ export namespace fan::graphics {
       // offset in seconds
       void start_particles(f32_t start_offset = 0.f);
       void stop_particles();
+      bool get_lighting() const;
+      void set_lighting(bool flag);
 
       void move_direction(const fan::vec2& direction, const fan::vec2& speed = 100.f);
       void move_to_position(const fan::vec2& target, f32_t seconds = 1.f);
@@ -1161,6 +1163,7 @@ export namespace fan::graphics {
 
         bool blending;
         std::uint32_t vk_emitter_index = 0;
+        bool affected_by_lighting = true;
       };
 
       struct properties_t {
@@ -1209,6 +1212,7 @@ export namespace fan::graphics {
         fan::vec3 angle_random_range = 0;
 
         std::uint32_t shape = shapes_e::circle;
+        bool affected_by_lighting = true;
 
         fan::graphics::image_t image{fan::graphics::ctx().default_texture};
 
