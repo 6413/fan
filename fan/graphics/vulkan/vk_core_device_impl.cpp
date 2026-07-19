@@ -208,7 +208,7 @@ void fan::vulkan::context_t::destroy_vulkan_soft() {
 
   flush_deletion_queues();
 
-  vkDestroyRenderPass(device, render_pass, nullptr);
+
   vkDestroyCommandPool(device, command_pool, nullptr);
 
 #if FAN_DEBUG >= fan_debug_high
@@ -444,7 +444,7 @@ void fan::vulkan::context_t::create_instance() {
   appInfo.applicationVersion = VK_MAKE_VERSION(1, 2, 0);
   appInfo.pEngineName = "fan";
   appInfo.engineVersion = VK_MAKE_VERSION(1, 2, 0);
-  appInfo.apiVersion = VK_API_VERSION_1_2;
+  appInfo.apiVersion = VK_API_VERSION_1_3;
 
 
   VkInstanceCreateInfo createInfo {};
@@ -625,6 +625,11 @@ void fan::vulkan::context_t::create_logical_device() {
   vulkan12.descriptorBindingUpdateUnusedWhilePending = VK_TRUE;
   vulkan12.descriptorBindingPartiallyBound = VK_TRUE;
 
+  VkPhysicalDeviceVulkan13Features vulkan13 {};
+  vulkan13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+  vulkan13.dynamicRendering = VK_TRUE;
+  vulkan13.synchronization2 = VK_TRUE;
+
 #if defined(ENABLE_RAYTRACING_DEPENDENCIES)
   vulkan12.bufferDeviceAddress = VK_TRUE;
 
@@ -637,12 +642,14 @@ void fan::vulkan::context_t::create_logical_device() {
   rt.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
   rt.rayTracingPipeline = VK_TRUE;
 
-  // Chain: features2 → vulkan12 → accel → rt
-  features2.pNext = &vulkan12;
+  // Chain: features2 → vulkan13 → vulkan12 → accel → rt
+  features2.pNext = &vulkan13;
+  vulkan13.pNext = &vulkan12;
   vulkan12.pNext = &accel;
   accel.pNext = &rt;
 #else
-  features2.pNext = &vulkan12;
+  features2.pNext = &vulkan13;
+  vulkan13.pNext = &vulkan12;
   vulkan12.pNext = nullptr;
 #endif
 
@@ -832,117 +839,8 @@ void fan::vulkan::context_t::create_image_views() {
   }
 }
 void fan::vulkan::context_t::create_render_pass() {
-  //--------------attachment description--------------
-
-  VkAttachmentDescription mainColorAttachment {};
-  mainColorAttachment.format = main_color_format;
-  mainColorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-  mainColorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-  mainColorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-  mainColorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-  mainColorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-  mainColorAttachment.initialLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-  mainColorAttachment.finalLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-  VkAttachmentDescription depthAttachment {};
-  depthAttachment.format = find_depth_format();
-  depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-  depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-  depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-  depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-  depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-  depthAttachment.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-  depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-  //--------------attachment description--------------
-
-  VkAttachmentReference mainSceneColorRef {};
-  mainSceneColorRef.attachment = 0;
-  mainSceneColorRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-  VkAttachmentReference depthRef {};
-  depthRef.attachment = 1;
-  depthRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-  VkSubpassDescription mainSceneSubpass {};
-  mainSceneSubpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-  mainSceneSubpass.colorAttachmentCount = 1;
-  mainSceneSubpass.pColorAttachments = &mainSceneColorRef;
-  mainSceneSubpass.pDepthStencilAttachment = &depthRef;
-
-  VkSubpassDependency extToMainDep {};
-  extToMainDep.srcSubpass = VK_SUBPASS_EXTERNAL;
-  extToMainDep.dstSubpass = 0;
-  extToMainDep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  extToMainDep.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  extToMainDep.srcAccessMask = 0;
-  extToMainDep.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-  extToMainDep.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-  VkSubpassDependency mainToExtDep {};
-  mainToExtDep.srcSubpass = 0;
-  mainToExtDep.dstSubpass = VK_SUBPASS_EXTERNAL;
-  mainToExtDep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  mainToExtDep.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
-  mainToExtDep.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-  mainToExtDep.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-  mainToExtDep.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-  VkAttachmentDescription attachments[] = {
-    mainColorAttachment,
-    depthAttachment
-  };
-
-  VkSubpassDescription subpasses[] = {
-    mainSceneSubpass
-  };
-
-  VkSubpassDependency dependencies[] = {
-    extToMainDep,
-    mainToExtDep
-  };
-
-  VkRenderPassCreateInfo renderPassInfo {};
-  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-  renderPassInfo.attachmentCount = std::size(attachments);
-  renderPassInfo.pAttachments = attachments;
-  renderPassInfo.subpassCount = std::size(subpasses);
-  renderPassInfo.pSubpasses = subpasses;
-  renderPassInfo.dependencyCount = std::size(dependencies);
-  renderPassInfo.pDependencies = dependencies;
-
-  if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &render_pass) != VK_SUCCESS) {
-    fan::throw_error("failed to create render pass");
-  }
 }
 void fan::vulkan::context_t::create_framebuffers() {
-  for (auto& fb : swap_chain_framebuffers) {
-    if (fb != VK_NULL_HANDLE) {
-      vkDestroyFramebuffer(device, fb, nullptr);
-      fb = VK_NULL_HANDLE;
-    }
-  }
-  swap_chain_framebuffers.resize(swap_chain_image_views.size());
-
-  for (std::size_t i = 0; i < swap_chain_image_views.size(); i++) {
-    VkImageView attachments[] = {
-      mainColorImageViews[i].image_view,
-      depthImageViews[i].image_view,
-    };
-
-    VkFramebufferCreateInfo framebufferInfo {};
-    framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebufferInfo.renderPass = render_pass;
-    framebufferInfo.attachmentCount = std::size(attachments);
-    framebufferInfo.pAttachments = attachments;
-    framebufferInfo.width = swap_chain_size.x;
-    framebufferInfo.height = swap_chain_size.y;
-    framebufferInfo.layers = 1;
-
-    if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swap_chain_framebuffers[i]) != VK_SUCCESS) {
-      fan::throw_error("failed to create framebuffer!");
-    }
-  }
 }
 void fan::vulkan::context_t::create_command_pool() {
   queue_family_indices_t queueFamilyIndices = find_queue_families(physical_device);
@@ -988,7 +886,7 @@ void fan::vulkan::context_t::create_allocator() {
   allocator_info.physicalDevice = physical_device;
   allocator_info.device = device;
   allocator_info.instance = instance;
-  allocator_info.vulkanApiVersion = VK_API_VERSION_1_2;
+  allocator_info.vulkanApiVersion = VK_API_VERSION_1_3;
   allocator_info.pAllocationCallbacks = &fan::vulkan::g_allocation_callbacks;
   fan::vulkan::validate(vmaCreateAllocator(&allocator_info, &allocator));
 
