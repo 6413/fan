@@ -190,6 +190,8 @@ void main() {
   gl_Position.z += (float(particle_id) / float(count)) * 0.0001;
 
   vec4 color = mix(p.color0, p.color1, t);
+  float fade_in = smoothstep(0.0, 0.08, t);
+  color.a *= fade_in;
   if (length(p.color_random) > 0.0) {
     vec4 rand_color = vec4(rand_f(pseed * 3u), rand_f(pseed * 5u), rand_f(pseed * 7u), rand_f(pseed * 11u));
     color = clamp(color + (rand_color - 0.5) * p.color_random * 2.0, 0.0, 1.0);

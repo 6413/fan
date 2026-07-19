@@ -38,7 +38,7 @@ struct farm_manager_t {
     buildings_config(fan::json::load_file("buildings.json")),
     tile_size(t_size), 
     grid(t_size),
-    grass(engine.create_transparent_texture()/*image_t("images/IMGP5511_seamless.jpg")*/),
+    grass(/*engine.create_transparent_texture()*//**/"images/IMGP5511_seamless.jpg"),
     placement(0, 0, image_t::invalid()) 
   {
     load_buildings();
@@ -125,6 +125,7 @@ struct farm_manager_t {
     if (!img || !can_place(cell, *img)) {
       return;
     }
+    fan::audio::play("audio/pop1.sac");
     auto target_size = get_transform(cell, *img).size;
     add_building(cell, *img).set_size(0.f);
     tweens.add<fan::vec2>([this, cell](fan::vec2 v) {
@@ -193,6 +194,7 @@ struct farm_manager_t {
 
 int main() {
   engine_t engine;
+  fan::audio::play("audio/ambient1.sac", 0, true);
   interactive_camera_t ic;
   farm_manager_t farm(engine, fan::vec2{256, 256});
   engine.loop([&] (f32_t dt) {
