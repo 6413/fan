@@ -119,8 +119,10 @@ struct memory_common_t {
     dirty_frames &= ~(std::uint64_t(1) << context.current_frame);
 
     if (dirty_frames) {
-      queued = true;
-      m_edit_index = context.memory_queue.push_back(write_cb, user_data);
+      if (!queued) {
+        queued = true;
+        m_edit_index = context.memory_queue.push_back(write_cb, user_data);
+      }
       return;
     }
 

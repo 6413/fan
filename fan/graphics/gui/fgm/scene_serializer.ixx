@@ -266,13 +266,18 @@ export namespace fan::graphics::editor {
         switch (shape.get_shape_type()) {
           case fan::graphics::shapes::shape_type_t::sprite:
           case fan::graphics::shapes::shape_type_t::unlit_sprite:
-          case fan::graphics::shapes::shape_type_t::particles:
           case fan::graphics::shapes::shape_type_t::rectangle: {
             node = std::make_unique<shapes_t::global_t>(shape.get_shape_type(), shape, fgm.current_z, fgm.current_shape, false);
             if (shape.get_shape_type() == fan::graphics::shapes::shape_type_t::sprite || shape.get_shape_type() == fan::graphics::shapes::shape_type_t::unlit_sprite) {
               fgm.load_tp(node.get());
               node->children[0].get_image_data().image_path = shape.get_image_data().image_path;
             }
+            break;
+          }
+          case fan::graphics::shapes::shape_type_t::particles: {
+            node = std::make_unique<shapes_t::global_t>(shape.get_shape_type(), shape, fgm.current_z, fgm.current_shape, false);
+            if (node->get_size().x < 64) node->set_size(fan::vec2(64));
+            if (node->get_size().y < 64) node->set_size(fan::vec2(node->get_size().x, 64));
             break;
           }
           case fan::graphics::shapes::shape_type_t::light: {
