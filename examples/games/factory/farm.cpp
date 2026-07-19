@@ -149,11 +149,12 @@ struct farm_manager_t {
     std::string model_path = "models/" + b.name + ".json";
     if (std::filesystem::exists(fan::io::file::find_relative_path(model_path))) {
       b.model = fan::graphics::shapes_children_from_json(model_path);
+      b.model.set_position(b.get_position());
+      b.model.set_visible(false);
+      b.set_visible(false);
       for (auto* sh : b.model.get_children()) {
-        sh->set_position(sh->get_position() + b.get_position());
+        sh->start_particles();
       }
-      b.erase();
-      return;
     }
   }
 
