@@ -413,6 +413,20 @@ export namespace fan::graphics {
       f32_t get_outline_size() const;
       fan::color get_outline_color() const;
       void set_outline_color(const fan::color& color);
+      fan::color get_target_color() const;
+      void set_target_color(const fan::color& v);
+      f32_t get_variance_speed() const;
+      void set_variance_speed(f32_t v);
+      f32_t get_flicker_speed() const;
+      void set_flicker_speed(f32_t v);
+      f32_t get_flicker_min() const;
+      void set_flicker_min(f32_t v);
+      f32_t get_flicker_max() const;
+      void set_flicker_max(f32_t v);
+      std::uint32_t get_ease_types() const;
+      void set_ease_types(std::uint32_t v);
+      std::uint32_t get_dynamic_flags() const;
+      void set_dynamic_flags(std::uint32_t v);
       void reload(std::uint8_t format, void** image_data, const fan::vec2& image_size);
       void reload(std::uint8_t format, const fan::vec2& image_size);
       // universal image specific
@@ -640,7 +654,14 @@ export namespace fan::graphics {
         fan::color color;
         std::uint32_t flags = 0;
         fan::vec3 angle;
-      };;
+        fan::color target_color = fan::colors::white;
+        f32_t variance_speed = 0.f;
+        f32_t flicker_speed = 0.f;
+        f32_t flicker_min = 0.5f;
+        f32_t flicker_max = 1.0f;
+        std::uint32_t ease_types = 0;
+        std::uint32_t dynamic_flags = 0;
+      };
 
     #pragma pack(pop)
 
@@ -660,6 +681,13 @@ export namespace fan::graphics {
         fan::color color = fan::colors::white;
         std::uint32_t flags = 0;
         fan::vec3 angle = 0;
+        fan::color target_color = fan::colors::white;
+        f32_t variance_speed = 0.f;
+        f32_t flicker_speed = 0.f;
+        f32_t flicker_min = 0.5f;
+        f32_t flicker_max = 1.0f;
+        std::uint32_t ease_types = 0;
+        std::uint32_t dynamic_flags = 0;
 
         #include <fan/graphics/base_props.inl>
       };

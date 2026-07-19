@@ -523,6 +523,13 @@ MAKE_ACCESSORS(outline_color, fan::color, false)
 MAKE_ACCESSORS(src, fan::vec3, true)
 MAKE_ACCESSORS(dst, fan::vec2, false)
 MAKE_ACCESSORS(shader, fan::graphics::shader_t, true)
+MAKE_ACCESSORS(target_color, fan::color, false)
+MAKE_ACCESSORS(variance_speed, f32_t, false)
+MAKE_ACCESSORS(flicker_speed, f32_t, false)
+MAKE_ACCESSORS(flicker_min, f32_t, false)
+MAKE_ACCESSORS(flicker_max, f32_t, false)
+MAKE_ACCESSORS(ease_types, std::uint32_t, false)
+MAKE_ACCESSORS(dynamic_flags, std::uint32_t, false)
 
 template<typename shape_type>
 static void generic_set_shader_kp(fan::graphics::shapes::shape_t* s, fan::graphics::shader_t sh) {
@@ -650,7 +657,21 @@ X(set_line3, void(*)(fan::graphics::shapes::shape_t*, const fan::vec3&, const fa
 X(get_colors, get_colors_fn_t) \
 X(set_colors, set_colors_fn_t) \
 X(get_shader, fan::graphics::shader_t(*)(const fan::graphics::shapes::shape_t*)) \
-X(set_shader, void(*)(fan::graphics::shapes::shape_t*, fan::graphics::shader_t))
+X(set_shader, void(*)(fan::graphics::shapes::shape_t*, fan::graphics::shader_t)) \
+X(get_target_color, fan::color(*)(const fan::graphics::shapes::shape_t*)) \
+X(set_target_color, void(*)(fan::graphics::shapes::shape_t*, const fan::color&)) \
+X(get_variance_speed, f32_t(*)(const fan::graphics::shapes::shape_t*)) \
+X(set_variance_speed, void(*)(fan::graphics::shapes::shape_t*, f32_t)) \
+X(get_flicker_speed, f32_t(*)(const fan::graphics::shapes::shape_t*)) \
+X(set_flicker_speed, void(*)(fan::graphics::shapes::shape_t*, f32_t)) \
+X(get_flicker_min, f32_t(*)(const fan::graphics::shapes::shape_t*)) \
+X(set_flicker_min, void(*)(fan::graphics::shapes::shape_t*, f32_t)) \
+X(get_flicker_max, f32_t(*)(const fan::graphics::shapes::shape_t*)) \
+X(set_flicker_max, void(*)(fan::graphics::shapes::shape_t*, f32_t)) \
+X(get_ease_types, std::uint32_t(*)(const fan::graphics::shapes::shape_t*)) \
+X(set_ease_types, void(*)(fan::graphics::shapes::shape_t*, std::uint32_t)) \
+X(get_dynamic_flags, std::uint32_t(*)(const fan::graphics::shapes::shape_t*)) \
+X(set_dynamic_flags, void(*)(fan::graphics::shapes::shape_t*, std::uint32_t))
 
 
 struct shape_functions_t {
@@ -711,7 +732,21 @@ vtables_storage[fan::graphics::shape_type_t::shape_name].get_outline_size = gene
 vtables_storage[fan::graphics::shape_type_t::shape_name].get_colors = get_colors; \
 vtables_storage[fan::graphics::shape_type_t::shape_name].set_colors = set_colors; \
 vtables_storage[fan::graphics::shape_type_t::shape_name].get_shader = get_shader; \
-vtables_storage[fan::graphics::shape_type_t::shape_name].set_shader = generic_set_shader_kp<fan::graphics::shapes::shape_name##_t>;
+vtables_storage[fan::graphics::shape_type_t::shape_name].set_shader = generic_set_shader_kp<fan::graphics::shapes::shape_name##_t>; \
+vtables_storage[fan::graphics::shape_type_t::shape_name].get_target_color = generic_get_target_color<fan::graphics::shapes::shape_name##_t>; \
+vtables_storage[fan::graphics::shape_type_t::shape_name].set_target_color = generic_set_target_color<fan::graphics::shapes::shape_name##_t>; \
+vtables_storage[fan::graphics::shape_type_t::shape_name].get_variance_speed = generic_get_variance_speed<fan::graphics::shapes::shape_name##_t>; \
+vtables_storage[fan::graphics::shape_type_t::shape_name].set_variance_speed = generic_set_variance_speed<fan::graphics::shapes::shape_name##_t>; \
+vtables_storage[fan::graphics::shape_type_t::shape_name].get_flicker_speed = generic_get_flicker_speed<fan::graphics::shapes::shape_name##_t>; \
+vtables_storage[fan::graphics::shape_type_t::shape_name].set_flicker_speed = generic_set_flicker_speed<fan::graphics::shapes::shape_name##_t>; \
+vtables_storage[fan::graphics::shape_type_t::shape_name].get_flicker_min = generic_get_flicker_min<fan::graphics::shapes::shape_name##_t>; \
+vtables_storage[fan::graphics::shape_type_t::shape_name].set_flicker_min = generic_set_flicker_min<fan::graphics::shapes::shape_name##_t>; \
+vtables_storage[fan::graphics::shape_type_t::shape_name].get_flicker_max = generic_get_flicker_max<fan::graphics::shapes::shape_name##_t>; \
+vtables_storage[fan::graphics::shape_type_t::shape_name].set_flicker_max = generic_set_flicker_max<fan::graphics::shapes::shape_name##_t>; \
+vtables_storage[fan::graphics::shape_type_t::shape_name].get_ease_types = generic_get_ease_types<fan::graphics::shapes::shape_name##_t>; \
+vtables_storage[fan::graphics::shape_type_t::shape_name].set_ease_types = generic_set_ease_types<fan::graphics::shapes::shape_name##_t>; \
+vtables_storage[fan::graphics::shape_type_t::shape_name].get_dynamic_flags = generic_get_dynamic_flags<fan::graphics::shapes::shape_name##_t>; \
+vtables_storage[fan::graphics::shape_type_t::shape_name].set_dynamic_flags = generic_set_dynamic_flags<fan::graphics::shapes::shape_name##_t>;
 
   /*vtables_storage[shape_type_t::shape_name].get_size3 = generic_get_size3<shape_name##_t>; \
   vtables_storage[shape_type_t::shape_name].set_size3 = generic_set_size3<shape_name##_t>; \*/

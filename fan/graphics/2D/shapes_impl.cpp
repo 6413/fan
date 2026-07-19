@@ -980,6 +980,13 @@ namespace fan::graphics{
       vi.color = properties.color;
       vi.flags = properties.flags;
       vi.angle = properties.angle;
+      vi.target_color = properties.target_color;
+      vi.variance_speed = properties.variance_speed;
+      vi.flicker_speed = properties.flicker_speed;
+      vi.flicker_min = properties.flicker_min;
+      vi.flicker_max = properties.flicker_max;
+      vi.ease_types = properties.ease_types;
+      vi.dynamic_flags = properties.dynamic_flags;
       shapes::light_t::ri_t ri;
 
       sd.visual = shape_add(sd.shape_type, vi, ri,
@@ -1848,6 +1855,55 @@ namespace fan::graphics{
   void shapes::shape_t::set_flags(std::uint32_t flag) {
     auto st = get_shape_type();
     return fan::graphics::shapes::get_shape_functions()[st].set_flags(this, flag);
+  }
+
+  fan::color shapes::shape_t::get_target_color() const {
+    return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_target_color(this);
+  }
+  void shapes::shape_t::set_target_color(const fan::color& v) {
+    fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_target_color(this, v);
+  }
+
+  f32_t shapes::shape_t::get_variance_speed() const {
+    return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_variance_speed(this);
+  }
+  void shapes::shape_t::set_variance_speed(f32_t v) {
+    fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_variance_speed(this, v);
+  }
+
+  f32_t shapes::shape_t::get_flicker_speed() const {
+    return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_flicker_speed(this);
+  }
+  void shapes::shape_t::set_flicker_speed(f32_t v) {
+    fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_flicker_speed(this, v);
+  }
+
+  f32_t shapes::shape_t::get_flicker_min() const {
+    return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_flicker_min(this);
+  }
+  void shapes::shape_t::set_flicker_min(f32_t v) {
+    fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_flicker_min(this, v);
+  }
+
+  f32_t shapes::shape_t::get_flicker_max() const {
+    return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_flicker_max(this);
+  }
+  void shapes::shape_t::set_flicker_max(f32_t v) {
+    fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_flicker_max(this, v);
+  }
+
+  std::uint32_t shapes::shape_t::get_ease_types() const {
+    return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_ease_types(this);
+  }
+  void shapes::shape_t::set_ease_types(std::uint32_t v) {
+    fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_ease_types(this, v);
+  }
+
+  std::uint32_t shapes::shape_t::get_dynamic_flags() const {
+    return fan::graphics::shapes::get_shape_functions()[get_shape_type()].get_dynamic_flags(this);
+  }
+  void shapes::shape_t::set_dynamic_flags(std::uint32_t v) {
+    fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_dynamic_flags(this, v);
   }
 
   f32_t shapes::shape_t::get_radius() const {
@@ -2994,13 +3050,18 @@ namespace fan::graphics {
       local_pos.z
     };
 
-    get_shape_hierarchy()[NRI].push_back({
+    auto& v = get_shape_hierarchy()[NRI];
+    v.push_back({
       child.gint(),
       neutral_pos, 
       child.get_size() / get_size(), 
       child.get_angle() - get_angle()
     });
     get_has_parent()[child.gint()] = NRI;
+
+    for (auto& [first, second] : get_shape_hierarchy()) {
+      fan::print(first, second.size());
+    }
   }
 
   void shapes::shape_t::add_children(std::span<const shape_t> children) {
@@ -3047,11 +3108,14 @@ namespace fan::graphics {
 
   std::vector<fan::graphics::shapes::shape_t*> shapes::shape_t::get_children() const {
     std::vector<shape_t*> result;
+    for (auto& [first, second] : get_shape_hierarchy()) {
+      fan::print(first, second.size());
+    }
     auto it = get_shape_hierarchy().find(NRI);
     if (it != get_shape_hierarchy().end()) {
       result.reserve(it->second.size());
       for (const auto& c : it->second) {
-        if (c.shape) {
+        if (c.shape != (decltype(c.shape))-1) {
           result.push_back((fan::graphics::shapes::shape_t*)&c.shape);
         }
       }
@@ -3060,16 +3124,14 @@ namespace fan::graphics {
   }
 
   void shapes::shape_t::for_each_child(std::function<void(shape_t&)> callback) const {
- /*   auto it = get_shape_hierarchy().find(NRI);
+    auto it = get_shape_hierarchy().find(NRI);
     if (it == get_shape_hierarchy().end()) return;
 
-    auto& static_list = get_static_list();
     for (auto& child_node : it->second) {
-      auto child_it = static_list.find(child_node.shape);
-      if (child_it != static_list.end()) {
-        callback(child_it->second);
-      }
-    }*/
+      fan::graphics::shaper_t::ShapeID_t cid;
+      cid.NRI = child_node.shape;
+      callback(*(shape_t*)&cid);
+    }
   }
 
   void fan::graphics::shapes::update_children() {
@@ -3125,6 +3187,17 @@ namespace fan::graphics {
       SHAPE_JSON_EMIT(color);
       SHAPE_JSON_EMIT(flags);
       SHAPE_JSON_EMIT(angle);
+      
+      {
+        fan::graphics::shapes::light_t::properties_t defaults;
+        if (shape.get_target_color() != defaults.target_color) out["target_color"] = shape.get_target_color();
+        if (shape.get_variance_speed() != defaults.variance_speed) out["variance_speed"] = shape.get_variance_speed();
+        if (shape.get_flicker_speed() != defaults.flicker_speed) out["flicker_speed"] = shape.get_flicker_speed();
+        if (shape.get_flicker_min() != defaults.flicker_min) out["flicker_min"] = shape.get_flicker_min();
+        if (shape.get_flicker_max() != defaults.flicker_max) out["flicker_max"] = shape.get_flicker_max();
+        if (shape.get_ease_types() != defaults.ease_types) out["ease_types"] = shape.get_ease_types();
+        if (shape.get_dynamic_flags() != defaults.dynamic_flags) out["dynamic_flags"] = shape.get_dynamic_flags();
+      }
       break;
     }
     case fan::graphics::shapes::shape_type_t::line:
@@ -3351,6 +3424,13 @@ namespace fan::graphics {
       SHAPE_JSON_GET(color);
       SHAPE_JSON_GET(flags);
       SHAPE_JSON_GET(angle);
+      SHAPE_JSON_GET(target_color);
+      SHAPE_JSON_GET(variance_speed);
+      SHAPE_JSON_GET(flicker_speed);
+      SHAPE_JSON_GET(flicker_min);
+      SHAPE_JSON_GET(flicker_max);
+      SHAPE_JSON_GET(ease_types);
+      SHAPE_JSON_GET(dynamic_flags);
       *shape = p;
       break;
     }
@@ -3604,6 +3684,15 @@ namespace fan::graphics {
       fan::write_to_vector(out, shape.get_color());
       fan::write_to_vector(out, shape.get_flags());
       fan::write_to_vector(out, shape.get_angle());
+      
+      fan::write_to_vector(out, shape.get_target_color());
+      fan::write_to_vector(out, shape.get_variance_speed());
+      fan::write_to_vector(out, shape.get_flicker_speed());
+      fan::write_to_vector(out, shape.get_flicker_min());
+      fan::write_to_vector(out, shape.get_flicker_max());
+      fan::write_to_vector(out, shape.get_ease_types());
+      fan::write_to_vector(out, shape.get_dynamic_flags());
+      
       break;
     }
     case fan::graphics::shapes::shape_type_t::line: {
@@ -3721,6 +3810,13 @@ namespace fan::graphics {
       p.color = fan::vector_read_data<decltype(p.color)>(in, offset);
       p.flags = fan::vector_read_data<decltype(p.flags)>(in, offset);
       p.angle = fan::vector_read_data<decltype(p.angle)>(in, offset);
+      p.target_color = fan::vector_read_data<decltype(p.target_color)>(in, offset);
+      p.variance_speed = fan::vector_read_data<decltype(p.variance_speed)>(in, offset);
+      p.flicker_speed = fan::vector_read_data<decltype(p.flicker_speed)>(in, offset);
+      p.flicker_min = fan::vector_read_data<decltype(p.flicker_min)>(in, offset);
+      p.flicker_max = fan::vector_read_data<decltype(p.flicker_max)>(in, offset);
+      p.ease_types = fan::vector_read_data<decltype(p.ease_types)>(in, offset);
+      p.dynamic_flags = fan::vector_read_data<decltype(p.dynamic_flags)>(in, offset);
       *shape = p;
       break;
     }

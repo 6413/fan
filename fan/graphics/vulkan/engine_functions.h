@@ -1562,6 +1562,7 @@ void shapes_draw() {
       auto& pipeline = prepare(shape_type, shape_shader_nr);
       fan::vulkan::context_t::push_constants_t pc{};
       pc.camera_id = camera_id;
+      pc.time = (f32_t)(fan::time::now() / 1e9);
       pc.texture_id = texture_id(texture);
       push(pipeline, pc);
       do {
@@ -1585,6 +1586,7 @@ void shapes_draw() {
       auto& pipeline = prepare(shape_type, shape_shader_nr);
       fan::vulkan::context_t::push_constants_t pc{};
       pc.camera_id = camera_id;
+      pc.time = (f32_t)(fan::time::now() / 1e9);
       pc.texture_id = texture_id(texture);
       push(pipeline, pc);
       do {
@@ -1608,6 +1610,7 @@ void shapes_draw() {
         auto& pipeline = prepare(shape_type, shape_shader_nr);
         fan::vulkan::context_t::push_constants_t pc{};
         pc.camera_id = camera_id;
+        pc.time = (f32_t)(fan::time::now() / 1e9);
         pc.texture_id = texture_id(texture);
 
         auto off = BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type);

@@ -17,15 +17,26 @@ namespace fan {
     auto now = std::chrono::system_clock::now();
     std::time_t t = std::chrono::system_clock::to_time_t(now);
     std::tm tm{};
-#ifdef _WIN32
+  #ifdef _WIN32
     localtime_s(&tm, &t);
-#else
+  #else
     localtime_r(&t, &tm);
-#endif
+  #endif
     std::ostringstream oss;
-    oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S");
-    std::ofstream out(log.filename, std::ios::binary | std::ios::app);
-    out << oss.str() << " - " << msg << '\n';
+    oss << std::put_time(&tm, "%Y-%m-%d %H:%M:%S") << " - " << msg << '\n';
+    std::string new_entry = oss.str();
+
+    std::lock_guard<std::mutex> lock(log.mtx);
+    std::ifstream in(log.filename, std::ios::binary);
+    std::string existing((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    in.close();
+
+    std::string tmp_path = log.filename + ".tmp";
+    {
+      std::ofstream out(tmp_path, std::ios::binary | std::ios::trunc);
+      out << new_entry << existing;
+    }
+    std::filesystem::rename(tmp_path, log.filename);
   }
 
   void push_memory_log(const std::string& tag, const std::string& msg, log_level_e level) {
@@ -35,6 +46,7 @@ namespace fan {
     if (log.buffer.size() > log.max_size) {
       log.buffer.pop_front();
     }
+    ++log.total_logs_pushed;
   }
   void push_memory_log(const std::string& msg, log_level_e level) {
     push_memory_log("", msg, level);
