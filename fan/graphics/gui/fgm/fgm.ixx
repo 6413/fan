@@ -195,13 +195,6 @@ export namespace fan::graphics::editor {
       }
 
       if constexpr (std::is_same_v<ShapeT, fan::graphics::light_t>) {
-        node->children.push_back(fan::graphics::circle_t {{
-          .render_view = &render_view,
-          .position = fan::vec3(pos, current_z),
-          .radius = size.x,
-          .color = fan::color(1, 1, 1, 0.0),
-          .blending = true
-        }});
       }
 
       shape_list.push_back(std::move(node));
@@ -278,6 +271,9 @@ export namespace fan::graphics::editor {
         is_playing = !is_playing;
         if (is_playing) {
           selection.objects.clear();
+          for (auto& ptr : shape_list) {
+            ptr->dynamic_props.base_color = ptr->get_color();
+          }
           invalidate_current();
           scene_backup = scene_serializer_t::save_to_string(*this);
           init_physics_scene();
@@ -388,7 +384,7 @@ export namespace fan::graphics::editor {
         }
       }
 
-      if (!is_playing && !selection.objects.empty()) {
+      if (!selection.objects.empty()) {
         fan::vec2 viewport_center = viewport_settings.start_pos - fan::vec2(style.WindowPadding) + viewport_settings.size / 2.f;
         if (segment_drag_idx >= 0) {
           selection.gizmo.is_dragging = false;
@@ -509,7 +505,7 @@ export namespace fan::graphics::editor {
         }
       }
 
-      if (!is_playing && current_shape && current_shape->physics.enabled && current_shape->physics.collision_shape == 1) {
+      if (current_shape && current_shape->physics.enabled && current_shape->physics.collision_shape == 1) {
         auto* dl = gui::get_window_draw_list();
         fan::vec2 viewport_center = viewport_settings.start_pos - fan::vec2(style.WindowPadding) + viewport_settings.size / 2.f;
         fan::vec2 pos = current_shape->get_position();
@@ -529,7 +525,7 @@ export namespace fan::graphics::editor {
           dl->AddCircleFilled(sc, r, c);
         }
       }
-      if (!is_playing && current_shape && current_shape->physics.enabled && current_shape->physics.collision_shape == 1) {
+      if (current_shape && current_shape->physics.enabled && current_shape->physics.collision_shape == 1) {
         gui::push_style_color(gui::col_text, fan::color(1.f, 0.8f, 0.f, 1.f));
         gui::text("[Segment Edit] ", {.offset = {8, 8}});
         gui::same_line();
@@ -543,7 +539,7 @@ export namespace fan::graphics::editor {
       gui::text(cursor_pos_str.substr(1, cursor_pos_str.size() - 2), {.align = align_e::bottom_right});
       gui::set_cursor_pos(gui::get_cursor_start_pos());
 
-      if (!is_playing) {
+      {
         content_browser.receive_drag_drop_target([&](const std::string& file) {
           if (fan::io::file::extension(file) == ".json") {
             fin(file);
@@ -690,6 +686,27 @@ export namespace fan::graphics::editor {
           anim.apply_to_shape(anim.owner_shape);
         }
       }
+      if (is_playing) {
+        for (auto& shape_ptr : shape_list) {
+          if (shape_ptr->shape_type == fan::graphics::shapes::shape_type_t::light && shape_ptr->light_props.enable_flicker) {
+            f32_t t = std::fmod(gloco()->time * shape_ptr->light_props.flicker_speed, 1.0f);
+            f32_t intensity = std::lerp(shape_ptr->light_props.flicker_min, shape_ptr->light_props.flicker_max, fan::apply_ease((fan::ease_e)shape_ptr->light_props.ease_type, t));
+            fan::color c = shape_ptr->get_color();
+            c.a = intensity;
+            shape_ptr->set_color(c);
+          }
+          if (shape_ptr->dynamic_props.target_color.r != 1.0f || shape_ptr->dynamic_props.target_color.g != 1.0f || shape_ptr->dynamic_props.target_color.b != 1.0f || shape_ptr->dynamic_props.target_color.a != 1.0f) {
+            f32_t t = std::fmod(gloco()->time * shape_ptr->dynamic_props.variance_speed, 1.0f);
+            f32_t factor = fan::apply_ease(static_cast<fan::ease_e>(shape_ptr->dynamic_props.ease_type), t);
+            fan::color c;
+            c.r = std::lerp(shape_ptr->dynamic_props.base_color.r, shape_ptr->dynamic_props.target_color.r, factor);
+            c.g = std::lerp(shape_ptr->dynamic_props.base_color.g, shape_ptr->dynamic_props.target_color.g, factor);
+            c.b = std::lerp(shape_ptr->dynamic_props.base_color.b, shape_ptr->dynamic_props.target_color.b, factor);
+            c.a = std::lerp(shape_ptr->dynamic_props.base_color.a, shape_ptr->dynamic_props.target_color.a, factor);
+            shape_ptr->set_color(c);
+          }
+        }
+      }
     }
 
     void init_physics_scene() {
@@ -802,9 +819,7 @@ export namespace fan::graphics::editor {
       f32_t zoom = fan::graphics::camera_get_zoom(render_view.camera);
       fan::vec2 mouse_world = viewport_t::get_mouse_position(viewport_settings, gui::get_mouse_pos(), zoom, fan::vec2(gui::get_style().WindowPadding));
 
-      if (!is_playing) {
-        selection.update(*this, shape_list, mouse_world, zoom);
-      }
+      selection.update(*this, shape_list, mouse_world, zoom);
 
       if (gloco()->input.input_action.is_active("set_windowed_fullscreen")) gloco()->window.set_borderless();
       if (gloco()->input.input_action.is_active("toggle_content_browser")) render_content_browser = !render_content_browser;
@@ -814,14 +829,12 @@ export namespace fan::graphics::editor {
 
       step_physics();
       render_viewport(zoom);
-      if (!is_playing) {
-        render_settings_window();
-        properties_ui_t::render(*this, current_shape);
-        properties_ui_t::render_materials(*this);
-        render_shapes_window();
-        render_texturepack_window();
-        render_animations_window();
-      }
+      render_settings_window();
+      properties_ui_t::render(*this, current_shape);
+      properties_ui_t::render_materials(*this);
+      render_shapes_window();
+      render_texturepack_window();
+      render_animations_window();
       render_animation_updates();
     }
 

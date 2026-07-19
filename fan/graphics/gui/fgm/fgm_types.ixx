@@ -68,6 +68,7 @@ export namespace fan::graphics::editor {
       int material_id = -1;
       std::uint8_t material_type = 0; // 0 = textured, 1 = solid color
       fan::graphics::image_t original_image;
+      fan::color original_color = fan::colors::white;
       
       struct physics_properties_t {
         bool enabled = false;
@@ -118,6 +119,58 @@ export namespace fan::graphics::editor {
         }
 #endif
       } physics;
+
+      struct light_properties_t {
+#if defined(FAN_JSON)
+        fan::json to_json() const {
+          return {
+            {"enable_flicker", enable_flicker},
+            {"flicker_speed", flicker_speed},
+            {"flicker_min", flicker_min},
+            {"flicker_max", flicker_max},
+            {"ease_type", ease_type}
+          };
+        }
+
+        void from_json(const fan::json& p) {
+          enable_flicker = p.value("enable_flicker", false);
+          flicker_speed = p.value("flicker_speed", 1.0f);
+          flicker_min = p.value("flicker_min", 0.5f);
+          flicker_max = p.value("flicker_max", 1.0f);
+          ease_type = p.value("ease_type", 2);
+        }
+#endif
+
+        bool enable_flicker = false;
+        f32_t flicker_speed = 1.0f;
+        f32_t flicker_min = 0.5f;
+        f32_t flicker_max = 1.0f;
+        int ease_type = 2;
+      } light_props;
+
+      struct dynamic_properties_t {
+#if defined(FAN_JSON)
+        fan::json to_json() const {
+          fan::json j;
+          j["target_color"] = target_color;
+          j["variance_speed"] = variance_speed;
+          j["ease_type"] = ease_type;
+          return j;
+        }
+
+        void from_json(const fan::json& p) {
+          target_color = p.value("target_color", fan::colors::white);
+          variance_speed = p.value("variance_speed", 1.0f);
+          ease_type = p.value("ease_type", 2);
+        }
+#endif
+        fan::color target_color = fan::colors::white;
+        f32_t variance_speed = 1.0f;
+        int ease_type = 2;
+        
+        // Runtime cache
+        fan::color base_color = fan::colors::white;
+      } dynamic_props;
     };
   };
 }
