@@ -1225,6 +1225,7 @@ namespace fan::graphics{
       ri.angle_random_range = properties.angle_random_range;
 
       ri.shape = properties.shape;
+      ri.affected_by_lighting = properties.affected_by_lighting;
 
       sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::particles, vi, ri,
@@ -2706,6 +2707,25 @@ namespace fan::graphics{
     for_each_child([](shape_t& child) { child.stop_particles(); });
   }
 
+  bool shapes::shape_t::get_lighting() const {
+    if (get_shape_type() != fan::graphics::shapes::shape_type_t::particles) {
+      return false;
+    }
+    auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)
+      GetData(fan::graphics::g_shapes->shaper);
+    return ri.affected_by_lighting;
+  }
+
+  void shapes::shape_t::set_lighting(bool flag) {
+    if (get_shape_type() != fan::graphics::shapes::shape_type_t::particles) {
+      return;
+    }
+    auto& ri = *(fan::graphics::shapes::particles_t::ri_t*)
+      GetData(fan::graphics::g_shapes->shaper);
+    ri.affected_by_lighting = flag;
+    for_each_child([flag](shape_t& child) { child.set_lighting(flag); });
+  }
+
   void apply_delta(shapes::shape_t& shape, const fan::vec2& delta) {
     fan::vec2 pos = shape.get_position();
     shape.set_position(pos + delta);
@@ -3450,6 +3470,7 @@ namespace fan::graphics {
       if (ri.color_random_range != defaults.color_random_range) out["color_random_range"] = ri.color_random_range;
       if (ri.angle_random_range != defaults.angle_random_range) out["angle_random_range"] = ri.angle_random_range;
       if (ri.shape != defaults.shape) out["particle_shape"] = ri.shape;
+      if (ri.affected_by_lighting != defaults.affected_by_lighting) out["affected_by_lighting"] = ri.affected_by_lighting;
 
       fan::graphics::image_t image = shape.get_image();
       if (image) {
@@ -3674,6 +3695,7 @@ namespace fan::graphics {
       SHAPE_JSON_GET(color_random_range);
       SHAPE_JSON_GET(angle_random_range);
       in.get_if("particle_shape", p.shape);
+      SHAPE_JSON_GET(affected_by_lighting);
       p.image = fan::graphics::json_to_image(in, callers_path);
       *shape = p;
       break;
@@ -3841,6 +3863,7 @@ namespace fan::graphics {
 
       fan::write_to_vector(out, ri.shape);
       fan::write_to_vector(out, ri.blending);
+      fan::write_to_vector(out, ri.affected_by_lighting);
       break;
     }
     case fan::graphics::shapes::shape_type_t::light_end: {
@@ -3976,6 +3999,7 @@ namespace fan::graphics {
 
       p.shape = fan::vector_read_data<decltype(p.shape)>(in, offset);
       p.blending = fan::vector_read_data<decltype(p.blending)>(in, offset);
+      p.affected_by_lighting = fan::vector_read_data<decltype(p.affected_by_lighting)>(in, offset);
 
       *shape = p;
       break;

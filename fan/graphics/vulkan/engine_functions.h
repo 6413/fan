@@ -1381,7 +1381,7 @@ void shapes_draw() {
     gpu.angle_velocity1 = fan::vec4(ri.end_angle_velocity, ri.end_angle);
     gpu.angle = fan::vec4(ri.angle, 0.f);
     gpu.spawn_spread0 = fan::vec4(ri.spawn_spacing, ri.start_spread);
-    gpu.spread1_jitter = fan::vec4(ri.end_spread, ri.jitter_speed, 0.f);
+    gpu.spread1_jitter = fan::vec4(ri.end_spread, ri.jitter_speed, ri.affected_by_lighting ? 1.f : 0.f);
     gpu.jitter_random_size = fan::vec4(ri.jitter_start, ri.jitter_end);
     gpu.color_random = ri.color_random_range;
     gpu.angle_random = fan::vec4(ri.angle_random_range, ri.size_random_range.x);
