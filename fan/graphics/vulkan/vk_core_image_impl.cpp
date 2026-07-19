@@ -361,8 +361,6 @@ void fan::vulkan::context_t::image_erase(fan::graphics::image_nr_t nr, int recyc
     if (view != VK_NULL_HANDLE) vkDestroyImageView(dev, view, nullptr);
     if (image != VK_NULL_HANDLE) fan::vulkan::vma_destroy_image(alloc, image, alloc_handle);
     if (staging_buf != VK_NULL_HANDLE) {
-        // You would need to make sure destroy_buffer logic is accessible here
-        // or just use vmaDestroyBuffer directly
         fan::vulkan::vma_destroy_buffer(alloc, staging_buf, staging_alloc);
     }
   };
@@ -960,7 +958,7 @@ fan::graphics::image_nr_t fan::vulkan::context_t::image_create_from_view(
 }
 //-----------------------------image-----------------------------
 
-      //-----------------------------camera-----------------------------
+//-----------------------------camera-----------------------------
 fan::vulkan::context_t::image_load_properties_t fan::graphics::format_converter::image_global_to_vulkan(const fan::graphics::image_load_properties_t& p) {
   return fan::vulkan::context_t::image_load_properties_t {
     .visual_output = global_to_vulkan_address_mode(p.visual_output),
