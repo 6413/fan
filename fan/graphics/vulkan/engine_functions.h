@@ -833,6 +833,7 @@ void draw_post_process() {
     bloom = bloom_chains[context.image_index].mips[0].image.image_view;
   }
 
+  set_viewport(cmd, context.swap_chain_size);
   draw_fullscreen(loco.vk->post_process, scene, bloom, &pc, sizeof(pc));
   
   vkCmdEndRendering(cmd);
@@ -1252,6 +1253,7 @@ void shapes_draw() {
     vk_viewport.y = viewport_data.position.y;
     vk_viewport.width = viewport_data.size.x;
     vk_viewport.height = viewport_data.size.y;
+
     vk_viewport.minDepth = 0.0f;
     vk_viewport.maxDepth = 1.0f;
     vkCmdSetViewport(cmd_buffer, 0, 1, &vk_viewport);

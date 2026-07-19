@@ -24,7 +24,7 @@ export namespace fan::graphics::editor {
       gui::text(shape_str);
 
       fan::vec3 pos = shape->get_position();
-      if (gui::button("R##pos")) pos = 0;
+      if (gui::button("R##pos")) { pos = 0; shape->set_position(0); }
       gui::same_line();
       if (gui::drag("shape position", &pos, 0.1f)) {
         pos.z = (int)pos.z;
@@ -36,45 +36,43 @@ export namespace fan::graphics::editor {
       }
 
       fan::vec2 size = shape->get_size();
-      if (gui::button("R##size")) size = 128;
+      if (gui::button("R##size")) { size = 128; shape->set_size(128); }
       gui::same_line();
       if (gui::drag("shape size", &size, 0.1f)) {
         shape->set_size(size);
       }
 
-      auto sti = shape->children[0].get_shape_type();
-      if (sti == fan::graphics::shapes::shape_type_t::particles) {
-        gui::shape_properties(shape->children[0]);
+      fan::color c = shape->get_color();
+      if (gui::button("R##col")) { c = fan::colors::white; shape->set_color(c); }
+      gui::same_line();
+      if (gui::color_edit4("color", &c)) {
+        shape->set_color(c);
       }
-      else {
-        fan::color c = shape->get_color();
-        if (gui::button("R##col")) c = fan::colors::white;
-        gui::same_line();
-        if (gui::color_edit4("color", &c)) {
-          shape->set_color(c);
-        }
 
-        fan::vec3 angle = shape->children[0].get_angle();
-        angle.x = fan::math::degrees(angle.x);
-        angle.y = fan::math::degrees(angle.y);
-        angle.z = fan::math::degrees(angle.z);
-        if (gui::button("R##ang")) angle = 0;
-        gui::same_line();
-        if (gui::drag("shape angle", &angle)) {
-          angle = fan::math::radians(angle);
-          shape->children[0].set_angle(angle);
-        }
+      fan::vec3 angle = shape->children[0].get_angle();
+      angle.x = fan::math::degrees(angle.x);
+      angle.y = fan::math::degrees(angle.y);
+      angle.z = fan::math::degrees(angle.z);
+      if (gui::button("R##ang")) { angle = 0; shape->children[0].set_angle(0); }
+      gui::same_line();
+      if (gui::drag("shape angle", &angle)) {
+        angle = fan::math::radians(angle);
+        shape->children[0].set_angle(angle);
+      }
+
+      if (shape->children[0].get_shape_type() == fan::graphics::shapes::shape_type_t::particles) {
+        gui::shape_properties(shape->children[0]);
       }
 
       fan::vec2 tc_position = shape->children[0].get_tc_position();
-      if (gui::button("R##tcpos")) tc_position = 0;
+      if (gui::button("R##tcpos")) { tc_position = 0; shape->children[0].set_tc_position(0); }
       gui::same_line();
       if (gui::drag("tc position", &tc_position, 0.1f)) {
         shape->children[0].set_tc_position(tc_position);
       }
 
       fan::vec2 tc_size = shape->children[0].get_tc_size();
-      if (gui::button("R##tcsize")) tc_size = 1;
+      if (gui::button("R##tcsize")) { tc_size = 1; shape->children[0].set_tc_size(1); }
       gui::same_line();
       if (gui::drag("tc size", &tc_size, 0.1f)) {
         shape->children[0].set_tc_size(tc_size);
