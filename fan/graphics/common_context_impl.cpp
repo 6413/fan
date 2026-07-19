@@ -23,6 +23,9 @@ namespace fan::graphics {
     target = t;
     duration = d;
     elapsed = 0.0f;
+    if (duration == 0.0f) {
+      ambient = target;
+    }
   }
   void lighting_t::update(f32_t delta_time) {
     if (duration == 0) {

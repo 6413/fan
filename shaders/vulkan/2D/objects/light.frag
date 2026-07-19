@@ -15,14 +15,10 @@ void main() {
   float radius = max(instance_size.x * magic_expand.x, 0.0001);
   
   if (fs_flags == 0u) {
-   float dist_sq = dot(uv, uv);
-    
-    float core_size = 0.05; 
-    float spread = 0.2; 
-    float attenuation = core_size / (dist_sq * spread + core_size);
-    
-    float window = max(1.0 - dist_sq, 0.0);
-    intensity = attenuation * window;
+    float dist = dot(uv, uv);
+    float falloff = 1.0 / (1.0 + dist);
+    float cutoff = 1.0 - smoothstep(0.64, 1.0, sqrt(dist));
+    intensity = falloff * cutoff;
   }
   else if (fs_flags == 1u) {
     vec2 half_size = instance_size * magic_expand;

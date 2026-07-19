@@ -44,7 +44,8 @@
         "variance_speed": 0.30000001192092896
       },
       "ease_types": 52,
-      "flicker_min": 0.20000000298023224,
+      "flicker_max": 0.4000000059604645,
+      "flicker_min": 0.0,
       "flicker_speed": 0.30000001192092896,
       "light_props": {
         "ease_type": 4,
@@ -148,6 +149,36 @@
       "size": [
         60.0,
         80.0
+      ],
+      "target_color": [
+        0.0,
+        0.0,
+        0.0,
+        0.20392157137393951
+      ],
+      "variance_speed": 0.30000001192092896
+    },
+    {
+      "color": [
+        0.7779161334037781,
+        0.7614664435386658,
+        0.7343218326568604,
+        1.0
+      ],
+      "dynamic_flags": 1,
+      "ease_types": 52,
+      "flicker_max": 0.30000001192092896,
+      "flicker_min": 0.20000000298023224,
+      "flicker_speed": 0.30000001192092896,
+      "position": [
+        0.0,
+        -64.0,
+        9.0
+      ],
+      "shape": "light",
+      "size": [
+        720.0,
+        720.0
       ],
       "target_color": [
         0.0,

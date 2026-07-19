@@ -487,7 +487,35 @@ void close_post_process_pipelines() {
   bloom_upsample_descriptor_layout = VK_NULL_HANDLE;
 }
 
+
+fan::graphics::image_t lightmap_bindless_slot;
+fan::vulkan::vai_t lightmap_image;
+bool lightmap_resources_open = false;
+
+void open_lightmap_resources() {
+  if (lightmap_resources_open) { return; }
+  fan::vulkan::context_t& context = loco.context.vk;
+  if (lightmap_bindless_slot.iic()) {
+    lightmap_bindless_slot = loco.image_create(fan::colors::transparent);
+  }
+  lightmap_image.open(context, {
+    .swap_chain_size = context.swap_chain_size,
+    .format = VK_FORMAT_R16G16B16A16_SFLOAT,
+    .usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+    .aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT,
+  });
+  lightmap_resources_open = true;
+}
+
+void close_lightmap_resources() {
+  if (!lightmap_resources_open) { return; }
+  fan::vulkan::context_t& context = loco.context.vk;
+  lightmap_image.close(context);
+  lightmap_resources_open = false;
+}
+
 void open_swapchain_resources() {
+  open_lightmap_resources();
   if (post_process_resources_open) {
     return;
   }
@@ -503,6 +531,7 @@ void open_swapchain_resources() {
 }
 
 void close_swapchain_resources() {
+  close_lightmap_resources();
   if (!post_process_resources_open) {
     return;
   }
@@ -997,10 +1026,11 @@ void shaders_compile() {
 }
 #endif
 
-void begin_render_pass() {
+
+void begin_lightmap_pass() {
   fan::vulkan::context_t& context = loco.context.vk;
   VkCommandBuffer cmd = context.command_buffers[context.current_frame];
-
+  
   VkImageMemoryBarrier2 main_barrier{};
   main_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
   main_barrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
@@ -1027,13 +1057,78 @@ void begin_render_pass() {
   depth_barrier.subresourceRange.levelCount = 1;
   depth_barrier.subresourceRange.layerCount = 1;
 
-  VkImageMemoryBarrier2 barriers[] = { main_barrier, depth_barrier };
+  VkImageMemoryBarrier2 lightmap_barrier{};
+  lightmap_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+  lightmap_barrier.srcStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+  lightmap_barrier.srcAccessMask = 0;
+  lightmap_barrier.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+  lightmap_barrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+  lightmap_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED; 
+  lightmap_barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  lightmap_barrier.image = lightmap_image.image;
+  lightmap_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  lightmap_barrier.subresourceRange.levelCount = 1;
+  lightmap_barrier.subresourceRange.layerCount = 1;
+
+  VkImageMemoryBarrier2 barriers[] = { main_barrier, depth_barrier, lightmap_barrier };
 
   VkDependencyInfo dep_info{};
   dep_info.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
   dep_info.imageMemoryBarrierCount = std::size(barriers);
   dep_info.pImageMemoryBarriers = barriers;
   vkCmdPipelineBarrier2(cmd, &dep_info);
+
+  VkRenderingAttachmentInfo lightmap_attachment{};
+  lightmap_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+  lightmap_attachment.imageView = lightmap_image.image_view;
+  lightmap_attachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  lightmap_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  lightmap_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+  auto ambient = loco.renderer_state.lighting.ambient;
+  lightmap_attachment.clearValue.color = { { ambient.x, ambient.y, ambient.z, 1.0f } }; 
+
+  VkRenderingInfo render_info{};
+  render_info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+  render_info.renderArea = { {0, 0}, {static_cast<std::uint32_t>(context.swap_chain_size.x), static_cast<std::uint32_t>(context.swap_chain_size.y)} };
+  render_info.layerCount = 1;
+  render_info.colorAttachmentCount = 1;
+  render_info.pColorAttachments = &lightmap_attachment;
+
+  vkCmdBeginRendering(cmd, &render_info);
+}
+
+void end_lightmap_pass() {
+  fan::vulkan::context_t& context = loco.context.vk;
+  VkCommandBuffer cmd = context.command_buffers[context.current_frame];
+  vkCmdEndRendering(cmd);
+
+  VkImageMemoryBarrier2 lightmap_barrier{};
+  lightmap_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+  lightmap_barrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+  lightmap_barrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+  lightmap_barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+  lightmap_barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+  lightmap_barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL; 
+  lightmap_barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  lightmap_barrier.image = lightmap_image.image;
+  lightmap_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  lightmap_barrier.subresourceRange.levelCount = 1;
+  lightmap_barrier.subresourceRange.layerCount = 1;
+
+  VkDependencyInfo dep_info{};
+  dep_info.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+  dep_info.imageMemoryBarrierCount = 1;
+  dep_info.pImageMemoryBarriers = &lightmap_barrier;
+  vkCmdPipelineBarrier2(cmd, &dep_info);
+}
+
+void begin_render_pass() {
+  begin_lightmap_pass();
+}
+
+void begin_scene_pass() {
+  fan::vulkan::context_t& context = loco.context.vk;
+  VkCommandBuffer cmd = context.command_buffers[context.current_frame];
 
   VkRenderingAttachmentInfo color_attachment{};
   color_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -1063,7 +1158,9 @@ void begin_render_pass() {
   vkCmdBeginRendering(cmd, &render_info);
 }
 
-
+// Ensure begin_render_pass compiles away or redirect to scene pass if something else calls it.
+// Wait! `loco.get_render_shapes_top() == false` uses begin_render_pass(), so we can't remove it entirely.
+// We will replace its call in begin_draw() manually.
 void begin_draw() {
   fan::vulkan::context_t& context = loco.context.vk;
   vkWaitForFences(context.device, 1, &context.in_flight_fences[context.current_frame], VK_TRUE, UINT64_MAX);
@@ -1180,6 +1277,16 @@ void begin_draw() {
 
 
 
+  
+  if (!lightmap_bindless_slot.iic() && lightmap_resources_open) {
+    if (context.image_pool.size() <= lightmap_bindless_slot.NRI) {
+      context.image_pool.resize(lightmap_bindless_slot.NRI + 1);
+    }
+    context.image_pool[lightmap_bindless_slot.NRI].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    context.image_pool[lightmap_bindless_slot.NRI].imageView = lightmap_image.image_view;
+    context.image_pool[lightmap_bindless_slot.NRI].sampler = loco.vk->post_process_sampler;
+  }
+
   for (auto& i : context.pre_begin_cmd_cb) {
     i();
   }
@@ -1209,7 +1316,7 @@ void begin_draw() {
 
   
   if (loco.get_render_shapes_top() == false) {
-    begin_render_pass();
+    // shapes_draw() will now handle passes internally
   }
 }
 
@@ -1353,6 +1460,7 @@ void shapes_draw() {
   auto push = [&] (fan::vulkan::context_t::pipeline_t& pipeline, fan::vulkan::context_t::push_constants_t pc) {
     auto ambient = loco.renderer_state.lighting.ambient;
     pc.lighting_ambient = fan::vec4(ambient.x, ambient.y, ambient.z, 1.f);
+    pc.lightmap_id = lightmap_bindless_slot.NRI;
     vkCmdPushConstants(
       cmd_buffer,
       pipeline.m_layout,
@@ -1483,6 +1591,8 @@ void shapes_draw() {
   fan::time::global_profiler.begin("Draw Loop passes");
 
   for (std::uint32_t draw_pass = 0; draw_pass < 2; ++draw_pass) {
+    if (draw_pass == 0) begin_lightmap_pass();
+    else begin_scene_pass();
     KeyTraverse.Init(shaper);
     viewport.sic();
     camera.sic();
@@ -1543,7 +1653,7 @@ void shapes_draw() {
     if (shape_type == fan::graphics::shapes::shape_type_t::light_end) {
       continue;
     }
-    if ((shape_type == fan::graphics::shapes::shape_type_t::light) != (draw_pass == 1)) {
+    if ((shape_type == fan::graphics::shapes::shape_type_t::light) != (draw_pass == 0)) {
       continue;
     }
     if (!visible) {
