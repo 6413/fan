@@ -180,7 +180,7 @@ export namespace fan::graphics::editor {
     }
 
     static void deserialize_environment(const fan::json& json_in) {
-      if (json_in.contains("lighting.ambient")) gloco()->renderer_state.lighting.ambient = json_in["lighting.ambient"];
+      if (json_in.contains("lighting.ambient")) gloco()->renderer_state.lighting.set_target(json_in["lighting.ambient"], 0.0f);
       if (json_in.contains("clear_color")) gloco()->renderer_state.clear_color = json_in["clear_color"];
     }
 

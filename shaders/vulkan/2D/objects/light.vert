@@ -109,14 +109,14 @@ void main() {
   vec4 final_color = base_color;
   
   if (enable_variance) {
-    float raw_t = mod(constants.time * variance_speed, 2.0);
+    float raw_t = mod((constants.time + float(gl_InstanceIndex) * 1.234) * variance_speed, 2.0);
     float half_t = raw_t > 1.0 ? 2.0 - raw_t : raw_t;
     float t = apply_ease(half_t, variance_ease);
     final_color = mix(base_color, target_color, t);
   }
   
   if (enable_flicker) {
-    float raw_t = mod(constants.time * flicker_speed, 2.0);
+    float raw_t = mod((constants.time + float(gl_InstanceIndex) * 2.345) * flicker_speed, 2.0);
     float half_t = raw_t > 1.0 ? 2.0 - raw_t : raw_t;
     float t = apply_ease(half_t, flicker_ease);
     float intensity = mix(flicker_min, flicker_max, t);
