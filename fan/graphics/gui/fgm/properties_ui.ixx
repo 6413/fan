@@ -24,24 +24,31 @@ export namespace fan::graphics::editor {
       std::string shape_str = std::string("Shape name:") + std::string(fan::graphics::shape_names[shape->children[0].get_shape_type()]);
       gui::text(shape_str);
 
-      fan::vec3 pos = shape->get_position();
-      if (gui::button("R##pos")) { pos = 0; shape->set_position(0); }
+      static fan::vec3 pos;
+      static bool pos_dragging = false;
+      if (!pos_dragging) pos = shape->get_position();
+      if (gui::button("R##pos")) { pos = 0; shape->set_position(0); pos_dragging = false; }
       gui::same_line();
       if (gui::drag("shape position", &pos, 0.1f)) {
-        pos.z = (int)pos.z;
+        fan::vec3 final_pos = pos;
+        final_pos.z = (int)final_pos.z;
         if (!fan::window::is_key_down(fan::key_left_shift) && fgm.snap > 0.0f) {
-          pos.x = std::round(pos.x / fgm.snap) * fgm.snap;
-          pos.y = std::round(pos.y / fgm.snap) * fgm.snap;
+          final_pos.x = std::round(final_pos.x / fgm.snap) * fgm.snap;
+          final_pos.y = std::round(final_pos.y / fgm.snap) * fgm.snap;
         }
-        shape->set_position(pos);
+        shape->set_position(final_pos);
       }
+      pos_dragging = gui::is_item_active();
 
-      fan::vec2 size = shape->get_size();
-      if (gui::button("R##size")) { size = 128; shape->set_size(128); }
+      static fan::vec2 size;
+      static bool size_dragging = false;
+      if (!size_dragging) size = shape->get_size();
+      if (gui::button("R##size")) { size = 128; shape->set_size(128); size_dragging = false; }
       gui::same_line();
       if (gui::drag("shape size", &size, 0.1f)) {
         shape->set_size(size);
       }
+      size_dragging = gui::is_item_active();
 
       fan::color c = shape->get_color();
       if (gui::button("R##col")) { c = fan::colors::white; shape->set_color(c); }
@@ -50,16 +57,21 @@ export namespace fan::graphics::editor {
         shape->set_color(c);
       }
 
-      fan::vec3 angle = shape->children[0].get_angle();
-      angle.x = fan::math::degrees(angle.x);
-      angle.y = fan::math::degrees(angle.y);
-      angle.z = fan::math::degrees(angle.z);
-      if (gui::button("R##ang")) { angle = 0; shape->children[0].set_angle(0); }
-      gui::same_line();
-      if (gui::drag("shape angle", &angle)) {
-        angle = fan::math::radians(angle);
-        shape->children[0].set_angle(angle);
+      static fan::vec3 angle_deg;
+      static bool angle_dragging = false;
+      if (!angle_dragging) {
+        angle_deg = shape->children[0].get_angle();
+        angle_deg.x = fan::math::degrees(angle_deg.x);
+        angle_deg.y = fan::math::degrees(angle_deg.y);
+        angle_deg.z = fan::math::degrees(angle_deg.z);
       }
+      if (gui::button("R##ang")) { angle_deg = 0; shape->children[0].set_angle(0); angle_dragging = false; }
+      gui::same_line();
+      if (gui::drag("shape angle", &angle_deg)) {
+        fan::vec3 angle_rad = fan::math::radians(angle_deg);
+        shape->children[0].set_angle(angle_rad);
+      }
+      angle_dragging = gui::is_item_active();
 
       if (shape->shape_type == fan::graphics::shapes::shape_type_t::light) {
         if (gui::tree_node_ex("light_properties", gui::tree_node_flags_default_open)) {
@@ -140,19 +152,25 @@ export namespace fan::graphics::editor {
         gui::shape_properties(shape->children[0]);
       }
 
-      fan::vec2 tc_position = shape->children[0].get_tc_position();
-      if (gui::button("R##tcpos")) { tc_position = 0; shape->children[0].set_tc_position(0); }
+      static fan::vec2 tc_position;
+      static bool tc_pos_dragging = false;
+      if (!tc_pos_dragging) tc_position = shape->children[0].get_tc_position();
+      if (gui::button("R##tcpos")) { tc_position = 0; shape->children[0].set_tc_position(0); tc_pos_dragging = false; }
       gui::same_line();
       if (gui::drag("tc position", &tc_position, 0.1f)) {
         shape->children[0].set_tc_position(tc_position);
       }
+      tc_pos_dragging = gui::is_item_active();
 
-      fan::vec2 tc_size = shape->children[0].get_tc_size();
-      if (gui::button("R##tcsize")) { tc_size = 1; shape->children[0].set_tc_size(1); }
+      static fan::vec2 tc_size;
+      static bool tc_size_dragging = false;
+      if (!tc_size_dragging) tc_size = shape->children[0].get_tc_size();
+      if (gui::button("R##tcsize")) { tc_size = 1; shape->children[0].set_tc_size(1); tc_size_dragging = false; }
       gui::same_line();
       if (gui::drag("tc size", &tc_size, 0.1f)) {
         shape->children[0].set_tc_size(tc_size);
       }
+      tc_size_dragging = gui::is_item_active();
 
       std::string& id = shape->id;
       std::string str = id;
