@@ -258,6 +258,7 @@ bool fan::vulkan::shader_subsystem_t::shader_compile(fan::graphics::shader_nr_t 
         vkDestroyShaderModule(device, old_module, nullptr);
       });
     }
+    shader.spirv_stages[index] = spirv;
     shader.shader_stages[index] = {
       VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, nullptr, 0,
       stage, create_shader_module(spirv), "main", nullptr

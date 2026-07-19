@@ -60,6 +60,28 @@ import fan.math.intersection;
 
 #define VK_CTX ((fan::vulkan::context_t*)context)
 
+PFN_vkCreateShadersEXT fan_vkCreateShadersEXT = nullptr;
+PFN_vkDestroyShaderEXT fan_vkDestroyShaderEXT = nullptr;
+PFN_vkCmdBindShadersEXT fan_vkCmdBindShadersEXT = nullptr;
+PFN_vkCmdSetVertexInputEXT fan_vkCmdSetVertexInputEXT = nullptr;
+PFN_vkCmdSetColorBlendEnableEXT fan_vkCmdSetColorBlendEnableEXT = nullptr;
+PFN_vkCmdSetColorBlendEquationEXT fan_vkCmdSetColorBlendEquationEXT = nullptr;
+PFN_vkCmdSetColorWriteMaskEXT fan_vkCmdSetColorWriteMaskEXT = nullptr;
+PFN_vkCmdSetRasterizerDiscardEnable fan_vkCmdSetRasterizerDiscardEnable = nullptr;
+PFN_vkCmdSetPolygonModeEXT fan_vkCmdSetPolygonModeEXT = nullptr;
+PFN_vkCmdSetDepthTestEnable fan_vkCmdSetDepthTestEnable = nullptr;
+PFN_vkCmdSetDepthWriteEnable fan_vkCmdSetDepthWriteEnable = nullptr;
+PFN_vkCmdSetDepthCompareOp fan_vkCmdSetDepthCompareOp = nullptr;
+PFN_vkCmdSetDepthBoundsTestEnable fan_vkCmdSetDepthBoundsTestEnable = nullptr;
+PFN_vkCmdSetCullMode fan_vkCmdSetCullMode = nullptr;
+PFN_vkCmdSetFrontFace fan_vkCmdSetFrontFace = nullptr;
+PFN_vkCmdSetDepthBiasEnable fan_vkCmdSetDepthBiasEnable = nullptr;
+PFN_vkCmdSetStencilTestEnable fan_vkCmdSetStencilTestEnable = nullptr;
+PFN_vkCmdSetStencilOp fan_vkCmdSetStencilOp = nullptr;
+PFN_vkCmdSetPrimitiveTopology fan_vkCmdSetPrimitiveTopology = nullptr;
+PFN_vkCmdSetPrimitiveRestartEnable fan_vkCmdSetPrimitiveRestartEnable = nullptr;
+PFN_vkCmdSetAlphaToCoverageEnableEXT fan_vkCmdSetAlphaToCoverageEnableEXT = nullptr;
+
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
   auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
   if (func != nullptr) {
@@ -634,6 +656,10 @@ void fan::vulkan::context_t::create_logical_device() {
   vulkan14.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES;
   vulkan14.pushDescriptor = VK_TRUE;
 
+  VkPhysicalDeviceShaderObjectFeaturesEXT shader_object_features{};
+  shader_object_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_OBJECT_FEATURES_EXT;
+  shader_object_features.shaderObject = VK_TRUE;
+
 #if defined(ENABLE_RAYTRACING_DEPENDENCIES)
   vulkan12.bufferDeviceAddress = VK_TRUE;
 
@@ -646,17 +672,20 @@ void fan::vulkan::context_t::create_logical_device() {
   rt.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
   rt.rayTracingPipeline = VK_TRUE;
 
-  // Chain: features2 → vulkan14 → vulkan13 → vulkan12 → accel → rt
+  // Chain: features2 → vulkan14 → vulkan13 → vulkan12 → shader_object_features → accel → rt
   features2.pNext = &vulkan14;
   vulkan14.pNext = &vulkan13;
   vulkan13.pNext = &vulkan12;
-  vulkan12.pNext = &accel;
+  vulkan12.pNext = &shader_object_features;
+  shader_object_features.pNext = &accel;
   accel.pNext = &rt;
 #else
+  // Chain: features2 → vulkan14 → vulkan13 → vulkan12 → shader_object_features
   features2.pNext = &vulkan14;
   vulkan14.pNext = &vulkan13;
   vulkan13.pNext = &vulkan12;
-  vulkan12.pNext = nullptr;
+  vulkan12.pNext = &shader_object_features;
+  shader_object_features.pNext = nullptr;
 #endif
 
   // -----------------------------
@@ -680,6 +709,29 @@ void fan::vulkan::context_t::create_logical_device() {
     fan::print_error("vkCreateDevice failed with code:", (int)r);
     fan::throw_error("failed to create logical device");
   }
+
+  // Load Shader Object Extension Functions
+  fan_vkCreateShadersEXT = (PFN_vkCreateShadersEXT)vkGetDeviceProcAddr(device, "vkCreateShadersEXT");
+  fan_vkDestroyShaderEXT = (PFN_vkDestroyShaderEXT)vkGetDeviceProcAddr(device, "vkDestroyShaderEXT");
+  fan_vkCmdBindShadersEXT = (PFN_vkCmdBindShadersEXT)vkGetDeviceProcAddr(device, "vkCmdBindShadersEXT");
+  fan_vkCmdSetVertexInputEXT = (PFN_vkCmdSetVertexInputEXT)vkGetDeviceProcAddr(device, "vkCmdSetVertexInputEXT");
+  fan_vkCmdSetColorBlendEnableEXT = (PFN_vkCmdSetColorBlendEnableEXT)vkGetDeviceProcAddr(device, "vkCmdSetColorBlendEnableEXT");
+  fan_vkCmdSetColorBlendEquationEXT = (PFN_vkCmdSetColorBlendEquationEXT)vkGetDeviceProcAddr(device, "vkCmdSetColorBlendEquationEXT");
+  fan_vkCmdSetColorWriteMaskEXT = (PFN_vkCmdSetColorWriteMaskEXT)vkGetDeviceProcAddr(device, "vkCmdSetColorWriteMaskEXT");
+  fan_vkCmdSetRasterizerDiscardEnable = (PFN_vkCmdSetRasterizerDiscardEnable)vkGetDeviceProcAddr(device, "vkCmdSetRasterizerDiscardEnable");
+  fan_vkCmdSetPolygonModeEXT = (PFN_vkCmdSetPolygonModeEXT)vkGetDeviceProcAddr(device, "vkCmdSetPolygonModeEXT");
+  fan_vkCmdSetDepthTestEnable = (PFN_vkCmdSetDepthTestEnable)vkGetDeviceProcAddr(device, "vkCmdSetDepthTestEnable");
+  fan_vkCmdSetDepthWriteEnable = (PFN_vkCmdSetDepthWriteEnable)vkGetDeviceProcAddr(device, "vkCmdSetDepthWriteEnable");
+  fan_vkCmdSetDepthCompareOp = (PFN_vkCmdSetDepthCompareOp)vkGetDeviceProcAddr(device, "vkCmdSetDepthCompareOp");
+  fan_vkCmdSetDepthBoundsTestEnable = (PFN_vkCmdSetDepthBoundsTestEnable)vkGetDeviceProcAddr(device, "vkCmdSetDepthBoundsTestEnable");
+  fan_vkCmdSetCullMode = (PFN_vkCmdSetCullMode)vkGetDeviceProcAddr(device, "vkCmdSetCullMode");
+  fan_vkCmdSetFrontFace = (PFN_vkCmdSetFrontFace)vkGetDeviceProcAddr(device, "vkCmdSetFrontFace");
+  fan_vkCmdSetDepthBiasEnable = (PFN_vkCmdSetDepthBiasEnable)vkGetDeviceProcAddr(device, "vkCmdSetDepthBiasEnable");
+  fan_vkCmdSetStencilTestEnable = (PFN_vkCmdSetStencilTestEnable)vkGetDeviceProcAddr(device, "vkCmdSetStencilTestEnable");
+  fan_vkCmdSetStencilOp = (PFN_vkCmdSetStencilOp)vkGetDeviceProcAddr(device, "vkCmdSetStencilOp");
+  fan_vkCmdSetPrimitiveTopology = (PFN_vkCmdSetPrimitiveTopology)vkGetDeviceProcAddr(device, "vkCmdSetPrimitiveTopology");
+  fan_vkCmdSetPrimitiveRestartEnable = (PFN_vkCmdSetPrimitiveRestartEnable)vkGetDeviceProcAddr(device, "vkCmdSetPrimitiveRestartEnable");
+  fan_vkCmdSetAlphaToCoverageEnableEXT = (PFN_vkCmdSetAlphaToCoverageEnableEXT)vkGetDeviceProcAddr(device, "vkCmdSetAlphaToCoverageEnableEXT");
 
   VkQueryPoolCreateInfo queryPoolInfo{};
   queryPoolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
@@ -1149,7 +1201,7 @@ void fan::vulkan::compute_pipeline_t::open(fan::vulkan::context_t& context, cons
 
   auto shader_code = fan::graphics::read_shader(path);
   auto spirv = context.shaders.compile_file(path, shaderc_compute_shader, shader_code);
-  VkShaderModule shader = context.shaders.create_shader_module(spirv);
+  VkShaderModule shader_module = context.shaders.create_shader_module(spirv);
 
   VkPushConstantRange push_range{};
   push_range.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -1164,15 +1216,22 @@ void fan::vulkan::compute_pipeline_t::open(fan::vulkan::context_t& context, cons
   layout_info.pPushConstantRanges = push_size == 0 ? nullptr : &push_range;
   fan::vulkan::validate(vkCreatePipelineLayout(context.device, &layout_info, nullptr, &pipeline_layout));
 
-  VkComputePipelineCreateInfo pipeline_info{};
-  pipeline_info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-  pipeline_info.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  pipeline_info.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-  pipeline_info.stage.module = shader;
-  pipeline_info.stage.pName = "main";
-  pipeline_info.layout = pipeline_layout;
-  fan::vulkan::validate(vkCreateComputePipelines(context.device, context.pipeline_cache, 1, &pipeline_info, nullptr, &pipeline));
-  vkDestroyShaderModule(context.device, shader, nullptr);
+  VkShaderCreateInfoEXT shader_info{};
+  shader_info.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT;
+  shader_info.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+  shader_info.nextStage = 0;
+  shader_info.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT;
+  shader_info.pCode = spirv.data();
+  shader_info.codeSize = spirv.size() * sizeof(std::uint32_t);
+  shader_info.pName = "main";
+  shader_info.setLayoutCount = 1;
+  shader_info.pSetLayouts = &descriptor_layout;
+  shader_info.pushConstantRangeCount = push_size == 0 ? 0 : 1;
+  shader_info.pPushConstantRanges = push_size == 0 ? nullptr : &push_range;
+  if (fan_vkCreateShadersEXT(context.device, 1, &shader_info, nullptr, &shader) != VK_SUCCESS) {
+    fan::throw_error("failed to create compute shader object");
+  }
+  vkDestroyShaderModule(context.device, shader_module, nullptr);
 }
 
 void fan::vulkan::compute_pipeline_t::open(fan::vulkan::context_t& context, const properties_t& p) {
@@ -1193,34 +1252,42 @@ void fan::vulkan::compute_pipeline_t::open(fan::vulkan::context_t& context, cons
   fan::vulkan::validate(vkCreatePipelineLayout(context.device, &layout_info, nullptr, &pipeline_layout));
 
   auto shader_ref = context.shaders.shader_get(p.shader);
-  VkShaderModule compute_module = VK_NULL_HANDLE;
+  int ref_idx = -1;
   for (int i = 0; i < 3; ++i) {
     if (shader_ref.shader_stages[i].module != VK_NULL_HANDLE && shader_ref.shader_stages[i].stage == VK_SHADER_STAGE_COMPUTE_BIT) {
-      compute_module = shader_ref.shader_stages[i].module;
+      ref_idx = i;
       break;
     }
   }
+  if (ref_idx < 0) { fan::throw_error("compute shader stage not found"); }
 
-  VkComputePipelineCreateInfo pipeline_info{};
-  pipeline_info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-  pipeline_info.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-  pipeline_info.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
-  pipeline_info.stage.module = compute_module;
-  pipeline_info.stage.pName = "main";
-  pipeline_info.layout = pipeline_layout;
-  fan::vulkan::validate(vkCreateComputePipelines(context.device, context.pipeline_cache, 1, &pipeline_info, nullptr, &pipeline));
+  auto& spirv = shader_ref.spirv_stages[ref_idx];
+  VkShaderCreateInfoEXT shader_info{};
+  shader_info.sType = VK_STRUCTURE_TYPE_SHADER_CREATE_INFO_EXT;
+  shader_info.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+  shader_info.nextStage = 0;
+  shader_info.codeType = VK_SHADER_CODE_TYPE_SPIRV_EXT;
+  shader_info.pCode = spirv.data();
+  shader_info.codeSize = spirv.size() * sizeof(std::uint32_t);
+  shader_info.pName = "main";
+  shader_info.setLayoutCount = (std::uint32_t)p.descriptor_layouts.size();
+  shader_info.pSetLayouts = p.descriptor_layouts.data();
+  shader_info.pushConstantRangeCount = push_size == 0 ? 0 : 1;
+  shader_info.pPushConstantRanges = push_size == 0 ? nullptr : &push_range;
+  fan::vulkan::validate(fan_vkCreateShadersEXT(context.device, 1, &shader_info, nullptr, &shader));
 }
 void fan::vulkan::compute_pipeline_t::close(fan::vulkan::context_t& context) {
-  if (pipeline != VK_NULL_HANDLE) { vkDestroyPipeline(context.device, pipeline, nullptr); }
+  if (shader != VK_NULL_HANDLE) { fan_vkDestroyShaderEXT(context.device, shader, nullptr); }
   if (pipeline_layout != VK_NULL_HANDLE) { vkDestroyPipelineLayout(context.device, pipeline_layout, nullptr); }
   if (descriptor_layout != VK_NULL_HANDLE) { vkDestroyDescriptorSetLayout(context.device, descriptor_layout, nullptr); }
-  pipeline = VK_NULL_HANDLE;
+  shader = VK_NULL_HANDLE;
   pipeline_layout = VK_NULL_HANDLE;
   descriptor_layout = VK_NULL_HANDLE;
   push_size = 0;
 }
 void fan::vulkan::compute_pipeline_t::dispatch(fan::vulkan::context_t& context, VkCommandBuffer cmd, VkDescriptorSet descriptor_set, const void* push, std::uint32_t x, std::uint32_t y, std::uint32_t z) const {
-  vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
+  VkShaderStageFlagBits stage = VK_SHADER_STAGE_COMPUTE_BIT;
+  fan_vkCmdBindShadersEXT(cmd, 1, &stage, &shader);
   vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline_layout, 0, 1, &descriptor_set, 0, nullptr);
   if (push_size != 0 && push != nullptr) {
     vkCmdPushConstants(cmd, pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, (std::uint32_t)push_size, push);
@@ -1372,16 +1439,30 @@ void fan::vulkan::context_t::bind_draw(
   const fan::vulkan::context_t::pipeline_t& pipeline,
   std::uint32_t descriptor_count,
   VkDescriptorSet* descriptor_sets) {
-  vkCmdBindPipeline(command_buffers[current_frame], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.m_pipeline);
+  auto cmd = command_buffers[current_frame];
+  VkShaderStageFlagBits stages[2] = { VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT };
+  fan_vkCmdBindShadersEXT(cmd, 2, stages, pipeline.m_shaders);
 
   VkRect2D scissor {};
   scissor.offset = {0, 0};
   scissor.extent.width = swap_chain_size.x;
   scissor.extent.height = swap_chain_size.y;
-  vkCmdSetScissor(command_buffers[current_frame], 0, 1, &scissor);
+  vkCmdSetScissor(cmd, 0, 1, &scissor);
+  vkCmdSetPrimitiveTopology(cmd, pipeline.properties.shape_type);
+  vkCmdSetRasterizerDiscardEnable(cmd, VK_FALSE);
+  fan_vkCmdSetPolygonModeEXT(cmd, VK_POLYGON_MODE_FILL);
+  fan_vkCmdSetCullMode(cmd, VK_CULL_MODE_NONE);
+  fan_vkCmdSetFrontFace(cmd, VK_FRONT_FACE_COUNTER_CLOCKWISE);
+  vkCmdSetDepthTestEnable(cmd, pipeline.properties.enable_depth_test);
+  vkCmdSetDepthWriteEnable(cmd, pipeline.properties.enable_depth_test);
+  vkCmdSetDepthCompareOp(cmd, pipeline.properties.depth_test_compare_op);
+  if (!pipeline.properties.color_blend_attachments.empty()) {
+    fan_vkCmdSetColorBlendEnableEXT(cmd, 0, (std::uint32_t)pipeline.properties.color_blend_attachments.size(), &pipeline.properties.color_blend_attachments[0].blendEnable);
+    fan_vkCmdSetColorWriteMaskEXT(cmd, 0, (std::uint32_t)pipeline.properties.color_blend_attachments.size(), &pipeline.properties.color_blend_attachments[0].colorWriteMask);
+  }
 
   vkCmdBindDescriptorSets(
-    command_buffers[current_frame],
+    cmd,
     VK_PIPELINE_BIND_POINT_GRAPHICS,
     pipeline.m_layout,
     0,

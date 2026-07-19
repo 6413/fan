@@ -39,7 +39,7 @@ export namespace fan::vulkan {
 
     VkDescriptorSetLayout descriptor_layout = VK_NULL_HANDLE;
     VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
-    VkPipeline pipeline = VK_NULL_HANDLE;
+    VkShaderEXT shader = VK_NULL_HANDLE;
     VkDeviceSize push_size = 0;
   };
 

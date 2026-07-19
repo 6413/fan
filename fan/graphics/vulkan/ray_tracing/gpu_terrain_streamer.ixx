@@ -120,7 +120,7 @@ export namespace fan::graphics::vulkan::ray_tracing {
       pipeline.close(*ctx);
       ctx = nullptr;
     }
-    bool ready() const { return ctx && pipeline.pipeline != VK_NULL_HANDLE; }
+    bool ready() const { return ctx && pipeline.shader != VK_NULL_HANDLE; }
     std::uint32_t free_slot_count() const { return slots.free_slot_count(); }
     std::uint32_t busy_slot_count() const { return slot_count - slots.free_slot_count(); }
     bool submit(const push_t& push, chunk_coord_t coord, const std::vector<block_edit_t>& edits) {

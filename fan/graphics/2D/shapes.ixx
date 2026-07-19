@@ -78,6 +78,14 @@ export namespace fan::graphics {
   // should be in some common_context.ixx, but backends include it and the types inside here are defined after it
   struct context_shader_t {
     context_shader_t() {}
+    context_shader_t(const context_shader_t& other) { new (&vk) fan::vulkan::shader_t(other.vk); }
+    context_shader_t& operator=(const context_shader_t& other) {
+      if (this != &other) {
+        this->~context_shader_t();
+        new (&vk) fan::vulkan::shader_t(other.vk);
+      }
+      return *this;
+    }
     ~context_shader_t() {}
     union {
       fan::vulkan::shader_t vk;

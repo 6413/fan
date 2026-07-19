@@ -31,6 +31,7 @@ export namespace fan::vulkan {
     int projection_view[2]{ -1, -1 };
     uniform_block_t<fan::vulkan::view_projection_t, fan::vulkan::max_camera>* projection_view_block;
     VkPipelineShaderStageCreateInfo shader_stages[3]{};
+    std::vector<std::uint32_t> spirv_stages[3];
     std::uint32_t compile_generation = 0;
   };
 
