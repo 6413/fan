@@ -64,7 +64,7 @@ VkFormat fan::graphics::format_converter::global_to_vulkan_format(std::uintptr_t
     case image_format_e::rgba_unorm: return VK_FORMAT_R8G8B8A8_UNORM;
   }
 #if FAN_DEBUG >= fan_debug_high
-  fan::throw_error("invalid format");
+  fan::print_error("invalid format");
 #endif
   return VK_FORMAT_R8G8B8A8_UNORM;
 }
@@ -76,7 +76,7 @@ VkSamplerAddressMode fan::graphics::format_converter::global_to_vulkan_address_m
   if (mode == image_sampler_address_mode_e::clamp_to_border) return VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER;
   if (mode == image_sampler_address_mode_e::mirrored_clamp_to_edge) return VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE;
 #if FAN_DEBUG >= fan_debug_high
-  fan::throw_error("invalid format");
+  fan::print_error("invalid format");
 #endif
   return VK_SAMPLER_ADDRESS_MODE_REPEAT;
 }
@@ -85,7 +85,7 @@ VkFilter fan::graphics::format_converter::global_to_vulkan_filter(std::uintptr_t
   if (filter == image_filter_e::nearest) return VK_FILTER_NEAREST;
   if (filter == image_filter_e::linear) return VK_FILTER_LINEAR;
 #if FAN_DEBUG >= fan_debug_high
-  fan::throw_error("invalid format");
+  fan::print_error("invalid format");
 #endif
   return VK_FILTER_NEAREST;
 }
@@ -102,7 +102,7 @@ std::uint32_t fan::graphics::format_converter::vulkan_to_global_format(VkFormat 
     default: break;
   }
 #if FAN_DEBUG >= fan_debug_high
-  fan::throw_error("invalid format");
+  fan::print_error("invalid format");
 #endif
   return fan::graphics::image_format_e::rgba_unorm;
 }
@@ -117,7 +117,7 @@ std::uint32_t fan::graphics::format_converter::vulkan_to_global_address_mode(VkS
     default: break;
   }
 #if FAN_DEBUG >= fan_debug_high
-  fan::throw_error("invalid format");
+  fan::print_error("invalid format");
 #endif
   return fan::graphics::image_sampler_address_mode_e::repeat;
 }
@@ -129,7 +129,7 @@ std::uint32_t fan::graphics::format_converter::vulkan_to_global_filter(VkFilter 
     default: break;
   }
 #if FAN_DEBUG >= fan_debug_high
-  fan::throw_error("invalid format");
+  fan::print_error("invalid format");
 #endif
   return fan::graphics::image_filter_e::nearest;
 }
@@ -137,6 +137,7 @@ std::uint32_t fan::graphics::format_converter::vulkan_to_global_filter(VkFilter 
 fan::graphics::image_load_properties_t fan::graphics::format_converter::image_vulkan_to_global(const fan::vulkan::context_t::image_load_properties_t& p) {
   return fan::graphics::image_load_properties_t{
     .visual_output = vulkan_to_global_address_mode(p.visual_output),
+    .internal_format = p.internal_format,
     .format = vulkan_to_global_format(p.format),
     .min_filter = vulkan_to_global_filter(p.min_filter),
     .mag_filter = vulkan_to_global_filter(p.mag_filter),
@@ -403,7 +404,25 @@ fan::graphics::image_load_properties_t& fan::vulkan::context_t::image_get_settin
   return __fan_internal_image_list[nr].image_settings;
 }
 void fan::vulkan::context_t::image_set_settings(fan::graphics::image_nr_t nr, const fan::vulkan::context_t::image_load_properties_t& p) {
-  __fan_internal_image_list[nr].image_settings = fan::graphics::format_converter::image_vulkan_to_global(p);
+  auto& image_data = __fan_internal_image_list[nr];
+  auto new_settings = fan::graphics::format_converter::image_vulkan_to_global(p);
+  
+  if (image_data.image_settings.min_filter != new_settings.min_filter ||
+      image_data.image_settings.mag_filter != new_settings.mag_filter ||
+      image_data.image_settings.visual_output != new_settings.visual_output) {
+      
+      fan::vulkan::context_t::image_t& image = image_get(nr);
+      if (image.sampler != VK_NULL_HANDLE) {
+        VkDevice dev = device;
+        VkSampler old_sampler = image.sampler;
+        get_current_deletion_queue().push_function([dev, old_sampler]() {
+          vkDestroySampler(dev, old_sampler, nullptr);
+        });
+        create_texture_sampler(image.sampler, p);
+      }
+  }
+
+  image_data.image_settings = new_settings;
 }
 void fan::vulkan::context_t::image_set_settings(const fan::vulkan::context_t::image_load_properties_t& p) {
 
@@ -723,12 +742,7 @@ fan::graphics::image_nr_t fan::vulkan::context_t::image_load(fan::str_view_t pat
     abs_path = std::string(path);
   }
 
-  fan::graphics::image_load_properties_t global_p;
-  global_p.visual_output = p.visual_output;
-  global_p.internal_format = p.internal_format;
-  global_p.format = p.format;
-  global_p.min_filter = p.min_filter;
-  global_p.mag_filter = p.mag_filter;
+  fan::graphics::image_load_properties_t global_p = fan::graphics::format_converter::image_vulkan_to_global(p);
 
   std::string cache_key = build_cache_key(abs_path, global_p);
 
@@ -781,7 +795,10 @@ void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, const fa
   bool image_was_null = image.image_index == VK_NULL_HANDLE;
   bool recreate_image = image.image_index != VK_NULL_HANDLE && (
     image_data.size != image_info.size ||
-    image_data.image_settings.format != new_settings.format
+    image_data.image_settings.format != new_settings.format ||
+    image_data.image_settings.min_filter != new_settings.min_filter ||
+    image_data.image_settings.mag_filter != new_settings.mag_filter ||
+    image_data.image_settings.visual_output != new_settings.visual_output
   );
 
   if (recreate_image) {
@@ -962,6 +979,7 @@ fan::graphics::image_nr_t fan::vulkan::context_t::image_create_from_view(
 fan::vulkan::context_t::image_load_properties_t fan::graphics::format_converter::image_global_to_vulkan(const fan::graphics::image_load_properties_t& p) {
   return fan::vulkan::context_t::image_load_properties_t {
     .visual_output = global_to_vulkan_address_mode(p.visual_output),
+    .internal_format = static_cast<std::uint8_t>(p.internal_format),
     .format = global_to_vulkan_format(p.format),
     .min_filter = global_to_vulkan_filter(p.min_filter),
     .mag_filter = global_to_vulkan_filter(p.mag_filter),
