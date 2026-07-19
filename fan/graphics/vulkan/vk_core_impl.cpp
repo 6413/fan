@@ -269,9 +269,18 @@ void fan::vulkan::pipeline_t::open(fan::vulkan::context_t& context, const proper
   pipelineInfo.pColorBlendState = &colorBlending;
   pipelineInfo.pDynamicState = &dynamicState;
   pipelineInfo.layout = m_layout;
-  pipelineInfo.renderPass = properties.render_pass == VK_NULL_HANDLE ?
-    context.render_pass : properties.render_pass;
-  pipelineInfo.subpass = properties.subpass;
+  VkPipelineRenderingCreateInfo renderingCreateInfo{};
+  renderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+  renderingCreateInfo.colorAttachmentCount = 1;
+  VkFormat colorFormat = context.main_color_format;
+  renderingCreateInfo.pColorAttachmentFormats = &colorFormat;
+  VkFormat depthFormat = context.find_depth_format();
+  renderingCreateInfo.depthAttachmentFormat = properties.enable_depth_test ? depthFormat : VK_FORMAT_UNDEFINED;
+  renderingCreateInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
+
+  pipelineInfo.pNext = &renderingCreateInfo;
+  pipelineInfo.renderPass = VK_NULL_HANDLE;
+  pipelineInfo.subpass = 0;
   pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
   shader_nr = properties.shader;
