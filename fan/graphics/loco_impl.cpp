@@ -98,7 +98,6 @@ struct loco_t::vulkan_t {
 
   #include <fan/graphics/vulkan/engine_functions.h>
 
-  fan::vulkan::context_t::descriptor_t d_attachments;
   fan::vulkan::context_t::pipeline_t post_process;
   VkResult image_error{};
   fan::window_t::resize_handle_t window_resize_handle;

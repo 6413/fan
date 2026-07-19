@@ -8,8 +8,9 @@ fan::graphics::shader_t bloom_downsample_shader;
 fan::graphics::shader_t bloom_upsample_shader;
 fan::vulkan::context_t::compute_pipeline_t bloom_downsample_pipeline;
 fan::vulkan::context_t::compute_pipeline_t bloom_upsample_pipeline;
-std::vector<std::vector<fan::vulkan::context_t::descriptor_t>> bloom_downsample_descriptors;
-std::vector<std::vector<fan::vulkan::context_t::descriptor_t>> bloom_upsample_descriptors;
+VkDescriptorSetLayout post_process_descriptor_layout = VK_NULL_HANDLE;
+VkDescriptorSetLayout bloom_downsample_descriptor_layout = VK_NULL_HANDLE;
+VkDescriptorSetLayout bloom_upsample_descriptor_layout = VK_NULL_HANDLE;
 bool post_process_resources_open = false;
 std::uint32_t bloom_mip_count = 6;
 f32_t bloom_filter_radius = 0.1f;
@@ -246,6 +247,19 @@ void update_single_sampler_descriptor(fan::vulkan::context_t::descriptor_t& desc
   descriptor.m_properties[0].image_infos[0] = make_image_info(image_view);
   descriptor.update(loco.context.vk, 1, 0, 1);
 }
+
+VkDescriptorSetLayout create_push_descriptor_layout(const std::vector<VkDescriptorSetLayoutBinding>& bindings) {
+  VkDescriptorSetLayoutCreateInfo layoutInfo{};
+  layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+  layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT;
+  layoutInfo.bindingCount = (std::uint32_t)bindings.size();
+  layoutInfo.pBindings = bindings.data();
+
+  VkDescriptorSetLayout layout;
+  fan::vulkan::validate(vkCreateDescriptorSetLayout(loco.context.vk.device, &layoutInfo, nullptr, &layout));
+  return layout;
+}
+
 void set_viewport(VkCommandBuffer cmd, fan::vec2ui size) {
   VkViewport viewport{};
   viewport.x = 0.0f;
@@ -264,7 +278,8 @@ void set_viewport(VkCommandBuffer cmd, fan::vec2ui size) {
 
 void draw_fullscreen(
   fan::vulkan::context_t::pipeline_t& pipeline,
-  fan::vulkan::context_t::descriptor_t& descriptor,
+  VkImageView scene,
+  VkImageView bloom,
   const void* push_constants,
   std::uint32_t push_constants_size
 ) {
@@ -272,16 +287,36 @@ void draw_fullscreen(
   VkCommandBuffer cmd = context.command_buffers[context.current_frame];
 
   vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.m_pipeline);
-  vkCmdBindDescriptorSets(
-    cmd,
-    VK_PIPELINE_BIND_POINT_GRAPHICS,
-    pipeline.m_layout,
-    0,
-    1,
-    &descriptor.m_descriptor_set[context.current_frame],
-    0,
-    nullptr
-  );
+  
+  VkDescriptorImageInfo image_infos[4];
+  image_infos[0] = make_image_info(scene);
+  image_infos[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  image_infos[1] = make_image_info(bloom);
+  image_infos[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  image_infos[2] = make_image_info(scene);
+  image_infos[2].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  image_infos[3] = make_image_info(scene);
+  image_infos[3].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+  VkWriteDescriptorSet writes[4];
+  for (uint32_t i = 0; i < 4; ++i) {
+    writes[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writes[i].pNext = nullptr;
+    writes[i].dstSet = VK_NULL_HANDLE; // ignored for push descriptors
+    writes[i].dstBinding = i;
+    writes[i].dstArrayElement = 0;
+    writes[i].descriptorCount = 1;
+    writes[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    writes[i].pImageInfo = &image_infos[i];
+    writes[i].pBufferInfo = nullptr;
+    writes[i].pTexelBufferView = nullptr;
+  }
+  
+  fan::assert(image_infos[0].imageView != VK_NULL_HANDLE);
+  fan::assert(image_infos[1].imageView != VK_NULL_HANDLE);
+  fan::assert(image_infos[2].imageView != VK_NULL_HANDLE);
+  fan::assert(image_infos[3].imageView != VK_NULL_HANDLE);
+  vkCmdPushDescriptorSet(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.m_layout, 0, 4, writes);
   if (push_constants_size != 0) {
     vkCmdPushConstants(
       cmd,
@@ -309,8 +344,6 @@ void open_post_process_sampler() {
 void open_bloom_chains() {
   fan::vulkan::context_t& context = loco.context.vk;
   bloom_chains.resize(context.swap_chain_image_views.size());
-  bloom_downsample_descriptors.resize(context.swap_chain_image_views.size());
-  bloom_upsample_descriptors.resize(context.swap_chain_image_views.size());
 
   for (std::size_t image_i = 0; image_i < bloom_chains.size(); ++image_i) {
     fan::vec2ui mip_size(
@@ -320,9 +353,6 @@ void open_bloom_chains() {
 
     auto& chain = bloom_chains[image_i];
     chain.mips.resize(bloom_mip_count);
-
-    bloom_downsample_descriptors[image_i].resize(bloom_mip_count);
-    bloom_upsample_descriptors[image_i].resize(bloom_mip_count);
 
     for (std::uint32_t mip_i = 0; mip_i < bloom_mip_count; ++mip_i) {
       auto& mip = chain.mips[mip_i];
@@ -337,44 +367,7 @@ void open_bloom_chains() {
       // ALL mips must be GENERAL layout for compute storage writes.
       mip.image.transition_image_layout(context, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_ASPECT_COLOR_BIT);
 
-      // Downsample descriptors
-      std::vector<fan::vulkan::write_descriptor_set_t> down_writes(2);
-      down_writes[0] = make_compute_sampler_descriptor(0);
-      down_writes[1] = make_storage_image_descriptor(1);
-
-      VkImageView down_source = mip_i == 0 ? context.mainColorImageViews[image_i].image_view : chain.mips[mip_i - 1].image.image_view;
-      down_writes[0].image_infos[0] = make_image_info(down_source);
-      down_writes[0].image_infos[0].imageLayout = mip_i == 0 ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_GENERAL;
-      down_writes[1].image_infos[0] = make_image_info(mip.image.image_view);
-      down_writes[1].image_infos[0].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-
-      bloom_downsample_descriptors[image_i][mip_i].open(context, down_writes);
-      for (std::uint32_t f = 0; f < fan::vulkan::max_frames_in_flight; ++f) {
-        context.current_frame = f;
-        bloom_downsample_descriptors[image_i][mip_i].update(context, 2, 0, 1);
-      }
-      context.current_frame = 0;
-
-      if (mip_i > 0) {
-        std::vector<fan::vulkan::write_descriptor_set_t> up_writes(3);
-        up_writes[0] = make_compute_sampler_descriptor(0);
-        up_writes[1] = make_compute_sampler_descriptor(1);
-        up_writes[2] = make_storage_image_descriptor(2);
-
-        up_writes[0].image_infos[0] = make_image_info(mip.image.image_view);
-        up_writes[0].image_infos[0].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-        up_writes[1].image_infos[0] = make_image_info(chain.mips[mip_i - 1].image.image_view);
-        up_writes[1].image_infos[0].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-        up_writes[2].image_infos[0] = make_image_info(chain.mips[mip_i - 1].image.image_view);
-        up_writes[2].image_infos[0].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-        
-        bloom_upsample_descriptors[image_i][mip_i].open(context, up_writes);
-        for (std::uint32_t f = 0; f < fan::vulkan::max_frames_in_flight; ++f) {
-          context.current_frame = f;
-          bloom_upsample_descriptors[image_i][mip_i].update(context, 3, 0, 1);
-        }
-        context.current_frame = 0;
-      }
+      // Push descriptors will be used inline instead of caching rigidly.
 
       mip_size.x = std::max<std::uint32_t>(1, mip_size.x / 2);
       mip_size.y = std::max<std::uint32_t>(1, mip_size.y / 2);
@@ -387,39 +380,59 @@ void close_bloom_chains() {
   for (std::size_t image_i = 0; image_i < bloom_chains.size(); ++image_i) {
     auto& chain = bloom_chains[image_i];
     for (std::uint32_t mip_i = 0; mip_i < chain.mips.size(); ++mip_i) {
-      bloom_downsample_descriptors[image_i][mip_i].close(context);
-      bloom_upsample_descriptors[image_i][mip_i].close(context);
       chain.mips[mip_i].image.close(context);
     }
     chain.mips.clear();
   }
   bloom_chains.clear();
-  bloom_downsample_descriptors.clear();
-  bloom_upsample_descriptors.clear();
+
 }
 
 
 
-
-
-void open_post_process_descriptors() {
-  fan::vulkan::context_t& context = loco.context.vk;
-
-  std::vector<fan::vulkan::write_descriptor_set_t> final_descriptors(4);
-  final_descriptors[0] = make_sampler_descriptor(0);
-  final_descriptors[1] = make_sampler_descriptor(1);
-  final_descriptors[2] = make_sampler_descriptor(2);
-  final_descriptors[3] = make_sampler_descriptor(3);
-  loco.vk->d_attachments.open(context, final_descriptors);
-}
-
-void close_post_process_descriptors() {
-  fan::vulkan::context_t& context = loco.context.vk;
-  loco.vk->d_attachments.close(context);
-}
 
 void open_post_process_pipelines() {
   fan::vulkan::context_t& context = loco.context.vk;
+
+  // Create push descriptor layouts
+  {
+    std::vector<VkDescriptorSetLayoutBinding> bindings(4);
+    for (uint32_t i = 0; i < 4; ++i) {
+      bindings[i].binding = i;
+      bindings[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+      bindings[i].descriptorCount = 1;
+      bindings[i].stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    }
+    post_process_descriptor_layout = create_push_descriptor_layout(bindings);
+  }
+  {
+    std::vector<VkDescriptorSetLayoutBinding> bindings(2);
+    bindings[0].binding = 0;
+    bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    bindings[0].descriptorCount = 1;
+    bindings[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    bindings[1].binding = 1;
+    bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    bindings[1].descriptorCount = 1;
+    bindings[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    bloom_downsample_descriptor_layout = create_push_descriptor_layout(bindings);
+  }
+  {
+    std::vector<VkDescriptorSetLayoutBinding> bindings(3);
+    bindings[0].binding = 0;
+    bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    bindings[0].descriptorCount = 1;
+    bindings[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    bindings[1].binding = 1;
+    bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    bindings[1].descriptorCount = 1;
+    bindings[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    bindings[2].binding = 2;
+    bindings[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    bindings[2].descriptorCount = 1;
+    bindings[2].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    bloom_upsample_descriptor_layout = create_push_descriptor_layout(bindings);
+  }
 
   VkPipelineColorBlendAttachmentState replace_blend = fan::vulkan::get_default_color_blend();
   replace_blend.blendEnable = VK_FALSE;
@@ -439,18 +452,18 @@ void open_post_process_pipelines() {
 
   p.shader = post_process_shader;
   p.render_pass = post_process_render_pass;
-  p.descriptor_layouts = {loco.vk->d_attachments.m_layout};
+  p.descriptor_layouts = {post_process_descriptor_layout};
   p.push_constants_size = sizeof(post_process_push_constants_t);
   loco.vk->post_process.open(context, p);
 
   fan::vulkan::compute_pipeline_t::properties_t cp{};
   cp.shader = bloom_downsample_shader;
-  cp.descriptor_layouts = {bloom_downsample_descriptors[0][0].m_layout};
+  cp.descriptor_layouts = {bloom_downsample_descriptor_layout};
   cp.push_constants_size = sizeof(bloom_downsample_push_constants_t);
   bloom_downsample_pipeline.open(context, cp);
 
   cp.shader = bloom_upsample_shader;
-  cp.descriptor_layouts = {bloom_upsample_descriptors[0][1].m_layout};
+  cp.descriptor_layouts = {bloom_upsample_descriptor_layout};
   cp.push_constants_size = sizeof(bloom_upsample_push_constants_t);
   bloom_upsample_pipeline.open(context, cp);
 }
@@ -460,6 +473,13 @@ void close_post_process_pipelines() {
   loco.vk->post_process.close(context);
   bloom_downsample_pipeline.close(context);
   bloom_upsample_pipeline.close(context);
+
+  vkDestroyDescriptorSetLayout(context.device, post_process_descriptor_layout, nullptr);
+  vkDestroyDescriptorSetLayout(context.device, bloom_downsample_descriptor_layout, nullptr);
+  vkDestroyDescriptorSetLayout(context.device, bloom_upsample_descriptor_layout, nullptr);
+  post_process_descriptor_layout = VK_NULL_HANDLE;
+  bloom_downsample_descriptor_layout = VK_NULL_HANDLE;
+  bloom_upsample_descriptor_layout = VK_NULL_HANDLE;
 }
 
 void open_swapchain_resources() {
@@ -472,7 +492,6 @@ void open_swapchain_resources() {
 
 
   open_bloom_chains();
-  open_post_process_descriptors();
   open_post_process_pipelines();
 
   post_process_resources_open = true;
@@ -487,7 +506,6 @@ void close_swapchain_resources() {
   close_shape_shader_pipelines();
 
   close_post_process_pipelines();
-  close_post_process_descriptors();
   close_bloom_chains();
 
 
@@ -549,7 +567,30 @@ void draw_bloom() {
     pc.mode = fan::vec4(i == 0 ? 0.f : 1.f, 0.f, 0.f, 0.f);
 
     vkCmdPushConstants(cmd, bloom_downsample_pipeline.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pc), &pc);
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, bloom_downsample_pipeline.pipeline_layout, 0, 1, &bloom_downsample_descriptors[context.image_index][i].m_descriptor_set[context.current_frame], 0, nullptr);
+    
+    VkImageView down_source = i == 0 ? context.mainColorImageViews[context.image_index].image_view : chain.mips[i - 1].image.image_view;
+    VkDescriptorImageInfo image_infos[2];
+    image_infos[0] = make_image_info(down_source);
+    image_infos[0].imageLayout = i == 0 ? VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL : VK_IMAGE_LAYOUT_GENERAL;
+    image_infos[1] = make_image_info(chain.mips[i].image.image_view);
+    image_infos[1].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+    VkWriteDescriptorSet writes[2];
+    for (uint32_t j = 0; j < 2; ++j) {
+      writes[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      writes[j].pNext = nullptr;
+      writes[j].dstSet = VK_NULL_HANDLE;
+      writes[j].dstBinding = j;
+      writes[j].dstArrayElement = 0;
+      writes[j].descriptorCount = 1;
+      writes[j].descriptorType = j == 0 ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+      writes[j].pImageInfo = &image_infos[j];
+      writes[j].pBufferInfo = nullptr;
+      writes[j].pTexelBufferView = nullptr;
+    }
+    fan::assert(image_infos[0].imageView != VK_NULL_HANDLE);
+    fan::assert(image_infos[1].imageView != VK_NULL_HANDLE);
+    vkCmdPushDescriptorSet(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, bloom_downsample_pipeline.pipeline_layout, 0, 2, writes);
 
     vkCmdDispatch(cmd, (chain.mips[i].size.x + 7) / 8, (chain.mips[i].size.y + 7) / 8, 1);
 
@@ -590,7 +631,32 @@ pc.filter_radius = fan::vec4(texel_size.x * (1.0f + bloom_filter_radius), texel_
 
 
     vkCmdPushConstants(cmd, bloom_upsample_pipeline.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pc), &pc);
-    vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, bloom_upsample_pipeline.pipeline_layout, 0, 1, &bloom_upsample_descriptors[context.image_index][i].m_descriptor_set[context.current_frame], 0, nullptr);
+    
+    VkDescriptorImageInfo image_infos[3];
+    image_infos[0] = make_image_info(mip.image.image_view);
+    image_infos[0].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    image_infos[1] = make_image_info(next_mip.image.image_view);
+    image_infos[1].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    image_infos[2] = make_image_info(next_mip.image.image_view);
+    image_infos[2].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+    VkWriteDescriptorSet writes[3];
+    for (uint32_t j = 0; j < 3; ++j) {
+      writes[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      writes[j].pNext = nullptr;
+      writes[j].dstSet = VK_NULL_HANDLE;
+      writes[j].dstBinding = j;
+      writes[j].dstArrayElement = 0;
+      writes[j].descriptorCount = 1;
+      writes[j].descriptorType = j < 2 ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+      writes[j].pImageInfo = &image_infos[j];
+      writes[j].pBufferInfo = nullptr;
+      writes[j].pTexelBufferView = nullptr;
+    }
+    fan::assert(image_infos[0].imageView != VK_NULL_HANDLE);
+    fan::assert(image_infos[1].imageView != VK_NULL_HANDLE);
+    fan::assert(image_infos[2].imageView != VK_NULL_HANDLE);
+    vkCmdPushDescriptorSet(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, bloom_upsample_pipeline.pipeline_layout, 0, 3, writes);
 
     vkCmdDispatch(cmd, (next_mip.size.x + 7) / 8, (next_mip.size.y + 7) / 8, 1);
 
@@ -645,36 +711,7 @@ pc.filter_radius = fan::vec4(texel_size.x * (1.0f + bloom_filter_radius), texel_
   }
 }
 
-void update_final_descriptor() {
-  fan::vulkan::context_t& context = loco.context.vk;
-  VkImageView scene = context.mainColorImageViews[context.image_index].image_view;
-  VkImageView bloom = scene;
-  if (context.image_index < bloom_chains.size() && !bloom_chains[context.image_index].mips.empty()) {
-    bloom = bloom_chains[context.image_index].mips[0].image.image_view;
-  }
 
-  loco.vk->d_attachments.m_properties[0].image_infos[0] = make_image_info(scene);
-  loco.vk->d_attachments.m_properties[0].image_infos[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-  loco.vk->d_attachments.m_properties[1].image_infos[0] = make_image_info(bloom);
-  loco.vk->d_attachments.m_properties[1].image_infos[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-  loco.vk->d_attachments.m_properties[2].image_infos[0] = make_image_info(scene);
-  loco.vk->d_attachments.m_properties[2].image_infos[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-  loco.vk->d_attachments.m_properties[3].image_infos[0] = make_image_info(scene);
-  loco.vk->d_attachments.m_properties[3].image_infos[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-  
-  // Only update the CURRENT frame's descriptor to avoid in-flight data races
-  loco.vk->d_attachments.update(context, 4, 0, 1);
-}
-
-void update_post_process_descriptors_before_cmd() {
-  if (!post_process_resources_open) {
-    return;
-  }
-
-  fan::vulkan::context_t& context = loco.context.vk;
-
-  update_final_descriptor();
-}
 
 post_process_push_constants_t make_post_process_pc() {
   fan::vec2 window_size = loco.window.get_size();
@@ -783,7 +820,13 @@ void draw_post_process() {
 
   vkCmdBeginRendering(cmd, &render_info);
 
-  draw_fullscreen(loco.vk->post_process, loco.vk->d_attachments, &pc, sizeof(pc));
+  VkImageView scene = context.mainColorImageViews[context.image_index].image_view;
+  VkImageView bloom = scene;
+  if (context.image_index < bloom_chains.size() && !bloom_chains[context.image_index].mips.empty()) {
+    bloom = bloom_chains[context.image_index].mips[0].image.image_view;
+  }
+
+  draw_fullscreen(loco.vk->post_process, scene, bloom, &pc, sizeof(pc));
   
   vkCmdEndRendering(cmd);
 
@@ -1127,7 +1170,7 @@ void begin_draw() {
     }
   }
 
-  update_post_process_descriptors_before_cmd();
+
 
   for (auto& i : context.pre_begin_cmd_cb) {
     i();
