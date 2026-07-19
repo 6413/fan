@@ -162,6 +162,9 @@ export namespace fan::graphics::editor {
         shape_json["physics"] = instance->physics.to_json();
       }
       if (instance->shape_type == fan::graphics::shapes::shape_type_t::light) {
+        if (instance->children[0].get_flags() != 0) {
+          shape_json["flags"] = instance->children[0].get_flags();
+        }
         if (instance->light_props.enable_flicker) {
           shape_json["light_props"] = instance->light_props.to_json();
         }
@@ -174,6 +177,7 @@ export namespace fan::graphics::editor {
         fan::json cleaned_original = fan::json::object();
         for (auto it = original.begin(); it != original.end(); ++it) {
           if (it.key() != "color" && it.key() != "images" && it.key() != "material_type") {
+            if (instance->shape_type == fan::graphics::shapes::shape_type_t::light && it.key() == "flags") continue;
             cleaned_original[it.key()] = it.value();
           }
         }
