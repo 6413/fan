@@ -61,7 +61,7 @@ export namespace fan::graphics::editor {
       }
 
       if (shape->shape_type == fan::graphics::shapes::shape_type_t::light) {
-        if (gui::tree_node("light_properties")) {
+        if (gui::tree_node_ex("light_properties", gui::tree_node_flags_default_open)) {
           int light_shape = shape->children[0].get_flags();
           static const char* shape_names[] = { "Circle", "Square Falloff", "Square", "Directional Left", "Directional Right", "Directional Up", "Directional Down" };
           if (gui::combo("light_shape", &light_shape, shape_names, 7)) {
@@ -69,9 +69,9 @@ export namespace fan::graphics::editor {
           }
           gui::checkbox("enable_flicker", &shape->light_props.enable_flicker);
           if (shape->light_props.enable_flicker) {
-            gui::drag("flicker_speed", &shape->light_props.flicker_speed, 0.1f);
-            gui::drag("flicker_min", &shape->light_props.flicker_min, 0.01f, 0.f, 1.f);
-            gui::drag("flicker_max", &shape->light_props.flicker_max, 0.01f, 0.f, 1.f);
+            gui::drag("flicker_speed", &shape->light_props.flicker_speed);
+            gui::drag("flicker_min", &shape->light_props.flicker_min);
+            gui::drag("flicker_max", &shape->light_props.flicker_max);
             static const char* ease_names[] = { "linear", "sine", "pulse", "ease_in", "ease_out" };
             gui::combo("ease_type", &shape->light_props.ease_type, ease_names, 5);
           }
@@ -79,9 +79,9 @@ export namespace fan::graphics::editor {
         }
       }
       
-      if (gui::tree_node("dynamic_properties")) {
+      if (gui::tree_node_ex("dynamic_properties", gui::tree_node_flags_default_open)) {
         gui::color_edit4("target_color", &shape->dynamic_props.target_color);
-        gui::drag("variance_speed", &shape->dynamic_props.variance_speed, 0.1f);
+        gui::drag("variance_speed", &shape->dynamic_props.variance_speed);
         static const char* ease_names[] = { "linear", "sine", "pulse", "ease_in", "ease_out" };
         gui::combo("ease_type", &shape->dynamic_props.ease_type, ease_names, 5);
         gui::tree_pop();
