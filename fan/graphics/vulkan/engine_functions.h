@@ -197,79 +197,9 @@ VkFormat get_bloom_format() {
   return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
 }
 
-VkRenderPass make_color_render_pass(VkFormat format, VkAttachmentLoadOp load_op, VkImageLayout initial_layout, VkImageLayout final_layout) {
-  fan::vulkan::context_t& context = loco.context.vk;
 
-  VkAttachmentDescription attachment{};
-  attachment.format = format;
-  attachment.samples = VK_SAMPLE_COUNT_1_BIT;
-  attachment.loadOp = load_op;
-  attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-  attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-  attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-  attachment.initialLayout = initial_layout;
-  attachment.finalLayout = final_layout;
 
-  VkAttachmentReference color_ref{};
-  color_ref.attachment = 0;
-  color_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-  VkSubpassDescription subpass{};
-  subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-  subpass.colorAttachmentCount = 1;
-  subpass.pColorAttachments = &color_ref;
-
-  VkSubpassDependency deps[2]{};
-  deps[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-  deps[0].dstSubpass = 0;
-  deps[0].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  deps[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  deps[0].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-  deps[0].dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-  deps[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-  deps[1].srcSubpass = 0;
-  deps[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-  deps[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  deps[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-  deps[1].srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-  deps[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-  deps[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-  VkRenderPassCreateInfo info{};
-  info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-  info.attachmentCount = 1;
-  info.pAttachments = &attachment;
-  info.subpassCount = 1;
-  info.pSubpasses = &subpass;
-  info.dependencyCount = std::size(deps);
-  info.pDependencies = deps;
-
-  VkRenderPass render_pass = VK_NULL_HANDLE;
-  if (vkCreateRenderPass(context.device, &info, nullptr, &render_pass) != VK_SUCCESS) {
-    fan::throw_error("failed to create post process render pass");
-  }
-  return render_pass;
-}
-
-VkFramebuffer make_framebuffer(VkRenderPass render_pass, VkImageView image_view, fan::vec2ui size) {
-  fan::vulkan::context_t& context = loco.context.vk;
-
-  VkFramebufferCreateInfo info{};
-  info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-  info.renderPass = render_pass;
-  info.attachmentCount = 1;
-  info.pAttachments = &image_view;
-  info.width = size.x;
-  info.height = size.y;
-  info.layers = 1;
-
-  VkFramebuffer framebuffer = VK_NULL_HANDLE;
-  if (vkCreateFramebuffer(context.device, &info, nullptr, &framebuffer) != VK_SUCCESS) {
-    fan::throw_error("failed to create post process framebuffer");
-  }
-  return framebuffer;
-}
 
 fan::vulkan::write_descriptor_set_t make_sampler_descriptor(std::uint32_t binding) {
   fan::vulkan::write_descriptor_set_t d{};
@@ -316,33 +246,14 @@ void update_single_sampler_descriptor(fan::vulkan::context_t::descriptor_t& desc
   descriptor.m_properties[0].image_infos[0] = make_image_info(image_view);
   descriptor.update(loco.context.vk, 1, 0, 1);
 }
-
-void begin_color_pass(VkRenderPass render_pass, VkFramebuffer framebuffer, fan::vec2ui size, bool clear) {
-  fan::vulkan::context_t& context = loco.context.vk;
-  VkRenderPassBeginInfo info{};
-  info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  info.renderPass = render_pass;
-  info.framebuffer = framebuffer;
-  info.renderArea.offset = {0, 0};
-  info.renderArea.extent = {size.x, size.y};
-
-  VkClearValue clear_value{};
-  clear_value.color = {{0.f, 0.f, 0.f, 0.f}};
-  if (clear) {
-    info.clearValueCount = 1;
-    info.pClearValues = &clear_value;
-  }
-
-  VkCommandBuffer cmd = context.command_buffers[context.current_frame];
-  vkCmdBeginRenderPass(cmd, &info, VK_SUBPASS_CONTENTS_INLINE);
-
+void set_viewport(VkCommandBuffer cmd, fan::vec2ui size) {
   VkViewport viewport{};
-  viewport.x = 0.f;
-  viewport.y = 0.f;
+  viewport.x = 0.0f;
+  viewport.y = 0.0f;
   viewport.width = (f32_t)size.x;
   viewport.height = (f32_t)size.y;
-  viewport.minDepth = 0.f;
-  viewport.maxDepth = 1.f;
+  viewport.minDepth = 0.0f;
+  viewport.maxDepth = 1.0f;
   vkCmdSetViewport(cmd, 0, 1, &viewport);
 
   VkRect2D scissor{};
@@ -487,28 +398,9 @@ void close_bloom_chains() {
   bloom_upsample_descriptors.clear();
 }
 
-void open_post_process_framebuffers() {
-  fan::vulkan::context_t& context = loco.context.vk;
-  post_process_framebuffers.resize(context.swap_chain_image_views.size());
-  for (std::size_t i = 0; i < post_process_framebuffers.size(); ++i) {
-    post_process_framebuffers[i] = make_framebuffer(
-      post_process_render_pass,
-      context.swap_chain_image_views[i],
-      fan::vec2ui((std::uint32_t)context.swap_chain_size.x, (std::uint32_t)context.swap_chain_size.y)
-    );
-  }
-}
 
-void close_post_process_framebuffers() {
-  fan::vulkan::context_t& context = loco.context.vk;
-  for (VkFramebuffer& framebuffer : post_process_framebuffers) {
-    if (framebuffer != VK_NULL_HANDLE) {
-      vkDestroyFramebuffer(context.device, framebuffer, nullptr);
-      framebuffer = VK_NULL_HANDLE;
-    }
-  }
-  post_process_framebuffers.clear();
-}
+
+
 
 void open_post_process_descriptors() {
   fan::vulkan::context_t& context = loco.context.vk;
@@ -578,14 +470,7 @@ void open_swapchain_resources() {
   fan::vulkan::context_t& context = loco.context.vk;
   open_post_process_sampler();
 
-  post_process_render_pass = make_color_render_pass(
-    context.swap_chain_image_format,
-    VK_ATTACHMENT_LOAD_OP_CLEAR,
-    VK_IMAGE_LAYOUT_UNDEFINED,
-    VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-  );
 
-  open_post_process_framebuffers();
   open_bloom_chains();
   open_post_process_descriptors();
   open_post_process_pipelines();
@@ -604,12 +489,9 @@ void close_swapchain_resources() {
   close_post_process_pipelines();
   close_post_process_descriptors();
   close_bloom_chains();
-  close_post_process_framebuffers();
 
-  if (post_process_render_pass != VK_NULL_HANDLE) {
-    vkDestroyRenderPass(context.device, post_process_render_pass, nullptr);
-    post_process_render_pass = VK_NULL_HANDLE;
-  }
+
+
 
   post_process_resources_open = false;
 }
@@ -636,10 +518,12 @@ void draw_bloom() {
   vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, bloom_downsample_pipeline.pipeline);
 
   {
-    VkImageMemoryBarrier barrier{};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+    VkImageMemoryBarrier2 barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+    barrier.srcStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+    barrier.srcAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+    barrier.dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+    barrier.dstAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
     barrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -651,9 +535,11 @@ void draw_bloom() {
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
 
-    vkCmdPipelineBarrier(cmd,
-      VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-      0, 0, nullptr, 0, nullptr, 1, &barrier);
+    VkDependencyInfo dep_info{};
+    dep_info.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    dep_info.imageMemoryBarrierCount = 1;
+    dep_info.pImageMemoryBarriers = &barrier;
+    vkCmdPipelineBarrier2(cmd, &dep_info);
   }
 
   for (std::uint32_t i = 0; i < chain.mips.size(); ++i) {
@@ -667,10 +553,12 @@ void draw_bloom() {
 
     vkCmdDispatch(cmd, (chain.mips[i].size.x + 7) / 8, (chain.mips[i].size.y + 7) / 8, 1);
 
-    VkImageMemoryBarrier barrier{};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    VkImageMemoryBarrier2 barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+    barrier.srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+    barrier.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
+    barrier.dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+    barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
     barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
     barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -682,9 +570,11 @@ void draw_bloom() {
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
 
-    vkCmdPipelineBarrier(cmd,
-      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-      0, 0, nullptr, 0, nullptr, 1, &barrier);
+    VkDependencyInfo dep_info{};
+    dep_info.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    dep_info.imageMemoryBarrierCount = 1;
+    dep_info.pImageMemoryBarriers = &barrier;
+    vkCmdPipelineBarrier2(cmd, &dep_info);
   }
 
   // Upsample pass
@@ -704,10 +594,12 @@ pc.filter_radius = fan::vec4(texel_size.x * (1.0f + bloom_filter_radius), texel_
 
     vkCmdDispatch(cmd, (next_mip.size.x + 7) / 8, (next_mip.size.y + 7) / 8, 1);
 
-    VkImageMemoryBarrier barrier{};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    VkImageMemoryBarrier2 barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+    barrier.srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+    barrier.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
+    barrier.dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+    barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
     barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
     barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -719,17 +611,21 @@ pc.filter_radius = fan::vec4(texel_size.x * (1.0f + bloom_filter_radius), texel_
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
 
-    vkCmdPipelineBarrier(cmd,
-      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-      0, 0, nullptr, 0, nullptr, 1, &barrier);
+    VkDependencyInfo dep_info{};
+    dep_info.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    dep_info.imageMemoryBarrierCount = 1;
+    dep_info.pImageMemoryBarriers = &barrier;
+    vkCmdPipelineBarrier2(cmd, &dep_info);
   }
 
   // Final transition for mip[0] to SHADER_READ_ONLY_OPTIMAL for the tonemap pass
   if (!chain.mips.empty()) {
-    VkImageMemoryBarrier barrier{};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    VkImageMemoryBarrier2 barrier{};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+    barrier.srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+    barrier.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
+    barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+    barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
     barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
     barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -741,9 +637,11 @@ pc.filter_radius = fan::vec4(texel_size.x * (1.0f + bloom_filter_radius), texel_
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
 
-    vkCmdPipelineBarrier(cmd,
-      VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-      0, 0, nullptr, 0, nullptr, 1, &barrier);
+    VkDependencyInfo dep_info{};
+    dep_info.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+    dep_info.imageMemoryBarrierCount = 1;
+    dep_info.pImageMemoryBarriers = &barrier;
+    vkCmdPipelineBarrier2(cmd, &dep_info);
   }
 }
 
@@ -818,7 +716,26 @@ void draw_post_process() {
   fan::vulkan::context_t& context = loco.context.vk;
   VkCommandBuffer cmd = context.command_buffers[context.current_frame];
 
-  vkCmdEndRenderPass(cmd);
+  vkCmdEndRendering(cmd);
+
+  VkImageMemoryBarrier2 main_image_barrier{};
+  main_image_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+  main_image_barrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+  main_image_barrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+  main_image_barrier.dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+  main_image_barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+  main_image_barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  main_image_barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  main_image_barrier.image = context.mainColorImageViews[context.image_index].image;
+  main_image_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  main_image_barrier.subresourceRange.levelCount = 1;
+  main_image_barrier.subresourceRange.layerCount = 1;
+
+  VkDependencyInfo main_dep_info{};
+  main_dep_info.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+  main_dep_info.imageMemoryBarrierCount = 1;
+  main_dep_info.pImageMemoryBarriers = &main_image_barrier;
+  vkCmdPipelineBarrier2(cmd, &main_dep_info);
 
   const bool bloom_enabled =
     loco.open_props.post_process_mode == fan::graphics::post_process_mode_e::bloom ||
@@ -830,14 +747,64 @@ void draw_post_process() {
 
   auto pc = make_post_process_pc();
 
-  begin_color_pass(
-    post_process_render_pass,
-    post_process_framebuffers[context.image_index],
-    fan::vec2ui((std::uint32_t)context.swap_chain_size.x, (std::uint32_t)context.swap_chain_size.y),
-    true
-  );
+  VkImageMemoryBarrier2 sc_barrier{};
+  sc_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+  sc_barrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+  sc_barrier.srcAccessMask = 0;
+  sc_barrier.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+  sc_barrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+  sc_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  sc_barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  sc_barrier.image = context.swap_chain_images[context.image_index];
+  sc_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  sc_barrier.subresourceRange.levelCount = 1;
+  sc_barrier.subresourceRange.layerCount = 1;
+
+  VkDependencyInfo sc_dep_info{};
+  sc_dep_info.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+  sc_dep_info.imageMemoryBarrierCount = 1;
+  sc_dep_info.pImageMemoryBarriers = &sc_barrier;
+  vkCmdPipelineBarrier2(cmd, &sc_dep_info);
+
+  VkRenderingAttachmentInfo color_attachment{};
+  color_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+  color_attachment.imageView = context.swap_chain_image_views[context.image_index];
+  color_attachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+  color_attachment.clearValue.color = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+  VkRenderingInfo render_info{};
+  render_info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+  render_info.renderArea = { {0, 0}, {static_cast<std::uint32_t>(context.swap_chain_size.x), static_cast<std::uint32_t>(context.swap_chain_size.y)} };
+  render_info.layerCount = 1;
+  render_info.colorAttachmentCount = 1;
+  render_info.pColorAttachments = &color_attachment;
+
+  vkCmdBeginRendering(cmd, &render_info);
+
   draw_fullscreen(loco.vk->post_process, loco.vk->d_attachments, &pc, sizeof(pc));
-  vkCmdEndRenderPass(cmd);
+  
+  vkCmdEndRendering(cmd);
+
+  VkImageMemoryBarrier2 present_barrier{};
+  present_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+  present_barrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+  present_barrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+  present_barrier.dstStageMask = VK_PIPELINE_STAGE_2_NONE;
+  present_barrier.dstAccessMask = 0;
+  present_barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  present_barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+  present_barrier.image = context.swap_chain_images[context.image_index];
+  present_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  present_barrier.subresourceRange.levelCount = 1;
+  present_barrier.subresourceRange.layerCount = 1;
+
+  VkDependencyInfo present_dep_info{};
+  present_dep_info.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+  present_dep_info.imageMemoryBarrierCount = 1;
+  present_dep_info.pImageMemoryBarriers = &present_barrier;
+  vkCmdPipelineBarrier2(cmd, &present_dep_info);
 }
 
 #if defined(FAN_2D)
@@ -981,32 +948,68 @@ void shaders_compile() {
 
 void begin_render_pass() {
   fan::vulkan::context_t& context = loco.context.vk;
-  VkRenderPassBeginInfo renderPassInfo{};
-  renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-  renderPassInfo.renderPass = context.render_pass;
-  renderPassInfo.framebuffer = context.swap_chain_framebuffers[context.image_index];
-  renderPassInfo.renderArea.offset = { 0, 0 };
-  renderPassInfo.renderArea.extent.width = context.swap_chain_size.x;
-  renderPassInfo.renderArea.extent.height = context.swap_chain_size.y;
+  VkCommandBuffer cmd = context.command_buffers[context.current_frame];
 
-  // TODO
-  VkClearValue clear_values[
-    2
-  ]{};
+  VkImageMemoryBarrier2 main_barrier{};
+  main_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+  main_barrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+  main_barrier.srcAccessMask = 0;
+  main_barrier.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+  main_barrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+  main_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED; 
+  main_barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  main_barrier.image = context.mainColorImageViews[context.image_index].image;
+  main_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  main_barrier.subresourceRange.levelCount = 1;
+  main_barrier.subresourceRange.layerCount = 1;
+
+  VkImageMemoryBarrier2 depth_barrier{};
+  depth_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+  depth_barrier.srcStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+  depth_barrier.srcAccessMask = 0;
+  depth_barrier.dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+  depth_barrier.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+  depth_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED; 
+  depth_barrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+  depth_barrier.image = context.depthImageViews[context.image_index].image;
+  depth_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+  depth_barrier.subresourceRange.levelCount = 1;
+  depth_barrier.subresourceRange.layerCount = 1;
+
+  VkImageMemoryBarrier2 barriers[] = { main_barrier, depth_barrier };
+
+  VkDependencyInfo dep_info{};
+  dep_info.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+  dep_info.imageMemoryBarrierCount = std::size(barriers);
+  dep_info.pImageMemoryBarriers = barriers;
+  vkCmdPipelineBarrier2(cmd, &dep_info);
+
+  VkRenderingAttachmentInfo color_attachment{};
+  color_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+  color_attachment.imageView = context.mainColorImageViews[context.image_index].image_view;
+  color_attachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
   fan::color clear_color = loco.get_clear_color();
-  clear_values[0].color = { { clear_color.r, clear_color.g, clear_color.b, clear_color.a } };
-  clear_values[1].depthStencil = { 1.0f, 0 };
+  color_attachment.clearValue.color = { { clear_color.r, clear_color.g, clear_color.b, clear_color.a } }; 
+  
+  VkRenderingAttachmentInfo depth_attachment{};
+  depth_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+  depth_attachment.imageView = context.depthImageViews[context.image_index].image_view;
+  depth_attachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+  depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+  depth_attachment.clearValue.depthStencil = { 1.0f, 0 };
 
-
-  renderPassInfo.clearValueCount = std::size(clear_values);
-  renderPassInfo.pClearValues = clear_values;
-
-  if (loco.get_render_shapes_top()) {
-  //  renderPassInfo.clearValueCount = 0;
-  }
-
-
-  vkCmdBeginRenderPass(context.command_buffers[context.current_frame], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+  VkRenderingInfo render_info{};
+  render_info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+  render_info.renderArea = { {0, 0}, {static_cast<std::uint32_t>(context.swap_chain_size.x), static_cast<std::uint32_t>(context.swap_chain_size.y)} };
+  render_info.layerCount = 1;
+  render_info.colorAttachmentCount = 1;
+  render_info.pColorAttachments = &color_attachment;
+  render_info.pDepthAttachment = &depth_attachment;
+  
+  vkCmdBeginRendering(cmd, &render_info);
 }
 
 
