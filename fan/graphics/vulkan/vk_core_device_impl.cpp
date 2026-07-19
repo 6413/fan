@@ -1491,7 +1491,7 @@ void fan::vulkan::context_t::draw(
   bindless_draw(vertex_count, instance_count, first_instance);
 }
 void fan::vulkan::context_t::create_sync_objects() {
-  std::uint32_t acquire_count = std::max((std::uint32_t)swap_chain_images.size(), (std::uint32_t)3);
+  std::uint32_t acquire_count = std::max((std::uint32_t)swap_chain_images.size(), (std::uint32_t)max_frames_in_flight);
   image_available_semaphores.resize(acquire_count);
   render_finished_semaphores.resize(acquire_count);
   in_flight_fences.resize(max_frames_in_flight);
