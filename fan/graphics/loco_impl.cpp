@@ -1942,10 +1942,6 @@ bool loco_t::process_frame(const std::function<void(f32_t delta_time)>& cb) {
   cb(get_delta_time());
   fan::time::global_profiler.end("Game Logic");
 
-#if defined(FAN_2D)
-  shapes.update_children();
-#endif
-
 #if defined(FAN_PHYSICS_2D)
   physics.draw();
 #endif

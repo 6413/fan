@@ -886,9 +886,8 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     std::vector<fan::graphics::shape_t> out(cache.shapes.size());
 
     for (std::size_t i = 0; i < cache.shapes.size(); ++i) {
-      fan::graphics::shape_t s = cache.shapes[i];
-      s.set_position(cache.original_pos[i]);
-      out[i] = std::move(s);
+      out[i] = cache.shapes[i];
+      out[i].set_position(cache.original_pos[i]);
     }
 
     return out;
