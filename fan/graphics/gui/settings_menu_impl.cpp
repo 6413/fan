@@ -393,7 +393,7 @@ namespace fan::graphics::gui {
           }
         });
         draw_sub_row("Threshold", [&] {
-          if (gui::slider(&menu->config.post_processing.bloom_threshold, 0.0f, 5.0f, gui::slider_flags_always_clamp)) {
+          if (gui::slider(&menu->config.post_processing.bloom_threshold, 0.0f, 1.0f, gui::slider_flags_always_clamp)) {
             *gloco()->get_bloom_threshold_ptr() = menu->config.post_processing.bloom_threshold;
             sync_vulkan_post_processing(menu->config.post_processing);
             menu->mark_dirty();

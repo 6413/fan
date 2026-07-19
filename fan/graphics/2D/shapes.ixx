@@ -309,8 +309,8 @@ export namespace fan::graphics {
     #if defined(FAN_JSON)
       explicit operator fan::json();
       explicit operator std::string();
-      shape_t(const fan::json& json);
-      shape_t(const std::string&); // assume json string
+      explicit shape_t(const fan::json& json);
+      explicit shape_t(const std::string&); // assume json string
       shape_t& operator=(const fan::json& json);
       shape_t& operator=(const std::string&); // assume json string
     #endif

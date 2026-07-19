@@ -3,7 +3,7 @@
 layout(local_size_x = 8, local_size_y = 8) in;
 
 layout(set = 0, binding = 0) uniform sampler2D src_tex;
-layout(set = 0, binding = 1, rgba16f) uniform writeonly image2D dst_tex;
+layout(set = 0, binding = 1, r11f_g11f_b10f) uniform writeonly image2D dst_tex;
 
 layout(push_constant) uniform push_constants_t {
   vec4 resolution_threshold_knee_mip;
