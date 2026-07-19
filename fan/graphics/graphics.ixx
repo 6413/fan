@@ -1048,7 +1048,8 @@ export namespace fan::graphics {
           if (ri.loop_disabled_time > 0) {
             if (current_time > ri.loop_disabled_time + ri.alive_time + 0.033f) {
               emitters[i].erase();
-              emitters.erase(emitters.begin() + i);
+              std::swap(emitters[i], emitters.back());
+              emitters.pop_back();
             } else {
               ++i;
             }
@@ -1065,7 +1066,8 @@ export namespace fan::graphics {
           f32_t elapsed = current_time - ri.loop_enabled_time;
           if (elapsed > ri.alive_time + 0.033f) {
             emitters[i].erase();
-            emitters.erase(emitters.begin() + i);
+            std::swap(emitters[i], emitters.back());
+            emitters.pop_back();
           } else {
             ++i;
           }
@@ -1090,7 +1092,8 @@ export namespace fan::graphics {
 
     void erase(std::size_t i) {
       emitters[i].erase();
-      emitters.erase(emitters.begin() + i);
+      std::swap(emitters[i], emitters.back());
+      emitters.pop_back();
     }
 
     auto begin() { return emitters.begin(); }
