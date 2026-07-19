@@ -1204,7 +1204,7 @@ void fte_t::fin(const std::string& filename, const std::source_location& callers
   if (json.contains("gravity")) {
     fan::physics::gphysics()->set_gravity(json["gravity"]);
   }
-  get_lighting().set_target(json["lighting.ambient"]);
+  get_lighting().set_target(json["lighting.ambient"], 0.0f);
 
   map_tiles.clear();
   visual_layers.clear();

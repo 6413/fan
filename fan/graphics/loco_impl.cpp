@@ -297,7 +297,7 @@ f32_t* loco_t::get_contrast_ptr()            { return &vk->contrast; }
 
 void loco_t::set_settings(const post_process_settings_t& settings) {
   if (settings.clear_color) set_clear_color(*settings.clear_color);
-  if (settings.ambient_color) get_lighting().ambient = *settings.ambient_color;
+  if (settings.ambient_color) get_lighting().set_target(*settings.ambient_color, 0.0f);
   if (settings.mode) open_props.post_process_mode = *settings.mode;
   if (settings.bloom_strength) *get_bloom_strength_ptr() = *settings.bloom_strength;
   if (settings.bloom_threshold) *get_bloom_threshold_ptr() = *settings.bloom_threshold;

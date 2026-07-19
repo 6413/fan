@@ -38,7 +38,7 @@ struct farm_manager_t {
     buildings_config(fan::json::load_file("buildings.json")),
     tile_size(t_size), 
     grid(t_size),
-    grass(engine.create_transparent_texture()),
+    grass(engine.create_transparent_texture()/*image_t("images/IMGP5511_seamless.jpg")*/),
     placement(0, 0, image_t::invalid()) 
   {
     load_buildings();
@@ -172,7 +172,7 @@ struct farm_manager_t {
   }
 
   void update_placement_cursor(engine_t& engine) {
-    light(fan::vec3(engine.get_mouse_position(), 0), 1500.f, fan::colors::white);
+    //light(fan::vec3(engine.get_mouse_position(), 0), 1500.f, fan::colors::white);
     if (!selected_building) return;
     fan::vec2i cell = grid.get_cell(engine.get_mouse_position());
     if (can_place(cell, *selected_building)) {
