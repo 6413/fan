@@ -106,10 +106,15 @@ namespace {
       auto& sd = fan::graphics::g_shapes->shape_ids[gid];
       auto& funcs = all_funcs[sd.shape_type];
 
-      fan::vec3 offset{
-        child.local_pos.x * c - child.local_pos.y * s,
-        child.local_pos.x * s + child.local_pos.y * c,
+      fan::vec3 scaled_local_pos = {
+        child.local_pos.x * p_size.x,
+        child.local_pos.y * p_size.y,
         child.local_pos.z
+      };
+      fan::vec3 offset{
+        scaled_local_pos.x * c - scaled_local_pos.y * s,
+        scaled_local_pos.x * s + scaled_local_pos.y * c,
+        scaled_local_pos.z
       };
 
       c_handle->set_position(p_pos + offset);
@@ -716,11 +721,16 @@ namespace fan::graphics{
       fan::vec3 local_pos = child->get_position() - get_position();
       f32_t c = std::cos(-get_angle().z);
       f32_t s = std::sin(-get_angle().z);
+      fan::vec2 p_size = get_size();
+      if (p_size.x == 0) p_size.x = 1;
+      if (p_size.y == 0) p_size.y = 1;
       fan::vec3 neutral_pos{
         local_pos.x * c - local_pos.y * s,
         local_pos.x * s + local_pos.y * c,
         local_pos.z
       };
+      neutral_pos.x /= p_size.x;
+      neutral_pos.y /= p_size.y;
       get_shape_hierarchy()[NRI].push_back({child_nri.gint(), neutral_pos, child->get_size() / get_size(), child->get_angle() - get_angle()});
       get_has_parent()[child_nri.gint()] = NRI;
     }
@@ -763,11 +773,16 @@ namespace fan::graphics{
       fan::vec3 local_pos = child->get_position() - get_position();
       f32_t c = std::cos(-get_angle().z);
       f32_t s = std::sin(-get_angle().z);
+      fan::vec2 p_size = get_size();
+      if (p_size.x == 0) p_size.x = 1;
+      if (p_size.y == 0) p_size.y = 1;
       fan::vec3 neutral_pos{
         local_pos.x * c - local_pos.y * s,
         local_pos.x * s + local_pos.y * c,
         local_pos.z
       };
+      neutral_pos.x /= p_size.x;
+      neutral_pos.y /= p_size.y;
       get_shape_hierarchy()[NRI].push_back({child_nri.gint(), neutral_pos, child->get_size() / get_size(), child->get_angle() - get_angle()});
       get_has_parent()[child_nri.gint()] = NRI;
     }
@@ -1501,11 +1516,19 @@ namespace fan::graphics{
     
     for (auto& c : get_shape_hierarchy()[p_nri]) {
       if (c.shape == NRI) {
-        c.local_pos = local_pos;
-
         fan::graphics::shaper_t::ShapeID_t p_id;
         p_id.NRI = p_nri;
         fan::graphics::shapes::shape_t* p_handle = (fan::graphics::shapes::shape_t*)&p_id;
+
+        fan::vec2 p_size = p_handle->get_size();
+        if (p_size.x == 0) p_size.x = 1;
+        if (p_size.y == 0) p_size.y = 1;
+
+        c.local_pos = {
+          local_pos.x / p_size.x,
+          local_pos.y / p_size.y,
+          local_pos.z
+        };
 
         fan::vec3 p_pos = p_handle->get_position();
         fan::vec3 p_angle = p_handle->get_angle();
@@ -1514,9 +1537,9 @@ namespace fan::graphics{
         f32_t sin_a = std::sin(p_angle.z);
 
         fan::vec3 offset{
-          c.local_pos.x * cos_a - c.local_pos.y * sin_a,
-          c.local_pos.x * sin_a + c.local_pos.y * cos_a,
-          c.local_pos.z
+          local_pos.x * cos_a - local_pos.y * sin_a,
+          local_pos.x * sin_a + local_pos.y * cos_a,
+          local_pos.z
         };
 
         set_position(p_pos + offset);
@@ -1531,8 +1554,13 @@ namespace fan::graphics{
       return get_position();
     }
     
+    fan::graphics::shaper_t::ShapeID_t p_id;
+    p_id.NRI = parent_it->second;
+    fan::graphics::shapes::shape_t* p_handle = (fan::graphics::shapes::shape_t*)&p_id;
+    fan::vec2 p_size = p_handle->get_size();
+
     for (const auto& c : get_shape_hierarchy()[parent_it->second]) {
-      if (c.shape == NRI) return c.local_pos;
+      if (c.shape == NRI) return {c.local_pos.x * p_size.x, c.local_pos.y * p_size.y, c.local_pos.z};
     }
     
     return get_position();
@@ -1579,6 +1607,7 @@ namespace fan::graphics{
     }
     fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_size(this, size);
     update_culling();
+    propagate_to_children(this);
     return *this;
   }
   void shapes::shape_t::set_radius(f32_t radius) {
@@ -1588,6 +1617,7 @@ namespace fan::graphics{
   void shapes::shape_t::set_size3(const fan::vec3& size) {
     fan::graphics::shapes::get_shape_functions()[get_shape_type()].set_size3(this, size);
     update_culling();
+    propagate_to_children(this);
   }
 
   // returns half extents of draw
@@ -3078,11 +3108,17 @@ namespace fan::graphics {
     f32_t c = std::cos(-get_angle().z);
     f32_t s = std::sin(-get_angle().z);
 
+    fan::vec2 p_size = get_size();
+    if (p_size.x == 0) p_size.x = 1;
+    if (p_size.y == 0) p_size.y = 1;
+
     fan::vec3 neutral_pos{
       local_pos.x * c - local_pos.y * s,
       local_pos.x * s + local_pos.y * c,
       local_pos.z
     };
+    neutral_pos.x /= p_size.x;
+    neutral_pos.y /= p_size.y;
 
     auto& v = get_shape_hierarchy()[NRI];
     v.push_back({

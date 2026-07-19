@@ -9,7 +9,6 @@ struct building_t : sprite_t {
   fan::vec2i grid_cell;
   int cells_x = 1;
   int cells_y = 1;
-  shape_t model;
 };
 
 struct building_image_t : image_t {
@@ -147,9 +146,10 @@ struct farm_manager_t {
   void load_model(building_t& b) {
     std::string model_path = "models/" + b.name + ".json";
     if (std::filesystem::exists(fan::io::file::find_relative_path(model_path))) {
-      b.model = fan::graphics::shapes_children_from_json(model_path);
-      b.model.set_position(b.get_position());
-      b.model.start_particles();
+      auto p = b.get_position();
+      static_cast<fan::graphics::shape_t&>(b) = fan::graphics::shapes_children_from_json(model_path);
+      b.set_position(p);
+      b.start_particles();
     }
   }
 
@@ -165,7 +165,7 @@ struct farm_manager_t {
     }
     if (engine.is_mouse_clicked(1)) {
       if (auto b = get_building_at(cell)) {
-        b->model.erase();
+        b->remove_all_children();
         placed_buildings.remove_if([&](const building_t& item) { return &item == b; });
       }
     }
