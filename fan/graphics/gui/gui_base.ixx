@@ -1259,11 +1259,10 @@ export namespace fan::graphics::gui {
   template <typename T>
   bool single_image_selector(str_view_t id, grid_state_t& state, const std::vector<T>& images, int& selected_index, int columns = -1, f32_t base_cell_size = 64.f, fan::vec2 item_spacing = fan::vec2(8.f)) {
     if (images.empty()) return false;
-    
-    bool changed = false;
+
+    int prev = selected_index;
     if (state.selected.empty()) {
       state.selected.insert(selected_index);
-      changed = true;
     }
     if (state.selected.size() > 1) {
       state.selected.clear();
@@ -1284,7 +1283,10 @@ export namespace fan::graphics::gui {
       gui::add_image(draw_list, tex, render_pos, render_pos + render_size);
     });
 
-    return changed;
+    if (!state.selected.empty()) {
+      selected_index = *state.selected.begin();
+    }
+    return selected_index != prev;
   }
 } // namespace fan::graphics::gui
 
