@@ -112,7 +112,7 @@ export namespace fan::graphics::editor {
             new_center.y += diff;
           }
 
-          objects[0]->set_position(fan::vec3(new_center, objects[0]->get_position().z));
+          objects[0]->set_position(fan::vec3(new_center, objects[0]->get_position().z), false);
           objects[0]->set_size(new_size);
           changed = true;
         } else {
@@ -125,13 +125,18 @@ export namespace fan::graphics::editor {
             fan::vec2 snapped_delta = first_target - fan::vec2(objects[0]->get_position());
             if (snapped_delta != fan::vec2(0)) {
               for (auto* obj : objects) {
-                obj->set_position(obj->get_position() + fan::vec3(snapped_delta, 0));
+                fan::vec3 curr = obj->get_position();
+                curr.x += snapped_delta.x;
+                curr.y += snapped_delta.y;
+                obj->set_position(curr, false);
               }
             }
           } else {
             for (std::size_t i = 0; i < objects.size(); ++i) {
-              fan::vec2 new_pos = fan::vec2(multi_drag_start[i]) + mouse_world_delta;
-              objects[i]->set_position(fan::vec3(new_pos, objects[i]->get_position().z));
+              fan::vec3 new_pos = multi_drag_start[i];
+              new_pos.x += mouse_world_delta.x;
+              new_pos.y += mouse_world_delta.y;
+              objects[i]->set_position(new_pos, false);
             }
           }
           changed = true;
@@ -200,7 +205,7 @@ export namespace fan::graphics::editor {
               new_center.y = resize_anchor.y;
             }
 
-            shape.set_position(fan::vec3(new_center, shape.get_position().z));
+            shape.set_position(fan::vec3(new_center, shape.get_position().z), false);
             shape.set_size(new_size);
             changed = true;
           }
@@ -229,14 +234,14 @@ export namespace fan::graphics::editor {
     fan::vec2 drag_mouse_start;
     fan::vec2 resize_anchor;
     fan::vec2 start_size;
-    std::vector<fan::vec2> multi_drag_start;
+    std::vector<fan::vec3> multi_drag_start;
   };
 
   template <typename GlobalT>
   struct selection_t {
     template <typename FGM>
     void update(FGM& fgm, std::vector<std::unique_ptr<GlobalT>>& shape_list, const fan::vec2& mouse_pos, f32_t zoom) {
-      if (fgm.viewport_settings.editor_hovered && fan::window::is_mouse_clicked() && gizmo.active_handle == -1 && !gizmo.is_dragging) {
+      if (fgm.viewport_settings.editor_hovered && fan::window::is_mouse_clicked() && gizmo.active_handle == -1 && !gizmo.is_dragging && !gui::is_any_item_active()) {
         drag_start = mouse_pos;
         bool ctrl = fan::window::is_key_down(fan::key_left_control);
         bool shift = fan::window::is_key_down(fan::key_left_shift);
@@ -303,7 +308,7 @@ export namespace fan::graphics::editor {
         } else {
           moving_object = true;
         }
-      } else if (fgm.viewport_settings.editor_hovered && fan::window::is_mouse_down() && gizmo.active_handle == -1 && !gizmo.is_dragging && fgm.segment_drag_idx == -1) {
+      } else if (fgm.viewport_settings.editor_hovered && fan::window::is_mouse_down() && gizmo.active_handle == -1 && !gizmo.is_dragging && fgm.segment_drag_idx == -1 && !gui::is_any_item_active()) {
         if (moving_object && !objects.empty()) {
           fan::vec2 delta = mouse_pos - drag_start;
           if (!fan::window::is_key_down(fan::key_left_shift) && fgm.snap > 0.0f) {
@@ -312,11 +317,11 @@ export namespace fan::graphics::editor {
             pos.y = std::round(pos.y / fgm.snap) * fgm.snap;
             fan::vec2 snapped_delta = fan::vec2(pos) - fan::vec2(objects[0]->get_position());
             if (snapped_delta != fan::vec2(0)) {
-              for (auto* obj : objects) { obj->set_position(obj->get_position() + fan::vec3(snapped_delta, 0)); }
+              for (auto* obj : objects) { obj->set_position(obj->get_position() + fan::vec3(snapped_delta, 0), false); }
               drag_start += snapped_delta;
             }
           } else if (delta != fan::vec2(0)) {
-            for (auto* obj : objects) { obj->set_position(obj->get_position() + fan::vec3(delta, 0)); }
+            for (auto* obj : objects) { obj->set_position(obj->get_position() + fan::vec3(delta, 0), false); }
             drag_start = mouse_pos;
           }
         } else {

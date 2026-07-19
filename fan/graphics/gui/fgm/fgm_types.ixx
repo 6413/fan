@@ -37,10 +37,11 @@ export namespace fan::graphics::editor {
       void set_position(const fan::vec3& position, bool modify_depth = true) {
         if (children.empty()) return;
         fan::vec2 delta = fan::vec2(position - children[0].get_position());
-        for (auto& child : children) {
+        for (auto i{0uz}; i < children.size(); ++i) {
+          auto& child = children[0];
           fan::vec3 cp = child.get_position();
-          fan::vec3 new_pos = fan::vec3(fan::vec2(cp) + delta, modify_depth ? position.z : cp.z);
-          modify_depth ? child.set_position(new_pos) : child.set_position(fan::vec2(new_pos));
+          fan::vec3 new_pos = fan::vec3(fan::vec2(cp) + delta, i > 1 ? cp.z : position.z);
+          child.set_position(new_pos);
         }
       }
 
