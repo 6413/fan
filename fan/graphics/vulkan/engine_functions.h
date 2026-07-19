@@ -301,7 +301,7 @@ void draw_fullscreen(
   image_infos[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   image_infos[2] = make_image_info(scene);
   image_infos[2].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-  image_infos[3] = make_image_info(scene);
+  image_infos[3] = make_image_info(bloom);
   image_infos[3].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
   VkWriteDescriptorSet writes[4];
