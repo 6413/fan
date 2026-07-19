@@ -108,11 +108,35 @@ inline constexpr auto deviceExtensions = std::to_array<const char*>({
   VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
   VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
 #endif
+  VK_EXT_SHADER_OBJECT_EXTENSION_NAME,
 });
-
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
 void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT debugMessenger, const VkAllocationCallbacks* pAllocator);
+
+export {
+extern PFN_vkCreateShadersEXT fan_vkCreateShadersEXT;
+extern PFN_vkDestroyShaderEXT fan_vkDestroyShaderEXT;
+extern PFN_vkCmdBindShadersEXT fan_vkCmdBindShadersEXT;
+extern PFN_vkCmdSetVertexInputEXT fan_vkCmdSetVertexInputEXT;
+extern PFN_vkCmdSetColorBlendEnableEXT fan_vkCmdSetColorBlendEnableEXT;
+extern PFN_vkCmdSetColorBlendEquationEXT fan_vkCmdSetColorBlendEquationEXT;
+extern PFN_vkCmdSetColorWriteMaskEXT fan_vkCmdSetColorWriteMaskEXT;
+extern PFN_vkCmdSetRasterizerDiscardEnable fan_vkCmdSetRasterizerDiscardEnable;
+extern PFN_vkCmdSetPolygonModeEXT fan_vkCmdSetPolygonModeEXT;
+extern PFN_vkCmdSetDepthTestEnable fan_vkCmdSetDepthTestEnable;
+extern PFN_vkCmdSetDepthWriteEnable fan_vkCmdSetDepthWriteEnable;
+extern PFN_vkCmdSetDepthCompareOp fan_vkCmdSetDepthCompareOp;
+extern PFN_vkCmdSetDepthBoundsTestEnable fan_vkCmdSetDepthBoundsTestEnable;
+extern PFN_vkCmdSetCullMode fan_vkCmdSetCullMode;
+extern PFN_vkCmdSetFrontFace fan_vkCmdSetFrontFace;
+extern PFN_vkCmdSetDepthBiasEnable fan_vkCmdSetDepthBiasEnable;
+extern PFN_vkCmdSetStencilTestEnable fan_vkCmdSetStencilTestEnable;
+extern PFN_vkCmdSetStencilOp fan_vkCmdSetStencilOp;
+extern PFN_vkCmdSetPrimitiveTopology fan_vkCmdSetPrimitiveTopology;
+extern PFN_vkCmdSetPrimitiveRestartEnable fan_vkCmdSetPrimitiveRestartEnable;
+extern PFN_vkCmdSetAlphaToCoverageEnableEXT fan_vkCmdSetAlphaToCoverageEnableEXT;
+}
 
 export namespace fan {
   namespace vulkan {
