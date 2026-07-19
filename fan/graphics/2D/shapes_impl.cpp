@@ -1480,6 +1480,11 @@ namespace fan::graphics{
     }
   }
 
+  void set_particle_pos(shapes::shape_t* shape, fan::vec2 position) {
+    set_particle_pos(shape, fan::vec3(position, shape->get_position().z));
+  }
+
+
   shape_t& shapes::shape_t::set_position(const fan::vec2& position) {
     if (fan::vec2(get_position()) == position) {
       return *this;

@@ -17,7 +17,7 @@
       "position": [
         0.0,
         0.0,
-        2.0
+        0.0
       ],
       "shape": "sprite",
       "size": [
@@ -56,9 +56,9 @@
       "expansion_power": 1.9199999570846558,
       "image_path": "../../../../images/smoke.webp",
       "position": [
-        -153.37828063964844,
-        -54.47117614746094,
-        0.0
+        -153.60708618164063,
+        -53.79374694824219,
+        1.0
       ],
       "shape": "particles",
       "size_random_range": [
@@ -112,9 +112,9 @@
       ],
       "image_path": "../../../../images/smoke.webp",
       "position": [
-        -138.9823760986328,
-        -55.11719512939453,
-        0.0
+        -140.00074768066406,
+        -53.345123291015625,
+        1.0
       ],
       "shape": "particles",
       "spawn_spacing": [
