@@ -173,11 +173,13 @@ export namespace fan::graphics {
   };
 
   struct sprite_t : fan::graphics::shapes::shape_t {
-    using fan::graphics::shapes::shape_t::shape_t;
+    //using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
 
+    sprite_t(const fan::graphics::shapes::shape_t& s) : fan::graphics::shapes::shape_t(s) {}
+    sprite_t(fan::graphics::shapes::shape_t&& s) : fan::graphics::shapes::shape_t(std::move(s)) {}
   #if defined (FAN_JSON)
-    sprite_t(const fan::json&) = delete;
+    //sprite_t(const fan::json&) = delete;
   #endif
 
     sprite_t() = default;

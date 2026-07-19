@@ -4,7 +4,7 @@ layout(local_size_x = 8, local_size_y = 8) in;
 
 layout(set = 0, binding = 0) uniform sampler2D src_lower_mip;
 // Removed dst_mip_read (binding 1) to avoid sampler/storage feedback loop
-layout(set = 0, binding = 2, rgba16f) uniform image2D dst_mip_write;
+layout(set = 0, binding = 2, r11f_g11f_b10f) uniform image2D dst_mip_write;
 
 layout(push_constant) uniform push_constants_t {
   vec4 filter_radius;

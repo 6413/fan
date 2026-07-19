@@ -1123,10 +1123,60 @@ void end_lightmap_pass() {
 }
 
 void begin_render_pass() {
-  begin_lightmap_pass();
+  fan::vulkan::context_t& context = loco.context.vk;
+  VkCommandBuffer cmd = context.command_buffers[context.current_frame];
+  
+  VkImageMemoryBarrier2 main_barrier{};
+  main_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+  main_barrier.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+  main_barrier.srcAccessMask = 0;
+  main_barrier.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+  main_barrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+  main_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED; 
+  main_barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  main_barrier.image = context.mainColorImageViews[context.image_index].image;
+  main_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  main_barrier.subresourceRange.levelCount = 1;
+  main_barrier.subresourceRange.layerCount = 1;
+
+  VkImageMemoryBarrier2 depth_barrier{};
+  depth_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+  depth_barrier.srcStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+  depth_barrier.srcAccessMask = 0;
+  depth_barrier.dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
+  depth_barrier.dstAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+  depth_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  depth_barrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+  depth_barrier.image = context.depthImageViews[context.image_index].image;
+  depth_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+  depth_barrier.subresourceRange.levelCount = 1;
+  depth_barrier.subresourceRange.layerCount = 1;
+
+  VkImageMemoryBarrier2 lightmap_barrier{};
+  lightmap_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+  lightmap_barrier.srcStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
+  lightmap_barrier.srcAccessMask = 0;
+  lightmap_barrier.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+  lightmap_barrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+  lightmap_barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED; 
+  lightmap_barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  lightmap_barrier.image = lightmap_image.image;
+  lightmap_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  lightmap_barrier.subresourceRange.levelCount = 1;
+  lightmap_barrier.subresourceRange.layerCount = 1;
+
+  VkImageMemoryBarrier2 barriers[] = { main_barrier, depth_barrier, lightmap_barrier };
+
+  VkDependencyInfo dep_info{};
+  dep_info.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+  dep_info.imageMemoryBarrierCount = 3;
+  dep_info.pImageMemoryBarriers = barriers;
+  vkCmdPipelineBarrier2(cmd, &dep_info);
+
+  begin_scene_pass(true);
 }
 
-void begin_scene_pass() {
+void begin_scene_pass(bool clear_pass) {
   fan::vulkan::context_t& context = loco.context.vk;
   VkCommandBuffer cmd = context.command_buffers[context.current_frame];
 
@@ -1134,7 +1184,7 @@ void begin_scene_pass() {
   color_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
   color_attachment.imageView = context.mainColorImageViews[context.image_index].image_view;
   color_attachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-  color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  color_attachment.loadOp = clear_pass ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
   color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
   fan::color clear_color = loco.get_clear_color();
   color_attachment.clearValue.color = { { clear_color.r, clear_color.g, clear_color.b, clear_color.a } }; 
@@ -1143,7 +1193,7 @@ void begin_scene_pass() {
   depth_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
   depth_attachment.imageView = context.depthImageViews[context.image_index].image_view;
   depth_attachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-  depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  depth_attachment.loadOp = clear_pass ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_LOAD;
   depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
   depth_attachment.clearValue.depthStencil = { 1.0f, 0 };
 
@@ -1316,7 +1366,7 @@ void begin_draw() {
 
   
   if (loco.get_render_shapes_top() == false) {
-    // shapes_draw() will now handle passes internally
+    begin_render_pass();
   }
 }
 
@@ -1590,9 +1640,16 @@ void shapes_draw() {
   fan::time::global_profiler.end("Buffer Mapping");
   fan::time::global_profiler.begin("Draw Loop passes");
 
+  vkCmdEndRendering(cmd_buffer);
+
   for (std::uint32_t draw_pass = 0; draw_pass < 2; ++draw_pass) {
-    if (draw_pass == 0) begin_lightmap_pass();
-    else begin_scene_pass();
+    if (draw_pass == 0) {
+      begin_lightmap_pass();
+    }
+    else if (draw_pass == 1) {
+      end_lightmap_pass();
+      begin_scene_pass(false);
+    }
     KeyTraverse.Init(shaper);
     viewport.sic();
     camera.sic();
