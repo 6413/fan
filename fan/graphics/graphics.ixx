@@ -540,6 +540,10 @@ export namespace fan::graphics {
     std::string_view json_path,
     const std::source_location& callers_path = std::source_location::current()
   );
+  fan::graphics::shape_t shapes_children_from_json(
+    std::string_view json_path,
+    const std::source_location& callers_path = std::source_location::current()
+  );
   void resolve_json_image_paths(
     fan::json& out,
     std::string_view json_path,
@@ -1488,8 +1492,19 @@ export namespace fan {
     sine,
     pulse,
     ease_in,
-    ease_out
+    ease_out,
+    count
   };
+
+  inline constexpr const char* ease_names[] = {
+    "linear",
+    "sine",
+    "pulse",
+    "ease_in",
+    "ease_out"
+  };
+
+  inline constexpr int ease_count = static_cast<int>(ease_e::count);
 
   f32_t apply_ease(ease_e easing, f32_t t);
 

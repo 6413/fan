@@ -274,22 +274,9 @@ export namespace fan::graphics::editor {
       if (gui::button(is_playing ? "Stop" : "Play", fan::vec2(100, 50))) {
         is_playing = !is_playing;
         if (is_playing) {
-          for (auto& ptr : shape_list) {
-            ptr->dynamic_props.base_color = ptr->get_color();
-          }
           // scene_backup = scene_serializer_t::save_to_string(*this);
           init_physics_scene();
         } else {
-          for (auto& ptr : shape_list) {
-            if (ptr->shape_type == fan::graphics::shapes::shape_type_t::light && ptr->light_props.enable_flicker) {
-              fan::color c = ptr->get_color();
-              c.a = ptr->dynamic_props.base_color.a;
-              ptr->set_color(c);
-            }
-            if (ptr->dynamic_props.target_color.r != 1.0f || ptr->dynamic_props.target_color.g != 1.0f || ptr->dynamic_props.target_color.b != 1.0f || ptr->dynamic_props.target_color.a != 1.0f) {
-              ptr->set_color(ptr->dynamic_props.base_color);
-            }
-          }
           destroy_physics_scene();
         }
       }
@@ -695,29 +682,6 @@ export namespace fan::graphics::editor {
         if (anim.is_playing && anim.owner_shape && !anim.keyframes.empty()) {
           anim.update(gloco()->get_delta_time());
           anim.apply_to_shape(anim.owner_shape);
-        }
-      }
-      if (is_playing) {
-        for (auto& shape_ptr : shape_list) {
-          if (shape_ptr->shape_type == fan::graphics::shapes::shape_type_t::light && shape_ptr->light_props.enable_flicker) {
-            f32_t raw_t = std::fmod(gloco()->time * shape_ptr->light_props.flicker_speed, 2.0f);
-            f32_t t = raw_t < 1.0f ? raw_t : 2.0f - raw_t;
-            f32_t intensity = std::lerp(shape_ptr->light_props.flicker_min, shape_ptr->light_props.flicker_max, fan::apply_ease((fan::ease_e)shape_ptr->light_props.ease_type, t));
-            fan::color c = shape_ptr->get_color();
-            c.a = intensity;
-            shape_ptr->set_color(c);
-          }
-          if (shape_ptr->dynamic_props.target_color.r != 1.0f || shape_ptr->dynamic_props.target_color.g != 1.0f || shape_ptr->dynamic_props.target_color.b != 1.0f || shape_ptr->dynamic_props.target_color.a != 1.0f) {
-            f32_t raw_t = std::fmod(gloco()->time * shape_ptr->dynamic_props.variance_speed, 2.0f);
-            f32_t t = raw_t < 1.0f ? raw_t : 2.0f - raw_t;
-            f32_t factor = fan::apply_ease(static_cast<fan::ease_e>(shape_ptr->dynamic_props.ease_type), t);
-            fan::color c;
-            c.r = std::lerp(shape_ptr->dynamic_props.base_color.r, shape_ptr->dynamic_props.target_color.r, factor);
-            c.g = std::lerp(shape_ptr->dynamic_props.base_color.g, shape_ptr->dynamic_props.target_color.g, factor);
-            c.b = std::lerp(shape_ptr->dynamic_props.base_color.b, shape_ptr->dynamic_props.target_color.b, factor);
-            c.a = std::lerp(shape_ptr->dynamic_props.base_color.a, shape_ptr->dynamic_props.target_color.a, factor);
-            shape_ptr->set_color(c);
-          }
         }
       }
     }
