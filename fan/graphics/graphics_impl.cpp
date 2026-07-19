@@ -894,6 +894,18 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     return out;
   }
 
+  fan::graphics::shape_t shapes_children_from_json(
+    std::string_view json_path,
+    const std::source_location& callers_path) {
+    auto children = shapes_from_json(json_path, callers_path);
+    if (children.empty()) return {};
+    fan::graphics::shape_t parent = std::move(children[0]);
+    if (children.size() > 1) {
+      parent.add_children(std::span{children}.subspan(1));
+    }
+    return parent;
+  }
+
   void resolve_json_image_paths(
     fan::json& out,
     std::string_view json_path,

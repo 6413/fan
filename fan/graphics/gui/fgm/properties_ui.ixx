@@ -4,6 +4,7 @@ export module fan.graphics.editor:properties_ui;
 import std;
 
 import fan.math;
+import fan.graphics;
 import fan.graphics.gui.base;
 import fan.graphics.loco;
 import fan.graphics.scene;
@@ -67,23 +68,72 @@ export namespace fan::graphics::editor {
           if (gui::combo("light_shape", &light_shape, shape_names, 7)) {
             shape->children[0].set_flags(light_shape);
           }
-          gui::checkbox("enable_flicker", &shape->light_props.enable_flicker);
-          if (shape->light_props.enable_flicker) {
-            gui::drag("flicker_speed", &shape->light_props.flicker_speed);
-            gui::drag("flicker_min", &shape->light_props.flicker_min);
-            gui::drag("flicker_max", &shape->light_props.flicker_max);
-            static const char* ease_names[] = { "linear", "sine", "pulse", "ease_in", "ease_out" };
-            gui::combo("ease_type", &shape->light_props.ease_type, ease_names, 5);
+          {
+            uint32_t df = shape->children[0].get_dynamic_flags();
+            bool enable_flicker = df & 1;
+            if (gui::checkbox("enable_flicker", &enable_flicker)) {
+              if (enable_flicker) df |= 1u;
+              else df &= ~1u;
+              shape->children[0].set_dynamic_flags(df);
+            }
+          }
+          if (shape->children[0].get_dynamic_flags() & 1) {
+            {
+              f32_t v = shape->children[0].get_flicker_speed();
+              if (gui::drag("flicker_speed", &v)) {
+                shape->children[0].set_flicker_speed(v);
+              }
+            }
+            {
+              f32_t v = shape->children[0].get_flicker_min();
+              if (gui::drag("flicker_min", &v)) {
+                shape->children[0].set_flicker_min(v);
+              }
+            }
+            {
+              f32_t v = shape->children[0].get_flicker_max();
+              if (gui::drag("flicker_max", &v)) {
+                shape->children[0].set_flicker_max(v);
+              }
+            }
+            {
+              int ease_type = shape->children[0].get_ease_types() & 0xf;
+              if (gui::combo("ease_type", &ease_type, fan::ease_names, fan::ease_count)) {
+                uint32_t et = shape->children[0].get_ease_types();
+                et = (et & ~0xf) | (ease_type & 0xf);
+                shape->children[0].set_ease_types(et);
+              }
+            }
           }
           gui::tree_pop();
         }
       }
       
       if (gui::tree_node_ex("dynamic_properties", gui::tree_node_flags_default_open)) {
-        gui::color_edit4("target_color", &shape->dynamic_props.target_color);
-        gui::drag("variance_speed", &shape->dynamic_props.variance_speed);
-        static const char* ease_names[] = { "linear", "sine", "pulse", "ease_in", "ease_out" };
-        gui::combo("ease_type", &shape->dynamic_props.ease_type, ease_names, 5);
+        {
+          fan::color v = shape->children[0].get_target_color();
+          if (gui::color_edit4("target_color", &v)) {
+            shape->children[0].set_target_color(v);
+            uint32_t df = shape->children[0].get_dynamic_flags();
+            if (v != fan::colors::white) df |= 2u;
+            else df &= ~2u;
+            shape->children[0].set_dynamic_flags(df);
+          }
+        }
+        {
+          f32_t v = shape->children[0].get_variance_speed();
+          if (gui::drag("variance_speed", &v)) {
+            shape->children[0].set_variance_speed(v);
+          }
+        }
+        {
+          int ease_type = (shape->children[0].get_ease_types() >> 4) & 0xf;
+          if (gui::combo("ease_type", &ease_type, fan::ease_names, fan::ease_count)) {
+            uint32_t et = shape->children[0].get_ease_types();
+            et = (et & ~0xf0) | ((ease_type & 0xf) << 4);
+            shape->children[0].set_ease_types(et);
+          }
+        }
         gui::tree_pop();
       }
       if (shape->children[0].get_shape_type() == fan::graphics::shapes::shape_type_t::particles) {

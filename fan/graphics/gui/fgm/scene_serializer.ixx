@@ -165,12 +165,6 @@ export namespace fan::graphics::editor {
         if (instance->children[0].get_flags() != 0) {
           shape_json["flags"] = instance->children[0].get_flags();
         }
-        if (instance->light_props.enable_flicker) {
-          shape_json["light_props"] = instance->light_props.to_json();
-        }
-      }
-      if (instance->dynamic_props.target_color.r != 1.0f || instance->dynamic_props.target_color.g != 1.0f || instance->dynamic_props.target_color.b != 1.0f || instance->dynamic_props.target_color.a != 1.0f) {
-        shape_json["dynamic_props"] = instance->dynamic_props.to_json();
       }
       if (auto found = fgm.shape_original_json.find(instance.get()); found != fgm.shape_original_json.end()) {
         auto original = found->second;
@@ -306,9 +300,30 @@ export namespace fan::graphics::editor {
           }
           if (shape_json.contains("light_props")) {
             node->light_props.from_json(shape_json["light_props"]);
+            auto& shape = node->children[0];
+            std::uint32_t df = shape.get_dynamic_flags();
+            if (node->light_props.enable_flicker) df |= 1u;
+            shape.set_dynamic_flags(df);
+            shape.set_flicker_speed(node->light_props.flicker_speed);
+            shape.set_flicker_min(node->light_props.flicker_min);
+            shape.set_flicker_max(node->light_props.flicker_max);
+            uint32_t et = shape.get_ease_types();
+            et = (et & ~0xf) | (node->light_props.ease_type & 0xf);
+            shape.set_ease_types(et);
           }
           if (shape_json.contains("dynamic_props")) {
             node->dynamic_props.from_json(shape_json["dynamic_props"]);
+            auto& shape = node->children[0];
+            shape.set_target_color(node->dynamic_props.target_color);
+            shape.set_variance_speed(node->dynamic_props.variance_speed);
+            uint32_t et = shape.get_ease_types();
+            et = (et & ~0xf0) | ((node->dynamic_props.ease_type & 0xf) << 4);
+            shape.set_ease_types(et);
+            if (node->dynamic_props.target_color != fan::colors::white) {
+              std::uint32_t df = shape.get_dynamic_flags();
+              df |= 2u;
+              shape.set_dynamic_flags(df);
+            }
           }
           if (final_material_type == 1) {
             node->original_image = node->children[0].get_image();
