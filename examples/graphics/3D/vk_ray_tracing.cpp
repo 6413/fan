@@ -5,9 +5,7 @@ using namespace fan::graphics;
 namespace rt = fan::graphics::vulkan::ray_tracing;
 
 int main() {
-  fan::graphics::engine_t engine {{
-    .renderer = fan::graphics::renderer_t::vulkan,
-  }};
+  fan::graphics::engine_t engine;
 
   rt::context_t renderer(engine);
   renderer.set_light(fan::vec3(0.f, 220.f, -180.f), fan::vec3(1.f, 0.96f, 0.88f), 0.1f);

@@ -89,6 +89,7 @@ export namespace fan::image {
 
   struct async_cache_t {
     std::mutex mutex;
+    std::unordered_map<std::string, std::weak_ptr<async_result_t>> cache;
     std::shared_ptr<async_result_t> load(const std::string& path, fan::vec2ui max_size = 0);
     void clear();
   };

@@ -273,6 +273,12 @@ export namespace fan {
 
       using pipeline_t = fan::vulkan::pipeline_t;
 
+      struct image_cache_entry_t {
+        fan::graphics::image_nr_t nr;
+        std::uint32_t ref_count;
+      };
+      std::unordered_map<std::string, image_cache_entry_t> image_cache;
+
       static constexpr fan::vec2 ortho_x = fan::vec2(-1, 1);
       static constexpr fan::vec2 ortho_y = fan::vec2(-1, 1);
       

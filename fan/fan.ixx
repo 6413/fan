@@ -40,6 +40,7 @@ export import fan.graphics.loco;
   export import fan.graphics.shapes;
   export import fan.graphics;
   export import fan.graphics.scene;
+  export import fan.graphics.grid_placer;
 #endif
 #if defined(FAN_GUI)
   export import fan.console;
