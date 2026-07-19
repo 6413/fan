@@ -444,7 +444,7 @@ void fan::vulkan::context_t::create_instance() {
   appInfo.applicationVersion = VK_MAKE_VERSION(1, 2, 0);
   appInfo.pEngineName = "fan";
   appInfo.engineVersion = VK_MAKE_VERSION(1, 2, 0);
-  appInfo.apiVersion = VK_API_VERSION_1_3;
+  appInfo.apiVersion = VK_API_VERSION_1_4;
 
 
   VkInstanceCreateInfo createInfo {};
@@ -630,6 +630,10 @@ void fan::vulkan::context_t::create_logical_device() {
   vulkan13.dynamicRendering = VK_TRUE;
   vulkan13.synchronization2 = VK_TRUE;
 
+  VkPhysicalDeviceVulkan14Features vulkan14 {};
+  vulkan14.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES;
+  vulkan14.pushDescriptor = VK_TRUE;
+
 #if defined(ENABLE_RAYTRACING_DEPENDENCIES)
   vulkan12.bufferDeviceAddress = VK_TRUE;
 
@@ -642,13 +646,15 @@ void fan::vulkan::context_t::create_logical_device() {
   rt.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
   rt.rayTracingPipeline = VK_TRUE;
 
-  // Chain: features2 → vulkan13 → vulkan12 → accel → rt
-  features2.pNext = &vulkan13;
+  // Chain: features2 → vulkan14 → vulkan13 → vulkan12 → accel → rt
+  features2.pNext = &vulkan14;
+  vulkan14.pNext = &vulkan13;
   vulkan13.pNext = &vulkan12;
   vulkan12.pNext = &accel;
   accel.pNext = &rt;
 #else
-  features2.pNext = &vulkan13;
+  features2.pNext = &vulkan14;
+  vulkan14.pNext = &vulkan13;
   vulkan13.pNext = &vulkan12;
   vulkan12.pNext = nullptr;
 #endif
@@ -886,7 +892,7 @@ void fan::vulkan::context_t::create_allocator() {
   allocator_info.physicalDevice = physical_device;
   allocator_info.device = device;
   allocator_info.instance = instance;
-  allocator_info.vulkanApiVersion = VK_API_VERSION_1_3;
+  allocator_info.vulkanApiVersion = VK_API_VERSION_1_4;
   allocator_info.pAllocationCallbacks = &fan::vulkan::g_allocation_callbacks;
   fan::vulkan::validate(vmaCreateAllocator(&allocator_info, &allocator));
 
