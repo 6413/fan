@@ -22,10 +22,15 @@ export namespace fan::graphics {
       return pos.grid_floor(tile_size);
     }
 
+    inline fan::vec2i cells_occupied(fan::vec2 custom_scale) const {
+      return {std::max(1, (int)std::round(custom_scale.x)),
+              std::max(1, (int)std::round(custom_scale.y))};
+    }
+
     inline fan::vec3 get_placement(fan::vec2i cell, fan::vec2 object_size, float custom_scale_x = 1.0f) const {
-      int cells_occupied = std::max(1, (int)std::round(custom_scale_x));
+      auto co = cells_occupied({custom_scale_x, 1});
       fan::vec2 pos(
-        cell.x + (cells_occupied * tile_size.x) / 2.f,
+        cell.x + (co.x * tile_size.x) / 2.f,
         cell.y + tile_size.y - object_size.y / 2.f
       );
       return fan::vec3(pos, get_z_depth(pos.y + object_size.y / 2.f));
