@@ -62,6 +62,11 @@ export namespace fan::graphics::editor {
 
       if (shape->shape_type == fan::graphics::shapes::shape_type_t::light) {
         if (gui::tree_node("light_properties")) {
+          int light_shape = shape->children[0].get_flags();
+          static const char* shape_names[] = { "Circle", "Square Falloff", "Square", "Directional Left", "Directional Right", "Directional Up", "Directional Down" };
+          if (gui::combo("light_shape", &light_shape, shape_names, 7)) {
+            shape->children[0].set_flags(light_shape);
+          }
           gui::checkbox("enable_flicker", &shape->light_props.enable_flicker);
           if (shape->light_props.enable_flicker) {
             gui::drag("flicker_speed", &shape->light_props.flicker_speed, 0.1f);
