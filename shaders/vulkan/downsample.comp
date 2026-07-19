@@ -1,0 +1,85 @@
+#version 450
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(set = 0, binding = 0) uniform sampler2D src_tex;
+layout(set = 0, binding = 1, rgba16f) uniform writeonly image2D dst_tex;
+
+layout(push_constant) uniform push_constants_t {
+  vec4 resolution_threshold_knee_mip;
+  vec4 mode;
+} pc;
+
+vec3 apply_threshold(vec3 col) {
+  float threshold = pc.resolution_threshold_knee_mip.z;
+  float knee = pc.resolution_threshold_knee_mip.w;
+  float brightness = max(col.r, max(col.g, col.b));
+
+  if (threshold <= 0.0) {
+    return col;
+  }
+
+  float rq = clamp(brightness - threshold + knee, 0.0, 2.0 * knee);
+  rq = (rq * rq) / (4.0 * knee + 0.0001);
+  float mask = max(rq, brightness - threshold) / max(brightness, 0.0001);
+  return col * mask;
+}
+
+void main() {
+  ivec2 dst_coords = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 dst_size = imageSize(dst_tex);
+  if (dst_coords.x >= dst_size.x || dst_coords.y >= dst_size.y) {
+    return;
+  }
+
+  vec2 srcTexelSize = 1.0 / pc.resolution_threshold_knee_mip.xy;
+  float x = srcTexelSize.x;
+  float y = srcTexelSize.y;
+  int mipLevel = int(pc.mode.x + 0.5);
+
+  vec2 texture_coordinate = (vec2(dst_coords) + 0.5) / vec2(dst_size);
+  vec4 o_color;
+
+  if (mipLevel == 0) {
+    vec3 center = texture(src_tex, texture_coordinate).rgb;
+    vec3 a = texture(src_tex, vec2(texture_coordinate.x - x, texture_coordinate.y + y)).rgb;
+    vec3 b = texture(src_tex, vec2(texture_coordinate.x + x, texture_coordinate.y + y)).rgb;
+    vec3 c = texture(src_tex, vec2(texture_coordinate.x - x, texture_coordinate.y - y)).rgb;
+    vec3 d = texture(src_tex, vec2(texture_coordinate.x + x, texture_coordinate.y - y)).rgb;
+
+    center = apply_threshold(center);
+    a = apply_threshold(a);
+    b = apply_threshold(b);
+    c = apply_threshold(c);
+    d = apply_threshold(d);
+
+    o_color = vec4((center + a + b + c + d) * 0.2, 1.0);
+  }
+  else {
+    vec3 a = texture(src_tex, vec2(texture_coordinate.x - 2.0 * x, texture_coordinate.y + 2.0 * y)).rgb;
+    vec3 b = texture(src_tex, vec2(texture_coordinate.x,           texture_coordinate.y + 2.0 * y)).rgb;
+    vec3 c = texture(src_tex, vec2(texture_coordinate.x + 2.0 * x, texture_coordinate.y + 2.0 * y)).rgb;
+
+    vec3 d = texture(src_tex, vec2(texture_coordinate.x - 2.0 * x, texture_coordinate.y)).rgb;
+    vec3 e = texture(src_tex, vec2(texture_coordinate.x,           texture_coordinate.y)).rgb;
+    vec3 f = texture(src_tex, vec2(texture_coordinate.x + 2.0 * x, texture_coordinate.y)).rgb;
+
+    vec3 g = texture(src_tex, vec2(texture_coordinate.x - 2.0 * x, texture_coordinate.y - 2.0 * y)).rgb;
+    vec3 h = texture(src_tex, vec2(texture_coordinate.x,           texture_coordinate.y - 2.0 * y)).rgb;
+    vec3 i = texture(src_tex, vec2(texture_coordinate.x + 2.0 * x, texture_coordinate.y - 2.0 * y)).rgb;
+
+    vec3 j = texture(src_tex, vec2(texture_coordinate.x - x, texture_coordinate.y + y)).rgb;
+    vec3 k = texture(src_tex, vec2(texture_coordinate.x + x, texture_coordinate.y + y)).rgb;
+    vec3 l = texture(src_tex, vec2(texture_coordinate.x - x, texture_coordinate.y - y)).rgb;
+    vec3 m = texture(src_tex, vec2(texture_coordinate.x + x, texture_coordinate.y - y)).rgb;
+
+    vec3 col = e * 0.125;
+    col += (a + c + g + i) * 0.03125;
+    col += (b + d + f + h) * 0.0625;
+    col += (j + k + l + m) * 0.125;
+
+    o_color = vec4(max(col, 0.0001), 1.0);
+  }
+
+  imageStore(dst_tex, dst_coords, o_color);
+}

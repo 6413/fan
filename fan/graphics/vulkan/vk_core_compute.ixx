@@ -13,6 +13,7 @@ export module fan.graphics.vulkan.core:compute;
 import std;
 
 import :image;
+import fan.graphics.common_context;
 
 export namespace fan::vulkan {
   struct context_t;
@@ -25,7 +26,14 @@ export namespace fan::vulkan {
       VkShaderStageFlags stage_flags = VK_SHADER_STAGE_COMPUTE_BIT;
     };
 
+    struct properties_t {
+      std::vector<VkDescriptorSetLayout> descriptor_layouts;
+      fan::graphics::shader_nr_t shader;
+      std::uint32_t push_constants_size = 0;
+    };
+
     void open(fan::vulkan::context_t& context, const std::string& path, VkDeviceSize push_size, const std::vector<binding_t>& bindings);
+    void open(fan::vulkan::context_t& context, const properties_t& p);
     void close(fan::vulkan::context_t& context);
     void dispatch(fan::vulkan::context_t& context, VkCommandBuffer cmd, VkDescriptorSet descriptor_set, const void* push, std::uint32_t x, std::uint32_t y, std::uint32_t z) const;
 

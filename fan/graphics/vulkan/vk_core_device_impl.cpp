@@ -883,7 +883,7 @@ void fan::vulkan::context_t::create_render_pass() {
   mainToExtDep.srcSubpass = 0;
   mainToExtDep.dstSubpass = VK_SUBPASS_EXTERNAL;
   mainToExtDep.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  mainToExtDep.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+  mainToExtDep.dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
   mainToExtDep.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
   mainToExtDep.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
   mainToExtDep.dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
@@ -1269,6 +1269,42 @@ void fan::vulkan::compute_pipeline_t::open(fan::vulkan::context_t& context, cons
   pipeline_info.layout = pipeline_layout;
   fan::vulkan::validate(vkCreateComputePipelines(context.device, context.pipeline_cache, 1, &pipeline_info, nullptr, &pipeline));
   vkDestroyShaderModule(context.device, shader, nullptr);
+}
+
+void fan::vulkan::compute_pipeline_t::open(fan::vulkan::context_t& context, const properties_t& p) {
+  push_size = p.push_constants_size;
+  descriptor_layout = VK_NULL_HANDLE;
+
+  VkPushConstantRange push_range{};
+  push_range.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+  push_range.offset = 0;
+  push_range.size = (std::uint32_t)push_size;
+
+  VkPipelineLayoutCreateInfo layout_info{};
+  layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+  layout_info.setLayoutCount = (std::uint32_t)p.descriptor_layouts.size();
+  layout_info.pSetLayouts = p.descriptor_layouts.data();
+  layout_info.pushConstantRangeCount = push_size == 0 ? 0 : 1;
+  layout_info.pPushConstantRanges = push_size == 0 ? nullptr : &push_range;
+  fan::vulkan::validate(vkCreatePipelineLayout(context.device, &layout_info, nullptr, &pipeline_layout));
+
+  auto shader_ref = context.shaders.shader_get(p.shader);
+  VkShaderModule compute_module = VK_NULL_HANDLE;
+  for (int i = 0; i < 3; ++i) {
+    if (shader_ref.shader_stages[i].module != VK_NULL_HANDLE && shader_ref.shader_stages[i].stage == VK_SHADER_STAGE_COMPUTE_BIT) {
+      compute_module = shader_ref.shader_stages[i].module;
+      break;
+    }
+  }
+
+  VkComputePipelineCreateInfo pipeline_info{};
+  pipeline_info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+  pipeline_info.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+  pipeline_info.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+  pipeline_info.stage.module = compute_module;
+  pipeline_info.stage.pName = "main";
+  pipeline_info.layout = pipeline_layout;
+  fan::vulkan::validate(vkCreateComputePipelines(context.device, context.pipeline_cache, 1, &pipeline_info, nullptr, &pipeline));
 }
 void fan::vulkan::compute_pipeline_t::close(fan::vulkan::context_t& context) {
   if (pipeline != VK_NULL_HANDLE) { vkDestroyPipeline(context.device, pipeline, nullptr); }
