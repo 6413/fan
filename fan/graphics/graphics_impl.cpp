@@ -900,8 +900,9 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     auto children = shapes_from_json(json_path, callers_path);
     if (children.empty()) return {};
     fan::graphics::shape_t parent = std::move(children[0]);
-    if (children.size() > 1) {
-      parent.add_children(std::span{children}.subspan(1));
+    for (std::size_t i = 1; i < children.size(); ++i) {
+      parent.add_child(children[i]);
+      children[i].sic();
     }
     return parent;
   }
