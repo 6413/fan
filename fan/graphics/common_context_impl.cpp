@@ -893,6 +893,20 @@ namespace fan::graphics::image_presets {
     props.mag_filter = fan::graphics::image_filter_e::linear;
     return props;
   }
+} // namespace fan::graphics::image_presets
+
+namespace fan::graphics {
+  static std::vector<std::function<void()>>& get_destruct_queue() {
+    static std::vector<std::function<void()>> q;
+    return q;
+  }
+  void push_destruct_callback(std::function<void()> fn) {
+    get_destruct_queue().push_back(std::move(fn));
+  }
+  void flush_destruct_callbacks() {
+    for (auto& fn : get_destruct_queue()) fn();
+    get_destruct_queue().clear();
+  }
 }
 
 #endif
