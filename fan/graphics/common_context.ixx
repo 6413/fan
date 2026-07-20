@@ -780,6 +780,8 @@ export namespace fan::graphics {
   next_frame_awaiter co_next_frame() {
     return {};
   }
+  void push_destruct_callback(std::function<void()> fn);
+  void flush_destruct_callbacks();
 }
 
 

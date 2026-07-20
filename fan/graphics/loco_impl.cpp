@@ -1453,6 +1453,10 @@ void loco_t::destroy() {
   fan::uv::run((fan::uv::loop_t*)fan::event::get_loop(), fan::uv::run_default);
 
 #if defined(FAN_2D)
+  static_render_list.clear();
+  immediate_render_list.clear();
+  shapes.immediate_shape_caches.clear();
+  fan::graphics::flush_destruct_callbacks();
   {
     fan::graphics::shapes::shape_ids_t::nrtra_t nrtra;
     fan::graphics::shapes::shape_ids_t::nr_t nr;
@@ -1463,9 +1467,6 @@ void loco_t::destroy() {
     nrtra.Close(&fan::graphics::g_shapes->shape_ids);
   }
   shapes.shapes_destroy_pools(&shapes);
-  static_render_list.clear();
-  immediate_render_list.clear();
-  shapes.immediate_shape_caches.clear();
   delete ((fan::graphics::culling::culling_t*)shapes.visibility);
   shapes.visibility = nullptr;
 #endif

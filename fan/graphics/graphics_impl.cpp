@@ -825,6 +825,15 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     return json_cache;
   }
 
+  void clear_json_shape_cache() {
+    get_json_cache().clear();
+  }
+
+  static int _register_json_cache_clear = []() {
+    fan::graphics::push_destruct_callback([]() { get_json_cache().clear(); });
+    return 0;
+  }();
+
   static void load_json_shapes(
     std::string_view json_path,
     const std::source_location& callers_path)
