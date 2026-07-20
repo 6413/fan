@@ -289,6 +289,9 @@ void loco_t::shader_recompile_all() {
 f32_t* loco_t::get_bloom_filter_radius_ptr() { return &vk->bloom_filter_radius; }
 f32_t* loco_t::get_bloom_threshold_ptr()     { return &vk->bloom_threshold; }
 f32_t* loco_t::get_bloom_knee_ptr()          { return &vk->bloom_knee; }
+f32_t* loco_t::get_bloom_smooth_rate_ptr()   { return &vk->bloom_smooth_rate; }
+f32_t* loco_t::get_bloom_luma_scale_ptr()    { return &vk->bloom_luma_scale; }
+f32_t* loco_t::get_bloom_adaptation_blend_ptr() { return &vk->bloom_adaptation_blend; }
 fan::vec3* loco_t::get_bloom_tint_ptr()      { return &vk->bloom_tint; }
 f32_t* loco_t::get_bloom_strength_ptr()      { return &vk->bloom_strength; }
 f32_t* loco_t::get_gamma_ptr()               { return &vk->gamma; }
@@ -302,6 +305,9 @@ void loco_t::set_settings(const post_process_settings_t& settings) {
   if (settings.bloom_strength) *get_bloom_strength_ptr() = *settings.bloom_strength;
   if (settings.bloom_threshold) *get_bloom_threshold_ptr() = *settings.bloom_threshold;
   if (settings.bloom_knee) *get_bloom_knee_ptr() = *settings.bloom_knee;
+  if (settings.bloom_smooth_rate) *get_bloom_smooth_rate_ptr() = *settings.bloom_smooth_rate;
+  if (settings.bloom_luma_scale) *get_bloom_luma_scale_ptr() = *settings.bloom_luma_scale;
+  if (settings.bloom_adaptation_blend) *get_bloom_adaptation_blend_ptr() = *settings.bloom_adaptation_blend;
   if (settings.bloom_tint) *get_bloom_tint_ptr() = *settings.bloom_tint;
   if (settings.bloom_filter_radius) *get_bloom_filter_radius_ptr() = *settings.bloom_filter_radius;
   if (settings.blur_amount) open_props.blur_amount = *settings.blur_amount;
@@ -310,6 +316,24 @@ void loco_t::set_settings(const post_process_settings_t& settings) {
   if (settings.gamma) *get_gamma_ptr() = *settings.gamma;
   if (settings.exposure) *get_exposure_ptr() = *settings.exposure;
   if (settings.contrast) *get_contrast_ptr() = *settings.contrast;
+
+#if defined(FAN_GUI)
+  auto* sm = get_smenu(this);
+  if (sm) {
+    auto& pp = sm->config.post_processing;
+    if (settings.bloom_strength) pp.bloom_strength = *settings.bloom_strength;
+    if (settings.bloom_threshold) pp.bloom_threshold = *settings.bloom_threshold;
+    if (settings.bloom_knee) pp.bloom_knee = *settings.bloom_knee;
+    if (settings.bloom_smooth_rate) pp.bloom_smooth_rate = *settings.bloom_smooth_rate;
+    if (settings.bloom_luma_scale) pp.bloom_luma_scale = *settings.bloom_luma_scale;
+    if (settings.bloom_adaptation_blend) pp.bloom_adaptation_blend = *settings.bloom_adaptation_blend;
+    if (settings.bloom_tint) pp.bloom_tint = *settings.bloom_tint;
+    if (settings.bloom_filter_radius) pp.bloom_filter_radius = *settings.bloom_filter_radius;
+    if (settings.gamma) pp.gamma = *settings.gamma;
+    if (settings.exposure) pp.exposure = *settings.exposure;
+    if (settings.contrast) pp.contrast = *settings.contrast;
+  }
+#endif
 }
 #endif
 
@@ -1355,6 +1379,10 @@ loco_t::loco_t(const loco_t::properties_t& props) :
           props.color_blend_attachments = { attachment };
 
           st.renderer.vk.pipeline.open(context.vk, props);
+        }
+        if (nr == vk->post_process_shader || nr == vk->bloom_downsample_shader || nr == vk->bloom_upsample_shader) {
+          vk->close_post_process_pipelines();
+          vk->open_post_process_pipelines();
         }
   #endif
       });
