@@ -136,6 +136,8 @@ extern PFN_vkCmdSetStencilOp fan_vkCmdSetStencilOp;
 extern PFN_vkCmdSetPrimitiveTopology fan_vkCmdSetPrimitiveTopology;
 extern PFN_vkCmdSetPrimitiveRestartEnable fan_vkCmdSetPrimitiveRestartEnable;
 extern PFN_vkCmdSetAlphaToCoverageEnableEXT fan_vkCmdSetAlphaToCoverageEnableEXT;
+extern PFN_vkCmdSetRasterizationSamplesEXT fan_vkCmdSetRasterizationSamplesEXT;
+extern PFN_vkCmdSetSampleMaskEXT fan_vkCmdSetSampleMaskEXT;
 }
 
 export namespace fan {
@@ -501,6 +503,7 @@ export namespace fan {
       std::vector<VkSemaphore> render_finished_semaphores;
       std::vector<VkFence> in_flight_fences;
       std::uint32_t current_frame = 0;
+      std::uint32_t begin_count = 0;
 
 
       fan::window_t::resize_handle_t window_resize_handle;

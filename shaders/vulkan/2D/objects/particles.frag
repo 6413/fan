@@ -13,7 +13,7 @@ layout(push_constant) uniform constants_t {
   uint texture_id3;
   uint pad0;
   uint pad1;
-  uint pad2;
+  float ambient_floor;
   vec4 lighting_ambient;
 } constants;
 

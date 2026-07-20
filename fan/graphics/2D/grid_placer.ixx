@@ -10,7 +10,7 @@ export namespace fan::graphics {
     
     float z_min = 1.f;
     float z_max = 65535.f;
-    float z_offset = 32768.f;
+    float z_offset = 2000.f;
 
     grid_placer_t(fan::vec2 ts) : tile_size(ts) {}
 
