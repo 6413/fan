@@ -855,7 +855,7 @@ void fan::vulkan::context_t::create_image_views() {
   fan::vulkan::vai_t::properties_t vp{
     .swap_chain_size = swap_chain_size,
     .format = main_color_format,
-    .usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+    .usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
     .aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT
   };
   fan::vulkan::vai_t::properties_t depth_vp = vp;
@@ -1621,11 +1621,9 @@ VkResult fan::vulkan::context_t::end_render(fan::window_t* window) {
   return result;
 }
 VkSurfaceFormatKHR fan::vulkan::context_t::choose_swap_surface_format(const std::vector<VkSurfaceFormatKHR>& available_formats) {
-  for (const auto& availableFormat : available_formats) {
-    // VK_FORMAT_B8G8R8A8_SRGB
-
-    if (availableFormat.format == VK_FORMAT_B8G8R8A8_UNORM && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
-      return availableFormat;
+  for (const auto& available_format : available_formats) {
+    if (available_format.format == VK_FORMAT_B8G8R8A8_SRGB && available_format.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
+      return available_format;
     }
   }
 
