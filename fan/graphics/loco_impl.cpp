@@ -1084,14 +1084,16 @@ void loco_t::destroy_gui() {
     return;
   }
 
+  context.vk.gui_close();
+
   ::gui::shutdown_graphics_context(
     context.vk.device
   );
 
+  context.vk.gui_close_finish();
+
   ::gui::destroy();
   gui.gui_initialized = false;
-
-  context.vk.gui_close();
 }
 #endif
 

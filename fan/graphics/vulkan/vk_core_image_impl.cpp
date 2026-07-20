@@ -294,7 +294,7 @@ std::uint64_t fan::vulkan::context_t::image_get_handle(fan::graphics::image_nr_t
   if (img.gui_descriptor_set == VK_NULL_HANDLE ||
     img.gui_image_view != img.image_view ||
     img.gui_sampler != img.sampler) {
-    if (img.gui_descriptor_set != VK_NULL_HANDLE) {
+    if (img.gui_descriptor_set != VK_NULL_HANDLE && ImGui::GetCurrentContext() != nullptr) {
       ImGui_ImplVulkan_RemoveTexture(img.gui_descriptor_set);
     }
     img.gui_descriptor_set = ImGui_ImplVulkan_AddTexture(
@@ -356,7 +356,7 @@ void fan::vulkan::context_t::image_erase(fan::graphics::image_nr_t nr, int recyc
     staging_alloc = img.staging_allocation
   ]() mutable {
     #if defined(FAN_GUI)
-      if (gui_ds != VK_NULL_HANDLE) ImGui_ImplVulkan_RemoveTexture(gui_ds);
+      if (gui_ds != VK_NULL_HANDLE && ImGui::GetCurrentContext() != nullptr && ImGui::GetIO().BackendRendererUserData != nullptr) ImGui_ImplVulkan_RemoveTexture(gui_ds);
     #endif
     if (sampler != VK_NULL_HANDLE) vkDestroySampler(dev, sampler, nullptr);
     if (view != VK_NULL_HANDLE) vkDestroyImageView(dev, view, nullptr);

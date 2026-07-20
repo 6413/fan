@@ -825,7 +825,9 @@ namespace fan::graphics{
       stop_sprite_sheet();
     }
 
-    fan::graphics::culling::remove_shape(*((fan::graphics::culling::culling_t*)g_shapes->visibility), get_id());
+    if (g_shapes->visibility) {
+      fan::graphics::culling::remove_shape(*((fan::graphics::culling::culling_t*)g_shapes->visibility), get_id());
+    }
 
 
     if (get_visual_id().iic() == false) {
@@ -4348,7 +4350,9 @@ void fan::graphics::shapes::remove_shape(shape_nr_t id) {
   gid.gint() = id;
   auto& sd = shape_ids[gid];
 
-  shape_props_freers[sd.shape_type](shape_pool_storage[sd.shape_type], sd.data_nr);
+  if (shape_props_freers[sd.shape_type]) {
+    shape_props_freers[sd.shape_type](shape_pool_storage[sd.shape_type], sd.data_nr);
+  }
 
   shape_ids.unlrec(gid);
 }
@@ -4378,7 +4382,9 @@ void fan::graphics::shapes::visibility_remove(shape_nr_t id) {
     return;
   }
 
-  fan::graphics::culling::remove_shape(*(fan::graphics::culling::culling_t*)visibility, sd.visual);
+  if (visibility) {
+    fan::graphics::culling::remove_shape(*(fan::graphics::culling::culling_t*)visibility, sd.visual);
+  }
   shaper.remove(sd.visual);
   sd.visual.sic();
 }
