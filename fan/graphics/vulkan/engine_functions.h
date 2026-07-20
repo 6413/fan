@@ -338,11 +338,11 @@ void draw_fullscreen(
   image_infos[0] = make_image_info(scene);
   image_infos[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   image_infos[1] = make_image_info(bloom);
-  image_infos[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  image_infos[1].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
   image_infos[2] = make_image_info(scene);
   image_infos[2].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   image_infos[3] = make_image_info(bloom);
-  image_infos[3].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  image_infos[3].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
   VkWriteDescriptorSet writes[4];
   for (uint32_t i = 0; i < 4; ++i) {
@@ -412,6 +412,8 @@ void open_bloom_chains() {
       p.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
       mip.image.open(context, p);
       mip.image.transition_image_layout(context, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_ASPECT_COLOR_BIT);
+      context.set_debug_name(VK_OBJECT_TYPE_IMAGE, (uint64_t)mip.image.image, 
+        ("bloom_chain[" + std::to_string(image_i) + "].mips[" + std::to_string(mip_i) + "]").c_str());
 
       mip_size.x = std::max<std::uint32_t>(1, mip_size.x / 2);
       mip_size.y = std::max<std::uint32_t>(1, mip_size.y / 2);
@@ -429,6 +431,8 @@ void open_bloom_chains() {
     p.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
     lum.tile_image.open(context, p);
     lum.tile_image.transition_image_layout(context, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_ASPECT_COLOR_BIT);
+    context.set_debug_name(VK_OBJECT_TYPE_IMAGE, (uint64_t)lum.tile_image.image,
+      ("bloom_luminance[" + std::to_string(image_i) + "]").c_str());
   }
 
   float initial[2] = {0.2f, 0.2f};
@@ -593,6 +597,7 @@ void open_lightmap_resources() {
     .usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
     .aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT,
   });
+  context.set_debug_name(VK_OBJECT_TYPE_IMAGE, (uint64_t)lightmap_image.image, "lightmap");
   lightmap_resources_open = true;
 }
 
@@ -775,7 +780,7 @@ void draw_bloom() {
     barrier.srcAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
     barrier.dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
     barrier.dstAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
-    barrier.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
     barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -916,32 +921,6 @@ pc.filter_radius = fan::vec4(texel_size.x * (1.0f + bloom_filter_radius), texel_
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.image = next_mip.image.image;
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = 1;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
-
-    VkDependencyInfo dep_info{};
-    dep_info.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-    dep_info.imageMemoryBarrierCount = 1;
-    dep_info.pImageMemoryBarriers = &barrier;
-    vkCmdPipelineBarrier2(cmd, &dep_info);
-  }
-
-  // Final transition for mip[0] to SHADER_READ_ONLY_OPTIMAL for the tonemap pass
-  if (!chain.mips.empty()) {
-    VkImageMemoryBarrier2 barrier{};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-    barrier.srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
-    barrier.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
-    barrier.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-    barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
-    barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-    barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = chain.mips[0].image.image;
     barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     barrier.subresourceRange.baseMipLevel = 0;
     barrier.subresourceRange.levelCount = 1;
