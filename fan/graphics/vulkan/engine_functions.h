@@ -13,12 +13,12 @@ VkDescriptorSetLayout luminance_descriptor_layout = VK_NULL_HANDLE;
 bool post_process_resources_open = false;
 std::uint32_t bloom_mip_count = 6;
 f32_t bloom_filter_radius = 0.1f;
-f32_t bloom_threshold = 0.0f;
+f32_t bloom_threshold = 0.3f;
 f32_t bloom_knee = 0.1f;
 f32_t bloom_strength = 0.0445f;
 f32_t bloom_intensity = 1.0f;
 f32_t bloom_dirt_intensity = 0.0f;
-f32_t bloom_strength_scale = 0.1f;
+f32_t bloom_strength_scale = 1.0f;
 f32_t gamma = 1.0f;
 f32_t exposure = 1.0f;
 f32_t contrast = 1.0f;
@@ -59,7 +59,7 @@ struct bloom_luminance_t {
 std::vector<bloom_luminance_t> bloom_luminances;
 fan::vulkan::buffer_t bloom_history_buffer;
 f32_t bloom_smooth_rate = 5.0f;
-f32_t bloom_luma_scale = 3.0f;
+f32_t bloom_luma_scale = 4.0f;
 f32_t bloom_adaptation_blend = 0.0f;
 
 struct particles_gpu_t {
@@ -282,11 +282,34 @@ void set_viewport(VkCommandBuffer cmd, fan::vec2ui size) {
   viewport.minDepth = 0.0f;
   viewport.maxDepth = 1.0f;
   vkCmdSetViewport(cmd, 0, 1, &viewport);
+  vkCmdSetViewportWithCount(cmd, 1, &viewport);
 
   VkRect2D scissor{};
   scissor.offset = {0, 0};
   scissor.extent = {size.x, size.y};
   vkCmdSetScissor(cmd, 0, 1, &scissor);
+  vkCmdSetScissorWithCount(cmd, 1, &scissor);
+}
+
+void set_default_dynamic_state(VkCommandBuffer cmd) {
+  fan_vkCmdSetStencilTestEnable(cmd, VK_FALSE);
+  fan_vkCmdSetDepthBiasEnable(cmd, VK_FALSE);
+  fan_vkCmdSetRasterizationSamplesEXT(cmd, VK_SAMPLE_COUNT_1_BIT);
+  VkSampleMask mask = 0xFFFFFFFF;
+  fan_vkCmdSetSampleMaskEXT(cmd, VK_SAMPLE_COUNT_1_BIT, &mask);
+  fan_vkCmdSetAlphaToCoverageEnableEXT(cmd, VK_FALSE);
+  VkColorComponentFlags write_mask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+  fan_vkCmdSetColorWriteMaskEXT(cmd, 0, 1, &write_mask);
+  fan_vkCmdSetPrimitiveRestartEnable(cmd, VK_FALSE);
+  fan_vkCmdSetVertexInputEXT(cmd, 0, nullptr, 0, nullptr);
+  VkColorBlendEquationEXT blend_eq{};
+  blend_eq.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+  blend_eq.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+  blend_eq.colorBlendOp = VK_BLEND_OP_ADD;
+  blend_eq.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+  blend_eq.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+  blend_eq.alphaBlendOp = VK_BLEND_OP_ADD;
+  fan_vkCmdSetColorBlendEquationEXT(cmd, 0, 1, &blend_eq);
 }
 
 void draw_fullscreen(
@@ -1281,6 +1304,7 @@ void begin_lightmap_pass() {
   render_info.pColorAttachments = &lightmap_attachment;
 
   vkCmdBeginRendering(cmd, &render_info);
+  set_default_dynamic_state(cmd);
 }
 
 void end_lightmap_pass() {
@@ -1392,6 +1416,7 @@ void begin_scene_pass(bool clear_pass) {
   render_info.pDepthAttachment = &depth_attachment;
   
   vkCmdBeginRendering(cmd, &render_info);
+  set_default_dynamic_state(cmd);
 }
 
 // Ensure begin_render_pass compiles away or redirect to scene pass if something else calls it.
@@ -1401,7 +1426,7 @@ void begin_draw() {
   fan::vulkan::context_t& context = loco.context.vk;
   vkWaitForFences(context.device, 1, &context.in_flight_fences[context.current_frame], VK_TRUE, UINT64_MAX);
 
-  if (context.timestamp_query_pool) {
+  if (context.timestamp_query_pool && ++context.begin_count > fan::vulkan::max_frames_in_flight) {
     vkGetQueryPoolResults(
       context.device,
       context.timestamp_query_pool,
@@ -1600,12 +1625,14 @@ void shapes_draw() {
     vk_viewport.minDepth = 0.0f;
     vk_viewport.maxDepth = 1.0f;
     vkCmdSetViewport(cmd_buffer, 0, 1, &vk_viewport);
+    vkCmdSetViewportWithCount(cmd_buffer, 1, &vk_viewport);
 
     VkRect2D scissor = {};
     scissor.offset.x = viewport_data.position.x;
     scissor.offset.y = viewport_data.position.y;
     scissor.extent = viewport_data.size;
     vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
+    vkCmdSetScissorWithCount(cmd_buffer, 1, &scissor);
   };
 
   auto prepare = [&] (std::uint16_t shape_type, fan::graphics::shader_t shape_shader_nr) -> fan::vulkan::context_t::pipeline_t& {

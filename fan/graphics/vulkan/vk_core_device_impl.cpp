@@ -81,6 +81,8 @@ PFN_vkCmdSetStencilOp fan_vkCmdSetStencilOp = nullptr;
 PFN_vkCmdSetPrimitiveTopology fan_vkCmdSetPrimitiveTopology = nullptr;
 PFN_vkCmdSetPrimitiveRestartEnable fan_vkCmdSetPrimitiveRestartEnable = nullptr;
 PFN_vkCmdSetAlphaToCoverageEnableEXT fan_vkCmdSetAlphaToCoverageEnableEXT = nullptr;
+PFN_vkCmdSetRasterizationSamplesEXT fan_vkCmdSetRasterizationSamplesEXT = nullptr;
+PFN_vkCmdSetSampleMaskEXT fan_vkCmdSetSampleMaskEXT = nullptr;
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
   auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
@@ -501,8 +503,8 @@ void fan::vulkan::context_t::create_instance() {
 void fan::vulkan::context_t::populate_debug_messenger_create_info(VkDebugUtilsMessengerCreateInfoEXT& create_info) {
   create_info = {};
   create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-  create_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-  create_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+  create_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+  create_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
   create_info.pfnUserCallback = debug_callback;
 }
 void fan::vulkan::context_t::setup_debug_messenger() {
@@ -520,6 +522,7 @@ void fan::vulkan::context_t::setup_debug_messenger() {
   if (CreateDebugUtilsMessengerEXT(instance, &createInfo, &fan::vulkan::g_allocation_callbacks, &debug_messenger) != VK_SUCCESS) {
     fan::throw_error("failed to set up debug messenger!");
   }
+  fan::print_success("Vulkan validation layers enabled");
 }
 #if defined(loco_window)
 void fan::vulkan::context_t::create_surface(GLFWwindow* window) {
@@ -732,6 +735,8 @@ void fan::vulkan::context_t::create_logical_device() {
   fan_vkCmdSetPrimitiveTopology = (PFN_vkCmdSetPrimitiveTopology)vkGetDeviceProcAddr(device, "vkCmdSetPrimitiveTopology");
   fan_vkCmdSetPrimitiveRestartEnable = (PFN_vkCmdSetPrimitiveRestartEnable)vkGetDeviceProcAddr(device, "vkCmdSetPrimitiveRestartEnable");
   fan_vkCmdSetAlphaToCoverageEnableEXT = (PFN_vkCmdSetAlphaToCoverageEnableEXT)vkGetDeviceProcAddr(device, "vkCmdSetAlphaToCoverageEnableEXT");
+  fan_vkCmdSetRasterizationSamplesEXT = (PFN_vkCmdSetRasterizationSamplesEXT)vkGetDeviceProcAddr(device, "vkCmdSetRasterizationSamplesEXT");
+  fan_vkCmdSetSampleMaskEXT = (PFN_vkCmdSetSampleMaskEXT)vkGetDeviceProcAddr(device, "vkCmdSetSampleMaskEXT");
 
   VkQueryPoolCreateInfo queryPoolInfo{};
   queryPoolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
@@ -1819,6 +1824,15 @@ bool fan::vulkan::context_t::check_validation_layer_support() {
 
   return true;
 }
+static void vk_print(const char* msg, const fan::color& tag_color, fan::log_level_e level, bool to_disk) {
+  fan::push_memory_log(msg, level);
+  if (to_disk) {
+    fan::write_error_to_disk(msg);
+  }
+  fan::print_color_raw(tag_color, "VULKAN: ");
+  fan::print_impl(msg);
+}
+
 VKAPI_ATTR VkBool32 VKAPI_CALL fan::vulkan::context_t::debug_callback(
   VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
   VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -1838,16 +1852,16 @@ VKAPI_ATTR VkBool32 VKAPI_CALL fan::vulkan::context_t::debug_callback(
   }
 
   if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-    fan::print_log(fan::log_level_e::error, "VULKAN - Validation layer:", pCallbackData->pMessage);
+    vk_print(pCallbackData->pMessage, fan::colors::red, fan::log_level_e::error, true);
   }
   else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-    fan::print_log(fan::log_level_e::warning, "VULKAN - Validation layer:", pCallbackData->pMessage);
+    vk_print(pCallbackData->pMessage, fan::colors::yellow, fan::log_level_e::warning, true);
   }
   else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
-    fan::print_log(fan::log_level_e::info, "VULKAN - Validation layer:", pCallbackData->pMessage);
+    vk_print(pCallbackData->pMessage, fan::colors::cyan, fan::log_level_e::info, false);
   }
   else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
-    fan::print_log(fan::log_level_e::info, "VULKAN - Validation layer:", pCallbackData->pMessage);
+    vk_print(pCallbackData->pMessage, fan::colors::white, fan::log_level_e::info, false);
   }
   return VK_FALSE;
 }

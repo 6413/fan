@@ -12,7 +12,7 @@ layout(push_constant) uniform constants_t {
   uint texture_id3;
   float time;
   uint lightmap_id;
-  uint pad2;
+  float ambient_floor;
   vec4 lighting_ambient;
 } constants;
 
@@ -26,5 +26,6 @@ void main() {
   vec3 light = texture(textures[constants.lightmap_id], lightmap_uv).rgb;
   
   o_attachment0 = color;
-  o_attachment0.rgb *= (constants.lighting_ambient.rgb + light);
+  vec3 lit = color.rgb * (constants.lighting_ambient.rgb + light);
+  o_attachment0.rgb = max(lit, color.rgb * constants.ambient_floor);
 }

@@ -62,22 +62,21 @@ static void update_shape(fan::graphics::shapes::shape_t* shape, modifier_t&& mod
 
 template<typename sti_t, typename key_pack_t>
 static void set_position_impl(sti_t sti, key_pack_t key_pack, const fan::vec3& position) {
-#if FAN_DEBUG >= 3
-  static constexpr auto max_depth = std::numeric_limits<decltype(fan::graphics::kps_t::common_t::depth)>::max();
-  if (position.z > max_depth) {
-    fan::throw_error_impl(
-      ("z depth value exceeded. dont give me bigger depth than " +
-        std::to_string(max_depth)).c_str()
-    );
-  }
-#endif
   switch (get_shape_category(sti)) {
   case fan::graphics::shapes::kp::common:
+  case fan::graphics::shapes::kp::texture: {
+#if FAN_DEBUG >= 3
+    static constexpr auto max_depth = std::numeric_limits<decltype(fan::graphics::kps_t::common_t::depth)>::max();
+    if (position.z > max_depth) {
+      fan::throw_error_impl(
+        ("z depth value exceeded. dont give me bigger depth than " +
+          std::to_string(max_depth)).c_str()
+      );
+    }
+#endif
     shaper_get_key_safe(depth_t, common_t, depth) = position.z;
     break;
-  case fan::graphics::shapes::kp::texture:
-    shaper_get_key_safe(depth_t, texture_t, depth) = position.z;
-    break;
+  }
   case fan::graphics::shapes::kp::light:
     break;
   default:
