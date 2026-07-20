@@ -27,6 +27,30 @@ struct transform_t {
   fan::vec2 size; 
 };
 
+struct day_cycle_t {
+  f32_t time_of_day = 0.25f;
+  f32_t day_length = 5.f;
+  f32_t speed = 1.f;
+  int day_count = 0;
+  bool paused = false;
+
+  void update(f32_t dt, engine_t& engine) {
+    if (paused) return;
+    time_of_day += dt * speed / day_length;
+    if (time_of_day >= 1.f) {
+      time_of_day -= 1.f;
+      day_count++;
+      resources.gold += resources.gold_per_tick;
+    }
+
+    engine.get_lighting().set_target(day_cycle_ambient(time_of_day), 0.f);
+  }
+
+  bool is_night() const {
+    return day_cycle_is_night(time_of_day);
+  }
+};
+
 struct farm_manager_t {
   fan::json buildings_config;
   std::vector<building_image_t> buildings;
@@ -38,6 +62,7 @@ struct farm_manager_t {
   building_t placement;
   building_image_t* selected_building = nullptr;
   sprite_t grass;
+  day_cycle_t day_cycle;
 
   farm_manager_t(engine_t& engine, const fan::vec2& t_size) : 
     buildings_config(fan::json::load_file("buildings.json")),
@@ -156,8 +181,8 @@ struct farm_manager_t {
         gui::same_line();
         gui::text(std::to_string(std::uint64_t(resources.gold)), {.color = fan::color{1.f, 0.84f, 0.f}, .outlined = true});
         gui::same_line();
+        gui::font_scope_t small_font{24.f, gui::font::bold};
         {
-          gui::font_scope_t small_font{24.f, gui::font::bold};
           f32_t spc = gui::get_style().ItemSpacing.x;
           gui::text(
             "+" + std::to_string(std::uint64_t(resources.gold_per_tick)),
@@ -171,8 +196,13 @@ struct farm_manager_t {
         gui::same_line();
         gui::text(fan::color{0.9f, 0.9f, 0.95f}, "  |  Buildings: ", (int)placed_buildings.size());
 
-        gui::set_cursor_pos_x(gui::get_window_size().x - 160.f);
-        if (gui::button("Menu", {100.f, 28.f})) {}
+        gui::same_line();
+        {
+          gui::font_scope_t day_font{26.f, gui::font::bold};
+          gui::text(fan::color{0.9f, 0.9f, 0.95f}, "  |  Day ", day_cycle.day_count);
+          gui::same_line();
+          gui::text(day_cycle.paused ? fan::color{0.4f, 0.4f, 0.4f} : day_cycle.is_night() ? fan::color{0.5f, 0.5f, 0.8f} : fan::color{1.f, 0.95f, 0.6f}, day_cycle.is_night() ? "☾" : "☀");
+        }
       }
     }
     
@@ -197,6 +227,9 @@ struct farm_manager_t {
     if (gui::want_io()) {
       return;
     }
+    if (engine.is_key_clicked(fan::key_space)) {
+      day_cycle.paused = !day_cycle.paused;
+    }
     fan::vec2i cell = grid.get_cell(engine.get_mouse_position());
     if (engine.is_mouse_down(0)) {
       if (!get_building_at(cell)) {
@@ -212,7 +245,6 @@ struct farm_manager_t {
   }
 
   void update_placement_cursor(engine_t& engine) {
-    light(fan::vec3(engine.get_mouse_position(), 0), 1500.f, fan::colors::white);
     if (!selected_building) return;
     fan::vec2i cell = grid.get_cell(engine.get_mouse_position());
     if (can_place(cell, *selected_building)) {
@@ -223,6 +255,7 @@ struct farm_manager_t {
   }
 
   void update(engine_t& engine, f32_t dt) {
+    day_cycle.update(dt, engine);
     tweens.update(dt);
     update_placement_cursor(engine);
     update_tiling_background(grass, tile_size);
@@ -235,12 +268,12 @@ int main() {
   engine_t engine;
   gloco()->set_settings({
     .mode = fan::graphics::post_process_mode_e::bloom,
-    .bloom_strength = 0.082f,
-    .bloom_threshold = 0.661f,
+    .bloom_strength = 0.173f,
+    .bloom_threshold = 0.443f,
     .bloom_knee = 0.057f,
-    .bloom_smooth_rate = 6.431,
-    .bloom_luma_scale = 0.177,
-    .bloom_adaptation_blend = 0.193,
+    .bloom_smooth_rate = 6.431f,
+    .bloom_luma_scale = 0.776f,
+    .bloom_adaptation_blend = 0.203f,
     .bloom_filter_radius = 1.0f,
     .gamma = 2.2f,
     .exposure = 1.0f,

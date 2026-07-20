@@ -1639,7 +1639,6 @@ export namespace fan {
   vec2_transition_t move_pingpong(const fan::vec2& from, const fan::vec2& to, f32_t duration);
 }
 
-// graphics awaiters
 export namespace fan::graphics {
   struct animation_frame_awaiter : fan::event::callback_awaiter<animation_frame_awaiter> {
     animation_frame_awaiter(
@@ -1662,6 +1661,14 @@ export namespace fan::graphics {
     const fan::vec3& fadein_color,
     std::function<void()> swap_cb
   );
+
+  struct day_cycle_colors_t {
+    fan::vec3 day = {0.5f, 0.25f, 0.08f};
+    fan::vec3 night = {0.06f, 0.06f, 0.22f};
+  };
+
+  fan::vec3 day_cycle_ambient(f32_t time_of_day, const day_cycle_colors_t& colors = {});
+  bool day_cycle_is_night(f32_t time_of_day);
 }
 
 #endif
