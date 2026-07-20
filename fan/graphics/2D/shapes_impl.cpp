@@ -2685,6 +2685,9 @@ namespace fan::graphics{
       if constexpr (requires { props.loop_enabled_time; }) {
         props.loop_enabled_time = 0.f; // negate the offset to travel to future
         props.loop_disabled_time = -1.f;
+        if constexpr (requires { props.begin_time; }) {
+          props.begin_time = fan::time::now();
+        }
       }
     });
     if (get_visual_id().iic()) {
@@ -2694,6 +2697,7 @@ namespace fan::graphics{
       GetData(fan::graphics::g_shapes->shaper);
     ri.loop_enabled_time = 0.f;  // negate the offset to travel to future
     ri.loop_disabled_time = -1.f;
+    ri.begin_time = fan::time::now();
     for_each_child([](shape_t& child) { child.start_particles(); });
   }
 

@@ -1134,7 +1134,8 @@ namespace fan::graphics::gui {
     if (style.outlined) {
       detail::text_outlined_at_impl(str.data(), str.data() + str.size(), draw_pos, style.color, style.outline_color);
       if (!use_draw_list) {
-        ImGui::SetCursorPos(ImVec2(draw_pos.x, draw_pos.y + text_size.y + get_style().ItemSpacing.y));
+        ImGui::SetCursorPos(ImVec2(draw_pos.x, draw_pos.y));
+        ImGui::Dummy(ImVec2(text_size.x, text_size.y));
       }
     } else if (use_draw_list) {
       ImU32 col = ImGui::ColorConvertFloat4ToU32(ImVec4(style.color.r, style.color.g, style.color.b, style.color.a));
