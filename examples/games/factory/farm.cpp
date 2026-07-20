@@ -173,7 +173,7 @@ struct farm_manager_t {
   }
 
   void update_placement_cursor(engine_t& engine) {
-    //light(fan::vec3(engine.get_mouse_position(), 0), 1500.f, fan::colors::white);
+    light(fan::vec3(engine.get_mouse_position(), 0), 1500.f, fan::colors::white);
     if (!selected_building) return;
     fan::vec2i cell = grid.get_cell(engine.get_mouse_position());
     if (can_place(cell, *selected_building)) {
@@ -196,12 +196,12 @@ int main() {
   engine_t engine;
   gloco()->set_settings({
     .mode = fan::graphics::post_process_mode_e::bloom,
-    .bloom_strength = 0.246f,
-    .bloom_threshold = 0.468f,
-    .bloom_knee = 0.436f,
-    .bloom_smooth_rate = 13.f,
-    .bloom_luma_scale = 1.035f,
-    .bloom_adaptation_blend = 2.07f,
+    .bloom_strength = 0.082f,
+    .bloom_threshold = 0.661f,
+    .bloom_knee = 0.057f,
+    .bloom_smooth_rate = 6.431,
+    .bloom_luma_scale = 0.177,
+    .bloom_adaptation_blend = 0.193,
     .bloom_filter_radius = 1.0f,
     .gamma = 2.2f,
     .exposure = 1.0f,
