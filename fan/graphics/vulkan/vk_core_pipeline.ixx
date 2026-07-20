@@ -35,7 +35,7 @@ export namespace fan::vulkan {
     std::uint32_t texture_id3 = 0;
     f32_t time = 0.f;
     std::uint32_t lightmap_id = 0;
-    std::uint32_t pad2 = 0;
+    f32_t ambient_floor = 0.f;
     fan::vec4 lighting_ambient = fan::vec4(1.f, 1.f, 1.f, 1.f);
   };
 
