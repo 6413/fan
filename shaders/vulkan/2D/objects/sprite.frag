@@ -21,8 +21,8 @@ layout(set = 0, binding = 2) uniform sampler2D textures[1024];
 void main() {
   vec4 color = texture(textures[constants.texture_id], texture_coordinate) * instance_color;
   
-  vec2 lightmap_size = vec2(textureSize(textures[constants.lightmap_id], 0));
-  vec2 lightmap_uv = gl_FragCoord.xy / lightmap_size;
+  vec2 viewport_size = vec2(textureSize(textures[constants.lightmap_id], 0));
+  vec2 lightmap_uv = gl_FragCoord.xy / viewport_size;
   vec3 light = texture(textures[constants.lightmap_id], lightmap_uv).rgb;
   
   o_attachment0 = color;

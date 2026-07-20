@@ -1853,6 +1853,9 @@ bool loco_t::process_frame(const std::function<void(f32_t delta_time)>& cb) {
 #endif
 
   renderer_state.lighting.update(get_delta_time());
+  if (get_smenu(this)->config.post_processing.ambient_color != renderer_state.lighting.target) {
+    get_smenu(this)->config.post_processing.ambient_color = renderer_state.lighting.target;
+  }
 
 #if defined(FAN_GUI)
   if (gui.font_future.valid()) {

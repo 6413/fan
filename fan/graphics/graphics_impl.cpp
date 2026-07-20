@@ -2007,7 +2007,26 @@ namespace fan {
     }
     return t;
   }
+}
 
+namespace fan::graphics {
+  namespace {
+    f32_t day_cycle_brightness(f32_t time_of_day) {
+      f32_t rad = (time_of_day - 0.25f) * 2.f * std::numbers::pi_v<f32_t>;
+      return (std::sin(rad) + 1.f) * 0.5f;
+    }
+  }
+
+  fan::vec3 day_cycle_ambient(f32_t time_of_day, const day_cycle_colors_t& colors) {
+    return fan::math::lerp(colors.night, colors.day, day_cycle_brightness(time_of_day));
+  }
+
+  bool day_cycle_is_night(f32_t time_of_day) {
+    return day_cycle_brightness(time_of_day) < 0.3f;
+  }
+}
+
+namespace fan {
   auto_color_transition_t pulse_red(f32_t duration) {
     auto_color_transition_t t;
     t.from = fan::colors::white;
