@@ -1,5 +1,7 @@
 module;
 
+#define VMA_ASSERT_LEAK(expr) ((void)0)
+
 #if defined(FAN_2D)
 
 
@@ -13,6 +15,7 @@ module;
 #endif
 #define loco_window
 #include <vulkan/vulkan.h>
+#define VMA_ASSERT_LEAK(expr) ((void)0)
 #include <vk_mem_alloc.h>
 #include <shaderc/shaderc.hpp>
 #if defined(fan_platform_windows)
@@ -100,6 +103,22 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT
     func(instance, debugMessenger, pAllocator);
   }
 }
+
+void fan::vulkan::context_t::set_debug_name(VkObjectType object_type, uint64_t object_handle, const char* name) {
+#if FAN_DEBUG >= fan_debug_high
+  if (!supports_validation_layers) return;
+  auto func = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr(instance, "vkSetDebugUtilsObjectNameEXT");
+  if (func != nullptr) {
+    VkDebugUtilsObjectNameInfoEXT name_info{};
+    name_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    name_info.objectType = object_type;
+    name_info.objectHandle = object_handle;
+    name_info.pObjectName = name;
+    func(device, &name_info);
+  }
+#endif
+}
+
 void fan::vulkan::context_t::open_no_window() {
   shaders.init(*this);
   fan::time::timer t;
@@ -247,18 +266,22 @@ void fan::vulkan::context_t::gui_close() {
   vkFreeCommandBuffers(device, command_pool, command_buffers.size(), command_buffers.data());
 
   cleanup_swap_chain_dependencies();
-  descriptor_pool.close(*this);
 
 #if defined(FAN_GUI)
   ImGui_ImplVulkanH_DestroyWindow(instance, device, &MainWindowData, nullptr);
+  swap_chain = VK_NULL_HANDLE;
 #endif
-
+}
+void fan::vulkan::context_t::gui_close_finish() {
   destroy_shape_resources();
   destroy_vulkan_soft();
-  destroy_allocator();
+  descriptor_pool.close(*this);
   if (timestamp_query_pool) {
     vkDestroyQueryPool(device, timestamp_query_pool, nullptr);
   }
+
+  flush_deletion_queues();
+  destroy_allocator();
   if (pipeline_cache) {
     size_t cacheSize = 0;
     if (vkGetPipelineCacheData(device, pipeline_cache, &cacheSize, nullptr) == VK_SUCCESS) {
@@ -325,6 +348,7 @@ void fan::vulkan::context_t::destroy_shape_resources() {
     nrtra.Close(&__fan_internal_shader_list);
   }
   {
+    image_cache.clear();
     fan::graphics::image_list_t::nrtra_t nrtra;
     fan::graphics::image_list_t::nr_t nr;
     nrtra.Open(&__fan_internal_image_list, &nr);
@@ -451,6 +475,7 @@ void fan::vulkan::context_t::recreate_swap_chain(fan::window_t* window, VkResult
 void fan::vulkan::context_t::create_instance() {
 #if defined(fan_platform_windows)
   SetEnvironmentVariableA("DISABLE_VULKAN_OBS_CAPTURE", "1");
+  SetEnvironmentVariableA("DISABLE_VK_LAYER_OBS_HOOK", "1");
   SetEnvironmentVariableA("DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1", "1");
 #endif
 
@@ -957,10 +982,6 @@ void fan::vulkan::context_t::create_allocator() {
 }
 void fan::vulkan::context_t::destroy_allocator() {
   if (allocator != VK_NULL_HANDLE) {
-    //char* stats_string = nullptr;
-    //vmaBuildStatsString(allocator, &stats_string, VK_TRUE);
-    //fan::print(stats_string);
-    //vmaFreeStatsString(allocator, stats_string);
     staging_ring_buffer.destroy();
     vmaDestroyAllocator(allocator);
     allocator = VK_NULL_HANDLE;

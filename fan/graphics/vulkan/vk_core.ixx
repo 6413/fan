@@ -1,5 +1,7 @@
 module;
 
+#define VMA_ASSERT_LEAK(expr) ((void)0)
+
 #if defined(FAN_2D)
 
 #if defined(fan_platform_windows)
@@ -12,6 +14,7 @@ module;
 #endif
 #define loco_window
 #include <vulkan/vulkan.h>
+#define VMA_ASSERT_LEAK(expr) ((void)0)
 #include <vk_mem_alloc.h>
 import fan.window;
 
@@ -261,6 +264,8 @@ export namespace fan {
 
       fan::graphics::image_nr_t image_load(const fan::image::info_t& image_info);
 
+      void set_debug_name(VkObjectType object_type, uint64_t object_handle, const char* name);
+
       fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size_, const fan::vulkan::context_t::image_load_properties_t& p);
       fan::graphics::image_nr_t image_load(fan::color* colors, const fan::vec2ui& size_);
 
@@ -319,6 +324,7 @@ export namespace fan {
 
     public:
       void gui_close();
+      void gui_close_finish();
       void close();
 
       void destroy_shape_resources();
