@@ -35,6 +35,10 @@ float get_blur_mask() {
   return smoothstep(r0, r1, d);
 }
 
+float luminance(vec3 c) {
+  return dot(c, vec3(0.2126, 0.7152, 0.0722));
+}
+
 void main() {
   vec3 color = texture(_t00, texture_coordinate).rgb;
   int mode = int(pc.window_frame.w + 0.5);
@@ -50,7 +54,7 @@ void main() {
 
   if (bloom_enabled) {
     vec3 bloom = texture(_t01, texture_coordinate).rgb;
-    bloom *= pc.bloom_tint_strength.rgb * pc.params0.x * (pc.bloom_tint_strength.w * 100.0); 
+    bloom *= pc.bloom_tint_strength.rgb * pc.params0.x * (pc.bloom_tint_strength.w * 1000.0); 
 
     if (pc.params0.y > 0.0) {
       vec3 dirt = texture(_t02, texture_coordinate).rgb;
@@ -61,6 +65,10 @@ void main() {
   }
 
   color *= pc.tonemap.y;
+
+  float lum = luminance(color);
+  color *= (lum / (1.0 + lum)) / max(lum, 0.0001);
+
   color = (color - 0.5) * pc.tonemap.z + 0.5;
 
   o_color = vec4(color, pc.window_frame.z);

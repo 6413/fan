@@ -44,6 +44,9 @@ namespace fan::graphics::gui {
       .bloom_strength = pp.bloom_strength,
       .bloom_threshold = pp.bloom_threshold,
       .bloom_knee = pp.bloom_knee,
+      .bloom_smooth_rate = pp.bloom_smooth_rate,
+      .bloom_luma_scale = pp.bloom_luma_scale,
+      .bloom_adaptation_blend = pp.bloom_adaptation_blend,
       .bloom_tint = pp.bloom_tint,
       .bloom_filter_radius = pp.bloom_filter_radius,
       .gamma = pp.gamma,
@@ -119,6 +122,9 @@ namespace fan::graphics::gui {
       pp.get_if("bloom_strength", post_processing.bloom_strength);
       pp.get_if("bloom_threshold", post_processing.bloom_threshold);
       pp.get_if("bloom_knee", post_processing.bloom_knee);
+      pp.get_if("bloom_smooth_rate", post_processing.bloom_smooth_rate);
+      pp.get_if("bloom_luma_scale", post_processing.bloom_luma_scale);
+      pp.get_if("bloom_adaptation_blend", post_processing.bloom_adaptation_blend);
       pp.get_if("bloom_tint", post_processing.bloom_tint);
       pp.get_if("bloom_filter_radius", post_processing.bloom_filter_radius);
       pp.get_if("blur_amount", post_processing.blur_amount);
@@ -179,6 +185,9 @@ namespace fan::graphics::gui {
     j["post_processing"]["bloom_strength"] = post_processing.bloom_strength;
     j["post_processing"]["bloom_threshold"] = post_processing.bloom_threshold;
     j["post_processing"]["bloom_knee"] = post_processing.bloom_knee;
+    j["post_processing"]["bloom_smooth_rate"] = post_processing.bloom_smooth_rate;
+    j["post_processing"]["bloom_luma_scale"] = post_processing.bloom_luma_scale;
+    j["post_processing"]["bloom_adaptation_blend"] = post_processing.bloom_adaptation_blend;
     j["post_processing"]["bloom_tint"] = post_processing.bloom_tint;
     j["post_processing"]["gamma"] = post_processing.gamma;
     j["post_processing"]["bloom_filter_radius"] = post_processing.bloom_filter_radius;
@@ -266,6 +275,9 @@ namespace fan::graphics::gui {
       .mode = (fan::graphics::post_process_mode_e)config.post_processing.mode,
       .bloom_threshold = config.post_processing.bloom_threshold,
       .bloom_knee = config.post_processing.bloom_knee,
+      .bloom_smooth_rate = config.post_processing.bloom_smooth_rate,
+      .bloom_luma_scale = config.post_processing.bloom_luma_scale,
+      .bloom_adaptation_blend = config.post_processing.bloom_adaptation_blend,
       .bloom_tint = config.post_processing.bloom_tint,
       .bloom_filter_radius = config.post_processing.bloom_filter_radius,
       .blur_amount = std::clamp(config.post_processing.blur_amount, 0.f, 1.f),
@@ -402,6 +414,27 @@ namespace fan::graphics::gui {
         draw_sub_row("Knee (Softness)", [&] {
           if (gui::slider(&menu->config.post_processing.bloom_knee, 0.0f, 1.0f, gui::slider_flags_always_clamp)) {
             *gloco()->get_bloom_knee_ptr() = menu->config.post_processing.bloom_knee;
+            sync_vulkan_post_processing(menu->config.post_processing);
+            menu->mark_dirty();
+          }
+        });
+        draw_sub_row("Smooth Rate", [&] {
+          if (gui::slider(&menu->config.post_processing.bloom_smooth_rate, 0.0f, 100.0f, gui::slider_flags_always_clamp)) {
+            *gloco()->get_bloom_smooth_rate_ptr() = menu->config.post_processing.bloom_smooth_rate;
+            sync_vulkan_post_processing(menu->config.post_processing);
+            menu->mark_dirty();
+          }
+        });
+        draw_sub_row("Luma Scale", [&] {
+          if (gui::slider(&menu->config.post_processing.bloom_luma_scale, 0.0f, 10.0f, gui::slider_flags_always_clamp)) {
+            *gloco()->get_bloom_luma_scale_ptr() = menu->config.post_processing.bloom_luma_scale;
+            sync_vulkan_post_processing(menu->config.post_processing);
+            menu->mark_dirty();
+          }
+        });
+        draw_sub_row("Adaptation Blend", [&] {
+          if (gui::slider(&menu->config.post_processing.bloom_adaptation_blend, 0.0f, 1.0f, gui::slider_flags_always_clamp)) {
+            *gloco()->get_bloom_adaptation_blend_ptr() = menu->config.post_processing.bloom_adaptation_blend;
             sync_vulkan_post_processing(menu->config.post_processing);
             menu->mark_dirty();
           }
