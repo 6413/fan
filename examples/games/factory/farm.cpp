@@ -194,6 +194,19 @@ struct farm_manager_t {
 
 int main() {
   engine_t engine;
+  gloco()->set_settings({
+    .mode = fan::graphics::post_process_mode_e::bloom,
+    .bloom_strength = 0.246f,
+    .bloom_threshold = 0.468f,
+    .bloom_knee = 0.436f,
+    .bloom_smooth_rate = 13.f,
+    .bloom_luma_scale = 1.035f,
+    .bloom_adaptation_blend = 2.07f,
+    .bloom_filter_radius = 1.0f,
+    .gamma = 2.2f,
+    .exposure = 1.0f,
+    .contrast = 1.0f,
+  });
   fan::audio::play("audio/ambient1.sac", 0, true);
   interactive_camera_t ic;
   farm_manager_t farm(engine, fan::vec2{256, 256});

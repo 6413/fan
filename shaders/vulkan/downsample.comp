@@ -4,6 +4,10 @@ layout(local_size_x = 8, local_size_y = 8) in;
 
 layout(set = 0, binding = 0) uniform sampler2D src_tex;
 layout(set = 0, binding = 1, r11f_g11f_b10f) uniform writeonly image2D dst_tex;
+layout(set = 0, binding = 2, std430) buffer history_buffer_t {
+  float smoothed_luma;
+  float raw_avg_luma;
+} history;
 
 layout(push_constant) uniform push_constants_t {
   vec4 resolution_threshold_knee_mip;
@@ -13,7 +17,12 @@ layout(push_constant) uniform push_constants_t {
 vec3 apply_threshold(vec3 col) {
   float threshold = pc.resolution_threshold_knee_mip.z;
   float knee = pc.resolution_threshold_knee_mip.w;
-  float brightness = max(col.r, max(col.g, col.b));
+  float brightness = max(col.r, max(col.g, max(col.b, 0.0001)));
+
+  float luma_scale = pc.mode.z;
+  float adaptation_blend = pc.mode.w;
+  float adapted_luma = mix(history.smoothed_luma, history.raw_avg_luma, adaptation_blend);
+  threshold += adapted_luma * luma_scale;
 
   if (threshold <= 0.0) {
     return col;

@@ -10,6 +10,10 @@ layout(push_constant) uniform push_constants_t {
 layout(location = 0) in vec2 texture_coordinate;
 layout(location = 0) out vec4 o_color;
 
+float karis_weight(vec3 c) {
+  return 1.0 / (1.0 + max(c.r, max(c.g, c.b)));
+}
+
 vec3 apply_threshold(vec3 col) {
   float threshold = pc.resolution_threshold_knee_mip.z;
   float knee = pc.resolution_threshold_knee_mip.w;
@@ -32,19 +36,19 @@ void main() {
   int mipLevel = int(pc.mode.x + 0.5);
 
   if (mipLevel == 0) {
-    vec3 center = texture(_t00, texture_coordinate).rgb;
-    vec3 a = texture(_t00, vec2(texture_coordinate.x - x, texture_coordinate.y + y)).rgb;
-    vec3 b = texture(_t00, vec2(texture_coordinate.x + x, texture_coordinate.y + y)).rgb;
-    vec3 c = texture(_t00, vec2(texture_coordinate.x - x, texture_coordinate.y - y)).rgb;
-    vec3 d = texture(_t00, vec2(texture_coordinate.x + x, texture_coordinate.y - y)).rgb;
+    vec3 center = apply_threshold(texture(src_tex, texture_coordinate).rgb);
+    vec3 a = apply_threshold(texture(src_tex, vec2(texture_coordinate.x - x, texture_coordinate.y + y)).rgb);
+    vec3 b = apply_threshold(texture(src_tex, vec2(texture_coordinate.x + x, texture_coordinate.y + y)).rgb);
+    vec3 c = apply_threshold(texture(src_tex, vec2(texture_coordinate.x - x, texture_coordinate.y - y)).rgb);
+    vec3 d = apply_threshold(texture(src_tex, vec2(texture_coordinate.x + x, texture_coordinate.y - y)).rgb);
 
-    center = apply_threshold(center);
-    a = apply_threshold(a);
-    b = apply_threshold(b);
-    c = apply_threshold(c);
-    d = apply_threshold(d);
+    float wcenter = karis_weight(center);
+    float wa = karis_weight(a);
+    float wb = karis_weight(b);
+    float wc = karis_weight(c);
+    float wd = karis_weight(d);
 
-    o_color = vec4((center + a + b + c + d) * 0.2, 1.0);
+    o_color = vec4((center * wcenter + a * wa + b * wb + c * wc + d * wd) / max(wcenter + wa + wb + wc + wd, 0.0001), 1.0);
   }
   else {
     vec3 a = texture(_t00, vec2(texture_coordinate.x - 2.0 * x, texture_coordinate.y + 2.0 * y)).rgb;

@@ -57,6 +57,9 @@ export namespace fan::graphics::gui {
       f32_t bloom_threshold = 1.0f;
       f32_t bloom_knee = 0.1f;
       f32_t bloom_filter_radius = 0.1f;
+      f32_t bloom_smooth_rate = 5.0f;
+      f32_t bloom_luma_scale = 3.0f;
+      f32_t bloom_adaptation_blend = 0.0f;
       fan::vec3 bloom_tint{1.f, 1.f, 1.f};
       f32_t blur_amount = 0.08f;
       f32_t blur_filter_radius = 0.02f;

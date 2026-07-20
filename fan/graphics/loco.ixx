@@ -676,6 +676,9 @@ public:
   f32_t* get_bloom_filter_radius_ptr();
   f32_t* get_bloom_threshold_ptr();
   f32_t* get_bloom_knee_ptr();
+  f32_t* get_bloom_smooth_rate_ptr();
+  f32_t* get_bloom_luma_scale_ptr();
+  f32_t* get_bloom_adaptation_blend_ptr();
   fan::vec3* get_bloom_tint_ptr();
   f32_t* get_bloom_strength_ptr();
   f32_t* get_gamma_ptr();
@@ -690,6 +693,9 @@ public:
     std::optional<f32_t> bloom_strength;
     std::optional<f32_t> bloom_threshold;
     std::optional<f32_t> bloom_knee;
+    std::optional<f32_t> bloom_smooth_rate;
+    std::optional<f32_t> bloom_luma_scale;
+    std::optional<f32_t> bloom_adaptation_blend;
     std::optional<fan::vec3> bloom_tint;
     std::optional<f32_t> bloom_filter_radius;
     std::optional<f32_t> blur_amount;

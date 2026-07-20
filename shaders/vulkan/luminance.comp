@@ -1,0 +1,82 @@
+#version 450
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(set = 0, binding = 0) uniform sampler2D src_tex;
+layout(set = 0, binding = 1, r32f) uniform image2D tile_luma;
+layout(set = 0, binding = 2, std430) buffer history_buffer_t {
+  float smoothed_luma;
+  float raw_avg_luma;
+} history;
+
+layout(push_constant) uniform pc_t {
+  vec4 params;
+  vec4 mode;
+} pc;
+
+shared float shared_lumas[64];
+
+void tile_pass() {
+  ivec2 scene_size = ivec2(pc.params.xy);
+  ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
+  uint idx = gl_LocalInvocationIndex;
+
+  float luma = 0.0;
+  if (pixel.x < scene_size.x && pixel.y < scene_size.y) {
+    vec2 uv = (vec2(pixel) + 0.5) / vec2(scene_size);
+    vec3 col = textureLod(src_tex, uv, 0.0).rgb;
+    luma = dot(col, vec3(0.2126, 0.7152, 0.0722));
+  }
+
+  shared_lumas[idx] = luma;
+  barrier();
+
+  for (uint stride = 32; stride > 0; stride >>= 1) {
+    if (idx < stride) {
+      shared_lumas[idx] += shared_lumas[idx + stride];
+    }
+    barrier();
+  }
+
+  if (idx == 0) {
+    ivec2 tile_id = ivec2(gl_WorkGroupID.xy);
+    imageStore(tile_luma, tile_id, vec4(shared_lumas[0] / 64.0, 0.0, 0.0, 0.0));
+  }
+}
+
+void final_pass() {
+  ivec2 tile_size = imageSize(tile_luma);
+  uint tile_count = tile_size.x * tile_size.y;
+  uint idx = gl_LocalInvocationIndex;
+
+  shared_lumas[idx] = 0.0;
+
+  for (uint i = idx; i < tile_count; i += 64) {
+    uint tx = i % tile_size.x;
+    uint ty = i / tile_size.x;
+    shared_lumas[idx] += imageLoad(tile_luma, ivec2(tx, ty)).r;
+  }
+  barrier();
+
+  for (uint stride = 32; stride > 0; stride >>= 1) {
+    if (idx < stride) {
+      shared_lumas[idx] += shared_lumas[idx + stride];
+    }
+    barrier();
+  }
+
+  if (idx == 0) {
+    float avg_luma = shared_lumas[0] / float(tile_count);
+    float alpha = pc.params.z <= 0.0 ? 1.0 : 1.0 - exp(-pc.params.z * pc.params.w);
+    history.raw_avg_luma = avg_luma;
+    history.smoothed_luma = mix(history.smoothed_luma, avg_luma, alpha);
+  }
+}
+
+void main() {
+  if (pc.mode.x < 0.5) {
+    tile_pass();
+  } else {
+    final_pass();
+  }
+}

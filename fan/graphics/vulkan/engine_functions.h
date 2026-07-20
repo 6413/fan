@@ -7,6 +7,9 @@ fan::vulkan::context_t::compute_pipeline_t bloom_upsample_pipeline;
 VkDescriptorSetLayout post_process_descriptor_layout = VK_NULL_HANDLE;
 VkDescriptorSetLayout bloom_downsample_descriptor_layout = VK_NULL_HANDLE;
 VkDescriptorSetLayout bloom_upsample_descriptor_layout = VK_NULL_HANDLE;
+fan::graphics::shader_t luminance_shader;
+fan::vulkan::context_t::compute_pipeline_t luminance_pipeline;
+VkDescriptorSetLayout luminance_descriptor_layout = VK_NULL_HANDLE;
 bool post_process_resources_open = false;
 std::uint32_t bloom_mip_count = 6;
 f32_t bloom_filter_radius = 0.1f;
@@ -50,6 +53,15 @@ struct bloom_chain_t {
 
 std::vector<bloom_chain_t> bloom_chains;
 
+struct bloom_luminance_t {
+  fan::vulkan::vai_t tile_image;
+};
+std::vector<bloom_luminance_t> bloom_luminances;
+fan::vulkan::buffer_t bloom_history_buffer;
+f32_t bloom_smooth_rate = 5.0f;
+f32_t bloom_luma_scale = 3.0f;
+f32_t bloom_adaptation_blend = 0.0f;
+
 struct particles_gpu_t {
   fan::vec4 position_shape;
   fan::vec4 loop_times;
@@ -88,6 +100,11 @@ struct bloom_downsample_push_constants_t {
 
 struct bloom_upsample_push_constants_t {
   fan::vec4 filter_radius;
+};
+
+struct luminance_push_constants_t {
+  fan::vec4 params;
+  fan::vec4 mode;
 };
 
 loco_t& get_loco() {
@@ -350,6 +367,7 @@ void open_post_process_sampler() {
 void open_bloom_chains() {
   fan::vulkan::context_t& context = loco.context.vk;
   bloom_chains.resize(context.swap_chain_image_views.size());
+  bloom_luminances.resize(context.swap_chain_image_views.size());
 
   for (std::size_t image_i = 0; image_i < bloom_chains.size(); ++image_i) {
     fan::vec2ui mip_size(
@@ -370,15 +388,28 @@ void open_bloom_chains() {
       p.usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT;
       p.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
       mip.image.open(context, p);
-      // ALL mips must be GENERAL layout for compute storage writes.
       mip.image.transition_image_layout(context, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_ASPECT_COLOR_BIT);
-
-      // Push descriptors will be used inline instead of caching rigidly.
 
       mip_size.x = std::max<std::uint32_t>(1, mip_size.x / 2);
       mip_size.y = std::max<std::uint32_t>(1, mip_size.y / 2);
     }
+
+    auto& lum = bloom_luminances[image_i];
+    fan::vec2ui tile_size(
+      (context.swap_chain_size.x + 7) / 8,
+      (context.swap_chain_size.y + 7) / 8
+    );
+    fan::vulkan::vai_t::properties_t p{};
+    p.swap_chain_size = tile_size;
+    p.format = VK_FORMAT_R32_SFLOAT;
+    p.usage_flags = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    p.aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT;
+    lum.tile_image.open(context, p);
+    lum.tile_image.transition_image_layout(context, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_ASPECT_COLOR_BIT);
   }
+
+  float initial[2] = {0.2f, 0.2f};
+  context.upload_buffer(&initial, sizeof(initial), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, bloom_history_buffer);
 }
 
 void close_bloom_chains() {
@@ -392,6 +423,12 @@ void close_bloom_chains() {
   }
   bloom_chains.clear();
 
+  for (auto& lum : bloom_luminances) {
+    lum.tile_image.close(context);
+  }
+  bloom_luminances.clear();
+
+  context.destroy_buffer(bloom_history_buffer);
 }
 
 
@@ -412,7 +449,7 @@ void open_post_process_pipelines() {
     post_process_descriptor_layout = create_push_descriptor_layout(bindings);
   }
   {
-    std::vector<VkDescriptorSetLayoutBinding> bindings(2);
+    std::vector<VkDescriptorSetLayoutBinding> bindings(3);
     bindings[0].binding = 0;
     bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     bindings[0].descriptorCount = 1;
@@ -421,6 +458,10 @@ void open_post_process_pipelines() {
     bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
     bindings[1].descriptorCount = 1;
     bindings[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    bindings[2].binding = 2;
+    bindings[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    bindings[2].descriptorCount = 1;
+    bindings[2].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     bloom_downsample_descriptor_layout = create_push_descriptor_layout(bindings);
   }
   {
@@ -438,6 +479,23 @@ void open_post_process_pipelines() {
     bindings[2].descriptorCount = 1;
     bindings[2].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
     bloom_upsample_descriptor_layout = create_push_descriptor_layout(bindings);
+  }
+
+  {
+    std::vector<VkDescriptorSetLayoutBinding> bindings(3);
+    bindings[0].binding = 0;
+    bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    bindings[0].descriptorCount = 1;
+    bindings[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    bindings[1].binding = 1;
+    bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    bindings[1].descriptorCount = 1;
+    bindings[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    bindings[2].binding = 2;
+    bindings[2].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    bindings[2].descriptorCount = 1;
+    bindings[2].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    luminance_descriptor_layout = create_push_descriptor_layout(bindings);
   }
 
   VkPipelineColorBlendAttachmentState replace_blend = fan::vulkan::get_default_color_blend();
@@ -471,6 +529,11 @@ void open_post_process_pipelines() {
   cp.descriptor_layouts = {bloom_upsample_descriptor_layout};
   cp.push_constants_size = sizeof(bloom_upsample_push_constants_t);
   bloom_upsample_pipeline.open(context, cp);
+
+  cp.shader = luminance_shader;
+  cp.descriptor_layouts = {luminance_descriptor_layout};
+  cp.push_constants_size = sizeof(luminance_push_constants_t);
+  luminance_pipeline.open(context, cp);
 }
 
 void close_post_process_pipelines() {
@@ -478,13 +541,16 @@ void close_post_process_pipelines() {
   loco.vk->post_process.close(context);
   bloom_downsample_pipeline.close(context);
   bloom_upsample_pipeline.close(context);
+  luminance_pipeline.close(context);
 
   vkDestroyDescriptorSetLayout(context.device, post_process_descriptor_layout, nullptr);
   vkDestroyDescriptorSetLayout(context.device, bloom_downsample_descriptor_layout, nullptr);
   vkDestroyDescriptorSetLayout(context.device, bloom_upsample_descriptor_layout, nullptr);
+  vkDestroyDescriptorSetLayout(context.device, luminance_descriptor_layout, nullptr);
   post_process_descriptor_layout = VK_NULL_HANDLE;
   bloom_downsample_descriptor_layout = VK_NULL_HANDLE;
   bloom_upsample_descriptor_layout = VK_NULL_HANDLE;
+  luminance_descriptor_layout = VK_NULL_HANDLE;
 }
 
 
@@ -560,11 +626,120 @@ void close() {
 void draw_bloom() {
   fan::vulkan::context_t& context = loco.context.vk;
   auto& chain = bloom_chains[context.image_index];
+  auto& lum = bloom_luminances[context.image_index];
   if (chain.mips.empty()) {
     return;
   }
 
   VkCommandBuffer cmd = context.command_buffers[context.current_frame];
+
+  // -- Luminance reduction pass --
+  {
+    VkShaderStageFlagBits lum_stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    fan_vkCmdBindShadersEXT(cmd, 1, &lum_stage, &luminance_pipeline.shader);
+
+    f32_t dt = (f32_t)loco.get_delta_time();
+    luminance_push_constants_t lum_pc{};
+    lum_pc.params = fan::vec4(
+      (f32_t)context.swap_chain_size.x,
+      (f32_t)context.swap_chain_size.y,
+      bloom_smooth_rate,
+      dt
+    );
+    lum_pc.mode = fan::vec4(0.f, 0.f, 0.f, 0.f); // tile pass
+    vkCmdPushConstants(cmd, luminance_pipeline.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(lum_pc), &lum_pc);
+
+    VkDescriptorImageInfo lum_image_infos[2];
+    lum_image_infos[0] = make_image_info(context.mainColorImageViews[context.image_index].image_view);
+    lum_image_infos[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    lum_image_infos[1].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    lum_image_infos[1].imageView = lum.tile_image.image_view;
+    lum_image_infos[1].sampler = VK_NULL_HANDLE;
+
+    VkDescriptorBufferInfo lum_buffer_info{};
+    lum_buffer_info.buffer = bloom_history_buffer;
+    lum_buffer_info.offset = 0;
+    lum_buffer_info.range = 2 * sizeof(f32_t);
+
+    VkWriteDescriptorSet lum_writes[3];
+    for (uint32_t j = 0; j < 3; ++j) {
+      lum_writes[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+      lum_writes[j].pNext = nullptr;
+      lum_writes[j].dstSet = VK_NULL_HANDLE;
+      lum_writes[j].dstBinding = j;
+      lum_writes[j].dstArrayElement = 0;
+      lum_writes[j].descriptorCount = 1;
+      lum_writes[j].pTexelBufferView = nullptr;
+      if (j == 0) {
+        lum_writes[j].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        lum_writes[j].pImageInfo = &lum_image_infos[0];
+        lum_writes[j].pBufferInfo = nullptr;
+      } else if (j == 1) {
+        lum_writes[j].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        lum_writes[j].pImageInfo = &lum_image_infos[1];
+        lum_writes[j].pBufferInfo = nullptr;
+      } else {
+        lum_writes[j].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        lum_writes[j].pImageInfo = nullptr;
+        lum_writes[j].pBufferInfo = &lum_buffer_info;
+      }
+    }
+    vkCmdPushDescriptorSet(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, luminance_pipeline.pipeline_layout, 0, 3, lum_writes);
+
+    vkCmdDispatch(cmd, (context.swap_chain_size.x + 7) / 8, (context.swap_chain_size.y + 7) / 8, 1);
+
+    // Barrier: tile image write -> tile image read for final pass
+    {
+      VkImageMemoryBarrier2 barrier{};
+      barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+      barrier.srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+      barrier.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
+      barrier.dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+      barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+      barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+      barrier.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+      barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      barrier.image = lum.tile_image.image;
+      barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+      barrier.subresourceRange.baseMipLevel = 0;
+      barrier.subresourceRange.levelCount = 1;
+      barrier.subresourceRange.baseArrayLayer = 0;
+      barrier.subresourceRange.layerCount = 1;
+
+      VkDependencyInfo dep_info{};
+      dep_info.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+      dep_info.imageMemoryBarrierCount = 1;
+      dep_info.pImageMemoryBarriers = &barrier;
+      vkCmdPipelineBarrier2(cmd, &dep_info);
+    }
+
+    // Final pass: single workgroup accumulates tiles and writes to history
+    lum_pc.mode.x = 1.f;
+    vkCmdPushConstants(cmd, luminance_pipeline.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(lum_pc), &lum_pc);
+    vkCmdDispatch(cmd, 1, 1, 1);
+
+    // Barrier: history buffer write -> history buffer read (for downsample)
+    {
+      VkBufferMemoryBarrier2 buf_barrier{};
+      buf_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2;
+      buf_barrier.srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+      buf_barrier.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
+      buf_barrier.dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+      buf_barrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
+      buf_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      buf_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+      buf_barrier.buffer = bloom_history_buffer;
+      buf_barrier.offset = 0;
+      buf_barrier.size = 2 * sizeof(f32_t);
+
+      VkDependencyInfo dep_info{};
+      dep_info.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+      dep_info.bufferMemoryBarrierCount = 1;
+      dep_info.pBufferMemoryBarriers = &buf_barrier;
+      vkCmdPipelineBarrier2(cmd, &dep_info);
+    }
+  }
 
   // Downsample pass
   VkShaderStageFlagBits compute_stage = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -599,7 +774,7 @@ void draw_bloom() {
     bloom_downsample_push_constants_t pc{};
     fan::vec2 source_size = i == 0 ? context.swap_chain_size : fan::vec2(chain.mips[i - 1].size.x, chain.mips[i - 1].size.y);
     pc.resolution_threshold_knee_mip = fan::vec4(source_size.x, source_size.y, bloom_threshold, bloom_knee);
-    pc.mode = fan::vec4(i == 0 ? 0.f : 1.f, 0.f, 0.f, 0.f);
+    pc.mode = fan::vec4(i == 0 ? 0.f : 1.f, 0.f, bloom_luma_scale, bloom_adaptation_blend);
 
     vkCmdPushConstants(cmd, bloom_downsample_pipeline.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pc), &pc);
     
@@ -610,22 +785,33 @@ void draw_bloom() {
     image_infos[1] = make_image_info(chain.mips[i].image.image_view);
     image_infos[1].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 
-    VkWriteDescriptorSet writes[2];
-    for (uint32_t j = 0; j < 2; ++j) {
+    VkDescriptorBufferInfo buffer_info{};
+    buffer_info.buffer = bloom_history_buffer;
+    buffer_info.offset = 0;
+    buffer_info.range = 2 * sizeof(f32_t);
+
+    VkWriteDescriptorSet writes[3];
+    for (uint32_t j = 0; j < 3; ++j) {
       writes[j].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
       writes[j].pNext = nullptr;
       writes[j].dstSet = VK_NULL_HANDLE;
       writes[j].dstBinding = j;
       writes[j].dstArrayElement = 0;
       writes[j].descriptorCount = 1;
-      writes[j].descriptorType = j == 0 ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-      writes[j].pImageInfo = &image_infos[j];
-      writes[j].pBufferInfo = nullptr;
       writes[j].pTexelBufferView = nullptr;
+      if (j < 2) {
+        writes[j].descriptorType = j == 0 ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER : VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+        writes[j].pImageInfo = &image_infos[j];
+        writes[j].pBufferInfo = nullptr;
+      } else {
+        writes[j].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        writes[j].pImageInfo = nullptr;
+        writes[j].pBufferInfo = &buffer_info;
+      }
     }
     fan::assert(image_infos[0].imageView != VK_NULL_HANDLE);
     fan::assert(image_infos[1].imageView != VK_NULL_HANDLE);
-    vkCmdPushDescriptorSet(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, bloom_downsample_pipeline.pipeline_layout, 0, 2, writes);
+    vkCmdPushDescriptorSet(cmd, VK_PIPELINE_BIND_POINT_COMPUTE, bloom_downsample_pipeline.pipeline_layout, 0, 3, writes);
 
     vkCmdDispatch(cmd, (chain.mips[i].size.x + 7) / 8, (chain.mips[i].size.y + 7) / 8, 1);
 
@@ -1834,6 +2020,10 @@ void init() {
   bloom_upsample_shader = loco.shader_create();
   loco.shader_set_compute(bloom_upsample_shader, "shaders/vulkan/upsample.comp", fan::graphics::read_shader("shaders/vulkan/upsample.comp"));
   loco.shader_compile(bloom_upsample_shader);
+
+  luminance_shader = loco.shader_create();
+  loco.shader_set_compute(luminance_shader, "shaders/vulkan/luminance.comp", fan::graphics::read_shader("shaders/vulkan/luminance.comp"));
+  loco.shader_compile(luminance_shader);
 
   open_swapchain_resources();
 
