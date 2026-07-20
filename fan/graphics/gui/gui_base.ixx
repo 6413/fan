@@ -756,7 +756,7 @@ export namespace fan::graphics::gui {
   f32_t get_scroll_y();
 
   struct window {
-    window(str_view_t title, fan::graphics::gui::window_flags_t flags = 0);
+    window(str_view_t title, fan::graphics::gui::window_flags_t flags);
     window(str_view_t title, bool* p_open, fan::graphics::gui::window_flags_t flags = 0);
     window(str_view_t title, f32_t alpha = 0.98f);
 

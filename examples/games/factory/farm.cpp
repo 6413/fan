@@ -3,6 +3,11 @@ import fan;
 
 using namespace fan::graphics;
 
+struct resources_t {
+  f64_t gold_per_tick = 5.0;
+  f64_t gold = 0.0;
+}resources;
+
 struct building_t : sprite_t {
   using sprite_t::sprite_t;
   std::string name;
@@ -137,6 +142,40 @@ struct farm_manager_t {
     static gui::grid_state_t state;
     static int selected = 0;
     fan::vec2 bounds = gui::calc_grid_bounds(buildings.size(), buildings.size(), 64.f, 8.f, state.zoom);
+
+    {
+      gui::style_scope_t bg{gui::col_window_bg, fan::color{0.08f, 0.08f, 0.1f, 0.75f}};
+      gui::window_anchor_top_left(0.f);
+      f32_t panel_height = 54.f;
+      if (auto bar = gui::overlay_window("##topbar", {gloco()->window.get_size().x, panel_height}, 0.85f)) {
+        gui::font_scope_t main_font{32.f, gui::font::bold};
+        f32_t cy = (panel_height / 2.f) - gui::get_text_line_height() / 2.f + 0.5;
+
+        gui::set_cursor_pos({12.f, cy});
+        gui::image("game/resources/gold/gold_coin_01.png", gui::get_text_line_height());
+        gui::same_line();
+        gui::text(std::to_string(std::uint64_t(resources.gold)), {.color = fan::color{1.f, 0.84f, 0.f}, .outlined = true});
+        gui::same_line();
+        {
+          gui::font_scope_t small_font{24.f, gui::font::bold};
+          f32_t spc = gui::get_style().ItemSpacing.x;
+          gui::text(
+            "+" + std::to_string(std::uint64_t(resources.gold_per_tick)),
+            {
+              .color = fan::color{1.f, 0.84f, 0.f},
+              .offset = {-spc * 0.9f, -spc * 1.4f},
+              .outlined = true,
+            }
+          );
+        }
+        gui::same_line();
+        gui::text(fan::color{0.9f, 0.9f, 0.95f}, "  |  Buildings: ", (int)placed_buildings.size());
+
+        gui::set_cursor_pos_x(gui::get_window_size().x - 160.f);
+        if (gui::button("Menu", {100.f, 28.f})) {}
+      }
+    }
+    
     if (auto wnd = gui::floating_toolbar{"##buildings", bounds}) {
       if (gui::single_image_selector("buildings_grid", state, buildings, selected, buildings.size(), 64.f, 8.f)) {
         select_building(selected);
