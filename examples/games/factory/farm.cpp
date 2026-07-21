@@ -55,6 +55,7 @@ struct farm_manager_t {
   fan::json buildings_config;
   std::vector<building_image_t> buildings;
   std::list<building_t> placed_buildings;
+  std::unordered_map<fan::vec2i, building_t*> building_map;
   fan::tween::tween_manager_t tweens;
   fan::vec2 tile_size;
   grid_placer_t grid;
@@ -111,24 +112,22 @@ struct farm_manager_t {
   }
 
   building_t* get_building_at(fan::vec2i cell) {
-    for (auto& b : placed_buildings) {
-      if (cell.x >= b.grid_cell.x && cell.x < b.grid_cell.x + b.cells_x * tile_size.x &&
-          cell.y <= b.grid_cell.y && cell.y > b.grid_cell.y - b.cells_y * tile_size.y) {
-        return &b;
-      }
-    }
-    return nullptr;
+    auto it = building_map.find(cell);
+    return it != building_map.end() ? it->second : nullptr;
+  }
+
+  void map_building(building_t& b) {
+    for (int y = 0; y < b.cells_y; ++y)
+      for (int x = 0; x < b.cells_x; ++x)
+        building_map[b.grid_cell + fan::vec2i(x * tile_size.x, -y * tile_size.y)] = &b;
   }
 
   bool can_place(fan::vec2i cell, const building_image_t& img) {
     auto gs = grid.cells_occupied(img.custom_scale);
-    for (int y = 0; y < gs.y; ++y) {
-      for (int x = 0; x < gs.x; ++x) {
-        if (get_building_at(cell + fan::vec2i(x * tile_size.x, -y * tile_size.y))) {
-          return false;
-        }
-      }
-    }
+    if (gs.x == 1 && gs.y == 1) return get_building_at(cell) == nullptr;
+    for (int y = 0; y < gs.y; ++y)
+      for (int x = 0; x < gs.x; ++x)
+        if (get_building_at(cell + fan::vec2i(x * tile_size.x, -y * tile_size.y))) return false;
     return true;
   }
 
@@ -140,7 +139,23 @@ struct farm_manager_t {
     b.cells_x = grid.cells_occupied(img.custom_scale).x;
     b.cells_y = grid.cells_occupied(img.custom_scale).y;
     load_model(b);
+    map_building(b);
     return b;
+  }
+
+  void place_building_with_tween(fan::vec2i cell, building_image_t* img) {
+    if (!img || !can_place(cell, *img)) return;
+    fan::audio::play("audio/pop1.sac");
+    auto target_size = get_transform(cell, *img).size;
+    add_building(cell, *img).set_size(0.f);
+    tweens.add<fan::vec2>([this, cell](fan::vec2 v) {
+      if (auto b = get_building_at(cell); b && b->grid_cell == cell) b->set_size(v);
+    }, 0.f, target_size, 0.75f);
+  }
+
+  void place_building_instant(fan::vec2i cell, building_image_t* img) {
+    if (!img || !can_place(cell, *img)) return;
+    add_building(cell, *img);
   }
 
   void spawn_initial_buildings() {
@@ -150,18 +165,6 @@ struct farm_manager_t {
       auto& b = add_building(cell, img);
       x += b.cells_x;
     }
-  }
-
-  void place_building_with_tween(fan::vec2i cell, building_image_t* img) {
-    if (!img || !can_place(cell, *img)) {
-      return;
-    }
-    fan::audio::play("audio/pop1.sac");
-    auto target_size = get_transform(cell, *img).size;
-    add_building(cell, *img).set_size(0.f);
-    tweens.add<fan::vec2>([this, cell](fan::vec2 v) {
-      if (auto b = get_building_at(cell); b && b->grid_cell == cell) b->set_size(v);
-    }, 0.f, target_size, 0.75f);
   }
 
   void render_ui() {
@@ -235,7 +238,7 @@ struct farm_manager_t {
     if (engine.is_mouse_down(0)) {
       for (auto& c : drag_painter.update(engine.get_mouse_position(), tile_size)) {
         if (!get_building_at(c)) {
-          place_building_with_tween(c, selected_building);
+          place_building_instant(c, selected_building);
         }
       }
     }
