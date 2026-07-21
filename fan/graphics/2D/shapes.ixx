@@ -788,6 +788,10 @@ export namespace fan::graphics {
         fan::vec2 tc_position;
         fan::vec2 tc_size;
         f32_t seed;
+        std::uint32_t texture_id;
+        std::uint32_t texture_id1;
+        std::uint32_t texture_id2;
+        std::uint32_t texture_id3;
       };
 
     #pragma pack(pop)
@@ -853,6 +857,10 @@ export namespace fan::graphics {
         fan::vec2 tc_position;
         fan::vec2 tc_size;
         f32_t seed;
+        std::uint32_t texture_id;
+        std::uint32_t texture_id1;
+        std::uint32_t texture_id2;
+        std::uint32_t texture_id3;
       };
     #pragma pack(pop)
 

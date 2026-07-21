@@ -1970,6 +1970,7 @@ void shapes_draw() {
         pc.camera_id = camera_id;
         pc.time = (f32_t)(fan::time::now() / 1e9);
         pc.texture_id = texture_id(texture);
+        pc.texture_id1 = loco.default_texture.NRI;
 
         auto off = BlockTraverse.GetRenderDataOffset(shaper) / shaper.GetRenderDataSize(shape_type);
         auto draw_vertex_count = vertex_count == (std::uint32_t)-1 ? vk_data.vertex_count : vertex_count;
