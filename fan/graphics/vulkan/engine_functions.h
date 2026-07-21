@@ -1744,7 +1744,6 @@ void shapes_draw() {
     VkDeviceSize wanted
   ) {
     if (wanted <= capacity && buffer) { return; }
-    if (buffer.mapped) { context.unmap_buffer(buffer); }
     context.destroy_buffer(buffer);
     capacity = std::max<VkDeviceSize>(wanted, capacity ? capacity * 2 : wanted);
     context.create_buffer(
