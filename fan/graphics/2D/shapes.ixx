@@ -803,8 +803,6 @@ export namespace fan::graphics {
         sprite_sheet_data_t sprite_sheet_data;
       };
 
-
-
       struct properties_t {
         using type_t = sprite_t;
 

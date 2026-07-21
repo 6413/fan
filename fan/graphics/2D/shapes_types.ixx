@@ -361,7 +361,6 @@ export namespace fan::graphics {
 #pragma pack(push, 1)
 
   using blending_t = std::uint8_t;
-  using depth_t = std::uint16_t;
   using visible_t = std::uint8_t;
   using shader_raw_t = decltype(fan::graphics::shader_t::NRI);
 #undef st
@@ -391,7 +390,6 @@ export namespace fan::graphics {
     );
     st(common_t,
       d<visible_t> visible;
-      d<depth_t> depth;
       d<blending_t> blending;
       d<fan::graphics::viewport_t> viewport;
       d<fan::graphics::camera_t> camera;
@@ -404,10 +402,8 @@ export namespace fan::graphics {
     );
     st(texture_t,
       d<visible_t> visible;
-      d<depth_t> depth;
       d<shader_raw_t> shader_raw;
       d<blending_t> blending;
-      d<fan::graphics::image_t> image;
       d<fan::graphics::viewport_t> viewport;
       d<fan::graphics::camera_t> camera;
       d<shaper_t::ShapeTypeIndex_t> ShapeType;
@@ -422,7 +418,6 @@ export namespace fan::graphics {
       light_end,
       visible, // mainly for culling
       blending,
-      depth,
       shader,
       image,
       viewport,
