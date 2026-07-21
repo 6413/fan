@@ -3165,6 +3165,12 @@ namespace fan::graphics {
     get_has_parent()[child.gint()] = NRI;
   }
 
+  void shapes::shape_t::add_child(shape_t&& child) {
+    auto nri = child.gint();
+    add_child(static_cast<const shape_t&>(child));
+    child.sic();
+  }
+
   void shapes::shape_t::add_children(std::span<const shape_t> children) {
     for (const auto& child : children) {
       add_child(child);
