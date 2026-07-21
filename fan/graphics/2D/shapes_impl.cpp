@@ -1401,7 +1401,7 @@ namespace fan::graphics{
       sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::line3d, vi, ri,
         Key_e::visible, (std::uint8_t)true,
-        //Key_e::depth, (std::uint16_t)properties.src.z,
+        //Key_e::depth, (std::uint16_t)properties.position.z,
         Key_e::blending, (std::uint8_t)properties.blending,
         Key_e::viewport, properties.viewport,
         Key_e::camera, properties.camera,
