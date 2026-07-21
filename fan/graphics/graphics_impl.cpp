@@ -911,7 +911,6 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     auto children = shapes_from_json(json_path, callers_path);
     if (children.empty()) return {};
     fan::graphics::shape_t parent = std::move(children[0]);
-    children.clear();
     for (std::size_t i = 1; i < children.size(); ++i) {
       parent.add_child(std::move(children[i]));
     }

@@ -160,13 +160,10 @@ struct farm_manager_t {
 
   void spawn_initial_buildings() {
     int x = 0;
-    int y = 0;
     for (auto& img : buildings) {
       fan::vec2i cell(x * tile_size.x, 0);
       auto& b = add_building(cell, img);
       x += b.cells_x;
-      if (y > 10) break;
-      ++y;
     }
   }
 
@@ -241,7 +238,7 @@ struct farm_manager_t {
     if (engine.is_mouse_down(0)) {
       for (auto& c : drag_painter.update(engine.get_mouse_position(), tile_size)) {
         if (!get_building_at(c)) {
-          place_building_instant(c, selected_building);
+          place_building_with_tween(c, selected_building);
         }
       }
     }
@@ -260,7 +257,8 @@ struct farm_manager_t {
     if (!selected_building) return;
     fan::vec2i cell = grid.get_cell(engine.get_mouse_position());
     if (can_place(cell, *selected_building)) {
-      placement.set_position(get_transform(cell, *selected_building).position);
+      auto p = get_transform(cell, *selected_building).position;
+      placement.set_position(p);
     } else {
       placement.set_position(fan::vec3(-100000.f, -100000.f, 0.f));
     }
