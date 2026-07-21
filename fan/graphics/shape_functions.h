@@ -15,12 +15,14 @@ static constexpr int get_shape_category(std::uint16_t sti) {
   case fan::graphics::shapes::shape_type_t::line:
     return fan::graphics::shapes::kp::common;
 
-  case fan::graphics::shapes::shape_type_t::particles:
   case fan::graphics::shapes::shape_type_t::universal_image_renderer:
   case fan::graphics::shapes::shape_type_t::unlit_sprite:
   case fan::graphics::shapes::shape_type_t::sprite:
   case fan::graphics::shapes::shape_type_t::shader_shape:
     return fan::graphics::shapes::kp::texture;
+
+  case fan::graphics::shapes::shape_type_t::particles:
+    return fan::graphics::shapes::kp::particles;
 
   default:
     return -1;
@@ -62,21 +64,26 @@ static void update_shape(fan::graphics::shapes::shape_t* shape, modifier_t&& mod
 
 template<typename sti_t, typename key_pack_t>
 static void set_position_impl(sti_t sti, key_pack_t key_pack, const fan::vec3& position) {
+  static constexpr auto max_depth = std::numeric_limits<decltype(fan::graphics::kps_t::common_t::depth)>::max();
+  if (position.z > max_depth) {
+    fan::throw_error_impl(
+      ("z depth value exceeded. dont give me bigger depth than " +
+        std::to_string(max_depth)).c_str()
+    );
+  }
   switch (get_shape_category(sti)) {
-  case fan::graphics::shapes::kp::common:
-  case fan::graphics::shapes::kp::texture: {
+  case fan::graphics::shapes::kp::common: {
 #if FAN_DEBUG >= 3
-    static constexpr auto max_depth = std::numeric_limits<decltype(fan::graphics::kps_t::common_t::depth)>::max();
-    if (position.z > max_depth) {
-      fan::throw_error_impl(
-        ("z depth value exceeded. dont give me bigger depth than " +
-          std::to_string(max_depth)).c_str()
-      );
-    }
 #endif
     shaper_get_key_safe(depth_t, common_t, depth) = position.z;
     break;
   }
+  case fan::graphics::shapes::kp::texture:
+    shaper_get_key_safe(depth_t, texture_t, depth) = position.z;
+    break;
+  case fan::graphics::shapes::kp::particles:
+    shaper_get_key_safe(depth_t, particles_t, depth) = position.z;
+    break;
   case fan::graphics::shapes::kp::light:
     break;
   default:
@@ -107,6 +114,8 @@ static fan::graphics::camera_t get_camera(const fan::graphics::shapes::shape_t* 
     return shaper_get_key_safe(camera_t, common_t, camera);
   case fan::graphics::shapes::kp::texture:
     return shaper_get_key_safe(camera_t, texture_t, camera);
+  case fan::graphics::shapes::kp::particles:
+    return shaper_get_key_safe(camera_t, particles_t, camera);
   default:
     fan::throw_error_impl("get_camera: unsupported shape");
   }
@@ -127,6 +136,9 @@ static void set_camera_impl(
     break;
   case fan::graphics::shapes::kp::texture:
     shaper_get_key_safe(camera_t, texture_t, camera) = camera;
+    break;
+  case fan::graphics::shapes::kp::particles:
+    shaper_get_key_safe(camera_t, particles_t, camera) = camera;
     break;
   default:
     fan::throw_error_impl("set_camera: unsupported shape");
@@ -165,6 +177,9 @@ static void set_viewport_impl(
   case fan::graphics::shapes::kp::texture:
     shaper_get_key_safe(viewport_t, texture_t, viewport) = viewport;
     break;
+  case fan::graphics::shapes::kp::particles:
+    shaper_get_key_safe(viewport_t, particles_t, viewport) = viewport;
+    break;
   default:
     fan::throw_error_impl("set_viewport: unsupported shape");
   }
@@ -195,8 +210,11 @@ static void set_image_impl(
   key_pack_t key_pack,
   fan::graphics::image_t image
 ) {
+  if (get_shape_category(sti) == fan::graphics::shapes::kp::particles) {
+    shaper_get_key_safe(image_t, particles_t, image) = image;
+  }
   if (get_shape_category(sti) == fan::graphics::shapes::kp::texture) {
-    shaper_get_key_safe(image_t, texture_t, image) = image;
+    return;
   }
   else {
     fan::throw_error_impl("set_image: unsupported shape");
@@ -235,6 +253,9 @@ static fan::graphics::shader_t get_shader(const fan::graphics::shapes::shape_t* 
   if (get_shape_category(sti) == fan::graphics::shapes::kp::texture) {
     result.gint() = shaper_get_key_safe(shader_raw_t, texture_t, shader_raw);
   }
+  if (get_shape_category(sti) == fan::graphics::shapes::kp::particles) {
+    result.gint() = shaper_get_key_safe(shader_raw_t, particles_t, shader_raw);
+  }
   return result;
 }
 template<typename sti_t, typename key_pack_t>
@@ -242,6 +263,9 @@ static void set_shader_impl(sti_t sti, key_pack_t key_pack, fan::graphics::shade
   switch (get_shape_category(sti)) {
   case fan::graphics::shapes::kp::texture:
     shaper_get_key_safe(shader_raw_t, texture_t, shader_raw) = shader.gint();
+    break;
+  case fan::graphics::shapes::kp::particles:
+    shaper_get_key_safe(shader_raw_t, particles_t, shader_raw) = shader.gint();
     break;
   default:
     fan::throw_error_impl("set_shader: unsupported shape");
@@ -448,6 +472,12 @@ static void set_with_sync(fan::graphics::shapes::shape_t* s, const field_t& v, p
         shaper_get_key_safe(depth_t, texture_t, depth) = v.z;
       }
       break;
+    case fan::graphics::shapes::kp::particles: {
+      if constexpr (std::is_same_v<field_t, fan::vec3>) {
+        shaper_get_key_safe(depth_t, particles_t, depth) = v.z;
+      }
+      break;
+    }
     }
   }
 }
@@ -509,7 +539,7 @@ static void generic_set_radius(fan::graphics::shapes::shape_t* s, f32_t v) {
 
 MAKE_ACCESSORS(camera, fan::graphics::camera_t, true)
 MAKE_ACCESSORS(viewport, fan::graphics::viewport_t, true)
-MAKE_ACCESSORS(image, fan::graphics::image_t, true)
+MAKE_ACCESSORS(image, fan::graphics::image_t, false)
 MAKE_ACCESSORS(position, fan::vec3, true)
 MAKE_ACCESSORS(color, fan::color, false)
 MAKE_ACCESSORS(angle, fan::vec3, false)
