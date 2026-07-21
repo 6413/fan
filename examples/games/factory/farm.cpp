@@ -63,6 +63,7 @@ struct farm_manager_t {
   building_image_t* selected_building = nullptr;
   sprite_t grass;
   day_cycle_t day_cycle;
+  grid_drag_painter_t drag_painter;
 
   farm_manager_t(engine_t& engine, const fan::vec2& t_size) : 
     buildings_config(fan::json::load_file("buildings.json")),
@@ -232,9 +233,14 @@ struct farm_manager_t {
     }
     fan::vec2i cell = grid.get_cell(engine.get_mouse_position());
     if (engine.is_mouse_down(0)) {
-      if (!get_building_at(cell)) {
-        place_building_with_tween(cell, selected_building);
+      for (auto& c : drag_painter.update(engine.get_mouse_position(), tile_size)) {
+        if (!get_building_at(c)) {
+          place_building_with_tween(c, selected_building);
+        }
       }
+    }
+    else {
+      drag_painter.reset();
     }
     if (engine.is_mouse_clicked(1)) {
       if (auto b = get_building_at(cell)) {
