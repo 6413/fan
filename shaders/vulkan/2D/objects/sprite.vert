@@ -60,9 +60,12 @@ vec4 project2(vec3 p) {
 
 layout(location = 0) out vec4 instance_color;
 layout(location = 1) out vec2 texture_coordinate;
+layout(location = 2) out flat uvec4 instance_texture_ids;
+layout(location = 3) out flat uint fs_flags;
+layout(location = 4) out flat float object_seed;
 
 void main() {
-  base = uint(gl_InstanceIndex) * 22u;
+  base = uint(gl_InstanceIndex) * 26u;
   uint id = uint(gl_VertexIndex) % 6u;
   vec2 rp = rectangle_vertices[id];
   vec3 position = v3(0u);
@@ -73,4 +76,7 @@ void main() {
   gl_Position = project2(vec3(local + position.xy, position.z));
   instance_color = v4(36u);
   texture_coordinate = texture_coordinates[id] * v2(76u) + v2(68u);
+  instance_texture_ids = uvec4(u(88u), u(92u), u(96u), u(100u));
+  fs_flags = u(64u);
+  object_seed = f(84u);
 }

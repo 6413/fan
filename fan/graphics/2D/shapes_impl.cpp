@@ -939,6 +939,10 @@ namespace fan::graphics{
       vi.tc_size = properties.tc_size;
       vi.parallax_factor = properties.parallax_factor;
       vi.seed = properties.seed;
+      vi.texture_id = properties.image.valid() ? properties.image.NRI : fan::graphics::ctx().default_texture.NRI;
+      vi.texture_id1 = properties.images[1].valid() ? properties.images[1].NRI : fan::graphics::ctx().default_texture.NRI;
+      vi.texture_id2 = properties.images[2].valid() ? properties.images[2].NRI : fan::graphics::ctx().default_texture.NRI;
+      vi.texture_id3 = properties.images[3].valid() ? properties.images[3].NRI : fan::graphics::ctx().default_texture.NRI;
 
       shapes::sprite_t::ri_t ri;
       ri.images = properties.images;
@@ -951,7 +955,6 @@ namespace fan::graphics{
         Key_e::depth, (std::uint16_t)properties.position.z,
         Key_e::shader, (fan::graphics::shader_raw_t)fan::graphics::g_shapes->shaper.GetShader(shape_type_t::sprite).gint(),
         Key_e::blending, (std::uint8_t)properties.blending,
-        Key_e::image, properties.image,
         Key_e::viewport, properties.viewport,
         Key_e::camera, properties.camera,
         Key_e::ShapeType, (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::sprite,
@@ -1061,6 +1064,10 @@ namespace fan::graphics{
       vi.tc_size = properties.tc_size;
       vi.parallax_factor = properties.parallax_factor;
       vi.seed = properties.seed;
+      vi.texture_id = properties.image.valid() ? properties.image.NRI : fan::graphics::ctx().default_texture.NRI;
+      vi.texture_id1 = properties.images[1].valid() ? properties.images[1].NRI : fan::graphics::ctx().default_texture.NRI;
+      vi.texture_id2 = properties.images[2].valid() ? properties.images[2].NRI : fan::graphics::ctx().default_texture.NRI;
+      vi.texture_id3 = properties.images[3].valid() ? properties.images[3].NRI : fan::graphics::ctx().default_texture.NRI;
 
       shapes::unlit_sprite_t::ri_t ri;
       ri.images = properties.images;
@@ -1073,7 +1080,6 @@ namespace fan::graphics{
         Key_e::depth, (std::uint16_t)properties.position.z,
         Key_e::shader, (fan::graphics::shader_raw_t)fan::graphics::g_shapes->shaper.GetShader(shape_type_t::unlit_sprite).gint(),
         Key_e::blending, (std::uint8_t)properties.blending,
-        Key_e::image, properties.image,
         Key_e::viewport, properties.viewport,
         Key_e::camera, properties.camera,
         Key_e::ShapeType, (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::unlit_sprite,
