@@ -945,7 +945,6 @@ namespace fan::graphics{
       vi.texture_id3 = properties.images[3].valid() ? properties.images[3].NRI : fan::graphics::ctx().default_texture.NRI;
 
       shapes::sprite_t::ri_t ri;
-      ri.images = properties.images;
       ri.texture_pack_unique_id = properties.texture_pack_unique_id;
       ri.sprite_sheet_data = properties.sprite_sheet_data;
 
@@ -1070,7 +1069,6 @@ namespace fan::graphics{
       vi.texture_id3 = properties.images[3].valid() ? properties.images[3].NRI : fan::graphics::ctx().default_texture.NRI;
 
       shapes::unlit_sprite_t::ri_t ri;
-      ri.images = properties.images;
       ri.texture_pack_unique_id = properties.texture_pack_unique_id;
       ri.sprite_sheet_data = properties.sprite_sheet_data;
 
@@ -1868,10 +1866,22 @@ namespace fan::graphics{
   std::array<fan::graphics::image_t, 30> shapes::shape_t::get_images() const {
     auto shape_type = get_shape_type();
     if (shape_type == shape_type_t::sprite) {
-      return ((sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper))->images;
+      auto* vi = (const sprite_t::vi_t*)GetRenderData(fan::graphics::g_shapes->shaper);
+      std::array<fan::graphics::image_t, 30> ret;
+      ret[0].gint() = vi->texture_id;
+      ret[1].gint() = vi->texture_id1;
+      ret[2].gint() = vi->texture_id2;
+      ret[3].gint() = vi->texture_id3;
+      return ret;
     }
     else if (shape_type == shape_type_t::unlit_sprite) {
-      return ((unlit_sprite_t::ri_t*)GetData(fan::graphics::g_shapes->shaper))->images;
+      auto* vi = (const unlit_sprite_t::vi_t*)GetRenderData(fan::graphics::g_shapes->shaper);
+      std::array<fan::graphics::image_t, 30> ret;
+      ret[0].gint() = vi->texture_id;
+      ret[1].gint() = vi->texture_id1;
+      ret[2].gint() = vi->texture_id2;
+      ret[3].gint() = vi->texture_id3;
+      return ret;
     }
     else if (shape_type == shape_type_t::universal_image_renderer) {
       shapes::shape_ids_t::nr_t id;
@@ -1899,10 +1909,18 @@ namespace fan::graphics{
       }
     });
     if (shape_type == shape_type_t::sprite) {
-      ((sprite_t::ri_t*)ShapeID_t::GetData(fan::graphics::g_shapes->shaper))->images = images;
+      auto* vi = (sprite_t::vi_t*)GetRenderData(fan::graphics::g_shapes->shaper);
+      vi->texture_id = images[0].valid() ? images[0].NRI : fan::graphics::ctx().default_texture.NRI;
+      vi->texture_id1 = images[1].valid() ? images[1].NRI : fan::graphics::ctx().default_texture.NRI;
+      vi->texture_id2 = images[2].valid() ? images[2].NRI : fan::graphics::ctx().default_texture.NRI;
+      vi->texture_id3 = images[3].valid() ? images[3].NRI : fan::graphics::ctx().default_texture.NRI;
     }
     else if (shape_type == shape_type_t::unlit_sprite) {
-      ((unlit_sprite_t::ri_t*)ShapeID_t::GetData(fan::graphics::g_shapes->shaper))->images = images;
+      auto* vi = (unlit_sprite_t::vi_t*)GetRenderData(fan::graphics::g_shapes->shaper);
+      vi->texture_id = images[0].valid() ? images[0].NRI : fan::graphics::ctx().default_texture.NRI;
+      vi->texture_id1 = images[1].valid() ? images[1].NRI : fan::graphics::ctx().default_texture.NRI;
+      vi->texture_id2 = images[2].valid() ? images[2].NRI : fan::graphics::ctx().default_texture.NRI;
+      vi->texture_id3 = images[3].valid() ? images[3].NRI : fan::graphics::ctx().default_texture.NRI;
     }
   #if FAN_DEBUG >= fan_debug_medium
     else {

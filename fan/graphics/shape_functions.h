@@ -222,9 +222,15 @@ static void set_image_impl(
 }
 
 static void set_image(fan::graphics::shapes::shape_t* shape, fan::graphics::image_t image) {
-  update_shape(shape, [&](auto sti, auto key_pack) {
-    set_image_impl(sti, key_pack, image);
-  });
+  auto sti = shape->get_shape_type();
+  if (sti == fan::graphics::shapes::shape_type_t::sprite || sti == fan::graphics::shapes::shape_type_t::unlit_sprite) {
+    auto* vi = (fan::graphics::shapes::sprite_t::vi_t*)shape->GetRenderData(fan::graphics::g_shapes->shaper);
+    vi->texture_id = image.valid() ? image.NRI : fan::graphics::ctx().default_texture.NRI;
+  } else {
+    update_shape(shape, [&](auto sti2, auto key_pack) {
+      set_image_impl(sti2, key_pack, image);
+    });
+  }
   fan::graphics::g_shapes->visit_shape_draw_data(shape->NRI, [&](auto& props) {
     if constexpr (requires { props.images; } && !requires{ props.image; }) {
       props.images[0] = image;
