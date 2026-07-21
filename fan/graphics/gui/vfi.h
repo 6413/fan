@@ -215,6 +215,7 @@ struct vfi_t {
 
     auto& sd = g_shapes->shape_ids[new_item];
     sd.visual = g_shapes->shape_add(fan::graphics::shapes::shape_type_t::vfi, 0, instance,
+      Key_e::depth,     (uint16_t)p.shape.rectangle->position.z,
       Key_e::viewport,  p.shape.rectangle->viewport,
       Key_e::camera,    p.shape.rectangle->camera,
       Key_e::ShapeType, (shaper_t::ShapeTypeIndex_t)fan::graphics::shapes::shape_type_t::vfi

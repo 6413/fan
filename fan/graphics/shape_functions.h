@@ -66,15 +66,15 @@ static void set_position_impl(sti_t sti, key_pack_t key_pack, const fan::vec3& p
   case fan::graphics::shapes::kp::common:
   case fan::graphics::shapes::kp::texture: {
 #if FAN_DEBUG >= 3
-    //static constexpr auto max_depth = std::numeric_limits<decltype(fan::graphics::kps_t::common_t::depth)>::max();
-    //if (position.z > max_depth) {
-    //  fan::throw_error_impl(
-    //    ("z depth value exceeded. dont give me bigger depth than " +
-    //      std::to_string(max_depth)).c_str()
-    //  );
-    //}
+    static constexpr auto max_depth = std::numeric_limits<decltype(fan::graphics::kps_t::common_t::depth)>::max();
+    if (position.z > max_depth) {
+      fan::throw_error_impl(
+        ("z depth value exceeded. dont give me bigger depth than " +
+          std::to_string(max_depth)).c_str()
+      );
+    }
 #endif
-    //shaper_get_key_safe(depth_t, common_t, depth) = position.z;
+    shaper_get_key_safe(depth_t, common_t, depth) = position.z;
     break;
   }
   case fan::graphics::shapes::kp::light:
@@ -196,7 +196,7 @@ static void set_image_impl(
   fan::graphics::image_t image
 ) {
   if (get_shape_category(sti) == fan::graphics::shapes::kp::texture) {
-    //shaper_get_key_safe(image_t, texture_t, image) = image;
+    shaper_get_key_safe(image_t, texture_t, image) = image;
   }
   else {
     fan::throw_error_impl("set_image: unsupported shape");
@@ -440,12 +440,12 @@ static void set_with_sync(fan::graphics::shapes::shape_t* s, const field_t& v, p
     switch (get_shape_category(sti)) {
     case fan::graphics::shapes::kp::common:
       if constexpr (std::is_same_v<field_t, fan::vec3>) {
-        //shaper_get_key_safe(depth_t, common_t, depth) = v.z;
+        shaper_get_key_safe(depth_t, common_t, depth) = v.z;
       }
       break;
     case fan::graphics::shapes::kp::texture:
       if constexpr (std::is_same_v<field_t, fan::vec3>) {
-        //shaper_get_key_safe(depth_t, texture_t, depth) = v.z;
+        shaper_get_key_safe(depth_t, texture_t, depth) = v.z;
       }
       break;
     }
@@ -509,7 +509,7 @@ static void generic_set_radius(fan::graphics::shapes::shape_t* s, f32_t v) {
 
 MAKE_ACCESSORS(camera, fan::graphics::camera_t, true)
 MAKE_ACCESSORS(viewport, fan::graphics::viewport_t, true)
-MAKE_ACCESSORS(image, fan::graphics::image_t, false)
+MAKE_ACCESSORS(image, fan::graphics::image_t, true)
 MAKE_ACCESSORS(position, fan::vec3, true)
 MAKE_ACCESSORS(color, fan::color, false)
 MAKE_ACCESSORS(angle, fan::vec3, false)
