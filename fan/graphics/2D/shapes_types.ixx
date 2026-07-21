@@ -407,6 +407,7 @@ export namespace fan::graphics {
       d<depth_t> depth;
       d<shader_raw_t> shader_raw;
       d<blending_t> blending;
+      d<fan::graphics::image_t> image;
       d<fan::graphics::viewport_t> viewport;
       d<fan::graphics::camera_t> camera;
       d<shaper_t::ShapeTypeIndex_t> ShapeType;
@@ -419,10 +420,11 @@ export namespace fan::graphics {
     enum : shaper_t::KeyTypeIndex_t {
       light,
       light_end,
-      visible, // mainly for culling
-      blending,
+      visible,
       depth,
       shader,
+      blending,
+      image,
       viewport,
       camera,
       ShapeType,
