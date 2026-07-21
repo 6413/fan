@@ -1177,7 +1177,7 @@ static void loco_init_shapes_system(loco_t* l) {
   fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::depth,        sizeof(fan::graphics::depth_t),                    fan::graphics::shaper_t::KeyBitOrderLow);
   fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::shader,       sizeof(fan::graphics::shader_raw_t),               fan::graphics::shaper_t::KeyBitOrderLow);
   fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::blending,     sizeof(fan::graphics::blending_t),                 fan::graphics::shaper_t::KeyBitOrderLow);
-  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::image,        sizeof(fan::graphics::image_t),                    fan::graphics::shaper_t::KeyBitOrderLow);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::image,        sizeof(fan::graphics::image_t),                    fan::graphics::shaper_t::KeyBitOrderAny);
   fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::viewport,     sizeof(fan::graphics::viewport_t),                 fan::graphics::shaper_t::KeyBitOrderAny);
   fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::camera,       sizeof(fan::graphics::camera_t),                          fan::graphics::shaper_t::KeyBitOrderAny);
   fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::ShapeType,    sizeof(fan::graphics::shaper_t::ShapeTypeIndex_t), fan::graphics::shaper_t::KeyBitOrderAny);
