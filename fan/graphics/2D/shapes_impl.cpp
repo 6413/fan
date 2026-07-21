@@ -915,6 +915,7 @@ namespace fan::graphics{
       sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::rectangle, vi, ri,
         Key_e::visible, (std::uint8_t)true,
+        Key_e::depth, (std::uint16_t)properties.position.z,
         Key_e::blending, (std::uint8_t)properties.blending,
         Key_e::viewport, properties.viewport,
         Key_e::camera, properties.camera,
@@ -951,6 +952,7 @@ namespace fan::graphics{
       sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::sprite, vi, ri,
         Key_e::visible, (visible_t)true,
+        Key_e::depth, (std::uint16_t)properties.position.z,
         Key_e::shader, (fan::graphics::shader_raw_t)fan::graphics::g_shapes->shaper.GetShader(shape_type_t::sprite).gint(),
         Key_e::blending, (std::uint8_t)properties.blending,
         Key_e::viewport, properties.viewport,
@@ -979,6 +981,7 @@ namespace fan::graphics{
       sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::line, vi, ri,
         Key_e::visible, (std::uint8_t)true,
+        Key_e::depth, (std::uint16_t)properties.src.z,
         Key_e::blending, (std::uint8_t)properties.blending,
         Key_e::viewport, properties.viewport,
         Key_e::camera, properties.camera,
@@ -1006,6 +1009,7 @@ namespace fan::graphics{
       sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::circle, vi, ri,
         Key_e::visible, (std::uint8_t)true,
+        Key_e::depth, (std::uint16_t)properties.position.z,
         Key_e::blending, (std::uint8_t)properties.blending,
         Key_e::viewport, properties.viewport,
         Key_e::camera, properties.camera,
@@ -1073,6 +1077,7 @@ namespace fan::graphics{
       sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::unlit_sprite, vi, ri,
         Key_e::visible, (std::uint8_t)true,
+        Key_e::depth, (std::uint16_t)properties.position.z,
         Key_e::shader, (fan::graphics::shader_raw_t)fan::graphics::g_shapes->shaper.GetShader(shape_type_t::unlit_sprite).gint(),
         Key_e::blending, (std::uint8_t)properties.blending,
         Key_e::viewport, properties.viewport,
@@ -1111,6 +1116,7 @@ namespace fan::graphics{
       sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::capsule, vi, ri,
         Key_e::visible, (std::uint8_t)true,
+        Key_e::depth, (std::uint16_t)properties.position.z,
         Key_e::blending, (std::uint8_t)properties.blending,
         Key_e::viewport, properties.viewport,
         Key_e::camera, properties.camera,
@@ -1145,6 +1151,7 @@ namespace fan::graphics{
       sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::polygon, vi, ri,
         Key_e::visible, (std::uint8_t)true,
+        Key_e::depth, (std::uint16_t)properties.position.z,
         Key_e::blending, (std::uint8_t)properties.blending,
         Key_e::viewport, properties.viewport,
         Key_e::camera, properties.camera,
@@ -1170,6 +1177,7 @@ namespace fan::graphics{
       sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::grid, vi, ri,
         Key_e::visible, (std::uint8_t)true,
+        Key_e::depth, (std::uint16_t)properties.position.z,
         Key_e::blending, (std::uint8_t)properties.blending,
         Key_e::viewport, properties.viewport,
         Key_e::camera, properties.camera,
@@ -1230,6 +1238,7 @@ namespace fan::graphics{
       sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::particles, vi, ri,
         Key_e::visible, (std::uint8_t)true,
+        Key_e::depth, (std::uint16_t)properties.position.z,
         Key_e::shader, (fan::graphics::shader_raw_t)fan::graphics::g_shapes->shaper.GetShader(shape_type_t::particles).gint(),
         Key_e::blending, (std::uint8_t)properties.blending,
         Key_e::image, properties.image,
@@ -1257,6 +1266,7 @@ namespace fan::graphics{
       sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::universal_image_renderer, vi, ri,
         Key_e::visible, (std::uint8_t)true,
+        Key_e::depth, (std::uint16_t)properties.position.z,
         Key_e::shader, (fan::graphics::shader_raw_t)fan::graphics::g_shapes->shaper.GetShader(shape_type_t::universal_image_renderer).gint(),
         Key_e::blending, (std::uint8_t)properties.blending,
         Key_e::image, properties.images[0],
@@ -1283,6 +1293,7 @@ namespace fan::graphics{
       sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::gradient, vi, ri,
         Key_e::visible, (std::uint8_t)true,
+        Key_e::depth, (std::uint16_t)properties.position.z,
         Key_e::blending, (std::uint8_t)properties.blending,
         Key_e::viewport, properties.viewport,
         Key_e::camera, properties.camera,
@@ -1341,6 +1352,7 @@ namespace fan::graphics{
       sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::shader_shape, vi, ri,
         Key_e::visible, (std::uint8_t)true,
+        Key_e::depth, (std::uint16_t)properties.position.z,
         Key_e::shader, (fan::graphics::shader_raw_t)properties.shader.gint(),
         Key_e::blending, (std::uint8_t)properties.blending,
         Key_e::image, properties.image,
@@ -1366,6 +1378,7 @@ namespace fan::graphics{
       sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::rectangle3d, vi, ri,
         Key_e::visible, (std::uint8_t)true,
+        //Key_e::depth, (std::uint16_t)properties.position.z,
         Key_e::blending, (std::uint8_t)properties.blending,
         Key_e::viewport, properties.viewport,
         Key_e::camera, properties.camera,
@@ -1388,6 +1401,7 @@ namespace fan::graphics{
       sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::line3d, vi, ri,
         Key_e::visible, (std::uint8_t)true,
+        //Key_e::depth, (std::uint16_t)properties.src.z,
         Key_e::blending, (std::uint8_t)properties.blending,
         Key_e::viewport, properties.viewport,
         Key_e::camera, properties.camera,
@@ -2838,6 +2852,7 @@ namespace fan::graphics{
         ti.position /= img_data.size;
         ti.size /= img_data.size;
         modified_props.image = img;
+        //modified_props.texture_pack_unique_id.sic();
       }
     }
 
@@ -2847,6 +2862,14 @@ namespace fan::graphics{
     }
 
     auto new_item = g_shapes->add_shape(fan::graphics::shape_type_t::sprite, modified_props);
+
+    //g_shapes->visit_shape_draw_data(new_item.NRI, [&](auto& draw_data) {
+    //  if constexpr (requires { draw_data.texture_pack_unique_id; }) {
+    //    if (uses_texture_pack) {
+    //      draw_data.texture_pack_unique_id = properties.texture_pack_unique_id;
+    //    }
+    //  }
+    //});
 
     fan::graphics::shaper_t::ShapeID_t ret;
     ret.gint() = new_item.NRI;
