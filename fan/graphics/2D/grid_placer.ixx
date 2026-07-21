@@ -12,7 +12,7 @@ export namespace fan::graphics {
     
     float z_min = 1.f;
     float z_max = 65535.f;
-    float z_offset = 2000.f;
+    float z_offset = 0.f;
 
     grid_placer_t(fan::vec2 ts) : tile_size(ts) {}
 
@@ -35,7 +35,7 @@ export namespace fan::graphics {
         cell.x + (co.x * tile_size.x) / 2.f,
         cell.y + tile_size.y - object_size.y / 2.f
       );
-      return fan::vec3(pos, get_z_depth(pos.y + object_size.y / 2.f));
+      return fan::vec3(pos, get_z_depth(cell.y / tile_size.y + 1));
     }
     
     inline fan::vec2 get_fit_size(fan::vec2 original_size, fan::vec2 custom_scale = 1.0f) const {

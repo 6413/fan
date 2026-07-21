@@ -799,7 +799,6 @@ export namespace fan::graphics {
     #pragma pack(pop)
 
       struct ri_t {
-        std::array<fan::graphics::image_t, 30> images;
         fan::graphics::texture_pack::unique_t texture_pack_unique_id;
 
         sprite_sheet_data_t sprite_sheet_data;
@@ -867,7 +866,6 @@ export namespace fan::graphics {
     #pragma pack(pop)
 
       struct ri_t {
-        std::array<fan::graphics::image_t, 30> images;
         fan::graphics::texture_pack::unique_t texture_pack_unique_id;
 
         sprite_sheet_data_t sprite_sheet_data;
