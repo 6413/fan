@@ -864,6 +864,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     for (std::size_t i = 0; i < shapes.size(); ++i) {
       cache.original_pos[i] = shapes[i].get_position();
       cache.shapes[i].set_position(fan::vec2(-0xfffff));
+      cache.shapes[i].set_visible(false);
     }
   }
 
@@ -879,6 +880,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     auto& cache = cache_map[json_path];
     fan::graphics::shape_t s = cache.shapes[0];
     s.set_position(cache.original_pos[0]);
+    s.set_visible(true);
     return s;
   }
 
@@ -897,6 +899,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     for (std::size_t i = 0; i < cache.shapes.size(); ++i) {
       out[i] = cache.shapes[i];
       out[i].set_position(cache.original_pos[i]);
+      out[i].set_visible(true);
     }
 
     return out;
@@ -908,9 +911,9 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     auto children = shapes_from_json(json_path, callers_path);
     if (children.empty()) return {};
     fan::graphics::shape_t parent = std::move(children[0]);
+    children.clear();
     for (std::size_t i = 1; i < children.size(); ++i) {
-      parent.add_child(children[i]);
-      children[i].sic();
+      parent.add_child(std::move(children[i]));
     }
     return parent;
   }

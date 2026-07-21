@@ -96,7 +96,7 @@ export namespace fan::graphics {
   };
 
   struct light_t : fan::graphics::shapes::shape_t {
-    using fan::graphics::shapes::shape_t::shape_t;
+    //using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
 
     light_t() = default;
@@ -125,7 +125,7 @@ export namespace fan::graphics {
   };
 
   struct line_t : fan::graphics::shapes::shape_t {
-    using fan::graphics::shapes::shape_t::shape_t;
+    //using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
 
     line_t() = default;
@@ -146,7 +146,7 @@ export namespace fan::graphics {
   };
 
   struct rectangle_t : fan::graphics::shapes::shape_t {
-    using fan::graphics::shapes::shape_t::shape_t;
+    //using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
 
     rectangle_t() = default;
@@ -173,7 +173,7 @@ export namespace fan::graphics {
   };
 
   struct sprite_t : fan::graphics::shapes::shape_t {
-    //using fan::graphics::shapes::shape_t::shape_t;
+    ////using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
 
     sprite_t(const fan::graphics::shapes::shape_t& s) : fan::graphics::shapes::shape_t(s) {}
@@ -220,7 +220,7 @@ export namespace fan::graphics {
   };
 
   struct unlit_sprite_t : fan::graphics::shapes::shape_t {
-    using fan::graphics::shapes::shape_t::shape_t;
+    //using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
 
     unlit_sprite_t() = default;
@@ -254,7 +254,7 @@ export namespace fan::graphics {
   };
 
   struct circle_t : fan::graphics::shapes::shape_t {
-    using fan::graphics::shapes::shape_t::shape_t;
+    //using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
 
     circle_t() = default;
@@ -277,7 +277,7 @@ export namespace fan::graphics {
   };
 
   struct capsule_t : fan::graphics::shapes::shape_t {
-    using fan::graphics::shapes::shape_t::shape_t;
+    //using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
 
     capsule_t() = default;
@@ -298,7 +298,7 @@ export namespace fan::graphics {
   };
 
   struct polygon_t : fan::graphics::shapes::shape_t {
-    using fan::graphics::shapes::shape_t::shape_t;
+    //using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
 
     polygon_t() = default;
@@ -317,7 +317,7 @@ export namespace fan::graphics {
   };
 
   struct grid_t : fan::graphics::shapes::shape_t {
-    using fan::graphics::shapes::shape_t::shape_t;
+    //using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
 
     grid_t() = default;
@@ -342,7 +342,7 @@ export namespace fan::graphics {
   };
 
   struct universal_image_renderer_t : fan::graphics::shapes::shape_t {
-    using fan::graphics::shapes::shape_t::shape_t;
+    //using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
 
     universal_image_renderer_t() = default;
@@ -367,7 +367,7 @@ export namespace fan::graphics {
   };
 
   struct gradient_t : fan::graphics::shapes::shape_t {
-    using fan::graphics::shapes::shape_t::shape_t;
+    //using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
 
     gradient_t() = default;
@@ -449,7 +449,7 @@ export namespace fan::graphics {
   };
 
   struct line3d_t : fan::graphics::shapes::shape_t {
-    using fan::graphics::shapes::shape_t::shape_t;
+    //using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
 
     line3d_t(line3d_properties_t p = line3d_properties_t());
@@ -464,7 +464,7 @@ export namespace fan::graphics {
   };
 
   struct rectangle3d_t : fan::graphics::shapes::shape_t {
-    using fan::graphics::shapes::shape_t::shape_t;
+    //using fan::graphics::shapes::shape_t::shape_t;
     using fan::graphics::shapes::shape_t::operator=;
 
     rectangle3d_t() = default;

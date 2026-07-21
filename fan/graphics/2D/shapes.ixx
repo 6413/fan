@@ -619,6 +619,7 @@ export namespace fan::graphics {
       std::string_view get_name() const;
 
       void add_child(const shape_t& child);
+      void add_child(shape_t&& child);
       void add_children(std::span<const shape_t> children);
 
       void remove_child(const shape_t& child);

@@ -1171,20 +1171,20 @@ static void loco_init_renderer_post_window(loco_t* l) {
 static void loco_init_shapes_system(loco_t* l) {
 #if defined(FAN_2D)
   l->shapes.shaper.Open();
-  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::light,        sizeof(std::uint8_t),                                   fan::graphics::shaper_t::KeyBitOrderAny);
-  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::light_end,    sizeof(std::uint8_t),                                   fan::graphics::shaper_t::KeyBitOrderAny);
-  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::visible,      sizeof(std::uint8_t),                                   fan::graphics::shaper_t::KeyBitOrderAny);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::light,        sizeof(std::uint8_t),                              fan::graphics::shaper_t::KeyBitOrderAny);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::light_end,    sizeof(std::uint8_t),                              fan::graphics::shaper_t::KeyBitOrderAny);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::visible,      sizeof(std::uint8_t),                              fan::graphics::shaper_t::KeyBitOrderAny);
   fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::depth,        sizeof(fan::graphics::depth_t),                    fan::graphics::shaper_t::KeyBitOrderLow);
   fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::shader,       sizeof(fan::graphics::shader_raw_t),               fan::graphics::shaper_t::KeyBitOrderLow);
   fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::blending,     sizeof(fan::graphics::blending_t),                 fan::graphics::shaper_t::KeyBitOrderLow);
   fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::image,        sizeof(fan::graphics::image_t),                    fan::graphics::shaper_t::KeyBitOrderAny);
   fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::viewport,     sizeof(fan::graphics::viewport_t),                 fan::graphics::shaper_t::KeyBitOrderAny);
-  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::camera,       sizeof(fan::graphics::camera_t),                          fan::graphics::shaper_t::KeyBitOrderAny);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::camera,       sizeof(fan::graphics::camera_t),                   fan::graphics::shaper_t::KeyBitOrderAny);
   fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::ShapeType,    sizeof(fan::graphics::shaper_t::ShapeTypeIndex_t), fan::graphics::shaper_t::KeyBitOrderAny);
-  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::filler,       sizeof(std::uint8_t),                                   fan::graphics::shaper_t::KeyBitOrderAny);
-  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::draw_mode,    sizeof(std::uint8_t),                                   fan::graphics::shaper_t::KeyBitOrderAny);
-  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::vertex_count, sizeof(std::uint32_t),                                  fan::graphics::shaper_t::KeyBitOrderAny);
-  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::shadow,       sizeof(std::uint8_t),                                   fan::graphics::shaper_t::KeyBitOrderAny);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::filler,       sizeof(std::uint8_t),                              fan::graphics::shaper_t::KeyBitOrderAny);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::draw_mode,    sizeof(std::uint8_t),                              fan::graphics::shaper_t::KeyBitOrderAny);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::vertex_count, sizeof(std::uint32_t),                             fan::graphics::shaper_t::KeyBitOrderAny);
+  fan::graphics::g_shapes->shaper.AddKey(fan::graphics::Key_e::shadow,       sizeof(std::uint8_t),                              fan::graphics::shaper_t::KeyBitOrderAny);
 #endif
 }
 

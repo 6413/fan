@@ -160,10 +160,13 @@ struct farm_manager_t {
 
   void spawn_initial_buildings() {
     int x = 0;
+    int y = 0;
     for (auto& img : buildings) {
       fan::vec2i cell(x * tile_size.x, 0);
       auto& b = add_building(cell, img);
       x += b.cells_x;
+      if (y > 10) break;
+      ++y;
     }
   }
 
