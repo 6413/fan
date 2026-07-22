@@ -1040,8 +1040,8 @@ namespace fan::graphics{
       shapes::light_t::ri_t ri;
 
       sd.visual = shape_add(sd.shape_type, vi, ri,
-        Key_e::visible, (std::uint8_t)true,
         Key_e::light, (std::uint8_t)0,
+        Key_e::visible, (std::uint8_t)true,
         Key_e::viewport, properties.viewport,
         Key_e::camera, properties.camera,
         Key_e::ShapeType, (fan::graphics::shaper_t::KeyTypeIndex_t)sd.shape_type,
