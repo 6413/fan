@@ -322,7 +322,7 @@ namespace fan::io::file {
       }
     }
 
-    fan::print_impl("failed to find path for:", std::string {file_path}, ". called from", src_dir.generic_string());
+    fan::print_log(fan::log_level_e::warning, "fan::io::file", "failed to find path for:", std::string {file_path}, ". called from", src_dir.generic_string());
     return {};
   }
 
