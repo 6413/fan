@@ -320,6 +320,25 @@ static bool generic_get_visible(const fan::graphics::shapes::shape_t* s) {
   return result;
 }
 
+template<typename sti_t, typename key_pack_t>
+static void set_visible_impl(sti_t sti, key_pack_t key_pack, bool v) {
+  switch (get_shape_category(sti)) {
+  case fan::graphics::shapes::kp::common:
+    shaper_get_key_safe(visible_t, common_t, visible) = v;
+    break;
+  case fan::graphics::shapes::kp::texture:
+    shaper_get_key_safe(visible_t, texture_t, visible) = v;
+    break;
+  case fan::graphics::shapes::kp::particles:
+    shaper_get_key_safe(visible_t, particles_t, visible) = v;
+    break;
+  case fan::graphics::shapes::kp::light:
+    shaper_get_key_safe(visible_t, light_t, visible) = v;
+    break;
+  default: fan::throw_error_impl("set_visible: unsupported shape");
+  }
+}
+
 template<typename shape_type>
 static void generic_set_visible(fan::graphics::shapes::shape_t* s, bool v) {
   fan::graphics::g_shapes->visit_shape_draw_data(s->NRI, [&](auto& props) {
@@ -327,12 +346,9 @@ static void generic_set_visible(fan::graphics::shapes::shape_t* s, bool v) {
       props.visible = v;
     }
   });
-  auto* shape = static_cast<fan::graphics::shapes::shape_t*>(s);
-  if (v) {
-    shape->push_shaper();
-  } else {
-    shape->erase_shaper();
-  }
+  update_shape(s, [&](auto sti, auto key_pack) {
+    set_visible_impl(sti, key_pack, v);
+  });
 }
 
 static f32_t get_radius(const fan::graphics::shapes::shape_t* s) {
