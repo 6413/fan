@@ -1036,6 +1036,7 @@ namespace fan::graphics{
       vi.flicker_max = properties.flicker_max;
       vi.ease_types = properties.ease_types;
       vi.dynamic_flags = properties.dynamic_flags;
+      vi.seed = properties.seed;
       shapes::light_t::ri_t ri;
 
       sd.visual = shape_add(sd.shape_type, vi, ri,

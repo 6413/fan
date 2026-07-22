@@ -665,6 +665,7 @@ export namespace fan::graphics {
         f32_t flicker_max = 1.0f;
         std::uint32_t ease_types = 0;
         std::uint32_t dynamic_flags = 0;
+        f32_t seed = 0.f;
       };
 
     #pragma pack(pop)
@@ -692,6 +693,7 @@ export namespace fan::graphics {
         f32_t flicker_max = 1.0f;
         std::uint32_t ease_types = 0;
         std::uint32_t dynamic_flags = 0;
+        f32_t seed = 0.f;
 
         #include <fan/graphics/base_props.inl>
       };
