@@ -381,8 +381,8 @@ export namespace fan::graphics {
 
   struct kps_t {
     st(light_t,
-      d<visible_t> visible;
       d<std::uint8_t> genre;
+      d<visible_t> visible;
       d<fan::graphics::viewport_t> viewport;
       d<fan::graphics::camera_t> camera;
       d<shaper_t::ShapeTypeIndex_t> ShapeType;
