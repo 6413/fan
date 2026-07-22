@@ -5,7 +5,7 @@ using namespace fan::graphics;
 
 struct resources_t {
   f64_t gold_per_tick = 5.0;
-  f64_t gold = 0.0;
+  f64_t gold = 100.0;
 }resources;
 
 struct building_t : sprite_t {
@@ -65,6 +65,7 @@ struct farm_manager_t {
   sprite_t grass;
   day_cycle_t day_cycle;
   grid_drag_painter_t drag_painter;
+  std::unordered_map<std::string, f64_t> building_prices;
 
   farm_manager_t(engine_t& engine, const fan::vec2& t_size) : 
     buildings_config(fan::json::load_file("buildings.json")),
@@ -74,6 +75,11 @@ struct farm_manager_t {
     placement(0, 0, image_t::invalid()) 
   {
     load_buildings();
+    for (auto& b : buildings) {
+      building_prices[b.name] = buildings_config.contains(b.name) && buildings_config[b.name].contains("price")
+        ? buildings_config[b.name]["price"].get<f64_t>()
+        : 25.0;
+    }
     spawn_initial_buildings();
     if (!buildings.empty()) {
       select_building(0);
@@ -99,6 +105,8 @@ struct farm_manager_t {
       fan::io::iterate_directory(dir, [&](const std::string& file, bool) {
         std::string name = std::filesystem::path(file).stem().string();
         if (!loaded.insert(name).second) return;
+        std::string model_path = "models/" + name + ".json";
+        if (!std::filesystem::exists(fan::io::file::find_relative_path(model_path))) return;
         auto& b = buildings.emplace_back(("images/factory/" + name + ".png").c_str());
         b.name = name;
         if (buildings_config.contains(name)) {
@@ -143,8 +151,16 @@ struct farm_manager_t {
     return b;
   }
 
+  f64_t get_building_price(const std::string& name) {
+    auto it = building_prices.find(name);
+    return it != building_prices.end() ? it->second : 0.0;
+  }
+
   void place_building_with_tween(fan::vec2i cell, building_image_t* img) {
     if (!img || !can_place(cell, *img)) return;
+    f64_t price = get_building_price(img->name);
+    if (resources.gold < price) return;
+    resources.gold -= price;
     fan::audio::play("audio/pop1.sac");
     auto target_size = get_transform(cell, *img).size;
     add_building(cell, *img).set_size(0.f);
@@ -155,6 +171,9 @@ struct farm_manager_t {
 
   void place_building_instant(fan::vec2i cell, building_image_t* img) {
     if (!img || !can_place(cell, *img)) return;
+    f64_t price = get_building_price(img->name);
+    if (resources.gold < price) return;
+    resources.gold -= price;
     add_building(cell, *img);
   }
 
