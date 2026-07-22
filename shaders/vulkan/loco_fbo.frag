@@ -54,7 +54,7 @@ void main() {
 
   if (bloom_enabled) {
     vec3 bloom = texture(_t01, texture_coordinate).rgb;
-    bloom *= pc.bloom_tint_strength.rgb * pc.params0.x * (pc.bloom_tint_strength.w * 10.0); 
+    bloom *= pc.bloom_tint_strength.rgb * pc.params0.x * (pc.bloom_tint_strength.w * 100.0); 
 
     if (pc.params0.y > 0.0) {
       vec3 dirt = texture(_t02, texture_coordinate).rgb;
@@ -66,8 +66,8 @@ void main() {
 
   color *= pc.tonemap.y;
 
-  float lum = luminance(color);
-  color *= 1.0 / (1.0 + lum);
+  //float lum = luminance(color);
+  //color *= 1.0 / (1.0 + lum);
 
   color = (color - 0.5) * pc.tonemap.z + 0.5;
 
