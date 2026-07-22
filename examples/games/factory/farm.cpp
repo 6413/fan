@@ -278,11 +278,11 @@ int main() {
   engine_t engine;
   gloco()->set_settings({
     .mode = fan::graphics::post_process_mode_e::bloom,
-    .bloom_strength = 0.173f,
-    .bloom_threshold = 0.4f,
-    .bloom_knee = 0.057f,
+    .bloom_strength = 0.095f,
+    .bloom_threshold = 0.38f,
+    .bloom_knee = 0.039f,
     .bloom_smooth_rate = 6.431f,
-    .bloom_luma_scale = 0.776f,
+    .bloom_luma_scale = 1.144f,
     .bloom_adaptation_blend = 0.203f,
     .bloom_filter_radius = 1.0f,
     .gamma = 2.2f,

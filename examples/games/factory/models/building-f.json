@@ -27,32 +27,32 @@
     },
     {
       "color": [
-         1.2,
-         1.1,
-         0.35,
+         0.7,
+         0.65,
+         0.2,
          1.0
       ],
-      "dynamic_flags": 3,
+      "dynamic_flags": 1,
       "dynamic_props": {
         "ease_type": 3,
         "target_color": [
-          0.15,
-          0.12,
-          0.04,
-          0.3
+           0.69,
+           0.64,
+           0.195,
+           1.0
         ],
-        "variance_speed": 0.30000001192092896
+        "variance_speed": 0.15
       },
       "ease_types": 52,
-      "flicker_max": 0.4000000059604645,
-      "flicker_min": 0.0,
-      "flicker_speed": 0.30000001192092896,
+      "flicker_max": 1.0,
+      "flicker_min": 0.75,
+      "flicker_speed": 0.15,
       "light_props": {
         "ease_type": 4,
         "enable_flicker": true,
-        "flicker_max": 0.4000000059604645,
-        "flicker_min": 0.0,
-        "flicker_speed": 0.30000001192092896
+        "flicker_max": 1.0,
+        "flicker_min": 0.75,
+        "flicker_speed": 0.15
       },
       "position": [
         -14.679691314697266,
@@ -65,10 +65,10 @@
         80.0
       ],
       "target_color": [
-         0.15,
-         0.12,
-         0.04,
-         0.3
+         0.5,
+         0.45,
+         0.1,
+         1.0
       ],
       "variance_speed": 0.30000001192092896
     },
@@ -131,15 +131,33 @@
     },
     {
       "color": [
-         1.2,
-         1.1,
-         0.35,
+         0.7,
+         0.65,
+         0.2,
          1.0
       ],
-      "dynamic_flags": 3,
+      "dynamic_flags": 1,
+      "dynamic_props": {
+        "ease_type": 3,
+        "target_color": [
+           0.69,
+           0.64,
+           0.195,
+           1.0
+        ],
+        "variance_speed": 0.15
+      },
       "ease_types": 52,
-      "flicker_min": 0.10000000149011612,
-      "flicker_speed": 0.30000001192092896,
+      "flicker_max": 1.0,
+      "flicker_min": 0.75,
+      "flicker_speed": 0.15,
+      "light_props": {
+        "ease_type": 4,
+        "enable_flicker": true,
+        "flicker_max": 1.0,
+        "flicker_min": 0.75,
+        "flicker_speed": 0.15
+      },
       "position": [
         56.65357971191406,
         -73.26551055908203,
@@ -151,18 +169,18 @@
         80.0
       ],
       "target_color": [
-         0.15,
-         0.12,
-         0.04,
-         0.3
+         0.5,
+         0.45,
+         0.1,
+         1.0
       ],
       "variance_speed": 0.30000001192092896
     },
     {
       "color": [
-         0.9,
-         0.85,
-         0.7,
+         0.55,
+         0.5,
+         0.4,
          1.0
       ],
       "dynamic_flags": 1,
