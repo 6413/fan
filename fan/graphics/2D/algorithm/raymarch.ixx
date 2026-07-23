@@ -29,6 +29,7 @@ export namespace fan::graphics::algorithm {
     if (dist < 1e-4f) return end;
     fan::vec2 dir = diff / dist;
     f32_t step_size = cell_size * 0.5f;
+    f32_t radius_sq = radius * radius;
     for (f32_t d = 0.f; d <= dist; d += step_size) {
       fan::vec2 p = start + dir * d;
       int gx0 = (int)std::floor((p.x - radius) / cell_size);
@@ -42,7 +43,8 @@ export namespace fan::graphics::algorithm {
           fan::vec2 cell_max = cell_min + cell_size;
           f32_t cx = std::clamp(p.x, cell_min.x, cell_max.x);
           f32_t cy = std::clamp(p.y, cell_min.y, cell_max.y);
-          if ((fan::vec2(cx, cy) - p).length() <= radius) return p;
+          fan::vec2 d2 = fan::vec2(cx, cy) - p;
+          if (d2.x * d2.x + d2.y * d2.y <= radius_sq) return p;
         }
       }
     }

@@ -1,4 +1,5 @@
 #version 450
+#extension GL_KHR_shader_subgroup_arithmetic : require
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
@@ -14,30 +15,28 @@ layout(push_constant) uniform pc_t {
   vec4 mode;
 } pc;
 
-shared float shared_lumas[64];
+shared float shared_lumas[4]; 
 
 void tile_pass() {
   ivec2 scene_size = ivec2(pc.params.xy);
-  ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
-  uint idx = gl_LocalInvocationIndex;
-
-  vec2 uv = clamp((vec2(pixel) + 0.5) / vec2(scene_size), vec2(0.0), vec2(1.0));
-  vec3 col = textureLod(src_tex, uv, 0.0).rgb;
+  ivec2 pixel = min(ivec2(gl_GlobalInvocationID.xy), scene_size - 1);
+  
+  vec3 col = texelFetch(src_tex, pixel, 0).rgb;
   float luma = dot(col, vec3(0.2126, 0.7152, 0.0722));
 
-  shared_lumas[idx] = luma;
+  float sg_sum = subgroupAdd(luma);
+
+  if (subgroupElect()) {
+    shared_lumas[gl_SubgroupID] = sg_sum;
+  }
   barrier();
 
-  for (uint stride = 32; stride > 0; stride >>= 1) {
-    if (idx < stride) {
-      shared_lumas[idx] += shared_lumas[idx + stride];
+  if (gl_LocalInvocationIndex == 0) {
+    float total = 0.0;
+    for(uint i = 0; i < gl_NumSubgroups; ++i) {
+      total += shared_lumas[i];
     }
-    barrier();
-  }
-
-  if (idx == 0) {
-    ivec2 tile_id = ivec2(gl_WorkGroupID.xy);
-    imageStore(tile_luma, tile_id, vec4(shared_lumas[0] / 64.0, 0.0, 0.0, 0.0));
+    imageStore(tile_luma, ivec2(gl_WorkGroupID.xy), vec4(total / 64.0, 0.0, 0.0, 0.0));
   }
 }
 
@@ -46,24 +45,26 @@ void final_pass() {
   uint tile_count = tile_size.x * tile_size.y;
   uint idx = gl_LocalInvocationIndex;
 
-  shared_lumas[idx] = 0.0;
-
+  float local_sum = 0.0;
   for (uint i = idx; i < tile_count; i += 64) {
-    uint tx = i % tile_size.x;
-    uint ty = i / tile_size.x;
-    shared_lumas[idx] += imageLoad(tile_luma, ivec2(tx, ty)).r;
+    int tx = int(i % tile_size.x);
+    int ty = int(i / tile_size.x);
+    local_sum += imageLoad(tile_luma, ivec2(tx, ty)).r;
+  }
+
+  float sg_sum = subgroupAdd(local_sum);
+
+  if (subgroupElect()) {
+    shared_lumas[gl_SubgroupID] = sg_sum;
   }
   barrier();
 
-  for (uint stride = 32; stride > 0; stride >>= 1) {
-    if (idx < stride) {
-      shared_lumas[idx] += shared_lumas[idx + stride];
-    }
-    barrier();
-  }
-
   if (idx == 0) {
-    float avg_luma = shared_lumas[0] / float(tile_count);
+    float total = 0.0;
+    for(uint i = 0; i < gl_NumSubgroups; ++i) {
+      total += shared_lumas[i];
+    }
+    float avg_luma = total / float(tile_count);
     float alpha = pc.params.z <= 0.0 ? 1.0 : 1.0 - exp(-pc.params.z * pc.params.w);
     history.raw_avg_luma = avg_luma;
     history.smoothed_luma = mix(history.smoothed_luma, avg_luma, alpha);
