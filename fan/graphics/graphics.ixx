@@ -303,6 +303,7 @@ export namespace fan::graphics {
 
     polygon_t() = default;
     polygon_t(polygon_properties_t p);
+    void update_vertices(const std::vector<fan::graphics::vertex_t>& verts);
   };
 
   struct grid_properties_t {

@@ -195,7 +195,7 @@ local feature_modules = {
     "fan/graphics/webp.ixx", "fan/graphics/stb.ixx", "fan/graphics/common_context.ixx",
     "fan/graphics/audio_subsystem.ixx", "fan/graphics/physics_subsystem.ixx", "fan/graphics/input_subsystem.ixx",
     "fan/graphics/loco.ixx", "fan/graphics/graphics.ixx", "fan/graphics/file_dialog.ixx",
-    "fan/graphics/2D/algorithm/raycast_grid.ixx", "fan/graphics/gameplay/gameplay_types.ixx",
+    "fan/graphics/2D/algorithm/raycast_grid.ixx", "fan/graphics/2D/algorithm/raymarch.ixx", "fan/graphics/2D/algorithm/chunk_renderer.ixx", "fan/graphics/gameplay/gameplay_types.ixx",
     "fan/graphics/gameplay/gameplay.ixx", "fan/graphics/graphics_event.ixx", "fan/texture_pack/tp0.ixx",
     "fan/physics/physics_types.ixx", "fan/noise.ixx", "fan/pathfind.ixx", "fan/spatial.ixx", "fan/ecs.ixx",
     "fan/graphics/gui/console.ixx",

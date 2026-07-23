@@ -41,6 +41,8 @@ export import fan.graphics.loco;
   export import fan.graphics;
   export import fan.graphics.scene;
   export import fan.graphics.grid_placer;
+  export import fan.graphics.algorithm.raymarch;
+  export import fan.graphics.algorithm.chunk_renderer;
 #endif
 #if defined(FAN_GUI)
   export import fan.console;
