@@ -13,15 +13,21 @@ int main() {
   engine.get_clear_color() = fan::colors::black;
   engine.update_physics(true);
 
-  auto bg_sky = gradient_t{fan::color(0.2f, 0.4f, 0.75f, 1.f), fan::color(0.6f, 0.75f, 0.9f, 1.f), fan::vec3(0), engine.whs()};
-  auto bg_below = gradient_t{fan::color(1.2f, 0.4f, 0.75f, 1.f), fan::color(1.6f, 0.75f, 0.9f, 1.f), fan::vec3(0), engine.whs()};
+  gradient_t bg_sky{fan::color(0.2f, 0.4f, 0.75f, 1.f), fan::color(0.6f, 0.75f, 0.9f, 1.f), fan::vec3(1.f), engine.whs()};
+  //auto bg_below = gradient_t{fan::color(1.2f, 0.4f, 0.75f, 1.f), fan::color(1.6f, 0.75f, 0.9f, 1.f), fan::vec3(0), engine.whs()};
+  sprite_t bg_below{{
+    .position=fan::vec3(0, 0, 0.f),
+    .size = engine.whs(),
+    .image = "fossil_cave.jpg"
+  }};
 
-  auto img_grass     = image_t{"../fan/examples/games/terrain_grid/Textures/Grass/cubeGreen_1.png", image_presets::pixel_art()};
-  auto img_dirt      = image_t{"../fan/examples/games/terrain_grid/Textures/Dirt/cubeDirt_1.png", image_presets::pixel_art()};
-  auto img_stone     = image_t{"../fan/examples/games/terrain_grid/Textures/Stone/cubeStone_1.png", image_presets::pixel_art()};
-  auto img_bedrock   = image_t{"../fan/examples/games/terrain_grid/Textures/Stone/cubeBedrock_1.png", image_presets::pixel_art()};
-  auto img_island    = image_t{"../fan/examples/games/terrain_grid/Textures/Grass/cubeGreen_1.png", image_presets::pixel_art()};
-  auto img_dark_grass = image_t{"../fan/examples/games/terrain_grid/Textures/Grass/cubeGreen_2.png", image_presets::pixel_art()};
+  auto pa = image_presets::pixel_art();
+  image_t img_grass{"Textures/Grass/cubeGreen_1.png", pa};
+  image_t img_dirt{"Textures/Dirt/cubeDirt_1.png", pa};
+  image_t img_stone{"Textures/Stone/cubeStone_1.png", pa};
+  image_t img_bedrock{"Textures/Stone/cubeBedrock_1.png", pa};
+  image_t img_island{"Textures/Grass/cubeGreen_1.png", pa};
+  image_t img_dark_grass{"Textures/Grass/cubeGreen_2.png", pa};
 
   algorithm::chunk_renderer_t terrain{{
     .cell_size = 16.f,
@@ -59,17 +65,17 @@ int main() {
   engine.camera_set_target(player, 10.f);
 
   f32_t dig_radius = 12.f;
-  fan::time::interval_t dig_interval{0.003f};
+  fan::time::interval_t dig_interval{2.3f};
 
   engine.loop([&] {
     f64_t dt = engine.get_delta_time();
     fan::vec2 player_pos = player.get_position();
-    auto ws = engine.ws();
     fan::vec2 cam_center = ic.get_center();
 
     f32_t ground_y = 512.f;
-    bg_sky.set_position(fan::vec3(cam_center.x, std::min(cam_center.y, ground_y), 0.f));
-    bg_below.set_position(fan::vec3(cam_center.x, std::max(cam_center.y, ground_y + bg_below.get_size().y*2.f), 0.f));
+    bg_sky.set_position(fan::vec2(cam_center.x, std::min(cam_center.y, ground_y)));
+    bg_below.set_position(cam_center);
+//    bg_below.set_position(fan::vec3(cam_center.x, std::max(cam_center.y, ground_y + bg_below.get_size().y*2.f), 0.f));
 
     if (fan::window::is_key_clicked(fan::key_r)) {
       player.set_physics_position({player_pos.x, 0});
