@@ -357,6 +357,12 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
       ), p.enable_culling);
   }
 
+  void polygon_t::update_vertices(const std::vector<fan::graphics::vertex_t>& verts) {
+    auto& props = get_properties<fan::graphics::shapes::polygon_t::properties_t>();
+    props.vertices = verts;
+    props.gpu_dirty = true;
+  }
+
   grid_t::grid_t(grid_properties_t p) {
     *(fan::graphics::shapes::shape_t*)this = fan::graphics::shapes::shape_t(
       fan_init_struct(

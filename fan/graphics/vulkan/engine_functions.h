@@ -1755,11 +1755,13 @@ void shapes_draw() {
     fan::vulkan::validate(context.map_buffer(buffer, &buffer.mapped));
   };
 
-  std::vector<fan::graphics::polygon_vertex_t> polygon_vertices;
+  static std::vector<fan::graphics::polygon_vertex_t> polygon_vertices;
   std::vector<particles_gpu_t> particle_emitters;
   fan::time::global_profiler.end("Variable Initialization");
 
   fan::time::global_profiler.begin("Pre-traverse shapes");
+
+  polygon_vertices.clear();
 
   {
     fan::graphics::shaper_t::KeyTraverse_t pre_keys;
@@ -1784,16 +1786,32 @@ void shapes_draw() {
               )
             );
 
+            if (props.gpu_dirty ||
+              props.position != props.cached_position ||
+              props.angle != props.cached_angle ||
+              props.rotation_point != props.cached_rotation_point) {
+              props.cached_gpu_vertices.resize(props.vertices.size());
+              for (std::uint32_t j = 0; j < (std::uint32_t)props.vertices.size(); ++j) {
+                props.cached_gpu_vertices[j] = {
+                  .position = props.vertices[j].position,
+                  .color = props.vertices[j].color,
+                  .offset = props.position,
+                  .angle = props.angle,
+                  .rotation_point = props.rotation_point
+                };
+              }
+              props.cached_position = props.position;
+              props.cached_angle = props.angle;
+              props.cached_rotation_point = props.rotation_point;
+              props.gpu_dirty = false;
+            }
+
             ri.vk_first_vertex = (std::uint32_t)polygon_vertices.size();
-            ri.vk_vertex_count = (std::uint32_t)props.vertices.size();
-            for (auto& v : props.vertices) {
-              fan::graphics::polygon_vertex_t pv;
-              pv.position = v.position;
-              pv.color = v.color;
-              pv.offset = props.position;
-              pv.angle = props.angle;
-              pv.rotation_point = props.rotation_point;
-              polygon_vertices.push_back(pv);
+            ri.vk_vertex_count = (std::uint32_t)props.cached_gpu_vertices.size();
+            if (!props.cached_gpu_vertices.empty()) {
+              polygon_vertices.insert(polygon_vertices.end(),
+                props.cached_gpu_vertices.data(),
+                props.cached_gpu_vertices.data() + props.cached_gpu_vertices.size());
             }
           }
         } while (pre_block.Loop(shaper));

@@ -2766,6 +2766,8 @@ namespace fan::graphics::physics {
       .color = color,
       .rotation_point = rotation_point,
       .image = image,
+      .tc_position = tc_position,
+      .tc_size = tc_size,
       .images = images,
       .parallax_factor = parallax_factor,
       .blending = blending,
