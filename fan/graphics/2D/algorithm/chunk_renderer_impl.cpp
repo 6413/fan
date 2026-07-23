@@ -47,25 +47,36 @@ f32_t chunk_renderer_t::surface_height(int gx) const {
   f32_t h0 = hn.simplex_fbm_norm(gx * m_cfg.hill_freq, 0) * m_cfg.hill_amp;
   f32_t h1 = dn.simplex_fbm_norm(gx * m_cfg.detail_freq, 123.f) * m_cfg.detail_amp;
   f32_t h2 = dn.simplex_fbm_norm(gx * m_cfg.micro_freq, 456.f) * m_cfg.micro_amp;
-  return m_cfg.surface_base + h0 + h1 + h2;
+  f32_t m = hn.ridged_norm(gx * m_cfg.mountain_freq, 0);
+  m = std::pow(m, m_cfg.mountain_power);
+  f32_t h3 = m * m_cfg.mountain_amp;
+  return m_cfg.surface_base + h0 + h1 + h2 + h3;
 }
 
 bool chunk_renderer_t::is_cave(int gx, int gy) const {
   auto& cn = *m_cfg.cave_noise;
-  f32_t n = cn.simplex_fbm_norm(gx * m_cfg.cave_freq, gy * m_cfg.cave_freq);
-  f32_t n2 = cn.simplex_fbm_norm(gx * m_cfg.cave_freq * 2.f + 200.f, gy * m_cfg.cave_freq * 2.f + 300.f);
-  f32_t c = n * 0.7f + n2 * 0.3f;
-  f32_t tunnel = 1.f - std::abs(c - 0.5f) * 4.f;
+  f32_t s = m_cfg.cave_sharpness;
+  f32_t n1 = cn.simplex_fbm_norm(gx * m_cfg.cave_freq, gy * m_cfg.cave_freq);
+  f32_t t1 = std::max(0.f, 1.f - std::abs(n1 - 0.5f) * s);
+  f32_t n2 = cn.simplex_fbm_norm(gx * m_cfg.cave_freq * 1.7f + 200.f, gy * m_cfg.cave_freq * 1.7f + 300.f);
+  f32_t t2 = std::max(0.f, 1.f - std::abs(n2 - 0.5f) * s);
+  f32_t tunnel = std::max(t1, t2);
   f32_t depth = gy - surface_height(gx);
   f32_t dscale = std::clamp(depth / m_cfg.cave_blend, 0.f, 1.f);
-  f32_t deep_c = cn.simplex_fbm_norm(gx * 0.02f + 500.f, gy * 0.02f + 500.f);
-  f32_t deep_tunnel = 1.f - std::abs(deep_c - 0.5f) * 4.f;
-  f32_t mixed = tunnel * (1.f - dscale) + deep_tunnel * dscale;
-  return mixed > 0.4f;
+  f32_t dn = cn.simplex_fbm_norm(gx * 0.02f + 500.f, gy * 0.02f + 500.f);
+  f32_t dt = std::max(0.f, 1.f - std::abs(dn - 0.5f) * s);
+  dt *= m_cfg.cave_deep_mult;
+  f32_t mixed = tunnel * (1.f - dscale) + dt * dscale;
+  mixed = std::clamp(mixed, 0.f, 0.9f);
+  return mixed > m_cfg.cave_threshold;
 }
 
 fan::graphics::image_t chunk_renderer_t::tile_image(int gx, int gy) const {
   f32_t depth = gy - surface_height(gx);
+  if (m_cfg.scatter_noise && depth < 1.f) {
+    f32_t v = m_cfg.scatter_noise->simplex_fbm_norm(gx * 0.15f, gy * 0.15f);
+    if (v > m_cfg.scatter_threshold) return m_cfg.scatter_img;
+  }
   for (auto& [threshold, img] : m_cfg.tile_layers) {
     if (depth < threshold) return img;
   }
