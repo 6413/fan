@@ -56,6 +56,7 @@ static image_t gen_texture(int seed, fan::color c1, fan::color c2, fan::color c3
 int main() {
   engine_t engine;
   interactive_camera_t ic;
+  engine.get_clear_color() = fan::color(0.4f, 0.6f, 0.85f, 1.f);
   engine.update_physics(true);
 
   auto img_grass      = gen_texture(101, fan::color(0.10f, 0.35f, 0.05f), fan::color(0.15f, 0.42f, 0.08f), fan::color(0.28f, 0.58f, 0.18f), 0.08f, 0.8f);
@@ -64,6 +65,7 @@ int main() {
   auto img_deep_stone = gen_texture(404, fan::color(0.05f, 0.06f, 0.08f), fan::color(0.08f, 0.10f, 0.12f), fan::color(0.12f, 0.14f, 0.18f), 0.35f, 0.1f);
   auto img_dark_grass = gen_texture(505, fan::color(0.08f, 0.25f, 0.03f), fan::color(0.10f, 0.30f, 0.05f), fan::color(0.12f, 0.35f, 0.06f), 0.12f, 0.6f);
   auto img_rock       = gen_texture(606, fan::color(0.35f, 0.32f, 0.28f), fan::color(0.45f, 0.42f, 0.38f), fan::color(0.52f, 0.48f, 0.42f), 0.15f, 0.4f);
+  auto img_island     = gen_texture(707, fan::color(0.20f, 0.24f, 0.15f), fan::color(0.25f, 0.32f, 0.18f), fan::color(0.32f, 0.40f, 0.22f), 0.10f, 0.7f);
 
   algorithm::chunk_renderer_t terrain{{
     .cell_size = 16.f,
@@ -72,6 +74,12 @@ int main() {
     .cave_noise = &cave_noise,
     .detail_noise = &detail_noise,
     .surface_base = -10.f,
+    .sky_island_noise = &hill_noise,
+    .sky_island_freq = 0.04f,
+    .sky_island_threshold = 0.6f,
+    .sky_island_min = 80.f,
+    .sky_island_max = 150.f,
+    .img_sky_island = img_island,
     .tile_layers = {
       {2.f, img_grass}, 
       {12.f, img_dirt}, 

@@ -39,6 +39,12 @@ struct chunk_renderer_t {
     f32_t mountain_freq = 0.001f;
     f32_t mountain_amp = 120.f;
     f32_t mountain_power = 3.f;
+    fan::noise_t* sky_island_noise = nullptr;
+    f32_t sky_island_freq = 0.04f;
+    f32_t sky_island_threshold = 0.65f;
+    f32_t sky_island_min = 20.f;
+    f32_t sky_island_max = 60.f;
+    fan::graphics::image_t img_sky_island;
     f32_t cave_freq = 0.015f;
     f32_t cave_depth_min = 5.f;
     f32_t cave_depth_max = 80.f;
