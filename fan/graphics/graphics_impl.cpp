@@ -1153,7 +1153,10 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     camera_offset = camera_get_position(render_view);
     update();
   }
-  void set_center(const fan::vec2& center);
+  fan::vec2 interactive_camera_t::get_center() const {
+    return fan::vec2(camera_get_position(render_view)) + 
+      camera_offset - get_viewport_size() * 0.5f;
+  }
 
   f32_t interactive_camera_t::get_zoom() const {
     return fan::graphics::camera_get_zoom(render_view.camera);

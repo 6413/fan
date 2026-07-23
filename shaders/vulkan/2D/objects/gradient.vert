@@ -58,7 +58,11 @@ vec4 project2(vec3 p) {
   return pv[constants.camera_id].projection * pv[constants.camera_id].view * vec4(p, 1.0);
 }
 
-layout(location = 0) out vec4 vertex_color;
+layout(location = 0) out vec2 v_texcoords;
+layout(location = 1) flat out vec4 v_color0;
+layout(location = 2) flat out vec4 v_color1;
+layout(location = 3) flat out vec4 v_color2;
+layout(location = 4) flat out vec4 v_color3;
 
 void main() {
   base = uint(gl_InstanceIndex) * 26u;
@@ -70,6 +74,9 @@ void main() {
   float angle = v3(92u).z;
   vec2 local = rotate_around(rp * size, rotation_point, angle);
   gl_Position = project2(vec3(local + position.xy, position.z));
-  uint color_index = id == 0u ? 0u : id == 1u ? 1u : id == 2u ? 2u : id == 3u ? 2u : id == 4u ? 3u : 0u;
-  vertex_color = v4(28u + color_index * 16u);
+  v_texcoords = texture_coordinates[id];
+  v_color0 = v4(28u);
+  v_color1 = v4(44u);
+  v_color2 = v4(60u);
+  v_color3 = v4(76u);
 }

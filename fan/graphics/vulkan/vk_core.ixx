@@ -484,7 +484,7 @@ export namespace fan {
 
       VkSwapchainKHR swap_chain;
       VkFormat swap_chain_image_format;
-      VkFormat main_color_format = VK_FORMAT_B10G11R11_UFLOAT_PACK32;
+      VkFormat main_color_format = VK_FORMAT_R16G16B16A16_SFLOAT;
       fan::vec2 swap_chain_size;
       std::vector<VkFramebuffer> swap_chain_framebuffers;
       VkPresentModeKHR present_mode;

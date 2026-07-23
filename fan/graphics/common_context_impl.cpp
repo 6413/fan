@@ -261,7 +261,13 @@ namespace fan::graphics {
   render_view_t::operator fan::graphics::camera_t&() {
     return camera;
   }
+  render_view_t::operator const fan::graphics::camera_t&() const {
+    return camera;
+  }
   render_view_t::operator fan::graphics::viewport_t&() {
+    return viewport;
+  }
+  render_view_t::operator const fan::graphics::viewport_t&() const {
     return viewport;
   }
 
