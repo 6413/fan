@@ -36,12 +36,21 @@ struct chunk_renderer_t {
     f32_t detail_amp = 12.f;
     f32_t micro_freq = 0.05f;
     f32_t micro_amp = 4.f;
+    f32_t mountain_freq = 0.001f;
+    f32_t mountain_amp = 120.f;
+    f32_t mountain_power = 3.f;
     f32_t cave_freq = 0.015f;
     f32_t cave_depth_min = 5.f;
     f32_t cave_depth_max = 80.f;
     f32_t cave_blend = 80.f;
+    f32_t cave_threshold = 0.85f;
+    f32_t cave_deep_mult = 1.5f;
+    f32_t cave_sharpness = 6.f;
 
     std::vector<std::pair<f32_t, fan::graphics::image_t>> tile_layers;
+    fan::noise_t* scatter_noise = nullptr;
+    fan::graphics::image_t scatter_img;
+    f32_t scatter_threshold = 0.5f;
     fan::physics::shape_properties_t shape_properties = {.friction = 0.6f};
   };
 
