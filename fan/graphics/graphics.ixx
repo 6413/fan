@@ -613,6 +613,7 @@ export namespace fan::graphics {
     fan::vec2 get_position() const;
     void set_position(const fan::vec2& position);
     void set_center(const fan::vec2& center);
+    fan::vec2 get_center() const;
     f32_t get_zoom() const;
     void set_zoom(f32_t new_zoom);
     fan::vec2 get_size() const;

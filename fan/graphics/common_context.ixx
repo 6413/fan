@@ -541,7 +541,9 @@ export namespace fan::graphics {
     );
     std::string debug_string();
     operator fan::graphics::camera_t&();
+    operator const fan::graphics::camera_t&() const;
     operator fan::graphics::viewport_t&();
+    operator const fan::graphics::viewport_t&() const;
     fan::vec3 get_camera_position() const;
     void set_camera_position(fan::vec3 pos);
     context_camera_t& get_camera();

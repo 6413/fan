@@ -62,6 +62,11 @@ f32_t chunk_renderer_t::surface_height(int gx) const {
   return m_cfg.surface_base + h0 + h1 + h2 + h3;
 }
 
+f32_t chunk_renderer_t::surface_height_at(f32_t world_x) const {
+  int gx = (int)std::round(world_x / m_cfg.cell_size);
+  return surface_height(gx);
+}
+
 bool chunk_renderer_t::is_cave(int gx, int gy) const {
   auto& cn = *m_cfg.cave_noise;
   f32_t s = m_cfg.cave_sharpness;
@@ -119,7 +124,7 @@ void chunk_renderer_t::set_cell_sprite(chunk_t& chunk, fan::vec2i local, fan::ve
   }
   auto& s = chunk.sprites[local];
   s = fan::graphics::sprite_t{{
-    .position = fan::vec3(world_pos, 0),
+    .position = fan::vec3(world_pos, m_cfg.terrain_z),
     .size = fan::vec2(m_cfg.cell_size, m_cfg.cell_size) * 0.5f,
     .image = img,
   }};

@@ -57,6 +57,7 @@ struct chunk_renderer_t {
     fan::noise_t* scatter_noise = nullptr;
     fan::graphics::image_t scatter_img;
     f32_t scatter_threshold = 0.5f;
+    f32_t terrain_z = 20.f;
     fan::physics::shape_properties_t shape_properties = {.friction = 0.6f};
   };
 
@@ -69,6 +70,7 @@ struct chunk_renderer_t {
   fan::vec2 raycast(fan::vec2 start, fan::vec2 end, f32_t radius) const;
   f32_t cell_size() const { return m_cfg.cell_size; }
   int chunk_size() const { return m_cfg.chunk_size; }
+  f32_t surface_height_at(f32_t world_x) const;
 
   bool raycast_visible = true;
 
