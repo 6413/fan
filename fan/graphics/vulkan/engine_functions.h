@@ -208,7 +208,7 @@ fan::vulkan::context_t::pipeline_t& get_shape_shader_pipeline(
 }
 
 VkFormat get_bloom_format() {
-  return VK_FORMAT_B10G11R11_UFLOAT_PACK32;
+  return VK_FORMAT_R16G16B16A16_SFLOAT;
 }
 
 
