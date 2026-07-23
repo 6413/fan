@@ -172,8 +172,19 @@ void chunk_renderer_t::stream(fan::vec2 cam_pos, fan::vec2 viewport_size) {
     (int)std::floor((cam_pos.y + half_ws.y) / chunk_world) + 1
   };
 
-  if (m_last_center == min_cc && !m_chunks.empty()) return;
+  if (m_last_center == min_cc && !m_chunks.empty()) {
+    for (auto& cc : m_physics_dirty) {
+      remesh_chunk_physics(cc);
+    }
+    m_physics_dirty.clear();
+    return;
+  }
   m_last_center = min_cc;
+
+  for (auto& cc : m_physics_dirty) {
+    remesh_chunk_physics(cc);
+  }
+  m_physics_dirty.clear();
 
   for (int y = min_cc.y; y <= max_cc.y; ++y) {
     for (int x = min_cc.x; x <= max_cc.x; ++x) {
@@ -229,7 +240,7 @@ void chunk_renderer_t::dig(fan::vec2 world_pos, f32_t radius) {
   }
 
   for (auto& cc : touched) {
-    remesh_chunk_physics(cc);
+    m_physics_dirty.insert(cc);
   }
 }
 

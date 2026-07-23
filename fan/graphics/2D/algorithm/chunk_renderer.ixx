@@ -67,6 +67,7 @@ private:
   std::unordered_map<fan::vec2i, bool> m_solid_map;
   std::unordered_map<fan::vec2i, chunk_t> m_chunks;
   fan::vec2i m_last_center{std::numeric_limits<int>::max(), std::numeric_limits<int>::max()};
+  std::unordered_set<fan::vec2i> m_physics_dirty;
 
   bool get_solid(int gx, int gy) const;
   f32_t surface_height(int gx) const;
