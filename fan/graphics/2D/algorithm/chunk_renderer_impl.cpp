@@ -35,7 +35,16 @@ bool chunk_renderer_t::get_solid(int gx, int gy) const {
     return false;
   }
   f32_t surface = surface_height(gx);
-  if (gy < surface) return false;
+  if (gy < surface) {
+    if (m_cfg.sky_island_noise) {
+      f32_t above = surface - gy;
+      if (above >= m_cfg.sky_island_min && above <= m_cfg.sky_island_max) {
+        f32_t v = m_cfg.sky_island_noise->simplex_fbm_norm(gx * m_cfg.sky_island_freq, gy * m_cfg.sky_island_freq);
+        if (v > m_cfg.sky_island_threshold) return true;
+      }
+    }
+    return false;
+  }
   f32_t depth = gy - surface;
   if (depth > m_cfg.cave_depth_min && is_cave(gx, gy)) return false;
   return true;
@@ -72,7 +81,15 @@ bool chunk_renderer_t::is_cave(int gx, int gy) const {
 }
 
 fan::graphics::image_t chunk_renderer_t::tile_image(int gx, int gy) const {
-  f32_t depth = gy - surface_height(gx);
+  f32_t surface = surface_height(gx);
+  f32_t depth = gy - surface;
+  if (depth < 0 && m_cfg.sky_island_noise && m_cfg.img_sky_island.valid()) {
+    f32_t above = -depth;
+    if (above >= m_cfg.sky_island_min && above <= m_cfg.sky_island_max) {
+      f32_t v = m_cfg.sky_island_noise->simplex_fbm_norm(gx * m_cfg.sky_island_freq, gy * m_cfg.sky_island_freq);
+      if (v > m_cfg.sky_island_threshold) return m_cfg.img_sky_island;
+    }
+  }
   if (m_cfg.scatter_noise && depth < 1.f) {
     f32_t v = m_cfg.scatter_noise->simplex_fbm_norm(gx * 0.15f, gy * 0.15f);
     if (v > m_cfg.scatter_threshold) return m_cfg.scatter_img;
