@@ -156,6 +156,8 @@ export namespace fan {
           fan::color color = fan::color(1, 1, 1, 1);
           fan::vec2 rotation_point = 0;
           fan::graphics::image_t image = fan::graphics::get_default_texture();
+          fan::vec2 tc_position = 0;
+          fan::vec2 tc_size = 1;
           std::array<fan::graphics::image_t, 30> images;
           fan::vec2 parallax_factor = 0;
           bool blending = true;

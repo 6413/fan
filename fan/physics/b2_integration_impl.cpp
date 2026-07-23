@@ -250,7 +250,11 @@ namespace fan::physics {
   }
   void body_id_t::set_mass(f32_t mass) {
     b2MassData md = b2Body_GetMassData(*this);
+    f32_t old_mass = md.mass;
     md.mass = mass / length_units_per_meter;
+    if (old_mass > 0.f) {
+      md.rotationalInertia *= mass / (old_mass * length_units_per_meter);
+    }
     b2Body_SetMassData(*this, md);
   }
 
@@ -329,7 +333,7 @@ namespace fan::physics {
     b2WorldDef world_def = b2DefaultWorldDef();
     world_def.gravity = properties.gravity;
 
-    b2SetLengthUnitsPerMeter(1.f / length_units_per_meter);
+    b2SetLengthUnitsPerMeter(1.0f);
     world_id = b2CreateWorld(&world_def);
 
     gphysics().get_gravity = [this]() -> fan::vec2 {

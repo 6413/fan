@@ -1129,7 +1129,7 @@ namespace fan::graphics{
       auto& properties = get_properties<shapes::polygon_t::properties_t>();
 
       if (properties.vertices.empty()) {
-        fan::throw_error("invalid vertices");
+        fan::throw_error("Polygon vertices empty");
       }
 
       shapes::polygon_t::vi_t vi;

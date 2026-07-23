@@ -6,6 +6,7 @@ using namespace fan::graphics;
 struct resources_t {
   f64_t gold_per_tick = 5.0;
   f64_t gold = 100.0;
+  // image_t tree("examples/games/forest game/tree1.png");
 }resources;
 
 struct building_t : sprite_t {
@@ -66,6 +67,8 @@ struct farm_manager_t {
   day_cycle_t day_cycle;
   grid_drag_painter_t drag_painter;
   std::unordered_map<std::string, f64_t> building_prices;
+  std::vector<sprite_t> trees;
+  std::unordered_set<fan::vec2i> occupied_cells;
 
   farm_manager_t(engine_t& engine, const fan::vec2& t_size) : 
     buildings_config(fan::json::load_file("buildings.json")),
@@ -81,6 +84,7 @@ struct farm_manager_t {
         : 25.0;
     }
     spawn_initial_buildings();
+    spawn_trees();
     if (!buildings.empty()) {
       select_building(0);
     }
@@ -91,6 +95,24 @@ struct farm_manager_t {
     placement.name = selected_building->name;
     placement.set_image(*selected_building);
     placement.set_size(get_transform(0, *selected_building).size);
+  }
+
+  void spawn_trees() {
+    auto path = fan::io::file::find_relative_path("examples/games/forest game/tree1.png");
+    if (!std::filesystem::exists(path)) return;
+    auto tree_tex = fan::graphics::image_load(path.string());
+
+    f32_t world_w = (f32_t)gloco()->window.get_size().x;
+    f32_t world_h = (f32_t)gloco()->window.get_size().x;
+    for (int i = 0; i < 50; ++i) {
+      f32_t x = (f32_t)fan::random::value(0, (int)(world_w / tile_size.x)) * tile_size.x;
+      f32_t y = (f32_t)fan::random::value(0, (int)(world_h / tile_size.y)) * tile_size.y;
+      f32_t z = 65535.f - (y / tile_size.y + 1.f + grid.z_offset);
+      auto& t = trees.emplace_back(tree_tex);
+      t.set_position(fan::vec3(x, y, z));
+      t.set_size({tile_size.x * 0.8f, tile_size.y * 0.8f});
+      occupied_cells.insert({(int)x, (int)y});
+    }
   }
 
   transform_t get_transform(fan::vec2i cell, const building_image_t& img) {
@@ -131,6 +153,7 @@ struct farm_manager_t {
   }
 
   bool can_place(fan::vec2i cell, const building_image_t& img) {
+    if (occupied_cells.contains(cell)) return false;
     auto gs = grid.cells_occupied(img.custom_scale);
     if (gs.x == 1 && gs.y == 1) return get_building_at(cell) == nullptr;
     for (int y = 0; y < gs.y; ++y)
@@ -148,6 +171,7 @@ struct farm_manager_t {
     b.cells_y = grid.cells_occupied(img.custom_scale).y;
     load_model(b);
     map_building(b);
+    occupied_cells.insert(cell);
     return b;
   }
 

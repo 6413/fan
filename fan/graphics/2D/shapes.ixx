@@ -1063,6 +1063,12 @@ export namespace fan::graphics {
 
         std::uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
         std::uint32_t vertex_count = 3;
+
+        std::vector<fan::graphics::polygon_vertex_t> cached_gpu_vertices;
+        fan::vec3 cached_position = 0;
+        fan::vec3 cached_angle = 0;
+        fan::vec2 cached_rotation_point = 0;
+        bool gpu_dirty = true;
       };
 
       fan::graphics::shapes::shape_t push_back(const properties_t& properties);

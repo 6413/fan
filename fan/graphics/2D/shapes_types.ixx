@@ -65,7 +65,7 @@ export namespace fan::graphics {
 
 export namespace fan::graphics::shaper {
   #define shaper_set_fan 1
-  #define shaper_set_MaxMaxElementPerBlock 0x1000
+  #define shaper_set_MaxMaxElementPerBlock 0x4000
     inline constexpr std::uint32_t MaxElementPerBlock = shaper_set_MaxMaxElementPerBlock;
 
     // sizeof(image_t) == 2
