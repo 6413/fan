@@ -235,6 +235,7 @@ export namespace fan {
       std::mutex async_image_mutex;
 
       std::vector<VkDescriptorImageInfo> image_pool; // for draw
+      std::unordered_map<std::uint32_t, fan::graphics::image_nr_t> color_image_cache;
 
       fan::graphics::image_nr_t image_create();
       std::uint64_t image_get_handle(fan::graphics::image_nr_t nr);

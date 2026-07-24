@@ -384,6 +384,12 @@ void loco_t::shadow_set_darkness(f32_t darkness) {
 std::size_t loco_t::shadow_light_count() {
   return vk->alpha_shadow_renderer.lights.size();
 }
+void loco_t::shadow_enable_tile_mode(std::uint32_t reserve_count) {
+  vk->alpha_shadow_renderer.open_tile_shadows(reserve_count);
+}
+void loco_t::shadow_set_tile_occluders(std::span<const fan::vec4> occluders) {
+  vk->alpha_shadow_renderer.tile_occluders.assign(occluders.begin(), occluders.end());
+}
 
 
 std::vector<std::uint8_t> loco_t::image_get_pixel_data(

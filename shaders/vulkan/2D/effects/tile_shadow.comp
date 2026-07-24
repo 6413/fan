@@ -1,0 +1,32 @@
+#version 450
+layout(local_size_x = 256) in;
+struct occ_t { vec2 min; vec2 max; };
+layout(set = 0, binding = 0) readonly buffer occluders_t { occ_t occs[]; };
+layout(set = 0, binding = 1, r16f) uniform writeonly image2D shadow_map;
+layout(push_constant) uniform pc_t {
+  vec2 light_pos;
+  float light_radius;
+  uint occluder_count;
+  uint angle_resolution;
+} pc;
+void main() {
+  uint u = gl_GlobalInvocationID.x;
+  if (u >= pc.angle_resolution) return;
+  float tau = 6.28318530718;
+  float angle = float(u) / float(pc.angle_resolution) * tau;
+  vec2 dir = vec2(cos(angle), sin(angle));
+  vec2 inv = 1.0 / max(abs(dir), 0.000001);
+  float blocker = 1.0;
+  for (uint i = 0; i < pc.occluder_count; ++i) {
+    vec2 local_min = occs[i].min - pc.light_pos;
+    vec2 local_max = occs[i].max - pc.light_pos;
+    vec2 t0 = local_min * inv;
+    vec2 t1 = local_max * inv;
+    float tmin = max(min(t0.x, t1.x), min(t0.y, t1.y));
+    float tmax = min(max(t0.x, t1.x), max(t0.y, t1.y));
+    if (tmax >= tmin && tmin >= 0.0 && tmin < blocker * pc.light_radius) {
+      blocker = tmin / pc.light_radius;
+    }
+  }
+  imageStore(shadow_map, ivec2(int(u), 0), vec4(blocker));
+}

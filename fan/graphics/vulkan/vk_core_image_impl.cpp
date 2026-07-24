@@ -896,6 +896,9 @@ void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, fan::str
 }
 // creates single colored text size.x*size.y sized
 fan::graphics::image_nr_t fan::vulkan::context_t::image_create(const fan::color& color, const fan::vulkan::context_t::image_load_properties_t& p) {
+  std::uint32_t k = (std::uint32_t)(color.r * 255.f) | ((std::uint32_t)(color.g * 255.f) << 8) | ((std::uint32_t)(color.b * 255.f) << 16) | ((std::uint32_t)(color.a * 255.f) << 24);
+  auto it = color_image_cache.find(k);
+  if (it != color_image_cache.end()) { return it->second; }
 
   std::uint8_t pixels[4];
   for (std::uint32_t p = 0; p < fan::color::size(); p++) {
@@ -913,6 +916,7 @@ fan::graphics::image_nr_t fan::vulkan::context_t::image_create(const fan::color&
 
   image_set_settings(nr, p);
 
+  color_image_cache[k] = nr;
   return nr;
 }
 fan::graphics::image_nr_t fan::vulkan::context_t::image_create(const fan::color& color) {

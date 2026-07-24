@@ -721,6 +721,8 @@ public:
   void shadow_clear_lights();
   void shadow_set_darkness(f32_t darkness);
   std::size_t shadow_light_count();
+  void shadow_enable_tile_mode(std::uint32_t reserve_count = 2048);
+  void shadow_set_tile_occluders(std::span<const fan::vec4> occluders);
 
 
 

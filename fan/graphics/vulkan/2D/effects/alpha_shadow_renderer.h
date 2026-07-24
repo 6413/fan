@@ -88,7 +88,18 @@ struct alpha_shadow_renderer_t {
   }
 
   void build_shadow_maps() {
-    if (!resources_open || casters.empty() || lights.empty()) { return; }
+    if (!resources_open) { return; }
+    if (!tile_occluders.empty()) {
+      for (const light_t& light : lights) {
+        build_tile_shadow_map(tile_occluders, light.position, light.radius);
+        barrier(shadow_texture.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+          VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+          VK_ACCESS_2_SHADER_WRITE_BIT, VK_ACCESS_2_SHADER_READ_BIT);
+      }
+      tile_occluders.clear();
+      return;
+    }
+    if (casters.empty() || lights.empty()) { return; }
     for (const light_t& light : lights) {
       render_occluders(light);
       barrier(occluder_texture.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -102,7 +113,7 @@ struct alpha_shadow_renderer_t {
   }
 
   void render_overlay(VkImageView swapchain_image_view) {
-    if (!resources_open || casters.empty() || lights.empty()) { return; }
+    if (!resources_open || lights.empty()) { return; }
     auto& ctx = loco_ptr->context.vk;
     fan::vec2ui sz{(uint32_t)loco_ptr->window.get_size().x, (uint32_t)loco_ptr->window.get_size().y};
     VkRenderingAttachmentInfo att{VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO, nullptr, swapchain_image_view,
@@ -126,9 +137,10 @@ struct alpha_shadow_renderer_t {
 
   std::vector<caster_t> casters;
   std::vector<light_t> lights;
+  std::vector<fan::vec4> tile_occluders;
+  bool tile_mode_open = false;
   f32_t darkness = 0.78f;
 
-private:
   VkCommandBuffer cmd() { return loco_ptr->context.vk.command_buffers[loco_ptr->context.vk.current_frame]; }
 
   VkDescriptorSetLayout make_dsl(const std::vector<VkDescriptorSetLayoutBinding>& bindings) {
@@ -318,6 +330,64 @@ private:
 
   struct occluder_push_t { fan::vec2 c0; fan::vec2 c1; fan::vec2 c2; fan::vec2 c3; fan::vec2 uv_min; fan::vec2 uv_max; f32_t alpha_threshold; };
   struct radial_push_t { std::uint32_t angle_resolution; std::uint32_t radial_samples; };
+  struct tile_shadow_push_t { fan::vec2 light_pos; float light_radius; uint32_t occluder_count; uint32_t angle_resolution; };
+  std::vector<fan::vulkan::context_t::buffer_t> tile_occluder_buffers;
+  fan::graphics::shader_t tile_shadow_shader;
+  fan::vulkan::context_t::compute_pipeline_t tile_shadow_pipeline;
+  VkDescriptorSetLayout tile_shadow_dsl = VK_NULL_HANDLE;
+
+  void open_tile_shadows(std::uint32_t reserve_count = 2048) {
+    auto& ctx = loco_ptr->context.vk;
+    tile_occluder_buffers.resize(fan::vulkan::max_frames_in_flight);
+    for (auto& buf : tile_occluder_buffers) {
+      ctx.create_buffer(reserve_count * 16, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, buf);
+      ctx.map_buffer(buf, &buf.mapped);
+    }
+
+    tile_shadow_shader = loco_ptr->shader_create();
+    loco_ptr->shader_set_compute(tile_shadow_shader, "shaders/vulkan/2D/effects/tile_shadow.comp",
+      fan::graphics::read_shader("shaders/vulkan/2D/effects/tile_shadow.comp"));
+    loco_ptr->shader_compile(tile_shadow_shader);
+
+    tile_shadow_dsl = make_dsl({
+      {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT},
+      {1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,  1, VK_SHADER_STAGE_COMPUTE_BIT},
+    });
+    tile_shadow_pipeline.open(ctx, {.descriptor_layouts = {tile_shadow_dsl}, .shader = tile_shadow_shader, .push_constants_size = sizeof(tile_shadow_push_t)});
+  }
+
+  void build_tile_shadow_map(std::span<const fan::vec4> occluders, fan::vec2 light_pos, f32_t light_radius) {
+    if (occluders.empty()) return;
+    auto& ctx = loco_ptr->context.vk;
+    auto frame = ctx.current_frame;
+    auto& buf = tile_occluder_buffers[frame];
+    std::uint64_t bytes = occluders.size() * sizeof(fan::vec4);
+    if (bytes > buf.size) {
+      ctx.destroy_buffer(buf);
+      ctx.create_buffer(bytes, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, buf);
+      ctx.map_buffer(buf, &buf.mapped);
+    }
+    std::memcpy(buf.mapped, occluders.data(), bytes);
+
+    barrier(shadow_texture.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+      VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+      VK_ACCESS_2_SHADER_READ_BIT, VK_ACCESS_2_SHADER_WRITE_BIT);
+
+    VkShaderStageFlagBits stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    fan_vkCmdBindShadersEXT(cmd(), 1, &stage, &tile_shadow_pipeline.shader);
+
+    VkDescriptorBufferInfo buf_info{buf, 0, bytes};
+    VkDescriptorImageInfo img_info{VK_NULL_HANDLE, shadow_texture.image_view, VK_IMAGE_LAYOUT_GENERAL};
+    VkWriteDescriptorSet writes[2]{
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, VK_NULL_HANDLE, 0, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, nullptr, &buf_info, nullptr},
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, VK_NULL_HANDLE, 1, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,  &img_info, nullptr, nullptr},
+    };
+    vkCmdPushDescriptorSet(cmd(), VK_PIPELINE_BIND_POINT_COMPUTE, tile_shadow_pipeline.pipeline_layout, 0, 2, writes);
+
+    tile_shadow_push_t pc{light_pos, light_radius, (uint32_t)occluders.size(), (uint32_t)angle_resolution};
+    vkCmdPushConstants(cmd(), tile_shadow_pipeline.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pc), &pc);
+    vkCmdDispatch(cmd(), (angle_resolution + 255) / 256, 1, 1);
+  }
   struct light_push_t { fan::vec2 ndc_min; fan::vec2 ndc_max; fan::color light_color; float softness; float falloff_power; float angle_texel; float cone_angle; float cone_inner; float cone_outer; };
   struct solid_push_t { fan::color color; };
 };
