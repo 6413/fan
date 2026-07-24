@@ -233,12 +233,9 @@ void fan::vulkan::context_t::destroy_vulkan_soft() {
     single_time_cmd = VK_NULL_HANDLE;
   }
 
-  close_vais(mainColorImageViews);
-  close_vais(postProcessedColorImageViews);
-  close_vais(depthImageViews);
-  close_vais(downscaleImageViews1);
-  close_vais(upscaleImageViews1);
-  close_vais(vai_depth);
+  for (auto* v : {&mainColorImageViews, &postProcessedColorImageViews, &depthImageViews, &downscaleImageViews1, &upscaleImageViews1, &vai_depth}) {
+    close_vais(*v);
+  }
 
   for (std::size_t i = 0; i < image_available_semaphores.size(); i++) {
     vkDestroySemaphore(device, image_available_semaphores[i], nullptr);
@@ -369,12 +366,9 @@ void fan::vulkan::context_t::destroy_shape_resources() {
 }
 void fan::vulkan::context_t::cleanup_swap_chain_dependencies() {
   vkDeviceWaitIdle(device);
-  close_vais(mainColorImageViews);
-  close_vais(postProcessedColorImageViews);
-  close_vais(depthImageViews);
-  close_vais(downscaleImageViews1);
-  close_vais(upscaleImageViews1);
-  close_vais(vai_depth);
+  for (auto* v : {&mainColorImageViews, &postProcessedColorImageViews, &depthImageViews, &downscaleImageViews1, &upscaleImageViews1, &vai_depth}) {
+    close_vais(*v);
+  }
 
   for (auto framebuffer : swap_chain_framebuffers) {
     vkDestroyFramebuffer(device, framebuffer, nullptr);
@@ -859,11 +853,7 @@ VkImageView fan::vulkan::context_t::create_image_view(VkImage image, VkFormat fo
   viewInfo.image = image;
   viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
   viewInfo.format = format;
-  viewInfo.subresourceRange.aspectMask = aspect_flags;
-  viewInfo.subresourceRange.baseMipLevel = 0;
-  viewInfo.subresourceRange.levelCount = 1;
-  viewInfo.subresourceRange.baseArrayLayer = 0;
-  viewInfo.subresourceRange.layerCount = 1;
+  viewInfo.subresourceRange = {aspect_flags, 0, 1, 0, 1};
 
 
   VkImageView imageView;
@@ -903,25 +893,14 @@ void fan::vulkan::context_t::create_image_views() {
   }
 
   for (std::size_t i = 0; i < swap_chain_images.size(); ++i) {
-    mainColorImageViews[i].close(*this);
-    mainColorImageViews[i].open(*this, vp);
-    mainColorImageViews[i].transition_image_layout(*this, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
-
-    postProcessedColorImageViews[i].close(*this);
-    postProcessedColorImageViews[i].open(*this, vp);
-    postProcessedColorImageViews[i].transition_image_layout(*this, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
-
-    depthImageViews[i].close(*this);
-    depthImageViews[i].open(*this, depth_vp);
-    depthImageViews[i].transition_image_layout(*this, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, depth_vp.aspect_flags);
-
-    downscaleImageViews1[i].close(*this);
-    downscaleImageViews1[i].open(*this, vp);
-    downscaleImageViews1[i].transition_image_layout(*this, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
-
-    upscaleImageViews1[i].close(*this);
-    upscaleImageViews1[i].open(*this, vp);
-    upscaleImageViews1[i].transition_image_layout(*this, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+    auto reopen = [&](fan::vulkan::vai_t& v, const fan::vulkan::vai_t::properties_t& props, VkImageLayout layout, VkImageAspectFlags aspect) {
+      v.close(*this); v.open(*this, props); v.transition_image_layout(*this, layout, aspect);
+    };
+    reopen(mainColorImageViews[i], vp, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+    reopen(postProcessedColorImageViews[i], vp, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+    reopen(depthImageViews[i], depth_vp, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, depth_vp.aspect_flags);
+    reopen(downscaleImageViews1[i], vp, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+    reopen(upscaleImageViews1[i], vp, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
 
     swap_chain_image_views[i] = create_image_view(swap_chain_images[i], swap_chain_image_format, VK_IMAGE_ASPECT_COLOR_BIT);
   }
