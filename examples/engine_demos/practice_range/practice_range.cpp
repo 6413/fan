@@ -169,7 +169,7 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
     }
 
     void update() {
-      fan::graphics::sprite(fan::vec3(fan::vec2(0, 0), 0xfffa), 12300, fan::colors::red);
+      fan::graphics::sprite(fan::vec3(fan::vec2(0, 0), 0), 12300, fan::colors::gray);
       
       
       f32_t dt = pile.get_delta_time();

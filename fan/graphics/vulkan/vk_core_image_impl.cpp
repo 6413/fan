@@ -552,7 +552,11 @@ fan::graphics::image_nr_t fan::vulkan::context_t::create_missing_texture() {
   fan::vulkan::context_t::image_load_properties_t p;
 
   fan::vec2i image_size = fan::vec2i(2, 2);
-  fan::graphics::image_nr_t nr = image_load((fan::color*)fan::image::missing_texture_pixels, image_size, p);
+  fan::image::info_t ii;
+  ii.data = (void*)fan::image::missing_texture_pixels;
+  ii.size = image_size;
+  ii.channels = 4;
+  fan::graphics::image_nr_t nr = image_load(ii, p);
 
   auto& image_data = __fan_internal_image_list[nr];
   image_data.size = image_size;
@@ -563,7 +567,11 @@ fan::graphics::image_nr_t fan::vulkan::context_t::create_transparent_texture() {
   fan::vulkan::context_t::image_load_properties_t p;
 
   fan::vec2i image_size = fan::vec2i(2, 2);
-  fan::graphics::image_nr_t nr = image_load((fan::color*)fan::image::transparent_texture_pixels, image_size, p);
+  fan::image::info_t ii;
+  ii.data = (void*)fan::image::transparent_texture_pixels;
+  ii.size = image_size;
+  ii.channels = 4;
+  fan::graphics::image_nr_t nr = image_load(ii, p);
 
   auto& image_data = __fan_internal_image_list[nr];
   image_data.size = image_size;
