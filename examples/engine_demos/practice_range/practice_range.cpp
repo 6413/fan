@@ -86,13 +86,8 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
       engine->camera_follow(player.body.get_position(), 0);
       ic.set_zoom(1.728f);
 
-      renderer.iterate_tiles(map_id, [&](const auto& tile) mutable {
-        shadow_pool.push_back({fan::graphics::shadow_t{fan::graphics::shadow_properties_t{
-          .position = fan::vec3(tile.position, 250.f),
-          .size = tile.size,
-          .color = fan::color(0.f, 0.f, 0.f, 0.5f),
-        }}, true});
-      });
+      engine->shadow_enable_tile_mode();
+      engine->shadow_set_darkness(0.35f);
     }
 
     void close() {
@@ -187,7 +182,6 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
       if (!player.body.was_on_ground && on_ground) {
         auto pos = player.body.get_position();
         particles.spawn_footstep_dust(fan::vec3(pos.x, pos.y + feet_y_offset, depth_feet), feet_x_offset, 6, smoke_image, 0.3f, 0.6f);
-
         // land squish
         auto squished = fan::vec2(player_size.x * 1.2f, player_size.y * 0.7f);
         player.body.squish(squished, player_size, 0.5f);
@@ -219,10 +213,15 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
       ic.update_fx(dt);
 
       fan::vec2 plpos = player.body.get_position();
-      for (auto& slot : shadow_pool) {
-        slot.instance.set_light_position(plpos);
-        slot.instance.set_light_radius(300.f);
-      }
+      engine->shadow_clear_lights();
+      engine->shadow_add_light(plpos, 300.f, fan::color(1.f, 1.f, 0.8f, 0.5f));
+
+      std::vector<fan::vec4> tile_occluders;
+      renderer.iterate_tiles(map_id, [&](const auto& tile) mutable {
+        tile_occluders.push_back({tile.position.x - tile.size.x, tile.position.y - tile.size.y, tile.position.x + tile.size.x, tile.position.y + tile.size.y});
+      });
+      engine->shadow_set_tile_occluders(tile_occluders);
+
       fan::graphics::light(fan::vec3(plpos, depth_muzzle), fan::vec2(300.f), fan::color(1.f, 1.f, 0.8f, 0.15f));
 
       fan::graphics::systems::render2d(registry);
@@ -295,9 +294,6 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
     fan::event::task_t shoot_task;
     fan::event::task_t hitstop_task;
     fan::event::task_t muzzle_task;
-
-    struct shadow_slot_t { fan::graphics::shadow_t instance; bool visible = true; };
-    std::vector<shadow_slot_t> shadow_pool;
   };
 
   pile_t() {
