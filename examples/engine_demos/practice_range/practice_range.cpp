@@ -85,6 +85,14 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
       };
       engine->camera_follow(player.body.get_position(), 0);
       ic.set_zoom(1.728f);
+
+      renderer.iterate_tiles(map_id, [&](const auto& tile) mutable {
+        shadow_pool.push_back({fan::graphics::shadow_t{fan::graphics::shadow_properties_t{
+          .position = fan::vec3(tile.position, 250.f),
+          .size = tile.size,
+          .color = fan::color(0.f, 0.f, 0.f, 0.5f),
+        }}, true});
+      });
     }
 
     void close() {
@@ -161,6 +169,9 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
     }
 
     void update() {
+      fan::graphics::sprite(fan::vec3(fan::vec2(0, 0), 0xfffa), 12300, fan::colors::red);
+      
+      
       f32_t dt = pile.get_delta_time();
 
       if (is_hitstop) {
@@ -206,6 +217,13 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
       renderer.update(map_id, player.body.get_center());
       engine->camera_follow(player.body.get_position());
       ic.update_fx(dt);
+
+      fan::vec2 plpos = player.body.get_position();
+      for (auto& slot : shadow_pool) {
+        slot.instance.set_light_position(plpos);
+        slot.instance.set_light_radius(300.f);
+      }
+      fan::graphics::light(fan::vec3(plpos, depth_muzzle), fan::vec2(300.f), fan::color(1.f, 1.f, 0.8f, 0.15f));
 
       fan::graphics::systems::render2d(registry);
 
@@ -277,6 +295,9 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
     fan::event::task_t shoot_task;
     fan::event::task_t hitstop_task;
     fan::event::task_t muzzle_task;
+
+    struct shadow_slot_t { fan::graphics::shadow_t instance; bool visible = true; };
+    std::vector<shadow_slot_t> shadow_pool;
   };
 
   pile_t() {
@@ -290,5 +311,7 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
 } pile;
 
 int main() {
-  pile.loop();
+  pile.loop([&] {
+
+  });
 }
