@@ -38,7 +38,7 @@ struct alpha_shadow_renderer_t {
       fan::vulkan::vai_t::properties_t p{
         .swap_chain_size = fan::vec2(angle_resolution, 1),
         .format = VK_FORMAT_R16_SFLOAT,
-        .usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        .usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
         .aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT,
       };
       shadow_texture.open(context, p);
@@ -68,10 +68,11 @@ struct alpha_shadow_renderer_t {
       "shaders/vulkan/2D/effects/alpha_shadow_occluder.vert",
       "shaders/vulkan/2D/effects/alpha_shadow_occluder.frag"
     );
-    radial_shader = load_shader(
-      "shaders/vulkan/2D/effects/alpha_shadow_radial.vert",
-      "shaders/vulkan/2D/effects/alpha_shadow_radial.frag"
-    );
+    radial_shader = loco_ptr->shader_create();
+    loco_ptr->shader_set_compute(radial_shader,
+      "shaders/vulkan/2D/effects/alpha_shadow_radial.comp",
+      fan::graphics::read_shader("shaders/vulkan/2D/effects/alpha_shadow_radial.comp"));
+    loco_ptr->shader_compile(radial_shader);
     light_shader = load_shader(
       "shaders/vulkan/2D/effects/alpha_shadow_light.vert",
       "shaders/vulkan/2D/effects/alpha_shadow_light.frag"
@@ -85,7 +86,8 @@ struct alpha_shadow_renderer_t {
       {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
     });
     radial_descriptor_layout = make_push_descriptor_layout({
-      {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
+      {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT},
+      {1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT},
     });
     light_descriptor_layout = make_push_descriptor_layout({
       {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
@@ -104,7 +106,13 @@ struct alpha_shadow_renderer_t {
     };
 
     make_pipeline(occluder_pipeline, occluder_shader, occluder_descriptor_layout, sizeof(occluder_push_t), true);
-    make_pipeline(radial_pipeline, radial_shader, radial_descriptor_layout, sizeof(radial_push_t), false);
+    {
+      fan::vulkan::context_t::compute_pipeline_t::properties_t p;
+      p.shader = radial_shader;
+      p.descriptor_layouts = {radial_descriptor_layout};
+      p.push_constants_size = sizeof(radial_push_t);
+      radial_pipeline.open(context, p);
+    }
     make_pipeline(light_pipeline, light_shader, light_descriptor_layout, sizeof(light_push_t), true);
     make_pipeline(solid_pipeline, solid_shader, solid_descriptor_layout, sizeof(solid_push_t), true);
 
@@ -172,7 +180,6 @@ struct alpha_shadow_renderer_t {
       vkCmdSetScissor(cmd(), 0, 1, &sc);
     }
 
-    set_blend(VK_TRUE);
     render_darkness();
     for (const light_t& light : lights) {
       render_light(light);
@@ -261,11 +268,11 @@ private:
   void barrier_shadow_to_read() {
     VkImageMemoryBarrier2 b{};
     b.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-    b.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-    b.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+    b.srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+    b.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
     b.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
     b.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
-    b.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    b.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
     b.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     b.image = shadow_texture.image;
     b.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -303,10 +310,10 @@ private:
     b.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
     b.srcStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
     b.srcAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
-    b.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-    b.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+    b.dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+    b.dstAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
     b.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    b.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    b.newLayout = VK_IMAGE_LAYOUT_GENERAL;
     b.image = shadow_texture.image;
     b.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     b.subresourceRange.levelCount = 1;
@@ -424,49 +431,37 @@ private:
   void render_radial() {
     barrier_shadow_to_write();
 
-    {
-      VkRenderingAttachmentInfo att{};
-      att.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-      att.imageView = shadow_texture.image_view;
-      att.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-      att.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-      att.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-      att.clearValue.color = {{1, 1, 1, 1}};
-      VkRenderingInfo ri{};
-      ri.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-      ri.renderArea = {{0, 0}, {(uint32_t)angle_resolution, 1}};
-      ri.layerCount = 1;
-      ri.colorAttachmentCount = 1;
-      ri.pColorAttachments = &att;
-      vkCmdBeginRendering(cmd(), &ri);
-    }
+    VkShaderStageFlagBits stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    fan_vkCmdBindShadersEXT(cmd(), 1, &stage, &radial_pipeline.shader);
 
-    VkViewport vp{0, 0, (float)angle_resolution, 1, 0, 1};
-    vkCmdSetViewport(cmd(), 0, 1, &vp);
-    VkRect2D sc{{0, 0}, {(uint32_t)angle_resolution, 1}};
-    vkCmdSetScissor(cmd(), 0, 1, &sc);
+    VkDescriptorImageInfo sampler_info{};
+    sampler_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    sampler_info.imageView = occluder_texture.image_view;
+    sampler_info.sampler = occluder_sampler;
 
-    bind_pipeline(radial_pipeline);
-    set_blend(VK_FALSE);
+    VkDescriptorImageInfo storage_info{};
+    storage_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    storage_info.imageView = shadow_texture.image_view;
+    storage_info.sampler = VK_NULL_HANDLE;
 
-    VkDescriptorImageInfo img{};
-    img.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    img.imageView = occluder_texture.image_view;
-    img.sampler = occluder_sampler;
-    VkWriteDescriptorSet w{};
-    w.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    w.dstBinding = 0;
-    w.descriptorCount = 1;
-    w.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    w.pImageInfo = &img;
-    vkCmdPushDescriptorSet(cmd(), VK_PIPELINE_BIND_POINT_GRAPHICS, radial_pipeline.m_layout, 0, 1, &w);
+    VkWriteDescriptorSet writes[2]{};
+    writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writes[0].dstBinding = 0;
+    writes[0].descriptorCount = 1;
+    writes[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    writes[0].pImageInfo = &sampler_info;
+    writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    writes[1].dstBinding = 1;
+    writes[1].descriptorCount = 1;
+    writes[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+    writes[1].pImageInfo = &storage_info;
+    vkCmdPushDescriptorSet(cmd(), VK_PIPELINE_BIND_POINT_COMPUTE, radial_pipeline.pipeline_layout, 0, 2, writes);
 
-    radial_push_t pc{radial_samples, 0};
-    vkCmdPushConstants(cmd(), radial_pipeline.m_layout,
-      VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pc), &pc);
-    vkCmdDraw(cmd(), 6, 1, 0, 0);
+    radial_push_t pc{(std::uint32_t)angle_resolution, (std::uint32_t)radial_samples};
+    vkCmdPushConstants(cmd(), radial_pipeline.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pc), &pc);
 
-    vkCmdEndRendering(cmd());
+    std::uint32_t groups = (angle_resolution + 255) / 256;
+    vkCmdDispatch(cmd(), groups, 1, 1);
   }
 
   void render_light(const light_t& light) {
@@ -518,7 +513,7 @@ private:
   fan::graphics::shader_t solid_shader;
 
   fan::vulkan::context_t::pipeline_t occluder_pipeline;
-  fan::vulkan::context_t::pipeline_t radial_pipeline;
+  fan::vulkan::context_t::compute_pipeline_t radial_pipeline;
   fan::vulkan::context_t::pipeline_t light_pipeline;
   fan::vulkan::context_t::pipeline_t solid_pipeline;
 
@@ -530,7 +525,7 @@ private:
   bool resources_open = false;
 
   struct occluder_push_t { fan::vec2 c0; fan::vec2 c1; fan::vec2 c2; fan::vec2 c3; fan::vec2 uv_min; fan::vec2 uv_max; f32_t alpha_threshold; };
-  struct radial_push_t { int32_t radial_samples; float pad; };
+  struct radial_push_t { std::uint32_t angle_resolution; std::uint32_t radial_samples; };
   struct light_push_t { fan::vec2 ndc_min; fan::vec2 ndc_max; fan::color light_color; float softness; float falloff_power; float angle_texel; float cone_angle; float cone_inner; float cone_outer; };
   struct solid_push_t { fan::color color; };
 };
