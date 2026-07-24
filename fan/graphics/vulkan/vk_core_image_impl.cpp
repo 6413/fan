@@ -52,6 +52,32 @@ import fan.io.file;
 
 #define VK_CTX ((fan::vulkan::context_t*)context)
 
+static void copy_pixels(const std::uint8_t*& src, std::uint8_t*& dst, std::uint64_t pixel_count, int src_channels, int format_channels, std::uint64_t image_size_bytes) {
+  if (src_channels == format_channels) {
+    std::memcpy(dst, src, image_size_bytes);
+  }
+  else if (src_channels == 3 && format_channels == 4) {
+    for (std::uint64_t i = 0; i < pixel_count; ++i) {
+      dst[0] = src[0]; dst[1] = src[1]; dst[2] = src[2]; dst[3] = 255;
+      src += 3; dst += 4;
+    }
+  }
+  else {
+    fan::throw_error("unsupported channel/format combination");
+  }
+}
+
+static void schedule_ring_advance(fan::vulkan::context_t& ctx, const fan::vulkan::staging_ring_buffer_t::allocation_t& alloc, fan::vulkan::staging_ring_buffer_t* ring, VkDeviceSize captured_head, VmaAllocator vma_allocator) {
+  ctx.get_current_deletion_queue().push_function([=]() {
+    if (alloc.is_spilled) {
+      fan::vulkan::vma_destroy_buffer(vma_allocator, alloc.buffer, alloc.fallback_allocation);
+    }
+    else {
+      ring->advance_tail(captured_head);
+    }
+  });
+}
+
 VkFormat fan::graphics::format_converter::global_to_vulkan_format(std::uintptr_t format) {
   switch (format) {
     case image_format_e::bgra: return VK_FORMAT_B8G8R8A8_UNORM;
@@ -163,11 +189,7 @@ void fan::vulkan::context_t::transition_image_layout_cmd(VkCommandBuffer command
   barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
   barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
   barrier.image = image;
-  barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-  barrier.subresourceRange.baseMipLevel = 0;
-  barrier.subresourceRange.levelCount = 1;
-  barrier.subresourceRange.baseArrayLayer = 0;
-  barrier.subresourceRange.layerCount = 1;
+  barrier.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
 
   VkPipelineStageFlags sourceStage{};
   VkPipelineStageFlags destinationStage{};
@@ -472,22 +494,7 @@ fan::graphics::image_nr_t fan::vulkan::context_t::image_load(const fan::image::i
   std::uint8_t* dst = static_cast<std::uint8_t*>(alloc.mapped_ptr);
   std::uint64_t pixel_count = image_info.size.multiply();
 
-  if (src_channels == format_channels) {
-    std::memcpy(dst, src, image_size_bytes);
-  }
-  else if (src_channels == 3 && format_channels == 4) {
-    for (std::uint64_t i = 0; i < pixel_count; ++i) {
-      dst[0] = src[0];
-      dst[1] = src[1];
-      dst[2] = src[2];
-      dst[3] = 255;
-      src += 3;
-      dst += 4;
-    }
-  }
-  else {
-    fan::throw_error("image_load: unsupported channel/format combination");
-  }
+  copy_pixels(src, dst, pixel_count, src_channels, format_channels, image_size_bytes);
 
   fan::vulkan::image_create(
     *this,
@@ -508,17 +515,7 @@ fan::graphics::image_nr_t fan::vulkan::context_t::image_load(const fan::image::i
   transition_image_layout_cmd(cmd, image.image_index, lp.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
   end_async_transfer_commands(cmd);
 
-  VkDeviceSize captured_head = staging_ring_buffer.get_head();
-  auto* ring_ptr = &staging_ring_buffer;
-  auto allocator_handle = allocator;
-
-  get_current_deletion_queue().push_function([=]() {
-    if (alloc.is_spilled) {
-      fan::vulkan::vma_destroy_buffer(allocator_handle, alloc.buffer, alloc.fallback_allocation);
-    } else {
-      ring_ptr->advance_tail(captured_head);
-    }
-  });
+  schedule_ring_advance(*this, alloc, &staging_ring_buffer, staging_ring_buffer.get_head(), allocator);
 
   return nr;
 }
@@ -661,22 +658,7 @@ void fan::vulkan::context_t::process_async_image_uploads() {
       std::uint8_t* dst = static_cast<std::uint8_t*>(alloc.mapped_ptr);
       std::uint64_t pixel_count = ii.size.multiply();
 
-      if (src_channels == format_channels) {
-        std::memcpy(dst, src, image_size_bytes);
-      }
-      else if (src_channels == 3 && format_channels == 4) {
-        for (std::uint64_t i = 0; i < pixel_count; ++i) {
-          dst[0] = src[0];
-          dst[1] = src[1];
-          dst[2] = src[2];
-          dst[3] = 255;
-          src += 3;
-          dst += 4;
-        }
-      }
-      else {
-        fan::throw_error("image_load: unsupported channel/format combination");
-      }
+      copy_pixels(src, dst, pixel_count, src_channels, format_channels, image_size_bytes);
 
       fan::vulkan::image_create(
         *this,
@@ -697,17 +679,7 @@ void fan::vulkan::context_t::process_async_image_uploads() {
       transition_image_layout_cmd(cmd, image.image_index, lp.format, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
       end_async_transfer_commands(cmd);
 
-      VkDeviceSize captured_head = staging_ring_buffer.get_head();
-      auto* ring_ptr = &staging_ring_buffer;
-      auto allocator_handle = allocator;
-
-      get_current_deletion_queue().push_function([=]() {
-        if (alloc.is_spilled) {
-          fan::vulkan::vma_destroy_buffer(allocator_handle, alloc.buffer, alloc.fallback_allocation);
-        } else {
-          ring_ptr->advance_tail(captured_head);
-        }
-      });
+      schedule_ring_advance(*this, alloc, &staging_ring_buffer, staging_ring_buffer.get_head(), allocator);
 
       if (callback) callback(payload);
   }
@@ -872,23 +844,7 @@ void fan::vulkan::context_t::image_reload(fan::graphics::image_nr_t nr, const fa
   std::uint8_t* dst = static_cast<std::uint8_t*>(image.data);
   std::uint64_t pixel_count = image_info.size.multiply();
 
-  if (src_channels == format_channels) {
-    std::memcpy(dst, src, image_size_bytes);
-  }
-  else if (src_channels == 3 && format_channels == 4) {
-    for (std::uint64_t i = 0; i < pixel_count; ++i) {
-      dst[0] = src[0];
-      dst[1] = src[1];
-      dst[2] = src[2];
-      dst[3] = 255;
-      src += 3;
-      dst += 4;
-    }
-  }
-  else {
-    vmaUnmapMemory(allocator, image.staging_allocation);
-    fan::throw_error("image_reload: unsupported channel/format combination");
-  }
+  copy_pixels(src, dst, pixel_count, src_channels, format_channels, image_size_bytes);
 
   vmaUnmapMemory(allocator, image.staging_allocation);
 
