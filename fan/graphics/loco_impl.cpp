@@ -97,6 +97,7 @@ struct loco_t::vulkan_t {
   loco_t* loco_ptr = nullptr;
 
   #include <fan/graphics/vulkan/engine_functions.h>
+  #include <fan/graphics/vulkan/2D/effects/alpha_shadow_renderer.h>
 
   fan::vulkan::context_t::pipeline_t post_process;
   VkResult image_error{};
@@ -336,6 +337,53 @@ void loco_t::set_settings(const post_process_settings_t& settings) {
 #endif
 }
 #endif
+
+void loco_t::shadow_add_caster(fan::graphics::shape_t* shape, f32_t alpha_threshold) {
+  vk->alpha_shadow_renderer.casters.push_back({shape, alpha_threshold});
+}
+void loco_t::shadow_remove_caster(fan::graphics::shape_t* shape) {
+  auto& c = vk->alpha_shadow_renderer.casters;
+  c.erase(std::remove_if(c.begin(), c.end(), [shape](const auto& x) { return x.shape == shape; }), c.end());
+}
+void loco_t::shadow_clear_casters() {
+  vk->alpha_shadow_renderer.casters.clear();
+}
+void loco_t::shadow_add_light(
+  fan::vec2 position, f32_t radius, fan::color color,
+  f32_t softness, f32_t falloff_power, f32_t angle,
+  f32_t cone_inner, f32_t cone_outer)
+{
+  vk->alpha_shadow_renderer.lights.push_back({
+    .position = position, .radius = radius, .color = color,
+    .softness = softness, .falloff_power = falloff_power,
+    .angle = angle, .cone_inner = cone_inner, .cone_outer = cone_outer,
+  });
+}
+void loco_t::shadow_set_light_position(std::size_t index, fan::vec2 position) {
+  if (index < vk->alpha_shadow_renderer.lights.size()) {
+    vk->alpha_shadow_renderer.lights[index].position = position;
+  }
+}
+void loco_t::shadow_set_light_angle(std::size_t index, f32_t angle) {
+  if (index < vk->alpha_shadow_renderer.lights.size()) {
+    vk->alpha_shadow_renderer.lights[index].angle = angle;
+  }
+}
+void loco_t::shadow_set_light_cone(std::size_t index, f32_t cone_inner, f32_t cone_outer) {
+  if (index < vk->alpha_shadow_renderer.lights.size()) {
+    vk->alpha_shadow_renderer.lights[index].cone_inner = cone_inner;
+    vk->alpha_shadow_renderer.lights[index].cone_outer = cone_outer;
+  }
+}
+void loco_t::shadow_clear_lights() {
+  vk->alpha_shadow_renderer.lights.clear();
+}
+void loco_t::shadow_set_darkness(f32_t darkness) {
+  vk->alpha_shadow_renderer.darkness = darkness;
+}
+std::size_t loco_t::shadow_light_count() {
+  return vk->alpha_shadow_renderer.lights.size();
+}
 
 
 std::vector<std::uint8_t> loco_t::image_get_pixel_data(
@@ -1220,6 +1268,7 @@ loco_t::loco_t(const loco_t::properties_t& props) :
 #if defined(FAN_2D)
   vk = new loco_t::vulkan_t;
   vk->loco_ptr = this;
+  vk->alpha_shadow_renderer.loco_ptr = this;
   vk->shaders_compile_preload();
 #endif
 

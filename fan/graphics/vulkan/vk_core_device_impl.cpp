@@ -1845,10 +1845,10 @@ bool fan::vulkan::context_t::check_validation_layer_support() {
 
   return true;
 }
-static void vk_print(const char* msg, const fan::color& tag_color, fan::log_level_e level, bool to_disk) {
-  fan::push_memory_log(msg, level);
+static void vk_print(std::string_view msg, const fan::color& tag_color, fan::log_level_e level, bool to_disk) {
+  fan::push_memory_log(std::string(msg), level);
   if (to_disk) {
-    fan::write_error_to_disk(msg);
+    fan::write_error_to_disk(std::string(msg));
   }
   fan::print_color_raw(tag_color, "VULKAN: ");
   fan::print_impl(msg);
@@ -1864,25 +1864,31 @@ VKAPI_ATTR VkBool32 VKAPI_CALL fan::vulkan::context_t::debug_callback(
     return VK_FALSE;
   }
 
-  std::string_view msg = pCallbackData->pMessage ? pCallbackData->pMessage : "";
+  std::string msg = pCallbackData->pMessage ? pCallbackData->pMessage : "";
 
   if ((messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) &&
-    msg.find("has an Output value declared at Location") != std::string_view::npos &&
-    msg.find("but there is no corresponding Input declared") != std::string_view::npos) {
+    msg.find("has an Output value declared at Location") != std::string::npos &&
+    msg.find("but there is no corresponding Input declared") != std::string::npos) {
     return VK_FALSE;
   }
 
+  
+  auto found = msg.rfind("The Vulkan spec states");
+  if (found != std::string::npos) {
+    msg.erase(found);
+  }
+
   if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-    vk_print(pCallbackData->pMessage, fan::colors::red, fan::log_level_e::error, true);
+    vk_print(msg, fan::colors::red, fan::log_level_e::error, true);
   }
   else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-    vk_print(pCallbackData->pMessage, fan::colors::yellow, fan::log_level_e::warning, true);
+    vk_print(msg, fan::colors::yellow, fan::log_level_e::warning, true);
   }
   else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
-    vk_print(pCallbackData->pMessage, fan::colors::cyan, fan::log_level_e::info, false);
+    vk_print(msg, fan::colors::cyan, fan::log_level_e::info, false);
   }
   else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT) {
-    vk_print(pCallbackData->pMessage, fan::colors::white, fan::log_level_e::info, false);
+    vk_print(msg, fan::colors::white, fan::log_level_e::info, false);
   }
   return VK_FALSE;
 }
