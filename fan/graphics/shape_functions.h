@@ -15,6 +15,9 @@ static constexpr int get_shape_category(std::uint16_t sti) {
   case fan::graphics::shapes::shape_type_t::line:
     return fan::graphics::shapes::kp::common;
 
+  case fan::graphics::shapes::shape_type_t::shadow:
+    return fan::graphics::shapes::kp::shadow;
+
   case fan::graphics::shapes::shape_type_t::universal_image_renderer:
   case fan::graphics::shapes::shape_type_t::unlit_sprite:
   case fan::graphics::shapes::shape_type_t::sprite:
@@ -72,6 +75,7 @@ static void set_position_impl(sti_t sti, key_pack_t key_pack, const fan::vec3& p
     );
   }
   switch (get_shape_category(sti)) {
+  case fan::graphics::shapes::kp::shadow:
   case fan::graphics::shapes::kp::common: {
 #if FAN_DEBUG >= 3
 #endif
@@ -335,7 +339,10 @@ static void set_visible_impl(sti_t sti, key_pack_t key_pack, bool v) {
   case fan::graphics::shapes::kp::light:
     shaper_get_key_safe(visible_t, light_t, visible) = v;
     break;
-  default: fan::throw_error_impl("set_visible: unsupported shape");
+  case fan::graphics::shapes::kp::shadow:
+    shaper_get_key_safe(visible_t, shadow_t, visible) = v;
+    break;
+  default: fan::throw_error_impl(("set_visible: shape unsupported:" + std::string(fan::graphics::shape_names[sti])).c_str());
   }
 }
 

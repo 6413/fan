@@ -266,7 +266,8 @@ export namespace fan::graphics {
         common,
         vfi,
         texture,
-        particles
+        particles,
+        shadow
       };
     };
 

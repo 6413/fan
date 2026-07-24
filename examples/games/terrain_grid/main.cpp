@@ -66,6 +66,29 @@ int main() {
 
   engine.camera_set_target(player, 10.f);
 
+  auto& lighting = fan::graphics::get_lighting();
+  lighting.ambient = fan::vec3(0.35f, 0.45f, 0.55f);
+
+  auto sun = light_t(light_properties_t{
+    .position = fan::vec3(0, 200.f, 5.f),
+    .size = fan::vec2(900),
+    .color = fan::color(1.f, 0.95f, 0.85f, 0.5f),
+  });
+  auto torch = light_t(light_properties_t{
+    .position = fan::vec3(0, 0, 10.f),
+    .size = fan::vec2(160),
+    .color = fan::color(1.f, 0.7f, 0.3f, 0.9f),
+  });
+  light_t* lights[] = {&sun, &torch};
+
+  struct shadow_slot_t { shadow_t instance; bool visible = true; };
+  std::vector<shadow_slot_t> shadow_pool;
+
+  fan::spatial::world_t<int> occluder_grid;
+  occluder_grid.init(fan::vec2(-5000), fan::vec2(512), fan::vec2i(40, 40));
+  int next_occluder_id = 0;
+  std::vector<algorithm::chunk_renderer_t::occluder_rect_t> occluders;
+
   f32_t dig_radius = 64.f;
   fan::time::interval_t dig_interval{0.003f};
 
@@ -82,6 +105,73 @@ int main() {
     f32_t ground_y = 512.f;
     bg_sky.set_position(fan::vec2(cam_center.x, std::min(cam_center.y, ground_y)));
     bg_below.set_position(cam_center);
+
+    f32_t surface_h = terrain.surface_height_at(player_pos.x);
+    f32_t depth = std::max(0.f, surface_h - player_pos.y);
+    f32_t cave_factor = std::min(depth / 40.f, 1.f);
+
+    lighting.ambient = fan::vec3(0.35f, 0.45f, 0.55f).lerp(fan::vec3(0.04f, 0.04f, 0.05f), cave_factor);
+
+    sun.set_position(fan::vec3(cam_center.x, 200.f, 5.f));
+    sun.set_color(fan::color(1.f, 0.95f, 0.85f, 0.5f).lerp(fan::color(1.f, 0.95f, 0.85f, 0.f), cave_factor));
+    torch.set_position(fan::vec3(player_pos, 10.f));
+    torch.set_color(fan::color(1.f, 0.7f, 0.3f, 0.9f).lerp(fan::color(1.f, 0.7f, 0.3f, 1.2f), cave_factor));
+
+    fan::vec2 view_half = engine.whs();
+    f32_t max_light_radius = 900.f;
+    fan::vec2 region_min = cam_center - view_half - max_light_radius;
+    fan::vec2 region_max = cam_center + view_half + max_light_radius;
+    occluders = terrain.build_occluders(region_min, region_max);
+
+    while (next_occluder_id > 0) {
+      occluder_grid.remove(--next_occluder_id);
+    }
+    for (auto& occ : occluders) {
+      occluder_grid.upsert(next_occluder_id, {occ.center - occ.half_size, occ.center + occ.half_size}, fan::spatial::movement_static);
+      ++next_occluder_id;
+    }
+
+    for (auto& slot : shadow_pool) { slot.visible = false; }
+    std::size_t pool_idx = 0;
+
+    for (auto* light : lights) {
+      fan::vec3 lpos = light->get_position();
+      f32_t lradius = light->get_size().x;
+      fan::color lcolor = light->get_color();
+      if (lcolor.a <= 0.01f) continue;
+
+      f32_t shadow_darkness = 0.6f * lcolor.a * (1.f - cave_factor);
+      fan::color shadow_color = fan::color(0.f, 0.f, 0.f, shadow_darkness);
+
+      occluder_grid.query_radius(lpos, lradius, [&](int id) {
+        auto& aabb = occluder_grid.registry.aabb_cache[id];
+        fan::vec2 center = (aabb.min + aabb.max) * 0.5f;
+        fan::vec2 half = (aabb.max - aabb.min) * 0.5f;
+
+        if (pool_idx >= shadow_pool.size()) {
+          shadow_pool.push_back({shadow_t{shadow_properties_t{
+            .position = fan::vec3(center, 25.f),
+            .size = half,
+            .color = shadow_color,
+            .light_position = lpos,
+            .light_radius = lradius,
+          }}, true});
+        } else {
+          auto& sh = shadow_pool[pool_idx].instance;
+          sh.set_position(fan::vec3(center, 25.f));
+          sh.set_size(half);
+          sh.set_color(shadow_color);
+          sh.set_light_position(lpos);
+          sh.set_light_radius(lradius);
+        }
+        shadow_pool[pool_idx].visible = true;
+        ++pool_idx;
+      });
+    }
+
+    for (auto& slot : shadow_pool) {
+      slot.instance.set_visible(slot.visible);
+    }
 //    bg_below.set_position(fan::vec3(cam_center.x, std::max(cam_center.y, ground_y + bg_below.get_size().y*2.f), 0.f));
 
     if (fan::window::is_key_clicked(fan::key_r)) {
@@ -102,7 +192,7 @@ int main() {
 
       break_effects.push_back({
         .circle = circle_t(circle_properties_t{
-          .position = fan::vec3(hit_pos, 22.f),
+          .position = fan::vec3(hit_pos, 26.f),
           .radius = dig_radius * 0.5f,
           .color = fan::color(1.f, 1.f, 1.f, 0.6f),
           .outline_color = fan::color(1.f, 0.9f, 0.5f, 0.4f),
@@ -113,7 +203,7 @@ int main() {
 
       dig_particles.spawn([&](auto& p) {
         p.loop = false;
-        p.position = fan::vec3(hit_pos, 21.f);
+        p.position = fan::vec3(hit_pos, 26.f);
         p.begin_color = fan::color(0.5f, 0.4f, 0.3f, 1.f);
         p.end_color = fan::color(0.3f, 0.2f, 0.1f, 0.f);
         p.start_size = fan::vec2(5);

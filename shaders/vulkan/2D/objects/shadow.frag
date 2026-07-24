@@ -29,7 +29,22 @@ float cross2(vec2 a, vec2 b) {
   return a.x * b.y - a.y * b.x;
 }
 
-bool ray_obb(vec2 o, vec2 d, vec2 center, vec2 half_size, float angle, out float t_enter, out float t_exit) {
+void ray_circle(vec2 o, vec2 d, vec2 center, float radius, out float t_enter, out float t_exit) {
+  vec2 oc = o - center;
+  float b = dot(oc, d);
+  float c = dot(oc, oc) - radius * radius;
+  float h = b * b - c;
+  if (h < 0.0) {
+    t_enter = max(-b, 0.0);
+    t_exit = t_enter;
+    return;
+  }
+  h = sqrt(h);
+  t_enter = -b - h;
+  t_exit = -b + h;
+}
+
+void ray_obb(vec2 o, vec2 d, vec2 center, vec2 half_size, float angle, out float t_enter, out float t_exit) {
   vec2 local_o = rotate2(o - center, -angle);
   vec2 local_d = rotate2(d, -angle);
   vec2 inv_d = 1.0 / (local_d + vec2(eps * sign(local_d)));
@@ -39,7 +54,15 @@ bool ray_obb(vec2 o, vec2 d, vec2 center, vec2 half_size, float angle, out float
   vec2 tmax = max(t0, t1);
   t_enter = max(tmin.x, tmin.y);
   t_exit = min(tmax.x, tmax.y);
-  return t_exit >= max(t_enter, 0.0);
+  if (t_exit < max(t_enter, 0.0)) {
+    t_enter = max(dot(center - o, d), 0.0);
+    t_exit = t_enter;
+  }
+}
+
+bool point_in_circle(vec2 p, vec2 center, float radius) {
+  vec2 diff = p - center;
+  return dot(diff, diff) <= radius * radius;
 }
 
 bool point_in_obb(vec2 p, vec2 center, vec2 half_size, float angle) {
@@ -52,6 +75,17 @@ void get_corners(vec2 center, vec2 half_size, float angle, out vec2 corners[4]) 
   for (int j = 0; j < 4; ++j) {
     corners[j] = center + rotate2(local[j], angle);
   }
+}
+
+void silhouette_dirs_circle(vec2 light, vec2 center, float radius, out vec2 r0, out float d0, out vec2 r1, out float d1) {
+  vec2 diff = center - light;
+  float dist = length(diff);
+  vec2 dir = diff / max(dist, eps);
+  float theta = asin(clamp(radius / dist, 0.0, 1.0));
+  r0 = rotate2(dir, -theta);
+  r1 = rotate2(dir, theta);
+  d0 = dist + radius;
+  d1 = d0;
 }
 
 void silhouette_dirs(vec2 light, vec2 center, vec2 half_size, float angle, out vec2 r0, out float d0, out vec2 r1, out float d1) {
@@ -100,41 +134,57 @@ float angular_fade(vec2 v, vec2 r0, vec2 r1) {
     if (av < r - two_pi) { av += two_pi; }
   }
   if (av >= l && av <= r) {
-    return smoothstep(0.0, angular_softness, min(av - l, r - av));
+    return 1.0;
   }
-  float dl = abs(av - l);
-  float dr = abs(av - r);
-  if (dl > pi) { dl = two_pi - dl; }
-  if (dr > pi) { dr = two_pi - dr; }
-  return 1.0 - smoothstep(0.0, angular_softness, min(dl, dr));
+  float dist_to_cone = min(abs(av - l), abs(av - r));
+  return 1.0 - smoothstep(0.0, angular_softness, dist_to_cone);
 }
 
 void main() {
   vec2 p = frag_position.xy;
   float angle = -instance_angle.z;
-  if (point_in_obb(p, instance_position, instance_size, angle)) {
+  float radius = instance_size.x;
+  bool is_circle = shape == 1;
+
+  bool inside = is_circle ? point_in_circle(p, instance_position, radius) : point_in_obb(p, instance_position, instance_size, angle);
+  if (inside) {
     o_attachment0 = vec4(0.0);
     return;
   }
+  
   vec2 v = p - light_position;
   float dist_sq = dot(v, v);
   if (dist_sq < eps * eps) {
     o_attachment0 = vec4(0.0);
     return;
   }
+  
   float dist = sqrt(dist_sq);
   vec2 dir = v / dist;
   float t_enter;
   float t_exit;
-  if (!ray_obb(light_position, dir, instance_position, instance_size, angle, t_enter, t_exit) || dist < t_enter) {
+  
+  if (is_circle) {
+    ray_circle(light_position, dir, instance_position, radius, t_enter, t_exit);
+  } else {
+    ray_obb(light_position, dir, instance_position, instance_size, angle, t_enter, t_exit);
+  }
+
+  if (dist < t_enter) {
     o_attachment0 = vec4(0.0);
     return;
   }
+  
   vec2 r0;
   vec2 r1;
   float d0;
   float d1;
-  silhouette_dirs(light_position, instance_position, instance_size, angle, r0, d0, r1, d1);
+  if (is_circle) {
+    silhouette_dirs_circle(light_position, instance_position, radius, r0, d0, r1, d1);
+  } else {
+    silhouette_dirs(light_position, instance_position, instance_size, angle, r0, d0, r1, d1);
+  }
+  
   float af = angular_fade(v, r0, r1);
   if (af <= 0.0) {
     o_attachment0 = vec4(0.0);

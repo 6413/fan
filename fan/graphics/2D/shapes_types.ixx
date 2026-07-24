@@ -425,6 +425,8 @@ export namespace fan::graphics {
       d<std::uint8_t> draw_mode;
       d<std::uint32_t> vertex_count;
     );
+    using _shadow_t = common_t;
+    using shadow_t = common_t;
   };
 
   struct Key_e {

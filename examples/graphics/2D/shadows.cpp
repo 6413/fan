@@ -54,7 +54,6 @@ int main() {
       .color    = color,
       .image    = img,
     }});
-    gloco()->shadow_add_caster(&sprites.back(), threshold);
   };
 
   add(circle_img, {420, 300},  {90, 90},   fan::color(0.75f, 0.25f, 0.2f,  1));
@@ -73,12 +72,7 @@ int main() {
       .color    = fan::colors::white,
       .texture_pack_unique_id = t.texture_pack_unique_id
     }});
-    gloco()->shadow_add_caster(&sprites.back(), 0.1f);
   });
-
-  gloco()->shadow_add_light({0, 0}, 2024.f, fan::color(1.f, 0.82f, 0.55f, 1) * 0.6f,  0.018f, 1.8f);
-  gloco()->shadow_add_light({0, 0}, 1024.f, fan::color(0.35f, 0.55f, 1.f,  1) * 0.65f, 0.025f, 2.2f);
-  gloco()->shadow_set_darkness(0.37f);
 
   f32_t time = 0;
 
@@ -87,9 +81,6 @@ int main() {
 
     fan::vec2 vs = engine.viewport_get_size();
     map_renderer.update(map_id, vs / 2.f);
-
-    gloco()->shadow_set_light_position(0, engine.get_mouse_position());
-    gloco()->shadow_set_light_position(1, vs / 2.f + fan::vec2(std::cos(time), std::sin(time * 1.2f)) * fan::vec2(360, 220));
 
     sprites[1].set_angle(fan::vec3(0, 0, time * 0.6f));
     sprites[3].set_angle(fan::vec3(0, 0, -time * 0.45f));
