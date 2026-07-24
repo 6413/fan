@@ -9,23 +9,27 @@ layout(push_constant) uniform pc_t {
   uint occluder_count;
   uint angle_resolution;
 } pc;
+
+vec2 ray_aabb(vec2 mn, vec2 mx, vec2 origin, vec2 inv_dir) {
+  vec2 t0 = (mn - origin) * inv_dir;
+  vec2 t1 = (mx - origin) * inv_dir;
+  float tmin = max(min(t0.x, t1.x), min(t0.y, t1.y));
+  float tmax = min(max(t0.x, t1.x), max(t0.y, t1.y));
+  return vec2(max(tmin, 0.0), tmax);
+}
+
 void main() {
   uint u = gl_GlobalInvocationID.x;
   if (u >= pc.angle_resolution) return;
   float tau = 6.28318530718;
   float angle = float(u) / float(pc.angle_resolution) * tau;
   vec2 dir = vec2(cos(angle), sin(angle));
-  vec2 inv = 1.0 / max(abs(dir), 0.000001);
+  vec2 inv = 1.0 / vec2(dir.x == 0.0 ? 0.000001 * sign(dir.x) : dir.x, dir.y == 0.0 ? 0.000001 * sign(dir.y) : dir.y);
   float blocker = 1.0;
   for (uint i = 0; i < pc.occluder_count; ++i) {
-    vec2 local_min = occs[i].min - pc.light_pos;
-    vec2 local_max = occs[i].max - pc.light_pos;
-    vec2 t0 = local_min * inv;
-    vec2 t1 = local_max * inv;
-    float tmin = max(min(t0.x, t1.x), min(t0.y, t1.y));
-    float tmax = min(max(t0.x, t1.x), max(t0.y, t1.y));
-    if (tmax >= tmin && tmin >= 0.0 && tmin < blocker * pc.light_radius) {
-      blocker = tmin / pc.light_radius;
+    vec2 hit = ray_aabb(occs[i].min, occs[i].max, pc.light_pos, inv);
+    if (hit.y >= hit.x && hit.x < blocker * pc.light_radius) {
+      blocker = hit.x / pc.light_radius;
     }
   }
   imageStore(shadow_map, ivec2(int(u), 0), vec4(blocker));
