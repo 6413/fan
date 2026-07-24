@@ -63,7 +63,12 @@ int main() {
   add(circle_img, {960, 680},  {70, 130},  fan::color(0.8f, 0.3f, 1,       1));
   add(tree_img, engine.viewport_get_size() / 2.f, {256, 256}, fan::colors::white, 0, 0.1f);
 
-  
+  for (std::size_t i = 0; i < sprites.size() - 1; ++i) {
+    engine.shadow_add_caster(&sprites[i], 0.05f);
+  }
+
+  engine.shadow_add_caster(&sprites[5], 0.05f);
+
   map_renderer.iterate_tiles(map_id, [&](auto& t) {
     if (t.id != "shadow") return;
     sprites.emplace_back(sprite_t{{
@@ -73,6 +78,9 @@ int main() {
       .texture_pack_unique_id = t.texture_pack_unique_id
     }});
   });
+
+  engine.shadow_add_light(engine.viewport_get_size() / 2.f, 600.f, fan::color(1, 1, 1, 0.8f));
+  engine.shadow_set_darkness(0.65f);
 
   f32_t time = 0;
 
@@ -84,5 +92,8 @@ int main() {
 
     sprites[1].set_angle(fan::vec3(0, 0, time * 0.6f));
     sprites[3].set_angle(fan::vec3(0, 0, -time * 0.45f));
+
+    fan::vec2 light_pos = vs / 2.f + fan::vec2(std::cos(time * 0.5f) * 300.f, std::sin(time * 0.7f) * 200.f);
+    engine.shadow_set_light_position(0, light_pos);
   });
 }

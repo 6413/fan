@@ -643,6 +643,7 @@ void close_swapchain_resources() {
 }
 
 void close() {
+  alpha_shadow_renderer.close();
   close_swapchain_resources();
   close_shape_draw_buffers();
   if (post_process_sampler != VK_NULL_HANDLE) {
@@ -1054,6 +1055,9 @@ void draw_post_process() {
   draw_fullscreen(loco.vk->post_process, scene, bloom, &pc, sizeof(pc));
   
   vkCmdEndRendering(cmd);
+
+  alpha_shadow_renderer.build_shadow_maps();
+  alpha_shadow_renderer.render_overlay(context.swap_chain_image_views[context.image_index]);
 
   VkImageMemoryBarrier2 present_barrier{};
   present_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
@@ -2050,6 +2054,8 @@ void init() {
   loco.shader_compile(luminance_shader);
 
   open_swapchain_resources();
+
+  alpha_shadow_renderer.open();
 
   window_resize_handle = loco.window.add_resize_callback([&](const auto& d) {
     loco.camera_set_ortho(
