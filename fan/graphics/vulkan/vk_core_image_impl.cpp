@@ -523,9 +523,17 @@ fan::graphics::image_nr_t fan::vulkan::context_t::image_load(const fan::image::i
   return image_load(image_info, fan::vulkan::context_t::image_load_properties_t());
 }
 fan::graphics::image_nr_t fan::vulkan::context_t::image_load(fan::color* colors, const fan::vec2ui& size_, const fan::vulkan::context_t::image_load_properties_t& p) {
+  std::uint64_t pixel_count = size_.multiply();
+  std::vector<std::uint8_t> pixels(pixel_count * 4);
+  for (std::uint64_t i = 0; i < pixel_count; ++i) {
+    pixels[i * 4 + 0] = (std::uint8_t)(colors[i].r * 255.f);
+    pixels[i * 4 + 1] = (std::uint8_t)(colors[i].g * 255.f);
+    pixels[i * 4 + 2] = (std::uint8_t)(colors[i].b * 255.f);
+    pixels[i * 4 + 3] = (std::uint8_t)(colors[i].a * 255.f);
+  }
 
   fan::image::info_t ii;
-  ii.data = colors;
+  ii.data = pixels.data();
   ii.size = size_;
   ii.channels = 4;
   fan::graphics::image_nr_t nr = image_load(ii, p);

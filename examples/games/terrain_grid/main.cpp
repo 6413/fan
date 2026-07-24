@@ -14,7 +14,7 @@ int main() {
   engine.get_clear_color() = fan::colors::black;
   engine.update_physics(true);
 
-  gradient_t bg_sky{fan::color(0.2f, 0.4f, 0.75f, 1.f), fan::color(0.6f, 0.75f, 0.9f, 1.f), fan::vec3(1.f), engine.whs()};
+  gradient_t bg_sky{fan::color(0.2f, 0.4f, 0.75f, 1.f)*.2, fan::color(0.6f, 0.75f, 0.9f, 1.f)*.2, fan::vec3(1.f), engine.whs()};
   sprite_t bg_below{{
     .position=fan::vec3(0, 0, 0.f),
     .size = engine.whs(),
@@ -140,7 +140,7 @@ int main() {
       occluder_grid.query_radius(lpos, lradius, [&](int id) {
         auto& aabb = occluder_grid.registry.aabb_cache[id];
         fan::vec2 center = (aabb.min + aabb.max) * 0.5f;
-        fan::vec2 half = (aabb.max - aabb.min) * 0.5f;
+        fan::vec2 half = (aabb.max - aabb.min) * 0.5f + 0.5f;
 
         if (pool_idx >= shadow_pool.size()) {
           shadow_pool.push_back({shadow_t{shadow_properties_t{
@@ -209,18 +209,16 @@ int main() {
       });
     }
 
-    for (std::size_t i = 0; i < break_effects.size(); ) {
-      break_effects[i].timer -= dt;
-      if (break_effects[i].timer <= 0.f) {
-        break_effects.erase(break_effects.begin() + i);
-      } else {
-        f32_t t = break_effects[i].timer / 0.25f;
-        break_effects[i].circle.set_radius(dig_radius * 0.5f + (1.f - t) * dig_radius * 1.5f);
-        break_effects[i].circle.set_color(fan::color(1.f, 1.f, 1.f, t * 0.6f));
-        break_effects[i].circle.set_outline_color(fan::color(1.f, 0.9f, 0.5f, t * 0.4f));
-        ++i;
-      }
-    }
+    std::erase_if(break_effects, [&](auto& effect) {
+    effect.timer -= dt;
+    if (effect.timer <= 0.f) { return true; }
+    f32_t t = effect.timer / 0.25f;
+    effect.circle.set_radius(dig_radius * 0.5f + (1.f - t) * dig_radius * 1.5f);
+    effect.circle.set_color(fan::color(1.f, 1.f, 1.f, t * 0.6f));
+    effect.circle.set_outline_color(fan::color(1.f, 0.9f, 0.5f, t * 0.4f));
+    return false;
+  });
+
     dig_particles.update(dt);
   });
 

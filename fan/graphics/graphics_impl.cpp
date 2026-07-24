@@ -199,7 +199,7 @@ namespace fan::graphics {
   : sprite_t(sprite_properties_t {
     .position = position,
     .size = size,
-    .image = fan::graphics::image_load(std::span<const fan::color>(&color, 1), fan::vec2ui(1, 1))
+    .image = fan::graphics::image_t{color}
   }) {}
 
   sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, std::initializer_list<fan::color> colors, render_view_t* render_view)
@@ -593,7 +593,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
       [&]() {
         return sprite_properties_t {
           .position = position, .size = size, .color = single_color,
-          .image = fan::graphics::image_load(std::span<const fan::color>(&single_color, 1), fan::vec2ui(1, 1))
+          .image = fan::graphics::image_t{single_color}
         };
       }
     );
@@ -657,7 +657,7 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
       [&]() {
         return unlit_sprite_properties_t {
           .position = position, .size = size, .color = single_color,
-          .image = fan::graphics::image_load(std::span<const fan::color>(&single_color, 1), fan::vec2ui(1, 1))
+          .image = fan::graphics::image_t{single_color}
         };
       }
     );
