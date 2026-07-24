@@ -5,6 +5,7 @@ struct alpha_shadow_renderer_t {
     fan::vec2 position = 0;
     f32_t radius = 512.f;
     fan::color color = fan::colors::white;
+    fan::graphics::render_view_t* render_view = &fan::graphics::get_orthographic_render_view();
     f32_t softness = 0.02f;
     f32_t falloff_power = 2.f;
     f32_t angle = 0.f;
@@ -185,8 +186,8 @@ private:
       VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
       VK_ACCESS_2_SHADER_READ_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
 
-    fan::vec2 ls = fan::graphics::world_to_screen(light.position, fan::graphics::get_orthographic_render_view());
-    fan::vec2 le = fan::graphics::world_to_screen(light.position + fan::vec2(light.radius, 0), fan::graphics::get_orthographic_render_view());
+    fan::vec2 ls = fan::graphics::world_to_screen(light.position, *light.render_view);
+    fan::vec2 le = fan::graphics::world_to_screen(light.position + fan::vec2(light.radius, 0), *light.render_view);
     f32_t lr = std::max(1.f, std::abs(le.x - ls.x));
 
     VkRenderingAttachmentInfo att{VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO, nullptr, occluder_texture.image_view,
@@ -216,10 +217,10 @@ private:
       f32_t a = caster.shape->get_angle().z;
 
       fan::vec2 c[4] = {
-        mp(pos, pivot, size, a, fan::vec2(-size.x, -size.y), ls, lr),
-        mp(pos, pivot, size, a, fan::vec2( size.x, -size.y), ls, lr),
-        mp(pos, pivot, size, a, fan::vec2( size.x,  size.y), ls, lr),
-        mp(pos, pivot, size, a, fan::vec2(-size.x,  size.y), ls, lr),
+        mp(pos, pivot, size, a, fan::vec2(-size.x, -size.y), ls, lr, *light.render_view),
+        mp(pos, pivot, size, a, fan::vec2( size.x, -size.y), ls, lr, *light.render_view),
+        mp(pos, pivot, size, a, fan::vec2( size.x,  size.y), ls, lr, *light.render_view),
+        mp(pos, pivot, size, a, fan::vec2(-size.x,  size.y), ls, lr, *light.render_view),
       };
       bool outside = true;
       for (auto& v : c) { if (std::abs(v.x) <= 1.25f && std::abs(v.y) <= 1.25f) { outside = false; break; } }
@@ -241,10 +242,10 @@ private:
     vkCmdEndRendering(cmd());
   }
 
-  static fan::vec2 mp(fan::vec2 pos, fan::vec2 pivot, fan::vec2 size, f32_t a, fan::vec2 local, fan::vec2 ls, f32_t lr) {
+  static fan::vec2 mp(fan::vec2 pos, fan::vec2 pivot, fan::vec2 size, f32_t a, fan::vec2 local, fan::vec2 ls, f32_t lr, const fan::graphics::render_view_t& rv) {
     f32_t c = std::cos(a), s = std::sin(a);
     fan::vec2 world = pos + pivot + fan::vec2((local.x - pivot.x) * c - (local.y - pivot.y) * s, (local.x - pivot.x) * s + (local.y - pivot.y) * c);
-    fan::vec2 sp = fan::graphics::world_to_screen(world, fan::graphics::get_orthographic_render_view());
+    fan::vec2 sp = fan::graphics::world_to_screen(world, rv);
     return (sp - ls) / lr;
   }
 
@@ -272,8 +273,8 @@ private:
 
   void render_light(const light_t& light) {
     fan::vec2 ws = loco_ptr->window.get_size();
-    fan::vec2 center = fan::graphics::world_to_screen(light.position, fan::graphics::get_orthographic_render_view());
-    fan::vec2 edge = fan::graphics::world_to_screen(light.position + fan::vec2(light.radius, 0), fan::graphics::get_orthographic_render_view());
+    fan::vec2 center = fan::graphics::world_to_screen(light.position, *light.render_view);
+    fan::vec2 edge = fan::graphics::world_to_screen(light.position + fan::vec2(light.radius, 0), *light.render_view);
     f32_t r = std::max(1.f, std::abs(edge.x - center.x));
     fan::vec2 p0 = center - r, p1 = center + r;
 
