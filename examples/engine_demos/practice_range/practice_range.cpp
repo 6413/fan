@@ -87,7 +87,7 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
       ic.set_zoom(1.728f);
 
       engine->shadow_enable_tile_mode();
-      engine->shadow_set_darkness(0.35f);
+      engine->shadow_set_darkness(0.9f);
     }
 
     void close() {
