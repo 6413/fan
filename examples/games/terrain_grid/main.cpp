@@ -15,7 +15,6 @@ int main() {
   engine.update_physics(true);
 
   gradient_t bg_sky{fan::color(0.2f, 0.4f, 0.75f, 1.f), fan::color(0.6f, 0.75f, 0.9f, 1.f), fan::vec3(1.f), engine.whs()};
-  //auto bg_below = gradient_t{fan::color(1.2f, 0.4f, 0.75f, 1.f), fan::color(1.6f, 0.75f, 0.9f, 1.f), fan::vec3(0), engine.whs()};
   sprite_t bg_below{{
     .position=fan::vec3(0, 0, 0.f),
     .size = engine.whs(),
@@ -37,16 +36,11 @@ int main() {
     .cave_noise = &cave_noise,
     .detail_noise = &detail_noise,
     .surface_base = -10.f,
-    //.sky_island_noise = &hill_noise,
-    //.sky_island_freq = 0.04f,
-    //.sky_island_threshold = 0.6f,
-    //.sky_island_min = 80.f,
-    //.sky_island_max = 150.f,
     .img_sky_island = img_island,
     .tile_layers = {
-      {3.f, img_grass}, 
-      {12.f, img_dirt}, 
-      {50.f, img_stone}, 
+      {3.f, img_grass},
+      {12.f, img_dirt},
+      {50.f, img_stone},
       {std::numeric_limits<f32_t>::max(), img_bedrock}
     },
     .scatter_noise = &detail_noise,
@@ -172,7 +166,6 @@ int main() {
     for (auto& slot : shadow_pool) {
       slot.instance.set_visible(slot.visible);
     }
-//    bg_below.set_position(fan::vec3(cam_center.x, std::max(cam_center.y, ground_y + bg_below.get_size().y*2.f), 0.f));
 
     if (fan::window::is_key_clicked(fan::key_r)) {
       player.set_physics_position({player_pos.x, 0});
@@ -182,10 +175,6 @@ int main() {
 
     fan::vec2 mouse_pos = engine.get_mouse_position();
     fan::vec2 hit_pos = terrain.raycast(player_pos, mouse_pos, dig_radius);
-
-    //line(  fan::vec3(player_pos, 7.f), hit_pos, fan::color(1.f, 0.f, 0.f, 0.3f), dig_radius);
-    //circle(fan::vec3(hit_pos, 7.f), dig_radius, fan::color(1.f, 1.f, 0.f, 0.2f));
-    //circle(fan::vec3(hit_pos, 7.f), dig_radius * 0.15f, fan::colors::red);
 
     if (!fan::graphics::gui::want_io() && fan::window::is_mouse_down(fan::mouse_left) && dig_interval.tick(dt)) {
       terrain.dig(hit_pos, dig_radius);
