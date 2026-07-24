@@ -71,6 +71,11 @@ struct chunk_renderer_t {
   f32_t cell_size() const { return m_cfg.cell_size; }
   int chunk_size() const { return m_cfg.chunk_size; }
   f32_t surface_height_at(f32_t world_x) const;
+  bool get_solid(int gx, int gy) const;
+  bool is_cave(int gx, int gy) const;
+
+  struct occluder_rect_t { fan::vec2 center; fan::vec2 half_size; };
+  std::vector<occluder_rect_t> build_occluders(fan::vec2 view_min, fan::vec2 view_max) const;
 
   bool raycast_visible = true;
 
@@ -86,9 +91,7 @@ private:
   fan::vec2i m_last_center{std::numeric_limits<int>::max(), std::numeric_limits<int>::max()};
   std::unordered_set<fan::vec2i> m_physics_dirty;
 
-  bool get_solid(int gx, int gy) const;
   f32_t surface_height(int gx) const;
-  bool is_cave(int gx, int gy) const;
   fan::graphics::image_t tile_image(int gx, int gy) const;
   void set_cell_sprite(chunk_t& chunk, fan::vec2i local, fan::vec2 world_pos, int gx, int gy);
   void remesh_chunk(fan::vec2i cc);

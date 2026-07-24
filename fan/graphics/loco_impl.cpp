@@ -338,45 +338,6 @@ void loco_t::set_settings(const post_process_settings_t& settings) {
 #endif
 
 
-void loco_t::shadow_add_caster(fan::graphics::shape_t* shape, f32_t alpha_threshold) {
-}
-
-void loco_t::shadow_remove_caster(fan::graphics::shape_t* shape) {
-}
-
-void loco_t::shadow_clear_casters() {
-}
-
-void loco_t::shadow_add_light(
-  fan::vec2 position,
-  f32_t radius,
-  fan::color color,
-  f32_t softness,
-  f32_t falloff_power,
-  f32_t angle,
-  f32_t cone_inner,
-  f32_t cone_outer
-) {
-}
-
-void loco_t::shadow_set_light_angle(std::size_t index, f32_t angle) {
-}
-
-void loco_t::shadow_set_light_cone(std::size_t index, f32_t cone_inner, f32_t cone_outer) {
-}
-void loco_t::shadow_set_light_position(std::size_t index, fan::vec2 position) {
-}
-
-void loco_t::shadow_clear_lights() {
-}
-
-void loco_t::shadow_set_darkness(f32_t darkness) {
-}
-
-std::size_t loco_t::shadow_light_count() {
-  return 0;
-}
-
 std::vector<std::uint8_t> loco_t::image_get_pixel_data(
   fan::graphics::image_t nr,
   int image_format,

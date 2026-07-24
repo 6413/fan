@@ -277,7 +277,7 @@ namespace fan::physics {
   fan::vec2 body_id_t::get_size() const {
     aabb_t aabb = get_aabb();
     fan::vec2 size = aabb.max - aabb.min;
-    return size;
+    return size * 0.5f;
   }
 
   std::uint8_t body_id_t::get_body_type() const {
