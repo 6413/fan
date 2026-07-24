@@ -5,7 +5,6 @@ struct alpha_shadow_renderer_t {
     fan::vec2 position = 0;
     f32_t radius = 512.f;
     fan::color color = fan::colors::white;
-    fan::graphics::render_view_t* render_view = &fan::graphics::get_orthographic_render_view();
     f32_t softness = 0.02f;
     f32_t falloff_power = 2.f;
     f32_t angle = 0.f;
@@ -22,121 +21,66 @@ struct alpha_shadow_renderer_t {
     occluder_resolution = occluder_resolution_;
     angle_resolution = angle_resolution_;
     radial_samples = radial_samples_;
+    auto& ctx = loco_ptr->context.vk;
 
-    fan::vulkan::context_t& context = loco_ptr->context.vk;
+    occluder_texture.open(ctx, {fan::vec2(occluder_resolution, occluder_resolution), VK_FORMAT_R16_SFLOAT,
+      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT});
+    shadow_texture.open(ctx, {fan::vec2(angle_resolution, 1), VK_FORMAT_R16_SFLOAT,
+      VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VK_IMAGE_ASPECT_COLOR_BIT});
 
-    {
-      fan::vulkan::vai_t::properties_t p{
-        .swap_chain_size = fan::vec2(occluder_resolution, occluder_resolution),
-        .format = VK_FORMAT_R16_SFLOAT,
-        .usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-        .aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT,
-      };
-      occluder_texture.open(context, p);
-    }
-    {
-      fan::vulkan::vai_t::properties_t p{
-        .swap_chain_size = fan::vec2(angle_resolution, 1),
-        .format = VK_FORMAT_R16_SFLOAT,
-        .usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
-        .aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT,
-      };
-      shadow_texture.open(context, p);
-    }
+    loco_ptr->context.vk.create_texture_sampler(occluder_sampler, fan::vulkan::image_load_properties_t{
+      VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, 0, VK_FORMAT_R16_SFLOAT, VK_FILTER_NEAREST, VK_FILTER_NEAREST});
+    loco_ptr->context.vk.create_texture_sampler(shadow_sampler, fan::vulkan::image_load_properties_t{
+      VK_SAMPLER_ADDRESS_MODE_REPEAT, 0, VK_FORMAT_R16_SFLOAT, VK_FILTER_LINEAR, VK_FILTER_LINEAR});
 
-    fan::vulkan::image_load_properties_t nearest_lp;
-    nearest_lp.min_filter = VK_FILTER_NEAREST;
-    nearest_lp.mag_filter = VK_FILTER_NEAREST;
-    nearest_lp.visual_output = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    loco_ptr->context.vk.create_texture_sampler(occluder_sampler, nearest_lp);
-
-    fan::vulkan::image_load_properties_t linear_repeat_lp;
-    linear_repeat_lp.min_filter = VK_FILTER_LINEAR;
-    linear_repeat_lp.mag_filter = VK_FILTER_LINEAR;
-    linear_repeat_lp.visual_output = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    loco_ptr->context.vk.create_texture_sampler(shadow_sampler, linear_repeat_lp);
-
-    auto load_shader = [&](const char* vs, const char* fs) {
+    auto load = [&](const char* vs, const char* fs, bool compute = false) {
       fan::graphics::shader_t nr = loco_ptr->shader_create();
-      loco_ptr->shader_set_vertex(nr, vs, fan::graphics::read_shader(vs));
-      loco_ptr->shader_set_fragment(nr, fs, fan::graphics::read_shader(fs));
+      if (compute) {
+        loco_ptr->shader_set_compute(nr, vs, fan::graphics::read_shader(vs));
+      }
+      else {
+        loco_ptr->shader_set_vertex(nr, vs, fan::graphics::read_shader(vs));
+        loco_ptr->shader_set_fragment(nr, fs, fan::graphics::read_shader(fs));
+      }
       loco_ptr->shader_compile(nr);
       return nr;
     };
 
-    occluder_shader = load_shader(
-      "shaders/vulkan/2D/effects/alpha_shadow_occluder.vert",
-      "shaders/vulkan/2D/effects/alpha_shadow_occluder.frag"
-    );
-    radial_shader = loco_ptr->shader_create();
-    loco_ptr->shader_set_compute(radial_shader,
-      "shaders/vulkan/2D/effects/alpha_shadow_radial.comp",
-      fan::graphics::read_shader("shaders/vulkan/2D/effects/alpha_shadow_radial.comp"));
-    loco_ptr->shader_compile(radial_shader);
-    light_shader = load_shader(
-      "shaders/vulkan/2D/effects/alpha_shadow_light.vert",
-      "shaders/vulkan/2D/effects/alpha_shadow_light.frag"
-    );
-    solid_shader = load_shader(
-      "shaders/vulkan/2D/effects/alpha_shadow_solid.vert",
-      "shaders/vulkan/2D/effects/alpha_shadow_solid.frag"
-    );
+    occluder_shader = load("shaders/vulkan/2D/effects/alpha_shadow_occluder.vert", "shaders/vulkan/2D/effects/alpha_shadow_occluder.frag");
+    radial_shader   = load("shaders/vulkan/2D/effects/alpha_shadow_radial.comp", nullptr, true);
+    light_shader    = load("shaders/vulkan/2D/effects/alpha_shadow_light.vert", "shaders/vulkan/2D/effects/alpha_shadow_light.frag");
+    solid_shader    = load("shaders/vulkan/2D/effects/alpha_shadow_solid.vert", "shaders/vulkan/2D/effects/alpha_shadow_solid.frag");
 
-    occluder_descriptor_layout = make_push_descriptor_layout({
-      {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-    });
-    radial_descriptor_layout = make_push_descriptor_layout({
-      {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT},
-      {1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_COMPUTE_BIT},
-    });
-    light_descriptor_layout = make_push_descriptor_layout({
-      {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT},
-    });
-    solid_descriptor_layout = make_push_descriptor_layout({});
+    occluder_dsl = make_dsl({{0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT}});
+    radial_dsl   = make_dsl({{0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_COMPUTE_BIT},
+                             {1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,       1, VK_SHADER_STAGE_COMPUTE_BIT}});
+    light_dsl    = make_dsl({{0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT}});
+    solid_dsl    = make_dsl({});
 
-    auto make_pipeline = [&](fan::vulkan::context_t::pipeline_t& pipe, fan::graphics::shader_t shader,
-      VkDescriptorSetLayout dsl, uint32_t pc_size, bool) {
-      fan::vulkan::context_t::pipeline_t::properties_t p;
-      p.shader = shader;
-      p.descriptor_layouts = {dsl};
-      p.push_constants_size = pc_size;
-      p.color_blend_attachments = {{}};
-      p.enable_depth_test = false;
-      pipe.open(context, p);
+    auto mk_raster_pipe = [&](fan::vulkan::context_t::pipeline_t& pipe, fan::graphics::shader_t sh, VkDescriptorSetLayout dsl, uint32_t pc_size) {
+      pipe.open(ctx, {.descriptor_layouts = {dsl}, .shader = sh, .push_constants_size = pc_size, .color_blend_attachments = {{}}, .enable_depth_test = false});
     };
-
-    make_pipeline(occluder_pipeline, occluder_shader, occluder_descriptor_layout, sizeof(occluder_push_t), true);
-    {
-      fan::vulkan::context_t::compute_pipeline_t::properties_t p;
-      p.shader = radial_shader;
-      p.descriptor_layouts = {radial_descriptor_layout};
-      p.push_constants_size = sizeof(radial_push_t);
-      radial_pipeline.open(context, p);
-    }
-    make_pipeline(light_pipeline, light_shader, light_descriptor_layout, sizeof(light_push_t), true);
-    make_pipeline(solid_pipeline, solid_shader, solid_descriptor_layout, sizeof(solid_push_t), true);
+    mk_raster_pipe(occluder_pipeline, occluder_shader, occluder_dsl, sizeof(occluder_push_t));
+    mk_raster_pipe(light_pipeline,    light_shader,    light_dsl,    sizeof(light_push_t));
+    mk_raster_pipe(solid_pipeline,    solid_shader,    solid_dsl,    sizeof(solid_push_t));
+    radial_pipeline.open(ctx, {.descriptor_layouts = {radial_dsl}, .shader = radial_shader, .push_constants_size = sizeof(radial_push_t)});
 
     resources_open = true;
   }
 
   void close() {
-    fan::vulkan::context_t& context = loco_ptr->context.vk;
-    vkDeviceWaitIdle(context.device);
+    auto& ctx = loco_ptr->context.vk;
+    vkDeviceWaitIdle(ctx.device);
     for (fan::graphics::shader_t s : {occluder_shader, radial_shader, light_shader, solid_shader}) {
       if (!s.iic()) { loco_ptr->shader_erase(s); }
     }
-    occluder_pipeline.close(context);
-    radial_pipeline.close(context);
-    light_pipeline.close(context);
-    solid_pipeline.close(context);
-    vkDestroyDescriptorSetLayout(context.device, occluder_descriptor_layout, nullptr);
-    vkDestroyDescriptorSetLayout(context.device, radial_descriptor_layout, nullptr);
-    vkDestroyDescriptorSetLayout(context.device, light_descriptor_layout, nullptr);
-    vkDestroyDescriptorSetLayout(context.device, solid_descriptor_layout, nullptr);
-    if (occluder_sampler) { vkDestroySampler(context.device, occluder_sampler, nullptr); }
-    if (shadow_sampler) { vkDestroySampler(context.device, shadow_sampler, nullptr); }
-    occluder_texture.close(context);
-    shadow_texture.close(context);
+    for (auto* pipe : {&occluder_pipeline, &light_pipeline, &solid_pipeline}) { pipe->close(ctx); }
+    radial_pipeline.close(ctx);
+    for (auto* dsl : {occluder_dsl, radial_dsl, light_dsl, solid_dsl}) { vkDestroyDescriptorSetLayout(ctx.device, dsl, nullptr); }
+    if (occluder_sampler) { vkDestroySampler(ctx.device, occluder_sampler, nullptr); }
+    if (shadow_sampler) { vkDestroySampler(ctx.device, shadow_sampler, nullptr); }
+    occluder_texture.close(ctx);
+    shadow_texture.close(ctx);
     casters.clear();
     lights.clear();
     *this = {};
@@ -146,45 +90,36 @@ struct alpha_shadow_renderer_t {
     if (!resources_open || casters.empty() || lights.empty()) { return; }
     for (const light_t& light : lights) {
       render_occluders(light);
-      barrier_occluder_to_read();
+      barrier(occluder_texture.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+        VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_2_SHADER_READ_BIT);
       render_radial();
-      barrier_shadow_to_read();
+      barrier(shadow_texture.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+        VK_ACCESS_2_SHADER_WRITE_BIT, VK_ACCESS_2_SHADER_READ_BIT);
     }
   }
 
   void render_overlay(VkImageView swapchain_image_view) {
     if (!resources_open || casters.empty() || lights.empty()) { return; }
-    fan::vulkan::context_t& context = loco_ptr->context.vk;
+    auto& ctx = loco_ptr->context.vk;
+    fan::vec2ui sz{(uint32_t)loco_ptr->window.get_size().x, (uint32_t)loco_ptr->window.get_size().y};
+    VkRenderingAttachmentInfo att{VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO, nullptr, swapchain_image_view,
+      VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_RESOLVE_MODE_NONE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED,
+      VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE, {}};
+    VkRenderingInfo ri{VK_STRUCTURE_TYPE_RENDERING_INFO, nullptr, 0, {{0, 0}, {sz.x, sz.y}}, 1, 0, 1, &att, nullptr, nullptr};
+    vkCmdBeginRendering(cmd(), &ri);
+    VkViewport vp0{0, 0, (float)sz.x, (float)sz.y, 0, 1};
+    VkRect2D sc0{{0, 0}, {sz.x, sz.y}};
+    vkCmdSetViewport(cmd(), 0, 1, &vp0);
+    vkCmdSetScissor(cmd(), 0, 1, &sc0);
 
-    {
-      VkRenderingAttachmentInfo att{};
-      att.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-      att.imageView = swapchain_image_view;
-      att.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-      att.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-      att.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-      VkRenderingInfo ri{};
-      ri.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-      ri.renderArea = {{0, 0}, {(uint32_t)loco_ptr->window.get_size().x, (uint32_t)loco_ptr->window.get_size().y}};
-      ri.layerCount = 1;
-      ri.colorAttachmentCount = 1;
-      ri.pColorAttachments = &att;
-      vkCmdBeginRendering(cmd(), &ri);
-    }
+    bind_and_blend(solid_pipeline, VK_TRUE);
+    solid_push_t sc{fan::color(0, 0, 0, darkness)};
+    vkCmdPushConstants(cmd(), solid_pipeline.m_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(sc), &sc);
+    vkCmdDraw(cmd(), 6, 1, 0, 0);
 
-    {
-      fan::vec2ui sz{(uint32_t)loco_ptr->window.get_size().x, (uint32_t)loco_ptr->window.get_size().y};
-      VkViewport vp{0, 0, (float)sz.x, (float)sz.y, 0, 1};
-      vkCmdSetViewport(cmd(), 0, 1, &vp);
-      VkRect2D sc{{0, 0}, {sz.x, sz.y}};
-      vkCmdSetScissor(cmd(), 0, 1, &sc);
-    }
-
-    render_darkness();
-    for (const light_t& light : lights) {
-      render_light(light);
-    }
-
+    for (const light_t& light : lights) { render_light(light); }
     vkCmdEndRendering(cmd());
   }
 
@@ -193,35 +128,31 @@ struct alpha_shadow_renderer_t {
   f32_t darkness = 0.78f;
 
 private:
-  static fan::vec2 rotate(fan::vec2 p, f32_t a) {
-    f32_t c = std::cos(a), s = std::sin(a);
-    return {p.x * c - p.y * s, p.x * s + p.y * c};
-  }
+  VkCommandBuffer cmd() { return loco_ptr->context.vk.command_buffers[loco_ptr->context.vk.current_frame]; }
 
-  static fan::vec2 world_to_screen(fan::vec2 p, const fan::graphics::render_view_t& rv) {
-    return fan::graphics::world_to_screen(p, rv);
-  }
-
-  static fan::vec2 screen_to_ndc(fan::vec2 p, fan::vec2 window_size) {
-    return {p.x / window_size.x * 2.f - 1.f, p.y / window_size.y * 2.f - 1.f};
-  }
-
-  VkCommandBuffer cmd() {
-    return loco_ptr->context.vk.command_buffers[loco_ptr->context.vk.current_frame];
-  }
-
-  VkDescriptorSetLayout make_push_descriptor_layout(const std::vector<VkDescriptorSetLayoutBinding>& bindings) {
-    VkDescriptorSetLayoutCreateInfo info{};
-    info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    info.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT;
-    info.bindingCount = (uint32_t)bindings.size();
-    info.pBindings = bindings.data();
+  VkDescriptorSetLayout make_dsl(const std::vector<VkDescriptorSetLayoutBinding>& bindings) {
+    VkDescriptorSetLayoutCreateInfo info{VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, nullptr,
+      VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT, (uint32_t)bindings.size(), bindings.data()};
     VkDescriptorSetLayout layout;
     fan::vulkan::validate(vkCreateDescriptorSetLayout(loco_ptr->context.vk.device, &info, nullptr, &layout));
     return layout;
   }
 
-  void bind_pipeline(fan::vulkan::context_t::pipeline_t& pipeline) {
+  void barrier(VkImage image, VkImageLayout old_layout, VkImageLayout new_layout,
+    VkPipelineStageFlags2 src_stage, VkPipelineStageFlags2 dst_stage,
+    VkAccessFlags2 src_access, VkAccessFlags2 dst_access)
+  {
+    VkImageMemoryBarrier2 b{VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2, nullptr, src_stage, src_access, dst_stage, dst_access,
+      old_layout, new_layout, VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, image,
+      {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+    VkDependencyInfo d{VK_STRUCTURE_TYPE_DEPENDENCY_INFO, nullptr, 0, 0, nullptr, 0, nullptr, 1, &b};
+    vkCmdPipelineBarrier2(cmd(), &d);
+  }
+
+  void bind_and_blend(fan::vulkan::context_t::pipeline_t& pipeline, VkBool32 blend,
+    VkBlendFactor src_rgb = VK_BLEND_FACTOR_SRC_ALPHA, VkBlendFactor dst_rgb = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+    VkBlendFactor src_a = VK_BLEND_FACTOR_ONE, VkBlendFactor dst_a = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA)
+  {
     VkShaderStageFlagBits stages[2] = {VK_SHADER_STAGE_VERTEX_BIT, VK_SHADER_STAGE_FRAGMENT_BIT};
     fan_vkCmdBindShadersEXT(cmd(), 2, stages, pipeline.m_shaders);
     vkCmdSetPrimitiveTopology(cmd(), VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
@@ -232,142 +163,43 @@ private:
     vkCmdSetDepthTestEnable(cmd(), VK_FALSE);
     vkCmdSetDepthWriteEnable(cmd(), VK_FALSE);
     fan_vkCmdSetVertexInputEXT(cmd(), 0, nullptr, 0, nullptr);
-  }
-
-  void set_blend(VkBool32 enable, VkBlendFactor src_rgb = VK_BLEND_FACTOR_SRC_ALPHA,
-    VkBlendFactor dst_rgb = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-    VkBlendFactor src_a = VK_BLEND_FACTOR_ONE,
-    VkBlendFactor dst_a = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA) {
-    fan_vkCmdSetColorBlendEnableEXT(cmd(), 0, 1, &enable);
-    if (enable) {
+    fan_vkCmdSetColorBlendEnableEXT(cmd(), 0, 1, &blend);
+    if (blend) {
       VkColorBlendEquationEXT eq{src_rgb, dst_rgb, VK_BLEND_OP_ADD, src_a, dst_a, VK_BLEND_OP_ADD};
       fan_vkCmdSetColorBlendEquationEXT(cmd(), 0, 1, &eq);
     }
   }
 
-  void barrier_occluder_to_read() {
-    VkImageMemoryBarrier2 b{};
-    b.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-    b.srcStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-    b.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-    b.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-    b.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
-    b.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    b.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    b.image = occluder_texture.image;
-    b.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    b.subresourceRange.levelCount = 1;
-    b.subresourceRange.layerCount = 1;
-    VkDependencyInfo d{};
-    d.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-    d.imageMemoryBarrierCount = 1;
-    d.pImageMemoryBarriers = &b;
-    vkCmdPipelineBarrier2(cmd(), &d);
-  }
-
-  void barrier_shadow_to_read() {
-    VkImageMemoryBarrier2 b{};
-    b.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-    b.srcStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
-    b.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
-    b.dstStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-    b.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
-    b.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-    b.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    b.image = shadow_texture.image;
-    b.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    b.subresourceRange.levelCount = 1;
-    b.subresourceRange.layerCount = 1;
-    VkDependencyInfo d{};
-    d.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-    d.imageMemoryBarrierCount = 1;
-    d.pImageMemoryBarriers = &b;
-    vkCmdPipelineBarrier2(cmd(), &d);
-  }
-
-  void barrier_occluder_to_write() {
-    VkImageMemoryBarrier2 b{};
-    b.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-    b.srcStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-    b.srcAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
-    b.dstStageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
-    b.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
-    b.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    b.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    b.image = occluder_texture.image;
-    b.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    b.subresourceRange.levelCount = 1;
-    b.subresourceRange.layerCount = 1;
-    VkDependencyInfo d{};
-    d.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-    d.imageMemoryBarrierCount = 1;
-    d.pImageMemoryBarriers = &b;
-    vkCmdPipelineBarrier2(cmd(), &d);
-  }
-
-  void barrier_shadow_to_write() {
-    VkImageMemoryBarrier2 b{};
-    b.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-    b.srcStageMask = VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
-    b.srcAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
-    b.dstStageMask = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
-    b.dstAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
-    b.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    b.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-    b.image = shadow_texture.image;
-    b.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    b.subresourceRange.levelCount = 1;
-    b.subresourceRange.layerCount = 1;
-    VkDependencyInfo d{};
-    d.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-    d.imageMemoryBarrierCount = 1;
-    d.pImageMemoryBarriers = &b;
-    vkCmdPipelineBarrier2(cmd(), &d);
-  }
-
-  void render_darkness() {
-    set_blend(VK_TRUE);
-    bind_pipeline(solid_pipeline);
-    solid_push_t pc{fan::color(0, 0, 0, darkness)};
-    vkCmdPushConstants(cmd(), solid_pipeline.m_layout,
-      VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pc), &pc);
-    vkCmdDraw(cmd(), 6, 1, 0, 0);
+  void push_sampler_descriptor(VkPipelineLayout layout, VkImageView view, VkSampler sampler, uint32_t binding = 0) {
+    VkDescriptorImageInfo info{VK_NULL_HANDLE, view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+    if (sampler) { info.sampler = sampler; }
+    VkWriteDescriptorSet w{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, VK_NULL_HANDLE, binding, 0, 1,
+      VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &info, nullptr, nullptr};
+    vkCmdPushDescriptorSet(cmd(), VK_PIPELINE_BIND_POINT_GRAPHICS, layout, 0, 1, &w);
   }
 
   void render_occluders(const light_t& light) {
-    fan::vulkan::context_t& context = loco_ptr->context.vk;
+    auto& ctx = loco_ptr->context.vk;
 
-    barrier_occluder_to_write();
+    barrier(occluder_texture.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+      VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+      VK_ACCESS_2_SHADER_READ_BIT, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
 
-    fan::vec2 ls = world_to_screen(light.position, *light.render_view);
-    fan::vec2 le = world_to_screen(light.position + fan::vec2(light.radius, 0), *light.render_view);
+    fan::vec2 ls = fan::graphics::world_to_screen(light.position, fan::graphics::get_orthographic_render_view());
+    fan::vec2 le = fan::graphics::world_to_screen(light.position + fan::vec2(light.radius, 0), fan::graphics::get_orthographic_render_view());
     f32_t lr = std::max(1.f, std::abs(le.x - ls.x));
 
-    {
-      VkRenderingAttachmentInfo att{};
-      att.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-      att.imageView = occluder_texture.image_view;
-      att.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-      att.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-      att.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-      att.clearValue.color = {};
-      VkRenderingInfo ri{};
-      ri.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
-      ri.renderArea = {{0, 0}, {(uint32_t)occluder_resolution, (uint32_t)occluder_resolution}};
-      ri.layerCount = 1;
-      ri.colorAttachmentCount = 1;
-      ri.pColorAttachments = &att;
-      vkCmdBeginRendering(cmd(), &ri);
-    }
+    VkRenderingAttachmentInfo att{VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO, nullptr, occluder_texture.image_view,
+      VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_RESOLVE_MODE_NONE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED,
+      VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE, {}};
+    VkRenderingInfo ri{VK_STRUCTURE_TYPE_RENDERING_INFO, nullptr, 0, {{0, 0}, {(uint32_t)occluder_resolution, (uint32_t)occluder_resolution}}, 1, 0, 1, &att, nullptr, nullptr};
+    vkCmdBeginRendering(cmd(), &ri);
+    VkViewport vp_occ{0, 0, (float)occluder_resolution, (float)occluder_resolution, 0, 1};
+    VkRect2D sc_occ{{0, 0}, {(uint32_t)occluder_resolution, (uint32_t)occluder_resolution}};
+    vkCmdSetViewport(cmd(), 0, 1, &vp_occ);
+    vkCmdSetScissor(cmd(), 0, 1, &sc_occ);
 
-    VkViewport vp{0, 0, (float)occluder_resolution, (float)occluder_resolution, 0, 1};
-    vkCmdSetViewport(cmd(), 0, 1, &vp);
-    VkRect2D sc{{0, 0}, {(uint32_t)occluder_resolution, (uint32_t)occluder_resolution}};
-    vkCmdSetScissor(cmd(), 0, 1, &sc);
-
-    bind_pipeline(occluder_pipeline);
-    set_blend(VK_TRUE, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE,
-      VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA);
+    bind_and_blend(occluder_pipeline, VK_TRUE, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA);
 
     for (const caster_t& caster : casters) {
       if (!caster.shape || !*caster.shape) { continue; }
@@ -376,125 +208,84 @@ private:
       fan::vec2 isz = ti.image.get_size();
       if (isz.x <= 0 || isz.y <= 0) { continue; }
       std::uint32_t tex_id = ti.image.NRI;
-      if (tex_id >= context.image_pool.size()) { continue; }
+      if (tex_id >= ctx.image_pool.size()) { continue; }
 
       fan::vec2 pos = caster.shape->get_position();
       fan::vec2 size = caster.shape->get_size();
       fan::vec2 pivot = caster.shape->get_rotation_point();
-      f32_t angle = caster.shape->get_angle().z;
+      f32_t a = caster.shape->get_angle().z;
 
-      auto mp = [&](fan::vec2 local) -> fan::vec2 {
-        fan::vec2 world = pos + pivot + rotate(local - pivot, angle);
-        fan::vec2 sp = world_to_screen(world, *light.render_view);
-        return (sp - ls) / lr;
+      fan::vec2 c[4] = {
+        mp(pos, pivot, size, a, fan::vec2(-size.x, -size.y), ls, lr),
+        mp(pos, pivot, size, a, fan::vec2( size.x, -size.y), ls, lr),
+        mp(pos, pivot, size, a, fan::vec2( size.x,  size.y), ls, lr),
+        mp(pos, pivot, size, a, fan::vec2(-size.x,  size.y), ls, lr),
       };
-
-      fan::vec2 corners[4] = {
-        mp({-size.x, -size.y}),
-        mp({ size.x, -size.y}),
-        mp({ size.x,  size.y}),
-        mp({-size.x,  size.y}),
-      };
-
       bool outside = true;
-      for (auto& c : corners) {
-        if (std::abs(c.x) <= 1.25f && std::abs(c.y) <= 1.25f) { outside = false; break; }
-      }
+      for (auto& v : c) { if (std::abs(v.x) <= 1.25f && std::abs(v.y) <= 1.25f) { outside = false; break; } }
       if (outside) { continue; }
 
       fan::vec2 uv0 = ti.position / isz;
       fan::vec2 uv1 = uv0 + ti.size / isz;
+      occluder_push_t pc{c[0], c[1], c[2], c[3], uv0, uv1, caster.alpha_threshold};
 
-      occluder_push_t pc{corners[0], corners[1], corners[2], corners[3], uv0, uv1, caster.alpha_threshold};
-
-      VkDescriptorImageInfo img_info{};
-      img_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-      img_info.imageView = context.image_pool[tex_id].imageView;
-      img_info.sampler = context.image_pool[tex_id].sampler;
-
-      VkWriteDescriptorSet w{};
-      w.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-      w.dstBinding = 0;
-      w.descriptorCount = 1;
-      w.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-      w.pImageInfo = &img_info;
+      VkDescriptorImageInfo img{VK_NULL_HANDLE, ctx.image_pool[tex_id].imageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+      if (ctx.image_pool[tex_id].sampler) { img.sampler = ctx.image_pool[tex_id].sampler; }
+      VkWriteDescriptorSet w{VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, VK_NULL_HANDLE, 0, 0, 1,
+        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &img, nullptr, nullptr};
       vkCmdPushDescriptorSet(cmd(), VK_PIPELINE_BIND_POINT_GRAPHICS, occluder_pipeline.m_layout, 0, 1, &w);
 
-      vkCmdPushConstants(cmd(), occluder_pipeline.m_layout,
-        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pc), &pc);
+      vkCmdPushConstants(cmd(), occluder_pipeline.m_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pc), &pc);
       vkCmdDraw(cmd(), 6, 1, 0, 0);
     }
-
     vkCmdEndRendering(cmd());
   }
 
+  static fan::vec2 mp(fan::vec2 pos, fan::vec2 pivot, fan::vec2 size, f32_t a, fan::vec2 local, fan::vec2 ls, f32_t lr) {
+    f32_t c = std::cos(a), s = std::sin(a);
+    fan::vec2 world = pos + pivot + fan::vec2((local.x - pivot.x) * c - (local.y - pivot.y) * s, (local.x - pivot.x) * s + (local.y - pivot.y) * c);
+    fan::vec2 sp = fan::graphics::world_to_screen(world, fan::graphics::get_orthographic_render_view());
+    return (sp - ls) / lr;
+  }
+
   void render_radial() {
-    barrier_shadow_to_write();
+    barrier(shadow_texture.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
+      VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
+      VK_ACCESS_2_SHADER_READ_BIT, VK_ACCESS_2_SHADER_WRITE_BIT);
 
     VkShaderStageFlagBits stage = VK_SHADER_STAGE_COMPUTE_BIT;
     fan_vkCmdBindShadersEXT(cmd(), 1, &stage, &radial_pipeline.shader);
 
-    VkDescriptorImageInfo sampler_info{};
-    sampler_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    sampler_info.imageView = occluder_texture.image_view;
-    sampler_info.sampler = occluder_sampler;
-
-    VkDescriptorImageInfo storage_info{};
-    storage_info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-    storage_info.imageView = shadow_texture.image_view;
-    storage_info.sampler = VK_NULL_HANDLE;
-
-    VkWriteDescriptorSet writes[2]{};
-    writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    writes[0].dstBinding = 0;
-    writes[0].descriptorCount = 1;
-    writes[0].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    writes[0].pImageInfo = &sampler_info;
-    writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    writes[1].dstBinding = 1;
-    writes[1].descriptorCount = 1;
-    writes[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-    writes[1].pImageInfo = &storage_info;
+    VkDescriptorImageInfo si{VK_NULL_HANDLE, occluder_texture.image_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
+    if (occluder_sampler) { si.sampler = occluder_sampler; }
+    VkDescriptorImageInfo sti{VK_NULL_HANDLE, shadow_texture.image_view, VK_IMAGE_LAYOUT_GENERAL};
+    VkWriteDescriptorSet writes[2]{
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, VK_NULL_HANDLE, 0, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &si, nullptr, nullptr},
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, nullptr, VK_NULL_HANDLE, 1, 0, 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,       &sti, nullptr, nullptr},
+    };
     vkCmdPushDescriptorSet(cmd(), VK_PIPELINE_BIND_POINT_COMPUTE, radial_pipeline.pipeline_layout, 0, 2, writes);
 
     radial_push_t pc{(std::uint32_t)angle_resolution, (std::uint32_t)radial_samples};
     vkCmdPushConstants(cmd(), radial_pipeline.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pc), &pc);
-
-    std::uint32_t groups = (angle_resolution + 255) / 256;
-    vkCmdDispatch(cmd(), groups, 1, 1);
+    vkCmdDispatch(cmd(), (angle_resolution + 255) / 256, 1, 1);
   }
 
   void render_light(const light_t& light) {
-    fan::vec2 window_size = loco_ptr->window.get_size();
-
-    fan::vec2 center = world_to_screen(light.position, *light.render_view);
-    fan::vec2 edge = world_to_screen(light.position + fan::vec2(light.radius, 0), *light.render_view);
+    fan::vec2 ws = loco_ptr->window.get_size();
+    fan::vec2 center = fan::graphics::world_to_screen(light.position, fan::graphics::get_orthographic_render_view());
+    fan::vec2 edge = fan::graphics::world_to_screen(light.position + fan::vec2(light.radius, 0), fan::graphics::get_orthographic_render_view());
     f32_t r = std::max(1.f, std::abs(edge.x - center.x));
     fan::vec2 p0 = center - r, p1 = center + r;
 
-    fan::vec2 ndc_light_min = screen_to_ndc(p0, window_size);
-    fan::vec2 ndc_light_max = screen_to_ndc(p1, window_size);
+    bind_and_blend(light_pipeline, VK_TRUE, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA);
 
-    bind_pipeline(light_pipeline);
-    set_blend(VK_TRUE, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE,
-      VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA);
+    push_sampler_descriptor(light_pipeline.m_layout, shadow_texture.image_view, shadow_sampler);
 
-    VkDescriptorImageInfo img{};
-    img.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    img.imageView = shadow_texture.image_view;
-    img.sampler = shadow_sampler;
-    VkWriteDescriptorSet w{};
-    w.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    w.dstBinding = 0;
-    w.descriptorCount = 1;
-    w.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    w.pImageInfo = &img;
-    vkCmdPushDescriptorSet(cmd(), VK_PIPELINE_BIND_POINT_GRAPHICS, light_pipeline.m_layout, 0, 1, &w);
-
-    light_push_t pc{ndc_light_min, ndc_light_max, light.color, light.softness, light.falloff_power,
+    light_push_t pc{{p0.x / ws.x * 2.f - 1.f, p0.y / ws.y * 2.f - 1.f},
+      {p1.x / ws.x * 2.f - 1.f, p1.y / ws.y * 2.f - 1.f},
+      light.color, light.softness, light.falloff_power,
       1.f / f32_t(angle_resolution), light.angle, light.cone_inner, light.cone_outer};
-    vkCmdPushConstants(cmd(), light_pipeline.m_layout,
-      VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pc), &pc);
+    vkCmdPushConstants(cmd(), light_pipeline.m_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pc), &pc);
     vkCmdDraw(cmd(), 6, 1, 0, 0);
   }
 
@@ -517,10 +308,10 @@ private:
   fan::vulkan::context_t::pipeline_t light_pipeline;
   fan::vulkan::context_t::pipeline_t solid_pipeline;
 
-  VkDescriptorSetLayout occluder_descriptor_layout = VK_NULL_HANDLE;
-  VkDescriptorSetLayout radial_descriptor_layout = VK_NULL_HANDLE;
-  VkDescriptorSetLayout light_descriptor_layout = VK_NULL_HANDLE;
-  VkDescriptorSetLayout solid_descriptor_layout = VK_NULL_HANDLE;
+  VkDescriptorSetLayout occluder_dsl = VK_NULL_HANDLE;
+  VkDescriptorSetLayout radial_dsl = VK_NULL_HANDLE;
+  VkDescriptorSetLayout light_dsl = VK_NULL_HANDLE;
+  VkDescriptorSetLayout solid_dsl = VK_NULL_HANDLE;
 
   bool resources_open = false;
 
