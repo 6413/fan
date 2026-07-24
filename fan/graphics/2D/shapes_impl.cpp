@@ -1319,8 +1319,9 @@ namespace fan::graphics{
 
       sd.visual = shape_add(
         (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::shadow, vi, ri,
-        Key_e::shadow, (std::uint8_t)0,
         Key_e::visible, (std::uint8_t)true,
+        Key_e::depth, (std::uint16_t)properties.position.z,
+        Key_e::blending, (std::uint8_t)properties.blending,
         Key_e::viewport, properties.viewport,
         Key_e::camera, properties.camera,
         Key_e::ShapeType, (fan::graphics::shaper_t::KeyTypeIndex_t)shape_type_t::shadow,
@@ -2660,7 +2661,17 @@ namespace fan::graphics{
     if (get_shape_type() != fan::graphics::shapes::shape_type_t::shadow) {
       fan::throw_error("invalid function call for current shape");
     }
-    reinterpret_cast<shadow_t::vi_t*>(GetRenderData(fan::graphics::g_shapes->shaper))->light_position = new_pos;
+    auto* vi = reinterpret_cast<shadow_t::vi_t*>(GetRenderData(fan::graphics::g_shapes->shaper));
+    vi->light_position = new_pos;
+    auto vid = get_visual_id();
+    if (!vid.iic()) {
+      auto& sldata = fan::graphics::g_shapes->shaper.ShapeList[vid];
+      fan::graphics::g_shapes->shaper.ElementIsPartiallyEdited(
+        sldata.sti, sldata.blid, sldata.ElementIndex,
+        offsetof(shadow_t::vi_t, light_position),
+        sizeof(shadow_t::vi_t::light_position)
+      );
+    }
   }
 
   void shapes::shape_t::set_light_radius(f32_t radius) {
@@ -2668,7 +2679,17 @@ namespace fan::graphics{
       fan::throw_error("invalid function call for current shape");
     }
 
-    reinterpret_cast<shadow_t::vi_t*>(GetRenderData(fan::graphics::g_shapes->shaper))->light_radius = radius;
+    auto* vi = reinterpret_cast<shadow_t::vi_t*>(GetRenderData(fan::graphics::g_shapes->shaper));
+    vi->light_radius = radius;
+    auto vid = get_visual_id();
+    if (!vid.iic()) {
+      auto& sldata = fan::graphics::g_shapes->shaper.ShapeList[vid];
+      fan::graphics::g_shapes->shaper.ElementIsPartiallyEdited(
+        sldata.sti, sldata.blid, sldata.ElementIndex,
+        offsetof(shadow_t::vi_t, light_radius),
+        sizeof(shadow_t::vi_t::light_radius)
+      );
+    }
   }
 
   // for line

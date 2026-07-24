@@ -475,7 +475,7 @@ namespace fan::graphics::physics {
     return fan::vec3(fan::physics::entity_t::get_position(), fan::graphics::shape_t::get_position().z);
   }
   fan::vec2 base_shape_t::get_size() const {
-    return entity_t::get_size();
+    return fan::graphics::shape_t::get_size();
   }
   fan::physics::aabb_t base_shape_t::get_aabb() const {
     return entity_t::get_aabb();

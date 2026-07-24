@@ -6,7 +6,7 @@ using namespace fan::graphics;
 
 int main() {
   engine_t engine;
-  engine.get_lighting().set_target(0.3f);
+  engine.get_lighting().set_target(0.6f);
 
   interactive_camera_t ic;
 
@@ -30,7 +30,7 @@ int main() {
     return image_load(info, image_presets::pixel_art());
   };
 
-  image_t circle_img = make_image(image_size, [](fan::vec2 p) { return p.length() < 0.75f; });
+  image_t circle_img = make_image(image_size, [](fan::vec2 p) { return p.length() < 1.0f; });
   image_t cross_img = make_image(image_size, [](fan::vec2 p) { return std::abs(p.x) < 0.18f || std::abs(p.y) < 0.18f; });
   image_t ring_img = make_image(image_size, [](fan::vec2 p) { f32_t d = p.length(); return d > 0.42f && d < 0.78f; });
   image_t solid_img = make_image(image_size, [](fan::vec2) { return true; });
@@ -41,13 +41,11 @@ int main() {
 
   f32_t half_max_y = 0.f;
   std::vector<physics::circle_t> bodies;
-  std::vector<sprite_t> sprites;
   bodies.reserve(300);
-  sprites.reserve(302);
 
   for (int i = 0; i < 300; ++i) {
     fan::vec2 p = fan::random::vec2(fan::vec2(0), fan::vec2(1024, 52000));
-    f32_t r = fan::random::value(4.f, 32.f) * 3.f;
+    f32_t r = 50.f/*fan::random::value(4.f, 32.f) * 3.f*/;
 
     bodies.emplace_back(physics::circle_t {{
       .position = fan::vec3(p, 0xfffa),
@@ -56,16 +54,9 @@ int main() {
       .shape_properties{.restitution = 0.4f}
     }});
 
-    auto& s = sprites.emplace_back(sprite_t {{
-      .position = fan::vec3(p, 0xfffb),
-      .size = fan::vec2(r) * 1.5f,
-      .color = bodies.back().get_color(),
-      .image = circle_img,
-    }});
-    gloco()->shadow_add_caster(&s, 0.001f);
-
     half_max_y = std::max(half_max_y, p.y);
   }
+
   half_max_y *= 0.5f;
 
   physics::rectangle_t wall_left {{
@@ -79,21 +70,17 @@ int main() {
     .shape_properties{.restitution = 1.f}
   }};
 
-  auto add_wall_caster = [&](const physics::rectangle_t& wall) {
-    auto& s = sprites.emplace_back(sprite_t {{
-      .position = fan::vec3(wall.get_position(), 0xfffb),
-      .size = wall.get_size(),
-      .color = fan::colors::transparent,
-      .image = solid_img,
-    }});
-    gloco()->shadow_add_caster(&s, 0.001f);
-  };
+  //auto add_wall_caster = [&](const physics::rectangle_t& wall) {
+  //  sprites.emplace_back(sprite_t {{
+  //    .position = fan::vec3(wall.get_position(), 0xfffb),
+  //    .size = wall.get_size(),
+  //    .color = fan::colors::transparent,
+  //    .image = solid_img,
+  //  }});
+  //};
 
-  add_wall_caster(wall_left);
-  add_wall_caster(wall_right);
-
-  gloco()->shadow_add_light({0, 0}, 1024.f, fan::color(1.f, 0.82f, 0.55f, 1) * 0.6f,  0.018f, 1.8f);
-  gloco()->shadow_set_darkness(0.37f);
+  //add_wall_caster(wall_left);
+  //add_wall_caster(wall_right);
 
   physics::circle_t ball{{
     .position = fan::vec3(512, 0, 0xfffa), 
@@ -108,6 +95,28 @@ int main() {
   f32_t prev_x = ball.get_position().x;
 
   rectangle_t rect(fan::vec3(fan::vec2(512), 0), 100000, fan::colors::gray);
+
+  f32_t light_radius = 800.f;
+  auto ball_light = light_t(light_properties_t{
+    .position = fan::vec3(ball.get_position(), 5.f),
+    .size = fan::vec2(light_radius),
+    .color = fan::color(1.f, 0.82f, 0.55f, 0.6f),
+  });
+
+  std::vector<shadow_t> shadows;
+  for (std::size_t i = 0; i < bodies.size(); ++i) {
+    auto& s = bodies[i];
+    fan::vec3 spos = s.get_position();
+    fan::vec2 ssize = s.get_size();
+    shadows.emplace_back(shadow_properties_t{
+      .position = fan::vec3(spos.x, spos.y, 0xfffc),
+      .shape = fan::graphics::shapes::shadow_t::circle,
+      .size = ssize,
+      .color = fan::color(0.f, 0.f, 0.f, 0.7f),
+      .light_position = ball.get_position(),
+      .light_radius = light_radius,
+    });
+  }
 
   engine.loop([&](f32_t dt) {
     engine.camera_set_center(ball.get_position());
@@ -125,6 +134,12 @@ int main() {
     }
     prev_x = ball.get_position().x;
 
-    gloco()->shadow_set_light_position(0, ball.get_position());
+    ball_light.set_position(fan::vec3(ball.get_position(), 5.f));
+    fan::vec2 blpos = ball.get_position();
+    for (std::size_t i = 0; i < shadows.size(); ++i) {
+      fan::vec3 spos = bodies[i].get_position();
+      shadows[i].set_position(fan::vec3(spos.x, spos.y, 0xfffc));
+      shadows[i].set_light_position(fan::vec3(blpos, 0));
+    }
   });
 }

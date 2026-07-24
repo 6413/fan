@@ -192,6 +192,55 @@ namespace fan::graphics::algorithm {
     }
   }
 
+  std::vector<chunk_renderer_t::occluder_rect_t> chunk_renderer_t::build_occluders(fan::vec2 view_min, fan::vec2 view_max) const {
+    std::vector<occluder_rect_t> result;
+    int gx0 = (int)std::floor(view_min.x / m_cfg.cell_size);
+    int gy0 = (int)std::floor(view_min.y / m_cfg.cell_size);
+    int gx1 = (int)std::ceil(view_max.x / m_cfg.cell_size);
+    int gy1 = (int)std::ceil(view_max.y / m_cfg.cell_size);
+    int gw = gx1 - gx0 + 1;
+    int gh = gy1 - gy0 + 1;
+
+    std::vector<uint8_t> solid(gw * gh);
+    for (int gy = gy0; gy <= gy1; ++gy) {
+      for (int gx = gx0; gx <= gx1; ++gx) {
+        solid[(gy - gy0) * gw + (gx - gx0)] = (uint8_t)get_solid(gx, gy);
+      }
+    }
+
+    std::vector<uint8_t> visited(gw * gh, 0);
+    for (int ly = 0; ly < gh; ++ly) {
+      for (int lx = 0; lx < gw; ++lx) {
+        int idx = ly * gw + lx;
+        if (!solid[idx] || visited[idx]) continue;
+
+        int rx = lx;
+        while (rx + 1 < gw && solid[ly * gw + rx + 1] && !visited[ly * gw + rx + 1]) ++rx;
+
+        int ry = ly;
+        for (bool row_ok = true; row_ok && ry + 1 < gh; ) {
+          for (int x = lx; x <= rx; ++x) {
+            if (!solid[(ry + 1) * gw + x] || visited[(ry + 1) * gw + x]) {
+              row_ok = false; break;
+            }
+          }
+          if (row_ok) ++ry;
+        }
+
+        for (int y = ly; y <= ry; ++y) {
+          for (int x = lx; x <= rx; ++x) {
+            visited[y * gw + x] = 1;
+          }
+        }
+
+        fan::vec2 half = fan::vec2(rx - lx + 1, ry - ly + 1) * m_cfg.cell_size * 0.5f;
+        fan::vec2 center = fan::vec2(gx0 + lx, gy0 + ly) * m_cfg.cell_size + half;
+        result.push_back({center, half});
+      }
+    }
+    return result;
+  }
+
   void chunk_renderer_t::stream(fan::vec2 cam_pos, fan::vec2 viewport_size) {
     f32_t chunk_world = m_cfg.chunk_size * m_cfg.cell_size;
     fan::vec2 half_ws = viewport_size * 0.5f;
