@@ -140,7 +140,7 @@ struct alpha_shadow_renderer_t {
       }
       render_light(lights[li]);
     }
-    if (has_tiles) { tile_occluders.clear(); }
+    if (has_tiles && tile_data_dirty) { tile_occluders.clear(); }
     vkCmdEndRendering(cmd());
   }
 
@@ -149,6 +149,8 @@ struct alpha_shadow_renderer_t {
   std::vector<fan::vec4> tile_occluders;
   bool tile_mode_open = false;
   f32_t darkness = 0.78f;
+  bool tile_data_dirty = true;
+  uint32_t cached_tile_count = 0;
 
   VkCommandBuffer cmd() { return loco_ptr->context.vk.command_buffers[loco_ptr->context.vk.current_frame]; }
 
@@ -376,7 +378,12 @@ struct alpha_shadow_renderer_t {
       ctx.create_buffer(bytes, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, buf);
       ctx.map_buffer(buf, &buf.mapped);
     }
-    std::memcpy(buf.mapped, occluders.data(), bytes);
+    if (tile_data_dirty) {
+      for (auto& b : tile_occluder_buffers) {
+        if (b.mapped) { std::memcpy(b.mapped, occluders.data(), bytes); }
+      }
+      tile_data_dirty = false;
+    }
 
     barrier(shadow_texture.image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_GENERAL,
       VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT,
