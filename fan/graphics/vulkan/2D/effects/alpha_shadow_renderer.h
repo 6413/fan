@@ -88,18 +88,7 @@ struct alpha_shadow_renderer_t {
   }
 
   void build_shadow_maps() {
-    if (!resources_open) { return; }
-    if (!tile_occluders.empty()) {
-      for (const light_t& light : lights) {
-        build_tile_shadow_map(tile_occluders, light.position, light.radius);
-        barrier(shadow_texture.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-          VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
-          VK_ACCESS_2_SHADER_WRITE_BIT, VK_ACCESS_2_SHADER_READ_BIT);
-      }
-      tile_occluders.clear();
-      return;
-    }
-    if (casters.empty() || lights.empty()) { return; }
+    if (!resources_open || casters.empty() || lights.empty()) { return; }
     for (const light_t& light : lights) {
       render_occluders(light);
       barrier(occluder_texture.image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -131,7 +120,27 @@ struct alpha_shadow_renderer_t {
     vkCmdPushConstants(cmd(), solid_pipeline.m_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(sc), &sc);
     vkCmdDraw(cmd(), 6, 1, 0, 0);
 
-    for (const light_t& light : lights) { render_light(light); }
+    bool has_tiles = !tile_occluders.empty();
+    for (std::size_t li = 0; li < lights.size(); ++li) {
+      if (has_tiles) {
+        vkCmdEndRendering(cmd());
+        build_tile_shadow_map(tile_occluders, lights[li].position, lights[li].radius);
+        barrier(shadow_texture.image, VK_IMAGE_LAYOUT_GENERAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+          VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+          VK_ACCESS_2_SHADER_WRITE_BIT, VK_ACCESS_2_SHADER_READ_BIT);
+        VkRenderingAttachmentInfo att2{VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO, nullptr, swapchain_image_view,
+          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_RESOLVE_MODE_NONE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_UNDEFINED,
+          VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE, {}};
+        VkRenderingInfo ri2{VK_STRUCTURE_TYPE_RENDERING_INFO, nullptr, 0, {{0, 0}, {sz.x, sz.y}}, 1, 0, 1, &att2, nullptr, nullptr};
+        vkCmdBeginRendering(cmd(), &ri2);
+        VkViewport vp2{0, 0, (float)sz.x, (float)sz.y, 0, 1};
+        VkRect2D sc2{{0, 0}, {sz.x, sz.y}};
+        vkCmdSetViewport(cmd(), 0, 1, &vp2);
+        vkCmdSetScissor(cmd(), 0, 1, &sc2);
+      }
+      render_light(lights[li]);
+    }
+    if (has_tiles) { tile_occluders.clear(); }
     vkCmdEndRendering(cmd());
   }
 
