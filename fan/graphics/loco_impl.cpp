@@ -388,7 +388,9 @@ void loco_t::shadow_enable_tile_mode(std::uint32_t reserve_count) {
   vk->alpha_shadow_renderer.open_tile_shadows(reserve_count);
 }
 void loco_t::shadow_set_tile_occluders(std::span<const fan::vec4> occluders) {
-  vk->alpha_shadow_renderer.tile_occluders.assign(occluders.begin(), occluders.end());
+  auto& r = vk->alpha_shadow_renderer;
+  r.tile_occluders.assign(occluders.begin(), occluders.end());
+  r.tile_data_dirty = true;
 }
 
 
