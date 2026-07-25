@@ -47,7 +47,8 @@ void ray_circle(vec2 o, vec2 d, vec2 center, float radius, out float t_enter, ou
 void ray_obb(vec2 o, vec2 d, vec2 center, vec2 half_size, float angle, out float t_enter, out float t_exit) {
   vec2 local_o = rotate2(o - center, -angle);
   vec2 local_d = rotate2(d, -angle);
-  vec2 inv_d = 1.0 / (local_d + vec2(eps * sign(local_d)));
+  vec2 eps_dir = vec2(local_d.x >= 0.0 ? eps : -eps, local_d.y >= 0.0 ? eps : -eps);
+  vec2 inv_d = 1.0 / (local_d + eps_dir);
   vec2 t0 = (-half_size - local_o) * inv_d;
   vec2 t1 = (half_size - local_o) * inv_d;
   vec2 tmin = min(t0, t1);
@@ -98,10 +99,8 @@ void silhouette_dirs(vec2 light, vec2 center, vec2 half_size, float angle, out v
     dists[j] = length(diff);
     dirs[j] = diff / max(dists[j], eps);
   }
-  vec2 mean = dirs[0] + dirs[1] + dirs[2] + dirs[3];
-  float mlen = length(mean);
-  mean = mlen < eps ? vec2(1.0, 0.0) : mean / mlen;
-  float base_angle = atan(mean.y, mean.x);
+  vec2 to_center = center - light;
+  float base_angle = atan(to_center.y, to_center.x);
   float min_off = 1000000000.0;
   float max_off = -1000000000.0;
   int min_i = 0;
@@ -121,12 +120,13 @@ void silhouette_dirs(vec2 light, vec2 center, vec2 half_size, float angle, out v
 }
 
 float angular_fade(vec2 v, vec2 r0, vec2 r1) {
+  const float cone_margin = 0.0015;
   vec2 vn = normalize(v);
   float av = mod(atan(vn.y, vn.x) + two_pi, two_pi);
   float a0 = mod(atan(r0.y, r0.x) + two_pi, two_pi);
   float a1 = mod(atan(r1.y, r1.x) + two_pi, two_pi);
-  float l = min(a0, a1);
-  float r = max(a0, a1);
+  float l = min(a0, a1) - cone_margin;
+  float r = max(a0, a1) + cone_margin;
   if (r - l > pi) {
     float t = l;
     l = r;

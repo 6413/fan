@@ -97,10 +97,8 @@ void main() {
   for (int j = 0; j < 4; ++j) {
     dirs[j] = normalize(corners[j] - light);
   }
-  vec2 mean = dirs[0] + dirs[1] + dirs[2] + dirs[3];
-  float mlen = length(mean);
-  mean = mlen < 0.000001 ? vec2(1.0, 0.0) : mean / mlen;
-  float base_angle = atan(mean.y, mean.x);
+  vec2 to_center = pivot - light;
+  float base_angle = atan(to_center.y, to_center.x);
   float min_off = 1000000000.0;
   float max_off = -1000000000.0;
   int min_i = 0;
@@ -114,8 +112,9 @@ void main() {
     if (off > max_off) { max_off = off; max_i = j; }
   }
   float max_dist = max(distance(corners[min_i], light), distance(corners[max_i], light));
-  vec2 shadow_end0 = light + dirs[min_i] * (max_dist + fade_end);
-  vec2 shadow_end1 = light + dirs[max_i] * (max_dist + fade_end);
+  float shadow_len = max(f(72u) - max_dist, 0.0) + 64.0;
+  vec2 shadow_end0 = light + dirs[min_i] * (max_dist + shadow_len);
+  vec2 shadow_end1 = light + dirs[max_i] * (max_dist + shadow_len);
   vec2 bbox_min = min(min(min_corner, shadow_end0), min(shadow_end1, light));
   vec2 bbox_max = max(max(max_corner, shadow_end0), max(shadow_end1, light));
   float padding = f(72u) * 0.1;

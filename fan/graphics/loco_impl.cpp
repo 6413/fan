@@ -389,7 +389,12 @@ void loco_t::shadow_enable_tile_mode(std::uint32_t reserve_count) {
 }
 void loco_t::shadow_set_tile_occluders(std::span<const fan::vec4> occluders) {
   auto& r = vk->alpha_shadow_renderer;
-  r.tile_occluders.assign(occluders.begin(), occluders.end());
+  r.tile_occluders.resize(occluders.size());
+  constexpr f32_t seam_eps = 0.5f;
+  for (std::size_t i = 0; i < occluders.size(); ++i) {
+    fan::vec4 o = occluders[i];
+    r.tile_occluders[i] = fan::vec4(o.x - seam_eps, o.y - seam_eps, o.z + seam_eps, o.w + seam_eps);
+  }
   r.tile_data_dirty = true;
 }
 
