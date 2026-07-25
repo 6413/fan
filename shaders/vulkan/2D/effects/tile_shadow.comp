@@ -24,8 +24,8 @@ void main() {
   float tau = 6.28318530718;
   float angle = float(u) / float(pc.angle_resolution) * tau;
   vec2 dir = vec2(cos(angle), sin(angle));
-  vec2 inv = 1.0 / vec2(abs(dir.x) < 0.000001 ? (dir.x < 0.0 ? -1e6 : 1e6) : dir.x,
-                         abs(dir.y) < 0.000001 ? (dir.y < 0.0 ? -1e6 : 1e6) : dir.y);
+  vec2 inv = vec2(abs(dir.x) < 0.000001 ? (dir.x < 0.0 ? -1e6 : 1e6) : 1.0 / dir.x,
+                   abs(dir.y) < 0.000001 ? (dir.y < 0.0 ? -1e6 : 1e6) : 1.0 / dir.y);
   float blocker = 1.0;
   float lr2 = pc.light_radius * pc.light_radius;
   for (uint i = 0; i < pc.occluder_count; ++i) {

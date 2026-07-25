@@ -220,8 +220,8 @@ engine->shadow_enable_tile_mode();
 
       fan::vec2 plpos = player.body.get_position();
       engine->shadow_clear_lights();
-      engine->shadow_add_light(plpos, 300.f, fan::color(1.f, 1.f, 0.8f, 0.5f));
-      engine->shadow_add_light(renderer.get_spawn(map_id), 400.f, fan::color(1.f, 0.7f, 0.3f, 0.4f));
+      engine->shadow_add_light(plpos - fan::vec2(0.f, 8.f), 3000.f, fan::color(1.f, 1.f, 0.8f, 0.5f));
+      engine->shadow_add_light(renderer.get_spawn(map_id) - fan::vec2(0.f, 8.f), 4000.f, fan::color(1.f, 0.7f, 0.3f, 0.4f));
 
       fan::graphics::light(fan::vec3(plpos, depth_muzzle), fan::vec2(300.f), fan::color(1.f, 1.f, 0.8f, 0.15f));
 
