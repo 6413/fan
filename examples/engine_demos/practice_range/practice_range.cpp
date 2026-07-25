@@ -86,8 +86,14 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
       engine->camera_follow(player.body.get_position(), 0);
       ic.set_zoom(1.728f);
 
-      engine->shadow_enable_tile_mode();
-      engine->shadow_set_darkness(0.9f);
+engine->shadow_enable_tile_mode();
+      engine->shadow_set_darkness(0.35f);
+
+      std::vector<fan::vec4> tiles;
+      renderer.iterate_tiles(map_id, [&](const auto& tile) mutable {
+        tiles.push_back({tile.position.x - tile.size.x, tile.position.y - tile.size.y, tile.position.x + tile.size.x, tile.position.y + tile.size.y});
+      });
+      engine->shadow_set_tile_occluders(tiles);
     }
 
     void close() {
@@ -216,12 +222,6 @@ struct pile_t : fan::graphics::engine_t, fan::frame_task_t<pile_t> {
       engine->shadow_clear_lights();
       engine->shadow_add_light(plpos, 300.f, fan::color(1.f, 1.f, 0.8f, 0.5f));
       engine->shadow_add_light(renderer.get_spawn(map_id), 400.f, fan::color(1.f, 0.7f, 0.3f, 0.4f));
-
-      std::vector<fan::vec4> tile_occluders;
-      renderer.iterate_tiles(map_id, [&](const auto& tile) mutable {
-        tile_occluders.push_back({tile.position.x - tile.size.x, tile.position.y - tile.size.y, tile.position.x + tile.size.x, tile.position.y + tile.size.y});
-      });
-      engine->shadow_set_tile_occluders(tile_occluders);
 
       fan::graphics::light(fan::vec3(plpos, depth_muzzle), fan::vec2(300.f), fan::color(1.f, 1.f, 0.8f, 0.15f));
 

@@ -24,12 +24,19 @@ void main() {
   float tau = 6.28318530718;
   float angle = float(u) / float(pc.angle_resolution) * tau;
   vec2 dir = vec2(cos(angle), sin(angle));
-  vec2 inv = 1.0 / vec2(dir.x == 0.0 ? 0.000001 * sign(dir.x) : dir.x, dir.y == 0.0 ? 0.000001 * sign(dir.y) : dir.y);
+  vec2 inv = 1.0 / vec2(abs(dir.x) < 0.000001 ? (dir.x < 0.0 ? -1e6 : 1e6) : dir.x,
+                         abs(dir.y) < 0.000001 ? (dir.y < 0.0 ? -1e6 : 1e6) : dir.y);
   float blocker = 1.0;
+  float lr2 = pc.light_radius * pc.light_radius;
   for (uint i = 0; i < pc.occluder_count; ++i) {
+    vec2 center = (occs[i].min + occs[i].max) * 0.5;
+    vec2 hsize = (occs[i].max - occs[i].min) * 0.5;
+    vec2 to_occ = center - pc.light_pos;
+    if (dot(to_occ, to_occ) > lr2 + hsize.x * hsize.x + hsize.y * hsize.y + 2.0 * pc.light_radius * max(hsize.x, hsize.y)) continue;
     vec2 hit = ray_aabb(occs[i].min, occs[i].max, pc.light_pos, inv);
     if (hit.y >= hit.x && hit.x < blocker * pc.light_radius) {
       blocker = hit.x / pc.light_radius;
+      if (blocker <= 0.001) break;
     }
   }
   imageStore(shadow_map, ivec2(int(u), 0), vec4(blocker));
