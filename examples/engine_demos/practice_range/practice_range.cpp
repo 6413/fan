@@ -300,7 +300,7 @@ engine->shadow_enable_tile_mode();
   pile_t() {
     set_settings({
       .clear_color = fan::colors::black,
-      .ambient_color = fan::colors::white,
+      .ambient_color = fan::colors::black,
     });
     update_physics(true);
     stage_open<example_stage_t>();
