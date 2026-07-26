@@ -16,9 +16,7 @@ layout(location = 0) out vec4 out_color;
 const float tau = 6.28318530718;
 
 float sample_shadow(float u, float dist) {
-  float blocker = texture(shadow_texture, vec2(fract(u), 0.5)).r;
-  float penumbra = pc.softness * (1.0 - blocker) + 0.001;
-  return 1.0 - smoothstep(max(blocker - penumbra, blocker * 0.95), blocker + penumbra, dist);
+  return dist <= texture(shadow_texture, vec2(fract(u), 0.5)).r ? 1.0 : 0.0;
 }
 
 void main() {
@@ -27,16 +25,22 @@ void main() {
   if (dist > 1.0) discard;
   float u = atan(p.y, p.x) / tau;
   if (u < 0.0) u += 1.0;
+
+  float blocker = texture(shadow_texture, vec2(fract(u), 0.5)).r;
+  float ratio = max(0.0, dist - blocker) / max(blocker, 0.05);
+  float step = pc.angle_texel * max(min(ratio * pc.softness, 32.0), 1.0);
+
   float lit = 0.0;
-  lit += sample_shadow(u - pc.angle_texel * 4.0, dist) * 0.02;
-  lit += sample_shadow(u - pc.angle_texel * 3.0, dist) * 0.06;
-  lit += sample_shadow(u - pc.angle_texel * 2.0, dist) * 0.12;
-  lit += sample_shadow(u - pc.angle_texel,       dist) * 0.20;
-  lit += sample_shadow(u,                     dist) * 0.20;
-  lit += sample_shadow(u + pc.angle_texel,       dist) * 0.20;
-  lit += sample_shadow(u + pc.angle_texel * 2.0, dist) * 0.12;
-  lit += sample_shadow(u + pc.angle_texel * 3.0, dist) * 0.06;
-  lit += sample_shadow(u + pc.angle_texel * 4.0, dist) * 0.02;
+  lit += sample_shadow(u - step * 4.0, dist) * 0.02;
+  lit += sample_shadow(u - step * 3.0, dist) * 0.06;
+  lit += sample_shadow(u - step * 2.0, dist) * 0.12;
+  lit += sample_shadow(u - step,       dist) * 0.20;
+  lit += sample_shadow(u,              dist) * 0.20;
+  lit += sample_shadow(u + step,       dist) * 0.20;
+  lit += sample_shadow(u + step * 2.0, dist) * 0.12;
+  lit += sample_shadow(u + step * 3.0, dist) * 0.06;
+  lit += sample_shadow(u + step * 4.0, dist) * 0.02;
+
   float pixel_angle = atan(p.y, p.x);
   float diff = abs(mod(pixel_angle - pc.cone_angle + 3.14159, tau) - 3.14159);
   float cone_mask = 1.0 - smoothstep(pc.cone_inner * 0.5, pc.cone_outer * 0.5, diff);
