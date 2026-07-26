@@ -219,11 +219,25 @@ engine->shadow_enable_tile_mode();
       ic.update_fx(dt);
 
       fan::vec2 plpos = player.body.get_position();
-      engine->shadow_clear_lights();
-      engine->shadow_add_light(plpos - fan::vec2(0.f, 8.f), 3000.f, fan::color(1.f, 1.f, 0.8f, 0.5f));
-      engine->shadow_add_light(renderer.get_spawn(map_id) - fan::vec2(0.f, 8.f), 4000.f, fan::color(1.f, 0.7f, 0.3f, 0.4f));
+      fan::vec2 lpos = plpos - fan::vec2(0.f, 8.f);
+      fan::vec2 spos = renderer.get_spawn(map_id) - fan::vec2(0.f, 8.f);
 
-      fan::graphics::light(fan::vec3(plpos, depth_muzzle), fan::vec2(300.f), fan::color(1.f, 1.f, 0.8f, 0.15f));
+      f32_t pl_rad = 200.f;
+      auto   pl_col = fan::color(1.f, 1.f, 0.8f, 1.f);
+      f32_t pl_shadow_a = 0.5f;
+      f32_t pl_visual_a = 0.15f;
+
+      f32_t sp_rad = 500.f;
+      auto   sp_col = fan::color(1.f, 0.7f, 0.3f, 1.f);
+      f32_t sp_shadow_a = 0.2f;
+      f32_t sp_visual_a = 0.06f;
+
+      engine->shadow_clear_lights();
+      engine->shadow_add_light(lpos, pl_rad, pl_col.set_alpha(pl_shadow_a));
+      engine->shadow_add_light(spos, sp_rad, sp_col.set_alpha(sp_shadow_a));
+
+      fan::graphics::light(fan::vec3(lpos, depth_muzzle), fan::vec2(pl_rad), pl_col.set_alpha(pl_visual_a));
+      fan::graphics::light(fan::vec3(spos, depth_muzzle), fan::vec2(sp_rad), sp_col.set_alpha(sp_visual_a));
 
       fan::graphics::systems::render2d(registry);
 
