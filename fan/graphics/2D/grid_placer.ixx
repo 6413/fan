@@ -95,6 +95,18 @@ export namespace fan::graphics {
       return result;
     }
 
+    std::vector<fan::vec3> paint_overwrite(const fan::vec2& pos) {
+      std::vector<fan::vec3> result;
+      for (auto& cell : painter.update(pos, tile_size)) {
+        result.push_back(fan::vec3(
+          cell.x * tile_size.x + tile_size.x / 2.f,
+          cell.y * tile_size.y + tile_size.y / 2.f,
+          get_z_depth(cell.y + 1)
+        ));
+      }
+      return result;
+    }
+
     void erase_update(const fan::vec2& pos) {
       for (auto& cell : painter.update(pos, tile_size)) {
         if (auto it = placed.find(cell); it != placed.end()) {
