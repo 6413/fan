@@ -52,15 +52,30 @@ export namespace fan {
 
     #define VEC_BIN_OP(op) \
     template <typename U> requires (!std::is_arithmetic_v<U>) \
-    constexpr Derived operator op(const U& rhs) const { Derived r{}; for (access_type_t i=0; i<N && i<rhs.size(); ++i) r[i] = derived()[i] op rhs[i]; return r; } \
+    constexpr auto operator op(const U& rhs) const { \
+      using result_t = std::common_type_t<T, typename U::value_type>; \
+      typename Derived::template rebind<result_t> r{}; \
+      for (access_type_t i=0; i<N && i<rhs.size(); ++i) r[i] = derived()[i] op rhs[i]; \
+      return r; \
+    } \
     template <typename U> requires std::is_arithmetic_v<U> \
-    constexpr Derived operator op(U v) const { Derived r{}; for (access_type_t i=0; i<N; ++i) r[i] = derived()[i] op (T)v; return r; } \
+    constexpr auto operator op(U v) const { \
+      using result_t = std::common_type_t<T, U>; \
+      typename Derived::template rebind<result_t> r{}; \
+      for (access_type_t i=0; i<N; ++i) r[i] = derived()[i] op (result_t)v; \
+      return r; \
+    } \
     template <typename U> requires (!std::is_arithmetic_v<U>) \
     constexpr Derived& operator op##=(const U& rhs) { for (access_type_t i=0; i<N && i<rhs.size(); ++i) derived()[i] op##= rhs[i]; return derived(); } \
     template <typename U> requires std::is_arithmetic_v<U> \
     constexpr Derived& operator op##=(U v) { for (access_type_t i=0; i<N; ++i) derived()[i] op##= (T)v; return derived(); } \
     template <typename U> requires std::is_arithmetic_v<U> \
-    friend constexpr Derived operator op(U lhs, const Derived& rhs) { Derived r{}; for (access_type_t i=0; i<N; ++i) r[i] = (T)lhs op rhs[i]; return r; }
+    friend constexpr auto operator op(U lhs, const Derived& rhs) { \
+      using result_t = std::common_type_t<T, U>; \
+      typename Derived::template rebind<result_t> r{}; \
+      for (access_type_t i=0; i<N; ++i) r[i] = (result_t)lhs op rhs[i]; \
+      return r; \
+    }
 
     VEC_BIN_OP(+) VEC_BIN_OP(-) VEC_BIN_OP(*) VEC_BIN_OP(/)
     #undef VEC_BIN_OP
@@ -277,6 +292,7 @@ export namespace fan {
     #define vec_t vec0_wrap_t
     #define vec_n 0
     #include "vector_impl.h"
+    template <typename R> using rebind = vec0_wrap_t<R>;
   };
 
   template <typename value_type_t>
@@ -284,6 +300,7 @@ export namespace fan {
     #define vec_t vec1_wrap_t
     #define vec_n 1
     #include "vector_impl.h"
+    template <typename R> using rebind = vec1_wrap_t<R>;
   };
 
   template <typename value_type_t>
@@ -291,6 +308,7 @@ export namespace fan {
   #define vec_t vec2_wrap_t
   #define vec_n 2
   #include "vector_impl.h"
+    template <typename R> using rebind = vec2_wrap_t<R>;
 
     template <typename T> constexpr vec2_wrap_t(const vec3_wrap_t<T>& test0) : vec2_wrap_t(test0.x, test0.y) { }
 
@@ -351,6 +369,7 @@ export namespace fan {
   #define vec_t vec3_wrap_t
   #define vec_n 3
   #include "vector_impl.h"
+    template <typename R> using rebind = vec3_wrap_t<R>;
 
     template <typename T> constexpr vec3_wrap_t(const vec2_wrap_t<T>& test0) : vec3_wrap_t(test0.x, test0.y, 0) { }
     template <typename T> constexpr vec3_wrap_t(const vec2_wrap_t<T>& test0, auto value) : vec3_wrap_t(test0.x, test0.y, value) { }
@@ -387,6 +406,7 @@ export namespace fan {
   #define vec_t vec4_wrap_t
   #define vec_n 4
   #include "vector_impl.h"
+    template <typename R> using rebind = vec4_wrap_t<R>;
 
     template <typename T> constexpr vec4_wrap_t(const vec2_wrap_t<T>& test0, auto third, auto fourth) : vec4_wrap_t(test0.x, test0.y, third, fourth) { }
     template <typename T> constexpr vec4_wrap_t(const vec2_wrap_t<T>& test0, const vec2_wrap_t<T>& test1) : vec4_wrap_t(test0.x, test0.y, test1.x, test1.y) { }
@@ -442,6 +462,7 @@ export namespace fan {
     #define vec_t vec_wrap_t
     #define vec_n vector_n
     #include "vector_impl.h"
+    template <typename R> using rebind = vec_wrap_t<vector_n, R>;
     
     template <typename T> requires(vector_n >= 2)
     constexpr vec_wrap_t(const vec2_wrap_t<T>& test0) : vec_wrap_t(test0.x, test0.y) { } 

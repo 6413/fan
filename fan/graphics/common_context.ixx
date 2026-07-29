@@ -470,6 +470,7 @@ export namespace fan::graphics {
   namespace image_presets {
     image_load_properties_t pixel_art();
     image_load_properties_t pixel_art_repeat();
+    image_load_properties_t pixel_art_mirrored_repeat();
     image_load_properties_t smooth();
     image_load_properties_t mipmapped();
   }
