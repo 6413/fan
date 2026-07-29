@@ -1368,23 +1368,42 @@ export namespace fan {
   template <typename Derived>
   struct frame_task_t {
     using self_t = Derived;
-    frame_task_t() {
-      update_nr = gloco()->m_update_callback.NewNodeFirst();
-      gloco()->m_update_callback[update_nr] = [this](void*) {
-        if constexpr (requires{static_cast<Derived*>(this)->update(); }) {
-          static_cast<Derived*>(this)->update();
+    using handle_t = fan::raii_nr_t<fan::graphics::update_callback_nr_t, Derived, void*>;
+
+    static handle_t make_handle(Derived* self) {
+      return handle_t(self,
+        [](Derived*, typename handle_t::fn_t cb) {
+          auto nr = gloco()->m_update_callback.NewNodeFirst();
+          gloco()->m_update_callback[nr] = [cb](void* d) { cb(nullptr, d); };
+          return nr;
+        },
+        [](Derived*, const fan::graphics::update_callback_nr_t& nr) {
+          if (gloco()->m_update_callback.NodeList.Current)
+            gloco()->m_update_callback.unlrec(nr);
+        },
+        [](Derived* self, void*) {
+          if constexpr (requires{ self->update(); }) self->update();
         }
-      };
+      );
     }
 
-    ~frame_task_t() {
-      if (update_nr) {
-        gloco()->m_update_callback.unlrec(update_nr);
-        update_nr.sic();
+    frame_task_t() : update_nr(make_handle(static_cast<Derived*>(this))) {}
+
+    frame_task_t(const frame_task_t&)     = delete;
+    frame_task_t& operator=(const frame_task_t&) = delete;
+
+    frame_task_t(frame_task_t&& o) noexcept : update_nr(std::move(o.update_nr)) {
+      update_nr.rebind(static_cast<Derived*>(this));
+    }
+    frame_task_t& operator=(frame_task_t&& o) noexcept {
+      if (this != &o) {
+        update_nr = std::move(o.update_nr);
+        update_nr.rebind(static_cast<Derived*>(this));
       }
+      return *this;
     }
 
-    fan::graphics::update_callback_nr_t update_nr;
+    handle_t update_nr;
   };
 }
 

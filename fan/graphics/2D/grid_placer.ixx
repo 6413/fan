@@ -57,7 +57,7 @@ export namespace fan::graphics {
       if (prev_pos.x == std::numeric_limits<f32_t>::max()) {
         prev_pos = pos;
         prev_cell = pos.grid_floor(tile_size);
-        return {prev_cell};
+        return {{prev_cell.x * (int)tile_size.x, prev_cell.y * (int)tile_size.y}};
       }
       auto cells = fan::graphics::algorithm::grid_raycast({prev_pos, pos}, tile_size);
       prev_pos = pos;
@@ -65,5 +65,51 @@ export namespace fan::graphics {
       for (auto& c : cells) c = c * tile_size;
       return cells;
     }
+  };
+
+  template <typename T>
+  struct grid_brush_t {
+    fan::vec2 tile_size;
+    grid_drag_painter_t painter;
+    std::unordered_map<fan::vec2i, T> placed;
+
+    grid_brush_t(fan::vec2 ts) : tile_size(ts) {}
+
+    std::vector<fan::vec3> paint_update(const fan::vec2& pos) {
+      auto cells = painter.update(pos, tile_size);
+      std::vector<fan::vec3> result;
+      for (auto& p : cells) {
+        fan::vec2i cell(p.x / (int)tile_size.x, p.y / (int)tile_size.y);
+        if (!placed.contains(cell)) {
+          result.push_back(fan::vec3(
+            cell.x * tile_size.x + tile_size.x / 2.f,
+            cell.y * tile_size.y + tile_size.y / 2.f,
+            0
+          ));
+        }
+      }
+      return result;
+    }
+
+    std::vector<T> erase_update(const fan::vec2& pos) {
+      auto cells = painter.update(pos, tile_size);
+      std::vector<T> result;
+      for (auto& p : cells) {
+        fan::vec2i cell(p.x / (int)tile_size.x, p.y / (int)tile_size.y);
+        auto it = placed.find(cell);
+        if (it != placed.end()) {
+          result.push_back(std::move(it->second));
+          placed.erase(it);
+        }
+      }
+      return result;
+    }
+
+    void insert(fan::vec3 pos, T obj) {
+      placed.insert_or_assign({(int)((pos.x - tile_size.x / 2.f) / tile_size.x),
+                               (int)((pos.y - tile_size.y / 2.f) / tile_size.y)}, std::move(obj));
+    }
+
+    void reset() { painter.reset(); }
   };
 }
