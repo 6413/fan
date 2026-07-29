@@ -107,47 +107,18 @@ export namespace fan::graphics {
       return painter.update(pos, tile_size);
     }
 
-    template <typename... Args>
-    void paint_directional(const fan::vec2& mouse_pos, Args&&... args) {
+    template <typename F>
+    void paint_directional(const fan::vec2& mouse_pos, F&& on_cell) {
       for (auto& cell : paint_overwrite(mouse_pos)) {
-        if (cell == last_cell) {
-          continue;
-        }
-
-        fan::vec2i8 facing = cell_direction(cell - last_cell);
-        if (last_cell.x != std::numeric_limits<int>::max()) {
-          if (auto* prev = get(last_cell)) {
-            prev->set_facing(facing);
-          }
-        }
-
-        fan::vec3 pos(
-          cell.x * tile_size.x + tile_size.x / 2.f,
-          cell.y * tile_size.y + tile_size.y / 2.f,
-          get_z_depth(cell.y + 1)
-        );
-
-        insert(cell, pos, facing, std::forward<Args>(args)...);
+        if (cell == last_cell) continue;
+        auto facing = cell_direction(cell - last_cell);
+        auto prev = last_cell;
         last_cell = cell;
+        on_cell(cell, facing, prev);
       }
     }
 
-    void erase_update(const fan::vec2& pos) {
-      for (auto& cell : painter.update(pos, tile_size)) {
-        placed.erase(cell);
-      }
-    }
-
-    void insert(const fan::vec3& pos, fan::vec2i8 facing) {
-      insert(cell_at(pos), pos, facing);
-    }
-
-    void insert(fan::vec2i cell, const fan::vec3& pos, fan::vec2i8 facing) {
-      placed.erase(cell);
-      placed.try_emplace(cell, fan::vec2(pos.x, pos.y), facing);
-    }
-
-    bool follow_belt(fan::vec2& pos, fan::vec2i8& facing, f32_t speed, f32_t dt) {
+    bool follow_path(fan::vec2& pos, fan::vec2i8& facing, f32_t speed, f32_t dt, auto&& get_facing) {
       f32_t dist = tile_size.x * speed * dt;
       f32_t half = tile_size.x * 0.5f;
       int steps = std::max(1, (int)(dist / (half * 0.5f)) + 1);
@@ -164,9 +135,7 @@ export namespace fan::graphics {
 
         auto new_cell = cell_at(pos);
         if (new_cell != cell) {
-          auto* belt = get(new_cell);
-          if (!belt) return false;
-          facing = belt->facing;
+          if (!get_facing(new_cell, facing)) return false;
           cell = new_cell;
           center = fan::vec2(cell.x * tile_size.x + half, cell.y * tile_size.y + half);
         }
@@ -175,6 +144,22 @@ export namespace fan::graphics {
         if (facing.y) pos.x += (center.x - pos.x) * snap;
       }
       return true;
+    }
+
+    void erase_update(const fan::vec2& pos) {
+      for (auto& cell : painter.update(pos, tile_size)) {
+        placed.erase(cell);
+      }
+    }
+
+    template <typename... Args>
+    void insert(fan::vec2i cell, Args&&... args) {
+      placed.erase(cell);
+      placed.try_emplace(cell, cell_center(cell), std::forward<Args>(args)...);
+    }
+
+    fan::vec2 cell_center(fan::vec2i cell) const {
+      return {cell.x * tile_size.x + tile_size.x / 2.f, cell.y * tile_size.y + tile_size.y / 2.f};
     }
 
     fan::vec2i cell_at(const fan::vec2& pos) const { return {(int)std::floor(pos.x / tile_size.x), (int)std::floor(pos.y / tile_size.y)}; }
