@@ -5,6 +5,15 @@ constexpr vec_t() = default;
 template <typename U> requires std::is_arithmetic_v<U>
 constexpr vec_t(U single_init) { for (access_type_t i = 0; i < vec_n; ++i) operator[](i) = single_init; } 
 
+constexpr vec_t(std::initializer_list<value_type_t> init) {
+  access_type_t i = 0;
+  for (auto&& e : init) {
+    if (i >= vec_n) break;
+    (*this)[i++] = e;
+  }
+  for (; i < vec_n; ++i) (*this)[i] = value_type_t{};
+}
+
 template<typename... Args>
 requires ((std::is_arithmetic_v<std::remove_reference_t<Args>> && ...) && sizeof...(Args) == vec_n)
 constexpr vec_t(Args&&...args) {
@@ -12,7 +21,7 @@ constexpr vec_t(Args&&...args) {
   ((this->operator[](i++) = static_cast<value_type_t>(args)), ...);
 }
 
-template <typename U> requires std::is_convertible_v<U, value_type_t>
+template <typename U> requires (std::is_convertible_v<U, value_type_t> && !std::same_as<U, value_type_t>)
 constexpr vec_t(std::initializer_list<U> init) {
   access_type_t i = 0;
   for (auto&& e : init) {
