@@ -7,13 +7,17 @@ import fan.graphics.algorithm.raycast_grid;
 import fan.graphics.common_types;
 
 export namespace fan::graphics {
-  struct grid_placer_t {
-    fan::vec2 tile_size;
-    
-    f32_t z_min = 1.f;
-    f32_t z_max = 65535.f;
-    f32_t z_offset = 0.f;
+  inline fan::vec2i8 cell_direction(fan::vec2i delta) {
+    if (std::abs(delta.x) > std::abs(delta.y)) {
+      return {(int8_t)(delta.x > 0 ? 1 : -1), 0};
+    }
+    if (delta.y) {
+      return {0, (int8_t)(delta.y > 0 ? 1 : -1)};
+    }
+    return {1, 0};
+  }
 
+  struct grid_placer_t {
     grid_placer_t(fan::vec2 ts) : tile_size(ts) {}
 
     inline f32_t get_z_depth(f32_t ground_y) const {
@@ -41,11 +45,14 @@ export namespace fan::graphics {
     inline fan::vec2 get_fit_size(fan::vec2 original_size, fan::vec2 custom_scale = 1.f) const {
       return fan::vec2(tile_size.x, tile_size.x * (original_size.y / original_size.x)) * custom_scale;
     }
+
+    fan::vec2 tile_size;
+    f32_t z_min = 1.f;
+    f32_t z_max = 65535.f;
+    f32_t z_offset = 0.f;
   };
 
   struct grid_drag_painter_t {
-    fan::vec2 prev_pos{std::numeric_limits<f32_t>::max(), std::numeric_limits<f32_t>::max()};
-
     void reset() {
       prev_pos = {std::numeric_limits<f32_t>::max(), std::numeric_limits<f32_t>::max()};
     }
@@ -55,11 +62,15 @@ export namespace fan::graphics {
         prev_pos = pos;
         return {fan::vec2i((int)std::floor(pos.x / tile_size.x), (int)std::floor(pos.y / tile_size.y))};
       }
-      if (prev_pos == pos) return {};
+      if (prev_pos == pos) {
+        return {};
+      }
       auto cells = fan::graphics::algorithm::grid_raycast({prev_pos, pos}, tile_size);
       prev_pos = pos;
       return cells;
     }
+
+    fan::vec2 prev_pos{std::numeric_limits<f32_t>::max(), std::numeric_limits<f32_t>::max()};
   };
 
   template <typename T>
@@ -69,47 +80,56 @@ export namespace fan::graphics {
       f32_t z_offset = 0.f; 
       f32_t z_min = 1.f;    
       f32_t z_max = 65535.f;
-    } config;
-
-    fan::vec2 tile_size;
-    grid_drag_painter_t painter;
-    std::unordered_map<fan::vec2i, T> placed;
+    };
 
     grid_brush_t(fan::vec2 ts, config_t conf = {}) : tile_size(ts), config(conf) {}
 
     inline f32_t get_z_depth(f32_t ground_y) const {
-      if (!config.z_by_y) return config.z_offset;
+      if (!config.z_by_y) {
+        return config.z_offset;
+      }
       return std::clamp(ground_y + config.z_offset, config.z_min, config.z_max);
     }
 
-    std::vector<fan::vec3> paint_update(const fan::vec2& pos) {
-      std::vector<fan::vec3> result;
+    std::vector<fan::vec2i> paint_update(const fan::vec2& pos) {
+      std::vector<fan::vec2i> result;
       auto cells = painter.update(pos, tile_size);
       result.reserve(cells.size());
       for (auto& cell : cells) {
         if (!placed.contains(cell)) {
-          result.push_back(fan::vec3(
-            cell.x * tile_size.x + tile_size.x / 2.f,
-            cell.y * tile_size.y + tile_size.y / 2.f,
-            get_z_depth(cell.y + 1)
-          ));
+          result.push_back(cell);
         }
       }
       return result;
     }
 
-    std::vector<fan::vec3> paint_overwrite(const fan::vec2& pos) {
-      std::vector<fan::vec3> result;
-      auto cells = painter.update(pos, tile_size);
-      result.reserve(cells.size());
-      for (auto& cell : cells) {
-        result.push_back(fan::vec3(
+    std::vector<fan::vec2i> paint_overwrite(const fan::vec2& pos) {
+      return painter.update(pos, tile_size);
+    }
+
+    template <typename... Args>
+    void paint_directional(const fan::vec2& mouse_pos, Args&&... args) {
+      for (auto& cell : paint_overwrite(mouse_pos)) {
+        if (cell == last_cell) {
+          continue;
+        }
+
+        fan::vec2i8 facing = cell_direction(cell - last_cell);
+        if (last_cell.x != std::numeric_limits<int>::max()) {
+          if (auto* prev = get(last_cell)) {
+            prev->set_facing(facing);
+          }
+        }
+
+        fan::vec3 pos(
           cell.x * tile_size.x + tile_size.x / 2.f,
           cell.y * tile_size.y + tile_size.y / 2.f,
           get_z_depth(cell.y + 1)
-        ));
+        );
+
+        insert(cell, pos, facing, std::forward<Args>(args)...);
+        last_cell = cell;
       }
-      return result;
     }
 
     void erase_update(const fan::vec2& pos) {
@@ -118,8 +138,13 @@ export namespace fan::graphics {
       }
     }
 
-    void insert(const fan::vec3& pos, T obj) {
-      placed.insert_or_assign(cell_at(pos), std::move(obj));
+    void insert(const fan::vec3& pos, fan::vec2i8 facing) {
+      insert(cell_at(pos), pos, facing);
+    }
+
+    void insert(fan::vec2i cell, const fan::vec3& pos, fan::vec2i8 facing) {
+      placed.erase(cell);
+      placed.try_emplace(cell, fan::vec2(pos.x, pos.y), facing);
     }
 
     fan::vec2i cell_at(const fan::vec2& pos) const { return {(int)std::floor(pos.x / tile_size.x), (int)std::floor(pos.y / tile_size.y)}; }
@@ -134,12 +159,15 @@ export namespace fan::graphics {
 
     bool has(fan::vec2i cell) const { return placed.contains(cell); }
 
-    void reset() { painter.reset(); }
-  };
+    void reset() { 
+      painter.reset(); 
+      last_cell = {std::numeric_limits<int>::max(), std::numeric_limits<int>::max()};
+    }
 
-  inline fan::vec2i8 cell_direction(fan::vec2i delta) {
-    if (std::abs(delta.x) > std::abs(delta.y)) return {(int8_t)(delta.x > 0 ? 1 : -1), 0};
-    if (delta.y) return {0, (int8_t)(delta.y > 0 ? 1 : -1)};
-    return {1, 0};
-  }
+    config_t config;
+    fan::vec2 tile_size;
+    grid_drag_painter_t painter;
+    std::unordered_map<fan::vec2i, T> placed;
+    fan::vec2i last_cell{std::numeric_limits<int>::max(), std::numeric_limits<int>::max()};
+  };
 }
