@@ -26,23 +26,33 @@ struct conveyor_belt_t : fan::frame_task_t<conveyor_belt_t> {
   sprite_t belt;
   sprite_t belt_sides;
   fan::vec2i8 facing;
-  f32_t scroll_speed = 10.f;
+  f32_t scroll_speed = 1000.f;
 };
 
 struct resource_t : fan::frame_task_t<resource_t> {
   resource_t(fan::vec2 pos, fan::vec2i8 facing, grid_brush_t<conveyor_belt_t>* brush = nullptr)
     : img(fan::vec3(pos, 20.f), half_tile, {"images/rock2.webp"}), facing(facing), brush(brush) {}
   void update() {
-    auto* belt = brush->get(img.get_position());
-    if (!belt) return;
-    facing = belt->facing;
     auto dt = fan::graphics::get_window().m_delta_time;
     auto pos = img.get_position();
-    auto cell = brush->cell_at(pos);
-    auto center = fan::vec2(cell.x * full_tile + half_tile, cell.y * full_tile + half_tile);
-    pos += facing * full_tile * belt->scroll_speed * dt;
-    if (facing.x) pos.y += (center.y - pos.y) * dt * belt->scroll_speed;
-    if (facing.y) pos.x += (center.x - pos.x) * dt * belt->scroll_speed;
+    auto* belt = brush->get(pos);
+    if (!belt) return;
+    facing = belt->facing;
+    auto speed = full_tile * belt->scroll_speed * dt;
+    int steps = std::max(1, (int)(speed / (half_tile * 0.5f)) + 1);
+    auto inc = facing * (speed / steps);
+
+    for (int i = 0; i < steps; ++i) {
+      auto* b = brush->get(pos);
+      if (!b) return;
+      facing = b->facing;
+      inc = facing * full_tile * b->scroll_speed * (dt / steps);
+      auto cell = brush->cell_at(pos);
+      auto center = fan::vec2(cell.x * full_tile + half_tile, cell.y * full_tile + half_tile);
+      pos += inc;
+      if (facing.x) pos.y += (center.y - pos.y) * dt * b->scroll_speed / steps;
+      if (facing.y) pos.x += (center.x - pos.x) * dt * b->scroll_speed / steps;
+    }
     img.set_position(pos);
   }
   sprite_t img;
