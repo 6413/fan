@@ -53,7 +53,7 @@ export namespace fan::graphics {
     std::vector<fan::vec2i> update(const fan::vec2& pos, const fan::vec2& tile_size) {
       if (prev_pos.x == std::numeric_limits<f32_t>::max()) {
         prev_pos = pos;
-        return {pos.grid_floor(tile_size)};
+        return {fan::vec2i((int)std::floor(pos.x / tile_size.x), (int)std::floor(pos.y / tile_size.y))};
       }
       auto cells = fan::graphics::algorithm::grid_raycast({prev_pos, pos}, tile_size);
       prev_pos = pos;
@@ -95,22 +95,19 @@ export namespace fan::graphics {
       return result;
     }
 
-    std::vector<T> erase_update(const fan::vec2& pos) {
-      std::vector<T> result;
+    void erase_update(const fan::vec2& pos) {
       for (auto& cell : painter.update(pos, tile_size)) {
         if (auto it = placed.find(cell); it != placed.end()) {
-          result.push_back(std::move(it->second));
-          placed.erase(it);
+          it = placed.erase(it);
         }
       }
-      return result;
     }
 
     void insert(const fan::vec3& pos, T obj) {
       placed.insert_or_assign(cell_at(pos), std::move(obj));
     }
 
-    fan::vec2i cell_at(const fan::vec2& pos) const { return pos.grid_floor(tile_size); }
+    fan::vec2i cell_at(const fan::vec2& pos) const { return {(int)std::floor(pos.x / tile_size.x), (int)std::floor(pos.y / tile_size.y)}; }
     fan::vec2i cell_at(const fan::vec3& pos) const { return cell_at(fan::vec2(pos.x, pos.y)); }
 
     T* get(fan::vec2i cell) { auto it = placed.find(cell); return it != placed.end() ? &it->second : nullptr; }
@@ -124,4 +121,10 @@ export namespace fan::graphics {
 
     void reset() { painter.reset(); }
   };
+
+  inline fan::vec2i8 cell_direction(fan::vec2i delta) {
+    if (delta.x) return {(int8_t)(delta.x > 0 ? 1 : -1), 0};
+    if (delta.y) return {0, (int8_t)(delta.y > 0 ? 1 : -1)};
+    return {1, 0};
+  }
 }
