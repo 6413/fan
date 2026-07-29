@@ -36,50 +36,11 @@ struct resource_t : fan::frame_task_t<resource_t> {
 
   void update() {
     auto dt = fan::graphics::get_window().m_delta_time;
-    auto pos = img.get_position();
-
+    fan::vec2 pos = img.get_position();
     auto* belt = brush->get(pos);
-    if (!belt) {
-      return;
-    }
+    if (!belt) return;
     facing = belt->facing;
-
-    f32_t total_dist = full_tile * belt->scroll_speed * dt;
-    f32_t max_step = half_tile * 0.25f;
-    int steps = std::max(1, (int)(total_dist / max_step) + 1);
-    f32_t step_dist = total_dist / steps;
-    f32_t snap = dt * belt->scroll_speed / steps;
-
-    fan::vec2i cell = brush->cell_at(pos);
-    fan::vec2 center(cell.x * full_tile + half_tile, cell.y * full_tile + half_tile);
-
-    for (int i = 0; i < steps; ++i) {
-      pos += fan::vec2(facing) * step_dist;
-      if (facing.x) {
-        pos.y = std::clamp(pos.y, cell.y * full_tile, cell.y * full_tile + full_tile);
-      }
-      if (facing.y) {
-        pos.x = std::clamp(pos.x, cell.x * full_tile, cell.x * full_tile + full_tile);
-      }
-
-      auto new_cell = brush->cell_at(pos);
-      if (new_cell != cell) {
-        belt = brush->get(new_cell);
-        if (!belt) {
-          break;
-        }
-        facing = belt->facing;
-        cell = new_cell;
-        center = fan::vec2(cell.x * full_tile + half_tile, cell.y * full_tile + half_tile);
-      }
-
-      if (facing.x) {
-        pos.y += (center.y - pos.y) * snap;
-      }
-      if (facing.y) {
-        pos.x += (center.x - pos.x) * snap;
-      }
-    }
+    if (!brush->follow_belt(pos, facing, belt->scroll_speed, dt)) return;
     img.set_position(pos);
   }
 
