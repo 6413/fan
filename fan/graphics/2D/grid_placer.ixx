@@ -147,6 +147,36 @@ export namespace fan::graphics {
       placed.try_emplace(cell, fan::vec2(pos.x, pos.y), facing);
     }
 
+    bool follow_belt(fan::vec2& pos, fan::vec2i8& facing, f32_t speed, f32_t dt) {
+      f32_t dist = tile_size.x * speed * dt;
+      f32_t half = tile_size.x * 0.5f;
+      int steps = std::max(1, (int)(dist / (half * 0.5f)) + 1);
+      f32_t step_dist = dist / steps;
+      f32_t snap = dt * speed / steps;
+
+      fan::vec2i cell = cell_at(pos);
+      fan::vec2 center(cell.x * tile_size.x + half, cell.y * tile_size.y + half);
+
+      for (int i = 0; i < steps; ++i) {
+        pos += fan::vec2(facing) * step_dist;
+        if (facing.x) pos.y = std::clamp(pos.y, cell.y * tile_size.y, cell.y * tile_size.y + tile_size.y);
+        if (facing.y) pos.x = std::clamp(pos.x, cell.x * tile_size.x, cell.x * tile_size.x + tile_size.x);
+
+        auto new_cell = cell_at(pos);
+        if (new_cell != cell) {
+          auto* belt = get(new_cell);
+          if (!belt) return false;
+          facing = belt->facing;
+          cell = new_cell;
+          center = fan::vec2(cell.x * tile_size.x + half, cell.y * tile_size.y + half);
+        }
+
+        if (facing.x) pos.y += (center.y - pos.y) * snap;
+        if (facing.y) pos.x += (center.x - pos.x) * snap;
+      }
+      return true;
+    }
+
     fan::vec2i cell_at(const fan::vec2& pos) const { return {(int)std::floor(pos.x / tile_size.x), (int)std::floor(pos.y / tile_size.y)}; }
     fan::vec2i cell_at(const fan::vec3& pos) const { return cell_at(fan::vec2(pos.x, pos.y)); }
 
