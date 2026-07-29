@@ -27,12 +27,12 @@ struct conveyor_belt_t : fan::frame_task_t<conveyor_belt_t> {
   sprite_t belt;
   sprite_t belt_sides;
   fan::vec2i8 facing;
-  f32_t scroll_speed = 10.f;
+  f32_t scroll_speed = 3.f;
 };
 
 struct resource_t : fan::frame_task_t<resource_t> {
   resource_t(fan::vec2 pos, fan::vec2i8 facing, grid_brush_t<conveyor_belt_t>* brush = nullptr)
-    : img(fan::vec3(pos, 20.f), half_tile, {"images/rock2.webp"}), facing(facing), brush(brush) {}
+    : img(fan::vec3(pos, 20.f), half_tile, {"images/ruby.webp"}), facing(facing), brush(brush) {}
 
   void update() {
     auto dt = fan::graphics::get_window().m_delta_time;
@@ -74,7 +74,7 @@ struct app_t : engine_t {
         belt->set_facing(dirs[(i + 1) % 4]);
       }
     }
-    else if (is_mouse_down(fan::key_space)) {
+    else if (is_mouse_down(fan::key_space) && fan::time::every(100)) {
       if (auto* belt = brush.get(get_mouse_position())) {
         ores.emplace_back(belt->belt.get_position(), belt->facing, &brush);
       }
