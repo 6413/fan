@@ -2657,6 +2657,15 @@ namespace fan::graphics{
     return sheet;
   }
 
+  void shapes::shape_t::uv_scroll(fan::vec2i8 direction, f32_t speed) {
+    auto dt = fan::graphics::get_window().m_delta_time;
+    set_tc_position(get_tc_position() + direction * speed * dt);
+  }
+  void shapes::shape_t::uv_uniform_scroll(fan::vec2i8 direction, f32_t speed) {
+    auto offset = std::fmod(fan::time::seconds() * speed, 1.0);
+    set_tc_position(direction * offset);
+  }
+
   void shapes::shape_t::set_light_position(const fan::vec3& new_pos) {
     if (get_shape_type() != fan::graphics::shapes::shape_type_t::shadow) {
       fan::throw_error("invalid function call for current shape");

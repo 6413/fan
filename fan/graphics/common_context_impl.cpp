@@ -885,6 +885,12 @@ namespace fan::graphics::image_presets {
     return props;
   }
 
+  image_load_properties_t pixel_art_mirrored_repeat() {
+    auto props = pixel_art();
+    props.visual_output = fan::graphics::image_sampler_address_mode_e::mirrored_repeat;
+    return props;
+  }
+
   image_load_properties_t smooth() {
     image_load_properties_t props;
     props.visual_output = fan::graphics::image_sampler_address_mode_e::clamp_to_border;

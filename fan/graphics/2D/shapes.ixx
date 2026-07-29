@@ -485,6 +485,10 @@ export namespace fan::graphics {
       int get_current_sprite_sheet_frame_count();
       // dont store the pointer
       sprite_sheet_t* get_sprite_sheet(const std::string& name);
+
+      void uv_scroll(fan::vec2i8 direction = {1, 0}, f32_t speed = 1.f);
+      void uv_uniform_scroll(fan::vec2i8 direction = {1, 0}, f32_t speed = 1.f);
+  
       void set_light_position(const fan::vec3& new_pos);
       void set_light_radius(f32_t radius);
       // for line

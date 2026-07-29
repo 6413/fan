@@ -15,31 +15,32 @@ layout(push_constant) uniform pc_t {
 layout(location = 0) out vec4 out_color;
 const float tau = 6.28318530718;
 
-float sample_shadow(float u, float dist) {
-  return dist <= texture(shadow_texture, vec2(fract(u), 0.5)).r ? 1.0 : 0.0;
-}
-
 void main() {
   vec2 p = v_uv * 2.0 - 1.0;
   float dist = length(p);
   if (dist > 1.0) discard;
-  float u = atan(p.y, p.x) / tau;
-  if (u < 0.0) u += 1.0;
+  float fu = fract((atan(p.y, p.x) / tau) + 1.0);
 
-  float blocker = texture(shadow_texture, vec2(fract(u), 0.5)).r;
-  float ratio = max(0.0, dist - blocker) / max(blocker, 0.05);
-  float step = pc.angle_texel * max(min(ratio * pc.softness, 32.0), 1.0);
+  float cb = texture(shadow_texture, vec2(fu, 0.5)).r;
+  float center_lit = dist <= cb ? 1.0 : 0.0;
+
+  float ratio = max(0.0, dist - cb) / max(cb, 0.05);
+  float step_a = pc.angle_texel * max(min(ratio * pc.softness, 32.0), 1.0);
+  float s1 = step_a;
+  float s2 = step_a * 2.0;
+  float s3 = step_a * 3.0;
+  float s4 = step_a * 4.0;
 
   float lit = 0.0;
-  lit += sample_shadow(u - step * 4.0, dist) * 0.02;
-  lit += sample_shadow(u - step * 3.0, dist) * 0.06;
-  lit += sample_shadow(u - step * 2.0, dist) * 0.12;
-  lit += sample_shadow(u - step,       dist) * 0.20;
-  lit += sample_shadow(u,              dist) * 0.20;
-  lit += sample_shadow(u + step,       dist) * 0.20;
-  lit += sample_shadow(u + step * 2.0, dist) * 0.12;
-  lit += sample_shadow(u + step * 3.0, dist) * 0.06;
-  lit += sample_shadow(u + step * 4.0, dist) * 0.02;
+  lit += (dist <= texture(shadow_texture, vec2(fract(fu - s4), 0.5)).r ? 1.0 : 0.0) * 0.02;
+  lit += (dist <= texture(shadow_texture, vec2(fract(fu - s3), 0.5)).r ? 1.0 : 0.0) * 0.06;
+  lit += (dist <= texture(shadow_texture, vec2(fract(fu - s2), 0.5)).r ? 1.0 : 0.0) * 0.12;
+  lit += (dist <= texture(shadow_texture, vec2(fract(fu - s1), 0.5)).r ? 1.0 : 0.0) * 0.20;
+  lit += center_lit * 0.20;
+  lit += (dist <= texture(shadow_texture, vec2(fract(fu + s1), 0.5)).r ? 1.0 : 0.0) * 0.20;
+  lit += (dist <= texture(shadow_texture, vec2(fract(fu + s2), 0.5)).r ? 1.0 : 0.0) * 0.12;
+  lit += (dist <= texture(shadow_texture, vec2(fract(fu + s3), 0.5)).r ? 1.0 : 0.0) * 0.06;
+  lit += (dist <= texture(shadow_texture, vec2(fract(fu + s4), 0.5)).r ? 1.0 : 0.0) * 0.02;
 
   float pixel_angle = atan(p.y, p.x);
   float diff = abs(mod(pixel_angle - pc.cone_angle + 3.14159, tau) - 3.14159);
