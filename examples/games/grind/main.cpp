@@ -17,11 +17,10 @@ struct power_source_t {
 };
 
 struct conveyor_belt_t : fan::frame_task_t<conveyor_belt_t> {
-  conveyor_belt_t(fan::vec2 pos, fan::vec2i8 facing, grid_brush_t<power_source_t>* power_brush = nullptr)
+  conveyor_belt_t(fan::vec2 pos, fan::vec2i8 facing)
     : belt(      fan::vec3(pos, 10.f),             half_tile, {"conveyor_belt.webp"      }), 
       facing(facing),
-      belt_sides(fan::vec3(pos, 10.f).offset_z(1), half_tile, {"conveyor_belt_sides.webp"}),
-      power_brush(power_brush) {
+      belt_sides(fan::vec3(pos, 10.f).offset_z(1), half_tile, {"conveyor_belt_sides.webp"}) {
     set_facing(facing);
   }
 
@@ -33,7 +32,6 @@ struct conveyor_belt_t : fan::frame_task_t<conveyor_belt_t> {
   }
 
   void update() {
-    if (power_brush) powered = is_near_power();
     if (!powered) {
       belt.set_color(fan::colors::white);
       belt_sides.set_color(fan::colors::white);
@@ -44,20 +42,10 @@ struct conveyor_belt_t : fan::frame_task_t<conveyor_belt_t> {
     belt.uv_uniform_scroll({-1, 0}, scroll_speed);
   }
 
-  bool is_near_power() const {
-    auto cell = power_brush->cell_at(belt.get_position());
-    for (auto& [ps_cell, ps] : power_brush->placed) {
-      if (std::abs(cell.x - ps_cell.x) <= (int)ps.power_range.x &&
-          std::abs(cell.y - ps_cell.y) <= (int)ps.power_range.y) return true;
-    }
-    return false;
-  }
-
   sprite_t belt;
   sprite_t belt_sides;
   fan::vec2i8 facing;
   f32_t scroll_speed = 3.f;
-  grid_brush_t<power_source_t>* power_brush = nullptr;
   bool powered = true;
 };
 
@@ -86,13 +74,14 @@ struct resource_t : fan::frame_task_t<resource_t> {
 };
 
 struct app_t : engine_t {
-  app_t() : grass(/*engine.create_transparent_texture()*//**/"images/grass1.jpg") {
+  app_t() : grass("images/grass1.jpg") {
     engine_t::loop([&] {loop(); });
     get_lighting().set_target(1.f);
   }
 
   void loop() {
     update_tiling_background(grass, half_tile);
+    update_power();
 
     if (is_key_down(fan::key_e)) {
       brush_ps.paint_directional(get_mouse_position(), [&](auto cell, auto facing, auto prev) {
@@ -109,7 +98,7 @@ struct app_t : engine_t {
         if (prev.x >= 0)
           if (auto* p = brush.get(prev))
             p->set_facing(facing);
-        brush.insert(cell, facing, &brush_ps);
+        brush.insert(cell, facing);
       });
     }
     else if (is_mouse_down(1)) {
@@ -137,6 +126,21 @@ struct app_t : engine_t {
     }
   }
 
+  void update_power() {
+    powered_cells.clear();
+    for (auto& [ps_cell, ps] : brush_ps.placed) {
+      int rx = (int)ps.power_range.x, ry = (int)ps.power_range.y;
+      int cx = ps_cell.x, cy = ps_cell.y;
+      for (int dy = -ry; dy <= ry; ++dy)
+        for (int dx = -rx; dx <= rx; ++dx)
+          powered_cells.emplace(cx + dx, cy + dy);
+    }
+    for (auto& [cell, belt] : brush.placed) {
+      belt.powered = powered_cells.contains(cell);
+    }
+  }
+
+  std::unordered_set<fan::vec2i> powered_cells;
   grid_brush_t<conveyor_belt_t> brush{half_tile * 2.0f, {.z_by_y=false}};
   grid_brush_t<power_source_t> brush_ps{half_tile * 2.0f, {.z_by_y=false}};
   std::deque<resource_t> ores;
