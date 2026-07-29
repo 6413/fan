@@ -7,10 +7,12 @@ static constexpr f32_t half_tile = 64.f;
 static constexpr f32_t full_tile = half_tile * 2.;
 
 struct power_source_t {
-  power_source_t(fan::vec2 pos, f32_t power = 0.f) 
+  power_source_t(fan::vec2 pos, fan::vec2 power_range, f32_t power) 
     : img(fan::vec3(pos, 10.f), half_tile, fan::colors::green), 
+      power_range(power_range),
       power(power) {}
   sprite_t img;
+  fan::vec2 power_range;
   f32_t power;
 };
 
