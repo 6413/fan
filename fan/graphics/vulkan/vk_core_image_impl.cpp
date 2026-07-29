@@ -295,9 +295,9 @@ VkFormat fan::vulkan::context_t::get_format_from_channels(int channels) {
   switch (channels) {
     case 1: return VK_FORMAT_R8_UNORM;
     case 2: return VK_FORMAT_R8G8_UNORM;
-    case 3: return VK_FORMAT_R8G8B8A8_UNORM;
-    case 4: return VK_FORMAT_R8G8B8A8_UNORM;
-    default: return VK_FORMAT_R8G8B8A8_UNORM;
+    case 3: return VK_FORMAT_R8G8B8A8_SRGB;
+    case 4: return VK_FORMAT_R8G8B8A8_SRGB;
+    default: return VK_FORMAT_R8G8B8A8_SRGB;
   }
 }
 // for draw
