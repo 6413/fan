@@ -55,6 +55,7 @@ export namespace fan::graphics {
         prev_pos = pos;
         return {fan::vec2i((int)std::floor(pos.x / tile_size.x), (int)std::floor(pos.y / tile_size.y))};
       }
+      if (prev_pos == pos) return {};
       auto cells = fan::graphics::algorithm::grid_raycast({prev_pos, pos}, tile_size);
       prev_pos = pos;
       return cells;
@@ -83,7 +84,9 @@ export namespace fan::graphics {
 
     std::vector<fan::vec3> paint_update(const fan::vec2& pos) {
       std::vector<fan::vec3> result;
-      for (auto& cell : painter.update(pos, tile_size)) {
+      auto cells = painter.update(pos, tile_size);
+      result.reserve(cells.size());
+      for (auto& cell : cells) {
         if (!placed.contains(cell)) {
           result.push_back(fan::vec3(
             cell.x * tile_size.x + tile_size.x / 2.f,
@@ -97,7 +100,9 @@ export namespace fan::graphics {
 
     std::vector<fan::vec3> paint_overwrite(const fan::vec2& pos) {
       std::vector<fan::vec3> result;
-      for (auto& cell : painter.update(pos, tile_size)) {
+      auto cells = painter.update(pos, tile_size);
+      result.reserve(cells.size());
+      for (auto& cell : cells) {
         result.push_back(fan::vec3(
           cell.x * tile_size.x + tile_size.x / 2.f,
           cell.y * tile_size.y + tile_size.y / 2.f,
@@ -109,9 +114,7 @@ export namespace fan::graphics {
 
     void erase_update(const fan::vec2& pos) {
       for (auto& cell : painter.update(pos, tile_size)) {
-        if (auto it = placed.find(cell); it != placed.end()) {
-          it = placed.erase(it);
-        }
+        placed.erase(cell);
       }
     }
 
@@ -135,7 +138,7 @@ export namespace fan::graphics {
   };
 
   inline fan::vec2i8 cell_direction(fan::vec2i delta) {
-    if (delta.x) return {(int8_t)(delta.x > 0 ? 1 : -1), 0};
+    if (std::abs(delta.x) > std::abs(delta.y)) return {(int8_t)(delta.x > 0 ? 1 : -1), 0};
     if (delta.y) return {0, (int8_t)(delta.y > 0 ? 1 : -1)};
     return {1, 0};
   }

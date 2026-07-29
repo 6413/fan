@@ -35,23 +35,39 @@ struct resource_t : fan::frame_task_t<resource_t> {
   void update() {
     auto dt = fan::graphics::get_window().m_delta_time;
     auto pos = img.get_position();
+
     auto* belt = brush->get(pos);
     if (!belt) return;
     facing = belt->facing;
-    auto speed = full_tile * belt->scroll_speed * dt;
-    int steps = std::max(1, (int)(speed / (half_tile * 0.5f)) + 1);
-    auto inc = facing * (speed / steps);
+
+    f32_t total_dist = full_tile * belt->scroll_speed * dt;
+    // cap each substep to a small fraction of a tile so a belt boundary can never be skipped
+    f32_t max_step = half_tile * 0.25f;
+    int steps = std::max(1, (int)(total_dist / max_step) + 1);
+    f32_t step_dist = total_dist / steps;
+
+    fan::vec2i cell = brush->cell_at(pos);
+    fan::vec2 center(cell.x * full_tile + half_tile, cell.y * full_tile + half_tile);
 
     for (int i = 0; i < steps; ++i) {
-      auto* b = brush->get(pos);
-      if (!b) return;
-      facing = b->facing;
-      inc = facing * full_tile * b->scroll_speed * (dt / steps);
-      auto cell = brush->cell_at(pos);
-      auto center = fan::vec2(cell.x * full_tile + half_tile, cell.y * full_tile + half_tile);
-      pos += inc;
-      if (facing.x) pos.y += (center.y - pos.y) * dt * b->scroll_speed / steps;
-      if (facing.y) pos.x += (center.x - pos.x) * dt * b->scroll_speed / steps;
+      pos += fan::vec2(facing) * step_dist;
+      // keep the cross-axis coordinate inside the current cell's bounds so a moving-axis
+      // step can never round pos into a diagonally-adjacent cell that was never entered
+      if (facing.x) pos.y = std::clamp(pos.y, cell.y * full_tile, cell.y * full_tile + full_tile);
+      if (facing.y) pos.x = std::clamp(pos.x, cell.x * full_tile, cell.x * full_tile + full_tile);
+
+      auto new_cell = brush->cell_at(pos);
+      if (new_cell != cell) {
+        belt = brush->get(new_cell);
+        if (!belt) break;
+        facing = belt->facing;
+        cell = new_cell;
+        center = fan::vec2(cell.x * full_tile + half_tile, cell.y * full_tile + half_tile);
+      }
+
+      f32_t snap = dt * belt->scroll_speed / steps;
+      if (facing.x) pos.y += (center.y - pos.y) * snap;
+      if (facing.y) pos.x += (center.x - pos.x) * snap;
     }
     img.set_position(pos);
   }
@@ -68,12 +84,15 @@ struct app_t : engine_t {
 
   void loop() {
     if (is_mouse_down()) {
-      auto cells = brush.paint_overwrite(get_mouse_position());
+      auto mouse_pos = get_mouse_position();
+      auto cells = brush.paint_overwrite(mouse_pos);
       for (auto& pos : cells) {
         auto cell = brush.cell_at(pos);
         if (cell == last_cell) continue;
 
         fan::vec2i8 facing = cell_direction(cell - last_cell);
+        static int step_n = 0;
+        fan::print(step_n++, "cell:", cell, "facing:", facing);
         if (last_cell.x >= 0)
           if (auto* prev = brush.get(last_cell))
             prev->set_facing(facing);
@@ -87,7 +106,10 @@ struct app_t : engine_t {
     }
     else if (is_mouse_clicked(2)) {
       if (auto* belt = brush.get(get_mouse_position())) {
-        belt->set_facing(belt->facing.x ? fan::vec2i8{0, 1} : fan::vec2i8{1, 0});
+        static constexpr fan::vec2i8 dirs[4]{{1,0},{0,1},{-1,0},{0,-1}};
+        int i = 0;
+        for (; i < 4; ++i) if (dirs[i] == belt->facing) break;
+        belt->set_facing(dirs[(i + 1) % 4]);
       }
     }
     else if (is_mouse_down(fan::key_space)) {
