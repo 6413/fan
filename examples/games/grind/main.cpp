@@ -7,7 +7,7 @@ static constexpr f32_t half_tile = 64.f;
 static constexpr f32_t full_tile = half_tile * 2.;
 
 struct power_source_t {
-  power_source_t(fan::vec2 pos, fan::vec2 power_range, f32_t power) 
+  power_source_t(fan::vec2 pos, fan::vec2 power_range = {10.f, 10.f}, f32_t power = 1.f) 
     : img(fan::vec3(pos, 10.f), half_tile, fan::colors::green), 
       power_range(power_range),
       power(power) {}
@@ -17,10 +17,11 @@ struct power_source_t {
 };
 
 struct conveyor_belt_t : fan::frame_task_t<conveyor_belt_t> {
-  conveyor_belt_t(fan::vec2 pos, fan::vec2i8 facing)
+  conveyor_belt_t(fan::vec2 pos, fan::vec2i8 facing, grid_brush_t<power_source_t>* power_brush = nullptr)
     : belt(      fan::vec3(pos, 10.f),             half_tile, {"conveyor_belt.webp"      }), 
       facing(facing),
-      belt_sides(fan::vec3(pos, 10.f).offset_z(1), half_tile, {"conveyor_belt_sides.webp"}) {
+      belt_sides(fan::vec3(pos, 10.f).offset_z(1), half_tile, {"conveyor_belt_sides.webp"}),
+      power_brush(power_brush) {
     set_facing(facing);
   }
 
@@ -32,13 +33,32 @@ struct conveyor_belt_t : fan::frame_task_t<conveyor_belt_t> {
   }
 
   void update() {
+    if (power_brush) powered = is_near_power();
+    if (!powered) {
+      belt.set_color(fan::colors::white);
+      belt_sides.set_color(fan::colors::white);
+      return;
+    }
+    belt.set_color(fan::color(0.5f, 1.f, 0.5f, 1.f));
+    belt_sides.set_color(fan::color(0.5f, 1.f, 0.5f, 1.f));
     belt.uv_uniform_scroll({-1, 0}, scroll_speed);
+  }
+
+  bool is_near_power() const {
+    auto cell = power_brush->cell_at(belt.get_position());
+    for (auto& [ps_cell, ps] : power_brush->placed) {
+      if (std::abs(cell.x - ps_cell.x) <= (int)ps.power_range.x &&
+          std::abs(cell.y - ps_cell.y) <= (int)ps.power_range.y) return true;
+    }
+    return false;
   }
 
   sprite_t belt;
   sprite_t belt_sides;
   fan::vec2i8 facing;
   f32_t scroll_speed = 3.f;
+  grid_brush_t<power_source_t>* power_brush = nullptr;
+  bool powered = true;
 };
 
 struct resource_t : fan::frame_task_t<resource_t> {
@@ -53,7 +73,7 @@ struct resource_t : fan::frame_task_t<resource_t> {
     facing = belt->facing;
     if (!brush->follow_path(pos, facing, belt->scroll_speed, dt, [&](auto cell, auto& f) {
       auto* b = brush->get(cell);
-      if (!b) return false;
+      if (!b || !b->powered) return false;
       f = b->facing;
       return true;
     })) return;
@@ -80,12 +100,16 @@ struct app_t : engine_t {
         brush_ps.insert(cell);
       });
     }
+    else {
+      brush_ps.reset();
+    }
+
     if (is_mouse_down()) {
       brush.paint_directional(get_mouse_position(), [&](auto cell, auto facing, auto prev) {
         if (prev.x >= 0)
           if (auto* p = brush.get(prev))
             p->set_facing(facing);
-        brush.insert(cell, facing);
+        brush.insert(cell, facing, &brush_ps);
       });
     }
     else if (is_mouse_down(1)) {
