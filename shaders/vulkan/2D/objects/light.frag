@@ -8,17 +8,26 @@ layout(location = 4) in vec2 uv;
 layout(location = 5) flat in uint fs_flags;
 layout(location = 0) out vec4 o_attachment0;
 
-const vec2 magic_expand = vec2(1.0f);
+const vec2 magic_expand = vec2(1.0);
+
+float noise(vec2 p) {
+  return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453123);
+}
 
 void main() {
   float intensity = 0.0;
   float radius = max(instance_size.x * magic_expand.x, 0.0001);
-  
+
   if (fs_flags == 0u) {
-    float dist = dot(uv, uv);
-    float falloff = 1.0 / (1.0 + dist);
-    float cutoff = 1.0 - smoothstep(0.64, 1.0, sqrt(dist));
-    intensity = falloff * cutoff;
+    float dist = length(uv);
+
+    intensity = pow(max(1.0 - dist, 0.0), 2.4);
+
+    intensity *= mix(
+      0.98,
+      1.02,
+      noise(frag_position.xy)
+    );
   }
   else if (fs_flags == 1u) {
     vec2 half_size = instance_size * magic_expand;
@@ -29,20 +38,44 @@ void main() {
   else if (fs_flags == 2u) {
     float smooth_edge = radius * 1.17;
     float adjusted_radius = radius * 0.430;
+
     vec2 diff = abs(frag_position.xy - instance_position.xy) - vec2(adjusted_radius);
-    float edge_distance = length(max(diff, 0.0)) + min(max(diff.x, diff.y), 0.0);
-    intensity = edge_distance <= 0.0 ? 1.0 : 1.0 - smoothstep(0.0, smooth_edge, edge_distance);
+
+    float edge_distance =
+      length(max(diff, 0.0)) +
+      min(max(diff.x, diff.y), 0.0);
+
+    intensity =
+      edge_distance <= 0.0
+      ? 1.0
+      : 1.0 - smoothstep(0.0, smooth_edge, edge_distance);
   }
   else if (fs_flags >= 3u && fs_flags <= 6u) {
     const vec2 dirs[4] = vec2[](
-      vec2(-1.0, 0.0), vec2(1.0, 0.0), 
-      vec2(0.0, -1.0), vec2(0.0, 1.0)
+      vec2(-1.0, 0.0),
+      vec2( 1.0, 0.0),
+      vec2( 0.0,-1.0),
+      vec2( 0.0, 1.0)
     );
-    vec2 pixelDir = normalize(frag_position.xy - instance_position.xy);
-    float angle = max(dot(dirs[fs_flags - 3u], pixelDir), 0.0);
+
+    vec2 pixel_dir = normalize(frag_position.xy - instance_position.xy);
+
+    float angle = max(dot(dirs[fs_flags - 3u], pixel_dir), 0.0);
     float dist = length(frag_position.xy - instance_position.xy);
-    intensity = smoothstep(0.8, 1.0, angle) * (1.0 - smoothstep(radius * 0.5, radius, dist));
+
+    float angular = pow(angle, 5.0);
+    float radial = pow(max(1.0 - dist / radius, 0.0), 2.3);
+
+    intensity = angular * radial;
+
+    intensity *= mix(
+      0.98,
+      1.02,
+      noise(frag_position.xy)
+    );
   }
-  
+
+  intensity *= 2.0;
+
   o_attachment0 = instance_color * intensity;
 }

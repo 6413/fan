@@ -22,12 +22,12 @@ int main() {
   }};
 
   auto pa = image_presets::pixel_art();
-  image_t img_grass{"Textures/Grass/cubeGreen_1.png", pa};
-  image_t img_dirt{"Textures/Dirt/cubeDirt_1.png", pa};
-  image_t img_stone{"Textures/Stone/cubeStone_1.png", pa};
-  image_t img_bedrock{"Textures/Stone/cubeBedrock_1.png", pa};
-  image_t img_island{"Textures/Grass/cubeGreen_1.png", pa};
-  image_t img_dark_grass{"Textures/Grass/cubeGreen_2.png", pa};
+  image_t img_grass     {"images/Textures/Grass/cubeGreen_1.png",   pa};
+  image_t img_dirt      {"images/Textures/Dirt/cubeDirt_1.png",     pa};
+  image_t img_stone     {"images/Textures/Stone/cubeStone_1.png",   pa};
+  image_t img_bedrock   {"images/Textures/Stone/cubeBedrock_1.png", pa};
+  image_t img_island    {"images/Textures/Grass/cubeGreen_1.png",   pa};
+  image_t img_dark_grass{"images/Textures/Grass/cubeGreen_2.png",   pa};
 
   algorithm::chunk_renderer_t terrain{{
     .cell_size = 16.f,
@@ -61,7 +61,7 @@ int main() {
   engine.camera_set_target(player, 10.f);
 
   auto& lighting = fan::graphics::get_lighting();
-  lighting.ambient = fan::vec3(0.35f, 0.45f, 0.55f);
+  //lighting.ambient = fan::vec3(0.35f, 0.45f, 0.55f);
 
   auto sun = light_t(light_properties_t{
     .position = fan::vec3(0, 200.f, 5.f),
@@ -104,7 +104,7 @@ int main() {
     f32_t depth = std::max(0.f, surface_h - player_pos.y);
     f32_t cave_factor = std::min(depth / 40.f, 1.f);
 
-    lighting.ambient = fan::vec3(0.35f, 0.45f, 0.55f).lerp(fan::vec3(0.04f, 0.04f, 0.05f), cave_factor);
+    //lighting.ambient = fan::vec3(0.35f, 0.45f, 0.55f).lerp(fan::vec3(0.04f, 0.04f, 0.05f), cave_factor);
 
     sun.set_position(fan::vec3(cam_center.x, 200.f, 5.f));
     sun.set_color(fan::color(1.f, 0.95f, 0.85f, 0.5f).lerp(fan::color(1.f, 0.95f, 0.85f, 0.f), cave_factor));
