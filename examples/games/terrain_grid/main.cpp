@@ -59,16 +59,16 @@ int main() {
   auto& pctx = engine.get_physics_context();
   pctx.set_gravity(pctx.get_gravity() / 1.5f);
   player.set_mass(100.f);
-  player.enable_default_movement(300.f, 200.f);
+  player.enable_default_movement(70.f, 150.f);
 
   engine.camera_set_target(player, 10.f);
 
   engine.shadow_add_caster(&player, 0.05f);
 
   auto& lighting = fan::graphics::get_lighting();
-  //lighting.ambient = fan::vec3(0.35f, 0.45f, 0.55f);
+  lighting.ambient = fan::vec3(.6f/255.);
 
-  f32_t dig_radius = 64.f;
+  f32_t dig_radius = 2.f;
   fan::time::interval_t dig_interval{0.003f};
 
   gpu_particle_system_t<> dig_particles;
@@ -78,10 +78,12 @@ int main() {
 
   std::vector<fan::vec4> shadow_occluders;
 
-  fan::color torch_color_hud{1.f, 0.7f, 0.3f, 1.f};
-  f32_t torch_size_hud = 160.f;
-  f32_t torch_shadow_a_hud = 0.5f;
-  f32_t torch_visual_a_hud = 0.15f;
+  fan::color torch_color_hud{1.f, 1.f, 0.8f, 1.f};
+  f32_t torch_size_hud = 600.f;
+  f32_t torch_shadow_a_hud = 1.0f;
+  f32_t torch_shadow_softness = 15.956f;
+  f32_t torch_visual_a_hud = 0.200f;
+  f32_t sun_shadow_softness = 30.f;
 
   engine.loop([&] {
     f64_t dt = engine.get_delta_time();
@@ -111,14 +113,14 @@ int main() {
     fan::color sun_col(1.f, 0.95f, 0.85f, 1.f);
 
     engine.shadow_clear_lights();
-    engine.shadow_add_light(sun_lpos, 900.f, sun_col.set_alpha(sun_shadow_a), 200.f);
-    engine.shadow_add_light(torch_shadow_lpos, torch_size_hud, torch_color_hud.set_alpha(torch_shadow_a), 200.f);
+    engine.shadow_add_light(sun_lpos, 9000.f, 1.f, sun_shadow_softness);
+    engine.shadow_add_light(torch_shadow_lpos, torch_size_hud, torch_color_hud.set_alpha(torch_shadow_a), torch_shadow_softness);
 
-    fan::graphics::light(fan::vec3(sun_lpos, 5.f), fan::vec2(900), sun_col.set_alpha(sun_visual_a));
+    fan::graphics::light(fan::vec3(sun_lpos, 5.f), fan::vec2(9000), sun_col.set_alpha(sun_visual_a));
     fan::graphics::light(fan::vec3(torch_lpos, 10.f), fan::vec2(torch_size_hud), torch_color_hud.set_alpha(torch_visual_a));
 
     fan::vec2 view_half = engine.whs();
-    f32_t max_light_radius = 900.f;
+    f32_t max_light_radius = 9000.f;
     fan::vec2 region_min = cam_center - view_half - max_light_radius;
     fan::vec2 region_max = cam_center + view_half + max_light_radius;
     auto occluders = terrain.build_occluders(region_min, region_max);
@@ -189,6 +191,8 @@ int main() {
       gui::slider("Size", &torch_size_hud, 50.f, 600.f);
       gui::slider("Alpha", &torch_visual_a_hud, 0.f, 2.f);
       gui::slider("Shadow A", &torch_shadow_a_hud, 0.f, 1.f);
+      gui::slider("Shadow Softness", &torch_shadow_softness, 0.f, 500.f);
+      gui::slider("Sun Softness", &sun_shadow_softness, 0.f, 500.f);
     }
 
     dig_particles.update(dt);

@@ -6,7 +6,7 @@ struct alpha_shadow_renderer_t {
     f32_t radius = 512.f;
     fan::color color = fan::colors::white;
     fan::graphics::render_view_t* render_view = &fan::graphics::get_orthographic_render_view();
-    f32_t softness = 0.02f;
+    f32_t softness = 8.f;
     f32_t falloff_power = 2.f;
     f32_t angle = 0.f;
     f32_t cone_inner = 6.28318530718f;
@@ -26,13 +26,13 @@ struct alpha_shadow_renderer_t {
 
     occluder_texture.open(ctx, {fan::vec2(occluder_resolution, occluder_resolution), VK_FORMAT_R16_SFLOAT,
       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT});
-    shadow_texture.open(ctx, {fan::vec2(angle_resolution, 1), VK_FORMAT_R16_SFLOAT,
+    shadow_texture.open(ctx, {fan::vec2(angle_resolution, 1), VK_FORMAT_R16G16_SFLOAT,
       VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT, VK_IMAGE_ASPECT_COLOR_BIT});
 
     loco_ptr->context.vk.create_texture_sampler(occluder_sampler, fan::vulkan::image_load_properties_t{
       VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, 0, VK_FORMAT_R16_SFLOAT, VK_FILTER_NEAREST, VK_FILTER_NEAREST});
     loco_ptr->context.vk.create_texture_sampler(shadow_sampler, fan::vulkan::image_load_properties_t{
-      VK_SAMPLER_ADDRESS_MODE_REPEAT, 0, VK_FORMAT_R16_SFLOAT, VK_FILTER_LINEAR, VK_FILTER_LINEAR});
+      VK_SAMPLER_ADDRESS_MODE_REPEAT, 0, VK_FORMAT_R16G16_SFLOAT, VK_FILTER_LINEAR, VK_FILTER_LINEAR});
 
     auto load = [&](const char* vs, const char* fs, bool compute = false) {
       fan::graphics::shader_t nr = loco_ptr->shader_create();
