@@ -1409,6 +1409,10 @@ loco_t::loco_t(const loco_t::properties_t& props) :
           vk->close_post_process_pipelines();
           vk->open_post_process_pipelines();
         }
+        auto& asr = vk->alpha_shadow_renderer;
+        if (nr == asr.occluder_shader || nr == asr.radial_shader || nr == asr.light_shader || nr == asr.solid_shader || nr == asr.tile_shadow_shader) {
+          asr.reload_pipelines();
+        }
   #endif
       });
     });
