@@ -34,20 +34,7 @@ namespace fan::graphics::algorithm {
     if (!m_cfg.hill_noise) {
       return false;
     }
-    f32_t surface = surface_height(gx);
-    if (gy < surface) {
-      if (m_cfg.sky_island_noise) {
-        f32_t above = surface - gy;
-        if (above >= m_cfg.sky_island_min && above <= m_cfg.sky_island_max) {
-          f32_t v = m_cfg.sky_island_noise->simplex_fbm_norm(gx * m_cfg.sky_island_freq, gy * m_cfg.sky_island_freq);
-          if (v > m_cfg.sky_island_threshold) return true;
-        }
-      }
-      return false;
-    }
-    f32_t depth = gy - surface;
-    if (depth > m_cfg.cave_depth_min && is_cave(gx, gy)) return false;
-    return true;
+    return get_solid_with_surface(gx, gy, surface_height(gx));
   }
 
   f32_t chunk_renderer_t::surface_height(int gx) const {
@@ -68,6 +55,10 @@ namespace fan::graphics::algorithm {
   }
 
   bool chunk_renderer_t::is_cave(int gx, int gy) const {
+    return is_cave_with_surface(gx, gy, surface_height(gx));
+  }
+
+  bool chunk_renderer_t::is_cave_with_surface(int gx, int gy, f32_t surface) const {
     auto& cn = *m_cfg.cave_noise;
     f32_t s = m_cfg.cave_sharpness;
     f32_t n1 = cn.simplex_fbm_norm(gx * m_cfg.cave_freq, gy * m_cfg.cave_freq);
@@ -75,7 +66,7 @@ namespace fan::graphics::algorithm {
     f32_t n2 = cn.simplex_fbm_norm(gx * m_cfg.cave_freq * 1.7f + 200.f, gy * m_cfg.cave_freq * 1.7f + 300.f);
     f32_t t2 = std::max(0.f, 1.f - std::abs(n2 - 0.5f) * s);
     f32_t tunnel = std::max(t1, t2);
-    f32_t depth = gy - surface_height(gx);
+    f32_t depth = gy - surface;
     f32_t dscale = std::clamp(depth / m_cfg.cave_blend, 0.f, 1.f);
     f32_t dn = cn.simplex_fbm_norm(gx * 0.02f + 500.f, gy * 0.02f + 500.f);
     f32_t dt = std::max(0.f, 1.f - std::abs(dn - 0.5f) * s);
@@ -86,7 +77,10 @@ namespace fan::graphics::algorithm {
   }
 
   fan::graphics::image_t chunk_renderer_t::tile_image(int gx, int gy) const {
-    f32_t surface = surface_height(gx);
+    return tile_image_with_surface(gx, gy, surface_height(gx));
+  }
+
+  fan::graphics::image_t chunk_renderer_t::tile_image_with_surface(int gx, int gy, f32_t surface) const {
     f32_t depth = gy - surface;
     if (depth < 0 && m_cfg.sky_island_noise && m_cfg.img_sky_island.valid()) {
       f32_t above = -depth;
@@ -107,6 +101,32 @@ namespace fan::graphics::algorithm {
 
   void chunk_renderer_t::set_solid(int gx, int gy, bool solid) {
     m_solid_map[{gx, gy}] = solid;
+  }
+
+  bool chunk_renderer_t::get_solid_with_surface(int gx, int gy, f32_t surface) const {
+    auto it = m_solid_map.find({gx, gy});
+    if (it != m_solid_map.end()) {
+      return it->second;
+    }
+    if (m_cfg.is_solid) {
+      return m_cfg.is_solid(gx, gy);
+    }
+    if (!m_cfg.hill_noise) {
+      return false;
+    }
+    if (gy < surface) {
+      if (m_cfg.sky_island_noise) {
+        f32_t above = surface - gy;
+        if (above >= m_cfg.sky_island_min && above <= m_cfg.sky_island_max) {
+          f32_t v = m_cfg.sky_island_noise->simplex_fbm_norm(gx * m_cfg.sky_island_freq, gy * m_cfg.sky_island_freq);
+          if (v > m_cfg.sky_island_threshold) return true;
+        }
+      }
+      return false;
+    }
+    f32_t depth = gy - surface;
+    if (depth > m_cfg.cave_depth_min && is_cave_with_surface(gx, gy, surface)) return false;
+    return true;
   }
 
   void chunk_renderer_t::set_cell_sprite(chunk_t& chunk, fan::vec2i local, fan::vec2 world_pos, int gx, int gy) {
@@ -134,13 +154,34 @@ namespace fan::graphics::algorithm {
     f32_t cw = m_cfg.chunk_size * m_cfg.cell_size;
     fan::vec2 origin = fan::vec2(cc) * cw;
     auto& chunk = m_chunks[cc];
+    int cs = m_cfg.chunk_size;
 
-    for (int cy = 0; cy < m_cfg.chunk_size; ++cy) {
-      for (int cx = 0; cx < m_cfg.chunk_size; ++cx) {
-        int gx = cc.x * m_cfg.chunk_size + cx;
-        int gy = cc.y * m_cfg.chunk_size + cy;
+    for (int cx = 0; cx < cs; ++cx) {
+      int gx = cc.x * cs + cx;
+      f32_t surface = surface_height(gx);
+
+      for (int cy = 0; cy < cs; ++cy) {
+        int gy = cc.y * cs + cy;
+        fan::vec2i local{cx, cy};
         fan::vec2 center = origin + (fan::vec2(cx, cy) + 0.5f) * m_cfg.cell_size;
-        set_cell_sprite(chunk, {cx, cy}, center, gx, gy);
+
+        auto it = chunk.sprites.find(local);
+        if (!get_solid_with_surface(gx, gy, surface)) {
+          if (it != chunk.sprites.end()) {
+            chunk.sprites.erase(it);
+          }
+          continue;
+        }
+        fan::graphics::image_t img = m_cfg.get_image ? m_cfg.get_image(gx, gy) : tile_image_with_surface(gx, gy, surface);
+        if (it != chunk.sprites.end()) {
+          it->second.set_image(img);
+          continue;
+        }
+        chunk.sprites[local] = fan::graphics::sprite_t{{
+          .position = fan::vec3(center, m_cfg.terrain_z),
+          .size = fan::vec2(m_cfg.cell_size, m_cfg.cell_size) * 0.5f,
+          .image = img,
+        }};
       }
     }
   }
@@ -151,16 +192,20 @@ namespace fan::graphics::algorithm {
       e.destroy();
     }
     chunk.colliders.clear();
+    chunk.occluders.clear();
 
     int cs = m_cfg.chunk_size;
     std::vector<uint8_t> solid(cs * cs);
-    std::vector<uint8_t> visited(cs * cs);
 
-    for (int cy = 0; cy < cs; ++cy) {
-      for (int cx = 0; cx < cs; ++cx) {
-        solid[cy * cs + cx] = get_solid(cc.x * cs + cx, cc.y * cs + cy);
+    for (int cx = 0; cx < cs; ++cx) {
+      int gx = cc.x * cs + cx;
+      f32_t surface = surface_height(gx);
+      for (int cy = 0; cy < cs; ++cy) {
+        solid[cy * cs + cx] = get_solid_with_surface(gx, cc.y * cs + cy, surface);
       }
     }
+
+    std::vector<uint8_t> visited(cs * cs);
 
     fan::vec2 origin = fan::vec2(cc) * cs * m_cfg.cell_size;
 
@@ -188,8 +233,10 @@ namespace fan::graphics::algorithm {
         fan::vec2 half = fan::vec2(rx - cx + 1, ry - cy + 1) * m_cfg.cell_size * 0.5f;
         fan::vec2 pos = origin + fan::vec2(cx, cy) * m_cfg.cell_size + half;
         chunk.colliders.push_back(fan::physics::gphysics()->create_box(pos, half, 0, fan::physics::body_type_e::static_body, m_cfg.shape_properties));
+        chunk.occluders.push_back({pos.x - half.x, pos.y - half.y, pos.x + half.x, pos.y + half.y});
       }
     }
+    m_occluders_cache_dirty = true;
   }
 
   std::vector<chunk_renderer_t::occluder_rect_t> chunk_renderer_t::build_occluders(fan::vec2 view_min, fan::vec2 view_max) const {
@@ -202,9 +249,11 @@ namespace fan::graphics::algorithm {
     int gh = gy1 - gy0 + 1;
 
     std::vector<uint8_t> solid(gw * gh);
-    for (int gy = gy0; gy <= gy1; ++gy) {
-      for (int gx = gx0; gx <= gx1; ++gx) {
-        solid[(gy - gy0) * gw + (gx - gx0)] = (uint8_t)get_solid(gx, gy);
+    for (int lx = 0; lx < gw; ++lx) {
+      int gx = gx0 + lx;
+      f32_t surface = surface_height(gx);
+      for (int ly = 0; ly < gh; ++ly) {
+        solid[ly * gw + lx] = (uint8_t)get_solid_with_surface(gx, gy0 + ly, surface);
       }
     }
 
@@ -239,6 +288,17 @@ namespace fan::graphics::algorithm {
       }
     }
     return result;
+  }
+
+  const std::vector<fan::vec4>& chunk_renderer_t::shadow_occluders() {
+    if (m_occluders_cache_dirty) {
+      m_occluders_cache.clear();
+      for (auto& [cc, chunk] : m_chunks) {
+        m_occluders_cache.insert(m_occluders_cache.end(), chunk.occluders.begin(), chunk.occluders.end());
+      }
+      m_occluders_cache_dirty = false;
+    }
+    return m_occluders_cache;
   }
 
   void chunk_renderer_t::stream(fan::vec2 cam_pos, fan::vec2 viewport_size) {
@@ -283,6 +343,7 @@ namespace fan::graphics::algorithm {
         it->first.y < min_cc.y || it->first.y > max_cc.y) {
         for (auto& e : it->second.colliders) e.destroy();
         it = m_chunks.erase(it);
+        m_occluders_cache_dirty = true;
       }
       else {
         ++it;
