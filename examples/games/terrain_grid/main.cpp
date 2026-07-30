@@ -18,7 +18,7 @@ int main() {
   engine.shadow_set_darkness(0.6f);
 
   gradient_t bg_sky{fan::color(0.2f, 0.4f, 0.75f, 1.f)*.2, fan::color(0.6f, 0.75f, 0.9f, 1.f)*.2, fan::vec3(1.f), engine.whs()};
-  sprite_t bg_below{{
+  unlit_sprite_t bg_below{{
     .position=fan::vec3(0, 0, 0.f),
     .size = engine.whs(),
     .image = "fossil_cave.jpg"
@@ -78,6 +78,11 @@ int main() {
 
   std::vector<fan::vec4> shadow_occluders;
 
+  fan::color torch_color_hud{1.f, 0.7f, 0.3f, 1.f};
+  f32_t torch_size_hud = 160.f;
+  f32_t torch_shadow_a_hud = 0.5f;
+  f32_t torch_visual_a_hud = 0.15f;
+
   engine.loop([&] {
     f64_t dt = engine.get_delta_time();
     fan::vec2 player_pos = player.get_position();
@@ -86,6 +91,7 @@ int main() {
     f32_t ground_y = 512.f;
     bg_sky.set_position(fan::vec2(cam_center.x, std::min(cam_center.y, ground_y)));
     bg_below.set_position(cam_center);
+    bg_below.set_color(lighting.ambient);
 
     f32_t surface_h = terrain.surface_height_at(player_pos.x);
     f32_t depth = std::max(0.f, surface_h - player_pos.y);
@@ -99,18 +105,17 @@ int main() {
 
     f32_t sun_visual_a = 0.5f * (1.f - cave_factor);
     f32_t sun_shadow_a = 0.4f * (1.f - cave_factor);
-    f32_t torch_visual_a = 0.9f * (1.f + cave_factor);
-    f32_t torch_shadow_a = 0.5f * (1.f + cave_factor);
+    f32_t torch_visual_a = torch_visual_a_hud * (1.f + cave_factor);
+    f32_t torch_shadow_a = torch_shadow_a_hud * (1.f + cave_factor);
 
     fan::color sun_col(1.f, 0.95f, 0.85f, 1.f);
-    fan::color torch_col(1.f, 0.7f, 0.3f, 1.f);
 
     engine.shadow_clear_lights();
-    engine.shadow_add_light(sun_lpos, 900.f, sun_col.set_alpha(sun_shadow_a));
-    engine.shadow_add_light(torch_shadow_lpos, 160.f, torch_col.set_alpha(torch_shadow_a));
+    engine.shadow_add_light(sun_lpos, 900.f, sun_col.set_alpha(sun_shadow_a), 0.12f);
+    engine.shadow_add_light(torch_shadow_lpos, torch_size_hud, torch_color_hud.set_alpha(torch_shadow_a), 0.12f);
 
     fan::graphics::light(fan::vec3(sun_lpos, 5.f), fan::vec2(900), sun_col.set_alpha(sun_visual_a));
-    fan::graphics::light(fan::vec3(torch_lpos, 10.f), fan::vec2(160), torch_col.set_alpha(torch_visual_a));
+    fan::graphics::light(fan::vec3(torch_lpos, 10.f), fan::vec2(torch_size_hud), torch_color_hud.set_alpha(torch_visual_a));
 
     fan::vec2 view_half = engine.whs();
     f32_t max_light_radius = 900.f;
@@ -177,6 +182,14 @@ int main() {
     effect.circle.set_outline_color(fan::color(1.f, 0.9f, 0.5f, t * 0.4f));
     return false;
   });
+
+    if (engine.is_toggled(fan::key_t))
+    if (auto hud = gui::hud_interactive("Torch")) {
+      gui::color_edit3("Color", (fan::vec3*)&torch_color_hud);
+      gui::slider("Size", &torch_size_hud, 50.f, 600.f);
+      gui::slider("Alpha", &torch_visual_a_hud, 0.f, 2.f);
+      gui::slider("Shadow A", &torch_shadow_a_hud, 0.f, 1.f);
+    }
 
     dig_particles.update(dt);
   });
