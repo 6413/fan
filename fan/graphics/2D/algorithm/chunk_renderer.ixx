@@ -76,6 +76,7 @@ struct chunk_renderer_t {
 
   struct occluder_rect_t { fan::vec2 center; fan::vec2 half_size; };
   std::vector<occluder_rect_t> build_occluders(fan::vec2 view_min, fan::vec2 view_max) const;
+  const std::vector<fan::vec4>& shadow_occluders();
 
   bool raycast_visible = true;
 
@@ -83,6 +84,7 @@ private:
   struct chunk_t {
     std::unordered_map<fan::vec2i, fan::graphics::sprite_t> sprites;
     std::vector<fan::physics::entity_t> colliders;
+    std::vector<fan::vec4> occluders;
   };
 
   config_t m_cfg;
@@ -91,8 +93,16 @@ private:
   fan::vec2i m_last_center{std::numeric_limits<int>::max(), std::numeric_limits<int>::max()};
   std::unordered_set<fan::vec2i> m_physics_dirty;
 
+  mutable std::vector<fan::vec4> m_occluders_cache;
+  mutable bool m_occluders_cache_dirty = true;
+
   f32_t surface_height(int gx) const;
   fan::graphics::image_t tile_image(int gx, int gy) const;
+
+  bool is_cave_with_surface(int gx, int gy, f32_t surface) const;
+  fan::graphics::image_t tile_image_with_surface(int gx, int gy, f32_t surface) const;
+  bool get_solid_with_surface(int gx, int gy, f32_t surface) const;
+
   void set_cell_sprite(chunk_t& chunk, fan::vec2i local, fan::vec2 world_pos, int gx, int gy);
   void remesh_chunk(fan::vec2i cc);
   void remesh_chunk_physics(fan::vec2i cc);
