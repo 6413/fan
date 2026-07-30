@@ -95,7 +95,7 @@ int main() {
 
     fan::vec2 sun_lpos = fan::vec2(cam_center.x, 200.f);
     fan::vec2 torch_lpos = player_pos;
-    fan::vec2 torch_shadow_lpos = player_pos - fan::vec2(0, 50.f);
+    fan::vec2 torch_shadow_lpos = player_pos.offset_y(-15.f);
 
     f32_t sun_visual_a = 0.5f * (1.f - cave_factor);
     f32_t sun_shadow_a = 0.4f * (1.f - cave_factor);
