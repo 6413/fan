@@ -18,7 +18,7 @@ struct alpha_shadow_renderer_t {
     f32_t alpha_threshold = 0.05f;
   };
 
-  void open(std::int32_t occluder_resolution_ = 1024, std::int32_t angle_resolution_ = 2048, std::int32_t radial_samples_ = 160) {
+  void open(std::int32_t occluder_resolution_ = 2048, std::int32_t angle_resolution_ = 8192, std::int32_t radial_samples_ = 256) {
     occluder_resolution = occluder_resolution_;
     angle_resolution = angle_resolution_;
     radial_samples = radial_samples_;
@@ -318,14 +318,14 @@ struct alpha_shadow_renderer_t {
     f32_t r = std::max(1.f, std::abs(edge.x - center.x));
     fan::vec2 p0 = center - r, p1 = center + r;
 
-    bind_and_blend(light_pipeline, VK_TRUE, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA);
+    bind_and_blend(light_pipeline, VK_TRUE, VK_BLEND_FACTOR_DST_COLOR, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ZERO, VK_BLEND_FACTOR_ONE);
 
     push_sampler_descriptor(light_pipeline.m_layout, shadow_texture.image_view, shadow_sampler);
 
     light_push_t pc{{p0.x / ws.x * 2.f - 1.f, p0.y / ws.y * 2.f - 1.f},
       {p1.x / ws.x * 2.f - 1.f, p1.y / ws.y * 2.f - 1.f},
       light.color, light.softness, light.falloff_power,
-      1.f / f32_t(angle_resolution), light.angle, light.cone_inner, light.cone_outer};
+      1.f / f32_t(angle_resolution), light.angle, light.cone_inner, light.cone_outer, shadow_time};
     vkCmdPushConstants(cmd(), light_pipeline.m_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pc), &pc);
     vkCmdDraw(cmd(), 6, 1, 0, 0);
   }
@@ -338,6 +338,7 @@ struct alpha_shadow_renderer_t {
   fan::vulkan::vai_t shadow_texture;
   VkSampler occluder_sampler = VK_NULL_HANDLE;
   VkSampler shadow_sampler = VK_NULL_HANDLE;
+  f32_t shadow_time = 0.f;
 
   fan::graphics::shader_t occluder_shader;
   fan::graphics::shader_t radial_shader;
@@ -421,7 +422,7 @@ struct alpha_shadow_renderer_t {
     vkCmdPushConstants(cmd(), tile_shadow_pipeline.pipeline_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pc), &pc);
     vkCmdDispatch(cmd(), (angle_resolution + 255) / 256, 1, 1);
   }
-  struct light_push_t { fan::vec2 ndc_min; fan::vec2 ndc_max; fan::color light_color; float softness; float falloff_power; float angle_texel; float cone_angle; float cone_inner; float cone_outer; };
+  struct light_push_t { fan::vec2 ndc_min; fan::vec2 ndc_max; fan::color light_color; float softness; float falloff_power; float angle_texel; float cone_angle; float cone_inner; float cone_outer; float time; };
   struct solid_push_t { fan::color color; };
 };
 
