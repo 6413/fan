@@ -875,7 +875,7 @@ void fan::vulkan::context_t::create_image_views() {
   fan::vulkan::vai_t::properties_t vp{
     .swap_chain_size = swap_chain_size,
     .format = main_color_format,
-    .usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+    .usage_flags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
     .aspect_flags = VK_IMAGE_ASPECT_COLOR_BIT
   };
   fan::vulkan::vai_t::properties_t depth_vp = vp;
