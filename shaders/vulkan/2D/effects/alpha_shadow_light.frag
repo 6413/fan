@@ -20,10 +20,16 @@ float noise(vec2 p) {
   return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453123);
 }
 
-float sample_soft(float ang, float dist, float step_a) {
-  float r = texture(shadow_texture, vec2(fract(ang), 0.5)).r;
-  float half_soft = dist * step_a * 4.0;
-  return 1.0 - smoothstep(r - half_soft, r + half_soft, dist);
+float linstep(float lo, float hi, float v) {
+  return clamp((v - lo) / (hi - lo), 0.0, 1.0);
+}
+
+float shadow_vsm(vec2 moments, float dist) {
+  float p = step(dist, moments.x);
+  float variance = max(moments.y - moments.x * moments.x, 0.0001);
+  float d = dist - moments.x;
+  float p_max = linstep(0.2, 1.0, variance / (variance + d * d));
+  return max(p, p_max);
 }
 
 void main() {
@@ -33,26 +39,29 @@ void main() {
   float fu = fract((atan(p.y, p.x) / tau) + 1.0);
 
   float step_a = pc.angle_texel * pc.softness;
-  float s1 = step_a, s2 = step_a * 2.0, s3 = step_a * 3.0, s4 = step_a * 4.0, s5 = step_a * 5.0, s6 = step_a * 6.0, s7 = step_a * 7.0, s8 = step_a * 8.0;
+  float s1 = step_a, s2 = step_a * 2.0, s3 = step_a * 3.0, s4 = step_a * 4.0;
+  float s5 = step_a * 5.0, s6 = step_a * 6.0, s7 = step_a * 7.0, s8 = step_a * 8.0;
 
-  float lit = 0.0;
-  lit += sample_soft(fu - s8, dist, step_a) * 0.004;
-  lit += sample_soft(fu - s7, dist, step_a) * 0.008;
-  lit += sample_soft(fu - s6, dist, step_a) * 0.016;
-  lit += sample_soft(fu - s5, dist, step_a) * 0.027;
-  lit += sample_soft(fu - s4, dist, step_a) * 0.045;
-  lit += sample_soft(fu - s3, dist, step_a) * 0.063;
-  lit += sample_soft(fu - s2, dist, step_a) * 0.094;
-  lit += sample_soft(fu - s1, dist, step_a) * 0.117;
-  lit += sample_soft(fu,      dist, step_a) * 0.252;
-  lit += sample_soft(fu + s1, dist, step_a) * 0.117;
-  lit += sample_soft(fu + s2, dist, step_a) * 0.094;
-  lit += sample_soft(fu + s3, dist, step_a) * 0.063;
-  lit += sample_soft(fu + s4, dist, step_a) * 0.045;
-  lit += sample_soft(fu + s5, dist, step_a) * 0.027;
-  lit += sample_soft(fu + s6, dist, step_a) * 0.016;
-  lit += sample_soft(fu + s7, dist, step_a) * 0.008;
-  lit += sample_soft(fu + s8, dist, step_a) * 0.004;
+  vec2 moments = vec2(0.0);
+  moments += texture(shadow_texture, vec2(fract(fu - s8), 0.5)).rg * 0.004;
+  moments += texture(shadow_texture, vec2(fract(fu - s7), 0.5)).rg * 0.008;
+  moments += texture(shadow_texture, vec2(fract(fu - s6), 0.5)).rg * 0.016;
+  moments += texture(shadow_texture, vec2(fract(fu - s5), 0.5)).rg * 0.027;
+  moments += texture(shadow_texture, vec2(fract(fu - s4), 0.5)).rg * 0.045;
+  moments += texture(shadow_texture, vec2(fract(fu - s3), 0.5)).rg * 0.063;
+  moments += texture(shadow_texture, vec2(fract(fu - s2), 0.5)).rg * 0.094;
+  moments += texture(shadow_texture, vec2(fract(fu - s1), 0.5)).rg * 0.117;
+  moments += texture(shadow_texture, vec2(fract(fu),      0.5)).rg * 0.252;
+  moments += texture(shadow_texture, vec2(fract(fu + s1), 0.5)).rg * 0.117;
+  moments += texture(shadow_texture, vec2(fract(fu + s2), 0.5)).rg * 0.094;
+  moments += texture(shadow_texture, vec2(fract(fu + s3), 0.5)).rg * 0.063;
+  moments += texture(shadow_texture, vec2(fract(fu + s4), 0.5)).rg * 0.045;
+  moments += texture(shadow_texture, vec2(fract(fu + s5), 0.5)).rg * 0.027;
+  moments += texture(shadow_texture, vec2(fract(fu + s6), 0.5)).rg * 0.016;
+  moments += texture(shadow_texture, vec2(fract(fu + s7), 0.5)).rg * 0.008;
+  moments += texture(shadow_texture, vec2(fract(fu + s8), 0.5)).rg * 0.004;
+
+  float lit = shadow_vsm(moments, dist);
 
   float pixel_angle = atan(p.y, p.x);
   float diff = abs(mod(pixel_angle - pc.cone_angle + 3.14159, tau) - 3.14159);
