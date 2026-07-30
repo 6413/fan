@@ -2,7 +2,7 @@
 layout(local_size_x = 256) in;
 struct occ_t { vec2 min; vec2 max; };
 layout(set = 0, binding = 0) readonly buffer occluders_t { occ_t occs[]; };
-layout(set = 0, binding = 1, r16f) uniform writeonly image2D shadow_map;
+layout(set = 0, binding = 1, rg16f) uniform writeonly image2D shadow_map;
 layout(push_constant) uniform pc_t {
   vec2 light_pos;
   float light_radius;
@@ -39,5 +39,5 @@ void main() {
       if (blocker <= 0.001) break;
     }
   }
-  imageStore(shadow_map, ivec2(int(u), 0), vec4(blocker));
+  imageStore(shadow_map, ivec2(int(u), 0), vec4(blocker, blocker * blocker, 0.0, 0.0));
 }

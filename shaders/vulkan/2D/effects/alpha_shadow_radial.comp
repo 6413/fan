@@ -1,7 +1,7 @@
 #version 450
 layout(local_size_x = 256) in;
 layout(set = 0, binding = 0) uniform sampler2D occluder_texture;
-layout(set = 0, binding = 1, r16f) uniform writeonly image2D shadow_image;
+layout(set = 0, binding = 1, rg16f) uniform writeonly image2D shadow_image;
 layout(push_constant) uniform pc_t {
   uint angle_resolution;
   uint radial_samples;
@@ -22,5 +22,5 @@ void main() {
     accumulated += a;
     if (accumulated >= 2.0) { blocker = r; break; }
   }
-  imageStore(shadow_image, ivec2(int(u), 0), vec4(blocker, blocker, blocker, 1.0));
+  imageStore(shadow_image, ivec2(int(u), 0), vec4(blocker, blocker * blocker, 0.0, 0.0));
 }

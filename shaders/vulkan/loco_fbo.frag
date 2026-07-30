@@ -49,6 +49,7 @@ void main() {
 
   color *= pc.tonemap.y;
   color = fma(color - 0.5, vec3(pc.tonemap.z), vec3(0.5));
+  color = pow(max(color, 0.0), vec3(1.0 / max(pc.tonemap.x, 0.001)));
 
   o_color = vec4(color, pc.window_frame.z);
 }
