@@ -69,6 +69,23 @@ struct alpha_shadow_renderer_t {
     resources_open = true;
   }
 
+  void reload_pipelines() {
+    auto& ctx = loco_ptr->context.vk;
+    vkDeviceWaitIdle(ctx.device);
+    for (auto* pipe : {&occluder_pipeline, &light_pipeline, &solid_pipeline}) { pipe->close(ctx); }
+    radial_pipeline.close(ctx);
+    if (tile_mode_open) { tile_shadow_pipeline.close(ctx); }
+
+    auto mk_raster_pipe = [&](fan::vulkan::context_t::pipeline_t& pipe, fan::graphics::shader_t sh, VkDescriptorSetLayout dsl, uint32_t pc_size) {
+      pipe.open(ctx, {.descriptor_layouts = {dsl}, .shader = sh, .push_constants_size = pc_size, .color_blend_attachments = {{}}, .enable_depth_test = false});
+    };
+    mk_raster_pipe(occluder_pipeline, occluder_shader, occluder_dsl, sizeof(occluder_push_t));
+    mk_raster_pipe(light_pipeline,    light_shader,    light_dsl,    sizeof(light_push_t));
+    mk_raster_pipe(solid_pipeline,    solid_shader,    solid_dsl,    sizeof(solid_push_t));
+    radial_pipeline.open(ctx, {.descriptor_layouts = {radial_dsl}, .shader = radial_shader, .push_constants_size = sizeof(radial_push_t)});
+    if (tile_mode_open) { tile_shadow_pipeline.open(ctx, {.descriptor_layouts = {tile_shadow_dsl}, .shader = tile_shadow_shader, .push_constants_size = sizeof(tile_shadow_push_t)}); }
+  }
+
   void close() {
     auto& ctx = loco_ptr->context.vk;
     vkDeviceWaitIdle(ctx.device);
