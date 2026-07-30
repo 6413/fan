@@ -111,8 +111,8 @@ int main() {
     fan::color sun_col(1.f, 0.95f, 0.85f, 1.f);
 
     engine.shadow_clear_lights();
-    engine.shadow_add_light(sun_lpos, 900.f, sun_col.set_alpha(sun_shadow_a), 0.12f);
-    engine.shadow_add_light(torch_shadow_lpos, torch_size_hud, torch_color_hud.set_alpha(torch_shadow_a), 0.12f);
+    engine.shadow_add_light(sun_lpos, 900.f, sun_col.set_alpha(sun_shadow_a), 200.f);
+    engine.shadow_add_light(torch_shadow_lpos, torch_size_hud, torch_color_hud.set_alpha(torch_shadow_a), 200.f);
 
     fan::graphics::light(fan::vec3(sun_lpos, 5.f), fan::vec2(900), sun_col.set_alpha(sun_visual_a));
     fan::graphics::light(fan::vec3(torch_lpos, 10.f), fan::vec2(torch_size_hud), torch_color_hud.set_alpha(torch_visual_a));

@@ -11,9 +11,20 @@ layout(push_constant) uniform pc_t {
   float cone_angle;
   float cone_inner;
   float cone_outer;
+  float time;
 } pc;
 layout(location = 0) out vec4 out_color;
 const float tau = 6.28318530718;
+
+float noise(vec2 p) {
+  return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453123);
+}
+
+float sample_soft(float ang, float dist, float step_a) {
+  float r = texture(shadow_texture, vec2(fract(ang), 0.5)).r;
+  float half_soft = dist * step_a * 4.0;
+  return 1.0 - smoothstep(r - half_soft, r + half_soft, dist);
+}
 
 void main() {
   vec2 p = v_uv * 2.0 - 1.0;
@@ -21,31 +32,38 @@ void main() {
   if (dist > 1.0) discard;
   float fu = fract((atan(p.y, p.x) / tau) + 1.0);
 
-  float cb = texture(shadow_texture, vec2(fu, 0.5)).r;
-  float center_lit = dist <= cb ? 1.0 : 0.0;
-
-  float ratio = max(0.0, dist - cb) / max(cb, 0.05);
-  float step_a = pc.angle_texel * max(min(ratio * pc.softness, 32.0), 1.0);
-  float s1 = step_a;
-  float s2 = step_a * 2.0;
-  float s3 = step_a * 3.0;
-  float s4 = step_a * 4.0;
+  float step_a = pc.angle_texel * pc.softness;
+  float s1 = step_a, s2 = step_a * 2.0, s3 = step_a * 3.0, s4 = step_a * 4.0, s5 = step_a * 5.0, s6 = step_a * 6.0, s7 = step_a * 7.0, s8 = step_a * 8.0;
 
   float lit = 0.0;
-  lit += (dist <= texture(shadow_texture, vec2(fract(fu - s4), 0.5)).r ? 1.0 : 0.0) * 0.02;
-  lit += (dist <= texture(shadow_texture, vec2(fract(fu - s3), 0.5)).r ? 1.0 : 0.0) * 0.06;
-  lit += (dist <= texture(shadow_texture, vec2(fract(fu - s2), 0.5)).r ? 1.0 : 0.0) * 0.12;
-  lit += (dist <= texture(shadow_texture, vec2(fract(fu - s1), 0.5)).r ? 1.0 : 0.0) * 0.20;
-  lit += center_lit * 0.20;
-  lit += (dist <= texture(shadow_texture, vec2(fract(fu + s1), 0.5)).r ? 1.0 : 0.0) * 0.20;
-  lit += (dist <= texture(shadow_texture, vec2(fract(fu + s2), 0.5)).r ? 1.0 : 0.0) * 0.12;
-  lit += (dist <= texture(shadow_texture, vec2(fract(fu + s3), 0.5)).r ? 1.0 : 0.0) * 0.06;
-  lit += (dist <= texture(shadow_texture, vec2(fract(fu + s4), 0.5)).r ? 1.0 : 0.0) * 0.02;
+  lit += sample_soft(fu - s8, dist, step_a) * 0.004;
+  lit += sample_soft(fu - s7, dist, step_a) * 0.008;
+  lit += sample_soft(fu - s6, dist, step_a) * 0.016;
+  lit += sample_soft(fu - s5, dist, step_a) * 0.027;
+  lit += sample_soft(fu - s4, dist, step_a) * 0.045;
+  lit += sample_soft(fu - s3, dist, step_a) * 0.063;
+  lit += sample_soft(fu - s2, dist, step_a) * 0.094;
+  lit += sample_soft(fu - s1, dist, step_a) * 0.117;
+  lit += sample_soft(fu,      dist, step_a) * 0.252;
+  lit += sample_soft(fu + s1, dist, step_a) * 0.117;
+  lit += sample_soft(fu + s2, dist, step_a) * 0.094;
+  lit += sample_soft(fu + s3, dist, step_a) * 0.063;
+  lit += sample_soft(fu + s4, dist, step_a) * 0.045;
+  lit += sample_soft(fu + s5, dist, step_a) * 0.027;
+  lit += sample_soft(fu + s6, dist, step_a) * 0.016;
+  lit += sample_soft(fu + s7, dist, step_a) * 0.008;
+  lit += sample_soft(fu + s8, dist, step_a) * 0.004;
 
   float pixel_angle = atan(p.y, p.x);
   float diff = abs(mod(pixel_angle - pc.cone_angle + 3.14159, tau) - 3.14159);
   float cone_mask = 1.0 - smoothstep(pc.cone_inner * 0.5, pc.cone_outer * 0.5, diff);
+
   float falloff = pow(max(1.0 - dist, 0.0), pc.falloff_power);
-  float value = lit * falloff * cone_mask;
-  out_color = vec4(pc.light_color.rgb * value, pc.light_color.a * value);
+  falloff *= mix(0.97, 1.03, noise(gl_FragCoord.xy));
+  float flicker = 0.95 + 0.05 * sin(pc.time * 8.0 + noise(p * 10.0) * 6.28);
+
+  float value = lit * falloff * cone_mask * flicker;
+  vec3 light_col = mix(pc.light_color.rgb, pc.light_color.rgb * vec3(0.6, 0.7, 1.0), dist);
+
+  out_color = vec4(light_col * value * 2.0 * pc.light_color.a, 0.0);
 }

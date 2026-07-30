@@ -823,6 +823,7 @@ void draw_post_process() {
 
   vkCmdEndRendering(cmd);
 
+  alpha_shadow_renderer.shadow_time = (f32_t)(fan::time::now() / 1e9);
   alpha_shadow_renderer.build_shadow_maps();
   alpha_shadow_renderer.render_overlay(context.mainColorImageViews[context.image_index].image_view);
 
