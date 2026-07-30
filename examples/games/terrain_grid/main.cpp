@@ -14,6 +14,9 @@ int main() {
   engine.get_clear_color() = fan::colors::black;
   engine.update_physics(true);
 
+  engine.shadow_enable_tile_mode();
+  engine.shadow_set_darkness(0.6f);
+
   gradient_t bg_sky{fan::color(0.2f, 0.4f, 0.75f, 1.f)*.2, fan::color(0.6f, 0.75f, 0.9f, 1.f)*.2, fan::vec3(1.f), engine.whs()};
   sprite_t bg_below{{
     .position=fan::vec3(0, 0, 0.f),
@@ -60,28 +63,10 @@ int main() {
 
   engine.camera_set_target(player, 10.f);
 
+  engine.shadow_add_caster(&player, 0.05f);
+
   auto& lighting = fan::graphics::get_lighting();
   //lighting.ambient = fan::vec3(0.35f, 0.45f, 0.55f);
-
-  auto sun = light_t(light_properties_t{
-    .position = fan::vec3(0, 200.f, 5.f),
-    .size = fan::vec2(900),
-    .color = fan::color(1.f, 0.95f, 0.85f, 0.5f),
-  });
-  auto torch = light_t(light_properties_t{
-    .position = fan::vec3(0, 0, 10.f),
-    .size = fan::vec2(160),
-    .color = fan::color(1.f, 0.7f, 0.3f, 0.9f),
-  });
-  light_t* lights[] = {&sun, &torch};
-
-  struct shadow_slot_t { shadow_t instance; bool visible = true; };
-  std::vector<shadow_slot_t> shadow_pool;
-
-  fan::spatial::world_t<int> occluder_grid;
-  occluder_grid.init(fan::vec2(-5000), fan::vec2(512), fan::vec2i(40, 40));
-  int next_occluder_id = 0;
-  std::vector<algorithm::chunk_renderer_t::occluder_rect_t> occluders;
 
   f32_t dig_radius = 64.f;
   fan::time::interval_t dig_interval{0.003f};
@@ -90,6 +75,8 @@ int main() {
   image_t particle_img{fan::colors::white};
   struct break_effect_t { circle_t circle; f32_t timer = 0.f; };
   std::vector<break_effect_t> break_effects;
+
+  std::vector<fan::vec4> shadow_occluders;
 
   engine.loop([&] {
     f64_t dt = engine.get_delta_time();
@@ -106,66 +93,38 @@ int main() {
 
     //lighting.ambient = fan::vec3(0.35f, 0.45f, 0.55f).lerp(fan::vec3(0.04f, 0.04f, 0.05f), cave_factor);
 
-    sun.set_position(fan::vec3(cam_center.x, 200.f, 5.f));
-    sun.set_color(fan::color(1.f, 0.95f, 0.85f, 0.5f).lerp(fan::color(1.f, 0.95f, 0.85f, 0.f), cave_factor));
-    torch.set_position(fan::vec3(player_pos, 10.f));
-    torch.set_color(fan::color(1.f, 0.7f, 0.3f, 0.9f).lerp(fan::color(1.f, 0.7f, 0.3f, 1.2f), cave_factor));
+    fan::vec2 sun_lpos = fan::vec2(cam_center.x, 200.f);
+    fan::vec2 torch_lpos = player_pos;
+    fan::vec2 torch_shadow_lpos = player_pos - fan::vec2(0, 50.f);
+
+    f32_t sun_visual_a = 0.5f * (1.f - cave_factor);
+    f32_t sun_shadow_a = 0.4f * (1.f - cave_factor);
+    f32_t torch_visual_a = 0.9f * (1.f + cave_factor);
+    f32_t torch_shadow_a = 0.5f * (1.f + cave_factor);
+
+    fan::color sun_col(1.f, 0.95f, 0.85f, 1.f);
+    fan::color torch_col(1.f, 0.7f, 0.3f, 1.f);
+
+    engine.shadow_clear_lights();
+    engine.shadow_add_light(sun_lpos, 900.f, sun_col.set_alpha(sun_shadow_a));
+    engine.shadow_add_light(torch_shadow_lpos, 160.f, torch_col.set_alpha(torch_shadow_a));
+
+    fan::graphics::light(fan::vec3(sun_lpos, 5.f), fan::vec2(900), sun_col.set_alpha(sun_visual_a));
+    fan::graphics::light(fan::vec3(torch_lpos, 10.f), fan::vec2(160), torch_col.set_alpha(torch_visual_a));
 
     fan::vec2 view_half = engine.whs();
     f32_t max_light_radius = 900.f;
     fan::vec2 region_min = cam_center - view_half - max_light_radius;
     fan::vec2 region_max = cam_center + view_half + max_light_radius;
-    occluders = terrain.build_occluders(region_min, region_max);
+    auto occluders = terrain.build_occluders(region_min, region_max);
 
-    while (next_occluder_id > 0) {
-      occluder_grid.remove(--next_occluder_id);
-    }
+    shadow_occluders.clear();
+    shadow_occluders.reserve(occluders.size());
     for (auto& occ : occluders) {
-      occluder_grid.upsert(next_occluder_id, {occ.center - occ.half_size, occ.center + occ.half_size}, fan::spatial::movement_static);
-      ++next_occluder_id;
+      shadow_occluders.push_back({occ.center.x - occ.half_size.x, occ.center.y - occ.half_size.y,
+                                   occ.center.x + occ.half_size.x, occ.center.y + occ.half_size.y});
     }
-
-    for (auto& slot : shadow_pool) { slot.visible = false; }
-    std::size_t pool_idx = 0;
-
-    for (auto* light : lights) {
-      fan::vec3 lpos = light->get_position();
-      f32_t lradius = light->get_size().x;
-      fan::color lcolor = light->get_color();
-      if (lcolor.a <= 0.01f) continue;
-
-      f32_t shadow_darkness = 0.6f * lcolor.a * (1.f - cave_factor);
-      fan::color shadow_color = fan::color(0.f, 0.f, 0.f, shadow_darkness);
-
-      occluder_grid.query_radius(lpos, lradius, [&](int id) {
-        auto& aabb = occluder_grid.registry.aabb_cache[id];
-        fan::vec2 center = (aabb.min + aabb.max) * 0.5f;
-        fan::vec2 half = (aabb.max - aabb.min) * 0.5f + 0.5f;
-
-        if (pool_idx >= shadow_pool.size()) {
-          shadow_pool.push_back({shadow_t{shadow_properties_t{
-            .position = fan::vec3(center, 25.f),
-            .size = half,
-            .color = shadow_color,
-            .light_position = lpos,
-            .light_radius = lradius,
-          }}, true});
-        } else {
-          auto& sh = shadow_pool[pool_idx].instance;
-          sh.set_position(fan::vec3(center, 25.f));
-          sh.set_size(half);
-          sh.set_color(shadow_color);
-          sh.set_light_position(lpos);
-          sh.set_light_radius(lradius);
-        }
-        shadow_pool[pool_idx].visible = true;
-        ++pool_idx;
-      });
-    }
-
-    for (auto& slot : shadow_pool) {
-      slot.instance.set_visible(slot.visible);
-    }
+    engine.shadow_set_tile_occluders(shadow_occluders);
 
     if (fan::window::is_key_clicked(fan::key_r)) {
       player.set_physics_position({player_pos.x, 0});
