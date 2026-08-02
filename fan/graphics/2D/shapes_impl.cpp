@@ -584,6 +584,7 @@ namespace fan::graphics {
           sheet.selected_frames.clear();
         }
         sheet.fps = item.value("fps", 0.0f);
+        sheet.loop = item.value("loop", true);
 
         sprite_sheet_id_t original_id = item.value("id", std::uint32_t());
         sprite_sheet_id_t new_id = original_id.id + current_global_id;
@@ -2490,6 +2491,11 @@ namespace fan::graphics{
 
     g_shapes->visit_shape_draw_data(NRI, [&](auto& props) {
       if constexpr (requires { props.sprite_sheet_data; }) {
+        auto current_sheet = props.sprite_sheet_data.current_sprite_sheet;
+        if (current_sheet) {
+          all_sprite_sheets()[current_sheet].fps = fps;
+        }
+
         // Only modify sprite sheets belonging to THIS shape
         auto& shape_sheets = shape_sprite_sheets()[props.sprite_sheet_data.shape_sprite_sheets];
         for (auto& sprite_sheet_id : shape_sheets) {
@@ -3019,12 +3025,18 @@ void fan::graphics::shapes::shape_t::sprite_sheet_frame_update_cb(
         f32_t frame_duration = 1.0f / sprite_sheet.fps;
         
         sheet_data.frame_accumulator += dt;
+        bool reached_last_frame = false;
         
         while (sheet_data.frame_accumulator >= frame_duration) {
           sheet_data.frame_accumulator -= frame_duration;
+          const bool was_last_frame = sheet_data.current_frame == (int)selected_frames.size() - 1;
           shape->set_sprite_sheet_next_frame();
+          if (!sprite_sheet.loop && sheet_data.current_frame == (int)selected_frames.size() - 1 &&
+            (!was_last_frame || selected_frames.size() == 1)) {
+            reached_last_frame = true;
+          }
         }
-        if (!sprite_sheet.loop && sheet_data.current_frame == (int)sprite_sheet.selected_frames.size() - 1) {
+        if (reached_last_frame) {
           sheet_data.just_finished = true;
         }
 
@@ -3067,6 +3079,9 @@ void fan::graphics::shapes::shape_t::play_sprite_sheet(){
     if constexpr (requires { props.sprite_sheet_data; }) {
       props.sprite_sheet_data.start_sprite_sheet = true;
       props.sprite_sheet_data.frame_accumulator = 0.f;
+      props.sprite_sheet_data.previous_frame = 0;
+      props.sprite_sheet_data.current_frame = 0;
+      props.sprite_sheet_data.just_finished = false;
       sheet_data = &props.sprite_sheet_data;
     }
   });
@@ -4146,6 +4161,11 @@ namespace fan::graphics {
 
   void sprite_sheet_controller_t::add_state(const animation_state_t& state) {
     states.emplace_back(state);
+  }
+
+  void sprite_sheet_controller_t::add_state_front(const animation_state_t& state) {
+    states.insert(states.begin(), state);
+    prev_animation_id = {};
   }
 
   void sprite_sheet_controller_t::update(fan::graphics::shapes::shape_t& shape, const fan::vec2& velocity) {

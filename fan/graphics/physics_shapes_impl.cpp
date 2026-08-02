@@ -1337,6 +1337,7 @@ namespace fan::graphics::physics {
         character.set_movement_speed(movement_speed > 0 ? movement_speed : movement_state_t{}.max_speed);
         character.set_jump_height(jump_height > 0 ? jump_height : movement_state_t{}.jump_state.impulse);
         character.setup_default_animations(config);
+        character.setup_animation_states(json_data);
       }
 
       character.play_sprite_sheet();
@@ -1627,6 +1628,137 @@ namespace fan::graphics::physics {
 
     anim_controller.auto_update_animations = true;
   }
+
+  void character2d_t::setup_animation_states(const fan::json& config) {
+    if (!config.contains("animation_states")) {
+      return;
+    }
+    if (!config["animation_states"].is_array()) {
+      fan::throw_error_impl("animation_states must be an array");
+    }
+
+    enum class condition_e {
+      always,
+      airborne,
+      landed,
+      grounded,
+      moving,
+      idle,
+      rising,
+      falling
+    };
+
+    auto available_animations = get_sprite_sheets();
+    std::vector<fan::graphics::sprite_sheet_controller_t::animation_state_t> states;
+
+    for (const auto& item : config["animation_states"]) {
+      std::string animation_name = item.value("animation", std::string{});
+      if (animation_name.empty()) {
+        fan::throw_error_impl("animation state is missing animation");
+      }
+
+      auto animation_it = available_animations.find(animation_name);
+      if (animation_it == available_animations.end()) {
+        fan::throw_error_impl("animation state references missing animation");
+      }
+
+      auto source_id = animation_it->second;
+      auto source_sheet = fan::graphics::all_sprite_sheets()[source_id];
+      auto state_sheet = source_sheet;
+
+      if (item.contains("frames")) {
+        if (!item["frames"].is_array() || item["frames"].empty()) {
+          fan::throw_error_impl("animation state frames must be a non-empty array");
+        }
+
+        int total_frames = 0;
+        for (const auto& image : state_sheet.images) {
+          total_frames += image.hframes * image.vframes;
+        }
+
+        state_sheet.selected_frames.clear();
+        for (const auto& frame : item["frames"]) {
+          int frame_index = frame.get<int>();
+          if (frame_index < 0 || frame_index >= total_frames) {
+            fan::throw_error_impl("animation state frame is outside source animation");
+          }
+          state_sheet.selected_frames.push_back(frame_index);
+        }
+      }
+
+      std::string playback = item.value("playback", std::string("continuous"));
+      if (playback != "continuous" && playback != "loop" && playback != "hold" &&
+        playback != "hold_last" && playback != "once") {
+        fan::throw_error_impl("unknown animation state playback");
+      }
+
+      if (playback == "loop") {
+        state_sheet.loop = true;
+      }
+      else if (playback == "hold" || playback == "hold_last" || playback == "once") {
+        state_sheet.loop = false;
+      }
+
+      state_sheet.fps = item.value("fps", state_sheet.fps);
+      if (state_sheet.fps <= 0) {
+        fan::throw_error_impl("animation state fps must be positive");
+      }
+
+      bool has_state_sheet = item.contains("frames") || item.contains("fps") || playback != "continuous";
+      fan::graphics::sprite_sheet_id_t state_id = source_id;
+      if (has_state_sheet) {
+        state_id = fan::graphics::ss_counter()++;
+        fan::graphics::all_sprite_sheets()[state_id] = std::move(state_sheet);
+      }
+
+      std::string condition_name = item.value("condition", std::string("always"));
+      condition_e condition = condition_e::always;
+      if (condition_name == "always") condition = condition_e::always;
+      else if (condition_name == "airborne") condition = condition_e::airborne;
+      else if (condition_name == "landed") condition = condition_e::landed;
+      else if (condition_name == "grounded" || condition_name == "on_ground") condition = condition_e::grounded;
+      else if (condition_name == "moving") condition = condition_e::moving;
+      else if (condition_name == "idle") condition = condition_e::idle;
+      else if (condition_name == "rising") condition = condition_e::rising;
+      else if (condition_name == "falling") condition = condition_e::falling;
+      else fan::throw_error_impl("unknown animation state condition");
+
+      f32_t threshold = item.value("threshold", 10.f);
+      auto condition_fn = [condition, threshold](fan::graphics::shape_t& s) {
+        auto* c = static_cast<character2d_t*>(&s);
+        bool grounded = c->is_on_ground();
+        fan::vec2 velocity = c->get_linear_velocity();
+
+        switch (condition) {
+        case condition_e::always: return true;
+        case condition_e::airborne: return !grounded;
+        case condition_e::landed: return grounded && !c->was_on_ground;
+        case condition_e::grounded: return grounded;
+        case condition_e::moving: return velocity.length() >= threshold;
+        case condition_e::idle: return grounded && velocity.length() < threshold;
+        case condition_e::rising: return !grounded && velocity.y < -threshold;
+        case condition_e::falling: return !grounded && velocity.y > threshold;
+        }
+        return false;
+      };
+
+      fan::graphics::sprite_sheet_controller_t::animation_state_t state;
+      state.name = item.value("name", animation_name);
+      state.animation_id = state_id;
+      state.fps = fan::graphics::all_sprite_sheets()[state_id].fps;
+      state.velocity_based_fps = item.value("velocity_based_fps", false);
+      state.trigger_type = playback == "once" ?
+        fan::graphics::sprite_sheet_controller_t::animation_state_t::one_shot :
+        fan::graphics::sprite_sheet_controller_t::animation_state_t::continuous;
+      state.condition = std::move(condition_fn);
+      states.emplace_back(std::move(state));
+    }
+
+    for (auto it = states.rbegin(); it != states.rend(); ++it) {
+      anim_controller.add_state_front(*it);
+    }
+    anim_controller.auto_update_animations = true;
+  }
   #endif
   void character2d_t::process_keyboard_movement(std::uint8_t movement, f32_t friction) {
     tweens.update(gloco()->get_delta_time());
@@ -1762,7 +1894,9 @@ namespace fan::graphics::physics {
   }
 
   void character2d_t::update_animations() {
+    bool on_ground = is_on_ground();
     anim_controller.update(*this, get_linear_velocity());
+    was_on_ground = on_ground;
   }
 
   void character2d_t::cancel_animation() {

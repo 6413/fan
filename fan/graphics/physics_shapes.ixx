@@ -529,6 +529,7 @@ export namespace fan {
 
         #if defined(FAN_JSON)
         void setup_default_animations(const character_config_t& config);
+        void setup_animation_states(const fan::json& config);
         #endif
 
         void process_keyboard_movement(std::uint8_t movement = movement_e::side_view, f32_t friction = 12.f);
