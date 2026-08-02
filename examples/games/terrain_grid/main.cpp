@@ -51,12 +51,18 @@ int main() {
     .scatter_threshold = 0.6f,
   }};
 
-  f32_t player_height = 12.f;
-  auto player = physics::character_capsule_sprite({
-    .position{0, 0, 6.f},
-    .size=12.f,
-    .image = "images/duck.webp"
+  auto player = physics::from_json({
+    .json_path = "models/Base Character/base_character.json"
   });
+  player.play_sprite_sheet("idle");
+  auto player_aabb = player.get_aabb();
+  fan::vec2 spawn_position{
+    0.f,
+    std::ceil(terrain.surface_height_at(0.f)) * terrain.cell_size() -
+      (player_aabb.max.y - player_aabb.min.y) / 2.f
+  };
+  player.set_physics_position(spawn_position);
+  terrain.stream(spawn_position, engine.ws());
   auto& pctx = engine.get_physics_context();
   pctx.set_gravity(pctx.get_gravity() / 2.5f);
   player.set_mass(100.f);
@@ -87,6 +93,7 @@ int main() {
 
   engine.loop([&] {
     f64_t dt = engine.get_delta_time();
+    player.update_animations();
     fan::vec2 player_pos = player.get_position();
     fan::vec2 cam_center = ic.get_center();
 
