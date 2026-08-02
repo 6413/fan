@@ -307,7 +307,7 @@ export namespace fan::graphics::editor {
             shape.set_flicker_speed(node->light_props.flicker_speed);
             shape.set_flicker_min(node->light_props.flicker_min);
             shape.set_flicker_max(node->light_props.flicker_max);
-            uint32_t et = shape.get_ease_types();
+            std::uint32_t et = shape.get_ease_types();
             et = (et & ~0xf) | (node->light_props.ease_type & 0xf);
             shape.set_ease_types(et);
           }
@@ -316,7 +316,7 @@ export namespace fan::graphics::editor {
             auto& shape = node->children[0];
             shape.set_target_color(node->dynamic_props.target_color);
             shape.set_variance_speed(node->dynamic_props.variance_speed);
-            uint32_t et = shape.get_ease_types();
+            std::uint32_t et = shape.get_ease_types();
             et = (et & ~0xf0) | ((node->dynamic_props.ease_type & 0xf) << 4);
             shape.set_ease_types(et);
             if (node->dynamic_props.target_color != fan::colors::white) {
