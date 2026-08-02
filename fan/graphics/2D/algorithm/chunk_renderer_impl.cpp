@@ -81,6 +81,10 @@ namespace fan::graphics::algorithm {
   }
 
   fan::graphics::image_t chunk_renderer_t::tile_image_with_surface(int gx, int gy, f32_t surface) const {
+    auto pit = m_placed_map.find({gx, gy});
+    if (pit != m_placed_map.end() && pit->second >= 0 && pit->second < (int)m_cfg.tile_layers.size()) {
+      return m_cfg.tile_layers[pit->second].second;
+    }
     f32_t depth = gy - surface;
     if (depth < 0 && m_cfg.sky_island_noise && m_cfg.img_sky_island.valid()) {
       f32_t above = -depth;
@@ -351,19 +355,37 @@ namespace fan::graphics::algorithm {
     }
   }
 
-  void chunk_renderer_t::dig(fan::vec2 world_pos, f32_t radius) {
+  fan::vec2i chunk_renderer_t::chunk_of(int gx, int gy) const {
+    return fan::vec2i{
+      gx < 0 ? (gx + 1) / m_cfg.chunk_size - 1 : gx / m_cfg.chunk_size,
+      gy < 0 ? (gy + 1) / m_cfg.chunk_size - 1 : gy / m_cfg.chunk_size
+    };
+  }
+
+  int chunk_renderer_t::get_tile_type(int gx, int gy) const {
+    auto it = m_placed_map.find({gx, gy});
+    if (it != m_placed_map.end()) {
+      return it->second;
+    }
+    if (!get_solid(gx, gy)) {
+      return -1;
+    }
+    f32_t depth = (f32_t)gy - surface_height(gx);
+    for (std::size_t i = 0; i < m_cfg.tile_layers.size(); ++i) {
+      if (depth < m_cfg.tile_layers[i].first) {
+        return (int)i;
+      }
+    }
+    return (int)m_cfg.tile_layers.size() - 1;
+  }
+
+  std::vector<chunk_renderer_t::edit_t> chunk_renderer_t::dig(fan::vec2 world_pos, f32_t radius) {
     int gx0 = (int)std::floor((world_pos.x - radius) / m_cfg.cell_size);
     int gx1 = (int)std::ceil((world_pos.x + radius) / m_cfg.cell_size);
     int gy0 = (int)std::floor((world_pos.y - radius) / m_cfg.cell_size);
     int gy1 = (int)std::ceil((world_pos.y + radius) / m_cfg.cell_size);
 
-    auto chunk_of = [this](int gx, int gy) {
-      return fan::vec2i{
-        gx < 0 ? (gx + 1) / m_cfg.chunk_size - 1 : gx / m_cfg.chunk_size,
-        gy < 0 ? (gy + 1) / m_cfg.chunk_size - 1 : gy / m_cfg.chunk_size
-      };
-    };
-
+    std::vector<edit_t> broken;
     std::unordered_set<fan::vec2i> touched;
     f32_t radius_sq = radius * radius;
 
@@ -376,7 +398,9 @@ namespace fan::graphics::algorithm {
         fan::vec2 diff = fan::vec2(cx, cy) - world_pos;
         if (diff.x * diff.x + diff.y * diff.y > radius_sq) continue;
         if (!get_solid(gx, gy)) continue;
+        broken.push_back({gx, gy, get_tile_type(gx, gy)});
         m_solid_map[{gx, gy}] = false;
+        m_placed_map.erase({gx, gy});
         fan::vec2i cc = chunk_of(gx, gy);
         auto it = m_chunks.find(cc);
         if (it != m_chunks.end()) {
@@ -389,6 +413,75 @@ namespace fan::graphics::algorithm {
 
     for (auto& cc : touched) {
       m_physics_dirty.insert(cc);
+    }
+    return broken;
+  }
+
+  void chunk_renderer_t::place(fan::vec2 world_pos, f32_t radius, int type) {
+    if (type < 0 || type >= (int)m_cfg.tile_layers.size()) return;
+    int gx0 = (int)std::floor((world_pos.x - radius) / m_cfg.cell_size);
+    int gx1 = (int)std::ceil((world_pos.x + radius) / m_cfg.cell_size);
+    int gy0 = (int)std::floor((world_pos.y - radius) / m_cfg.cell_size);
+    int gy1 = (int)std::ceil((world_pos.y + radius) / m_cfg.cell_size);
+
+    std::unordered_set<fan::vec2i> touched;
+    f32_t radius_sq = radius * radius;
+
+    for (int gy = gy0; gy <= gy1; ++gy) {
+      for (int gx = gx0; gx <= gx1; ++gx) {
+        fan::vec2 cell_min = fan::vec2(gx, gy) * m_cfg.cell_size;
+        fan::vec2 cell_max = cell_min + m_cfg.cell_size;
+        f32_t cx = std::clamp(world_pos.x, cell_min.x, cell_max.x);
+        f32_t cy = std::clamp(world_pos.y, cell_min.y, cell_max.y);
+        fan::vec2 diff = fan::vec2(cx, cy) - world_pos;
+        if (diff.x * diff.x + diff.y * diff.y > radius_sq) continue;
+        if (get_solid(gx, gy)) continue;
+        m_solid_map[{gx, gy}] = true;
+        m_placed_map[{gx, gy}] = type;
+        fan::vec2i cc = chunk_of(gx, gy);
+        auto it = m_chunks.find(cc);
+        if (it != m_chunks.end()) {
+          fan::vec2 cell_center = cell_min + m_cfg.cell_size * 0.5f;
+          set_cell_sprite(it->second, {gx - cc.x * m_cfg.chunk_size, gy - cc.y * m_cfg.chunk_size}, cell_center, gx, gy);
+        }
+        touched.insert(cc);
+      }
+    }
+
+    for (auto& cc : touched) {
+      m_physics_dirty.insert(cc);
+    }
+  }
+
+  std::vector<chunk_renderer_t::edit_t> chunk_renderer_t::get_edits() const {
+    std::vector<edit_t> out;
+    for (auto& [cell, solid] : m_solid_map) {
+      if (!solid) out.push_back({cell.x, cell.y, -1});
+    }
+    for (auto& [cell, type] : m_placed_map) {
+      out.push_back({cell.x, cell.y, type});
+    }
+    return out;
+  }
+
+  void chunk_renderer_t::load_edits(const std::vector<edit_t>& edits) {
+    for (auto& e : edits) {
+      fan::vec2i cell{e.gx, e.gy};
+      if (e.type < 0) {
+        m_solid_map[cell] = false;
+        m_placed_map.erase(cell);
+      }
+      else {
+        m_solid_map[cell] = true;
+        m_placed_map[cell] = e.type;
+      }
+      fan::vec2i cc = chunk_of(e.gx, e.gy);
+      auto it = m_chunks.find(cc);
+      if (it != m_chunks.end()) {
+        fan::vec2 cell_center = (fan::vec2((f32_t)e.gx, (f32_t)e.gy) + 0.5f) * m_cfg.cell_size;
+        set_cell_sprite(it->second, {e.gx - cc.x * m_cfg.chunk_size, e.gy - cc.y * m_cfg.chunk_size}, cell_center, e.gx, e.gy);
+        m_physics_dirty.insert(cc);
+      }
     }
   }
 
