@@ -1808,6 +1808,13 @@ void loco_t::process_render() {
   fan::time::global_profiler.begin("Render: Begin Draw");
   vk->begin_draw();
   fan::time::global_profiler.end("Render: Begin Draw");
+  if (vk->image_error != VK_SUCCESS) {
+    immediate_render_list.clear();
+    for (auto& cache : shapes.immediate_shape_caches) {
+      cache.used_this_frame = 0;
+    }
+    return;
+  }
 
   fan::time::global_profiler.begin("Render: Memory Q");
   context.vk.memory_queue.process(context.vk);
