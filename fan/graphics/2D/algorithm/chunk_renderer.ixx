@@ -64,8 +64,11 @@ struct chunk_renderer_t {
   chunk_renderer_t(config_t cfg);
   ~chunk_renderer_t();
 
+  struct edit_t { int gx; int gy; int type; }; // type -1 = air (dug), else tile layer index
+
   void stream(fan::vec2 cam_pos, fan::vec2 viewport_size);
-  void dig(fan::vec2 world_pos, f32_t radius);
+  std::vector<edit_t> dig(fan::vec2 world_pos, f32_t radius);
+  void place(fan::vec2 world_pos, f32_t radius, int type);
   void set_solid(int gx, int gy, bool solid);
   fan::vec2 raycast(fan::vec2 start, fan::vec2 end, f32_t radius) const;
   f32_t cell_size() const { return m_cfg.cell_size; }
@@ -73,6 +76,9 @@ struct chunk_renderer_t {
   f32_t surface_height_at(f32_t world_x) const;
   bool get_solid(int gx, int gy) const;
   bool is_cave(int gx, int gy) const;
+  int get_tile_type(int gx, int gy) const;
+  std::vector<edit_t> get_edits() const;
+  void load_edits(const std::vector<edit_t>& edits);
 
   struct occluder_rect_t { fan::vec2 center; fan::vec2 half_size; };
   std::vector<occluder_rect_t> build_occluders(fan::vec2 view_min, fan::vec2 view_max) const;
@@ -89,12 +95,15 @@ private:
 
   config_t m_cfg;
   std::unordered_map<fan::vec2i, bool> m_solid_map;
+  std::unordered_map<fan::vec2i, int> m_placed_map;
   std::unordered_map<fan::vec2i, chunk_t> m_chunks;
   fan::vec2i m_last_center{std::numeric_limits<int>::max(), std::numeric_limits<int>::max()};
   std::unordered_set<fan::vec2i> m_physics_dirty;
 
   mutable std::vector<fan::vec4> m_occluders_cache;
   mutable bool m_occluders_cache_dirty = true;
+
+  fan::vec2i chunk_of(int gx, int gy) const;
 
   f32_t surface_height(int gx) const;
   fan::graphics::image_t tile_image(int gx, int gy) const;

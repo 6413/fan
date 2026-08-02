@@ -1,12 +1,17 @@
 import std;
 import fan;
+import fan.graphics.gui.hotbar;
+import fan.graphics.gui.inventory;
+import fan.graphics.gameplay.types;
 
 using namespace fan::graphics;
 
-auto seed = (int)std::chrono::steady_clock::now().time_since_epoch().count();
-fan::noise_t hill_noise{seed};
-fan::noise_t cave_noise{seed + 1};
-fan::noise_t detail_noise{seed + 2};
+namespace {
+  constexpr const char* block_names[] = {
+    "Grass", "Dirt", "Clay", "Sandstone", "Stone", "Deep Stone", "Bedrock"
+  };
+  constexpr int block_count = (int)std::size(block_names);
+}
 
 int main() {
   engine_t engine;
@@ -16,6 +21,43 @@ int main() {
 
   engine.shadow_enable_tile_mode();
   engine.shadow_set_darkness(0.6f);
+
+  gameplay::gui_theme_t theme;
+  theme.panel_bg = fan::color(0.08f, 0.08f, 0.10f, 0.90f);
+  theme.panel_border = fan::color(0.5f, 0.5f, 0.6f, 1.f);
+  theme.panel_corner_accent = fan::color(0.6f, 0.65f, 0.7f, 1.f);
+  theme.slot_bg = fan::color(0.15f, 0.15f, 0.17f, 0.95f);
+  theme.slot_bg_hover = fan::color(0.30f, 0.32f, 0.36f, 0.95f);
+  theme.slot_border = fan::color(0.4f, 0.4f, 0.45f, 1.f);
+  theme.selected_border_color = fan::colors::white;
+
+  gui::inventory_t inventory_ui;
+  inventory_ui.create(block_count, block_count);
+  inventory_ui.visible = false;
+  inventory_ui.style.theme = theme;
+
+  gui::hotbar_t hotbar;
+  hotbar.create(block_count);
+
+  const char* save_path = "world_save.json";
+  int world_seed = (int)std::chrono::steady_clock::now().time_since_epoch().count();
+  std::vector<algorithm::chunk_renderer_t::edit_t> world_edits;
+  try {
+    auto j = fan::json::load_file(save_path);
+    world_seed = j.value("seed", world_seed);
+    for (auto& e : j["edits"]) {
+      world_edits.push_back({e["gx"].get<int>(), e["gy"].get<int>(), e["type"].get<int>()});
+    }
+    for (auto& s : j["inventory"]) {
+      hotbar.add_item(
+        fan::graphics::gameplay::items::create((std::uint32_t)s["id"].get<int>()),
+        (std::uint32_t)s["count"].get<int>());
+    }
+  } catch (...) {}
+
+  fan::noise_t hill_noise{world_seed};
+  fan::noise_t cave_noise{world_seed + 1};
+  fan::noise_t detail_noise{world_seed + 2};
 
   gradient_t bg_sky{fan::color(0.2f, 0.4f, 0.75f, 1.f)*.2, fan::color(0.6f, 0.75f, 0.9f, 1.f)*.2, fan::vec3(1.f), engine.whs()};
   unlit_sprite_t bg_below{{
@@ -56,6 +98,21 @@ int main() {
     .scatter_img = img_dark_grass,
     .scatter_threshold = 0.6f,
   }};
+  terrain.load_edits(world_edits);
+
+  auto& item_reg = fan::graphics::gameplay::items::get_registry();
+  image_t block_icons[block_count] = {
+    img_grass, img_dirt, img_clay, img_sandstone, img_stone, img_deep_stone, img_bedrock
+  };
+  for (int i = 0; i < block_count; ++i) {
+    item_reg.register_item({
+      .id = (std::uint32_t)i,
+      .name = block_names[i],
+      .icon = block_icons[i],
+      .max_stack = 999,
+      .description = block_names[i],
+    });
+  }
 
   auto player = physics::from_json({
     .json_path = "models/Base Character/base_character.json"
@@ -83,6 +140,7 @@ int main() {
 
   f32_t dig_radius = 2.f;
   fan::time::interval_t dig_interval{0.003f};
+  fan::time::interval_t save_interval{10.f};
 
   gpu_particle_system_t<> dig_particles;
   struct break_effect_t { circle_t circle; f32_t timer = 0.f; };
@@ -95,6 +153,69 @@ int main() {
   f32_t torch_shadow_softness = 15.956f;
   f32_t torch_visual_a_hud = 0.200f;
   f32_t sun_shadow_softness = 30.f;
+
+  auto save_world = [&]() {
+    fan::json j = fan::json::object();
+    j.set("seed", world_seed);
+    fan::json edits = fan::json::array();
+    for (auto& e : terrain.get_edits()) {
+      edits.push_back(fan::json{{"gx", e.gx}, {"gy", e.gy}, {"type", e.type}});
+    }
+    j.set("edits", edits);
+    fan::json inv = fan::json::array();
+    for (auto& s : hotbar.slots) {
+      if (s.is_empty()) continue;
+      fan::json entry = fan::json::object();
+      entry.set("id", (int)*s.id);
+      entry.set("count", (int)*s.stack_size);
+      inv.push_back(entry);
+    }
+    j.set("inventory", inv);
+    j.save(save_path);
+  };
+  engine.get_window().add_close_callback([&](const fan::window_t::close_data_t&) {
+    save_world();
+  });
+
+  f32_t cs = terrain.cell_size();
+  auto cell_of = [&](fan::vec2 p) -> fan::vec2i {
+    return {(int)std::floor(p.x / cs), (int)std::floor(p.y / cs)};
+  };
+  auto cell_center = [&](int gx, int gy) -> fan::vec2 {
+    return (fan::vec2((f32_t)gx, (f32_t)gy) + 0.5f) * cs;
+  };
+  auto try_place = [&](fan::vec2 hit_pos) -> bool {
+    auto& sel = hotbar.slots[hotbar.selected_slot];
+    if (sel.is_empty()) return false;
+    int gx, gy;
+    fan::vec2 mouse_pos = engine.get_mouse_position();
+    if (hit_pos == mouse_pos) {
+      auto c = cell_of(mouse_pos);
+      if (terrain.get_solid(c.x, c.y)) return false;
+      gx = c.x; gy = c.y;
+    }
+    else {
+      fan::vec2 diff = mouse_pos - player.get_position();
+      f32_t dist = diff.length();
+      if (dist < 1e-4f) return false;
+      fan::vec2 dir = diff / dist;
+      bool found = false;
+      for (f32_t d = cs * 0.5f; d <= cs * 3.f; d += cs * 0.5f) {
+        fan::vec2 p = hit_pos - dir * d;
+        auto c = cell_of(p);
+        if (!terrain.get_solid(c.x, c.y)) { gx = c.x; gy = c.y; found = true; break; }
+      }
+      if (!found) return false;
+    }
+    fan::vec2 cc = cell_center(gx, gy);
+    fan::physics::aabb_t aabb = player.get_aabb();
+    if (cc.x + cs * 0.5f > aabb.min.x && cc.x - cs * 0.5f < aabb.max.x &&
+        cc.y + cs * 0.5f > aabb.min.y && cc.y - cs * 0.5f < aabb.max.y) return false;
+    int type = (int)*sel.id;
+    if (!hotbar.consume_slot(hotbar.selected_slot, nullptr)) return false;
+    terrain.place(cc, cs * 0.5f, type);
+    return true;
+  };
 
   engine.loop([&] {
     f64_t dt = engine.get_delta_time();
@@ -137,26 +258,40 @@ int main() {
       player.set_physics_position({player_pos.x, 0});
     }
 
+    hotbar.handle_input();
+    if (fan::window::is_key_clicked(fan::key_i)) {
+      inventory_ui.visible = !inventory_ui.visible;
+    }
+
     terrain.stream(player_pos, engine.ws());
 
     fan::vec2 mouse_pos = engine.get_mouse_position();
     fan::vec2 hit_pos = terrain.raycast(player_pos, mouse_pos, dig_radius);
 
     if (!fan::graphics::gui::want_io() && fan::window::is_mouse_down(fan::mouse_left) && dig_interval.tick(dt)) {
-      terrain.dig(hit_pos, dig_radius);
+      auto broken = terrain.dig(hit_pos, dig_radius);
+      for (auto& b : broken) {
+        if (b.type < 0) continue;
+        hotbar.add_item(fan::graphics::gameplay::items::create((std::uint32_t)b.type), 1);
+      }
+      if (!broken.empty()) {
+        break_effects.push_back({
+          .circle = circle_t(circle_properties_t{
+            .position = fan::vec3(hit_pos, 26.f),
+            .radius = dig_radius * 0.5f,
+            .color = fan::color(1.f, 1.f, 1.f, 0.6f),
+            .outline_color = fan::color(1.f, 0.9f, 0.5f, 0.4f),
+            .outline_width = 2.f,
+          }),
+          .timer = 0.25f,
+        });
 
-      break_effects.push_back({
-        .circle = circle_t(circle_properties_t{
-          .position = fan::vec3(hit_pos, 26.f),
-          .radius = dig_radius * 0.5f,
-          .color = fan::color(1.f, 1.f, 1.f, 0.6f),
-          .outline_color = fan::color(1.f, 0.9f, 0.5f, 0.4f),
-          .outline_width = 2.f,
-        }),
-        .timer = 0.25f,
-      });
+        dig_particles.spawn_from_json("models/dig_particles.json", fan::vec3(hit_pos, 26.f));
+      }
+    }
 
-      dig_particles.spawn_from_json("models/dig_particles.json", fan::vec3(hit_pos, 26.f));
+    if (!fan::graphics::gui::want_io() && engine.is_mouse_clicked(fan::mouse_right)) {
+      try_place(hit_pos);
     }
 
     std::erase_if(break_effects, [&](auto& effect) {
@@ -180,7 +315,13 @@ int main() {
       gui::slider("Sun Softness", &sun_shadow_softness, 0.f, 500.f);
     }
 
+    if (save_interval.tick((f32_t)dt)) {
+      save_world();
+    }
+
     dig_particles.update(dt);
+    inventory_ui.render();
+    hotbar.render(inventory_ui.style.theme, inventory_ui.drag_state, inventory_ui.hovered_secondary_slot);
   });
 
   return 0;
