@@ -1042,6 +1042,14 @@ export namespace fan::graphics {
       emitters.back().start_particles();
     }
 
+#if defined(FAN_JSON)
+    void spawn_from_json(std::string_view json_path, const fan::vec3& position) {
+      emitters.push_back(fan::graphics::shape_from_json(json_path));
+      emitters.back().set_position(position);
+      emitters.back().start_particles();
+    }
+#endif
+
     void update(f32_t) {
       for (int i = 0; i < emitters.size(); ) {
         void* data = emitters[i].GetData(fan::graphics::g_shapes->shaper);

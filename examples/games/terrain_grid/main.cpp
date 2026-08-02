@@ -85,7 +85,6 @@ int main() {
   fan::time::interval_t dig_interval{0.003f};
 
   gpu_particle_system_t<> dig_particles;
-  image_t particle_img{fan::colors::white};
   struct break_effect_t { circle_t circle; f32_t timer = 0.f; };
   std::vector<break_effect_t> break_effects;
 
@@ -157,34 +156,18 @@ int main() {
         .timer = 0.25f,
       });
 
-      dig_particles.spawn([&](auto& p) {
-        p.loop = false;
-        p.position = fan::vec3(hit_pos, 26.f);
-        p.begin_color = fan::color(0.5f, 0.4f, 0.3f, 1.f);
-        p.end_color = fan::color(0.3f, 0.2f, 0.1f, 0.f);
-        p.start_size = fan::vec2(5);
-        p.end_size = fan::vec2(1);
-        p.alive_time = 0.35f;
-        p.count = 14;
-        p.start_velocity = fan::vec2(70, -90);
-        p.end_velocity = fan::vec2(25, 50);
-        p.start_spread = fan::vec2(70);
-        p.end_spread = fan::vec2(110);
-        p.expansion_power = 0.5f;
-        p.shape = fan::graphics::shapes::particles_t::shapes_e::circle;
-        p.image = particle_img;
-      });
+      dig_particles.spawn_from_json("models/dig_particles.json", fan::vec3(hit_pos, 26.f));
     }
 
     std::erase_if(break_effects, [&](auto& effect) {
-    effect.timer -= dt;
-    if (effect.timer <= 0.f) { return true; }
-    f32_t t = effect.timer / 0.25f;
-    effect.circle.set_radius(dig_radius * 0.5f + (1.f - t) * dig_radius * 1.5f);
-    effect.circle.set_color(fan::color(1.f, 1.f, 1.f, t * 0.6f));
-    effect.circle.set_outline_color(fan::color(1.f, 0.9f, 0.5f, t * 0.4f));
-    return false;
-  });
+      effect.timer -= dt;
+      if (effect.timer <= 0.f) { return true; }
+      f32_t t = effect.timer / 0.25f;
+      effect.circle.set_radius(dig_radius * 0.5f + (1.f - t) * dig_radius * 1.5f);
+      effect.circle.set_color(fan::color(1.f, 1.f, 1.f, t * 0.6f));
+      effect.circle.set_outline_color(fan::color(1.f, 0.9f, 0.5f, t * 0.4f));
+      return false;
+    });
 
     if (engine.is_toggled(fan::key_t))
     if (auto hud = gui::hud_interactive("Torch")) {

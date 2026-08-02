@@ -290,6 +290,9 @@ namespace fan::graphics {
 
   fan::graphics::image_t json_to_image(const fan::json& image_json, const std::source_location& callers_path) {
     if (!image_json.contains("image_path")) {
+      if (image_json.contains("image_color")) {
+        return fan::graphics::image_t(image_json["image_color"].get<fan::color>());
+      }
       return fan::graphics::ctx().default_texture;
     }
 
