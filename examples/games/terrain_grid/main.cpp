@@ -27,7 +27,10 @@ int main() {
   auto pa = image_presets::pixel_art();
   image_t img_grass     {"images/Textures/Grass/cubeGreen_1.png",   pa};
   image_t img_dirt      {"images/Textures/Dirt/cubeDirt_1.png",     pa};
+  image_t img_clay      {"images/Textures/Purple/cubePurple_1.png",  pa};
+  image_t img_sandstone {"images/Textures/Desert/cubeDesert_1.png",  pa};
   image_t img_stone     {"images/Textures/Stone/cubeStone_1.png",   pa};
+  image_t img_deep_stone{"images/Textures/Stone/cubeStone_5.png",   pa};
   image_t img_bedrock   {"images/Textures/Stone/cubeBedrock_1.png", pa};
   image_t img_island    {"images/Textures/Grass/cubeGreen_1.png",   pa};
   image_t img_dark_grass{"images/Textures/Grass/cubeGreen_2.png",   pa};
@@ -41,9 +44,12 @@ int main() {
     .surface_base = -10.f,
     .img_sky_island = img_island,
     .tile_layers = {
-      {3.f, img_grass},
-      {12.f, img_dirt},
-      {50.f, img_stone},
+      {3.f,    img_grass},
+      {30.f,   img_dirt},
+      {100.f,  img_clay},
+      {220.f,  img_sandstone},
+      {550.f,  img_stone},
+      {1000.f, img_deep_stone},
       {std::numeric_limits<f32_t>::max(), img_bedrock}
     },
     .scatter_noise = &detail_noise,
