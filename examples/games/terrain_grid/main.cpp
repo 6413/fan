@@ -51,15 +51,16 @@ int main() {
     .scatter_threshold = 0.6f,
   }};
 
-  auto player = physics::character_sprite({
+  f32_t player_height = 12.f;
+  auto player = physics::character_capsule_sprite({
     .position{0, 0, 6.f},
     .size=12.f,
     .image = "images/duck.webp"
   });
   auto& pctx = engine.get_physics_context();
-  pctx.set_gravity(pctx.get_gravity() / 1.5f);
+  pctx.set_gravity(pctx.get_gravity() / 2.5f);
   player.set_mass(100.f);
-  player.enable_default_movement(70.f, 150.f);
+  player.enable_default_movement(70.f, 120.f);
 
   engine.camera_set_target(player, 10.f);
 

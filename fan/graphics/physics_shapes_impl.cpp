@@ -621,8 +621,8 @@ namespace fan::graphics::physics {
   capsule_sprite_t::capsule_sprite_t(const properties_t& p) : base_shape_t(
     fan::graphics::shape_t(fan::graphics::sprite_t {p}),
     fan::physics::entity_t(fan::physics::gphysics()->create_capsule(p.position, p.angle.z, b2Capsule {
-      .center1 = p.center0 * p.aabb_scale,
-      .center2 = p.center1 * p.aabb_scale,
+      .center1 = (p.center0.x == -1.f ? fan::vec2(0.f, -p.size.y / 2.f) : p.center0) * p.aabb_scale,
+      .center2 = (p.center1.x == -1.f ? fan::vec2(0.f, p.size.y / 2.f) : p.center1) * p.aabb_scale,
       .radius = p.size.max() / 2.f * p.aabb_scale.max()
       }, p.body_type, p.shape_properties)),
     p.mass_data

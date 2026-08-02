@@ -254,8 +254,8 @@ export namespace fan {
         struct properties_t {
           render_view_t* render_view = &fan::graphics::get_orthographic_render_view();
           fan::vec3 position = fan::vec3(0, 0, 0);
-          fan::vec2 center0{ 0.f, -32.f };
-          fan::vec2 center1{ 0.f, 32.f };
+          fan::vec2 center0{ -1.f };
+          fan::vec2 center1{ -1.f };
           fan::vec2 size = 64.0f;
           fan::vec3 angle = 0;
           fan::color color = fan::color(1, 1, 1, 1);
@@ -270,7 +270,6 @@ export namespace fan {
           std::uint8_t body_type = fan::physics::body_type_e::static_body;
           mass_data_t mass_data;
           fan::physics::shape_properties_t shape_properties;
-
           operator fan::graphics::sprite_properties_t() const;
         };
         capsule_sprite_t() = default;
@@ -857,8 +856,8 @@ export namespace fan::graphics::physics {
   );
   fan::graphics::physics::character2d_t character_capsule_sprite(
     const fan::vec3& position,
-    const fan::vec2& center0 = { 0.f, -32.f },
-    const fan::vec2& center1 = { 0.f, 32.f },
+    const fan::vec2& center0 = { -1.f },
+    const fan::vec2& center1 = { -1.f },
     const fan::vec2& size = { 64.f, 64.f },
     const fan::graphics::image_t& image = fan::graphics::get_default_texture(),
     const fan::physics::shape_properties_t& shape_properties = {.fixed_rotation = true}
