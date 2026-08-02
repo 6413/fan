@@ -195,7 +195,7 @@ namespace fan::graphics::algorithm {
     chunk.occluders.clear();
 
     int cs = m_cfg.chunk_size;
-    std::vector<uint8_t> solid(cs * cs);
+    std::vector<std::uint8_t> solid(cs * cs);
 
     for (int cx = 0; cx < cs; ++cx) {
       int gx = cc.x * cs + cx;
@@ -205,7 +205,7 @@ namespace fan::graphics::algorithm {
       }
     }
 
-    std::vector<uint8_t> visited(cs * cs);
+    std::vector<std::uint8_t> visited(cs * cs);
 
     fan::vec2 origin = fan::vec2(cc) * cs * m_cfg.cell_size;
 
@@ -248,16 +248,16 @@ namespace fan::graphics::algorithm {
     int gw = gx1 - gx0 + 1;
     int gh = gy1 - gy0 + 1;
 
-    std::vector<uint8_t> solid(gw * gh);
+    std::vector<std::uint8_t> solid(gw * gh);
     for (int lx = 0; lx < gw; ++lx) {
       int gx = gx0 + lx;
       f32_t surface = surface_height(gx);
       for (int ly = 0; ly < gh; ++ly) {
-        solid[ly * gw + lx] = (uint8_t)get_solid_with_surface(gx, gy0 + ly, surface);
+        solid[ly * gw + lx] = (std::uint8_t)get_solid_with_surface(gx, gy0 + ly, surface);
       }
     }
 
-    std::vector<uint8_t> visited(gw * gh, 0);
+    std::vector<std::uint8_t> visited(gw * gh, 0);
     for (int ly = 0; ly < gh; ++ly) {
       for (int lx = 0; lx < gw; ++lx) {
         int idx = ly * gw + lx;
