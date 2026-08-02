@@ -1692,6 +1692,7 @@ export namespace fan::graphics {
     };
 
     void add_state(const animation_state_t& state);
+    void add_state_front(const animation_state_t& state);
     void update(fan::graphics::shapes::shape_t& shape, const fan::vec2& velocity);
     void cancel_current();
     animation_state_t& get_state(const std::string& name);
