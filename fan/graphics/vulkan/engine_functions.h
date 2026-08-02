@@ -562,12 +562,14 @@ void open_swapchain_resources() {
 }
 
 void close_swapchain_resources() {
+  fan::vulkan::context_t& context = loco.context.vk;
+  if (context.device != VK_NULL_HANDLE) {
+    vkDeviceWaitIdle(context.device);
+  }
   close_lightmap_resources();
   if (!post_process_resources_open) {
     return;
   }
-  fan::vulkan::context_t& context = loco.context.vk;
-  vkDeviceWaitIdle(context.device);
   close_shape_shader_pipelines();
 
   close_post_process_pipelines();
