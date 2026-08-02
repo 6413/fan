@@ -20,6 +20,7 @@ export module fan.graphics.vulkan.core:pipeline;
 import std;
 
 import :types;
+import fan.types;
 import fan.types.vector;
 import fan.graphics.common_context;
 

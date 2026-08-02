@@ -1,6 +1,7 @@
 export module fan.graphics.grid_placer;
 
 import std;
+import fan.types;
 import fan.types.vector;
 import fan.math;
 import fan.graphics.algorithm.raycast_grid;
@@ -9,10 +10,10 @@ import fan.graphics.common_types;
 export namespace fan::graphics {
   inline fan::vec2i8 cell_direction(fan::vec2i delta) {
     if (std::abs(delta.x) > std::abs(delta.y)) {
-      return {(int8_t)(delta.x > 0 ? 1 : -1), 0};
+      return {(sint8_t)(delta.x > 0 ? 1 : -1), 0};
     }
     if (delta.y) {
-      return {0, (int8_t)(delta.y > 0 ? 1 : -1)};
+      return {0, (sint8_t)(delta.y > 0 ? 1 : -1)};
     }
     return {1, 0};
   }

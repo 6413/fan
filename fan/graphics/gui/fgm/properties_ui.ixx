@@ -81,7 +81,7 @@ export namespace fan::graphics::editor {
             shape->children[0].set_flags(light_shape);
           }
           {
-            uint32_t df = shape->children[0].get_dynamic_flags();
+            std::uint32_t df = shape->children[0].get_dynamic_flags();
             bool enable_flicker = df & 1;
             if (gui::checkbox("enable_flicker", &enable_flicker)) {
               if (enable_flicker) df |= 1u;
@@ -111,7 +111,7 @@ export namespace fan::graphics::editor {
             {
               int ease_type = shape->children[0].get_ease_types() & 0xf;
               if (gui::combo("ease_type", &ease_type, fan::ease_names, fan::ease_count)) {
-                uint32_t et = shape->children[0].get_ease_types();
+                std::uint32_t et = shape->children[0].get_ease_types();
                 et = (et & ~0xf) | (ease_type & 0xf);
                 shape->children[0].set_ease_types(et);
               }
@@ -126,7 +126,7 @@ export namespace fan::graphics::editor {
           fan::color v = shape->children[0].get_target_color();
           if (gui::color_edit4("target_color", &v)) {
             shape->children[0].set_target_color(v);
-            uint32_t df = shape->children[0].get_dynamic_flags();
+            std::uint32_t df = shape->children[0].get_dynamic_flags();
             if (v != fan::colors::white) df |= 2u;
             else df &= ~2u;
             shape->children[0].set_dynamic_flags(df);
@@ -141,7 +141,7 @@ export namespace fan::graphics::editor {
         {
           int ease_type = (shape->children[0].get_ease_types() >> 4) & 0xf;
           if (gui::combo("ease_type", &ease_type, fan::ease_names, fan::ease_count)) {
-            uint32_t et = shape->children[0].get_ease_types();
+            std::uint32_t et = shape->children[0].get_ease_types();
             et = (et & ~0xf0) | ((ease_type & 0xf) << 4);
             shape->children[0].set_ease_types(et);
           }
