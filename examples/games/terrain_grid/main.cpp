@@ -7,29 +7,43 @@ import fan.graphics.gameplay.types;
 using namespace fan::graphics;
 
 namespace {
-  constexpr const char* block_names[] = {
-    "Grass", "Dirt", "Clay", "Sandstone", "Stone", "Deep Stone", "Bedrock"
+  struct block_def_t {
+    const char* name;
+    const char* image_path;
+    f32_t depth;
   };
-  constexpr int block_count = (int)std::size(block_names);
+  constexpr block_def_t block_defs[] = {
+    {"Grass",      "images/Textures/Grass/cubeGreen_1.png",    3.f},
+    {"Dirt",       "images/Textures/Dirt/cubeDirt_1.png",      30.f},
+    {"Clay",       "images/Textures/Purple/cubePurple_1.png",  100.f},
+    {"Sandstone",  "images/Textures/Desert/cubeDesert_1.png",  220.f},
+    {"Stone",      "images/Textures/Stone/cubeStone_1.png",    550.f},
+    {"Deep Stone", "images/Textures/Stone/cubeStone_5.png",    1000.f},
+    {"Bedrock",    "images/Textures/Stone/cubeBedrock_1.png",  std::numeric_limits<f32_t>::max()},
+  };
+  constexpr int block_count = (int)std::size(block_defs);
 }
 
 int main() {
   engine_t engine;
   interactive_camera_t ic;
+  ic.ignore_input = true;
+  ic.set_zoom(5.f);
   engine.get_clear_color() = fan::colors::black;
   engine.update_physics(true);
 
   engine.shadow_enable_tile_mode();
   engine.shadow_set_darkness(0.6f);
 
-  gameplay::gui_theme_t theme;
-  theme.panel_bg = fan::color(0.08f, 0.08f, 0.10f, 0.90f);
-  theme.panel_border = fan::color(0.5f, 0.5f, 0.6f, 1.f);
-  theme.panel_corner_accent = fan::color(0.6f, 0.65f, 0.7f, 1.f);
-  theme.slot_bg = fan::color(0.15f, 0.15f, 0.17f, 0.95f);
-  theme.slot_bg_hover = fan::color(0.30f, 0.32f, 0.36f, 0.95f);
-  theme.slot_border = fan::color(0.4f, 0.4f, 0.45f, 1.f);
-  theme.selected_border_color = fan::colors::white;
+  gameplay::gui_theme_t theme{
+    .panel_bg = fan::color(0.08f, 0.08f, 0.10f, 0.90f),
+    .panel_border = fan::color(0.5f, 0.5f, 0.6f, 1.f),
+    .panel_corner_accent = fan::color(0.6f, 0.65f, 0.7f, 1.f),
+    .slot_bg = fan::color(0.15f, 0.15f, 0.17f, 0.95f),
+    .slot_bg_hover = fan::color(0.30f, 0.32f, 0.36f, 0.95f),
+    .slot_border = fan::color(0.4f, 0.4f, 0.45f, 1.f),
+    .selected_border_color = fan::colors::white
+  };
 
   gui::inventory_t inventory_ui;
   inventory_ui.create(block_count, block_count);
@@ -67,15 +81,23 @@ int main() {
   }};
 
   auto pa = image_presets::pixel_art();
-  image_t img_grass     {"images/Textures/Grass/cubeGreen_1.png",   pa};
-  image_t img_dirt      {"images/Textures/Dirt/cubeDirt_1.png",     pa};
-  image_t img_clay      {"images/Textures/Purple/cubePurple_1.png",  pa};
-  image_t img_sandstone {"images/Textures/Desert/cubeDesert_1.png",  pa};
-  image_t img_stone     {"images/Textures/Stone/cubeStone_1.png",   pa};
-  image_t img_deep_stone{"images/Textures/Stone/cubeStone_5.png",   pa};
-  image_t img_bedrock   {"images/Textures/Stone/cubeBedrock_1.png", pa};
   image_t img_island    {"images/Textures/Grass/cubeGreen_1.png",   pa};
   image_t img_dark_grass{"images/Textures/Grass/cubeGreen_2.png",   pa};
+
+  auto& item_reg = fan::graphics::gameplay::items::get_registry();
+  std::vector<std::pair<f32_t, image_t>> tile_layers;
+  tile_layers.reserve(block_count);
+  for (int i = 0; i < block_count; ++i) {
+    image_t img{block_defs[i].image_path, pa};
+    tile_layers.push_back({block_defs[i].depth, img});
+    item_reg.register_item({
+      .id = (std::uint32_t)i,
+      .name = block_defs[i].name,
+      .icon = img,
+      .max_stack = 999,
+      .description = block_defs[i].name,
+    });
+  }
 
   algorithm::chunk_renderer_t terrain{{
     .cell_size = 16.f,
@@ -85,34 +107,12 @@ int main() {
     .detail_noise = &detail_noise,
     .surface_base = -10.f,
     .img_sky_island = img_island,
-    .tile_layers = {
-      {3.f,    img_grass},
-      {30.f,   img_dirt},
-      {100.f,  img_clay},
-      {220.f,  img_sandstone},
-      {550.f,  img_stone},
-      {1000.f, img_deep_stone},
-      {std::numeric_limits<f32_t>::max(), img_bedrock}
-    },
+    .tile_layers = tile_layers,
     .scatter_noise = &detail_noise,
     .scatter_img = img_dark_grass,
     .scatter_threshold = 0.6f,
   }};
   terrain.load_edits(world_edits);
-
-  auto& item_reg = fan::graphics::gameplay::items::get_registry();
-  image_t block_icons[block_count] = {
-    img_grass, img_dirt, img_clay, img_sandstone, img_stone, img_deep_stone, img_bedrock
-  };
-  for (int i = 0; i < block_count; ++i) {
-    item_reg.register_item({
-      .id = (std::uint32_t)i,
-      .name = block_names[i],
-      .icon = block_icons[i],
-      .max_stack = 999,
-      .description = block_names[i],
-    });
-  }
 
   auto player = physics::from_json({
     .json_path = "models/Base Character/base_character.json"
@@ -164,11 +164,8 @@ int main() {
     j.set("edits", edits);
     fan::json inv = fan::json::array();
     for (auto& s : hotbar.slots) {
-      if (s.is_empty()) continue;
-      fan::json entry = fan::json::object();
-      entry.set("id", (int)*s.id);
-      entry.set("count", (int)*s.stack_size);
-      inv.push_back(entry);
+      if (s.is_empty()) { continue; }
+      inv.push_back(fan::json{{"id", (int)*s.id}, {"count", (int)*s.stack_size}});
     }
     j.set("inventory", inv);
     j.save(save_path);
@@ -186,18 +183,18 @@ int main() {
   };
   auto try_place = [&](fan::vec2 hit_pos) -> bool {
     auto& sel = hotbar.slots[hotbar.selected_slot];
-    if (sel.is_empty()) return false;
+    if (sel.is_empty()) { return false; }
     int gx, gy;
     fan::vec2 mouse_pos = engine.get_mouse_position();
     if (hit_pos == mouse_pos) {
       auto c = cell_of(mouse_pos);
-      if (terrain.get_solid(c.x, c.y)) return false;
+      if (terrain.get_solid(c.x, c.y)) { return false; }
       gx = c.x; gy = c.y;
     }
     else {
       fan::vec2 diff = mouse_pos - player.get_position();
       f32_t dist = diff.length();
-      if (dist < 1e-4f) return false;
+      if (dist < 1e-4f) { return false; }
       fan::vec2 dir = diff / dist;
       bool found = false;
       for (f32_t d = cs * 0.5f; d <= cs * 3.f; d += cs * 0.5f) {
@@ -205,14 +202,14 @@ int main() {
         auto c = cell_of(p);
         if (!terrain.get_solid(c.x, c.y)) { gx = c.x; gy = c.y; found = true; break; }
       }
-      if (!found) return false;
+      if (!found) { return false; }
     }
     fan::vec2 cc = cell_center(gx, gy);
     fan::physics::aabb_t aabb = player.get_aabb();
     if (cc.x + cs * 0.5f > aabb.min.x && cc.x - cs * 0.5f < aabb.max.x &&
-        cc.y + cs * 0.5f > aabb.min.y && cc.y - cs * 0.5f < aabb.max.y) return false;
+        cc.y + cs * 0.5f > aabb.min.y && cc.y - cs * 0.5f < aabb.max.y) { return false; }
     int type = (int)*sel.id;
-    if (!hotbar.consume_slot(hotbar.selected_slot, nullptr)) return false;
+    if (!hotbar.consume_slot(hotbar.selected_slot, nullptr)) { return false; }
     terrain.place(cc, cs * 0.5f, type);
     return true;
   };
@@ -271,8 +268,9 @@ int main() {
     if (!fan::graphics::gui::want_io() && fan::window::is_mouse_down(fan::mouse_left) && dig_interval.tick(dt)) {
       auto broken = terrain.dig(hit_pos, dig_radius);
       for (auto& b : broken) {
-        if (b.type < 0) continue;
-        hotbar.add_item(fan::graphics::gameplay::items::create((std::uint32_t)b.type), 1);
+        if (b.type >= 0) {
+          hotbar.add_item(fan::graphics::gameplay::items::create((std::uint32_t)b.type), 1);
+        }
       }
       if (!broken.empty()) {
         break_effects.push_back({
@@ -304,15 +302,16 @@ int main() {
       return false;
     });
 
-    if (engine.is_toggled(fan::key_t))
-    if (auto hud = gui::hud_interactive("Torch")) {
-      gui::color_edit3("Color", (fan::vec3*)&torch_color_hud);
-      gui::slider("Size", &torch_size_hud, 50.f, 600.f);
-      gui::slider("Alpha", &torch_visual_a_hud, 0.f, 2.f);
-      gui::slider("Shadow A", &torch_shadow_a_hud, 0.f, 1.f);
-      gui::slider("Shadow Strength", &torch_shadow_strength, 0.f, 2.f);
-      gui::slider("Shadow Softness", &torch_shadow_softness, 0.f, 500.f);
-      gui::slider("Sun Softness", &sun_shadow_softness, 0.f, 500.f);
+    if (engine.is_toggled(fan::key_t)) {
+      if (auto hud = gui::hud_interactive("Torch")) {
+        gui::color_edit3("Color", (fan::vec3*)&torch_color_hud);
+        gui::drag("Size", &torch_size_hud);
+        gui::drag("Alpha", &torch_visual_a_hud);
+        gui::drag("Shadow A", &torch_shadow_a_hud);
+        gui::drag("Shadow Strength", &torch_shadow_strength);
+        gui::drag("Shadow Softness", &torch_shadow_softness);
+        gui::drag("Sun Softness", &sun_shadow_softness);
+      }
     }
 
     if (save_interval.tick((f32_t)dt)) {
