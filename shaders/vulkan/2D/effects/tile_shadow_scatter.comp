@@ -1,0 +1,109 @@
+#version 450
+layout(local_size_x = 64) in;
+
+struct occ_t { vec2 min; vec2 max; };
+layout(set = 0, binding = 0, std430) readonly buffer occluders_t { occ_t occs[]; };
+layout(set = 0, binding = 1, std430) buffer radial_t { uint distances[]; };
+layout(push_constant) uniform pc_t {
+  vec2 light_pos;
+  float light_radius;
+  uint occluder_count;
+  uint angle_resolution;
+} pc;
+
+const float tau = 6.28318530718;
+const float pi = 3.14159265359;
+
+vec2 ray_aabb(vec2 mn, vec2 mx, vec2 origin, vec2 inv_dir) {
+  vec2 t0 = (mn - origin) * inv_dir;
+  vec2 t1 = (mx - origin) * inv_dir;
+  vec2 tmin = min(t0, t1);
+  vec2 tmax = max(t0, t1);
+  float tnear = max(tmin.x, tmin.y);
+  float tfar = min(tmax.x, tmax.y);
+  return vec2(max(tnear, 0.0), tfar);
+}
+
+float normalized_angle(float angle) {
+  return angle < 0.0 ? angle / tau + 1.0 : angle / tau;
+}
+
+void write_angle(uint angle_index, occ_t occ) {
+  float angle = float(angle_index) / float(pc.angle_resolution) * tau;
+  vec2 dir = vec2(cos(angle), sin(angle));
+  vec2 inv_dir = vec2(
+    abs(dir.x) < 0.000001 ? (dir.x < 0.0 ? -1e6 : 1e6) : 1.0 / dir.x,
+    abs(dir.y) < 0.000001 ? (dir.y < 0.0 ? -1e6 : 1e6) : 1.0 / dir.y
+  );
+  vec2 hit = ray_aabb(occ.min, occ.max, pc.light_pos, inv_dir);
+  if (hit.y >= hit.x && hit.x < pc.light_radius) {
+    float blocker = max(hit.x / pc.light_radius, 0.0);
+    atomicMin(distances[angle_index], floatBitsToUint(blocker));
+  }
+}
+
+void write_signed_range(float from_angle, float to_angle, occ_t occ) {
+  float from = normalized_angle(from_angle);
+  float to = normalized_angle(to_angle);
+  int from_index = clamp(int(floor(from * float(pc.angle_resolution))), 0, int(pc.angle_resolution) - 1);
+  int to_index = clamp(int(ceil(to * float(pc.angle_resolution))), 0, int(pc.angle_resolution) - 1);
+
+  if (from <= to) {
+    for (int i = from_index; i <= to_index; ++i) {
+      write_angle(uint(i), occ);
+    }
+  }
+  else {
+    for (int i = from_index; i < int(pc.angle_resolution); ++i) {
+      write_angle(uint(i), occ);
+    }
+    for (int i = 0; i <= to_index; ++i) {
+      write_angle(uint(i), occ);
+    }
+  }
+}
+
+void main() {
+  uint index = gl_GlobalInvocationID.x;
+  if (index >= pc.occluder_count) return;
+
+  occ_t occ = occs[index];
+  bool light_inside = pc.light_pos.x >= occ.min.x && pc.light_pos.x <= occ.max.x &&
+    pc.light_pos.y >= occ.min.y && pc.light_pos.y <= occ.max.y;
+  if (light_inside) {
+    for (uint i = 0; i < pc.angle_resolution; ++i) {
+      atomicMin(distances[i], 0u);
+    }
+    return;
+  }
+
+  vec2 corners[4] = vec2[](
+    occ.min,
+    vec2(occ.max.x, occ.min.y),
+    occ.max,
+    vec2(occ.min.x, occ.max.y)
+  );
+  float angles[4];
+  for (int i = 0; i < 4; ++i) {
+    angles[i] = atan(corners[i].y - pc.light_pos.y, corners[i].x - pc.light_pos.x);
+  }
+  for (int i = 0; i < 4; ++i) {
+    for (int j = i + 1; j < 4; ++j) {
+      if (angles[j] < angles[i]) {
+        float swap_value = angles[i];
+        angles[i] = angles[j];
+        angles[j] = swap_value;
+      }
+    }
+  }
+
+  float min_angle = angles[0];
+  float max_angle = angles[3];
+  if (max_angle - min_angle > pi) {
+    write_signed_range(max_angle, pi, occ);
+    write_signed_range(-pi, min_angle, occ);
+  }
+  else {
+    write_signed_range(min_angle, max_angle, occ);
+  }
+}

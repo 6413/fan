@@ -163,6 +163,34 @@ namespace fan::graphics::format_converter {
 
 export namespace fan {
   namespace vulkan {
+    
+    inline constexpr std::uint32_t timestamp_shadow_light_count = 4;
+    inline constexpr std::uint32_t timestamp_shadow_light_stride = 4;
+    inline constexpr std::uint32_t timestamp_query_shadow_light_base = 4;
+    inline constexpr std::uint32_t timestamp_queries_per_frame =
+      timestamp_query_shadow_light_base + timestamp_shadow_light_count * timestamp_shadow_light_stride;
+    enum timestamp_query_e : std::uint32_t {
+      timestamp_query_frame_begin = 0,
+      timestamp_query_frame_end,
+      timestamp_query_shadow_begin,
+      timestamp_query_shadow_end,
+    };
+    struct timestamp_query_result_t {
+      std::uint64_t value = 0;
+      std::uint64_t available = 0;
+    };
+    inline constexpr std::uint32_t timestamp_query_shadow_tile_begin(std::uint32_t light) {
+      return timestamp_query_shadow_light_base + light * timestamp_shadow_light_stride;
+    }
+    inline constexpr std::uint32_t timestamp_query_shadow_tile_end(std::uint32_t light) {
+      return timestamp_query_shadow_tile_begin(light) + 1;
+    }
+    inline constexpr std::uint32_t timestamp_query_shadow_composite_begin(std::uint32_t light) {
+      return timestamp_query_shadow_tile_begin(light) + 2;
+    }
+    inline constexpr std::uint32_t timestamp_query_shadow_composite_end(std::uint32_t light) {
+      return timestamp_query_shadow_tile_begin(light) + 3;
+    }
 
     struct context_t {
       frame_deletion_queue_t frame_deletion_queues[max_frames_in_flight];
@@ -190,7 +218,7 @@ export namespace fan {
       VkPipelineCache pipeline_cache = VK_NULL_HANDLE;
       VkQueryPool timestamp_query_pool = VK_NULL_HANDLE;
       double timestamp_period = 1.0;
-      std::uint64_t gpu_timestamps[2] = {0, 0};
+      timestamp_query_result_t gpu_timestamps[timestamp_queries_per_frame]{};
       #include "memory.h"
       #include "ssbo.h"
 

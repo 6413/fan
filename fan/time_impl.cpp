@@ -163,14 +163,36 @@ namespace fan {
       node->name = name;
       node->timer.restart();
       stack.push_back(node);
+
+      if (capture_frame_open && capture_warmup_frames == 0) {
+        capture_entry_t* capture_node;
+        if (capture_stack.empty()) {
+          capture_node = &capture_roots[name];
+        }
+        else {
+          capture_node = &capture_stack.back()->children[name];
+        }
+        capture_node->name = name;
+        capture_stack.push_back(capture_node);
+      }
     }
     void profiler_t::end(std::string_view name) {
       if (!enabled) return;
       if (stack.empty()) return;
       entry_t* node = stack.back();
       stack.pop_back();
-      node->accumulated_time += node->timer.seconds();
+      f64_t elapsed = node->timer.seconds();
+      node->accumulated_time += elapsed;
       node->count++;
+
+      if (!capture_stack.empty()) {
+        capture_entry_t* capture_node = capture_stack.back();
+        capture_stack.pop_back();
+        if (capture_record_cpu) {
+          capture_node->accumulated_time += elapsed;
+          capture_node->count++;
+        }
+      }
     }
     void profiler_t::add_gpu_time(std::string_view name, f64_t time_ms) {
       if (!enabled) return;
@@ -183,6 +205,19 @@ namespace fan {
       node->name = name;
       node->accumulated_time += time_ms / 1000.0;
       node->count++;
+
+      if (capture_frame_open && capture_warmup_frames == 0) {
+        capture_entry_t* capture_node;
+        if (capture_stack.empty()) {
+          capture_node = &capture_roots[name];
+        }
+        else {
+          capture_node = &capture_stack.back()->children[name];
+        }
+        capture_node->name = name;
+        capture_node->accumulated_time += time_ms / 1000.0;
+        capture_node->count++;
+      }
     }
     
     static void update_recursive(profiler_t::entry_t& e) {
@@ -203,6 +238,103 @@ namespace fan {
         update_timer.restart();
       }
     }
+
+    bool profiler_t::request_capture(std::uint32_t frame_count, std::function<void()> on_complete) {
+      if (frame_count == 0 || capture_active_state) {
+        return false;
+      }
+
+      capture_roots.clear();
+      capture_stack.clear();
+      capture_complete_cb = std::move(on_complete);
+      capture_target_frames = frame_count;
+      capture_frames = 0;
+      capture_warmup_frames = 3;
+      capture_settle_frames = 0;
+      capture_active_state = true;
+      capture_frame_open = false;
+      capture_record_cpu = false;
+      return true;
+    }
+
+    void profiler_t::cancel_capture() {
+      capture_roots.clear();
+      capture_stack.clear();
+      capture_complete_cb = {};
+      capture_target_frames = 0;
+      capture_frames = 0;
+      capture_warmup_frames = 0;
+      capture_settle_frames = 0;
+      capture_active_state = false;
+      capture_frame_open = false;
+      capture_record_cpu = false;
+    }
+
+    bool profiler_t::capture_active() const {
+      return capture_active_state;
+    }
+
+    void profiler_t::begin_capture_frame() {
+      if (!capture_active_state) return;
+
+      capture_frame_open = true;
+      capture_stack.clear();
+      capture_record_cpu = capture_warmup_frames == 0 && capture_frames < capture_target_frames;
+    }
+
+    void profiler_t::end_capture_frame() {
+      if (!capture_active_state || !capture_frame_open) return;
+
+      capture_frame_open = false;
+      capture_stack.clear();
+
+      if (capture_warmup_frames > 0) {
+        --capture_warmup_frames;
+        return;
+      }
+
+      if (capture_record_cpu) {
+        ++capture_frames;
+        if (capture_frames == capture_target_frames) {
+          capture_record_cpu = false;
+          capture_settle_frames = 3;
+        }
+        return;
+      }
+
+      if (capture_settle_frames > 0 && --capture_settle_frames == 0) {
+        capture_active_state = false;
+        auto on_complete = std::move(capture_complete_cb);
+        capture_complete_cb = {};
+        if (on_complete) {
+          on_complete();
+        }
+      }
+    }
+
+    static void write_capture_entry(std::ostringstream& out, const profiler_t::capture_entry_t& entry, int depth) {
+      if (entry.count != 0) {
+        out << std::string(depth * 2, ' ') << entry.name << ": "
+            << (entry.accumulated_time / entry.count) * 1000.0
+            << " ms (" << entry.count << " samples)\n";
+      }
+      for (const auto& pair : entry.children) {
+        write_capture_entry(out, pair.second, depth + (entry.count != 0));
+      }
+    }
+
+    std::string profiler_t::capture_to_string() const {
+      std::ostringstream out;
+      out << std::fixed << std::setprecision(6);
+      out << "Engine timings\n";
+      out << "Frames: " << capture_frames << "\n";
+      out << "Average time per profiler sample:\n";
+      for (const auto& pair : capture_roots) {
+        write_capture_entry(out, pair.second, 0);
+      }
+      return out.str();
+    }
+
     scope_profiler_t::scope_profiler_t(std::string_view name) : name(name) {
       global_profiler.begin(name);
     }

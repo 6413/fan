@@ -9,10 +9,11 @@ layout(push_constant) uniform pc_t {
   float falloff_power;
   float angle_texel;
   float cone_angle;
-  float cone_inner;
-  float cone_outer;
-  float time;
-} pc;
+   float cone_inner;
+   float cone_outer;
+   float time;
+   float shadow_map_scale;
+ } pc;
 layout(location = 0) out vec4 out_color;
 const float tau = 6.28318530718;
 
@@ -32,6 +33,10 @@ float shadow_vsm(vec2 moments, float dist) {
   return max(p, p_max);
 }
 
+vec2 shadow_sample(float angle) {
+  return texture(shadow_texture, vec2(fract(angle) * pc.shadow_map_scale, 0.5)).rg;
+}
+
 void main() {
   vec2 p = v_uv * 2.0 - 1.0;
   float dist = length(p);
@@ -43,23 +48,23 @@ void main() {
   float s5 = step_a * 5.0, s6 = step_a * 6.0, s7 = step_a * 7.0, s8 = step_a * 8.0;
 
   vec2 moments = vec2(0.0);
-  moments += texture(shadow_texture, vec2(fract(fu - s8), 0.5)).rg * 0.004;
-  moments += texture(shadow_texture, vec2(fract(fu - s7), 0.5)).rg * 0.008;
-  moments += texture(shadow_texture, vec2(fract(fu - s6), 0.5)).rg * 0.016;
-  moments += texture(shadow_texture, vec2(fract(fu - s5), 0.5)).rg * 0.027;
-  moments += texture(shadow_texture, vec2(fract(fu - s4), 0.5)).rg * 0.045;
-  moments += texture(shadow_texture, vec2(fract(fu - s3), 0.5)).rg * 0.063;
-  moments += texture(shadow_texture, vec2(fract(fu - s2), 0.5)).rg * 0.094;
-  moments += texture(shadow_texture, vec2(fract(fu - s1), 0.5)).rg * 0.117;
-  moments += texture(shadow_texture, vec2(fract(fu),      0.5)).rg * 0.252;
-  moments += texture(shadow_texture, vec2(fract(fu + s1), 0.5)).rg * 0.117;
-  moments += texture(shadow_texture, vec2(fract(fu + s2), 0.5)).rg * 0.094;
-  moments += texture(shadow_texture, vec2(fract(fu + s3), 0.5)).rg * 0.063;
-  moments += texture(shadow_texture, vec2(fract(fu + s4), 0.5)).rg * 0.045;
-  moments += texture(shadow_texture, vec2(fract(fu + s5), 0.5)).rg * 0.027;
-  moments += texture(shadow_texture, vec2(fract(fu + s6), 0.5)).rg * 0.016;
-  moments += texture(shadow_texture, vec2(fract(fu + s7), 0.5)).rg * 0.008;
-  moments += texture(shadow_texture, vec2(fract(fu + s8), 0.5)).rg * 0.004;
+  moments += shadow_sample(fu - s8) * 0.004;
+  moments += shadow_sample(fu - s7) * 0.008;
+  moments += shadow_sample(fu - s6) * 0.016;
+  moments += shadow_sample(fu - s5) * 0.027;
+  moments += shadow_sample(fu - s4) * 0.045;
+  moments += shadow_sample(fu - s3) * 0.063;
+  moments += shadow_sample(fu - s2) * 0.094;
+  moments += shadow_sample(fu - s1) * 0.117;
+  moments += shadow_sample(fu)       * 0.252;
+  moments += shadow_sample(fu + s1) * 0.117;
+  moments += shadow_sample(fu + s2) * 0.094;
+  moments += shadow_sample(fu + s3) * 0.063;
+  moments += shadow_sample(fu + s4) * 0.045;
+  moments += shadow_sample(fu + s5) * 0.027;
+  moments += shadow_sample(fu + s6) * 0.016;
+  moments += shadow_sample(fu + s7) * 0.008;
+  moments += shadow_sample(fu + s8) * 0.004;
 
   float lit = shadow_vsm(moments, dist);
 
