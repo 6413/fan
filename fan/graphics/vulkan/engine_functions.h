@@ -826,8 +826,20 @@ void draw_post_process() {
   vkCmdEndRendering(cmd);
 
   alpha_shadow_renderer.shadow_time = (f32_t)(fan::time::now() / 1e9);
+  if (context.timestamp_query_pool) {
+    vkCmdWriteTimestamp(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, context.timestamp_query_pool,
+      context.current_frame * fan::vulkan::timestamp_queries_per_frame + fan::vulkan::timestamp_query_shadow_begin);
+  }
+  fan::time::global_profiler.begin("Shadow: Build Maps");
   alpha_shadow_renderer.build_shadow_maps();
+  fan::time::global_profiler.end("Shadow: Build Maps");
+  fan::time::global_profiler.begin("Shadow: Overlay");
   alpha_shadow_renderer.render_overlay(context.mainColorImageViews[context.image_index].image_view);
+  fan::time::global_profiler.end("Shadow: Overlay");
+  if (context.timestamp_query_pool) {
+    vkCmdWriteTimestamp(cmd, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, context.timestamp_query_pool,
+      context.current_frame * fan::vulkan::timestamp_queries_per_frame + fan::vulkan::timestamp_query_shadow_end);
+  }
 
   barrier_image(context.mainColorImageViews[context.image_index].image,
     VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
@@ -1131,48 +1143,70 @@ void begin_scene_pass(bool clear_pass) {
 // We will replace its call in begin_draw() manually.
 void begin_draw() {
   fan::vulkan::context_t& context = loco.context.vk;
-  vkWaitForFences(context.device, 1, &context.in_flight_fences[context.current_frame], VK_TRUE, UINT64_MAX);
+  {
+    fan::time::scope_profiler_t profiler{"Begin Draw: Fence Wait"};
+    vkWaitForFences(context.device, 1, &context.in_flight_fences[context.current_frame], VK_TRUE, UINT64_MAX);
+  }
 
   if (context.timestamp_query_pool && ++context.begin_count > fan::vulkan::max_frames_in_flight) {
-    vkGetQueryPoolResults(
-      context.device,
-      context.timestamp_query_pool,
-      context.current_frame * 2,
-      2,
-      sizeof(context.gpu_timestamps),
-      context.gpu_timestamps,
-      sizeof(std::uint64_t),
-      VK_QUERY_RESULT_64_BIT
-    );
-    if (context.gpu_timestamps[1] != 0 && context.gpu_timestamps[0] != 0 && context.gpu_timestamps[1] > context.gpu_timestamps[0]) {
-      double gpu_time_ms = double(context.gpu_timestamps[1] - context.gpu_timestamps[0]) * context.timestamp_period / 1000000.0;
-      fan::time::global_profiler.add_gpu_time("GPU Render", gpu_time_ms);
+    auto query_base = context.current_frame * fan::vulkan::timestamp_queries_per_frame;
+    {
+      fan::time::scope_profiler_t profiler{"Begin Draw: GPU Query Readback"};
+      vkGetQueryPoolResults(
+        context.device,
+        context.timestamp_query_pool,
+        query_base,
+        fan::vulkan::timestamp_queries_per_frame,
+        sizeof(context.gpu_timestamps),
+        context.gpu_timestamps,
+        sizeof(context.gpu_timestamps[0]),
+        VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WITH_AVAILABILITY_BIT
+      );
+    }
+    auto gpu_range_ms = [&](std::uint32_t begin, std::uint32_t end) -> double {
+      const auto& a = context.gpu_timestamps[begin];
+      const auto& b = context.gpu_timestamps[end];
+      if (a.available && b.available && b.value > a.value) {
+        return double(b.value - a.value) * context.timestamp_period / 1000000.0;
+      }
+      return 0.0;
+    };
+    auto add_gpu_range = [&](std::uint32_t begin, std::uint32_t end, std::string_view name) {
+      if (double time_ms = gpu_range_ms(begin, end); time_ms > 0.0) {
+        fan::time::global_profiler.add_gpu_time(name, time_ms);
+      }
+    };
+    add_gpu_range(fan::vulkan::timestamp_query_frame_begin, fan::vulkan::timestamp_query_frame_end, "GPU Render");
+    add_gpu_range(fan::vulkan::timestamp_query_shadow_begin, fan::vulkan::timestamp_query_shadow_end, "GPU Shadows");
+    double tile_shadow_ms = 0.0;
+    double composite_shadow_ms = 0.0;
+    for (std::uint32_t light = 0; light < fan::vulkan::timestamp_shadow_light_count; ++light) {
+      tile_shadow_ms += gpu_range_ms(fan::vulkan::timestamp_query_shadow_tile_begin(light), fan::vulkan::timestamp_query_shadow_tile_end(light));
+      composite_shadow_ms += gpu_range_ms(fan::vulkan::timestamp_query_shadow_composite_begin(light), fan::vulkan::timestamp_query_shadow_composite_end(light));
+    }
+    if (tile_shadow_ms > 0.0) {
+      fan::time::global_profiler.add_gpu_time("GPU Shadow Tile Compute", tile_shadow_ms);
+    }
+    if (composite_shadow_ms > 0.0) {
+      fan::time::global_profiler.add_gpu_time("GPU Shadow Light Composite", composite_shadow_ms);
     }
   }
 
-  context.get_current_deletion_queue(context.current_frame).flush();
-  context.get_current_deletion_queue(context.current_frame).merge(context.pending_deletion_queue);
-  flush_deferred_shape_pipeline_destroys();
-
-  if (context.SwapChainRebuild) {
-    close_swapchain_resources();
-    context.recreate_swap_chain(&loco.window, VK_SUCCESS);
-    open_swapchain_resources();
+  {
+    fan::time::scope_profiler_t profiler{"Begin Draw: Deletion Queues"};
+    context.get_current_deletion_queue(context.current_frame).flush();
+    context.get_current_deletion_queue(context.current_frame).merge(context.pending_deletion_queue);
+    flush_deferred_shape_pipeline_destroys();
   }
-    
-  loco.vk->image_error = vkAcquireNextImageKHR(
-    context.device,
-    context.swap_chain,
-    UINT64_MAX,
-    context.image_available_semaphores[context.acquire_semaphore_index],
-    VK_NULL_HANDLE,
-    &context.image_index
-  );
 
-  if (loco.vk->image_error == VK_ERROR_OUT_OF_DATE_KHR || loco.vk->image_error == VK_SUBOPTIMAL_KHR) {
-    close_swapchain_resources();
-    context.recreate_swap_chain(&loco.window, loco.vk->image_error);
-    open_swapchain_resources();
+  {
+    fan::time::scope_profiler_t profiler{"Begin Draw: Swapchain Acquire"};
+    if (context.SwapChainRebuild) {
+      close_swapchain_resources();
+      context.recreate_swap_chain(&loco.window, VK_SUCCESS);
+      open_swapchain_resources();
+    }
+
     loco.vk->image_error = vkAcquireNextImageKHR(
       context.device,
       context.swap_chain,
@@ -1181,6 +1215,20 @@ void begin_draw() {
       VK_NULL_HANDLE,
       &context.image_index
     );
+
+    if (loco.vk->image_error == VK_ERROR_OUT_OF_DATE_KHR || loco.vk->image_error == VK_SUBOPTIMAL_KHR) {
+      close_swapchain_resources();
+      context.recreate_swap_chain(&loco.window, loco.vk->image_error);
+      open_swapchain_resources();
+      loco.vk->image_error = vkAcquireNextImageKHR(
+        context.device,
+        context.swap_chain,
+        UINT64_MAX,
+        context.image_available_semaphores[context.acquire_semaphore_index],
+        VK_NULL_HANDLE,
+        &context.image_index
+      );
+    }
   }
 
   if (loco.vk->image_error != VK_SUCCESS) { 
@@ -1191,9 +1239,13 @@ void begin_draw() {
   context.current_acquire_semaphore = context.image_available_semaphores[context.acquire_semaphore_index];
   context.acquire_semaphore_index = (context.acquire_semaphore_index + 1) % (std::uint32_t)context.image_available_semaphores.size();
 
-  vkResetFences(context.device, 1, &context.in_flight_fences[context.current_frame]);
-  vkResetCommandBuffer(context.command_buffers[context.current_frame], /*VkCommandBufferResetFlagBits*/ 0);
   {
+    fan::time::scope_profiler_t profiler{"Begin Draw: Command Buffer Reset"};
+    vkResetFences(context.device, 1, &context.in_flight_fences[context.current_frame]);
+    vkResetCommandBuffer(context.command_buffers[context.current_frame], /*VkCommandBufferResetFlagBits*/ 0);
+  }
+  {
+    fan::time::scope_profiler_t profiler{"Begin Draw: Image Pool"};
     context.image_pool.clear();
 
     fan::graphics::image_list_t::nrtra_t nrtra;
@@ -1246,45 +1298,52 @@ void begin_draw() {
 
 
   
-  if (!lightmap_bindless_slot.iic() && lightmap_resources_open) {
-    if (context.image_pool.size() <= lightmap_bindless_slot.NRI) {
-      context.image_pool.resize(lightmap_bindless_slot.NRI + 1);
+  {
+    fan::time::scope_profiler_t profiler{"Begin Draw: Lightmap Descriptor"};
+    if (!lightmap_bindless_slot.iic() && lightmap_resources_open) {
+      if (context.image_pool.size() <= lightmap_bindless_slot.NRI) {
+        context.image_pool.resize(lightmap_bindless_slot.NRI + 1);
+      }
+      context.image_pool[lightmap_bindless_slot.NRI].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+      context.image_pool[lightmap_bindless_slot.NRI].imageView = lightmap_image.image_view;
+      context.image_pool[lightmap_bindless_slot.NRI].sampler = loco.vk->post_process_sampler;
     }
-    context.image_pool[lightmap_bindless_slot.NRI].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    context.image_pool[lightmap_bindless_slot.NRI].imageView = lightmap_image.image_view;
-    context.image_pool[lightmap_bindless_slot.NRI].sampler = loco.vk->post_process_sampler;
   }
 
-  for (auto& i : context.pre_begin_cmd_cb) {
-    i();
-  }
+  {
+    fan::time::scope_profiler_t profiler{"Begin Draw: Command Buffer Begin"};
+    for (auto& i : context.pre_begin_cmd_cb) {
+      i();
+    }
 
-  VkCommandBufferBeginInfo beginInfo{};
-  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    VkCommandBufferBeginInfo beginInfo{};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 
-  if (vkBeginCommandBuffer(context.command_buffers[context.current_frame], &beginInfo) != VK_SUCCESS) {
-    fan::throw_error("failed to begin recording command buffer!");
-  }
-  context.command_buffer_in_use = true;
+    if (vkBeginCommandBuffer(context.command_buffers[context.current_frame], &beginInfo) != VK_SUCCESS) {
+      fan::throw_error("failed to begin recording command buffer!");
+    }
+    context.command_buffer_in_use = true;
 
-  if (context.timestamp_query_pool) {
-    vkCmdResetQueryPool(context.command_buffers[context.current_frame], context.timestamp_query_pool, context.current_frame * 2, 2);
-    vkCmdWriteTimestamp(context.command_buffers[context.current_frame], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, context.timestamp_query_pool, context.current_frame * 2);
-  }
+    if (context.timestamp_query_pool) {
+      auto query_base = context.current_frame * fan::vulkan::timestamp_queries_per_frame;
+      vkCmdResetQueryPool(context.command_buffers[context.current_frame], context.timestamp_query_pool, query_base, fan::vulkan::timestamp_queries_per_frame);
+      vkCmdWriteTimestamp(context.command_buffers[context.current_frame], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, context.timestamp_query_pool, query_base + fan::vulkan::timestamp_query_frame_begin);
+    }
 
-  if (context.cameras.viewport_dirty) {
-    vkCmdSetViewport(context.command_buffers[context.current_frame], 0, 1, &context.cameras.pending_viewport);
-    vkCmdSetScissor(context.command_buffers[context.current_frame], 0, 1, &context.cameras.pending_scissor);
-    context.cameras.viewport_dirty = false;
-  }
+    if (context.cameras.viewport_dirty) {
+      vkCmdSetViewport(context.command_buffers[context.current_frame], 0, 1, &context.cameras.pending_viewport);
+      vkCmdSetScissor(context.command_buffers[context.current_frame], 0, 1, &context.cameras.pending_scissor);
+      context.cameras.viewport_dirty = false;
+    }
 
-  for (auto& i : context.begin_cmd_cb) {
-    i(context.command_buffers[context.current_frame]);
-  }
+    for (auto& i : context.begin_cmd_cb) {
+      i(context.command_buffers[context.current_frame]);
+    }
 
-  
-  if (loco.get_render_shapes_top() == false) {
-    begin_render_pass();
+    if (loco.get_render_shapes_top() == false) {
+      fan::time::scope_profiler_t render_pass_profiler{"Begin Draw: Initial Render Pass"};
+      begin_render_pass();
+    }
   }
 }
 

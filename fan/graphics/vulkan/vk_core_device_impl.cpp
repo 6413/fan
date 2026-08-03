@@ -760,7 +760,7 @@ void fan::vulkan::context_t::create_logical_device() {
   VkQueryPoolCreateInfo queryPoolInfo{};
   queryPoolInfo.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
   queryPoolInfo.queryType = VK_QUERY_TYPE_TIMESTAMP;
-  queryPoolInfo.queryCount = 2 * max_frames_in_flight;
+  queryPoolInfo.queryCount = timestamp_queries_per_frame * max_frames_in_flight;
   vkCreateQueryPool(device, &queryPoolInfo, nullptr, &timestamp_query_pool);
 
   std::vector<char> pipeline_cache_data;
@@ -1570,11 +1570,10 @@ VkResult fan::vulkan::context_t::end_render(fan::window_t* window) {
     return VK_SUCCESS;
   }
 
-#if defined(FAN_PROFILER)
   if (timestamp_query_pool) {
-    vkCmdWriteTimestamp(command_buffers[current_frame], VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, timestamp_query_pool, current_frame * 2 + 1);
+    vkCmdWriteTimestamp(command_buffers[current_frame], VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, timestamp_query_pool,
+      current_frame * timestamp_queries_per_frame + timestamp_query_frame_end);
   }
-#endif
 
   if (vkEndCommandBuffer(command_buffers[current_frame]) != VK_SUCCESS) {
     fan::throw_error("failed to record command buffer!");
