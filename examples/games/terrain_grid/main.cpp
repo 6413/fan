@@ -56,7 +56,7 @@ int main() {
   const char* save_path = "world_save.json";
   int world_seed = (int)std::chrono::steady_clock::now().time_since_epoch().count();
   std::vector<algorithm::chunk_renderer_t::edit_t> world_edits;
-  try {
+  try { 
     auto j = fan::json::load_file(save_path);
     world_seed = j.value("seed", world_seed);
     for (auto& e : j["edits"]) {
@@ -133,8 +133,6 @@ int main() {
 
   engine.camera_set_target(player, 10.f);
 
-  engine.shadow_add_caster(&player, 0.05f);
-
   auto& lighting = fan::graphics::get_lighting();
   lighting.ambient = fan::vec3(.6f/255.);
 
@@ -150,9 +148,9 @@ int main() {
   f32_t torch_size_hud = 600.f;
   f32_t torch_shadow_a_hud = 1.0f;
   f32_t torch_shadow_strength = 1.0f;
-  f32_t torch_shadow_softness = 15.956f;
+  f32_t torch_shadow_softness = 0.956f;
   f32_t torch_visual_a_hud = 0.200f;
-  f32_t sun_shadow_softness = 30.f;
+  f32_t sun_shadow_softness = 0.956f;
 
   auto save_world = [&]() {
     fan::json j = fan::json::object();
@@ -249,7 +247,10 @@ int main() {
     fan::graphics::light(fan::vec3(sun_lpos, 5.f), fan::vec2(90), sun_col.set_alpha(sun_visual_a));
     fan::graphics::light(fan::vec3(torch_lpos, 10.f), fan::vec2(torch_size_hud), torch_color_hud.set_alpha(torch_visual_a));
 
-    engine.shadow_set_tile_occluders(terrain.shadow_occluders());
+    {
+      fan::time::scope_profiler_t profiler{"Terrain: Shadow Occluders"};
+      engine.shadow_set_tile_occluders(terrain.shadow_occluders());
+    }
 
     if (fan::window::is_key_clicked(fan::key_r)) {
       player.set_physics_position({player_pos.x, 0});
@@ -260,13 +261,24 @@ int main() {
       inventory_ui.visible = !inventory_ui.visible;
     }
 
-    terrain.stream(player_pos, engine.ws());
+    {
+      fan::time::scope_profiler_t profiler{"Terrain: Stream"};
+      terrain.stream(player_pos, engine.ws());
+    }
 
     fan::vec2 mouse_pos = engine.get_mouse_position();
-    fan::vec2 hit_pos = terrain.raycast(player_pos, mouse_pos, dig_radius);
+    fan::vec2 hit_pos;
+    {
+      fan::time::scope_profiler_t profiler{"Terrain: Raycast"};
+      hit_pos = terrain.raycast(player_pos, mouse_pos, dig_radius);
+    }
 
     if (!fan::graphics::gui::want_io() && fan::window::is_mouse_down(fan::mouse_left) && dig_interval.tick(dt)) {
-      auto broken = terrain.dig(hit_pos, dig_radius);
+      std::vector<algorithm::chunk_renderer_t::edit_t> broken;
+      {
+        fan::time::scope_profiler_t profiler{"Terrain: Dig"};
+        broken = terrain.dig(hit_pos, dig_radius);
+      }
       for (auto& b : broken) {
         if (b.type >= 0) {
           hotbar.add_item(fan::graphics::gameplay::items::create((std::uint32_t)b.type), 1);

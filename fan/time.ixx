@@ -225,6 +225,12 @@ export namespace fan {
         f64_t last_average = 0;
         std::map<std::string_view, entry_t> children;
       };
+      struct capture_entry_t {
+        std::string_view name;
+        f64_t accumulated_time = 0;
+        std::uint64_t count = 0;
+        std::map<std::string_view, capture_entry_t> children;
+      };
       std::map<std::string_view, entry_t> roots;
       std::vector<entry_t*> stack;
       fan::time::timer update_timer{true};
@@ -234,6 +240,23 @@ export namespace fan {
       void end(std::string_view name);
       void add_gpu_time(std::string_view name, f64_t time_ms);
       void update();
+      bool request_capture(std::uint32_t frame_count, std::function<void()> on_complete);
+      void cancel_capture();
+      bool capture_active() const;
+      void begin_capture_frame();
+      void end_capture_frame();
+      std::string capture_to_string() const;
+
+      std::map<std::string_view, capture_entry_t> capture_roots;
+      std::vector<capture_entry_t*> capture_stack;
+      std::function<void()> capture_complete_cb;
+      std::uint32_t capture_target_frames = 0;
+      std::uint32_t capture_frames = 0;
+      std::uint32_t capture_warmup_frames = 0;
+      std::uint32_t capture_settle_frames = 0;
+      bool capture_active_state = false;
+      bool capture_frame_open = false;
+      bool capture_record_cpu = false;
     };
     extern profiler_t global_profiler;
 

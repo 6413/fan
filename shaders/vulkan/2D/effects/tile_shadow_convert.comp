@@ -1,0 +1,15 @@
+#version 450
+layout(local_size_x = 256) in;
+
+layout(set = 0, binding = 0, std430) readonly buffer radial_t { uint distances[]; };
+layout(set = 0, binding = 1, rg16f) uniform writeonly image2D shadow_map;
+layout(push_constant) uniform pc_t {
+  uint angle_resolution;
+} pc;
+
+void main() {
+  uint index = gl_GlobalInvocationID.x;
+  if (index >= pc.angle_resolution) return;
+  float blocker = uintBitsToFloat(distances[index]);
+  imageStore(shadow_map, ivec2(int(index), 0), vec4(blocker, blocker * blocker, 0.0, 0.0));
+}

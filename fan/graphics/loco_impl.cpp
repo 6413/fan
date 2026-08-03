@@ -389,13 +389,25 @@ void loco_t::shadow_enable_tile_mode(std::uint32_t reserve_count) {
 }
 void loco_t::shadow_set_tile_occluders(std::span<const fan::vec4> occluders) {
   auto& r = vk->alpha_shadow_renderer;
+  bool changed = r.tile_occluders.size() != occluders.size();
+  if (!changed) {
+    constexpr f32_t seam_eps = 0.5f;
+    for (std::size_t i = 0; i < occluders.size(); ++i) {
+      fan::vec4 o = occluders[i];
+      if (r.tile_occluders[i] != fan::vec4(o.x - seam_eps, o.y - seam_eps, o.z + seam_eps, o.w + seam_eps)) {
+        changed = true;
+        break;
+      }
+    }
+  }
+  if (!changed) { return; }
+
   r.tile_occluders.resize(occluders.size());
   constexpr f32_t seam_eps = 0.5f;
   for (std::size_t i = 0; i < occluders.size(); ++i) {
     fan::vec4 o = occluders[i];
     r.tile_occluders[i] = fan::vec4(o.x - seam_eps, o.y - seam_eps, o.z + seam_eps, o.w + seam_eps);
   }
-  r.tile_data_dirty = true;
 }
 
 
@@ -799,6 +811,52 @@ void loco_t::generate_commands(loco_t* loco) {
     [](loco_t* l, const std::string& v) { l->renderer_state.clear_color = fan::color::parse(v); });
   add_simple_command(loco->gui.console, "set_lighting_ambient", "sets lighting ambient color", 1,
     [](loco_t* l, const std::string& v) { l->renderer_state.lighting.set_target(fan::color::parse(v)); });
+
+  loco->gui.console.commands.add("dump_times", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+    if (args.size() > 1) {
+      self->print_invalid_arg_count();
+      return;
+    }
+
+    std::uint32_t frame_count = 120;
+    if (!args.empty()) {
+      try {
+        std::size_t parsed = 0;
+        std::uint64_t value = std::stoull(args[0], &parsed);
+        if (parsed != args[0].size() || value == 0 || value > 1000000) {
+          throw std::invalid_argument("frame count out of range");
+        }
+        frame_count = static_cast<std::uint32_t>(value);
+      }
+      catch (...) {
+        self->println_colored("Usage: dump_times [frame_count]", fan::colors::yellow);
+        return;
+      }
+    }
+
+    if (!fan::time::global_profiler.request_capture(frame_count, [self] {
+      std::ofstream file("times.txt", std::ios::out | std::ios::trunc);
+      if (!file) {
+        self->println_colored("Failed to open times.txt", fan::colors::red);
+        return;
+      }
+
+      file << fan::time::global_profiler.capture_to_string();
+      if (!file) {
+        self->println_colored("Failed to write times.txt", fan::colors::red);
+        return;
+      }
+      self->println_colored("Wrote averaged engine timings to times.txt", fan::colors::green);
+    })) {
+      self->println_colored("A timing dump is already in progress.", fan::colors::yellow);
+      return;
+    }
+
+    self->println_colored(
+      "Collecting " + std::to_string(frame_count) + " frames; results will be written to times.txt.",
+      fan::colors::green
+    );
+  }).description = "Dumps averaged engine timings to times.txt - usage dump_times [frame_count]";
 
   loco->gui.console.commands.add("echo", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
     auto* loco = OFFSETLESS(self, loco_t, gui.console);
@@ -1435,6 +1493,7 @@ loco_t::~loco_t() {
 }
 
 void loco_t::destroy() {
+  fan::time::global_profiler.cancel_capture();
   if (window == nullptr) {
     return;
   }
@@ -1875,7 +1934,10 @@ bool loco_t::process_frame(const std::function<void()>& cb) {
 }
 
 bool loco_t::process_frame(const std::function<void(f32_t delta_time)>& cb) {
-  fan::time::global_profiler.enabled = get_smenu(this) && get_smenu(this)->config.performance.show_profiler;
+  fan::time::global_profiler.enabled =
+    (get_smenu(this) && get_smenu(this)->config.performance.show_profiler) ||
+    fan::time::global_profiler.capture_active();
+  fan::time::global_profiler.begin_capture_frame();
   fan::time::global_profiler.update();
   fan::time::global_profiler.begin("Frame Total CPU");
   fan::time::global_profiler.begin("Events");
@@ -2037,6 +2099,7 @@ bool loco_t::process_frame(const std::function<void(f32_t delta_time)>& cb) {
   process_render();
   fan::time::global_profiler.end("CPU Render Submit");
   fan::time::global_profiler.end("Frame Total CPU");
+  fan::time::global_profiler.end_capture_frame();
 
   return 0;
 }
