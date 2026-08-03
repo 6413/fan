@@ -52,6 +52,7 @@ int main() {
 
   gui::hotbar_t hotbar;
   hotbar.create(block_count);
+  inventory_ui.secondary = &hotbar;
 
   const char* save_path = "world_save.json";
   int world_seed = (int)std::chrono::steady_clock::now().time_since_epoch().count();
@@ -167,6 +168,13 @@ int main() {
     .outline_color = fan::colors::white,
     .outline_width = 2.f,
   }};
+  circle_t core_pickup_ring{{
+    .position = fan::vec3(core_position, 23.f),
+    .radius = cs,
+    .color = fan::colors::transparent,
+    .outline_color = fan::colors::transparent,
+    .outline_width = 3.f,
+  }};
 
   auto& lighting = fan::graphics::get_lighting();
   lighting.ambient = fan::vec3(.6f/255.);
@@ -178,7 +186,13 @@ int main() {
   fan::time::interval_t hazard_damage_interval{0.75f};
   f32_t hazard_pulse = 0.f;
   f32_t core_pulse = 0.f;
+  constexpr f32_t core_pickup_duration = 0.7f;
+  f32_t core_pickup_timer = 0.f;
   f32_t damage_flash = 0.f;
+  f32_t feedback_timer = 0.f;
+  f32_t feedback_duration = 0.f;
+  f32_t feedback_strength = 0.f;
+  fan::color feedback_color = fan::colors::transparent;
   bool core_collected = false;
   bool game_over = false;
   bool game_won = false;
@@ -187,6 +201,13 @@ int main() {
   struct break_effect_t { circle_t circle; f32_t timer = 0.f; };
   std::vector<break_effect_t> break_effects;
 
+  auto trigger_feedback = [&](const fan::color& color, f32_t duration, f32_t strength) {
+    feedback_color = color;
+    feedback_duration = duration;
+    feedback_strength = strength;
+    feedback_timer = duration;
+  };
+
   auto reset_run = [&]() {
     player.set_physics_position(spawn_position);
     player.set_linear_velocity(fan::vec2(0.f));
@@ -194,6 +215,8 @@ int main() {
     player.movement_state.ignore_input = false;
     hazard_damage_interval.reset();
     damage_flash = 0.f;
+    core_pickup_timer = 0.f;
+    feedback_timer = 0.f;
     core_collected = false;
     game_over = false;
     game_won = false;
@@ -268,6 +291,8 @@ int main() {
 
   engine.loop([&] {
     f64_t dt = engine.get_delta_time();
+    feedback_timer = std::max(0.f, feedback_timer - (f32_t)dt);
+    core_pickup_timer = std::max(0.f, core_pickup_timer - (f32_t)dt);
     if (fan::window::is_key_clicked(fan::key_r)) {
       if (game_over || game_won) {
         reset_run();
@@ -297,9 +322,12 @@ int main() {
     bool player_at_core = deep_core.get_aabb().intersects(player.get_aabb());
     if (!game_locked && !core_collected && player_at_core) {
       core_collected = true;
+      core_pickup_timer = core_pickup_duration;
+      trigger_feedback(fan::color(0.1f, 0.8f, 1.f, 1.f), 0.35f, 0.24f);
     }
     if (core_collected && !game_won && depth_blocks <= 1.f) {
       game_won = true;
+      trigger_feedback(fan::color(0.1f, 1.f, 0.3f, 1.f), 0.6f, 0.28f);
     }
     game_locked = game_over || game_won;
     player.movement_state.ignore_input = game_locked;
@@ -307,6 +335,14 @@ int main() {
     f32_t core_alpha = 0.65f + 0.2f * std::sin(core_pulse * 3.f);
     deep_core.set_color(core_collected ? fan::colors::transparent : fan::color(0.2f, 0.9f, 1.f, core_alpha));
     deep_core.set_outline_color(core_collected ? fan::colors::transparent : fan::colors::white);
+    if (core_pickup_timer > 0.f) {
+      f32_t progress = 1.f - core_pickup_timer / core_pickup_duration;
+      core_pickup_ring.set_radius(cs * (0.65f + progress * 2.5f));
+      core_pickup_ring.set_outline_color(fan::color(0.1f, 0.85f, 1.f, (1.f - progress) * 0.9f));
+    }
+    else {
+      core_pickup_ring.set_outline_color(fan::colors::transparent);
+    }
 
     hazard_pulse += (f32_t)dt;
     damage_flash = std::max(0.f, damage_flash - (f32_t)dt);
@@ -315,6 +351,7 @@ int main() {
       if (hazard_damage_interval.tick((f32_t)dt)) {
         player.set_health(std::max(0.f, player.get_health() - 15.f));
         damage_flash = 0.2f;
+        trigger_feedback(fan::color(1.f, 0.05f, 0.02f, 1.f), 0.18f, 0.2f);
         if (player.is_dead()) {
           game_over = true;
         }
@@ -398,7 +435,7 @@ int main() {
         break_effects.push_back({
           .circle = circle_t(circle_properties_t{
             .position = fan::vec3(dig_hit_pos, 26.f),
-            .radius = dig_radius * 0.5f,
+            .radius = cs * 0.2f,
             .color = fan::color(1.f, 1.f, 1.f, 0.6f),
             .outline_color = fan::color(1.f, 0.9f, 0.5f, 0.4f),
             .outline_width = 2.f,
@@ -418,7 +455,7 @@ int main() {
       effect.timer -= dt;
       if (effect.timer <= 0.f) { return true; }
       f32_t t = effect.timer / 0.25f;
-      effect.circle.set_radius(dig_radius * 0.5f + (1.f - t) * dig_radius * 1.5f);
+      effect.circle.set_radius(cs * 0.2f + (1.f - t) * cs * 0.6f);
       effect.circle.set_color(fan::color(1.f, 1.f, 1.f, t * 0.6f));
       effect.circle.set_outline_color(fan::color(1.f, 0.9f, 0.5f, t * 0.4f));
       return false;
@@ -444,6 +481,13 @@ int main() {
     inventory_ui.render();
     hotbar.render(inventory_ui.style.theme, inventory_ui.drag_state, inventory_ui.hovered_secondary_slot);
 
+    if (feedback_timer > 0.f) {
+      f32_t feedback_alpha = feedback_strength * feedback_timer / feedback_duration;
+      auto feedback_style = gui::style_scope_t{gui::col_window_bg, feedback_color};
+      if (auto feedback = gui::hud_interactive("##terrain_feedback", feedback_alpha)) {
+      }
+    }
+
     if (auto hud = gui::hud("##terrain_game_hud")) {
       gui::set_cursor_screen_pos({20.f, 20.f});
       if (game_won) {
@@ -468,12 +512,16 @@ int main() {
       gui::set_cursor_screen_pos({20.f, 104.f});
       int max_health = (int)std::ceil(player.get_max_health());
       int health = std::clamp((int)std::ceil(player.get_health()), 0, max_health);
+      fan::color health_fill = game_over ? fan::colors::red : fan::colors::green;
+      if (!game_over && player.get_health() <= player.get_max_health() * 0.25f) {
+        health_fill = std::sin(hazard_pulse * 8.f) > 0.f ? fan::colors::red : fan::colors::yellow;
+      }
       gui::healthbar_labeled(
         "HEALTH", health, max_health, {220.f, 18.f},
         fan::colors::white,
-        game_over ? fan::colors::red : fan::colors::green
+        health_fill
       );
-      if (player_in_hazard && !game_over) {
+      if (player_in_hazard && !game_locked) {
         gui::set_cursor_screen_pos({20.f, 140.f});
         gui::text(fan::colors::yellow, "WARNING: Hazard damage");
       }
