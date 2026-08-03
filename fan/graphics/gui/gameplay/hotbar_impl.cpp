@@ -154,6 +154,20 @@ namespace fan::graphics::gui {
 
     gui::pop_style_color(2);
     gui::pop_style_var(2);
+
+    if (drag_state.active && gui::input::left_released()) {
+      if (hovered_slot != std::numeric_limits<std::uint32_t>::max()) {
+        try_drop_here(hovered_slot, drag_state);
+      }
+      else if (drag_state.from_secondary && drag_state.slot_index < slots.size()) {
+        auto& source = slots[drag_state.slot_index];
+        if (source.is_empty()) {
+          source.id = drag_state.id;
+          source.stack_size = drag_state.stack_size;
+        }
+        drag_state.active = false;
+      }
+    }
   }
 
   bool hotbar_t::consume_slot(std::uint32_t slot_index, item_use_cb_t use_cb) {
