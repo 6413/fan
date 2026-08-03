@@ -118,6 +118,11 @@ int main() {
     .json_path = "models/Base Character/base_character.json"
   });
   player.play_sprite_sheet("idle");
+  player.setup_attack_properties({
+    .max_health = 100.f,
+    .health = 100.f,
+    .damage = 0.f,
+  });
   auto player_aabb = player.get_aabb();
   fan::vec2 spawn_position{
     0.f,
@@ -133,16 +138,66 @@ int main() {
 
   engine.camera_set_target(player, 10.f);
 
+  const f32_t cs = terrain.cell_size();
+  constexpr f32_t objective_depth_blocks = 20.f;
+  constexpr f32_t hazard_depth_blocks = 10.f;
+  const f32_t hazard_x = spawn_position.x + cs * 3.f;
+  const f32_t hazard_surface_y = std::ceil(terrain.surface_height_at(hazard_x)) * cs;
+  const fan::vec2 hazard_position{hazard_x, hazard_surface_y + cs * hazard_depth_blocks};
+  rectangle_t hazard_zone{{
+    .position = fan::vec3(hazard_position, 21.f),
+    .size = fan::vec2(cs * 1.5f, cs * 0.5f),
+    .color = fan::color(0.8f, 0.08f, 0.02f, 0.75f),
+    .outline_color = fan::color(1.f, 0.65f, 0.1f, 1.f),
+  }};
+  const std::uint32_t layout_seed = (std::uint32_t)world_seed;
+  const f32_t core_distance_blocks = 24.f + (layout_seed % 25u);
+  const f32_t core_direction = (layout_seed & 1u) ? 1.f : -1.f;
+  const f32_t core_x = spawn_position.x + core_direction * cs * core_distance_blocks;
+  const int core_gx = (int)std::round(core_x / cs);
+  const int core_surface_gy = (int)std::ceil(terrain.surface_height_at(core_x));
+  const int core_gy = core_surface_gy + (int)objective_depth_blocks;
+  const fan::vec2 core_position = (fan::vec2(core_gx, core_gy) + 0.5f) * cs;
+  // Keep the objective deep, but make the generated objective room reachable.
+  terrain.dig(core_position, cs * 0.8f);
+  circle_t deep_core{{
+    .position = fan::vec3(core_position, 22.f),
+    .radius = cs * 0.55f,
+    .color = fan::color(0.2f, 0.9f, 1.f, 0.9f),
+    .outline_color = fan::colors::white,
+    .outline_width = 2.f,
+  }};
+
   auto& lighting = fan::graphics::get_lighting();
   lighting.ambient = fan::vec3(.6f/255.);
 
-  f32_t dig_radius = 2.f;
-  fan::time::interval_t dig_interval{0.003f};
+  const f32_t dig_radius = cs * 0.25f;
+  const f32_t dig_reach = cs * 5.f;
+  fan::time::interval_t dig_interval{0.12f};
   fan::time::interval_t save_interval{10.f};
+  fan::time::interval_t hazard_damage_interval{0.75f};
+  f32_t hazard_pulse = 0.f;
+  f32_t core_pulse = 0.f;
+  f32_t damage_flash = 0.f;
+  bool core_collected = false;
+  bool game_over = false;
+  bool game_won = false;
 
   gpu_particle_system_t<> dig_particles;
   struct break_effect_t { circle_t circle; f32_t timer = 0.f; };
   std::vector<break_effect_t> break_effects;
+
+  auto reset_run = [&]() {
+    player.set_physics_position(spawn_position);
+    player.set_linear_velocity(fan::vec2(0.f));
+    player.reset_health();
+    player.movement_state.ignore_input = false;
+    hazard_damage_interval.reset();
+    damage_flash = 0.f;
+    core_collected = false;
+    game_over = false;
+    game_won = false;
+  };
 
   fan::color torch_color_hud{1.f, 1.f, 0.8f, 1.f};
   f32_t torch_size_hud = 600.f;
@@ -172,7 +227,6 @@ int main() {
     save_world();
   });
 
-  f32_t cs = terrain.cell_size();
   auto cell_of = [&](fan::vec2 p) -> fan::vec2i {
     return {(int)std::floor(p.x / cs), (int)std::floor(p.y / cs)};
   };
@@ -214,6 +268,17 @@ int main() {
 
   engine.loop([&] {
     f64_t dt = engine.get_delta_time();
+    if (fan::window::is_key_clicked(fan::key_r)) {
+      if (game_over || game_won) {
+        reset_run();
+      }
+      else {
+        fan::vec2 reset_position = player.get_position();
+        player.set_physics_position({reset_position.x, 0.f});
+      }
+    }
+    bool game_locked = game_over || game_won;
+    player.movement_state.ignore_input = game_locked;
     player.update_animations();
     fan::vec2 player_pos = player.get_position();
     fan::vec2 cam_center = ic.get_center();
@@ -224,8 +289,45 @@ int main() {
     bg_below.set_color(lighting.ambient);
 
     f32_t surface_h = terrain.surface_height_at(player_pos.x);
-    f32_t depth = std::max(0.f, surface_h - player_pos.y);
-    f32_t cave_factor = std::min(depth / 40.f, 1.f);
+    f32_t depth_blocks = std::max(0.f, player_pos.y / cs - surface_h);
+    f32_t cave_factor = std::min(depth_blocks / 40.f, 1.f);
+    f32_t core_distance_from_player_blocks = std::abs(core_position.x - player_pos.x) / cs;
+
+    core_pulse += (f32_t)dt;
+    bool player_at_core = deep_core.get_aabb().intersects(player.get_aabb());
+    if (!game_locked && !core_collected && player_at_core) {
+      core_collected = true;
+    }
+    if (core_collected && !game_won && depth_blocks <= 1.f) {
+      game_won = true;
+    }
+    game_locked = game_over || game_won;
+    player.movement_state.ignore_input = game_locked;
+
+    f32_t core_alpha = 0.65f + 0.2f * std::sin(core_pulse * 3.f);
+    deep_core.set_color(core_collected ? fan::colors::transparent : fan::color(0.2f, 0.9f, 1.f, core_alpha));
+    deep_core.set_outline_color(core_collected ? fan::colors::transparent : fan::colors::white);
+
+    hazard_pulse += (f32_t)dt;
+    damage_flash = std::max(0.f, damage_flash - (f32_t)dt);
+    bool player_in_hazard = hazard_zone.get_aabb().intersects(player.get_aabb());
+    if (!game_locked && player_in_hazard) {
+      if (hazard_damage_interval.tick((f32_t)dt)) {
+        player.set_health(std::max(0.f, player.get_health() - 15.f));
+        damage_flash = 0.2f;
+        if (player.is_dead()) {
+          game_over = true;
+        }
+      }
+    }
+    else if (!player_in_hazard) {
+      hazard_damage_interval.reset();
+    }
+    f32_t hazard_alpha = 0.55f + 0.15f * std::sin(hazard_pulse * 4.f);
+    if (damage_flash > 0.f) {
+      hazard_alpha = 1.f;
+    }
+    hazard_zone.set_color(fan::color(0.8f, 0.08f, 0.02f, hazard_alpha));
 
     //lighting.ambient = fan::vec3(0.35f, 0.45f, 0.55f).lerp(fan::vec3(0.04f, 0.04f, 0.05f), cave_factor);
 
@@ -252,10 +354,6 @@ int main() {
       engine.shadow_set_tile_occluders(terrain.shadow_occluders());
     }
 
-    if (fan::window::is_key_clicked(fan::key_r)) {
-      player.set_physics_position({player_pos.x, 0});
-    }
-
     hotbar.handle_input();
     if (fan::window::is_key_clicked(fan::key_i)) {
       inventory_ui.visible = !inventory_ui.visible;
@@ -267,17 +365,29 @@ int main() {
     }
 
     fan::vec2 mouse_pos = engine.get_mouse_position();
+    fan::vec2 ray_end = mouse_pos;
+    fan::vec2 ray_diff = mouse_pos - player_pos;
+    f32_t ray_distance = ray_diff.length();
+    if (ray_distance > dig_reach) {
+      ray_end = player_pos + ray_diff / ray_distance * dig_reach;
+    }
     fan::vec2 hit_pos;
+    fan::vec2 dig_hit_pos;
     {
       fan::time::scope_profiler_t profiler{"Terrain: Raycast"};
       hit_pos = terrain.raycast(player_pos, mouse_pos, dig_radius);
+      dig_hit_pos = terrain.raycast(player_pos, ray_end, dig_radius);
     }
 
-    if (!fan::graphics::gui::want_io() && fan::window::is_mouse_down(fan::mouse_left) && dig_interval.tick(dt)) {
+    bool can_dig = !game_locked && !fan::graphics::gui::want_io() && fan::window::is_mouse_down(fan::mouse_left);
+    if (!can_dig) {
+      dig_interval.reset();
+    }
+    if (can_dig && dig_interval.tick(dt)) {
       std::vector<algorithm::chunk_renderer_t::edit_t> broken;
       {
         fan::time::scope_profiler_t profiler{"Terrain: Dig"};
-        broken = terrain.dig(hit_pos, dig_radius);
+        broken = terrain.dig(dig_hit_pos, dig_radius);
       }
       for (auto& b : broken) {
         if (b.type >= 0) {
@@ -287,7 +397,7 @@ int main() {
       if (!broken.empty()) {
         break_effects.push_back({
           .circle = circle_t(circle_properties_t{
-            .position = fan::vec3(hit_pos, 26.f),
+            .position = fan::vec3(dig_hit_pos, 26.f),
             .radius = dig_radius * 0.5f,
             .color = fan::color(1.f, 1.f, 1.f, 0.6f),
             .outline_color = fan::color(1.f, 0.9f, 0.5f, 0.4f),
@@ -296,11 +406,11 @@ int main() {
           .timer = 0.25f,
         });
 
-        dig_particles.spawn_from_json("models/dig_particles.json", fan::vec3(hit_pos, 26.f));
+        dig_particles.spawn_from_json("models/dig_particles.json", fan::vec3(dig_hit_pos, 26.f));
       }
     }
 
-    if (!fan::graphics::gui::want_io() && engine.is_mouse_clicked(fan::mouse_right)) {
+    if (!game_locked && !fan::graphics::gui::want_io() && engine.is_mouse_clicked(fan::mouse_right)) {
       try_place(hit_pos);
     }
 
@@ -333,6 +443,50 @@ int main() {
     dig_particles.update(dt);
     inventory_ui.render();
     hotbar.render(inventory_ui.style.theme, inventory_ui.drag_state, inventory_ui.hovered_secondary_slot);
+
+    if (auto hud = gui::hud("##terrain_game_hud")) {
+      gui::set_cursor_screen_pos({20.f, 20.f});
+      if (game_won) {
+        gui::text(fan::colors::green, "EXPEDITION COMPLETE");
+      }
+      else if (core_collected) {
+        gui::text(fan::colors::yellow, "OBJECTIVE: Return to the surface");
+      }
+      else {
+        gui::text(fan::colors::white, "OBJECTIVE: Find the deep core at ", (int)objective_depth_blocks, " blocks");
+      }
+      if (!core_collected && !game_won) {
+        gui::set_cursor_screen_pos({20.f, 48.f});
+        gui::text(
+          fan::colors::white,
+          "CORE: ", core_position.x < player_pos.x ? "LEFT" : "RIGHT",
+          " ", (int)core_distance_from_player_blocks, " blocks"
+        );
+      }
+      gui::set_cursor_screen_pos({20.f, 76.f});
+      gui::text(fan::colors::white, "DEPTH: ", (int)depth_blocks, " / ", (int)objective_depth_blocks, " blocks");
+      gui::set_cursor_screen_pos({20.f, 104.f});
+      int max_health = (int)std::ceil(player.get_max_health());
+      int health = std::clamp((int)std::ceil(player.get_health()), 0, max_health);
+      gui::healthbar_labeled(
+        "HEALTH", health, max_health, {220.f, 18.f},
+        fan::colors::white,
+        game_over ? fan::colors::red : fan::colors::green
+      );
+      if (player_in_hazard && !game_over) {
+        gui::set_cursor_screen_pos({20.f, 140.f});
+        gui::text(fan::colors::yellow, "WARNING: Hazard damage");
+      }
+    }
+
+    if (game_over || game_won) {
+      if (auto overlay = gui::hud_interactive("##terrain_game_over", 0.78f)) {
+        gui::set_cursor_screen_pos({engine.ws().x * 0.5f - 110.f, engine.ws().y * 0.5f - 40.f});
+        gui::text(game_won ? fan::colors::green : fan::colors::red, game_won ? "EXPEDITION COMPLETE" : "YOU WERE HURT");
+        gui::set_cursor_screen_pos({engine.ws().x * 0.5f - 130.f, engine.ws().y * 0.5f + 5.f});
+        gui::text(fan::colors::white, game_won ? "Press R to start again" : "Press R to respawn");
+      }
+    }
   });
 
   return 0;
