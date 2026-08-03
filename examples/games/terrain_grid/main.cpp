@@ -65,7 +65,7 @@ int main() {
     }
     for (auto& s : j["inventory"]) {
       hotbar.add_item(
-        fan::graphics::gameplay::items::create((std::uint32_t)s["id"].get<int>()),
+        gameplay::items::create((std::uint32_t)s["id"].get<int>()),
         (std::uint32_t)s["count"].get<int>());
     }
   } catch (...) {}
@@ -85,7 +85,7 @@ int main() {
   image_t img_island    {"images/Textures/Grass/cubeGreen_1.png",   pa};
   image_t img_dark_grass{"images/Textures/Grass/cubeGreen_2.png",   pa};
 
-  auto& item_reg = fan::graphics::gameplay::items::get_registry();
+  auto& item_reg = gameplay::items::get_registry();
   std::vector<std::pair<f32_t, image_t>> tile_layers;
   tile_layers.reserve(block_count);
   for (int i = 0; i < block_count; ++i) {
@@ -187,6 +187,7 @@ int main() {
   f32_t hazard_pulse = 0.f;
   f32_t core_pulse = 0.f;
   constexpr f32_t core_pickup_duration = 0.7f;
+  constexpr f32_t break_effect_duration = 0.25f;
   f32_t core_pickup_timer = 0.f;
   f32_t damage_flash = 0.f;
   f32_t feedback_timer = 0.f;
@@ -291,15 +292,16 @@ int main() {
 
   engine.loop([&] {
     f64_t dt = engine.get_delta_time();
-    feedback_timer = std::max(0.f, feedback_timer - (f32_t)dt);
-    core_pickup_timer = std::max(0.f, core_pickup_timer - (f32_t)dt);
+    f32_t fdt = (f32_t)dt;
+    auto decay_timer = [&](f32_t& t) { t = std::max(0.f, t - fdt); };
+    decay_timer(feedback_timer);
+    decay_timer(core_pickup_timer);
     if (fan::window::is_key_clicked(fan::key_r)) {
       if (game_over || game_won) {
         reset_run();
       }
       else {
-        fan::vec2 reset_position = player.get_position();
-        player.set_physics_position({reset_position.x, 0.f});
+        player.set_physics_position({player.get_position().x, 0.f});
       }
     }
     bool game_locked = game_over || game_won;
@@ -318,7 +320,7 @@ int main() {
     f32_t cave_factor = std::min(depth_blocks / 40.f, 1.f);
     f32_t core_distance_from_player_blocks = std::abs(core_position.x - player_pos.x) / cs;
 
-    core_pulse += (f32_t)dt;
+    core_pulse += fdt;
     bool player_at_core = deep_core.get_aabb().intersects(player.get_aabb());
     if (!game_locked && !core_collected && player_at_core) {
       core_collected = true;
@@ -344,11 +346,11 @@ int main() {
       core_pickup_ring.set_outline_color(fan::colors::transparent);
     }
 
-    hazard_pulse += (f32_t)dt;
-    damage_flash = std::max(0.f, damage_flash - (f32_t)dt);
+    hazard_pulse += fdt;
+    decay_timer(damage_flash);
     bool player_in_hazard = hazard_zone.get_aabb().intersects(player.get_aabb());
     if (!game_locked && player_in_hazard) {
-      if (hazard_damage_interval.tick((f32_t)dt)) {
+      if (hazard_damage_interval.tick(fdt)) {
         player.set_health(std::max(0.f, player.get_health() - 15.f));
         damage_flash = 0.2f;
         trigger_feedback(fan::color(1.f, 0.05f, 0.02f, 1.f), 0.18f, 0.2f);
@@ -416,7 +418,8 @@ int main() {
       dig_hit_pos = terrain.raycast(player_pos, ray_end, dig_radius);
     }
 
-    bool can_dig = !game_locked && !fan::graphics::gui::want_io() && fan::window::is_mouse_down(fan::mouse_left);
+    bool can_input = !game_locked && !gui::want_io();
+    bool can_dig = can_input && fan::window::is_mouse_down(fan::mouse_left);
     if (!can_dig) {
       dig_interval.reset();
     }
@@ -428,7 +431,7 @@ int main() {
       }
       for (auto& b : broken) {
         if (b.type >= 0) {
-          hotbar.add_item(fan::graphics::gameplay::items::create((std::uint32_t)b.type), 1);
+          hotbar.add_item(gameplay::items::create((std::uint32_t)b.type), 1);
         }
       }
       if (!broken.empty()) {
@@ -440,21 +443,21 @@ int main() {
             .outline_color = fan::color(1.f, 0.9f, 0.5f, 0.4f),
             .outline_width = 2.f,
           }),
-          .timer = 0.25f,
+          .timer = break_effect_duration,
         });
 
         dig_particles.spawn_from_json("models/dig_particles.json", fan::vec3(dig_hit_pos, 26.f));
       }
     }
 
-    if (!game_locked && !fan::graphics::gui::want_io() && engine.is_mouse_clicked(fan::mouse_right)) {
+    if (can_input && engine.is_mouse_clicked(fan::mouse_right)) {
       try_place(hit_pos);
     }
 
     std::erase_if(break_effects, [&](auto& effect) {
       effect.timer -= dt;
       if (effect.timer <= 0.f) { return true; }
-      f32_t t = effect.timer / 0.25f;
+      f32_t t = effect.timer / break_effect_duration;
       effect.circle.set_radius(cs * 0.2f + (1.f - t) * cs * 0.6f);
       effect.circle.set_color(fan::color(1.f, 1.f, 1.f, t * 0.6f));
       effect.circle.set_outline_color(fan::color(1.f, 0.9f, 0.5f, t * 0.4f));
@@ -473,7 +476,7 @@ int main() {
       }
     }
 
-    if (save_interval.tick((f32_t)dt)) {
+    if (save_interval.tick(fdt)) {
       save_world();
     }
 
