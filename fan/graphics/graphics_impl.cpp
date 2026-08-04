@@ -1159,14 +1159,15 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
 
     if (should_reset) {
       trails.resize(trails.size() + 1);
+      trails.back().points.clear();
       trails.back().vertices.clear();
       trails.back().creation_time = fan::time::now();
       trails.back().base_alpha = 0.2f + (drift_intensity * 0.6f);
     }
 
     bool start_new_trail = false;
-    if (!trails.empty() && !trails.back().vertices.empty()) {
-      fan::vec3 last_point = trails.back().vertices.back().position;
+    if (!trails.empty() && !trails.back().points.empty()) {
+      fan::vec3 last_point = trails.back().points.back();
       f32_t distance = std::sqrt(std::pow(point.x - last_point.x, 2) + std::pow(point.y - last_point.y, 2));
       if (distance > 50.0f) {
         start_new_trail = true;
@@ -1175,38 +1176,45 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
 
     if (start_new_trail) {
       trails.resize(trails.size() + 1);
+      trails.back().points.clear();
       trails.back().vertices.clear();
       trails.back().creation_time = fan::time::now();
       trails.back().base_alpha = 0.2f + (drift_intensity * 0.6f);
     }
 
-    fan::vec2 direction = fan::vec2(1, 0);
-    if (trails.back().vertices.size() >= 2) {
-      fan::vec3 last_point = trails.back().vertices[trails.back().vertices.size() - 2].position;
-      fan::vec3 diff = point - last_point;
-      direction = fan::vec2(diff.x, diff.y);
+    auto& trail = trails.back();
+    trail.points.push_back(point);
+    auto add_vertex = [&](const fan::vec3& position) {
+      trail.vertices.push_back({
+        .position = position,
+        .color = fan::color(color.r, color.g, color.b, trail.base_alpha)
+      });
+    };
+    if (trail.points.size() >= 2) {
+      std::size_t i = trail.points.size() - 1;
+      fan::vec3 diff = trail.points[i] - trail.points[i - 1];
+      fan::vec2 direction(diff.x, diff.y);
       f32_t len = std::sqrt(direction.x * direction.x + direction.y * direction.y);
       if (len > 0) {
         direction.x /= len;
         direction.y /= len;
+        fan::vec3 offset(-direction.y * thickness * 0.5f, direction.x * thickness * 0.5f, 0);
+        add_vertex(trail.points[i - 1] + offset);
+        add_vertex(trail.points[i - 1] - offset);
+        add_vertex(trail.points[i] + offset);
+        add_vertex(trail.points[i - 1] - offset);
+        add_vertex(trail.points[i] - offset);
+        add_vertex(trail.points[i] + offset);
       }
     }
 
-    fan::vec2 perp = fan::vec2(-direction.y, direction.x);
-    fan::graphics::vertex_t vertex;
-    vertex.color = fan::color(color.r, color.g, color.b, trails.back().base_alpha);
-
-    vertex.position = point + fan::vec3(perp.x * thickness * 0.5f, perp.y * thickness * 0.5f, 0);
-    trails.back().vertices.emplace_back(vertex);
-
-    vertex.position = point - fan::vec3(perp.x * thickness * 0.5f, perp.y * thickness * 0.5f, 0);
-    trails.back().vertices.emplace_back(vertex);
-
-    trails.back().polygon = fan::graphics::polygon_t {{
-      .position = fan::vec3(0, 0, point.z),
-      .vertices = trails.back().vertices,
-      .draw_mode = fan::graphics::primitive_topology_t::triangle_strip,
-    }};
+    if (!trail.vertices.empty()) {
+      trail.polygon = fan::graphics::polygon_t {{
+        .position = fan::vec3(0, 0, point.z),
+        .vertices = trail.vertices,
+        .draw_mode = fan::graphics::primitive_topology_t::triangles,
+      }};
+    }
 
     timer.restart();
   }
@@ -1215,35 +1223,37 @@ sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::
     std::uint64_t current_time = fan::time::now();
 
     for (auto& trail : trails) {
+      if (trail.vertices.empty()) {
+        continue;
+      }
       std::uint64_t age = current_time - trail.creation_time;
       f32_t fade_factor = 1.0f;
 
-      if (age > fade_duration) {
+      if (!persistent && age > fade_duration) {
         fade_factor = std::max(0.0f, 1.0f - static_cast<f32_t>(age - fade_duration) / static_cast<f32_t>(max_trail_lifetime - fade_duration));
       }
       f32_t current_alpha = trail.base_alpha * fade_factor;
 
-      for (std::size_t i = 0; i < trail.vertices.size(); i += 2) {
-        f32_t position_factor = static_cast<f32_t>(i) / static_cast<f32_t>(trail.vertices.size() - 2);
-        f32_t vertex_alpha = current_alpha * (0.2f + 0.8f * position_factor);
-        trail.vertices[i].color.a = vertex_alpha;
-        trail.vertices[i + 1].color.a = vertex_alpha;
+      for (auto& vertex : trail.vertices) {
+        vertex.color.a = current_alpha;
       }
       fan::vec3 pos = trail.polygon.get_position();
       trail.polygon = {{
         .position = pos,
         .vertices = trail.vertices,
-        .draw_mode = fan::graphics::primitive_topology_t::triangle_strip,
+        .draw_mode = fan::graphics::primitive_topology_t::triangles,
       }};
     }
 
-    trails.erase(
-      std::remove_if(trails.begin(), trails.end(), [&](const trail_segment_t& trail) {
-        std::uint64_t age = current_time - trail.creation_time;
-        return age > max_trail_lifetime;
-      }),
-      trails.end()
-    );
+    if (!persistent) {
+      trails.erase(
+        std::remove_if(trails.begin(), trails.end(), [&](const trail_segment_t& trail) {
+          std::uint64_t age = current_time - trail.creation_time;
+          return age > max_trail_lifetime;
+        }),
+        trails.end()
+      );
+    }
   }
 
   f32_t get_depth_from_y(const fan::vec2& position, f32_t tile_size_y) {

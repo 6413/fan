@@ -286,7 +286,7 @@ int main() {
         cc.y + cs * 0.5f > aabb.min.y && cc.y - cs * 0.5f < aabb.max.y) { return false; }
     int type = (int)*sel.id;
     if (!hotbar.consume_slot(hotbar.selected_slot, nullptr)) { return false; }
-    terrain.place(cc, cs * 0.5f, type);
+    terrain.place(cc, cs * 0.25f, type);
     return true;
   };
 

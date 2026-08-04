@@ -36,7 +36,7 @@ int main() {
   f32_t tc = 0.f;
 
   engine.loop([&] {
-    engine.camera_set_center(fan::vec2(tc += engine.get_delta_time() * 700.f, 0.f));
+    //engine.camera_set_center(fan::vec2(tc += engine.get_delta_time() * 700.f, 0.f));
     fan::vec2 cam_pos = engine.camera_get_center();
 
     for (auto& s : shapes) {

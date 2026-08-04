@@ -219,7 +219,7 @@ struct farm_manager_t {
       gui::style_scope_t bg{gui::col_window_bg, fan::color{0.08f, 0.08f, 0.1f, 0.75f}};
       gui::window_anchor_top_left(0.f);
       f32_t panel_height = 54.f;
-      if (auto bar = gui::overlay_window("##topbar", {gloco()->window.get_size().x, panel_height}, 0.85f)) {
+      if (auto bar = gui::overlay_window("##topbar", {(f32_t)gloco()->window.get_size().x, panel_height}, 0.85f)) {
         gui::font_scope_t main_font{32.f, gui::font::bold};
         f32_t cy = (panel_height / 2.f) - gui::get_text_line_height() / 2.f + 0.5;
 

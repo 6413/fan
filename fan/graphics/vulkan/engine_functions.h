@@ -73,6 +73,9 @@ struct particles_gpu_t {
   fan::vec4 angle_velocity0;
   fan::vec4 angle_velocity1;
   fan::vec4 angle;
+  fan::vec4 gravity;
+  fan::vec4 motion_random;
+  fan::vec4 nested_trail;
   fan::vec4 spawn_spread0;
   fan::vec4 spread1_jitter;
   fan::vec4 jitter_random_size;
@@ -1354,8 +1357,6 @@ void shapes_draw() {
 
 #if defined(FAN_2D)
   fan::time::global_profiler.begin("Variable Initialization");
-  fan::graphics::shaper_t::KeyTraverse_t KeyTraverse;
-  KeyTraverse.Init(fan::graphics::g_shapes->shaper);
 
   fan::graphics::viewport_t viewport;
   viewport.sic();
@@ -1370,7 +1371,6 @@ void shapes_draw() {
   bool visible = true;
   std::uint8_t draw_mode = fan::graphics::primitive_topology_t::triangles;
   std::uint32_t vertex_count = (std::uint32_t)-1;
-  bool did_draw = false;
 
   auto& context = loco.context.vk;
   auto& cmd_buffer = context.command_buffers[context.current_frame];
@@ -1514,6 +1514,9 @@ void shapes_draw() {
     gpu.color0 = ri.begin_color;
     gpu.color1 = ri.end_color;
     gpu.velocity = fan::vec4(ri.start_velocity, ri.end_velocity);
+    gpu.gravity = fan::vec4(ri.gravity, 0.f, 0.f);
+    gpu.motion_random = fan::vec4(ri.velocity_random, ri.lifetime_random, 0.f, 0.f);
+    gpu.nested_trail = ri.nested_trail;
     gpu.angle_velocity0 = fan::vec4(ri.start_angle_velocity, ri.begin_angle);
     gpu.angle_velocity1 = fan::vec4(ri.end_angle_velocity, ri.end_angle);
     gpu.angle = fan::vec4(ri.angle, 0.f);
@@ -1551,7 +1554,8 @@ void shapes_draw() {
   polygon_vertices.clear();
 
   {
-    fan::graphics::shaper_t::KeyTraverse_t pre_keys;
+    auto pre_keys_storage = std::make_unique<fan::graphics::shaper_t::KeyTraverse_t>();
+    auto& pre_keys = *pre_keys_storage;
     pre_keys.Init(shaper);
     while (pre_keys.Loop(shaper)) {
       if (!pre_keys.isbm) { continue; }
@@ -1637,6 +1641,9 @@ void shapes_draw() {
   fan::time::global_profiler.begin("Draw Loop passes");
 
   vkCmdEndRendering(cmd_buffer);
+
+  auto key_traverse_storage = std::make_unique<fan::graphics::shaper_t::KeyTraverse_t>();
+  auto& KeyTraverse = *key_traverse_storage;
 
   for (std::uint32_t draw_pass = 0; draw_pass < 2; ++draw_pass) {
     if (draw_pass == 0) {
@@ -1734,7 +1741,6 @@ void shapes_draw() {
           auto& ri = pri[i];
           if (ri.vk_vertex_count == 0) { continue; }
           vkCmdDraw(cmd_buffer, ri.vk_vertex_count, 1, ri.vk_first_vertex, 0);
-          did_draw = true;
         }
       } while (BlockTraverse.Loop(shaper));
       fan::time::global_profiler.end(fan::graphics::shape_names[shape_type]);
@@ -1742,8 +1748,8 @@ void shapes_draw() {
     }
 
     if (shape_type == fan::graphics::shapes::shape_type_t::particles) {
-      if (particle_emitters.empty()) { 
-        continue; 
+      if (particle_emitters.empty()) {
+        continue;
       }
       fan::time::global_profiler.begin(fan::graphics::shape_names[shape_type]);
       auto& pipeline = prepare(shape_type, shape_shader_nr);
@@ -1760,7 +1766,6 @@ void shapes_draw() {
             max_count = std::max(max_count, pri[i].count);
           }
           vkCmdDraw(cmd_buffer, max_count * 6, BlockTraverse.GetAmount(shaper), 0, pri[0].vk_emitter_index);
-          did_draw = true;
         }
       } while (BlockTraverse.Loop(shaper));
       fan::time::global_profiler.end(fan::graphics::shape_names[shape_type]);
@@ -1788,7 +1793,6 @@ void shapes_draw() {
             pc.texture_id3 = texture_id(pri[i].images_rest[2]);
             push(pipeline, pc);
             vkCmdDraw(cmd_buffer, draw_vertex_count, 1, 0, off + i);
-            did_draw = true;
           }
         }
         else {
@@ -1800,7 +1804,6 @@ void shapes_draw() {
             0,
             off
           );
-          did_draw = true;
         }
       } while (BlockTraverse.Loop(shaper));
       fan::time::global_profiler.end(fan::graphics::shape_names[shape_type]);
@@ -1811,10 +1814,6 @@ void shapes_draw() {
 
   fan::time::global_profiler.end("Draw Loop passes");
 
-  if (!did_draw) {
-    VkRect2D scissor = {};
-    vkCmdSetScissor(cmd_buffer, 0, 1, &scissor);
-  }
 #endif
 }
 
