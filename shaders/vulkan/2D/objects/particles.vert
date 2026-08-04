@@ -11,6 +11,9 @@ struct particle_data_t {
   vec4 angle_velocity0;
   vec4 angle_velocity1;
   vec4 angle;
+  vec4 gravity;
+  vec4 motion_random;
+  vec4 nested_trail;
   vec4 spawn_spread0;
   vec4 spread1_jitter;
   vec4 jitter_random_size;
@@ -75,6 +78,45 @@ float rand_f(uint seed) {
   return uintBitsToFloat(m) - 1.0f;
 }
 
+vec3 rgb_to_hsv(vec3 c) {
+  float max_value = max(c.r, max(c.g, c.b));
+  float min_value = min(c.r, min(c.g, c.b));
+  float delta = max_value - min_value;
+  float hue = 0.0;
+  if (delta > 0.00001) {
+    if (max_value == c.r) {
+      hue = mod((c.g - c.b) / delta, 6.0);
+    } else if (max_value == c.g) {
+      hue = (c.b - c.r) / delta + 2.0;
+    } else {
+      hue = (c.r - c.g) / delta + 4.0;
+    }
+    hue /= 6.0;
+    if (hue < 0.0) hue += 1.0;
+  }
+  float saturation = max_value <= 0.00001 ? 0.0 : delta / max_value;
+  return vec3(hue, saturation, max_value);
+}
+
+vec3 hsv_to_rgb(vec3 c) {
+  vec3 p = abs(fract(c.xxx + vec3(0.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0);
+  return c.z * mix(vec3(1.0), clamp(p - 1.0, 0.0, 1.0), c.y);
+}
+
+vec4 vary_color(vec4 color, uint seed, vec4 random_range) {
+  if (random_range.x > 1.0) {
+    vec3 hsv = rgb_to_hsv(color.rgb);
+    hsv.x = fract(hsv.x + (rand_f(seed + 3u) - 0.5) * 2.0 * random_range.x / 360.0);
+    hsv.y = clamp(hsv.y + (rand_f(seed + 5u) - 0.5) * 2.0 * random_range.y / 100.0, 0.0, 1.0);
+    hsv.z = clamp(hsv.z + (rand_f(seed + 7u) - 0.5) * 2.0 * random_range.z / 100.0, 0.0, 1.0);
+    color.rgb = hsv_to_rgb(hsv);
+  } else if (length(random_range) > 0.0) {
+    vec4 rand_color = vec4(rand_f(seed * 3u), rand_f(seed * 5u), rand_f(seed * 7u), rand_f(seed * 11u));
+    color = clamp(color + (rand_color - 0.5) * random_range * 2.0, 0.0, 1.0);
+  }
+  return color;
+}
+
 layout(location = 0) out vec4 instance_color;
 layout(location = 1) out vec2 texture_coordinate;
 layout(location = 2) out float affected_by_lighting;
@@ -85,86 +127,144 @@ void main() {
   uint particle_id = uint(gl_VertexIndex) / 6u + 1u;
   if (particle_id > count) { gl_Position = vec4(0.0); return; }
   uint vertex_id = uint(gl_VertexIndex) % 6u;
-  uint seed = particle_id * count;
+  bool nested_trail = p.nested_trail.x > 0.5;
+  uint trail_count = nested_trail ? max(uint(p.nested_trail.x), 1u) : 1u;
+  uint parent_id = nested_trail ? ((particle_id - 1u) / trail_count + 1u) : particle_id;
+  uint seed = parent_id * 7919u + 1u;
   float alive_time = max(p.count_life.y, 0.0001);
-  float respawn_time = p.count_life.z;
-  float cycle = alive_time + respawn_time;
-  float rand_val = rand_f(seed);
-  bool loop = p.loop_times.x > 0.5;
-  float loop_enabled_time = p.loop_times.y;
-  float loop_disabled_time = p.loop_times.z;
+  float lifetime_scale = 1.0 + (rand_f(seed + 17u) - 0.5) * 2.0 * p.motion_random.y;
+  float particle_alive_time = max(alive_time * lifetime_scale, 0.0001);
   float time = p.loop_times.w;
-  float new_time = 0.0;
   float time_mod = 0.0;
-  float spawn_delay = rand_val * cycle;
-
-  if (loop) {
-    float local_time = time - loop_enabled_time;
-    if (loop_disabled_time > 0.0) {
-      float time_at_disable = loop_disabled_time - loop_enabled_time;
-      if (time_at_disable < spawn_delay) { instance_color = vec4(0.0); gl_Position = vec4(0.0); return; }
-      float time_since_stop = time - loop_disabled_time;
-      float age_at_stop = mod(time_at_disable - spawn_delay, cycle) - respawn_time;
-      if (age_at_stop < 0.0) { instance_color = vec4(0.0); gl_Position = vec4(0.0); return; }
-      new_time = age_at_stop + time_since_stop;
-      time_mod = new_time;
-      if (new_time > alive_time) { instance_color = vec4(0.0); gl_Position = vec4(0.0); return; }
-    }
-    else {
-      if (local_time <= 0.0001 || local_time < spawn_delay) { instance_color = vec4(0.0); gl_Position = vec4(0.0); return; }
-      new_time = local_time - spawn_delay;
-      time_mod = mod(new_time, cycle) - respawn_time;
-    }
-  }
-  else {
-    float local_time = time - loop_enabled_time;
-    if (local_time < 0.0 || local_time < spawn_delay) { instance_color = vec4(0.0); gl_Position = vec4(0.0); return; }
-    new_time = local_time - spawn_delay;
-    if (new_time > alive_time) { instance_color = vec4(0.0); gl_Position = vec4(0.0); return; }
-    time_mod = new_time;
-  }
-
-  if (time_mod < 0.0) { instance_color = vec4(0.0); gl_Position = vec4(0.0); return; }
-
-  float t = clamp(time_mod / alive_time, 0.0, 1.0);
-  uint pseed = seed + particle_id * 7919u;
+  float t = 0.0;
   vec2 origin = p.position_shape.xy;
   vec2 base_pos = origin;
-  vec2 start_spread = p.spawn_spread0.zw;
-  vec2 end_spread = p.spread1_jitter.xy;
-  vec2 spread_max = mix(start_spread, end_spread, t);
+  vec2 size = vec2(0.0);
+  vec4 color = vec4(0.0);
 
-  if (int(p.position_shape.w) == 1) {
-    base_pos.x += (rand_f(particle_id * 7919u) - 0.5) * spread_max.x;
-    base_pos.y += (rand_f(particle_id * 7919u + 1u) - 0.5) * spread_max.y;
-  }
-  else {
-    float ang = rand_f(particle_id * 7919u) * 6.28318530718;
-    float r = rand_f(particle_id * 7919u + 1u);
-    base_pos += vec2(cos(ang) * spread_max.x * r, sin(ang) * spread_max.y * r);
-  }
+  if (nested_trail) {
+    uint trail_id = (particle_id - 1u) % trail_count;
+    float trail_interval = max(p.nested_trail.y, 0.0001);
+    float trail_spawn_time = float(trail_id) * trail_interval;
+    float emitter_time = time - p.loop_times.y;
+    float trail_lifetime = max(p.nested_trail.z, 0.0001);
+    if (trail_spawn_time >= particle_alive_time || emitter_time < trail_spawn_time) {
+      instance_color = vec4(0.0); gl_Position = vec4(0.0); return;
+    }
+    float trail_age = emitter_time - trail_spawn_time;
+    if (trail_age > trail_lifetime) {
+      instance_color = vec4(0.0); gl_Position = vec4(0.0); return;
+    }
 
-  vec2 avg_vel_mag = p.velocity.xy + (p.velocity.zw - p.velocity.xy) * 0.5 * t;
-  float spread = mix(p.angle_velocity0.w, p.angle_velocity1.w, rand_f(seed + 2u));
-  float ca = cos(spread);
-  float sa = sin(spread);
-  vec2 avg_velocity = vec2(avg_vel_mag.x * ca - avg_vel_mag.y * sa, avg_vel_mag.x * sa + avg_vel_mag.y * ca);
-  base_pos += avg_velocity * pow(time_mod, p.count_life.w);
+    float parent_t = clamp(trail_spawn_time / particle_alive_time, 0.0, 1.0);
+    vec2 parent_velocity_mag = p.velocity.xy + (p.velocity.zw - p.velocity.xy) * 0.5 * parent_t;
+    parent_velocity_mag *= 1.0 + (rand_f(seed + 31u) - 0.5) * 2.0 * p.motion_random.x;
+    float parent_angle = mix(p.angle_velocity0.w, p.angle_velocity1.w, rand_f(seed + 2u));
+    vec2 parent_velocity = vec2(
+      parent_velocity_mag.x * cos(parent_angle) - parent_velocity_mag.y * sin(parent_angle),
+      parent_velocity_mag.x * sin(parent_angle) + parent_velocity_mag.y * cos(parent_angle)
+    );
+    vec2 parent_position = origin + parent_velocity * trail_spawn_time
+      + p.gravity.xy * (0.5 * trail_spawn_time * trail_spawn_time);
+    vec2 parent_current_velocity = parent_velocity + p.gravity.xy * trail_spawn_time;
+    uint trail_seed = seed + trail_id * 104729u;
+    vec2 trail_velocity = parent_current_velocity * 0.08 + vec2(
+      (rand_f(trail_seed) - 0.5) * 120.0,
+      (rand_f(trail_seed + 1u) - 0.5) * 120.0
+    );
+    base_pos = parent_position + trail_velocity * trail_age
+      + vec2(0.0, p.nested_trail.w) * (0.5 * trail_age * trail_age);
 
-  vec2 jitter_amount = mix(p.jitter_random_size.xy, p.jitter_random_size.zw, t);
-  float jitter_speed = p.spread1_jitter.z;
-  base_pos += vec2(sin(time_mod * jitter_speed + float(seed)) * jitter_amount.x, cos(time_mod * jitter_speed + float(seed)) * jitter_amount.y);
+    float parent_fraction = clamp(1.0 - trail_spawn_time / particle_alive_time, 0.0, 1.0);
+    float trail_fraction = clamp(1.0 - trail_age / trail_lifetime, 0.0, 1.0);
+    float trail_radius = p.size.x * parent_fraction * 1.4;
+    size = vec2(trail_radius * (0.3 + trail_fraction * 0.7));
+    color = vary_color(p.color0, seed, p.color_random);
+    color.a = trail_fraction * 0.8;
+    time_mod = trail_age;
+    t = trail_fraction;
+  } else {
+    float respawn_time = p.count_life.z;
+    float cycle = alive_time + respawn_time;
+    float rand_val = rand_f(seed);
+    bool loop = p.loop_times.x > 0.5;
+    float loop_enabled_time = p.loop_times.y;
+    float loop_disabled_time = p.loop_times.z;
+    float new_time = 0.0;
+    float spawn_delay = rand_val * cycle;
 
-  vec2 size = mix(p.size.xy, p.size.zw, t);
-  if (p.angle_random.w > 0.0) {
-    float size_rand = rand_f(pseed * 2u);
-    size *= 1.0 + (size_rand - 0.5) * p.angle_random.w * 2.0;
+    if (loop) {
+      float local_time = time - loop_enabled_time;
+      if (loop_disabled_time > 0.0) {
+        float time_at_disable = loop_disabled_time - loop_enabled_time;
+        if (time_at_disable < spawn_delay) { instance_color = vec4(0.0); gl_Position = vec4(0.0); return; }
+        float time_since_stop = time - loop_disabled_time;
+        float age_at_stop = mod(time_at_disable - spawn_delay, cycle) - respawn_time;
+        if (age_at_stop < 0.0) { instance_color = vec4(0.0); gl_Position = vec4(0.0); return; }
+        new_time = age_at_stop + time_since_stop;
+        time_mod = new_time;
+        if (new_time > particle_alive_time) { instance_color = vec4(0.0); gl_Position = vec4(0.0); return; }
+      } else {
+        if (local_time <= 0.0001 || local_time < spawn_delay) { instance_color = vec4(0.0); gl_Position = vec4(0.0); return; }
+        new_time = local_time - spawn_delay;
+        time_mod = mod(new_time, cycle) - respawn_time;
+      }
+    } else {
+      float local_time = time - loop_enabled_time;
+      if (local_time < 0.0 || local_time < spawn_delay) { instance_color = vec4(0.0); gl_Position = vec4(0.0); return; }
+      new_time = local_time - spawn_delay;
+      if (new_time > particle_alive_time) { instance_color = vec4(0.0); gl_Position = vec4(0.0); return; }
+      time_mod = new_time;
+    }
+
+    if (time_mod < 0.0) { instance_color = vec4(0.0); gl_Position = vec4(0.0); return; }
+
+    t = clamp(time_mod / particle_alive_time, 0.0, 1.0);
+    vec2 start_spread = p.spawn_spread0.zw;
+    vec2 end_spread = p.spread1_jitter.xy;
+    vec2 spread_max = mix(start_spread, end_spread, t);
+
+    if (int(p.position_shape.w) == 1) {
+      base_pos.x += (rand_f(parent_id * 7919u) - 0.5) * spread_max.x;
+      base_pos.y += (rand_f(parent_id * 7919u + 1u) - 0.5) * spread_max.y;
+    } else {
+      float ang = rand_f(parent_id * 7919u) * 6.28318530718;
+      float r = rand_f(parent_id * 7919u + 1u);
+      base_pos += vec2(cos(ang) * spread_max.x * r, sin(ang) * spread_max.y * r);
+    }
+
+    vec2 avg_vel_mag = p.velocity.xy + (p.velocity.zw - p.velocity.xy) * 0.5 * t;
+    avg_vel_mag *= 1.0 + (rand_f(seed + 31u) - 0.5) * 2.0 * p.motion_random.x;
+    float spread = mix(p.angle_velocity0.w, p.angle_velocity1.w, rand_f(seed + 2u));
+    vec2 avg_velocity = vec2(
+      avg_vel_mag.x * cos(spread) - avg_vel_mag.y * sin(spread),
+      avg_vel_mag.x * sin(spread) + avg_vel_mag.y * cos(spread)
+    );
+    base_pos += avg_velocity * pow(time_mod, p.count_life.w);
+    base_pos += p.gravity.xy * (0.5 * time_mod * time_mod);
+
+    vec2 jitter_amount = mix(p.jitter_random_size.xy, p.jitter_random_size.zw, t);
+    float jitter_speed = p.spread1_jitter.z;
+    base_pos += vec2(
+      sin(time_mod * jitter_speed + float(seed)) * jitter_amount.x,
+      cos(time_mod * jitter_speed + float(seed)) * jitter_amount.y
+    );
+
+    size = mix(p.size.xy, p.size.zw, t);
+    if (p.angle_random.w > 0.0) {
+      float size_rand = rand_f(seed * 2u);
+      size *= 1.0 + (size_rand - 0.5) * p.angle_random.w * 2.0;
+    }
+    color = vary_color(mix(p.color0, p.color1, t), seed, p.color_random);
+    if (p.color_random.x <= 1.0) {
+      color.a *= smoothstep(0.0, 0.08, t);
+    }
   }
 
   vec3 angle_vel = mix(p.angle_velocity0.xyz, p.angle_velocity1.xyz, t);
   vec3 total_angle = p.angle.xyz + time_mod * angle_vel;
   if (length(p.angle_random.xyz) > 0.0) {
-    vec3 rand_angle = vec3(rand_f(pseed * 13u), rand_f(pseed * 17u), rand_f(pseed * 19u));
+    vec3 rand_angle = vec3(rand_f(seed * 13u), rand_f(seed * 17u), rand_f(seed * 19u));
     total_angle += (rand_angle - 0.5) * p.angle_random.xyz * 2.0;
   }
 
@@ -188,14 +288,6 @@ void main() {
   vec2 world_pos = origin + offset + v.xy;
   gl_Position = pv[constants.camera_id].projection * pv[constants.camera_id].view * vec4(world_pos, p.position_shape.z + v.z, 1.0);
   gl_Position.z += (float(particle_id) / float(count)) * 0.0001;
-
-  vec4 color = mix(p.color0, p.color1, t);
-  float fade_in = smoothstep(0.0, 0.08, t);
-  color.a *= fade_in;
-  if (length(p.color_random) > 0.0) {
-    vec4 rand_color = vec4(rand_f(pseed * 3u), rand_f(pseed * 5u), rand_f(pseed * 7u), rand_f(pseed * 11u));
-    color = clamp(color + (rand_color - 0.5) * p.color_random * 2.0, 0.0, 1.0);
-  }
 
   instance_color = color;
   texture_coordinate = tc[vertex_id];

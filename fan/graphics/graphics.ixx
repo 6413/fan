@@ -697,6 +697,7 @@ export namespace fan::graphics {
 
   struct trail_segment_t {
     fan::graphics::polygon_t polygon;
+    std::vector<fan::vec3> points;
     std::vector<fan::graphics::vertex_t> vertices;
     std::uint64_t creation_time;
     f32_t base_alpha;
@@ -714,6 +715,7 @@ export namespace fan::graphics {
     f32_t thickness = 2.f;
     std::uint64_t fade_duration = 2e9;
     std::uint64_t max_trail_lifetime = 5e9;
+    bool persistent = false;
     fan::graphics::update_callback_nr_t update_callback_nr;
   };
 
@@ -1059,10 +1061,16 @@ export namespace fan::graphics {
         }
         auto& ri = *(typename shape_type_t::ri_t*)data;
         f32_t current_time = f32_t(f64_t(fan::time::now() - ri.begin_time) / 1e9);
+        f32_t max_alive_time = ri.alive_time * (1.f + std::abs(ri.lifetime_random));
+        f32_t cycle = std::max(0.f, ri.alive_time + ri.respawn_time);
+        f32_t emitter_lifetime = max_alive_time + cycle;
+        if constexpr (requires { ri.nested_trail; }) {
+          emitter_lifetime += std::max(0.f, ri.nested_trail.z);
+        }
 
         if (ri.loop) {
           if (ri.loop_disabled_time > 0) {
-            if (current_time > ri.loop_disabled_time + ri.alive_time + 0.033f) {
+            if (current_time > ri.loop_disabled_time + emitter_lifetime + 0.033f) {
               emitters[i].erase();
               std::swap(emitters[i], emitters.back());
               emitters.pop_back();
@@ -1071,7 +1079,7 @@ export namespace fan::graphics {
             }
           } else {
             f32_t elapsed = current_time - ri.loop_enabled_time;
-            if (elapsed > ri.alive_time + 0.033f) {
+            if (elapsed > emitter_lifetime + 0.033f) {
               ri.loop_disabled_time = ri.loop_enabled_time + ri.alive_time;
               ++i;
             } else {
@@ -1080,7 +1088,7 @@ export namespace fan::graphics {
           }
         } else {
           f32_t elapsed = current_time - ri.loop_enabled_time;
-          if (elapsed > ri.alive_time + 0.033f) {
+          if (elapsed > emitter_lifetime + 0.033f) {
             emitters[i].erase();
             std::swap(emitters[i], emitters.back());
             emitters.pop_back();
@@ -1357,6 +1365,7 @@ export namespace fan::graphics {
       fan::color c = t.shape.get_color();
       c.a = frac * 0.8f;
       t.shape.set_color(c);
+      t.shape.set_outline_color(c);
 
       return true;
     }
@@ -1374,6 +1383,7 @@ export namespace fan::graphics {
       shape.set_position(fan::vec3(pos, z));
       shape.set_radius(radius);
       shape.set_color(tc);
+      shape.set_outline_color(tc);
     },
       [&](fan::graphics::trail_particle_t& s) {
       s.pos = pos;
