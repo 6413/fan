@@ -1157,6 +1157,11 @@ export namespace fan::graphics {
 
         fan::vec2 start_velocity;
         fan::vec2 end_velocity;
+        fan::vec2 gravity;
+        f32_t velocity_random = 0;
+        f32_t lifetime_random = 0;
+        // x: samples per parent, y: sample interval, z: sample lifetime, w: sample gravity.
+        fan::vec4 nested_trail = 0;
 
         fan::vec3 start_angle_velocity;
         fan::vec3 end_angle_velocity;
@@ -1209,6 +1214,10 @@ export namespace fan::graphics {
 
         fan::vec2 start_velocity = 130;
         fan::vec2 end_velocity = 130;
+        fan::vec2 gravity = 0;
+        f32_t velocity_random = 0;
+        f32_t lifetime_random = 0;
+        fan::vec4 nested_trail = 0;
 
         fan::vec3 start_angle_velocity = fan::vec3(0);
         fan::vec3 end_angle_velocity = fan::vec3(0);

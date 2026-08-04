@@ -7,6 +7,7 @@ static constexpr int get_shape_category(std::uint16_t sti) {
   case fan::graphics::shapes::shape_type_t::gradient:
   case fan::graphics::shapes::shape_type_t::grid:
   case fan::graphics::shapes::shape_type_t::circle:
+  case fan::graphics::shapes::shape_type_t::polygon:
   case fan::graphics::shapes::shape_type_t::rectangle:
   #if defined(FAN_3D)
   case fan::graphics::shapes::shape_type_t::rectangle3d:
@@ -333,6 +334,10 @@ static bool generic_get_visible(const fan::graphics::shapes::shape_t* s) {
       result = props.visible;
     }
   });
+  if constexpr (std::is_same_v<shape_type, fan::graphics::shapes::polygon_t>) {
+    auto* key_pack = fan::graphics::g_shapes->shaper.GetKeys(s->get_visual_id());
+    result = shaper_get_key_safe(visible_t, common_t, visible);
+  }
   return result;
 }
 

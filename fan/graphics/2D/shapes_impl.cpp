@@ -1213,6 +1213,10 @@ namespace fan::graphics{
 
       ri.start_velocity = properties.start_velocity;
       ri.end_velocity = properties.end_velocity;
+      ri.gravity = properties.gravity;
+      ri.velocity_random = properties.velocity_random;
+      ri.lifetime_random = properties.lifetime_random;
+      ri.nested_trail = properties.nested_trail;
 
       ri.start_angle_velocity = properties.start_angle_velocity;
       ri.end_angle_velocity = properties.end_angle_velocity;
