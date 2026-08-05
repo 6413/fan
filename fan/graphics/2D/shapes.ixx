@@ -190,6 +190,14 @@ export namespace fan::graphics {
     const std::vector<int>& frames = {}
   );
 
+  fan::graphics::sprite_sheet_t create_sprite_sheet_frames(
+    const std::string& name,
+    const std::string& directory,
+    int fps = 10,
+    bool loop = true,
+    const std::string& extension = ".png"
+  );
+
 #if defined(FAN_JSON)
   fan::json sprite_sheet_serialize();
   bool sprite_sheets_parse(std::string_view json_path, fan::json& json, const std::source_location& callers_path = std::source_location::current());
@@ -353,6 +361,7 @@ export namespace fan::graphics {
       void set_x(f32_t x);
       void set_y(f32_t y);
       void set_z(f32_t z);
+      void set_depth(f32_t depth);
       fan::vec3 get_position() const;
       f32_t get_x() const;
       f32_t get_y() const;

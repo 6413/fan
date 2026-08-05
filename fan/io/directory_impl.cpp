@@ -19,6 +19,32 @@ void fan::io::create_directory(const std::string& folders) {
   std::filesystem::create_directories(folders);
 }
 bool fan::io::iterate_sort_t::comp_cb(const iterate_sort_t& a, const iterate_sort_t& b) { return a.area > b.area; }
+namespace {
+  bool natural_less(const std::string& a, const std::string& b) {
+    std::size_t i = 0, j = 0;
+    while (i < a.size() && j < b.size()) {
+      if (std::isdigit((unsigned char)a[i]) && std::isdigit((unsigned char)b[j])) {
+        std::size_t ai = i + 1, bj = j + 1;
+        while (ai < a.size() && std::isdigit((unsigned char)a[ai])) ++ai;
+        while (bj < b.size() && std::isdigit((unsigned char)b[bj])) ++bj;
+        while (ai - i > 1 && a[i] == '0') ++i;
+        while (bj - j > 1 && b[j] == '0') ++j;
+        if (ai - i != bj - j) return ai - i < bj - j;
+        for (std::size_t k = 0; k < ai - i; ++k) {
+          if (a[i + k] != b[j + k]) return a[i + k] < b[j + k];
+        }
+        i = ai; j = bj;
+      }
+      else {
+        char ca = std::tolower((unsigned char)a[i]);
+        char cb = std::tolower((unsigned char)b[j]);
+        if (ca != cb) return ca < cb;
+        ++i; ++j;
+      }
+    }
+    return a.size() < b.size();
+  }
+}
 void fan::io::handle_string_out(std::string& str) {
   return std::replace(str.begin(), str.end(), '\\', '/');
 }
@@ -91,13 +117,7 @@ void fan::io::iterate_directory_sorted_by_name(
     std::sort(entries.begin(), entries.end(),
       [](const std::filesystem::directory_entry& a, const std::filesystem::directory_entry& b) -> bool {
         if (a.is_directory() == b.is_directory()) {
-          std::string a_stem = a.path().stem().string();
-          std::string b_stem = b.path().stem().string();
-          std::transform(a_stem.begin(), a_stem.end(), a_stem.begin(),
-            [](unsigned char c) { return std::tolower(c); });
-          std::transform(b_stem.begin(), b_stem.end(), b_stem.begin(),
-            [](unsigned char c) { return std::tolower(c); });
-          return a_stem < b_stem;
+          return natural_less(a.path().generic_string(), b.path().generic_string());
         }
         return a.is_directory();
       }

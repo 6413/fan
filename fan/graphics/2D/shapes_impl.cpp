@@ -21,6 +21,7 @@ import fan.graphics.image_load;
 import fan.graphics.culling;
 import fan.random;
 import fan.io.file;
+import fan.io.directory;
 import fan.math.intersection;
 
 #if defined(FAN_GUI)
@@ -530,6 +531,30 @@ namespace fan::graphics {
       sheet.selected_frames = frames;
     }
 
+    return sheet;
+  }
+
+  fan::graphics::sprite_sheet_t create_sprite_sheet_frames(
+    const std::string& name,
+    const std::string& directory,
+    int fps,
+    bool loop,
+    const std::string& extension
+  ) {
+    std::vector<std::string> paths;
+    fan::io::iterate_directory_sorted_by_name(
+      fan::io::file::find_relative_path(directory),
+      [&](const std::filesystem::directory_entry& entry) {
+        if (entry.is_regular_file()
+          && (extension.empty() || entry.path().extension() == extension)) {
+          paths.push_back(entry.path().string());
+        }
+      }
+    );
+
+    std::vector<fan::graphics::image_t> frames(paths.begin(), paths.end());
+    auto sheet = fan::graphics::sprite_sheet_t(name, fps, frames);
+    sheet.loop = loop;
     return sheet;
   }
 
@@ -1598,6 +1623,10 @@ namespace fan::graphics{
 
   void shapes::shape_t::set_z(f32_t z) {
     set_position(fan::vec3(get_position().x, get_position().y, z));
+  }
+
+  void shapes::shape_t::set_depth(f32_t depth) {
+    set_z(depth);
   }
 
   fan::vec3 shapes::shape_t::get_position() const {

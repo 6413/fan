@@ -185,6 +185,16 @@ namespace fan::graphics {
       .image = image
     }) {}
 
+  sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, const fan::graphics::sprite_sheet_t& sprite_sheet, render_view_t* render_view)
+    : sprite_t(sprite_properties_t {
+      .render_view = render_view,
+      .position = position,
+      .size = size,
+      .image = sprite_sheet.images.empty() ? image_t(fan::graphics::ctx().default_texture) : sprite_sheet.images.front().image
+    }) {
+    add_sprite_sheet(sprite_sheet);
+  }
+
   sprite_t::sprite_t(const fan::vec3& position, const fan::vec2& size, fan::vec3 angle, const fan::graphics::image_t& image, render_view_t* render_view)
     : sprite_t(sprite_properties_t {
       .render_view = render_view,
