@@ -134,10 +134,14 @@ namespace fan::graphics {
     }
   }
 
-  sprite_sheet_t::sprite_sheet_t(const std::string& name, int fps, const std::vector<fan::graphics::image_t>& frame_images) {
+  sprite_sheet_t::sprite_sheet_t(const std::string& name, int fps, const std::vector<fan::graphics::image_t>& frame_images)
+    : sprite_sheet_t(name, fps, std::span<const fan::graphics::image_t>(frame_images)) {}
+
+  sprite_sheet_t::sprite_sheet_t(const std::string& name, int fps, std::span<const fan::graphics::image_t> frame_images) {
     this->name = name;
     this->fps = fps;
     this->loop = true;
+    this->images.reserve(frame_images.size());
     for (std::size_t i = 0; i < frame_images.size(); ++i) {
       sprite_sheet_t::image_t frame;
       frame.image = frame_images[i];

@@ -17,12 +17,12 @@ struct shaders_t {
   fan::graphics::shader_t gradient;
   fan::graphics::shader_t particles;
   fan::graphics::shader_t shader_shape;
+  fan::graphics::shader_t clouds;
 #if defined(LOCO_FRAMEBUFFER)
   fan::graphics::shader_t downsample;
   fan::graphics::shader_t final;
   fan::graphics::shader_t reflection;
   fan::graphics::shader_t upsample;
-  fan::graphics::shader_t clouds;
 #endif
   // misc
   fan::graphics::shader_t empty_shader;

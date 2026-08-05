@@ -1007,6 +1007,7 @@ void shaders_compile_preload() {
   C(universal_image_renderer);
   C(gradient);
   C(shader_shape);
+  preload(sh.clouds, "shaders/vulkan/2D/effects/clouds.vert", "shaders/vulkan/2D/effects/clouds.frag");
   C(shadow);
 #if defined(FAN_3D)
   C(rectangle3d);
