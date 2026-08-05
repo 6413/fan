@@ -335,6 +335,7 @@ export namespace fan::graphics {
     };
     sprite_sheet_t() = default;
     sprite_sheet_t(const std::string& name, int fps, const std::vector<fan::graphics::image_t>& frame_images);
+    sprite_sheet_t(const std::string& name, int fps, std::span<const fan::graphics::image_t> frame_images);
     std::vector<int> selected_frames;
     std::vector<sprite_sheet_t::image_t> images;
     std::string name;

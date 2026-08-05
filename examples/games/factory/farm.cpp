@@ -280,8 +280,9 @@ struct farm_manager_t {
     fan::vec2i cell = grid.get_cell(engine.get_mouse_position());
     if (engine.is_mouse_down(0)) {
       for (auto& c : drag_painter.update(engine.get_mouse_position(), tile_size)) {
-        if (!get_building_at(c)) {
-          place_building_with_tween(c, selected_building);
+        fan::vec2i cell = c * tile_size;
+        if (!get_building_at(cell)) {
+          place_building_with_tween(cell, selected_building);
         }
       }
     }
