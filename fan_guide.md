@@ -275,6 +275,22 @@ sprite_t / sprite sheets:
   is_sprite_sheet_finished()        // returns true once per completion — poll every frame
   set_random_sprite_sheet_frame()   // stagger spawned units so they don't animate in sync
   // sprite sheet names must match names defined in the JSON exactly
+
+  // load every frame image from a directory as one sheet:
+  fan::graphics::sprite_sheet_t sheet = fan::graphics::create_sprite_sheet_frames(
+    "walk", "images/character/walk",  // name, folder (images sorted by filename)
+    12,                                // fps
+    true,                              // loop
+    ".png"                             // extension filter
+  );
+  sprite.add_sprite_sheet(sheet);           // register, then:
+  sprite.play_sprite_sheet("walk");         // plays the sheet by name
+  // set_random_sprite_sheet_frame() staggers spawned units so they don't animate in sync
+
+  // or build a sheet from explicit frame images:
+  sprite_sheet_t s{"run", 15, {img0, img1, img2}};
+  sprite.add_sprite_sheet(s);         // then play_sprite_sheet("run")
+
   // character2d_t JSON can define generic animation states without hardcoded animation names:
   // "animation_states": [{
   //   "name": "airborne", "animation": "jump", "condition": "airborne",
@@ -316,6 +332,50 @@ shader_shape_t:
     .position = ..., .size = ..., .shader = my_shader, .image = img
   }};
   fan::graphics::shader_update_fragment(shape_type, fragment_glsl_string)  // hot-reload
+
+  // create a custom shader from vertex/fragment files:
+  auto my_shader = fan::graphics::shader_create(
+    "shaders/vulkan/2D/effects/my.vert", "",
+    "shaders/vulkan/2D/effects/my.frag", ""
+  );  // empty code = load from the file path
+  // do NOT pass {} as code — str_view_t{} is a nullptr view (UB). use "".
+
+custom shader uniforms (reflected automatically):
+  // declare one uniform block at set 0, binding 3 — the engine reflects it
+  // (names, types, offsets) from the compiled SPIR-V at load time:
+  layout(set = 0, binding = 3) uniform u_t {
+    float u_pixel_size;        // 1200          -> default value
+    vec3  u_col_cloud;         // color 1.0 1.0 1.0  -> color editor + default
+    float u_scale_sparse;      // 2.0 min 0 max 10 step 0.1  -> clamped/snapped slider
+  } u;
+
+  // comment conventions (read from the shader source):
+  //   // <numbers>          default value(s) for the uniform
+  //   // color <r g b>      renders as a color editor (vec3/vec4 only)
+  //   // min X max Y step Z slider clamp + snap (floats)
+
+  // auto GUI panel for any shader (drags + color pickers, per reflected uniform):
+  gui::shader_uniforms(my_shader);          // call inside engine.loop
+  gui::shader_uniforms(my_shader, "My Title");  // optional window title
+
+  // read/write uniforms from code:
+  auto& sd = fan::graphics::shader_get_data(my_shader);
+  for (auto& u : sd.uniforms) {
+    // u.name, u.type, u.offset, u.size, u.array_size, u.is_color
+    // values live in sd.uniform_blob (std::vector<uint8_t>), uploaded each frame
+  }
+
+  // custom shaders need a vertex with the FULL push constant block (48 bytes),
+  // otherwise the shader link misbehaves. copy shaders/vulkan/2D/effects/sky.vert
+  // (or clouds.vert) as a starting point — do not reuse the 8-byte
+  // shaders/vulkan/2D/objects/shader_shape.vert with a custom fragment.
+
+shader GUI value persistence:
+  // console commands (F3 console):
+  save_gui_values [shader_name]   // writes reflected uniform values to gui_values.json
+  load_gui_values [shader_name]   // re-applies from gui_values.json
+  // omitted name = all shaders. values auto-restore on next boot when a shader
+  // window is opened (gui::shader_uniforms), overriding the shader's defaults.
 
 camera helpers:
   fan::graphics::camera_set_target(camera, target, move_speed)  // smooth follow
@@ -1096,6 +1156,7 @@ console commands (built-in, FAN_GUI — F3 in-game):
   set_exposure [f]             set_bloom_strength [f]
   set_clear_color [{r,g,b,a}]  set_lighting_ambient [{r,g,b}]
   show_fps [0/1]               debug_memory [0/1]
+  save_gui_values [shader]     load_gui_values [shader]   // persist/restore shader GUI values
   rectangle {x,y,z} {w,h} {r,g,b,a}   // adds static shape
   remove_shape [id]
   echo [args]  help [command]  list  quit

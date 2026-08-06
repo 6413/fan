@@ -18,6 +18,7 @@ export module fan.graphics.vulkan.core:shader_subsystem;
 
 import std;
 import :types;
+import :image;
 import :uniform_block;
 import fan.types;
 import fan.types.vector;
@@ -33,6 +34,10 @@ export namespace fan::vulkan {
     VkPipelineShaderStageCreateInfo shader_stages[3]{};
     std::vector<std::uint32_t> spirv_stages[3];
     std::uint32_t compile_generation = 0;
+
+    std::array<fan::vulkan::buffer_t, fan::vulkan::max_frames_in_flight> uniform_block{};
+    std::array<void*, fan::vulkan::max_frames_in_flight> uniform_block_mapped{};
+    bool uniform_block_valid = false;
   };
 
   struct shader_subsystem_t {

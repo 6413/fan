@@ -172,10 +172,36 @@ export namespace fan {
       void* internal;
     };
 
+    struct shader_uniform_t {
+      enum class type_e : std::uint8_t {
+        f32, vec2, vec3, vec4,
+        i32, u32,
+        f32_mat4, u32_mat4,
+        unknown
+      };
+
+      std::string name;
+      type_e type = type_e::unknown;
+      std::uint32_t offset = 0; // byte offset within the uniform block
+      std::uint32_t size = 0;   // total size in bytes
+      std::uint32_t array_size = 0; // 1 = scalar, >1 = array length
+      bool is_color = false;    // render as color editor in GUI (marked in shader comment)
+      bool has_min = false;     // GUI drag clamp (marked "min X" in shader comment)
+      f32_t min = 0.f;
+      bool has_max = false;     // GUI drag clamp (marked "max X" in shader comment)
+      f32_t max = 0.f;
+      f32_t step = 0.f;         // GUI drag snap (marked "step X"; 0 = no snap)
+    };
+
     struct shader_data_t {
       fan::ct_string<256> path_vertex, path_fragment, path_compute;
       std::string svertex, sfragment, scompute;
       std::vector<std::uint32_t> spv_vertex, spv_fragment, spv_compute;
+
+      std::vector<shader_uniform_t> uniforms; // reflected uniform block members
+      std::vector<std::uint8_t> uniform_blob; // CPU-side copy, uploaded per frame
+      std::uint32_t uniform_binding = 3;      // descriptor binding of the block
+      std::uint32_t uniform_block_size = 0;   // block size in bytes (0 = no block)
 
       void* internal;
     };
@@ -714,6 +740,7 @@ export namespace fan::graphics {
     uint32_t z
   );
   bool shader_compile(fan::graphics::shader_nr_t nr);
+  fan::graphics::shader_list_t::nd_t& shader_get_data(fan::graphics::shader_nr_t nr);
   std::string read_shader(
     std::string_view path,
     const std::source_location& callers_path = std::source_location::current()

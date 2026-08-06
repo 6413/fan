@@ -244,7 +244,7 @@ export namespace fan {
     //str_view_t(std::string&&) = delete;
 
     operator const char* () const {
-      return data();
+      return data() ? data() : "";
     }
   };
 

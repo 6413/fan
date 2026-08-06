@@ -17,26 +17,28 @@ layout(push_constant) uniform constants_t {
   vec4 lighting_ambient;
 } constants;
 
-const float u_pixel_size = 1200.0f;
-const float u_scale_sparse = 4.5f;
-const float u_cov_sparse = 0.50f;
-const float u_warp_sparse = 2.1f;
-const float u_scale_dense = 3.8f;
-const float u_cov_dense = 2.95f;
-const float u_warp_dense = 3.7f;
-const float u_dense_height = 0.45f;
-const float u_dense_puffiness = 4.3f;
-const float u_dense_variation = 0.4f;
-
-const float u_density = 4.7f;
-const float u_shadow_str = 2.5f;
-const float u_light_x = 0.0f;
-const float u_light_y = 1.0f;
-
-const vec3 u_col_sky_top = vec3(0.10f, 0.29f, 0.47f);
-const vec3 u_col_sky_bot = vec3(0.42f, 0.69f, 0.90f);
-const vec3 u_col_cloud = vec3(1.00f, 1.00f, 1.00f);
-const vec3 u_col_shadow = vec3(0.48f, 0.58f, 0.66f);
+layout(set = 0, binding = 3) uniform u_t {
+  float u_pixel_size; // 1200
+  float u_scale_sparse; // 4.5
+  float u_cov_sparse; // 0.5
+  float u_warp_sparse; // 2.1
+  float u_scale_dense; // 3.8
+  float u_cov_dense; // 0.4
+  float u_warp_dense; // 3.7
+  float u_dense_height; // 0.5
+  float u_dense_puffiness; // 2.0
+  float u_dense_variation; // 0.4
+  float u_density; // 4.7
+  float u_shadow_str; // 2.5
+  float u_light_x; // 0
+  float u_light_y; // 1
+  float u_scroll_x; // 0.01 min -1 max 1 step 0.01
+  float u_edge_smooth; // 0.15
+  vec3 u_col_sky_top; // color 0.10 0.29 0.47
+  vec3 u_col_sky_bot; // color 0.42 0.69 0.90
+  vec3 u_col_cloud; // color 1.0 1.0 1.0
+  vec3 u_col_shadow; // color 0.48 0.58 0.66
+} u;
 
 const mat2 fbm_mat = mat2(1.6, 1.2, -1.2, 1.6);
 const vec2 hash_c1 = vec2(127.1, 311.7);
@@ -74,25 +76,37 @@ float fbm(vec2 p) {
   return f;
 }
 
-float map_sparse(vec2 p, float coverage) {
+float map_sparse(vec2 p, float coverage, float soft) {
   vec2 q = vec2(fbm(p), fbm(p + vec2(5.2, 1.3)));
-  return smoothstep(1.0 - coverage, 1.0, fbm(p + q * u_warp_sparse));
+  return smoothstep(1.0 - coverage - soft, 1.0, fbm(p + q * u.u_warp_sparse));
 }
 
-float map_dense(vec2 p, float coverage) {
+float map_dense(vec2 p, float coverage, float soft) {
   vec2 q = vec2(fbm(p), fbm(p + vec2(5.2, 1.3)));
-  float d = fbm(p + q * u_warp_dense);
-  float n = smoothstep(1.0 - coverage, 1.0, d);
-  return pow(n, u_dense_puffiness);
+  float d = fbm(p + q * u.u_warp_dense);
+  float n = smoothstep(1.0 - coverage - soft, 1.0, d);
+  return pow(n, u.u_dense_puffiness);
 }
 
 float get_clouds(vec2 uv, vec2 base_p) {
-  float clump_mask = smoothstep(0.2, 0.7, fbm(base_p * 2.0 + constants.time * 0.002));
+  float ambient = clamp(constants.ambient_floor + dot(constants.lighting_ambient.rgb, vec3(0.299, 0.587, 0.114)), 0.0, 1.0);
+  float soft = u.u_edge_smooth * (0.5 + 0.5 * ambient);
+  float clump_mask = smoothstep(0.2 - soft, 0.7, fbm(base_p * 2.0 + constants.time * 0.002));
+  float h = clamp(u.u_dense_height, 0.0, 1.0);
+  float hv = max(u.u_dense_variation, 0.001);
+  float height_mask = 1.0 - smoothstep(h, h + hv, base_p.y);
 
-  if (clump_mask > 0.001) {
-    vec2 p1 = base_p * u_scale_sparse * vec2(1.0, 3.0);
+  if (clump_mask > 0.001 && height_mask > 0.001) {
+    vec2 p1 = base_p * u.u_scale_sparse * vec2(1.0, 3.0);
     p1.x += constants.time * 0.005;
-    return map_sparse(p1, u_cov_sparse) * clump_mask * 0.7;
+    float d = map_sparse(p1, u.u_cov_sparse, soft) * clump_mask * 0.7;
+
+    vec2 p2 = base_p * u.u_scale_dense * vec2(1.0, 2.0);
+    p2.x += constants.time * 0.01;
+    float dense = map_dense(p2, u.u_cov_dense, soft);
+    d += dense * clump_mask * 0.12;
+
+    return d * height_mask;
   }
 
   return 0.0;
@@ -100,27 +114,35 @@ float get_clouds(vec2 uv, vec2 base_p) {
 
 void main() {
   vec2 uv = texture_coordinate;
-  uv = floor(uv * u_pixel_size) / u_pixel_size;
+  uv = floor(uv * u.u_pixel_size) / u.u_pixel_size;
 
   vec2 aspect = object_size / object_size.y;
   vec2 base_p = uv * aspect;
+  base_p.x += u.u_scroll_x * constants.time;
   float d = get_clouds(uv, base_p);
 
   if (d <= 0.001) {
-    o_attachment0 = vec4(u_col_cloud * instance_color.rgb, 0.0);
+    o_attachment0 = vec4(u.u_col_cloud * instance_color.rgb, 0.0);
     return;
   }
 
-  vec2 l_dir_offset = normalize(vec2(u_light_x, u_light_y)) * 0.05;
+  vec2 l_dir = vec2(u.u_light_x, u.u_light_y);
+  if (dot(l_dir, l_dir) < 0.0001) { l_dir = vec2(0.0, 1.0); }
+  vec2 l_dir_offset = normalize(l_dir) * 0.05;
   float d_light = get_clouds(uv + l_dir_offset, base_p + l_dir_offset);
 
-  float shadow = clamp((d_light - d) * u_shadow_str, 0.0, 1.0);
+  float shadow = clamp((d_light - d) * u.u_shadow_str, 0.0, 1.0);
   float scatter = smoothstep(0.0, 0.2, d - d_light);
 
-  vec3 cloud = mix(u_col_cloud, u_col_shadow, shadow);
-  cloud = mix(cloud, u_col_cloud, scatter);
+  float ambient = clamp(constants.ambient_floor + dot(constants.lighting_ambient.rgb, vec3(0.299, 0.587, 0.114)), 0.0, 1.0);
+  vec3 sky_col = mix(u.u_col_sky_bot, u.u_col_sky_top, clamp(base_p.y, 0.0, 1.0));
 
-  float alpha = 1.0 - exp(-d * u_density);
+  vec3 cloud = mix(u.u_col_cloud, u.u_col_shadow, shadow);
+  cloud = mix(cloud, u.u_col_cloud, scatter);
+  cloud = mix(cloud, sky_col, 0.2 * ambient);
+
+  float edge_ramp = smoothstep(0.0, 0.15 + u.u_edge_smooth * 0.85, d);
+  float alpha = (1.0 - exp(-d * u.u_density * 0.5)) * edge_ramp;
 
   o_attachment0 = vec4(cloud * instance_color.rgb, alpha);
 }
