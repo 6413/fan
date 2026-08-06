@@ -754,10 +754,6 @@ fan::graphics::image_nr_t fan::vulkan::context_t::image_load(fan::str_view_t pat
 
   fan::image::info_t image_info;
   if (fan::image::load(path, &image_info, 0, callers_path)) {
-    {
-      std::ofstream _p("drop_probe.txt", std::ios::app);
-      _p << "  image_load FAILED path=" << path << "\n";
-    }
     return create_missing_texture();
   }
   fan::graphics::image_nr_t nr = image_load(image_info, p);
