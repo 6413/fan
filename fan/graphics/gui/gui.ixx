@@ -134,6 +134,18 @@ export namespace fan::graphics::gui {
   bool toggle_image_button(fan::str_view_t char_id, fan::graphics::image_t image, const fan::vec2& size, bool* toggle);
   bool toggle_image_button(image_t* images, std::uint32_t count, const fan::vec2& size, int* selectedIndex);
 
+  bool shader_uniforms(
+    fan::graphics::shader_nr_t shader,
+    const char* window_name = nullptr,
+    bool* p_open = nullptr,
+    window_flags_t window_flags = 0
+  );
+
+  // saves/loads reflected shader uniform values to/from gui_values.json
+  // filter = shader name (path basename); empty = all shaders
+  void save_shader_gui_values(const char* filter = nullptr);
+  void load_shader_gui_values(const char* filter = nullptr);
+
   // untested
   void image_rotated(
     fan::graphics::image_t image,

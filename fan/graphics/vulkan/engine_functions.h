@@ -30,6 +30,7 @@ struct shape_shader_pipeline_t {
   std::uint8_t draw_mode;
   std::uint32_t generation = 0;
   fan::vulkan::context_t::pipeline_t pipeline;
+  std::unique_ptr<VkDescriptorSet[]> shader_descriptor_sets;
 };
 
 std::vector<shape_shader_pipeline_t> shape_shader_pipelines;
@@ -37,6 +38,7 @@ std::vector<shape_shader_pipeline_t> shape_shader_pipelines;
 struct deferred_shape_pipeline_destroy_t {
   VkShaderEXT shaders[2] = { VK_NULL_HANDLE, VK_NULL_HANDLE };
   VkPipelineLayout layout = VK_NULL_HANDLE;
+  VkDescriptorSet descriptor_sets[2] = { VK_NULL_HANDLE, VK_NULL_HANDLE };
   std::uint32_t frames_left = 0;
 };
 
@@ -160,15 +162,22 @@ void defer_close_shape_pipeline(fan::vulkan::context_t::pipeline_t& pipeline) {
     return;
   }
 
+  VkDescriptorSet desc_sets[2] = { VK_NULL_HANDLE, VK_NULL_HANDLE };
+  if (pipeline.shader_descriptor_sets) {
+    desc_sets[0] = pipeline.shader_descriptor_sets[0];
+    desc_sets[1] = pipeline.shader_descriptor_sets[1];
+  }
   deferred_shape_pipeline_destroys.push_back({
     .shaders = { pipeline.m_shaders[0], pipeline.m_shaders[1] },
     .layout = pipeline.m_layout,
+    .descriptor_sets = { desc_sets[0], desc_sets[1] },
     .frames_left = fan::vulkan::max_frames_in_flight
   });
 
   pipeline.m_shaders[0] = VK_NULL_HANDLE;
   pipeline.m_shaders[1] = VK_NULL_HANDLE;
   pipeline.m_layout = VK_NULL_HANDLE;
+  pipeline.shader_descriptor_sets = nullptr;
 }
 
 void flush_deferred_shape_pipeline_destroys(bool force = false) {
@@ -180,6 +189,14 @@ void flush_deferred_shape_pipeline_destroys(bool force = false) {
     }
 
     destroy_shape_pipeline_handles(it->shaders, it->layout);
+    if (it->descriptor_sets[0] != VK_NULL_HANDLE) {
+      vkFreeDescriptorSets(
+        loco.context.vk.device,
+        loco.context.vk.descriptor_pool.m_descriptor_pool,
+        2,
+        it->descriptor_sets
+      );
+    }
     it = deferred_shape_pipeline_destroys.erase(it);
   }
 }
@@ -235,16 +252,24 @@ fan::vulkan::context_t::pipeline_t& get_shape_shader_pipeline(
   pipe_p.enable_depth_test = false;
   pipe_p.shape_type = (VkPrimitiveTopology)fan::graphics::get_draw_mode(draw_mode);
   item.pipeline.open(loco.context.vk, pipe_p);
+  if (vk_data.shape_data.m_descriptor.m_layout != VK_NULL_HANDLE) {
+    item.shader_descriptor_sets = std::make_unique<VkDescriptorSet[]>(fan::vulkan::max_frames_in_flight);
+    std::array<VkDescriptorSetLayout, fan::vulkan::max_frames_in_flight> layouts;
+    layouts.fill(vk_data.shape_data.m_descriptor.m_layout);
+    VkDescriptorSetAllocateInfo alloc_info{};
+    alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    alloc_info.descriptorPool = loco.context.vk.descriptor_pool.m_descriptor_pool;
+    alloc_info.descriptorSetCount = (std::uint32_t)layouts.size();
+    alloc_info.pSetLayouts = layouts.data();
+    fan::vulkan::validate(vkAllocateDescriptorSets(loco.context.vk.device, &alloc_info, item.shader_descriptor_sets.get()));
+    item.pipeline.shader_descriptor_sets = item.shader_descriptor_sets.get();
+  }
   return item.pipeline;
 }
 
 VkFormat get_bloom_format() {
   return VK_FORMAT_R16G16B16A16_SFLOAT;
 }
-
-
-
-
 
 fan::vulkan::write_descriptor_set_t make_sampler_descriptor(std::uint32_t binding, VkShaderStageFlags stage = VK_SHADER_STAGE_FRAGMENT_BIT) {
   fan::vulkan::write_descriptor_set_t d{};
@@ -1425,26 +1450,47 @@ void shapes_draw() {
       shape_type == fan::graphics::shapes::shape_type_t::universal_image_renderer ||
       shape_shader_nr.gint() != default_shader_nr.gint();
     auto& pipeline = use_shader_pipeline ? get_shape_shader_pipeline(shape_type, shape_shader_nr, draw_mode) : vk_data.pipeline;
+    auto& shape_desc = vk_data.shape_data.m_descriptor;
+    VkDescriptorSet* dst_sets = pipeline.shader_descriptor_sets ? pipeline.shader_descriptor_sets : shape_desc.m_descriptor_set;
 
     if (shape_type == fan::graphics::shapes::shape_type_t::particles) {
-      vk_data.shape_data.m_descriptor.m_properties[0].buffer = particle_draw_buffers[context.current_frame].buffer;
+      shape_desc.m_properties[0].buffer = particle_draw_buffers[context.current_frame].buffer;
     } else if (shape_type == fan::graphics::shapes::shape_type_t::polygon) {
-      vk_data.shape_data.m_descriptor.m_properties[0].buffer = polygon_draw_buffers[context.current_frame].buffer;
+      shape_desc.m_properties[0].buffer = polygon_draw_buffers[context.current_frame].buffer;
     } else {
-      vk_data.shape_data.m_descriptor.m_properties[0].buffer =
+      shape_desc.m_properties[0].buffer =
         vk_data.shape_data.common.memory[context.current_frame].buffer;
     }
-    vk_data.shape_data.m_descriptor.m_properties[0].range = VK_WHOLE_SIZE;
-    vk_data.shape_data.m_descriptor.m_properties[1].buffer =
+    shape_desc.m_properties[0].range = VK_WHOLE_SIZE;
+    shape_desc.m_properties[1].buffer =
       shader.projection_view_block->common.memory[context.current_frame].buffer;
-    vk_data.shape_data.m_descriptor.m_properties[1].range =
+    shape_desc.m_properties[1].range =
       shader.projection_view_block->m_size;
-    vk_data.shape_data.m_descriptor.m_properties[2].image_infos = context.image_pool;
-    vk_data.shape_data.m_descriptor.update(
+    shape_desc.m_properties[2].image_infos = context.image_pool;
+    if (shader.uniform_block_valid) {
+      auto& item_data = loco.shader_get_data(shape_shader_nr);
+      if (item_data.uniform_block_size > 0 && !item_data.uniform_blob.empty()) {
+        auto mapped = (std::uint8_t*)shader.uniform_block_mapped[context.current_frame];
+        if (mapped != nullptr) {
+          std::memcpy(
+            mapped,
+            item_data.uniform_blob.data(),
+            std::min<std::uint32_t>(item_data.uniform_block_size, (std::uint32_t)item_data.uniform_blob.size())
+          );
+        }
+        if (shader.uniform_block[context.current_frame].buffer != VK_NULL_HANDLE) {
+          shape_desc.m_properties[3].buffer =
+            shader.uniform_block[context.current_frame].buffer;
+          shape_desc.m_properties[3].range = item_data.uniform_block_size;
+        }
+      }
+    }
+    shape_desc.update(
       context,
-      3,
+      dst_sets,
+      4,
       0,
-      std::min((std::uint32_t)vk_data.shape_data.m_descriptor.m_properties[2].image_infos.size(), (std::uint32_t)fan::vulkan::max_textures)
+      std::min((std::uint32_t)shape_desc.m_properties[2].image_infos.size(), (std::uint32_t)fan::vulkan::max_textures)
     );
 
     set_viewport();
@@ -1480,7 +1526,7 @@ void shapes_draw() {
       pipeline.m_layout,
       0,
       1,
-      &vk_data.shape_data.m_descriptor.m_descriptor_set[context.current_frame],
+      &dst_sets[context.current_frame],
       0,
       nullptr
     );
@@ -1758,6 +1804,12 @@ void shapes_draw() {
       pc.camera_id = camera_id;
       pc.time = (f32_t)(fan::time::now() / 1e9);
       pc.texture_id = texture_id(texture);
+      {
+        std::ofstream _p("drop_probe.txt", std::ios::app);
+        _p << "particles draw tex=" << (unsigned)pc.texture_id
+           << " pool_size=" << context.image_pool.size()
+           << " pool_view=" << (void*)(pc.texture_id < context.image_pool.size() ? context.image_pool[pc.texture_id].imageView : nullptr) << "\n";
+      }
       push(pipeline, pc);
       do {
         auto* pri = (fan::graphics::shapes::particles_t::ri_t*)BlockTraverse.GetData(shaper);

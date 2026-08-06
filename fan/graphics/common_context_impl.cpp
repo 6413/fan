@@ -18,6 +18,12 @@ import fan.print;
 import fan.math;
 
 namespace fan::graphics {
+  // str_view_t default-constructs with a null data pointer; converting it to
+  // std::string directly is UB, so guard all conversions through here.
+  std::string str_view_to_string(fan::str_view_t v) {
+    return v.data() ? std::string(v) : std::string();
+  }
+
   void lighting_t::set_target(const fan::vec3& t, f32_t d) {
     start = ambient;
     target = t;
@@ -619,8 +625,8 @@ namespace fan::graphics {
     const fan::str_view_t fragment) 
   {
     fan::graphics::shader_t shader = ctx()->shader_create(ctx());
-    ctx()->shader_set_vertex(ctx(), shader, vertex_file_path, std::string(vertex));
-    ctx()->shader_set_fragment(ctx(), shader, fragment_file_path, std::string(fragment));
+    ctx()->shader_set_vertex(ctx(), shader, vertex_file_path, str_view_to_string(vertex));
+    ctx()->shader_set_fragment(ctx(), shader, fragment_file_path, str_view_to_string(fragment));
     if (!ctx()->shader_compile(ctx(), shader)) {
       ctx()->shader_erase(ctx(), shader);
       shader.sic();
@@ -686,6 +692,10 @@ namespace fan::graphics {
 
   bool shader_compile(fan::graphics::shader_nr_t nr) {
     return fan::graphics::ctx()->shader_compile(fan::graphics::ctx(), nr);
+  }
+
+  fan::graphics::shader_list_t::nd_t& shader_get_data(fan::graphics::shader_nr_t nr) {
+    return (*fan::graphics::ctx().shader_list)[nr];
   }
 
   fan::graphics::shader_t get_sprite_shader(const std::string_view fragment_file_path, const fan::str_view_t fragment) {

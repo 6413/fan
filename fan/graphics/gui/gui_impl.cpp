@@ -109,6 +109,182 @@ namespace fan::graphics::gui {
     return clicked;
   }
 
+  namespace {
+    std::string shader_gui_key(const fan::graphics::shader_data_t& sd) {
+      std::string_view path = sd.path_fragment;
+      if (path.empty()) { return {}; }
+      std::size_t slash = path.find_last_of("/\\");
+      return slash == std::string::npos ? std::string(path) : std::string(path.substr(slash + 1));
+    }
+
+    template <typename fn_t>
+    void for_each_shader(fn_t&& fn) {
+      auto* list = fan::graphics::ctx().shader_list;
+      if (list == nullptr) { return; }
+      typename fan::graphics::shader_list_t::nrtra_t nrtra;
+      typename fan::graphics::shader_list_t::nr_t nr;
+      nrtra.Open(list, &nr);
+      while (nrtra.Loop(list, &nr)) {
+        fn((*list)[nr]);
+      }
+      nrtra.Close(list);
+    }
+
+    bool gui_commands_registered = false;
+
+    void ensure_gui_commands() {
+      if (gui_commands_registered) { return; }
+      gui_commands_registered = true;
+      auto* console = fan::graphics::ctx().console;
+      if (console == nullptr) { return; }
+      auto& commands = ((fan::console_t*)console)->commands;
+
+      commands.add("save_gui_values", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+        if (args.size() > 1) { self->print_invalid_arg_count(); return; }
+        save_shader_gui_values(args.empty() ? nullptr : args[0].c_str());
+        self->println_colored("Saved shader GUI values to gui_values.json", fan::colors::green);
+      }).description = "Saves reflected shader GUI values to gui_values.json - usage: save_gui_values [shader_name]";
+
+      commands.add("load_gui_values", [](fan::console_t* self, const fan::commands_t::arg_t& args) {
+        if (args.size() > 1) { self->print_invalid_arg_count(); return; }
+        load_shader_gui_values(args.empty() ? nullptr : args[0].c_str());
+        self->println_colored("Loaded shader GUI values from gui_values.json", fan::colors::green);
+      }).description = "Loads shader GUI values from gui_values.json - usage: load_gui_values [shader_name]";
+    }
+  }
+
+  void save_shader_gui_values(const char* filter) {
+    ensure_gui_commands();
+    auto* list = fan::graphics::ctx().shader_list;
+    if (list == nullptr) { return; }
+
+    fan::json j = fan::json::object();
+    for_each_shader([&](auto& sd) {
+      std::string key = shader_gui_key(sd);
+      if (key.empty() || sd.uniforms.empty() || sd.uniform_blob.empty()) { return; }
+      if (filter != nullptr && *filter != '\0' && key != filter) { return; }
+
+      fan::json u_obj = fan::json::object();
+      for (auto& u : sd.uniforms) {
+        fan::json arr = fan::json::array();
+        for (std::uint32_t k = 0; k < u.size / 4; ++k) {
+          f32_t v;
+          std::memcpy(&v, sd.uniform_blob.data() + u.offset + k * 4, 4);
+          arr.push_back(v);
+        }
+        u_obj.set(u.name.c_str(), arr);
+      }
+      j.set(key.c_str(), u_obj);
+    });
+
+    if (j.empty()) { return; }
+    fan::io::file::write("gui_values.json", j.dump(2), std::ios_base::binary);
+  }
+
+  void load_shader_gui_values(const char* filter) {
+    ensure_gui_commands();
+    fan::json j;
+    try { j = fan::json::load_file("gui_values.json"); }
+    catch (...) { return; }
+    if (!j.is_object()) { return; }
+
+    auto* list = fan::graphics::ctx().shader_list;
+    if (list == nullptr) { return; }
+    for_each_shader([&](auto& sd) {
+      std::string key = shader_gui_key(sd);
+      if (key.empty() || sd.uniforms.empty() || sd.uniform_blob.empty()) { return; }
+      if (filter != nullptr && *filter != '\0' && key != filter) { return; }
+      if (!j.contains(key)) { return; }
+
+      const auto& u_obj = j[key];
+      if (!u_obj.is_object()) { return; }
+      for (auto it = u_obj.begin(); it != u_obj.end(); ++it) {
+        const fan::json& arr = it.value();
+        if (!arr.is_array()) { continue; }
+        for (auto& u : sd.uniforms) {
+          if (u.name != it.key()) { continue; }
+          std::uint32_t count = std::min<std::uint32_t>(u.size / 4, (std::uint32_t)arr.size());
+          for (std::uint32_t k = 0; k < count; ++k) {
+            if (!arr[(std::size_t)k].is_number()) { continue; }
+            f32_t v = arr[(std::size_t)k].get<f32_t>();
+            std::memcpy(sd.uniform_blob.data() + u.offset + k * 4, &v, 4);
+          }
+          break;
+        }
+      }
+    });
+  }
+
+  bool shader_uniforms(fan::graphics::shader_nr_t shader, const char* window_name, bool* p_open, window_flags_t window_flags) {
+    ensure_gui_commands();
+    auto& sd = fan::graphics::shader_get_data(shader);
+    if (sd.uniforms.empty()) { return false; }
+
+    // restore saved values once per shader (next reboot picks up the saved state)
+    static std::vector<std::string> restored_keys;
+    std::string restore_key = shader_gui_key(sd);
+    if (!restore_key.empty() && std::find(restored_keys.begin(), restored_keys.end(), restore_key) == restored_keys.end()) {
+      restored_keys.push_back(restore_key);
+      load_shader_gui_values(restore_key.c_str());
+    }
+
+    std::string title;
+    if (window_name != nullptr && *window_name != '\0') { title = window_name; }
+    else if (std::string_view path = sd.path_fragment; !path.empty()) {
+      title = path;
+      std::size_t slash = title.find_last_of("/\\");
+      if (slash != std::string::npos) { title.erase(0, slash + 1); }
+    }
+    else { title = "shader uniforms"; }
+
+    if (!gui::begin(title.c_str(), p_open, window_flags)) {
+      gui::end();
+      return false;
+    }
+
+    bool changed = false;
+    for (auto& u : sd.uniforms) {
+      std::uint8_t* data = sd.uniform_blob.data() + u.offset;
+      switch (u.type) {
+      case fan::graphics::shader_uniform_t::type_e::f32: {
+        f32_t vmin = u.has_min ? u.min : std::numeric_limits<f32_t>::quiet_NaN();
+        f32_t vmax = u.has_max ? u.max : std::numeric_limits<f32_t>::quiet_NaN();
+        slider_flags_t fl = (u.has_min || u.has_max) ? gui::slider_flags_always_clamp : 0;
+        if (gui::drag(u.name, reinterpret_cast<f32_t*>(data), 0.05f, vmin, vmax, fl)) {
+          changed = true;
+          if (u.step > 0.f) {
+            f32_t& v = *reinterpret_cast<f32_t*>(data);
+            v = std::round(v / u.step) * u.step;
+          }
+        }
+        break;
+      }
+      case fan::graphics::shader_uniform_t::type_e::vec2:
+        changed |= gui::drag(u.name, reinterpret_cast<fan::vec2*>(data), 0.05f);
+        break;
+      case fan::graphics::shader_uniform_t::type_e::vec3:
+        if (u.is_color) { changed |= gui::color_edit3(u.name, reinterpret_cast<fan::vec3*>(data)); }
+        else { changed |= gui::drag(u.name, reinterpret_cast<fan::vec3*>(data), 0.05f); }
+        break;
+      case fan::graphics::shader_uniform_t::type_e::vec4:
+        if (u.is_color) { changed |= gui::color_edit4(u.name, reinterpret_cast<fan::color*>(data)); }
+        else { changed |= gui::drag(u.name, reinterpret_cast<fan::vec4*>(data), 0.05f); }
+        break;
+      case fan::graphics::shader_uniform_t::type_e::i32:
+        changed |= gui::drag(u.name, reinterpret_cast<int32_t*>(data), 1.f);
+        break;
+      case fan::graphics::shader_uniform_t::type_e::u32:
+        changed |= gui::drag(u.name, reinterpret_cast<std::uint32_t*>(data), 1.f);
+        break;
+      default:
+        gui::text(u.name + " (unsupported type)");
+        break;
+      }
+    }
+    gui::end();
+    return changed;
+  }
+
   // untested
   void image_rotated(fan::graphics::image_t image, const fan::vec2& size, int angle, const fan::vec2& uv0, const fan::vec2& uv1, const fan::color& tint_col, const fan::color& border_col) {
     if (!(angle % 90 == 0)) {
@@ -1572,7 +1748,19 @@ namespace fan::graphics::gui {
     color_edit4("background color", &bg_color);
     gui::render_texture_property(particle_image_sprite, 0, "Particle texture");
     render_image_filter_property(particle_image_sprite, "Particle texture image filter");
-    particle_shape.set_image(particle_image_sprite.get_image());
+    auto editor_image = particle_image_sprite.get_image();
+    if (editor_image != particle_shape.get_image()) {
+      // reload the particle image in place (same NRI) — re-keying a particle
+      // shape erases+re-adds it in the shaper, which corrupts its key tree.
+      auto& new_data = fan::graphics::image_get_data(editor_image);
+      if (!new_data.image_path.empty()) {
+        fan::image::info_t info;
+        if (!fan::image::load(new_data.image_path, &info, 0)) {
+          fan::graphics::image_reload(particle_shape.get_image(), info);
+          fan::image::free(&info);
+        }
+      }
+    }
     shape_properties(particle_shape);
 
     #if defined(FAN_JSON)
@@ -1967,6 +2155,16 @@ namespace fan::graphics::gui {
     gui::image(current_image, fan::vec2(image_size), uv0, uv1);
     gui::receive_drag_drop_target(receive_drag_drop_target_name, [&, asset_path, index](const std::string& path) {
       auto new_image = fan::graphics::image_load((std::filesystem::path(asset_path) / path).generic_string());
+      {
+        std::ofstream _p("drop_probe.txt", std::ios::app);
+        auto& img_data = fan::graphics::image_get_data(new_image);
+        auto* vk_img = (fan::vulkan::context_t::image_t*)img_data.internal;
+        _p << "drop path=" << path << " asset=" << asset_path
+           << " loaded=" << (int)new_image.valid()
+           << " size=" << img_data.size.x << "x" << img_data.size.y
+           << " gpu_view=" << (void*)(vk_img ? vk_img->image_view : nullptr)
+           << " gpu_img=" << (void*)(vk_img ? vk_img->image_index : nullptr) << "\n";
+      }
       if (index > 0) {
         auto images = shape.get_images();
         images[index - 1] = new_image;
@@ -1974,6 +2172,11 @@ namespace fan::graphics::gui {
       }
       else {
         shape.set_image(new_image);
+      }
+      {
+        std::ofstream _p("drop_probe.txt", std::ios::app);
+        _p << "  after set: get_image=" << (int)shape.get_image().valid()
+           << " type=" << (int)shape.get_shape_type() << "\n";
       }
       shape.set_tc_position(0);
       shape.set_tc_size(1);

@@ -44,7 +44,11 @@ namespace fan::graphics {
         if (!props) { continue; }
         fan::vec3i key{x, (int)(props->position.y / block_size), z};
         if (blocks.contains(key)) { continue; }
-        blocks.try_emplace(key, fan::graphics::rectangle3d_t{*props});
+        blocks.try_emplace(key, fan::graphics::rectangle3d_t{fan::graphics::rectangle3d_properties_t{
+          .position = props->position,
+          .size = props->size,
+          .color = props->color
+        }});
       }
     }
   }

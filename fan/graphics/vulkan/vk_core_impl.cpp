@@ -109,6 +109,17 @@ void fan::vulkan::descriptor_t::update(
   std::uint32_t texture_n,
   std::uint32_t texture_begin
 ) {
+  update(context, m_descriptor_set, n, begin, texture_n, texture_begin);
+}
+
+void fan::vulkan::descriptor_t::update(
+  fan::vulkan::context_t& context,
+  VkDescriptorSet* dst_sets,
+  std::uint32_t n,
+  std::uint32_t begin,
+  std::uint32_t texture_n,
+  std::uint32_t texture_begin
+) {
   m_buffer_infos.resize(n);
   m_descriptor_writes.resize(n);
 
@@ -116,7 +127,7 @@ void fan::vulkan::descriptor_t::update(
     std::uint32_t j = begin + i;
     auto& write = m_descriptor_writes[i];
     write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    write.dstSet = m_descriptor_set[context.current_frame];
+    write.dstSet = dst_sets[context.current_frame];
     write.dstBinding = m_properties[j].dst_binding;
     write.dstArrayElement = texture_begin;
     write.descriptorType = m_properties[j].type;

@@ -217,13 +217,12 @@ static void set_image_impl(
 ) {
   if (get_shape_category(sti) == fan::graphics::shapes::kp::particles) {
     shaper_get_key_safe(image_t, particles_t, image) = image;
+    return;
   }
   if (get_shape_category(sti) == fan::graphics::shapes::kp::texture) {
     return;
   }
-  else {
-    fan::throw_error_impl("set_image: unsupported shape");
-  }
+  fan::throw_error_impl("set_image: unsupported shape");
 }
 
 static void set_image(fan::graphics::shapes::shape_t* shape, fan::graphics::image_t image) {
